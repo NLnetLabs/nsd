@@ -1,5 +1,5 @@
 /*
- * $Id: client.c,v 1.5 2003/06/16 15:13:16 erik Exp $
+ * $Id: client.c,v 1.6 2003/07/04 07:55:09 erik Exp $
  *
  * client.c -- set of DNS client routines
  *
@@ -73,16 +73,16 @@
  *	NULL if the dname was invalid
  *
  */
-const u_char *
+const uint8_t *
 uncompress (struct query *q)
 {
-	static u_char dname[MAXDOMAINLEN + 1];
+	static uint8_t dname[MAXDOMAINLEN + 1];
 
 	int i;
 
-	u_char *qptr = q->iobufptr;
-	u_char *t = dname + 1;
-	u_int16_t pointer;
+	uint8_t *qptr = q->iobufptr;
+	uint8_t *t = dname + 1;
+	uint16_t pointer;
 	int pointers = 0;
 
 	/* While not end of dname... */
@@ -137,10 +137,10 @@ uncompress (struct query *q)
 	return dname;
 }
 
-static u_int16_t *
+static uint16_t *
 rdatafromq(struct query *q, int n)
 {
-	u_int16_t *r;
+	uint16_t *r;
 
 	if(q->iobufptr + n > q->iobuf + q->iobufsz) {
 		error("truncated packed in rdata");
@@ -154,11 +154,11 @@ rdatafromq(struct query *q, int n)
 	return r;
 }
 
-static u_int16_t *
+static uint16_t *
 dnamefromq(struct query *q)
 {
-	u_int16_t *r;
-	const u_char *dname;
+	uint16_t *r;
+	const uint8_t *dname;
 
 	if((dname = uncompress(q)) == NULL) {
 		return NULL;
@@ -171,13 +171,13 @@ dnamefromq(struct query *q)
 }
 
 
-static u_int16_t **
+static uint16_t **
 newrdata(int n)
 {
-	u_int16_t **r;
+	uint16_t **r;
 
-	r = xalloc(sizeof(u_int16_t *)  * (n + 1));
-	memset(r, 0, sizeof(u_int16_t *) * (n + 1));
+	r = xalloc(sizeof(uint16_t *)  * (n + 1));
+	memset(r, 0, sizeof(uint16_t *) * (n + 1));
 	return r;
 }
 
@@ -193,11 +193,11 @@ newrdata(int n)
  *
  */
 int
-unpack(struct query *q, struct RR *rr, u_int16_t rdlength)
+unpack(struct query *q, struct RR *rr, uint16_t rdlength)
 {
 	int i;
 
-	u_char *qptr = q->iobufptr;
+	uint8_t *qptr = q->iobufptr;
 
 	switch(rr->type) {
 	case TYPE_A:
@@ -226,7 +226,7 @@ unpack(struct query *q, struct RR *rr, u_int16_t rdlength)
 		i = 0;
 		do {
 			if((rr->rdata[i++] = rdatafromq(q, *q->iobufptr + 1)) == NULL) return -1;
-			rr->rdata = xrealloc(rr->rdata, sizeof(u_int16_t *) * (i + 1));
+			rr->rdata = xrealloc(rr->rdata, sizeof(uint16_t *) * (i + 1));
 			rr->rdata[i] = NULL;
 		} while((q->iobufptr - qptr) < rdlength);
 		break;
@@ -354,7 +354,7 @@ struct RR **
 response(int s, struct query *q)
 {
 	int len, r;
-	u_int16_t tcplen, rdlength;
+	uint16_t tcplen, rdlength;
 	int n, rrsp;
 	struct RR **rrs;
 
@@ -477,10 +477,10 @@ response(int s, struct query *q)
  *
  */
 int
-query(int s, struct query *q, const u_char *dname, u_int16_t qtype, u_int16_t qclass, u_int32_t qid, int op, int aa, int rd, int tcp)
+query(int s, struct query *q, const uint8_t *dname, uint16_t qtype, uint16_t qclass, uint32_t qid, int op, int aa, int rd, int tcp)
 {
 	int len;
-	u_int16_t tcplen;
+	uint16_t tcplen;
 
 	/* Initialize the query */
 	q->iobufsz = q->maxlen = QIOBUFSZ;

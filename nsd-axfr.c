@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-axfr.c,v 1.10 2003/06/17 14:50:24 erik Exp $
+ * $Id: nsd-axfr.c,v 1.11 2003/07/04 07:55:10 erik Exp $
  *
  * nsd-axfr.c -- axfr utility for nsd(8)
  *
@@ -130,7 +130,7 @@ extern char *optarg;
 extern int optind;
 
 static int
-sane(struct query *q, u_int16_t id) {
+sane(struct query *q, uint16_t id) {
 	/* Is it an answer? */
 	if(!QR(q)) {
 		fprintf(stderr, "server returned query instead of answer\n");
@@ -181,13 +181,13 @@ main (int argc, char *argv[])
 	struct zparser *parser;
 	struct RR *rr;
 	struct RR **rrs;
-	u_char *zname;
+	uint8_t *zname;
 	char *zonefile = NULL;
 	int transfer;
 	const char *port = "53";
 	int force = 0;
-	u_int16_t id = 0;
-	u_int32_t serial = 0;
+	uint16_t id = 0;
+	uint32_t serial = 0;
 	struct addrinfo *addrinfo;
 	int family = DEFAULT_AI_FAMILY;
 	
@@ -199,11 +199,11 @@ main (int argc, char *argv[])
 	while((c = getopt(argc, argv, "46p:f:F")) != -1) {
 		switch (c) {
 		case '4':
-			family = PF_INET;
+			family = AF_INET;
 			break;
 #ifdef INET6
 		case '6':
-			family = PF_INET6;
+			family = AF_INET6;
 			break;
 #endif
 		case 'p':
@@ -245,7 +245,7 @@ main (int argc, char *argv[])
 			if((rr = zread(parser)) == NULL || rr->type != TYPE_SOA) {
 				error("missing SOA record on top of the master zone file");
 			}
-			serial = ntohl(*(u_int32_t *)(&rr->rdata[2][1]));
+			serial = ntohl(*(uint32_t *)(&rr->rdata[2][1]));
 
 			zrdatafree(rr->rdata);
 			rr->rdata = NULL;
@@ -320,7 +320,7 @@ main (int argc, char *argv[])
 		}
 
 		/* Compare serials... */
-		if(ntohl(*(u_int32_t *)(&rrs[ntohs(QDCOUNT((&q)))]->rdata[2][1]))
+		if(ntohl(*(uint32_t *)(&rrs[ntohs(QDCOUNT((&q)))]->rdata[2][1]))
 			<= serial) {
 			fprintf(stderr, "we have the same or newer serial, no transfer\n");
 			break;
@@ -359,7 +359,7 @@ main (int argc, char *argv[])
 				/* End of zone transfer? */
 				if(serial != 0 && rrs[i]->type == TYPE_SOA) {
 					transfer = 0;
-					if(ntohl(*(u_int32_t *)(&rrs[i]->rdata[2][1])) != serial) {
+					if(ntohl(*(uint32_t *)(&rrs[i]->rdata[2][1])) != serial) {
 						fprintf(stderr, "zone changed during the transfer, retry...\n");
 						/* retrys++; */
 						/*XXX: h->h_addr_list--; */
@@ -377,7 +377,7 @@ main (int argc, char *argv[])
 					break;
 				}
 				/* Save it... */
-				serial = ntohl(*(u_int32_t *)(&rrs[ntohs(QDCOUNT((&q)))]->rdata[2][1]));
+				serial = ntohl(*(uint32_t *)(&rrs[ntohs(QDCOUNT((&q)))]->rdata[2][1]));
 				if(serial == 0) {
 					fprintf(stderr, "received SOA with a null serial number\n");
 					rrs = NULL;

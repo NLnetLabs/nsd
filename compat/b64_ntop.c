@@ -125,10 +125,10 @@ static const char Pad64 = '=';
    */
 
 int
-b64_ntop(u_char const *src, size_t srclength, char *target, size_t targsize) {
+b64_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize) {
 	size_t datalength = 0;
-	u_char input[3];
-	u_char output[4];
+	uint8_t input[3];
+	uint8_t output[4];
 	size_t i;
 
 	while (2 < srclength) {

@@ -1,5 +1,5 @@
 /*
- * $Id: network.h,v 1.1 2003/06/17 14:50:23 erik Exp $
+ * $Id: network.h,v 1.2 2003/07/04 07:55:10 erik Exp $
  *
  * network.h -- set of network routines.
  *
@@ -46,9 +46,9 @@
 #include <netdb.h>
 
 #ifdef INET6
-#define DEFAULT_AI_FAMILY PF_UNSPEC
+#define DEFAULT_AI_FAMILY AF_UNSPEC
 #else
-#define DEFAULT_AI_FAMILY PF_INET
+#define DEFAULT_AI_FAMILY AF_INET
 #endif
 
 /*

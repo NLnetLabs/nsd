@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.11 2003/06/18 09:59:29 erik Exp $
+ * $Id: nsq.c,v 1.12 2003/07/04 07:55:10 erik Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -150,12 +150,12 @@ main (int argc, char *argv[])
 	int c, s, i;
 	struct query q;
 	const char *port = "53";
-	u_int32_t qid;
+	uint32_t qid;
 	int aflag = 0;
 	int rflag = 0;
-	u_int16_t qtype = TYPE_A;
-	u_int16_t qclass = CLASS_IN;
-	const u_char *qdname;
+	uint16_t qtype = TYPE_A;
+	uint16_t qclass = CLASS_IN;
+	const uint8_t *qdname;
 	int qopcode = 0;
 	struct RR **rrs;
 	struct addrinfo *addrinfo;
@@ -170,11 +170,11 @@ main (int argc, char *argv[])
 	while((c = getopt(argc, argv, "46p:i:aro:t:c:")) != -1) {
 		switch (c) {
 		case '4':
-			family = PF_INET;
+			family = AF_INET;
 			break;
 #ifdef INET6
 		case '6':
-			family = PF_INET6;
+			family = AF_INET6;
 			break;
 #endif
 		case 'p':

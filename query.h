@@ -119,23 +119,23 @@
 #define	RA_CLR(query)	*(query->iobuf+3) &= ~RA_MASK
 
 /* Query ID */
-#define	ID(query)		(*(u_int16_t *)(query->iobuf))
+#define	ID(query)		(*(uint16_t *)(query->iobuf))
 
 /* Counter of the question section */
 #define QDCOUNT_OFF		4
-#define	QDCOUNT(query)		(*(u_int16_t *)(query->iobuf+QDCOUNT_OFF))
+#define	QDCOUNT(query)		(*(uint16_t *)(query->iobuf+QDCOUNT_OFF))
 
 /* Counter of the answer section */
 #define ANCOUNT_OFF		6
-#define	ANCOUNT(query)		(*(u_int16_t *)(query->iobuf+ANCOUNT_OFF))
+#define	ANCOUNT(query)		(*(uint16_t *)(query->iobuf+ANCOUNT_OFF))
 
 /* Counter of the authority section */
 #define NSCOUNT_OFF		8
-#define	NSCOUNT(query)		(*(u_int16_t *)(query->iobuf+NSCOUNT_OFF))
+#define	NSCOUNT(query)		(*(uint16_t *)(query->iobuf+NSCOUNT_OFF))
 
 /* Counter of the additional section */
 #define ARCOUNT_OFF		10
-#define	ARCOUNT(query)		(*(u_int16_t *)(query->iobuf+ARCOUNT_OFF))
+#define	ARCOUNT(query)		(*(uint16_t *)(query->iobuf+ARCOUNT_OFF))
 
 /* Possible OPCODE values */
 #define	OPCODE_QUERY		0 	/* a standard query (QUERY) */
@@ -156,7 +156,7 @@
 #define	IP6ADDRLEN		128/8
 
 /* Miscelaneous limits */
-#define	QIOBUFSZ	65536
+#define	QIOBUFSZ	(65536+20)
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
 #define	MAXRRSPP	1024	/* Maximum number of rr's per packet */
@@ -187,20 +187,20 @@ struct query {
 	size_t maxlen;
 	int edns;
 	int tcp;
-	u_char *iobufptr;
+	uint8_t *iobufptr;
 	size_t iobufsz;
-	u_char iobuf[QIOBUFSZ];
+	uint8_t iobuf[QIOBUFSZ];
 #ifdef PLUGINS
-	u_char normalized_domain_name[MAXDOMAINLEN];
+	uint8_t normalized_domain_name[MAXDOMAINLEN];
 	void **plugin_data;
 #endif /* PLUGINS */
 };
 
 /* query.c */
-int query_axfr(struct query *q, struct nsd *nsd, const u_char *qname, const u_char *zname, int depth);
+int query_axfr(struct query *q, struct nsd *nsd, const uint8_t *qname, const uint8_t *zname, int depth);
 void query_init(struct query *q);
-void query_addtxt(struct query *q, u_char *dname, int16_t class, int32_t ttl, const char *txt);
-void query_addanswer(struct query *q, const u_char *dname, const struct answer *a, int trunc);
+void query_addtxt(struct query *q, uint8_t *dname, int16_t class, int32_t ttl, const char *txt);
+void query_addanswer(struct query *q, const uint8_t *dname, const struct answer *a, int trunc);
 int query_process(struct query *q, struct nsd *nsd);
 void query_addedns(struct query *q, struct nsd *nsd);
 void query_error(struct query *q, int rcode);

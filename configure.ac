@@ -104,27 +104,24 @@ AC_PROG_CC
 AC_PROG_LN_S
 AC_PROG_INSTALL
 
-# Check C compiler
+# Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_INLINE
+AC_TYPE_UID_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
 
 # Checks for libraries.
 
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h sys/bitypes.h dlfcn.h tcpd.h])
+AC_CHECK_HEADERS([arpa/inet.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h])
 
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
 
 AC_SEARCH_LIBS(dlopen, [dl])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_TYPE_UID_T
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
 
 dnl LIBGTOP_CHECK_TYPE
 dnl Stolen from Gnome's anjuta
@@ -140,10 +137,15 @@ AC_CACHE_VAL(ac_cv_type_$1,
 [AC_EGREP_CPP(dnl
 changequote(<<,>>)dnl
 <<(^|[^a-zA-Z_0-9])$1[^a-zA-Z_0-9]>>dnl
-changequote([,]), [#include <sys/types.h>
+changequote([,]), [
+#include <sys/types.h>
 #if STDC_HEADERS
 #include <stdlib.h>
 #include <stddef.h>
+#endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
 #endif
 
 #ifdef HAVE_SYS_SOCKET_H
@@ -165,17 +167,15 @@ if test $ac_cv_type_$1 = no; then
 fi
 ])
 
-AC_LIBGTOP_CHECK_TYPE(u_char, unsigned char)
-AC_LIBGTOP_CHECK_TYPE(u_long, unsigned long)  
 AC_LIBGTOP_CHECK_TYPE(int8_t, char) 
 AC_LIBGTOP_CHECK_TYPE(int16_t, short)
 AC_LIBGTOP_CHECK_TYPE(int32_t, int)
-AC_LIBGTOP_CHECK_TYPE(u_int8_t, unsigned char)
-AC_LIBGTOP_CHECK_TYPE(u_int16_t, unsigned short)
-AC_LIBGTOP_CHECK_TYPE(u_int32_t, unsigned int)
+AC_LIBGTOP_CHECK_TYPE(uint8_t, unsigned char)
+AC_LIBGTOP_CHECK_TYPE(uint16_t, unsigned short)
+AC_LIBGTOP_CHECK_TYPE(uint32_t, unsigned int)
 AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
 
-AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [u_int32_t], [in_addr_t])], [
+AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
@@ -317,6 +317,24 @@ esac
 
 AH_BOTTOM([
 #include <sys/types.h>
+#if STDC_HEADERS
+#include <stdlib.h>
+#include <stddef.h>
+#endif
+
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
+/* For Tru64 */
 #ifdef HAVE_SYS_BITYPES_H
 #include <sys/bitypes.h>
 #endif

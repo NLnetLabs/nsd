@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.23 2003/06/16 15:13:16 erik Exp $
+ * $Id: zonec.h,v 1.24 2003/07/04 07:55:10 erik Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -43,17 +43,17 @@
 
 struct rrset {
 	struct rrset *next;
-	u_int16_t type;
-	u_int16_t class;
+	uint16_t type;
+	uint16_t class;
 	int32_t ttl;
 	int glue;
 	int color;
-	u_int16_t rrslen;
-	u_int16_t ***rrs;
+	uint16_t rrslen;
+	uint16_t ***rrs;
 };
 
 struct zone {
-	u_char *dname;
+	uint8_t *dname;
 	heap_t	*cuts;
 	heap_t	*data;
 	struct rrset *soa;
@@ -65,25 +65,25 @@ struct zone {
 #define	LINEBUFSZ	1024
 
 struct message {
-	u_char *bufptr;
-	u_int16_t ancount;
-	u_int16_t nscount;
-	u_int16_t arcount;
+	uint8_t *bufptr;
+	uint16_t ancount;
+	uint16_t nscount;
+	uint16_t arcount;
 	int dnameslen;
 	int rrsetslen;
 	int comprlen;
-	u_int16_t pointerslen;
-	u_int16_t pointers[MAXRRSPP];
-	u_int16_t rrsetsoffslen;
-	u_int16_t rrsetsoffs[MAXRRSPP];
+	uint16_t pointerslen;
+	uint16_t pointers[MAXRRSPP];
+	uint16_t rrsetsoffslen;
+	uint16_t rrsetsoffs[MAXRRSPP];
 	struct rrset *rrsets[MAXRRSPP];
-	u_char *dnames[MAXRRSPP];
+	uint8_t *dnames[MAXRRSPP];
 	struct {
-		u_char *dname;
-		u_int16_t dnameoff;
-		u_char dnamelen;
+		uint8_t *dname;
+		uint16_t dnameoff;
+		uint8_t dnamelen;
 	} compr[MAXRRSPP];
-	u_char buf[IOBUFSZ];
+	uint8_t buf[IOBUFSZ];
 };
 
 /* zonec.c */
@@ -91,8 +91,8 @@ void *xalloc(register size_t size);
 void *xrealloc(register void *p, register size_t size);
 void zone_initmsg(struct message *m);
 void zone_print(struct zone *z);
-u_int16_t zone_addname(struct message *msg, u_char *dname);
-u_int16_t zone_addrrset(struct message *msg, u_char *dname, struct rrset *rrset);
+uint16_t zone_addname(struct message *msg, uint8_t *dname);
+uint16_t zone_addrrset(struct message *msg, uint8_t *dname, struct rrset *rrset);
 struct domain *zone_addanswer(struct domain *d, struct message *msg, int type);
 void zone_free(struct zone *z);
 struct zone *zone_read(char *name, char *zonefile);

@@ -133,7 +133,7 @@ static const char Pad64 = '=';
 int
 b64_pton(src, target, targsize)
 	char const *src;
-	u_char *target;
+	uint8_t *target;
 	size_t targsize;
 {
 	int tarindex, state, ch;

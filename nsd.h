@@ -115,7 +115,7 @@ struct	nsd {
 	struct nsd_socket udp[MAX_INTERFACES];
 
 	struct {
-		u_int16_t	max_msglen;
+		uint16_t	max_msglen;
 		char		opt_ok[OPT_LEN];
 		char		opt_err[OPT_LEN];
 	} edns;

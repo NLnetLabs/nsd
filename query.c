@@ -44,6 +44,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <netdb.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -90,16 +91,16 @@ query_formerr (struct query *query)
 }
 
 int 
-query_axfr (struct query *q, struct nsd *nsd, const u_char *qname, const u_char *zname, int depth)
+query_axfr (struct query *q, struct nsd *nsd, const uint8_t *qname, const uint8_t *zname, int depth)
 {
 	/* Per AXFR... */
-	static const u_char *zone;
+	static const uint8_t *zone;
 	static const struct answer *soa;
 	static const struct domain *d = NULL;
 
 	const struct answer *a;
-	const u_char *dname;
-	u_char *qptr;
+	const uint8_t *dname;
+	uint8_t *qptr;
 
 	STATUP(nsd, raxfr);
 
@@ -143,7 +144,7 @@ query_axfr (struct query *q, struct nsd *nsd, const u_char *qname, const u_char 
 
 	/* Let get next domain */
 	do {
-		dname = (const u_char *)d + d->size;
+		dname = (const uint8_t *)d + d->size;
 		d = (const struct domain *)(dname + ALIGN_UP(*dname + 1));
 	} while(*dname && (DOMAIN_FLAGS(d) & NAMEDB_STEALTH));
 
@@ -211,13 +212,13 @@ query_init (struct query *q)
 }
 
 void 
-query_addtxt (struct query *q, u_char *dname, int16_t class, int32_t ttl, const char *txt)
+query_addtxt (struct query *q, uint8_t *dname, int16_t class, int32_t ttl, const char *txt)
 {
-	u_int16_t pointer;
+	uint16_t pointer;
 	size_t txt_length = strlen(txt);
-	u_char len = (u_char) txt_length;
-	u_int16_t rdlength = htons(len + 1);
-	u_int16_t type = htons(TYPE_TXT);
+	uint8_t len = (uint8_t) txt_length;
+	uint16_t rdlength = htons(len + 1);
+	uint16_t type = htons(TYPE_TXT);
 
 	assert(txt_length <= UCHAR_MAX);
 	
@@ -241,10 +242,10 @@ query_addtxt (struct query *q, u_char *dname, int16_t class, int32_t ttl, const 
 }
 
 void 
-query_addanswer (struct query *q, const u_char *dname, const struct answer *a, int trunc)
+query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, int trunc)
 {
-	u_char *qptr;
-	u_int16_t pointer;
+	uint8_t *qptr;
+	uint16_t pointer;
 	int  i, j;
 
 	/* Check that the answer fits into our query buffer... */
@@ -276,7 +277,7 @@ query_addanswer (struct query *q, const u_char *dname, const struct answer *a, i
 			break;
 		default:
 			/* This pointer is relative to the answer that we have in the database... */
-			pointer = htons(0xc000 | (u_int16_t)(pointer + q->iobufptr - q->iobuf));
+			pointer = htons(0xc000 | (uint16_t)(pointer + q->iobufptr - q->iobuf));
 		}
 		memcpy(qptr, &pointer, 2);
 	}
@@ -335,14 +336,14 @@ query_addanswer (struct query *q, const u_char *dname, const struct answer *a, i
  * Result code: NULL on failure, a pointer to the byte after the query
  * section otherwise.
  */
-static u_char *
+static uint8_t *
 process_query_section(struct query *query,
-		      u_char *domain_name, int *label_count,
-		      u_int16_t *query_type, u_int16_t *query_class)
+		      uint8_t *domain_name, int *label_count,
+		      uint16_t *query_type, uint16_t *query_class)
 {
-	u_char *dst = domain_name + 1;
-	u_char *query_name = query->iobuf + QHEADERSZ;
-	u_char *src = query_name;
+	uint8_t *dst = domain_name + 1;
+	uint8_t *query_name = query->iobuf + QHEADERSZ;
+	uint8_t *src = query_name;
 	size_t i;
 	size_t len;
 	
@@ -369,17 +370,17 @@ process_query_section(struct query *query,
 
 	/* Make sure name is not too long or we have stripped packet... */
 	len = src - query_name;
-	if (len > MAXDOMAINLEN || (src + 2*sizeof(u_int16_t) > query->iobufptr)) {
+	if (len > MAXDOMAINLEN || (src + 2*sizeof(uint16_t) > query->iobufptr)) {
 		query_formerr(query);
 		return NULL;
 	}
 
 	*domain_name = len;
 
-	memcpy(query_type, src, sizeof(u_int16_t));
-	memcpy(query_class, src + sizeof(u_int16_t), sizeof(u_int16_t));
+	memcpy(query_type, src, sizeof(uint16_t));
+	memcpy(query_class, src + sizeof(uint16_t), sizeof(uint16_t));
 	
-	return src + 2*sizeof(u_int16_t);
+	return src + 2*sizeof(uint16_t);
 }
 
 
@@ -392,10 +393,10 @@ process_query_section(struct query *query,
  * Return 0 on failure, 1 on success.
  */
 static int
-process_edns (struct query *q, u_char *qptr)
+process_edns (struct query *q, uint8_t *qptr)
 {
 	/* OPT record type... */
-	u_int16_t opt_type, opt_class, opt_rdlen;
+	uint16_t opt_type, opt_class, opt_rdlen;
 
 	/* Do we have an OPT record? */
 	if(ARCOUNT(q) > 0) {
@@ -509,7 +510,7 @@ answer_notify (struct query *query)
  * Return 1 if answered, 0 otherwise.
  */
 static int
-answer_delegation(struct query *query, struct domain *domain, const u_char *qname)
+answer_delegation(struct query *query, struct domain *domain, const uint8_t *qname)
 {
 	if (DOMAIN_FLAGS(domain) & NAMEDB_DELEGATION) {
 		struct answer *answer = namedb_answer(domain, htons(TYPE_NS));
@@ -535,12 +536,12 @@ answer_delegation(struct query *query, struct domain *domain, const u_char *qnam
 static int
 answer_domain(struct query *q,
 	      struct domain *d,
-	      const u_char *qname,
-	      u_int16_t qclass,
-	      u_int16_t qtype)
+	      const uint8_t *qname,
+	      uint16_t qclass,
+	      uint16_t qtype)
 {
 	struct answer *a;
-	u_char *qptr;
+	uint8_t *qptr;
 	
 	if(((a = namedb_answer(d, qtype)) != NULL) ||	/* The query type? */
 	   ((a = namedb_answer(d, htons(TYPE_CNAME))) != NULL)) { /* Or CNAME? */
@@ -576,11 +577,11 @@ answer_domain(struct query *q,
 static int
 answer_soa(struct query *q,
 	   struct domain *d,
-	   const u_char *qname,
-	   u_int16_t qclass)
+	   const uint8_t *qname,
+	   uint16_t qclass)
 {
 	struct answer *a;
-	u_char *qptr;
+	uint8_t *qptr;
 	
 	/* Do we have SOA record in this domain? */
 	if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
@@ -619,9 +620,9 @@ answer_soa(struct query *q,
 static int
 answer_chaos(struct nsd *nsd,
 	     struct query *q,
-	     const u_char *qnamelow, u_char qnamelen,
-	     u_int16_t qclass,
-	     u_int16_t qtype)
+	     const uint8_t *qnamelow, uint8_t qnamelen,
+	     uint16_t qclass,
+	     uint16_t qtype)
 {
 	switch(ntohs(qclass)) {
 	case CLASS_IN:
@@ -667,10 +668,10 @@ answer_chaos(struct nsd *nsd,
 static int
 answer_axfr_ixfr(struct nsd *nsd,
 		 struct query *q,
-		 const u_char *qnamelow,
-		 const u_char *qname,
+		 const uint8_t *qnamelow,
+		 const uint8_t *qname,
 		 int qdepth,
-		 u_int16_t qtype,
+		 uint16_t qtype,
 		 int *is_axfr)
 {
 	/* Is it AXFR? */
@@ -681,7 +682,7 @@ answer_axfr_ixfr(struct nsd *nsd,
 #ifdef LIBWRAP
 			struct request_info request;
 #ifdef AXFR_DAEMON_PREFIX
-			const u_char *qptr = qnamelow;
+			const uint8_t *qptr = qnamelow;
 			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
 			char *t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1;
 
@@ -730,14 +731,14 @@ answer_axfr_ixfr(struct nsd *nsd,
 static int
 answer_query(struct nsd *nsd,
 	     struct query *q,
-	     u_char *qnamelow,
-	     const u_char *qname,
-	     u_char qnamelen,
+	     uint8_t *qnamelow,
+	     const uint8_t *qname,
+	     uint8_t qnamelen,
 	     int qdepth,
-	     u_int16_t qclass,
-	     u_int16_t qtype)
+	     uint16_t qclass,
+	     uint16_t qtype)
 {
-	const u_char qstar[2] = "\001*";
+	const uint8_t qstar[2] = "\001*";
 	struct domain *d;
 	int match;
 	
@@ -823,14 +824,14 @@ answer_query(struct nsd *nsd,
 int 
 query_process (struct query *q, struct nsd *nsd)
 {
-	u_char qnamebuf[MAXDOMAINLEN + 3];
+	uint8_t qnamebuf[MAXDOMAINLEN + 3];
 
 	/* The query... */
-	u_char	*qname, *qnamelow;
-	u_char qnamelen;
-	u_int16_t qtype;
-	u_int16_t qclass;
-	u_char *qptr;
+	uint8_t	*qname, *qnamelow;
+	uint8_t qnamelen;
+	uint16_t qtype;
+	uint16_t qclass;
+	uint8_t *qptr;
 	int qdepth;
 	int recursion_desired;
 	int axfr;
@@ -848,7 +849,7 @@ query_process (struct query *q, struct nsd *nsd)
 
 	/* Dont bother to answer more than one question at once... */
 	if(ntohs(QDCOUNT(q)) != 1 || TC(q)) {
-		*(u_int16_t *)(q->iobuf + 2) = 0;
+		*(uint16_t *)(q->iobuf + 2) = 0;
 
 		query_formerr(q);
 		return 0;
@@ -858,7 +859,7 @@ query_process (struct query *q, struct nsd *nsd)
 	recursion_desired = RD(q);
 
 	/* Zero the flags... */
-	*(u_int16_t *)(q->iobuf + 2) = 0;
+	*(uint16_t *)(q->iobuf + 2) = 0;
 	
 	QR_SET(q);		/* This is an answer */
 	if (recursion_desired)

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.15 2003/06/16 15:13:16 erik Exp $
+ * $Id: zparser.h,v 1.16 2003/07/04 07:55:10 erik Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -45,7 +45,7 @@
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
 #define	B64BUFSIZE	16384		/* Buffer size for b64 conversion */
-#define	ROOT		(const u_char *)"\001"
+#define	ROOT		(const uint8_t *)"\001"
 #define	MAXINCLUDES	10
 
 #define	IP6ADDRLEN	128/8
@@ -72,11 +72,11 @@
 
 /* A single resource record */
 struct RR {
-	u_char *dname;
+	uint8_t *dname;
 	int32_t ttl;
-	u_int16_t class;
-	u_int16_t type;
-	u_int16_t **rdata;
+	uint16_t class;
+	uint16_t type;
+	uint16_t **rdata;
 };
 
 /* An open parser */
@@ -84,24 +84,24 @@ struct zparser {
 	FILE	*file;			/* The file handler */
 	char	*filename;		/* Current filename */
 	int	errors;			/* Errors encountered */
-	u_long	_lineno;		/* Current line no */
-	u_long	lines;			/* Total number of lines parser */
+	size_t	_lineno;		/* Current line no */
+	size_t	lines;			/* Total number of lines parser */
 	int32_t	ttl;			/* Default ttl */
 	int n;				/* Number of nested includes */
-	u_int16_t class;		/* Class of this zone file */
-	u_char	*origin;		/* Default origin */
+	uint16_t class;		/* Class of this zone file */
+	uint8_t	*origin;		/* Default origin */
 	struct zparser *include;	/* If we're including a file */
 	struct RR _rr;			/* Current resource record */
 	int	_tc;			/* Current token to be parsed */
 	int	_rc;			/* Current rdata to be parsed */
 	char	*_t[MAXTOKENSLEN];	/* Tokens in the current line */
-	u_long	_tlineno[MAXTOKENSLEN];	/* Line number of the respective token */
+	size_t	_tlineno[MAXTOKENSLEN];	/* Line number of the respective token */
 	char	_buf[ZBUFSIZE];	/* Current input buffer */
 };
 
 /* A generic purpose lookup table */
 struct ztab {
-	u_int16_t sym;
+	uint16_t sym;
 	const char *name;
 };
 
@@ -148,19 +148,19 @@ extern struct ztab ztypes[];
 extern struct ztab zclasses[];
 
 /* zparser.c */
-u_int16_t intbyname(const char *a, struct ztab *tab);
-const char *namebyint(u_int16_t n, struct ztab *tab);
-int zrdatacmp(u_int16_t **a, u_int16_t **b);
+uint16_t intbyname(const char *a, struct ztab *tab);
+const char *namebyint(uint16_t n, struct ztab *tab);
+int zrdatacmp(uint16_t **a, uint16_t **b);
 long strtottl(char *nptr, char **endptr);
 void zerror(struct zparser *z, const char *msg);
 void zsyntax(struct zparser *z);
 void zunexpected(struct zparser *z);
-struct zparser *zopen(const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origin);
-struct zparser *_zopen(const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origin, int n);
+struct zparser *zopen(const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin);
+struct zparser *_zopen(const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin, int n);
 struct RR *zread(struct zparser *z);
 void zclose(struct zparser *z);
-void zrdatafree(u_int16_t **p);
-void zaddrdata(struct zparser *z, u_int16_t *r);
+void zrdatafree(uint16_t **p);
+void zaddrdata(struct zparser *z, uint16_t *r);
 int zrdata(struct zparser *z);
 int zrdatascan(struct zparser *z, int what);
 int zrdatascan2(struct zparser *z, int what, int arg);
@@ -168,18 +168,18 @@ int zrdata_loc(struct zparser *z);
 void zaddtoken(struct zparser *z, char *t);
 int zparseline(struct zparser *z);
 const char *precsize_ntoa(int prec);
-u_int8_t precsize_aton(register char *cp, char **endptr);
-void zprintrdata(FILE *f, int what, u_int16_t *r);
+uint8_t precsize_aton(register char *cp, char **endptr);
+void zprintrdata(FILE *f, int what, uint16_t *r);
 void zprintrrrdata(FILE *f, struct RR *rr);
-const char *typebyint(u_int16_t type);
-const char *classbyint(u_int16_t class);
+const char *typebyint(uint16_t type);
+const char *classbyint(uint16_t class);
 void zprintrr(FILE *f, struct RR *rr);
 
 #ifndef HAVE_B64_PTON
-extern int b64_pton(char const *src, u_char *target, size_t targsize);
+extern int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif
 #ifndef HAVE_B64_NTOP
-extern int b64_ntop(u_char const *src, size_t srclength, char *target, size_t targsize);
+extern int b64_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize);
 #endif
 
 #endif /* _ZPARSER_H_ */

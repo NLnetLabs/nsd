@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.37 2003/07/01 14:36:23 erik Exp $
+ * $Id: dbaccess.c,v 1.38 2003/07/04 07:55:09 erik Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -38,7 +38,7 @@
  *
  */
 
-#include "config.h"
+#include <config.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -56,8 +56,8 @@ int
 domaincmp (const void *left, const void *right)
 {
 	int r;
-	const u_char *a = left;
-	const u_char *b = right;
+	const uint8_t *a = left;
+	const uint8_t *b = right;
 	int alen = (int)*a;
 	int blen = (int)*b;
 
@@ -70,7 +70,7 @@ domaincmp (const void *left, const void *right)
 }
 
 struct domain *
-namedb_lookup (struct namedb *db, const u_char *dname)
+namedb_lookup (struct namedb *db, const uint8_t *dname)
 {
 	return (struct domain *)heap_search(db->heap, dname);
 }
@@ -163,7 +163,7 @@ namedb_open (const char *filename)
 			return NULL;
 		}
 		p += ALIGN_UP(*p + 1);
-		p += *((u_int32_t *)p);
+		p += *((uint32_t *)p);
 		if(p > (db->mpool + db->mpoolsz)) {
 			syslog(LOG_ERR, "corrupted database %s", db->filename);
 			namedb_close(db);

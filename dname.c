@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.10 2003/06/16 15:13:16 erik Exp $
+ * $Id: dname.c,v 1.11 2003/07/04 07:55:09 erik Exp $
  *
  * dname.c -- dname operations
  *
@@ -59,8 +59,8 @@ int
 dnamecmp (const void *left, const void *right)
 {
 	int r;
-	const u_char *a = left;
-	const u_char *b = right;
+	const uint8_t *a = left;
+	const uint8_t *b = right;
 	int alen = (int)*a;
 	int blen = (int)*b;
 
@@ -80,12 +80,12 @@ dnamecmp (const void *left, const void *right)
  *
  */
 const char *
-dnamestr (const u_char *dname)
+dnamestr (const uint8_t *dname)
 {
 	static char s[MAXDOMAINLEN+1];
 	char *p;
 	int l;
-	const u_char *n = dname;
+	const uint8_t *n = dname;
 
 	l = (int) *dname;
 	n++;
@@ -114,15 +114,15 @@ dnamestr (const u_char *dname)
  * XXX Verify that every label dont exceed MAXLABELLEN
  * XXX Complain about empty labels (.nlnetlabs..nl)
  */
-const u_char *
-strdname (const char *source, const u_char *o)
+const uint8_t *
+strdname (const char *source, const uint8_t *o)
 {
-	static u_char dname[MAXDOMAINLEN+1];
+	static uint8_t dname[MAXDOMAINLEN+1];
 
-	const u_char *s = (const u_char *) source;
-	u_char *h;
-	u_char *p;
-	u_char *d = dname + 1;
+	const uint8_t *s = (const uint8_t *) source;
+	uint8_t *h;
+	uint8_t *p;
+	uint8_t *d = dname + 1;
 
 	if(*s == '@' && *(s+1) == 0) {
 		for(p = dname, s = o; s < o + *o + 1; p++, s++)
@@ -166,7 +166,7 @@ strdname (const char *source, const u_char *o)
 				*p = DNAME_NORMALIZE(*s);
 		}
 
-		*dname = (u_char) (p - d);
+		*dname = (uint8_t) (p - d);
 
 	}
 
@@ -177,10 +177,10 @@ strdname (const char *source, const u_char *o)
  * Duplicates a domain name.
  *
  */
-u_char *
-dnamedup (const u_char *dname)
+uint8_t *
+dnamedup (const uint8_t *dname)
 {
-	u_char *p;
+	uint8_t *p;
 
 	if(dname == NULL)
 		return NULL;

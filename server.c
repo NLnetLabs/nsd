@@ -140,7 +140,7 @@ server_init(struct nsd *nsd)
 		}
 
 #if defined(INET6) && defined(IPV6_V6ONLY)
-		if (nsd->udp[i].addr->ai_family == PF_INET6 &&
+		if (nsd->udp[i].addr->ai_family == AF_INET6 &&
 		    setsockopt(nsd->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
 		{
 			syslog(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %m");
@@ -172,7 +172,7 @@ server_init(struct nsd *nsd)
 #endif /* SO_REUSEADDR */
 
 #if defined(INET6) && defined(IPV6_V6ONLY)
-		if (nsd->tcp[i].addr->ai_family == PF_INET6 &&
+		if (nsd->tcp[i].addr->ai_family == AF_INET6 &&
 		    setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
 		{
 			syslog(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %m");
@@ -507,7 +507,7 @@ static int
 handle_tcp(struct nsd *nsd, fd_set *peer)
 {
 	int received, sent, axfr, s;
-	u_int16_t tcplen;
+	uint16_t tcplen;
 	struct query q;
 	size_t i;
 	

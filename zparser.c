@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.35 2003/06/30 09:40:51 erik Exp $
+ * $Id: zparser.c,v 1.36 2003/07/04 07:55:10 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -39,31 +39,25 @@
  */
 #include <config.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 #include <time.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
-
-/* This one is for AF_INET6 declaration */
-#include <sys/socket.h>
 
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
 #endif
 
-#include <dns.h>
-#include <zparser.h>
-#include <dname.h>
+#include "dns.h"
+#include "zparser.h"
+#include "dname.h"
 
 /*
  *
@@ -115,7 +109,7 @@ xrealloc (void *p, size_t size)
  * Looks up the numeric value of the symbol, returns 0 if not found.
  *
  */
-u_int16_t
+uint16_t
 intbyname (const char *a, struct ztab *tab)
 {
 	while(tab->name != NULL) {
@@ -130,7 +124,7 @@ intbyname (const char *a, struct ztab *tab)
  *
  */
 const char *
-namebyint (u_int16_t n, struct ztab *tab)
+namebyint (uint16_t n, struct ztab *tab)
 {
 	while(tab->sym != 0) {
 		if(tab->sym == n) return tab->name;
@@ -149,7 +143,7 @@ namebyint (u_int16_t n, struct ztab *tab)
  *
  */
 int
-zrdatacmp(u_int16_t **a, u_int16_t **b)
+zrdatacmp(uint16_t **a, uint16_t **b)
 {
 	/* Compare element by element */
 	while(*a != NULL && *b != NULL) {
@@ -158,7 +152,7 @@ zrdatacmp(u_int16_t **a, u_int16_t **b)
 			return 1;
 		/* Is it a domain name */
 		if(**a == 0xffff) {
-			if(memcmp(*a+1, *b+1, *((u_char *)(*a + 1))))
+			if(memcmp(*a+1, *b+1, *((uint8_t *)(*a + 1))))
 				return 1;
 		} else {
 			if(memcmp(*a+1, *b+1, **a))
@@ -278,7 +272,7 @@ strtottl(char *nptr, char **endptr)
 void 
 zerror (struct zparser *z, const char *msg)
 {
-	fprintf(stderr, "error: %s in %s, line %lu\n", msg, z->filename, z->_tlineno[z->_tc]);
+	fprintf(stderr, "error: %s in %s, line %lu\n", msg, z->filename, (unsigned long) z->_tlineno[z->_tc]);
 	z->errors++;
 }
 
@@ -317,7 +311,7 @@ zunexpected (struct zparser *z)
  *
  */
 struct zparser *
-zopen (const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origin)
+zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin)
 {
 	return _zopen(filename, ttl, class, strdname(origin, ROOT), 0);
 }
@@ -333,7 +327,7 @@ zopen (const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origi
  *
  */
 struct zparser *
-_zopen (const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origin, int n)
+_zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin, int n)
 {
 	struct zparser *z;
 
@@ -387,7 +381,7 @@ struct RR *
 zread (struct zparser *z)
 {
 	char *t;
-	u_int16_t class;
+	uint16_t class;
 
 	/* Are we including at the moment? */
 	if(z->include != NULL) {
@@ -418,7 +412,7 @@ zread (struct zparser *z)
 					}
 				}
 			} else if(strcasecmp(z->_t[0], "$ORIGIN") == 0) {
-				const u_char *dname;
+				const uint8_t *dname;
 				if(z->_t[1] == NULL ||
 					(dname = strdname(z->_t[1], z->origin)) == NULL) {
 					zerror(z, "invalid or missing origin");
@@ -580,7 +574,7 @@ zclose (struct zparser *z)
  *
  */
 void
-zrdatafree(u_int16_t **p)
+zrdatafree(uint16_t **p)
 {
 	int i;
 
@@ -603,7 +597,7 @@ zrdatafree(u_int16_t **p)
  *
  */
 void
-zaddrdata (struct zparser *z, u_int16_t *r)
+zaddrdata (struct zparser *z, uint16_t *r)
 {
 	if(z->_rc >= MAXRDATALEN - 1) {
 		zerror(z, "too many rdata elements");
@@ -629,8 +623,8 @@ zaddrdata (struct zparser *z, u_int16_t *r)
 int
 zrdata (struct zparser *z)
 {
-	u_int16_t *r;
-	u_char *t;
+	uint16_t *r;
+	uint8_t *t;
 	int i;
 
 	/* Do we have an empty rdata? */
@@ -779,10 +773,10 @@ zrdata (struct zparser *z)
 			if(!zrdatascan(z, RDATA_DNAME)) return 0;
 
 			/* Allocate maximum we might need for this bitmap */
-			r = xalloc(sizeof(u_int16_t) + 16);
-			memset(r, 0, sizeof(u_int16_t) + 16);
+			r = xalloc(sizeof(uint16_t) + 16);
+			memset(r, 0, sizeof(uint16_t) + 16);
 			zaddrdata(z, r);
-			t = (u_char *)(r + 1);
+			t = (uint8_t *)(r + 1);
 
 			/* Scan the types and add them to the bitmap */
 			while(zrdatascan(z, RDATA_TYPE)) {
@@ -817,7 +811,7 @@ zrdata (struct zparser *z)
 					}
 					/* Reallocate the bitmap memory... */
 					z->_rr.rdata[1] = xrealloc(z->_rr.rdata[1],
-						z->_rr.rdata[1][0] + sizeof(u_int16_t));
+						z->_rr.rdata[1][0] + sizeof(uint16_t));
 					return 1;
 				}
 			}
@@ -832,10 +826,10 @@ zrdata (struct zparser *z)
 			if(!zrdatascan(z, RDATA_PROTO)) return 0;
 
 			/* Allocate maximum we might need for this bitmap */
-			r = xalloc(sizeof(u_int16_t) + 8192);
-			memset(r, 0, sizeof(u_int16_t) + 8192);
+			r = xalloc(sizeof(uint16_t) + 8192);
+			memset(r, 0, sizeof(uint16_t) + 8192);
 			zaddrdata(z, r);
-			t = (u_char *)(r + 1);
+			t = (uint8_t *)(r + 1);
 
 			/* Scan the types and add them to the bitmap */
 			while(zrdatascan2(z, RDATA_SERVICE, ntohs(z->_rr.rdata[1][1]))) {
@@ -859,7 +853,7 @@ zrdata (struct zparser *z)
 				if(z->_t[z->_tc] == NULL) {
 					/* Reallocate the bitmap memory... */
 					z->_rr.rdata[1] = xrealloc(z->_rr.rdata[1],
-						z->_rr.rdata[1][0] + sizeof(u_int16_t));
+						z->_rr.rdata[1][0] + sizeof(uint16_t));
 					return 1;
 				}
 			}
@@ -900,11 +894,11 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 	struct tm tm;
 	struct protoent *proto;
 	struct servent *service;
-	const u_char *dname;
+	const uint8_t *dname;
 	char *end;		/* Used to parse longs, ttls, etc.  */
 	int error = 0;
-	u_int16_t *r = NULL;
-	u_int32_t l;
+	uint16_t *r = NULL;
+	uint32_t l;
 
 	/* Produce an error message... */
 	if(z->_t[z->_tc] == NULL) {
@@ -919,11 +913,11 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 			zerror(z, "hex representation must be a whole number of octets");
 			error++;
 		} else {
-			u_char *t;
+			uint8_t *t;
 			/* Allocate required space... */
-			r = xalloc(sizeof(u_int16_t) + i/2);
+			r = xalloc(sizeof(uint16_t) + i/2);
 			*r = i/2;
-			t = (u_char *)(r + 1);
+			t = (uint8_t *)(r + 1);
 
 			/* Now process octet by octet... */
 			while(*z->_t[z->_tc]) {
@@ -971,24 +965,24 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		} else {
 
 			/* Allocate required space... */
-			r = xalloc(sizeof(u_int32_t) + sizeof(u_int16_t));
+			r = xalloc(sizeof(uint32_t) + sizeof(uint16_t));
 
 			l = htonl(timegm(&tm));
-			memcpy(r + 1, &l, sizeof(u_int32_t));
-			*r = sizeof(u_int32_t);
+			memcpy(r + 1, &l, sizeof(uint32_t));
+			*r = sizeof(uint32_t);
 		}
 		break;
 	case RDATA_TYPE:
 		/* Allocate required space... */
-		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
+		r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
 
-		*(r+1)  = htons((u_int16_t)intbyname(z->_t[z->_tc], ztypes));
+		*(r+1)  = htons((uint16_t)intbyname(z->_t[z->_tc], ztypes));
 
 		if(*(r + 1) == 0) {
 			zerror(z, "resource record type is expected");
 			error++;
 		} else {
-			*r = sizeof(u_int16_t);
+			*r = sizeof(uint16_t);
 		}
 		break;
 	case RDATA_PROTO:
@@ -997,10 +991,10 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 			error++;
 		} else {
 			/* Allocate required space... */
-			r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
+			r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
 
 			*(r + 1) = htons(proto->p_proto);
-			*r = sizeof(u_int16_t);
+			*r = sizeof(uint16_t);
 		}
 		break;
 	case RDATA_SERVICE:
@@ -1013,74 +1007,74 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 				error++;
 			} else {
 				/* Allocate required space... */
-				r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
+				r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
 
 				*(r + 1) = service->s_port;
-				*r = sizeof(u_int16_t);
+				*r = sizeof(uint16_t);
 			}
 		}
 		break;
 	case RDATA_PERIOD:
 		/* Allocate required space... */
-		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
+		r = xalloc(sizeof(uint16_t) + sizeof(uint32_t));
 
-		l = htonl((u_int32_t)strtottl(z->_t[z->_tc], &end));
+		l = htonl((uint32_t)strtottl(z->_t[z->_tc], &end));
 
 		if(*end != 0) {
 			zerror(z, "time period is expected");
 			error++;
 		} else {
-			memcpy(r + 1, &l, sizeof(u_int32_t));
-			*r = sizeof(u_int32_t);
+			memcpy(r + 1, &l, sizeof(uint32_t));
+			*r = sizeof(uint32_t);
 		}
 		break;
 	case RDATA_SHORT:
 		/* Allocate required space... */
-		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
+		r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
 
-		*(r+1)  = htons((u_int16_t)strtol(z->_t[z->_tc], &end, 0));
+		*(r+1)  = htons((uint16_t)strtol(z->_t[z->_tc], &end, 0));
 
 		if(*end != 0) {
 			zerror(z, "unsigned short value is expected");
 			error++;
 		} else {
-			*r = sizeof(u_int16_t);
+			*r = sizeof(uint16_t);
 		}
 		break;
 	case RDATA_LONG:
 		/* Allocate required space... */
-		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
+		r = xalloc(sizeof(uint16_t) + sizeof(uint32_t));
 
-		l = htonl((u_int32_t)strtol(z->_t[z->_tc], &end, 0));
+		l = htonl((uint32_t)strtol(z->_t[z->_tc], &end, 0));
 
 		if(*end != 0) {
 			zerror(z, "long decimal value is expected");
 			error++;
 		} else {
-			memcpy(r + 1, &l, sizeof(u_int32_t));
-			*r = sizeof(u_int32_t);
+			memcpy(r + 1, &l, sizeof(uint32_t));
+			*r = sizeof(uint32_t);
 		}
 		break;
 	case RDATA_BYTE:
 		/* Allocate required space... */
-		r = xalloc(sizeof(u_int16_t) + sizeof(u_int8_t));
+		r = xalloc(sizeof(uint16_t) + sizeof(uint8_t));
 
-		*((u_int8_t *)(r+1)) = (u_int8_t)strtol(z->_t[z->_tc], &end, 0);
+		*((uint8_t *)(r+1)) = (uint8_t)strtol(z->_t[z->_tc], &end, 0);
 
 		if(*end != 0) {
 			zerror(z, "decimal value is expected");
 			error++;
 		} else {
-			*r = sizeof(u_int8_t);
+			*r = sizeof(uint8_t);
 		}
 		break;
 	case RDATA_A:
 		/* Allocate required space... */
-		r = xalloc(sizeof(u_int16_t) + sizeof(in_addr_t));
+		r = xalloc(sizeof(uint16_t) + sizeof(in_addr_t));
 
 		if(inet_pton(AF_INET, z->_t[z->_tc], &pin) > 0) {
 			memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
-			*r = sizeof(u_int32_t);
+			*r = sizeof(uint32_t);
 		} else {
 			zerror(z, "invalid ip address");
 			error++;
@@ -1094,7 +1088,7 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		} else {
 
 			/* Allocate required space... */
-			r = xalloc(sizeof(u_int16_t) + *dname + 1);
+			r = xalloc(sizeof(uint16_t) + *dname + 1);
 
 			memcpy(r+1, dname, *dname + 1);
 
@@ -1108,7 +1102,7 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		} else {
 
 			/* Allocate required space... */
-			r = xalloc(sizeof(u_int16_t) + i + 1);
+			r = xalloc(sizeof(uint16_t) + i + 1);
 
 			*((char *)(r+1))  = i;
 			memcpy(((char *)(r+1)) + 1, z->_t[z->_tc], i);
@@ -1118,7 +1112,7 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		break;
 	case RDATA_A6:
 		/* Allocate required space... */
-		r = xalloc(sizeof(u_int16_t) + IP6ADDRLEN);
+		r = xalloc(sizeof(uint16_t) + IP6ADDRLEN);
 
 		/* Try to convert it */
 		if(inet_pton(AF_INET6, z->_t[z->_tc], r + 1) != 1) {
@@ -1130,15 +1124,15 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		break;
 	case RDATA_B64:
 		/* Allocate required space... */
-		r = xalloc(sizeof(u_int16_t) + B64BUFSIZE);
+		r = xalloc(sizeof(uint16_t) + B64BUFSIZE);
 
 		/* Try to convert it */
-		if((i = b64_pton(z->_t[z->_tc], (u_char *) (r + 1), B64BUFSIZE)) == -1) {
+		if((i = b64_pton(z->_t[z->_tc], (uint8_t *) (r + 1), B64BUFSIZE)) == -1) {
 			zerror(z, "base64 encoding failed");
 			error++;
 		} else {
 			*r = i;
-			r = xrealloc(r, i + sizeof(u_int16_t));
+			r = xrealloc(r, i + sizeof(uint16_t));
 		}
 		break;
 	default:
@@ -1170,12 +1164,12 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 int
 zrdata_loc (struct zparser *z)
 {
-	u_int16_t *r;
+	uint16_t *r;
 	char *t;
 	int i;
 	int deg = 0, min = 0, secs = 0, secfraq = 0, altsign = 0, altmeters = 0, altfraq = 0;
-	u_int32_t lat = 0, lon = 0, alt = 0;
-	u_char vszhpvp[4] = {0, 0, 0, 0};
+	uint32_t lat = 0, lon = 0, alt = 0;
+	uint8_t vszhpvp[4] = {0, 0, 0, 0};
 
 
 	for(;;) {
@@ -1316,19 +1310,19 @@ zrdata_loc (struct zparser *z)
 	}
 
 	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + 16);
+	r = xalloc(sizeof(uint16_t) + 16);
 	*r = 16;
 
 	memcpy(r + 1, vszhpvp, 4);
 
 	lat = htonl(lat);
-	memcpy((u_int32_t *)(r + 3), &lat, 4);
+	memcpy((uint32_t *)(r + 3), &lat, 4);
 
 	lon = htonl(lon);
-	memcpy((u_int32_t *)(r + 5), &lon, 4);
+	memcpy((uint32_t *)(r + 5), &lon, 4);
 
 	alt = htonl(alt);
-	memcpy((u_int32_t *)(r + 7), &alt, 4);
+	memcpy((uint32_t *)(r + 7), &alt, 4);
 
 	zaddrdata(z, r);
 
@@ -1535,11 +1529,11 @@ precsize_ntoa (int prec)
  * Sets the given pointer to the last used character.
  *
  */
-u_int8_t 
+uint8_t 
 precsize_aton (register char *cp, char **endptr)
 {
 	unsigned int mval = 0, cmval = 0;
-	u_int8_t retval = 0;
+	uint8_t retval = 0;
 	register int exponent;
 	register int mantissa;
 
@@ -1583,30 +1577,30 @@ precsize_aton (register char *cp, char **endptr)
  *	nothing
  */
 void
-zprintrdata (FILE *f, int what, u_int16_t *r)
+zprintrdata (FILE *f, int what, uint16_t *r)
 {
 	char buf[B64BUFSIZE];
-	u_char *t;
+	uint8_t *t;
 	struct in_addr in;
-	u_int32_t l;
+	uint32_t l;
 
 
 	/* Depending on what we have to scan... */
 	switch(what) {
 	case RDATA_HEX:
 		if(*r == 0xffff) {
-			for(t = (u_char *)(r + 1) + 1; t < (u_char *)(r + 1) + *((u_char *)(r + 1)) + 1; t++) {
+			for(t = (uint8_t *)(r + 1) + 1; t < (uint8_t *)(r + 1) + *((uint8_t *)(r + 1)) + 1; t++) {
 				fprintf(f, "%.2x", *t);
 			}
 		} else {
-			for(t = (u_char *)(r + 1); t < (u_char *)(r + 1) + *r; t++) {
+			for(t = (uint8_t *)(r + 1); t < (uint8_t *)(r + 1) + *r; t++) {
 				fprintf(f, "%.2x", *t);
 			}
 		}
 		fprintf(f, " ");
 		break;
 	case RDATA_TIME:
-		memcpy(&l, &r[1], sizeof(u_int32_t));
+		memcpy(&l, &r[1], sizeof(uint32_t));
 		l = ntohl(l);
 		strftime(buf, B64BUFSIZE, "%Y%m%d%H%M%S ", gmtime((time_t *)&l));
 		fprintf(f, "%s", buf);
@@ -1618,7 +1612,7 @@ zprintrdata (FILE *f, int what, u_int16_t *r)
 	case RDATA_SERVICE:
 	case RDATA_PERIOD:
 	case RDATA_LONG:
-		memcpy(&l, &r[1], sizeof(u_int32_t));
+		memcpy(&l, &r[1], sizeof(uint32_t));
 		fprintf(f, "%lu ", (unsigned long) ntohl(l));
 		break;
 	case RDATA_SHORT:
@@ -1629,7 +1623,7 @@ zprintrdata (FILE *f, int what, u_int16_t *r)
 		break;
 	case RDATA_A:
 		
-		memcpy(&in.s_addr, &r[1], sizeof(u_int32_t));
+		memcpy(&in.s_addr, &r[1], sizeof(uint32_t));
 		fprintf(f, "%s ", inet_ntoa(in));
 		break;
 	case RDATA_A6:
@@ -1637,13 +1631,13 @@ zprintrdata (FILE *f, int what, u_int16_t *r)
 			ntohs(r[4]), ntohs(r[5]), ntohs(r[6]), ntohs(r[7]), ntohs(r[8]));
 		break;
 	case RDATA_DNAME:
-		fprintf(f, "%s ", dnamestr((u_char *)(&r[1])));
+		fprintf(f, "%s ", dnamestr((uint8_t *)(&r[1])));
 		break;
 	case RDATA_TEXT:
 		fprintf(f, "\"%s\"", ((char *)&r[1]) + 1);
 		break;
 	case RDATA_B64:
-		b64_ntop((u_char *)(&r[1]), r[0], buf, B64BUFSIZE);
+		b64_ntop((uint8_t *)(&r[1]), r[0], buf, B64BUFSIZE);
 		fprintf(f, "%s ", buf);
 		break;
 	default:
@@ -1664,8 +1658,8 @@ zprintrdata (FILE *f, int what, u_int16_t *r)
 void
 zprintrrrdata(FILE *f, struct RR *rr)
 {
-	u_int16_t **rdata;
-	u_int16_t size;
+	uint16_t **rdata;
+	uint16_t size;
 
 	switch(rr->type) {
 	case TYPE_A:
@@ -1762,7 +1756,7 @@ zprintrrrdata(FILE *f, struct RR *rr)
 		fprintf(f, "\\# ");
 		for(size = 0, rdata = rr->rdata; *rdata; rdata++) {
 			if(**rdata == 0xffff) {
-				size += *((u_char *)(*rdata + 1));
+				size += *((uint8_t *)(*rdata + 1));
 			} else {
 				size += **rdata;
 			}
@@ -1775,7 +1769,7 @@ zprintrrrdata(FILE *f, struct RR *rr)
 }
 
 const char *
-typebyint(u_int16_t type)
+typebyint(uint16_t type)
 {
 	static char typebuf[] = "TYPEXXXXX";
 	const char *t = namebyint(type, ztypes);
@@ -1787,7 +1781,7 @@ typebyint(u_int16_t type)
 }
 
 const char *
-classbyint(u_int16_t class)
+classbyint(uint16_t class)
 {
 	static char classbuf[] = "CLASSXXXXX";
 	const char *t = namebyint(class, zclasses);

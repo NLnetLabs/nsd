@@ -1,5 +1,5 @@
 /*
- * $Id: dns.h,v 1.12 2003/06/26 12:29:49 erik Exp $
+ * $Id: dns.h,v 1.13 2003/07/04 07:55:09 erik Exp $
  *
  * dns.h -- everything we wanted to know but were afraid
  *		to ask about DNS
@@ -62,7 +62,7 @@
  */
 
 struct dns_header {
-	u_int16_t	id;
+	uint16_t	id;
 
 	unsigned	rd:1,
 			tc:1,
@@ -73,7 +73,7 @@ struct dns_header {
 			z:3,
 			ra:1;
 
-	u_int16_t	qdcount,
+	uint16_t	qdcount,
 			ancount,
 			nscount,
 			arcount;

@@ -15,6 +15,7 @@
  * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
  * SOFTWARE.
  */
+
 #include <config.h>
 
 #include <sys/param.h>
@@ -34,8 +35,8 @@
  * sizeof(int) < 4.  sizeof(int) > 4 is fine; all the world's not a VAX.
  */
 
-static int	inet_pton4 (const char *src, u_char *dst);
-static int	inet_pton6 (const char *src, u_char *dst);
+static int	inet_pton4 (const char *src, uint8_t *dst);
+static int	inet_pton6 (const char *src, uint8_t *dst);
 
 /*
  *
@@ -96,11 +97,11 @@ inet_pton(af, src, dst)
 static int
 inet_pton4(src, dst)
 	const char *src;
-	u_char *dst;
+	uint8_t *dst;
 {
 	static const char digits[] = "0123456789";
 	int saw_digit, octets, ch;
-	u_char tmp[NS_INADDRSZ], *tp;
+	uint8_t tmp[NS_INADDRSZ], *tp;
 
 	saw_digit = 0;
 	octets = 0;
@@ -109,7 +110,7 @@ inet_pton4(src, dst)
 		const char *pch;
 
 		if ((pch = strchr(digits, ch)) != NULL) {
-			u_int new = *tp * 10 + (pch - digits);
+			uint32_t new = *tp * 10 + (pch - digits);
 
 			if (new > 255)
 				return (0);
@@ -150,14 +151,14 @@ inet_pton4(src, dst)
 static int
 inet_pton6(src, dst)
 	const char *src;
-	u_char *dst;
+	uint8_t *dst;
 {
 	static const char xdigits_l[] = "0123456789abcdef",
 			  xdigits_u[] = "0123456789ABCDEF";
-	u_char tmp[NS_IN6ADDRSZ], *tp, *endp, *colonp;
+	uint8_t tmp[NS_IN6ADDRSZ], *tp, *endp, *colonp;
 	const char *xdigits, *curtok;
 	int ch, saw_xdigit;
-	u_int val;
+	uint32_t val;
 
 	memset((tp = tmp), '\0', NS_IN6ADDRSZ);
 	endp = tp + NS_IN6ADDRSZ;
@@ -192,8 +193,8 @@ inet_pton6(src, dst)
 			}
 			if (tp + NS_INT16SZ > endp)
 				return (0);
-			*tp++ = (u_char) (val >> 8) & 0xff;
-			*tp++ = (u_char) val & 0xff;
+			*tp++ = (uint8_t) (val >> 8) & 0xff;
+			*tp++ = (uint8_t) val & 0xff;
 			saw_xdigit = 0;
 			val = 0;
 			continue;
@@ -209,8 +210,8 @@ inet_pton6(src, dst)
 	if (saw_xdigit) {
 		if (tp + NS_INT16SZ > endp)
 			return (0);
-		*tp++ = (u_char) (val >> 8) & 0xff;
-		*tp++ = (u_char) val & 0xff;
+		*tp++ = (uint8_t) (val >> 8) & 0xff;
+		*tp++ = (uint8_t) val & 0xff;
 	}
 	if (colonp != NULL) {
 		/*

@@ -50,6 +50,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <netdb.h>
 #include <pwd.h>
 #include <signal.h>
@@ -441,13 +442,13 @@ main (int argc, char *argv[])
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
-				hints[i].ai_family = PF_INET;
+				hints[i].ai_family = AF_INET;
 			}
 			break;
 		case '6':
 #ifdef INET6
 			for (i = 0; i < MAX_INTERFACES; ++i) {
-				hints[i].ai_family = PF_INET6;
+				hints[i].ai_family = AF_INET6;
 			}
 #else /* !INET6 */
 			error("IPv6 support not enabled.");
@@ -554,13 +555,13 @@ main (int argc, char *argv[])
 		 * automatically mapped to our IPv6 socket.
 		 */
 #ifdef INET6
-		if (hints[i].ai_family == PF_UNSPEC) {
+		if (hints[i].ai_family == AF_UNSPEC) {
 # ifdef IPV6_V6ONLY
-			hints[0].ai_family = PF_INET6;
-			hints[1].ai_family = PF_INET;
+			hints[0].ai_family = AF_INET6;
+			hints[1].ai_family = AF_INET;
 			nsd.ifs = 2;
 # else /* !IPV6_V6ONLY */
-			hints[0].ai_family = PF_INET6;
+			hints[0].ai_family = AF_INET6;
 # endif	/* !IPV6_V6ONLY */
 		}
 #endif /* INET6 */

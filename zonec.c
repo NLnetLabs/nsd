@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.92 2003/06/26 12:07:15 erik Exp $
+ * $Id: zonec.c,v 1.93 2003/07/04 07:55:10 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -51,6 +51,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_STRINGS_H
+#include <strings.h>
+#endif
 #include <syslog.h>
 #include <unistd.h>
 
@@ -64,16 +67,16 @@
 #include <netinet/in.h>		/* htons, htonl on Linux */
 
 static void zone_addbuf (struct message *, const void *, size_t);
-static void zone_addcompr (struct message *msg, u_char *dname, int offset, int len);
+static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len);
 
 /* The database file... */
 const char *dbfile = DBFILE;
 
 /* The database masks */
-u_char bitmasks[NAMEDB_BITMASKLEN * 3];
-u_char *authmask = bitmasks;
-u_char *starmask = bitmasks + NAMEDB_BITMASKLEN;
-u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
+uint8_t bitmasks[NAMEDB_BITMASKLEN * 3];
+uint8_t *authmask = bitmasks;
+uint8_t *starmask = bitmasks + NAMEDB_BITMASKLEN;
+uint8_t *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
 
 /* Some global flags... */
 int vflag = 0;
@@ -125,7 +128,7 @@ zone_print (struct zone *z)
 {
 	struct rrset *rrset;
 	struct RR rr;
-	u_char *dname;
+	uint8_t *dname;
 	int i;
 
 	printf("; zone %s\n", dnamestr(z->dname));
@@ -175,7 +178,7 @@ zone_addbuf (struct message *msg, const void *data, size_t size)
 }
 
 static void 
-zone_addcompr (struct message *msg, u_char *dname, int offset, int len)
+zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len)
 {
 	if (msg->comprlen >= MAXRRSPP) {
 		fflush(stdout);
@@ -189,13 +192,13 @@ zone_addcompr (struct message *msg, u_char *dname, int offset, int len)
 	msg->comprlen++;
 }
 
-u_int16_t 
-zone_addname (struct message *msg, u_char *dname)
+uint16_t 
+zone_addname (struct message *msg, uint8_t *dname)
 {
 	/* Lets try rdata dname compression */
 	int rdlength = 0;
 	int j;
-	register u_char *t;
+	register uint8_t *t;
 
 	/* Walk through the labels in the dname to be compressed */
 	if(*dname > 1) {
@@ -235,19 +238,19 @@ zone_addname (struct message *msg, u_char *dname)
 
 
 
-u_int16_t 
-zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
+uint16_t 
+zone_addrrset (struct message *msg, uint8_t *dname, struct rrset *rrset)
 {
-	u_int16_t class = htons(CLASS_IN);
+	uint16_t class = htons(CLASS_IN);
 	int32_t ttl;
-	u_int16_t **rdata;
-	u_char *rdlengthptr;
-	u_int16_t rdlength;
-	u_int16_t type;
+	uint16_t **rdata;
+	uint8_t *rdlengthptr;
+	uint16_t rdlength;
+	uint16_t type;
 	int rrcount;
 	int i, j;
 
-	u_int16_t s;
+	uint16_t s;
 
 	if(rrset == NULL) return 0;
 
@@ -304,10 +307,10 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 
 		/* type */
 		type = htons(rrset->type);
-		zone_addbuf(msg, &type, sizeof(u_int16_t));
+		zone_addbuf(msg, &type, sizeof(uint16_t));
 
 		/* class */
-		zone_addbuf(msg, &class, sizeof(u_int16_t));
+		zone_addbuf(msg, &class, sizeof(uint16_t));
 
 		/* ttl */
 		ttl = htonl(rrset->ttl);
@@ -321,7 +324,7 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 		 * Reserver space for rdata length.  The actual length
 		 * is filled in below.
 		 */
-		zone_addbuf(msg, &rdlength, sizeof(u_int16_t));
+		zone_addbuf(msg, &rdlength, sizeof(uint16_t));
 
 		/* Pack the rdata */
 		
@@ -333,15 +336,15 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 					fprintf(stderr, "zonec: too many domain names\n");
 					exit(1);
 				}
-				rdlength += zone_addname(msg, (u_char *)(*rdata + 1));
-				msg->dnames[msg->dnameslen++] = (u_char *)(*rdata + 1);
+				rdlength += zone_addname(msg, (uint8_t *)(*rdata + 1));
+				msg->dnames[msg->dnameslen++] = (uint8_t *)(*rdata + 1);
 			} else {
 				zone_addbuf(msg, *rdata + 1, **rdata);
 				rdlength += **rdata;
 			}
 		}
 		rdlength = htons(rdlength);
-		memcpy(rdlengthptr, &rdlength, sizeof(u_int16_t));
+		memcpy(rdlengthptr, &rdlength, sizeof(uint16_t));
 	}
 	return rrcount;
 }
@@ -360,8 +363,8 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
 	msg->rrsetsoffs[msg->rrsetsoffslen++] = (msg->bufptr - msg->buf);
 
 	datasize = msg->bufptr - msg->buf;
-	size = sizeof(struct answer) + msg->pointerslen * sizeof(u_int16_t) /* ptrs */
-		+ (msg->rrsetsoffslen) * sizeof(u_int16_t)	/* rrs */
+	size = sizeof(struct answer) + msg->pointerslen * sizeof(uint16_t) /* ptrs */
+		+ (msg->rrsetsoffslen) * sizeof(uint16_t)	/* rrs */
 		+ datasize;					/* data */
 
 	/* Assure the alignment for the next answer... */
@@ -380,8 +383,8 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
 	ANSWER_RRSLEN(a) = msg->rrsetsoffslen;
 	ANSWER_DATALEN(a) = datasize;
 
-	memcpy(ANSWER_PTRS_PTR(a), msg->pointers, sizeof(u_int16_t) * msg->pointerslen);
-	memcpy(ANSWER_RRS_PTR(a), msg->rrsetsoffs, sizeof(u_int16_t) * msg->rrsetsoffslen);
+	memcpy(ANSWER_PTRS_PTR(a), msg->pointers, sizeof(uint16_t) * msg->pointerslen);
+	memcpy(ANSWER_RRS_PTR(a), msg->rrsetsoffs, sizeof(uint16_t) * msg->rrsetsoffslen);
 	memcpy(ANSWER_DATA_PTR(a), msg->buf, datasize);
 
 	d->size += size;
@@ -413,7 +416,7 @@ zone_read (char *name, char *zonefile)
 {
 	heap_t *h;
 	int i;
-	u_char *t, *dname;
+	uint8_t *t, *dname;
 
 	struct zone *z;
 	struct zparser *parser;
@@ -457,7 +460,7 @@ zone_read (char *name, char *zonefile)
 		/* Report progress... */
 		if(vflag) {
 			if((parser->lines % 100000) == 0) {
-				printf("zonec: reading zone \"%s\": %lu\r", dnamestr(z->dname), parser->lines);
+				printf("zonec: reading zone \"%s\": %lu\r", dnamestr(z->dname), (unsigned long) parser->lines);
 				fflush(stdout);
 			}
 		}
@@ -503,7 +506,7 @@ zone_read (char *name, char *zonefile)
 			r->class = rr->class;
 			r->ttl = rr->ttl;
 			r->rrslen = 1;
-			r->rrs = xalloc(sizeof(u_int16_t *) * 2);
+			r->rrs = xalloc(sizeof(uint16_t *) * 2);
 			r->glue = r->color = 0;
 			r->rrs[0] = rr->rdata;
 
@@ -535,7 +538,7 @@ zone_read (char *name, char *zonefile)
 			}
 
 			/* Add it... */
-			r->rrs = xrealloc(r->rrs, ((r->rrslen + 2) * sizeof(u_int16_t *)));
+			r->rrs = xrealloc(r->rrs, ((r->rrslen + 2) * sizeof(uint16_t *)));
 			r->rrs[r->rrslen++] = rr->rdata;
 			r->rrs[r->rrslen] = NULL;
 		}
@@ -586,12 +589,12 @@ zone_read (char *name, char *zonefile)
 }
 
 static void
-zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *db)
+zone_addzonecut(uint8_t *dkey, uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb *db)
 {
 	struct domain *d;
 	struct message msg;
 	struct rrset *additional;
-	u_char *nameptr;
+	uint8_t *nameptr;
 	int i, namedepth;
 
 	/* Make sure it is not a wildcard */
@@ -660,9 +663,9 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 	NAMEDB_SETBITMASK(db, NAMEDB_AUTHMASK, namedepth);
 
 	/* Add a terminator... */
-	d = xrealloc(d, d->size + sizeof(u_int32_t));
-	memset((char *)d + d->size, 0, sizeof(u_int32_t));
-	d->size += sizeof(u_int32_t);
+	d = xrealloc(d, d->size + sizeof(uint32_t));
+	memset((char *)d + d->size, 0, sizeof(uint32_t));
+	d->size += sizeof(uint32_t);
 
 	/* Store it */
 	if(namedb_put(db, dkey, d) != 0) {
@@ -673,11 +676,11 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 }
 
 static void
-zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *db) {
+zone_adddata(uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb *db) {
 	struct domain *d;
 	struct message msg, msgany;
 	struct rrset *cnamerrset, *additional;
-	u_char *cname, *nameptr;
+	uint8_t *cname, *nameptr;
 	int i, star;
 
 	int namedepth = 0;
@@ -697,7 +700,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 		if(rrset->type == TYPE_CNAME) {
 			/* XXX Not necessarily with NXT, BUT OH OH * assert(rrset->next == NULL); */
 			cnamerrset = rrset;
-			cname = (u_char *)(*cnamerrset->rrs[0]+1);
+			cname = (uint8_t *)(*cnamerrset->rrs[0]+1);
 			rrset = heap_search(z->data, cname);
 		} else {
 			cnamerrset = NULL;
@@ -809,9 +812,9 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 	}
 
 	/* Add a terminator... */
-	d = xrealloc(d, d->size + sizeof(u_int32_t));
-	memset((char *)d + d->size, 0, sizeof(u_int32_t));
-	d->size += sizeof(u_int32_t);
+	d = xrealloc(d, d->size + sizeof(uint32_t));
+	memset((char *)d + d->size, 0, sizeof(uint32_t));
+	d->size += sizeof(uint32_t);
 
 	/* Store it */
 	if(namedb_put(db, dname, d) != 0) {
@@ -829,9 +832,9 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 int 
 zone_dump (struct zone *z, struct namedb *db)
 {
-	u_char dnamebuf[MAXDOMAINLEN+1];
+	uint8_t dnamebuf[MAXDOMAINLEN+1];
 	struct rrset *rrset;
-	u_char *dname, *nameptr;
+	uint8_t *dname, *nameptr;
 	
 	/* Progress reporting... */
 	unsigned long progress = 0;

@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.36 2003/07/01 13:18:35 erik Exp $
+ * $Id: namedb.h,v 1.37 2003/07/04 07:55:10 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -76,31 +76,31 @@
 #define	ANSWER_DATALEN(a)	a->datalen
 #define	ANSWER_DATALEN_PTR(a)	(&a->datalen)
 #define	ANSWER_END_PTR(a)	((struct answer *)a+1)
-#define	ANSWER_PTRS_PTR(a)	((u_int16_t *)ANSWER_END_PTR(a))
-#define	ANSWER_PTRS(a, i)	*((u_int16_t *)ANSWER_END_PTR(a) + (i))
-#define	ANSWER_RRS_PTR(a)	((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)
-#define	ANSWER_RRS(a, i)	(*(((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & ~NAMEDB_RRSET_COLOR)
-#define	ANSWER_RRS_COLOR(a, i)	(*(((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & NAMEDB_RRSET_COLOR)
-#define	ANSWER_DATA_PTR(a)	(u_char *)(((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+ANSWER_RRSLEN(a))
+#define	ANSWER_PTRS_PTR(a)	((uint16_t *)ANSWER_END_PTR(a))
+#define	ANSWER_PTRS(a, i)	*((uint16_t *)ANSWER_END_PTR(a) + (i))
+#define	ANSWER_RRS_PTR(a)	((uint16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)
+#define	ANSWER_RRS(a, i)	(*(((uint16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & ~NAMEDB_RRSET_COLOR)
+#define	ANSWER_RRS_COLOR(a, i)	(*(((uint16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & NAMEDB_RRSET_COLOR)
+#define	ANSWER_DATA_PTR(a)	(uint8_t *)(((uint16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+ANSWER_RRSLEN(a))
 
 
 struct answer {
-	u_int32_t size;
-	u_int16_t type;
-	u_int16_t ancount;
-	u_int16_t nscount;
-	u_int16_t arcount;
-	u_int16_t ptrslen;
-	u_int16_t rrslen;
-	u_int32_t datalen;
-	/* u_int16_t ptrs[0]; */
-	/* u_int16_t rrs[0]; */
+	uint32_t size;
+	uint16_t type;
+	uint16_t ancount;
+	uint16_t nscount;
+	uint16_t arcount;
+	uint16_t ptrslen;
+	uint16_t rrslen;
+	uint32_t datalen;
+	/* uint16_t ptrs[0]; */
+	/* uint16_t rrs[0]; */
 	/* char *data; */
 };
 
 struct domain {
-	u_int32_t size;
-	u_int16_t flags;
+	uint32_t size;
+	uint16_t flags;
 	void     *runtime_data; /* Additional run-time data (used for plugins) */
 };
 
@@ -128,7 +128,7 @@ struct domain {
 
 struct namedb {
 	heap_t *heap;
-	u_char masks[3][NAMEDB_BITMASKLEN];
+	uint8_t masks[3][NAMEDB_BITMASKLEN];
 	char *mpool;
 	size_t	mpoolsz;
 	char *filename;
@@ -137,15 +137,15 @@ struct namedb {
 
 /* dbcreate.c */
 struct namedb *namedb_new(const char *filename);
-int namedb_put(struct namedb *db, const u_char *dname, struct domain *d);
+int namedb_put(struct namedb *db, const uint8_t *dname, struct domain *d);
 int namedb_save(struct namedb *db);
 void namedb_discard(struct namedb *db);
 
 
 /* dbaccess.c */
 int domaincmp(const void *a, const void *b);
-unsigned long domainhash(const u_char *dname);
-struct domain *namedb_lookup(struct namedb *db, const u_char *dname);
+unsigned long domainhash(const uint8_t *dname);
+struct domain *namedb_lookup(struct namedb *db, const uint8_t *dname);
 struct answer *namedb_answer(const struct domain *d, int type);
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);

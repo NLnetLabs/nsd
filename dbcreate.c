@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.21 2003/06/25 11:39:38 erik Exp $
+ * $Id: dbcreate.c,v 1.22 2003/07/04 07:55:09 erik Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -87,7 +87,7 @@ namedb_new (const char *filename)
 
 
 int 
-namedb_put (struct namedb *db, const u_char *dname, struct domain *d)
+namedb_put (struct namedb *db, const uint8_t *dname, struct domain *d)
 {
 	/* Store the key */
 	if(write(db->fd, dname, ALIGN_UP(*dname + 1)) == -1) {

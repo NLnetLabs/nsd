@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-plugin.h,v 1.5 2003/07/01 10:02:03 erik Exp $
+ * $Id: nsd-plugin.h,v 1.6 2003/07/04 07:55:10 erik Exp $
  *
  * nsd-plugin.h -- interface to NSD for a plugin.
  *
@@ -113,7 +113,7 @@ struct nsd_plugin_callback_args
 	 * the normalized domain name.  DOMAIN_NAME points to the
 	 * start of the first label.
 	 */
-	const u_char        *domain_name;
+	const uint8_t       *domain_name;
 
 	/*
 	 * NULL for the NSD_PLUGIN_QUERY_RECEIVED callback and for plugins
@@ -144,7 +144,7 @@ struct nsd_plugin_interface
 	int (*register_data)(
 		const struct nsd_plugin_interface *nsd,
 		nsd_plugin_id_type                 plugin_id,
-		const u_char *                     domain_name,
+		const uint8_t *                    domain_name,
 		void *                             data);
 };
 typedef struct nsd_plugin_interface nsd_plugin_interface_type;

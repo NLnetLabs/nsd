@@ -70,7 +70,7 @@ static int
 register_data(
 	const nsd_plugin_interface_type *nsd,
 	nsd_plugin_id_type               plugin_id,
-	const u_char *                   domain_name,
+	const uint8_t *                  domain_name,
 	void *                           data)
 {
 	struct domain *d;
