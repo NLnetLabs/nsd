@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.40 2003/10/23 10:18:24 miekg Exp $
+ * $Id: zyparser.y,v 1.41 2003/10/23 10:34:43 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -97,7 +97,16 @@ line:   NL
     }
     ;
 
-dir_ttl:    SP STR NL
+/* needed to cope with ( and ) and arbitary places */
+sp:		SP
+  	|	sp SP
+	;
+
+trail:		NL
+	|	sp NL
+	;
+
+dir_ttl:    SP STR trail
     { 
         if ($2.len > MAXDOMAINLEN ) {
             yyerror("$TTL value is too large");
@@ -109,7 +118,7 @@ dir_ttl:    SP STR NL
     }
     ;
 
-dir_orig:   SP nonowner_dname NL
+dir_orig:   SP nonowner_dname trail
     {
         /* [xxx] does $origin not effect previous */
         if ( $2->dname->name_size > MAXDOMAINLEN ) { 
@@ -122,7 +131,7 @@ dir_orig:   SP nonowner_dname NL
     }
     ;
 
-rr:     ORIGIN SP rrrest NL
+rr:     ORIGIN SP rrrest trail
     {
         /* starts with @, use the origin */
         current_rr->domain = current_parser->origin;
@@ -270,15 +279,7 @@ rtype:  SOA SP rdata_soa
     {
 	    current_rr->type = $1;
     }
-    |	SOA SP UN_RR SP rdata_unknown
-    {
-	    current_rr->type = $1;
-    }
     |   A SP rdata_a
-    {
-	    current_rr->type = $1;
-    }
-    |	A SP UN_RR SP rdata_unknown
     {
 	    current_rr->type = $1;
     }
@@ -286,15 +287,7 @@ rtype:  SOA SP rdata_soa
     {
 	    current_rr->type = $1;
     }
-    |	NS SP UN_RR SP rdata_unknown
-    {
-	    current_rr->type = $1;
-    }
     |   CNAME SP rdata_dname
-    {
-	    current_rr->type = $1;
-    }
-    |   CNAME SP UN_RR SP rdata_unknown
     {
 	    current_rr->type = $1;
     }
@@ -302,15 +295,7 @@ rtype:  SOA SP rdata_soa
     {   
 	    current_rr->type = $1;
     }
-    |	PTR SP UN_RR SP rdata_unknown
-    {
-	    current_rr->type = $1;
-    }
     |   TXT SP rdata_txt
-    {
-	    current_rr->type = $1;
-    }
-    |	TXT SP UN_RR SP rdata_unknown
     {
 	    current_rr->type = $1;
     }
@@ -318,15 +303,7 @@ rtype:  SOA SP rdata_soa
     {
 	    current_rr->type = $1;
     }
-    |   MX SP UN_RR SP rdata_unknown
-    {
-	    current_rr->type = $1;
-    }
     |   AAAA SP rdata_aaaa
-    {
-	    current_rr->type = $1;
-    }
-    |	AAAA SP UN_RR SP rdata_unknown
     {
 	    current_rr->type = $1;
     }
@@ -334,22 +311,9 @@ rtype:  SOA SP rdata_soa
     {
 	    current_rr->type = $1;
     }
-    |	HINFO SP UN_RR SP rdata_unknown
-    {
-	    current_rr->type = $1;
-    }
     |   SRV SP rdata_srv
     {
 	    current_rr->type = $1;
-    }
-    |	SRV SP UN_RR SP rdata_unknown
-    {
-	    current_rr->type = $1;
-    }
-    |	UN_TYPE SP UN_RR SP rdata_unknown
-    {
-	/* try to add the unknown type */
-	current_rr->type = $1;
     }
     |	error NL
     {	
@@ -362,26 +326,19 @@ rtype:  SOA SP rdata_soa
  * below are all the definition for all the different rdata 
  */
 
-rdata_unknown: STR SP hex
-    {
-	/* check_hexlen($1.str, $2.str); */
-	zadd_rdata_wireformat( current_parser, zparser_conv_hex(zone_region, $3.str) );
-    }
-    ;
-
-rdata_soa:  nonowner_dname SP nonowner_dname SP STR STR STR STR STR
+rdata_soa:  nonowner_dname sp nonowner_dname sp STR sp STR sp STR sp STR sp STR
     {
         /* convert the soa data */
         zadd_rdata_domain( current_parser, $1);                                     /* prim. ns */
         zadd_rdata_domain( current_parser, $3);                                     /* email */
         zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $5.str) ); /* serial */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $6.str) ); /* refresh */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $7.str) ); /* retry */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $8.str) ); /* expire */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $9.str) ); /* minimum */
+        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $7.str) ); /* refresh */
+        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $9.str) ); /* retry */
+        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $11.str) ); /* expire */
+        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $13.str) ); /* minimum */
 
         /* [XXX] also store the minium in case of no TTL? */
-        if ( (current_parser->minimum = zparser_ttl2int($9.str) ) == -1 )
+        if ( (current_parser->minimum = zparser_ttl2int($11.str) ) == -1 )
             current_parser->minimum = DEFAULT_TTL;
     }
     ;
@@ -423,7 +380,7 @@ rdata_txt:  STR
     }
     ;
 
-rdata_mx:   STR SP nonowner_dname
+rdata_mx:   STR sp nonowner_dname
     {
         zadd_rdata_wireformat( current_parser, zparser_conv_short(zone_region, $1.str) );  /* priority */
         zadd_rdata_domain( current_parser, $3);  /* MX host */
@@ -436,14 +393,14 @@ rdata_aaaa: STR
     }
     ;
 
-rdata_hinfo:	STR SP STR
+rdata_hinfo:	STR sp STR
 	{
         	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $1.str) ); /* CPU */
         	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $3.str) );  /* OS*/
 	}
 	;
 
-rdata_srv:	STR SP STR SP STR SP nonowner_dname
+rdata_srv:	STR sp STR sp STR sp nonowner_dname
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* prio */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* weight */
