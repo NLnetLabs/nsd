@@ -48,7 +48,6 @@ COMMENT ;
 DOT     \.
 SLASH   \\
 ANY     [^\"]|\\.
-CLASS   IN|CH|HS|CLASS1
 Q       \"
 
 %START	incl
@@ -213,84 +212,19 @@ Q       \"
                             LEXOUT(("SP "));
                             return SP;
                         }
-^({ZONESTR}|\\.)({ZONESTR}|\\.)* {
-                            /* any allowed word. Needs to be located
-                             * before CLASS and TYPEXXX and CLASSXXX
-                             * to correctly see a dname here */
-                            ztext = region_strdup(rr_region, yytext);
-                            yylval.data.len = zoctet(ztext);
-                            yylval.data.str = ztext;
-                            in_rr = expecting_dname;
-			    LEXOUT(("STR "));
-                            return STR;
-                        }
-{CLASS}                 {
-                            if ( in_rr == after_dname) { 
-				/* Class? */
-  			        if (strcasecmp(yytext, "IN") == 0 ||
-					strcasecmp(yytext,"CLASS1") == 0 ) {
-  				    yylval.class = CLASS_IN;
-                                    return IN;
-                                } else if (strcasecmp(yytext, "CH") == 0) {
-				    yylval.class = CLASS_CHAOS;
-                                    return CH;
-                                } else if (strcasecmp(yytext, "HS") == 0) {
-				    yylval.class = CLASS_HS;
-                                    return HS;
-				}
-                            } else {
-                                ztext = region_strdup(rr_region, yytext); 
-                                yylval.data.len = zoctet(ztext);
-                                yylval.data.str = ztext;
-				return STR;
-			    }
-                            
-                        }
 {Q}({ANY})*{Q}   {
                             /* this matches quoted strings */
-                            if ( in_rr == after_dname ) {
-                                i = zrrtype(yytext);
-                                if ( i ) {
-                                    in_rr = reading_type; return i;
-                                }
-                            }
-
 			    /* Strip leading and ending quotes.  */
 			    yytext[strlen(yytext) - 1] = '\0';
-                            ztext = region_strdup(rr_region, yytext + 1);
-                            yylval.data.len = zoctet(ztext);
-                            yylval.data.str = ztext;
-			    LEXOUT(("STR "));
-                            return STR;
+			    yytext++;
+
+                            /*ztext = region_strdup(rr_region, yytext + * 1);*/
+
+                            return parsestr(yytext, &in_rr);
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word */
-                            if ( in_rr == after_dname ) {
-				char *t;
-				/* type */
-                                i = zrrtype(yytext);
-                                if (i) {
-                                    in_rr = reading_type;
-				    yylval.type = intbyname(yytext, ztypes);
-				    return i;
-                                } 
-				/* ttl */
-				printf("%d\n",in_rr);
-				strtottl(yytext, &t);
-				if ( *t == 0 ) {
-					/* was parseable */
-					yylval.data.str = yytext;
-					yylval.data.len = strlen(yytext); /*needed?*/
-					LEXOUT(("TTL "));
-					return TTL;
-				}
-                            }
-
-                            ztext = region_strdup(rr_region, yytext);
-                            yylval.data.len = zoctet(ztext);
-                            yylval.data.str = ztext;
-			    LEXOUT(("STR "));
-                            return STR;
+			    return parsestr(yytext, &in_rr);
                         }
 .                       {
                             /* we should NEVER reach this
@@ -431,4 +365,60 @@ intbytypexx(void *str)
 
         /* zero if not ok */
         return type;
+}
+
+YYTOKENTYPE
+parsestr(char * yytext, enum rr_spot *in_rr)
+{
+	int i;
+	char *t; char *ztext;
+
+	switch(*in_rr) {
+		case after_dname:
+			/* type */
+			i = zrrtype(yytext);
+			if (i) {
+				*in_rr = reading_type;
+				yylval.type = intbyname(yytext, ztypes);
+				return i;
+			}
+
+			/* class */
+			if (strcasecmp(yytext, "IN") == 0 ||
+					strcasecmp(yytext,"CLASS1") == 0 ) {
+				yylval.class = CLASS_IN;
+				LEXOUT(("IN "));
+				return IN;
+			} else if (strcasecmp(yytext, "CH") == 0) {
+				yylval.class = CLASS_CHAOS;
+				return CH;
+			} else if (strcasecmp(yytext, "HS") == 0) {
+				yylval.class = CLASS_HS;
+				return HS;
+			}
+
+			/* ttl */
+			strtottl(yytext, &t);
+			if ( *t == 0 ) {
+				/* was parseable */
+				yylval.data.str = yytext;
+				yylval.data.len = strlen(yytext); /*needed?*/
+				LEXOUT(("TTL "));
+				return TTL;
+			}
+		case outside:
+			/* should match ^ */
+			ztext = region_strdup(rr_region, yytext);
+			yylval.data.len = zoctet(ztext);
+			yylval.data.str = ztext;
+			*in_rr = expecting_dname;
+			LEXOUT(("STR "));
+			return STR;
+		default:
+			ztext = region_strdup(rr_region, yytext);
+			yylval.data.len = zoctet(ztext);
+			yylval.data.str = ztext;
+			LEXOUT(("STR "));
+			return STR;
+	}
 }
