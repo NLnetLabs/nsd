@@ -1,7 +1,7 @@
 /*
- * $Id: util.c,v 1.4 2002/01/08 13:29:21 alexis Exp $
+ * $Id: zone.h,v 1.1 2002/01/08 13:29:21 alexis Exp $
  *
- * util.c -- miscelaneous utilities for nsd(8)
+ * zone.h -- internal zone representation
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -38,41 +38,23 @@
  *
  */
 
-#include <sys/types.h>
+struct rrset {
+	struct rrset *next;
+	u_short type;
+	u_short class;
+	long ttl;
+	char *fmt;
+	u_short rrslen;
+	int glue;
+	union zf_rdatom **rrs;
+};
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <syslog.h>
+struct zone {
+	u_char *dname;
+	heap_t	*cuts;
+	heap_t	*data;
+	struct rrset *soa;
+	struct rrset *ns;
+};
 
-/*
- * Allocates ``size'' bytes of memory, returns the
- * pointer to the allocated memory or NULL and errno
- * set in case of error. Also reports the error via
- * syslog().
- *
- */
-void *
-xalloc(size)
-	register size_t	size;
-{
-	register void *p;
-
-	if((p = malloc(size)) == NULL) {
-		syslog(LOG_ERR, "malloc failed: %m");
-		exit(1);
-	}
-	return p;
-}
-
-void *
-xrealloc(p, size)
-	register void *p;
-	register size_t	size;
-{
-
-	if((p = realloc(p, size)) == NULL) {
-		syslog(LOG_ERR, "realloc failed: %m");
-		exit(1);
-	}
-	return p;
-}
+void zone_free __P((struct zone *));

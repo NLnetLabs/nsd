@@ -1,7 +1,7 @@
 /*
- * $Id: parser.h,v 1.3 2001/12/12 15:05:08 alexis Exp $
+ * $Id: zf.h,v 1.1 2002/01/08 13:29:21 alexis Exp $
  *
- * parser.h -- RFC1035 master zone file parser, nsd(8)
+ * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -42,32 +42,36 @@
  * This module implements an extended RFC1035 master zone file parser with
  * an interface similar to the historical getpwent(3) library call.
  *
- * parser_t *parser_open(char *filename, u_char *zonename)
+ * zf_t *zf_open(char *filename, u_char *zonename)
  *
  *	Opens the specified zone file name and sets the system up for
  *	parsing it. Returns NULL if an error has occurred.
  *
- * void parser_close(parser_t *parser)
+ * void zf_close(zf_t *zf)
  *
  *	Closes the parser and frees up the buffers and parsing structures.
  *
- * struct parser_entry *parser_get_entry(struct parser *parser)
+ * struct zf_entry *zf_read(struct zf *zf)
  *
  *	Reads, parses and returns an entry from the open parser. Returns
  *	NULL on the end of zone file. The number of encountered syntax errors
- *	this far is reflected with parser->errors counter.
+ *	this far is reflected with zf->errors counter.
  *
- * void parser_free_rdata(struct parser_entry *)
+ * void zf_free_rdata(struct zf_entry *)
  *
  *	Frees the parser rdata but not the dname.
  *
  * Some useful variables:
  *
- *	parser->errors	- number of syntax errors this far
- *	parser->lines		- total number of lines read this far including
+ *	zf->errors	- number of syntax errors this far
+ *	zf->lines		- total number of lines read this far including
  *				  empty lines and comments.
  *
  */
+
+#ifndef _ZF_H_
+#define	_ZF_H_
+
 #define	MAXRDATALEN	7		/* SOA */
 #define	MAXINCLUDES	16		/* Maximum number of include files */
 #define	LINEBUFSZ	2048		/* Maximum master file line length */
@@ -76,24 +80,25 @@
 #define	DEFAULT_TTL	3600
 
 /* Rdata atom */
-union parser_rdatom {
+union zf_rdatom {
 	u_short	s;
 	u_long	l;
 	u_char	*p;
 };
 
+
 /* A line in a zone file */
-struct parser_entry {
+struct zf_entry {
 	u_char *dname;
 	long ttl;
 	u_short class;
 	u_short type;
 	char *rdatafmt;
-	union parser_rdatom rdata[MAXRDATALEN];
+	union zf_rdatom *rdata;
 };
 
 /* An open parser */
-struct parser {
+struct zf {
 	int errors;
 	int iptr;
 	u_long lines;
@@ -106,12 +111,12 @@ struct parser {
 		long	ttl;
 		int	parentheses;
 	} i[MAXINCLUDES+1];
-	struct parser_entry line;
+	struct zf_entry line;
 	char linebuf[LINEBUFSZ];
 };
 
 /* Structure to parse classes */
-struct parser_class_tab {
+struct zf_class_tab {
 	u_short	class;
 	char	*name;
 };
@@ -136,7 +141,7 @@ struct parser_class_tab {
  */
 
 /* Structure to parse types */
-struct parser_type_tab {
+struct zf_type_tab {
 	u_short	type;
 	char	*name;
 	char	*fmt;
@@ -165,23 +170,26 @@ struct parser_type_tab {
 }
 
 /* Prototypes */
-struct parser *parser_open __P((char *, u_char *));
-struct parser_entry *parser_get_entry __P((struct parser *));
+struct zf *zf_open __P((char *, u_char *));
+struct zf_entry *zf_read __P((struct zf *));
 char *typetoa __P((u_short));
 char *classtoa __P((u_short));
-struct parser_type_tab *typebyname __P((char *));
-struct parser_class_tab *classbyname __P((char *));
+struct zf_type_tab *typebyname __P((char *));
+struct zf_class_tab *classbyname __P((char *));
 void *inet6_aton __P((char *));
 char *zone_strtok __P((register char *));
-void parser_error __P((struct parser *, char *));
-void parser_syntax __P((struct parser *));
-char *parser_getline __P((struct parser *));
-char *parser_token __P((struct parser *, char *));
-int parser_open_include __P((struct parser *, char *, char *, long));
-void parser_print_entry __P((struct parser_entry *));
-int parser_close_include __P((struct parser *));
-void parser_free_entry __P((struct parser_entry *));
-void parser_close __P((struct parser *));
+void zf_error __P((struct zf *, char *));
+void zf_syntax __P((struct zf *));
+char *zf_getline __P((struct zf *));
+char *zf_token __P((struct zf *, char *));
+int zf_open_include __P((struct zf *, char *, char *, long));
+void zf_print_entry __P((struct zf_entry *));
+void zf_print_rdata __P((union zf_rdatom *, char *));
+int zf_close_include __P((struct zf *));
+void zf_free_entry __P((struct zf_entry *));
+void zf_close __P((struct zf *));
 char *dnamestr __P((u_char *));
 u_char *strdname __P((char *s, u_char *));
 int dnamecmp __P((register u_char *, register u_char *));
+
+#endif

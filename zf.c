@@ -1,7 +1,7 @@
 /*
- * $Id: parser.c,v 1.5 2001/12/12 15:05:08 alexis Exp $
+ * $Id: zf.c,v 1.1 2002/01/08 13:29:21 alexis Exp $
  *
- * parser.c -- RFC1035 master zone file parser, nsd(8)
+ * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -53,10 +53,10 @@
 
 #include "dns.h"
 #include "nsd.h"
-#include "parser.h"
+#include "zf.h"
 
-struct parser_type_tab types[] = ZONEFILE_TYPES;
-struct parser_class_tab classes[] = ZONEFILE_CLASSES;
+struct zf_type_tab types[] = ZONEFILE_TYPES;
+struct zf_class_tab classes[] = ZONEFILE_CLASSES;
 
 /*
  * Converts dname to text
@@ -136,9 +136,7 @@ strdname(s, o)
 
 	}
 
-	if((h = xalloc((int)*dname + 1)) == NULL) {
-		return NULL;
-	}
+	h = xalloc((int)*dname + 1);
 	bcopy(dname, h, (int)*dname + 1);
 	return h;
 }
@@ -173,7 +171,7 @@ char *
 typetoa(n)
 	u_short n;
 {
-	struct parser_type_tab *type;
+	struct zf_type_tab *type;
 	static char name[5];
 
 	for(type = types; type->type; type++)
@@ -191,7 +189,7 @@ char *
 classtoa(n)
 	u_short n;
 {
-	struct parser_class_tab *class;
+	struct zf_class_tab *class;
 	static char name[5];
 
 	for(class = classes; class->class; class++)
@@ -205,11 +203,11 @@ classtoa(n)
  * Returns type_tab by type name.
  *
  */
-struct parser_type_tab *
+struct zf_type_tab *
 typebyname(a)
 	char *a;
 {
-	struct parser_type_tab *type;
+	struct zf_type_tab *type;
 
 	for(type = types; type->type; type++)
 		if(strcasecmp(a, type->name) == 0) return type;
@@ -220,11 +218,11 @@ typebyname(a)
  * Returns type_tab by type name.
  *
  */
-struct parser_class_tab *
+struct zf_class_tab *
 classbyname(a)
 	char *a;
 {
-	struct parser_class_tab *class;
+	struct zf_class_tab *class;
 
 	for(class = classes; class->class; class++)
 		if(strcasecmp(a, class->name) == 0) return class;
@@ -247,9 +245,7 @@ inet6_aton(str)
 	u_short w;
 	char *p, *t, *z;
 
-	if((addr = xalloc(IP6ADDRLEN)) == NULL) {
-		return NULL;
-	}
+	addr = xalloc(IP6ADDRLEN);
 
 	if(!str || !addr) {
 		errno = EINVAL;
@@ -325,8 +321,8 @@ zone_strtok(s)
  * Prints an error message related to a particular zone file.
  */
 void
-parser_error(zf, msg)
-	struct parser *zf;
+zf_error(zf, msg)
+	struct zf *zf;
 	char *msg;
 {
 	if(zf->iptr > -1) {
@@ -344,18 +340,18 @@ parser_error(zf, msg)
  *
  */
 void
-parser_syntax(zf)
-	struct parser *zf;
+zf_syntax(zf)
+	struct zf *zf;
 {
-	parser_error(zf, "syntax error");
+	zf_error(zf, "syntax error");
 }
 
 /*
  * Closes current include file.
  */
 int
-parser_close_include(zf)
-	struct parser *zf;
+zf_close_include(zf)
+	struct zf *zf;
 {
 	if(zf->iptr > -1) {
 		free(zf->i[zf->iptr].filename);
@@ -371,17 +367,17 @@ parser_close_include(zf)
  * level include file if end of file. XXX Check for truncated lines?
  */
 char *
-parser_getline(zf)
-	struct parser *zf;
+zf_getline(zf)
+	struct zf *zf;
 {
 
 	/* Return to upper level include file if any... */
 	while(fgets(zf->linebuf, LINEBUFSZ - 1, zf->i[zf->iptr].file) == NULL) {
 		if(zf->i[zf->iptr].parentheses) {
-			parser_error(zf, "end of file inside of parentheses");
+			zf_error(zf, "end of file inside of parentheses");
 		}
 
-		if(parser_close_include(zf) == 0) {
+		if(zf_close_include(zf) == 0) {
 			return NULL;
 		}
 	}
@@ -399,8 +395,8 @@ parser_getline(zf)
  *
  */
 char *
-parser_token(zf, s)
-	struct parser *zf;
+zf_token(zf, s)
+	struct zf *zf;
 	char *s;
 {
 	char *t, *line;
@@ -409,7 +405,7 @@ parser_token(zf, s)
 
 	while((t == NULL) || (*t == ';')) {
 		if(zf->i[zf->iptr].parentheses) {
-			if((line = parser_getline(zf)) == NULL) {
+			if((line = zf_getline(zf)) == NULL) {
 				return NULL;
 			}
 			t = zone_strtok(line);
@@ -421,22 +417,22 @@ parser_token(zf, s)
 	switch(*t) {
 	case '(':
 		if(zf->i[zf->iptr].parentheses) {
-			parser_error(zf, "nested open parenthes");
+			zf_error(zf, "nested open parenthes");
 		} else {
 			zf->i[zf->iptr].parentheses = 1;
 		}
 		if(*++t == 0) {
-			return parser_token(zf, NULL);
+			return zf_token(zf, NULL);
 		}
 		break;
 	case ')':
 		if(!zf->i[zf->iptr].parentheses) {
-			parser_error(zf, "missing open parenthes");
+			zf_error(zf, "missing open parenthes");
 		} else {
 			zf->i[zf->iptr].parentheses = 0;
 		}
 		if(*++t == 0) {
-			return parser_token(zf, NULL);
+			return zf_token(zf, NULL);
 		}
 		break;
 	}
@@ -448,14 +444,14 @@ parser_token(zf, s)
  *
  */
 int
-parser_open_include(zf, filename, origin, ttl)
-	struct parser *zf;
+zf_open_include(zf, filename, origin, ttl)
+	struct zf *zf;
 	char *filename;
 	char *origin;
 	long ttl;
 {
 	if((zf->iptr + 1 > MAXINCLUDES)) {
-		parser_error(zf, "too many nested include files");
+		zf_error(zf, "too many nested include files");
 		return -1;
 	}
 
@@ -479,27 +475,25 @@ parser_open_include(zf, filename, origin, ttl)
 /*
  * Opens a zone file and sets us up for parsing.
  */
-struct parser *
-parser_open(filename, origin)
+struct zf *
+zf_open(filename, origin)
 	char *filename;
 	u_char *origin;
 {
-	struct parser *zf;
+	struct zf *zf;
 
 	/* Allocate new handling structure */
-	if((zf = xalloc(sizeof(struct parser))) == NULL) {
-		return NULL;
-	}
+	zf = xalloc(sizeof(struct zf));
 
 	/* Initialize it */
 	zf->errors = 0;
 	zf->iptr = -1;
 	zf->lines = 0;
 
-	bzero(&zf->line, sizeof(struct parser_entry));
+	bzero(&zf->line, sizeof(struct zf_entry));
 
 	/* Open the main file... */
-	if(parser_open_include(zf, filename, strdname(origin, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
+	if(zf_open_include(zf, filename, strdname(origin, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
 		free(zf);
                 return NULL;
         }
@@ -512,8 +506,8 @@ parser_open(filename, origin)
  *
  */
 void
-parser_free_rdata(rr)
-	struct parser_entry *rr;
+zf_free_rdata(rr)
+	struct zf_entry *rr;
 {
 	int i;
 	char *f;
@@ -536,45 +530,55 @@ parser_free_rdata(rr)
  *
  */
 void
-parser_print_entry(rr)
-	struct parser_entry *rr;
+zf_print_entry(rr)
+	struct zf_entry *rr;
+{
+	printf("%s\t%ld\t%s\t%s\t", dnamestr(rr->dname), rr->ttl, classtoa(rr->class), typetoa(rr->type));
+
+	zf_print_rdata(rr->rdata, rr->rdatafmt);
+
+	printf("\n");
+}
+
+void
+zf_print_rdata(rdata, rdatafmt)
+	union zf_rdatom *rdata;
+	char *rdatafmt;
 {
 	int i, j;
 	struct in_addr in;
 	char *f;
 
-	printf("%s\t%ld\t%s\t%s\t", dnamestr(rr->dname), rr->ttl, classtoa(rr->class), typetoa(rr->type));
-
-	for(i = 0, f = rr->rdatafmt; *f; f++, i++) {
+	for(i = 0, f = rdatafmt; *f; f++, i++) {
 		switch(*f) {
 		case '4':
-			in.s_addr = rr->rdata[i].l;
+			in.s_addr = rdata[i].l;
 			printf("%s\t", inet_ntoa(in));
 			break;
 		case '6':
 			printf("%x:%x:%x:%x:%x:%x:%x:%x",
-				((u_short *)rr->rdata[i].p)[0],
-				((u_short *)rr->rdata[i].p)[1],
-				((u_short *)rr->rdata[i].p)[2],
-				((u_short *)rr->rdata[i].p)[3],
-				((u_short *)rr->rdata[i].p)[4],
-				((u_short *)rr->rdata[i].p)[5],
-				((u_short *)rr->rdata[i].p)[6],
-				((u_short *)rr->rdata[i].p)[7]);
+				((u_short *)rdata[i].p)[0],
+				((u_short *)rdata[i].p)[1],
+				((u_short *)rdata[i].p)[2],
+				((u_short *)rdata[i].p)[3],
+				((u_short *)rdata[i].p)[4],
+				((u_short *)rdata[i].p)[5],
+				((u_short *)rdata[i].p)[6],
+				((u_short *)rdata[i].p)[7]);
 			break;
 		case 'n':
-			printf("%s\t", dnamestr(rr->rdata[i].p));
+			printf("%s\t", dnamestr(rdata[i].p));
 			break;
 		case 'l':
-			printf("%ld\t", rr->rdata[i].l);
+			printf("%ld\t", rdata[i].l);
 			break;
 		case 's':
-			printf("%d\t", rr->rdata[i].s);
+			printf("%d\t", rdata[i].s);
 			break;
 		case 't':
 			putc('"', stdout);
-			for(j = 0; j < *(char *)rr->rdata[i].p; j++) {
-				putc(*(char *)(rr->rdata[i].p+j+1), stdout);
+			for(j = 0; j < *(char *)rdata[i].p; j++) {
+				putc(*(char *)(rdata[i].p+j+1), stdout);
 			}
 			putc('"', stdout);
 			break;
@@ -583,7 +587,6 @@ parser_print_entry(rr)
 			break;
 		}
 	}
-	printf("\n");
 }
 
 /*
@@ -592,42 +595,42 @@ parser_print_entry(rr)
  * Returns NULL on end of file.
  *
  */
-struct parser_entry *
-parser_get_entry(zf)
-	struct parser *zf;
+struct zf_entry *
+zf_read(zf)
+	struct zf *zf;
 {
 	int parse_error;
 	char *line, *token;
 	char *t, *f;
 	int i, j;
 
-	struct parser_type_tab *type;
-	struct parser_class_tab *class;
+	struct zf_type_tab *type;
+	struct zf_class_tab *class;
 
 	u_short default_class = CLASS_IN;
 
 	/* Keep reading till we could parse a line or reached end of file */
-	while((line = parser_getline(zf))) {
+	while((line = zf_getline(zf))) {
 		/* Skip empty lines... */
-		if((token = parser_token(zf, line)) == NULL) continue;
+		if((token = zf_token(zf, line)) == NULL) continue;
 
 		/* Process directives */
 		if(*token == '$') {
 			if(strcasecmp(token, "$TTL") == 0) {
-				if((token = parser_token(zf, NULL)) == NULL) {
-					parser_syntax(zf);
+				if((token = zf_token(zf, NULL)) == NULL) {
+					zf_syntax(zf);
 					continue;
 				}
 
 				zf->i[zf->iptr].ttl = strtol(token, &t, 10);
 
 				if(*t) {
-					parser_error(zf, "default ttl is not a number");
+					zf_error(zf, "default ttl is not a number");
 					break;
 				}
 			} else if(strcasecmp(token, "$ORIGIN") == 0) {
-				if((token = parser_token(zf, NULL)) == NULL) {
-					parser_syntax(zf);
+				if((token = zf_token(zf, NULL)) == NULL) {
+					zf_syntax(zf);
 					continue;
 				}
 				if((t = strdname(token, zf->i[zf->iptr].origin)) == NULL) {
@@ -636,15 +639,15 @@ parser_get_entry(zf)
 				free(zf->i[zf->iptr].origin);
 				zf->i[zf->iptr].origin = t;	/* XXX Will fail on binary labels */
 			} else if(strcasecmp(token, "$INCLUDE") == 0) {
-				if((token = parser_token(zf, NULL)) == NULL) {
-					parser_syntax(zf);
+				if((token = zf_token(zf, NULL)) == NULL) {
+					zf_syntax(zf);
 					continue;
 				}
-				if(parser_open_include(zf, token, zf->i[zf->iptr].origin, zf->i[zf->iptr].ttl)) {
-					parser_error(zf, "cannot open include file");
+				if(zf_open_include(zf, token, zf->i[zf->iptr].origin, zf->i[zf->iptr].ttl)) {
+					zf_error(zf, "cannot open include file");
 				}
 			} else {
-				parser_error(zf, "unknown directive");
+				zf_error(zf, "unknown directive");
 			}
 			continue;
 		}
@@ -652,7 +655,7 @@ parser_get_entry(zf)
 		/* PROCESS DNAME */
 		if(*line == ' ' || *line == '\t') {
 			if(zf->line.dname == NULL) {
-				parser_error(zf, "missing domain name");
+				zf_error(zf, "missing domain name");
 				continue;
 			}
 		} else {
@@ -665,19 +668,19 @@ parser_get_entry(zf)
 			}
 
 			/* Get the next token */
-			token = parser_token(zf, NULL);
+			token = zf_token(zf, NULL);
 		}
 
 		/* PROCESS TTL, CLASS AND TYPE */
 		zf->line.ttl = zf->i[zf->iptr].ttl;
 		zf->line.class = default_class;
 
-		for(type = NULL; token; token = parser_token(zf, NULL)) {
+		for(type = NULL; token; token = zf_token(zf, NULL)) {
 			/* Is this a TTL? */
 			if(isdigit(*token)) {
 				zf->line.ttl = htonl(strtol(token, &t, 10));
 				if(*t) {
-					parser_error(zf, "ttl is not a number");
+					zf_error(zf, "ttl is not a number");
 					token = NULL;
 					break;
 				}
@@ -698,23 +701,25 @@ parser_get_entry(zf)
 
 		/* Couldn't parse ttl, class or type? */
 		if(type == NULL) {
-			parser_syntax(zf);
+			zf_syntax(zf);
 			continue;
 		}
 
 		/* Do we support this type? */
 		if(type->fmt == NULL) {
-			parser_error(zf, "unsupported resource record type");
+			zf_error(zf, "unsupported resource record type");
 			continue;
 		}
 
 		zf->line.type = type->type;
 		zf->line.rdatafmt = type->fmt;
+		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
+		bzero(zf->line.rdata, sizeof(union zf_rdatom) * MAXRDATALEN);
 
 		/* Parse it */
 		for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; f++, i++) {
 			assert(i < MAXRDATALEN);
-			if((token = parser_token(zf, NULL)) == NULL) {
+			if((token = zf_token(zf, NULL)) == NULL) {
 				break;
 			}
 #if DEBUG > 2
@@ -724,7 +729,7 @@ parser_get_entry(zf)
 			switch(*f) {
 			case '4':
 				if((zf->line.rdata[i].l = inet_addr(token)) == -1) {
-					parser_error(zf, "malformed ipv4 address");
+					zf_error(zf, "malformed ipv4 address");
 					parse_error++;
 				}
 				break;
@@ -741,26 +746,24 @@ parser_get_entry(zf)
 			case 'l':
 				zf->line.rdata[i].l = strtol(token, &t, 10);
 				if(*t != 0) {
-					parser_error(zf, "illegal long");
+					zf_error(zf, "illegal long");
 					parse_error++;
 				}
 				break;
 			case 's':
 				zf->line.rdata[i].s = (u_short)strtol(token, &t, 10);
 				if(*t != 0) {
-					parser_error(zf, "illegal short");
+					zf_error(zf, "illegal short");
 					parse_error++;
 				}
 				break;
 			case 't':
 				if((j = strlen(token)) > 255) {
-					parser_error(zf, "character string is too long");
+					zf_error(zf, "character string is too long");
 					parse_error++;
 					break;
 				} else {
-					if((zf->line.rdata[i].p = xalloc(j + 1)) == NULL) {
-						return NULL;
-					}
+					zf->line.rdata[i].p = xalloc(j + 1);
 					bcopy(token, zf->line.rdata[i].p + 1, j);
 					*(char *)zf->line.rdata[i].p = (u_char) j;
 				}
@@ -774,13 +777,15 @@ parser_get_entry(zf)
 
 		/* We couldnt parse it completely */
 		if(parse_error) {
-			parser_syntax(zf);
+			zf_syntax(zf);
+			zf_free_rdata(zf->line);
 			continue;
 		}
 
 		/* Trailing garbage */
-		if((token = parser_token(zf, NULL)) != NULL) {
-			parser_error(zf, "trailing garbage");
+		if((token = zf_token(zf, NULL)) != NULL) {
+			zf_error(zf, "trailing garbage");
+			zf_free_rdata(zf->line);
 			continue;
 		}
 
@@ -798,10 +803,10 @@ parser_get_entry(zf)
  *
  */
 void
-parser_close(zf)
-	struct parser *zf;
+zf_close(zf)
+	struct zf *zf;
 {
-	while(parser_close_include(zf));
+	while(zf_close_include(zf));
 	if(zf->line.dname) free(zf->line.dname);
 	free(zf);
 }
@@ -811,7 +816,7 @@ parser_close(zf)
 int
 usage()
 {
-	fprintf(stderr, "usage: parser zone-file [origin]\n");
+	fprintf(stderr, "usage: zf zone-file [origin]\n");
 	exit(1);
 }
 
@@ -821,8 +826,8 @@ main(argc, argv)
 	char *argv[];
 {
 
-	struct parser *zf;
-	struct parser_entry *rr;
+	struct zf *zf;
+	struct zf_entry *rr;
 	u_char *origin;
 
 
@@ -830,7 +835,7 @@ main(argc, argv)
 #define		LOG_PERROR 0
 #endif
 	/* Set up the logging... */
-	openlog("parser", LOG_PERROR, LOG_LOCAL5);
+	openlog("zf", LOG_PERROR, LOG_LOCAL5);
 
 	/* Check the command line */
 	if(argc < 2 || argc > 3) {
@@ -844,27 +849,27 @@ main(argc, argv)
 	}
 
 	/* Open the file */
-	if((zf = parser_open(argv[1], origin)) == NULL) {
+	if((zf = zf_open(argv[1], origin)) == NULL) {
 		exit(1);
 	}
 
 	/* Read the file */
-	while((rr = parser_get_entry(zf)) != NULL) {
+	while((rr = zf_read(zf)) != NULL) {
 		if(rr->class != CLASS_IN) {
-			parser_error(zf, "wrong class");
+			zf_error(zf, "wrong class");
 			break;
 		}
 		if((zf->lines % 100000) == 0) {
 			fprintf(stderr, "read %lu lines...\n", zf->lines);
 		}
-		parser_print_entry(rr);
-		parser_free_rdata(rr);
+		zf_print_entry(rr);
+		zf_free_rdata(rr);
 	}
 
 	fprintf(stderr, "complete: %d errors\n", zf->errors);
 
 	/* Close the file */
-	parser_close(zf);
+	zf_close(zf);
 
 	return 0;
 }

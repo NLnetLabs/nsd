@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2001/12/12 13:38:28 alexis Exp $
+# $Id: Makefile,v 1.2 2002/01/08 13:29:20 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -40,23 +40,25 @@ SHELL = /bin/sh
 
 DEBUG=	-g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -Wall ${DEBUG}
-LDFLAGS= 
+CFLAGS= -pipe -Wall ${DEBUG} -I/usr/local/include
+LDFLAGS= -ldict -L/usr/local/lib
 LDADD=
 LIBS =
 
 CLEANFILES+=*.core *.gmon
 
-all:	parser
+all:	zf zone
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
-parser:	parser.h dns.h parser.c util.o
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ parser.c util.o
+zf:	zf.h dns.h zf.c util.o
+	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c util.o
 
+zone:	zf.h dns.h zone.h zone.c zf.o util.o heap.o
+	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zone.c zf.o util.o heap.o
 
 clean:
-	rm -f parser *.o y.* *.core *.gmon
+	rm -f zf zone *.o y.* *.core *.gmon
 
 ${OBJS}:	${HDRS}

@@ -1,7 +1,7 @@
 /*
- * $Id: util.c,v 1.4 2002/01/08 13:29:21 alexis Exp $
+ * $Id: db.c,v 1.1 2002/01/08 13:29:20 alexis Exp $
  *
- * util.c -- miscelaneous utilities for nsd(8)
+ * db.c -- namespace database, nsd(8)
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -37,42 +37,119 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
 #include <sys/types.h>
 
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <db.h>
+#include "dns.h"
+#include "nsd.h"
+#include "zf.h"
+
+
 /*
- * Allocates ``size'' bytes of memory, returns the
- * pointer to the allocated memory or NULL and errno
- * set in case of error. Also reports the error via
- * syslog().
+ * Opens specified database for reading
  *
  */
-void *
-xalloc(size)
-	register size_t	size;
+struct db *
+db_open(filename)
+	char *filename;
 {
-	register void *p;
-
-	if((p = malloc(size)) == NULL) {
-		syslog(LOG_ERR, "malloc failed: %m");
-		exit(1);
-	}
-	return p;
 }
 
-void *
-xrealloc(p, size)
-	register void *p;
-	register size_t	size;
+/*
+ * Closes specified database
+ *
+ */
+void
+db_close(db)
+	struct db *db;
 {
+}
 
-	if((p = realloc(p, size)) == NULL) {
-		syslog(LOG_ERR, "realloc failed: %m");
-		exit(1);
-	}
-	return p;
+/*
+ * Creates a database and opens it for writing.
+ */
+struct db *
+db_create(filename)
+	char *filename;
+{
+}
+
+/*
+ * Creates a new domain in memory
+ */
+char *
+db_newdomain(dname, dnamelen)
+	char *dname;
+	int dnamelen;
+{
+}
+
+/*
+ * Creates a new answer in memory
+ *
+ */
+char *
+db_newanswer(type)
+	u_short type;
+{
+}
+
+/*
+ * Adds an rdset to an answer.
+ *
+ */
+void
+db_addrrset(answer, rrset)
+{
+}
+
+/*
+ * Adds an answer to a domain
+ *
+ */
+void
+db_addanswer(domain, answer)
+{
+}
+
+/*
+ * Writes a domain into a database.
+ *
+ */
+void
+db_write(db, domain)
+{
+}
+
+/*
+ * Looks up domain in an open database.
+ */
+char *
+db_lookupdomain(db, dname, dnamelen)
+	struct db *db;
+	char *dname;
+	int dnamelen;
+{
+}
+
+/*
+ * Looks up type in a domain
+ */
+char *
+db_lookuptype(domain, type)
+	char *domain;
+	u_short type;
+{
 }

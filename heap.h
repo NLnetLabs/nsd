@@ -1,7 +1,7 @@
 /*
- * $Id: util.c,v 1.4 2002/01/08 13:29:21 alexis Exp $
+ * $Id: heap.h,v 1.1 2002/01/08 13:29:20 alexis Exp $
  *
- * util.c -- miscelaneous utilities for nsd(8)
+ * heap.c -- generic heap operations
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -37,42 +37,31 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
 #include <sys/types.h>
 
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
-/*
- * Allocates ``size'' bytes of memory, returns the
- * pointer to the allocated memory or NULL and errno
- * set in case of error. Also reports the error via
- * syslog().
- *
- */
-void *
-xalloc(size)
-	register size_t	size;
-{
-	register void *p;
+#include <dict/dict.h>
 
-	if((p = malloc(size)) == NULL) {
-		syslog(LOG_ERR, "malloc failed: %m");
-		exit(1);
-	}
-	return p;
-}
+#include "dns.h"
+#include "nsd.h"
+#include "zf.h"
 
-void *
-xrealloc(p, size)
-	register void *p;
-	register size_t	size;
-{
+typedef dict heap_t;
+extern dict_itor *_heap_itor;
 
-	if((p = realloc(p, size)) == NULL) {
-		syslog(LOG_ERR, "realloc failed: %m");
-		exit(1);
-	}
-	return p;
-}
+#define	HEAP_INIT(malloc_func)	dict_set_malloc(malloc_func)
+#define	HEAP_NEW(cmp) rb_dict_new((dict_cmp_func)cmp, free, free)
+#define	HEAP_INSERT(heap, key, data) dict_insert(heap, key, data, TRUE)
+#define	HEAP_SEARCH(heap, key) dict_search(heap, key)
+#define	HEAP_WALK(heap, key, data) for(_heap_itor = dict_itor_new(heap); \
+				dict_itor_valid(_heap_itor) && (key = dict_itor_key(_heap_itor)) && \
+				(data = dict_itor_data(_heap_itor)); dict_itor_next(_heap_itor))
+#define	HEAP_STOP() dict_itor_destroy(_heap_itor);
