@@ -78,6 +78,8 @@
 
 #define TYPE_CERT       37	/* RFC2538 */
 
+#define TYPE_DNAME      39	/* RFC2672 */
+
 /* type code rollover */
 #define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
 #define TYPE_NSEC	47	

@@ -377,29 +377,29 @@ rtype:
      * RFC 1035 RR types.  We don't support NULL, WKS, and types
      * marked obsolete.
      */
-      T_CNAME sp rdata_dname 
+      T_CNAME sp rdata_compress_domain_name 
     | T_CNAME sp rdata_unknown_err
     | T_HINFO sp rdata_hinfo 
     | T_HINFO sp rdata_unknown 
-    | T_MB sp rdata_dname		/* Experimental */
+    | T_MB sp rdata_compress_domain_name		/* Experimental */
     { error("MD is obsolete"); }
     | T_MB sp rdata_unknown_err
-    | T_MD sp rdata_dname		/* Obsolete */
+    | T_MD sp rdata_compress_domain_name		/* Obsolete */
     { error("MF is obsolete"); }
     | T_MD sp rdata_unknown_err
-    | T_MF sp rdata_dname		/* Obsolete */
+    | T_MF sp rdata_compress_domain_name		/* Obsolete */
     | T_MF sp rdata_unknown_err
-    | T_MG sp rdata_dname		/* Experimental */
+    | T_MG sp rdata_compress_domain_name		/* Experimental */
     | T_MG sp rdata_unknown_err
     | T_MINFO sp rdata_minfo /* Experimental */
     | T_MINFO sp rdata_unknown_err
-    | T_MR sp rdata_dname		/* Experimental */
+    | T_MR sp rdata_compress_domain_name		/* Experimental */
     | T_MR sp rdata_unknown_err
     | T_MX sp rdata_mx 
     | T_MX sp rdata_unknown_err
-    | T_NS sp rdata_dname 
+    | T_NS sp rdata_compress_domain_name 
     | T_NS sp rdata_unknown_err
-    | T_PTR sp rdata_dname 
+    | T_PTR sp rdata_compress_domain_name 
     | T_PTR sp rdata_unknown_err
     | T_SOA sp rdata_soa 
     | T_SOA sp rdata_unknown_err
@@ -445,6 +445,8 @@ rtype:
     | T_NAPTR sp rdata_unknown	/* RFC 2915 */
     | T_CERT sp rdata_cert	/* RFC 2538 */
     | T_CERT sp rdata_unknown	/* RFC 2538 */
+    | T_DNAME sp rdata_dname	/* RFC 2672 */
+    | T_DNAME sp rdata_unknown	/* RFC 2672 */
     | T_SSHFP sp rdata_sshfp
     | T_SSHFP sp rdata_unknown
     | T_UTYPE sp rdata_unknown
@@ -487,13 +489,13 @@ rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
 	{ error_prev_line("Syntax error in SOA record"); }
     ;
 
-rdata_dname:   dname trail
+rdata_compress_domain_name:   dname trail
     {
         /* convert a single dname record */
         zadd_rdata_domain(current_parser, $1);
     }
 	|   error NL
-	{ error_prev_line("Syntax error in DNAME record"); }
+	{ error_prev_line("Syntax error in RDATA (domain name expected)"); }
     ;
 
 rdata_a:    STR '.' STR '.' STR '.' STR trail
@@ -730,6 +732,15 @@ rdata_cert:	STR sp STR sp STR sp str_sp_seq trail
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in CERT record"); }
+	;
+
+/* RFC 2672 */
+rdata_dname:	dname trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1));
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in DNAME record"); }
 	;
 
 rdata_sshfp:   STR sp STR sp str_sp_seq trail

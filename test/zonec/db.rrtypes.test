@@ -34,5 +34,7 @@ $TTL    1H
                                 6VN3JegLR5t2FyKzoKYb4klpdZM8JVuVtc/n
                                 )
 
+@       IN      DNAME   rt-host
+
 rt-host IN      A       127.0.0.1
 rt-host IN      AAAA    ::1
