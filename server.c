@@ -294,8 +294,8 @@ server_init(struct nsd *nsd)
 # if defined(IPV6_USE_MIN_MTU)
 			/*
 			 * IPv6 doesn't do automatic fragmentation of
-			 * UPD packets when a link is encountered that
-			 * has a smalled MTU than the MTU used to send
+			 * UDP packets when a link is encountered that
+			 * has a smaller MTU than the MTU used to send
 			 * the packet.  In this case the packet will
 			 * simply be lost.
 			 *
