@@ -1,5 +1,5 @@
 /*
- * $Id: dns.h,v 1.2 2002/01/17 13:38:46 alexis Exp $
+ * $Id: dns.h,v 1.3 2002/02/06 16:32:08 alexis Exp $
  *
  * dns.h -- all we need to know about DNS protocol, nsd(8)
  *
@@ -64,5 +64,7 @@
 #define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */
 #define	TYPE_MAILA	254	/* A request for mail agent RRs (Obsolete - see MX) */
 #define TYPE_ANY	255	/* any type (wildcard) */
+
+#define	TYPE_OPT	41	/* Pseudo OPT record... */
 
 #define MAXDOMAINLEN	255

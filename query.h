@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.10 2002/02/06 13:12:50 alexis Exp $
+ * $Id: query.h,v 1.11 2002/02/06 16:32:08 alexis Exp $
  *
  * query.h -- manipulation with the queries
  *
@@ -170,6 +170,7 @@ struct query {
 	size_t maxlen;
 	u_char *iobufptr;
 	int  iobufsz;
+	int  edns;
 	u_char iobuf[QIOBUFSZ];
 };
 

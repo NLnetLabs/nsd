@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.32 2002/02/06 13:52:06 alexis Exp $
+ * $Id: query.c,v 1.33 2002/02/06 16:32:08 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -39,6 +39,7 @@
  */
 #include "nsd.h"
 
+
 void
 query_init(q)
 	struct query *q;
@@ -47,6 +48,7 @@ query_init(q)
 	q->iobufsz = QIOBUFSZ;
 	q->iobufptr = q->iobuf;
 	q->maxlen = 512;	/* XXX Should not be here */
+	q->edns = 0;
 }
 
 struct query *
@@ -109,6 +111,13 @@ query_addanswer(q, dname, a)
 		/* Start with the additional section, record by record... */
 		for(i = ntohs(ANSWER_ARCOUNT(a)) - 1, j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
 			if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS_PTR(a) + j - 1))) {
+
+				/* Make sure we remove the entire RRsets... */
+/*				while(dnamecmp(q->iobufptr + *(ANSWER_RRS_PTR(a) + j - 1), q->iobufptr +
+ *					*(ANSWER_RRS_PTR(a) + j - 2)) == 0) {
+ *					j--; i--;
+ *				}
+ */
 				ARCOUNT(q) = htons(i-1);
 				q->iobufptr += *(ANSWER_RRS_PTR(a) + j - 1);
 				return;
@@ -150,6 +159,9 @@ query_process(q, db)
 	u_int16_t qclass;
 	u_char *qptr;
 	int qdepth, i;
+
+	/* OPT record type... */
+	u_int16_t opt_type, opt_class, opt_rdlen;
 
 	struct domain *d;
 	struct answer *a;
@@ -206,6 +218,77 @@ query_process(q, db)
 	bcopy(qptr, &qtype, 2); qptr += 2;
 	bcopy(qptr, &qclass, 2); qptr += 2;
 
+	/* Dont allow any records in the answer or authority section... */
+	if(ANCOUNT(q) != 0 || NSCOUNT(q) != 0) {
+		RCODE_SET(q, RCODE_FORMAT);
+		return 0;
+	}
+
+	/* Do we have an OPT record? */
+	if(ARCOUNT(q) > 0) {
+		/* Only one opt is allowed... */
+		if(ntohs(ARCOUNT(q)) != 0) {
+			RCODE_SET(q, RCODE_FORMAT);
+			return 0;
+		}
+
+		/* Must have root owner name... */
+		if(*qptr != 0) {
+			RCODE_SET(q, RCODE_FORMAT);
+			return 0;
+		}
+
+		/* Must be of the type OPT... */
+		bcopy(qptr + 1, &opt_type, 2);
+		if(ntohs(opt_type) != TYPE_OPT) {
+			RCODE_SET(q, RCODE_FORMAT);
+			return 0;
+		}
+
+		/* Ok, this is EDNS(0) packet... */
+		q->edns = 1;
+
+		/* Get the UDP size... */
+		bcopy(qptr + 3, &opt_class, 2);
+		opt_class = ntohs(opt_class);
+
+		/* Check the version... */
+		if(*(qptr + 6) != 0) {
+			RCODE_SET(q, RCODE_IMPL);
+			return 0;
+		}
+
+		/* Make sure there are no other options... */
+		bcopy(qptr + 9, &opt_rdlen, 2);
+		if(opt_rdlen != 0) {
+			RCODE_SET(q, RCODE_IMPL);
+			return 0;
+		}
+
+		/* Only care about UDP size larger than normal... */
+		if(opt_class > 512) {
+			/* XXX Configuration parameter to limit the size needs to be here... */
+			if(opt_class < q->iobufsz) {
+				q->maxlen = opt_class;
+			} else {
+				q->maxlen = q->iobufsz;
+			}
+		}
+
+		/* Trailing garbage? */
+		if((qptr + 11) != q->iobufptr) {
+#ifdef	MIMIC_BIND8
+			RCODE_SET(q, RCODE_FORMAT);
+			return 0;
+#endif
+		}
+
+		/* Strip the OPT resource record off... */
+		q->iobufptr = qptr;
+	}
+		
+
+
 	/* Do we have any trailing garbage? */
 	if(qptr != q->iobufptr) {
 #ifdef	MIMIC_BIND8
@@ -221,12 +304,6 @@ query_process(q, db)
 	/* Unsupported class */
 	if((ntohs(qclass) != CLASS_IN) && (ntohs(qclass) != CLASS_ANY)) {
 		RCODE_SET(q, RCODE_REFUSE);
-		return 0;
-	}
-
-	/* Dont allow any records in the query */
-	if(ANCOUNT(q) != 0 || NSCOUNT(q) != 0 || ARCOUNT(q) != 0) {
-		RCODE_SET(q, RCODE_FORMAT);
 		return 0;
 	}
 
