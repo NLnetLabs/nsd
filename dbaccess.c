@@ -48,34 +48,20 @@
 #include <fcntl.h>
 #include <stdio.h>		/* DEBUG */
 
-#ifdef USE_MMAP
-#include <sys/mman.h>
-#endif
-
 #include "dns.h"
 #include "namedb.h"
 #include "util.h"
 #include "zparser2.h"
 
 int
-namedb_lookup (struct namedb    *db,
-	       const dname_type *dname,
-	       domain_type     **closest_match,
-	       domain_type     **closest_encloser)
+namedb_lookup(struct namedb    *db,
+	      const dname_type *dname,
+	      domain_type     **closest_match,
+	      domain_type     **closest_encloser)
 {
 	return domain_table_search(
 		db->domains, dname, closest_match, closest_encloser);
 }
-
-#ifdef USE_MMAP
-static void
-unmap_database(void *param)
-{
-	struct namedb *db = param;
-
-	munmap(db->mpool, db->mpoolsz);
-}
-#endif /* USE_MMAP */
 
 static int
 read_magic(namedb_type *db)
@@ -265,7 +251,7 @@ namedb_open (const char *filename)
 	db->filename = region_strdup(region, filename);
 
 	/* Open it... */
-	if ((db->fd = fopen(db->filename, "r")) == NULL ) {
+	if ((db->fd = fopen(db->filename, "r")) == NULL) {
 		region_destroy(region);
 		return NULL;
 	}
@@ -277,7 +263,7 @@ namedb_open (const char *filename)
 		return NULL;
 	}
 
-	if (fread(&zone_count, sizeof(zone_count), 1, db->fd) != 1) {
+	if (!read_size(db, &zone_count)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		fclose(db->fd);
 		namedb_close(db);
@@ -310,7 +296,7 @@ namedb_open (const char *filename)
 		region_free_all(dname_region);
 	}
 	
-	if (fread(&dname_count, sizeof(dname_count), 1, db->fd) != 1) {
+	if (!read_size(db, &dname_count)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		free(zones);
 		fclose(db->fd);
@@ -341,9 +327,11 @@ namedb_open (const char *filename)
 	
 	region_destroy(dname_region);
 
+#ifndef NDEBUG
 	fprintf(stderr, "db_region (before RRsets): ");
 	region_dump_stats(region, stderr);
 	fprintf(stderr, "\n");
+#endif
 	    
 	while (read_rrset(db, dname_count, domains, zone_count, zones))
 		;
@@ -359,13 +347,15 @@ namedb_open (const char *filename)
 	}
 
 	fclose(db->fd);
-	
+
+#ifndef NDEBUG
 	fprintf(stderr, "db_region (after RRsets): ");
 	region_dump_stats(region, stderr);
 	fprintf(stderr, "\n");
 
-	fprintf(stderr, "region allocator stats: ");
+	fprintf(stderr, "region allocator stats:\n");
 	region_allocator_dump_stats(stderr);
+#endif
 	
 	return db;
 }
