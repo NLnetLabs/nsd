@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.65 2002/05/06 13:54:01 alexis Exp $
+ * $Id: query.c,v 1.66 2002/05/06 19:21:30 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -166,6 +166,7 @@ query_axfr(q, db, qname, zname, depth)
 	static struct domain *d;
 	static struct answer *a;
 	static u_char *dname;
+	u_char *skipzone = NULL;
 	u_char *qptr;
 	u_char iname[MAXDOMAINLEN+1];
 
@@ -241,6 +242,14 @@ query_axfr(q, db, qname, zname, depth)
 			dname = node->data;
 			d = node->data + (((u_int32_t)*((char *)node->data) + 1 + 3) & 0xfffffffc);
 
+			/* Are we skipping an embedded zone? */
+			if(skipzone != NULL && *skipzone <= *dname &&
+				bcmp(skipzone + 1, dname + (*dname - *skipzone) + 1, *skipzone) == 0) {
+				continue;
+			} else {
+				skipzone = NULL;
+			}
+
 			/* Outside the zone? */
 			if((*zone > *dname) || (bcmp(zone + 1, dname + (*dname - *zone) + 1, *zone) != 0)) {
 				a = soa;
@@ -253,7 +262,13 @@ query_axfr(q, db, qname, zname, depth)
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 			a = namedb_answer(d, htons(TYPE_NS));
 		} else {
-			a = namedb_answer(d, htons(TYPE_ANY));
+			/* Do we have an embedded zone? */
+			if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
+				skipzone = dname;
+				a = NULL;
+			} else {
+				a = namedb_answer(d, htons(TYPE_ANY));
+			}
 		}
 	}
 
