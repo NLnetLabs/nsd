@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.41 2002/02/21 12:14:56 alexis Exp $
+ * $Id: zonec.c,v 1.42 2002/02/21 12:30:55 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -39,6 +39,8 @@
  */
 
 #include "zonec.h"
+
+#include <netinet/in.h>		/* htons, htonl on Linux */
 
 static void zone_addbuf __P((struct message *, const void *, size_t));
 static void zone_addcompr __P((struct message *, u_char *, u_int16_t, u_char));
@@ -446,9 +448,11 @@ zone_read(name, zonefile, cache)
 #ifdef USE_HEAP_RBTREE
 	z->cuts = heap_create(xalloc, dnamecmp);
 	z->data = heap_create(xalloc, dnamecmp);
-#else ifdef USE_HEAP_HASH
+#else
+# ifdef USE_HEAP_HASH
 	z->cuts = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
 	z->data = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
+# endif
 #endif
 	z->soa = z->ns = NULL;
 
