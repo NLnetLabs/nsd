@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.10 2002/02/12 13:26:55 alexis Exp $
+ * $Id: dbaccess.c,v 1.11 2002/02/12 13:36:48 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -318,7 +318,7 @@ namedb_open(filename)
 	syslog(LOG_WARNING, "loaded %s, %lu entries %lu hash collisions", db->filename,
 		db->heap->count, db->heap->collisions);
 #else 
-	syslog(LOG_WARNING, "loaded %s, %lu entries", db->filename, db->heap->count);
+	syslog(LOG_WARNING, "loaded %s, %u entries", db->filename, db->heap->count);
 #endif
 #else
 	syslog(LOG_WARNING, "loaded %s", db->filename);

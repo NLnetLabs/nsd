@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.c,v 1.2 2002/02/12 13:26:55 alexis Exp $
+ * $Id: rbtree.c,v 1.3 2002/02/12 13:36:48 alexis Exp $
  *
  * rbtree.c -- generic red black tree
  *
@@ -90,10 +90,15 @@ rbtree_create(mallocf, cmpf)
  * Rotates the node to the left.
  *
  */
-void
+#ifdef __STDC__
+
+void rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node)
+#else
+
 rbtree_rotate_left(rbtree, node)
 	rbtree_t *rbtree;
 	rbnode_t *node;
+#endif
 {
 	rbnode_t *right = node->right;
 	node->right = right->left;
@@ -119,10 +124,14 @@ rbtree_rotate_left(rbtree, node)
  * Rotates the node to the right.
  *
  */
-void
+#ifdef __STDC__
+
+void rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node)
+#else
 rbtree_rotate_right(rbtree, node)
 	rbtree_t *rbtree;
 	rbnode_t *node;
+#endif
 {
 	rbnode_t *left = node->left;
 	node->left = left->right;
@@ -144,10 +153,15 @@ rbtree_rotate_right(rbtree, node)
 	node->parent = left;
 };
 
-void
+#ifdef __STDC__
+
+void rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
+#else
+
 rbtree_insert_fixup(rbtree, node)
 	rbtree_t *rbtree;
 	rbnode_t *node;
+#endif
 {
 	rbnode_t	*uncle;
 
@@ -330,9 +344,15 @@ rbtree_search(rbtree, key)
  * Finds the first element in the red black tree
  *
  */
+#ifdef __STDC__
+
+rbnode_t * rbtree_first(rbtree_t *rbtree)
+#else
+
 rbnode_t *
 rbtree_first(rbtree)
 	rbtree_t *rbtree;
+#endif
 {
 	rbnode_t *node;
 
@@ -344,9 +364,15 @@ rbtree_first(rbtree)
  * Returns the next node...
  *
  */
+#ifdef __STDC__
+
+rbnode_t *rbtree_next(rbnode_t *node)
+#else
+
 rbnode_t *
 rbtree_next(node)
 	rbnode_t *node;
+#endif
 {
 	rbnode_t *parent;
 
