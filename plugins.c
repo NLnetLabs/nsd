@@ -68,17 +68,17 @@ static nsd_plugin_type **last_plugin = &first_plugin;
 
 static int
 register_data(
-	struct nsd        *nsd,
-	nsd_plugin_id_type plugin_id,
-	const u_char *     domain_name,
-	void *             data)
+	const nsd_plugin_interface_type *nsd,
+	nsd_plugin_id_type               plugin_id,
+	const u_char *                   domain_name,
+	void *                           data)
 {
 	struct domain *d;
 
 	assert(plugin_id < maximum_plugin_count);
 	assert(domain_name);
 
-	d = namedb_lookup(nsd->db, domain_name);
+	d = namedb_lookup(nsd->nsd->db, domain_name);
 	if (d) {
 		void **plugin_data;
 		if (!d->runtime_data) {
@@ -93,14 +93,19 @@ register_data(
 	}
 }
 
-static nsd_plugin_interface_type plugin_interface = {
-	register_data
-};
+static nsd_plugin_interface_type plugin_interface;
+
+void
+plugin_init(struct nsd *nsd)
+{
+	plugin_interface.nsd = nsd;
+	plugin_interface.register_data = register_data;
+}
 
 #define STR2(x) #x
 #define STR(x) STR2(x)
 int
-plugin_load(struct nsd *nsd, const char *name, const char *arg)
+plugin_load(const char *name, const char *arg)
 {
 	struct nsd_plugin *plugin;
 	nsd_plugin_init_type *init;
@@ -108,7 +113,7 @@ plugin_load(struct nsd *nsd, const char *name, const char *arg)
 	const char *error;
 	const char *init_name = "nsd_plugin_init_" STR(NSD_PLUGIN_INTERFACE_VERSION);
 	const nsd_plugin_descriptor_type *descriptor;
-		
+
 	dlerror();		/* Discard previous errors (FreeBSD hack).  */
 	
 	handle = dlopen(name, RTLD_NOW);
@@ -126,7 +131,7 @@ plugin_load(struct nsd *nsd, const char *name, const char *arg)
 		return 0;
 	}
 
-	descriptor = init(nsd, plugin_count, &plugin_interface, arg);
+	descriptor = init(&plugin_interface, plugin_count, arg);
 	if (!descriptor) {
 		syslog(LOG_ERR, "plugin initialization failed");
 		dlclose(handle);
@@ -152,7 +157,7 @@ plugin_load(struct nsd *nsd, const char *name, const char *arg)
 }
 
 void
-plugin_finalize_all(struct nsd *nsd)
+plugin_finalize_all(void)
 {
 	nsd_plugin_type *plugin;
 	nsd_plugin_type *next;
@@ -160,7 +165,8 @@ plugin_finalize_all(struct nsd *nsd)
 	plugin = first_plugin;
 	while (plugin) {
 		if (plugin->descriptor->finalize) {
-			plugin->descriptor->finalize(nsd, plugin->id);
+			plugin->descriptor->finalize(&plugin_interface,
+						     plugin->id);
 		}
 		dlclose(plugin->handle);
 		next = plugin->next;
@@ -170,14 +176,15 @@ plugin_finalize_all(struct nsd *nsd)
 }
 
 nsd_plugin_callback_result_type
-plugin_database_reloaded(struct nsd *nsd)
+plugin_database_reloaded(void)
 {
 	int rc;
 	nsd_plugin_type *plugin;
 
 	for (plugin = first_plugin; plugin; plugin = plugin->next) {
 		if (plugin->descriptor->reload) {
-			rc = plugin->descriptor->reload(nsd, plugin->id, &plugin_interface);
+			rc = plugin->descriptor->reload(&plugin_interface,
+							plugin->id);
 			if (rc != NSD_PLUGIN_CONTINUE)
 				return rc;
 		}
@@ -188,7 +195,6 @@ plugin_database_reloaded(struct nsd *nsd)
 #define MAKE_PERFORM_CALLBACKS(function_name, callback_name)		\
 nsd_plugin_callback_result_type						\
 function_name(								\
-	struct nsd *nsd,						\
 	nsd_plugin_callback_args_type *args,				\
 	void **data)							\
 {									\
@@ -205,7 +211,8 @@ function_name(								\
 			} else {					\
 				args->data = NULL;			\
 			}						\
-			result = callback(nsd, plugin->id, args);	\
+			result = callback(&plugin_interface,		\
+					  plugin->id, args);		\
 			if (result != NSD_PLUGIN_CONTINUE) {		\
 				return result;				\
 			}						\

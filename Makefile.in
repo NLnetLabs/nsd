@@ -63,7 +63,7 @@ INSTALL_PROGRAM	= @INSTALL_PROGRAM@
 INSTALL_DATA	= @INSTALL_DATA@
 
 COMPILE		= $(CC) $(CFLAGS) -c
-LINK		= $(CC) $(LDFLAGS)
+LINK		= $(CC) $(LDFLAGS) $(CFLAGS)
 EDIT		= sed \
 			-e 's,@prefix\@,$(prefix),g' \
 			-e 's,@exec_prefix\@,$(exec_prefix),g' \
@@ -129,7 +129,7 @@ nsd-axfr:	zparser.h dns.h nsd-axfr.o client.o zparser.o dname.o network.o $(LIBO
 	$(LINK) -o $@ nsd-axfr.o client.o zparser.o dname.o network.o $(LIBOBJS) $(LIBS)
 
 clean:
-	rm -f zonec nsd zparser hash rbtree nsd-axfr nsq *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
+	rm -f zonec nsd zparser hash rbtree nsd-axfr nsq *.o *.so y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
 
 realclean: clean
 	rm -f Makefile config.h config.h.in config.log config.status configure
@@ -167,6 +167,13 @@ rbtree:	rbtree.c rbtree.h
 
 zparser:	zparser.c dname.o  $(LIBOBJS)
 	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c dname.o $(LIBOBJS) $(LIBS)
+
+# Example plugin
+example-plugin.o: contrib/example-plugin.c
+	$(COMPILE) contrib/example-plugin.c -o $@
+
+example-plugin.so: example-plugin.o
+	$(LINK) -shared example-plugin.o -o $@
 
 # autoconf rules
 config.h.in:	configure.ac

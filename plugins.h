@@ -45,16 +45,15 @@
 
 extern nsd_plugin_id_type maximum_plugin_count;
 
-int plugin_load(struct nsd *nsd, const char *name, const char *arg);
-void plugin_finalize_all(struct nsd *nsd);
-nsd_plugin_callback_result_type plugin_database_reloaded(struct nsd *nsd);
+void plugin_init(struct nsd *nsd);
+int plugin_load(const char *name, const char *arg);
+void plugin_finalize_all(void);
+nsd_plugin_callback_result_type plugin_database_reloaded(void);
 
 nsd_plugin_callback_result_type query_received_callbacks(
-	struct nsd *nsd,
 	nsd_plugin_callback_args_type *args,
 	void **data);
 nsd_plugin_callback_result_type query_processed_callbacks(
-	struct nsd *nsd,
 	nsd_plugin_callback_args_type *args,
 	void **data);
 int handle_callback_result(

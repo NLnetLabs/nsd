@@ -702,6 +702,7 @@ main (int argc, char *argv[])
 
 #ifdef PLUGINS
 	maximum_plugin_count = plugin_count;
+	plugin_init(&nsd);
 	for (i = 0; i < plugin_count; ++i) {
 		const char *arg = "";
 		char *eq = strchr(plugins[i], '=');
@@ -709,7 +710,7 @@ main (int argc, char *argv[])
 			*eq = '\0';
 			arg = eq + 1;
 		}
-		if (!plugin_load(&nsd, plugins[i], arg))
+		if (!plugin_load(plugins[i], arg))
 			exit(1);
 	}
 	free(plugins);

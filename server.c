@@ -329,7 +329,7 @@ server_main(struct nsd *nsd)
 				}
 
 #ifdef PLUGINS
-				if (plugin_database_reloaded(nsd) != NSD_PLUGIN_CONTINUE) {
+				if (plugin_database_reloaded() != NSD_PLUGIN_CONTINUE) {
 					syslog(LOG_ERR, "plugin reload failed");
 					exit(1);
 				}
@@ -369,7 +369,7 @@ server_main(struct nsd *nsd)
 	}
 
 #ifdef PLUGINS
-	plugin_finalize_all(nsd);
+	plugin_finalize_all();
 #endif /* PLUGINS */
 	
 	/* Truncate the pid file.  */
@@ -397,7 +397,7 @@ process_query(struct nsd *nsd, struct query *query)
 	callback_args.data = NULL;
 	callback_args.result_code = RCODE_OK;
 
-	callback_result = query_received_callbacks(nsd, &callback_args, NULL);
+	callback_result = query_received_callbacks(&callback_args, NULL);
 	if (callback_result != NSD_PLUGIN_CONTINUE) {
 		return handle_callback_result(callback_result, &callback_args);
 	}
@@ -409,7 +409,7 @@ process_query(struct nsd *nsd, struct query *query)
 		callback_args.result_code = RCODE_OK;
 
 		callback_result = query_processed_callbacks(
-			nsd, &callback_args, query->plugin_data);
+			&callback_args, query->plugin_data);
 		if (callback_result != NSD_PLUGIN_CONTINUE) {
 			return handle_callback_result(callback_result, &callback_args);
 		}

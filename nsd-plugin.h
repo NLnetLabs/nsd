@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-plugin.h,v 1.4 2003/06/30 13:11:47 erik Exp $
+ * $Id: nsd-plugin.h,v 1.5 2003/07/01 10:02:03 erik Exp $
  *
  * nsd-plugin.h -- interface to NSD for a plugin.
  *
@@ -130,31 +130,33 @@ typedef struct nsd_plugin_callback_args nsd_plugin_callback_args_type;
 
 
 /*
- * The type of a plugin callback function.
- */
-typedef nsd_plugin_callback_result_type nsd_plugin_callback_type(
-	struct nsd                    *nsd,
-	nsd_plugin_id_type             plugin_id,
-	nsd_plugin_callback_args_type *args);
-
-
-/*
  * Plugin interface to NSD.
  */
 struct nsd_plugin_interface
 {
+	struct nsd *nsd;
+	
 	/*
 	 * Register plugin specific data for the specified
 	 * domain_name.  The plugin remains responsible for correctly
 	 * deallocating the registered data on a reload.
 	 */
 	int (*register_data)(
-		struct nsd        *nsd,
-		nsd_plugin_id_type plugin_id,
-		const u_char *     domain_name,
-		void *             data);
+		const struct nsd_plugin_interface *nsd,
+		nsd_plugin_id_type                 plugin_id,
+		const u_char *                     domain_name,
+		void *                             data);
 };
 typedef struct nsd_plugin_interface nsd_plugin_interface_type;
+
+
+/*
+ * The type of a plugin callback function.
+ */
+typedef nsd_plugin_callback_result_type nsd_plugin_callback_type(
+	const nsd_plugin_interface_type *nsd,
+	nsd_plugin_id_type               plugin_id,
+	nsd_plugin_callback_args_type   *args);
 
 
 /*
@@ -175,7 +177,9 @@ struct nsd_plugin_descriptor
 	/*
 	 * Called right before NSD shuts down.
 	 */
-	void (*finalize)(struct nsd *nsd, nsd_plugin_id_type id);
+	void (*finalize)(
+		const nsd_plugin_interface_type *interface,
+		nsd_plugin_id_type id);
 
 	/*
 	 * Called right after the database has been reloaded.  If the
@@ -183,9 +187,8 @@ struct nsd_plugin_descriptor
 	 * it needs to deallocate this data to avoid memory leaks.
 	 */
 	nsd_plugin_callback_result_type (*reload)(
-		struct nsd *nsd,
-		nsd_plugin_id_type id,
-		const nsd_plugin_interface_type *interface);
+		const nsd_plugin_interface_type *interface,
+		nsd_plugin_id_type id);
 	
 	/*
 	 * Called right after a query has been received but before
@@ -203,9 +206,8 @@ typedef struct nsd_plugin_descriptor nsd_plugin_descriptor_type;
 
 
 typedef const nsd_plugin_descriptor_type *nsd_plugin_init_type(
-	struct nsd *nsd,
-	nsd_plugin_id_type plugin_id,
 	const nsd_plugin_interface_type *interface,
+	nsd_plugin_id_type plugin_id,
 	const char *arg);
 
 
