@@ -89,12 +89,6 @@ query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 	++q->compressed_dname_count;
 }
 
-uint16_t
-query_get_dname_offset(struct query *q, domain_type *domain)
-{
-	return q->compressed_dname_offsets[domain->number];
-}
-
 void
 query_clear_dname_offsets(struct query *q)
 {

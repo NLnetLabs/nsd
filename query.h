@@ -256,7 +256,11 @@ void query_put_dname_offset(struct query *query,
  * table.  Offset 0 is used to indicate the domain is not yet in the
  * compression table.
  */
+static inline
 uint16_t query_get_dname_offset(struct query *query, domain_type *domain);
+{
+	return query->compressed_dname_offsets[domain->number];
+}
 
 /*
  * Remove all compressed dnames that have an offset that points beyond
