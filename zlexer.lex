@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.22 2004/01/19 10:54:36 miekg Exp $
+ * $Id: zlexer.lex,v 1.23 2004/01/19 13:05:00 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -332,10 +332,8 @@ zoctet(char *word)
 
     for (s = p = word; *s != '\0'; s++,p++ ) {
         switch ( *s ) {
-            /* [XXX] what is so special about dots anyway?  this needs
-  	       to be fixed, somehow */
             case '.':
-                warning("Seeing dots\n\n");
+		/* [XXX] is empty label handled correctly? */
                 if ( s[1] == '.' ) {
                     warning("Empty label");
                     break;
