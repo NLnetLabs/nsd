@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.9.2.5 2002/08/06 12:47:41 alexis Exp $
+# $Id: nsdc.sh.in,v 1.9.2.6 2002/08/06 12:50:49 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -111,7 +111,7 @@ update)
 	done < $NSDZONES
 
 	# Rebuild and reload?
-	if [ ! -f ${NSDDB} -o -"x$rebuild" = "xyes" ]
+	if [ ! -f ${NSDDB} -o "x$rebuild" = "xyes" ]
 	then
 		echo "rebuilding the database...."
 		sh $0 rebuild && sh $0 reload
