@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.3 2003/01/21 12:15:17 alexis Exp $
+# $Id: Makefile.in,v 1.4 2003/01/21 13:33:06 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -54,16 +54,19 @@ mandir = @mandir@
 #
 # NSD specific pathnames
 #
-NSDHOME		= @nsdhome@
-NSDDB           = @nsddb@
-NSDPIDFILE      = @nsdpidfile@
+NSDHOME		= @NSDHOME@
+NSDDB           = @NSDDB@
+NSDPIDFILE      = @NSDPIDFILE@
+NSDCCONF	= @NSDCCONF@
+NSDUSER		= @NSDUSER@
 
 CC		= @CC@
-CFLAGS		= @CFLAGS@ @DEFS@ -DCF_DBFILE=\"@nsddb@\" -DCF_PIDFILE=\"@nsdpidfile@\" -DCF_USERNAME=\"@nsduser@\"
+CFLAGS		= @CFLAGS@ @DEFS@ -DCF_DBFILE=\"${NSDDB}\" -DCF_PIDFILE=\"${NSDPIDFILE}\" \
+			-DCF_USERNAME=\"${NSDUSER}\"
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
 LIBWRAP		= @LIBWRAP@
-LIBOBJS =	@LIBOBJS@
+LIBOBJS		= @LIBOBJS@
 INSTALL		= @INSTALL@
 INSTALL_PROGRAM	= @INSTALL_PROGRAM@
 INSTALL_DATA	= @INSTALL_DATA@
@@ -131,16 +134,19 @@ zf:	zf.h dns.h zf.c rfc1876.c
 	${COMPILE} -DTEST zf.c rfc1876.c
 	${LINK} -o $@ zf.o rfc1876.o
 
-${OBJS}:	${HDRS}
-
-# Dependencies (gcc -MM)
-dbaccess.o: dbaccess.c namedb.h config.h heap.h rbtree.h
-dbcreate.o: dbcreate.c namedb.h config.h heap.h rbtree.h
+# Dependencies
+dbaccess.o: dbaccess.c config.h namedb.h heap.h rbtree.h
+dbcreate.o: dbcreate.c config.h namedb.h heap.h rbtree.h
 hash.o: hash.c hash.h
+nsd-notify.o: nsd-notify.c nsd.h config.h dns.h namedb.h heap.h \
+ rbtree.h query.h zf.h rfc1876.h
 nsd.o: nsd.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
 query.o: query.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
 rbtree.o: rbtree.c rbtree.h
+rfc1876.o: rfc1876.c config.h
 server.o: server.c nsd.h config.h dns.h namedb.h heap.h rbtree.h \
  query.h
-zf.o: zf.c dns.h nsd.h config.h namedb.h heap.h rbtree.h query.h zf.h
-zonec.o: zonec.c zonec.h config.h heap.h rbtree.h dns.h zf.h namedb.h
+zf.o: zf.c config.h dns.h nsd.h namedb.h heap.h rbtree.h query.h zf.h \
+ rfc1876.h
+zonec.o: zonec.c zonec.h config.h heap.h rbtree.h dns.h zf.h rfc1876.h \
+ namedb.h

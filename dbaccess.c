@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.27 2003/01/21 12:01:25 alexis Exp $
+ * $Id: dbaccess.c,v 1.28 2003/01/21 13:33:06 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -238,10 +238,10 @@ namedb_open (char *filename)
 	(void)close(db->fd);
 
 #ifdef USE_HEAP_RBTREE
-	if((db->heap = heap_create(malloc, domaincmp)) == NULL) {
+	if((db->heap = heap_create(malloc, (int (*)(void *, void *))domaincmp)) == NULL) {
 #else
 # ifdef USE_HEAP_HASH
-	if((db->heap = heap_create(malloc, domaincmp, domainhash, NAMEDB_HASH_SIZE)) == NULL) {
+	if((db->heap = heap_create(malloc, (int (*)(void *, void *))domaincmp, domainhash, NAMEDB_HASH_SIZE)) == NULL) {
 # endif
 #endif
 		free(db->mpool);

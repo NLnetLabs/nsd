@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.69 2003/01/21 12:01:26 alexis Exp $
+ * $Id: zonec.c,v 1.70 2003/01/21 13:33:06 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -460,8 +460,8 @@ zone_read (char *name, char *zonefile)
 
 	/* Two heaps: zone cuts and other data */
 #ifdef USE_HEAP_RBTREE
-	z->cuts = heap_create(xalloc, dnamecmp);
-	z->data = heap_create(xalloc, dnamecmp);
+	z->cuts = heap_create(xalloc, (int (*)(void *, void *))dnamecmp);
+	z->data = heap_create(xalloc, (int (*)(void *, void *))dnamecmp);
 #else
 # ifdef USE_HEAP_HASH
 	z->cuts = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);

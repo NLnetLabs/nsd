@@ -4,7 +4,7 @@ dnl
 AC_INIT(NSD,1.1a,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
-CFLAGS="-ansi -pedantic"
+CFLAGS="-ansi -pedantic -O2"
 
 dnl
 dnl Some macro's from autoconf macro archive
@@ -43,59 +43,83 @@ dnl changequote([, ])
 ) dnl done AC_PROMPT_USER
 
 dnl
+dnl By default set $sysconfdir to /etc and $localstatedir to /var
+dnl
+case "$prefix" in
+	NONE)
+		case "$sysconfdir" in
+			'${prefix}/etc')
+				sysconfdir=/etc
+			;;
+                esac
+		case "$localstatedir" in
+			'${prefix}/var')
+				localstatedir=/var
+			;;
+		esac
+	;;
+esac
+
+#
+# Check if /var/run exists, if so set pidfile to /var/run/nsd.pid
+#
+if test -d ${localstatedir}/run; then
+	NSDPIDFILE=${localstatedir}/run
+fi
+
+
+dnl
 dnl A number if --with arguements
 dnl
 AC_ARG_WITH(nsd-home,
 	AC_HELP_STRING([--with-nsd-home=directory],
-		[NSD ``home'' directory]),
-	[nsdhome="$withval"],
-	[nsdhome="$sysconfdir/nsd"])
-AC_SUBST(nsdhome)
+		[NSD ``home'' directory]), [NSDHOME="$withval"], [NSDHOME="$sysconfdir/nsd"])
+AC_SUBST(NSDHOME)
 
 AC_ARG_WITH(nsd-zones,
 	AC_HELP_STRING([--with-nsd-zones=filename],
 		[The file containing the list of the zones to be served]),
-	[nsdzones="$withval"], [nsdzones="$nsdhome/nsd.zones"])
-AC_SUBST(nsdzones)
+	[NSDZONES="$withval"], [NSDZONES="$NSDHOME/nsd.zones"])
+AC_SUBST(NSDZONES)
 
 AC_ARG_WITH(nsd-db,
 	AC_HELP_STRING([--nsd-db=filename],
-	[The NSD run-time database (default $nsdzonesdir/nsd.db)]),
-		[nsddb="$withval"], [nsddb="$nsdhome/nsd.db"])
-AC_SUBST(nsddb)
+	[The NSD run-time database (default $NSDHOME/nsd.db)]),
+		[NSDDB="$withval"], [NSDDB="$NSDHOME/nsd.db"])
+AC_SUBST(NSDDB)
 
 AC_ARG_WITH(nsdc-conf, AC_HELP_STRING([--nsdc-conf=filename],
 	[Optional configuration file for nsdc.sh]),
-		[nsdcconf="$withval"], [nsdcconf="$nsdhome/nsdc.conf"])
-AC_SUBST(nsdcconf)
+		[NSDCCONF="$withval"], [NSDCCONF="$NSDHOME/nsdc.conf"])
+AC_SUBST(NSDCCONF)
 
 AC_ARG_WITH(nsd-pidfile,
 	AC_HELP_STRING([--nsd-pidfile=filename],
-	[The file pid file of the nsd (default $nsdhome/nsd.pid)]),
-		[nsdpidfile="$withval"], [nsdpidfile="$nsdhome/nsd.pid"])
-AC_SUBST(nsdpidfile)
+	[The file pid file of the nsd (default /var/run/nsd.pid)]),
+		[NSDPIDFILE="$withval"])
+AC_SUBST(NSDPIDFILE)
 
 AC_ARG_WITH(nsd-user,
 	AC_HELP_STRING([--with-nsd-user=user],
 		[The username for nsd to setuid to before answering queries]),
-	[nsduser="$withval"])
-AC_SUBST(nsduser)
+	[NSDUSER="$withval"])
+AC_SUBST(NSDUSER)
 
 AC_ARG_WITH(named-xfer,
 	AC_HELP_STRING([--with-named-xfer=pathname],
 		[Pathname to named-xfer program from bind distribution]),
-	[namedxfer="$withval"])
-AC_SUBST(namedxfer)
+	[NAMEDXFER="$withval"])
+AC_SUBST(NAMEDXFER)
 
 
 dnl
 dnl Determine which user to use for NSD to setuid to.
 dnl
-if test "X$nsduser" = "X"; then
-	AC_PROMPT_USER_NO_DEFINE(nsduser, [With wich user priviledges should NSD answer the queries?], [nsd])
+if test "X$NSDUSER" = "X"; then
+	AC_PROMPT_USER_NO_DEFINE(NSDUSER, [With wich user priviledges should NSD answer the queries?], [nsd])
 fi
-AC_CHECK_USER(nsduser, $nsduser)
-if test "X$nsduser" = "X"; then
+AC_CHECK_USER(NSDUSER, $NSDUSER)
+if test "X$NSDUSER" = "X"; then
 	AC_MSG_ERROR([user doesnt exist.])
 fi
 

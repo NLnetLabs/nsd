@@ -1,5 +1,5 @@
 /*
- * $Id: rfc1876.c,v 1.6 2003/01/21 12:01:26 alexis Exp $
+ * $Id: rfc1876.c,v 1.7 2003/01/21 13:33:06 alexis Exp $
  *
  * rfc1876.c -- LOC record conversion routines taken from RFC1876
  *
@@ -46,11 +46,11 @@ precsize_ntoa (int prec)
 
 /* converts ascii size/precision X * 10**Y(cm) to 0xXY. moves pointer.*/
 static u_int8_t 
-precsize_aton (char **strptr)
+precsize_aton (const char **strptr)
 {
         unsigned int mval = 0, cmval = 0;
         u_int8_t retval = 0;
-        register char *cp;
+        register const char *cp;
         register int exponent;
         register int mantissa;
 
