@@ -140,13 +140,14 @@ The default is to log to stderr and syslog.
 Start
 .Ar count
 UDP servers.  Starting more than a single UDP server is only useful on
-machines with multiple CPUs and/or network adapters.
+machines with multiple CPUs and/or network adapters.  If unspecified, a
+single UDP server is started.
 
 .It Fl n Ar count
 Start
 .Ar count
 TCP servers.  This is also the maximum number of simultaneously
-handled TCP connections.
+handled TCP connections.  If unspecified, a single TCP server is started.
 
 .It Fl p Ar port
 Answer the queries on the specified
