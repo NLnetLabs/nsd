@@ -22,7 +22,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -589,8 +588,6 @@ void
 server_child(struct nsd *nsd)
 {
 	size_t i;
-	sigset_t block_sigmask;
-	sigset_t default_sigmask;
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type *tcp_accept_handlers;
@@ -604,22 +601,6 @@ server_child(struct nsd *nsd)
 		close_all_sockets(nsd->udp, nsd->ifs);
 	}
 	
-	/* Allow sigalarm to get us out of the loop */
-	siginterrupt(SIGALRM, 1);
-
-	/*
-	 * Block signals that modify nsd->mode, which must be tested
-	 * for atomically.  These signals are only unblocked while
-	 * waiting in netio_dispatch below.
-	 */
-	sigemptyset(&block_sigmask);
-	sigaddset(&block_sigmask, SIGHUP);
-	sigaddset(&block_sigmask, SIGILL);
-	sigaddset(&block_sigmask, SIGUSR1);
-	sigaddset(&block_sigmask, SIGINT);
-	sigaddset(&block_sigmask, SIGTERM);
-	sigprocmask(SIG_BLOCK, &block_sigmask, &default_sigmask);
-
 	if (nsd->server_kind & NSD_SERVER_UDP) {
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
@@ -690,7 +671,7 @@ server_child(struct nsd *nsd)
 		}
 
 		/* Wait for a query... */
-		if (netio_dispatch(netio, NULL, &default_sigmask) == -1) {
+		if (netio_dispatch(netio, NULL, NULL) == -1) {
 			if (errno != EINTR) {
 				log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
 				break;
