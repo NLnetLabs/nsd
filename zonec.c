@@ -1208,7 +1208,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 	if (rr->type == TYPE_NS && rr->domain == zone->domain) {
 		zone->ns_rrset = rrset;
 	}
-	if ( ( totalrrs % progress == 0 ) && vflag != 0  && totalrrs > 0) {
+	if ( ( totalrrs % progress == 0 ) && vflag > 1  && totalrrs > 0) {
 		printf("%ld\n", totalrrs);
 	}
 	++totalrrs;
@@ -1502,7 +1502,8 @@ main (int argc, char **argv)
 	}
 
 	/* Print the total number of errors */
-	fprintf(stderr, "\nzonec: done with %ld errors.\n", totalerrors);
+	if (vflag > 0) fprintf(stderr, "\n");
+	fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
 
 	/* Disable this to save some time.  */
 #if 0
