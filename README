@@ -158,12 +158,6 @@ addition to standard configure options, one may use the following:
         to modify NSD or develop plugins.  This option enables the
         standard C "assert" macro.
 
-  --enable-mmap
-
-        Use the mmap(2) system call to load the databse into memory.
-        This is useful on operating systems like Solaris which
-        otherwise reserve additional memory for the database.
-
   --disable-axfr
 
 	Disables outbound AXFR functionalities altogether.
