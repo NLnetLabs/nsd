@@ -34,6 +34,14 @@
 #include "util.h"
 #include "zonec.h"
 
+
+/*
+ * Number of seconds to wait when recieving no data from the remote
+ * server.
+ */
+#define MAX_WAITING_TIME TCP_TIMEOUT
+
+
 /*
  * Exit codes are based on named-xfer for now.  See ns_defs.h in
  * bind8.
@@ -64,7 +72,6 @@ struct axfr_state
 	int    done;		/* AXFR is complete.  */
 	size_t rr_count;	/* Number of RRs received so far.  */
 
-	
 	/*
 	 * Region used to allocate data needed to process a single RR.
 	 */
@@ -79,6 +86,9 @@ struct axfr_state
 	const dname_type *previous_owner_origin;
 };
 typedef struct axfr_state axfr_state_type;
+
+static sig_atomic_t timeout_flag = 0;
+static void to_alarm(int sig);		/* our alarm() signal handler */
 
 extern char *optarg;
 extern int optind;
@@ -140,6 +150,22 @@ usage (void)
 		"  server       The name or IP address of the master server.\n"
 		"\nReport bugs to <%s>.\n", PACKAGE_BUGREPORT);
 	exit(XFER_FAIL);
+}
+
+
+/*
+ * Signal handler for timeouts (SIGALRM). This function is called when
+ * the alarm() value that was set counts down to zero.  This indicates
+ * that we haven't received a response from the server.
+ *
+ * All we do is set a flag and return from the signal handler. The
+ * occurrence of the signal interrupts the read() system call (errno
+ * == EINTR) above, and we then check the timeout_flag flag.
+ */
+static void
+to_alarm(int ATTR_UNUSED(sig))
+{
+	timeout_flag = 1;
 }
 
 static void
@@ -274,7 +300,9 @@ write_socket(int s, const void *buf, size_t size)
 		ssize_t count
 			= write(s, data + total_count, size - total_count);
 		if (count == -1) {
-			if (errno != EAGAIN && errno != EINTR) {
+			if (errno != EAGAIN) {
+				error("network write failed: %s",
+				      strerror(errno));
 				return 0;
 			} else {
 				continue;
@@ -288,7 +316,7 @@ write_socket(int s, const void *buf, size_t size)
 
 /*
  * Read SIZE bytes from the socket into BUF.  Keep reading unless an
- * error occurs (except for EAGAIN and EINTR) or EOF is reached.
+ * error occurs (except for EAGAIN) or EOF is reached.
  */
 static int
 read_socket(int s, void *buf, size_t size)
@@ -299,11 +327,18 @@ read_socket(int s, void *buf, size_t size)
 	while (total_count < size) {
 		ssize_t count = read(s, data + total_count, size - total_count);
 		if (count == -1) {
-			if (errno != EAGAIN && errno != EINTR) {
+			/* Error or interrupt.  */
+			if (errno != EAGAIN) {
+				error("network read failed: %s",
+				      strerror(errno));
 				return 0;
 			} else {
 				continue;
 			}
+		} else if (count == 0) {
+			/* End of file (connection closed?)  */
+			error("network read failed: Connection closed by peer");
+			return 0;
 		}
 		total_count += count;
 	}
@@ -473,25 +508,22 @@ send_query(int s, query_type *q)
 	uint16_t size = htons(buffer_remaining(q->packet));
 
 	if (!write_socket(s, &size, sizeof(size))) {
-		error("failed to send query size: %s", strerror(errno));
 		return 0;
 	}
 	if (!write_socket(s, buffer_begin(q->packet), buffer_limit(q->packet)))
 	{
-		error("failed to send query data: %s", strerror(errno));
 		return 0;
 	}
 	return 1;
 }
 
 static int
-receive_response(axfr_state_type *state)
+receive_response_no_timeout(axfr_state_type *state)
 {
 	uint16_t size;
 	
 	buffer_clear(state->q->packet);
 	if (!read_socket(state->s, &size, sizeof(size))) {
-		error("failed to read response size: %s", strerror(errno));
 		return 0;
 	}
 	size = ntohs(size);
@@ -501,7 +533,6 @@ receive_response(axfr_state_type *state)
 		return 0;
 	}
 	if (!read_socket(state->s, buffer_begin(state->q->packet), size)) {
-		error("failed to read response data: %s", strerror(errno));
 		return 0;
 	}
 
@@ -509,8 +540,24 @@ receive_response(axfr_state_type *state)
 
 	++state->packets_received;
 	state->bytes_received += sizeof(size) + size;
-	
+
 	return 1;
+}
+
+static int
+receive_response(axfr_state_type *state)
+{
+	int result;
+	
+	timeout_flag = 0;
+	alarm(MAX_WAITING_TIME);
+	result = receive_response_no_timeout(state);
+	alarm(0);
+	if (!result && timeout_flag) {
+		error("timeout reading response, server unreachable?");
+	}
+	
+	return result;
 }
 
 static int
@@ -695,6 +742,7 @@ handle_axfr_response(FILE *out, axfr_state_type *axfr)
 		if (!receive_response(axfr)) {
 			return 0;
 		}
+		
 		buffer_flip(axfr->q->packet);
 		
 		if (buffer_limit(axfr->q->packet) <= QHEADERSZ) {
@@ -857,6 +905,7 @@ main(int argc, char *argv[])
 	const char *zone_filename = NULL;
 	const char *port = TCP_PORT;
 	int default_family = DEFAULT_AI_FAMILY;
+	struct sigaction mysigaction;
 	FILE *zone_file;
 	const char *tsig_key_filename = NULL;
 	tsig_key_type *tsig_key = NULL;
@@ -970,6 +1019,13 @@ main(int argc, char *argv[])
 		state.tsig = (tsig_record_type *) region_alloc(
 			region, sizeof(tsig_record_type));
 		tsig_init_record(state.tsig, region, md5, tsig_key);
+	}
+
+	mysigaction.sa_handler = to_alarm;
+	sigfillset(&mysigaction.sa_mask);
+	mysigaction.sa_flags = 0;
+	if (sigaction(SIGALRM, &mysigaction, NULL) < 0) {
+		error("cannot set signal handler");
 	}
 	
 	for (; *argv; ++argv) {
