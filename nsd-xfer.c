@@ -246,13 +246,11 @@ read_tsig_key(region_type *region,
 
 	fclose(in);
 	
-#if 0
 	if (unlink(tsiginfo_filename) == -1) {
 		warning("failed to remove %s: %s",
 			tsiginfo_filename,
 			strerror(errno));
 	}
-#endif
 
 	return key;
 }
@@ -268,7 +266,8 @@ write_socket(int s, const void *buf, size_t size)
 	size_t total_count = 0;
 
 	while (total_count < size) {
-		ssize_t count = write(s, data + total_count, size - total_count);
+		ssize_t count
+			= write(s, data + total_count, size - total_count);
 		if (count == -1) {
 			if (errno != EAGAIN && errno != EINTR) {
 				return 0;
@@ -346,7 +345,6 @@ set_previous_owner(axfr_state_type *state, const dname_type *dname)
 	state->previous_owner_origin = dname_origin(
 		state->previous_owner_region, state->previous_owner);
 }
-	
 
 static int
 print_rr(FILE *out,
@@ -824,6 +822,13 @@ print_zone_header(FILE *out, axfr_state_type *state, const char *server)
 	}
 }
 
+static void
+cleanup_region(void *data)
+{
+	region_type *region = (region_type *) data;
+	region_destroy(region);
+}
+
 int 
 main(int argc, char *argv[])
 {
@@ -860,8 +865,8 @@ main(int argc, char *argv[])
 	state.previous_owner = NULL;
 	state.previous_owner_origin = NULL;
 
-	region_add_cleanup(region, region_destroy, state.previous_owner_region);
-	region_add_cleanup(region, region_destroy, state.rr_region);
+	region_add_cleanup(region, cleanup_region, state.previous_owner_region);
+	region_add_cleanup(region, cleanup_region, state.rr_region);
 	
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
