@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.20 2002/02/04 09:05:54 alexis Exp $
+ * $Id: query.c,v 1.21 2002/02/04 09:47:45 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -212,12 +212,6 @@ query_process(q, db)
 		return 0;
 	}
 
-	/* Dont allow any records in the query */
-	if(ANCOUNT(q) != 0 || NSCOUNT(q) != 0 || ARCOUNT(q) != 0) {
-		RCODE_SET(q, RCODE_FORMAT);
-		return 0;
-	}
-
 	/* Lets parse the qname and convert it to lower case */
 	qdepth = 0;
 	qnamelow = qnamebuf + 2;
@@ -238,18 +232,18 @@ query_process(q, db)
 	*qnamelow++ = *qptr++;
 	qnamelow = qnamebuf + 2;
 
-	/* Make sure name is not too long... */
-	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q)) {
-		RCODE_SET(q, RCODE_FORMAT);
-		return 0;
-	}
-
 	bcopy(qptr, &qtype, 2); qptr += 2;
 	bcopy(qptr, &qclass, 2); qptr += 2;
 
 	/* Unsupported class */
 	if((ntohs(qclass) != CLASS_IN) && (ntohs(qclass) != CLASS_ANY)) {
 		RCODE_SET(q, RCODE_REFUSE);
+		return 0;
+	}
+
+	/* Dont allow any records in the query */
+	if(ANCOUNT(q) != 0 || NSCOUNT(q) != 0 || ARCOUNT(q) != 0) {
+		RCODE_SET(q, RCODE_FORMAT);
 		return 0;
 	}
 
