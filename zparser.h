@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.7 2003/02/17 12:22:40 alexis Exp $
+ * $Id: zparser.h,v 1.8 2003/02/17 15:58:57 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -138,6 +138,7 @@ extern void *xrealloc(void *p, size_t size);
 
 /* zparser.c */
 u_int16_t intbyname(char *a, struct ztab *tab);
+char *namebyint(u_int16_t n, struct ztab *tab);
 int zrdatacmp(u_int16_t **a, u_int16_t **b);
 long strtottl(char *nptr, char **endptr);
 void zerror(struct zparser *z, char *msg);
@@ -147,12 +148,13 @@ struct zparser *zopen(char *filename, u_int32_t ttl, u_int16_t class, char *orig
 struct zparser *_zopen(char *filename, u_int32_t ttl, u_int16_t class, u_char *origin);
 struct RR *zread(struct zparser *z);
 void zclose(struct zparser *z);
-void zrdatafree(u_int16_t **rdata);
+void zrdatafree(u_int16_t **p);
 void zaddrdata(struct zparser *z, u_int16_t *r);
 int zrdata(struct zparser *z);
 int zrdatascan(struct zparser *z, int what);
 int zrdata_loc(struct zparser *z);
 void zaddtoken(struct zparser *z, char *t);
 int zparseline(struct zparser *z);
-
+const char *precsize_ntoa(int prec);
+u_int8_t precsize_aton(register char *cp, char **endptr);
 #endif /* _ZPARSER_H_ */

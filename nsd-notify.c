@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.4 2003/01/21 12:01:25 alexis Exp $
+ * $Id: nsd-notify.c,v 1.5 2003/02/17 15:58:57 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -41,8 +41,8 @@
 #undef	INET6
 #endif
 
-#include "nsd.h"
-#include "zf.h"
+#include <nsd.h>
+#include <dname.h>
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -99,7 +99,7 @@ main (int argc, char *argv[])
 	while((c = getopt(argc, argv, "z:")) != -1) {
 		switch (c) {
 		case 'z':
-			if((zone = strdname(optarg, ROOT_ORIGIN)) == NULL)
+			if((zone = strdname(optarg, (u_char *)"\001")) == NULL)
 				usage();
 			break;
 		default:

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.15 2003/02/17 12:23:41 alexis Exp $
+# $Id: Makefile.in,v 1.16 2003/02/17 15:58:57 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -118,14 +118,14 @@ uninstall:
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS) $(LIBWRAP)
 
-zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o $(LIBOBJS)
-	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o rfc1876.o $(LIBOBJS)
+zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
+	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
 
-nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
-	$(LINK) -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
+nsd-notify:	nsd-notify.c query.o dname.o dbaccess.o rbtree.o
+	$(LINK) $(CFLAGS) -o $@ nsd-notify.c query.o dname.o dbaccess.o rbtree.o
 
-zparser:	zparser.c rfc1876.o dname.o
-	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c rfc1876.o dname.o
+zparser:	zparser.c dname.o
+	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c dname.o
 
 clean:
 	rm -f zonec nsd zparser hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
@@ -146,29 +146,13 @@ hash:	hash.c hash.h
 	$(COMPILE) -DTEST hash.c
 	$(LINK) -o $@ hash.o
 
-zf:	zf.h dns.h zf.c rfc1876.c
-	$(COMPILE) -DTEST zf.c rfc1876.c
-	$(LINK) -o $@ zf.o rfc1876.o
-
 nsdc.sh:	nsdc.sh.in ./config.status
 	./config.status
 
 nsdc.conf.sample:	nsdc.conf.sample.in ./config.status
 	./config.status
 
+depend:
+	$(COMPILE) -MM *.c >> Makefile
+
 # Dependencies
-dbaccess.o: dbaccess.c config.h namedb.h heap.h rbtree.h
-dbcreate.o: dbcreate.c config.h namedb.h heap.h rbtree.h
-hash.o: hash.c hash.h
-nsd-notify.o: nsd-notify.c nsd.h config.h dns.h namedb.h heap.h \
- rbtree.h query.h zf.h rfc1876.h
-nsd.o: nsd.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
-query.o: query.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
-rbtree.o: rbtree.c rbtree.h
-rfc1876.o: rfc1876.c config.h
-server.o: server.c nsd.h config.h dns.h namedb.h heap.h rbtree.h \
- query.h
-zf.o: zf.c config.h dns.h nsd.h namedb.h heap.h rbtree.h query.h zf.h \
- rfc1876.h
-zonec.o: zonec.c zonec.h config.h heap.h rbtree.h dns.h zf.h rfc1876.h \
- namedb.h

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.75 2003/02/14 22:05:08 alexis Exp $
+ * $Id: zonec.c,v 1.76 2003/02/17 15:58:57 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -140,9 +140,9 @@ zone_initmsg(struct message *m)
 void 
 zone_print (struct zone *z)
 {
-	struct rrset *rrset;
+	/* struct rrset *rrset;
 	u_char *dname;
-	int i;
+	int i; */
 
 	printf("; zone %s\n", dnamestr(z->dname));
 	printf("; zone data\n");
@@ -255,14 +255,11 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 	int32_t ttl;
 	u_int16_t **rdata;
 	u_char *rdlengthptr;
-	char *f;
-	size_t size;
 	u_int16_t rdlength;
 	u_int16_t type;
 	int rrcount;
 	int i, j;
 
-	u_int32_t l;
 	u_int16_t s;
 
 	if(rrset == NULL) return 0;
@@ -470,7 +467,7 @@ zone_read (char *name, char *zonefile)
 		/* Report progress... */
 		if(vflag) {
 			if((parser->lines % 100000) == 0) {
-				printf("zonec: reading zone \"%s\": %d\r", dnamestr(z->dname), parser->lines);
+				printf("zonec: reading zone \"%s\": %lu\r", dnamestr(z->dname), parser->lines);
 				fflush(stdout);
 			}
 		}

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.13 2003/02/17 12:42:29 alexis Exp $
+ * $Id: zparser.c,v 1.14 2003/02/17 15:58:57 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -59,7 +59,6 @@
 #include <dns.h>
 #include <zparser.h>
 #include <dname.h>
-#include <rfc1876.h>
 
 /*
  *
@@ -189,9 +188,7 @@ zrdatacmp(u_int16_t **a, u_int16_t **b)
  *
  */
 long
-strtottl(nptr, endptr)
-	char *nptr;
-	char **endptr;
+strtottl(char *nptr, char **endptr)
 {
 	int sign = 0;
 	long i = 0;
@@ -1070,41 +1067,162 @@ zrdatascan (struct zparser *z, int what)
  *	number of elements parsed
  *	zero on error
  *
- * XXX This one is still pretty dirty, real mess.
- * XXX Besides no buffer overflow check.
- *
  */
 int
 zrdata_loc (struct zparser *z)
 {
 	u_int16_t *r;
-	char buf[512];
-	char *t = buf;
+	char *t;
+	int i;
+	int deg = 0, min = 0, secs = 0, secfraq = 0, altsign = 0, altmeters = 0, altfraq = 0;
+	u_int32_t lat = 0, lon = 0, alt = 0;
+	u_char vszhpvp[4] = {0, 0, 0, 0};
 
-	/* Produce an error message... */
+
+	for(;;) {
+		/* Degrees */
+		if(z->_t[z->_tc] == NULL) {
+			zunexpected(z);
+			return 0;
+		}
+
+		deg = (int)strtol(z->_t[z->_tc], &t, 10);
+		if(*t || deg > 180 || deg < 0) {
+			zerror(z, "degrees must be within +/-180 range");
+			return 0;
+		}
+
+		/* Minutes? */
+		if(z->_t[++z->_tc] == NULL) {
+			zunexpected(z);
+			return 0;
+		}
+
+		if(isdigit(*z->_t[z->_tc])) {
+			min = (int)strtol(z->_t[z->_tc], &t, 10);
+			if(*t || min > 60 || min < 0) {
+				zerror(z, "minutes must be within +/-60 range");
+				return 0;
+			}
+
+			/* Seconds? */
+			if(z->_t[++z->_tc] == NULL) {
+				zunexpected(z);
+				return 0;
+			}
+
+			if(isdigit(*z->_t[z->_tc])) {
+				secs = (int)strtol(z->_t[z->_tc], &t, 10);
+				if((*t != 0 && *t != '.') || secs > 60 || secs < 0) {
+					zerror(z, "seconds must be within +/-60 range");
+					return 0;
+				}
+
+				/* Fraction of seconds */
+				if(*t == '.') {
+					secfraq = (int)strtol(++t, &t, 10);
+					if(*t != 0) {
+						zerror(z, "seconds fraction must be a number");
+						return 0;
+					}
+				}
+
+				z->_tc++;
+			}
+		}
+
+		switch(*z->_t[z->_tc]) {
+		case 'N':
+		case 'n':
+			lat = ((unsigned)1<<31) + (((((deg * 60) + min) * 60) + secs)
+				* 1000) + secfraq;
+			deg = min = secs = secfraq = 0;
+			break;
+		case 'E':
+		case 'e':
+			lon = ((unsigned)1<<31) + (((((deg * 60) + min) * 60) + secs) * 1000)
+				+ secfraq;
+			deg = min = secs = secfraq = 0;
+			break;
+		case 'S':
+		case 's':
+			lat = ((unsigned)1<<31) - (((((deg * 60) + min) * 60) + secs) * 1000)
+				- secfraq;
+			deg = min = secs = secfraq = 0;
+			break;
+		case 'W':
+		case 'w':
+			lon = ((unsigned)1<<31) - (((((deg * 60) + min) * 60) + secs) * 1000)
+				- secfraq;
+			deg = min = secs = secfraq = 0;
+			break;
+		default:
+			zerror(z, "invalid latitude/longtitude");
+			return 0;
+		}
+
+		z->_tc++;
+
+		if(lat != 0 && lon != 0)
+			break;
+	}
+
+	/* Altitude */
 	if(z->_t[z->_tc] == NULL) {
 		zunexpected(z);
 		return 0;
 	}
 
-	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + LOCRDLEN);
-
-	/* Paste all the tokens together again */
-
-	while(z->_t[z->_tc] != NULL) {
-		strcpy(t, z->_t[z->_tc++]);
-		t += strlen(t);
+	/* Sign */
+	switch(*z->_t[z->_tc]) {
+	case '-':
+		altsign = -1;
+	case '+':
+		z->_t[z->_tc]++;
+	break;
 	}
 
-	/* Try to convert it */
-        if(loc_aton(buf,  (u_char *)(r + 1)) != LOCRDLEN) {
-		zerror(z, "LOC record data expected");
-		free(r);
+	/* Meters of altitude... */
+	altmeters = strtol(z->_t[z->_tc], &t, 10);
+	switch(*t) {
+	case 0:
+	case 'm':
+		break;
+	case '.':
+		altfraq = strtol(++t, &t, 10);
+		if(*t != 0 && *t != 'm') {
+			zerror(z, "altitude fraction must be a number");
+			return 0;
+		}
+		break;
+	default:
+		zerror(z, "altitude must be expressed in meters");
 		return 0;
 	}
 
-	*r = LOCRDLEN;
+	alt = (10000000 + (altsign * (altmeters * 100 + altfraq)));
+	z->_tc++;
+
+	/* Now parse size, horizontal precision and vertical precision if any */
+	for(i = 1; z->_t[z->_tc] != NULL && i <= 3; i++) {
+		vszhpvp[i] = precsize_aton(z->_t[z->_tc], &t);
+
+		if(*t != 0) {
+			zerror(z, "invalid size or precision");
+			return 0;
+		}
+		z->_tc++;
+	}
+
+	/* Allocate required space... */
+	r = xalloc(sizeof(u_int16_t) + 16);
+	*r = 16;
+
+	memcpy(r + 1, vszhpvp, 4);
+	*(u_int32_t *)(r + 3)  = htonl(lat);
+	*(u_int32_t *)(r + 5)  = htonl(lon);
+	*(u_int32_t *)(r + 7)  = htonl(alt);
+
 	zaddrdata(z, r);
 
 	return 1;
@@ -1277,6 +1395,76 @@ zparseline (struct zparser *z)
 
 	/* End of file */
 	return 0;
+}
+
+/* RFC1876 conversion routines */
+static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
+				1000000,10000000,100000000,1000000000};
+
+/*
+ *
+ * Takes an XeY precision/size value, returns a string representation.
+ *
+ */
+const char *
+precsize_ntoa (int prec)
+{
+	static char retbuf[sizeof("90000000.00")];
+	unsigned long val;
+	int mantissa, exponent;
+
+	mantissa = (int)((prec >> 4) & 0x0f) % 10;
+	exponent = (int)((prec >> 0) & 0x0f) % 10;
+
+	val = mantissa * poweroften[exponent];
+
+	(void) sprintf(retbuf,"%lu.%.2lu", val/100, val%100);
+	return (retbuf);
+}
+
+/*
+ * Converts ascii size/precision X * 10**Y(cm) to 0xXY.
+ * Sets the given pointer to the last used character.
+ *
+ */
+u_int8_t 
+precsize_aton (register char *cp, char **endptr)
+{
+	unsigned int mval = 0, cmval = 0;
+	u_int8_t retval = 0;
+	register int exponent;
+	register int mantissa;
+
+	while (isdigit(*cp))
+		mval = mval * 10 + (*cp++ - '0');
+
+	if (*cp == '.') {               /* centimeters */
+		cp++;
+		if (isdigit(*cp)) {
+			cmval = (*cp++ - '0') * 10;
+			if (isdigit(*cp)) {
+				cmval += (*cp++ - '0');
+			}
+		}
+	}
+
+	cmval = (mval * 100) + cmval;
+
+	for (exponent = 0; exponent < 9; exponent++)
+		if (cmval < poweroften[exponent+1])
+			break;
+
+	mantissa = cmval / poweroften[exponent];
+	if (mantissa > 9)
+		mantissa = 9;
+
+	retval = (mantissa << 4) | exponent;
+
+	if(*cp == 'm') cp++;
+
+	*endptr = cp;
+
+	return (retval);
 }
 
 
