@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.12 2002/05/23 13:20:57 alexis Exp $
+ * $Id: zf.h,v 1.13 2002/05/25 05:37:49 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -137,6 +137,10 @@ struct zf_class_tab {
  *	's' The next atom is a two octets number.
  *	'l' The next atom is a four octets number.
  *	't' The next atom is a text string.
+ *
+ *	'c' The next atom is an octet
+ *	'e' The next atom is encoded binary data
+ *	'b' The next atom is a bitlabel
  *
  */
 

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.26 2002/05/23 13:33:03 alexis Exp $
+ * $Id: zf.c,v 1.27 2002/05/25 05:37:49 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -269,6 +269,11 @@ strtottl(nptr, endptr)
 				return (sign == -1) ? -seconds : seconds;
 			}
 			break;
+		case 's':
+		case 'S':
+			seconds += i;
+			i = 0;
+			break;
 		case 'm':
 		case 'M':
 			seconds += i * 60;
@@ -373,11 +378,18 @@ char *
 zone_strtok(s)
 	register char *s;
 {
+	/* Special tokens */
 	register char *t;
 	static char *p = "";
+	static char saved = 0;
 
+	/* Is this a new string? */
 	if(s) {
 		p = s;
+		saved = 0;
+	} else if(saved) {
+		*p = saved;
+		saved = 0;
 	}
 
 	/* Skip leading delimiters */
@@ -397,7 +409,20 @@ zone_strtok(s)
 
 	}
 	/* Find the next delimiter */
-	for(t = s; *t && *t != ' ' && *t != '\t' && *t != '\n'; t++);
+	for(t = s; *t && *t != ' ' && *t != '\t' && *t != '\n'; t++) {
+		if(t > s) {
+			switch(*t) {
+			case '(':
+			case ')':
+			case ';':
+				saved = *t;
+				*t = '\000';
+				p = t;
+				return s;
+			}
+		}
+	}
+
 	if(t == s) return NULL;
 
 	if(*t) {
