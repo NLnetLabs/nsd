@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.68.2.3 2003/06/12 09:27:31 erik Exp $
+ * $Id: nsd.c,v 1.68.2.4 2003/06/18 09:11:22 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -249,7 +249,7 @@ sig_handler (int sig)
 	}
 
 	/* Distribute the signal to the servers... */
-	for (i = 1; i <= nsd.tcp.open_conn; ++i) {
+	for (i = 1; i <= nsd.tcp_open_conn; ++i) {
 		if (kill(nsd.pid[i], sig) == -1) {
 			syslog(LOG_ERR, "problems killing %d: %m", nsd.pid[i]);
 		}
@@ -369,31 +369,34 @@ main (int argc, char *argv[])
 	int i, c;
 	pid_t	oldpid;
 
+	/* For initialising the address info structures */
+	struct  addrinfo hints[MAX_INTERFACES];
+	char *	nodes[MAX_INTERFACES];
+	char * 	udp_port;
+	char * 	tcp_port;
+
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.dbfile	= DBFILE;
 	nsd.pidfile	= PIDFILE;
-	nsd.tcp.open_conn = 1;
+	nsd.tcp_open_conn = 1;
+
+	/* Initialise the ports */
+	udp_port = UDP_PORT;
+	tcp_port = TCP_PORT;
 
 	for(i = 0; i < MAX_INTERFACES; i++) {
-		nsd.udp[i].addr.sin_addr.s_addr = INADDR_ANY;
-		nsd.udp[i].addr.sin_port = htons(UDP_PORT);
-		nsd.udp[i].addr.sin_family = AF_INET;
+		memset(&hints[i], 0, sizeof(hints[i]));
+#ifdef INET6
+		hints[i].ai_family = PF_UNSPEC;
+#else
+		hints[i].ai_family = PF_INET;
+#endif
+		hints[i].ai_flags = AI_PASSIVE;
+		nodes[i] = NULL;
 	}
 
-        nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
-        nsd.tcp.addr.sin_port = htons(TCP_PORT);
-        nsd.tcp.addr.sin_family = AF_INET;
-
-#ifdef INET6
-        nsd.udp6.addr.sin6_port = htons(UDP_PORT);	/* XXX: SHOULD BE UDP6_PORT? */
-        nsd.udp6.addr.sin6_family = AF_INET6;
-
-        nsd.tcp6.addr.sin6_port = htons(TCP_PORT);	/* XXX: SHOULD BE TCP6_PORT? */
-        nsd.tcp6.addr.sin6_family = AF_INET6;
-#endif /* INET6 */
-
-	nsd.tcp.max_msglen = TCP_MAX_MESSAGE_LEN;
+	nsd.tcp_max_msglen = TCP_MAX_MESSAGE_LEN;
 	nsd.identity	= IDENTITY;
 	nsd.version	= VERSION;
 	nsd.username	= USER;
@@ -437,10 +440,8 @@ main (int argc, char *argv[])
 	while((c = getopt(argc, argv, "a:df:p:i:u:t:s:n:")) != -1) {
 		switch (c) {
 		case 'a':
-			if((nsd.tcp.addr.sin_addr.s_addr = nsd.udp[nsd.ifs++].addr.sin_addr.s_addr
-					= inet_addr(optarg)) == -1)
-				usage();
-			
+			nodes[nsd.ifs] = nodes[nsd.ifs] = optarg;
+			nsd.ifs++;
 			break;
 		case 'd':
 			nsd.debug = 1;
@@ -449,14 +450,8 @@ main (int argc, char *argv[])
 			nsd.dbfile = optarg;
 			break;
 		case 'p':
-			for(i = 0; i < MAX_INTERFACES; i++) {
-				nsd.udp[i].addr.sin_port = htons(atoi(optarg));
-			}
-			nsd.tcp.addr.sin_port = htons(atoi(optarg));
-#ifdef INET6
-			nsd.udp6.addr.sin6_port = htons(atoi(optarg));
-			nsd.tcp6.addr.sin6_port = htons(atoi(optarg));
-#endif /* INET6 */
+			tcp_port = optarg;
+			udp_port = optarg;
 			break;
 		case 'i':
 			nsd.identity = optarg;
@@ -475,7 +470,7 @@ main (int argc, char *argv[])
 				syslog(LOG_ERR, "max number of tcp connections must be less than %d",
 					TCP_MAX_CONNECTIONS);
 			} else {
-				nsd.tcp.open_conn = i;
+				nsd.tcp_open_conn = i;
 			}
 			break;
 		case 's':
@@ -496,11 +491,26 @@ main (int argc, char *argv[])
 	if(argc != 0)
 		usage();
 
-	/* If multiple -a let nsd bind tcp socket to every interface */
-	if(nsd.ifs > 1)
-		nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
+	/* We need at least one active interface */
 	if(nsd.ifs == 0)
 		nsd.ifs++;
+
+	/* Set up the address info structures with real interface/port data */
+	for(i = 0; i < nsd.ifs ; i++)
+	{
+		/* We don't perform name-lookups */
+		if (nodes[i] != NULL)
+			hints[i].ai_flags = AI_NUMERICHOST;
+		
+		hints[i].ai_socktype = SOCK_DGRAM;
+		if ( getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr) != 0)
+			usage();
+		
+		hints[i].ai_socktype = SOCK_STREAM;
+		if ( getaddrinfo(nodes[i], tcp_port, &hints[i], &nsd.tcp[i].addr) != 0)
+			usage();
+
+	}
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.10 2003/03/20 10:31:25 alexis Exp $
+ * $Id: nsd-notify.c,v 1.10.2.1 2003/06/18 09:11:24 erik Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -57,6 +57,7 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include <dns.h>
 #include <namedb.h>
@@ -110,13 +111,14 @@ main (int argc, char *argv[])
 {
 	int c, udp_s;
 	struct	query q;
-	struct sockaddr_in udp_addr;
 	u_char *zone = NULL;
 	u_int16_t qtype = htons(TYPE_SOA);
 	u_int16_t qclass = htons(CLASS_IN);
+	struct addrinfo hints, *res0, *res;
+	int error;
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "z:")) != -1) {
+	while ((c = getopt(argc, argv, "z:")) != -1) {
 		switch (c) {
 		case 'z':
 			if((zone = strdname(optarg, (u_char *)"\001")) == NULL)
@@ -129,27 +131,8 @@ main (int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if(argc == 0 || zone == NULL)
+	if (argc == 0 || zone == NULL)
 		usage();
-
-	/* Set up UDP */
-	memset(&udp_addr, 0, sizeof(udp_addr));
-	udp_addr.sin_port = 0;
-	udp_addr.sin_addr.s_addr = INADDR_ANY;
-	udp_addr.sin_family = AF_INET;
-
-	/* Make a socket... */
-	if((udp_s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-		fprintf(stderr, "cant create a socket: %s\n", strerror(errno));
-		exit(1);
-	}
-
-	/* Bind it */
-	if(bind(udp_s, (struct sockaddr *)&udp_addr, sizeof(struct sockaddr_in))) {
-		fprintf(stderr, "cant bind the socket: %s\n", strerror(errno));
-		return -1;
-	}
-
 
 	/* Initialize the query */
 	memset(&q, 0, sizeof(struct query));
@@ -157,11 +140,6 @@ main (int argc, char *argv[])
 	q.iobufsz = QIOBUFSZ;
 	q.iobufptr = q.iobuf;
 	q.maxlen = 512;
-
-	/* Setup the address */
-	memset(&q.addr, 0, sizeof(struct sockaddr));
-	((struct sockaddr_in *)&q.addr)->sin_port = htons(53);
-	((struct sockaddr_in *)&q.addr)->sin_family = AF_INET;
 
 	/* Set up the header */
 	OPCODE_SET((&q), OPCODE_NOTIFY);
@@ -171,7 +149,7 @@ main (int argc, char *argv[])
 	q.iobufptr = q.iobuf + QHEADERSZ;
 
 	/* Add the domain name */
-	if(*zone > MAXDOMAINLEN) {
+	if (*zone > MAXDOMAINLEN) {
 		fprintf(stderr, "zone name length exceeds %d\n", MAXDOMAINLEN);
 		exit(1);
 	}
@@ -187,22 +165,49 @@ main (int argc, char *argv[])
 	/* Set QDCOUNT=1 */
 	QDCOUNT((&q)) = htons(1);
 
-	/* WE ARE READY SEND IT OUT */
-
-	/* Set up the target port */
-	while(*argv) {
-		if((((struct sockaddr_in *)&q.addr)->sin_addr.s_addr = inet_addr(*argv)) == -1) {
-			fprintf(stderr, "skipping bad address %s\n", *argv);
-		} else {
-			if(sendto(udp_s, q.iobuf, (size_t)(q.iobufptr - q.iobuf), 0,
-					(struct sockaddr *)&q.addr, sizeof(struct sockaddr_in)) == -1) {
-				fprintf(stderr, "send to %s failed: %s\n", *argv, strerror(errno));
-			}
+	for (/*empty*/; *argv; argv++) {
+		/* Set up UDP */
+		memset(&hints, 0, sizeof(hints));
+#ifdef INET6
+		hints.ai_family = PF_UNSPEC;
+#else
+		hints.ai_family = PF_INET;
+#endif
+		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_protocol = IPPROTO_UDP;
+		error = getaddrinfo(*argv, "53", &hints, &res0);
+		if (error) {
+			fprintf(stderr, "skipping bad address %s: %s\n", *argv,
+			    gai_strerror(error));
+			continue;
 		}
-		argv++;
+
+		for (res = res0; res; res = res->ai_next) {
+			if (res->ai_addrlen > sizeof(q.addr))
+				continue;
+
+			udp_s = socket(res->ai_family, res->ai_socktype,
+			    res->ai_protocol);
+			if (udp_s == -1)
+				continue;
+
+			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
+
+			/* WE ARE READY SEND IT OUT */
+
+			if (sendto(udp_s, q.iobuf,
+			    (size_t)(q.iobufptr - q.iobuf), 0,
+			    res->ai_addr, res->ai_addrlen) == -1) {
+				fprintf(stderr,
+				    "send to %s failed: %s\n", *argv,
+				    strerror(errno));
+			}
+
+			close(udp_s);
+		}
+
+		freeaddrinfo(res0);
 	}
 
-	close(udp_s);
 	exit(1);
-
 }

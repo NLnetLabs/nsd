@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.95.2.3 2003/06/11 10:07:44 erik Exp $
+ * $Id: query.c,v 1.95.2.4 2003/06/18 09:11:25 erik Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -53,6 +53,7 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include <dns.h>
 #include <dname.h>
@@ -364,13 +365,14 @@ query_process (struct query *q, struct nsd *nsd)
 		QR_SET(q);		/* This is an answer */
 
 		if(OPCODE(q) == OPCODE_NOTIFY) {
-#ifdef INET6
-			if(q->addr.ss_family != AF_INET)
-				syslog(LOG_INFO, "notify from an non-ipv4 remote address");
+			char namebuf[BUFSIZ];
+
+			if ( getnameinfo( (struct sockaddr *) &(q->addr), q->addrlen, namebuf, sizeof(namebuf), 
+					NULL, 0, NI_NUMERICHOST) != 0)
+
+				syslog(LOG_INFO, "notify from unknown remote address");
 			else
-#endif /* INET6 */
-				syslog(LOG_INFO, "notify from %s",
-					inet_ntoa( ((struct sockaddr_in *)(&q->addr))->sin_addr));
+				syslog(LOG_INFO, "notify from %s", namebuf);
 		}
 
 		RCODE_SET(q, RCODE_IMPL);
