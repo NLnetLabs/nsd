@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.15 2003/02/21 12:07:41 alexis Exp $
+ * $Id: zparser.c,v 1.16 2003/02/21 12:49:49 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -831,6 +831,7 @@ zrdatascan (struct zparser *z, int what)
 	u_char *t;
 	struct tm tm;
 	u_int16_t *r = NULL;
+	u_int32_t l;
 
 	/* Produce an error message... */
 	if(z->_t[z->_tc] == NULL) {
@@ -897,7 +898,8 @@ zrdatascan (struct zparser *z, int what)
 			/* Allocate required space... */
 			r = xalloc(sizeof(u_int32_t) + sizeof(u_int16_t));
 
-			*((u_int32_t *)(r+1)) = htonl(timegm(&tm));
+			l = htonl(timegm(&tm));
+			memcpy(r + 1, &l, sizeof(u_int32_t));
 			*r = sizeof(u_int32_t);
 		}
 		break;
@@ -918,12 +920,13 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
 
-		*((u_int32_t *)(r+1))  = htonl((u_int32_t)strtottl(z->_t[z->_tc], (char **)&t));
+		l = htonl((u_int32_t)strtottl(z->_t[z->_tc], (char **)&t));
 
 		if(*t != 0) {
 			zerror(z, "time period is expected");
 			error++;
 		} else {
+			memcpy(r + 1, &l, sizeof(u_int32_t));
 			*r = sizeof(u_int32_t);
 		}
 		break;
@@ -944,12 +947,13 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
 
-		*((u_int32_t *)(r+1))  = htonl((u_int32_t)strtol(z->_t[z->_tc], (char **)&t, 0));
+		l = htonl((u_int32_t)strtol(z->_t[z->_tc], (char **)&t, 0));
 
 		if(*t != 0) {
 			zerror(z, "long decimal value is expected");
 			error++;
 		} else {
+			memcpy(r + 1, &l, sizeof(u_int32_t));
 			*r = sizeof(u_int32_t);
 		}
 		break;
@@ -979,10 +983,11 @@ zrdatascan (struct zparser *z, int what)
 			error++;
 		}
 #else
-		if((*((u_int32_t *)(r + 1)) = inet_addr(z->_t[z->_tc])) == -1) {
+		if((l = inet_addr(z->_t[z->_tc])) == -1) {
 			zerror(z, "invalid ip address");
 			error++;
 		} else {
+			memcpy(r + 1, &l, sizeof(u_int32_t));
 			*r = sizeof(u_int32_t);
 		}
 #endif
