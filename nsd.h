@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.25.4.1 2002/05/21 09:21:11 alexis Exp $
+ * $Id: nsd.h,v 1.25.4.2 2002/05/21 09:49:08 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -112,5 +112,5 @@ struct	nsd {
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
 int server __P((struct nsd *));
-int writepid __P((pid_t, char *));
+int writepid __P((struct nsd *));
 #endif	/* _NSD_H_ */
