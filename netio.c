@@ -10,8 +10,10 @@
 #include <config.h>
 
 #include <assert.h>
+#include <errno.h>
 #include <sys/time.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "netio.h"
 #include "util.h"
@@ -98,7 +100,8 @@ netio_current_time(netio_type *netio)
 	if (!netio->have_current_time) {
 		struct timeval current_timeval;
 		if (gettimeofday(&current_timeval, NULL) == -1) {
-			return NULL;
+			log_msg(LOG_CRIT, "gettimeofday: %s, aborting.", strerror(errno));
+			abort();
 		}
 		timeval_to_timespec(&netio->cached_current_time, &current_timeval);
 		netio->have_current_time = 1;
