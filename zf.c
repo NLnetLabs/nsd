@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.5 2002/01/31 13:51:46 alexis Exp $
+ * $Id: zf.c,v 1.6 2002/02/02 13:44:55 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -589,23 +589,63 @@ zf_open(filename, origin)
  *
  */
 void
-zf_free_rdata(rr)
-	struct zf_entry *rr;
+zf_free_rdata(rdata, f)
+	union zf_rdatom *rdata;
+	char *f;
 {
 	int i;
-	char *f;
 
-	if(rr->rdatafmt) {
-		for(i = 0, f = rr->rdatafmt; *f; f++, i++) {
+	if(rdata) {
+		for(i = 0; *f; f++, i++) {
 			switch(*f) {
 			case 'n':
-			case 'p':
 			case '6':
 			case 't':
-				free(rr->rdata[i].p);
+				free(rdata[i].p);
 			}
 		}
+		free(rdata);
 	}
+}
+
+/*
+ * Compares two entries, returns 0 when they are equal, non-zero
+ * otherwise.
+ *
+ */
+int
+zf_cmp_rdata(a, b, f)
+	union zf_rdatom *a;
+	union zf_rdatom *b;
+	register char *f;
+{
+	register int i;
+	for(i = 0; *f; f++, i++) {
+		switch(*f) {
+		case 'n':
+		case 't':
+			if(dnamecmp(a[i].p, b[i].p))
+				return 1;
+			break;
+		case 's':
+			if(a[i].s != b[i].s)
+				return 1;
+			break;
+		case 'l':
+		case '4':
+			if(a[i].l != b[i].l)
+				return 1;
+			break;
+		case '6':
+			if(bcmp(a[i].p, b[i].p, IP6ADDRLEN))
+				return 1;
+			break;
+		default:
+			fprintf(stderr, "panic! uknown atom in format %c\n", *f);
+			return 1;
+		}
+	}
+	return 0;
 }
 
 /*
@@ -861,14 +901,14 @@ zf_read(zf)
 		/* We couldnt parse it completely */
 		if(parse_error) {
 			zf_syntax(zf);
-			zf_free_rdata(zf->line);
+			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
 			continue;
 		}
 
 		/* Trailing garbage */
 		if((token = zf_token(zf, NULL)) != NULL) {
 			zf_error(zf, "trailing garbage");
-			zf_free_rdata(zf->line);
+			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
 			continue;
 		}
 
@@ -953,7 +993,7 @@ main(argc, argv)
 			fprintf(stderr, "read %u lines...\n", zf->lines);
 		}
 		zf_print_entry(rr);
-		zf_free_rdata(rr);
+		zf_free_rdata(rr->rdata, rr->rdatafmt);
 	}
 
 	fprintf(stderr, "complete: %d errors\n", zf->errors);

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.2 2002/01/29 15:40:50 alexis Exp $
+ * $Id: zf.h,v 1.3 2002/02/02 13:44:55 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -186,7 +186,8 @@ int zf_open_include __P((struct zf *, char *, char *, int32_t));
 void zf_print_entry __P((struct zf_entry *));
 void zf_print_rdata __P((union zf_rdatom *, char *));
 int zf_close_include __P((struct zf *));
-void zf_free_entry __P((struct zf_entry *));
+int zf_cmp_rdata __P((union zf_rdatom *, union zf_rdatom *, char *));
+void zf_free_rdata __P((union zf_rdatom *, char *));
 void zf_close __P((struct zf *));
 char *dnamestr __P((u_char *));
 u_char *strdname __P((char *s, u_char *));

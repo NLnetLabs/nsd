@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.8 2002/01/31 15:53:00 alexis Exp $
+ * $Id: zonec.c,v 1.9 2002/02/02 13:44:55 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -345,6 +345,7 @@ zone_read(name, zonefile, cache)
 	int cache;
 {
 	dict_t *h;
+	int i;
 
 	struct zone *z;
 	struct zf *zf;
@@ -437,6 +438,20 @@ zone_read(name, zonefile, cache)
 				zf_error(zf, "rr ttl doesnt match the ttl of the rdataset");
 				continue;
 			}
+			/* Search for possible duplicates... */
+			for(i = 0; i < r->rrslen; i++) {
+				if(!zf_cmp_rdata(r->rrs[i], rr->rdata, rr->rdatafmt))
+					break;
+			}
+
+			/* Discard the duplicates... */
+			if(i < r->rrslen) {
+				zf_error(zf, "duplicate record");
+				zf_free_rdata(rr->rdata, rr->rdatafmt);
+				continue;
+			}
+
+			/* Add it... */
 			r->rrs = xrealloc(r->rrs, ((r->rrslen + 1) * sizeof(union zf_rdatom *)));
 			r->rrs[r->rrslen++] = rr->rdata;
 		}
@@ -461,7 +476,7 @@ zone_read(name, zonefile, cache)
 		} else {
 			if(rr->type == TYPE_SOA) {
 				zf_error(zf, "duplicate SOA record discarded");
-				free(r->rrs[--r->rrslen]);
+				zf_free_rdata(r->rrs[--r->rrslen], r->fmt);
 			}
 		}
 
