@@ -112,9 +112,7 @@ int
 encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 {
 	uint8_t *truncation_point = q->iobufptr;
-	uint16_t type;
-	uint16_t class;
-	uint32_t ttl;
+	uint8_t data[10];
 	uint16_t rdlength = 0;
 	uint8_t *rdlength_pos;
 	uint16_t j;
@@ -125,16 +123,15 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	assert(rr < rrset->rrslen);
 
 	encode_dname(q, owner);
-	type = htons(rrset->type);
-	query_write(q, &type, sizeof(type));
-	class = htons(rrset->class);
-	query_write(q, &class, sizeof(class));
-	ttl = htonl(rrset->rrs[rr]->ttl);
-	query_write(q, &ttl, sizeof(ttl));
+	* (uint16_t *) &data[0] = htons(rrset->type);
+	* (uint16_t *) &data[2] = htons(rrset->class);
+	* (uint32_t *) &data[4] = htonl(rrset->rrs[rr]->ttl);
 
-	/* Reserve space for rdlength. */
-	rdlength_pos = q->iobufptr;
-	query_write(q, &rdlength, sizeof(rdlength));
+	/* Mark space for rdlength. */
+	rdlength_pos = q->iobufptr + 8;
+
+	/* Copy data */
+	query_write(q, data, sizeof(data));
 
 	for (j = 0; !rdata_atom_is_terminator(rrset->rrs[rr]->rdata[j]); ++j) {
 		if (rdata_atom_is_domain(rrset->type, j)) {
