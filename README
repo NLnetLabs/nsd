@@ -1,5 +1,3 @@
-$Id: README,v 1.22 2003/06/12 12:35:34 erik Exp $
-
 1.0 Introduction
 1.1 Basic theory of operation
 1.2 Quick build & install
@@ -14,30 +12,33 @@ $Id: README,v 1.22 2003/06/12 12:35:34 erik Exp $
 3.3 Keeping in sync the secondary zones with ``nsdc update''
 3.4 Sending notify to the secondaries on reload or restart
 
+
+
 1.0 Introduction
 
 This is NSD Name Server Daemon (NSD) version @version@
 
-NSD is a complete implementation of an authoritative DNS nameserver. 
-For further information about what NSD is and what NSD is not please 
-consult the REQUIREMENTS document which is a part of this distribution 
+NSD is a complete implementation of an authoritative DNS name server.
+For further information about what NSD is and what NSD is not please
+consult the REQUIREMENTS document which is a part of this distribution
 (thanks to Olaf).
 
 The source code is available for download from:
 
 	http://www.nlnetlabs.nl/downloads
 
+
 1.1 Basic Theory of Operation
 
 NSD consists of two programs: the zone compiler 'zonec' and the name
-server 'nsd' itself. The name server works with an intermediate database
-prepared by the zone compiler from standard zone files. Most of the
-complexity in preparing answers is dealt with in zonec, such that the
-processing nsd has to do per query is kept at the absolutely necessary
-minimum. 
+server 'nsd' itself. The name server works with an intermediate
+database prepared by the zone compiler from standard zone files. Most
+of the complexity in preparing answers is dealt with in zonec, such
+that the processing nsd has to do per query is kept at the absolutely
+necessary minimum.
 
 For nsd operation this means that zones have to be compiled by zonec
-before nsd can use them. 
+before nsd can use them.
 
 All this can be controlled by a simple control script called 'nsdc'
 which uses a simple configuration file.
@@ -45,15 +46,11 @@ which uses a simple configuration file.
 
 1.2 Quick build and install
 
-Step 1:
+Step 1:	Unpack the source with gtar -xzvf nsd-@version@.tar.gz
 
-	Unpack the source with gtar -xzvf nsd-@version@.tar.gz
-
-Step 2:
-
-	Create user nsd or any other unprivileged user of your
-	choice. In case of later make sure to use --with-user=<username>
-	while running configure.
+Step 2:	Create user nsd or any other unprivileged user of your
+	choice. In case of later make sure to use
+	--with-user=<username> while running configure.
 
 Step 3: ./configure
 
@@ -61,76 +58,81 @@ Step 4:	make all
 
 Step 5: make install
 
-Step 6:
-	Add "axfr" and/or "axfr-zone.name.tld" entries to your hosts.allow
-	and/or hosts deny
+Step 6: Add "axfr" and/or "axfr-zone.name.tld" entries to your
+	hosts.allow and/or hosts deny
 
 	Example:
 
 		axfr: ALL : allow
 
-Step 7:
-	Create and edit /etc/nsd/nsd.zones file possibly from nsd.zones.sample
-	template that comes with the distribution.
+Step 7: Create and edit /etc/nsd/nsd.zones file possibly from
+	nsd.zones.sample template that comes with the distribution.
 
-Step 8:
-	Copy necessary master zone files into appropriate directories under
-	/etc/nsd/primary & /etc/nsd/secondary You might consider using
-	contrib/build-nsdzones.pl script to automate task 7 & 8.
+Step 8: Copy necessary master zone files into appropriate directories
+	under /etc/nsd/primary & /etc/nsd/secondary You might consider
+	using contrib/build-nsdzones.pl script to automate task 7 & 8.
 
-Step 9:	Run nsdc update if necessary
+Step 9: Run nsdc update if necessary
 
-Step 10:
-	Run nsdc rebuild
+Step 10: Run nsdc rebuild
 
-Step 11:
-	Run nsdc start
+Step 11: Run nsdc start
 
-Step 12:
-	Test the NSD with dig or host.
+Step 12: Test the NSD with dig or host.
 
-Step 13:
-	If you're happy add nsdc start into your OS boot up sequence.
+Step 13: If you're happy add nsdc start into your OS boot up sequence.
 
-Step 14:
-	If desired add nsdc update to your superuser crontab to update
-	the zones from master servers periodically.
+Step 14: If desired add nsdc update to your superuser crontab to
+ 	 update the zones from master servers periodically.
 
-	Got any problems or questions with the steps above? Read the rest
-	of this file.
+  	 Got any problems or questions with the steps above? Read the
+	 rest of this file.
+
+
 
 2.0 Building nsd
 
+
 2.1 Unpacking the source
 
-Use your favorite combination of tar and gnu zip to unpack the source, 
+Use your favorite combination of tar and gnu zip to unpack the source,
 for example
 
 $ gtar -xzvf nsd-@version@.tar.gz
 
 will unpack the source into the ./nsd-@version@ directory...
 
+
 2.2 Configuring NSD
 
-NSD can be configured using GNU autoconf's configure script. In addition to
-standard configure options, one may use the following:
+NSD can be configured using GNU autoconf's configure script. In
+addition to standard configure options, one may use the following:
 
   --enable-root-server
 
-	Configure NSD as a root server. Unless this option is specified, NSD
-	will refuse to server ``.'' zone as a misconfiguration safeguard.
+	Configure NSD as a root server. Unless this option is
+	specified, NSD will refuse to server ``.'' zone as a
+	misconfiguration safeguard.
 
   --enable-ipv6
 
-	Enables IPv6 support in NSD. (Clever)
+	Enables IPv6 support in NSD.
 
-  (--enable-dnssec)
+  --enable-plugins
 
-	Enables DNSSEC support in NSD. Not yet implemented.
+	Enable plugin support (experimental).  See nsd-plugin.h for
+        the plugin API defined by NSD.  See contrib/example-plugin.c
+        for an example plugin.
+
+  --enable-checking
+
+        Enable some internal development checks.  Useful if you want
+        to modify NSD or develop plugins.  This option enables the
+        standard C "assert" macro.
 
   --disable-axfr
 
-	Disables outbound AXFR functionalities alltogether.
+	Disables outbound AXFR functionalities altogether.
 
   --enable-bind8-stats
 
@@ -142,35 +144,45 @@ standard configure options, one may use the following:
 
   --with-pidfile=path
 
-	Pathname to the NSD pidfile, default is platform specific, mostly
-	/var/run/nsd.pid
+	Pathname to the NSD pidfile, default is platform specific,
+	mostly /var/run/nsd.pid
 
   --with-zonesfile=path
+
 	Pathname to the NSD list of zones, default /etc/nsd/nsd.conf
 
   --with-dbfile=path
+
 	Pathname to the NSD database, default is /etc/nsd/nsd.db
 
-  --with-configfile=path  Pathname to the NSD configuration file
-	Pathname to the NSD configuration file, default /etc/nsd/nsdc.conf
+  --with-configfile=path  
+
+        Pathname to the NSD configuration file Pathname to the NSD
+	configuration file, default /etc/nsd/nsdc.conf
 
   --with-zonesdir=dir
+
 	NSD default location for master zone files, default /etc/nsd/
 	
   --with-user=username
+
 	User name or ID to answer the queries with, default is nsd
 	
   --with-namedxfer=path
+
 	Pathname to BIND8 named-xfer program if any
 
   --with-libwrap=pathname
+
 	Compile in libwrap (tcp_wrappers) support.
+
 
 2.3 Building
 
 Say a prayer and type ``make''
 
 If you prayed to the right God, continue to the step 2.4
+
 
 2.4 Installing
 
@@ -182,60 +194,63 @@ nsd             - the daemon itself
 nsdc            - a very (not anymore so) simple shell script to
 		  control the daemon
 zonec           - zone compiler
-nsd-notify	- a simple C programm to send out bound NOTIFY's
+nsd-notify	- a simple C program to send outbound notifies
 
 Plus the manual pages.
+
+
 
 3.0 Running NSD
 
 Before running NSD you need to build a name database specified with
 ``--with-dbfile'' or /etc/nsd/nsd.db by default.
 
-The nsdc shell script can do it for you if you create a nsd.zones
-file file, for example /etc/nsd/nsd.zones which should be of the
-following format:
+The nsdc shell script can do it for you if you create a nsd.zones file
+file, for example /etc/nsd/nsd.zones which should be of the following
+format:
 
 ; Zone Name     Master zone file name
 zone    bluesky.com     primary/bluesky.com
 zone	greysky.com	secondary/greysky.com masters 10.1.1.1
 
-Where bluesky.com should be the domain name you will be serving with NSD.
+Where bluesky.com should be the domain name you will be serving with
+NSD.
 
 The second line indicates that nsdc update should try to axfr the zone
 greysky.com from the master server 10.1.1.1
 
-Since NSD is primarily written to be run on the root name servers, 
+Since NSD is primarily written to be run on the root name servers,
 this file most likely to contain something like:
 
 zone    .               root.zone
 
-You should only do that if you're intending to run a root server, NSD is
-not suited for running a . cache. Therefore if you choose to server the .
-zone you have to make sure that the complete root zone is timely and fully
-updated.
+You should only do that if you're intending to run a root server, NSD
+is not suited for running a . cache. Therefore if you choose to server
+the .  zone you have to make sure that the complete root zone is
+timely and fully updated.
 
-To prevent misconfiguration, NSD configure has --enable-root-server switch,
-that is by default disabled.
+To prevent misconfiguration, NSD configure has --enable-root-server
+switch, that is by default disabled.
 
-The first word on a line must be ``zone''. It indicates that the zone should
-be loaded as authoritative data. Cached non authoritative data is no longer
-supported (keyword ``cache'' is obsolete)
+The first word on a line must be ``zone''. It indicates that the zone
+should be loaded as authoritative data. Cached non authoritative data
+is no longer supported (keyword ``cache'' is obsolete)
 
-Second word is the name (origin) of the zone and the third word 
-is the pathname to the master zone file. If you use zonec with 
-the -d option the pathname may be relative to the NSD zones directory.
+Second word is the name (origin) of the zone and the third word is the
+pathname to the master zone file. If you use zonec with the -d option
+the pathname may be relative to the NSD zones directory.
 
-Optionally masters list-of-ip-addresses can be present to update the respective
-zone with axfr from the given master servers. This option is ignored by zonec
-and is only relevant for nsdc update.
+Optionally masters list-of-ip-addresses can be present to update the
+respective zone with axfr from the given master servers. This option
+is ignored by zonec and is only relevant for nsdc update.
 
-If everything is done properly and installed into the default location 
+If everything is done properly and installed into the default location
 then all you need to build your nsd.db is to type
 
 nsdc rebuild
 
-This starts zonec on your zone files. If zonec reports no errors, 
-your database is now ready for the daemon which can be started with
+This starts zonec on your zone files. If zonec reports no errors, your
+database is now ready for the daemon which can be started with
 
 nsdc start
 
@@ -243,13 +258,13 @@ To check if the daemon is running use
 
 nsdc running
 
-To reload a new database after you recompiled it with 'nsdc rebuild' i
+To reload a new database after you recompiled it with 'nsdc rebuild'
 without stopping the daemon issue
 
 nsdc reload
 
-To restart the daemon (should never be necessary, unless you do 
-some development work)
+To restart the daemon (should never be necessary, unless you do some
+development work)
 
 nsdc restart
 
@@ -268,28 +283,30 @@ nsdc reload if there were any changes.
 
 nsdc notify
 
-With this option nsdc will send notify to all the slave servers mentioned
-in the nsd.zones file with ``notify'' keyword.
+With this option nsdc will send notify to all the slave servers
+mentioned in the nsd.zones file with ``notify'' keyword.
+
 
 3.1 Logging
 
-NSD doesnt do any logging. We believe that logging is a separate task and
-has to be done independently from the core operation.
+NSD doesn't do any logging. We believe that logging is a separate task
+and has to be done independently from the core operation.
 
-The CAIDA dnsstat tool referenced below is recommended to nsd operators
-as a mean of keeping statistics and check on abnormal query loads.
+The CAIDA dnsstat tool referenced below is recommended to nsd
+operators as a mean of keeping statistics and check on abnormal query
+loads.
 
 	http://www.caida.org/tools/utilities/dnsstat/dnsstat-3.5.1a.tar.gz
 
-
-This consciously is not part of nsd itself in order to keep nsd focused
-and minimize its complexity. It is better to leave logging and tracing to
-separate dedicated tools. dnsstat can also easily be configured and/or modified
-to suit local statistics requirements without any danger of affecting the name
-server itself. We have run dnsstat on the same machine as nsd, we would
-recommend using a multiprocessor if performance is an issue. Of course it can
-also run on a separate machine that has MAC layer access to the network of
-the server. 
+This consciously is not part of nsd itself in order to keep nsd
+focused and minimize its complexity. It is better to leave logging and
+tracing to separate dedicated tools. dnsstat can also easily be
+configured and/or modified to suit local statistics requirements
+without any danger of affecting the name server itself. We have run
+dnsstat on the same machine as nsd, we would recommend using a
+multiprocessor if performance is an issue. Of course it can also run
+on a separate machine that has MAC layer access to the network of the
+server.
 
 A sample invocation of dnsstat:
 
@@ -334,12 +351,14 @@ A sample output of a slightly modified version:
  "                 0 A     IN        700
 # end trace interval 
 
+
 3.2 AXFR access
 
-When compiled with libwrap nsd will use daemon name ``axfr'' and ``axfr-zone''
-to verify access privileges for the client trying to initiate the transfer.
-Since NSD doesn't do any hostname resolution internally the access list provided
-in the /etc/hosts.allow or /etc/hosts.deny should be ip number based.
+When compiled with libwrap nsd will use daemon name ``axfr'' and
+``axfr-zone'' to verify access privileges for the client trying to
+initiate the transfer.  Since NSD doesn't do any hostname resolution
+internally the access list provided in the /etc/hosts.allow or
+/etc/hosts.deny should be ip number based.
 
 Example:
 
@@ -349,69 +368,73 @@ axfr : ns1.ripe.net : allow
 axfr : ns1.sidn.nl : allow
 axfr : ALL : deny
 
-At first a check is made wether the particular client is allowed to do
-transfer of the particular zone.
+At first a check is made whether the particular client is allowed to
+do transfer of the particular zone.
 
-NOTE: Make sure you dont forget the trailing dot. So for example ``axfr-se.''
-and NOT ``axfr-se''
+NOTE: Make sure you don't forget the trailing dot. So for example
+``axfr-se.''  and NOT ``axfr-se''
 
 If -DAXFR_DAEMON_PREFIX is defined (which is the case by default) and
-the first lookup for ``axfr'' has failed (denied) then nsd will try second
-lookup in hosts.allow or hosts.deny for the daemon name axfr-zone.name.tld.
-(with trailing dot).
+the first lookup for ``axfr'' has failed (denied) then nsd will try
+second lookup in hosts.allow or hosts.deny for the daemon name
+axfr-zone.name.tld.  (with trailing dot).
+
 
 3.3 Keeping in sync the secondary zones with ``nsdc update''
 
-Originally NSD was not designed to be run as a secondary server. That means
-that keeping and updating the local master zone files is outside of the scope
-of the package and should be done either out of band or with help of separate
-tools. However starting with 1.0.1-beta4 NSD provides such functionality to
-a limited extent.
+Originally NSD was not designed to be run as a secondary server. That
+means that keeping and updating the local master zone files is outside
+of the scope of the package and should be done either out of band or
+with help of separate tools. However starting with 1.0.1-beta4 NSD
+provides such functionality to a limited extent.
 
-It makes no difference for zonec(8) and nsd(8) whether the master zone file
-was created and maintained locally or was obtained via AXFR/IXFR or out of
-band. However it is possible to specify the master servers in nsd.zones
-file by adding ``masters'' keyword followed by ip address of the master to
-instruct nsdc(8) update to update these zones with named-xfer(8) utility
-if necessary. named-xfer(8) is a part of the bind-8 package and can be
-obtained from http://www.isc.org as a part of bind8 distribution.
+It makes no difference for zonec(8) and nsd(8) whether the master zone
+file was created and maintained locally or was obtained via AXFR/IXFR
+or out of band. However it is possible to specify the master servers
+in nsd.zones file by adding ``masters'' keyword followed by ip address
+of the master to instruct nsdc(8) update to update these zones with
+named-xfer(8) utility if necessary. named-xfer(8) is a part of the
+bind-8 package and can be obtained from http://www.isc.org as a part
+of bind8 distribution.
 
 ; zone name file [ masters ip-address ]
 zone nlnetlabs.nl secondary/nlnetlabs.nl masters 213.53.69.1
 
 Given the line above nsdc(8) update will invoke named-xfer(8) to check
-whether the zone was modified and if so will AXFR the zone from the master
-213.53.69.1
+whether the zone was modified and if so will AXFR the zone from the
+master 213.53.69.1
 
-To enable nsdc(8) update functionality one should have named-xfer utility
-installed and its path specified either --with-namedxfer= option to configure
-or with $namedxfer variable in Makefile at compilation time. Alternatively
-$namedxfer variable can be modified in the configuration file of nsdc(8)
-typically /etc/nsd/nsdc.conf
+To enable nsdc(8) update functionality one should have named-xfer
+utility installed and its path specified either --with-namedxfer=
+option to configure or with $namedxfer variable in Makefile at
+compilation time. Alternatively $namedxfer variable can be modified in
+the configuration file of nsdc(8) typically /etc/nsd/nsdc.conf
 
-Due to the static nature of nsd(8) database it has to be rebuilt completely
-whenever one of the zones changes. Therefore it is recommended to do the
-database rebuilds at certain scheduled time, for example every hour.
-nsdc(8) update will rebuild the database and reload the daemon if necessary.
+Due to the static nature of nsd(8) database it has to be rebuilt
+completely whenever one of the zones changes. Therefore it is
+recommended to do the database rebuilds at certain scheduled time, for
+example every hour.  nsdc(8) update will rebuild the database and
+reload the daemon if necessary.
 
-the follow cron(8) command will take care of synchronizing the database with
-the master servers:
+the follow cron(8) command will take care of synchronizing the
+database with the master servers:
 
 # nsd zone update every hour
 1       *       *       *       *       /usr/local/sbin/nsdc update
 
+
 3.3.1 Using TSIG with synchronizing with master servers
 
-It is as well possible to update the master zone files (in bound AXFR) with
-nsdc(8) update using TSIG.
+It is as well possible to update the master zone files (in bound AXFR)
+with nsdc(8) update using TSIG.
 
 This is done by passing the tsig key to named-xfer(8)
 
-Regretfully named-xfer(8) uses very cryptic format for so called tsig-info
-file, so a bit of black magic is necessary.
+Regretfully named-xfer(8) uses very cryptic format for so called
+tsig-info file, so a bit of black magic is necessary.
 
-First of all ${keyssdir} should be set in the nsdc(8) configureation file
-to reflect the directory where all the TSIG keys will be stored.
+First of all ${keyssdir} should be set in the nsdc(8) configuration
+file to reflect the directory where all the TSIG keys will be stored.
 
 For example keysdir=/etc/nsd/keys would be a good location.
 
@@ -428,17 +451,18 @@ nlnetlabs-axfr
 157
 Y87923jksdXlsdv+LeXpUA==
 
-Cryptic? Yes. The first line tells this key is to be used for 213.53.69.1
-Second one is the name of the key. 157 stands for hmac-md5 algorithm
-and the last line is the secret.
+Cryptic? Yes. The first line tells this key is to be used for
+213.53.69.1 Second one is the name of the key. 157 stands for hmac-md5
+algorithm and the last line is the secret.
 
-I'm working on a small tool to create these files from somewhat more readable
-format.
+We're working on a small tool to create these files from somewhat more
+readable format.
+
 
 3.4 Sending notify to the secondaries on reload or restart
 
-It is possible to send out bound notify's to the secondaries every time nsd
-database is (re)loaded. You have to directly specify the ip-addresses of the
-secondaries in the nsd.zones file, for example:
+It is possible to send outbound notifies to the secondaries every time
+nsd database is (re)loaded. You have to directly specify the
+ip-addresses of the secondaries in the nsd.zones file, for example:
 
 zone    .               root.zone               notify 128.9.0.107 192.33.4.12 128.8.10.90

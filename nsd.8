@@ -1,6 +1,4 @@
 .ig
-$Id: nsd.8,v 1.18 2003/06/30 09:39:02 erik Exp $
-
 nsd.8 -- nsd manual
 
 Alexis Yushin, <alexis@nlnetlabs.nl>
@@ -36,11 +34,11 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 ..
-.Dd June 30, 2003
+.Dd @date@
 .Dt NSD 8 
 .Sh NAME
 nsd
-.Nd Name Server Daemon (NSD)
+.Nd Name Server Daemon (NSD) version @version@.
 .Sh SYNOPSIS
 .Nm nsd
 .Op Fl 4
@@ -179,11 +177,11 @@ argument must be of the form
 or 
 .Ar filename=argument .
 The filename must specify an NSD plugin compiled as a shared object
-(.so) file.  If the filename is not absolute shared object must be in
-a standard location using
+(.so) file.  If the filename is not absolute the shared object is
+searched for in the standard locations using
 .Xr dlopen 3 .
-If an argument is specified it is passed to the initialization
-function of the plugin.
+If an argument is specified it is passed directly to the
+initialization function of the plugin.
 .El
 
 .Pp
@@ -220,8 +218,8 @@ option is specified.
 .Xr nsdc 8
 .Sh AUTHORS
 .Ic NSD
-was written by NLnet LABS and RIPE NCC joint team. Please see CREDITS file
-in the distribution for further details.
+was written by NLnet LABS and RIPE NCC joint team. Please see the
+CREDITS file in the distribution for further details.
 .Sh BUGS
 .Ic NSD
 will answer the queries erroneously if the
