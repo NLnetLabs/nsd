@@ -512,6 +512,41 @@ process_edns (struct query *q, u_char *qptr)
 	return 1;
 }
 
+static int
+answer_domain(struct query *q,
+	      struct domain *d,
+	      u_int16_t qclass,
+	      u_int16_t qtype,
+	      const u_char *qname)
+{
+	struct answer *a;
+	u_char *qptr;
+	
+	if(((a = namedb_answer(d, qtype)) != NULL) ||	/* The query type? */
+	   ((a = namedb_answer(d, htons(TYPE_CNAME))) != NULL)) { /* Or CNAME? */
+		if(ntohs(qclass) != CLASS_ANY) {
+			query_addanswer(q, qname, a, 1);
+			AA_SET(q);
+			return 1;
+		}
+		/* Class ANY */
+		AA_CLR(q);
+		
+		/* Setup truncation */
+		qptr = q->iobufptr;
+		
+		query_addanswer(q, qname, a, 0);
+		
+		/* Truncate */
+		NSCOUNT(q) = 0;
+		ARCOUNT(q) = 0;
+		q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+		
+		return 1;
+	}
+	return 0;
+}
+
 /*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
  * -1 if the query has to be silently discarded.
@@ -695,58 +730,39 @@ query_process (struct query *q, struct nsd *nsd)
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 			process_delegation(q, qname, d);
 			return 0;
-		} else {
-			if(((a = namedb_answer(d, qtype)) != NULL) ||	/* The query type? */
-				((a = namedb_answer(d, htons(TYPE_CNAME))) != NULL)) { /* Or CNAME? */
-				if(ntohs(qclass) != CLASS_ANY) {
-					query_addanswer(q, qname, a, 1);
-					AA_SET(q);
-					return 0;
-				}
-				/* Class ANY */
-				AA_CLR(q);
+		}
 
+		if (answer_domain(q, d, qclass, qtype, qname)) {
+			return 0;
+		}
+
+		/* Do we have SOA record in this domain? */
+		if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
+				
+			if(ntohs(qclass) != CLASS_ANY) {
+				AA_SET(q);
+					
 				/* Setup truncation */
 				qptr = q->iobufptr;
-
+					
 				query_addanswer(q, qname, a, 0);
-
+					
 				/* Truncate */
-				NSCOUNT(q) = 0;
+				ANCOUNT(q) = 0;
+				NSCOUNT(q) = htons(1);
 				ARCOUNT(q) = 0;
-				q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
-
-				return 0;
+				if(ANSWER_RRSLEN(a) > 1)
+					q->iobufptr = qptr + ANSWER_RRS(a, 1);
+				
 			} else {
-				/* Do we have SOA record in this domain? */
-				if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
-
-					if(ntohs(qclass) != CLASS_ANY) {
-						AA_SET(q);
-
-						/* Setup truncation */
-						qptr = q->iobufptr;
-
-						query_addanswer(q, qname, a, 0);
-
-						/* Truncate */
-						ANCOUNT(q) = 0;
-						NSCOUNT(q) = htons(1);
-						ARCOUNT(q) = 0;
-						if(ANSWER_RRSLEN(a) > 1)
-							q->iobufptr = qptr + ANSWER_RRS(a, 1);
-
-					} else {
-						AA_CLR(q);
-					}
-
-					return 0;
-				}
-
-				/* We have a partial match */
-				match = 1;
+				AA_CLR(q);
 			}
+				
+			return 0;
 		}
+
+		/* We have a partial match */
+		match = 1;
 	} else {
 		/* Set this if we find SOA later */
 		RCODE_SET(q, RCODE_NXDOMAIN);
@@ -772,27 +788,7 @@ query_process (struct query *q, struct nsd *nsd)
 				/* We found a domain... */
 				RCODE_SET(q, RCODE_OK);
 
-				if(((a = namedb_answer(d, qtype)) != NULL) ||
-				 ((a = namedb_answer(d, htons(TYPE_CNAME))) != NULL)) {
-					if(ntohs(qclass) != CLASS_ANY) {
-						AA_SET(q);
-						query_addanswer(q, qname - 2, a, 1);
-						return 0;
-					}
-
-					/* Class ANY */
-					AA_CLR(q);
-
-					/* Setup truncation */
-					qptr = q->iobufptr;
-
-					query_addanswer(q, qname, a, 0);
-
-					/* Truncate */
-					NSCOUNT(q) = 0;
-					ARCOUNT(q) = 0;
-					q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
-
+				if (answer_domain(q, d, qclass, qtype, qname)) {
 					return 0;
 				}
 			}
@@ -804,31 +800,32 @@ query_process (struct query *q, struct nsd *nsd)
 			if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 				process_delegation(q, qname, d);
 				return 0;
-			} else {
-				if((a = namedb_answer(d, htons(TYPE_SOA)))) {
-
-					if(ntohs(qclass) != CLASS_ANY) {
-						/* Setup truncation */
-						qptr = q->iobufptr;
-
-						AA_SET(q);
-
-						query_addanswer(q, qname, a, 0);
-
-						/* Truncate */
-						ANCOUNT(q) = 0;
-						NSCOUNT(q) = htons(1);
-						ARCOUNT(q) = 0;
-						if(ANSWER_RRSLEN(a) > 1)
-							q->iobufptr = qptr + ANSWER_RRS(a, 1);
-
-					} else {
-						AA_CLR(q);
-					}
-
-					return 0;
-				}
 			}
+
+			if((a = namedb_answer(d, htons(TYPE_SOA)))) {
+
+				if(ntohs(qclass) != CLASS_ANY) {
+					/* Setup truncation */
+					qptr = q->iobufptr;
+					
+					AA_SET(q);
+					
+					query_addanswer(q, qname, a, 0);
+					
+					/* Truncate */
+					ANCOUNT(q) = 0;
+					NSCOUNT(q) = htons(1);
+					ARCOUNT(q) = 0;
+					if(ANSWER_RRSLEN(a) > 1)
+						q->iobufptr = qptr + ANSWER_RRS(a, 1);
+
+				} else {
+					AA_CLR(q);
+				}
+
+				return 0;
+			}
+
 			/* We found some data, so dont try to match the wildcards anymore... */
 			match = 1;
 		}
