@@ -7,22 +7,6 @@ AC_CONFIG_HEADER([config.h])
 CFLAGS="-ansi -Wall -O2 -D_XOPEN_SOURCE -D_BSD_SOURCE"
 
 dnl
-dnl Some macro's from autoconf macro archive
-dnl
-AC_DEFUN([AC_CHECK_USER],[
-AC_MSG_CHECKING([for user $2])
-if grep ^$2: /etc/passwd > /dev/null; then
-        $1=$2
-        USER_HOME=`grep ^$2: /etc/passwd | sed "s/^\([[^:]]*:\)\{5\}\([[^:]]*\):[[^:]]*$/\2/"`
-        AC_MSG_RESULT([yes])
-else
-        unset $1
-        unset USER_HOME
-        AC_MSG_RESULT([no])
-fi;dnl
-])
-
-dnl
 dnl By default set $sysconfdir to /etc and $localstatedir to /var
 dnl
 case "$prefix" in
@@ -106,10 +90,6 @@ user=nsd
 AC_ARG_WITH([user],
 	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
 	[user=$withval])
-AC_CHECK_USER(user, $user)
-if test "x$user" = "x"; then
-	AC_MSG_ERROR([user $user doesnt exist.])
-fi
 AC_SUBST(user)
 
 #
