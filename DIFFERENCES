@@ -1,5 +1,5 @@
 Response Differences Between
-Bind 8.3.1-REL and nsd 1.0
+Bind 8.3.1-REL and nsd 1.0.1
 
 Daniel Karrenberg
 <daniel.karrenberg@ripe.net>
@@ -14,13 +14,11 @@ in responses between the DNS server implementations.
 
 0. Introduction
 
-The observed differences are described including 
-an analysis and possible actions for nsd implementors.
+The observed differences are described.
 The names of the differences refer to the statistics
 in Appendix A, which describe observations of
 the differences in responses to real queries
-to a root name server and two tld servers.
-
+to a root name server and a TLD name server.
 
 
 1. Authoritative Only Differences
@@ -32,7 +30,7 @@ as bind8 doest. We do not expec these differences to cause
 problems in resolvers.
 
 
-1.1 d-bcacheglue - Out-of-Zone Glue
+1.1 d-bcacheglu - Out-of-Zone Glue
 
 Bind8 answers queries for out-of-zone (glue) A RRs 
 non-authoritatively; nsd does not and provides a referral.
@@ -134,31 +132,14 @@ J.ROOT-SERVERS.NET. A 198.41.0.10,
 K.ROOT-SERVERS.NET. A 193.0.14.129 (162) 
 
 
-2.2 b-ednsforme - bind sends FormErr on some EDNS queries
+2.2 b-rootdot - bind doe not return NXDOMAIN on 'root.'
 
-Bind8 responds with a Format Error to some queries 
-containing the EDSN UDPSIZE option. 
+bind does not answer NXDOMAIN on queries for 'root.' while
+this domain does not exist in class IN.
 
 Analysis:
-Examination of the queries concerned 
-with current analysis software (tcpdump, ethereal) 
-does not reveal format errors. 
-Further analysis is needed.
-
-Example:
-bind8: 12 15522 -%  0/0/0 FormErr
-;
-nsd:  212 15522 -   0/4/5 
-A? ptbtime1.ptb.de.;
-ptb.de. ns u99105.bs.ptb.de.
-ptb.de. ns i00094.berlin.ptb.de.
-ptb.de. ns ws-was.win-ip.dfn.de.
-ptb.de. ns deneb.dfn.de.;
-u99105.bs.ptb.de. a 192.53.103.105
-i00094.berlin.ptb.de. a 194.94.94.94
-ws-was.win-ip.dfn.de. a 193.174.75.110
-deneb.dfn.de. a 192.76.176.9
-. opt udpsize=4096;
+bind has a pseudo domain root. somewhere.
+nsd does not.
 
 
 2.3 b-nonxdom - bind misses NXDomain when no zone cut
@@ -180,6 +161,16 @@ A? pool-effekt.de.;
 de. soa dns.denic.de. ops.denic.de. 2002031701 10800 7200 3600000 3600;
 
 
+2.4 n-clrcdbit - nsd clears CD bit in response
+
+nsd clears the CD header-bit in responses, 
+bind copies it from the query.
+Security unaware servers should clear this bit 
+as per RFC1035 4.1.1.
+
+Analysis:
+A bind bug.
+
 
 3. Functionality Differences
 
@@ -189,24 +180,59 @@ This is a design choice and should not cause resolver
 problems at all.
 
 
-3.1 Dynamic Updates
+3.1 d-nnotimpny - nsd returns Refused on notify requests
 
-nsd responds 'NotImp' to requests for dynamic updates;
-bind8 responds 'Refused'.
-
-Analysis:
-Since nsd does not implement dynamic updates at all
-the answer is correct. 
+nsd returns REFUSED to notify operations and does not return
+the original query.
 
 Example:
-bind8: 63  7605 -  1/1/0 update Refused
+bind8:  29     0 -   0/0/0 notify ServFail
+SOA? smgcinc.com.;
+nsd:    12     0 *-  0/0/0 notify Refused
+
+Analysis:
+Interpretation of the RFCs differs. This is a permanent error.
+
+
+3.2 d-nrefclass - nsd returns Refused on unknown class/type
+
+nsd returns the errorode REFUSED to queries with an unknown
+class or RR type. bind returns SERVFAIL.
+
+Analysis:
+Interpretation of the RFCs differs. This is a permanent error.
+
+Example:
+bind8: 32  1388 -   0/0/0 ServFail
+Type0 (Class 256)? 10.225.125.182.;
+nsd:   32  1388 -   0/0/0 Refused
+Type0 (Class 256)? 10.225.125.182.;
+
+
+3.3 d-nonrefut - nsd returns no data on refused upddate
+
+nsd does not return the original message data on refused updates.
+
+Analysis:
+Interpretation of the RFCs differs. 
+Original data is not necessary,
+saves bandwidth.
+
+Example:
+
+bind8: 63  7610 -   1/1/0 update Refused
 SOA? .;
 doydoy.res.hmc.edu. (class 254) a 192.17.0.1;
-doydoy.res.hmc.edu. a 134.173.62.170;
-nsd:   63  7605 -  1/1/0 update NotImp
-SOA? .;
-doydoy.res.hmc.edu. (class 254) a 192.17.0.1;
-doydoy.res.hmc.edu. a 134.173.62.170;
+doydoy.res.hmc.edu. a 134.173.62.172;
+
+nsd:   12  7610 -   0/0/0 update Refused;
+
+
+3.4 d-bindchaos - nsd does not implement the bind. TLD in class CHAOS
+
+nsd does not implement the pseudo TLD 'bind' in class CHAOS to make
+server characteristics availeble via the query interface. nsd does
+implement the (proposed) 'server' pseudo TLS in class CHAOS instead.
 
 
 4. Design Dependent Differences
@@ -246,18 +272,16 @@ increasingly severe ways.
   optimisation in resolvers that may need
   additional queries to obtain some of
   the omitted information.
+  Note again that the answer is fully transmitted
+  and thus the 'truncated answer' bit is not set.
 
 - truncated answer
-  This is when the answer would be truncaed.
+  This is when the answer would be truncaed 
+  and the 'truncated answer' bit set.
   We have not observed this at all.
 
 Analysis: 
 This is an expected differences caused by design choices.
-
-
-
-
-****** More explanations to be added *********
 
 
 
@@ -266,122 +290,75 @@ Appendix A
 Observations at root server 
 
 --------------------------------------------------------------------------
-                                            Total Answers: 499856
+                                            Total Answers: 899720
 --------------------------------------------------------------------------
 
-                                               d-bcacheglu  17045 /  3.41%
-                                               d-nameencod   1995 /  0.40%
-                                               n-20-mfnimp   1930 /  0.39%
-                                               d-nclrcdbit    678 /  0.14%
-                                   d-bcacheglu b-multrrset    298 /  0.06%
-                                               d-nameenctr    179 /  0.04%
-                                               d-nrefclass    125 /  0.03%
-                                               d-nnotimpup     27 /  0.01%
-                                               d-nnotimpmb      5 /  0.00%
-                                                     other      2 /  0.00%
-                                               d-nnocachns      2 /  0.00%
-                                               d-bindchaos      1 /  0.00%
+                                               d-bcacheglu  46960 /  5.22%
+                                               d-nameencod   3764 /  0.42%
+                                               d-nclrcdbit   1616 /  0.18%
+                                   d-bcacheglu b-multrrset    626 /  0.07%
+                                               d-nameenctr    340 /  0.04%
+                                               d-nrefclass    252 /  0.03%
+                                                d-updrefut     55 /  0.01%
+                                               d-nnocachns     17 /  0.00%
+                                               d-nnotimpny      4 /  0.00%
+                                       b-rootdot b-nonxdom      3 /  0.00%
+                                               d-bindchaos      2 /  0.00%
 --------------------------------------------------------------------------
-                                 Total Different Responses  22287 /  4.46%
+                                 Total Different Responses  53639 /  5.96%
 ==========================================================================
 
-b-multrrset -   bind puts same RRSet in multiple sections:    298 /  1.32%
-d-bcacheglu -              bind answers with chached glue:  17343 / 76.79%
-d-bindchaos -               bind answers to CHAOS *.bind.:      1 /  0.00%
-d-nameencod -                     different name encoding:   1995 /  8.83%
-                                  Additional bytes:  56001
-d-nameenctr -       different name enc. causes truncation:    179 /  0.79%
-                                     Truncated RRs:    179
-d-nclrcdbit -               nsd clears CD bit in response:    678 /  3.00%
-d-nnocachns -     ns returns no non-authoritative answers:      2 /  0.01%
-d-nnotimpmb -         nsd does not implement the MAILB RR:      5 /  0.02%
-d-nnotimpup -       nsd returns NotImp on update requests:     27 /  0.12%
-d-nrefclass -   nsd returns Refused on unknown class/type:    125 /  0.55%
-n-20-mfnimp -        #20: Return NotImp on malformed qrys:   1930 /  8.55%
-other       -                         Unknown Differences:      2 /  0.01%
+b-multrrset -   bind puts same RRSet in multiple sections:    626 /  1.15%
+b-nonxdom   -       bind misses NXDomain when no zone cut:      3 /  0.01%
+b-rootdot   -              bind answers queries for ROOT.:      3 /  0.01%
+d-bcacheglu -              bind answers with chached glue:  47586 / 87.69%
+d-bindchaos -               bind answers to CHAOS *.bind.:      2 /  0.00%
+d-nameencod -                     different name encoding:   3764 /  6.94%
+                                  Additional bytes:  13654
+d-nameenctr -       different name enc. causes truncation:    340 /  0.63%
+                                     Truncated RRs:    340
+d-nclrcdbit -               nsd clears CD bit in response:   1616 /  2.98%
+d-nnocachns -     ns returns no non-authoritative answers:     17 /  0.03%
+d-nnotimpny -       nsd returns NotImp on notify requests:      4 /  0.01%
+d-nrefclass -   nsd returns Refused on unknown class/type:    252 /  0.46%
+d-nupdrefut -      nsd returns no data on refused upddate:     55 /  0.10%
 --------------------------------------------------------------------------
-                                         Total Differences  22585 /100.00%
+                                         Total Differences  54268 /100.00%
 ==========================================================================
 
+
+Appendix B
 
 Observations at NL TLD server
 
 --------------------------------------------------------------------------
-                                            Total Answers: 883306
-                                Skipped ambiguous changes:   2057 /  0.23%
-
+                                            Total Answers: 881774
 --------------------------------------------------------------------------
 
-                                   d-bcacheglu b-multrrset 104921 / 11.88%
-                                               d-nnotimpup  85381 /  9.67%
-                                   b-multrrset d-nnocachns  45990 /  5.21%
-                                               d-nnocachns  13062 /  1.48%
-                                               d-nclrcdbit   8195 /  0.93%
-                                               d-nameencod    890 /  0.10%
-                                               n-20-mfnimp    811 /  0.09%
-                                    parseerror d-nnocachns      9 /  0.00%
-                                    parseerror d-nnotimpup      1 /  0.00%
+                                   d-bcacheglu b-multrrset 104769 / 11.88%
+                                   b-multrrset d-nnocachns  45906 /  5.21%
+                                               d-nnotimpny  44852 /  5.09%
+                                                d-updrefut  36149 /  4.10%
+                                               d-nnocachns  13055 /  1.48%
+                                               d-nclrcdbit   8177 /  0.93%
+                                               d-nameencod    888 /  0.10%
+                                    parseerror d-nnocachns      5 /  0.00%
+                                     parseerror d-updrefut      1 /  0.00%
                                                 parseerror      1 /  0.00%
 --------------------------------------------------------------------------
-                                 Total Different Responses 259261 / 29.35%
+                                 Total Different Responses 253803 / 28.78%
 ==========================================================================
 
-b-multrrset -   bind puts same RRSet in multiple sections: 150911 / 36.79%
-d-bcacheglu -              bind answers with chached glue: 104921 / 25.58%
-d-nameencod -                     different name encoding:    890 /  0.22%
-                                  Additional bytes:   3136
-d-nclrcdbit -               nsd clears CD bit in response:   8195 /  2.00%
-d-nnocachns -     ns returns no cached answers on NS qrys:  59061 / 14.40%
-d-nnotimpny -       nsd returns NotImp on notify requests:  49170 / 11.99%
-d-nnotimpup -       nsd returns NotImp on update requests:  36212 /  8.83%
-n-20-mfnimp -        #20: Return NotImp on malformed qrys:    811 /  0.20%
-parseerror  -    Could not parse tcpdump output correctly:     11 /  0.00%
+b-multrrset -   bind puts same RRSet in multiple sections: 150675 / 37.25%
+d-bcacheglu -              bind answers with chached glue: 104769 / 25.90%
+d-nameencod -                     different name encoding:    888 /  0.22%
+                                  Additional bytes:   3130
+d-nclrcdbit -               nsd clears CD bit in response:   8177 /  2.02%
+d-nnocachns -     ns returns no non-authoritative answers:  58966 / 14.58%
+d-nnotimpny -       nsd returns NotImp on notify requests:  44852 / 11.09%
+d-nupdrefut -      nsd returns no data on refused upddate:  36150 /  8.94%
+parseerror  -    Could not parse tcpdump output correctly:      7 /  0.00%
 --------------------------------------------------------------------------
-                                         Total Differences 410182 /100.00%
-==========================================================================
-
-
-Observations at DE TLD Server
-
---------------------------------------------------------------------------
-                                            Total Answers: 871927
-                                Skipped ambiguous changes:     76 /  0.01%
-
---------------------------------------------------------------------------
-
-                                   d-bcacheglu b-multrrset  57382 /  6.58%
-                                               d-nnotimpup  41005 /  4.70%
-                                   b-multrrset d-nnocachns  21865 /  2.51%
-                                               b-ednsforme   9268 /  1.06%
-                                               d-nameencod   3083 /  0.35%
-                                                 b-nonxdom   1017 /  0.12%
-                                               d-nnocachns    339 /  0.04%
-                                               d-bcacheglu    124 /  0.01%
-                                               n-20-mfnimp     79 /  0.01%
-                                               d-nclrcdbit     40 /  0.00%
-                                               n-34-authny      4 /  0.00%
-                                               b-multrrset      4 /  0.00%
-                                                b-anyreord      4 /  0.00%
-                                                parseerror      2 /  0.00%
---------------------------------------------------------------------------
-                                 Total Different Responses 134216 / 15.39%
-==========================================================================
-
-b-anyreord  -   bind reorders answers on type=ANY queries:      4 /  0.00%
-b-ednsforme -     bind sends formerr on some EDNS queries:   9268 /  4.34%
-b-multrrset -   bind puts same RRSet in multiple sections:  79251 / 37.13%
-b-nonxdom   -       bind misses NXDomain when no zone cut:   1017 /  0.48%
-d-bcacheglu -              bind answers with chached glue:  57506 / 26.94%
-d-nameencod -                     different name encoding:   3083 /  1.44%
-                                  Additional bytes:  15258
-d-nclrcdbit -               nsd clears CD bit in response:     40 /  0.02%
-d-nnocachns -     ns returns no cached answers on NS qrys:  22204 / 10.40%
-d-nnotimpny -       nsd returns NotImp on notify requests:     19 /  0.01%
-d-nnotimpup -       nsd returns NotImp on update requests:  40986 / 19.20%
-n-20-mfnimp -        #20: Return NotImp on malformed qrys:     79 /  0.04%
-n-34-authny -       #34: Auth in answer to type=ANY query:      4 /  0.00%
-parseerror  -    Could not parse tcpdump output correctly:      2 /  0.00%
---------------------------------------------------------------------------
-                                         Total Differences 213463 /100.00%
+                                         Total Differences 404484 /100.00%
 ==========================================================================
 

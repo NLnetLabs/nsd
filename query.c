@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.75 2002/06/12 12:53:31 alexis Exp $
+ * $Id: query.c,v 1.76 2002/07/02 09:14:08 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -363,15 +363,18 @@ query_process(q, nsd)
 	}
 
 	/* Setup the header... */
-	*(u_int16_t *)(q->iobuf + 2) = 0;
 	QR_SET(q);		/* This is an answer */
 
 
 	/* Dont bother to answer more than one question at once... */
-	if(ntohs(QDCOUNT(q)) != 1) {
+	if(ntohs(QDCOUNT(q)) != 1 || TC(q)) {
+		*(u_int16_t *)(q->iobuf + 2) = 0;
 		query_formerr(q);
 		return 0;
 	}
+
+	/* Zero the flags... */
+	*(u_int16_t *)(q->iobuf + 2) = 0;
 
 	/* Lets parse the qname and convert it to lower case */
 	qdepth = 0;
@@ -395,7 +398,7 @@ query_process(q, nsd)
 	qnamelow = qnamebuf + 3;
 
 	/* Make sure name is not too long or we have stripped packet... */
-	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q) ||
+	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN ||
 		(qptr + 4 > q->iobufptr)) {
 		query_formerr(q);
 		return 0;
