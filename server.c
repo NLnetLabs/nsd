@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.31 2002/05/01 15:58:23 alexis Exp $
+ * $Id: server.c,v 1.31.4.1 2002/05/21 09:21:11 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -286,6 +286,18 @@ server(nsd)
 		return -1;
 	}
 #endif
+
+	/* Drop the permissions */
+	if(setegid(nsd->gid) != 0 || seteuid(nsd->uid) !=0) {
+		syslog(LOG_ERR, "unable to drop user priviledges: %m");
+		return -1;
+	}
+
+	/* Open the database... */
+	if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+		syslog(LOG_ERR, "unable to load %s: %m", nsd->dbfile);
+		return -1;
+	}
 
 	/* The main loop... */	
 	while(nsd->mode != NSD_SHUTDOWN) {
