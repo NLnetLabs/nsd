@@ -16,7 +16,7 @@
 
 1.0 Introduction
 
-This is NSD Name Server Daemon (NSD) version @version@
+This is NSD Name Server Daemon (NSD) version @version@.
 
 NSD is a complete implementation of an authoritative DNS name server.
 For further information about what NSD is and what NSD is not please
