@@ -1,22 +1,41 @@
-$Id: README,v 1.4 2002/02/20 15:32:31 alexis Exp $
+$Id: README,v 1.5 2002/02/21 12:31:28 dfk Exp $
 
 1.0 Introduction
 
-This is an ALPHA release of Name Server Daemon (NSD) version 1.0 NSD is a complete
-implementation of an autoritative DNS nameserver. For further information about
-what NSD is and what NSD is not please consult the REQUIREMENTS document which is
-a part of this distribution (thanks to Olaf).
+This is an ALPHA release of Name Server Daemon (NSD) version 1.0.
+
+NSD is a complete implementation of an autoritative DNS nameserver. 
+For further information about what NSD is and what NSD is not please 
+consult the REQUIREMENTS document which is a part of this distribution 
+(thanks to Olaf).
 
 This distribution is available on request per email to nsd-team@nlnetlabs.nl
 
-The final version 1.0 of NSD will be available for public download under open source
-software license (BSD)
+The final version 1.0 of NSD will be available for public download under 
+open source software license (BSD).
+
+1.1 Basic Theory of Operation
+
+NSD consists of two programs: the zone compiler 'zonec' 
+nd the name server 'nsd' itself. The name server works from an 
+intermediate database prepared by the zone compiler from standard
+zone files. Most of the complexity in preparing answers is dealt
+with in zonec, such that the processing nsd has to do per query is 
+kept at the absolutely necessary minimum. 
+
+For nsd operation this means that zones have to be compiled by zonec
+before nsd can usethem. 
+
+All this can be controlled by a simple control script called 'nsdc'
+which uses a simple configuration file.
+
 
 2.0 Building nsd
 
 2.1 Unpacking the source
 
-Use your favourite combination of tar and gnu zip to unpack the source, for example
+Use your favourite combination of tar and gnu zip to unpack the source, 
+for example
 
 $ gtar -xzvf nsd-1.0-alpha.tar.gz
 
@@ -24,8 +43,8 @@ will unpack the source into the ./nsd-1.0alpha directory...
 
 2.2 Editing the Makefile
 
-In most cases the configuration of the package should be before the compile time
-by editing the Makefile. The following settings need to be revised:
+The package should be configured before compile time by editing the Makefile. 
+The following settings need to be revised:
 
 NSDBINDIR	The directory where the NSD binaries will be installed.
 
@@ -44,22 +63,20 @@ CFLAGS		Use your favourite combination of the C flags appropriate
 		to your C compiler, plus following possible compile time
 		options:
 
-	USE_BERKELEY_DB	To use the Berkeley DB in place of the internal database
-			(NOT RECOMMENDED)
+  USE_BERKELEY_DB	To use the Berkeley DB in place of the internal
+			database kept in memory. This is not recommended
+			unless memory consumtion is an issue because 
+			performance suffers.
+			
+  USE_HEAP_HASH		Use hash table to manipulate data internally (Default)
 
-	USE_HEAP_HASH	Use hash table to manipulate data internally (Default)
+  USE_HEAP_RBTREE	Use red-black tree to manipulate data internally
 
-	USE_HEAP_RBTREE	Use red-black tree to manipulate data internally
+  MIMIC_BIND8		Aanswers queries as similar as possible to BIND 8
 
-	MIMIC_BIND8	Try answers queries as similar as possible to BIND 8
+  NAMEDB_UPPERCASE	Uppercase all the domain names internally (as BIND9)
 
-	NAMEDB_UPPERCASE
-
-			Uppercase all the domain names internally
-
-	NAMEDB_LOWERCASE
-
-			Lowercase all the domain names internally (Default)
+  NAMEDB_LOWERCASE 	Lowercase all the domain names internally (Default)
 
 COMPAT_O	You might want to uncomment some of the object files listed here
 		if your system miss some of them. (For example on SunOS 4.x you
@@ -83,12 +100,15 @@ zonec		- zone compiler
 
 Plus manual pages if we managed to finish them by the time ALPHA is released.
 
+
+
 3.0 Running NSD
 
-Before running NSD you need to build a name database $NSDDB, in most cases something
-like /var/db/nsd.db or /etc/nsd/nsd.db
+Before running NSD you need to build a name database $NSDDB, 
+in most cases something like /var/db/nsd.db or /etc/nsd/nsd.db.
 
-A nsdc shell script can do it for you if you create a $NSDZONES, for example /etc/nsd/nsd.zones
+The nsdc shell script can do it for you if you create a 
+$NSDZONES configuration file, for example /etc/nsd/nsd.zones
 which should be of the following format:
 
 ; Zone Name	Master zone file name
@@ -96,31 +116,32 @@ cache	.		root.cache
 zone	bluesky.com	bluesky.com
 
 
-Where bluesky.com should be the domain name you will be serving with NSD, and . indicates that
-you want to load some data into NSD cache (which NSD does not have, but we call it cache anyways)
-for the root zone.
+Where bluesky.com should be the domain name you will be serving with NSD, 
+and . indicates that you want to load some data into NSD cache 
+(which NSD does not have, but we call it cache anyways) for the root zone.
 
-Since NSD is primarily written to be run on the root name servers, this file most likely
-to contain something like:
+Since NSD is primarily written to be run on the root name servers, 
+this file most likely to contain something like:
 
 zone	.		root.zone
 
+The first word on a line must be ``cache'' or ``zone''. 
+It indicates that the zone should be loaded as authorative data 
+(in case of zone) or just like non-authoritative  redirection 
+information in case of ``cache''.
 
-The first word on a line must be ``cache'' or ``zone'' and it indicates that the zone should
-be loaded as authorative data (in case of zone) or just like a redirection information in case
-of ``cache''
-
-Second word is the name (origin) of the zone and the third word is the pathname to the master
-zone file. If you use zonec with -d option the pathname may be relative to the $NSDZONESDIR
+Second word is the name (origin) of the zone and the third word 
+is the pathname to the master zone file. If you use zonec with 
+-d option the pathname may be relative to the $NSDZONESDIR
 directory.
 
-If everything is done properly and installed into the default location then all you need to
-build your nsd.db is to type
+If everything is done properly and installed into the default location 
+then all you need to build your nsd.db is to type
 
 nsdc rebuild
 
-If there were no errors, your database is now ready for the daemon which can be started now
-with
+This starts zonec on your zone files. If zonec reports no errors, 
+your database is now ready for the daemon which can be started with
 
 nsdc start
 
@@ -128,15 +149,17 @@ To check if the daemon is running use
 
 nsdc running
 
-To reload a new database after you recompiled it with nsdc rebuild without stopping the
-daemon issue
+To reload a new database after you recompiled it with 'nsdc rebuild' i
+without stopping the daemon issue
 
 nsdc reload
 
-To restart the daemon (should never be necessary, unless you do some development work)
+To restart the daemon (should never be necessary, unless you do 
+some development work)
 
 nsdc restart
 
 To shut it down (for example on the system shutdown) do
 
-nsdc stop
+nsdc stop.
+
