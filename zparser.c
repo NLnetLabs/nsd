@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.23 2003/02/27 14:46:59 alexis Exp $
+ * $Id: zparser.c,v 1.24 2003/03/19 14:10:59 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -76,8 +76,8 @@ extern int b64_ntop(u_char const *src, size_t srclength, char *target, size_t ta
  * Resource records types and classes that we know.
  *
  */
-static struct ztab ztypes[] = Z_TYPES;
-static struct ztab zclasses[] = Z_CLASSES;
+struct ztab ztypes[] = Z_TYPES;
+struct ztab zclasses[] = Z_CLASSES;
 
 #ifdef TEST
 /*

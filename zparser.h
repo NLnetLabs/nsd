@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.11 2003/02/27 14:30:28 alexis Exp $
+ * $Id: zparser.h,v 1.12 2003/03/19 14:10:59 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -141,6 +141,9 @@ struct ztab {
 
 extern void *xalloc(size_t size);
 extern void *xrealloc(void *p, size_t size);
+
+extern struct ztab ztypes[];
+extern struct ztab zclasses[];
 
 /* zparser.c */
 u_int16_t intbyname(char *a, struct ztab *tab);
