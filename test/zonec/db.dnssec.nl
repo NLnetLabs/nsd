@@ -12,3 +12,4 @@ $TTL    1H
 @       IN      NS      elektron.atoom.net.
 @	IN	MX	10 elektron.atoom.net.
 @	IN	DS	12345 3 1 123456789abcdef67890123456789abcdef67890
+www	IN	DS	54321 1 1 1123456789a bcdef67890123456789abcdef6789
