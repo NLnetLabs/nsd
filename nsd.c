@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.46 2002/09/11 14:02:13 alexis Exp $
+ * $Id: nsd.c,v 1.47 2002/09/11 14:51:20 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -471,7 +471,7 @@ stats(nsd, f)
 	fprintf(f, "  %lu %lu %lu %lu %lu", (unsigned long)0, nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped,
 			(unsigned long)0, (unsigned long)0, nsd->st.txerr);
 	fprintf(f, "  %lu %lu %lu %lu %lu", nsd->st.opcode[OPCODE_QUERY], nsd->st.opcode[OPCODE_IQUERY],
-			(unsigned long)0, (unsigned long)0, nsd->st.ctcp + nsd->st.ctcp6);
+			nsd->st.wrongzone, (unsigned long)0, nsd->st.ctcp + nsd->st.ctcp6);
 	fprintf(f, "  %lu %lu %lu %lu %lu", (unsigned long)0,
 			nsd->st.rcode[RCODE_SERVFAIL], nsd->st.rcode[RCODE_FORMAT],
 						(unsigned long)0, nsd->st.rcode[RCODE_NXDOMAIN]);
