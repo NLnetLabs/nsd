@@ -83,21 +83,20 @@ main (int argc, char *argv[])
 	/* Initialize the query */
 	memset(&q, 0, sizeof(struct query));
 	q.addrlen = sizeof(q.addr);
-	q.packet = buffer_create(region, QIOBUFSZ);
 	q.maxlen = 512;
+	q.packet = buffer_create(region, QIOBUFSZ);
+	memset(buffer_begin(q.packet), 0, buffer_remaining(q.packet));
 
 	/* Set up the header */
 	OPCODE_SET(q.packet, OPCODE_NOTIFY);
 	ID_SET(q.packet, 42);	/* Does not need to be random. */
 	AA_SET(q.packet);
-	
+	QDCOUNT_SET(q.packet, 1);
 	buffer_skip(q.packet, QHEADERSZ);
 	buffer_write(q.packet, dname_name(zone), zone->name_size);
 	buffer_write_u16(q.packet, TYPE_SOA);
 	buffer_write_u16(q.packet, CLASS_IN);
-
-	/* Set QDCOUNT=1 */
-	QDCOUNT_SET(q.packet, 1);
+	buffer_flip(q.packet);
 
 	for (/*empty*/; *argv; argv++) {
 		/* Set up UDP */
@@ -124,8 +123,6 @@ main (int argc, char *argv[])
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
 			/* WE ARE READY SEND IT OUT */
-
-			buffer_flip(q.packet);
 			if (sendto(udp_s,
 				   buffer_current(q.packet),
 				   buffer_remaining(q.packet), 0,
