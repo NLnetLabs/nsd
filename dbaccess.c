@@ -178,12 +178,12 @@ read_rrset(namedb_type *db,
 	uint16_t rdcount;
 	domain_type *owner;
 	
-	rrset = region_alloc(db->region, sizeof(rrset_type));
-			     
 	owner = read_domain(db, domain_count, domains);
 	if (!owner)
 		return 0;
 
+	rrset = region_alloc(db->region, sizeof(rrset_type));
+			     
 	rrset->zone = read_zone(db, zone_count, zones);
 	if (!rrset->zone)
 		return 0;
@@ -363,7 +363,10 @@ namedb_open (const char *filename)
 	fprintf(stderr, "db_region (after RRsets): ");
 	region_dump_stats(region, stderr);
 	fprintf(stderr, "\n");
-	    
+
+	fprintf(stderr, "region allocator stats: ");
+	region_allocator_dump_stats(stderr);
+	
 	return db;
 }
 

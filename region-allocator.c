@@ -50,6 +50,18 @@
 #define LARGE_OBJECT_SIZE  (CHUNK_SIZE / 8)
 #define ALIGNMENT          (2 * sizeof(void *))
 
+struct alloc_info
+{
+	const char *file;
+	int line;
+	size_t allocations;
+	size_t allocated;
+};
+
+#define MAX_ALLOC_INFO 100
+static int info_count = 0;
+static struct alloc_info info[MAX_ALLOC_INFO];
+
 typedef struct cleanup cleanup_type;
 struct cleanup
 {
@@ -168,16 +180,35 @@ region_add_cleanup(region_type *region, void (*action)(void *), void *data)
 }
 
 void *
-region_alloc(region_type *region, size_t size)
+region_alloc2(const char *file, int line, region_type *region, size_t size)
 {
+	int i;
 	size_t aligned_size;
 	void *result;
-    
+
 	if (size == 0) {
 		size = 1;
 	}
 	aligned_size = ALIGN_UP(size, ALIGNMENT);
-    
+
+#ifndef NDEBUG
+	/* XXX: fix this up to add real error checking etc.  */
+	for (i = 0; i < info_count; ++i) {
+		if (info[i].file == file && info[i].line == line) {
+			++info[i].allocations;
+			info[i].allocated += aligned_size;
+			break;
+		}
+	}
+	if (i == info_count) {
+		info[i].file = file;
+		info[i].line = line;
+		info[i].allocations = 1;
+		info[i].allocated = aligned_size;
+		++info_count;
+	}
+#endif
+	
 	if (aligned_size >= LARGE_OBJECT_SIZE) {
 		result = region->allocator(size);
 		if (!result) return NULL;
@@ -288,6 +319,20 @@ region_dump_stats(region_type *region, FILE *out)
 		(unsigned long) region->cleanup_count);
 }
 
+
+void
+region_allocator_dump_stats(FILE *out)
+{
+	int i;
+
+	for (i = 0; i < info_count; ++i) {
+		fprintf(out, "%s:%d: %lu allocations, %lu bytes allocated, %g bytes per allocation\n",
+			info[i].file, info[i].line,
+			(unsigned long) info[i].allocations,
+			(unsigned long) info[i].allocated,
+			(double) info[i].allocated / info[i].allocations);
+	}
+}
 
 #ifdef TEST
 
