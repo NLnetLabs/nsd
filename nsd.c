@@ -67,6 +67,7 @@
 #include <network.h>
 #include <nsd.h>
 #include <query.h>
+#include "plugins.h"
 
 
 /* The server handler... */
@@ -348,6 +349,11 @@ main (int argc, char *argv[])
 	const char *udp_port;
 	const char *tcp_port;
 
+#ifdef PLUGINS
+	char *plugins[MAX_PLUGIN_COUNT];
+	size_t plugin_count = 0;
+#endif /* PLUGINS */
+	
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.dbfile	= DBFILE;
@@ -406,7 +412,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "46a:df:p:i:u:t:s:N:n:")) != -1) {
+	while((c = getopt(argc, argv, "46a:df:p:i:u:t:s:N:n:X:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -466,6 +472,16 @@ main (int argc, char *argv[])
 			syslog(LOG_ERR, "option unavailabe, recompile with -DBIND8_STATS");
 #endif /* BIND8_STATS */
 			break;
+#ifdef PLUGINS
+		case 'X':
+			if (plugin_count == MAX_PLUGIN_COUNT) {
+				fprintf(stderr, "maximum plugin count exceeded\n");
+				exit(1);
+			}
+			plugins[plugin_count] = optarg;
+			++plugin_count;
+			break;
+#endif /* PLUGINS */
 		case '?':
 		default:
 			usage();
@@ -661,6 +677,19 @@ main (int argc, char *argv[])
 		exit(1);
 	}
 
+#ifdef PLUGINS
+	for (i = 0; i < plugin_count; ++i) {
+		const char *arg = "";
+		char *eq = strchr(plugins[i], '=');
+		if (eq) {
+			*eq = '\0';
+			arg = eq + 1;
+		}
+		if (!load_plugin(&nsd, plugins[i], arg))
+			exit(1);
+	}
+#endif /* PLUGINS */
+	
 	syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {

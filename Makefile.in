@@ -114,8 +114,8 @@ uninstall:
 	@echo
 	@echo "You still need to remove $(configdir) directory by hand."
 
-nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o network.o $(LIBOBJS)
-	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o network.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
+nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o network.o plugins.o $(LIBOBJS)
+	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o network.o plugins.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o  $(LIBOBJS)
 	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o $(LIBOBJS) $(LIBS)
@@ -179,15 +179,17 @@ dname.o: dname.c config.h dns.h dname.h namedb.h heap.h rbtree.h
 network.o: network.c config.h network.h
 nsd-axfr.o: nsd-axfr.c config.h dns.h namedb.h heap.h rbtree.h dname.h \
   network.h nsd.h query.h zparser.h client.h
-nsd.o: nsd.c config.h dns.h dname.h namedb.h heap.h rbtree.h nsd.h \
-  query.h
+nsd.o: nsd.c config.h dns.h dname.h namedb.h heap.h rbtree.h network.h \
+  nsd.h query.h plugins.h nsd-plugin.h
 nsq.o: nsq.c config.h dns.h namedb.h heap.h rbtree.h dname.h network.h \
   nsd.h zparser.h query.h zonec.h client.h
+plugins.o: plugins.c config.h namedb.h heap.h rbtree.h plugins.h \
+  nsd-plugin.h nsd.h query.h
 query.o: query.c config.h dns.h dname.h nsd.h namedb.h heap.h rbtree.h \
-  query.h
+  plugins.h nsd-plugin.h query.h
 rbtree.o: rbtree.c rbtree.h
 server.o: server.c config.h dns.h namedb.h heap.h rbtree.h dname.h nsd.h \
-  query.h
+  plugins.h nsd-plugin.h query.h
 zonec.o: zonec.c config.h heap.h rbtree.h dns.h zparser.h namedb.h \
   dname.h zonec.h
 zparser.o: zparser.c config.h dns.h zparser.h dname.h

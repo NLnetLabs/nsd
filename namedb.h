@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.34 2003/06/25 11:39:39 erik Exp $
+ * $Id: namedb.h,v 1.35 2003/06/26 11:27:16 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -101,10 +101,11 @@ struct answer {
 
 struct domain {
 	u_int32_t size;
-	u_int16_t	flags;
+	u_int16_t flags;
+	void     *runtime_data; /* Additional run-time data (used for plugins) */
 };
 
-#define	NAMEDB_MAGIC		"NSDdbV01"
+#define	NAMEDB_MAGIC		"NSDdbV02"
 #define	NAMEDB_MAGIC_SIZE	8
 
 #define	NAMEDB_RRSET_WHITE	0x8000U

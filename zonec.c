@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.90 2003/06/25 11:39:41 erik Exp $
+ * $Id: zonec.c,v 1.91 2003/06/26 11:27:21 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -607,7 +607,8 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 	d = xalloc(sizeof(struct domain));
 	d->size = sizeof(struct domain);
 	d->flags = NAMEDB_DELEGATION;
-
+	d->runtime_data = NULL;
+	
 	/* Is this a real record? */
 	if(dkey != dname)
 		d->flags |= NAMEDB_STEALTH;

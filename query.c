@@ -58,6 +58,7 @@
 #include <dname.h>
 #include <nsd.h>
 #include <namedb.h>
+#include "plugins.h"
 #include <query.h>
 
 
@@ -203,6 +204,10 @@ query_init (struct query *q)
 	q->maxlen = 512;	/* XXX Should not be here */
 	q->edns = 0;
 	q->tcp = 0;
+#ifdef PLUGINS
+	q->normalized_domain_name[0] = '\0';
+	q->plugin_data = NULL;
+#endif /* PLUGINS */
 }
 
 void 
@@ -508,7 +513,7 @@ answer_notify (struct query *query)
  * Return 1 if answered, 0 otherwise.
  */
 static int
-answer_delegation(struct query *query, const u_char *qname, struct domain *domain)
+answer_delegation(struct query *query, struct domain *domain, const u_char *qname)
 {
 	if (DOMAIN_FLAGS(domain) & NAMEDB_DELEGATION) {
 		struct answer *answer = namedb_answer(domain, htons(TYPE_NS));
@@ -534,9 +539,9 @@ answer_delegation(struct query *query, const u_char *qname, struct domain *domai
 static int
 answer_domain(struct query *q,
 	      struct domain *d,
+	      const u_char *qname,
 	      u_int16_t qclass,
-	      u_int16_t qtype,
-	      const u_char *qname)
+	      u_int16_t qtype)
 {
 	struct answer *a;
 	u_char *qptr;
@@ -575,8 +580,8 @@ answer_domain(struct query *q,
 static int
 answer_soa(struct query *q,
 	   struct domain *d,
-	   u_int16_t qclass,
-	   const u_char *qname)
+	   const u_char *qname,
+	   u_int16_t qclass)
 {
 	struct answer *a;
 	u_char *qptr;
@@ -743,18 +748,16 @@ answer_query(struct nsd *nsd,
 	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
 
 	/* Do we have complete name? */
-	if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) &&
-		((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
-		/* Is this a delegation point? */
-		if (answer_delegation(q, qname, d)) {
-			return 1;
-		}
-
-		if (answer_domain(q, d, qclass, qtype, qname)) {
-			return 1;
-		}
-
-		if (answer_soa(q, d, qclass, qname)) {
+	if (NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) &&
+	    ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL))
+	{
+		if (answer_delegation(q, d, qname) ||
+		    answer_domain(q, d, qname, qclass, qtype) ||
+		    answer_soa(q, d, qname, qclass))
+		{
+#ifdef PLUGINS
+			q->plugin_data = d->runtime_data;
+#endif /* PLUGINS */
 			return 1;
 		}
 
@@ -785,7 +788,10 @@ answer_query(struct nsd *nsd,
 				/* We found a domain... */
 				RCODE_SET(q, RCODE_OK);
 
-				if (answer_domain(q, d, qclass, qtype, qname)) {
+				if (answer_domain(q, d, qname, qclass, qtype)) {
+#ifdef PLUGINS
+					q->plugin_data = d->runtime_data;
+#endif /* PLUGINS */
 					return 1;
 				}
 			}
@@ -794,11 +800,12 @@ answer_query(struct nsd *nsd,
 		/* Do we have a SOA or zone cut? */
 		*(qnamelow - 1) = qnamelen;
 		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
-			if (answer_delegation(q, qname, d)) {
-				return 1;
-			}
-
-			if (answer_soa(q, d, qclass, qname)) {
+			if (answer_delegation(q, d, qname) ||
+			    answer_soa(q, d, qname, qclass))
+			{
+#ifdef PLUGINS
+				q->plugin_data = d->runtime_data;
+#endif /* PLUGINS */
 				return 1;
 			}
 
@@ -871,6 +878,11 @@ query_process (struct query *q, struct nsd *nsd)
 	}
 	qnamelow = qnamebuf + 3;
 	qnamelen = qnamebuf[2];
+
+#ifdef PLUGINS
+	/* Save the normalized domain name for plugins.  */
+	memcpy(q->normalized_domain_name, qnamelow - 1, qnamelen + 1);
+#endif /* PLUGINS */
 
 	qname = q->iobuf + QHEADERSZ;
 	

@@ -168,11 +168,15 @@ struct query {
 	struct sockaddr_storage addr;
 	size_t addrlen;
 	size_t maxlen;
+	int edns;
+	int tcp;
 	u_char *iobufptr;
 	size_t iobufsz;
-	int  edns;
-	int tcp;
 	u_char iobuf[QIOBUFSZ];
+#ifdef PLUGINS
+	u_char normalized_domain_name[MAXDOMAINLEN];
+	void **plugin_data;
+#endif /* PLUGINS */
 };
 
 /* query.c */

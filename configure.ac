@@ -109,10 +109,12 @@ AC_PROG_INSTALL
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h sys/bitypes.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h sys/bitypes.h dlfcn.h])
 
 AC_SEARCH_LIBS(inet_addr, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
+
+AC_SEARCH_LIBS(dlopen, [dl])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -174,7 +176,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_aton memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask])
+AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_aton memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
 
 #
 # Checking for missing functions we can replace
@@ -281,6 +283,24 @@ case "$enable_bind8_stats" in
 		;;
 	no|*)
 		;;
+esac
+
+AC_ARG_ENABLE(plugins, AC_HELP_STRING([--enable-plugins], [Enable plugin support]))
+case "$enable_plugins" in
+        yes)
+		AC_DEFINE([PLUGINS], [], [Define this to enable plugin support.])
+		;;
+        no|*)
+                ;;
+esac
+
+AC_ARG_ENABLE(checking, AC_HELP_STRING([--enable-checking], [Enable internal runtime checks]))
+case "$enable_checking" in
+        yes)
+		;;
+        no|*)
+                AC_DEFINE([NDEBUG], [], [Undefine this to enable internal runtime checks.])
+                ;;
 esac
 
 AH_VERBATIM([BITYPES],[

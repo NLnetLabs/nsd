@@ -67,6 +67,7 @@
 #include <namedb.h>
 #include <dname.h>
 #include <nsd.h>
+#include "plugins.h"
 #include <query.h>
 
 
@@ -372,6 +373,45 @@ server_main(struct nsd *nsd)
 	server_shutdown(nsd);
 }
 
+static int
+process_query(struct nsd *nsd, struct query *query)
+{
+	int rc;
+#ifdef PLUGINS
+	nsd_plugin_callback_args_type callback_args;
+	nsd_plugin_callback_result_type callback_result;
+	void *callback_data[MAX_PLUGIN_COUNT];
+	
+	memset(callback_data, 0, sizeof(callback_data));
+	
+	callback_args.query = query;
+	callback_args.domain_name = NULL;
+	callback_args.data = NULL;
+	callback_args.result_code = RCODE_OK;
+
+	callback_result = perform_callbacks(nsd, NSD_PLUGIN_QUERY_RECEIVED,
+					    &callback_args, callback_data);
+	if (callback_result != NSD_PLUGIN_CONTINUE) {
+		return handle_callback_result(nsd, callback_result, &callback_args);
+	}
+#endif /* PLUGINS */
+
+	rc = query_process(query, nsd);
+	if (rc == 0) {
+#ifdef PLUGINS
+		callback_args.domain_name = query->normalized_domain_name;
+		callback_args.data = NULL;
+		callback_args.result_code = RCODE_OK;
+
+		callback_result = perform_callbacks(nsd, NSD_PLUGIN_QUERY_PROCESSED,
+						    &callback_args, query->plugin_data);
+		if (callback_result != NSD_PLUGIN_CONTINUE) {
+			return handle_callback_result(nsd, callback_result, &callback_args);
+		}
+#endif /* PLUGINS */
+	}
+	return rc;
+}
 
 static int
 handle_udp(struct nsd *nsd, fd_set *peer)
@@ -413,7 +453,7 @@ handle_udp(struct nsd *nsd, fd_set *peer)
 	q.tcp = 0;
 
 	/* Process and answer the query... */
-	if (query_process(&q, nsd) != -1) {
+	if (process_query(nsd, &q) != -1) {
 		if (RCODE((&q)) == RCODE_OK && !AA((&q)))
 			STATUP(nsd, nona);
 		/* Add edns(0) info if necessary.. */
@@ -515,7 +555,7 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 
 		alarm(0);
 
-		if ((axfr = query_process(&q, nsd)) != -1) {
+		if ((axfr = process_query(nsd, &q)) != -1) {
 			if (RCODE((&q)) == RCODE_OK && !AA((&q)))
 				STATUP(nsd, nona);
 			do {
