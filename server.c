@@ -544,33 +544,6 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 	}
 }
 
-/*
- * Read COUNT bytes from S and store in BUF.  If a single read(2)
- * returns fewer than COUNT bytes keep reading until COUNT bytes are
- * received or the socket is closed.
- *
- * Also returns early an error or signal occurs.  In this case -1 is
- * returned and it is impossible to determine how many bytes have
- * actually been read.
- */
-static ssize_t
-read_socket(int s, void *buf, size_t count)
-{
-	ssize_t actual = 0;
-	
-	while (actual < (ssize_t) count) {
-		ssize_t result = read(s, (char *) buf + actual, count - actual);
-		if (result == -1) {
-			return -1;
-		} else if (result == 0) {
-			return actual;
-		} else {
-			actual += result;
-		}
-	}
-
-	return (ssize_t) actual;
-}
 
 /*
  * The TCP handlers use non-blocking I/O.  This is necessary to avoid
@@ -644,9 +617,9 @@ handle_tcp_reading(netio_type *netio,
 	 * Check if we received the leading packet length bytes yet.
 	 */
 	if (data->bytes_transmitted < sizeof(q->tcplen)) {
-		received = read_socket(handler->fd,
-				       (char *) &q->tcplen + data->bytes_transmitted,
-				       sizeof(q->tcplen) - data->bytes_transmitted);
+		received = read(handler->fd,
+				(char *) &q->tcplen + data->bytes_transmitted,
+				sizeof(q->tcplen) - data->bytes_transmitted);
 		if (received == -1) {
 			if (errno == EAGAIN) {
 				/* Read would block, wait until more data is available.  */
@@ -699,7 +672,7 @@ handle_tcp_reading(netio_type *netio,
 	assert(data->bytes_transmitted < q->tcplen + sizeof(q->tcplen));
 
 	/* Read the (remaining) query data.  */
-	received = read_socket(handler->fd, q->iobufptr, q->tcplen - query_used_size(q));
+	received = read(handler->fd, q->iobufptr, q->tcplen - query_used_size(q));
 	if (received == -1) {
 		if (errno == EAGAIN) {
 			/* Read would block, wait until more data is available.  */
