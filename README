@@ -1,4 +1,4 @@
-$Id: README,v 1.16.2.3 2003/06/02 12:23:19 erik Exp $
+$Id: README,v 1.16.2.4 2003/06/12 08:51:36 erik Exp $
 
 1.0 Introduction
 1.1 Basic theory of operation
@@ -142,18 +142,11 @@ NSDUSER		The username for nsd to setuid(2) to
 		This username must exist in /etc/passwd and the ${NSDDB} must be
 		readable for this user.
 
+FEATURES        Select some NSD features at compile time.  See the makefile
+                for more documentation.
+
 CFLAGS          Use your favorite combination of the C flags appropriate
-                to your C compiler, plus following possible compile time
-                options:
-
-  HOSTS_ACCESS		Use tcp_wrappers/hosts_access(3) routines to access
-			control AXFR operations
-
-  AXFR_DAEMON="axfr"	The daemon name for hosts_access(3) access control.
-
-  INET6			Compile IPv6 support
-
-  LOG_NOTIFIES		Log the incoming notifies
+                to your C compiler.
 
 COMPAT_O        You might want to uncomment some of the object files listed here
                 if your system miss some of them. (For example on SunOS 4.x you

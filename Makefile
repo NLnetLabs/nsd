@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.84.2.4 2003/06/12 08:37:16 erik Exp $
+# $Id: Makefile,v 1.84.2.5 2003/06/12 08:51:35 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -276,13 +276,18 @@ zf:	zf.h dns.h zf.c rfc1876.c
 ${OBJS}:	${HDRS}
 
 # Dependencies (gcc -MM)
-dbaccess.o: dbaccess.c namedb.h config.h heap.h rbtree.h
-dbcreate.o: dbcreate.c namedb.h config.h heap.h rbtree.h
+dbaccess.o: dbaccess.c config.h namedb.h heap.h rbtree.h
+dbcreate.o: dbcreate.c config.h namedb.h heap.h rbtree.h
 hash.o: hash.c hash.h
 nsd.o: nsd.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
+nsd-notify.o: nsd-notify.c nsd.h config.h dns.h namedb.h heap.h rbtree.h \
+  query.h zf.h rfc1876.h
 query.o: query.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
 rbtree.o: rbtree.c rbtree.h
-server.o: server.c nsd.h config.h dns.h namedb.h heap.h rbtree.h \
- query.h
-zf.o: zf.c dns.h nsd.h config.h namedb.h heap.h rbtree.h query.h zf.h
-zonec.o: zonec.c zonec.h config.h heap.h rbtree.h dns.h zf.h namedb.h
+rfc1876.c:424:17: warning: multi-line string literals are deprecated
+rfc1876.o: rfc1876.c config.h
+server.o: server.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
+zf.o: zf.c config.h dns.h nsd.h namedb.h heap.h rbtree.h query.h zf.h \
+  rfc1876.h
+zonec.o: zonec.c zonec.h config.h heap.h rbtree.h dns.h zf.h rfc1876.h \
+  namedb.h
