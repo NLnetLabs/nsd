@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.1 2002/01/28 16:02:59 alexis Exp $
+ * $Id: zonec.h,v 1.2 2002/01/28 23:24:34 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -50,7 +50,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <db3/db.h>
+#include <db.h>
 
 #include "dict.h"
 #include "namedb.h"

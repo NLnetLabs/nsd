@@ -1,5 +1,5 @@
 /*
- * $Id: dict.h,v 1.2 2002/01/28 11:46:54 alexis Exp $
+ * $Id: dict.h,v 1.3 2002/01/28 23:24:34 alexis Exp $
  *
  * dict.h -- generic dictionary based on red-black tree
  *
@@ -47,6 +47,10 @@
 # 	else
 # 		define __P(protos)
 # 	endif
+#endif
+
+#ifndef	NULL
+#define	NULL	(void *)0
 #endif
 
 typedef struct dnode_t dnode_t;

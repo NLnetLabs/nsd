@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.2 2002/01/28 16:02:59 alexis Exp $
+ * $Id: nsd.c,v 1.3 2002/01/28 23:24:34 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -101,6 +101,10 @@ main(argc, argv)
 	DBT key, data;
 	int r, i;
 	char *dbfile;
+
+#	ifndef	LOG_PERROR
+#		define	LOG_PERROR 0
+#	endif
 
 	/* Set up the logging... */
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
