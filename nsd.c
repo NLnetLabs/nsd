@@ -249,7 +249,7 @@ sig_handler (int sig)
 
 	/* Distribute the signal to the servers... */
 	for (i = 0; i < nsd.child_count; ++i) {
-		if (nsd.children[i].pid != 0 && kill(nsd.children[i].pid, sig) == -1) {
+		if (nsd.children[i].pid > 0 && kill(nsd.children[i].pid, sig) == -1) {
 			log_msg(LOG_ERR, "problems killing %d: %s",
 				nsd.children[i].pid, strerror(errno));
 		}
