@@ -1,4 +1,4 @@
-$Id: README,v 1.13.2.6 2002/08/20 09:02:40 alexis Exp $
+$Id: README,v 1.13.2.7 2002/08/20 15:17:48 alexis Exp $
 
 1.0 Introduction
 
@@ -29,11 +29,67 @@ All this can be controlled by a simple control script called 'nsdc'
 which uses a simple configuration file.
 
 
+1.2 Quick build and install
+
+Step 1:
+
+	Unpack the source with gtar -xzvf nsd-1.0.1.tar.gz
+
+Step 2:
+
+	Create user nsd or any other unprivileged user of your
+	choice. In case of later set NSDUSER variable in the Makefile
+	to the username of your choice.
+
+Step 3:
+	Glance through the Makefile to make sure you like the pathnames
+	et cetera. You might want to comment out -DINET6 if you dont want
+	IPv6 transport support and -DHOSTS_ACCESS if you dont want to use
+	hosts_acccess(5) tcp wrappers for AXFR access control. If you do
+	that you might as well want to disable AXFR with -DDISABLE_AXFR
+
+Step 4:	make all
+
+Step 5: make install
+
+Step 6:
+	Add "axfr" and/or "axfr-zone.name.tld" entries to your hosts.allow
+	and/or hosts deny
+
+Step 7:
+	Create and edit /etc/nsd/nsd.zones file possibly from nsd.zones.sample
+	template that comes with the distribution.
+
+Step 8:
+	Copy necessary master zone files into appropriate directories under
+	/etc/nsd/primary & /etc/nsd/secondary
+
+Step 9:	Run nsdc update if necessary
+
+Step 10:
+	Run nsdc rebuild
+
+Step 11:
+	Run nsdc start
+
+Step 12:
+	Test the NSD with dig or host.
+
+Step 13:
+	If you're happy add nsdc start into your OS boot up sequence.
+
+Step 14:
+	If desired add nsdc update to your superuser crontab to update
+	the zones from master servers periodically.
+
+	Got any problems or questions with the steps above? Read the rest
+	of this file.
+
 2.0 Building nsd
 
 2.1 Unpacking the source
 
-Use your favorite combination of tar and gnu zip to unpack the source, 
+Use your favourite combination of tar and gnu zip to unpack the source, 
 for example
 
 $ gtar -xzvf nsd-1.0.1.tar.gz
@@ -136,7 +192,7 @@ this file most likely to contain something like:
 zone    .               root.zone
 
 The first word on a line must be ``zone''. It indicates that the zone should
-be loaded as authorative data. Cached non authorative data is no longer
+be loaded as authoritative data. Cached non authoritative data is no longer
 supported (keyword ``cache'' is obsolete)
 
 Second word is the name (origin) of the zone and the third word 
@@ -189,7 +245,7 @@ nsdc reload if there were any changes.
 
 When compiled with -DHOSTS_ACCESS nsd will use daemon name ``axfr'' to
 verify access privileges for the client trying to initiate the transfer.
-Since NSD doesnt do any hostname resolution internally the access list
+Since NSD doesn't do any hostname resolution internally the access list
 provided in the /etc/hosts.allow or /etc/hosts.deny should be ip number
 based.
 
@@ -242,15 +298,15 @@ whenever one of the zones changes. Therefore it is recommended to do the
 database rebuilds at certain scheduled time, for example every hour.
 nsdc(8) update will rebuild the database and reload the daemon if necessary.
 
-the follow cron(8) command will take care of synchronizing the database with
+the follow cron(8) command will take care of synchronising the database with
 the master servers:
 
 # nsd zone update every hour
 1       *       *       *       *       /usr/local/sbin/nsdc update
 
-3.2.1 Using TSIG with synchronizing with master servers
+3.2.1 Using TSIG with synchronising with master servers
 
-It is as well possible to update the master zone files (inbound AXFR) with
+It is as well possible to update the master zone files (in bound AXFR) with
 nsdc(8) update using TSIG.
 
 This is done by passing the tsig key to named-xfer(8)
@@ -286,7 +342,7 @@ format.
 
 3.3 Sending notify to the secondaries on reload or restart
 
-It is possible to send outbound notify's to the secondaries every time nsd
+It is possible to send out bound notify's to the secondaries every time nsd
 database is (re)loaded. You have to directly specify the ip-addresses of the
 secondaries in the nsd.zones file, for example:
 
