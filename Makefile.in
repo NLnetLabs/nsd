@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.19 2003/02/21 12:16:18 alexis Exp $
+# $Id: Makefile.in,v 1.20 2003/02/21 12:51:19 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -141,6 +141,12 @@ b64_pton.o:	compat/b64_pton.c
 
 b64_ntop.o:	compat/b64_ntop.c
 	$(COMPILE) -c compat/b64_ntop.c -o b64_ntop.o
+
+snprintf.o:	compat/snprintf.c
+	$(COMPILE) -c compat/snprintf.c -o snprintf.o
+
+vsnprintf.o:	compat/vsnprintf.c
+	$(COMPILE) -c compat/vsnprintf.c -o vsnprintf.o
 
 # Test programs
 rbtree:	rbtree.c rbtree.h
