@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.34 2002/09/19 14:36:35 alexis Exp $
+ * $Id: zf.c,v 1.35 2002/09/19 14:44:01 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -948,7 +948,7 @@ zf_read(zf)
 		zf->line.type = type->type;
 		zf->line.rdatafmt = type->fmt;
 		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
-		bzero(zf->line.rdata, sizeof(union zf_rdatom) * MAXRDATALEN); /* XXX Not needed? */
+		bzero(zf->line.rdata, sizeof(union zf_rdatom) * MAXRDATALEN);
 
 		/* Format starting with ``*'' is an error */
 		assert(*zf->line.rdatafmt != '*');
