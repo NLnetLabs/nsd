@@ -495,8 +495,10 @@ handle_udp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	q.compressed_dname_offsets = compressed_dname_offsets;
 	
 	if ((received = recvfrom(s, q.iobuf, QIOBUFSZ, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-		log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
-		STATUP(nsd, rxerr);
+		if (errno != EAGAIN) {
+			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
+			STATUP(nsd, rxerr);
+		}
 		return 1;
 	}
 	q.iobufptr = q.iobuf + received;
