@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.23 2003/10/23 12:25:50 miekg Exp $
+ * $Id: zonec2.c,v 1.24 2003/10/23 18:41:39 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -154,8 +154,10 @@ process_rr(zparser_type *parser, rr_type *rr)
 	rrset_type *rrset;
 	int i;
 	
+	/*
         if (pflag > 0) 
 		zprintrr(stderr, rr);
+		*/
 		
 	/* We only support IN class */
 	if (rr->class != CLASS_IN) {
@@ -482,11 +484,9 @@ main (int argc, char **argv)
 			totalerrors++;
 		}
 
-		/*[XXX] ik zie niks */
-		/*fprintf(stderr, "zone_region: ");
+		fprintf(stderr, "zone_region: ");
 		region_dump_stats(zone_region, stderr);
 		fprintf(stderr, "\n");
-		*/
 	};
 
 	if (db_dump(db) != 0) {

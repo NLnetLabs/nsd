@@ -169,7 +169,6 @@ int32_t zparser_ttl2int(char *ttlstr);
 void zadd_rdata_wireformat(zparser_type *parser, uint16_t *data);
 void zadd_rdata_domain(zparser_type *parser, domain_type *domain);
 void zadd_rdata_finalize(zparser_type *parser);
-void zadd_rtype(const char *type);
 uint16_t intbyname (const char *a, struct ztab *tab);
 const char * namebyint (uint16_t n, struct ztab *tab);
 int zrdatacmp(uint16_t type, rdata_atom_type *a, rdata_atom_type *b);

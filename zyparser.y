@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.49 2003/10/23 14:34:22 miekg Exp $
+ * $Id: zyparser.y,v 1.50 2003/10/23 18:41:39 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -97,7 +97,7 @@ line:   NL
     }
     ;
 
-/* needed to cope with ( and ) and arbitary places */
+/* needed to cope with ( and ) in arbitary places */
 sp:		SP
   	|	sp SP
 	;
@@ -254,10 +254,11 @@ str_seq:	STR
         	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $3.str));
     	}	
     	;
+
+/* this is also "mis"used for b64 and other str lists */
 hex_seq:	STR
 	{
 		$$ = $1;
-		fprintf(stderr,"[%s]\n",$$.str);
 	}
 	|	hex_seq sp STR
 	{
@@ -266,7 +267,6 @@ hex_seq:	STR
 		memcpy(hex + $1.len, $3.str, $3.len);
 		$$.str = hex;
 		$$.len = $1.len + $3.len;
-		fprintf(stderr,"[%s]\n",$$.str);
 	}
 	;
 
@@ -274,53 +274,33 @@ hex_seq:	STR
 /* define what we can parse */
 
 rtype:  SOA sp rdata_soa 
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |   A sp rdata_a 
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |   NS sp rdata_dname 
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |   CNAME sp rdata_dname 
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |   PTR sp rdata_dname 
-    {   
-	    current_rr->type = $1;
-    }
+    {   current_rr->type = $1; }
     |   TXT sp rdata_txt
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |   MX sp rdata_mx 
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |   AAAA sp rdata_aaaa 
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |	HINFO sp rdata_hinfo 
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |   SRV sp rdata_srv
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |	DS sp rdata_ds
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
     |	KEY sp rdata_key
-    {
-	    current_rr->type = $1;
-    }
+    { current_rr->type = $1; }
+    |	NXT sp rdata_nxt
+    { current_rr->type = $1; }
+    |	SIG sp rdata_sig
+    { current_rr->type = $1; }
     |	error NL
     {	
 	    fprintf(stderr,"Unimplemented RR seen\n");
@@ -423,9 +403,30 @@ rdata_key:	STR sp STR sp STR sp hex_seq trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* flags */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* proto */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* alg */
-		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $7.str)); /* hash */
+		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $7.str)); /* hash */
 	}
 	;
+
+rdata_nxt:	nonowner_dname sp hex_seq trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* nxt name */
+		zadd_rdata_wireformat(current_parser, zparser_conv_next(zone_region, $3.str)); /* bitlist */
+	}
+	;
+
+rdata_sig:	STR sp STR sp STR sp STR sp STR sp STR sp nonowner_dname sp hex_seq trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_rrtype(zone_region, $1.str)); /* rr covered */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* alg */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* # labels */
+		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $7.str)); /* sig exp */
+		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $9.str)); /* sig inc */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $11.str)); /* key id */
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $13)); /* signer name */
+		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $15.str)); /* sig data */
+	}
+	;
+
 %%
 
 int

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.26 2003/10/23 14:17:45 erik Exp $
+ * $Id: zparser2.c,v 1.27 2003/10/23 18:41:39 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -346,6 +346,23 @@ zparser_conv_domain(region_type *region, domain_type *domain)
 	return r;
 }
 
+uint16_t * 
+zparser_conv_next(region_type *region, const char *nxtlist)
+{
+	/* nxtlist: a list of RR type, for each type a specific bit
+	 * must be turned on in the bit list
+	 */
+}
+	
+uint16_t *
+zparser_conv_rrtype(region_type *region, const char *rr)
+{
+	/* get the official number for the rr type and return
+	 * that. This is mainly used by SIG in the type-covered
+	 * field
+	 */
+}
+
 /* 
  * Below some function that also convert but not to wireformat
  * but to "normal" (int,long,char) types
@@ -404,15 +421,6 @@ zadd_rdata_finalize(zparser_type *parser)
 	/* _rc is already incremented in zadd_rdata2 */
 	current_rr->rdata[parser->_rc].data = NULL;
 }
-
-void
-zadd_rtype(const char *type)
-{
-	/* add the type to the current resource record */
-
-	current_rr->type = intbyname(type, ztypes);
-}
-
 
 /*
  *
@@ -749,224 +757,3 @@ classbyint(uint16_t class)
 	return t;
 }
 
-/* DEBUG function used to print out RRs */
-
-/*
- * Prints a specific part of rdata.
- *
- * Returns:
- *
- *	nothing
- */
-static void
-zprintrdata (FILE *f, int what, const struct rdata_atom *r)
-{
-	char buf[B64BUFSIZE];
-	struct in_addr in;
-	uint32_t l;
-	uint16_t s;
-	uint8_t b;
-	size_t i;
-	uint16_t *data;
-	
-	/* Depending on what we have to print... */
-	switch (what) {
-		case RDATA_HEX:
-			for (i = 0; i < rdata_atom_size(*r); ++i) {
-				fprintf(f, "%.2x", ((uint8_t *) (rdata_atom_data(*r)))[i]);
-			}
-			fprintf(f, " ");
-			break;
-		case RDATA_TIME:
-			memcpy(&l, rdata_atom_data(*r), sizeof(uint32_t));
-			l = ntohl(l);
-			strftime(buf, B64BUFSIZE, "%Y%m%d%H%M%S ", gmtime((time_t *)&l));
-			fprintf(f, "%s", buf);
-			break;
-		case RDATA_TYPE:
-			memcpy(&s, rdata_atom_data(*r), sizeof(uint16_t));
-			fprintf(f, "%s ", typebyint(ntohs(s)));
-			break;
-		case RDATA_PROTO:
-		case RDATA_SERVICE:
-		case RDATA_PERIOD:
-		case RDATA_LONG:
-			memcpy(&l, rdata_atom_data(*r), sizeof(uint32_t));
-			fprintf(f, "%lu ", (unsigned long) ntohl(l));
-			break;
-		case RDATA_SHORT:
-			memcpy(&s, rdata_atom_data(*r), sizeof(uint16_t));
-			fprintf(f, "%u ", (unsigned) ntohs(s));
-			break;
-		case RDATA_BYTE:
-			memcpy(&b, rdata_atom_data(*r), sizeof(uint8_t));
-			fprintf(f, "%u ", (unsigned) b);
-			break;
-		case RDATA_A:
-			memcpy(&in.s_addr, rdata_atom_data(*r), sizeof(uint32_t));
-			fprintf(f, "%s ", inet_ntoa(in));
-			break;
-		case RDATA_A6:
-			data = (uint16_t *) rdata_atom_data(*r);
-			fprintf(f, "%x:%x:%x:%x:%x:%x:%x:%x ",
-				ntohs(data[0]), ntohs(data[1]), ntohs(data[2]),
-				ntohs(data[3]), ntohs(data[4]), ntohs(data[5]),
-				ntohs(data[6]), ntohs(data[7]));
-			break;
-		case RDATA_DNAME:
-			fprintf(f, "%s ", dname_to_string(rdata_atom_domain(*r)->dname));
-			break;
-		case RDATA_TEXT:
-			/* XXX: Handle NUL bytes */
-			fprintf(f, "\"%s\"", (const char *) rdata_atom_data(*r));
-			break;
-		case RDATA_B64:
-			b64_ntop(rdata_atom_data(*r), rdata_atom_size(*r), buf, B64BUFSIZE);
-			fprintf(f, "%s ", buf);
-			break;
-		default:
-			fprintf(f, "*** ERRROR *** ");
-			abort();
-	}
-	return;
-}
-
-/*
- * Prints textual representation of the rdata into the file.
- *
- * Returns
- *
- *	nothing
- *
- */
-static void
-zprintrrrdata(FILE *f, rr_type *rr)
-{
-	struct rdata_atom *rdata;
-	uint16_t size;
-
-	switch (rr->type) {
-		case TYPE_A:
-			zprintrdata(f, RDATA_A, &rr->rdata[0]);
-			return;
-		case TYPE_NS:
-		case TYPE_MD:
-		case TYPE_MF:
-		case TYPE_CNAME:
-		case TYPE_MB:
-		case TYPE_MG:
-		case TYPE_MR:
-		case TYPE_PTR:
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[0]);
-			return;
-		case TYPE_MINFO:
-		case TYPE_RP:
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[0]);
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[1]);
-			return;
-		case TYPE_TXT:
-			for(rdata = rr->rdata; !rdata_atom_is_terminator(*rdata); ++rdata) {
-				zprintrdata(f, RDATA_TEXT, rdata);
-			}
-			return;
-		case TYPE_SOA:
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[0]);
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[1]);
-			zprintrdata(f, RDATA_PERIOD, &rr->rdata[2]);
-			zprintrdata(f, RDATA_PERIOD, &rr->rdata[3]);
-			zprintrdata(f, RDATA_PERIOD, &rr->rdata[4]);
-			zprintrdata(f, RDATA_PERIOD, &rr->rdata[5]);
-			zprintrdata(f, RDATA_PERIOD, &rr->rdata[6]);
-			return;
-		case TYPE_HINFO:
-			zprintrdata(f, RDATA_TEXT, &rr->rdata[0]);
-			zprintrdata(f, RDATA_TEXT, &rr->rdata[1]);
-			return;
-		case TYPE_MX:
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[1]);
-			return;
-		case TYPE_AAAA:
-			zprintrdata(f, RDATA_A6, &rr->rdata[0]);
-			return;
-		case TYPE_SRV:
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[1]);
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[2]);
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[3]);
-			return;
-		case TYPE_NAPTR:
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[1]);
-			zprintrdata(f, RDATA_TEXT, &rr->rdata[2]);
-			zprintrdata(f, RDATA_TEXT, &rr->rdata[3]);
-			zprintrdata(f, RDATA_TEXT, &rr->rdata[4]);
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[5]);
-			return;
-		case TYPE_AFSDB:
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[1]);
-			return;
-		case TYPE_SIG:
-			zprintrdata(f, RDATA_TYPE, &rr->rdata[0]);
-			zprintrdata(f, RDATA_BYTE, &rr->rdata[1]);
-			zprintrdata(f, RDATA_BYTE, &rr->rdata[2]);
-			zprintrdata(f, RDATA_LONG, &rr->rdata[3]);
-			zprintrdata(f, RDATA_TIME, &rr->rdata[4]);
-			zprintrdata(f, RDATA_TIME, &rr->rdata[5]);
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[6]);
-			zprintrdata(f, RDATA_DNAME, &rr->rdata[7]);
-			zprintrdata(f, RDATA_B64, &rr->rdata[8]);
-			return;
-		case TYPE_NULL:
-			return;
-		case TYPE_KEY:
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
-			zprintrdata(f, RDATA_BYTE, &rr->rdata[1]);
-			zprintrdata(f, RDATA_BYTE, &rr->rdata[2]);
-			zprintrdata(f, RDATA_B64, &rr->rdata[3]);
-			return;
-		case TYPE_DS:
-			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
-			zprintrdata(f, RDATA_BYTE, &rr->rdata[1]);
-			zprintrdata(f, RDATA_BYTE, &rr->rdata[2]);
-			zprintrdata(f, RDATA_HEX, &rr->rdata[3]);
-			return;
-			/* Unknown format */
-		case TYPE_NXT:
-		case TYPE_WKS:
-		case TYPE_LOC:
-		default:
-			fprintf(f, "\\# ");
-			for (size = 0, rdata = rr->rdata; !rdata_atom_is_terminator(*rdata); ++rdata) {
-				size += rdata_atom_size(*rdata);
-			}
-
-			fprintf(f, "%u ", size);
-			for(rdata = rr->rdata; !rdata_atom_is_terminator(*rdata); ++rdata)
-				zprintrdata(f, RDATA_HEX, rdata);
-			return;
-	}
-}
-
-/*
- * Prints textual representation of the resource record to a file.
- *
- * Returns
- *
- *	nothing
- *
- */
-void
-zprintrr(FILE *f, rr_type *rr)
-{
-	fprintf(f, "%s\t%u\t%s\t%s\t",
-		dname_to_string(rr->domain->dname), rr->ttl,
-		classbyint(rr->class), typebyint(rr->type));
-	if(rr->rdata != NULL) {
-		zprintrrrdata(f, rr);
-	} else {
-		fprintf(f, "; *** NO RDATA ***");
-	}
-	fprintf(f, "\n");
-}
