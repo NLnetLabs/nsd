@@ -43,7 +43,7 @@ int b64_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif /* !B64_NTOP */
 
-static long strtottl(char *nptr, char **endptr);
+long strtottl(char *nptr, char **endptr);
 	
 region_type *zone_region;
 region_type *rr_region;
@@ -897,7 +897,7 @@ zrdatacmp(uint16_t type, rdata_atom_type *a, rdata_atom_type *b)
  * XXX This functions does not check the range.
  *
  */
-static long
+long
 strtottl(char *nptr, char **endptr)
 {
 	int sign = 0;

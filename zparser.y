@@ -57,7 +57,7 @@ uint8_t nsecbits[256][32];
 
 /* other tokens */
 %token         DIR_TTL DIR_ORIG NL ORIGIN SP
-%token <data>  STR PREV
+%token <data>  STR PREV TTL
 %token <class> IN CH HS
 
 /* unknown RRs */
@@ -163,7 +163,7 @@ rr:     ORIGIN SP rrrest
     }
     ;
 
-ttl:    STR
+ttl:    TTL
     {
         /* set the ttl */
         if ( (current_rr->rrdata->ttl = 

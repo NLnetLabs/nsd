@@ -226,6 +226,7 @@ Q       \"
                         }
 {CLASS}                 {
                             if ( in_rr == after_dname) { 
+				/* Class? */
   			        if (strcasecmp(yytext, "IN") == 0 ||
 					strcasecmp(yytext,"CLASS1") == 0 ) {
   				    yylval.class = CLASS_IN;
@@ -265,12 +266,24 @@ Q       \"
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word */
                             if ( in_rr == after_dname ) {
+				char *t;
+				/* type */
                                 i = zrrtype(yytext);
                                 if (i) {
                                     in_rr = reading_type;
 				    yylval.type = intbyname(yytext, ztypes);
 				    return i;
                                 } 
+				/* ttl */
+				printf("%d\n",in_rr);
+				strtottl(yytext, &t);
+				if ( *t == 0 ) {
+					/* was parseable */
+					yylval.data.str = yytext;
+					yylval.data.len = strlen(yytext); /*needed?*/
+					LEXOUT(("TTL "));
+					return TTL;
+				}
                             }
 
                             ztext = region_strdup(rr_region, yytext);
