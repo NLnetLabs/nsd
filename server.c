@@ -372,6 +372,11 @@ server_main(struct nsd *nsd)
 					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 				}
 
+#ifdef BIND8_STATS
+				/* Restart dumping stats if required.  */
+				alarm(nsd->st.period);
+#endif
+				
 				break;
 			default:
 				/* PARENT */
