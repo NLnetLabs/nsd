@@ -257,7 +257,7 @@ void query_put_dname_offset(struct query *query,
  * compression table.
  */
 static inline
-uint16_t query_get_dname_offset(struct query *query, domain_type *domain);
+uint16_t query_get_dname_offset(struct query *query, domain_type *domain)
 {
 	return query->compressed_dname_offsets[domain->number];
 }
