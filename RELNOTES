@@ -21,6 +21,9 @@ BUG FIXES:
           unquoted strings such as domain name labels.  The characters
           no longer need to be escaped with a backslash.
         - Close included files after reading.
+        - Maximum TCP message size is now 65535 bytes.  AXFR response
+          packets are still limited to 16383 bytes for optimal
+          compression of dnames.
 
 2.1.5
 =============
