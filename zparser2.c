@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.30 2003/10/29 13:26:49 miekg Exp $
+ * $Id: zparser2.c,v 1.31 2003/10/30 10:43:51 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -784,16 +784,12 @@ classbyint(uint16_t class)
 	return t;
 }
 
-int 
-setbit(uint8_t nxtbits[], int index)
+void 
+setbit(uint8_t bits[], int index)
 {
-
 	/* set bit #place in the byte */
 	/* the bits are counted from right to left
 	 * so bit #0 is the right most bit
 	 */
-
-	/* we're assuming here the byte has 8 bits */
-	nxtbits[index/8] |= ( 1 << ( 7 - index % 8 ));
+	bits[index / 8] |= (1 << (7 - index % 8));
 }
-

@@ -33,7 +33,7 @@
 #define	ROOT		(const uint8_t *)"\001"
 #define	MAXINCLUDES	10
 
-#define	IP6ADDRLEN	128/8
+#define	IP6ADDRLEN	(128/8)
 
 #ifndef AF_INET6
 #define AF_INET6	28	/* IPv6 */
@@ -188,6 +188,8 @@ uint8_t precsize_aton (register char *cp, char **endptr);
 const char *typebyint(uint16_t type);
 const char *classbyint(uint16_t class);
 void zprintrr(FILE *f, rr_type *rr);
+
+void setbit(uint8_t bits[], int index);
 
 /* zlparser.lex */
 int zoctet(char *word);
