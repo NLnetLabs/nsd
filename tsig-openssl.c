@@ -9,7 +9,7 @@
 
 #include <config.h>
 
-#if defined(TSIG) && defined(HAVE_OPENSSL_HMAC_H)
+#if defined(TSIG) && defined(HAVE_SSL)
 
 #include <openssl/hmac.h>
 
@@ -99,4 +99,4 @@ final(void *context, uint8_t *digest, size_t *size)
 	*size = (size_t) len;
 }
 
-#endif /* defined(TSIG) && defined(HAVE_OPENSSL_HMAC_H) */
+#endif /* defined(TSIG) && defined(HAVE_SSL) */

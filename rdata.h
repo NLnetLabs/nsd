@@ -13,6 +13,10 @@
 #include "dns.h"
 #include "namedb.h"
 
+/* High bit of the APL length field is the negation bit.  */
+#define APL_NEGATION_MASK      0x80U
+#define APL_LENGTH_MASK	       (~APL_NEGATION_MASK)
+
 extern lookup_table_type dns_certificate_types[];
 extern lookup_table_type dns_algorithms[];
 

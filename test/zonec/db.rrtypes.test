@@ -67,10 +67,10 @@ $TTL    1H
 ;; network LOC RR derived from ZIP data.  note use of precision defaults
 @       IN LOC   42 21 54 N 71 06 18 W -24m 30m
 ;; higher-precision host LOC RR.  note use of vertical precision default
-@       IN LOC   42 21 43.952 N 71 5 6.344 W -24m 1m 200m
-@       IN LOC   52 14 05 N 00 08 50 E 10m
-@       IN LOC   32 7 19 S 116 2 25 E 10m
-@       IN LOC   42 21 28.764 N 71 00 51.617 W -44m 2000m
+@       IN LOC   42 21 43.952 N 71 5 6.344 W -24.5m 1m 200m
+@       IN LOC   52 14 05 N 00 08 50 E 10.33m
+@       IN LOC   32   7 19 S 116 2 25.999 E 10m
+@       IN LOC   42 21 28.764 N 71 00 51.617 W -44.99m 2000m
 
 dotted\.label IN MX 10 "foo bar.nl"
 

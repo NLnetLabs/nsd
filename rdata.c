@@ -247,10 +247,10 @@ rdata_apl_to_string(buffer_type *output, rdata_atom_type rdata)
 		uint16_t address_family = buffer_read_u16(&packet);
 		uint8_t prefix = buffer_read_u8(&packet);
 		uint8_t length = buffer_read_u8(&packet);
-		int negated = length & 0x80;
+		int negated = length & APL_NEGATION_MASK;
 		int af = -1;
 		
-		length &= 0x7f;
+		length &= APL_LENGTH_MASK;
 		switch (address_family) {
 		case 1: af = AF_INET; break;
 		case 2: af = AF_INET6; break;
@@ -441,15 +441,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 	for (i = 0; i < descriptor->maximum; ++i) {
 		int is_domain = 0;
 		size_t length = 0;
-
-		if (buffer_position(packet) == end) {
-			if (i < descriptor->minimum) {
-				region_destroy(temp_region);
-				return -1;
-			} else {
-				break;
-			}
-		}
+		int required = i < descriptor->minimum;
 		
 		switch (rdata_atom_wireformat_type(rrtype, i)) {
 		case RDATA_WF_COMPRESSED_DNAME:
@@ -467,7 +459,10 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_WF_TEXT:
 			/* Length is stored in the first byte.  */
-			length = 1 + buffer_current(packet)[0];
+			length = 1;
+			if (buffer_position(packet) + length <= end) {
+				length += buffer_current(packet)[length - 1];
+			}
 			break;
 		case RDATA_WF_A:
 			length = sizeof(in_addr_t);
@@ -484,16 +479,24 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				  + sizeof(uint8_t)   /* prefix */
 				  + sizeof(uint8_t)); /* length */
 			if (buffer_position(packet) + length <= end) {
-				length += (buffer_current(packet)[sizeof(uint16_t) + sizeof(uint8_t)]) & 0x7f;
+				/* Mask out negation bit.  */
+				length += (buffer_current(packet)[length - 1]
+					   & APL_LENGTH_MASK);
 			}
-
 			break;
 		}
 
 		if (is_domain) {
-			const dname_type *dname = dname_make_from_packet(
+			const dname_type *dname;
+			
+			if (!required && buffer_position(packet) == end) {
+				break;
+			}
+			
+			dname = dname_make_from_packet(
 				temp_region, packet, 1, 1);
-			if (!dname) {
+			if (!dname || buffer_position(packet) > end) {
+				/* Error in domain name.  */
 				region_destroy(temp_region);
 				return -1;
 			}
@@ -501,9 +504,13 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				= domain_table_insert(owners, dname);
 		} else {
 			if (buffer_position(packet) + length > end) {
-/* 				zc_error_prev_line("unknown RDATA is truncated"); */
-				region_destroy(temp_region);
-				return -1;
+				if (required) {
+					/* Truncated RDATA.  */
+					region_destroy(temp_region);
+					return -1;
+				} else {
+					break;
+				}
 			}
 			
 			temp_rdatas[i].data = (uint16_t *) region_alloc(
@@ -514,7 +521,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 	}
 
 	if (buffer_position(packet) < end) {
-/* 		zc_error_prev_line("unknown RDATA has trailing garbage"); */
+		/* Trailing garbage.  */
 		region_destroy(temp_region);
 		return -1;
 	}
