@@ -197,11 +197,13 @@ read_tsig_key(region_type *region,
 
 	fclose(in);
 	
+#if 0
 	if (unlink(tsiginfo_filename) == -1) {
 		warning("failed to remove %s: %s",
 			tsiginfo_filename,
 			strerror(errno));
 	}
+#endif
 
 	return key;
 }
@@ -313,7 +315,7 @@ print_rr(region_type *region, FILE *out, rr_type *record)
 		buffer_flip(output);
 		fwrite(buffer_current(output), buffer_remaining(output), 1,
 		       out);
-		fflush(out);
+/* 		fflush(out); */
 	}
 	
 	return result;
@@ -409,6 +411,8 @@ receive_response(int s, query_type *q)
 	}
 
 	buffer_set_limit(q->packet, size);
+
+	fprintf(stderr, "receive_response: size %u\n", (unsigned) size);
 	
 	return 1;
 }
@@ -458,6 +462,44 @@ read_rr(region_type *region, domain_table_type *owners,
 	return 1;
 }
 
+
+static int
+check_response_tsig(query_type *q, tsig_record_type *tsig)
+{
+	if (!tsig)
+		return 1;
+
+	if (!tsig_find_rr(tsig, q)) {
+		error("response is not signed with TSIG");
+		return 0;
+	}
+	if (tsig->status == TSIG_NOT_PRESENT) {
+		error("TSIG not present");
+		return 0;
+	}
+	
+	ARCOUNT_SET(q, ARCOUNT(q) - 1);
+	buffer_set_position(q->packet, tsig->position);
+	
+	if (tsig->status == TSIG_ERROR) {
+		error("TSIG record is not correct");
+		return 0;
+	} else if (tsig->error_code != TSIG_ERROR_NOERROR) {
+		error("TSIG error code: %s",
+		      tsig_error(tsig->error_code));
+		return 0;
+	} else {
+		tsig_prepare(tsig);
+		tsig_update(tsig, q);
+		if (!tsig_verify(tsig)) {
+			error("TSIG record did not authenticate");
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
 /*
  * Query the server for the zone serial. Return 1 if the zone serial
  * is higher than the current serial, 0 if the zone serial is lower or
@@ -471,16 +513,15 @@ check_serial(int s,
 	     const dname_type *zone,
 	     const uint32_t current_serial,
 	     uint32_t *zone_serial,
-	     tsig_record_type *tsig_query)
+	     tsig_record_type *tsig)
 {
 	region_type *local;
 	uint16_t query_id;
 	uint16_t i;
 	domain_table_type *owners;
 	rr_type record;
-	tsig_record_type tsig_response;
 	
-	query_id = init_query(q, zone, TYPE_SOA, CLASS_IN, tsig_query);
+	query_id = init_query(q, zone, TYPE_SOA, CLASS_IN, tsig);
 	
 	if (!send_query(s, q)) {
 		return -1;
@@ -495,32 +536,6 @@ check_serial(int s,
 		return -1;
 	}
 
-	if (tsig_query) {
-		tsig_init_record(&tsig_response, q->region);
-		if (!tsig_find_record(&tsig_response, q)) {
-			error("response is not signed with TSIG");
-			return -1;
-		}
-		if (tsig_response.status == TSIG_NOT_PRESENT) {
-			error("response is not signed with TSIG");
-			return -1;
-		}
-		ARCOUNT_SET(q, ARCOUNT(q) - 1);
-		if (tsig_response.status == TSIG_ERROR) {
-			error("TSIG record is not correct");
-			return -1;
-		} else {
-			nsd_rc_type result;
-
-			result = tsig_validate_record(&tsig_response,
-						      q->packet);
-			if (result == NSD_RC_NOTAUTH) {
-				error("TSIG record did not authenticate");
-				return -1;
-			}
-		}
-	}
-	
 	if (!QR(q)) {
 		error("response is not a response");
 		return -1;
@@ -552,7 +567,11 @@ check_serial(int s,
 		return -1;
 	}
 
-	buffer_skip(q->packet, QHEADERSZ);
+	if (!check_response_tsig(q, tsig)) {
+		return -1;
+	}
+	
+	buffer_set_position(q->packet, QHEADERSZ);
 
 	local = region_create(xalloc, free);
 	owners = domain_table_create(local);
@@ -601,7 +620,11 @@ check_serial(int s,
 }
 
 static int
-axfr(int s, struct query *q, const dname_type *zone, FILE *out, tsig_record_type *tsig)
+axfr(int s,
+     query_type *q,
+     const dname_type *zone,
+     FILE *out,
+     tsig_record_type *tsig)
 {
 	int done = 0;
 	int first = 1;
@@ -652,7 +675,11 @@ axfr(int s, struct query *q, const dname_type *zone, FILE *out, tsig_record_type
 			return 0;
 		}
 
-		buffer_skip(q->packet, QHEADERSZ);
+		if (!check_response_tsig(q, tsig)) {
+			return 0;
+		}
+	
+		buffer_set_position(q->packet, QHEADERSZ);
 		
 		if (!parse_response(q, out, first, &done))
 			return 0;
@@ -690,8 +717,12 @@ init_query(query_type *q,
 	buffer_write_u16(q->packet, klass);
 
 	if (tsig) {
-		tsig_sign_record(tsig, q->packet);
-		tsig_append_record(tsig, q->packet);
+		tsig_init_query(tsig, query_id);
+		tsig_prepare(tsig);
+		tsig_update(tsig, q);
+		tsig_sign(tsig);
+		tsig_append_rr(tsig, q->packet);
+		ARCOUNT_SET(q, 1);
 	}
 	
 	buffer_flip(q->packet);
@@ -796,8 +827,7 @@ main (int argc, char *argv[])
 		tsig_add_key(tsig_key);
 		
 		tsig = region_alloc(region, sizeof(tsig_record_type));
-		tsig_init_record(tsig, region);
-		tsig_configure_record(tsig, tsig_algorithm_md5, tsig_key);
+		tsig_init_record(tsig, region, tsig_algorithm_md5, tsig_key);
 	}
 #endif
 	
@@ -849,8 +879,12 @@ main (int argc, char *argv[])
 			
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
-			rc = check_serial(s, &q, zone, current_serial,
-					  &zone_serial, tsig);
+			rc = check_serial(s,
+					  &q,
+					  zone,
+					  current_serial,
+					  &zone_serial,
+					  tsig);
 			if (rc == -1) {
 				close(s);
 				continue;

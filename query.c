@@ -161,7 +161,7 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	buffer_clear(q->packet);
 	edns_init_record(&q->edns);
 #ifdef TSIG
-	tsig_init_record(&q->tsig, q->region);
+	tsig_init_record(&q->tsig, q->region, NULL, NULL);
 #endif
 	q->tcp = is_tcp;
 	q->name = NULL;
@@ -335,7 +335,13 @@ process_tsig(query_type *q ATTR_UNUSED)
 		result = NSD_RC_FORMAT;
 	} else if (q->tsig.status == TSIG_OK) {
 		/* Verify TSIG.  */
-		result = tsig_validate_record(&q->tsig, q->packet);
+		tsig_prepare(&q->tsig);
+		tsig_update(&q->tsig, q);
+		if (tsig_verify(&q->tsig)) {
+			result = NSD_RC_OK;
+		} else {
+			result = NSD_RC_NOTAUTH;
+		}
 	} else {
 		result = NSD_RC_OK;
 	}
@@ -953,7 +959,7 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 #ifdef TSIG
 	if (arcount > 0) {
-		if (tsig_parse_record(&q->tsig, q->packet))
+		if (tsig_parse_rr(&q->tsig, q->packet))
 			--arcount;
 	}
 #endif
@@ -1035,8 +1041,10 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	case TSIG_OK:
 	case TSIG_ERROR:
-		tsig_update_record(&q->tsig, q->packet);
-		tsig_append_record(&q->tsig, q->packet);
+		tsig_prepare(&q->tsig);
+		tsig_update(&q->tsig, q);
+		tsig_sign(&q->tsig);
+		tsig_append_rr(&q->tsig, q->packet);
 		ARCOUNT_SET(q, ARCOUNT(q) + 1);
 
 		break;

@@ -64,6 +64,8 @@ struct tsig_record
 	HMAC_CTX          context;
 	const tsig_algorithm_type *algorithm;
 	const tsig_key_type *key;
+	uint16_t          prior_mac_size;
+	uint8_t          *prior_mac_data;
 	
 	const dname_type *key_name;
 	const dname_type *algorithm_name;
@@ -83,56 +85,97 @@ int tsig_init(region_type *region);
 
 void tsig_add_key(tsig_key_type *key);
 
-/*
- * Call this before starting to analyze a query. If the region is
- * free'd than tsig_init_record must be called again.
- */
-void tsig_init_record(tsig_record_type *data, region_type *query_region);
+const char *tsig_error(int error_code);
 
 /*
- * Prepare DATA for signing of a packet.
+ * Call this before starting to analyze or signing a sequence of
+ * packets. If the region is free'd than tsig_init_record must be
+ * called again.
+ *
+ * ALGORITHM and KEY are optional and are only needed if you want to
+ * sign the initial query.  Otherwise the key and algorithm are looked
+ * up in the algorithm and key table when a received TSIG RR is
+ * processed.
  */
-void tsig_configure_record(tsig_record_type *data,
-			   const tsig_algorithm_type *algorithm,
-			   const tsig_key_type *key);
-/*
- * Sign a query with the algorithm and key specified in DATA and store
- * the resulting signature in DATA.
- */
-void tsig_sign_record(tsig_record_type *data, buffer_type *packet);
+void tsig_init_record(tsig_record_type *data,
+		      region_type *region,
+		      const tsig_algorithm_type *algorithm,
+		      const tsig_key_type *key);
 
 /*
- * Find the TSIG record in PACKET and parse it if present.
+ * Validate the TSIG RR key and algorithm from the TSIG RR.  Otherwise
+ * update the TSIG error code.  The MAC itself is not validated.
+ *
+ * Returns non-zero if the key and algorithm could be validated.
  */
-int tsig_find_record(tsig_record_type *tsig, struct query *query);
+int tsig_from_query(tsig_record_type *tsig);
+
+/*
+ * Prepare TSIG for signing of a query.  This initializes TSIG with
+ * the provided ALGORITHM and KEY.
+ */
+void tsig_init_query(tsig_record_type *tsig, uint16_t original_query_id);
+
+/*
+ * Prepare TSIG for performing a MAC calculation.  If the TSIG
+ * contains a prior MAC it is inserted into the hash calculation.
+ */
+void tsig_prepare(tsig_record_type *tsig);
+
+/*
+ * Add PACKET to the TSIG hash.  If the query is a response the TSIG
+ * response count is incremented.
+ */
+void tsig_update(tsig_record_type *tsig, struct query *query);
+
+/*
+ * Finalize the TSIG record by hashing the TSIG data.  If the TSIG
+ * response count is greater than 1 only the timers are hashed.
+ * Signed time is set to the current time.  The TSIG record can be
+ * added to a packet using tsig_append_rr().
+ *
+ * The calculated MAC is also stored as the prior MAC, so it can be
+ * used as a running MAC.
+ */
+void tsig_sign(tsig_record_type *tsig);
+
+/*
+ * Verify the calculated MAC against the MAC in the TSIG RR.
+ *
+ * The calculated MAC is also stored as the prior MAC, so it can be
+ * used as a running MAC.
+ */
+int tsig_verify(tsig_record_type *tsig);
+
+/*
+ * Find the TSIG RR in QUERY and parse it if present.  Store the
+ * parsed results in TSIG.
+ *
+ * Returns non-zero if no parsing error occurred, use the tsig->status
+ * field to find out if the TSIG record was present.
+ */
+int tsig_find_rr(tsig_record_type *tsig, struct query *query);
 	
 /*
- * Call this to analyze the TSIG record starting at the current
- * location of PACKET.
+ * Call this to analyze the TSIG RR starting at the current location
+ * of PACKET. On success true is returned and the results are stored
+ * in TSIG.
+ *
+ * Returns non-zero if no parsing error occurred, use the tsig->status
+ * field to find out if the TSIG record was present.
  */
-int tsig_parse_record(tsig_record_type *data, buffer_type *packet);
+int tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet);
 
 /*
- * Verify the contents of the TSIG record against the data in packet.
+ * Append the TSIG record to the response PACKET.
  */
-int tsig_validate_record(tsig_record_type *data, buffer_type *packet);
-
-/*
- * Create the data necessary to include a TSIG record in the response
- * based on the data in PACKET.
- */
-int tsig_update_record(tsig_record_type *data, buffer_type *packet);
-
-/*
- * Append the TSIG record to the response.
- */
-void tsig_append_record(tsig_record_type *data, buffer_type *packet);
+void tsig_append_rr(tsig_record_type *tsig, buffer_type *packet);
 
 /*
  * The amount of space to reserve in the response for the TSIG data
  * (if required).
  */
-size_t tsig_reserved_space(tsig_record_type *data);
+size_t tsig_reserved_space(tsig_record_type *tsig);
 
 #endif /* TSIG */
 
