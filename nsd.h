@@ -1,6 +1,4 @@
 /*
- * $Id: nsd.h,v 1.56 2003/06/17 14:50:27 erik Exp $
- *
  * nsd.h -- nsd(8) definitions and prototypes
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

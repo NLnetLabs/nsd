@@ -1,5 +1,3 @@
-$Id: CREDITS,v 1.9 2003/04/15 09:57:18 alexis Exp $
-
 The NSD was primarily developed by NLnet LABS on request from and close
 cooperation with RIPE NCC, as an alternative name server software to be
 run on the root name server RIPE NCC operates.
@@ -17,5 +15,6 @@ Ted Lindgreen, <ted@nlnetlabs.nl> NLnet LABS	- design, code review, testing
 Contributors (in alphabetical order):
 
 Jun-ichiro itojun Hagino, <itojun@iijlab.net> IIJLab		- IPv6 transport
+Colm MacCárthaigh, <colm.maccarthaigh@heanet.ie>                - IPv6 binding and cleanups.
 Jakob Schlyter, <jakob@crt.se> Carlstedt Research & Technology	- chroot patch
 Ondrej Sury, <ondrej@sury.org>					- nsd-notify.8 man page

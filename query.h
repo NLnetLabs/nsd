@@ -1,6 +1,4 @@
 /*
- * $Id: query.h,v 1.32 2003/06/18 09:59:29 erik Exp $
- *
  * query.h -- manipulation with the queries
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

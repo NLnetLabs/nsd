@@ -1,6 +1,4 @@
 #
-# $Id: Makefile.in,v 1.38 2003/06/17 14:50:21 erik Exp $
-#
 # Makefile -- one file to make them all, nsd(8)
 #
 # Alexis Yushin, <alexis@nlnetlabs.nl>
@@ -97,9 +95,9 @@ install: all
 	$(INSTALL) -d $(configdir)
 	$(INSTALL) -d $(mandir)
 	$(INSTALL) -d $(mandir)/man8
-	$(INSTALL) -s nsd $(sbindir)/nsd
-	$(INSTALL) -s zonec $(sbindir)/zonec
-	$(INSTALL) -s nsd-axfr $(sbindir)/nsd-axfr
+	$(INSTALL) nsd $(sbindir)/nsd
+	$(INSTALL) zonec $(sbindir)/zonec
+	$(INSTALL) nsd-axfr $(sbindir)/nsd-axfr
 	$(INSTALL) nsdc.sh $(sbindir)/nsdc
 	$(INSTALL_DATA) nsd.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8

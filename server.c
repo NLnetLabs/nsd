@@ -1,6 +1,4 @@
 /*
- * $Id: server.c,v 1.71 2003/06/17 14:50:31 erik Exp $
- *
  * server.c -- nsd(8) network input/output
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
@@ -96,10 +94,18 @@ restart_tcp_child_servers(struct nsd *nsd)
 {
 	int i;
 
+	if (nsd->debug) {
+		/*
+		 * NSD doesn't handle TCP connecties yet in debug mode
+		 * (forking interferes with profiling).
+		 */
+		return 0;
+	}
+	
 	/* Pre-fork the tcp processes... */
 	for (i = 1; i <= nsd->tcp_open_conn; ++i) {
 		if (nsd->pid[i] == 0) {
-			nsd->pid[i] = nsd->debug ? 0 : fork();
+			nsd->pid[i] = fork();
 			switch (nsd->pid[i]) {
 			case 0: /* CHILD */
 				nsd->pid[0] = 0;
@@ -264,6 +270,7 @@ void
 server_shutdown(struct nsd *nsd)
 {
 	int i;
+
 #ifdef	BIND8_STATS
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
