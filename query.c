@@ -817,7 +817,7 @@ answer_query(struct nsd *nsd, struct query *q)
 			q->zone = zone;
 	}
 
-	if (exact && q->tpe == TYPE_DS && closest_encloser = q->zone->domain) {
+	if (exact && q->type == TYPE_DS && closest_encloser = q->zone->domain) {
 		/*
 		 * Type DS query at the zone apex (and the server is
 		 * not authoratitive for the parent zone).
