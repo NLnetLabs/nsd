@@ -1,4 +1,4 @@
-$Id: README,v 1.13.2.1 2002/08/06 12:46:07 alexis Exp $
+$Id: README,v 1.13.2.2 2002/08/07 15:56:13 alexis Exp $
 
 1.0 Introduction
 
@@ -89,6 +89,9 @@ NAMEDXFER	Location of bind8 named-xfer programm
 
 		If this variable is left empty nsdc update functionality wont be
 		available
+
+NSDKEYSDIR	The directory where crypto keys (for example for TSIG) are stored.
+		For now only used for named-xfer(8) tsig info files
 
 2.3 Building
 
@@ -196,3 +199,78 @@ axfr : 127.0.0.1 : allow
 axfr : ns1.ripe.net : allow
 axfr : ns1.sidn.nl : allow
 axfr : ALL : deny
+
+3.2 Keeping in sync the secondary zones with ``nsdc update''
+
+Originally NSD was not designed to be run as a secondary server. That means
+that keeping and updating the local master zone files is outside of the scope
+of the package and should be done either out of band or with help of separate
+tools. However starting with 1.0.1-beta4 NSD provides such functionality to
+a limited extent.
+
+It makes no difference for zonec(8) and nsd(8) whether the master zone file
+was created and maintained locally or was obtained via AXFR/IXFR or out of
+band. However it is possible to specify the master servers in nsd.zones
+file by adding ``masters'' keyword followed by ip address of the master to
+instruct nsdc(8) update to update these zones with named-xfer(8) utility
+if necessary. named-xfer(8) is a part of the bind-8 package and can be
+obtained from http://www.isc.org as a part of bind8 distribution.
+
+; zone name file [ masters ip-address ]
+zone nlnetlabs.nl secondary/nlnetlabs.nl masters 213.53.69.1
+
+Given the line above nsdc(8) update will invoke named-xfer(8) to check
+whether the zone was modified and if so will AXFR the zone from the master
+213.53.69.1
+
+To enable nsdc(8) update functionality one should have named-xfer utility
+installed and its path specified with $NAMEDXFER variable in Makefile at
+compilation time. Alternatively $NAMEDXFER variable can be modified in
+installed version of nsdc(8)
+
+Due to the static nature of nsd(8) database it has to be rebuilt completely
+whenever one of the zones changes. Therefore it is recommended to do the
+database rebuilds at certain scheduled time, for example every hour.
+nsdc(8) update will rebuild the database and reload the daemon if necessary.
+
+the follow cron(8) command will take care of synchronizing the database with
+the master servers:
+
+# nsd zone update every hour
+1       *       *       *       *       /usr/local/sbin/nsdc update
+
+3.2.1 Using TSIG with synchronizing with master servers
+
+It is as well possible to update the master zone files (inbound AXFR) with
+nsdc(8) update using TSIG.
+
+This is done by passing the tsig key to named-xfer(8)
+
+Regretfully named-xfer(8) uses very cryptic format for so called tsig-info
+file, so a bit of black magic is necessary.
+
+First of all ${NSDKEYSDIR} should be set at the compile time or adjusted
+to reflect the directory where all the TSIG keys will be stored.
+
+For example NSDKEYSDIR=/etc/nsd/keys or NSDKEYSDIR=${NSDZONESDIR}/keys
+would be a good location.
+
+Lets say we have following:
+
+server:	213.53.69.1
+key-name: nlnetlabs-axfr
+algorithm: hmac-md5
+secret: Y87923jksdXlsdv+LeXpUA==
+
+Then we need to create file ${NSDKEYSDIR}/213.53.69.1.tsiginfo containing:
+213.53.69.1
+nlnetlabs-axfr
+157
+Y87923jksdXlsdv+LeXpUA==
+
+Cryptic? Yes. The first line tells this key is to be used for 213.53.69.1
+Second one is the name of the key. 157 stands for hmac-md5 algorithm
+and the last line is the secret.
+
+I'm working on a small tool to create these files from somewhat more readable
+format.
