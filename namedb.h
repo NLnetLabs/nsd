@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.33 2003/06/25 11:37:00 erik Exp $
+ * $Id: namedb.h,v 1.34 2003/06/25 11:39:39 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -42,7 +42,7 @@
 #define	_NAMEDB_H_
 
 #define DEFAULT_ALIGNMENT       (sizeof (void *))
-#define ALIGN(x)                (((x) + DEFAULT_ALIGNMENT - 1) & (~0U - (DEFAULT_ALIGNMENT - 1)))
+#define ALIGN_UP(x)                (((x) + DEFAULT_ALIGNMENT - 1) & (~(DEFAULT_ALIGNMENT - 1)))
 
 #define	NAMEDB_MAXDSIZE		32768	/* Maximum size of a domain */
 

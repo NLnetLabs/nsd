@@ -143,7 +143,7 @@ query_axfr (struct query *q, struct nsd *nsd, const u_char *qname, const u_char 
 	/* Let get next domain */
 	do {
 		dname = (const u_char *)d + d->size;
-		d = (const struct domain *)(dname + ALIGN(*dname + 1));
+		d = (const struct domain *)(dname + ALIGN_UP(*dname + 1));
 	} while(*dname && (DOMAIN_FLAGS(d) & NAMEDB_STEALTH));
 
 	/* End of the database or end of zone? */
