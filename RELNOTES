@@ -13,6 +13,10 @@ FEATURES:
         - CNAME target records are now generated from wildcard
           records if necessary.
 
+REGRESSIONS:
+        - mmap(2) isn't currently supported.
+        - Not all RR types are supported by zonec (such as LOC).
+
 1.3.0-alpha1
 =============
 FEATURES:
