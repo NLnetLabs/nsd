@@ -266,15 +266,15 @@ namedb_open (const char *filename)
 	uint32_t rrset_count = 0;
 	
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(namedb_type) = %d\n", sizeof(namedb_type)));
+	      (stderr, "sizeof(namedb_type) = %lu\n", (unsigned long) sizeof(namedb_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(zone_type) = %d\n", sizeof(zone_type)));
+	      (stderr, "sizeof(zone_type) = %lu\n", (unsigned long) sizeof(zone_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(domain_type) = %d\n", sizeof(domain_type)));
+	      (stderr, "sizeof(domain_type) = %lu\n", (unsigned long) sizeof(domain_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(rrset_type) = %d\n", sizeof(rrset_type)));
+	      (stderr, "sizeof(rrset_type) = %lu\n", (unsigned long) sizeof(rrset_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(rbnode_t) = %d\n", sizeof(rbnode_t)));
+	      (stderr, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
 
 	db_region = region_create(xalloc, free);
 	db = region_alloc(db_region, sizeof(struct namedb));
