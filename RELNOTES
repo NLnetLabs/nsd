@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.5.2.2 2002/08/20 08:46:23 alexis Exp $
+$Id: RELNOTES,v 1.5.2.3 2002/09/03 11:54:47 alexis Exp $
 
 1.0.1
 =============
@@ -10,7 +10,7 @@ FEATURES:
 	- AXFR implemented (with tcpwrapper for access control)
 	- nsdc update and nsdc notify functinality
 	- using named-xfer with TSIG for inbound axfr
-	
+
 
 CHANGES:
 	- the order of records in the database is from now
@@ -20,6 +20,9 @@ CHANGES:
 
 BUG FIXES:
 	- white space problem in zonec is fixed
+
+KNOWN BUGS:
+	- please see appropriate man pages for the known bugs
 
 1.0.0 RELEASE
 =============
