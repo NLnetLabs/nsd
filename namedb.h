@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.21 2002/04/11 13:26:30 alexis Exp $
+ * $Id: namedb.h,v 1.21.2.1 2002/05/27 14:46:13 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -40,8 +40,6 @@
 
 #ifndef _NAMEDB_H_
 #define	_NAMEDB_H_
-
-#include "config.h"
 
 #define	NAMEDB_MAXDSIZE		32768	/* Maximum size of a domain */
 

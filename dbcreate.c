@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.11 2002/02/20 14:25:24 alexis Exp $
+ * $Id: dbcreate.c,v 1.11.2.1 2002/05/27 14:46:13 alexis Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -37,6 +37,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include "config.h"
+
 #include <sys/types.h>
 
 #include <fcntl.h>

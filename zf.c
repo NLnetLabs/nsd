@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.21.2.1 2002/05/07 10:26:24 alexis Exp $
+ * $Id: zf.c,v 1.21.2.2 2002/05/27 14:46:14 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -37,6 +37,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include "config.h"
+
 #include <sys/types.h>
 
 #include <assert.h>
