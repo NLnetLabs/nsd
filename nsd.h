@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.25.4.2 2002/05/21 09:49:08 alexis Exp $
+ * $Id: nsd.h,v 1.25.4.3 2002/05/21 10:05:59 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -105,7 +105,8 @@ struct	nsd {
 
 	struct {
 		u_int16_t	max_msglen;
-		char		opt[OPT_LEN];
+		char		opt_ok[OPT_LEN];
+		char		opt_err[OPT_LEN];
 	} edns;
 };
 
