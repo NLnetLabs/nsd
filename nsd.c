@@ -218,6 +218,7 @@ sig_handler (int sig)
 			nsd.mode = NSD_QUIT;
 			break;
 		case SIGILL:
+		case SIGUSR1:	/* Dump stats on SIGUSR1.  */
 			nsd.mode = NSD_STATS;
 			break;
 		default:
@@ -237,8 +238,17 @@ sig_handler (int sig)
 #ifdef BIND8_STATS
 		alarm(nsd.st.period);
 #endif
-		sig = SIGILL;
+		sig = SIGUSR1;
+		break;
 	case SIGILL:
+		/*
+		 * For backwards compatibility with BIND 8 and older
+		 * versions of NSD.
+		 */
+		sig = SIGUSR1;
+		break;
+	case SIGUSR1:
+		/* Dump statistics.  */
 		break;
 	case SIGINT:
 		/* Silent shutdown... */
@@ -248,6 +258,7 @@ sig_handler (int sig)
 	default:
 		nsd.mode = NSD_SHUTDOWN;
 		log_msg(LOG_WARNING, "signal %d received, shutting down...", sig);
+		sig = SIGTERM;
 		break;
 	}
 
@@ -738,6 +749,7 @@ main (int argc, char *argv[])
 	sigaction(SIGHUP, &action, NULL);
 	sigaction(SIGINT, &action, NULL);
 	sigaction(SIGILL, &action, NULL);
+	sigaction(SIGUSR1, &action, NULL);
 	sigaction(SIGALRM, &action, NULL);
 	sigaction(SIGCHLD, &action, NULL);
 	action.sa_handler = SIG_IGN;

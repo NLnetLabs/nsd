@@ -646,6 +646,7 @@ server_child(struct nsd *nsd)
 	sigemptyset(&block_sigmask);
 	sigaddset(&block_sigmask, SIGHUP);
 	sigaddset(&block_sigmask, SIGILL);
+	sigaddset(&block_sigmask, SIGUSR1);
 	sigaddset(&block_sigmask, SIGINT);
 	sigaddset(&block_sigmask, SIGTERM);
 	sigprocmask(SIG_BLOCK, &block_sigmask, &default_sigmask);
