@@ -42,6 +42,7 @@
 #include "nsd.h"
 #include "query.h"
 
+query_state_type answer_axfr_ixfr(struct nsd *nsd, struct query *q);
 query_state_type query_axfr(struct nsd *nsd, struct query *query);
 
 #endif /* _AXFR_H_ */

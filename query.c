@@ -468,65 +468,6 @@ answer_chaos(struct nsd *nsd, struct query *q)
 }
 
 
-/*
- * Answer if this is an AXFR or IXFR query.
- */
-static query_state_type
-answer_axfr_ixfr(struct nsd *nsd, struct query *q)
-{
-	/* Is it AXFR? */
-	switch (q->type) {
-	case TYPE_AXFR:
-#ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
-		if (q->tcp) {
-#ifdef LIBWRAP
-			struct request_info request;
-#ifdef AXFR_DAEMON_PREFIX
-			const uint8_t *qptr = dname_name(q->name);
-			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
-			char *t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1;
-
-			memcpy(axfr_daemon, AXFR_DAEMON_PREFIX, sizeof(AXFR_DAEMON_PREFIX));
-
-			/* Copy the qname as a string */
-			while (*qptr)
-			{
-				memcpy(t, qptr + 1, *qptr);
-				t += *qptr;
-				*t++ = '.';
-				qptr += *qptr + 1;
-			}
-			*t = 0;
-			
-#endif /* AXFR_DAEMON_PREFIX */
-			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
-			sock_methods(&request);	/* This is to work around the bug in libwrap */
-			if (!hosts_access(&request)) {
-#ifdef AXFR_DAEMON_PREFIX
-				request_init(&request, RQ_DAEMON, axfr_daemon, RQ_CLIENT_SIN, &q->addr, 0);
-				sock_methods(&request);	/* This is to work around the bug in libwrap */
-				log_msg(LOG_ERR, "checking %s", axfr_daemon);
-				if (!hosts_access(&request)) {
-#endif /* AXFR_DAEMON_PREFIX */
-					RCODE_SET(q, RCODE_REFUSE);
-					return QUERY_PROCESSED;
-#ifdef AXFR_DAEMON_PREFIX
-				}
-#endif /* AXFR_DAEMON_PREFIX */
-			}
-#endif /* LIBWRAP */
-			return query_axfr(nsd, q);
-		}
-#endif	/* DISABLE_AXFR */
-	case TYPE_IXFR:
-		RCODE_SET(q, RCODE_REFUSE);
-		return QUERY_PROCESSED;
-	default:
-		return QUERY_DISCARDED;
-	}
-}
-
-
 static domain_type *
 find_covering_nsec(domain_type *closest_match, zone_type *zone, rrset_type **nsec_rrset)
 {
