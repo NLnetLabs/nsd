@@ -51,10 +51,16 @@ struct axfr_state
 	query_type *q;		/* Query buffer.  */
 	uint16_t query_id;	/* AXFR query ID.  */
 	tsig_record_type *tsig;	/* TSIG data.  */
+
+	int first_transfer;	 /* First transfer of this zone.  */
+	uint32_t last_serial;    /* Otherwise the last serial.  */
+	uint32_t zone_serial;	 /* And the new zone serial.  */
+	const dname_type *zone;	 /* Zone name.  */
 	
 	int    done;		/* AXFR is complete.  */
 	size_t rr_count;	/* Number of RRs received so far.  */
 
+	
 	/*
 	 * Region used to allocate data needed to process a single RR.
 	 */
@@ -554,90 +560,87 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
  * On success, the zone serial is returned in ZONE_SERIAL.
  */
 static int
-check_serial(int s,
-	     query_type *q,
-	     const dname_type *zone,
-	     const uint32_t current_serial,
-	     uint32_t *zone_serial,
-	     tsig_record_type *tsig)
+check_serial(axfr_state_type *state)
 {
 	region_type *local;
 	uint16_t query_id;
 	uint16_t i;
 	domain_table_type *owners;
 	
-	query_id = init_query(q, zone, TYPE_SOA, CLASS_IN, tsig);
+	query_id = init_query(
+		state->q, state->zone, TYPE_SOA, CLASS_IN, state->tsig);
 	
-	if (!send_query(s, q)) {
+	if (!send_query(state->s, state->q)) {
 		return -1;
 	}
 
-	if (tsig) {
+	if (state->tsig) {
 		/* Prepare for checking responses. */
-		tsig_prepare(tsig);
+		tsig_prepare(state->tsig);
 	}
 	
-	if (!receive_response(s, q)) {
+	if (!receive_response(state->s, state->q)) {
 		return -1;
 	}
-	buffer_flip(q->packet);
+	buffer_flip(state->q->packet);
 
-	if (buffer_limit(q->packet) <= QHEADERSZ) {
+	if (buffer_limit(state->q->packet) <= QHEADERSZ) {
 		error("response size (%d) is too small",
-		      (int) buffer_limit(q->packet));
+		      (int) buffer_limit(state->q->packet));
 		return -1;
 	}
 
-	if (!QR(q->packet)) {
+	if (!QR(state->q->packet)) {
 		error("response is not a response");
 		return -1;
 	}
 
-	if (TC(q->packet)) {
+	if (TC(state->q->packet)) {
 		error("response is truncated");
 		return -1;
 	}
 	
-	if (ID(q->packet) != query_id) {
+	if (ID(state->q->packet) != query_id) {
 		error("bad response id (%d), expected (%d)",
-		      (int) ID(q->packet), (int) query_id);
+		      (int) ID(state->q->packet), (int) query_id);
 		return -1;
 	}
 	
-	if (RCODE(q->packet) != RCODE_OK) {
-		error("error response %d", (int) RCODE(q->packet));
+	if (RCODE(state->q->packet) != RCODE_OK) {
+		error("error response %d", (int) RCODE(state->q->packet));
 		return -1;
 	}
 	
-	if (QDCOUNT(q->packet) != 1) {
+	if (QDCOUNT(state->q->packet) != 1) {
 		error("question section count not equal to 1");
 		return -1;
 	}
 	
-	if (ANCOUNT(q->packet) == 0) {
+	if (ANCOUNT(state->q->packet) == 0) {
 		error("answer section is empty");
 		return -1;
 	}
 
-	if (!check_response_tsig(q, tsig)) {
+	if (!check_response_tsig(state->q, state->tsig)) {
 		return -1;
 	}
 	
-	buffer_set_position(q->packet, QHEADERSZ);
+	buffer_set_position(state->q->packet, QHEADERSZ);
 
 	local = region_create(xalloc, free);
 	owners = domain_table_create(local);
 	
 	/* Skip question records. */
-	for (i = 0; i < QDCOUNT(q->packet); ++i) {
-		rr_type *record = packet_read_rr(local, owners, q->packet, 1);
+	for (i = 0; i < QDCOUNT(state->q->packet); ++i) {
+		rr_type *record
+			= packet_read_rr(local, owners, state->q->packet, 1);
 		if (!record) {
 			error("bad RR in question section");
 			region_destroy(local);
 			return -1;
 		}
 
-		if (dname_compare(zone, domain_dname(record->owner)) != 0
+		if (dname_compare(state->zone, domain_dname(record->owner)) != 0
 		    || record->type != TYPE_SOA
 		    || record->klass != CLASS_IN)
 		{
@@ -648,24 +651,26 @@ check_serial(int s,
 	}
 	
 	/* Find the SOA record in the response.  */
-	for (i = 0; i < ANCOUNT(q->packet); ++i) {
-		rr_type *record = packet_read_rr(local, owners, q->packet, 0);
+	for (i = 0; i < ANCOUNT(state->q->packet); ++i) {
+		rr_type *record
+			= packet_read_rr(local, owners, state->q->packet, 0);
 		if (!record) {
 			error("bad RR in answer section");
 			region_destroy(local);
 			return -1;
 		}
 
-		if (dname_compare(zone, domain_dname(record->owner)) == 0
+		if (dname_compare(state->zone, domain_dname(record->owner)) == 0
 		    && record->type == TYPE_SOA
 		    && record->klass == CLASS_IN)
 		{
 			assert(record->rdata_count == 7);
 			assert(rdata_atom_size(record->rdatas[2]) == 4);
-			*zone_serial = read_uint32(rdata_atom_data(
-							   record->rdatas[2]));
+			state->zone_serial = read_uint32(
+				rdata_atom_data(record->rdatas[2]));
 			region_destroy(local);
-			return *zone_serial > current_serial;
+			return (state->first_transfer
+				|| state->zone_serial > state->last_serial);
 		}
 	}
 
@@ -734,48 +739,26 @@ handle_axfr_response(FILE *out, axfr_state_type *axfr)
 }
 
 static int
-axfr(int s,
-     query_type *q,
-     const char *server,
-     const dname_type *zone,
-     FILE *out,
-     tsig_record_type *tsig)
+axfr(FILE *out, axfr_state_type *state, const char *server)
 {
-	axfr_state_type state;
-	int result;
-	
-	state.query_id = init_query(q, zone, TYPE_AXFR, CLASS_IN, tsig);
+	state->query_id = init_query(
+		state->q, state->zone, TYPE_AXFR, CLASS_IN, state->tsig);
 
 	log_msg(LOG_INFO,
 		"send AXFR query to %s for %s",
 		server,
-		dname_to_string(zone, NULL));
+		dname_to_string(state->zone, NULL));
 	
-	if (!send_query(s, q)) {
+	if (!send_query(state->s, state->q)) {
 		return 0;
 	}
 
-	if (tsig) {
+	if (state->tsig) {
 		/* Prepare for checking responses.  */
-		tsig_prepare(tsig);
+		tsig_prepare(state->tsig);
 	}
 	
-	state.s = s;
-	state.q = q;
-	state.tsig = tsig;
-	state.done = 0;
-	state.rr_count = 0;
-	state.rr_region = region_create(xalloc, free);
-	state.previous_owner_region = region_create(xalloc, free);
-	state.previous_owner = NULL;
-	state.previous_owner_origin = NULL;
-
-	result = handle_axfr_response(out, &state);
-
-	region_destroy(state.previous_owner_region);
-	region_destroy(state.rr_region);
-
-	return result;
+	return handle_axfr_response(out, state);
 }
 
 static uint16_t
@@ -819,26 +802,67 @@ init_query(query_type *q,
 	return ID(q->packet);
 }
 
-int 
-main (int argc, char *argv[])
+static void
+print_zone_header(FILE *out, axfr_state_type *state, const char *server)
 {
+	time_t now = time(NULL);
+	fprintf(out, "; NSD version %s\n", PACKAGE_VERSION);
+	fprintf(out, "; zone '%s'", dname_to_string(state->zone, NULL));
+	if (state->first_transfer) {
+		fprintf(out, "   first transfer\n");
+	} else {
+		fprintf(out,
+			"   last serial %lu\n",
+			(unsigned long) state->last_serial);
+	}
+	fprintf(out, "; from %s using AXFR at %s", server, ctime(&now));
+	if (state->tsig) {
+		fprintf(out, "; TSIG verified with key '%s'\n",
+			dname_to_string(state->tsig->key->name, NULL));
+	} else {
+		fprintf(out, "; NOT TSIG verified\n");
+	}
+}
+
+int 
+main(int argc, char *argv[])
+{
+	region_type *region = region_create(xalloc, free);
 	int c;
 	query_type q;
 	struct addrinfo hints, *res0, *res;
-	const dname_type *zone = NULL;
-	const char *file = NULL;
-	const char *serial = NULL;
-	uint32_t current_serial = 0;
+	const char *zone_filename = NULL;
 	const char *port = TCP_PORT;
-	region_type *region = region_create(xalloc, free);
 	int default_family = DEFAULT_AI_FAMILY;
 	FILE *zone_file;
 	const char *tsig_key_filename = NULL;
 	tsig_key_type *tsig_key = NULL;
-	tsig_record_type *tsig = NULL;
+	axfr_state_type state;
 	
 	log_init("nsd-xfer");
 
+	/* Initialize the query.  */
+	memset(&q, 0, sizeof(query_type));
+	q.region = region;
+	q.addrlen = sizeof(q.addr);
+	q.packet = buffer_create(region, QIOBUFSZ);
+	q.maxlen = MAX_PACKET_SIZE;
+
+	/* Initialize the state.  */
+	state.q = &q;
+	state.tsig = NULL;
+	state.zone = NULL;
+	state.first_transfer = 1;
+	state.done = 0;
+	state.rr_count = 0;
+	state.rr_region = region_create(xalloc, free);
+	state.previous_owner_region = region_create(xalloc, free);
+	state.previous_owner = NULL;
+	state.previous_owner_origin = NULL;
+
+	region_add_cleanup(region, region_destroy, state.previous_owner_region);
+	region_add_cleanup(region, region_destroy, state.rr_region);
+	
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	if (!tsig_init(region)) {
@@ -859,7 +883,7 @@ main (int argc, char *argv[])
 #endif /* !INET6 */
 			break;
 		case 'f':
-			file = optarg;
+			zone_filename = optarg;
 			break;
 		case 'h':
 			usage();
@@ -867,14 +891,21 @@ main (int argc, char *argv[])
 		case 'p':
 			port = optarg;
 			break;
-		case 's':
-			serial = optarg;
+		case 's': {
+			const char *t;
+			state.first_transfer = 0;
+			state.last_serial = strtottl(optarg, &t);
+			if (*t != '\0') {
+				error("bad serial '%s'\n", optarg);
+				exit(XFER_FAIL);
+			}
 			break;
+		}
 		case 'T':
 			tsig_key_filename = optarg;
 			break;
 		case 'z':
-			zone = dname_parse(region, optarg, NULL);
+			state.zone = dname_parse(region, optarg, NULL);
 			break;
 		case '?':
 		default:
@@ -884,18 +915,9 @@ main (int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (argc == 0 || !zone || !file)
+	if (argc == 0 || !zone_filename || !state.zone)
 		usage();
 
-	if (serial) {
-		const char *t;
-		current_serial = strtottl(serial, &t);
-		if (*t != '\0') {
-			error("bad serial '%s'\n", serial);
-			exit(XFER_FAIL);
-		}
-	}
-	
 	if (tsig_key_filename) {
 		tsig_algorithm_type *md5
 			= tsig_get_algorithm_by_name("hmac-md5");
@@ -913,18 +935,11 @@ main (int argc, char *argv[])
 
 		tsig_add_key(tsig_key);
 		
-		tsig = (tsig_record_type *) region_alloc(
+		state.tsig = (tsig_record_type *) region_alloc(
 			region, sizeof(tsig_record_type));
-		tsig_init_record(tsig, region, md5, tsig_key);
+		tsig_init_record(state.tsig, region, md5, tsig_key);
 	}
 	
-	/* Initialize the query */
-	memset(&q, 0, sizeof(query_type));
-	q.region = region;
-	q.addrlen = sizeof(q.addr);
-	q.packet = buffer_create(region, QIOBUFSZ);
-	q.maxlen = MAX_PACKET_SIZE;
-
 	for (; *argv; ++argv) {
 		/* Try each server separately until one succeeds.  */
 		int rc;
@@ -942,22 +957,20 @@ main (int argc, char *argv[])
 		}
 
 		for (res = res0; res; res = res->ai_next) {
-			uint32_t zone_serial = (uint32_t) -1;
-			int s;
-			
 			if (res->ai_addrlen > sizeof(q.addr))
 				continue;
 
-			s = socket(res->ai_family, res->ai_socktype,
-				   res->ai_protocol);
-			if (s == -1)
+			state.s = socket(res->ai_family, res->ai_socktype,
+					 res->ai_protocol);
+			if (state.s == -1)
 				continue;
 
-			if (connect(s, res->ai_addr, res->ai_addrlen) < 0) {
+			if (connect(state.s, res->ai_addr, res->ai_addrlen) < 0)
+			{
 				warning("cannot connect to %s: %s\n",
 					*argv,
 					strerror(errno));
-				close(s);
+				close(state.s);
 				if (!res->ai_next) {
 					error("failed to connect to master servers");
 				}
@@ -966,45 +979,35 @@ main (int argc, char *argv[])
 			
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
-			rc = check_serial(s,
-					  &q,
-					  zone,
-					  current_serial,
-					  &zone_serial,
-					  tsig);
+			rc = check_serial(&state);
 			if (rc == -1) {
-				close(s);
+				close(state.s);
 				continue;
 			}
-
-/* 			printf("Current serial %lu, zone serial %lu\n", */
-/* 			       (unsigned long) current_serial, */
-/* 			       (unsigned long) zone_serial); */
-
 			if (rc == 0) {
-/* 				printf("Zone up-to-date, done.\n"); */
-				close(s);
+				/* Zone is up-to-date.  */
+				close(state.s);
 				exit(XFER_UPTODATE);
 			} else if (rc > 0) {
-/* 				printf("Transferring zone.\n"); */
-				
-				zone_file = fopen(file, "w");
+				zone_file = fopen(zone_filename, "w");
 				if (!zone_file) {
 					error("cannot open or create zone file '%s' for writing: %s",
-					      file, strerror(errno));
-					close(s);
+					      zone_filename, strerror(errno));
+					close(state.s);
 					exit(XFER_FAIL);
 				}
-	
-				if (axfr(s, &q, *argv, zone, zone_file, tsig)) {
+
+				print_zone_header(zone_file, &state, *argv);
+				
+				if (axfr(zone_file, &state, *argv)) {
 					/* AXFR succeeded, done.  */
 					fclose(zone_file);
-					close(s);
+					close(state.s);
 					exit(XFER_SUCCESS);
 				}
 			}
 			
-			close(s);
+			close(state.s);
 		}
 
 		freeaddrinfo(res0);
