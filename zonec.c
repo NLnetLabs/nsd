@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.39 2002/02/20 15:33:09 alexis Exp $
+ * $Id: zonec.c,v 1.40 2002/02/20 16:42:40 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -41,6 +41,7 @@
 #include "zonec.h"
 
 static void zone_addbuf __P((struct message *, const void *, size_t));
+static void zone_addcompr __P((struct message *, u_char *, u_int16_t, u_char));
 
 /* The database file... */
 char *dbfile = DEFAULT_DBFILE;
@@ -155,6 +156,25 @@ zone_addbuf(msg, data, size)
 	msg->bufptr += size;
 }
 
+static void
+zone_addcompr(msg, dname, offset, len)
+	struct message *msg;
+	u_char *dname;
+	u_int16_t offset;
+	u_char len;
+{
+	if (msg->comprlen == MAXRRSPP) {
+		fflush(stdout);
+		fprintf(stderr, "zonec: too many compressed dnames\n");
+		exit(1);
+	}
+	
+	msg->compr[msg->comprlen].dname = dname;
+	msg->compr[msg->comprlen].dnameoff = offset;
+	msg->compr[msg->comprlen].dnamelen = len;
+	msg->comprlen++;
+}
+
 u_int16_t
 zone_addname(msg, dname)
 	struct message *msg;
@@ -177,6 +197,12 @@ zone_addname(msg, dname)
 					rdlength += (t - (dname + 1));
 
 					/* Then construct the pointer, and add it */
+					if (msg->pointerslen == MAXRRSPP) {
+						fflush(stdout);
+						fprintf(stderr, "zonec: too many pointers\n");
+						exit(1);
+					}
+					
 					msg->pointers[msg->pointerslen++] = msg->bufptr - msg->buf;
 					zone_addbuf(msg, &msg->compr[j].dnameoff, 2);
 					return rdlength + 2;
@@ -184,10 +210,9 @@ zone_addname(msg, dname)
 			}
 			/* Add this part of dname */
 			if((dname + 1 + *dname - t) > 1) {
-				msg->compr[msg->comprlen].dname = t;
-				msg->compr[msg->comprlen].dnameoff = msg->bufptr - msg->buf + (t - (dname + 1));
-				msg->compr[msg->comprlen].dnamelen = (dname + 1 + *dname - t);
-				msg->comprlen++;
+				zone_addcompr(msg, t,
+					      msg->bufptr - msg->buf + (t - (dname + 1)),
+					      dname + 1 + *dname - t);
 			}
 		}
 	}
@@ -197,9 +222,6 @@ zone_addname(msg, dname)
 
 
 
-/*
- * XXXX: Check msg->buf boundaries!!!!!
- */
 u_int16_t
 zone_addrrset(msg, dname, rrset)
 	struct message *msg;
@@ -237,11 +259,23 @@ zone_addrrset(msg, dname, rrset)
 		rrset->color = 0;
 	}
 
+	if (msg->rrsetslen == MAXRRSPP) {
+		fflush(stdout);
+		fprintf(stderr, "zonec: too many rrsets\n");
+		exit(1);
+	}
+	
 	/* Please sign in here... */
 	msg->rrsets[msg->rrsetslen++] = rrset;
 
 	for(rrcount = 0, j = 0; j < rrset->rrslen; j++, rrcount++) {
 		/* Add the offset of this record */
+		if (msg->rrsetsoffslen == MAXRRSPP) {
+			fflush(stdout);
+			fprintf(stderr, "zonec: too many rrsets offsets\n");
+			exit(1);
+		}
+		
 		msg->rrsetsoffs[msg->rrsetsoffslen++] = (msg->bufptr - msg->buf) | (rrset->color ? NAMEDB_RRSET_WHITE : 0);
 
 		rdata = rrset->rrs[j];
@@ -286,6 +320,12 @@ zone_addrrset(msg, dname, rrset)
 				zone_addbuf(msg, rdata[i].p, size);
 				break;
 			case 'n':
+				if (msg->dnameslen >= MAXRRSPP) {
+					fflush(stdout);
+					fprintf(stderr, "zonec: too many domain names\n");
+					exit(1);
+				}
+				
 				size = 0;
 				rdlength += zone_addname(msg, rdata[i].p);
 				msg->dnames[msg->dnameslen++] = rdata[i].p;
@@ -570,10 +610,9 @@ zone_dump(z, db)
 		/* Put the dname into compression array */
 		for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
 			if((dname + *dname + 1 - nameptr) > 1) {
-				msg.compr[msg.comprlen].dname = nameptr;
-				msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1)) | 0xc000;
-				msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
-				msg.comprlen++;
+				zone_addcompr(&msg, nameptr,
+					      (nameptr - (dname + 1)) | 0xc000,
+					      dname + *dname + 1 - nameptr);
 			}
 		}
 
@@ -693,15 +732,12 @@ zone_dump(z, db)
 					star = *nameptr + 1;
 				} else {
 					if((dname + *dname + 1 - nameptr) > 1) {
-						msg.compr[msg.comprlen].dname = nameptr;
-						msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
-						msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
-						msg.comprlen++;
-
-						msgany.compr[msgany.comprlen].dname = nameptr;
-						msgany.compr[msgany.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
-						msgany.compr[msgany.comprlen].dnamelen = dname + *dname + 1 - nameptr;
-						msgany.comprlen++;
+						zone_addcompr(&msg, nameptr,
+							      (nameptr - (dname + 1 + star)) | 0xc000,
+							      dname + *dname + 1 - nameptr);
+						zone_addcompr(&msgany, nameptr,
+							      (nameptr - (dname + 1 + star)) | 0xc000,
+							      dname + *dname + 1 - nameptr);
 					}
 				}
 			}
