@@ -366,10 +366,11 @@ uint16_t *
 zparser_conv_domain(region_type *region, domain_type *domain)
 {
 	uint16_t *r = NULL;
+	const dname_type *dname = domain_dname(domain);
 
-	r = region_alloc(region, sizeof(uint16_t) + domain->dname->name_size);
-	*r = domain->dname->name_size;
-	memcpy(r + 1, dname_name(domain->dname), domain->dname->name_size);
+	r = region_alloc(region, sizeof(uint16_t) + dname->name_size);
+	*r = dname->name_size;
+	memcpy(r + 1, dname_name(dname), dname->name_size);
 	return r;
 }
 
@@ -845,7 +846,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 
         /* [XXX] still need to check if we have seen this SOA already */
 
-	if (!dname_is_subdomain(rr->domain->dname, zone->domain->dname)) {
+	if (!dname_is_subdomain(domain_dname(rr->domain), domain_dname(zone->domain))) {
 		error("Out of zone data");
 		return 0;
 	}
