@@ -1,0 +1,61 @@
+$Id: TODO,v 1.1 2001/12/12 13:38:28 alexis Exp $
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------- OLD TODO from the prototype ---------------
+SECURITY
+
+- all the arrays limits are not checked no nowhere
+- buffer limits have to be checked
+- runaway dnames in the packets
+
+BUGS
+
+1. both in zone->destroy and zone->print handle rrs at apex
+2. dnametoa, strdname etc needs to have checks for buffer overruns
+3. strdname write one zero too many or dnametoa prints one too few?
+
+
+PARSER
+
+- detect out of zone records (by using zone_search that detects authority
+  cuts, or maybe second stage parsing?)
+- set clear AA bit for every record
+- make links to complimentary records
+- parse TTL 2d5h3m10s
+- ttl should be taken from SOA ttl if there's no $TTL
+- shoudl check the buffer sizes. think of thousands of the same A glue
+  record which is misconfigured and tries to be added to a packet
+
+SERVER
+
+- when receiving too long of a packet select will go into infinite loop?
+- in tcp the timeout should be handled different than with alarm()?
+- decide where and how CNAME resolution should be done
+
+INITIALIZATION
+
+- make sure that zones are properly sorted in the zones list
+
+PURITY
+
+- dname sometimes has the entire length as a first byte and sometimes not
+- all the data is in network byte order except of the types (can anybody
+  think of smart initialization?)
+- brush up the fuction and identifiers names
+
+TESTS
+
+- set all the buffer sizes to ridiculously small values see if it causes
+  core dumps

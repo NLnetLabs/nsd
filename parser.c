@@ -1,5 +1,5 @@
 /*
- * $Id: parser.c,v 1.1 2001/12/12 13:33:53 alexis Exp $
+ * $Id: parser.c,v 1.2 2001/12/12 13:38:28 alexis Exp $
  *
  * parser.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -39,6 +39,7 @@
  */
 #include <sys/types.h>
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -710,6 +711,7 @@ parser_get_entry(zf)
 
 		/* Parse it */
 		for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; f++, i++) {
+			assert(i < MAXRDATALEN);
 			if((token = parser_token(zf, NULL)) == NULL) {
 				break;
 			}
@@ -763,6 +765,7 @@ parser_get_entry(zf)
 				break;
 			default:
 				syslog(LOG_ERR, "panic! uknown atom in format %c", *f);
+				assert(0);
 				return NULL;
 			}
 		}
