@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.53 2002/04/22 10:37:28 alexis Exp $
+ * $Id: query.c,v 1.54 2002/04/22 10:58:51 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -352,22 +352,25 @@ query_process(q, db)
 			} else {
 				/* Do we have SOA record in this domain? */
 				if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
-					/* Setup truncation */
-					qptr = q->iobufptr;
 
 					if(ntohs(qclass) != CLASS_ANY) {
 						AA_SET(q);
+
+						/* Setup truncation */
+						qptr = q->iobufptr;
+
+						query_addanswer(q, qname, a, 0);
+
+						/* Truncate */
+						ANCOUNT(q) = 0;
+						NSCOUNT(q) = htons(1);
+						ARCOUNT(q) = 0;
+						if(ANSWER_RRSLEN(a) > 1)
+							q->iobufptr = qptr + ANSWER_RRS(a, 1);
+
 					} else {
 						AA_CLR(q);
 					}
-					query_addanswer(q, qname, a, 0);
-
-					/* Truncate */
-					ANCOUNT(q) = 0;
-					NSCOUNT(q) = htons(1);
-					ARCOUNT(q) = 0;
-					if(ANSWER_RRSLEN(a) > 1)
-						q->iobufptr = qptr + ANSWER_RRS(a, 1);
 
 					return 0;
 				}
@@ -400,22 +403,25 @@ query_process(q, db)
 				return 0;
 			} else {
 				if((a = namedb_answer(d, htons(TYPE_SOA)))) {
-					/* Setup truncation */
-					qptr = q->iobufptr;
 
 					if(ntohs(qclass) != CLASS_ANY) {
+						/* Setup truncation */
+						qptr = q->iobufptr;
+
 						AA_SET(q);
+
+						query_addanswer(q, qname, a, 0);
+
+						/* Truncate */
+						ANCOUNT(q) = 0;
+						NSCOUNT(q) = htons(1);
+						ARCOUNT(q) = 0;
+						if(ANSWER_RRSLEN(a) > 1)
+							q->iobufptr = qptr + ANSWER_RRS(a, 1);
+
 					} else {
 						AA_CLR(q);
 					}
-					query_addanswer(q, qname, a, 0);
-
-					/* Truncate */
-					ANCOUNT(q) = 0;
-					NSCOUNT(q) = htons(1);
-					ARCOUNT(q) = 0;
-					if(ANSWER_RRSLEN(a) > 1)
-						q->iobufptr = qptr + ANSWER_RRS(a, 1);
 
 					return 0;
 				}
