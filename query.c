@@ -68,6 +68,26 @@ int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* LIBWRAP */
 
+/*
+ * Generate an error response with the specified RCODE.
+ */
+static void
+error_response (struct query *q, int rcode)
+{
+	QR_SET(q);		/* This is an answer.  */
+	RCODE_SET(q, rcode);	/* Error code.  */
+	
+	/* Truncate the question as well... */
+	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
+	q->iobufptr = q->iobuf + QHEADERSZ;
+}
+
+static void 
+query_formerr (struct query *query)
+{
+	error_response(query, RCODE_FORMAT);
+}
+
 int 
 query_axfr (struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int depth)
 {
@@ -172,23 +192,6 @@ query_axfr (struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int 
 
 	/* More data... */
 	return 1;
-}
-
-/*
- * Stript the packet and set format error code.
- *
- */
-void 
-query_formerr (struct query *q)
-{
-	/* Setup the header... */
-	QR_SET(q);		/* This is an answer */
-
-	RCODE_SET(q, RCODE_FORMAT);
-
-	/* Truncate the question as well... */
-	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-	q->iobufptr = q->iobuf + QHEADERSZ;
 }
 
 void 
@@ -385,7 +388,7 @@ process_query_section(struct query *query,
 
 
 /*
- *
+ * Handle a delegated domain.
  */
 static void
 process_delegation(struct query *query, const u_char *qname, struct domain *domain)
@@ -401,18 +404,6 @@ process_delegation(struct query *query, const u_char *qname, struct domain *doma
 	}
 }
 
-
-
-static void
-process_other (struct query *q)
-{
-	QR_SET(q);
-	RCODE_SET(q, RCODE_IMPL);
-	
-	/* Truncate the question as well... */
-	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-	q->iobufptr = q->iobuf + QHEADERSZ;
-}
 
 /*
  * Log notifies and return an RCODE_IMPL error to the client.
@@ -436,7 +427,7 @@ process_notify (struct query *query)
 		syslog(LOG_INFO, "notify from %s", namebuf);
 	}
 
-	process_other (query);
+	error_response (query, RCODE_IMPL);
 }
 
 /*
@@ -481,7 +472,7 @@ query_process (struct query *q, struct nsd *nsd)
 		process_notify(q);
 		return 0;
 	default:
-		process_other(q);
+		error_response(q, RCODE_IMPL);
 		return 0;
 	}
 
