@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.59 2002/04/23 14:11:38 alexis Exp $
+ * $Id: query.c,v 1.60 2002/04/27 15:29:51 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -170,11 +170,7 @@ query_process(q, db)
 		/* Setup the header... */
 		QR_SET(q);		/* This is an answer */
 
-#ifdef	MIMIC_BIND8
 		RCODE_SET(q, RCODE_REFUSE);
-#else
-		RCODE_SET(q, RCODE_IMPL);
-#endif
 
 		/* Truncate the question as well... */
 		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
@@ -190,11 +186,8 @@ query_process(q, db)
 
 	/* Dont bother to answer more than one question at once... */
 	if(ntohs(QDCOUNT(q)) != 1) {
-#ifdef	MIMIC_BIND8
 		RCODE_SET(q, RCODE_FORMAT);
-#else
-		RCODE_SET(q, RCODE_IMPL);
-#endif
+
 		/* Truncate the question as well... */
 		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
 		q->iobufptr = q->iobuf + QHEADERSZ;
@@ -354,11 +347,23 @@ query_process(q, db)
 		} else {
 			if((a = namedb_answer(d, qtype)) != NULL) {
 				if(ntohs(qclass) != CLASS_ANY) {
+					query_addanswer(q, qname, a, 1);
 					AA_SET(q);
-				} else {
-					AA_CLR(q);
+					return 0;
 				}
-				query_addanswer(q, qname, a, 1);
+				/* Class ANY */
+				AA_CLR(q);
+
+				/* Setup truncation */
+				qptr = q->iobufptr;
+
+				query_addanswer(q, qname, a, 0);
+
+				/* Truncate */
+				NSCOUNT(q) = 0;
+				ARCOUNT(q) = 0;
+				q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+
 				return 0;
 			} else {
 				/* Do we have SOA record in this domain? */
@@ -418,10 +423,23 @@ query_process(q, db)
 				if((a = namedb_answer(d, qtype)) != NULL) {
 					if(ntohs(qclass) != CLASS_ANY) {
 						AA_SET(q);
-					} else {
-						AA_CLR(q);
+						query_addanswer(q, qname - 2, a, 1);
+						return 0;
 					}
-					query_addanswer(q, qname - 2, a, 1);
+
+					/* Class ANY */
+					AA_CLR(q);
+
+					/* Setup truncation */
+					qptr = q->iobufptr;
+
+					query_addanswer(q, qname, a, 0);
+
+					/* Truncate */
+					NSCOUNT(q) = 0;
+					ARCOUNT(q) = 0;
+					q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+
 					return 0;
 				}
 			}
