@@ -1,5 +1,5 @@
 /*
- * $Id: parser.h,v 1.1 2001/12/12 13:33:53 alexis Exp $
+ * $Id: parser.h,v 1.2 2001/12/12 13:40:45 alexis Exp $
  *
  * parser.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -112,13 +112,13 @@ struct parser {
 
 /* Structure to parse classes */
 struct parser_class_tab {
-	int	class;
+	u_short	class;
 	char	*name;
 };
 
 #define	ZONEFILE_CLASSES {		\
 	{CLASS_IN, "IN"},		\
-	{NULL, 0}			\
+	{0, NULL}			\
 }
 
 /*
@@ -161,7 +161,7 @@ struct parser_type_tab {
 	{TYPE_TXT, "TXT", "t"},		\
         {TYPE_AAAA, "AAAA", "6"},	\
 	{TYPE_ANY, "ANY", NULL},	\
-	{NULL, 0, NULL}			\
+	{0, NULL, NULL}			\
 }
 
 /* Prototypes */
