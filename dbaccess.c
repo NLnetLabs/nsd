@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.5 2002/02/08 11:21:44 alexis Exp $
+ * $Id: dbaccess.c,v 1.6 2002/02/11 12:06:36 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -278,7 +278,7 @@ namedb_open(filename)
 	bcopy(p + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
 
 #endif
-#if !defined(USE_BERKLEY_DB)
+#if !defined(USE_BERKELEY_DB)
 #if defined(USE_HEAP_HASH)
 	syslog(LOG_WARNING, "reloaded %s, %lu entries %lu hash collisions", db->filename,
 		db->heap->count, db->heap->collisions);
