@@ -626,7 +626,6 @@ zrdatacmp(uint16_t type, rdata_atom_type *a, rdata_atom_type *b)
 				   rdata_atom_data(b[i]),
 				   rdata_atom_size(a[i])) != 0)
 				return 1;
-			break;
 		}
 	}
 
