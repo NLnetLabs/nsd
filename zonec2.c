@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.9 2003/08/20 11:28:34 erik Exp $
+ * $Id: zonec2.c,v 1.10 2003/08/20 12:06:53 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -352,9 +352,8 @@ process_rr(struct RR *rr)
 	uint8_t *dname, *t;
 	struct zone *z = current_zone;
 	
-        fprintf(stderr, "\n");        
-        zprintrr(stderr, rr);
-        fprintf(stderr, "\n");        
+        if ( vflag > 0 ) 
+            zprintrr(stderr, rr);
 		
 	/* Report progress... 
 	   if(vflag > 1) {

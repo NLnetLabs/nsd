@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.19 2003/08/20 11:55:03 erik Exp $
+ * $Id: zyparser.y,v 1.20 2003/08/20 12:06:53 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -98,7 +98,6 @@ rr:     ORIGIN SP rrrest NL
     {
         /* starts with @, use the origin */
         current_rr->dname = (uint8_t *) dnamedup(zdefault->origin);
-        printf("dname  %s",dnamestr(current_rr->dname));
 
         /* also set this as the prev_dname */
         zdefault->prev_dname = zdefault->origin;
@@ -143,6 +142,10 @@ rrrest: classttl rtype
     ;
 
 classttl:   /* empty - fill in the default, def. ttl and IN class */
+    {
+        current_rr->ttl = zdefault->ttl;
+        current_rr->class = zdefault->class;
+    }
     |   in SP         /* no ttl */
     {
         current_rr->ttl = zdefault->ttl;
