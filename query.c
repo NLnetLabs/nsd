@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.62.4.1 2002/05/21 10:05:59 alexis Exp $
+ * $Id: query.c,v 1.62.4.2 2002/05/21 11:41:39 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -64,6 +64,50 @@ query_init(q)
 	q->iobufptr = q->iobuf;
 	q->maxlen = 512;	/* XXX Should not be here */
 	q->edns = 0;
+}
+
+void
+query_addtxt(q, dname, class, ttl, txt)
+	struct query *q;
+	u_char *dname;
+	u_int16_t class;
+	int32_t ttl;
+	char *txt;
+{
+	u_int16_t pointer;
+	u_int16_t len = strlen(txt);
+	u_int16_t rdlength = htons(len + 1);
+	u_int16_t type = htons(TYPE_TXT);
+
+	ttl = htonl(ttl);
+	class = htons(class);
+
+	/* Add the dname */
+	if(dname >= q->iobuf  && dname <= q->iobufptr) {
+		pointer = htons(0xc000 | (dname - q->iobuf));
+		bcopy(&pointer, q->iobufptr, 2);
+		q->iobufptr += 2;
+	} else {
+		bcopy(dname + 1, q->iobufptr, *dname);
+		q->iobufptr += *dname;
+	}
+
+	bcopy(&type, q->iobufptr, 2);
+	q->iobufptr += 2;
+
+	bcopy(&class, q->iobufptr, 2);
+	q->iobufptr += 2;
+
+	bcopy(&ttl, q->iobufptr, 4);
+	q->iobufptr += 4;
+
+	bcopy(&rdlength, q->iobufptr, 2);
+	q->iobufptr += 2;
+
+	*q->iobufptr++ = (u_char)len;
+
+	bcopy(txt, q->iobufptr, len);
+	q->iobufptr += len;
 }
 
 void
@@ -155,9 +199,9 @@ query_addanswer(q, dname, a, truncate)
 
 
 int
-query_process(q, db)
+query_process(q, nsd)
 	struct query *q;
-	struct namedb *db;
+	struct nsd *nsd;
 {
 	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 3];
@@ -319,7 +363,29 @@ query_process(q, db)
 	}
 
 	/* Unsupported class */
-	if((ntohs(qclass) != CLASS_IN) && (ntohs(qclass) != CLASS_ANY)) {
+	switch(ntohs(qclass)) {
+	case CLASS_IN:
+	case CLASS_ANY:
+		break;
+	case CLASS_CHAOS:
+		AA_CLR(q);
+		switch(ntohs(qtype)) {
+		case TYPE_ANY:
+		case TYPE_TXT:
+			if(qnamelen == 11 && bcmp(qnamelow, "\002id\006server", 11) == 0) {
+				/* Add ID */
+				query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->identity);
+				ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
+				return 0;
+			} else if(qnamelen == 16 && bcmp(qnamelow, "\007version\006server", 16) == 0) {
+				/* Add version */
+				query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->version);
+				ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
+				return 0;
+			}
+			break;
+		}
+	default:
 		RCODE_SET(q, RCODE_REFUSE);
 		return 0;
 	}
@@ -336,7 +402,7 @@ query_process(q, db)
 
 	/* Do we have complete name? */
 	*(qnamelow - 1) = qnamelen;
-	if(NAMEDB_TSTBITMASK(db, NAMEDB_DATAMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
+	if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 			if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
@@ -412,13 +478,13 @@ query_process(q, db)
 
 		qdepth--;
 		/* Only look for wildcards if we did not have any match before */
-		if(match == 0 && NAMEDB_TSTBITMASK(db, NAMEDB_STARMASK, qdepth + 1)) {
+		if(match == 0 && NAMEDB_TSTBITMASK(nsd->db, NAMEDB_STARMASK, qdepth + 1)) {
 			/* Prepend star */
 			bcopy(qstar, qnamelow - 2, 2);
 
 			/* Lookup star */
 			*(qnamelow - 3) = qnamelen + 2;
-			if((d = namedb_lookup(db, qnamelow - 3)) != NULL) {
+			if((d = namedb_lookup(nsd->db, qnamelow - 3)) != NULL) {
 				/* We found a domain... */
 				RCODE_SET(q, RCODE_OK);
 
@@ -449,7 +515,7 @@ query_process(q, db)
 
 		/* Do we have a SOA or zone cut? */
 		*(qnamelow - 1) = qnamelen;
-		if(NAMEDB_TSTBITMASK(db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
+		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
 			if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 				if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);
