@@ -164,6 +164,7 @@ query_init (struct query *q)
 	q->overflow = 0;
 	q->maxlen = UDP_MAX_MESSAGE_LEN;
 	q->edns = 0;
+	q->dnssec_ok = 0;
 	q->tcp = 0;
 	q->name = NULL;
 	q->zone = NULL;
@@ -320,9 +321,13 @@ process_edns (struct query *q, uint8_t *qptr)
 		opt_class = ntohs(opt_class);
 
 		/* Check the version... */
-		if (*(qptr + 6) != 0) {
+		if (qptr[6] != 0) {
 			q->edns = -1;
 		} else {
+			if (qptr[7] & 0xa0) {
+				q->dnssec_ok = 1;
+			}
+			
 			/* Make sure there are no other options... */
 			memcpy(&opt_rdlen, qptr + 9, 2);
 			if (opt_rdlen != 0) {

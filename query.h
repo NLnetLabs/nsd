@@ -187,8 +187,9 @@ struct query {
 	socklen_t addrlen;
 	size_t maxlen;
 	int edns;
+	int dnssec_ok;
 	int tcp;
-
+	
 	uint8_t *iobufptr;
 	uint8_t iobuf[QIOBUFSZ];
 	int overflow;		/* True if the I/O buffer overflowed.  */
