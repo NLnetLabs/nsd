@@ -141,7 +141,7 @@ update)
 				then
 					# axfr succeeded
 					# test compile the zone to see what happens
-					cat ${zonesdir}/$file.axfr | ${sbindir}/zonec -o ${zone} -f ${zonesdir}/$file.axfr.db - 2>/dev/null
+					${sbindir}/zonec -o ${zone} -f ${zonesdir}/$file.axfr.db - < ${zonesdir}/file.axfr 2>/dev/null
 					if [ $? -eq 1 ]
 					then
 						echo "Warning: AXFR of $zone did not compile"
