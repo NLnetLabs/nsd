@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-axfr.c,v 1.7 2003/05/08 12:21:28 alexis Exp $
+ * $Id: nsd-axfr.c,v 1.8 2003/05/08 13:10:04 alexis Exp $
  *
  * nsd-axfr.c -- axfr utility for nsd(8)
  *
@@ -371,6 +371,15 @@ main (int argc, char *argv[])
 					break;
 				}
 			}
+
+			/* Free the resource records & its rdata... */
+			for(i = 0; rrs[i] != NULL; i++) {
+				zrdatafree(rrs[i]->rdata);
+				free(rrs[i]->dname);
+				free(rrs[i]);
+			}
+			free(rrs);
+				
                 }
 
 		/* AXFR failed... */
