@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.15 2003/04/03 13:40:43 alexis Exp $
+$Id: RELNOTES,v 1.16 2003/04/15 09:57:18 alexis Exp $
 
 
 1.1
@@ -10,14 +10,9 @@ FEATURES:
 	- support for various RR types in zonec
 	- support for UNKN RR types
 
-CHANGES:
-
 BUG FIXES:
 	- lots of zone parsing errors eliminated
-	- empty node matching bug
-
-KNOWN BUGS:
-	- an empty node will give NXDOMAIN answer
+	- empty node matching bug gives NXDOMAIN
 
 1.0.2
 =============

@@ -1,8 +1,8 @@
-$Id: TODO,v 1.40 2003/04/03 13:40:43 alexis Exp $
+$Id: TODO,v 1.41 2003/04/15 09:57:18 alexis Exp $
 
 AUTOCONF
 
-- check whether the --with-nsd-user exists in the system
++ check whether the --with-nsd-user exists in the system
 
 ZONE COMPILER
 - memory allocation optimization is needed
@@ -11,7 +11,7 @@ ZONE COMPILER
 - add a check to make sure that the biggest answer in the database does not
   exceed the query buffer
 - improve the strdname() routine
-- empty node should not cause NXDOMAIN
++ empty node should not cause NXDOMAIN
 
 
 SERVER

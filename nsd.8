@@ -1,5 +1,5 @@
 .\"
-.\" $Id: nsd.8,v 1.16 2003/03/20 10:31:25 alexis Exp $
+.\" $Id: nsd.8,v 1.17 2003/04/15 09:57:18 alexis Exp $
 .\"
 .\" nsd.8 -- nsd manual
 .\"
@@ -52,6 +52,7 @@
 .Op Fl t Ar chrootdir
 .Op Fl i Ar identity
 .Op Fl s Ar secs
+.Op Fl n Ar max_tcp
 .Sh DESCRIPTION
 .Ic NSD
 is a complete implementation of an authoritative DNS nameserver. Upon
@@ -87,7 +88,7 @@ script or similar at the operating system startup.
 The available options are:
 .Bl -tag -width indent
 .It Fl n
-Handle
+Handle upto
 .Ar n
 tcp connections simultaneously.
 .It Fl d

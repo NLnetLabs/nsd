@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.86 2003/04/03 14:48:02 alexis Exp $
+ * $Id: zonec.c,v 1.87 2003/04/15 09:57:18 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -935,9 +935,11 @@ zone_dump (struct zone *z, struct namedb *db)
 		if((rrset->type == TYPE_CNAME && rrset->next != NULL) ||
 			(rrset->next != NULL && rrset->next->type == TYPE_CNAME)) {
 			if(rrset->type != TYPE_NXT && rrset->next->type != TYPE_NXT) {
-				fprintf(stderr, "CNAME and other data for %s\n", dnamestr(z->dname));
-				totalerrors++;
-				continue;
+				if(rrset->type != TYPE_SIG && rrset->next->type != TYPE_SIG) {
+					fprintf(stderr, "CNAME and other data for %s\n", dnamestr(z->dname));
+					totalerrors++;
+					continue;
+				}
 			}
 		}
 

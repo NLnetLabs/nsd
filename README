@@ -1,4 +1,4 @@
-$Id: README,v 1.19 2003/04/03 13:40:43 alexis Exp $
+$Id: README,v 1.20 2003/04/15 09:57:18 alexis Exp $
 
 1.0 Introduction
 1.1 Basic theory of operation
@@ -174,7 +174,7 @@ If you prayed to the right God, continue to the step 2.4
 
 2.4 Installing
 
-Become a superuser (if necessary) and type make install
+Become a superuser (if necessary) and type ``make install''
 
 This step should install three binaries
 
@@ -351,15 +351,11 @@ axfr : ALL : deny
 
 At first a check is made wether the particular client is allowed to do
 transfer of the particular zone.
-A
 
 If -DAXFR_DAEMON_PREFIX is defined (which is the case by default) and
 the first lookup for ``axfr'' has failed (denied) then nsd will try second
 lookup in hosts.allow or hosts.deny for the daemon name axfr-zone.name.tld.
 (with trailing dot).
-
-Example:
-
 
 3.3 Keeping in sync the secondary zones with ``nsdc update''
 
@@ -368,6 +364,8 @@ that keeping and updating the local master zone files is outside of the scope
 of the package and should be done either out of band or with help of separate
 tools. However starting with 1.0.1-beta4 NSD provides such functionality to
 a limited extent.
+
+The 1.1.2 version of NSD will have the AXFR machienery built in.
 
 It makes no difference for zonec(8) and nsd(8) whether the master zone file
 was created and maintained locally or was obtained via AXFR/IXFR or out of
@@ -385,9 +383,10 @@ whether the zone was modified and if so will AXFR the zone from the master
 213.53.69.1
 
 To enable nsdc(8) update functionality one should have named-xfer utility
-installed and its path specified with $NAMEDXFER variable in Makefile at
-compilation time. Alternatively $NAMEDXFER variable can be modified in
-installed version of nsdc(8)
+installed and its path specified either --with-namedxfer= option to configure
+or with $namedxfer variable in Makefile at compilation time. Alternatively
+$namedxfer variable can be modified in the configuration file of nsdc(8)
+typically /etc/nsd/nsdc.conf
 
 Due to the static nature of nsd(8) database it has to be rebuilt completely
 whenever one of the zones changes. Therefore it is recommended to do the
@@ -410,11 +409,10 @@ This is done by passing the tsig key to named-xfer(8)
 Regretfully named-xfer(8) uses very cryptic format for so called tsig-info
 file, so a bit of black magic is necessary.
 
-First of all ${NSDKEYSDIR} should be set at the compile time or adjusted
+First of all ${keyssdir} should be set in the nsdc(8) configureation file
 to reflect the directory where all the TSIG keys will be stored.
 
-For example NSDKEYSDIR=/etc/nsd/keys or NSDKEYSDIR=${NSDZONESDIR}/keys
-would be a good location.
+For example keysdir=/etc/nsd/keys would be a good location.
 
 Lets say we have following:
 
