@@ -1,5 +1,5 @@
 /*
- * $Id: dns.h,v 1.11 2003/04/29 13:40:52 alexis Exp $
+ * $Id: dns.h,v 1.12 2003/06/26 12:29:49 erik Exp $
  *
  * dns.h -- everything we wanted to know but were afraid
  *		to ask about DNS
@@ -64,8 +64,7 @@
 struct dns_header {
 	u_int16_t	id;
 
-	u_int16_t	
-			rd:1,
+	unsigned	rd:1,
 			tc:1,
 			aa:1,
 			opcode:4,
