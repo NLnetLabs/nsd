@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.1 2002/01/08 16:06:20 alexis Exp $
+ * $Id: server.c,v 1.2 2002/01/08 16:29:27 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -52,11 +52,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
 
 #include "nsd.h"
-#include "query.h"
 #include "db.h"
+#include "query.h"
 
 int
 server(port, db)

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.1 2002/01/08 16:06:20 alexis Exp $
+ * $Id: query.c,v 1.2 2002/01/08 16:29:27 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -54,8 +54,9 @@
 #include <syslog.h>
 
 #include "nsd.h"
-#include "query.h"
+#include "dns.h"
 #include "db.h"
+#include "query.h"
 
 void
 query_init(q)
@@ -90,17 +91,14 @@ query_destroy(q)
 int
 query_process(q, db)
 	struct query *q;
-	DB *db;
+	struct db *db;
 {
 	u_short class;
 	u_short type;
-	u_short *pointers;
-	u_short pointerslen;
-	u_short pointer;
+	struct answer *answer;
 
 	u_char *qptr;
-	DBT key, data;
-	int i, j;
+	int i;
 
 	/* qname parsing stack */
 	u_char *stack[STACKSZ];
@@ -162,43 +160,48 @@ query_process(q, db)
 	/* Any other answer is authorative */
 	AA_SET(q);
 
-
-/*	for(i = 0; i < stacklen - 1; i++) { */
-	i = 0;
-		key.size = (stack[stacklen - 1] - stack[i]) + sizeof(u_short);
-		key.data = stack[i];
-
-		switch(db->get(db, &key, &data, 0)) {
-		case -1:
-			syslog(LOG_ERR, "database lookup failed: %m");
-			return -1;
-		case 1:
-			RCODE_SET(q, RCODE_NXDOMAIN);
-			return 0;
-		case 0:
-			/* First the pointers */
-			bcopy(data.data, q->iobuf + 6, 6);
-			pointerslen = *(u_short *)(data.data + 6);
-			pointers = data.data + 8;
-			qptr = data.data + 8 + pointerslen * sizeof(u_short);
-			bcopy(qptr, q->iobufptr, data.size - 8 - pointerslen * sizeof(u_short));
-			
-			for(j = 0; j < pointerslen; j++) {
-				qptr = q->iobufptr + pointers[j];
-				bcopy(qptr, &pointer, 2);
-				if(pointer == 0) {
-					/* XXX Check if dname is within packet */
-					pointer = htons(0xc000 | (u_short)(12));/* dname - q->iobuf */
-				} else {
-					pointer = htons(0xc000 | (u_short)(pointer + q->iobufptr - q->iobuf));
-				}
-				bcopy(&pointer, qptr, 2);
-			}
-			q->iobufptr += data.size - 8 - pointerslen * sizeof(u_short);
-	
+	for(i = 0; i < stacklen - 1; i++) {
+		if((answer = db_lookup(db, stack[i], (stack[stacklen - 1] - stack[i]) + sizeof(u_short))) != NULL) {
+			query_addanswer(q, answer);
 			return 0;
 		}
-/*	} */
-
+	}
+	RCODE_SET(q, RCODE_NXDOMAIN);
 	return 0;
+}
+
+
+void
+query_addanswer(q, a)
+	struct query *q;
+	struct answer *a;
+{
+	int j;
+	u_char *qptr;
+	u_short pointer;
+	u_short *ptrs;
+
+	/* The size of the data */
+	size_t datasize = a->size - ((a->ptrlen + 5) * sizeof(u_short) + sizeof(size_t));
+
+	/* Copy the counters */
+	bcopy(&a->ancount, q->iobuf + 6, 6);
+
+	/* Then copy the data */
+	bcopy(&a->ptrlen + a->ptrlen + 1, q->iobufptr, datasize);
+	ptrs = &a->ptrlen + 1;
+
+	/* Walk the pointers */
+	for(j = 0; j < a->ptrlen; j++) {
+		qptr = q->iobufptr + ptrs[j];
+		bcopy(qptr, &pointer, 2);
+		if(pointer == 0) {
+			/* XXX Check if dname is within packet */
+			pointer = htons(0xc000 | (u_short)(12));/* dname - q->iobuf */
+		} else {
+			pointer = htons(0xc000 | (u_short)(pointer + q->iobufptr - q->iobuf));
+		}
+		bcopy(&pointer, qptr, 2);
+	}
+	q->iobufptr += datasize;
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.4 2002/01/08 16:06:20 alexis Exp $
+ * $Id: db.c,v 1.5 2002/01/08 16:29:27 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -112,4 +112,28 @@ db_open(filename)
         }
 
 	return &db;
+}
+
+struct answer *
+db_lookup(db, dname, dnamelen)
+	struct db *db;
+	u_char *dname;
+	u_char dnamelen;
+{
+	DBT key, data;
+
+	key.size = (size_t)dnamelen;
+	key.data = dname;
+
+	switch(db->db->get(db->db, &key, &data, 0)) {
+	case -1:
+		syslog(LOG_ERR, "database lookup failed: %m");
+		return NULL;
+	case 1:
+		return NULL;
+	case 0:
+		return data.data;
+	}
+
+	return NULL;
 }

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2002/01/08 16:06:20 alexis Exp $
+# $Id: Makefile,v 1.5 2002/01/08 16:29:27 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -53,8 +53,8 @@ all:	nsd zf zone
 	${CC} -c ${CFLAGS} $<
 
 
-nsd:	nsd.h dns.h db.h db.o nsd.o server.o query.o
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ nsd.o db.o server.o query.o
+nsd:	nsd.h dns.h db.h db.o nsd.o server.o query.o util.o
+	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ nsd.o db.o server.o query.o util.o
 
 zf:	zf.h dns.h zf.c util.o
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c util.o
@@ -63,6 +63,6 @@ zone:	zf.h dns.h zone.h zone.c zf.o util.o heap.o db.o
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zone.c zf.o util.o heap.o db.o
 
 clean:
-	rm -f zf zone *.o y.* *.core *.gmon
+	rm -f zf zone nsd *.o y.* *.core *.gmon
 
 ${OBJS}:	${HDRS}
