@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.13 2003/12/04 13:13:56 miekg Exp $
+ * $Id: zparser.y,v 1.14 2003/12/08 10:51:30 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -337,11 +337,15 @@ rtype:
     { current_rr->type = $1; }
     | KEY sp rdata_key
     { current_rr->type = $1; }
+    | DNSKEY sp rdata_key
+    { current_rr->type = $1; }
     | NXT sp rdata_nxt
     { current_rr->type = $1; }
     | NSEC sp rdata_nsec
     { current_rr->type = $1; }
     | SIG sp rdata_sig
+    { current_rr->type = $1; }
+    | RRSIG sp rdata_sig
     { current_rr->type = $1; }
     | error NL
     {	
