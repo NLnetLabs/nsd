@@ -1,4 +1,4 @@
-$Id: README,v 1.10 2002/05/23 13:33:03 alexis Exp $
+$Id: README,v 1.11 2002/05/23 15:04:58 alexis Exp $
 
 1.0 Introduction
 
@@ -161,4 +161,20 @@ nsdc restart
 To shut it down (for example on the system shutdown) do
 
 nsdc stop.
+
+
+3.1 AXFR access
+
+When compiled with -DHOSTS_ACCESS nsd will use daemon name ``axfr'' to
+verify access priviledges for the client trying to intiate the transfer.
+Since NSD doesnt do any hostname resolution internally the access list
+provided in the /etc/hosts.allow or /etc/hosts.deny should be ip number
+based.
+
+Example:
+
+axfr : 127.0.0.1 : allow
+axfr : ns1.ripe.net : allow
+axfr : ns1.sidn.nl : allow
+axfr : ALL : deny
 
