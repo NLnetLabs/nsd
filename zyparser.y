@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.14 2003/08/19 13:36:08 miekg Exp $
+ * $Id: zyparser.y,v 1.15 2003/08/19 14:32:55 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -23,7 +23,7 @@ struct RR * current_rr;
 
 /* [XXX] should be local */
 unsigned int error = 0;
-int progress = 5;
+int progress = 100;
 int yydebug = 1;
 
 %}
@@ -48,7 +48,7 @@ int yydebug = 1;
 lines:  /* empty line */
     |   lines line
     { if ( lineno % progress == 0 )
-        printf("\nzonec: reading zone \"%s\": %d\n", "configured zone name",
+        printf("\nzonec: reading zone \"%s\": %d\n", zdefault->filename,
         lineno);
     }
     |    error      { yyerrok; }
@@ -113,7 +113,7 @@ rr:     ORIGIN SP rrrest NL
         current_rr->dname = $1->str;
 
         /* set this as previous */
-        zdefault->prev_dname = $1->str;
+        zdefault->prev_dname = dnamedup($1->str);
         zdefault->prev_dname_len = $1->len;
     }
     ;
