@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.21 2002/04/23 09:48:13 alexis Exp $
+ * $Id: zf.c,v 1.21.2.1 2002/05/07 10:26:24 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -463,6 +463,11 @@ char *
 zf_getline(zf)
 	struct zf *zf;
 {
+
+	/* Already at the top level */
+	if(zf->iptr < 0) {
+		return NULL;
+	}
 
 	/* Return to upper level include file if any... */
 	while(fgets(zf->linebuf, LINEBUFSZ - 1, zf->i[zf->iptr].file) == NULL) {
