@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.18 2003/12/09 09:12:46 miekg Exp $
+ * $Id: zlexer.lex,v 1.19 2003/12/09 09:16:39 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -227,8 +227,6 @@ Q       \"
                             return STR;
                         }
 {CLASS}                 {
-
-				/* \000 here will not cause problems */
                             if ( in_rr == after_dname) { 
   			        if (strcasecmp(yytext, "IN") == 0 ||
 					strcasecmp(yytext,"CLASS1") == 0 ) {
@@ -314,7 +312,7 @@ zrrtype (char *word)
 		return 0; /* bail out here */
 
 	/* now it is TYPExxxx, and either we know it, or we don't */
-	printf("TYPEx%d ",j);
+	LEXOUT("TYPEx%d ",j);
 	
 	if ( j < RRTYPES ) {
 		return j + A; /* now it's know */
@@ -340,13 +338,12 @@ zoctet(char *word)
             case '.':
                 printf("Seeing dots\n\n");
                 if ( s[1] == '.' ) {
-                    printf("zlparser.lex: Empty label!\n");
+                    warning("Empty label");
                     break;
                 }
                 *p = *s;
                 length++; 
                 break;
-            */
             case '\\':
                 if ( '0' <= s[1] && s[1] <= '9' &&
                     '0' <= s[2] && s[2] <= '9' &&
@@ -362,7 +359,7 @@ zoctet(char *word)
                         *p = val;
                         length++;
                     } else {
-                        warning("zlparser.lex: ASCII overflow");
+                        warning("ASCII \\DDD overflow");
                     }
 
                 } else {
