@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.9 2003/08/19 08:07:11 miekg Exp $
+ * $Id: zyparser.y,v 1.10 2003/08/19 08:19:28 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -228,6 +228,10 @@ rtype:  SOA SP rdata_soa
     {
         zadd_rtype("mx");
     }
+    |   AAAA SP rdata_aaaa
+    {
+        zadd_rtype("aaaa");
+    }
     ;
 
 
@@ -281,6 +285,12 @@ rdata_mx:   STR SP dname
     {
         zadd_rdata2( zdefault, zparser_conv_short($1->str) );  /* priority */
         zadd_rdata2( zdefault, zparser_conv_dname($3->str) );  /* MX host */
+    }
+    ;
+
+rdata_aaaa: STR
+    {
+        zadd_rdata2( zdefault, zparser_conv_a6($1->str) );  /* IPv6 address */
     }
     ;
 
