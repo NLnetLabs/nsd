@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.42 2002/09/10 13:09:06 alexis Exp $
+ * $Id: server.c,v 1.43 2002/09/10 13:22:09 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -226,7 +226,7 @@ answer_tcp(s, addr, addrlen, nsd)
 	}
 
 	/* Shut down the connection.... */
-	close(s);
+	/* Will be closed elsewhere: close(s); */
 
 	return 0;
 }
@@ -505,6 +505,7 @@ server(nsd)
 				case 0:
 					/* CHILD */
 					answer_tcp(tcpc_s, (struct sockaddr *)&tcpc_addr, tcpc_addrlen, nsd);
+					close(tcpc_s);
 					exit(0);
 				default:
 					/* PARENT */
@@ -530,6 +531,7 @@ server(nsd)
 				case 0:
 					/* CHILD */
 					answer_tcp(tcpc_s, (struct sockaddr *)&tcpc_addr, tcpc_addrlen, nsd);
+					close(tcpc_s);
 					exit(0);
 				default:
 					/* PARENT */
