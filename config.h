@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.3.2.1 2002/05/07 09:28:26 alexis Exp $
+ * $Id: config.h,v 1.3.2.2 2002/05/07 09:45:01 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -78,15 +78,13 @@
 
 #endif	/* DEBUG */
 
-#if defined(sun)
-
+#ifdef __sun
 typedef          char  int8_t;
 typedef          short int16_t;
 typedef          int   int32_t;
 typedef unsigned char  u_int8_t;
 typedef unsigned short u_int16_t;
 typedef unsigned int   u_int32_t;
-
 #endif
 
 #ifdef __linux__
