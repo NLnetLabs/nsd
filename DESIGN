@@ -1,29 +1,138 @@
-$Id: DESIGN,v 1.5 2002/01/29 15:40:50 alexis Exp $
+$Id: DESIGN,v 1.6 2002/02/07 11:54:38 alexis Exp $
 
 Database format
 ---------------
 
 The namespace database consists of a number of records, where the key is the
 domain name (owner name) of the data, and the data is a set of precompiled
-answers in para-wire format.
+answers in a para-wire format.
 
-Key:	dname in RFC1035 format. 
+Key:	dname in RFC1035 format.
 
 Data:
 	struct domain {
-		size_t size;			/* Size of the entire record in bytes */
-		u_int16_t flags;			/* Flags, see db.h */
+		u_int32_t size;			/* Size of the entire record in bytes */
+		u_int16_t flags;		/* Flags, see db.h */
 		struct answer {
-			size_t size;		/* Size of this answer in bytes */
+			u_int32_t size;		/* Size of this answer in bytes */
 			u_int16_t type;		/* query type this answer serves in wire format */
 			u_int16_t ancount;	/* Number of answers */
 			u_int16_t nscount;	/* Number of ns records */
 			u_int16_t arcount;	/* Number of additional records */
-			u_int16_t ptrlen;		/* Number of pointers to be updated */
-			u_int16_t rrslen;		/* Number of pointers of the resource records offsets */
-			size_t	datalen;	/* The size of the data */
+			u_int16_t ptrlen;	/* Number of pointers to be updated */
+			u_int16_t rrslen;	/* Number of pointers of the resource records offsets */
+			u_int32_t datalen;	/* The size of the data */
 			u_int16_t ptrs[...];	/* Offsets of the pointers in the data section */
 			u_int16_t rrs[...];	/* Offsets of the resource record sets */
-			u_int16_t	data[...];	/* The precompiled answer in wire format */
+			u_int16_t data[...];	/* The precompiled answer in wire format */
 		}[...];
 	};
+
+domain.size
+
+This is the size of all the data in the domain structure, including the domain.size element
+itself, all the answers and padding.
+
+domain.flags
+
+This are the flags for this domain. For now it can only be DOMAIN_DELEGATION meaning that
+this is a delegation point.
+
+answer.size
+
+This is the size of all the data in this answer, including the answer.size element itself,
+all the variable arrays, the data and any possible padding between this answer and the following
+one.
+
+answer.type
+
+Contains the type for which the answer can be given.
+
+answer.ancount
+
+Contains the number of the resource records in the answer section of this answer.
+
+answer.nscount
+
+Contains the number of the resource records in the authority section of this answer.
+
+answer.arcount
+
+Contains the number of the resource records in the additional section of this answer.
+
+answer.ptrlen
+
+The number of elements in the answer.ptrs array.
+
+answer.rrslen
+
+The number of elements int he answer.rrs array.
+
+answer.datalen
+
+The size of the answer.data excluding padding.
+
+answer.ptrs[]
+
+This is an array of offsets from the beginning of the answer.data which point to the
+pointers for DNS message compression that need to be adjusted at the run time.
+
+Every such pointer is a two bytes value, starting with either 0b00 or 0b11
+
+When such a pointer starts with 0b00 it should contain offset of the domain name
+it is pointing to from the beginning of the answer.data When such a pointer begins
+with 0b11 (& 0xc...) it should contain offset of the domain name it is pointing to
+from the beginning of the domain name in the key of the domain.
+
+At the run time the NSD adjusts all the pointers by adding the offsets to the
+actual data to them.
+
+answer.rrs[]
+
+This array contains offsets of all the resource records in the answer.data from
+the beginning of the answer.data Obviously if there are any resources records
+present in an answer the first element of this array will always be zero.
+
+As was already mentioned all the resource records in the answer.data must be
+grouped in record sets.
+
+These RRsets are packed in the black-white order, that is first RRset is black,
+the second is white, then again black et cetera... The most significant byte of
+an answer.rrs[] element must be 0 if the RRset is black, and 1 is the RRset is
+white.
+
+Superblock
+
+The database as well contains a super block, which can be accessed wiht a NULL key.
+The format of the superblock is as follows:
+
+	struct superblock {
+		char magic[8];
+		u_char authmask[16];
+		u_char starmask[16];
+		u_char datamask[16];
+	}
+
+Where the magic is "NSDdbV00"
+
+And the bitmasks are bitvectors, which indicates presence of particular sort of data at a particular
+subdomain. Zero bit in the vector indicates root level, first bit set top level domain, second bit
+second level domain et cetera. The most significant bit in a byte is the rightmost bit, and the
+most significant byte in the bitbector is the last byte.
+
+When any kind of data is present in the database a bit in the datamask should be set for that
+particular subdomain level. If there's a SOA or delegation NS record present at a certain sublevel
+a bit in the authmask must be set. When there's a wildcard, a bit in the starmask must be set for
+that subdomain level.
+
+Alignment
+
+The alignment in the database is completely machine dependant. To make sure the database is properly
+aligned a set of C macros have to be used to manipulate the data.
+
+However in most cases all the data in the database is 2 bytes aligned, that means that every element
+of every structure must start on an even boundary.
+
+In most cases this means that a padding is only required after byte strings with uneven length.
+
+The sizes of the data structures and blocks should include these padding.
