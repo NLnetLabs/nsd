@@ -270,8 +270,6 @@ namedb_open (const char *filename)
 		return NULL;
 	}
 
-	zone_count = ntohl(zone_count);
-	
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (stderr, "Retrieving %lu zones\n", (unsigned long) zone_count));
 	
@@ -304,8 +302,6 @@ namedb_open (const char *filename)
 		return NULL;
 	}
 
-	dname_count = ntohl(dname_count);
-	
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (stderr, "Retrieving %lu domain names\n", (unsigned long) dname_count));
 	
