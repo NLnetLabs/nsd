@@ -724,6 +724,9 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 
 	/* Initialize the query... */
 	query_reset(q, UDP_MAX_MESSAGE_LEN, data->socket);
+#ifdef TSIG
+	tsig_init_record(&q->tsig, q->region, NULL, NULL);
+#endif /* TSIG */
 
 	received = recvfrom(handler->fd,
 			    buffer_begin(q->packet),
@@ -1142,6 +1145,9 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data->region = tcp_region;
 	tcp_data->socket = data->socket;
 	tcp_data->query = query_create(tcp_region, compressed_dname_offsets);
+#ifdef TSIG
+	tsig_init_record(&tcp_data->query->tsig, tcp_data->region, NULL, NULL);
+#endif /* TSIG */
 	tcp_data->nsd = data->nsd;
 
 	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;

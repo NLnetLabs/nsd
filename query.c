@@ -314,6 +314,40 @@ process_edns(query_type *q)
 	return NSD_RC_OK;
 }
 
+
+/*
+ * Process an optional TSIG record.
+ */
+static nsd_rc_type
+process_tsig(query_type *q)
+{
+	switch (q->tsig.status) {
+	case TSIG_NOT_PRESENT:
+		return NSD_RC_OK;
+	case TSIG_OK:
+		if (!tsig_from_query(&q->tsig)) {
+			/* Correct? */
+			return NSD_RC_NOTAUTH;
+		}
+
+		/* Strip the TSIG resource record off... */
+		buffer_set_position(q->packet, q->tsig.position);
+		buffer_set_limit(q->packet, q->tsig.position);
+		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
+
+		tsig_prepare(&q->tsig);
+		tsig_update(&q->tsig, q->packet, buffer_position(q->packet));
+		if (!tsig_verify(&q->tsig)) {
+			return NSD_RC_NOTAUTH;
+		}
+
+		return NSD_RC_OK;
+	case TSIG_ERROR:
+		return NSD_RC_FORMAT;
+	}
+	abort();
+}
+
 /*
  * Log notifies and return an RCODE_IMPL error to the client.
  *
@@ -886,9 +920,12 @@ query_prepare_response(query_type *q)
 	buffer_set_limit(q->packet, buffer_capacity(q->packet));
 
 	/*
-	 * Reserve space for the EDNS records if required.
+	 * Reserve space for the EDNS and TSIG records if required.
 	 */
 	q->reserved_space = edns_reserved_space(&q->edns);
+#ifdef TSIG
+	q->reserved_space += tsig_reserved_space(&q->tsig);
+#endif /* TSIG */
 
 	/* Update the flags.  */
 	flags = FLAGS(q->packet);
@@ -950,6 +987,10 @@ query_process(query_type *q, nsd_type *nsd)
 
 	arcount = ARCOUNT(q->packet);
 	if (arcount > 0) {
+		if (tsig_parse_rr(&q->tsig, q->packet))
+			--arcount;
+	}
+	if (arcount > 0) {
 		if (edns_parse_record(&q->edns, q->packet))
 			--arcount;
 	}
@@ -966,6 +1007,11 @@ query_process(query_type *q, nsd_type *nsd)
 #endif
 	/* Remove trailing garbage.  */
 	buffer_set_limit(q->packet, buffer_position(q->packet));
+
+	rc = process_tsig(q);
+	if (rc != NSD_RC_OK) {
+		return query_error(q, rc);
+	}
 
 	rc = process_edns(q);
 	if (rc != NSD_RC_OK) {
@@ -1021,6 +1067,24 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		STATUP(nsd, ednserr);
 		break;
 	}
+
+#ifdef TSIG
+	switch (q->tsig.status) {
+	case TSIG_NOT_PRESENT:
+		break;
+	case TSIG_OK:
+	case TSIG_ERROR:
+		if (q->tsig.error_code == TSIG_ERROR_NOERROR) {
+			tsig_prepare(&q->tsig);
+			tsig_update(&q->tsig, q->packet,
+				    buffer_position(q->packet));
+			tsig_sign(&q->tsig);
+		}
+		tsig_append_rr(&q->tsig, q->packet);
+		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
+		break;
+	}
+#endif /* TSIG */
 }
 
 /*

@@ -13,8 +13,12 @@
 #include <assert.h>
 #include <string.h>
 
+#include "edns.h"
 #include "namedb.h"
 #include "nsd.h"
+#ifdef TSIG
+#include "tsig.h"
+#endif /* TSIG */
 
 #define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
 #define MAX_COMPRESSED_DNAMES	MAXRRSPP /* Maximum number of compressed domains. */
@@ -60,8 +64,13 @@ struct query
 	 */
 	size_t reserved_space;
 
-	/* EDNS information provided by the client.  */
+	/* EDNS information.  */
 	edns_record_type edns;
+
+#ifdef TSIG
+	/* TSIG information.  */
+	tsig_record_type tsig;
+#endif /* TSIG */
 
 	int tcp;
 	uint16_t tcplen;
