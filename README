@@ -25,7 +25,7 @@ consult the REQUIREMENTS document which is a part of this distribution
 
 The source code is available for download from:
 
-	http://www.nlnetlabs.nl/downloads
+        http://www.nlnetlabs.nl/downloads
 
 
 1.1 Basic Theory of Operation
@@ -43,31 +43,31 @@ which uses a simple configuration file.
 
 1.2 Quick build and install
 
-Step 1:	Unpack the source with gtar -xzvf nsd-@version@.tar.gz
+Step 1: Unpack the source with gtar -xzvf nsd-@version@.tar.gz
 
-Step 2:	Create user nsd or any other unprivileged user of your
-	choice. In case of later make sure to use
-	--with-user=<username> while running configure.
+Step 2: Create user nsd or any other unprivileged user of your
+        choice. In case of later make sure to use
+        --with-user=<username> while running configure.
 
 Step 3: ./configure
 
-Step 4:	make all
+Step 4: make all
 
 Step 5: make install
 
 Step 6: Add "axfr" and/or "axfr-zone.name.tld" entries to your
-	hosts.allow and/or hosts deny
+        hosts.allow and/or hosts deny
 
-	Example:
+        Example:
 
-		axfr: ALL : allow
+                axfr: ALL : allow
 
 Step 7: Create and edit /etc/nsd/nsd.zones file possibly from
-	nsd.zones.sample template that comes with the distribution.
+        nsd.zones.sample template that comes with the distribution.
 
 Step 8: Copy necessary master zone files into appropriate directories
-	under /etc/nsd/primary & /etc/nsd/secondary You might consider
-	using contrib/build-nsdzones.pl script to automate task 7 & 8.
+        under /etc/nsd/primary & /etc/nsd/secondary You might consider
+        using contrib/build-nsdzones.pl script to automate task 7 & 8.
 
 Step 9: Run nsdc update if necessary
 
@@ -80,10 +80,10 @@ Step 12: Test the NSD with dig or host.
 Step 13: If you're happy add nsdc start into your OS boot up sequence.
 
 Step 14: If desired add nsdc update to your superuser crontab to
- 	 update the zones from master servers periodically.
+         update the zones from master servers periodically.
 
-  	 Got any problems or questions with the steps above? Read the
-	 rest of this file.
+         Got any problems or questions with the steps above? Read the
+         rest of this file.
 
 
 
@@ -143,17 +143,17 @@ addition to standard configure options, one may use the following:
 
   --enable-root-server
 
-	Configure NSD as a root server. Unless this option is
-	specified, NSD will refuse to server ``.'' zone as a
-	misconfiguration safeguard.
+        Configure NSD as a root server. Unless this option is
+        specified, NSD will refuse to server ``.'' zone as a
+        misconfiguration safeguard.
 
   --disable-ipv6
 
-	Disables IPv6 support in NSD.
+        Disables IPv6 support in NSD.
 
   --enable-plugins
 
-	Enable plugin support (experimental).  See nsd-plugin.h for
+        Enable plugin support (experimental).  See nsd-plugin.h for
         the plugin API defined by NSD.  See contrib/example-plugin.c
         for an example plugin.
 
@@ -169,7 +169,7 @@ addition to standard configure options, one may use the following:
 
   --disable-axfr
 
-	Disables outbound AXFR functionalities altogether.
+        Disables outbound AXFR functionalities altogether.
 
   --disable-tsig
 
@@ -178,41 +178,41 @@ addition to standard configure options, one may use the following:
 
   --enable-bind8-stats
 
-	Enables BIND8-like statistics.
+        Enables BIND8-like statistics.
 
   --with-configdir=dir
 
-	Specified, NSD configuration directory, default /etc/nsd
+        Specified, NSD configuration directory, default /etc/nsd
 
   --with-pidfile=path
 
-	Pathname to the NSD pidfile, default is platform specific,
-	mostly /var/run/nsd.pid
+        Pathname to the NSD pidfile, default is platform specific,
+        mostly /var/run/nsd.pid
 
   --with-zonesfile=path
 
-	Pathname to the NSD list of zones, default /etc/nsd/nsd.zones
+        Pathname to the NSD list of zones, default /etc/nsd/nsd.zones
 
   --with-dbfile=path
 
-	Pathname to the NSD database, default is /etc/nsd/nsd.db
+        Pathname to the NSD database, default is /etc/nsd/nsd.db
 
   --with-configfile=path  
 
         Pathname to the NSD configuration file Pathname to the NSD
-	configuration file, default /etc/nsd/nsdc.conf
+        configuration file, default /etc/nsd/nsdc.conf
 
   --with-zonesdir=dir
 
-	NSD default location for master zone files, default /etc/nsd/
-	
+        NSD default location for master zone files, default /etc/nsd/
+        
   --with-user=username
 
-	User name or ID to answer the queries with, default is nsd
-	
+        User name or ID to answer the queries with, default is nsd
+        
   --with-libwrap=pathname
 
-	Compile in libwrap (tcp_wrappers) support.
+        Compile in libwrap (tcp_wrappers) support.
 
   --with-facility=facility
 
@@ -243,7 +243,7 @@ This step should install three binaries
 nsd             - the daemon itself
 nsdc            - a shell script to control the daemon
 zonec           - zone compiler
-nsd-notify	- a simple C program to send outbound notifies
+nsd-notify      - a simple C program to send outbound notifies
 nsd-xfer        - a program to receive zones from a master server
                   using AXFR.
 
@@ -262,7 +262,7 @@ format:
 
 ; Zone Name     Master zone file name
 zone    bluesky.com     primary/bluesky.com
-zone	greysky.com	secondary/greysky.com masters 10.1.1.1
+zone    greysky.com     secondary/greysky.com masters 10.1.1.1
 
 Where bluesky.com should be the domain name you will be serving with
 NSD.
@@ -349,7 +349,7 @@ The CAIDA dnsstat tool referenced below is recommended to nsd
 operators as a mean of keeping statistics and check on abnormal query
 loads.
 
-	http://www.caida.org/tools/utilities/dnsstat/dnsstat-3.5.1a.tar.gz
+        http://www.caida.org/tools/utilities/dnsstat/dnsstat-3.5.1a.tar.gz
 
 This consciously is not part of nsd itself in order to keep nsd
 focused and minimize its complexity. It is better to leave logging and
@@ -486,7 +486,7 @@ For example keysdir=/etc/nsd/keys would be a good location.
 Lets say we have following:
 
 zone: nlnetlabs.nl
-server:	213.53.69.1
+server: 213.53.69.1
 key-name: nlnetlabs-axfr
 algorithm: hmac-md5
 secret: Y87923jksdXlsdv+LeXpUA==
