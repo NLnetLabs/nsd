@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.8 2003/08/19 07:41:27 miekg Exp $
+ * $Id: zparser2.c,v 1.9 2003/08/19 11:37:47 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -292,6 +292,7 @@ zparser_conv_A(const char *a)
         *r = sizeof(uint32_t);
      } else {
             zerror("invalid ip address");
+            fprintf(stderr, "IP: [%s]\n",a);
             error++;
      }
     return r;

@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.11 2003/08/19 08:22:52 miekg Exp $
+ * $Id: zyparser.y,v 1.12 2003/08/19 11:37:47 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -59,6 +59,7 @@ line:   NL
     |   DIR_ORIG dir_orig
     |   rr
     {   /* rr should be fully parsed */
+        zprintrr(stderr, current_rr);
         rrlist = list_add(rrlist, current_rr);
         current_rr = xalloc(sizeof(struct RR));
         zreset_current_rr(zdefault);
@@ -109,8 +110,6 @@ rr:     ORIGIN SP rrrest NL
     }
     |   dname SP rrrest NL
     {
-        printf("dname: %s\n", $1->str);
-
         current_rr->dname = $1->str;
 
         /* set this as previous */
@@ -164,14 +163,12 @@ dname:  abs_dname
     {
         $$->str = $1->str;
         $$->len = $1->len;  /* length really not important anymore */
-        printf("NEW ABS\n");
     }
     |   rel_dname
     {
         /* append origin */
         $$->str = (uint8_t *)cat_dname($$->str, zdefault->origin);
         $$->len = $1->len;
-        printf("NEW REL\n");
     }
     ;
 
@@ -196,7 +193,7 @@ rel_dname:  STR
     {  
         $$->str = (uint8_t *) cat_dname ($1->str, creat_dname($3->str,
                     $3->len));
-        $$->len = $1->len + $3->len;
+        $$->len = $1->len + $3->len + 1;
     }
     ;
 
@@ -271,7 +268,7 @@ rdata_a:    STR '.' STR '.' STR '.' STR
     {
         /* setup the string suitable for parsing */
         uint8_t * ipv4 = xalloc($1->len + $3->len + $5->len +
-                            $7->len + 3);
+                            $7->len + 4);
         sprintf(ipv4,"%s.%s.%s.%s",$1->str, $3->str, $5->str,
                             $7->str);
         zadd_rdata2(zdefault, zparser_conv_A((char*)ipv4));
