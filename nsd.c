@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.7 2002/12/05 22:25:07 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.8 2002/12/05 22:26:44 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -533,7 +533,6 @@ main(argc, argv)
 			unlink(nsd.pidfile);
 			exit(1);
 		default:
-			syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid[0]);
 			exit(0);
 		}
 
@@ -574,6 +573,9 @@ main(argc, argv)
 	/* Run the server... */
 	if(server_init(&nsd) != 0)
 		exit(1);
+
+	syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid[0]);
+
 	if(server_start_tcp(&nsd) != 0) {
 		kill(nsd.pid[0], SIGTERM);
 		exit(1);
