@@ -144,9 +144,11 @@ Q       \"
 			        BEGIN(INITIAL);
         		}	
 <<EOF>>			{	/* end of file is reached - check if we were including */
-        			if ( --include_stack_ptr < 0 )
-				            yyterminate();
-        			else {
+				if (include_stack_ptr == 0) {
+					yyterminate();
+        			} else {
+					--include_stack_ptr;
+					
 					/* pop (once you pop, you can not stop) */
 					current_parser->filename =
 						zparser_stack[include_stack_ptr].filename;
