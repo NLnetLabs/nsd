@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-plugin.h,v 1.1 2003/06/26 11:28:55 erik Exp $
+ * $Id: nsd-plugin.h,v 1.2 2003/06/26 12:51:37 erik Exp $
  *
  * nsd-plugin.h -- interface to NSD for a plugin.
  *
@@ -50,6 +50,9 @@
 #include "namedb.h"
 #include "query.h"
 
+#ifndef PLUGINS
+#error "Plugin support not enabled."
+#endif
 
 /*
  * The version of the plugin interface.

@@ -35,7 +35,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #include <config.h>
+
+#ifdef PLUGINS
 
 #include <assert.h>
 #include <sys/types.h>
@@ -203,3 +206,5 @@ handle_callback_result(
 		abort();
 	}
 }
+
+#endif /* PLUGINS */

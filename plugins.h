@@ -39,6 +39,8 @@
 #ifndef _PLUGINS_H_
 #define _PLUGINS_H_
 
+#ifdef PLUGINS
+
 #define MAX_PLUGIN_COUNT 8
 
 #include "nsd-plugin.h"
@@ -57,5 +59,7 @@ int handle_callback_result(
 	struct nsd *nsd,
 	nsd_plugin_callback_result_type result,
 	nsd_plugin_callback_args_type *args);
+
+#endif /* PLUGINS */
 
 #endif /* _PLUGINS_H_ */
