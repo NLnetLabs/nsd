@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.34 2002/02/20 13:11:35 alexis Exp $
+ * $Id: zonec.c,v 1.35 2002/02/20 14:25:24 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -778,8 +778,7 @@ zone_dump(z, db)
 int
 usage()
 {
-	fprintf(stderr, "usage: zonec [-f database] zone1.zone [ zone2.zone [ cache.cache ] ]\n");
-	fprintf(stderr, "	use root.zone or root.cache for the root zone\n");
+	fprintf(stderr, "usage: zonec [-f database] [-d directory] zone-list-file\n");
 	exit(1);
 }
 
@@ -792,17 +791,28 @@ main(argc, argv)
 	char **argv;
 {
 	char *zonename, *zonefile, *s;
+	char buf[LINEBUFSZ];
         struct namedb *db;
+	char *sep = " \t\n";
 	int c;
+	int line = 0;
+	int cache = 0;
+	FILE *f;
 
 	int error = 0;
 	struct zone *z = NULL;
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "f:")) != -1) {
+	while((c = getopt(argc, argv, "d:f:")) != -1) {
 		switch (c) {
 		case 'f':
 			dbfile = optarg;
+			break;
+		case 'd':
+			if(chdir(optarg)) {
+				fprintf(stderr, "cannot chdir to %s: %s\n", optarg, strerror(errno));
+				break;
+			}
 			break;
 		case '?':
 		default:
@@ -813,56 +823,64 @@ main(argc, argv)
 	argc -= optind;
 	argv += optind;
 
-	if(argc < 1)
+	if(argc != 1)
 		usage();
 
 	/* Create the database */
 	if((db = namedb_new(dbfile)) == NULL) {
-		fprintf(stderr, "erorr creating the database: %s\n", strerror(errno));
+		fprintf(stderr, "error creating the database: %s\n", strerror(errno));
 		exit(1);
 	}
 
-	/* Do the job */	
-	for(;argc;argc--, argv++) {
-		if((zonename = basename(*argv)) == NULL) {
-			fprintf(stderr, "invalid filename %s: %s\n", *argv, strerror(errno));
-			error = 1;
+	/* Open the master file... */
+	if((f = fopen(*argv, "r")) == NULL) {
+		fprintf(stderr, "cannot open %s: %s\n", *argv, strerror(errno));
+		exit(1);
+	}
+
+	/* Do the job */
+	while(fgets(buf, LINEBUFSZ - 1, f) != NULL) {
+		/* Count the lines... */
+		line++;
+
+		/* Skip empty lines and comments... */
+		if((s = strtok(buf, sep)) == NULL || *s == '#')
 			continue;
-		}
 
-		if((zonefile = strdup(*argv)) == NULL) {
-			fprintf(stderr, "strdup failed: %s\n", strerror(errno));
-			exit(1);
-		}
-
-		/* Does it end with .zone? */
-		if((s = strstr(zonename, ".zone")) && *(s + 5) == 0) {
-			*s = '\0';
-			if(strcmp(zonename, "root") == 0) {
-				zonename[0] = '.';
-				zonename[1] = '\0';
-			}
-			z = zone_read(zonename, zonefile, 0);
-		} else if((s = strstr(zonename, ".cache")) && *(s + 6) == 0) {
-			*s = '\0';
-			if(strcmp(zonename, "root") == 0) {
-				zonename[0] = '.';
-				zonename[1] = '\0';
-			}
-			z = zone_read(zonename, zonefile, 1);
+		/* Either zone or a cache... */
+		if(strcasecmp(s, "cache") == 0) {
+			cache = 1;
+		} else if(strcasecmp(s, "zone") == 0) {
+			cache = 0;
 		} else {
-			fprintf(stderr, "error: %s is neither a zone or a cache\n", zonefile);
-			error = 1;
+			fprintf(stderr, "syntax error in %s line %d\n", *argv, line);
+			break;
+		}
+
+		/* Zone name... */
+		if((zonename = strtok(NULL, sep)) == NULL) {
+			fprintf(stderr, "syntax error in %s line %d\n", *argv, line);
+			break;
+		}
+
+		/* File name... */
+		if((zonefile = strtok(NULL, sep)) == NULL) {
+			fprintf(stderr, "syntax error in %s line %d\n", *argv, line);
+			break;
+		}
+
+		/* Trailing garbage? */
+		if(strtok(NULL, sep) != NULL) {
+			fprintf(stderr, "ignoring trailing garbage in %s line %d\n", *argv, line);
 		}
 
 		/* If we did not have any errors... */
-		if(z) {
+		if((z = zone_read(zonename, zonefile, cache)) != NULL) {
 			zone_dump(z, db);
 			zone_free(z);
 			z = NULL;
 		}
 
-		free(zonefile);
 	};
 
 	/* Close the database */

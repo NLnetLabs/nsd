@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.1 2002/02/20 13:11:35 alexis Exp $
+ * $Id: config.h,v 1.2 2002/02/20 14:25:24 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -41,13 +41,40 @@
 #ifndef	_CONFIG_H_
 #define	_CONFIG_H_
 
-#if !defined(__P)
-#	if defined(__STDC__)
-#		define __P(protos)     protos          /* full-blown ANSI C */
-# 	else
-# 		define __P(protos)
-# 	endif
+
+#ifdef	DEBUG
+
+#ifndef CF_DBFILE
+#define	CF_DBFILE	"nsd.db"
 #endif
+
+#ifndef CF_PIDFILE
+#define	CF_PIDFILE	"nsd.pid"
+#endif
+
+#define	CF_TCP_MAX_CONNECTIONS	8
+#define	CF_TCP_PORT		4096
+#define	CF_TCP_MAX_MESSAGE_LEN	16384
+#define	CF_UDP_PORT		4096
+#define	CF_UDP_MAX_MESSAGE_LEN	512
+
+#else	/* DEBUG */
+
+#ifndef CF_DBFILE
+#define	CF_DBFILE	"/var/db/nsd.db"
+#endif
+
+#ifndef CF_PIDFILE
+#define	CF_PIDFILE	"/var/run/nsd.pid"
+#endif
+
+#define	CF_TCP_MAX_CONNECTIONS	8
+#define	CF_TCP_PORT		53
+#define	CF_TCP_MAX_MESSAGE_LEN	16384
+#define	CF_UDP_PORT		53
+#define	CF_UDP_MAX_MESSAGE_LEN	512
+
+#endif	/* DEBUG */
 
 #if defined(sun)
 

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.26 2002/02/20 13:11:35 alexis Exp $
+ * $Id: nsd.c,v 1.27 2002/02/20 14:25:24 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -78,7 +78,7 @@ xrealloc(p, size)
 int
 usage()
 {
-	fprintf(stderr, "usage: nsd database\n");
+	fprintf(stderr, "usage: nsd [-d] [-p port] database\n");
 	exit(1);
 }
 
@@ -192,14 +192,17 @@ main(argc, argv)
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "df:")) != -1) {
+	while((c = getopt(argc, argv, "df:p:")) != -1) {
 		switch (c) {
 		case 'd':
 			nsd.debug = 1;
 			break;
 		case 'f':
-			nsd.dbfile = argv[0];
+			nsd.dbfile = optarg;
 			break;
+		case 'p':
+			nsd.udp.port = atoi(optarg);
+			nsd.tcp.port = atoi(optarg);
 		case '?':
 		default:
 			usage();
@@ -208,12 +211,8 @@ main(argc, argv)
 	argc -= optind;
 	argv += optind;
 
-	if(argc > 1)
+	if(argc != 0)
 		usage();
-
-	if(argc == 1) {
-		nsd.dbfile = argv[0];
-	}
 
 	/* Do we have a running nsd? */
 	if((oldpid = readpid(nsd.pidfile)) == -1) {

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.37 2002/02/20 13:21:54 alexis Exp $
+# $Id: Makefile,v 1.38 2002/02/20 14:25:24 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -39,21 +39,36 @@
 SHELL = /bin/sh
 
 # Run-time enviroment settings
+
+# The directory where the nsd nsdc and zonec binaries will be installed
 NSDBINDIR       = /usr/local/sbin
+
+# The directory where the master zone files are located
 NSDZONESDIR     = /usr/local/etc/namedb
+
+# The flags to pass to the NSD on startup
 NSDFLAGS        = 
+
+# The pid file of the nsd
 NSDPIDFILE      = /var/run/nsd.pid
+
+# The NSD run-time database
 NSDDB           = /var/db/nsd.db
 
+# The file containing the list of the zones to be compiled into the NSD database
+NSDZONES	= /usr/local/etc/nsd.zones
+
 # Compile environment settings
-DEBUG=	-g -DDEBUG=1
+DEBUG=	#-g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -Wall -DUSE_HEAP_HASH -DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" ${DEBUG} # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
+CFLAGS= -pipe -Wall ${DEBUG} -DUSE_HEAP_HASH # -DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
 LDFLAGS= # -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
 INSTALL = install -c
-COMPAT_O =	basename.o
+
+# This might be necessary for a system like SunOS 4.x
+COMPAT_O =	#	basename.o
 
 #
 #
@@ -78,7 +93,7 @@ nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
 	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
-		-e "s,@@NSDDB@@,${NSDDB},g" $@.in > $@
+		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" $@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
