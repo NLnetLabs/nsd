@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.25 2002/04/22 10:37:28 alexis Exp $
+ * $Id: nsd.h,v 1.25.4.1 2002/05/21 09:21:11 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -85,6 +85,8 @@ struct	nsd {
 	/* Configuration */
 	char	*dbfile;
 	char	*pidfile;
+	uid_t	uid;
+	gid_t	gid;
 
 	/* TCP specific configuration */
 	struct	{
