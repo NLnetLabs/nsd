@@ -370,52 +370,52 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 	char *t; char *ztext;
 
 	switch(*in_rr) {
-		case after_dname:
-			/* type */
-			i = zrrtype(yytext);
-			if (i) {
-				*in_rr = reading_type;
-				yylval.type = intbyname(yytext, ztypes);
-				return i;
-			}
+	case after_dname:
+		/* type */
+		i = zrrtype(yytext);
+		if (i) {
+			*in_rr = reading_type;
+			yylval.type = intbyname(yytext, ztypes);
+			return i;
+		}
 
-			/* class */
-			if (strcasecmp(yytext, "IN") == 0 ||
-					strcasecmp(yytext,"CLASS1") == 0 ) {
-				yylval.class = CLASS_IN;
-				LEXOUT(("IN "));
-				return IN;
-			} else if (strcasecmp(yytext, "CH") == 0) {
-				yylval.class = CLASS_CHAOS;
-				return CH;
-			} else if (strcasecmp(yytext, "HS") == 0) {
-				yylval.class = CLASS_HS;
-				return HS;
-			}
+		/* class */
+		if (strcasecmp(yytext, "IN") == 0 ||
+		    strcasecmp(yytext,"CLASS1") == 0 ) {
+			yylval.class = CLASS_IN;
+			LEXOUT(("IN "));
+			return IN;
+		} else if (strcasecmp(yytext, "CH") == 0) {
+			yylval.class = CLASS_CHAOS;
+			return CH;
+		} else if (strcasecmp(yytext, "HS") == 0) {
+			yylval.class = CLASS_HS;
+			return HS;
+		}
 
-			/* ttl */
-			strtottl(yytext, &t);
-			if ( *t == 0 ) {
-				/* was parseable */
-				yylval.data.str = yytext;
-				yylval.data.len = strlen(yytext); /*needed?*/
-				LEXOUT(("TTL "));
-				return TTL;
-			}
+		/* ttl */
+		strtottl(yytext, &t);
+		if ( *t == 0 ) {
+			/* was parseable */
+			yylval.data.str = yytext;
+			yylval.data.len = strlen(yytext); /*needed?*/
+			LEXOUT(("TTL "));
+			return TTL;
+		}
 		/* fall through, default first, order matters */
-		default:
-			ztext = region_strdup(rr_region, yytext);
-			yylval.data.len = zoctet(ztext);
-			yylval.data.str = ztext;
-			LEXOUT(("STR "));
-			return STR;
-		case outside:
-			/* should match ^ */
-			ztext = region_strdup(rr_region, yytext);
-			yylval.data.len = zoctet(ztext);
-			yylval.data.str = ztext;
-			*in_rr = expecting_dname;
-			LEXOUT(("STR "));
-			return STR;
+	default:
+		ztext = region_strdup(rr_region, yytext);
+		yylval.data.len = zoctet(ztext);
+		yylval.data.str = ztext;
+		LEXOUT(("STR "));
+		return STR;
+	case outside:
+		/* should match ^ */
+		ztext = region_strdup(rr_region, yytext);
+		yylval.data.len = zoctet(ztext);
+		yylval.data.str = ztext;
+		*in_rr = expecting_dname;
+		LEXOUT(("STR "));
+		return STR;
 	}
 }
