@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.2 2002/10/26 12:39:15 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.3 2002/10/26 12:46:55 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -271,10 +271,12 @@ bind8_stats(nsd)
 			len = buf + MAXSYSLOGMSGLEN - t;
 		}
 
-		if(types[i] == NULL) {
-			t += snprintf(t, len, " TYPE%d=%lu", i, nsd->st.qtype[i]);
-		} else {
-			t += snprintf(t, len, " %s=%lu", types[i], nsd->st.qtype[i]);
+		if(nsd->st.qtype[i] != 0) {
+			if(types[i] == NULL) {
+				t += snprintf(t, len, " TYPE%d=%lu", i, nsd->st.qtype[i]);
+			} else {
+				t += snprintf(t, len, " %s=%lu", types[i], nsd->st.qtype[i]);
+			}
 		}
 	}
 

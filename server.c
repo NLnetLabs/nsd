@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59.2.1 2002/10/22 12:37:27 alexis Exp $
+ * $Id: server.c,v 1.59.2.2 2002/10/26 12:51:25 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -358,7 +358,7 @@ server_udp(struct nsd *nsd)
 
 		/* Process and answer the query... */
 		if(query_process(&q, nsd) != -1) {
-			if(!AA((&q)))
+			if(RCODE((&q)) == RCODE_OK && !AA((&q)))
 				STATUP(nsd, nona);
 			/* Add edns(0) info if necessary.. */
 			query_addedns(&q, nsd);
@@ -527,7 +527,7 @@ server_tcp(struct nsd *nsd)
 			alarm(0);
 
 			if((axfr = query_process(&q, nsd)) != -1) {
-				if(!AA((&q)))
+				if(RCODE((&q)) == RCODE_OK && !AA((&q)))
 					STATUP(nsd, nona);
 				do {
 					query_addedns(&q, nsd);
