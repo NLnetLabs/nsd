@@ -173,7 +173,7 @@ xrealloc(void *ptr, size_t size)
 }
 
 int
-write_data(int file, void *data, size_t size)
+write_data(int file, const void *data, size_t size)
 {
 	ssize_t result;
 
