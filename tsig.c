@@ -253,21 +253,27 @@ tsig_prepare(tsig_record_type *tsig)
 			    tsig->prior_mac_data,
 			    tsig->prior_mac_size);
 	}
+
+	tsig->updates_since_last_prepare = 0;
 }
 
 void
-tsig_update(tsig_record_type *tsig, query_type *query)
+tsig_update(tsig_record_type *tsig, query_type *query, size_t length)
 {
 	uint16_t original_query_id = htons(tsig->original_query_id);
+
+	assert(length <= buffer_limit(query->packet));
 	
 	HMAC_Update(&tsig->context, (uint8_t *) &original_query_id,
 		    sizeof(original_query_id));
 	HMAC_Update(&tsig->context,
 		    buffer_at(query->packet, sizeof(original_query_id)),
-		    buffer_position(query->packet) - sizeof(original_query_id));
+		    length - sizeof(original_query_id));
 	if (QR(query)) {
 		++tsig->response_count;
 	}
+
+	++tsig->updates_since_last_prepare;
 }
 
 void
@@ -284,9 +290,11 @@ tsig_sign(tsig_record_type *tsig)
 	
 	HMAC_Final(&tsig->context, digest_data, &digest_size);
 
+#if 0
 	fprintf(stderr, "tsig_sign: calculated digest: ");
 	print_hex(stderr, digest_data, digest_size);
 	fprintf(stderr, "\n");
+#endif
 	
 	tsig->prior_mac_size = tsig->mac_size = digest_size;
 	tsig->prior_mac_data = tsig->mac_data = region_alloc_init(
@@ -303,9 +311,11 @@ tsig_verify(tsig_record_type *tsig)
 	
 	HMAC_Final(&tsig->context, digest_data, &digest_size);
 
+#if 0
 	fprintf(stderr, "tsig_verify: calculated digest: ");
 	print_hex(stderr, digest_data, digest_size);
 	fprintf(stderr, "\n");
+#endif
 	
 	tsig->prior_mac_size = digest_size;
 	tsig->prior_mac_data = region_alloc_init(
@@ -380,7 +390,8 @@ tsig_find_rr(tsig_record_type *tsig, query_type *query)
 	int result;
 
 	if (ARCOUNT(query) == 0) {
-		return 0;
+		tsig->status = TSIG_NOT_PRESENT;
+		return 1;
 	}
 			  
 	buffer_set_position(query->packet, QHEADERSZ);
@@ -406,6 +417,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	uint32_t ttl;
 	uint16_t rdlen;
 
+	tsig->status = TSIG_NOT_PRESENT;
 	tsig->position = buffer_position(packet);
 	
 	tsig->key_name = dname_make_from_packet(tsig->region, packet, 1, 1);
@@ -423,7 +435,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	klass = buffer_read_u16(packet);
 	if (type != TYPE_TSIG || klass != CLASS_ANY) {
 		buffer_set_position(packet, tsig->position);
-		return 0;
+		return 1;
 	}
 	
 	ttl = buffer_read_u32(packet);
@@ -468,9 +480,6 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	buffer_skip(packet, tsig->other_size);
 	tsig->status = TSIG_OK;
 
-	fprintf(stderr, "tsig: %s ", dname_to_string(tsig->key_name));
-	fprintf(stderr, "%s\n", dname_to_string(tsig->algorithm_name));
-	
 	return 1;
 }
 

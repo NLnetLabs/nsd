@@ -412,8 +412,6 @@ receive_response(int s, query_type *q)
 
 	buffer_set_limit(q->packet, size);
 
-	fprintf(stderr, "receive_response: size %u\n", (unsigned) size);
-	
 	return 1;
 }
 
@@ -470,16 +468,23 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 		return 1;
 
 	if (!tsig_find_rr(tsig, q)) {
-		error("response is not signed with TSIG");
+		error("error parsing response");
 		return 0;
 	}
 	if (tsig->status == TSIG_NOT_PRESENT) {
-		error("TSIG not present");
-		return 0;
+		if (tsig->response_count == 0) {
+			error("required TSIG not present");
+			return 0;
+		}
+		if (tsig->updates_since_last_prepare > 100) {
+			error("too many response packets without TSIG");
+			return 0;
+		}
+		tsig_update(tsig, q, buffer_limit(q->packet));
+		return 1;
 	}
 	
 	ARCOUNT_SET(q, ARCOUNT(q) - 1);
-	buffer_set_position(q->packet, tsig->position);
 	
 	if (tsig->status == TSIG_ERROR) {
 		error("TSIG record is not correct");
@@ -489,12 +494,12 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 		      tsig_error(tsig->error_code));
 		return 0;
 	} else {
-		tsig_prepare(tsig);
-		tsig_update(tsig, q);
+		tsig_update(tsig, q, tsig->position);
 		if (!tsig_verify(tsig)) {
 			error("TSIG record did not authenticate");
 			return 0;
 		}
+		tsig_prepare(tsig);
 	}
 
 	return 1;
@@ -526,6 +531,12 @@ check_serial(int s,
 	if (!send_query(s, q)) {
 		return -1;
 	}
+
+	if (tsig) {
+		/* Prepare for checking responses. */
+		tsig_prepare(tsig);
+	}
+	
 	if (!receive_response(s, q)) {
 		return -1;
 	}
@@ -637,6 +648,11 @@ axfr(int s,
 	if (!send_query(s, q)) {
 		return 0;
 	}
+
+	if (tsig) {
+		/* Prepare for checking responses.  */
+		tsig_prepare(tsig);
+	}
 	
 	while (!done) {
 		if (!receive_response(s, q)) {
@@ -719,7 +735,7 @@ init_query(query_type *q,
 	if (tsig) {
 		tsig_init_query(tsig, query_id);
 		tsig_prepare(tsig);
-		tsig_update(tsig, q);
+		tsig_update(tsig, q, buffer_position(q->packet));
 		tsig_sign(tsig);
 		tsig_append_rr(tsig, q->packet);
 		ARCOUNT_SET(q, 1);

@@ -61,6 +61,7 @@ struct tsig_record
 	tsig_status_type  status;
 	size_t            position;
 	size_t            response_count;
+	size_t            updates_since_last_prepare;
 	HMAC_CTX          context;
 	const tsig_algorithm_type *algorithm;
 	const tsig_key_type *key;
@@ -123,10 +124,11 @@ void tsig_init_query(tsig_record_type *tsig, uint16_t original_query_id);
 void tsig_prepare(tsig_record_type *tsig);
 
 /*
- * Add PACKET to the TSIG hash.  If the query is a response the TSIG
- * response count is incremented.
+ * Add the first LENGTH octets of PACKET to the TSIG hash, replacing
+ * the PACKET's id with the original query id from TSIG.  If the query
+ * is a response the TSIG response count is incremented.
  */
-void tsig_update(tsig_record_type *tsig, struct query *query);
+void tsig_update(tsig_record_type *tsig, struct query *query, size_t length);
 
 /*
  * Finalize the TSIG record by hashing the TSIG data.  If the TSIG

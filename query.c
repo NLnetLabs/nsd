@@ -336,7 +336,7 @@ process_tsig(query_type *q ATTR_UNUSED)
 	} else if (q->tsig.status == TSIG_OK) {
 		/* Verify TSIG.  */
 		tsig_prepare(&q->tsig);
-		tsig_update(&q->tsig, q);
+		tsig_update(&q->tsig, q, q->tsig.position);
 		if (tsig_verify(&q->tsig)) {
 			result = NSD_RC_OK;
 		} else {
@@ -1042,7 +1042,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case TSIG_OK:
 	case TSIG_ERROR:
 		tsig_prepare(&q->tsig);
-		tsig_update(&q->tsig, q);
+		tsig_update(&q->tsig, q, buffer_position(q->packet));
 		tsig_sign(&q->tsig);
 		tsig_append_rr(&q->tsig, q->packet);
 		ARCOUNT_SET(q, ARCOUNT(q) + 1);
