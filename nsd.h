@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.9 2002/01/30 15:34:08 alexis Exp $
+ * $Id: nsd.h,v 1.9.2.1 2002/02/02 15:38:57 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -65,9 +65,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <db.h>
-
 #include "dns.h"
+#include "dict.h"
 #include "namedb.h"
 #include "query.h"
 
@@ -95,5 +94,6 @@ extern u_char starmask[NAMEDB_BITMASKLEN];
 
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
-int server __P((DB *));
-struct domain *lookup __P((DB *, u_char *, int));
+int server __P((dict_t *));
+struct domain *lookup __P((dict_t *, u_char *, int));
+int domaincmp __P((register u_char *, register u_char *));
