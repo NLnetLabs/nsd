@@ -1,4 +1,4 @@
-$Id: REQUIREMENTS,v 1.18 2004/01/22 14:04:59 erik Exp $
+$Id: REQUIREMENTS,v 1.19 2004/02/11 10:42:46 erik Exp $
 
 
 NSD Requirements and Specifications
@@ -33,6 +33,7 @@ These requirements are in order of importance:
    no facilities for caching or recursion.
 
 4. Open source
+
    The code will be open source after the first public release.
 
 5. Regression tested against bind8/9
@@ -98,9 +99,9 @@ B.2. Explicit NON-Requirements
 
 3. No end-user friendliness
 
-  nsd operators are considered to have basic Unix and networking
-  knowledge and are also considered to be able to read and understand
-  reasonably written user documentation.
+   nsd operators are considered to have basic Unix and networking
+   knowledge and are also considered to be able to read and understand
+   reasonably written user documentation.
 
 4. No creeping featurism
 
@@ -136,18 +137,16 @@ C.1. Zone file format and RR records.
 
    Zone file MUST not contain errors. i.e. the zonecompiler may fail
    or produce unpredictable results when:
-      - RRs that are obsolete and not implemented are encountered.
+     - RRs that are obsolete and not implemented are encountered.
      - Syntax errors are found (RFC1035 5.2)
-	+ not all RRs are of the same zone
-	+ not exactly one SOA RR is present at the top of the zone.
-	+ delegations are present but required glue is not present.
-	+ Out of Zone, non-glue data is encountered.
-	+ not all RRs in a RRset have the same TTL (RFC2181 5.2)
-
-	+ if a DNAME exists at node N there may not be any other data
-	  at 'N' (except CNAME or DNAME) and there MUST not be any
-	  other data at subnodes of 'N' (RFC 2672 section 3).
-
+       + not all RRs are of the same zone
+       + not exactly one SOA RR is present at the top of the zone.
+       + delegations are present but required glue is not present.
+       + Out of Zone, non-glue data is encountered.
+       + not all RRs in a RRset have the same TTL (RFC2181 5.2)
+       + if a DNAME exists at node N there may not be any other data
+	 at 'N' (except CNAME or DNAME) and there MUST not be any
+	 other data at subnodes of 'N' (RFC 2672 section 3).
      - The default minimum TTL is not specified by the $TTL directive
 
    Zones that are parsed by the zonecompiler will be served by the nsd
@@ -155,14 +154,14 @@ C.1. Zone file format and RR records.
 
 
 
-    Only zone files of CLASS "IN" are supported.
+   Only zone files of CLASS "IN" are supported.
 
    The zone file parser sets the TTL of those RRs that do not have
    their TTL defined to the minimum TTL as defined by the $TTL
    directive unless the RR is part of a RRset and the TTL is set for
    one of the RRs in the RRset.
 
-   Parsing of the names in zone files is case insensitive 
+   Parsing of the names in zone files is case insensitive
    (Note: RFC1035 2.3.3 also see 1034  3.1
  
     "The basic rule is that case can be discarded only when data is
@@ -194,6 +193,7 @@ C.1. Zone file format and RR records.
    queries for the SOA or NS records at the zone apex.  It is not
    clear whether including the DNSKEY RRset is advantageous and not
    doing so simplifies NSD.
+
   
 C.2. Server and connection management.
 
@@ -334,24 +334,15 @@ C 4  Further Query processing.
 
 C 4.1 Actions based on QTYPE of incoming Query.
 
-
-   [OK*** Note that we will support AXFR/TSIG ... this will need some
-   modification.]
-
-
-
   If QTYPE>=249 we are dealing with special queries.
 
    case QTYPE=TKEY
 
    case QTYPE=TSIG
 
-   case QTYPE=IXFR respond the same way as QTYPE=AXFR (rfc1995 4) i.e. respond
-		   with RCODE=5 (REFUSED)
+   case QTYPE=IXFR respond with RCODE=5 (REFUSED)
 
-   case QTYPE=AXFR respond with RCODE=5 (REFUSED) [OK***: better than NOTIMPL]
-
-   NOTE: AXFR may be supported in a later version of the server.
+   case QTYPE=AXFR respond with AXFR (TSIG is not supported)
 
      
    case QTYPE=MAILB proceed with processing.
@@ -372,16 +363,13 @@ C 4.1 Actions based on QTYPE of incoming Query.
   implemented. (Read this as the DO bit is not set). 
 
   [OK*** this version of the REQUIREMENTS includes DNSSEC specs
-   assuming DS and OPT-IN style NXT records.]
+   assuming DS and OPT-IN style NSEC records.]
 
    1. Search the available zones for the zone which is the nearest
       ancestor to QNAME.  If such a zone is found, go to step 2,
       otherwise step 3.
 
-   2. If the DO bit was set in the query and the zone is marked as
-      secure then set the AD bit. 
-
-      Start matching down, label by label, in the zone.  The matching
+   2. Start matching down, label by label, in the zone.  The matching
       process can terminate several ways:
 
 
@@ -418,19 +406,19 @@ C 4.1 Actions based on QTYPE of incoming Query.
   	   
 	   if the zone is marked secure then
 
-	      if there is a NXT record or DS record then
+	      if there is a NSEC record or DS record then
 	   
 	        include the DS bit and associated SIG(DS) into the
 	        authority section if the DS record is present for this
 	        delegation. If there is no DS record present for this
-	        delegation then include the NXT record with the
-	        corresponding SIG(NXT) in the authority section.
+	        delegation then include the NSEC record with the
+	        corresponding SIG(NSEC) in the authority section.
 	   
 	      else 
 
 	        we are in an opt-in part of the zone and we should
-	        include the the NXT RR of the last secured RR in the
-	        zone and the corresponding SIG(NXT) into the authority
+	        include the the NSEC RR of the last secured RR in the
+	        zone and the corresponding SIG(NSEC) into the authority
 	        section of the answer.
 
 	      fi
@@ -477,7 +465,7 @@ C 4.1 Actions based on QTYPE of incoming Query.
          we have followed due to a CNAME.  If the name is original,
          set an authoritative name error (RCODE=3 NXDOMAIN) in the
          response, if the DO bit was set then include the appropriate
-         NXT records (see section 4.5.) in the authority section,
+         NSEC records (see section 4.5.) in the authority section,
          then exit.
 
          If the "*" label does exist, match RRs at that node against
@@ -485,7 +473,7 @@ C 4.1 Actions based on QTYPE of incoming Query.
          set the owner of the RR to be QNAME, and not the node with
          the "*" label.  If the DO bit is set copy the SIG for the *
          label and matching QTYPE also set the owner of the SIG RR to
-         be QNAME). In addition a NXT record indicating that no
+         be QNAME). In addition a NSEC record indicating that no
          specific matches are possible should be returned in the
          additional section.
 
@@ -599,9 +587,11 @@ C 4.3 Label compression in RDATA
     dname of the 'mbox-dname' and 'txt-dname' for RP
     dname of the 'intermediate-host' for RT.
         
-    
+
+   [** This is incorrect.  I don't think compression is allowed and NSD2
+    doesn't perform compression. -Erik]    
     SIG signers name field MAY be compressed.  (2535 4.1.7)
-    NXT dname field MAY be compressed.  (2535 4.2)
+    NSEC dname field MAY be compressed.  (2535 4.2)
 
 
 
@@ -626,20 +616,20 @@ C 4.4 Truncation handling. (as rfc2181 9)
   allow for incomplete RRsets in the additional section.
 
 
-C 4.5 NXT processing.
+C 4.5 NSEC processing.
 
-  The NXT record is required to be in the authority section if a QNAME
+  The NSEC record is required to be in the authority section if a QNAME
   or a QTYPE cannot be matched (see section 5 or RFC2535). 
 
-  If the DO bit on the query is not set then NXT records should only be
+  If the DO bit on the query is not set then NSEC records should only be
   required if QNAME and QTYPE match.
 
-  If the do bit on the query is set then we have to do NXT processing if 
+  If the do bit on the query is set then we have to do NSEC processing if 
   a zone is marked as secure otherwise we should do nothing.
 
   If the QNAME matches a name in the zone but the QTYPE does not match
   then the answer section should remain empty and the Authority
-  section should have either the NXT RR that matches QNAME or the NXT
+  section should have either the NSEC RR that matches QNAME or the NSEC
   RR (opt-in) that indicates QNAME is in an insecure part of the zone.
 
   If QNAME does not match a name from the zone then the negative
@@ -647,7 +637,7 @@ C 4.5 NXT processing.
   are denied existence.   
 
   [OK**** This is not yet complete. We need to work out the algorithm for
-  NXT processing]
+  NSEC processing]
 
 
 
@@ -942,6 +932,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.18 2004/01/22 14:04:59 erik Exp $
+$Id: REQUIREMENTS,v 1.19 2004/02/11 10:42:46 erik Exp $
 
 
