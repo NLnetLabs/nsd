@@ -451,7 +451,7 @@ zadd_rdata_wireformat(zparser_type *parser, uint16_t *data)
 		fprintf(stderr,"too many rdata elements");
 		abort();
 	}
-	current_rr->rdata[parser->_rc].data = data;
+	current_rr->rrdata->rdata[parser->_rc].data = data;
 	++parser->_rc;
 }
 
@@ -462,7 +462,7 @@ zadd_rdata_domain(zparser_type *parser, domain_type *domain)
 		fprintf(stderr,"too many rdata elements");
 		abort();
 	}
-	current_rr->rdata[parser->_rc].data = domain;
+	current_rr->rrdata->rdata[parser->_rc].data = domain;
 	++parser->_rc;
 }
 
@@ -472,7 +472,7 @@ zadd_rdata_finalize(zparser_type *parser)
 	/* RDATA_TERMINATOR signals the last rdata */
 
 	/* _rc is already incremented in zadd_rdata2 */
-	current_rr->rdata[parser->_rc].data = NULL;
+	current_rr->rrdata->rdata[parser->_rc].data = NULL;
 }
 
 /*
@@ -717,7 +717,7 @@ zone_open(const char *filename, uint32_t ttl, uint16_t class, const char *origin
 	current_parser->line = 1;
 	current_parser->filename = filename;
 
-	current_rr->rdata = temporary_rdata;
+	current_rr->rrdata = temporary_rrdata;
 
 	return 1;
 }
@@ -859,24 +859,22 @@ process_rr(zparser_type *parser, rr_type *rr)
 		rrset->zone = zone;
 		rrset->type = rr->type;
 		rrset->class = rr->class;
-		rrset->ttl = rr->ttl;
 		rrset->rrslen = 1;
-		rrset->rrs = xalloc(sizeof(rdata_atom_type **));
-		rrset->rrs[0] = rr->rdata;
+		rrset->rrs = xalloc(sizeof(rrdata_type **));
+		rrset->rrs[0] = rr->rrdata;
 			
 		region_add_cleanup(zone_region, cleanup_rrset, rrset);
 
 		/* Add it */
 		domain_add_rrset(rr->domain, rrset);
 	} else {
-		if (rrset->ttl != rr->ttl) {
-			error("ttl doesn't match the ttl of the rrset");
-			return 0;
+		if (rrset->type != TYPE_RRSIG && rrset->rrs[0]->ttl != rr->rrdata->ttl) {
+			warning("TTL doesn't match the TTL of the RRset");
 		}
 
 		/* Search for possible duplicates... */
 		for (i = 0; i < rrset->rrslen; i++) {
-			if (!zrdatacmp(rrset->type, rrset->rrs[i], rr->rdata)) {
+			if (!zrdatacmp(rrset->type, rrset->rrs[i]->rdata, rr->rrdata->rdata)) {
 				break;
 			}
 		}
@@ -887,8 +885,8 @@ process_rr(zparser_type *parser, rr_type *rr)
 		}
 
 		/* Add it... */
-		rrset->rrs = xrealloc(rrset->rrs, (rrset->rrslen + 1) * sizeof(rdata_atom_type **));
-		rrset->rrs[rrset->rrslen++] = rr->rdata;
+		rrset->rrs = xrealloc(rrset->rrs, (rrset->rrslen + 1) * sizeof(rrdata_type **));
+		rrset->rrs[rrset->rrslen++] = rr->rrdata;
 	}
 
 	/* Check we have SOA */
@@ -1065,6 +1063,8 @@ main (int argc, char **argv)
 	current_parser = zparser_init(db);
 	current_rr = region_alloc(zone_region, sizeof(rr_type));
 
+	temporary_rrdata = region_alloc(zone_region, rrdata_size(MAXRDATALEN));
+	
 	if ( strcmp(*argv,"-") == 0 ) {
 		/* ah, somebody give - (stdin) as input file name */
 		if ( nsd_stdin_origin == NULL ) {

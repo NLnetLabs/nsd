@@ -156,7 +156,6 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	
 	class = htons(rrset->class);
 	type = htons(rrset->type);
-	ttl = htonl(rrset->ttl);
 	rrslen = htons(rrset->rrslen);
 	
 	if (!write_number(db, domain->number))
@@ -171,23 +170,24 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	if (!write_data(db->fd, &class, sizeof(class)))
 		return 0;
 		
-	if (!write_data(db->fd, &ttl, sizeof(ttl)))
-		return 0;
-
 	if (!write_data(db->fd, &rrslen, sizeof(rrslen)))
 		return 0;
 		
 	for (i = 0; i < rrset->rrslen; ++i) {
 		rdcount = 0;
-		for (rdcount = 0; !rdata_atom_is_terminator(rrset->rrs[i][rdcount]); ++rdcount)
+		for (rdcount = 0; !rdata_atom_is_terminator(rrset->rrs[i]->rdata[rdcount]); ++rdcount)
 			;
 		
 		rdcount = htons(rdcount);
 		if (!write_data(db->fd, &rdcount, sizeof(rdcount)))
 			return 0;
-		
-		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
-			rdata_atom_type atom = rrset->rrs[i][j];
+
+		ttl = htonl(rrset->rrs[i]->ttl);
+		if (!write_data(db->fd, &ttl, sizeof(ttl)))
+			return 0;
+
+		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i]->rdata[j]); ++j) {
+			rdata_atom_type atom = rrset->rrs[i]->rdata[j];
 			if (rdata_atom_is_domain(rrset->type, j)) {
 				if (!write_number(db, rdata_atom_domain(atom)->number))
 					return 0;

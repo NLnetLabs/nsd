@@ -161,6 +161,7 @@ read_rrset(namedb_type *db,
 	rrset_type *rrset;
 	int i, j;
 	uint16_t rdcount;
+	uint32_t ttl;
 	domain_type *owner;
 	
 	owner = read_domain(db, domain_count, domains);
@@ -179,32 +180,32 @@ read_rrset(namedb_type *db,
 	if (fread(&rrset->class, sizeof(rrset->class), 1, db->fd) != 1)
 		return 0;
 
-	if (fread(&rrset->ttl, sizeof(rrset->ttl), 1, db->fd) != 1)
-		return 0;
-
 	if (fread(&rrset->rrslen, sizeof(rrset->rrslen), 1, db->fd) != 1)
 		return 0;
 
 	rrset->type = ntohs(rrset->type);
 	rrset->class = ntohs(rrset->class);
-	rrset->ttl = ntohl(rrset->ttl);
 	rrset->rrslen = ntohs(rrset->rrslen);
 
-	rrset->rrs = region_alloc(db->region, rrset->rrslen * sizeof(rdata_atom_type *));
+	rrset->rrs = region_alloc(db->region, rrset->rrslen * sizeof(rrdata_type *));
 	
 	for (i = 0; i < rrset->rrslen; ++i) {
 		if (fread(&rdcount, sizeof(rdcount), 1, db->fd) != 1)
 			return 0;
 
-		rdcount = ntohs(rdcount);
+		if (fread(&ttl, sizeof(ttl), 1, db->fd) != 1)
+			return 0;
 
-		rrset->rrs[i] = region_alloc(db->region, (rdcount + 1) * sizeof(rdata_atom_type));
+		rdcount = ntohs(rdcount);
+		
+		rrset->rrs[i] = region_alloc(db->region, rrdata_size(rdcount));
+		rrset->rrs[i]->ttl = ntohl(ttl);
 		
 		for (j = 0; j < rdcount; ++j) {
-			if (!read_rdata_atom(db, rrset->type, j, domain_count, domains, &rrset->rrs[i][j]))
+			if (!read_rdata_atom(db, rrset->type, j, domain_count, domains, &rrset->rrs[i]->rdata[j]))
 				return 0;
 		}
-		rrset->rrs[i][rdcount].data = NULL;
+		rrset->rrs[i]->rdata[rdcount].data = NULL;
 	}
 
 	domain_add_rrset(owner, rrset);

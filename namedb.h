@@ -45,7 +45,7 @@
 #include "heap.h"
 #include "region-allocator.h"
 
-#define	NAMEDB_MAGIC		"NSDdbV04"
+#define	NAMEDB_MAGIC		"NSDdbV05"
 #define	NAMEDB_MAGIC_SIZE	8
 
 #if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
@@ -57,6 +57,7 @@
 
 typedef struct rdata_atom rdata_atom_type;
 typedef struct rrset rrset_type;
+typedef struct rrdata rrdata_type;
 
 /*
  * A domain name table supporting fast insert and search operations.
@@ -98,13 +99,23 @@ struct zone
 
 struct rrset
 {
-	rrset_type       *next;
-	zone_type        *zone;
-	int32_t           ttl;
-	uint16_t          type;
-	uint16_t          class;
-	uint16_t          rrslen;
-	rdata_atom_type **rrs;
+	rrset_type   *next;
+	zone_type    *zone;
+	uint16_t      type;
+	uint16_t      class;
+	uint16_t      rrslen;
+	rrdata_type **rrs;
+};
+
+struct rdata_atom
+{
+	void *data;
+};
+
+struct rrdata
+{
+	int32_t         ttl;
+	rdata_atom_type rdata[1];
 };
 
 /*
@@ -184,11 +195,6 @@ struct namedb
 	FILE              *fd;
 };
 
-struct rdata_atom
-{
-	void *data;
-};
-
 static inline int
 rdata_atom_is_terminator(rdata_atom_type atom)
 {
@@ -219,6 +225,12 @@ static inline void *
 rdata_atom_data(rdata_atom_type atom)
 {
 	return (uint16_t *) atom.data + 1;
+}
+
+static inline size_t
+rrdata_size(uint16_t rdcount)
+{
+	return sizeof(rrdata_type) + rdcount * sizeof(rdata_atom_type);
 }
 
 

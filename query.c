@@ -415,7 +415,7 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 
 	for (i = 0; i < master_rrset->rrslen; ++i) {
 		rrset_type *rrset;
-		domain_type *additional = rdata_atom_domain(master_rrset->rrs[i][rdata_index]);
+		domain_type *additional = rdata_atom_domain(master_rrset->rrs[i]->rdata[rdata_index]);
 		domain_type *match = additional;
 		
 		assert(additional);

@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.8 2003/11/05 15:21:54 erik Exp $
+ * $Id: zparser.y,v 1.9 2003/12/01 11:08:36 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -24,7 +24,8 @@ rr_type *current_rr;
 
 int yywrap(void);
 
-rdata_atom_type temporary_rdata[MAXRDATALEN + 1];
+rrdata_type *temporary_rrdata = NULL;
+
 /* this hold the nxt bits */
 uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 	 		'\0','\0','\0','\0',
@@ -79,16 +80,16 @@ line:   NL
     {   /* rr should be fully parsed */
         /*zprintrr(stderr, current_rr); DEBUG */
 	    current_rr->zone = current_parser->current_zone;
-	    current_rr->rdata = region_alloc_init(
+	    current_rr->rrdata = region_alloc_init(
 		    zone_region,
-		    current_rr->rdata,
-		    sizeof(rdata_atom_type) * (current_parser->_rc + 1));
+		    current_rr->rrdata,
+		    rrdata_size(current_parser->_rc));
 
 	    process_rr(current_parser, current_rr);
 
 	    region_free_all(rr_region);
 	    
-	    current_rr->rdata = temporary_rdata;
+	    current_rr->rrdata = temporary_rrdata;
 	    current_parser->_rc = 0;
     }
     ;
@@ -154,8 +155,8 @@ rr:     ORIGIN SP rrrest
 ttl:    STR
     {
         /* set the ttl */
-        if ( (current_rr->ttl = zparser_ttl2int($1.str) ) == -1 )
-            current_rr->ttl = DEFAULT_TTL;
+        if ( (current_rr->rrdata->ttl = zparser_ttl2int($1.str) ) == -1 )
+            current_rr->rrdata->ttl = DEFAULT_TTL;
     }
     ;
 
@@ -179,12 +180,12 @@ rrrest: classttl rtype
 
 classttl:   /* empty - fill in the default, def. ttl and IN class */
     {
-        current_rr->ttl = current_parser->ttl;
+        current_rr->rrdata->ttl = current_parser->ttl;
         current_rr->class = current_parser->class;
     }
     |   in SP         /* no ttl */
     {
-        current_rr->ttl = current_parser->ttl;
+        current_rr->rrdata->ttl = current_parser->ttl;
     }
     |   ttl SP in SP  /* the lot */
     |   in SP ttl SP  /* the lot - reversed */

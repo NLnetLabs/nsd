@@ -58,12 +58,11 @@ struct lex_data {
 /* a RR in DNS */
 typedef struct rr rr_type;
 struct rr {
-        domain_type     *domain;
-	zone_type       *zone;
-        int32_t          ttl;
-        uint16_t         class;
-        uint16_t         type;
-        rdata_atom_type *rdata;
+	domain_type *domain;
+	zone_type   *zone;
+	uint16_t     class;
+	uint16_t     type;
+	rrdata_type *rrdata;
 };
 
 /* administration struct */
@@ -84,7 +83,7 @@ struct zparser {
 
 extern zparser_type *current_parser;
 extern rr_type *current_rr;
-extern rdata_atom_type temporary_rdata[MAXRDATALEN + 1];
+extern rrdata_type *temporary_rrdata;
 
 /* used in zonec.lex */
 extern FILE *yyin;

@@ -126,20 +126,20 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	query_write(q, &type, sizeof(type));
 	class = htons(rrset->class);
 	query_write(q, &class, sizeof(class));
-	ttl = htonl(rrset->ttl);
+	ttl = htonl(rrset->rrs[rr]->ttl);
 	query_write(q, &ttl, sizeof(ttl));
 
 	/* Reserve space for rdlength. */
 	rdlength_pos = q->iobufptr;
 	query_write(q, &rdlength, sizeof(rdlength));
 
-	for (j = 0; !rdata_atom_is_terminator(rrset->rrs[rr][j]); ++j) {
+	for (j = 0; !rdata_atom_is_terminator(rrset->rrs[rr]->rdata[j]); ++j) {
 		if (rdata_atom_is_domain(rrset->type, j)) {
-			encode_dname(q, rdata_atom_domain(rrset->rrs[rr][j]));
+			encode_dname(q, rdata_atom_domain(rrset->rrs[rr]->rdata[j]));
 		} else {
 			query_write(q,
-				    rdata_atom_data(rrset->rrs[rr][j]),
-				    rdata_atom_size(rrset->rrs[rr][j]));
+				    rdata_atom_data(rrset->rrs[rr]->rdata[j]),
+				    rdata_atom_size(rrset->rrs[rr]->rdata[j]));
 		}
 	}
 
