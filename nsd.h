@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.2 2001/12/12 13:52:52 alexis Exp $
+ * $Id: nsd.h,v 1.3 2001/12/12 14:01:41 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -37,10 +37,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#if defined(__STDC__)
-#define __P(protos)     protos          /* full-blown ANSI C */
-#else
-#define __P(protos)
+#if !defined(__P)
+#	if defined(__STDC__)
+#		define __P(protos)     protos          /* full-blown ANSI C */
+# 	else
+# 		define __P(protos)
+# 	endif
 #endif
 
 void *xalloc __P((size_t));

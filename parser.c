@@ -1,5 +1,5 @@
 /*
- * $Id: parser.c,v 1.3 2001/12/12 13:52:52 alexis Exp $
+ * $Id: parser.c,v 1.4 2001/12/12 14:01:41 alexis Exp $
  *
  * parser.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -845,6 +845,9 @@ main(argc, argv)
 		if(rr->class != CLASS_IN) {
 			parser_error(zf, "wrong class");
 			break;
+		}
+		if((zf->lines % 100000) == 0) {
+			fprintf(stderr, "read %lu lines...\n", zf->lines);
 		}
 		parser_print_entry(rr);
 		parser_free_rdata(rr);
