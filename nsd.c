@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.29.2.1.2.3 2002/05/21 10:05:59 alexis Exp $
+ * $Id: nsd.c,v 1.29.2.1.2.4 2002/05/21 11:41:39 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -198,6 +198,8 @@ main(argc, argv)
 	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;
 	nsd.uid		= CF_UID == 0 ? getuid() : CF_UID;
 	nsd.gid		= CF_GID == 0 ? getgid() : CF_GID;
+	nsd.identity	= CF_IDENTITY;
+	nsd.version	= CF_VERSION;
 
 	/* EDNS0 */
 	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
@@ -212,6 +214,7 @@ main(argc, argv)
 	nsd.edns.opt_err[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
 	nsd.edns.opt_err[5] = 1;			/* XXX Extended RCODE=BAD VERS */
 
+
 /* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
 
 #	ifndef	LOG_PERROR
@@ -222,7 +225,7 @@ main(argc, argv)
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "df:p:")) != -1) {
+	while((c = getopt(argc, argv, "df:p:i:")) != -1) {
 		switch (c) {
 		case 'd':
 			nsd.debug = 1;
@@ -233,6 +236,9 @@ main(argc, argv)
 		case 'p':
 			nsd.udp.port = atoi(optarg);
 			nsd.tcp.port = atoi(optarg);
+			break;
+		case 'i':
+			nsd.identity = optarg;
 			break;
 		case '?':
 		default:
