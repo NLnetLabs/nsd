@@ -131,7 +131,7 @@ AC_PROG_INSTALL
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -154,7 +154,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_aton memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol])
+AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_aton memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol getprotoent getservent])
 
 #
 # Checking for missing functions we can replace

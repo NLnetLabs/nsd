@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.17 2003/02/21 13:35:32 alexis Exp $
+ * $Id: zparser.c,v 1.18 2003/02/21 14:54:38 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -55,6 +55,10 @@
 
 /* This one is for AF_INET6 declaration */
 #include <sys/socket.h>
+
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
 
 #include <dns.h>
 #include <zparser.h>
@@ -341,6 +345,10 @@ _zopen (char *filename, u_int32_t ttl, u_int16_t class, u_char *origin)
 		return NULL;
 	}
 
+	/* Open the network database */
+	setprotoent(1);
+	setservent(1);
+
 	/* Initialize the rest of the structure */
 	z->errors = 0;
 	z->lines = 0;
@@ -541,6 +549,10 @@ zclose (struct zparser *z)
 		free(z->origin);
 
 	fclose(z->file);
+
+	/* Close the network database */
+	endprotoent();
+	endservent();
 
 	free(z);
 }
@@ -802,12 +814,58 @@ zrdata (struct zparser *z)
 			if(!zrdatascan(z, RDATA_BYTE)) return 0;
 			return zrdatascan(z, RDATA_HEX);
 		case TYPE_WKS:
+			if(!zrdatascan(z, RDATA_A)) return 0;
+			if(!zrdatascan(z, RDATA_PROTO)) return 0;
+
+			/* Allocate maximum we might need for this bitmap */
+			r = xalloc(sizeof(u_int16_t) + 8192);
+			memset(r, 0, sizeof(u_int16_t) + 8192);
+			zaddrdata(z, r);
+			t = (u_char *)(r + 1);
+
+			/* Scan the types and add them to the bitmap */
+			while(zrdatascan2(z, RDATA_SERVICE, z->_rr.rdata[1][1])) {
+				z->_rc--;
+
+				/* Now convert the type back to host byte order */
+				z->_rr.rdata[z->_rc][1] = ntohs(z->_rr.rdata[z->_rc][1]);
+
+				/* Set the bit... */
+				i = z->_rr.rdata[z->_rc][1] >> 3;
+				t[i] |= 0x80 >> (z->_rr.rdata[z->_rc][1] & 7);
+
+				/* Recalculate the bitmap length... */
+				if(*r < (i + 1)) *r = i + 1;
+
+				/* Free this rdata. */
+				free(z->_rr.rdata[z->_rc]);
+				z->_rr.rdata[z->_rc] = NULL;
+
+				/* If no more tokens return */
+				if(z->_t[z->_tc] == NULL) {
+					/* Reallocate the bitmap memory... */
+					z->_rr.rdata[1] = xrealloc(z->_rr.rdata[1],
+						z->_rr.rdata[1][0] + sizeof(u_int16_t));
+					return 1;
+				}
+			}
+			return 0;
 		default:
 			zerror(z, "dont know how to parse this type, try \\# representation");
 			while(z->_t[++z->_tc] != NULL);
 	}
 
 	return -1;
+}
+
+/*
+ * Wrapper around zrdatascan2
+ *
+ */
+int
+zrdatascan (struct zparser *z, int what)
+{
+	return zrdatascan2(z, what, 0);
 }
 
 /*
@@ -821,15 +879,17 @@ zrdata (struct zparser *z)
  * XXX Perhaps check numerical boundaries here.
  */
 int
-zrdatascan (struct zparser *z, int what)
+zrdatascan2 (struct zparser *z, int what, int arg)
 {
-#ifdef	HAVE_INET_NTOA
+#ifdef	HAVE_INET_ATON
 	struct in_addr pin;
 #endif
 	int i;
 	int error = 0;
 	u_char *t;
 	struct tm tm;
+	struct protoent *proto;
+	struct servent *service;
 	u_int16_t *r = NULL;
 	u_int32_t l;
 
@@ -914,6 +974,35 @@ zrdatascan (struct zparser *z, int what)
 			error++;
 		} else {
 			*r = sizeof(u_int16_t);
+		}
+		break;
+	case RDATA_PROTO:
+		if((proto = getprotobyname(z->_t[z->_tc])) == NULL) {
+			zerror(z, "unknown protocol");
+			error++;
+		} else {
+			/* Allocate required space... */
+			r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
+
+			*(r + 1) = htons(proto->p_proto);
+			*r = sizeof(u_int16_t);
+		}
+		break;
+	case RDATA_SERVICE:
+		if((proto = getprotobynumber(arg)) == NULL) {
+			zerror(z, "unknown protocol");
+			error++;
+		} else {
+			if((service = getservbyname(z->_t[z->_tc], proto->p_name)) == NULL) {
+				zerror(z, "unknown service");
+				error++;
+			} else {
+				/* Allocate required space... */
+				r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
+
+				*(r + 1) = htons(service->s_port);
+				*r = sizeof(u_int16_t);
+			}
 		}
 		break;
 	case RDATA_PERIOD:

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.9 2003/02/21 13:35:32 alexis Exp $
+ * $Id: zparser.h,v 1.10 2003/02/21 14:54:38 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -66,6 +66,8 @@
 #define RDATA_TYPE	10
 #define RDATA_TIME	11
 #define RDATA_HEX	12
+#define RDATA_PROTO	13
+#define RDATA_SERVICE	14
 
 /* A single resource record */
 struct RR {
@@ -156,9 +158,11 @@ void zrdatafree(u_int16_t **p);
 void zaddrdata(struct zparser *z, u_int16_t *r);
 int zrdata(struct zparser *z);
 int zrdatascan(struct zparser *z, int what);
+int zrdatascan2(struct zparser *z, int what, int arg);
 int zrdata_loc(struct zparser *z);
 void zaddtoken(struct zparser *z, char *t);
 int zparseline(struct zparser *z);
 const char *precsize_ntoa(int prec);
 u_int8_t precsize_aton(register char *cp, char **endptr);
+
 #endif /* _ZPARSER_H_ */
