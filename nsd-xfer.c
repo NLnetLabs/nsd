@@ -1003,9 +1003,6 @@ main(int argc, char *argv[])
 					*argv,
 					strerror(errno));
 				close(state.s);
-				if (!res->ai_next) {
-					error("failed to connect to master servers");
-				}
 				continue;
 			}
 			
@@ -1042,6 +1039,8 @@ main(int argc, char *argv[])
 					
 					exit(XFER_SUCCESS);
 				}
+
+				fclose(zone_file);
 			}
 			
 			close(state.s);
@@ -1050,7 +1049,7 @@ main(int argc, char *argv[])
 		freeaddrinfo(res0);
 	}
 
-	log_msg(LOG_ERR, "cannot connect to an authorative server");
+	log_msg(LOG_ERR,
+		"cannot contact an authoritative server, zone NOT transferred");
 	exit(XFER_FAIL);
-		
 }
