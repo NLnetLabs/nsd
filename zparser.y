@@ -839,7 +839,7 @@ rdata_unknown:	URR sp STR sp str_sp_seq trail
 	| URR error NL
         {
 		zc_error_prev_line("Syntax error in UNKNOWN RR rdata");
-		$$ = NULL;
+		$$ = zparser_conv_hex(parser->region, "");
 	}
         ;
 %%
