@@ -1204,6 +1204,7 @@ zone_read (const char *name, const char *zonefile)
 
 	fflush(stdout);
 	totalerrors += current_parser->errors;
+	fprintf(stderr, "%d",totalerrors);
 }
 
 static void 
@@ -1232,6 +1233,8 @@ error_va_list(const char *fmt, va_list args)
 			current_parser->filename);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
+	current_parser->errors++;
+	error_occurred = 1;
 }
 
 /* the line counting sux, to say the least 
@@ -1260,8 +1263,6 @@ error(const char *fmt, ...)
 	error_va_list(fmt, args);
 
 	va_end(args);
-	current_parser->errors++;
-	error_occurred = 1;
 }
 
 void 

@@ -159,8 +159,11 @@ rr:     ORIGIN SP rrrest
 ttl:    STR
     {
         /* set the ttl */
-        if ( (current_rr->rrdata->ttl = zparser_ttl2int($1.str) ) == -1 )
-            current_rr->rrdata->ttl = current_parser->ttl;
+        if ( (current_rr->rrdata->ttl = 
+		zparser_ttl2int($1.str) ) == -1) {
+	            current_rr->rrdata->ttl = current_parser->ttl;
+		    return 0;
+	}
     }
     ;
 
