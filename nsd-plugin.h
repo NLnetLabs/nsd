@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-plugin.h,v 1.2 2003/06/26 12:51:37 erik Exp $
+ * $Id: nsd-plugin.h,v 1.3 2003/06/30 11:50:08 erik Exp $
  *
  * nsd-plugin.h -- interface to NSD for a plugin.
  *
@@ -58,35 +58,13 @@
  * The version of the plugin interface.
  */
 #define NSD_PLUGIN_INTERFACE_VERSION 1
+#define NSD_PLUGIN_INIT nsd_plugin_init_1
 
 /*
  * Every plugin is assigned a unique id when loaded.  If a single
  * plugin is loaded multiple times it will have multiple unique ids.
  */
 typedef unsigned nsd_plugin_id_type;
-
-
-/*
- * NSD provides specific callbacks that a plugin can hook into.
- * Currently there are three defined callbacks.
- */
-enum nsd_plugin_callback_id
-{
-	/*
-	 * Called right after a query has been received but before
-	 * being NSD does _any_ processing.
-	 */
-	NSD_PLUGIN_QUERY_RECEIVED,
-
-	/*
-	 * Called right after the answer has been constructed but
-	 * before it has been send to the client.
-	 */
-	NSD_PLUGIN_QUERY_PROCESSED,
-
-	NSD_PLUGIN_CALLBACK_ID_COUNT
-};
-typedef enum nsd_plugin_callback_id nsd_plugin_callback_id_type;
 
 
 /*
@@ -154,27 +132,17 @@ typedef struct nsd_plugin_callback_args nsd_plugin_callback_args_type;
 /*
  * The type of a plugin callback function.
  */
-typedef nsd_plugin_callback_result_type (*nsd_plugin_callback_type)(
+typedef nsd_plugin_callback_result_type nsd_plugin_callback_type(
 	struct nsd                    *nsd,
 	nsd_plugin_id_type             plugin_id,
-	nsd_plugin_callback_id_type    callback_id,
 	nsd_plugin_callback_args_type *args);
 
 
 /*
- * The interface provided by NSD to plugins.
+ * Plugin interface to NSD.
  */
 struct nsd_plugin_interface
 {
-	/*
-	 * Register a callback.
-	 */
-	int (*register_callback)(
-		struct nsd                 *nsd,
-		nsd_plugin_id_type          plugin_id,
-		nsd_plugin_callback_id_type callback_id,
-		nsd_plugin_callback_type    callback_function);
-
 	/*
 	 * Register plugin specific data for the specified
 	 * domain_name.
@@ -189,17 +157,36 @@ typedef struct nsd_plugin_interface nsd_plugin_interface_type;
 
 
 /*
- * Human readable descriptor for a plugin.
+ * NSD interface to the plugin.
  */
 struct nsd_plugin_descriptor
 {
+	/*
+	 * The name of the plugin.
+	 */
 	const char *name;
+
+	/*
+	 * The version of the plugin.
+	 */
 	const char *version;
+
+	/*
+	 * Called right after a query has been received but before
+	 * being NSD does _any_ processing.
+	 */
+	nsd_plugin_callback_type *query_received;
+
+	/*
+	 * Called right after the answer has been constructed but
+	 * before it has been send to the client.
+	 */
+	nsd_plugin_callback_type *query_processed;
 };
 typedef struct nsd_plugin_descriptor nsd_plugin_descriptor_type;
 
 
-typedef const nsd_plugin_descriptor_type *(nsd_plugin_init_type)(
+typedef const nsd_plugin_descriptor_type *nsd_plugin_init_type(
 	struct nsd *nsd,
 	nsd_plugin_id_type plugin_id,
 	const nsd_plugin_interface_type *interface,
@@ -211,10 +198,6 @@ typedef const nsd_plugin_descriptor_type *(nsd_plugin_init_type)(
  * by NSD when the plugin is loaded.  Return NULL if the plugin cannot
  * be initialized.
  */
-#define PASTE2(x, y) x##y
-#define PASTE(x, y) PASTE2(x, y)
-extern nsd_plugin_init_type PASTE(nsd_plugin_init_, NSD_PLUGIN_INTERFACE_VERSION);
-#undef PASTE
-#undef PASTE2
+extern nsd_plugin_init_type NSD_PLUGIN_INIT;
 
 #endif /* _PLUGINS_H_ */

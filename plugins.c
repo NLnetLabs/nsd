@@ -51,25 +51,20 @@
 #include "namedb.h"
 #include "plugins.h"
 
-nsd_plugin_id_type plugin_count = 0;
-const nsd_plugin_descriptor_type *plugin_descriptors[MAX_PLUGIN_COUNT];
-static void *plugin_handles[MAX_PLUGIN_COUNT];
+nsd_plugin_id_type maximum_plugin_count = 0;
+static nsd_plugin_id_type plugin_count = 0;
 
-static nsd_plugin_callback_type plugin_callbacks[MAX_PLUGIN_COUNT][NSD_PLUGIN_CALLBACK_ID_COUNT];
-
-static int
-register_callback(
-	struct nsd                 *nsd,
-	nsd_plugin_id_type          plugin_id,
-	nsd_plugin_callback_id_type callback_id,
-	nsd_plugin_callback_type    callback_function)
+struct nsd_plugin
 {
-	assert(plugin_id < MAX_PLUGIN_COUNT);
-	assert(callback_id < NSD_PLUGIN_CALLBACK_ID_COUNT);
+	struct nsd_plugin *next;
+	void *handle;
+	nsd_plugin_id_type id;
+	const nsd_plugin_descriptor_type *descriptor;
+};
+typedef struct nsd_plugin nsd_plugin_type;
 
-	plugin_callbacks[plugin_id][callback_id] = callback_function;
-	return 0;
-}
+static nsd_plugin_type *first_plugin = NULL;
+static nsd_plugin_type **last_plugin = &first_plugin;
 
 static int
 register_data(
@@ -80,15 +75,15 @@ register_data(
 {
 	struct domain *d;
 
-	assert(plugin_id < MAX_PLUGIN_COUNT);
+	assert(plugin_id < maximum_plugin_count);
 	assert(domain_name);
 
 	d = namedb_lookup(nsd->db, domain_name);
 	if (d) {
 		void **plugin_data;
 		if (!d->runtime_data) {
-			d->runtime_data = xalloc(MAX_PLUGIN_COUNT * sizeof(void *));
-			memset(d->runtime_data, 0, MAX_PLUGIN_COUNT * sizeof(void *));
+			d->runtime_data = xalloc(maximum_plugin_count * sizeof(void *));
+			memset(d->runtime_data, 0, maximum_plugin_count * sizeof(void *));
 		}
 		plugin_data = (void **) d->runtime_data;
 		plugin_data[plugin_id] = data;
@@ -99,7 +94,6 @@ register_data(
 }
 
 static nsd_plugin_interface_type plugin_interface = {
-	register_callback,
 	register_data
 };
 
@@ -108,17 +102,13 @@ static nsd_plugin_interface_type plugin_interface = {
 int
 load_plugin(struct nsd *nsd, const char *name, const char *arg)
 {
+	struct nsd_plugin *plugin;
 	nsd_plugin_init_type *init;
 	void *handle;
 	const char *error;
 	const char *init_name = "nsd_plugin_init_" STR(NSD_PLUGIN_INTERFACE_VERSION);
 	const nsd_plugin_descriptor_type *descriptor;
 		
-	if (plugin_count == MAX_PLUGIN_COUNT) {
-		syslog(LOG_ERR, "maximum number of plugins exceeded");
-		return 0;
-	}
-
 	dlerror();		/* Discard previous errors (FreeBSD hack).  */
 	
 	handle = dlopen(name, RTLD_NOW);
@@ -143,42 +133,56 @@ load_plugin(struct nsd *nsd, const char *name, const char *arg)
 		return 0;
 	}
 
-	plugin_descriptors[plugin_count] = descriptor;
-	plugin_handles[plugin_count] = handle;
-	++plugin_count;
+	plugin = xalloc(sizeof(struct nsd_plugin));
+	plugin->next = NULL;
+	plugin->handle = handle;
+	plugin->id = plugin_count;
+	plugin->descriptor = descriptor;
 
+	assert(*last_plugin == NULL);
+	*last_plugin = plugin;
+	last_plugin = &plugin->next;
+	assert(*last_plugin == NULL);
+
+	++plugin_count;
+	
 	syslog(LOG_INFO, "Plugin %s %s loaded", descriptor->name, descriptor->version);
 	
 	return 1;
 }
 
-nsd_plugin_callback_result_type
-perform_callbacks(
-	struct nsd *nsd,
-	nsd_plugin_callback_id_type callback_id,
-	nsd_plugin_callback_args_type *args,
-	void *data[MAX_PLUGIN_COUNT])
-{
-	nsd_plugin_id_type plugin_id;
-	nsd_plugin_callback_type callback;
-	nsd_plugin_callback_result_type result;
-
-	args->data = NULL;
-	for (plugin_id = 0; plugin_id < plugin_count; ++plugin_id) {
-		callback = plugin_callbacks[plugin_id][callback_id];
-		if (callback) {
-			if (data) {
-				args->data = data[plugin_id];
-			}
-			result = callback(nsd, plugin_id, callback_id, args);
-			if (result != NSD_PLUGIN_CONTINUE) {
-				return result;
-			}
-		}
-	}
-
-	return NSD_PLUGIN_CONTINUE;
+#define MAKE_PERFORM_CALLBACKS(function_name, callback_name)		\
+nsd_plugin_callback_result_type						\
+function_name(								\
+	struct nsd *nsd,						\
+	nsd_plugin_callback_args_type *args,				\
+	void **data)							\
+{									\
+	nsd_plugin_type *plugin;					\
+	nsd_plugin_callback_type *callback;				\
+	nsd_plugin_callback_result_type result;				\
+									\
+	args->data = NULL;						\
+	for (plugin = first_plugin; plugin; plugin = plugin->next) {	\
+		callback = plugin->descriptor->callback_name;		\
+		if (callback) {						\
+			if (data) {					\
+				args->data = data[plugin->id];		\
+			} else {					\
+				args->data = NULL;			\
+			}						\
+			result = callback(nsd, plugin->id, args);	\
+			if (result != NSD_PLUGIN_CONTINUE) {		\
+				return result;				\
+			}						\
+		}							\
+	}								\
+									\
+	return NSD_PLUGIN_CONTINUE;					\
 }
+
+MAKE_PERFORM_CALLBACKS(query_received_callbacks, query_received)
+MAKE_PERFORM_CALLBACKS(query_processed_callbacks, query_processed)
 
 int
 handle_callback_result(

@@ -386,8 +386,7 @@ process_query(struct nsd *nsd, struct query *query)
 	callback_args.data = NULL;
 	callback_args.result_code = RCODE_OK;
 
-	callback_result = perform_callbacks(nsd, NSD_PLUGIN_QUERY_RECEIVED,
-					    &callback_args, NULL);
+	callback_result = query_received_callbacks(nsd, &callback_args, NULL);
 	if (callback_result != NSD_PLUGIN_CONTINUE) {
 		return handle_callback_result(nsd, callback_result, &callback_args);
 	}
@@ -400,8 +399,8 @@ process_query(struct nsd *nsd, struct query *query)
 		callback_args.data = NULL;
 		callback_args.result_code = RCODE_OK;
 
-		callback_result = perform_callbacks(nsd, NSD_PLUGIN_QUERY_PROCESSED,
-						    &callback_args, query->plugin_data);
+		callback_result = query_processed_callbacks(
+			nsd, &callback_args, query->plugin_data);
 		if (callback_result != NSD_PLUGIN_CONTINUE) {
 			return handle_callback_result(nsd, callback_result, &callback_args);
 		}

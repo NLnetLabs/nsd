@@ -41,20 +41,20 @@
 
 #ifdef PLUGINS
 
-#define MAX_PLUGIN_COUNT 8
-
 #include "nsd-plugin.h"
 
-extern nsd_plugin_id_type plugin_count;
-extern const nsd_plugin_descriptor_type *plugin_descriptors[];
+extern nsd_plugin_id_type maximum_plugin_count;
 
 int load_plugin(struct nsd *nsd, const char *name, const char *arg);
 
-nsd_plugin_callback_result_type perform_callbacks(
+nsd_plugin_callback_result_type query_received_callbacks(
 	struct nsd *nsd,
-	nsd_plugin_callback_id_type callback_id,
 	nsd_plugin_callback_args_type *args,
-	void *data[MAX_PLUGIN_COUNT]);
+	void **data);
+nsd_plugin_callback_result_type query_processed_callbacks(
+	struct nsd *nsd,
+	nsd_plugin_callback_args_type *args,
+	void **data);
 int handle_callback_result(
 	struct nsd *nsd,
 	nsd_plugin_callback_result_type result,

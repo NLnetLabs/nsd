@@ -367,8 +367,9 @@ main (int argc, char *argv[])
 	const char *tcp_port;
 
 #ifdef PLUGINS
-	char *plugins[MAX_PLUGIN_COUNT];
-	size_t plugin_count = 0;
+	nsd_plugin_id_type plugin_count = 0;
+	char **plugins = xalloc(sizeof(char *));
+	maximum_plugin_count = 1;
 #endif /* PLUGINS */
 
 	program_name = argv[0];
@@ -495,8 +496,9 @@ main (int argc, char *argv[])
 			break;
 		case 'X':
 #ifdef PLUGINS
-			if (plugin_count == MAX_PLUGIN_COUNT) {
-				error("maximum number of plugins exceeded.");
+			if (plugin_count == maximum_plugin_count) {
+				maximum_plugin_count *= 2;
+				plugins = xrealloc(plugins, maximum_plugin_count * sizeof(char *));
 			}
 			plugins[plugin_count] = optarg;
 			++plugin_count;
@@ -709,6 +711,8 @@ main (int argc, char *argv[])
 		if (!load_plugin(&nsd, plugins[i], arg))
 			exit(1);
 	}
+	free(plugins);
+	maximum_plugin_count = plugin_count - 1;
 #endif /* PLUGINS */
 	
 	syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
