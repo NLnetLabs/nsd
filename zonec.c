@@ -1186,8 +1186,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 		zone->ns_rrset = rrset;
 	}
 	if ( ( totalrrs % progress == 0 ) && vflag != 0 ) {
-		printf("%d  ", totalrrs);
-		fflush(stdout);
+		printf("%d\n", totalrrs);
 	}
 	++totalrrs;
 	return 1;
@@ -1443,7 +1442,7 @@ main (int argc, char **argv)
 
 			fprintf(stderr,"zonec: reading zone \"%s\".\n",zonename);
 			zone_read(zonename, zonefile);
-			fprintf(stderr,"\nzonec: processed %ld RRs in \"%s\".\n", totalrrs, zonename);
+			fprintf(stderr,"zonec: processed %ld RRs in \"%s\".\n", totalrrs, zonename);
 			totalrrs = 0;
 
 #ifndef NDEBUG
