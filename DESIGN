@@ -1,11 +1,56 @@
-$Id: DESIGN,v 1.6 2002/02/07 11:54:38 alexis Exp $
+$Id: DESIGN,v 1.7 2002/02/07 13:50:17 alexis Exp $
 
 Database format
 ---------------
 
+1.0 Introduction
+
 The namespace database consists of a number of records, where the key is the
 domain name (owner name) of the data, and the data is a set of precompiled
 answers in a para-wire format.
+
+NSD supports two types of databases: internal and Berkeley DB. In order to use
+Berkeley DB you need to have libdb version 3 or later installed and specify its
+location in the Makefile. You also need to add -DUSE_BERKELEY_DB into the CFLAGS
+in the Makefile.
+
+1.1 Internal database format
+
+Internal database has the following format:
+
++0	u_char magic[8] = "NSDdbV00";
++8	struct key {
+		u_char	length;
+		char	data[...];
+	}
++even	struct domain {
+		.....
++even	struct key {
+		....
++even	struct domain {
+		.....
+....
+
++even	\0
++1	u_char magic[8] = "NSDdbV00";
++9	u_char authmask[16];
++25	u_char starmask[16];
++41	u_char datamask[16];
+
+Please notice that every element in the database is even aligned except of the trailing magic
+and the masks.
+
+ENDOFFILE
+
+1.2 Berkeley database format
+
+The key int the Berkeley database is a dname in RFC1035 format. The data in the database is
+the struct domain with all the necessery paddings in it.
+
+When using the berkeley database a special data which contains the magic and the masks is
+stored with a NULL key.
+
+2.0 Data structures description
 
 Key:	dname in RFC1035 format.
 
@@ -101,7 +146,7 @@ the second is white, then again black et cetera... The most significant byte of
 an answer.rrs[] element must be 0 if the RRset is black, and 1 is the RRset is
 white.
 
-Superblock
+2.1 Superblock
 
 The database as well contains a super block, which can be accessed wiht a NULL key.
 The format of the superblock is as follows:
@@ -125,7 +170,7 @@ particular subdomain level. If there's a SOA or delegation NS record present at 
 a bit in the authmask must be set. When there's a wildcard, a bit in the starmask must be set for
 that subdomain level.
 
-Alignment
+3.0 Alignment
 
 The alignment in the database is completely machine dependant. To make sure the database is properly
 aligned a set of C macros have to be used to manipulate the data.
