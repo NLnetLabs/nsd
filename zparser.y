@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.17 2003/12/10 15:34:24 miekg Exp $
+ * $Id: zparser.y,v 1.18 2004/01/08 14:33:11 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -476,7 +476,7 @@ rdata_nsec:	dname sp nsec_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* nsec name */
 		zadd_rdata_wireformat(current_parser, zparser_conv_nsec(zone_region, nsecbits)); /* nsec bitlist */
-		memset(nsecbits, 0 , 8192);
+		memset(nsecbits, 0, sizeof(nsecbits));
 	}
 	;
 

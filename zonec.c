@@ -433,11 +433,10 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_
 	uint16_t *r;
 	uint8_t *ptr;
 	size_t i,j;
-	uint8_t window = 0;
+	uint16_t window_count = 0;
 	uint16_t total_size = 0;
 
-	int used[NSEC_WINDOW_COUNT + 1]; /* what windows are used, -1 terminates, we can
-		walk used in sequence, until we reach -1 */
+	int used[NSEC_WINDOW_COUNT]; /* what windows are used. */
 	int size[NSEC_WINDOW_COUNT]; /* what is the last byte used in the window, the
 		index of 'size' is the window's number*/
 
@@ -447,28 +446,30 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_
 
 	/* walk through the 256 windows */
 	for (i = 0; i < NSEC_WINDOW_COUNT; ++i) {
+		int empty_window = 1;
 		/* check each of the 32 bytes */
 		for (j = 0; j < NSEC_WINDOW_BITS_SIZE; ++j) {
 			if (nsecbits[i][j] != 0) {
-				used[window++] = i;
-				size[i] = j;
+				size[i] = j + 1;
+				empty_window = 0;
 			}
 		}
+		if (!empty_window) {
+			used[window_count] = i;
+			window_count++;
+		}
 	}
-	/* sentinel */
-	used[window] = -1;
-	
-	i = 0;
-	while (used[i++] != -1)
+
+	for (i = 0; i < window_count; ++i) {
 		total_size += sizeof(uint16_t) + size[used[i]];
+	}
 	
 	r = region_alloc(region, sizeof(uint16_t) + total_size * sizeof(uint8_t));
 	*r = total_size;
 	ptr = (uint8_t *) (r + 1);
 
 	/* now walk used and copy it */
-	i = 0;
-	while (used[i++] != -1) {
+	for (i = 0; i < window_count; ++i) {
 		ptr[0] = used[i];
 		ptr[1] = size[used[i]];
 		memcpy(ptr + 2, &nsecbits[used[i]], size[used[i]]);
