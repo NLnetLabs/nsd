@@ -178,12 +178,6 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
  *
  * Returns NULL on failure or the pointer to the newly added node
  * otherwise.
- *
- * If told to overwrite will replace the duplicate key and data with
- * the new values (thus will NOT destroy the existing node first),
- * otherwise will return the pointer to the data of already existing
- * data.
- *
  */
 rbnode_t *
 rbtree_insert (rbtree_t *rbtree, rbnode_t *data)
