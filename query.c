@@ -852,6 +852,18 @@ query_process(struct query *q, struct nsd *nsd)
 		return QUERY_PROCESSED;
 	}
 
+	/* Update statistics.  */
+	STATUP2(nsd, opcode, q->opcode);
+	STATUP2(nsd, qtype, q->type);
+	STATUP2(nsd, qclass, q->class);
+
+	if (q->opcode == OPCODE_NOTIFY) {
+		return answer_notify(q);
+	} else if (q->opcode != OPCODE_QUERY) {
+		query_formerr(q);
+		return QUERY_PROCESSED;
+	}
+
 	/* Dont bother to answer more than one question at once... */
 	if (ntohs(QDCOUNT(q)) != 1 || TC(q)) {
 		*(uint16_t *)(q->iobuf + 2) = 0;
@@ -892,18 +904,6 @@ query_process(struct query *q, struct nsd *nsd)
 	if (recursion_desired)
 		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
 	
-	/* Update statistics.  */
-	STATUP2(nsd, opcode, q->opcode);
-	STATUP2(nsd, qtype, q->type);
-	STATUP2(nsd, qclass, q->class);
-
-	if (q->opcode == OPCODE_NOTIFY) {
-		return answer_notify(q);
-	} else if (q->opcode != OPCODE_QUERY) {
-		query_formerr(q);
-		return QUERY_PROCESSED;
-	}
-
 	if (q->class == CLASS_CHAOS) {
 		return answer_chaos(nsd, q);
 	} else if (q->class != CLASS_IN) {
