@@ -4,7 +4,8 @@ NSD RELEASE NOTES
 =============
 FEATURES:
         - nsd-xfer: replacement program for named-xfer to perform zone
-          transfers using AXFR with TSIG support.
+          transfers using AXFR. TSIG is supported by nsd-xfer but not
+          yet by the nsd server. DNSSEC is also supported.
 
 CODE CHANGES:
         - New data structure 'buffer_type' for representing binary
@@ -16,6 +17,9 @@ BUG FIXES:
         - Fixed endian problem in WKS record.
         - Protocol can now be specified numerically in WKS record.
         - Allow escape sequences (\DDD) in TTL, RR class, and RR type.
+        - The zone compiler now accepts many more characters in
+          unquoted strings such as domain name labels.  The characters
+          no longer need to be escaped with a backslash.
         - Close included files after reading.
 
 2.1.5
