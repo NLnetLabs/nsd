@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.8.2.2 2002/02/04 14:11:09 alexis Exp $
+ * $Id: nsd.c,v 1.8.2.3 2002/02/04 14:12:56 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -103,7 +103,7 @@ domaincmp(a, b)
 
 	while(alen && blen) {
 		a++; b++;
-		if((r = tolower(*a) - tolower(*b))) return r;
+		if((r = *a - *b)) return r;
 		alen--; blen--;
 	}
 	return alen - blen;
