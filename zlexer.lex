@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.10 2003/11/05 09:26:38 miekg Exp $
+ * $Id: zlexer.lex,v 1.11 2003/11/05 10:44:16 erik Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -11,6 +11,7 @@
 
 #include <config.h>
 
+#include <ctype.h>
 #include <string.h>
 #include <strings.h>
 
@@ -18,7 +19,7 @@
 #include "dname.h"
 #include "zparser.h"
 
-/* #define LEXOUT(s)  printf s /* used ONLY when debugging */
+/* #define LEXOUT(s)  printf s */ /* used ONLY when debugging */
 #define LEXOUT(s) 
 
 /* see  http://www.iana.org/assignments/dns-parameters */
