@@ -13,6 +13,7 @@
 
 #include "answer.h"
 #include "packet.h"
+#include "query.h"
 
 void
 answer_init(answer_type *answer)

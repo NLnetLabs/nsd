@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+2.2.0
+=============
+FEATURES:
+        - nsd-xfer: replacement program for named-xfer to perform zone
+          transfers using AXFR with TSIG support.
+
 2.1.5
 =============
 BUG FIXES:

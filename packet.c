@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "packet.h"
+#include "query.h"
 #include "rdata.h"
 
 static void

@@ -507,7 +507,7 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 	if (!tsig)
 		return 1;
 
-	if (!tsig_find_rr(tsig, q)) {
+	if (!tsig_find_rr(tsig, q->packet)) {
 		error("error parsing response");
 		return 0;
 	}
@@ -520,7 +520,7 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 			error("too many response packets without TSIG");
 			return 0;
 		}
-		tsig_update(tsig, q, buffer_limit(q->packet));
+		tsig_update(tsig, q->packet, buffer_limit(q->packet));
 		return 1;
 	}
 	
@@ -534,7 +534,7 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 		      tsig_error(tsig->error_code));
 		return 0;
 	} else {
-		tsig_update(tsig, q, tsig->position);
+		tsig_update(tsig, q->packet, tsig->position);
 		if (!tsig_verify(tsig)) {
 			error("TSIG record did not authenticate");
 			return 0;
@@ -736,6 +736,7 @@ handle_axfr_response(FILE *out, axfr_state_type *axfr)
 static int
 axfr(int s,
      query_type *q,
+     const char *server,
      const dname_type *zone,
      FILE *out,
      tsig_record_type *tsig)
@@ -745,6 +746,11 @@ axfr(int s,
 	
 	state.query_id = init_query(q, zone, TYPE_AXFR, CLASS_IN, tsig);
 
+	log_msg(LOG_INFO,
+		"send AXFR query to %s for %s",
+		server,
+		dname_to_string(zone, NULL));
+	
 	if (!send_query(s, q)) {
 		return 0;
 	}
@@ -802,7 +808,7 @@ init_query(query_type *q,
 	if (tsig) {
 		tsig_init_query(tsig, query_id);
 		tsig_prepare(tsig);
-		tsig_update(tsig, q, buffer_position(q->packet));
+		tsig_update(tsig, q->packet, buffer_position(q->packet));
 		tsig_sign(tsig);
 		tsig_append_rr(tsig, q->packet);
 		ARCOUNT_SET(q->packet, 1);
@@ -971,16 +977,16 @@ main (int argc, char *argv[])
 				continue;
 			}
 
-			printf("Current serial %lu, zone serial %lu\n",
-			       (unsigned long) current_serial,
-			       (unsigned long) zone_serial);
+/* 			printf("Current serial %lu, zone serial %lu\n", */
+/* 			       (unsigned long) current_serial, */
+/* 			       (unsigned long) zone_serial); */
 
 			if (rc == 0) {
-				printf("Zone up-to-date, done.\n");
+/* 				printf("Zone up-to-date, done.\n"); */
 				close(s);
 				exit(XFER_UPTODATE);
 			} else if (rc > 0) {
-				printf("Transferring zone.\n");
+/* 				printf("Transferring zone.\n"); */
 				
 				zone_file = fopen(file, "w");
 				if (!zone_file) {
@@ -990,7 +996,7 @@ main (int argc, char *argv[])
 					exit(XFER_FAIL);
 				}
 	
-				if (axfr(s, &q, zone, zone_file, tsig)) {
+				if (axfr(s, &q, *argv, zone, zone_file, tsig)) {
 					/* AXFR succeeded, done.  */
 					fclose(zone_file);
 					close(s);

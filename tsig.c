@@ -331,20 +331,20 @@ tsig_prepare(tsig_record_type *tsig)
 }
 
 void
-tsig_update(tsig_record_type *tsig, query_type *query, size_t length)
+tsig_update(tsig_record_type *tsig, buffer_type *packet, size_t length)
 {
 	uint16_t original_query_id = htons(tsig->original_query_id);
 
-	assert(length <= buffer_limit(query->packet));
+	assert(length <= buffer_limit(packet));
 	
 	tsig->algorithm->hmac_update(tsig->context, 
 				     &original_query_id,
 				     sizeof(original_query_id));
 	tsig->algorithm->hmac_update(
 		tsig->context, 
-		buffer_at(query->packet, sizeof(original_query_id)),
+		buffer_at(packet, sizeof(original_query_id)),
 		length - sizeof(original_query_id));
-	if (QR(query->packet)) {
+	if (QR(packet)) {
 		++tsig->response_count;
 	}
 
@@ -392,34 +392,33 @@ tsig_verify(tsig_record_type *tsig)
 }
 
 int
-tsig_find_rr(tsig_record_type *tsig, query_type *query)
+tsig_find_rr(tsig_record_type *tsig, buffer_type *packet)
 {
-	size_t saved_position = buffer_position(query->packet);
-	size_t rrcount = (QDCOUNT(query->packet)
-			  + ANCOUNT(query->packet)
-			  + NSCOUNT(query->packet)
-			  + ARCOUNT(query->packet));
+	size_t saved_position = buffer_position(packet);
+	size_t rrcount = (QDCOUNT(packet)
+			  + ANCOUNT(packet)
+			  + NSCOUNT(packet)
+			  + ARCOUNT(packet));
 	size_t i;
 	int result;
 
-	if (ARCOUNT(query->packet) == 0) {
+	if (ARCOUNT(packet) == 0) {
 		tsig->status = TSIG_NOT_PRESENT;
 		return 1;
 	}
 			  
-	buffer_set_position(query->packet, QHEADERSZ);
+	buffer_set_position(packet, QHEADERSZ);
 
 	/* TSIG must be the last record, so skip all others.  */
 	for (i = 0; i < rrcount - 1; ++i) {
-		if (!packet_skip_rr(query->packet, i < QDCOUNT(query->packet)))
-		{
-			buffer_set_position(query->packet, saved_position);
+		if (!packet_skip_rr(packet, i < QDCOUNT(packet))) {
+			buffer_set_position(packet, saved_position);
 			return 0;
 		}
 	}
 
-	result = tsig_parse_rr(tsig, query->packet);
-	buffer_set_position(query->packet, saved_position);
+	result = tsig_parse_rr(tsig, packet);
+	buffer_set_position(packet, saved_position);
 	return result;
 }
 

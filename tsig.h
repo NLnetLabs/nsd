@@ -17,8 +17,6 @@
 #include "buffer.h"
 #include "dname.h"
 
-struct query;
-
 #define TSIG_ERROR_NOERROR  0
 #define TSIG_ERROR_BADSIG   16
 #define TSIG_ERROR_BADKEY   17
@@ -193,7 +191,7 @@ void tsig_prepare(tsig_record_type *tsig);
  * the PACKET's id with the original query id from TSIG.  If the query
  * is a response the TSIG response count is incremented.
  */
-void tsig_update(tsig_record_type *tsig, struct query *query, size_t length);
+void tsig_update(tsig_record_type *tsig, buffer_type *packet, size_t length);
 
 /*
  * Finalize the TSIG record by hashing the TSIG data.  If the TSIG
@@ -221,7 +219,7 @@ int tsig_verify(tsig_record_type *tsig);
  * Returns non-zero if no parsing error occurred, use the tsig->status
  * field to find out if the TSIG record was present.
  */
-int tsig_find_rr(tsig_record_type *tsig, struct query *query);
+int tsig_find_rr(tsig_record_type *tsig, buffer_type *packet);
 	
 /*
  * Call this to analyze the TSIG RR starting at the current location
