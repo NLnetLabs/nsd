@@ -1,8 +1,8 @@
-$Id: README,v 1.12 2002/05/31 07:55:14 alexis Exp $
+$Id: README,v 1.13 2002/07/01 16:49:55 alexis Exp $
 
 1.0 Introduction
 
-This is NSD Name Server Daemon (NSD) version 1.0.1 alpha
+This is NSD Name Server Daemon (NSD) version 1.0.1 beta
 
 NSD is a complete implementation of an autoritative DNS nameserver. 
 For further information about what NSD is and what NSD is not please 
@@ -36,9 +36,9 @@ which uses a simple configuration file.
 Use your favourite combination of tar and gnu zip to unpack the source, 
 for example
 
-$ gtar -xzvf nsd-1.0-alpha.tar.gz
+$ gtar -xzvf nsd-1.0.1-beta.tar.gz
 
-will unpack the source into the ./nsd-1.0alpha directory...
+will unpack the source into the ./nsd-1.0.1-beta directory...
 
 2.2 Editing the Makefile
 
@@ -61,22 +61,6 @@ NSDDB           Pathname of the runtime database
 CFLAGS          Use your favourite combination of the C flags appropriate
                 to your C compiler, plus following possible compile time
                 options:
-
-  USE_BERKELEY_DB       To use the Berkeley DB in place of the internal
-                        database kept in memory. This is not recommended
-                        unless memory consumtion is an issue because 
-                        performance suffers.
-
-			This will as well disable AXFR & DNSSEC functionality
-			since berkeley db doesnt offer sequential access.
-                        
-  USE_HEAP_HASH         Use hash table to manipulate data internally
-
-  USE_HEAP_RBTREE       Use red-black tree to manipulate data internally (Default)
-
-  NAMEDB_UPPERCASE      Uppercase all the domain names internally (as BIND9)
-
-  NAMEDB_LOWERCASE      Lowercase all the domain names internally (Default)
 
   HOSTS_ACCESS		Use tcp_wrappers/hosts_access(3) routines to access
 			control AXFR operations
@@ -119,23 +103,19 @@ $NSDZONES configuration file, for example /etc/nsd/nsd.zones
 which should be of the following format:
 
 ; Zone Name     Master zone file name
-cache   .               root.cache
 zone    bluesky.com     bluesky.com
 
 
-Where bluesky.com should be the domain name you will be serving with NSD, 
-and . indicates that you want to load some data into NSD cache 
-(which NSD does not have, but we call it cache anyways) for the root zone.
+Where bluesky.com should be the domain name you will be serving with NSD.
 
 Since NSD is primarily written to be run on the root name servers, 
 this file most likely to contain something like:
 
 zone    .               root.zone
 
-The first word on a line must be ``cache'' or ``zone''. 
-It indicates that the zone should be loaded as authorative data 
-(in case of zone) or just like non-authoritative  redirection 
-information in case of ``cache''.
+The first word on a line must be ``zone''. It indicates that the zone should
+be loaded as authorative data. Cached non authorative data is no longer
+supported (keyword ``cache'' is obsolete)
 
 Second word is the name (origin) of the zone and the third word 
 is the pathname to the master zone file. If you use zonec with 
@@ -174,7 +154,7 @@ nsdc stop.
 3.1 AXFR access
 
 When compiled with -DHOSTS_ACCESS nsd will use daemon name ``axfr'' to
-verify access priviledges for the client trying to intiate the transfer.
+verify access priviledges for the client trying to initiate the transfer.
 Since NSD doesnt do any hostname resolution internally the access list
 provided in the /etc/hosts.allow or /etc/hosts.deny should be ip number
 based.

@@ -1,4 +1,4 @@
-$Id: TODO,v 1.25 2002/05/23 15:05:37 alexis Exp $
+$Id: TODO,v 1.26 2002/07/01 16:49:55 alexis Exp $
 
 ZONE COMPILER
 - memory allocation optimization is needed
@@ -12,7 +12,6 @@ SERVER
   funny headers etc
 
 SECURITY
-- drop euid after bind
 
 PURITY
 - some data is in network order some in host order, make it clear with prefixes
@@ -22,3 +21,7 @@ PURITY
 TESTS
 - set all the buffer sizes to ridiculously small values see if it causes
   core dumps
+
+MISC
+- functions should be regroupped differently in .c files, so nsd-notify
+  doesnt have to be linked with all the unnecessary stuff

@@ -1,4 +1,7 @@
-$Id: DESIGN,v 1.9 2002/05/28 11:55:52 alexis Exp $
+$Id: DESIGN,v 1.10 2002/07/01 16:49:55 alexis Exp $
+
+NOTE: this file might not contain all up to date information, please see
+      namedb.h for exact database definition.
 
 Database format
 ---------------
