@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.6 2002/02/15 19:32:58 erik Exp $
+ * $Id: zf.h,v 1.7 2002/02/18 10:55:06 erik Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -74,7 +74,6 @@
 
 #define	MAXRDATALEN	7	/* SOA */
 #define	MAXINCLUDES	16	/* Maximum number of include files */
-#define	LINEBUFSZ	2048	/* Maximum master file line length */
 #define	IP6ADDRLEN	128/8
 #define	ROOT_ORIGIN	"\001"	/* \001\000 */
 #define	DEFAULT_TTL	3600
@@ -114,7 +113,6 @@ struct zf {
 		int	parentheses;
 	} i[MAXINCLUDES+1];
 	struct zf_entry line;
-	char linebuf[LINEBUFSZ];
 };
 
 /* Structure to parse classes */
@@ -172,7 +170,7 @@ struct zf_type_tab {
 }
 
 /* Prototypes */
-struct zf *zf_open __P((char *, u_char *));
+struct zf *zf_open __P((char *, const char *origin));
 struct zf_entry *zf_read __P((struct zf *));
 const char *typetoa __P((u_int16_t));
 const char *classtoa __P((u_int16_t));

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.14 2002/02/17 18:51:43 erik Exp $
+ * $Id: zf.c,v 1.15 2002/02/18 10:55:05 erik Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -142,6 +142,36 @@ find_unescaped_char(char *s, char ch)
 }
 
 /*
+ * Duplicate a region of memory.  The duplicate is allocated using
+ * xalloc and needs to be freed by the caller.
+ */
+static void *
+dup_memory(const void *original, size_t size)
+{
+	void *result = xalloc(size);
+	memcpy(result, original, size);
+	return result;
+}
+
+/*
+ * Duplicate a dname using xalloc.
+ */
+static u_char *
+dup_dname(const u_char *dname)
+{
+	return dup_memory(dname, *dname + 1);
+}
+
+/*
+ * Duplicate a string using xalloc.
+ */
+static char *
+dup_string(const char *s)
+{
+	return dup_memory(s, strlen(s) + 1);
+}
+
+/*
  * Parses the 'input' text and returns a dname with the first byte
  * indicating the size of the entire dname.  If the 'input' text
  * consists of a single '@' character the returned dname is a copy of
@@ -155,9 +185,8 @@ text_to_dname(const char *input, const u_char *origin)
 {
 	/* Temporary buffer to hold the parsed dname.  */
 	u_char dname[MAXDOMAINLEN+1];
-	u_char *result;
 
-	char *copy = strdup(input);
+	char *copy = dup_string(input);
 	char *end;
 	char *start;
 		
@@ -241,10 +270,8 @@ text_to_dname(const char *input, const u_char *origin)
 	*dname = p - dname;
 	
 	free(copy);
-	
-	result = xalloc((size_t) *dname + 1);
-	memcpy(result, dname, (size_t) *dname + 1);
-	return result;
+
+	return dup_dname(dname);
 }
 
 /*
@@ -541,7 +568,7 @@ zf_getchar(struct zf *zf, int start)
 }
 
 /*
- * Ungets the character c.  Only a single character can be stored.
+ * Ungets the character ch.  Only a single character can be stored.
  */
 static void
 zf_ungetchar(struct zf *zf, char ch)
@@ -672,11 +699,7 @@ start:
 		if (ch == EOF) {
 			zf_error(zf, "unterminated character string");
 		}
-#if DEBUG > 3
-		fflush(stdout);
-		fprintf(stderr, "token '%s'\n", current_token);
-#endif
-		return current_token;
+		break;
 	default:
 		truncated = 0;
 		pos = 0;
@@ -700,21 +723,23 @@ start:
 		} while (ch != EOF && (in_escape || !is_delimiter(ch)));
 		zf_ungetchar(zf, ch);
 		current_token[pos] = '\0';
-		
-#if DEBUG > 3
-		fflush(stdout);
-		fprintf(stderr, "token '%s'\n", current_token);
-#endif
-		return current_token;
+		break;
 	}
+	
+#if DEBUG > 3
+	fflush(stdout);
+	fprintf(stderr, "token '%s'\n", current_token);
+#endif
+	
+	return current_token;
 }
 
 /*
- * Opens a file.
- *
+ * Opens a file.  The filename and origin are copied.
  */
 static int
-zf_open_include(struct zf *zf, const char *filename, char *origin, int32_t ttl)
+zf_open_include(struct zf *zf, const char *filename, const u_char *origin,
+		int32_t ttl)
 {
 	if(zf->iptr + 1 > MAXINCLUDES) {
 		zf_error(zf, "too many nested include files");
@@ -731,8 +756,8 @@ zf_open_include(struct zf *zf, const char *filename, char *origin, int32_t ttl)
 	}
 
 	zf->i[zf->iptr].lineno = 1;
-	zf->i[zf->iptr].filename = strdup(filename);
-	zf->i[zf->iptr].origin = origin;
+	zf->i[zf->iptr].filename = dup_string(filename);
+	zf->i[zf->iptr].origin = dup_dname(origin);
 	zf->i[zf->iptr].ttl = ttl;
 	zf->i[zf->iptr].parentheses = 0;
 	return 0;
@@ -743,10 +768,16 @@ zf_open_include(struct zf *zf, const char *filename, char *origin, int32_t ttl)
  * Opens a zone file and sets us up for parsing.
  */
 struct zf *
-zf_open(char *filename, u_char *origin)
+zf_open(char *filename, const char *origin)
 {
 	struct zf *zf;
+	u_char *dname;
 
+	dname = text_to_dname(origin, ROOT_ORIGIN);
+	if (dname == NULL) {
+		return NULL;
+	}
+	
 	/* Allocate new handling structure */
 	zf = xalloc(sizeof(struct zf));
 
@@ -759,11 +790,13 @@ zf_open(char *filename, u_char *origin)
 	memset(&zf->line, 0, sizeof(struct zf_entry));
 
 	/* Open the main file... */
-	if(zf_open_include(zf, filename, text_to_dname(origin, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
+	if(zf_open_include(zf, filename, dname, DEFAULT_TTL) == -1) {
 		free(zf);
+		free(dname);
 		return NULL;
 	}
-
+	
+	free(dname);
 	return zf;
 }
 
@@ -896,6 +929,7 @@ static void
 parse_directive(struct zf *zf, char *token)
 {
 	char *t;
+	char *include = NULL;
 	
 	if(strcasecmp(token, "$TTL") == 0) {
 		int32_t ttl;
@@ -931,9 +965,13 @@ parse_directive(struct zf *zf, char *token)
 			zf_syntax(zf);
 			return;
 		}
-		if(zf_open_include(zf, token, zf->i[zf->iptr].origin, zf->i[zf->iptr].ttl)) {
-			zf_error(zf, "cannot open include file");
-		}
+
+		/*
+		 * Delay opening the include file until we parsed the
+		 * end-of-record token.  Otherwise we get the first
+		 * token of the include file.
+		 */
+		include = dup_string(token);
 	} else {
 		zf_error(zf, "unknown directive");
 		return;
@@ -943,6 +981,17 @@ parse_directive(struct zf *zf, char *token)
 		zf_error(zf, "trailing characters after directive");
 		while (zf_token(zf) != NULL)
 			;
+	}
+
+	if (include != NULL) {
+		/*
+		 * Ignore include files that could not be opened.
+		 * zf_open_include will report the error.
+		 */
+		zf_open_include(zf, include,
+				zf->i[zf->iptr].origin,
+				zf->i[zf->iptr].ttl);
+		free(include);
 	}
 }
 
