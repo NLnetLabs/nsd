@@ -73,13 +73,12 @@ pop_parser_state(void)
 SPACE   [ \t]
 LETTER  [a-zA-Z]
 NEWLINE \n
-ZONESTR [a-zA-Z0-9+/=:_!\-\*#%&^\[\]?]
+ZONESTR [^ \t\n();.\"\$]
 DOLLAR  \$
 COMMENT ;
 DOT     \.
 BIT	[^\]\n]|\\.
 ANY     [^\"\n]|\\.
-Q       \"
 
 %x	incl bitlabel quotedstring
 
@@ -242,7 +241,7 @@ Q       \"
 }
 
 	/* Quoted strings.  Strip leading and ending quotes.  */
-{Q}			{ BEGIN(quotedstring); }
+\"			{ BEGIN(quotedstring); }
 <quotedstring><<EOF>> 	{
 	zc_error("EOF inside quoted string");
 	BEGIN(INITIAL);
@@ -255,7 +254,7 @@ Q       \"
 	return parse_token(STR, yytext, &lexer_state);
 }
 
-({ZONESTR}|\\.)+ {
+({ZONESTR}|\\.|\\\n)+ {
 	/* Any allowed word.  */
 	return parse_token(STR, yytext, &lexer_state);
 }
