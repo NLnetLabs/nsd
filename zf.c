@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.44 2003/02/11 14:51:54 alexis Exp $
+ * $Id: zf.c,v 1.45 2003/02/11 15:27:12 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -1018,6 +1018,73 @@ zf_parse_b64 (struct zf *zf, char *token, int start)
 }
 
 /*
+ * Special parser for DS
+ *
+ */
+
+int
+zf_parse_ds (struct zf *zf, char *token)
+{
+	int l, c, error;
+	char *t;
+
+	error = 0;
+
+	/* Parse the standard part */
+	if(zf_parse_format(zf, token, 0, 2) != 0)
+		return -1;
+
+	/* Get the digest */
+	if((token = zf_token(zf, NULL)) == NULL) {
+		zf_error(zf, "digest is missing for DS record");
+		return -1;
+	}
+
+	/* Parse the digest XXX CHECK IT MUST BE EVEN LENGTH */
+	l = strlen(token) / 2;
+	zf->line.rdata[3].p = xalloc(l + 2);
+	*((u_int16_t *)zf->line.rdata[3].p) = l;
+	t = (char *)zf->line.rdata[3].p + sizeof(u_int16_t);
+
+	while(*token) {
+		if((c = chartoi(*(token++))) == -1) {
+			zf_syntax(zf);
+			error++;
+			break;
+		}
+		*t = c * 16;
+		if(*token == 0) {
+			zf_error(zf, "uneven number of octets for DS digest");
+			error++;
+			break;
+		}
+		if((c = chartoi(*(token++))) == -1) {
+			zf_syntax(zf);
+			error++;
+			break;
+		}
+		*t++ += c;
+		l--;
+	}
+
+	/* Did we encounter an error? */
+	if(error) {
+		free(zf->line.rdata[3].p);
+		return -1;
+	}
+
+	/* Should be like that */
+	assert(l == 0);
+
+	if((token = zf_token(zf, NULL)) != NULL) {
+		zf_error(zf, "trailing garbage");
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
  * Special parser for NXT record.
  *
  */
@@ -1321,6 +1388,10 @@ zf_read (struct zf *zf)
 				break;
 			case TYPE_NXT:
 				if(zf_parse_nxt(zf, token) != 0)
+					continue;
+				break;
+			case TYPE_DS:
+				if(zf_parse_ds(zf, token) != 0)
 					continue;
 				break;
 			default:

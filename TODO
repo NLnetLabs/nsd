@@ -1,4 +1,4 @@
-$Id: TODO,v 1.32 2003/02/11 14:21:57 alexis Exp $
+$Id: TODO,v 1.33 2003/02/11 15:27:12 alexis Exp $
 
 AUTOCONF
 
@@ -11,6 +11,15 @@ ZONE COMPILER
 - missing closing quote doesnt register as an error
 - MINOR BUG: unknown types and custom formats dont ever get freed()
 - error diagnostic has to be improved a lot
+- fix the ds parsing things
+
+This will generate an error, when in the end of file:
+
+                                        9n2kQyFLrkbbU84Jwks53iGXf7I= )
+
+                        DS      35861 5 1 (
+18D0E3FE93A6FB31AF9B85359CAF5719D2986CE8 )
+
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?
