@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.21 2004/01/09 13:19:14 erik Exp $
+ * $Id: zparser.y,v 1.22 2004/01/19 12:49:22 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -345,6 +345,8 @@ rtype:
     { current_rr->type = $1; }
     | RRSIG sp rdata_rrsig
     { current_rr->type = $1; }
+    | RP sp rdata_rp
+    { current_rr->type = $1; }
     | error NL
     {	
 	    warning("Unimplemented RR seen");
@@ -489,6 +491,12 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp hex_seq t
 		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $17.str)); /* sig data */
 	}
 	;
+
+rdata_rp:	dname sp dname trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* mbox d-name */
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $3)); /* txt d-name */
+	}
 
 %%
 
