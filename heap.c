@@ -1,7 +1,7 @@
 /*
- * $Id: heap.c,v 1.3 2002/02/04 09:57:37 alexis Exp $
+ * $Id: heap.c,v 1.4 2002/02/07 14:30:26 alexis Exp $
  *
- * heap.c -- generic heapionary based on red-black tree
+ * heap.c -- generic heap based on red-black tree
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -50,7 +50,7 @@
 #define	BLACK	0
 #define	RED	1
 
-dnode_t	heap_null_node = {HEAP_NULL, HEAP_NULL, HEAP_NULL, BLACK, NULL, NULL};
+hnode_t	heap_null_node = {HEAP_NULL, HEAP_NULL, HEAP_NULL, BLACK, NULL, NULL};
 
 /*
  * Creates a new heapionary, intializes and returns a pointer to it.
@@ -86,9 +86,9 @@ heap_create(mallocf, cmpf)
 void
 heap_rotate_left(heap, node)
 	heap_t *heap;
-	dnode_t *node;
+	hnode_t *node;
 {
-	dnode_t *right = node->right;
+	hnode_t *right = node->right;
 	node->right = right->left;
 	if(right->left != HEAP_NULL)
 		right->left->parent = node;
@@ -115,9 +115,9 @@ heap_rotate_left(heap, node)
 void
 heap_rotate_right(heap, node)
 	heap_t *heap;
-	dnode_t *node;
+	hnode_t *node;
 {
-	dnode_t *left = node->left;
+	hnode_t *left = node->left;
 	node->left = left->right;
 	if(left->right != HEAP_NULL)
 		left->right->parent = node;
@@ -140,9 +140,9 @@ heap_rotate_right(heap, node)
 void
 heap_insert_fixup(heap, node)
 	heap_t *heap;
-	dnode_t *node;
+	hnode_t *node;
 {
-	dnode_t	*uncle;
+	hnode_t	*uncle;
 
 	/* While not at the root and need fixing... */
 	while(node != heap->root && node->parent->color == RED) {
@@ -225,8 +225,8 @@ heap_insert(heap, key, data, overwrite)
 	int r = 0;
 
 	/* We start at the root of the tree */
-	dnode_t	*node = heap->root;
-	dnode_t	*parent = HEAP_NULL;
+	hnode_t	*node = heap->root;
+	hnode_t	*parent = HEAP_NULL;
 
 	/* Lets find the new parent... */
 	while(node != HEAP_NULL) {
@@ -248,7 +248,7 @@ heap_insert(heap, key, data, overwrite)
 	}
 
 	/* Create the new node */
-	if((node = heap->mallocf(sizeof(dnode_t))) == NULL) {
+	if((node = heap->mallocf(sizeof(hnode_t))) == NULL) {
 		return NULL;
 	}
 
@@ -286,7 +286,7 @@ heap_search(heap, key)
 	void *key;
 {
 	int r;
-	dnode_t *node;
+	hnode_t *node;
 
 	/* We start at root... */
 	node = heap->root;
@@ -309,11 +309,11 @@ heap_search(heap, key)
  * Finds the first element in the heapionary
  *
  */
-dnode_t *
+hnode_t *
 heap_first(heap)
 	heap_t *heap;
 {
-	dnode_t *node;
+	hnode_t *node;
 
 	for(node = heap->root; node->left != HEAP_NULL; node = node->left);
 	return node;
@@ -323,11 +323,11 @@ heap_first(heap)
  * Returns the next node...
  *
  */
-dnode_t *
+hnode_t *
 heap_next(node)
-	dnode_t *node;
+	hnode_t *node;
 {
-	dnode_t *parent;
+	hnode_t *parent;
 
 	if(node->right != HEAP_NULL) {
 		/* One right, then keep on going left... */
@@ -350,8 +350,8 @@ heap_destroy(heap, freekeys, freedata)
 	int freekeys;
 	int freedata;
 {
-	dnode_t *parent;
-	dnode_t *node;
+	hnode_t *parent;
+	hnode_t *node;
 
 	if(heap == NULL) return;
 	node = heap->root;

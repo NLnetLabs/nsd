@@ -1,7 +1,7 @@
 /*
- * $Id: heap.h,v 1.4 2002/02/04 09:57:37 alexis Exp $
+ * $Id: heap.h,v 1.5 2002/02/07 14:30:26 alexis Exp $
  *
- * heap.h -- generic heapionary based on red-black tree
+ * heap.h -- generic heap based on red-black tree
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -53,29 +53,29 @@
 #define	NULL	(void *)0
 #endif
 
-typedef struct dnode_t dnode_t;
-struct dnode_t {
-	dnode_t *parent;
-	dnode_t *left;
-	dnode_t *right;
+typedef struct hnode_t hnode_t;
+struct hnode_t {
+	hnode_t *parent;
+	hnode_t *left;
+	hnode_t *right;
 	int	color;
 	void	*key;
 	void	*data;
 };
 
 #define	HEAP_NULL &heap_null_node
-extern	dnode_t	heap_null_node;
+extern	hnode_t	heap_null_node;
 
 typedef struct heap_t heap_t;
 struct heap_t {
 	/* The root of the red-black tree */
-	dnode_t	*root;
+	hnode_t	*root;
 
 	/* The number of the nodes in the tree */
 	long long count;
 
 	/* Current node for walks... */
-	dnode_t	*_node;
+	hnode_t	*_node;
 
 	/* Free and compare functions */
 	void *(*mallocf)();
@@ -87,8 +87,8 @@ void *heap_insert __P((heap_t *, void *, void *, int));
 void *heap_search __P((heap_t *, void *));
 void heap_delete __P((heap_t *, void *, int, int));
 void heap_destroy __P((heap_t *, int, int));
-dnode_t *heap_first __P((heap_t *));
-dnode_t *heap_next __P((dnode_t *));
+hnode_t *heap_first __P((heap_t *));
+hnode_t *heap_next __P((hnode_t *));
 #define	heap_last() HEAP_NULL
 
 #define	HEAP_WALK(heap, k, d) \
