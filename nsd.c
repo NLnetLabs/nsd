@@ -387,7 +387,7 @@ main (int argc, char *argv[])
 #endif
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:df:hp:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:c:dhp:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -411,11 +411,11 @@ main (int argc, char *argv[])
 				error("too many interfaces ('-a') specified");
 			}
 			break;
+		case 'c':
+			nsd.options_file = optarg;
+			break;
 		case 'd':
 			nsd.debug = 1;
-			break;
-		case 'f':
-			nsd.options_file = optarg;
 			break;
 		case 'h':
 			usage();
