@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.62 2003/02/10 09:54:32 alexis Exp $
+ * $Id: server.c,v 1.63 2003/02/12 20:43:42 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -425,7 +425,8 @@ void
 server_tcp(struct nsd *nsd)
 {
 	fd_set peer;
-	int received, sent, axfr, tcplen, maxfd, s;
+	int received, sent, axfr, maxfd, s;
+	u_int16_t tcplen;
 	struct query q;
 
 	/* Allow sigalarm to get us out of the loop */

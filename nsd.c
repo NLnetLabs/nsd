@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.60 2003/02/10 09:54:32 alexis Exp $
+ * $Id: nsd.c,v 1.61 2003/02/12 20:43:42 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -153,6 +153,7 @@ sig_handler (int sig)
 	signal(SIGINT, &sig_handler);
 	signal(SIGILL, &sig_handler);
 	signal(SIGALRM, &sig_handler);
+	signal(SIGPIPE, SIG_IGN);
 
 
 	/* Are we a tcp child? */
@@ -557,6 +558,8 @@ main (int argc, char *argv[])
 	signal(SIGINT, &sig_handler);
 	signal(SIGILL, &sig_handler);
 	signal(SIGALRM, &sig_handler);
+	signal(SIGPIPE, SIG_IGN);
+
 
 	/* Get our process id */
 	nsd.pid[0] = getpid();
