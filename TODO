@@ -1,8 +1,9 @@
-$Id: TODO,v 1.24 2002/05/23 13:33:03 alexis Exp $
+$Id: TODO,v 1.25 2002/05/23 15:05:37 alexis Exp $
 
 ZONE COMPILER
 - memory allocation optimization is needed
 - parser is too smart: should not try to continue processing if there are errors...
+- as writing the zone the order should be DNS SEC compliant (use dnameinvert())
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?
