@@ -137,6 +137,10 @@ addition to standard configure options, one may use the following:
 
         Specify linker flags.
 
+  LIBS=libs
+ 
+        Specify additional libraries to link with.
+
   --enable-root-server
 
 	Configure NSD as a root server. Unless this option is
@@ -159,9 +163,18 @@ addition to standard configure options, one may use the following:
         to modify NSD or develop plugins.  This option enables the
         standard C "assert" macro.
 
+  --enable-dnssec
+
+        Enable experimental support for DNSSEC.
+
   --disable-axfr
 
 	Disables outbound AXFR functionalities altogether.
+
+  --disable-tsig
+
+        Disable TSIG support in the nsd-xfer(8) AXFR client program.
+        The nsd(8) server does not yet support TSIG.
 
   --enable-bind8-stats
 
@@ -202,9 +215,16 @@ addition to standard configure options, one may use the following:
 	Compile in libwrap (tcp_wrappers) support.
 
   --with-facility=facility
+
         Specify the syslog facility to use.  The default is
         LOG_DAEMON.  See the syslog(3) manual page for the available
         facilities.
+
+  --with-ssl=path
+
+        Specify the location of the OpenSSL libraries.  OpenSSL 0.9.7
+        or higher is required for TSIG support.  Use --disable-tsig if
+        you do not have OpenSSL installed.
 
 
 2.3 Building

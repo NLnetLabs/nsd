@@ -6,8 +6,10 @@ FEATURES:
         - nsd-xfer: replacement program for named-xfer to perform zone
           transfers using AXFR. TSIG is supported by nsd-xfer but not
           yet by the nsd server. DNSSEC is also supported.  TSIG
-          requires the OpenSSL library, configure using --disable-tsig
-          if you do not have OpenSSL installed.
+          requires OpenSSL version 0.9.7 or higher, configure using
+          --disable-tsig if you do not have OpenSSL installed.
+          Configure using --with-ssl=path if OpenSSL is not installed
+          at a standard location.
 
 CODE CHANGES:
         - New data structure 'buffer_type' for representing binary
