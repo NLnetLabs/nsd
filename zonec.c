@@ -920,12 +920,12 @@ parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 	rdata_atom_type *rdatas;
 
 	buffer_create_from(&packet, wireformat + 1, *wireformat);
-	rdata_count = rdata_wireformat_to_rdatas(parser->region,
-						 parser->db->domains,
-						 type,
-						 size,
-						 &packet,
-						 &rdatas);
+	rdata_count = rdata_wireformat_to_rdata_atoms(parser->region,
+						      parser->db->domains,
+						      type,
+						      size,
+						      &packet,
+						      &rdatas);
 	if (rdata_count == -1) {
 		zc_error_prev_line("bad unknown RDATA");
 		return;

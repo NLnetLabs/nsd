@@ -418,19 +418,19 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 };
 
 int
-rdata_to_string(buffer_type *output, rdata_zoneformat_type type,
-		rdata_atom_type rdata)
+rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
+		     rdata_atom_type rdata)
 {
 	return rdata_to_string_table[type](output, rdata);
 }
 
 ssize_t
-rdata_wireformat_to_rdatas(region_type *region,
-			   domain_table_type *owners,
-			   uint16_t rrtype,
-			   uint16_t data_size,
-			   buffer_type *packet,
-			   rdata_atom_type **rdatas)
+rdata_wireformat_to_rdata_atoms(region_type *region,
+				domain_table_type *owners,
+				uint16_t rrtype,
+				uint16_t data_size,
+				buffer_type *packet,
+				rdata_atom_type **rdatas)
 {
 	size_t end = buffer_position(packet) + data_size;
 	ssize_t i;

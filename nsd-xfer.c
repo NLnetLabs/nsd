@@ -156,8 +156,8 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 			buffer_printf(output, " (\n\t\t");
 		}
 		buffer_printf(output, " ");
-		if (!rdata_to_string(output, descriptor->zoneformat[i],
-				     record->rdatas[i]))
+		if (!rdata_atom_to_string(output, descriptor->zoneformat[i],
+					  record->rdatas[i]))
 		{
 			buffer_set_position(output, saved_position);
 			return 0;
@@ -333,7 +333,7 @@ read_rr_from_packet(region_type *region, domain_table_type *owners,
 		return 0;
 	}
 
-	rdata_count = rdata_wireformat_to_rdatas(
+	rdata_count = rdata_wireformat_to_rdata_atoms(
 		region, owners, result->type, rdlength, packet, &rdatas);
 	if (rdata_count == -1) {
 		return 0;

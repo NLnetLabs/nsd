@@ -17,8 +17,8 @@
 extern lookup_table_type dns_certificate_types[];
 extern lookup_table_type dns_algorithms[];
 
-int rdata_to_string(buffer_type *output, rdata_zoneformat_type type,
-		    rdata_atom_type rdata);
+int rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
+			 rdata_atom_type rdata);
 
 /*
  * Split the wireformat RDATA into an array of rdata atoms. Domain
@@ -28,11 +28,11 @@ int rdata_to_string(buffer_type *output, rdata_zoneformat_type type,
  *
  * Returns -1 on failure.
  */
-ssize_t rdata_wireformat_to_rdatas(region_type *region,
-				   domain_table_type *owners,
-				   uint16_t rrtype,
-				   uint16_t rdata_size,
-				   buffer_type *packet,
-				   rdata_atom_type **rdatas);
+ssize_t rdata_wireformat_to_rdata_atoms(region_type *region,
+					domain_table_type *owners,
+					uint16_t rrtype,
+					uint16_t rdata_size,
+					buffer_type *packet,
+					rdata_atom_type **rdatas);
 	
 #endif /* _DNS_H_ */
