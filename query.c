@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.99 2003/06/17 14:50:29 erik Exp $
+ * $Id: query.c,v 1.100 2003/06/18 09:59:29 erik Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -54,6 +54,7 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include <dns.h>
 #include <dname.h>
@@ -365,7 +366,7 @@ query_process (struct query *q, struct nsd *nsd)
 		QR_SET(q);		/* This is an answer */
 
 		if(OPCODE(q) == OPCODE_NOTIFY) {
-			char host[INET6_ADDRSTRLEN];
+			char host[BUFSIZ];
 			if (getnameinfo((struct sockaddr *) &q->addr,
 					q->addrlen,
 					host, sizeof(host),
@@ -373,6 +374,8 @@ query_process (struct query *q, struct nsd *nsd)
 					NI_NUMERICHOST) == 0)
 			{
 				syslog(LOG_INFO, "notify from %s", host);
+			} else {
+				syslog(LOG_INFO, "notify from unknown remote address");
 			}
 		}
 

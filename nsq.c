@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.10 2003/06/17 14:50:28 erik Exp $
+ * $Id: nsq.c,v 1.11 2003/06/18 09:59:29 erik Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -53,6 +53,7 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include <dns.h>
 #include <namedb.h>
