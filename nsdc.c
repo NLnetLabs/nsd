@@ -96,7 +96,7 @@ main (int argc, char *argv[])
 	const char * port;
 	uint8_t klass;
 	lookup_table_type *control;
-	struct query q;
+	query_type q;
 	const dname_type *control_msg;
 	int default_family;
 	int rc;

@@ -39,7 +39,7 @@ int
 main (int argc, char *argv[])
 {
 	int c, udp_s;
-	struct query q;
+	query_type q;
 	const dname_type *zone = NULL;
 	struct addrinfo hints, *res0, *res;
 	int error;
