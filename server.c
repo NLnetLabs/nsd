@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.24 2002/02/14 13:48:31 alexis Exp $
+ * $Id: server.c,v 1.25 2002/02/14 15:10:55 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -231,19 +231,28 @@ server(nsd)
 				break;
 			case 0:
 				/* CHILD */
-				break;
-			default:
-				/* PARENT */
 				namedb_close(nsd->db);
 				if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
 					syslog(LOG_ERR, "unable to reload the database: %m");
 					exit(1);
 				}
-				/* Send the child SIGUSR2 to terminate quitely... */
-				if(kill(pid, SIGUSR2) != 0) {
+
+				/* Send the child SIGINT to the parent to terminate quitely... */
+				if(kill(nsd->pid, SIGINT) != 0) {
 					syslog(LOG_ERR, "cannot kill %d: %m", pid);
 					exit(1);
 				}
+
+				nsd->pid  = getpid();
+
+				/* Overwrite pid... */
+				if(writepid(nsd->pid, nsd->pidfile) == -1) {
+					syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
+				}
+
+				break;
+			default:
+				/* PARENT */
 				break;
 			}
 			break;

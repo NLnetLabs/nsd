@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.20 2002/02/14 13:48:31 alexis Exp $
+ * $Id: nsd.c,v 1.21 2002/02/14 15:10:55 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -82,6 +82,54 @@ usage()
 	exit(1);
 }
 
+pid_t
+readpid(file)
+	char *file;
+{
+	int fd;
+	pid_t pid;
+	char pidbuf[16];
+	char *t;
+
+	if((fd = open(file, O_RDONLY)) == -1) {
+		return -1;
+	}
+
+	if((read(fd, pidbuf, sizeof(pidbuf))) == -1) {
+		close(fd);
+		return -1;
+	}
+	pid = strtol(pidbuf, &t, 10);
+
+	if(*t && *t != '\n') {
+		return -1;
+	}
+	return pid;
+}
+
+int
+writepid(pid, file)
+	pid_t pid;
+	char *file;
+{
+	int fd;
+	char pidbuf[16];
+
+	snprintf(pidbuf, sizeof(pidbuf), "%u\n", pid);
+
+	if((fd = open(file, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
+		return -1;
+	}
+
+	if((write(fd, pidbuf, strlen(pidbuf))) == -1) {
+		close(fd);
+		return -1;
+	}
+	close(fd);
+	return 0;
+}
+	
+
 void
 sig_handler(sig)
 	int sig;
@@ -99,7 +147,8 @@ sig_handler(sig)
 		syslog(LOG_WARNING, "signal %d received, reloading...", sig);
 		nsd.mode = NSD_RELOAD;
 		break;
-	case SIGUSR2:
+	case SIGINT:
+		/* Silent shutdown... */
 		nsd.mode = NSD_SHUTDOWN;
 		break;
 	case SIGTERM:
@@ -118,6 +167,7 @@ main(argc, argv)
 {
 	/* Scratch variables... */
 	int fd, c;
+	pid_t	oldpid;
 
 	/* Initialize the server handler... */
 	bzero(&nsd, sizeof(struct nsd));
@@ -159,9 +209,29 @@ main(argc, argv)
 		nsd.dbfile = argv[0];
 	}
 
+	/* Do we have a running nsd? */
+	if((oldpid = readpid(nsd.pidfile)) == -1) {
+		if(errno != ENOENT) {
+			syslog(LOG_ERR, "cant read pidfile %s: %m", nsd.pidfile);
+		}
+	} else {
+		if(kill(oldpid, 0) == 0 || errno == EPERM) {
+			syslog(LOG_ERR, "nsd is already running as %u, stopping", oldpid);
+			exit(0);
+		} else {
+			syslog(LOG_ERR, "...stale pid file from process %u", oldpid);
+		}
+	}
+
+	/* Write a temporary pid... */
+	if(writepid(getpid(), nsd.pidfile) == -1) {
+		syslog(LOG_ERR, "cannot write %s: %m", nsd.pidfile);
+	}
+
 	/* Open the database... */
 	if((nsd.db = namedb_open(nsd.dbfile)) == NULL) {
 		syslog(LOG_ERR, "unable to load %s: %m", nsd.dbfile);
+		unlink(nsd.pidfile);
 		exit(1);
 	}
 
@@ -173,6 +243,7 @@ main(argc, argv)
 			break;
 		case -1:
 			syslog(LOG_ERR, "fork failed: %m");
+			unlink(nsd.pidfile);
 			exit(1);
 		default:
 			syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
@@ -198,10 +269,15 @@ main(argc, argv)
 	signal(SIGTERM, &sig_handler);
 	signal(SIGHUP, &sig_handler);
 	signal(SIGCHLD, &sig_handler);
-	signal(SIGUSR2, &sig_handler);
+	signal(SIGINT, &sig_handler);
 
 	/* Get our process id */
 	nsd.pid = getpid();
+
+	/* Overwrite pid... */
+	if(writepid(nsd.pid, nsd.pidfile) == -1) {
+		syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd.pidfile);
+	}
 
 	/* Initialize... */
 	nsd.mode = NSD_RUN;
@@ -211,6 +287,7 @@ main(argc, argv)
 
 	/* Not needed since we terminate anyway... */
 	/* namedb_close(nsd.db); */
+	unlink(nsd.pidfile);
 
 	exit(0);
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.16 2002/02/14 13:33:03 alexis Exp $
+ * $Id: nsd.h,v 1.17 2002/02/14 15:10:55 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -79,7 +79,7 @@
 #define	NSD_SHUTDOWN 2
 
 #define	CF_DBFILE	"nsd.db"
-#define	CF_PIDFILE	"/var/run/nsd.pid"
+#define	CF_PIDFILE	"nsd.pid"
 #define	CF_TCP_MAX_CONNECTIONS	8
 #define	CF_TCP_PORT		4096
 #define	CF_TCP_MAX_MESSAGE_LEN	16384
@@ -118,5 +118,5 @@ struct	nsd {
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
 int server __P((struct nsd *));
-
+int writepid __P((pid_t, char *));
 #endif	/* _NSD_H_ */
