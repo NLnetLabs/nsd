@@ -1,4 +1,4 @@
-$Id: TODO,v 1.26.2.6 2002/08/15 11:46:39 alexis Exp $
+$Id: TODO,v 1.26.2.7 2002/08/15 14:41:28 alexis Exp $
 
 ZONE COMPILER
 - memory allocation optimization is needed
@@ -32,8 +32,8 @@ MISC
 - multiple strings in TXT records (done)
 - different TTL (done)
 - missing glue
-- LOC record
+- LOC record (done)
 - WKS (low prio)
 - axfr lock, rebuild lock in the scripts
-- trailing garba .eunet.si
+- trailing garba .eunet.si (done)
 - ip 255.255.255.255 fix (fixed) unless #define USE_INET_ADDR
