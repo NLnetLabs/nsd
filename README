@@ -1,4 +1,4 @@
-$Id: README,v 1.17 2002/12/17 14:41:29 alexis Exp $
+$Id: README,v 1.18 2003/02/27 10:59:41 erik Exp $
 
 1.0 Introduction
 1.1 Basic theory of operation
@@ -16,7 +16,7 @@ $Id: README,v 1.17 2002/12/17 14:41:29 alexis Exp $
 
 1.0 Introduction
 
-This is NSD Name Server Daemon (NSD) version 1.0.2
+This is NSD Name Server Daemon (NSD) version @version@
 
 NSD is a complete implementation of an authoritative DNS nameserver. 
 For further information about what NSD is and what NSD is not please 
@@ -47,7 +47,7 @@ which uses a simple configuration file.
 
 Step 1:
 
-	Unpack the source with gtar -xzvf nsd-1.0.1.tar.gz
+	Unpack the source with gtar -xzvf nsd-@version@.tar.gz
 
 Step 2:
 
@@ -110,9 +110,9 @@ Step 14:
 Use your favorite combination of tar and gnu zip to unpack the source, 
 for example
 
-$ gtar -xzvf nsd-1.0.1.tar.gz
+$ gtar -xzvf nsd-@version@.tar.gz
 
-will unpack the source into the ./nsd-1.0.1 directory...
+will unpack the source into the ./nsd-@version@ directory...
 
 2.2 Editing the Makefile
 
