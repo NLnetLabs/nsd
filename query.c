@@ -958,7 +958,9 @@ query_process(struct query *q, struct nsd *nsd)
 		return query_formerr(q);
 	}
 #endif
-
+	/* Remove trailing garbage.  */
+	buffer_set_limit(q->packet, buffer_position(q->packet));
+	
 	rc = process_tsig(q);
 	if (rc != NSD_RC_OK) {
 		return query_error(q, rc);
