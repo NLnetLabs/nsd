@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.29 2003/10/22 07:07:53 erik Exp $
+ * $Id: zlparser.lex,v 1.30 2003/10/23 10:18:23 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -16,24 +16,22 @@
 #include "dname.h"
 #include "zyparser.h"
 
+#define LEXOUT  printf /* used ONLY when debugging */
+/*#define LEXOUT*/
+
 /* see  http://www.iana.org/assignments/dns-parameters */
 const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "NXT", "KEY", "SOA", "SIG", "SRV", "CERT", "LOC", "MD", "MF", "MB",
     "MG", "MR", "NULL", "WKS", "HINFO", "MINFO", "RP", "AFSDB", "X25",
     "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS", "EID", "NIMLOC", "ATMA",
     "NAPTR", "KX", "A6", "DNAME", "SINK", "OPT", "APL", "UINFO", "UID",
-    "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA"};
+    "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA",
+    "DS"};
 
 YY_BUFFER_STATE include_stack[MAXINCLUDES];
 zparser_type zparser_stack[MAXINCLUDES];
 int include_stack_ptr = 0;
 
-/* in_rr:
- * 0 = not in an rr
- * 1 = reading ^dname
- * 2 = after ^dname read space -> in RR
- * 3 = read RRTYPE
- */
 %}
 
 SPACE   [ \t]
@@ -139,14 +137,27 @@ Q       \"
                             if ( paren_open == 0 ) { 
                                 in_rr = outside;
                                 return NL;
-                            }
+                            } else {
+				    return SP;
+			    }
                         }
-{SPACE}+{NEWLINE}       {
-                            current_parser->line++;
-                            if ( paren_open == 0 ) { 
-                                in_rr = outside;
-                                return NL;
+{SPACE}*\({SPACE}*      {
+                            if ( paren_open == 1 ) {
+                                yyerror( "nested parentheses" );
+                                yyterminate();
                             }
+                            LEXOUT("SP(");
+                            paren_open = 1;
+                            return SP;
+                        }
+{SPACE}*\){SPACE}*      {
+                            if ( paren_open == 0 ) {
+                                yyerror( "unterminated parentheses" );
+                                yyterminate();
+                            }
+                            LEXOUT("SP)");
+                            paren_open = 0;
+                            return SP;
                         }
 {SPACE}+                {
                             if ( paren_open == 0 ) {
@@ -155,20 +166,6 @@ Q       \"
 
                                 return SP;
                             }
-                        }
-\(                      {
-                            if ( paren_open == 1 ) {
-                                yyerror( "nested parentheses" );
-                                yyterminate();
-                            }
-                            paren_open = 1;
-                        }
-\){SPACE}*              {
-                            if ( paren_open == 0 ) {
-                                yyerror( "unterminated parentheses" );
-                                yyterminate();
-                            }
-                            paren_open = 0;
                         }
 ^({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word. Needs to be located
@@ -278,7 +275,7 @@ CLASS[0-9]+             {
 .                       {
                             /* we should NEVER reach this
                              * bail out with an error */
-                            yyerror("Uknown character seen - is this a zonefile");
+                            yyerror("Uknown character seen - is this a zonefile?");
                             /*exit(1);*/
                         }
 %%

@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.39 2003/10/22 07:08:04 erik Exp $
+ * $Id: zyparser.y,v 1.40 2003/10/23 10:18:24 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -50,7 +50,7 @@ rdata_atom_type temporary_rdata[MAXRDATALEN + 1];
 %token <type> A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
 %token <type> MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
 %token <type> EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
-%token <type> UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA
+%token <type> UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA DS
 
 /* other tokens */
 %token         DIR_TTL DIR_ORIG NL ORIGIN SP
