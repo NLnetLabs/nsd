@@ -135,9 +135,11 @@ AC_FUNC_MMAP
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_ntoa memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol])
 
-AC_CHECK_FUNCS(basename, [], [COMPAT_O="$COMPAT_O basename.o"])
-AC_CHECK_FUNCS(inet_pton, [], [COMPAT_O="$COMPAT_O inet_pton.o"])
-AC_SUBST(COMPAT_O)
+#
+# Checking for missing functions we can replace
+#
+AC_REPLACE_FUNCS(basename)
+AC_REPLACE_FUNCS(inet_pton)
 
 dnl
 dnl Check for libwrap
@@ -198,7 +200,7 @@ dnl Features
 dnl
 AC_ARG_ENABLE(ipv6, AC_HELP_STRING([--enable-ipv6], [Enables IPv6 support]))
 case "$enable_ipv6" in
-        no)
+        no|'')
                 ;;
         yes|*)
 		AC_DEFINE_UNQUOTED([INET6], [], [Define this to enable IPv6 support.])

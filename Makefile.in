@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.2 2003/01/20 12:58:22 alexis Exp $
+# $Id: Makefile.in,v 1.3 2003/01/21 12:15:17 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -63,15 +63,13 @@ CFLAGS		= @CFLAGS@ @DEFS@ -DCF_DBFILE=\"@nsddb@\" -DCF_PIDFILE=\"@nsdpidfile@\" 
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
 LIBWRAP		= @LIBWRAP@
+LIBOBJS =	@LIBOBJS@
 INSTALL		= @INSTALL@
 INSTALL_PROGRAM	= @INSTALL_PROGRAM@
 INSTALL_DATA	= @INSTALL_DATA@
 
 COMPILE		= ${CC} ${CFLAGS} -c
 LINK		= ${CC} ${LDFLAGS}
-
-# This might be necessary for a system like SunOS 4.x
-COMPAT_O =	@COMPAT_O@
 
 CLEANFILES+=*.core *.gmon
 
@@ -101,11 +99,11 @@ uninstall:
 	@echo
 	@echo "You still need to remove ${NSDZONESDIR} directory by hand."
 
-nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o ${COMPAT_O}
-	${LINK} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o ${COMPAT_O} ${LIBWRAP}
+nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o ${LIBOBJS}
+	${LINK} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o ${LIBOBJS} ${LIBWRAP}
 
-zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
-	${LINK} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
+zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o ${LIBOBJS}
+	${LINK} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o rfc1876.o ${LIBOBJS}
 
 nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
 	${LINK} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
