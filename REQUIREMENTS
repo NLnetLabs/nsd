@@ -1,4 +1,4 @@
-$Id: REQUIREMENTS,v 1.12 2003/11/04 13:02:55 miekg Exp $
+$Id: REQUIREMENTS,v 1.13 2003/11/05 10:44:05 erik Exp $
 
 
 NSD Requirements and Specifications
@@ -517,7 +517,7 @@ C 4.2 Additional Data processing.
     later ]
 
   When processing the additional section priority is (rfc 2535 3.5 and
-  rfc 2974 4) 
+  rfc 2874 4) 
       + A 
       + A6 
       + AAAA 
@@ -936,6 +936,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.12 2003/11/04 13:02:55 miekg Exp $
+$Id: REQUIREMENTS,v 1.13 2003/11/05 10:44:05 erik Exp $
 
 
