@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.10 2003/08/19 08:19:28 miekg Exp $
+ * $Id: zyparser.y,v 1.11 2003/08/19 08:22:52 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -219,6 +219,10 @@ rtype:  SOA SP rdata_soa
     |   CNAME SP rdata_dname
     {
         zadd_rtype("cname");
+    }
+    |   PTR SP rdata_dname
+    {   
+        zadd_rtype("ptr");
     }
     |   TXT SP rdata_txt
     {
