@@ -1,4 +1,4 @@
-$Id: README,v 1.11 2002/05/23 15:04:58 alexis Exp $
+$Id: README,v 1.12 2002/05/31 07:55:14 alexis Exp $
 
 1.0 Introduction
 
@@ -66,16 +66,24 @@ CFLAGS          Use your favourite combination of the C flags appropriate
                         database kept in memory. This is not recommended
                         unless memory consumtion is an issue because 
                         performance suffers.
+
+			This will as well disable AXFR & DNSSEC functionality
+			since berkeley db doesnt offer sequential access.
                         
-  USE_HEAP_HASH         Use hash table to manipulate data internally (Default)
+  USE_HEAP_HASH         Use hash table to manipulate data internally
 
-  USE_HEAP_RBTREE       Use red-black tree to manipulate data internally
-
-  MIMIC_BIND8           Aanswers queries as similar as possible to BIND 8
+  USE_HEAP_RBTREE       Use red-black tree to manipulate data internally (Default)
 
   NAMEDB_UPPERCASE      Uppercase all the domain names internally (as BIND9)
 
   NAMEDB_LOWERCASE      Lowercase all the domain names internally (Default)
+
+  HOSTS_ACCESS		Use tcp_wrappers/hosts_access(3) routines to access
+			control AXFR operations
+
+  AXFR_DAEMON="axfr"	The daemon name for hosts_access(3) access control.
+
+  INET6			Compile IPv6 support
 
 COMPAT_O        You might want to uncomment some of the object files listed here
                 if your system miss some of them. (For example on SunOS 4.x you
