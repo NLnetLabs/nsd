@@ -1,5 +1,5 @@
 /*
- * $Id: hash.c,v 1.8 2002/02/14 11:22:05 alexis Exp $
+ * $Id: hash.c,v 1.9 2002/02/15 19:29:18 erik Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -40,7 +40,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <strings.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 
