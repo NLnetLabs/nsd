@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.97 2003/07/07 10:50:21 erik Exp $
+ * $Id: zonec.c,v 1.98 2003/07/07 11:47:16 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -92,7 +92,7 @@ xalloc (register size_t size)
 	register void *p;
 
 	if((p = malloc(size)) == NULL) {
-		fprintf(stderr, "zonec: malloc failed: %m\n");
+		fprintf(stderr, "zonec: malloc failed: %s\n", strerror(errno));
 		exit(1);
 	}
 	return p;
@@ -103,7 +103,7 @@ xrealloc (register void *p, register size_t size)
 {
 
 	if((p = realloc(p, size)) == NULL) {
-		fprintf(stderr, "zonec: realloc failed: %m\n");
+		fprintf(stderr, "zonec: realloc failed: %s\n", strerror(errno));
 		exit(1);
 	}
 	return p;
