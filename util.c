@@ -146,6 +146,58 @@ log_vmsg(int priority, const char *format, va_list args)
 	current_log_function(priority, format, args);
 }
 
+void 
+set_bit(uint8_t bits[], size_t index)
+{
+	/*
+	 * The bits are counted from left to right, so bit #0 is the
+	 * left most bit.
+	 */
+	bits[index / 8] |= (1 << (7 - index % 8));
+}
+
+void 
+clear_bit(uint8_t bits[], size_t index)
+{
+	/*
+	 * The bits are counted from left to right, so bit #0 is the
+	 * left most bit.
+	 */
+	bits[index / 8] &= ~(1 << (7 - index % 8));
+}
+
+int 
+get_bit(uint8_t bits[], size_t index)
+{
+	/*
+	 * The bits are counted from left to right, so bit #0 is the
+	 * left most bit.
+	 */
+	return bits[index / 8] & (1 << (7 - index % 8));
+}
+
+lookup_table_type *
+lookup_by_name(lookup_table_type *table, const char *name)
+{
+	while (table->name != NULL) {
+		if (strcasecmp(name, table->name) == 0)
+			return table;
+		table++;
+	}
+	return NULL;
+}
+
+lookup_table_type *
+lookup_by_id(lookup_table_type *table, int id)
+{
+	while (table->name != NULL) {
+		if (table->id == id)
+			return table;
+		table++;
+	}
+	return NULL;
+}
+
 void *
 xalloc(size_t size)
 {

@@ -6,15 +6,23 @@ $TTL    1H
                              7D         ; Expire
                              1H )       ; Negative Cache TTL
 
-@       IN      NS      elektron.atoom.net.
-@       IN      WKS     192.168.1.2 tcp domain smtp http
-@       IN      WKS     192.168.1.2 udp domain
-@	IN	MX	10 elektron.atoom.net.
 @	IN	A	192.168.1.2
+@       IN      NS      elektron.atoom.net.
+@       IN      MD      md.atoom.net.
+@       IN      MF      mf.atoom.net.
+@       IN      CNAME   cname.toom.net.
+@       IN      MB      mb.atoom.net.
+@       IN      MG      mg.atoom.net.
+@       IN      MR      mr.atoom.net.
+@       IN      WKS     192.168.1.2 tcp domain smtp http 123
+@       IN      WKS     192.168.1.2 udp domain
+@       IN      PTR     ptr.atoom.net.
+@       IN      HINFO   "host" "info"
+@       IN      MINFO   machine.atoom.net. info.atoom.net.
+@	IN	MX	10 elektron.atoom.net.
 @       IN      TXT     "text description of domain"
-
-@       IN      AFSDB   12 atoom.net.
 @       IN      RP      miekg.atoom.net. net.
+@       IN      AFSDB   12 atoom.net.
 @       IN      X25     "x25 address in text format"
 @       IN      ISDN    "isdn address"
 @       IN      ISDN    "isdn address" "subaddress"
@@ -55,6 +63,14 @@ $TTL    1H
 ; List of address ranges for multicast
 @       IN APL 1:224.0.0.0/4  2:FF00:0:0:0:0:0:0:0/8
 
+
+;; network LOC RR derived from ZIP data.  note use of precision defaults
+@       IN LOC   42 21 54 N 71 06 18 W -24m 30m
+;; higher-precision host LOC RR.  note use of vertical precision default
+@       IN LOC   42 21 43.952 N 71 5 6.344 W -24m 1m 200m
+@       IN LOC   52 14 05 N 00 08 50 E 10m
+@       IN LOC   32 7 19 S 116 2 25 E 10m
+@       IN LOC   42 21 28.764 N 71 00 51.617 W -44m 2000m
 
 rt-host IN      A       127.0.0.1
         IN      AAAA    ::1

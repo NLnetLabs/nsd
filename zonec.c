@@ -62,28 +62,6 @@ static long int totalrrs = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
-/* Taken from RFC 2538, section 2.1.  */
-static const lookup_table_type certificate_types[] = {
-	{ 1, "PKIX", 0 },	/* X.509 as per PKIX */
-	{ 2, "SPKI", 0 },	/* SPKI cert */
-        { 3, "PGP", 0 },	/* PGP cert */
-        { 253, "URI", 0 },	/* URI private */
-	{ 254, "OID", 0 }	/* OID private */
-};
-
-/* Taken from RFC 2535, section 7.  */
-static const lookup_table_type zalgs[] = {
-	{ 1, "RSAMD5", 0 },
-	{ 2, "DS", 0 },
-	{ 3, "DSA", 0 },
-	{ 4, "ECC", 0 },
-	{ 5, "RSASHA1", 0 },	/* XXX: Where is this specified? */
-	{ 252, "INDIRECT", 0 },
-	{ 253, "PRIVATEDNS", 0 },
-	{ 254, "PRIVATEOID", 0 },
-	{ 0, NULL, 0 }
-};
-
 /* 
  * These are parser function for generic zone file stuff.
  */
@@ -178,44 +156,44 @@ zparser_conv_time(region_type *region, const char *time)
 }
 
 uint16_t *
-zparser_conv_protocol(region_type *region, const char *protostr)
-{
-	/* convert a protocol in the rdata to wireformat */
-	struct protoent *proto;
-	uint16_t *r = NULL;
- 
-	if((proto = getprotobyname(protostr)) == NULL) {
-		error_prev_line("Unknown protocol");
-	} else {
-
-		r = (uint16_t *) region_alloc(
-			region, sizeof(uint16_t) + sizeof(uint8_t));
-		*r = sizeof(uint8_t);
-		*(uint8_t *) (r + 1) = proto->p_proto;
-	} 
-	return r;
-}
-
-uint16_t *
-zparser_conv_services(region_type *region, const char *proto, char *servicestr)
+zparser_conv_services(region_type *region, const char *protostr,
+		      char *servicestr)
 {
 	/*
-	 * Convert a list of service port numbers (separated by
-	 * spaces) in the rdata to wireformat
+	 * Convert a protocol and a list of service port numbers
+	 * (separated by spaces) in the rdata to wireformat
 	 */
 	uint16_t *r = NULL;
+	uint8_t *p;
 	uint8_t bitmap[65536/8];
 	char sep[] = " ";
 	char *word;
 	int max_port = -8;
+	/* convert a protocol in the rdata to wireformat */
+	struct protoent *proto;
 
 	memset(bitmap, 0, sizeof(bitmap));
+
+	proto = getprotobyname(protostr);
+	if (!proto) {
+		proto = getprotobynumber(atoi(protostr));
+	}
+	if (!proto) {
+		error_prev_line("Unknown protocol");
+		return NULL;
+	}
+
 	for (word = strtok(servicestr, sep);
 	     word;
 	     word = strtok(NULL, sep))
 	{
-		struct servent *service = getservbyname(word, proto);
-		if (service == NULL) {
+		struct servent *service;
+
+		service = getservbyname(word, proto->p_name);
+		if (!service) {
+			service = getservbyport(atoi(word), proto->p_name);
+		}
+		if (!service) {
 			error_prev_line("Unknown service");
 		} else if (service->s_port < 0 || service->s_port > 65535) {
 			error_prev_line("bad port number %d", service->s_port);
@@ -226,10 +204,13 @@ zparser_conv_services(region_type *region, const char *proto, char *servicestr)
 		}
         }
 
-	r = (uint16_t *) region_alloc(region,
-				      sizeof(uint16_t) + max_port / 8 + 1);
-	*r = max_port / 8 + 1;
-	memcpy(r + 1, bitmap, *r);
+	r = (uint16_t *) region_alloc(
+		region,
+		sizeof(uint16_t) + sizeof(uint8_t) + max_port / 8 + 1);
+	*r =  sizeof(uint8_t) + max_port / 8 + 1;
+	p = (uint8_t *) (r + 1);
+	*p++ = proto->p_proto;
+	memcpy(p, bitmap, *r);
 	
 	return r;
 }
@@ -325,7 +306,7 @@ zparser_conv_algorithm(region_type *region, const char *algstr)
 	uint16_t *r = NULL;
 	const lookup_table_type *alg;
 
-	alg = lookup_by_name(algstr, zalgs);
+	alg = lookup_by_name(dns_algorithms, algstr);
 
 	if (!alg) {
 		/* not a memonic */
@@ -334,7 +315,7 @@ zparser_conv_algorithm(region_type *region, const char *algstr)
 
         r = (uint16_t *) region_alloc(region,
 				      sizeof(uint16_t) + sizeof(uint8_t));
-	*((uint8_t *)(r+1)) = alg->symbol;
+	*((uint8_t *)(r+1)) = alg->id;
 	*r = sizeof(uint8_t);
 	return r;
 }
@@ -346,7 +327,7 @@ zparser_conv_certificate_type(region_type *region, const char *typestr)
 	uint16_t *r = NULL;
 	const lookup_table_type *type;
 
-	type = lookup_by_name(typestr, certificate_types);
+	type = lookup_by_name(dns_certificate_types, typestr);
 
 	if (!type) {
 		/* not a memonic */
@@ -356,7 +337,7 @@ zparser_conv_certificate_type(region_type *region, const char *typestr)
         r = (uint16_t *) region_alloc(region,
 				      sizeof(uint16_t) + sizeof(uint16_t));
 	*r = sizeof(uint16_t);
-	write_uint16(r + 1, type->symbol);
+	write_uint16(r + 1, type->id);
 	return r;
 }
 
@@ -1083,34 +1064,6 @@ intbytypexx(const char *str)
 }
 
 /*
- * Looks up the table entry by name, returns NULL if not found.
- */
-const lookup_table_type *
-lookup_by_name(const char *name, const lookup_table_type *table)
-{
-	while (table->name != NULL) {
-		if (strcasecmp(name, table->name) == 0)
-			return table;
-		table++;
-	}
-	return NULL;
-}
-
-/*
- * Looks up the table entry by symbol, returns NULL if not found.
- */
-const lookup_table_type *
-lookup_by_symbol(uint16_t symbol, const lookup_table_type *table)
-{
-	while (table->name != NULL) {
-		if (table->symbol == symbol)
-			return table;
-		table++;
-	}
-	return NULL;
-}
-
-/*
  * Lookup the type in the ztypes lookup table.  If not found, check if
  * the type uses the "TYPExxx" notation for unknown types.
  *
@@ -1293,16 +1246,6 @@ zone_open(const char *filename, uint32_t ttl, uint16_t klass,
 	return 1;
 }
 
-
-void 
-set_bit(uint8_t bits[], uint16_t index)
-{
-	/*
-	 * The bits are counted from left to right, so bit #0 is the
-	 * left most bit.
-	 */
-	bits[index / 8] |= (1 << (7 - index % 8));
-}
 
 void 
 set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],

@@ -1,40 +1,12 @@
 /*
- * dname.c -- dname operations
- *
- * Alexis Yushin, <alexis@nlnetlabs.nl>
+ * dname.c -- Domain name handling.
  *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
- * This software is an open source.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the NLNET LABS nor the names of its contributors may
- * be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * See LICENSE for the license.
  *
  */
+
 
 #include <config.h>
 
@@ -50,7 +22,7 @@
 #include "dname.h"
 #include "namedb.h"
 #include "util.h"
-
+#include "query.h"
 
 static const uint8_t *strdname (const char *source, const uint8_t *o);
 
@@ -107,6 +79,75 @@ dname_make(region_type *region, const uint8_t *name)
 	return result;
 }
 
+
+const dname_type *
+dname_make_from_packet(region_type *region, buffer_type *packet)
+{
+	uint8_t buf[MAXDOMAINLEN + 1];
+	int done = 0;
+	uint8_t visited[MAX_PACKET_SIZE];
+	size_t dname_length = 0;
+	const uint8_t *label;
+	int followed_pointer = 0;
+	size_t mark;
+	
+	memset(visited, 0, buffer_limit(packet));
+	
+	while (!done) {
+		if (!buffer_available(packet, 1)) {
+/* 			error("dname out of bounds"); */
+			return NULL;
+		}
+
+		if (visited[buffer_position(packet)]) {
+/* 			error("dname loops"); */
+			return NULL;
+		}
+		visited[buffer_position(packet)] = 1;
+
+		label = buffer_current(packet);
+		if (label_is_pointer(label)) {
+			size_t pointer;
+			if (!buffer_available(packet, 2)) {
+/* 				error("dname pointer out of bounds"); */
+				return NULL;
+			}
+			pointer = label_pointer_location(label);
+			if (!buffer_available_at(packet, pointer, 0)) {
+/* 				error("dname pointer points outside packet"); */
+				return NULL;
+			}
+			buffer_skip(packet, 2);
+			if (!followed_pointer) {
+				followed_pointer = 1;
+				mark = buffer_position(packet);
+			}
+			buffer_set_position(packet, pointer);
+		} else if (label_is_normal(label)) {
+			size_t length = label_length(label) + 1;
+			done = label_is_root(label);
+			if (!buffer_available(packet, length)) {
+/* 				error("dname label out of bounds"); */
+				return NULL;
+			}
+			if (dname_length + length >= sizeof(buf)) {
+/* 				error("dname too large"); */
+				return NULL;
+			}
+			buffer_read(packet, buf + dname_length, length);
+			dname_length += length;
+		} else {
+/* 			error("bad label type"); */
+			return NULL;
+		}
+	}
+
+	if (followed_pointer) {
+		buffer_set_position(packet, mark);
+	}
+
+	return dname_make(region, buf);
+}
 
 const dname_type *
 dname_parse(region_type *region, const char *name, const dname_type *origin)

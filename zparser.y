@@ -549,15 +549,8 @@ rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
 
 rdata_wks:	dotted_str sp STR sp concatenated_str_seq trail
 	{
-		uint16_t *proto_rdata;
-		
         	zadd_rdata_wireformat(zparser_conv_a(parser->region, $1.str)); /* address */
-		proto_rdata = zparser_conv_protocol(parser->region, $3.str);
-        	zadd_rdata_wireformat(proto_rdata); /* protocol */
-
-		if (proto_rdata) {
-			zadd_rdata_wireformat(zparser_conv_services(parser->region, $3.str, $5.str)); /* services */
-		}
+		zadd_rdata_wireformat(zparser_conv_services(parser->region, $3.str, $5.str)); /* protocol and services */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in WKS record"); }

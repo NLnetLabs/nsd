@@ -14,6 +14,7 @@
 #define _BUFFER_H_
 
 #include <assert.h>
+#include <stdarg.h>
 #include <string.h>
 
 #include "region-allocator.h"
@@ -100,11 +101,12 @@ buffer_set_position(buffer_type *buffer, size_t mark)
 }
 
 /*
- * Move the buffer's position COUNT bytes ahead.  The position must
- * not be moved behind the buffer's limit.
+ * Change the buffer's position by COUNT bytes.  The position must not
+ * be moved behind the buffer's limit or before the beginning of the
+ * buffer.
  */
 static inline void
-buffer_skip(buffer_type *buffer, size_t count)
+buffer_skip(buffer_type *buffer, ssize_t count)
 {
 	assert(buffer->_position + count <= buffer->_limit);
 	buffer->_position += count;
@@ -128,6 +130,29 @@ buffer_set_limit(buffer_type *buffer, size_t limit)
 	if (buffer->_position > buffer->_limit)
 		buffer->_position = buffer->_limit;
 }
+
+
+static inline size_t
+buffer_capacity(buffer_type *buffer)
+{
+	return buffer->_capacity;
+}
+
+/*
+ * Change the buffer's capacity.  The data is reallocated so any
+ * pointers to the data may become invalid.  The buffer's limit is set
+ * to the buffer's new capacity.
+ */
+void buffer_set_capacity(buffer_type *buffer, size_t capacity);
+
+/*
+ * Ensure BUFFER can contain at least AMOUNT more bytes.  The buffer's
+ * capacity is increased if necessary using buffer_set_capacity().
+ *
+ * The buffer's limit is always set to the (possibly increased)
+ * capacity.
+ */
+void buffer_reserve(buffer_type *buffer, size_t amount);
 
 /*
  * Return a pointer to the data at the indicated position.
@@ -219,6 +244,18 @@ buffer_write(buffer_type *buffer, const void *data, size_t count)
 {
 	buffer_write_at(buffer, buffer->_position, data, count);
 	buffer->_position += count;
+}
+
+static inline void
+buffer_write_string_at(buffer_type *buffer, size_t at, const char *str)
+{
+	buffer_write_at(buffer, at, str, strlen(str));
+}
+
+static inline void
+buffer_write_string(buffer_type *buffer, const char *str)
+{
+	buffer_write(buffer, str, strlen(str));
 }
 
 static inline void
@@ -321,5 +358,15 @@ buffer_read_u32(buffer_type *buffer)
 	buffer->_position += sizeof(uint32_t);
 	return result;
 }
+
+/*
+ * Print to the buffer, increasing the capacity if required using
+ * buffer_reserve(). The buffer's position is set to the terminating
+ * '\0'. Returns the number of characters written (not including the
+ * terminating '\0').
+ */
+int buffer_printf(buffer_type *buffer, const char *format, ...)
+	ATTR_FORMAT(printf, 2, 3);
+int buffer_vprintf(buffer_type *buffer, const char *format, va_list args);
 
 #endif /* _BUFFER_H_ */

@@ -102,6 +102,38 @@ void log_msg(int priority, const char *format, ...)
 void log_vmsg(int priority, const char *format, va_list args);
 
 /*
+ * Set the INDEXth bit of BITS to 1.
+ */
+void set_bit(uint8_t bits[], size_t index);
+
+/*
+ * Set the INDEXth bit of BITS to 0.
+ */
+void clear_bit(uint8_t bits[], size_t index);
+
+/*
+ * Return the value of the INDEXth bit of BITS.
+ */
+int get_bit(uint8_t bits[], size_t index);
+
+/* A general purpose lookup table */
+typedef struct lookup_table lookup_table_type;
+struct lookup_table {
+	int id;
+	const char *name;
+};
+
+/*
+ * Looks up the table entry by name, returns NULL if not found.
+ */
+lookup_table_type *lookup_by_name(lookup_table_type table[], const char *name);
+
+/*
+ * Looks up the table entry by id, returns NULL if not found.
+ */
+lookup_table_type *lookup_by_id(lookup_table_type table[], int id);
+
+/*
  * (Re-)allocate SIZE bytes of memory.  Report an error if the memory
  * could not be allocated and exit the program.  These functions never
  * returns NULL.

@@ -96,124 +96,28 @@ read_socket(int s, void *buf, size_t size)
 }
 
 static int
-skip_dname(buffer_type *packet)
+print_rdata(buffer_type *output, buffer_type *packet,
+	    rrtype_descriptor_type *descriptor)
 {
-	int done = 0;
-	const uint8_t *label;
-	uint8_t visited[MAX_PACKET_SIZE];
-	size_t mark = buffer_position(packet);
+	int i;
 	
-	memset(visited, 0, buffer_limit(packet));
-	
-	while (!done) {
-		if (!buffer_available(packet, 1)) {
-			error("dname out of bounds");
-			buffer_set_position(packet, mark);
-			return 0;
+	for (i = 0; i < descriptor->maximum; ++i) {
+		if (buffer_remaining(packet) == 0) {
+			if (i < descriptor->minimum) {
+				error("RDATA is not complete");
+				return 0;
+			} else {
+				break;
+			}
 		}
 
-		if (visited[buffer_position(packet)]) {
-			error("dname loops");
-			buffer_set_position(packet, mark);
-			return 0;
-		}
-		visited[buffer_position(packet)] = 1;
-
-		label = buffer_current(packet);
-		if (label_is_pointer(label)) {
-			if (!buffer_available(packet, 2)) {
-				error("dname out of bounds");
-				buffer_set_position(packet, mark);
-				return 0;
-			}
-			buffer_skip(packet, 2);
-			done = 1;
-		} else if (label_is_root(label)) {
-			buffer_skip(packet, 1);
-			done = 1;
-		} else if (label_is_normal(label)) {
-			size_t length = label_length(label) + 1;
-			if (!buffer_available(packet, length)) {
-				error("dname out of bounds");
-				buffer_set_position(packet, mark);
-				return 0;
-			}
-			buffer_skip(packet, length);
-		} else {
-			error("bad dname label");
-			buffer_set_position(packet, mark);
+		buffer_printf(output, " ");
+		if (!rdata_to_string(output, descriptor->zoneformat[i], packet)) {
 			return 0;
 		}
 	}
-
+	
 	return 1;
-}
-
-const dname_type *
-parse_dname(region_type *region, buffer_type *packet)
-{
-	uint8_t buf[MAXDOMAINLEN + 1];
-	int done = 0;
-	uint8_t visited[MAX_PACKET_SIZE];
-	size_t dname_length = 0;
-	const uint8_t *label;
-	size_t mark = buffer_position(packet);
-	
-	memset(visited, 0, buffer_limit(packet));
-	
-	while (!done) {
-		if (!buffer_available(packet, 1)) {
-			error("dname out of bounds");
-			buffer_set_position(packet, mark);
-			return NULL;
-		}
-
-		if (visited[buffer_position(packet)]) {
-			error("dname loops");
-			buffer_set_position(packet, mark);
-			return NULL;
-		}
-		visited[buffer_position(packet)] = 1;
-
-		label = buffer_current(packet);
-		if (label_is_pointer(label)) {
-			size_t pointer;
-			if (!buffer_available(packet, 2)) {
-				error("dname pointer out of bounds");
-				buffer_set_position(packet, mark);
-				return NULL;
-			}
-			pointer = label_pointer_location(label);
-			if (!buffer_available_at(packet, pointer, 0)) {
-				error("dname pointer points outside packet");
-				buffer_set_position(packet, mark);
-				return NULL;
-			}
-			buffer_set_position(packet, pointer);
-		} else if (label_is_normal(label)) {
-			size_t length = label_length(label) + 1;
-			done = label_is_root(label);
-			if (!buffer_available(packet, length)) {
-				error("dname label out of bounds");
-				buffer_set_position(packet, mark);
-				return NULL;
-			}
-			if (dname_length + length >= sizeof(buf)) {
-				error("dname too large");
-				buffer_set_position(packet, mark);
-				return NULL;
-			}
-			buffer_read(packet, buf + dname_length, length);
-			dname_length += length;
-		} else {
-			error("bad label type");
-			buffer_set_position(packet, mark);
-			return NULL;
-		}
-	}
-
-	buffer_set_position(packet, mark);
-	return dname_make(region, buf);
 }
 
 static int
@@ -221,18 +125,18 @@ print_rr(region_type *region, buffer_type *packet, FILE *out,
 	 const dname_type *owner, uint16_t rrtype, uint16_t rrclass,
 	 uint32_t rrttl, uint16_t rdlength)
 {
-	int i;
+	buffer_type *output = buffer_create(region, 1000);
 	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(rrtype);
-	const dname_type *dname;
-	char buf[100];
-	size_t end = buffer_position(packet) + rdlength;
-	size_t length;
+	size_t saved_position;
+	size_t saved_limit = buffer_limit(packet);
+	int result;
 	
 	if (!buffer_available(packet, rdlength)) {
 		error("RDATA truncated");
-		region_destroy(region);
 		return 0;
 	}
+
+	buffer_set_limit(packet, buffer_position(packet) + rdlength);
 	
 	fprintf(out, "%s %lu", dname_to_string(owner), (unsigned long) rrttl);
 	if (rrclass == CLASS_IN) {
@@ -246,70 +150,31 @@ print_rr(region_type *region, buffer_type *packet, FILE *out,
 		fprintf(out, " TYPE%d", rrtype);
 	}
 
-	for (i = 0; i < descriptor->maximum; ++i) {
-		if (buffer_position(packet) >= end) {
-			if (i < descriptor->minimum) {
-				error("RDATA is not complete");
-				return 0;
-			} else {
-				break;
-			}
-		}
-
-		switch (descriptor->zoneformat[i]) {
-		case RDATA_ZF_DNAME:
-			dname = parse_dname(region, packet);
-			if (!dname) {
-				return 0;
-			}
-			skip_dname(packet);
-			fprintf(out, " %s", dname_to_string(dname));
-			break;
-		case RDATA_ZF_TEXT:
-			/* FIXME */
-			length = buffer_read_u8(packet);
-			if (!buffer_available(packet, length)) {
-				error("Text data out of bounds");
-				return 0;
-			}
-			fprintf(out, " \"");
-			fwrite(buffer_current(packet), length, 1, out);
-			fprintf(out, "\"");
-			buffer_skip(packet, length);
-			break;
-		case RDATA_ZF_BYTE:
-			fprintf(out, " %u", buffer_read_u8(packet));
-			break;
-		case RDATA_ZF_SHORT:
-			fprintf(out, " %u", buffer_read_u16(packet));
-			break;
-		case RDATA_ZF_LONG:
-			fprintf(out, " %lu",
-				(unsigned long) buffer_read_u32(packet));
-			break;
-		case RDATA_ZF_A:
-			fprintf(out, " %s",
-				inet_ntop(AF_INET, buffer_current(packet),
-					  buf, sizeof(buf)));
-			buffer_skip(packet, 4);
-			break;
-		case RDATA_ZF_AAAA:
-			fprintf(out, " %s", inet_ntop(AF_INET6, buffer_current(packet), buf, sizeof(buf)));
-			buffer_skip(packet, IP6ADDRLEN);
-			break;
-
-		case RDATA_ZF_PERIOD:
-			fprintf(out, " %lu",
-				(unsigned long) buffer_read_u32(packet));
-			break;
-		default:
-			fprintf(stderr, "unimplemented zone format: %d\n", descriptor->zoneformat[i]);
-			abort();
+	saved_position = buffer_position(packet);
+	result = print_rdata(output, packet, descriptor);
+	assert(!result || buffer_remaining(packet) == 0);
+	if (result) {
+		buffer_write_u8(output, 0);
+		buffer_flip(output);
+		fprintf(out, "%s\n", (char *) buffer_current(output));
+	} else {
+		/*
+		 * Some RDATA failed, so print the record in unknown
+		 * format.
+		 */
+		buffer_clear(output);
+		buffer_set_position(packet, saved_position);
+		if (rdata_to_string(output, RDATA_ZF_UNKNOWN, packet)) {
+			buffer_write_u8(output, '\0');
+			buffer_flip(output);
+			fprintf(out, " %s\n", (char *) buffer_current(output));
+			result = 1;
 		}
 	}
+		
+	buffer_set_limit(packet, saved_limit);
 	
-	fprintf(out, "\n");
-	return 1;
+	return result;
 }
 
 	
@@ -331,12 +196,11 @@ parse_response(struct query *q, FILE *out, int first, int *done)
 	uint16_t rdlength;
 
 	for (rr_count = 0; rr_count < qdcount + ancount; ++rr_count) {
-		owner = parse_dname(rr_region, q->packet);
+		owner = dname_make_from_packet(rr_region, q->packet);
 		if (!owner) {
 			region_destroy(rr_region);
 			return 0;
 		}
-		skip_dname(q->packet);
 
 		if (rr_count < qdcount) {
 			if (!buffer_available(q->packet, 4)) {

@@ -103,6 +103,7 @@ NSD_OBJECTS	=				\
 	util.o
 
 ZONEC_OBJECTS	=				\
+	buffer.o				\
 	dbcreate.o				\
 	dname.o					\
 	dns.o					\

@@ -1,38 +1,9 @@
 /*
- * dname.h -- domain name operations
- *
- * Alexis Yushin, <alexis@nlnetlabs.nl>
+ * dname.h -- Domain name handling.
  *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
- * This software is an open source.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the NLNET LABS nor the names of its contributors may
- * be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * See LICENSE for the license.
  *
  */
 
@@ -42,6 +13,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "buffer.h"
 #include "heap.h"
 #include "region-allocator.h"
 
@@ -80,6 +52,16 @@ struct dname
  * Pre: NAME != NULL.
  */
 const dname_type *dname_make(region_type *region, const uint8_t *name);
+
+
+/*
+ * Construct a new domain name based on wire format dname stored at
+ * PACKET's current position.  Compression pointers are followed.  The
+ * PACKET's current position is changed to the end of the wire format
+ * dname or set to just after the first compression pointer.
+ */
+const dname_type *dname_make_from_packet(region_type *region,
+					 buffer_type *packet);
 
 
 /*

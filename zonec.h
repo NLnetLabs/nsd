@@ -84,14 +84,6 @@ void yyrestart(FILE *);
 
 enum rr_spot { outside, expecting_dname, after_dname, reading_type };
 
-/* A generic purpose lookup table */
-typedef struct lookup_table lookup_table_type;
-struct lookup_table {
-	uint16_t symbol;
-	const char *name;
-	int token;		/* Lexical token ID.  */
-};
-
 void warning(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 void warning_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 void error(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
@@ -101,8 +93,7 @@ int yyerror(const char *message); /* Dummy function.  */
 int process_rr(void);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
-uint16_t *zparser_conv_protocol(region_type *region, const char *protostr);
-uint16_t *zparser_conv_services(region_type *region, const char *proto, char *servicestr);
+uint16_t *zparser_conv_services(region_type *region, const char *protostr, char *servicestr);
 uint16_t *zparser_conv_period(region_type *region, const char *periodstr);
 uint16_t *zparser_conv_short(region_type *region, const char *shortstr);
 uint16_t *zparser_conv_long(region_type *region, const char *longstr);
@@ -129,15 +120,10 @@ void zadd_rdata_wireformat(uint16_t *data);
 void zadd_rdata_domain(domain_type *domain);
 void zprintrr(FILE *f, rr_type *rr);
 
-void set_bit(uint8_t bits[], uint16_t index);
 void set_bitnsec(uint8_t  bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
 		 uint16_t index);
 
 uint16_t intbytypexx(const char *str);
-
-const lookup_table_type *lookup_by_name(const char *a, const lookup_table_type tab[]);
-const lookup_table_type *lookup_by_symbol(uint16_t n, const lookup_table_type tab[]);
-const lookup_table_type *lookup_by_token(int token, const lookup_table_type tab[]);
 
 uint16_t lookup_type_by_name(const char *name);
 

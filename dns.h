@@ -1,44 +1,17 @@
 /*
- * dns.h -- everything we wanted to know but were afraid
- *		to ask about DNS
- *
- * Alexis Yushin, <alexis@nlnetlabs.nl>
+ * dns.h -- DNS definitions.
  *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
- * This software is an open source.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the NLNET LABS nor the names of its contributors may
- * be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * See LICENSE for the license.
  *
  */
 
 #ifndef _DNS_H_
 #define _DNS_H_
+
+#include "buffer.h"
+#include "region-allocator.h"
 
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
@@ -110,6 +83,7 @@
 #define MAX_RR_SIZE \
 	(MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)
 
+#define IP4ADDRLEN      (32/8)
 #define	IP6ADDRLEN	(128/8)
 
 /*
@@ -142,7 +116,6 @@ enum rdata_zoneformat
 	RDATA_ZF_LONG,		/* 32-bit integer.  */
 	RDATA_ZF_A,		/* 32-bit IPv4 address.  */
 	RDATA_ZF_AAAA,		/* 128-bit IPv6 address.  */
-	RDATA_ZF_PROTOCOL,	/* IP Protocol (TCP/UDP/...).  */
 	RDATA_ZF_RRTYPE,	/* RR type.  */
 	RDATA_ZF_ALGORITHM,	/* Cryptographic algorithm.  */
 	RDATA_ZF_CERTIFICATE_TYPE,
@@ -152,7 +125,7 @@ enum rdata_zoneformat
 	RDATA_ZF_HEX,		/* Hexadecimal binary data.  */
 	RDATA_ZF_NSAP,		/* NSAP.  */
 	RDATA_ZF_APL,		/* APL.  */
-	RDATA_ZF_SERVICES,	/* Port number bitmap.  */
+	RDATA_ZF_SERVICES,	/* Protocol and port number bitmap.  */
 	RDATA_ZF_NXT,		/* NXT type bitmap.  */
 	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */
 	RDATA_ZF_LOC,		/* Location data.  */
@@ -179,6 +152,9 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
 #define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_DNSKEY+1)
 extern rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH];
 
+extern lookup_table_type dns_certificate_types[];
+extern lookup_table_type dns_algorithms[];
+
 static inline rrtype_descriptor_type *
 rrtype_descriptor_by_type(uint16_t type)
 {
@@ -189,4 +165,9 @@ rrtype_descriptor_by_type(uint16_t type)
 
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 
+const char *rrtype_to_string(uint16_t rrtype);
+
+int rdata_to_string(buffer_type *output, rdata_zoneformat_type type,
+		    buffer_type *packet);
+		
 #endif /* _DNS_H_ */
