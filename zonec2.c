@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.24 2003/10/23 18:41:39 miekg Exp $
+ * $Id: zonec2.c,v 1.25 2003/10/28 15:55:08 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -40,16 +40,9 @@ static const char *dbfile = DBFILE;
 
 /* Some global flags... */
 static int vflag = 0;
-static int pflag = 0;
 
 /* Total errors counter */
 static int totalerrors = 0;
-
-static void 
-zone_print (zone_type *zone)
-{
-	return;
-}
 
 static int
 write_dname(struct namedb *db, domain_type *domain)
@@ -154,11 +147,6 @@ process_rr(zparser_type *parser, rr_type *rr)
 	rrset_type *rrset;
 	int i;
 	
-	/*
-        if (pflag > 0) 
-		zprintrr(stderr, rr);
-		*/
-		
 	/* We only support IN class */
 	if (rr->class != CLASS_IN) {
 		zerror("Wrong class");
@@ -392,11 +380,8 @@ main (int argc, char **argv)
 	totalerrors = 0;
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "d:f:vpF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:vF:L:")) != -1) {
 		switch (c) {
-		case 'p':
-			pflag = 1;
-			break;
 		case 'v':
 			++vflag;
 			break;
@@ -477,10 +462,7 @@ main (int argc, char **argv)
 		}
 
 		/* If we did not have any errors... */
-		if ((z = zone_read(db, zonename, zonefile)) != NULL) {
-			if (pflag)
-				zone_print(z);
-		} else {
+		if ((z = zone_read(db, zonename, zonefile)) == NULL) {
 			totalerrors++;
 		}
 
