@@ -323,7 +323,7 @@ static int
 parsestr(char *yytext, enum rr_spot *in_rr)
 {
 	int token;
-	char *t; char *ztext;
+	const char *t; char *ztext;
 
 	switch(*in_rr) {
 	case after_dname:

@@ -222,12 +222,12 @@ zparser_conv_period(region_type *region, const char *periodstr)
 
 	uint16_t *r = NULL;
 	uint32_t l;
-	char *end; 
+	const char *end; 
 
 	/* Allocate required space... */
 	r = (uint16_t *) region_alloc(
 		region, sizeof(uint16_t) + sizeof(uint32_t));
-	l = htonl((uint32_t)strtottl((char *)periodstr, &end));
+	l = htonl((uint32_t)strtottl(periodstr, &end));
 
         if(*end != 0) {
 		zc_error_prev_line("Time period is expected");
@@ -865,7 +865,7 @@ zparser_conv_apl_rdata(region_type *region, char *str)
  */
 
 int32_t
-zparser_ttl2int(char *ttlstr)
+zparser_ttl2int(const char *ttlstr)
 {
 	/* convert a ttl value to a integer
 	 * return the ttl in a int
@@ -873,7 +873,7 @@ zparser_ttl2int(char *ttlstr)
 	 */
 
 	int32_t ttl;
-	char *t;
+	const char *t;
 
 	ttl = strtottl(ttlstr, &t);
 	if(*t != 0) {
@@ -1122,95 +1122,6 @@ zrdatacmp(uint16_t type, rrdata_type *a, rrdata_type *b)
 
 	/* Otherwise they are equal */
 	return 0;
-}
-
-/*
- * Converts a string representation of a period of time into
- * a long integer of seconds.
- *
- * Set the endptr to the first illegal character.
- *
- * Interface is similar as strtol(3)
- *
- * Returns:
- *	LONG_MIN if underflow occurs
- *	LONG_MAX if overflow occurs.
- *	otherwise number of seconds
- *
- * XXX This functions does not check the range.
- *
- */
-long
-strtottl(char *nptr, char **endptr)
-{
-	int sign = 0;
-	long i = 0;
-	long seconds = 0;
-
-	for(*endptr = nptr; **endptr; (*endptr)++) {
-		switch (**endptr) {
-		case ' ':
-		case '\t':
-			break;
-		case '-':
-			if(sign == 0) {
-				sign = -1;
-			} else {
-				return (sign == -1) ? -seconds : seconds;
-			}
-			break;
-		case '+':
-			if(sign == 0) {
-				sign = 1;
-			} else {
-				return (sign == -1) ? -seconds : seconds;
-			}
-			break;
-		case 's':
-		case 'S':
-			seconds += i;
-			i = 0;
-			break;
-		case 'm':
-		case 'M':
-			seconds += i * 60;
-			i = 0;
-			break;
-		case 'h':
-		case 'H':
-			seconds += i * 60 * 60;
-			i = 0;
-			break;
-		case 'd':
-		case 'D':
-			seconds += i * 60 * 60 * 24;
-			i = 0;
-			break;
-		case 'w':
-		case 'W':
-			seconds += i * 60 * 60 * 24 * 7;
-			i = 0;
-			break;
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			i *= 10;
-			i += (**endptr - '0');
-			break;
-		default:
-			seconds += i;
-			return (sign == -1) ? -seconds : seconds;
-		}
-	}
-	seconds += i;
-	return (sign == -1) ? -seconds : seconds;
 }
 
 /*

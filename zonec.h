@@ -112,9 +112,7 @@ uint16_t *zparser_conv_apl_rdata(region_type *region, char *str);
 
 void parse_unknown_rdata(uint16_t type, uint16_t *wireformat);
 
-long strtottl(char *nptr, char **endptr);
-
-int32_t zparser_ttl2int(char *ttlstr);
+int32_t zparser_ttl2int(const char *ttlstr);
 void zadd_rdata_wireformat(uint16_t *data);
 void zadd_rdata_domain(domain_type *domain);
 void zprintrr(FILE *f, rr_type *rr);

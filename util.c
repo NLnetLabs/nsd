@@ -300,3 +300,77 @@ timespec_subtract(struct timespec *left,
 		left->tv_nsec += NANOSECONDS_PER_SECOND;
 	}
 }
+
+
+long
+strtottl(const char *nptr, const char **endptr)
+{
+	int sign = 0;
+	long i = 0;
+	long seconds = 0;
+
+	for(*endptr = nptr; **endptr; (*endptr)++) {
+		switch (**endptr) {
+		case ' ':
+		case '\t':
+			break;
+		case '-':
+			if(sign == 0) {
+				sign = -1;
+			} else {
+				return (sign == -1) ? -seconds : seconds;
+			}
+			break;
+		case '+':
+			if(sign == 0) {
+				sign = 1;
+			} else {
+				return (sign == -1) ? -seconds : seconds;
+			}
+			break;
+		case 's':
+		case 'S':
+			seconds += i;
+			i = 0;
+			break;
+		case 'm':
+		case 'M':
+			seconds += i * 60;
+			i = 0;
+			break;
+		case 'h':
+		case 'H':
+			seconds += i * 60 * 60;
+			i = 0;
+			break;
+		case 'd':
+		case 'D':
+			seconds += i * 60 * 60 * 24;
+			i = 0;
+			break;
+		case 'w':
+		case 'W':
+			seconds += i * 60 * 60 * 24 * 7;
+			i = 0;
+			break;
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			i *= 10;
+			i += (**endptr - '0');
+			break;
+		default:
+			seconds += i;
+			return (sign == -1) ? -seconds : seconds;
+		}
+	}
+	seconds += i;
+	return (sign == -1) ? -seconds : seconds;
+}

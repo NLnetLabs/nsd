@@ -245,4 +245,24 @@ timeval_to_timespec(struct timespec *left,
 	left->tv_nsec = 1000 * right->tv_usec;
 }
 
+
+/*
+ * Converts a string representation of a period of time into
+ * a long integer of seconds.
+ *
+ * Set the endptr to the first illegal character.
+ *
+ * Interface is similar as strtol(3)
+ *
+ * Returns:
+ *	LONG_MIN if underflow occurs
+ *	LONG_MAX if overflow occurs.
+ *	otherwise number of seconds
+ *
+ * XXX This functions does not check the range.
+ *
+ */
+long strtottl(const char *nptr, const char **endptr);
+
+
 #endif /* _UTIL_H_ */
