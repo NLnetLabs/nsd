@@ -181,13 +181,11 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->status = TSIG_NOT_PRESENT;
 	tsig->position = 0;
 	tsig->response_count = 0;
-	tsig->context = algorithm->hmac_create_context(region);
+	tsig->context = NULL;
 	tsig->algorithm = algorithm;
 	tsig->key = key;
 	tsig->prior_mac_size = 0;
-	tsig->prior_mac_data
-		= (uint8_t *) region_alloc(region,
-					   algorithm->maximum_digest_size);
+	tsig->prior_mac_data = NULL;
 	tsig->rr_region = region_create(xalloc, free);
 	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
 }
@@ -307,6 +305,13 @@ tsig_init_query(tsig_record_type *tsig, uint16_t original_query_id)
 void
 tsig_prepare(tsig_record_type *tsig)
 {
+	if (!tsig->context) {
+		assert(tsig->algorithm);
+		tsig->context = tsig->algorithm->hmac_create_context(
+			tsig->region);
+		tsig->prior_mac_data = (uint8_t *) region_alloc(
+			tsig->region, tsig->algorithm->maximum_digest_size);
+	}
 	tsig->algorithm->hmac_init_context(tsig->context,
 					   tsig->algorithm,
 					   tsig->key);
