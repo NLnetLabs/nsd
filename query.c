@@ -577,10 +577,7 @@ answer_soa(struct query *query, answer_type *answer)
 {
 	query->domain = query->zone->domain;
 	
-	if (query->class == CLASS_ANY) {
-		AA_CLR(query);
-	} else {
-		AA_SET(query);
+	if (query->class != CLASS_ANY) {
 		add_rrset(query, answer,
 			  AUTHORITY_SECTION,
 			  query->zone->domain,
@@ -671,10 +668,7 @@ answer_domain(struct query *q, answer_type *answer,
 
 	q->domain = domain;
 	
-	if (q->class == CLASS_ANY) {
-		AA_CLR(q);
-	} else if (q->zone->ns_rrset) {
-		AA_SET(q);
+	if (q->class != CLASS_ANY && q->zone->ns_rrset) {
 		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->domain, q->zone->ns_rrset);
 	}
 }
@@ -807,6 +801,11 @@ answer_query(struct nsd *nsd, struct query *q)
 	answer_init(&answer);
 
 	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->domain) {
+		if (q->class == CLASS_ANY) {
+			AA_CLR(q);
+		} else {
+			AA_SET(q);
+		}
 		answer_nodata(q, &answer, closest_encloser);
 	} else {
 		q->delegation_domain = domain_find_ns_rrsets(
@@ -815,6 +814,11 @@ answer_query(struct nsd *nsd, struct query *q)
 		if (q->delegation_domain) {
 			answer_delegation(q, &answer);
 		} else {
+			if (q->class == CLASS_ANY) {
+				AA_CLR(q);
+			} else {
+				AA_SET(q);
+			}
 			answer_authoritative(q, &answer, 0, exact,
 					     closest_match, closest_encloser);
 		}
@@ -857,11 +861,13 @@ query_process(struct query *q, struct nsd *nsd)
 	STATUP2(nsd, qtype, q->type);
 	STATUP2(nsd, qclass, q->class);
 
-	if (q->opcode == OPCODE_NOTIFY) {
-		return answer_notify(q);
-	} else if (q->opcode != OPCODE_QUERY) {
-		query_formerr(q);
-		return QUERY_PROCESSED;
+	if (q->opcode != OPCODE_QUERY) {
+		if (q->opcode == OPCODE_NOTIFY) {
+			return answer_notify(q);
+		} else {
+			query_error(q, RCODE_IMPL);
+			return QUERY_PROCESSED;
+		}
 	}
 
 	/* Dont bother to answer more than one question at once... */
@@ -903,12 +909,14 @@ query_process(struct query *q, struct nsd *nsd)
 	QR_SET(q);		/* This is an answer */
 	if (recursion_desired)
 		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
-	
-	if (q->class == CLASS_CHAOS) {
-		return answer_chaos(nsd, q);
-	} else if (q->class != CLASS_IN) {
-		query_formerr(q);
-		return QUERY_PROCESSED;
+
+	if (q->class != CLASS_IN && q->class != CLASS_ANY) {
+		if (q->class == CLASS_CHAOS) {
+			return answer_chaos(nsd, q);
+		} else {
+			query_error(q, RCODE_REFUSE);
+			return QUERY_PROCESSED;
+		}
 	}
 
 	query_state = answer_axfr_ixfr(nsd, q);
