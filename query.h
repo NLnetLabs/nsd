@@ -311,10 +311,30 @@ void query_add_compression_domain(struct query *query,
 				  uint16_t      offset);
 
 
-/* query.c */
-void query_init(struct query *q);
+/*
+ * (Re-)initialize a query structure so it is ready for receiving and
+ * processing a new query.
+ */
+void query_init(struct query *q,
+		region_type *region,
+		uint16_t *compressed_dname_offsets,
+		size_t maxlen,
+		int is_tcp);
+
+/*
+ * Process a query and write the response in the query I/O buffer.
+ */
 query_state_type query_process(struct query *q, struct nsd *nsd);
+
+/*
+ * Add EDNS information to the response if required.
+ */
 void query_addedns(struct query *q, struct nsd *nsd);
+
+/*
+ * Write an error response into the query structure with the indicated
+ * RCODE.
+ */
 void query_error(struct query *q, int rcode);
 
 

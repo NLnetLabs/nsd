@@ -81,9 +81,9 @@
  */
 struct udp_handler_data
 {
-	region_type       *query_region;
 	struct nsd        *nsd;
 	struct nsd_socket *socket;
+	region_type       *query_region;
 };
 
 /*
@@ -91,9 +91,9 @@ struct udp_handler_data
  * to the TCP connection handler.
  */
 struct tcp_accept_handler_data {
-	region_type        *query_region;
 	struct nsd         *nsd;
 	struct nsd_socket  *socket;
+	region_type        *query_region;
 	size_t              tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
 };
@@ -113,8 +113,21 @@ struct tcp_accept_handler_data {
  */
 struct tcp_handler_data
 {
+	/*
+	 * The region used to allocate all TCP connection related
+	 * data, including this structure.  This region is destroyed
+	 * when the connection is closed.
+	 */
 	region_type     *region;
+
+	/*
+	 * The global nsd structure.
+	 */
 	struct nsd      *nsd;
+
+	/*
+	 * The current query data for this TCP connection.
+	 */
 	struct query     query;
 
 	/*
@@ -730,9 +743,11 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 	}
 
 	/* Initialize the query... */
-	query_init(&q);
-	q.region = data->query_region;
-	q.compressed_dname_offsets = compressed_dname_offsets;
+	query_init(&q,
+		   data->query_region,
+		   compressed_dname_offsets,
+		   UDP_MAX_MESSAGE_LEN,
+		   0);
 	
 	if ((received = recvfrom(handler->fd, q.iobuf, QIOBUFSZ, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
 		if (errno != EAGAIN && errno != EINTR) {
@@ -1029,7 +1044,11 @@ handle_tcp_writing(netio_type *netio,
 	 * Done sending, wait for the next request to arrive on the
 	 * TCP socket by installing the TCP read handler.
 	 */
-	query_init(&data->query);
+	query_init(&data->query,
+		   data->query.region,
+		   data->query.compressed_dname_offsets,
+		   data->query.maxlen,
+		   1);
 	data->bytes_transmitted = 0;
 	
 	handler->timeout->tv_sec = TCP_TIMEOUT;
@@ -1101,13 +1120,13 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data->region = tcp_region;
 	tcp_data->nsd = data->nsd;
 	
-	query_init(&tcp_data->query);
-	tcp_data->query.region = data->query_region;
-	tcp_data->query.compressed_dname_offsets = compressed_dname_offsets;
-	tcp_data->query.maxlen = (MAX_PACKET_SIZE < data->nsd->tcp_max_msglen
-				  ? MAX_PACKET_SIZE
-				  : data->nsd->tcp_max_msglen);
-	tcp_data->query.tcp = 1;
+	query_init(&tcp_data->query,
+		   data->query_region,
+		   compressed_dname_offsets,
+		   (MAX_PACKET_SIZE < data->nsd->tcp_max_msglen
+		    ? MAX_PACKET_SIZE
+		    : data->nsd->tcp_max_msglen),
+		   1);
 
 	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;
 	tcp_data->tcp_accept_handlers = data->tcp_accept_handlers;

@@ -155,14 +155,17 @@ query_formerr (struct query *query)
 }
 
 void 
-query_init (struct query *q)
+query_init(struct query *q, region_type *region, uint16_t *compressed_dname_offsets,
+	   size_t maxlen, int is_tcp)
 {
+	q->region = region;
+	q->compressed_dname_offsets = compressed_dname_offsets;
 	q->addrlen = sizeof(q->addr);
 	q->iobufptr = q->iobuf;
-	q->maxlen = UDP_MAX_MESSAGE_LEN;
+	q->maxlen = maxlen;
 	q->edns = 0;
 	q->dnssec_ok = 0;
-	q->tcp = 0;
+	q->tcp = is_tcp;
 	q->name = NULL;
 	q->zone = NULL;
 	q->domain = NULL;
