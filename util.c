@@ -67,15 +67,31 @@ log_finalize(void)
 	current_log_file = NULL;
 }
 
+static lookup_table_type log_priority_table[] = {
+	{ LOG_ERR, "error" },
+	{ LOG_WARNING, "warning" },
+	{ LOG_NOTICE, "notice" },
+	{ LOG_INFO, "info" },
+	{ 0, NULL }
+};
+
 void
-log_file(int ATTR_UNUSED(priority), const char *message)
+log_file(int priority, const char *message)
 {
 	size_t length;
+	lookup_table_type *priority_info;
+	const char *priority_text = "unknown";
 	
 	assert(global_ident);
 	assert(current_log_file);
 
-	fprintf(current_log_file, "%s: %s", global_ident, message);
+	priority_info = lookup_by_id(log_priority_table, priority);
+	if (priority_info) {
+		priority_text = priority_info->name;
+	}
+	
+	fprintf(current_log_file, "%s: %s: %s",
+		global_ident, priority_text, message);
 	length = strlen(message);
 	if (length == 0 || message[length - 1] != '\n') {
 		fprintf(current_log_file, "\n");
