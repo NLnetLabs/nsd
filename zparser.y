@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.4 2003/11/04 13:20:56 miekg Exp $
+ * $Id: zparser.y,v 1.5 2003/11/05 11:03:28 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -275,35 +275,53 @@ hex_seq:	STR
 
 /* define what we can parse */
 
-rtype:  SOA sp rdata_soa 
+rtype:
+    /*
+     * RFC 1035 RR types.  We don't support NULL, WKS, and types
+     * marked obsolete.
+     */
+      CNAME sp rdata_dname 
     { current_rr->type = $1; }
-    |   A sp rdata_a 
+    | HINFO sp rdata_hinfo 
     { current_rr->type = $1; }
-    |   NS sp rdata_dname 
+    | MB sp rdata_dname		/* Experimental */
     { current_rr->type = $1; }
-    |   CNAME sp rdata_dname 
+    | MD sp rdata_dname		/* Obsolete */
+    { error("MD is obsolete"); }
+    | MF sp rdata_dname		/* Obsolete */
+    { error("MF is obsolete"); }
+    | MG sp rdata_dname		/* Experimental */
     { current_rr->type = $1; }
-    |   PTR sp rdata_dname 
-    {   current_rr->type = $1; }
-    |   TXT sp rdata_txt
+    | MINFO sp rdata_minfo /* Experimental */
     { current_rr->type = $1; }
-    |   MX sp rdata_mx 
+    | MR sp rdata_dname		/* Experimental */
     { current_rr->type = $1; }
-    |   AAAA sp rdata_aaaa 
+    | MX sp rdata_mx 
     { current_rr->type = $1; }
-    |	HINFO sp rdata_hinfo 
+    | NS sp rdata_dname 
     { current_rr->type = $1; }
-    |   SRV sp rdata_srv
+    | PTR sp rdata_dname 
     { current_rr->type = $1; }
-    |	DS sp rdata_ds
+    | SOA sp rdata_soa 
     { current_rr->type = $1; }
-    |	KEY sp rdata_key
+    | TXT sp rdata_txt
     { current_rr->type = $1; }
-    |	NXT sp rdata_nxt
+    | A sp rdata_a 
     { current_rr->type = $1; }
-    |	SIG sp rdata_sig
+    /* RFC 1886. */
+    | AAAA sp rdata_aaaa 
     { current_rr->type = $1; }
-    |	error NL
+    | SRV sp rdata_srv
+    { current_rr->type = $1; }
+    | DS sp rdata_ds
+    { current_rr->type = $1; }
+    | KEY sp rdata_key
+    { current_rr->type = $1; }
+    | NXT sp rdata_nxt
+    { current_rr->type = $1; }
+    | SIG sp rdata_sig
+    { current_rr->type = $1; }
+    | error NL
     {	
 	    warning("Unimplemented RR seen");
     }
@@ -314,6 +332,14 @@ rtype:  SOA sp rdata_soa
  * below are all the definition for all the different rdata 
  *
  */
+
+rdata_minfo:   dname sp dname trail
+    {
+        /* convert a single dname record */
+        zadd_rdata_domain(current_parser, $1);
+        zadd_rdata_domain(current_parser, $3);
+    }
+    ;
 
 rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
     {
