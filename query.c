@@ -73,30 +73,6 @@ int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* LIBWRAP */
 
-size_t
-query_used_size(struct query *q)
-{
-	return q->iobufptr - q->iobuf;
-}
-
-size_t
-query_available_size(struct query *q)
-{
-	return q->maxlen - query_used_size(q);
-}
-
-void
-query_write(struct query *q, const void *data, size_t size)
-{
-	if (size <= query_available_size(q)) {
-		memcpy(q->iobufptr, data, size); 
-		q->iobufptr += size;
-	} else {
-		q->overflow = 1;
-	}	
-}
-
-
 void
 query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 {

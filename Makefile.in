@@ -83,7 +83,7 @@ EDIT		= sed \
 			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS 	= nsd zonec nsdc.sh nsdc.conf.sample
+TARGETS 	= nsd zonec nsd-notify nsdc.sh nsdc.conf.sample
 
 NSD_OBJECTS	= 				\
 	answer.o				\

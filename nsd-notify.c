@@ -57,6 +57,7 @@
 #include "dname.h"
 #include "nsd.h"
 #include "query.h"
+#include "region-allocator.h"
 #include "util.h"
 
 static void 
@@ -74,14 +75,15 @@ main (int argc, char *argv[])
 {
 	int c, udp_s;
 	struct query q;
-	const uint8_t *zone = NULL;
+	const dname_type *zone = NULL;
 	uint16_t qtype = htons(TYPE_SOA);
 	uint16_t qclass = htons(CLASS_IN);
 	struct addrinfo hints, *res0, *res;
 	int error;
 	int default_family = DEFAULT_AI_FAMILY;
 	const char *port = UDP_PORT;
-
+	region_type *region = region_create(xalloc, free);
+	
 	log_init("nsd-notify");
 	
 	/* Parse the command line... */
@@ -102,7 +104,7 @@ main (int argc, char *argv[])
 			port = optarg;
 			break;
 		case 'z':
-			if ((zone = strdname(optarg, ROOT)) == NULL)
+			if ((zone = dname_parse(region, optarg, NULL)) == NULL)
 				usage();
 			break;
 		default:
@@ -118,7 +120,6 @@ main (int argc, char *argv[])
 	/* Initialize the query */
 	memset(&q, 0, sizeof(struct query));
 	q.addrlen = sizeof(q.addr);
-	q.iobufsz = QIOBUFSZ;
 	q.iobufptr = q.iobuf;
 	q.maxlen = 512;
 
@@ -129,17 +130,11 @@ main (int argc, char *argv[])
 
 	q.iobufptr = q.iobuf + QHEADERSZ;
 
-	/* Add the domain name */
-	if (*zone > MAXDOMAINLEN) {
-		fprintf(stderr, "zone name length exceeds %d\n", MAXDOMAINLEN);
-		exit(1);
-	}
-
-	QUERY_WRITE(&q, zone + 1, *zone);
+	query_write(&q, dname_name(zone), zone->name_size);
 
 	/* Add type & class */
-	QUERY_WRITE(&q, &qtype, sizeof(qtype));
-	QUERY_WRITE(&q, &qclass, sizeof(qclass));
+	query_write(&q, &qtype, sizeof(qtype));
+	query_write(&q, &qclass, sizeof(qclass));
 
 	/* Set QDCOUNT=1 */
 	QDCOUNT((&q)) = htons(1);
@@ -170,7 +165,7 @@ main (int argc, char *argv[])
 
 			/* WE ARE READY SEND IT OUT */
 
-			if (sendto(udp_s, q.iobuf, QUERY_USED_SIZE(&q), 0,
+			if (sendto(udp_s, q.iobuf, query_used_size(&q), 0,
 				   res->ai_addr, res->ai_addrlen) == -1)
 			{
 				fprintf(stderr,

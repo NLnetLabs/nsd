@@ -40,6 +40,7 @@
 #define _QUERY_H_
 
 #include <assert.h>
+#include <string.h>
 
 #include "dname.h"
 #include "namedb.h"
@@ -233,13 +234,13 @@ struct query {
 
 
 /* Current amount of data in the query IO buffer.  */
-size_t query_used_size(struct query *q);
+static inline size_t query_used_size(struct query *q);
 
 /* Current available data size of the query IO buffer.  */
-size_t query_available_size(struct query *q);
+static inline size_t query_available_size(struct query *q);
 
 /* Append data to the query IO buffer until an overflow occurs.  */
-void query_write(struct query *q, const void *data, size_t size);
+static inline void query_write(struct query *q, const void *data, size_t size);
 
 
 /*
@@ -283,5 +284,30 @@ void query_init(struct query *q);
 query_state_type query_process(struct query *q, struct nsd *nsd);
 void query_addedns(struct query *q, struct nsd *nsd);
 void query_error(struct query *q, int rcode);
+
+
+
+static inline size_t
+query_used_size(struct query *q)
+{
+	return q->iobufptr - q->iobuf;
+}
+
+static inline size_t
+query_available_size(struct query *q)
+{
+	return q->maxlen - query_used_size(q);
+}
+
+static inline void
+query_write(struct query *q, const void *data, size_t size)
+{
+	if (size <= query_available_size(q)) {
+		memcpy(q->iobufptr, data, size); 
+		q->iobufptr += size;
+	} else {
+		q->overflow = 1;
+	}	
+}
 
 #endif /* _QUERY_H_ */
