@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.19 2003/02/25 13:08:13 alexis Exp $
+ * $Id: zparser.c,v 1.20 2003/02/25 14:03:22 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -824,7 +824,7 @@ zrdata (struct zparser *z)
 			t = (u_char *)(r + 1);
 
 			/* Scan the types and add them to the bitmap */
-			while(zrdatascan2(z, RDATA_SERVICE, z->_rr.rdata[1][1])) {
+			while(zrdatascan2(z, RDATA_SERVICE, ntohs(z->_rr.rdata[1][1]))) {
 				z->_rc--;
 
 				/* Now convert the type back to host byte order */
@@ -990,7 +990,7 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		break;
 	case RDATA_SERVICE:
 		if((proto = getprotobynumber(arg)) == NULL) {
-			zerror(z, "unknown protocol");
+			zerror(z, "unknown protocol, internal error");
 			error++;
 		} else {
 			if((service = getservbyname(z->_t[z->_tc], proto->p_name)) == NULL) {
@@ -1000,7 +1000,7 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 				/* Allocate required space... */
 				r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
 
-				*(r + 1) = htons(service->s_port);
+				*(r + 1) = service->s_port;
 				*r = sizeof(u_int16_t);
 			}
 		}
