@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.14 2002/06/13 13:13:11 alexis Exp $
+ * $Id: zf.h,v 1.14.2.1 2002/08/15 11:32:01 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -167,7 +167,7 @@ struct zf_type_tab {
 	{TYPE_HINFO, "HINFO", "tt"},	\
 	{TYPE_MINFO, "MINFO", "nn"},	\
 	{TYPE_MX, "MX", "sn"},		\
-	{TYPE_TXT, "TXT", "t"},		\
+	{TYPE_TXT, "TXT", "t*"},		\
         {TYPE_AAAA, "AAAA", "6"},	\
 	{TYPE_SRV, "SRV", "sssn"},	\
 	{TYPE_NAPTR, "NAPTR", "sstttn"},	\

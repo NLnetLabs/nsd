@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.29 2002/05/30 10:29:01 alexis Exp $
+ * $Id: zf.c,v 1.29.2.1 2002/08/15 11:32:01 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -881,9 +881,34 @@ zf_read(zf)
 		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
 		bzero(zf->line.rdata, sizeof(union zf_rdatom) * MAXRDATALEN);
 
+		/* Format starting with ``*'' is an error */
+		assert(*zf->line.rdatafmt != '*');
+
 		/* Parse it */
 		for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; f++, i++) {
 			assert(i < MAXRDATALEN);
+
+			/* Handle the star case first... */
+			if(*f == '*') {
+				/* Make a private format for this RR initialy */
+				if(zf->line.rdatafmt == type->fmt) {
+					zf->line.rdatafmt = xalloc(MAXRDATALEN + 1);
+					strncpy(zf->line.rdatafmt, type->fmt, MAXRDATALEN + 2);
+					f = f - type->fmt + zf->line.rdatafmt;
+				}
+
+				/* Make sure we dont overflow */
+				if((f - zf->line.rdatafmt) > MAXRDATALEN) {
+					zf_error(zf, "too many elements");
+					parse_error++;
+					break;
+				}
+
+				/* Copy the previous atom */
+				*f = *(f - 1);
+				memcpy(f + 1, "*", 2);
+			}
+
 			if((token = zf_token(zf, NULL)) == NULL) {
 				break;
 			}
@@ -938,6 +963,16 @@ zf_read(zf)
 				assert(0);
 				return NULL;
 			}
+		}
+
+		/* Was there a star? */
+		if(*(f + 1) == '*') *f = 0;
+
+		/* More atoms expected? */
+		if(*f != 0) {
+			zf_error(zf, "missing element");
+			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
+			continue;
 		}
 
 		/* We couldnt parse it completely */
