@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.15 2002/08/21 12:06:50 alexis Exp $
+# $Id: Makefile,v 1.69.2.16 2002/08/21 12:14:41 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -59,7 +59,7 @@ NSDUSER		= nsd
 NAMEDXFER	= /usr/libexec/named-xfer
 
 # Maximum number of AXFR processes to be run simultaneously by nsdc(8)
-NSDMAXAXFR	= 10
+MAXXFRS		= 10
 
 # A directory where the crypto keys are kept. For now only used to store TSIG keys for
 # named-xfer
@@ -200,7 +200,8 @@ nsdc.sh: nsdc.sh.in Makefile
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
 		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" \
 		-e "s,@@NAMEDXFER@@,${NAMEDXFER},g" -e "s,@@NSDKEYSDIR@@,${NSDKEYSDIR},g" \
-		-e "s,@@NSDNOTIFY@@,${NSDNOTIFY},g" -e "s,@@NSDMAXAXFR@@,${NSDMAXAXFR},g" $@.in > $@
+		-e "s,@@NSDNOTIFY@@,${NSDNOTIFY},g" -e "s,@@MAXXFRS@@,${MAXXFRS},g" \
+		$@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
