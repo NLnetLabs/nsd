@@ -1,3 +1,4 @@
+bja
 /*
  * nsdc.c - nsdc(8)
  *
