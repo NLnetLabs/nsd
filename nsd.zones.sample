@@ -1,5 +1,5 @@
 ;
-; $Id: nsd.zones.sample,v 1.1 2002/02/21 12:18:49 alexis Exp $
+; $Id: nsd.zones.sample,v 1.2 2002/02/21 15:42:13 alexis Exp $
 ;
 ; nsd.zones -- a list of the zones to be compiled into the NSD database
 ;
@@ -40,5 +40,6 @@
 ; This is a comment
 
 ; Type	 Zone Name	Filename relative to the $NSDZONESDIR
-cache	.		root.cache
-zone	nlnetlabs.nl	nlnetlabs.nl.zone
+;cache	.		root.cache
+;zone	nlnetlabs.nl	nlnetlabs.nl.zone
+zone	.		root.zone
