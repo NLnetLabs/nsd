@@ -508,7 +508,7 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 	q.compressed_dname_offsets = compressed_dname_offsets;
 	
 	if ((received = recvfrom(handler->fd, q.iobuf, QIOBUFSZ, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-		if (errno != EAGAIN) {
+		if (errno != EAGAIN && errno != EINTR) {
 			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
 			STATUP(data->nsd, rxerr);
 		}
@@ -621,7 +621,7 @@ handle_tcp_reading(netio_type *netio,
 				(char *) &q->tcplen + data->bytes_transmitted,
 				sizeof(q->tcplen) - data->bytes_transmitted);
 		if (received == -1) {
-			if (errno == EAGAIN) {
+			if (errno == EAGAIN || errno == EINTR) {
 				/* Read would block, wait until more data is available.  */
 				return;
 			} else {
@@ -674,7 +674,7 @@ handle_tcp_reading(netio_type *netio,
 	/* Read the (remaining) query data.  */
 	received = read(handler->fd, q->iobufptr, q->tcplen - query_used_size(q));
 	if (received == -1) {
-		if (errno == EAGAIN) {
+		if (errno == EAGAIN || errno == EINTR) {
 			/* Read would block, wait until more data is available.  */
 			return;
 		} else {
@@ -750,7 +750,7 @@ handle_tcp_writing(netio_type *netio,
 			     (const char *) &n_tcplen + data->bytes_transmitted,
 			     sizeof(n_tcplen) - data->bytes_transmitted);
 		if (sent == -1) {
-			if (errno == EAGAIN) {
+			if (errno == EAGAIN || errno == EINTR) {
 				/*
 				 * Write would block, wait until
 				 * socket becomes writable again.
@@ -781,7 +781,7 @@ handle_tcp_writing(netio_type *netio,
 		     q->iobuf + data->bytes_transmitted - sizeof(q->tcplen),
 		     query_used_size(q) - data->bytes_transmitted + sizeof(q->tcplen));
 	if (sent == -1) {
-		if (errno == EAGAIN) {
+		if (errno == EAGAIN || errno == EINTR) {
 			/*
 			 * Write would block, wait until
 			 * socket becomes writable again.
