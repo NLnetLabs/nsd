@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.48 2003/10/23 14:30:53 miekg Exp $
+ * $Id: zyparser.y,v 1.49 2003/10/23 14:34:22 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -257,7 +257,7 @@ str_seq:	STR
 hex_seq:	STR
 	{
 		$$ = $1;
-		fprintf(stderr,"hex: %s\n",$$.str);
+		fprintf(stderr,"[%s]\n",$$.str);
 	}
 	|	hex_seq sp STR
 	{
@@ -266,7 +266,7 @@ hex_seq:	STR
 		memcpy(hex + $1.len, $3.str, $3.len);
 		$$.str = hex;
 		$$.len = $1.len + $3.len;
-		fprintf(stderr,"hex: %s\n",$$.str);
+		fprintf(stderr,"[%s]\n",$$.str);
 	}
 	;
 
