@@ -196,7 +196,7 @@ dname_parse(region_type *region, const char *name)
 				int val = (digittoint(s[1]) * 100 +
 					   digittoint(s[2]) * 10 +
 					   digittoint(s[3]));
-				if (val >= 0 && val <= 255) {
+				if (0 <= val && val <= 255) {
 					s += 3;
 					*p = val;
 				} else {

@@ -247,71 +247,47 @@ zrrtype (const char *word, uint16_t *type)
 	return 0;
 }
 
-/* do some preparsing of the stuff */
-static int
-zoctet(char *word) 
+
+/*
+ * Remove \DDD constructs from the input. See RFC 1035, section 5.1.
+ */
+static size_t
+zoctet(char *text) 
 {
-    /* remove \DDD constructs from the input. See RFC 1035, section 5.1 */
-    /* s follows the string, p lags behind and rebuilds the new string */
-    char * s; char * p;
-    unsigned int length = 0;
-
-    for (s = p = word; *s != '\0'; s++,p++ ) {
-        switch ( *s ) {
-            case '.':
-		/* [XXX] is empty label handled correctly? */
-                if (s[1] == '.') {
-                    zc_warning("Empty label");
-                    break;
-                }
-                *p = *s;
-                length++; 
-                break;
-            case '\\':
-                if ('0' <= s[1] && s[1] <= '9' &&
-                    '0' <= s[2] && s[2] <= '9' &&
-                    '0' <= s[3] && s[3] <= '9')
-		{
-                    /* \DDD seen */
-                    int val = ((s[1] - '0') * 100 +
-                           (s[2] - '0') * 10 +
-                           (s[3] - '0'));
-
-                    if (0 <= val && val <= 255) {
-                        /* this also handles \0 */
-                        s += 3;
-                        *p = val;
-                        length++;
-                    } else {
-                        zc_warning("ASCII \\DDD overflow");
-                    }
-
-                } else {
-                    /* an espaced character, like \<space> ? 
-                    * remove the '\' keep the rest */
-                    *p = *++s;
-                    length++;
-                }
-                break;
-            case '\"':
-                /* non quoted " Is either first or the last character in
-                 * the string */
-
-                *p = *++s; /* skip it */
-                length++; 
-                if ( *s == '\0' ) {
-                    /* ok, it was the last one */
-                    *p  = '\0'; return length;
-                }
-                break;
-            default:
-                *p = *s;
-                length++;
-                break;
-        }
-    }
-    *p = '\0';
-    return length;
+	/*
+	 * s follows the string, p lags behind and rebuilds the new
+	 * string
+	 */
+	char *s;
+	char *p;
+	
+	for (s = p = text; *s; ++s, ++p) {
+		assert(p <= s);
+		if (s[0] != '\\') {
+			/* Ordinary character.  */
+			*p = *s;
+		} else if (isdigit(s[1]) && isdigit(s[2]) && isdigit(s[3])) {
+			/* \DDD escape.  */
+			int val = (digittoint(s[1]) * 100 +
+				   digittoint(s[2]) * 10 +
+				   digittoint(s[3]));
+			if (0 <= val && val <= 255) {
+				s += 3;
+				*p = val;
+			} else {
+				zc_warning("text escape \\DDD overflow");
+				*p = *++s;
+			}
+		} else if (s[1] != '\0') {
+			/* \X where X is any character, keep X.  */
+			*p = *++s;
+		} else {
+			/* Trailing backslash, ignore it.  */
+			zc_warning("trailing backslash ignored");
+			--p;
+		}
+	}
+	return p - text;
 }
 
 static int
