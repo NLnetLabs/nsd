@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.5 2002/08/06 14:39:22 alexis Exp $
+# $Id: Makefile,v 1.69.2.6 2002/08/07 15:04:16 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -57,6 +57,10 @@ NSDUSER		= nsd
 # This has to be set to the path of named-xfer program from bind if you
 # want ``nsdc update'' functionality
 NAMEDXFER	= 
+
+# A directory where the crypto keys are kept. For now only used to store TSIG keys for
+# named-xfer
+NSDKEYSDIR	= ${NSDZONESDIR}/keys
 
 #
 # Pathnames
@@ -176,7 +180,7 @@ nsdc.sh: nsdc.sh.in Makefile
 	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
 		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" \
-		-e "s,@@NAMEDXFER@@,${NAMEDXFER},g" $@.in > $@
+		-e "s,@@NAMEDXFER@@,${NAMEDXFER},g" -e "s,@@NSDKEYSDIR@@,${NSDKEYSDIR},g" $@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
