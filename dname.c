@@ -180,21 +180,8 @@ dname_parse(region_type *region, const char *name, const dname_type *origin)
 const dname_type *
 dname_copy(region_type *region, const dname_type *dname)
 {
-	dname_type *result;
-
-	assert(dname);
-
-	result = (dname_type *) region_alloc(region, dname_total_size(dname));
-	result->name_size = dname->name_size;
-	result->label_count = dname->label_count;
-	memcpy((uint8_t *) dname_label_offsets(result),
-	       dname_label_offsets(dname),
-	       result->label_count * sizeof(uint8_t));
-	memcpy((uint8_t *) dname_name(result),
-	       dname_name(dname),
-	       result->name_size * sizeof(uint8_t));
-	
-	return result;
+	return (dname_type *) region_alloc_init(
+		region, dname, dname_total_size(dname));
 }
 
 
