@@ -118,7 +118,7 @@ zparser_conv_hex(region_type *region, const char *hex, size_t len)
 			}
 			++t;
 		}
-        }
+	}
 	return r;
 }
 
@@ -192,7 +192,7 @@ zparser_conv_services(region_type *region, const char *protostr,
 			if (port > max_port)
 				max_port = port;
 		}
-        }
+	}
 
 	r = alloc_rdata(region, sizeof(uint8_t) + max_port / 8 + 1);
 	p = (uint8_t *) (r + 1);
@@ -212,12 +212,12 @@ zparser_conv_period(region_type *region, const char *periodstr)
 
 	/* Allocate required space... */
 	period = (uint32_t) strtottl(periodstr, &end);
-        if (*end != 0) {
+	if (*end != 0) {
 		zc_error_prev_line("time period is expected");
-        } else {
+	} else {
 		period = htonl(period);
 		r = alloc_rdata_init(region, &period, sizeof(period));
-        }
+	}
 	return r;
 }
 
@@ -228,7 +228,7 @@ zparser_conv_short(region_type *region, const char *text)
 	uint16_t value;
 	char *end;
    
-    	value = htons((uint16_t) strtol(text, &end, 0));
+	value = htons((uint16_t) strtol(text, &end, 0));
 	if (*end != 0) {
 		zc_error_prev_line("integer value is expected");
 	} else {
@@ -244,7 +244,7 @@ zparser_conv_long(region_type *region, const char *text)
 	uint32_t value;
 	char *end;
    
-    	value = htonl((uint32_t) strtol(text, &end, 0));
+	value = htonl((uint32_t) strtol(text, &end, 0));
 	if (*end != 0) {
 		zc_error_prev_line("integer value is expected");
 	} else {
@@ -260,8 +260,8 @@ zparser_conv_byte(region_type *region, const char *text)
 	uint8_t value;
 	char *end;
    
-    	value = (uint8_t) strtol(text, &end, 0);
-	if (*end != 0) {
+	value = (uint8_t) strtol(text, &end, 0);
+	if (*end != '\0') {
 		zc_error_prev_line("integer value is expected");
 	} else {
 		r = alloc_rdata_init(region, &value, sizeof(value));
@@ -281,7 +281,7 @@ zparser_conv_algorithm(region_type *region, const char *text)
 	} else {
 		char *end;
 		id = (uint8_t) strtol(text, &end, 0);
-		if (end != 0) {
+		if (*end != '\0') {
 			zc_error_prev_line("algorithm is expected");
 			return NULL;
 		}
@@ -332,12 +332,12 @@ zparser_conv_aaaa(region_type *region, const char *text)
 	uint8_t address[IP6ADDRLEN];
 	uint16_t *r = NULL;
 
-        if (inet_pton(AF_INET6, text, address) != 1) {
+	if (inet_pton(AF_INET6, text, address) != 1) {
 		zc_error_prev_line("invalid IPv6 address '%s'", text);
-        } else {
+	} else {
 		r = alloc_rdata_init(region, address, sizeof(address));
-        }
-        return r;
+	}
+	return r;
 }
 
 uint16_t *
@@ -348,13 +348,13 @@ zparser_conv_text(region_type *region, const char *text, size_t len)
 	if (len > 255) {
 		zc_error_prev_line("text string is longer than 255 characters,"
 				   " try splitting it into multiple parts");
-        } else {
+	} else {
 		uint8_t *p;
 		r = alloc_rdata(region, len + 1);
 		p = (uint8_t *) (r + 1);
 		*p = len;
 		memcpy(p + 1, text, len);
-        }
+	}
 	return r;
 }
 
@@ -366,12 +366,12 @@ zparser_conv_b64(region_type *region, const char *b64)
 	int i;
 
 	i = b64_pton(b64, buffer, B64BUFSIZE);
-        if (i == -1) {
+	if (i == -1) {
 		zc_error_prev_line("invalid base64 data");
-        } else {
+	} else {
 		r = alloc_rdata_init(region, buffer, i);
-        }
-        return r;
+	}
+	return r;
 }
 
 uint16_t *
@@ -772,7 +772,7 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 		return NULL;
 	}
 
-	/* Strip trailing zero octets.  */
+	/* Strip trailing zero octets.	*/
 	while (length > 0 && address[length - 1] == 0)
 		--length;
 
@@ -1007,7 +1007,7 @@ process_rr()
 		return 0;
 	}
 
-	/* Make sure the maximum RDLENGTH does not exceed 65535 bytes.  */
+	/* Make sure the maximum RDLENGTH does not exceed 65535 bytes.	*/
 	max_rdlength = rdata_maximum_wireformat_size(
 		descriptor, rr->rdata_count, rr->rdatas);
 
@@ -1261,7 +1261,7 @@ main (int argc, char **argv)
 
 	parser = zparser_create(global_region, rr_region, db);
 
-	/* Unique pointers used to mark errors.  */
+	/* Unique pointers used to mark errors.	 */
 	error_dname = (dname_type *) region_alloc(global_region, 0);
 	error_domain = (domain_type *) region_alloc(global_region, 0);
 
@@ -1311,7 +1311,7 @@ main (int argc, char **argv)
 
 			/* Trailing garbage? Ignore masters keyword that is used by nsdc.sh update */
 			if ((s = strtok(NULL, sep)) != NULL && *s != ';' && strcasecmp(s, "masters") != 0
-		    		&& strcasecmp(s, "notify") != 0) {
+				&& strcasecmp(s, "notify") != 0) {
 				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 			}
 
