@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.12 2003/08/20 11:28:36 erik Exp $
+ * $Id: zparser2.c,v 1.13 2003/08/20 11:54:59 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -818,8 +818,8 @@ classbyint(uint16_t class)
  * total len    label len   label data  . (root)
  * total len = label(s) + label(s) len + \000
  */
-const uint8_t *
-creat_dname(const uint8_t *str, const size_t len)
+uint8_t *
+create_dname(const uint8_t *str, const size_t len)
 {
     uint8_t *dname;
 
@@ -839,7 +839,7 @@ creat_dname(const uint8_t *str, const size_t len)
  * create a new dname, with on the first byte the
  * total length
  */
-const uint8_t *
+uint8_t *
 cat_dname(const uint8_t *left, const uint8_t *right)
 {
 

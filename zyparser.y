@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.18 2003/08/20 11:28:38 erik Exp $
+ * $Id: zyparser.y,v 1.19 2003/08/20 11:55:03 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -63,6 +63,7 @@ line:   NL
     {   /* rr should be fully parsed */
         /*zprintrr(stderr, current_rr); DEBUG */
 	    process_rr(current_rr);
+	    current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
 	    zdefault->_rc = 0;
     }
     ;
@@ -187,13 +188,13 @@ abs_dname:  '.'
 
 rel_dname:  STR
     {
-        $$->str = (uint8_t *) creat_dname($1->str, $1->len);
+        $$->str = create_dname($1->str, $1->len);
         $$->len = $1->len + 2; /* total length, label + len byte */
     }
     |       rel_dname '.' STR
     {  
-        $$->str = (uint8_t *) cat_dname ($1->str, creat_dname($3->str,
-                    $3->len));
+        $$->str = cat_dname($1->str, create_dname($3->str,
+						  $3->len));
         $$->len = $1->len + $3->len + 1;
     }
     ;
