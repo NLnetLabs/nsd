@@ -253,7 +253,7 @@ esac
 AC_ARG_ENABLE(bind8-stats, AC_HELP_STRING([--enable-bind8-stats], [Enables BIND8 like NSTATS & XSTATS]))
 
 case "$enable_bind8_stats" in
-	yes)
+	yes|'')
 		AC_DEFINE_UNQUOTED([BIND8_STATS], [], [Define this to enable BIND8 like NSTATS & XSTATS.])
 		;;
 	no|*)
