@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.9 2003/02/17 08:42:05 alexis Exp $
+ * $Id: zparser.c,v 1.10 2003/02/17 11:39:51 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -592,6 +592,10 @@ zaddrdata (struct zparser *z, u_int16_t *r)
 int
 zrdata (struct zparser *z)
 {
+	u_int16_t *r;
+	u_char *t;
+	int i;
+
 	/* Do we have an empty rdata? */
 	if(z->_t[z->_tc] == NULL) {
 		zsyntax(z);
@@ -599,8 +603,32 @@ zrdata (struct zparser *z)
 	}
 
 	/* Is this resource record in unknown format? */
-	if(strcmp(z->_t[z->_tc], "\\#") == 0)
-		return 0; /* zrdata_unkn(z); */
+	if(strcmp(z->_t[z->_tc], "\\#") == 0) {
+		if(!zrdatascan(z, RDATA_SHORT)) return 0;
+
+		r = z->_rr.rdata[--z->_rc];
+		z->_rr.rdata[z->_rc] = NULL;
+		i = 0;
+
+		/* The scan anything's left */
+		while(zrdatascan(z, RDATA_HEX)) {
+			/* How many bytes we've scanned this far? */
+			i += *z->_rr.rdata[z->_rc - 1];
+			
+			/* If no more tokens return, we did not count elems ahhh... */
+			if(z->_t[z->_tc] == NULL){
+				if(ntohs(r[1]) != i) {
+					zerror(z, "rdata length differs from the number of scanned bytes");
+					free(r);
+					return 0;
+				}
+				free(r);
+				return 1;
+			}
+		}
+		free(r);
+		return 0;
+	}
 
 	/* Otherwise parse one of the types we know... */
 	switch(z->_rr.type) {
@@ -689,27 +717,65 @@ zrdata (struct zparser *z)
 				}
 				return 1;
 			}
+
 			/* The rest is the key in b64 encoding */
 			while(zrdatascan(z, RDATA_B64)) {
 				/* If no more tokens return */
 				if(z->_t[z->_tc] == NULL) return 1;
 			}
 			return 0;
-		case TYPE_NXT, "NXT", "nU"},  
+		case TYPE_NXT:
 			if(!zrdatascan(z, RDATA_DNAME)) return 0;
+
+			/* Allocate maximum we might need for this bitmap */
+			r = xalloc(sizeof(u_int16_t) + 16);
+			memset(r, 0, sizeof(u_int16_t) + 16);
+			zaddrdata(z, r);
+			t = (u_char *)(r + 1);
 
 			/* Scan the types and add them to the bitmap */
 			while(zrdatascan(z, RDATA_TYPE)) {
+				z->_rc--;
+
+				/* Now convert the type back to host byte order */
+				z->_rr.rdata[z->_rc][1] = ntohs(z->_rr.rdata[z->_rc][1]);
+
+				/* We only support types <= 127 */
+				if(z->_rr.rdata[z->_rc][1] > 127) {
+					zerror(z, "types above TYPE127 are not supported by NXT");
+					return 0;
+				}
+
+				/* Set the bit... */
+				i = z->_rr.rdata[z->_rc][1] >> 3;
+				t[i] |= 0x80 >> (z->_rr.rdata[z->_rc][1] & 7);
+
+				/* Recalculate the bitmap length... */
+				if(*r < (i + 1)) *r = i + 1;
+
+				/* Free this rdata. */
+				free(z->_rr.rdata[z->_rc]);
+				z->_rr.rdata[z->_rc] = NULL;
+
 				/* If no more tokens return */
-				if(z->_t[z->_tc] == NULL) return 1;
+				if(z->_t[z->_tc] == NULL) {
+					/* Make sure the NXT bit is set... */
+					if(!(t[TYPE_NXT >> 3] & (0x80 >> (TYPE_NXT & 7)))) {
+						zerror(z, "NXT type bitmap must cover NXT type");
+						return 0;
+					}
+					/* Reallocate the bitmap memory... */
+					z->_rr.rdata[1] = xrealloc(z->_rr.rdata[1],
+						z->_rr.rdata[1][0] + sizeof(u_int16_t));
+					return 1;
+				}
 			}
 			return 0;
 		case TYPE_DS:
 			if(!zrdatascan(z, RDATA_SHORT)) return 0;
 			if(!zrdatascan(z, RDATA_BYTE)) return 0;
 			if(!zrdatascan(z, RDATA_BYTE)) return 0;
-			return zrdatascan(z, RDATA_HEX);
-
+			if(!zrdatascan(z, RDATA_HEX)) return 0;
 		case TYPE_WKS:
 		default:
 			zerror(z, "dont know how to parse this type, try \\# representation");
@@ -750,9 +816,48 @@ zrdatascan (struct zparser *z, int what)
 	switch(what) {
 	case RDATA_HEX:
 		if((i = strlen(z->_t[z->_tc])) % 2 != 0) {
-			zerror(z, "hex representation must end on a whole octet");
+			zerror(z, "hex representation must be a whole number of octets");
 			error++;
 		} else {
+			/* Allocate required space... */
+			r = xalloc(sizeof(u_int16_t) + i/2);
+			*r = i/2;
+			t = (u_char *)(r + 1);
+
+			/* Now process octet by octet... */
+			while(*z->_t[z->_tc]) {
+				*t = 0;
+				for(i = 0; i <= 16; i += 16) {
+					switch(*z->_t[z->_tc]) {
+					case '0':
+					case '1':
+					case '2':
+					case '3':
+					case '4':
+					case '5':
+					case '6':
+					case '7':
+					case '8':
+					case '9':
+						*t += (*z->_t[z->_tc] - '0') * i;
+						break;
+					case 'a':
+					case 'b':
+					case 'c':
+					case 'd':
+					case 'e':
+					case 'f':
+						*t += (*z->_t[z->_tc] - 'a' + 10) * i;
+						break;
+					default:
+						zerror(z, "illegal hex character");
+						error++;
+						free(r);
+						return 0;
+					}
+					z->_t[z->_tc]++;
+				}
+			}
 		}
 		break;
 	case RDATA_TIME:
@@ -765,7 +870,7 @@ zrdatascan (struct zparser *z, int what)
 			/* Allocate required space... */
 			r = xalloc(sizeof(u_int32_t) + sizeof(u_int16_t));
 
-			*((u_int32_t *)(r+1)) = mktime(&tm);
+			*((u_int32_t *)(r+1)) = htonl(timegm(&tm));
 			*r = sizeof(u_int32_t);
 		}
 		break;
@@ -799,7 +904,7 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
 
-		*(r+1)  = htons((u_int16_t)strtol(z->_t[z->_tc], (char **)&t, 10));
+		*(r+1)  = htons((u_int16_t)strtol(z->_t[z->_tc], (char **)&t, 0));
 
 		if(*t != 0) {
 			zerror(z, "unsigned short value is expected");
@@ -812,7 +917,7 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
 
-		*((u_int32_t *)(r+1))  = htonl((u_int32_t)strtol(z->_t[z->_tc], (char **)&t, 10));
+		*((u_int32_t *)(r+1))  = htonl((u_int32_t)strtol(z->_t[z->_tc], (char **)&t, 0));
 
 		if(*t != 0) {
 			zerror(z, "long decimal value is expected");
@@ -825,7 +930,7 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int8_t));
 
-		*((u_int8_t *)(r+1))  = (u_int8_t)strtol(z->_t[z->_tc], (char **)&t, 10);
+		*((u_int8_t *)(r+1))  = (u_int8_t)strtol(z->_t[z->_tc], (char **)&t, 0);
 
 		if(*t != 0) {
 			zerror(z, "decimal value is expected");
@@ -902,7 +1007,7 @@ zrdatascan (struct zparser *z, int what)
 		r = xalloc(sizeof(u_int16_t) + B64BUFSIZE);
 
 		/* Try to convert it */
-		if((i = __b64_pton(z->_t[z->_tc++], r + 1, B64BUFSIZE)) == -1) {
+		if((i = __b64_pton(z->_t[z->_tc], r + 1, B64BUFSIZE)) == -1) {
 			zerror(z, "base64 encoding failed");
 			error++;
 		} else {

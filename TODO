@@ -1,4 +1,4 @@
-$Id: TODO,v 1.35 2003/02/12 21:43:35 alexis Exp $
+$Id: TODO,v 1.36 2003/02/17 11:39:51 alexis Exp $
 
 AUTOCONF
 
@@ -26,6 +26,7 @@ This will generate an error, when in the end of file:
 
 
 SERVER
+- handle unknown types as known types
 - in tcp the timeout should be handled different than with alarm()?
 - replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
 - make sure that we dont copy anything from the query we dont want to copy, like

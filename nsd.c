@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.61 2003/02/12 20:43:42 alexis Exp $
+ * $Id: nsd.c,v 1.62 2003/02/17 11:39:51 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -573,8 +573,10 @@ main (int argc, char *argv[])
 	nsd.mode = NSD_RUN;
 
 	/* Run the server... */
-	if(server_init(&nsd) != 0)
+	if(server_init(&nsd) != 0) {
+		(void)unlink(nsd.pidfile);
 		exit(1);
+	}
 
 	syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid[0]);
 
