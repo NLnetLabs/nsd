@@ -1,7 +1,7 @@
 /*
- * $Id: db.c,v 1.4 2002/01/08 16:06:20 alexis Exp $
+ * $Id: nsd.c,v 1.1 2002/01/08 16:06:20 alexis Exp $
  *
- * db.c -- namespace database, nsd(8)
+ * nsd.c -- nsd(8)
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -42,74 +42,52 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <db.h>
-#include "dns.h"
 #include "nsd.h"
 #include "db.h"
-#include "zf.h"
 
-
-struct db *
-db_create(filename)
-	char *filename;
+int
+usage()
 {
-	static struct db db;
-
-	/* Create the database */
-	if((db.db = dbopen(filename, O_CREAT | O_RDWR | O_TRUNC, 0644, DB_HASH, NULL)) == NULL) {
-		syslog(LOG_ERR, "dbcreate failed for %s: %m", filename);
-		return NULL;
-	}
-	return &db;
+	fprintf(stderr, "usage: nsd database\n");
+	exit(1);
 }
 
 void
-db_close(db)
-	struct db *db;
+sig_handler(sig)
+	int sig;
 {
-	db->db->close(db->db);
+	exit(0);
 }
 
-void
-db_write(db, dname, answer)
-	struct db *db;
-	u_char *dname;
-	struct answer *answer;
+int
+main(argc, argv)
+	int argc;
+	char *argv[];
 {
-	DBT key, data;
+	struct db *db;
 
-	key.size = (size_t)(*dname);
-	key.data = dname;
+	/* Set up the logging... */
+	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
-	data.size = answer->size;
-	data.data = answer;
-
-	if(db->db->put(db->db, &key, &data, 0)) {
-		syslog(LOG_ERR, "failed to write to database: %m");
-		return;
+	if(argc != 2) {
+		usage();
 	}
-}
 
-struct db *
-db_open(filename)
-	char *filename;
-{
-	static struct db db;
+	signal(SIGTERM, &sig_handler);
 
-        if((db.db = dbopen(filename, O_RDONLY, 0, DB_HASH, NULL)) == NULL) {
-                syslog(LOG_ERR, "cant open %s: %m", filename);
-                return NULL;
-        }
+	if((db = db_open(argv[1])) == NULL) {
+		exit(1);
+	}
 
-	return &db;
+	server(4096, db);
+
+	db_close(db);
+	exit(0);
 }

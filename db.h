@@ -1,5 +1,5 @@
 /*
- * $Id: db.h,v 1.3 2002/01/08 15:47:48 alexis Exp $
+ * $Id: db.h,v 1.4 2002/01/08 16:06:20 alexis Exp $
  *
  * db.h -- nsd(8) internal namespace database
  *
@@ -61,3 +61,4 @@ struct db {
 void db_write __P((struct db *, u_char *, struct answer *));
 struct db *db_create __P((char *));
 void db_close __P((struct db *));
+struct db *db_open __P((char *));

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2002/01/08 15:47:48 alexis Exp $
+# $Id: Makefile,v 1.4 2002/01/08 16:06:20 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -47,10 +47,14 @@ LIBS =
 
 CLEANFILES+=*.core *.gmon
 
-all:	zf zone
+all:	nsd zf zone
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
+
+
+nsd:	nsd.h dns.h db.h db.o nsd.o server.o query.o
+	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ nsd.o db.o server.o query.o
 
 zf:	zf.h dns.h zf.c util.o
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c util.o
