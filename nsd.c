@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.67 2003/03/20 10:58:17 alexis Exp $
+ * $Id: nsd.c,v 1.68 2003/03/25 12:46:12 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -52,6 +52,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <netdb.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stddef.h>

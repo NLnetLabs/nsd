@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.28 2003/03/20 11:07:19 alexis Exp $
+# $Id: Makefile.in,v 1.29 2003/03/25 12:46:12 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -93,9 +93,9 @@ nsdc.conf.sample:	nsdc.conf.sample.in
 	$(EDIT) nsdc.conf.sample.in > nsdc.conf.sample
 
 install: all
-	[ -d $(sbindir) ] || mkdir $(sbindir)
-	[ -d $(configdir) ] || mkdir $(configdir)
-	[ -d $(mandir) ] || mkdir $(mandir)
+	$(INSTALL) -d $(sbindir)
+	$(INSTALL) -d $(configdir)
+	$(INSTALL) -d $(mandir)
 	$(INSTALL) -s nsd $(sbindir)/nsd
 	$(INSTALL) -s zonec $(sbindir)/zonec
 	$(INSTALL) -s nsd-notify $(sbindir)/nsd-notify
@@ -116,13 +116,13 @@ uninstall:
 	@echo "You still need to remove $(confdir) directory by hand."
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
-	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS) $(LIBWRAP)
+	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
-	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
+	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o $(LIBOBJS) $(LIBS)
 
 nsd-notify:	nsd-notify.c dname.o
-	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o
+	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o $(LIBS)
 
 clean:
 	rm -f zonec nsd zparser hash rbtree nsd-notify nsd-axfr *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
@@ -148,14 +148,14 @@ vsnprintf.o:	compat/vsnprintf.c
 # Test programs
 rbtree:	rbtree.c rbtree.h
 	$(COMPILE) -DTEST rbtree.c
-	$(LINK) -o $@ rbtree.o
+	$(LINK) -o $@ rbtree.o $(LIBS)
 
 hash:	hash.c hash.h
 	$(COMPILE) -DTEST hash.c
-	$(LINK) -o $@ hash.o
+	$(LINK) -o $@ hash.o $(LIBS)
 
 zparser:	zparser.c dname.o  $(LIBOBJS)
-	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c dname.o $(LIBOBJS)
+	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c dname.o $(LIBOBJS) $(LIBS)
 
 # autoconf rules
 config.h.in:	configure.ac

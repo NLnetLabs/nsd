@@ -4,8 +4,6 @@ dnl
 AC_INIT(NSD,1.1b,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
-CFLAGS="-ansi -Wall -O2 -D_XOPEN_SOURCE -D_BSD_SOURCE"
-
 dnl
 dnl By default set $sysconfdir to /etc and $localstatedir to /var
 dnl
@@ -112,6 +110,9 @@ AC_PROG_INSTALL
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h])
+
+AC_SEARCH_LIBS(inet_addr, [nsl])
+AC_SEARCH_LIBS(socket, [socket])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
