@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.29.2.6 2002/08/21 09:56:06 alexis Exp $
+ * $Id: zf.c,v 1.29.2.7 2002/08/21 10:12:54 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -407,7 +407,7 @@ inet6_aton(str)
 	bzero(addr, IP6ADDRLEN);
 	if (frontlen) {
 		for (i=0; i<frontlen; i++) {
-			addr[i] = front[i]; /* is this portable enough ? */
+			addr[i] = front[i];
 		}
 	}
 	if (backlen) {
