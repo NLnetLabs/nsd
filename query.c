@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.75.2.4 2002/08/14 14:22:44 alexis Exp $
+ * $Id: query.c,v 1.75.2.5 2002/08/20 15:40:51 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -356,7 +356,12 @@ query_process(q, nsd)
 		/* Setup the header... */
 		QR_SET(q);		/* This is an answer */
 
-		RCODE_SET(q, RCODE_REFUSE);
+#ifdef LOG_NOTIFYS
+		if(OPCODE(q) == OPCODE_NOTIFY)
+			syslog(LOG_INFO, "notify from %s", inet_ntoa(q->addr));
+#endif /* LOG_NOTIFYS */
+
+		RCODE_SET(q, RCODE_IMPL);
 
 		/* Truncate the question as well... */
 		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;

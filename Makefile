@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.11 2002/08/15 14:41:00 alexis Exp $
+# $Id: Makefile,v 1.69.2.12 2002/08/20 15:40:51 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -126,6 +126,12 @@ NSDNOTIFY	= ${NSDBINDIR}/nsd-notify
 #			Use this prefix in combination with the zone name
 #			to check if a particular peer is allowed to tranfer
 #			the zone.
+#
+#	-DLOG_NOTIFYS
+#
+#			Log the incoming notify's along with the remote
+#			ip address.
+#
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
