@@ -1021,6 +1021,11 @@ server_child(struct nsd *nsd)
 		}
 	}
 
+	/*
+	 * Keep track of all the TCP accept handlers so we can enable
+	 * and disable them based on the current number of active TCP
+	 * connections.
+	 */
 	tcp_accept_handlers = region_alloc(server_region,
 					   nsd->ifs * sizeof(netio_handler_type));
 	if (nsd->server_kind & NSD_SERVER_TCP) {
@@ -1045,7 +1050,6 @@ server_child(struct nsd *nsd)
 	
 	/* The main loop... */	
 	while (nsd->mode != NSD_QUIT) {
-		netio_event_types_type tcp_accept_event_types;
 
 		/* Do we need to do the statistics... */
 		if (nsd->mode == NSD_STATS) {
@@ -1058,17 +1062,23 @@ server_child(struct nsd *nsd)
 			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
 #endif /* BIND8_STATS */
 		}
-		
+
+		/*
+		 * Release all memory allocated while processing the
+		 * previous request.
+		 */
 		region_free_all(query_region);
 
 		/*
 		 * Enable/disable TCP accept handlers when the maximum
-		 * number of concurrent TCP connections is
-		 * reached/not reached.
+		 * number of concurrent TCP connections is reached/not
+		 * reached.
 		 */
-		tcp_accept_event_types = (nsd->current_tcp_count < nsd->maximum_tcp_count
-					  ? NETIO_EVENT_READ : NETIO_EVENT_NONE);
 		if (nsd->server_kind & NSD_SERVER_TCP) {
+			netio_event_types_type tcp_accept_event_types
+				= (nsd->current_tcp_count < nsd->maximum_tcp_count
+				   ? NETIO_EVENT_READ
+				   : NETIO_EVENT_NONE);
 			for (i = 0; i < nsd->ifs; ++i) {
 				tcp_accept_handlers[i].event_types = tcp_accept_event_types;
 			}
@@ -1079,8 +1089,6 @@ server_child(struct nsd *nsd)
 			if (errno != EINTR) {
 				log_msg(LOG_ERR, "select failed: %s", strerror(errno));
 				break;
-			} else {
-				/* We'll fall out of the loop if we need to shut down */
 			}
 		}
 	}
