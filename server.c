@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59.2.5 2002/12/11 13:39:39 alexis Exp $
+ * $Id: server.c,v 1.59.2.6 2002/12/17 14:14:38 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -318,6 +318,9 @@ server_udp(struct nsd *nsd)
 
 		/* Set it up */
 		FD_ZERO(&peer);
+
+		maxfd = nsd->udp[0].s;
+
 		for(i = 0; i < nsd->ifs; i++) {
 			FD_SET(nsd->udp[i].s, &peer);
 			maxfd = nsd->udp[i].s;

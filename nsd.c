@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.8 2002/12/05 22:26:44 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.9 2002/12/17 14:14:38 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -79,7 +79,7 @@ xrealloc(p, size)
 int
 usage()
 {
-	fprintf(stderr, "usage: nsd [-d] [-p port] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
+	fprintf(stderr, "usage: nsd [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
 	exit(1);
 }
 
@@ -452,11 +452,10 @@ main(argc, argv)
 		usage();
 
 	/* If multiple -a let nsd bind tcp socket to every interface */
-	if(nsd.ifs > 0) {
+	if(nsd.ifs > 1)
 		nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
-	} else {
+	if(nsd.ifs == 0)
 		nsd.ifs++;
-	}
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();
