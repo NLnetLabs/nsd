@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.20 2003/12/10 10:31:58 erik Exp $
+ * $Id: zlexer.lex,v 1.21 2004/01/09 12:40:58 erik Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -60,7 +60,6 @@ Q       \"
     static enum rr_spot in_rr = outside;
     char *ztext;
     int i;
-    int j;
 {SPACE}*{COMMENT}.*     /* ignore */
 ^@                      {
                             in_rr = expecting_dname;
