@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.15.2.2 2003/06/10 09:39:52 erik Exp $
+$Id: RELNOTES,v 1.15.2.3 2003/06/12 11:23:59 erik Exp $
 
 
 1.1
@@ -16,8 +16,7 @@ BUG FIXES:
 
 1.0.3
 =============
-1.0.3 was released on XX/XX/XXXX.  This release is a bug fix release
-and does not add any new features.
+This release is a bug fix release and does not add any new features.
 
 BUG FIXES:
         - Ignore SIGPIPE errors (bug #43).
