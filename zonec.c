@@ -1026,7 +1026,7 @@ parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 			}
 		}
 		
-		switch (descriptor->wireformat[i]) {
+		switch (rdata_atom_wireformat_type(type, i)) {
 		case RDATA_WF_COMPRESSED_DNAME:
 		case RDATA_WF_UNCOMPRESSED_DNAME:
 			is_domain = 1;
@@ -1055,10 +1055,14 @@ parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 			length = end - data;
 			break;
 		case RDATA_WF_APL:
-			length = (sizeof(uint16_t) /* address family */
-				  + sizeof(uint8_t) /* prefix */
-				  + sizeof(uint8_t) /* length */
-				  + data[sizeof(uint16_t) + sizeof(uint8_t)]);
+			length = (sizeof(uint16_t)    /* address family */
+				  + sizeof(uint8_t)   /* prefix */
+				  + sizeof(uint8_t)); /* length */
+			if (data + length <= end) {
+				length += data[sizeof(uint16_t)
+					       + sizeof(uint8_t)];
+			}
+
 			break;
 		}
 

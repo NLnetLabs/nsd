@@ -186,7 +186,7 @@ in:     T_IN
 
 rrrest: classttl rtype 
     {
-        zadd_rdata_finalize(parser);
+        zadd_rdata_finalize();
 	parser->current_rr.type = $2;
     }
     ;

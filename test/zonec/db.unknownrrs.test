@@ -31,3 +31,6 @@ e   CLASS1      TYPE1           10.0.0.2
 
 foo IN          DNAME           uncompressed.net.
 foo IN          DNAME           \# 5 036e657400
+
+@   IN          TYPE42          \# 0
+@   IN          TYPE42          \# 10 00010401E000020801FF

@@ -282,7 +282,7 @@ rdata_atom_wireformat_type(uint16_t type, size_t index)
 {
 	const rrtype_descriptor_type *descriptor = rrtype_descriptor(type);
 	assert(index < descriptor->maximum);
-	return descriptor->wireformat[index];
+	return (rdata_wireformat_type) descriptor->wireformat[index];
 }
 
 #endif

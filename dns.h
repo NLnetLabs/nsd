@@ -160,8 +160,8 @@ struct rrtype_descriptor
 	uint16_t type;		/* RR type */
 	uint8_t  minimum;	/* Minimum number of RDATAs.  */
 	uint8_t  maximum;	/* Maximum number of RDATAs.  */
-	rdata_wireformat_type wireformat[MAXRDATALEN];
-	rdata_zoneformat_type zoneformat[MAXRDATALEN];
+	uint8_t  wireformat[MAXRDATALEN]; /* rdata_wireformat_type */
+	uint8_t  zoneformat[MAXRDATALEN]; /* rdata_zoneformat_type  */
 };
 typedef struct rrtype_descriptor rrtype_descriptor_type;
 
