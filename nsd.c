@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.8 2002/01/31 12:45:42 alexis Exp $
+ * $Id: nsd.c,v 1.8.2.1 2002/02/02 15:38:57 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -53,7 +53,8 @@ int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
 
 
 /* The nsd database */
-DB *database;
+dict_t *database = NULL;
+char *database_mem = NULL;
 
 int tcp_open_connections = 0;
 
@@ -91,49 +92,108 @@ xrealloc(p, size)
 }
 
 /*
+ * Compares two domains in memory.
+ *
+ */
+int
+domaincmp(a, b)
+	register u_char *a;
+	register u_char *b;
+{
+	register int r;
+	register int alen = (int)*a;
+	register int blen = (int)*b;
+
+	while(alen && blen) {
+		a++; b++;
+		if((r = *a - *b)) return r;
+		alen--; blen--;
+	}
+	return alen - blen;
+}
+
+/*
  * Open the database db...
  *
  */
-DB *
+int
 opendb(void)
 {
-	int r;
-	DBT key, data;
-	DB *db;
+	struct stat st;
+	dict_t *db, *olddb;
+	char *db_mem;
+	char *p;
+	int fd;
 
-	/* Setup the name database... */
-	if((r = db_create(&db, NULL, 0)) != 0) {
-		syslog(LOG_ERR, "db_create failed: %s", db_strerror(r));
-		return NULL;
+	/* Is it there? */
+	if(stat(cf_dbfile, &st) == -1) {
+		syslog(LOG_ERR, "cannot stat %s: %m", cf_dbfile);
+		return -1;
 	}
 
-	/* Open the database... */
-	if((r = db->open(db, cf_dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
-		syslog(LOG_ERR, "cannot open the database %s: %s", cf_dbfile, db_strerror(r));
-		return NULL;
+	if((db_mem = malloc(st.st_size)) == NULL) {
+		syslog(LOG_ERR, "failed to malloc: %m");
+		return -1;
 	}
 
-	/* Read the bitmasks... */
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
-
-	key.size = 0;
-	key.data = NULL;
-	if((r = db->get(db, NULL, &key, &data, 0)) != 0) {
-		syslog(LOG_ERR, "cannot read the superblock from %s: %s", cf_dbfile, db_strerror(r));
-		return NULL;
+	if((fd = open(cf_dbfile, O_RDONLY)) == -1) {
+		syslog(LOG_ERR, "cannot open %s: %m", cf_dbfile);
+		free(db_mem);
+		return -1;
 	}
 
-	if(data.size != NAMEDB_BITMASKLEN * 3) {
-		syslog(LOG_ERR, "corrupted superblock in %s", cf_dbfile);
-		return NULL;
+	if(read(fd, db_mem, st.st_size) == -1) {
+		syslog(LOG_ERR, "cannot read %s: %m", cf_dbfile);
+		free(db_mem);
+		return -1;
 	}
 
-	bcopy(data.data, authmask, NAMEDB_BITMASKLEN);
-	bcopy(data.data + NAMEDB_BITMASKLEN, starmask, NAMEDB_BITMASKLEN);
-	bcopy(data.data + NAMEDB_BITMASKLEN * 2, datamask, NAMEDB_BITMASKLEN);
+	(void)close(fd);
 
-	return db;
+	if((db = dict_create(malloc, domaincmp)) == NULL) {
+		syslog(LOG_ERR, "failed to create database index: %m");
+		free(db_mem);
+		return -1;
+	}
+
+	p = db_mem;
+
+	while(*p) {
+		if(dict_insert(db, p, p + ((*p + 3) & 0xfffffffc), 1) == NULL) {
+			syslog(LOG_ERR, "failed to insert a domain: %m");
+			dict_destroy(db, 0, 0);
+			free(db_mem);
+			return -1;
+		}
+		p += (((u_int32_t)*p + 3) & 0xfffffffc);
+		p += *((u_int32_t *)p);
+		if(p > db_mem + st.st_size) {
+			syslog(LOG_ERR, "corrupted database %s", cf_dbfile);
+			dict_destroy(db, 0, 0);
+			free(db_mem);
+			return -1;
+		}
+	}
+
+	p++;
+
+	/* Here we need  a lock... */
+	bcopy(p, authmask, NAMEDB_BITMASKLEN);
+	bcopy(p + NAMEDB_BITMASKLEN, starmask, NAMEDB_BITMASKLEN);
+	bcopy(p + NAMEDB_BITMASKLEN * 2, datamask, NAMEDB_BITMASKLEN);
+
+	if(database) {
+		olddb = database;
+		database = db;
+		dict_destroy(olddb, 0, 0);
+		free(database_mem);
+		database_mem = db_mem;
+	} else {
+		database = db;
+		database_mem = db_mem;
+	}
+
+	return 0;
 }
 
 
@@ -158,17 +218,15 @@ sig_handler(sig)
 		}
 		break;
 	case SIGHUP:
-		(void)database->close(database, 0);
-		if((database = opendb()) == NULL) {
+		if(opendb()) {
 			syslog(LOG_ERR, "unable to reload the database, shutting down...");
-			exit(1);
+			break;
 		}
 		syslog(LOG_WARNING, "database reloaded...");
 		break;
 	case SIGTERM:
 	default:
 		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
-		(void)database->close(database, 0);
 		exit(0);
 	}
 }
@@ -201,7 +259,7 @@ main(argc, argv)
 	signal(SIGCHLD, &sig_handler);
 
 	/* Open the database... */
-	if((database = opendb()) == NULL) {
+	if(opendb()) {
 		exit(1);
 	}
 
@@ -223,7 +281,7 @@ main(argc, argv)
 		exit(1);
 	}
 
-	(void)chdir("/");
+/*	(void)chdir("/"); */
 
 	if((fd = open("/dev/null", O_RDWR, 0)) != -1) {
 		(void)dup2(fd, STDIN_FILENO);
@@ -237,6 +295,5 @@ main(argc, argv)
 	server(database);
 
 	/* Should we return... */
-	database->close(database, 0);
 	exit(0);
 }
