@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.12 2002/02/07 12:56:51 alexis Exp $
+ * $Id: namedb.h,v 1.13 2002/02/07 13:09:17 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -77,6 +77,7 @@
 #define	ANSWER_PTRS(a, i)	*((u_int16_t *)ANSWER_END_PTR(a) + (i))
 #define	ANSWER_RRS_PTR(a)	((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)
 #define	ANSWER_RRS(a, i)	(*(((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & ~NAMEDB_RRSET_COLOR)
+#define	ANSWER_RRS_COLOR(a, i)	(*(((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & NAMEDB_RRSET_COLOR)
 #define	ANSWER_DATA_PTR(a)	(u_char *)(((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+ANSWER_RRSLEN(a))
 
 
