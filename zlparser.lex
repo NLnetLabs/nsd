@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.11 2003/08/20 11:28:33 erik Exp $
+ * $Id: zlparser.lex,v 1.12 2003/08/20 11:37:28 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -118,6 +118,16 @@ Q       \"
                             }
                             paren_open = 0;
                         }
+^({ZONESTR}|\\.)({ZONESTR}|\\.)* {
+                            /* any allowed word. Needs to be located
+                             * before CLASS and TYPEXXX and CLASSXXX
+                             * to correctly see a dname here */
+                            ztext = strdup(yytext);
+                            yylval->len = zoctet(ztext);
+                            yylval->str = ztext;
+                            in_rr = 1;
+                            return STR;
+                        }
 {CLASS}                 {
                             if ( in_rr == 2) { 
                                 if ( strncasecmp(yytext, "IN", 2) == 0 )
@@ -156,14 +166,6 @@ CLASS[0-9]+             {
                                 return STR;
                             }
                         }
-^{Q}({ANY})({ANY})*{Q}  {
-                            /* this matches quoted strings when ^ */
-                            ztext = strdup(yytext);
-                            yylval->len = zoctet(ztext);
-                            yylval->str = ztext;
-                            in_rr = 1;
-                            return STR;
-                        }
 {Q}({ANY})({ANY})*{Q}   {
                             /* this matches quoted strings */
                             if ( in_rr == 2 ) {
@@ -175,15 +177,6 @@ CLASS[0-9]+             {
                             ztext = strdup(yytext);
                             yylval->len = zoctet(ztext);
                             yylval->str = ztext;
-                            return STR;
-                        }
-
-^({ZONESTR}|\\.)({ZONESTR}|\\.)* {
-                            /* any allowed word */
-                            ztext = strdup(yytext);
-                            yylval->len = zoctet(ztext);
-                            yylval->str = ztext;
-                            in_rr = 1;
                             return STR;
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
