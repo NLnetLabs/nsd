@@ -40,6 +40,7 @@ static uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 	uint32_t          ttl;
 	uint16_t          klass;
 	uint16_t          type;
+	uint16_t         *unknown;
 }
 
 /*
@@ -61,11 +62,12 @@ static uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 %token         URR
 %token <type>  T_UTYPE
 
-%type <type>   rtype
-%type <domain> dname abs_dname
-%type <dname>  rel_dname label
-%type <data>   str_seq concatenated_str_seq str_sp_seq str_dot_seq dotted_str
-%type <data>   nxt_seq nsec_seq
+%type <type>    rtype
+%type <domain>  dname abs_dname
+%type <dname>   rel_dname label
+%type <data>    str_seq concatenated_str_seq str_sp_seq str_dot_seq dotted_str
+%type <data>    nxt_seq nsec_seq
+%type <unknown> rdata_unknown
 
 %%
 lines:  /* empty file */
@@ -403,81 +405,81 @@ rtype:
      * marked obsolete.
      */
       T_CNAME sp rdata_compress_domain_name 
-    | T_CNAME sp rdata_unknown_err
+    | T_CNAME sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_HINFO sp rdata_hinfo 
-    | T_HINFO sp rdata_unknown 
+    | T_HINFO sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_MB sp rdata_compress_domain_name		/* Experimental */
     { error("MD is obsolete"); }
-    | T_MB sp rdata_unknown_err
+    | T_MB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_MD sp rdata_compress_domain_name		/* Obsolete */
     { error("MF is obsolete"); }
-    | T_MD sp rdata_unknown_err
+    | T_MD sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_MF sp rdata_compress_domain_name		/* Obsolete */
-    | T_MF sp rdata_unknown_err
+    | T_MF sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_MG sp rdata_compress_domain_name		/* Experimental */
-    | T_MG sp rdata_unknown_err
+    | T_MG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_MINFO sp rdata_minfo /* Experimental */
-    | T_MINFO sp rdata_unknown_err
+    | T_MINFO sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_MR sp rdata_compress_domain_name		/* Experimental */
-    | T_MR sp rdata_unknown_err
+    | T_MR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_MX sp rdata_mx 
-    | T_MX sp rdata_unknown_err
+    | T_MX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NS sp rdata_compress_domain_name 
-    | T_NS sp rdata_unknown_err
+    | T_NS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_PTR sp rdata_compress_domain_name 
-    | T_PTR sp rdata_unknown_err
+    | T_PTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_SOA sp rdata_soa 
-    | T_SOA sp rdata_unknown_err
+    | T_SOA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_TXT sp rdata_txt
-    | T_TXT sp rdata_unknown
+    | T_TXT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_A sp rdata_a 
-    | T_A sp rdata_unknown
+    | T_A sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_AAAA sp rdata_aaaa 
-    | T_AAAA sp rdata_unknown 
+    | T_AAAA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_LOC sp rdata_loc
-    | T_LOC sp rdata_unknown
+    | T_LOC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_SRV sp rdata_srv
-    | T_SRV sp rdata_unknown
+    | T_SRV sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_DS sp rdata_ds
-    | T_DS sp rdata_unknown
+    | T_DS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_KEY sp rdata_dnskey	/* XXX: Compatible format? */
-    | T_KEY sp rdata_unknown 	
+    | T_KEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_DNSKEY sp rdata_dnskey
-    | T_DNSKEY sp rdata_unknown
+    | T_DNSKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NXT sp rdata_nxt
-    | T_NXT sp rdata_unknown
+    | T_NXT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NSEC sp rdata_nsec
-    | T_NSEC sp rdata_unknown
+    | T_NSEC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_SIG sp rdata_rrsig	/* XXX: Compatible format? */
-    | T_SIG sp rdata_unknown
+    | T_SIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_RRSIG sp rdata_rrsig
-    | T_RRSIG sp rdata_unknown
+    | T_RRSIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_AFSDB sp rdata_afsdb	/* RFC 1183 */
-    | T_AFSDB sp rdata_unknown_err /* rfc 1183 */
+    | T_AFSDB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_RP sp rdata_rp		/* RFC 1183 */
-    | T_RP sp rdata_unknown_err	/* RFC 1183 */
+    | T_RP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_X25 sp rdata_x25 	/* RFC 1183 */
-    | T_X25 sp rdata_unknown 	/* RFC 1183 */
+    | T_X25 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_ISDN sp rdata_isdn 	/* RFC 1183 */
-    | T_ISDN sp rdata_unknown 	/* RFC 1183 */
+    | T_ISDN sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_RT sp rdata_rt		/* RFC 1183 */
-    | T_RT sp rdata_unknown_err	/* RFC 1183 */
+    | T_RT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NSAP sp rdata_nsap	/* RFC 1706 */
-    | T_NSAP sp rdata_unknown	/* RFC 1706 */
+    | T_NSAP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_PX sp rdata_px		/* RFC 2163 */
-    | T_PX sp rdata_unknown	/* RFC 2163 */
+    | T_PX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NAPTR sp rdata_naptr	/* RFC 2915 */
-    | T_NAPTR sp rdata_unknown	/* RFC 2915 */
+    | T_NAPTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_CERT sp rdata_cert	/* RFC 2538 */
-    | T_CERT sp rdata_unknown	/* RFC 2538 */
+    | T_CERT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_DNAME sp rdata_dname	/* RFC 2672 */
-    | T_DNAME sp rdata_unknown	/* RFC 2672 */
+    | T_DNAME sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_APL trail		/* RFC 3123 */
     | T_APL sp rdata_apl	/* RFC 3123 */
-    | T_APL sp rdata_unknown	/* RFC 3123 */
+    | T_APL sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_SSHFP sp rdata_sshfp
-    | T_SSHFP sp rdata_unknown
-    | T_UTYPE sp rdata_unknown
+    | T_SSHFP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_UTYPE sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | STR error NL
     {
 	    error_prev_line("Unrecognized RR type '%s'", $1.str);
@@ -578,7 +580,7 @@ rdata_srv:	STR sp STR sp STR sp dname trail
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* prio */
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* weight */
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $5.str)); /* port */
-		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $7)); /* target name */
+		zadd_rdata_domain($7); /* target name */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in SRV record"); }
@@ -608,7 +610,7 @@ rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
 
 rdata_nxt:	dname sp nxt_seq trail
 	{
-		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $1)); /* nxt name */
+		zadd_rdata_domain($1); /* nxt name */
 		zadd_rdata_wireformat(zparser_conv_nxt(parser->region, nxtbits)); /* nxt bitlist */
 		memset(nxtbits, 0, sizeof(nxtbits));
 	}
@@ -618,7 +620,7 @@ rdata_nxt:	dname sp nxt_seq trail
 
 rdata_nsec:	dname sp nsec_seq trail
 	{
-		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $1)); /* nsec name */
+		zadd_rdata_domain($1); /* nsec name */
 		zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
 		memset(nsecbits, 0, sizeof(nsecbits));
 	}
@@ -636,7 +638,7 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_se
 		zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
 		zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
-		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $15)); /* signer name */
+		zadd_rdata_domain($15); /* signer name */
 		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $17.str)); /* sig data */
 	}
 	|   error NL
@@ -714,8 +716,8 @@ rdata_nsap:	str_dot_seq trail
 rdata_px:	STR sp dname sp dname trail
 	{
                zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* preference */
-	       zadd_rdata_wireformat(zparser_conv_domain(parser->region, $3)); /* MAP822 */
-	       zadd_rdata_wireformat(zparser_conv_domain(parser->region, $5)); /* MAPX400 */
+	       zadd_rdata_domain($3); /* MAP822 */
+	       zadd_rdata_domain($5); /* MAPX400 */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in RT record"); }
@@ -729,7 +731,7 @@ rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
 		zadd_rdata_wireformat(zparser_conv_text(parser->region, $5.str)); /* flags */
 		zadd_rdata_wireformat(zparser_conv_text(parser->region, $7.str)); /* service */
 		zadd_rdata_wireformat(zparser_conv_text(parser->region, $9.str)); /* regexp */
-		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $11)); /* target name */
+		zadd_rdata_domain($11); /* target name */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in NAPTR record"); }
@@ -751,7 +753,7 @@ rdata_cert:	STR sp STR sp STR sp str_sp_seq trail
 /* RFC 2672 */
 rdata_dname:	dname trail
 	{
-		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $1));
+		zadd_rdata_domain($1);
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in DNAME record"); }
@@ -786,20 +788,19 @@ rdata_sshfp:   STR sp STR sp str_sp_seq trail
 rdata_unknown:	URR sp STR sp str_sp_seq trail
 	{
 		/* $2 is the number of octects, currently ignored */
-		zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str));
+		$$ = zparser_conv_hex(parser->region, $5.str);
+
 	}
 	| URR sp STR trail
 	{	
-		zadd_rdata_wireformat(zparser_conv_hex(parser->region, ""));
-		/* error_prev_line("\\# 0 not handled (yet)"); */
+		$$ = zparser_conv_hex(parser->region, "");
 	}
 	| URR error NL
-	{ error_prev_line("Syntax error in UNKNOWN RR rdata"); }
-       ;
-
-rdata_unknown_err:	URR error NL
-	{ error_prev_line("UKNOWN RR rdata for this type not handled (yet)");}
-	;
+        {
+		error_prev_line("Syntax error in UNKNOWN RR rdata");
+		$$ = NULL;
+	}
+        ;
 %%
 
 int

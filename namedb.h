@@ -224,12 +224,6 @@ rdata_atom_is_terminator(rdata_atom_type atom)
 
 static inline int rdata_atom_is_domain(uint16_t type, size_t index);
 
-static inline int
-rdata_atom_is_data(uint16_t type, size_t index)
-{
-	return !rdata_atom_is_domain(type, index);
-}
-
 static inline domain_type *
 rdata_atom_domain(rdata_atom_type atom)
 {
@@ -274,12 +268,29 @@ int namedb_lookup (struct namedb    *db,
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);
 
-extern const char *rdata_types[];
-
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)
 {
-	return type <= TYPE_RT && index < 2 && rdata_types[type][index] == 'd';
+	const rrtype_descriptor_type *descriptor = rrtype_descriptor(type);
+	return (index < descriptor->maximum
+		&& (descriptor->wireformat[index] == RDATA_WF_COMPRESSED_DNAME
+		    || descriptor->wireformat[index] == RDATA_WF_UNCOMPRESSED_DNAME));
+}
+
+static inline int
+rdata_atom_is_compressed_domain(uint16_t type, size_t index)
+{
+	const rrtype_descriptor_type *descriptor = rrtype_descriptor(type);
+	return (index < descriptor->maximum
+		&& (descriptor->wireformat[index] == RDATA_WF_COMPRESSED_DNAME));
+}
+
+static inline rdata_wireformat_type
+rdata_atom_wireformat_type(uint16_t type, size_t index)
+{
+	const rrtype_descriptor_type *descriptor = rrtype_descriptor(type);
+	assert(index < descriptor->maximum);
+	return descriptor->wireformat[index];
 }
 
 #endif

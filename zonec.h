@@ -13,7 +13,6 @@
 #include "dns.h"
 #include "namedb.h"
 
-#define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
 #define	B64BUFSIZE	16384		/* Buffer size for b64 conversion */
 #define	ROOT		(const uint8_t *)"\001"
@@ -125,13 +124,14 @@ uint16_t *zparser_conv_a6(region_type *region, const char *a6);
 uint16_t *zparser_conv_b64(region_type *region, const char *b64);
 uint16_t *zparser_conv_rrtype(region_type *region, const char *rr);
 uint16_t *zparser_conv_nxt(region_type *region, uint8_t nxtbits[]);
-uint16_t *zparser_conv_domain(region_type *region, domain_type *domain);
 uint16_t *zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE]);
 uint16_t *zparser_conv_loc(region_type *region, char *str);
 uint16_t *zparser_conv_algorithm(region_type *region, const char *algstr);
 uint16_t *zparser_conv_certificate_type(region_type *region,
 					const char *typestr);
 uint16_t *zparser_conv_apl_rdata(region_type *region, char *str);
+
+void parse_unknown_rdata(uint16_t type, uint16_t *wireformat);
 
 long strtottl(char *nptr, char **endptr);
 

@@ -90,7 +90,6 @@
 #define TYPE_AAAA	28	/* ipv6 address */
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
 #define	TYPE_SRV	33	/* SRV record RFC2782 */
-#define	TYPE_NAPTR	35	/* NAPTR record RFC2915 */
 #define	TYPE_OPT	41	/* Pseudo OPT record... */
 #define	TYPE_DS		43	/* draft-ietf-dnsext-delegation */
 #define TYPE_SSHFP	44	/* SSH Key Fingerprint */
@@ -103,10 +102,82 @@
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
 
+#define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define MAX_RDLENGTH            65535
 
 /* Maximum size of a single RR.  */
 #define MAX_RR_SIZE \
 	(MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)
+
+/*
+ * The different types of RDATA wireformat data.
+ */
+enum rdata_wireformat
+{
+	RDATA_WF_COMPRESSED_DNAME,   /* Possibly compressed domain name.  */
+	RDATA_WF_UNCOMPRESSED_DNAME, /* Uncompressed domain name.  */
+	RDATA_WF_BYTE,		     /* 8-bit integer.  */
+	RDATA_WF_SHORT,		     /* 16-bit integer.  */
+	RDATA_WF_LONG,		     /* 32-bit integer.  */
+	RDATA_WF_TEXT,		     /* Text string.  */
+	RDATA_WF_A,		     /* 32-bit IPv4 address.  */
+	RDATA_WF_AAAA,		     /* 128-bit IPv6 address.  */
+	RDATA_WF_BINARY, 	     /* Binary data (unknown length).  */
+	RDATA_WF_APL		     /* APL data.  */
+};
+typedef enum rdata_wireformat rdata_wireformat_type;
+
+/*
+ * The different types of RDATA that can appear in the zone file.
+ */
+enum rdata_zoneformat
+{
+	RDATA_ZF_DNAME,		/* Domain name.  */
+	RDATA_ZF_TEXT,		/* Text string.  */
+	RDATA_ZF_BYTE,		/* 8-bit integer.  */
+	RDATA_ZF_SHORT,		/* 16-bit integer.  */
+	RDATA_ZF_LONG,		/* 32-bit integer.  */
+	RDATA_ZF_A,		/* 32-bit IPv4 address.  */
+	RDATA_ZF_AAAA,		/* 128-bit IPv6 address.  */
+	RDATA_ZF_RRTYPE,	/* RR type.  */
+	RDATA_ZF_ALGORITHM,	/* Cryptographic algorithm.  */
+	RDATA_ZF_CERTIFICATE_TYPE,
+	RDATA_ZF_PERIOD,	/* Time period.  */
+	RDATA_ZF_TIME,
+	RDATA_ZF_BASE64,	/* Base-64 binary data.  */
+	RDATA_ZF_HEX,		/* Hexadecimal binary data.  */
+	RDATA_ZF_NSAP,		/* NSAP.  */
+	RDATA_ZF_APL,		/* APL.  */
+	RDATA_ZF_NXT,		/* NXT type bitmap.  */
+	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */
+	RDATA_ZF_LOC,		/* Location data.  */
+	RDATA_ZF_UNKNOWN	/* Unknown data.  */
+};
+typedef enum rdata_zoneformat rdata_zoneformat_type;
+
+struct rrtype_descriptor
+{
+	uint16_t type;		/* RR type */
+	uint8_t  minimum;	/* Minimum number of RDATAs.  */
+	uint8_t  maximum;	/* Maximum number of RDATAs.  */
+	rdata_wireformat_type wireformat[MAXRDATALEN];
+	rdata_zoneformat_type zoneformat[MAXRDATALEN];
+};
+typedef struct rrtype_descriptor rrtype_descriptor_type;
+
+/*
+ * Indexed by type.  The special type "0" can be used to get a
+ * descriptor for unknown types (with one binary rdata).
+ */
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_DNSKEY+1)
+extern rrtype_descriptor_type rrtype_descriptors[];
+
+static inline rrtype_descriptor_type *
+rrtype_descriptor(uint16_t type)
+{
+	return (type < RRTYPE_DESCRIPTORS_LENGTH
+		? &rrtype_descriptors[type]
+		: &rrtype_descriptors[0]);
+}
 
 #endif /* _DNS_H_ */

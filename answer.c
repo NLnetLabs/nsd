@@ -134,12 +134,23 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	q->iobufptr += sizeof(rdlength);
 
 	for (j = 0; !rdata_atom_is_terminator(rrset->rrs[rr]->rdata[j]); ++j) {
-		if (rdata_atom_is_domain(rrset->type, j)) {
-			encode_dname(q, rdata_atom_domain(rrset->rrs[rr]->rdata[j]));
-		} else {
+		switch (rdata_atom_wireformat_type(rrset->type, j)) {
+		case RDATA_WF_COMPRESSED_DNAME:
+			encode_dname(q, rdata_atom_domain(
+					     rrset->rrs[rr]->rdata[j]));
+			break;
+		case RDATA_WF_UNCOMPRESSED_DNAME:
+		{
+			const dname_type *dname = domain_dname(
+				rdata_atom_domain(rrset->rrs[rr]->rdata[j]));
+			query_write(q, dname_name(dname), dname->name_size);
+			break;
+		}
+		default:
 			query_write(q,
 				    rdata_atom_data(rrset->rrs[rr]->rdata[j]),
 				    rdata_atom_size(rrset->rrs[rr]->rdata[j]));
+			break;
 		}
 	}
 

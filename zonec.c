@@ -485,19 +485,6 @@ zparser_conv_b64(region_type *region, const char *b64)
 }
 
 uint16_t *
-zparser_conv_domain(region_type *region, domain_type *domain)
-{
-	uint16_t *r = NULL;
-	const dname_type *dname = domain_dname(domain);
-
-	r = (uint16_t *) region_alloc(region,
-				      sizeof(uint16_t) + dname->name_size);
-	*r = dname->name_size;
-	memcpy(r + 1, dname_name(dname), dname->name_size);
-	return r;
-}
-
-uint16_t *
 zparser_conv_rrtype(region_type *region, const char *rr)
 {
 	/*
@@ -980,10 +967,129 @@ zadd_rdata_domain(domain_type *domain)
 }
 
 void
-zadd_rdata_finalize(zparser_type *parser)
+zadd_rdata_finalize(void)
 {
 	/* Append terminating NULL.  */
 	parser->current_rr.rrdata->rdata[parser->_rc].data = NULL;
+}
+
+static const dname_type *
+parse_dname(uint8_t *data, uint8_t *end)
+{
+	const uint8_t *current = data;
+
+	while (1) {
+		if (label_is_pointer(current)) {
+			error_prev_line("unknown RDATA contains domain name with compression pointer.");
+			return NULL;
+		}
+
+		if (label_length(current) > MAXLABELLEN) {
+			error_prev_line("unknown RDATA contains domain name with label exceeding %d octets.", MAXLABELLEN);
+			return NULL;
+		}
+
+		if (current + label_length(current) + 1 > end) {
+			error_prev_line("unknown RDATA contains unterminated domain name.");
+			return NULL;
+		}
+
+		if (label_is_root(current))
+			break;
+		
+		current = label_next(current);
+	}
+
+	return dname_make(parser->rr_region, data);
+}
+
+void
+parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
+{
+	uint16_t size = *wireformat;
+	uint8_t *data = (uint8_t *) (wireformat + 1);
+	uint8_t *end = data + size;
+	int i;
+	size_t length = end - data;
+	
+	rrtype_descriptor_type *descriptor = rrtype_descriptor(type);
+
+	for (i = 0; i < descriptor->maximum; ++i) {
+		int is_domain = 0;
+
+		if (data == end) {
+			if (i < descriptor->minimum) {
+				error_prev_line("unknown RDATA is not complete");
+				return;
+			} else {
+				break;
+			}
+		}
+		
+		switch (descriptor->wireformat[i]) {
+		case RDATA_WF_COMPRESSED_DNAME:
+		case RDATA_WF_UNCOMPRESSED_DNAME:
+			is_domain = 1;
+			break;
+		case RDATA_WF_BYTE:
+			length = sizeof(uint8_t);
+			break;
+		case RDATA_WF_SHORT:
+			length = sizeof(uint16_t);
+			break;
+		case RDATA_WF_LONG:
+			length = sizeof(uint32_t);
+			break;
+		case RDATA_WF_TEXT:
+			length = *data;
+			break;
+		case RDATA_WF_A:
+			length = sizeof(in_addr_t);
+			break;
+		case RDATA_WF_AAAA:
+			length = IP6ADDRLEN;
+			break;
+		case RDATA_WF_BINARY:
+			/* Remaining RDATA is binary.  */
+			length = end - data;
+			break;
+		case RDATA_WF_APL:
+			length = (sizeof(uint16_t) /* address family */
+				  + sizeof(uint8_t) /* prefix */
+				  + sizeof(uint8_t) /* length */
+				  + data[sizeof(uint16_t) + sizeof(uint8_t)]);
+			break;
+		}
+
+		if (is_domain) {
+			const dname_type *dname = parse_dname(data, end);
+			if (!dname)
+				return;
+			data += dname->name_size;
+			zadd_rdata_domain(domain_table_insert(
+						  parser->db->domains, dname));
+		} else {
+			uint16_t *rdata;
+
+			if (data + length > end) {
+				error_prev_line("unknown RDATA is truncated");
+				return;
+			}
+			
+			rdata = (uint16_t *) region_alloc(
+				parser->region,
+				sizeof(uint16_t) + length);
+			*rdata = length;
+			memcpy(rdata + 1, data, length);
+			data += length;
+			zadd_rdata_wireformat(rdata);
+		}
+	}
+
+	if (data < end) {
+		error_prev_line("unknown RDATA has trailing garbage");
+		return;
+	}
 }
 
 /* 
@@ -1466,6 +1572,19 @@ main (int argc, char **argv)
 	
 	log_init("zonec");
 
+#ifndef NDEBUG
+	/* Check consistency of rrtype descriptor table.  */
+	{
+		int i;
+		for (i = 0; i < RRTYPE_DESCRIPTORS_LENGTH; ++i) {
+			if (i != rrtype_descriptors[i].type) {
+				fprintf(stderr, "error: type descriptor entry '%d' does not match type '%d', fix the definition in dns.c\n", i, rrtype_descriptors[i].type);
+				abort();
+			}
+		}
+	}
+#endif
+	
 	global_region = region_create(xalloc, free);
 	rr_region = region_create(xalloc, free);
 	totalerrors = 0;
@@ -1534,6 +1653,9 @@ main (int argc, char **argv)
 		fprintf(stderr, "global_region: ");
 		region_dump_stats(global_region, stderr);
 		fprintf(stderr, "\n");
+		fprintf(stderr, "db->region: ");
+		region_dump_stats(db->region, stderr);
+		fprintf(stderr, "\n");
 #endif /* NDEBUG */
 	} else {
 		/* Open the master file... */
@@ -1587,6 +1709,9 @@ main (int argc, char **argv)
 #ifndef NDEBUG
 			fprintf(stderr, "global_region: ");
 			region_dump_stats(global_region, stderr);
+			fprintf(stderr, "\n");
+			fprintf(stderr, "db->region: ");
+			region_dump_stats(db->region, stderr);
 			fprintf(stderr, "\n");
 #endif /* NDEBUG */
 		}

@@ -90,6 +90,7 @@ NSD_OBJECTS	=				\
 	axfr.o					\
 	dbaccess.o				\
 	dname.o					\
+	dns.o					\
 	namedb.o				\
 	netio.o					\
 	nsd.o					\
@@ -103,12 +104,13 @@ NSD_OBJECTS	=				\
 ZONEC_OBJECTS	=				\
 	dbcreate.o				\
 	dname.o					\
+	dns.o					\
 	namedb.o				\
 	rbtree.o				\
 	region-allocator.o			\
 	util.o					\
-	zonec.o  				\
-	zparser.o 				\
+	zonec.o					\
+	zparser.o				\
 	zlexer.o
 
 NSD_NOTIFY_OBJECTS	= 			\
@@ -234,6 +236,7 @@ dbcreate.o: dbcreate.c config.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h dns.h util.h
 dname.o: dname.c config.h dns.h dname.h heap.h rbtree.h \
   region-allocator.h namedb.h util.h
+dns.o: dns.c config.h dns.h
 namedb.o: namedb.c config.h dns.h dname.h heap.h rbtree.h \
   region-allocator.h namedb.h util.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
