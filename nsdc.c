@@ -48,7 +48,7 @@ static struct nsd nsd;
 static void
 usage(void)
 {
-	fprintf(stderr, "Usage: nsdc [OPTION]... {start|stop|reload|rebuild|restart|running|update|notify\n");
+	fprintf(stderr, "Usage: nsdc [OPTION]... {start|stop|reload|rebuild|restart|running|update|notify}\n");
 	fprintf(stderr,
                 "Supported options:\n"
                 "  -f config-file  Specify the location of the configuration file.\n"
@@ -87,12 +87,13 @@ error(const char *format, ...)
 int
 main (int argc, char *argv[])
 {
-
 	int c;
 	const char *port;
 
 	port = DEFAULT_PORT;
 
+	log_init("nsd");
+		
         /* Initialize the server handler... */
         memset(&nsd, 0, sizeof(struct nsd));
         nsd.region      = region_create(xalloc, free);
@@ -130,10 +131,10 @@ main (int argc, char *argv[])
 	if (argc != 1)
 		usage();
 
-        //nsd.options = load_configuration(nsd.region, nsd.options_file);
+        nsd.options = load_configuration(nsd.region, nsd.options_file);
         if (!nsd.options) {
-          //      error("failed to load configuration file '%s'",
-            //          nsd.options_file);
+		error("failed to load configuration file '%s'",
+				nsd.options_file);
         }
 }
  
