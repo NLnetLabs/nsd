@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.33 2002/05/25 09:40:42 alexis Exp $
+ * $Id: nsd.c,v 1.34 2002/05/25 13:50:03 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -271,12 +271,11 @@ main(argc, argv)
 			/* Lookup the user id in /etc/passwd */
 			struct passwd *pwd;
 			if((pwd = getpwnam(nsd.username)) == NULL) {
-				syslog(LOG_ERR, "unknown username %s", nsd.username);
-				exit(1);
+				syslog(LOG_ERR, "user %s doesnt exist, will not setuid", nsd.username);
+			} else {
+				nsd.uid = pwd->pw_uid;
+				nsd.gid = pwd->pw_gid;
 			}
-
-			nsd.uid = pwd->pw_uid;
-			nsd.gid = pwd->pw_gid;
 			endpwent();
 		}
 	}
