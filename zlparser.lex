@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.20 2003/08/27 12:55:58 miekg Exp $
+ * $Id: zlparser.lex,v 1.21 2003/08/28 12:13:37 erik Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -33,7 +33,6 @@ int include_stack_ptr = 0;
  * 2 = after ^dname read space -> in RR
  * 3 = read RRTYPE
  */
-
 %}
 
 SPACE   [ \t]
@@ -186,11 +185,11 @@ Q       \"
                         }
 {CLASS}                 {
                             if ( in_rr == 2) { 
-                                if ( strncasecmp(yytext, "IN", 2) == 0 )
+                                if ( strcasecmp(yytext, "IN") == 0 )
                                     return IN;
-                                if ( strncasecmp(yytext, "CH", 2) == 0 )
+                                if ( strcasecmp(yytext, "CH") == 0 )
                                     return CH;
-                                if ( strncasecmp(yytext, "HS", 2) == 0 )
+                                if ( strcasecmp(yytext, "HS") == 0 )
                                     return HS;
                             }
                             if ( in_rr != 2) { 
