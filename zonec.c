@@ -571,8 +571,6 @@ zparser_conv_loc(region_type *region, char *str)
 	uint32_t lat = 0, lon = 0, alt = 0;
 	uint8_t vszhpvp[4] = {0, 0, 0, 0};
 
-	fprintf(stderr, "converting loc: %s\n", str);
-
 	for(;;) {
 		/* Degrees */
 		if (*str == '\0') {
