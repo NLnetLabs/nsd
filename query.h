@@ -41,6 +41,9 @@
 
 #include <assert.h>
 
+#include "dname.h"
+#include "namedb.h"
+#include "nsd.h"
 #include "region-allocator.h"
 
 /*
@@ -156,45 +159,20 @@
 #define RCODE_IMPL		4 	/* Not implemented */
 #define RCODE_REFUSE		5 	/* Refused */
 
-/* Size of IPv6 address */
-#define	IP6ADDRLEN		128/8
-
 /* Miscelaneous limits */
-#define	QIOBUFSZ	4000	/* Maximum size of returned packet.  */
-#define	MAXLABELLEN	63
-#define	MAXDOMAINLEN	255
-#define	MAXRRSPP	10240	/* Maximum number of rr's per packet */
+#define	QIOBUFSZ		4000	 /* Maximum size of returned packet.  */
+#define	MAXLABELLEN		63
+#define	MAXDOMAINLEN		255
+#define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
+#define MAX_COMPRESSED_DNAMES	MAXRRSPP /* Maximum number of compressed domains. */
 
-/* Current amount of data in the query IO buffer.  */
-#define QUERY_USED_SIZE(q)  ((size_t) ((q)->iobufptr - (q)->iobuf))
 
-/* Current available data size of the query IO buffer.  */
-#define QUERY_AVAILABLE_SIZE(q) ((q)->maxlen - QUERY_USED_SIZE(q))
-
-/* Append data to the query IO buffer.  */
-#define QUERY_WRITE(query, data, size)				\
-	do {							\
-		if (size <= QUERY_AVAILABLE_SIZE(query)) {	\
-			memcpy((query)->iobufptr, data, size);	\
-			(query)->iobufptr += size;		\
-		} else {					\
-			(query)->overflow = 1;			\
-		}						\
-	} while (0)
-
-enum answer_section {
-	QUESTION_SECTION, ANSWER_SECTION, AUTHORITY_SECTION, ADDITIONAL_SECTION
+enum query_state {
+	QUERY_PROCESSED,
+	QUERY_DISCARDED,
+	QUERY_IN_AXFR
 };
-typedef enum answer_section answer_section_type;
-
-/* Information that will be stored in the answer.  */
-typedef struct answer answer_type;
-struct answer {
-	size_t rrset_count;
-	rrset_type *rrsets[MAXRRSPP];
-	domain_type *domains[MAXRRSPP];
-	answer_section_type section[MAXRRSPP];
-};
+typedef enum query_state query_state_type;
 
 /* Query as we pass it around */
 struct query {
@@ -211,12 +189,8 @@ struct query {
 	int tcp;
 
 	uint8_t *iobufptr;
-	size_t iobufsz;
 	uint8_t iobuf[QIOBUFSZ];
-
 	int overflow;		/* True if the I/O buffer overflowed.  */
-
-	answer_type answer;
 
 	/* Normalized query domain name.  */
 	const dname_type *name;
@@ -238,15 +212,14 @@ struct query {
 	uint16_t type;
 
 	/* Used for dname compression.  */
-	uint16_t     dname_stored_count;
+	uint16_t     compressed_dname_count;
+	domain_type *compressed_dnames[MAXRRSPP];
 
 	 /*
-	  * Indexed by domain->number, index 0 is reserved for query
-	  * name when generated from a wildcard record.
+	  * Indexed by domain->number, index 0 is reserved for the
+	  * query name when generated from a wildcard record.
 	  */
-	uint16_t    *dname_offsets;
-	domain_type *dname_stored[MAXRRSPP];
-
+	uint16_t    *compressed_dname_offsets;
 
 	/*
 	 * Used for AXFR processing.
@@ -258,25 +231,56 @@ struct query {
 	uint16_t     axfr_current_rr;
 };
 
-static inline void
-query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
-{
-	q->dname_offsets[domain->number] = offset;
-	q->dname_stored[q->dname_stored_count] = domain;
-	++q->dname_stored_count;
-}
 
-static inline uint16_t
-query_get_dname_offset(struct query *q, domain_type *domain)
-{
-	return q->dname_offsets[domain->number];
-}
+/* Current amount of data in the query IO buffer.  */
+size_t query_used_size(struct query *q);
+
+/* Current available data size of the query IO buffer.  */
+size_t query_available_size(struct query *q);
+
+/* Append data to the query IO buffer until an overflow occurs.  */
+void query_write(struct query *q, const void *data, size_t size);
+
+
+/*
+ * Store the offset of the specified domain in the dname compression
+ * table.
+ */
+void query_put_dname_offset(struct query *query,
+			    domain_type  *domain,
+			    uint16_t      offset);
+/*
+ * Lookup the offset of the specified domain in the dname compression
+ * table.  Offset 0 is used to indicate the domain is not yet in the
+ * compression table.
+ */
+uint16_t query_get_dname_offset(struct query *query, domain_type *domain);
+
+/*
+ * Remove all compressed dnames that have an offset that points beyond
+ * the end of the current answer.  This must be done after some RRs
+ * are truncated and before adding new RRs.  Otherwise dnames may be
+ * compressed using truncated data!
+ */
+void query_clear_dname_offsets(struct query *query);
+
+/*
+ * Clear the compression tables.
+ */
+void query_clear_compression_tables(struct query *query);
+	
+/*
+ * Enter the specified domain into the compression table starting at
+ * the specified offset.
+ */
+void query_add_compression_domain(struct query *query,
+				  domain_type  *domain,
+				  uint16_t      offset);
+
 
 /* query.c */
-int query_axfr(struct nsd *nsd, struct query *q);
 void query_init(struct query *q);
-void query_addtxt(struct query *q, uint8_t *dname, int16_t class, int32_t ttl, const char *txt);
-int query_process(struct query *q, struct nsd *nsd);
+query_state_type query_process(struct query *q, struct nsd *nsd);
 void query_addedns(struct query *q, struct nsd *nsd);
 void query_error(struct query *q, int rcode);
 

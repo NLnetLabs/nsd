@@ -63,6 +63,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include "axfr.h"
 #include "dns.h"
 #include "namedb.h"
 #include "dname.h"
@@ -78,7 +79,7 @@ int pselect(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 #endif
 
 
-static uint16_t *dname_offsets;
+static uint16_t *compressed_dname_offsets;
 
 /*
  * Remove the specified pid from the list of child pids.  Returns 0 if
@@ -231,9 +232,11 @@ server_init(struct nsd *nsd)
 		return -1;
 	}
 
-	dname_offsets = xalloc((domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
-	memset(dname_offsets, 0, (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
-	region_add_cleanup(nsd->db->region, free, dname_offsets);
+	compressed_dname_offsets = xalloc(
+		(domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	memset(compressed_dname_offsets, 0,
+	       (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
 	
 #ifdef	BIND8_STATS
 	/* Initialize times... */
@@ -423,11 +426,11 @@ server_main(struct nsd *nsd)
 	server_shutdown(nsd);
 }
 
-static int
+static query_state_type
 process_query(struct nsd *nsd, struct query *query)
 {
 #ifdef PLUGINS
-	int rc;
+	query_state_type rc;
 	nsd_plugin_callback_args_type callback_args;
 	nsd_plugin_callback_result_type callback_result;
 	
@@ -441,7 +444,7 @@ process_query(struct nsd *nsd, struct query *query)
 	}
 
 	rc = query_process(query, nsd);
-	if (rc == 0) {
+	if (rc == QUERY_PROCESSED) {
 		callback_args.data = NULL;
 		callback_args.result_code = RCODE_OK;
 
@@ -489,9 +492,9 @@ handle_udp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	/* Initialize the query... */
 	query_init(&q);
 	q.region = query_region;
-	q.dname_offsets = dname_offsets;
+	q.compressed_dname_offsets = compressed_dname_offsets;
 	
-	if ((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
+	if ((received = recvfrom(s, q.iobuf, QIOBUFSZ, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
 		log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
 		STATUP(nsd, rxerr);
 		return 1;
@@ -500,18 +503,18 @@ handle_udp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	q.tcp = 0;
 
 	/* Process and answer the query... */
-	if (process_query(nsd, &q) != -1) {
+	if (process_query(nsd, &q) != QUERY_DISCARDED) {
 		if (RCODE((&q)) == RCODE_OK && !AA((&q)))
 			STATUP(nsd, nona);
 		/* Add edns(0) info if necessary.. */
 		query_addedns(&q, nsd);
 
-		if ((sent = sendto(s, q.iobuf, QUERY_USED_SIZE(&q), 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
+		if ((sent = sendto(s, q.iobuf, query_used_size(&q), 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
 			log_msg(LOG_ERR, "sendto failed: %s", strerror(errno));
 			STATUP(nsd, txerr);
 			return 1;
 		} else if (sent != q.iobufptr - q.iobuf) {
-			log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) QUERY_USED_SIZE(&q));
+			log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) query_used_size(&q));
 			return 1;
 		}
 
@@ -558,10 +561,11 @@ read_socket(int s, void *buf, size_t count)
 static int
 handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 {
-	int received, sent, axfr, s;
+	int received, sent, s;
 	uint16_t tcplen;
 	struct query q;
 	size_t i;
+	query_state_type query_state;
 	
 	s = -1;
 	for (i = 0; i < nsd->ifs; i++) {
@@ -591,8 +595,8 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	/* Initialize the query... */
 	query_init(&q);
 	q.region = query_region;
-	q.dname_offsets = dname_offsets;
-	q.maxlen = (q.iobufsz > nsd->tcp_max_msglen) ? nsd->tcp_max_msglen : q.iobufsz;
+	q.compressed_dname_offsets = compressed_dname_offsets;
+	q.maxlen = QIOBUFSZ < nsd->tcp_max_msglen ? QIOBUFSZ : nsd->tcp_max_msglen;
 	q.tcp = 1;
 
 	/* Until we've got end of file */
@@ -611,7 +615,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 			break;
 		}
 
-		if (ntohs(tcplen) > q.iobufsz) {
+		if (ntohs(tcplen) > QIOBUFSZ) {
 			log_msg(LOG_ERR, "insufficient tcp buffer, dropping connection");
 			break;
 		}
@@ -638,7 +642,8 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 
 		alarm(0);
 
-		if ((axfr = process_query(nsd, &q)) != -1) {
+		query_state = process_query(nsd, &q);
+		if (query_state != QUERY_DISCARDED) {
 			if (RCODE((&q)) == RCODE_OK && !AA((&q)))
 				STATUP(nsd, nona);
 			do {
@@ -647,7 +652,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 				alarm(TCP_TIMEOUT);
 				tcplen = htons(q.iobufptr - q.iobuf);
 				if (((sent = write(s, &tcplen, 2)) == -1) ||
-				    ((sent = write(s, q.iobuf, QUERY_USED_SIZE(&q))) == -1)) {
+				    ((sent = write(s, q.iobuf, query_used_size(&q))) == -1)) {
 					if (errno == EINTR)
 						log_msg(LOG_ERR, "timed out/interrupted writing");
 					else
@@ -656,15 +661,15 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 				}
 				if (sent != q.iobufptr - q.iobuf) {
 					log_msg(LOG_ERR, "sent %d in place of %d bytes",
-					       sent, (int) QUERY_USED_SIZE(&q));
+					       sent, (int) query_used_size(&q));
 					break;
 				}
 
 				/* Do we have AXFR in progress? */
-				if (axfr) {
-					axfr = query_axfr(nsd, &q);
+				if (query_state == QUERY_IN_AXFR) {
+					query_state = query_axfr(nsd, &q);
 				}
-			} while (axfr);
+			} while (query_state != QUERY_PROCESSED);
 		} else {
 			/* Drop the entire connection... */
 			break;
