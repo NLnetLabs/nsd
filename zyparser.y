@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.16 2003/08/19 14:51:35 miekg Exp $
+ * $Id: zyparser.y,v 1.17 2003/08/20 10:23:58 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -23,7 +23,7 @@ struct RR * current_rr;
 
 /* [XXX] should be local */
 unsigned int error = 0;
-int progress = 100;
+int progress = 1000;
 int yydebug = 1;
 
 %}
@@ -281,7 +281,6 @@ rdata_a:    STR '.' STR '.' STR '.' STR
         memcpy(ipv4 + $1->len + $3->len + $5->len + 3 , $7->str, $7->len);
         memcpy(ipv4 + $1->len + $3->len + $5->len + $7->len + 3, "\0", 1);
 
-        printf("IP ADDR %s\n",ipv4);
         zadd_rdata2(zdefault, zparser_conv_A((char*)ipv4));
         free(ipv4);
     }

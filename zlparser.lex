@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.9 2003/08/19 14:51:35 miekg Exp $
+ * $Id: zlparser.lex,v 1.10 2003/08/20 10:23:58 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -67,6 +67,11 @@ Q       \"
 ^{DOLLAR}ORIGIN         return DIR_ORIG;
 ^{DOLLAR}INCLUDE.*      /* ignore for now */    /* INCLUDE FILE DOMAINNAME */
 ^{DOLLAR}{LETTER}+      { printf("UNKNOWN DIRECTIVE - ignored");}
+^{DOT}                  {
+                            /* a ^. means the root zone... also set n_rr */
+                            in_rr = 1;
+                            return '.';
+                        }
 {DOT}                   return '.';
 {SLASH}#                return UN_RR;
 ^{SPACE}+               {

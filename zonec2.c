@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.7 2003/08/19 14:51:35 miekg Exp $
+ * $Id: zonec2.c,v 1.8 2003/08/20 10:23:58 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -550,7 +550,8 @@ zone_read (char *name, char *zonefile)
 		if(rr->type == TYPE_NS && h == z->data) {
 			z->ns = r;
 		}
-
+        /* free the data */
+        /*zrdatafree( rr->rdata );*/
 		l = l->next; /* go to the next */
 	}
 
