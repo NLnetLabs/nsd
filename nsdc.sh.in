@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.5 2002/02/20 14:47:48 alexis Exp $
+# $Id: nsdc.sh.in,v 1.6 2002/03/28 02:43:25 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -67,10 +67,10 @@ start)
 	[ -x ${NSDBINDIR}/nsd ] && ${NSDBINDIR}/nsd -f ${NSDDB}
 	;;
 stop)
-	signal "SIGTERM"
+	signal "TERM"
 	;;
 reload)
-	signal "SIGHUP"
+	signal "HUP"
 	;;
 running)
 	signal "0"
