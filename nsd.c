@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.6 2002/10/29 14:13:16 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.7 2002/12/05 22:25:07 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -330,9 +330,11 @@ main(argc, argv)
 	nsd.pidfile	= CF_PIDFILE;
 	nsd.tcp.open_conn = 1;
 
-        nsd.udp.addr.sin_addr.s_addr = INADDR_ANY;
-        nsd.udp.addr.sin_port = htons(CF_UDP_PORT);
-        nsd.udp.addr.sin_family = AF_INET;
+	for(i = 0; i < CF_MAX_INTERFACES; i++) {
+		nsd.udp[i].addr.sin_addr.s_addr = INADDR_ANY;
+		nsd.udp[i].addr.sin_port = htons(CF_UDP_PORT);
+		nsd.udp[i].addr.sin_family = AF_INET;
+	}
 
         nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
         nsd.tcp.addr.sin_port = htons(CF_TCP_PORT);
@@ -347,7 +349,6 @@ main(argc, argv)
 #endif /* INET6 */
 
 	nsd.tcp.max_msglen = CF_TCP_MAX_MESSAGE_LEN;
-	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;
 	nsd.identity	= CF_IDENTITY;
 	nsd.version	= CF_VERSION;
 	nsd.username	= CF_USERNAME;
@@ -391,9 +392,10 @@ main(argc, argv)
 	while((c = getopt(argc, argv, "a:df:p:i:u:t:s:n:")) != -1) {
 		switch (c) {
 		case 'a':
-			if((nsd.tcp.addr.sin_addr.s_addr = nsd.udp.addr.sin_addr.s_addr
+			if((nsd.tcp.addr.sin_addr.s_addr = nsd.udp[nsd.ifs++].addr.sin_addr.s_addr
 					= inet_addr(optarg)) == -1)
 				usage();
+			
 			break;
 		case 'd':
 			nsd.debug = 1;
@@ -402,7 +404,9 @@ main(argc, argv)
 			nsd.dbfile = optarg;
 			break;
 		case 'p':
-			nsd.udp.addr.sin_port = htons(atoi(optarg));
+			for(i = 0; i < CF_MAX_INTERFACES; i++) {
+				nsd.udp[i].addr.sin_port = htons(atoi(optarg));
+			}
 			nsd.tcp.addr.sin_port = htons(atoi(optarg));
 #ifdef INET6
 			nsd.udp6.addr.sin6_port = htons(atoi(optarg));
@@ -446,6 +450,13 @@ main(argc, argv)
 
 	if(argc != 0)
 		usage();
+
+	/* If multiple -a let nsd bind tcp socket to every interface */
+	if(nsd.ifs > 0) {
+		nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
+	} else {
+		nsd.ifs++;
+	}
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();

@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59.2.3 2002/10/29 12:15:43 alexis Exp $
+ * $Id: server.c,v 1.59.2.4 2002/12/05 22:25:07 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -48,6 +48,7 @@
 int
 server_init(struct nsd *nsd)
 {
+	int i;
 #if defined(INET6) || defined(IPV6_V6ONLY) || defined(SO_REUSEADDR)
 	int on = 1;
 #endif
@@ -55,15 +56,17 @@ server_init(struct nsd *nsd)
 	/* UDP */
 
 	/* Make a socket... */
-	if((nsd->udp.s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-		syslog(LOG_ERR, "cant create a socket: %m");
-		return -1;
-	}
+	for(i = 0; i < nsd->ifs; i++) {
+		if((nsd->udp[i].s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+			syslog(LOG_ERR, "cant create a socket: %m");
+			return -1;
+		}
 
-	/* Bind it... */
-	if(bind(nsd->udp.s, (struct sockaddr *)&nsd->udp.addr, sizeof(nsd->udp.addr)) != 0) {
-		syslog(LOG_ERR, "cant bind the socket: %m");
-		return -1;
+		/* Bind it... */
+		if(bind(nsd->udp[i].s, (struct sockaddr *)&nsd->udp[i].addr, sizeof(nsd->udp[i].addr)) != 0) {
+			syslog(LOG_ERR, "cant bind the socket: %m");
+			return -1;
+		}
 	}
 
 #ifdef INET6
@@ -221,13 +224,15 @@ server_start_tcp(struct nsd *nsd)
 void
 server_shutdown(struct nsd *nsd)
 {
-
+	int i;
 #ifdef	BIND8_STATS
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
 	/* Close all the sockets... */
-	close(nsd->udp.s);
+	for(i = 0; i < nsd->ifs; i++) {
+		close(nsd->udp[i].s);
+	}
 	close(nsd->tcp.s);
 
 #ifdef INET6
@@ -247,7 +252,7 @@ void
 server_udp(struct nsd *nsd)
 {
 	fd_set peer;
-	int received, sent, maxfd, s;
+	int received, sent, maxfd, s, i;
 	struct query q;
 
 	/* The main loop... */	
@@ -313,8 +318,10 @@ server_udp(struct nsd *nsd)
 
 		/* Set it up */
 		FD_ZERO(&peer);
-		FD_SET(nsd->udp.s, &peer);
-		maxfd = nsd->udp.s;
+		for(i = 0; i < nsd->ifs; i++) {
+			FD_SET(nsd->udp[i].s, &peer);
+		}
+		maxfd = nsd->udp[i].s;
 
 #ifdef INET6
 		FD_SET(nsd->udp6.s, &peer);
@@ -333,19 +340,23 @@ server_udp(struct nsd *nsd)
 		}
 
 		/* Process it... */
-		if(FD_ISSET(nsd->udp.s, &peer)) {
-			s = nsd->udp.s;
-			/* Account... */
-			STATUP(nsd, qudp);
+		s = -1;
+		for(i = 0; i < nsd->ifs; i++) {
+			if(FD_ISSET(nsd->udp[i].s, &peer)) {
+				s = nsd->udp[i].s;
+				/* Account... */
+				STATUP(nsd, qudp);
+				break;
+			}
 		}
 #ifdef INET6
-		else if (FD_ISSET(nsd->udp6.s, &peer)) {
+		if(s == -1 && FD_ISSET(nsd->udp6.s, &peer)) {
 			s = nsd->udp6.s;
 			/* Account... */
 			STATUP(nsd, qudp6);
 		}
 #endif /* INET6 */
-		else {
+		if(s == -1) {
 			syslog(LOG_ERR, "selected non-existant socket");
 			continue;
 		}

@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.19.2.2 2002/10/26 12:46:55 alexis Exp $
+ * $Id: config.h,v 1.19.2.3 2002/12/05 22:25:06 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -67,6 +67,7 @@
 #endif
 
 #define	MAXSYSLOGMSGLEN	512
+#define	CF_MAX_INTERFACES	8
 
 #ifdef	DEBUG
 
