@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.3 2002/10/26 12:46:55 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.4 2002/10/26 12:54:04 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -279,6 +279,8 @@ bind8_stats(nsd)
 			}
 		}
 	}
+	if(t > msg)
+		syslog(LOG_INFO, "%s", buf);
 
 	/* XSTATS */
 	syslog(LOG_INFO, "XSTATS %lu %lu"
