@@ -4,21 +4,21 @@ run on the root name server RIPE NCC operates.
 
 Below is the NSD team (nsd-team@nlnetlabs.nl) in alphabetical order:
 
-Alexis Yushin, <alexis@nlnetlabs.nl> NLnet Labs	- design and most of the code
-Daniel Karrenberg, <dfk@ripe.net> RIPE NCC	- design, major testing and bug reports
-Erik Rozendaal, <erik@nlnetlabs.nl> NLnet Labs	- code review, testing, improvements and patches
-Jaap Akkerhuis, <jaap@sidn.nl> SIDN NL		- consultancy, advice and company :)
-Miek Gieben, <miekg@nlnetlabs.nl> NLnet Labs	- testing, patches, zone compiler
-Olaf Kolkman, <olaf@ripe.net> RIPE NCC		- protocol purist, design, perl test implementation
-Ronald van der Pol, <rvdp@nlnetlabs.nl> NLnet Labs
-                                                - code review, MacOS X portability, IPv6.
-Ted Lindgreen, <ted@nlnetlabs.nl> NLnet Labs	- design, code review, testing
+Alexis Yushin, NLnet Labs	- design and most of the code
+Daniel Karrenberg, RIPE NCC	- design, major testing and bug reports
+Erik Rozendaal, NLnet Labs	- code review, testing, NSD2
+Jaap Akkerhuis, SIDN NL		- consultancy, advice and company :)
+Miek Gieben, NLnet Labs		- testing, patches, zone compiler, NSD2
+Olaf Kolkman, RIPE NCC		- protocol purist, design, perl test implementation
+Ronald van der Pol, NLnet Labs	- code review, MacOS X portability, IPv6.
+Ted Lindgreen, NLnet Labs	- design, code review, testing
 
 Contributors (in alphabetical order):
 
-Colm MacCárthaigh, <colm.maccarthaigh@heanet.ie>                - IPv6 binding and cleanups.
-Jakob Schlyter, <jakob@crt.se> Carlstedt Research & Technology	- chroot patch
-Jun-ichiro itojun Hagino, <itojun@iijlab.net> IIJLab		- IPv6 transport
-Ondrej Sury, <ondrej@sury.org>					- nsd-notify.8 man page
-Stephane Bortzmeyer, <bortzmeyer@nic.fr>                        - Tru64 portability.
-Paul Wouters, <paul@xtdnet.nl>					- zone compiler testing
+Colm MacCárthaigh,                		- IPv6 binding and cleanups.
+Jakob Schlyter, Carlstedt Research & Technology	- chroot patch
+Jun-ichiro itojun Hagino, IIJLab		- IPv6 transport
+Ondrej Sury 					- nsd-notify.8 man page
+Stephane Bortzmeyer				- Tru64 portability.
+Paul Wouters					- zone compiler testing
+Markus Heimhilcher				- .AT zones for testing	
