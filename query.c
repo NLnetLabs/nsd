@@ -41,7 +41,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <netdb.h>
@@ -402,6 +402,43 @@ process_delegation(struct query *query, const u_char *qname, struct domain *doma
 }
 
 
+
+static void
+process_other (struct query *q)
+{
+	QR_SET(q);
+	RCODE_SET(q, RCODE_IMPL);
+	
+	/* Truncate the question as well... */
+	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
+	q->iobufptr = q->iobuf + QHEADERSZ;
+}
+
+/*
+ * Log notifies and return an RCODE_IMPL error to the client.
+ *
+ * XXX: erik: Is this the right way to handle notifies?
+ */
+static void
+process_notify (struct query *query)
+{
+	char namebuf[BUFSIZ];
+
+	assert(OPCODE(query) == OPCODE_NOTIFY);
+	
+	if (getnameinfo((struct sockaddr *) &(query->addr),
+			query->addrlen, namebuf, sizeof(namebuf), 
+			NULL, 0, NI_NUMERICHOST)
+	    != 0)
+	{
+		syslog(LOG_INFO, "notify from unknown remote address");
+	} else {
+		syslog(LOG_INFO, "notify from %s", namebuf);
+	}
+
+	process_other (query);
+}
+
 /*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
  * -1 if the query has to be silently discarded.
@@ -437,30 +474,14 @@ query_process (struct query *q, struct nsd *nsd)
 	STATUP2(nsd, opcode, OPCODE(q));
 
 	/* Do we serve this type of query */
-	if(OPCODE(q) != OPCODE_QUERY) {
-		/* Setup the header... */
-		QR_SET(q);		/* This is an answer */
-
-		if(OPCODE(q) == OPCODE_NOTIFY) {
-			char namebuf[BUFSIZ];
-
-			if (getnameinfo((struct sockaddr *) &(q->addr),
-					q->addrlen, namebuf, sizeof(namebuf), 
-					NULL, 0, NI_NUMERICHOST)
-			    != 0)
-			{
-				syslog(LOG_INFO, "notify from unknown remote address");
-			} else {
-				syslog(LOG_INFO, "notify from %s", namebuf);
-			}
-		}
-
-		RCODE_SET(q, RCODE_IMPL);
-
-		/* Truncate the question as well... */
-		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-		q->iobufptr = q->iobuf + QHEADERSZ;
-
+	switch (OPCODE(q)) {
+	case OPCODE_QUERY:
+		break;		/* Handled below. */
+	case OPCODE_NOTIFY:
+		process_notify(q);
+		return 0;
+	default:
+		process_other(q);
 		return 0;
 	}
 
