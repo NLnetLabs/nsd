@@ -337,7 +337,11 @@ domain_wildcard_child(domain_type *domain)
 int
 zone_is_secure(zone_type *zone)
 {
+#ifdef DNSSEC
 	return zone->is_secure;
+#else
+	return 0;
+#endif
 }
 
 uint16_t

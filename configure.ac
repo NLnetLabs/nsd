@@ -326,17 +326,16 @@ case "$enable_ipv6" in
 		;;
 esac
 
-dnl AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--enable-dnssec], [Enables DNSSEC support (experimental)]))
-dnl case "$enable_dnssec" in
-dnl 	yes)
-dnl 		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this to enable DNSSEC support.])
-dnl 		;;
-dnl 	no|*)
-dnl 		;;
-dnl esac
+AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--enable-dnssec], [Enable experimental DNSSEC support according to the latest drafts.]))
+case "$enable_dnssec" in
+        no)
+                ;;
+        yes|*)
+		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable experimental DNSSEC support.])
+		;;
+esac
 
 AC_ARG_ENABLE(axfr, AC_HELP_STRING([--disable-axfr], [Disables AXFR]))
-
 case "$enable_axfr" in
 	no)
 		AC_DEFINE_UNQUOTED([DISABLE_AXFR], [], [Define this to disable axfr.])
