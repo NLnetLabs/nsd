@@ -642,12 +642,16 @@ answer_chaos(struct nsd *nsd,
 	switch(ntohs(qtype)) {
 	case TYPE_ANY:
 	case TYPE_TXT:
-		if(qnamelen == 11 && memcmp(qnamelow, "\002id\006server", 11) == 0) {
+		if ((qnamelen == 11 && memcmp(qnamelow, "\002id\006server", 11) == 0) ||
+		    (qnamelen == 15 && memcmp(qnamelow, "\010hostname\004bind", 15) == 0)
+		{
 			/* Add ID */
 			query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->identity);
 			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
 			return 1;
-		} else if(qnamelen == 16 && memcmp(qnamelow, "\007version\006server", 16) == 0) {
+		} else if ((qnamelen == 16 && memcmp(qnamelow, "\007version\006server", 16) == 0) ||
+			   (qnamelen == 14 && memcmp(qnamelow, "\007version\004bind", 14) == 0))
+		{
 			/* Add version */
 			query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->version);
 			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
