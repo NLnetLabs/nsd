@@ -328,6 +328,13 @@ server_main(struct nsd *nsd)
 					exit(1);
 				}
 
+#ifdef PLUGINS
+				if (plugin_database_reloaded(nsd) != NSD_PLUGIN_CONTINUE) {
+					syslog(LOG_ERR, "plugin reload failed");
+					exit(1);
+				}
+#endif /* PLUGINS */
+
 				/* Send the child SIGINT to the parent to terminate quitely... */
 				if (kill(nsd->pid, SIGINT) != 0) {
 					syslog(LOG_ERR, "cannot kill %d: %m", nsd->pid);
@@ -361,6 +368,10 @@ server_main(struct nsd *nsd)
 		}
 	}
 
+#ifdef PLUGINS
+	plugin_finalize_all(nsd);
+#endif /* PLUGINS */
+	
 	/* Truncate the pid file.  */
 	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
 		syslog(LOG_ERR, "can not truncate the pid file %s: %m", nsd->pidfile);
@@ -376,8 +387,8 @@ server_main(struct nsd *nsd)
 static int
 process_query(struct nsd *nsd, struct query *query)
 {
-	int rc;
 #ifdef PLUGINS
+	int rc;
 	nsd_plugin_callback_args_type callback_args;
 	nsd_plugin_callback_result_type callback_result;
 	
@@ -388,13 +399,11 @@ process_query(struct nsd *nsd, struct query *query)
 
 	callback_result = query_received_callbacks(nsd, &callback_args, NULL);
 	if (callback_result != NSD_PLUGIN_CONTINUE) {
-		return handle_callback_result(nsd, callback_result, &callback_args);
+		return handle_callback_result(callback_result, &callback_args);
 	}
-#endif /* PLUGINS */
 
 	rc = query_process(query, nsd);
 	if (rc == 0) {
-#ifdef PLUGINS
 		callback_args.domain_name = query->normalized_domain_name;
 		callback_args.data = NULL;
 		callback_args.result_code = RCODE_OK;
@@ -402,11 +411,13 @@ process_query(struct nsd *nsd, struct query *query)
 		callback_result = query_processed_callbacks(
 			nsd, &callback_args, query->plugin_data);
 		if (callback_result != NSD_PLUGIN_CONTINUE) {
-			return handle_callback_result(nsd, callback_result, &callback_args);
+			return handle_callback_result(callback_result, &callback_args);
 		}
-#endif /* PLUGINS */
 	}
 	return rc;
+#else /* !PLUGINS */
+	return query_process(query, nsd);
+#endif /* !PLUGINS */
 }
 
 static int

@@ -100,7 +100,7 @@ static nsd_plugin_interface_type plugin_interface = {
 #define STR2(x) #x
 #define STR(x) STR2(x)
 int
-load_plugin(struct nsd *nsd, const char *name, const char *arg)
+plugin_load(struct nsd *nsd, const char *name, const char *arg)
 {
 	struct nsd_plugin *plugin;
 	nsd_plugin_init_type *init;
@@ -151,6 +151,40 @@ load_plugin(struct nsd *nsd, const char *name, const char *arg)
 	return 1;
 }
 
+void
+plugin_finalize_all(struct nsd *nsd)
+{
+	nsd_plugin_type *plugin;
+	nsd_plugin_type *next;
+
+	plugin = first_plugin;
+	while (plugin) {
+		if (plugin->descriptor->finalize) {
+			plugin->descriptor->finalize(nsd, plugin->id);
+		}
+		dlclose(plugin->handle);
+		next = plugin->next;
+		free(plugin);
+		plugin = next;
+	}
+}
+
+nsd_plugin_callback_result_type
+plugin_database_reloaded(struct nsd *nsd)
+{
+	int rc;
+	nsd_plugin_type *plugin;
+
+	for (plugin = first_plugin; plugin; plugin = plugin->next) {
+		if (plugin->descriptor->reload) {
+			rc = plugin->descriptor->reload(nsd, plugin->id, &plugin_interface);
+			if (rc != NSD_PLUGIN_CONTINUE)
+				return rc;
+		}
+	}
+	return NSD_PLUGIN_CONTINUE;
+}
+
 #define MAKE_PERFORM_CALLBACKS(function_name, callback_name)		\
 nsd_plugin_callback_result_type						\
 function_name(								\
@@ -186,7 +220,6 @@ MAKE_PERFORM_CALLBACKS(query_processed_callbacks, query_processed)
 
 int
 handle_callback_result(
-	struct nsd *nsd,
 	nsd_plugin_callback_result_type result,
 	nsd_plugin_callback_args_type *args)
 {
@@ -200,8 +233,9 @@ handle_callback_result(
 	case NSD_PLUGIN_ABANDON:
 		return -1;
 	default:
-		/* XXX bad callback result code */
-		abort();
+		syslog(LOG_WARNING, "bad callback result code %d from plugin",
+		       (int) result);
+		return -1;
 	}
 }
 

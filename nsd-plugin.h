@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-plugin.h,v 1.3 2003/06/30 11:50:08 erik Exp $
+ * $Id: nsd-plugin.h,v 1.4 2003/06/30 13:11:47 erik Exp $
  *
  * nsd-plugin.h -- interface to NSD for a plugin.
  *
@@ -145,7 +145,8 @@ struct nsd_plugin_interface
 {
 	/*
 	 * Register plugin specific data for the specified
-	 * domain_name.
+	 * domain_name.  The plugin remains responsible for correctly
+	 * deallocating the registered data on a reload.
 	 */
 	int (*register_data)(
 		struct nsd        *nsd,
@@ -171,6 +172,21 @@ struct nsd_plugin_descriptor
 	 */
 	const char *version;
 
+	/*
+	 * Called right before NSD shuts down.
+	 */
+	void (*finalize)(struct nsd *nsd, nsd_plugin_id_type id);
+
+	/*
+	 * Called right after the database has been reloaded.  If the
+	 * plugin has registered any data that it does not re-register
+	 * it needs to deallocate this data to avoid memory leaks.
+	 */
+	nsd_plugin_callback_result_type (*reload)(
+		struct nsd *nsd,
+		nsd_plugin_id_type id,
+		const nsd_plugin_interface_type *interface);
+	
 	/*
 	 * Called right after a query has been received but before
 	 * being NSD does _any_ processing.
