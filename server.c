@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.58 2002/10/14 13:40:57 alexis Exp $
+ * $Id: server.c,v 1.59 2002/10/21 09:25:37 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -476,7 +476,9 @@ server_tcp(struct nsd *nsd)
 		/* Accept it... */
 		q.addrlen = sizeof(q.addr);
 		if((s = accept(s, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-			syslog(LOG_ERR, "accept failed: %m");
+			if(errno != ERRINTR) {
+				syslog(LOG_ERR, "accept failed: %m");
+			}
 			continue;
 		}
 
