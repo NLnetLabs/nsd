@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.4 2003/08/18 13:25:47 miekg Exp $
+ * $Id: zyparser.y,v 1.5 2003/08/18 13:46:44 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -160,24 +160,17 @@ rtype:  SOA SP rdata_soa
 dname:  abs_dname
     {
         $$->str = $1->str;
-        $$->len = $1->len;
+        $$->len = $1->len;  /* length really not important anymore */
         /* not here?!? $$->str = strlendname($$->str, $$->len); */
         printf("NEW ABS\n");
-        printf("length %d\n", $$->len);
     }
     |   rel_dname
     {
         /* append origin */
-        $$->str = (uint8_t *)cat_dname($1->str, $1->len, zdefault->origin);
-        $$->len = $1->len + zdefault->origin_len;
-        $$->str = (uint8_t *)creat_dname($$->str, $$->len);
-        printf("length %d\n", $$->len);
-        printf("length orig %d\n", zdefault->origin_len);
+        $$->str = (uint8_t *)cat_dname($$->str, zdefault->origin);
+        $$->len = $1->len;
+
         printf("\n\nNEW REL\n\n");
-        /* when returning a rel_dname the origin must be appended */
-        /*$$->len = $1->len + zdefault->origin_len + 2;
-        sprintf($$->str,"%s.%s", $1->str, zdefault->origin);
-        */
     }
     ;
 
@@ -198,18 +191,12 @@ rel_dname:  STR
     {
         $$->str = (uint8_t *) creat_dname($1->str, $1->len);
         $$->len = $1->len + 2; /* total length, label + len byte */
-        /*$$->str = (uint8_t *)strlendname($1->str, $1->len);
-        $$->len = $1->len + 1;  length byte */
     }
     |       rel_dname '.' STR
     {  
         $$->str = (uint8_t *) cat_dname ($1->str, creat_dname($3->str,
                     $3->len));
         $$->len = $1->len + $3->len;
-        /*
-        $$->str = (uint8_t *)dnamecat( $1->str, $1->len, strlendname( $3->str, $3->len));
-        $$->len = $1->len + $3->len + 1;
-        */
     }
     ;
 
