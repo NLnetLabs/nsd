@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.38 2002/02/20 15:32:31 alexis Exp $
+ * $Id: zonec.c,v 1.39 2002/02/20 15:33:09 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -526,7 +526,7 @@ zone_read(name, zonefile, cache)
 
 	}
 
-	fprintf(stderr, "zonec: zone %s completed: %d errors\n", dnamestr(z->dname), zf->errors);
+	fprintf(stderr, "zonec: zone \"%s\" completed: %d errors\n", dnamestr(z->dname), zf->errors);
 	return z;
 }
 

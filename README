@@ -1,4 +1,4 @@
-$Id: README,v 1.3 2002/02/20 15:25:52 alexis Exp $
+$Id: README,v 1.4 2002/02/20 15:32:31 alexis Exp $
 
 1.0 Introduction
 
@@ -91,7 +91,7 @@ like /var/db/nsd.db or /etc/nsd/nsd.db
 A nsdc shell script can do it for you if you create a $NSDZONES, for example /etc/nsd/nsd.zones
 which should be of the following format:
 
-# Zone Name	Master zone file name
+; Zone Name	Master zone file name
 cache	.		root.cache
 zone	bluesky.com	bluesky.com
 
