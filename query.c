@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.62.4.2 2002/05/21 11:41:39 alexis Exp $
+ * $Id: query.c,v 1.62.4.3 2002/05/23 13:03:48 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -39,6 +39,105 @@
  */
 #include "nsd.h"
 
+int 
+query_axfr(q, nsd, qname, zname, depth)
+	struct query *q;
+	struct nsd *nsd;
+	u_char *qname;
+	u_char *zname;
+	int depth;
+{
+	/* Per AXFR... */
+	static u_char *zone;
+	static struct answer *soa;
+	static struct domain *d = NULL;
+
+	struct answer *a;
+	u_char *dname;
+	u_char *qptr;
+
+	/* Is it new AXFR? */
+	if(qname) {
+		/* New AXFR... */
+		zone = zname;
+
+		/* Do we have the SOA? */
+		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, depth)
+			&& (d = namedb_lookup(nsd->db, zname)) != NULL
+				&& (soa = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
+
+			/* We'd rather have ANY than SOA to improve performance */
+			if((a = namedb_answer(d, htons(TYPE_ANY))) == NULL) {
+				a = soa;
+			}
+
+			qptr = q->iobufptr;
+			query_addanswer(q, qname, a, 0);
+
+			/* Truncate */
+			NSCOUNT(q) = 0;
+			ARCOUNT(q) = 0;
+			q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+
+			/* More data... */
+			return 1;
+
+		}
+
+		/* No SOA no transfer */
+		RCODE_SET(q, RCODE_REFUSE);
+		return 0;
+	}
+
+	/* Incorrect invocation? */
+	if(d == NULL) {
+		syslog(LOG_ERR, "query_axfr() is called without intialization");
+		RCODE_SET(q, RCODE_SERVFAIL);
+		return 0;
+	}
+
+	/* We've done everything already, let the server know... */
+	if(zone == NULL) {
+		return 0;	/* Done. */
+	}
+
+	/* Let get next domain */
+	dname = (char *)d + *((u_int32_t *)d);
+	d = (struct domain *)(dname + (((u_int32_t)*dname + 1 + 3) & 0xfffffffc));
+
+	/* End of the database or end of zone? */
+	if(*dname == 0 || namedb_answer(d, htons(TYPE_SOA)) != NULL) {
+		/* Prepare to send the terminating SOA record */
+		a = soa;
+		dname = zone;
+		zone = NULL;
+	} else {
+		/* Prepare the answer */
+		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
+			a = namedb_answer(d, htons(TYPE_NS));
+		} else {
+			a = namedb_answer(d, htons(TYPE_ANY));
+		}
+	}
+
+	/* Existing AXFR, strip the question section off... */
+	/* XXX Very interesting math... Can you figure it? I cant anymore... */
+	q->iobufptr = q->iobuf + QHEADERSZ + *dname - 2;
+	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
+
+	qptr = q->iobufptr;
+
+	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
+	bcopy(dname + 1, q->iobuf + QHEADERSZ, *dname);
+
+	/* Truncate */
+	NSCOUNT(q) = 0;
+	ARCOUNT(q) = 0;
+	q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+
+	/* More data... */
+	return 1;
+}
 
 /*
  * Stript the packet and set format error code.
@@ -64,6 +163,7 @@ query_init(q)
 	q->iobufptr = q->iobuf;
 	q->maxlen = 512;	/* XXX Should not be here */
 	q->edns = 0;
+	q->tcp = 0;
 }
 
 void
@@ -197,7 +297,11 @@ query_addanswer(q, dname, a, truncate)
 	}
 }
 
-
+/*
+ * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
+ * -1 if the query has to be silently discarded.
+ *
+ */
 int
 query_process(q, nsd)
 	struct query *q;
@@ -276,6 +380,9 @@ query_process(q, nsd)
 		query_formerr(q);
 		return 0;
 	}
+
+	/* Prepend qnamelen to qnamelow */
+	*(qnamelow - 1) = qnamelen;
 
 	bcopy(qptr, &qtype, 2); qptr += 2;
 	bcopy(qptr, &qclass, 2); qptr += 2;
@@ -390,19 +497,21 @@ query_process(q, nsd)
 		return 0;
 	}
 
+	/* Is it AXFR? */
 	switch(ntohs(qtype)) {
 	case TYPE_AXFR:
+		if(q->tcp)
+			return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
 	case TYPE_IXFR:
-			RCODE_SET(q, RCODE_REFUSE);
-			return 0;
-			break;
+		RCODE_SET(q, RCODE_REFUSE);
+		return 0;
 	}
 
 	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
 
 	/* Do we have complete name? */
-	*(qnamelow - 1) = qnamelen;
-	if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
+	if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) &&
+		((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 			if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
