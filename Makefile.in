@@ -66,6 +66,7 @@ NSD_OBJECTS	=				\
 	namedb.o				\
 	netio.o					\
 	nsd.o					\
+	packet.o				\
 	plugins.o				\
 	query.o					\
 	rbtree.o				\
@@ -73,6 +74,7 @@ NSD_OBJECTS	=				\
 	region-allocator.o			\
 	server.o				\
 	tsig.o					\
+	tsig-openssl.o				\
 	util.o
 
 ZONEC_OBJECTS	=				\
@@ -100,15 +102,22 @@ NSD_NOTIFY_OBJECTS	=			\
 	util.o
 
 NSD_XFER_OBJECTS	=			\
+	answer.o				\
+	axfr.o					\
 	buffer.o				\
+	dbaccess.o				\
 	dname.o					\
 	dns.o					\
+	edns.o					\
 	namedb.o				\
 	nsd-xfer.o				\
+	packet.o				\
+	query.o					\
 	rbtree.o				\
 	rdata.o					\
 	region-allocator.o			\
 	tsig.o					\
+	tsig-openssl.o				\
 	util.o
 
 all:	$(TARGETS)
@@ -160,7 +169,7 @@ nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJECTS) $(LIBOBJS) $(LIBS)
 
 nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBS)
+	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 clean:
 	rm -f dname rbtree *.o *.so y.* *.core *.gmon
@@ -222,10 +231,11 @@ configure:	configure.ac
 
 # Dependencies
 answer.o: answer.c config.h answer.h dns.h namedb.h dname.h buffer.h \
-  region-allocator.h util.h heap.h rbtree.h query.h nsd.h edns.h tsig.h
-axfr.o: axfr.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h query.h nsd.h edns.h tsig.h \
-  axfr.h
+  packet.h
+axfr.o: axfr.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
+  region-allocator.h util.h query.h namedb.h dname.h heap.h rbtree.h \
+  tsig.h packet.h
 buffer.o: buffer.c config.h buffer.h region-allocator.h util.h
 dbaccess.o: dbaccess.c config.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h
@@ -241,12 +251,15 @@ namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
 netio.o: netio.c config.h netio.h region-allocator.h util.h
 nsd-notify.o: nsd-notify.c config.h query.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h heap.h rbtree.h nsd.h edns.h tsig.h
-nsd-xfer.o: nsd-xfer.c config.h answer.h dns.h namedb.h dname.h buffer.h \
-  region-allocator.h util.h heap.h rbtree.h query.h nsd.h edns.h tsig.h \
-  rdata.h zonec.h
+nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
+  util.h dns.h packet.h namedb.h heap.h rbtree.h query.h nsd.h edns.h \
+  tsig.h rdata.h tsig-openssl.h zonec.h
 nsd.o: nsd.c config.h nsd.h dns.h edns.h buffer.h region-allocator.h \
   util.h plugins.h nsd-plugin.h query.h namedb.h dname.h heap.h rbtree.h \
   tsig.h
+packet.o: packet.c config.h packet.h dns.h namedb.h dname.h buffer.h \
+  region-allocator.h util.h heap.h rbtree.h query.h nsd.h edns.h tsig.h \
+  rdata.h
 plugins.o: plugins.c config.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h plugins.h nsd-plugin.h query.h namedb.h \
   dname.h heap.h rbtree.h tsig.h
@@ -260,8 +273,11 @@ region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h heap.h rbtree.h \
   tsig.h netio.h plugins.h nsd-plugin.h
+tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
+  tsig.h buffer.h util.h dname.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
-  dns.h query.h namedb.h heap.h rbtree.h nsd.h edns.h
+  tsig-openssl.h dns.h packet.h namedb.h heap.h rbtree.h query.h nsd.h \
+  edns.h
 util.o: util.c config.h util.h
 zlexer.o: zlexer.c config.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h heap.h rbtree.h zparser.h

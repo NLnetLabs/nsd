@@ -372,13 +372,13 @@ case "$enable_checking" in
                 ;;
 esac
 
-AC_ARG_ENABLE(tsig, AC_HELP_STRING([--enable-tsig], [Enable TSIG support]))
+AC_ARG_ENABLE(tsig, AC_HELP_STRING([--disable-tsig], [Disable TSIG support]))
 case "$enable_tsig" in
-        yes)
+        no)
+		;;
+        yes|*)
                 AC_CHECK_LIB(crypto, HMAC_CTX_init,, [AC_MSG_ERROR(TSIG requires OpenSSL crypto libraries.)])
                 AC_DEFINE([TSIG], [], [Define this to enable TSIG support.])
-		;;
-        no|*)
                 ;;
 esac
 

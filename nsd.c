@@ -408,11 +408,10 @@ main (int argc, char *argv[])
 # endif
 #endif
 
-#ifdef TSIG
 	if (!tsig_init(nsd.region)) {
+		log_msg(LOG_ERR, "failed to initialize TSIG\n");
 		exit(1);
 	}
-#endif
 	
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {

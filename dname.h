@@ -101,6 +101,11 @@ const dname_type *dname_partial_copy(region_type *region,
 
 
 /*
+ * The origin of DNAME.
+ */
+const dname_type *dname_origin(region_type *region, const dname_type *dname);
+
+/*
  * Return true if LEFT is a subdomain of RIGHT.
  */
 int dname_is_subdomain(const dname_type *left, const dname_type *right);

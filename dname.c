@@ -201,14 +201,24 @@ dname_copy(region_type *region, const dname_type *dname)
 const dname_type *
 dname_partial_copy(region_type *region, const dname_type *dname, uint8_t label_count)
 {
-	assert(label_count > 0);
-
 	if (!dname)
 		return NULL;
+
+	if (label_count == 0) {
+		/* Always copy the root label.  */
+		label_count = 1;
+	}
 	
 	assert(label_count <= dname->label_count);
 
 	return dname_make(region, dname_label(dname, label_count - 1), 0);
+}
+
+
+const dname_type *
+dname_origin(region_type *region, const dname_type *dname)
+{
+	return dname_partial_copy(region, dname, dname->label_count - 1);
 }
 
 

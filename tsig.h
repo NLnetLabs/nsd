@@ -10,9 +10,6 @@
 #ifndef _TSIG_H_
 #define _TSIG_H_
 
-#ifdef TSIG
-
-#include <openssl/hmac.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -27,6 +24,10 @@ struct query;
 #define TSIG_ERROR_BADKEY   17
 #define TSIG_ERROR_BADTIME  18
 
+typedef struct tsig_algorithm tsig_algorithm_type;
+typedef struct tsig_key tsig_key_type;
+typedef struct tsig_record tsig_record_type;
+
 enum tsig_status
 {
 	TSIG_NOT_PRESENT,
@@ -37,14 +38,20 @@ typedef enum tsig_status tsig_status_type;
 
 struct tsig_algorithm
 {
-	const char       *short_name;
+	tsig_algorithm_type *next;
+	const char *short_name;
 	const dname_type *wireformat_name;
-	const EVP_MD     *openssl_algorithm;
-	size_t            digest_size;
-};
-typedef struct tsig_algorithm tsig_algorithm_type;
+	size_t maximum_digest_size;
 
-extern const tsig_algorithm_type *tsig_algorithm_md5;
+	const void *data;
+
+	void *(*hmac_create_context)(region_type *region);
+	void  (*hmac_init_context)(void *context,
+				   tsig_algorithm_type *algorithm,
+				   tsig_key_type *key);
+	void  (*hmac_update)(void *context, const void *data, size_t size);
+	void  (*hmac_final)(void *context, uint8_t *digest, size_t *size);
+};
 
 struct tsig_key
 {
@@ -53,20 +60,19 @@ struct tsig_key
 	size_t            size;
 	const uint8_t    *data;
 };
-typedef struct tsig_key tsig_key_type;
 
 struct tsig_record
 {
-	region_type      *region;
-	tsig_status_type  status;
-	size_t            position;
-	size_t            response_count;
-	size_t            updates_since_last_prepare;
-	HMAC_CTX          context;
-	const tsig_algorithm_type *algorithm;
-	const tsig_key_type *key;
-	unsigned          prior_mac_size;
-	uint8_t           prior_mac_data[EVP_MAX_MD_SIZE];
+	region_type         *region;
+	tsig_status_type     status;
+	size_t               position;
+	size_t               response_count;
+	size_t               updates_since_last_prepare;
+	void                *context;
+	tsig_algorithm_type *algorithm;
+	tsig_key_type       *key;
+	size_t               prior_mac_size;
+	uint8_t             *prior_mac_data;
 
 	/* TSIG RR data is allocated in the rr_region.  */
 	region_type      *rr_region;
@@ -82,11 +88,16 @@ struct tsig_record
 	uint16_t          other_size;
 	uint8_t          *other_data;
 };
-typedef struct tsig_record tsig_record_type;
 
 int tsig_init(region_type *region);
 
 void tsig_add_key(tsig_key_type *key);
+void tsig_add_algorithm(tsig_algorithm_type *algorithm);
+
+/*
+ * Find an HMAC algorithm based on its short name.
+ */
+tsig_algorithm_type *tsig_get_algorithm_by_name(const char *name);
 
 const char *tsig_error(int error_code);
 
@@ -102,8 +113,8 @@ const char *tsig_error(int error_code);
  */
 void tsig_init_record(tsig_record_type *data,
 		      region_type *region,
-		      const tsig_algorithm_type *algorithm,
-		      const tsig_key_type *key);
+		      tsig_algorithm_type *algorithm,
+		      tsig_key_type *key);
 
 /*
  * Validate the TSIG RR key and algorithm from the TSIG RR.  Otherwise
@@ -180,7 +191,5 @@ void tsig_append_rr(tsig_record_type *tsig, buffer_type *packet);
  * (if required).
  */
 size_t tsig_reserved_space(tsig_record_type *tsig);
-
-#endif /* TSIG */
 
 #endif /* _TSIG_H_ */

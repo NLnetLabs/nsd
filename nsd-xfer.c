@@ -23,13 +23,14 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "answer.h"
 #include "dname.h"
 #include "dns.h"
+#include "packet.h"
 #include "query.h"
 #include "rdata.h"
 #include "region-allocator.h"
 #include "tsig.h"
+#include "tsig-openssl.h"
 #include "util.h"
 #include "zonec.h"
 
@@ -46,9 +47,23 @@ enum nsd_xfer_exit_codes
 
 struct axfr_state
 {
+	int s;			/* AXFR socket.  */
+	query_type *q;		/* Query buffer.  */
+	uint16_t query_id;	/* AXFR query ID.  */
+	tsig_record_type *tsig;	/* TSIG data.  */
+	
 	int    done;		/* AXFR is complete.  */
-	size_t rr_count;	/* Number of RRs transferred.  */
+	size_t rr_count;	/* Number of RRs received so far.  */
 
+	/*
+	 * Region used to allocate data needed to process a single RR.
+	 */
+	region_type *rr_region;
+
+	/*
+	 * Region used to store owner and origin of previous RR (used
+	 * for pretty printing of zone data).
+	 */
 	region_type *previous_owner_region;
 	const dname_type *previous_owner;
 	const dname_type *previous_owner_origin;
@@ -63,12 +78,6 @@ static uint16_t init_query(query_type *q,
 			   uint16_t type,
 			   uint16_t klass,
 			   tsig_record_type *tsig);
-
-static int read_rr(region_type *region,
-		   domain_table_type *owners,
-		   buffer_type *packet,
-		   int question_section,
-		   rr_type *result);
 
 /*
  * Log an error message and exit.
@@ -122,7 +131,6 @@ usage (void)
 	exit(XFER_FAIL);
 }
 
-#ifdef TSIG
 static void
 cleanup_addrinfo(void *data)
 {
@@ -130,37 +138,35 @@ cleanup_addrinfo(void *data)
 }
 
 /*
- * Read the TSIG key from a .tsiginfo file and remove the file.
+ * Read a line from IN.  If successful, the line is stripped of
+ * leading and trailing whitespace and non-zero is returned.
  */
+static int
+read_line(FILE *in, char *line, size_t size)
+{
+	if (!fgets(line, size, in)) {
+		return 0;
+	} else {
+		strip_string(line);
+		return 1;
+	}
+}
+
 static tsig_key_type *
-read_tsig_key(region_type *region,
-	      const char *tsiginfo_filename,
-	      int default_family)
+read_tsig_key_data(region_type *region, FILE *in, int default_family)
 {
 	char line[4000];
-	uint8_t data[4000];
-	FILE *in;
-	struct addrinfo hints;
 	tsig_key_type *key = region_alloc(region, sizeof(tsig_key_type));
+	struct addrinfo hints;
 	int gai_rc;
 	int size;
+	uint8_t data[4000];
 	
-	in = fopen(tsiginfo_filename, "r");
-	if (!in) {
-		error("failed to open %s: %s",
-		      tsiginfo_filename,
+	if (!read_line(in, line, sizeof(line))) {
+		error("failed to read TSIG key server address: %s\n",
 		      strerror(errno));
 		return NULL;
 	}
-
-	if (!fgets(line, sizeof(line), in)) {
-		error("failed to read TSIG key server address: %s",
-		      strerror(errno));
-		fclose(in);
-		return NULL;
-	}
-	strip_string(line);
-	fprintf(stderr, "tsig server: %s\n", line);
 	
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags |= AI_NUMERICHOST;
@@ -172,50 +178,64 @@ read_tsig_key(region_type *region,
 		error("cannot parse address '%s': %s",
 		      line,
 		      gai_strerror(gai_rc));
-		fclose(in);
 		return NULL;
 	}
 
 	region_add_cleanup(region, cleanup_addrinfo, key->server);
 	
-	if (!fgets(line, sizeof(line), in)) {
-		error("failed to read TSIG key name: %s", strerror(errno));
-		fclose(in);
+	if (!read_line(in, line, sizeof(line))) {
+		error("failed to read TSIG key name: %s\n", strerror(errno));
 		return NULL;
 	}
-	strip_string(line);
-	fprintf(stderr, "tsig name: %s\n", line);
 	
 	key->name = dname_parse(region, line, NULL);
 	if (!key->name) {
 		error("failed to parse TSIG key name %s", line);
-		fclose(in);
 		return NULL;
 	}
 
-	if (!fgets(line, sizeof(line), in)) {
-		error("failed to read TSIG key type: %s", strerror(errno));
-		fclose(in);
+	if (!read_line(in, line, sizeof(line))) {
+		error("failed to read TSIG key type: %s\n", strerror(errno));
 		return NULL;
 	}
 
-	if (!fgets(line, sizeof(line), in)) {
-		error("failed to read TSIG key data: %s", strerror(errno));
-		fclose(in);
+	if (!read_line(in, line, sizeof(line))) {
+		error("failed to read TSIG key data: %s\n", strerror(errno));
 		return NULL;
 	}
-	strip_string(line);
-	fprintf(stderr, "tsig data: %s\n", line);
 	
 	size = b64_pton(line, data, sizeof(data));
 	if (size == -1) {
 		error("failed to parse TSIG key data");
-		fclose(in);
 		return NULL;
 	}
 
 	key->size = size;
 	key->data = region_alloc_init(region, data, key->size);
+
+	return key;
+}
+
+/*
+ * Read the TSIG key from a .tsiginfo file and remove the file.
+ */
+static tsig_key_type *
+read_tsig_key(region_type *region,
+	      const char *tsiginfo_filename,
+	      int default_family)
+{
+	FILE *in;
+	tsig_key_type *key;
+	
+	in = fopen(tsiginfo_filename, "r");
+	if (!in) {
+		error("failed to open %s: %s",
+		      tsiginfo_filename,
+		      strerror(errno));
+		return NULL;
+	}
+
+	key = read_tsig_key_data(region, in, default_family);
 
 	fclose(in);
 	
@@ -229,7 +249,6 @@ read_tsig_key(region_type *region,
 
 	return key;
 }
-#endif /* TSIG */
 
 /*
  * Write the complete buffer to the socket, irrespective of short
@@ -244,7 +263,7 @@ write_socket(int s, const void *buf, size_t size)
 	while (total_count < size) {
 		ssize_t count = write(s, data + total_count, size - total_count);
 		if (count == -1) {
-			if (errno != EINTR) {
+			if (errno != EAGAIN && errno != EINTR) {
 				return 0;
 			} else {
 				continue;
@@ -258,7 +277,7 @@ write_socket(int s, const void *buf, size_t size)
 
 /*
  * Read SIZE bytes from the socket into BUF.  Keep reading unless an
- * error occurs (except for EINTR) or EOF is reached.
+ * error occurs (except for EAGAIN and EINTR) or EOF is reached.
  */
 static int
 read_socket(int s, void *buf, size_t size)
@@ -269,7 +288,7 @@ read_socket(int s, void *buf, size_t size)
 	while (total_count < size) {
 		ssize_t count = read(s, data + total_count, size - total_count);
 		if (count == -1) {
-			if (errno != EINTR) {
+			if (errno != EAGAIN && errno != EINTR) {
 				return 0;
 			} else {
 				continue;
@@ -310,46 +329,47 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 	return 1;
 }
 
-
 static void
 set_previous_owner(axfr_state_type *state, const dname_type *dname)
 {
 	region_free_all(state->previous_owner_region);
 	state->previous_owner = dname_copy(state->previous_owner_region, dname);
-	if (dname->label_count > 1) {
-		state->previous_owner_origin = dname_partial_copy(
-			state->previous_owner_region,
-			dname,
-			dname->label_count - 1);
-	} else {
-		state->previous_owner_origin = state->previous_owner;
-	}
+	state->previous_owner_origin = dname_origin(
+		state->previous_owner_region, state->previous_owner);
 }
 	
 
 static int
-print_rr(region_type *region,
-	 FILE *out,
+print_rr(FILE *out,
 	 axfr_state_type *state,
 	 rr_type *record)
 {
-	buffer_type *output = buffer_create(region, 1000);
+	buffer_type *output = buffer_create(state->rr_region, 1000);
 	rrtype_descriptor_type *descriptor
 		= rrtype_descriptor_by_type(record->type);
 	int result;
-
-	if (!state->previous_owner
-	    || dname_compare(state->previous_owner,
-			     domain_dname(record->owner)) != 0)
-	{
-		set_previous_owner(state, domain_dname(record->owner));
-		buffer_printf(
-			output,
-			"$ORIGIN %s\n",
-			dname_to_string(state->previous_owner_origin, NULL));
+	const dname_type *owner = domain_dname(record->owner);
+	const dname_type *owner_origin
+		= dname_origin(state->rr_region, owner);
+	int owner_changed
+		= (!state->previous_owner
+		   || dname_compare(state->previous_owner, owner) != 0);
+	if (owner_changed) {
+		int origin_changed = (!state->previous_owner_origin
+				      || dname_compare(
+					      state->previous_owner_origin,
+					      owner_origin) != 0);
+		if (origin_changed) {
+			buffer_printf(
+				output,
+				"$ORIGIN %s\n",
+				dname_to_string(owner_origin, NULL));
+		}
+	
+		set_previous_owner(state, owner);
 		buffer_printf(output,
 			      "%s",
-			      dname_to_string(domain_dname(record->owner),
+			      dname_to_string(owner,
 					      state->previous_owner_origin));
 	}
 	
@@ -384,58 +404,54 @@ print_rr(region_type *region,
 
 
 static int
-parse_response(query_type *q, FILE *out, axfr_state_type *state)
+parse_response(FILE *out, axfr_state_type *state)
 {
-	region_type *rr_region = region_create(xalloc, free);
 	size_t rr_count;
+	size_t qdcount = QDCOUNT(state->q);
+	size_t ancount = ANCOUNT(state->q);
 
-	size_t qdcount = QDCOUNT(q);
-	size_t ancount = ANCOUNT(q);
+	/* Skip question section.  */
+	for (rr_count = 0; rr_count < qdcount; ++rr_count) {
+		if (!packet_skip_rr(state->q->packet, 1)) {
+			error("bad RR in question section");
+			return 0;
+		}
+	}
 
-	rr_type record;
-
-	for (rr_count = 0; rr_count < qdcount + ancount; ++rr_count) {
-		domain_table_type *owners = domain_table_create(rr_region);
-		
-		if (!read_rr(rr_region,
-			     owners,
-			     q->packet,
-			     rr_count < qdcount,
-			     &record))
-		{
-			error("bad RR");
-			region_destroy(rr_region);
+	/* Read RRs from answer section and print them.  */
+	for (rr_count = 0; rr_count < ancount; ++rr_count) {
+		domain_table_type *owners
+			= domain_table_create(state->rr_region);
+		rr_type *record = packet_read_rr(
+			state->rr_region, owners, state->q->packet, 0);
+		if (!record) {
+			error("bad RR in answer section");
 			return 0;
 		}
 
-		if (rr_count >= qdcount) {
-			if (state->rr_count == 0
-			    && (record.type != TYPE_SOA
-				|| record.klass != CLASS_IN))
-			{
-				error("First RR must be the SOA record, but is a %s record",
-				      rrtype_to_string(record.type));
-				region_destroy(rr_region);
-				return 0;
-			} else if (state->rr_count > 0
-				   && record.type == TYPE_SOA
-				   && record.klass == CLASS_IN)
-			{
-				state->done = 1;
-				break;
-			}
-			++state->rr_count;
-
-			if (!print_rr(rr_region, out, state, &record)) {
-				region_destroy(rr_region);
-				return 0;
-			}
+		if (state->rr_count == 0
+		    && (record->type != TYPE_SOA || record->klass != CLASS_IN))
+		{
+			error("First RR must be the SOA record, but is a %s record",
+			      rrtype_to_string(record->type));
+			return 0;
+		} else if (state->rr_count > 0
+			   && record->type == TYPE_SOA
+			   && record->klass == CLASS_IN)
+		{
+			state->done = 1;
+			return 1;
 		}
-
-		region_free_all(rr_region);
+		
+		++state->rr_count;
+		
+		if (!print_rr(out, state, record)) {
+			return 0;
+		}
+		
+		region_free_all(state->rr_region);
 	}
 
-	region_destroy(rr_region);
 	return 1;
 }
 
@@ -443,7 +459,7 @@ static int
 send_query(int s, query_type *q)
 {
 	uint16_t size = htons(buffer_remaining(q->packet));
-	
+
 	if (!write_socket(s, &size, sizeof(size))) {
 		error("failed to send query size: %s", strerror(errno));
 		return 0;
@@ -453,7 +469,6 @@ send_query(int s, query_type *q)
 		error("failed to send query data: %s", strerror(errno));
 		return 0;
 	}
-
 	return 1;
 }
 
@@ -478,56 +493,10 @@ receive_response(int s, query_type *q)
 		return 0;
 	}
 
-	buffer_set_limit(q->packet, size);
+	buffer_set_position(q->packet, size);
 
 	return 1;
 }
-
-static int
-read_rr(region_type *region, domain_table_type *owners,
-	buffer_type *packet, int question_section, rr_type *result)
-{
-	const dname_type *owner;
-	uint16_t rdlength;
-	ssize_t rdata_count;
-	rdata_atom_type *rdatas;
-	
-	owner = dname_make_from_packet(region, packet, 1, 1);
-	if (!owner || !buffer_available(packet, 2*sizeof(uint16_t))) {
-		return 0;
-	}
-
-	result->owner = domain_table_insert(owners, owner);
-	result->type = buffer_read_u16(packet);
-	result->klass = buffer_read_u16(packet);
-
-	if (question_section) {
-		result->ttl = 0;
-		result->rdata_count = 0;
-		result->rdatas = NULL;
-		return 1;
-	} else if (!buffer_available(packet, sizeof(uint32_t) + sizeof(uint16_t))) {
-		return 0;
-	}
-	
-	result->ttl = buffer_read_u32(packet);
-	rdlength = buffer_read_u16(packet);
-	
-	if (!buffer_available(packet, rdlength)) {
-		return 0;
-	}
-
-	rdata_count = rdata_wireformat_to_rdata_atoms(
-		region, owners, result->type, rdlength, packet, &rdatas);
-	if (rdata_count == -1) {
-		return 0;
-	}
-	result->rdata_count = rdata_count;
-	result->rdatas = rdatas;
-	
-	return 1;
-}
-
 
 static int
 check_response_tsig(query_type *q, tsig_record_type *tsig)
@@ -573,6 +542,7 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 	return 1;
 }
 
+
 /*
  * Query the server for the zone serial. Return 1 if the zone serial
  * is higher than the current serial, 0 if the zone serial is lower or
@@ -592,7 +562,6 @@ check_serial(int s,
 	uint16_t query_id;
 	uint16_t i;
 	domain_table_type *owners;
-	rr_type record;
 	
 	query_id = init_query(q, zone, TYPE_SOA, CLASS_IN, tsig);
 	
@@ -608,6 +577,7 @@ check_serial(int s,
 	if (!receive_response(s, q)) {
 		return -1;
 	}
+	buffer_flip(q->packet);
 
 	if (buffer_limit(q->packet) <= QHEADERSZ) {
 		error("response size (%d) is too small",
@@ -657,15 +627,16 @@ check_serial(int s,
 	
 	/* Skip question records. */
 	for (i = 0; i < QDCOUNT(q); ++i) {
-		if (!read_rr(local, owners, q->packet, 1, &record)) {
+		rr_type *record = packet_read_rr(local, owners, q->packet, 1);
+		if (!record) {
 			error("bad RR in question section");
 			region_destroy(local);
 			return -1;
 		}
 
-		if (dname_compare(zone, domain_dname(record.owner)) != 0
-		    || record.type != TYPE_SOA
-		    || record.klass != CLASS_IN)
+		if (dname_compare(zone, domain_dname(record->owner)) != 0
+		    || record->type != TYPE_SOA
+		    || record->klass != CLASS_IN)
 		{
 			error("response does not match query");
 			region_destroy(local);
@@ -675,19 +646,21 @@ check_serial(int s,
 	
 	/* Find the SOA record in the response.  */
 	for (i = 0; i < ANCOUNT(q); ++i) {
-		if (!read_rr(local, owners, q->packet, 0, &record)) {
+		rr_type *record = packet_read_rr(local, owners, q->packet, 0);
+		if (!record) {
 			error("bad RR in answer section");
 			region_destroy(local);
 			return -1;
 		}
 
-		if (dname_compare(zone, domain_dname(record.owner)) == 0
-		    && record.type == TYPE_SOA
-		    && record.klass == CLASS_IN)
+		if (dname_compare(zone, domain_dname(record->owner)) == 0
+		    && record->type == TYPE_SOA
+		    && record->klass == CLASS_IN)
 		{
-			assert(record.rdata_count == 7);
-			assert(rdata_atom_size(record.rdatas[2]) == 4);
-			*zone_serial = read_uint32(rdata_atom_data(record.rdatas[2]));
+			assert(record->rdata_count == 7);
+			assert(rdata_atom_size(record->rdatas[2]) == 4);
+			*zone_serial = read_uint32(rdata_atom_data(
+							   record->rdatas[2]));
 			region_destroy(local);
 			return *zone_serial > current_serial;
 		}
@@ -698,6 +671,63 @@ check_serial(int s,
 	return -1;
 }
 
+/*
+ * Receive and parse the AXFR response packets.
+ */
+static int
+handle_axfr_response(FILE *out, axfr_state_type *axfr)
+{
+	while (!axfr->done) {
+		if (!receive_response(axfr->s, axfr->q)) {
+			return 0;
+		}
+		buffer_flip(axfr->q->packet);
+		
+		if (buffer_limit(axfr->q->packet) <= QHEADERSZ) {
+			error("response size (%d) is too small",
+			      (int) buffer_limit(axfr->q->packet));
+			return 0;
+		}
+
+		if (!QR(axfr->q)) {
+			error("response is not a response");
+			return 0;
+		}
+
+		if (ID(axfr->q) != axfr->query_id) {
+			error("bad response id (%d), expected (%d)",
+			      (int) ID(axfr->q), (int) axfr->query_id);
+			return 0;
+		}
+
+		if (RCODE(axfr->q) != RCODE_OK) {
+			error("error response %d", (int) RCODE(axfr->q));
+			return 0;
+		}
+
+		if (QDCOUNT(axfr->q) > 1) {
+			error("query section count greater than 1");
+			return 0;
+		}
+
+		if (ANCOUNT(axfr->q) == 0) {
+			error("answer section is empty");
+			return 0;
+		}
+
+		if (!check_response_tsig(axfr->q, axfr->tsig)) {
+			return 0;
+		}
+	
+		buffer_set_position(axfr->q->packet, QHEADERSZ);
+		
+		if (!parse_response(out, axfr)) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
 static int
 axfr(int s,
      query_type *q,
@@ -706,11 +736,9 @@ axfr(int s,
      tsig_record_type *tsig)
 {
 	axfr_state_type state;
-	uint16_t query_id;
-
-	assert(q->maxlen <= QIOBUFSZ);
-
-	query_id = init_query(q, zone, TYPE_AXFR, CLASS_IN, tsig);
+	int result;
+	
+	state.query_id = init_query(q, zone, TYPE_AXFR, CLASS_IN, tsig);
 
 	if (!send_query(s, q)) {
 		return 0;
@@ -721,60 +749,22 @@ axfr(int s,
 		tsig_prepare(tsig);
 	}
 	
+	state.s = s;
+	state.q = q;
+	state.tsig = tsig;
 	state.done = 0;
 	state.rr_count = 0;
+	state.rr_region = region_create(xalloc, free);
 	state.previous_owner_region = region_create(xalloc, free);
 	state.previous_owner = NULL;
 	state.previous_owner_origin = NULL;
-	
-	while (!state.done) {
-		if (!receive_response(s, q)) {
-			return 0;
-		}
-		
-		if (buffer_limit(q->packet) <= QHEADERSZ) {
-			error("response size (%d) is too small",
-			      (int) buffer_limit(q->packet));
-			return 0;
-		}
 
-		if (!QR(q)) {
-			error("response is not a response");
-			return 0;
-		}
+	result = handle_axfr_response(out, &state);
 
-		if (ID(q) != query_id) {
-			error("bad response id (%d), expected (%d)",
-			      (int) ID(q), (int) query_id);
-			return 0;
-		}
+	region_destroy(state.previous_owner_region);
+	region_destroy(state.rr_region);
 
-		if (RCODE(q) != RCODE_OK) {
-			error("error response %d", (int) RCODE(q));
-			return 0;
-		}
-
-		if (QDCOUNT(q) > 1) {
-			error("query section count greater than 1");
-			return 0;
-		}
-
-		if (ANCOUNT(q) == 0) {
-			error("answer section is empty");
-			return 0;
-		}
-
-		if (!check_response_tsig(q, tsig)) {
-			return 0;
-		}
-	
-		buffer_set_position(q->packet, QHEADERSZ);
-		
-		if (!parse_response(q, out, &state)) {
-			return 0;
-		}
-	}
-	return 1;
+	return result;
 }
 
 static uint16_t
@@ -832,21 +822,17 @@ main (int argc, char *argv[])
 	region_type *region = region_create(xalloc, free);
 	int default_family = DEFAULT_AI_FAMILY;
 	FILE *zone_file;
-#ifdef TSIG
 	const char *tsig_key_filename = NULL;
 	tsig_key_type *tsig_key = NULL;
 	tsig_record_type *tsig = NULL;
-#endif
 	
 	log_init("nsd-xfer");
 
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
-#ifdef TSIG
 	if (!tsig_init(region)) {
 		error("TSIG initialization failed");
 	}
-#endif
 
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46f:hp:s:T:z:")) != -1) {
@@ -874,12 +860,7 @@ main (int argc, char *argv[])
 			serial = optarg;
 			break;
 		case 'T':
-#ifdef TSIG
 			tsig_key_filename = optarg;
-#else /* !TSIG */
-			error("TSIG support is not enabled");
-			exit(XFER_FAIL);
-#endif
 			break;
 		case 'z':
 			zone = dname_parse(region, optarg, NULL);
@@ -904,8 +885,15 @@ main (int argc, char *argv[])
 		}
 	}
 	
-#ifdef TSIG
 	if (tsig_key_filename) {
+		tsig_algorithm_type *md5
+			= tsig_get_algorithm_by_name("hmac-md5");
+		if (!md5) {
+			error("cannot initialize hmac-md5: TSIG support not"
+			      " enabled");
+			exit(XFER_FAIL);
+		}
+		
 		tsig_key = read_tsig_key(
 			region, tsig_key_filename, default_family);
 		if (!tsig_key) {
@@ -915,9 +903,8 @@ main (int argc, char *argv[])
 		tsig_add_key(tsig_key);
 		
 		tsig = region_alloc(region, sizeof(tsig_record_type));
-		tsig_init_record(tsig, region, tsig_algorithm_md5, tsig_key);
+		tsig_init_record(tsig, region, md5, tsig_key);
 	}
-#endif
 	
 	/* Initialize the query */
 	memset(&q, 0, sizeof(query_type));
