@@ -61,7 +61,8 @@ const dname_type *dname_make(region_type *region, const uint8_t *name);
  * dname or set to just after the first compression pointer.
  */
 const dname_type *dname_make_from_packet(region_type *region,
-					 buffer_type *packet);
+					 buffer_type *packet,
+					 int normalize);
 
 
 /*

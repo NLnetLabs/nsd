@@ -1,38 +1,9 @@
 /*
  * axfr.c -- generating AXFR responses.
  *
- * Erik Rozendaal, <erik@nlnetlabs.nl>
- *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
- * This software is an open source.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the NLNET LABS nor the names of its contributors may
- * be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * See LICENSE for the license.
  *
  */
 
@@ -101,9 +72,14 @@ query_axfr (struct nsd *nsd, struct query *query)
 		}
 		++total_added;
 	} else {
-		/* Query name only needs to be preserved in first answer packet.  */
-		buffer_set_position(query->packet, QHEADERSZ);
-		QDCOUNT(query) = 0;
+		/*
+		 * Query name and EDNS need not be repeated after the
+		 * first response packet.
+		 */
+		query->edns.status = EDNS_NOT_PRESENT;
+		buffer_set_limit(query->packet, QHEADERSZ);
+		QDCOUNT_SET(query, 0);
+		query_prepare_response(query);
 	}
 
 	/* Add zone RRs until answer is full.  */
@@ -152,9 +128,9 @@ query_axfr (struct nsd *nsd, struct query *query)
 	}
 
 return_answer:
-	ANCOUNT(query) = htons(total_added);
-	NSCOUNT(query) = 0;
-	ARCOUNT(query) = 0;
+	ANCOUNT_SET(query, total_added);
+	NSCOUNT_SET(query, 0);
+	ARCOUNT_SET(query, 0);
 	query_clear_compression_tables(query);
 	return QUERY_IN_AXFR;
 }

@@ -1,38 +1,9 @@
 /*
  * server.c -- nsd(8) network input/output
  *
- * Alexis Yushin, <alexis@nlnetlabs.nl>
- *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
- * This software is an open source.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the NLNET LABS nor the names of its contributors may
- * be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * See LICENSE for the license.
  *
  */
 
@@ -780,8 +751,9 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 		if (process_query(data->nsd, q) != QUERY_DISCARDED) {
 			if (RCODE(q) == RCODE_OK && !AA(q))
 				STATUP(data->nsd, nona);
-			/* Add edns(0) info if necessary.. */
-			query_addedns(q, data->nsd);
+
+			/* Add EDNS0 and TSIG info if necessary.  */
+			query_add_optional(q, data->nsd);
 
 			buffer_flip(q->packet);
 
@@ -968,7 +940,7 @@ handle_tcp_reading(netio_type *netio,
 		STATUP(data->nsd, nona);
 	}
 		
-	query_addedns(data->query, data->nsd);
+	query_add_optional(data->query, data->nsd);
 
 	/* Switch to the tcp write handler.  */
 	buffer_flip(data->query->packet);
@@ -1069,6 +1041,8 @@ handle_tcp_writing(netio_type *netio,
 		buffer_clear(q->packet);
 		data->query_state = query_axfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
+			query_add_optional(data->query, data->nsd);
+			
 			/* Reset data. */
 			buffer_flip(q->packet);
 			q->tcplen = buffer_remaining(q->packet);

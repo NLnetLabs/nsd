@@ -1,45 +1,35 @@
 /*
  * nsd.h -- nsd(8) definitions and prototypes
  *
- * Alexis Yushin, <alexis@nlnetlabs.nl>
- *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
- * This software is an open source.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the NLNET LABS nor the names of its contributors may
- * be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * See LICENSE for the license.
  *
  */
 
 #ifndef	_NSD_H_
 #define	_NSD_H_
 
+#include "dns.h"
+#include "edns.h"
 #include "region-allocator.h"
+
+/* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
+enum nsd_rc
+{
+	/* Discard the client request.  */
+	NSD_RC_DISCARD  = -1,
+	/* OK, continue normal processing.  */
+	NSD_RC_OK       = RCODE_OK,
+	/* Return the appropriate error code to the client.  */
+	NSD_RC_FORMAT   = RCODE_FORMAT,
+	NSD_RC_SERVFAIL = RCODE_SERVFAIL,
+	NSD_RC_NXDOMAIN = RCODE_NXDOMAIN,
+	NSD_RC_IMPL     = RCODE_IMPL,
+	NSD_RC_REFUSE   = RCODE_REFUSE,
+	NSD_RC_NOTAUTH  = RCODE_NOTAUTH
+};
+typedef enum nsd_rc nsd_rc_type;
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
@@ -57,8 +47,6 @@
 #else
 #define DEFAULT_AI_FAMILY AF_INET
 #endif
-
-#define	OPT_LEN	11U	 /* Length of the NSD EDNS response record. */
 
 #ifdef BIND8_STATS
 
@@ -92,12 +80,6 @@ struct nsd_child
 
 	/* The child's process id.  */
 	pid_t pid;
-};
-
-struct edns_data
-{
-	char ok[OPT_LEN];
-	char error[OPT_LEN];
 };
 
 /* NSD configuration and run-time variables */
@@ -135,9 +117,9 @@ struct	nsd {
 	/* UDP specific configuration */
 	struct nsd_socket udp[MAX_INTERFACES];
 
-	struct edns_data  edns_ipv4;	
+	edns_data_type edns_ipv4;	
 #if defined(INET6)
-	struct edns_data  edns_ipv6;
+	edns_data_type edns_ipv6;
 #endif
 
 	int maximum_tcp_count;

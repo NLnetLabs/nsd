@@ -81,7 +81,7 @@ dname_make(region_type *region, const uint8_t *name)
 
 
 const dname_type *
-dname_make_from_packet(region_type *region, buffer_type *packet)
+dname_make_from_packet(region_type *region, buffer_type *packet, int normalize)
 {
 	uint8_t buf[MAXDOMAINLEN + 1];
 	int done = 0;
@@ -134,8 +134,15 @@ dname_make_from_packet(region_type *region, buffer_type *packet)
 /* 				error("dname too large"); */
 				return NULL;
 			}
-			buffer_read(packet, buf + dname_length, length);
-			dname_length += length;
+			if (normalize) {
+				buf[dname_length++] = buffer_read_u8(packet);
+				for (; length > 1; --length) {
+					buf[dname_length++] = NAMEDB_NORMALIZE(buffer_read_u8(packet));
+				}
+			} else {
+				buffer_read(packet, buf + dname_length, length);
+				dname_length += length;
+			}
 		} else {
 /* 			error("bad label type"); */
 			return NULL;

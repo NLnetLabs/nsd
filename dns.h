@@ -13,6 +13,22 @@
 #include "buffer.h"
 #include "region-allocator.h"
 
+/* Possible OPCODE values */
+#define	OPCODE_QUERY		0 	/* a standard query (QUERY) */
+#define OPCODE_IQUERY		1 	/* an inverse query (IQUERY) */
+#define OPCODE_STATUS		2 	/* a server status request (STATUS) */
+#define OPCODE_NOTIFY		4 	/* NOTIFY */
+#define OPCODE_UPDATE		5 	/* Dynamic update */
+
+/* Possible RCODE values */
+#define	RCODE_OK		0 	/* No error condition */
+#define RCODE_FORMAT		1 	/* Format error */
+#define RCODE_SERVFAIL		2 	/* Server failure */
+#define RCODE_NXDOMAIN		3 	/* Name Error */
+#define RCODE_IMPL		4 	/* Not implemented */
+#define RCODE_REFUSE		5 	/* Refused */
+#define RCODE_NOTAUTH           9	/* Not authorized */
+
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
 #define	CLASS_CHAOS	3	/* Class CHAOS */
@@ -67,6 +83,7 @@
 #define TYPE_NSEC	47	
 #define TYPE_DNSKEY	48
 
+#define TYPE_TSIG       250
 #define	TYPE_IXFR	251
 #define	TYPE_AXFR	252
 #define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */

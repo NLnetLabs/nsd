@@ -1,38 +1,9 @@
 #
 # Makefile -- one file to make them all, nsd(8)
 #
-# Alexis Yushin, <alexis@nlnetlabs.nl>
-#
 # Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
 #
-# This software is an open source.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-#
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-#
-# Neither the name of the NLNET LABS nor the names of its contributors may
-# be used to endorse or promote products derived from this software without
-# specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-# TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# See LICENSE for the license.
 #
 
 # Standard installation pathnames
@@ -92,6 +63,7 @@ NSD_OBJECTS	=				\
 	dbaccess.o				\
 	dname.o					\
 	dns.o					\
+	edns.o					\
 	namedb.o				\
 	netio.o					\
 	nsd.o					\
@@ -100,6 +72,7 @@ NSD_OBJECTS	=				\
 	rbtree.o				\
 	region-allocator.o			\
 	server.o				\
+	tsig.o					\
 	util.o
 
 ZONEC_OBJECTS	=				\
@@ -243,43 +216,51 @@ configure:	configure.ac
 	autoconf
 
 # Dependencies
-answer.o: answer.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h query.h buffer.h util.h nsd.h
-axfr.o: axfr.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h query.h buffer.h util.h nsd.h axfr.h
+answer.o: answer.c config.h answer.h namedb.h dname.h buffer.h \
+  region-allocator.h util.h heap.h rbtree.h dns.h query.h edns.h nsd.h \
+  tsig.h
+axfr.o: axfr.c config.h answer.h namedb.h dname.h buffer.h \
+  region-allocator.h util.h heap.h rbtree.h dns.h query.h edns.h nsd.h \
+  tsig.h axfr.h
 buffer.o: buffer.c config.h buffer.h region-allocator.h util.h
-dbaccess.o: dbaccess.c config.h dns.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h util.h
-dbcreate.o: dbcreate.c config.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h util.h
-dname.o: dname.c config.h dns.h dname.h heap.h rbtree.h \
-  region-allocator.h namedb.h util.h
-dns.o: dns.c config.h dns.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h zonec.h zparser.h
-namedb.o: namedb.c config.h dns.h dname.h heap.h rbtree.h \
-  region-allocator.h namedb.h util.h
+dbaccess.o: dbaccess.c config.h dns.h buffer.h region-allocator.h util.h \
+  namedb.h dname.h heap.h rbtree.h
+dbcreate.o: dbcreate.c config.h namedb.h dname.h buffer.h \
+  region-allocator.h util.h heap.h rbtree.h dns.h
+dname.o: dname.c config.h dns.h buffer.h region-allocator.h util.h \
+  dname.h heap.h rbtree.h namedb.h query.h edns.h nsd.h tsig.h
+dns.o: dns.c config.h dns.h buffer.h region-allocator.h util.h namedb.h \
+  dname.h heap.h rbtree.h zonec.h zparser.h
+edns.o: edns.c config.h dns.h buffer.h region-allocator.h util.h edns.h \
+  query.h dname.h heap.h rbtree.h namedb.h nsd.h tsig.h
+namedb.o: namedb.c config.h dns.h buffer.h region-allocator.h util.h \
+  dname.h heap.h rbtree.h namedb.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
 nsd-notify.o: nsd-notify.c config.h buffer.h region-allocator.h util.h \
-  dns.h dname.h heap.h rbtree.h nsd.h query.h namedb.h
-nsd-xfer.o: nsd-xfer.c config.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h query.h buffer.h util.h namedb.h nsd.h zonec.h
-nsd.o: nsd.c config.h dname.h heap.h rbtree.h region-allocator.h dns.h \
-  namedb.h nsd.h plugins.h nsd-plugin.h query.h buffer.h util.h
-plugins.o: plugins.c config.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h plugins.h nsd-plugin.h nsd.h query.h buffer.h \
-  util.h
-query.o: query.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h query.h buffer.h util.h nsd.h axfr.h plugins.h \
-  nsd-plugin.h
+  dns.h dname.h heap.h rbtree.h nsd.h edns.h query.h namedb.h tsig.h
+nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
+  util.h heap.h rbtree.h dns.h query.h edns.h namedb.h nsd.h tsig.h \
+  zonec.h
+nsd.o: nsd.c config.h dname.h buffer.h region-allocator.h util.h heap.h \
+  rbtree.h dns.h namedb.h nsd.h edns.h plugins.h nsd-plugin.h query.h \
+  tsig.h
+plugins.o: plugins.c config.h namedb.h dname.h buffer.h \
+  region-allocator.h util.h heap.h rbtree.h dns.h plugins.h nsd-plugin.h \
+  nsd.h edns.h query.h tsig.h
+query.o: query.c config.h answer.h namedb.h dname.h buffer.h \
+  region-allocator.h util.h heap.h rbtree.h dns.h query.h edns.h nsd.h \
+  tsig.h axfr.h plugins.h nsd-plugin.h
 rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 region-allocator.o: region-allocator.c config.h region-allocator.h
-server.o: server.c config.h axfr.h nsd.h region-allocator.h query.h \
-  buffer.h util.h dname.h heap.h rbtree.h namedb.h dns.h netio.h \
-  plugins.h nsd-plugin.h
+server.o: server.c config.h axfr.h nsd.h dns.h buffer.h \
+  region-allocator.h util.h edns.h query.h dname.h heap.h rbtree.h \
+  namedb.h tsig.h netio.h plugins.h nsd-plugin.h
+tsig.o: tsig.c config.h buffer.h region-allocator.h util.h tsig.h dname.h \
+  heap.h rbtree.h nsd.h dns.h edns.h query.h namedb.h
 util.o: util.c config.h util.h
-zlexer.o: zlexer.c config.h zonec.h dns.h namedb.h dname.h heap.h \
-  rbtree.h region-allocator.h zparser.h
-zonec.o: zonec.c config.h zonec.h dns.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h util.h zparser.h
-zparser.o: zparser.c config.h dname.h heap.h rbtree.h region-allocator.h \
-  namedb.h dns.h zonec.h
+zlexer.o: zlexer.c config.h zonec.h dns.h buffer.h region-allocator.h \
+  util.h namedb.h dname.h heap.h rbtree.h zparser.h
+zonec.o: zonec.c config.h zonec.h dns.h buffer.h region-allocator.h \
+  util.h namedb.h dname.h heap.h rbtree.h zparser.h
+zparser.o: zparser.c config.h dname.h buffer.h region-allocator.h util.h \
+  heap.h rbtree.h namedb.h dns.h zonec.h

@@ -1,38 +1,9 @@
 /*
  * nsd.c -- nsd(8)
  *
- * Alexis Yushin, <alexis@nlnetlabs.nl>
- *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
- * This software is an open source.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the NLNET LABS nor the names of its contributors may
- * be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * See LICENSE for the license.
  *
  */
 
@@ -68,6 +39,7 @@
 #include "namedb.h"
 #include "nsd.h"
 #include "plugins.h"
+#include "tsig.h"
 #include "query.h"
 #include "util.h"
 
@@ -379,21 +351,6 @@ bind8_stats (struct nsd *nsd)
 extern char *optarg;
 extern int optind;
 
-static void
-initialize_edns(struct edns_data *data, uint16_t max_length)
-{
-	memset(data, 0, sizeof(struct edns_data));
-	data->ok[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
-	data->ok[2] = TYPE_OPT & 0x00ff;	/* type_lo */
-	data->ok[3] = (max_length & 0xff00) >> 8; /* size_hi */
-	data->ok[4] = max_length & 0x00ff;	  /* size_lo */
-	data->error[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
-	data->error[2] = TYPE_OPT & 0x00ff;		/* type_lo */
-	data->error[3] = (max_length & 0xff00) >> 8;	/* size_hi */
-	data->error[4] = max_length & 0x00ff;		/* size_lo */
-	data->error[5] = 1;	/* XXX Extended RCODE=BAD VERS */
-}
-
 int 
 main (int argc, char *argv[])
 {
@@ -418,7 +375,7 @@ main (int argc, char *argv[])
 #endif /* PLUGINS */
 
 	log_init("nsd");
-	
+
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.region      = region_create(xalloc, free);
@@ -447,15 +404,19 @@ main (int argc, char *argv[])
 	nsd.current_tcp_count = 0;
 	
 	/* EDNS0 */
-	initialize_edns(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
+	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
 #if defined(INET6)
 # if defined(IPV6_USE_MIN_MTU)
-	initialize_edns(&nsd.edns_ipv6, EDNS_MAX_MESSAGE_LEN);
+	edns_init_data(&nsd.edns_ipv6, EDNS_MAX_MESSAGE_LEN);
 # else /* !defined(IPV6_USE_MIN_MTU) */
-	initialize_edns(&nsd.edns_ipv6, IPV6_MIN_MTU);
+	edns_init_data(&nsd.edns_ipv6, IPV6_MIN_MTU);
 # endif
 #endif
 
+	if (!tsig_init(nsd.region)) {
+		exit(1);
+	}
+	
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
 		nsd.identity = hostname;

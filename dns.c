@@ -349,7 +349,7 @@ rdata_dname_to_string(buffer_type *output, buffer_type *packet)
 {
 	int result = 0;
 	region_type *region = region_create(xalloc, free);
-	const dname_type *dname = dname_make_from_packet(region, packet);
+	const dname_type *dname = dname_make_from_packet(region, packet, 0);
 	if (dname) {
 		buffer_printf(output, "%s", dname_to_string(dname));
 		result = 1;

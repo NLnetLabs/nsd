@@ -15,9 +15,11 @@
 
 #include "buffer.h"
 #include "dname.h"
+#include "edns.h"
 #include "namedb.h"
 #include "nsd.h"
 #include "region-allocator.h"
+#include "tsig.h"
 #include "util.h"
 
 /*
@@ -112,38 +114,28 @@
 #define	RA_CLR(query)	(*((query)->packet->_data+3) &= ~RA_MASK)
 
 /* Query ID */
-#define	ID(query)		(*(uint16_t *)((query)->packet->_data))
+#define	ID(query)		(buffer_read_u16_at((query)->packet, 0))
+#define	ID_SET(query, id)	(buffer_write_u16_at((query)->packet, 0, (id)))
+
+/* Flags, RCODE, and OPCODE. */
+#define FLAGS(query)		(buffer_read_u16_at((query)->packet, 2))
+#define FLAGS_SET(query, f)	(buffer_write_u16_at((query)->packet, 2, (f)))
 
 /* Counter of the question section */
-#define QDCOUNT_OFF		4
-#define	QDCOUNT(query)		(*(uint16_t *)((query)->packet->_data+QDCOUNT_OFF))
+#define	QDCOUNT(query)		(buffer_read_u16_at((query)->packet, 4))
+#define QDCOUNT_SET(query, c)   (buffer_write_u16_at((query)->packet, 4, (c)))
 
 /* Counter of the answer section */
-#define ANCOUNT_OFF		6
-#define	ANCOUNT(query)		(*(uint16_t *)((query)->packet->_data+ANCOUNT_OFF))
+#define	ANCOUNT(query)		(buffer_read_u16_at((query)->packet, 6))
+#define ANCOUNT_SET(query, c)   (buffer_write_u16_at((query)->packet, 6, (c)))
 
 /* Counter of the authority section */
-#define NSCOUNT_OFF		8
-#define	NSCOUNT(query)		(*(uint16_t *)((query)->packet->_data+NSCOUNT_OFF))
+#define	NSCOUNT(query)		(buffer_read_u16_at((query)->packet, 8))
+#define NSCOUNT_SET(query, c)   (buffer_write_u16_at((query)->packet, 8, (c)))
 
 /* Counter of the additional section */
-#define ARCOUNT_OFF		10
-#define	ARCOUNT(query)		(*(uint16_t *)((query)->packet->_data+ARCOUNT_OFF))
-
-/* Possible OPCODE values */
-#define	OPCODE_QUERY		0 	/* a standard query (QUERY) */
-#define OPCODE_IQUERY		1 	/* an inverse query (IQUERY) */
-#define OPCODE_STATUS		2 	/* a server status request (STATUS) */
-#define OPCODE_NOTIFY		4 	/* NOTIFY */
-#define OPCODE_UPDATE		5 	/* Dynamic update */
-
-/* Possible RCODE values */
-#define	RCODE_OK		0 	/* No error condition */
-#define RCODE_FORMAT		1 	/* Format error */
-#define RCODE_SERVFAIL		2 	/* Server failure */
-#define RCODE_NXDOMAIN		3 	/* Name Error */
-#define RCODE_IMPL		4 	/* Not implemented */
-#define RCODE_REFUSE		5 	/* Refused */
+#define	ARCOUNT(query)		(buffer_read_u16_at((query)->packet, 10))
+#define ARCOUNT_SET(query, c)   (buffer_write_u16_at((query)->packet, 10, (c)))
 
 /* Miscelaneous limits */
 #define MAX_PACKET_SIZE         65535   /* Maximum supported size of DNS packets.  */
@@ -183,8 +175,18 @@ struct query {
 	 * Maximum supported query size.
 	 */
 	size_t maxlen;
-	int edns;
-	int dnssec_ok;
+
+	/*
+	 * Space reserved for optional records like EDNS and TSIG.
+	 */
+	size_t reserved_space;
+
+	/* EDNS information provided by the client.  */
+	edns_record_type edns;
+
+	/* TSIG information.  */
+	tsig_record_type tsig;
+	
 	int tcp;
 	uint16_t tcplen;
 
@@ -299,25 +301,31 @@ void query_reset(query_type *query, size_t maxlen, int is_tcp);
 /*
  * Process a query and write the response in the query I/O buffer.
  */
-query_state_type query_process(struct query *q, struct nsd *nsd);
+query_state_type query_process(query_type *q, struct nsd *nsd);
 
 /*
- * Add EDNS information to the response if required.
+ * Prepare the query structure for writing the response. The packet
+ * data up-to the current packet limit is preserved. This usually
+ * includes the packet header and question section. Space is reserved
+ * for the optional EDNS and TSIG records, if required.
  */
-void query_addedns(struct query *q, struct nsd *nsd);
+void query_prepare_response(query_type *q);
+
+/*
+ * Add EDNS0 and TSIG information to the response if required.
+ */
+void query_add_optional(query_type *q, struct nsd *nsd);
 
 /*
  * Write an error response into the query structure with the indicated
  * RCODE.
  */
-void query_error(struct query *q, int rcode);
-
-
+query_state_type query_error(query_type *q, int rcode);
 
 static inline int
-query_overflow(struct query *q)
+query_overflow(query_type *q)
 {
-	return buffer_position(q->packet) > q->maxlen;
+	return buffer_position(q->packet) > (q->maxlen - q->reserved_space);
 }
 
 #endif /* _QUERY_H_ */

@@ -130,7 +130,7 @@ print_rr(region_type *region, buffer_type *packet, FILE *out,
 	buffer_type *output = buffer_create(region, 1000);
 	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(rrtype);
 	size_t saved_position;
-	size_t saved_limit = buffer_limit(packet);
+	size_t saved_limit;
 	int result;
 	
 	if (!buffer_available(packet, rdlength)) {
@@ -138,6 +138,7 @@ print_rr(region_type *region, buffer_type *packet, FILE *out,
 		return 0;
 	}
 
+	saved_limit = buffer_limit(packet);
 	buffer_set_limit(packet, buffer_position(packet) + rdlength);
 	
 	buffer_printf(output, "%s %lu %s %s",
@@ -159,10 +160,10 @@ print_rr(region_type *region, buffer_type *packet, FILE *out,
 	assert(!result || buffer_remaining(packet) == 0);
 	
 	if (result) {
-		buffer_reserve(output, 1);
-		buffer_write_u8(output, 0);
+		buffer_printf(output, "\n");
 		buffer_flip(output);
-		fprintf(out, "%s\n", (char *) buffer_current(output));
+		fwrite(buffer_current(output), buffer_remaining(output), 1,
+		       out);
 	}
 	
 	buffer_set_limit(packet, saved_limit);
@@ -177,10 +178,10 @@ parse_response(struct query *q, FILE *out, int first, int *done)
 	region_type *rr_region = region_create(xalloc, free);
 	size_t rr_count;
 
-	size_t qdcount = ntohs(QDCOUNT(q));
-	size_t ancount = ntohs(ANCOUNT(q));
-	size_t nscount = ntohs(NSCOUNT(q));
-	size_t arcount = ntohs(ARCOUNT(q));
+	size_t qdcount = QDCOUNT(q);
+	size_t ancount = ANCOUNT(q);
+	size_t nscount = NSCOUNT(q);
+	size_t arcount = ARCOUNT(q);
 	
 	const dname_type *owner;
 	uint16_t rrtype;
@@ -189,7 +190,7 @@ parse_response(struct query *q, FILE *out, int first, int *done)
 	uint16_t rdlength;
 
 	for (rr_count = 0; rr_count < qdcount + ancount; ++rr_count) {
-		owner = dname_make_from_packet(rr_region, q->packet);
+		owner = dname_make_from_packet(rr_region, q->packet, 0);
 		if (!owner) {
 			region_destroy(rr_region);
 			return 0;
@@ -291,7 +292,7 @@ do_axfr(int s, struct query *q, FILE *out)
 
 		if (ID(q) != query_id) {
 			error("bad response id (%d), expected (%d)",
-			      (int) ntohs(ID(q)), (int) ntohs(query_id));
+			      (int) ID(q), (int) query_id);
 			return 0;
 		}
 
@@ -300,12 +301,12 @@ do_axfr(int s, struct query *q, FILE *out)
 			return 0;
 		}
 
-		if (ntohs(QDCOUNT(q)) > 1) {
+		if (QDCOUNT(q) > 1) {
 			error("query section count greater than 1");
 			return 0;
 		}
 
-		if (ntohs(ANCOUNT(q)) == 0) {
+		if (ANCOUNT(q) == 0) {
 			error("answer section is empty");
 			return 0;
 		}
@@ -393,7 +394,7 @@ main (int argc, char *argv[])
 
 	/* Set up the header */
 	OPCODE_SET(&q, OPCODE_QUERY);
-	ID(&q) = 42;          /* Does not need to be random. */
+	ID_SET(&q, 42);          /* Does not need to be random. */
 	AA_SET(&q);
 
 	buffer_skip(q.packet, QHEADERSZ);
@@ -402,7 +403,7 @@ main (int argc, char *argv[])
 	buffer_write_u16(q.packet, CLASS_IN);
 
 	/* Set QDCOUNT=1 */
-	QDCOUNT(&q) = htons(1);
+	QDCOUNT_SET(&q, 1);
 
 	buffer_flip(q.packet);
 	

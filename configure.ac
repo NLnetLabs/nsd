@@ -164,7 +164,7 @@ AC_CHECK_UNUSED_ATTRIBUTE
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h])
+AC_CHECK_HEADERS([arpa/inet.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h openssl/hmac.h])
 
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
@@ -281,7 +281,6 @@ case "$withval" in
 esac
 AC_SUBST(LIBWRAP)
 
-
 dnl
 dnl Some random defines's
 dnl
@@ -373,6 +372,16 @@ case "$enable_checking" in
 		;;
         no|*)
                 AC_DEFINE([NDEBUG], [], [Undefine this to enable internal runtime checks.])
+                ;;
+esac
+
+AC_ARG_ENABLE(tsig, AC_HELP_STRING([--enable-tsig], [Enable TSIG support]))
+case "$enable_tsig" in
+        yes)
+                AC_CHECK_LIB(crypto, HMAC_CTX_init,, [AC_MSG_ERROR(TSIG requires OpenSSL crypto libraries.)])
+                AC_DEFINE([TSIG], [], [Define this to enable TSIG support.])
+		;;
+        no|*)
                 ;;
 esac
 
