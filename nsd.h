@@ -10,6 +10,8 @@
 #ifndef	_NSD_H_
 #define	_NSD_H_
 
+#include <signal.h>
+
 #include "dns.h"
 #include "edns.h"
 #include "region-allocator.h"
