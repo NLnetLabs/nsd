@@ -1,10 +1,14 @@
-$Id: TODO,v 1.4 2002/01/11 13:21:05 alexis Exp $
+$Id: TODO,v 1.5 2002/01/11 14:26:35 alexis Exp $
 
 ZONE COMPILER
 
 DATABASE
 
 - add separate masks for '*' zone cuts and data
+
+SERVER
+
+- first lowercase the query name
 
 
 
