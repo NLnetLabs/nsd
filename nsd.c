@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.66 2003/03/20 10:31:25 alexis Exp $
+ * $Id: nsd.c,v 1.67 2003/03/20 10:58:17 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -75,9 +75,8 @@ char hostname[MAXHOSTNAMELEN];
 
 /*
  * Allocates ``size'' bytes of memory, returns the
- * pointer to the allocated memory or NULL and errno
- * set in case of error. Also reports the error via
- * syslog().
+ * pointer to the allocated memory or exits on error.
+ * Also reports the error via syslog().
  *
  */
 void *
