@@ -71,7 +71,9 @@ allocate_domain_info(domain_table_type *table,
 	result->wildcard_child_closest_match = NULL;
 	result->rrsets = NULL;
 	result->number = 0;
+#ifdef PLUGINS
 	result->plugin_data = NULL;
+#endif
 	result->is_existing = 0;
 	
 	return result;
@@ -93,7 +95,9 @@ domain_table_create(region_type *region)
 	root->parent = NULL;
 	root->rrsets = NULL;
 	root->number = 0;
+#ifdef PLUGINS
 	root->plugin_data = NULL;
+#endif
 	root->is_existing = 0;
 	
 	result = region_alloc(region, sizeof(domain_table_type));

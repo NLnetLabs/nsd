@@ -581,7 +581,9 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 			temp->parent = match;
 			temp->wildcard_child_closest_match = temp;
 			temp->rrsets = wildcard_child->rrsets;
+#ifdef PLUGINS
 			temp->plugin_data = wildcard_child->plugin_data;
+#endif
 			temp->is_existing = wildcard_child->is_existing;
 			additional = temp;
 		}
@@ -800,7 +802,9 @@ answer_authoritative(struct query *q,
 		match->wildcard_child_closest_match = match;
 		match->number = domain_number;
 		match->rrsets = wildcard_child->rrsets;
+#ifdef PLUGINS
 		match->plugin_data = wildcard_child->plugin_data;
+#endif
 		match->is_existing = wildcard_child->is_existing;
 
 		/*

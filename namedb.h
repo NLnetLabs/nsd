@@ -75,12 +75,14 @@ struct domain_table
 
 struct domain
 {
-	rbnode_t           node;
-	domain_type       *parent;
-	domain_type       *wildcard_child_closest_match;
-	rrset_type        *rrsets;
-	uint32_t           number; /* Unique domain name number.  */
-	void             **plugin_data;
+	rbnode_t     node;
+	domain_type *parent;
+	domain_type *wildcard_child_closest_match;
+	rrset_type  *rrsets;
+	uint32_t     number; /* Unique domain name number.  */
+#ifdef PLUGINS
+	void       **plugin_data;
+#endif
 	
 	/*
 	 * This domain name exists (see wildcard clarification draft).
@@ -90,12 +92,12 @@ struct domain
 
 struct zone
 {
-	zone_type         *next;
-	domain_type       *domain;
-	rrset_type        *soa_rrset;
-	rrset_type        *ns_rrset;
-	uint32_t           number;
-	unsigned           is_secure : 1;
+	zone_type   *next;
+	domain_type *domain;
+	rrset_type  *soa_rrset;
+	rrset_type  *ns_rrset;
+	uint32_t     number;
+	unsigned     is_secure : 1;
 };
 
 struct rrset

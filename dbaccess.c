@@ -240,6 +240,7 @@ namedb_open (const char *filename)
 	uint32_t zone_count;
 	zone_type **zones;	/* Indexed by zone number.  */
 	uint32_t i;
+	uint32_t rrset_count = 0;
 	
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "sizeof(namedb_type) = %d\n", sizeof(namedb_type)));
@@ -339,8 +340,11 @@ namedb_open (const char *filename)
 #endif
 	    
 	while (read_rrset(db, dname_count, domains, zone_count, zones))
-		;
+		++rrset_count;
 
+	DEBUG(DEBUG_DBACCESS, 2,
+	      (stderr, "Retrieved %lu RRsets\n", (unsigned long) rrset_count));
+	
 	free(domains);
 	free(zones);
 	
