@@ -108,7 +108,7 @@ print_rr(rr_type *rr)
 		sprintf(type, "TYPE%d", rr->type);
 	}
 	
-	printf("%s\t%ld IN %s\t", owner, ttl, type);
+	printf("%-20s\t%ld IN %-10s\t", owner, ttl, type);
 
 	print_rrdata(rr->rrdata	, rr->type);
 	return 0;
