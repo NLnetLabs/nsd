@@ -358,6 +358,8 @@ rtype:
     { current_rr->type = $1; }
     | HINFO sp rdata_hinfo 
     { current_rr->type = $1; }
+    | HINFO sp rdata_unknown 
+    { current_rr->type = $1; }
     | MB sp rdata_dname		/* Experimental */
     { current_rr->type = $1; }
     | MD sp rdata_dname		/* Obsolete */
@@ -380,13 +382,23 @@ rtype:
     { current_rr->type = $1; }
     | TXT sp rdata_txt
     { current_rr->type = $1; }
+    | TXT sp rdata_unknown
+    { current_rr->type = $1; }
     | A sp rdata_a 
+    { current_rr->type = $1; }
+    | A sp rdata_unknown
     { current_rr->type = $1; }
     | AAAA sp rdata_aaaa 
     { current_rr->type = $1; }
+    | AAAA sp rdata_unknown 
+    { current_rr->type = $1; }
     | LOC sp rdata_loc
     { current_rr->type = $1; }
+    | LOC sp rdata_unknown
+    { current_rr->type = $1; }
     | SRV sp rdata_srv
+    { current_rr->type = $1; }
+    | SRV sp rdata_unknown
     { current_rr->type = $1; }
     | DS sp rdata_ds
     { current_rr->type = $1; }
@@ -418,6 +430,8 @@ rtype:
     { current_rr->type = $1; }
     | RP sp rdata_rp
     { current_rr->type = $1; }
+    | RP sp rdata_unknown
+    { current_rr->type = $1; }
     | SSHFP sp rdata_sshfp
     { current_rr->type = $1; }
     | SSHFP sp rdata_unknown
@@ -427,7 +441,6 @@ rtype:
     | UTYPE sp rdata_unknown
     { current_rr->type = $1; }
     | CNAME sp rdata_unknown_err 
-    | HINFO sp rdata_unknown_err 
     | MB sp rdata_unknown_err	
     | MD sp rdata_unknown_err	
     | MF sp rdata_unknown_err	
@@ -438,12 +451,6 @@ rtype:
     | NS sp rdata_unknown_err 
     | PTR sp rdata_unknown_err 
     | SOA sp rdata_unknown_err 
-    | TXT sp rdata_unknown_err
-    | A sp rdata_unknown_err
-    | AAAA sp rdata_unknown_err 
-    | LOC sp rdata_unknown_err
-    | SRV sp rdata_unknown_err
-    | RP sp rdata_unknown_err
     | NAPTR sp rdata_unknown_err
     | STR error NL
     {
@@ -662,7 +669,10 @@ rdata_unknown:	URR sp STR sp hex_seq trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str));
 	}
 	| URR sp STR trail
-	{	 error_prev_line("\\# 0 not handled (yet)"); }
+	{	
+		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, ""));
+		//error_prev_line("\\# 0 not handled (yet)");
+	}
 	| URR error NL
 	{ error_prev_line("Syntax error in UNKNOWN RR rdata"); }
        ;
