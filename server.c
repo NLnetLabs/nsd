@@ -984,6 +984,7 @@ server_child(struct nsd *nsd)
 	
 	/* The main loop... */	
 	while (nsd->mode != NSD_QUIT) {
+		netio_event_types_type tcp_accept_event_types;
 
 		/* Do we need to do the statistics... */
 		if (nsd->mode == NSD_STATS) {
@@ -999,6 +1000,19 @@ server_child(struct nsd *nsd)
 		
 		region_free_all(query_region);
 
+		/*
+		 * Enable/disable TCP accept handlers when the maximum
+		 * number of concurrent TCP connections is
+		 * reached/not reached.
+		 */
+		tcp_accept_event_types = (nsd->current_tcp_count < nsd->maximum_tcp_count
+					  ? NETIO_HANDLER_READ : NETIO_HANDLER_NONE);
+		if (nsd->server_kind & NSD_SERVER_TCP) {
+			for (i = 0; i < nsd->ifs; ++i) {
+				tcp_accept_handlers[i].event_types = tcp_accept_event_types;
+			}
+		}
+
 		/* Wait for a query... */
 		if (netio_dispatch(netio, NULL, &default_sigmask) == -1) {
 			if (errno == EINTR) {
@@ -1007,21 +1021,6 @@ server_child(struct nsd *nsd)
 			} else {
 				log_msg(LOG_ERR, "select failed: %s", strerror(errno));
 				break;
-			}
-		}
-
-		/*
-		 * Enable/disable TCP accept handlers when the maximum
-		 * number of concurrent TCP connections is
-		 * reached/not reached.
-		 */
-		if (nsd->server_kind & NSD_SERVER_TCP) {
-			for (i = 0; i < nsd->ifs; ++i) {
-				if (nsd->current_tcp_count < nsd->maximum_tcp_count) {
-					tcp_accept_handlers[i].event_types = NETIO_HANDLER_READ;
-				} else {
-					tcp_accept_handlers[i].event_types = NETIO_HANDLER_NONE;
-				}
 			}
 		}
 	}
