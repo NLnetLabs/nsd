@@ -67,6 +67,7 @@
 #define TYPE_X25        19	/* RFC1183 */
 #define TYPE_ISDN       20	/* RFC1183 */
 #define TYPE_RT         21	/* RFC1183 */
+#define TYPE_NSAP       22	/* RFC1706 */
 
 #define	TYPE_SIG	24	/* 2535typecode */
 #define	TYPE_KEY	25	/* 2535typecode */

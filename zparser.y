@@ -65,7 +65,7 @@ uint8_t nsecbits[256][32];
 %type <type>   rtype
 %type <domain> dname abs_dname
 %type <dname>  rel_dname label
-%type <data>   str_seq concatenated_str_seq hex_seq nxt_seq nsec_seq
+%type <data>   str_seq concatenated_str_seq hex_seq str_dot_seq nxt_seq nsec_seq
 
 %%
 lines:  /* empty file */
@@ -357,6 +357,16 @@ hex_seq:	STR
 	}
 	;
 
+str_dot_seq:	STR
+	|	str_dot_seq '.' STR
+        {
+		char *result = region_alloc(rr_region, $1.len + $3.len + 1);
+		memcpy(result, $1.str, $1.len);
+		memcpy(result + $1.len, $3.str, $3.len);
+		$$.str = result;
+		$$.len = $1.len + $3.len;
+		result[$$.len] = '\0';
+	}		
 
 /* define what we can parse */
 
@@ -414,6 +424,8 @@ rtype:
     | T_ISDN sp rdata_unknown 	/* RFC 1183 */
     | T_RT sp rdata_rt		/* RFC 1183 */
     | T_RT sp rdata_unknown_err	/* RFC 1183 */
+    | T_NSAP sp rdata_nsap	/* RFC 1706 */
+    | T_NSAP sp rdata_unknown	/* RFC 1706 */
     | T_PX sp rdata_px		/* RFC 2163 */
     | T_PX sp rdata_unknown	/* RFC 2163 */
     | T_SSHFP sp rdata_sshfp
@@ -662,6 +674,20 @@ rdata_rt:	STR sp dname trail
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in RT record"); }
+	;
+
+/* RFC 1706 */
+rdata_nsap:	str_dot_seq trail
+	{
+		/* String must start with "0x" or "0X".  */
+		if (strncasecmp($1.str, "0x", 2) != 0) {
+			error_prev_line("");
+		} else {
+			zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $1.str + 2)); /* NSAP */
+		}
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in DS record"); }
 	;
 
 /* RFC 2163 */
