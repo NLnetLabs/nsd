@@ -110,6 +110,7 @@ const lookup_table_type ztypes[] = {
 	{ TYPE_NAPTR, "NAPTR", T_NAPTR }, /* RFC 2915 */
 	{ TYPE_CERT, "CERT", T_CERT },	  /* RFC 2538 */
 	{ TYPE_DNAME, "DNAME", T_DNAME }, /* RFC 2672 */
+	{ TYPE_APL, "APL", T_APL },	  /* RFC 3123 */
 	{ TYPE_DS, "DS", T_DS },
 	{ TYPE_SSHFP, "SSHFP", T_SSHFP },
 	{ TYPE_RRSIG, "RRSIG", T_RRSIG },
@@ -374,16 +375,14 @@ zparser_conv_algorithm(region_type *region, const char *algstr)
 uint16_t *
 zparser_conv_a(region_type *region, const char *a)
 {
-   
 	/* convert a A rdata to wire format */
-	struct in_addr pin;
+	in_addr_t pin;
 	uint16_t *r = NULL;
 
 	r = region_alloc(region, sizeof(uint16_t) + sizeof(in_addr_t));
-
 	if(inet_pton(AF_INET, a, &pin) > 0) {
-		memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
-		*r = sizeof(uint32_t);
+		memcpy(r + 1, &pin, sizeof(in_addr_t));
+		*r = sizeof(in_addr_t);
 	} else {
 		error_prev_line("Invalid ip address");
 	}
@@ -420,16 +419,17 @@ uint16_t *
 zparser_conv_a6(region_type *region, const char *a6)
 {
 	/* convert ip v6 address to wireformat */
-
+	char pin[IP6ADDRLEN];
 	uint16_t *r = NULL;
 
 	r = region_alloc(region, sizeof(uint16_t) + IP6ADDRLEN);
 
         /* Try to convert it */
-        if(inet_pton(AF_INET6, a6, r + 1) != 1) {
-		error_prev_line("Invalid ipv6 address");
+        if (inet_pton(AF_INET6, a6, pin) != 1) {
+		error_prev_line("invalid IPv6 address");
         } else {
 		*r = IP6ADDRLEN;
+		memcpy(r + 1, pin, IP6ADDRLEN);
         }
         return r;
 }
@@ -798,6 +798,100 @@ zparser_conv_loc(region_type *region, char *str)
 	copy_uint32(r + 3, lat);
 	copy_uint32(r + 5, lon);
 	copy_uint32(r + 7, alt);
+
+	return r;
+}
+
+/*
+ * Convert an APL RR RDATA element.
+ */
+uint16_t *
+zparser_conv_apl_rdata(region_type *region, char *str)
+{
+	int negated = 0;
+	uint16_t address_family;
+	uint8_t prefix;
+	uint8_t maximum_prefix;
+	uint8_t length;
+	uint8_t address[IP6ADDRLEN];
+	char *colon = strchr(str, ':');
+	char *slash = strchr(str, '/');
+	int af;
+	int rc;
+	uint16_t rdlength;
+	uint16_t *r;
+	uint8_t *t;
+	char *end;
+	long p;
+	
+	if (!colon) {
+		error("address family separator is missing");
+		return NULL;
+	}
+	if (!slash) {
+		error("prefix separator is missing");
+		return NULL;
+	}
+
+	*colon = '\0';
+	*slash = '\0';
+	
+	if (*str == '!') {
+		negated = 1;
+		++str;
+	}
+
+	if (strcmp(str, "1") == 0) {
+		address_family = 1;
+		af = AF_INET;
+		length = sizeof(in_addr_t);
+		maximum_prefix = length * 8;
+	} else if (strcmp(str, "2") == 0) {
+		address_family = 2;
+		af = AF_INET6;
+		length = IP6ADDRLEN;
+		maximum_prefix = length * 8;
+	} else {
+		error("invalid address family '%s'", str);
+		return NULL;
+	}
+
+	rc = inet_pton(af, colon + 1, address);
+	if (rc == 0) {
+		error("invalid address '%s'",
+		      colon + 1, (int) address_family);
+	} else if (rc == -1) {
+		error("inet_pton failed: %s", strerror(errno));
+	}
+
+	/* Strip trailing zero octets.  */
+	while (length > 0 && address[length - 1] == 0)
+		--length;
+
+	
+	p = strtol(slash + 1, &end, 10);
+	if (p < 0 || p > maximum_prefix) {
+		error("prefix not in the range 0 .. %ld", maximum_prefix);
+	} else if (*end != '\0') {
+		error("invalid prefix '%s'", slash + 1);
+	}
+	prefix = (uint8_t) p;
+
+	rdlength = (sizeof(address_family) + sizeof(prefix) + sizeof(length)
+		    + length);
+	r = region_alloc(region, sizeof(uint16_t) + rdlength);
+	*r = rdlength;
+	t = (uint8_t *) (r + 1);
+	
+	memcpy(t, &address_family, sizeof(address_family));
+	t += sizeof(address_family);
+	memcpy(t, &prefix, sizeof(prefix));
+	t += sizeof(prefix);
+	memcpy(t, &length, sizeof(length));
+	if (negated)
+		*t |= 0x80;
+	t += sizeof(length);
+	memcpy(t, address, length);
 
 	return r;
 }

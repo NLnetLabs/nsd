@@ -80,6 +80,8 @@
 
 #define TYPE_DNAME      39	/* RFC2672 */
 
+#define TYPE_APL        42	/* RFC3123 */
+
 /* type code rollover */
 #define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
 #define TYPE_NSEC	47	

@@ -36,5 +36,21 @@ $TTL    1H
 
 @       IN      DNAME   rt-host
 
+@       IN      APL
+
+; RFC 1101-like announcement of address ranges for foo.example
+@             IN APL 1:192.168.32.0/21 !1:192.168.38.0/28
+
+; CIDR blocks covered by classless delegation
+@ IN APL ( 1:192.168.42.0/26 1:192.168.42.64/26
+                                  1:192.168.42.128/25 )
+
+; Zone transfer restriction
+@       IN APL 1:127.0.0.1/32 1:172.16.64.0/22
+
+; List of address ranges for multicast
+@       IN APL 1:224.0.0.0/4  2:FF00:0:0:0:0:0:0:0/8
+
+
 rt-host IN      A       127.0.0.1
 rt-host IN      AAAA    ::1

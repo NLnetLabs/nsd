@@ -135,6 +135,7 @@ uint16_t *zparser_conv_domain(region_type *region, domain_type *domain);
 uint16_t *zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE]);
 uint16_t *zparser_conv_loc(region_type *region, char *str);
 uint16_t *zparser_conv_algorithm(region_type *region, const char *algstr);
+uint16_t *zparser_conv_apl_rdata(region_type *region, char *str);
 
 long strtottl(char *nptr, char **endptr);
 

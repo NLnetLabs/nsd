@@ -34,7 +34,7 @@ int include_stack_ptr = 0;
 SPACE   [ \t]
 LETTER  [a-zA-Z]
 NEWLINE \n
-ZONESTR [a-zA-Z0-9+/=:_\-\*]
+ZONESTR [a-zA-Z0-9+/=:_!\-\*]
 DOLLAR  \$
 COMMENT ;
 DOT     \.

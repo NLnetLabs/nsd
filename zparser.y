@@ -65,8 +65,8 @@ uint8_t nsecbits[256][32];
 %type <type>   rtype
 %type <domain> dname abs_dname
 %type <dname>  rel_dname label
-%type <data>   str_seq concatenated_str_seq
-%type <data>   str_sp_seq str_dot_seq nxt_seq nsec_seq
+%type <data>   str_seq concatenated_str_seq str_sp_seq str_dot_seq dotted_str
+%type <data>   nxt_seq nsec_seq
 
 %%
 lines:  /* empty file */
@@ -345,7 +345,10 @@ nsec_seq:	STR
 	}
 	;
 
-/* Sequence of STR tokens separated by spaces.  */
+/*
+ * Sequence of STR tokens separated by spaces.  The spaces are not
+ * preserved during concatenation.
+ */
 str_sp_seq:	STR
 	|	str_sp_seq sp STR
 	{
@@ -358,7 +361,10 @@ str_sp_seq:	STR
 	}
 	;
 
-/* Sequence of STR tokens separated by dots.  */
+/*
+ * Sequence of STR tokens separated by dots.  The dots are not
+ * preserved during concatenation.
+ */
 str_dot_seq:	STR
 	|	str_dot_seq '.' STR
         {
@@ -367,6 +373,21 @@ str_dot_seq:	STR
 		memcpy(result + $1.len, $3.str, $3.len);
 		$$.str = result;
 		$$.len = $1.len + $3.len;
+		$$.str[$$.len] = '\0';
+	}		
+
+/*
+ * A string that can contain dots.
+ */
+dotted_str:	STR
+	|	dotted_str '.' STR
+        {
+		char *result = region_alloc(rr_region, $1.len + $3.len + 2);
+		memcpy(result, $1.str, $1.len);
+		result[$1.len] = '.';
+		memcpy(result + $1.len + 1, $3.str, $3.len);
+		$$.str = result;
+		$$.len = $1.len + $3.len + 1;
 		$$.str[$$.len] = '\0';
 	}		
 
@@ -447,6 +468,9 @@ rtype:
     | T_CERT sp rdata_unknown	/* RFC 2538 */
     | T_DNAME sp rdata_dname	/* RFC 2672 */
     | T_DNAME sp rdata_unknown	/* RFC 2672 */
+    | T_APL trail		/* RFC 3123 */
+    | T_APL sp rdata_apl	/* RFC 3123 */
+    | T_APL sp rdata_unknown	/* RFC 3123 */
     | T_SSHFP sp rdata_sshfp
     | T_SSHFP sp rdata_unknown
     | T_UTYPE sp rdata_unknown
@@ -498,24 +522,10 @@ rdata_compress_domain_name:   dname trail
 	{ error_prev_line("Syntax error in RDATA (domain name expected)"); }
     ;
 
-rdata_a:    STR '.' STR '.' STR '.' STR trail
-    {
-        /* setup the string suitable for parsing */
-	    char *ipv4 = region_alloc(rr_region, $1.len + $3.len + $5.len + $7.len + 4);
-        memcpy(ipv4, $1.str, $1.len);
-        memcpy(ipv4 + $1.len , ".", 1);
-
-        memcpy(ipv4 + $1.len + 1 , $3.str, $3.len);
-        memcpy(ipv4 + $1.len + $3.len + 1, ".", 1);
-
-        memcpy(ipv4 + $1.len + $3.len + 2 , $5.str, $5.len);
-        memcpy(ipv4 + $1.len + $3.len + $5.len + 2, ".", 1);
-
-        memcpy(ipv4 + $1.len + $3.len + $5.len + 3 , $7.str, $7.len);
-        memcpy(ipv4 + $1.len + $3.len + $5.len + $7.len + 3, "\0", 1);
-
-        zadd_rdata_wireformat(current_parser, zparser_conv_a(zone_region, ipv4));
-    }
+rdata_a:    dotted_str trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_a(zone_region, $1.str));
+	}
 	|   error NL
 	{ error_prev_line("Syntax error in A record"); }
     ;
@@ -741,6 +751,22 @@ rdata_dname:	dname trail
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in DNAME record"); }
+	;
+
+/* RFC 3123 */
+rdata_apl: rdata_apl_seq trail
+	| error NL
+	{ error_prev_line("Syntax error in APL record"); }
+	;
+
+rdata_apl_seq: dotted_str
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_apl_rdata(zone_region, $1.str));
+	}
+	| rdata_apl_seq sp dotted_str
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_apl_rdata(zone_region, $3.str));
+	}
 	;
 
 rdata_sshfp:   STR sp STR sp str_sp_seq trail
