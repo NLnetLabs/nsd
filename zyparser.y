@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.22 2003/08/20 13:31:40 erik Exp $
+ * $Id: zyparser.y,v 1.23 2003/08/20 14:39:20 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -62,6 +62,8 @@ line:   NL
     |   rr
     {   /* rr should be fully parsed */
         /*zprintrr(stderr, current_rr); DEBUG */
+        current_rr->rdata = xrealloc(current_rr->rdata, sizeof(void *) * (zdefault->_rc + 1));
+
 	    process_rr(current_rr);
 	    current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
 	    zdefault->_rc = 0;
@@ -78,6 +80,8 @@ dir_ttl:    SP STR NL
         /* perform TTL conversion */
         if ( ( zdefault->ttl = zparser_ttl2int($2.str)) == -1 )
             zdefault->ttl = DEFAULT_TTL;
+
+        free($2.str);
     }
     ;
 
@@ -90,14 +94,14 @@ dir_orig:   SP dname NL
         } 
         zdefault->origin = (uint8_t *)dnamedup($2.str);
         zdefault->origin_len = $2.len;
+        free($2.str);
     }
     ;
 
 rr:     ORIGIN SP rrrest NL
-    /* need to add reverse in here too */
     {
         /* starts with @, use the origin */
-        current_rr->dname = (uint8_t *) dnamedup(zdefault->origin);
+        current_rr->dname = zdefault->origin;
 
         /* also set this as the prev_dname */
         zdefault->prev_dname = zdefault->origin;
@@ -107,14 +111,14 @@ rr:     ORIGIN SP rrrest NL
     {
         /* a tab, use previously defined dname */
         /* [XXX] is null -> error, not checked (yet) MG */
-        current_rr->dname = (uint8_t *) dnamedup(zdefault->prev_dname);
+        current_rr->dname = zdefault->prev_dname;
     }
     |   dname SP rrrest NL
     {
         current_rr->dname = $1.str;
 
         /* set this as previous */
-        zdefault->prev_dname = dnamedup($1.str);
+        zdefault->prev_dname = $1.str;
         zdefault->prev_dname_len = $1.len;
     }
     ;
@@ -124,6 +128,7 @@ ttl:    STR
         /* set the ttl */
         if ( (current_rr->ttl = zparser_ttl2int($1.str) ) == -1 )
             current_rr->ttl = DEFAULT_TTL;
+        free($1.str);
     }
     ;
 
@@ -173,6 +178,7 @@ dname:  abs_dname
     {
         /* append origin */
         $$.str = (uint8_t *)cat_dname($1.str, zdefault->origin);
+        free($1.str);
         $$.len = $1.len;
     }
     ;
@@ -185,6 +191,7 @@ abs_dname:  '.'
     |       rel_dname '.'
     {
             $$.str = cat_dname($1.str, ROOT);
+            free($1.str);
             $$.len = $1.len;
     }
     ;
@@ -193,12 +200,14 @@ rel_dname:  STR
     {
         $$.str = create_dname($1.str, $1.len);
         $$.len = $1.len + 2; /* total length, label + len byte */
+        free($1.str);
     }
     |       rel_dname '.' STR
     {  
         $$.str = cat_dname($1.str, create_dname($3.str,
 						  $3.len));
         $$.len = $1.len + $3.len + 1;
+        free($1.str);free($3.str);
     }
     ;
 
@@ -297,7 +306,7 @@ rdata_a:    STR '.' STR '.' STR '.' STR
 rdata_txt:  STR
     {
         zadd_rdata2( zdefault, zparser_conv_text($1.str));
-	free($1.str);
+    	free($1.str);
     }
     ;
 
