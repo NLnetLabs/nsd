@@ -1,4 +1,4 @@
-$Id: TODO,v 1.27 2002/09/09 10:59:15 alexis Exp $
+$Id: TODO,v 1.28 2002/09/26 15:34:51 alexis Exp $
 
 ZONE COMPILER
 - memory allocation optimization is needed
@@ -11,7 +11,6 @@ SERVER
 - replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
 - make sure that we dont copy anything from the query we dont want to copy, like
   funny headers etc
-- add chroot() call submitted by Jakob
 
 SECURITY
 
