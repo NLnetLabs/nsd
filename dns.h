@@ -1,7 +1,8 @@
 /*
- * $Id: dns.h,v 1.8 2003/02/10 14:53:02 alexis Exp $
+ * $Id: dns.h,v 1.9 2003/02/12 21:43:35 alexis Exp $
  *
- * dns.h -- all we need to know about DNS protocol, nsd(8)
+ * dns.h -- everything we wanted to know but were afraid
+ *		to ask about DNS
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -38,6 +39,9 @@
  *
  */
 
+#ifndef _DNS_H_
+#define _DNS_H_
+
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
 #define	CLASS_CHAOS	3	/* Class CHAOS */
@@ -59,22 +63,24 @@
 #define TYPE_MINFO	14	/* mailbox or mail list information */
 #define TYPE_MX		15	/* mail exchange */
 #define TYPE_TXT	16	/* text strings */
-#define TYPE_AAAA	28	/* ipv6 address */
-#define TYPE_LOC	29	/* LOC record  RFC1876 */
-#define	TYPE_SRV	33	/* SRV record RFC2782 */
-#define	TYPE_NAPTR	35	/* NAPTR record RFC2915 */
-#define	TYPE_AFSDB	18	/* RFC1183 */
 #define	TYPE_RP		17	/* RFC1183 */
+#define	TYPE_AFSDB	18	/* RFC1183 */
 #define	TYPE_SIG	24	/* RFC2065 */
 #define	TYPE_KEY	25	/* RFC2065 */
+#define TYPE_AAAA	28	/* ipv6 address */
+#define TYPE_LOC	29	/* LOC record  RFC1876 */
 #define	TYPE_NXT	30	/* RFC2065 */
+#define	TYPE_SRV	33	/* SRV record RFC2782 */
+#define	TYPE_NAPTR	35	/* NAPTR record RFC2915 */
+#define	TYPE_OPT	41	/* Pseudo OPT record... */
 #define	TYPE_DS		43	/* draft-ietf-dnsext-delegation */
-#define	TYPE_AXFR	252
 #define	TYPE_IXFR	251
+#define	TYPE_AXFR	252
 #define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */
 #define	TYPE_MAILA	254	/* A request for mail agent RRs (Obsolete - see MX) */
 #define TYPE_ANY	255	/* any type (wildcard) */
 
-#define	TYPE_OPT	41	/* Pseudo OPT record... */
-
 #define MAXDOMAINLEN	255
+
+#endif /* _DNS_H_ */
+
