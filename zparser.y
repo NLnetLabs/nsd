@@ -432,7 +432,6 @@ rtype:
     | T_PX sp rdata_unknown	/* RFC 2163 */
     | T_SSHFP sp rdata_sshfp
     | T_SSHFP sp rdata_unknown
-    | T_NAPTR sp rdata_naptr
     | T_UTYPE sp rdata_unknown
     | T_CNAME sp rdata_unknown_err
     | T_MB sp rdata_unknown_err
@@ -445,7 +444,6 @@ rtype:
     | T_NS sp rdata_unknown_err
     | T_PTR sp rdata_unknown_err
     | T_SOA sp rdata_unknown_err
-    | T_NAPTR sp rdata_unknown_err
     | STR error NL
     {
 	    error_prev_line("Unrecognized RR type '%s'", $1.str);
@@ -577,7 +575,7 @@ rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $11)); /* target name */
 	}
 	|   error NL
-	{ error_prev_line("Syntax error in SRV record"); }
+	{ error_prev_line("Syntax error in NAPTR record"); }
 	;
 
 rdata_ds:	STR sp STR sp STR sp hex_seq trail
@@ -725,19 +723,6 @@ rdata_sshfp:   STR sp STR sp hex_seq trail
        }
 	|   error NL
 	{ error_prev_line("Syntax error in SSHFP record"); }
-       ;
-
-rdata_naptr:   STR sp STR sp STR sp STR sp STR sp dname trail
-       {
-               zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* order */
-               zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* preference */
-               zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $5.str)); /* flags */
-               zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $7.str)); /* services */
-               zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $9.str)); /* regexp */
-               zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $11)); /* replacement */
-       }
-	|   error NL
-	{ error_prev_line("Syntax error in NAPTR record"); }
        ;
 
 rdata_unknown:	URR sp STR sp hex_seq trail

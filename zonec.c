@@ -96,7 +96,6 @@ const lookup_table_type ztypes[] = {
 	{ TYPE_TXT, "TXT", T_TXT },
         { TYPE_AAAA, "AAAA", T_AAAA },
 	{ TYPE_SRV, "SRV", T_SRV },
-	{ TYPE_NAPTR, "NAPTR", T_NAPTR },
 	{ TYPE_LOC, "LOC", T_LOC },
 	{ TYPE_AFSDB, "AFSDB", T_AFSDB }, /* RFC 1183 */
 	{ TYPE_RP, "RP", T_RP },	  /* RFC 1183 */
