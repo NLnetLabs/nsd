@@ -178,7 +178,7 @@ addition to standard configure options, one may use the following:
 
   --with-zonesfile=path
 
-	Pathname to the NSD list of zones, default /etc/nsd/nsd.conf
+	Pathname to the NSD list of zones, default /etc/nsd/nsd.zones
 
   --with-dbfile=path
 
