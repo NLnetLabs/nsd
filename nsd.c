@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.8.2.1 2002/02/02 15:38:57 alexis Exp $
+ * $Id: nsd.c,v 1.8.2.2 2002/02/04 14:11:09 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -91,10 +91,7 @@ xrealloc(p, size)
 	return p;
 }
 
-/*
- * Compares two domains in memory.
- *
- */
+
 int
 domaincmp(a, b)
 	register u_char *a;
@@ -106,7 +103,7 @@ domaincmp(a, b)
 
 	while(alen && blen) {
 		a++; b++;
-		if((r = *a - *b)) return r;
+		if((r = tolower(*a) - tolower(*b))) return r;
 		alen--; blen--;
 	}
 	return alen - blen;
@@ -159,13 +156,13 @@ opendb(void)
 	p = db_mem;
 
 	while(*p) {
-		if(dict_insert(db, p, p + ((*p + 3) & 0xfffffffc), 1) == NULL) {
+		if(dict_insert(db, p, p + ((*p + 1 +3) & 0xfffffffc), 1) == NULL) {
 			syslog(LOG_ERR, "failed to insert a domain: %m");
 			dict_destroy(db, 0, 0);
 			free(db_mem);
 			return -1;
 		}
-		p += (((u_int32_t)*p + 3) & 0xfffffffc);
+		p += (((u_int32_t)*p + 1 + 3) & 0xfffffffc);
 		p += *((u_int32_t *)p);
 		if(p > db_mem + st.st_size) {
 			syslog(LOG_ERR, "corrupted database %s", cf_dbfile);
