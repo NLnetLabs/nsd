@@ -1076,8 +1076,6 @@ process_rr(zparser_type *parser, rr_type *rr)
 	size_t max_rdlength;
 	int i;
 	
-	print_rr(rr);
-	
 	/* We only support IN class */
 	if (rr->class != CLASS_IN) {
 		error_prev_line("Wrong class");

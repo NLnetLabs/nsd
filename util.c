@@ -197,3 +197,38 @@ write_data(FILE *file, const void *data, size_t size)
 		return 1;
 	}
 }
+
+int
+timespec_compare(const struct timespec *left,
+		 const struct timespec *right)
+{
+	/* Compare seconds.  */
+	if (left->tv_sec < right->tv_sec) {
+		return -1;
+	} else if (left->tv_sec > right->tv_sec) {
+		return 1;
+	} else {
+		/* Seconds are equal, compare nanoseconds.  */
+		if (left->tv_nsec < right->tv_nsec) {
+			return -1;
+		} else if (left->tv_nsec > right->tv_nsec) {
+			return 1;
+		} else {
+			return 0;
+		}
+	}
+}
+
+void
+timespec_subtract(struct timespec *left,
+		  const struct timespec *right)
+{
+	left->tv_sec -= right->tv_sec;
+	left->tv_nsec -= right->tv_nsec;
+	if (left->tv_nsec < 0L) {
+		/* Borrow one second.  */
+		--left->tv_sec;
+		/* One second is 1e9 nanoseconds.  */
+		left->tv_nsec += 1000000000;
+	}
+}

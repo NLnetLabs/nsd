@@ -67,16 +67,12 @@
 #include "dns.h"
 #include "namedb.h"
 #include "dname.h"
+#include "netio.h"
 #include "nsd.h"
 #include "plugins.h"
 #include "query.h"
 #include "region-allocator.h"
 #include "util.h"
-
-#ifndef HAVE_PSELECT
-int pselect(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
-	    const struct timespec *timeout, const sigset_t *sigmask);
-#endif
 
 
 static uint16_t *compressed_dname_offsets;
@@ -470,79 +466,73 @@ process_query(struct nsd *nsd, struct query *query)
 #endif /* !PLUGINS */
 }
 
-static int
-handle_udp(region_type *query_region, struct nsd *nsd, fd_set *peer)
+struct handler_data
 {
-	int received, sent, s;
+	region_type       *query_region;
+	struct nsd        *nsd;
+	struct nsd_socket *socket;
+};
+
+static void
+handle_udp(netio_type *netio ATTR_UNUSED,
+	   netio_handler_type *handler,
+	   netio_event_types_type event_types)
+{
+	struct handler_data *data = handler->user_data;
+	int received, sent;
 	struct query q;
-	size_t i;
-	static size_t last_index = 0;
-	size_t index = 0;
 
-	/* Process it... */
-	s = -1;
-	for (i = 0; i < nsd->ifs; i++) {
-		index = (i + last_index) % nsd->ifs;
-		if (FD_ISSET(nsd->udp[index].s, peer)) {
-			s = nsd->udp[index].s;
-			if (nsd->udp[index].addr->ai_family == AF_INET)
-			{
-				/* Account... */
-				STATUP(nsd, qudp);
-			} else if (nsd->udp[index].addr->ai_family == AF_INET6) {
-				/* Account... */
-				STATUP(nsd, qudp6);
-			}
-			break;
-		}
+	if (!(event_types & NETIO_HANDLER_READ)) {
+		return;
 	}
-	last_index = index + 1;
-
-	if (s == -1) {
-		return 0;
+	
+	/* Account... */
+	if (data->socket->addr->ai_family == AF_INET) {
+		STATUP(data->nsd, qudp);
+	} else if (data->socket->addr->ai_family == AF_INET6) {
+		STATUP(data->nsd, qudp6);
 	}
 
 	/* Initialize the query... */
 	query_init(&q);
-	q.region = query_region;
+	q.region = data->query_region;
 	q.compressed_dname_offsets = compressed_dname_offsets;
 	
-	if ((received = recvfrom(s, q.iobuf, QIOBUFSZ, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
+	if ((received = recvfrom(handler->fd, q.iobuf, QIOBUFSZ, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
 		if (errno != EAGAIN) {
 			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
-			STATUP(nsd, rxerr);
+			STATUP(data->nsd, rxerr);
 		}
-		return 1;
+		return;
 	}
 	q.iobufptr = q.iobuf + received;
 	q.tcp = 0;
 
 	/* Process and answer the query... */
-	if (process_query(nsd, &q) != QUERY_DISCARDED) {
+	if (process_query(data->nsd, &q) != QUERY_DISCARDED) {
 		if (RCODE((&q)) == RCODE_OK && !AA((&q)))
-			STATUP(nsd, nona);
+			STATUP(data->nsd, nona);
 		/* Add edns(0) info if necessary.. */
-		query_addedns(&q, nsd);
+		query_addedns(&q, data->nsd);
 
-		if ((sent = sendto(s, q.iobuf, query_used_size(&q), 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
+		if ((sent = sendto(handler->fd, q.iobuf, query_used_size(&q), 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
 			log_msg(LOG_ERR, "sendto failed: %s", strerror(errno));
-			STATUP(nsd, txerr);
-			return 1;
+			STATUP(data->nsd, txerr);
+			return;
 		} else if (sent != q.iobufptr - q.iobuf) {
 			log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) query_used_size(&q));
-			return 1;
+			return;
 		}
 
 #ifdef BIND8_STATS
 		/* Account the rcode & TC... */
-		STATUP2(nsd, rcode, RCODE((&q)));
+		STATUP2(data->nsd, rcode, RCODE((&q)));
 		if (TC((&q)))
-			STATUP(nsd, truncated);
+			STATUP(data->nsd, truncated);
 #endif /* BIND8_STATS */
 	} else {
-		STATUP(nsd, dropped);
+		STATUP(data->nsd, dropped);
 	}
-	return 1;
 }
 
 /*
@@ -573,49 +563,44 @@ read_socket(int s, void *buf, size_t count)
 	return (ssize_t) actual;
 }
 
-static int
-handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
+static void
+handle_tcp(netio_type *netio ATTR_UNUSED,
+	   netio_handler_type *handler,
+	   netio_event_types_type event_types)
 {
+	struct handler_data *data = handler->user_data;
 	int received, sent, s;
 	uint16_t tcplen;
 	struct query q;
-	size_t i;
 	query_state_type query_state;
-	static size_t last_index = 0;
-	size_t index = 0;
+
+	if (!(event_types & NETIO_HANDLER_READ)) {
+		return;
+	}
 	
-	s = -1;
-	for (i = 0; i < nsd->ifs; i++) {
-		index = (i + last_index) % nsd->ifs;
-		if (FD_ISSET(nsd->tcp[index].s, peer)) {
-			s = nsd->tcp[index].s;
-			break;
-		}
-	}
-	last_index = index + 1;
-
-	if (s == -1) {
-		log_msg(LOG_ERR, "selected non-existant socket");
-		return 0;
-	}
-
 	/* Account... */
-	STATUP(nsd, ctcp);
+	if (data->socket->addr->ai_family == AF_INET) {
+		STATUP(data->nsd, ctcp);
+	} else if (data->socket->addr->ai_family == AF_INET6) {
+		STATUP(data->nsd, ctcp6);
+	}
 
 	/* Accept it... */
 	q.addrlen = sizeof(q.addr);
-	if ((s = accept(s, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
+	if ((s = accept(handler->fd, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
 		if (errno != EINTR) {
 			log_msg(LOG_ERR, "accept failed: %s", strerror(errno));
 		}
-		return 1;
+		return;
 	}
 
 	/* Initialize the query... */
 	query_init(&q);
-	q.region = query_region;
+	q.region = data->query_region;
 	q.compressed_dname_offsets = compressed_dname_offsets;
-	q.maxlen = MAX_PACKET_SIZE < nsd->tcp_max_msglen ? MAX_PACKET_SIZE : nsd->tcp_max_msglen;
+	q.maxlen = (MAX_PACKET_SIZE < data->nsd->tcp_max_msglen
+		    ? MAX_PACKET_SIZE
+		    : data->nsd->tcp_max_msglen);
 	q.tcp = 1;
 
 	/* Until we've got end of file */
@@ -661,12 +646,12 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 
 		alarm(0);
 
-		query_state = process_query(nsd, &q);
+		query_state = process_query(data->nsd, &q);
 		if (query_state != QUERY_DISCARDED) {
 			if (RCODE((&q)) == RCODE_OK && !AA((&q)))
-				STATUP(nsd, nona);
+				STATUP(data->nsd, nona);
 			do {
-				query_addedns(&q, nsd);
+				query_addedns(&q, data->nsd);
 
 				alarm(TCP_TIMEOUT);
 				tcplen = htons(q.iobufptr - q.iobuf);
@@ -686,7 +671,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 
 				/* Do we have AXFR in progress? */
 				if (query_state == QUERY_IN_AXFR) {
-					query_state = query_axfr(nsd, &q);
+					query_state = query_axfr(data->nsd, &q);
 				}
 			} while (query_state != QUERY_PROCESSED);
 		} else {
@@ -706,7 +691,6 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	}
 
 	close(s);
-	return 1;
 }
 
 
@@ -716,12 +700,12 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 void
 server_child(struct nsd *nsd)
 {
-	fd_set peer;
-	int maxfd;
 	size_t i;
 	sigset_t block_sigmask;
 	sigset_t default_sigmask;
+	region_type *server_region = region_create(xalloc, free);
 	region_type *query_region = region_create(xalloc, free);
+	netio_type *netio = netio_create(server_region);
 	
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	
@@ -746,6 +730,46 @@ server_child(struct nsd *nsd)
 	sigaddset(&block_sigmask, SIGINT);
 	sigaddset(&block_sigmask, SIGTERM);
 	sigprocmask(SIG_BLOCK, &block_sigmask, &default_sigmask);
+
+	if (nsd->server_kind & NSD_SERVER_UDP) {
+		for (i = 0; i < nsd->ifs; ++i) {
+			struct handler_data *data;
+			netio_handler_type *handler;
+
+			data = region_alloc(server_region, sizeof(struct handler_data));
+			data->query_region = query_region;
+			data->nsd = nsd;
+			data->socket = &nsd->udp[i];
+			
+			handler = region_alloc(server_region, sizeof(netio_handler_type));
+			handler->fd = nsd->udp[i].s;
+			handler->timeout = NULL;
+			handler->user_data = data;
+			handler->event_types = NETIO_HANDLER_READ;
+			handler->event_handler = handle_udp;
+			netio_add_handler(netio, handler);
+		}
+	}
+	
+	if (nsd->server_kind & NSD_SERVER_TCP) {
+		for (i = 0; i < nsd->ifs; ++i) {
+			struct handler_data *data;
+			netio_handler_type *handler;
+			
+			data = region_alloc(server_region, sizeof(struct handler_data));
+			data->query_region = query_region;
+			data->nsd = nsd;
+			data->socket = &nsd->tcp[i];
+
+			handler = region_alloc(server_region, sizeof(netio_handler_type));
+			handler->fd = nsd->tcp[i].s;
+			handler->timeout = NULL;
+			handler->user_data = data;
+			handler->event_types = NETIO_HANDLER_READ;
+			handler->event_handler = handle_tcp;
+			netio_add_handler(netio, handler);
+		}
+	}
 	
 	/* The main loop... */	
 	while (nsd->mode != NSD_QUIT) {
@@ -764,26 +788,8 @@ server_child(struct nsd *nsd)
 		
 		region_free_all(query_region);
 
-		/* Set it up */
-		FD_ZERO(&peer);
-
-		maxfd = nsd->udp[0].s;
-
-		if (nsd->server_kind & NSD_SERVER_UDP) {
-			for (i = 0; i < nsd->ifs; i++) {
-				FD_SET(nsd->udp[i].s, &peer);
-				maxfd = nsd->udp[i].s;
-			}
-		}
-		if (nsd->server_kind & NSD_SERVER_TCP) {
-			for (i = 0; i < nsd->ifs; i++) {
-				FD_SET(nsd->tcp[i].s, &peer);
-				maxfd = nsd->tcp[i].s;
-			}
-		}
-		
 		/* Wait for a query... */
-		if (pselect(maxfd + 1, &peer, NULL, NULL, NULL, &default_sigmask) == -1) {
+		if (netio_dispatch(netio, NULL, &default_sigmask) == -1) {
 			if (errno == EINTR) {
 				/* We'll fall out of the loop if we need to shut down */
 				continue;
@@ -792,16 +798,6 @@ server_child(struct nsd *nsd)
 				break;
 			}
 		}
-
-		if ((nsd->server_kind & NSD_SERVER_UDP) &&
-		    handle_udp(query_region, nsd, &peer))
-			continue;
-		
-		if ((nsd->server_kind & NSD_SERVER_TCP) &&
-		    handle_tcp(query_region, nsd, &peer))
-			continue;
-
-		log_msg(LOG_ERR, "selected non-existant socket");
 	}
 
 #ifdef	BIND8_STATS
@@ -809,6 +805,7 @@ server_child(struct nsd *nsd)
 #endif /* BIND8_STATS */
 
 	region_destroy(query_region);
+	region_destroy(server_region);
 	
 	server_shutdown(nsd);
 }

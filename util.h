@@ -41,8 +41,10 @@
 
 #include <config.h>
 
+#include <sys/time.h>
 #include <stdarg.h>
 #include <syslog.h>
+#include <time.h>
 
 #define ALIGN_UP(n, alignment)  \
 	(((n) + (alignment) - 1) & (~((alignment) - 1)))
@@ -168,5 +170,22 @@ extern int nsd_debug_level;
 		}						\
 	} while (0)
 #endif
+
+
+/*
+ * Timespec functions.
+ */
+int timespec_compare(const struct timespec *left,
+		     const struct timespec *right);
+void timespec_subtract(struct timespec *left,
+		       const struct timespec *right);
+
+static inline void
+timeval_to_timespec(struct timespec *left,
+		    const struct timeval *right)
+{
+	left->tv_sec = right->tv_sec;
+	left->tv_nsec = 1000 * right->tv_usec;
+}
 
 #endif /* _UTIL_H_ */
