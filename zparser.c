@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.6 2003/02/14 22:17:58 alexis Exp $
+ * $Id: zparser.c,v 1.7 2003/02/14 22:28:52 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -544,12 +544,11 @@ zclose (struct zparser *z)
 void
 zrdatafree(u_int16_t **p)
 {
+	int i;
 
 	if(p) {
-		/* Iterate intill we found NULL */
-		while(*p) {
-			free(*p);
-			*p++ = NULL;
+		for(i = 0; p[i] != NULL; i++) {
+			free(p[i]);
 		}
 		free(p);
 	}
