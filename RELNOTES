@@ -5,7 +5,7 @@ NSD RELEASE NOTES
 BUG FIXES:
         - Bug #90: handle \000 in TXT records correctly
         - Fixed undefined behavior in the use of vsnprintf when
-          logging messages.
+          logging messages.  This caused crashes on Linux/PPC.
 
 2.1.4
 =============
