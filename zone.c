@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.4 2002/01/09 11:45:39 alexis Exp $
+ * $Id: zone.c,v 1.5 2002/01/09 13:20:14 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -253,7 +253,7 @@ zone_dump(z, db)
 	struct 	zone *z;
 	struct	db *db;
 {
-	struct answer *answer;
+	struct domain *d;
 	struct message msg;
 	struct rrset *rrset, *additional;
 	u_char *dname, *nameptr;
@@ -267,6 +267,9 @@ zone_dump(z, db)
 		/* Initialize message */
 		bzero(&msg, sizeof(struct message));
 		msg.bufptr = msg.buf;
+
+		/* Create a new domain */
+		d = db_newdomain(DB_DELEGATION);
 
 		/* Put the dname into compression array */
 		for(nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1) {
@@ -292,10 +295,12 @@ zone_dump(z, db)
 			}
 		}
 
-		/* Write it into the database */
-		answer = zone_answer(&msg, rrset->type);
-		db_write(db, dname, answer);
-		free(answer);
+		/* Add this answer */
+		d = db_addanswer(d, &msg, rrset->type);
+
+		/* Store it */
+		db_write(db, dname, d);
+		free(d);
 	}
 	HEAP_STOP();
 	return 0;
@@ -452,29 +457,6 @@ zone_addname(msg, dname)
 	return *dname;
 }
 
-
-struct answer *
-zone_answer(msg, type)
-	struct message *msg;
-	u_short type;
-{
-	struct answer *a;
-	size_t size;
-
-	size = sizeof(size_t) + (sizeof(u_short) * (msg->pointerslen + 5)) + (msg->bufptr - msg->buf);
-
-	a = xalloc(size);
-	a->size = size;
-	a->type = htons(type);
-	a->ancount = htons(msg->ancount);
-	a->nscount = htons(msg->nscount);
-	a->arcount = htons(msg->arcount);
-	a->ptrlen = msg->pointerslen;
-	bcopy(msg->pointers, &a->ptrlen + 1, sizeof(u_short) * msg->pointerslen);
-	bcopy(msg->buf, &a->ptrlen + msg->pointerslen + 1, msg->bufptr - msg->buf);
-
-	return a;
-};
 
 #ifdef TEST
 

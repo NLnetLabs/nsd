@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.3 2002/01/09 11:45:39 alexis Exp $
+ * $Id: query.c,v 1.4 2002/01/09 13:20:14 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -88,89 +88,6 @@ query_destroy(q)
 		free(q);
 }
 
-int
-query_process(q, db)
-	struct query *q;
-	struct db *db;
-{
-	u_short class;
-	u_short type;
-	struct answer *answer;
-
-	u_char *qptr;
-	int i;
-
-	/* qname parsing stack */
-	u_char *stack[STACKSZ];
-	int stacklen;
-
-	/* Sanity checks */
-	if(QR(q)) return -1;	/* Not a query? Drop it on the floor. */
-
-
-	*(u_short *)(q->iobuf + 2) = 0;
-	QR_SET(q);				/* This is an answer */
-
-	/* Do we serve this type of query */
-	if(OPCODE(q) != OPCODE_QUERY) {
-		RCODE_SET(q, RCODE_IMPL);
-		return 0;
-	}
-
-	/* Dont bother to answer more than one question at once, but this will change for EDNS(0) */
-	if(ntohs(QDCOUNT(q)) != 1) {
-		RCODE_SET(q, RCODE_IMPL);
-		return 0;
-	}
-
-	/* Lets parse the qname */
-	stacklen = 0;
-	qptr = q->iobuf + QHEADERSZ;
-
-	while(*qptr) {
-		/* If we are out of array limits... */
-		if(stacklen >= STACKSZ - 1) {
-			RCODE_SET(q, RCODE_SERVFAIL);
-			return 0;
-		}
-
-		/*  If we are out of buffer limits or we have a pointer in question dname... */
-		if((qptr > q->iobufptr) || (*qptr & 0xc0)) {
-			RCODE_SET(q, RCODE_FORMAT);
-			return 0;
-		}
-
-		stack[stacklen++] = qptr;
-		qptr += ((int)*qptr) + 1;
-	}
-	stack[stacklen++] = qptr;
-
-	/* Advance beyond the trailing \000 */
-	stack[stacklen++] = ++qptr;
-
-	bcopy(qptr, &type, 2); qptr += 2;
-	bcopy(qptr, &class, 2); qptr += 2;
-
-	/* Unsupported class */
-	if(ntohs(class) != CLASS_IN) {
-		RCODE_SET(q, RCODE_REFUSE);
-		return 0;
-	}
-
-	/* Any other answer is authorative */
-	AA_SET(q);
-
-	for(i = 0; i < stacklen - 1; i++) {
-		if((answer = db_lookup(db, stack[i], stack[stacklen - 1] - stack[i])) != NULL) {
-			query_addanswer(q, stack[i], answer);
-			return 0;
-		}
-	}
-	RCODE_SET(q, RCODE_NXDOMAIN);
-	return 0;
-}
-
-
 void
 query_addanswer(q, dname, a)
 	struct query *q;
@@ -205,4 +122,161 @@ query_addanswer(q, dname, a)
 		bcopy(&pointer, qptr, 2);
 	}
 	q->iobufptr += datasize;
+}
+
+
+int
+query_process(q, db)
+	struct query *q;
+	struct db *db;
+{
+	/* Just for safety, we dont need + 2 here... */
+	u_char qnamestar[MAXDOMAINLEN + 2] = "\001*";
+
+	/* The query... */
+	u_char	*qname;
+	u_char qnamelen;
+	u_short qtype;
+	u_short qclass;
+	u_char *qptr;
+
+	struct domain *d;
+	struct answer *a;
+
+	/* Sanity checks */
+	if(QR(q)) return -1;	/* Not a query? Drop it on the floor. */
+
+	*(u_short *)(q->iobuf + 2) = 0;
+	QR_SET(q);				/* This is an answer */
+
+	/* Do we serve this type of query */
+	if(OPCODE(q) != OPCODE_QUERY) {
+		RCODE_SET(q, RCODE_IMPL);
+		return 0;
+	}
+
+	/* Dont bother to answer more than one question at once, but this will change for EDNS(0) */
+	if(ntohs(QDCOUNT(q)) != 1) {
+		RCODE_SET(q, RCODE_IMPL);
+		return 0;
+	}
+
+	/* Lets parse the qname */
+	for(qname = qptr = q->iobuf + QHEADERSZ; *qptr; qptr += *qptr + 1) {
+		/*  If we are out of buffer limits or we have a pointer in question dname... */
+		if((qptr > q->iobufptr) || (*qptr & 0xc0)) {
+			RCODE_SET(q, RCODE_FORMAT);
+			return 0;
+		}
+	}
+
+	qptr++;
+
+	/* Make sure name is not too long... */
+	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN) {
+		RCODE_SET(q, RCODE_FORMAT);
+		return 0;
+	}
+
+
+	bcopy(qptr, &qtype, 2); qptr += 2;
+	bcopy(qptr, &qclass, 2); qptr += 2;
+
+	/* Unsupported class */
+	if(ntohs(qclass) != CLASS_IN) {
+		RCODE_SET(q, RCODE_REFUSE);
+		return 0;
+	}
+
+	/* Do we have the complete name? */
+	if((d = db_lookup(db, qname, qnamelen)) != NULL) {
+		/* Is this a delegation point? */
+		if(d->flags & DB_DELEGATION) {
+			if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
+				RCODE_SET(q, RCODE_SERVFAIL);
+				return 0;
+			}
+			AA_CLR(q);
+			query_addanswer(q, qname, a);
+			return 0;
+		} else {
+			if((a = db_answer(d, qtype)) != NULL) {
+				AA_SET(q);
+				query_addanswer(q, qname, a);
+				return 0;
+			} else {
+				/* XXX Get SOA! */
+				/* if(((d = lookupname(db, d->soa, d->soalen)) == NULL) ||
+					((a = lookuptype(d, htons(TYPE_SOA))) == NULL)) {
+					RCODE_SET(q, RCODE_SERVFAIL);
+					return A_EMPTY;
+				} */
+				AA_SET(q);
+				return 0;
+			}
+		}
+	}
+
+	/* Start matching down label by label */
+	do {
+		/* Strip leftmost label */
+		qnamelen -= (*qname + 1);
+		qname += (*qname + 1);
+
+		if((d = db_lookup(db, qname, qnamelen)) == NULL) {
+			/* Prepend star */
+			bcopy(qname, qnamestar + 2, qnamelen);
+
+			/* Lookup star */
+			if((d = db_lookup(db, qnamestar, qnamelen + 2)) != NULL) {
+				/* Is this a delegation point? */
+				if(d->flags & DB_DELEGATION) {
+					if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
+						RCODE_SET(q, RCODE_SERVFAIL);
+						return 0;
+					}
+					AA_CLR(q);
+					query_addanswer(q, qname, a);
+					return 0;
+				} else {
+					if((a = db_answer(d, qtype)) != NULL) {
+						AA_SET(q);
+						query_addanswer(q, qname, a);
+						return 0;
+					} else {
+						/* XXXX Get SOA!!! */
+						/* if(((d = lookupname(db, d->soa, d->soalen)) == NULL) ||
+							((a = lookuptype(d, htons(TYPE_SOA))) == NULL)) {
+							RCODE_SET(q, RCODE_SERVFAIL);
+							return A_EMPTY;
+						} */
+						AA_SET(q);
+						return 0;
+					}
+				}
+			}
+			/* Neither name nor wildcard exists */
+			continue;
+		} else {
+			if(d->flags & DB_DELEGATION) {
+				if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
+					RCODE_SET(q, RCODE_SERVFAIL);
+					return 0;
+				}
+				AA_CLR(q);
+				query_addanswer(q, qname, a);
+				return 0;
+			} else {
+				if((a = db_answer(d, htons(TYPE_SOA)))) {
+					RCODE_SET(q, RCODE_NXDOMAIN);
+					AA_SET(q);
+					query_addanswer(q, qname, a);
+					return 0;
+				}
+			}
+		}
+	} while(*qname);
+
+	RCODE_SET(q, RCODE_SERVFAIL);
+	return 0;
 }

@@ -1,4 +1,4 @@
-$Id: TODO,v 1.1 2001/12/12 13:38:28 alexis Exp $
+$Id: TODO,v 1.2 2002/01/09 13:20:13 alexis Exp $
 
 
 
@@ -37,6 +37,10 @@ PARSER
 - ttl should be taken from SOA ttl if there's no $TTL
 - shoudl check the buffer sizes. think of thousands of the same A glue
   record which is misconfigured and tries to be added to a packet
+
+ZONE COMPILER
+
+- the * should not be compressed against owner name!!!! XXX
 
 SERVER
 

@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.6 2002/01/09 11:45:39 alexis Exp $
+ * $Id: db.c,v 1.7 2002/01/09 13:20:14 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -53,10 +53,11 @@
 #include <arpa/inet.h>
 
 #include <db.h>
+#include "heap.h"
 #include "dns.h"
 #include "nsd.h"
 #include "db.h"
-#include "zf.h"
+#include "zone.h"
 
 
 struct db *
@@ -81,18 +82,18 @@ db_close(db)
 }
 
 void
-db_write(db, dname, answer)
+db_write(db, dname, d)
 	struct db *db;
 	u_char *dname;
-	struct answer *answer;
+	struct domain *d;
 {
 	DBT key, data;
 
 	key.size = (size_t)(*dname);
 	key.data = dname + 1;
 
-	data.size = answer->size;
-	data.data = answer;
+	data.size = d->size;
+	data.data = d;
 
 	if(db->db->put(db->db, &key, &data, 0)) {
 		syslog(LOG_ERR, "failed to write to database: %m");
@@ -114,7 +115,7 @@ db_open(filename)
 	return &db;
 }
 
-struct answer *
+struct domain *
 db_lookup(db, dname, dnamelen)
 	struct db *db;
 	u_char *dname;
@@ -135,5 +136,58 @@ db_lookup(db, dname, dnamelen)
 		return data.data;
 	}
 
+	return NULL;
+}
+
+
+struct domain *
+db_addanswer(d, msg, type)
+	struct domain *d;
+	struct message *msg;
+	u_short type;
+{
+	struct answer *a;
+	size_t size;
+
+	size = sizeof(size_t) + (sizeof(u_short) * (msg->pointerslen + 5)) + (msg->bufptr - msg->buf);
+
+	d = xrealloc(d, d->size + size);
+
+	a = (struct answer *)(d + 1);
+	a->size = size;
+	a->type = htons(type);
+	a->ancount = htons(msg->ancount);
+	a->nscount = htons(msg->nscount);
+	a->arcount = htons(msg->arcount);
+	a->ptrlen = msg->pointerslen;
+	bcopy(msg->pointers, &a->ptrlen + 1, sizeof(u_short) * msg->pointerslen);
+	bcopy(msg->buf, &a->ptrlen + msg->pointerslen + 1, msg->bufptr - msg->buf);
+
+	d->size += size;
+
+	return d;
+}
+
+struct domain *
+db_newdomain(flags)
+	u_short flags;
+{
+	struct domain *d = xalloc(sizeof(struct domain));
+	d->size = sizeof(struct domain);
+	d->flags = flags;
+	return d;
+}
+
+struct answer *
+db_answer(d, type)
+	struct domain *d;
+	u_short type;
+{
+	struct answer *a;
+	for(a = (struct answer *)(d + 1); a < ((char *)d + d->size); (char *)a += a->size) {
+		if(a->type == type) {
+			return a;
+		}
+	}
 	return NULL;
 }
