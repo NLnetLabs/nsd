@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.14 2003/12/04 14:14:53 miekg Exp $
+ * $Id: zlexer.lex,v 1.15 2003/12/08 15:01:49 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -170,7 +170,7 @@ Q       \"
                             return '.';
                         }
 {DOT}                   return '.';
-{SLASH}#                return UN_RR;
+{SLASH}#                return URR;
 ^{SPACE}+               {
                             if ( paren_open == 0 ) { 
                                 in_rr = after_dname;
@@ -259,7 +259,7 @@ TYPE[0-9]+              {
 					ztext = region_strdup(rr_region, yytext);
 					yylval.data.len = zoctet(ztext);
 					yylval.data.str = ztext;
-                                	return UN_TYPE;
+                                	return UTYPE;
 				}
 			    } else {
 				    ztext = region_strdup(rr_region, yytext); 
@@ -278,7 +278,7 @@ CLASS[0-9]+             {
 					ztext = region_strdup(rr_region, yytext);
 					yylval.data.len = zoctet(ztext);
 					yylval.data.str = ztext;
-                                	return UN_CLASS;
+                                	return UCLASS;
 				}
 			    }
 

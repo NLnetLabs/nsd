@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.14 2003/12/08 10:51:30 miekg Exp $
+ * $Id: zparser.y,v 1.15 2003/12/08 15:01:49 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -32,6 +32,7 @@ uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 			'\0','\0','\0','\0',
 			'\0','\0','\0','\0' };
 /* 256 windows of 256 bits (32 bytes) */
+/* still need to reset the bastard somewhere */
 uint8_t nsecbits[256][32];
 
 %}
@@ -62,14 +63,13 @@ uint8_t nsecbits[256][32];
 %token <class> IN CH HS
 
 /* unknown RRs */
-%token         UN_RR
-%token <class> UN_CLASS
-%token <type>  UN_TYPE
+%token         URR
+%token <class> UCLASS
+%token <type>  UTYPE
 
 %type <domain> dname abs_dname
 %type <dname>  rel_dname
 %type <data>   str_seq hex_seq nxt_seq nsec_seq
-
 
 %%
 lines:  /* empty line */
@@ -169,7 +169,7 @@ in:     IN
         /* set the class */
         current_rr->class =  current_parser->class;
     }
-    |   UN_CLASS
+    |   UCLASS
     {
 	    /* unknown RR seen */
 	    current_rr->class = $1;

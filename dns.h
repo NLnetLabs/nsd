@@ -40,6 +40,10 @@
 #ifndef _DNS_H_
 #define _DNS_H_
 
+#ifndef _TCR
+#define _TCR
+#endif /* _TCR */
+
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
 #define	CLASS_CHAOS	3	/* Class CHAOS */

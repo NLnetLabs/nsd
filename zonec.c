@@ -57,6 +57,8 @@ static int vflag = 0;
 /* Total errors counter */
 static int totalerrors = 0;
 
+extern uint8_t nsecbits[256][32];
+
 /*
  *
  * Resource records types and classes that we know.
@@ -1020,6 +1022,8 @@ zone_read (char *name, char *zonefile)
 	}
 
 	/* Parse and process all RRs.  */
+	/* reset the nsecbits to zero */
+	memset(nsecbits, 0 , 8192);
 	yyparse();
 
 	fflush(stdout);
