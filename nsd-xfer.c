@@ -41,6 +41,7 @@
  */
 #define MAX_WAITING_TIME TCP_TIMEOUT
 
+#define SERIAL_BITS      32
 
 /*
  * Exit codes are based on named-xfer for now.  See ns_defs.h in
@@ -58,7 +59,7 @@ struct axfr_state
 	int verbose;
 	size_t packets_received;
 	size_t bytes_received;
-	
+
 	int s;			/* AXFR socket.  */
 	query_type *q;		/* Query buffer.  */
 	uint16_t query_id;	/* AXFR query ID.  */
@@ -68,7 +69,7 @@ struct axfr_state
 	uint32_t last_serial;    /* Otherwise the last serial.  */
 	uint32_t zone_serial;	 /* And the new zone serial.  */
 	const dname_type *zone;	 /* Zone name.  */
-	
+
 	int    done;		/* AXFR is complete.  */
 	size_t rr_count;	/* Number of RRs received so far.  */
 
@@ -199,13 +200,13 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 	int gai_rc;
 	int size;
 	uint8_t data[4000];
-	
+
 	if (!read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key server address: '%s'",
 		      strerror(errno));
 		return NULL;
 	}
-	
+
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags |= AI_NUMERICHOST;
 	hints.ai_family = default_family;
@@ -220,12 +221,12 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 	}
 
 	region_add_cleanup(region, cleanup_addrinfo, key->server);
-	
+
 	if (!read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key name: '%s'", strerror(errno));
 		return NULL;
 	}
-	
+
 	key->name = dname_parse(region, line);
 	if (!key->name) {
 		error("failed to parse TSIG key name '%s'", line);
@@ -241,7 +242,7 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 		error("failed to read TSIG key data: '%s'\n", strerror(errno));
 		return NULL;
 	}
-	
+
 	size = b64_pton(line, data, sizeof(data));
 	if (size == -1) {
 		error("failed to parse TSIG key data");
@@ -264,7 +265,7 @@ read_tsig_key(region_type *region,
 {
 	FILE *in;
 	tsig_key_type *key;
-	
+
 	in = fopen(tsiginfo_filename, "r");
 	if (!in) {
 		error("failed to open %s: %s",
@@ -276,7 +277,7 @@ read_tsig_key(region_type *region,
 	key = read_tsig_key_data(region, in, default_family);
 
 	fclose(in);
-	
+
 	if (unlink(tsiginfo_filename) == -1) {
 		warning("failed to remove %s: %s",
 			tsiginfo_filename,
@@ -352,7 +353,7 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 {
 	size_t i;
 	size_t saved_position = buffer_position(output);
-	
+
 	for (i = 0; i < record->rdata_count; ++i) {
 		if (i == 0) {
 			buffer_printf(output, "\t");
@@ -373,7 +374,7 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 	if (descriptor->type == TYPE_SOA) {
 		buffer_printf(output, " )");
 	}
-	
+
 	return 1;
 }
 
@@ -412,14 +413,14 @@ print_rr(FILE *out,
 				"$ORIGIN %s\n",
 				dname_to_string(owner_origin, NULL));
 		}
-	
+
 		set_previous_owner(state, owner);
 		buffer_printf(output,
 			      "%s",
 			      dname_to_string(owner,
 					      state->previous_owner_origin));
 	}
-	
+
 	buffer_printf(output,
 		      "\t%lu\t%s\t%s",
 		      (unsigned long) record->ttl,
@@ -437,7 +438,7 @@ print_rr(FILE *out,
 						       record->rdata_count,
 						       record->rdatas);
 	}
-	
+
 	if (result) {
 		buffer_printf(output, "\n");
 		buffer_flip(output);
@@ -445,7 +446,7 @@ print_rr(FILE *out,
 		       out);
 /* 		fflush(out); */
 	}
-	
+
 	return result;
 }
 
@@ -489,13 +490,13 @@ parse_response(FILE *out, axfr_state_type *state)
 			state->done = 1;
 			return 1;
 		}
-		
+
 		++state->rr_count;
-		
+
 		if (!print_rr(out, state, record)) {
 			return 0;
 		}
-		
+
 		region_free_all(state->rr_region);
 	}
 
@@ -521,7 +522,7 @@ static int
 receive_response_no_timeout(axfr_state_type *state)
 {
 	uint16_t size;
-	
+
 	buffer_clear(state->q->packet);
 	if (!read_socket(state->s, &size, sizeof(size))) {
 		return 0;
@@ -548,7 +549,7 @@ static int
 receive_response(axfr_state_type *state)
 {
 	int result;
-	
+
 	timeout_flag = 0;
 	alarm(MAX_WAITING_TIME);
 	result = receive_response_no_timeout(state);
@@ -556,7 +557,7 @@ receive_response(axfr_state_type *state)
 	if (!result && timeout_flag) {
 		error("timeout reading response, server unreachable?");
 	}
-	
+
 	return result;
 }
 
@@ -582,9 +583,9 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 		tsig_update(tsig, q->packet, buffer_limit(q->packet));
 		return 1;
 	}
-	
+
 	ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
-	
+
 	if (tsig->status == TSIG_ERROR) {
 		error("TSIG record is not correct");
 		return 0;
@@ -606,6 +607,26 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 
 
 /*
+ * Compares two 32-bit serial numbers as defined in RFC1982.  Returns
+ * <0 if a < b, 0 if a == b, and >0 if a > b.  The result is undefined
+ * if a != b but neither is greater or smaller (see RFC1982 section
+ * 3.2.).
+ */
+static int
+compare_serial(uint32_t a, uint32_t b)
+{
+	const uint32_t cutoff = ((uint32_t) 1 << (SERIAL_BITS - 1));
+
+	if (a == b) {
+		return 0;
+	} else if ((a < b && b - a < cutoff) || (a > b && a - b > cutoff)) {
+		return -1;
+	} else {
+		return 1;
+	}
+}
+
+/*
  * Query the server for the zone serial. Return 1 if the zone serial
  * is higher than the current serial, 0 if the zone serial is lower or
  * equal to the current serial, and -1 on error.
@@ -619,10 +640,10 @@ check_serial(axfr_state_type *state)
 	uint16_t query_id;
 	uint16_t i;
 	domain_table_type *owners;
-	
+
 	query_id = init_query(
 		state->q, state->zone, TYPE_SOA, CLASS_IN, state->tsig);
-	
+
 	if (!send_query(state->s, state->q)) {
 		return -1;
 	}
@@ -631,7 +652,7 @@ check_serial(axfr_state_type *state)
 		/* Prepare for checking responses. */
 		tsig_prepare(state->tsig);
 	}
-	
+
 	if (!receive_response(state)) {
 		return -1;
 	}
@@ -652,23 +673,23 @@ check_serial(axfr_state_type *state)
 		error("response is truncated");
 		return -1;
 	}
-	
+
 	if (ID(state->q->packet) != query_id) {
 		error("bad response id (%d), expected (%d)",
 		      (int) ID(state->q->packet), (int) query_id);
 		return -1;
 	}
-	
+
 	if (RCODE(state->q->packet) != RCODE_OK) {
 		error("error response %d", (int) RCODE(state->q->packet));
 		return -1;
 	}
-	
+
 	if (QDCOUNT(state->q->packet) != 1) {
 		error("question section count not equal to 1");
 		return -1;
 	}
-	
+
 	if (ANCOUNT(state->q->packet) == 0) {
 		error("answer section is empty");
 		return -1;
@@ -677,12 +698,12 @@ check_serial(axfr_state_type *state)
 	if (!check_response_tsig(state->q, state->tsig)) {
 		return -1;
 	}
-	
+
 	buffer_set_position(state->q->packet, QHEADERSZ);
 
 	local = region_create(xalloc, free);
 	owners = domain_table_create(local);
-	
+
 	/* Skip question records. */
 	for (i = 0; i < QDCOUNT(state->q->packet); ++i) {
 		rr_type *record
@@ -702,7 +723,7 @@ check_serial(axfr_state_type *state)
 			return -1;
 		}
 	}
-	
+
 	/* Find the SOA record in the response.  */
 	for (i = 0; i < ANCOUNT(state->q->packet); ++i) {
 		rr_type *record
@@ -723,7 +744,8 @@ check_serial(axfr_state_type *state)
 				rdata_atom_data(record->rdatas[2]));
 			region_destroy(local);
 			return (state->first_transfer
-				|| state->zone_serial > state->last_serial);
+				|| compare_serial(state->zone_serial,
+						  state->last_serial) > 0);
 		}
 	}
 
@@ -742,9 +764,9 @@ handle_axfr_response(FILE *out, axfr_state_type *axfr)
 		if (!receive_response(axfr)) {
 			return 0;
 		}
-		
+
 		buffer_flip(axfr->q->packet);
-		
+
 		if (buffer_limit(axfr->q->packet) <= QHEADERSZ) {
 			error("response size (%d) is too small",
 			      (int) buffer_limit(axfr->q->packet));
@@ -782,9 +804,9 @@ handle_axfr_response(FILE *out, axfr_state_type *axfr)
 		if (!check_response_tsig(axfr->q, axfr->tsig)) {
 			return 0;
 		}
-	
+
 		buffer_set_position(axfr->q->packet, QHEADERSZ);
-		
+
 		if (!parse_response(out, axfr)) {
 			return 0;
 		}
@@ -802,7 +824,7 @@ axfr(FILE *out, axfr_state_type *state, const char *server)
 		"send AXFR query to %s for %s",
 		server,
 		dname_to_string(state->zone, NULL));
-	
+
 	if (!send_query(state->s, state->q)) {
 		return 0;
 	}
@@ -811,7 +833,7 @@ axfr(FILE *out, axfr_state_type *state, const char *server)
 		/* Prepare for checking responses.  */
 		tsig_prepare(state->tsig);
 	}
-	
+
 	return handle_axfr_response(out, state);
 }
 
@@ -823,9 +845,9 @@ init_query(query_type *q,
 	   tsig_record_type *tsig)
 {
 	uint16_t query_id = (uint16_t) random();
-	
+
 	buffer_clear(q->packet);
-	
+
 	/* Set up the header */
 	ID_SET(q->packet, query_id);
 	FLAGS_SET(q->packet, 0);
@@ -850,7 +872,7 @@ init_query(query_type *q,
 		tsig_append_rr(tsig, q->packet);
 		ARCOUNT_SET(q->packet, 1);
 	}
-	
+
 	buffer_flip(q->packet);
 
 	return ID(q->packet);
@@ -895,7 +917,7 @@ cleanup_region(void *data)
 	region_destroy(region);
 }
 
-int 
+int
 main(int argc, char *argv[])
 {
 	region_type *region = region_create(xalloc, free);
@@ -910,7 +932,7 @@ main(int argc, char *argv[])
 	const char *tsig_key_filename = NULL;
 	tsig_key_type *tsig_key = NULL;
 	axfr_state_type state;
-	
+
 	log_init("nsd-xfer");
 
 	/* Initialize the query.  */
@@ -937,7 +959,7 @@ main(int argc, char *argv[])
 
 	region_add_cleanup(region, cleanup_region, state.previous_owner_region);
 	region_add_cleanup(region, cleanup_region, state.rr_region);
-	
+
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	if (!tsig_init(region)) {
@@ -1007,7 +1029,7 @@ main(int argc, char *argv[])
 			      " enabled");
 			exit(XFER_FAIL);
 		}
-		
+
 		tsig_key = read_tsig_key(
 			region, tsig_key_filename, default_family);
 		if (!tsig_key) {
@@ -1015,7 +1037,7 @@ main(int argc, char *argv[])
 		}
 
 		tsig_add_key(tsig_key);
-		
+
 		state.tsig = (tsig_record_type *) region_alloc(
 			region, sizeof(tsig_record_type));
 		tsig_init_record(state.tsig, region, md5, tsig_key);
@@ -1027,11 +1049,11 @@ main(int argc, char *argv[])
 	if (sigaction(SIGALRM, &mysigaction, NULL) < 0) {
 		error("cannot set signal handler");
 	}
-	
+
 	for (; *argv; ++argv) {
 		/* Try each server separately until one succeeds.  */
 		int rc;
-		
+
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = default_family;
 		hints.ai_socktype = SOCK_STREAM;
@@ -1061,7 +1083,7 @@ main(int argc, char *argv[])
 				close(state.s);
 				continue;
 			}
-			
+
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
 			rc = check_serial(&state);
@@ -1083,7 +1105,7 @@ main(int argc, char *argv[])
 				}
 
 				print_zone_header(zone_file, &state, *argv);
-				
+
 				if (axfr(zone_file, &state, *argv)) {
 					/* AXFR succeeded, done.  */
 					fclose(zone_file);
@@ -1092,13 +1114,13 @@ main(int argc, char *argv[])
 					if (state.verbose > 0) {
 						print_stats(&state);
 					}
-					
+
 					exit(XFER_SUCCESS);
 				}
 
 				fclose(zone_file);
 			}
-			
+
 			close(state.s);
 		}
 
