@@ -1,7 +1,5 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.23 2004/01/19 13:05:00 miekg Exp $
- *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
  * Copyright (c) 2001-2003, NLnet Labs. All rights reserved

@@ -1,7 +1,5 @@
 %{
 /*
- * $Id: zparser.y,v 1.22 2004/01/19 12:49:22 miekg Exp $
- *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
  * Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
