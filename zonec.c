@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.80 2003/02/26 11:04:40 alexis Exp $
+ * $Id: zonec.c,v 1.81 2003/02/27 14:30:28 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -140,38 +140,42 @@ zone_initmsg(struct message *m)
 void 
 zone_print (struct zone *z)
 {
-	/* struct rrset *rrset;
+	struct rrset *rrset;
+	struct RR rr;
 	u_char *dname;
-	int i; */
+	int i;
 
 	printf("; zone %s\n", dnamestr(z->dname));
 	printf("; zone data\n");
-/*
+
 	HEAP_WALK(z->data, dname, rrset) {
 		while(rrset) {
+			rr.dname = dname;
+			rr.ttl = rrset->ttl;
+			rr.class = rrset->class;
+			rr.type = rrset->type;
 			for(i = 0; i < rrset->rrslen; i++) {
-				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
-					 classtoa(rrset->class), typetoa(rrset->type));
-				zf_print_rdata(rrset->rrs[i], rrset->fmt);
-				printf("\n");
+				rr.rdata = rrset->rrs[i];
+				zprintrr(stdout, &rr);
 			}
 			rrset = rrset->next;
 		}
 	}
 
-	printf("; zone cuts\n");
+	printf("; referrals\n");
 	HEAP_WALK(z->cuts, dname, rrset) {
 		while(rrset) {
+			rr.dname = dname;
+			rr.ttl = rrset->ttl;
+			rr.class = rrset->class;
+			rr.type = rrset->type;
 			for(i = 0; i < rrset->rrslen; i++) {
-				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
-					 classtoa(rrset->class), typetoa(rrset->type));
-				zf_print_rdata(rrset->rrs[i], rrset->fmt);
-				printf("\n");
+				rr.rdata = rrset->rrs[i];
+				zprintrr(stdout, &rr);
 			}
 			rrset = rrset->next;
 		}
 	}
-*/
 }
 
 static void 

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.10 2003/02/21 14:54:38 alexis Exp $
+ * $Id: zparser.h,v 1.11 2003/02/27 14:30:28 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -164,5 +164,10 @@ void zaddtoken(struct zparser *z, char *t);
 int zparseline(struct zparser *z);
 const char *precsize_ntoa(int prec);
 u_int8_t precsize_aton(register char *cp, char **endptr);
+void zprintrdata(FILE *f, int what, u_int16_t *r);
+void zprintrrrdata(FILE *f, struct RR *rr);
+char *typebyint(u_int16_t type);
+char *classbyint(u_int16_t class);
+void zprintrr(FILE *f, struct RR *rr);
 
 #endif /* _ZPARSER_H_ */
