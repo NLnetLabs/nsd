@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2002/01/09 11:45:39 alexis Exp $
+# $Id: Makefile,v 1.7 2002/01/10 12:52:46 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -38,7 +38,7 @@
 #
 SHELL = /bin/sh
 
-DEBUG=	-g -DDEBUG=1
+DEBUG=	-pg -DDEBUG=1
 CC=gcc
 CFLAGS= -pipe -Wall ${DEBUG} -I/usr/local/include
 LDFLAGS= -L/usr/local/lib

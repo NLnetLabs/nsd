@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.9 2002/01/09 15:19:50 alexis Exp $
+ * $Id: db.c,v 1.10 2002/01/10 12:52:46 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -101,7 +101,7 @@ db_write(db, dname, d)
 	assert(depth < 128);
 
 	/* Set the flag */
-	db->mask[depth/8] |= 1 << (depth % 8);
+	db->mask[(depth >> 3)] |= 1 << (depth & 0x7);
 	
 	key.size = (size_t)(*dname);
 	key.data = dname + 1;

@@ -1,5 +1,5 @@
 /*
- * $Id: db.h,v 1.8 2002/01/09 15:34:36 alexis Exp $
+ * $Id: db.h,v 1.9 2002/01/10 12:52:46 alexis Exp $
  *
  * db.h -- nsd(8) internal namespace database
  *
@@ -64,7 +64,7 @@ struct db {
 	u_char mask[16];
 };
 
-#define	DB_PROBE(db, depth) (db->mask[depth/8] & (1 << (depth % 8)))
+#define	DB_PROBE(db, depth) (db->mask[(depth) >> 3] & (1 << ((depth) & 0x7)))
 
 void db_write __P((struct db *, u_char *, struct domain *));
 struct db *db_create __P((char *));
