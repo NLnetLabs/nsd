@@ -60,7 +60,7 @@ EDIT		= sed \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsd.conf.sample
+TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsd.conf.sample nsdc
 
 NSD_OBJECTS	=				\
 	answer.o				\
@@ -84,6 +84,12 @@ NSD_OBJECTS	=				\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o
+
+NSDC_OBJECTS	=				\
+	nsdc.o					\
+	util.o					\
+	options.o				\
+	region-allocator.o			
 
 ZONEC_OBJECTS	=				\
 	buffer.o				\
@@ -170,6 +176,9 @@ uninstall:
 
 nsd:	$(NSD_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
+
+nsdc:	$(NSDC_OBJECTS) $(LIBOBJS)
+	$(LINK) -o $@ $(NSDC_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 zonec:	$(ZONEC_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(ZONEC_OBJECTS) $(LIBOBJS) $(LIBS)
