@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.16 2003/08/28 17:58:12 miekg Exp $
+ * $Id: zonec2.c,v 1.17 2003/09/11 09:11:56 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -29,7 +29,7 @@
 #include "namedb.h"
 #include "util.h"
 #include "region-allocator.h"
-#include "zonec.h"
+#include "zonec2.h"
 #include "zparser2.h"
 
 struct zone *current_zone = NULL;

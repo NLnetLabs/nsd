@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.22 2003/09/10 12:52:34 miekg Exp $
+ * $Id: zparser2.c,v 1.23 2003/09/11 09:11:57 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -757,7 +757,7 @@ classbyint(uint16_t class)
  *
  *	nothing
  */
-	void
+static void
 zprintrdata (FILE *f, int what, uint16_t *r)
 {
 	char buf[B64BUFSIZE];
@@ -836,7 +836,7 @@ zprintrdata (FILE *f, int what, uint16_t *r)
  *	nothing
  *
  */
-	void
+static void
 zprintrrrdata(FILE *f, struct RR *rr)
 {
 	uint16_t **rdata;
