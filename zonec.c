@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.11 2002/02/02 13:48:53 alexis Exp $
+ * $Id: zonec.c,v 1.12 2002/02/02 14:01:42 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -773,7 +773,7 @@ main(argc, argv)
 		argc--;
 		argv++;
 
-		if(**argv != '-' || argc == 0) usage();
+		if(argc == 0 || **argv != '-') usage();
 
 		switch(*(*argv+1)) {
 		case 'a':
