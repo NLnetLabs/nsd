@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.8 2003/02/17 15:58:57 alexis Exp $
+ * $Id: zparser.h,v 1.9 2003/02/21 13:35:32 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -48,6 +48,10 @@
 #define	ROOT		(u_char *)"\001"
 
 #define	IP6ADDRLEN	128/8
+
+#ifndef AF_INET6
+#define AF_INET6	28	/* IPv6 */
+#endif
 
 /* Type of rdata elements we might encounter */
 #define RDATA_A		1

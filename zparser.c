@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.16 2003/02/21 12:49:49 alexis Exp $
+ * $Id: zparser.c,v 1.17 2003/02/21 13:35:32 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -974,7 +974,7 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(in_addr_t));
 
-#ifdef HAVE_INET_NTOA
+#ifdef HAVE_INET_ATON
 		if(inet_aton(z->_t[z->_tc], &pin) == 1) {
 			memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
 			*r = sizeof(u_int32_t);
@@ -1280,6 +1280,7 @@ zparseline (struct zparser *z)
 
 	/* Start fresh... */
 	z->_tc = 0;
+	errno = 0;
 
 	/* Read the lines... */
 	while((p = fgets(p, p - z->_buf + ZBUFSIZE, z->file)) != NULL) {

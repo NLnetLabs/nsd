@@ -15,10 +15,7 @@
  * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
  * SOFTWARE.
  */
-
-#if defined(LIBC_SCCS) && !defined(lint)
-static char rcsid[] = "$FreeBSD: src/lib/libc/net/inet_pton.c,v 1.6.2.1 2002/04/28 05:40:24 suz Exp $";
-#endif /* LIBC_SCCS and not lint */
+#include <config.h>
 
 #include <sys/param.h>
 #include <sys/types.h>
@@ -27,7 +24,10 @@ static char rcsid[] = "$FreeBSD: src/lib/libc/net/inet_pton.c,v 1.6.2.1 2002/04/
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
 #include <string.h>
+#include <stdio.h>
 #include <errno.h>
+
+#include <zparser.h>
 
 /*
  * WARNING: Don't even consider trying to compile this on a system where
@@ -54,10 +54,6 @@ static int	inet_pton6 (const char *src, u_char *dst);
 #define NS_INADDRSZ 4
 #endif
 
-#ifndef	AF_INET6
-#define AF_INET6	28	/* IPv6 */
-#endif
- 
 /* int
  * inet_pton(af, src, dst)
  *	convert from presentation format (which usually means ASCII printable)
