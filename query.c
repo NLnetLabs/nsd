@@ -74,6 +74,7 @@ static void add_rrset(struct query       *query,
 static void answer_authoritative(struct query     *q,
 				 answer_type      *answer,
 				 uint32_t          domain_number,
+				 int               exact,
 				 domain_type      *closest_match,
 				 domain_type      *closest_encloser);
 
@@ -687,6 +688,7 @@ answer_domain(struct query *q, answer_type *answer,
 				closest_encloser = closest_encloser->parent;
 
 			answer_authoritative(q, answer, closest_match->number,
+					     closest_match == closest_encloser,
 					     closest_match, closest_encloser);
 		}
 	} else {
@@ -718,13 +720,14 @@ static void
 answer_authoritative(struct query *q,
 		     answer_type  *answer,
 		     uint32_t      domain_number,
+		     int           exact,
 		     domain_type  *closest_match,
 		     domain_type  *closest_encloser)
 {
 	domain_type *match;
 	domain_type *original = closest_match;
 	
-	if (closest_match == closest_encloser) {
+	if (exact) {
 		match = closest_match;
 	} else if (domain_wildcard_child(closest_encloser)) {
 		/* Generate the domain from the wildcard.  */
@@ -839,7 +842,8 @@ answer_query(struct nsd *nsd, struct query *q)
 		if (q->delegation_domain) {
 			answer_delegation(q, &answer);
 		} else {
-			answer_authoritative(q, &answer, 0, closest_match, closest_encloser);
+			answer_authoritative(q, &answer, 0, exact,
+					     closest_match, closest_encloser);
 		}
 	}
 	
