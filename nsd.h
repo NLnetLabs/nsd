@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.46 2003/02/10 09:54:32 alexis Exp $
+ * $Id: nsd.h,v 1.47 2003/02/21 11:00:39 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -40,31 +40,6 @@
 
 #ifndef	_NSD_H_
 #define	_NSD_H_
-
-#include "config.h"
-
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/uio.h>
-#include <sys/wait.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <pwd.h>
-#include <signal.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-#include <time.h>
-#include <unistd.h>
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.5 2003/02/17 15:58:57 alexis Exp $
+ * $Id: nsd-notify.c,v 1.6 2003/02/21 11:00:39 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -37,9 +37,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include <config.h>
+
 #ifdef INET6
 #undef	INET6
 #endif
+
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <errno.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <nsd.h>
 #include <dname.h>

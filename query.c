@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.89 2003/02/18 10:54:45 alexis Exp $
+ * $Id: query.c,v 1.90 2003/02/21 11:00:39 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -37,7 +37,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include "nsd.h"
+#include <config.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <errno.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <time.h>
+#include <unistd.h>
+
+#include <nsd.h>
+#include <query.h>
 
 #ifdef HAVE_LIBWRAP
 #include <tcpd.h>

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.62 2003/02/17 11:39:51 alexis Exp $
+ * $Id: nsd.c,v 1.63 2003/02/21 11:00:39 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -37,7 +37,33 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include "nsd.h"
+#include <config.h>
+
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+#include <sys/wait.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <pwd.h>
+#include <signal.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <time.h>
+#include <unistd.h>
+
+#include <nsd.h>
+
 
 /* The server handler... */
 struct nsd nsd;

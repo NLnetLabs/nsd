@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.65 2003/02/21 10:52:20 alexis Exp $
+ * $Id: server.c,v 1.66 2003/02/21 11:00:39 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -37,7 +37,32 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include "nsd.h"
+#include <config.h>
+
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+
+#ifdef	HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <time.h>
+#include <unistd.h>
+
+#include <nsd.h>
 
 /*
  * Initialize the server, create and bind the sockets.
