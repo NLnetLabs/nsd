@@ -1,4 +1,4 @@
-$Id: TODO,v 1.29 2003/01/20 08:44:37 alexis Exp $
+$Id: TODO,v 1.30 2003/02/10 14:53:02 alexis Exp $
 
 AUTOCONF
 
@@ -9,6 +9,7 @@ ZONE COMPILER
 - parser is too smart: should not try to continue processing if there are errors...
 - as writing the zone the order should be DNS SEC compliant (use dnameinvert())
 - missing closing quote doesnt register as an error
+- MINOR BUG: unknown types and custom formats dont ever get freed()
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.71 2003/02/10 09:54:32 alexis Exp $
+ * $Id: zonec.c,v 1.72 2003/02/10 14:53:02 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -333,9 +333,9 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 				size = IP6ADDRLEN;
 				zone_addbuf(msg, rdata[i].p, size);
 				break;
-			case 'L':
-				size = LOCRDLEN;
-				zone_addbuf(msg, rdata[i].p, size);
+			case 'U':
+				size = *((u_int16_t *)rdata[i].p);
+				zone_addbuf(msg, rdata[i].p + sizeof(u_int16_t), size);
 				break;
 			case 'n':
 				if (msg->dnameslen >= MAXRRSPP) {

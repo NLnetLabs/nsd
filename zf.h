@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.18 2003/01/21 12:01:26 alexis Exp $
+ * $Id: zf.h,v 1.19 2003/02/10 14:53:02 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -140,6 +140,7 @@ struct zf_class_tab {
  *	'l' The next atom is a four octets number.
  *	't' The next atom is a text string.
  *
+ *	'U' The next atom is in unknown form.
  *	'c' The next atom is an octet
  *	'e' The next atom is encoded binary data
  *	'b' The next atom is a bitlabel
@@ -173,9 +174,13 @@ struct zf_type_tab {
         {TYPE_AAAA, "AAAA", "6"},	\
 	{TYPE_SRV, "SRV", "sssn"},	\
 	{TYPE_NAPTR, "NAPTR", "sstttn"},	\
-	{TYPE_LOC, "LOC", "L"},		\
+	{TYPE_LOC, "LOC", "U"},		\
 	{TYPE_AFSDB, "AFSDB", "sn"},	\
 	{TYPE_RP, "RP", "nn"},		\
+	{TYPE_SIG, "SIG", NULL},	\
+	{TYPE_KEY, "KEY", NULL},	\
+	{TYPE_NXT, "NXT", NULL},	\
+	{TYPE_DS, "DS", NULL},		\
 	{TYPE_ANY, "ANY", NULL},	\
 	{0, NULL, NULL}			\
 }

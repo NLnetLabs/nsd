@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.39 2003/02/10 09:54:32 alexis Exp $
+ * $Id: zf.c,v 1.40 2003/02/10 14:53:02 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -172,12 +172,12 @@ char *
 typetoa (int n)
 {
 	struct zf_type_tab *type;
-	static char name[5];
+	static char name[9];
 
 	for(type = zf_types; type->type; type++)
 		if(n == type->type) return type->name;
 
-	snprintf(name, sizeof(name), "%u", n);
+	snprintf(name, sizeof(name), "TYPE%u", n);
 	return name;
 }
 
@@ -572,7 +572,7 @@ zf_free_rdata (union zf_rdatom *rdata, char *f)
 			case 'n':
 			case '6':
 			case 't':
-			case 'L':
+			case 'U':
 				free(rdata[i].p);
 			}
 		}
@@ -609,8 +609,11 @@ zf_cmp_rdata (union zf_rdatom *a, union zf_rdatom *b, register char *f)
 			if(bcmp(a[i].p, b[i].p, IP6ADDRLEN))
 				return 1;
 			break;
-		case 'L':
-			if(bcmp(a[i].p, b[i].p, LOCRDLEN))
+		case 'U':
+			if(*((u_int16_t *)a[i].p) != *((u_int16_t *)b[i].p))
+				return 1;
+			if(bcmp(((u_int16_t *)a[i].p) + 1, ((u_int16_t *)b[i].p) + 1,
+					*((u_int16_t *)a[i].p)))
 				return 1;
 			break;
 		default:
@@ -638,9 +641,9 @@ zf_print_entry (struct zf_entry *rr)
 void 
 zf_print_rdata (union zf_rdatom *rdata, char *rdatafmt)
 {
-	int i, j;
+	int i, j, k;
 	struct in_addr in;
-	char *f;
+	char *f, *t;
 
 	for(i = 0, f = rdatafmt; *f; f++, i++) {
 		switch(*f) {
@@ -675,14 +678,228 @@ zf_print_rdata (union zf_rdatom *rdata, char *rdatafmt)
 			}
 			putc('"', stdout);
 			break;
-		case 'L':
-			printf("%s\t", loc_ntoa(rdata[i].p, NULL, 0));
+		case 'U':
+			k = *((u_int16_t *)rdata[i].p);
+			for(t = (char *)(((u_int16_t *)rdata[i].p) + 1); k--; t++) {
+				printf("%x", *t);
+				if((k % 16) == 0) {
+					if((k % 64)) {
+						printf("\n\t\t\t");
+					} else {
+						printf(" ");
+					}
+				}
+			}
 			break;
 		default:
 			printf("???");
 			break;
 		}
 	}
+}
+
+/*
+ *
+ * Parse rdata in uknown format according to draft-ietf-dnsext-unknown-rrs-04
+ *
+ */
+int
+zf_parse_unkn (struct zf *zf, char *token) {
+	return -1;
+/* if(*token[0] == '\' && token[1] == '#') {
+	if(*token[2] != 0) {
+		zf_syntax(zf);
+		continue;
+	}
+	if((token = zf_token(zf, NULL)) == NULL) {
+		zf_syntax(zf);
+		continue;
+	}
+	unkn_size = (u_int16_t)strtol(token, &t, 10);
+
+	if(t) {
+		zf_syntax(zf);
+		continue;
+	}
+
+	if(unkn_size == 0) {
+		zf->line.rdatafmt = "";
+		return &zf->line;
+	}
+	zf->line.rdatafmt = xalloc(unkn_size + 1);
+	memset(zf->line.rdatafmt, 'c', unkn_size);
+	zf->line.rdata[0].p = xalloc(unkn_size);
+	t = zf->line.rdata[0].p;
+	while(unkn_size) {
+		if((token = zf_token(zf, NULL)) == NULL) {
+			zf_error(zf, "insufficient bytes for unknown record");
+			break;
+		}
+			
+	}
+	/* If we did not parse everything means there was an error */
+/*
+	if(unkn_size) {
+		free(zf->line.rdata[0].p);
+		continue;
+	}
+*/
+}
+
+/*
+ * Special parser for LOC record.
+ *
+ */
+int
+zf_parse_loc (struct zf *zf, char *token)
+{
+	char *t;
+
+	zf->line.rdata[0].p = xalloc(LOCRDLEN + 2);
+	
+	for(t = token; token; token = zf_token(zf, NULL))  {
+		*(token + strlen(token)) = ' ';
+	}
+
+	*((u_int16_t *)zf->line.rdata[0].p) = LOCRDLEN;
+	if(loc_aton(t, zf->line.rdata[0].p + sizeof(u_int16_t)) != LOCRDLEN) {
+		return -1;
+	}
+	return 0;
+}
+
+/*
+ *
+ * Parse a line according to the format string.
+ *
+ */
+int
+zf_parse_format (struct zf *zf, char *token)
+{
+
+#ifndef USE_INET_ADDR
+	struct in_addr pin;
+#endif /* !USE_INET_ADDR */
+
+	int parse_error;
+	int i, j;
+	char *f, *t;
+
+	/* Format starting with ``*'' is an error */
+	assert(*zf->line.rdatafmt != '*');
+
+	/* Parse it */
+	for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; i++) {
+		assert(i < MAXRDATALEN);
+
+#if DEBUG > 2
+		printf("token %c - %s\n", *f, token);
+#endif
+
+		switch(*f) {
+		case '4':
+#ifdef USE_INET_ADDR
+			if((zf->line.rdata[i].l = inet_addr(token)) == -1) {
+#else
+				if(inet_aton(token, &pin) == 1) {
+					zf->line.rdata[i].l = pin.s_addr;
+				} else {
+#endif /* USE_INET_ADDR */
+				zf_error(zf, "malformed ipv4 address");
+				parse_error++;
+			}
+			break;
+		case '6':
+			if((zf->line.rdata[i].p = inet6_aton(token)) == NULL) {
+				parse_error++;
+			}
+			break;
+		case 'n':
+			if((zf->line.rdata[i].p = strdname(token, zf->i[zf->iptr].origin)) == NULL) {
+				parse_error++;
+			}
+			break;
+		case 'l':
+			zf->line.rdata[i].l = strtottl(token, &t);
+			if(*t != 0) {
+				zf_error(zf, "decimal number or time interval is expected");
+				parse_error++;
+			}
+			break;
+		case 's':
+			zf->line.rdata[i].s = (u_int16_t)strtol(token, &t, 10);
+			if(*t != 0) {
+				zf_error(zf, "decimal number is expected");
+				parse_error++;
+			}
+			break;
+		case 't':
+			if((j = strlen(token)) > 255) {
+				zf_error(zf, "character string is too long");
+				parse_error++;
+				break;
+			} else {
+				zf->line.rdata[i].p = xalloc(j + 1);
+				bcopy(token, zf->line.rdata[i].p + 1, j);
+				*(char *)zf->line.rdata[i].p = (u_char) j;
+			}
+			break;
+		default:
+			fprintf(stderr, "panic! uknown atom in format %c\n", *f);
+			assert(0);
+			return NULL;
+		}
+
+		f++;
+
+		/* Handle the star case... */
+		if(*f == '*') {
+			/* Make a private format for this RR initialy if not done already*/
+			zf->line.rdatafmt = xrealloc(zf->line.rdatafmt, MAXRDATALEN + 1);
+
+			/* Copy the previous atom */
+			*f = *(f - 1);
+			memcpy(f + 1, "*", 2);
+
+			/* Make sure we dont overflow */
+			if((f - zf->line.rdatafmt) >= MAXRDATALEN) {
+				zf_error(zf, "maximum number of elements exceeded");
+				parse_error++;
+				break;
+			}
+		}
+
+		/* Get the next token... */
+		if((token = zf_token(zf, NULL)) == NULL) {
+			break;
+		}
+	}
+
+	/* Was there a star? */
+	if(*f && *(f + 1) == '*') *f = 0;
+
+	/* More atoms expected? */
+	if(*f != 0) {
+		zf_error(zf, "missing element");
+		zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
+		return -1;
+	}
+
+	/* We couldnt parse it completely */
+	if(parse_error) {
+		zf_syntax(zf);
+		zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
+		return -1;
+	}
+
+	/* Trailing garbage */
+	if((token = zf_token(zf, NULL)) != NULL) {
+		zf_error(zf, "trailing garbage");
+		zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
+		return -1;
+	}
+
+	return 0;
 }
 
 /*
@@ -694,18 +911,14 @@ zf_print_rdata (union zf_rdatom *rdata, char *rdatafmt)
 struct zf_entry *
 zf_read (struct zf *zf)
 {
-
-#ifndef USE_INET_ADDR
-	struct in_addr pin;
-#endif /* !USE_INET_ADDR */
-
-	int parse_error;
 	char *line, *token;
 	char *t, *f;
 	int i, j;
 
 	struct zf_type_tab *type;
 	struct zf_class_tab *class;
+	struct zf_type_tab unkn_type;
+	u_int16_t unkn_size;
 
 	u_int16_t default_class = CLASS_IN;
 
@@ -795,7 +1008,17 @@ zf_read (struct zf *zf)
 			}
 
 			/* Then this must be a type */
-			type = typebyname(token);
+			if(strncasecmp(token, "TYPE", 4) == 0) {
+				if((unkn_type.type = atoi(token+4)) == 0) {
+					type = NULL; /* Syntax error below */
+				} else {
+					unkn_type.fmt = NULL;
+					unkn_type.name = token;
+					type = &unkn_type;
+				}
+			} else {
+				type = typebyname(token);
+			}
 			break;
 		}
 
@@ -805,142 +1028,41 @@ zf_read (struct zf *zf)
 			continue;
 		}
 
-		/* Do we support this type? */
-		if(type->fmt == NULL) {
-			zf_error(zf, "unsupported resource record type");
-			continue;
-		}
-
 		zf->line.type = type->type;
-		zf->line.rdatafmt = type->fmt;
+		zf->line.rdatafmt = strdup(type->fmt);
 		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
 		memset(zf->line.rdata, 0, sizeof(union zf_rdatom) * MAXRDATALEN);
 
-		/* Format starting with ``*'' is an error */
-		assert(*zf->line.rdatafmt != '*');
+		/* Get the next token to see what it is */
+		if((token = zf_token(zf, NULL)) == NULL) {
+			zf_syntax(zf);
+			continue;
+		}
 
-		/* Parse it */
-		for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; f++, i++) {
-			/* Handle the star case first... */
-			if(*f == '*') {
-				/* Make a private format for this RR initialy */
-				if(zf->line.rdatafmt == type->fmt) {
-					zf->line.rdatafmt = xalloc(MAXRDATALEN + 1);
-					strncpy(zf->line.rdatafmt, type->fmt, MAXRDATALEN + 2);
-					f = f - type->fmt + zf->line.rdatafmt;
-				}
-
-				/* Copy the previous atom */
-				*f = *(f - 1);
-				memcpy(f + 1, "*", 2);
-
-				/* Make sure we dont overflow */
-				if((f - zf->line.rdatafmt) >= MAXRDATALEN) {
-					zf_error(zf, "maximum number of elements exceeded");
-					parse_error++;
-					break;
-				}
-			}
-
-			assert(i < MAXRDATALEN);
-
-			if((token = zf_token(zf, NULL)) == NULL) {
-				break;
-			}
-#if DEBUG > 2
-			printf("token %c - %s\n", *f, token);
-#endif
-
-			switch(*f) {
-			case '4':
-#ifdef USE_INET_ADDR
-				if((zf->line.rdata[i].l = inet_addr(token)) == -1) {
-#else
-					if(inet_aton(token, &pin) == 1) {
-						zf->line.rdata[i].l = pin.s_addr;
-					} else {
-#endif /* USE_INET_ADDR */
-					zf_error(zf, "malformed ipv4 address");
-					parse_error++;
-				}
-				break;
-			case '6':
-				if((zf->line.rdata[i].p = inet6_aton(token)) == NULL) {
-					parse_error++;
-				}
-				break;
-			case 'n':
-				if((zf->line.rdata[i].p = strdname(token, zf->i[zf->iptr].origin)) == NULL) {
-					parse_error++;
-				}
-				break;
-			case 'l':
-				zf->line.rdata[i].l = strtottl(token, &t);
-				if(*t != 0) {
-					zf_error(zf, "decimal number or time interval is expected");
-					parse_error++;
-				}
-				break;
-			case 's':
-				zf->line.rdata[i].s = (u_int16_t)strtol(token, &t, 10);
-				if(*t != 0) {
-					zf_error(zf, "decimal number is expected");
-					parse_error++;
-				}
-				break;
-			case 't':
-				if((j = strlen(token)) > 255) {
-					zf_error(zf, "character string is too long");
-					parse_error++;
-					break;
-				} else {
-					zf->line.rdata[i].p = xalloc(j + 1);
-					bcopy(token, zf->line.rdata[i].p + 1, j);
-					*(char *)zf->line.rdata[i].p = (u_char) j;
-				}
-				break;
-			case 'L':
-				zf->line.rdata[i].p = xalloc(LOCRDLEN);
-				
-				for(t = token; token; token = zf_token(zf, NULL)) 
-					*(token + strlen(token)) = ' ';
-				if(loc_aton(t, zf->line.rdata[i].p) != 16)
-					parse_error++;
+		/* Is this UNKN form? */
+		if(strcmp(token, "\\#") == 0) {
+			if(zf_parse_unkn(zf, token) != 0)
+				continue;
+		} else {
+			switch(zf->line.type) {
+			case TYPE_LOC:
+				if(zf_parse_loc(zf, token) != 0)
+					continue;
 				break;
 			default:
-				fprintf(stderr, "panic! uknown atom in format %c\n", *f);
-				assert(0);
-				return NULL;
+				/* Do we support this type? */
+				if(zf->line.rdatafmt == NULL) {
+					zf_error(zf, "unsupported resource record type");
+					return NULL;
+				}
+				if(zf_parse_format(zf, token) != 0)
+					continue;
+				break;
 			}
-		}
-
-		/* Was there a star? */
-		if(*(f + 1) == '*') *f = 0;
-
-		/* More atoms expected? */
-		if(*f != 0) {
-			zf_error(zf, "missing element");
-			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
-			continue;
-		}
-
-		/* We couldnt parse it completely */
-		if(parse_error) {
-			zf_syntax(zf);
-			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
-			continue;
-		}
-
-		/* Trailing garbage */
-		if((token = zf_token(zf, NULL)) != NULL) {
-			zf_error(zf, "trailing garbage");
-			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
-			continue;
 		}
 
 		/* Success! */
 		return &zf->line;
-
 	}
 
 	return NULL;

@@ -1,5 +1,5 @@
 /*
- * $Id: dns.h,v 1.7 2002/09/09 10:59:15 alexis Exp $
+ * $Id: dns.h,v 1.8 2003/02/10 14:53:02 alexis Exp $
  *
  * dns.h -- all we need to know about DNS protocol, nsd(8)
  *
@@ -65,6 +65,10 @@
 #define	TYPE_NAPTR	35	/* NAPTR record RFC2915 */
 #define	TYPE_AFSDB	18	/* RFC1183 */
 #define	TYPE_RP		17	/* RFC1183 */
+#define	TYPE_SIG	24	/* RFC2065 */
+#define	TYPE_KEY	25	/* RFC2065 */
+#define	TYPE_NXT	30	/* RFC2065 */
+#define	TYPE_DS		43	/* draft-ietf-dnsext-delegation */
 #define	TYPE_AXFR	252
 #define	TYPE_IXFR	251
 #define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */
