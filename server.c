@@ -236,6 +236,7 @@ server_init(struct nsd *nsd)
 		(domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
 	memset(compressed_dname_offsets, 0,
 	       (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 	region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
 	
 #ifdef	BIND8_STATS

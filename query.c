@@ -78,9 +78,19 @@ static void add_rrset(struct query       *query,
 		      domain_type        *owner,
 		      rrset_type         *rrset);
 
+static void answer_authoritative(struct query     *q,
+				 answer_type      *answer,
+				 uint32_t          domain_number,
+				 domain_type      *closest_match,
+				 domain_type      *closest_encloser);
+
 void
 query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 {
+	assert(q);
+	assert(domain);
+	assert(domain->number > 0);
+	
 	if (q->compressed_dname_count >= MAX_COMPRESSED_DNAMES)
 		return;
 	
@@ -569,7 +579,7 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 			memcpy(&temp->node, &additional->node, sizeof(rbnode_t));
 			temp->number = additional->number;
 			temp->parent = match;
-			temp->wildcard_child_closest_match = NULL;
+			temp->wildcard_child_closest_match = temp;
 			temp->rrsets = wildcard_child->rrsets;
 			temp->plugin_data = wildcard_child->plugin_data;
 			temp->is_existing = wildcard_child->is_existing;
@@ -578,7 +588,7 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 
 		rrset = domain_find_rrset(additional, query->zone, type_of_dependent);
 		if (rrset) {
-			add_rrset(query, answer, ADDITIONAL_SECTION, additional, rrset);
+			answer_add_rrset(answer, ADDITIONAL_SECTION, additional, rrset);
 		}
 	}
 }
@@ -618,6 +628,9 @@ add_rrset(struct query       *query,
 
 /*
  * Answer delegation information.
+ *
+ * DNSSEC: Include the DS RRset if present.  Otherwise include an NSEC
+ * record proving the DS RRset does not exist.
  */
 static void
 answer_delegation(struct query *query, answer_type *answer)
@@ -665,15 +678,25 @@ answer_soa(struct query *query, answer_type *answer)
 	}
 }
 
+
+/*
+ * Answer that the domain name exists but there is no RRset with the
+ * requested type.
+
+ * DNSSEC: Include the correct NSEC record proving that the type does
+ * not exist.  In the wildcard no data (3.1.3.4) case the wildcard IS
+ * NOT expanded, so the ORIGINAL parameter must point to the original
+ * wildcard entry, not to the generated entry.
+ */
 static void
-answer_nxtype(struct query *query, answer_type *answer, domain_type *domain)
+answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 {
 	answer_soa(query, answer);
 	if (query->dnssec_ok && zone_is_secure(query->zone)) {
 		domain_type *nsec_domain;
 		rrset_type *nsec_rrset;
 
-		nsec_domain = find_covering_nsec(domain, query->zone, &nsec_rrset);
+		nsec_domain = find_covering_nsec(original, query->zone, &nsec_rrset);
 		if (nsec_domain) {
 			add_rrset(query, answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
 		}
@@ -688,19 +711,13 @@ answer_nxdomain(struct query *query, answer_type *answer)
 }
 
 
-static void
-answer_authoritative(struct query     *q,
-		     answer_type      *answer,
-		     uint32_t          domain_number,
-		     domain_type      *closest_match,
-		     domain_type      *closest_encloser);
-
 /*
  * Answer domain information (or SOA if we do not have an RRset for
  * the type specified by the query).
  */
 static void
-answer_domain(struct query *q, answer_type *answer, domain_type *domain)
+answer_domain(struct query *q, answer_type *answer,
+	      domain_type *domain, domain_type *original)
 {
 	rrset_type *rrset;
 	
@@ -717,7 +734,7 @@ answer_domain(struct query *q, answer_type *answer, domain_type *domain)
 			}
 		}
 		if (added == 0) {
-			answer_nxtype(q, answer, domain);
+			answer_nodata(q, answer, original);
 			return;
 		}
 	} else if ((rrset = domain_find_rrset(domain, q->zone, q->type))) {
@@ -737,7 +754,7 @@ answer_domain(struct query *q, answer_type *answer, domain_type *domain)
 					     closest_match, closest_encloser);
 		}
 	} else {
-		answer_nxtype(q, answer, domain);
+		answer_nodata(q, answer, original);
 		return;
 	}
 
@@ -752,6 +769,15 @@ answer_domain(struct query *q, answer_type *answer, domain_type *domain)
 }
 
 
+/*
+ * Answer with authoritative data.  If a wildcard is matched the owner
+ * name will be expanded to the domain name specified by
+ * DOMAIN_NUMBER.  DOMAIN_NUMBER 0 (zero) is reserved for the original
+ * query name.
+ *
+ * DNSSEC: Include the necessary NSEC records in case the request
+ * domain name does not exist and/or a wildcard match does not exist.
+ */
 static void
 answer_authoritative(struct query *q,
 		     answer_type  *answer,
@@ -760,7 +786,8 @@ answer_authoritative(struct query *q,
 		     domain_type  *closest_encloser)
 {
 	domain_type *match;
-
+	domain_type *original = closest_match;
+	
 	if (closest_match == closest_encloser) {
 		match = closest_match;
 	} else if (domain_wildcard_child(closest_encloser)) {
@@ -770,14 +797,19 @@ answer_authoritative(struct query *q,
 		match = region_alloc(q->region, sizeof(domain_type));
 		memcpy(&match->node, &wildcard_child->node, sizeof(rbnode_t));
 		match->parent = closest_encloser;
-		match->wildcard_child_closest_match = NULL;
+		match->wildcard_child_closest_match = match;
 		match->number = domain_number;
 		match->rrsets = wildcard_child->rrsets;
 		match->plugin_data = wildcard_child->plugin_data;
 		match->is_existing = wildcard_child->is_existing;
-		if (domain_number == 0) {
-			query_put_dname_offset(q, match, QHEADERSZ);
-		}
+
+		/*
+		 * Remember the original domain in case a Wildcard No
+		 * Data (3.1.3.4) response needs to be generated.  In
+		 * this particular case the wildcard IS NOT
+		 * expanded.
+		 */
+		original = wildcard_child;
 	} else {
 		match = NULL;
 	}
@@ -813,7 +845,7 @@ answer_authoritative(struct query *q,
 	}
 	
 	if (match) {
-		answer_domain(q, answer, match);
+		answer_domain(q, answer, match, original);
 	} else {
 		answer_nxdomain(q, answer);
 	}
@@ -861,7 +893,7 @@ answer_query(struct nsd *nsd, struct query *q)
 	answer_init(&answer);
 
 	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->domain) {
-		answer_nxtype(q, &answer, closest_encloser);
+		answer_nodata(q, &answer, closest_encloser);
 	} else {
 		q->delegation_domain = domain_find_ns_rrsets(
 			closest_encloser, q->zone, &q->delegation_rrset);
