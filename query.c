@@ -89,15 +89,15 @@ query_formerr (struct query *query)
 }
 
 int 
-query_axfr (struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int depth)
+query_axfr (struct query *q, struct nsd *nsd, const u_char *qname, const u_char *zname, int depth)
 {
 	/* Per AXFR... */
-	static u_char *zone;
+	static const u_char *zone;
 	static struct answer *soa;
 	static struct domain *d = NULL;
 
 	struct answer *a;
-	u_char *dname;
+	const u_char *dname;
 	u_char *qptr;
 
 	STATUP(nsd, raxfr);
@@ -519,6 +519,11 @@ answer_delegation(struct query *query, const u_char *qname, struct domain *domai
 }
 
 
+/*
+ * Answer if we have data for this domain and qtype (or TYPE_CNAME).
+ *
+ * Return 1 if answered, 0 otherwise.
+ */
 static int
 answer_domain(struct query *q,
 	      struct domain *d,
@@ -555,6 +560,11 @@ answer_domain(struct query *q,
 }
 
 
+/*
+ * Answer if we have SOA data for this domain.
+ *
+ * Return 1 if answered, 0 otherwise.
+ */
 static int
 answer_soa(struct query *q,
 	   struct domain *d,
@@ -591,6 +601,13 @@ answer_soa(struct query *q,
 	return 0;
 }
 
+
+/*
+ * Answer if this is a query in the CHAOS class or in a class not
+ * supported by NSD.
+ *
+ * Return 1 if answered, 0 otherwise.
+ */
 static int
 answer_chaos(struct nsd *nsd,
 	     struct query *q,
@@ -634,6 +651,75 @@ answer_chaos(struct nsd *nsd,
 
 
 /*
+ * Answer if this is an AXFR or IXFR query.  If the query is answered
+ * the IS_AXFR variable indicates whether an AXFR has been initiated.
+ *
+ * Return 1 if answered, 0 otherwise.
+ */
+static int
+answer_axfr_ixfr(struct nsd *nsd,
+		 struct query *q,
+		 const u_char *qnamelow,
+		 const u_char *qname,
+		 int qdepth,
+		 u_int16_t qtype,
+		 int *is_axfr)
+{
+	/* Is it AXFR? */
+	switch(ntohs(qtype)) {
+	case TYPE_AXFR:
+#ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
+		if(q->tcp) {
+#ifdef LIBWRAP
+			struct request_info request;
+#ifdef AXFR_DAEMON_PREFIX
+			const u_char *qptr = qnamelow;
+			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
+			char *t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1;
+
+			memcpy(axfr_daemon, AXFR_DAEMON_PREFIX, sizeof(AXFR_DAEMON_PREFIX));
+
+			/* Copy the qname as a string */
+			while (*qptr)
+			{
+				memcpy(t, qptr + 1, *qptr);
+				t += *qptr;
+				*t++ = '.';
+				qptr += *qptr + 1;
+			}
+			*t = 0;
+			
+#endif /* AXFR_DAEMON_PREFIX */
+			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
+			sock_methods(&request);	/* This is to work around the bug in libwrap */
+			if(!hosts_access(&request)) {
+#ifdef AXFR_DAEMON_PREFIX
+				request_init(&request, RQ_DAEMON, axfr_daemon, RQ_CLIENT_SIN, &q->addr, 0);
+				sock_methods(&request);	/* This is to work around the bug in libwrap */
+				syslog(LOG_ERR, "checking %s", axfr_daemon);
+				if(!hosts_access(&request)) {
+#endif /* AXFR_DAEMON_PREFIX */
+					RCODE_SET(q, RCODE_REFUSE);
+					return 1;
+#ifdef AXFR_DAEMON_PREFIX
+				}
+#endif /* AXFR_DAEMON_PREFIX */
+			}
+#endif /* LIBWRAP */
+			*is_axfr = query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
+			return 1;
+		}
+#endif	/* DISABLE_AXFR */
+	case TYPE_IXFR:
+		RCODE_SET(q, RCODE_REFUSE);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+/*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
  * -1 if the query has to be silently discarded.
  *
@@ -652,7 +738,8 @@ query_process (struct query *q, struct nsd *nsd)
 	u_char *qptr;
 	int qdepth;
 	int recursion_desired;
-
+	int axfr;
+	
 	struct domain *d;
 	int match;
 
@@ -736,52 +823,10 @@ query_process (struct query *q, struct nsd *nsd)
 		return 0;
 	}
 
-	/* Is it AXFR? */
-	switch(ntohs(qtype)) {
-	case TYPE_AXFR:
-#ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
-		if(q->tcp) {
-#ifdef LIBWRAP
-			struct request_info request;
-#ifdef AXFR_DAEMON_PREFIX
-			char *t;
-			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
-
-			memcpy(axfr_daemon, AXFR_DAEMON_PREFIX, sizeof(AXFR_DAEMON_PREFIX));
-
-			/* Copy the qname as a string */
-			for(t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1,
-					qptr = qnamelow; *qptr; t += *qptr, *t++ = '.', qptr += *qptr + 1) {
-				memcpy(t, qptr + 1, *qptr);
-				
-			}
-			*t = 0;
-			
-#endif /* AXFR_DAEMON_PREFIX */
-			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
-			sock_methods(&request);	/* This is to work around the bug in libwrap */
-			if(!hosts_access(&request)) {
-#ifdef AXFR_DAEMON_PREFIX
-				request_init(&request, RQ_DAEMON, axfr_daemon, RQ_CLIENT_SIN, &q->addr, 0);
-				sock_methods(&request);	/* This is to work around the bug in libwrap */
-				syslog(LOG_ERR, "checking %s", axfr_daemon);
-				if(!hosts_access(&request)) {
-#endif /* AXFR_DAEMON_PREFIX */
-					RCODE_SET(q, RCODE_REFUSE);
-					return 0;
-#ifdef AXFR_DAEMON_PREFIX
-				}
-#endif /* AXFR_DAEMON_PREFIX */
-			}
-#endif /* LIBWRAP */
-			return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
-		}
-#endif	/* DISABLE_AXFR */
-	case TYPE_IXFR:
-		RCODE_SET(q, RCODE_REFUSE);
-		return 0;
+	if (answer_axfr_ixfr(nsd, q, qnamelow, qname, qdepth, qtype, &axfr)) {
+		return axfr;
 	}
-
+	
 	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
 
 	/* Do we have complete name? */

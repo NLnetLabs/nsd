@@ -176,7 +176,7 @@ struct query {
 };
 
 /* query.c */
-int query_axfr(struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int depth);
+int query_axfr(struct query *q, struct nsd *nsd, const u_char *qname, const u_char *zname, int depth);
 void query_init(struct query *q);
 void query_addtxt(struct query *q, u_char *dname, int class, int32_t ttl, const char *txt);
 void query_addanswer(struct query *q, const u_char *dname, struct answer *a, int trunc);
