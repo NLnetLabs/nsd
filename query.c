@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.44 2002/02/19 14:25:11 alexis Exp $
+ * $Id: query.c,v 1.45 2002/02/19 15:56:23 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -61,6 +61,13 @@ query_addanswer(q, dname, a, truncate)
 	u_char *qptr;
 	u_int16_t pointer;
 	int  i, j;
+
+	/* Check that the answer fits into our query buffer... */
+	if(ANSWER_DATALEN(a) > (q->iobufptr - q->iobuf + q->iobufsz)) {
+		syslog(LOG_ERR, "the answer in the database is larger then the query buffer");
+		RCODE_SET(q, RCODE_SERVFAIL);
+		return;
+	}
 
 	/* Copy the counters */
 	ANCOUNT(q) = ANSWER_ANCOUNT(a);
