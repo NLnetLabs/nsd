@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.7 2003/11/04 13:20:56 miekg Exp $
+ * $Id: zlexer.lex,v 1.8 2003/11/04 14:15:32 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -70,14 +70,33 @@ Q       \"
 ^{DOLLAR}ORIGIN         return DIR_ORIG;
 ^{DOLLAR}INCLUDE        BEGIN(incl);
 
-<incl>[ \t]* 		/* eat the whitespace - ripped from 
+			/* see
 			* http://dinosaur.compilertools.net/flex/flex_12.html#SEC12
 			*/
-<incl>[^ \t\n]+ 	{ 	
+<incl>[^\n]+ 		{ 	
 				/* Need to fix this so that $INCLUDE * file origin works */
     				/* got the include file name
 			     	 * open the new filename and continue parsing 
 			     	 */
+
+				char *include_origin;
+				
+				/* eat leading white space */
+				while ( (int)*yytext == 32 ) 
+					yytext++;
+
+				
+				printf("TEST %s\n",yytext);
+				include_origin = rindex(yytext, 32); /* search for a space */
+				
+				if ( include_origin != NULL ) {
+					/* split the original yytext */
+					*include_origin = '\0';
+					include_origin++;
+				}
+				 printf("TEST [%s] - [%s]\n",yytext, include_origin);
+				
+
 				if ( include_stack_ptr >= MAXINCLUDES ) {
 				    error("Includes nested too deeply (>10)");
             			    exit(1);
@@ -90,6 +109,17 @@ Q       \"
 					current_parser->filename;
 				zparser_stack[include_stack_ptr].line	   = 
 					current_parser->line;
+
+				/* PUT ON THE STACK
+				if ( include_origin != NULL ) {
+					zparser_stack[include_stack_ptr].origin = 
+						include_origin;
+					current_parser->origin = include_origin;
+				} else {
+					zparser_stack[include_stack_ptr].origin = 
+						current_parser->origin;
+				}
+				*/
 
 			        include_stack[include_stack_ptr++] = 
 					YY_CURRENT_BUFFER;
@@ -116,6 +146,7 @@ Q       \"
 						zparser_stack[include_stack_ptr].filename;
 					current_parser->line = 
 						zparser_stack[include_stack_ptr].line;
+					/* pop the origin */
 					
             				yy_delete_buffer( YY_CURRENT_BUFFER );
             				yy_switch_to_buffer( include_stack[include_stack_ptr] );
