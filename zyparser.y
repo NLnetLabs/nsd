@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.33 2003/09/04 09:51:15 miekg Exp $
+ * $Id: zyparser.y,v 1.34 2003/09/09 11:31:31 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -210,6 +210,33 @@ rel_dname:  STR
     }
     ;
 
+hex:	STR
+    {
+	$$.str = $1.str;
+	$$.len = $1.len;
+    }
+    |	SP
+    {
+	free($1.str); /* discard */
+    }
+    |	hex STR
+    {
+	char *hexstr = xalloc($1.len + $2.len + 1);
+    	memcpy(hexstr, $1.str, $1.len);
+	memcpy(hexstr + $1.len + 1, $2.str, $2.len);
+
+	$$.str = memcpy($$.str, hexstr, $1.len + $2.len);
+	$$.len = $1.len + $2.len;
+	free($1.str); free($2.str);free(hexstr);
+    }
+    |   hex SP
+    {
+	/* discard SP */
+	$$.str = $1.str;
+	$$.len = $1.len;
+    }
+    ;
+
 /* define what we can parse */
 
 rtype:  SOA SP rdata_soa
@@ -219,6 +246,10 @@ rtype:  SOA SP rdata_soa
     |   A SP rdata_a
     {
         zadd_rtype("a");
+    }
+    |	A SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("a");
     }
     |   NS SP rdata_dname
     {
@@ -258,6 +289,14 @@ rtype:  SOA SP rdata_soa
 /* 
  * below are all the definition for all the different rdata 
  */
+
+rdata_unknown: STR SP hex
+    {
+	/* check_hexlen($1.str, $2.str); */
+	zadd_rdata2( zdefault, zparser_conv_hex($3.str) );
+	free($3.str);
+    }
+    ;
 
 rdata_soa:  dname SP dname SP STR STR STR STR STR
     {
