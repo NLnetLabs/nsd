@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.16 2002/02/05 12:17:33 alexis Exp $
+# $Id: Makefile,v 1.17 2002/02/05 13:11:25 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -38,9 +38,9 @@
 #
 SHELL = /bin/sh
 
-DEBUG=	-O6 -g -DDEBUG=1
+DEBUG=	-g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -Wall ${DEBUG} -I/usr/local/include/db4 -DUSE_BERKELEY_DB
+CFLAGS= -pipe -O6 -Wall ${DEBUG} -I/usr/local/include/db4 -DUSE_BERKELEY_DB
 LDFLAGS= -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
@@ -52,8 +52,8 @@ all:	nsd zonec
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
-nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o dbaccess.o
+nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o heap.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o dbaccess.o heap.o
 
 zf:	zf.h dns.h zf.c
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c

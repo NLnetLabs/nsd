@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.9 2002/02/05 12:17:33 alexis Exp $
+ * $Id: namedb.h,v 1.10 2002/02/05 13:11:25 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -103,7 +103,7 @@ struct domain {
 #define	DOMAIN_SIZE(d)		d->size
 #define	DOMAIN_FLAGS(d)		d->flags
 
-#ifdef NAMEDB_UPPERCASE
+#if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
 #define	NAMEDB_NORMALIZE	toupper
 #else
 #define	NAMEDB_NORMALIZE	tolower
@@ -125,10 +125,11 @@ struct namedb {
 #include "heap.h"
 
 struct namedb {
-	heap_t *db;
+	heap_t *heap;
 	u_char masks[3][NAMEDB_BITMASKLEN];
-	void *memory_pool;
+	char *mpool;
 	char *filename;
+	int fd;
 };
 
 #endif	/* USE_BERKELEY_DB */

@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.1 2002/02/05 12:17:33 alexis Exp $
+ * $Id: dbaccess.c,v 1.2 2002/02/05 13:11:25 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -39,21 +39,43 @@
  */
 
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include <stdlib.h>
 #include <strings.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "namedb.h"
 
-#ifdef USE_BERKELEY_DB
+#ifndef	USE_BERKELEY_DB
+
+int
+domaincmp(a, b)
+	register u_char *a;
+	register u_char *b;
+{
+	register int r;
+	register int alen = (int)*a;
+	register int blen = (int)*b;
+
+	while(alen && blen) {
+		a++; b++;
+		if((r = *a - *b)) return r;
+		alen--; blen--;
+	}
+	return alen - blen;
+}
+
+#endif
 
 struct domain *
 namedb_lookup(db, dname)
 	struct namedb *db;
 	u_char *dname;
 {
+#ifdef USE_BERKELEY_DB
 	DBT key, data;
 
 	bzero(&key, sizeof(key));
@@ -72,6 +94,11 @@ namedb_lookup(db, dname)
 	}
 
 	return NULL;
+
+#else 
+	return (struct domain *)heap_search(db->heap, dname);
+
+#endif /* USE_BERKELEY_DB */
 }
 
 struct answer *
@@ -94,8 +121,14 @@ namedb_open(filename)
 	char *filename;
 {
 	struct namedb *db;
-	DBT key, data;
 	char *magic = NAMEDB_MAGIC;
+
+#ifdef	USE_BERKELEY_DB
+	DBT key, data;
+#else
+	struct stat st;
+	char *p;
+#endif
 
 	/* Allocate memory for it... */
 	if((db = xalloc(sizeof(struct namedb))) == NULL) {
@@ -108,6 +141,7 @@ namedb_open(filename)
 		return NULL;
 	}
 
+#ifdef USE_BERKELEY_DB
 	/* Setup the name database... */
 	if(db_create(&db->db, NULL, 0) != 0) {
 		free(db->filename);
@@ -143,6 +177,88 @@ namedb_open(filename)
 	bcopy(data.data + sizeof(NAMEDB_MAGIC) + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
 	bcopy(data.data + sizeof(NAMEDB_MAGIC) + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
 
+#else
+
+	/* Is it there? */
+	if(stat(db->filename, &st) == -1) {
+		syslog(LOG_ERR, "cannot stat %s: %m", db->filename);
+		free(db->filename);
+		free(db);
+		return NULL;
+	}
+
+	if((db->mpool = malloc(st.st_size)) == NULL) {
+		syslog(LOG_ERR, "failed to malloc: %m");
+		free(db->filename);
+		free(db);
+		return NULL;
+	}
+
+	if((db->fd = open(db->filename, O_RDONLY)) == -1) {
+		syslog(LOG_ERR, "cannot open %s: %m", db->filename);
+		free(db->mpool);
+		free(db->filename);
+		free(db);
+		return NULL;
+	}
+
+	if(read(db->fd, db->mpool, st.st_size) == -1) {
+		syslog(LOG_ERR, "cannot read %s: %m", db->filename);
+		free(db->mpool);
+		free(db->filename);
+		free(db);
+		return NULL;
+	}
+
+	(void)close(db->fd);
+
+	if((db->heap = heap_create(malloc, domaincmp)) == NULL) {
+		syslog(LOG_ERR, "failed to create database index: %m");
+		free(db->mpool);
+		free(db->filename);
+		free(db);
+		return NULL;
+	}
+
+	p = db->mpool;
+
+	if(bcmp(p, magic, sizeof(NAMEDB_MAGIC))) {
+		syslog(LOG_ERR, "corrupted database: %s", db->filename);
+		namedb_close(db);
+		return NULL;
+	}
+	p += sizeof(NAMEDB_MAGIC);
+
+	while(*p) {
+		if(heap_insert(db->heap, p, p + ((*p + 1 +3) & 0xfffffffc), 1) == NULL) {
+			syslog(LOG_ERR, "failed to insert a domain: %m");
+			namedb_close(db);
+			return NULL;
+		}
+		p += (((u_int32_t)*p + 1 + 3) & 0xfffffffc);
+		p += *((u_int32_t *)p);
+		if(p > (db->mpool + st.st_size)) {
+			syslog(LOG_ERR, "corrupted database %s", db->filename);
+			namedb_close(db);
+			return NULL;
+		}
+	}
+
+	p++;
+
+	if(bcmp(p, magic, sizeof(NAMEDB_MAGIC))) {
+		syslog(LOG_ERR, "corrupted database: %s", db->filename);
+		namedb_close(db);
+		return NULL;
+	}
+	p += sizeof(NAMEDB_MAGIC);
+
+	/* Copy the bitmasks... */
+	bcopy(p, db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
+	bcopy(p + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
+	bcopy(p + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
+
+#endif
 	return db;
 }
 
@@ -150,11 +266,15 @@ void
 namedb_close(db)
 	struct namedb *db;
 {
+#ifdef	USE_BERKELEY_DB
 	db->db->close(db->db, 0);
+#else
+	heap_destroy(db->heap, 0, 0);
+	free(db->mpool);
+	free(db->filename);
+	free(db);
+#endif
 	if(db->filename)
 		free(db->filename);
 	free(db);
 }
-
-
-#endif /* USE_BERKELEY_DB */

@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.1 2002/02/05 12:17:33 alexis Exp $
+ * $Id: dbcreate.c,v 1.2 2002/02/05 13:11:25 alexis Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -39,13 +39,12 @@
  */
 #include <sys/types.h>
 
+#include <fcntl.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
 
 #include "namedb.h"
-
-#ifdef	USE_BERKELEY_DB
 
 struct namedb *
 namedb_new(filename)
@@ -63,16 +62,33 @@ namedb_new(filename)
 		return NULL;
 	}
 
+#ifdef	USE_BERKELEY_DB
 	/* Create the database */
 	if(db_create(&db->db, NULL, 0) != 0) {
+		free(db->filename);
 		free(db);
                 return NULL;
         }
 
         if(db->db->open(db->db, db->filename, NULL, DB_BTREE, DB_CREATE | DB_TRUNCATE, 0664) != 0) {
+		free(db->filename);
 		free(db);
 		return NULL;
         }
+#else
+	/* Create the database */
+        if((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
+		free(db->filename);
+		free(db);
+		return NULL;
+        }
+
+	if(write(db->fd, NAMEDB_MAGIC, sizeof(NAMEDB_MAGIC)) == -1) {
+		close(db->fd);
+		namedb_discard(db);
+		return NULL;
+	}
+#endif	/* USE_BERKELEY_DB */
 
 	/* Initialize the masks... */
 	bzero(db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
@@ -89,6 +105,7 @@ namedb_put(db, dname, d)
 	u_char *dname;
 	struct domain *d;
 {
+#ifdef	USE_BERKELEY_DB
 	DBT key, data;
 
 	/* Store it */
@@ -103,6 +120,17 @@ namedb_put(db, dname, d)
 	if(db->db->put(db->db, NULL, &key, &data, 0) != 0) {
 		return -1;
 	}
+#else
+	/* Store the key */
+	if(write(db->fd, dname, (((u_int32_t)*dname + 1 + 3) & 0xfffffffc)) == -1) {
+		return -1;
+	}
+
+	/* Store the domain */
+	if(write(db->fd, d, d->size) == -1) {
+		return -1;
+	}
+#endif	/* USE_BERKELEY_DB */
 
 	return 0;
 };
@@ -111,6 +139,7 @@ int
 namedb_save(db)
 	struct namedb *db;
 {
+#ifdef	USE_BERKELEY_DB
 	/* The buffer for the super block */
 	u_char sbuf[NAMEDB_BITMASKLEN * 3 + sizeof(NAMEDB_MAGIC)];
 
@@ -137,6 +166,28 @@ namedb_save(db)
 		return -1;
 	}
 
+#else
+	/* Write an empty key... */
+	if(write(db->fd, "", 1) == -1) {
+		close(db->fd);
+		return -1;
+	}
+
+	/* Write the magic... */
+	if(write(db->fd, NAMEDB_MAGIC, sizeof(NAMEDB_MAGIC)) == -1) {
+		close(db->fd);
+		return -1;
+	}
+
+	/* Write the bitmasks... */
+	if(write(db->fd, db->masks, NAMEDB_BITMASKLEN * 3) == -1) {
+		close(db->fd);
+		return -1;
+	}
+
+	/* Close the database */
+	close(db->fd);
+#endif
 	free(db->filename);
 	free(db);
 
@@ -152,4 +203,3 @@ namedb_discard(db)
 	free(db->filename);
 	free(db);
 }
-#endif
