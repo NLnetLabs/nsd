@@ -422,21 +422,21 @@ zparser_conv_nxt(region_type *region, uint8_t nxtbits[])
  * should be discarded
  */
 uint16_t *
-zparser_conv_nsec(region_type *region, uint8_t nsecbits[256][32])
+zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE])
 {
 	/* nsecbits contains up to 64K of bits which represent the
 	 * types available for a name. Walk the bits according to
 	 * nsec++ draft from jakob
 	 */
-	uint16_t *r = NULL;
-	uint16_t *ptr = NULL;
-	uint8_t i,j;
+	uint16_t *r;
+	uint8_t *ptr;
+	size_t i,j;
 	uint8_t window = 0;
-	uint16_t last = 1;
+	uint16_t total_size = 0;
 
-	int used[257]; /* what windows are used, -1 terminates, we can
+	int used[NSEC_WINDOW_COUNT + 1]; /* what windows are used, -1 terminates, we can
 		walk used in sequence, until we reach -1 */
-	int size[256]; /* what is the last byte used in the window, the
+	int size[NSEC_WINDOW_COUNT]; /* what is the last byte used in the window, the
 		index of 'size' is the window's number*/
 
 	/* used[i] is the i-th window included in the nsec 
@@ -444,10 +444,10 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[256][32])
 	 */
 
 	/* walk through the 256 windows */
-	for (i = 0; i < 255; i++ ) {
+	for (i = 0; i < NSEC_WINDOW_COUNT; ++i) {
 		/* check each of the 32 bytes */
-		for ( j = 0; j < 32; j++ ) {
-			if ( nsecbits[i][j] != 0 ) {
+		for (j = 0; j < NSEC_WINDOW_BITS_SIZE; ++j) {
+			if (nsecbits[i][j] != 0) {
 				used[window++] = i;
 				size[i] = j;
 			}
@@ -457,18 +457,20 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[256][32])
 	used[window] = -1;
 	
 	i = 0;
-	while ( used[i++] != -1 ) 
-		last += size[used[i]];
+	while (used[i++] != -1)
+		total_size += sizeof(uint16_t) + size[used[i]];
 	
-	r = region_alloc(region, sizeof(uint16_t) + (last * sizeof(uint8_t)) );
-	*r = last;
-	ptr = r + 1;
+	r = region_alloc(region, sizeof(uint16_t) + total_size * sizeof(uint8_t));
+	*r = total_size;
+	ptr = (uint8_t *) (r + 1);
 
 	/* now walk used and copy it */
 	i = 0;
-	while ( used[i++] != -1 ) {
-		memcpy(ptr, &nsecbits[ used[i] ], size[i] );
-		ptr += size[i] + 1;
+	while (used[i++] != -1) {
+		ptr[0] = used[i];
+		ptr[1] = size[used[i]];
+		memcpy(ptr + 2, &nsecbits[used[i]], size[used[i]]);
+		ptr += size[used[i]] + 2;
 	}
 
 	return r;
@@ -863,14 +865,16 @@ set_bit(uint8_t bits[], int index)
 }
 
 void 
-set_bitnsec(uint8_t bits[256][32], int index)
+set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE], int index)
 {
-	/* NEED TO CHANGE THIS [XXX] */
 	/* set bit #place in the byte */
 	/* the bits are counted from right to left
 	 * so bit #0 is the right most bit
 	 */
-	bits[0][index / 8] |= (1 << (7 - index % 8));
+	uint8_t window = index / 256;
+	uint8_t bit = index % 256;
+		
+	bits[window][bit / 8] |= (1 << (7 - bit % 8));
 }
 
 

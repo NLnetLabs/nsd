@@ -26,6 +26,10 @@
 #define AF_INET6	28	/* IPv6 */
 #endif /* AF_INET6 */
 
+#define NSEC_WINDOW_COUNT     256
+#define NSEC_WINDOW_BITS_COUNT 256
+#define NSEC_WINDOW_BITS_SIZE  (NSEC_WINDOW_BITS_COUNT / 8)
+
 /* Type of rdata elements we might encounter */
 #define RDATA_A		1
 #define RDATA_A6	2
@@ -173,6 +177,7 @@ uint16_t *zparser_conv_b64(region_type *region, const char *b64);
 uint16_t *zparser_conv_rrtype(region_type *region, const char *rr);
 uint16_t *zparser_conv_nxt(region_type *region, uint8_t nxtbits[]);
 uint16_t *zparser_conv_domain(region_type *region, domain_type *domain);
+uint16_t *zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE]);
 
 int32_t zparser_ttl2int(char *ttlstr);
 void zadd_rdata_wireformat(zparser_type *parser, uint16_t *data);
@@ -183,7 +188,7 @@ const char * namebyint (uint16_t n, struct ztab *tab);
 void zprintrr(FILE *f, rr_type *rr);
 
 void set_bit(uint8_t bits[], int index);
-void set_bitnsec(uint8_t bits[][], int index);
+void set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE], int index);
 
 /* zlexer.lex */
 int zoctet(char *word);
