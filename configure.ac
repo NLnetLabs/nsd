@@ -111,7 +111,7 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h sys/bitypes.h dlfcn.h tcpd.h])
 
-AC_SEARCH_LIBS(inet_addr, [nsl])
+AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
 
 AC_SEARCH_LIBS(dlopen, [dl])
@@ -184,7 +184,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_aton memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
+AC_CHECK_FUNCS([alarm dup2 endpwent gethostname memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
 
 #
 # Checking for missing functions we can replace
@@ -264,14 +264,14 @@ case "$enable_ipv6" in
 		;;
 esac
 
-AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--enable-dnssec], [Enables DNSSEC support (experimental)]))
-case "$enable_dnssec" in
-	yes)
-		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this to enable DNSSEC support.])
-		;;
-	no|*)
-		;;
-esac
+dnl AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--enable-dnssec], [Enables DNSSEC support (experimental)]))
+dnl case "$enable_dnssec" in
+dnl 	yes)
+dnl 		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this to enable DNSSEC support.])
+dnl 		;;
+dnl 	no|*)
+dnl 		;;
+dnl esac
 
 AC_ARG_ENABLE(axfr, AC_HELP_STRING([--disable-axfr], [Disables AXFR]))
 
@@ -313,9 +313,6 @@ esac
 
 AH_BOTTOM([
 #include <sys/types.h>
-])
-
-AH_BOTTOM([
 #ifdef HAVE_SYS_BITYPES_H
 #include <sys/bitypes.h>
 #endif
