@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.16 2002/02/07 12:56:51 alexis Exp $
+ * $Id: zonec.c,v 1.17 2002/02/07 14:00:11 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -289,7 +289,7 @@ zone_addrrset(msg, dname, rrset)
  *
  */
 struct domain *
-addanswer(d, msg, type)
+zone_addanswer(d, msg, type)
 	struct domain *d;
 	struct message *msg;
 	u_int16_t type;
@@ -573,7 +573,7 @@ zone_dump(z, db)
 		}
 
 		/* Add this answer */
-		d = addanswer(d, &msg, rrset->type);
+		d = zone_addanswer(d, &msg, rrset->type);
 
 		/* Set the database masks */
 		NAMEDB_SETBITMASK(db, NAMEDB_DATAMASK, namedepth);
@@ -704,7 +704,7 @@ zone_dump(z, db)
 			}
 
 			/* Add this answer */
-			d = addanswer(d, &msg, rrset->type);
+			d = zone_addanswer(d, &msg, rrset->type);
 
 			/* Set the masks */
 			if(rrset->type == TYPE_SOA)
@@ -728,7 +728,7 @@ zone_dump(z, db)
 		}
 
 		/* Add this answer */
-		d = addanswer(d, &msgany, TYPE_ANY);
+		d = zone_addanswer(d, &msgany, TYPE_ANY);
 
 		/* Set the data mask */
 		NAMEDB_SETBITMASK(db, NAMEDB_DATAMASK, namedepth);
