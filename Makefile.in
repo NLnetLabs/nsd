@@ -113,9 +113,10 @@ ZONEC_OBJECTS	=				\
 	zparser.o				\
 	zlexer.o
 
-NSD_NOTIFY_OBJECTS	= 			\
-	nsd-notify.o 				\
-	dname.o 				\
+NSD_NOTIFY_OBJECTS	=			\
+	nsd-notify.o				\
+	dname.o					\
+	dns.o					\
 	namedb.o				\
 	rbtree.o				\
 	region-allocator.o			\
