@@ -179,7 +179,7 @@ zparser_conv_services(region_type *region, const char *protostr,
 	uint8_t bitmap[65536/8];
 	char sep[] = " ";
 	char *word;
-	long max_port = -8;
+	int max_port = -8;
 	/* convert a protocol in the rdata to wireformat */
 	struct protoent *proto;
 
@@ -199,12 +199,12 @@ zparser_conv_services(region_type *region, const char *protostr,
 	     word = strtok(NULL, sep))
 	{
 		struct servent *service;
-		long port;
+		int port;
 		
 		service = getservbyname(word, proto->p_name);
 		if (service) {
 			/* Note: ntohs not ntohl!  Strange but true.  */
-			port = ntohs(service->s_port);
+			port = ntohs((short) service->s_port);
 		} else {
 			char *end;
 			port = strtol(word, &end, 10);
