@@ -6,6 +6,18 @@ FEATURES:
         - nsd-xfer: replacement program for named-xfer to perform zone
           transfers using AXFR with TSIG support.
 
+CODE CHANGES:
+        - New data structure 'buffer_type' for representing binary
+          buffers that can be read, written, and resized.  Data in
+          these buffers is stored in network byte order.  This data
+          structure replaces the iobuf field of 'struct query'.
+
+BUG FIXES:
+        - Fixed endian problem in WKS record.
+        - Protocol can now be specified numerically in WKS record.
+        - Allow escape sequences (\DDD) in TTL, RR class, and RR type.
+        - Close included files after reading.
+
 2.1.5
 =============
 BUG FIXES:
