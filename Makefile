@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.40 2002/02/20 14:54:25 alexis Exp $
+# $Id: Makefile,v 1.41 2002/02/20 15:28:04 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -47,7 +47,7 @@ NSDBINDIR       = /usr/local/sbin
 NSDZONESDIR     = /usr/local/etc/nsd
 
 # The file containing the list of the zones to be compiled into the NSD database
-nsdzones	= /usr/local/etc/nsd/nsd.zones
+NSDZONES	= /usr/local/etc/nsd/nsd.zones
 
 # The flags to pass to the NSD on startup
 NSDFLAGS        = 

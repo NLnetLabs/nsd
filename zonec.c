@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.37 2002/02/20 14:43:02 alexis Exp $
+ * $Id: zonec.c,v 1.38 2002/02/20 15:32:31 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -83,7 +83,7 @@ xalloc(size)
 	register void *p;
 
 	if((p = malloc(size)) == NULL) {
-		fprintf(stderr, "malloc failed: %m\n");
+		fprintf(stderr, "zonec: malloc failed: %m\n");
 		exit(1);
 	}
 	return p;
@@ -96,7 +96,7 @@ xrealloc(p, size)
 {
 
 	if((p = realloc(p, size)) == NULL) {
-		fprintf(stderr, "realloc failed: %m\n");
+		fprintf(stderr, "zonec: realloc failed: %m\n");
 		exit(1);
 	}
 	return p;
@@ -300,7 +300,7 @@ zone_addrrset(msg, dname, rrset)
 				zone_addbuf(msg, &s, size);
 				break;
 			default:
-				fprintf(stderr, "panic! uknown atom in format %c\n", *f);
+				fprintf(stderr, "zonec: panic! uknown atom in format %c\n", *f);
 				return rrcount;
 			}
 			rdlength += size;
@@ -526,7 +526,7 @@ zone_read(name, zonefile, cache)
 
 	}
 
-	fprintf(stderr, "zone %s completed: %d errors\n", dnamestr(z->dname), zf->errors);
+	fprintf(stderr, "zonec: zone %s completed: %d errors\n", dnamestr(z->dname), zf->errors);
 	return z;
 }
 
@@ -554,7 +554,7 @@ zone_dump(z, db)
 
 		/* Make sure it is not a wildcard */
 		if(*dname >= 2 && *(dname + 1) == '\001' && *(dname + 2) == '*') {
-			fprintf(stderr, "wildcard delegations are not allowed\n");
+			fprintf(stderr, "zonec: wildcard delegations are not allowed\n");
 			continue;
 		}
 
@@ -589,7 +589,7 @@ zone_dump(z, db)
 			if((*dname < *msg.dnames[i]) &&
 			    (bcmp(dname + 1, msg.dnames[i] + (*msg.dnames[i] - *dname) + 1, *dname) == 0)) {
 				if(additional == NULL) {
-					fprintf(stderr, "missing glue record\n");
+					fprintf(stderr, "zonec: missing glue record\n");
 				} else {
 					/* Mark it as out of zone data */
 					additional->glue = 1;
@@ -618,7 +618,7 @@ zone_dump(z, db)
 
 		/* Store it */
 		if(namedb_put(db, dname, d) != 0) {
-			fprintf(stderr, "error writing the database: %s\n", strerror(errno));
+			fprintf(stderr, "zonec: error writing the database: %s\n", strerror(errno));
 		}
 
 		free(d);
@@ -775,7 +775,7 @@ zone_dump(z, db)
 
 		/* Store it */
 		if(namedb_put(db, dname, d) != 0) {
-			fprintf(stderr, "error writing the database: %s\n", strerror(errno));
+			fprintf(stderr, "zonec: error writing the database: %s\n", strerror(errno));
 		}
 
 		free(d);
@@ -819,7 +819,7 @@ main(argc, argv)
 			break;
 		case 'd':
 			if(chdir(optarg)) {
-				fprintf(stderr, "cannot chdir to %s: %s\n", optarg, strerror(errno));
+				fprintf(stderr, "zonec: cannot chdir to %s: %s\n", optarg, strerror(errno));
 				break;
 			}
 			break;
@@ -837,13 +837,13 @@ main(argc, argv)
 
 	/* Create the database */
 	if((db = namedb_new(dbfile)) == NULL) {
-		fprintf(stderr, "error creating the database: %s\n", strerror(errno));
+		fprintf(stderr, "zonec: error creating the database: %s\n", strerror(errno));
 		exit(1);
 	}
 
 	/* Open the master file... */
 	if((f = fopen(*argv, "r")) == NULL) {
-		fprintf(stderr, "cannot open %s: %s\n", *argv, strerror(errno));
+		fprintf(stderr, "zonec: cannot open %s: %s\n", *argv, strerror(errno));
 		exit(1);
 	}
 
@@ -853,7 +853,7 @@ main(argc, argv)
 		line++;
 
 		/* Skip empty lines and comments... */
-		if((s = strtok(buf, sep)) == NULL || *s == '#')
+		if((s = strtok(buf, sep)) == NULL || *s == ';')
 			continue;
 
 		/* Either zone or a cache... */
@@ -862,25 +862,25 @@ main(argc, argv)
 		} else if(strcasecmp(s, "zone") == 0) {
 			cache = 0;
 		} else {
-			fprintf(stderr, "syntax error in %s line %d\n", *argv, line);
+			fprintf(stderr, "zonec: syntax error in %s line %d\n", *argv, line);
 			break;
 		}
 
 		/* Zone name... */
 		if((zonename = strtok(NULL, sep)) == NULL) {
-			fprintf(stderr, "syntax error in %s line %d\n", *argv, line);
+			fprintf(stderr, "zonec: syntax error in %s line %d\n", *argv, line);
 			break;
 		}
 
 		/* File name... */
 		if((zonefile = strtok(NULL, sep)) == NULL) {
-			fprintf(stderr, "syntax error in %s line %d\n", *argv, line);
+			fprintf(stderr, "zonec: syntax error in %s line %d\n", *argv, line);
 			break;
 		}
 
 		/* Trailing garbage? */
-		if(strtok(NULL, sep) != NULL) {
-			fprintf(stderr, "ignoring trailing garbage in %s line %d\n", *argv, line);
+		if((s = strtok(NULL, sep)) != NULL && *s != ';') {
+			fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 		}
 
 		/* If we did not have any errors... */
@@ -894,7 +894,7 @@ main(argc, argv)
 
 	/* Close the database */
 	if(namedb_save(db) != 0) {
-		fprintf(stderr, "error saving the database: %s\n", strerror(errno));
+		fprintf(stderr, "zonec: error saving the database: %s\n", strerror(errno));
 		namedb_discard(db);
 		exit(1);
 	}
