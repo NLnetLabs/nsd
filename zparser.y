@@ -440,18 +440,18 @@ rtype:
     { current_rr->type = $1; }
     | UTYPE sp rdata_unknown
     { current_rr->type = $1; }
-    | CNAME sp rdata_unknown_err 
-    | MB sp rdata_unknown_err	
-    | MD sp rdata_unknown_err	
-    | MF sp rdata_unknown_err	
-    | MG sp rdata_unknown_err		
-    | MINFO sp rdata_unknown_err 
-    | MR sp rdata_unknown_err		
-    | MX sp rdata_unknown_err 
-    | NS sp rdata_unknown_err 
-    | PTR sp rdata_unknown_err 
-    | SOA sp rdata_unknown_err 
-    | NAPTR sp rdata_unknown_err
+    | CNAME sp rdata_unknown_err {}
+    | MB sp rdata_unknown_err	 {}
+    | MD sp rdata_unknown_err	 {}
+    | MF sp rdata_unknown_err	 {}
+    | MG sp rdata_unknown_err	 {}
+    | MINFO sp rdata_unknown_err {}
+    | MR sp rdata_unknown_err    {}
+    | MX sp rdata_unknown_err    {}
+    | NS sp rdata_unknown_err    {}
+    | PTR sp rdata_unknown_err   {}
+    | SOA sp rdata_unknown_err   {}
+    | NAPTR sp rdata_unknown_err {}
     | STR error NL
     {
 	    error_prev_line("Unrecognized RR type '%s'", $1.str);
@@ -671,7 +671,7 @@ rdata_unknown:	URR sp STR sp hex_seq trail
 	| URR sp STR trail
 	{	
 		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, ""));
-		//error_prev_line("\\# 0 not handled (yet)");
+		/* error_prev_line("\\# 0 not handled (yet)"); */
 	}
 	| URR error NL
 	{ error_prev_line("Syntax error in UNKNOWN RR rdata"); }
