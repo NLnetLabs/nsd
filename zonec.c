@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.10 2002/02/02 13:47:53 alexis Exp $
+ * $Id: zonec.c,v 1.11 2002/02/02 13:48:53 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -505,7 +505,7 @@ zone_dump(z, db)
 	struct message msg, msgany;
 	struct rrset *rrset, *cnamerrset, *additional;
 	u_char *dname, *cname, *nameptr;
-	int i, j, r;
+	int i, r;
 	int star, namedepth;
 	DBT key, data;
 
