@@ -6,7 +6,7 @@
 /* these are global, otherwise they cannot be used inside yacc */
 unsigned int lineno;
 struct zdefault_t * zdefault;
-const struct node_t * root;       /* root of the list */
+struct node_t * root;       /* root of the list */
 struct node_t * rrlist;     /* hold all RRs as a linked list */
 struct RR * current_rr;
 
@@ -16,7 +16,7 @@ int progress = 5;
 int yydebug = 1;
 
 %}
-/* this list must be in exactly the same order as in zparser2.h. The
+/* this list must be in exactly the same order as in zlparser.lex. The
  * only changed are:
  * - NSAP-PRT is named NSAPPTR
  * - NULL which is named YYNULL.
@@ -44,13 +44,8 @@ line:   NL
     |   DIR_TTL dir_ttl
     |   DIR_ORIG dir_orig
     |   rr
-    {   /* when coming back here, I should have a fully parsed RR
-         * or some error condition
-         * We can now add it the linked list and move on with the next 
-         */
-        /* Add it */
+    {   /* rr should be fully parsed */
         rrlist = list_add(rrlist, current_rr);
-        /* new one, leave the old one in memory */
         current_rr = xalloc(sizeof(struct RR));
         zreset_current_rr(zdefault);
     }
@@ -76,7 +71,7 @@ dir_orig:   SP dname NL
             yyerror("origin thingy too large");
             return 1;
         } 
-        zdefault->origin = dnamedup($2->str);
+        zdefault->origin = (uint8_t *)dnamedup($2->str);
         zdefault->origin_len = $2->len;
     }
     ;
@@ -163,9 +158,9 @@ dname:  abs_dname
     |   rel_dname
     {
         /* append origin */
-        $$->str = dnamecatdname($1->str, $1->len, zdefault->origin);
+        $$->str = (uint8_t *)dnamecatdname($1->str, $1->len, zdefault->origin);
         $$->len = $1->len + zdefault->origin_len;
-        $$->str = strlendname($$->str, $$->len);
+        $$->str = (uint8_t *)strlendname($$->str, $$->len);
         printf("length %d\n", $$->len);
         printf("length orig %d\n", zdefault->origin_len);
         printf("\n\nNEW REL\n\n");
@@ -178,12 +173,12 @@ dname:  abs_dname
 
 abs_dname:  '.'
     {
-            $$->str = dnamedup(ROOT);
+            $$->str = (uint8_t *)dnamedup(ROOT);
             $$->len = 1;
     }
     |       rel_dname '.'
     {
-            $$->str = dnameroot($1->str, $1->len);
+            $$->str = (uint8_t *)dnameroot($1->str, $1->len);
             $$->len = $1->len + 1;
 
     }
@@ -191,12 +186,12 @@ abs_dname:  '.'
 
 rel_dname:  STR
     {
-        $$->str = strlendname($1->str, $1->len);
+        $$->str = (uint8_t *)strlendname($1->str, $1->len);
         $$->len = $1->len + 1; /* length byte */
     }
     |       rel_dname '.' STR
     {  
-        $$->str = dnamecat( $1->str, $1->len, strlendname( $3->str, $3->len));
+        $$->str = (uint8_t *)dnamecat( $1->str, $1->len, strlendname( $3->str, $3->len));
         $$->len = $1->len + $3->len + 1;
     }
     ;
@@ -236,36 +231,3 @@ int yyerror(char *s) {
         exit(1);
     }
 }
-
-/* no main defined */
-
-/*
-int [XXX} run from the main from zonec.c
-maybe also declase the vars there
-main()
-{
-    zdefault = xalloc( sizeof(struct zdefault_t));
-    
-    zdefault->origin = xalloc(MAXDNAME);
-    zdefault->prev_dname = xalloc(MAXDNAME);
-    zdefault->ttl = DEFAULT_TTL;
-    zdefault->class = 1;
-    zdefault->origin = '\0';
-    zdefault->origin_len = 0;
-    zdefault->prev_dname = '\0';
-    zdefault->prev_dname_len = 0;
-
-    zreset_current_rr(zdefault);
-
-    rrlist = xalloc(sizeof(struct node_t));
-    root = rrlist;
-    printf("root %x\n",root);
-
-    yyparse();
-
-    list_walk(root);
-
-    error == 1 ? printf("\nparsing complete, with %d error\n",error) : \
-            printf("\nparsing complete, with %d errors\n",error);
-}
-*/

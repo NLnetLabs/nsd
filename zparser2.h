@@ -1,5 +1,7 @@
-/* header file for the new parser
- * zparser2.h
+/* 
+ * zparser2.h - header file for parser2
+ *
+ * Copyright (c) NLnetLabs. All rights reserved.
  *
  * See LICENSE for license
  */
@@ -21,8 +23,8 @@
 
 
 struct YYSTYPE_T {
-    size_t len;
-    uint8_t * str;
+    size_t len;     /* holds the label length */
+    uint8_t * str;  /* holds the data */
 };
 
 
@@ -46,7 +48,7 @@ struct RR {
         uint16_t **rdata;
 };
 
-/* our linked list of nodes */
+/* linked list of nodes with the RRs */
 struct node_t {
     struct RR * rr;
     struct node_t * next;
@@ -61,7 +63,7 @@ struct zdefault_t {
     size_t origin_len;
     uint8_t *prev_dname;
     size_t prev_dname_len;
-    int _rc;   /* current rdata */
+    int _rc;   /* current rdata cnt */
     size_t _tlineno;
     char *filename;
 };
@@ -71,10 +73,10 @@ extern unsigned int lineno;
 extern unsigned int error;
 extern struct zdefault_t *zdefault;
 extern struct RR * current_rr;
-extern const struct node_t * root;
+extern struct node_t * root;
 extern struct node_t * rrlist;
 
-/* stuff used in zonec.lex */
+/* used in zonec.lex */
 extern FILE * yyin;
 extern int yylex();
 void yyrestart(FILE *);

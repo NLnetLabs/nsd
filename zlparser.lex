@@ -1,16 +1,22 @@
 %{
+/* zlparser.lex - lexical analyzer for DNS zone files
+ * 
+ * Copyright (c) 2003, NLnet Labs. All rights reserved
+ *
+ * See LICENSE for the license
+ */
+
 #include "zparser2.h"
 #include "dname.h"
 #include "zyparser.h"
 
 /* see  http://www.iana.org/assignments/dns-parameters */
-static char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
+char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "NXT", "KEY", "SOA", "SIG", "SRV", "CERT", "LOC", "MD", "MF", "MB",
     "MG", "MR", "NULL", "WKS", "HINFO", "MINFO", "RP", "AFSDB", "X25",
     "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS" "EID", "NIMLOC", "ATMA",
     "NAPTR", "KX", "A6", "DNAME", "SINK", "OPT", "APL", "UINFO", "UID",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA"};
-
 
 unsigned int lineno = 0;
 
@@ -19,11 +25,6 @@ unsigned int lineno = 0;
  * 1 = reading ^dname
  * 2 = after ^dname read space -> in RR
  * 3 = read RRTYPE
- *
- * Changelog: 
- *  09-07-2003: miekg: added unknown rrs 
- *  28-07-2003: miekg: added wildcards 
- *  06-08-2003: miekg: all YYSET reference deleted
  */
 
 %}
@@ -37,6 +38,7 @@ COMMENT ;
 DOT     \.
 SLASH   \\
 ANY     .|\\.
+CLASS   IN|CH|HS
 Q       \"
 
 %%
@@ -106,26 +108,15 @@ Q       \"
                             }
                             paren_open = 0;
                         }
-IN                      {
-                            if ( in_rr == 2) { return IN; }
-                            if ( in_rr != 2) { 
-                                ztext = strdup(yytext); 
-                                yylval->len = zoctet(ztext);
-                                yylval->str = ztext;
-                                return STR;
+{CLASS}                 {
+                            if ( in_rr == 2) { 
+                                if ( strncasecmp(yytext, "IN", 2) == 0 )
+                                    return IN;
+                                if ( strncasecmp(yytext, "CH", 2) == 0 )
+                                    return CH;
+                                if ( strncasecmp(yytext, "HS", 2) == 0 )
+                                    return HS;
                             }
-                        }
-CH                      {
-                            if ( in_rr == 2) return CH;
-                            if ( in_rr != 2) { 
-                                ztext = strdup(yytext); 
-                                yylval->len = zoctet(ztext);
-                                yylval->str = ztext;
-                                return STR;
-                            }
-                        }
-HS                      {
-                            if ( in_rr == 2) return HS;
                             if ( in_rr != 2) { 
                                 ztext = strdup(yytext); 
                                 yylval->len = zoctet(ztext);
@@ -198,8 +189,8 @@ CLASS[0-9]+             {
 
 int zrrtype (char *word) {
     /* check to see if word is in the list of reconized keywords
-     * if so return the token number ( i + 258 ), otherwise return 0;
-     * yacc starts to count at 258 for the tokens
+     * 'A' is first token defined in YACC. With this hack we
+     * return the correct token based on our list of RR types
      */
     int i;
     for( i=0; i < ( RRTYPES - 1 ); i++ ) {

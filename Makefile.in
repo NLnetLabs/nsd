@@ -207,7 +207,7 @@ malloc.o:	compat/malloc.c
 	$(COMPILE) -c compat/malloc.c -o malloc.o
 
 zlparser.c:	zlparser.lex
-	$(LEX) -d -o$@ zlparser.lex
+	$(LEX) -i -o$@ zlparser.lex
 
 zyparser.c zyparser.h:	zyparser.y
 	$(YACC) -d -o zyparser.c zyparser.y

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.1 2003/08/14 10:16:32 erik Exp $
+ * $Id: zparser2.c,v 1.2 2003/08/15 11:23:14 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -30,7 +30,6 @@
 #endif
 
 #include "dns.h"
-/*#include "zparser.h" [XXX] miek */
 #include "dname.h"
 #include "util.h"
 
@@ -757,53 +756,13 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     rrlist = xalloc(sizeof(struct node_t));
     rrlist->next = NULL;
     root = rrlist;
-    printf("root %x\n",root);
 
     yyparse();
-    printf("root %x\n",root);
 
     error == 1 ? printf("\nparsing complete, with %d error\n",error) : \
             printf("\nparsing complete, with %d errors\n",error);
 
     return zdefault;
-}
-
-/*
- *
- * 
- *
- * Returns:
- *
- *	- pointer to the resource record read
- *	- NULL on end of file or critical error
- *
- * 
- *
- */
-struct RR *
-zread (struct node_t *list)
-{
-
-    struct node_t *tmp = list;
-    
-    printf("IN ZREAD addr: %x\n",list);
-    printf("IN ZREAD next: %x\n",list->next);
-    fflush(stdout);
-
-    if ( list == NULL )
-        return NULL;
-
-    fprintf(stdout,"rr dname: %s\n",dnamestr(list->rr->dname));
-    fprintf(stdout,"rr ttl: %d\n",list->rr->ttl);
-    fprintf(stdout,"rr class: %d\n",list->rr->class);
-    fprintf(stdout,"rr type: %d\n",list->rr->type);
-
-    /* advance the linked list pointer to the next one */
-    list = list->next;
-    printf("IN ZREAD addr: %x\n",list);
-
-    /* but return the current RR */
-    return (tmp->rr);
 }
 
 /*
@@ -962,6 +921,38 @@ strlendname(const uint8_t *str, const size_t len)
     *dname = (uint8_t) (len);
 
     return dname;
+}
+
+
+/* create a dname, constructed like this
+ * byte         byte        data       \000
+ * total len    label len   label data  . (root)
+ */
+const uint8_t *
+creat_dname(const uint8_t *str, const size_t len)
+{
+    uint8_t *dname;
+
+    dname = (uint8_t*)xalloc(len + 3);  /* 2 for length, 1 for root */
+
+    dname[0] = (uint8_t) (len + 1); /* total length, label len + label data */
+    dname[1] = (uint8_t) len;       /* label length */
+
+    memcpy( (dname+2), str, len);   /* insert label data */
+
+    dname[len + 3] = '\0';         /* closing root label */
+
+    return dname;
+}
+
+/* concatenate 2 dname, both made with creat_dname
+ * create a new dname, with on the first byte the
+ * total length
+ */
+const uint8_t *
+cat_dname(const uint8_t *left, const uint8_t *right)
+{
+    /* extract the lengths from left and right */
 }
 
 /* concatenate a dname with a label
