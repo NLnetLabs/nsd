@@ -921,30 +921,30 @@ process_rr(zparser_type *parser, rr_type *rr)
  * Reads the specified zone into the memory
  *
  */
-static zone_type *
-zone_read (struct namedb *db, char *name, char *zonefile)
+static void
+zone_read (char *name, char *zonefile)
 {
-	zone_type *zone;
 	const dname_type *dname;
 
 	dname = dname_parse(zone_region, name, NULL);
 	if (!dname) {
-		return NULL;
+		error("cannot parse zone name '%s'", name);
+		return;
 	}
 	
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
 	if (dname->label_count == 1) {
-		fprintf(stderr, "zonec: Not configured as a root server. See the documentation.\n");
-		return NULL;
+		error("not configured as a root server.");
+		return;
 	}
 #endif
 
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
-		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
-		return NULL;
+		error("cannot open '%s': %s", zonefile, strerror(errno));
+		return;
 	}
 
 	/* Parse and process all RRs.  */
@@ -952,8 +952,6 @@ zone_read (struct namedb *db, char *name, char *zonefile)
 
 	fflush(stdout);
 	totalerrors += current_parser->errors;
-
-	return zone;
 }
 
 static void 
@@ -1017,8 +1015,6 @@ main (int argc, char **argv)
 	int line = 0;
 	FILE *f;
 
-	struct zone *z = NULL;
-
 	log_init("zonec");
 	zone_region = region_create(xalloc, free);
 	rr_region = region_create(xalloc, free);
@@ -1079,9 +1075,9 @@ main (int argc, char **argv)
 			fprintf(stderr,"zonec: need origin (-o switch) when reading from stdin.\n");
 			exit(1);
 		}
-		if ((z = zone_read(db, nsd_stdin_origin, "-")) == NULL) {
-			totalerrors++;
-		}
+		
+		zone_read(nsd_stdin_origin, "-");
+
 #ifndef NDEBUG
 		fprintf(stderr, "zone_region: ");
 		region_dump_stats(zone_region, stderr);
@@ -1126,10 +1122,8 @@ main (int argc, char **argv)
 				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 			}
 
-			/* If we did not have any errors... */
-			if ((z = zone_read(db, zonename, zonefile)) == NULL) {
-				totalerrors++;
-			}
+			zone_read(zonename, zonefile);
+
 #ifndef NDEBUG
 			fprintf(stderr, "zone_region: ");
 			region_dump_stats(zone_region, stderr);
