@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.5 2002/10/26 14:57:56 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.6 2002/10/29 14:13:16 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -284,7 +284,15 @@ bind8_stats(nsd)
 		syslog(LOG_INFO, "%s", buf);
 
 	/* XSTATS */
-	syslog(LOG_INFO, "XSTATS %lu %lu"
+	/* Only print it if we're in the main daemon or have anything to report... */
+	if(nsd->pid[0] != 0 
+		|| nsd->st.dropped || nsd->st.raxfr || (nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped)
+		|| nsd->st.txerr || nsd->st.opcode[OPCODE_QUERY] || nsd->st.opcode[OPCODE_IQUERY]
+		|| nsd->st.wrongzone || nsd->st.ctcp + nsd->st.ctcp6 || nsd->st.rcode[RCODE_SERVFAIL]
+		|| nsd->st.rcode[RCODE_FORMAT] || nsd->st.nona || nsd->st.rcode[RCODE_NXDOMAIN]
+		|| nsd->st.opcode[OPCODE_UPDATE]) {
+
+	    syslog(LOG_INFO, "XSTATS %lu %lu"
 		" RR=%lu RNXD=%lu RFwdR=%lu RDupR=%lu RFail=%lu RFErr=%lu RErr=%lu RAXFR=%lu"
 		" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
 		" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
@@ -299,6 +307,7 @@ bind8_stats(nsd)
 		(unsigned long)0, nsd->st.rcode[RCODE_SERVFAIL], nsd->st.rcode[RCODE_FORMAT],
 			nsd->st.nona, nsd->st.rcode[RCODE_NXDOMAIN],
 		(signed long)0, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
+	}
 
 }
 #endif /* BIND8_STATS */
