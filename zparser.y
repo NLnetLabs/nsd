@@ -685,82 +685,82 @@ rdata_cert: STR sp STR sp STR sp str_sp_seq trail
 
 /* RFC 3123 */
 rdata_apl: rdata_apl_seq trail
-	;
+    ;
 
 rdata_apl_seq: dotted_str
-	{
-		zadd_rdata_wireformat(zparser_conv_apl_rdata(parser->region, $1.str));
-	}
-	| rdata_apl_seq sp dotted_str
-	{
-		zadd_rdata_wireformat(zparser_conv_apl_rdata(parser->region, $3.str));
-	}
-	;
+    {
+	    zadd_rdata_wireformat(zparser_conv_apl_rdata(parser->region, $1.str));
+    }
+    | rdata_apl_seq sp dotted_str
+    {
+	    zadd_rdata_wireformat(zparser_conv_apl_rdata(parser->region, $3.str));
+    }
+    ;
 
-rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
-	{
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
-		zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str)); /* hash */
-	}
-	;
+rdata_ds: STR sp STR sp STR sp str_sp_seq trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
+	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str)); /* hash */
+    }
+    ;
 
-rdata_sshfp:   STR sp STR sp str_sp_seq trail
-       {
-	       zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* alg */
-	       zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* fp type */
-	       zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str)); /* hash */
-       }
-       ;
+rdata_sshfp: STR sp STR sp str_sp_seq trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* fp type */
+	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str)); /* hash */
+    }
+    ;
 
-rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
-	{
-		zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
-		zadd_rdata_wireformat(zparser_conv_period(parser->region, $7.str)); /* # orig TTL */
-		zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
-		zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
-		zadd_rdata_domain($15); /* signer name */
-		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $17.str)); /* sig data */
-	}
-	;
+rdata_rrsig: STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
+	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $7.str)); /* # orig TTL */
+	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
+	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
+	    zadd_rdata_domain($15); /* signer name */
+	    zadd_rdata_wireformat(zparser_conv_b64(parser->region, $17.str)); /* sig data */
+    }
+    ;
 
-rdata_nsec:	dname sp nsec_seq trail
-	{
-		zadd_rdata_domain($1); /* nsec name */
-		zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
-		memset(nsecbits, 0, sizeof(nsecbits));
-	}
-	;
+rdata_nsec: dname sp nsec_seq trail
+    {
+	    zadd_rdata_domain($1); /* nsec name */
+	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
+	    memset(nsecbits, 0, sizeof(nsecbits));
+    }
+    ;
 
 
-rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
-	{
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* flags */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* proto */
-		zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $5.str)); /* alg */
-		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $7.str)); /* hash */
-	}
-	;
+rdata_dnskey: STR sp STR sp STR sp str_sp_seq trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* flags */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* proto */
+	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $5.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_b64(parser->region, $7.str)); /* hash */
+    }
+    ;
 
-rdata_unknown:	URR sp STR sp str_sp_seq trail
-	{
-		/* $2 is the number of octects, currently ignored */
-		$$ = zparser_conv_hex(parser->region, $5.str);
+rdata_unknown: URR sp STR sp str_sp_seq trail
+    {
+	    /* $2 is the number of octects, currently ignored */
+	    $$ = zparser_conv_hex(parser->region, $5.str);
 
-	}
-	| URR sp STR trail
-	{
-		$$ = zparser_conv_hex(parser->region, "");
-	}
-	| URR error NL
-	{
-		$$ = zparser_conv_hex(parser->region, "");
-	}
-	;
+    }
+    | URR sp STR trail
+    {
+	    $$ = zparser_conv_hex(parser->region, "");
+    }
+    | URR error NL
+    {
+	    $$ = zparser_conv_hex(parser->region, "");
+    }
+    ;
 %%
 
 int
