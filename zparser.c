@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.40.2.1 2003/07/21 13:52:10 erik Exp $
+ * $Id: zparser.c,v 1.40.2.2 2003/07/23 14:03:42 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -324,7 +324,7 @@ nsd_zopen2 (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *o
  *
  */
 struct zparser *
-nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin)
+nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
 	return nsd_zopen2(filename, ttl, class, strdname(origin, ROOT), 0);
 }

@@ -91,7 +91,7 @@ log_finalize(void)
 }
 
 void
-log_file(int priority, const char *format, va_list args)
+log_file(int priority ATTR_UNUSED, const char *format, va_list args)
 {
 	char buffer[MAXSYSLOGMSGLEN + 1];
 	size_t end;

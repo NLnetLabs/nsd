@@ -76,7 +76,7 @@
 static struct nsd nsd;
 static char hostname[MAXHOSTNAMELEN];
 
-static void error(const char *format, ...) FUNCATTR_FORMAT(printf, 1, 2);
+static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 static void
 usage (void)
@@ -354,7 +354,7 @@ bind8_stats (struct nsd *nsd)
 			(unsigned long)0, nsd->st.ctcp + nsd->st.ctcp6,
 			(unsigned long)0, nsd->st.rcode[RCODE_SERVFAIL], nsd->st.rcode[RCODE_FORMAT],
 			nsd->st.nona, nsd->st.rcode[RCODE_NXDOMAIN],
-			(signed long)0, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
+			(unsigned long)0, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
 	}
 
 }
@@ -659,10 +659,14 @@ main (int argc, char *argv[])
 		}
 	} else {
 		if(kill(oldpid, 0) == 0 || errno == EPERM) {
-			log_msg(LOG_ERR, "nsd is already running as %u, stopping", oldpid);
+			log_msg(LOG_ERR,
+				"nsd is already running as %u, stopping",
+				(unsigned) oldpid);
 			exit(0);
 		} else {
-			log_msg(LOG_ERR, "...stale pid file from process %u", oldpid);
+			log_msg(LOG_ERR,
+				"...stale pid file from process %u",
+				(unsigned) oldpid);
 		}
 	}
 

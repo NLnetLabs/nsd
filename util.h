@@ -86,7 +86,7 @@ void log_set_log_function(log_function_type *log_function);
  * Log a message using the current log function.
  */
 void log_msg(int priority, const char *format, ...)
-	FUNCATTR_FORMAT(printf, 2, 3);
+	ATTR_FORMAT(printf, 2, 3);
 
 /*
  * Log a message using the current log function.
