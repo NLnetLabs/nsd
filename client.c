@@ -1,5 +1,5 @@
 /*
- * $Id: client.c,v 1.1 2003/04/29 13:40:52 alexis Exp $
+ * $Id: client.c,v 1.2 2003/05/05 08:44:03 alexis Exp $
  *
  * client.c -- set of DNS client routines
  *
@@ -230,7 +230,7 @@ unpack(struct query *q, struct RR *rr, u_int16_t rdlength)
 		if((rr->rdata[1] = dnamefromq(q)) == NULL) return -1;
 		break;
 	case TYPE_TXT:
-		newrdata(16);
+		rr->rdata = newrdata(16);
 		i = 0;
 		do {
 			if((rr->rdata[i++] = rdatafromq(q, *q->iobufptr + 1)) == NULL) return -1;
