@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.38 2002/09/18 13:00:11 alexis Exp $
+ * $Id: nsd.h,v 1.39 2002/09/19 11:37:16 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -135,6 +135,7 @@ struct	nsd {
 #ifdef	NAMED8_STATS
 
 	char	*named8_stats;
+	int	st_period;		/* Produce statistics dump every st_period seconds */
 
 	struct nsdst {
 		time_t	reload;

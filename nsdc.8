@@ -1,5 +1,5 @@
 .\"
-.\" $Id: nsdc.8,v 1.7 2002/09/09 10:59:15 alexis Exp $
+.\" $Id: nsdc.8,v 1.8 2002/09/19 11:37:16 alexis Exp $
 .\"
 .\" nsdc.8 -- nsdc manual
 .\"
@@ -52,7 +52,7 @@ is the shell script that used to control
 and
 .Xr zonec 8
 from
-.IC NSD
+.Ic NSD
 distribution.
 .Ic Nsdc
 is also suitable to be linked into
@@ -62,6 +62,17 @@ directory on
 like systems for automatic startup of
 .Xr nsd 8
 at the boot time.
+.Pp
+At every invokation
+.Ic nsdc
+will try to source
+.Pa /etc/nsd/nsdc.conf
+configuration file (shell script) where default configuration settings 
+can be overwritten. An example of such configuration file is distributed
+with the
+.Ic NSD
+package as
+.Pa nsdc.conf.sample
 .Pp
 Possible
 .Ic nsdc
@@ -131,6 +142,11 @@ default
 database
 .It Pa /var/run/nsd.pid
 the process id of the name server.
+.It Pa /etc/nsd/nsdc.conf
+Optional configuration file for nsdc to overwrite default pathnames
+and
+.Ic NSD
+flags.
 .El
 .Sh DIAGNOSTICS
 .Ic Nsdc

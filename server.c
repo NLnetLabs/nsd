@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.45 2002/09/18 13:00:11 alexis Exp $
+ * $Id: server.c,v 1.46 2002/09/19 11:37:16 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -369,7 +369,9 @@ server(nsd)
 
 		nsd->dbfile += l;
 		nsd->pidfile += l;
+#ifdef NAMED8_STATS
 		nsd->named8_stats += l;
+#endif
 
 		if(chroot(nsd->chrootdir)) {
 			syslog(LOG_ERR, "unable to chroot: %m");
@@ -517,6 +519,7 @@ server(nsd)
 					break;
 				case 0:
 					/* CHILD */
+					signal(SIGALRM, SIG_DFL);
 					answer_tcp(tcpc_s, (struct sockaddr *)&tcpc_addr, tcpc_addrlen, nsd);
 					close(tcpc_s);
 					exit(0);

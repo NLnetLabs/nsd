@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.48 2002/09/18 13:00:11 alexis Exp $
+ * $Id: nsd.c,v 1.49 2002/09/19 11:37:15 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -167,6 +167,10 @@ sig_handler(sig)
 		/* Silent shutdown... */
 		nsd.mode = NSD_SHUTDOWN;
 		break;
+	case SIGALRM:
+#ifdef NAMED8_STATS
+		alarm(nsd.st_period);
+#endif
 	case SIGILL:
 		/* Dump statistics... */
 		nsd.mode = NSD_STATS;
@@ -545,7 +549,7 @@ main(argc, argv)
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "a:df:p:i:u:t:")) != -1) {
+	while((c = getopt(argc, argv, "a:df:p:i:u:t:s:")) != -1) {
 		switch (c) {
 		case 'a':
 			if((nsd.tcp.addr = nsd.udp.addr = inet_addr(optarg)) == -1)
@@ -569,6 +573,13 @@ main(argc, argv)
 			break;
 		case 't':
 			nsd.chrootdir = optarg;
+			break;
+		case 's':
+#ifdef NAMED8_STATS
+			nsd.st_period = atoi(optarg);
+#else /* NAMED8_STATS */
+			syslog(LOG_ERR, "option unavailabe, recompile with -DNAMED8_STATS");
+#endif /* NAMED8_STATS */
 			break;
 		case '?':
 		default:
@@ -687,6 +698,11 @@ main(argc, argv)
 	signal(SIGCHLD, &sig_handler);
 	signal(SIGINT, &sig_handler);
 	signal(SIGILL, &sig_handler);
+	signal(SIGALRM, &sig_handler);
+
+#ifdef NAMED8_STATS
+	alarm(nsd.st_period);
+#endif	/* NAMED8_STATS */
 
 	/* Get our process id */
 	nsd.pid = getpid();

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.76 2002/09/19 10:34:29 alexis Exp $
+# $Id: Makefile,v 1.77 2002/09/19 11:37:15 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -180,7 +180,7 @@ COMPAT_O =	#	basename.o
 #
 CLEANFILES+=*.core *.gmon
 
-all:	nsd zonec nsdc.sh nsd-notify
+all:	nsd zonec nsdc.sh nsd-notify nsdc.conf.sample
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
@@ -223,7 +223,7 @@ nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
 	${CC} ${CFLAGS} ${LDFLAGS} ${LIBWRAP} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
 
 clean:
-	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh
+	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
 
 basename.o:	compat/basename.c
 	${CC} -c ${CFLAGS} compat/basename.c -o basename.o

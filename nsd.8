@@ -1,5 +1,5 @@
 .\"
-.\" $Id: nsd.8,v 1.11 2002/09/18 13:00:11 alexis Exp $
+.\" $Id: nsd.8,v 1.12 2002/09/19 11:37:15 alexis Exp $
 .\"
 .\" nsd.8 -- nsd manual
 .\"
@@ -51,6 +51,7 @@
 .Op Fl u Ar username
 .Op Fl t Ar chrootdir
 .Op Fl i Ar identity
+.Op Fl s Ar secs
 .Sh DESCRIPTION
 .Ic NSD
 is a complete implementation of an authoritative DNS nameserver. Upon
@@ -106,7 +107,14 @@ id
 id.gid
 For example: nsd -or- 80 -or- 80.80
 .It Fl t Ar chroot
-specifies a directory to chroot to upon startup.
+specifies a directory to chroot to upon startup. This option requires you to
+ensure that appropriate 
+.Xr syslogd 8
+socket (e.g.
+.Ar chrootdir
+/dev/log) is available otherwise
+.Ic NSD
+won't produce any log output.
 .It Fl i Ar identity
 Return the specified
 .Ar identity
@@ -116,6 +124,13 @@ when asked for
 when they are multicast)
 The default is the name returned by
 .Xr gethostname 3
+.It Fl s Ar secs
+Produce statistics dump every 
+.Ar secs
+seconds.
+This is equal to sending
+.Em SIGILL
+to the daemon periodically.
 .El
 .Pp
 .Ic NSD
@@ -125,6 +140,11 @@ will react to the following signals:
 Stop answer the queries, shutdown and exit normally.
 .It Dv SIGHUP
 Reload the database.
+.It Dv SIGILL
+Dump BIND8-style statistics into the
+.Em \-DNAMED8_STATS="pathname"
+as specified at compilation time. Ignored otherwise.
+.El
 .\" .Sh IMPLEMENTATION NOTES
 .Sh FILES
 .Bl -tag -width indent
