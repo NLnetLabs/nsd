@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.50 2002/04/11 12:29:38 alexis Exp $
+ * $Id: query.c,v 1.51 2002/04/22 09:29:18 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -416,31 +416,29 @@ query_process(q, db)
 					return 0;
 				}
 			}
-		} else {
-			/* Only look for wildcards if we did not match a domain before */
-			if(NAMEDB_TSTBITMASK(db, NAMEDB_STARMASK, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
-				/* Prepend star */
-				bcopy(qstar, qnamelow - 2, 2);
+		}
 
-				/* Lookup star */
-				*(qnamelow - 3) = qnamelen + 2;
-				if((d = namedb_lookup(db, qnamelow - 3)) != NULL) {
-					/* We found a domain... */
-					RCODE_SET(q, RCODE_OK);
+		/* Only look for wildcards if we did not match a domain before */
+		if(NAMEDB_TSTBITMASK(db, NAMEDB_STARMASK, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
+			/* Prepend star */
+			bcopy(qstar, qnamelow - 2, 2);
 
-					if((a = namedb_answer(d, qtype)) != NULL) {
-						if(ntohs(qclass) != CLASS_ANY) {
-							AA_SET(q);
-						} else {
-							AA_CLR(q);
-						}
-						query_addanswer(q, qname, a, 1);
-						return 0;
+			/* Lookup star */
+			*(qnamelow - 3) = qnamelen + 2;
+			if((d = namedb_lookup(db, qnamelow - 3)) != NULL) {
+				/* We found a domain... */
+				RCODE_SET(q, RCODE_OK);
+
+				if((a = namedb_answer(d, qtype)) != NULL) {
+					if(ntohs(qclass) != CLASS_ANY) {
+						AA_SET(q);
+					} else {
+						AA_CLR(q);
 					}
+					query_addanswer(q, qname, a, 1);
+					return 0;
 				}
 			}
-			/* Neither name nor wildcard exists */
-			continue;
 		}
 	} while(*qname);
 
