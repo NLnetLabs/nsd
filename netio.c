@@ -90,13 +90,28 @@ netio_remove_handler(netio_type *netio, netio_handler_type *handler)
 	}
 }
 
+const struct timespec *
+netio_current_time(netio_type *netio)
+{
+	assert(netio);
+
+	if (!netio->have_current_time) {
+		struct timeval current_timeval;
+		if (gettimeofday(&current_timeval, NULL) == -1) {
+			return NULL;
+		}
+		timeval_to_timespec(&netio->cached_current_time, &current_timeval);
+		netio->have_current_time = 1;
+	}
+
+	return &netio->cached_current_time;
+}
+
 int
 netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t *sigmask)
 {
 	fd_set readfds, writefds, exceptfds;
 	int max_fd;
-	struct timeval current_timeval;
-	struct timespec current_time;
 	int have_timeout = 0;
 	struct timespec minimum_timeout;
 	netio_handler_type *timeout_handler = NULL;
@@ -107,14 +122,10 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 	assert(netio);
 
 	/*
-	 * Retrieve the current time to convert all absolute handler
-	 * timeouts to a relative timeout.
+	 * Clear the cached current time.
 	 */
-	if (gettimeofday(&current_timeval, NULL) == -1) {
-		return -1;
-	}
-	timeval_to_timespec(&current_time, &current_timeval);
-
+	netio->have_current_time = 0;
+	
 	/*
 	 * Initialize the minimum timeout with the timeout parameter.
 	 */
@@ -153,7 +164,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 
 			relative.tv_sec = handler->timeout->tv_sec;
 			relative.tv_nsec = handler->timeout->tv_nsec;
-			timespec_subtract(&relative, &current_time);
+			timespec_subtract(&relative, netio_current_time(netio));
 
 			if (!have_timeout ||
 			    timespec_compare(&relative, &minimum_timeout) < 0)
@@ -186,11 +197,11 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 		return -1;
 	}
 
-	/* Initialize the current time member of netio.  */
-	if (gettimeofday(&current_timeval, NULL) == -1) {
-		return -1;
-	}
-	timeval_to_timespec(&netio->current_time, &current_timeval);
+	/*
+	 * Clear the cached current_time (pselect(2) may block for
+	 * some time so the cached value is likely to be old).
+	 */
+	netio->have_current_time = 0;
 	
 	if (rc == 0) {
 		/*

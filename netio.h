@@ -70,11 +70,16 @@ typedef struct netio_handler_list netio_handler_list_type;
 struct netio
 {
 	/*
-	 * The current time, which is initialized just before the
-	 * event handlers are called.  This structure member should be
-	 * considered read-only.
+	 * Cached value of the current time.  The cached value is
+	 * cleared at the start of netio_dispatch to calculate the
+	 * relative timeouts of the event handlers and after calling
+	 * pselect(2) so handlers can use it to calculate a new
+	 * absolute timeout.
+	 *
+	 * Use netio_current_time() to read the current time.
 	 */
-	struct timespec current_time;
+	int have_current_time;
+	struct timespec cached_current_time;
 
 	/* Private.  */
 	region_type             *region;
@@ -139,6 +144,11 @@ void netio_add_handler(netio_type *netio, netio_handler_type *handler);
  * Remove the HANDLER from NETIO.
  */
 void netio_remove_handler(netio_type *netio, netio_handler_type *handler);
+
+/*
+ * Retrieve the current time (using gettimeofday(2).
+ */
+const struct timespec *netio_current_time(netio_type *netio);
 
 /*
  * Check for events and dispatch them to the handlers.  If TIMEOUT is

@@ -747,7 +747,7 @@ handle_tcp_reading(netio_type *netio,
 	
 	handler->timeout->tv_sec = TCP_TIMEOUT;
 	handler->timeout->tv_nsec = 0L;
-	timespec_add(handler->timeout, &netio->current_time);
+	timespec_add(handler->timeout, netio_current_time(netio));
 	
 	handler->event_types = NETIO_EVENT_WRITE | NETIO_EVENT_TIMEOUT;
 	handler->event_handler = handle_tcp_writing;
@@ -842,7 +842,7 @@ handle_tcp_writing(netio_type *netio,
 			/* Reset timeout.  */
 			handler->timeout->tv_sec = TCP_TIMEOUT;
 			handler->timeout->tv_nsec = 0;
-			timespec_add(handler->timeout, &netio->current_time);
+			timespec_add(handler->timeout, netio_current_time(netio));
 
 			/*
 			 * Write data if/when the socket is writable
@@ -861,7 +861,7 @@ handle_tcp_writing(netio_type *netio,
 	
 	handler->timeout->tv_sec = TCP_TIMEOUT;
 	handler->timeout->tv_nsec = 0;
-	timespec_add(handler->timeout, &netio->current_time);
+	timespec_add(handler->timeout, netio_current_time(netio));
 
 	handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
 	handler->event_handler = handle_tcp_reading;
@@ -945,7 +945,7 @@ handle_accept(netio_type *netio,
 	tcp_handler->timeout = region_alloc(tcp_region, sizeof(struct timespec));
 	tcp_handler->timeout->tv_sec = TCP_TIMEOUT;
 	tcp_handler->timeout->tv_nsec = 0L;
-	timespec_add(tcp_handler->timeout, &netio->current_time);
+	timespec_add(tcp_handler->timeout, netio_current_time(netio));
 
 	tcp_handler->user_data = tcp_data;
 	tcp_handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
