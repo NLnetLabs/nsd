@@ -13,10 +13,14 @@
 #ifdef TSIG
 
 #include <openssl/hmac.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #include "buffer.h"
 #include "dname.h"
-#include "dns.h"
+
+struct query;
 
 #define TSIG_ERROR_NOERROR  0
 #define TSIG_ERROR_BADSIG   16
@@ -40,8 +44,11 @@ struct tsig_algorithm
 };
 typedef struct tsig_algorithm tsig_algorithm_type;
 
+extern const tsig_algorithm_type *tsig_algorithm_md5;
+
 struct tsig_key
 {
+	struct addrinfo  *server;
 	const dname_type *name;
 	size_t            size;
 	const uint8_t    *data;
@@ -74,12 +81,31 @@ typedef struct tsig_record tsig_record_type;
 
 int tsig_init(region_type *region);
 
+void tsig_add_key(tsig_key_type *key);
+
 /*
  * Call this before starting to analyze a query. If the region is
  * free'd than tsig_init_record must be called again.
  */
 void tsig_init_record(tsig_record_type *data, region_type *query_region);
 
+/*
+ * Prepare DATA for signing of a packet.
+ */
+void tsig_configure_record(tsig_record_type *data,
+			   const tsig_algorithm_type *algorithm,
+			   const tsig_key_type *key);
+/*
+ * Sign a query with the algorithm and key specified in DATA and store
+ * the resulting signature in DATA.
+ */
+void tsig_sign_record(tsig_record_type *data, buffer_type *packet);
+
+/*
+ * Find the TSIG record in PACKET and parse it if present.
+ */
+int tsig_find_record(tsig_record_type *tsig, struct query *query);
+	
 /*
  * Call this to analyze the TSIG record starting at the current
  * location of PACKET.
@@ -89,7 +115,7 @@ int tsig_parse_record(tsig_record_type *data, buffer_type *packet);
 /*
  * Verify the contents of the TSIG record against the data in packet.
  */
-nsd_rc_type tsig_validate_record(tsig_record_type *data, buffer_type *packet);
+int tsig_validate_record(tsig_record_type *data, buffer_type *packet);
 
 /*
  * Create the data necessary to include a TSIG record in the response
@@ -103,7 +129,7 @@ int tsig_update_record(tsig_record_type *data, buffer_type *packet);
 void tsig_append_record(tsig_record_type *data, buffer_type *packet);
 
 /*
- * The amount of space to reserve in the response for the EDNS data
+ * The amount of space to reserve in the response for the TSIG data
  * (if required).
  */
 size_t tsig_reserved_space(tsig_record_type *data);

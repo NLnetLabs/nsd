@@ -47,11 +47,17 @@ enum nsd_xfer_exit_codes
 extern char *optarg;
 extern int optind;
 
-static uint16_t init_query(query_type *q, const dname_type *dname,
-			   uint16_t type, uint16_t klass);
-static int read_rr_from_packet(region_type *region, domain_table_type *owners,
-			       buffer_type *packet, rr_section_type section,
-			       rr_type *result);
+static uint16_t init_query(query_type *q,
+			   const dname_type *dname,
+			   uint16_t type,
+			   uint16_t klass,
+			   tsig_record_type *tsig);
+
+static int read_rr(region_type *region,
+		   domain_table_type *owners,
+		   buffer_type *packet,
+		   int question_section,
+		   rr_type *result);
 
 /*
  * Log an error message and exit.
@@ -93,6 +99,113 @@ usage (void)
 		" -f file servers...\n");
 	exit(XFER_FAIL);
 }
+
+#ifdef TSIG
+static void
+cleanup_addrinfo(void *data)
+{
+	freeaddrinfo((struct addrinfo *) data);
+}
+
+/*
+ * Read the TSIG key from a .tsiginfo file and remove the file.
+ */
+static tsig_key_type *
+read_tsig_key(region_type *region,
+	      const char *tsiginfo_filename,
+	      int default_family)
+{
+	char line[4000];
+	uint8_t data[4000];
+	FILE *in;
+	struct addrinfo hints;
+	tsig_key_type *key = region_alloc(region, sizeof(tsig_key_type));
+	int gai_rc;
+	int size;
+	
+	in = fopen(tsiginfo_filename, "r");
+	if (!in) {
+		error("failed to open %s: %s",
+		      tsiginfo_filename,
+		      strerror(errno));
+		return NULL;
+	}
+
+	if (!fgets(line, sizeof(line), in)) {
+		error("failed to read TSIG key server address: %s",
+		      strerror(errno));
+		fclose(in);
+		return NULL;
+	}
+	strip_string(line);
+	fprintf(stderr, "tsig server: %s\n", line);
+	
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags |= AI_NUMERICHOST;
+	hints.ai_family = default_family;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	gai_rc = getaddrinfo(line, NULL, &hints, &key->server);
+	if (gai_rc) {
+		error("cannot parse address '%s': %s",
+		      line,
+		      gai_strerror(gai_rc));
+		fclose(in);
+		return NULL;
+	}
+
+	region_add_cleanup(region, cleanup_addrinfo, key->server);
+	
+	if (!fgets(line, sizeof(line), in)) {
+		error("failed to read TSIG key name: %s", strerror(errno));
+		fclose(in);
+		return NULL;
+	}
+	strip_string(line);
+	fprintf(stderr, "tsig name: %s\n", line);
+	
+	key->name = dname_parse(region, line, NULL);
+	if (!key->name) {
+		error("failed to parse TSIG key name %s", line);
+		fclose(in);
+		return NULL;
+	}
+
+	if (!fgets(line, sizeof(line), in)) {
+		error("failed to read TSIG key type: %s", strerror(errno));
+		fclose(in);
+		return NULL;
+	}
+
+	if (!fgets(line, sizeof(line), in)) {
+		error("failed to read TSIG key data: %s", strerror(errno));
+		fclose(in);
+		return NULL;
+	}
+	strip_string(line);
+	fprintf(stderr, "tsig data: %s\n", line);
+	
+	size = b64_pton(line, data, sizeof(data));
+	if (size == -1) {
+		error("failed to parse TSIG key data");
+		fclose(in);
+		return NULL;
+	}
+
+	key->size = size;
+	key->data = region_alloc_init(region, data, key->size);
+
+	fclose(in);
+	
+	if (unlink(tsiginfo_filename) == -1) {
+		warning("failed to remove %s: %s",
+			tsiginfo_filename,
+			strerror(errno));
+	}
+
+	return key;
+}
+#endif /* TSIG */
 
 /*
  * Write the complete buffer to the socket, irrespective of short
@@ -221,10 +334,11 @@ parse_response(struct query *q, FILE *out, int first, int *done)
 	for (rr_count = 0; rr_count < qdcount + ancount; ++rr_count) {
 		domain_table_type *owners = domain_table_create(rr_region);
 		
-		if (!read_rr_from_packet(
-			    rr_region, owners, q->packet,
-			    rr_count < qdcount ? QUESTION_SECTION : ANSWER_SECTION,
-			    &record))
+		if (!read_rr(rr_region,
+			     owners,
+			     q->packet,
+			     rr_count < qdcount,
+			     &record))
 		{
 			error("bad RR");
 			region_destroy(rr_region);
@@ -300,9 +414,8 @@ receive_response(int s, query_type *q)
 }
 
 static int
-read_rr_from_packet(region_type *region, domain_table_type *owners,
-		    buffer_type *packet, rr_section_type section,
-		    rr_type *result)
+read_rr(region_type *region, domain_table_type *owners,
+	buffer_type *packet, int question_section, rr_type *result)
 {
 	const dname_type *owner;
 	uint16_t rdlength;
@@ -318,7 +431,7 @@ read_rr_from_packet(region_type *region, domain_table_type *owners,
 	result->type = buffer_read_u16(packet);
 	result->klass = buffer_read_u16(packet);
 
-	if (section == QUESTION_SECTION) {
+	if (question_section) {
 		result->ttl = 0;
 		result->rdata_count = 0;
 		result->rdatas = NULL;
@@ -353,16 +466,21 @@ read_rr_from_packet(region_type *region, domain_table_type *owners,
  * On success, the zone serial is returned in ZONE_SERIAL.
  */
 static int
-check_serial(int s, struct query *q, const dname_type *zone,
-	     const uint32_t current_serial, uint32_t *zone_serial)
+check_serial(int s,
+	     query_type *q,
+	     const dname_type *zone,
+	     const uint32_t current_serial,
+	     uint32_t *zone_serial,
+	     tsig_record_type *tsig_query)
 {
 	region_type *local;
 	uint16_t query_id;
 	uint16_t i;
 	domain_table_type *owners;
 	rr_type record;
+	tsig_record_type tsig_response;
 	
-	query_id = init_query(q, zone, TYPE_SOA, CLASS_IN);
+	query_id = init_query(q, zone, TYPE_SOA, CLASS_IN, tsig_query);
 	
 	if (!send_query(s, q)) {
 		return -1;
@@ -375,6 +493,32 @@ check_serial(int s, struct query *q, const dname_type *zone,
 		error("response size (%d) is too small",
 		      (int) buffer_limit(q->packet));
 		return -1;
+	}
+
+	if (tsig_query) {
+		tsig_init_record(&tsig_response, q->region);
+		if (!tsig_find_record(&tsig_response, q)) {
+			error("response is not signed with TSIG");
+			return -1;
+		}
+		if (tsig_response.status == TSIG_NOT_PRESENT) {
+			error("response is not signed with TSIG");
+			return -1;
+		}
+		ARCOUNT_SET(q, ARCOUNT(q) - 1);
+		if (tsig_response.status == TSIG_ERROR) {
+			error("TSIG record is not correct");
+			return -1;
+		} else {
+			nsd_rc_type result;
+
+			result = tsig_validate_record(&tsig_response,
+						      q->packet);
+			if (result == NSD_RC_NOTAUTH) {
+				error("TSIG record did not authenticate");
+				return -1;
+			}
+		}
 	}
 	
 	if (!QR(q)) {
@@ -415,7 +559,7 @@ check_serial(int s, struct query *q, const dname_type *zone,
 	
 	/* Skip question records. */
 	for (i = 0; i < QDCOUNT(q); ++i) {
-		if (!read_rr_from_packet(local, owners, q->packet, QUESTION_SECTION, &record)) {
+		if (!read_rr(local, owners, q->packet, 1, &record)) {
 			error("bad RR in question section");
 			region_destroy(local);
 			return -1;
@@ -433,7 +577,7 @@ check_serial(int s, struct query *q, const dname_type *zone,
 	
 	/* Find the SOA record in the response.  */
 	for (i = 0; i < ANCOUNT(q); ++i) {
-		if (!read_rr_from_packet(local, owners, q->packet, ANSWER_SECTION, &record)) {
+		if (!read_rr(local, owners, q->packet, 0, &record)) {
 			error("bad RR in answer section");
 			region_destroy(local);
 			return -1;
@@ -457,7 +601,7 @@ check_serial(int s, struct query *q, const dname_type *zone,
 }
 
 static int
-axfr(int s, struct query *q, const dname_type *zone, FILE *out)
+axfr(int s, struct query *q, const dname_type *zone, FILE *out, tsig_record_type *tsig)
 {
 	int done = 0;
 	int first = 1;
@@ -465,7 +609,7 @@ axfr(int s, struct query *q, const dname_type *zone, FILE *out)
 	
 	assert(q->maxlen <= QIOBUFSZ);
 	
-	query_id = init_query(q, zone, TYPE_AXFR, CLASS_IN);
+	query_id = init_query(q, zone, TYPE_AXFR, CLASS_IN, tsig);
 
 	if (!send_query(s, q)) {
 		return 0;
@@ -519,13 +663,18 @@ axfr(int s, struct query *q, const dname_type *zone, FILE *out)
 }
 
 static uint16_t
-init_query(query_type *q, const dname_type *dname, uint16_t type,
-	   uint16_t klass)
+init_query(query_type *q,
+	   const dname_type *dname,
+	   uint16_t type,
+	   uint16_t klass,
+	   tsig_record_type *tsig)
 {
+	uint16_t query_id = (uint16_t) random();
+	
 	buffer_clear(q->packet);
 	
 	/* Set up the header */
-	ID_SET(q, (uint16_t) random());
+	ID_SET(q, query_id);
 	FLAGS_SET(q, 0);
 	OPCODE_SET(q, OPCODE_QUERY);
 	AA_SET(q);
@@ -540,6 +689,11 @@ init_query(query_type *q, const dname_type *dname, uint16_t type,
 	buffer_write_u16(q->packet, type);
 	buffer_write_u16(q->packet, klass);
 
+	if (tsig) {
+		tsig_sign_record(tsig, q->packet);
+		tsig_append_record(tsig, q->packet);
+	}
+	
 	buffer_flip(q->packet);
 
 	return ID(q);
@@ -559,6 +713,11 @@ main (int argc, char *argv[])
 	region_type *region = region_create(xalloc, free);
 	int default_family = DEFAULT_AI_FAMILY;
 	FILE *zone_file;
+#ifdef TSIG
+	const char *tsig_key_filename = NULL;
+	tsig_key_type *tsig_key = NULL;
+	tsig_record_type *tsig = NULL;
+#endif
 	
 	log_init("nsd-xfer");
 
@@ -569,9 +728,9 @@ main (int argc, char *argv[])
 		error("TSIG initialization failed");
 	}
 #endif
-	
+
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46f:hp:s:z:")) != -1) {
+	while ((c = getopt(argc, argv, "46f:hp:s:T:z:")) != -1) {
 		switch (c) {
 		case '4':
 			default_family = AF_INET;
@@ -594,6 +753,14 @@ main (int argc, char *argv[])
 			break;
 		case 's':
 			serial = optarg;
+			break;
+		case 'T':
+#ifdef TSIG
+			tsig_key_filename = optarg;
+#else /* !TSIG */
+			error("TSIG support is not enabled");
+			exit(XFER_FAIL);
+#endif
 			break;
 		case 'z':
 			zone = dname_parse(region, optarg, NULL);
@@ -618,8 +785,25 @@ main (int argc, char *argv[])
 		}
 	}
 	
+#ifdef TSIG
+	if (tsig_key_filename) {
+		tsig_key = read_tsig_key(
+			region, tsig_key_filename, default_family);
+		if (!tsig_key) {
+			exit(XFER_FAIL);
+		}
+
+		tsig_add_key(tsig_key);
+		
+		tsig = region_alloc(region, sizeof(tsig_record_type));
+		tsig_init_record(tsig, region);
+		tsig_configure_record(tsig, tsig_algorithm_md5, tsig_key);
+	}
+#endif
+	
 	/* Initialize the query */
 	memset(&q, 0, sizeof(struct query));
+	q.region = region;
 	q.addrlen = sizeof(q.addr);
 	q.packet = buffer_create(region, QIOBUFSZ);
 	q.maxlen = MAX_PACKET_SIZE;
@@ -666,7 +850,7 @@ main (int argc, char *argv[])
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
 			rc = check_serial(s, &q, zone, current_serial,
-					  &zone_serial);
+					  &zone_serial, tsig);
 			if (rc == -1) {
 				close(s);
 				continue;
@@ -691,7 +875,7 @@ main (int argc, char *argv[])
 					exit(XFER_FAIL);
 				}
 	
-				if (axfr(s, &q, zone, zone_file)) {
+				if (axfr(s, &q, zone, zone_file, tsig)) {
 					/* AXFR succeeded, done.  */
 					fclose(zone_file);
 					close(s);

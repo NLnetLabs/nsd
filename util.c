@@ -39,6 +39,7 @@
 #include <config.h>
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -395,4 +396,21 @@ hex_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 	}
 	*target = '\0';
 	return 2 * srclength;
+}
+
+
+void
+strip_string(char *str)
+{
+	char *start = str;
+	char *end = str + strlen(str) - 1;
+
+	while (isspace(*start))
+		++start;
+	while (isspace(*end))
+		--end;
+	end[1] = '\0';
+	
+	if (str != start)
+		memmove(str, start, start - end + 1);
 }
