@@ -38,12 +38,12 @@ static YY_BUFFER_STATE include_stack[MAXINCLUDES];
 static zparser_type zparser_stack[MAXINCLUDES];
 static int include_stack_ptr = 0;
 
+/*
+ * Saves the file specific variables on the include stack.
+ */
 static void
 push_parser_state(FILE *input)
 {
-	/*
-	 * Save file specific variables on the include stack.
-	 */
 	zparser_stack[include_stack_ptr].filename = parser->filename;
 	zparser_stack[include_stack_ptr].line = parser->line;
 	zparser_stack[include_stack_ptr].origin = parser->origin;
@@ -52,6 +52,9 @@ push_parser_state(FILE *input)
 	++include_stack_ptr;
 }
 
+/*
+ * Restores the file specific variables from the include stack.
+ */
 static void
 pop_parser_state(void)
 {
@@ -158,7 +161,7 @@ Q       \"
 
 	parser->error_occurred = error_occurred;
 }
-<INITIAL><<EOF>>			{
+<INITIAL><<EOF>>	{
 	yy_set_bol(1); /* Set beginning of line, so "^" rules match.  */
 	if (include_stack_ptr == 0) {
 		yyterminate();
@@ -167,20 +170,20 @@ Q       \"
 		pop_parser_state();
 	}
 }
-^{DOLLAR}{LETTER}+      { zc_warning("Unknown $directive: %s", yytext); }
-{DOT}                   {
+^{DOLLAR}{LETTER}+	{ zc_warning("Unknown directive: %s", yytext); }
+{DOT}	{
 	LEXOUT((". "));
 	return parse_token('.', yytext, &lexer_state);
 }
-@ 			{
+@	{
 	LEXOUT(("@ "));
 	return parse_token('@', yytext, &lexer_state);
 }
-\\# {
+\\#	{
 	LEXOUT(("\\# "));
 	return parse_token(URR, yytext, &lexer_state);
 }
-{NEWLINE}               {
+{NEWLINE}	{
 	++parser->line;
 	if (!paren_open) { 
 		lexer_state = EXPECT_OWNER;
@@ -191,7 +194,7 @@ Q       \"
 		return SP;
 	}
 }
-\( {
+\(	{
 	if (paren_open) {
 		zc_error("nested parentheses");
 		yyterminate();
@@ -200,7 +203,7 @@ Q       \"
 	paren_open = 1;
 	return SP;
 }
-\) {
+\)	{
 	if (!paren_open) {
 		zc_error("closing parentheses without opening parentheses");
 		yyterminate();
@@ -209,7 +212,7 @@ Q       \"
 	paren_open = 0;
 	return SP;
 }
-{SPACE}+                {
+{SPACE}+	{
 	if (!paren_open && lexer_state == EXPECT_OWNER) {
 		lexer_state = PARSING_TTL_CLASS_TYPE;
 		LEXOUT(("PREV "));
@@ -224,13 +227,13 @@ Q       \"
 
 	/* Bitlabels.  Strip leading and ending brackets.  */
 \\\[			{ BEGIN(bitlabel); }
-<bitlabel><<EOF>> 	{
+<bitlabel><<EOF>>	{
 	zc_error("EOF inside bitlabel");
 	BEGIN(INITIAL);
 }
 <bitlabel>{BIT}*	{ yymore(); }
-<bitlabel>\n 		{ ++parser->line; yymore(); }
-<bitlabel>\] 		{
+<bitlabel>\n		{ ++parser->line; yymore(); }
+<bitlabel>\]		{
 	BEGIN(INITIAL);
 	yytext[yyleng - 1] = '\0';
 	return parse_token(BITLAB, yytext, &lexer_state);
@@ -246,7 +249,7 @@ Q       \"
 <quotedstring>\n 	{ ++parser->line; yymore(); }
 <quotedstring>\" {
 	BEGIN(INITIAL);
-	yytext[strlen(yytext) - 1] = '\0';
+	yytext[yyleng - 1] = '\0';
 	return parse_token(STR, yytext, &lexer_state);
 }
 
@@ -318,12 +321,16 @@ zoctet(char *text)
 			--p;
 		}
 	}
+	*p = '\0';
 	return p - text;
 }
 
 static int
 parse_token(int token, char *yytext, enum lexer_state *lexer_state)
 {
+	char *str = region_strdup(parser->rr_region, yytext);
+	size_t len = zoctet(str);
+
 	if (*lexer_state == EXPECT_OWNER) {
 		*lexer_state = PARSING_OWNER;
 	} else if (*lexer_state == PARSING_TTL_CLASS_TYPE) {
@@ -332,14 +339,14 @@ parse_token(int token, char *yytext, enum lexer_state *lexer_state)
 		uint16_t rrclass;
 		
 		/* type */
-		token = rrtype_to_token(yytext, &yylval.type);
+		token = rrtype_to_token(str, &yylval.type);
 		if (token != 0) {
 			*lexer_state = PARSING_RDATA;
 			return token;
 		}
 
 		/* class */
-		rrclass = rrclass_from_string(yytext);
+		rrclass = rrclass_from_string(str);
 		if (rrclass != 0) {
 			yylval.klass = rrclass;
 			LEXOUT(("CLASS "));
@@ -347,15 +354,16 @@ parse_token(int token, char *yytext, enum lexer_state *lexer_state)
 		}
 
 		/* ttl */
-		yylval.ttl = strtottl(yytext, &t);
+		yylval.ttl = strtottl(str, &t);
 		if (*t == '\0') {
 			LEXOUT(("TTL "));
 			return T_TTL;
 		}
 	}
+
+	yylval.data.str = str;
+	yylval.data.len = len;
 	
-	yylval.data.str = region_strdup(parser->rr_region, yytext);
-	yylval.data.len = zoctet(yylval.data.str);
 	LEXOUT(("%d ", token));
 	return token;
 }
