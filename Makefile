@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.59 2002/05/07 11:07:47 alexis Exp $
+# $Id: Makefile,v 1.60 2002/05/07 17:33:44 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -111,7 +111,7 @@ LIBS		=
 # Compile environment settings
 DEBUG		= # -g -DDEBUG=1
 CC=gcc
-CFLAGS		= -ansi -O6 -pipe -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
+CFLAGS		= -ansi -pedantic -O6 -pipe -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
 	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\"
 LDFLAGS= ${LIBS}
 INSTALL = install -c

@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.34 2002/05/07 13:17:36 alexis Exp $
+ * $Id: server.c,v 1.35 2002/05/07 17:33:45 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -201,7 +201,6 @@ server (struct nsd *nsd)
 #endif
 	size_t tcpc_addrlen;
 	fd_set peer;
-	pid_t pid;
 
 	/* UDP */
 	bzero(&udp_addr, sizeof(udp_addr));
@@ -296,7 +295,7 @@ server (struct nsd *nsd)
 		case NSD_RELOAD:
 			nsd->mode = NSD_RUN;
 
-			switch(nsd->debug ? 0 : (pid = fork())) {
+			switch(nsd->debug ? 0 : fork()) {
 			case -1:
 				syslog(LOG_ERR, "fork failed: %s", strerror(errno));
 				break;
@@ -312,7 +311,8 @@ server (struct nsd *nsd)
 				if(!nsd->debug) {
 					/* Send the child SIGINT to the parent to terminate quitely... */
 					if(kill(nsd->pid, SIGINT) != 0) {
-						syslog(LOG_ERR, "cannot kill %d: %s", pid, strerror(errno));
+						syslog(LOG_ERR, "cannot kill %d: %s", nsd->pid,
+									strerror(errno));
 						exit(1);
 					}
 
