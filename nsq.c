@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.3 2003/04/22 11:31:51 alexis Exp $
+ * $Id: nsq.c,v 1.4 2003/04/28 08:06:30 alexis Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -186,7 +186,7 @@ uncompress (struct query *q)
 
 	/* We have to copy the trailing zero now... */
 	*t++ = *qptr++;
-	*dname = t - (dname + 1) + *qptr;
+	*dname = t - (dname + 1);
 
 	/* Did we encounter any pointers? */
 	if(pointers == 0) {
@@ -430,37 +430,6 @@ response(int s, struct query *q)
 	/* Read the message... */
 	if(read(s, q->iobuf, tcplen) == -1) {
 		error("error reading message");
-		return NULL;
-	}
-
-	/* Now lets parse it... */
-	if(!QR(q)) {
-		error("received a query instead of answer");
-		return NULL;
-	}
-
-
-	/* Do we serve this type of query */
-	if(OPCODE(q) != OPCODE_QUERY) {
-		error("invalid operation code in the anwer");
-		return NULL;
-	}
-
-	/* Dont bother to answer more than one question at once... */
-	if(ntohs(QDCOUNT(q)) != 1) {
-		error("server answered more then one query");
-		return NULL;
-	}
-
-	/* Truncated answer? Over TCP? Get real... */
-	if(TC(q)) {
-		error("truncated answer over tcp");
-		return NULL;
-	}
-
-	/* Is there a problem? */
-	if(RCODE(q) != RCODE_OK) {
-		fprintf(stderr, "received rcode %d\n", RCODE(q));
 		return NULL;
 	}
 
