@@ -402,18 +402,19 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 				LEXOUT(("TTL "));
 				return TTL;
 			}
+		/* fall through, default first, order matters */
+		default:
+			ztext = region_strdup(rr_region, yytext);
+			yylval.data.len = zoctet(ztext);
+			yylval.data.str = ztext;
+			LEXOUT(("STR "));
+			return STR;
 		case outside:
 			/* should match ^ */
 			ztext = region_strdup(rr_region, yytext);
 			yylval.data.len = zoctet(ztext);
 			yylval.data.str = ztext;
 			*in_rr = expecting_dname;
-			LEXOUT(("STR "));
-			return STR;
-		default:
-			ztext = region_strdup(rr_region, yytext);
-			yylval.data.len = zoctet(ztext);
-			yylval.data.str = ztext;
 			LEXOUT(("STR "));
 			return STR;
 	}
