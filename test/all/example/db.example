@@ -1,0 +1,245 @@
+example.       3600 IN SOA ns1.example. bugs.ns1.example. (
+                           1065745538
+                           3600
+                           300
+                           3600000
+                           3600
+                           )
+               3600 RRSIG  SOA 1 1 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           0EhIo5SFK2xwM2CMh3P6FJUmpV5VFotM5pzb
+                           8f3cL3SyKfOswI2osc3VvbtiEDQHEcE4/b+v
+                           BNx99Wc4jm3llWlsDOxlIbtR/S44xeOVRpff
+                           pLuMW4IZmdwGY/xh/WHOCV+bqVl+s9un0OcX
+                           LQTbyhlNTWdVYxPLo2T2dNP8a+0= )
+               3600 NS     ns1.example.
+               3600 NS     ns2.example.
+               3600 RRSIG  NS 1 1 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           KBhJYJ0vFNyMJrt07gvHN9WAOijhXbcikUNw
+                           ZEJxkL+UCv/GFJi1ABGMDowschPkpHIgDEOQ
+                           exaLWGGUrOA5xMHYONWZpkL4rQ3URAKF46VJ
+                           dMg0UTdw3pTD7Lvs8t6Dim46dj9h/QQEgNLF
+                           BYpCn/jKFJ7lYnYYGLAUofh/+mo= )
+               3600 MX     1 xx.example.
+               3600 RRSIG  MX 1 1 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           CSB4g+vSxyrfsfycsZwAx2hKhwK/x7GAIY0p
+                           MLBgAA/USiiMben0II4aYf5lybs0NINnFDju
+                           2Kc78M8t9zBGeJcZCZEs9mKiXhW8WJanvIjg
+                           BwJgWXwAnVnq20TXlsHiuwuhmtrb76/Avl4i
+                           lnX6XA3eeDlQlOTuPe0B91MCuow= )
+               3600 NSEC   a.example. NS SOA MX RRSIG NSEC DNSKEY
+               3600 RRSIG  NSEC 1 1 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           10XG3f8uExTPfof30CoonvXSMeqrhrkcN9YG
+                           krhJD4xeVKarTkQMt0dFe66Bbuy961Bv9go1
+                           IEp0R+sV3B5ldqSKBrcIRsh4QFqQp6IPZ+By
+                           yxyYV25L68I1dkM1JoV7IMFsfcTDPjyl3wv2
+                           2LAQ2lyqLBpow5BRR4sAgjZ7Yaw= )
+               3600 DNSKEY 256 3 1 (
+                           AQPdhnap0Oj2jUq74g+vel5cukdH+wpzjiH8
+                           ZOQSOHrw+s3TmbhyqXbZ/j5Uu9p65ARoevvG
+                           yv459dxxZCKZ4wftXe5BUkJvZVf8HnhYW5R+
+                           kQduVeqGVlkBarL5haKX28Pxvs8tV7CyY/Rd
+                           cfnJlZyJcfwY0ETo4P2gntVMERZuJQ==
+                           )
+               3600 DNSKEY 257 3 1 (
+                           AQOwRqeRkdYUD6UCyJXTaErj0UYLHxOHlhDb
+                           qik1k/j2PJFOZ7GZhc95HnYco611O5VRQ6WQ
+                           pK0dL9eiwcc+gSS2L6V9pWxCfDnEPWFC6eVm
+                           jRZAdAU6gsyNSZCT7rF1lAXdmWcwkaIdNaDL
+                           oNqpieIQd2t+rd/oF8/++DRtzF0toQ==
+                           )
+               3600 RRSIG  DNSKEY 1 1 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           EtFrBqs8i80Ath+xOtjPHcepV/cjATf2E1fo
+                           +fhSggjw2vAXDY4Sygk2tKZ9Tvhahmw1rRC3
+                           CnApLvsjQ9qmnYAvkZdMILw9gPx1rBaq9d7H
+                           nt7mPc/LFrO4G9JS6JNwBCnjwcxro8kNYLo6
+                           97FCO3y4T7y9Hb80OvCZ36cNdps= )
+               3600 RRSIG  DNSKEY 1 1 3600 20031108232541 (
+                           20031009232541 23853 example.
+                           VseD0IGDKqJXiZMJnRNuq89ibF5g8VGPmMJS
+                           h/hS8+nu5vLiyEObJcVxfanslAlBQSGHmJsM
+                           AvXpeJUrT/zOyZ8vfy/igMhd25rnSxAD6uhl
+                           4ohJiiPtFvHgLEvT0QZHizrP4wMvpXvfwn03
+                           1/VEFzXZ0rULlTdWjoNzSMIYBwg= )
+a.example.     3600 IN NS  ns1.a.example.
+               3600 IN NS  ns2.a.example.
+               3600 DS     42939 1 1 (
+                           4BA08982E5739A60E02B69409B0927F9524E
+                           3494 )
+               3600 RRSIG  DS 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           Dp6ySNq7SgIfndS4N5wFynmqXXf+WQ7RTAW/
+                           gC4RPDljbV8WnjZp5P7ip9zsHO9A7hEW8LPp
+                           zEMMzUPfucrSnZ/Jmc60BYIkzkt493QPfz1H
+                           YFRaJ6VyZoF38oN0s/H+a97c+HxAt4TElW+c
+                           iHQEOrm7yXIHwnrre1iuzMZn1jY= )
+               3600 NSEC   ai.example. NS DS RRSIG NSEC
+               3600 RRSIG  NSEC 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           mhov2WXDa2Swk/7/VQoI36e5OKvd/0CmMWdi
+                           +3k/+i7mo9omz854ZBFMLaQzFvaS7Cn//I/H
+                           7tYSY/fScUrs/UfB7le0DzdocsoaMYtexSS1
+                           KA7ofbPdYpBHngIGbO5EHaGrqbKGY61fIQ/g
+                           /WvT0KXnoX+v31Oq3VstBoWmizo= )
+ns1.a.example. 3600 IN A   192.0.2.5
+ns2.a.example. 3600 IN A   192.0.2.6
+ai.example.    3600 IN A   192.0.2.9
+               3600 RRSIG  A 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           MtQkYPqpRfM5ntlRR/Wg7pdFt5fuf+ESoV+a
+                           0RTtEUW9Q5ac7uV3luTnOSmWFFjes1x9Anqn
+                           KVeWcZJU/wRYqbUK2Q9s/kLb3cPMFavHal9n
+                           3gR5v5zNaTQxBrdFlxGNgX/aa9Bs3LfxK14F
+                           UU/kYIPkm9qpSE3wtELJEq2cNsU= )
+               3600 HINFO  "KLH-10" "ITS"
+               3600 RRSIG  HINFO 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           jDn/zgIqY5ucajWNW333u+KfxORI55wvnZDs
+                           pCHZQ9ISjWNT7467wUcfJKBaG+alNlCOJExg
+                           z8yUS5NwySlrFtGL/CBCxmrSVioKMMetg7gP
+                           Qb6x5A53OhsQAGT6azS9bdBM2RFbqBkeZkXA
+                           8mJ/QOldXdH5iPpmZb2Pn47x7V4= )
+               3600 AAAA   2001:db8::f00:baa9
+               3600 RRSIG  AAAA 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           LcSkeCXOOcYClsS9GYJoG/yGeuyaUJrNICK1
+                           ONN4PEzGWJ7kcF+C4N972x05bPX+wsWszBbC
+                           uP/RqMyNenc8Is25te6hZ8MU7Z0zBDtKeTTG
+                           qz4ir4NZfqvB6moHjcVu6Pwb5KkSb8nAobCv
+                           8gB4wQFPYoozOQYTprwGtIHR2k8= )
+               3600 NSEC   b.example. A HINFO AAAA RRSIG NSEC
+               3600 RRSIG  NSEC 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           W3fFJqdRtmpz9QikpK+v5rL+Y5iNpx5H7X7c
+                           1yPMlcaS0nhowHGjCPnNbCP28Ktv9I5eqhO1
+                           N/A75FLTOe9L5Qzetb/C3/ME8D46apKLBEv5
+                           0GWsJqTsijj4dAjup60yeLPXTWxIdO6RNdfe
+                           Qd56t0fY79/kd25RzRCFGs2qHXs= )
+b.example.     3600 IN NS  ns1.b.example.
+               3600 IN NS  ns2.b.example.
+               3600 NSEC   ns1.example. NS RRSIG NSEC
+               3600 RRSIG  NSEC 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           csgLA1XphdEtY9WiwZOHjcOvGiBShTobK+th
+                           0xDnKv7ZUxcMRi/g88Z99It+FV/Qufcf5zmM
+                           RxEVOjD1e7an1X/dxD389/6Qzo6NAtSu85ps
+                           TDKZscoaPBr/wYv6PG73F5yfm1hh31nhnD8f
+                           BFydo6dXwQ4WK8OUC6sMCM+OHEg= )
+ns1.b.example. 3600 IN A   192.0.2.7
+ns2.b.example. 3600 IN A   192.0.2.8
+ns1.example.   3600 IN A   192.0.2.1
+               3600 RRSIG  A 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           dJTb+VNXApV4lPaEwlyZxOS17eofL95DJe58
+                           +ija8iaROK9a9D7bAI7lIKJ/4hSfBN8lIjhF
+                           cpVeuGXCxldaSTOhAU5bg2GZJfxS4onfvBTE
+                           HBf19SZAT9rHBeNJISau8EwDaNBHBweiaC/s
+                           Oett68JnQVQq2l/DhWsJSjuIFBQ= )
+               3600 NSEC   ns2.example. A RRSIG NSEC
+               3600 RRSIG  NSEC 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           M8q/t6bDqPktgMyfa2LjkEDZiGloFp+I8LaO
+                           KBQt96RzZ9xiXOA/7wE5ZrBrgzfl1eotLn0L
+                           zbOwCwpZf7XoVm/IYCOlIEPj6kJHYvIIzp3a
+                           ZBn7uDx1kInt7qc2AmTpPiWCPtSD5KTBwdLk
+                           o3hJ8fow/NDw5Lsb6RQOSQ5Qxuo= )
+ns2.example.   3600 IN A   192.0.2.2
+               3600 RRSIG  A 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           VGTTFv2DZ+KN+tm7dzAP1vWGZTLdYn9v/yuQ
+                           tu9rQYAwVWoGq7iiADgLlY0cjR58GCKCGfn4
+                           mXMyM9mDljOj3VmHxUjRNMgUo+AoIi8Jysr9
+                           +huB5dgYRKFukcCpxKb1SmXNmSLfdS75gCas
+                           8Ic8f9zHwZmCUc0wnxX6x+422PM= )
+               3600 NSEC   *.w.example. A RRSIG NSEC
+               3600 RRSIG  NSEC 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           kkYPMaBn4zJM/iQAOO9i81X57MMCQnzk+pch
+                           6tWUFF/D1ZFZf8QY2MzwDA5Bv/1DluWVbo3x
+                           WjzyUV7fn77k9QKLQseUSXGnpyL2HR1hGfBV
+                           6ZHAqJc99t5+5vjyiflLtOpA0+Ri46SlQGZf
+                           IZ4X2Ksgn+hpIu77NRQMdmh59M8= )
+*.w.example.   3600 IN MX  1 ai.example.
+               3600 RRSIG  MX 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           Uht2mND0Kzc4hnM4Pq4zM+fjiGTEcCzx+wSD
+                           b2flOHxLQPv75mXfnH1tZv7iwrzQmcyucWsd
+                           agwalJcGa3A2+UL45fjYR6zDEsag4cdg1D0/
+                           +T7gIqOGWhYfiXbXuTOgUfyZRXqyGsHsAu20
+                           FxfIqrcIL24dO4Ytdz2ifqvJmuM= )
+               3600 NSEC   x.w.example. MX RRSIG NSEC
+               3600 RRSIG  NSEC 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           fsk9iik9+gpte3I4tffoXyca5jfuYnLLy7/9
+                           7LAVd4KKj9zqSB8f3QD1mjditUK9PGTTtlPL
+                           4mq8F3T8PIt0pfgV8mPl6GP+bR+iVQEEE1YH
+                           yzR21az4Od5KBYYdsPjZzJnOhzCtgyleAoOx
+                           vOHmndDhRTDwVCg179qlrEIsOgE= )
+x.w.example.   3600 IN MX  1 xx.example.
+               3600 RRSIG  MX 1 3 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           i65kcyRnXBHd3ynSNTVKpd71DS85EjGDTi7d
+                           NQR+E4/qtXVaU78hmG4BhyFMVbvyPNpj83z5
+                           UqpB0baVoSVTSqGMSLxi1T38H8gqPgaYd+4r
+                           uEEXZj5I+s8Cq/1RHXi0yqISqeUGAqMHqryp
+                           IKZXg2219TD4UqJuRATLhxZj2fU= )
+               3600 NSEC   x.y.w.example. MX RRSIG NSEC
+               3600 RRSIG  NSEC 1 3 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           VTRE+Bu91QK7dBiMshr04tE/I5HCvSrjqDv+
+                           b4tlUqUqkv4MoxfoceUwavMkdLm9Pi/aYUrS
+                           m6XVGBDAjpDmjivlMKNkME8c0f7oQ3E1CtHS
+                           pPLjTcB9WfxEOzjJJGK5BDDT6A56P4eibLiw
+                           +bNx4OGknGvVqhg9pu5qEWi814s= )
+x.y.w.example. 3600 IN MX  1 xx.example.
+               3600 RRSIG  MX 1 4 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           yDPXa5Osa4r1AF0AjKWOo87kGNDlnVPmCbIi
+                           MPvBpzJ91d5TFtEZWYJpYv+eGWZCJhK7SsnL
+                           Zbbjthkn7YmX1tReDQhn8aCQ6DyrIU6wZpj5
+                           ywBx0z3HGcqoYmv+AiFtcYVPxG0elsrakIwG
+                           /e+CPi2yE2c9M+NnwMxhpEFVGRs= )
+               3600 NSEC   xx.example. MX RRSIG NSEC
+               3600 RRSIG  NSEC 1 4 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           cn4aj3I/EQDa+vysa08xMQSnTz8YGtLLzqAj
+                           R8gy8Yqa4uSm7J17NydsWqgJkhlVxD3oBtnb
+                           w/6tDzx45IHcbnVm6UDrc3DVby21AivrsZ8P
+                           sm5Escp1X+qBLGSNAg2K6dlX/i2vut6g3vDa
+                           66FPTb3/hhrHYkMneBO2Yvfvpj8= )
+xx.example.    3600 IN A   192.0.2.10
+               3600 RRSIG  A 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           ZW+++XV6FyceT4UtcfbVwcsx3u5tRfFLfAHp
+                           Ji11YMdORJKIJS0uVfu+UuAbe/FImnBmQq4v
+                           ShjQXbLeN9BKLvde4dlMphHSKhp24913/KFd
+                           +N0DMDWGZ/wPoACnqrpn1gDKWdT0l+gkF3y4
+                           aI16ggg9/UEWRbvn+7tp2UfMYSw= )
+               3600 HINFO  "KLH-10" "TOPS-20"
+               3600 RRSIG  HINFO 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           vteMgDuG1ekaSmWlXlwVRoqTXjvZ8kGWCAku
+                           6Rd3t/wPeVmn3YSbC8+szYRgP8n0HvYzmVYj
+                           qPyC1HCFoqIJIaNLkDEyCSHuhBwpVhyKGJdM
+                           EbJ1P8Yk3w5Szjap6wn7QxcLnr8Df3xUMXnB
+                           AAwDzum3fUKzVM274T9O8ggeXgE= )
+               3600 AAAA   2001:db8::f00:baaa
+               3600 RRSIG  AAAA 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           LY9gLxiep4FO8uuiegMzc1zdE/O7ApxjiO43
+                           YDBVfuf3z+IghfPRY9IhkAJss6zBxMxciC27
+                           ZmlPBrysWcKDfWF7fX+q0CDZ3ZbqdU32MuK+
+                           AcWaIFu9JcYUIwFRCKt/0LA0OrycwELStUB0
+                           GxlD/3EneV4+IIIv0hekxzpR8Qs= )
+               3600 NSEC   example. A HINFO AAAA RRSIG NSEC
+               3600 RRSIG  NSEC 1 2 3600 20031108232541 (
+                           20031009232541 5742 example.
+                           cKkFJS6Em56M0XCjMma4zFzy5ylHh2ma62oe
+                           yHrqkMYS+QVUuJ8yfAoXoFbok/kDLN3rsCKK
+                           ICJl1dFA3fvJnMejg0JVabQHShO2W1LmWegr
+                           dh251WZQVtJHDRY8/ltYB+GHUuFpZ1CF4m+c
+                           6EPqS1uLrFpRg3k4BV5y6146nZ8= )
