@@ -43,10 +43,6 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 
-#ifdef	HAVE_SYS_SELECT_H
-#include <sys/select.h>
-#endif
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -622,7 +618,7 @@ server_child(struct nsd *nsd)
 	/*
 	 * Block signals that modify nsd->mode, which must be tested
 	 * for atomically.  These signals are only unblocked while
-	 * waiting in pselect below.
+	 * waiting in netio_dispatch below.
 	 */
 	sigemptyset(&block_sigmask);
 	sigaddset(&block_sigmask, SIGHUP);
@@ -704,7 +700,7 @@ server_child(struct nsd *nsd)
 		/* Wait for a query... */
 		if (netio_dispatch(netio, NULL, &default_sigmask) == -1) {
 			if (errno != EINTR) {
-				log_msg(LOG_ERR, "select failed: %s", strerror(errno));
+				log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
 				break;
 			}
 		}
