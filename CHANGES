@@ -1,0 +1,11 @@
+$Id: CHANGES,v 1.1 2002/04/02 13:28:03 alexis Exp $
+
+1.1-alpha2
+	- IPv6 transport support added by Jun-ichiro itojun Hagino (Use -DINET6)
+	- Makefile modified for easier compile time configuration
+	- EDNS(0) bug fixed
+	- Default database changed to all lowercase, red-black tree to make nsd
+	  DNSSEC ready
+	- REQUIREMENTS are cleaned up and updated
+	- Signal names changed in nsdc.sh.in
+	- Default compile options dont include -DMIMIC_BIND8

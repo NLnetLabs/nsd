@@ -1,4 +1,4 @@
-$Id: TODO,v 1.22 2002/02/19 14:25:11 alexis Exp $
+$Id: TODO,v 1.23 2002/04/02 13:28:03 alexis Exp $
 
 ZONE COMPILER
 - CHECK msg->buf and msg->bla boundaries. IT DOES DUMP CORE.
@@ -12,11 +12,8 @@ ZONE COMPILER
 
 - parser is too smart: should not try to continue processing if there are errors...
 
-+ replace libdict with own library
-
 QUESTION: what do we do on errors? continue making database? exit?
 	what do we do when one of the arguement is not a valid file?
-
 
 DATABASE
 
