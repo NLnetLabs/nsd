@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.26 2002/05/27 14:43:34 alexis Exp $
+ * $Id: namedb.h,v 1.27 2002/05/30 13:55:52 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -44,6 +44,7 @@
 #define	NAMEDB_MAXDSIZE		32768	/* Maximum size of a domain */
 
 #define	NAMEDB_DELEGATION	0x0001
+#define	NAMEDB_STEALTH		0x0002
 #define	NAMEDB_HASH_SIZE	65521
 
 #define	NAMEDB_AUTHMASK		0

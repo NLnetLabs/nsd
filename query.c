@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.71 2002/05/30 13:07:56 alexis Exp $
+ * $Id: query.c,v 1.72 2002/05/30 13:55:52 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -106,8 +106,10 @@ query_axfr(q, nsd, qname, zname, depth)
 	}
 
 	/* Let get next domain */
-	dname = (char *)d + *((u_int32_t *)d);
-	d = (struct domain *)(dname + (((u_int32_t)*dname + 1 + 3) & 0xfffffffc));
+	do {
+		dname = (char *)d + *((u_int32_t *)d);
+		d = (struct domain *)(dname + (((u_int32_t)*dname + 1 + 3) & 0xfffffffc));
+	} while(*dname && (DOMAIN_FLAGS(d) & NAMEDB_STEALTH));
 
 	/* End of the database or end of zone? */
 	if(*dname == 0 || namedb_answer(d, htons(TYPE_SOA)) != NULL) {
@@ -125,16 +127,27 @@ query_axfr(q, nsd, qname, zname, depth)
 	}
 
 	/* Existing AXFR, strip the question section off... */
-	/* XXX Very interesting math... Can you figure it? I cant anymore... */
-	q->iobufptr = q->iobuf + QHEADERSZ + *dname - 2;
-	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
+	q->iobufptr = q->iobuf + QHEADERSZ;
+
+	/* Is the first dname a pointer? */
+	if(ANSWER_PTRS(a, 0) == 0) {
+		/* XXX Very interesting math... Can you figure it? I cant anymore... */
+		q->iobufptr += *dname - 2;
+		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
+	}
 
 	qptr = q->iobufptr;
 
 	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
-	bcopy(dname + 1, q->iobuf + QHEADERSZ, *dname);
+
+	if(ANSWER_PTRS(a, 0) == 0) {
+		bcopy(dname + 1, q->iobuf + QHEADERSZ, *dname);
+	}
 
 	/* Truncate */
+	if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
+		ANCOUNT(q) = NSCOUNT(q);
+	}
 	NSCOUNT(q) = 0;
 	ARCOUNT(q) = 0;
 	q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
