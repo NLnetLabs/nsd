@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.13 2002/09/11 13:19:35 alexis Exp $
+# $Id: nsdc.sh.in,v 1.14 2002/09/19 10:34:29 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -39,13 +39,14 @@
 #
 #
 
+NSDCCONF="@@NSDCCONF"
+
 #
-# Modify the pathnames and settings below to reflect your local configuration
+# Default values in absense of ${NSDCCONF} (Usually ``/etc/nsd/nsdc.conf'')
 #
 NSDBINDIR="@@NSDBINDIR@@"
 NSDZONESDIR="@@NSDZONESDIR@@"
 NSDFLAGS="@@NSDFLAGS@@"
-NSDPIDFILE="@@NSDPIDFILE@@"
 NSDDB="@@NSDDB@@"
 NSDZONES="@@NSDZONES@@"
 NSDKEYSDIR="@@NSDKEYSDIR@@"
@@ -53,8 +54,20 @@ NSDNOTIFY="@@NSDNOTIFY@@"
 NAMEDXFER="@@NAMEDXFER@@"
 
 #
+# Read in configuration file if any
+#
+if [ -f ${NSDCCONF} ]
+then
+	. ${NSDCCONF}
+fi
+
+#
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
 #
+
+# This one cannot be changed after compilation time
+NSDPIDFILE="@@NSDPIDFILE@@"
+
 signal() {
 	if [ -s ${NSDPIDFILE} ]
 	then
