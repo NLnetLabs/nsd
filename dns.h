@@ -170,7 +170,7 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  * descriptor for unknown types (with one binary rdata).
  */
 #define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_DNSKEY+1)
-extern rrtype_descriptor_type rrtype_descriptors[];
+extern rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH];
 
 static inline rrtype_descriptor_type *
 rrtype_descriptor(uint16_t type)

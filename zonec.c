@@ -1041,7 +1041,8 @@ parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 			length = sizeof(uint32_t);
 			break;
 		case RDATA_WF_TEXT:
-			length = *data;
+			/* Length is stored in the first byte.  */
+			length = data[0];
 			break;
 		case RDATA_WF_A:
 			length = sizeof(in_addr_t);

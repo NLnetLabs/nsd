@@ -277,14 +277,6 @@ rdata_atom_is_domain(uint16_t type, size_t index)
 		    || descriptor->wireformat[index] == RDATA_WF_UNCOMPRESSED_DNAME));
 }
 
-static inline int
-rdata_atom_is_compressed_domain(uint16_t type, size_t index)
-{
-	const rrtype_descriptor_type *descriptor = rrtype_descriptor(type);
-	return (index < descriptor->maximum
-		&& (descriptor->wireformat[index] == RDATA_WF_COMPRESSED_DNAME));
-}
-
 static inline rdata_wireformat_type
 rdata_atom_wireformat_type(uint16_t type, size_t index)
 {
