@@ -842,9 +842,6 @@ process_rr(zparser_type *parser, rr_type *rr)
 
 		/* parser part */
 		current_parser->current_zone = zone;
-		current_parser->_rc = 0;
-		current_parser->errors = 0;
-		current_parser->line = 1;
 	}
 
         /* [XXX] still need to check if we have seen this SOA already */
