@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.1 2003/02/12 21:43:35 alexis Exp $
+ * $Id: zparser.c,v 1.2 2003/02/13 16:28:31 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -322,6 +322,7 @@ struct RR *
 zread (struct zparser *z)
 {
 	char *t;
+	u_int16_t class;
 
 	/* Are we including at the moment? */
 	if(z->include != NULL) {
@@ -411,9 +412,8 @@ zread (struct zparser *z)
 			}
 
 			/* Class? */
-			if((z->_rr.class = intbyname(z->_t[z->_tc], zclasses)) == 0) {
-				z->_rr.class = z->class;
-			} else {
+			if((class = intbyname(z->_t[z->_tc], zclasses)) != 0) {
+				z->_rr.class = class;
 				continue;
 			}
 
@@ -545,7 +545,7 @@ zrdata (struct zparser *z)
 	/* Otherwise parse one of the types we know... */
 	switch(z->_rr.type) {
 		case TYPE_A:
-			return zrdata_a(z);
+			return zrdatascan(z, RDATA_A);
 		case TYPE_NS:
 		case TYPE_MD:
 		case TYPE_MF:
@@ -554,60 +554,60 @@ zrdata (struct zparser *z)
 		case TYPE_MG:
 		case TYPE_MR:
 		case TYPE_PTR:
-			return zrdata_dname(z);
+			return zrdatascan(z, RDATA_DNAME);
 		case TYPE_MINFO:
 		case TYPE_RP:
-			if(!zrdata_dname(z)) return 0;
-			return zrdata_dname(z);
+			if(!zrdatascan(z, RDATA_DNAME)) return 0;
+			return zrdatascan(z, RDATA_DNAME);
 		case TYPE_TXT:
-			while(zrdata_text(z)) {
+			while(zrdatascan(z, RDATA_TEXT)) {
 				/* If no more tokens return, we did not count elems ahhh... */
-				if(*z->_t[z->_tc] == NULL) return 1;
+				if(z->_t[z->_tc] == NULL) return 1;
 			}
 			return 0;
 		case TYPE_SOA:
-			if(!zrdata_dname(z)) return 0;
-			if(!zrdata_dname(z)) return 0;
-			if(!zrdata_long(z)) return 0;
-			if(!zrdata_long(z)) return 0;
-			if(!zrdata_long(z)) return 0;
-			if(!zrdata_long(z)) return 0;
-			return zrdata_long(z);
+			if(!zrdatascan(z, RDATA_DNAME)) return 0;
+			if(!zrdatascan(z, RDATA_DNAME)) return 0;
+			if(!zrdatascan(z, RDATA_PERIOD)) return 0;
+			if(!zrdatascan(z, RDATA_PERIOD)) return 0;
+			if(!zrdatascan(z, RDATA_PERIOD)) return 0;
+			if(!zrdatascan(z, RDATA_PERIOD)) return 0;
+			return zrdatascan(z, RDATA_PERIOD);
 		case TYPE_LOC:
 			return zrdata_loc(z);
 		case TYPE_HINFO:
-			if(!zrdata_text);
-			return zrdata_text(z);
+			if(!zrdatascan(z, RDATA_TEXT)) return 0;
+			return zrdatascan(z, RDATA_TEXT);
 		case TYPE_MX:
-			if(!zrdata_short(z)) return 0;
-			return zrdata_dname(z);
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			return zrdatascan(z, RDATA_DNAME);
 		case TYPE_AAAA:
-			return zrdata_a6(z);
+			return zrdatascan(z, RDATA_A6);
 		case TYPE_SRV:
-			if(!zrdata_short(z)) return 0;
-			if(!zrdata_short(z)) return 0;
-			if(!zrdata_short(z)) return 0;
-			return zrdata_dname(z);
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			return zrdatascan(z, RDATA_DNAME);
 		case TYPE_NAPTR:
-			if(!zrdata_short(z)) return 0;
-			if(!zrdata_short(z)) return 0;
-			if(!zrdata_text(z)) return 0;
-			if(!zrdata_text(z)) return 0;
-			if(!zrdata_text(z)) return 0;
-			return zrdata_dname(z);
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_TEXT)) return 0;
+			if(!zrdatascan(z, RDATA_TEXT)) return 0;
+			if(!zrdatascan(z, RDATA_TEXT)) return 0;
+			return zrdatascan(z, RDATA_DNAME);
 		case TYPE_AFSDB:
-			if(!zrdata_short(z)) return 0;
-			return zrdata_dname(z);
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			return zrdatascan(z, RDATA_DNAME);
 		case TYPE_SIG:
-			if(!zrdata_short(z)) return 0;
-			if(!zrdata_byte(z)) return 0;
-			if(!zrdata_byte(z)) return 0;
-			if(!zrdata_long(z)) return 0;
-			if(!zrdata_long(z)) return 0;
-			if(!zrdata_long(z)) return 0;
-			if(!zrdata_short(z)) return 0;
-			if(!zrdata_dname(z)) return 0;
-			return zrdata_b64(z);
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_BYTE)) return 0;
+			if(!zrdatascan(z, RDATA_BYTE)) return 0;
+			if(!zrdatascan(z, RDATA_LONG)) return 0;
+			if(!zrdatascan(z, RDATA_LONG)) return 0;
+			if(!zrdatascan(z, RDATA_LONG)) return 0;
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_DNAME)) return 0;
+			return zrdatascan(z, RDATA_B64);
 		case TYPE_NULL:
 			zerror(z, "no rdata allowed for NULL resource record");
 			return 0;
@@ -637,132 +637,15 @@ zrdata (struct zparser *z)
  * XXX Perhaps check numerical boundaries here.
  */
 int
-zrdata_short (struct zparser *z)
-{
-	char *t;
-	u_int16_t *r;
-
-	/* Produce an error message... */
-	if(z->_t[z->_tc] == NULL) {
-		zunexpected(z);
-		return 0;
-	}
-
-	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
-
-	*(r+1)  = (u_int16_t)strtol(z->_t[z->_tc], &t, 10);
-
-	if(*t != 0) {
-		zerror(z, "unsigned short value is expected");
-		free(r);
-		return 0;
-	}
-
-	*r = sizeof(u_int16_t);
-	zaddrdata(z, r);
-	z->_tc++;
-
-	return 1;
-}
-
-/*
- * Parses a specific part of rdata.
- *
- * Returns:
- *
- *	number of elements parsed
- *	zero on error
- *
- * XXX Perhaps check numerical boundaries here.
- */
-int
-zrdata_long (struct zparser *z)
-{
-	char *t;
-	u_int16_t *r;
-
-	/* Produce an error message... */
-	if(z->_t[z->_tc] == NULL) {
-		zunexpected(z);
-		return 0;
-	}
-
-	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
-
-	*((u_int32_t *)(r+1))  = (u_int32_t)strtol(z->_t[z->_tc], &t, 10);
-
-	if(*t != 0) {
-		zerror(z, "long decimal value is expected");
-		free(r);
-		return 0;
-	}
-
-	*r = sizeof(u_int32_t);
-	zaddrdata(z, r);
-	z->_tc++;
-
-	return 1;
-}
-
-/*
- * Parses a specific part of rdata.
- *
- * Returns:
- *
- *	number of elements parsed
- *	zero on error
- *
- * XXX Perhaps check numerical boundaries here.
- */
-int
-zrdata_byte (struct zparser *z)
-{
-	char *t;
-	u_int16_t *r;
-
-	/* Produce an error message... */
-	if(z->_t[z->_tc] == NULL) {
-		zunexpected(z);
-		return 0;
-	}
-
-	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + sizeof(u_int8_t));
-
-	*((u_int8_t *)(r+1))  = (u_int8_t)strtol(z->_t[z->_tc], &t, 10);
-
-	if(*t != 0) {
-		zerror(z, "decimal value is expected");
-		free(r);
-		return 0;
-	}
-
-	*r = sizeof(u_int8_t);
-	zaddrdata(z, r);
-	z->_tc++;
-
-	return 1;
-}
-
-
-/*
- * Parses a specific part of rdata.
- *
- * Returns:
- *
- *	number of elements parsed
- *	zero on error
- *
- */
-int
-zrdata_a (struct zparser *z)
+zrdatascan (struct zparser *z, int what)
 {
 #ifdef	HAVE_INET_NTOA
 	struct in_addr pin;
 #endif
-	u_int16_t *r;
+	int i;
+	int error = 0;
+	u_char *t;
+	u_int16_t *r = NULL;
 
 	/* Produce an error message... */
 	if(z->_t[z->_tc] == NULL) {
@@ -770,134 +653,150 @@ zrdata_a (struct zparser *z)
 		return 0;
 	}
 
-	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + sizeof(in_addr_t));
+	/* Depending on what we have to scan... */
+	switch(what) {
+	case RDATA_PERIOD:
+		/* Allocate required space... */
+		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
+
+		*((u_int32_t *)(r+1))  = (u_int32_t)strtottl(z->_t[z->_tc], (char **)&t);
+
+		if(*t != 0) {
+			zerror(z, "time period is expected");
+			error++;
+		} else {
+			*r = sizeof(u_int32_t);
+		}
+		break;
+	case RDATA_SHORT:
+		/* Allocate required space... */
+		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
+
+		*(r+1)  = (u_int16_t)strtol(z->_t[z->_tc], (char **)&t, 10);
+
+		if(*t != 0) {
+			zerror(z, "unsigned short value is expected");
+			error++;
+		} else {
+			*r = sizeof(u_int16_t);
+		}
+		break;
+	case RDATA_LONG:
+		/* Allocate required space... */
+		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
+
+		*((u_int32_t *)(r+1))  = (u_int32_t)strtol(z->_t[z->_tc], (char **)&t, 10);
+
+		if(*t != 0) {
+			zerror(z, "long decimal value is expected");
+			error++;
+		} else {
+			*r = sizeof(u_int32_t);
+		}
+		break;
+	case RDATA_BYTE:
+		/* Allocate required space... */
+		r = xalloc(sizeof(u_int16_t) + sizeof(u_int8_t));
+
+		*((u_int8_t *)(r+1))  = (u_int8_t)strtol(z->_t[z->_tc], (char **)&t, 10);
+
+		if(*t != 0) {
+			zerror(z, "decimal value is expected");
+			error++;
+		} else {
+			*r = sizeof(u_int8_t);
+		}
+		break;
+	case RDATA_A:
+		/* Allocate required space... */
+		r = xalloc(sizeof(u_int16_t) + sizeof(in_addr_t));
 
 #ifdef HAVE_INET_NTOA
-	if(inet_aton(z->_t[z->_tc], &pin) == 1) {
-		*((in_addr_t *)(r + 1)) = pin.s_addr;
-	} else {
+		if(inet_aton(z->_t[z->_tc], &pin) == 1) {
+			*((in_addr_t *)(r + 1)) = pin.s_addr;
+			*r = sizeof(u_int32_t);
+		} else {
+			zerror(z, "invalid ip address");
+			error++;
+		}
 #else
-	if((*((u_int32_t *)(r + 1)) = inet_addr(z->_t[z->_tc])) == -1) {
+		if((*((u_int32_t *)(r + 1)) = inet_addr(z->_t[z->_tc])) == -1) {
+			zerror(z, "invalid ip address");
+			error++;
+		} else {
+			*r = sizeof(u_int32_t);
+		}
 #endif
-		zerror(z, "invalid ip address");
-		free(r);
-		return 0;
+		break;
+	case RDATA_DNAME:
+		/* Try to parse the dname */
+		if((t = strdname(z->_t[z->_tc], z->origin)) == NULL) {
+			zerror(z, "invalid domain name");
+			error++;
+		} else {
+
+			/* Allocate required space... */
+			r = xalloc(sizeof(u_int16_t) + *t + 1);
+
+			memcpy((char *)(r+1), t, *t + 1);
+
+			*r = 0xffff;
+		}
+		break;
+	case RDATA_TEXT:
+		if((i = strlen(z->_t[z->_tc])) > 255) {
+			zerror(z, "text string is longer than 255 charaters, try splitting in two");
+			error++;
+		} else {
+
+			/* Allocate required space... */
+			r = xalloc(sizeof(u_int16_t) + i + 1);
+
+			*((char *)(r+1))  = i;
+			memcpy((char *)(r+2), z->_t[z->_tc], i);
+
+			*r = i + 1;
+		}
+		break;
+	case RDATA_A6:
+		/* Allocate required space... */
+		r = xalloc(sizeof(u_int16_t) + IP6ADDRLEN);
+
+		/* Try to convert it */
+		if(inet_pton(AF_INET6, z->_t[z->_tc], r + 1) != 1) {
+			zerror(z, "invalid ipv6 address");
+			error++;
+		} else {
+			*r = IP6ADDRLEN;
+		}
+		break;
+	case RDATA_B64:
+		/* Allocate required space... */
+		r = xalloc(sizeof(u_int16_t) + B64BUFSIZE);
+
+		/* Try to convert it */
+		if((i = __b64_pton(z->_t[z->_tc++], r + 1, B64BUFSIZE)) == -1) {
+			zerror(z, "base64 encoding failed");
+			error++;
+		} else {
+			*r = i;
+			r = xrealloc(r, i + sizeof(u_int16_t));
+		}
+		break;
+	default:
+		zerror(z, "dont know how to scan this token");
+		abort();
 	}
 
-	*r = sizeof(u_int32_t);
-	zaddrdata(z, r);
-	z->_tc++;
-
-	return 1;
-}
-
-/*
- * Parses a specific part of rdata.
- *
- * Returns:
- *
- *	number of elements parsed
- *	zero on error
- *
- */
-int
-zrdata_dname (struct zparser *z)
-{
-	u_int16_t *r;
-
-	/* Produce an error message... */
-	if(z->_t[z->_tc] == NULL) {
-		zunexpected(z);
-		return 0;
+	/* Error occured? */
+	if(error) {
+		if(r) free(r);
+		return -0;
 	}
 
-	/* This is an easy one */
-	if((r = dnamedup(strdname(z->_t[z->_tc], z->origin))) == NULL) {
-		zerror(z, "invalid domain name");
-		free(r);
-		return 0;
-	}
-
-	zaddrdata(z, r);
-	z->_tc++;
-
-	return 1;
-}
-
-/*
- * Parses a specific part of rdata.
- *
- * Returns:
- *
- *	number of elements parsed
- *	zero on error
- *
- */
-int
-zrdata_text (struct zparser *z)
-{
-	u_int16_t *r;
-	int l;
-
-	/* Produce an error message... */
-	if(z->_t[z->_tc] == NULL) {
-		zunexpected(z);
-		return 0;
-	}
-
-	if((l = strlen(z->_t[z->_tc])) > 255) {
-		zerror(z, "text string is longer than 255 charaters, suggest split in two");
-		return 0;
-	}
-
-	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + l + 1);
-
-	*((char *)(r+1))  = l;
-	memcpy((char *)(r+2), z->_t[z->_tc], l);
-
-	*r = l + 1;
-	zaddrdata(z, r);
-	z->_tc++;
-
-	return 1;
-}
-
-/*
- * Parses a specific part of rdata.
- *
- * Returns:
- *
- *	number of elements parsed
- *	zero on error
- *
- */
-int
-zrdata_a6 (struct zparser *z)
-{
-	u_int16_t *r;
-
-	/* Produce an error message... */
-	if(z->_t[z->_tc] == NULL) {
-		zunexpected(z);
-		return 0;
-	}
-
-	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + IP6ADDRLEN);
-
-	/* Try to convert it */
-	if(inet_pton(AF_INET6, z->_t[z->_tc], r + 1) != 1) {
-		zerror(z, "invalid ipv6 address");
-		free(r);
-		return 0;
-	}
-
-	*r = IP6ADDRLEN;
-	zaddrdata(z, r);
-	z->_tc++;
-
+	/* Add it to the rdata list */
+        zaddrdata(z, r);
+        z->_tc++;
 	return 1;
 }
 
@@ -949,64 +848,6 @@ zrdata_loc (struct zparser *z)
 	return 1;
 }
 
-/*
- * Parses a specific part of rdata.
- *
- * Returns:
- *
- *	number of elements parsed
- *	zero on error
- *
- */
-int
-zrdata_b64 (struct zparser *z)
-{
-	u_int16_t *r;
-	char *t;
-	int n;
-
-	/* We cant handle more than 32k with current design anyways */
-	int s = MAXRDATAELEMSIZE;
-
-	/* Produce an error message... */
-	if(z->_t[z->_tc] == NULL) {
-		zunexpected(z);
-		return 0;
-	}
-
-	/* Allocate required space... */
-	r = xalloc(sizeof(u_int16_t) + s);
-	t = (char *)(r + 1);
-
-	/* And then process all the tokens */
-	while(z->_t[z->_tc] != NULL) {
-		/* Are we out of buffer space.... */
-		if(s <= 0) {
-			zerror(z, "out of buffer for base64 data");
-			free(r);
-			return 0;
-		}
-
-		/* Try to convert it */
-		if((n = __b64_pton(z->_t[z->_tc++], t, s)) == -1) {
-                        zerror(z, "base64 encoding failed");
-                        free(r);
-                        return 0;
-                }
-
-                t += n;
-                s -= n;
-        }
-
-	*r = MAXRDATAELEMSIZE - s;
-        r = xrealloc(r, *r + sizeof(u_int16_t));
-
-	zaddrdata(z, r);
-	z->_tc++;
-
-	return 1;
-}
-
 
 
 /*
@@ -1032,7 +873,7 @@ zaddtoken (struct zparser *z, char *t)
 /*
  *
  * Parses a line from an open zone file, and splits it into
- * tokens.
+ * tokens. The beauty of it all.
  *
  * Returns:
  *
@@ -1046,14 +887,16 @@ zparseline (struct zparser *z)
 {
 	int parenthes = 0;
 	int newline;
-	register char *p, *s, *t;
-	char *line = z->_buf;
+	register char *s, *t;
+
+	/* Fake token for safety... */
+	char *p = z->_buf;
 
 	/* Start fresh... */
 	z->_tc = 0;
 
 	/* Read the lines... */
-	while((p = fgets(line, line - z->_buf + ZBUFSIZE, z->file)) != NULL) {
+	while((p = fgets(p, p - z->_buf + ZBUFSIZE, z->file)) != NULL) {
 		z->lines++;
 		z->_lineno++;
 		newline = 0;
@@ -1061,7 +904,7 @@ zparseline (struct zparser *z)
 		if(!parenthes) {
 			/* We have the same domain name as before, add it as a token... */
 			if(*p == ' ' || *p == '\t') {
-				*p = ' ';
+				*p = '0';
 				zaddtoken(z, p++);
 			}
 		}
@@ -1069,7 +912,8 @@ zparseline (struct zparser *z)
 		/* While not end of line... */
 		while(*p) {
 			/* Skip leading delimiters */
-			for(s = p; *s == ' ' || *s == '\t' || *s == '\n'; s++);
+			for(s = p; *s == ' ' || *s == '\t' || *s == '\n'; s++)
+				if(*s == '\n') newline++;
 
 			/* Quotes... */
 			if(*s == '"') {
@@ -1083,7 +927,6 @@ zparseline (struct zparser *z)
 					zerror(z, "unterminated quoted string");
 					return -1;
 				}
-
 			}
 
 			/* Find the next delimiter... */
@@ -1098,8 +941,8 @@ zparseline (struct zparser *z)
 						return -1;
 					}
 					parenthes = 1;
-					p = t + 1;
 					*t = 0;
+					p = t + 1;
 					break;
 				case ')':
 					if(!parenthes) {
@@ -1107,8 +950,8 @@ zparseline (struct zparser *z)
 						return -1;
 					}
 					parenthes = 0;
-					p = t + 1;
 					*t = 0;
+					p = t + 1;
 					break;
 				case ';':
 					newline++;
@@ -1124,7 +967,8 @@ zparseline (struct zparser *z)
 					zaddtoken(z, s);
 					break;
 				case 0:
-					zaddtoken(z, s);
+					if(t > s)
+						zaddtoken(z, s);
 					p = t;
 					break;
 				default:

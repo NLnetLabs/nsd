@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.1 2003/02/12 21:43:35 alexis Exp $
+ * $Id: zparser.h,v 1.2 2003/02/13 16:28:31 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -44,12 +44,23 @@
 #define	ZBUFSIZE	16384		/* Maximum master file entry size */
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
-#define	MAXRDATAELEMSIZE	32767
+#define	B64BUFSIZE	16384		/* Buffer size for b64 conversion */
 
 #define	IP6ADDRLEN	128/8
 
 #define	_ZRDATA	(char *)(((u_int16_t *)z->_rr.rdata[z->rc]) + 1)
 #define	_ZRDATALEN	*((u_int16_t *)z->_rr.rdata[z->rc])
+
+/* Type of rdata elements we might encounter */
+#define RDATA_A		1
+#define RDATA_A6	2
+#define RDATA_B64	3
+#define RDATA_BYTE	4
+#define RDATA_DNAME	5
+#define RDATA_LONG	6
+#define RDATA_SHORT	7
+#define RDATA_TEXT	8
+#define RDATA_PERIOD	9
 
 /* A single resource record */
 struct RR {
