@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.8 2003/02/14 22:49:16 alexis Exp $
+ * $Id: zparser.c,v 1.9 2003/02/17 08:42:05 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -48,6 +48,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -666,20 +667,52 @@ zrdata (struct zparser *z)
 			if(!zrdatascan(z, RDATA_TIME)) return 0;
 			if(!zrdatascan(z, RDATA_SHORT)) return 0;
 			if(!zrdatascan(z, RDATA_DNAME)) return 0;
-			return zrdatascan(z, RDATA_B64);
+
+			while(zrdatascan(z, RDATA_B64)) {
+				/* If no more tokens return */
+				if(z->_t[z->_tc] == NULL) return 1;
+			}
+			return 0;
 		case TYPE_NULL:
 			zerror(z, "no rdata allowed for NULL resource record");
 			return 0;
-/*
-*	Do these ones in a sec, ok?
-*
-*		case TYPE_KEY, "KEY", "sccU"},    
-*		case TYPE_NXT, "NXT", "nU"},  
-*		case TYPE_DS, "DS", "sccU"}, 
-*/
+		case TYPE_KEY:
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_BYTE)) return 0;
+			if(!zrdatascan(z, RDATA_BYTE)) return 0;
+
+			/* No key situation */
+			if((z->_rr.rdata[0][1] & 0x1100) == 0x1100) {
+				if(z->_t[z->_tc] != NULL) {
+					zerror(z, "no key flag is set, key is ignored");
+					while(z->_t[++z->_tc] != NULL);
+				}
+				return 1;
+			}
+			/* The rest is the key in b64 encoding */
+			while(zrdatascan(z, RDATA_B64)) {
+				/* If no more tokens return */
+				if(z->_t[z->_tc] == NULL) return 1;
+			}
+			return 0;
+		case TYPE_NXT, "NXT", "nU"},  
+			if(!zrdatascan(z, RDATA_DNAME)) return 0;
+
+			/* Scan the types and add them to the bitmap */
+			while(zrdatascan(z, RDATA_TYPE)) {
+				/* If no more tokens return */
+				if(z->_t[z->_tc] == NULL) return 1;
+			}
+			return 0;
+		case TYPE_DS:
+			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_BYTE)) return 0;
+			if(!zrdatascan(z, RDATA_BYTE)) return 0;
+			return zrdatascan(z, RDATA_HEX);
+
 		case TYPE_WKS:
 		default:
-			zerror(z, "dont know how to parse this type, try UNKN representation");
+			zerror(z, "dont know how to parse this type, try \\# representation");
 	}
 
 	return -1;
@@ -732,7 +765,7 @@ zrdatascan (struct zparser *z, int what)
 			/* Allocate required space... */
 			r = xalloc(sizeof(u_int32_t) + sizeof(u_int16_t));
 
-			*((u_int32_t)(r+1)) = mktime(&tm);
+			*((u_int32_t *)(r+1)) = mktime(&tm);
 			*r = sizeof(u_int32_t);
 		}
 		break;
