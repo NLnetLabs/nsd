@@ -75,7 +75,6 @@ struct domain_table
 
 struct domain
 {
-	domain_table_type *table;
 	const dname_type  *dname;
 	domain_type       *parent;
 	domain_type       *wildcard_child;
@@ -195,7 +194,6 @@ rdata_atom_data(rdata_atom_type atom)
 
 struct rrset {
 	rrset_type       *next;
-	domain_type      *owner;
 	int32_t           ttl;
 	uint16_t          type;
 	uint16_t          class;

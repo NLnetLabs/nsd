@@ -481,7 +481,7 @@ answer_delegation(struct query *query)
 {
 	AA_CLR(query);
 	answer_add_rrset(&query->answer, AUTHORITY_SECTION,
-			 query->ns_rrset->owner, query->ns_rrset);
+			 query->soa_or_delegation_domain, query->ns_rrset);
 	/* TODO: Add additional section.  */
 }
 
@@ -498,7 +498,7 @@ answer_soa(struct query *q)
 		AA_CLR(q);
 	} else {
 		AA_SET(q);
-		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->soa_rrset->owner, q->soa_rrset);
+		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->soa_or_delegation_domain, q->soa_rrset);
 	}
 }
 
@@ -515,12 +515,12 @@ answer_domain(struct query *q, domain_type *domain, const uint8_t *qname)
 	
 	if (q->type == TYPE_ANY && domain->rrsets) {
 		for (rrset = domain->rrsets; rrset; rrset = rrset->next) {
-			answer_add_rrset(&q->answer, ANSWER_SECTION, rrset->owner, rrset);
+			answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
 		}
 	} else if ((rrset = domain_find_rrset(domain, q->type))) {
-		answer_add_rrset(&q->answer, ANSWER_SECTION, rrset->owner, rrset);
+		answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
 	} else if ((rrset = domain_find_rrset(domain, TYPE_CNAME))) {
-		answer_add_rrset(&q->answer, ANSWER_SECTION, rrset->owner, rrset);
+		answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
 		/* TODO: Add cname target in answer section.  */
 	} else {
 		/*
@@ -535,7 +535,7 @@ answer_domain(struct query *q, domain_type *domain, const uint8_t *qname)
 		AA_CLR(q);
 	} else if (q->ns_rrset) {
 		AA_SET(q);
-		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->ns_rrset->owner, q->ns_rrset);
+		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->soa_or_delegation_domain, q->ns_rrset);
 		/* TODO: Add additional section.  */
 	}
 }
@@ -730,7 +730,8 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 	int exact;
 
 	exact = namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser);
-
+	fprintf(stderr, "exact? %d\n", exact);
+	
 	q->soa_or_delegation_domain = domain_find_soa_ns_rrsets(
 		closest_encloser, &q->soa_rrset, &q->ns_rrset);
 	if (!q->soa_or_delegation_domain) {
@@ -744,6 +745,8 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 			closest_encloser = closest_encloser->parent;
 	}
 
+	fprintf(stderr, "exact? %d\n", exact);
+	
 	if (!exact) {
 		/* Adjust query name to only contain the matching part.  */
 		qname += dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1];

@@ -55,8 +55,8 @@
 
 static domain_type *
 allocate_domain_info(domain_table_type *table,
-		    const dname_type *dname,
-		    domain_type *parent)
+		     const dname_type *dname,
+		     domain_type *parent)
 {
 	domain_type *result;
 
@@ -65,7 +65,6 @@ allocate_domain_info(domain_table_type *table,
 	assert(parent);
 	
 	result = region_alloc(table->region, sizeof(domain_type));
-	result->table = table;
 	result->dname = dname_partial_copy(
 		table->region, dname, parent->dname->label_count + 1);
 	result->parent = parent;
@@ -104,8 +103,6 @@ domain_table_create(region_type *region)
 		region, (int (*)(const void *, const void *)) dname_compare);
 	result->root = root;
 
-	root->table = result;
-	
 	heap_insert(result->names_to_domains, origin, root, 1);
 
 	return result;
@@ -215,7 +212,6 @@ domain_table_iterate(domain_table_type *table,
 void
 domain_add_rrset(domain_type *domain, rrset_type *rrset)
 {
-	rrset->owner = domain;
 	rrset->next = domain->rrsets;
 	domain->rrsets = rrset;
 

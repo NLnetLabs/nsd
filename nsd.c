@@ -439,7 +439,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:df:hi:l:N:n:p:s:u:t:X:v")) != -1) {
+	while ((c = getopt(argc, argv, "46a:df:hi:l:N:n:p:s:u:t:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -526,6 +526,14 @@ main (int argc, char *argv[])
 		case 'v':
 			version();
 			break;
+#ifndef NDEBUG
+		case 'F':
+			sscanf(optarg, "%x", &nsd_debug_facilities);
+			break;
+		case 'L':
+			sscanf(optarg, "%d", &nsd_debug_level);
+			break;
+#endif /* NDEBUG */
 		case '?':
 		default:
 			usage();

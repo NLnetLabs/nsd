@@ -90,17 +90,17 @@ read_magic(namedb_type *db)
 }
 
 static const dname_type *
-read_dname(namedb_type *db)
+read_dname(FILE *fd, region_type *region)
 {
 	uint8_t size;
 	uint8_t temp[MAXDOMAINLEN];
 
-	if (fread(&size, sizeof(uint8_t), 1, db->fd) != 1)
+	if (fread(&size, sizeof(uint8_t), 1, fd) != 1)
 		return NULL;
-	if (fread(temp, sizeof(uint8_t), size, db->fd) != size)
+	if (fread(temp, sizeof(uint8_t), size, fd) != size)
 		return NULL;
 
-	return dname_make(db->region, temp);
+	return dname_make(region, temp);
 }
 
 static int
@@ -154,11 +154,12 @@ read_rrset(namedb_type *db, size_t domain_count, domain_type **domains)
 	rrset_type *rrset;
 	int i, j;
 	uint16_t rdcount;
+	domain_type *owner;
 	
 	rrset = region_alloc(db->region, sizeof(rrset_type));
 			     
-	rrset->owner = read_domain(db, domain_count, domains);
-	if (!rrset->owner)
+	owner = read_domain(db, domain_count, domains);
+	if (!owner)
 		return 0;
 	
 	if (fread(&rrset->type, sizeof(rrset->type), 1, db->fd) != 1)
@@ -178,8 +179,7 @@ read_rrset(namedb_type *db, size_t domain_count, domain_type **domains)
 	rrset->ttl = ntohl(rrset->ttl);
 	rrset->rrslen = ntohs(rrset->rrslen);
 
-	rrset->rrs = xalloc(rrset->rrslen * sizeof(rdata_atom_type *));
-/* 	region_add_cleanup(db->region, cleanup_rrset, rrset); */
+	rrset->rrs = region_alloc(db->region, rrset->rrslen * sizeof(rdata_atom_type *));
 	
 	for (i = 0; i < rrset->rrslen; ++i) {
 		if (fread(&rdcount, sizeof(rdcount), 1, db->fd) != 1)
@@ -196,8 +196,7 @@ read_rrset(namedb_type *db, size_t domain_count, domain_type **domains)
 		rrset->rrs[i][rdcount].data = NULL;
 	}
 
-	rrset->next = rrset->owner->rrsets;
-	rrset->owner->rrsets = rrset;
+	domain_add_rrset(owner, rrset);
 	
 	return 1;
 }
@@ -208,9 +207,17 @@ namedb_open (const char *filename)
 	namedb_type *db;
 	
 	region_type *region = region_create(xalloc, free);
+	region_type *dname_region = region_create(xalloc, free);
 	size_t dname_count;
 	domain_type **domains;	/* Indexed by domain number. */
 	size_t i;
+	
+	DEBUG(DEBUG_DBACCESS, 2,
+	      (stderr, "sizeof(domain_type) = %d\n", sizeof(domain_type)));
+	DEBUG(DEBUG_DBACCESS, 2,
+	      (stderr, "sizeof(rrset_type) = %d\n", sizeof(rrset_type)));
+	DEBUG(DEBUG_DBACCESS, 2,
+	      (stderr, "sizeof(rbnode_t) = %d\n", sizeof(rbnode_t)));
 	
 	db = region_alloc(region, sizeof(struct namedb));
 	db->region = region;
@@ -242,7 +249,7 @@ namedb_open (const char *filename)
 	
 	domains = xalloc(dname_count * sizeof(domain_type *));
 	for (i = 0; i < dname_count; ++i) {
-		const dname_type *dname = read_dname(db);
+		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
 			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 			free(domains);
@@ -252,19 +259,33 @@ namedb_open (const char *filename)
 		}
 		domains[i] = domain_table_insert(db->domains, dname);
 		domains[i]->number = i;
+		region_free_all(dname_region);
 	}
+	
+	region_destroy(dname_region);
 
+	fprintf(stderr, "db_region (before RRsets): ");
+	region_dump_stats(region, stderr);
+	fprintf(stderr, "\n");
+	    
 	while (read_rrset(db, dname_count, domains))
 		;
+
+	free(domains);
 	
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
-		free(domains);
 		fclose(db->fd);
 		namedb_close(db);
 		return NULL;
 	}
 
+	fclose(db->fd);
+	
+	fprintf(stderr, "db_region (after RRsets): ");
+	region_dump_stats(region, stderr);
+	fprintf(stderr, "\n");
+	    
 	return db;
 }
 
