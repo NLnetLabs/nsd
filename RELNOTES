@@ -1,4 +1,15 @@
-$Id: RELNOTES,v 1.11.2.1 2002/12/17 14:42:06 alexis Exp $
+$Id: RELNOTES,v 1.11.2.2 2003/06/02 12:19:26 erik Exp $
+
+1.0.3
+=============
+1.0.3 is a bug fix release and does not add any new features.
+
+BUG FIXES:
+        - Ignore SIGPIPE errors (bug #43).
+        - Keep track of TCP child servers and restart if necessary.
+          (bug #55)
+        - Handle reload failures correctly.
+        - Close UDP sockets in TCP child servers.
 
 1.0.2
 =============
