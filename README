@@ -1,4 +1,4 @@
-$Id: README,v 1.19.2.1 2003/04/15 09:14:28 alexis Exp $
+$Id: README,v 1.19.2.2 2003/04/29 11:31:05 alexis Exp $
 
 1.0 Introduction
 1.1 Basic theory of operation
@@ -351,6 +351,9 @@ axfr : ALL : deny
 
 At first a check is made wether the particular client is allowed to do
 transfer of the particular zone.
+
+NOTE: Make sure you dont forget the trailing dot. So for example ``axfr-se.''
+and NOT ``axfr-se''
 
 If -DAXFR_DAEMON_PREFIX is defined (which is the case by default) and
 the first lookup for ``axfr'' has failed (denied) then nsd will try second
