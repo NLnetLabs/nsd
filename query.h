@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.8 2002/02/05 12:17:33 alexis Exp $
+ * $Id: query.h,v 1.9 2002/02/06 11:15:35 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -91,9 +91,9 @@
 
 #define	OPCODE_MASK	0x78
 #define	OPCODE_SHIFT	3
-#define	OPCODE(query)	(*(query->iobuf+2) & OPCODE_MASK)
+#define	OPCODE(query)	((*(query->iobuf+2) & OPCODE_MASK) >> OPCODE_SHIFT)
 #define	OPCODE_SET(query, opcode) \
-	*(query->iobuf+2) = ((*(query->iobuf+2)) & ~OPCODE_MASK) | opcode
+	*(query->iobuf+2) = ((*(query->iobuf+2)) & ~OPCODE_MASK) | (opcode << OPCODE_SHIFT)
 
 #define	QR_MASK		0x80
 #define	QR_SHIFT	7
