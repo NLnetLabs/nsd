@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.27 2002/05/25 05:37:49 alexis Exp $
+ * $Id: zf.c,v 1.28 2002/05/25 05:39:36 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -909,14 +909,14 @@ zf_read(zf)
 			case 'l':
 				zf->line.rdata[i].l = strtottl(token, &t);
 				if(*t != 0) {
-					zf_error(zf, "missing whitespace");
+					zf_error(zf, "decimal number or time interval is expected");
 					parse_error++;
 				}
 				break;
 			case 's':
 				zf->line.rdata[i].s = (u_int16_t)strtol(token, &t, 10);
 				if(*t != 0) {
-					zf_error(zf, "missing whitespace");
+					zf_error(zf, "decimal number is expected");
 					parse_error++;
 				}
 				break;
