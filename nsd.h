@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.42 2002/10/14 13:12:16 alexis Exp $
+ * $Id: nsd.h,v 1.43 2002/10/14 13:35:44 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -150,7 +150,7 @@ struct	nsd {
 	char	*named8_stats;
 
 	struct nsdst {
-		time_t	last;
+		time_t	boot;
 		int	period;		/* Produce statistics dump every st_period seconds */
 		stc_t	qtype[257];	/* Counters per qtype */
 		stc_t	qclass[4];	/* Class IN or Class CH or other */

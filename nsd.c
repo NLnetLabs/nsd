@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.55 2002/10/14 13:12:16 alexis Exp $
+ * $Id: nsd.c,v 1.56 2002/10/14 13:35:44 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -224,8 +224,8 @@ bind8_stats(nsd)
 	/* NSTATS */
 
 	/* fprintf(f, "+++ Statistics Dump +++ (%lu) %s", now, ctime(&now));
-	fprintf(f, "%lu	time since boot (secs)\n", now - nsd->st.last);
-	fprintf(f, "%lu	time since reset (secs)\n", now - nsd->st.last);
+	fprintf(f, "%lu	time since boot (secs)\n", now - nsd->st.boot);
+	fprintf(f, "%lu	time since reset (secs)\n", now - nsd->st.boot);
 	fprintf(f, "%lu	Unknown query types\n", nsd->st.qtype[LASTELEM(nsd->st.qtype)]); */
 
 	syslog(LOG_INFO, "NSTATS %lu %lu"
@@ -237,7 +237,7 @@ bind8_stats(nsd)
 		" OPT=%lu TYPE42=%lu TYPE43=%lu TYPE44=%lu TYPE45=%lu TYPE46=%lu TYPE47=%lu TYPE48=%lu"
 		" TYPE49=%lu TYPE50=%lu TYPE51=%lu TYPE52=%lu TYPE53=%lu TYPE54=%lu TYPE55=%lu TYPE56=%lu"
 		" TYPE57=%lu TYPE58=%lu TYPE59=%lu TYPE60=%lu TYPE61=%lu TYPE62=%lu TYPE63=%lu TYPE64=%lu",
-		now, nsd->st.last,
+		now, nsd->st.boot,
 		nsd->st.qtype[1], nsd->st.qtype[2], nsd->st.qtype[3], nsd->st.qtype[4],
 		nsd->st.qtype[5], nsd->st.qtype[6], nsd->st.qtype[7], nsd->st.qtype[8],
 		nsd->st.qtype[9], nsd->st.qtype[10], nsd->st.qtype[11], nsd->st.qtype[12],
@@ -264,7 +264,7 @@ bind8_stats(nsd)
 		" TYPE105=%lu TYPE106=%lu TYPE107=%lu TYPE108=%lu TYPE109=%lu TYPE110=%lu TYPE111=%lu TYPE112=%lu"
 		" TYPE113=%lu TYPE114=%lu TYPE115=%lu TYPE116=%lu TYPE117=%lu TYPE118=%lu TYPE119=%lu TYPE120=%lu"
 		" TYPE121=%lu TYPE122=%lu TYPE123=%lu TYPE124=%lu TYPE125=%lu TYPE126=%lu TYPE127=%lu TYPE128=%lu",
-		now, nsd->st.last,
+		now, nsd->st.boot,
 		nsd->st.qtype[65], nsd->st.qtype[66], nsd->st.qtype[67], nsd->st.qtype[68],
 		nsd->st.qtype[69], nsd->st.qtype[70], nsd->st.qtype[71], nsd->st.qtype[72],
 		nsd->st.qtype[73], nsd->st.qtype[74], nsd->st.qtype[75], nsd->st.qtype[76],
@@ -291,7 +291,7 @@ bind8_stats(nsd)
 		" TYPE169=%lu TYPE170=%lu TYPE171=%lu TYPE172=%lu TYPE173=%lu TYPE174=%lu TYPE175=%lu TYPE176=%lu"
 		" TYPE177=%lu TYPE178=%lu TYPE179=%lu TYPE180=%lu TYPE181=%lu TYPE182=%lu TYPE183=%lu TYPE184=%lu"
 		" TYPE185=%lu TYPE186=%lu TYPE187=%lu TYPE188=%lu TYPE189=%lu TYPE190=%lu TYPE191=%lu TYPE192=%lu",
-		now, nsd->st.last,
+		now, nsd->st.boot,
 		nsd->st.qtype[129], nsd->st.qtype[130], nsd->st.qtype[131], nsd->st.qtype[132],
 		nsd->st.qtype[133], nsd->st.qtype[134], nsd->st.qtype[135], nsd->st.qtype[136],
 		nsd->st.qtype[137], nsd->st.qtype[138], nsd->st.qtype[139], nsd->st.qtype[140],
@@ -318,7 +318,7 @@ bind8_stats(nsd)
 		" TYPE233=%lu TYPE234=%lu TYPE235=%lu TYPE236=%lu TYPE237=%lu TYPE238=%lu TYPE239=%lu TYPE240=%lu"
 		" TYPE241=%lu TYPE242=%lu TYPE243=%lu TYPE244=%lu TYPE245=%lu TYPE246=%lu TYPE247=%lu TYPE248=%lu"
 		" TKEY=%lu TSIG=%lu IXFR=%lu AXFR=%lu MAILB=%lu MAILA=%lu ANY=%lu",
-		now, nsd->st.last,
+		now, nsd->st.boot,
 		nsd->st.qtype[193], nsd->st.qtype[194], nsd->st.qtype[195], nsd->st.qtype[196],
 		nsd->st.qtype[197], nsd->st.qtype[198], nsd->st.qtype[199], nsd->st.qtype[200],
 		nsd->st.qtype[201], nsd->st.qtype[202], nsd->st.qtype[203], nsd->st.qtype[204],
@@ -342,7 +342,7 @@ bind8_stats(nsd)
 		" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
 		" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
 		" SNXD=%lu RUQ=%lu RURQ=%lu RUXFR=%lu RUUpd=%lu",
-		now, nsd->st.last,
+		now, nsd->st.boot,
 		nsd->st.dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, (unsigned long)0, nsd->st.raxfr, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped, (unsigned long)0,
@@ -352,8 +352,6 @@ bind8_stats(nsd)
 		(unsigned long)0, nsd->st.rcode[RCODE_SERVFAIL], nsd->st.rcode[RCODE_FORMAT],
 			(unsigned long)0, nsd->st.rcode[RCODE_NXDOMAIN],
 		(unsigned long)0, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
-
-	/* nsd->st.last = now; */
 
 }
 #endif /* BIND8_STATS */

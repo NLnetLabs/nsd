@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.56 2002/10/14 13:12:16 alexis Exp $
+ * $Id: server.c,v 1.57 2002/10/14 13:35:44 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -181,7 +181,7 @@ server_init(struct nsd *nsd)
 
 #ifdef	BIND8_STATS
 	/* Initialize times... */
-	time(&nsd->st.last);
+	time(&nsd->st.boot);
 	alarm(nsd->st.period);
 #endif /* BIND8_STATS */
 
