@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.29.2.1 2002/08/15 11:32:01 alexis Exp $
+ * $Id: zf.c,v 1.29.2.2 2002/08/15 11:34:36 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -886,8 +886,6 @@ zf_read(zf)
 
 		/* Parse it */
 		for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; f++, i++) {
-			assert(i < MAXRDATALEN);
-
 			/* Handle the star case first... */
 			if(*f == '*') {
 				/* Make a private format for this RR initialy */
@@ -897,17 +895,19 @@ zf_read(zf)
 					f = f - type->fmt + zf->line.rdatafmt;
 				}
 
-				/* Make sure we dont overflow */
-				if((f - zf->line.rdatafmt) > MAXRDATALEN) {
-					zf_error(zf, "too many elements");
-					parse_error++;
-					break;
-				}
-
 				/* Copy the previous atom */
 				*f = *(f - 1);
 				memcpy(f + 1, "*", 2);
+
+				/* Make sure we dont overflow */
+				if((f - zf->line.rdatafmt) >= MAXRDATALEN) {
+					zf_error(zf, "maximum number of elements exceeded");
+					parse_error++;
+					break;
+				}
 			}
+
+			assert(i < MAXRDATALEN);
 
 			if((token = zf_token(zf, NULL)) == NULL) {
 				break;
