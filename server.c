@@ -930,9 +930,9 @@ handle_tcp_reading(netio_type *netio,
 #ifndef INET6
 	STATUP(data->nsd, ctcp);
 #else
-	if (data->query.addr.ss_family == AF_INET) {
+	if (data->query->addr.ss_family == AF_INET) {
 		STATUP(data->nsd, ctcp);
-	} else if (data->query.addr.ss_family == AF_INET6) {
+	} else if (data->query->addr.ss_family == AF_INET6) {
 		STATUP(data->nsd, ctcp6);
 	}
 #endif
