@@ -1500,16 +1500,31 @@ print_rr(rr_type *rr)
 	uint32_t ttl;
 	uint8_t *owner;
 	uint16_t *r;
+	uint8_t *type;
+	int i;	/* counter */
+	char *j; /* unknown rr */
 	
 	owner	= (uint8_t*)dname_to_string( domain_dname(rr->domain) );
 	ttl	= rr->rrdata->ttl;
+	type	= (uint8_t *)namebyint(rr->type,ztypes);
+
+	if ( type == NULL ) {
+		/* no type found, must be unknown */
+		type = (uint8_t *) malloc(10);
+		/* should not exceed 5 digits */
+		sprintf(type, "TYPE%d", rr->type);
+	}
 	
-	printf("%s\t%ld IN %s\t", owner, ttl, namebyint(rr->type,ztypes));
+	printf("%s\t%ld IN %s\t", owner, ttl, type);
 
         switch (rr->type) {
 		case TYPE_A:
 			printf("%s",wire_conv_a(rr->rrdata->rdata[0]));
 			break;
+		case TYPE_AAAA:
+			printf("%s",wire_conv_aaaa(rr->rrdata->rdata[0]));
+			break;
+		case TYPE_CNAME:
                 case TYPE_NS:
 			printf("%s",wire_conv_domain(rr->rrdata->rdata[0]));
                         break;
@@ -1527,6 +1542,21 @@ print_rr(rr_type *rr)
 					wire_conv_long(rr->rrdata->rdata[5]),
 					wire_conv_long(rr->rrdata->rdata[6]));
 			break;
+		case TYPE_DNSKEY:
+			printf("%d %d %d %s",
+					wire_conv_short(rr->rrdata->rdata[0]),
+					wire_conv_byte(rr->rrdata->rdata[1]),
+					wire_conv_byte(rr->rrdata->rdata[2]),
+					wire_conv_b64(rr->rrdata->rdata[3]));
+			break;
+		case TYPE_NSEC:
+			/*printf("%s",
+					wire_conv_domain(rr->rrdata->rdata[0]));
+					*/
+			break;
+		case TYPE_RRSIG:
+			printf("%s",wire_conv_b64(rr->rrdata->rdata[8]));
+			break;	
 		case TYPE_TXT:
 			/* [XXX] need to loop */
 			printf("%s",
@@ -1537,6 +1567,11 @@ print_rr(rr_type *rr)
 					wire_conv_string(rr->rrdata->rdata[0]),
 					wire_conv_string(rr->rrdata->rdata[1]));
 			break;
+		default:
+			/* print as hex */
+			/* todo, looping */
+			printf("\\# %d  ",rdata_atom_size(rr->rrdata->rdata[0]));
+			/* todo print hex */
         }
 
 	printf("\n");
@@ -1606,4 +1641,46 @@ wire_conv_a(rdata_atom_type a)
 	inet_ntop(AF_INET, r, dst, INET_ADDRSTRLEN);
 	
 	return dst;
+}
+
+uint8_t *
+wire_conv_aaaa(rdata_atom_type a)
+{
+	/* convert from wire to AAAA */
+	uint8_t *dst;
+	uint16_t *r = NULL;
+
+	dst = malloc(INET6_ADDRSTRLEN);
+
+	r = (uint16_t *)rdata_atom_data(a);
+	
+        inet_ntop(AF_INET6, r, dst, INET6_ADDRSTRLEN);
+
+	return dst;
+}
+
+uint8_t *
+wire_conv_b64(rdata_atom_type a)
+{
+	/* convert wire to b64 string */
+
+	uint8_t *buffer;
+	uint16_t *r;
+	int i = rdata_atom_size(a);
+
+	r = (uint16_t *) rdata_atom_data(a);
+	buffer = (uint8_t*) malloc(B64BUFSIZE);
+	
+	/*b64_ntop((uint8_t *) r, (size_t) i, char *target, size_t targsize); */
+	b64_ntop( (uint8_t *)r, i, buffer, B64BUFSIZE);
+
+	return buffer;
+}
+
+short int
+wire_conv_byte(rdata_atom_type a)
+{
+	/* convert wire to byte value */
+	
+	return ( (short int) *( (uint8_t*)rdata_atom_data(a)));
 }

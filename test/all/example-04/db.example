@@ -22,3 +22,9 @@ example.       3600 IN SOA ns1.example. bugs.x.w.example. (
                            s1h72oh+ipBadjCGSRu46u1T9JYUSLxLecgY
                            eEw9qDeQIoZHRny5bYrX1x87ItEo5+n1lwOH
                            FTVyQbVkcaxQ6U2FbZtMbfo//go= )
+www                     IN      CNAME   elektron
+elektron.wireless       IN      CNAME   elektron
+; IPv6
+kopje6                  IN      AAAA    2001:7b8:206:1003::abcd
+elektron6               IN      AAAA    2001:7b8:206:1003:280:48ff:feb3:26eb
+arena6                  IN      AAAA    2001:7b8:206:1003:250:fcff:fe85:83d7
