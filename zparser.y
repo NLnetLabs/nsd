@@ -267,7 +267,7 @@ str_seq:	STR
 
 /*
  * Generate a single string from multiple STR tokens, separated by
- * spaces or commas.
+ * spaces or dots.
  */
 concatenated_str_seq:	STR
     |	'.'
