@@ -495,12 +495,11 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 			additional = temp;
 		}
 
-		for (rrset = additional->rrsets; rrset; rrset = rrset->next) {
-			if (rrset->type == TYPE_A) {
-				answer_add_rrset(answer, ADDITIONAL_A_SECTION, additional, rrset);
-			} else if (rrset->type == TYPE_AAAA) {
-				answer_add_rrset(answer, ADDITIONAL_AAAA_SECTION, additional, rrset);
-			}
+		if ((rrset = domain_find_rrset(additional, query->zone, TYPE_A))) {
+			answer_add_rrset(answer, ADDITIONAL_A_SECTION, additional, rrset);
+		}
+		if ((rrset = domain_find_rrset(additional, query->zone, TYPE_AAAA))) {
+			answer_add_rrset(answer, ADDITIONAL_AAAA_SECTION, additional, rrset);
 		}
 	}
 }
