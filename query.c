@@ -758,7 +758,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 		d = closest_encloser->data;
 		
 		/* Adjust query name to only contain the matching part.  */
-		qname += q->name->label_offsets[closest_encloser->label_count - 1];
+		qname += dname_label_offsets(q->name)[closest_encloser->label_count - 1];
 	
 		/* Set this if we find SOA later */
 		RCODE_SET(q, RCODE_NXDOMAIN);

@@ -117,11 +117,12 @@ dname_make(region_type *region, const uint8_t *name, int copy)
 		label_offsets[label_count - i - 1] = tmp;
 	}
 
-	result = region_alloc(region, sizeof(dname_type));
+	result = region_alloc(region, sizeof(dname_type) + label_count * sizeof(uint8_t));
 	result->name_size = name_size;
 	result->label_count = label_count;
-	result->label_offsets = region_alloc_init(
-		region, label_offsets, label_count * sizeof(uint8_t));
+	memcpy((uint8_t *) dname_label_offsets(result),
+	       label_offsets,
+	       label_count * sizeof(uint8_t));
 	result->name
 		= (copy
 		   ? region_alloc_init(
@@ -149,14 +150,14 @@ dname_copy(region_type *region, const dname_type *dname)
 
 	assert(dname);
 
-	result = region_alloc(region, sizeof(dname_type));
+	result = region_alloc(region, sizeof(dname_type) + dname->label_count * sizeof(uint8_t));
 	result->name_size = dname->name_size;
 	result->label_count = dname->label_count;
+	memcpy((uint8_t *) dname_label_offsets(result),
+	       dname_label_offsets(dname),
+	       result->label_count * sizeof(uint8_t));
 	result->name = region_alloc_init(
 		region, dname->name, result->name_size * sizeof(uint8_t));
-	result->label_offsets = region_alloc_init(
-		region, dname->label_offsets,
-		result->label_count * sizeof(uint8_t));
 	
 	return result;
 }

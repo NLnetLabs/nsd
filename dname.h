@@ -61,13 +61,6 @@ struct dname
 	const uint8_t *name;
 	
 	/*
-	 * Offsets into NAME for each label starting with the most
-	 * significant label (the root label, followed by the TLD,
-	 * etc).
-	 */
-	const uint8_t *label_offsets;
-
-	/*
 	 * The size (in bytes) of the domain name in wire format.
 	 */
 	uint8_t name_size;
@@ -108,6 +101,17 @@ const dname_type *dname_parse(region_type *region,
 const dname_type *dname_copy(region_type *region, const dname_type *dname);
 
 /*
+ * Offsets into NAME for each label starting with the most
+ * significant label (the root label, followed by the TLD,
+ * etc).
+ */
+static inline const uint8_t *
+dname_label_offsets(const dname_type *dname)
+{
+	return (const uint8_t *) ((const char *) dname + sizeof(dname_type));
+}
+
+/*
  * Return the label for DNAME specified by LABEL_INDEX.  The first
  * label (LABEL_INDEX == 0) is the root label, the next label is the
  * TLD, etc.
@@ -122,7 +126,7 @@ dname_label(const dname_type *dname, uint8_t label)
 	assert(dname != NULL);
 	assert(label < dname->label_count);
 
-	label_index = dname->label_offsets[label];
+	label_index = dname_label_offsets(dname)[label];
 	assert(label_index < dname->name_size);
 		
 	return dname->name + label_index;
