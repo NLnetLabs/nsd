@@ -234,7 +234,12 @@ struct query {
 
 	/* Used for dname compression.  */
 	uint16_t     dname_stored_count;
-	uint16_t    *dname_offsets; /* Indexed by domain->number - 1.  */
+
+	 /*
+	  * Indexed by domain->number, index 0 is reserved for query
+	  * name when generated from a wildcard record.
+	  */
+	uint16_t    *dname_offsets;
 	domain_type *dname_stored[MAXRRSPP];
 };
 
