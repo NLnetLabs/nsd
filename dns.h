@@ -1,5 +1,5 @@
 /*
- * $Id: dns.h,v 1.10 2003/03/20 10:31:25 alexis Exp $
+ * $Id: dns.h,v 1.11 2003/04/29 13:40:52 alexis Exp $
  *
  * dns.h -- everything we wanted to know but were afraid
  *		to ask about DNS
@@ -42,6 +42,45 @@
 #ifndef _DNS_H_
 #define _DNS_H_
 
+/*
+ *                                    1  1  1  1  1  1
+ *      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+ *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ *    |                      ID                       |
+ *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ *    |QR|   Opcode  |AA|TC|RD|RA|   Z    |   RCODE   |
+ *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ *    |                    QDCOUNT                    |
+ *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ *    |                    ANCOUNT                    |
+ *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ *    |                    NSCOUNT                    |
+ *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ *    |                    ARCOUNT                    |
+ *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ *
+ */
+
+struct dns_header {
+	u_int16_t	id;
+
+	u_int16_t	
+			rd:1,
+			tc:1,
+			aa:1,
+			opcode:4,
+			qr:1,
+			rcode:4,
+			z:3,
+			ra:1;
+
+	u_int16_t	qdcount,
+			ancount,
+			nscount,
+			arcount;
+};
+
+
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
 #define	CLASS_CHAOS	3	/* Class CHAOS */
@@ -83,4 +122,3 @@
 #define MAXDOMAINLEN	255
 
 #endif /* _DNS_H_ */
-

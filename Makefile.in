@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.33 2003/04/28 09:46:36 alexis Exp $
+# $Id: Makefile.in,v 1.34 2003/04/29 13:40:52 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -79,7 +79,7 @@ EDIT		= sed \
 			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
-all:	nsd nsq zonec nsd-axfr.c nsdc.sh nsdc.conf.sample
+all:	nsd nsq zonec nsd-axfr nsdc.sh nsdc.conf.sample
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
@@ -121,11 +121,11 @@ nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o $(LIBOBJS) $(LIBS)
 
-nsq:	zparser.h dns.h nsq.o zparser.o dname.o $(LIBOBJS)
-	$(LINK) -o $@ nsq.o zparser.o dname.o $(LIBOBJS) $(LIBS)
+nsq:	zparser.h dns.h nsq.o client.o zparser.o dname.o $(LIBOBJS)
+	$(LINK) -o $@ nsq.o client.o zparser.o dname.o $(LIBOBJS) $(LIBS)
 
-nsd-axfr:	nsd-axfr.c dname.o
-	$(LINK) $(CFLAGS) -o $@ nsd-axfr.c dname.o $(LIBS)
+nsd-axfr:	zparser.h dns.h nsd-axfr.o client.o zparser.o dname.o $(LIBOBJS)
+	$(LINK) -o $@ nsd-axfr.o client.o zparser.o dname.o $(LIBOBJS) $(LIBS)
 
 clean:
 	rm -f zonec nsd zparser hash rbtree nsd-axfr nsq *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample

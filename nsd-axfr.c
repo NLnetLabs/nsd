@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-axfr.c,v 1.3 2003/04/28 09:46:36 alexis Exp $
+ * $Id: nsd-axfr.c,v 1.4 2003/04/29 13:40:53 alexis Exp $
  *
  * nsd-axfr.c -- axfr utility for nsd(8)
  *
@@ -58,6 +58,8 @@
 #include <dname.h>
 #include <nsd.h>
 #include <query.h>
+#include <zparser.h>
+#include <client.h>
 
 static char *progname;
 
@@ -118,7 +120,7 @@ void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [-F] [-p port] [-z zone] [-f filename] servers\n", progname);
+		"usage: %s [-F] [-p port] [-f zonefile] zone servers\n", progname);
 	exit(1);
 }
 
@@ -134,21 +136,20 @@ main (int argc, char *argv[])
 {
 	int c, s, i;
 	struct query q;
-	struct in_addr pin;
-	int port = 53;
-	u_int32_t qid;
-	int force = 0;
-	u_char *qdname;
-	int qopcode = 0;
 	struct RR **rrs;
+	struct in_addr pin;
+	u_char *zname;
+	char *zonefile;
+	int port = 53;
+	int force = 0;
+	u_int16_t id = 0;
 
 	/* Randomize for query ID... */
 	srand(time(NULL));
-	qid = rand();
 
 	/* Parse the command line... */
 	progname = *argv;
-	while((c = getopt(argc, argv, "p:z:f:F")) != -1) {
+	while((c = getopt(argc, argv, "p:f:F")) != -1) {
 		switch (c) {
 		case 'p':
 			/* Port */
@@ -156,55 +157,11 @@ main (int argc, char *argv[])
 				error("the port arguement must be a positive integer\n");
 			}
 			break;
-		case 'i':
-			/* Query ID */
-			if((qid = atoi(optarg)) <= 0) {
-				error("the query id arguement must be a positive integer\n");
-			}
+		case 'F':
+			force++;
 			break;
-		case 'a':
-			/* Authorative only answer? */
-			aflag++;
-			break;
-		case 'r':
-			/* Recursion desired? */
-			rflag++;
-			break;
-		case 'o':
-			if(isdigit(*optarg)) {
-				if((qopcode = atoi(optarg)) < 0) {
-					error("the query id arguement must be between 0 and 15\n");
-				}
-			} else {
-				if((qopcode = intbyname(optarg, opcodes)) == 0) {
-					error("uknown opcode");
-				}
-			}
-			if(qopcode < 0 || qopcode > 15) {
-				error("opcode must be between 0 and 15\n");
-			}
-			break;
-		case 't':
-			if(isdigit(*optarg)) {
-				if((qtype  = atoi(optarg)) == 0) {
-					error("the query type must be a positive integer\n");
-				}
-			} else {
-				if((qtype = intbyname(optarg, ztypes)) == 0) {
-					error("uknown type");
-				}
-			}
-			break;
-		case 'c':
-			if(isdigit(*optarg)) {
-				if((qclass  = atoi(optarg)) == 0) {
-					error("the query class must be a positive integer\n");
-				}
-			} else {
-				if((qclass = intbyname(optarg, zclasses)) == 0) {
-					error("uknown class");
-				}
-			}
+		case 'f':
+			zonefile = optarg;
 			break;
 		case '?':
 		default:
@@ -214,14 +171,14 @@ main (int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	/* We need at least domain name and server... */
+	/* We need at least zone name and server... */
 	if(argc < 2) {
 		usage();
 	}
 
-	/* Now the the name */
-	if((qdname = strdname(*argv, ROOT)) == NULL) {
-		error("invalid domain name");
+	/* Now the zone name */
+	if((zname = strdname(*argv, ROOT)) == NULL) {
+		error("invalid zone name");
 	}
 
 	/* Try every server in turn.... */
@@ -253,7 +210,8 @@ main (int argc, char *argv[])
 		}
 
 		/* Send the query */
-		if(query(s, &q, qdname, qtype, qclass, qid, qopcode, aflag, rflag) != 0) {
+		id = rand();
+		if(query(s, &q, zname, TYPE_SOA, CLASS_IN, id, 0, 1, 0) != 0) {
 			close(s);
 			continue;
 		}
