@@ -860,16 +860,6 @@ query_process(struct query *q, struct nsd *nsd)
 		return QUERY_PROCESSED;
 	}
 
-	/* Save the RD flag (RFC1034 4.1.1).  */
-	recursion_desired = RD(q);
-
-	/* Zero the flags... */
-	*(uint16_t *)(q->iobuf + 2) = 0;
-	
-	QR_SET(q);		/* This is an answer */
-	if (recursion_desired)
-		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
-
 	/* Update statistics.  */
 	STATUP2(nsd, opcode, q->opcode);
 	STATUP2(nsd, qtype, q->type);
@@ -913,6 +903,16 @@ query_process(struct query *q, struct nsd *nsd)
 		q->iobufptr = qptr;
 #endif
 	}
+
+	/* Save the RD flag (RFC1034 4.1.1).  */
+	recursion_desired = RD(q);
+
+	/* Zero the flags... */
+	*(uint16_t *)(q->iobuf + 2) = 0;
+	
+	QR_SET(q);		/* This is an answer */
+	if (recursion_desired)
+		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
 
 	if (q->class != CLASS_IN && q->class != CLASS_ANY) {
 		if (q->class == CLASS_CHAOS) {
