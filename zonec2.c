@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.18 2003/10/17 13:51:31 erik Exp $
+ * $Id: zonec2.c,v 1.19 2003/10/20 08:29:37 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -92,7 +92,9 @@ write_dname(struct namedb *db, domain_type *domain)
 static int
 write_dname_number(struct namedb *db, domain_type *domain)
 {
-	return write_data(db->fd, &domain->number, sizeof(domain->number));
+	uint32_t number = domain->number;
+	number = htonl(number);
+	return write_data(db->fd, &number, sizeof(number));
 }
 
 static int
@@ -144,8 +146,8 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 				if (!write_dname_number(db, rdata_atom_domain(atom)))
 					return 0;
 			} else {
-				uint16_t size = rdata_atom_size(atom);
-				if (!write_data(db->fd, &size, sizeof(uint16_t)))
+				uint16_t size = htons(rdata_atom_size(atom));
+				if (!write_data(db->fd, &size, sizeof(size)))
 					return 0;
 				if (!write_data(db->fd,
 						rdata_atom_data(atom),
@@ -365,8 +367,8 @@ write_domain_iterator(domain_type *node, void *user_data)
 static int 
 zone_dump (struct zone *z, struct namedb *db)
 {
-	size_t terminator = 0;
-	size_t dname_count = 1;	/* Start with 1 so 0 can be used as a terminator. */
+	uint32_t terminator = 0;
+	uint32_t dname_count = 1;	/* Start with 1 so 0 can be used as a terminator. */
 	
 	if (!z->soa) {
 		fprintf(stderr, "SOA record not present in %s\n", dname_to_string(z->dname));
@@ -376,10 +378,11 @@ zone_dump (struct zone *z, struct namedb *db)
 
 	domain_table_iterate(z->db->domains, number_dnames_iterator, &dname_count);
 	--dname_count;
+	dname_count = htonl(dname_count);
 	write_data(db->fd, &dname_count, sizeof(dname_count));
 
 	DEBUG(DEBUG_ZONEC, 1,
-	      (stderr, "Storing %lu domain names\n", (unsigned long) dname_count));
+	      (stderr, "Storing %lu domain names\n", ntohl(dname_count)));
 	
 	domain_table_iterate(z->db->domains, write_dname_iterator, db);
 		   

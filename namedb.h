@@ -45,8 +45,6 @@
 #include "heap.h"
 #include "region-allocator.h"
 
-#define NAMEDB_ALIGNMENT        (sizeof(void *))
-
 #define	NAMEDB_MAGIC		"NSDdbV03"
 #define	NAMEDB_MAGIC_SIZE	8
 
@@ -79,7 +77,7 @@ struct domain
 	domain_type       *parent;
 	domain_type       *wildcard_child;
 	rrset_type        *rrsets;
-	size_t             number; /* Unique domain name number.  */
+	uint32_t           number; /* Unique domain name number.  */
 	void             **plugin_data;
 	
 	/*
@@ -105,7 +103,7 @@ int domain_table_search(domain_table_type *table,
  * The number of domains stored in the table (minimum is one for the
  * root domain).
  */
-size_t domain_table_count(domain_table_type *table);
+uint32_t domain_table_count(domain_table_type *table);
 
 /*
  * Find the specified dname in the domain_table.  NULL is returned if
@@ -188,7 +186,7 @@ rdata_atom_size(rdata_atom_type atom)
 static inline void *
 rdata_atom_data(rdata_atom_type atom)
 {
-	return (uint16_t *) atom.data;
+	return (uint16_t *) atom.data + 1;
 }
 
 

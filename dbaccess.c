@@ -104,15 +104,20 @@ read_dname(FILE *fd, region_type *region)
 }
 
 static int
-read_size(namedb_type *db, size_t *result)
+read_size(namedb_type *db, uint32_t *result)
 {
-	return fread(result, sizeof(size_t), 1, db->fd) == 1;
+	if (fread(result, sizeof(*result), 1, db->fd) == 1) {
+		*result = ntohl(*result);
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 static domain_type *
-read_domain(namedb_type *db, size_t domain_count, domain_type **domains)
+read_domain(namedb_type *db, uint32_t domain_count, domain_type **domains)
 {
-	size_t domain_number;
+	uint32_t domain_number;
 
 	if (!read_size(db, &domain_number))
 		return NULL;
@@ -124,7 +129,7 @@ read_domain(namedb_type *db, size_t domain_count, domain_type **domains)
 }
 
 static int
-read_rdata_atom(namedb_type *db, uint16_t type, int index, size_t domain_count, domain_type **domains, rdata_atom_type *result)
+read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count, domain_type **domains, rdata_atom_type *result)
 {
 	uint8_t data[65536];
 
@@ -137,6 +142,7 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, size_t domain_count, 
 
 		if (fread(&size, sizeof(size), 1, db->fd) != 1)
 			return 0;
+		size = ntohs(size);
 		if (fread(data, sizeof(uint8_t), size, db->fd) != size)
 			return 0;
 
@@ -149,7 +155,7 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, size_t domain_count, 
 }
 
 static int
-read_rrset(namedb_type *db, size_t domain_count, domain_type **domains)
+read_rrset(namedb_type *db, uint32_t domain_count, domain_type **domains)
 {
 	rrset_type *rrset;
 	int i, j;
@@ -208,9 +214,9 @@ namedb_open (const char *filename)
 	
 	region_type *region = region_create(xalloc, free);
 	region_type *dname_region = region_create(xalloc, free);
-	size_t dname_count;
+	uint32_t dname_count;
 	domain_type **domains;	/* Indexed by domain number. */
-	size_t i;
+	uint32_t i;
 	
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "sizeof(domain_type) = %d\n", sizeof(domain_type)));
@@ -244,6 +250,8 @@ namedb_open (const char *filename)
 		return NULL;
 	}
 
+	dname_count = ntohl(dname_count);
+	
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (stderr, "Retrieving %lu domain names\n", (unsigned long) dname_count));
 	
