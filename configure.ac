@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,2.2.0-20041130,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,2.2.0-20041210,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 dnl
