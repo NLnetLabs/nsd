@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.13 2002/09/26 14:18:36 alexis Exp $
+ * $Id: config.h,v 1.14 2002/09/26 14:28:47 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -42,7 +42,7 @@
 #define	_CONFIG_H_
 
 #ifndef CF_VERSION
-#define	CF_VERSION	"NSD-1.0.2 alpha"
+#define	CF_VERSION	"NSD-1.0.2 alpha 2"
 #endif
 
 #ifndef	CF_IDENTITY
