@@ -1,5 +1,5 @@
 >-*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.10 2002/09/09 10:59:15 alexis Exp $
+$Id: REQUIREMENTS,v 1.11 2003/10/30 11:40:08 miekg Exp $
 
 
 NSD Requirements and Specifications
@@ -128,7 +128,7 @@ C.1. Zone file format and RR records.
 
    Zone file format as specified in rfc1035 (5.1), including the $TTL
    entry for default TTL as in RFC2308 (4) and the binary label format
-   as in RFC2673. (binary label not supported in beta).
+   as in RFC2673. 
 
    We implement most RRs currently assigned by IANA
    (http://www.iana.org/assignments/dns-parameters) except for RRs
@@ -149,8 +149,6 @@ C.1. Zone file format and RR records.
 	+ if a DNAME exists at node N there may not be any other data
 	  at 'N' (except CNAME or DNAME) and there MUST not be any
 	  other data at subnodes of 'N' (RFC 2672 section 3).
-
-          [DNAME not implemented in alpha]
 
      - The default minimum TTL is not specified by the $TTL directive
 
@@ -190,19 +188,11 @@ C.1. Zone file format and RR records.
    the time the zone db is generated; on DNSSEC queries the server
    will set the AD bit on answering data from the database.
    
-   Implementation of wildcard processing  is problematic in DNSSEC and
-   behavior is not well specified. Full implementation NXT processing
-   under  the  assumption  of  existence  of  wildcards  is  therefore
-   deferred.
-
-   
 C.2. Server and connection management.
 
    The server listens on port 53. The server answers with the same IP
    address and port (53) as the queries has been sent to.  Replies are
    sent to the address/port the queries originated from. (rfc 2181 4)
-
-   [IPv6 transport is not implemented in the alpha version]
 
    UDP.
 
@@ -948,6 +938,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.10 2002/09/09 10:59:15 alexis Exp $
+$Id: REQUIREMENTS,v 1.11 2003/10/30 11:40:08 miekg Exp $
 
 

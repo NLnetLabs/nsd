@@ -1,11 +1,9 @@
 .\"
-.\" $Id: zonec.8,v 1.14 2003/07/28 12:28:40 erik Exp $
+.\" $Id: zonec.8,v 1.15 2003/10/30 11:35:43 miekg Exp $
 .\"
 .\" zonec.8 -- zonec manual
 .\"
-.\" Alexis Yushin, <alexis@nlnetlabs.nl>
-.\"
-.\" Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+.\" Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
 .\"
 .\" This software is an open source.
 .\"
@@ -69,12 +67,6 @@ file and add it to the name space database,
 by default, that is used by
 .Xr nsd 8
 to answer incoming queries.
-.Pp
-Please see the
-.Pa README
-file for the
-.Ar nsd.zones
-file format.
 .Pp
 The available options are:
 .Bl -tag -width indent
@@ -146,12 +138,12 @@ progress via stdout if
 .Fl v
 option is specified.
 .Sh SEE ALSO
-.Xr nsd 8
-.Xr nsdc 8
+.Xr nsd 8,
+.Xr nsdc 8 and
 .Pa README
 .Sh AUTHORS
 .Ic NSD
-was written by NLnet LABS and RIPE NCC joint team. Please see CREDITS file
+was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS file
 in the distribution for further details.
 .Sh BUGS
 .Ic Zonec
@@ -159,5 +151,3 @@ has rather weak error diagnostics that will change in further versions.
 .Ic Zonec
 expects the input files to be free of syntax errors and very little
 fool proof checks are done.
-.Pp
-Very poor quotation handling, no backslashes handling at all.
