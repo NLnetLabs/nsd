@@ -93,10 +93,10 @@ query_axfr (struct query *q, struct nsd *nsd, const u_char *qname, const u_char 
 {
 	/* Per AXFR... */
 	static const u_char *zone;
-	static struct answer *soa;
-	static struct domain *d = NULL;
+	static const struct answer *soa;
+	static const struct domain *d = NULL;
 
-	struct answer *a;
+	const struct answer *a;
 	const u_char *dname;
 	u_char *qptr;
 
@@ -142,8 +142,8 @@ query_axfr (struct query *q, struct nsd *nsd, const u_char *qname, const u_char 
 
 	/* Let get next domain */
 	do {
-		dname = (u_char *)d + *((u_int32_t *)d);
-		d = (struct domain *)(dname + (((u_int32_t)*dname + 1 + 3) & 0xfffffffc));
+		dname = (const u_char *)d + d->size;
+		d = (const struct domain *)(dname + (((u_int32_t)*dname + 1 + 3) & 0xfffffffc));
 	} while(*dname && (DOMAIN_FLAGS(d) & NAMEDB_STEALTH));
 
 	/* End of the database or end of zone? */
@@ -245,7 +245,7 @@ query_addtxt (struct query *q, u_char *dname, int class, int32_t ttl, const char
 }
 
 void 
-query_addanswer (struct query *q, const u_char *dname, struct answer *a, int trunc)
+query_addanswer (struct query *q, const u_char *dname, const struct answer *a, int trunc)
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -388,32 +388,6 @@ process_query_section(struct query *query,
 
 
 /*
- * Log notifies and return an RCODE_IMPL error to the client.
- *
- * XXX: erik: Is this the right way to handle notifies?
- */
-static void
-process_notify (struct query *query)
-{
-	char namebuf[BUFSIZ];
-
-	assert(OPCODE(query) == OPCODE_NOTIFY);
-	
-	if (getnameinfo((struct sockaddr *) &(query->addr),
-			query->addrlen, namebuf, sizeof(namebuf), 
-			NULL, 0, NI_NUMERICHOST)
-	    != 0)
-	{
-		syslog(LOG_INFO, "notify from unknown remote address");
-	} else {
-		syslog(LOG_INFO, "notify from %s", namebuf);
-	}
-
-	error_response (query, RCODE_IMPL);
-}
-
-
-/*
  * Process an optional EDNS OPT record.  Sets QUERY->EDNS to 0 if
  * there was no EDNS record, to -1 if there was an invalid or
  * unsupported EDNS record, and to 1 otherwise.  Updates QUERY->MAXLEN
@@ -492,6 +466,39 @@ process_edns (struct query *q, u_char *qptr)
 	}
 	
 	return 1;
+}
+
+
+/*
+ * Log notifies and return an RCODE_IMPL error to the client.
+ *
+ * Return 1 if answered, 0 otherwise.
+ *
+ * XXX: erik: Is this the right way to handle notifies?
+ */
+static int
+answer_notify (struct query *query)
+{
+	char namebuf[BUFSIZ];
+
+	switch (OPCODE(query)) {
+	case OPCODE_QUERY:
+		/* Not handled by this function.  */
+		return 0;
+	case OPCODE_NOTIFY:
+		if (getnameinfo((struct sockaddr *) &(query->addr),
+				query->addrlen, namebuf, sizeof(namebuf), 
+				NULL, 0, NI_NUMERICHOST)
+		    != 0)
+		{
+			syslog(LOG_INFO, "notify from unknown remote address");
+		} else {
+			syslog(LOG_INFO, "notify from %s", namebuf);
+		}
+	default:
+		error_response(query, RCODE_IMPL);
+		return 1;
+	}
 }
 
 
@@ -720,14 +727,14 @@ answer_axfr_ixfr(struct nsd *nsd,
 
 
 static int
-resolve_domain(struct nsd *nsd,
-	       struct query *q,
-	       u_char *qnamelow,
-	       const u_char *qname,
-	       u_char qnamelen,
-	       int qdepth,
-	       u_int16_t qclass,
-	       u_int16_t qtype)
+answer_query(struct nsd *nsd,
+	     struct query *q,
+	     u_char *qnamelow,
+	     const u_char *qname,
+	     u_char qnamelen,
+	     int qdepth,
+	     u_int16_t qclass,
+	     u_int16_t qtype)
 {
 	const u_char qstar[2] = "\001*";
 	struct domain *d;
@@ -832,15 +839,7 @@ query_process (struct query *q, struct nsd *nsd)
 	/* Account the OPCODE */
 	STATUP2(nsd, opcode, OPCODE(q));
 
-	/* Do we serve this type of query */
-	switch (OPCODE(q)) {
-	case OPCODE_QUERY:
-		break;		/* Handled below. */
-	case OPCODE_NOTIFY:
-		process_notify(q);
-		return 0;
-	default:
-		error_response(q, RCODE_IMPL);
+	if (answer_notify(q)) {
 		return 0;
 	}
 
@@ -909,7 +908,7 @@ query_process (struct query *q, struct nsd *nsd)
 		return axfr;
 	}
 
-	if (resolve_domain(nsd, q, qnamelow, qname, qnamelen, qdepth, qclass, qtype)) {
+	if (answer_query(nsd, q, qnamelow, qname, qnamelen, qdepth, qclass, qtype)) {
 		return 0;
 	}
 
