@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.17 2002/02/19 14:25:11 alexis Exp $
+ * $Id: zf.c,v 1.18 2002/02/20 13:25:34 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -104,11 +104,11 @@ strdname(s, o)
 	char	*s;
 	u_char	*o;
 {
-	static char dname[MAXDOMAINLEN+1];
+	static u_char dname[MAXDOMAINLEN+1];
 
-	register char *h;
-	register char *p;
-	register char *d = dname + 1;
+	register u_char *h;
+	register u_char *p;
+	register u_char *d = dname + 1;
 
 	if(*s == '@' && *(s+1) == 0) {
 		for(p = dname, s = o; (u_char *)s < o + *o + 1; p++, s++)
