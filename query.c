@@ -94,12 +94,13 @@ int
 query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 {
 	/* Per AXFR... */
-	static uint8_t zone[MAXDOMAINLEN + 1];
+	static const dname_type *zone;
 	static const struct answer *soa;
 	static const struct domain *d = NULL;
-
+	
 	const struct answer *a;
-	const uint8_t *dname;
+	const uint8_t *p;
+	const dname_type *dname;
 	uint8_t *qptr;
 	dname_tree_type *less_equal;
 	dname_tree_type *closest_encloser;
@@ -109,8 +110,7 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	/* Is it new AXFR? */
 	if (qname) {
 		/* New AXFR... */
-		*zone = q->name->name_size;
-		memcpy(zone + 1, dname_name(q->name), q->name->name_size);
+		zone = dname_copy(q->region, q->name);
 
 		/* Do we have the SOA? */
 		if (namedb_lookup(nsd->db, q->name, &less_equal, &closest_encloser)
@@ -148,12 +148,14 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 
 	/* Let get next domain */
 	do {
-		dname = (const uint8_t *)d + d->size;
-		d = (const struct domain *)(dname + ALIGN_UP(*dname + 1, NAMEDB_ALIGNMENT));
-	} while (*dname && (DOMAIN_FLAGS(d) & NAMEDB_STEALTH));
+		p = (const uint8_t *) d + d->size;
+		if (!*p) break;
+		dname = (const dname_type *) p;
+		d = (const struct domain *) (p + ALIGN_UP(dname_total_size(dname), NAMEDB_ALIGNMENT));
+	} while (DOMAIN_FLAGS(d) & NAMEDB_STEALTH);
 
 	/* End of the database or end of zone? */
-	if (*dname == 0 || namedb_answer(d, TYPE_SOA) != NULL) {
+	if (*p == 0 || namedb_answer(d, TYPE_SOA) != NULL) {
 		/* Prepare to send the terminating SOA record */
 		a = soa;
 		dname = zone;
@@ -170,10 +172,16 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	/* Existing AXFR, strip the question section off... */
 	q->iobufptr = q->iobuf + QHEADERSZ;
 
-	/* Is the first dname a pointer? */
+	/*
+	 * Is the first dname a pointer?  If so, make room to store
+	 * the complete dname.
+	 */
 	if (ANSWER_PTRS(a, 0) == 0) {
-		/* XXX Very interesting math... Can you figure it? I cant anymore... */
-		q->iobufptr += *dname - 2;
+		/*
+		 * Two bytes are already available because of the
+		 * pointer.
+		 */
+		q->iobufptr += dname->name_size - 2;
 		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
 	}
 
@@ -182,7 +190,7 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
 
 	if (ANSWER_PTRS(a, 0) == 0) {
-		memcpy(q->iobuf + QHEADERSZ, dname + 1, *dname);
+		memcpy(q->iobuf + QHEADERSZ, dname_name(dname), dname->name_size);
 	}
 
 	/* Truncate */
