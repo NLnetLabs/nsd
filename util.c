@@ -377,8 +377,8 @@ strip_string(char *str)
 		++start;
 	while (isspace(*end))
 		--end;
-	end[1] = '\0';
+	*++end = '\0';
 	
 	if (str != start)
-		memmove(str, start, start - end + 1);
+		memmove(str, start, end - start + 1);
 }
