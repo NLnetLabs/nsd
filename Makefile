@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.6 2002/08/07 15:04:16 alexis Exp $
+# $Id: Makefile,v 1.69.2.7 2002/08/08 14:42:51 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -56,7 +56,7 @@ NSDUSER		= nsd
 
 # This has to be set to the path of named-xfer program from bind if you
 # want ``nsdc update'' functionality
-NAMEDXFER	= 
+NAMEDXFER	= /usr/libexec/named-xfer
 
 # A directory where the crypto keys are kept. For now only used to store TSIG keys for
 # named-xfer
