@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.64 2003/02/26 12:00:56 alexis Exp $
+ * $Id: nsd.c,v 1.65 2003/03/19 14:08:53 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -103,7 +103,7 @@ xrealloc (register void *p, register size_t size)
 	return p;
 }
 
-int 
+void
 usage (void)
 {
 	fprintf(stderr, "usage: nsd [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");

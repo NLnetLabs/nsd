@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.48 2003/02/26 12:00:57 alexis Exp $
+ * $Id: nsd.h,v 1.49 2003/03/19 14:08:53 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -142,7 +142,7 @@ struct	nsd {
 /* nsd.c */
 void *xalloc(register size_t size);
 void *xrealloc(register void *p, register size_t size);
-int usage(void);
+void usage(void);
 pid_t readpid(char *file);
 int writepid(struct nsd *nsd);
 void sig_handler(int sig);
