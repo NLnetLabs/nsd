@@ -1,17 +1,17 @@
-$Id: README,v 1.13 2002/07/01 16:49:55 alexis Exp $
+$Id: README,v 1.13.2.1 2002/08/06 12:46:07 alexis Exp $
 
 1.0 Introduction
 
 This is NSD Name Server Daemon (NSD) version 1.0.1 beta
 
-NSD is a complete implementation of an autoritative DNS nameserver. 
+NSD is a complete implementation of an authoritative DNS nameserver. 
 For further information about what NSD is and what NSD is not please 
 consult the REQUIREMENTS document which is a part of this distribution 
 (thanks to Olaf).
 
 The source code is available for download from:
 
-	http://www.nlnetlabs.nl/downloads
+	HTTP://www.nlnetlabs.nl/downloads
 
 1.1 Basic Theory of Operation
 
@@ -33,7 +33,7 @@ which uses a simple configuration file.
 
 2.1 Unpacking the source
 
-Use your favourite combination of tar and gnu zip to unpack the source, 
+Use your favorite combination of tar and gnu zip to unpack the source, 
 for example
 
 $ gtar -xzvf nsd-1.0.1-beta.tar.gz
@@ -46,19 +46,29 @@ The package should be configured before compile time by editing the Makefile.
 The following settings need to be revised:
 
 NSDBINDIR       The directory where the NSD binaries will be installed.
+		For example /usr/local/sbin
 
 NSDZONESDIR     Default directory for the master zone files.
+		For example /etc/local/nsd
 
 NSDZONES        The name of the file containing the list of the zones to be
                 compiled by NSD zone compiler
+		For example /etc/local/nsd/nsd.zones
 
 NSDFLAGS        Flags to be passed to NSD on startup (Can be left empty)
 
 NSDPIDFILE      Location of the pid file.
 
 NSDDB           Pathname of the runtime database
+		For example /etc/local/nsd/nsd.db
 
-CFLAGS          Use your favourite combination of the C flags appropriate
+NSDUSER		The username for nsd to setuid(2) to 
+		For example nsd
+
+		This username must exist in /etc/passwd and the ${NSDDB} must be
+		readable for this user.
+
+CFLAGS          Use your favorite combination of the C flags appropriate
                 to your C compiler, plus following possible compile time
                 options:
 
@@ -73,6 +83,13 @@ COMPAT_O        You might want to uncomment some of the object files listed here
                 if your system miss some of them. (For example on SunOS 4.x you
                 dont have basename() in a standard C library)
 
+
+NAMEDXFER	Location of bind8 named-xfer programm
+		For example /usr/libexec/named-xfer
+
+		If this variable is left empty nsdc update functionality wont be
+		available
+
 2.3 Building
 
 Say a prayer and type ``make''
@@ -86,12 +103,10 @@ Become a superuser (if necessary) and type make install
 This step should install three binaries
 
 nsd             - the daemon itself
-nsdc            - a very simple shall script to controll the daemon
+nsdc            - a very simple shall script to control the daemon
 zonec           - zone compiler
 
 Plus manual pages if we managed to finish them by the time ALPHA is released.
-
-
 
 3.0 Running NSD
 
@@ -103,10 +118,14 @@ $NSDZONES configuration file, for example /etc/nsd/nsd.zones
 which should be of the following format:
 
 ; Zone Name     Master zone file name
-zone    bluesky.com     bluesky.com
+zone    bluesky.com     primary/bluesky.com
+zone	greysky.com	secondary/greysky.com masters 10.1.1.1
 
 
 Where bluesky.com should be the domain name you will be serving with NSD.
+
+The second line indicates that nsdc update should try to axfr the zone
+greysky.com from the master server 10.1.1.1
 
 Since NSD is primarily written to be run on the root name servers, 
 this file most likely to contain something like:
@@ -121,6 +140,10 @@ Second word is the name (origin) of the zone and the third word
 is the pathname to the master zone file. If you use zonec with 
 the -d option the pathname may be relative to the $NSDZONESDIR
 directory.
+
+Optionally masters list-of-ip-addresses can be present to update the respective
+zone with axfr from the given master servers. This option is ignored by zonec
+and is only relevant for nsdc update.
 
 If everything is done properly and installed into the default location 
 then all you need to build your nsd.db is to type
@@ -150,11 +173,19 @@ To shut it down (for example on the system shutdown) do
 
 nsdc stop.
 
+To update the secondary zones from its masters one can use
+
+nsdc update
+
+This command will check the serial number of the masters against the
+serial numbers in the local zone files and initiate axfr if necessary.
+Then the database will be rebuilt with nsdc rebuild and reloaded with
+nsdc reload if there were any changes.
 
 3.1 AXFR access
 
 When compiled with -DHOSTS_ACCESS nsd will use daemon name ``axfr'' to
-verify access priviledges for the client trying to initiate the transfer.
+verify access privileges for the client trying to initiate the transfer.
 Since NSD doesnt do any hostname resolution internally the access list
 provided in the /etc/hosts.allow or /etc/hosts.deny should be ip number
 based.
@@ -165,4 +196,3 @@ axfr : 127.0.0.1 : allow
 axfr : ns1.ripe.net : allow
 axfr : ns1.sidn.nl : allow
 axfr : ALL : deny
-
