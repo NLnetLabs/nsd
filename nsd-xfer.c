@@ -404,21 +404,6 @@ parse_response(FILE *out, axfr_state_type *state)
 }
 
 static int
-send_query(int s, query_type *q)
-{
-	uint16_t size = htons(buffer_remaining(q->packet));
-
-	if (!write_socket(s, &size, sizeof(size))) {
-		return 0;
-	}
-	if (!write_socket(s, buffer_begin(q->packet), buffer_limit(q->packet)))
-	{
-		return 0;
-	}
-	return 1;
-}
-
-static int
 receive_response_no_timeout(axfr_state_type *state)
 {
 	uint16_t size;

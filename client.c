@@ -105,3 +105,18 @@ write_socket(int s, const void *buf, size_t size)
 
         return 1;
 }               
+
+int
+send_query(int s, query_type *q)
+{
+        uint16_t size = htons(buffer_remaining(q->packet));
+
+        if (!write_socket(s, &size, sizeof(size))) {
+                return 0;
+        }
+        if (!write_socket(s, buffer_begin(q->packet), buffer_limit(q->packet)))
+        {
+                return 0;
+        }
+        return 1;
+}

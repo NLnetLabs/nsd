@@ -10,6 +10,8 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
+#include "query.h"
+
 #define DEFAULT_CONTROL_TTL	0
 #define DEFAULT_CONTROL_HOST	"localhost"
 
@@ -50,5 +52,10 @@ int read_socket(int s, void *buf, size_t size);
  * writes or interrupts.
  */
 int write_socket(int s, const void *buf, size_t size);
+
+/*
+ * Send to query through socket s
+ */
+int send_query(int s, query_type *q);
 
 #endif /* _CLIENT_H_ */

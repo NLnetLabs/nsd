@@ -214,17 +214,7 @@ main (int argc, char *argv[])
 
 	memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
-	/* WE ARE READY SEND IT OUT */
-	if (sendto(sockfd,
-				buffer_current(q.packet),
-				buffer_remaining(q.packet), 0,
-				res->ai_addr, res->ai_addrlen) == -1)
-	{
-		fprintf(stderr,
-				"send to %s failed: %s\n", *argv,
-				strerror(errno));
-	}
-
+	send_query(sockfd, &q);
 
 
 
