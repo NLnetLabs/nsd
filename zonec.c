@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.26 2002/02/14 17:41:56 alexis Exp $
+ * $Id: zonec.c,v 1.27 2002/02/15 19:33:02 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -382,7 +382,7 @@ zone_read(name, zonefile, cache)
 	bzero(z, sizeof(struct zone));
 
 	/* Get the zone name */
-	if((z->dname = strdname(name, ROOT_ORIGIN)) == NULL) {
+	if((z->dname = text_to_dname(name, ROOT_ORIGIN)) == NULL) {
 		zone_free(z);
 		return NULL;
 	}
@@ -397,9 +397,11 @@ zone_read(name, zonefile, cache)
 #ifdef USE_HEAP_RBTREE
 	z->cuts = heap_create(xalloc, dnamecmp);
 	z->data = heap_create(xalloc, dnamecmp);
-#else ifdef USE_HEAP_HASH
+#else
+# ifdef USE_HEAP_HASH
 	z->cuts = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
 	z->data = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
+# endif
 #endif
 	z->soa = z->ns = NULL;
 

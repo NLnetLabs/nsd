@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.11 2002/02/13 11:19:37 alexis Exp $
+ * $Id: zf.c,v 1.12 2002/02/15 19:32:53 erik Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -58,19 +58,25 @@ static struct zf_type_tab zf_types[] = ZONEFILE_TYPES;
 static struct zf_class_tab zf_classes[] = ZONEFILE_CLASSES;
 
 /*
+ * Buffer to hold the text representation of the current token.	 Note
+ * that by using escape sequences the text representation can be up to
+ * 4 times longer than allowed by DNS.
+ */
+static char current_token[4 * MAXTOKENLEN + 1];
+
+/*
  * Converts dname to text
  *
  * XXX Actually should not be here cause it is a debug routine.
  *
  */
-char *
-dnamestr(dname)
-	u_char *dname;
+const char *
+dnamestr(const u_char *dname)
 {
 	static char s[MAXDOMAINLEN+1];
 	char *p;
 	int l;
-	u_char *n = dname;
+	const u_char *n = dname;
 
 	l = (int) *dname;
 	n++;
@@ -78,10 +84,10 @@ dnamestr(dname)
 
 	if(*n) {
 		while(n < dname + l) {
-			bcopy(n+1, p, (int) *n);
-			p += (int) *n;
+			memcpy(p, n + 1, *n);
+			p += *n;
 			*p++ = '.';
-			n += (int) *n + 1;
+			n += *n + 1;
 		}
 	} else {
 		*p++ = '.';
@@ -91,68 +97,165 @@ dnamestr(dname)
 }
 
 /*
- * Parses the string and returns a dname with
- * the first byte indicating the size of the entire
- * dname.
- *
- * XXX Check if we dont run out of space (p < d + len)
- * XXX Verify that every label dont exceed MAXLABELLEN
- * XXX Complain about empty labels (.nlnetlabs..nl)
+ * Parses an character string containing escape characters. The
+ * parsing is done in-place.
  */
-u_char *
-strdname(s, o)
-	char	*s;
-	u_char	*o;
+static void
+parse_escaped_string(char *s)
 {
-	static char dname[MAXDOMAINLEN+1];
-
-	register char *h;
-	register char *p;
-	register char *d = dname + 1;
-
-	if(*s == '@' && *(s+1) == 0) {
-		for(p = dname, s = o; (u_char *)s < o + *o + 1; p++, s++)
-			*p = NAMEDB_NORMALIZE(*s);
-	} else {
-		for(h = d, p = h + 1; *s; s++, p++) {
-			if(*s == '.') {
-				if(p == (h + 1)) p--;	/* Suppress empty labels */
-				*h = p - h - 1;
-				h = p;
+	char *d;
+	for (d = s; *s; s++, d++) {
+		if (*s == '\\') {
+			if ('0' <= s[1] && s[1] <= '3'
+			    && '0' <= s[2] && s[2] <= '7'
+			    && '0' <= s[3] && s[3] <= '7')
+			{
+				char ch = (char) ((s[1] - '0') * 64
+						  + (s[2] - '0') * 8
+						  + (s[3] - '0'));
+				*d = ch;
+				s += 3;
+			} else if (s[1] != '\0') {
+				*d = *++s;
 			} else {
-				*p = NAMEDB_NORMALIZE(*s);
+				*d = *s;
 			}
+		} else {
+			*d = *s;
 		}
-		*h = p - h - 1;
-
-		/* If not absolute, append origin... */
-		if((*(p-1) != 0) && (o != NULL)) {
-			for(s = o + 1; (u_char *)s < o + *o + 1; p++, s++)
-				*p = NAMEDB_NORMALIZE(*s);
-		}
-
-		*dname = (u_char) (p - d);
-
 	}
-
-	h = xalloc((int)*dname + 1);
-	bcopy(dname, h, (int)*dname + 1);
-	return h;
+	*d = '\0';
 }
 
 /*
+ * Returns a pointer to the first unescaped character 'ch'. Returns
+ * NULL if no unescaped character 'ch' could be found.
+ */
+static char *
+find_unescaped_char(char *s, char ch)
+{
+	int in_escape = 0;
+	for (; *s && (in_escape || *s != ch); s++) {
+		in_escape = (!in_escape && *s == '\\');
+	}
+	return *s ? s : NULL;
+}
+
+/*
+ * Parses the 'input' text and returns a dname with the first byte
+ * indicating the size of the entire dname.  If the 'input' text
+ * consists of a single '@' character the returned dname is a copy of
+ * 'origin'. The resulting dname is always allocated on the heap and
+ * the caller MUST free this memory later.
  *
+ * XXX Complain about empty labels (.nlnetlabs..nl)
+ */
+u_char *
+text_to_dname(const char *input, const u_char *origin)
+{
+	/* Temporary buffer to hold the parsed dname.  */
+	u_char dname[MAXDOMAINLEN+1];
+	u_char *result;
+
+	char *copy = strdup(input);
+	char *end;
+	char *start;
+		
+	/*
+	 * Points to the start of the current label in
+	 * 'dname'.
+	 */
+	u_char *current_label = dname + 1;
+	
+	/*
+	 * Points to the current character position in
+	 * 'dname'.
+	 */
+	u_char *p;
+	
+	size_t dname_length = 0;
+	size_t label_length;
+	int absolute = 0;
+	
+	if(strcmp(copy, "@") == 0) {
+		copy[0] = '\0';
+	}
+	
+	/* Parse the dname.  */
+	start = copy;
+	end = find_unescaped_char(start, '.');
+	for(;;) {
+		if(end) {
+			*end = '\0';
+			absolute = (end[1] == '\0');
+		}
+		
+		parse_escaped_string(start);
+		label_length = strlen(start);
+		if(label_length > MAXLABELLEN) {
+			free(copy);
+			return NULL;
+		}
+		
+		dname_length += label_length + 1;
+		if(dname_length > MAXDOMAINLEN) {
+			free(copy);
+			return NULL;
+		}
+		
+		*current_label = label_length;
+		if(label_length > 0) {
+			size_t i;
+			for (i = 0; i < label_length; i++)
+				current_label[i + 1] = NAMEDB_NORMALIZE(start[i]);
+			current_label += label_length + 1;
+		}
+		
+		if(end) {
+			start = end + 1;
+			end = find_unescaped_char(start, '.');
+		} else {
+			break;
+		}
+	}
+	
+	*current_label = 0;
+	p = current_label;
+	
+	/* If not absolute, append origin...  */
+	if(!absolute) {
+		const u_char *src;
+		const u_char *end = origin + *origin + 1;
+		
+		if (dname_length + *origin > MAXDOMAINLEN) {
+			free(copy);
+			return NULL;
+		}
+		
+		for(src = origin + 1; src < end; p++, src++)
+			*p = NAMEDB_NORMALIZE(*src);
+		p--;
+	}
+	
+	/* Store total length of dname.	 */
+	*dname = p - dname;
+	
+	free(copy);
+	
+	result = xalloc((size_t) *dname + 1);
+	memcpy(result, dname, (size_t) *dname + 1);
+	return result;
+}
+
+/*
  * Compares two domain names.
- *
  */
 int
-dnamecmp(a, b)
-	register u_char *a;
-	register u_char *b;
+dnamecmp(const u_char *a, const u_char *b)
 {
-	register int r;
-	register int alen = (int)*a;
-	register int blen = (int)*b;
+	int r;
+	size_t alen = *a;
+	size_t blen = *b;
 
 	while(alen && blen) {
 		a++; b++;
@@ -166,9 +269,8 @@ dnamecmp(a, b)
  * Converts numeric value of resource record type into
  * a string.
  */
-char *
-typetoa(n)
-	u_int16_t n;
+const char *
+typetoa(u_int16_t n)
 {
 	struct zf_type_tab *type;
 	static char name[5];
@@ -176,7 +278,7 @@ typetoa(n)
 	for(type = zf_types; type->type; type++)
 		if(n == type->type) return type->name;
 
-	sprintf(name, "%u", n);
+	snprintf(name, sizeof(name), "%u", n);
 	return name;
 }
 
@@ -184,17 +286,16 @@ typetoa(n)
  * Converts numeric value of resource record class into
  * a string.
  */
-char *
-classtoa(n)
-	u_int16_t n;
+const char *
+classtoa(u_int16_t n)
 {
 	struct zf_class_tab *class;
-	static char name[5];
+	static char name[6];
 
 	for(class = zf_classes; class->class; class++)
 		if(n == class->class) return class->name;
 
-	sprintf(name, "%u", n);
+	snprintf(name, sizeof(name), "%u", n);
 	return name;
 }
 
@@ -202,30 +303,28 @@ classtoa(n)
  * Returns type_tab by type name.
  *
  */
-struct zf_type_tab *
-typebyname(a)
-	char *a;
+static struct zf_type_tab *
+typebyname(const char *a)
 {
 	struct zf_type_tab *type;
 
 	for(type = zf_types; type->type; type++)
 		if(strcasecmp(a, type->name) == 0) return type;
-	return  NULL;
+	return	NULL;
 }
 
 /*
  * Returns type_tab by type name.
  *
  */
-struct zf_class_tab *
-classbyname(a)
-	char *a;
+static struct zf_class_tab *
+classbyname(const char *a)
 {
 	struct zf_class_tab *class;
 
 	for(class = zf_classes; class->class; class++)
 		if(strcasecmp(a, class->name) == 0) return class;
-	return  NULL;
+	return	NULL;
 }
 
 /*
@@ -241,10 +340,8 @@ classbyname(a)
  * XXX This functions does not check the range.
  *
  */
-long
-strtottl(nptr, endptr)
-	char *nptr;
-	char **endptr;
+static long
+strtottl(char *nptr, char **endptr)
 {
 	int sign = 0;
 	long i = 0;
@@ -321,12 +418,12 @@ strtottl(nptr, endptr)
  *
  */
 void *
-inet6_aton(str)
-	char *str;
+inet6_aton(const char *str)
 {
 	char *addr;
 	u_int16_t w;
-	char *p, *t, *z;
+	const char *p;
+	char *t, *z;
 
 	addr = xalloc(IP6ADDRLEN);
 
@@ -339,7 +436,7 @@ inet6_aton(str)
 		if((*p == ':') || (*p == '\000')) {
 			w = htons((u_int16_t) strtol(str, &z, 16));
 			if(z != p) return NULL;
-			bcopy(&w, t, sizeof(u_int16_t));
+			memcpy(t, &w, sizeof(u_int16_t));
 			t += sizeof(u_int16_t);
 			str = p + 1;
 		}
@@ -356,63 +453,18 @@ inet6_aton(str)
 }
 
 /*
- * Handles quotes.
- *
- */
-char *
-zone_strtok(s)
-	register char *s;
-{
-	register char *t;
-	static char *p = "";
-
-	if(s) {
-		p = s;
-	}
-
-	/* Skip leading delimiters */
-	for(s = p; *s == ' ' || *s == '\t' || *s == '\n'; s++);
-
-	/* Quotes... */
-	if(*s == '"') {
-		for(t = ++s; *t && *t != '"'; t++);
-		if(*t) {
-			*t = '\000';
-			p = t + 1;
-			return s;
-		} else {
-			fprintf(stderr, "missing closing quote\n");
-			return NULL;
-		}
-
-	}
-	/* Find the next delimiter */
-	for(t = s; *t && *t != ' ' && *t != '\t' && *t != '\n'; t++);
-	if(t == s) return NULL;
-
-	if(*t) {
-		*t = '\000';
-		p = t + 1;
-	} else {
-		p = t;
-	}
-
-	return s;
-}
-
-/*
  * Prints an error message related to a particular zone file.
  */
 void
-zf_error(zf, msg)
-	struct zf *zf;
-	char *msg;
+zf_error(struct zf *zf, char *msg)
 {
 	if(zf->iptr > -1) {
+		fflush(stderr);
 		fprintf(stderr, "%s in %s, line %lu\n", msg,
 			zf->i[zf->iptr].filename,
 			zf->i[zf->iptr].lineno);
 	} else {
+		fflush(stderr);
 		fprintf(stderr, "%s\n", msg);
 	}
 	zf->errors++;
@@ -423,8 +475,7 @@ zf_error(zf, msg)
  *
  */
 void
-zf_syntax(zf)
-	struct zf *zf;
+zf_syntax(struct zf *zf)
 {
 	zf_error(zf, "syntax error");
 }
@@ -432,9 +483,8 @@ zf_syntax(zf)
 /*
  * Closes current include file.
  */
-int
-zf_close_include(zf)
-	struct zf *zf;
+static int
+zf_close_include(struct zf *zf)
 {
 	if(zf->iptr > -1) {
 		free(zf->i[zf->iptr].filename);
@@ -446,94 +496,227 @@ zf_close_include(zf)
 }
 
 /*
- * Gets a line from the current zone file, returns to higher
- * level include file if end of file. XXX Check for truncated lines?
+ * Gets a character from the current zone file, returning to the
+ * higher level include file if necessary and 'start' is true.
  */
-char *
-zf_getline(zf)
-	struct zf *zf;
+static int
+zf_getchar(struct zf *zf, int start)
 {
+	int ch;
+	if (zf->iptr < 0)
+		return EOF;
 
-	/* Return to upper level include file if any... */
-	while(fgets(zf->linebuf, LINEBUFSZ - 1, zf->i[zf->iptr].file) == NULL) {
-		if(zf->i[zf->iptr].parentheses) {
-			zf_error(zf, "end of file inside of parentheses");
-		}
-
-		if(zf_close_include(zf) == 0) {
-			return NULL;
+	if (zf->ungetchar != EOF) {
+		ch = zf->ungetchar;
+		zf->ungetchar = EOF;
+	} else {
+		
+		while((ch = fgetc(zf->i[zf->iptr].file)) == EOF) {
+			if(zf->i[zf->iptr].parentheses) {
+				zf_error(zf, "end of file inside of parentheses");
+			}
+			
+			/*
+			 * Only close include file if we're at the
+			 * start of a token.  This way tokens can
+			 * never start in one file and continue into
+			 * the next file.
+			 */
+			if(!start) {
+				return EOF;
+			}
+			
+			if(zf_close_include(zf) == 0) {
+				return EOF;
+			}
 		}
 	}
 
-	/* New line */
-	zf->i[zf->iptr].lineno++;
-	zf->lines++;
-
-	return zf->linebuf;
+	if (ch == '\n') {
+		zf->i[zf->iptr].lineno++;
+		zf->lines++;
+	}
+	
+	return ch;
 }
 
+/*
+ * Ungets the character c.  Only a single character can be stored.
+ */
+static void
+zf_ungetchar(struct zf *zf, char ch)
+{
+	assert(zf->ungetchar == EOF);
+	if (ch == '\n') {
+		zf->i[zf->iptr].lineno--;
+		zf->lines--;
+	}
+	zf->ungetchar = ch;
+}
 
 /*
- * Returns next token, with regard to '(' and ')'
- *
+ * Peeks one character ahead using zf_getchar and zf_ungetchar.
  */
-char *
-zf_token(zf, s)
-	struct zf *zf;
-	char *s;
+static int
+zf_peekchar(struct zf *zf, int start)
 {
-	char *t, *line;
+	int ch = zf_getchar(zf, start);
+	zf_ungetchar(zf, ch);
+	return ch;
+}
 
-	t = zone_strtok(s);
+/*
+ * We're at the end of a record if we're at the end of a file
+ * or at a newline and there are no outstanding parentheses.
+ */
+static int
+is_end_of_record(struct zf *zf, int ch)
+{
+	return ch == EOF || (ch == '\n' && !zf->i[zf->iptr].parentheses);
+}
 
-	while((t == NULL) || (*t == ';')) {
-		if(zf->i[zf->iptr].parentheses) {
-			if((line = zf_getline(zf)) == NULL) {
-				return NULL;
-			}
-			t = zone_strtok(line);
-		} else {
-			return NULL;
-		}
+static int
+is_delimiter(int ch)
+{
+	return isspace(ch) || ch == '(' || ch == ')' || ch == ';';
+}
+
+/*
+ * Returns the next token. The return value is NULL if the end of a
+ * record is reached (or the end of the file). Otherwise the result
+ * points to a static area containing the token. If 'escape' is true
+ * character espaces are replaced with the escaped character.
+ *
+ * This function deals with parentheses and quotes.
+ */
+static char *
+zf_token(struct zf *zf)
+{
+	int ch;
+	int truncated;
+	int in_escape;		/* True if previous character is backslash. */
+	size_t pos;
+
+start:
+	/* Skip whitespace.  */
+	do {
+		ch = zf_getchar(zf, 1);
+	} while (isspace(ch) && !is_end_of_record(zf, ch));
+
+	/* Return NULL at the end of the file or at the end of a
+           record. */
+	if (is_end_of_record(zf, ch)) {
+#if DEBUG > 3
+		fflush(stdout);
+		fprintf(stderr, "token EORR/EOF\n");
+#endif
+		return NULL;
 	}
 
-	switch(*t) {
+	switch (ch) {
+	case ';':
+		/* Skip comments upto the EOF or EOL. */
+#if DEBUG > 3
+		fflush(stdout);
+		fprintf(stderr, "token ';'\n");
+#endif
+		do {
+			ch = zf_getchar(zf, 0);
+		} while (ch != EOF && ch != '\n');
+		zf_ungetchar(zf, ch);
+		
+		goto start;
 	case '(':
-		if(zf->i[zf->iptr].parentheses) {
-			zf_error(zf, "nested open parenthes");
+#if DEBUG > 3
+		fflush(stdout);
+		fprintf(stderr, "token '('\n");
+#endif
+		if (zf->i[zf->iptr].parentheses) {
+			zf_error(zf, "nested parentheses");
 		} else {
 			zf->i[zf->iptr].parentheses = 1;
 		}
-		if(*++t == 0) {
-			return zf_token(zf, NULL);
-		}
-		break;
+		goto start;
 	case ')':
-		if(!zf->i[zf->iptr].parentheses) {
-			zf_error(zf, "missing open parenthes");
-		} else {
+#if DEBUG > 3
+		fflush(stdout);
+		fprintf(stderr, "token ')'\n");
+#endif
+		if (zf->i[zf->iptr].parentheses) {
 			zf->i[zf->iptr].parentheses = 0;
+		} else {
+			zf_error(zf, "unmatched closing paren");
 		}
-		if(*++t == 0) {
-			return zf_token(zf, NULL);
+		goto start;
+	case '"':
+		truncated = 0;
+		pos = 0;
+		in_escape = 0;
+		while ((ch = zf_getchar(zf, 0)), ch != EOF && (in_escape || ch != '"')) {
+			if (pos < sizeof(current_token) - 1) {
+				current_token[pos++] = ch;
+			} else if (!truncated
+				   && pos == sizeof(current_token) - 1)
+			{
+				zf_error(zf, "text truncated");
+				truncated = 1;
+			}
+
+			/* We're starting a character escape if we're
+                           are not yet in an escape and the current
+                           character is a backslash. */
+			in_escape = (!in_escape && ch == '\\');
 		}
-		break;
+		current_token[pos] = '\0';
+		
+		if (ch == EOF) {
+			zf_error(zf, "unterminated character string");
+		}
+#if DEBUG > 3
+		fflush(stdout);
+		fprintf(stderr, "token '%s'\n", current_token);
+#endif
+		return current_token;
+	default:
+		truncated = 0;
+		pos = 0;
+		in_escape = 0;
+		do {
+			if (pos < sizeof(current_token) - 1) {
+				current_token[pos++] = ch;
+			} else if (!truncated
+				   && pos == sizeof(current_token) - 1)
+			{
+				zf_error(zf, "text truncated");
+				truncated = 1;
+			}
+			
+			/* We're starting a character escape if we're
+                           are not yet in an escape and the current
+                           character is a backslash. */
+			in_escape = (!in_escape && ch == '\\');
+			
+			ch = zf_getchar(zf, 0);
+		} while (ch != EOF && (in_escape || !is_delimiter(ch)));
+		zf_ungetchar(zf, ch);
+		current_token[pos] = '\0';
+		
+#if DEBUG > 3
+		fflush(stdout);
+		fprintf(stderr, "token '%s'\n", current_token);
+#endif
+		return current_token;
 	}
-	return t;
 }
 
 /*
  * Opens a file.
  *
  */
-int
-zf_open_include(zf, filename, origin, ttl)
-	struct zf *zf;
-	char *filename;
-	char *origin;
-	int32_t ttl;
+static int
+zf_open_include(struct zf *zf, const char *filename, char *origin, int32_t ttl)
 {
-	if((zf->iptr + 1 > MAXINCLUDES)) {
+	if(zf->iptr + 1 > MAXINCLUDES) {
 		zf_error(zf, "too many nested include files");
 		return -1;
 	}
@@ -541,12 +724,13 @@ zf_open_include(zf, filename, origin, ttl)
 	zf->iptr++;
 
 	if((zf->i[zf->iptr].file = fopen(filename, "r")) == NULL) {
+		fflush(stdout);
 		fprintf(stderr, "cannot open file %s: %s\n", filename, strerror(errno));
 		zf->iptr--;
 		return -1;
 	}
 
-	zf->i[zf->iptr].lineno = 0;
+	zf->i[zf->iptr].lineno = 1;
 	zf->i[zf->iptr].filename = strdup(filename);
 	zf->i[zf->iptr].origin = origin;
 	zf->i[zf->iptr].ttl = ttl;
@@ -559,9 +743,7 @@ zf_open_include(zf, filename, origin, ttl)
  * Opens a zone file and sets us up for parsing.
  */
 struct zf *
-zf_open(filename, origin)
-	char *filename;
-	u_char *origin;
+zf_open(char *filename, u_char *origin)
 {
 	struct zf *zf;
 
@@ -572,14 +754,15 @@ zf_open(filename, origin)
 	zf->errors = 0;
 	zf->iptr = -1;
 	zf->lines = 0;
+	zf->ungetchar = EOF;
 
-	bzero(&zf->line, sizeof(struct zf_entry));
+	memset(&zf->line, 0, sizeof(struct zf_entry));
 
 	/* Open the main file... */
-	if(zf_open_include(zf, filename, strdname(origin, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
+	if(zf_open_include(zf, filename, text_to_dname(origin, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
 		free(zf);
-                return NULL;
-        }
+		return NULL;
+	}
 
 	return zf;
 }
@@ -589,9 +772,7 @@ zf_open(filename, origin)
  *
  */
 void
-zf_free_rdata(rdata, f)
-	union zf_rdatom *rdata;
-	char *f;
+zf_free_rdata(union zf_rdatom *rdata, char *f)
 {
 	int i;
 
@@ -614,10 +795,7 @@ zf_free_rdata(rdata, f)
  *
  */
 int
-zf_cmp_rdata(a, b, f)
-	union zf_rdatom *a;
-	union zf_rdatom *b;
-	register char *f;
+zf_cmp_rdata(union zf_rdatom *a, union zf_rdatom *b, register char *f)
 {
 	register int i;
 	for(i = 0; *f; f++, i++) {
@@ -637,11 +815,12 @@ zf_cmp_rdata(a, b, f)
 				return 1;
 			break;
 		case '6':
-			if(bcmp(a[i].p, b[i].p, IP6ADDRLEN))
+			if(memcmp(a[i].p, b[i].p, IP6ADDRLEN))
 				return 1;
 			break;
 		default:
-			fprintf(stderr, "panic! uknown atom in format %c\n", *f);
+			fflush(stdout);
+			fprintf(stderr, "panic! unknown atom in format %c\n", *f);
 			return 1;
 		}
 	}
@@ -653,8 +832,7 @@ zf_cmp_rdata(a, b, f)
  *
  */
 void
-zf_print_entry(rr)
-	struct zf_entry *rr;
+zf_print_entry(struct zf_entry *rr)
 {
 	printf("%s\t%d\t%s\t%s\t", dnamestr(rr->dname), rr->ttl, classtoa(rr->class), typetoa(rr->type));
 
@@ -664,9 +842,7 @@ zf_print_entry(rr)
 }
 
 void
-zf_print_rdata(rdata, rdatafmt)
-	union zf_rdatom *rdata;
-	char *rdatafmt;
+zf_print_rdata(union zf_rdatom *rdata, char *rdatafmt)
 {
 	int i, j;
 	struct in_addr in;
@@ -713,236 +889,302 @@ zf_print_rdata(rdata, rdatafmt)
 }
 
 /*
- * Reads a line from the parser and parses it as a resource record.
- *
- * Returns NULL on end of file.
- *
+ * Parse a directive.  The first character of token MUST be '$'.
+ * Errors are reported.
  */
-struct zf_entry *
-zf_read(zf)
-	struct zf *zf;
+static void
+parse_directive(struct zf *zf, char *token)
+{
+	char *t;
+	
+	if(strcasecmp(token, "$TTL") == 0) {
+		int32_t ttl;
+		
+		if((token = zf_token(zf)) == NULL) {
+			zf_error(zf, "missing TTL in directive");
+			return;
+		}
+
+		ttl = strtottl(token, &t);
+		
+		if(*t) {
+			zf_error(zf, "default ttl is not a number");
+			return;
+		}
+		
+		zf->i[zf->iptr].ttl = ttl;
+	} else if(strcasecmp(token, "$ORIGIN") == 0) {
+		if((token = zf_token(zf)) == NULL) {
+			zf_error(zf, "missing domain name in directive");
+			return;
+		}
+		if((t = text_to_dname(token, zf->i[zf->iptr].origin)) == NULL) {
+			zf_error(zf, "invalid domain name");
+			return;
+		}
+		free(zf->i[zf->iptr].origin);
+		
+		/* XXX Will fail on binary labels */
+		zf->i[zf->iptr].origin = t;
+	} else if(strcasecmp(token, "$INCLUDE") == 0) {
+		if((token = zf_token(zf)) == NULL) {
+			zf_syntax(zf);
+			return;
+		}
+		if(zf_open_include(zf, token, zf->i[zf->iptr].origin, zf->i[zf->iptr].ttl)) {
+			zf_error(zf, "cannot open include file");
+		}
+	} else {
+		zf_error(zf, "unknown directive");
+		return;
+	}
+
+	if(zf_token(zf) != NULL) {
+		zf_error(zf, "trailing characters after directive");
+		while (zf_token(zf) != NULL)
+			;
+	}
+}
+
+/*
+ * Parses a RR.	 The syntax of an RR is:
+ *
+ *   RR ::= [<domain-name>] [<TTL>] [<class>] <type> <RDATA>
+ *	  | [<domain-name>] [<class>] [<TTL>] <type> <RDATA>
+ */
+static int
+parse_rr(struct zf *zf, char *token, int blank)
 {
 	int parse_error;
-	char *line, *token;
-	char *t, *f;
-	int i, j;
-
+	char *t;
+	size_t i;
+	size_t text_length;
+	size_t format_length;
+	
 	struct zf_type_tab *type;
 	struct zf_class_tab *class;
 
 	u_int16_t default_class = CLASS_IN;
-
-	/* Keep reading till we could parse a line or reached end of file */
-	while((line = zf_getline(zf))) {
-		/* Skip empty lines... */
-		if((token = zf_token(zf, line)) == NULL) continue;
-
-		/* Process directives */
-		if(*token == '$') {
-			if(strcasecmp(token, "$TTL") == 0) {
-				if((token = zf_token(zf, NULL)) == NULL) {
-					zf_syntax(zf);
-					continue;
-				}
-
-				zf->i[zf->iptr].ttl = strtottl(token, &t);
-
-				if(*t) {
-					zf_error(zf, "default ttl is not a number");
-					break;
-				}
-			} else if(strcasecmp(token, "$ORIGIN") == 0) {
-				if((token = zf_token(zf, NULL)) == NULL) {
-					zf_syntax(zf);
-					continue;
-				}
-				if((t = strdname(token, zf->i[zf->iptr].origin)) == NULL) {
-					return NULL;
-				}
-				free(zf->i[zf->iptr].origin);
-				zf->i[zf->iptr].origin = t;	/* XXX Will fail on binary labels */
-			} else if(strcasecmp(token, "$INCLUDE") == 0) {
-				if((token = zf_token(zf, NULL)) == NULL) {
-					zf_syntax(zf);
-					continue;
-				}
-				if(zf_open_include(zf, token, zf->i[zf->iptr].origin, zf->i[zf->iptr].ttl)) {
-					zf_error(zf, "cannot open include file");
-				}
-			} else {
-				zf_error(zf, "unknown directive");
+	
+	/* PROCESS DNAME */
+	if(blank) {
+		/* XXX: What if the last dname was set in the include
+		 * file? Should this affect the file it was included
+		 * by? It does so currently... */
+		if(zf->line.dname == NULL) {
+			zf_error(zf, "missing domain name");
+			/* We return 0 at the end of this method. This
+                           way we still fully parse this line. */
+		}
+	} else {
+		if(zf->line.dname)
+			free(zf->line.dname);
+	
+		/* Parse the dname */
+		if((zf->line.dname = text_to_dname(token, zf->i[zf->iptr].origin)) == NULL) {
+			return 0;
+		}
+		
+		/* Get the next token */
+		token = zf_token(zf);
+	}
+	
+	/* PROCESS TTL, CLASS AND TYPE */
+	zf->line.ttl = zf->i[zf->iptr].ttl;
+	zf->line.class = default_class;
+	
+	for(type = NULL; token; token = zf_token(zf)) {
+		/* Is this a TTL? */
+		if(isdigit(*token)) {
+			int32_t ttl = strtottl(token, &t);
+			if(*t) {
+				zf_error(zf, "ttl is not a number");
+				token = NULL;
+				break;
 			}
+			zf->line.ttl = ttl;
 			continue;
 		}
-
-		/* PROCESS DNAME */
-		if(*line == ' ' || *line == '\t') {
-			if(zf->line.dname == NULL) {
-				zf_error(zf, "missing domain name");
-				continue;
-			}
+		/* Class? */
+		if((class = classbyname(token)) == NULL) {
+			zf->line.class = default_class;
 		} else {
-			/* Free the old name */
-			if(zf->line.dname)
-				free(zf->line.dname);
-			/* Parse the dname */
-			if((zf->line.dname = strdname(token, zf->i[zf->iptr].origin)) == NULL) {
-				return NULL;
-			}
-
-			/* Get the next token */
-			token = zf_token(zf, NULL);
+			zf->line.class = class->class;
+			continue;
 		}
+		
+		/* Then this must be a type */
+		type = typebyname(token);
+		break;
+	}
+	
+	/* Couldn't parse ttl, class or type? */
+	if(type == NULL) {
+		zf_syntax(zf);
+		return 0;
+	}
+	
+	/* Do we support this type? */
+	if(type->fmt == NULL) {
+		zf_error(zf, "unsupported resource record type");
+		return 0;
+	}
 
-		/* PROCESS TTL, CLASS AND TYPE */
-		zf->line.ttl = zf->i[zf->iptr].ttl;
-		zf->line.class = default_class;
-
-		for(type = NULL; token; token = zf_token(zf, NULL)) {
-			/* Is this a TTL? */
-			if(isdigit(*token)) {
-				zf->line.ttl = strtottl(token, &t);
-				if(*t) {
-					zf_error(zf, "ttl is not a number");
-					token = NULL;
-					break;
-				}
-				continue;
-			}
-			/* Class? */
-			if((class = classbyname(token)) == NULL) {
-				zf->line.class = default_class;
-			} else {
-				zf->line.class = class->class;
-				continue;
-			}
-
-			/* Then this must be a type */
-			type = typebyname(token);
+	format_length = strlen(type->fmt);
+	zf->line.type = type->type;
+	zf->line.rdatafmt = type->fmt;
+	zf->line.rdata = xalloc(format_length * sizeof(union zf_rdatom));
+	memset(zf->line.rdata, 0, format_length * sizeof(union zf_rdatom));
+	
+	/* Parse it */
+	parse_error = 0;
+	for(i = 0; i < format_length && !parse_error; i++) {
+		char *rdata = zf_token(zf);
+		if(rdata == NULL) {
+			zf_error(zf, "missing RDATA");
+			parse_error++;
 			break;
 		}
-
-		/* Couldn't parse ttl, class or type? */
-		if(type == NULL) {
-			zf_syntax(zf);
-			continue;
-		}
-
-		/* Do we support this type? */
-		if(type->fmt == NULL) {
-			zf_error(zf, "unsupported resource record type");
-			continue;
-		}
-
-		zf->line.type = type->type;
-		zf->line.rdatafmt = type->fmt;
-		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
-		bzero(zf->line.rdata, sizeof(union zf_rdatom) * MAXRDATALEN);
-
-		/* Parse it */
-		for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; f++, i++) {
-			assert(i < MAXRDATALEN);
-			if((token = zf_token(zf, NULL)) == NULL) {
-				break;
-			}
 #if DEBUG > 2
-			printf("token %c - %s\n", *f, token);
+		printf("token %c - %s\n", zf->line.rdatafmt[i], rdata);
 #endif
-
-			switch(*f) {
-			case '4':
-				if((zf->line.rdata[i].l = inet_addr(token)) == -1) {
-					zf_error(zf, "malformed ipv4 address");
-					parse_error++;
-				}
-				break;
-			case '6':
-				if((zf->line.rdata[i].p = inet6_aton(token)) == NULL) {
-					parse_error++;
-				}
-				break;
-			case 'n':
-				if((zf->line.rdata[i].p = strdname(token, zf->i[zf->iptr].origin)) == NULL) {
-					parse_error++;
-				}
-				break;
-			case 'l':
-				zf->line.rdata[i].l = strtottl(token, &t);
-				if(*t != 0) {
-					zf_error(zf, "illegal long");
-					parse_error++;
-				}
-				break;
-			case 's':
-				zf->line.rdata[i].s = (u_int16_t)strtol(token, &t, 10);
-				if(*t != 0) {
-					zf_error(zf, "illegal short");
-					parse_error++;
-				}
-				break;
-			case 't':
-				if((j = strlen(token)) > 255) {
-					zf_error(zf, "character string is too long");
-					parse_error++;
-					break;
-				} else {
-					zf->line.rdata[i].p = xalloc(j + 1);
-					bcopy(token, zf->line.rdata[i].p + 1, j);
-					*(char *)zf->line.rdata[i].p = (u_char) j;
-				}
-				break;
-			default:
-				fprintf(stderr, "panic! uknown atom in format %c\n", *f);
-				assert(0);
-				return NULL;
+		
+		switch(zf->line.rdatafmt[i]) {
+		case '4':
+			if((zf->line.rdata[i].l = inet_addr(rdata)) == (in_addr_t) -1) {
+				zf_error(zf, "malformed ipv4 address");
+				parse_error++;
 			}
+			break;
+		case '6':
+			if((zf->line.rdata[i].p = inet6_aton(rdata)) == NULL) {
+				zf_error(zf, "malformed ipv6 address");
+				parse_error++;
+			}
+			break;
+		case 'n':
+			if((zf->line.rdata[i].p = text_to_dname(rdata, zf->i[zf->iptr].origin)) == NULL) {
+				zf_error(zf, "malformed domain name");
+				parse_error++;
+			}
+			break;
+		case 'l':
+			zf->line.rdata[i].l = strtottl(rdata, &t);
+			if(*t != 0) {
+				zf_error(zf, "illegal long");
+				parse_error++;
+			}
+			break;
+		case 's':
+			zf->line.rdata[i].s = (u_int16_t)strtol(rdata, &t, 10);
+			if(*t != 0) {
+				zf_error(zf, "illegal short");
+				parse_error++;
+			}
+			break;
+		case 't':
+			parse_escaped_string(rdata);
+			if((text_length = strlen(rdata)) > 255) {
+				zf_error(zf, "character string is too long");
+				parse_error++;
+			} else {
+				zf->line.rdata[i].p = xalloc(text_length + 1);
+				memcpy(zf->line.rdata[i].p + 1,
+				       rdata,
+				       text_length);
+				*(u_char *)zf->line.rdata[i].p = text_length;
+			}
+			break;
+		default:
+			fflush(stdout);
+			fprintf(stderr, "panic! uknown atom in format %c\n",
+				zf->line.rdatafmt[i]);
+			abort();
 		}
+	}
+	
+	if(!parse_error && zf_token(zf) != NULL) {
+		zf_error(zf, "trailing characters");
+		parse_error++;
+		while (zf_token(zf) != NULL)
+			;
+		return 0;
+	}
 
-		/* We couldnt parse it completely */
-		if(parse_error) {
-			zf_syntax(zf);
-			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
-			continue;
-		}
+	/* We couldnt parse it completely */
+	if(parse_error) {
+		zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
+		return 0;
+	}
+	
+	if(zf->line.dname == NULL) {
+		/* Error is reported above at the start of this
+                   function. */
+		return 0;
+	}
+	
+	return 1;
+}
 
-		/* Trailing garbage */
-		if((token = zf_token(zf, NULL)) != NULL) {
-			zf_error(zf, "trailing garbage");
-			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
+
+/*
+ * Reads a line from the parser and parses it as a resource record.
+ * RRs with errors are ignored (but the error is reported).
+ *
+ * Returns NULL on end of file.
+ */
+struct zf_entry *
+zf_read(struct zf *zf)
+{
+	/* Keep reading till we could parse a line or reached end of file */
+	while(zf_peekchar(zf, 0) != EOF) {
+		int blank = isspace(zf_peekchar(zf, 0));
+		char *token = zf_token(zf);
+		if (token == NULL)
 			continue;
+		
+		/* Process directives */
+		if(token[0] == '$') {
+			parse_directive(zf, token);
+			continue;
+		} else {
+			if (!parse_rr(zf, token, blank)) {
+				continue;
+			}
 		}
 
 		/* Success! */
 		return &zf->line;
-
 	}
 
 	return NULL;
 }
 
 /*
- * Closes the zone file, frees the parsing structures. Does not free the
- * current line.
- *
+ * Closes the zone file, frees the parsing structures. Does not free
+ * the current line.
  */
 void
-zf_close(zf)
-	struct zf *zf;
+zf_close(struct zf *zf)
 {
-	while(zf_close_include(zf));
-	if(zf->line.dname) free(zf->line.dname);
+	while(zf_close_include(zf))
+		;
+	
+	if(zf->line.dname)
+		free(zf->line.dname);
+	
 	free(zf);
 }
 
 #ifdef TEST
 
 void *
-xalloc(size)
-	register size_t	size;
+xalloc(size_t size)
 {
-	register void *p;
+	void *p;
 
 	if((p = malloc(size)) == NULL) {
+		fflush(stdout);
 		fprintf(stderr, "malloc failed: %m\n");
 		exit(1);
 	}
@@ -952,14 +1194,13 @@ xalloc(size)
 int
 usage()
 {
+	fflush(stdout);
 	fprintf(stderr, "usage: zf zone-file [origin]\n");
 	exit(1);
 }
 
 int
-main(argc, argv)
-	int argc;
-	char *argv[];
+main(int argc, char *argv[])
 {
 
 	struct zf *zf;
@@ -990,12 +1231,14 @@ main(argc, argv)
 			break;
 		}
 		if((zf->lines % 100000) == 0) {
+			fflush(stdout);
 			fprintf(stderr, "read %u lines...\n", zf->lines);
 		}
 		zf_print_entry(rr);
 		zf_free_rdata(rr->rdata, rr->rdatafmt);
 	}
 
+	fflush(stdout);
 	fprintf(stderr, "complete: %d errors\n", zf->errors);
 
 	/* Close the file */
