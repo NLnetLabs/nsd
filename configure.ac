@@ -103,6 +103,8 @@ AC_PROG_AWK
 AC_PROG_CC
 AC_PROG_LN_S
 AC_PROG_INSTALL
+AC_PROG_LEX
+AC_PROG_YACC
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
