@@ -9,7 +9,7 @@ FEATURES:
           spelling is used.
 
 CODE CHANGES:
-        - Each zone is now stored separately instead of combinding all
+        - Each zone is now stored separately instead of combining all
           domain names into a single searchable tree.  This eliminates
           some correctness (wildcard matches) and performance (AXFR,
           NSEC lookup) corner cases.
