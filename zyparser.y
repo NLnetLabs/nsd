@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.47 2003/10/23 14:11:27 miekg Exp $
+ * $Id: zyparser.y,v 1.48 2003/10/23 14:30:53 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -317,6 +317,10 @@ rtype:  SOA sp rdata_soa
     {
 	    current_rr->type = $1;
     }
+    |	KEY sp rdata_key
+    {
+	    current_rr->type = $1;
+    }
     |	error NL
     {	
 	    fprintf(stderr,"Unimplemented RR seen\n");
@@ -410,6 +414,15 @@ rdata_ds:	STR sp STR sp STR sp hex_seq trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* keytag */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* alg */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* type */
+		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $7.str)); /* hash */
+	}
+	;
+
+rdata_key:	STR sp STR sp STR sp hex_seq trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* flags */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* proto */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* alg */
 		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $7.str)); /* hash */
 	}
 	;
