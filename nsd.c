@@ -92,7 +92,6 @@ usage (void)
 		"                  specified multiple times).\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
 		"  -f database     Specify the database to load.\n"
-		"  -P pidfile      Specify the PID file to write.\n"
 		"  -h              Print this help information.\n"
 		);
 	fprintf(stderr,
@@ -100,12 +99,13 @@ usage (void)
 		"  -l filename     Specify the log file.\n"
 		"  -N udp-servers  Specify the number of child UDP servers.\n"
 		"  -n tcp-servers  Specify the number of child TCP servers.\n"
+		"  -P pidfile      Specify the PID file to write.\n"
 		"  -p port         Specify the port to listen to.\n"
 		"  -s seconds      Dump statistics every SECONDS seconds.\n"
 		"  -t chrootdir    Change root to specified directory on startup.\n"
-		"  -u user         Change effective uid to the specified user.\n"
 		);
 	fprintf(stderr,
+		"  -u user         Change effective uid to the specified user.\n"
 		"  -v              Print version information.\n"
 		"  -X plugin       Load a plugin (may be specified multiple times).\n\n"
 		);
@@ -468,7 +468,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:df:P:hi:l:N:n:p:s:u:t:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:df:hi:l:N:n:P:p:s:u:t:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -494,9 +494,6 @@ main (int argc, char *argv[])
 		case 'f':
 			nsd.dbfile = optarg;
 			break;
-		case 'P':
-			nsd.pidfile = optarg;
-			break;
 		case 'h':
 			usage();
 			break;
@@ -521,6 +518,9 @@ main (int argc, char *argv[])
 			} else {
 				nsd.maximum_tcp_count = i;
 			}
+			break;
+		case 'P':
+			nsd.pidfile = optarg;
 			break;
 		case 'p':
 			tcp_port = optarg;

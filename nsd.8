@@ -44,12 +44,12 @@ nsd
 .Op Fl a Ar ip-address
 .Op Fl d 
 .Op Fl f Ar database
-.Op Fl P Ar pidfile
 .Op Fl h
 .Op Fl i Ar identity
 .Op Fl l Ar logfile
 .Op Fl N Ar server-count
 .Op Fl n Ar concurrent-tcp-count
+.Op Fl P Ar pidfile
 .Op Fl p Ar port
 .Op Fl s Ar secondss
 .Op Fl t Ar chrootdir
@@ -119,12 +119,6 @@ Use the specified
 instead of the default of
 .Em /etc/nsd/nsd.db .
 
-.It Fl P Ar pidfile
-Use the specified
-.Ar pidfile
-instead of the platform specific default, which is mostly
-.Em /var/run/nsd.pid .
-
 .It Fl h
 Print help information and exit.
 
@@ -154,6 +148,12 @@ The maximum
 .Ar number
 of concurrent TCP connection that can be handled by each server.  The
 default is 10.
+
+.It Fl P Ar pidfile
+Use the specified
+.Ar pidfile
+instead of the platform specific default, which is mostly
+.Em /var/run/nsd.pid .
 
 .It Fl p Ar port
 Answer the queries on the specified
