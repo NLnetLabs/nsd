@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.21 2002/02/19 14:25:11 alexis Exp $
+ * $Id: nsd.h,v 1.22 2002/02/19 15:28:14 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -78,7 +78,7 @@
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
 
-#ifdef	DEBUG
+#if	DEBUG > 2
 
 #define	CF_DBFILE	"nsd.db"
 #define	CF_PIDFILE	"nsd.pid"
@@ -90,8 +90,14 @@
 
 #else
 
+#ifndef CF_DBFILE
 #define	CF_DBFILE	"/var/db/nsd.db"
+#endif
+
+#ifndef CF_PIDFILE
 #define	CF_PIDFILE	"/var/run/nsd.pid"
+#endif
+
 #define	CF_TCP_MAX_CONNECTIONS	8
 #define	CF_TCP_PORT		53
 #define	CF_TCP_MAX_MESSAGE_LEN	16384

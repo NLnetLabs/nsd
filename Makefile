@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.34 2002/02/19 14:25:11 alexis Exp $
+# $Id: Makefile,v 1.35 2002/02/19 15:28:14 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -38,21 +38,21 @@
 #
 SHELL = /bin/sh
 
+# Run-time enviroment settings
+NSDBINDIR       = /usr/local/sbin
+NSDZONESDIR     = /usr/local/etc/namedb
+NSDFLAGS        = 
+NSDPIDFILE      = /var/run/nsd.pid
+NSDDB           = /var/db/nsd.db
+
 # Compile environment settings
 DEBUG=	-g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -O6 -Wall -DUSE_HEAP_HASH ${DEBUG} # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
+CFLAGS= -pipe -O6 -Wall -DUSE_HEAP_HASH -DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" ${DEBUG} # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
 LDFLAGS= # -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
 INSTALL = install -c
-
-# Run-time enviroment settings
-NSDBINDIR       = /home/alexis/nsd.bin
-NSDZONESDIR     = /home/alexis/nsd.zones
-NSDFLAGS        = 
-NSDPIDFILE      = /home/alexis/nsd.run/nsd.pid
-NSDDB           = /home/alexis/nsd.run/nsd.db
 
 #
 #
