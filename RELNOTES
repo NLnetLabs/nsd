@@ -2,6 +2,9 @@ NSD RELEASE NOTES
 
 2.2.1
 =============
+FEATURES:
+        - The message priority is now included when logging to a file.
+
 BUG FIXES:
         - Zero length RDATA using the unknown RR notation was not
           working (except for the APL RR type).
