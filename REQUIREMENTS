@@ -1,5 +1,4 @@
->-*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.11 2003/10/30 11:40:08 miekg Exp $
+$Id: REQUIREMENTS,v 1.12 2003/11/04 13:02:55 miekg Exp $
 
 
 NSD Requirements and Specifications
@@ -79,7 +78,7 @@ These requirements are in order of importance:
    platforms.  Rough targets:
    (Intel/SPARC/Alpha)(FreeBSD,Linux,Solaris)
 
-11. maintenance for initial period
+11. Maintenance for initial period
 
    NLnet Labs and the RIPE NCC will support NSD for at least 12
    months after publication.
@@ -133,8 +132,7 @@ C.1. Zone file format and RR records.
    We implement most RRs currently assigned by IANA
    (http://www.iana.org/assignments/dns-parameters) except for RRs
    that are obsoleted by IANA or assigned experimental, those MAY not
-   be implemented. The implementation of a number of RRs is deferred to
-   versions 1.0.1, 1.1.0 or later. See below and/or release notes.
+   be implemented.  See below and/or release notes.
 
    Zone file MUST not contain errors. i.e. the zonecompiler may fail
    or produce unpredictable results when:
@@ -180,7 +178,7 @@ C.1. Zone file format and RR records.
    dname compression in RDATA.
      
 
-   DNSSEC consideration (as of 1.1.0):
+   DNSSEC consideration (as of 2.0.0):
 
    DNSSEC processing of data in a zone will only take place if that
    zone is marked to be secure. A zone is marked secure if the SOA
@@ -938,6 +936,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.11 2003/10/30 11:40:08 miekg Exp $
+$Id: REQUIREMENTS,v 1.12 2003/11/04 13:02:55 miekg Exp $
 
 

@@ -43,6 +43,7 @@
 #define RDATA_SERVICE	14
 
 #define LINEBUFSZ 1024
+
 struct lex_data {
     size_t   len;		/* holds the label length */
     void    *str;		/* holds the data */

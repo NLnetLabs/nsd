@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.5 2003/11/03 15:08:35 miekg Exp $
+ * $Id: zlexer.lex,v 1.6 2003/11/04 13:02:55 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -79,7 +79,8 @@ Q       \"
 			     	 * open the new filename and continue parsing 
 			     	 */
 				if ( include_stack_ptr >= MAXINCLUDES ) {
-			            yyerror( "Includes nested too deeply (>10)" );
+				    error("Line %d: Includes nested too deeply (>10)", 
+				    	current_parser->line);
             			    exit(1);
             			}
 
@@ -96,7 +97,8 @@ Q       \"
 
 		        	yyin = fopen( yytext, "r" );
         			if ( ! yyin ) {
-            				yyerror("Cannot open $INCLUDE file" );
+					error("Line %d: Cannot open $INCLUDE file: %s", 
+						current_parser->line, yytext);
 				    	exit(1);
 				}
 
@@ -121,7 +123,7 @@ Q       \"
             				yy_switch_to_buffer( include_stack[include_stack_ptr] );
             			}
         		}
-^{DOLLAR}{LETTER}+      { yyerror("Uknown $-directive"); }
+^{DOLLAR}{LETTER}+      { warning("Line %d: Uknown $directive: %s",current_parser->line, yytext); }
 ^{DOT}                  {
                             /* a ^. means the root zone... also set in_rr */
                             in_rr = expecting_dname;
@@ -148,7 +150,7 @@ Q       \"
                         }
 {SPACE}*\({SPACE}*      {
                             if ( paren_open == 1 ) {
-                                yyerror( "nested parentheses" );
+				error("Line %d: Nested parentheses",current_parser->line );
                                 yyterminate();
                             }
                             LEXOUT(("SP( "));
@@ -157,7 +159,7 @@ Q       \"
                         }
 {SPACE}*\){SPACE}*      {
                             if ( paren_open == 0 ) {
-                                yyerror( "unterminated parentheses" );
+				error("Line %d: Unterminated parentheses",current_parser->line );
                                 yyterminate();
                             }
                             LEXOUT(("SP) "));
@@ -282,8 +284,9 @@ CLASS[0-9]+             {
 .                       {
                             /* we should NEVER reach this
                              * bail out with an error */
-                            yyerror("Uknown character seen - is this a zonefile?");
-                            /*exit(1);*/
+			    error("Line %d: Uknown character seen - is this a zonefile?",
+			    	current_parser->line);
+                            /*exit(1); [XXX] we should exit... */
                         }
 %%
 

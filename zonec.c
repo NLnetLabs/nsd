@@ -970,18 +970,35 @@ usage (void)
 }
 
 int
-error(void)
+error(const char *fmt, ...)
 {
-	/* standard way of handling errors in zonec */
+	/* send an error message to stderr */
+	va_list args;
+	va_start(args, fmt);
 
+	fprintf(stderr,"ERR: ");
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
+
+	va_end(args);
+	return 0;
 }
 
-int
-warning(void)
+int 
+warning(const char *fmt, ... )
 {
-	/* standard way of handling errors in zonec */
+	va_list args;
 
+	va_start(args, fmt);
+
+	fprintf(stderr,"WARN: ");
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
+
+	va_end(args);
+	return 0;
 }
+
 
 extern char *optarg;
 extern int optind;
