@@ -108,6 +108,37 @@ will unpack the source into the ./nsd-@version@ directory...
 NSD can be configured using GNU autoconf's configure script. In
 addition to standard configure options, one may use the following:
 
+  CC=compiler
+ 
+        Specify the C compiler.  The default is gcc or cc.  The
+        compiler must support ANSI C89.
+
+  CPPFLAGS=flags
+
+        Specify the C preprocessor flags.  For gcc, -ansi (or
+        -std=c89) is considered a preprocessor flag because it alters
+        the way header files are processed on many systems.  If you
+        specify -ansi make sure you specify the correct options to
+        enable standard Unix functions (-DXOPEN_SOURCE=600 on Linux
+        and systems that conform to the Single Unix Specification
+        version 3, -D__EXTENSIONS__ on Solaris, etc.).
+
+  CFLAGS=flags
+
+        Specify the C compiler flags.  These include code generation,
+        optimization, warning, and debugging flags.  These flags are
+        also passed to the linker.
+
+        The default for gcc is "-g -O2".
+
+  LD=linker
+
+        Specify the linker (defaults to the C compiler).
+
+  LDFLAGS=flags
+
+        Specify linker flags.
+
   --enable-root-server
 
 	Configure NSD as a root server. Unless this option is
