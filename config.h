@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.10 2002/07/01 16:49:55 alexis Exp $
+ * $Id: config.h,v 1.10.2.1 2002/08/06 12:18:39 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -82,6 +82,10 @@
 
 #ifndef CF_PIDFILE
 #define	CF_PIDFILE	"/var/run/nsd.pid"
+#endif
+
+#ifndef	CF_FACILITY
+#define	CF_FACILITY	LOG_LOCAL5
 #endif
 
 #define	CF_TCP_MAX_CONNECTIONS	8

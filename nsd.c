@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.38 2002/06/13 12:48:22 alexis Exp $
+ * $Id: nsd.c,v 1.38.2.1 2002/08/06 12:18:39 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -224,7 +224,7 @@ main(argc, argv)
 #	endif
 
 	/* Set up the logging... */
-	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
+	openlog("nsd", LOG_PERROR, CF_FACILITY);
 
 	/* Set up our default identity to gethostname(2) */
 	if(gethostname(hostname, MAXHOSTNAMELEN) == 0) {
