@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.1.2.2 2002/05/16 10:57:14 alexis Exp $
+$Id: RELNOTES,v 1.1.2.3 2002/05/21 08:57:06 alexis Exp $
 
 1.0.0 RELEASE
 =============
@@ -10,15 +10,16 @@ KNOWN BUGS:
   NOT a valid syntax:
 
 	... MX 20 relay1;This is a comment
+	               ^^
 
  This will fail as well:
-
+	                   vv
 	SOA hostmaster ns1 (2002151000 ; Serial
 
 - Although NSD allows one to configure a zone without SOA record and
   use it as so called ``cached'' non-authoratative data, it is decided
-  that this functionality is wrong, dangerous and will be disabled in
-  further versions.
+  that having this functionality is wrong, dangerous and will be removed
+  from the further versions.
 
 - If while processing EDNS(0) OPT record NSD encounters bad EDNS(0)
   version it will answer with Format Error instead of EDNS(0) BADVERS
