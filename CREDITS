@@ -1,4 +1,4 @@
-$Id: CREDITS,v 1.1 2002/02/28 15:18:04 alexis Exp $
+$Id: CREDITS,v 1.2 2002/03/11 12:11:20 erik Exp $
 
 The NSD was primarily developed by NLnet LABS on request from and close
 cooperation with RIPE NCC, as an alternative name server software to be
@@ -8,10 +8,8 @@ Below is the NSD team (nsd-team@nlnetlabs.nl) in alphabetical order:
 
 Alexis Yushin, <alexis@nlnetlabs.nl> NLnet LABS	- design and most of the code
 Daniel Karrenberg, <dfk@ripe.net> RIPE NCC	- design, major testing and bug reports
-Eric Roozendaal, <erik@nlnetlabs.nl> NLnet LABS	- code review, testing, improvements and patches
+Erik Rozendaal, <erik@nlnetlabs.nl> NLnet LABS	- code review, testing, improvements and patches
 Jaap Akkerhuis, <jaap@sidn.nl> SIDN NL		- consultancy, advice and company :)
 Miek Gieben, <miekg@nlnetlabs.nl> NLnet LABS	- manual pages and testing
 Olaf Kolkman, <olaf@ripe.net> RIPE NCC		- perl zone compiler, rfc research, testing
 Ted Lindgreen, <ted@nlnetlabs.nl> NLnet LABS	- design, code review, testing
-
-
