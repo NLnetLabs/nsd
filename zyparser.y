@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.35 2003/09/10 12:52:34 miekg Exp $
+ * $Id: zyparser.y,v 1.36 2003/09/10 15:49:52 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -141,7 +141,7 @@ in:     IN
 	    /* unknown RR seen */
 	    current_rr->class = intbyclassxx($1.str);
 	    if ( current_rr->class == 0 ) {
-		    fprintf(stderr,"CLASSXXXX parse error, setting to IN class.\n");
+		    fprintf(stderr,"CLASSXXX parse error, setting to IN class.\n");
 		    current_rr->class = zdefault->class;
 	    }
     }
@@ -252,6 +252,10 @@ rtype:  SOA SP rdata_soa
     {   
         zadd_rtype("soa");
     }
+    |	SOA SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("soa");
+    }
     |   A SP rdata_a
     {
         zadd_rtype("a");
@@ -264,29 +268,74 @@ rtype:  SOA SP rdata_soa
     {
         zadd_rtype("ns");
     }
+    |	NS SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("ns");
+    }
     |   CNAME SP rdata_dname
     {
         zadd_rtype("cname");
+    }
+    |   CNAME SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("cname");
     }
     |   PTR SP rdata_dname
     {   
         zadd_rtype("ptr");
     }
+    |	PTR SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("ptr");
+    }
     |   TXT SP rdata_txt
     {
         zadd_rtype("txt");
+    }
+    |	TXT SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("txt");
     }
     |   MX SP rdata_mx
     {
         zadd_rtype("mx");
     }
+    |   MX SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("mx");
+    }
     |   AAAA SP rdata_aaaa
     {
         zadd_rtype("aaaa");
     }
+    |	AAAA SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("aaaa");
+    }
     |	HINFO SP rdata_hinfo
     {
 	zadd_rtype("hinfo");
+    }
+    |	HINFO SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("hinfo");
+    }
+    |   SRV SP rdata_srv
+    {
+	zadd_rtype("srv");
+    }
+    |	SRV SP UN_RR SP rdata_unknown
+    {
+	zadd_rtype("srv");
+    }
+    |	UN_TYPE SP UN_RR SP rdata_unknown
+    {
+	/* try to add the unknown type */
+	current_rr->type = intbytypexx($1.str);
+	if ( current_rr->type == 0 ) {
+	    fprintf(stderr,"TYPEXXX parse error, setting to A.\n");
+	    current_rr->type = TYPE_A;
+	}
     }
     |	error NL
     {	
@@ -385,12 +434,21 @@ rdata_aaaa: STR
 
 rdata_hinfo:	STR SP STR
 	{
-        	zadd_rdata2( zdefault, zparser_conv_short($1.str) ); /* CPU */
-        	zadd_rdata2( zdefault, zparser_conv_dname($3.str) );  /* OS*/
+        	zadd_rdata2( zdefault, zparser_conv_text($1.str) ); /* CPU */
+        	zadd_rdata2( zdefault, zparser_conv_text($3.str) );  /* OS*/
         	free($1.str);free($3.str);
 	}
 	;
 
+rdata_srv:	STR SP STR SP STR SP dname
+	{
+		zadd_rdata2( zdefault, zparser_conv_short($1.str) ); /* prio */
+		zadd_rdata2( zdefault, zparser_conv_short($3.str) ); /* weight */
+		zadd_rdata2( zdefault, zparser_conv_short($5.str) ); /* port */
+		zadd_rdata2( zdefault, zparser_conv_dname($7.str) ); /* target name */
+		free($1.str);free($3.str);free($5.str);free($7.str);
+	}
+	;
 %%
 
 int
@@ -399,9 +457,7 @@ yywrap()
     return 1;
 }
 
-/* print an error. S has the message. zdefault is global so just
- * access it 
- */
+/* print an error. S has the message. zdefault is global so just access it */
 int
 yyerror(const char *s)
 {
