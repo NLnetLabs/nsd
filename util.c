@@ -1,5 +1,5 @@
 /*
- * $Id: util.c,v 1.1 2001/12/12 13:33:53 alexis Exp $
+ * $Id: util.c,v 1.2 2001/12/12 13:52:52 alexis Exp $
  *
  * util.c -- miscelaneous utilities for nsd(8)
  *
@@ -40,6 +40,7 @@
 
 #include <sys/types.h>
 
+#include <stddef.h>
 #include <stdlib.h>
 #include <syslog.h>
 

@@ -1,5 +1,5 @@
 /*
- * $Id: parser.c,v 1.2 2001/12/12 13:38:28 alexis Exp $
+ * $Id: parser.c,v 1.3 2001/12/12 13:52:52 alexis Exp $
  *
  * parser.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -42,6 +42,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -823,6 +824,9 @@ main(argc, argv)
 	struct parser_entry *rr;
 
 
+#ifndef LOG_PERROR
+#define		LOG_PERROR 0
+#endif
 	/* Set up the logging... */
 	openlog("parser", LOG_PERROR, LOG_LOCAL5);
 
