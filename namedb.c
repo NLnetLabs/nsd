@@ -360,46 +360,30 @@ rrset_rrsig_type_covered(rrset_type *rrset, uint16_t rr)
  * are:
  *
  *   2 - 2 octet field.
+ *   4 - 4 octet field
  *   d - a compressable domain name.
- *
- * If the rdata_types entry is NULL this indicates there are no
- * compressable domain names in the rdata.
+ *   X - no rdata at this position.
  */
-static const char *rdata_types[] =
+const char *rdata_types[] =
 {
-	NULL,
-	NULL,			/*  1, A */
-	"d",			/*  2, NS */
-	"d",			/*  3, MD */
-	"d",			/*  4, MF */
-	"d",			/*  5, CNAME */
+	"XX",
+	"XX",			/*  1, A */
+	"dX",			/*  2, NS */
+	"dX",			/*  3, MD */
+	"dX",			/*  4, MF */
+	"dX",			/*  5, CNAME */
 	"dd44444",		/*  6, SOA */
-	"d",			/*  7, MB */
-	"d",			/*  8, MG */
-	"d",			/*  9, MR */
-	NULL,			/* 10, NULL */
-	NULL,			/* 11, WKS */
-	"d",			/* 12, PTR */
-	NULL,			/* 13, HINFO */
+	"dX",			/*  7, MB */
+	"dX",			/*  8, MG */
+	"dX",			/*  9, MR */
+	"XX",			/* 10, NULL */
+	"XX",			/* 11, WKS */
+	"dX",			/* 12, PTR */
+	"XX",			/* 13, HINFO */
 	"dd",			/* 14, MINFO */
 	"2d",			/* 15, MX */
-	NULL,			/* 16, TXT */
+	"XX",			/* 16, TXT */
 };
-
-int
-rdata_atom_is_domain(uint16_t type, size_t index)
-{
-	const char *types;
-
-	if (type > TYPE_TXT)
-		return 0;
-	types = rdata_types[type];
-	if (types && index < strlen(types))
-		return types[index] == 'd';
-	else
-		return 0;
-}
-
 
 #ifdef TEST
 

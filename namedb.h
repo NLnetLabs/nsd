@@ -42,6 +42,7 @@
 #include <stdio.h>
 
 #include "dname.h"
+#include "dns.h"
 #include "heap.h"
 #include "region-allocator.h"
 
@@ -221,7 +222,7 @@ rdata_atom_is_terminator(rdata_atom_type atom)
 	return atom.data == NULL;
 }
 
-int rdata_atom_is_domain(uint16_t type, size_t index);
+static inline int rdata_atom_is_domain(uint16_t type, size_t index);
 
 static inline int
 rdata_atom_is_data(uint16_t type, size_t index)
@@ -267,5 +268,13 @@ int namedb_lookup (struct namedb    *db,
 		   domain_type     **closest_encloser);
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);
+
+extern const char *rdata_types[];
+
+static inline int
+rdata_atom_is_domain(uint16_t type, size_t index)
+{
+	return type < TYPE_TXT && index < 2 && rdata_types[type][index] == 'd';
+}
 
 #endif
