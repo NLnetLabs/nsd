@@ -447,5 +447,15 @@ AH_BOTTOM([
 #endif /* AF_INET6 */
 ])
 
+AH_BOTTOM([
+#ifndef B64_PTON
+int b64_ntop(uint8_t const *src, size_t srclength,
+	     char *target, size_t targsize);
+#endif /* !B64_PTON */
+#ifndef B64_NTOP
+int b64_pton(char const *src, uint8_t *target, size_t targsize);
+#endif /* !B64_NTOP */
+])
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

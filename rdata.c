@@ -23,14 +23,6 @@
 #include "rdata.h"
 #include "zonec.h"
 
-#ifndef B64_PTON
-int b64_ntop(uint8_t const *src, size_t srclength,
-	     char *target, size_t targsize);
-#endif /* !B64_PTON */
-#ifndef B64_NTOP
-int b64_pton(char const *src, uint8_t *target, size_t targsize);
-#endif /* !B64_NTOP */
-
 /* Taken from RFC 2538, section 2.1.  */
 lookup_table_type dns_certificate_types[] = {
 	{ 1, "PKIX" },	/* X.509 as per PKIX */

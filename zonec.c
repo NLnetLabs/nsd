@@ -38,14 +38,6 @@
 #include "util.h"
 #include "zparser.h"
 
-#ifndef B64_PTON
-int b64_ntop(uint8_t const *src, size_t srclength,
-	     char *target, size_t targsize);
-#endif /* !B64_PTON */
-#ifndef B64_NTOP
-int b64_pton(char const *src, uint8_t *target, size_t targsize);
-#endif /* !B64_NTOP */
-
 const dname_type *error_dname;
 domain_type *error_domain;
 
