@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.8 2002/05/23 13:33:03 alexis Exp $
+# $Id: nsdc.sh.in,v 1.9 2002/05/25 09:40:43 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -48,7 +48,6 @@ NSDFLAGS=@@NSDFLAGS@@
 NSDPIDFILE=@@NSDPIDFILE@@
 NSDDB=@@NSDDB@@
 NSDZONES=@@NSDZONES@@
-NSDIDENTITY=@@NSDIDENTITY@@
 
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
@@ -65,7 +64,7 @@ signal() {
 
 case "$1" in
 start)
-	[ -x ${NSDBINDIR}/nsd ] && ${NSDBINDIR}/nsd -i "${NSDIDENTITY}" -f ${NSDDB}
+	[ -x ${NSDBINDIR}/nsd ] && ${NSDBINDIR}/nsd -f ${NSDDB} ${NSDFLAGS}
 	;;
 stop)
 	signal "TERM"

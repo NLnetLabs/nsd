@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.29 2002/05/23 15:00:56 alexis Exp $
+ * $Id: nsd.h,v 1.30 2002/05/25 09:40:43 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -56,6 +56,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -82,6 +83,7 @@ struct	nsd {
 	/* Configuration */
 	char	*dbfile;
 	char	*pidfile;
+	char	*username;
 	uid_t	uid;
 	gid_t	gid;
 	char	*version;

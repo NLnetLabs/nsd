@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.32 2002/05/23 13:33:03 alexis Exp $
+ * $Id: nsd.c,v 1.33 2002/05/25 09:40:42 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -78,7 +78,7 @@ xrealloc(p, size)
 int
 usage()
 {
-	fprintf(stderr, "usage: nsd [-d] [-p port] -f database\n");
+	fprintf(stderr, "usage: nsd [-d] [-p port] [-n identity] [-u user|uid] -f database\n");
 	exit(1);
 }
 
@@ -196,10 +196,9 @@ main(argc, argv)
 	nsd.tcp.max_msglen = CF_TCP_MAX_MESSAGE_LEN;
 	nsd.udp.port	= CF_UDP_PORT;
 	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;
-	nsd.uid		= CF_UID == 0 ? getuid() : CF_UID;
-	nsd.gid		= CF_GID == 0 ? getgid() : CF_GID;
 	nsd.identity	= CF_IDENTITY;
 	nsd.version	= CF_VERSION;
+	nsd.username	= CF_USERNAME;
 
 	/* EDNS0 */
 	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
@@ -225,7 +224,7 @@ main(argc, argv)
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "df:p:i:")) != -1) {
+	while((c = getopt(argc, argv, "df:p:i:u:")) != -1) {
 		switch (c) {
 		case 'd':
 			nsd.debug = 1;
@@ -240,6 +239,9 @@ main(argc, argv)
 		case 'i':
 			nsd.identity = optarg;
 			break;
+		case 'u':
+			nsd.username = optarg;
+			break;
 		case '?':
 		default:
 			usage();
@@ -250,6 +252,35 @@ main(argc, argv)
 
 	if(argc != 0)
 		usage();
+
+	/* Parse the username into uid and gid */
+	nsd.gid = getgid();
+	nsd.uid = getuid();
+	if(*nsd.username) {
+		if(isdigit(*nsd.username)) {
+			char *t;
+			nsd.uid = strtol(nsd.username, &t, 10);
+			if(*t != 0) {
+				if(*t != '.' || !isdigit(*++t)) {
+					syslog(LOG_ERR, "usage: -u user or -u uid  or -u uid.gid");
+					exit(1);
+				}
+				nsd.gid = strtol(t, &t, 10);
+			}
+		} else {
+			/* Lookup the user id in /etc/passwd */
+			struct passwd *pwd;
+			if((pwd = getpwnam(nsd.username)) == NULL) {
+				syslog(LOG_ERR, "unknown username %s", nsd.username);
+				exit(1);
+			}
+
+			nsd.uid = pwd->pw_uid;
+			nsd.gid = pwd->pw_gid;
+			endpwent();
+		}
+	}
+			
 
 	/* Do we have a running nsd? */
 	if((oldpid = readpid(nsd.pidfile)) == -1) {

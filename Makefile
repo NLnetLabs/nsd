@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.63 2002/05/23 15:00:56 alexis Exp $
+# $Id: Makefile,v 1.64 2002/05/25 09:40:42 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -38,14 +38,34 @@
 #
 SHELL = /bin/sh
 
-# Run-time enviroment settings
+#
+#
+#	LOCAL SITE CONFIGURATION
+#
+#
 
+# Run-time enviroment settings
 # This particular server id.server
 NSDIDENTITY	= \'NLnet LABS nameserver @open.nlnetlabs.nl\'
 
+# The flags to pass to the NSD on startup
+NSDFLAGS        = 
+
+# The username for nsd to switch to before answering queries
+# Either	user
+#	or	user.group
+#	or	id
+#	or	id.gid
+#
+NSDUSER		= nobody
+
+#
+# Pathnames
+#
+
 # The directory where the nsd nsdc and zonec binaries will be installed
 PREFIX		= /usr/local
-NSDBINDIR       = ${PREFIX}/sbin
+NSDBINDIR	= ${PREFIX}/sbin
 NSDMANDIR	= ${PREFIX}/man/man8
 
 # The directory where the master zone files are located
@@ -53,9 +73,6 @@ NSDZONESDIR     = ${PREFIX}/etc/nsd
 
 # The file containing the list of the zones to be compiled into the NSD database
 NSDZONES	= ${PREFIX}/etc/nsd/nsd.zones
-
-# The flags to pass to the NSD on startup
-NSDFLAGS        = 
 
 # The pid file of the nsd
 NSDPIDFILE      = /var/run/nsd.pid
@@ -65,9 +82,6 @@ NSDDB           = /var/db/nsd.db
 
 #
 # Use the following compile options to modify features set of NSD
-#
-#	-DMIMIC_BIND8	Try answer queries as similar as possible to
-#			BIND version 8. (Implies -DNAMEDB_UPPERCASE)
 #
 #	-DINET6		Include IPv6 transport (tcp6 and udp6).
 #
@@ -103,7 +117,7 @@ NSDDB           = /var/db/nsd.db
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DCF_UID=65534 -DCF_GID=65534 -DINET6 -DHOSTS_ACCESS
+FEATURES	= -DINET6 -DHOSTS_ACCESS
 
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines
@@ -116,6 +130,9 @@ LIBS		= -lwrap
 #LIBS		=
 
 # To compile NSD with Berkeley DB uncomment the following two lines
+#
+# XXX Not supported at this moment, dont use it!
+#
 #DBFLAGS	= -I/usr/local/include/db4 -DUSE_BERKELEY_DB -DUSE_HEAP_RBTREE
 #LIBS		= -L/usr/local/lib -ldb4
 
@@ -123,7 +140,7 @@ LIBS		= -lwrap
 DEBUG		= # -g -DDEBUG=1
 CC=gcc
 CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
-	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\"
+	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" -DCF_USERNAME=\"${NSDUSER}\"
 LDFLAGS= ${LIBS}
 INSTALL = install -c
 
@@ -157,8 +174,7 @@ nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
 	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
-		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" \
-		-e "s,@@NSDIDENTITY@@,${NSDIDENTITY},g" $@.in > $@
+		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" $@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o

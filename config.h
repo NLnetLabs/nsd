@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.7 2002/05/23 15:00:56 alexis Exp $
+ * $Id: config.h,v 1.8 2002/05/25 09:40:42 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -49,12 +49,8 @@
 #define	CF_IDENTITY	"unidentified nameserver"
 #endif
 
-#ifndef	CF_UID
-#define	CF_UID	0
-#endif
-
-#ifndef CF_GID
-#define	CF_GID	0
+#ifndef	CF_USERNAME
+#define	CF_USERNAME	""
 #endif
 
 #ifndef	AXFR_DAEMON
