@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.6 2003/04/29 13:40:53 alexis Exp $
+ * $Id: nsq.c,v 1.7 2003/05/08 10:30:36 alexis Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -270,7 +270,7 @@ main (int argc, char *argv[])
 		}
 
 		/* Send the query */
-		if(query(s, &q, qdname, qtype, qclass, qid, qopcode, aflag, rflag) != 0) {
+		if(query(s, &q, qdname, qtype, qclass, qid, qopcode, aflag, rflag, 1) != 0) {
 			close(s);
 			continue;
 		}

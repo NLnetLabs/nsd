@@ -1,5 +1,5 @@
 /*
- * $Id: client.c,v 1.2 2003/05/05 08:44:03 alexis Exp $
+ * $Id: client.c,v 1.3 2003/05/08 10:30:36 alexis Exp $
  *
  * client.c -- set of DNS client routines
  *
@@ -361,30 +361,52 @@ unpack(struct query *q, struct RR *rr, u_int16_t rdlength)
 struct RR **
 response(int s, struct query *q)
 {
+	int len, r;
 	u_int16_t tcplen, rdlength;
 	int n, rrsp;
 	struct RR **rrs;
 
-	/* Get the size... */
-	if(read(s, &tcplen, 2) == -1) {
-		error("error reading message length");
-		return NULL;
+	/* Reinitialize the buffer */
+	q->iobufsz = q->maxlen = QIOBUFSZ;
+	q->iobufptr = q->iobuf;
+
+
+	if(q->tcp) {
+		/* Get the size... */
+		if(read(s, &tcplen, 2) != 2) {
+			error("error reading message length");
+			return NULL;
+		}
+
+		/* Do we have enough space? */
+		if((tcplen = ntohs(tcplen)) > q->iobufsz) {
+			error("insufficient buffer space");
+			return NULL;
+		}
+
+		/* Read the message... */
+		for(len = 0; len < tcplen; len += r) {
+			r = read(s, q->iobuf + len, tcplen - len);
+			if(r == -1) {
+				error("error reading message");
+				return NULL;
+			}
+		}
+		if(len != tcplen) {
+			error("could not read the entire message");
+			return NULL;
+		}
+	} else {
+		if((len = recvfrom(s, q->iobuf, q->iobufsz, 0,
+				(struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
+                        error("recvfrom failed");
+			return NULL;
+                }
 	}
 
-	/* Do we have enough space? */
-	if((tcplen = ntohs(tcplen)) > q->iobufsz) {
-		error("insufficient buffer space");
-		return NULL;
-	}
-
-	/* Read the message... */
-	if(read(s, q->iobuf, tcplen) == -1) {
-		error("error reading message");
-		return NULL;
-	}
 
 	/* Get the first dname */
-	q->iobufsz = tcplen;
+	q->iobufsz = len;
 	q->iobufptr = q->iobuf + QHEADERSZ;
 
 	/* Initialize the RRs list... */
@@ -420,7 +442,7 @@ response(int s, struct query *q)
 		rrs[rrsp]->class = ntohs(rrs[rrsp]->class);
 
 		/* Is this not the question section? */
-		if(rrsp != 0) {
+		if(rrsp >= ntohs(QDCOUNT(q))) {
 			/* Get TTL & rdlength */
 			memcpy(&rrs[rrsp]->ttl, q->iobufptr, 4); q->iobufptr += 4;
 			rrs[rrsp]->ttl = ntohl(rrs[rrsp]->ttl);
@@ -434,8 +456,10 @@ response(int s, struct query *q)
 			}
 
 			/* Unpack the rdata */
-			if(unpack(q, rrs[rrsp], rdlength) != NULL) {
-				return NULL;
+			if(rdlength > 0) {
+				if(unpack(q, rrs[rrsp], rdlength) != NULL) {
+					return NULL;
+				}
 			}
 		}
 
@@ -458,15 +482,16 @@ response(int s, struct query *q)
  *
  */
 int
-query(int s, struct query *q, u_char *dname, u_int16_t qtype, u_int16_t qclass, u_int32_t qid, int op, int aa, int rd)
+query(int s, struct query *q, u_char *dname, u_int16_t qtype, u_int16_t qclass, u_int32_t qid, int op, int aa, int rd, int tcp)
 {
+	int len;
 	u_int16_t tcplen;
 
 	/* Initialize the query */
 	q->iobufsz = q->maxlen = QIOBUFSZ;
 	q->iobufptr = q->iobuf;
 	q->edns = 0;
-	q->tcp = 1;
+	q->tcp = tcp;
 
 	/* Set up the header */
 	OPCODE_SET(q, op);
@@ -500,12 +525,23 @@ query(int s, struct query *q, u_char *dname, u_int16_t qtype, u_int16_t qclass, 
 	QDCOUNT(q) = htons(1);
 
 	/* Send it out... */
-	tcplen = htons(q->iobufptr - q->iobuf);
-	if(write(s, &tcplen, 2) == -1
-		|| write(s, q->iobuf, q->iobufptr - q->iobuf) == -1) {
-		error("error sending query");
-		close(s);
-		return -1;
+	if(q->tcp) {
+		tcplen = htons(q->iobufptr - q->iobuf);
+		if(write(s, &tcplen, 2) == -1
+			|| write(s, q->iobuf, q->iobufptr - q->iobuf) == -1) {
+			error("error sending query");
+			close(s);
+			return -1;
+		}
+	} else {
+		if((len = sendto(s, q->iobuf, q->iobufptr - q->iobuf, 0,
+				(struct sockaddr *)&q->addr, q->addrlen)) == -1) {
+			error("sendto failed");
+			return -1;
+		} else if(len != q->iobufptr - q->iobuf) {
+			error("sent less bytes than expected");
+			return -1;
+		}
 	}
 
 	return 0;

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-axfr.c,v 1.5 2003/05/05 08:45:16 alexis Exp $
+ * $Id: nsd-axfr.c,v 1.6 2003/05/08 10:30:36 alexis Exp $
  *
  * nsd-axfr.c -- axfr utility for nsd(8)
  *
@@ -51,7 +51,9 @@
 #include <string.h>
 #include <syslog.h>
 #include <time.h>
+#include <netdb.h>
 #include <unistd.h>
+
 
 #include <dns.h>
 #include <namedb.h>
@@ -142,10 +144,10 @@ sane(struct query *q, u_int16_t id) {
 	}
 
 	/* Not authorative? */
-	if(!AA(q)) {
+	/* if(!AA(q)) {
 		fprintf(stderr, "received non-authorative data\n");
 		return -1;
-	}
+	} */
 
 	/* Opcode? */
 	if(OPCODE(q) != OPCODE_QUERY) {
@@ -182,6 +184,7 @@ main (int argc, char *argv[])
 	struct in_addr pin;
 	u_char *zname;
 	char *zonefile = NULL;
+	struct hostent *h;
 	int port = 53;
 	int force = 0;
 	u_int16_t id = 0;
@@ -246,18 +249,22 @@ main (int argc, char *argv[])
 
 	/* Try every server in turn.... */
 	for(argv++, argc--; *argv; argv++, argc--) {
-		/* Do we have a valid ip address here? */
+		/* Set up the query... */
 		q.addrlen = sizeof(q.addr);
 		memset(&q.addr, 0, q.addrlen);
 		q.addr.sin_port = htons(port);
 		q.addr.sin_family = AF_INET;
 
-		if(inet_aton(*argv, &pin) == 1) {
-			q.addr.sin_addr.s_addr = pin.s_addr;
-		} else {
-			fprintf(stderr, "skipping illegal ip address: %s", *argv);
+		/* Try to resolve it... */
+		if((h = gethostbyname(*argv)) == NULL) {
+			fprintf(stderr, "unable to resolve %s", *argv);
+			herror(NULL);
 			continue;
 		}
+
+	    /* Now walk the addresses... */
+	    for(;*h->h_addr_list != NULL; h->h_addr_list++)
+		memcpy(&q.addr.sin_addr.s_addr, *h->h_addr_list, h->h_length);
 
 		/* Make a tcp connection... */
 		if((s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -314,13 +321,18 @@ main (int argc, char *argv[])
 
 		/* Do the AXFR */
 		id = rand();
-		if(query(s, &q, zname, TYPE_AXFR, CLASS_IN, id, 0, 1, 0) != 0) {
+		if(query(s, &q, zname, TYPE_AXFR, CLASS_IN, id, 0, 1, 0, 1) != 0) {
 			close(s);
 			continue;
 		}
 
 		/* Read it... */
 		while((rrs = response(s, &q)) != NULL) {
+			if(sane(&q, id) != 0) {
+				rrs = NULL;
+				break;
+			}
+
 			/* Print it... */
 			for(i = ntohs(QDCOUNT((&q))); rrs[i] != NULL && i < ntohs(QDCOUNT((&q))) + ntohs(ANCOUNT((&q))); i++) {
 				zprintrr(stdout, rrs[i]);
