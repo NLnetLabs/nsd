@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.6 2003/08/18 14:12:36 miekg Exp $
+ * $Id: zyparser.y,v 1.7 2003/08/18 16:20:03 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -26,13 +26,13 @@ int progress = 5;
 int yydebug = 1;
 
 %}
-/* this list must be in exactly the same order as in zlparser.lex. The
- * only changed are:
- * - NSAP-PRT is named NSAPPTR
+/* this list must be in exactly the same order as *RRtypes[] in zlparser.lex. 
+ * The only changed are:
+ * - NSAP-PRT is named NSAP_PTR
  * - NULL which is named YYNULL.
  */
 %token A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
-%token MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAPPTR PX GPOS 
+%token MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
 %token EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
 %token UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA
 /* other tokens */
@@ -90,6 +90,8 @@ rr:     ORIGIN SP rrrest NL
     {
         /* starts with @, use the origin */
         current_rr->dname = (uint8_t *) dnamedup(zdefault->origin);
+        printf("dname  %s",dnamestr(current_rr->dname));
+
         /* also set this as the prev_dname */
         zdefault->prev_dname = zdefault->origin;
         zdefault->prev_dname_len = zdefault->origin_len; /* what about
@@ -103,8 +105,6 @@ rr:     ORIGIN SP rrrest NL
     }
     |   dname SP rrrest NL
     {
-        /* sounds like a domain name ... */
-        /* old: z->_rr.dname = dnamedup(strdname(z->_t[0], z->origin)); */
         printf("dname: %s\n", $1->str);
 
         current_rr->dname = $1->str;
@@ -132,7 +132,7 @@ in:     IN
 
 rrrest: classttl rtype 
     {
-        /* terminate the rdata list */
+        /* terminate the rdata list - NULL does not have rdata */
         zadd_rdata_finalize(zdefault);
     }
     ;
@@ -154,20 +154,6 @@ classttl:   /* empty - fill in the default, def ttl and in */
     |   ttl HS SP         { yyerror("hesiod class not supported"); }
     |   CH ttl SP         { yyerror("chaos class not supported"); }
     |   HS ttl SP         { yyerror("hesiod class not supported"); }
-    ;
-
-rtype:  SOA SP rdata_soa
-    {   
-        zadd_rtype("soa");
-    }
-    |   A SP rdata_a
-    {
-        zadd_rtype("a");
-    }
-    |   NS SP rdata_ns
-    {
-        zadd_rtype("ns");
-    }
     ;
 
 dname:  abs_dname
@@ -194,7 +180,6 @@ abs_dname:  '.'
     {
             $$->str = $1->str;
             $$->len = $1->len;
-
     }
     ;
 
@@ -211,7 +196,30 @@ rel_dname:  STR
     }
     ;
 
-/* below are all the definition for all the different rdata */
+/* define what we can parse */
+
+rtype:  SOA SP rdata_soa
+    {   
+        zadd_rtype("soa");
+    }
+    |   A SP rdata_a
+    {
+        zadd_rtype("a");
+    }
+    |   NS SP rdata_ns
+    {
+        zadd_rtype("ns");
+    }
+    |   TXT SP rdata_txt
+    {
+        zadd_rtype("txt");
+    }
+    ;
+
+
+/* 
+ * below are all the definition for all the different rdata 
+ */
 
 rdata_soa:  dname SP dname SP STR STR STR STR STR
     {
@@ -247,6 +255,14 @@ rdata_a:    STR '.' STR '.' STR '.' STR
         zadd_rdata2(zdefault, zparser_conv_A((char*)ipv4));
         free(ipv4);
     }
+    ;
+
+rdata_txt:  STR
+    {
+        zadd_rdata2( zdefault, zparser_conv_text($1->str));
+    }
+    ;
+
 
 %%
 

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.5 2003/08/18 13:46:44 miekg Exp $
+ * $Id: zparser2.c,v 1.6 2003/08/18 16:20:03 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -468,17 +468,12 @@ zreset_current_rr(struct zdefault_t *zdefault)
 void
 zadd_rdata2(struct zdefault_t *zdefault, uint16_t *r)
 {
-    /* add this rdata to the current resource record
-    current_rr->rdata, see zparser.c line 569
-    z->_tc++; */
-
-    /* [XXX] FIXED  we don't have z... */
+    /* add this rdata to the current resource record */
     
     if(zdefault->_rc >= MAXRDATALEN - 1) {
         fprintf(stderr,"too many rdata elements");
         abort();
     }
-    /* [XXX] debug printf("\n_rc: %d\n",zdefault->_rc); */
     current_rr->rdata[zdefault->_rc++] = r;
 }
 
@@ -727,6 +722,8 @@ struct zdefault_t *
 nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
 
+    char *end;
+
     /* Open the zone file... */
     /* [XXX] still need to handle recursion */
     if(( yyin  = fopen(filename, "r")) == NULL) {
@@ -737,21 +734,23 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     setprotoent(1);
     setservent(1);
 
+    printf("getting the origin [%s]\n", origin);
+
     /* Initialize the rest of the structure */
     zdefault = xalloc( sizeof(struct zdefault_t));
     
-    zdefault->origin = xalloc(MAXDNAME);
     zdefault->prev_dname = xalloc(MAXDNAME);
     zdefault->ttl = DEFAULT_TTL;
     zdefault->class = 1;
     
     zdefault->origin = xalloc(MAXDNAME);
-    (uint8_t *)strdname(origin, zdefault->origin);
+    zdefault->origin = strdname(origin, ROOT);  /* hmm [XXX] MG */
     zdefault->origin_len = 0;
     zdefault->prev_dname = '\0';
     zdefault->prev_dname_len = 0;
 
     zreset_current_rr(zdefault);
+    printf("zp2.c: origin %s",dnamestr(zdefault->origin));
 
     rrlist = xalloc(sizeof(struct node_t));
     rrlist->next = NULL;
@@ -942,6 +941,7 @@ cat_dname(const uint8_t *left, const uint8_t *right)
     sleft = (size_t) left[0];
     sright= (size_t) right[0];
 
+    /*
     printf("left %s\n", left+2);
     printf("right %s\n", right+2);
     printf("left %d\n", left[1]);
@@ -950,6 +950,7 @@ cat_dname(const uint8_t *left, const uint8_t *right)
     printf("right %d\n", right[0]);
     printf("sleft %d + sright %d\n", sleft, sright);
     fflush;
+    */
     
     dname = (uint8_t*)xalloc( sleft + sright);
     dname[0] = (uint8_t) (sleft + sright - 1);  /* the new length */

@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.3 2003/08/15 11:33:22 miekg Exp $
+ * $Id: zlparser.lex,v 1.4 2003/08/18 16:20:03 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -208,7 +208,7 @@ int zrrtype (char *word) {
 int zoctet(char *word) {
     /* remove \DDD constructs from the input. See RFC 1035, section 5.1 */
     /* s follows the string, p lags behind and rebuilds the new string */
-    char * s; char * p ;
+    char * s; char * p;
     unsigned int length = 0;
 
     for (s = p = word; *s != '\0'; s++,p++ ) {

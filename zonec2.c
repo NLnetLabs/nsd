@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.4 2003/08/18 13:25:47 miekg Exp $
+ * $Id: zonec2.c,v 1.5 2003/08/18 16:20:03 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -363,7 +363,7 @@ zone_read (char *name, char *zonefile)
 	memset(z, 0, sizeof(struct zone));
 
 	/* Get the zone name */
-	printf("origin %s\n",name);
+	printf("origin [%s]\n",name);
 	if((z->dname = dnamedup(strdname(name, ROOT))) == NULL) {
 		return NULL;
 	}
@@ -377,6 +377,7 @@ zone_read (char *name, char *zonefile)
 	}
 #endif
 
+    printf("origine [%s]\n",name);
 	/* Open the zone file */
 	if( nsd_zopen(zonefile, 3600, CLASS_IN, name) == NULL) {
 		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
@@ -418,6 +419,7 @@ zone_read (char *name, char *zonefile)
 		}
 
 		/* Is this in-zone data? */
+        /* DEBUG 
 		printf("d name: [%s]\n", z->dname+2);
 		printf("rr name: [%s]\n", rr->dname+2);
 		printf("d name: [%d]\n", (int)z->dname[0]);
@@ -428,6 +430,7 @@ zone_read (char *name, char *zonefile)
 		printf("rr name: [%d]\n", (int)rr->dname[6]);
 		printf("d name: [%s]\n", dnamestr(z->dname));
 		printf("rr name: [%s]\n", dnamestr(rr->dname));
+        */
 		if((*z->dname > *rr->dname) ||
 		   (memcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
 			zerror("out of zone data");
