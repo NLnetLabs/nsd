@@ -348,9 +348,6 @@ namedb_open (const char *filename)
 	fprintf(stderr, "db_region (after RRsets): ");
 	region_dump_stats(region, stderr);
 	fprintf(stderr, "\n");
-
-	fprintf(stderr, "region allocator stats:\n");
-	region_allocator_dump_stats(stderr);
 #endif
 	
 	return db;
