@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.12 2002/02/07 14:02:16 alexis Exp $
+ * $Id: nsd.c,v 1.13 2002/02/12 10:02:41 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -185,5 +185,6 @@ main(argc, argv)
 
 	/* Should we return... */
 	namedb_close(database);
+
 	exit(0);
 }

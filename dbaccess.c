@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.8 2002/02/11 15:46:24 alexis Exp $
+ * $Id: dbaccess.c,v 1.9 2002/02/12 10:02:41 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -198,21 +198,21 @@ namedb_open(filename)
 
 #else
 
+	/* Open it... */
+	if((db->fd = open(db->filename, O_RDONLY)) == -1) {
+		free(db->filename);
+		free(db);
+		return NULL;
+	}
+
 	/* Is it there? */
-	if(stat(db->filename, &st) == -1) {
+	if(fstat(db->fd, &st) == -1) {
 		free(db->filename);
 		free(db);
 		return NULL;
 	}
 
 	if((db->mpool = malloc(st.st_size)) == NULL) {
-		free(db->filename);
-		free(db);
-		return NULL;
-	}
-
-	if((db->fd = open(db->filename, O_RDONLY)) == -1) {
-		free(db->mpool);
 		free(db->filename);
 		free(db);
 		return NULL;

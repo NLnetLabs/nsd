@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.16 2002/02/11 16:40:46 alexis Exp $
+ * $Id: server.c,v 1.17 2002/02/12 10:02:41 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -44,7 +44,7 @@ server(db)
 	struct namedb *db;
 {
 	struct query *q;
-	struct sockaddr_in addr;
+	struct sockaddr_in udp_addr, tcp_addr;
 	int s_udp, s_tcp, s_tcpio;
 	u_int16_t tcplen;
 	pid_t pid;
@@ -55,10 +55,10 @@ server(db)
 	tcp_open_connections = 0;
 
 	/* UDP */
-	bzero(&addr, sizeof(struct sockaddr_in));
-	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons(cf_udp_port);
-	addr.sin_family = AF_INET;
+	bzero(&udp_addr, sizeof(struct sockaddr_in));
+	udp_addr.sin_addr.s_addr = INADDR_ANY;
+	udp_addr.sin_port = htons(cf_udp_port);
+	udp_addr.sin_family = AF_INET;
 
 	/* Make a socket... */
 	if((s_udp = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
@@ -67,19 +67,25 @@ server(db)
 	}
 
 	/* Bind it... */
-	if(bind(s_udp, (struct sockaddr *)&addr, sizeof(struct sockaddr_in))) {
+	if(bind(s_udp, (struct sockaddr *)&udp_addr, sizeof(struct sockaddr_in)) != 0) {
 		syslog(LOG_ERR, "cant bind the socket: %m");
 		return -1;
 	}
 
 	/* TCP */
+	bzero(&tcp_addr, sizeof(struct sockaddr_in));
+	tcp_addr.sin_addr.s_addr = INADDR_ANY;
+	tcp_addr.sin_port = htons(cf_tcp_port);
+	tcp_addr.sin_family = AF_INET;
+
+	/* Make a socket... */
 	if((s_tcp = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		syslog(LOG_ERR, "cant create a socket: %m");
 		return -1;
 	}
 
 	/* Bind it... */
-	if(bind(s_tcp, (struct sockaddr *)&addr, sizeof(struct sockaddr_in))) {
+	if(bind(s_tcp, (struct sockaddr *)&tcp_addr, sizeof(struct sockaddr_in)) != 0) {
 		syslog(LOG_ERR, "cant bind the socket: %m");
 		return -1;
 	}
@@ -98,7 +104,7 @@ server(db)
 
 
 	/* The main loop... */	
-	while(1) {
+	while(server_mode != NSD_SHUTDOWN) {
 		/* Do we need to reload the database? */
 		switch(server_mode) {
 		case NSD_RELOAD:
@@ -116,7 +122,7 @@ server(db)
 				namedb_close(db);
 				if((db = namedb_open(db->filename)) == NULL) {
 					syslog(LOG_ERR, "unable to reload the database: %m");
-					exit(0);
+					exit(1);
 				}
 				if(kill(pid, SIGKILL) != 0) {
 					syslog(LOG_ERR, "cannot kill %d: %m", pid);
@@ -124,12 +130,6 @@ server(db)
 				}
 				break;
 			}
-			break;
-		case NSD_SHUTDOWN:
-			namedb_close(db);
-			exit(1);
-			break;
-		case NSD_RUN:
 			break;
 		default:
 			break;
@@ -152,7 +152,7 @@ server(db)
 		}
 		if(FD_ISSET(s_udp, &peer)) {
 #if DEBUG > 2
-			printf("udp packet!\n");
+			syslog(LOG_DEBUG, "udp packet!");
 #endif
 			query_init(q);
 			if((received = recvfrom(s_udp, q->iobuf, q->iobufsz, 0,
@@ -270,5 +270,6 @@ server(db)
 	query_destroy(q);
 	close(s_tcp);
 	close(s_udp);
-	return -1;
+
+	return 0;
 }

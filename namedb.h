@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.15 2002/02/11 15:46:24 alexis Exp $
+ * $Id: namedb.h,v 1.16 2002/02/12 10:02:41 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -146,13 +146,13 @@ struct namedb {
 
 #endif	/* USE_BERKELEY_DB */
 
-/* Routines for creating the database, namedb_create.c */
+/* Routines for creating the database, dbcreate.c */
 struct namedb *namedb_new __P((char *));
 int namedb_put __P((struct namedb *, u_char *, struct domain *));
 int namedb_save __P((struct namedb *));
 void namedb_discard __P((struct namedb *));
 
-/* Routines for accessing the database, namedb_access.c */
+/* Routines for accessing the database, dbaccess.c */
 struct namedb *namedb_open __P((char *));
 struct domain *namedb_lookup __P((struct namedb *, u_char *key));
 struct answer *namedb_answer __P((struct domain *, u_int16_t type));
