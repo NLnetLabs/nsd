@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.8 2002/01/11 14:05:45 alexis Exp $
+ * $Id: query.c,v 1.9 2002/01/17 12:52:52 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -145,16 +145,16 @@ query_process(q, db)
 	struct query *q;
 	struct db *db;
 {
-	/* Just for safety, we dont need + 2 here... */
-	u_char qnamestar[MAXDOMAINLEN + 2] = "\001*";
+	u_char qstar[2] = "\001*";
+	u_char qnamebuf[MAXDOMAINLEN + 2];
 
 	/* The query... */
-	u_char	*qname;
+	u_char	*qname, *qnamelow;
 	u_char qnamelen;
 	u_short qtype;
 	u_short qclass;
 	u_char *qptr;
-	int qdepth;
+	int qdepth, i;
 
 	/* XXX Alittle hack for SOA shouldnt be here */
 	u_short *rrs;
@@ -180,16 +180,24 @@ query_process(q, db)
 		return 0;
 	}
 
-	/* Lets parse the qname */
-	for(qdepth = 0, qname = qptr = q->iobuf + QHEADERSZ; *qptr; qptr += *qptr + 1, qdepth++) {
+	/* Lets parse the qname and convert it to lower case */
+	qdepth = 0;
+	qnamelow = qnamebuf + 2;
+	qname = qptr = q->iobuf + QHEADERSZ;
+	while(*qptr) {
 		/*  If we are out of buffer limits or we have a pointer in question dname... */
 		if((qptr > q->iobufptr) || (*qptr & 0xc0)) {
 			RCODE_SET(q, RCODE_FORMAT);
 			return 0;
 		}
+		qdepth++;
+		*qnamelow++ = *qptr;
+		for(i = *qptr++; i; i--) {
+			*qnamelow++ = tolower(*qptr++);
+		}
 	}
-
-	qptr++;
+	*qnamelow++ = *qptr++;
+	qnamelow = qnamebuf + 2;
 
 	/* Make sure name is not too long... */
 	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN) {
@@ -208,7 +216,7 @@ query_process(q, db)
 	}
 
 	/* Do we have the complete name? */
-	if(TSTMASK(db->mask.data, qdepth) && ((d = db_lookup(db, qname, qnamelen)) != NULL)) {
+	if(TSTMASK(db->mask.data, qdepth) && ((d = db_lookup(db, qnamelow, qnamelen)) != NULL)) {
 		/* Is this a delegation point? */
 		if(d->flags & DB_DELEGATION) {
 			if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
@@ -253,10 +261,11 @@ query_process(q, db)
 		/* Strip leftmost label */
 		qnamelen -= (*qname + 1);
 		qname += (*qname + 1);
+		qnamelow += (*qnamelow + 1);
 		qdepth--;
 
 		/* Do we have a SOA or zone cut? */
-		if(TSTMASK(db->mask.auth, qdepth) && ((d = db_lookup(db, qname, qnamelen)) != NULL)) {
+		if(TSTMASK(db->mask.auth, qdepth) && ((d = db_lookup(db, qnamelow, qnamelen)) != NULL)) {
 			if(d->flags & DB_DELEGATION) {
 				if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);
@@ -288,10 +297,10 @@ query_process(q, db)
 			/* Only look for wildcards if we did not match a domain before */
 			if(TSTMASK(db->mask.stars, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
 				/* Prepend star */
-				bcopy(qname, qnamestar + 2, qnamelen);
+				bcopy(qstar, qnamelow - 2, 2);
 
 				/* Lookup star */
-				if((d = db_lookup(db, qnamestar, qnamelen + 2)) != NULL) {
+				if((d = db_lookup(db, qnamelow - 2, qnamelen + 2)) != NULL) {
 					/* We found a domain... */
 					RCODE_SET(q, RCODE_OK);
 
