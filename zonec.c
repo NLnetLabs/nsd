@@ -83,7 +83,7 @@ zparser_conv_hex(region_type *region, const char *hex)
 	
 	len = strlen(hex);
 	if (len % 2 != 0) {
-		error("hex representation must be a whole number of octets");
+		error("Hex representation must be a whole number of octets");
 	} else {
 		/* the length part */
 		r = region_alloc(region, sizeof(uint16_t) + len/2);
@@ -124,7 +124,7 @@ zparser_conv_hex(region_type *region, const char *hex)
 					*t += (*hex - 'A' + 10) * i;
 					break;
 				default:
-					error("illegal hex character '%c'", (int)*hex);
+					error("Illegal hex character '%c'", (int)*hex);
 					return NULL;
 				}
 				++hex;
@@ -146,7 +146,7 @@ zparser_conv_time(region_type *region, const char *time)
 	/* Try to scan the time... */
 	/* [XXX] the cast fixes compile time warning */
 	if((char*)strptime(time, "%Y%m%d%H%M%S", &tm) == NULL) {
-		error("date and time is expected");
+		error("Date and time is expected");
 	} else {
 
 		r = region_alloc(region, sizeof(uint32_t) + sizeof(uint16_t));
@@ -166,7 +166,7 @@ zparser_conv_rdata_proto(region_type *region, const char *protostr)
 	uint16_t *r = NULL;
  
 	if((proto = getprotobyname(protostr)) == NULL) {
-		error("unknown protocol");
+		error("Unknown protocol");
 	} else {
 
 		r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
@@ -188,10 +188,10 @@ zparser_conv_rdata_service(region_type *region, const char *servicestr, const in
 
 	/* [XXX] need extra arg here .... */
 	if((proto = getprotobynumber(arg)) == NULL) {
-		error("unknown protocol, internal error");
+		error("Unknown protocol, internal error");
         } else {
 		if((service = getservbyname(servicestr, proto->p_name)) == NULL) {
-			error("unknown service");
+			error("Unknown service");
 		} else {
 			/* Allocate required space... */
 			r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
@@ -218,7 +218,7 @@ zparser_conv_rdata_period(region_type *region, const char *periodstr)
 	l = htonl((uint32_t)strtottl((char *)periodstr, &end));
 
         if(*end != 0) {
-		error("time period is expected");
+		error("Time period is expected");
         } else {
 		memcpy(r + 1, &l, sizeof(uint32_t));
 		*r = sizeof(uint32_t);
@@ -239,7 +239,7 @@ zparser_conv_short(region_type *region, const char *shortstr)
 	*(r+1)  = htons((uint16_t)strtol(shortstr, &end, 0));
             
 	if(*end != 0) {
-		error("unsigned short value is expected");
+		error("Unsigned short value is expected");
 	} else {
 		*r = sizeof(uint16_t);
 	}
@@ -258,7 +258,7 @@ zparser_conv_long(region_type *region, const char *longstr)
 	l = htonl((uint32_t)strtol(longstr, &end, 0));
 
 	if(*end != 0) {
-		error("long decimal value is expected");
+		error("Long decimal value is expected");
         } else {
 		memcpy(r + 1, &l, sizeof(uint32_t));
 		*r = sizeof(uint32_t);
@@ -279,7 +279,7 @@ zparser_conv_byte(region_type *region, const char *bytestr)
         *((uint8_t *)(r+1)) = (uint8_t)strtol(bytestr, &end, 0);
 
         if(*end != 0) {
-		error("decimal value is expected");
+		error("Decimal value is expected");
         } else {
 		*r = sizeof(uint8_t);
         }
@@ -300,7 +300,7 @@ zparser_conv_a(region_type *region, const char *a)
 		memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
 		*r = sizeof(uint32_t);
 	} else {
-		error("invalid ip address");
+		error("Invalid ip address");
 	}
 	return r;
 }
@@ -317,7 +317,7 @@ zparser_conv_text(region_type *region, const char *txt)
 	uint16_t *r = NULL;
 
 	if((i = strlen(txt)) > 255) {
-		error("text string is longer than 255 charaters, try splitting in two");
+		error("Text string is longer than 255 charaters, try splitting in two");
         } else {
 
 		/* Allocate required space... */
@@ -342,7 +342,7 @@ zparser_conv_a6(region_type *region, const char *a6)
 
         /* Try to convert it */
         if(inet_pton(AF_INET6, a6, r + 1) != 1) {
-		error("invalid ipv6 address");
+		error("Invalid ipv6 address");
         } else {
 		*r = IP6ADDRLEN;
         }
@@ -359,7 +359,7 @@ zparser_conv_b64(region_type *region, const char *b64)
 
         /* Try to convert it */
         if((i = b64_pton(b64, buffer, B64BUFSIZE)) == -1) {
-		error("base64 encoding failed");
+		error("Base64 encoding failed");
         } else {
 		r = region_alloc(region, i + sizeof(uint16_t));
 		*r = i;
@@ -568,14 +568,14 @@ zparser_conv_loc(region_type *region, char *str)
 	for(;;) {
 		/* Degrees */
 		if (*str == '\0') {
-			error("unexpected end of LOC data");
+			error("Unexpected end of LOC data");
 			return NULL;
 		}
 
 		if (!parse_int(str, &str, &deg, "degrees", 0, 180))
 			return NULL;
 		if (!isspace(*str)) {
-			error("space expected after degrees");
+			error("Space expected after degrees");
 			return NULL;
 		}
 		++str;
@@ -585,7 +585,7 @@ zparser_conv_loc(region_type *region, char *str)
 			if (!parse_int(str, &str, &min, "minutes", 0, 60))
 				return NULL;
 			if (!isspace(*str)) {
-				error("space expected after minutes");
+				error("Space expected after minutes");
 				return NULL;
 			}
 		}
@@ -596,7 +596,7 @@ zparser_conv_loc(region_type *region, char *str)
 			if (!parse_int(str, &str, &secs, "seconds", 0, 60))
 				return NULL;
 			if (!isspace(*str) && *str != '.') {
-				error("space expected after seconds");
+				error("Space expected after seconds");
 				return NULL;
 			}
 		}
@@ -604,7 +604,7 @@ zparser_conv_loc(region_type *region, char *str)
 		if (*str == '.') {
 			secfraq = (int) strtol(str + 1, &str, 10);
 			if (!isspace(*str)) {
-				error("space expected after seconds");
+				error("Space expected after seconds");
 				return NULL;
 			}
 		}
@@ -636,7 +636,7 @@ zparser_conv_loc(region_type *region, char *str)
 			deg = min = secs = secfraq = 0;
 			break;
 		default:
-			error("invalid latitude/longtitude");
+			error("Invalid latitude/longtitude");
 			return NULL;
 		}
 		++str;
@@ -645,7 +645,7 @@ zparser_conv_loc(region_type *region, char *str)
 			break;
 
 		if (!isspace(*str)) {
-			error("space expected after latitude/longitude");
+			error("Space expected after latitude/longitude");
 			return NULL;
 		}
 		++str;
@@ -653,7 +653,7 @@ zparser_conv_loc(region_type *region, char *str)
 
 	/* Altitude */
 	if (*str == '\0') {
-		error("unexpected end of LOC data");
+		error("Unexpected end of LOC data");
 		return NULL;
 	}
 
@@ -677,12 +677,12 @@ zparser_conv_loc(region_type *region, char *str)
 		++str;
 		altfraq = strtol(str + 1, &str, 10);
 		if (!isspace(*str) && *str != 0 && *str != 'm') {
-			error("altitude fraction must be a number");
+			error("Altitude fraction must be a number");
 			return NULL;
 		}
 		break;
 	default:
-		error("altitude must be expressed in meters");
+		error("Altitude must be expressed in meters");
 		return NULL;
 	}
 	if (!isspace(*str) && *str != '\0')
@@ -691,7 +691,7 @@ zparser_conv_loc(region_type *region, char *str)
 	alt = (10000000 + (altsign * (altmeters * 100 + altfraq)));
 
 	if (!isspace(*str) && *str != '\0') {
-		error("unexpected character after altitude");
+		error("Unexpected character after altitude");
 		return NULL;
 	}
 
@@ -700,7 +700,7 @@ zparser_conv_loc(region_type *region, char *str)
 		vszhpvp[i] = precsize_aton(str + 1, &str);
 
 		if (!isspace(*str) && *str != '\0') {
-			error("invalid size or precision");
+			error("Invalid size or precision");
 			return NULL;
 		}
 	}
@@ -736,7 +736,7 @@ zparser_ttl2int(char *ttlstr)
 
 	ttl = strtottl(ttlstr, &t);
 	if(*t != 0) {
-		error("invalid ttl value");
+		error("Invalid ttl value: %s",ttlstr);
 		ttl = -1;
 	}
     
@@ -1245,14 +1245,14 @@ zone_read (const char *name, const char *zonefile)
 
 	dname = dname_parse(zone_region, name, NULL);
 	if (!dname) {
-		error("cannot parse zone name '%s'", name);
+		error("Cannot parse zone name '%s'", name);
 		return;
 	}
 	
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
 	if (dname->label_count == 1) {
-		error("not configured as a root server.");
+		error("Not configured as a root server.");
 		return;
 	}
 #endif
@@ -1261,7 +1261,7 @@ zone_read (const char *name, const char *zonefile)
 	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
 		/* this display (null), need seperate call here */
-		error("cannot open '%s': %s", zonefile, strerror(errno));
+		error("Cannot open '%s': %s", zonefile, strerror(errno));
 		return;
 	}
 
