@@ -120,12 +120,22 @@ const lookup_table_type ztypes[] = {
 	{ 0, NULL, 0 }
 };
 
+/* Taken from RFC 2538, section 2.1.  */
+const lookup_table_type certificate_types[] = {
+	{ 1, "PKIX", 0 },	/* X.509 as per PKIX */
+	{ 2, "SPKI", 0 },	/* SPKI cert */
+        { 3, "PGP", 0 },	/* PGP cert */
+        { 253, "URI", 0 },	/* URI private */
+	{ 254, "OID", 0 }	/* OID private */
+};
+
+/* Taken from RFC 2535, section 7.  */
 const lookup_table_type zalgs[] = {
 	{ 1, "RSAMD5", 0 },
 	{ 2, "DS", 0 },
 	{ 3, "DSA", 0 },
 	{ 4, "ECC", 0 },
-	{ 5, "RSASHA1", 0 },
+	{ 5, "RSASHA1", 0 },	/* XXX: Where is this specified? */
 	{ 252, "INDIRECT", 0 },
 	{ 253, "PRIVATEDNS", 0 },
 	{ 254, "PRIVATEOID", 0 },
@@ -369,6 +379,26 @@ zparser_conv_algorithm(region_type *region, const char *algstr)
         r = region_alloc(region, sizeof(uint16_t) + sizeof(uint8_t));
 	*((uint8_t *)(r+1)) = alg->symbol;
 	*r = sizeof(uint8_t);
+	return r;
+}
+
+uint16_t *
+zparser_conv_certificate_type(region_type *region, const char *typestr)
+{
+	/* convert a algoritm string to integer */
+	uint16_t *r = NULL;
+	const lookup_table_type *type;
+
+	type = lookup_by_name(typestr, certificate_types);
+
+	if (!type) {
+		/* not a memonic */
+		return zparser_conv_short(region, typestr);
+	}
+
+        r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
+	*r = sizeof(uint16_t);
+	copy_uint16(r + 1, type->symbol);
 	return r;
 }
 

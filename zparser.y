@@ -735,9 +735,9 @@ rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
 rdata_cert:	STR sp STR sp STR sp str_sp_seq trail
 	{
 		/* XXX: Handle memnonics */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str));	/* type */
+		zadd_rdata_wireformat(current_parser, zparser_conv_certificate_type(zone_region, $1.str));	/* type */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* key tag */
-		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $5.str)); /* algorithm */
+		zadd_rdata_wireformat(current_parser, zparser_conv_algorithm(zone_region, $5.str)); /* algorithm */
 		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $7.str)); /* certificate or CRL */
 	}
 	|   error NL

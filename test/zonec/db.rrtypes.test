@@ -23,7 +23,7 @@ $TTL    1H
 @       IN     NAPTR 100  10   ""  ""  "/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i" .
 @       IN     NAPTR 100  50  "s"  "http+I2L+I2C+I2R"  ""  _http._tcp.gatech.edu.
 
-@       IN     CERT  1 65535    1 (
+@       IN     CERT  PKIX 65535    RSAMD5 (
                                 AQOppkQvFlPFLiWZc0NXX5/QY44jphv3vfX0dscHNmTh
                                 Ntfx0TUgfBb1YQKJX6MNrzu/vvtV3xpLcCJ+tIP8ADDi
                                 MaUYT5Gh6kmn22V7FgHPlCHRJ+AcudQbeYgw1KCYS9D4
