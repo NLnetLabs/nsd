@@ -1,4 +1,4 @@
-$Id: TODO,v 1.17 2002/02/06 10:32:22 alexis Exp $
+$Id: TODO,v 1.18 2002/02/06 11:18:54 alexis Exp $
 
 ZONE COMPILER
 - CHECK msg->buf and msg->bla boundaries. IT DOES DUMP CORE.
@@ -21,6 +21,9 @@ SERVER
 - replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
 - tune the berkley db nicely
 - in server() dont quit on i/o errors
+
+- make sure that we dont copy anything from the query we dont want to copy, like
+  funny headers etc
 
 + first lowercase the query name
 
