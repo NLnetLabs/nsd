@@ -1,5 +1,15 @@
 NSD RELEASE NOTES
 
+2.0.2
+=============
+BUG FIXES:
+        - Allow the use of a mnemonic for the algorithm field of a
+          DNSKEY record.
+        - Behavior of the zonec -v flag has been modified.  By default
+          zonec will only print a single line with a summary of the
+          error count.
+        - Bug #75: Fixed typo in previous "fix".
+
 2.0.1
 =============
 BUG FIXES:
