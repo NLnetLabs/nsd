@@ -1114,7 +1114,7 @@ process_rr()
 	if (rr->type == TYPE_NS && rr->owner == zone->apex) {
 		zone->ns_rrset = rrset;
 	}
-	if ((totalrrs % progress == 0) && vflag > 1  && totalrrs > 0) {
+	if (vflag > 1 && totalrrs > 0 && (totalrrs % progress == 0)) {
 		printf("%ld\n", totalrrs);
 	}
 	++totalrrs;
