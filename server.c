@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.69 2003/03/20 10:31:25 alexis Exp $
+ * $Id: server.c,v 1.69.2.1 2003/04/29 11:33:20 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -232,7 +232,7 @@ server_start_tcp(struct nsd *nsd)
 
 	/* Pre-fork the tcp processes... */
 	for(i = 1; i <= nsd->tcp.open_conn; i++) {
-		switch((nsd->pid[i] = nsd->debug ? 0 : fork())) {
+		switch((nsd->pid[i] = fork())) {
 		case 0: /* CHILD */
 			nsd->pid[0] = 0;
 			server_tcp(nsd);
