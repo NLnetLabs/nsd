@@ -132,8 +132,8 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count
 	uint8_t data[65536];
 
 	if (rdata_atom_is_domain(type, index)) {
-		result->data = read_domain(db, domain_count, domains);
-		if (!result->data)
+		result->domain = read_domain(db, domain_count, domains);
+		if (!result->domain)
 			return 0;
 	} else {
 		uint16_t size;

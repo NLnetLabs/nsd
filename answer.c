@@ -133,7 +133,7 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	rdlength_pos = q->iobufptr;
 	q->iobufptr += sizeof(rdlength);
 
-	for (j = 0; !rdata_atom_is_terminator(rrset->rrs[rr]->rdata[j]); ++j) {
+	for (j = 0; j < rrset->rrs[rr]->rdata_count; ++j) {
 		switch (rdata_atom_wireformat_type(rrset->type, j)) {
 		case RDATA_WF_COMPRESSED_DNAME:
 			encode_dname(q, rdata_atom_domain(

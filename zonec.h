@@ -68,7 +68,6 @@ struct zparser {
 	unsigned int line;
 
 	rr_type current_rr;
-	unsigned int _rc;   /* current rdata cnt */
 	rrdata_type *temporary_rrdata;
 };
 
@@ -138,7 +137,6 @@ long strtottl(char *nptr, char **endptr);
 int32_t zparser_ttl2int(char *ttlstr);
 void zadd_rdata_wireformat(uint16_t *data);
 void zadd_rdata_domain(domain_type *domain);
-void zadd_rdata_finalize(void);
 void zprintrr(FILE *f, rr_type *rr);
 
 void set_bit(uint8_t bits[], uint16_t index);

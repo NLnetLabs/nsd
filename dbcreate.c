@@ -175,7 +175,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 		
 	for (i = 0; i < rrset->rrslen; ++i) {
 		rdcount = 0;
-		for (rdcount = 0; !rdata_atom_is_terminator(rrset->rrs[i]->rdata[rdcount]); ++rdcount)
+		for (rdcount = 0; rdcount < rrset->rrs[i]->rdata_count; ++rdcount)
 			;
 		
 		rdcount = htons(rdcount);
@@ -186,7 +186,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 		if (!write_data(db->fd, &ttl, sizeof(ttl)))
 			return 0;
 
-		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i]->rdata[j]); ++j) {
+		for (j = 0; j < rrset->rrs[i]->rdata_count; ++j) {
 			rdata_atom_type atom = rrset->rrs[i]->rdata[j];
 			if (rdata_atom_is_domain(rrset->type, j)) {
 				if (!write_number(db, rdata_atom_domain(atom)->number))

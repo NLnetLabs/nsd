@@ -947,30 +947,25 @@ zparser_ttl2int(char *ttlstr)
 void
 zadd_rdata_wireformat(uint16_t *data)
 {
-	if (parser->_rc > MAXRDATALEN) {
+	if (parser->current_rr.rrdata->rdata_count > MAXRDATALEN) {
 		error_prev_line("too many rdata elements");
 	} else {
-		parser->current_rr.rrdata->rdata[parser->_rc].data = data;
-		++parser->_rc;
+		parser->current_rr.rrdata
+			->rdata[parser->current_rr.rrdata->rdata_count].data = data;
+		++parser->current_rr.rrdata->rdata_count;
 	}
 }
 
 void
 zadd_rdata_domain(domain_type *domain)
 {
-	if (parser->_rc > MAXRDATALEN) {
+	if (parser->current_rr.rrdata->rdata_count > MAXRDATALEN) {
 		error_prev_line("too many rdata elements");
 	} else {
-		parser->current_rr.rrdata->rdata[parser->_rc].data = domain;
-		++parser->_rc;
+		parser->current_rr.rrdata
+			->rdata[parser->current_rr.rrdata->rdata_count].domain = domain;
+		++parser->current_rr.rrdata->rdata_count;
 	}
-}
-
-void
-zadd_rdata_finalize(void)
-{
-	/* Append terminating NULL.  */
-	parser->current_rr.rrdata->rdata[parser->_rc].data = NULL;
 }
 
 static const dname_type *
@@ -1178,31 +1173,39 @@ lookup_type_by_name(const char *name)
  *
  */
 static int
-zrdatacmp(uint16_t type, rdata_atom_type *a, rdata_atom_type *b)
+zrdatacmp(uint16_t type, rrdata_type *a, rrdata_type *b)
 {
 	int i = 0;
 	
 	assert(a);
 	assert(b);
 	
+	/* One is shorter than another */
+	if (a->rdata_count != b->rdata_count)
+		return 1;
+
 	/* Compare element by element */
-	for (i = 0; !rdata_atom_is_terminator(a[i]) && !rdata_atom_is_terminator(b[i]); ++i) {
+	for (i = 0; i < a->rdata_count; ++i) {
 		if (rdata_atom_is_domain(type, i)) {
-			if (rdata_atom_domain(a[i]) != rdata_atom_domain(b[i]))
+			if (rdata_atom_domain(a->rdata[i])
+			    != rdata_atom_domain(b->rdata[i]))
+			{
 				return 1;
+			}
 		} else {
-			if (rdata_atom_size(a[i]) != rdata_atom_size(b[i]))
+			if (rdata_atom_size(a->rdata[i])
+			    != rdata_atom_size(b->rdata[i]))
+			{
 				return 1;
-			if (memcmp(rdata_atom_data(a[i]),
-				   rdata_atom_data(b[i]),
-				   rdata_atom_size(a[i])) != 0)
+			}
+			if (memcmp(rdata_atom_data(a->rdata[i]),
+				   rdata_atom_data(b->rdata[i]),
+				   rdata_atom_size(a->rdata[i])) != 0)
+			{
 				return 1;
+			}
 		}
 	}
-
-	/* One is shorter than another */
-	if (rdata_atom_is_terminator(a[i]) != rdata_atom_is_terminator(b[i]))
-		return 1;
 
 	/* Otherwise they are equal */
 	return 0;
@@ -1382,7 +1385,7 @@ process_rr()
 
 	/* Make sure the maximum RDLENGTH does not exceed 65535 bytes.  */
 	max_rdlength = 0;
-	for (i = 0; !rdata_atom_is_terminator(rr->rrdata->rdata[i]); ++i) {
+	for (i = 0; i < rr->rrdata->rdata_count; ++i) {
 		if (rdata_atom_is_domain(rr->type, i)) {
 			max_rdlength += domain_dname(rdata_atom_domain(rr->rrdata->rdata[i]))->name_size;
 		} else {
@@ -1449,7 +1452,8 @@ process_rr()
 
 		/* Search for possible duplicates... */
 		for (i = 0; i < rrset->rrslen; i++) {
-			if (!zrdatacmp(rrset->type, rrset->rrs[i]->rdata, rr->rrdata->rdata)) {
+			if (!zrdatacmp(rrset->type, rrset->rrs[i], rr->rrdata))
+			{
 				break;
 			}
 		}

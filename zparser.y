@@ -91,7 +91,7 @@ line:   NL
 				    = (rrdata_type *) region_alloc_init(
 					    parser->region,
 					    parser->current_rr.rrdata,
-					    rrdata_size(parser->_rc));
+					    rrdata_size(parser->current_rr.rrdata->rdata_count));
 			    
 			    process_rr();
 		    }
@@ -101,7 +101,7 @@ line:   NL
 
 	    parser->current_rr.type = 0;
 	    parser->current_rr.rrdata = parser->temporary_rrdata;
-	    parser->_rc = 0;
+	    parser->current_rr.rrdata->rdata_count = 0;
 	    parser->error_occurred = 0;
     }
     | error NL
@@ -186,7 +186,6 @@ in:     T_IN
 
 rrrest: classttl rtype 
     {
-        zadd_rdata_finalize();
 	parser->current_rr.type = $2;
     }
     ;
@@ -846,11 +845,11 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 		parser->db->domains,
 		dname_parse(parser->db->region, origin, NULL)); 
 	parser->prev_dname = parser->origin; 
-	parser->_rc = 0;
 	parser->errors = 0;
 	parser->line = 1;
 	parser->filename = filename;
 	parser->current_rr.rrdata = parser->temporary_rrdata;
+	parser->current_rr.rrdata->rdata_count = 0;
 }
 
 int

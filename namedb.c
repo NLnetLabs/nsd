@@ -349,9 +349,9 @@ rrset_rrsig_type_covered(rrset_type *rrset, uint16_t rr)
 	
 	assert(rrset->type == TYPE_RRSIG);
 	assert(rr < rrset->rrslen);
-
+	assert(rrset->rrs[rr]->rdata_count > 0);
+	
 	atom = rrset->rrs[rr]->rdata[0];
-	assert(!rdata_atom_is_terminator(atom));
 	assert(rdata_atom_size(atom) == sizeof(uint16_t));
 	
 	return ntohs(* (uint16_t *) rdata_atom_data(atom));

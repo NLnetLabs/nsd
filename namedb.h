@@ -56,7 +56,7 @@
 #endif
 
 
-typedef struct rdata_atom rdata_atom_type;
+typedef union rdata_atom rdata_atom_type;
 typedef struct rrset rrset_type;
 typedef struct rrdata rrdata_type;
 
@@ -111,14 +111,24 @@ struct rrset
 	rrdata_type **rrs;
 };
 
-struct rdata_atom
+/*
+ * The field used is based on the wireformat the atom is stored in.
+ * The allowed wireformats are defined by the rdata_wireformat_type
+ * enumeration.
+ */
+union rdata_atom
 {
-	void *data;
+	/* RDATA_WF_COMPRESSED_DNAME, RDATA_WF_UNCOMPRESSED_DNAME.  */
+	domain_type *domain;
+
+	/* Default.  */
+	uint16_t    *data;
 };
 
 struct rrdata
 {
 	int32_t         ttl;
+	uint16_t        rdata_count;
 	rdata_atom_type rdata[1];
 };
 
@@ -216,36 +226,30 @@ struct namedb
 	FILE              *fd;
 };
 
-static inline int
-rdata_atom_is_terminator(rdata_atom_type atom)
-{
-	return atom.data == NULL;
-}
-
 static inline int rdata_atom_is_domain(uint16_t type, size_t index);
 
 static inline domain_type *
 rdata_atom_domain(rdata_atom_type atom)
 {
-	return (domain_type *) atom.data;
+	return atom.domain;
 }
 
 static inline uint16_t
 rdata_atom_size(rdata_atom_type atom)
 {
-	return * (uint16_t *) atom.data;
+	return *atom.data;
 }
 
 static inline void *
 rdata_atom_data(rdata_atom_type atom)
 {
-	return (uint16_t *) atom.data + 1;
+	return atom.data + 1;
 }
 
 static inline size_t
 rrdata_size(uint16_t rdcount)
 {
-	return sizeof(rrdata_type) + rdcount * sizeof(rdata_atom_type);
+	return sizeof(rrdata_type) + (rdcount - 1) * sizeof(rdata_atom_type);
 }
 
 
