@@ -147,7 +147,10 @@ AC_CHECK_TYPE(int32_t, int)
 AC_CHECK_TYPE(u_int8_t, unsigned char)
 AC_CHECK_TYPE(u_int16_t, unsigned short)
 AC_CHECK_TYPE(u_int32_t, unsigned int)
-AC_CHECK_TYPE(in_addr_t, unsigned long)
+
+AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [u_int32_t], [in_addr_t])], [#if HAVE_NETINET_IN_H
+# include <netinet/in.h>
+#endif])
 
 # Checks for library functions.
 AC_FUNC_CHOWN
@@ -163,6 +166,7 @@ AC_REPLACE_FUNCS(basename)
 AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(b64_pton)
+AC_REPLACE_FUNCS(b64_ntop)
 
 dnl
 dnl Check for libwrap
