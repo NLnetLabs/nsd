@@ -1,4 +1,4 @@
-$Id: TODO,v 1.30 2003/02/10 14:53:02 alexis Exp $
+$Id: TODO,v 1.31 2003/02/10 16:03:14 alexis Exp $
 
 AUTOCONF
 
@@ -10,6 +10,7 @@ ZONE COMPILER
 - as writing the zone the order should be DNS SEC compliant (use dnameinvert())
 - missing closing quote doesnt register as an error
 - MINOR BUG: unknown types and custom formats dont ever get freed()
+- error diagnostic has to be improved a lot
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?

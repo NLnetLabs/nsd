@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.41 2003/02/10 15:12:25 alexis Exp $
+ * $Id: zf.c,v 1.42 2003/02/10 16:03:14 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -86,7 +86,7 @@ chartoi (char c)
 	case 'd':
 	case 'e':
 	case 'f':
-		return c - 'a';
+		return c - 'a' + 10;
 	default:
 		return -1;
 	}
@@ -750,11 +750,12 @@ zf_parse_unkn (struct zf *zf, char *token) {
 	}
 
 	unkn_size = (u_int16_t)strtol(token, &t, 10);
-	if(t) {
+	if(*t) {
 		zf_error(zf, "illegal number of octets with uknown rr");
 		return -1;
 	}
 
+	free(zf->line.rdatafmt);
 	zf->line.rdatafmt = strdup("U");
 
 	zf->line.rdata[0].p = xalloc(unkn_size + sizeof(u_int16_t));
@@ -768,7 +769,7 @@ zf_parse_unkn (struct zf *zf, char *token) {
 			error++;
 			break;
 		}
-		while(*token) {
+		while(unkn_size && *token) {
 			if((c = chartoi(*(token++))) == -1) {
 				zf_syntax(zf);
 				error++;
@@ -785,7 +786,8 @@ zf_parse_unkn (struct zf *zf, char *token) {
 				error++;
 				break;
 			}
-			*t += c;
+			*t++ += c;
+			unkn_size--;
 		}
 	}
 	if(error || unkn_size != 0) {
@@ -947,7 +949,7 @@ zf_parse_format (struct zf *zf, char *token)
 	}
 
 	/* Trailing garbage */
-	if((token = zf_token(zf, NULL)) != NULL) {
+	if(token != NULL) {
 		zf_error(zf, "trailing garbage");
 		zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
 		return -1;
@@ -1082,16 +1084,25 @@ zf_read (struct zf *zf)
 			continue;
 		}
 
-		zf->line.type = type->type;
-		zf->line.rdatafmt = strdup(type->fmt);
-		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
-		memset(zf->line.rdata, 0, sizeof(union zf_rdatom) * MAXRDATALEN);
-
 		/* Get the next token to see what it is */
 		if((token = zf_token(zf, NULL)) == NULL) {
 			zf_syntax(zf);
 			continue;
 		}
+
+		if(type->fmt == NULL) {
+			if(strcmp(token, "\\#")) {
+				zf_error(zf, "uknown type rdata does not begin with \\#");
+				continue;
+			} else {
+				unkn_type.fmt = "U";
+			}
+		}
+
+		zf->line.type = type->type;
+		zf->line.rdatafmt = strdup(type->fmt);
+		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
+		memset(zf->line.rdata, 0, sizeof(union zf_rdatom) * MAXRDATALEN);
 
 		/* Is this UNKN form? */
 		if(strcmp(token, "\\#") == 0) {
