@@ -257,7 +257,7 @@ dname_label_count(const dname_type *dname)
 	assert(dname);
 
 	result = 1;
-	for (label = dname_name(dname);
+	for (label = dname_canonical_name(dname);
 	     !label_is_root(label);
 	     label = label_next(label))
 	{
