@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.29.2.4 2002/08/15 14:41:00 alexis Exp $
+ * $Id: zf.c,v 1.29.2.5 2002/08/21 09:24:46 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -331,45 +331,93 @@ void *
 inet6_aton(str)
 	char *str;
 {
+
+#ifdef	INET6
 	char *addr;
 
-#ifndef	INET6
-	u_int16_t w;
-	char *p, *t, *z;
-#endif
-
 	addr = xalloc(IP6ADDRLEN);
-
 	if(!str || !addr) {
 		errno = EINVAL;
 		return NULL;
 	}
-
-#ifdef	INET6
 	if(inet_pton(AF_INET6, str, addr) == 1) {
 		return addr;
 	}
-#else
-	for(p = str, t = addr; t < (addr + 8 * sizeof(u_int16_t)); p++) {
-		if((*p == ':') || (*p == '\000')) {
-			w = htons((u_int16_t) strtol(str, &z, 16));
-			if(z != p) return NULL;
-			bcopy(&w, t, sizeof(u_int16_t));
-			t += sizeof(u_int16_t);
-			str = p + 1;
-		}
-		if(*p == '\000') {
-			if(t == (addr + 8 * sizeof(u_int16_t))) {
-				return addr;
-			} else {
-				break;
-			}
-		}
-	}
-#endif
-
 	free(addr);
 	return NULL;
+
+#else
+
+#define IP6ADDR_I16S (IP6ADDRLEN/sizeof(u_int16_t))
+
+	u_int16_t front[IP6ADDR_I16S];	/* the front bits */
+	u_int16_t back[IP6ADDR_I16S];	/* the back bits */
+	unsigned frontlen, backlen, i;	/* lengths and index for above */
+	u_int16_t *addr;		/* pointer to result */
+	char *p;
+
+	if(!str) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	frontlen = 0;
+	backlen = 0;
+
+	if (*str == ':' && *(str+1) == ':') {	/* no front part */
+		str += 2;
+	}
+	else { 			/* slurp up the front bits */
+		for (i=0; i<IP6ADDR_I16S; i++) { 
+			front[i] = htons((u_int16_t) strtol(str, &p, 16));
+			if (p-str > 4) return NULL;
+			str = p;
+			if (!*str) break;
+			if (*str!=':') return NULL;
+			if (*(str+1)==':') {
+				str += 2;
+				break;
+			}
+			str++;
+		}
+		frontlen = i+1;
+	}
+
+	if (*str ) {	/* we have a  back part, slurp up the back bits */
+		if (*str==':') return NULL;
+		for (i=0; i<IP6ADDR_I16S-frontlen; i++) { 
+			back[i] = htons((u_int16_t) strtol(str, &p, 16));
+			if (p-str > 4) return NULL;
+			str = p;
+			if (!*str) break;
+			if (*str!=':') return NULL;
+			str++;
+		}
+		backlen = i+1;
+	}
+
+	if ((frontlen+backlen) > IP6ADDR_I16S) return NULL;
+
+	/* now allocate and fill the result from both sides */
+	addr = (u_int16_t *) xalloc(IP6ADDRLEN);
+	if(!addr) {
+		errno = EINVAL;
+		return NULL;
+	}
+	bzero(addr, IP6ADDRLEN);
+	if (frontlen) {
+		for (i=0; i<frontlen; i++) {
+			addr[i] = front[i]; /* is this portable enough ? */
+		}
+	}
+	if (backlen) {
+		for (i=0; i<backlen; i++) {
+			addr[IP6ADDR_I16S-backlen+i] = back[i];
+		}
+	}
+
+	return(addr);
+#endif
 }
 
 /*
