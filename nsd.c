@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.19 2002/02/14 13:33:03 alexis Exp $
+ * $Id: nsd.c,v 1.20 2002/02/14 13:48:31 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -99,11 +99,15 @@ sig_handler(sig)
 		syslog(LOG_WARNING, "signal %d received, reloading...", sig);
 		nsd.mode = NSD_RELOAD;
 		break;
+	case SIGUSR2:
+		nsd.mode = NSD_SHUTDOWN;
+		break;
 	case SIGTERM:
 	default:
 		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
 		nsd.mode = NSD_SHUTDOWN;
 		break;
+		
 	}
 }
 
@@ -155,11 +159,6 @@ main(argc, argv)
 		nsd.dbfile = argv[0];
 	}
 
-	/* Setup the signal handling... */
-	signal(SIGTERM, &sig_handler);
-	signal(SIGHUP, &sig_handler);
-	signal(SIGCHLD, &sig_handler);
-
 	/* Open the database... */
 	if((nsd.db = namedb_open(nsd.dbfile)) == NULL) {
 		syslog(LOG_ERR, "unable to load %s: %m", nsd.dbfile);
@@ -194,6 +193,12 @@ main(argc, argv)
 				(void)close(fd);
 		}
 	}
+
+	/* Setup the signal handling... */
+	signal(SIGTERM, &sig_handler);
+	signal(SIGHUP, &sig_handler);
+	signal(SIGCHLD, &sig_handler);
+	signal(SIGUSR2, &sig_handler);
 
 	/* Get our process id */
 	nsd.pid = getpid();
