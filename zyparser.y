@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.23 2003/08/20 14:39:20 miekg Exp $
+ * $Id: zyparser.y,v 1.24 2003/08/25 14:23:06 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -106,12 +106,14 @@ rr:     ORIGIN SP rrrest NL
         /* also set this as the prev_dname */
         zdefault->prev_dname = zdefault->origin;
         zdefault->prev_dname_len = zdefault->origin_len; /* what about this len? */
+        free($1.str);
     }
     |   PREV rrrest NL
     {
         /* a tab, use previously defined dname */
         /* [XXX] is null -> error, not checked (yet) MG */
         current_rr->dname = zdefault->prev_dname;
+        
     }
     |   dname SP rrrest NL
     {
@@ -303,10 +305,15 @@ rdata_a:    STR '.' STR '.' STR '.' STR
     }
     ;
 
-rdata_txt:  STR
+rdata_txt:  STR 
     {
         zadd_rdata2( zdefault, zparser_conv_text($1.str));
     	free($1.str);
+    }
+    |   rdata_txt SP STR
+    {
+        zadd_rdata2( zdefault, zparser_conv_text($3.str));
+        free($3.str);
     }
     ;
 

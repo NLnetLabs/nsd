@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.13 2003/08/20 13:31:38 erik Exp $
+ * $Id: zlparser.lex,v 1.14 2003/08/25 14:23:06 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -42,7 +42,7 @@ DOLLAR  \$
 COMMENT ;
 DOT     \.
 SLASH   \\
-ANY     .|\\.
+ANY     [^\"]|\\.
 CLASS   IN|CH|HS
 Q       \"
 
@@ -59,8 +59,8 @@ Q       \"
                         }
 ^@                      {
                             ztext = strdup(yytext);
+                            yylval.len = zoctet(ztext);
                             yylval.str = ztext;
-                            yylval.len = strlen(ztext);
                             in_rr = 1;
                             return ORIGIN;
                         }
@@ -69,7 +69,7 @@ Q       \"
 ^{DOLLAR}INCLUDE.*      /* ignore for now */    /* INCLUDE FILE DOMAINNAME */
 ^{DOLLAR}{LETTER}+      { printf("UNKNOWN DIRECTIVE - ignored");}
 ^{DOT}                  {
-                            /* a ^. means the root zone... also set n_rr */
+                            /* a ^. means the root zone... also set in_rr */
                             in_rr = 1;
                             return '.';
                         }
@@ -221,6 +221,8 @@ zoctet(char *word)
 {
     /* remove \DDD constructs from the input. See RFC 1035, section 5.1 */
     /* s follows the string, p lags behind and rebuilds the new string */
+    /*
+     * Don't normalize here */
     char * s; char * p;
     unsigned int length = 0;
 
@@ -245,7 +247,8 @@ zoctet(char *word)
                     if ( 0 <= val && val <= 255 ) {
                         /* this also handles \0 */
                         s += 3;
-                        *p = DNAME_NORMALIZE(val);
+                        /* *p = DNAME_NORMALIZE(val); */
+                        *p = val;
                         length++;
                     } else {
                         printf("zlparser.lex: ASCII overflow\n");
@@ -254,17 +257,20 @@ zoctet(char *word)
                 } else {
                     /* an espaced character, like \<space> ? 
                     * remove the '\' keep the rest */
-                    *p = DNAME_NORMALIZE(*++s);
+                    /* *p = DNAME_NORMALIZE(*++s); */
+                    *p = *++s;
                     length++;
                 }
                 break;
             case '\"':
                 /* non quoted " */
-                *p = DNAME_NORMALIZE(*++s);
+                /* *p = DNAME_NORMALIZE(*++s); */
+                *p = *++s;
                 length++;
                 break;
             default:
-                *p = DNAME_NORMALIZE(*s);
+                /* *p = DNAME_NORMALIZE(*s); */
+                *p = *s;
                 length++;
                 break;
         }
