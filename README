@@ -1,4 +1,4 @@
-$Id: README,v 1.16 2002/10/21 10:39:46 alexis Exp $
+$Id: README,v 1.16.2.1 2002/10/29 11:52:44 alexis Exp $
 
 1.0 Introduction
 1.1 Basic theory of operation
@@ -69,6 +69,10 @@ Step 5: make install
 Step 6:
 	Add "axfr" and/or "axfr-zone.name.tld" entries to your hosts.allow
 	and/or hosts deny
+
+	Example:
+
+		axfr: ALL : allow
 
 Step 7:
 	Create and edit /etc/nsd/nsd.zones file possibly from nsd.zones.sample
