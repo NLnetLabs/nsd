@@ -44,6 +44,7 @@ nsd
 .Op Fl a Ar ip-address
 .Op Fl d 
 .Op Fl f Ar database
+.Op Fl P Ar pidfile
 .Op Fl h
 .Op Fl i Ar identity
 .Op Fl l Ar logfile
@@ -117,6 +118,12 @@ Use the specified
 .Ar database
 instead of the default of
 .Em /etc/nsd/nsd.db .
+
+.It Fl P Ar pidfile
+Use the specified
+.Ar pidfile
+instead of the platform specific default, which is mostly
+.Em /var/run/nsd.pid .
 
 .It Fl h
 Print help information and exit.
