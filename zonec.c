@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.98.2.6 2003/07/21 13:52:07 erik Exp $
+ * $Id: zonec.c,v 1.98.2.7 2004/01/07 09:44:03 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -445,9 +445,21 @@ zone_read (char *name, char *zonefile)
 
 		/* Do we have this domain name in heap? */
 		if((rrset = heap_search(h, rr->dname)) != NULL) {
-			for(r = rrset; r; r = r->next) {
-				if(r->type == rr->type)
-					break;
+			/*
+			 * Reuse RRset added for empty non-terminals
+			 * (see "Now create necessary empty nodes..."
+			 * below).  This occurs when an RRset for a
+			 * child domain is defined before the RRset of
+			 * the parent domain (bug #72).
+			 */
+			if (rrset->type == 0) {
+				r = rrset;
+				rrset = NULL;
+			} else {
+				for(r = rrset; r; r = r->next) {
+					if(r->type == rr->type)
+						break;
+				}
 			}
 		} else {
 			r = NULL;
