@@ -1,4 +1,4 @@
-$Id: DESIGN,v 1.7 2002/02/07 13:50:17 alexis Exp $
+$Id: DESIGN,v 1.8 2002/02/08 12:32:40 alexis Exp $
 
 Database format
 ---------------
@@ -37,10 +37,13 @@ Internal database has the following format:
 +25	u_char starmask[16];
 +41	u_char datamask[16];
 
+ENDOFFILE
+
 Please notice that every element in the database is even aligned except of the trailing magic
 and the masks.
 
-ENDOFFILE
+All the numbers are in the machine byte order unless specified otherwise.
+
 
 1.2 Berkeley database format
 
@@ -95,15 +98,18 @@ Contains the type for which the answer can be given.
 
 answer.ancount
 
-Contains the number of the resource records in the answer section of this answer.
+Contains the number in the network byteorder of the resource records in the answer
+section of this answer.
 
 answer.nscount
 
-Contains the number of the resource records in the authority section of this answer.
+Contains the number in the network byte order of the resource records in the authority
+section of this answer.
 
 answer.arcount
 
-Contains the number of the resource records in the additional section of this answer.
+Contains the number in the network byte order of the resource records in the additional
+section of this answer.
 
 answer.ptrlen
 
