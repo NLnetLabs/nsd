@@ -57,12 +57,8 @@ namedb_new (const char *filename)
 	/* Make a new structure... */
 	db = region_alloc(region, sizeof(struct namedb));
 	db->region = region;
-	
-	if ((db->filename = strdup(filename)) == NULL) {
-		region_destroy(region);
-		return NULL;
-	}
-	region_add_cleanup(region, free, db->filename);
+	db->domains = NULL;
+	db->filename = region_strdup(region, filename);
 
 	/*
 	 * Unlink the old database, if it exists.  This is useful to
@@ -92,38 +88,8 @@ namedb_new (const char *filename)
 
 
 int 
-namedb_put (struct namedb *db, const uint8_t *dname, struct domain *d)
-{
-	static const char zeroes[NAMEDB_ALIGNMENT];
-	const dname_type *domain = dname_make(db->region, dname + 1);
-	size_t padding = PADDING(dname_total_size(domain), NAMEDB_ALIGNMENT);
-	
-	/* Store the key */
-	if (!write_data(db->fd, domain, dname_total_size(domain))) {
-		return -1;
-	}
-
-	if (!write_data(db->fd, zeroes, padding)) {
-		return -1;
-	}
-	
-	/* Store the domain */
-	if (!write_data(db->fd, d, d->size)) {
-		return -1;
-	}
-
-	return 0;
-}
-
-int 
 namedb_save (struct namedb *db)
 {
-	/* Write an empty key... */
-	if (!write_data(db->fd, "", 1)) {
-		fclose(db->fd);
-		return -1;
-	}
-
 	/* Write the magic... */
 	if (!write_data(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE)) {
 		fclose(db->fd);

@@ -40,6 +40,7 @@
 #define _DNAME_H_
 
 #include <assert.h>
+#include <stdio.h>
 
 #include "heap.h"
 #include "region-allocator.h"
@@ -99,6 +100,18 @@ const dname_type *dname_parse(region_type *region,
 const dname_type *dname_copy(region_type *region, const dname_type *dname);
 
 /*
+ * Copy the most significant LABEL_COUNT labels from dname.
+ */
+const dname_type *dname_partial_copy(region_type *region,
+				     const dname_type *dname,
+				     uint8_t label_count);
+
+/*
+ * Return true if LEFT is a subdomain of RIGHT.
+ */
+int dname_is_subdomain(const dname_type *left, const dname_type *right);
+
+/*
  * Offsets into NAME for each label starting with the most
  * significant label (the root label, followed by the TLD,
  * etc).
@@ -154,6 +167,9 @@ dname_label(const dname_type *dname, uint8_t label)
  * Pre: left != NULL && right != NULL
  */
 int dname_compare(const dname_type *left, const dname_type *right);
+
+uint8_t dname_label_match_count(const dname_type *left,
+				const dname_type *right);
 
 static inline size_t
 dname_total_size(const dname_type *dname)
@@ -278,57 +294,20 @@ label_next(const uint8_t *label)
 	return label + label_length(label) + 1;
 }
 
-
-/*
- * A domain name tree supporting fast insert and search operations.
- */
-typedef struct dname_tree dname_tree_type;
-struct dname_tree
-{
-	region_type *region;
-	dname_tree_type *parent;
-	heap_t *children;
-	dname_tree_type *wildcard_child;
-	uint8_t label_count;
-	void *data;
-	void **plugin_data;
-};
-
-/*
- * Create a new dname_tree containing only the root domain.
- */
-dname_tree_type *dname_tree_create(region_type *region);
-
-/*
- * Search the dname tree a match and the closest encloser.
- */
-int dname_tree_search(dname_tree_type *dt,
-		      const dname_type *dname,
-		      dname_tree_type **less_equal,
-		      dname_tree_type **closest_encloser);
-
-dname_tree_type *dname_tree_find(dname_tree_type *tree,
-				 const dname_type *dname);
-
-/*
- * Insert or update the data associated with a dname.  Empty data
- * nodes are inserted for parent dnames that are not yet in the tree.
- *
- * The dname's tree node is returned.
- */
-dname_tree_type *dname_tree_update(dname_tree_type *dt,
-				   const dname_type *dname,
-				   void *data);
-
 const char *dname_to_string(const dname_type *dname);
 const char *labels_to_string(const uint8_t *dname);
 
-int dnamecmp(const void *a, const void *b);
-const char *dnamestr(const uint8_t *dname);
-const uint8_t *strdname(const char *s, const uint8_t *o);
-uint8_t *dnamedup(const uint8_t *dname);
-uint8_t *create_dname(const uint8_t *str, const size_t len);
-uint8_t *cat_dname(const uint8_t *left, const uint8_t *right);
+/*
+ * Create a dname containing the single label specified by STR followd
+ * by the root label.
+ */
+const dname_type *create_dname(region_type *region, const uint8_t *str, const size_t len);
 
+/*
+ * Concatenate two dnames.
+ */
+const dname_type *cat_dname(region_type *region,
+			    const dname_type *left,
+			    const dname_type *right);
 
 #endif /* _DNAME_H_ */

@@ -164,7 +164,6 @@
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
 #define	MAXRRSPP	1024	/* Maximum number of rr's per packet */
-#define	MINRDNAMECOMP	3	/* Minimum dname to be compressed */
 
 /* Current amount of data in the query IO buffer.  */
 #define QUERY_USED_SIZE(q)  ((size_t) ((q)->iobufptr - (q)->iobuf))
@@ -179,7 +178,21 @@
 		memcpy((query)->iobufptr, data, size);		\
 		(query)->iobufptr += size;			\
 	} while (0)
-	
+
+enum answer_section {
+	QUESTION_SECTION, ANSWER_SECTION, AUTHORITY_SECTION, ADDITIONAL_SECTION
+};
+typedef enum answer_section answer_section_type;
+
+/* Information that will be stored in the answer.  */
+typedef struct answer answer_type;
+struct answer {
+	size_t rrset_count;
+	rrset_type *rrsets[MAXRRSPP];
+	domain_type *domains[MAXRRSPP];
+	answer_section_type section[MAXRRSPP];
+};
+
 /* Query as we pass it around */
 struct query {
 	/* Memory region freed after each query is processed. */
@@ -193,26 +206,32 @@ struct query {
 	size_t maxlen;
 	int edns;
 	int tcp;
+
 	uint8_t *iobufptr;
 	size_t iobufsz;
 	uint8_t iobuf[QIOBUFSZ];
 
+	answer_type answer;
+
+	domain_type *soa_or_delegation_domain;
+	rrset_type *soa_rrset;
+	rrset_type *ns_rrset;
+	
 	/* Normalized query domain name.  */
 	const dname_type *name;
 
 	/* The domain used to answer the query.  */
-	dname_tree_type *domain;
+	domain_type *domain;
 	
 	/* Query class and type in host byte order.  */
-	uint16_t query_class;
-	uint16_t query_type;
+	uint16_t class;
+	uint16_t type;
 };
 
 /* query.c */
 int query_axfr(struct nsd *nsd, struct query *q, const uint8_t *qname);
 void query_init(struct query *q);
 void query_addtxt(struct query *q, uint8_t *dname, int16_t class, int32_t ttl, const char *txt);
-void query_addanswer(struct query *q, const uint8_t *dname, const struct answer *a, int trunc);
 int query_process(struct query *q, struct nsd *nsd);
 void query_addedns(struct query *q, struct nsd *nsd);
 void query_error(struct query *q, int rcode);

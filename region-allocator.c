@@ -59,6 +59,12 @@ struct cleanup
 
 struct region
 {
+	size_t        total_allocated;
+	size_t        small_objects;
+	size_t        large_objects;
+	size_t        chunk_count;
+	size_t        unused_space; /* Unused space due to alignment, etc. */
+	
 	size_t        allocated;
 	char         *initial_data;
 	char         *data;
@@ -80,6 +86,12 @@ region_create(void *(*allocator)(size_t size),
 	region_type *result = allocator(sizeof(region_type));
 	if (!result) return NULL;
 
+	result->total_allocated = 0;
+	result->small_objects = 0;
+	result->large_objects = 0;
+	result->chunk_count = 1;
+	result->unused_space = 0;
+	
 	result->allocated = 0;
 	result->data = allocator(CHUNK_SIZE);
 	if (!result->data) {
@@ -158,14 +170,15 @@ region_add_cleanup(region_type *region, void (*action)(void *), void *data)
 void *
 region_alloc(region_type *region, size_t size)
 {
+	size_t aligned_size;
 	void *result;
     
 	if (size == 0) {
 		size = 1;
 	}
-	size = ALIGN_UP(size, ALIGNMENT);
+	aligned_size = ALIGN_UP(size, ALIGNMENT);
     
-	if (size >= LARGE_OBJECT_SIZE) {
+	if (aligned_size >= LARGE_OBJECT_SIZE) {
 		result = region->allocator(size);
 		if (!result) return NULL;
         
@@ -174,20 +187,31 @@ region_alloc(region_type *region, size_t size)
 			return NULL;
 		}
         
+		region->total_allocated += size;
+		++region->large_objects;
+		
 		return result;
 	}
     
-	if (region->allocated + size > CHUNK_SIZE) {
+	if (region->allocated + aligned_size > CHUNK_SIZE) {
 		void *chunk = region->allocator(CHUNK_SIZE);
 		if (!chunk) return NULL;
 
+		++region->chunk_count;
+		region->unused_space += CHUNK_SIZE - region->allocated;
+		
 		region_add_cleanup(region, region->deallocator, chunk);
 		region->allocated = 0;
 		region->data = chunk;
 	}
 
 	result = region->data + region->allocated;
-	region->allocated += size;
+	region->allocated += aligned_size;
+
+	region->total_allocated += aligned_size;
+	region->unused_space += aligned_size - size;
+	++region->small_objects;
+	
 	return result;
 }
 
@@ -232,7 +256,38 @@ region_free_all(region_type *region)
 	region->data = region->initial_data;
 	region->cleanup_count = 0;
 	region->allocated = 0;
+
+	region->total_allocated = 0;
+	region->small_objects = 0;
+	region->large_objects = 0;
+	region->chunk_count = 1;
+	region->unused_space = 0;
 }
+
+
+char *
+region_strdup(region_type *region, const char *string)
+{
+	size_t len = strlen(string);
+	char *result = region_alloc(region, len + 1);
+	if (!result) return NULL;
+	memcpy(result, string, len + 1);
+	return result;
+}
+
+void
+region_dump_stats(region_type *region, FILE *out)
+{
+	fprintf(out, "%lu objects (%lu small/%lu large), %lu bytes allocated (%lu wasted) in %lu chunks, %lu cleanups",
+		(unsigned long) (region->small_objects + region->large_objects),
+		(unsigned long) region->small_objects,
+		(unsigned long) region->large_objects,
+		(unsigned long) region->total_allocated,
+		(unsigned long) region->unused_space,
+		(unsigned long) region->chunk_count,
+		(unsigned long) region->cleanup_count);
+}
+
 
 #ifdef TEST
 

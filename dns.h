@@ -43,6 +43,7 @@
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
 #define	CLASS_CHAOS	3	/* Class CHAOS */
+#define CLASS_HS        4       /* Class HS */
 #define	CLASS_ANY	255	/* Class IN */
 
 #define TYPE_A		1	/* a host address */

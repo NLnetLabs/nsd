@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.23 2003/09/11 09:11:57 erik Exp $
+ * $Id: zparser2.c,v 1.24 2003/10/17 13:51:31 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -29,15 +29,22 @@
 #include "zparser2.h"
 #include "dns.h"
 #include "dname.h"
+#include "namedb.h"
 #include "util.h"
+#include "zonec2.h"
 
+#ifndef B64_PTON
+int b64_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize);
+#endif /* !B64_PTON */
+#ifndef B64_NTOP
+int b64_pton(char const *src, uint8_t *target, size_t targsize);
+#endif /* !B64_NTOP */
 
 /* 
  * These are parser function for generic zone file stuff.
  */
-
 uint16_t *
-zparser_conv_hex(const char *hex)
+zparser_conv_hex(region_type *region, const char *hex)
 {
 	/* convert a hex value to wireformat */
 	uint16_t *r = NULL;
@@ -48,7 +55,7 @@ zparser_conv_hex(const char *hex)
 		zerror("hex representation must be a whole number of octets");
 	} else {
 		/* the length part */
-		r = xalloc(sizeof(uint16_t) + i/2);
+		r = region_alloc(region, sizeof(uint16_t) + i/2);
 		*r = i/2;
 		t = (uint8_t *)(r + 1);
     
@@ -85,8 +92,7 @@ zparser_conv_hex(const char *hex)
 					break;
 				default:
 					zerror("illegal hex character");
-					free(r);
-					return 0;
+					return NULL;
 				}
 				*hex++;
 			}
@@ -97,7 +103,7 @@ zparser_conv_hex(const char *hex)
 }
 
 uint16_t *
-zparser_conv_time(const char *time)
+zparser_conv_time(region_type *region, const char *time)
 {
 	/* convert a time YYHM to wireformat */
 	uint16_t *r = NULL;
@@ -110,7 +116,7 @@ zparser_conv_time(const char *time)
 		zerror("date and time is expected");
 	} else {
 
-		r = xalloc(sizeof(uint32_t) + sizeof(uint16_t));
+		r = region_alloc(region, sizeof(uint32_t) + sizeof(uint16_t));
 
 		l = htonl(timegm(&tm));
 		memcpy(r + 1, &l, sizeof(uint32_t));
@@ -120,7 +126,7 @@ zparser_conv_time(const char *time)
 }
 
 uint16_t *
-zparser_conv_rdata_proto(const char *protostr)
+zparser_conv_rdata_proto(region_type *region, const char *protostr)
 {
 	/* convert a protocol in the rdata to wireformat */
 	struct protoent *proto;
@@ -130,7 +136,7 @@ zparser_conv_rdata_proto(const char *protostr)
 		zerror("unknown protocol");
 	} else {
 
-		r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
+		r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
 
 		*(r + 1) = htons(proto->p_proto);
 		*r = sizeof(uint16_t);
@@ -139,7 +145,7 @@ zparser_conv_rdata_proto(const char *protostr)
 }
 
 uint16_t *
-zparser_conv_rdata_service(const char *servicestr, const int arg)
+zparser_conv_rdata_service(region_type *region, const char *servicestr, const int arg)
 {
 	/* convert a service in the rdata to wireformat */
 
@@ -155,7 +161,7 @@ zparser_conv_rdata_service(const char *servicestr, const int arg)
 			zerror("unknown service");
 		} else {
 			/* Allocate required space... */
-			r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
+			r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
 
 			*(r + 1) = service->s_port;
 			*r = sizeof(uint16_t);
@@ -165,7 +171,7 @@ zparser_conv_rdata_service(const char *servicestr, const int arg)
 }
 
 uint16_t *
-zparser_conv_rdata_period(const char *periodstr)
+zparser_conv_rdata_period(region_type *region, const char *periodstr)
 {
 	/* convert a time period (think TTL's) to wireformat) */
 
@@ -174,7 +180,7 @@ zparser_conv_rdata_period(const char *periodstr)
 	char *end; 
 
 	/* Allocate required space... */
-	r = xalloc(sizeof(uint16_t) + sizeof(uint32_t));
+	r = region_alloc(region, sizeof(uint16_t) + sizeof(uint32_t));
 
 	l = htonl((uint32_t)strtottl((char *)periodstr, &end));
 
@@ -188,14 +194,14 @@ zparser_conv_rdata_period(const char *periodstr)
 }
 
 uint16_t *
-zparser_conv_short(const char *shortstr)
+zparser_conv_short(region_type *region, const char *shortstr)
 {
 	/* convert a short INT to wire format */
 
 	char *end;      /* Used to parse longs, ttls, etc.  */
 	uint16_t *r = NULL;
    
-	r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
+	r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
     
 	*(r+1)  = htons((uint16_t)strtol(shortstr, &end, 0));
             
@@ -208,13 +214,13 @@ zparser_conv_short(const char *shortstr)
 }
 
 uint16_t *
-zparser_conv_long(const char *longstr)
+zparser_conv_long(region_type *region, const char *longstr)
 {
 	char *end;      /* Used to parse longs, ttls, etc.  */
 	uint16_t *r = NULL;
 	uint32_t l;
 
-	r = xalloc(sizeof(uint16_t) + sizeof(uint32_t));
+	r = region_alloc(region, sizeof(uint16_t) + sizeof(uint32_t));
 
 	l = htonl((uint32_t)strtol(longstr, &end, 0));
 
@@ -228,14 +234,14 @@ zparser_conv_long(const char *longstr)
 }
 
 uint16_t *
-zparser_conv_byte(const char *bytestr)
+zparser_conv_byte(region_type *region, const char *bytestr)
 {
 
 	/* convert a byte value to wireformat */
 	char *end;      /* Used to parse longs, ttls, etc.  */
 	uint16_t *r = NULL;
  
-        r = xalloc(sizeof(uint16_t) + sizeof(uint8_t));
+        r = region_alloc(region, sizeof(uint16_t) + sizeof(uint8_t));
 
         *((uint8_t *)(r+1)) = (uint8_t)strtol(bytestr, &end, 0);
 
@@ -248,14 +254,14 @@ zparser_conv_byte(const char *bytestr)
 }
 
 uint16_t *
-zparser_conv_a(const char *a)
+zparser_conv_a(region_type *region, const char *a)
 {
    
 	/* convert a A rdata to wire format */
 	struct in_addr pin;
 	uint16_t *r = NULL;
 
-	r = xalloc(sizeof(uint16_t) + sizeof(in_addr_t));
+	r = region_alloc(region, sizeof(uint16_t) + sizeof(in_addr_t));
 
 	if(inet_pton(AF_INET, a, &pin) > 0) {
 		memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
@@ -266,31 +272,12 @@ zparser_conv_a(const char *a)
 	return r;
 }
 
-uint16_t *
-zparser_conv_dname(const uint8_t *dname)
-{
-	/* convert a domain name to wireformat */
-	uint16_t *r = NULL;
-
-	if ( dname == NULL ) {
-		printf("something is not right\n");
-	}
-
-	/* Allocate required space... */
-	r = xalloc(sizeof(uint16_t) + *dname + 1);
-    
-	memcpy(r+1, dname, *dname + 1);
-    
-	*r = DNAME_MAGIC;
-	return r;
-}
-
 /*
  * XXX: add length parameter to handle null bytes, remove strlen
  * check.
  */
 uint16_t *
-zparser_conv_text(const char *txt)
+zparser_conv_text(region_type *region, const char *txt)
 {
 	/* convert text to wireformat */
 	int i;
@@ -301,7 +288,7 @@ zparser_conv_text(const char *txt)
         } else {
 
 		/* Allocate required space... */
-		r = xalloc(sizeof(uint16_t) + i + 1);
+		r = region_alloc(region, sizeof(uint16_t) + i + 1);
 
 		*((char *)(r+1))  = i;
 		memcpy(((char *)(r+1)) + 1, txt, i);
@@ -312,13 +299,13 @@ zparser_conv_text(const char *txt)
 }
 
 uint16_t *
-zparser_conv_a6(const char *a6)
+zparser_conv_a6(region_type *region, const char *a6)
 {
 	/* convert ip v6 address to wireformat */
 
 	uint16_t *r = NULL;
 
-	r = xalloc(sizeof(uint16_t) + IP6ADDRLEN);
+	r = region_alloc(region, sizeof(uint16_t) + IP6ADDRLEN);
 
         /* Try to convert it */
         if(inet_pton(AF_INET6, a6, r + 1) != 1) {
@@ -330,22 +317,33 @@ zparser_conv_a6(const char *a6)
 }
 
 uint16_t *
-zparser_conv_b64(const char *b64)
+zparser_conv_b64(region_type *region, const char *b64)
 {
+	uint8_t buffer[B64BUFSIZE];
 	/* convert b64 encoded stuff to wireformat */
 	uint16_t *r = NULL;
 	int i;
 
-	r = xalloc(sizeof(uint16_t) + B64BUFSIZE);
-
         /* Try to convert it */
-        if((i = b64_pton(b64, (uint8_t *) (r + 1), B64BUFSIZE)) == -1) {
+        if((i = b64_pton(b64, buffer, B64BUFSIZE)) == -1) {
 		zerror("base64 encoding failed");
         } else {
+		r = region_alloc(region, i + sizeof(uint16_t));
 		*r = i;
-		r = xrealloc(r, i + sizeof(uint16_t));
+		memcpy(r + 1, buffer, i);
         }
         return r;
+}
+
+uint16_t *
+zparser_conv_domain(region_type *region, domain_type *domain)
+{
+	uint16_t *r = NULL;
+
+	r = region_alloc(region, sizeof(uint16_t) + domain->dname->name_size);
+	*r = domain->dname->name_size;
+	memcpy(r + 1, dname_name(domain->dname), domain->dname->name_size);
+	return r;
 }
 
 /* 
@@ -377,26 +375,34 @@ zparser_ttl2int(char *ttlstr)
 /* struct * RR current_rr is global, no 
  * need to pass it along */
 void
-zadd_rdata2(struct zdefault_t *zdefault, uint16_t *r)
+zadd_rdata_wireformat(struct zdefault_t *zdefault, uint16_t *data)
 {
-	/* add this rdata to the current resource record */
-    
 	if(zdefault->_rc >= MAXRDATALEN - 1) {
 		fprintf(stderr,"too many rdata elements");
 		abort();
 	}
-	current_rr->rdata[zdefault->_rc++] = r;
+	current_rr->rdata[zdefault->_rc].data = data;
+	++zdefault->_rc;
+}
+
+void
+zadd_rdata_domain(struct zdefault_t *zdefault, domain_type *domain)
+{
+	if(zdefault->_rc >= MAXRDATALEN - 1) {
+		fprintf(stderr,"too many rdata elements");
+		abort();
+	}
+	current_rr->rdata[zdefault->_rc].data = domain;
+	++zdefault->_rc;
 }
 
 void
 zadd_rdata_finalize(struct zdefault_t *zdefault)
 {
-	/* finalize the RR, and move on the next */
-
-	/* NULL signals the last rdata */
+	/* RDATA_TERMINATOR signals the last rdata */
 
 	/* _rc is already incremented in zadd_rdata2 */
-	current_rr->rdata[zdefault->_rc] = NULL;
+	current_rr->rdata[zdefault->_rc].data = NULL;
 }
 
 void
@@ -454,28 +460,32 @@ namebyint (uint16_t n, struct ztab *tab)
  *
  */
 int
-zrdatacmp(uint16_t **a, uint16_t **b)
+zrdatacmp(uint16_t type, rdata_atom_type *a, rdata_atom_type *b)
 {
+	int i = 0;
+	
+	assert(a);
+	assert(b);
+	
 	/* Compare element by element */
-	while(*a != NULL && *b != NULL) {
-		/* Wrong size */
-		if(**a != **b)
-			return 1;
-		/* Is it a domain name */
-		if(**a == DNAME_MAGIC) {
-			if(memcmp(*a+1, *b+1, *((uint8_t *)(*a + 1))))
+	for (i = 0; !rdata_atom_is_terminator(a[i]) && !rdata_atom_is_terminator(b[i]); ++i) {
+		if (rdata_atom_is_domain(type, i)) {
+			if (rdata_atom_domain(a[i]) != rdata_atom_domain(b[i]))
 				return 1;
 		} else {
-			if(memcmp(*a+1, *b+1, **a))
+			if (rdata_atom_size(a[i]) != rdata_atom_size(b[i]))
 				return 1;
+			if (memcmp(rdata_atom_data(a[i]),
+				   rdata_atom_data(b[i]),
+				   rdata_atom_size(a[i])) != 0)
+				return 1;
+			break;
 		}
-		a++; b++;
 	}
 
 	/* One is shorter than another */
-	if((*a == NULL && *b != NULL) || (*b == NULL && *a != NULL)) {
+	if (rdata_atom_is_terminator(a[i]) != rdata_atom_is_terminator(b[i]))
 		return 1;
-	}
 
 	/* Otherwise they are equal */
 	return 0;
@@ -597,7 +607,7 @@ zerror (const char *msg)
  *
  */
 struct zdefault_t *
-nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origin)
+nsd_zopen(struct zone *zone, const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
 	/* Open the zone file... */
 	/* [XXX] still need to handle recursion */
@@ -612,46 +622,26 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
 	/* XXX printf("getting the origin [%s]\n", origin); */
 
 	/* Initialize the rest of the structure */
-	zdefault = xalloc( sizeof(struct zdefault_t));
-    
-	zdefault->prev_dname = xalloc(MAXDOMAINLEN);
+	zdefault = region_alloc(zone_region, sizeof(struct zdefault_t));
+
+	zdefault->zone = zone;
+	zdefault->prev_dname = NULL;
 	zdefault->ttl = ttl;
 	zdefault->class = class;
 	zdefault->line = 1;
     
-	zdefault->origin = dnamedup(strdname(origin, ROOT));  /* hmm [XXX] MG */
-	zdefault->origin_len = 0;
-	zdefault->prev_dname = '\0';
-	zdefault->prev_dname_len = 0;
+	zdefault->origin = domain_table_insert(
+		zone->db->domains,
+		dname_parse(zone_region, origin, NULL));  /* hmm [XXX] MG */
+	zdefault->prev_dname = NULL;
 	zdefault->_rc = 0;
 	zdefault->errors = 0;
 	zdefault->filename = filename;
 
-	current_rr = xalloc(sizeof(struct RR));
-	current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
+	current_rr = xalloc(sizeof(rr_type));
+	current_rr->rdata = xalloc(sizeof(struct rdata_atom) * (MAXRDATALEN + 1));
     
 	return zdefault;
-}
-
-/*
- * Frees any allocated rdata.
- *
- * Returns
- *
- *	nothing
- *
- */
-void
-zrdatafree(uint16_t **p)
-{
-	int i;
-
-	if(p) {
-		for(i = 0; p[i] != NULL; i++) {
-			free(p[i]);
-		}
-		free(p);
-	}
 }
 
 /* RFC1876 conversion routines */
@@ -758,67 +748,69 @@ classbyint(uint16_t class)
  *	nothing
  */
 static void
-zprintrdata (FILE *f, int what, uint16_t *r)
+zprintrdata (FILE *f, int what, const struct rdata_atom *r)
 {
 	char buf[B64BUFSIZE];
-	uint8_t *t;
 	struct in_addr in;
 	uint32_t l;
-
-
-	/* Depending on what we have to scan... */
+	uint16_t s;
+	uint8_t b;
+	size_t i;
+	uint16_t *data;
+	
+	/* Depending on what we have to print... */
 	switch (what) {
 		case RDATA_HEX:
-			if(*r == 0xffff) {
-				for(t = (uint8_t *)(r + 1) + 1; t < (uint8_t *)(r + 1) + *((uint8_t *)(r + 1)) + 1; t++) {
-					fprintf(f, "%.2x", *t);
-				}
-			} else {
-				for(t = (uint8_t *)(r + 1); t < (uint8_t *)(r + 1) + *r; t++) {
-					fprintf(f, "%.2x", *t);
-				}
+			for (i = 0; i < rdata_atom_size(*r); ++i) {
+				fprintf(f, "%.2x", ((uint8_t *) (rdata_atom_data(*r)))[i]);
 			}
 			fprintf(f, " ");
 			break;
 		case RDATA_TIME:
-			memcpy(&l, &r[1], sizeof(uint32_t));
+			memcpy(&l, rdata_atom_data(*r), sizeof(uint32_t));
 			l = ntohl(l);
 			strftime(buf, B64BUFSIZE, "%Y%m%d%H%M%S ", gmtime((time_t *)&l));
 			fprintf(f, "%s", buf);
 			break;
 		case RDATA_TYPE:
-			fprintf(f, "%s ", typebyint(ntohs(r[1])));
+			memcpy(&s, rdata_atom_data(*r), sizeof(uint16_t));
+			fprintf(f, "%s ", typebyint(ntohs(s)));
 			break;
 		case RDATA_PROTO:
 		case RDATA_SERVICE:
 		case RDATA_PERIOD:
 		case RDATA_LONG:
-			memcpy(&l, &r[1], sizeof(uint32_t));
+			memcpy(&l, rdata_atom_data(*r), sizeof(uint32_t));
 			fprintf(f, "%lu ", (unsigned long) ntohl(l));
 			break;
 		case RDATA_SHORT:
-			fprintf(f, "%u ", (unsigned) ntohs(r[1]));
+			memcpy(&s, rdata_atom_data(*r), sizeof(uint16_t));
+			fprintf(f, "%u ", (unsigned) ntohs(s));
 			break;
 		case RDATA_BYTE:
-			fprintf(f, "%u ", (unsigned) *((char *)(&r[1])));
+			memcpy(&b, rdata_atom_data(*r), sizeof(uint8_t));
+			fprintf(f, "%u ", (unsigned) b);
 			break;
 		case RDATA_A:
-
-			memcpy(&in.s_addr, &r[1], sizeof(uint32_t));
+			memcpy(&in.s_addr, rdata_atom_data(*r), sizeof(uint32_t));
 			fprintf(f, "%s ", inet_ntoa(in));
 			break;
 		case RDATA_A6:
-			fprintf(f, "%x:%x:%x:%x:%x:%x:%x:%x ", ntohs(r[1]), ntohs(r[2]), ntohs(r[3]),
-					ntohs(r[4]), ntohs(r[5]), ntohs(r[6]), ntohs(r[7]), ntohs(r[8]));
+			data = (uint16_t *) rdata_atom_data(*r);
+			fprintf(f, "%x:%x:%x:%x:%x:%x:%x:%x ",
+				ntohs(data[0]), ntohs(data[1]), ntohs(data[2]),
+				ntohs(data[3]), ntohs(data[4]), ntohs(data[5]),
+				ntohs(data[6]), ntohs(data[7]));
 			break;
 		case RDATA_DNAME:
-			fprintf(f, "%s ", dnamestr((uint8_t *)(&r[1])));
+			fprintf(f, "%s ", dname_to_string(rdata_atom_domain(*r)->dname));
 			break;
 		case RDATA_TEXT:
-			fprintf(f, "\"%s\"", ((char *)&r[1]) + 1);
+			/* XXX: Handle NUL bytes */
+			fprintf(f, "\"%s\"", (const char *) rdata_atom_data(*r));
 			break;
 		case RDATA_B64:
-			b64_ntop((uint8_t *)(&r[1]), r[0], buf, B64BUFSIZE);
+			b64_ntop(rdata_atom_data(*r), rdata_atom_size(*r), buf, B64BUFSIZE);
 			fprintf(f, "%s ", buf);
 			break;
 		default:
@@ -837,14 +829,14 @@ zprintrdata (FILE *f, int what, uint16_t *r)
  *
  */
 static void
-zprintrrrdata(FILE *f, struct RR *rr)
+zprintrrrdata(FILE *f, rr_type *rr)
 {
-	uint16_t **rdata;
+	struct rdata_atom *rdata;
 	uint16_t size;
 
 	switch (rr->type) {
 		case TYPE_A:
-			zprintrdata(f, RDATA_A, rr->rdata[0]);
+			zprintrdata(f, RDATA_A, &rr->rdata[0]);
 			return;
 		case TYPE_NS:
 		case TYPE_MD:
@@ -854,80 +846,80 @@ zprintrrrdata(FILE *f, struct RR *rr)
 		case TYPE_MG:
 		case TYPE_MR:
 		case TYPE_PTR:
-			zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[0]);
 			return;
 		case TYPE_MINFO:
 		case TYPE_RP:
-			zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
-			zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[1]);
 			return;
 		case TYPE_TXT:
-			for(rdata = rr->rdata; *rdata; rdata++) {
-				zprintrdata(f, RDATA_TEXT, *rdata);
+			for(rdata = rr->rdata; !rdata_atom_is_terminator(*rdata); ++rdata) {
+				zprintrdata(f, RDATA_TEXT, rdata);
 			}
 			return;
 		case TYPE_SOA:
-			zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
-			zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
-			zprintrdata(f, RDATA_PERIOD, rr->rdata[2]);
-			zprintrdata(f, RDATA_PERIOD, rr->rdata[3]);
-			zprintrdata(f, RDATA_PERIOD, rr->rdata[4]);
-			zprintrdata(f, RDATA_PERIOD, rr->rdata[5]);
-			zprintrdata(f, RDATA_PERIOD, rr->rdata[6]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[1]);
+			zprintrdata(f, RDATA_PERIOD, &rr->rdata[2]);
+			zprintrdata(f, RDATA_PERIOD, &rr->rdata[3]);
+			zprintrdata(f, RDATA_PERIOD, &rr->rdata[4]);
+			zprintrdata(f, RDATA_PERIOD, &rr->rdata[5]);
+			zprintrdata(f, RDATA_PERIOD, &rr->rdata[6]);
 			return;
 		case TYPE_HINFO:
-			zprintrdata(f, RDATA_TEXT, rr->rdata[0]);
-			zprintrdata(f, RDATA_TEXT, rr->rdata[1]);
+			zprintrdata(f, RDATA_TEXT, &rr->rdata[0]);
+			zprintrdata(f, RDATA_TEXT, &rr->rdata[1]);
 			return;
 		case TYPE_MX:
-			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-			zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[1]);
 			return;
 		case TYPE_AAAA:
-			zprintrdata(f, RDATA_A6, rr->rdata[0]);
+			zprintrdata(f, RDATA_A6, &rr->rdata[0]);
 			return;
 		case TYPE_SRV:
-			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-			zprintrdata(f, RDATA_SHORT, rr->rdata[1]);
-			zprintrdata(f, RDATA_SHORT, rr->rdata[2]);
-			zprintrdata(f, RDATA_DNAME, rr->rdata[3]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[1]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[2]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[3]);
 			return;
 		case TYPE_NAPTR:
-			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-			zprintrdata(f, RDATA_SHORT, rr->rdata[1]);
-			zprintrdata(f, RDATA_TEXT, rr->rdata[2]);
-			zprintrdata(f, RDATA_TEXT, rr->rdata[3]);
-			zprintrdata(f, RDATA_TEXT, rr->rdata[4]);
-			zprintrdata(f, RDATA_DNAME, rr->rdata[5]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[1]);
+			zprintrdata(f, RDATA_TEXT, &rr->rdata[2]);
+			zprintrdata(f, RDATA_TEXT, &rr->rdata[3]);
+			zprintrdata(f, RDATA_TEXT, &rr->rdata[4]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[5]);
 			return;
 		case TYPE_AFSDB:
-			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-			zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[1]);
 			return;
 		case TYPE_SIG:
-			zprintrdata(f, RDATA_TYPE, rr->rdata[0]);
-			zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
-			zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
-			zprintrdata(f, RDATA_LONG, rr->rdata[3]);
-			zprintrdata(f, RDATA_TIME, rr->rdata[4]);
-			zprintrdata(f, RDATA_TIME, rr->rdata[5]);
-			zprintrdata(f, RDATA_SHORT, rr->rdata[6]);
-			zprintrdata(f, RDATA_DNAME, rr->rdata[7]);
-			zprintrdata(f, RDATA_B64, rr->rdata[8]);
+			zprintrdata(f, RDATA_TYPE, &rr->rdata[0]);
+			zprintrdata(f, RDATA_BYTE, &rr->rdata[1]);
+			zprintrdata(f, RDATA_BYTE, &rr->rdata[2]);
+			zprintrdata(f, RDATA_LONG, &rr->rdata[3]);
+			zprintrdata(f, RDATA_TIME, &rr->rdata[4]);
+			zprintrdata(f, RDATA_TIME, &rr->rdata[5]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[6]);
+			zprintrdata(f, RDATA_DNAME, &rr->rdata[7]);
+			zprintrdata(f, RDATA_B64, &rr->rdata[8]);
 			return;
 		case TYPE_NULL:
 			return;
 		case TYPE_KEY:
-			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-			zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
-			zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
-			zprintrdata(f, RDATA_B64, rr->rdata[3]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
+			zprintrdata(f, RDATA_BYTE, &rr->rdata[1]);
+			zprintrdata(f, RDATA_BYTE, &rr->rdata[2]);
+			zprintrdata(f, RDATA_B64, &rr->rdata[3]);
 			return;
 		case TYPE_DS:
-			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-			zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
-			zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
-			zprintrdata(f, RDATA_HEX, rr->rdata[3]);
+			zprintrdata(f, RDATA_SHORT, &rr->rdata[0]);
+			zprintrdata(f, RDATA_BYTE, &rr->rdata[1]);
+			zprintrdata(f, RDATA_BYTE, &rr->rdata[2]);
+			zprintrdata(f, RDATA_HEX, &rr->rdata[3]);
 			return;
 			/* Unknown format */
 		case TYPE_NXT:
@@ -935,16 +927,13 @@ zprintrrrdata(FILE *f, struct RR *rr)
 		case TYPE_LOC:
 		default:
 			fprintf(f, "\\# ");
-			for(size = 0, rdata = rr->rdata; *rdata; rdata++) {
-				if(**rdata == 0xffff) {
-					size += *((uint8_t *)(*rdata + 1));
-				} else {
-					size += **rdata;
-				}
+			for (size = 0, rdata = rr->rdata; !rdata_atom_is_terminator(*rdata); ++rdata) {
+				size += rdata_atom_size(*rdata);
 			}
+
 			fprintf(f, "%u ", size);
-			for(rdata = rr->rdata; *rdata; rdata++)
-				zprintrdata(f, RDATA_HEX, *rdata);
+			for(rdata = rr->rdata; !rdata_atom_is_terminator(*rdata); ++rdata)
+				zprintrdata(f, RDATA_HEX, rdata);
 			return;
 	}
 }
@@ -957,11 +946,12 @@ zprintrrrdata(FILE *f, struct RR *rr)
  *	nothing
  *
  */
-	void
-zprintrr(FILE *f, struct RR *rr)
+void
+zprintrr(FILE *f, rr_type *rr)
 {
-	fprintf(f, "%s\t%u\t%s\t%s\t", dnamestr(rr->dname), rr->ttl,
-			classbyint(rr->class), typebyint(rr->type));
+	fprintf(f, "%s\t%u\t%s\t%s\t",
+		dname_to_string(rr->domain->dname), rr->ttl,
+		classbyint(rr->class), typebyint(rr->type));
 	if(rr->rdata != NULL) {
 		zprintrrrdata(f, rr);
 	} else {

@@ -58,7 +58,6 @@
 #include "nsd.h"
 #include "query.h"
 #include "util.h"
-#include "zparser.h"
 
 static void 
 usage (void)

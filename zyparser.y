@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.37 2003/09/15 12:44:19 erik Exp $
+ * $Id: zyparser.y,v 1.38 2003/10/17 13:51:31 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -15,15 +15,20 @@
 #include <string.h>
 
 #include "dname.h"
+#include "namedb.h"
 #include "zonec2.h"
 #include "zparser2.h"
 
 /* these need to be global, otherwise they cannot be used inside yacc */
 struct zdefault_t * zdefault;
-struct RR * current_rr;
+rr_type *current_rr;
 
 /* [XXX] should be local? */
 int progress = 10000;
+
+int yywrap(void);
+
+static rdata_atom_type temporary_rdata[MAXRDATALEN + 1];
 
 %}
 /* this list must be in exactly the same order as *RRtypes[] in zlparser.lex. 
@@ -32,16 +37,34 @@ int progress = 10000;
  * - NULL which is named YYNULL.
  */
 /* RR types */
-%token A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
-%token MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
-%token EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
-%token UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA
+
+%union {
+	domain_type      *domain;
+	const dname_type *dname;
+	struct lex_data   data;
+	uint32_t          ttl;
+	uint16_t          class;
+	uint16_t          type;
+}
+
+%token <type> A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
+%token <type> MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
+%token <type> EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
+%token <type> UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA
 
 /* other tokens */
-%token ORIGIN NL SP STR DIR_TTL DIR_ORIG PREV IN CH HS
+%token         DIR_TTL DIR_ORIG NL ORIGIN SP
+%token <data>  STR PREV
+%token <class> IN CH HS
 
 /* unknown RRs */
-%token UN_RR UN_CLASS UN_TYPE
+%token         UN_RR
+%token <class> UN_CLASS
+%token <type>  UN_TYPE
+
+%type <domain> owner_dname nonowner_dname
+%type <dname>  dname abs_dname rel_dname
+%type <data>   hex
 
 %%
 lines:  /* empty line */
@@ -59,10 +82,16 @@ line:   NL
     |   rr
     {   /* rr should be fully parsed */
         /*zprintrr(stderr, current_rr); DEBUG */
-        current_rr->rdata = xrealloc(current_rr->rdata, sizeof(void *) * (zdefault->_rc + 1));
+	    current_rr->rdata = region_alloc_init(
+		    zone_region,
+		    current_rr->rdata,
+		    sizeof(rdata_atom_type) * (zdefault->_rc + 1));
 
-	    process_rr(current_rr);
-	    current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
+	    process_rr(zdefault->zone, current_rr);
+
+	    region_free_all(rr_region);
+	    
+	    current_rr->rdata = temporary_rdata;
 	    zdefault->_rc = 0;
     }
     ;
@@ -76,58 +105,66 @@ dir_ttl:    SP STR NL
         /* perform TTL conversion */
         if ( ( zdefault->ttl = zparser_ttl2int($2.str)) == -1 )
             zdefault->ttl = DEFAULT_TTL;
-
-        free($2.str);
     }
     ;
 
-dir_orig:   SP dname NL
+dir_orig:   SP nonowner_dname NL
     {
         /* [xxx] does $origin not effect previous */
-        if ( $2.len > MAXDOMAINLEN ) { 
+        if ( $2->dname->name_size > MAXDOMAINLEN ) { 
             yyerror("$ORIGIN domain name is too large");
             return 1;
-        } 
-	free(zdefault->origin); /* old one can go */
-        zdefault->origin = (uint8_t *)dnamedup($2.str);
-        zdefault->origin_len = $2.len;
-        free($2.str);
+        }
+
+	/* Copy from RR region to zone region.  */
+        zdefault->origin = $2;
     }
     ;
 
 rr:     ORIGIN SP rrrest NL
     {
         /* starts with @, use the origin */
-        current_rr->dname = zdefault->origin;
+        current_rr->domain = zdefault->origin;
 
         /* also set this as the prev_dname */
         zdefault->prev_dname = zdefault->origin;
-        zdefault->prev_dname_len = zdefault->origin_len; /* what about this len? */
-        free($1.str);
     }
     |   PREV rrrest NL
     {
         /* a tab, use previously defined dname */
         /* [XXX] is null -> error, not checked (yet) MG */
-        current_rr->dname = zdefault->prev_dname;
+        current_rr->domain = zdefault->prev_dname;
         
     }
-    |   dname SP rrrest NL
+    |   owner_dname SP rrrest NL
     {
-        current_rr->dname = $1.str;
+	    /* Copy from RR region to zone region.  */
+	    current_rr->domain = $1;
 
-        /* set this as previous */
-        zdefault->prev_dname = $1.str;
-        zdefault->prev_dname_len = $1.len;
+	    /* set this as previous */
+	    zdefault->prev_dname = current_rr->domain;
     }
     ;
- 
+
+/* A domain name used as the owner of an RR.  */
+owner_dname: dname
+	{
+		$$ = domain_table_insert(zdefault->zone->db->domains, $1);
+	}
+	;
+
+/* A domain name used in rdata or in an origin directive.  */
+nonowner_dname: dname
+	{
+		$$ = domain_table_insert(zdefault->zone->db->domains, $1);
+	}
+	;
+
 ttl:    STR
     {
         /* set the ttl */
         if ( (current_rr->ttl = zparser_ttl2int($1.str) ) == -1 )
             current_rr->ttl = DEFAULT_TTL;
-        free($1.str);
     }
     ;
 
@@ -139,17 +176,13 @@ in:     IN
     |   UN_CLASS
     {
 	    /* unknown RR seen */
-	    current_rr->class = intbyclassxx($1.str);
-	    if ( current_rr->class == 0 ) {
-		    fprintf(stderr,"CLASSXXX parse error, setting to IN class.\n");
-		    current_rr->class = zdefault->class;
-	    }
+	    current_rr->class = $1;
     }
     ;
 
 rrrest: classttl rtype 
     {
-        /* terminate the rdata list - NULL does not have rdata */
+        /* Terminate the rdata list.  */
         zadd_rdata_finalize(zdefault);
     }
     ;
@@ -178,44 +211,31 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
     ;
 
 dname:  abs_dname
-    {
-        $$.str = $1.str;
-        $$.len = $1.len;  /* length really not important anymore */
-    }
     |   rel_dname
     {
         /* append origin */
-        $$.str = (uint8_t *)cat_dname($1.str, zdefault->origin);
-        free($1.str);
-        $$.len = $1.len;
+        $$ = cat_dname(rr_region, $1, zdefault->origin->dname);
     }
     ;
 
 abs_dname:  '.'
     {
-            $$.str = (uint8_t *)dnamedup(ROOT);
-            $$.len = 1;
+            $$ = dname_make(rr_region, (const uint8_t *) "");
     }
     |       rel_dname '.'
     {
-            $$.str = cat_dname($1.str, ROOT);
-            free($1.str);
-            $$.len = $1.len;
+            $$ = $1;
     }
     ;
 
 rel_dname:  STR
     {
-        $$.str = create_dname($1.str, $1.len);
-        $$.len = $1.len + 2; /* total length, label + len byte */
-        free($1.str);
+        $$ = create_dname(rr_region, $1.str, $1.len);
     }
     |       rel_dname '.' STR
     {  
-        $$.str = cat_dname($1.str, create_dname($3.str,
-						  $3.len));
-        $$.len = $1.len + $3.len + 1;
-        free($1.str);free($3.str);
+        $$ = cat_dname(rr_region, $1,
+		       create_dname(rr_region, $3.str, $3.len));
     }
     ;
 
@@ -224,19 +244,16 @@ hex:	STR
 	$$.str = $1.str;
 	$$.len = $1.len;
     }
-    |	SP
-    {
-	free($1.str); /* discard */
-    }
+    |	SP			/* ??? what to return? */
+    {   $$.str = NULL; $$.len = 0; }
     |	hex STR
     {
-	char *hexstr = xalloc($1.len + $2.len + 1);
+	char *hexstr = region_alloc(rr_region, $1.len + $2.len + 1);
     	memcpy(hexstr, $1.str, $1.len);
 	memcpy(hexstr + $1.len + 1, $2.str, $2.len);
 
-	$$.str = memcpy($$.str, hexstr, $1.len + $2.len);
+	$$.str = hexstr;
 	$$.len = $1.len + $2.len;
-	free($1.str); free($2.str);free(hexstr);
     }
     |   hex SP
     {
@@ -249,93 +266,89 @@ hex:	STR
 /* define what we can parse */
 
 rtype:  SOA SP rdata_soa
-    {   
-        zadd_rtype("soa");
+    {
+	    current_rr->type = $1;
     }
     |	SOA SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("soa");
+	    current_rr->type = $1;
     }
     |   A SP rdata_a
     {
-        zadd_rtype("a");
+	    current_rr->type = $1;
     }
     |	A SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("a");
+	    current_rr->type = $1;
     }
     |   NS SP rdata_dname
     {
-        zadd_rtype("ns");
+	    current_rr->type = $1;
     }
     |	NS SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("ns");
+	    current_rr->type = $1;
     }
     |   CNAME SP rdata_dname
     {
-        zadd_rtype("cname");
+	    current_rr->type = $1;
     }
     |   CNAME SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("cname");
+	    current_rr->type = $1;
     }
     |   PTR SP rdata_dname
     {   
-        zadd_rtype("ptr");
+	    current_rr->type = $1;
     }
     |	PTR SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("ptr");
+	    current_rr->type = $1;
     }
     |   TXT SP rdata_txt
     {
-        zadd_rtype("txt");
+	    current_rr->type = $1;
     }
     |	TXT SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("txt");
+	    current_rr->type = $1;
     }
     |   MX SP rdata_mx
     {
-        zadd_rtype("mx");
+	    current_rr->type = $1;
     }
     |   MX SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("mx");
+	    current_rr->type = $1;
     }
     |   AAAA SP rdata_aaaa
     {
-        zadd_rtype("aaaa");
+	    current_rr->type = $1;
     }
     |	AAAA SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("aaaa");
+	    current_rr->type = $1;
     }
     |	HINFO SP rdata_hinfo
     {
-	zadd_rtype("hinfo");
+	    current_rr->type = $1;
     }
     |	HINFO SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("hinfo");
+	    current_rr->type = $1;
     }
     |   SRV SP rdata_srv
     {
-	zadd_rtype("srv");
+	    current_rr->type = $1;
     }
     |	SRV SP UN_RR SP rdata_unknown
     {
-	zadd_rtype("srv");
+	    current_rr->type = $1;
     }
     |	UN_TYPE SP UN_RR SP rdata_unknown
     {
 	/* try to add the unknown type */
-	current_rr->type = intbytypexx($1.str);
-	if ( current_rr->type == 0 ) {
-	    fprintf(stderr,"TYPEXXX parse error, setting to A.\n");
-	    current_rr->type = TYPE_A;
-	}
+	current_rr->type = $1;
     }
     |	error NL
     {	
@@ -351,42 +364,38 @@ rtype:  SOA SP rdata_soa
 rdata_unknown: STR SP hex
     {
 	/* check_hexlen($1.str, $2.str); */
-	zadd_rdata2( zdefault, zparser_conv_hex($3.str) );
-	free($3.str);
+	zadd_rdata_wireformat( zdefault, zparser_conv_hex(zone_region, $3.str) );
     }
     ;
 
-rdata_soa:  dname SP dname SP STR STR STR STR STR
+rdata_soa:  nonowner_dname SP nonowner_dname SP STR STR STR STR STR
     {
         /* convert the soa data */
-        zadd_rdata2( zdefault, zparser_conv_dname($1.str) );   /* prim. ns */
-        zadd_rdata2( zdefault, zparser_conv_dname($3.str) );   /* email */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($5.str) ); /* serial */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($6.str) ); /* refresh */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($7.str) ); /* retry */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($8.str) ); /* expire */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($9.str) ); /* minimum */
+        zadd_rdata_domain( zdefault, $1);                                     /* prim. ns */
+        zadd_rdata_domain( zdefault, $3);                                     /* email */
+        zadd_rdata_wireformat( zdefault, zparser_conv_rdata_period(zone_region, $5.str) ); /* serial */
+        zadd_rdata_wireformat( zdefault, zparser_conv_rdata_period(zone_region, $6.str) ); /* refresh */
+        zadd_rdata_wireformat( zdefault, zparser_conv_rdata_period(zone_region, $7.str) ); /* retry */
+        zadd_rdata_wireformat( zdefault, zparser_conv_rdata_period(zone_region, $8.str) ); /* expire */
+        zadd_rdata_wireformat( zdefault, zparser_conv_rdata_period(zone_region, $9.str) ); /* minimum */
 
         /* [XXX] also store the minium in case of no TTL? */
         if ( (zdefault->minimum = zparser_ttl2int($9.str) ) == -1 )
             zdefault->minimum = DEFAULT_TTL;
-        free($1.str);free($3.str);free($5.str);free($6.str);
-        free($7.str);free($8.str);free($9.str);
     }
     ;
 
-rdata_dname:   dname
+rdata_dname:   nonowner_dname
     {
         /* convert a single dname record */
-        zadd_rdata2( zdefault, zparser_conv_dname($1.str) ); /* domain name */
-        free($1.str);
+        zadd_rdata_domain(zdefault, $1);
     }
     ;
 
 rdata_a:    STR '.' STR '.' STR '.' STR
     {
         /* setup the string suitable for parsing */
-	    char *ipv4 = xalloc($1.len + $3.len + $5.len + $7.len + 4);
+	    char *ipv4 = region_alloc(rr_region, $1.len + $3.len + $5.len + $7.len + 4);
         memcpy(ipv4, $1.str, $1.len);
         memcpy(ipv4 + $1.len , ".", 1);
 
@@ -399,60 +408,52 @@ rdata_a:    STR '.' STR '.' STR '.' STR
         memcpy(ipv4 + $1.len + $3.len + $5.len + 3 , $7.str, $7.len);
         memcpy(ipv4 + $1.len + $3.len + $5.len + $7.len + 3, "\0", 1);
 
-        zadd_rdata2(zdefault, zparser_conv_a(ipv4));
-        free($1.str);free($3.str);free($5.str);free($7.str);
-        free(ipv4);
+        zadd_rdata_wireformat(zdefault, zparser_conv_a(zone_region, ipv4));
     }
     ;
 
 rdata_txt:  STR 
     {
-        zadd_rdata2( zdefault, zparser_conv_text($1.str));
-    	free($1.str);
+        zadd_rdata_wireformat( zdefault, zparser_conv_text(zone_region, $1.str));
     }
     |   rdata_txt SP STR
     {
-        zadd_rdata2( zdefault, zparser_conv_text($3.str));
-        free($3.str);
+        zadd_rdata_wireformat( zdefault, zparser_conv_text(zone_region, $3.str));
     }
     ;
 
-rdata_mx:   STR SP dname
+rdata_mx:   STR SP nonowner_dname
     {
-        zadd_rdata2( zdefault, zparser_conv_short($1.str) );  /* priority */
-        zadd_rdata2( zdefault, zparser_conv_dname($3.str) );  /* MX host */
-        free($1.str);free($3.str);
+        zadd_rdata_wireformat( zdefault, zparser_conv_short(zone_region, $1.str) );  /* priority */
+        zadd_rdata_domain( zdefault, $3);  /* MX host */
     }
     ;
 
 rdata_aaaa: STR
     {
-        zadd_rdata2( zdefault, zparser_conv_a6($1.str) );  /* IPv6 address */
-        free($1.str);
+        zadd_rdata_wireformat( zdefault, zparser_conv_a6(zone_region, $1.str) );  /* IPv6 address */
     }
     ;
 
 rdata_hinfo:	STR SP STR
 	{
-        	zadd_rdata2( zdefault, zparser_conv_text($1.str) ); /* CPU */
-        	zadd_rdata2( zdefault, zparser_conv_text($3.str) );  /* OS*/
-        	free($1.str);free($3.str);
+        	zadd_rdata_wireformat( zdefault, zparser_conv_text(zone_region, $1.str) ); /* CPU */
+        	zadd_rdata_wireformat( zdefault, zparser_conv_text(zone_region, $3.str) );  /* OS*/
 	}
 	;
 
-rdata_srv:	STR SP STR SP STR SP dname
+rdata_srv:	STR SP STR SP STR SP nonowner_dname
 	{
-		zadd_rdata2( zdefault, zparser_conv_short($1.str) ); /* prio */
-		zadd_rdata2( zdefault, zparser_conv_short($3.str) ); /* weight */
-		zadd_rdata2( zdefault, zparser_conv_short($5.str) ); /* port */
-		zadd_rdata2( zdefault, zparser_conv_dname($7.str) ); /* target name */
-		free($1.str);free($3.str);free($5.str);free($7.str);
+		zadd_rdata_wireformat(zdefault, zparser_conv_short(zone_region, $1.str)); /* prio */
+		zadd_rdata_wireformat(zdefault, zparser_conv_short(zone_region, $3.str)); /* weight */
+		zadd_rdata_wireformat(zdefault, zparser_conv_short(zone_region, $5.str)); /* port */
+		zadd_rdata_wireformat(zdefault, zparser_conv_domain(zone_region, $7)); /* target name */
 	}
 	;
 %%
 
 int
-yywrap()
+yywrap(void)
 {
     return 1;
 }

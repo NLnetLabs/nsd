@@ -39,6 +39,8 @@
 #ifndef _REGION_ALLOCATOR_H_
 #define _REGION_ALLOCATOR_H_
 
+#include <stdio.h>
+
 
 typedef struct region region_type;
 
@@ -98,6 +100,12 @@ void region_free_all(region_type *region);
 
 
 /*
+ * Duplicate STRING and allocate the result in REGION.
+ */
+char *region_strdup(region_type *region, const char *string);
+
+
+/*
  * Set the current active region to REGION.
  */
 void region_set_current(region_type *region);
@@ -115,5 +123,10 @@ region_type *region_get_current(void);
  * active region.  This is provided as an easy replacement of malloc.
  */
 void *region_alloc_current(size_t size);
+
+/*
+ * Print some REGION statistics to OUT.
+ */
+void region_dump_stats(region_type *region, FILE *out);
 
 #endif /* _REGION_ALLOCATOR_H_ */

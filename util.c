@@ -50,6 +50,11 @@
 
 #include "util.h"
 
+#ifndef NDEBUG
+unsigned nsd_debug_facilities = 0xffff;
+int nsd_debug_level = 0;
+#endif
+
 static const char *global_ident = NULL;
 static log_function_type *current_log_function = log_file;
 static FILE *current_log_file = NULL;

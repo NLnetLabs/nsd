@@ -441,9 +441,7 @@ process_query(struct nsd *nsd, struct query *query)
 
 		callback_result = query_processed_callbacks(
 			&callback_args,
-			(query->domain
-			 ? query->domain->plugin_data
-			 : NULL));
+			query->domain->plugin_data);
 		if (callback_result != NSD_PLUGIN_CONTINUE) {
 			return handle_callback_result(callback_result, &callback_args);
 		}

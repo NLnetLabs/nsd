@@ -73,15 +73,15 @@ register_data(
 	const dname_type *               domain_name,
 	void *                           data)
 {
-	dname_tree_type *domain;
+	dname_info_type *domain;
 	
 	assert(plugin_id < maximum_plugin_count);
 	assert(domain_name);
 
-	domain = dname_tree_find(nsd->nsd->db->dnames, domain_name);
+	domain = dname_table_find(nsd->nsd->db->dnames, domain_name);
 	if (!domain)
 		return 0;
-	
+
 	if (!domain->plugin_data) {
 		domain->plugin_data
 			= region_alloc_zero(
@@ -89,6 +89,7 @@ register_data(
 				maximum_plugin_count * sizeof(void *));
 	}
 	domain->plugin_data[plugin_id] = data;
+	
 	return 1;
 }
 

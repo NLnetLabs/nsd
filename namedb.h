@@ -47,67 +47,8 @@
 
 #define NAMEDB_ALIGNMENT        (sizeof(void *))
 
-#define	NAMEDB_MAXDSIZE		32768	/* Maximum size of a domain */
-
-#define	NAMEDB_DELEGATION	0x0001
-#define	NAMEDB_STEALTH		0x0002
-
-#define	ANSWER_SIZE(a)		a->size
-#define	ANSWER_SIZE_PTR(a)	(&a->size)
-#define	ANSWER_TYPE(a)		a->type
-#define	ANSWER_TYPE_PTR(a)	(&a->type)
-#define	ANSWER_ANCOUNT(a)	a->ancount
-#define	ANSWER_ANCOUNT_PTR(a)	(&a->ancount)
-#define	ANSWER_NSCOUNT(a)	a->nscount
-#define	ANSWER_NSCOUNT_PTR(a)	(&a->nscount)
-#define	ANSWER_ARCOUNT(a)	a->arcount
-#define	ANSWER_ARCOUNT_PTR(a)	(&a->arcount)
-#define	ANSWER_PTRSLEN(a)	a->ptrslen
-#define	ANSWER_PTRSLEN_PTR(a)	(&a->ptrslen)
-#define	ANSWER_RRSLEN(a)	a->rrslen
-#define	ANSWER_RRSLEN_PTR(a)	(&a->rrslen)
-#define	ANSWER_DATALEN(a)	a->datalen
-#define	ANSWER_DATALEN_PTR(a)	(&a->datalen)
-#define	ANSWER_END_PTR(a)	((struct answer *)a+1)
-#define	ANSWER_PTRS_PTR(a)	((uint16_t *)ANSWER_END_PTR(a))
-#define	ANSWER_PTRS(a, i)	*((uint16_t *)ANSWER_END_PTR(a) + (i))
-#define	ANSWER_RRS_PTR(a)	((uint16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)
-#define	ANSWER_RRS(a, i)	(*(((uint16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & ~NAMEDB_RRSET_COLOR)
-#define	ANSWER_RRS_COLOR(a, i)	(*(((uint16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & NAMEDB_RRSET_COLOR)
-#define	ANSWER_DATA_PTR(a)	(uint8_t *)(((uint16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+ANSWER_RRSLEN(a))
-
-
-struct answer {
-	uint32_t size;
-	uint16_t type;
-	uint16_t ancount;
-	uint16_t nscount;
-	uint16_t arcount;
-	uint16_t ptrslen;
-	uint16_t rrslen;
-	uint32_t datalen;
-	/* uint16_t ptrs[0]; */
-	/* uint16_t rrs[0]; */
-	/* char *data; */
-};
-
-struct domain {
-	uint32_t size;
-	uint16_t flags;
-};
-
 #define	NAMEDB_MAGIC		"NSDdbV03"
 #define	NAMEDB_MAGIC_SIZE	8
-
-#define	NAMEDB_RRSET_WHITE	0x8000U
-#define	NAMEDB_RRSET_BLACK	0x0000U
-#define	NAMEDB_RRSET_COLOR	0x8000U
-
-#define	DOMAIN_WALK(d, a)	for(a = (struct answer *)(d + 1); \
-					ANSWER_SIZE(a) != 0; \
-					a = (struct answer *)((char *)a + ANSWER_SIZE(a)))
-#define	DOMAIN_SIZE(d)		d->size
-#define	DOMAIN_FLAGS(d)		d->flags
 
 #if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
 #define	NAMEDB_NORMALIZE	toupper
@@ -116,19 +57,156 @@ struct domain {
 #endif
 
 
-struct namedb {
+typedef struct rdata_atom rdata_atom_type;
+typedef struct rrset rrset_type;
+
+/*
+ * A domain name table supporting fast insert and search operations.
+ */
+typedef struct domain_table domain_table_type;
+typedef struct domain domain_type;
+
+struct domain_table
+{
 	region_type *region;
-	dname_tree_type *dnames;
-	heap_t *heap;
-	void *mpool;
-	size_t	mpoolsz;
-	char *filename;
-	FILE * fd;
+	heap_t      *names_to_domains;
+	domain_type *root;
 };
+
+struct domain
+{
+	domain_table_type *table;
+	const dname_type  *dname;
+	domain_type       *parent;
+	domain_type       *wildcard_child;
+	rrset_type        *rrsets;
+	size_t             number; /* Unique domain name number.  */
+	void             **plugin_data;
+	
+	/*
+	 * This domain name exists (see wildcard clarification draft).
+	 */
+	unsigned           is_existing : 1;
+};
+
+/*
+ * Create a new domain_table containing only the root domain.
+ */
+domain_table_type *domain_table_create(region_type *region);
+
+/*
+ * Search the domain table for a match and the closest encloser.
+ */
+int domain_table_search(domain_table_type *table,
+			const dname_type  *dname,
+			domain_type      **closest_match,
+			domain_type      **closest_encloser);
+
+/*
+ * The number of domains stored in the table (minimum is one for the
+ * root domain).
+ */
+size_t domain_table_count(domain_table_type *table);
+
+/*
+ * Find the specified dname in the domain_table.  NULL is returned if
+ * there is no exact match.
+ */
+domain_type *domain_table_find(domain_table_type *table,
+			       const dname_type  *dname);
+
+/*
+ * Insert a domain name in the domain table.  If the domain name is not
+ * yet present in the table it is copied and a new dname_info node is
+ * created (as well as for the missing parent domain names, if any).
+ * Otherwise the domain_info that is already in the domain_table is
+ * returned.
+ */
+domain_type *domain_table_insert(domain_table_type *table,
+				 const dname_type  *dname);
+
+
+/*
+ * Iterate over all the domain names in the domain tree.
+ */
+typedef void (*domain_table_iterator_type)(domain_type *node,
+					   void *user_data);
+
+void domain_table_iterate(domain_table_type *table,
+			  domain_table_iterator_type iterator,
+			  void *user_data);
+
+/*
+ * Add an RRset to the specified domain.  Updates the is_existing flag
+ * as required.
+ */
+void domain_add_rrset(domain_type *domain, rrset_type *rrset);
+
+rrset_type *domain_find_rrset(domain_type *domain, uint16_t type);
+
+domain_type *domain_find_soa_ns_rrsets(domain_type *domain, rrset_type **soa, rrset_type **ns);
+
+typedef struct namedb namedb_type;
+struct namedb
+{
+	region_type       *region;
+	domain_table_type *domains;
+	char              *filename;
+	FILE              *fd;
+};
+
+struct rdata_atom
+{
+	void *data;
+};
+
+static inline int
+rdata_atom_is_terminator(rdata_atom_type atom)
+{
+	return atom.data == NULL;
+}
+
+int rdata_atom_is_domain(uint16_t type, size_t index);
+
+static inline int
+rdata_atom_is_data(uint16_t type, size_t index)
+{
+	return !rdata_atom_is_domain(type, index);
+}
+
+static inline domain_type *
+rdata_atom_domain(rdata_atom_type atom)
+{
+	return (domain_type *) atom.data;
+}
+
+static inline uint16_t
+rdata_atom_size(rdata_atom_type atom)
+{
+	return * (uint16_t *) atom.data;
+}
+
+static inline void *
+rdata_atom_data(rdata_atom_type atom)
+{
+	return (uint16_t *) atom.data;
+}
+
+
+struct rrset {
+	rrset_type       *next;
+	domain_type      *owner;
+	int32_t           ttl;
+	uint16_t          type;
+	uint16_t          class;
+	uint16_t          rrslen;
+	rdata_atom_type **rrs;
+};
+
+
 
 /* dbcreate.c */
 struct namedb *namedb_new(const char *filename);
-int namedb_put(struct namedb *db, const uint8_t *dname, struct domain *d);
 int namedb_save(struct namedb *db);
 void namedb_discard(struct namedb *db);
 
@@ -136,9 +214,8 @@ void namedb_discard(struct namedb *db);
 /* dbaccess.c */
 int namedb_lookup (struct namedb    *db,
 		   const dname_type *dname,
-		   dname_tree_type **less_equal,
-		   dname_tree_type **closest_encloser);
-const struct answer *namedb_answer(const struct domain *d, uint16_t type);
+		   domain_type **less_equal,
+		   domain_type **closest_encloser);
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);
 

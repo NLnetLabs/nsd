@@ -62,6 +62,7 @@
 #include "plugins.h"
 #include "query.h"
 #include "util.h"
+#include "zonec2.h"
 
 #ifdef LIBWRAP
 #include <tcpd.h>
@@ -69,6 +70,35 @@
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* LIBWRAP */
+
+static void
+answer_add_rrset(answer_type *answer, answer_section_type section, domain_type *domain, rrset_type *rrset)
+{
+	size_t i;
+	
+	assert(section >= ANSWER_SECTION && section <= ADDITIONAL_SECTION);
+	assert(domain);
+	assert(rrset);
+	
+	/* Don't add an RRset multiple times.  */
+	for (i = 0; i < answer->rrset_count; ++i) {
+		if (answer->rrsets[i] == rrset) {
+			if (section < answer->section[i])
+				answer->section[i] = section;
+			return;
+		}
+	}
+	
+	if (answer->rrset_count == MAXRRSPP)
+		return;
+
+	answer->section[answer->rrset_count] = section;
+	answer->domains[answer->rrset_count] = domain;
+	answer->rrsets[answer->rrset_count] = rrset;
+	++answer->rrset_count;
+	return;
+}
+
 
 /*
  * Generate an error response with the specified RCODE.
@@ -93,17 +123,19 @@ query_formerr (struct query *query)
 int 
 query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 {
+	return 0;
+#if 0
 	/* Per AXFR... */
 	static const dname_type *zone;
 	static const struct answer *soa;
-	static const struct domain *d = NULL;
+	static const struct rrset *d = NULL;
 	
 	const struct answer *a;
 	const uint8_t *p;
 	const dname_type *dname = NULL;
 	uint8_t *qptr;
-	dname_tree_type *less_equal;
-	dname_tree_type *closest_encloser;
+	dname_info_type *closest_match;
+	dname_info_type *closest_encloser;
 
 	STATUP(nsd, raxfr);
 
@@ -113,10 +145,10 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 		zone = dname_copy(q->region, q->name);
 
 		/* Do we have the SOA? */
-		if (namedb_lookup(nsd->db, q->name, &less_equal, &closest_encloser)
-		    && (soa = namedb_answer(closest_encloser->data, TYPE_SOA)))
+		if (namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser)
+		    && (soa = namedb_answer(closest_encloser->rrsets, TYPE_SOA)))
 		{
-			d = closest_encloser->data;
+			d = closest_encloser->rrsets;
 			
 			/* We'd rather have ANY than SOA to improve performance */
 			if ((a = namedb_answer(d, TYPE_ANY)) == NULL) {
@@ -205,6 +237,7 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 
 	/* More data... */
 	return 1;
+#endif
 }
 
 void 
@@ -218,8 +251,12 @@ query_init (struct query *q)
 	q->tcp = 0;
 	q->name = NULL;
 	q->domain = NULL;
-	q->query_class = 0;
-	q->query_type = 0;
+	q->class = 0;
+	q->type = 0;
+	q->answer.rrset_count = 0;
+	q->soa_or_delegation_domain = 0;
+	q->soa_rrset = 0;
+	q->ns_rrset = 0;
 }
 
 void 
@@ -250,89 +287,6 @@ query_addtxt (struct query *q, uint8_t *dname, int16_t class, int32_t ttl, const
 	QUERY_WRITE(q, &rdlength, sizeof(rdlength));
 	QUERY_WRITE(q, &len, sizeof(len));
 	QUERY_WRITE(q, txt, len);
-}
-
-void 
-query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, int trunc)
-{
-	uint8_t *qptr;
-	uint16_t pointer;
-	int  i, j;
-
-	/* Check that the answer fits into our query buffer... */
-	if (ANSWER_DATALEN(a) > QUERY_AVAILABLE_SIZE(q)) {
-		log_msg(LOG_ERR, "the answer in the database is larger then the query buffer");
-		RCODE_SET(q, RCODE_SERVFAIL);
-		return;
-	}
-
-	/* Copy the counters */
-	ANCOUNT(q) = ANSWER_ANCOUNT(a);
-	NSCOUNT(q) = ANSWER_NSCOUNT(a);
-	ARCOUNT(q) = ANSWER_ARCOUNT(a);
-
-	/* Then copy the data */
-	memcpy(q->iobufptr, ANSWER_DATA_PTR(a), ANSWER_DATALEN(a));
-
-	/* Walk the pointers */
-	for (j = 0; j < ANSWER_PTRSLEN(a); j++) {
-		qptr = q->iobufptr + ANSWER_PTRS(a, j);
-		memcpy(&pointer, qptr, 2);
-		switch ((pointer & 0xf000)) {
-		case 0xc000:			/* This pointer is relative to the name in the query.... */
-			/* XXX Check if dname is within packet */
-			pointer = htons(0xc000 | (dname - q->iobuf + (pointer & 0x0fff)));/* dname - q->iobuf */
-			break;
-		case 0xd000:			/* This is the wildcard */
-			pointer = htons(0xc00c);
-			break;
-		default:
-			/* This pointer is relative to the answer that we have in the database... */
-			pointer = htons(0xc000 | (uint16_t)(pointer + q->iobufptr - q->iobuf));
-		}
-		memcpy(qptr, &pointer, 2);
-	}
-
-	/* If we dont need truncation, return... */
-	if (!trunc) {
-		q->iobufptr += ANSWER_DATALEN(a);
-		return;
-	}
-
-	/* Truncate if necessary */
-	if (q->maxlen < QUERY_USED_SIZE(q) + ANSWER_DATALEN(a)) {
-
-		/* Start with the additional section, record by record... */
-		for (i = ntohs(ANSWER_ARCOUNT(a)), j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
-			if (q->maxlen >= QUERY_USED_SIZE(q) + ANSWER_RRS(a, j - 1)) {
-				/* Make sure we remove the entire RRsets... */
-				while (ANSWER_RRS_COLOR(a, j - 1) == ANSWER_RRS_COLOR(a, j - 2)) {
-					j--; i--;
-				}
-				ARCOUNT(q) = htons(i-1);
-				q->iobufptr += ANSWER_RRS(a, j - 1);
-				return;
-			}
-		}
-
-		ARCOUNT(q) = htons(0);
-		TC_SET(q);
-
-		if (q->maxlen >= QUERY_USED_SIZE(q) + ANSWER_RRS(a, j - ntohs(a->nscount) - 1)) {
-			/* Truncate the athority section */
-			NSCOUNT(q) = htons(0);
-			q->iobufptr += ANSWER_RRS(a, j - ntohs(a->nscount) - 1);
-			return;
-		}
-
-		/* Send empty message */
-		NSCOUNT(q) = 0;
-		ANCOUNT(q) = 0;
-
-		return;
-	} else {
-		q->iobufptr += ANSWER_DATALEN(a);
-	}
 }
 
 /*
@@ -388,10 +342,10 @@ process_query_section(struct query *query)
 
 	query->name = dname_make(query->region, qnamebuf);
 
-	memcpy(&query->query_type, src, sizeof(uint16_t));
-	memcpy(&query->query_class, src + sizeof(uint16_t), sizeof(uint16_t));
-	query->query_type = ntohs(query->query_type);
-	query->query_class = ntohs(query->query_class);
+	memcpy(&query->type, src, sizeof(uint16_t));
+	memcpy(&query->class, src + sizeof(uint16_t), sizeof(uint16_t));
+	query->type = ntohs(query->type);
+	query->class = ntohs(query->class);
 	
 	return src + 2*sizeof(uint16_t);
 }
@@ -459,7 +413,7 @@ process_edns (struct query *q, uint8_t *qptr)
 					}
 				}
 
-#ifdef	STRICT_MESSAGE_PARSE
+#ifdef STRICT_MESSAGE_PARSE
 				/* Trailing garbage? */
 				if ((qptr + OPT_LEN) != q->iobufptr) {
 					q->edns = 0;
@@ -522,63 +476,13 @@ answer_notify (struct query *query)
  *
  * Return 1 if answered, 0 otherwise.
  */
-static int
-answer_delegation(struct query *query, struct domain *domain, const uint8_t *qname)
+static void
+answer_delegation(struct query *query)
 {
-	if (!domain) return 0;
-	
-	if (DOMAIN_FLAGS(domain) & NAMEDB_DELEGATION) {
-		const struct answer *answer = namedb_answer(domain, TYPE_NS);
-		
-		if (answer) {
-			RCODE_SET(query, RCODE_OK);
-			AA_CLR(query);
-			query_addanswer(query, qname, answer, 1);
-		} else {
-			RCODE_SET(query, RCODE_SERVFAIL);
-		}
-		return 1;
-	}
-	return 0;
-}
-
-
-/*
- * Answer if we have data for this domain and qtype (or TYPE_CNAME).
- *
- * Return 1 if answered, 0 otherwise.
- */
-static int
-answer_domain(struct query *q, struct domain *d, const uint8_t *qname)
-{
-	const struct answer *a;
-	uint8_t *qptr;
-
-	if (!d) return 0;
-	
-	if (((a = namedb_answer(d, q->query_type)) != NULL) ||	/* The query type? */
-	    ((a = namedb_answer(d, TYPE_CNAME)) != NULL)) { /* Or CNAME? */
-		if (q->query_class != CLASS_ANY) {
-			query_addanswer(q, qname, a, 1);
-			AA_SET(q);
-			return 1;
-		}
-		/* Class ANY */
-		AA_CLR(q);
-		
-		/* Setup truncation */
-		qptr = q->iobufptr;
-		
-		query_addanswer(q, qname, a, 0);
-		
-		/* Truncate */
-		NSCOUNT(q) = 0;
-		ARCOUNT(q) = 0;
-		q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
-		
-		return 1;
-	}
-	return 0;
+	AA_CLR(query);
+	answer_add_rrset(&query->answer, AUTHORITY_SECTION,
+			 query->ns_rrset->owner, query->ns_rrset);
+	/* TODO: Add additional section.  */
 }
 
 
@@ -587,39 +491,53 @@ answer_domain(struct query *q, struct domain *d, const uint8_t *qname)
  *
  * Return 1 if answered, 0 otherwise.
  */
-static int
-answer_soa(struct query *q, struct domain *d, const uint8_t *qname)
+static void
+answer_soa(struct query *q)
 {
-	const struct answer *a;
-	uint8_t *qptr;
-
-	if (!d) return 0;
-	
-	/* Do we have SOA record in this domain? */
-	if ((a = namedb_answer(d, TYPE_SOA)) != NULL) {
-				
-		if (q->query_class != CLASS_ANY) {
-			AA_SET(q);
-					
-			/* Setup truncation */
-			qptr = q->iobufptr;
-					
-			query_addanswer(q, qname, a, 0);
-					
-			/* Truncate */
-			ANCOUNT(q) = 0;
-			NSCOUNT(q) = htons(1);
-			ARCOUNT(q) = 0;
-			if (ANSWER_RRSLEN(a) > 1)
-				q->iobufptr = qptr + ANSWER_RRS(a, 1);
-				
-		} else {
-			AA_CLR(q);
-		}
-				
-		return 1;
+	if (q->class == CLASS_ANY) {
+		AA_CLR(q);
+	} else {
+		AA_SET(q);
+		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->soa_rrset->owner, q->soa_rrset);
 	}
-	return 0;
+}
+
+
+/*
+ * Answer if we have data for this domain and qtype (or TYPE_CNAME).
+ *
+ * Return 1 if answered, 0 otherwise.
+ */
+static void
+answer_domain(struct query *q, domain_type *domain, const uint8_t *qname)
+{
+	rrset_type *rrset;
+	
+	if (q->type == TYPE_ANY && domain->rrsets) {
+		for (rrset = domain->rrsets; rrset; rrset = rrset->next) {
+			answer_add_rrset(&q->answer, ANSWER_SECTION, rrset->owner, rrset);
+		}
+	} else if ((rrset = domain_find_rrset(domain, q->type))) {
+		answer_add_rrset(&q->answer, ANSWER_SECTION, rrset->owner, rrset);
+	} else if ((rrset = domain_find_rrset(domain, TYPE_CNAME))) {
+		answer_add_rrset(&q->answer, ANSWER_SECTION, rrset->owner, rrset);
+		/* TODO: Add cname target in answer section.  */
+	} else {
+		/*
+		 * Domain exists with data but no matching type found,
+		 * so answer with a SOA record.
+		 */
+		answer_soa(q);
+		return;
+	}
+
+	if (q->class == CLASS_ANY) {
+		AA_CLR(q);
+	} else if (q->ns_rrset) {
+		AA_SET(q);
+		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->ns_rrset->owner, q->ns_rrset);
+		/* TODO: Add additional section.  */
+	}
 }
 
 
@@ -632,7 +550,7 @@ answer_soa(struct query *q, struct domain *d, const uint8_t *qname)
 static int
 answer_chaos(struct nsd *nsd, struct query *q)
 {
-	switch (q->query_class) {
+	switch (q->class) {
 	case CLASS_IN:
 	case CLASS_ANY:
 		/* Not handled by this function. */
@@ -646,7 +564,7 @@ answer_chaos(struct nsd *nsd, struct query *q)
 	}
 
 	AA_CLR(q);
-	switch (q->query_type) {
+	switch (q->type) {
 	case TYPE_ANY:
 	case TYPE_TXT:
 		if (q->name->name_size == 11
@@ -681,7 +599,7 @@ static int
 answer_axfr_ixfr(struct nsd *nsd, struct query *q, const uint8_t *qname, int *is_axfr)
 {
 	/* Is it AXFR? */
-	switch (q->query_type) {
+	switch (q->type) {
 	case TYPE_AXFR:
 #ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
 		if (q->tcp) {
@@ -734,77 +652,127 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q, const uint8_t *qname, int *is
 }
 
 
-static int
-answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
+static void
+generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *rrset)
 {
-	struct domain *d;
-	int match;
-	dname_tree_type *less_equal;
-	dname_tree_type *closest_encloser;
-	int exact;
-
-	exact = namedb_lookup(nsd->db, q->name, &less_equal, &closest_encloser);
-	if (exact) {
-		/* Exact match.  */
-		d = closest_encloser->data;
-
-		if (answer_delegation(q, d, qname) ||
-		    answer_domain(q, d, qname) ||
-		    answer_soa(q, d, qname))
-		{
-			q->domain = closest_encloser;
-			return 1;
-		}
-
-		/* We have a partial match */
-		match = 1;
-	} else {
-		d = closest_encloser->data;
-		
-		/* Adjust query name to only contain the matching part.  */
-		qname += dname_label_offsets(q->name)[closest_encloser->label_count - 1];
+	uint16_t i, j;
+	uint16_t type;
+	uint16_t class;
+	uint32_t ttl;
+	uint16_t rdlength;
 	
-		/* Set this if we find SOA later */
-		RCODE_SET(q, RCODE_NXDOMAIN);
-		match = 0;
-	}
-	
-	/* Partial match.  */
+	(*count) += rrset->rrslen;
 
-	while (1) {
-		/* Only look for wildcards if we did not have any match before */
-		if (!match && closest_encloser->wildcard_child) {
-			/* We found a domain... */
-			RCODE_SET(q, RCODE_OK);
+	for (i = 0; i < rrset->rrslen; ++i) {
+		QUERY_WRITE(q, dname_name(owner->dname), owner->dname->name_size);
+		type = htons(rrset->type);
+		QUERY_WRITE(q, &type, sizeof(type));
+		class = htons(rrset->class);
+		QUERY_WRITE(q, &class, sizeof(class));
+		ttl = htonl(rrset->ttl);
+		QUERY_WRITE(q, &ttl, sizeof(ttl));
 
-			d = closest_encloser->wildcard_child->data;
-			
-			if (answer_domain(q, d, qname - 2))
-			{
-				q->domain = closest_encloser->wildcard_child;
-				return 1;
+		rdlength = 0;
+		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
+			if (rdata_atom_is_domain(rrset->type, j)) {
+				rdlength += rdata_atom_domain(rrset->rrs[i][j])->dname->name_size;
+			} else {
+				rdlength += rdata_atom_size(rrset->rrs[i][j]);
 			}
 		}
 
-		d = closest_encloser->data;
-		if (answer_delegation(q, d, qname) ||
-		    answer_soa(q, d, qname))
-		{
-			q->domain = closest_encloser;
-			return 1;
+		rdlength = htons(rdlength);
+		QUERY_WRITE(q, &rdlength, sizeof(rdlength));
+
+		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
+			if (rdata_atom_is_domain(rrset->type, j)) {
+				const dname_type *dname = rdata_atom_domain(rrset->rrs[i][j])->dname;
+				QUERY_WRITE(q, dname_name(dname), dname->name_size);
+			} else {
+				QUERY_WRITE(q,
+					    rdata_atom_data(rrset->rrs[i][j]),
+					    rdata_atom_size(rrset->rrs[i][j]));
+			}
 		}
-
-		if (!closest_encloser->parent)
-			break;
-
-		if (closest_encloser->data)
-			match = 1;
-		
-		qname = label_next(qname);
-		closest_encloser = closest_encloser->parent;
 	}
-	
-	return 0;
+}
+
+static void
+generate_answer(struct query *q)
+{
+	uint16_t counts[ADDITIONAL_SECTION + 1];
+	answer_section_type section;
+	size_t i;
+
+	for (section = ANSWER_SECTION; section <= ADDITIONAL_SECTION; ++section) {
+		counts[section] = 0;
+		for (i = 0; i < q->answer.rrset_count; ++i) {
+			if (q->answer.section[i] == section) {
+				generate_rrset(q, &counts[section],
+					       q->answer.domains[i],
+					       q->answer.rrsets[i]);
+			}
+		}
+	}
+
+	ANCOUNT(q) = htons(counts[ANSWER_SECTION]);
+	NSCOUNT(q) = htons(counts[AUTHORITY_SECTION]);
+	ARCOUNT(q) = htons(counts[ADDITIONAL_SECTION]);
+}
+
+
+static void
+answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
+{
+	domain_type *closest_match;
+	domain_type *closest_encloser;
+	domain_type *match;
+	int exact;
+
+	exact = namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser);
+
+	q->soa_or_delegation_domain = domain_find_soa_ns_rrsets(
+		closest_encloser, &q->soa_rrset, &q->ns_rrset);
+	if (!q->soa_or_delegation_domain) {
+		RCODE_SET(q, RCODE_SERVFAIL);
+		return;
+	}
+
+	if (!closest_encloser->is_existing) {
+		exact = 0;
+		while (!closest_encloser->is_existing)
+			closest_encloser = closest_encloser->parent;
+	}
+
+	if (!exact) {
+		/* Adjust query name to only contain the matching part.  */
+		qname += dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1];
+	}
+
+	if (exact) {
+		match = closest_encloser;
+	} else if (closest_encloser->wildcard_child) {
+		match = closest_encloser->wildcard_child;
+	} else {
+		match = NULL;
+	}
+
+	if (q->soa_rrset) {
+		/* Authorative zone.  */
+		if (match) {
+			answer_domain(q, match, qname);
+		} else {
+			RCODE_SET(q, RCODE_NXDOMAIN);
+			answer_soa(q);
+		}
+	} else if (q->ns_rrset) {
+		/* Delegation.  */
+		answer_delegation(q);
+	} else {
+		abort();
+	}
+
+	generate_answer(q);
 }
 
 
@@ -863,8 +831,8 @@ query_process (struct query *q, struct nsd *nsd)
 	qname = q->iobuf + QHEADERSZ;
 	
 	/* Update the type and class */
-	STATUP2(nsd, qtype, q->query_type);
-	STATUP2(nsd, qclass, q->query_class);
+	STATUP2(nsd, qtype, q->type);
+	STATUP2(nsd, qclass, q->class);
 
 	/* Dont allow any records in the answer or authority section... */
 	if (ANCOUNT(q) != 0 || NSCOUNT(q) != 0) {
@@ -896,15 +864,10 @@ query_process (struct query *q, struct nsd *nsd)
 		return axfr;
 	}
 
-	if (answer_query(nsd, q, qname)) {
-		return 0;
-	}
+	answer_query(nsd, q, qname);
 
-	RCODE_SET(q, RCODE_SERVFAIL);
-
-	/* We got a query for the zone we dont have */
-	STATUP(nsd, wrongzone);
-
+	/* TODO: Encode answer to wire format.  */
+	
 	return 0;
 }
 

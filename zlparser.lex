@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.27 2003/09/21 15:18:10 miekg Exp $
+ * $Id: zlparser.lex,v 1.28 2003/10/17 13:51:30 erik Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -10,7 +10,8 @@
  */
 
 #include <config.h>
-	
+
+#include "zonec2.h"
 #include "zparser2.h"
 #include "dname.h"
 #include "zyparser.h"
@@ -62,9 +63,6 @@ Q       \"
                                 return NL;
                         }
 ^@                      {
-                            ztext = strdup(yytext);
-                            yylval.len = zoctet(ztext);
-                            yylval.str = ztext;
                             in_rr = expecting_dname;
                             return ORIGIN;
                         }
@@ -102,7 +100,7 @@ Q       \"
 				}
 
 				/* reset for the current file */
-				zdefault->filename = strdup(yytext);
+				zdefault->filename = region_strdup(zone_region, yytext);
 				zdefault->line = 1;
         			yy_switch_to_buffer( yy_create_buffer( yyin, YY_BUF_SIZE ) );
 
@@ -176,29 +174,32 @@ Q       \"
                             /* any allowed word. Needs to be located
                              * before CLASS and TYPEXXX and CLASSXXX
                              * to correctly see a dname here */
-                            ztext = strdup(yytext);
-                            yylval.len = zoctet(ztext);
-                            yylval.str = ztext;
+                            ztext = region_strdup(rr_region, yytext);
+                            yylval.data.len = zoctet(ztext);
+                            yylval.data.str = ztext;
                             in_rr = expecting_dname;
                             return STR;
                         }
 {CLASS}                 {
 
-                                ztext = strdup(yytext); 
-                                yylval.len = zoctet(ztext);
-                                yylval.str = ztext;
-
 				/* \000 here will not cause problems */
                             if ( in_rr == after_dname) { 
-                                if ( strcasecmp(ztext, "IN") == 0 )
+  			        if (strcasecmp(yytext, "IN") == 0) {
+  				    yylval.class = CLASS_IN;
                                     return IN;
-                                if ( strcasecmp(ztext, "CH") == 0 )
+                                } else if (strcasecmp(yytext, "CH") == 0) {
+				    yylval.class = CLASS_CHAOS;
                                     return CH;
-                                if ( strcasecmp(ztext, "HS") == 0 )
+                                } else if (strcasecmp(yytext, "HS") == 0) {
+				    yylval.class = CLASS_HS;
                                     return HS;
-                            }
-                            if ( in_rr != after_dname)  
-                            return STR;
+				}
+                            } else {
+                                ztext = region_strdup(rr_region, yytext); 
+                                yylval.data.len = zoctet(ztext);
+                                yylval.data.str = ztext;
+				return STR;
+			    }
                             
                         }
 TYPE[0-9]+              {
@@ -206,48 +207,48 @@ TYPE[0-9]+              {
 				/* check the type */
 				j = intbytypexx(yytext);
 				if ( j != 0 )  {
+					yylval.type = intbyname(yytext, ztypes);
 					return j - 1 + A;
 				}
 				else {
-					ztext = strdup(yytext);
-					yylval.len = zoctet(ztext);
-					yylval.str = ztext;
+					ztext = region_strdup(rr_region, yytext);
+					yylval.data.len = zoctet(ztext);
+					yylval.data.str = ztext;
                                 	return UN_TYPE;
 				}
-			    }
-
-                            if ( in_rr != after_dname)  {
-                                ztext = strdup(yytext); 
-                                yylval.len = zoctet(ztext);
-                                yylval.str = ztext;
-                                return STR;
+			    } else {
+				    ztext = region_strdup(rr_region, yytext); 
+				    yylval.data.len = zoctet(ztext);
+				    yylval.data.str = ztext;
+				    return STR;
                             }
                         }
 CLASS[0-9]+             {
                             if ( in_rr == after_dname ) {
 				j = intbyclassxx(yytext);
-				if ( j == 1 )  
+				if ( j == 1 ) { /* XXX: What about CH and HS? */
+					yylval.class = j;
 					return IN;
-				else {
-					ztext = strdup(yytext);
-					yylval.len = zoctet(ztext);
-					yylval.str = ztext;
+				} else {
+					ztext = region_strdup(rr_region, yytext);
+					yylval.data.len = zoctet(ztext);
+					yylval.data.str = ztext;
                                 	return UN_CLASS;
 				}
 			    }
 
                             if ( in_rr != after_dname)  {
-                                ztext = strdup(yytext); 
-                                yylval.len = zoctet(ztext);
-                                yylval.str = ztext;
+                                ztext = region_strdup(rr_region, yytext); 
+                                yylval.data.len = zoctet(ztext);
+                                yylval.data.str = ztext;
                                 return STR;
                             }
                         }
 {Q}({ANY})({ANY})*{Q}   {
                             /* this matches quoted strings */
-                            ztext = strdup(yytext);
-                            yylval.len = zoctet(ztext);
-                            yylval.str = ztext;
+                            ztext = region_strdup(rr_region, yytext);
+                            yylval.data.len = zoctet(ztext);
+                            yylval.data.str = ztext;
 
                             if ( in_rr == after_dname ) {
                                 i = zrrtype(ztext);
@@ -259,16 +260,19 @@ CLASS[0-9]+             {
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word */
-                            ztext = strdup(yytext);
-                            yylval.len = zoctet(ztext);
-                            yylval.str = ztext;
-                            
                             if ( in_rr == after_dname ) {
-                                i = zrrtype(ztext);
-                                if ( i ) {
-                                    in_rr = reading_type; return i;
+                                i = zrrtype(yytext);
+                                if (i) {
+                                    in_rr = reading_type;
+				    yylval.type = intbyname(yytext, ztypes);
+				    return i;
                                 } 
                             }
+
+                            ztext = region_strdup(rr_region, yytext);
+                            yylval.data.len = zoctet(ztext);
+                            yylval.data.str = ztext;
+                            
                             return STR;
                         }
 .                       {
@@ -282,17 +286,18 @@ CLASS[0-9]+             {
 int
 zrrtype (char *word) 
 {
-    /* check to see if word is in the list of reconized keywords
-     * 'A' is first token defined in YACC. With this hack we
-     * return the correct token based on our list of RR types
-     */
-    int i;
-    for( i=0; i < ( RRTYPES - 1 ); i++ ) {
-        if ( strcasecmp(word, RRtypes[i]) == 0 )
-            return (i + A);
-        
-    }
-    return 0;
+	/*
+	 * Check to see if word is in the list of reconized keywords.
+	 * 'A' is first token defined in YACC. With this hack we
+	 * return the correct token based on our list of RR types
+	 */
+	int i;
+	for (i = 0; i < RRTYPES - 1; ++i) {
+		if (strcasecmp(word, RRtypes[i]) == 0)
+			return i + A;
+		
+	}
+	return 0;
 }
 
 /* do some preparsing of the stuff */

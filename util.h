@@ -115,4 +115,27 @@ void *xrealloc(void *ptr, size_t size);
  */
 int write_data(FILE * file, const void *data, size_t size);
 
+
+/*
+ * Print debugging information using fprintf(3).
+ */
+#define DEBUG_PARSER    0x0001
+#define DEBUG_ZONEC     0x0002
+#define DEBUG_QUERY     0x0004
+#define DEBUG_DBACCESS  0x0008
+
+#ifdef NDEBUG
+#define DEBUG(facility, level, args)  /* empty */
+#else
+extern unsigned nsd_debug_facilities;
+extern int nsd_debug_level;
+#define DEBUG(facility, level, args)				\
+	do {							\
+		if ((facility) & nsd_debug_facilities &&	\
+		    (level) <= nsd_debug_level) {		\
+			fprintf args ;				\
+		}						\
+	} while (0)
+#endif
+
 #endif /* _UTIL_H_ */
