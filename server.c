@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.38 2002/06/11 11:42:37 alexis Exp $
+ * $Id: server.c,v 1.38.2.1 2002/08/29 11:03:07 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -222,6 +222,9 @@ server(nsd)
 #ifdef INET6
 	struct sockaddr_in6 udp6_addr, tcp6_addr;
 	struct sockaddr_storage tcpc_addr;
+# ifdef IPV6_V6ONLY
+	int v6only = 1;
+# endif
 #else
 	struct sockaddr_in tcpc_addr;
 #endif
@@ -258,6 +261,14 @@ server(nsd)
 		syslog(LOG_ERR, "cant create a socket: %m");
 		return -1;
 	}
+
+# ifdef IPV6_V6ONLY
+	if (setsockopt(udp6_s, IPPROTO_IPV6, IPV6_V6ONLY,
+			&v6only, sizeof (v6only)) < 0) {
+		syslog(LOG_ERR, "setsockopt() failed: %m");
+		return -1;
+	}
+# endif
 
 	/* Bind it... */
 	if(bind(udp6_s, (struct sockaddr *)&udp6_addr, sizeof(udp6_addr)) != 0) {
@@ -301,6 +312,14 @@ server(nsd)
 		syslog(LOG_ERR, "cant create a socket: %m");
 		return -1;
 	}
+
+# ifdef IPV6_V6ONLY
+	if (setsockopt(tcp6_s, IPPROTO_IPV6, IPV6_V6ONLY,
+			(char *)&v6only, sizeof (v6only)) < 0) {
+		syslog(LOG_ERR, "setsockopt() failed: %m");
+		return -1;
+	}
+# endif
 
 	/* Bind it... */
 	if(bind(tcp6_s, (struct sockaddr *)&tcp6_addr, sizeof(tcp6_addr)) != 0) {
