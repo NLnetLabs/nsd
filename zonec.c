@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.17 2002/02/07 14:00:11 alexis Exp $
+ * $Id: zonec.c,v 1.18 2002/02/07 14:04:23 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -453,7 +453,7 @@ zone_read(name, zonefile, cache)
 
 			/* Discard the duplicates... */
 			if(i < r->rrslen) {
-				zf_error(zf, "duplicate record");
+				/* zf_error(zf, "duplicate record"); */
 				zf_free_rdata(rr->rdata, rr->rdatafmt);
 				continue;
 			}
