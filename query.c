@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.48 2002/03/28 03:06:38 alexis Exp $
+ * $Id: query.c,v 1.49 2002/04/09 16:40:47 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -168,10 +168,6 @@ query_process(q, db)
 #else
 		RCODE_SET(q, RCODE_IMPL);
 #endif
-		/* Truncate the question as well... */
-		QDCOUNT(q) = 0;
-		q->iobufptr = q->iobuf + QHEADERSZ;
-
 		return 0;
 	}
 
