@@ -18,7 +18,7 @@
 #include "zparser.h"
 
 #if 0
-#define LEXOUT(s)  printf(s) /* used ONLY when debugging */
+#define LEXOUT(s)  printf s /* used ONLY when debugging */
 #else
 #define LEXOUT(s)
 #endif
