@@ -178,7 +178,7 @@ zparser_conv_time(region_type *region, const char *time)
 }
 
 uint16_t *
-zparser_conv_rdata_proto(region_type *region, const char *protostr)
+zparser_conv_protocol(region_type *region, const char *protostr)
 {
 	/* convert a protocol in the rdata to wireformat */
 	struct protoent *proto;
@@ -189,41 +189,52 @@ zparser_conv_rdata_proto(region_type *region, const char *protostr)
 	} else {
 
 		r = (uint16_t *) region_alloc(
-			region, sizeof(uint16_t) + sizeof(uint16_t));
-		*(r + 1) = htons(proto->p_proto);
-		*r = sizeof(uint16_t);
+			region, sizeof(uint16_t) + sizeof(uint8_t));
+		*r = sizeof(uint8_t);
+		*(uint8_t *) (r + 1) = proto->p_proto;
 	} 
 	return r;
 }
 
 uint16_t *
-zparser_conv_rdata_service(region_type *region, const char *servicestr, const int arg)
+zparser_conv_services(region_type *region, const char *proto, char *servicestr)
 {
-	/* convert a service in the rdata to wireformat */
-
-	struct protoent *proto;
-	struct servent *service;
+	/*
+	 * Convert a list of service port numbers (separated by
+	 * spaces) in the rdata to wireformat
+	 */
 	uint16_t *r = NULL;
+	uint8_t bitmap[65536/8];
+	char sep[] = " ";
+	char *word;
+	int max_port = -8;
 
-	/* [XXX] need extra arg here .... */
-	if((proto = getprotobynumber(arg)) == NULL) {
-		error_prev_line("Unknown protocol, internal error");
-        } else {
-		if((service = getservbyname(servicestr, proto->p_name)) == NULL) {
+	memset(bitmap, 0, sizeof(bitmap));
+	for (word = strtok(servicestr, sep);
+	     word;
+	     word = strtok(NULL, sep))
+	{
+		struct servent *service = getservbyname(word, proto);
+		if (service == NULL) {
 			error_prev_line("Unknown service");
+		} else if (service->s_port < 0 || service->s_port > 65535) {
+			error_prev_line("bad port number %d", service->s_port);
 		} else {
-			/* Allocate required space... */
-			r = (uint16_t *) region_alloc(
-				region, sizeof(uint16_t) + sizeof(uint16_t));
-			*(r + 1) = service->s_port;
-			*r = sizeof(uint16_t);
+			set_bit(bitmap, service->s_port);
+			if (service->s_port > max_port)
+				max_port = service->s_port;
 		}
         }
+
+	r = region_alloc(region, sizeof(uint16_t) + max_port / 8 + 1);
+	*r = max_port / 8 + 1;
+	memcpy(r + 1, bitmap, *r);
+	
 	return r;
 }
 
 uint16_t *
-zparser_conv_rdata_period(region_type *region, const char *periodstr)
+zparser_conv_period(region_type *region, const char *periodstr)
 {
 	/* convert a time period (think TTL's) to wireformat) */
 
@@ -1286,9 +1297,9 @@ zone_open(const char *filename, uint32_t ttl, uint16_t klass,
 void 
 set_bit(uint8_t bits[], uint16_t index)
 {
-	/* set bit #place in the byte */
-	/* the bits are counted from right to left
-	 * so bit #0 is the right most bit
+	/*
+	 * The bits are counted from left to right, so bit #0 is the
+	 * left most bit.
 	 */
 	bits[index / 8] |= (1 << (7 - index % 8));
 }
@@ -1297,9 +1308,9 @@ void
 set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
 	    uint16_t index)
 {
-	/* set bit #place in the byte */
-	/* the bits are counted from right to left
-	 * so bit #0 is the right most bit
+	/*
+	 * The bits are counted from left to right, so bit #0 is the
+	 * left most bit.
 	 */
 	uint8_t window = index / 256;
 	uint8_t bit = index % 256;

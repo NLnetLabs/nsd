@@ -305,8 +305,6 @@ concatenated_str_seq: STR
 	;
 
 /* used to convert a nxt list of types */
-/* XXX goes wrong now */
-/* get the type and flip a bit */
 nxt_seq:	STR
 	{
 		uint16_t type = lookup_type_by_name($1.str);
@@ -422,7 +420,8 @@ rtype:
     | T_MR sp rdata_domain_name
     | T_MR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
       /* NULL */
-      /* WKS */
+    | T_WKS sp rdata_wks
+    | T_WKS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_PTR sp rdata_domain_name 
     | T_PTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_HINFO sp rdata_hinfo 
@@ -515,11 +514,11 @@ rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
         /* convert the soa data */
         zadd_rdata_domain($1);	/* prim. ns */
         zadd_rdata_domain($3);	/* email */
-        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $5.str)); /* serial */
-        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $7.str)); /* refresh */
-        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $9.str)); /* retry */
-        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $11.str)); /* expire */
-        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $13.str)); /* minimum */
+        zadd_rdata_wireformat(zparser_conv_period(parser->region, $5.str)); /* serial */
+        zadd_rdata_wireformat(zparser_conv_period(parser->region, $7.str)); /* refresh */
+        zadd_rdata_wireformat(zparser_conv_period(parser->region, $9.str)); /* retry */
+        zadd_rdata_wireformat(zparser_conv_period(parser->region, $11.str)); /* expire */
+        zadd_rdata_wireformat(zparser_conv_period(parser->region, $13.str)); /* minimum */
 
         /* [XXX] also store the minium in case of no TTL? */
         if ( (parser->default_minimum = zparser_ttl2int($11.str) ) == -1 )
@@ -528,6 +527,22 @@ rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
 	|   error NL
 	{ error_prev_line("Syntax error in SOA record"); }
     ;
+
+rdata_wks:	dotted_str sp STR sp concatenated_str_seq trail
+	{
+		uint16_t *proto_rdata;
+		
+        	zadd_rdata_wireformat(zparser_conv_a(parser->region, $1.str)); /* address */
+		proto_rdata = zparser_conv_protocol(parser->region, $3.str);
+        	zadd_rdata_wireformat(proto_rdata); /* protocol */
+
+		if (proto_rdata) {
+			zadd_rdata_wireformat(zparser_conv_services(parser->region, $3.str, $5.str)); /* services */
+		}
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in WKS record"); }
+	;
 
 rdata_hinfo:	STR sp STR trail
 	{
@@ -753,7 +768,7 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_se
 		zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
 		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
 		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
-		zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $7.str)); /* # orig TTL */
+		zadd_rdata_wireformat(zparser_conv_period(parser->region, $7.str)); /* # orig TTL */
 		zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
 		zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */

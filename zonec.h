@@ -107,9 +107,9 @@ int yyerror(const char *message); /* Dummy function.  */
 int process_rr(void);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
-uint16_t *zparser_conv_rdata_proto(region_type *region, const char *protostr);
-uint16_t *zparser_conv_rdata_service(region_type *region, const char *servicestr, const int arg);
-uint16_t *zparser_conv_rdata_period(region_type *region, const char *periodstr);
+uint16_t *zparser_conv_protocol(region_type *region, const char *protostr);
+uint16_t *zparser_conv_services(region_type *region, const char *proto, char *servicestr);
+uint16_t *zparser_conv_period(region_type *region, const char *periodstr);
 uint16_t *zparser_conv_short(region_type *region, const char *shortstr);
 uint16_t *zparser_conv_long(region_type *region, const char *longstr);
 uint16_t *zparser_conv_byte(region_type *region, const char *bytestr);

@@ -140,6 +140,7 @@ enum rdata_zoneformat
 	RDATA_ZF_LONG,		/* 32-bit integer.  */
 	RDATA_ZF_A,		/* 32-bit IPv4 address.  */
 	RDATA_ZF_AAAA,		/* 128-bit IPv6 address.  */
+	RDATA_ZF_PROTOCOL,	/* IP Protocol (TCP/UDP/...).  */
 	RDATA_ZF_RRTYPE,	/* RR type.  */
 	RDATA_ZF_ALGORITHM,	/* Cryptographic algorithm.  */
 	RDATA_ZF_CERTIFICATE_TYPE,
@@ -149,6 +150,7 @@ enum rdata_zoneformat
 	RDATA_ZF_HEX,		/* Hexadecimal binary data.  */
 	RDATA_ZF_NSAP,		/* NSAP.  */
 	RDATA_ZF_APL,		/* APL.  */
+	RDATA_ZF_SERVICES,	/* Port number bitmap.  */
 	RDATA_ZF_NXT,		/* NXT type bitmap.  */
 	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */
 	RDATA_ZF_LOC,		/* Location data.  */

@@ -7,6 +7,8 @@ $TTL    1H
                              1H )       ; Negative Cache TTL
 
 @       IN      NS      elektron.atoom.net.
+@       IN      WKS     192.168.1.2 tcp domain smtp http
+@       IN      WKS     192.168.1.2 udp domain
 @	IN	MX	10 elektron.atoom.net.
 @	IN	A	192.168.1.2
 @       IN      TXT     "text description of domain"
