@@ -24,7 +24,8 @@ goffert			IN	A	192.168.1.3
 kuip			IN	A	192.168.1.4
 arena			IN	A	192.168.1.5
 mail                    IN      A	192.168.1.2
-
+text			IN	txt	"hallo \000 ik ben miek"
+text2			IN	txt	"hallo \001 ik ben miek"
 www                     IN      CNAME   elektron
 
 
