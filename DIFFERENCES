@@ -191,7 +191,8 @@ SOA? smgcinc.com.;
 nsd:    12     0 *-  0/0/0 notify Refused
 
 Analysis:
-Interpretation of the RFCs differs. This is a permanent error.
+This is a permanent error.
+Interpretation of the protocol standard differs. 
 
 
 3.2 d-nrefclass - nsd returns Refused on unknown class/type
@@ -200,7 +201,9 @@ nsd returns the errorode REFUSED to queries with an unknown
 class or RR type. bind returns SERVFAIL.
 
 Analysis:
-Interpretation of the RFCs differs. This is a permanent error.
+This is a permanent error.
+Interpretation of the protocol
+standard differs. 
 
 Example:
 bind8: 32  1388 -   0/0/0 ServFail
@@ -216,7 +219,7 @@ nsd does not return the original message data on refused updates.
 Analysis:
 Interpretation of the RFCs differs. 
 Original data is not necessary,
-saves bandwidth.
+dropping it increases DoS resilience.
 
 Example:
 
@@ -263,7 +266,7 @@ increasingly severe ways.
   response. In our observations the total 
   output bandwidth increase caused by this 
   is negligible. It is shown as "Added Bytes:"
-  in the observations.
+  in the comparisons.
 
 - same answer (d-nameenctr)
   The answer is the same; the additional
@@ -274,6 +277,10 @@ increasingly severe ways.
   the omitted information.
   Note again that the answer is fully transmitted
   and thus the 'truncated answer' bit is not set.
+  The total number of omitted RRs is noted in the
+  comparisons. We have only obseved this when responding to
+  queries for unusually long names.
+  The maximum omission observed was 1 RR.
 
 - truncated answer
   This is when the answer would be truncaed 
@@ -287,7 +294,7 @@ This is an expected differences caused by design choices.
 
 Appendix A
 
-Observations at root server 
+Comparison of responses to root NS queries: 
 
 --------------------------------------------------------------------------
                                             Total Answers: 899720
@@ -327,9 +334,10 @@ d-nupdrefut -      nsd returns no data on refused upddate:     55 /  0.10%
 ==========================================================================
 
 
+
 Appendix B
 
-Observations at NL TLD server
+Comparison of responses to NL TLD queries:
 
 --------------------------------------------------------------------------
                                             Total Answers: 881774
