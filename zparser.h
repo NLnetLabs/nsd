@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.5 2003/02/14 22:05:08 alexis Exp $
+ * $Id: zparser.h,v 1.6 2003/02/14 22:49:16 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -60,8 +60,8 @@
 #define RDATA_TEXT	8
 #define RDATA_PERIOD	9
 #define RDATA_TYPE	10
-#define RDATA_TBITMAP	11
-#define RDATA_TIME	12
+#define RDATA_TIME	11
+#define RDATA_HEX	12
 
 /* A single resource record */
 struct RR {

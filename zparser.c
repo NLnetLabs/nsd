@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.7 2003/02/14 22:28:52 alexis Exp $
+ * $Id: zparser.c,v 1.8 2003/02/14 22:49:16 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -704,6 +704,7 @@ zrdatascan (struct zparser *z, int what)
 	int i;
 	int error = 0;
 	u_char *t;
+	struct tm tm;
 	u_int16_t *r = NULL;
 
 	/* Produce an error message... */
@@ -714,6 +715,27 @@ zrdatascan (struct zparser *z, int what)
 
 	/* Depending on what we have to scan... */
 	switch(what) {
+	case RDATA_HEX:
+		if((i = strlen(z->_t[z->_tc])) % 2 != 0) {
+			zerror(z, "hex representation must end on a whole octet");
+			error++;
+		} else {
+		}
+		break;
+	case RDATA_TIME:
+		/* Try to scan the time... */
+		if(strptime(z->_t[z->_tc], "%Y%m%d%H%M%S", &tm) == NULL) {
+			zerror(z, "date and time is expected");
+			error++;
+		} else {
+
+			/* Allocate required space... */
+			r = xalloc(sizeof(u_int32_t) + sizeof(u_int16_t));
+
+			*((u_int32_t)(r+1)) = mktime(&tm);
+			*r = sizeof(u_int32_t);
+		}
+		break;
 	case RDATA_TYPE:
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
