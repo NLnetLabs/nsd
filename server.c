@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.52 2002/09/30 12:16:42 alexis Exp $
+ * $Id: server.c,v 1.53 2002/10/01 11:40:13 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -387,7 +387,7 @@ server_udp(struct nsd *nsd)
 
 	/* Truncate the pid file... Reuse s... */
 	if((s = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
-		syslog(LOG_ERR, "canot truncate the pid file %s: %m", nsd->pidfile);
+		syslog(LOG_ERR, "can not truncate the pid file %s: %m", nsd->pidfile);
 	}
 	close(s);
 
