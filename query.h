@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.20 2002/05/06 14:11:34 alexis Exp $
+ * $Id: query.h,v 1.21 2002/05/23 13:20:57 alexis Exp $
  *
  * query.h -- manipulation with the queries
  *
@@ -156,7 +156,7 @@
 #define	IP6ADDRLEN		128/8
 
 /* Miscelaneous limits */
-#define	QIOBUFSZ	32768	/* Input output buffer for queries */
+#define	QIOBUFSZ	1024	/* Input output buffer for queries */
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
 #define	MAXRRSPP	1024	/* Maximum number of rr's per packet */
@@ -175,13 +175,11 @@ struct query {
 	u_char *iobufptr;
 	int  iobufsz;
 	int  edns;
-	int tcp;
 	u_char iobuf[QIOBUFSZ];
 };
 
 /* query.c */
 int query_process __P((struct query *, struct namedb *));
-int query_axfr __P((struct query *, struct namedb *, u_char *qname, u_char *zname, int depth));
 void query_init __P((struct query *));
 void query_addanswer __P((struct query *, u_char *, struct answer *, int));
 

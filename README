@@ -1,17 +1,19 @@
-$Id: README,v 1.8 2002/05/07 10:46:26 alexis Exp $
+$Id: README,v 1.9 2002/05/23 13:20:57 alexis Exp $
 
 1.0 Introduction
 
-This is NSD Name Server Daemon Version 1.0.1-Alpha.
+This is an ALPHA release of Name Server Daemon (NSD) version 1.0.
 
 NSD is a complete implementation of an autoritative DNS nameserver. 
 For further information about what NSD is and what NSD is not please 
 consult the REQUIREMENTS document which is a part of this distribution 
 (thanks to Olaf).
 
-NSD is available for download from:
+Please do not distribute this APLHA release further without permission.
+This distribution is available on request per email to nsd-team@nlnetlabs.nl
 
-	http://www.nlnetlabs.nl/downloads
+The final version 1.0 of NSD will be available for public download under 
+open source software license (BSD).
 
 1.1 Basic Theory of Operation
 

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.30 2002/05/07 13:17:36 alexis Exp $
+ * $Id: nsd.c,v 1.31 2002/05/23 13:20:57 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -50,37 +50,41 @@ struct nsd nsd;
  *
  */
 void *
-xalloc (register size_t size)
+xalloc(size)
+	register size_t size;
 {
 	register void *p;
 
 	if((p = malloc(size)) == NULL) {
-		syslog(LOG_ERR, "malloc failed: %s", strerror(errno));
+		syslog(LOG_ERR, "malloc failed: %m");
 		exit(1);
 	}
 	return p;
 }
 
 void *
-xrealloc (register void *p, register size_t size)
+xrealloc(p, size)
+	register void *p;
+	register size_t size;
 {
 
 	if((p = realloc(p, size)) == NULL) {
-		syslog(LOG_ERR, "realloc failed: %s", strerror(errno));
+		syslog(LOG_ERR, "realloc failed: %m");
 		exit(1);
 	}
 	return p;
 }
 
-int 
-usage (void)
+int
+usage()
 {
 	fprintf(stderr, "usage: nsd [-d] [-p port] database\n");
 	exit(1);
 }
 
-pid_t 
-readpid (char *file)
+pid_t
+readpid(file)
+	char *file;
 {
 	int fd;
 	pid_t pid;
@@ -103,8 +107,10 @@ readpid (char *file)
 	return pid;
 }
 
-int 
-writepid (pid_t pid, char *file)
+int
+writepid(pid, file)
+	pid_t pid;
+	char *file;
 {
 	int fd;
 	char pidbuf[16];
@@ -124,8 +130,9 @@ writepid (pid_t pid, char *file)
 }
 	
 
-void 
-sig_handler (int sig)
+void
+sig_handler(sig)
+	int sig;
 {
 	int status;
 	switch(sig) {
@@ -156,8 +163,10 @@ sig_handler (int sig)
 extern char *optarg;
 extern int optind;
 
-int 
-main (int argc, char *argv[])
+int
+main(argc, argv)
+	int argc;
+	char *argv[];
 {
 	/* Scratch variables... */
 	int fd, c;
@@ -216,7 +225,7 @@ main (int argc, char *argv[])
 	/* Do we have a running nsd? */
 	if((oldpid = readpid(nsd.pidfile)) == -1) {
 		if(errno != ENOENT) {
-			syslog(LOG_ERR, "cant read pidfile %s: %s", nsd.pidfile, strerror(errno));
+			syslog(LOG_ERR, "cant read pidfile %s: %m", nsd.pidfile);
 		}
 	} else {
 		if(kill(oldpid, 0) == 0 || errno == EPERM) {
@@ -229,12 +238,12 @@ main (int argc, char *argv[])
 
 	/* Write a temporary pid... */
 	if(writepid(getpid(), nsd.pidfile) == -1) {
-		syslog(LOG_ERR, "cannot write %s: %s", nsd.pidfile, strerror(errno));
+		syslog(LOG_ERR, "cannot write %s: %m", nsd.pidfile);
 	}
 
 	/* Open the database... */
 	if((nsd.db = namedb_open(nsd.dbfile)) == NULL) {
-		syslog(LOG_ERR, "unable to load %s: %s", nsd.dbfile, strerror(errno));
+		syslog(LOG_ERR, "unable to load %s: %m", nsd.dbfile);
 		unlink(nsd.pidfile);
 		exit(1);
 	}
@@ -246,7 +255,7 @@ main (int argc, char *argv[])
 		case 0:
 			break;
 		case -1:
-			syslog(LOG_ERR, "fork failed: %s", strerror(errno));
+			syslog(LOG_ERR, "fork failed: %m");
 			unlink(nsd.pidfile);
 			exit(1);
 		default:
@@ -256,7 +265,7 @@ main (int argc, char *argv[])
 
 		/* Detach ourselves... */
 		if(setsid() == -1) {
-			syslog(LOG_ERR, "setsid() failed: %s", strerror(errno));
+			syslog(LOG_ERR, "setsid() failed: %m");
 			exit(1);
 		}
 
@@ -280,7 +289,7 @@ main (int argc, char *argv[])
 
 	/* Overwrite pid... */
 	if(writepid(nsd.pid, nsd.pidfile) == -1) {
-		syslog(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd.pidfile, strerror(errno));
+		syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd.pidfile);
 	}
 
 	/* Initialize... */

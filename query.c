@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.67 2002/05/07 13:17:36 alexis Exp $
+ * $Id: query.c,v 1.68 2002/05/23 13:20:57 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -44,8 +44,9 @@
  * Stript the packet and set format error code.
  *
  */
-void 
-query_formerr (struct query *q)
+void
+query_formerr(q)
+	struct query *q;
 {
 	RCODE_SET(q, RCODE_FORMAT);
 
@@ -54,19 +55,23 @@ query_formerr (struct query *q)
 	q->iobufptr = q->iobuf + QHEADERSZ;
 }
 
-void 
-query_init (struct query *q)
+void
+query_init(q)
+	struct query *q;
 {
 	q->addrlen = sizeof(q->addr);
 	q->iobufsz = QIOBUFSZ;
 	q->iobufptr = q->iobuf;
 	q->maxlen = 512;	/* XXX Should not be here */
 	q->edns = 0;
-	q->tcp = 0;
 }
 
-void 
-query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
+void
+query_addanswer(q, dname, a, truncate)
+	struct query *q;
+	u_char *dname;
+	struct answer *a;
+	int truncate;
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -148,142 +153,11 @@ query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
 	}
 }
 
-int 
-query_axfr (struct query *q, struct namedb *db, u_char *qname, u_char *zname, int depth)
-{
-	static rbnode_t *node;
-	static struct domain *d;
-	static struct answer *a;
-	static u_char *dname;
-	u_char *skipzone = NULL;
-	u_char *qptr;
-	u_char iname[MAXDOMAINLEN+1];
 
-	/* Per AXFR... */
-	static u_char *zone, *qnameptr;
-	static struct answer *soa;
-
-	/* Is it new AXFR? */
-	if(qname) {
-		/* New AXFR... */
-		zone = zname;
-		qnameptr = qname;
-
-		/* Do we have the SOA? */
-		if(NAMEDB_TSTBITMASK(db, NAMEDB_DATAMASK, depth)) {
-			dnameinvert(zone, iname);
-
-			if((node = heap_locate(db->iheap, iname)) == NULL) {
-				/* No SOA no transfer */
-				RCODE_SET(q, RCODE_REFUSE);
-				return 0;
-			}
-
-			dname = node->data;
-			d = (void *)((char *)node->data + (((u_int32_t)*((char *)node->data) + 1 + 3)
-				& 0xfffffffc));
-
-			/* XXX We rely here that SOA will always be the first answer */
-			if((a = namedb_answer(d, htons(TYPE_SOA))) == NULL) {
-				/* No SOA no transfer */
-				RCODE_SET(q, RCODE_REFUSE);
-				return 0;
-			}
-			soa = a;
-
-			/* We'd rather have ANY than SOA to improve performance */
-			if((a = namedb_answer(d, htons(TYPE_ANY))) == NULL) {
-				a = soa;
-			}
-
-			qptr = q->iobufptr;
-
-			query_addanswer(q, qname, a, 0);
-
-			/* Truncate */
-			NSCOUNT(q) = 0;
-			ARCOUNT(q) = 0;
-			q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
-
-			return 1;
-		}
-	}
-
-	/* We've done everything already, let the server know... */
-	if(zone == NULL) {
-		return 0;	/* Done. */
-	}
-
-	/* Let get next answer */
-	a = NULL;
-
-	/* Get next answer */
-	while(a == NULL) {
-		node = rbtree_next(node);
-
-		/* End of the tree? */
-		if(node == rbtree_last()) {
-			a = soa;
-			dname = zone;
-			zone = NULL;
-			break;
-		} else {
-			/* Get the name... */
-			dname = node->data;
-			d = (void *)((char *)node->data + (((u_int32_t)*((char *)node->data) + 1 + 3)
-				& 0xfffffffc));
-
-			/* Are we skipping an embedded zone? */
-			if(skipzone != NULL && *skipzone <= *dname &&
-				bcmp(skipzone + 1, dname + (*dname - *skipzone) + 1, *skipzone) == 0) {
-				continue;
-			} else {
-				skipzone = NULL;
-			}
-
-			/* Outside the zone? */
-			if((*zone > *dname) || (bcmp(zone + 1, dname + (*dname - *zone) + 1, *zone) != 0)) {
-				a = soa;
-				dname = zone;
-				zone = NULL;
-				break;
-			}
-		}
-
-		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-			a = namedb_answer(d, htons(TYPE_NS));
-		} else {
-			/* Do we have an embedded zone? */
-			if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
-				skipzone = dname;
-				a = NULL;
-			} else {
-				a = namedb_answer(d, htons(TYPE_ANY));
-			}
-		}
-	}
-
-	/* Existing AXFR, strip the question section off... */
-	/* Very interesting math... Can you figure it? */
-	q->iobufptr = q->iobuf + QHEADERSZ + *dname - 2;
-	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-
-	qptr = q->iobufptr;
-
-	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
-	bcopy(dname + 1, q->iobuf + QHEADERSZ, *dname);
-
-	/* Truncate */
-	NSCOUNT(q) = 0;
-	ARCOUNT(q) = 0;
-	q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
-
-	/* More data... */
-	return 1;
-}
-
-int 
-query_process (struct query *q, struct namedb *db)
+int
+query_process(q, db)
+	struct query *q;
+	struct namedb *db;
 {
 	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 3];
@@ -450,14 +324,8 @@ query_process (struct query *q, struct namedb *db)
 		return 0;
 	}
 
-	/* Prepare the name... */
-	*(qnamelow - 1) = qnamelen;
-
-	/* Is it AXFR? */
 	switch(ntohs(qtype)) {
 	case TYPE_AXFR:
-			if(q->tcp)
-				return query_axfr(q, db, qname, qnamelow - 1, qdepth);
 	case TYPE_IXFR:
 			RCODE_SET(q, RCODE_REFUSE);
 			return 0;
@@ -467,6 +335,7 @@ query_process (struct query *q, struct namedb *db)
 	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
 
 	/* Do we have complete name? */
+	*(qnamelow - 1) = qnamelen;
 	if(NAMEDB_TSTBITMASK(db, NAMEDB_DATAMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {

@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.22 2002/05/06 13:33:07 alexis Exp $
+ * $Id: namedb.h,v 1.23 2002/05/23 13:20:57 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -139,7 +139,7 @@ struct namedb {
 #include "heap.h"
 
 struct namedb {
-	heap_t *heap, *iheap;
+	heap_t *heap;
 	u_char masks[3][NAMEDB_BITMASKLEN];
 	char *mpool;
 	size_t	mpoolsz;
@@ -164,9 +164,5 @@ void namedb_close __P((struct namedb *));
 /* Routines that the calling program must provide... */
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
-
-/* dname.c */
-int dnamecmp __P((register u_char *, register u_char *));
-void dnameinvert __P((u_char *, u_char *));
 
 #endif

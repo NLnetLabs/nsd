@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.24 2002/05/07 13:17:36 alexis Exp $
+ * $Id: zf.c,v 1.25 2002/05/23 13:20:57 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -64,7 +64,8 @@ static struct zf_class_tab zf_classes[] = ZONEFILE_CLASSES;
  *
  */
 char *
-dnamestr (u_char *dname)
+dnamestr(dname)
+	u_char *dname;
 {
 	static char s[MAXDOMAINLEN+1];
 	char *p;
@@ -99,7 +100,9 @@ dnamestr (u_char *dname)
  * XXX Complain about empty labels (.nlnetlabs..nl)
  */
 u_char *
-strdname (char *s, u_char *o)
+strdname(s, o)
+	char	*s;
+	u_char	*o;
 {
 	static u_char dname[MAXDOMAINLEN+1];
 
@@ -108,7 +111,7 @@ strdname (char *s, u_char *o)
 	register u_char *d = dname + 1;
 
 	if(*s == '@' && *(s+1) == 0) {
-		for(p = dname, s = (char *)o; (u_char *)s < o + *o + 1; p++, s++)
+		for(p = dname, s = o; (u_char *)s < o + *o + 1; p++, s++)
 			*p = NAMEDB_NORMALIZE(*s);
 	} else {
 		for(h = d, p = h + 1; *s; s++, p++) {
@@ -124,7 +127,7 @@ strdname (char *s, u_char *o)
 
 		/* If not absolute, append origin... */
 		if((*(p-1) != 0) && (o != NULL)) {
-			for(s = (char *)o + 1; (u_char *)s < o + *o + 1; p++, s++)
+			for(s = o + 1; (u_char *)s < o + *o + 1; p++, s++)
 				*p = NAMEDB_NORMALIZE(*s);
 		}
 
@@ -138,11 +141,34 @@ strdname (char *s, u_char *o)
 }
 
 /*
+ *
+ * Compares two domain names.
+ *
+ */
+int
+dnamecmp(a, b)
+	register u_char *a;
+	register u_char *b;
+{
+	register int r;
+	register int alen = (int)*a;
+	register int blen = (int)*b;
+
+	while(alen && blen) {
+		a++; b++;
+		if((r = NAMEDB_NORMALIZE(*a) - NAMEDB_NORMALIZE(*b))) return r;
+		alen--; blen--;
+	}
+	return alen - blen;
+}
+
+/*
  * Converts numeric value of resource record type into
  * a string.
  */
 char *
-typetoa (u_int16_t n)
+typetoa(n)
+	u_int16_t n;
 {
 	struct zf_type_tab *type;
 	static char name[5];
@@ -159,7 +185,8 @@ typetoa (u_int16_t n)
  * a string.
  */
 char *
-classtoa (u_int16_t n)
+classtoa(n)
+	u_int16_t n;
 {
 	struct zf_class_tab *class;
 	static char name[5];
@@ -176,7 +203,8 @@ classtoa (u_int16_t n)
  *
  */
 struct zf_type_tab *
-typebyname (char *a)
+typebyname(a)
+	char *a;
 {
 	struct zf_type_tab *type;
 
@@ -190,7 +218,8 @@ typebyname (char *a)
  *
  */
 struct zf_class_tab *
-classbyname (char *a)
+classbyname(a)
+	char *a;
 {
 	struct zf_class_tab *class;
 
@@ -212,8 +241,10 @@ classbyname (char *a)
  * XXX This functions does not check the range.
  *
  */
-long 
-strtottl (char *nptr, char **endptr)
+long
+strtottl(nptr, endptr)
+	char *nptr;
+	char **endptr;
 {
 	int sign = 0;
 	long i = 0;
@@ -290,7 +321,8 @@ strtottl (char *nptr, char **endptr)
  *
  */
 void *
-inet6_aton (char *str)
+inet6_aton(str)
+	char *str;
 {
 	char *addr;
 
@@ -338,7 +370,8 @@ inet6_aton (char *str)
  *
  */
 char *
-zone_strtok (register char *s)
+zone_strtok(s)
+	register char *s;
 {
 	register char *t;
 	static char *p = "";
@@ -380,8 +413,10 @@ zone_strtok (register char *s)
 /*
  * Prints an error message related to a particular zone file.
  */
-void 
-zf_error (struct zf *zf, char *msg)
+void
+zf_error(zf, msg)
+	struct zf *zf;
+	char *msg;
 {
 	if(zf->iptr > -1) {
 		fprintf(stderr, "%s in %s, line %lu\n", msg,
@@ -397,8 +432,9 @@ zf_error (struct zf *zf, char *msg)
  * Prints syntax error related to a particular zone file.
  *
  */
-void 
-zf_syntax (struct zf *zf)
+void
+zf_syntax(zf)
+	struct zf *zf;
 {
 	zf_error(zf, "syntax error");
 }
@@ -406,8 +442,9 @@ zf_syntax (struct zf *zf)
 /*
  * Closes current include file.
  */
-int 
-zf_close_include (struct zf *zf)
+int
+zf_close_include(zf)
+	struct zf *zf;
 {
 	if(zf->iptr > -1) {
 		free(zf->i[zf->iptr].filename);
@@ -423,13 +460,9 @@ zf_close_include (struct zf *zf)
  * level include file if end of file. XXX Check for truncated lines?
  */
 char *
-zf_getline (struct zf *zf)
+zf_getline(zf)
+	struct zf *zf;
 {
-
-	/* Already at the top level? */
-	if(zf->iptr < 0) {
-		return NULL;
-	}
 
 	/* Return to upper level include file if any... */
 	while(fgets(zf->linebuf, LINEBUFSZ - 1, zf->i[zf->iptr].file) == NULL) {
@@ -455,7 +488,9 @@ zf_getline (struct zf *zf)
  *
  */
 char *
-zf_token (struct zf *zf, char *s)
+zf_token(zf, s)
+	struct zf *zf;
+	char *s;
 {
 	char *t, *line;
 
@@ -501,8 +536,12 @@ zf_token (struct zf *zf, char *s)
  * Opens a file.
  *
  */
-int 
-zf_open_include (struct zf *zf, char *filename, char *origin, int32_t ttl)
+int
+zf_open_include(zf, filename, origin, ttl)
+	struct zf *zf;
+	char *filename;
+	char *origin;
+	int32_t ttl;
 {
 	if((zf->iptr + 1 > MAXINCLUDES)) {
 		zf_error(zf, "too many nested include files");
@@ -519,7 +558,7 @@ zf_open_include (struct zf *zf, char *filename, char *origin, int32_t ttl)
 
 	zf->i[zf->iptr].lineno = 0;
 	zf->i[zf->iptr].filename = strdup(filename);
-	zf->i[zf->iptr].origin = (u_char *)strdup(origin);	/* XXX strdup() should be replaced with dnamedup() */
+	zf->i[zf->iptr].origin = strdup(origin);	/* XXX strdup() should be replaced with dnamedup() */
 	zf->i[zf->iptr].ttl = ttl;
 	zf->i[zf->iptr].parentheses = 0;
 	return 0;
@@ -530,7 +569,9 @@ zf_open_include (struct zf *zf, char *filename, char *origin, int32_t ttl)
  * Opens a zone file and sets us up for parsing.
  */
 struct zf *
-zf_open (char *filename, u_char *origin)
+zf_open(filename, origin)
+	char *filename;
+	u_char *origin;
 {
 	struct zf *zf;
 
@@ -545,7 +586,7 @@ zf_open (char *filename, u_char *origin)
 	bzero(&zf->line, sizeof(struct zf_entry));
 
 	/* Open the main file... */
-	if(zf_open_include(zf, filename, strdname(origin, (u_char *)ROOT_ORIGIN), DEFAULT_TTL) == -1) {
+	if(zf_open_include(zf, filename, strdname(origin, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
 		free(zf);
                 return NULL;
         }
@@ -557,8 +598,10 @@ zf_open (char *filename, u_char *origin)
  * Frees a zone file entry
  *
  */
-void 
-zf_free_rdata (union zf_rdatom *rdata, char *f)
+void
+zf_free_rdata(rdata, f)
+	union zf_rdatom *rdata;
+	char *f;
 {
 	int i;
 
@@ -580,8 +623,11 @@ zf_free_rdata (union zf_rdatom *rdata, char *f)
  * otherwise.
  *
  */
-int 
-zf_cmp_rdata (union zf_rdatom *a, union zf_rdatom *b, register char *f)
+int
+zf_cmp_rdata(a, b, f)
+	union zf_rdatom *a;
+	union zf_rdatom *b;
+	register char *f;
 {
 	register int i;
 	for(i = 0; *f; f++, i++) {
@@ -616,8 +662,9 @@ zf_cmp_rdata (union zf_rdatom *a, union zf_rdatom *b, register char *f)
  * Prints a zone file entry to standard output.
  *
  */
-void 
-zf_print_entry (struct zf_entry *rr)
+void
+zf_print_entry(rr)
+	struct zf_entry *rr;
 {
 	printf("%s\t%d\t%s\t%s\t", dnamestr(rr->dname), rr->ttl, classtoa(rr->class), typetoa(rr->type));
 
@@ -626,8 +673,10 @@ zf_print_entry (struct zf_entry *rr)
 	printf("\n");
 }
 
-void 
-zf_print_rdata (union zf_rdatom *rdata, char *rdatafmt)
+void
+zf_print_rdata(rdata, rdatafmt)
+	union zf_rdatom *rdata;
+	char *rdatafmt;
 {
 	int i, j;
 	struct in_addr in;
@@ -680,7 +729,8 @@ zf_print_rdata (union zf_rdatom *rdata, char *rdatafmt)
  *
  */
 struct zf_entry *
-zf_read (struct zf *zf)
+zf_read(zf)
+	struct zf *zf;
 {
 	int parse_error;
 	char *line, *token;
@@ -716,11 +766,11 @@ zf_read (struct zf *zf)
 					zf_syntax(zf);
 					continue;
 				}
-				if((t = (char *)strdname((char *)token, zf->i[zf->iptr].origin)) == NULL) {
+				if((t = strdname(token, zf->i[zf->iptr].origin)) == NULL) {
 					return NULL;
 				}
 				free(zf->i[zf->iptr].origin);
-				zf->i[zf->iptr].origin = (u_char *)t;	/* XXX Will fail on binary labels */
+				zf->i[zf->iptr].origin = t;	/* XXX Will fail on binary labels */
 			} else if(strcasecmp(token, "$INCLUDE") == 0) {
 				if((token = zf_token(zf, NULL)) == NULL) {
 					zf_syntax(zf);
@@ -885,8 +935,9 @@ zf_read (struct zf *zf)
  * current line.
  *
  */
-void 
-zf_close (struct zf *zf)
+void
+zf_close(zf)
+	struct zf *zf;
 {
 	while(zf_close_include(zf));
 	if(zf->line.dname) free(zf->line.dname);
@@ -896,26 +947,29 @@ zf_close (struct zf *zf)
 #ifdef TEST
 
 void *
-xalloc (register size_t size)
+xalloc(size)
+	register size_t	size;
 {
 	register void *p;
 
 	if((p = malloc(size)) == NULL) {
-		fprintf(stderr, "malloc failed: %s\n", strerror(errno));
+		fprintf(stderr, "malloc failed: %m\n");
 		exit(1);
 	}
 	return p;
 }
 
-int 
-usage (void)
+int
+usage()
 {
 	fprintf(stderr, "usage: zf zone-file [origin]\n");
 	exit(1);
 }
 
-int 
-main (int argc, char *argv[])
+int
+main(argc, argv)
+	int argc;
+	char *argv[];
 {
 
 	struct zf *zf;

@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.13 2002/05/07 13:17:36 alexis Exp $
+ * $Id: dbcreate.c,v 1.14 2002/05/23 13:20:57 alexis Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -44,11 +44,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "dns.h"
 #include "namedb.h"
 
 struct namedb *
-namedb_new (char *filename)
+namedb_new(filename)
+	char *filename;
 {
 	struct namedb *db;
 
@@ -62,6 +62,20 @@ namedb_new (char *filename)
 		return NULL;
 	}
 
+#ifdef	USE_BERKELEY_DB
+	/* Create the database */
+	if(db_create(&db->db, NULL, 0) != 0) {
+		free(db->filename);
+		free(db);
+                return NULL;
+        }
+
+        if(db->db->open(db->db, db->filename, NULL, DB_BTREE, DB_CREATE | DB_TRUNCATE, 0664) != 0) {
+		free(db->filename);
+		free(db);
+		return NULL;
+        }
+#else
 	/* Create the database */
         if((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
 		free(db->filename);
@@ -74,6 +88,7 @@ namedb_new (char *filename)
 		namedb_discard(db);
 		return NULL;
 	}
+#endif	/* USE_BERKELEY_DB */
 
 	/* Initialize the masks... */
 	bzero(db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
@@ -81,22 +96,31 @@ namedb_new (char *filename)
 	bzero(db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
 
 	return db;
-}
+};
 
 
-int 
-namedb_put (struct namedb *db, u_char *dname, struct domain *d)
+int
+namedb_put(db, dname, d)
+	struct namedb *db;
+	u_char *dname;
+	struct domain *d;
 {
-	/* Inverted dname */
-	u_char iname[MAXDOMAINLEN + 1];
+#ifdef	USE_BERKELEY_DB
+	DBT key, data;
 
-	dnameinvert(dname, iname);
+	/* Store it */
+	bzero(&key, sizeof(key));
+	bzero(&data, sizeof(data));
 
-	/* Store the inverted key */
-	if(write(db->fd, iname, (((u_int32_t)*iname + 1 + 3) & 0xfffffffc)) == -1) {
+	key.size = *dname;
+	key.data = dname + 1;
+	data.size = d->size;
+	data.data = d;
+
+	if(db->db->put(db->db, NULL, &key, &data, 0) != 0) {
 		return -1;
 	}
-
+#else
 	/* Store the key */
 	if(write(db->fd, dname, (((u_int32_t)*dname + 1 + 3) & 0xfffffffc)) == -1) {
 		return -1;
@@ -106,13 +130,43 @@ namedb_put (struct namedb *db, u_char *dname, struct domain *d)
 	if(write(db->fd, d, d->size) == -1) {
 		return -1;
 	}
+#endif	/* USE_BERKELEY_DB */
 
 	return 0;
-}
+};
 
-int 
-namedb_save (struct namedb *db)
+int
+namedb_save(db)
+	struct namedb *db;
 {
+#ifdef	USE_BERKELEY_DB
+	/* The buffer for the super block */
+	u_char sbuf[NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE];
+
+	DBT key, data;
+
+	/* Create the super block */
+	bcopy(NAMEDB_MAGIC, sbuf, NAMEDB_MAGIC_SIZE);
+	bcopy(db->masks[NAMEDB_AUTHMASK], sbuf + NAMEDB_MAGIC_SIZE, NAMEDB_BITMASKLEN);
+	bcopy(db->masks[NAMEDB_STARMASK], sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
+	bcopy(db->masks[NAMEDB_DATAMASK], sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
+
+	/* Write the bitmasks... */
+	bzero(&key, sizeof(key));
+	bzero(&data, sizeof(data));
+	data.size = NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE;
+	data.data = sbuf;
+
+	if(db->db->put(db->db, NULL, &key, &data, 0) != 0) {
+		return -1;
+	}
+
+	/* Close the database */
+	if(db->db->close(db->db, 0) != 0) {
+		return -1;
+	}
+
+#else
 	/* Write an empty key... */
 	if(write(db->fd, "", 1) == -1) {
 		close(db->fd);
@@ -133,7 +187,7 @@ namedb_save (struct namedb *db)
 
 	/* Close the database */
 	close(db->fd);
-
+#endif
 	free(db->filename);
 	free(db);
 
@@ -141,8 +195,9 @@ namedb_save (struct namedb *db)
 }
 
 
-void 
-namedb_discard (struct namedb *db)
+void
+namedb_discard(db)
+	struct namedb *db;
 {
 	unlink(db->filename);
 	free(db->filename);

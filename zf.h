@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.11 2002/05/06 13:33:07 alexis Exp $
+ * $Id: zf.h,v 1.12 2002/05/23 13:20:57 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -192,5 +192,6 @@ void zf_free_rdata __P((union zf_rdatom *, char *));
 void zf_close __P((struct zf *));
 char *dnamestr __P((u_char *));
 u_char *strdname __P((char *s, u_char *));
+int dnamecmp __P((register u_char *, register u_char *));
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.9 2002/05/06 13:33:07 alexis Exp $
+ * $Id: rbtree.h,v 1.10 2002/05/23 13:20:57 alexis Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -85,7 +85,6 @@ struct rbtree_t {
 rbtree_t *rbtree_create __P((void *(*)(), int (*)()));
 void *rbtree_insert __P((rbtree_t *, void *, void *, int));
 void *rbtree_search __P((rbtree_t *, void *));
-void *rbtree_locate __P((rbtree_t *, void *));
 void rbtree_delete __P((rbtree_t *, void *, int, int));
 void rbtree_destroy __P((rbtree_t *, int, int));
 rbnode_t *rbtree_first __P((rbtree_t *));

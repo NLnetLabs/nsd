@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.22 2002/05/07 13:17:36 alexis Exp $
+ * $Id: dbaccess.c,v 1.23 2002/05/23 13:20:57 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -53,12 +53,13 @@
 #include <fcntl.h>
 
 #include "namedb.h"
-#include "dns.h"
 
 #ifndef	USE_BERKELEY_DB
 
-int 
-domaincmp (register u_char *a, register u_char *b)
+int
+domaincmp(a, b)
+	register u_char *a;
+	register u_char *b;
 {
 	register int r;
 	register int alen = (int)*a;
@@ -74,8 +75,9 @@ domaincmp (register u_char *a, register u_char *b)
 
 #ifdef	USE_HEAP_HASH
 
-unsigned long 
-domainhash (register u_char *dname)
+unsigned long
+domainhash(dname)
+	register u_char *dname;
 {
         register unsigned long hash = 0;
 	register u_char *p = dname;
@@ -92,14 +94,40 @@ domainhash (register u_char *dname)
 #endif
 
 struct domain *
-namedb_lookup (struct namedb *db, u_char *dname)
+namedb_lookup(db, dname)
+	struct namedb *db;
+	u_char *dname;
 {
+#ifdef USE_BERKELEY_DB
+	DBT key, data;
+
+	bzero(&key, sizeof(key));
+	bzero(&data, sizeof(data));
+	key.size = (size_t)*dname;
+	key.data = dname + 1;
+
+	switch(db->db->get(db->db, NULL, &key, &data, 0)) {
+	case -1:
+		syslog(LOG_ERR, "database lookup failed: %m");
+		return NULL;
+	case DB_NOTFOUND:
+		return NULL;
+	case 0:
+		return data.data;
+	}
+
+	return NULL;
+
+#else 
 	return (struct domain *)heap_search(db->heap, dname);
 
+#endif /* USE_BERKELEY_DB */
 }
 
 struct answer *
-namedb_answer (struct domain *d, u_int16_t type)
+namedb_answer(d, type)
+	struct domain *d;
+	u_int16_t type;
 {
 	struct answer *a;
 
@@ -108,12 +136,12 @@ namedb_answer (struct domain *d, u_int16_t type)
 			return a;
 		}
 	}
-
 	return NULL;
 }
 
 struct namedb *
-namedb_open (char *filename)
+namedb_open(filename)
+	char *filename;
 {
 	struct namedb *db;
 	char magic[NAMEDB_MAGIC_SIZE] = NAMEDB_MAGIC;
@@ -215,9 +243,13 @@ namedb_open (char *filename)
 
 	(void)close(db->fd);
 
-	if((db->heap = heap_create(malloc, domaincmp)) == NULL ||
-	    (db->iheap = heap_create(malloc, domaincmp)) == NULL) {
-		if(db->heap) heap_destroy(db->heap, 0, 0);
+#ifdef USE_HEAP_RBTREE
+	if((db->heap = heap_create(malloc, domaincmp)) == NULL) {
+#else
+# ifdef USE_HEAP_HASH
+	if((db->heap = heap_create(malloc, domaincmp, domainhash, NAMEDB_HASH_SIZE)) == NULL) {
+# endif
+#endif
 		free(db->mpool);
 		free(db->filename);
 		free(db);
@@ -234,23 +266,13 @@ namedb_open (char *filename)
 	p += NAMEDB_MAGIC_SIZE;
 
 	while(*p) {
-		/* Insert the inverted domain */
-		if(heap_insert(db->iheap, p, p + ((*p + 1 +3) & 0xfffffffc), 1) == NULL) {
-			syslog(LOG_ERR, "failed to insert an inverted domain: %s", strerror(errno));
-			namedb_close(db);
-			return NULL;
-		}
-		p += (((u_int32_t)*p + 1 + 3) & 0xfffffffc);
-
-		/* Insert the domain */
 		if(heap_insert(db->heap, p, p + ((*p + 1 +3) & 0xfffffffc), 1) == NULL) {
-			syslog(LOG_ERR, "failed to insert an inverted domain: %s", strerror(errno));
+			syslog(LOG_ERR, "failed to insert a domain: %m");
 			namedb_close(db);
 			return NULL;
 		}
 		p += (((u_int32_t)*p + 1 + 3) & 0xfffffffc);
 		p += *((u_int32_t *)p);
-
 		if(p > (db->mpool + db->mpoolsz)) {
 			syslog(LOG_ERR, "corrupted database %s", db->filename);
 			namedb_close(db);
@@ -288,18 +310,20 @@ namedb_open (char *filename)
 	return db;
 }
 
-void 
-namedb_close (struct namedb *db)
+void
+namedb_close(db)
+	struct namedb *db;
 {
-	heap_destroy(db->iheap, 0, 0);
+#ifdef	USE_BERKELEY_DB
+	db->db->close(db->db, 0);
+#else
 	heap_destroy(db->heap, 0, 0);
-
 #ifdef	USE_MMAP
 	munmap(db->mpool, db->mpoolsz);
 #else
 	free(db->mpool);
 #endif	/* USE_MMAP */
-
+#endif
 	if(db->filename)
 		free(db->filename);
 	free(db);

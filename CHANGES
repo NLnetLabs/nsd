@@ -1,10 +1,4 @@
-$Id: CHANGES,v 1.2 2002/05/07 10:46:26 alexis Exp $
-
-1.0.0-beta2
-	- wildcards bug fixed
-	- AA bit for class ANY bug fixed
-	- minor coredumps with really broken zones in zonec fixed
-	- linux & SunOS port
+$Id: CHANGES,v 1.3 2002/05/23 13:20:57 alexis Exp $
 
 1.1-alpha2
 	- IPv6 transport support added by Jun-ichiro itojun Hagino (Use -DINET6)
