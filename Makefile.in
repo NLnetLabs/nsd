@@ -53,7 +53,8 @@ namedxfer = @namedxfer@
 user = @user@
 
 CC		= @CC@
-CFLAGS		= @CFLAGS@ @DEFS@ -I. -DDBFILE=\"$(dbfile)\" -DPIDFILE=\"$(pidfile)\" -DUSER=\"$(user)\"
+CPPFLAGS	= @CPPFLAGS@ @DEFS@ -I. -DDBFILE=\"$(dbfile)\" -DPIDFILE=\"$(pidfile)\" -DUSER=\"$(user)\"
+CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
 LIBWRAP		= @LIBWRAP@
@@ -62,8 +63,8 @@ INSTALL		= @INSTALL@
 INSTALL_PROGRAM	= @INSTALL_PROGRAM@
 INSTALL_DATA	= @INSTALL_DATA@
 
-COMPILE		= $(CC) $(CFLAGS) -c
-LINK		= $(CC) $(LDFLAGS) $(CFLAGS)
+COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
+LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
 EDIT		= sed \
 			-e 's,@prefix\@,$(prefix),g' \
 			-e 's,@exec_prefix\@,$(exec_prefix),g' \
@@ -80,7 +81,7 @@ EDIT		= sed \
 all:	nsd nsq zonec nsd-axfr nsdc.sh nsdc.conf.sample
 
 .c.o:
-	$(CC) $(CFLAGS) -c $<
+	$(COMPILE) -c $<
 
 nsdc.sh:	nsdc.sh.in
 	rm -f nsdc.sh
@@ -162,7 +163,7 @@ malloc.o:	compat/malloc.c
 
 # Test programs
 rbtree:	rbtree.c rbtree.h
-	$(COMPILE) -DTEST rbtree.c
+	$(COMPILE) -c -DTEST rbtree.c
 	$(LINK) -o $@ rbtree.o $(LIBS)
 
 zparser:	zparser.c dname.o  $(LIBOBJS)
@@ -170,7 +171,7 @@ zparser:	zparser.c dname.o  $(LIBOBJS)
 
 # Example plugin
 example-plugin.o: contrib/example-plugin.c
-	$(COMPILE) contrib/example-plugin.c -o $@
+	$(COMPILE) -c contrib/example-plugin.c -o $@
 
 example-plugin.so: example-plugin.o
 	$(LINK) -shared example-plugin.o -o $@
