@@ -240,11 +240,7 @@ region_free_all(region_type *region)
 char *
 region_strdup(region_type *region, const char *string)
 {
-	size_t len = strlen(string);
-	char *result = (char *) region_alloc(region, len + 1);
-	if (!result) return NULL;
-	memcpy(result, string, len + 1);
-	return result;
+	return (char *) region_alloc_init(region, string, strlen(string) + 1);
 }
 
 void
