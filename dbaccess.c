@@ -372,7 +372,7 @@ namedb_open (const char *filename)
 	db->fd = NULL;
 
 #ifndef NDEBUG
-	fprintf(stderr, "database region after loading databse: ");
+	fprintf(stderr, "database region after loading database: ");
 	region_dump_stats(db->region, stderr);
 	fprintf(stderr, "\n");
 #endif	
