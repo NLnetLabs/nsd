@@ -304,6 +304,33 @@ dname_label(const dname_type *dname, size_t index)
 }
 
 
+inline int
+label_compare(const uint8_t *left, const uint8_t *right)
+{
+	int left_length;
+	int right_length;
+	int size;
+	int result;
+	
+	assert(left);
+	assert(right);
+
+	assert(label_is_normal(left));
+	assert(label_is_normal(right));
+	
+	left_length = label_length(left);
+	right_length = label_length(right);
+	size = left_length < right_length ? left_length : right_length;
+	
+	result = memcmp(label_data(left), label_data(right), size);
+	if (result) {
+		return result;
+	} else {
+		return left_length - right_length;
+	}
+}
+
+
 int
 dname_compare(const dname_type *left, const dname_type *right)
 {
@@ -331,33 +358,6 @@ dname_compare(const dname_type *left, const dname_type *right)
 
 		left_label = label_next(left_label);
 		right_label = label_next(right_label);
-	}
-}
-
-
-int
-label_compare(const uint8_t *left, const uint8_t *right)
-{
-	int left_length;
-	int right_length;
-	size_t size;
-	int result;
-	
-	assert(left);
-	assert(right);
-
-	assert(label_is_normal(left));
-	assert(label_is_normal(right));
-	
-	left_length = label_length(left);
-	right_length = label_length(right);
-	size = left_length < right_length ? left_length : right_length;
-	
-	result = memcmp(label_data(left), label_data(right), size);
-	if (result) {
-		return result;
-	} else {
-		return (int) left_length - (int) right_length;
 	}
 }
 
