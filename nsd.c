@@ -110,8 +110,20 @@ xrealloc (register void *p, register size_t size)
 static void
 usage (void)
 {
-	fprintf(stderr, "usage: nsd [-4] [-6] [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
+	fprintf(stderr, "usage: nsd [-4] [-6] [-v] [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
 	exit(1);
+}
+
+static void
+version(void)
+{
+	fprintf(stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+	fprintf(stderr, "Written by NLnet Labs.\n\n");
+	fprintf(stderr,
+		"Copyright (C) 2001-2003 NLnet Labs.  This is free software.\n"
+		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
+		"FOR A PARTICULAR PURPOSE.\n");
+	exit(0);
 }
 
 static void
@@ -438,7 +450,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "46a:df:i:N:n:p:s:u:t:X:")) != -1) {
+	while((c = getopt(argc, argv, "46a:df:i:N:n:p:s:u:t:X:v")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -515,6 +527,9 @@ main (int argc, char *argv[])
 #else /* !PLUGINS */
 			error("plugin support not enabled.");
 #endif /* !PLUGINS */
+			break;
+		case 'v':
+			version();
 			break;
 		case '?':
 		default:

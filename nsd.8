@@ -54,6 +54,7 @@ nsd
 .Op Fl t Ar chrootdir
 .Op Fl u Ar username
 .Op Fl X Ar plugin
+.Op Fl v
 .Sh DESCRIPTION
 .Ic NSD
 is a complete implementation of an authoritative DNS nameserver. Upon
@@ -182,6 +183,10 @@ searched for in the standard locations using
 .Xr dlopen 3 .
 If an argument is specified it is passed directly to the
 initialization function of the plugin.
+
+.It Fl v
+Print the version number of NSD to standard error and exit.
+
 .El
 
 .Pp
