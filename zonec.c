@@ -507,20 +507,20 @@ precsize_aton (char *cp, char **endptr)
 	int mantissa;
 
 	while (isdigit(*cp))
-		mval = mval * 10 + (*cp++ - '0');
+		mval = mval * 10 + hexdigit_to_int(*cp++);
 
 	if (*cp == '.') {	/* centimeters */
 		cp++;
 		if (isdigit(*cp)) {
-			cmval = (*cp++ - '0') * 10;
+			cmval = hexdigit_to_int(*cp++) * 10;
 			if (isdigit(*cp)) {
-				cmval += (*cp++ - '0');
+				cmval += hexdigit_to_int(*cp++);
 			}
 		}
 	}
 
 	cmval = (mval * 100) + cmval;
-
+	
 	for (exponent = 0; exponent < 9; exponent++)
 		if (cmval < poweroften[exponent+1])
 			break;

@@ -33,6 +33,8 @@ BUG FIXES:
           with multiple master servers.
         - Signals are no longer blocked while performing I/O so the
           server should respond quicker to signals.
+        - Fixed parsing of LOC rdata.  Fractions and altitude were not
+          handled correctly.
 
 2.1.5
 =============
