@@ -20,6 +20,9 @@
 zparser_type *current_parser;
 rr_type *current_rr;
 
+#ifdef __cplusplus
+extern "C"
+#endif /* __cplusplus */
 int yywrap(void);
 
 rrdata_type *temporary_rrdata = NULL;
@@ -39,7 +42,7 @@ uint8_t nsecbits[256][32];
 	const dname_type *dname;
 	struct lex_data   data;
 	uint32_t          ttl;
-	uint16_t          class;
+	uint16_t          klass;
 	uint16_t          type;
 }
 
@@ -56,7 +59,7 @@ uint8_t nsecbits[256][32];
 /* other tokens */
 %token         DIR_TTL DIR_ORIG NL ORIGIN SP
 %token <data>  STR PREV TTL
-%token <class> T_IN T_CH T_HS
+%token <klass> T_IN T_CH T_HS
 
 /* unknown RRs */
 %token         URR
@@ -84,10 +87,11 @@ line:   NL
 			    error("RR before SOA skipped");
 		    } else {
 			    current_rr->zone = current_parser->current_zone;
-			    current_rr->rrdata = region_alloc_init(
-				    zone_region,
-				    current_rr->rrdata,
-				    rrdata_size(current_parser->_rc));
+			    current_rr->rrdata
+				    = (rrdata_type *) region_alloc_init(
+					    zone_region,
+					    current_rr->rrdata,
+					    rrdata_size(current_parser->_rc));
 			    
 			    process_rr(current_parser, current_rr);
 		    }
@@ -177,7 +181,7 @@ ttl:    TTL
 in:     T_IN
     {
         /* set the class  (class unknown handled in lexer) */
-        current_rr->class =  current_parser->class;
+        current_rr->klass =  current_parser->klass;
     }
     ;
 
@@ -196,7 +200,7 @@ class:  in
 classttl:   /* empty - fill in the default, def. ttl and IN class */
     {
         current_rr->rrdata->ttl = current_parser->ttl;
-        current_rr->class = current_parser->class;
+        current_rr->klass = current_parser->klass;
     }
     |   class sp         /* no ttl */
     {
@@ -204,7 +208,7 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
     }
     |	ttl sp		/* no class */
     {   
-        current_rr->class = current_parser->class;
+        current_rr->klass = current_parser->klass;
     }
     |   ttl sp class sp  /* the lot */
     |   class sp ttl sp  /* the lot - reversed */
@@ -285,7 +289,7 @@ concatenated_str_seq: STR
 	| concatenated_str_seq sp STR
 	{
 		$$.len = $1.len + $3.len + 1;
-		$$.str = region_alloc(rr_region, $$.len + 1);
+		$$.str = (char *) region_alloc(rr_region, $$.len + 1);
 		memcpy($$.str, $1.str, $1.len);
 		memcpy($$.str + $1.len, " ", 1);
 		memcpy($$.str + $1.len + 1, $3.str, $3.len);
@@ -294,7 +298,7 @@ concatenated_str_seq: STR
 	| concatenated_str_seq '.' STR
 	{
 		$$.len = $1.len + $3.len + 1;
-		$$.str = region_alloc(rr_region, $$.len + 1);
+		$$.str = (char *) region_alloc(rr_region, $$.len + 1);
 		memcpy($$.str, $1.str, $1.len);
 		memcpy($$.str + $1.len, ".", 1);
 		memcpy($$.str + $1.len + 1, $3.str, $3.len);
@@ -352,7 +356,8 @@ nsec_seq:	STR
 str_sp_seq:	STR
 	|	str_sp_seq sp STR
 	{
-		char *result = region_alloc(rr_region, $1.len + $3.len + 1);
+		char *result = (char *) region_alloc(rr_region,
+						     $1.len + $3.len + 1);
 		memcpy(result, $1.str, $1.len);
 		memcpy(result + $1.len, $3.str, $3.len);
 		$$.str = result;
@@ -368,7 +373,8 @@ str_sp_seq:	STR
 str_dot_seq:	STR
 	|	str_dot_seq '.' STR
         {
-		char *result = region_alloc(rr_region, $1.len + $3.len + 1);
+		char *result = (char *) region_alloc(rr_region,
+						     $1.len + $3.len + 1);
 		memcpy(result, $1.str, $1.len);
 		memcpy(result + $1.len, $3.str, $3.len);
 		$$.str = result;
@@ -382,7 +388,8 @@ str_dot_seq:	STR
 dotted_str:	STR
 	|	dotted_str '.' STR
         {
-		char *result = region_alloc(rr_region, $1.len + $3.len + 2);
+		char *result = (char *) region_alloc(rr_region,
+						     $1.len + $3.len + 2);
 		memcpy(result, $1.str, $1.len);
 		result[$1.len] = '.';
 		memcpy(result + $1.len + 1, $3.str, $3.len);

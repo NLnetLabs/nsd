@@ -92,7 +92,10 @@ dname_make(region_type *region, const uint8_t *name)
 		label_offsets[label_count - i - 1] = tmp;
 	}
 
-	result = region_alloc(region, sizeof(dname_type) + (label_count + name_size) * sizeof(uint8_t));
+	result = (dname_type *) region_alloc(
+		region,
+		(sizeof(dname_type)
+		 + (label_count + name_size) * sizeof(uint8_t)));
 	result->name_size = name_size;
 	result->label_count = label_count;
 	memcpy((uint8_t *) dname_label_offsets(result),
@@ -127,7 +130,7 @@ dname_copy(region_type *region, const dname_type *dname)
 
 	assert(dname);
 
-	result = region_alloc(region, dname_total_size(dname));
+	result = (dname_type *) region_alloc(region, dname_total_size(dname));
 	result->name_size = dname->name_size;
 	result->label_count = dname->label_count;
 	memcpy((uint8_t *) dname_label_offsets(result),

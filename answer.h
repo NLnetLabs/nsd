@@ -90,4 +90,14 @@ void answer_init(answer_type *answer);
 int answer_add_rrset(answer_type *answer, answer_section_type section,
 		     domain_type *domain, rrset_type *rrset);
 
+
+#ifdef __cplusplus
+inline answer_section_type
+operator++(answer_section_type &lhs)
+{
+	lhs = (answer_section_type) ((int) lhs + 1);
+	return lhs;
+}
+#endif /* __cplusplus */
+
 #endif /* _ANSWER_H_ */

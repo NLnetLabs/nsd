@@ -106,7 +106,7 @@ struct rrset
 	rrset_type   *next;
 	zone_type    *zone;
 	uint16_t      type;
-	uint16_t      class;
+	uint16_t      klass;	/* Avoid conflict with C++ keyword.  */
 	uint16_t      rrslen;
 	rrdata_type **rrs;
 };
@@ -196,7 +196,7 @@ int zone_is_secure(zone_type *zone);
 static inline const dname_type *
 domain_dname(domain_type *domain)
 {
-	return domain->node.key;
+	return (const dname_type *) domain->node.key;
 }
 
 

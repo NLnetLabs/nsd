@@ -53,11 +53,11 @@ static int write_db (namedb_type *db);
 struct namedb *
 namedb_new (const char *filename)
 {
-	struct namedb *db;
+	namedb_type *db;
 	region_type *region = region_create(xalloc, free);
 	
 	/* Make a new structure... */
-	db = region_alloc(region, sizeof(namedb_type));
+	db = (namedb_type *) region_alloc(region, sizeof(namedb_type));
 	db->region = region;
 	db->domains = domain_table_create(region);
 	db->zones = NULL;
@@ -144,7 +144,7 @@ static int
 write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 {
 	uint32_t ttl;
-	uint16_t class;
+	uint16_t klass;
 	uint16_t type;
 	uint16_t rdcount;
 	uint16_t rrslen;
@@ -154,7 +154,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	assert(domain);
 	assert(rrset);
 	
-	class = htons(rrset->class);
+	klass = htons(rrset->klass);
 	type = htons(rrset->type);
 	rrslen = htons(rrset->rrslen);
 	
@@ -167,7 +167,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	if (!write_data(db->fd, &type, sizeof(type)))
 		return 0;
 		
-	if (!write_data(db->fd, &class, sizeof(class)))
+	if (!write_data(db->fd, &klass, sizeof(klass)))
 		return 0;
 		
 	if (!write_data(db->fd, &rrslen, sizeof(rrslen)))
@@ -209,7 +209,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 static void
 number_dnames_iterator(domain_type *node, void *user_data)
 {
-	uint32_t *current_number = user_data;
+	uint32_t *current_number = (uint32_t *) user_data;
 
 	node->number = *current_number;
 	++*current_number;
@@ -218,7 +218,7 @@ number_dnames_iterator(domain_type *node, void *user_data)
 static void
 write_dname_iterator(domain_type *node, void *user_data)
 {
-	struct namedb *db = user_data;
+	namedb_type *db = (namedb_type *) user_data;
 	
 	write_dname(db, node);
 }
@@ -226,8 +226,8 @@ write_dname_iterator(domain_type *node, void *user_data)
 static void
 write_domain_iterator(domain_type *node, void *user_data)
 {
-	struct namedb *db = user_data;
-	struct rrset *rrset;
+	namedb_type *db = (namedb_type *) user_data;
+	rrset_type *rrset;
 
 	for (rrset = node->rrsets; rrset; rrset = rrset->next) {
 		write_rrset(db, node, rrset);

@@ -401,7 +401,7 @@ main (int argc, char *argv[])
 	
 #ifdef PLUGINS
 	nsd_plugin_id_type plugin_count = 0;
-	char **plugins = xalloc(sizeof(char *));
+	char **plugins = (char **) xalloc(sizeof(char *));
 	maximum_plugin_count = 1;
 #endif /* PLUGINS */
 
@@ -532,7 +532,9 @@ main (int argc, char *argv[])
 #ifdef PLUGINS
 			if (plugin_count == maximum_plugin_count) {
 				maximum_plugin_count *= 2;
-				plugins = xrealloc(plugins, maximum_plugin_count * sizeof(char *));
+				plugins = (char **) xrealloc(
+					plugins,
+					maximum_plugin_count * sizeof(char *));
 			}
 			plugins[plugin_count] = optarg;
 			++plugin_count;
@@ -568,7 +570,7 @@ main (int argc, char *argv[])
 	}
 	
 	/* Number of child servers to fork.  */
-	nsd.children = region_alloc(
+	nsd.children = (struct nsd_child *) region_alloc(
 		nsd.region, nsd.child_count * sizeof(struct nsd_child));
 	for (i = 0; i < nsd.child_count; ++i) {
 		nsd.children[i].kind = NSD_SERVER_BOTH;

@@ -64,7 +64,8 @@ allocate_domain_info(domain_table_type *table,
 	assert(dname);
 	assert(parent);
 	
-	result = region_alloc(table->region, sizeof(domain_type));
+	result = (domain_type *) region_alloc(table->region,
+					      sizeof(domain_type));
 	result->node.key = dname_partial_copy(
 		table->region, dname, domain_dname(parent)->label_count + 1);
 	result->parent = parent;
@@ -90,7 +91,7 @@ domain_table_create(region_type *region)
 	
 	origin = dname_make(region, (uint8_t *) "");
 
-	root = region_alloc(region, sizeof(domain_type));
+	root = (domain_type *) region_alloc(region, sizeof(domain_type));
 	root->node.key = origin;
 	root->parent = NULL;
 	root->rrsets = NULL;
@@ -100,7 +101,8 @@ domain_table_create(region_type *region)
 #endif
 	root->is_existing = 0;
 	
-	result = region_alloc(region, sizeof(domain_table_type));
+	result = (domain_table_type *) region_alloc(region,
+						    sizeof(domain_table_type));
 	result->region = region;
 	result->names_to_domains = heap_create(
 		region, (int (*)(const void *, const void *)) dname_compare);

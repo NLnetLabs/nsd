@@ -126,7 +126,7 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 
 	encode_dname(q, owner);
 	query_write_u16(q, rrset->type);
-	query_write_u16(q, rrset->class);
+	query_write_u16(q, rrset->klass);
 	query_write_u32(q, rrset->rrs[rr]->ttl);
 
 	/* Reserve space for rdlength. */

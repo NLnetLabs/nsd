@@ -44,7 +44,7 @@ typedef struct rr rr_type;
 struct rr {
 	domain_type *domain;
 	zone_type   *zone;
-	uint16_t     class;
+	uint16_t     klass;
 	uint16_t     type;
 	rrdata_type *rrdata;
 };
@@ -55,7 +55,7 @@ struct zparser {
 	namedb_type *db;
 	int32_t ttl;
 	int32_t minimum;
-	uint16_t class;
+	uint16_t klass;
 	zone_type *current_zone;
 	domain_type *origin;
 	domain_type *prev_dname;

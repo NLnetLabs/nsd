@@ -331,14 +331,14 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 		/* class */
 		if (strcasecmp(yytext, "IN") == 0 ||
 		    strcasecmp(yytext,"CLASS1") == 0 ) {
-			yylval.class = CLASS_IN;
+			yylval.klass = CLASS_IN;
 			LEXOUT(("IN "));
 			return T_IN;
 		} else if (strcasecmp(yytext, "CH") == 0) {
-			yylval.class = CLASS_CHAOS;
+			yylval.klass = CLASS_CHAOS;
 			return T_CH;
 		} else if (strcasecmp(yytext, "HS") == 0) {
-			yylval.class = CLASS_HS;
+			yylval.klass = CLASS_HS;
 			return T_HS;
 		}
 

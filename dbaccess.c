@@ -65,13 +65,12 @@ namedb_lookup(struct namedb    *db,
 static int
 read_magic(namedb_type *db)
 {
-	static const char magic[NAMEDB_MAGIC_SIZE] = NAMEDB_MAGIC;
 	char buf[NAMEDB_MAGIC_SIZE];
 
 	if (fread(buf, sizeof(char), sizeof(buf), db->fd) != sizeof(buf))
 		return 0;
 
-	return memcmp(buf, magic, NAMEDB_MAGIC_SIZE) == 0;
+	return memcmp(buf, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == 0;
 }
 
 static const dname_type *
@@ -168,7 +167,7 @@ read_rrset(namedb_type *db,
 	if (!owner)
 		return 0;
 
-	rrset = region_alloc(db->region, sizeof(rrset_type));
+	rrset = (rrset_type *) region_alloc(db->region, sizeof(rrset_type));
 			     
 	rrset->zone = read_zone(db, zone_count, zones);
 	if (!rrset->zone)
@@ -177,17 +176,18 @@ read_rrset(namedb_type *db,
 	if (fread(&rrset->type, sizeof(rrset->type), 1, db->fd) != 1)
 		return 0;
 
-	if (fread(&rrset->class, sizeof(rrset->class), 1, db->fd) != 1)
+	if (fread(&rrset->klass, sizeof(rrset->klass), 1, db->fd) != 1)
 		return 0;
 
 	if (fread(&rrset->rrslen, sizeof(rrset->rrslen), 1, db->fd) != 1)
 		return 0;
 
 	rrset->type = ntohs(rrset->type);
-	rrset->class = ntohs(rrset->class);
+	rrset->klass = ntohs(rrset->klass);
 	rrset->rrslen = ntohs(rrset->rrslen);
 
-	rrset->rrs = region_alloc(db->region, rrset->rrslen * sizeof(rrdata_type *));
+	rrset->rrs = (rrdata_type **) region_alloc(
+		db->region, rrset->rrslen * sizeof(rrdata_type *));
 	
 	for (i = 0; i < rrset->rrslen; ++i) {
 		if (fread(&rdcount, sizeof(rdcount), 1, db->fd) != 1)
@@ -198,7 +198,8 @@ read_rrset(namedb_type *db,
 
 		rdcount = ntohs(rdcount);
 		
-		rrset->rrs[i] = region_alloc(db->region, rrdata_size(rdcount));
+		rrset->rrs[i] = (rrdata_type *) region_alloc(
+			db->region, rrdata_size(rdcount));
 		rrset->rrs[i]->ttl = ntohl(ttl);
 		
 		for (j = 0; j < rdcount; ++j) {
@@ -277,7 +278,7 @@ namedb_open (const char *filename)
 	      (stderr, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
 
 	db_region = region_create(xalloc, free);
-	db = region_alloc(db_region, sizeof(struct namedb));
+	db = (namedb_type *) region_alloc(db_region, sizeof(struct namedb));
 	db->region = db_region;
 	db->domains = domain_table_create(db->region);
 	db->zones = NULL;
@@ -308,7 +309,8 @@ namedb_open (const char *filename)
 	temp_region = region_create(xalloc, free);
 	dname_region = region_create(xalloc, free);
 	
-	zones = region_alloc(temp_region, zone_count * sizeof(zone_type *));
+	zones = (zone_type **) region_alloc(temp_region,
+					    zone_count * sizeof(zone_type *));
 	for (i = 0; i < zone_count; ++i) {
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
@@ -318,7 +320,8 @@ namedb_open (const char *filename)
 			namedb_close(db);
 			return NULL;
 		}
-		zones[i] = region_alloc(db->region, sizeof(zone_type));
+		zones[i] = (zone_type *) region_alloc(db->region,
+						      sizeof(zone_type));
 		zones[i]->next = db->zones;
 		db->zones = zones[i];
 		zones[i]->domain = domain_table_insert(db->domains, dname);
@@ -341,7 +344,8 @@ namedb_open (const char *filename)
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (stderr, "Retrieving %lu domain names\n", (unsigned long) dname_count));
 	
-	domains = region_alloc(temp_region, dname_count * sizeof(domain_type *));
+	domains = (domain_type **) region_alloc(
+		temp_region, dname_count * sizeof(domain_type *));
 	for (i = 0; i < dname_count; ++i) {
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
