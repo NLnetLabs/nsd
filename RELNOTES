@@ -24,6 +24,9 @@ BUG FIXES:
         - Maximum TCP message size is now 65535 bytes.  AXFR response
           packets are still limited to 16383 bytes for optimal
           compression of dnames.
+        - The TSIG key for AXFRs can now also be stored in the file
+          <zonename>.tsiginfo.  This makes it possible to use TSIG
+          with multiple master servers.
 
 2.1.5
 =============
