@@ -127,9 +127,9 @@ zparser_conv_hex(region_type *region, const char *hex)
 					error("illegal hex character '%c'", (int)*hex);
 					return NULL;
 				}
-				*hex++;
+				++hex;
 			}
-			t++;
+			++t;
 		}
         }
 	return r;
