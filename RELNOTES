@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.4 2002/05/25 05:44:35 alexis Exp $
+$Id: RELNOTES,v 1.5 2002/05/30 13:58:01 alexis Exp $
 
 1.0.1
 =============
@@ -18,24 +18,10 @@ CHANGES:
 BUG FIXES:
 	- white space problem in zonec is fixed
 
-BUGS:
-	- -DHOST_ACCESS doesnt seem to work
-
 1.0.0 RELEASE
 =============
 
 KNOWN BUGS:
-
-- Zone compiler will not parse properly zone files where comments or
-  parenthes are not surrounded with white space. For example, this is
-  NOT a valid syntax:
-
-	... MX 20 relay1;This is a comment
-	               ^^
-
- This will fail as well:
-	                   vv
-	SOA hostmaster ns1 (2002151000 ; Serial
 
 - Although NSD allows one to configure a zone without SOA record and
   use it as so called ``cached'' non-authoratative data, it is decided
