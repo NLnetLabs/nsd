@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.15 2003/12/08 15:01:49 miekg Exp $
+ * $Id: zlexer.lex,v 1.16 2003/12/08 15:13:09 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -49,7 +49,7 @@ COMMENT ;
 DOT     \.
 SLASH   \\
 ANY     [^\"]|\\.
-CLASS   IN|CH|HS
+CLASS   IN|CH|HS|CLASS1
 Q       \"
 
 %START	incl
@@ -229,7 +229,8 @@ Q       \"
 
 				/* \000 here will not cause problems */
                             if ( in_rr == after_dname) { 
-  			        if (strcasecmp(yytext, "IN") == 0) {
+  			        if (strcasecmp(yytext, "IN") == 0 ||
+					strcasecmp(yytext,"CLASS1") == 0 ) {
   				    yylval.class = CLASS_IN;
                                     return IN;
                                 } else if (strcasecmp(yytext, "CH") == 0) {
@@ -266,27 +267,6 @@ TYPE[0-9]+              {
 				    yylval.data.len = zoctet(ztext);
 				    yylval.data.str = ztext;
 				    return STR;
-                            }
-                        }
-CLASS[0-9]+             {
-                            if ( in_rr == after_dname ) {
-				j = intbyclassxx(yytext);
-				if ( j == 1 ) { /* XXX: What about CH and HS? */
-					yylval.class = j;
-					return IN;
-				} else {
-					ztext = region_strdup(rr_region, yytext);
-					yylval.data.len = zoctet(ztext);
-					yylval.data.str = ztext;
-                                	return UCLASS;
-				}
-			    }
-
-                            if ( in_rr != after_dname)  {
-                                ztext = region_strdup(rr_region, yytext); 
-                                yylval.data.len = zoctet(ztext);
-                                yylval.data.str = ztext;
-                                return STR;
                             }
                         }
 {Q}({ANY})({ANY})*{Q}   {
