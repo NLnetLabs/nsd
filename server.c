@@ -419,6 +419,7 @@ server_main(struct nsd *nsd)
 	int status;
 	pid_t child_pid;
 	pid_t reload_pid = -1;
+	sig_atomic_t mode;
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
@@ -427,8 +428,8 @@ server_main(struct nsd *nsd)
 		exit(1);
 	}
 
-	while (nsd->mode != NSD_SHUTDOWN) {
-		switch (nsd->mode) {
+	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
+		switch (mode) {
 		case NSD_RUN:
 			child_pid = waitpid(0, &status, 0);
 		
@@ -591,6 +592,7 @@ server_child(struct nsd *nsd)
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type *tcp_accept_handlers;
+	sig_atomic_t mode;
 	
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	
@@ -656,18 +658,18 @@ server_child(struct nsd *nsd)
 	}
 	
 	/* The main loop... */	
-	while (nsd->mode != NSD_QUIT) {
+	while ((mode = nsd->mode) != NSD_QUIT) {
 
 		/* Do we need to do the statistics... */
-		if (nsd->mode == NSD_STATS) {
-			nsd->mode = NSD_RUN;
-
+		if (mode == NSD_STATS) {
 #ifdef BIND8_STATS
 			/* Dump the statistics */
 			bind8_stats(nsd);
 #else /* BIND8_STATS */
 			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
 #endif /* BIND8_STATS */
+
+			nsd->mode = NSD_RUN;
 		}
 
 		/* Wait for a query... */
