@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.4 2003/02/12 21:43:35 alexis Exp $
+ * $Id: dname.c,v 1.5 2003/02/14 18:46:42 alexis Exp $
  *
  * dname.c -- dname operations
  *
@@ -150,7 +150,7 @@ strdname (char *s, u_char *o)
 
 	}
 
-	return h;
+	return dname;
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.2 2003/02/13 16:28:31 alexis Exp $
+ * $Id: zparser.c,v 1.3 2003/02/14 18:46:42 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -46,7 +46,6 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <netinet/in.h>
@@ -344,10 +343,13 @@ zread (struct zparser *z)
 		/* Process $DIRECTIVES */
 		if(*z->_t[0] == '$') {
 			if(strcasecmp(z->_t[0], "$TTL") == 0) {
-				if(z->_t[1] == NULL ||
-					((z->ttl = strtottl(z->_t[1], &t)) | 1)  ||
-						*t != 0) {
-					zerror(z, "invalid or missing ttl value");
+				if(z->_t[1] == NULL) {
+					zerror(z, "ttl value missing ");
+				} else {
+					z->ttl = strtottl(z->_t[1], &t);
+					if(*t != 0) {
+						zerror(z, "invalid ttl value");
+					}
 				}
 			} else if(strcasecmp(z->_t[0], "$ORIGIN") == 0) {
 				if(z->_t[1] == NULL ||
@@ -388,7 +390,7 @@ zread (struct zparser *z)
 				free(z->_rr.dname);
 
 			/* Parse the dname */
-			if((z->_rr.dname = strdname(z->_t[0], z->origin)) == NULL) {
+			if((z->_rr.dname = dnamedup(strdname(z->_t[0], z->origin))) == NULL) {
 				zerror(z, "invalid domain name");
 				z->_rr.dname = NULL;
 				continue;
@@ -432,20 +434,24 @@ zread (struct zparser *z)
 			continue;
 		}
 
+		z->_rc = 0;
+
 		/* Unless it is NULL record rdata must be present */
 		if(z->_t[++z->_tc] == NULL) {
 			if(z->_rr.type != TYPE_NULL) {
 				zsyntax(z);
 				continue;
 			} else {
+				zaddrdata(z, NULL);
+				z->_rc--;
 				return &z->_rr;
 			}
 		}
 
 		/* Now parse the rdata... */
-		if(zrdata(z) != 0) {
+		if(zrdata(z) == 0) {
 			/* Free any used rdata and try another line... */
-			while(z->_rc >= 0) {
+			while(--z->_rc >= 0) {
 				if(z->_rr.rdata[z->_rc])
 					free(z->_rr.rdata[z->_rc]);
 				z->_rr.rdata[z->_rc] = NULL;
@@ -508,7 +514,7 @@ zclose (struct zparser *z)
 void
 zaddrdata (struct zparser *z, u_int16_t *r)
 {
-	if(z->_rc >= MAXRDATALEN) {
+	if(z->_rc >= MAXRDATALEN - 1) {
 		zerror(z, "too many rdata elements");
 		abort();
 	}
@@ -599,12 +605,12 @@ zrdata (struct zparser *z)
 			if(!zrdatascan(z, RDATA_SHORT)) return 0;
 			return zrdatascan(z, RDATA_DNAME);
 		case TYPE_SIG:
-			if(!zrdatascan(z, RDATA_SHORT)) return 0;
+			if(!zrdatascan(z, RDATA_TYPE)) return 0;
 			if(!zrdatascan(z, RDATA_BYTE)) return 0;
 			if(!zrdatascan(z, RDATA_BYTE)) return 0;
 			if(!zrdatascan(z, RDATA_LONG)) return 0;
-			if(!zrdatascan(z, RDATA_LONG)) return 0;
-			if(!zrdatascan(z, RDATA_LONG)) return 0;
+			if(!zrdatascan(z, RDATA_TIME)) return 0;
+			if(!zrdatascan(z, RDATA_TIME)) return 0;
 			if(!zrdatascan(z, RDATA_SHORT)) return 0;
 			if(!zrdatascan(z, RDATA_DNAME)) return 0;
 			return zrdatascan(z, RDATA_B64);
@@ -655,6 +661,19 @@ zrdatascan (struct zparser *z, int what)
 
 	/* Depending on what we have to scan... */
 	switch(what) {
+	case RDATA_TYPE:
+		/* Allocate required space... */
+		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
+
+		*(r+1)  = intbyname(z->_t[z->_tc], ztypes);
+
+		if(*(r + 1) == 0) {
+			zerror(z, "resource record type is expected");
+			error++;
+		} else {
+			*r = sizeof(u_int16_t);
+		}
+		break;
 	case RDATA_PERIOD:
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
@@ -753,7 +772,7 @@ zrdatascan (struct zparser *z, int what)
 			r = xalloc(sizeof(u_int16_t) + i + 1);
 
 			*((char *)(r+1))  = i;
-			memcpy((char *)(r+2), z->_t[z->_tc], i);
+			memcpy(((char *)(r+1)) + 1, z->_t[z->_tc], i);
 
 			*r = i + 1;
 		}
@@ -791,7 +810,7 @@ zrdatascan (struct zparser *z, int what)
 	/* Error occured? */
 	if(error) {
 		if(r) free(r);
-		return -0;
+		return 0;
 	}
 
 	/* Add it to the rdata list */
