@@ -410,10 +410,10 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 };
 
 int
-rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
+rdata_atom_to_string(buffer_type *output, rdata_kind_type kind,
 		     rdata_atom_type rdata)
 {
-	return rdata_to_string_table[type](output, rdata);
+	return rdata_to_string_table[kind](output, rdata);
 }
 
 ssize_t
@@ -451,35 +451,46 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			}
 		}
 		
-		switch (rdata_atom_wireformat_type(rrtype, i)) {
-		case RDATA_WF_COMPRESSED_DNAME:
-		case RDATA_WF_UNCOMPRESSED_DNAME:
+		switch (rdata_atom_kind(rrtype, i)) {
+		case RDATA_ZF_DNAME:
 			is_domain = 1;
 			break;
-		case RDATA_WF_BYTE:
-			length = sizeof(uint8_t);
-			break;
-		case RDATA_WF_SHORT:
-			length = sizeof(uint16_t);
-			break;
-		case RDATA_WF_LONG:
-			length = sizeof(uint32_t);
-			break;
-		case RDATA_WF_TEXT:
+		case RDATA_ZF_TEXT:
 			/* Length is stored in the first byte.  */
 			length = 1 + buffer_current(packet)[0];
 			break;
-		case RDATA_WF_A:
+		case RDATA_ZF_BYTE:
+		case RDATA_ZF_ALGORITHM:
+			length = sizeof(uint8_t);
+			break;
+		case RDATA_ZF_SHORT:
+		case RDATA_ZF_RRTYPE:
+		case RDATA_ZF_CERTIFICATE_TYPE:
+			length = sizeof(uint16_t);
+			break;
+		case RDATA_ZF_LONG:
+		case RDATA_ZF_PERIOD:
+		case RDATA_ZF_TIME:
+			length = sizeof(uint32_t);
+			break;
+		case RDATA_ZF_A:
 			length = sizeof(in_addr_t);
 			break;
-		case RDATA_WF_AAAA:
+		case RDATA_ZF_AAAA:
 			length = IP6ADDRLEN;
 			break;
-		case RDATA_WF_BINARY:
-			/* Remaining RDATA is binary.  */
+		case RDATA_ZF_BASE64:
+		case RDATA_ZF_HEX:
+		case RDATA_ZF_NSAP:
+		case RDATA_ZF_SERVICES:
+		case RDATA_ZF_NXT:
+		case RDATA_ZF_NSEC:
+		case RDATA_ZF_LOC:
+		case RDATA_ZF_UNKNOWN:
+			/* All remaining RDATA.  */
 			length = end - buffer_position(packet);
 			break;
-		case RDATA_WF_APL:
+		case RDATA_ZF_APL:
 			length = (sizeof(uint16_t)    /* address family */
 				  + sizeof(uint8_t)   /* prefix */
 				  + sizeof(uint8_t)); /* length */

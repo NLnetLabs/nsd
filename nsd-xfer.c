@@ -328,7 +328,7 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 		}
 		if (!rdata_atom_to_string(
 			    output,
-			    (rdata_zoneformat_type) descriptor->zoneformat[i],
+			    (rdata_kind_type) descriptor->rdata_kinds[i],
 			    record->rdatas[i]))
 		{
 			buffer_set_position(output, saved_position);

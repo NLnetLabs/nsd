@@ -141,27 +141,9 @@ typedef enum nsd_rc nsd_rc_type;
 #define IP6ADDRLEN	(128/8)
 
 /*
- * The different types of RDATA wireformat data.
- */
-enum rdata_wireformat
-{
-	RDATA_WF_COMPRESSED_DNAME,   /* Possibly compressed domain name.  */
-	RDATA_WF_UNCOMPRESSED_DNAME, /* Uncompressed domain name.  */
-	RDATA_WF_BYTE,		     /* 8-bit integer.  */
-	RDATA_WF_SHORT,		     /* 16-bit integer.  */
-	RDATA_WF_LONG,		     /* 32-bit integer.  */
-	RDATA_WF_TEXT,		     /* Text string.  */
-	RDATA_WF_A,		     /* 32-bit IPv4 address.  */
-	RDATA_WF_AAAA,		     /* 128-bit IPv6 address.  */
-	RDATA_WF_BINARY, 	     /* Binary data (unknown length).  */
-	RDATA_WF_APL		     /* APL data.  */
-};
-typedef enum rdata_wireformat rdata_wireformat_type;
-
-/*
  * The different types of RDATA that can appear in the zone file.
  */
-enum rdata_zoneformat
+enum rdata_kind
 {
 	RDATA_ZF_DNAME,		/* Domain name.  */
 	RDATA_ZF_TEXT,		/* Text string.  */
@@ -185,17 +167,17 @@ enum rdata_zoneformat
 	RDATA_ZF_LOC,		/* Location data.  */
 	RDATA_ZF_UNKNOWN	/* Unknown data.  */
 };
-typedef enum rdata_zoneformat rdata_zoneformat_type;
+typedef enum rdata_kind rdata_kind_type;
 
 struct rrtype_descriptor
 {
 	uint16_t    type;	/* RR type */
 	const char *name;	/* Textual name.  */
 	int         token;	/* Parser token.  */
+	int         allow_compression; /* Allow dname compression.  */
 	uint8_t     minimum;	/* Minimum number of RDATAs.  */
 	uint8_t     maximum;	/* Maximum number of RDATAs.  */
-	uint8_t     wireformat[MAXRDATALEN]; /* rdata_wireformat_type */
-	uint8_t     zoneformat[MAXRDATALEN]; /* rdata_zoneformat_type  */
+	uint8_t     rdata_kinds[MAXRDATALEN]; /* rdata_kind_type  */
 };
 typedef struct rrtype_descriptor rrtype_descriptor_type;
 
