@@ -825,8 +825,11 @@ answer_query(struct nsd *nsd, struct query *q)
 		}
 	}
 
-	/* Set the AD bit when answering DNSSEC queries.  */
-	if (q->dnssec_ok && zone_is_secure(q->zone)) {
+	/*
+	 * Set the AD bit when secure zones contain authenticated
+	 * data.
+	 */
+	if (nsd->authenticated_data && zone_is_secure(q->zone)) {
 		AD_SET(q);
 	}
 	

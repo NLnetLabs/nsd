@@ -87,14 +87,15 @@ usage (void)
 		"Supported options:\n"
 		"  -4              Only listen to IPv4 connections.\n"
 		"  -6              Only listen to IPv6 connections.\n"
+		"  -A              Set the AD bit on answers from secure zones.\n"
 		"  -a ip-address   Listen to the specified incoming IP address (may be\n"
 		"                  specified multiple times).\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
 		"  -f database     Specify the database to load.\n"
 		"  -h              Print this help information.\n"
-		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
 		);
 	fprintf(stderr,
+		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
 		"  -l filename     Specify the log file.\n"
 		"  -N udp-servers  Specify the number of child UDP servers.\n"
 		"  -n tcp-servers  Specify the number of child TCP servers.\n"
@@ -102,6 +103,8 @@ usage (void)
 		"  -s seconds      Dump statistics every SECONDS seconds.\n"
 		"  -t chrootdir    Change root to specified directory on startup.\n"
 		"  -u user         Change effective uid to the specified user.\n"
+		);
+	fprintf(stderr,
 		"  -v              Print version information.\n"
 		"  -X plugin       Load a plugin (may be specified multiple times).\n\n"
 		);
@@ -397,6 +400,7 @@ main (int argc, char *argv[])
 	nsd.dbfile	= DBFILE;
 	nsd.pidfile	= PIDFILE;
 	nsd.server_kind = NSD_SERVER_MAIN;
+	nsd.authenticated_data = 0;
 	
 	/* Initialise the ports */
 	udp_port = UDP_PORT;
@@ -439,7 +443,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:df:hi:l:N:n:p:s:u:t:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46Aa:df:hi:l:N:n:p:s:u:t:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -454,6 +458,9 @@ main (int argc, char *argv[])
 #else /* !INET6 */
 			error("IPv6 support not enabled.");
 #endif /* !INET6 */
+			break;
+		case 'A':
+			nsd.authenticated_data = 1;
 			break;
 		case 'a':
 			nodes[nsd.ifs] = optarg;
