@@ -102,7 +102,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 		++total_added;
 	} else {
 		/* Query name only needs to be preserved in first answer packet.  */
-		query->iobufptr = query->iobuf + QHEADERSZ;
+		buffer_seek(query->packet, QHEADERSZ);
 		QDCOUNT(query) = 0;
 	}
 

@@ -115,6 +115,7 @@ ZONEC_OBJECTS	=				\
 	zparser.o
 
 NSD_NOTIFY_OBJECTS	=			\
+	buffer.o				\
 	dname.o					\
 	dns.o					\
 	namedb.o				\
@@ -242,9 +243,9 @@ configure:	configure.ac
 
 # Dependencies
 answer.o: answer.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h query.h nsd.h util.h
+  region-allocator.h dns.h query.h buffer.h util.h nsd.h
 axfr.o: axfr.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h query.h nsd.h util.h axfr.h
+  region-allocator.h dns.h query.h buffer.h util.h nsd.h axfr.h
 buffer.o: buffer.c config.h buffer.h region-allocator.h util.h
 dbaccess.o: dbaccess.c config.h dns.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h util.h
@@ -257,22 +258,23 @@ dns.o: dns.c config.h dns.h namedb.h dname.h heap.h rbtree.h \
 namedb.o: namedb.c config.h dns.h dname.h heap.h rbtree.h \
   region-allocator.h namedb.h util.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
-nsd-notify.o: nsd-notify.c config.h dns.h dname.h heap.h rbtree.h \
-  region-allocator.h nsd.h query.h namedb.h util.h
+nsd-notify.o: nsd-notify.c config.h buffer.h region-allocator.h util.h \
+  dns.h dname.h heap.h rbtree.h nsd.h query.h namedb.h
 nsd-xfer.o: nsd-xfer.c config.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h query.h namedb.h nsd.h util.h zonec.h
+  region-allocator.h dns.h query.h buffer.h util.h namedb.h nsd.h zonec.h
 nsd.o: nsd.c config.h dname.h heap.h rbtree.h region-allocator.h dns.h \
-  namedb.h nsd.h plugins.h nsd-plugin.h query.h util.h
+  namedb.h nsd.h plugins.h nsd-plugin.h query.h buffer.h util.h
 plugins.o: plugins.c config.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h plugins.h nsd-plugin.h nsd.h query.h util.h
+  region-allocator.h dns.h plugins.h nsd-plugin.h nsd.h query.h buffer.h \
+  util.h
 query.o: query.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h dns.h query.h nsd.h util.h axfr.h plugins.h \
+  region-allocator.h dns.h query.h buffer.h util.h nsd.h axfr.h plugins.h \
   nsd-plugin.h
 rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h region-allocator.h query.h \
-  dname.h heap.h rbtree.h namedb.h dns.h util.h netio.h plugins.h \
-  nsd-plugin.h
+  buffer.h util.h dname.h heap.h rbtree.h namedb.h dns.h netio.h \
+  plugins.h nsd-plugin.h
 util.o: util.c config.h util.h
 zlexer.o: zlexer.c config.h zonec.h dns.h namedb.h dname.h heap.h \
   rbtree.h region-allocator.h zparser.h

@@ -12,7 +12,7 @@
 #include "buffer.h"
 
 buffer_type *
-buffer_create_new(region_type *region, size_t capacity)
+buffer_create(region_type *region, size_t capacity)
 {
 	buffer_type *buffer = region_alloc(region, sizeof(buffer_type));
 	if (!buffer)

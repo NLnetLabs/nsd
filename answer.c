@@ -88,15 +88,14 @@ static void
 encode_dname(struct query *q, domain_type *domain)
 {
 	while (domain->parent && query_get_dname_offset(q, domain) == 0) {
-		query_put_dname_offset(q, domain, q->iobufptr - q->iobuf);
+		query_put_dname_offset(q, domain, q->packet->position);
 		DEBUG(DEBUG_NAME_COMPRESSION, 1,
 		      (stderr, "dname: %s, number: %lu, offset: %u\n",
 		       dname_to_string(domain_dname(domain)),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
-		query_write(q,
-			    dname_name(domain_dname(domain)),
-			    label_length(dname_name(domain_dname(domain))) + 1U);
+		buffer_write(q->packet, dname_name(domain_dname(domain)),
+			     label_length(dname_name(domain_dname(domain))) + 1U);
 		domain = domain->parent;
 	}
 	if (domain->parent) {
@@ -105,18 +104,19 @@ encode_dname(struct query *q, domain_type *domain)
 		       dname_to_string(domain_dname(domain)),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
-		query_write_u16(q, 0xc000 | query_get_dname_offset(q, domain));
+		buffer_write_u16(q->packet,
+				 0xc000 | query_get_dname_offset(q, domain));
 	} else {
-		query_write_u8(q, 0);
+		buffer_write_u8(q->packet, 0);
 	}
 }
 
 int
 encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 {
-	uint8_t *truncation_point = q->iobufptr;
+	size_t truncation_mark;
 	uint16_t rdlength = 0;
-	uint8_t *rdlength_pos;
+	size_t rdlength_pos;
 	uint16_t j;
 	
 	assert(q);
@@ -124,14 +124,20 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	assert(rrset);
 	assert(rr < rrset->rrslen);
 
+	/*
+	 * If the record does not in fit in the packet the packet size
+	 * will be restored to the mark.
+	 */
+	truncation_mark = q->packet->position;
+	
 	encode_dname(q, owner);
-	query_write_u16(q, rrset->type);
-	query_write_u16(q, rrset->klass);
-	query_write_u32(q, rrset->rrs[rr]->ttl);
+	buffer_write_u16(q->packet, rrset->type);
+	buffer_write_u16(q->packet, rrset->klass);
+	buffer_write_u32(q->packet, rrset->rrs[rr]->ttl);
 
 	/* Reserve space for rdlength. */
-	rdlength_pos = q->iobufptr;
-	q->iobufptr += sizeof(rdlength);
+	rdlength_pos = q->packet->position;
+	buffer_skip(q->packet, sizeof(rdlength));
 
 	for (j = 0; j < rrset->rrs[rr]->rdata_count; ++j) {
 		switch (rdata_atom_wireformat_type(rrset->type, j)) {
@@ -143,23 +149,24 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 		{
 			const dname_type *dname = domain_dname(
 				rdata_atom_domain(rrset->rrs[rr]->rdata[j]));
-			query_write(q, dname_name(dname), dname->name_size);
+			buffer_write(q->packet,
+				     dname_name(dname), dname->name_size);
 			break;
 		}
 		default:
-			query_write(q,
-				    rdata_atom_data(rrset->rrs[rr]->rdata[j]),
-				    rdata_atom_size(rrset->rrs[rr]->rdata[j]));
+			buffer_write(q->packet,
+				     rdata_atom_data(rrset->rrs[rr]->rdata[j]),
+				     rdata_atom_size(rrset->rrs[rr]->rdata[j]));
 			break;
 		}
 	}
 
 	if (!query_overflow(q)) {
-		rdlength = q->iobufptr - rdlength_pos - sizeof(rdlength);
-		write_uint16(rdlength_pos, rdlength);
+		rdlength = q->packet->position - rdlength_pos - sizeof(rdlength);
+		buffer_write_u16_at(q->packet, rdlength_pos, rdlength);
 		return 1;
 	} else {
-		q->iobufptr = truncation_point;
+		buffer_seek(q->packet, truncation_mark);
 		query_clear_dname_offsets(q);
 		assert(!query_overflow(q));
 		return 0;
@@ -171,13 +178,15 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 	       int truncate)
 {
 	uint16_t i;
-	uint8_t *truncation_point = q->iobufptr;
+	size_t truncation_mark;
 	uint16_t added = 0;
 	int all_added = 1;
 	rrset_type *rrsig;
 	
 	assert(rrset->rrslen > 0);
 
+	truncation_mark = q->packet->position;
+	
 	for (i = 0; i < rrset->rrslen; ++i) {
 		if (encode_rr(q, owner, rrset, i)) {
 			++added;
@@ -185,7 +194,7 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 			all_added = 0;
 			if (truncate) {
 				/* Truncate entire RRset and set truncate flag.  */
-				q->iobufptr = truncation_point;
+				buffer_seek(q->packet, truncation_mark);
 				TC_SET(q);
 				added = 0;
 				query_clear_dname_offsets(q);
@@ -208,7 +217,7 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 					all_added = 0;
 					if (truncate) {
 						/* Truncate entire RRset and set truncate flag.  */
-						q->iobufptr = truncation_point;
+						buffer_seek(q->packet, truncation_mark);
 						TC_SET(q);
 						added = 0;
 						query_clear_dname_offsets(q);

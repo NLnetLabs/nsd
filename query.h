@@ -1,38 +1,9 @@
 /*
  * query.h -- manipulation with the queries
  *
- * Alexis Yushin, <alexis@nlnetlabs.nl>
- *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
- * This software is an open source.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * Neither the name of the NLNET LABS nor the names of its contributors may
- * be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * See LICENSE for the license.
  *
  */
 
@@ -42,6 +13,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "buffer.h"
 #include "dname.h"
 #include "namedb.h"
 #include "nsd.h"
@@ -80,83 +52,83 @@
 /* First octet of flags */
 #define	RD_MASK		0x01U
 #define	RD_SHIFT	0
-#define	RD(query)	(*((query)->iobuf+2) & RD_MASK)
-#define	RD_SET(query)	(*((query)->iobuf+2) |= RD_MASK)
-#define	RD_CLR(query)	(*((query)->iobuf+2) &= ~RD_MASK)
+#define	RD(query)	(*((query)->packet->data+2) & RD_MASK)
+#define	RD_SET(query)	(*((query)->packet->data+2) |= RD_MASK)
+#define	RD_CLR(query)	(*((query)->packet->data+2) &= ~RD_MASK)
 
 #define TC_MASK		0x02U
 #define TC_SHIFT	1
-#define	TC(query)	(*((query)->iobuf+2) & TC_MASK)
-#define	TC_SET(query)	(*((query)->iobuf+2) |= TC_MASK)
-#define	TC_CLR(query)	(*((query)->iobuf+2) &= ~TC_MASK)
+#define	TC(query)	(*((query)->packet->data+2) & TC_MASK)
+#define	TC_SET(query)	(*((query)->packet->data+2) |= TC_MASK)
+#define	TC_CLR(query)	(*((query)->packet->data+2) &= ~TC_MASK)
 
 #define	AA_MASK		0x04U
 #define	AA_SHIFT	2
-#define	AA(query)	(*((query)->iobuf+2) & AA_MASK)
-#define	AA_SET(query)	(*((query)->iobuf+2) |= AA_MASK)
-#define	AA_CLR(query)	(*((query)->iobuf+2) &= ~AA_MASK)
+#define	AA(query)	(*((query)->packet->data+2) & AA_MASK)
+#define	AA_SET(query)	(*((query)->packet->data+2) |= AA_MASK)
+#define	AA_CLR(query)	(*((query)->packet->data+2) &= ~AA_MASK)
 
 #define	OPCODE_MASK	0x78U
 #define	OPCODE_SHIFT	3
-#define	OPCODE(query)	((*((query)->iobuf+2) & OPCODE_MASK) >> OPCODE_SHIFT)
+#define	OPCODE(query)	((*((query)->packet->data+2) & OPCODE_MASK) >> OPCODE_SHIFT)
 #define	OPCODE_SET(query, opcode) \
-	(*((query)->iobuf+2) = ((*((query)->iobuf+2)) & ~OPCODE_MASK) | ((opcode) << OPCODE_SHIFT))
+	(*((query)->packet->data+2) = ((*((query)->packet->data+2)) & ~OPCODE_MASK) | ((opcode) << OPCODE_SHIFT))
 
 #define	QR_MASK		0x80U
 #define	QR_SHIFT	7
-#define	QR(query)	(*((query)->iobuf+2) & QR_MASK)
-#define	QR_SET(query)	(*((query)->iobuf+2) |= QR_MASK)
-#define	QR_CLR(query)	(*((query)->iobuf+2) &= ~QR_MASK)
+#define	QR(query)	(*((query)->packet->data+2) & QR_MASK)
+#define	QR_SET(query)	(*((query)->packet->data+2) |= QR_MASK)
+#define	QR_CLR(query)	(*((query)->packet->data+2) &= ~QR_MASK)
 
 /* Second octet of flags */
 #define	RCODE_MASK	0x0fU
 #define	RCODE_SHIFT	0
-#define	RCODE(query)	(*((query)->iobuf+3) & RCODE_MASK)
+#define	RCODE(query)	(*((query)->packet->data+3) & RCODE_MASK)
 #define	RCODE_SET(query, rcode) \
-	(*((query)->iobuf+3) = ((*((query)->iobuf+3)) & ~RCODE_MASK) | (rcode))
+	(*((query)->packet->data+3) = ((*((query)->packet->data+3)) & ~RCODE_MASK) | (rcode))
 
 #define	CD_MASK		0x10U
 #define	CD_SHIFT	4
-#define	CD(query)	(*((query)->iobuf+3) & CD_MASK)
-#define	CD_SET(query)	(*((query)->iobuf+3) |= CD_MASK)
-#define	CD_CLR(query)	(*((query)->iobuf+3) &= ~CD_MASK)
+#define	CD(query)	(*((query)->packet->data+3) & CD_MASK)
+#define	CD_SET(query)	(*((query)->packet->data+3) |= CD_MASK)
+#define	CD_CLR(query)	(*((query)->packet->data+3) &= ~CD_MASK)
 
 #define	AD_MASK		0x20U
 #define	AD_SHIFT	5
-#define	AD(query)	(*((query)->iobuf+3) & AD_MASK)
-#define	AD_SET(query)	(*((query)->iobuf+3) |= AD_MASK)
-#define	AD_CLR(query)	(*((query)->iobuf+3) &= ~AD_MASK)
+#define	AD(query)	(*((query)->packet->data+3) & AD_MASK)
+#define	AD_SET(query)	(*((query)->packet->data+3) |= AD_MASK)
+#define	AD_CLR(query)	(*((query)->packet->data+3) &= ~AD_MASK)
 
 #define	Z_MASK		0x40U
 #define	Z_SHIFT		6
-#define	Z(query)	(*((query)->iobuf+3) & Z_MASK)
-#define	Z_SET(query)	(*((query)->iobuf+3) |= Z_MASK)
-#define	Z_CLR(query)	(*((query)->iobuf+3) &= ~Z_MASK)
+#define	Z(query)	(*((query)->packet->data+3) & Z_MASK)
+#define	Z_SET(query)	(*((query)->packet->data+3) |= Z_MASK)
+#define	Z_CLR(query)	(*((query)->packet->data+3) &= ~Z_MASK)
 
 #define	RA_MASK		0x80U
 #define	RA_SHIFT	7
-#define	RA(query)	(*((query)->iobuf+3) & RA_MASK)
-#define	RA_SET(query)	(*((query)->iobuf+3) |= RA_MASK)
-#define	RA_CLR(query)	(*((query)->iobuf+3) &= ~RA_MASK)
+#define	RA(query)	(*((query)->packet->data+3) & RA_MASK)
+#define	RA_SET(query)	(*((query)->packet->data+3) |= RA_MASK)
+#define	RA_CLR(query)	(*((query)->packet->data+3) &= ~RA_MASK)
 
 /* Query ID */
-#define	ID(query)		(*(uint16_t *)((query)->iobuf))
+#define	ID(query)		(*(uint16_t *)((query)->packet->data))
 
 /* Counter of the question section */
 #define QDCOUNT_OFF		4
-#define	QDCOUNT(query)		(*(uint16_t *)((query)->iobuf+QDCOUNT_OFF))
+#define	QDCOUNT(query)		(*(uint16_t *)((query)->packet->data+QDCOUNT_OFF))
 
 /* Counter of the answer section */
 #define ANCOUNT_OFF		6
-#define	ANCOUNT(query)		(*(uint16_t *)((query)->iobuf+ANCOUNT_OFF))
+#define	ANCOUNT(query)		(*(uint16_t *)((query)->packet->data+ANCOUNT_OFF))
 
 /* Counter of the authority section */
 #define NSCOUNT_OFF		8
-#define	NSCOUNT(query)		(*(uint16_t *)((query)->iobuf+NSCOUNT_OFF))
+#define	NSCOUNT(query)		(*(uint16_t *)((query)->packet->data+NSCOUNT_OFF))
 
 /* Counter of the additional section */
 #define ARCOUNT_OFF		10
-#define	ARCOUNT(query)		(*(uint16_t *)((query)->iobuf+ARCOUNT_OFF))
+#define	ARCOUNT(query)		(*(uint16_t *)((query)->packet->data+ARCOUNT_OFF))
 
 /* Possible OPCODE values */
 #define	OPCODE_QUERY		0 	/* a standard query (QUERY) */
@@ -204,9 +176,8 @@ struct query {
 	int dnssec_ok;
 	int tcp;
 	uint16_t tcplen;
-	
-	uint8_t *iobufptr;
-	uint8_t iobuf[QIOBUFSZ];
+
+	buffer_type *packet;
 
 	/* Normalized query domain name.  */
 	const dname_type *name;
@@ -258,15 +229,6 @@ struct query {
 	uint16_t     axfr_current_rr;
 };
 
-
-/* Current amount of data in the query IO buffer.  */
-static inline size_t query_used_size(struct query *q);
-
-/* Current available data size of the query IO buffer.  */
-static inline size_t query_available_size(struct query *q);
-
-/* Append data to the query IO buffer until an overflow occurs.  */
-static inline void query_write(struct query *q, const void *data, size_t size);
 
 /* Check if the last write resulted in an overflow.  */
 static inline int query_overflow(struct query *q);
@@ -339,59 +301,10 @@ void query_error(struct query *q, int rcode);
 
 
 
-static inline size_t
-query_used_size(struct query *q)
-{
-	return q->iobufptr - q->iobuf;
-}
-
-static inline size_t
-query_available_size(struct query *q)
-{
-	return q->maxlen - query_used_size(q);
-}
-
-static inline void
-query_write(struct query *q, const void *data, size_t size)
-{
-	memcpy(q->iobufptr, data, size); 
-	q->iobufptr += size;
-	assert(query_used_size(q) <= QIOBUFSZ);
-}
-
-static inline void
-query_write_u8(struct query *q, uint8_t data)
-{
-	*q->iobufptr++ = data;
-	assert(query_used_size(q) <= QIOBUFSZ);
-}
-
-/*
- * Write a 2 byte integer to the query in network byte order.
- */
-static inline void
-query_write_u16(struct query *q, uint16_t data)
-{
-	write_uint16(q->iobufptr, data);
-	q->iobufptr += sizeof(data);
-	assert(query_used_size(q) <= QIOBUFSZ);
-}
-
-/*
- * Write a 4 byte integer to the query in network byte order.
- */
-static inline void
-query_write_u32(struct query *q, uint32_t data)
-{
-	write_uint32(q->iobufptr, data);
-	q->iobufptr += sizeof(data);
-	assert(query_used_size(q) <= QIOBUFSZ);
-}
-
 static inline int
 query_overflow(struct query *q)
 {
-	return query_used_size(q) > q->maxlen;
+	return q->packet->position > q->maxlen;
 }
 
 #endif /* _QUERY_H_ */

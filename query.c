@@ -96,7 +96,7 @@ query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 void
 query_clear_dname_offsets(struct query *q)
 {
-	uint16_t max_offset = q->iobufptr - q->iobuf;
+	uint16_t max_offset = q->packet->position;
 	
 	while (q->compressed_dname_count > 0
 	       && (q->compressed_dname_offsets[q->compressed_dnames[q->compressed_dname_count - 1]->number]
@@ -140,12 +140,14 @@ query_add_compression_domain(struct query *q, domain_type *domain, uint16_t offs
 void
 query_error (struct query *q, int rcode)
 {
+	buffer_clear(q->packet);
+	
 	QR_SET(q);		/* This is an answer.  */
 	RCODE_SET(q, rcode);	/* Error code.  */
 	
 	/* Truncate the question as well... */
 	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-	q->iobufptr = q->iobuf + QHEADERSZ;
+	buffer_seek(q->packet, QHEADERSZ);
 }
 
 static void 
@@ -155,13 +157,13 @@ query_formerr (struct query *query)
 }
 
 void 
-query_init(struct query *q, region_type *region, uint16_t *compressed_dname_offsets,
-	   size_t maxlen, int is_tcp)
+query_init(struct query *q, region_type *region, 
+	   uint16_t *compressed_dname_offsets, size_t maxlen, int is_tcp)
 {
 	q->region = region;
 	q->compressed_dname_offsets = compressed_dname_offsets;
 	q->addrlen = sizeof(q->addr);
-	q->iobufptr = q->iobuf;
+	buffer_clear(q->packet);
 	q->maxlen = maxlen;
 	q->edns = 0;
 	q->dnssec_ok = 0;
@@ -197,18 +199,18 @@ query_addtxt(struct query  *q,
 	assert(txt_length <= UCHAR_MAX);
 	
 	/* Add the dname */
-	if (dname >= q->iobuf && dname <= q->iobufptr) {
-		query_write_u16(q, 0xc000 | (dname - q->iobuf));
+	if (dname >= q->packet->data && dname <= q->packet->data + q->packet->position) {
+		buffer_write_u16(q->packet, 0xc000 | (dname - q->packet->data));
 	} else {
-		query_write(q, dname + 1, *dname);
+		buffer_write(q->packet, dname + 1, *dname);
 	}
 
-	query_write_u16(q, TYPE_TXT);
-	query_write_u16(q, klass);
-	query_write_u32(q, ttl);
-	query_write_u16(q, len + 1);
-	query_write_u8(q, len);
-	query_write(q, txt, len);
+	buffer_write_u16(q->packet, TYPE_TXT);
+	buffer_write_u16(q->packet, klass);
+	buffer_write_u32(q->packet, ttl);
+	buffer_write_u16(q->packet, len + 1);
+	buffer_write_u8(q->packet, len);
+	buffer_write(q->packet, txt, len);
 }
 
 /*
@@ -229,7 +231,7 @@ process_query_section(struct query *query)
 	uint8_t qnamebuf[MAXDOMAINLEN];
 
 	uint8_t *dst = qnamebuf;
-	uint8_t *query_name = query->iobuf + QHEADERSZ;
+	uint8_t *query_name = buffer_at(query->packet, QHEADERSZ);
 	uint8_t *src = query_name;
 	size_t i;
 	size_t len;
@@ -242,7 +244,7 @@ process_query_section(struct query *query)
 		 * MAXDOMAINLEN ...
 		 */
 		if ((*src & 0xc0) ||
-		    (src + *src + 1 > query->iobufptr) || 
+		    (src + *src + 1 > buffer_end(query->packet)) || 
 		    (src + *src + 1 > query_name + MAXDOMAINLEN))
 		{
 			query_formerr(query);
@@ -257,7 +259,9 @@ process_query_section(struct query *query)
 
 	/* Make sure name is not too long or we have stripped packet... */
 	len = src - query_name;
-	if (len > MAXDOMAINLEN || (src + 2*sizeof(uint16_t) > query->iobufptr)) {
+	if (len > MAXDOMAINLEN ||
+	    (src + 2*sizeof(uint16_t) > buffer_end(query->packet)))
+	{
 		query_formerr(query);
 		return NULL;
 	}
@@ -366,7 +370,7 @@ process_edns (struct query *q, uint8_t *qptr)
 #endif
 
 				/* Strip the OPT resource record off... */
-				q->iobufptr = qptr;
+				q->packet->limit = qptr - q->packet->data;
 				ARCOUNT(q) = 0;
 
 				DEBUG(DEBUG_QUERY, 2,
@@ -428,7 +432,7 @@ answer_chaos(struct nsd *nsd, struct query *q)
 		{
 			/* Add ID */
 			query_addtxt(q,
-				     q->iobuf + QHEADERSZ,
+				     q->packet->data + QHEADERSZ,
 				     CLASS_CHAOS,
 				     0,
 				     nsd->identity);
@@ -440,7 +444,7 @@ answer_chaos(struct nsd *nsd, struct query *q)
 		{
 			/* Add version */
 			query_addtxt(q,
-				     q->iobuf + QHEADERSZ,
+				     q->packet->data + QHEADERSZ,
 				     CLASS_CHAOS,
 				     0,
 				     nsd->version);
@@ -950,7 +954,7 @@ query_process(struct query *q, struct nsd *nsd)
 
 	/* Dont bother to answer more than one question at once... */
 	if (ntohs(QDCOUNT(q)) != 1 || TC(q)) {
-		*(uint16_t *)(q->iobuf + 2) = 0;
+		*(uint16_t *)(q->packet->data + 2) = 0;
 
 		query_formerr(q);
 		return QUERY_PROCESSED;
@@ -967,23 +971,23 @@ query_process(struct query *q, struct nsd *nsd)
 	}
 
 	/* Do we have any trailing garbage? */
-	if (qptr != q->iobufptr) {
 #ifdef	STRICT_MESSAGE_PARSE
+	if (qptr != q->packet->data + q->packet->limit) {
 		/* If we're strict.... */
 		query_formerr(q);
 		return QUERY_PROCESSED;
-#else
-		/* Otherwise, strip it... */
-		q->iobufptr = qptr;
-#endif
 	}
+#endif
 
 	/* Save the RD and CD flags.  */
 	recursion_desired = RD(q);
 	checking_disabled = CD(q);
 
+	buffer_clear(q->packet);
+	buffer_seek(q->packet, qptr - q->packet->data);
+	
 	/* Zero the flags... */
-	*(uint16_t *)(q->iobuf + 2) = 0;
+	*(uint16_t *)(q->packet->data + 2) = 0;
 	
 	QR_SET(q);		/* This is an answer */
 	if (recursion_desired)
@@ -1021,14 +1025,14 @@ query_addedns(struct query *q, struct nsd *nsd) {
 	switch (q->edns) {
 	case 1:	/* EDNS(0) packet... */
 		q->maxlen += OPT_LEN;
-		query_write(q, edns->ok, OPT_LEN);
+		buffer_write(q->packet, edns->ok, OPT_LEN);
 		ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 
 		STATUP(nsd, edns);
 		break;
 	case -1: /* EDNS(0) error... */
 		q->maxlen += OPT_LEN;
-		query_write(q, edns->error, OPT_LEN);
+		buffer_write(q->packet, edns->error, OPT_LEN);
 		ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 
 		STATUP(nsd, ednserr);

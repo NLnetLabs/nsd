@@ -52,6 +52,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include "buffer.h"
 #include "dns.h"
 #include "dname.h"
 #include "nsd.h"
@@ -75,8 +76,6 @@ main (int argc, char *argv[])
 	int c, udp_s;
 	struct query q;
 	const dname_type *zone = NULL;
-	uint16_t qtype = htons(TYPE_SOA);
-	uint16_t qclass = htons(CLASS_IN);
 	struct addrinfo hints, *res0, *res;
 	int error;
 	int default_family = DEFAULT_AI_FAMILY;
@@ -119,21 +118,18 @@ main (int argc, char *argv[])
 	/* Initialize the query */
 	memset(&q, 0, sizeof(struct query));
 	q.addrlen = sizeof(q.addr);
-	q.iobufptr = q.iobuf;
+	q.packet = buffer_create(region, QIOBUFSZ);
 	q.maxlen = 512;
 
 	/* Set up the header */
 	OPCODE_SET(&q, OPCODE_NOTIFY);
 	ID(&q) = 42;          /* Does not need to be random. */
 	AA_SET(&q);
-
-	q.iobufptr = q.iobuf + QHEADERSZ;
-
-	query_write(&q, dname_name(zone), zone->name_size);
-
-	/* Add type & class */
-	query_write(&q, &qtype, sizeof(qtype));
-	query_write(&q, &qclass, sizeof(qclass));
+	
+	buffer_skip(q.packet, QHEADERSZ);
+	buffer_write(q.packet, dname_name(zone), zone->name_size);
+	buffer_write_u16(q.packet, TYPE_SOA);
+	buffer_write_u16(q.packet, CLASS_IN);
 
 	/* Set QDCOUNT=1 */
 	QDCOUNT(&q) = htons(1);
@@ -164,7 +160,8 @@ main (int argc, char *argv[])
 
 			/* WE ARE READY SEND IT OUT */
 
-			if (sendto(udp_s, q.iobuf, query_used_size(&q), 0,
+			buffer_flip(q.packet);
+			if (sendto(udp_s, q.packet->data, q.packet->limit, 0,
 				   res->ai_addr, res->ai_addrlen) == -1)
 			{
 				fprintf(stderr,
