@@ -33,21 +33,6 @@ static tsig_algorithm_type tsig_algorithm_table[TSIG_ALGORITHM_COUNT];
 const tsig_algorithm_type *tsig_algorithm_md5 = NULL;
 
 static void
-print_hex(FILE *out, const unsigned char *data, size_t size)
-{
-    static char hexdigits[] = {
-        '0', '1', '2', '3', '4', '5', '6', '7',
-        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-    };
-    size_t i;
-    
-    for (i = 0; i < size; ++i) {
-        fputc(hexdigits[data[i] >> 4], out);
-        fputc(hexdigits[data[i] & 0xf], out);
-    }
-}
-
-static void
 tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 {
 	uint16_t klass = htons(CLASS_ANY);
@@ -290,12 +275,6 @@ tsig_sign(tsig_record_type *tsig)
 	
 	HMAC_Final(&tsig->context, digest_data, &digest_size);
 
-#if 0
-	fprintf(stderr, "tsig_sign: calculated digest: ");
-	print_hex(stderr, digest_data, digest_size);
-	fprintf(stderr, "\n");
-#endif
-	
 	tsig->prior_mac_size = tsig->mac_size = digest_size;
 	tsig->prior_mac_data = tsig->mac_data = region_alloc_init(
 		tsig->region, digest_data, digest_size);
@@ -311,12 +290,6 @@ tsig_verify(tsig_record_type *tsig)
 	
 	HMAC_Final(&tsig->context, digest_data, &digest_size);
 
-#if 0
-	fprintf(stderr, "tsig_verify: calculated digest: ");
-	print_hex(stderr, digest_data, digest_size);
-	fprintf(stderr, "\n");
-#endif
-	
 	tsig->prior_mac_size = digest_size;
 	tsig->prior_mac_data = region_alloc_init(
 		tsig->region, digest_data, digest_size);
