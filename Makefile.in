@@ -75,6 +75,7 @@ EDIT		= sed \
 			-e 's,@zonesfile\@,$(zonesfile),g' \
 			-e 's,@dbfile\@,$(dbfile),g' \
 			-e 's,@configfile\@,$(configfile),g' \
+			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
