@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.1.2.3.2.1 2002/05/21 09:53:32 alexis Exp $
+$Id: RELNOTES,v 1.1.2.3.2.2 2002/05/23 13:03:48 alexis Exp $
 
 1.0.1
 =============
@@ -6,6 +6,14 @@ $Id: RELNOTES,v 1.1.2.3.2.1 2002/05/21 09:53:32 alexis Exp $
 FEATURES:
 	- NSD drops permissions after binding the sockets
 	- ``cache'' zones are no longer allowed
+	- ID.Server & Version.Server compile time options
+	- AXFR implemented
+
+DESIGN CHANGES:
+	- the order of records in the database becomes important
+
+BUG:
+	- wont work with Berkeley DB
 
 1.0.0 RELEASE
 =============
