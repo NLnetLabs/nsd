@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.15 2002/02/11 14:19:26 alexis Exp $
+ * $Id: server.c,v 1.16 2002/02/11 16:40:46 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -193,7 +193,8 @@ server(db)
 
 				/* Until we've got end of file */
 				while((received = read(s_tcpio, &tcplen, 2)) == 2) {
-					if(ntohs(tcplen < 17)) {
+					/* XXX Why 17???? */
+					if(ntohs(tcplen) < 17) {
 						syslog(LOG_WARNING, "dropping bogus tcp connection");
 						exit(0);
 					}
