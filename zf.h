@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.8 2002/02/19 14:13:42 alexis Exp $
+ * $Id: zf.h,v 1.9 2002/02/19 14:25:11 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *

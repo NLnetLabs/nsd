@@ -1,5 +1,5 @@
 /*
- * $Id: hash.c,v 1.10 2002/02/19 14:13:42 alexis Exp $
+ * $Id: hash.c,v 1.11 2002/02/19 14:25:11 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -211,6 +211,9 @@ hash_destroy(hash, freekeys, freedata)
 {
 	unsigned i;
 	hnode_t *node;
+
+	if(hash == NULL)
+		return;
 
 	for(i = 0; i < hash->size; i++) {
 		while(hash->table[i].next) {

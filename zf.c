@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.16 2002/02/19 14:13:42 alexis Exp $
+ * $Id: zf.c,v 1.17 2002/02/19 14:25:11 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *

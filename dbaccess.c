@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.16 2002/02/19 14:13:42 alexis Exp $
+ * $Id: dbaccess.c,v 1.17 2002/02/19 14:25:11 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *

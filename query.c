@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.43 2002/02/19 14:13:42 alexis Exp $
+ * $Id: query.c,v 1.44 2002/02/19 14:25:11 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -49,27 +49,6 @@ query_init(q)
 	q->iobufptr = q->iobuf;
 	q->maxlen = 512;	/* XXX Should not be here */
 	q->edns = 0;
-}
-
-struct query *
-query_new()
-{
-	struct query *q;
-
-	if((q = xalloc(sizeof(struct query))) == NULL) {
-		return NULL;
-	}
-
-	query_init(q);
-	return q;
-}
-
-void
-query_destroy(q)
-	struct query *q;
-{
-	if(q)
-		free(q);
 }
 
 void

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.9 2002/02/19 14:13:42 alexis Exp $
+ * $Id: zonec.h,v 1.10 2002/02/19 14:25:11 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <libgen.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

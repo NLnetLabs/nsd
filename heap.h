@@ -1,5 +1,5 @@
 /*
- * $Id: heap.h,v 1.8 2002/02/19 14:13:42 alexis Exp $
+ * $Id: heap.h,v 1.9 2002/02/19 14:25:11 alexis Exp $
  *
  * heap.h -- generic heap
  *

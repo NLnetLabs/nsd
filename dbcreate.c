@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.9 2002/02/19 14:13:42 alexis Exp $
+ * $Id: dbcreate.c,v 1.10 2002/02/19 14:25:11 alexis Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
