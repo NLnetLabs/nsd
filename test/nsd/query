@@ -3,7 +3,7 @@
 use strict;
 
 # this is the main loop. Get the questions from QUESTIONS
-# and prepare them to feed them to dig. This could latter
+# and prepare them to feed them to dig. This could later
 # even be folded into this script with Net::DNS.
 
 # answer are stored in $number.$$.current

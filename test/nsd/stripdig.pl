@@ -18,15 +18,5 @@ while(<>) {
 
 	if ( /^;/ or /^$/ ) { next; }
 
-	# quick hack the not entirely correct fixes the TCR
-	s/ TYPE46 / RRSIG /;
-	s/ TYPE47 / NSEC /;
-	s/ TYPE48 / DNSKEY /;
-
-
 	print;
 }
-
-
-
-
