@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.7 2002/02/13 11:19:37 alexis Exp $
+ * $Id: rbtree.h,v 1.8 2002/04/02 10:00:16 alexis Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -72,7 +72,7 @@ struct rbtree_t {
 	rbnode_t	*root;
 
 	/* The number of the nodes in the tree */
-	long long count;
+	unsigned long count;
 
 	/* Current node for walks... */
 	rbnode_t	*_node;

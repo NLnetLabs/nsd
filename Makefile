@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.48 2002/03/28 02:24:09 alexis Exp $
+# $Id: Makefile,v 1.49 2002/04/02 10:00:16 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -60,13 +60,28 @@ NSDPIDFILE      = /var/run/nsd.pid
 # The NSD run-time database
 NSDDB           = /var/db/nsd.db
 
+FEATURES	= -DMIMIC_BIND8 -DINET6
+
+# To compile NSD with internal red-black tree database
+# uncomment the following two lines
+DBFLAGS		= -DUSE_HEAP_RBTREE
+LIBS		=
+
+# To compile NSD with internal heap database
+# uncomment the following two lines
+#DBFLAGS	= -DUSE_HEAP_HASH
+#LIBS		=
+
+# To compile NSD with Berkeley DB uncomment the following two lines
+#DBFLAGS	= -I/usr/local/include/db4 -DUSE_BERKELEY_DB -DUSE_HEAP_RBTREE
+#LIBS		= -L/usr/local/lib -ldb4
+
 # Compile environment settings
-DEBUG=	# -g -DDEBUG=1
+#DEBUG		= -g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -O6 -Wall ${DEBUG} -DUSE_HEAP_HASH -DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" -DMIMIC_BIND8 -DINET6 # -I/usr/local/include/db4 -DUSE_BERKELEY_DB
-LDFLAGS= # -L/usr/local/lib -ldb4
-LDADD=
-LIBS =
+CFLAGS		= -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
+	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\"
+LDFLAGS= ${LIBS}
 INSTALL = install -c
 
 # This might be necessary for a system like SunOS 4.x

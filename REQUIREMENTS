@@ -1,5 +1,5 @@
 -*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.6 2002/02/22 10:57:25 alexis Exp $
+$Id: REQUIREMENTS,v 1.7 2002/04/02 10:00:16 alexis Exp $
 
 
 NSD Requirements and Specifications
@@ -7,7 +7,7 @@ ______________________________________________________________________
 
 A. Scope.
 
-nsd is a complete implementation of an autoritative DNS
+nsd is a complete implementation of an authoritative DNS
 nameserver. This document describes the basic requirements and
 specifications for this implementation.
 
@@ -140,7 +140,7 @@ C.1. Zone file format and RR records.
 	+ Out of Zone, non-glue data is encountered.
 	+ not all RRs in a RRset have the same TTL (rfc2181 5.2)
 
-	+ if a DNAME exist at node N there may not be any other data
+	+ if a DNAME exists at node N there may not be any other data
 	  at 'N' (except CNAME or DNAME) and there MUST not be any
 	  other data at subnodes of 'N' (rfc 2672 section 3).
 
@@ -164,6 +164,12 @@ C.1. Zone file format and RR records.
       identical when compared in a case insensitive manner."  
    )
 
+  The database relies on case; all names will be parsed to lower case.
+  Case of dnames in RDATA will be preserved as much as possible. Case
+  of dnames in RDATA may be lost during compression (compression has
+  preference over case preservation).
+     
+
 
 C.2. Server and connection management.
 
@@ -175,7 +181,7 @@ C.2. Server and connection management.
 
    UDP.
 
-   The server is optimized to handle UDP queries. Large packetsizes
+   The server is optimized to handle UDP queries. Large packet sizes
    are supported. The size is set by the OS
    (e.g. net.inet.udp.maxdgram on FreeBSD).
 
@@ -183,9 +189,9 @@ C.2. Server and connection management.
 
    TCP. 
 
-   The server accepts TCP connection. 
+   The server accepts TCP connections. 
 
-   Note ther may be one or more DNS messages in the stream. Each
+   Note that there may be one or more DNS messages in the stream. Each
    message is prepended with a 2 byte size (rfc 1035 4.2.2)
 
    Connection management  (rfc1035 4.2.2.)
@@ -193,10 +199,10 @@ C.2. Server and connection management.
 
      + The server should assume that the client will initiate
        connection closing and should delay closing its end of the
-       connection until all outstanding client request have been
+       connection until all outstanding client requests have been
        satisfied.
 
-     + For closing dormant connection the timeout should be in the
+     + For closing dormant connections the timeout should be in the
        order of 2 minutes.
 
 
@@ -244,9 +250,9 @@ C.3 Incomming DNS Message processing.
 
      + AA bit in query packet is ignored.
 
-     + TC bit is set on a query packet is replied to with FORMERR.
+     + TC bit set in a query packet is answered with FORMERR.
 
-     [This must allways be a broken implementation since the max
+     [This must always be a broken implementation since the max
       length of the name is 255 octets.]
 
 
@@ -258,7 +264,7 @@ C.3 Incomming DNS Message processing.
        QDCOUNT=1 results in further processing.
        QDCOUNT>1 results in RCODE=4  NOTIMP.
  
-     + Other sections should be empty otherwise FORMERR 
+     + Other sections should be empty otherwise FORMERR. 
 
      + QCLASS=IN results in further processing.
 
@@ -274,7 +280,7 @@ C.3 Incomming DNS Message processing.
       [OK***: BIND8 generates a SERVFAIL but I would say that a A
               NOERROR message with empty Answer, Authority and
               Additional section is also a good answer and more in the
-              spirrit of RFC 1034 section 4.3.1.
+              spirit of RFC 1034 section 4.3.1.
 
 	      For now I choose to mimic the behaviour of bind.
 
@@ -285,7 +291,7 @@ C.3 Incomming DNS Message processing.
 
     + Presence of OPT RR indicates support of EDNS (rfc2671).  If the
       VERSION > 0 then the server will respond with an OPT with
-      RCODE=BADVESRION and VERSION=0 (The server supports EDNS0) In
+      RCODE=BADVERSION and VERSION=0 (The server supports EDNS0) In
       further processing ENDS0 support is taken into account.
       [not implemented in alpha]
  
@@ -294,14 +300,14 @@ C 4  Further Query processing.
   Preconditions: 
 
    + the QCLASS is either IN or ANY. For both classes the IN class
-     zones are searched in the same maner. The difference in the
+     zones are searched in the same manner. The difference in the
      response will be in the Authority information.
 
    + It is known if the requester supports EDNS0 [not implemented in alpha]
 
    + There is only one query in the DNS message to be answered. 
 
-   + The RD & message ID of the incomming querry has been copied into
+   + The RD & message ID of the incomming query has been copied into
      the response message.
 
 
@@ -323,8 +329,8 @@ C 4.1 Actions based on QTYPE of incomming Query.
 
      
    case QTYPE=MAILB respond with RCODE=4 (NOTIMP) 
-	This TYPE of query is marked experimental in rfc1035 8.2 we do not
-        support it.
+	This TYPE of query is marked experimental in rfc1035 8.2 and we do 
+	not support it.
 
    case QTYPE=MAILA respond with RCODE=4 (NOTIMP) because it is obsolete.
 	
@@ -337,7 +343,7 @@ C 4.1 Actions based on QTYPE of incomming Query.
   Further proccessing of the packet is based on the algorithm from
   1034 as modified by (rfc2672 4). Below is the algorithm as applies
   to an authoritative cacheless server and with the preconditions from
-  above.  We have also included DNSSEC considderations (rfc2535) and
+  above.  We have also included DNSSEC considerations (rfc2535) and
   draft-ietf-dnsext-dnssec-okbit-03.txt
 
   The first versions of nsd will not have DNSSEC processing
@@ -360,7 +366,7 @@ C 4.1 Actions based on QTYPE of incomming Query.
          response, change QNAME to the canonical name in the CNAME RR,
          and go back to step 1. If the OK bit is set in the query the
 	 SIG RR of the CNAME needs to be copied in the answer section
-         as well
+         as well.
 
          Otherwise, copy all RRs which match QTYPE, and their
          corresponding SIGs if the OK bit was set, into the answer
@@ -409,7 +415,7 @@ C 4.1 Actions based on QTYPE of incomming Query.
          RCODE=3 NXDOMAIN and the authority section must contained the
          SOA record and, if the OK bit is set add the SIG over the SOA
          and search for the closest matching label (in the terms of
-         canonical ordering) and add it's NXT reccord, also add
+         canonical ordering) and add it's NXT record, also add
          appropriate KEY material in the additional section)
 
          If the "*" label does exist, match RRs at that node against
@@ -422,9 +428,16 @@ C 4.1 Actions based on QTYPE of incomming Query.
 	 Go to step 4.
 
    3. If a there was no delegation of authoritative data return the root
-      delegation in the authority section continue with 4. 
+      delegation in the authority section and continue with 4. 
       
-      [***OK: it seems that bind9 returnes RCODE=REFUSED here for some reason]
+      [OK**** OPEN ISSUE 
+      If the root delegation data is not available (no hints file) we
+      return a SERVFAIL. It has been argued that this is a policy decision
+      and thus a REFUSE should be returned. 
+      While this is an open issue we will return SERVFAIL if there is no
+      root delegation data available.
+      ]
+
 
    4. Using local data only, attempt to add other RRs which may be
       useful to the additional section of the query if the OK bit was
@@ -481,16 +494,16 @@ C 4.2 Additional Data processing.
   ns.nlnetlabs.nl A 10.2.0.2
 
   This behaviour is a concequence of NSD using precompiled packets. These
-  are 'constructed' zone by zone. It is an optimalization of speed versus
-  network optimalization.
+  are 'constructed' zone by zone. It is an optimisation of speed versus
+  network optimisation.
 
 
 
 C 4.3 Label compression in RDATA
 
-  In the spirrit of RFC 1035 section 3.3. and 4.4.1 ("Pointers can
+  In the spirit of RFC 1035 section 3.3. and 4.4.1 ("Pointers can
   only be used for occurances of a domain name where the format is not
-  class specific.") We only do label compression for labels in rdata
+  class specific.") we only do label compression for labels in rdata
   for which this is specifically mentioned in the RFC defining the RR.
 
 
@@ -730,4 +743,4 @@ RR records details.
 
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.6 2002/02/22 10:57:25 alexis Exp $
+$Id: REQUIREMENTS,v 1.7 2002/04/02 10:00:16 alexis Exp $

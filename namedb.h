@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.19 2002/02/20 13:21:54 alexis Exp $
+ * $Id: namedb.h,v 1.20 2002/04/02 10:00:16 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -113,7 +113,7 @@ struct domain {
 #define	DOMAIN_SIZE(d)		d->size
 #define	DOMAIN_FLAGS(d)		d->flags
 
-#ifdef MIMIC_BIND8
+#if defined(MIMIC_BIND8) && !defined(DNSSEC)
 #define	USE_NAMEDB_UPPERCASE
 #endif
 
