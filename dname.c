@@ -127,7 +127,7 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 				return NULL;
 			}
 			pointer = label_pointer_location(label);
-			if (!buffer_available_at(packet, pointer, 0)) {
+			if (pointer >= buffer_limit(packet)) {
 /* 				error("dname pointer points outside packet"); */
 				return NULL;
 			}
