@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.64 2003/02/18 10:04:36 alexis Exp $
+ * $Id: server.c,v 1.65 2003/02/21 10:52:20 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -38,11 +38,6 @@
  *
  */
 #include "nsd.h"
-
-#ifdef HAVE_SELECT
-#include <sys/select.h>
-#endif
-
 
 /*
  * Initialize the server, create and bind the sockets.
