@@ -119,7 +119,7 @@ addition to standard configure options, one may use the following:
         -std=c89) is considered a preprocessor flag because it alters
         the way header files are processed on many systems.  If you
         specify -ansi make sure you specify the correct options to
-        enable standard Unix functions (-DXOPEN_SOURCE=600 on Linux
+        enable standard Unix functions (-D_XOPEN_SOURCE=600 on Linux
         and systems that conform to the Single Unix Specification
         version 3, -D__EXTENSIONS__ on Solaris, etc.).
 
