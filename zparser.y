@@ -65,7 +65,8 @@ uint8_t nsecbits[256][32];
 %type <type>   rtype
 %type <domain> dname abs_dname
 %type <dname>  rel_dname label
-%type <data>   str_seq concatenated_str_seq hex_seq str_dot_seq nxt_seq nsec_seq
+%type <data>   str_seq concatenated_str_seq
+%type <data>   str_sp_seq str_dot_seq nxt_seq nsec_seq
 
 %%
 lines:  /* empty file */
@@ -344,19 +345,20 @@ nsec_seq:	STR
 	}
 	;
 
-/* this is also (mis)used for b64 and other str lists */
-hex_seq:	STR
-	|	hex_seq sp STR
+/* Sequence of STR tokens separated by spaces.  */
+str_sp_seq:	STR
+	|	str_sp_seq sp STR
 	{
-		char *hex = region_alloc(rr_region, $1.len + $3.len + 1);
-		memcpy(hex, $1.str, $1.len);
-		memcpy(hex + $1.len, $3.str, $3.len);
-		$$.str = hex;
+		char *result = region_alloc(rr_region, $1.len + $3.len + 1);
+		memcpy(result, $1.str, $1.len);
+		memcpy(result + $1.len, $3.str, $3.len);
+		$$.str = result;
 		$$.len = $1.len + $3.len;
-		hex[$$.len] = '\0';
+		$$.str[$$.len] = '\0';
 	}
 	;
 
+/* Sequence of STR tokens separated by dots.  */
 str_dot_seq:	STR
 	|	str_dot_seq '.' STR
         {
@@ -365,7 +367,7 @@ str_dot_seq:	STR
 		memcpy(result + $1.len, $3.str, $3.len);
 		$$.str = result;
 		$$.len = $1.len + $3.len;
-		result[$$.len] = '\0';
+		$$.str[$$.len] = '\0';
 	}		
 
 /* define what we can parse */
@@ -376,20 +378,31 @@ rtype:
      * marked obsolete.
      */
       T_CNAME sp rdata_dname 
+    | T_CNAME sp rdata_unknown_err
     | T_HINFO sp rdata_hinfo 
     | T_HINFO sp rdata_unknown 
     | T_MB sp rdata_dname		/* Experimental */
-    | T_MD sp rdata_dname		/* Obsolete */
     { error("MD is obsolete"); }
-    | T_MF sp rdata_dname		/* Obsolete */
+    | T_MB sp rdata_unknown_err
+    | T_MD sp rdata_dname		/* Obsolete */
     { error("MF is obsolete"); }
+    | T_MD sp rdata_unknown_err
+    | T_MF sp rdata_dname		/* Obsolete */
+    | T_MF sp rdata_unknown_err
     | T_MG sp rdata_dname		/* Experimental */
+    | T_MG sp rdata_unknown_err
     | T_MINFO sp rdata_minfo /* Experimental */
+    | T_MINFO sp rdata_unknown_err
     | T_MR sp rdata_dname		/* Experimental */
+    | T_MR sp rdata_unknown_err
     | T_MX sp rdata_mx 
+    | T_MX sp rdata_unknown_err
     | T_NS sp rdata_dname 
+    | T_NS sp rdata_unknown_err
     | T_PTR sp rdata_dname 
+    | T_PTR sp rdata_unknown_err
     | T_SOA sp rdata_soa 
+    | T_SOA sp rdata_unknown_err
     | T_TXT sp rdata_txt
     | T_TXT sp rdata_unknown
     | T_A sp rdata_a 
@@ -400,8 +413,6 @@ rtype:
     | T_LOC sp rdata_unknown
     | T_SRV sp rdata_srv
     | T_SRV sp rdata_unknown
-    | T_NAPTR sp rdata_naptr	/* RFC2915 */
-    | T_NAPTR sp rdata_unknown	/* RFC2915 */
     | T_DS sp rdata_ds
     | T_DS sp rdata_unknown
     | T_KEY sp rdata_dnskey	/* XXX: Compatible format? */
@@ -430,20 +441,13 @@ rtype:
     | T_NSAP sp rdata_unknown	/* RFC 1706 */
     | T_PX sp rdata_px		/* RFC 2163 */
     | T_PX sp rdata_unknown	/* RFC 2163 */
+    | T_NAPTR sp rdata_naptr	/* RFC 2915 */
+    | T_NAPTR sp rdata_unknown	/* RFC 2915 */
+    | T_CERT sp rdata_cert	/* RFC 2538 */
+    | T_CERT sp rdata_unknown	/* RFC 2538 */
     | T_SSHFP sp rdata_sshfp
     | T_SSHFP sp rdata_unknown
     | T_UTYPE sp rdata_unknown
-    | T_CNAME sp rdata_unknown_err
-    | T_MB sp rdata_unknown_err
-    | T_MD sp rdata_unknown_err
-    | T_MF sp rdata_unknown_err
-    | T_MG sp rdata_unknown_err
-    | T_MINFO sp rdata_unknown_err
-    | T_MR sp rdata_unknown_err
-    | T_MX sp rdata_unknown_err
-    | T_NS sp rdata_unknown_err
-    | T_PTR sp rdata_unknown_err
-    | T_SOA sp rdata_unknown_err
     | STR error NL
     {
 	    error_prev_line("Unrecognized RR type '%s'", $1.str);
@@ -564,21 +568,7 @@ rdata_srv:	STR sp STR sp STR sp dname trail
 	{ error_prev_line("Syntax error in SRV record"); }
 	;
 
-/* RFC 2915 */
-rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
-	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str));	/* order */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* preference */
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $5.str)); /* flags */
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $7.str)); /* service */
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $9.str)); /* regexp */
-		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $11)); /* target name */
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in NAPTR record"); }
-	;
-
-rdata_ds:	STR sp STR sp STR sp hex_seq trail
+rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* keytag */
 		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* alg */
@@ -589,7 +579,7 @@ rdata_ds:	STR sp STR sp STR sp hex_seq trail
 	{ error_prev_line("Syntax error in DS record"); }
 	;
 
-rdata_dnskey:	STR sp STR sp STR sp hex_seq trail
+rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* flags */
 		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* proto */
@@ -621,7 +611,7 @@ rdata_nsec:	dname sp nsec_seq trail
 	;
 
 
-rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp hex_seq trail
+rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_rrtype(zone_region, $1.str)); /* rr covered */
 		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* alg */
@@ -715,7 +705,34 @@ rdata_px:	STR sp dname sp dname trail
 	{ error_prev_line("Syntax error in RT record"); }
 	;
 
-rdata_sshfp:   STR sp STR sp hex_seq trail
+/* RFC 2915 */
+rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str));	/* order */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* preference */
+		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $5.str)); /* flags */
+		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $7.str)); /* service */
+		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $9.str)); /* regexp */
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $11)); /* target name */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in NAPTR record"); }
+	;
+
+/* RFC 2538 */
+rdata_cert:	STR sp STR sp STR sp str_sp_seq trail
+	{
+		/* XXX: Handle memnonics */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str));	/* type */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* key tag */
+		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $5.str)); /* algorithm */
+		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $7.str)); /* certificate or CRL */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in CERT record"); }
+	;
+
+rdata_sshfp:   STR sp STR sp str_sp_seq trail
        {
                zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $1.str)); /* alg */
                zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* fp type */
@@ -725,7 +742,7 @@ rdata_sshfp:   STR sp STR sp hex_seq trail
 	{ error_prev_line("Syntax error in SSHFP record"); }
        ;
 
-rdata_unknown:	URR sp STR sp hex_seq trail
+rdata_unknown:	URR sp STR sp str_sp_seq trail
 	{
 		/* $2 is the number of octects, currently ignored */
 		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str));
