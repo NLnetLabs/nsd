@@ -409,6 +409,8 @@ rtype:
     { current_rr->type = $1; }
     | NAPTR sp rdata_naptr
     { current_rr->type = $1; }
+    | UTYPE sp rdata_unknown
+    { current_rr->type = $1; }
     | STR error NL
     {
 	    error_prev_line("Unrecognized RR type '%s'", $1.str);
@@ -618,6 +620,15 @@ rdata_naptr:   STR sp STR sp STR sp STR sp STR sp dname trail
        }
 	|   error NL
 	{ error_prev_line("Syntax error in NAPTR record"); }
+       ;
+
+rdata_unknown:	URR sp STR sp hex_seq trail
+	{
+		/* $2 is the number of octects, currently ignored */
+		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str));
+	}
+	| error NL
+	{ error_prev_line("Syntax error in UNKNOWN RR rdata"); }
        ;
 %%
 
