@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.4 2003/02/14 21:15:56 alexis Exp $
+ * $Id: zparser.h,v 1.5 2003/02/14 22:05:08 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -69,7 +69,6 @@ struct RR {
 	int32_t ttl;
 	u_int16_t class;
 	u_int16_t type;
-	char *rdatafmt;
 	u_int16_t **rdata;
 };
 

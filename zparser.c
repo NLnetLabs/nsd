@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.4 2003/02/14 21:15:56 alexis Exp $
+ * $Id: zparser.c,v 1.5 2003/02/14 22:05:08 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -139,7 +139,7 @@ zrdatacmp(u_int16_t **a, u_int16_t **b)
 			return 1;
 		/* Is it a domain name */
 		if(**a == 0xffff) {
-			if(memcmp(*a+1, *b+1, *((char *)*(a+1))))
+			if(memcmp(*a+1, *b+1, *((u_char *)(*a + 1))))
 				return 1;
 		} else {
 			if(memcmp(*a+1, *b+1, **a))
@@ -500,7 +500,7 @@ zread (struct zparser *z)
 		z->_rc--;
 
 		/* Success! */
-		z->_rr.rdata = xrealloc(z->_rr.rdata, sizeof(void *) * z->_rc);
+		z->_rr.rdata = xrealloc(z->_rr.rdata, sizeof(void *) * (z->_rc + 1));
 		return &z->_rr;
 	}
 
@@ -571,7 +571,7 @@ zaddrdata (struct zparser *z, u_int16_t *r)
 		zerror(z, "too many rdata elements");
 		abort();
 	}
-	z->_rr.rdata[++z->_rc] = r;
+	z->_rr.rdata[z->_rc++] = r;
 }
 
 /*
@@ -592,7 +592,7 @@ int
 zrdata (struct zparser *z)
 {
 	/* Do we have an empty rdata? */
-	if(*z->_t[z->_tc] == NULL) {
+	if(z->_t[z->_tc] == NULL) {
 		zsyntax(z);
 		return 0;
 	}

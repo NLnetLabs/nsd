@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.74 2003/02/14 21:15:56 alexis Exp $
+ * $Id: zonec.c,v 1.75 2003/02/14 22:05:08 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -513,7 +513,6 @@ zone_read (char *name, char *zonefile)
 			r->type = rr->type;
 			r->class = rr->class;
 			r->ttl = rr->ttl;
-			r->fmt = rr->rdatafmt;
 			r->rrslen = 1;
 			r->rrs = xalloc(sizeof(u_int16_t *) * 2);
 			r->glue = r->color = 0;
@@ -691,7 +690,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 	if(rrset->type == TYPE_CNAME) {
 		/* XXX Not necessarily with NXT, BUT OH OH * assert(rrset->next == NULL); */
 		cnamerrset = rrset;
-		cname = (u_char *)((**cnamerrset->rrs[0]) + 1);	/* XXX WRONG? The name of the target set */
+		cname = (u_char *)(*cnamerrset->rrs[0]+1);
 		rrset = heap_search(z->data, cname);
 	} else {
 		cnamerrset = NULL;
