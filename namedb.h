@@ -16,7 +16,7 @@
 #include "dns.h"
 #include "heap.h"
 
-#define	NAMEDB_MAGIC		"NSDdbV06"
+#define	NAMEDB_MAGIC		"NSDdbV07"
 #define	NAMEDB_MAGIC_SIZE	8
 
 typedef union rdata_atom rdata_atom_type;
