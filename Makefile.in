@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.31.2.1 2003/04/29 11:32:13 alexis Exp $
+# $Id: Makefile.in,v 1.31.2.2 2003/05/06 18:49:04 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -113,7 +113,7 @@ uninstall:
 	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8
 	rm -f -- $(pidfile) $(dbfile)
 	@echo
-	@echo "You still need to remove $(confdir) directory by hand."
+	@echo "You still need to remove $(configdir) directory by hand."
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
