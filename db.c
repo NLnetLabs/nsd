@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.8 2002/01/09 13:38:23 alexis Exp $
+ * $Id: db.c,v 1.9 2002/01/09 15:19:50 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -71,6 +71,9 @@ db_create(filename)
 		syslog(LOG_ERR, "dbcreate failed for %s: %m", filename);
 		return NULL;
 	}
+
+	/* Clean the masks */
+	bzero(db.mask, 16);
 	return &db;
 }
 
@@ -88,7 +91,18 @@ db_write(db, dname, d)
 	struct domain *d;
 {
 	DBT key, data;
+	int depth;
+	u_char *p;
 
+	/* Calculate depth and set masks */
+	for(depth = 0, p = dname + 1; *p; p += *p + 1, depth++);
+
+	/* Make sure the depth is within limits */
+	assert(depth < 128);
+
+	/* Set the flag */
+	db->mask[depth/8] |= 1 << (depth % 8);
+	
 	key.size = (size_t)(*dname);
 	key.data = dname + 1;
 
@@ -101,16 +115,50 @@ db_write(db, dname, d)
 	}
 }
 
+void
+db_sync(db)
+	struct db *db;
+{
+	DBT key, data;
+	
+	key.size = 0;
+	key.data = NULL;
+
+	data.size = 16;
+	data.data = db->mask;
+
+	if(db->db->put(db->db, &key, &data, 0)) {
+		syslog(LOG_ERR, "failed to write to database: %m");
+		return;
+	}
+}
+
 struct db *
 db_open(filename)
 	char *filename;
 {
 	static struct db db;
+	DBT key, data;
 
         if((db.db = dbopen(filename, O_RDONLY, 0, DB_HASH, NULL)) == NULL) {
                 syslog(LOG_ERR, "cant open %s: %m", filename);
                 return NULL;
         }
+
+	key.size = 0;
+	key.data = NULL;
+
+	/* Read the masks */	
+	if(db.db->get(db.db, &key, &data, 0) != 0) {
+		syslog(LOG_ERR, "cannot read masks from %s: %m", filename);
+		return NULL;
+	}
+
+	if(data.size != 16) {
+		syslog(LOG_ERR, "corrupted masks in %s", filename);
+		return NULL;
+	}
+	bcopy(data.data, db.mask, 16);
 
 	return &db;
 }
@@ -184,7 +232,7 @@ db_answer(d, type)
 	u_short type;
 {
 	struct answer *a;
-	for(a = (struct answer *)((char *)d + sizeof(struct domain)); a < ((char *)d + d->size); (char *)a += a->size) {
+	for(a = (struct answer *)((char *)d + sizeof(struct domain)); (char *)a < ((char *)d + d->size); (char *)a += a->size) {
 		if(a->type == type) {
 			return a;
 		}

@@ -1,5 +1,5 @@
 /*
- * $Id: db.h,v 1.6 2002/01/09 13:20:14 alexis Exp $
+ * $Id: db.h,v 1.7 2002/01/09 15:19:50 alexis Exp $
  *
  * db.h -- nsd(8) internal namespace database
  *
@@ -41,6 +41,7 @@
 #include <db.h>
 
 #define	DB_DELEGATION	1
+#define	DB_WILDCARD	2
 
 struct answer {
 	size_t size;
@@ -59,7 +60,10 @@ struct domain {
 
 struct db {
 	DB *db;
+	u_char mask[16];
 };
+
+#define	DB_PROBE(db, depth) (db->mask[depth/8] & (1 << (depth % 8)))
 
 void db_write __P((struct db *, u_char *, struct domain *));
 struct db *db_create __P((char *));
@@ -69,3 +73,4 @@ struct domain *db_lookup __P((struct db *, u_char *, u_char));
 /* void db_addanswer __P((struct domain *, struct message *, u_short)); */
 struct domain *db_newdomain __P((u_short));
 struct answer *db_answer __P((struct domain *, u_short));
+void db_sync __P((struct db *));

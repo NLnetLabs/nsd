@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.6 2002/01/09 13:38:23 alexis Exp $
+ * $Id: zone.c,v 1.7 2002/01/09 15:19:50 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -547,6 +547,7 @@ main(argc, argv)
 		exit(1);
 	}
 	zone_dump(z, db);
+	db_sync(db);
 	db_close(db);
 	zone_print(z);
 

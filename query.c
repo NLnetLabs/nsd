@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.4 2002/01/09 13:20:14 alexis Exp $
+ * $Id: query.c,v 1.5 2002/01/09 15:19:50 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -139,6 +139,7 @@ query_process(q, db)
 	u_short qtype;
 	u_short qclass;
 	u_char *qptr;
+	int qdepth;
 
 	struct domain *d;
 	struct answer *a;
@@ -162,7 +163,7 @@ query_process(q, db)
 	}
 
 	/* Lets parse the qname */
-	for(qname = qptr = q->iobuf + QHEADERSZ; *qptr; qptr += *qptr + 1) {
+	for(qdepth = 0, qname = qptr = q->iobuf + QHEADERSZ; *qptr; qptr += *qptr + 1, qdepth++) {
 		/*  If we are out of buffer limits or we have a pointer in question dname... */
 		if((qptr > q->iobufptr) || (*qptr & 0xc0)) {
 			RCODE_SET(q, RCODE_FORMAT);
@@ -189,7 +190,7 @@ query_process(q, db)
 	}
 
 	/* Do we have the complete name? */
-	if((d = db_lookup(db, qname, qnamelen)) != NULL) {
+	if(DB_PROBE(db, qdepth) && ((d = db_lookup(db, qname, qnamelen)) != NULL)) {
 		/* Is this a delegation point? */
 		if(d->flags & DB_DELEGATION) {
 			if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
@@ -222,42 +223,9 @@ query_process(q, db)
 		/* Strip leftmost label */
 		qnamelen -= (*qname + 1);
 		qname += (*qname + 1);
+		qdepth--;
 
-		if((d = db_lookup(db, qname, qnamelen)) == NULL) {
-			/* Prepend star */
-			bcopy(qname, qnamestar + 2, qnamelen);
-
-			/* Lookup star */
-			if((d = db_lookup(db, qnamestar, qnamelen + 2)) != NULL) {
-				/* Is this a delegation point? */
-				if(d->flags & DB_DELEGATION) {
-					if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
-						RCODE_SET(q, RCODE_SERVFAIL);
-						return 0;
-					}
-					AA_CLR(q);
-					query_addanswer(q, qname, a);
-					return 0;
-				} else {
-					if((a = db_answer(d, qtype)) != NULL) {
-						AA_SET(q);
-						query_addanswer(q, qname, a);
-						return 0;
-					} else {
-						/* XXXX Get SOA!!! */
-						/* if(((d = lookupname(db, d->soa, d->soalen)) == NULL) ||
-							((a = lookuptype(d, htons(TYPE_SOA))) == NULL)) {
-							RCODE_SET(q, RCODE_SERVFAIL);
-							return A_EMPTY;
-						} */
-						AA_SET(q);
-						return 0;
-					}
-				}
-			}
-			/* Neither name nor wildcard exists */
-			continue;
-		} else {
+		if(DB_PROBE(db, qdepth) && ((d = db_lookup(db, qname, qnamelen)) != NULL)) {
 			if(d->flags & DB_DELEGATION) {
 				if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);
@@ -274,6 +242,42 @@ query_process(q, db)
 					return 0;
 				}
 			}
+		} else {
+			if(DB_PROBE(db, qdepth + 1)) {
+				/* Prepend star */
+				bcopy(qname, qnamestar + 2, qnamelen);
+
+				/* Lookup star */
+				if((d = db_lookup(db, qnamestar, qnamelen + 2)) != NULL) {
+					/* Is this a delegation point? */
+					if(d->flags & DB_DELEGATION) {
+						if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
+							RCODE_SET(q, RCODE_SERVFAIL);
+							return 0;
+						}
+						AA_CLR(q);
+						query_addanswer(q, qname, a);
+						return 0;
+					} else {
+						if((a = db_answer(d, qtype)) != NULL) {
+							AA_SET(q);
+							query_addanswer(q, qname, a);
+							return 0;
+						} else {
+							/* XXXX Get SOA!!! */
+							/* if(((d = lookupname(db, d->soa, d->soalen)) == NULL) ||
+								((a = lookuptype(d, htons(TYPE_SOA))) == NULL)) {
+								RCODE_SET(q, RCODE_SERVFAIL);
+								return A_EMPTY;
+							} */
+							AA_SET(q);
+							return 0;
+						}
+					}
+				}
+			}
+			/* Neither name nor wildcard exists */
+			continue;
 		}
 	} while(*qname);
 
