@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.13 2002/02/15 19:42:51 erik Exp $
+ * $Id: zf.c,v 1.14 2002/02/17 18:51:43 erik Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -1138,7 +1138,7 @@ zf_read(struct zf *zf)
 {
 	/* Keep reading till we could parse a line or reached end of file */
 	while(zf_peekchar(zf, 1) != EOF) {
-		int blank = isspace(zf_peekchar(zf, 0));
+		int blank = isspace(zf_peekchar(zf, 1));
 		char *token = zf_token(zf);
 		if (token == NULL)
 			continue;
