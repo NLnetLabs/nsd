@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.35 2002/02/07 13:09:17 alexis Exp $
+ * $Id: query.c,v 1.36 2002/02/07 13:30:41 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -73,10 +73,11 @@ query_destroy(q)
 }
 
 void
-query_addanswer(q, dname, a)
+query_addanswer(q, dname, a, truncate)
 	struct query *q;
 	u_char *dname;
 	struct answer *a;
+	int truncate;
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -105,6 +106,12 @@ query_addanswer(q, dname, a)
 		bcopy(&pointer, qptr, 2);
 	}
 
+	/* If we dont need truncation, return... */
+	if(!truncate) {
+		q->iobufptr += ANSWER_DATALEN(a);
+		return;
+	}
+
 	/* Truncate if necessary */
 	if(q->maxlen < (q->iobufptr - q->iobuf + ANSWER_DATALEN(a))) {
 
@@ -112,7 +119,8 @@ query_addanswer(q, dname, a)
 		for(i = ntohs(ANSWER_ARCOUNT(a)) - 1, j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
 			if(q->maxlen >= (q->iobufptr - q->iobuf + ANSWER_RRS(a, j - 1))) {
 				/* Make sure we remove the entire RRsets... */
-				while(ANSWER_RRS_COLOR(a, j - 1) == ANSWER_RRS_COLOR(a, j - 2)) {
+				while((ANSWER_RRS(a, j - 1) & NAMEDB_RRSET_COLOR)
+						== (ANSWER_RRS(a, j - 2) & NAMEDB_RRSET_COLOR)) {
 					j--; i--;
 				}
 				ARCOUNT(q) = htons(i-1);
@@ -327,7 +335,7 @@ query_process(q, db)
 				return 0;
 			}
 			AA_CLR(q);
-			query_addanswer(q, qname, a);
+			query_addanswer(q, qname, a, 1);
 			return 0;
 		} else {
 			if((a = namedb_answer(d, qtype)) != NULL) {
@@ -336,7 +344,7 @@ query_process(q, db)
 				} else {
 					AA_CLR(q);
 				}
-				query_addanswer(q, qname, a);
+				query_addanswer(q, qname, a, 1);
 				return 0;
 			} else {
 				/* Do we have SOA record in this domain? */
@@ -349,7 +357,7 @@ query_process(q, db)
 					} else {
 						AA_CLR(q);
 					}
-					query_addanswer(q, qname, a);
+					query_addanswer(q, qname, a, 0);
 
 					/* Truncate */
 					ANCOUNT(q) = 0;
@@ -385,7 +393,7 @@ query_process(q, db)
 				}
 				RCODE_SET(q, RCODE_OK);
 				AA_CLR(q);
-				query_addanswer(q, qname, a);
+				query_addanswer(q, qname, a, 1);
 				return 0;
 			} else {
 				if((a = namedb_answer(d, htons(TYPE_SOA)))) {
@@ -397,7 +405,7 @@ query_process(q, db)
 					} else {
 						AA_CLR(q);
 					}
-					query_addanswer(q, qname, a);
+					query_addanswer(q, qname, a, 0);
 
 					/* Truncate */
 					ANCOUNT(q) = 0;
@@ -427,7 +435,7 @@ query_process(q, db)
 						} else {
 							AA_CLR(q);
 						}
-						query_addanswer(q, qname, a);
+						query_addanswer(q, qname, a, 1);
 						return 0;
 					}
 				}
