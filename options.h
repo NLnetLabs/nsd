@@ -27,6 +27,9 @@ struct nsd_options {
 	const char *directory;
 	const char *pid_file;
 
+	size_t server_count;
+	size_t maximum_tcp_connection_count;
+
 	size_t listen_on_count;
 	nsd_options_address_type **listen_on;
 };

@@ -33,6 +33,9 @@ static int validate_configuration(xmlDocPtr schema_doc, xmlDocPtr options_doc);
 static const char *lookup_text(region_type *region,
 			       xmlXPathContextPtr context,
 			       const char *expr);
+static int lookup_integer(xmlXPathContextPtr context,
+			  const char *expr,
+			  int default_value);
 
 static nsd_options_address_type *parse_address(region_type *region,
 					       xmlNodePtr address_node);
@@ -95,6 +98,15 @@ load_configuration(region_type *region, const char *filename)
 					 "/nsd/options/directory/text()");
 	options->pid_file = lookup_text(region, xpath_context,
 					"/nsd/options/pid-file/text()");
+	options->server_count = lookup_integer(
+		xpath_context,
+		"/nsd/options/server-count/text()",
+		1);
+	options->maximum_tcp_connection_count = lookup_integer(
+		xpath_context,
+		"/nsd/options/maximum-tcp-connection-count/text()",
+		10);
+
 	options->listen_on = NULL; /* TODO */
 
 	listen_on_addresses = xmlXPathEvalExpression(
@@ -221,6 +233,23 @@ lookup_text(region_type *region,
 
 exit:
 	xmlXPathFreeObject(object);
+	return result;
+}
+
+static int
+lookup_integer(xmlXPathContextPtr context,
+	       const char *expr,
+	       int default_value)
+{
+	region_type *temp = region_create(xalloc, free);
+	const char *text = lookup_text(temp, context, expr);
+	int result = default_value;
+
+	if (text) {
+		result = atoi(text);
+	}
+
+	region_destroy(temp);
 	return result;
 }
 

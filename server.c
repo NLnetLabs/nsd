@@ -170,7 +170,7 @@ static int
 delete_child_pid(struct nsd *nsd, pid_t pid)
 {
 	size_t i;
-	for (i = 0; i < nsd->child_count; ++i) {
+	for (i = 0; i < nsd->options->server_count; ++i) {
 		if (nsd->children[i].pid == pid) {
 			nsd->children[i].pid = 0;
 			return 1;
@@ -188,13 +188,13 @@ restart_child_servers(struct nsd *nsd)
 	size_t i;
 
 	/* Fork the child processes... */
-	for (i = 0; i < nsd->child_count; ++i) {
+	for (i = 0; i < nsd->options->server_count; ++i) {
 		if (nsd->children[i].pid <= 0) {
 			nsd->children[i].pid = fork();
 			switch (nsd->children[i].pid) {
 			case 0: /* CHILD */
 				nsd->pid = 0;
-				nsd->child_count = 0;
+				nsd->options->server_count = 0;
 				nsd->server_kind = nsd->children[i].kind;
 				server_child(nsd);
 				/* NOTREACH */
@@ -378,7 +378,7 @@ server_start_children(struct nsd *nsd)
 	size_t i;
 
 	/* Start all child servers initially.  */
-	for (i = 0; i < nsd->child_count; ++i) {
+	for (i = 0; i < nsd->options->server_count; ++i) {
 		nsd->children[i].pid = 0;
 	}
 
@@ -784,13 +784,14 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 	 * TCP connections is about to drop below the maximum number
 	 * of TCP connections.
 	 */
-	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
+	if (data->nsd->current_tcp_connection_count
+	    == data->nsd->options->maximum_tcp_connection_count)
+	{
 		configure_handler_event_types(data->tcp_accept_handler_count,
 					      data->tcp_accept_handlers,
 					      NETIO_EVENT_READ);
 	}
-	--data->nsd->current_tcp_count;
-	assert(data->nsd->current_tcp_count >= 0);
+	--data->nsd->current_tcp_connection_count;
 
 	region_destroy(data->region);
 }
@@ -1104,7 +1105,9 @@ handle_tcp_accept(netio_type *netio,
 		return;
 	}
 
-	if (data->nsd->current_tcp_count >= data->nsd->maximum_tcp_count) {
+	if (data->nsd->current_tcp_connection_count
+	    >= data->nsd->options->maximum_tcp_connection_count)
+	{
 		return;
 	}
 
@@ -1163,8 +1166,10 @@ handle_tcp_accept(netio_type *netio,
 	 * we can stop accepting connections when the maximum number
 	 * of simultaneous TCP connections is reached.
 	 */
-	++data->nsd->current_tcp_count;
-	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
+	++data->nsd->current_tcp_connection_count;
+	if (data->nsd->current_tcp_connection_count
+	    == data->nsd->options->maximum_tcp_connection_count)
+	{
 		configure_handler_event_types(data->tcp_accept_handler_count,
 					      data->tcp_accept_handlers,
 					      NETIO_EVENT_NONE);

@@ -83,7 +83,10 @@ struct	nsd
 	struct namedb	*db;
 	int		debug;
 
-	size_t            child_count;
+	/*
+	 * Number of servers is specified in the 'options'
+	 * structure.
+	 */
 	struct nsd_child *children;
 
 	/* Configuration */
@@ -107,8 +110,8 @@ struct	nsd
 	edns_data_type edns_ipv6;
 #endif
 
-	int maximum_tcp_count;
-	int current_tcp_count;
+	/* Maximum is specified in the 'options' structure.  */
+	size_t current_tcp_connection_count;
 
 #ifdef	BIND8_STATS
 

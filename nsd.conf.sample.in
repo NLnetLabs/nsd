@@ -6,6 +6,8 @@
     <directory>@prefix@</directory>
     <database>@dbfile@</database>
     <pid-file>@pidfile@</pid-file>
+    <server-count>1</server-count>
+    <maximum-tcp-connection-count>10</maximum-tcp-connection-count>
   </options>
 
   <zone name="sample.">

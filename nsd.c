@@ -230,7 +230,7 @@ sig_handler (int sig)
 	}
 
 	/* Distribute the signal to the servers... */
-	for (i = 0; i < nsd.child_count; ++i) {
+	for (i = 0; i < nsd.options->server_count; ++i) {
 		if (nsd.children[i].pid > 0 && kill(nsd.children[i].pid, sig) == -1) {
 			log_msg(LOG_ERR, "problems killing %d: %s",
 				(int) nsd.children[i].pid, strerror(errno));
@@ -388,9 +388,7 @@ main (int argc, char *argv[])
 	nsd.options      = NULL;
 	nsd.chrootdir	 = NULL;
 
-	nsd.child_count = 1;
-	nsd.maximum_tcp_count = 10;
-	nsd.current_tcp_count = 0;
+	nsd.current_tcp_connection_count = 0;
 
 	/* EDNS0 */
 	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
@@ -438,22 +436,6 @@ main (int argc, char *argv[])
 			break;
 		case 'l':
 			log_filename = optarg;
-			break;
-		case 'N':
-			i = atoi(optarg);
-			if (i <= 0) {
-				error("number of child servers must be greather than zero");
-			} else {
-				nsd.child_count = i;
-			}
-			break;
-		case 'n':
-			i = atoi(optarg);
-			if (i <= 0) {
-				error("number of concurrent TCP connections must greater than zero");
-			} else {
-				nsd.maximum_tcp_count = i;
-			}
 			break;
 		case 'p':
 			port = optarg;
@@ -523,7 +505,7 @@ main (int argc, char *argv[])
 	if (!nsd.options->version) {
 		nsd.options->version = VERSION;
 	}
-	fprintf(stderr, "identity = '%s'\n", nsd.options->identity);
+
 	if (!nsd.options->identity) {
 		/* Set up our default identity to gethostname(2) */
 		if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
@@ -535,17 +517,24 @@ main (int argc, char *argv[])
 			nsd.options->identity = IDENTITY;
 		}
 	}
-	fprintf(stderr, "identity = '%s'\n", nsd.options->identity);
 
 	if (strlen(nsd.options->identity) > UCHAR_MAX) {
 		error("server identity too long (%u characters)",
 		      (unsigned) strlen(nsd.options->identity));
 	}
 
+	if (nsd.options->server_count == 0) {
+		error("number of child servers must be greather than zero");
+	}
+	if (nsd.options->maximum_tcp_connection_count == 0) {
+		error("maximum number of TCP connections must greater than zero");
+	}
+
 	/* Number of child servers to fork.  */
 	nsd.children = (struct nsd_child *) region_alloc(
-		nsd.region, nsd.child_count * sizeof(struct nsd_child));
-	for (i = 0; i < nsd.child_count; ++i) {
+		nsd.region,
+		nsd.options->server_count * sizeof(struct nsd_child));
+	for (i = 0; i < nsd.options->server_count; ++i) {
 		nsd.children[i].kind = NSD_SERVER_BOTH;
 	}
 

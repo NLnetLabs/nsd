@@ -56,6 +56,16 @@
           </element>
         </optional>
         <optional>
+          <element name="server-count">
+            <data type="integer"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="maximum-tcp-connection-count">
+            <data type="integer"/>
+          </element>
+        </optional>
+        <optional>
           <element name="listen-on">
             <oneOrMore>
               <ref name="address"/>
