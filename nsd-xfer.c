@@ -33,6 +33,17 @@
 #include "util.h"
 #include "zonec.h"
 
+/*
+ * Exit codes are based on named-xfer for now.  See ns_defs.h in
+ * bind8.
+ */
+enum nsd_xfer_exit_codes
+{
+	XFER_UPTODATE = 0,
+	XFER_SUCCESS  = 1,
+	XFER_FAIL     = 3
+};
+
 extern char *optarg;
 extern int optind;
 
@@ -53,7 +64,21 @@ error(const char *format, ...)
 	va_start(args, format);
 	log_vmsg(LOG_ERR, format, args);
 	va_end(args);
-	exit(1);
+	exit(XFER_FAIL);
+}
+
+
+/*
+ * Log a warning message.
+ */
+static void warning(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+static void
+warning(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	log_vmsg(LOG_WARNING, format, args);
+	va_end(args);
 }
 
 
@@ -66,7 +91,7 @@ usage (void)
 	fprintf(stderr,
 		"Usage: nsd-xfer [-4] [-6] [-p port] [-s serial] -z zone"
 		" -f file servers...\n");
-	exit(1);
+	exit(XFER_FAIL);
 }
 
 /*
@@ -127,6 +152,9 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 	size_t saved_position = buffer_position(output);
 	
 	for (i = 0; i < record->rdata_count; ++i) {
+		if (descriptor->type == TYPE_SOA && i == 2) {
+			buffer_printf(output, " (\n\t\t");
+		}
 		buffer_printf(output, " ");
 		if (!rdata_to_string(output, descriptor->zoneformat[i],
 				     record->rdatas[i]))
@@ -134,6 +162,9 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 			buffer_set_position(output, saved_position);
 			return 0;
 		}
+	}
+	if (descriptor->type == TYPE_SOA) {
+		buffer_printf(output, ")");
 	}
 	
 	return 1;
@@ -183,8 +214,6 @@ parse_response(struct query *q, FILE *out, int first, int *done)
 
 	size_t qdcount = QDCOUNT(q);
 	size_t ancount = ANCOUNT(q);
-	size_t nscount = NSCOUNT(q);
-	size_t arcount = ARCOUNT(q);
 
 	rr_type record;
 
@@ -431,7 +460,6 @@ axfr(int s, struct query *q, const dname_type *zone, FILE *out)
 {
 	int done = 0;
 	int first = 1;
-	uint16_t size;
 	uint16_t query_id;
 	
 	assert(q->maxlen <= QIOBUFSZ);
@@ -446,9 +474,6 @@ axfr(int s, struct query *q, const dname_type *zone, FILE *out)
 		if (!receive_response(s, q)) {
 			return 0;
 		}
-		
-       		fprintf(stderr, "Received response size %d\n",
-			(int) buffer_limit(q->packet));
 		
 		if (buffer_limit(q->packet) <= QHEADERSZ) {
 			error("response size (%d) is too small",
@@ -538,9 +563,11 @@ main (int argc, char *argv[])
 
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
+#ifdef TSIG
 	if (!tsig_init(region)) {
 		error("TSIG initialization failed");
 	}
+#endif
 	
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46f:hp:s:z:")) != -1) {
@@ -586,15 +613,8 @@ main (int argc, char *argv[])
 		current_serial = strtottl(serial, &t);
 		if (*t != '\0') {
 			error("bad serial '%s'\n", serial);
-			exit(1);
+			exit(XFER_FAIL);
 		}
-	}
-	
-	zone_file = fopen(file, "w");
-	if (!zone_file) {
-		error("cannot open or create zone file '%s' for writing: %s",
-		      file, strerror(errno));
-		exit(1);
 	}
 	
 	/* Initialize the query */
@@ -605,23 +625,23 @@ main (int argc, char *argv[])
 
 	for (; *argv; ++argv) {
 		/* Try each server separately until one succeeds.  */
-		int error;
+		int rc;
 		
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = default_family;
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_protocol = IPPROTO_TCP;
-		error = getaddrinfo(*argv, port, &hints, &res0);
-		if (error) {
-			fprintf(stderr, "skipping bad address %s: %s\n", *argv,
-				gai_strerror(error));
+		rc = getaddrinfo(*argv, port, &hints, &res0);
+		if (rc) {
+			warning("skipping bad address %s: %s\n",
+				*argv,
+				gai_strerror(rc));
 			continue;
 		}
 
 		for (res = res0; res; res = res->ai_next) {
 			uint32_t zone_serial = -1;
 			int s;
-			int rc;
 			
 			if (res->ai_addrlen > sizeof(q.addr))
 				continue;
@@ -631,24 +651,50 @@ main (int argc, char *argv[])
 			if (s == -1)
 				continue;
 
-			if (connect(s, res->ai_addr, res->ai_addrlen) < 0)
+			if (connect(s, res->ai_addr, res->ai_addrlen) < 0) {
+				warning("cannot connect to %s: %s\n",
+					*argv,
+					strerror(errno));
+				close(s);
+				if (!res->ai_next) {
+					error("failed to connect to master servers");
+				}
 				continue;
+			}
 			
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
 			rc = check_serial(s, &q, zone, current_serial,
 					  &zone_serial);
 			if (rc == -1) {
-				exit(1);
+				close(s);
+				continue;
+			}
+
+			printf("Current serial %lu, zone serial %lu\n",
+			       (unsigned long) current_serial,
+			       (unsigned long) zone_serial);
+
+			if (rc == 0) {
+				printf("Zone up-to-date, done.\n");
+				close(s);
+				exit(XFER_UPTODATE);
 			} else if (rc > 0) {
-				printf("current serial %lu, zone serial %lu\n",
-				       (unsigned long) current_serial,
-				       (unsigned long) zone_serial);
+				printf("Transferring zone.\n");
 				
+				zone_file = fopen(file, "w");
+				if (!zone_file) {
+					error("cannot open or create zone file '%s' for writing: %s",
+					      file, strerror(errno));
+					close(s);
+					exit(XFER_FAIL);
+				}
+	
 				if (axfr(s, &q, zone, zone_file)) {
 					/* AXFR succeeded, done.  */
 					fclose(zone_file);
-					exit(0);
+					close(s);
+					exit(XFER_SUCCESS);
 				}
 			}
 			

@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,2.2.0,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,2.2.0-2004112,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 dnl
@@ -89,14 +89,6 @@ AC_ARG_WITH([user],
 	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
 	[user=$withval])
 AC_SUBST(user)
-
-#
-# Determine the location of namedxfer
-#
-AC_ARG_WITH([namedxfer],
-	AC_HELP_STRING([--with-namedxfer=path], [Pathname to BIND8 named-xfer program if any]),
-	[namedxfer=$withval], [namedxfer=""])
-AC_SUBST(namedxfer)
 
 # Checks for programs.
 AC_PROG_AWK

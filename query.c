@@ -160,7 +160,9 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->reserved_space = 0;
 	buffer_clear(q->packet);
 	edns_init_record(&q->edns);
+#ifdef TSIG
 	tsig_init_record(&q->tsig, q->region);
+#endif
 	q->tcp = is_tcp;
 	q->name = NULL;
 	q->zone = NULL;
@@ -315,11 +317,12 @@ process_edns(struct query *q)
 	return NSD_RC_OK;
 }
 
+#ifdef TSIG
 static nsd_rc_type
 process_tsig(query_type *q ATTR_UNUSED)
 {
 	nsd_rc_type result;
-	
+
 	if (q->tsig.status != TSIG_NOT_PRESENT) {
 		/* Strip TSIG record.  */
 		buffer_set_position(q->packet, q->tsig.position);
@@ -339,6 +342,7 @@ process_tsig(query_type *q ATTR_UNUSED)
 	
 	return result;
 }
+#endif
 
 /*
  * Log notifies and return an RCODE_IMPL error to the client.
@@ -879,8 +883,10 @@ query_prepare_response(query_type *q)
 	 * Reserve space for the EDNS and TSIG records if
 	 * required.
 	 */
-	q->reserved_space = (edns_reserved_space(&q->edns) +
-			     tsig_reserved_space(&q->tsig));
+	q->reserved_space = edns_reserved_space(&q->edns);
+#ifdef TSIG
+	q->reserved_space += tsig_reserved_space(&q->tsig);
+#endif
 	
 	/* Update the flags.  */
 	flags = FLAGS(q);
@@ -945,10 +951,12 @@ query_process(struct query *q, struct nsd *nsd)
 		if (edns_parse_record(&q->edns, q->packet))
 			--arcount;
 	}
+#ifdef TSIG
 	if (arcount > 0) {
 		if (tsig_parse_record(&q->tsig, q->packet))
 			--arcount;
 	}
+#endif
 	if (arcount > 0) {
 		return query_formerr(q);
 	}
@@ -963,10 +971,12 @@ query_process(struct query *q, struct nsd *nsd)
 	/* Remove trailing garbage.  */
 	buffer_set_limit(q->packet, buffer_position(q->packet));
 	
+#ifdef TSIG
 	rc = process_tsig(q);
 	if (rc != NSD_RC_OK) {
 		return query_error(q, rc);
 	}
+#endif
 
 	rc = process_edns(q);
 	if (rc != NSD_RC_OK) {
@@ -1019,6 +1029,7 @@ query_add_optional(struct query *q, struct nsd *nsd)
 		break;
 	}
 
+#ifdef TSIG
 	switch (q->tsig.status) {
 	case TSIG_NOT_PRESENT:
 		break;
@@ -1030,4 +1041,5 @@ query_add_optional(struct query *q, struct nsd *nsd)
 
 		break;
 	}
+#endif
 }

@@ -54,7 +54,7 @@ dbfile="@dbfile@"
 zonesfile="@zonesfile@"
 keysdir="@configdir@/keys"
 notify="@sbindir@/nsd-notify"
-namedxfer="@namedxfer@"
+nsdxfer="@sbindir@/nsd-xfer"
 pidfile="@pidfile@"
 
 ZONEC_VERBOSE=-v
@@ -107,7 +107,7 @@ rebuild)
 	;;
 update)
 	#
-	if [ ! -x "${namedxfer}" ]
+	if [ ! -x "${nsdxfer}" ]
 	then
 		echo "named-xfer program is not available, aborting..."
 		exit 1
@@ -134,14 +134,14 @@ update)
 			fi
 
 			# AXFR to a temp file $file.axfr
-			$namedxfer -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} -s $serial $masters
-			if [ $? -ne 0 ]
+			$nsdxfer -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} -s $serial $masters
+			if [ $? -eq 1 ]
 			then
 				if [ -f ${zonesdir}/$file.axfr ]
 				then
 					# axfr succeeded
 					# test compile the zone to see what happens
-					${sbindir}/zonec -o ${zone} -f ${zonesdir}/$file.axfr.db - < ${zonesdir}/file.axfr 2>/dev/null
+					${sbindir}/zonec -o ${zone} -f ${zonesdir}/$file.axfr.db - < ${zonesdir}/$file.axfr 2>/dev/null
 					if [ $? -eq 1 ]
 					then
 						echo "Warning: AXFR of $zone did not compile"
@@ -151,7 +151,7 @@ update)
 						mv -f ${zonesdir}/$file.axfr ${zonesdir}/$file
 					fi
 					rm -f ${zonesdir}/$file.axfr.db
-				else
+			        else
 					echo "Warning: AXFR for $zone failed"
 				fi
 			fi

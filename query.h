@@ -184,8 +184,10 @@ struct query {
 	/* EDNS information provided by the client.  */
 	edns_record_type edns;
 
+#ifdef TSIG
 	/* TSIG information.  */
 	tsig_record_type tsig;
+#endif
 	
 	int tcp;
 	uint16_t tcplen;

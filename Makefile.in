@@ -51,7 +51,6 @@ EDIT		= sed \
 			-e 's,@dbfile\@,$(dbfile),g' \
 			-e 's,@configfile\@,$(configfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
-			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
 TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample

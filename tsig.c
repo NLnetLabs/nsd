@@ -10,6 +10,8 @@
 
 #include <config.h>
 
+#ifdef TSIG
+
 #include "buffer.h"
 #include "region-allocator.h"
 #include "tsig.h"
@@ -356,3 +358,5 @@ tsig_reserved_space(tsig_record_type *tsig)
 		+ sizeof(uint16_t)	    /* Other size */
 		+ tsig->other_size);	    /* Other data */
 }
+
+#endif /* TSIG */

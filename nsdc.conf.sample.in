@@ -58,8 +58,8 @@ keysdir="@configdir@/keys"
 # Pathname of nsd-notify binary
 notify="@sbindir@/nsd-notify"
 
-# Pathname of named-xfer(8) binary from BIND8 distribution
-namedxfer="@namedxfer@"
+# Pathname of nsd-xfer binary
+namedxfer="@sbindir@/nsd-xfer"
 
 # Verbosity of "nsdc update". Set ZONEC_VERBOSE to -v, -vv or to a
 # null string ZONEC_VERBOSE=-v

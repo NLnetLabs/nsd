@@ -10,6 +10,8 @@
 #ifndef _TSIG_H_
 #define _TSIG_H_
 
+#ifdef TSIG
+
 #include <openssl/hmac.h>
 
 #include "dname.h"
@@ -104,5 +106,7 @@ void tsig_append_record(tsig_record_type *data, buffer_type *packet);
  * (if required).
  */
 size_t tsig_reserved_space(tsig_record_type *data);
+
+#endif /* TSIG */
 
 #endif /* _TSIG_H_ */

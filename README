@@ -197,10 +197,6 @@ addition to standard configure options, one may use the following:
 
 	User name or ID to answer the queries with, default is nsd
 	
-  --with-namedxfer=path
-
-	Pathname to BIND8 named-xfer program if any
-
   --with-libwrap=pathname
 
 	Compile in libwrap (tcp_wrappers) support.
@@ -428,22 +424,14 @@ file was created and maintained locally or was obtained via AXFR/IXFR
 or out of band. However it is possible to specify the master servers
 in nsd.zones file by adding ``masters'' keyword followed by ip address
 of the master to instruct nsdc(8) update to update these zones with
-named-xfer(8) utility if necessary. named-xfer(8) is a part of the
-bind-8 package and can be obtained from http://www.isc.org as a part
-of bind8 distribution.
+nsd-xfer(8) utility if necessary.
 
 ; zone name file [ masters ip-address ]
 zone nlnetlabs.nl secondary/nlnetlabs.nl masters 213.53.69.1
 
-Given the line above nsdc(8) update will invoke named-xfer(8) to check
+Given the line above nsdc(8) update will invoke nsd-xfer(8) to check
 whether the zone was modified and if so will AXFR the zone from the
 master 213.53.69.1
-
-To enable nsdc(8) update functionality one should have named-xfer
-utility installed and its path specified either --with-namedxfer=
-option to configure or with $namedxfer variable in Makefile at
-compilation time. Alternatively $namedxfer variable can be modified in
-the configuration file of nsdc(8) typically /etc/nsd/nsdc.conf
 
 Due to the static nature of nsd(8) database it has to be rebuilt
 completely whenever one of the zones changes. Therefore it is
