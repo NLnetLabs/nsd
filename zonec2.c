@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.20 2003/10/20 11:31:08 erik Exp $
+ * $Id: zonec2.c,v 1.21 2003/10/22 07:07:55 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -46,33 +46,9 @@ static int pflag = 0;
 static int totalerrors = 0;
 
 static void 
-zone_print (struct zone *z)
+zone_print (zone_type *zone)
 {
-#if 0
-	rrset_type *rrset;
-	rr_type rr;
-	const uint8_t *dname;
-	int i;
-#endif
-
-	printf("; zone %s\n", dname_to_string(z->dname));
-	printf("; zone data\n");
-
-#if 0
-	HEAP_WALK(z->data, dname, rrset) {
-		while (rrset) {
-			rr.dname = (uint8_t *)dname;
-			rr.ttl = rrset->ttl;
-			rr.class = rrset->class;
-			rr.type = rrset->type;
-			for (i = 0; i < rrset->rrslen; i++) {
-				rr.rdata = rrset->rrs[i];
-				/*zprintrr(stdout, &rr);*/
-			}
-			rrset = rrset->next;
-		}
-	}
-#endif
+	return;
 }
 
 static int
@@ -90,9 +66,8 @@ write_dname(struct namedb *db, domain_type *domain)
 }
 
 static int
-write_dname_number(struct namedb *db, domain_type *domain)
+write_number(struct namedb *db, uint32_t number)
 {
-	uint32_t number = domain->number;
 	number = htonl(number);
 	return write_data(db->fd, &number, sizeof(number));
 }
@@ -116,9 +91,12 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	ttl = htonl(rrset->ttl);
 	rrslen = htons(rrset->rrslen);
 	
-	if (!write_dname_number(db, domain))
+	if (!write_number(db, domain->number))
 		return 0;
-		
+
+	if (!write_number(db, rrset->zone->number))
+		return 0;
+	
 	if (!write_data(db->fd, &type, sizeof(type)))
 		return 0;
 		
@@ -143,7 +121,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
 			rdata_atom_type atom = rrset->rrs[i][j];
 			if (rdata_atom_is_domain(rrset->type, j)) {
-				if (!write_dname_number(db, rdata_atom_domain(atom)))
+				if (!write_number(db, rdata_atom_domain(atom)->number))
 					return 0;
 			} else {
 				uint16_t size = htons(rdata_atom_size(atom));
@@ -170,117 +148,84 @@ cleanup_rrset(void *r)
 }
 
 int
-process_rr(struct zone *z, rr_type *rr)
+process_rr(zparser_type *parser, rr_type *rr)
 {
-	rrset_type *rrset, *r;
+	zone_type *zone = parser->current_zone;
+	rrset_type *rrset;
 	int i;
 	
-        if ( pflag > 0 ) 
+        if (pflag > 0) 
 		zprintrr(stderr, rr);
 		
-	/* Report progress... 
-	   if (vflag > 1) {
-	   if ((parser->lines % 100000) == 0) {
-	   printf("zonec: reading zone \"%s\": %lu\r", dnamestr(z->dname), (unsigned long) parser->lines);
-	   fflush(stdout);
-	   }
-	   }
-	   [XXX] done inside lex whatever
-	*/
-
 	/* We only support IN class */
 	if (rr->class != CLASS_IN) {
 		zerror("Wrong class");
 		return 0;
 	}
 
-	/* Is this in-zone data? */
-	/* 
-	   printf("d name: [%s]\n", z->dname);
-	   printf("rr name: [%s]\n", rr->dname);
-	   printf("d name: [%d]\n", (int)z->dname[0]);
-	   printf("rr name: [%d]\n", (int)rr->dname[0]);
-	   printf("d name: [%d]\n", (int)z->dname[1]);
-	   printf("rr name: [%d]\n", (int)rr->dname[1]);
-	   printf("d name: [%s]\n", dnamestr(z->dname));
-	   printf("rr name: [%s]\n", dnamestr(rr->dname));
-	*/
-	if (!dname_is_subdomain(rr->domain->dname, z->dname)) {
+	if (!dname_is_subdomain(rr->domain->dname, zone->domain->dname)) {
 		zerror("Out of zone data");
 		return 0;
 	}
 
-	/* Do we have this domain name in heap? */
-	if ((rrset = rr->domain->rrsets) != NULL) {
-		for (r = rrset; r; r = r->next) {
-			if (r->type == rr->type) {
-				break;
-			}
-		}
-	} else {
-		r = NULL;
-	}
+	/* Do we have this type of rrset already? */
+	rrset = domain_find_rrset(rr->domain, rr->type);
 
 	/* Do we have this particular rrset? */
-	if (r == NULL) {
-		r = region_alloc(zone_region, sizeof(rrset_type));
-		region_add_cleanup(zone_region, cleanup_rrset, r);
-		r->type = 0;
-	}
-	if (r->type == 0) {
-		r->type = rr->type;
-		r->class = rr->class;
-		r->ttl = rr->ttl;
-		r->rrslen = 1;
-		r->rrs = xalloc(sizeof(rdata_atom_type **));
-		r->rrs[0] = rr->rdata;
+	if (rrset == NULL) {
+		rrset = region_alloc(zone_region, sizeof(rrset_type));
+		rrset->zone = rr->zone;
+		rrset->type = rr->type;
+		rrset->class = rr->class;
+		rrset->ttl = rr->ttl;
+		rrset->rrslen = 1;
+		rrset->rrs = xalloc(sizeof(rdata_atom_type **));
+		rrset->rrs[0] = rr->rdata;
 			
+		region_add_cleanup(zone_region, cleanup_rrset, rrset);
+
 		/* Add it */
-		domain_add_rrset(rr->domain, r);
+		domain_add_rrset(rr->domain, rrset);
 	} else {
-		if (r->ttl != rr->ttl) {
+		if (rrset->ttl != rr->ttl) {
 			zerror("ttl doesn't match the ttl of the rrset");
 			return 0;
 		}
 
 		/* Search for possible duplicates... */
-		for (i = 0; i < r->rrslen; i++) {
-			if (!zrdatacmp(r->type, r->rrs[i], rr->rdata)) {
+		for (i = 0; i < rrset->rrslen; i++) {
+			if (!zrdatacmp(rrset->type, rrset->rrs[i], rr->rdata)) {
 				break;
 			}
 		}
 
 		/* Discard the duplicates... */
-		if (i < r->rrslen) {
+		if (i < rrset->rrslen) {
 			return 0;
 		}
 
 		/* Add it... */
-		r->rrs = xrealloc(r->rrs, (r->rrslen + 1) * sizeof(rdata_atom_type **));
-		r->rrs[r->rrslen++] = rr->rdata;
+		rrset->rrs = xrealloc(rrset->rrs, (rrset->rrslen + 1) * sizeof(rdata_atom_type **));
+		rrset->rrs[rrset->rrslen++] = rr->rdata;
 	}
 
 	/* Check we have SOA */
-	if (z->soa == NULL) {
+	if (zone->soa_rrset == NULL) {
 		if (rr->type != TYPE_SOA) {
 			zerror("Missing SOA record on top of the zone");
+		} else if (rr->domain != zone->domain) {
+			zerror( "SOA record with invalid domain name");
 		} else {
-			if (dname_compare(rr->domain->dname, z->dname) != 0) {
-				zerror( "SOA record with invalid domain name");
-			} else {
-				z->soa = r;
-			}
+			zone->soa_rrset = rrset;
 		}
-	} else {
-		if (rr->type == TYPE_SOA) {
-			zerror("Duplicate SOA record discarded");
-			--r->rrslen;
-		}
+	} else if (rr->type == TYPE_SOA) {
+		zerror("Duplicate SOA record discarded");
+		--rrset->rrslen;
 	}
 
 	/* Is this a zone NS? */
-	if (rr->type == TYPE_NS && dname_compare(rr->domain->dname, z->dname) == 0) {
-		z->ns = r;
+	if (rr->type == TYPE_NS && rr->domain == zone->domain) {
+		zone->ns_rrset = rrset;
 	}
 
 	return 1;
@@ -290,33 +235,36 @@ process_rr(struct zone *z, rr_type *rr)
  * Reads the specified zone into the memory
  *
  */
-static struct zone *
+static zone_type *
 zone_read (struct namedb *db, char *name, char *zonefile)
 {
-	struct zone *z;
+	zone_type *zone;
+	const dname_type *dname;
 
-	/* Allocate new zone structure */
-	z = region_alloc(zone_region, sizeof(struct zone));
-	z->db = db;
-	
-	/* Get the zone name */
-	if ((z->dname = dname_parse(zone_region, name, NULL)) == NULL) {
+	dname = dname_parse(zone_region, name, NULL);
+	if (!dname) {
 		return NULL;
 	}
-
+	
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
-	if (z->dname->label_count == 1) {
+	if (dname->label_count == 1) {
 		fprintf(stderr, "zonec: Not configured as a root server. See the documentation.\n");
 		return NULL;
 	}
 #endif
 
-	z->db->domains = domain_table_create(zone_region);
-	z->soa = z->ns = NULL;
+	/* Allocate new zone structure */
+	zone = region_alloc(zone_region, sizeof(zone_type));
+	zone->domain = domain_table_insert(db->domains, dname);
+	zone->soa_rrset = NULL;
+	zone->ns_rrset = NULL;
+
+	zone->next = db->zones;
+	db->zones = zone;
 	
 	/* Open the zone file */
-	if ( nsd_zopen(z, zonefile, 3600, CLASS_IN, name) == NULL) {
+	if (!nsd_zopen(zone, zonefile, 3600, CLASS_IN, name)) {
 		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
 		return NULL;
 	}
@@ -325,9 +273,9 @@ zone_read (struct namedb *db, char *name, char *zonefile)
 	yyparse();
 
 	fflush(stdout);
-	totalerrors += zdefault->errors;
+	totalerrors += current_parser->errors;
 
-	return z;
+	return zone;
 }
 
 static void
@@ -351,48 +299,61 @@ static void
 write_domain_iterator(domain_type *node, void *user_data)
 {
 	struct namedb *db = user_data;
-	struct rrset *rrset = node->rrsets;
-	
-	while (rrset) {
+	struct rrset *rrset;
+
+	for (rrset = node->rrsets; rrset; rrset = rrset->next) {
 		write_rrset(db, node, rrset);
-		rrset = rrset->next;
 	}
 }
 
 /*
- * Writes zone data into open database *db
+ * Writes databse data into open database *db
  *
  * Returns zero if success.
  */
 static int 
-zone_dump (struct zone *z, struct namedb *db)
+db_dump (namedb_type *db)
 {
+	zone_type *zone;
 	uint32_t terminator = 0;
-	uint32_t dname_count = 1;	/* Start with 1 so 0 can be used as a terminator. */
+	uint32_t dname_count = 1;
+	uint32_t zone_count = 1;
 	
-	if (!z->soa) {
-		fprintf(stderr, "SOA record not present in %s\n", dname_to_string(z->dname));
-		++totalerrors;
-		return -1;
+	for (zone = db->zones; zone; zone = zone->next) {
+		zone->number = zone_count;
+		++zone_count;
+		
+		if (!zone->soa_rrset) {
+			fprintf(stderr, "SOA record not present in %s\n",
+				dname_to_string(zone->domain->dname));
+			++totalerrors;
+		}
 	}
 
-	domain_table_iterate(z->db->domains, number_dnames_iterator, &dname_count);
+	if (totalerrors > 0)
+		return -1;
+
+	--zone_count;
+	if (!write_number(db, zone_count))
+		return -1;
+	for (zone = db->zones; zone; zone = zone->next) {
+		if (!write_dname(db, zone->domain))
+			return -1;
+	}
+	
+	domain_table_iterate(db->domains, number_dnames_iterator, &dname_count);
 	--dname_count;
-	dname_count = htonl(dname_count);
-	write_data(db->fd, &dname_count, sizeof(dname_count));
+	if (!write_number(db, dname_count))
+		return -1;
 
 	DEBUG(DEBUG_ZONEC, 1,
-	      (stderr, "Storing %lu domain names\n", (unsigned long) ntohl(dname_count)));
+	      (stderr, "Storing %lu domain names\n", (unsigned long) dname_count));
 	
-	domain_table_iterate(z->db->domains, write_dname_iterator, db);
+	domain_table_iterate(db->domains, write_dname_iterator, db);
 		   
-	domain_table_iterate(z->db->domains, write_domain_iterator, db);
-	write_data(db->fd, &terminator, sizeof(terminator));
-
-	if (vflag > 0) {
-		fprintf(stderr, "zonec: writing zone \"%s\": done.\n",
-			dname_to_string(z->dname));
-	}
+	domain_table_iterate(db->domains, write_domain_iterator, db);
+	if (!write_data(db->fd, &terminator, sizeof(terminator)))
+		return -1;
 
 	return 0;
 }
@@ -472,6 +433,9 @@ main (int argc, char **argv)
 		exit(1);
 	}
 
+	current_parser = zparser_init(db);
+	current_rr = region_alloc(zone_region, sizeof(rr_type));
+	
 	/* Open the master file... */
 	if ((f = fopen(*argv, "r")) == NULL) {
 		fprintf(stderr, "zonec: cannot open %s: %s\n", *argv, strerror(errno));
@@ -488,19 +452,19 @@ main (int argc, char **argv)
 			continue;
 
 		if (strcasecmp(s, "zone") != 0) {
-			fprintf(stderr, "zonec: syntax error in %s line %d\n", *argv, line);
+			fprintf(stderr, "zonec: syntax error in %s line %d: expected token 'zone'\n", *argv, line);
 			break;
 		}
 
 		/* Zone name... */
 		if ((zonename = strtok(NULL, sep)) == NULL) {
-			fprintf(stderr, "zonec: syntax error in %s line %d\n", *argv, line);
+			fprintf(stderr, "zonec: syntax error in %s line %d: expected zone name\n", *argv, line);
 			break;
 		}
 
 		/* File name... */
 		if ((zonefile = strtok(NULL, sep)) == NULL) {
-			fprintf(stderr, "zonec: syntax error in %s line %d\n", *argv, line);
+			fprintf(stderr, "zonec: syntax error in %s line %d: expected file name\n", *argv, line);
 			break;
 		}
 
@@ -512,7 +476,6 @@ main (int argc, char **argv)
 
 		/* If we did not have any errors... */
 		if ((z = zone_read(db, zonename, zonefile)) != NULL) {
-			zone_dump(z, db);
 			if (pflag)
 				zone_print(z);
 		} else {
@@ -522,10 +485,14 @@ main (int argc, char **argv)
 		fprintf(stderr, "zone_region: ");
 		region_dump_stats(zone_region, stderr);
 		fprintf(stderr, "\n");
-	    
-		region_free_all(zone_region);
 	};
 
+	if (db_dump(db) != 0) {
+		fprintf(stderr, "zonec: error dumping the database: %s\n", strerror(errno));
+		namedb_discard(db);
+		exit(1);
+	}		
+	
 	/* Close the database */
 	if (namedb_save(db) != 0) {
 		fprintf(stderr, "zonec: error saving the database: %s\n", strerror(errno));

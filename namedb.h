@@ -63,6 +63,7 @@ typedef struct rrset rrset_type;
  */
 typedef struct domain_table domain_table_type;
 typedef struct domain domain_type;
+typedef struct zone zone_type;
 
 struct domain_table
 {
@@ -84,6 +85,26 @@ struct domain
 	 * This domain name exists (see wildcard clarification draft).
 	 */
 	unsigned           is_existing : 1;
+};
+
+struct zone
+{
+	zone_type         *next;
+	domain_type       *domain;
+	rrset_type        *soa_rrset;
+	rrset_type        *ns_rrset;
+	uint32_t           number;
+};
+
+struct rrset
+{
+	rrset_type       *next;
+	zone_type        *zone;
+	int32_t           ttl;
+	uint16_t          type;
+	uint16_t          class;
+	uint16_t          rrslen;
+	rdata_atom_type **rrs;
 };
 
 /*
@@ -152,6 +173,7 @@ struct namedb
 {
 	region_type       *region;
 	domain_table_type *domains;
+	zone_type         *zones;
 	char              *filename;
 	FILE              *fd;
 };
@@ -192,17 +214,6 @@ rdata_atom_data(rdata_atom_type atom)
 {
 	return (uint16_t *) atom.data + 1;
 }
-
-
-struct rrset {
-	rrset_type       *next;
-	int32_t           ttl;
-	uint16_t          type;
-	uint16_t          class;
-	uint16_t          rrslen;
-	rdata_atom_type **rrs;
-};
-
 
 
 /* dbcreate.c */

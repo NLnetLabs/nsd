@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.28 2003/10/17 13:51:30 erik Exp $
+ * $Id: zlparser.lex,v 1.29 2003/10/22 07:07:53 erik Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -25,7 +25,7 @@ const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA"};
 
 YY_BUFFER_STATE include_stack[MAXINCLUDES];
-struct zdefault_t zdefault_stack[MAXINCLUDES];
+zparser_type zparser_stack[MAXINCLUDES];
 int include_stack_ptr = 0;
 
 /* in_rr:
@@ -58,7 +58,7 @@ Q       \"
     int j;
 {SPACE}*{COMMENT}.*     /* ignore */
 {COMMENT}.*{NEWLINE}    { 
-                            zdefault->line++;
+                            current_parser->line++;
                             if ( paren_open == 0 )
                                 return NL;
                         }
@@ -85,10 +85,10 @@ Q       \"
 				/* push zdefault on the stack (only the
 				 * important values
 				 */
-				zdefault_stack[include_stack_ptr].filename = 
-					zdefault->filename;
-				zdefault_stack[include_stack_ptr].line	   = 
-					zdefault->line;
+				zparser_stack[include_stack_ptr].filename = 
+					current_parser->filename;
+				zparser_stack[include_stack_ptr].line	   = 
+					current_parser->line;
 
 			        include_stack[include_stack_ptr++] = 
 					YY_CURRENT_BUFFER;
@@ -100,8 +100,8 @@ Q       \"
 				}
 
 				/* reset for the current file */
-				zdefault->filename = region_strdup(zone_region, yytext);
-				zdefault->line = 1;
+				current_parser->filename = region_strdup(zone_region, yytext);
+				current_parser->line = 1;
         			yy_switch_to_buffer( yy_create_buffer( yyin, YY_BUF_SIZE ) );
 
 			        BEGIN(INITIAL);
@@ -111,10 +111,10 @@ Q       \"
 				            yyterminate();
         			else {
 					/* pop (once you pop, you can not stop) */
-					zdefault->filename =
-						zdefault_stack[include_stack_ptr].filename;
-					zdefault->line = 
-						zdefault_stack[include_stack_ptr].line;
+					current_parser->filename =
+						zparser_stack[include_stack_ptr].filename;
+					current_parser->line = 
+						zparser_stack[include_stack_ptr].line;
 					
             				yy_delete_buffer( YY_CURRENT_BUFFER );
             				yy_switch_to_buffer( include_stack[include_stack_ptr] );
@@ -135,14 +135,14 @@ Q       \"
                             }
                         }
 {NEWLINE}               {
-                            zdefault->line++;
+                            current_parser->line++;
                             if ( paren_open == 0 ) { 
                                 in_rr = outside;
                                 return NL;
                             }
                         }
 {SPACE}+{NEWLINE}       {
-                            zdefault->line++;
+                            current_parser->line++;
                             if ( paren_open == 0 ) { 
                                 in_rr = outside;
                                 return NL;

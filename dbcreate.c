@@ -57,7 +57,7 @@ namedb_new (const char *filename)
 	/* Make a new structure... */
 	db = region_alloc(region, sizeof(struct namedb));
 	db->region = region;
-	db->domains = NULL;
+	db->domains = domain_table_create(region);
 	db->filename = region_strdup(region, filename);
 
 	/*

@@ -128,6 +128,20 @@ read_domain(namedb_type *db, uint32_t domain_count, domain_type **domains)
 	return domains[domain_number - 1];
 }
 
+static zone_type *
+read_zone(namedb_type *db, uint32_t zone_count, zone_type **zones)
+{
+	uint32_t zone_number;
+
+	if (!read_size(db, &zone_number))
+		return NULL;
+
+	if (zone_number == 0 || zone_number > zone_count)
+		return NULL;
+
+	return zones[zone_number - 1];
+}
+
 static int
 read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count, domain_type **domains, rdata_atom_type *result)
 {
@@ -155,7 +169,9 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count
 }
 
 static int
-read_rrset(namedb_type *db, uint32_t domain_count, domain_type **domains)
+read_rrset(namedb_type *db,
+	   uint32_t domain_count, domain_type **domains,
+	   uint32_t zone_count, zone_type **zones)
 {
 	rrset_type *rrset;
 	int i, j;
@@ -166,6 +182,10 @@ read_rrset(namedb_type *db, uint32_t domain_count, domain_type **domains)
 			     
 	owner = read_domain(db, domain_count, domains);
 	if (!owner)
+		return 0;
+
+	rrset->zone = read_zone(db, zone_count, zones);
+	if (!rrset->zone)
 		return 0;
 	
 	if (fread(&rrset->type, sizeof(rrset->type), 1, db->fd) != 1)
@@ -215,7 +235,9 @@ namedb_open (const char *filename)
 	region_type *region = region_create(xalloc, free);
 	region_type *dname_region = region_create(xalloc, free);
 	uint32_t dname_count;
-	domain_type **domains;	/* Indexed by domain number. */
+	domain_type **domains;	/* Indexed by domain number.  */
+	uint32_t zone_count;
+	zone_type **zones;	/* Indexed by zone number.  */
 	uint32_t i;
 	
 	DEBUG(DEBUG_DBACCESS, 2,
@@ -227,8 +249,9 @@ namedb_open (const char *filename)
 	
 	db = region_alloc(region, sizeof(struct namedb));
 	db->region = region;
-	db->filename = region_strdup(region, filename);
 	db->domains = domain_table_create(db->region);
+	db->zones = NULL;
+	db->filename = region_strdup(region, filename);
 
 	/* Open it... */
 	if ((db->fd = fopen(db->filename, "r")) == NULL ) {
@@ -243,8 +266,42 @@ namedb_open (const char *filename)
 		return NULL;
 	}
 
+	if (fread(&zone_count, sizeof(zone_count), 1, db->fd) != 1) {
+		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		fclose(db->fd);
+		namedb_close(db);
+		return NULL;
+	}
+
+	zone_count = ntohl(zone_count);
+	
+	DEBUG(DEBUG_DBACCESS, 1,
+	      (stderr, "Retrieving %lu zones\n", (unsigned long) zone_count));
+	
+	zones = xalloc(zone_count * sizeof(zone_type *));
+	for (i = 0; i < zone_count; ++i) {
+		const dname_type *dname = read_dname(db->fd, dname_region);
+		if (!dname) {
+			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+			free(zones);
+			fclose(db->fd);
+			namedb_close(db);
+			return NULL;
+		}
+		zones[i] = region_alloc(db->region, sizeof(zone_type));
+		zones[i]->next = db->zones;
+		db->zones = zones[i];
+		zones[i]->domain = domain_table_insert(db->domains, dname);
+		zones[i]->soa_rrset = NULL;
+		zones[i]->ns_rrset = NULL;
+		zones[i]->number = i + 1;
+
+		region_free_all(dname_region);
+	}
+	
 	if (fread(&dname_count, sizeof(dname_count), 1, db->fd) != 1) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		free(zones);
 		fclose(db->fd);
 		namedb_close(db);
 		return NULL;
@@ -260,13 +317,14 @@ namedb_open (const char *filename)
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
 			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+			free(zones);
 			free(domains);
 			fclose(db->fd);
 			namedb_close(db);
 			return NULL;
 		}
 		domains[i] = domain_table_insert(db->domains, dname);
-		domains[i]->number = i;
+		domains[i]->number = i + 1;
 		region_free_all(dname_region);
 	}
 	
@@ -276,10 +334,11 @@ namedb_open (const char *filename)
 	region_dump_stats(region, stderr);
 	fprintf(stderr, "\n");
 	    
-	while (read_rrset(db, dname_count, domains))
+	while (read_rrset(db, dname_count, domains, zone_count, zones))
 		;
 
 	free(domains);
+	free(zones);
 	
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);

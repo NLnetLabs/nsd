@@ -26,52 +26,6 @@
 #include "namedb.h"
 #include "util.h"
 
-struct lex_data {
-    size_t   len;		/* holds the label length */
-    void    *str;		/* holds the data */
-};
-
-
-#define DEFAULT_TTL 3600
-#define RRTYPES     52
-#define MAXINCLUDES 10
-
-/* a RR in DNS */
-typedef struct rr rr_type;
-struct rr {
-        domain_type     *domain;
-        int32_t          ttl;
-        uint16_t         class;
-        uint16_t         type;
-        rdata_atom_type *rdata;
-};
-
-/* administration struct */
-struct zdefault_t {
-	int32_t ttl;
-	int32_t minimum;
-	uint16_t class;
-	struct zone *zone;
-	domain_type *origin;
-	domain_type *prev_dname;
-	unsigned int _rc;   /* current rdata cnt */
-	unsigned int errors;
-	size_t line;
-	const char *filename;
-};
-
-extern struct zdefault_t *zdefault;
-extern rr_type *current_rr;
-
-/* used in zonec.lex */
-extern FILE * yyin;
-int yyparse(void);
-int yylex(void);
-int yyerror(const char *s);
-void yyrestart(FILE *);
-
-enum rr_spot { outside, expecting_dname, after_dname, reading_type };
-
 #define	ZBUFSIZE	16384		/* Maximum master file entry size */
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
@@ -100,6 +54,57 @@ enum rr_spot { outside, expecting_dname, after_dname, reading_type };
 #define RDATA_HEX	12
 #define RDATA_PROTO	13
 #define RDATA_SERVICE	14
+
+struct lex_data {
+    size_t   len;		/* holds the label length */
+    void    *str;		/* holds the data */
+};
+
+
+#define DEFAULT_TTL 3600
+#define RRTYPES     52
+#define MAXINCLUDES 10
+
+/* a RR in DNS */
+typedef struct rr rr_type;
+struct rr {
+        domain_type     *domain;
+	zone_type       *zone;
+        int32_t          ttl;
+        uint16_t         class;
+        uint16_t         type;
+        rdata_atom_type *rdata;
+};
+
+/* administration struct */
+typedef struct zparser zparser_type;
+struct zparser {
+	namedb_type *db;
+	int32_t ttl;
+	int32_t minimum;
+	uint16_t class;
+	zone_type *current_zone;
+	domain_type *origin;
+	domain_type *prev_dname;
+	unsigned int _rc;   /* current rdata cnt */
+	unsigned int errors;
+	size_t line;
+	const char *filename;
+};
+
+extern zparser_type *current_parser;
+extern rr_type *current_rr;
+extern rdata_atom_type temporary_rdata[MAXRDATALEN + 1];
+
+/* used in zonec.lex */
+extern FILE *yyin;
+
+int yyparse(void);
+int yylex(void);
+int yyerror(const char *s);
+void yyrestart(FILE *);
+
+enum rr_spot { outside, expecting_dname, after_dname, reading_type };
 
 /* A generic purpose lookup table */
 struct ztab {
@@ -161,17 +166,18 @@ uint16_t *zparser_conv_a6(region_type *region, const char *a6);
 uint16_t *zparser_conv_b64(region_type *region, const char *b64);
 uint16_t *zparser_conv_domain(region_type *region, domain_type *domain);
 int32_t zparser_ttl2int(char *ttlstr);
-void zadd_rdata_wireformat(struct zdefault_t *zdefault, uint16_t *data);
-void zadd_rdata_domain(struct zdefault_t *zdefault, domain_type *domain);
-void zadd_rdata_finalize(struct zdefault_t *zdefault);
+void zadd_rdata_wireformat(zparser_type *parser, uint16_t *data);
+void zadd_rdata_domain(zparser_type *parser, domain_type *domain);
+void zadd_rdata_finalize(zparser_type *parser);
 void zadd_rtype(const char *type);
 uint16_t intbyname (const char *a, struct ztab *tab);
 const char * namebyint (uint16_t n, struct ztab *tab);
 int zrdatacmp(uint16_t type, rdata_atom_type *a, rdata_atom_type *b);
 long strtottl(char *nptr, char **endptr);
 void zerror (const char *msg);
-struct zdefault_t * nsd_zopen(struct zone *zone, const char *filename, uint32_t ttl, uint16_t class, const char *origin);
-void zclose (struct zdefault_t *z);
+zparser_type *zparser_init(namedb_type *db);
+int nsd_zopen(zone_type *zone, const char *filename, uint32_t ttl, uint16_t class, const char *origin);
+void zclose (zparser_type *parser);
 const char *precsize_ntoa (int prec);
 uint8_t precsize_aton (register char *cp, char **endptr);
 const char *typebyint(uint16_t type);

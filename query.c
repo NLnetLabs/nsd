@@ -512,12 +512,10 @@ add_dependent_rrsets(struct query *query, rrset_type *master_rrset,
 			temp->is_existing = match->wildcard_child->is_existing;
 			additional = temp;
 		}
-		
-		for (rrset = additional->rrsets; rrset; rrset = rrset->next) {
-			if (rrset->type == type_of_dependent) {
-				answer_add_rrset(&query->answer, section,
-						 additional, rrset);
-			}
+
+		if ((rrset = domain_find_rrset(additional, type_of_dependent))) {
+			answer_add_rrset(&query->answer, section,
+					 additional, rrset);
 		}
 	}
 }

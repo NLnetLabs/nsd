@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.24 2003/10/17 13:51:31 erik Exp $
+ * $Id: zparser2.c,v 1.25 2003/10/22 07:07:59 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -375,34 +375,34 @@ zparser_ttl2int(char *ttlstr)
 /* struct * RR current_rr is global, no 
  * need to pass it along */
 void
-zadd_rdata_wireformat(struct zdefault_t *zdefault, uint16_t *data)
+zadd_rdata_wireformat(zparser_type *parser, uint16_t *data)
 {
-	if(zdefault->_rc >= MAXRDATALEN - 1) {
+	if(parser->_rc >= MAXRDATALEN - 1) {
 		fprintf(stderr,"too many rdata elements");
 		abort();
 	}
-	current_rr->rdata[zdefault->_rc].data = data;
-	++zdefault->_rc;
+	current_rr->rdata[parser->_rc].data = data;
+	++parser->_rc;
 }
 
 void
-zadd_rdata_domain(struct zdefault_t *zdefault, domain_type *domain)
+zadd_rdata_domain(zparser_type *parser, domain_type *domain)
 {
-	if(zdefault->_rc >= MAXRDATALEN - 1) {
+	if(parser->_rc >= MAXRDATALEN - 1) {
 		fprintf(stderr,"too many rdata elements");
 		abort();
 	}
-	current_rr->rdata[zdefault->_rc].data = domain;
-	++zdefault->_rc;
+	current_rr->rdata[parser->_rc].data = domain;
+	++parser->_rc;
 }
 
 void
-zadd_rdata_finalize(struct zdefault_t *zdefault)
+zadd_rdata_finalize(zparser_type *parser)
 {
 	/* RDATA_TERMINATOR signals the last rdata */
 
 	/* _rc is already incremented in zadd_rdata2 */
-	current_rr->rdata[zdefault->_rc].data = NULL;
+	current_rr->rdata[parser->_rc].data = NULL;
 }
 
 void
@@ -596,9 +596,23 @@ zerror (const char *msg)
 	yyerror(msg);
 }
 
+
+/*
+ * Initializes the parser.
+ */
+zparser_type *
+zparser_init(namedb_type *db)
+{
+	zparser_type *result;
+	
+	result = region_alloc(zone_region, sizeof(zparser_type));
+	result->db = db;
+	return result;
+}
+
 /*
  *
- * Initializes the parser and opens a zone file.
+ * Opens a zone file.
  *
  * Returns:
  *
@@ -606,42 +620,35 @@ zerror (const char *msg)
  *	- NULL on error and errno set
  *
  */
-struct zdefault_t *
-nsd_zopen(struct zone *zone, const char *filename, uint32_t ttl, uint16_t class, const char *origin)
+int
+nsd_zopen(zone_type *zone, const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
 	/* Open the zone file... */
 	/* [XXX] still need to handle recursion */
-	if(( yyin  = fopen(filename, "r")) == NULL) {
-		return NULL;
+	if((yyin  = fopen(filename, "r")) == NULL) {
+		return 0;
 	}
 
 	/* Open the network database */
 	setprotoent(1);
 	setservent(1);
 
-	/* XXX printf("getting the origin [%s]\n", origin); */
-
-	/* Initialize the rest of the structure */
-	zdefault = region_alloc(zone_region, sizeof(struct zdefault_t));
-
-	zdefault->zone = zone;
-	zdefault->prev_dname = NULL;
-	zdefault->ttl = ttl;
-	zdefault->class = class;
-	zdefault->line = 1;
-    
-	zdefault->origin = domain_table_insert(
-		zone->db->domains,
+	current_parser->ttl = ttl;
+	current_parser->minimum = 0;
+	current_parser->class = class;
+	current_parser->current_zone = zone;
+	current_parser->origin = domain_table_insert(
+		current_parser->db->domains,
 		dname_parse(zone_region, origin, NULL));  /* hmm [XXX] MG */
-	zdefault->prev_dname = NULL;
-	zdefault->_rc = 0;
-	zdefault->errors = 0;
-	zdefault->filename = filename;
+	current_parser->prev_dname = NULL;
+	current_parser->_rc = 0;
+	current_parser->errors = 0;
+	current_parser->line = 1;
+	current_parser->filename = filename;
 
-	current_rr = xalloc(sizeof(rr_type));
-	current_rr->rdata = xalloc(sizeof(struct rdata_atom) * (MAXRDATALEN + 1));
-    
-	return zdefault;
+	current_rr->rdata = temporary_rdata;
+
+	return 1;
 }
 
 /* RFC1876 conversion routines */

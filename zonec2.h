@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.h,v 1.4 2003/10/17 13:51:31 erik Exp $
+ * $Id: zonec2.h,v 1.5 2003/10/22 07:07:57 erik Exp $
  *
  * zonec2.h -- internal zone representation.
  *
@@ -26,17 +26,8 @@ extern region_type *zone_region;
  */
 extern region_type *rr_region;
 
-struct zone {
-	struct namedb *db;
-	const dname_type *dname;
-	struct rrset *soa;
-	struct rrset *ns;
-};
-
-extern struct zone *current_zone;
-
 #define LINEBUFSZ 1024
 
-int process_rr(struct zone *z, rr_type *rr);
+int process_rr(zparser_type *parser, rr_type *rr);
 
 #endif /* _ZONEC_H_ */
