@@ -45,7 +45,7 @@
 #include "heap.h"
 #include "region-allocator.h"
 
-#define	NAMEDB_MAGIC		"NSDdbV03"
+#define	NAMEDB_MAGIC		"NSDdbV04"
 #define	NAMEDB_MAGIC_SIZE	8
 
 #if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
