@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.8 2003/01/21 15:18:52 alexis Exp $
+# $Id: Makefile.in,v 1.9 2003/01/21 15:21:43 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -56,7 +56,8 @@ srcdir = @srcdir@
 # NSD specific pathnames
 #
 NSDHOME		= @NSDHOME@
-NSDDB           = @NSDDB@
+NSDDB		= @NSDDB@
+NSDZONES	= @NSDZONES@
 NSDPIDFILE      = @NSDPIDFILE@
 NSDCCONF	= @NSDCCONF@
 NSDUSER		= @NSDUSER@
@@ -95,7 +96,7 @@ install: all
 	${INSTALL_DATA} zonec.8 ${mandir}/man8
 	${INSTALL_DATA} nsd-notify.8 ${mandir}/man8
 	${INSTALL_DATA} nsdc.conf.sample ${NSDCCONF}.sample
-	${INSTALL_DATA} nsdc.zones.sample ${NSDZONES}.sample
+	${INSTALL_DATA} nsd.zones.sample ${NSDZONES}.sample
 
 uninstall:
 	@echo
