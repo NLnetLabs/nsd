@@ -362,7 +362,8 @@ server_main(struct nsd *nsd)
 
 				/* Send SIGINT to terminate the parent quitely... */
 				if (kill(nsd->pid, SIGINT) != 0) {
-					log_msg(LOG_ERR, "cannot kill %d: %s", nsd->pid, strerror(errno));
+					log_msg(LOG_ERR, "cannot kill %d: %s",
+						(int) nsd->pid, strerror(errno));
 					exit(1);
 				}
 
