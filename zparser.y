@@ -893,9 +893,9 @@ yyerror(const char *message ATTR_UNUSED)
 }
 
 static void
-error_va_list(const char *fmt, va_list args)
+error_va_list(unsigned line, const char *fmt, va_list args)
 {
-	fprintf(stderr, " ERR: Line %u in %s: ", parser->line,
+	fprintf(stderr, " ERR: Line %u in %s: ", line,
 		parser->filename);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
@@ -911,11 +911,7 @@ error_prev_line(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-
-	--parser->line;
-	error_va_list(fmt, args);
-	++parser->line;
-
+	error_va_list(parser->line - 1, fmt, args);
 	va_end(args);
 }
 
@@ -925,16 +921,14 @@ error(const char *fmt, ...)
 	/* send an error message to stderr */
 	va_list args;
 	va_start(args, fmt);
-
-	error_va_list(fmt, args);
-
+	error_va_list(parser->line, fmt, args);
 	va_end(args);
 }
 
 static void
-warning_va_list(const char *fmt, va_list args)
+warning_va_list(unsigned line, const char *fmt, va_list args)
 {
-	fprintf(stderr, "WARN: Line %u in %s: ", parser->line,
+	fprintf(stderr, "WARN: Line %u in %s: ", line,
 		parser->filename);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
@@ -945,11 +939,7 @@ warning_prev_line(const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-
-	--parser->line;
-	warning_va_list(fmt, args);
-	++parser->line;
-
+	warning_va_list(parser->line - 1, fmt, args);
 	va_end(args);
 }
 
@@ -957,10 +947,7 @@ void
 warning(const char *fmt, ... )
 {
 	va_list args;
-
 	va_start(args, fmt);
-	
-	warning_va_list(fmt, args);
-
+	warning_va_list(parser->line, fmt, args);
 	va_end(args);
 }
