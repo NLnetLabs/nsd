@@ -719,6 +719,92 @@ answer_axfr_ixfr(struct nsd *nsd,
 }
 
 
+static int
+resolve_domain(struct nsd *nsd,
+	       struct query *q,
+	       u_char *qnamelow,
+	       const u_char *qname,
+	       u_char qnamelen,
+	       int qdepth,
+	       u_int16_t qclass,
+	       u_int16_t qtype)
+{
+	const u_char qstar[2] = "\001*";
+	struct domain *d;
+	int match;
+	
+	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
+
+	/* Do we have complete name? */
+	if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) &&
+		((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
+		/* Is this a delegation point? */
+		if (answer_delegation(q, qname, d)) {
+			return 1;
+		}
+
+		if (answer_domain(q, d, qclass, qtype, qname)) {
+			return 1;
+		}
+
+		if (answer_soa(q, d, qclass, qname)) {
+			return 1;
+		}
+
+		/* We have a partial match */
+		match = 1;
+	} else {
+		/* Set this if we find SOA later */
+		RCODE_SET(q, RCODE_NXDOMAIN);
+		match = 0;
+	}
+
+	/* Start matching down label by label */
+	do {
+		/* Strip leftmost label */
+		qnamelen -= (*qname + 1);
+		qname += (*qname + 1);
+		qnamelow += (*qnamelow + 1);
+
+		qdepth--;
+		/* Only look for wildcards if we did not have any match before */
+		if(match == 0 && NAMEDB_TSTBITMASK(nsd->db, NAMEDB_STARMASK, qdepth + 1)) {
+			/* Prepend star */
+			memcpy(qnamelow - 2, qstar, 2);
+
+			/* Lookup star */
+			*(qnamelow - 3) = qnamelen + 2;
+			if((d = namedb_lookup(nsd->db, qnamelow - 3)) != NULL) {
+				/* We found a domain... */
+				RCODE_SET(q, RCODE_OK);
+
+				if (answer_domain(q, d, qclass, qtype, qname)) {
+					return 1;
+				}
+			}
+		}
+
+		/* Do we have a SOA or zone cut? */
+		*(qnamelow - 1) = qnamelen;
+		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
+			if (answer_delegation(q, qname, d)) {
+				return 1;
+			}
+
+			if (answer_soa(q, d, qclass, qname)) {
+				return 1;
+			}
+
+			/* We found some data, so dont try to match the wildcards anymore... */
+			match = 1;
+		}
+
+	} while(*qname);
+
+	return 0;
+}
+
+
 /*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
  * -1 if the query has to be silently discarded.
@@ -727,7 +813,6 @@ answer_axfr_ixfr(struct nsd *nsd,
 int 
 query_process (struct query *q, struct nsd *nsd)
 {
-	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 3];
 
 	/* The query... */
@@ -739,9 +824,6 @@ query_process (struct query *q, struct nsd *nsd)
 	int qdepth;
 	int recursion_desired;
 	int axfr;
-	
-	struct domain *d;
-	int match;
 
 	/* Sanity checks */
 	if(QR(q))
@@ -826,74 +908,10 @@ query_process (struct query *q, struct nsd *nsd)
 	if (answer_axfr_ixfr(nsd, q, qnamelow, qname, qdepth, qtype, &axfr)) {
 		return axfr;
 	}
-	
-	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
 
-	/* Do we have complete name? */
-	if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) &&
-		((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
-		/* Is this a delegation point? */
-		if (answer_delegation(q, qname, d)) {
-			return 0;
-		}
-
-		if (answer_domain(q, d, qclass, qtype, qname)) {
-			return 0;
-		}
-
-		if (answer_soa(q, d, qclass, qname)) {
-			return 0;
-		}
-
-		/* We have a partial match */
-		match = 1;
-	} else {
-		/* Set this if we find SOA later */
-		RCODE_SET(q, RCODE_NXDOMAIN);
-		match = 0;
+	if (resolve_domain(nsd, q, qnamelow, qname, qnamelen, qdepth, qclass, qtype)) {
+		return 0;
 	}
-
-	/* Start matching down label by label */
-	do {
-		/* Strip leftmost label */
-		qnamelen -= (*qname + 1);
-		qname += (*qname + 1);
-		qnamelow += (*qnamelow + 1);
-
-		qdepth--;
-		/* Only look for wildcards if we did not have any match before */
-		if(match == 0 && NAMEDB_TSTBITMASK(nsd->db, NAMEDB_STARMASK, qdepth + 1)) {
-			/* Prepend star */
-			memcpy(qnamelow - 2, qstar, 2);
-
-			/* Lookup star */
-			*(qnamelow - 3) = qnamelen + 2;
-			if((d = namedb_lookup(nsd->db, qnamelow - 3)) != NULL) {
-				/* We found a domain... */
-				RCODE_SET(q, RCODE_OK);
-
-				if (answer_domain(q, d, qclass, qtype, qname)) {
-					return 0;
-				}
-			}
-		}
-
-		/* Do we have a SOA or zone cut? */
-		*(qnamelow - 1) = qnamelen;
-		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
-			if (answer_delegation(q, qname, d)) {
-				return 0;
-			}
-
-			if (answer_soa(q, d, qclass, qname)) {
-				return 0;
-			}
-
-			/* We found some data, so dont try to match the wildcards anymore... */
-			match = 1;
-		}
-
-	} while(*qname);
 
 	RCODE_SET(q, RCODE_SERVFAIL);
 
