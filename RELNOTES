@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.12 2002/12/17 14:41:29 alexis Exp $
+$Id: RELNOTES,v 1.13 2003/03/20 10:03:06 alexis Exp $
 
 1.0.2
 =============
@@ -50,7 +50,7 @@ KNOWN BUGS:
 KNOWN BUGS:
 
 - Although NSD allows one to configure a zone without SOA record and
-  use it as so called ``cached'' non-authoratative data, it is decided
+  use it as so called ``cached'' non-authoritative data, it is decided
   that having this functionality is wrong, dangerous and will be removed
   from the further versions.
 
