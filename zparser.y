@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.55 2003/10/29 14:36:48 miekg Exp $
+ * $Id: zparser.y,v 1.1 2003/10/30 11:27:13 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -16,8 +16,7 @@
 
 #include "dname.h"
 #include "namedb.h"
-#include "zonec2.h"
-#include "zparser2.h"
+#include "zonec.h"
 
 /* these need to be global, otherwise they cannot be used inside yacc */
 zparser_type *current_parser;

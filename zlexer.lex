@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.36 2003/10/30 10:46:00 miekg Exp $
+ * $Id: zlexer.lex,v 1.1 2003/10/30 11:27:13 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -11,8 +11,7 @@
 
 #include <config.h>
 
-#include "zonec2.h"
-#include "zparser2.h"
+#include "zonec.h"
 #include "dname.h"
 #include "zyparser.h"
 

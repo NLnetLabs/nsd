@@ -1,27 +1,20 @@
-/* 
- * zparser2.h - header file for parser2
+/*
+ * $Id: zonec.h,v 1.30 2003/10/30 11:27:13 miekg Exp $
  *
- * Copyright (c) NLnetLabs. All rights reserved.
+ * zonec.h -- internal zone representation.
  *
- * See LICENSE for license
+ * Copyright (c) 2001- 2003, NLnet Labs. All rights reserved.
+ *
+ * See LICENSE for the license.
+ *
  */
 
-#ifndef _ZPARSER_H_
-#define	_ZPARSER_H_
-
-#include <assert.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <errno.h>
-#include <limits.h>
-#include <stdio.h>
-#include <string.h>
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-#include <unistd.h>
+#ifndef _ZONEC_H_
+#define _ZONEC_H_
+#endif /* _ZONEC_H_ */
 
 #include "dname.h"
+#include "region-allocator.h"
 #include "dns.h"
 #include "namedb.h"
 #include "util.h"
@@ -37,7 +30,7 @@
 
 #ifndef AF_INET6
 #define AF_INET6	28	/* IPv6 */
-#endif
+#endif /* AF_INET6 */
 
 /* Type of rdata elements we might encounter */
 #define RDATA_A		1
@@ -55,6 +48,7 @@
 #define RDATA_PROTO	13
 #define RDATA_SERVICE	14
 
+#define LINEBUFSZ 1024
 struct lex_data {
     size_t   len;		/* holds the label length */
     void    *str;		/* holds the data */
@@ -154,7 +148,17 @@ struct ztab {
 extern struct ztab ztypes[];
 extern struct ztab zclasses[];
 
-/* zparser2.c */
+/* zonec.c */
+/*
+ * This region is deallocated after each zone is parsed and analyzed.
+ */
+extern region_type *zone_region;
+
+/*
+ * This region is deallocated after each RR is parsed and analyzed.
+ */
+extern region_type *rr_region;
+int process_rr(zparser_type *parser, rr_type *rr);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
 uint16_t *zparser_conv_rdata_proto(region_type *region, const char *protostr);
@@ -191,10 +195,9 @@ void zprintrr(FILE *f, rr_type *rr);
 
 void setbit(uint8_t bits[], int index);
 
-/* zlparser.lex */
+/* zlexer.lex */
 int zoctet(char *word);
 int zrrtype (char *word);
 uint16_t intbyclassxx(void *str);
 uint16_t intbytypexx(void *str);
 
-#endif /* _ZPARSER_H_ */

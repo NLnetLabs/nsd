@@ -51,7 +51,7 @@
 #include "dns.h"
 #include "namedb.h"
 #include "util.h"
-#include "zparser2.h"
+#include "zonec.h"
 
 int
 namedb_lookup(struct namedb    *db,
