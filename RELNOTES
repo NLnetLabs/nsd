@@ -1,5 +1,13 @@
 NSD RELEASE NOTES
 
+2.1.0
+=============
+FEATURES:
+        - New networking code allows a single server to handle both
+          UDP and TCP connections.  By default up to 10 simultaneous
+          TCP connections are supported.  Use the '-n' flag to change
+          the default.
+
 2.0.2
 =============
 BUG FIXES:
