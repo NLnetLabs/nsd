@@ -48,7 +48,7 @@
 
 #define CHUNK_SIZE         4096
 #define LARGE_OBJECT_SIZE  (CHUNK_SIZE / 8)
-#define ALIGNMENT          (2 * sizeof(void *))
+#define ALIGNMENT          (sizeof(void *))
 
 typedef struct cleanup cleanup_type;
 struct cleanup
