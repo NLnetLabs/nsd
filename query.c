@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.64 2002/05/06 13:36:15 alexis Exp $
+ * $Id: query.c,v 1.65 2002/05/06 13:54:01 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -223,8 +223,11 @@ query_axfr(q, db, qname, zname, depth)
 		return 0;	/* Done. */
 	}
 
+	/* Let get next answer */
+	a = NULL;
+
 	/* Get next answer */
-	for(a = NULL; a == NULL; a = namedb_answer(d, htons(TYPE_ANY))) {
+	while(a == NULL) {
 		node = rbtree_next(node);
 
 		/* End of the tree? */
@@ -245,6 +248,12 @@ query_axfr(q, db, qname, zname, depth)
 				zone = NULL;
 				break;
 			}
+		}
+
+		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
+			a = namedb_answer(d, htons(TYPE_NS));
+		} else {
+			a = namedb_answer(d, htons(TYPE_ANY));
 		}
 	}
 
