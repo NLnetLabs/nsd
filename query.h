@@ -15,9 +15,11 @@
 
 #include "namedb.h"
 #include "nsd.h"
-#include "packet.h"
 
-enum query_state {
+#define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
+#define MAX_COMPRESSED_DNAMES	MAXRRSPP /* Maximum number of compressed domains. */
+enum query_state
+{
 	QUERY_PROCESSED,
 	QUERY_DISCARDED,
 	QUERY_IN_AXFR
@@ -26,7 +28,8 @@ typedef enum query_state query_state_type;
 
 /* Query as we pass it around */
 typedef struct query query_type;
-struct query {
+struct query
+{
 	/*
 	 * Memory region freed whenever the query is reset.
 	 */
@@ -117,22 +120,22 @@ struct query {
 
 
 /* Check if the last write resulted in an overflow.  */
-static inline int query_overflow(struct query *q);
+static inline int query_overflow(query_type *q);
 
 /*
  * Store the offset of the specified domain in the dname compression
  * table.
  */
-void query_put_dname_offset(struct query *query,
-			    domain_type  *domain,
-			    uint16_t      offset);
+void query_put_dname_offset(query_type  *query,
+			    domain_type *domain,
+			    uint16_t     offset);
 /*
  * Lookup the offset of the specified domain in the dname compression
  * table.  Offset 0 is used to indicate the domain is not yet in the
  * compression table.
  */
 static inline
-uint16_t query_get_dname_offset(struct query *query, domain_type *domain)
+uint16_t query_get_dname_offset(query_type *query, domain_type *domain)
 {
 	return query->compressed_dname_offsets[domain->number];
 }
@@ -143,20 +146,20 @@ uint16_t query_get_dname_offset(struct query *query, domain_type *domain)
  * are truncated and before adding new RRs.  Otherwise dnames may be
  * compressed using truncated data!
  */
-void query_clear_dname_offsets(struct query *query, size_t max_offset);
+void query_clear_dname_offsets(query_type *query, size_t max_offset);
 
 /*
  * Clear the compression tables.
  */
-void query_clear_compression_tables(struct query *query);
+void query_clear_compression_tables(query_type *query);
 
 /*
  * Enter the specified domain into the compression table starting at
  * the specified offset.
  */
-void query_add_compression_domain(struct query *query,
-				  domain_type  *domain,
-				  uint16_t      offset);
+void query_add_compression_domain(query_type  *query,
+				  domain_type *domain,
+				  uint16_t     offset);
 
 
 /*

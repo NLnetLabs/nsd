@@ -20,7 +20,7 @@
 
 #include "dns.h"
 #include "dname.h"
-#include "query.h"
+#include "packet.h"
 
 inline int
 label_compare(const uint8_t *left, const uint8_t *right)
@@ -29,17 +29,17 @@ label_compare(const uint8_t *left, const uint8_t *right)
 	int right_length;
 	int size;
 	int result;
-	
+
 	assert(left);
 	assert(right);
 
 	assert(label_is_normal(left));
 	assert(label_is_normal(right));
-	
+
 	left_length = label_length(left);
 	right_length = label_length(right);
 	size = left_length < right_length ? left_length : right_length;
-	
+
 	result = memcmp(label_data(left), label_data(right), size);
 	if (result) {
 		return result;
@@ -58,7 +58,7 @@ dname_make(region_type *region, const uint8_t *name)
 	uint8_t *p;
 	dname_type *result;
 	size_t i;
-	
+
 	assert(name);
 
 	/* Generate canonical representation.  */
@@ -68,7 +68,7 @@ dname_make(region_type *region, const uint8_t *name)
 	label = name;
 	for (label = name; !label_is_root(label); label = label_next(label)) {
 		size_t length;
-		
+
 		if (label_is_pointer(label))
 			return NULL;
 
@@ -77,7 +77,7 @@ dname_make(region_type *region, const uint8_t *name)
 		name_length += length + 1;
 		if (name_length > MAXDOMAINLEN)
 			return NULL;
-		
+
 		p -= length + 1;
 		p[0] = length;
 		for (i = 0; i < length; ++i) {
@@ -104,9 +104,9 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 	size_t dname_length = 0;
 	const uint8_t *label;
 	ssize_t mark = -1;
-	
+
 	memset(visited, 0, (buffer_limit(packet)+7)/8);
-	
+
 	while (!done) {
 		if (!buffer_available(packet, 1)) {
 /* 			error("dname out of bounds"); */
@@ -181,12 +181,12 @@ dname_parse(region_type *region, const char *name)
 		dname[0] = 0;
 		return dname_make(region, dname);
 	}
-	
+
 	for (h = d, p = h + 1; *s; ++s, ++p) {
 		if (p - dname >= MAXDOMAINLEN) {
 			return NULL;
 		}
-		
+
 		switch (*s) {
 		case '.':
 			if (p == h + 1) {
@@ -235,7 +235,7 @@ dname_parse(region_type *region, const char *name)
 
 	/* Add root label.  */
 	*h = 0;
-	
+
 	return dname_make(region, dname);
 }
 
@@ -253,7 +253,7 @@ dname_label_count(const dname_type *dname)
 {
 	const uint8_t *label;
 	size_t result;
-	
+
 	assert(dname);
 
 	result = 1;
@@ -278,7 +278,7 @@ dname_partial_copy(region_type *region, const dname_type *dname, uint8_t count)
 		/* Always copy the root label.  */
 		count = 1;
 	}
-	
+
 	assert(count <= dname_label_count(dname));
 
 	return dname_make(region, dname_label(dname, count - 1));
@@ -297,12 +297,12 @@ dname_is_subdomain(const dname_type *left, const dname_type *right)
 {
 	const uint8_t *left_label = dname_canonical_name(left);
 	const uint8_t *right_label = dname_canonical_name(right);
-	
+
 	while (1) {
 		if (label_is_root(right_label)) {
 			return 1;
 		}
-		
+
 		if (label_compare(left_label, right_label) != 0) {
 			return 0;
 		}
@@ -320,7 +320,7 @@ dname_label(const dname_type *dname, size_t index)
 	size_t label_count = dname_label_count(dname);
 
 	assert(index < label_count);
-	
+
 	result = dname_name(dname);
 	while (label_count - 1 > index) {
 		result = label_next(result);
@@ -337,7 +337,7 @@ dname_compare(const dname_type *left, const dname_type *right)
 	int result;
 	const uint8_t *left_label;
 	const uint8_t *right_label;
-	
+
 	assert(left);
 	assert(right);
 
@@ -374,7 +374,7 @@ dname_label_match_count(const dname_type *left, const dname_type *right)
 	uint8_t i;
 	const uint8_t *left_label;
 	const uint8_t *right_label;
-	
+
 	assert(left);
 	assert(right);
 
@@ -382,7 +382,7 @@ dname_label_match_count(const dname_type *left, const dname_type *right)
 	right_label = dname_canonical_name(right);
 
 	i = 1;
-	while (1) { 
+	while (1) {
 		if (label_compare(left_label, right_label) != 0) {
 			return i;
 		}
@@ -412,7 +412,7 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 		strcpy(buf, ".");
 		return buf;
 	}
-	
+
 	if (origin && dname_is_subdomain(dname, origin)) {
 		int common_labels = dname_label_match_count(dname, origin);
 		labels_to_convert = labels_to_convert - common_labels;
@@ -465,7 +465,7 @@ dname_make_from_label(region_type *region,
 
 	return dname_make(region, temp);
 }
-         
+
 
 const dname_type *
 dname_concatenate(region_type *region,
@@ -475,7 +475,7 @@ dname_concatenate(region_type *region,
 	uint8_t temp[MAXDOMAINLEN];
 
 	assert(dname_length(left) + dname_length(right) - 1 <= MAXDOMAINLEN);
-	
+
 	memcpy(temp, dname_name(left), dname_length(left) - 1);
 	memcpy(temp + dname_length(left) - 1, dname_name(right),
 	       dname_length(right));

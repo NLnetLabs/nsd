@@ -81,7 +81,7 @@ struct nsd_child
 
 /* NSD configuration and run-time variables */
 typedef struct nsd nsd_type;
-struct	nsd
+struct nsd
 {
 	/*
 	 * Global region that is not deallocated until NSD shuts down.
@@ -140,13 +140,13 @@ struct	nsd
 
 /* nsd.c */
 pid_t readpid(const char *file);
-int writepid(struct nsd *nsd);
+int writepid(nsd_type *nsd);
 void sig_handler(int sig);
-void bind8_stats(struct nsd *nsd);
+void bind8_stats(nsd_type *nsd);
 
 /* server.c */
-int server_init(struct nsd *nsd);
-void server_main(struct nsd *nsd);
-void server_child(struct nsd *nsd);
+int server_init(nsd_type *nsd);
+void server_main(nsd_type *nsd);
+void server_child(nsd_type *nsd);
 
 #endif	/* _NSD_H_ */

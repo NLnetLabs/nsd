@@ -6,7 +6,7 @@
  * See LICENSE for the license
  *
  * nsdc - re-implementation of nsdc.sh in C
- * 
+ *
  */
 
 #include <config.h>
@@ -40,12 +40,13 @@
 #include "options.h"
 #include "plugins.h"
 #include "client.h"
+#include "packet.h"
 #include "query.h"
 
 extern char *optarg;
 extern int optind;
 
-static struct nsd nsdc;
+static nsd_type nsdc;
 
 /* static? */
 static lookup_table_type control_msgs[] = {
@@ -78,8 +79,8 @@ usage(void)
 }
 
 static void
-version(void)   
-{       
+version(void)
+{
         fprintf(stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
         fprintf(stderr, "Written by NLnet Labs.\n\n");
         fprintf(stderr,
@@ -111,9 +112,9 @@ main (int argc, char *argv[])
 	log_init("nsdc");
 
         /* Initialize the handler... */
-        memset(&nsdc, 0, sizeof(struct nsd));
+        memset(&nsdc, 0, sizeof(nsd_type));
         nsdc.region      = region_create(xalloc, free);
-#if 0  
+#if 0
 	- copied not needed I think
         nsdc.server_kind = NSD_SERVER_MAIN;
 #endif
@@ -150,7 +151,7 @@ main (int argc, char *argv[])
 	/* what kind of service does the user want? */
 	control = lookup_by_name(arg_control_msgs, argv[0]);
 
-	if (!control) 
+	if (!control)
 		error(EXIT_FAILURE, "unknown control message\n");
 
 	control = lookup_by_id(control_msgs, control->id);
@@ -171,7 +172,7 @@ main (int argc, char *argv[])
 	}
 
 	/* Initialize the query */
-        memset(&q, 0, sizeof(struct query));
+        memset(&q, 0, sizeof(query_type));
         q.addrlen = sizeof(q.addr);
         q.maxlen = 512;
         q.packet = buffer_create(nsdc.region, QIOBUFSZ);
@@ -194,7 +195,7 @@ main (int argc, char *argv[])
 	hints.ai_protocol = IPPROTO_TCP;
 
 	rc = getaddrinfo(DEFAULT_CONTROL_HOST, port, &hints, &res);
-	if (rc) 
+	if (rc)
 		error(EXIT_FAILURE, "bad address %s: %s\n", DEFAULT_CONTROL_HOST,
 				gai_strerror(rc));
 
@@ -220,4 +221,4 @@ main (int argc, char *argv[])
 
 	close(sockfd);
 }
- 
+

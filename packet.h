@@ -14,8 +14,7 @@
 
 #include "dns.h"
 #include "namedb.h"
-
-struct query;
+#include "query.h"
 
 /*
  * Set of macro's to deal with the dns message header as specified
@@ -137,15 +136,13 @@ struct query;
 
 #define	QIOBUFSZ		(MAX_PACKET_SIZE + MAX_RR_SIZE)
 
-#define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
-#define MAX_COMPRESSED_DNAMES	MAXRRSPP /* Maximum number of compressed domains. */
 #define MAX_COMPRESSION_OFFSET  16383	 /* Compression pointers are 14 bit. */
 
 /*
  * Encode RR with OWNER as owner name into QUERY.  Returns the number
  * of RRs successfully encoded.
  */
-int packet_encode_rr(struct query *query, domain_type *owner, rr_type *rr);
+int packet_encode_rr(query_type *query, domain_type *owner, rr_type *rr);
 
 /*
  * Encode RRSET with OWNER as the owner name into QUERY.  Returns the
@@ -153,7 +150,7 @@ int packet_encode_rr(struct query *query, domain_type *owner, rr_type *rr);
  * RRset is truncated in case an RR (or the RRsets signature) does not
  * fit.
  */
-int packet_encode_rrset(struct query *query,
+int packet_encode_rrset(query_type *query,
 			domain_type *owner,
 			rrset_type *rrset,
 			int truncate_rrset);

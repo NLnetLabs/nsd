@@ -21,7 +21,7 @@ int deny_severity = LOG_NOTICE;
 #endif /* LIBWRAP */
 
 query_state_type
-query_axfr (struct nsd *nsd, struct query *query)
+query_axfr (nsd_type *nsd, query_type *query)
 {
 	int added;
 	uint16_t total_added = 0;
@@ -130,7 +130,7 @@ return_answer:
  * Answer if this is an AXFR or IXFR query.
  */
 query_state_type
-answer_axfr_ixfr(struct nsd *nsd, struct query *q)
+answer_axfr_ixfr(nsd_type *nsd, query_type *q)
 {
 	/* Is it AXFR? */
 	switch (q->qtype) {

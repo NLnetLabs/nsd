@@ -36,24 +36,24 @@
 #include "query.h"
 #include "util.h"
 
-static int add_rrset(struct query  *query,
+static int add_rrset(query_type     *query,
 		     answer_type    *answer,
 		     rr_section_type section,
 		     domain_type    *owner,
 		     rrset_type     *rrset);
 
-static void answer_authoritative(struct query     *q,
-				 answer_type      *answer,
-				 uint32_t          domain_number,
-				 int               exact,
-				 domain_type      *closest_match,
-				 domain_type      *closest_encloser);
+static void answer_authoritative(query_type  *q,
+				 answer_type *answer,
+				 uint32_t     domain_number,
+				 int          exact,
+				 domain_type *closest_match,
+				 domain_type *closest_encloser);
 
 static query_state_type process_control_command(nsd_type *nsd,
 						query_type *query);
 
 void
-query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
+query_put_dname_offset(query_type *q, domain_type *domain, uint16_t offset)
 {
 	assert(q);
 	assert(domain);
@@ -70,7 +70,7 @@ query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 }
 
 void
-query_clear_dname_offsets(struct query *q, size_t max_offset)
+query_clear_dname_offsets(query_type *q, size_t max_offset)
 {
 	while (q->compressed_dname_count > 0
 	       && (q->compressed_dname_offsets[q->compressed_dnames[q->compressed_dname_count - 1]->number]
@@ -82,7 +82,7 @@ query_clear_dname_offsets(struct query *q, size_t max_offset)
 }
 
 void
-query_clear_compression_tables(struct query *q)
+query_clear_compression_tables(query_type *q)
 {
 	uint16_t i;
 
@@ -94,7 +94,7 @@ query_clear_compression_tables(struct query *q)
 }
 
 void
-query_add_compression_domain(struct query *q, domain_type *domain, uint16_t offset)
+query_add_compression_domain(query_type *q, domain_type *domain, uint16_t offset)
 {
 	while (domain->parent) {
 		DEBUG(DEBUG_NAME_COMPRESSION, 1,
@@ -112,7 +112,7 @@ query_add_compression_domain(struct query *q, domain_type *domain, uint16_t offs
  * Generate an error response with the specified RCODE.
  */
 query_state_type
-query_error (struct query *q, nsd_rc_type rcode)
+query_error (query_type *q, nsd_rc_type rcode)
 {
 	if (rcode == NSD_RC_DISCARD) {
 		return QUERY_DISCARDED;
@@ -133,7 +133,7 @@ query_error (struct query *q, nsd_rc_type rcode)
 }
 
 static query_state_type
-query_formerr (struct query *query)
+query_formerr (query_type *query)
 {
 	return query_error(query, NSD_RC_FORMAT);
 }
@@ -187,7 +187,7 @@ query_reset(query_type *q, size_t maxlen, nsd_socket_type *socket)
 }
 
 void
-query_addtxt(struct query  *q,
+query_addtxt(query_type  *q,
 	     const uint8_t *dname,
 	     uint16_t       klass,
 	     uint32_t       ttl,
@@ -277,7 +277,7 @@ process_query_section(query_type *query)
  * Return 0 on failure, 1 on success.
  */
 static nsd_rc_type
-process_edns(struct query *q)
+process_edns(query_type *q)
 {
 	if (q->edns.status == EDNS_ERROR) {
 		return NSD_RC_FORMAT;
@@ -320,7 +320,7 @@ process_edns(struct query *q)
  * XXX: erik: Is this the right way to handle notifies?
  */
 static query_state_type
-answer_notify (struct query *query)
+answer_notify (query_type *query)
 {
 	char namebuf[BUFSIZ];
 
@@ -344,7 +344,7 @@ answer_notify (struct query *query)
  * Answer a query in the CHAOS class.
  */
 static query_state_type
-answer_chaos(struct nsd *nsd, query_type *q)
+answer_chaos(nsd_type *nsd, query_type *q)
 {
 	AA_CLR(q->packet);
 	switch (q->qtype) {
@@ -439,7 +439,7 @@ struct additional_rr_types rt_additional_rr_types[] = {
 };
 
 static void
-add_additional_rrsets(struct query *query, answer_type *answer,
+add_additional_rrsets(query_type *query, answer_type *answer,
 		      rrset_type *master_rrset, size_t rdata_index,
 		      int allow_glue, struct additional_rr_types types[])
 {
@@ -495,7 +495,7 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 }
 
 static int
-add_rrset(struct query   *query,
+add_rrset(query_type   *query,
 	  answer_type    *answer,
 	  rr_section_type section,
 	  domain_type    *owner,
@@ -573,7 +573,7 @@ answer_delegation(query_type *query, answer_type *answer)
  * Answer SOA information.
  */
 static void
-answer_soa(struct query *query, answer_type *answer)
+answer_soa(query_type *query, answer_type *answer)
 {
 	query->domain = query->zone->apex;
 
@@ -596,7 +596,7 @@ answer_soa(struct query *query, answer_type *answer)
  * wildcard entry, not to the generated entry.
  */
 static void
-answer_nodata(struct query *query, answer_type *answer, domain_type *original)
+answer_nodata(query_type *query, answer_type *answer, domain_type *original)
 {
 	if (query->cname_count == 0) {
 		answer_soa(query, answer);
@@ -628,7 +628,7 @@ answer_nxdomain(query_type *query, answer_type *answer)
  * the type specified by the query).
  */
 static void
-answer_domain(struct query *q, answer_type *answer,
+answer_domain(query_type *q, answer_type *answer,
 	      domain_type *domain, domain_type *original)
 {
 	rrset_type *rrset;
@@ -703,7 +703,7 @@ answer_domain(struct query *q, answer_type *answer,
  * domain name does not exist and/or a wildcard match does not exist.
  */
 static void
-answer_authoritative(struct query *q,
+answer_authoritative(query_type *q,
 		     answer_type  *answer,
 		     uint32_t      domain_number,
 		     int           exact,
@@ -780,7 +780,7 @@ answer_authoritative(struct query *q,
 }
 
 static void
-answer_query(struct nsd *nsd, struct query *q)
+answer_query(nsd_type *nsd, query_type *q)
 {
 	domain_type *closest_match;
 	domain_type *closest_encloser;
@@ -1027,7 +1027,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
  * TODO: Should be moved somewhere else.
  */
 static query_state_type
-process_control_command(nsd_type *nsd,
+process_control_command(nsd_type   *nsd,
 			query_type *query)
 {
 	if (query->qclass != CLASS_CH) {

@@ -42,7 +42,7 @@
 #endif /* TSIG */
 
 /* The server handler... */
-static struct nsd nsd;
+static nsd_type nsd;
 static char hostname[MAXHOSTNAMELEN];
 
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
@@ -123,7 +123,7 @@ readpid (const char *file)
 }
 
 int
-writepid (struct nsd *nsd)
+writepid (nsd_type *nsd)
 {
 	FILE * fd;
 	char pidbuf[16];
@@ -231,7 +231,7 @@ sig_handler (int sig)
  */
 #ifdef BIND8_STATS
 void
-bind8_stats (struct nsd *nsd)
+bind8_stats (nsd_type *nsd)
 {
 	char buf[MAXSYSLOGMSGLEN];
 	char *msg, *t;
@@ -353,7 +353,7 @@ main (int argc, char *argv[])
 	log_init("nsd");
 
 	/* Initialize the server handler... */
-	memset(&nsd, 0, sizeof(struct nsd));
+	memset(&nsd, 0, sizeof(nsd_type));
 	nsd.region      = region_create(xalloc, free);
 	nsd.server_kind = NSD_SERVER_KIND_MAIN;
 

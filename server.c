@@ -33,6 +33,7 @@
 #include "axfr.h"
 #include "namedb.h"
 #include "netio.h"
+#include "packet.h"
 #include "plugins.h"
 
 
@@ -173,7 +174,7 @@ static uint16_t *compressed_dname_offsets;
  * the pid is not in the list, 1 otherwise.  The field is set to 0.
  */
 static int
-delete_child_pid(struct nsd *nsd, pid_t pid)
+delete_child_pid(nsd_type *nsd, pid_t pid)
 {
 	size_t i;
 	for (i = 0; i < nsd->options->server_count; ++i) {
@@ -189,7 +190,7 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
  * Restart child servers if necessary.
  */
 static int
-restart_child_servers(struct nsd *nsd)
+restart_child_servers(nsd_type *nsd)
 {
 	size_t i;
 
@@ -216,7 +217,7 @@ restart_child_servers(struct nsd *nsd)
 }
 
 static void
-initialize_dname_compression_tables(struct nsd *nsd)
+initialize_dname_compression_tables(nsd_type *nsd)
 {
 	uint32_t max_domains = 0;
 	const dname_type *key;
@@ -244,7 +245,7 @@ initialize_dname_compression_tables(struct nsd *nsd)
  *
  */
 int
-server_init(struct nsd *nsd)
+server_init(nsd_type *nsd)
 {
 	size_t i;
 #if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU)))
@@ -375,7 +376,7 @@ server_init(struct nsd *nsd)
  * Fork the required number of servers.
  */
 static int
-server_start_children(struct nsd *nsd)
+server_start_children(nsd_type *nsd)
 {
 	size_t i;
 
@@ -419,7 +420,7 @@ server_shutdown(nsd_type *nsd)
  * terminate.  Child processes are restarted as necessary.
  */
 void
-server_main(struct nsd *nsd)
+server_main(nsd_type *nsd)
 {
 	int fd;
 	int status;
@@ -553,7 +554,7 @@ server_main(struct nsd *nsd)
 }
 
 static query_state_type
-process_query(struct nsd *nsd, struct query *query)
+process_query(nsd_type *nsd, query_type *query)
 {
 #ifdef PLUGINS
 	query_state_type rc;
@@ -592,7 +593,7 @@ process_query(struct nsd *nsd, struct query *query)
  * Serve DNS requests.
  */
 void
-server_child(struct nsd *nsd)
+server_child(nsd_type *nsd)
 {
 	size_t i;
 	region_type *server_region = region_create(xalloc, free);
@@ -708,7 +709,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 	struct udp_handler_data *data
 		= (struct udp_handler_data *) handler->user_data;
 	int received, sent;
-	struct query *q = data->query;
+	query_type *q = data->query;
 
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
@@ -970,7 +971,7 @@ handle_tcp_writing(netio_type *netio,
 	struct tcp_handler_data *data
 		= (struct tcp_handler_data *) handler->user_data;
 	ssize_t sent;
-	struct query *q = data->query;
+	query_type *q = data->query;
 
 	if (event_types & NETIO_EVENT_TIMEOUT) {
 		/* Connection timed out.  */

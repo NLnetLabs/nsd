@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include "packet.h"
 #include "query.h"
 
 static void
@@ -86,7 +87,7 @@ main (int argc, char *argv[])
 		usage();
 
 	/* Initialize the query */
-	memset(&q, 0, sizeof(struct query));
+	memset(&q, 0, sizeof(query_type));
 	q.addrlen = sizeof(q.addr);
 	q.maxlen = 512;
 	q.packet = buffer_create(region, QIOBUFSZ);
