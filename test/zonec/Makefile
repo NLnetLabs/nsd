@@ -11,3 +11,7 @@ unknown: ../../zonec
 
 dnssec: ../../zonec
 	../../zonec -v -f test.db dnssec.conf
+
+nsd:	../../nsd
+	@echo Running NSD on port 5353 with test.db 
+	../../nsd -d -p 5353 -f test.db -u `whoami`

@@ -276,7 +276,7 @@ bind8_stats (struct nsd *nsd)
 		"RP", "AFSDB", "X25", "ISDN", "RT", "NSAP", "NSAP_PTR", "SIG",		/* 24 */
 		"KEY", "PX", "GPOS", "AAAA", "LOC", "NXT", "EID", "NIMLOC",		/* 32 */
 		"SRV", "ATMA", "NAPTR", "KX", "CERT", "A6", "DNAME", "SINK",		/* 40 */
-		"OPT", NULL, NULL, NULL, NULL, NULL, NULL, NULL,			/* 48 */
+		"OPT", NULL, "DS", NULL, NULL, "RRSIG", "NSEC", "DNSKEY",		/* 48 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 56 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 64 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 72 */

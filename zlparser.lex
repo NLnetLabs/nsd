@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.33 2003/10/29 11:02:01 miekg Exp $
+ * $Id: zlparser.lex,v 1.34 2003/10/29 14:36:48 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -26,7 +26,7 @@ const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS", "EID", "NIMLOC", "ATMA",
     "NAPTR", "KX", "A6", "DNAME", "SINK", "OPT", "APL", "UINFO", "UID",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA",
-    "DS"};
+    "DS","RRSIG","NSEC","DNSKEY"};
 
 YY_BUFFER_STATE include_stack[MAXINCLUDES];
 zparser_type zparser_stack[MAXINCLUDES];

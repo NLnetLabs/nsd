@@ -62,7 +62,7 @@ struct lex_data {
 
 
 #define DEFAULT_TTL 3600
-#define RRTYPES     54
+#define RRTYPES     57
 #define MAXINCLUDES 10
 
 /* a RR in DNS */
@@ -144,6 +144,9 @@ struct ztab {
 	{TYPE_KEY, "KEY"},	\
 	{TYPE_NXT, "NXT"},	\
 	{TYPE_DS, "DS"},	\
+	{TYPE_RRSIG, "RRSIG"},	\
+	{TYPE_NSEC, "NSEC"},	\
+	{TYPE_DNSKEY, "DNSKEY"},\
 	{TYPE_ANY, "ANY"},	\
 	{0, NULL}		\
 }

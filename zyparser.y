@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.54 2003/10/29 13:26:49 miekg Exp $
+ * $Id: zyparser.y,v 1.55 2003/10/29 14:36:48 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -54,7 +54,7 @@ uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 %token <type> A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
 %token <type> MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
 %token <type> EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
-%token <type> UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA DS
+%token <type> UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA DS RRSIG NSEC DNSKEY
 
 /* other tokens */
 %token         DIR_TTL DIR_ORIG NL ORIGIN SP
