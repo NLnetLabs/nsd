@@ -546,6 +546,7 @@ answer_delegation(struct query *query)
 	
 	AA_CLR(query);
 	add_ns_rrset(query, query->delegation_domain, query->delegation_rrset);
+	query->domain = query->delegation_domain;
 }
 
 
@@ -557,6 +558,8 @@ answer_delegation(struct query *query)
 static void
 answer_soa(struct query *q)
 {
+	q->domain = q->zone->domain;
+	
 	if (q->class == CLASS_ANY) {
 		AA_CLR(q);
 	} else {
@@ -596,6 +599,8 @@ answer_domain(struct query *q, domain_type *domain)
 		return;
 	}
 
+	q->domain = domain;
+	
 	if (q->class == CLASS_ANY) {
 		AA_CLR(q);
 	} else if (q->zone->ns_rrset) {
@@ -845,7 +850,14 @@ answer_query(struct nsd *nsd, struct query *q)
 	size_t i;
 	
 	exact = namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser);
+	if (!closest_encloser->is_existing) {
+		exact = 0;
+		while (!closest_encloser->is_existing)
+			closest_encloser = closest_encloser->parent;
+	}
 
+	q->domain = closest_encloser;
+	
 	q->zone = domain_find_zone(closest_encloser);
 	if (!q->zone) {
 		RCODE_SET(q, RCODE_SERVFAIL);
@@ -864,12 +876,6 @@ answer_query(struct nsd *nsd, struct query *q)
 		       offset));
 		query_put_dname_offset(q, temp, offset);
 		offset += label_length(dname_name(temp->dname)) + 1;
-	}
-
-	if (!closest_encloser->is_existing) {
-		exact = 0;
-		while (!closest_encloser->is_existing)
-			closest_encloser = closest_encloser->parent;
 	}
 
 	if (exact) {

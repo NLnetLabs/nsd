@@ -73,12 +73,12 @@ register_data(
 	const dname_type *               domain_name,
 	void *                           data)
 {
-	dname_info_type *domain;
+	domain_type *domain;
 	
 	assert(plugin_id < maximum_plugin_count);
 	assert(domain_name);
 
-	domain = dname_table_find(nsd->nsd->db->dnames, domain_name);
+	domain = domain_table_find(nsd->nsd->db->domains, domain_name);
 	if (!domain)
 		return 0;
 
