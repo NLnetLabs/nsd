@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.8 2002/08/12 14:02:53 alexis Exp $
+# $Id: Makefile,v 1.69.2.9 2002/08/13 08:49:42 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -171,13 +171,13 @@ install: nsd zonec nsdc.sh
 	[ -d ${NSDBINDIR} ] || mkdir ${NSDBINDIR}
 	[ -d ${NSDZONESDIR} ] || mkdir ${NSDZONESDIR}
 	[ -d ${NSDMANDIR} ] || mkdir ${NSDMANDIR}
-	${INSTALL} nsd ${NSDBINDIR}/nsd
+	${INSTALL} -s nsd ${NSDBINDIR}/nsd
+	${INSTALL} -s zonec ${NSDBINDIR}/zonec
+	${INSTALL} -s nsd-notify ${NSDNOTIFY}
 	${INSTALL} nsdc.sh ${NSDBINDIR}/nsdc
-	${INSTALL} zonec ${NSDBINDIR}/zonec
 	${INSTALL} nsd.8 ${NSDMANDIR}
 	${INSTALL} nsdc.8 ${NSDMANDIR}
 	${INSTALL} zonec.8 ${NSDMANDIR}
-	${INSTALL} nsd-notify ${NSDNOTIFY}
 
 nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@

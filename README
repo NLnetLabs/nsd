@@ -1,4 +1,4 @@
-$Id: README,v 1.13.2.3 2002/08/12 14:02:53 alexis Exp $
+$Id: README,v 1.13.2.4 2002/08/13 08:49:43 alexis Exp $
 
 1.0 Introduction
 
@@ -11,7 +11,7 @@ consult the REQUIREMENTS document which is a part of this distribution
 
 The source code is available for download from:
 
-	HTTP://www.nlnetlabs.nl/downloads
+	http://www.nlnetlabs.nl/downloads
 
 1.1 Basic Theory of Operation
 
@@ -275,7 +275,7 @@ and the last line is the secret.
 I'm working on a small tool to create these files from somewhat more readable
 format.
 
-3.2.2 Sending notify to the secondaries on reload or restart
+3.3 Sending notify to the secondaries on reload or restart
 
 It is possible to send outbound notify's to the secondaries every time nsd
 database is (re)loaded. You have to directly specify the ip-addresses of the
