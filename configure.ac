@@ -148,8 +148,30 @@ if test $ac_cv_c_unused_attribute = yes; then
 fi
 ])dnl
 
+AC_DEFUN([AC_CHECK_NORETURN_ATTRIBUTE],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "noreturn" attribute)
+AC_CACHE_VAL(ac_cv_c_noreturn_attribute,
+[ac_cv_c_noreturn_attribute=no
+AC_TRY_COMPILE(
+[#include <stdio.h>
+void f (void) __attribute__ ((noreturn));
+], [
+   f ();
+],
+[ac_cv_c_noreturn_attribute="yes"],
+[ac_cv_c_noreturn_attribute="no"])
+])
+
+AC_MSG_RESULT($ac_cv_c_noreturn_attribute)
+if test $ac_cv_c_noreturn_attribute = yes; then
+  AC_DEFINE(HAVE_ATTR_NORETURN, 1, [Whether the C compiler accepts the "noreturn" attribute])
+fi
+])dnl
+
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
+AC_CHECK_NORETURN_ATTRIBUTE
 
 # Checks for libraries.
 
@@ -473,6 +495,7 @@ AH_BOTTOM([
 #else /* !HAVE_ATTR_FORMAT */
 #define ATTR_FORMAT(archetype, string_index, first_to_check) /* empty */
 #endif /* !HAVE_ATTR_FORMAT */
+
 #if defined(__cplusplus)
 #define ATTR_UNUSED(x)
 #elif defined(HAVE_ATTR_UNUSED)
@@ -480,6 +503,13 @@ AH_BOTTOM([
 #else /* !HAVE_ATTR_UNUSED */
 #define ATTR_UNUSED(x)  x
 #endif /* !HAVE_ATTR_UNUSED */
+
+#ifdef HAVE_ATTR_NORETURN
+#define ATTR_NORETURN \
+    __attribute__ ((noreturn))
+#else /* !HAVE_ATTR_NORETURN */
+#define ATTR_NORETURN /* empty */
+#endif /* !HAVE_ATTR_NORETURN */
 ])
 
 AH_BOTTOM([

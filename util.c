@@ -68,6 +68,7 @@ log_finalize(void)
 }
 
 static lookup_table_type log_priority_table[] = {
+	{ LOG_CRIT, "critical" },
 	{ LOG_ERR, "error" },
 	{ LOG_WARNING, "warning" },
 	{ LOG_NOTICE, "notice" },
@@ -81,7 +82,7 @@ log_file(int priority, const char *message)
 	size_t length;
 	lookup_table_type *priority_info;
 	const char *priority_text = "unknown";
-	
+
 	assert(global_ident);
 	assert(current_log_file);
 
@@ -89,7 +90,7 @@ log_file(int priority, const char *message)
 	if (priority_info) {
 		priority_text = priority_info->name;
 	}
-	
+
 	fprintf(current_log_file, "%s: %s: %s",
 		global_ident, priority_text, message);
 	length = strlen(message);
@@ -131,7 +132,7 @@ log_vmsg(int priority, const char *format, va_list args)
 	current_log_function(priority, message);
 }
 
-void 
+void
 set_bit(uint8_t bits[], size_t index)
 {
 	/*
@@ -141,7 +142,7 @@ set_bit(uint8_t bits[], size_t index)
 	bits[index / 8] |= (1 << (7 - index % 8));
 }
 
-void 
+void
 clear_bit(uint8_t bits[], size_t index)
 {
 	/*
@@ -151,7 +152,7 @@ clear_bit(uint8_t bits[], size_t index)
 	bits[index / 8] &= ~(1 << (7 - index % 8));
 }
 
-int 
+int
 get_bit(uint8_t bits[], size_t index)
 {
 	/*
@@ -187,7 +188,7 @@ void *
 xalloc(size_t size)
 {
 	void *result = malloc(size);
-	
+
 	if (!result) {
 		log_msg(LOG_ERR, "malloc failed: %s", strerror(errno));
 		exit(1);
@@ -221,7 +222,7 @@ write_data(FILE *file, const void *data, size_t size)
 
 	if (size == 0)
 		return 1;
-	
+
 	result = fwrite(data, 1, size, file);
 
 	if (result == 0) {
@@ -369,7 +370,7 @@ hex_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
 	};
 	size_t i;
-	
+
 	if (targsize < srclength * 2 + 1) {
 		return -1;
 	}
@@ -398,7 +399,7 @@ strip_string(char *str)
 		while (isspace(*end))
 			--end;
 		*++end = '\0';
-		
+
 		if (str != start)
 			memmove(str, start, end - start + 1);
 	}
@@ -425,6 +426,22 @@ hexdigit_to_int(char ch)
 	case 'e': case 'E': return 14;
 	case 'f': case 'F': return 15;
 	default:
-		abort();
+		internal_error(__FILE__, __LINE__,
+			       "hexdigit_to_int: argument not a hexdigit");
 	}
+}
+
+void
+internal_error(const char *filename, int lineno, const char *format, ...)
+{
+	char temp[MAXSYSLOGMSGLEN];
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf(temp, sizeof(temp), format, args);
+	va_end(args);
+
+	log_msg(LOG_CRIT, "internal error at %s:%d: %s, aborting",
+		filename, lineno, temp);
+	abort();
 }

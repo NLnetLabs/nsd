@@ -252,4 +252,11 @@ void strip_string(char *str);
  */
 int hexdigit_to_int(char ch);
 
+/*
+ * Report an internal error and abort the program.
+ */
+void internal_error(const char *filename, int lineno, const char *format, ...)
+	ATTR_FORMAT(printf, 3, 4)
+	ATTR_NORETURN;
+
 #endif /* _UTIL_H_ */

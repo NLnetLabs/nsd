@@ -31,7 +31,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 
 	if (query->maxlen > AXFR_MAX_MESSAGE_LEN)
 		query->maxlen = AXFR_MAX_MESSAGE_LEN;
-	
+
 	assert(!query_overflow(query));
 
 	if (query->axfr_zone == NULL) {
@@ -56,8 +56,9 @@ query_axfr (struct nsd *nsd, struct query *query)
 					 query->axfr_zone->apex,
 					 &query->axfr_zone->soa_rrset->rrs[0]);
 		if (!added) {
-			/* XXX: This should never happen... generate error code? */
-			abort();
+			internal_error(
+				__FILE__, __LINE__,
+				"cannot add initial SOA to empty packet");
 		}
 		++total_added;
 	} else {
@@ -73,7 +74,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 
 	/* Add zone RRs until answer is full.  */
 	assert(query->axfr_current_domain);
-	
+
 	while ((rbnode_t *) query->axfr_current_domain != HEAP_NULL) {
 		if (!query->axfr_current_rrset) {
 			query->axfr_current_rrset
@@ -154,7 +155,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 				qptr += *qptr + 1;
 			}
 			*t = 0;
-			
+
 #endif /* AXFR_DAEMON_PREFIX */
 			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
 			sock_methods(&request);	/* This is to work around the bug in libwrap */
