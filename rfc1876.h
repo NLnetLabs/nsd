@@ -1,5 +1,5 @@
 /*
- * $Id: rfc1876.h,v 1.1.2.1 2002/08/15 14:41:00 alexis Exp $
+ * $Id: rfc1876.h,v 1.1.2.2 2002/08/21 09:56:06 alexis Exp $
  *
  * rfc1876.h -- LOC resource record routines from RFC1876
  *
@@ -43,5 +43,6 @@
 
 #define	LOCRDLEN 16
 u_int32_t loc_aton(const char *ascii, u_char *binary);
+char *loc_ntoa(const void *binary, u_char *ascii);
 
 #endif	/* _RFC1876_H_ */

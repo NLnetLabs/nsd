@@ -1,5 +1,5 @@
 /*
- * $Id: rfc1876.c,v 1.1.2.1 2002/08/15 14:41:00 alexis Exp $
+ * $Id: rfc1876.c,v 1.1.2.2 2002/08/21 09:56:06 alexis Exp $
  *
  * rfc1876.c -- LOC record conversion routines taken from RFC1876
  *
@@ -11,10 +11,10 @@
 #include <sys/types.h>
 #include <sys/param.h>
 
-#include <string.h>
-#include <stdio.h>
 #include <ctype.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
  * routines to convert between on-the-wire RR format and zone file
@@ -305,8 +305,6 @@ loc_aton(ascii, binary)
 /* takes an on-the-wire LOC RR and prints it in zone file
  * (human readable) format. */
 
-/*
-
 char *
 loc_ntoa(binary,ascii)
         const u_char *binary;
@@ -350,14 +348,16 @@ loc_ntoa(binary,ascii)
         hpval = *rcp++;
         vpval = *rcp++;
 
-        GETLONG(templ,rcp);
-        latval = (templ - ((unsigned)1<<31));
+        latval = (ntohl(*((u_int32_t *)rcp)) - ((unsigned)1<<31));
+	rcp += sizeof(u_int32_t);
 
-        GETLONG(templ,rcp);
-        longval = (templ - ((unsigned)1<<31));
+        longval = (ntohl(*((u_int32_t *)rcp)) - ((unsigned)1<<31));
+	rcp += sizeof(u_int32_t);
 
-        GETLONG(templ,rcp);
-        if (templ < referencealt) { */ /* below WGS 84 spheroid */ /*
+	templ = ntohl(*((u_int32_t *)rcp));
+	rcp += sizeof(u_int32_t);
+
+        if (templ < referencealt) { /* below WGS 84 spheroid */
                 altval = referencealt - templ;
                 altsign = -1;
         } else {
@@ -399,9 +399,9 @@ loc_ntoa(binary,ascii)
         altfrac = altval % 100;
         altmeters = (altval / 100) * altsign;
 
-        sizestr = savestr(precsize_ntoa(sizeval));
-        hpstr = savestr(precsize_ntoa(hpval));
-        vpstr = savestr(precsize_ntoa(vpval));
+        sizestr = strdup(precsize_ntoa(sizeval));
+        hpstr = strdup(precsize_ntoa(hpval));
+        vpstr = strdup(precsize_ntoa(vpval));
 
         sprintf(cp,
                 "%d %.2d %.2d.%.3d %c %d %.2d %.2d.%.3d %c %d.%.2dm
@@ -416,5 +416,3 @@ loc_ntoa(binary,ascii)
 
         return (cp);
 }
-
-*/

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.13 2002/08/20 15:42:17 alexis Exp $
+# $Id: Makefile,v 1.69.2.14 2002/08/21 09:56:06 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -135,7 +135,7 @@ NSDNOTIFY	= ${NSDBINDIR}/nsd-notify
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DINET6 -DHOSTS_ACCESS
+FEATURES	= -DLOG_NOTIFIES -DINET6 -DHOSTS_ACCESS
 
 LIBWRAP		= -lwrap
 

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.29.2.5 2002/08/21 09:24:46 alexis Exp $
+ * $Id: zf.c,v 1.29.2.6 2002/08/21 09:56:06 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -804,7 +804,7 @@ zf_print_rdata(rdata, rdatafmt)
 			putc('"', stdout);
 			break;
 		case 'L':
-			printf(" LOC record printing to be implemented");
+			printf("%s\t", loc_ntoa(rdata[i].p, NULL));
 			break;
 		default:
 			printf("???");
