@@ -95,7 +95,6 @@ main (int argc, char *argv[])
 {
 	int c;
 	const char * port;
-	uint8_t klass;
 	lookup_table_type *control;
 	query_type q;
 	const dname_type *control_msg;
@@ -107,7 +106,6 @@ main (int argc, char *argv[])
 	control_msg = NULL;
 	default_family = DEFAULT_AI_FAMILY;
 	port = DEFAULT_CONTROL_PORT;
-	klass = CLASS_CH;
 
 	log_init("nsdc");
 
@@ -181,7 +179,7 @@ main (int argc, char *argv[])
         /* Set up the header */
         OPCODE_SET(q.packet, OPCODE_QUERY);
         ID_SET(q.packet, 42);   /* Does not need to be random. */
-        AA_SET(q.packet);
+        /* AA_SET(q.packet); */
         QDCOUNT_SET(q.packet, 1);
         buffer_skip(q.packet, QHEADERSZ);
         buffer_write(q.packet, dname_name(control_msg), dname_length(control_msg));
@@ -215,9 +213,17 @@ main (int argc, char *argv[])
 
 	memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
-	send_query(sockfd, &q);
+	if (send_query(sockfd, &q) != 1) {
+		warning("sending of the query to %s failed\n", DEFAULT_CONTROL_HOST);
+		close(sockfd);
+		exit(EXIT_FAILURE);
+	}
 
+#if 0
 	/* process the reply and print the RR in there */
+	char buf[1024];
+	read_socket(sockfd, buf, 1025);
+#endif
 
 	close(sockfd);
 }
