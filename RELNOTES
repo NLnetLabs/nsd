@@ -3,9 +3,11 @@ NSD RELEASE NOTES
 2.1.1
 =============
 BUG FIXES:
-        - Bug #82: Zonec: don't report "0 errors" unless -v is specified 
-        - Bug #83: Close zone files after parsing
-          
+        - Bug #81: Handle unknown types correctly.
+        - Bug #82: Zonec: don't report "0 errors" unless -v is
+          specified.
+        - Bug #83: Close zone files after parsing.
+        - Handle AFSDB RR type.
 
 2.1.0
 =============
