@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.5 2002/02/12 13:49:36 alexis Exp $
+ * $Id: rbtree.h,v 1.6 2002/02/13 11:14:48 alexis Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -72,17 +72,19 @@ struct rbtree_t {
 	rbnode_t	*root;
 
 	/* The number of the nodes in the tree */
-	long long count;
+	unsigned long count;
 
 	/* Current node for walks... */
 	rbnode_t	*_node;
 
 	/* Free and compare functions */
-	void *(*mallocf)();
-	int (*cmp) ();
+	void *(*mallocf)(size_t);
+	int (*cmp) (void *, void *);
 };
 
-rbtree_t *rbtree_create __P((void *(*)(), int (*)()));
+typedef int (*cmpf_t)(void *, void *);
+
+rbtree_t *rbtree_create __P((void *(*mallocf)(size_t), cmpf_t cmpf));
 void *rbtree_insert __P((rbtree_t *, void *, void *, int));
 void *rbtree_search __P((rbtree_t *, void *));
 void rbtree_delete __P((rbtree_t *, void *, int, int));
