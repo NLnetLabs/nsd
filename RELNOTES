@@ -2,9 +2,13 @@ NSD RELEASE NOTES
 
 2.1.3
 =============
+FEATURES:
+
+
 BUG FIXES:
 	- When -f - is used, set the filename to 'STDIN'
 	- Let the nsdc script handle failed AXFRs more cracefully
+	- NSD emits an error when it sees bitlabels (RFC 2673)
 
 2.1.2
 =============
