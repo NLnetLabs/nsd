@@ -63,12 +63,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <dns.h>
-#include <dname.h>
-#include <namedb.h>
-#include <network.h>
-#include <nsd.h>
-#include <query.h>
+#include "dns.h"
+#include "dname.h"
+#include "namedb.h"
+#include "nsd.h"
+#include "query.h"
 #include "plugins.h"
 
 
@@ -107,7 +106,7 @@ xrealloc (register void *p, register size_t size)
 	return p;
 }
 
-void
+static void
 usage (void)
 {
 	fprintf(stderr, "usage: nsd [-4] [-6] [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");

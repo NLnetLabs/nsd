@@ -39,6 +39,8 @@
 #ifndef _QUERY_H_
 #define _QUERY_H_
 
+#include <assert.h>
+
 /*
  * Set of macro's to deal with the dns message header as specified
  * in RFC1035 in portable way.
@@ -163,7 +165,7 @@
 #define	MINRDNAMECOMP	3	/* Minimum dname to be compressed */
 
 /* Current amount of data in the query IO buffer.  */
-#define QUERY_USED_SIZE(q)  ((q)->iobufptr - (q)->iobuf)
+#define QUERY_USED_SIZE(q)  ((size_t) ((q)->iobufptr - (q)->iobuf))
 
 /* Current available data size of the query IO buffer.  */
 #define QUERY_AVAILABLE_SIZE(q) ((q)->iobufsz - QUERY_USED_SIZE(q))

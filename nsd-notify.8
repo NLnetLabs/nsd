@@ -1,0 +1,40 @@
+.TH "nsd-notify" "8" "@version@" "NLnet Labs" "nsd"
+.SH "NAME"
+.LP 
+nsd\-notify \- program to send NOTIFY's to remote nameservers
+.SH "SYNTAX"
+.LP 
+\fBnsd\-notify\fR [\fB-4\fR] [\fB-6\fR] [\fB-p\fR \fIport\fR] \fB\-z\fR \fIzone\fR \fIservers\fR
+.SH "DESCRIPTION"
+.LP 
+nsd\-notify is simple program to send NOTIFY's to remoter nameservers.
+.br 
+NSD is a complete implementation of an authoritative DNS nameserver.
+.SH "OPTIONS"
+.LP 
+.TP
+\fB\-4\fR
+Only send to IPv4 addresses.
+.TP
+\fB\-6\fR
+Only send to IPv6 addresses.
+.TP 
+\fB\-p\fR \fIport\fR
+Specify the port to send to.
+.TP 
+\fB\-z\fR \fIzone\fR
+Specify the zone to notify about.
+.TP 
+\fIservers\fR
+List of nameservers to send to.
+.SH "EXAMPLES"
+.LP 
+To run this program the standard way type:
+.LP 
+nsd\-notify \-z foobar.cz 1.2.3.4
+.SH "AUTHORS"
+.LP 
+NLnet Labs <info@nlnet.nl>
+.SH "SEE ALSO"
+.LP 
+nsd(8), zonec(8)

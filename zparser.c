@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.36 2003/07/04 07:55:10 erik Exp $
+ * $Id: zparser.c,v 1.37 2003/07/07 08:34:11 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -1820,7 +1820,7 @@ zprintrr(FILE *f, struct RR *rr)
  * Standard usage function for testing puposes.
  *
  */
-void
+static void
 usage (void)
 {
 	fprintf(stderr, "usage: zparser zone-file [origin]\n");

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.93 2003/07/04 07:55:10 erik Exp $
+ * $Id: zonec.c,v 1.94 2003/07/07 08:34:11 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -934,7 +934,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	return 0;
 }
 
-void 
+static void 
 usage (void)
 {
 	fprintf(stderr, "usage: zonec [-f database] [-d directory] zone-list-file\n");

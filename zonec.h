@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.24 2003/07/04 07:55:10 erik Exp $
+ * $Id: zonec.h,v 1.25 2003/07/07 08:34:11 erik Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -97,6 +97,5 @@ struct domain *zone_addanswer(struct domain *d, struct message *msg, int type);
 void zone_free(struct zone *z);
 struct zone *zone_read(char *name, char *zonefile);
 int zone_dump(struct zone *z, struct namedb *db);
-void usage(void);
 
 #endif /* _ZONEC_H_ */

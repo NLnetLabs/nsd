@@ -50,7 +50,13 @@
 #define NSD_SERVER_TCP  0x2U
 #define NSD_SERVER_BOTH (NSD_SERVER_UDP | NSD_SERVER_TCP)
 
-#define	OPT_LEN	11U
+#ifdef INET6
+#define DEFAULT_AI_FAMILY AF_UNSPEC
+#else
+#define DEFAULT_AI_FAMILY AF_INET
+#endif
+
+#define	OPT_LEN	11U	 /* Length of the NSD EDNS response record. */
 
 #ifdef BIND8_STATS
 
@@ -142,7 +148,6 @@ struct	nsd {
 /* nsd.c */
 void *xalloc(register size_t size);
 void *xrealloc(register void *p, register size_t size);
-void usage(void);
 pid_t readpid(const char *file);
 int writepid(struct nsd *nsd);
 void sig_handler(int sig);
