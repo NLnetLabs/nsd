@@ -5,6 +5,7 @@ nsd \- Name Server Daemon
 .SH SYNOPSIS
 .B nsd
 [ \fB\-d\fR ]
+[ \fB\-v\fR ]
 [ \fB\-f \fIdatabase\fR ]
 [\fB\-p \fIport\fR]
 .BI database
@@ -41,7 +42,12 @@ There is no code from \fBBIND4/8/9\fR in \fBnsd\fR.
 .SH OPTIONS
 .TP
 .B \-d
-turn on debugging, \fBnsd\fR will be much more generous with error messages
+turn on debugging, \fBnsd\fR will be much more generous with error
+messages.
+
+.TP
+.B \-v
+turn on verbose mode, \fBnsd\fR will be give much more information.
 
 .TP
 .B \-p \fIport\fR
