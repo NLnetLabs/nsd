@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.36 2003/06/12 12:34:54 erik Exp $
+# $Id: Makefile.in,v 1.37 2003/06/16 15:16:53 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -116,11 +116,11 @@ uninstall:
 	@echo
 	@echo "You still need to remove $(configdir) directory by hand."
 
-nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
-	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
+nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o $(LIBOBJS)
+	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
-zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
-	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o $(LIBOBJS) $(LIBS)
+zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o $(LIBOBJS)
+	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o $(LIBOBJS) $(LIBS)
 
 nsq:	zparser.h dns.h nsq.o client.o zparser.o dname.o $(LIBOBJS)
 	$(LINK) -o $@ nsq.o client.o zparser.o dname.o $(LIBOBJS) $(LIBS)
@@ -162,10 +162,6 @@ rbtree:	rbtree.c rbtree.h
 	$(COMPILE) -DTEST rbtree.c
 	$(LINK) -o $@ rbtree.o $(LIBS)
 
-hash:	hash.c hash.h
-	$(COMPILE) -DTEST hash.c
-	$(LINK) -o $@ hash.o $(LIBS)
-
 zparser:	zparser.c dname.o  $(LIBOBJS)
 	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c dname.o $(LIBOBJS) $(LIBS)
 
@@ -182,7 +178,6 @@ client.o: client.c config.h dns.h namedb.h heap.h rbtree.h dname.h nsd.h \
 dbaccess.o: dbaccess.c config.h namedb.h heap.h rbtree.h
 dbcreate.o: dbcreate.c config.h namedb.h heap.h rbtree.h
 dname.o: dname.c config.h dns.h dname.h namedb.h heap.h rbtree.h
-hash.o: hash.c hash.h
 nsd-axfr.o: nsd-axfr.c config.h dns.h namedb.h heap.h rbtree.h dname.h \
   nsd.h query.h zparser.h client.h
 nsd.o: nsd.c config.h dns.h dname.h namedb.h heap.h rbtree.h nsd.h \
