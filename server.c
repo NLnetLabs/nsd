@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.6 2002/01/30 14:40:58 alexis Exp $
+ * $Id: server.c,v 1.7 2002/01/30 15:20:31 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -48,11 +48,10 @@ server(db)
 	int s_udp, s_tcp, s_tcpio;
 	u_int16_t tcplen;
 	int received, sent;
-	int childrenstatus;
 	fd_set peer;
 
 	/* A message to reject tcp connections... */
-	int tcp_connections = 0;
+	tcp_open_connections = 0;
 
 	/* UDP */
 	bzero(&addr, sizeof(struct sockaddr_in));
@@ -99,18 +98,12 @@ server(db)
 
 	/* The main loop... */	
 	while(1) {
-		/* Any tcp children willing to report? */
-		if(waitpid(0, &childrenstatus, WNOHANG) != 0) {
-			if(tcp_connections)
-				tcp_connections--;
-		}
-
 		/* Set it up */
 		FD_ZERO(&peer);
 		FD_SET(s_udp, &peer);
 		FD_SET(s_tcp, &peer);
 
-		if(select((tcp_connections < cf_tcp_max_connections) ? s_tcp + 1 : s_udp + 1,
+		if(select((tcp_open_connections < cf_tcp_max_connections) ? s_tcp + 1 : s_udp + 1,
 									&peer, NULL, NULL, NULL) == -1) {
 			if(errno == EINTR) {
 				/* We'll fall out of the loop if we need to shut down */
@@ -145,9 +138,14 @@ server(db)
 		} else if(FD_ISSET(s_tcp, &peer)) {
 			query_init(q);
 			q->maxlen = (q->iobufsz > cf_tcp_max_message_size) ? cf_tcp_max_message_size : q->iobufsz;
-#if DEBUG
+#if DEBUG > 2
 			syslog(LOG_NOTICE, "tcp connection!");
 #endif
+
+			if((s_tcpio = accept(s_tcp, (struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
+				syslog(LOG_ERR, "accept failed: %m");
+				continue;
+			}
 
 			switch(fork()) {
 			case -1:
@@ -155,12 +153,6 @@ server(db)
 				break;
 			case 0:
 				alarm(120);
-
-				if((s_tcpio = accept(s_tcp, (struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
-					syslog(LOG_ERR, "accept failed: %m");
-					break;
-				}
-
 
 				/* Until we've got end of file */
 				while((received = read(s_tcpio, &tcplen, 2)) == 2) {
@@ -226,7 +218,7 @@ server(db)
 				close(s_tcpio);
 				exit(0);
 			default:
-				tcp_connections++;
+				tcp_open_connections++;
 				/* PARENT */
 			}
 		} else {

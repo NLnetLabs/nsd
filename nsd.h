@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.7 2002/01/30 14:40:58 alexis Exp $
+ * $Id: nsd.h,v 1.8 2002/01/30 15:20:31 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -87,6 +87,8 @@ extern u_short	cf_tcp_port;
 extern int	cf_tcp_max_message_size;
 extern u_short	cf_udp_port;
 extern int	cf_udp_max_message_size;
+
+extern int	tcp_open_connections;
 
 extern u_char authmask[NAMEDB_BITMASKLEN];
 extern u_char datamask[NAMEDB_BITMASKLEN];

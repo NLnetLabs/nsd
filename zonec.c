@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.4 2002/01/29 15:40:50 alexis Exp $
+ * $Id: zonec.c,v 1.5 2002/01/30 15:20:31 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -192,6 +192,8 @@ zone_addrrset(msg, dname, rrset)
 
 	u_int32_t l;
 	u_int16_t s;
+
+	if(rrset == NULL) return 0;
 
 	/* Did I see you before? */
 	for(i = 0; i < msg->rrsetslen; i++) {

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.5 2002/01/30 14:40:58 alexis Exp $
+ * $Id: nsd.c,v 1.6 2002/01/30 15:20:31 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -52,6 +52,12 @@ int cf_tcp_max_message_size = CF_TCP_MAX_MESSAGE_SIZE;
 u_short	cf_udp_port = CF_UDP_PORT;
 int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
 
+
+/* The nsd database */
+DB *database;
+
+int tcp_open_connections = 0;
+
 /*
  * Allocates ``size'' bytes of memory, returns the
  * pointer to the allocated memory or NULL and errno
@@ -85,6 +91,53 @@ xrealloc(p, size)
 	return p;
 }
 
+/*
+ * Open the database db...
+ *
+ */
+DB *
+opendb(void)
+{
+	int r;
+	DBT key, data;
+	DB *db;
+
+	/* Setup the name database... */
+	if((r = db_create(&db, NULL, 0)) != 0) {
+                syslog(LOG_ERR, "db_create failed: %s", db_strerror(r));
+                return NULL;
+        }
+
+	/* Open the database... */
+        if((r = db->open(db, cf_dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
+		syslog(LOG_ERR, "cannot open the database %s: %s", cf_dbfile, db_strerror(r));
+		return NULL;
+        }
+
+	/* Read the bitmasks... */
+	bzero(&key, sizeof(key));
+	bzero(&data, sizeof(data));
+
+	key.size = 0;
+	key.data = NULL;
+	if((r = db->get(db, NULL, &key, &data, 0)) != 0) {
+		syslog(LOG_ERR, "cannot read the superblock from %s: %s", cf_dbfile, db_strerror(r));
+		return NULL;
+	}
+
+	if(data.size != NAMEDB_BITMASKLEN * 3) {
+		syslog(LOG_ERR, "corrupted superblock in %s", cf_dbfile);
+		return NULL;
+	}
+
+	bcopy(data.data, authmask, NAMEDB_BITMASKLEN);
+	bcopy(data.data + NAMEDB_BITMASKLEN, starmask, NAMEDB_BITMASKLEN);
+	bcopy(data.data + NAMEDB_BITMASKLEN * 2, datamask, NAMEDB_BITMASKLEN);
+
+	return db;
+}
+
+
 int
 usage()
 {
@@ -96,7 +149,29 @@ void
 sig_handler(sig)
 	int sig;
 {
-	exit(0);
+	int status;
+	switch(sig) {
+	case SIGCHLD:
+		/* Any tcp children willing to report? */
+		if(waitpid(0, &status, WNOHANG) != 0) {
+			if(tcp_open_connections)
+				tcp_open_connections--;
+		}
+		break;
+	case SIGHUP:
+		(void)database->close(database, 0);
+		if((database = opendb()) == NULL) {
+			syslog(LOG_ERR, "unable to reload the database, shutting down...");
+			exit(1);
+		}
+		syslog(LOG_WARNING, "database reloaded...");
+		break;
+	case SIGTERM:
+	default:
+		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
+		(void)database->close(database, 0);
+		exit(0);
+	}
 }
 
 int
@@ -104,10 +179,6 @@ main(argc, argv)
 	int argc;
 	char *argv[];
 {
-	DB *db;
-	DBT key, data;
-	int r;
-
 #	ifndef	LOG_PERROR
 #		define	LOG_PERROR 0
 #	endif
@@ -124,44 +195,18 @@ main(argc, argv)
 
 	/* Setup the signal handling... */
 	signal(SIGTERM, &sig_handler);
-
-	/* Setup the name database... */
-	if((r = db_create(&db, NULL, 0)) != 0) {
-                syslog(LOG_ERR, "db_create failed: %s", db_strerror(r));
-                exit(1);
-        }
+	signal(SIGHUP, &sig_handler);
+	signal(SIGCHLD, &sig_handler);
 
 	/* Open the database... */
-        if((r = db->open(db, cf_dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
-		syslog(LOG_ERR, "cannot open the database %s: %s", cf_dbfile, db_strerror(r));
-                exit(1);
-        }
-
-	/* Read the bitmasks... */
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
-
-	key.size = 0;
-	key.data = NULL;
-	if((r = db->get(db, NULL, &key, &data, 0)) != 0) {
-		syslog(LOG_ERR, "cannot read the superblock from %s: %s", cf_dbfile, db_strerror(r));
+	if((database = opendb()) == NULL) {
 		exit(1);
 	}
-
-	if(data.size != NAMEDB_BITMASKLEN * 3) {
-		syslog(LOG_ERR, "corrupted superblock in %s", cf_dbfile);
-		exit(1);
-	}
-
-	bcopy(data.data, authmask, NAMEDB_BITMASKLEN);
-	bcopy(data.data + NAMEDB_BITMASKLEN, starmask, NAMEDB_BITMASKLEN);
-	bcopy(data.data + NAMEDB_BITMASKLEN * 2, datamask, NAMEDB_BITMASKLEN);
-
 
 	/* Take off... */
-	server(db);
+	server(database);
 
-	db->close(db, 0);
+	database->close(database, 0);
 
 	exit(0);
 }
