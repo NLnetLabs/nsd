@@ -1204,7 +1204,6 @@ zone_read (const char *name, const char *zonefile)
 
 	fflush(stdout);
 	totalerrors += current_parser->errors;
-	fprintf(stderr, "%d",totalerrors);
 }
 
 static void 
