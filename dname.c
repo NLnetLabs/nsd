@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.8.2.2 2003/06/10 09:41:26 erik Exp $
+ * $Id: dname.c,v 1.8.2.3 2003/06/11 10:07:41 erik Exp $
  *
  * dname.c -- dname operations
  *
@@ -187,13 +187,3 @@ dnamedup (u_char *dname)
 	memcpy(p, dname, (int)*dname + 1);
 	return p;
 }
-
-/* Emacs:
-
-Local Variables:
-c-basic-offset: 8
-c-indentation-style: bsd
-indent-tabs-mode: t
-End:
-
-*/

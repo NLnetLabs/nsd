@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.95.2.2 2003/06/10 09:39:52 erik Exp $
+ * $Id: query.c,v 1.95.2.3 2003/06/11 10:07:44 erik Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -785,13 +785,3 @@ query_addedns(struct query *q, struct nsd *nsd) {
 		break;
 	}
 }
-
-/* Emacs:
-
-Local Variables:
-c-basic-offset: 8
-c-indentation-style: bsd
-indent-tabs-mode: t
-End:
-
-*/
