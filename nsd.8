@@ -1,0 +1,82 @@
+.\" @(#)nsd.8 1.0 2002 
+.TH nsd 8  "20 Feb 2002"
+.SH NAME
+nsd \- Name Server Daemon
+.SH SYNOPSIS
+.B nsd
+[ \fB\-d\fR ]
+[ \fB\-f \fIdatabase\fR ]
+[\fB\-p \fIport\fR]
+.BI database
+
+.SH WARNING
+\fBnsd\fR is currently ALPHA code. There is still rough edges and
+bugs. If you run into them please contact \fInsd-bugs@nlnetlabs.nl\fR.
+
+.SH DESCRIPTION
+.B nsd
+is the \fBn\fRame\fBs\fRerver \fBd\fRaemon written by NLnet Labs in cooperation
+with RIPE NCC. \fBnsd\fR was written with the following goals
+in mind:
+.TP
+.B RFC Compliant
+\fBnsd\fR is fully compliant with the relevant RFC (1034/35 etc). Only
+were there is a speed tradeoff the compliancy is relaxed (see ???).
+.TP
+.B Speed
+The main purpose of \fBnsd\fR is to be able handle lots and lots of
+queries (O(20k/sec)), without breaking a sweat. It's main use
+is thus on heavy loaded servers, like the root-server and TLD servers.
+.TP
+.B Only authoritative
+To increase its spead \fBnsd\fR does not do any recursion. And thus
+only suitable on authoritative nameservers.
+.TP
+.B Compatible with \fBBIND\fR
+\fBnsd\fR should behave exactly as \fBBIND8/9\fR? does. See [BLA] for
+more information.
+.TP
+.B No code sharing with \fBBIND\fR
+There is no code from \fBBIND4/8/9\fR in \fBnsd\fR.
+.SH OPTIONS
+.TP
+.B \-d
+turn on debugging, \fBnsd\fR will be much more generous with error messages
+
+.TP
+.B \-p \fIport\fR
+specify the port number \fBnsd\fR will use. This defaults to 53.
+
+.TP
+.B \-f \fIdatabase\fR
+specify the database to use. The \fIdatabase\fR given
+as a argument will superseed this option.
+
+.TP
+.B database
+the \fBdatabase\fR \fBnsd\fR will use. This superseeds the \fB-f\fR
+option (if given).
+
+.SH DATABASE
+The database contains all the information about the configured zones
+in a \fImachine dependent\fR format. It is nessecary to compile the
+zone information into this format, \fBzonec\fR is used for this purpose
+(see man 8 zonec).
+
+.SH FILES
+[EXTEND] Lots and lots of them.
+
+.SH AUTHORS
+\fBnsd\fR is written by Alexis Yushin, Ted Lindgreen, Miek Gieben,
+Erik Roozendaal, Olaf Kolkman, Daniel Karrenberg.    
+
+.SH LATEST CODE
+The latest version of \fBnsd\fR can always be downloaded from
+.br
+\fIhttp://www.nlnetlabs.nl/nsd/index.en.html\fR
+
+.SH REPORTING BUGS
+Please report bugs to nsd-bugs@nlnetlabs.nl.
+
+.SH COPYRIGHT
+Copyright NLnet Labs 2002, BSD License.
