@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.9.2.8 2002/08/07 15:56:13 alexis Exp $
+# $Id: nsdc.sh.in,v 1.9.2.9 2002/08/08 11:13:34 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -85,9 +85,9 @@ rebuild)
 	;;
 update)
 	#
-	if [ "x${NAMEDXFER}" = "x" ]
+	if [ ! -x "${NAMEDXFER}" ]
 	then
-		echo "no named-xfer program configured, aborting..."
+		echo "named-xfer program is not available, aborting..."
 		exit 1
 	fi
 

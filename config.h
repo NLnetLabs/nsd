@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.10.2.2 2002/08/06 15:23:23 alexis Exp $
+ * $Id: config.h,v 1.10.2.3 2002/08/08 11:13:34 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -85,7 +85,7 @@
 #endif
 
 #ifndef	CF_FACILITY
-#define	CF_FACILITY	LOG_LOCAL5
+#define	CF_FACILITY	LOG_DAEMON
 #endif
 
 #define	CF_TCP_MAX_CONNECTIONS	8
