@@ -48,6 +48,10 @@
 #include <fcntl.h>
 #include <stdio.h>		/* DEBUG */
 
+#ifdef USE_MMAP
+#include <sys/mman.h>
+#endif
+
 #include "namedb.h"
 #include "util.h"
 
@@ -73,6 +77,16 @@ namedb_answer (const struct domain *d, uint16_t type)
 	}
 	return NULL;
 }
+
+#ifdef USE_MMAP
+static void
+unmap_database(void *param)
+{
+	struct namedb *db = param;
+
+	munmap(db->mpool, db->mpoolsz);
+}
+#endif /* USE_MMAP */
 
 struct namedb *
 namedb_open (const char *filename)
@@ -110,14 +124,31 @@ namedb_open (const char *filename)
 
 	/* What its size? */
 	db->mpoolsz = st.st_size;
-	db->mpool = region_alloc(region, db->mpoolsz);
 
-	if (read(db->fd, db->mpool, db->mpoolsz) != db->mpoolsz) {
+#ifdef USE_MMAP
+#ifndef MAP_NORESERVE
+# define MAP_NORESERVE 0
+#endif
+	db->mpool = mmap(NULL, db->mpoolsz, PROT_READ, MAP_SHARED | MAP_NORESERVE, db->fd, 0);
+	if (db->mpool == MAP_FAILED) {
+		log_msg(LOG_ERR, "mmap failed: %s", strerror(errno));
 		close(db->fd);
 		region_destroy(region);
 		return NULL;
 	}
 
+	region_add_cleanup(region, unmap_database, db);
+#else /* !USE_MMAP */
+	db->mpool = region_alloc(region, db->mpoolsz);
+
+	if (read(db->fd, db->mpool, db->mpoolsz) != db->mpoolsz) {
+		log_msg(LOG_ERR, "read failed: %s", strerror(errno));
+		close(db->fd);
+		region_destroy(region);
+		return NULL;
+	}
+#endif /* !USE_MMAP */
+	
 	close(db->fd);
 
 	db->heap = NULL;

@@ -39,7 +39,7 @@
 #include <config.h>
 
 #include <sys/types.h>
-
+#include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -64,6 +64,16 @@ namedb_new (const char *filename)
 	}
 	region_add_cleanup(region, free, db->filename);
 
+	/*
+	 * Unlink the old database, if it exists.  This is useful to
+	 * ensure that NSD (when using mmap) doesn't see the changes
+	 * until a reload is done.
+	 */
+	if (unlink(db->filename) == -1 && errno != ENOENT) {
+		region_destroy(region);
+		return NULL;
+	}
+	
 	/* Create the database */
         if ((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
 		region_destroy(region);

@@ -235,7 +235,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy pselect socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy mmap pselect socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
 
 #
 # Checking for missing functions we can replace
@@ -359,6 +359,18 @@ case "$enable_checking" in
 		;;
         no|*)
                 AC_DEFINE([NDEBUG], [], [Undefine this to enable internal runtime checks.])
+                ;;
+esac
+
+AC_ARG_ENABLE(mmap, AC_HELP_STRING([--enable-mmap], [Configure NSD to load the database using mmap(2).]))
+case "$enable_mmap" in
+        yes)
+                if test "$ac_cv_func_mmap" != yes; then
+                    AC_MSG_ERROR(mmap support requested but mmap not found)
+                fi
+		AC_DEFINE_UNQUOTED([USE_MMAP], [], [Define this to load the database using mmap(2).])
+		;;
+        no|*)
                 ;;
 esac
 
