@@ -15,7 +15,6 @@
 
 #include "namedb.h"
 #include "nsd.h"
-#include "tsig.h"
 
 /*
  * Set of macro's to deal with the dns message header as specified
@@ -172,16 +171,13 @@ struct query {
 	size_t maxlen;
 
 	/*
-	 * Space reserved for optional records like EDNS and TSIG.
+	 * Space reserved for optional records like EDNS.
 	 */
 	size_t reserved_space;
 
 	/* EDNS information provided by the client.  */
 	edns_record_type edns;
 
-	/* TSIG information.  */
-	tsig_record_type tsig;
-	
 	int tcp;
 	uint16_t tcplen;
 
@@ -302,12 +298,12 @@ query_state_type query_process(query_type *q, nsd_type *nsd);
  * Prepare the query structure for writing the response. The packet
  * data up-to the current packet limit is preserved. This usually
  * includes the packet header and question section. Space is reserved
- * for the optional EDNS and TSIG records, if required.
+ * for the optional EDNS record, if required.
  */
 void query_prepare_response(query_type *q);
 
 /*
- * Add EDNS0 and TSIG information to the response if required.
+ * Add EDNS0 information to the response if required.
  */
 void query_add_optional(query_type *q, nsd_type *nsd);
 

@@ -161,7 +161,6 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->reserved_space = 0;
 	buffer_clear(q->packet);
 	edns_init_record(&q->edns);
-	tsig_init_record(&q->tsig, q->region, NULL, NULL);
 	q->tcp = is_tcp;
 	q->name = NULL;
 	q->zone = NULL;
@@ -314,37 +313,6 @@ process_edns(struct query *q)
 		ARCOUNT_SET(q, ARCOUNT(q) - 1);
 	}
 	return NSD_RC_OK;
-}
-
-static nsd_rc_type
-process_tsig(query_type *q)
-{
-	nsd_rc_type result;
-
-	if (q->tsig.status != TSIG_NOT_PRESENT) {
-		/* Strip TSIG record.  */
-		buffer_set_position(q->packet, q->tsig.position);
-		buffer_set_limit(q->packet, q->tsig.position);
-		ARCOUNT_SET(q, ARCOUNT(q) - 1);
-	}
-
-	if (q->tsig.status == TSIG_ERROR) {
-		/* TSIG error? */
-		result = NSD_RC_FORMAT;
-	} else if (q->tsig.status == TSIG_OK) {
-		/* Verify TSIG.  */
-		tsig_prepare(&q->tsig);
-		tsig_update(&q->tsig, q, q->tsig.position);
-		if (tsig_verify(&q->tsig)) {
-			result = NSD_RC_OK;
-		} else {
-			result = NSD_RC_NOTAUTH;
-		}
-	} else {
-		result = NSD_RC_OK;
-	}
-	
-	return result;
 }
 
 /*
@@ -897,11 +865,9 @@ query_prepare_response(query_type *q)
 	buffer_set_limit(q->packet, buffer_capacity(q->packet));
 	
 	/*
-	 * Reserve space for the EDNS and TSIG records if
-	 * required.
+	 * Reserve space for the EDNS records if required.
 	 */
 	q->reserved_space = edns_reserved_space(&q->edns);
-	q->reserved_space += tsig_reserved_space(&q->tsig);
 	
 	/* Update the flags.  */
 	flags = FLAGS(q);
@@ -967,10 +933,6 @@ query_process(query_type *q, nsd_type *nsd)
 			--arcount;
 	}
 	if (arcount > 0) {
-		if (tsig_parse_rr(&q->tsig, q->packet))
-			--arcount;
-	}
-	if (arcount > 0) {
 		return query_formerr(q);
 	}
 
@@ -984,11 +946,6 @@ query_process(query_type *q, nsd_type *nsd)
 	/* Remove trailing garbage.  */
 	buffer_set_limit(q->packet, buffer_position(q->packet));
 	
-	rc = process_tsig(q);
-	if (rc != NSD_RC_OK) {
-		return query_error(q, rc);
-	}
-
 	rc = process_edns(q);
 	if (rc != NSD_RC_OK) {
 		return query_error(q, rc);
@@ -1037,20 +994,6 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		ARCOUNT_SET(q, ARCOUNT(q) + 1);
 
 		STATUP(nsd, ednserr);
-		break;
-	}
-
-	switch (q->tsig.status) {
-	case TSIG_NOT_PRESENT:
-		break;
-	case TSIG_OK:
-	case TSIG_ERROR:
-		tsig_prepare(&q->tsig);
-		tsig_update(&q->tsig, q, buffer_position(q->packet));
-		tsig_sign(&q->tsig);
-		tsig_append_rr(&q->tsig, q->packet);
-		ARCOUNT_SET(q, ARCOUNT(q) + 1);
-
 		break;
 	}
 }
