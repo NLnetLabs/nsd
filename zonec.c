@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.12.2.2 2002/02/02 15:42:18 alexis Exp $
+ * $Id: zonec.c,v 1.12.2.3 2002/02/04 14:11:09 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -578,7 +578,7 @@ zone_dump(z, db)
 		d->size += sizeof(u_int32_t);
 
 		/* Store it */
-		if(write(db, dname, (((u_int32_t)*dname + 3) & 0xfffffffc)) == -1) {
+		if(write(db, dname, (((u_int32_t)*dname + 1 + 3) & 0xfffffffc)) == -1) {
 			perror("failure storing a key");
 		}
 		if(write(db, d, d->size) == -1) {
@@ -722,7 +722,7 @@ zone_dump(z, db)
 		d->size += sizeof(u_int32_t);
 
 		/* Store it */
-		if(write(db, dname, (((u_int32_t)*dname + 3) & 0xfffffffc)) == -1) {
+		if(write(db, dname, (((u_int32_t)*dname + 1 + 3) & 0xfffffffc)) == -1) {
 			perror("failure storing a key");
 		}
 		if(write(db, d, d->size) == -1) {
