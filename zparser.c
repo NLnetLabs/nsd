@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.22 2003/02/27 14:30:28 alexis Exp $
+ * $Id: zparser.c,v 1.23 2003/02/27 14:46:59 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -1604,6 +1604,7 @@ zprintrdata (FILE *f, int what, u_int16_t *r)
 		break;
 	case RDATA_TIME:
 		memcpy(&l, &r[1], sizeof(u_int32_t));
+		l = ntohl(l);
 		strftime(buf, B64BUFSIZE, "%Y%m%d%H%M%S ", gmtime((time_t *)&l));
 		fprintf(f, "%s", buf);
 		break;
