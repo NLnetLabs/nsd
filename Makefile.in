@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.30 2003/03/27 10:56:58 alexis Exp $
+# $Id: Makefile.in,v 1.31 2003/04/03 14:58:11 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -111,7 +111,7 @@ uninstall:
 	@echo
 	rm -f -- $(sbindir)/nsd $(sbindir)/zonec $(sbindir)/nsdc $(sbindir)/nsd-notify
 	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8
-	rm -f -- $(pidfile)
+	rm -f -- $(pidfile) $(dbfile)
 	@echo
 	@echo "You still need to remove $(confdir) directory by hand."
 
