@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.19 2003/08/27 12:47:07 miekg Exp $
+ * $Id: zlparser.lex,v 1.20 2003/08/27 12:55:58 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -251,8 +251,8 @@ CLASS[0-9]+             {
 .                       {
                             /* we should NEVER reach this
                              * bail out with an error */
-                            printf("Unknown character seen - This is not a zone file! ABORT\n");
-                            exit(1);
+                            yyerror("Uknown character seen - is this a zonefile");
+                            /*exit(1);*/
                         }
 %%
 
