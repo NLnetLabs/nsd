@@ -98,10 +98,10 @@ struct lookup_table {
 	int token;		/* Lexical token ID.  */
 };
 
-void warning(const char *fmt, ...);
-void warning_prev_line(const char *fmt, ...);
-void error(const char *fmt, ...);
-void error_prev_line(const char *fmt, ...);
+void warning(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
+void warning_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
+void error(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
+void error_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 int yyerror(const char *message); /* Dummy function.  */
 
 int process_rr(void);

@@ -841,8 +841,7 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 
 	rc = inet_pton(af, colon + 1, address);
 	if (rc == 0) {
-		error("invalid address '%s'",
-		      colon + 1, (int) address_family);
+		error("invalid address '%s'", colon + 1);
 	} else if (rc == -1) {
 		error("inet_pton failed: %s", strerror(errno));
 	}
@@ -854,7 +853,7 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 	
 	p = strtol(slash + 1, &end, 10);
 	if (p < 0 || p > maximum_prefix) {
-		error("prefix not in the range 0 .. %ld", maximum_prefix);
+		error("prefix not in the range 0 .. %d", maximum_prefix);
 	} else if (*end != '\0') {
 		error("invalid prefix '%s'", slash + 1);
 	}

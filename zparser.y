@@ -648,7 +648,7 @@ rdata_nsap:	str_dot_seq trail
 	{
 		/* String must start with "0x" or "0X".  */
 		if (strncasecmp($1.str, "0x", 2) != 0) {
-			error_prev_line("");
+			error_prev_line("NSAP rdata must start with '0x'");
 		} else {
 			zadd_rdata_wireformat(zparser_conv_hex(parser->region, $1.str + 2)); /* NSAP */
 		}
