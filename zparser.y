@@ -672,7 +672,7 @@ rdata_px:	STR sp dname sp dname trail
 	{ error_prev_line("Syntax error in PX record"); }
 	;
 
-rdata_aaaa: STR trail
+rdata_aaaa: dotted_str trail
     	{
         	zadd_rdata_wireformat(zparser_conv_a6(parser->region, $1.str));  /* IPv6 address */
     	}

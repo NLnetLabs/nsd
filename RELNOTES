@@ -6,6 +6,7 @@ FEATURES:
 
 BUG FIXES:
 	- Bug #87: allow @ in the rdata
+	- Bug #88: allow ::FFFF:ipv4addr in AAAA records
 
 2.1.2
 =============

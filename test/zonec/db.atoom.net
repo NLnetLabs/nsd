@@ -2,7 +2,6 @@
 ; BIND data file for atoom.net for internal use
 ;
 $ORIGIN miek.nl.
-$bla
 $TTL    1H
 @       IN      SOA     elektron.atoom.net. miekg.atoom.net. (
                      2003062700         ; Serial
@@ -40,6 +39,12 @@ guest3.wireless		IN	A	172.16.1.12
 guest4.wireless		IN	A	172.16.1.13
 guest5.wireless		IN	A	172.16.1.14
 elektron.wireless	IN	CNAME	elektron
+; funny rr's
+*.miek.nl		IN	A	192.168.1.2
+&&&.miek.nl		IN	A 	192.168.1.2
+?.miek.nl		IN	A	192.168.1.2
+[].miek.nl		IN	A	192.168.1.2
+^&*#.miek.nl		IN	A	192.168.1.2
 
 raymond			IN	A	131.174.120.42
 dabbert			IN	A	62.21.238.200
