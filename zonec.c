@@ -372,7 +372,7 @@ zparser_conv_text(region_type *region, const char *txt, size_t len)
 	uint16_t *r = NULL;
 
 	if(len > 255) {
-		error_prev_line("Text string is longer than 255 charaters, try splitting in two");
+		zc_error_prev_line("Text string is longer than 255 charaters, try splitting in two");
         } else {
 
 		/* Allocate required space... */
