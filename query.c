@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.75.2.7 2002/08/20 15:58:18 alexis Exp $
+ * $Id: query.c,v 1.75.2.8 2002/08/26 17:55:14 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -359,15 +359,12 @@ query_process(q, nsd)
 #ifdef LOG_NOTIFIES
 		if(OPCODE(q) == OPCODE_NOTIFY) {
 #ifdef INET6
-			if(q->addr.ss_family == AF_INET) {
-#else 
-			if(q->addr.sa_family == AF_INET) {
+			if(q->addr.ss_family != AF_INET)
+				syslog(LOG_INFO, "notify from an non-ipv4 remote address");
+			else
 #endif /* INET6 */
 				syslog(LOG_INFO, "notify from %s",
 					inet_ntoa( ((struct sockaddr_in *)(&q->addr))->sin_addr));
-			} else {
-				syslog(LOG_INFO, "notify from an non-ipv4 remote address");
-			}
 		}
 #endif /* LOG_NOTIFIES */
 
