@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.67 2003/02/21 12:16:18 alexis Exp $
+ * $Id: server.c,v 1.68 2003/02/26 12:00:57 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -63,7 +63,12 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <dns.h>
+#include <namedb.h>
+#include <dname.h>
 #include <nsd.h>
+#include <query.h>
+
 
 /*
  * Initialize the server, create and bind the sockets.

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.47 2003/02/21 11:00:39 alexis Exp $
+ * $Id: nsd.h,v 1.48 2003/02/26 12:00:57 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -138,10 +138,6 @@ struct	nsd {
 	} st;
 #endif /* BIND8_STATS */
 };
-
-#include "dns.h"
-#include "namedb.h"
-#include "query.h"
 
 /* nsd.c */
 void *xalloc(register size_t size);

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.7 2003/02/26 10:51:51 alexis Exp $
+ * $Id: nsd-notify.c,v 1.8 2003/02/26 12:00:56 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -58,8 +58,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <nsd.h>
+#include <dns.h>
+#include <namedb.h>
 #include <dname.h>
+#include <nsd.h>
+#include <query.h>
 
 /*
  * Allocates ``size'' bytes of memory, returns the

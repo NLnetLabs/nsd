@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.63 2003/02/21 11:00:39 alexis Exp $
+ * $Id: nsd.c,v 1.64 2003/02/26 12:00:56 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -62,7 +62,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <dns.h>
+#include <dname.h>
+#include <namedb.h>
 #include <nsd.h>
+#include <query.h>
 
 
 /* The server handler... */

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.92 2003/02/26 11:04:40 alexis Exp $
+ * $Id: query.c,v 1.93 2003/02/26 12:00:57 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -54,8 +54,12 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <dns.h>
+#include <dname.h>
 #include <nsd.h>
+#include <namedb.h>
 #include <query.h>
+
 
 #ifdef HAVE_LIBWRAP
 #include <tcpd.h>
