@@ -331,7 +331,6 @@ process_tsig(query_type *q ATTR_UNUSED)
 
 	if (q->tsig.status == TSIG_ERROR) {
 		/* TSIG error? */
-		fprintf(stderr, "tsig: error\n");
 		result = NSD_RC_FORMAT;
 	} else if (q->tsig.status == TSIG_OK) {
 		/* Verify TSIG.  */
@@ -1021,14 +1020,10 @@ query_add_optional(struct query *q, struct nsd *nsd)
 		break;
 	case TSIG_OK:
 	case TSIG_ERROR:
-		fprintf(stderr, "tsig: adding, rcode = %d\n", RCODE(q));
 		tsig_update_record(&q->tsig, q->packet);
 		tsig_append_record(&q->tsig, q->packet);
 		ARCOUNT_SET(q, ARCOUNT(q) + 1);
 
 		break;
 	}
-
-	fprintf(stderr, "tsig: %lu remaining\n",
-		(unsigned long) (q->maxlen - buffer_position(q->packet)));
 }
