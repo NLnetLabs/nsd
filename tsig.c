@@ -320,7 +320,7 @@ tsig_append_record(tsig_record_type *tsig, buffer_type *packet)
 	buffer_write_u16(packet, tsig->error_code);
 	buffer_write_u16(packet, tsig->other_size);
 	buffer_write(packet, tsig->other_data, tsig->other_size);
-	fprintf(stderr, "tsig: rdata length %d\n", buffer_position(packet) - rdlength_pos);
+
 	buffer_write_u16_at(packet, rdlength_pos,
 			    buffer_position(packet) - rdlength_pos
 			    - sizeof(uint16_t));
