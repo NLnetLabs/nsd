@@ -1,5 +1,5 @@
 ;
-; $Id: nsd.zones.sample,v 1.3.2.2 2002/08/12 14:02:53 alexis Exp $
+; $Id: nsd.zones.sample,v 1.3.2.3 2002/08/21 12:09:18 alexis Exp $
 ;
 ; nsd.zones -- a list of the zones to be compiled into the NSD database
 ;
@@ -48,6 +48,6 @@
 ; on every NSD database (re)load.
 ;
 ; zone	name		filename		[ masters/notify ip-address ]
-zone	.		root.zone		notify 128.9.0.107 192.33.4.12 128.8.10.90
-zone	ww.net		ww.net.zone
-zone	nlnetlabs.nl	nlnetlabs.nl.zone	masters 213.53.69.1
+zone	.		primary/root.zone	notify 128.9.0.107 192.33.4.12 128.8.10.90
+zone	ww.net		primary/ww.net
+zone	nlnetlabs.nl	secondary/nlnetlabs.nl	masters 213.53.69.1
