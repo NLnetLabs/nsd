@@ -34,7 +34,7 @@ static int include_stack_ptr = 0;
 SPACE   [ \t]
 LETTER  [a-zA-Z]
 NEWLINE \n
-ZONESTR [a-zA-Z0-9+/=:_!\-\*#%&^\[\]?]
+ZONESTR [a-zA-Z0-9+/=:_!\-\*#%&^\[\]?@]
 DOLLAR  \$
 COMMENT ;
 DOT     \.
@@ -356,8 +356,19 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 			LEXOUT(("TTL "));
 			return TTL;
 		}
-		/* fall through, default first, order matters */
+		/* Fall through, default first, order matters.  */
 	default:
+		/*
+		 * Check to see if someone used @ in the rdata if so
+		 * return the origin str, and RD_ORIGIN token.
+		 */
+		if (strcasecmp(yytext, "@") == 0) {
+			ztext = (char *)dname_to_string(domain_dname(parser->origin));
+			yylval.data.len = strlen(ztext);
+			yylval.data.str = ztext;
+			LEXOUT(("RDATA_ORI "));
+			return RD_ORIGIN;
+		}
 		ztext = region_strdup(parser->rr_region, yytext);
 		yylval.data.len = zoctet(ztext);
 		yylval.data.str = ztext;
