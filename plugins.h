@@ -1,5 +1,5 @@
 /*
- * plugins.h -- set or routines to manage plugins.
+ * plugins.h -- set of routines to manage plugins.
  *
  * Erik Rozendaal, <erik@nlnetlabs.nl>
  *

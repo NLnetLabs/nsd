@@ -1,5 +1,5 @@
 /*
- * plugins.c -- set or routines to manage plugins.
+ * plugins.c -- set of routines to manage plugins.
  *
  * Erik Rozendaal, <erik@nlnetlabs.nl>
  *
