@@ -96,7 +96,7 @@ Q       \"
 <incl><<EOF>>		{
 	int error_occurred = parser->error_occurred;
 	BEGIN(INITIAL);
-	zc_error("Missing file name in $INCLUDE directive");
+	zc_error("missing file name in $INCLUDE directive");
 	yy_set_bol(1); /* Set beginning of line, so "^" rules match.  */
 	++parser->line;
 	parser->error_occurred = error_occurred;
@@ -108,7 +108,7 @@ Q       \"
 	
 	BEGIN(INITIAL);
 	if (include_stack_ptr >= MAXINCLUDES ) {
-		zc_error("Includes nested too deeply, skipped (>%d)",
+		zc_error("includes nested too deeply, skipped (>%d)",
 			 MAXINCLUDES);
 	} else {
 		/* Remove trailing comment.  */
@@ -141,9 +141,9 @@ Q       \"
 		}
 		
 		if (strlen(yytext) == 0) {
-			zc_error("Missing file name in $INCLUDE directive");
+			zc_error("missing file name in $INCLUDE directive");
 		} else if (!(yyin = fopen(yytext, "r"))) {
-			zc_error("Cannot open include file '%s': %s",
+			zc_error("cannot open include file '%s': %s",
 				 yytext, strerror(errno));
 		} else {
 			/* Initialize parser for include file.  */
@@ -192,7 +192,7 @@ Q       \"
 }
 \( {
 	if (paren_open) {
-		zc_error("Nested parentheses");
+		zc_error("nested parentheses");
 		yyterminate();
 	}
 	LEXOUT(("( "));
@@ -201,7 +201,7 @@ Q       \"
 }
 \) {
 	if (!paren_open) {
-		zc_error("Unterminated parentheses");
+		zc_error("closing parentheses without opening parentheses");
 		yyterminate();
 	}
 	LEXOUT((") "));
@@ -254,7 +254,7 @@ Q       \"
 	return parse_token(STR, yytext, &lexer_state);
 }
 . {
-	zc_error("Unknown character '%c' (\\%03d) seen - is this a zonefile?",
+	zc_error("unknown character '%c' (\\%03d) seen - is this a zonefile?",
 		 (int) yytext[0], (int) yytext[0]);
 }
 %%
