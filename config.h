@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.3.2.2 2002/05/07 09:45:01 alexis Exp $
+ * $Id: config.h,v 1.3.2.2.2.1 2002/05/21 09:49:08 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -41,6 +41,13 @@
 #ifndef	_CONFIG_H_
 #define	_CONFIG_H_
 
+#ifndef	CF_UID
+#define	CF_UID	0
+#endif
+
+#ifndef CF_GID
+#define	CF_GID	0
+#endif
 
 #ifdef	DEBUG
 
