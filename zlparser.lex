@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.18 2003/08/26 10:41:36 miekg Exp $
+ * $Id: zlparser.lex,v 1.19 2003/08/27 12:47:07 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -278,20 +278,22 @@ zoctet(char *word)
 {
     /* remove \DDD constructs from the input. See RFC 1035, section 5.1 */
     /* s follows the string, p lags behind and rebuilds the new string */
-    /*
-     * Don't normalize here */
     char * s; char * p;
     unsigned int length = 0;
 
     for (s = p = word; *s != '\0'; s++,p++ ) {
-        /* backslash detected -- do your work */
         switch ( *s ) {
+            /* [XXX] what is so special about dots anyway?
             case '.':
+                printf("Seeing dots\n\n");
                 if ( s[1] == '.' ) {
-                    printf("Empty label!\n");
-                    /* .. situation */
+                    printf("zlparser.lex: Empty label!\n");
+                    break;
                 }
+                *p = *s;
+                length++; 
                 break;
+            */
             case '\\':
                 if ( '0' <= s[1] && s[1] <= '9' &&
                     '0' <= s[2] && s[2] <= '9' &&
@@ -304,7 +306,6 @@ zoctet(char *word)
                     if ( 0 <= val && val <= 255 ) {
                         /* this also handles \0 */
                         s += 3;
-                        /* *p = DNAME_NORMALIZE(val); */
                         *p = val;
                         length++;
                     } else {
@@ -314,19 +315,22 @@ zoctet(char *word)
                 } else {
                     /* an espaced character, like \<space> ? 
                     * remove the '\' keep the rest */
-                    /* *p = DNAME_NORMALIZE(*++s); */
                     *p = *++s;
                     length++;
                 }
                 break;
             case '\"':
-                /* non quoted " */
-                /* *p = DNAME_NORMALIZE(*++s); */
-                *p = *++s;
-                length++;
+                /* non quoted " Is either first or the last character in
+                 * the string */
+
+                *p = *++s; /* skip it */
+                length++; 
+                if ( *s == '\0' ) {
+                    /* ok, it was the last one */
+                    *p  = '\0'; return length;
+                }
                 break;
             default:
-                /* *p = DNAME_NORMALIZE(*s); */
                 *p = *s;
                 length++;
                 break;
