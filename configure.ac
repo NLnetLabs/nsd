@@ -336,11 +336,11 @@ esac
 
 AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--enable-dnssec], [Enable experimental DNSSEC support according to the latest drafts.]))
 case "$enable_dnssec" in
-        no)
-                ;;
-        yes|*)
+        yes)
 		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable experimental DNSSEC support.])
 		;;
+        no|*)
+                ;;
 esac
 
 AC_ARG_ENABLE(axfr, AC_HELP_STRING([--disable-axfr], [Disables AXFR]))

@@ -2,6 +2,9 @@ NSD RELEASE NOTES
 
 2.1.3
 =============
+FEATURES:
+        - nsd: The pidfile can be specified using the '-P' option.
+
 BUG FIXES:
         - Bug #87: allow @ in the rdata
         - Bug #88: allow ::FFFF:ipv4addr in AAAA records
@@ -10,6 +13,7 @@ BUG FIXES:
         - Zonec: when - is used as input, set the filename to 'STDIN'.
         - The nsdc script handles failed AXFRs more gracefully.
         - NSD emits an error when it sees bitlabels (RFC 2673).
+        - Only copy the CD bit when DNSSEC is enabled.
 
 2.1.2
 =============
