@@ -815,12 +815,12 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 	}
 
 	if (strcmp(str, "1") == 0) {
-		address_family = 1;
+		address_family = htons(1);
 		af = AF_INET;
 		length = sizeof(in_addr_t);
 		maximum_prefix = length * 8;
 	} else if (strcmp(str, "2") == 0) {
-		address_family = 2;
+		address_family = htons(2);
 		af = AF_INET6;
 		length = IP6ADDRLEN;
 		maximum_prefix = length * 8;
