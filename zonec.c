@@ -972,7 +972,7 @@ error(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 
-	fprintf(stderr," ERR: Line %d: ", current_parser->line);
+	fprintf(stderr," ERR: Line %u: ", current_parser->line);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 
@@ -988,7 +988,7 @@ warning(const char *fmt, ... )
 
 	va_start(args, fmt);
 
-	fprintf(stderr,"WARN: Line %d: ", current_parser->line);
+	fprintf(stderr,"WARN: Line %u: ", current_parser->line);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 

@@ -78,7 +78,7 @@ struct zparser {
 	domain_type *prev_dname;
 	unsigned int _rc;   /* current rdata cnt */
 	unsigned int errors;
-	size_t line;
+	unsigned int line;
 	const char *filename;
 };
 
