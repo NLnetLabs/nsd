@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.81 2002/10/10 11:22:05 alexis Exp $
+ * $Id: query.c,v 1.82 2002/10/10 13:04:04 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -96,15 +96,8 @@ query_axfr(q, nsd, qname, zname, depth)
 		return 0;
 	}
 
-	/* Incorrect invocation? */
-	if(d == NULL) {
-		syslog(LOG_ERR, "query_axfr() is called without intialization");
-		RCODE_SET(q, RCODE_SERVFAIL);
-		return 0;
-	}
-
 	/* We've done everything already, let the server know... */
-	if(zone == NULL) {
+	if(d == NULL) {
 		return 0;	/* Done. */
 	}
 
@@ -119,8 +112,8 @@ query_axfr(q, nsd, qname, zname, depth)
 		/* Prepare to send the terminating SOA record */
 		a = soa;
 		dname = zone;
-		zone = NULL;
 		d = NULL;
+		zone = NULL;
 	} else {
 		/* Prepare the answer */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
