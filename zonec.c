@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.31 2002/02/19 14:25:11 alexis Exp $
+ * $Id: zonec.c,v 1.32 2002/02/19 14:27:46 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -796,7 +796,7 @@ main(argc, argv)
 	struct zone *z = NULL;
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "d")) != -1) {
+	while((c = getopt(argc, argv, "f")) != -1) {
 		switch (c) {
 		case 'f':
 			dbfile = optarg;

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.23 2002/02/19 14:25:11 alexis Exp $
+ * $Id: nsd.c,v 1.24 2002/02/19 14:29:51 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -189,10 +189,13 @@ main(argc, argv)
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "d")) != -1) {
+	while((c = getopt(argc, argv, "df:")) != -1) {
 		switch (c) {
 		case 'd':
 			nsd.debug = 1;
+			break;
+		case 'f':
+			nsd.dbfile = argv[0];
 			break;
 		case '?':
 		default:
