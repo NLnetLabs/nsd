@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.9 2002/01/17 12:52:52 alexis Exp $
+ * $Id: query.c,v 1.10 2002/01/17 13:38:46 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -180,6 +180,12 @@ query_process(q, db)
 		return 0;
 	}
 
+	/* Dont allow any records in the query */
+	if(ANCOUNT(q) != 0 || NSCOUNT(q) != 0 || ARCOUNT(q) != 0) {
+		RCODE_SET(q, RCODE_FORMAT);
+		return 0;
+	}
+
 	/* Lets parse the qname and convert it to lower case */
 	qdepth = 0;
 	qnamelow = qnamebuf + 2;
@@ -200,19 +206,31 @@ query_process(q, db)
 	qnamelow = qnamebuf + 2;
 
 	/* Make sure name is not too long... */
-	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN) {
+	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q)) {
 		RCODE_SET(q, RCODE_FORMAT);
 		return 0;
 	}
-
 
 	bcopy(qptr, &qtype, 2); qptr += 2;
 	bcopy(qptr, &qclass, 2); qptr += 2;
 
 	/* Unsupported class */
-	if(ntohs(qclass) != CLASS_IN) {
+	if((ntohs(qclass) != CLASS_IN) && (ntohs(qclass) != CLASS_ANY)) {
 		RCODE_SET(q, RCODE_REFUSE);
 		return 0;
+	}
+
+	switch(ntohs(qtype)) {
+	case TYPE_AXFR:
+	case TYPE_IXFR:
+			RCODE_SET(q, RCODE_REFUSE);
+			return 0;
+			break;
+	case TYPE_MAILA:
+	case TYPE_MAILB:
+			RCODE_SET(q, RCODE_IMPL);
+			return 0;
+			break;
 	}
 
 	/* Do we have the complete name? */
@@ -228,7 +246,11 @@ query_process(q, db)
 			return 0;
 		} else {
 			if((a = db_answer(d, qtype)) != NULL) {
-				AA_SET(q);
+				if(ntohs(qclass) != CLASS_ANY) {
+					AA_SET(q);
+				} else {
+					AA_CLR(q);
+				}
 				query_addanswer(q, qname, a);
 				return 0;
 			} else {
@@ -237,7 +259,11 @@ query_process(q, db)
 					/* Setup truncation */
 					qptr = q->iobufptr;
 
-					AA_SET(q);
+					if(ntohs(qclass) != CLASS_ANY) {
+						AA_SET(q);
+					} else {
+						AA_CLR(q);
+					}
 					query_addanswer(q, qname, a);
 
 					/* Truncate */
@@ -280,7 +306,11 @@ query_process(q, db)
 					/* Setup truncation */
 					qptr = q->iobufptr;
 
-					AA_SET(q);
+					if(ntohs(qclass) != CLASS_ANY) {
+						AA_SET(q);
+					} else {
+						AA_CLR(q);
+					}
 					query_addanswer(q, qname, a);
 
 					/* Truncate */
@@ -305,7 +335,11 @@ query_process(q, db)
 					RCODE_SET(q, RCODE_OK);
 
 					if((a = db_answer(d, qtype)) != NULL) {
-						AA_SET(q);
+						if(ntohs(qclass) != CLASS_ANY) {
+							AA_SET(q);
+						} else {
+							AA_CLR(q);
+						}
 						query_addanswer(q, qname, a);
 						return 0;
 					}

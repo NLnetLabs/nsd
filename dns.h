@@ -1,5 +1,5 @@
 /*
- * $Id: dns.h,v 1.1 2001/12/12 13:33:53 alexis Exp $
+ * $Id: dns.h,v 1.2 2002/01/17 13:38:46 alexis Exp $
  *
  * dns.h -- all we need to know about DNS protocol, nsd(8)
  *
@@ -40,6 +40,7 @@
 
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
+#define	CLASS_ANY	255	/* Class IN */
 
 #define TYPE_A		1	/* a host address */
 #define TYPE_NS		2	/* an authoritative name server */
@@ -58,6 +59,10 @@
 #define TYPE_MX		15	/* mail exchange */
 #define TYPE_TXT	16	/* text strings */
 #define TYPE_AAAA	28	/* ipv6 address */
+#define	TYPE_AXFR	252
+#define	TYPE_IXFR	251
+#define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */
+#define	TYPE_MAILA	254	/* A request for mail agent RRs (Obsolete - see MX) */
 #define TYPE_ANY	255	/* any type (wildcard) */
 
 #define MAXDOMAINLEN	255
