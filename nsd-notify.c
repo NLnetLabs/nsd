@@ -53,7 +53,6 @@
 #include <netdb.h>
 
 #include "dns.h"
-#include "namedb.h"
 #include "dname.h"
 #include "nsd.h"
 #include "query.h"
