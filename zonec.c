@@ -388,8 +388,6 @@ zparser_conv_text(region_type *region, const char *txt, const int len)
 	/* convert text to wireformat */
 	uint16_t *r = NULL;
 
-	printf("%d\n", len);
-
 	if(len > 255) {
 		error_prev_line("Text string is longer than 255 charaters, try splitting in two");
         } else {
