@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.84 2002/10/10 14:37:36 alexis Exp $
+# $Id: Makefile,v 1.85 2002/12/17 14:41:29 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -164,11 +164,15 @@ LIBS		=
 
 # Compile environment settings
 DEBUG		= # -g -DDEBUG=1
-CC=gcc
-CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
-	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" -DCF_USERNAME=\"${NSDUSER}\"
-LDFLAGS= ${LIBS}
-INSTALL = install -c
+CC		= gcc
+CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG}
+DEFS		= ${DBFLAGS} ${FEATURES} -DCF_PIDFILE=\"${NSDPIDFILE}\" \
+	 	  -DCF_DBFILE=\"${NSDDB}\" -DCF_USERNAME=\"${NSDUSER}\"
+LDFLAGS		= ${LIBS}
+
+COMPILE		= ${CC} ${CFLAGS} ${DEFS} -c
+LINK		= ${CC} ${LDFLAGS}
+INSTALL		= install -c
 
 # This might be necessary for a system like SunOS 4.x
 COMPAT_O =	#	basename.o
@@ -183,7 +187,7 @@ CLEANFILES+=*.core *.gmon
 all:	nsd zonec nsdc.sh nsd-notify nsdc.conf.sample
 
 .c.o:
-	${CC} -c ${CFLAGS} $<
+	${COMPILE} $<
 
 install: all
 	[ -d ${NSDBINDIR} ] || mkdir ${NSDBINDIR}
@@ -222,29 +226,32 @@ nsdc.conf.sample: nsdc.conf.sample.in Makefile
 		-e "s,@@NSDKEYSDIR@@,${NSDKEYSDIR},g" -e "s,@@NSDNOTIFY@@,${NSDNOTIFY},g" $@.in > $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
-	${CC} ${CFLAGS} ${LDFLAGS} ${LIBWRAP} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o
+	${LINK} ${LIBWRAP} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o
 
 zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
+	${LINK} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
 
 nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
-	${CC} ${CFLAGS} ${LDFLAGS} ${LIBWRAP} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
+	${LINK} ${LIBWRAP} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
 
 clean:
 	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
 
 basename.o:	compat/basename.c
-	${CC} -c ${CFLAGS} compat/basename.c -o basename.o
+	${COMPILE} compat/basename.c -o basename.o
 
 # Test programs
 rbtree:	rbtree.c rbtree.h
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ rbtree.c
+	${COMPILE} -DTEST rbtree.c
+	${LINK} -o $@ rbtree.o
 
 hash:	hash.c hash.h
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ hash.c
+	${COMPILE} -DTEST hash.c
+	${LINK} -o $@ hash.o
 
-zf:	zf.h dns.h zf.c
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c
+zf:	zf.h dns.h zf.c rfc1876.c
+	${COMPILE} -DTEST zf.c rfc1876.c
+	${LINK} -o $@ zf.o rfc1876.o
 
 ${OBJS}:	${HDRS}
 

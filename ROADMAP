@@ -1,4 +1,4 @@
-$Id: ROADMAP,v 1.2 2002/05/23 13:33:03 alexis Exp $
+$Id: ROADMAP,v 1.3 2002/12/17 14:41:29 alexis Exp $
 
 NSD Road Map
 ===========
@@ -27,15 +27,12 @@ Features:	AXFR
 Bug fixes:	
 
 
-1.1.0-RELEASE	1st Sep 2002
+1.1.0-RELEASE	1st Feb 2002
 Codebase:	1.1.0-BETA
 Features:	ANSI C
 		AXFR + ACL + TSIG
 		ID.server & VERSION.server
 		DNSSEC (ready?)
-		Notify both ways
-		Parser bugs fixed
 		Glue never fits checks
-		Tree search algorithm
 
 Bug fixes:

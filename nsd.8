@@ -1,5 +1,5 @@
 .\"
-.\" $Id: nsd.8,v 1.14 2002/10/08 09:57:54 alexis Exp $
+.\" $Id: nsd.8,v 1.15 2002/12/17 14:41:29 alexis Exp $
 .\"
 .\" nsd.8 -- nsd manual
 .\"
@@ -69,7 +69,11 @@ must be generated beforehand
 .Xr zonec 8
 By default NSD will bind all the local interfaces available. Use
 .Ar ip-address
-option to specify a single particular interface address to be bound.
+option to specify a single particular interface address to be bound. If this option
+is given more than once,
+.Ic NSD
+will bind its udp sockets to all the specified ip-addresses separately and
+use INADDR_ANY for the tcp socket.
 .Pp
 Normally
 .Ic NSD

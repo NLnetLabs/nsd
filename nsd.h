@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.43 2002/10/14 13:35:44 alexis Exp $
+ * $Id: nsd.h,v 1.44 2002/12/17 14:41:29 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -109,6 +109,7 @@ struct	nsd {
 	char	*chrootdir;
 	char	*version;
 	char	*identity;
+	int	ifs;
 
 	/* TCP specific configuration */
 	struct	{
@@ -121,10 +122,9 @@ struct	nsd {
 
 	/* UDP specific configuration */
 	struct	{
-		size_t		max_msglen;
 		struct sockaddr_in	addr;
 		int		s;
-	} udp;
+	} udp[CF_MAX_INTERFACES];
 
 #ifdef INET6
 	struct {
@@ -159,7 +159,7 @@ struct	nsd {
 		stc_t	rcode[17], opcode[6]; /* Rcodes & opcodes */
 		/* Dropped, truncated, queries for nonconfigured zone, tx errors */
 		stc_t	dropped, truncated, wrongzone, txerr, rxerr;
-		stc_t 	edns, ednserr, raxfr;
+		stc_t 	edns, ednserr, raxfr, nona;
 	} st;
 #endif /* BIND8_STATS */
 };

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.18 2002/10/10 14:20:32 alexis Exp $
+# $Id: nsdc.sh.in,v 1.19 2002/12/17 14:41:29 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -100,6 +100,7 @@ running)
 rebuild)
 	${NSDBINDIR}/zonec -v -d ${NSDZONESDIR} -f ${NSDDB}.$$ ${NSDZONES} && mv ${NSDDB}.$$ ${NSDDB}
 	result=$?
+	[ $result != 0 ] && echo "${NSDDB} is unmodified"
 	rm -f ${NSDDB}.$$
 	exit ${result}
 	;;

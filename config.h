@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.19 2002/10/21 10:39:46 alexis Exp $
+ * $Id: config.h,v 1.20 2002/12/17 14:41:29 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -42,7 +42,7 @@
 #define	_CONFIG_H_
 
 #ifndef CF_VERSION
-#define	CF_VERSION	"NSD-1.0.2 beta 1"
+#define	CF_VERSION	"NSD-1.0.2"
 #endif
 
 #ifndef	CF_IDENTITY
@@ -65,6 +65,9 @@
 #ifndef	CF_FACILITY
 #define	CF_FACILITY	LOG_DAEMON
 #endif
+
+#define	MAXSYSLOGMSGLEN	512
+#define	CF_MAX_INTERFACES	8
 
 #ifdef	DEBUG
 
