@@ -90,6 +90,14 @@ extern int error_occurred;   /*  Error occurred while parsin an RR. */
 /* used in zonec.lex */
 extern FILE *yyin;
 
+
+/*
+ * Used to mark bad domains and domain names.  Do not dereference
+ * these pointers!
+ */
+extern const dname_type *error_dname;
+extern domain_type *error_domain;
+
 int yyparse(void);
 int yylex(void);
 /*int yyerror(const char *s);*/

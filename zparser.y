@@ -69,11 +69,12 @@ uint8_t nsecbits[256][32];
 %type <data>   str_seq concatenated_str_seq hex_seq nxt_seq nsec_seq
 
 %%
-lines:  /* empty line */
+lines:  /* empty file */
     |   lines line
     ;
 
 line:   NL
+    |   sp NL
     |   DIR_TTL dir_ttl
     |   DIR_ORIG dir_orig
     |   rr
@@ -98,6 +99,10 @@ line:   NL
 	    current_rr->rrdata = temporary_rrdata;
 	    current_parser->_rc = 0;
 	    error_occurred = 0;
+    }
+    | error NL
+    {
+	    error_prev_line("syntax error");
     }
     ;
 
@@ -129,6 +134,10 @@ dir_orig:   SP abs_dname trail
 
 	/* Copy from RR region to zone region.  */
         current_parser->origin = $2;
+    }
+    | SP rel_dname trail
+    {
+	    error_prev_line("$ORIGIN directive requires absolute domain name");
     }
     ;
 
@@ -203,8 +212,16 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
 dname:      abs_dname
     	|   rel_dname
     	{
-		$$ = domain_table_insert(current_parser->db->domains, 
-        		cat_dname(rr_region, $1, domain_dname(current_parser->origin)));
+		if ($1 == error_dname) {
+			$$ = error_domain;
+		} else if ($1->name_size + domain_dname(current_parser->origin)->name_size - 1 > MAXDOMAINLEN) {
+			error("domain name exceeds %d character limit", MAXDOMAINLEN);
+			$$ = error_domain;
+		} else {
+			$$ = domain_table_insert(
+				current_parser->db->domains, 
+				cat_dname(rr_region, $1, domain_dname(current_parser->origin)));
+		}
     	}
     	;
 
@@ -213,25 +230,37 @@ abs_dname:  '.'
 	    $$ = current_parser->db->domains->root;
     }
     |       rel_dname '.'
-    {
-		$$ = domain_table_insert(current_parser->db->domains, $1);
+    { 
+	    if ($1 != error_dname) {
+		    $$ = domain_table_insert(current_parser->db->domains, $1);
+	    } else {
+		    $$ = error_domain;
+	    }
     }
     ;
 
 label: STR
     {
 	    if ($1.len > MAXLABELLEN) {
-		    warning("label '%s' exceeds %d character limit, truncated", $1.str, MAXLABELLEN);
-		    $1.len = MAXLABELLEN;
+		    error("label exceeds %d character limit", MAXLABELLEN);
+		    $$ = error_dname;
+	    } else {
+		    $$ = create_dname(rr_region, (uint8_t *) $1.str, $1.len);
 	    }
-	    $$ = create_dname(rr_region, (uint8_t *) $1.str, $1.len);
     }
     ;
 
 rel_dname:  label
     |       rel_dname '.' label
-    {  
-	    $$ = cat_dname(rr_region, $1, $3);
+    {
+	    if ($1 == error_dname || $3 == error_dname) {
+		    $$ = error_dname;
+	    } else if ($1->name_size + $3->name_size - 1 > MAXDOMAINLEN) {
+		    error("domain name exceeds %d character limit", MAXDOMAINLEN);
+		    $$ = error_dname;
+	    } else {
+		    $$ = cat_dname(rr_region, $1, $3);
+	    }
     }
     ;
 
@@ -250,7 +279,7 @@ concatenated_str_seq: STR
 	| '.'
 	{
 		$$.len = 1;
-		$$.str = ".";
+		$$.str = region_strdup(rr_region, ".");
 	}
 	| concatenated_str_seq sp STR
 	{

@@ -48,6 +48,9 @@ static long strtottl(char *nptr, char **endptr);
 region_type *zone_region;
 region_type *rr_region;
 
+const dname_type *error_dname;
+domain_type *error_domain;
+
 /* The database file... */
 static const char *dbfile = DBFILE;
 
@@ -1350,6 +1353,10 @@ main (int argc, char **argv)
 
 	current_parser = zparser_init(db);
 	current_rr = region_alloc(zone_region, sizeof(rr_type));
+
+	/* Unique pointers used to mark errors.  */
+	error_dname = region_alloc(zone_region, 0);
+	error_domain = region_alloc(zone_region, 0);
 
 	temporary_rrdata = region_alloc(zone_region, rrdata_size(MAXRDATALEN));
 	
