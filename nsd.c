@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.13 2003/06/05 15:13:18 erik Exp $
+ * $Id: nsd.c,v 1.56.2.14 2003/06/11 10:00:16 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -610,14 +610,3 @@ main(argc, argv)
 	/* NOTREACH */
 	exit(0);
 }
-
-
-/* Emacs:
-
-Local Variables:
-c-basic-offset: 8
-c-indentation-style: bsd
-indent-tabs-mode: t
-End:
-
-*/

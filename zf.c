@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.35.2.1 2003/06/05 15:09:28 erik Exp $
+ * $Id: zf.c,v 1.35.2.2 2003/06/11 10:00:20 erik Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -1182,13 +1182,3 @@ main(argc, argv)
 }
 
 #endif
-
-/* Emacs:
-
-Local Variables:
-c-basic-offset: 8
-c-indentation-style: bsd
-indent-tabs-mode: t
-End:
-
-*/

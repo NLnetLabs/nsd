@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59.2.10 2003/06/05 15:13:20 erik Exp $
+ * $Id: server.c,v 1.59.2.11 2003/06/11 10:00:19 erik Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -650,14 +650,3 @@ server_tcp(struct nsd *nsd)
 
 	/* NOTREACH */
 }
-
-
-/* Emacs:
-
-Local Variables:
-c-basic-offset: 8
-c-indentation-style: bsd
-indent-tabs-mode: t
-End:
-
-*/
