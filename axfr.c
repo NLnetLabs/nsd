@@ -43,6 +43,13 @@
 #include "dns.h"
 #include "query.h"
 
+#ifdef LIBWRAP
+#include <tcpd.h>
+
+int allow_severity = LOG_INFO;
+int deny_severity = LOG_NOTICE;
+#endif /* LIBWRAP */
+
 query_state_type
 query_axfr (struct nsd *nsd, struct query *query)
 {

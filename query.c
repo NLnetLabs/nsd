@@ -65,13 +65,6 @@
 #include "query.h"
 #include "util.h"
 
-#ifdef LIBWRAP
-#include <tcpd.h>
-
-int allow_severity = LOG_INFO;
-int deny_severity = LOG_NOTICE;
-#endif /* LIBWRAP */
-
 static void add_rrset(struct query       *query,
 		      answer_type        *answer,
 		      answer_section_type section,
