@@ -32,8 +32,11 @@ query_axfr (struct nsd *nsd, struct query *query)
 	if (query->axfr_is_done)
 		return QUERY_PROCESSED;
 
-	assert(!query_overflow(query));
+	if (query->maxlen > AXFR_MAX_MESSAGE_LEN)
+		query->maxlen = AXFR_MAX_MESSAGE_LEN;
 	
+	assert(!query_overflow(query));
+
 	if (query->axfr_zone == NULL) {
 		/* Start AXFR.  */
 		exact = namedb_lookup(nsd->db,
