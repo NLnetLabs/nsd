@@ -355,14 +355,31 @@ rrset_rrsig_type_covered(rrset_type *rrset, uint16_t rr)
 	return ntohs(* (uint16_t *) rdata_atom_data(atom));
 }
 
+zone_type *
+namedb_find_zone(namedb_type *db, domain_type *domain)
+{
+	zone_type *zone;
+
+	for (zone = db->zones; zone; zone = zone->next) {
+		if (zone->domain == domain)
+			break;
+	}
+
+	return zone;
+}
+
 /*
- * The type of the rdatas for each known RR type.  The possible types
+ * The type of the rdatas for each known RR type.  Only types up to
+ * TXT and the first two RDATa elements must be provided.  See the
+ * definition of rdata_atom_is_domain in namedb.h.  The possible types
  * are:
  *
  *   2 - 2 octet field.
  *   4 - 4 octet field
  *   d - a compressable domain name.
  *   X - no rdata at this position.
+ *
+ * Currently only type 'd' is checked for.
  */
 const char *rdata_types[] =
 {

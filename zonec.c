@@ -38,14 +38,13 @@
 #include "zparser.h"
 
 #ifndef B64_PTON
-int b64_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize);
+int b64_ntop(uint8_t const *src, size_t srclength,
+	     char *target, size_t targsize);
 #endif /* !B64_PTON */
 #ifndef B64_NTOP
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif /* !B64_NTOP */
 
-long strtottl(char *nptr, char **endptr);
-	
 region_type *zone_region;
 region_type *rr_region;
 
@@ -66,7 +65,7 @@ static long int totalrrs = 0;
 
 int error_occurred = 0;
 
-extern uint8_t nsecbits[256][32];
+extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
 /*
  *
@@ -139,7 +138,10 @@ zparser_conv_hex(region_type *region, const char *hex)
 	
 	len = strlen(hex);
 	if (len % 2 != 0) {
-		error_prev_line("Hex representation must be a whole number of octets");
+		error_prev_line("number of hex digits must be a multiple of 2");
+	} else if (len > MAX_RDLENGTH * 2) {
+		error_prev_line("hex data exceeds maximum rdata length (%d)",
+				MAX_RDLENGTH);
 	} else {
 		/* the length part */
 		r = region_alloc(region, sizeof(uint16_t) + len/2);
@@ -147,9 +149,9 @@ zparser_conv_hex(region_type *region, const char *hex)
 		t = (uint8_t *)(r + 1);
     
 		/* Now process octet by octet... */
-		while(*hex) {
+		while (*hex) {
 			*t = 0;
-			for(i = 16; i >= 1; i -= 15) {
+			for (i = 16; i >= 1; i -= 15) {
 				switch (*hex) {
 				case '0':
 				case '1':
@@ -180,7 +182,7 @@ zparser_conv_hex(region_type *region, const char *hex)
 					*t += (*hex - 'A' + 10) * i;
 					break;
 				default:
-					error_prev_line("Illegal hex character '%c'", (int)*hex);
+					error_prev_line("illegal hex character '%c'", (int)*hex);
 					return NULL;
 				}
 				++hex;
@@ -846,9 +848,7 @@ zadd_rdata_domain(zparser_type *parser, domain_type *domain)
 void
 zadd_rdata_finalize(zparser_type *parser)
 {
-	/* RDATA_TERMINATOR signals the last rdata */
-
-	/* _rc is already incremented in zadd_rdata2 */
+	/* Append terminating NULL.  */
 	current_rr->rrdata->rdata[parser->_rc].data = NULL;
 }
 
@@ -1050,7 +1050,6 @@ strtottl(char *nptr, char **endptr)
 	}
 	seconds += i;
 	return (sign == -1) ? -seconds : seconds;
-
 }
 
 /*
@@ -1160,7 +1159,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 	
 	/* We only support IN class */
 	if (rr->class != CLASS_IN) {
-		error_prev_line("Wrong class");
+		error_prev_line("only class IN is supported");
 		return 0;
 	}
 
@@ -1180,27 +1179,30 @@ process_rr(zparser_type *parser, rr_type *rr)
 	}
 		     
 	if ( rr->type == TYPE_SOA ) {
-		/* This is a SOA record, start a new zone */
-
-		/* new zone part */
-		zone = region_alloc(zone_region, sizeof(zone_type));
-		zone->domain = rr->domain;
-		zone->soa_rrset = NULL;
-		zone->ns_rrset = NULL;
-		zone->is_secure = 0;
-
-		/* ervoor plaatsen */
-		zone->next = parser->db->zones;
-		parser->db->zones = zone;
-
+		/*
+		 * This is a SOA record, start a new zone or continue
+		 * an existing one.
+		 */
+		zone = namedb_find_zone(parser->db, rr->domain);
+		if (!zone) {
+			/* new zone part */
+			zone = region_alloc(zone_region, sizeof(zone_type));
+			zone->domain = rr->domain;
+			zone->soa_rrset = NULL;
+			zone->ns_rrset = NULL;
+			zone->is_secure = 0;
+			
+			/* insert in front of zone list */
+			zone->next = parser->db->zones;
+			parser->db->zones = zone;
+		}
+		
 		/* parser part */
 		current_parser->current_zone = zone;
 	}
 
-        /* [XXX] still need to check if we have seen this SOA already */
-
 	if (!dname_is_subdomain(domain_dname(rr->domain), domain_dname(zone->domain))) {
-		error_prev_line("Out of zone data");
+		error_prev_line("out of zone data");
 		return 0;
 	}
 

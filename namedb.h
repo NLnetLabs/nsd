@@ -255,6 +255,11 @@ rrdata_size(uint16_t rdcount)
 }
 
 
+/*
+ * Find the zone for the specified DOMAIN in DB.
+ */
+zone_type *namedb_find_zone(namedb_type *db, domain_type *domain);
+
 /* dbcreate.c */
 struct namedb *namedb_new(const char *filename);
 int namedb_save(struct namedb *db);
