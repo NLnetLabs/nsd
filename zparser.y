@@ -141,7 +141,7 @@ dir_orig:   SP abs_dname trail
     }
     ;
 
-rr:     ORIGIN SP rrrest
+rr:     ORIGIN sp rrrest
     {
         current_rr->domain = current_parser->origin;
 
@@ -153,7 +153,7 @@ rr:     ORIGIN SP rrrest
         current_rr->domain = current_parser->prev_dname;
         
     }
-    |   dname SP rrrest
+    |   dname sp rrrest
     {
 	    /* Copy from RR region to zone region.  */
 	    current_rr->domain = $1;
@@ -197,16 +197,16 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
         current_rr->rrdata->ttl = current_parser->ttl;
         current_rr->class = current_parser->class;
     }
-    |   class SP         /* no ttl */
+    |   class sp         /* no ttl */
     {
         current_rr->rrdata->ttl = current_parser->ttl;
     }
-    |	ttl SP		/* no class */
+    |	ttl sp		/* no class */
     {   
         current_rr->class = current_parser->class;
     }
-    |   ttl SP class SP  /* the lot */
-    |   class SP ttl SP  /* the lot - reversed */
+    |   ttl sp class sp  /* the lot */
+    |   class sp ttl sp  /* the lot - reversed */
     ;
 
 dname:      abs_dname
