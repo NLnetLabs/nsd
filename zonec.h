@@ -29,22 +29,6 @@
 #define NSEC_WINDOW_BITS_COUNT 256
 #define NSEC_WINDOW_BITS_SIZE  (NSEC_WINDOW_BITS_COUNT / 8)
 
-/* Type of rdata elements we might encounter */
-#define RDATA_A		1
-#define RDATA_A6	2
-#define RDATA_B64	3
-#define RDATA_BYTE	4
-#define RDATA_DNAME	5
-#define RDATA_LONG	6
-#define RDATA_SHORT	7
-#define RDATA_TEXT	8
-#define RDATA_PERIOD	9
-#define RDATA_TYPE	10
-#define RDATA_TIME	11
-#define RDATA_HEX	12
-#define RDATA_PROTO	13
-#define RDATA_SERVICE	14
-
 #define LINEBUFSZ 1024
 
 struct lex_data {

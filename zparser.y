@@ -34,13 +34,6 @@ uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 uint8_t nsecbits[256][32];
 
 %}
-/* this list must be in exactly the same order as *RRtypes[] in zlparser.lex. 
- * The only changed are:
- * - NSAP-PRT is named NSAP_PTR
- * - NULL which is named YYNULL.
- */
-/* RR types */
-
 %union {
 	domain_type      *domain;
 	const dname_type *dname;
@@ -50,6 +43,11 @@ uint8_t nsecbits[256][32];
 	uint16_t          type;
 }
 
+/* this list must be in exactly the same order as *RRtypes[] in zlexer.lex. 
+ * The only changed are:
+ * - NSAP-PRT is named NSAP_PTR
+ * - NULL which is named YYNULL.
+ */
 %token <type> A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
 %token <type> MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
 %token <type> EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
@@ -411,6 +409,8 @@ rtype:
     { current_rr->type = $1; }
     | NAPTR sp rdata_naptr
     { current_rr->type = $1; }
+    | UTYPE sp rdata_unknown
+    { current_rr->type = $1; }
     | STR error NL
     {
 	    error_prev_line("Unrecognized RR type '%s'", $1.str);
@@ -620,6 +620,15 @@ rdata_naptr:   STR sp STR sp STR sp STR sp STR sp dname trail
        }
 	|   error NL
 	{ error_prev_line("Syntax error in NAPTR record"); }
+       ;
+
+rdata_unknown:	URR sp STR sp hex_seq trail
+	{
+		/* $2 is the number of octects, currently ignored */
+		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str));
+	}
+	| error NL
+	{ error_prev_line("Syntax error in UNKNOWN RR rdata"); }
        ;
 %%
 

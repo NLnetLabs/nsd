@@ -266,6 +266,7 @@ zrrtype (char *word)
 		return j + A; /* now it's know, well does it? */
 	} else {
 		/* j == 0 is already handled */
+		LEXOUT(("UTYPE "));
 		return UTYPE;
 	}
 }
