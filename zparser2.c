@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.9 2003/08/19 11:37:47 miekg Exp $
+ * $Id: zparser2.c,v 1.10 2003/08/19 14:14:18 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -915,7 +915,7 @@ creat_dname(const uint8_t *str, const size_t len)
 {
     uint8_t *dname;
 
-    dname = (uint8_t*)xalloc(len + 3);  /* 2 for length, 1 for root */
+    dname = (uint8_t*)xalloc(len + 4);  /* 2 for length, 1 for root */
 
     dname[0] = (uint8_t) (len + 2); /* total length, label len + label data + root*/
     dname[1] = (uint8_t) len;       /* label length */
@@ -942,7 +942,7 @@ cat_dname(const uint8_t *left, const uint8_t *right)
     sleft = (size_t) left[0];
     sright= (size_t) right[0];
 
-    dname = (uint8_t*)xalloc( sleft + sright);
+    dname = (uint8_t*)xalloc( sleft + sright + 1);
     dname[0] = (uint8_t) (sleft + sright - 1);  /* the new length */
 
     memcpy( dname+1, left + 1, sleft ); /* cp left, not the lenght byte */
