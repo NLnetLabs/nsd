@@ -1,5 +1,5 @@
 /*
- * rdata.h -- RDATA conversion functions.
+ * rdata.c -- RDATA conversion functions.
  *
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
