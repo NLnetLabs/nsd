@@ -3,19 +3,25 @@ NSD RELEASE NOTES
 1.3.0
 =============
 FEATURES:
-
-        - New zone compiler (zonec2) based on flex and yacc, fully RFC
-          compliant (still in alpha).
-
-        - Database can be loaded using mmap(2) (use the --enable-mmap
-          configure option to enable).  This is useful on operating
-          systems such as Solaris that do not allow memory overcommit.
-
-        - Region based memory allocation and resource management.
-
         - New name lookup algorithm.  This required a change to the
           database format.  Performance should increase at the expense
           of database size and memory usage.
+        - New zone compiler (zonec2) based on flex and yacc, fully RFC
+          compliant (still in alpha).
+        - Database can be loaded using mmap(2) (use the --enable-mmap
+          configure option to enable).  This is useful on operating
+          systems such as Solaris that do not allow memory overcommit.
+        - Region based memory allocation and resource management.
+        - New internal format for storing domain names.  Each dname
+          now includes an array of label offsets within the domain
+          name.
+        - Updates to the plugin API.
+
+BUG FIXES:
+        - Bug #65: The syslog facility is now a compile time option
+          (--with-facility=FACILITY).  The default facility is DAEMON.
+        - Bug #66: Automatic periodic dumping of the statistics (using
+          the -s option) is now continued after a database reload.
 
 1.2.2
 =============
