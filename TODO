@@ -1,9 +1,10 @@
-$Id: TODO,v 1.9 2002/01/17 22:24:46 alexis Exp $
+$Id: TODO,v 1.10 2002/01/17 22:30:17 alexis Exp $
 
 ZONE COMPILER
 - check memory usage, leaks and optimization
 - better detection of out of zone data
 - make empty pointers arrays for non-delegations
+- replace libdict with dbopen
 
 DATABASE
 
