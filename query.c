@@ -915,7 +915,7 @@ query_process(query_type *q, nsd_type *nsd)
 
 	/* Dont bother to answer more than one question at once... */
 	if (QDCOUNT(q->packet) != 1 || TC(q->packet)) {
-		buffer_write_u16_at(q->packet, 2, 0);
+		FLAGS_SET(q->packet, 0);
 		return query_formerr(q);
 	}
 
