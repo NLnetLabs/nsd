@@ -1,5 +1,5 @@
 /*
- * $Id: db.h,v 1.9 2002/01/10 12:52:46 alexis Exp $
+ * $Id: db.h,v 1.10 2002/01/11 13:21:05 alexis Exp $
  *
  * db.h -- nsd(8) internal namespace database
  *
@@ -59,12 +59,19 @@ struct domain {
 	u_short	flags;
 };
 
-struct db {
-	DB *db;
-	u_char mask[16];
+struct db_mask {
+	u_char	data[16];
+	u_char	auth[16];
+	u_char	stars[16];
 };
 
-#define	DB_PROBE(db, depth) (db->mask[(depth) >> 3] & (1 << ((depth) & 0x7)))
+struct db {
+	DB *db;
+	struct db_mask mask;
+};
+
+#define	TSTMASK(mask, depth) (mask[(depth) >> 3] & (1 << ((depth) & 0x7)))
+#define	SETMASK(mask, depth) mask[(depth) >> 3] |= (1 << ((depth) & 0x7))
 
 void db_write __P((struct db *, u_char *, struct domain *));
 struct db *db_create __P((char *));

@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.7 2002/01/09 15:19:50 alexis Exp $
+ * $Id: zone.c,v 1.8 2002/01/11 13:21:05 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -257,12 +257,18 @@ zone_dump(z, db)
 	struct message msg;
 	struct rrset *rrset, *additional;
 	u_char *dname, *nameptr;
-	int i;
+	int star, i, namedepth;
 
 	/* AUTHORITY CUTS */
 	HEAP_WALK(z->cuts, (char *)dname, rrset) {
 		/* Make sure the data is intact */
 		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
+
+		/* Make sure it is not a wildcard */
+		if(*dname >= 2 && *(dname + 1) == '\001' && *(dname + 2) == '*') {
+			syslog(LOG_ERR, "wildcard delegations are not allowed");
+			continue;
+		}
 
 		/* Initialize message */
 		bzero(&msg, sizeof(struct message));
@@ -272,7 +278,7 @@ zone_dump(z, db)
 		d = db_newdomain(DB_DELEGATION);
 
 		/* Put the dname into compression array */
-		for(nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1) {
+		for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
 			if((dname + *dname + 1 - nameptr) > 1) {
 				msg.compr[msg.comprlen].dname = nameptr;
 				msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1)) | 0xc000;
@@ -286,7 +292,20 @@ zone_dump(z, db)
 
 		/* Additional section */
 		for(i = 0; i < msg.dnameslen; i++) {
+
 			additional = HEAP_SEARCH(z->data, msg.dnames[i]);
+
+			/* This is a glue record */
+			if((*z->dname < *msg.dnames[i]) &&
+			    (bcmp(z->dname + 1, msg.dnames[i] + (*msg.dnames[i] - *z->dname) + 1, *z->dname) == 0)) {
+				if(additional == NULL) {
+					syslog(LOG_ERR, "missing glue record");
+				}
+
+				/* Mark it as out of zone data */
+				additional->glue = 1;
+			}
+
 			while(additional) {
 				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
 					msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
@@ -298,6 +317,10 @@ zone_dump(z, db)
 		/* Add this answer */
 		d = db_addanswer(d, &msg, rrset->type);
 
+		/* Set the database masks */
+		SETMASK(db->mask.data, namedepth);
+		SETMASK(db->mask.auth, namedepth);
+
 		/* Store it */
 		db_write(db, dname, d);
 		free(d);
@@ -306,8 +329,15 @@ zone_dump(z, db)
 
 	/* OTHER DATA */
 	HEAP_WALK(z->data, (char *)dname, rrset) {
+		/* Skip out of zone data */
+		if(rrset->glue == 1)
+			continue;
+
 		/* Create a new domain, not a delegation */
 		d = db_newdomain(0);
+
+		/* This is not a wildcard */
+		star = 0;
 
 		while(rrset) {
 			/* Initialize message */
@@ -315,12 +345,17 @@ zone_dump(z, db)
 			msg.bufptr = msg.buf;
 
 			/* Put the dname into compression array */
-			for(nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1) {
-				if((dname + *dname + 1 - nameptr) > 1) {
-					msg.compr[msg.comprlen].dname = nameptr;
-					msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1)) | 0xc000;
-					msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
-					msg.comprlen++;
+			for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
+				/* Do we have a wildcard? */
+				if((namedepth == 0) && (*(nameptr+1) == '*')) {
+					star = *nameptr + 1;
+				} else {
+					if((dname + *dname + 1 - nameptr) > 1) {
+						msg.compr[msg.comprlen].dname = nameptr;
+						msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
+						msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
+						msg.comprlen++;
+					}
 				}
 			}
 
@@ -344,7 +379,17 @@ zone_dump(z, db)
 			/* Add this answer */
 			d = db_addanswer(d, &msg, rrset->type);
 
+			/* Set the masks */
+			if(rrset->type == TYPE_SOA)
+				SETMASK(db->mask.auth, namedepth);
+
 			rrset = rrset->next;
+		}
+
+		/* Set the data mask */
+		SETMASK(db->mask.data, namedepth);
+		if(star) {
+			SETMASK(db->mask.stars, namedepth);
 		}
 
 		/* Store it */
@@ -352,7 +397,6 @@ zone_dump(z, db)
 		free(d);
 	}
 	HEAP_STOP();
-
 
 	return 0;
 }
@@ -371,12 +415,14 @@ zone_addrrset(msg, dname, rrset)
 	union zf_rdatom *rdata;
 	char *rdlengthptr;
 	char *f;
-	u_char *p;
-	size_t l;
+	size_t size;
 	u_short rdlength;
 	u_short type;
 	int rrcount;
 	int i, j;
+
+	long l;
+	u_short s;
 
 	/* Did I see you before? */
 	for(i = 0; i < msg->rrsetslen; i++) {
@@ -415,43 +461,41 @@ zone_addrrset(msg, dname, rrset)
 		msg->bufptr += sizeof(u_short);
 
 		/* Pack the rdata */
-		for(p = NULL, l = 0, i = 0, f = rrset->fmt; *f; f++, i++, p = NULL, l = 0) {
+		for(size = 0, i = 0, f = rrset->fmt; *f; f++, i++, size = 0) {
 			switch(*f) {
 			case '4':
+				size = sizeof(u_long);
+				bcopy((char *)&rdata[i].l, msg->bufptr, size);
+				break;
 			case 'l':
-				p = (char *)&rdata[i].l;
-				l = sizeof(u_long);
+				size = sizeof(u_long);
+				l = htonl(rdata[i].l);
+				bcopy((char *)&l, msg->bufptr, size);
 				break;
 			case '6':
-				p = rdata[i].p;
-				l = IP6ADDRLEN;
+				size = IP6ADDRLEN;
+				bcopy((char *)rdata[i].p, msg->bufptr, size);
 				break;
 			case 'n':
-				p = NULL;
-				l = 0;
+				size = 0;
 				rdlength += zone_addname(msg, rdata[i].p);
 				msg->dnames[msg->dnameslen++] = rdata[i].p;
 				break;
 			case 't':
-				p = rdata[i].p;
-				l = (u_short) *p + 1;
+				size = *((char *)rdata[i].p) + 1;
+				bcopy((char *)rdata[i].p, msg->bufptr, size);
 				break;
 			case 's':
-				p = (char *)&rdata[i].s;
-				l = sizeof(u_short);
-				break;
-			case 'g':
-			case 'a':
-				p = NULL;
-				l = 0;
+				size = sizeof(u_short);
+				s = htons(rdata[i].s);
+				bcopy((char *)&s, msg->bufptr, size);
 				break;
 			default:
 				syslog(LOG_ERR, "panic! uknown atom in format %c", *f);
 				return rrcount;
 			}
-			bcopy(p, msg->bufptr, l);
-			msg->bufptr += l;
-			rdlength += l;
+			msg->bufptr += size;
+			rdlength += size;
 		}
 		rdlength = htons(rdlength);
 		bcopy(&rdlength, rdlengthptr, sizeof(u_short));
@@ -549,7 +593,7 @@ main(argc, argv)
 	zone_dump(z, db);
 	db_sync(db);
 	db_close(db);
-	zone_print(z);
+	/* zone_print(z); */
 
 	return 0;
 }

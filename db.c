@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.10 2002/01/10 12:52:46 alexis Exp $
+ * $Id: db.c,v 1.11 2002/01/11 13:21:05 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -73,7 +73,7 @@ db_create(filename)
 	}
 
 	/* Clean the masks */
-	bzero(db.mask, 16);
+	bzero(&db.mask, sizeof(struct db_mask));
 	return &db;
 }
 
@@ -91,18 +91,7 @@ db_write(db, dname, d)
 	struct domain *d;
 {
 	DBT key, data;
-	int depth;
-	u_char *p;
 
-	/* Calculate depth and set masks */
-	for(depth = 0, p = dname + 1; *p; p += *p + 1, depth++);
-
-	/* Make sure the depth is within limits */
-	assert(depth < 128);
-
-	/* Set the flag */
-	db->mask[(depth >> 3)] |= 1 << (depth & 0x7);
-	
 	key.size = (size_t)(*dname);
 	key.data = dname + 1;
 
@@ -124,8 +113,8 @@ db_sync(db)
 	key.size = 0;
 	key.data = NULL;
 
-	data.size = 16;
-	data.data = db->mask;
+	data.size = sizeof(struct db_mask);
+	data.data = &db->mask;
 
 	if(db->db->put(db->db, &key, &data, 0)) {
 		syslog(LOG_ERR, "failed to write to database: %m");
@@ -154,11 +143,11 @@ db_open(filename)
 		return NULL;
 	}
 
-	if(data.size != 16) {
+	if(data.size != sizeof(struct db_mask)) {
 		syslog(LOG_ERR, "corrupted masks in %s", filename);
 		return NULL;
 	}
-	bcopy(data.data, db.mask, 16);
+	bcopy(data.data, &db.mask, sizeof(struct db_mask));
 
 	return &db;
 }

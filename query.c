@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.5 2002/01/09 15:19:50 alexis Exp $
+ * $Id: query.c,v 1.6 2002/01/11 13:21:05 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -190,7 +190,7 @@ query_process(q, db)
 	}
 
 	/* Do we have the complete name? */
-	if(DB_PROBE(db, qdepth) && ((d = db_lookup(db, qname, qnamelen)) != NULL)) {
+	if(TSTMASK(db->mask.data, qdepth) && ((d = db_lookup(db, qname, qnamelen)) != NULL)) {
 		/* Is this a delegation point? */
 		if(d->flags & DB_DELEGATION) {
 			if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
@@ -206,16 +206,17 @@ query_process(q, db)
 				query_addanswer(q, qname, a);
 				return 0;
 			} else {
-				/* XXX Get SOA! */
-				/* if(((d = lookupname(db, d->soa, d->soalen)) == NULL) ||
-					((a = lookuptype(d, htons(TYPE_SOA))) == NULL)) {
-					RCODE_SET(q, RCODE_SERVFAIL);
-					return A_EMPTY;
-				} */
-				AA_SET(q);
-				return 0;
+				/* Do we have SOA record in this domain? */
+				if((a = db_answer(d, htons(TYPE_SOA))) != NULL) {
+					AA_SET(q);
+					query_addanswer(q, qname, a);
+					return 0;
+				}
 			}
 		}
+	} else {
+		/* Set this if we find SOA later */
+		RCODE_SET(q, RCODE_NXDOMAIN);
 	}
 
 	/* Start matching down label by label */
@@ -225,54 +226,39 @@ query_process(q, db)
 		qname += (*qname + 1);
 		qdepth--;
 
-		if(DB_PROBE(db, qdepth) && ((d = db_lookup(db, qname, qnamelen)) != NULL)) {
+		/* Do we have a SOA or zone cut? */
+		if(TSTMASK(db->mask.auth, qdepth) && ((d = db_lookup(db, qname, qnamelen)) != NULL)) {
 			if(d->flags & DB_DELEGATION) {
 				if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);
 					return 0;
 				}
+				RCODE_SET(q, RCODE_OK);
 				AA_CLR(q);
 				query_addanswer(q, qname, a);
 				return 0;
 			} else {
 				if((a = db_answer(d, htons(TYPE_SOA)))) {
-					RCODE_SET(q, RCODE_NXDOMAIN);
 					AA_SET(q);
 					query_addanswer(q, qname, a);
 					return 0;
 				}
 			}
 		} else {
-			if(DB_PROBE(db, qdepth + 1)) {
+			/* Only look for wildcards if we did not match a domain before */
+			if(TSTMASK(db->mask.stars, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
 				/* Prepend star */
 				bcopy(qname, qnamestar + 2, qnamelen);
 
 				/* Lookup star */
 				if((d = db_lookup(db, qnamestar, qnamelen + 2)) != NULL) {
-					/* Is this a delegation point? */
-					if(d->flags & DB_DELEGATION) {
-						if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
-							RCODE_SET(q, RCODE_SERVFAIL);
-							return 0;
-						}
-						AA_CLR(q);
+					/* We found a domain... */
+					RCODE_SET(q, RCODE_OK);
+
+					if((a = db_answer(d, qtype)) != NULL) {
+						AA_SET(q);
 						query_addanswer(q, qname, a);
 						return 0;
-					} else {
-						if((a = db_answer(d, qtype)) != NULL) {
-							AA_SET(q);
-							query_addanswer(q, qname, a);
-							return 0;
-						} else {
-							/* XXXX Get SOA!!! */
-							/* if(((d = lookupname(db, d->soa, d->soalen)) == NULL) ||
-								((a = lookuptype(d, htons(TYPE_SOA))) == NULL)) {
-								RCODE_SET(q, RCODE_SERVFAIL);
-								return A_EMPTY;
-							} */
-							AA_SET(q);
-							return 0;
-						}
 					}
 				}
 			}
