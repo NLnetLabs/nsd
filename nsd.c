@@ -696,7 +696,7 @@ main (int argc, char *argv[])
 
 	/* Run the server... */
 	if(server_init(&nsd) != 0) {
-		(void)unlink(nsd.pidfile);
+		unlink(nsd.pidfile);
 		exit(1);
 	}
 
@@ -710,8 +710,11 @@ main (int argc, char *argv[])
 			*eq = '\0';
 			arg = eq + 1;
 		}
-		if (!plugin_load(plugins[i], arg))
+		if (!plugin_load(plugins[i], arg)) {
+			plugin_finalize_all();
+			unlink(nsd.pidfile);
 			exit(1);
+		}
 	}
 	free(plugins);
 #endif /* PLUGINS */
