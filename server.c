@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.10 2002/02/06 12:11:04 alexis Exp $
+ * $Id: server.c,v 1.11 2002/02/06 12:19:03 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -101,6 +101,7 @@ server(db)
 	while(1) {
 		/* Do we need to reload the database? */
 		if(database_reload) {
+			database_reload = 0;
 			if((newdb = namedb_open(db->filename)) == NULL) {
 				syslog(LOG_ERR, "unable to reload the database: %m");
 			}  else {
