@@ -1560,7 +1560,6 @@ print_rr(rr_type *rr)
 				typecovered = (uint8_t *) malloc(10);
 				sprintf(typecovered, "TYPE%d", 
 						wire_conv_rrtype(rr->rrdata->rdata[0]));
-				printf("[%d]\n",wire_conv_rrtype(rr->rrdata->rdata[0]));
 			}
 	
 			printf("%s %d %d %ld %s %s %d %s %s",
@@ -1810,12 +1809,10 @@ wire_conv_rrtype(rdata_atom_type a)
 {
 	/* convert wire rrtype to int */
 
-	/* werkt niet */
-
 	uint16_t *r;
 
 	r = rdata_atom_data(a);
-
+	
 	return (ntohs(*r));
 
 }
