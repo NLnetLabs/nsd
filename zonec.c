@@ -1118,7 +1118,7 @@ process_rr(zparser_type *parser, rr_type *rr)
         /* [XXX] still need to check if we have seen this SOA already */
 
 	if (!dname_is_subdomain(domain_dname(rr->domain), domain_dname(zone->domain))) {
-		error("Out of zone data");
+		error_prev_line("Out of zone data");
 		return 0;
 	}
 
@@ -1185,7 +1185,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 	if (rr->type == TYPE_NS && rr->domain == zone->domain) {
 		zone->ns_rrset = rrset;
 	}
-	if ( ( totalrrs % progress == 0 ) && vflag != 0 ) {
+	if ( ( totalrrs % progress == 0 ) && vflag != 0  && totalrrs > 0) {
 		printf("%d\n", totalrrs);
 	}
 	++totalrrs;
