@@ -96,11 +96,20 @@ update)
 			serial=${serial:-0}
 
  			# take care of tsig info file if any
+			# See bug #91 - move to ${zone} but be backward
+			# compatible
  			unset tsiginfoarg
  			if [ -f "${keysdir}/${masters}.tsiginfo" ]
  			then
  				ln "${keysdir}/${masters}.tsiginfo" "${keysdir}/${masters}.tsiginfo.$$"
  				tsiginfoarg="-T ${keysdir}/${masters}.tsiginfo.$$"
+			else 
+				if [ -f "${keysdir}/${zone}.tsiginfo" ]
+				then
+					# the new way of doing things
+					ln "${keysdir}/${zone}.tsiginfo" "${keysdir}/${zone}.tsiginfo.$$"
+					tsiginfoarg="-T ${keysdir}/${zone}.tsiginfo.$$"
+				fi
 			fi
 
 			# AXFR to a temp file $file.axfr

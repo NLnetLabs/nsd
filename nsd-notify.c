@@ -105,6 +105,7 @@ main (int argc, char *argv[])
 
 	for (/*empty*/; *argv; argv++) {
 		/* Set up UDP */
+		printf("%s\n", *argv);
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = default_family;
 		hints.ai_socktype = SOCK_DGRAM;
