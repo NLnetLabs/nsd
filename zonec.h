@@ -47,7 +47,6 @@
 #define RDATA_SERVICE	14
 
 #define LINEBUFSZ 1024
-#define yyerror	error
 
 struct lex_data {
     size_t   len;		/* holds the label length */

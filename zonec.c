@@ -1287,6 +1287,27 @@ usage (void)
 	exit(1);
 }
 
+int
+yyerror(void)
+{
+	/* don't do anything with this */
+	return 0;
+}
+
+/* the line counting sux, to say the least 
+ * with this grose hack we try do give sane
+ * numbers back */
+int
+error_mess_line(const char *fmt, ...) 
+{
+	va_list args;
+	va_start(args, fmt);
+
+	current_parser->line--;
+	error(fmt, args);
+	current_parser->line++;
+	va_end(args);
+}
 
 int
 error(const char *fmt, ...)
@@ -1295,7 +1316,7 @@ error(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 
-	fprintf(stderr," ERR: Line %u in %s: ", current_parser->line,
+	fprintf(stderr," ERR: Line ~%u in %s: ", current_parser->line,
 			current_parser->filename);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
@@ -1312,7 +1333,7 @@ warning(const char *fmt, ... )
 
 	va_start(args, fmt);
 
-	fprintf(stderr,"WARN: Line %u in %s: ", current_parser->line,
+	fprintf(stderr,"WARN: Line ~%u in %s: ", current_parser->line,
 			current_parser->filename);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
