@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.41 2002/10/08 09:57:54 alexis Exp $
+ * $Id: nsd.h,v 1.42 2002/10/14 13:12:16 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -159,7 +159,7 @@ struct	nsd {
 		stc_t	rcode[17], opcode[6]; /* Rcodes & opcodes */
 		/* Dropped, truncated, queries for nonconfigured zone, tx errors */
 		stc_t	dropped, truncated, wrongzone, txerr, rxerr;
-		stc_t 	edns, ednserr;
+		stc_t 	edns, ednserr, raxfr;
 	} st;
 #endif /* BIND8_STATS */
 };

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.54 2002/10/08 10:12:24 alexis Exp $
+ * $Id: nsd.c,v 1.55 2002/10/14 13:12:16 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -161,6 +161,10 @@ sig_handler(sig)
 		case SIGINT:
 		case SIGTERM:
 			nsd.mode = NSD_QUIT;
+			return;
+		case SIGILL:
+			nsd.mode = NSD_STATS;
+			return;
 		}
 		return;
 	}
@@ -181,10 +185,11 @@ sig_handler(sig)
 #ifdef BIND8_STATS
 		alarm(nsd.st.period);
 #endif
+		sig = SIGILL;
 	case SIGILL:
 		/* Dump statistics... */
 		nsd.mode = NSD_STATS;
-		return;
+		break;
 	case SIGINT:
 		/* Silent shutdown... */
 		nsd.mode = NSD_QUIT;
@@ -339,7 +344,7 @@ bind8_stats(nsd)
 		" SNXD=%lu RUQ=%lu RURQ=%lu RUXFR=%lu RUUpd=%lu",
 		now, nsd->st.last,
 		nsd->st.dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
-		(unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
+		(unsigned long)0, (unsigned long)0, nsd->st.raxfr, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped, (unsigned long)0,
 			(unsigned long)0, nsd->st.txerr,
 		nsd->st.opcode[OPCODE_QUERY], nsd->st.opcode[OPCODE_IQUERY], nsd->st.wrongzone,
@@ -348,7 +353,7 @@ bind8_stats(nsd)
 			(unsigned long)0, nsd->st.rcode[RCODE_NXDOMAIN],
 		(unsigned long)0, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
 
-	nsd->st.last = now;
+	/* nsd->st.last = now; */
 
 }
 #endif /* BIND8_STATS */

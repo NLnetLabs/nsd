@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.82 2002/10/10 13:04:04 alexis Exp $
+ * $Id: query.c,v 1.83 2002/10/14 13:12:16 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -62,6 +62,8 @@ query_axfr(q, nsd, qname, zname, depth)
 	struct answer *a;
 	u_char *dname;
 	u_char *qptr;
+
+	STATUP(nsd, raxfr);
 
 	/* Is it new AXFR? */
 	if(qname) {

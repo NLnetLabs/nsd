@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.55 2002/10/14 12:16:18 alexis Exp $
+ * $Id: server.c,v 1.56 2002/10/14 13:12:16 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -417,6 +417,19 @@ server_tcp(struct nsd *nsd)
 		/* Dont time out now... */
 		alarm(0);
 
+		/* Do we need to do the statistics... */
+		if(nsd->mode == NSD_STATS) {
+			nsd->mode = NSD_RUN;
+
+#ifdef BIND8_STATS
+			/* Dump the statistics */
+			bind8_stats(nsd);
+
+#else /* BIND8_STATS */
+			syslog(LOG_NOTICE, "No statistics available, recompile with -DBIND8_STATS");
+#endif /* BIND8_STATS */
+		}
+
 		/* Set it up */
 		FD_ZERO(&peer);
 		FD_SET(nsd->tcp.s, &peer);
@@ -452,7 +465,7 @@ server_tcp(struct nsd *nsd)
 			continue;
 		}
 
-		/* Account... XXX: Doesnt work here... */
+		/* Account... */
 		STATUP(nsd, ctcp);
 
 		/* Accept it... */
