@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.49 2002/04/09 16:40:47 alexis Exp $
+ * $Id: query.c,v 1.50 2002/04/11 12:29:38 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -298,10 +298,10 @@ query_process(q, db)
 #ifdef	STRICT_MESSAGE_PARSE
 		/* If we're strict.... */
 		RCODE_SET(q, RCODE_FORMAT);
+		return 0;
 #else
 		/* Otherwise, strip it... */
 		q->iobufptr = qptr;
-		return 0;
 #endif
 	}
 
