@@ -44,7 +44,7 @@
 extern char *optarg;
 extern int optind;
 
-static struct nsd nsd;
+static struct nsd nsdc;
 
 /* static? */
 static lookup_table_type control_msgs[] = {
@@ -106,6 +106,7 @@ main (int argc, char *argv[])
 	uint16_t port;
 	uint8_t klass;
 	lookup_table_type *control;
+	struct query_type *q;
 
 	port = DEFAULT_CONTROL_PORT;
 	klass = CLASS_CH;
@@ -113,21 +114,21 @@ main (int argc, char *argv[])
 	log_init("nsdc");
 		
         /* Initialize the server handler... */
-        memset(&nsd, 0, sizeof(struct nsd));
-        nsd.region      = region_create(xalloc, free);
+        memset(&nsdc, 0, sizeof(struct nsd));
+        nsdc.region      = region_create(xalloc, free);
 #if 0  
 	- copied not needed I think
-        nsd.server_kind = NSD_SERVER_MAIN;
+        nsdc.server_kind = NSD_SERVER_MAIN;
 #endif
 
-	nsd.options_file = CONFIGFILE;
-        nsd.options      = NULL;
+	nsdc.options_file = CONFIGFILE;
+        nsdc.options      = NULL;
 
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "f:hp:v")) != -1) {
 		switch (c) {
 			case 'f':
-				nsd.options_file = optarg;
+				nsdc.options_file = optarg;
 				break;
 			case 'p':
 				port = atoi(optarg);
@@ -161,16 +162,26 @@ main (int argc, char *argv[])
 
 	control = lookup_by_id(control_msgs, control->id);
 
-	printf("%s\n", control->name);
-	
-	/* open a socket, make a packet, send it */
+	printf("qname to use: %s\n", control->name);
+
+        nsdc.options = load_configuration(nsdc.region, nsdc.options_file);
+        if (!nsdc.options) {
+		error("failed to load configuration file '%s'",
+				nsdc.options_file);
+        }
 	
 
-        nsd.options = load_configuration(nsd.region, nsd.options_file);
-        if (!nsd.options) {
-		error("failed to load configuration file '%s'",
-				nsd.options_file);
-        }
+	q = query_create(nsdc.region, NULL);
+
+	
+	/* open a socket, make a packet, send it, receive reply, and print */
+
+	/*
+	 * from query.h
+	 * add_rrset
+	 * query_addtxt */
+
+
 
 	
 

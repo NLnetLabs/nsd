@@ -87,8 +87,19 @@ NSD_OBJECTS	=				\
 
 NSDC_OBJECTS	=				\
 	nsdc.o					\
+	dns.o					\
 	util.o					\
 	options.o				\
+	packet.o				\
+	query.o					\
+	buffer.o				\
+	answer.o				\
+	dname.o					\
+	rbtree.o				\
+	rdata.o					\
+	edns.o					\
+	axfr.o					\
+	namedb.o				\
 	region-allocator.o			
 
 ZONEC_OBJECTS	=				\
