@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.21.2.2 2002/05/27 14:46:14 alexis Exp $
+ * $Id: zf.c,v 1.21.2.3 2002/05/30 10:16:52 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -271,6 +271,11 @@ strtottl(nptr, endptr)
 				return (sign == -1) ? -seconds : seconds;
 			}
 			break;
+		case 's':
+		case 'S':
+			seconds += i;
+			i = 0;
+			break;
 		case 'm':
 		case 'M':
 			seconds += i * 60;
@@ -375,11 +380,18 @@ char *
 zone_strtok(s)
 	register char *s;
 {
+	/* Special tokens */
 	register char *t;
 	static char *p = "";
+	static char saved = 0;
 
+	/* Is this a new string? */
 	if(s) {
 		p = s;
+		saved = 0;
+	} else if(saved) {
+		*p = saved;
+		saved = 0;
 	}
 
 	/* Skip leading delimiters */
@@ -399,7 +411,20 @@ zone_strtok(s)
 
 	}
 	/* Find the next delimiter */
-	for(t = s; *t && *t != ' ' && *t != '\t' && *t != '\n'; t++);
+	for(t = s; *t && *t != ' ' && *t != '\t' && *t != '\n'; t++) {
+		if(t > s) {
+			switch(*t) {
+			case '(':
+			case ')':
+			case ';':
+				saved = *t;
+				*t = '\000';
+				p = t;
+				return s;
+			}
+		}
+	}
+
 	if(t == s) return NULL;
 
 	if(*t) {
@@ -886,14 +911,14 @@ zf_read(zf)
 			case 'l':
 				zf->line.rdata[i].l = strtottl(token, &t);
 				if(*t != 0) {
-					zf_error(zf, "missing whitespace");
+					zf_error(zf, "decimal number or time interval is expected");
 					parse_error++;
 				}
 				break;
 			case 's':
 				zf->line.rdata[i].s = (u_int16_t)strtol(token, &t, 10);
 				if(*t != 0) {
-					zf_error(zf, "missing whitespace");
+					zf_error(zf, "decimal number is expected");
 					parse_error++;
 				}
 				break;

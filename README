@@ -1,8 +1,8 @@
-$Id: README,v 1.7.2.3 2002/05/21 08:57:06 alexis Exp $
+$Id: README,v 1.7.2.4 2002/05/30 10:16:52 alexis Exp $
 
 1.0 Introduction
 
-This is NSD Name Server Daemon (NSD) version 1.0.0
+This is NSD Name Server Daemon (NSD) version 1.0.0 release candidate.
 
 NSD is a complete implementation of an autoritative DNS nameserver. 
 For further information about what NSD is and what NSD is not please 
