@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.35 2002/09/11 13:19:35 alexis Exp $
+ * $Id: nsd.h,v 1.36 2002/09/11 13:36:31 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -80,8 +80,10 @@ typedef	unsigned long stc_t;
 #define	LASTELEM(arr)	(sizeof(arr) / sizeof(arr[0]) - 1)
 
 #define	STATUP(nsd, stc) nsd->st.stc++
-#define	STATUP2(nsd, stc, i)  ((i) <= (LASTELEM(nsd->st.stc) - 1)) ? nsd->st.stc[(i)]++ : \
-				nsd->st.stc[LASTELEM(nsd->st.stc)]++
+/* #define	STATUP2(nsd, stc, i)  ((i) <= (LASTELEM(nsd->st.stc) - 1)) ? nsd->st.stc[(i)]++ : \
+				nsd->st.stc[LASTELEM(nsd->st.stc)]++ */
+
+#define	STATUP2(nsd, stc, i) nsd->st.stc[(i) <= (LASTELEM(nsd->st.stc) - 1) ? i : LASTELEM(nsd->st.stc)]++
 #else	/* NAMED8_STATS */
 
 #define	STATUP(nsd, stc) /* Nothing */
@@ -132,8 +134,8 @@ struct	nsd {
 #ifdef	NAMED8_STATS
 	struct nsdst {
 		time_t	reload;
-		stc_t	qtype[4];	/* Counters per qtype */
-		stc_t	qclass[257];	/* Class IN or Class CH or other */
+		stc_t	qtype[257];	/* Counters per qtype */
+		stc_t	qclass[4];	/* Class IN or Class CH or other */
 		stc_t	qudp, qudp6;	/* Number of queries udp and udp6 */
 		stc_t	ctcp, ctcp6;	/* Number of tcp and tcp6 connections */
 		stc_t	rcode[17], opcode[5]; /* Rcodes & opcodes */

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.73 2002/09/11 13:19:35 alexis Exp $
+# $Id: Makefile,v 1.74 2002/09/11 13:36:31 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -139,7 +139,7 @@ NSDNOTIFY	= ${NSDBINDIR}/nsd-notify
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DLOG_NOTIFIES -DNAMED8_STATS=\"/var/tmp/nsd.stats\" -DINET6 -DHOSTS_ACCESS
+FEATURES	= -DLOG_NOTIFIES -DINET6 -DHOSTS_ACCESS -DNAMED8_STATS=\"/var/tmp/nsd.stats\"
 LIBWRAP		= -lwrap
 
 # To compile NSD with internal red-black tree database
@@ -160,7 +160,7 @@ LIBS		=
 #LIBS		= -L/usr/local/lib -ldb4
 
 # Compile environment settings
-DEBUG		=  # -g -DDEBUG=1
+DEBUG		=  -g # -DDEBUG=1
 CC=gcc
 CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
 	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" -DCF_USERNAME=\"${NSDUSER}\"
