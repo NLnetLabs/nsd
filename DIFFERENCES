@@ -1,12 +1,5 @@
-This document is outdated, and will be updated for NSD 1.1.0-RELEASE
-when regression testing has been completed.
-
-Alexis
-
----
-
 Response Differences Between
-Bind 8.3.3-REL and nsd 1.0.1
+Bind 8.3.3-REL and nsd 1.1.0
 
 Daniel Karrenberg
 <daniel.karrenberg@ripe.net>
@@ -320,74 +313,31 @@ Appendix A
 Comparison of responses to root queries:
 
 --------------------------------------------------------------------------
-                                            Total Answers: 899990
+                                            Total Answers:  49992
+                                Skipped ambiguous changes:     22 /  0.04%
+
 --------------------------------------------------------------------------
 
-                                               d-bcacheglu  47182 /  5.24%
-                                               d-nameencod   3779 /  0.42%
-                                               d-nclrcdbit   1619 /  0.18%
-                                   d-bcacheglu b-multrrset    628 /  0.07%
-                                               d-nameencom    340 /  0.04%
-                                               d-nrefclass    254 /  0.03%
-                                               d-nnotimpup     55 /  0.01%
-                                               d-nnocachns     17 /  0.00%
-                                               d-nnotimpny      4 /  0.00%
-                                       b-rootdot b-nonxdom      3 /  0.00%
+                                               d-bcacheglu   2881 /  5.76%
+                                               d-nclrcdbit    400 /  0.80%
+                                               d-nameencod    384 /  0.77%
+                                   d-bcacheglu b-multrrset    164 /  0.33%
+                                               d-nrefclass      9 /  0.02%
+                                               d-nnocachns      7 /  0.01%
+                                               d-nnotimpup      3 /  0.01%
                                                d-bindchaos      2 /  0.00%
 --------------------------------------------------------------------------
-                                 Total Different Responses  53883 /  5.99%
+                                 Total Different Responses   3850 /  7.70%
 ==========================================================================
 
-b-multrrset -   bind puts same RRSet in multiple sections:    628 /  1.15%
-b-nonxdom   -       bind misses NXDomain when no zone cut:      3 /  0.01%
-b-rootdot   -              bind answers queries for ROOT.:      3 /  0.01%
-d-bcacheglu -              bind answers with chached glue:  47810 / 87.70%
-d-bindchaos -               bind answers to CHAOS *.bind.:      2 /  0.00%
-d-nameencod -                     different name encoding:   3779 /  6.93%
-                                  Additional bytes:  13711
-d-nameencom -  name enc. causes omission of additional RR:    340 /  0.62%
-                                       Omitted RRs:    340
-d-nclrcdbit -               nsd clears CD bit in response:   1619 /  2.97%
-d-nnocachns -     ns returns no non-authoritative answers:     17 /  0.03%
-d-nnotimpny -       nsd returns NotImp on notify requests:      4 /  0.01%
-d-nnotimpup -       nsd returns NotImp on update requests:     55 /  0.10%
-d-nrefclass -   nsd returns Refused on unknown class/type:    254 /  0.47%
+b-multrrset -   bind puts same RRSet in multiple sections:    164 /  4.09%
+d-bcacheglu -              bind answers with chached glue:   3045 / 75.86%
+d-bindchaos -               bind answers to CHAOS *.bind.:      2 /  0.05%
+d-nameencod -                     different name encoding:    384 /  9.57%
+                                  Additional bytes:   1627
+d-nclrcdbit -               nsd clears CD bit in response:    400 /  9.97%
+d-nnocachns -     ns returns no non-authoritative answers:      7 /  0.17%
+d-nnotimpup -       nsd returns NotImp on update requests:      3 /  0.07%
+d-nrefclass -   nsd returns Refused on unknown class/type:      9 /  0.22%
 --------------------------------------------------------------------------
-                                         Total Differences  54514 /100.00%
-==========================================================================
-
-
-Appendix B
-
-Comparison of responses to NL TLD queries:
-
--------------------------------------------------------------------------
-                                            Total Answers: 883472
---------------------------------------------------------------------------
-
-                                   d-bcacheglu b-multrrset 104984 / 11.88%
-                                               d-nnotimpny  50368 /  5.70%
-                                   b-multrrset d-nnocachns  46010 /  5.21%
-                                               d-nnotimpup  36243 /  4.10%
-                                               d-nnocachns  13069 /  1.48%
-                                               d-nclrcdbit   8196 /  0.93%
-                                               d-nameencod    890 /  0.10%
-                                    parseerror d-nnocachns     11 /  0.00%
-                                    parseerror d-nnotimpup      1 /  0.00%
-                                                parseerror      1 /  0.00%
---------------------------------------------------------------------------
-                                 Total Different Responses 259773 / 29.40%
-==========================================================================
-
-b-multrrset -   bind puts same RRSet in multiple sections: 150994 / 36.76%
-d-bcacheglu -              bind answers with chached glue: 104984 / 25.56%
-d-nameencod -                     different name encoding:    890 /  0.22%
-                                  Additional bytes:   3136
-d-nclrcdbit -               nsd clears CD bit in response:   8196 /  2.00%
-d-nnocachns -     ns returns no non-authoritative answers:  59090 / 14.38%
-d-nnotimpny -       nsd returns NotImp on notify requests:  50368 / 12.26%
-d-nnotimpup -       nsd returns NotImp on update requests:  36244 /  8.82%
-parseerror  -    Could not parse tcpdump output correctly:     13 /  0.00%
---------------------------------------------------------------------------
-                                         Total Differences 410779 /100.00%
-==========================================================================
+                                         Total Differences   4014 /100.00%
