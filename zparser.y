@@ -440,6 +440,8 @@ rtype:
     { current_rr->type = $1; }
     | AFSDB sp rdata_afsdb
     { current_rr->type = $1; }
+    | AFSDB sp rdata_unknown
+    { current_rr->type = $1; }
     | UTYPE sp rdata_unknown
     { current_rr->type = $1; }
     | CNAME sp rdata_unknown_err {}
