@@ -1,5 +1,5 @@
 /*
- * $Id: db.h,v 1.10 2002/01/11 13:21:05 alexis Exp $
+ * $Id: db.h,v 1.11 2002/01/11 13:54:34 alexis Exp $
  *
  * db.h -- nsd(8) internal namespace database
  *
@@ -51,7 +51,9 @@ struct answer {
 	u_short nscount;
 	u_short arcount;
 	u_short ptrlen;
+	u_short rrslen;
 	/* u_short ptrs[0]; */
+	/* u_short rrs[0]; */
 };
 
 struct domain {

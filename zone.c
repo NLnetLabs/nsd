@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.8 2002/01/11 13:21:05 alexis Exp $
+ * $Id: zone.c,v 1.9 2002/01/11 13:54:34 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -434,6 +434,9 @@ zone_addrrset(msg, dname, rrset)
 
 	/* Please sign in here... */
 	msg->rrsets[msg->rrsetslen++] = rrset;
+
+	/* And here */
+	msg->rrsetsoffs[msg->rrsetsoffslen++] = msg->bufptr - msg->buf;
 
 	for(rrcount = 0, j = 0; j < rrset->rrslen; j++, rrcount++) {
 		rdata = rrset->rrs[j];

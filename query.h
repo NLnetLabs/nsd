@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.3 2002/01/09 11:45:39 alexis Exp $
+ * $Id: query.h,v 1.4 2002/01/11 13:54:34 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -168,6 +168,7 @@
 struct query {
 	struct sockaddr_in addr;
 	size_t addrlen;
+	size_t maxlen;
 	u_char *iobufptr;
 	int  iobufsz;
 	u_char iobuf[QIOBUFSZ];

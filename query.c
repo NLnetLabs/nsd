@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.6 2002/01/11 13:21:05 alexis Exp $
+ * $Id: query.c,v 1.7 2002/01/11 13:54:34 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -65,6 +65,7 @@ query_init(q)
 	q->addrlen = sizeof(struct sockaddr);
 	q->iobufsz = QIOBUFSZ;
 	q->iobufptr = q->iobuf;
+	q->maxlen = 512;	/* XXX Should not be here */
 }
 
 struct query *
@@ -94,20 +95,21 @@ query_addanswer(q, dname, a)
 	u_char *dname;
 	struct answer *a;
 {
-	int j;
 	u_char *qptr;
 	u_short pointer;
 	u_short *ptrs;
+	u_short *rrs;
+	int j;
 
 	/* The size of the data */
-	size_t datasize = a->size - ((a->ptrlen + 5) * sizeof(u_short) + sizeof(size_t));
+	size_t datasize = a->size - ((a->ptrlen + a->rrslen + 6) * sizeof(u_short) + sizeof(size_t));
 
 	/* Copy the counters */
 	bcopy(&a->ancount, q->iobuf + 6, 6);
 
 	/* Then copy the data */
-	bcopy(&a->ptrlen + a->ptrlen + 1, q->iobufptr, datasize);
-	ptrs = &a->ptrlen + 1;
+	bcopy(&a->rrslen + a->ptrlen + a->rrslen + 1, q->iobufptr, datasize);
+	ptrs = &a->rrslen + 1;
 
 	/* Walk the pointers */
 	for(j = 0; j < a->ptrlen; j++) {
@@ -120,6 +122,19 @@ query_addanswer(q, dname, a)
 			pointer = htons(0xc000 | (u_short)(pointer + q->iobufptr - q->iobuf));
 		}
 		bcopy(&pointer, qptr, 2);
+	}
+
+	/* Truncate if necessary */
+	if(q->maxlen < (q->iobufptr - q->iobuf + datasize)) {
+		TC_SET(q);
+		rrs = &a->rrslen + a->ptrlen + 1;
+
+		for(j = a->rrslen - 1; j > 0; j--) {
+			if(q->maxlen >= (q->iobufptr - q->iobuf + rrs[j-1])) {
+				q->iobufptr += rrs[j-1];
+				break;
+			}
+		}
 	}
 	q->iobufptr += datasize;
 }

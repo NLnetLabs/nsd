@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.11 2002/01/11 13:21:05 alexis Exp $
+ * $Id: db.c,v 1.12 2002/01/11 13:54:34 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -186,7 +186,7 @@ db_addanswer(d, msg, type)
 	struct answer *a;
 	size_t size;
 
-	size = sizeof(size_t) + (sizeof(u_short) * (msg->pointerslen + 5)) + (msg->bufptr - msg->buf);
+	size = sizeof(size_t) + (msg->pointerslen + msg->rrsetsoffslen + 6) * sizeof(u_short) + (msg->bufptr - msg->buf);
 
 	d = xrealloc(d, d->size + size);
 
@@ -197,8 +197,10 @@ db_addanswer(d, msg, type)
 	a->nscount = htons(msg->nscount);
 	a->arcount = htons(msg->arcount);
 	a->ptrlen = msg->pointerslen;
-	bcopy(msg->pointers, &a->ptrlen + 1, sizeof(u_short) * msg->pointerslen);
-	bcopy(msg->buf, &a->ptrlen + msg->pointerslen + 1, msg->bufptr - msg->buf);
+	a->rrslen = msg->rrsetsoffslen;
+	bcopy(msg->pointers, &a->rrslen + 1, sizeof(u_short) * msg->pointerslen);
+	bcopy(msg->rrsetsoffs, &a->rrslen + msg->pointerslen + 1, sizeof(u_short) * msg->rrsetsoffslen);
+	bcopy(msg->buf, &a->rrslen + msg->pointerslen + msg->rrsetsoffslen + 1, msg->bufptr - msg->buf);
 
 	d->size += size;
 

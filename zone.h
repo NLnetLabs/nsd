@@ -1,5 +1,5 @@
 /*
- * $Id: zone.h,v 1.2 2002/01/08 15:35:34 alexis Exp $
+ * $Id: zone.h,v 1.3 2002/01/11 13:54:34 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -70,6 +70,8 @@ struct message {
 	int comprlen;
 	u_short pointerslen;
 	u_short pointers[MAXRRSPP];
+	u_short rrsetsoffslen;
+	u_short rrsetsoffs[MAXRRSPP];
 	struct rrset *rrsets[MAXRRSPP];
 	u_char *dnames[MAXRRSPP];
 	struct {

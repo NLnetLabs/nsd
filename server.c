@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.2 2002/01/08 16:29:27 alexis Exp $
+ * $Id: server.c,v 1.3 2002/01/11 13:54:34 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -154,6 +154,7 @@ server(port, db)
 			}
 		} else if(FD_ISSET(s_tcp, &peer)) {
 			query_init(q);
+			q->maxlen = q->iobufsz;
 #if DEBUG
 			syslog(LOG_NOTICE, "tcp connection!");
 #endif
