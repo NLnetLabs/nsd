@@ -257,4 +257,4 @@ zonec.o: zonec.c config.h zonec.h dns.h namedb.h dname.h heap.h rbtree.h \
 zparser.o: zparser.c config.h dname.h heap.h rbtree.h region-allocator.h \
   namedb.h dns.h zonec.h
 printrr.o:  printrr.c config.h zonec.h dns.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h util.h
+  region-allocator.h util.h printrr.h
