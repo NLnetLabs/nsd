@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.4 2003/11/03 10:28:57 erik Exp $
+ * $Id: zlexer.lex,v 1.5 2003/11/03 15:08:35 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -74,6 +74,7 @@ Q       \"
 			* http://dinosaur.compilertools.net/flex/flex_12.html#SEC12
 			*/
 <incl>[^ \t\n]+ 	{ 	
+				/* Need to fix this so that $INCLUDE * file origin works */
     				/* got the include file name
 			     	 * open the new filename and continue parsing 
 			     	 */
