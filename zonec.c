@@ -689,9 +689,13 @@ static int
 zone_open(zone_type *zone, const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
 	/* Open the zone file... */
-	/* [XXX] still need to handle recursion */
-	if((yyin  = fopen(filename, "r")) == NULL) {
-		return 0;
+	if ( strcmp(filename, "-" ) == 0 ) {
+		/* check for stdin */
+		yyin = stdin;
+	} else {
+		if((yyin  = fopen(filename, "r")) == NULL) {
+			return 0;
+		}
 	}
 
 	/* Open the network database */
@@ -943,9 +947,13 @@ zone_read (struct namedb *db, char *name, char *zonefile)
 static void 
 usage (void)
 {
-	fprintf(stderr, "usage: zonec [-v] [-p] [-f database] [-d directory] zone-list-file\n\n");
-	fprintf(stderr, "\t-p\tprint rr after compilation\n");
-	fprintf(stderr, "\t-v\tbe more verbose\n");
+	fprintf(stderr, "usage: zonec [-v|-p|-o|-F|-L] [-f database] [-d directory] zone-list-file\n\n");
+	fprintf(stderr, "\t-h\tPrint this help information.\n");
+	fprintf(stderr, "\t-p\tPrint rr after compilation.\n");
+	fprintf(stderr, "\t-o\tSpecify a zone's origin (used zone-list-file equals \'-\'.\n)");
+	fprintf(stderr, "\t-v\tBe more verbose.\n");
+	fprintf(stderr, "\t-F\tSet debug facilities.\n");
+	fprintf(stderr, "\t-L\tSet debug level.\n");
 	exit(1);
 }
 
@@ -959,6 +967,7 @@ main (int argc, char **argv)
 	char buf[LINEBUFSZ];
 	struct namedb *db;
 	const char *sep = " \t\n";
+	char *nsd_stdin_origin = NULL;
 	int c;
 	int line = 0;
 	FILE *f;
@@ -972,7 +981,7 @@ main (int argc, char **argv)
 	totalerrors = 0;
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "d:f:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:vhF:L:o:")) != -1) {
 		switch (c) {
 		case 'v':
 			++vflag;
@@ -994,6 +1003,10 @@ main (int argc, char **argv)
 			sscanf(optarg, "%d", &nsd_debug_level);
 			break;
 #endif /* NDEBUG */
+		case 'o':
+			nsd_stdin_origin = optarg;
+			break;
+		case 'h':
 		case '?':
 		default:
 			usage();
@@ -1014,54 +1027,69 @@ main (int argc, char **argv)
 
 	current_parser = zparser_init(db);
 	current_rr = region_alloc(zone_region, sizeof(rr_type));
-	
-	/* Open the master file... */
-	if ((f = fopen(*argv, "r")) == NULL) {
-		fprintf(stderr, "zonec: cannot open %s: %s\n", *argv, strerror(errno));
-		exit(1);
-	}
 
-	/* Do the job */
-	while (fgets(buf, LINEBUFSZ - 1, f) != NULL) {
-		/* Count the lines... */
-		line++;
-
-		/* Skip empty lines and comments... */
-		if ((s = strtok(buf, sep)) == NULL || *s == ';')
-			continue;
-
-		if (strcasecmp(s, "zone") != 0) {
-			fprintf(stderr, "zonec: syntax error in %s line %d: expected token 'zone'\n", *argv, line);
-			break;
+	if ( strcmp(*argv,"-") == 0 ) {
+		/* ah, somebody give - (stdin) as input file name */
+		if ( nsd_stdin_origin == NULL ) {
+			fprintf(stderr,"zonec: need origin (-o switch) when reading from stdin.\n");
+			exit(1);
 		}
-
-		/* Zone name... */
-		if ((zonename = strtok(NULL, sep)) == NULL) {
-			fprintf(stderr, "zonec: syntax error in %s line %d: expected zone name\n", *argv, line);
-			break;
-		}
-
-		/* File name... */
-		if ((zonefile = strtok(NULL, sep)) == NULL) {
-			fprintf(stderr, "zonec: syntax error in %s line %d: expected file name\n", *argv, line);
-			break;
-		}
-
-		/* Trailing garbage? Ignore masters keyword that is used by nsdc.sh update */
-		if ((s = strtok(NULL, sep)) != NULL && *s != ';' && strcasecmp(s, "masters") != 0
-		    && strcasecmp(s, "notify") != 0) {
-			fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
-		}
-
-		/* If we did not have any errors... */
-		if ((z = zone_read(db, zonename, zonefile)) == NULL) {
+		if ((z = zone_read(db, nsd_stdin_origin, "-")) == NULL) {
 			totalerrors++;
 		}
 
 		fprintf(stderr, "zone_region: ");
 		region_dump_stats(zone_region, stderr);
 		fprintf(stderr, "\n");
-	};
+	} else {
+		/* Open the master file... */
+		if ((f = fopen(*argv, "r")) == NULL) {
+			fprintf(stderr, "zonec: cannot open %s: %s\n", *argv, strerror(errno));
+			exit(1);
+		}
+
+		/* Do the job */
+		while (fgets(buf, LINEBUFSZ - 1, f) != NULL) {
+			/* Count the lines... */
+			line++;
+
+			/* Skip empty lines and comments... */
+			if ((s = strtok(buf, sep)) == NULL || *s == ';')
+				continue;
+
+			if (strcasecmp(s, "zone") != 0) {
+				fprintf(stderr, "zonec: syntax error in %s line %d: expected token 'zone'\n", *argv, line);
+				break;
+			}
+
+			/* Zone name... */
+			if ((zonename = strtok(NULL, sep)) == NULL) {
+				fprintf(stderr, "zonec: syntax error in %s line %d: expected zone name\n", *argv, line);
+				break;
+			}
+
+			/* File name... */
+			if ((zonefile = strtok(NULL, sep)) == NULL) {
+				fprintf(stderr, "zonec: syntax error in %s line %d: expected file name\n", *argv, line);
+				break;
+			}
+
+			/* Trailing garbage? Ignore masters keyword that is used by nsdc.sh update */
+			if ((s = strtok(NULL, sep)) != NULL && *s != ';' && strcasecmp(s, "masters") != 0
+		    		&& strcasecmp(s, "notify") != 0) {
+				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
+			}
+
+			/* If we did not have any errors... */
+			if ((z = zone_read(db, zonename, zonefile)) == NULL) {
+				totalerrors++;
+			}
+
+			fprintf(stderr, "zone_region: ");
+			region_dump_stats(zone_region, stderr);
+			fprintf(stderr, "\n");
+		}
+	}
 
 	/* Close the database */
 	if (namedb_save(db) != 0) {
