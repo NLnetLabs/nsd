@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.98.2.4 2003/07/21 10:19:12 erik Exp $
+ * $Id: zonec.c,v 1.98.2.5 2003/07/21 10:21:33 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -64,7 +64,7 @@ static void zone_addbuf (struct message *, const void *, size_t);
 static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len);
 
 /* The database file... */
-const char *dbfile = DBFILE;
+static const char *dbfile = DBFILE;
 
 /* Some global flags... */
 static int vflag = 0;
@@ -103,7 +103,7 @@ xrealloc (register void *p, register size_t size)
 	return p;
 }
 
-void
+static void
 zone_initmsg(struct message *m)
 {
 	m->ancount = m->nscount = m->arcount = m->dnameslen = m->rrsetslen
@@ -111,7 +111,7 @@ zone_initmsg(struct message *m)
 	m->bufptr = m->buf;
 }
 
-void 
+static void 
 zone_print (struct zone *z)
 {
 	struct rrset *rrset;
@@ -180,7 +180,7 @@ zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len)
 	msg->comprlen++;
 }
 
-uint16_t 
+static uint16_t 
 zone_addname (struct message *msg, uint8_t *dname)
 {
 	/* Lets try rdata dname compression */
@@ -226,7 +226,7 @@ zone_addname (struct message *msg, uint8_t *dname)
 
 
 
-uint16_t 
+static uint16_t 
 zone_addrrset (struct message *msg, uint8_t *dname, struct rrset *rrset)
 {
 	uint16_t class = htons(CLASS_IN);
@@ -341,7 +341,7 @@ zone_addrrset (struct message *msg, uint8_t *dname, struct rrset *rrset)
  * Adds an answer to a domain
  *
  */
-struct domain *
+static struct domain *
 zone_addanswer (struct domain *d, struct message *msg, int type)
 {
 	struct answer *a;
@@ -384,7 +384,7 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
  * Frees all the data structures associated with the zone
  *
  */
-void 
+static void 
 zone_free (struct zone *z)
 {
 	if(z) {
@@ -399,7 +399,7 @@ zone_free (struct zone *z)
  * Reads the specified zone into the memory
  *
  */
-struct zone *
+static struct zone *
 zone_read (char *name, char *zonefile)
 {
 	heap_t *h;
@@ -835,7 +835,7 @@ zone_adddata(uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb 
  *
  * Returns zero if success.
  */
-int 
+static int 
 zone_dump (struct zone *z, struct namedb *db)
 {
 	uint8_t dnamebuf[MAXDOMAINLEN+1];
