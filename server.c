@@ -76,12 +76,117 @@
 #include "util.h"
 
 
+/*
+ * Data for the UDP handlers.
+ */
+struct udp_handler_data
+{
+	region_type       *query_region;
+	struct nsd        *nsd;
+	struct nsd_socket *socket;
+};
+
+/*
+ * Data for the TCP accept handlers.  Most data is simply passed along
+ * to the TCP connection handler.
+ */
+struct tcp_accept_handler_data {
+	region_type        *query_region;
+	struct nsd         *nsd;
+	struct nsd_socket  *socket;
+	size_t              tcp_accept_handler_count;
+	netio_handler_type *tcp_accept_handlers;
+};
+
+/*
+ * Data for the TCP connection handlers.
+ *
+ * The TCP handlers use non-blocking I/O.  This is necessary to avoid
+ * blocking the entire server on a slow TCP connection, but does make
+ * reading from and writing to the socket more complicated.
+ *
+ * Basically, whenever a read/write would block (indicated by the
+ * EAGAIN errno variable) we remember the position we were reading
+ * from/writing to and return from the TCP reading/writing event
+ * handler.  When the socket becomes readable/writable again we
+ * continue from the same position.
+ */
+struct tcp_handler_data
+{
+	region_type     *region;
+	struct nsd      *nsd;
+	struct query     query;
+
+	/*
+	 * These fields are used to enable the TCP accept handlers
+	 * when the number of TCP connection drops below the maximum
+	 * number of TCP connections.
+	 */
+	size_t              tcp_accept_handler_count;
+	netio_handler_type *tcp_accept_handlers;
+	
+	/*
+	 * The query_state is used to remember if we are performing an
+	 * AXFR, if we're done processing, or if we should discard the
+	 * query and connection.
+	 */
+	query_state_type query_state;
+
+	/*
+	 * The bytes_transmitted field is used to remember the number
+	 * of bytes transmitted when receiving or sending a DNS
+	 * packet.  The count includes the two additional bytes used
+	 * to specify the packet length on a TCP connection.
+	 */
+	size_t           bytes_transmitted;
+};
+
+/*
+ * Handle incoming queries on the UDP server sockets.
+ */
+static void handle_udp(netio_type *netio,
+		       netio_handler_type *handler,
+		       netio_event_types_type event_types);
+
+/*
+ * Handle incoming connections on the TCP sockets.  These handlers
+ * usually wait for the NETIO_EVENT_READ event (indicating an incoming
+ * connection) but are disabled when the number of current TCP
+ * connections is equal to the maximum number of TCP connections.
+ * Disabling is done by changing the handler to wait for the
+ * NETIO_EVENT_NONE type.  This is done using the function
+ * configure_tcp_accept_handlers.
+ */
+static void handle_tcp_accept(netio_type *netio,
+			      netio_handler_type *handler,
+			      netio_event_types_type event_types);
+
+/*
+ * Handle incoming queries on a TCP connection.  The TCP connections
+ * are configured to be non-blocking and the handler may be called
+ * multiple times before a complete query is received.
+ */
 static void handle_tcp_reading(netio_type *netio,
 			       netio_handler_type *handler,
 			       netio_event_types_type event_types);
+
+/*
+ * Handle outgoing responses on a TCP connection.  The TCP connections
+ * are configured to be non-blocking and the handler may be called
+ * multiple times before a complete response is sent.
+ */
 static void handle_tcp_writing(netio_type *netio,
 			       netio_handler_type *handler,
 			       netio_event_types_type event_types);
+
+/*
+ * Change the event types the HANDLERS are interested in to
+ * EVENT_TYPES.
+ */
+static void configure_handler_event_types(netio_type *netio,
+					  size_t count,
+					  netio_handler_type *handlers,
+					  netio_event_types_type event_types);
 
 
 static uint16_t *compressed_dname_offsets;
@@ -475,19 +580,141 @@ process_query(struct nsd *nsd, struct query *query)
 #endif /* !PLUGINS */
 }
 
-struct handler_data
+
+/*
+ * Serve DNS requests.
+ */
+void
+server_child(struct nsd *nsd)
 {
-	region_type       *query_region;
-	struct nsd        *nsd;
-	struct nsd_socket *socket;
-};
+	size_t i;
+	sigset_t block_sigmask;
+	sigset_t default_sigmask;
+	region_type *server_region = region_create(xalloc, free);
+	region_type *query_region = region_create(xalloc, free);
+	netio_type *netio = netio_create(server_region);
+	netio_handler_type *tcp_accept_handlers;
+	
+	assert(nsd->server_kind != NSD_SERVER_MAIN);
+	
+	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
+		close_all_sockets(nsd->tcp, nsd->ifs);
+	}
+	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
+		close_all_sockets(nsd->udp, nsd->ifs);
+	}
+	
+	/* Allow sigalarm to get us out of the loop */
+	siginterrupt(SIGALRM, 1);
+
+	/*
+	 * Block signals that modify nsd->mode, which must be tested
+	 * for atomically.  These signals are only unblocked while
+	 * waiting in pselect below.
+	 */
+	sigemptyset(&block_sigmask);
+	sigaddset(&block_sigmask, SIGHUP);
+	sigaddset(&block_sigmask, SIGILL);
+	sigaddset(&block_sigmask, SIGINT);
+	sigaddset(&block_sigmask, SIGTERM);
+	sigprocmask(SIG_BLOCK, &block_sigmask, &default_sigmask);
+
+	if (nsd->server_kind & NSD_SERVER_UDP) {
+		for (i = 0; i < nsd->ifs; ++i) {
+			struct udp_handler_data *data;
+			netio_handler_type *handler;
+
+			data = region_alloc(server_region, sizeof(struct udp_handler_data));
+			data->query_region = query_region;
+			data->nsd = nsd;
+			data->socket = &nsd->udp[i];
+
+			handler = region_alloc(server_region, sizeof(netio_handler_type));
+			handler->fd = nsd->udp[i].s;
+			handler->timeout = NULL;
+			handler->user_data = data;
+			handler->event_types = NETIO_EVENT_READ;
+			handler->event_handler = handle_udp;
+			netio_add_handler(netio, handler);
+		}
+	}
+
+	/*
+	 * Keep track of all the TCP accept handlers so we can enable
+	 * and disable them based on the current number of active TCP
+	 * connections.
+	 */
+	tcp_accept_handlers = region_alloc(server_region,
+					   nsd->ifs * sizeof(netio_handler_type));
+	if (nsd->server_kind & NSD_SERVER_TCP) {
+		for (i = 0; i < nsd->ifs; ++i) {
+			struct tcp_accept_handler_data *data;
+			netio_handler_type *handler;
+			
+			data = region_alloc(server_region, sizeof(struct tcp_accept_handler_data));
+			data->query_region = query_region;
+			data->nsd = nsd;
+			data->socket = &nsd->tcp[i];
+			data->tcp_accept_handler_count = nsd->ifs;
+			data->tcp_accept_handlers = tcp_accept_handlers;
+			
+			handler = &tcp_accept_handlers[i];
+			handler->fd = nsd->tcp[i].s;
+			handler->timeout = NULL;
+			handler->user_data = data;
+			handler->event_types = NETIO_EVENT_READ;
+			handler->event_handler = handle_tcp_accept;
+			netio_add_handler(netio, handler);
+		}
+	}
+	
+	/* The main loop... */	
+	while (nsd->mode != NSD_QUIT) {
+
+		/* Do we need to do the statistics... */
+		if (nsd->mode == NSD_STATS) {
+			nsd->mode = NSD_RUN;
+
+#ifdef BIND8_STATS
+			/* Dump the statistics */
+			bind8_stats(nsd);
+#else /* BIND8_STATS */
+			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
+#endif /* BIND8_STATS */
+		}
+
+		/*
+		 * Release all memory allocated while processing the
+		 * previous request.
+		 */
+		region_free_all(query_region);
+
+		/* Wait for a query... */
+		if (netio_dispatch(netio, NULL, &default_sigmask) == -1) {
+			if (errno != EINTR) {
+				log_msg(LOG_ERR, "select failed: %s", strerror(errno));
+				break;
+			}
+		}
+	}
+
+#ifdef	BIND8_STATS
+	bind8_stats(nsd);
+#endif /* BIND8_STATS */
+
+	region_destroy(query_region);
+	region_destroy(server_region);
+	
+	server_shutdown(nsd);
+}
+
 
 static void
 handle_udp(netio_type *netio ATTR_UNUSED,
 	   netio_handler_type *handler,
 	   netio_event_types_type event_types)
 {
-	struct handler_data *data = handler->user_data;
+	struct udp_handler_data *data = handler->user_data;
 	int received, sent;
 	struct query q;
 
@@ -545,39 +772,6 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 }
 
 
-/*
- * The TCP handlers use non-blocking I/O.  This is necessary to avoid
- * blocking the entire server on a slow TCP connection, but does make
- * reading from and writing to the socket more complicated.
- *
- * Basically, whenever a read/write would block (indicated by the
- * EAGAIN errno variable) we remember the position we were reading
- * from/writing to and return from the TCP reading/writing event
- * handler.  When the socket becomes readable/writable again we
- * continue from the same position.
- *
- */
-struct tcp_handler_data
-{
-	region_type     *region;
-	struct nsd      *nsd;
-	struct query     query;
-
-	/*
-	 * The query_state is used to remember if we are performing an
-	 * AXFR, if we're done processing, or if we should discard the
-	 * query and connection.
-	 */
-	query_state_type query_state;
-
-	/*
-	 * The bytes_transmitted field is used to remember the
-	 * position and includes the two additional bytes used to
-	 * specify the packet length on a TCP connection.
-	 */
-	size_t           bytes_transmitted;
-};
-
 static void
 cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 {
@@ -586,10 +780,16 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 	close(handler->fd);
 
 	/*
-	 * Keep track of the total number of TCP handlers installed so
-	 * we can stop accepting connections when the maximum number
-	 * of simultaneous TCP connections is reached.
+	 * Enable the TCP accept handlers when the current number of
+	 * TCP connections is about to drop below the maximum number
+	 * of TCP connections.
 	 */
+	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
+		configure_handler_event_types(netio,
+					      data->tcp_accept_handler_count,
+					      data->tcp_accept_handlers,
+					      NETIO_EVENT_READ);
+	}
 	--data->nsd->current_tcp_count;
 	assert(data->nsd->current_tcp_count >= 0);
 	
@@ -847,11 +1047,11 @@ handle_tcp_writing(netio_type *netio,
  * is responsible for cleanup when the connection is closed.
  */
 static void
-handle_accept(netio_type *netio,
-	      netio_handler_type *handler,
-	      netio_event_types_type event_types)
+handle_tcp_accept(netio_type *netio,
+		  netio_handler_type *handler,
+		  netio_event_types_type event_types)
 {
-	struct handler_data *data = handler->user_data;
+	struct tcp_accept_handler_data *data = handler->user_data;
 	int s;
 	struct tcp_handler_data *tcp_data;
 	region_type *tcp_region;
@@ -908,6 +1108,10 @@ handle_accept(netio_type *netio,
 				  ? MAX_PACKET_SIZE
 				  : data->nsd->tcp_max_msglen);
 	tcp_data->query.tcp = 1;
+
+	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;
+	tcp_data->tcp_accept_handlers = data->tcp_accept_handlers;
+
 	tcp_data->query_state = QUERY_PROCESSED;
 	tcp_data->bytes_transmitted = 0;
 	memcpy(&tcp_data->query.addr, &addr, addrlen);
@@ -932,146 +1136,26 @@ handle_accept(netio_type *netio,
 	 * of simultaneous TCP connections is reached.
 	 */
 	++data->nsd->current_tcp_count;
+	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
+		configure_handler_event_types(netio,
+					      data->tcp_accept_handler_count,
+					      data->tcp_accept_handlers,
+					      NETIO_EVENT_NONE);
+	}
 }
 
-
-
-/*
- * Serve DNS requests.
- */
-void
-server_child(struct nsd *nsd)
+static void
+configure_handler_event_types(netio_type *netio,
+			      size_t count,
+			      netio_handler_type *handlers,
+			      netio_event_types_type event_types)
 {
 	size_t i;
-	sigset_t block_sigmask;
-	sigset_t default_sigmask;
-	region_type *server_region = region_create(xalloc, free);
-	region_type *query_region = region_create(xalloc, free);
-	netio_type *netio = netio_create(server_region);
-	netio_handler_type *tcp_accept_handlers;
+
+	assert(netio);
+	assert(handlers);
 	
-	assert(nsd->server_kind != NSD_SERVER_MAIN);
-	
-	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
-		close_all_sockets(nsd->tcp, nsd->ifs);
+	for (i = 0; i < count; ++i) {
+		handlers[i].event_types = event_types;
 	}
-	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
-		close_all_sockets(nsd->udp, nsd->ifs);
-	}
-	
-	/* Allow sigalarm to get us out of the loop */
-	siginterrupt(SIGALRM, 1);
-
-	/*
-	 * Block signals that modify nsd->mode, which must be tested
-	 * for atomically.  These signals are only unblocked while
-	 * waiting in pselect below.
-	 */
-	sigemptyset(&block_sigmask);
-	sigaddset(&block_sigmask, SIGHUP);
-	sigaddset(&block_sigmask, SIGILL);
-	sigaddset(&block_sigmask, SIGINT);
-	sigaddset(&block_sigmask, SIGTERM);
-	sigprocmask(SIG_BLOCK, &block_sigmask, &default_sigmask);
-
-	if (nsd->server_kind & NSD_SERVER_UDP) {
-		for (i = 0; i < nsd->ifs; ++i) {
-			struct handler_data *data;
-			netio_handler_type *handler;
-
-			data = region_alloc(server_region, sizeof(struct handler_data));
-			data->query_region = query_region;
-			data->nsd = nsd;
-			data->socket = &nsd->udp[i];
-			
-			handler = region_alloc(server_region, sizeof(netio_handler_type));
-			handler->fd = nsd->udp[i].s;
-			handler->timeout = NULL;
-			handler->user_data = data;
-			handler->event_types = NETIO_EVENT_READ;
-			handler->event_handler = handle_udp;
-			netio_add_handler(netio, handler);
-		}
-	}
-
-	/*
-	 * Keep track of all the TCP accept handlers so we can enable
-	 * and disable them based on the current number of active TCP
-	 * connections.
-	 */
-	tcp_accept_handlers = region_alloc(server_region,
-					   nsd->ifs * sizeof(netio_handler_type));
-	if (nsd->server_kind & NSD_SERVER_TCP) {
-		for (i = 0; i < nsd->ifs; ++i) {
-			struct handler_data *data;
-			netio_handler_type *handler;
-			
-			data = region_alloc(server_region, sizeof(struct handler_data));
-			data->query_region = query_region;
-			data->nsd = nsd;
-			data->socket = &nsd->tcp[i];
-
-			handler = &tcp_accept_handlers[i];
-			handler->fd = nsd->tcp[i].s;
-			handler->timeout = NULL;
-			handler->user_data = data;
-			handler->event_types = NETIO_EVENT_READ;
-			handler->event_handler = handle_accept;
-			netio_add_handler(netio, handler);
-		}
-	}
-	
-	/* The main loop... */	
-	while (nsd->mode != NSD_QUIT) {
-
-		/* Do we need to do the statistics... */
-		if (nsd->mode == NSD_STATS) {
-			nsd->mode = NSD_RUN;
-
-#ifdef BIND8_STATS
-			/* Dump the statistics */
-			bind8_stats(nsd);
-#else /* BIND8_STATS */
-			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
-#endif /* BIND8_STATS */
-		}
-
-		/*
-		 * Release all memory allocated while processing the
-		 * previous request.
-		 */
-		region_free_all(query_region);
-
-		/*
-		 * Enable/disable TCP accept handlers when the maximum
-		 * number of concurrent TCP connections is reached/not
-		 * reached.
-		 */
-		if (nsd->server_kind & NSD_SERVER_TCP) {
-			netio_event_types_type tcp_accept_event_types
-				= (nsd->current_tcp_count < nsd->maximum_tcp_count
-				   ? NETIO_EVENT_READ
-				   : NETIO_EVENT_NONE);
-			for (i = 0; i < nsd->ifs; ++i) {
-				tcp_accept_handlers[i].event_types = tcp_accept_event_types;
-			}
-		}
-
-		/* Wait for a query... */
-		if (netio_dispatch(netio, NULL, &default_sigmask) == -1) {
-			if (errno != EINTR) {
-				log_msg(LOG_ERR, "select failed: %s", strerror(errno));
-				break;
-			}
-		}
-	}
-
-#ifdef	BIND8_STATS
-	bind8_stats(nsd);
-#endif /* BIND8_STATS */
-
-	region_destroy(query_region);
-	region_destroy(server_region);
-	
-	server_shutdown(nsd);
 }
