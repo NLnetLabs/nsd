@@ -1,5 +1,10 @@
 NSD RELEASE NOTES
 
+2.1.5
+=============
+BUG FIXES:
+        - Bug #90: handle \000 in TXT records correctly
+
 2.1.4
 =============
 BUG FIXES:
