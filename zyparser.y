@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.42 2003/10/23 11:31:09 erik Exp $
+ * $Id: zyparser.y,v 1.43 2003/10/23 11:45:05 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -295,7 +295,7 @@ rtype:  SOA SP rdata_soa trail
     {   
 	    current_rr->type = $1;
     }
-    |   TXT SP rdata_txt	/* "trail" handled in rdata_txt. */
+    |   TXT SP rdata_txt trail
     {
 	    current_rr->type = $1;
     }
@@ -370,11 +370,11 @@ rdata_a:    STR '.' STR '.' STR '.' STR
     }
     ;
 
-rdata_txt:  STR 
+
+rdata_txt: STR
     {
         zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $1.str));
     }
-    |   rdata_txt sp NL
     |   rdata_txt sp STR
     {
         zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $3.str));
