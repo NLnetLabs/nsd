@@ -92,7 +92,7 @@ line:   NL
 					    parser->region,
 					    parser->current_rr.rrdata,
 					    rrdata_size(parser->current_rr.rrdata->rdata_count));
-			    
+
 			    process_rr();
 		    }
 	    }
@@ -377,6 +377,7 @@ str_dot_seq:	STR
 		$$.len = $1.len + $3.len;
 		$$.str[$$.len] = '\0';
 	}		
+	;
 
 /*
  * A string that can contain dots.
@@ -393,9 +394,9 @@ dotted_str:	STR
 		$$.len = $1.len + $3.len + 1;
 		$$.str[$$.len] = '\0';
 	}		
+	;
 
 /* define what we can parse */
-
 rtype:
     /*
      * All supported RR types.  We don't support NULL and types marked
@@ -875,7 +876,8 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 	parser->origin = domain_table_insert(
 		parser->db->domains,
 		dname_parse(parser->db->region, origin, NULL)); 
-	parser->prev_dname = parser->origin; 
+	parser->prev_dname = parser->origin;
+	parser->error_occurred = 0;
 	parser->errors = 0;
 	parser->line = 1;
 	parser->filename = filename;
