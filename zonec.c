@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.23 2002/02/13 11:14:48 alexis Exp $
+ * $Id: zonec.c,v 1.24 2002/02/13 11:19:37 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -52,8 +52,9 @@ u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
 
 #ifdef	USE_HEAP_HASH
 
-unsigned long 
-dnamehash (register u_char *dname)
+unsigned long
+dnamehash(dname)
+	register u_char *dname;
 {
         register unsigned long hash = 0;
 	register u_char *p = dname;
@@ -75,7 +76,8 @@ dnamehash (register u_char *dname)
  *
  */
 void *
-xalloc (register size_t size)
+xalloc(size)
+	register size_t	size;
 {
 	register void *p;
 
@@ -87,7 +89,9 @@ xalloc (register size_t size)
 }
 
 void *
-xrealloc (register void *p, register size_t size)
+xrealloc(p, size)
+	register void *p;
+	register size_t	size;
 {
 
 	if((p = realloc(p, size)) == NULL) {
@@ -97,8 +101,9 @@ xrealloc (register void *p, register size_t size)
 	return p;
 }
 
-void 
-zone_print (struct zone *z)
+void
+zone_print(z)
+	struct zone *z;
 {
 	struct rrset *rrset;
 	u_char *dname;
@@ -133,8 +138,10 @@ zone_print (struct zone *z)
 	}
 }
 
-u_int16_t 
-zone_addname (struct message *msg, u_char *dname)
+u_int16_t
+zone_addname(msg, dname)
+	struct message *msg;
+	u_char *dname;
 {
 	/* Lets try rdata dname compression */
 	int rdlength = 0;
@@ -184,8 +191,11 @@ zone_addname (struct message *msg, u_char *dname)
 /*
  * XXXX: Check msg->buf boundaries!!!!!
  */
-u_int16_t 
-zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
+u_int16_t
+zone_addrrset(msg, dname, rrset)
+	struct message *msg;
+	u_char *dname;
+	struct rrset *rrset;
 {
 	u_int16_t class = htons(CLASS_IN);
 	int32_t ttl;
@@ -297,7 +307,10 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
  *
  */
 struct domain *
-zone_addanswer (struct domain *d, struct message *msg, int type)
+zone_addanswer(d, msg, type)
+	struct domain *d;
+	struct message *msg;
+	u_int16_t type;
 {
 	struct answer *a;
 	size_t datasize = msg->bufptr - msg->buf;
@@ -334,8 +347,9 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
  * Frees all the data structures associated with the zone
  *
  */
-void 
-zone_free (struct zone *z)
+void
+zone_free(z)
+	struct zone *z;
 {
 	if(z) {
 		if(z->dname) free(z->dname);
@@ -350,7 +364,10 @@ zone_free (struct zone *z)
  *
  */
 struct zone *
-zone_read (char *name, char *zonefile, int cache)
+zone_read(name, zonefile, cache)
+	char *name;
+	char *zonefile;
+	int cache;
 {
 	heap_t *h;
 	int i;
@@ -378,11 +395,11 @@ zone_read (char *name, char *zonefile, int cache)
 
 	/* Two heaps: zone cuts and other data */
 #ifdef USE_HEAP_RBTREE
-	z->cuts = heap_create(xalloc, (cmpf_t)dnamecmp);
-	z->data = heap_create(xalloc, (cmpf_t)dnamecmp);
+	z->cuts = heap_create(xalloc, dnamecmp);
+	z->data = heap_create(xalloc, dnamecmp);
 #else ifdef USE_HEAP_HASH
-	z->cuts = heap_create(xalloc, (cmpf_t)dnamecmp, (hashf_t)dnamehash, NAMEDB_HASH_SIZE);
-	z->data = heap_create(xalloc, (cmpf_t)dnamecmp, (hashf_t)dnamehash, NAMEDB_HASH_SIZE);
+	z->cuts = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
+	z->data = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
 #endif
 	z->soa = z->ns = NULL;
 
@@ -509,8 +526,10 @@ zone_read (char *name, char *zonefile, int cache)
  *
  * Returns zero if success.
  */
-int 
-zone_dump (struct zone *z, struct namedb *db)
+int
+zone_dump(z, db)
+	struct 	zone *z;
+	struct namedb *db;
 {
 	struct domain *d;
 	struct message msg, msgany;
@@ -756,15 +775,17 @@ zone_dump (struct zone *z, struct namedb *db)
 	return 0;
 }
 
-int 
-usage (void)
+int
+usage()
 {
 	fprintf(stderr, "usage: zonec [-a] [-f database] [-c cache-file] -z zone-name [zone-file] [...]\n");
 	exit(1);
 }
 
-int 
-main (int argc, char **argv)
+int
+main(argc, argv)
+	int argc;
+	char **argv;
 {
         struct namedb *db;
 	int aflag = 0;

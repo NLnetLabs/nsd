@@ -1,5 +1,5 @@
 /*
- * $Id: hash.h,v 1.6 2002/02/13 11:14:48 alexis Exp $
+ * $Id: hash.h,v 1.7 2002/02/13 11:19:37 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -72,18 +72,15 @@ struct hash_t {
 	hnode_t *_node;
 	unsigned _i;
 
-	void *(*mallocf)(size_t);	/* Malloc function */
-	int (*cmp) (void *, void *);		/* Compare function */
-	unsigned long (*hash)(void *);	/* The hash function */
+	void *(*mallocf)();		/* Malloc function */
+	int (*cmp) ();			/* Compare function */
+	unsigned long (*hash)();	/* The hash function */
 
 	/* The hash table */
 	hnode_t	*table;
 };
 
-typedef	int (*cmpf_t)(void *, void *);
-typedef unsigned long (*hashf_t)(void *);
-
-hash_t *hash_create __P((void *(*mallocf)(size_t), cmpf_t cmpf, hashf_t hashf, unsigned long size));
+hash_t *hash_create __P((void *(*)(), int (*)(), unsigned long (*)(), unsigned long));
 void *hash_insert __P((hash_t *, void *, void *, int));
 void *hash_search __P((hash_t *, void *));
 void hash_delete __P((hash_t *, void *, int, int));

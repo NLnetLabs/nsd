@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.40 2002/02/13 11:14:48 alexis Exp $
+ * $Id: query.c,v 1.41 2002/02/13 11:19:37 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -40,8 +40,9 @@
 #include "nsd.h"
 
 
-void 
-query_init (struct query *q)
+void
+query_init(q)
+	struct query *q;
 {
 	q->addrlen = sizeof(struct sockaddr);
 	q->iobufsz = QIOBUFSZ;
@@ -51,7 +52,7 @@ query_init (struct query *q)
 }
 
 struct query *
-query_new (void)
+query_new()
 {
 	struct query *q;
 
@@ -63,15 +64,20 @@ query_new (void)
 	return q;
 }
 
-void 
-query_destroy (struct query *q)
+void
+query_destroy(q)
+	struct query *q;
 {
 	if(q)
 		free(q);
 }
 
-void 
-query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
+void
+query_addanswer(q, dname, a, truncate)
+	struct query *q;
+	u_char *dname;
+	struct answer *a;
+	int truncate;
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -142,8 +148,10 @@ query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
 }
 
 
-int 
-query_process (struct query *q, struct namedb *db)
+int
+query_process(q, db)
+	struct query *q;
+	struct namedb *db;
 {
 	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 3];

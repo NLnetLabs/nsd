@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.17 2002/02/13 11:14:48 alexis Exp $
+ * $Id: nsd.c,v 1.18 2002/02/13 11:19:37 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -62,7 +62,8 @@ int debug = 0;
  *
  */
 void *
-xalloc (register size_t size)
+xalloc(size)
+	register size_t size;
 {
 	register void *p;
 
@@ -74,7 +75,9 @@ xalloc (register size_t size)
 }
 
 void *
-xrealloc (register void *p, register size_t size)
+xrealloc(p, size)
+	register void *p;
+	register size_t size;
 {
 
 	if((p = realloc(p, size)) == NULL) {
@@ -84,15 +87,16 @@ xrealloc (register void *p, register size_t size)
 	return p;
 }
 
-int 
-usage (void)
+int
+usage()
 {
 	fprintf(stderr, "usage: nsd database\n");
 	exit(1);
 }
 
-void 
-sig_handler (int sig)
+void
+sig_handler(sig)
+	int sig;
 {
 	int status;
 	switch(sig) {
@@ -115,8 +119,10 @@ sig_handler (int sig)
 	}
 }
 
-int 
-main (int argc, char *argv[])
+int
+main(argc, argv)
+	int argc;
+	char *argv[];
 {
 	int fd, c;
 	pid_t pid;

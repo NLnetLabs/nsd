@@ -1,5 +1,5 @@
 /*
- * $Id: hash.c,v 1.6 2002/02/13 11:14:48 alexis Exp $
+ * $Id: hash.c,v 1.7 2002/02/13 11:19:37 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -53,7 +53,11 @@
  *
  */
 hash_t *
-hash_create (void *(*mallocf)(size_t), cmpf_t cmpf, hashf_t hashf, unsigned long size)
+hash_create(mallocf, cmpf, hashf, size)
+	void *(*mallocf)(size_t);
+	int (*cmpf)(void *, void *);
+	unsigned long (*hashf)(void *);
+	unsigned long size;
 {
 	hash_t *hash;
 
@@ -94,7 +98,10 @@ hash_create (void *(*mallocf)(size_t), cmpf_t cmpf, hashf_t hashf, unsigned long
  *
  */
 void *
-hash_insert (hash_t *hash, void *key, void *data, int overwrite)
+hash_insert(hash, key, data, overwrite)
+	hash_t *hash;
+	void *key, *data;
+	int overwrite;
 {
 	hnode_t *node = &hash->table[hash->hash(key) % hash->size];
 
@@ -136,7 +143,9 @@ hash_insert (hash_t *hash, void *key, void *data, int overwrite)
  *
  */
 void *
-hash_search (hash_t *hash, void *key)
+hash_search(hash, key)
+	hash_t *hash;
+	void *key;
 {
 	hnode_t *node = &hash->table[hash->hash(key) % hash->size];
 
@@ -194,8 +203,11 @@ hash_next(hash)
 
 /* void hash_delete __P((hash_t *, void *, int, int)); */
 
-void 
-hash_destroy (hash_t *hash, int freekeys, int freedata)
+void
+hash_destroy(hash, freekeys, freedata)
+	hash_t *hash;
+	int freekeys;
+	int freedata;
 {
 	unsigned i;
 	hnode_t *node;
@@ -216,8 +228,9 @@ hash_destroy (hash_t *hash, int freekeys, int freedata)
 
 #ifdef TEST
 
-unsigned long 
-hashf (char *key)
+unsigned long
+hashf(key)
+	char *key;
 {
         unsigned hash = 0;
 
@@ -229,8 +242,10 @@ hashf (char *key)
 
 #define	BUFSZ	1000
 
-int 
-main (int argc, char **argv)
+int
+main(argc, argv)
+	int argc;
+	char **argv;
 {
 	hash_t *hash;
 	char buf[BUFSZ];
