@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,1.1a,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,1.1a-210203,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 CFLAGS="-ansi -pedantic -O2"
