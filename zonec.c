@@ -860,7 +860,7 @@ uint16_t
 intbytypexx(const char *str)
 {
         char *end;
-        uint16_t type;
+        long type;
 
 	if (strlen(str) < 5)
 		return 0;
@@ -871,13 +871,15 @@ intbytypexx(const char *str)
 	if (!isdigit(str[4]))
 		return 0;
 	
-	/* the rest from the string, from where to the end must be a number */
-	type = (uint16_t) strtol(str + 4, &end, 10);
+	/* The rest from the string must be a number.  */
+	type = strtol(str + 4, &end, 10);
 
 	if (*end != '\0')
 		return 0;
+	if (type < 0 || type > 65535L)
+		return 0;
 	
-        return type;
+        return (uint16_t) type;
 }
 
 /*
@@ -1115,7 +1117,7 @@ zone_open(const char *filename, uint32_t ttl, uint16_t class, const char *origin
 
 
 void 
-set_bit(uint8_t bits[], int index)
+set_bit(uint8_t bits[], uint16_t index)
 {
 	/* set bit #place in the byte */
 	/* the bits are counted from right to left
@@ -1125,7 +1127,8 @@ set_bit(uint8_t bits[], int index)
 }
 
 void 
-set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE], int index)
+set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
+	    uint16_t index)
 {
 	/* set bit #place in the byte */
 	/* the bits are counted from right to left

@@ -144,8 +144,9 @@ void zadd_rdata_domain(zparser_type *parser, domain_type *domain);
 void zadd_rdata_finalize(zparser_type *parser);
 void zprintrr(FILE *f, rr_type *rr);
 
-void set_bit(uint8_t bits[], int index);
-void set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE], int index);
+void set_bit(uint8_t bits[], uint16_t index);
+void set_bitnsec(uint8_t  bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
+		 uint16_t index);
 
 uint16_t intbytypexx(const char *str);
 

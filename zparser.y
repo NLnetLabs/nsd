@@ -304,15 +304,21 @@ concatenated_str_seq: STR
 /* get the type and flip a bit */
 nxt_seq:	STR
 	{
-		uint16_t t = lookup_type_by_name($1.str);
-		set_bit(nxtbits, t);
-		
-		/* waar bij houden? */
+		uint16_t type = lookup_type_by_name($1.str);
+		if (type != 0 && type < 128) {
+			set_bit(nxtbits, type);
+		} else {
+			error("bad type %d in NXT record", (int) type);
+		}
 	}
 	|	nxt_seq sp STR
 	{
-		uint16_t t = lookup_type_by_name($3.str);
-		set_bit(nxtbits, t);
+		uint16_t type = lookup_type_by_name($3.str);
+		if (type != 0 && type < 128) {
+			set_bit(nxtbits, type);
+		} else {
+			error("bad type %d in NXT record", (int) type);
+		}
 	}
 	;
 
@@ -320,16 +326,22 @@ nsec_seq:	STR
 	{
 		/* what if NULL?... */
 		uint16_t type = lookup_type_by_name($1.str);
-		if (type != 0) 
+		if (type != 0) {
 			set_bitnsec(nsecbits, type);
+		} else {
+			error("bad type %d in NSEC record", (int) type);
+		}
 		
 		/* waar bij houden? */
 	}
 	|	nsec_seq sp STR
 	{
 		uint16_t type = lookup_type_by_name($3.str);
-		if (type != 0)
+		if (type != 0) {
 			set_bitnsec(nsecbits, type);
+		} else {
+			error("bad type %d in NSEC record", (int) type);
+		}
 	}
 	;
 
