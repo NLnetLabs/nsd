@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.98.2.1 2003/07/10 11:43:18 erik Exp $
+ * $Id: zonec.c,v 1.98.2.2 2003/07/17 11:05:51 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -579,6 +579,9 @@ zone_read (char *name, char *zonefile)
 	fflush(stdout);
 	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), parser->errors);
 	totalerrors += parser->errors;
+
+	zclose(parser);
+	
 	return z;
 }
 
