@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.29.2.1.2.2 2002/05/21 09:49:08 alexis Exp $
+ * $Id: nsd.c,v 1.29.2.1.2.3 2002/05/21 10:05:59 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -201,10 +201,16 @@ main(argc, argv)
 
 	/* EDNS0 */
 	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
-	nsd.edns.opt[1]	= (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
-	nsd.edns.opt[2] = TYPE_OPT & 0x00ff;	/* type_lo */
-	nsd.edns.opt[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
-	nsd.edns.opt[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
+	nsd.edns.opt_ok[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
+	nsd.edns.opt_ok[2] = TYPE_OPT & 0x00ff;	/* type_lo */
+	nsd.edns.opt_ok[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
+	nsd.edns.opt_ok[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
+
+	nsd.edns.opt_err[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
+	nsd.edns.opt_err[2] = TYPE_OPT & 0x00ff;	/* type_lo */
+	nsd.edns.opt_err[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
+	nsd.edns.opt_err[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
+	nsd.edns.opt_err[5] = 1;			/* XXX Extended RCODE=BAD VERS */
 
 /* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
 
