@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.c,v 1.13 2003/06/16 15:13:16 erik Exp $
+ * $Id: rbtree.c,v 1.14 2003/07/01 13:06:53 erik Exp $
  *
  * rbtree.c -- generic red black tree
  *
@@ -85,7 +85,7 @@ rbtree_create (void *(*mallocf)(size_t), int (*cmpf)(const void *, const void *)
  * Rotates the node to the left.
  *
  */
-void
+static void
 rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node)
 {
 	rbnode_t *right = node->right;
@@ -112,7 +112,7 @@ rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node)
  * Rotates the node to the right.
  *
  */
-void
+static void
 rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node)
 {
 	rbnode_t *left = node->left;
@@ -135,7 +135,7 @@ rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node)
 	node->parent = left;
 }
 
-void
+static void
 rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
 {
 	rbnode_t	*uncle;
