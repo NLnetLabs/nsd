@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.51 2003/10/27 18:20:27 miekg Exp $
+ * $Id: zyparser.y,v 1.52 2003/10/29 09:56:12 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -66,7 +66,7 @@ uint16_t nxtbits = 0;
 
 %type <domain> owner_dname nonowner_dname
 %type <dname>  dname abs_dname rel_dname
-%type <data>   str_seq hex_seq
+%type <data>   str_seq hex_seq nxt_seq
 
 %%
 lines:  /* empty line */
@@ -270,16 +270,17 @@ nxt_seq:	STR
 	}
 	;
 
-/* this is also "mis"used for b64 and other str lists */
+/* this is also (mis)used for b64 and other str lists */
 hex_seq:	STR
 	{
 		$$ = $1;
 	}
 	|	hex_seq sp STR
 	{
-		char *hex = (char*)malloc($3.len + $1.len);
+		char *hex = (char*)malloc($3.len + $1.len + 1);
 		memcpy(hex, $1.str, $1.len);
 		memcpy(hex + $1.len, $3.str, $3.len);
+		*(hex + $1.len + $3.len + 1 ) = '\0';
 		$$.str = hex;
 		$$.len = $1.len + $3.len;
 	}
@@ -430,16 +431,17 @@ rdata_nxt:	nonowner_dname sp nxt_seq trail
 	}
 	;
 
-rdata_sig:	STR sp STR sp STR sp STR sp STR sp STR sp nonowner_dname sp hex_seq trail
+rdata_sig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp nonowner_dname sp hex_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_rrtype(zone_region, $1.str)); /* rr covered */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* alg */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* # labels */
-		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $7.str)); /* sig exp */
-		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $9.str)); /* sig inc */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $11.str)); /* key id */
-		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $13)); /* signer name */
-		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $15.str)); /* sig data */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $7.str)); /* # orig TTL */
+		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $9.str)); /* sig exp */
+		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $11.str)); /* sig inc */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $13.str)); /* key id */
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $15)); /* signer name */
+		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $17.str)); /* sig data */
 	}
 	;
 

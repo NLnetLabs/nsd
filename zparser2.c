@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.28 2003/10/27 18:20:27 miekg Exp $
+ * $Id: zparser2.c,v 1.29 2003/10/29 09:56:12 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -350,9 +350,9 @@ uint16_t *
 zparser_conv_rrtype(region_type *region, const char *rr)
 {
 	/* get the official number for the rr type and return
-	 * that. This is mainly used by SIG in the type-covered
-	 * field
+	 * that. This is used by SIG in the type-covered field
 	 */
+
 	/* [XXX] error handling */
 	uint16_t *r = NULL;
 	
