@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.4 2003/04/28 08:06:30 alexis Exp $
+ * $Id: nsq.c,v 1.5 2003/04/28 09:46:37 alexis Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -723,8 +723,30 @@ main (int argc, char *argv[])
 			continue;
 		}
 
+		/* Print the header.... */
+		printf(";; received %d bytes from %s, %lu questions, %lu answers, %lu authority, %lu additional\n",
+			q.iobufsz, *argv, ntohs(QDCOUNT((&q))), ntohs(ANCOUNT((&q))),
+					ntohs(NSCOUNT((&q))), ntohs(ARCOUNT((&q))));
+		printf(";; query id: %lu, qr: %d, opcode: %d, aa: %d, tc: %d, rd: %d, ra: %d, z: %d, rcode: %d\n",
+				ntohl(ID((&q))), QR((&q)) ? 1 : 0, OPCODE((&q)), AA((&q)) ? 1 : 0 , TC((&q)) ? 1 : 0,
+					RD((&q)) ? 1 : 0, RA((&q)) ? 1 : 0, Z((&q)), RCODE((&q)));
+
 		/* Print it */
-		for(i = 0; rrs[i] != NULL; i++) {
+		printf("; Question section\n");
+		for(i = 0; rrs[i] != NULL && i < ntohs(QDCOUNT((&q))); i++) {
+			printf("; ");
+			zprintrr(stdout, rrs[i]);
+		}
+		printf("; Answer section\n");
+		for(; rrs[i] != NULL && i < ntohs(QDCOUNT((&q))) + ntohs(ANCOUNT((&q))); i++) {
+			zprintrr(stdout, rrs[i]);
+		}
+		printf("; Authority section\n");
+		for(; rrs[i] != NULL && i < ntohs(QDCOUNT((&q))) + ntohs(ANCOUNT((&q))) + + ntohs(NSCOUNT((&q))); i++) {
+			zprintrr(stdout, rrs[i]);
+		}
+		printf("; Additional section\n");
+		for(; rrs[i] != NULL && i < ntohs(QDCOUNT((&q))) + ntohs(ANCOUNT((&q))) + ntohs(NSCOUNT((&q))) + ntohs(ARCOUNT((&q))); i++) {
 			zprintrr(stdout, rrs[i]);
 		}
 		break;

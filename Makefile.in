@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.32 2003/04/15 14:43:54 alexis Exp $
+# $Id: Makefile.in,v 1.33 2003/04/28 09:46:36 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -79,7 +79,7 @@ EDIT		= sed \
 			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
-all:	nsd nsq zonec nsd-notify nsdc.sh nsdc.conf.sample
+all:	nsd nsq zonec nsd-axfr.c nsdc.sh nsdc.conf.sample
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
@@ -98,19 +98,19 @@ install: all
 	$(INSTALL) -d $(mandir)
 	$(INSTALL) -s nsd $(sbindir)/nsd
 	$(INSTALL) -s zonec $(sbindir)/zonec
-	$(INSTALL) -s nsd-notify $(sbindir)/nsd-notify
+	$(INSTALL) -s nsd-axfr $(sbindir)/nsd-axfr
 	$(INSTALL) nsdc.sh $(sbindir)/nsdc
 	$(INSTALL_DATA) nsd.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
 	$(INSTALL_DATA) zonec.8 $(mandir)/man8
-	$(INSTALL_DATA) nsd-notify.8 $(mandir)/man8
+	$(INSTALL_DATA) nsd-axfr.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.conf.sample $(configfile).sample
 	$(INSTALL_DATA) nsd.zones.sample $(zonesfile).sample
 
 uninstall:
 	@echo
-	rm -f -- $(sbindir)/nsd $(sbindir)/zonec $(sbindir)/nsdc $(sbindir)/nsd-notify
-	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8
+	rm -f -- $(sbindir)/nsd $(sbindir)/zonec $(sbindir)/nsdc $(sbindir)/nsd-axfr
+	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-axfr.8
 	rm -f -- $(pidfile) $(dbfile)
 	@echo
 	@echo "You still need to remove $(confdir) directory by hand."
@@ -124,11 +124,11 @@ zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o has
 nsq:	zparser.h dns.h nsq.o zparser.o dname.o $(LIBOBJS)
 	$(LINK) -o $@ nsq.o zparser.o dname.o $(LIBOBJS) $(LIBS)
 
-nsd-notify:	nsd-notify.c dname.o
-	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o $(LIBS)
+nsd-axfr:	nsd-axfr.c dname.o
+	$(LINK) $(CFLAGS) -o $@ nsd-axfr.c dname.o $(LIBS)
 
 clean:
-	rm -f zonec nsd zparser hash rbtree nsd-notify nsd-axfr *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
+	rm -f zonec nsd zparser hash rbtree nsd-axfr nsq *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
 
 basename.o:	compat/basename.c
 	$(COMPILE) -c compat/basename.c -o basename.o
