@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.75.2.1 2002/08/06 14:33:15 alexis Exp $
+ * $Id: query.c,v 1.75.2.2 2002/08/07 16:14:12 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -362,10 +362,6 @@ query_process(q, nsd)
 		return 0;
 	}
 
-	/* Setup the header... */
-	QR_SET(q);		/* This is an answer */
-
-
 	/* Dont bother to answer more than one question at once... */
 	if(ntohs(QDCOUNT(q)) != 1 || TC(q)) {
 		*(u_int16_t *)(q->iobuf + 2) = 0;
@@ -375,6 +371,9 @@ query_process(q, nsd)
 
 	/* Zero the flags... */
 	*(u_int16_t *)(q->iobuf + 2) = 0;
+
+	/* Setup the header... */
+	QR_SET(q);		/* This is an answer */
 
 	/* Lets parse the qname and convert it to lower case */
 	qdepth = 0;
