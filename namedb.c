@@ -279,6 +279,14 @@ domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
 	return NULL;
 }
 
+int
+domain_is_glue(domain_type *domain, zone_type *zone)
+{
+	rrset_type *unused;
+	domain_type *ns_domain = domain_find_ns_rrsets(domain, zone, &unused);
+	return (ns_domain != NULL &&
+		domain_find_rrset(ns_domain, zone, TYPE_SOA) == NULL);
+}
 
 
 /*

@@ -72,6 +72,12 @@ int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* LIBWRAP */
 
+static void add_rrset(struct query       *query,
+		      answer_type        *answer,
+		      answer_section_type section,
+		      domain_type        *owner,
+		      rrset_type         *rrset);
+
 void
 query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 {
@@ -395,9 +401,10 @@ answer_notify (struct query *query)
 
 static void
 add_dependent_rrsets(struct query *query, answer_type *answer,
-		     rrset_type *master_rrset,
 		     answer_section_type section,
-		     size_t rdata_index, uint16_t type_of_dependent)
+		     rrset_type *master_rrset,
+		     size_t rdata_index, uint16_t type_of_dependent,
+		     int allow_glue)
 {
 	size_t i;
 	
@@ -413,6 +420,9 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 		
 		assert(additional);
 
+		if (!allow_glue && domain_is_glue(match, query->zone))
+			continue;
+		
 		/*
 		 * Check to see if we need to generate the dependent
 		 * based on a wildcard domain.
@@ -434,26 +444,47 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 
 		rrset = domain_find_rrset(additional, query->zone, type_of_dependent);
 		if (rrset) {
-			answer_add_rrset(answer, section, additional, rrset);
+			add_rrset(query, answer, section, additional, rrset);
 		}
 	}
 }
 
 static void
-add_ns_rrset(struct query *query, answer_type *answer,
-	     domain_type *owner, rrset_type *ns_rrset)
+add_rrset(struct query       *query,
+	  answer_type        *answer,
+	  answer_section_type section,
+	  domain_type        *owner,
+	  rrset_type         *rrset)
 {
 	assert(query);
 	assert(answer);
-	assert(ns_rrset);
-	assert(ns_rrset->type == TYPE_NS);
-	assert(ns_rrset->class == CLASS_IN);
+	assert(owner);
+	assert(rrset);
+	assert(rrset->class == CLASS_IN);
 	
-	answer_add_rrset(answer, AUTHORITY_SECTION, owner, ns_rrset);
-	add_dependent_rrsets(
-		query, answer, ns_rrset, ADDITIONAL_SECTION, 0, TYPE_A);
-	add_dependent_rrsets(
-		query, answer, ns_rrset, ADDITIONAL_SECTION, 0, TYPE_AAAA);
+	answer_add_rrset(answer, section, owner, rrset);
+	switch (rrset->type) {
+	case TYPE_NS:
+		add_dependent_rrsets(query, answer, ADDITIONAL_SECTION,
+				     rrset, 0, TYPE_A, 1);
+		add_dependent_rrsets(query, answer, ADDITIONAL_SECTION,
+				     rrset, 0, TYPE_AAAA, 1);
+		break;
+	case TYPE_MB:
+		add_dependent_rrsets(query, answer, ADDITIONAL_SECTION,
+				     rrset, 0, TYPE_A, 0);
+		add_dependent_rrsets(query, answer, ADDITIONAL_SECTION,
+				     rrset, 0, TYPE_AAAA, 0);
+		break;
+	case TYPE_MX:
+		add_dependent_rrsets(query, answer, ADDITIONAL_SECTION,
+				     rrset, 1, TYPE_A, 0);
+		add_dependent_rrsets(query, answer, ADDITIONAL_SECTION,
+				     rrset, 1, TYPE_AAAA, 0);
+		break;
+	default:
+		break;
+	}
 }
 
 /*
@@ -467,10 +498,11 @@ answer_delegation(struct query *query, answer_type *answer)
 	assert(query->delegation_rrset);
 	
 	AA_CLR(query);
-	add_ns_rrset(query,
-		     answer,
-		     query->delegation_domain,
-		     query->delegation_rrset);
+	add_rrset(query,
+		  answer,
+		  AUTHORITY_SECTION,
+		  query->delegation_domain,
+		  query->delegation_rrset);
 	query->domain = query->delegation_domain;
 }
 
@@ -487,10 +519,10 @@ answer_soa(struct query *query, answer_type *answer)
 		AA_CLR(query);
 	} else {
 		AA_SET(query);
-		answer_add_rrset(answer,
-				 AUTHORITY_SECTION,
-				 query->zone->domain,
-				 query->zone->soa_rrset);
+		add_rrset(query, answer,
+			  AUTHORITY_SECTION,
+			  query->zone->domain,
+			  query->zone->soa_rrset);
 	}
 }
 
@@ -507,16 +539,15 @@ answer_domain(struct query *q, answer_type *answer, domain_type *domain)
 	if (q->type == TYPE_ANY && (rrset = domain_find_any_rrset(domain, q->zone))) {
 		for (; rrset; rrset = rrset->next) {
 			if (rrset->zone == q->zone) {
-				answer_add_rrset(
-					answer, ANSWER_SECTION, domain, rrset);
+				add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 			}
 		}
 	} else if ((rrset = domain_find_rrset(domain, q->zone, q->type))) {
-		answer_add_rrset(answer, ANSWER_SECTION, domain, rrset);
+		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 	} else if ((rrset = domain_find_rrset(domain, q->zone, TYPE_CNAME))) {
-		answer_add_rrset(answer, ANSWER_SECTION, domain, rrset);
+		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 		add_dependent_rrsets(
-			q, answer, rrset, ANSWER_SECTION, 0, q->type);
+			q, answer, ANSWER_SECTION, rrset, 0, q->type, 0);
 	} else {
 		answer_soa(q, answer);
 		return;
@@ -528,7 +559,7 @@ answer_domain(struct query *q, answer_type *answer, domain_type *domain)
 		AA_CLR(q);
 	} else if (q->zone->ns_rrset) {
 		AA_SET(q);
-		add_ns_rrset(q, answer, q->zone->domain, q->zone->ns_rrset);
+		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->domain, q->zone->ns_rrset);
 	}
 }
 

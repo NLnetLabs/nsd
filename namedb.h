@@ -171,6 +171,8 @@ zone_type *domain_find_zone(domain_type *domain);
 
 domain_type *domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns);
 
+int domain_is_glue(domain_type *domain, zone_type *zone);
+
 typedef struct namedb namedb_type;
 struct namedb
 {
