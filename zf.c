@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.17.2.1 2002/02/20 12:27:04 erik Exp $
+ * $Id: zf.c,v 1.17.2.2 2002/02/20 12:32:31 erik Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -53,10 +53,6 @@
 #include "dns.h"
 #include "nsd.h"
 #include "zf.h"
-
-#ifdef DMALLOC
-#include "dmalloc.h"
-#endif
 
 static struct zf_type_tab zf_types[] = ZONEFILE_TYPES;
 static struct zf_class_tab zf_classes[] = ZONEFILE_CLASSES;
