@@ -324,7 +324,7 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
 		+ datasize;					/* data */
 
 	/* Assure the alignment for the next answer... */
-	size = ALIGN_UP(size);
+	size = ALIGN_UP(size, NAMEDB_ALIGNMENT);
 
 	d = xrealloc(d, d->size + size);
 

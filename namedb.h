@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.39 2003/07/28 12:28:39 erik Exp $
+ * $Id: namedb.h,v 1.40 2003/08/04 12:35:48 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -41,8 +41,9 @@
 #ifndef _NAMEDB_H_
 #define	_NAMEDB_H_
 
-#define DEFAULT_ALIGNMENT       (sizeof (void *))
-#define ALIGN_UP(x)                (((x) + DEFAULT_ALIGNMENT - 1) & (~(DEFAULT_ALIGNMENT - 1)))
+#include "region-allocator.h"
+
+#define NAMEDB_ALIGNMENT        8
 
 #define	NAMEDB_MAXDSIZE		32768	/* Maximum size of a domain */
 

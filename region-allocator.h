@@ -1,5 +1,5 @@
 /*
- * util.h -- set of various support routines.
+ * region-allocator.h -- region based memory allocator.
  *
  * Erik Rozendaal, <erik@nlnetlabs.nl>
  *
@@ -36,73 +36,69 @@
  *
  */
 
-#ifndef _UTIL_H_
-#define _UTIL_H_
-
-#include <config.h>
-
-#include <stdarg.h>
-#include <syslog.h>
+#ifndef _REGION_ALLOCATOR_H_
+#define _REGION_ALLOCATOR_H_
 
 
-#define ALIGN_UP(n, alignment)  (((n) + alignment - 1) & (~(alignment - 1)))
+typedef struct region region_type;
 
 
 /*
- * Initialize the logging system.  All messages are logged to stderr
- * until log_open and log_set_log_function are called.
+ * Create a new region.
  */
-void log_init(const char *ident);
+region_type *region_create(void *(*allocator)(size_t),
+                           void (*deallocator)(void *));
+
 
 /*
- * Open the system log.  If FILENAME is not NULL, a log file is opened
- * as well.
+ * Destroy REGION.  All memory associated with REGION is freed as if
+ * region_free_all was called.
  */
-void log_open(int option, int facility, const char *filename);
+void region_destroy(region_type *region);
+
 
 /*
- * Finalize the logging system.
+ * Add a cleanup to REGION.  ACTION will be called with DATA as
+ * parameter when the region is freed or destroyed.
+ *
+ * Returns 0 on failure.
  */
-void log_finalize(void);
+size_t region_add_cleanup(region_type *region,
+                          void (*action)(void *),
+                          void *data);
+
 
 /*
- * Type of function to use for the actual logging.
+ * Allocate COUNT elements of SIZE bytes of memory inside REGION.  The
+ * memory is deallocated when region_free_all is called for this
+ * region.
  */
-typedef void log_function_type(int priority, const char *format, va_list args);
+void *region_alloc(region_type *region, size_t count, size_t size);
+
 
 /*
- * The function used to log to the log file.
+ * Run the cleanup actions and free all memory associated with REGION.
  */
-log_function_type log_file;
+void region_free_all(region_type *region);
+
 
 /*
- * The function used to log to syslog.  The messages are also logged
- * using log_file.
+ * Set the current active region to REGION.
  */
-log_function_type log_syslog;
+void region_set_current(region_type *region);
+
 
 /*
- * Set the logging function to use (log_file or log_syslog).
+ * Return the current active region.
  */
-void log_set_log_function(log_function_type *log_function);
+region_type *region_get_current(void);
+
 
 /*
- * Log a message using the current log function.
+ * Allocate SIZE bytes of memory inside the currently active region.
+ * The memory is deallocated when region_free_all is called for the
+ * active region.  This is provided as an easy replacement of malloc.
  */
-void log_msg(int priority, const char *format, ...)
-	ATTR_FORMAT(printf, 2, 3);
+void *region_alloc_current(size_t size);
 
-/*
- * Log a message using the current log function.
- */
-void log_vmsg(int priority, const char *format, va_list args);
-
-/*
- * (Re-)allocate SIZE bytes of memory.  Report an error if the memory
- * could not be allocated and exit the program.  These functions never
- * returns NULL.
- */
-void *xalloc(size_t size);
-void *xrealloc(void *ptr, size_t size);
-
-#endif /* _UTIL_H_ */
+#endif /* _REGION_ALLOCATOR_H_ */
