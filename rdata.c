@@ -75,8 +75,7 @@ rdata_text_to_string(buffer_type *output, rdata_atom_type rdata)
 			}
 			buffer_printf(output, "%c", ch);
 		} else {
-			buffer_printf(output, "\\%03u",
-				      (unsigned) ch);
+			buffer_printf(output, "\\%03u", (unsigned) ch);
 		}
 	}
 	buffer_printf(output, "\"");
