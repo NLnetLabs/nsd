@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.45 2002/02/22 10:56:45 alexis Exp $
+ * $Id: zonec.c,v 1.46 2002/02/22 11:37:12 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -53,6 +53,9 @@ u_char bitmasks[NAMEDB_BITMASKLEN * 3];
 u_char *authmask = bitmasks;
 u_char *starmask = bitmasks + NAMEDB_BITMASKLEN;
 u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
+
+/* Some global flags... */
+int vflag = 0;
 
 #ifdef	USE_HEAP_HASH
 
@@ -459,12 +462,13 @@ zone_read(name, zonefile, cache)
 	/* Read the file */
 	while((rr = zf_read(zf)) != NULL) {
 
-#ifdef DEBUG
 		/* Report progress... */
-		if((zf->lines % 100000) == 0) {
-			printf("read %u lines...\r", zf->lines);
+		if(vflag) {
+			if((zf->lines % 100000) == 0) {
+				printf("read %u lines...\r", zf->lines);
+				fflush(stdout);
+			}
 		}
-#endif
 
 		/* We only support IN class */
 		if(rr->class != CLASS_IN) {
@@ -866,8 +870,11 @@ main(argc, argv)
 	struct zone *z = NULL;
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "d:f:")) != -1) {
+	while((c = getopt(argc, argv, "d:f:v")) != -1) {
 		switch (c) {
+		case 'v':
+			vflag = 1;
+			break;
 		case 'f':
 			dbfile = optarg;
 			break;

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.27 2002/02/20 14:25:24 alexis Exp $
+ * $Id: nsd.c,v 1.28 2002/02/22 11:34:24 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -203,6 +203,7 @@ main(argc, argv)
 		case 'p':
 			nsd.udp.port = atoi(optarg);
 			nsd.tcp.port = atoi(optarg);
+			break;
 		case '?':
 		default:
 			usage();
