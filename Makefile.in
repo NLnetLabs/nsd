@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.31 2003/04/03 14:58:11 alexis Exp $
+# $Id: Makefile.in,v 1.32 2003/04/15 14:43:54 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -79,7 +79,7 @@ EDIT		= sed \
 			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
-all:	nsd zonec nsd-notify nsdc.sh nsdc.conf.sample
+all:	nsd nsq zonec nsd-notify nsdc.sh nsdc.conf.sample
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
@@ -120,6 +120,9 @@ nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 
 zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o $(LIBOBJS) $(LIBS)
+
+nsq:	zparser.h dns.h nsq.o zparser.o dname.o $(LIBOBJS)
+	$(LINK) -o $@ nsq.o zparser.o dname.o $(LIBOBJS) $(LIBS)
 
 nsd-notify:	nsd-notify.c dname.o
 	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o $(LIBS)
