@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.35 2002/02/20 14:25:24 alexis Exp $
+ * $Id: zonec.c,v 1.36 2002/02/20 14:38:30 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -40,6 +40,7 @@
 
 #include "zonec.h"
 
+static void zone_addbuf __P((struct message *, const void *, size_t));
 
 /* The database file... */
 char *dbfile = DEFAULT_DBFILE;
@@ -138,6 +139,22 @@ zone_print(z)
 	}
 }
 
+static void
+zone_addbuf(msg, data, size)
+	struct message *msg;
+	const void *data;
+	size_t size;
+{
+	if(msg->bufptr - msg->buf + size > IOBUFSZ) {
+		fflush(stdout);
+		fprintf(stderr, "zonec: insufficient buffer space\n"); /* RR set too large? */
+		exit(1);	/* XXX: do something smart */
+	}
+
+	bcopy(data, msg->bufptr, size);
+	msg->bufptr += size;
+}
+
 u_int16_t
 zone_addname(msg, dname)
 	struct message *msg;
@@ -146,7 +163,6 @@ zone_addname(msg, dname)
 	/* Lets try rdata dname compression */
 	int rdlength = 0;
 	int j;
-	u_int16_t rdname_pointer = 0;
 	register u_char *t;
 
 	/* Walk through the labels in the dname to be compressed */
@@ -157,18 +173,12 @@ zone_addname(msg, dname)
 				if((msg->compr[j].dnamelen == (dname + 1 + *dname - t)) &&
 					(strncasecmp(t, msg->compr[j].dname, msg->compr[j].dnamelen) == 0)) {
 					/* Match, first write down unmatched part */
-					bcopy(dname + 1, msg->bufptr,
-						(t - (dname + 1)));
-					msg->bufptr += (t - (dname + 1));
+					zone_addbuf(msg, dname + 1, t - (dname + 1));
 					rdlength += (t - (dname + 1));
 
 					/* Then construct the pointer, and add it */
-					rdname_pointer = (u_int16_t)msg->compr[j].dnameoff;
-					bcopy(&rdname_pointer, msg->bufptr, 2);
-
 					msg->pointers[msg->pointerslen++] = msg->bufptr - msg->buf;
-
-					msg->bufptr += 2;
+					zone_addbuf(msg, &msg->compr[j].dnameoff, 2);
 					return rdlength + 2;
 				}
 			}
@@ -181,8 +191,7 @@ zone_addname(msg, dname)
 			}
 		}
 	}
-	bcopy(dname +1, msg->bufptr, *dname);
-	msg->bufptr += *dname;
+	zone_addbuf(msg, dname + 1, *dname);
 	return *dname;
 }
 
@@ -242,38 +251,39 @@ zone_addrrset(msg, dname, rrset)
 
 		/* type */
 		type = htons(rrset->type);
-		bcopy(&type, msg->bufptr, sizeof(u_int16_t));
-		msg->bufptr += sizeof(u_int16_t);
+		zone_addbuf(msg, &type, sizeof(u_int16_t));
 
 		/* class */
-		bcopy(&class, msg->bufptr, sizeof(u_int16_t));
-		msg->bufptr += sizeof(u_int16_t);
+		zone_addbuf(msg, &class, sizeof(u_int16_t));
 
 		/* ttl */
 		ttl = htonl(rrset->ttl);
-		bcopy(&ttl, msg->bufptr, sizeof(int32_t));
-		msg->bufptr += sizeof(int32_t);
+		zone_addbuf(msg, &ttl, sizeof(int32_t));
 
 		/* rdlength */
 		rdlengthptr = msg->bufptr;
 		rdlength = 0;
-		msg->bufptr += sizeof(u_int16_t);
+		/*
+		 * Reserver space for rdata length.  The actual length
+		 * is filled in below.
+		 */
+		zone_addbuf(msg, &rdlength, sizeof(u_int16_t));
 
 		/* Pack the rdata */
 		for(size = 0, i = 0, f = rrset->fmt; *f; f++, i++, size = 0) {
 			switch(*f) {
 			case '4':
 				size = sizeof(u_int32_t);
-				bcopy((char *)&rdata[i].l, msg->bufptr, size);
+				zone_addbuf(msg, &rdata[i].l, size);
 				break;
 			case 'l':
 				size = sizeof(int32_t);
 				l = htonl(rdata[i].l);
-				bcopy((char *)&l, msg->bufptr, size);
+				zone_addbuf(msg, &l, size);
 				break;
 			case '6':
 				size = IP6ADDRLEN;
-				bcopy((char *)rdata[i].p, msg->bufptr, size);
+				zone_addbuf(msg, rdata[i].p, size);
 				break;
 			case 'n':
 				size = 0;
@@ -281,19 +291,18 @@ zone_addrrset(msg, dname, rrset)
 				msg->dnames[msg->dnameslen++] = rdata[i].p;
 				break;
 			case 't':
-				size = *((char *)rdata[i].p) + 1;
-				bcopy((char *)rdata[i].p, msg->bufptr, size);
+				size = *((u_char *)rdata[i].p) + 1;
+				zone_addbuf(msg, rdata[i].p, size);
 				break;
 			case 's':
 				size = sizeof(u_int16_t);
 				s = htons(rdata[i].s);
-				bcopy((char *)&s, msg->bufptr, size);
+				zone_addbuf(msg, &s, size);
 				break;
 			default:
 				fprintf(stderr, "panic! uknown atom in format %c\n", *f);
 				return rrcount;
 			}
-			msg->bufptr += size;
 			rdlength += size;
 		}
 		rdlength = htons(rdlength);
