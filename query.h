@@ -166,7 +166,7 @@
 /* Query as we pass it around */
 struct query {
 	struct sockaddr_storage addr;
-	size_t addrlen;
+	socklen_t addrlen;
 	size_t maxlen;
 	int edns;
 	int tcp;

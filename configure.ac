@@ -153,7 +153,7 @@ if test $ac_cv_type_$1 = no; then
 fi
 ])
 
-AC_LIBGTOP_CHECK_TYPE([u_char], [unsigned char])
+AC_LIBGTOP_CHECK_TYPE(u_char, unsigned char)
 AC_LIBGTOP_CHECK_TYPE(u_long, unsigned long)  
 AC_LIBGTOP_CHECK_TYPE(int8_t, char) 
 AC_LIBGTOP_CHECK_TYPE(int16_t, short)
@@ -161,7 +161,8 @@ AC_LIBGTOP_CHECK_TYPE(int32_t, int)
 AC_LIBGTOP_CHECK_TYPE(u_int8_t, unsigned char)
 AC_LIBGTOP_CHECK_TYPE(u_int16_t, unsigned short)
 AC_LIBGTOP_CHECK_TYPE(u_int32_t, unsigned int)
-
+AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
+AC_LIBGTOP_CHECK_TYPE(sockaddr_storage, sockaddr_in)
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [u_int32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
