@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.c,v 1.10 2003/01/20 09:43:16 alexis Exp $
+ * $Id: rbtree.c,v 1.11 2003/01/20 11:02:39 alexis Exp $
  *
  * rbtree.c -- generic red black tree
  *
@@ -79,7 +79,7 @@ rbtree_create (void *(*mallocf)(size_t), int (*cmpf)(void *, void *))
 	rbtree->cmp = cmpf;
 
 	return rbtree;
-};
+}
 
 /*
  * Rotates the node to the left.
@@ -106,7 +106,7 @@ rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node)
 	}
 	right->left = node;
 	node->parent = right;
-};
+}
 
 /*
  * Rotates the node to the right.
@@ -133,7 +133,7 @@ rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node)
 	}
 	left->right = node;
 	node->parent = left;
-};
+}
 
 void
 rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
@@ -267,7 +267,7 @@ rbtree_insert (rbtree_t *rbtree, void *key, void *data, int overwrite)
 	rbtree_insert_fixup(rbtree, node);
 
 	return node->data;
-};
+}
 
 /*
  * Searches the red black tree, returns the data if key is found or NULL otherwise.

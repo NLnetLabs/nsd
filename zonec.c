@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.67 2003/01/20 09:43:16 alexis Exp $
+ * $Id: zonec.c,v 1.68 2003/01/20 11:02:39 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -126,7 +126,7 @@ zone_print (struct zone *z)
 	printf("; zone %s\n", dnamestr(z->dname));
 	printf("; zone data\n");
 
-	HEAP_WALK(z->data, (char *)dname, rrset) {
+	HEAP_WALK(z->data, dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
 				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
@@ -139,7 +139,7 @@ zone_print (struct zone *z)
 	}
 
 	printf("; zone cuts\n");
-	HEAP_WALK(z->cuts, (char *)dname, rrset) {
+	HEAP_WALK(z->cuts, dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
 				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
@@ -847,7 +847,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	}
 
 	/* AUTHORITY CUTS */
-	HEAP_WALK(z->cuts, (char *)dname, rrset) {
+	HEAP_WALK(z->cuts, dname, rrset) {
 		/* Report progress... */
 		if(vflag) {
 			if((++progress % fraction) == 0) {
@@ -868,7 +868,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	}
 
 	/* OTHER DATA */
-	HEAP_WALK(z->data, (char *)dname, rrset) {
+	HEAP_WALK(z->data, dname, rrset) {
 		/* Report progress... */
 		if(vflag) {
 			if((++progress % fraction) == 0) {

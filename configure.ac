@@ -6,41 +6,47 @@ AC_CONFIG_HEADER([config.h])
 
 CFLAGS="-Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wconversion"
 
-# Checks for programs.
-AC_PROG_AWK
-AC_PROG_CC
-AC_PROG_LN_S
-AC_PROG_INSTALL
+dnl
+dnl Some macro's from autoconf macro archive
+dnl
+AC_DEFUN([AC_PROMPT_USER_NO_DEFINE],
+dnl changequote(<<, >>) dnl
+dnl <<
+[
+if test "x$defaults" = "xno"; then
+echo $ac_n "$2 ($3): $ac_c"
+read tmpinput
+if test "$tmpinput" = "" -a "$3" != ""; then
+  tmpinput="$3"
+fi
+eval $1=\"$tmpinput\"
+else
+tmpinput="$3"
+eval $1=\"$tmpinput\"
+fi
+]
+dnl >>
+dnl changequote([, ])
+) dnl done AC_PROMPT_USER
 
-# Checks for libraries.
 
-# Checks for header files.
-AC_HEADER_STDC
-AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h])
+AC_DEFUN([AC_CHECK_USER],[
+AC_MSG_CHECKING([for user $2])
+if grep ^$2: /etc/passwd > /dev/null; then
+        $1=$2
+        USER_HOME=`grep ^$2: /etc/passwd | sed "s/^\([[^:]]*:\)\{5\}\([[^:]]*\):[[^:]]*$/\2/"`
+        AC_MSG_RESULT([yes])
+else
+        unset $1
+        unset USER_HOME
+        AC_MSG_RESULT([no])
+fi;dnl
+])
 
-# Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_TYPE_UID_T
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-
-# Checks for library functions.
-AC_FUNC_CHOWN
-AC_FUNC_FORK
-AC_FUNC_MALLOC
-AC_FUNC_MMAP
-AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm bzero dup2 endpwent gethostname inet_ntoa memset munmap select socket strcasecmp strchr strdup strerror strncasecmp strtol])
-
-AC_CHECK_FUNCS(basename, [], [COMPAT_O="$COMPAT_O basename.o"])
-AC_CHECK_FUNCS(inet_pton, [], [COMPAT_O="$COMPAT_O inet_pton.o"])
-AC_SUBST(COMPAT_O)
 
 dnl
 dnl A number if --with arguements
 dnl
-
 AC_ARG_WITH(nsd-home,
 	AC_HELP_STRING([--with-nsd-home=directory],
 		[NSD ``home'' directory]),
@@ -74,7 +80,7 @@ AC_SUBST(nsdpidfile)
 AC_ARG_WITH(nsd-user,
 	AC_HELP_STRING([--with-nsd-user=user],
 		[The username for nsd to setuid to before answering queries]),
-	[nsduser="$withval"], [nsduser="nsd"])
+	[nsduser="$withval"])
 AC_SUBST(nsduser)
 
 AC_ARG_WITH(named-xfer,
@@ -82,6 +88,58 @@ AC_ARG_WITH(named-xfer,
 		[Pathname to named-xfer program from bind distribution]),
 	[namedxfer="$withval"])
 AC_SUBST(namedxfer)
+
+
+dnl
+dnl Determine which user to use for NSD to setuid to.
+dnl
+if test "X$nsduser" = "X"; then
+	AC_PROMPT_USER_NO_DEFINE(nsduser, [With wich user priviledges should NSD answer the queries?], [nsd])
+	AC_CHECK_USER(nsduser, $nsduser)
+fi
+if test "X$nsduser" = "X"; then
+	AC_MSG_ERROR([user doesnt exist.])
+fi
+
+
+# Checks for programs.
+AC_PROG_AWK
+AC_PROG_CC
+AC_PROG_LN_S
+AC_PROG_INSTALL
+
+# Checks for libraries.
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_HEADER_SYS_WAIT
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_UID_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+
+AC_CHECK_TYPE(int8_t, char)
+AC_CHECK_TYPE(int16_t, short)
+AC_CHECK_TYPE(int32_t, int)
+AC_CHECK_TYPE(u_int8_t, unsigned char)
+AC_CHECK_TYPE(u_int16_t, unsigned short)
+AC_CHECK_TYPE(u_int32_t, unsigned int)
+AC_CHECK_TYPE(in_addr_t, unsigned long)
+
+# Checks for library functions.
+AC_FUNC_CHOWN
+AC_FUNC_FORK
+AC_FUNC_MALLOC
+AC_FUNC_MMAP
+AC_TYPE_SIGNAL
+AC_CHECK_FUNCS([alarm bzero dup2 endpwent gethostname inet_ntoa memset munmap select socket strcasecmp strchr strdup strerror strncasecmp strtol])
+
+AC_CHECK_FUNCS(basename, [], [COMPAT_O="$COMPAT_O basename.o"])
+AC_CHECK_FUNCS(inet_pton, [], [COMPAT_O="$COMPAT_O inet_pton.o"])
+AC_SUBST(COMPAT_O)
 
 dnl
 dnl Check for libwrap
