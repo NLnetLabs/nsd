@@ -333,8 +333,7 @@ domain_wildcard_child(domain_type *domain)
 int
 zone_is_secure(zone_type *zone)
 {
-	/* XXX: Zone is secure if the SOA record is signed?  */
-	return 1;
+	return zone->is_secure;
 }
 
 uint16_t

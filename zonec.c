@@ -907,6 +907,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 		zone->domain = rr->domain;
 		zone->soa_rrset = NULL;
 		zone->ns_rrset = NULL;
+		zone->is_secure = 0;
 
 		/* ervoor plaatsen */
 		zone->next = parser->db->zones;
@@ -962,6 +963,10 @@ process_rr(zparser_type *parser, rr_type *rr)
 		rrset->rrs[rrset->rrslen++] = rr->rrdata;
 	}
 
+	if (rrset->type == TYPE_RRSIG && rrset_rrsig_type_covered(rrset, rrset->rrslen - 1) == TYPE_SOA) {
+		rrset->zone->is_secure = 1;
+	}
+	
 	/* Check we have SOA */
 	if (zone->soa_rrset == NULL) {
 		if (rr->type != TYPE_SOA) {

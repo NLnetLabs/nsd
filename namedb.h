@@ -95,6 +95,7 @@ struct zone
 	rrset_type        *soa_rrset;
 	rrset_type        *ns_rrset;
 	uint32_t           number;
+	unsigned           is_secure : 1;
 };
 
 struct rrset

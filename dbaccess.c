@@ -216,7 +216,15 @@ read_rrset(namedb_type *db,
 	} else if (owner == rrset->zone->domain && rrset->type == TYPE_NS) {
 		rrset->zone->ns_rrset = rrset;
 	}
-	
+
+	if (rrset->type == TYPE_RRSIG && owner == rrset->zone->domain) {
+		for (i = 0; i < rrset->rrslen; ++i) {
+			if (rrset_rrsig_type_covered(rrset, i) == TYPE_SOA) {
+				rrset->zone->is_secure = 1;
+				break;
+			}
+		}
+	}
 	return 1;
 }
 
@@ -290,6 +298,7 @@ namedb_open (const char *filename)
 		zones[i]->soa_rrset = NULL;
 		zones[i]->ns_rrset = NULL;
 		zones[i]->number = i + 1;
+		zones[i]->is_secure = 0;
 
 		region_free_all(dname_region);
 	}
