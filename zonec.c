@@ -795,7 +795,7 @@ precsize_aton (register char *cp, char **endptr)
 #endif
 
 void 
-setbit(uint8_t bits[], int index)
+set_bit(uint8_t bits[], int index)
 {
 	/* set bit #place in the byte */
 	/* the bits are counted from right to left

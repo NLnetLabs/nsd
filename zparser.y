@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.7 2003/11/05 11:47:51 erik Exp $
+ * $Id: zparser.y,v 1.8 2003/11/05 15:21:54 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -245,14 +245,14 @@ str_seq:	STR
 nxt_seq:	STR
 	{
 		int t = intbyname($1.str,ztypes);
-		setbit( nxtbits, t );
+		set_bit( nxtbits, t );
 		
 		/* waar bij houden? */
 	}
 	|	nxt_seq sp STR
 	{
 		int t = intbyname($3.str,ztypes);
-		setbit( nxtbits, t );
+		set_bit( nxtbits, t );
 	}
 	;
 
