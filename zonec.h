@@ -86,7 +86,7 @@ struct zparser {
 extern zparser_type *current_parser;
 extern rr_type *current_rr;
 extern rrdata_type *temporary_rrdata;
-
+extern int error_occurred;   /*  Error occurred while parsin an RR. */
 /* used in zonec.lex */
 extern FILE *yyin;
 
@@ -157,8 +157,10 @@ extern region_type *zone_region;
  */
 extern region_type *rr_region;
 
-int warning(const char *fmt, ...);
-int error(const char *fmt, ...);
+void warning(const char *fmt, ...);
+void error(const char *fmt, ...);
+void error_prev_line(const char *fmt, ...);
+int yyerror(const char *message); /* Dummy function.  */
 
 int process_rr(zparser_type *parser, rr_type *rr);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex);

@@ -66,7 +66,7 @@ uint8_t nsecbits[256][32];
 %token <type>  UTYPE
 
 %type <domain> dname abs_dname
-%type <dname>  rel_dname
+%type <dname>  rel_dname label
 %type <data>   str_seq concatenated_str_seq hex_seq nxt_seq nsec_seq
 
 %%
@@ -79,21 +79,26 @@ line:   NL
     |   DIR_ORIG dir_orig
     |   rr
     {   /* rr should be fully parsed */
-	    if (current_rr->type != 0) {
-		    current_rr->zone = current_parser->current_zone;
-		    current_rr->rrdata = region_alloc_init(
-			    zone_region,
-			    current_rr->rrdata,
-			    rrdata_size(current_parser->_rc));
-
-		    process_rr(current_parser, current_rr);
-
-		    region_free_all(rr_region);
-
-		    current_rr->type = 0;
-		    current_rr->rrdata = temporary_rrdata;
-		    current_parser->_rc = 0;
+	    if (!error_occurred) {
+		    if (!current_parser->current_zone && current_rr->type != TYPE_SOA) {
+			    error("RR before SOA skipped");
+		    } else {
+			    current_rr->zone = current_parser->current_zone;
+			    current_rr->rrdata = region_alloc_init(
+				    zone_region,
+				    current_rr->rrdata,
+				    rrdata_size(current_parser->_rc));
+			    
+			    process_rr(current_parser, current_rr);
+		    }
 	    }
+
+	    region_free_all(rr_region);
+
+	    current_rr->type = 0;
+	    current_rr->rrdata = temporary_rrdata;
+	    current_parser->_rc = 0;
+	    error_occurred = 0;
     }
     ;
 
@@ -218,14 +223,20 @@ abs_dname:  '.'
     }
     ;
 
-rel_dname:  STR
+label: STR
     {
-        $$ = create_dname(rr_region, $1.str, $1.len);
+	    if ($1.len > MAXLABELLEN) {
+		    warning("label '%s' exceeds %d character limit, truncated", $1.str, MAXLABELLEN);
+		    $1.len = MAXLABELLEN;
+	    }
+	    $$ = create_dname(rr_region, (uint8_t *) $1.str, $1.len);
     }
-    |       rel_dname '.' STR
+    ;
+
+rel_dname:  label
+    |       rel_dname '.' label
     {  
-        $$ = cat_dname(rr_region, $1,
-		       create_dname(rr_region, $3.str, $3.len));
+	    $$ = cat_dname(rr_region, $1, $3);
     }
     ;
 
@@ -378,8 +389,7 @@ rtype:
     { current_rr->type = $1; }
     | STR error NL
     {
-	    current_rr->type = 0;
-	    warning("Unimplemented RR seen %s", $1);
+	    error_prev_line("Unrecognized RR type '%s'", $1.str);
     }
     ;
 
@@ -413,7 +423,7 @@ rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
             current_parser->minimum = DEFAULT_TTL;
     }
 	|   error NL
-	{ error_mess_line("Syntax error in SOA record"); }
+	{ error_prev_line("Syntax error in SOA record"); }
     ;
 
 rdata_dname:   dname trail
@@ -422,7 +432,7 @@ rdata_dname:   dname trail
         zadd_rdata_domain(current_parser, $1);
     }
 	|   error NL
-	{ error_mess_line("Syntax error in DNAME record"); }
+	{ error_prev_line("Syntax error in DNAME record"); }
     ;
 
 rdata_a:    STR '.' STR '.' STR '.' STR trail
@@ -444,12 +454,12 @@ rdata_a:    STR '.' STR '.' STR '.' STR trail
         zadd_rdata_wireformat(current_parser, zparser_conv_a(zone_region, ipv4));
     }
 	|   error NL
-	{ error_mess_line("Syntax error in A record"); }
+	{ error_prev_line("Syntax error in A record"); }
     ;
 
 rdata_txt: str_seq trail {}
 	|   error NL
-	{ error_mess_line("Syntax error in TXT record"); }
+	{ error_prev_line("Syntax error in TXT record"); }
 	;
 
 rdata_mx:   STR sp dname trail
@@ -458,7 +468,7 @@ rdata_mx:   STR sp dname trail
         	zadd_rdata_domain( current_parser, $3);  /* MX host */
     	}
 	|   error NL
-	{ error_mess_line("Syntax error in MX record"); }
+	{ error_prev_line("Syntax error in MX record"); }
     	;
 
 rdata_aaaa: STR trail
@@ -466,7 +476,7 @@ rdata_aaaa: STR trail
         	zadd_rdata_wireformat( current_parser, zparser_conv_a6(zone_region, $1.str) );  /* IPv6 address */
     	}
 	|   error NL
-	{ error_mess_line("Syntax error in AAAA record"); }
+	{ error_prev_line("Syntax error in AAAA record"); }
     	;
 
 rdata_loc: concatenated_str_seq trail
@@ -474,7 +484,7 @@ rdata_loc: concatenated_str_seq trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_loc(zone_region, $1.str)); /* Location */
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in LOC record"); }
+	{ error_prev_line("Syntax error in LOC record"); }
 	;
 
 rdata_hinfo:	STR sp STR trail
@@ -483,7 +493,7 @@ rdata_hinfo:	STR sp STR trail
         	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $3.str) ); /* OS*/
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in HINFO record"); }
+	{ error_prev_line("Syntax error in HINFO record"); }
 	;
 
 rdata_srv:	STR sp STR sp STR sp dname trail
@@ -494,7 +504,7 @@ rdata_srv:	STR sp STR sp STR sp dname trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $7)); /* target name */
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in SRV record"); }
+	{ error_prev_line("Syntax error in SRV record"); }
 	;
 
 rdata_ds:	STR sp STR sp STR sp hex_seq trail
@@ -505,7 +515,7 @@ rdata_ds:	STR sp STR sp STR sp hex_seq trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $7.str)); /* hash */
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in DS record"); }
+	{ error_prev_line("Syntax error in DS record"); }
 	;
 
 rdata_dnskey:	STR sp STR sp STR sp hex_seq trail
@@ -516,7 +526,7 @@ rdata_dnskey:	STR sp STR sp STR sp hex_seq trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $7.str)); /* hash */
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in DNSKEY record"); }
+	{ error_prev_line("Syntax error in DNSKEY record"); }
 	;
 
 rdata_nxt:	dname sp nxt_seq trail
@@ -526,7 +536,7 @@ rdata_nxt:	dname sp nxt_seq trail
 		memset(nxtbits, 0 , 16);
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in NXT record"); }
+	{ error_prev_line("Syntax error in NXT record"); }
 	;
 
 rdata_nsec:	dname sp nsec_seq trail
@@ -536,7 +546,7 @@ rdata_nsec:	dname sp nsec_seq trail
 		memset(nsecbits, 0, sizeof(nsecbits));
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in NSEC record"); }
+	{ error_prev_line("Syntax error in NSEC record"); }
 	;
 
 
@@ -553,7 +563,7 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp hex_seq t
 		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $17.str)); /* sig data */
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in RRSIG record"); }
+	{ error_prev_line("Syntax error in RRSIG record"); }
 	;
 
 rdata_rp:	dname sp dname trail
@@ -562,7 +572,7 @@ rdata_rp:	dname sp dname trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $3)); /* txt d-name */
 	}
 	|   error NL
-	{ error_mess_line("Syntax error in RP record"); }
+	{ error_prev_line("Syntax error in RP record"); }
 	;
 
 rdata_sshfp:   STR sp STR sp hex_seq trail
@@ -572,7 +582,7 @@ rdata_sshfp:   STR sp STR sp hex_seq trail
                zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str)); /* hash */
        }
 	|   error NL
-	{ error_mess_line("Syntax error in SSHFP record"); }
+	{ error_prev_line("Syntax error in SSHFP record"); }
        ;
 
 rdata_naptr:   STR sp STR sp STR sp STR sp STR sp dname trail
@@ -585,7 +595,7 @@ rdata_naptr:   STR sp STR sp STR sp STR sp STR sp dname trail
                zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $11)); /* replacement */
        }
 	|   error NL
-	{ error_mess_line("Syntax error in NAPTR record"); }
+	{ error_prev_line("Syntax error in NAPTR record"); }
        ;
 %%
 

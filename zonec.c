@@ -57,6 +57,8 @@ static int vflag = 0;
 /* Total errors counter */
 static int totalerrors = 0;
 
+int error_occurred = 0;
+
 extern uint8_t nsecbits[256][32];
 
 /*
@@ -1022,82 +1024,12 @@ zone_open(const char *filename, uint32_t ttl, uint16_t class, const char *origin
 	current_parser->line = 1;
 	current_parser->filename = filename;
 
+	error_occurred = 0;
 	current_rr->rrdata = temporary_rrdata;
 
 	return 1;
 }
 
-#if 0
-/* RFC1876 conversion routines */
-static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
-				      1000000,10000000,100000000,1000000000};
-
-/*
- *
- * Takes an XeY precision/size value, returns a string representation.
- *
- */
-static const char *
-precsize_ntoa (int prec)
-{
-	static char retbuf[sizeof("90000000.00")];
-	unsigned long val;
-	int mantissa, exponent;
-
-	mantissa = (int)((prec >> 4) & 0x0f) % 10;
-	exponent = (int)((prec >> 0) & 0x0f) % 10;
-
-	val = mantissa * poweroften[exponent];
-
-	(void) snprintf(retbuf, sizeof(retbuf), "%lu.%.2lu", val/100, val%100);
-	return (retbuf);
-}
-
-/*
- * Converts ascii size/precision X * 10**Y(cm) to 0xXY.
- * Sets the given pointer to the last used character.
- *
- */
-static uint8_t 
-precsize_aton (register char *cp, char **endptr)
-{
-	unsigned int mval = 0, cmval = 0;
-	uint8_t retval = 0;
-	register int exponent;
-	register int mantissa;
-
-	while (isdigit(*cp))
-		mval = mval * 10 + (*cp++ - '0');
-
-	if (*cp == '.') {	/* centimeters */
-		cp++;
-		if (isdigit(*cp)) {
-			cmval = (*cp++ - '0') * 10;
-			if (isdigit(*cp)) {
-				cmval += (*cp++ - '0');
-			}
-		}
-	}
-
-	cmval = (mval * 100) + cmval;
-
-	for (exponent = 0; exponent < 9; exponent++)
-		if (cmval < poweroften[exponent+1])
-			break;
-
-	mantissa = cmval / poweroften[exponent];
-	if (mantissa > 9)
-		mantissa = 9;
-
-	retval = (mantissa << 4) | exponent;
-
-	if(*cp == 'm') cp++;
-
-	*endptr = cp;
-
-	return (retval);
-}
-#endif
 
 void 
 set_bit(uint8_t bits[], int index)
@@ -1267,8 +1199,7 @@ zone_read (const char *name, const char *zonefile)
 
 	/* Parse and process all RRs.  */
 	/* reset the nsecbits to zero */
-	memset(nsecbits, 0 , 8192);
-	current_rr->type = 0;
+	memset(nsecbits, 0, 8192);
 	yyparse();
 
 	fflush(stdout);
@@ -1288,58 +1219,64 @@ usage (void)
 }
 
 int
-yyerror(void)
+yyerror(const char *message ATTR_UNUSED)
 {
 	/* don't do anything with this */
 	return 0;
 }
 
+static void
+error_va_list(const char *fmt, va_list args)
+{
+	fprintf(stderr," ERR: Line %u in %s: ", current_parser->line,
+			current_parser->filename);
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
+}
+
 /* the line counting sux, to say the least 
  * with this grose hack we try do give sane
  * numbers back */
-int
-error_mess_line(const char *fmt, ...) 
+void
+error_prev_line(const char *fmt, ...) 
 {
 	va_list args;
 	va_start(args, fmt);
 
 	current_parser->line--;
-	error(fmt, args);
+	error_va_list(fmt, args);
 	current_parser->line++;
+
 	va_end(args);
 }
 
-int
+void
 error(const char *fmt, ...)
 {
 	/* send an error message to stderr */
 	va_list args;
 	va_start(args, fmt);
 
-	fprintf(stderr," ERR: Line ~%u in %s: ", current_parser->line,
-			current_parser->filename);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	error_va_list(fmt, args);
 
 	va_end(args);
 	current_parser->errors++;
-	return 0;
+	error_occurred = 1;
 }
 
-int 
+void 
 warning(const char *fmt, ... )
 {
 	va_list args;
 
 	va_start(args, fmt);
 
-	fprintf(stderr,"WARN: Line ~%u in %s: ", current_parser->line,
+	fprintf(stderr,"WARN: Line %u in %s: ", current_parser->line,
 			current_parser->filename);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 
 	va_end(args);
-	return 0;
 }
 
 
