@@ -173,8 +173,8 @@ zparser:	zparser.c dname.o  $(LIBOBJS)
 example-plugin.o: contrib/example-plugin.c
 	$(COMPILE) -c contrib/example-plugin.c -o $@
 
-example-plugin.so: example-plugin.o
-	$(LINK) -shared example-plugin.o -o $@
+example-plugin.so: example-plugin.o dname.o
+	$(LINK) -shared example-plugin.o dname.o -o $@
 
 # autoconf rules
 config.h.in:	configure.ac

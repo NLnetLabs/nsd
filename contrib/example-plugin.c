@@ -14,11 +14,24 @@
 #include <stdlib.h>
 #include <syslog.h>
 
+#include "dname.h"
+
 static nsd_plugin_callback_result_type reload(
 	const nsd_plugin_interface_type *nsd,
 	nsd_plugin_id_type id);
 static nsd_plugin_callback_type query_received;
 static nsd_plugin_callback_type query_processed;
+
+void *
+xalloc(size_t size)
+{
+	void *result = malloc(size);
+	if (result == NULL) {
+		syslog(LOG_ERR, "malloc failed: %m");
+		exit(1);
+	}
+	return result;
+}
 
 static
 void finalize(const nsd_plugin_interface_type *nsd, nsd_plugin_id_type id)
@@ -94,6 +107,8 @@ query_processed(
 	nsd_plugin_id_type               id,
 	nsd_plugin_callback_args_type   *args)
 {
+	syslog(LOG_NOTICE, "domain name: %s", dnamestr(args->domain_name));
+	
 	if (args->data) {
 		syslog(LOG_NOTICE, "Received query with plugin data %s", (char *) args->data);
 		args->result_code = RCODE_FORMAT;
