@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.36 2003/06/25 11:39:37 erik Exp $
+ * $Id: dbaccess.c,v 1.37 2003/07/01 14:36:23 erik Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -42,10 +42,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#ifdef	USE_MMAP
-#include <sys/mman.h>
-#endif
 
 #include <errno.h>
 #include <stdlib.h>
@@ -129,15 +125,7 @@ namedb_open (const char *filename)
 	/* What its size? */
 	db->mpoolsz = st.st_size;
 
-#ifdef	USE_MMAP
-	if((db->mpool = mmap(NULL, db->mpoolsz, PROT_READ, MAP_PRIVATE, db->fd, 0)) == MAP_FAILED) {
-		free(db->filename);
-		free(db);
-		return NULL;
-	}
-#else
-
-	if((db->mpool = malloc(db->mpoolsz)) == NULL) {
+	if((db->mpool = xalloc(db->mpoolsz)) == NULL) {
 		free(db->filename);
 		free(db);
 		return NULL;
@@ -149,11 +137,10 @@ namedb_open (const char *filename)
 		free(db);
 		return NULL;
 	}
-#endif	/* USE_MMAP */
 
 	(void)close(db->fd);
 
-	if((db->heap = heap_create(malloc, domaincmp)) == NULL) {
+	if((db->heap = heap_create(xalloc, domaincmp)) == NULL) {
 		free(db->mpool);
 		free(db->filename);
 		free(db);
@@ -211,11 +198,7 @@ namedb_close (struct namedb *db)
 	if(db == NULL)
 		return;
 	heap_destroy(db->heap, 0, 0);
-#ifdef	USE_MMAP
-	munmap(db->mpool, db->mpoolsz);
-#else
 	free(db->mpool);
-#endif	/* USE_MMAP */
 	if(db->filename)
 		free(db->filename);
 	free(db);
