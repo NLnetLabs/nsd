@@ -1,6 +1,19 @@
 NSD RELEASE NOTES
 
-1.3.0
+1.4.0-alpha1
+=============
+FEATURES:
+        - New database format that is much more compact and portable
+          across architectures.
+        - The new zone compiler is now the default and the old zone
+          compiler has been removed.
+        - Name compression is done dynamically, removing one other
+          difference with BIND in the responses generated (the full
+          query name is now used for compression).
+        - CNAME target records are now generated from wildcard
+          records if necessary.
+
+1.3.0-alpha1
 =============
 FEATURES:
         - New name lookup algorithm.  This required a change to the
