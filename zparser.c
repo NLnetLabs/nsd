@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.18 2003/02/21 14:54:38 alexis Exp $
+ * $Id: zparser.c,v 1.19 2003/02/25 13:08:13 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -1440,17 +1440,17 @@ zparseline (struct zparser *z)
 				case '\t':
 					*t = 0;
 					p = t + 1;
-					zaddtoken(z, s);
 					break;
 				case 0:
-					if(t > s)
-						zaddtoken(z, s);
 					p = t;
 					break;
 				default:
 					t++;
 					continue;
 				}
+
+				if(t > s)
+					zaddtoken(z, s);
 				break;
 			}
 		}

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.conf.sample.in,v 1.4 2003/02/10 09:54:32 alexis Exp $
+# $Id: nsdc.conf.sample.in,v 1.5 2003/02/25 13:08:13 alexis Exp $
 #
 # nsdc.conf.sample -- configuration for nsdc.sh
 #
@@ -55,7 +55,7 @@ dbfile="@dbfile@"
 zonesfile="@zonesfile@"
 
 # The directory containing NSD keys
-keysdir = "@configdir@/keys"
+keysdir="@configdir@/keys"
 
 # Pathname of nsd-notify binary
 notify="@sbindir@/nsd-notify"
