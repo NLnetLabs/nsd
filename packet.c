@@ -35,6 +35,7 @@ encode_dname(query_type *q, domain_type *domain)
 		       dname_to_string(domain_dname(domain), NULL),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
+		assert(query_get_dname_offset(q, domain) <= MAX_COMPRESSION_OFFSET);
 		buffer_write_u16(q->packet,
 				 0xc000 | query_get_dname_offset(q, domain));
 	} else {

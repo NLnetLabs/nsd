@@ -55,7 +55,9 @@ query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 	assert(q);
 	assert(domain);
 	assert(domain->number > 0);
-	
+
+	if (offset > MAX_COMPRESSION_OFFSET)
+		return;
 	if (q->compressed_dname_count >= MAX_COMPRESSED_DNAMES)
 		return;
 	
