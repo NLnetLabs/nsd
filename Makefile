@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.65 2002/05/30 10:48:48 alexis Exp $
+# $Id: Makefile,v 1.66 2002/05/30 10:49:20 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -118,7 +118,7 @@ FEATURES	= # -DINET6 -DHOSTS_ACCESS
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines
 DBFLAGS		= -DUSE_HEAP_RBTREE
-LIBS		= -lwrap
+LIBS		= # -lwrap
 
 # To compile NSD with internal hash database
 # uncomment the following two lines
