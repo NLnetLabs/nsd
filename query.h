@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.5 2002/01/28 16:02:59 alexis Exp $
+ * $Id: query.h,v 1.6 2002/01/28 16:45:20 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -75,50 +75,50 @@
 #define	RD_SHIFT	0
 #define	RD(query)	(*(query->iobuf+2) & RD_MASK)
 #define	RD_SET(query)	*(query->iobuf+2) |= RD_MASK
-#define	RD_CLR(query)	*(query->iobuf+2) &= !RD_MASK
+#define	RD_CLR(query)	*(query->iobuf+2) &= ~RD_MASK
 
 #define TC_MASK		0x02
 #define TC_SHIFT	1
 #define	TC(query)	(*(query->iobuf+2) & TC_MASK)
 #define	TC_SET(query)	*(query->iobuf+2) |= TC_MASK
-#define	TC_CLR(query)	*(query->iobuf+2) &= !TC_MASK
+#define	TC_CLR(query)	*(query->iobuf+2) &= ~TC_MASK
 
 #define	AA_MASK		0x04
 #define	AA_SHIFT	2
 #define	AA(query)	(*(query->iobuf+2) & AA_MASK)
 #define	AA_SET(query)	*(query->iobuf+2) |= AA_MASK
-#define	AA_CLR(query)	*(query->iobuf+2) &= !AA_MASK
+#define	AA_CLR(query)	*(query->iobuf+2) &= ~AA_MASK
 
 #define	OPCODE_MASK	0x78
 #define	OPCODE_SHIFT	3
 #define	OPCODE(query)	(*(query->iobuf+2) & OPCODE_MASK)
 #define	OPCODE_SET(query, opcode) \
-	*(query->iobuf+2) = ((*(query->iobuf+2)) & !OPCODE_MASK) | opcode
+	*(query->iobuf+2) = ((*(query->iobuf+2)) & ~OPCODE_MASK) | opcode
 
 #define	QR_MASK		0x80
 #define	QR_SHIFT	7
 #define	QR(query)	(*(query->iobuf+2) & QR_MASK)
 #define	QR_SET(query)	*(query->iobuf+2) |= QR_MASK
-#define	QR_CLR(query)	*(query->iobuf+2) &= !QR_MASK
+#define	QR_CLR(query)	*(query->iobuf+2) &= ~QR_MASK
 
 #define	RCODE_MASK	0x0f
 #define	RCODE_SHIFT	0
 #define	RCODE(query)	(*(query->iobuf+3) & RCODE_MASK)
 #define	RCODE_SET(query, rcode) \
-	*(query->iobuf+3) = ((*(query->iobuf+3)) & !RCODE_MASK) | rcode
+	*(query->iobuf+3) = ((*(query->iobuf+3)) & ~RCODE_MASK) | rcode
 
 #define	Z_MASK		0x70
 #define	Z_SHIFT		4
 #define	Z(query)	(*(query->iobuf+3) & Z_MASK)
 #define	Z_SET(query, z) \
-	*(query->iobuf+3) = ((*(query->iobuf+3)) & !Z_MASK) | z
+	*(query->iobuf+3) = ((*(query->iobuf+3)) & ~Z_MASK) | z
 
 /* Second octet of flags */
 #define	RA_MASK		0x80
 #define	RA_SHIFT	7
 #define	RA(query)	(*(query->iobuf+3) & RA_MASK)
 #define	RA_SET(query)	*(query->iobuf+3) |= RA_MASK
-#define	RA_CLR(query)	*(query->iobuf+3) &= !RA_MASK
+#define	RA_CLR(query)	*(query->iobuf+3) &= ~RA_MASK
 
 /* Query ID */
 #define	ID(query)		(*(u_short *)(query->iobuf))

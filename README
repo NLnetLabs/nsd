@@ -1,0 +1,34 @@
+1.0 Introduction
+
+2.0 Installing nsd
+
+2.1 Building nsd
+
+First, unpack the sources into a working directory somewhere for example with:
+
+tar -xzvf nsd.tar.gz
+
+This will unpack the source into a directory ./nsd
+
+Then cd nsd
+
+Type make
+
+XXX to be written
+
+3.0 Configuring nsd
+
+4.0 Running nsd
+
+Compile a zone with
+
+zonec -z zone-name zone-file
+
+This will create a default database file ./nsd.db
+
+Then run nsd with nsd ./nsd.db
+
+By default for testing port 4096
+
+
+XXX to be developed
