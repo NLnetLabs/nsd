@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.6 2002/02/11 12:06:36 alexis Exp $
+ * $Id: dbaccess.c,v 1.7 2002/02/11 14:19:26 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -280,13 +280,13 @@ namedb_open(filename)
 #endif
 #if !defined(USE_BERKELEY_DB)
 #if defined(USE_HEAP_HASH)
-	syslog(LOG_WARNING, "reloaded %s, %lu entries %lu hash collisions", db->filename,
+	syslog(LOG_WARNING, "loaded %s, %lu entries %lu hash collisions", db->filename,
 		db->heap->count, db->heap->collisions);
 #else 
-	syslog(LOG_WARNING, "reloaded %s, %lu entries", db->filename, db->heap->count);
+	syslog(LOG_WARNING, "loaded %s, %lu entries", db->filename, db->heap->count);
 #endif
 #else
-	syslog(LOG_WARNING, "reloaded %s", db->filename);
+	syslog(LOG_WARNING, "loaded %s", db->filename);
 #endif
 	return db;
 }

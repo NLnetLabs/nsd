@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.14 2002/02/08 11:21:44 alexis Exp $
+ * $Id: server.c,v 1.15 2002/02/11 14:19:26 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -43,11 +43,11 @@ int
 server(db)
 	struct namedb *db;
 {
-	struct namedb *newdb;
 	struct query *q;
 	struct sockaddr_in addr;
 	int s_udp, s_tcp, s_tcpio;
 	u_int16_t tcplen;
+	pid_t pid;
 	int received, sent;
 	fd_set peer;
 
@@ -103,11 +103,26 @@ server(db)
 		switch(server_mode) {
 		case NSD_RELOAD:
 			server_mode = NSD_RUN;
-			if((newdb = namedb_open(db->filename)) == NULL) {
-				syslog(LOG_ERR, "unable to reload the database: %m");
-			}  else {
+
+			switch((pid = fork())) {
+			case -1:
+				syslog(LOG_ERR, "fork failed: %m");
+				break;
+			case 0:
+				/* CHILD */
+				break;
+			default:
+				/* PARENT */
 				namedb_close(db);
-				db = newdb;
+				if((db = namedb_open(db->filename)) == NULL) {
+					syslog(LOG_ERR, "unable to reload the database: %m");
+					exit(0);
+				}
+				if(kill(pid, SIGKILL) != 0) {
+					syslog(LOG_ERR, "cannot kill %d: %m", pid);
+					exit(1);
+				}
+				break;
 			}
 			break;
 		case NSD_SHUTDOWN:
