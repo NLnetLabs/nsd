@@ -5,7 +5,7 @@ NSD RELEASE NOTES
 BUG FIXES:
         - Bug #89: Count the number of queries received over TCP,
           instead of the number of TCP connections.
-        - zonec: when - is used as input, set the filename to 'STDIN'
+        - Zonec: when - is used as input, set the filename to 'STDIN'
         - Let the nsdc script handle failed AXFRs more cracefully
         - NSD emits an error when it sees bitlabels (RFC 2673)
 
