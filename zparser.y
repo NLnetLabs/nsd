@@ -667,6 +667,7 @@ rdata_unknown:	URR sp STR sp hex_seq trail
 
 rdata_unknown_err:	URR error NL
 	{ error_prev_line("Not handled (yet)");}
+	;
 %%
 
 int
