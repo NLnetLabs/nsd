@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.49 2002/09/26 14:18:36 alexis Exp $
+ * $Id: server.c,v 1.50 2002/09/26 14:19:33 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -488,7 +488,7 @@ server_tcp(struct nsd *nsd)
 
 			if((received = read(s, q.iobuf, ntohs(tcplen))) == -1) {
 				if(errno == EINTR)
-					syslog(LOG_ERR, "timed out reading tcp connection");
+					syslog(LOG_ERR, "timed out/interrupted reading tcp connection");
 				else
 					syslog(LOG_ERR, "failed reading tcp connection: %m");
 				break;
@@ -517,7 +517,7 @@ server_tcp(struct nsd *nsd)
 					if(((sent = write(s, &tcplen, 2)) == -1) ||
 						((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
 						if(errno == EINTR)
-							syslog(LOG_ERR, "timed out writing");
+							syslog(LOG_ERR, "timed out/interrupted writing");
 						else
 							syslog(LOG_ERR, "write failed: %s", strerror(errno));
 							break;
@@ -542,7 +542,7 @@ server_tcp(struct nsd *nsd)
 		/* Connection closed */
 		if(received == -1) {
 			if(errno == EINTR)
-				syslog(LOG_ERR, "timed out reading tcp connection");
+				syslog(LOG_ERR, "timed out/interrupted reading tcp connection");
 			else
 				syslog(LOG_ERR, "failed reading tcp connection: %m");
 		}
