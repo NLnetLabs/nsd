@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.5 2003/02/14 22:05:08 alexis Exp $
+ * $Id: zparser.c,v 1.6 2003/02/14 22:17:58 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -145,6 +145,7 @@ zrdatacmp(u_int16_t **a, u_int16_t **b)
 			if(memcmp(*a+1, *b+1, **a))
 				return 1;
 		}
+		a++; b++;
 	}
 
 	/* One is shorter than another */
