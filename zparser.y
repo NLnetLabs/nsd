@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.3 2003/11/03 18:24:58 miekg Exp $
+ * $Id: zparser.y,v 1.4 2003/11/04 13:20:56 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -69,7 +69,7 @@ uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 %%
 lines:  /* empty line */
     |   lines line
-    |   error      { yyerrok; }
+    |   error      { error("syntax error"); yyerrok; }
     ;
 
 line:   NL
@@ -105,7 +105,7 @@ trail:		NL
 dir_ttl:    SP STR trail
     { 
         if ($2.len > MAXDOMAINLEN ) {
-            yyerror("$TTL value is too large");
+            error("$TTL value is too large");
             return 1;
         } 
         /* perform TTL conversion */
@@ -119,7 +119,7 @@ dir_orig:   SP abs_dname trail
         /* [xxx] does $origin not effect previous */
 	/* [XXX] label length checks should be in dname functions */
         if ( $2->dname->name_size > MAXDOMAINLEN ) { 
-            yyerror("$ORIGIN domain name is too large");
+            error("$ORIGIN domain name is too large");
             return 1;
         }
 
@@ -192,12 +192,12 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
     {   
         current_rr->class = current_parser->class;
     }
-    |   CH SP         { yyerror("CHAOS class not supported"); }
-    |   HS SP         { yyerror("HESIOD Class not supported"); }
-    |   ttl SP CH SP         { yyerror("CHAOS class not supported"); }
-    |   ttl SP HS SP         { yyerror("HESIOD class not supported"); }
-    |   CH SP ttl SP         { yyerror("CHAOS class not supported"); }
-    |   HS SP ttl SP         { yyerror("HESIOD class not supported"); }
+    |   CH SP         { error("CHAOS class not supported"); }
+    |   HS SP         { error("HESIOD Class not supported"); }
+    |   ttl SP CH SP         { error("CHAOS class not supported"); }
+    |   ttl SP HS SP         { error("HESIOD class not supported"); }
+    |   CH SP ttl SP         { error("CHAOS class not supported"); }
+    |   HS SP ttl SP         { error("HESIOD class not supported"); }
     ;
 
 dname:      abs_dname
@@ -305,7 +305,7 @@ rtype:  SOA sp rdata_soa
     { current_rr->type = $1; }
     |	error NL
     {	
-	    fprintf(stderr,"Unimplemented RR seen\n");
+	    warning("Unimplemented RR seen");
     }
     ;
 
@@ -438,18 +438,4 @@ int
 yywrap(void)
 {
     return 1;
-}
-
-/* print an error. S has the message. current_parser is global so just access it */
-int
-yyerror(const char *s)
-{
-    fprintf(stderr,"error: %s in %s, line %lu\n",s, current_parser->filename,
-    (unsigned long) current_parser->line);
-    current_parser->errors++;
-    /*if ( current_parser->errors++ > 50 ) {
-        fprintf(stderr,"too many errors (50+)\n");
-        exit(1);
-    }*/
-    return 0;
 }

@@ -43,6 +43,7 @@
 #define RDATA_SERVICE	14
 
 #define LINEBUFSZ 1024
+#define yyerror	error
 
 struct lex_data {
     size_t   len;		/* holds the label length */
@@ -90,7 +91,7 @@ extern FILE *yyin;
 
 int yyparse(void);
 int yylex(void);
-int yyerror(const char *s);
+/*int yyerror(const char *s);*/
 void yyrestart(FILE *);
 
 enum rr_spot { outside, expecting_dname, after_dname, reading_type };
@@ -153,6 +154,9 @@ extern region_type *zone_region;
  * This region is deallocated after each RR is parsed and analyzed.
  */
 extern region_type *rr_region;
+
+int warning(const char *fmt, ...);
+int error(const char *fmt, ...);
 
 int process_rr(zparser_type *parser, rr_type *rr);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex);

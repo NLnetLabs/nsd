@@ -79,7 +79,7 @@ zparser_conv_hex(region_type *region, const char *hex)
 	int i;
     
 	if ((i = strlen(hex)) % 2 != 0) {
-		yyerror("hex representation must be a whole number of octets");
+		error("hex representation must be a whole number of octets");
 	} else {
 		/* the length part */
 		r = region_alloc(region, sizeof(uint16_t) + i/2);
@@ -118,7 +118,7 @@ zparser_conv_hex(region_type *region, const char *hex)
 					*t += (*hex - 'a' + 10) * i;    /* second hex */
 					break;
 				default:
-					yyerror("illegal hex character");
+					error("illegal hex character");
 					return NULL;
 				}
 				*hex++;
@@ -140,7 +140,7 @@ zparser_conv_time(region_type *region, const char *time)
 	/* Try to scan the time... */
 	/* [XXX] the cast fixes compile time warning */
 	if((char*)strptime(time, "%Y%m%d%H%M%S", &tm) == NULL) {
-		yyerror("date and time is expected");
+		error("date and time is expected");
 	} else {
 
 		r = region_alloc(region, sizeof(uint32_t) + sizeof(uint16_t));
@@ -160,7 +160,7 @@ zparser_conv_rdata_proto(region_type *region, const char *protostr)
 	uint16_t *r = NULL;
  
 	if((proto = getprotobyname(protostr)) == NULL) {
-		yyerror("unknown protocol");
+		error("unknown protocol");
 	} else {
 
 		r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
@@ -182,10 +182,10 @@ zparser_conv_rdata_service(region_type *region, const char *servicestr, const in
 
 	/* [XXX] need extra arg here .... */
 	if((proto = getprotobynumber(arg)) == NULL) {
-		yyerror("unknown protocol, internal error");
+		error("unknown protocol, internal error");
         } else {
 		if((service = getservbyname(servicestr, proto->p_name)) == NULL) {
-			yyerror("unknown service");
+			error("unknown service");
 		} else {
 			/* Allocate required space... */
 			r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
@@ -212,7 +212,7 @@ zparser_conv_rdata_period(region_type *region, const char *periodstr)
 	l = htonl((uint32_t)strtottl((char *)periodstr, &end));
 
         if(*end != 0) {
-		yyerror("time period is expected");
+		error("time period is expected");
         } else {
 		memcpy(r + 1, &l, sizeof(uint32_t));
 		*r = sizeof(uint32_t);
@@ -233,7 +233,7 @@ zparser_conv_short(region_type *region, const char *shortstr)
 	*(r+1)  = htons((uint16_t)strtol(shortstr, &end, 0));
             
 	if(*end != 0) {
-		yyerror("unsigned short value is expected");
+		error("unsigned short value is expected");
 	} else {
 		*r = sizeof(uint16_t);
 	}
@@ -252,7 +252,7 @@ zparser_conv_long(region_type *region, const char *longstr)
 	l = htonl((uint32_t)strtol(longstr, &end, 0));
 
 	if(*end != 0) {
-		yyerror("long decimal value is expected");
+		error("long decimal value is expected");
         } else {
 		memcpy(r + 1, &l, sizeof(uint32_t));
 		*r = sizeof(uint32_t);
@@ -273,7 +273,7 @@ zparser_conv_byte(region_type *region, const char *bytestr)
         *((uint8_t *)(r+1)) = (uint8_t)strtol(bytestr, &end, 0);
 
         if(*end != 0) {
-		yyerror("decimal value is expected");
+		error("decimal value is expected");
         } else {
 		*r = sizeof(uint8_t);
         }
@@ -294,7 +294,7 @@ zparser_conv_a(region_type *region, const char *a)
 		memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
 		*r = sizeof(uint32_t);
 	} else {
-		yyerror("invalid ip address");
+		error("invalid ip address");
 	}
 	return r;
 }
@@ -311,7 +311,7 @@ zparser_conv_text(region_type *region, const char *txt)
 	uint16_t *r = NULL;
 
 	if((i = strlen(txt)) > 255) {
-		yyerror("text string is longer than 255 charaters, try splitting in two");
+		error("text string is longer than 255 charaters, try splitting in two");
         } else {
 
 		/* Allocate required space... */
@@ -336,7 +336,7 @@ zparser_conv_a6(region_type *region, const char *a6)
 
         /* Try to convert it */
         if(inet_pton(AF_INET6, a6, r + 1) != 1) {
-		yyerror("invalid ipv6 address");
+		error("invalid ipv6 address");
         } else {
 		*r = IP6ADDRLEN;
         }
@@ -353,7 +353,7 @@ zparser_conv_b64(region_type *region, const char *b64)
 
         /* Try to convert it */
         if((i = b64_pton(b64, buffer, B64BUFSIZE)) == -1) {
-		yyerror("base64 encoding failed");
+		error("base64 encoding failed");
         } else {
 		r = region_alloc(region, i + sizeof(uint16_t));
 		*r = i;
@@ -434,7 +434,7 @@ zparser_ttl2int(char *ttlstr)
 
 	ttl = strtottl(ttlstr, &t);
 	if(*t != 0) {
-		yyerror("invalid ttl value");
+		error("invalid ttl value");
 		ttl = -1;
 	}
     
@@ -823,7 +823,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 	
 	/* We only support IN class */
 	if (rr->class != CLASS_IN) {
-		yyerror("Wrong class");
+		error("Wrong class");
 		return 0;
 	}
 	if ( rr->type == TYPE_SOA ) {
@@ -850,7 +850,7 @@ process_rr(zparser_type *parser, rr_type *rr)
         /* [XXX] still need to check if we have seen this SOA already */
 
 	if (!dname_is_subdomain(rr->domain->dname, zone->domain->dname)) {
-		yyerror("Out of zone data");
+		error("Out of zone data");
 		return 0;
 	}
 
@@ -874,7 +874,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 		domain_add_rrset(rr->domain, rrset);
 	} else {
 		if (rrset->ttl != rr->ttl) {
-			yyerror("ttl doesn't match the ttl of the rrset");
+			error("ttl doesn't match the ttl of the rrset");
 			return 0;
 		}
 
@@ -898,14 +898,14 @@ process_rr(zparser_type *parser, rr_type *rr)
 	/* Check we have SOA */
 	if (zone->soa_rrset == NULL) {
 		if (rr->type != TYPE_SOA) {
-			yyerror("Missing SOA record on top of the zone");
+			error("Missing SOA record on top of the zone");
 		} else if (rr->domain != zone->domain) {
-			yyerror( "SOA record with invalid domain name");
+			error( "SOA record with invalid domain name");
 		} else {
 			zone->soa_rrset = rrset;
 		}
 	} else if (rr->type == TYPE_SOA) {
-		yyerror("Duplicate SOA record discarded");
+		error("Duplicate SOA record discarded");
 		--rrset->rrslen;
 	}
 
@@ -969,6 +969,7 @@ usage (void)
 	exit(1);
 }
 
+
 int
 error(const char *fmt, ...)
 {
@@ -976,11 +977,12 @@ error(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 
-	fprintf(stderr,"ERR: ");
+	fprintf(stderr," ERR: Line %d: ", current_parser->line);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 
 	va_end(args);
+	current_parser->errors++;
 	return 0;
 }
 
@@ -991,7 +993,7 @@ warning(const char *fmt, ... )
 
 	va_start(args, fmt);
 
-	fprintf(stderr,"WARN: ");
+	fprintf(stderr,"WARN: Line %d: ", current_parser->line);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 
