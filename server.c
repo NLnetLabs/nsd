@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.8 2002/02/05 12:17:33 alexis Exp $
+ * $Id: server.c,v 1.9 2002/02/05 15:37:25 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -43,6 +43,7 @@ int
 server(db)
 	struct namedb *db;
 {
+	struct namedb *newdb;
 	struct query *q;
 	struct sockaddr_in addr;
 	int s_udp, s_tcp, s_tcpio;
@@ -98,6 +99,17 @@ server(db)
 
 	/* The main loop... */	
 	while(1) {
+		/* Do we need to reload the database? */
+		if(database_reload) {
+			if((newdb = namedb_open(db->filename)) == NULL) {
+				syslog(LOG_ERR, "unable to reload the database: %m");
+			}  else {
+				namedb_close(db);
+				db = newdb;
+				syslog(LOG_WARNING, "database reloaded...");
+			}
+		}
+
 		/* Set it up */
 		FD_ZERO(&peer);
 		FD_SET(s_udp, &peer);

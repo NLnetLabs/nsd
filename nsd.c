@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.9 2002/02/05 12:17:33 alexis Exp $
+ * $Id: nsd.c,v 1.10 2002/02/05 15:37:25 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -50,6 +50,7 @@ int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
 
 /* The nsd database */
 struct namedb *database, *newdb;
+int database_reload = 0;
 
 int tcp_open_connections = 0;
 
@@ -107,13 +108,7 @@ sig_handler(sig)
 		}
 		break;
 	case SIGHUP:
-		if((newdb = namedb_open(database->filename)) == NULL) {
-			syslog(LOG_ERR, "unable to reload the database: %m");
-		}  else {
-			namedb_close(database);
-			database = newdb;
-			syslog(LOG_WARNING, "database reloaded...");
-		}
+		database_reload = 1;
 		break;
 	case SIGTERM:
 	default:
@@ -181,6 +176,9 @@ main(argc, argv)
 		if (fd > 2)
 			(void)close(fd);
 	}
+
+	/* Initialize... */
+	database_reload = 0;
 
 	/* Run the server... */
 	server(database);

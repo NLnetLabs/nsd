@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.10 2002/02/05 12:17:33 alexis Exp $
+ * $Id: nsd.h,v 1.11 2002/02/05 15:37:25 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -88,6 +88,7 @@ extern u_short	cf_udp_port;
 extern int	cf_udp_max_message_size;
 
 extern int	tcp_open_connections;
+extern int	database_reload;
 
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
