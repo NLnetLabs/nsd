@@ -223,6 +223,13 @@ read_rrset(namedb_type *db,
 	}
 
 	domain_add_rrset(owner, rrset);
+
+	if (rrset->type == TYPE_SOA) {
+		assert(owner == rrset->zone->domain);
+		rrset->zone->soa_rrset = rrset;
+	} else if (owner == rrset->zone->domain && rrset->type == TYPE_NS) {
+		rrset->zone->ns_rrset = rrset;
+	}
 	
 	return 1;
 }
@@ -240,6 +247,10 @@ namedb_open (const char *filename)
 	zone_type **zones;	/* Indexed by zone number.  */
 	uint32_t i;
 	
+	DEBUG(DEBUG_DBACCESS, 2,
+	      (stderr, "sizeof(namedb_type) = %d\n", sizeof(namedb_type)));
+	DEBUG(DEBUG_DBACCESS, 2,
+	      (stderr, "sizeof(zone_type) = %d\n", sizeof(zone_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "sizeof(domain_type) = %d\n", sizeof(domain_type)));
 	DEBUG(DEBUG_DBACCESS, 2,

@@ -95,7 +95,7 @@ domain_table_create(region_type *region)
 	root->rrsets = NULL;
 	root->number = 0;
 	root->plugin_data = NULL;
-	root->is_existing = 1;
+	root->is_existing = 0;
 	
 	result = region_alloc(region, sizeof(domain_table_type));
 	result->region = region;
@@ -215,7 +215,7 @@ domain_add_rrset(domain_type *domain, rrset_type *rrset)
 	rrset->next = domain->rrsets;
 	domain->rrsets = rrset;
 
-	while (!domain->is_existing) {
+	while (domain && !domain->is_existing) {
 		domain->is_existing = 1;
 		domain = domain->parent;
 	}
@@ -223,12 +223,12 @@ domain_add_rrset(domain_type *domain, rrset_type *rrset)
 
 
 rrset_type *
-domain_find_rrset(domain_type *domain, uint16_t type)
+domain_find_rrset(domain_type *domain, zone_type *zone, uint16_t type)
 {
 	rrset_type *result = domain->rrsets;
 
 	while (result) {
-		if (result->type == type) {
+		if (result->zone == zone && result->type == type) {
 			return result;
 		}
 		result = result->next;
@@ -236,16 +236,43 @@ domain_find_rrset(domain_type *domain, uint16_t type)
 	return NULL;
 }
 
-domain_type *
-domain_find_soa_ns_rrsets(domain_type *domain, rrset_type **soa, rrset_type **ns)
+rrset_type *
+domain_find_any_rrset(domain_type *domain, zone_type *zone)
 {
-	*soa = NULL;
+	rrset_type *result = domain->rrsets;
+
+	while (result) {
+		if (result->zone == zone) {
+			return result;
+		}
+		result = result->next;
+	}
+	return NULL;
+}
+
+zone_type *
+domain_find_zone(domain_type *domain)
+{
+	rrset_type *rrset;
+	while (domain) {
+		for (rrset = domain->rrsets; rrset; rrset = rrset->next) {
+			if (rrset->type == TYPE_SOA) {
+				return rrset->zone;
+			}
+		}
+		domain = domain->parent;
+	}
+	return NULL;
+}
+
+domain_type *
+domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
+{
 	*ns = NULL;
 
-	while (domain) {
-		*soa = domain_find_rrset(domain, TYPE_SOA);
-		*ns = domain_find_rrset(domain, TYPE_NS);
-		if (*soa || *ns)
+	while (domain != zone->domain) {
+		*ns = domain_find_rrset(domain, zone, TYPE_NS);
+		if (*ns)
 			return domain;
 		domain = domain->parent;
 	}

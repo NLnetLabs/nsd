@@ -164,9 +164,12 @@ void domain_table_iterate(domain_table_type *table,
  */
 void domain_add_rrset(domain_type *domain, rrset_type *rrset);
 
-rrset_type *domain_find_rrset(domain_type *domain, uint16_t type);
+rrset_type *domain_find_rrset(domain_type *domain, zone_type *zone, uint16_t type);
+rrset_type *domain_find_any_rrset(domain_type *domain, zone_type *zone);
 
-domain_type *domain_find_soa_ns_rrsets(domain_type *domain, rrset_type **soa, rrset_type **ns);
+zone_type *domain_find_zone(domain_type *domain);
+
+domain_type *domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns);
 
 typedef struct namedb namedb_type;
 struct namedb

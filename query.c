@@ -251,13 +251,13 @@ query_init (struct query *q)
 	q->edns = 0;
 	q->tcp = 0;
 	q->name = NULL;
+	q->zone = NULL;
 	q->domain = NULL;
 	q->class = 0;
 	q->type = 0;
 	q->answer.rrset_count = 0;
-	q->soa_or_delegation_domain = NULL;
-	q->soa_rrset = NULL;
-	q->ns_rrset = NULL;
+	q->delegation_domain = NULL;
+	q->delegation_rrset = NULL;
 	q->dname_stored_count = 0;
 }
 
@@ -513,7 +513,7 @@ add_dependent_rrsets(struct query *query, rrset_type *master_rrset,
 			additional = temp;
 		}
 
-		if ((rrset = domain_find_rrset(additional, type_of_dependent))) {
+		if ((rrset = domain_find_rrset(additional, query->zone, type_of_dependent))) {
 			answer_add_rrset(&query->answer, section,
 					 additional, rrset);
 		}
@@ -541,8 +541,11 @@ add_ns_rrset(struct query *query, domain_type *owner, rrset_type *ns_rrset)
 static void
 answer_delegation(struct query *query)
 {
+	assert(query->delegation_domain);
+	assert(query->delegation_rrset);
+	
 	AA_CLR(query);
-	add_ns_rrset(query, query->soa_or_delegation_domain, query->ns_rrset);
+	add_ns_rrset(query, query->delegation_domain, query->delegation_rrset);
 }
 
 
@@ -558,7 +561,7 @@ answer_soa(struct query *q)
 		AA_CLR(q);
 	} else {
 		AA_SET(q);
-		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->soa_or_delegation_domain, q->soa_rrset);
+		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->zone->domain, q->zone->soa_rrset);
 	}
 }
 
@@ -573,13 +576,15 @@ answer_domain(struct query *q, domain_type *domain)
 {
 	rrset_type *rrset;
 	
-	if (q->type == TYPE_ANY && domain->rrsets) {
-		for (rrset = domain->rrsets; rrset; rrset = rrset->next) {
-			answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
+	if (q->type == TYPE_ANY && (rrset = domain_find_any_rrset(domain, q->zone))) {
+		for (; rrset; rrset = rrset->next) {
+			if (rrset->zone == q->zone) {
+				answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
+			}
 		}
-	} else if ((rrset = domain_find_rrset(domain, q->type))) {
+	} else if ((rrset = domain_find_rrset(domain, q->zone, q->type))) {
 		answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
-	} else if ((rrset = domain_find_rrset(domain, TYPE_CNAME))) {
+	} else if ((rrset = domain_find_rrset(domain, q->zone, TYPE_CNAME))) {
 		answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
 		add_dependent_rrsets(q, rrset, ANSWER_SECTION, 0, q->type);
 	} else {
@@ -593,9 +598,9 @@ answer_domain(struct query *q, domain_type *domain)
 
 	if (q->class == CLASS_ANY) {
 		AA_CLR(q);
-	} else if (q->ns_rrset) {
+	} else if (q->zone->ns_rrset) {
 		AA_SET(q);
-		add_ns_rrset(q, q->soa_or_delegation_domain, q->ns_rrset);
+		add_ns_rrset(q, q->zone->domain, q->zone->ns_rrset);
 	}
 }
 
@@ -840,13 +845,15 @@ answer_query(struct nsd *nsd, struct query *q)
 	size_t i;
 	
 	exact = namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser);
-	
-	q->soa_or_delegation_domain = domain_find_soa_ns_rrsets(
-		closest_encloser, &q->soa_rrset, &q->ns_rrset);
-	if (!q->soa_or_delegation_domain) {
+
+	q->zone = domain_find_zone(closest_encloser);
+	if (!q->zone) {
 		RCODE_SET(q, RCODE_SERVFAIL);
 		return;
 	}
+
+	q->delegation_domain = domain_find_ns_rrsets(
+		closest_encloser, q->zone, &q->delegation_rrset);
 
 	offset = dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1] + QHEADERSZ;
 	for (temp = closest_encloser; temp->parent; temp = temp->parent) {
@@ -882,7 +889,10 @@ answer_query(struct nsd *nsd, struct query *q)
 		match = NULL;
 	}
 
-	if (q->soa_rrset) {
+	if (q->delegation_domain) {
+		/* Delegation.  */
+		answer_delegation(q);
+	} else {
 		/* Authorative zone.  */
 		if (match) {
 			answer_domain(q, match);
@@ -890,11 +900,6 @@ answer_query(struct nsd *nsd, struct query *q)
 			RCODE_SET(q, RCODE_NXDOMAIN);
 			answer_soa(q);
 		}
-	} else if (q->ns_rrset) {
-		/* Delegation.  */
-		answer_delegation(q);
-	} else {
-		abort();
 	}
 
 	generate_answer(q);

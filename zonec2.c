@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.21 2003/10/22 07:07:55 erik Exp $
+ * $Id: zonec2.c,v 1.22 2003/10/22 09:47:09 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -169,7 +169,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 	}
 
 	/* Do we have this type of rrset already? */
-	rrset = domain_find_rrset(rr->domain, rr->type);
+	rrset = domain_find_rrset(rr->domain, zone, rr->type);
 
 	/* Do we have this particular rrset? */
 	if (rrset == NULL) {

@@ -218,15 +218,20 @@ struct query {
 	
 	answer_type answer;
 
-	domain_type *soa_or_delegation_domain;
-	rrset_type *soa_rrset;
-	rrset_type *ns_rrset;
-	
 	/* Normalized query domain name.  */
 	const dname_type *name;
 
+	/* The zone used to answer the query.  */
+	zone_type *zone;
+	
 	/* The domain used to answer the query.  */
 	domain_type *domain;
+
+	/* The delegation domain, if any.  */
+	domain_type *delegation_domain;
+
+	/* The delegation NS rrset, if any.  */
+	rrset_type *delegation_rrset;
 	
 	/* Query class and type in host byte order.  */
 	uint16_t class;
