@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.51 2002/09/26 20:25:46 alexis Exp $
+ * $Id: server.c,v 1.52 2002/09/30 12:16:42 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -293,7 +293,6 @@ server_udp(struct nsd *nsd)
 #ifdef NAMED8_STATS
 				/* Remeber the time of the reload... */
 				time(&nsd->st.reload);
-				alarm(nsd->st.period);
 #endif /* NAMED8_STATS */
 				/* Overwrite pid... */
 				if(writepid(nsd) == -1) {
