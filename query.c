@@ -509,7 +509,16 @@ answer_delegation(struct query *query, answer_type *answer)
 		  AUTHORITY_SECTION,
 		  query->delegation_domain,
 		  query->delegation_rrset);
-	/* XXX: Add DS records.  */
+	if (query->dnssec_ok && zone_is_secure(query->zone)) {
+		rrset_type *rrset;
+		if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_DS))) {
+			add_rrset(query, answer, AUTHORITY_SECTION,
+				  query->delegation_domain, rrset);
+		} else if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_NSEC))) {
+			add_rrset(query, answer, AUTHORITY_SECTION,
+				  query->delegation_domain, rrset);
+		}
+	}
 	query->domain = query->delegation_domain;
 }
 
@@ -791,35 +800,6 @@ answer_query(struct nsd *nsd, struct query *q)
 			q->zone = zone;
 	}
 
-	if (q->dnssec_ok && zone_is_secure(q->zone)) {
-		if (match != closest_encloser) {
-			domain_type *nsec_domain;
-			rrset_type *nsec_rrset;
-			
-			/*
-			 * No match found or generated from wildcard,
-			 * include NSEC record.
-			 */
-			nsec_domain = find_covering_nsec(closest_match, q->zone, &nsec_rrset);
-			if (nsec_domain) {
-				add_rrset(q, &answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
-			}
-		}
-		if (!match) {
-			domain_type *nsec_domain;
-			rrset_type *nsec_rrset;
-
-			/*
-			 * No match and no wildcard.  Include NSEC
-			 * proving there is no wildcard.
-			 */
-			nsec_domain = find_covering_nsec(closest_encloser->wildcard_child_closest_match, q->zone, &nsec_rrset);
-			if (nsec_domain) {
-				add_rrset(q, &answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
-			}
-		}
-	}
-	
 	if (q->type == TYPE_DS && match == q->zone->domain) {
 		answer_domain(q, &answer, match);
 	} else {
@@ -831,6 +811,35 @@ answer_query(struct nsd *nsd, struct query *q)
 			answer_delegation(q, &answer);
 		} else {
 			/* Authorative zone.  */
+			if (q->dnssec_ok && zone_is_secure(q->zone)) {
+				if (match != closest_encloser) {
+					domain_type *nsec_domain;
+					rrset_type *nsec_rrset;
+			
+					/*
+					 * No match found or generated from wildcard,
+					 * include NSEC record.
+					 */
+					nsec_domain = find_covering_nsec(closest_match, q->zone, &nsec_rrset);
+					if (nsec_domain) {
+						add_rrset(q, &answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
+					}
+				}
+				if (!match) {
+					domain_type *nsec_domain;
+					rrset_type *nsec_rrset;
+
+					/*
+					 * No match and no wildcard.  Include NSEC
+					 * proving there is no wildcard.
+					 */
+					nsec_domain = find_covering_nsec(closest_encloser->wildcard_child_closest_match, q->zone, &nsec_rrset);
+					if (nsec_domain) {
+						add_rrset(q, &answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
+					}
+				}
+			}
+	
 			if (match) {
 				answer_domain(q, &answer, match);
 			} else {

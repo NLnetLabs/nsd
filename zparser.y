@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.9 2003/12/01 11:08:36 erik Exp $
+ * $Id: zparser.y,v 1.10 2003/12/03 15:33:14 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -449,9 +449,9 @@ rdata_nxt:	dname sp nxt_seq trail
 rdata_sig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp hex_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_rrtype(zone_region, $1.str)); /* rr covered */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* alg */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* # labels */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $7.str)); /* # orig TTL */
+		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* alg */
+		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $5.str)); /* # labels */
+		zadd_rdata_wireformat(current_parser, zparser_conv_long(zone_region, $7.str)); /* # orig TTL */
 		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $9.str)); /* sig exp */
 		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $11.str)); /* sig inc */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $13.str)); /* key id */
