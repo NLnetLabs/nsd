@@ -226,7 +226,25 @@ struct query {
 	/* Query class and type in host byte order.  */
 	uint16_t class;
 	uint16_t type;
+
+	/* Used for dname compression.  */
+	uint16_t     dname_stored_count;
+	uint16_t    *dname_offsets; /* Indexed by domain->number - 1.  */
+	domain_type *dname_stored[MAXRRSPP];
 };
+
+static inline void
+query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
+{
+	q->dname_offsets[domain->number] = offset;
+	q->dname_stored[q->dname_stored_count] = domain;
+	++q->dname_stored_count;
+}
+
+static inline uint16_t query_get_dname_offset(struct query *q, domain_type *domain)
+{
+	return q->dname_offsets[domain->number];
+}
 
 /* query.c */
 int query_axfr(struct nsd *nsd, struct query *q, const uint8_t *qname);

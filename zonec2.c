@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.19 2003/10/20 08:29:37 erik Exp $
+ * $Id: zonec2.c,v 1.20 2003/10/20 11:31:08 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -382,7 +382,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	write_data(db->fd, &dname_count, sizeof(dname_count));
 
 	DEBUG(DEBUG_ZONEC, 1,
-	      (stderr, "Storing %lu domain names\n", ntohl(dname_count)));
+	      (stderr, "Storing %lu domain names\n", (unsigned long) ntohl(dname_count)));
 	
 	domain_table_iterate(z->db->domains, write_dname_iterator, db);
 		   

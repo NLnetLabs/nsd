@@ -119,10 +119,11 @@ int write_data(FILE * file, const void *data, size_t size);
 /*
  * Print debugging information using fprintf(3).
  */
-#define DEBUG_PARSER    0x0001
-#define DEBUG_ZONEC     0x0002
-#define DEBUG_QUERY     0x0004
-#define DEBUG_DBACCESS  0x0008
+#define DEBUG_PARSER           0x0001U
+#define DEBUG_ZONEC            0x0002U
+#define DEBUG_QUERY            0x0004U
+#define DEBUG_DBACCESS         0x0008U
+#define DEBUG_NAME_COMPRESSION 0x0010U
 
 #ifdef NDEBUG
 #define DEBUG(facility, level, args)  /* empty */

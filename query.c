@@ -254,9 +254,10 @@ query_init (struct query *q)
 	q->class = 0;
 	q->type = 0;
 	q->answer.rrset_count = 0;
-	q->soa_or_delegation_domain = 0;
-	q->soa_rrset = 0;
-	q->ns_rrset = 0;
+	q->soa_or_delegation_domain = NULL;
+	q->soa_rrset = NULL;
+	q->ns_rrset = NULL;
+	q->dname_stored_count = 0;
 }
 
 void 
@@ -544,7 +545,7 @@ answer_soa(struct query *q)
  * Return 1 if answered, 0 otherwise.
  */
 static void
-answer_domain(struct query *q, domain_type *domain, const uint8_t *qname)
+answer_domain(struct query *q, domain_type *domain)
 {
 	rrset_type *rrset;
 	
@@ -687,6 +688,34 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q, const uint8_t *qname, int *is
 
 
 static void
+generate_dname(struct query *q, domain_type *domain)
+{
+	while (domain->parent && query_get_dname_offset(q, domain) == 0) {
+		query_put_dname_offset(q, domain, q->iobufptr - q->iobuf);
+		DEBUG(DEBUG_NAME_COMPRESSION, 1,
+		      (stderr, "dname: %s, number: %lu, offset: %u\n",
+		       dname_to_string(domain->dname),
+		       (unsigned long) domain->number,
+		       query_get_dname_offset(q, domain)));
+		QUERY_WRITE(q, dname_name(domain->dname), label_length(dname_name(domain->dname)) + 1U);
+		domain = domain->parent;
+	}
+	if (domain->parent) {
+		uint16_t offset = htons(0xc000 | query_get_dname_offset(q, domain));
+		DEBUG(DEBUG_NAME_COMPRESSION, 1,
+		      (stderr, "dname: %s, number: %lu, pointer: %u\n",
+		       dname_to_string(domain->dname),
+		       (unsigned long) domain->number,
+		       query_get_dname_offset(q, domain)));
+		QUERY_WRITE(q, &offset, sizeof(offset));
+	} else {
+		uint8_t zero = 0;
+		QUERY_WRITE(q, &zero, sizeof(zero));
+	}
+			    
+}
+
+static void
 generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *rrset)
 {
 	uint16_t i, j;
@@ -694,11 +723,12 @@ generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type 
 	uint16_t class;
 	uint32_t ttl;
 	uint16_t rdlength;
+	uint8_t *rdlength_pos;
 	
 	(*count) += rrset->rrslen;
 
 	for (i = 0; i < rrset->rrslen; ++i) {
-		QUERY_WRITE(q, dname_name(owner->dname), owner->dname->name_size);
+		generate_dname(q, owner);
 		type = htons(rrset->type);
 		QUERY_WRITE(q, &type, sizeof(type));
 		class = htons(rrset->class);
@@ -706,28 +736,22 @@ generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type 
 		ttl = htonl(rrset->ttl);
 		QUERY_WRITE(q, &ttl, sizeof(ttl));
 
-		rdlength = 0;
-		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
-			if (rdata_atom_is_domain(rrset->type, j)) {
-				rdlength += rdata_atom_domain(rrset->rrs[i][j])->dname->name_size;
-			} else {
-				rdlength += rdata_atom_size(rrset->rrs[i][j]);
-			}
-		}
-
-		rdlength = htons(rdlength);
-		QUERY_WRITE(q, &rdlength, sizeof(rdlength));
+		/* Reserve space for rdlength. */
+		rdlength_pos = q->iobufptr;
+		q->iobufptr += sizeof(rdlength);
 
 		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
 			if (rdata_atom_is_domain(rrset->type, j)) {
-				const dname_type *dname = rdata_atom_domain(rrset->rrs[i][j])->dname;
-				QUERY_WRITE(q, dname_name(dname), dname->name_size);
+				generate_dname(q, rdata_atom_domain(rrset->rrs[i][j]));
 			} else {
 				QUERY_WRITE(q,
 					    rdata_atom_data(rrset->rrs[i][j]),
 					    rdata_atom_size(rrset->rrs[i][j]));
 			}
 		}
+
+		rdlength = htons(q->iobufptr - rdlength_pos - sizeof(rdlength));
+		memcpy(rdlength_pos, &rdlength, sizeof(rdlength));
 	}
 }
 
@@ -756,13 +780,16 @@ generate_answer(struct query *q)
 
 
 static void
-answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
+answer_query(struct nsd *nsd, struct query *q)
 {
 	domain_type *closest_match;
 	domain_type *closest_encloser;
 	domain_type *match;
+	domain_type *temp;
+	uint16_t offset;
 	int exact;
-
+	size_t i;
+	
 	exact = namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser);
 	
 	q->soa_or_delegation_domain = domain_find_soa_ns_rrsets(
@@ -772,21 +799,36 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 		return;
 	}
 
+	offset = dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1] + QHEADERSZ;
+	for (temp = closest_encloser; temp->parent; temp = temp->parent) {
+		DEBUG(DEBUG_NAME_COMPRESSION, 1,
+		      (stderr, "query dname: %s, number: %lu, offset: %u\n",
+		       dname_to_string(temp->dname),
+		       (unsigned long) temp->number,
+		       offset));
+		query_put_dname_offset(q, temp, offset);
+		offset += label_length(dname_name(temp->dname)) + 1;
+	}
+
 	if (!closest_encloser->is_existing) {
 		exact = 0;
 		while (!closest_encloser->is_existing)
 			closest_encloser = closest_encloser->parent;
 	}
 
-	if (!exact) {
-		/* Adjust query name to only contain the matching part.  */
-		qname += dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1];
-	}
-
 	if (exact) {
 		match = closest_encloser;
 	} else if (closest_encloser->wildcard_child) {
-		match = closest_encloser->wildcard_child;
+		/* Generate the domain from the wildcard.  */
+		match = region_alloc(q->region, sizeof(domain_type));
+		match->dname = q->name;
+		match->parent = closest_encloser;
+		match->wildcard_child = NULL;
+		match->rrsets = closest_encloser->wildcard_child->rrsets;
+		match->number = 0; /* Number 0 is always available. */
+		match->plugin_data = closest_encloser->wildcard_child->plugin_data;
+		match->is_existing = closest_encloser->wildcard_child->is_existing;
+		query_put_dname_offset(q, match, QHEADERSZ);
 	} else {
 		match = NULL;
 	}
@@ -794,7 +836,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 	if (q->soa_rrset) {
 		/* Authorative zone.  */
 		if (match) {
-			answer_domain(q, match, qname);
+			answer_domain(q, match);
 		} else {
 			RCODE_SET(q, RCODE_NXDOMAIN);
 			answer_soa(q);
@@ -807,6 +849,11 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 	}
 
 	generate_answer(q);
+
+	for (i = 0; i < q->dname_stored_count; ++i) {
+		q->dname_offsets[q->dname_stored[i]->number] = 0;
+	}
+	q->dname_stored_count = 0;
 }
 
 
@@ -898,10 +945,8 @@ query_process (struct query *q, struct nsd *nsd)
 		return axfr;
 	}
 
-	answer_query(nsd, q, qname);
+	answer_query(nsd, q);
 
-	/* TODO: Encode answer to wire format.  */
-	
 	return 0;
 }
 

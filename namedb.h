@@ -103,7 +103,11 @@ int domain_table_search(domain_table_type *table,
  * The number of domains stored in the table (minimum is one for the
  * root domain).
  */
-uint32_t domain_table_count(domain_table_type *table);
+static inline uint32_t
+domain_table_count(domain_table_type *table)
+{
+	return table->names_to_domains->count;
+}
 
 /*
  * Find the specified dname in the domain_table.  NULL is returned if

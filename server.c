@@ -78,6 +78,8 @@ int pselect(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 #endif
 
 
+static uint16_t *dname_offsets;
+
 /*
  * Remove the specified pid from the list of child pids.  Returns 0 if
  * the pid is not in the list, 1 otherwise.  The field is set to 0.
@@ -229,6 +231,10 @@ server_init(struct nsd *nsd)
 		return -1;
 	}
 
+	dname_offsets = xalloc((domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	memset(dname_offsets, 0, (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	region_add_cleanup(nsd->db->region, free, dname_offsets);
+	
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st.boot);
@@ -483,6 +489,7 @@ handle_udp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	/* Initialize the query... */
 	query_init(&q);
 	q.region = query_region;
+	q.dname_offsets = dname_offsets;
 	
 	if ((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
 		log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
@@ -583,8 +590,8 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 
 	/* Initialize the query... */
 	query_init(&q);
-
 	q.region = query_region;
+	q.dname_offsets = dname_offsets;
 	q.maxlen = (q.iobufsz > nsd->tcp_max_msglen) ? nsd->tcp_max_msglen : q.iobufsz;
 	q.tcp = 1;
 
