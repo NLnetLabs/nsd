@@ -139,6 +139,8 @@ AC_TYPE_UID_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 
+AC_CHECK_TYPE(u_char, unsigned char)
+AC_CHECK_TYPE(u_long, unsigned long)
 AC_CHECK_TYPE(int8_t, char)
 AC_CHECK_TYPE(int16_t, short)
 AC_CHECK_TYPE(int32_t, int)

@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.63 2003/02/12 20:43:42 alexis Exp $
+ * $Id: server.c,v 1.64 2003/02/18 10:04:36 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -38,6 +38,10 @@
  *
  */
 #include "nsd.h"
+
+#ifdef HAVE_SELECT
+#include <sys/select.h>
+#endif
 
 
 /*
