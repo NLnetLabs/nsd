@@ -53,7 +53,6 @@ usage (void)
 		"Supported options:\n"
 		"  -4              Only listen to IPv4 connections.\n"
 		"  -6              Only listen to IPv6 connections.\n"
-		"  -A              Set the AD bit on answers from secure zones.\n"
 		"  -a ip-address   Listen to the specified incoming IP address (may be\n"
 		"                  specified multiple times).\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
@@ -63,8 +62,8 @@ usage (void)
 	fprintf(stderr,
 		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
 		"  -l filename     Specify the log file.\n"
-		"  -N udp-servers  Specify the number of child UDP servers.\n"
-		"  -n tcp-servers  Specify the number of child TCP servers.\n"
+		"  -N server-count The number of servers to start.\n"
+		"  -n tcp-count    The maximum number of TCP connections per server.\n"
 		"  -P pidfile      Specify the PID file to write.\n"
 		"  -p port         Specify the port to listen to.\n"
 		"  -s seconds      Dump statistics every SECONDS seconds.\n"
@@ -435,8 +434,12 @@ main (int argc, char *argv[])
 #endif /* !INET6 */
 			break;
 		case 'a':
-			nodes[nsd.ifs] = optarg;
-			++nsd.ifs;
+			if (nsd.ifs < MAX_INTERFACES) {
+				nodes[nsd.ifs] = optarg;
+				++nsd.ifs;
+			} else {
+				error("too many interfaces ('-a') specified");
+			}
 			break;
 		case 'd':
 			nsd.debug = 1;
