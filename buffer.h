@@ -381,6 +381,5 @@ buffer_read_u32(buffer_type *buffer)
  */
 int buffer_printf(buffer_type *buffer, const char *format, ...)
 	ATTR_FORMAT(printf, 2, 3);
-int buffer_vprintf(buffer_type *buffer, const char *format, va_list args);
 
 #endif /* _BUFFER_H_ */

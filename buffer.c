@@ -106,31 +106,25 @@ buffer_reserve(buffer_type *buffer, size_t amount)
 int
 buffer_printf(buffer_type *buffer, const char *format, ...)
 {
-	int result;
 	va_list args;
-	va_start(args, format);
-	result = buffer_vprintf(buffer, format, args);
-	va_end(args);
-	return result;
-}
-
-int
-buffer_vprintf(buffer_type *buffer, const char *format, va_list args)
-{
 	int written;
-	ssize_t remaining;
+	size_t remaining;
 	
 	buffer_invariant(buffer);
 	assert(buffer->_limit == buffer->_capacity);
 
 	remaining = buffer_remaining(buffer);
+	va_start(args, format);
 	written = vsnprintf((char *) buffer_current(buffer), remaining,
 			    format, args);
-	if (written >= remaining) {
+	va_end(args);
+	if (written >= 0 && (size_t) written >= remaining) {
 		buffer_reserve(buffer, written + 1);
+		va_start(args, format);
 		written = vsnprintf((char *) buffer_current(buffer),
 				    buffer_remaining(buffer),
 				    format, args);
+		va_end(args);
 	}
 	buffer->_position += written;
 	return written;
