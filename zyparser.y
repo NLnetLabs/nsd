@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.36 2003/09/10 15:49:52 miekg Exp $
+ * $Id: zyparser.y,v 1.37 2003/09/15 12:44:19 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -47,8 +47,8 @@ int progress = 10000;
 lines:  /* empty line */
     |   lines line
     { if ( zdefault->line % progress == 0 )
-        printf("\nzonec: reading zone \"%s\": %d\n", zdefault->filename,
-        zdefault->line);
+        printf("\nzonec: reading zone \"%s\": %lu\n", zdefault->filename,
+	       (unsigned long) zdefault->line);
     }
     |    error      { yyerrok; }
     ;
