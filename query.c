@@ -100,7 +100,7 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	
 	const struct answer *a;
 	const uint8_t *p;
-	const dname_type *dname;
+	const dname_type *dname = NULL;
 	uint8_t *qptr;
 	dname_tree_type *less_equal;
 	dname_tree_type *closest_encloser;
