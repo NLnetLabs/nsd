@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.12 2003/08/20 11:37:28 miekg Exp $
+ * $Id: zlparser.lex,v 1.13 2003/08/20 13:31:38 erik Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -51,7 +51,6 @@ Q       \"
     static int in_rr = 0;
     char *ztext;
     int i;
-    yylval = xalloc(sizeof(struct YYSTYPE_T)); /* [XXX] really, really needed */
 
 {COMMENT}.*{NEWLINE}    { 
                             lineno++;
@@ -60,8 +59,8 @@ Q       \"
                         }
 ^@                      {
                             ztext = strdup(yytext);
-                            yylval->str = ztext;
-                            yylval->len = strlen(ztext);
+                            yylval.str = ztext;
+                            yylval.len = strlen(ztext);
                             in_rr = 1;
                             return ORIGIN;
                         }
@@ -123,8 +122,8 @@ Q       \"
                              * before CLASS and TYPEXXX and CLASSXXX
                              * to correctly see a dname here */
                             ztext = strdup(yytext);
-                            yylval->len = zoctet(ztext);
-                            yylval->str = ztext;
+                            yylval.len = zoctet(ztext);
+                            yylval.str = ztext;
                             in_rr = 1;
                             return STR;
                         }
@@ -139,8 +138,8 @@ Q       \"
                             }
                             if ( in_rr != 2) { 
                                 ztext = strdup(yytext); 
-                                yylval->len = zoctet(ztext);
-                                yylval->str = ztext;
+                                yylval.len = zoctet(ztext);
+                                yylval.str = ztext;
                                 return STR;
                             }
                         }
@@ -150,8 +149,8 @@ TYPE[0-9]+              {
 
                             if ( in_rr != 2)  {
                                 ztext = strdup(yytext); 
-                                yylval->len = zoctet(ztext);
-                                yylval->str = ztext;
+                                yylval.len = zoctet(ztext);
+                                yylval.str = ztext;
                                 return STR;
                             }
                         }
@@ -161,8 +160,8 @@ CLASS[0-9]+             {
 
                             if ( in_rr != 2)  {
                                 ztext = strdup(yytext); 
-                                yylval->len = zoctet(ztext);
-                                yylval->str = ztext;
+                                yylval.len = zoctet(ztext);
+                                yylval.str = ztext;
                                 return STR;
                             }
                         }
@@ -175,8 +174,8 @@ CLASS[0-9]+             {
                                 }
                             }
                             ztext = strdup(yytext);
-                            yylval->len = zoctet(ztext);
-                            yylval->str = ztext;
+                            yylval.len = zoctet(ztext);
+                            yylval.str = ztext;
                             return STR;
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
@@ -188,8 +187,8 @@ CLASS[0-9]+             {
                                 } 
                             }
                             ztext = strdup(yytext);
-                            yylval->len = zoctet(ztext);
-                            yylval->str = ztext;
+                            yylval.len = zoctet(ztext);
+                            yylval.str = ztext;
                             return STR;
                         }
 .                       {

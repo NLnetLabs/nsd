@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.21 2003/08/20 13:28:09 miekg Exp $
+ * $Id: zyparser.y,v 1.22 2003/08/20 13:31:40 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -70,13 +70,13 @@ line:   NL
 
 dir_ttl:    SP STR NL
     { 
-        if ($2->len > MAXDNAME ) {
+        if ($2.len > MAXDNAME ) {
             yyerror("TTL thingy too large");
             return 1;
         } 
-        printf("\nttl-directive parsed: %s\n",  (char *) $2->str);
+        printf("\nttl-directive parsed: %s\n",  (char *) $2.str);
         /* perform TTL conversion */
-        if ( ( zdefault->ttl = zparser_ttl2int($2->str)) == -1 )
+        if ( ( zdefault->ttl = zparser_ttl2int($2.str)) == -1 )
             zdefault->ttl = DEFAULT_TTL;
     }
     ;
@@ -84,12 +84,12 @@ dir_ttl:    SP STR NL
 dir_orig:   SP dname NL
     {
         /* [xxx] does $origin not effect previous */
-        if ( $2->len > MAXDNAME ) { 
+        if ( $2.len > MAXDNAME ) { 
             yyerror("origin thingy too large");
             return 1;
         } 
-        zdefault->origin = (uint8_t *)dnamedup($2->str);
-        zdefault->origin_len = $2->len;
+        zdefault->origin = (uint8_t *)dnamedup($2.str);
+        zdefault->origin_len = $2.len;
     }
     ;
 
@@ -111,18 +111,18 @@ rr:     ORIGIN SP rrrest NL
     }
     |   dname SP rrrest NL
     {
-        current_rr->dname = $1->str;
+        current_rr->dname = $1.str;
 
         /* set this as previous */
-        zdefault->prev_dname = dnamedup($1->str);
-        zdefault->prev_dname_len = $1->len;
+        zdefault->prev_dname = dnamedup($1.str);
+        zdefault->prev_dname_len = $1.len;
     }
     ;
  
 ttl:    STR
     {
         /* set the ttl */
-        if ( (current_rr->ttl = zparser_ttl2int($1->str) ) == -1 )
+        if ( (current_rr->ttl = zparser_ttl2int($1.str) ) == -1 )
             current_rr->ttl = DEFAULT_TTL;
     }
     ;
@@ -166,40 +166,39 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
 
 dname:  abs_dname
     {
-        $$->str = $1->str;
-        $$->len = $1->len;  /* length really not important anymore */
+        $$.str = $1.str;
+        $$.len = $1.len;  /* length really not important anymore */
     }
     |   rel_dname
     {
         /* append origin */
-        $$->str = (uint8_t *)cat_dname($1->str, zdefault->origin);
-        $$->len = $1->len;
+        $$.str = (uint8_t *)cat_dname($1.str, zdefault->origin);
+        $$.len = $1.len;
     }
     ;
 
 abs_dname:  '.'
     {
-            $$->str = (uint8_t *)dnamedup(ROOT);
-            $$->len = 1;
+            $$.str = (uint8_t *)dnamedup(ROOT);
+            $$.len = 1;
     }
     |       rel_dname '.'
     {
-            /* also add root */
-            $$->str = cat_dname($1->str, ROOT);
-            $$->len = $1->len + 1;
+            $$.str = cat_dname($1.str, ROOT);
+            $$.len = $1.len;
     }
     ;
 
 rel_dname:  STR
     {
-        $$->str = create_dname($1->str, $1->len);
-        $$->len = $1->len + 2; /* total length, label + len byte */
+        $$.str = create_dname($1.str, $1.len);
+        $$.len = $1.len + 2; /* total length, label + len byte */
     }
     |       rel_dname '.' STR
     {  
-        $$->str = cat_dname($1->str, create_dname($3->str,
-						  $3->len));
-        $$->len = $1->len + $3->len + 1;
+        $$.str = cat_dname($1.str, create_dname($3.str,
+						  $3.len));
+        $$.len = $1.len + $3.len + 1;
     }
     ;
 
@@ -249,71 +248,71 @@ rtype:  SOA SP rdata_soa
 rdata_soa:  dname SP dname SP STR STR STR STR STR
     {
         /* convert the soa data */
-        zadd_rdata2( zdefault, zparser_conv_dname($1->str) );   /* prim. ns */
-        zadd_rdata2( zdefault, zparser_conv_dname($3->str) );   /* email */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($5->str) ); /* serial */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($6->str) ); /* obscure item */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($7->str) ); /* obscure item */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($8->str) ); /* obscure item */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($9->str) ); /* minimum */
+        zadd_rdata2( zdefault, zparser_conv_dname($1.str) );   /* prim. ns */
+        zadd_rdata2( zdefault, zparser_conv_dname($3.str) );   /* email */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($5.str) ); /* serial */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($6.str) ); /* obscure item */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($7.str) ); /* obscure item */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($8.str) ); /* obscure item */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($9.str) ); /* minimum */
 
         /* [XXX] also store the minium in case of no TTL? */
-        if ( (zdefault->minimum = zparser_ttl2int($9->str) ) == -1 )
+        if ( (zdefault->minimum = zparser_ttl2int($9.str) ) == -1 )
             zdefault->minimum = DEFAULT_TTL;
-        free($1->str);free($3->str);free($5->str);free($6->str);
-        free($7->str);free($8->str);free($9->str);
+        free($1.str);free($3.str);free($5.str);free($6.str);
+        free($7.str);free($8.str);free($9.str);
     }
     ;
 
 rdata_dname:   dname
     {
         /* convert a single dname record */
-        zadd_rdata2( zdefault, zparser_conv_dname($1->str) ); /* domain name */
-        free($1->str);
+        zadd_rdata2( zdefault, zparser_conv_dname($1.str) ); /* domain name */
+        free($1.str);
     }
     ;
 
 rdata_a:    STR '.' STR '.' STR '.' STR
     {
         /* setup the string suitable for parsing */
-	    char *ipv4 = xalloc($1->len + $3->len + $5->len + $7->len + 4);
-        memcpy(ipv4, $1->str, $1->len);
-        memcpy(ipv4 + $1->len , ".", 1);
+	    char *ipv4 = xalloc($1.len + $3.len + $5.len + $7.len + 4);
+        memcpy(ipv4, $1.str, $1.len);
+        memcpy(ipv4 + $1.len , ".", 1);
 
-        memcpy(ipv4 + $1->len + 1 , $3->str, $3->len);
-        memcpy(ipv4 + $1->len + $3->len + 1, ".", 1);
+        memcpy(ipv4 + $1.len + 1 , $3.str, $3.len);
+        memcpy(ipv4 + $1.len + $3.len + 1, ".", 1);
 
-        memcpy(ipv4 + $1->len + $3->len + 2 , $5->str, $5->len);
-        memcpy(ipv4 + $1->len + $3->len + $5->len + 2, ".", 1);
+        memcpy(ipv4 + $1.len + $3.len + 2 , $5.str, $5.len);
+        memcpy(ipv4 + $1.len + $3.len + $5.len + 2, ".", 1);
 
-        memcpy(ipv4 + $1->len + $3->len + $5->len + 3 , $7->str, $7->len);
-        memcpy(ipv4 + $1->len + $3->len + $5->len + $7->len + 3, "\0", 1);
+        memcpy(ipv4 + $1.len + $3.len + $5.len + 3 , $7.str, $7.len);
+        memcpy(ipv4 + $1.len + $3.len + $5.len + $7.len + 3, "\0", 1);
 
         zadd_rdata2(zdefault, zparser_conv_A(ipv4));
-        free($1->str);free($3->str);free($5->str);free($7->str);
+        free($1.str);free($3.str);free($5.str);free($7.str);
         free(ipv4);
     }
     ;
 
 rdata_txt:  STR
     {
-        zadd_rdata2( zdefault, zparser_conv_text($1->str));
-        free($1->str);
+        zadd_rdata2( zdefault, zparser_conv_text($1.str));
+	free($1.str);
     }
     ;
 
 rdata_mx:   STR SP dname
     {
-        zadd_rdata2( zdefault, zparser_conv_short($1->str) );  /* priority */
-        zadd_rdata2( zdefault, zparser_conv_dname($3->str) );  /* MX host */
-        free($1->str);free($3->str);
+        zadd_rdata2( zdefault, zparser_conv_short($1.str) );  /* priority */
+        zadd_rdata2( zdefault, zparser_conv_dname($3.str) );  /* MX host */
+        free($1.str);free($3.str);
     }
     ;
 
 rdata_aaaa: STR
     {
-        zadd_rdata2( zdefault, zparser_conv_a6($1->str) );  /* IPv6 address */
-        free($1->str);
+        zadd_rdata2( zdefault, zparser_conv_a6($1.str) );  /* IPv6 address */
+        free($1.str);
     }
     ;
 
@@ -328,7 +327,7 @@ yywrap()
 int
 yyerror(char *s)
 {
-    fprintf(stderr,"\n[%d]error: %s: %s\n", lineno, s, (char *) yylval->str);
+    fprintf(stderr,"\n[%d]error: %s: %s\n", lineno, s, (char *) yylval.str);
     if ( error++ > 50 ) {
         fprintf(stderr,"too many errors (50+)\n");
         exit(1);

@@ -29,8 +29,7 @@ struct YYSTYPE_T {
 };
 
 
-#define YYSTYPE     struct YYSTYPE_T*
-#define YYSTYPE_IS_DECLARED 1
+#define YYSTYPE     struct YYSTYPE_T
 #define DEFAULT_TTL 3600
 #define RRTYPES     52
 #define DNAME_MAGIC 0xffff  /* this is used to in the first byte
