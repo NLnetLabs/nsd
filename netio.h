@@ -5,6 +5,38 @@
  *
  * See LICENSE for the license.
  *
+ *
+ * The netio module implements event based I/O handling using
+ * pselect(2).  Multiple event handlers can wait for a certain event
+ * to occur simultaneously.  Each event handler is called when an
+ * event occurs that the event handler has indicated that it is
+ * willing to handle.
+ *
+ * There are four types of events that can be handled:
+ *
+ *   NETIO_EVENT_READ: reading will not block.
+ *   NETIO_EVENT_WRITE: writing will not block.
+ *   NETIO_EVENT_EXCEPT: an exception occurred.
+ *   NETIO_EVENT_TIMEOUT: the timeout expired.
+ *
+ * A file descriptor must be specified if the handler is interested in
+ * the first three event types.  A timeout must be specified if the
+ * event handler is interested in timeouts.  These event types can be
+ * OR'ed together if the handler is willing to handle multiple types
+ * of events.
+ *
+ * The special event type NETIO_EVENT_NONE is available if you wish to
+ * temporarily disable the event handler without removing and adding
+ * the handler to the netio structure.
+ *
+ * The event callbacks are free to modify the netio_handler_type
+ * structure to change the file descriptor, timeout, event types, user
+ * data, or handler functions.
+ *
+ * The main loop of the program must call netio_dispatch to check for
+ * events and dispatch them to the handlers.  An additional timeout
+ * can be specified as well as the signal mask to install while
+ * blocked in pselect(2).
  */
 
 #ifndef _NETIO_H_
@@ -18,12 +50,16 @@
 
 #include "region-allocator.h"
 
+/*
+ * The type of events a handler is interested in.  These can be OR'ed
+ * together to specify multiple event types.
+ */
 enum netio_event_types {
-	NETIO_HANDLER_NONE    = 0,
-	NETIO_HANDLER_READ    = 1,
-	NETIO_HANDLER_WRITE   = 2,
-	NETIO_HANDLER_EXCEPT  = 4,
-	NETIO_HANDLER_TIMEOUT = 8
+	NETIO_EVENT_NONE    = 0,
+	NETIO_EVENT_READ    = 1,
+	NETIO_EVENT_WRITE   = 2,
+	NETIO_EVENT_EXCEPT  = 4,
+	NETIO_EVENT_TIMEOUT = 8
 };
 typedef enum netio_event_types netio_event_types_type;
 
@@ -35,7 +71,8 @@ struct netio
 {
 	/*
 	 * The current time, which is initialized just before the
-	 * event handlers are called.
+	 * event handlers are called.  This structure member should be
+	 * considered read-only.
 	 */
 	struct timespec current_time;
 
@@ -60,7 +97,7 @@ struct netio_handler
 
 	/*
 	 * The time when no events should be checked for and the
-	 * handler should be called with the NETIO_HANDLER_TIMEOUT
+	 * handler should be called with the NETIO_EVENT_TIMEOUT
 	 * event type.  Unlike most timeout parameters the time should
 	 * be absolute, not relative!
 	 */
@@ -87,17 +124,28 @@ struct netio_handler
 };
 
 
+/*
+ * Create a new netio instance using the specified REGION.  The netio
+ * instance is cleaned up when the REGION is deallocated.
+ */
 netio_type *netio_create(region_type *region);
 
+/*
+ * Add a new HANDLER to NETIO.
+ */
 void netio_add_handler(netio_type *netio, netio_handler_type *handler);
+
+/*
+ * Remove the HANDLER from NETIO.
+ */
 void netio_remove_handler(netio_type *netio, netio_handler_type *handler);
 
 /*
  * Check for events and dispatch them to the handlers.  If TIMEOUT is
  * specified it specifies the maximum time to wait for an event to
- * arrive.  SIGMASK is passed to the underlying pselect call.  Returns
- * the number of non-timeout events dispatched, 0 on timeout, and -1
- * on error (with errno set appropriately).
+ * arrive.  SIGMASK is passed to the underlying pselect(2) call.
+ * Returns the number of non-timeout events dispatched, 0 on timeout,
+ * and -1 on error (with errno set appropriately).
  */
 int netio_dispatch(netio_type *netio,
 		   const struct timespec *timeout,

@@ -137,17 +137,17 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 			if (handler->fd > max_fd) {
 				max_fd = handler->fd;
 			}
-			if (handler->event_types & NETIO_HANDLER_READ) {
+			if (handler->event_types & NETIO_EVENT_READ) {
 				FD_SET(handler->fd, &readfds);
 			}
-			if (handler->event_types & NETIO_HANDLER_WRITE) {
+			if (handler->event_types & NETIO_EVENT_WRITE) {
 				FD_SET(handler->fd, &writefds);
 			}
-			if (handler->event_types & NETIO_HANDLER_EXCEPT) {
+			if (handler->event_types & NETIO_EVENT_EXCEPT) {
 				FD_SET(handler->fd, &exceptfds);
 			}
 		}
-		if (handler->timeout && (handler->event_types & NETIO_HANDLER_TIMEOUT)) {
+		if (handler->timeout && (handler->event_types & NETIO_EVENT_TIMEOUT)) {
 			struct timespec relative;
 
 			relative.tv_sec = handler->timeout->tv_sec;
@@ -171,8 +171,8 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 		 * dispatch the timeout event without checking for
 		 * other events.
 		 */
-		if (timeout_handler && (timeout_handler->event_types & NETIO_HANDLER_TIMEOUT)) {
-			timeout_handler->event_handler(netio, timeout_handler, NETIO_HANDLER_TIMEOUT);
+		if (timeout_handler && (timeout_handler->event_types & NETIO_EVENT_TIMEOUT)) {
+			timeout_handler->event_handler(netio, timeout_handler, NETIO_EVENT_TIMEOUT);
 		}
 		return result;
 	}
@@ -196,8 +196,8 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 		 * No events before the minimum timeout expired.
 		 * Dispatch to handler if interested.
 		 */
-		if (timeout_handler && (timeout_handler->event_types & NETIO_HANDLER_TIMEOUT)) {
-			timeout_handler->event_handler(netio, timeout_handler, NETIO_HANDLER_TIMEOUT);
+		if (timeout_handler && (timeout_handler->event_types & NETIO_EVENT_TIMEOUT)) {
+			timeout_handler->event_handler(netio, timeout_handler, NETIO_EVENT_TIMEOUT);
 		}
 	} else {
 		/*
@@ -212,13 +212,13 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 			if (handler->fd >= 0) {
 				netio_event_types_type event_types = 0;
 				if (FD_ISSET(handler->fd, &readfds)) {
-					event_types |= NETIO_HANDLER_READ;
+					event_types |= NETIO_EVENT_READ;
 				}
 				if (FD_ISSET(handler->fd, &writefds)) {
-					event_types |= NETIO_HANDLER_WRITE;
+					event_types |= NETIO_EVENT_WRITE;
 				}
 				if (FD_ISSET(handler->fd, &exceptfds)) {
-					event_types |= NETIO_HANDLER_EXCEPT;
+					event_types |= NETIO_EVENT_EXCEPT;
 				}
 
 				/*

@@ -491,7 +491,7 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 	int received, sent;
 	struct query q;
 
-	if (!(event_types & NETIO_HANDLER_READ)) {
+	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
 	
@@ -572,12 +572,36 @@ read_socket(int s, void *buf, size_t count)
 	return (ssize_t) actual;
 }
 
+/*
+ * The TCP handlers use non-blocking I/O.  This is necessary to avoid
+ * blocking the entire server on a slow TCP connection, but does make
+ * reading from and writing to the socket more complicated.
+ *
+ * Basically, whenever a read/write would block (indicated by the
+ * EAGAIN errno variable) we remember the position we were reading
+ * from/writing to and return from the TCP reading/writing event
+ * handler.  When the socket becomes readable/writable again we
+ * continue from the same position.
+ *
+ */
 struct tcp_handler_data
 {
 	region_type     *region;
 	struct nsd      *nsd;
 	struct query     query;
+
+	/*
+	 * The query_state is used to remember if we are performing an
+	 * AXFR, if we're done processing, or if we should discard the
+	 * query and connection.
+	 */
 	query_state_type query_state;
+
+	/*
+	 * The bytes_transmitted field is used to remember the
+	 * position and includes the two additional bytes used to
+	 * specify the packet length on a TCP connection.
+	 */
 	size_t           bytes_transmitted;
 };
 
@@ -587,8 +611,15 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 	struct tcp_handler_data *data = handler->user_data;
 	netio_remove_handler(netio, handler);
 	close(handler->fd);
+
+	/*
+	 * Keep track of the total number of TCP handlers installed so
+	 * we can stop accepting connections when the maximum number
+	 * of simultaneous TCP connections is reached.
+	 */
 	--data->nsd->current_tcp_count;
 	assert(data->nsd->current_tcp_count >= 0);
+	
 	region_destroy(data->region);
 }
 
@@ -601,13 +632,13 @@ handle_tcp_reading(netio_type *netio,
 	ssize_t received;
 	struct query *q = &data->query;
 
-	if (event_types & NETIO_HANDLER_TIMEOUT) {
+	if (event_types & NETIO_EVENT_TIMEOUT) {
 		/* Connection timed out.  */
 		cleanup_tcp_handler(netio, handler);
 		return;
 	}
 
-	assert(event_types & NETIO_HANDLER_READ);
+	assert(event_types & NETIO_EVENT_READ);
 
 	/*
 	 * Check if we received the leading packet length bytes yet.
@@ -634,9 +665,8 @@ handle_tcp_reading(netio_type *netio,
 		data->bytes_transmitted += received;
 		if (data->bytes_transmitted < sizeof(q->tcplen)) {
 			/*
-			 * We need more data, so wait until more data
-			 * becomes available and the event handler is
-			 * invoked again.
+			 * Not done with the tcplen yet, wait for more
+			 * data to become available.
 			 */
 			return;
 		}
@@ -688,7 +718,10 @@ handle_tcp_reading(netio_type *netio,
 	data->bytes_transmitted += received;
 	q->iobufptr += received;
 	if (query_used_size(q) < q->tcplen) {
-		/* Message not yet complete, wait until socket becomes readable again.  */
+		/*
+		 * Message not yet complete, wait for more data to
+		 * become available.
+		 */
 		return;
 	}
 
@@ -702,8 +735,9 @@ handle_tcp_reading(netio_type *netio,
 		return;
 	}
 
-	if (RCODE(q) == RCODE_OK && !AA(q))
+	if (RCODE(q) == RCODE_OK && !AA(q)) {
 		STATUP(data->nsd, nona);
+	}
 		
 	query_addedns(q, data->nsd);
 
@@ -715,7 +749,7 @@ handle_tcp_reading(netio_type *netio,
 	handler->timeout->tv_nsec = 0L;
 	timespec_add(handler->timeout, &netio->current_time);
 	
-	handler->event_types = NETIO_HANDLER_WRITE | NETIO_HANDLER_TIMEOUT;
+	handler->event_types = NETIO_EVENT_WRITE | NETIO_EVENT_TIMEOUT;
 	handler->event_handler = handle_tcp_writing;
 }
 
@@ -728,13 +762,13 @@ handle_tcp_writing(netio_type *netio,
 	ssize_t sent;
 	struct query *q = &data->query;
 
-	if (event_types & NETIO_HANDLER_TIMEOUT) {
+	if (event_types & NETIO_EVENT_TIMEOUT) {
 		/* Connection timed out.  */
 		cleanup_tcp_handler(netio, handler);
 		return;
 	}
 
-	assert(event_types & NETIO_HANDLER_WRITE);
+	assert(event_types & NETIO_EVENT_WRITE);
 
 	if (data->bytes_transmitted < sizeof(q->tcplen)) {
 		/* Writing the response packet length.  */
@@ -746,7 +780,7 @@ handle_tcp_writing(netio_type *netio,
 			if (errno == EAGAIN) {
 				/*
 				 * Write would block, wait until
-				 * socket becomes writeable again.
+				 * socket becomes writable again.
 				 */
 				return;
 			} else {
@@ -760,7 +794,7 @@ handle_tcp_writing(netio_type *netio,
 		if (data->bytes_transmitted < sizeof(q->tcplen)) {
 			/*
 			 * Writing not complete, wait until socket
-			 * becomes writeable again.
+			 * becomes writable again.
 			 */
 			return;
 		}
@@ -777,7 +811,7 @@ handle_tcp_writing(netio_type *netio,
 		if (errno == EAGAIN) {
 			/*
 			 * Write would block, wait until
-			 * socket becomes writeable again.
+			 * socket becomes writable again.
 			 */
 			return;
 		} else {
@@ -789,7 +823,10 @@ handle_tcp_writing(netio_type *netio,
 
 	data->bytes_transmitted += sent;
 	if (data->bytes_transmitted < q->tcplen + sizeof(q->tcplen)) {
-		/* Still more data to write when socket becomes writeable.  */
+		/*
+		 * Still more data to write when socket becomes
+		 * writable again.
+		 */
 		return;
 	}
 
@@ -806,15 +843,18 @@ handle_tcp_writing(netio_type *netio,
 			handler->timeout->tv_sec = TCP_TIMEOUT;
 			handler->timeout->tv_nsec = 0;
 			timespec_add(handler->timeout, &netio->current_time);
-			/* Wait for socket to become writeable again. */
-			handle_tcp_writing(netio, handler, event_types);
+
+			/*
+			 * Write data if/when the socket is writable
+			 * again.
+			 */
 			return;
 		}
 	}
 
 	/*
-	 * Done sending and no AXFR, wait for the next request to
-	 * arrive on the TCP socket.
+	 * Done sending, wait for the next request to arrive on the
+	 * TCP socket by installing the TCP read handler.
 	 */
 	query_init(&data->query);
 	data->bytes_transmitted = 0;
@@ -823,11 +863,16 @@ handle_tcp_writing(netio_type *netio,
 	handler->timeout->tv_nsec = 0;
 	timespec_add(handler->timeout, &netio->current_time);
 
-	handler->event_types = NETIO_HANDLER_READ | NETIO_HANDLER_TIMEOUT;
+	handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
 	handler->event_handler = handle_tcp_reading;
 }
 
 
+/*
+ * Handle an incoming TCP connection.  The connection is accepted and
+ * a new TCP reader event handler is added to NETIO.  The TCP handler
+ * is responsible for cleanup when the connection is closed.
+ */
 static void
 handle_accept(netio_type *netio,
 	      netio_handler_type *handler,
@@ -838,8 +883,14 @@ handle_accept(netio_type *netio,
 	struct tcp_handler_data *tcp_data;
 	region_type *tcp_region;
 	netio_handler_type *tcp_handler;
+#ifdef INET6
+	struct sockaddr_storage addr;
+#else
+	struct sockaddr_in addr;
+#endif
+	socklen_t addrlen;
 	
-	if (!(event_types & NETIO_HANDLER_READ)) {
+	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
 
@@ -854,6 +905,24 @@ handle_accept(netio_type *netio,
 		STATUP(data->nsd, ctcp6);
 	}
 
+	/* Accept it... */
+	addrlen = sizeof(addr);
+	if ((s = accept(handler->fd, (struct sockaddr *)&addr, &addrlen)) == -1) {
+		if (errno != EINTR) {
+			log_msg(LOG_ERR, "accept failed: %s", strerror(errno));
+		}
+		return;
+	}
+
+	if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
+		log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
+		return;
+	}
+	
+	/*
+	 * This region is deallocated when the TCP connection is
+	 * closed by the TCP handler.
+	 */
 	tcp_region = region_create(xalloc, free);
 	tcp_data = region_alloc(tcp_region, sizeof(struct tcp_handler_data));
 	tcp_data->region = tcp_region;
@@ -868,22 +937,8 @@ handle_accept(netio_type *netio,
 	tcp_data->query.tcp = 1;
 	tcp_data->query_state = QUERY_PROCESSED;
 	tcp_data->bytes_transmitted = 0;
-	
-	/* Accept it... */
-	tcp_data->query.addrlen = sizeof(tcp_data->query.addr);
-	if ((s = accept(handler->fd, (struct sockaddr *)&tcp_data->query.addr, &tcp_data->query.addrlen)) == -1) {
-		if (errno != EINTR) {
-			log_msg(LOG_ERR, "accept failed: %s", strerror(errno));
-		}
-		region_destroy(tcp_region);
-		return;
-	}
-
-	if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
-		log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
-		region_destroy(tcp_region);
-		return;
-	}
+	memcpy(&tcp_data->query.addr, &addr, addrlen);
+	tcp_data->query.addrlen = addrlen;
 	
 	tcp_handler = region_alloc(tcp_region, sizeof(netio_handler_type));
 	tcp_handler->fd = s;
@@ -893,10 +948,16 @@ handle_accept(netio_type *netio,
 	timespec_add(tcp_handler->timeout, &netio->current_time);
 
 	tcp_handler->user_data = tcp_data;
-	tcp_handler->event_types = NETIO_HANDLER_READ | NETIO_HANDLER_TIMEOUT;
+	tcp_handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
 	tcp_handler->event_handler = handle_tcp_reading;
 
 	netio_add_handler(netio, tcp_handler);
+
+	/*
+	 * Keep track of the total number of TCP handlers installed so
+	 * we can stop accepting connections when the maximum number
+	 * of simultaneous TCP connections is reached.
+	 */
 	++data->nsd->current_tcp_count;
 }
 
@@ -954,7 +1015,7 @@ server_child(struct nsd *nsd)
 			handler->fd = nsd->udp[i].s;
 			handler->timeout = NULL;
 			handler->user_data = data;
-			handler->event_types = NETIO_HANDLER_READ;
+			handler->event_types = NETIO_EVENT_READ;
 			handler->event_handler = handle_udp;
 			netio_add_handler(netio, handler);
 		}
@@ -976,7 +1037,7 @@ server_child(struct nsd *nsd)
 			handler->fd = nsd->tcp[i].s;
 			handler->timeout = NULL;
 			handler->user_data = data;
-			handler->event_types = NETIO_HANDLER_READ;
+			handler->event_types = NETIO_EVENT_READ;
 			handler->event_handler = handle_accept;
 			netio_add_handler(netio, handler);
 		}
@@ -1006,7 +1067,7 @@ server_child(struct nsd *nsd)
 		 * reached/not reached.
 		 */
 		tcp_accept_event_types = (nsd->current_tcp_count < nsd->maximum_tcp_count
-					  ? NETIO_HANDLER_READ : NETIO_HANDLER_NONE);
+					  ? NETIO_EVENT_READ : NETIO_EVENT_NONE);
 		if (nsd->server_kind & NSD_SERVER_TCP) {
 			for (i = 0; i < nsd->ifs; ++i) {
 				tcp_accept_handlers[i].event_types = tcp_accept_event_types;
@@ -1015,12 +1076,11 @@ server_child(struct nsd *nsd)
 
 		/* Wait for a query... */
 		if (netio_dispatch(netio, NULL, &default_sigmask) == -1) {
-			if (errno == EINTR) {
-				/* We'll fall out of the loop if we need to shut down */
-				continue;
-			} else {
+			if (errno != EINTR) {
 				log_msg(LOG_ERR, "select failed: %s", strerror(errno));
 				break;
+			} else {
+				/* We'll fall out of the loop if we need to shut down */
 			}
 		}
 	}
