@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69 2002/06/13 12:48:22 alexis Exp $
+# $Id: Makefile,v 1.70 2002/07/16 10:57:15 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -181,7 +181,7 @@ zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o ${COMPAT_O}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o ${COMPAT_O}
 
 nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o
+	${CC} ${CFLAGS} ${LDFLAGS} ${LIBWRAP} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o
 
 clean:
 	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh

@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.38 2002/06/11 11:42:37 alexis Exp $
+ * $Id: server.c,v 1.39 2002/07/16 10:57:15 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -314,6 +314,12 @@ server(nsd)
 		return -1;
 	}
 #endif
+
+	/* Chroot */
+	if(nsd->chrootdir && chroot(nsd->chrootdir)) {
+		syslog(LOG_ERR, "unable to chroot: %m");
+		return -1;
+	}
 
 	/* Drop the permissions */
 	if(setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {

@@ -6,7 +6,9 @@ nsd \- Name Server Daemon
 .B nsd
 [ \fB\-d\fR ]
 [ \fB\-f \fIdatabase\fR ]
-[\fB\-p \fIport\fR]
+[ \fB\-t \fIchrootdir\fR ]
+[ \fB\-p \fIport\fR]
+[ \fB\-a \fIaddress\fR]
 
 .SH DESCRIPTION
 .B nsd
@@ -29,6 +31,7 @@ enable outputting debug information.
 specify the port number for \fInsd\fR to use.
 The default portnumber is 53.
 
+.TP
 .B \-a \fIaddress\fR
 specifies the IPv4 address to bind the socket to.
 The default is INADDR_ANY
@@ -37,6 +40,10 @@ The default is INADDR_ANY
 .B \-f \fIdatabase\fR
 specify the database to use. If not specified, \fInsd\fR expects
 the database in /var/db/nsd.db.
+
+.TP
+.B \-t \fIchroot\fR
+specifies a directory to which \fInsd\fR will chroot upon startup.
 
 .SH AUTHOR
 \fInsd\fR is written by Alexis Yushin (NLnet Labs) with

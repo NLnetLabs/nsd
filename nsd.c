@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.38 2002/06/13 12:48:22 alexis Exp $
+ * $Id: nsd.c,v 1.39 2002/07/16 10:57:15 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -79,7 +79,7 @@ xrealloc(p, size)
 int
 usage()
 {
-	fprintf(stderr, "usage: nsd [-d] [-p port] [-n identity] [-u user|uid] -f database\n");
+	fprintf(stderr, "usage: nsd [-d] [-p port] [-n identity] [-u user|uid] [-t chrootdir] -f database\n");
 	exit(1);
 }
 
@@ -202,6 +202,7 @@ main(argc, argv)
 	nsd.identity	= CF_IDENTITY;
 	nsd.version	= CF_VERSION;
 	nsd.username	= CF_USERNAME;
+	nsd.chrootdir	= NULL;
 
 	/* EDNS0 */
 	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
@@ -235,7 +236,7 @@ main(argc, argv)
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "a:df:p:i:u:")) != -1) {
+	while((c = getopt(argc, argv, "a:df:p:i:u:t:")) != -1) {
 		switch (c) {
 		case 'a':
 			if((nsd.tcp.addr = nsd.udp.addr = inet_addr(optarg)) == -1)
@@ -256,6 +257,9 @@ main(argc, argv)
 			break;
 		case 'u':
 			nsd.username = optarg;
+			break;
+		case 't':
+			nsd.chrootdir = optarg;
 			break;
 		case '?':
 		default:
