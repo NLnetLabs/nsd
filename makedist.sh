@@ -132,7 +132,8 @@ autoheader || error_cleanup "Autoheader failed."
 
 rm -r autom4te* || error_cleanup "Failed to remove autoconf cache directory."
 
-rm .c-mode-rc.el || error_cleanup "Failed to remove .c-mode-rc.el."
+find . -name .c-mode-rc.el -exec rm {} \;
+find . -name .cvsignore -exec rm {} \;
 rm makedist.sh || error_cleanup "Failed to remove makedist.sh."
 
 info "Determining NSD version."
