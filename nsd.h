@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.17 2002/02/14 15:10:55 alexis Exp $
+ * $Id: nsd.h,v 1.18 2002/02/14 15:21:30 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -78,6 +78,8 @@
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
 
+#ifdef	DEBUG
+
 #define	CF_DBFILE	"nsd.db"
 #define	CF_PIDFILE	"nsd.pid"
 #define	CF_TCP_MAX_CONNECTIONS	8
@@ -85,6 +87,18 @@
 #define	CF_TCP_MAX_MESSAGE_LEN	16384
 #define	CF_UDP_PORT		4096
 #define	CF_UDP_MAX_MESSAGE_LEN	512
+
+#else
+
+#define	CF_DBFILE	"/etc/nsd.db"
+#define	CF_PIDFILE	"/var/run/nsd.pid"
+#define	CF_TCP_MAX_CONNECTIONS	8
+#define	CF_TCP_PORT		53
+#define	CF_TCP_MAX_MESSAGE_LEN	16384
+#define	CF_UDP_PORT		53
+#define	CF_UDP_MAX_MESSAGE_LEN	512
+
+#endif
 
 
 /* NSD configuration and run-time variables */
