@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.31.2.5 2003/06/12 09:27:30 erik Exp $
+# $Id: Makefile.in,v 1.31.2.6 2003/06/18 09:21:35 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -97,9 +97,9 @@ install: all
 	$(INSTALL) -d $(configdir)
 	$(INSTALL) -d $(mandir)
 	$(INSTALL) -d $(mandir)/man8
-	$(INSTALL) -s nsd $(sbindir)/nsd
-	$(INSTALL) -s zonec $(sbindir)/zonec
-	$(INSTALL) -s nsd-notify $(sbindir)/nsd-notify
+	$(INSTALL) nsd $(sbindir)/nsd
+	$(INSTALL) zonec $(sbindir)/zonec
+	$(INSTALL) nsd-notify $(sbindir)/nsd-notify
 	$(INSTALL) nsdc.sh $(sbindir)/nsdc
 	$(INSTALL_DATA) nsd.8 $(mandir)/man8/nsd.8
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8/nsdc.8
