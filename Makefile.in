@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.14 2003/02/14 21:15:56 alexis Exp $
+# $Id: Makefile.in,v 1.15 2003/02/17 12:23:41 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -128,7 +128,7 @@ zparser:	zparser.c rfc1876.o dname.o
 	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c rfc1876.o dname.o
 
 clean:
-	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
+	rm -f zonec nsd zparser hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
 
 basename.o:	compat/basename.c
 	$(COMPILE) -c compat/basename.c -o basename.o
