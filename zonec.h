@@ -165,6 +165,7 @@ extern region_type *zone_region;
 extern region_type *rr_region;
 
 void warning(const char *fmt, ...);
+void warning_prev_line(const char *fmt, ...);
 void error(const char *fmt, ...);
 void error_prev_line(const char *fmt, ...);
 int yyerror(const char *message); /* Dummy function.  */
