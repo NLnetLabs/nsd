@@ -1,4 +1,4 @@
-$Id: README,v 1.13.2.2 2002/08/07 15:56:13 alexis Exp $
+$Id: README,v 1.13.2.3 2002/08/12 14:02:53 alexis Exp $
 
 1.0 Introduction
 
@@ -274,3 +274,11 @@ and the last line is the secret.
 
 I'm working on a small tool to create these files from somewhat more readable
 format.
+
+3.2.2 Sending notify to the secondaries on reload or restart
+
+It is possible to send outbound notify's to the secondaries every time nsd
+database is (re)loaded. You have to directly specify the ip-addresses of the
+secondaries in the nsd.zones file, for example:
+
+zone    .               root.zone               notify 128.9.0.107 192.33.4.12 128.8.10.90

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.7 2002/08/08 14:42:51 alexis Exp $
+# $Id: Makefile,v 1.69.2.8 2002/08/12 14:02:53 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -83,6 +83,9 @@ NSDPIDFILE      = /var/run/nsd.pid
 # The NSD run-time database
 NSDDB           = ${NSDZONESDIR}/nsd.db
 
+# The place to install nsd-notify
+NSDNOTIFY	= ${NSDBINDIR}/nsd-notify
+
 #
 # Use the following compile options to modify features set of NSD
 #
@@ -159,7 +162,7 @@ COMPAT_O =	#	basename.o
 #
 CLEANFILES+=*.core *.gmon
 
-all:	nsd zonec nsdc.sh
+all:	nsd zonec nsdc.sh nsd-notify
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
@@ -174,13 +177,15 @@ install: nsd zonec nsdc.sh
 	${INSTALL} nsd.8 ${NSDMANDIR}
 	${INSTALL} nsdc.8 ${NSDMANDIR}
 	${INSTALL} zonec.8 ${NSDMANDIR}
+	${INSTALL} nsd-notify ${NSDNOTIFY}
 
 nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
 	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
 		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" \
-		-e "s,@@NAMEDXFER@@,${NAMEDXFER},g" -e "s,@@NSDKEYSDIR@@,${NSDKEYSDIR},g" $@.in > $@
+		-e "s,@@NAMEDXFER@@,${NAMEDXFER},g" -e "s,@@NSDKEYSDIR@@,${NSDKEYSDIR},g" \
+		-e "s,@@NSDNOTIFY@@,${NSDNOTIFY},g" $@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o

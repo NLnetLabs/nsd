@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.9.2.9 2002/08/08 11:13:34 alexis Exp $
+# $Id: nsdc.sh.in,v 1.9.2.10 2002/08/12 14:02:53 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -49,6 +49,7 @@ NSDPIDFILE="@@NSDPIDFILE@@"
 NSDDB="@@NSDDB@@"
 NSDZONES="@@NSDZONES@@"
 NSDKEYSDIR="@@NSDKEYSDIR@@"
+NSDNOTIFY="@@NSDNOTIFY@@"
 NAMEDXFER="@@NAMEDXFER@@"
 
 #
@@ -67,12 +68,14 @@ signal() {
 case "$1" in
 start)
 	[ -x ${NSDBINDIR}/nsd ] && ${NSDBINDIR}/nsd -f ${NSDDB} ${NSDFLAGS}
+	$0 notify
 	;;
 stop)
 	signal "TERM"
 	;;
 reload)
 	signal "HUP"
+	$0 notify
 	;;
 running)
 	signal "0"
@@ -125,6 +128,22 @@ update)
 		echo "rebuilding the database...."
 		sh $0 rebuild && sh $0 reload
 	fi
+	;;
+notify)
+	if [ ! -x "${NSDNOTIFY}" ]
+	then
+		echo "nsd-notify was not installed on this system"
+		exit 1
+	fi
+
+	# read the nsd.zones file
+	while read zonekw zone file notifykw slaves
+	do	
+		if [ "X$zonekw" = "Xzone" -a "X$notifykw" = "Xnotify" ]
+		then
+			$NSDNOTIFY -z "$zone" $slaves
+		fi
+	done < $NSDZONES
 	;;
 restart)
 	sh $0 stop && sh $0 start
