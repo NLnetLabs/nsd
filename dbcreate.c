@@ -48,6 +48,8 @@
 #include "namedb.h"
 #include "util.h"
 
+static int write_db (namedb_type *db);
+
 struct namedb *
 namedb_new (const char *filename)
 {
@@ -91,6 +93,10 @@ namedb_new (const char *filename)
 int 
 namedb_save (struct namedb *db)
 {
+	if (write_db(db) != 0) {
+		return -1;
+	}		
+	
 	/* Write the magic... */
 	if (!write_data(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE)) {
 		fclose(db->fd);
@@ -110,4 +116,173 @@ namedb_discard (struct namedb *db)
 {
 	unlink(db->filename);
 	region_destroy(db->region);
+}
+
+
+static int
+write_dname(struct namedb *db, domain_type *domain)
+{
+	const dname_type *dname = domain->dname;
+	
+	if (!write_data(db->fd, &dname->name_size, sizeof(dname->name_size)))
+		return 0;
+
+	if (!write_data(db->fd, dname_name(dname), dname->name_size))
+		return 0;
+
+	return 1;
+}
+
+static int
+write_number(struct namedb *db, uint32_t number)
+{
+	number = htonl(number);
+	return write_data(db->fd, &number, sizeof(number));
+}
+
+static int
+write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
+{
+	uint32_t ttl;
+	uint16_t class;
+	uint16_t type;
+	uint16_t rdcount;
+	uint16_t rrslen;
+	int i, j;
+
+	assert(db);
+	assert(domain);
+	assert(rrset);
+	
+	class = htons(rrset->class);
+	type = htons(rrset->type);
+	ttl = htonl(rrset->ttl);
+	rrslen = htons(rrset->rrslen);
+	
+	if (!write_number(db, domain->number))
+		return 0;
+
+	if (!write_number(db, rrset->zone->number))
+		return 0;
+	
+	if (!write_data(db->fd, &type, sizeof(type)))
+		return 0;
+		
+	if (!write_data(db->fd, &class, sizeof(class)))
+		return 0;
+		
+	if (!write_data(db->fd, &ttl, sizeof(ttl)))
+		return 0;
+
+	if (!write_data(db->fd, &rrslen, sizeof(rrslen)))
+		return 0;
+		
+	for (i = 0; i < rrset->rrslen; ++i) {
+		rdcount = 0;
+		for (rdcount = 0; !rdata_atom_is_terminator(rrset->rrs[i][rdcount]); ++rdcount)
+			;
+		
+		rdcount = htons(rdcount);
+		if (!write_data(db->fd, &rdcount, sizeof(rdcount)))
+			return 0;
+		
+		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
+			rdata_atom_type atom = rrset->rrs[i][j];
+			if (rdata_atom_is_domain(rrset->type, j)) {
+				if (!write_number(db, rdata_atom_domain(atom)->number))
+					return 0;
+			} else {
+				uint16_t size = htons(rdata_atom_size(atom));
+				if (!write_data(db->fd, &size, sizeof(size)))
+					return 0;
+				if (!write_data(db->fd,
+						rdata_atom_data(atom),
+						rdata_atom_size(atom)))
+					return 0;
+			}
+		}
+	}
+
+	return 1;
+}
+
+static void
+number_dnames_iterator(domain_type *node, void *user_data)
+{
+	size_t *current_number = user_data;
+
+	node->number = *current_number;
+	++*current_number;
+}
+
+static void
+write_dname_iterator(domain_type *node, void *user_data)
+{
+	struct namedb *db = user_data;
+	
+	write_dname(db, node);
+}
+
+static void
+write_domain_iterator(domain_type *node, void *user_data)
+{
+	struct namedb *db = user_data;
+	struct rrset *rrset;
+
+	for (rrset = node->rrsets; rrset; rrset = rrset->next) {
+		write_rrset(db, node, rrset);
+	}
+}
+
+/*
+ * Writes databse data into open database *db
+ *
+ * Returns zero if success.
+ */
+static int 
+write_db(namedb_type *db)
+{
+	zone_type *zone;
+	uint32_t terminator = 0;
+	uint32_t dname_count = 1;
+	uint32_t zone_count = 1;
+	int errors = 0;
+	
+	for (zone = db->zones; zone; zone = zone->next) {
+		zone->number = zone_count;
+		++zone_count;
+		
+		if (!zone->soa_rrset) {
+			fprintf(stderr, "SOA record not present in %s\n",
+				dname_to_string(zone->domain->dname));
+			++errors;
+		}
+	}
+
+	if (errors > 0)
+		return -1;
+
+	--zone_count;
+	if (!write_number(db, zone_count))
+		return -1;
+	for (zone = db->zones; zone; zone = zone->next) {
+		if (!write_dname(db, zone->domain))
+			return -1;
+	}
+	
+	domain_table_iterate(db->domains, number_dnames_iterator, &dname_count);
+	--dname_count;
+	if (!write_number(db, dname_count))
+		return -1;
+
+	DEBUG(DEBUG_ZONEC, 1,
+	      (stderr, "Storing %lu domain names\n", (unsigned long) dname_count));
+	
+	domain_table_iterate(db->domains, write_dname_iterator, db);
+		   
+	domain_table_iterate(db->domains, write_domain_iterator, db);
+	if (!write_data(db->fd, &terminator, sizeof(terminator)))
+		return -1;
+
+	return 0;
 }

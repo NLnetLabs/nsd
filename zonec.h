@@ -10,11 +10,8 @@
 #ifndef _ZONEC_H_
 #define _ZONEC_H_
 
-#include "dname.h"
-#include "region-allocator.h"
 #include "dns.h"
 #include "namedb.h"
-#include "util.h"
 
 #define	ZBUFSIZE	16384		/* Maximum master file entry size */
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
@@ -179,16 +176,6 @@ void zadd_rdata_domain(zparser_type *parser, domain_type *domain);
 void zadd_rdata_finalize(zparser_type *parser);
 uint16_t intbyname (const char *a, struct ztab *tab);
 const char * namebyint (uint16_t n, struct ztab *tab);
-int zrdatacmp(uint16_t type, rdata_atom_type *a, rdata_atom_type *b);
-long strtottl(char *nptr, char **endptr);
-void zerror (const char *msg);
-zparser_type *zparser_init(namedb_type *db);
-int nsd_zopen(zone_type *zone, const char *filename, uint32_t ttl, uint16_t class, const char *origin);
-void zclose (zparser_type *parser);
-const char *precsize_ntoa (int prec);
-uint8_t precsize_aton (register char *cp, char **endptr);
-const char *typebyint(uint16_t type);
-const char *classbyint(uint16_t class);
 void zprintrr(FILE *f, rr_type *rr);
 
 void setbit(uint8_t bits[], int index);
