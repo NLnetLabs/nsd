@@ -132,6 +132,7 @@ NSD_XFER_OBJECTS	=			\
 	answer.o				\
 	axfr.o					\
 	buffer.o				\
+	client.o				\
 	dbaccess.o				\
 	dname.o					\
 	dns.o					\

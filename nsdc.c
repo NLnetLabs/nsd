@@ -37,9 +37,9 @@
 #include <unistd.h>
 
 #include "nsd.h"
-#include "client.h"
 #include "options.h"
 #include "plugins.h"
+#include "client.h"
 
 extern char *optarg;
 extern int optind;
@@ -88,31 +88,26 @@ version(void)
         exit(0);
 }
 
-static void
-error(const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	log_vmsg(LOG_ERR, format, args);
-	va_end(args);
-	exit(1);
-}
-
-
 int
 main (int argc, char *argv[])
 {
 	int c;
-	uint16_t port;
+	const char * port;
 	uint8_t klass;
 	lookup_table_type *control;
 	struct query_type *q;
+	int default_family;
+	int rc;
 
+	struct addrinfo hints, *res;
+	int sockfd;
+
+	default_family = DEFAULT_AI_FAMILY;
 	port = DEFAULT_CONTROL_PORT;
 	klass = CLASS_CH;
 
 	log_init("nsdc");
-		
+
         /* Initialize the server handler... */
         memset(&nsdc, 0, sizeof(struct nsd));
         nsdc.region      = region_create(xalloc, free);
@@ -131,9 +126,7 @@ main (int argc, char *argv[])
 				nsdc.options_file = optarg;
 				break;
 			case 'p':
-				port = atoi(optarg);
-				if (port == 0) 
-					error("port must be a number > 0");
+				port = optarg;
 				break;
 			case 'v':
 				version();
@@ -156,7 +149,7 @@ main (int argc, char *argv[])
 	control = lookup_by_name(arg_control_msgs, argv[0]);
 
 	if (!control) 
-		error("unknown control message\n");
+		error(EXIT_FAILURE, "unknown control message\n");
 
 	control = lookup_by_id(control_msgs, control->id);
 
@@ -164,10 +157,36 @@ main (int argc, char *argv[])
 
         nsdc.options = load_configuration(nsdc.region, nsdc.options_file);
         if (!nsdc.options) {
-		error("failed to load configuration file '%s'",
+		error(EXIT_FAILURE, "failed to load configuration file '%s'",
 				nsdc.options_file);
         }
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = default_family;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
 	
+	rc = getaddrinfo(DEFAULT_CONTROL_HOST, port, &hints, &res);
+	if (rc) 
+		error(EXIT_FAILURE, "bad address %s: %s\n", DEFAULT_CONTROL_HOST,
+				gai_strerror(rc));
+
+	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if (sockfd == -1)
+		error(EXIT_FAILURE, "could not connect to server on %s:%d\n", DEFAULT_CONTROL_HOST,
+				DEFAULT_CONTROL_PORT);
+
+	if (connect(sockfd, res->ai_addr, res->ai_addrlen) < 0)
+	{
+		warning("cannot connect to %s: %s\n",
+				DEFAULT_CONTROL_HOST,
+				strerror(errno));
+		close(sockfd);
+		exit(EXIT_FAILURE);
+	}
+
+
 	q = query_create(nsdc.region, NULL);
 	
 	/* open a socket, make a packet, send it, receive reply, and print */
@@ -177,5 +196,6 @@ main (int argc, char *argv[])
 			CLASS_CH,
 			DEFAULT_CONTROL_TTL,
 			"");
+	close(sockfd);
 }
  

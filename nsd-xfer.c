@@ -33,6 +33,7 @@
 #include "tsig-openssl.h"
 #include "util.h"
 #include "zonec.h"
+#include "client.h"
 
 
 /*
@@ -99,35 +100,6 @@ static uint16_t init_query(query_type *q,
 			   uint16_t type,
 			   uint16_t klass,
 			   tsig_record_type *tsig);
-
-/*
- * Log an error message and exit.
- */
-static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-static void
-error(const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	log_vmsg(LOG_ERR, format, args);
-	va_end(args);
-	exit(XFER_FAIL);
-}
-
-
-/*
- * Log a warning message.
- */
-static void warning(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-static void
-warning(const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	log_vmsg(LOG_WARNING, format, args);
-	va_end(args);
-}
-
 
 /*
  * Display usage information and exit.
@@ -202,7 +174,7 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 	uint8_t data[4000];
 
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key server address: '%s'",
+		error(XFER_FAIL, "failed to read TSIG key server address: '%s'",
 		      strerror(errno));
 		return NULL;
 	}
@@ -214,7 +186,7 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 	hints.ai_protocol = IPPROTO_TCP;
 	gai_rc = getaddrinfo(line, NULL, &hints, &key->server);
 	if (gai_rc) {
-		error("cannot parse address '%s': %s",
+		error(XFER_FAIL, "cannot parse address '%s': %s",
 		      line,
 		      gai_strerror(gai_rc));
 		return NULL;
@@ -223,29 +195,29 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 	region_add_cleanup(region, cleanup_addrinfo, key->server);
 
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key name: '%s'", strerror(errno));
+		error(XFER_FAIL, "failed to read TSIG key name: '%s'", strerror(errno));
 		return NULL;
 	}
 
 	key->name = dname_parse(region, line);
 	if (!key->name) {
-		error("failed to parse TSIG key name '%s'", line);
+		error(XFER_FAIL, "failed to parse TSIG key name '%s'", line);
 		return NULL;
 	}
 
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key type: '%s'", strerror(errno));
+		error(XFER_FAIL, "failed to read TSIG key type: '%s'", strerror(errno));
 		return NULL;
 	}
 
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key data: '%s'\n", strerror(errno));
+		error(XFER_FAIL, "failed to read TSIG key data: '%s'\n", strerror(errno));
 		return NULL;
 	}
 
 	size = b64_pton(line, data, sizeof(data));
 	if (size == -1) {
-		error("failed to parse TSIG key data");
+		error(XFER_FAIL, "failed to parse TSIG key data");
 		return NULL;
 	}
 
@@ -268,7 +240,7 @@ read_tsig_key(region_type *region,
 
 	in = fopen(tsiginfo_filename, "r");
 	if (!in) {
-		error("failed to open %s: %s",
+		error(XFER_FAIL, "failed to open %s: %s",
 		      tsiginfo_filename,
 		      strerror(errno));
 		return NULL;
@@ -302,7 +274,7 @@ write_socket(int s, const void *buf, size_t size)
 			= write(s, data + total_count, size - total_count);
 		if (count == -1) {
 			if (errno != EAGAIN) {
-				error("network write failed: %s",
+				error(XFER_FAIL, "network write failed: %s",
 				      strerror(errno));
 				return 0;
 			} else {
@@ -330,7 +302,7 @@ read_socket(int s, void *buf, size_t size)
 		if (count == -1) {
 			/* Error or interrupt.  */
 			if (errno != EAGAIN) {
-				error("network read failed: %s",
+				error(XFER_FAIL, "network read failed: %s",
 				      strerror(errno));
 				return 0;
 			} else {
@@ -338,7 +310,7 @@ read_socket(int s, void *buf, size_t size)
 			}
 		} else if (count == 0) {
 			/* End of file (connection closed?)  */
-			error("network read failed: Connection closed by peer");
+			error(XFER_FAIL, "network read failed: Connection closed by peer");
 			return 0;
 		}
 		total_count += count;
@@ -461,7 +433,7 @@ parse_response(FILE *out, axfr_state_type *state)
 	/* Skip question section.  */
 	for (rr_count = 0; rr_count < qdcount; ++rr_count) {
 		if (!packet_skip_rr(state->q->packet, 1)) {
-			error("bad RR in question section");
+			error(XFER_FAIL, "bad RR in question section");
 			return 0;
 		}
 	}
@@ -473,14 +445,14 @@ parse_response(FILE *out, axfr_state_type *state)
 		rr_type *record = packet_read_rr(
 			state->rr_region, owners, state->q->packet, 0);
 		if (!record) {
-			error("bad RR in answer section");
+			error(XFER_FAIL, "bad RR in answer section");
 			return 0;
 		}
 
 		if (state->rr_count == 0
 		    && (record->type != TYPE_SOA || record->klass != CLASS_IN))
 		{
-			error("First RR must be the SOA record, but is a %s record",
+			error(XFER_FAIL, "First RR must be the SOA record, but is a %s record",
 			      rrtype_to_string(record->type));
 			return 0;
 		} else if (state->rr_count > 0
@@ -529,7 +501,7 @@ receive_response_no_timeout(axfr_state_type *state)
 	}
 	size = ntohs(size);
 	if (size > state->q->maxlen) {
-		error("response size (%d) exceeds maximum (%d)",
+		error(XFER_FAIL, "response size (%d) exceeds maximum (%d)",
 		      (int) size, (int) state->q->maxlen);
 		return 0;
 	}
@@ -555,7 +527,7 @@ receive_response(axfr_state_type *state)
 	result = receive_response_no_timeout(state);
 	alarm(0);
 	if (!result && timeout_flag) {
-		error("timeout reading response, server unreachable?");
+		error(XFER_FAIL, "timeout reading response, server unreachable?");
 	}
 
 	return result;
@@ -568,16 +540,16 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 		return 1;
 
 	if (!tsig_find_rr(tsig, q->packet)) {
-		error("error parsing response");
+		error(XFER_FAIL, "error parsing response");
 		return 0;
 	}
 	if (tsig->status == TSIG_NOT_PRESENT) {
 		if (tsig->response_count == 0) {
-			error("required TSIG not present");
+			error(XFER_FAIL, "required TSIG not present");
 			return 0;
 		}
 		if (tsig->updates_since_last_prepare > 100) {
-			error("too many response packets without TSIG");
+			error(XFER_FAIL, "too many response packets without TSIG");
 			return 0;
 		}
 		tsig_update(tsig, q->packet, buffer_limit(q->packet));
@@ -587,16 +559,16 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 	ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
 
 	if (tsig->status == TSIG_ERROR) {
-		error("TSIG record is not correct");
+		error(XFER_FAIL, "TSIG record is not correct");
 		return 0;
 	} else if (tsig->error_code != TSIG_ERROR_NOERROR) {
-		error("TSIG error code: %s",
+		error(XFER_FAIL, "TSIG error code: %s",
 		      tsig_error(tsig->error_code));
 		return 0;
 	} else {
 		tsig_update(tsig, q->packet, tsig->position);
 		if (!tsig_verify(tsig)) {
-			error("TSIG record did not authenticate");
+			error(XFER_FAIL, "TSIG record did not authenticate");
 			return 0;
 		}
 		tsig_prepare(tsig);
@@ -659,39 +631,39 @@ check_serial(axfr_state_type *state)
 	buffer_flip(state->q->packet);
 
 	if (buffer_limit(state->q->packet) <= QHEADERSZ) {
-		error("response size (%d) is too small",
+		error(XFER_FAIL, "response size (%d) is too small",
 		      (int) buffer_limit(state->q->packet));
 		return -1;
 	}
 
 	if (!QR(state->q->packet)) {
-		error("response is not a response");
+		error(XFER_FAIL, "response is not a response");
 		return -1;
 	}
 
 	if (TC(state->q->packet)) {
-		error("response is truncated");
+		error(XFER_FAIL, "response is truncated");
 		return -1;
 	}
 
 	if (ID(state->q->packet) != query_id) {
-		error("bad response id (%d), expected (%d)",
+		error(XFER_FAIL, "bad response id (%d), expected (%d)",
 		      (int) ID(state->q->packet), (int) query_id);
 		return -1;
 	}
 
 	if (RCODE(state->q->packet) != RCODE_OK) {
-		error("error response %d", (int) RCODE(state->q->packet));
+		error(XFER_FAIL, "error response %d", (int) RCODE(state->q->packet));
 		return -1;
 	}
 
 	if (QDCOUNT(state->q->packet) != 1) {
-		error("question section count not equal to 1");
+		error(XFER_FAIL, "question section count not equal to 1");
 		return -1;
 	}
 
 	if (ANCOUNT(state->q->packet) == 0) {
-		error("answer section is empty");
+		error(XFER_FAIL, "answer section is empty");
 		return -1;
 	}
 
@@ -709,7 +681,7 @@ check_serial(axfr_state_type *state)
 		rr_type *record
 			= packet_read_rr(local, owners, state->q->packet, 1);
 		if (!record) {
-			error("bad RR in question section");
+			error(XFER_FAIL, "bad RR in question section");
 			region_destroy(local);
 			return -1;
 		}
@@ -718,7 +690,7 @@ check_serial(axfr_state_type *state)
 		    || record->type != TYPE_SOA
 		    || record->klass != CLASS_IN)
 		{
-			error("response does not match query");
+			error(XFER_FAIL, "response does not match query");
 			region_destroy(local);
 			return -1;
 		}
@@ -729,7 +701,7 @@ check_serial(axfr_state_type *state)
 		rr_type *record
 			= packet_read_rr(local, owners, state->q->packet, 0);
 		if (!record) {
-			error("bad RR in answer section");
+			error(XFER_FAIL, "bad RR in answer section");
 			region_destroy(local);
 			return -1;
 		}
@@ -749,7 +721,7 @@ check_serial(axfr_state_type *state)
 		}
 	}
 
-	error("SOA not found in answer");
+	error(XFER_FAIL, "SOA not found in answer");
 	region_destroy(local);
 	return -1;
 }
@@ -768,36 +740,36 @@ handle_axfr_response(FILE *out, axfr_state_type *axfr)
 		buffer_flip(axfr->q->packet);
 
 		if (buffer_limit(axfr->q->packet) <= QHEADERSZ) {
-			error("response size (%d) is too small",
+			error(XFER_FAIL, "response size (%d) is too small",
 			      (int) buffer_limit(axfr->q->packet));
 			return 0;
 		}
 
 		if (!QR(axfr->q->packet)) {
-			error("response is not a response");
+			error(XFER_FAIL, "response is not a response");
 			return 0;
 		}
 
 		if (ID(axfr->q->packet) != axfr->query_id) {
-			error("bad response id (%d), expected (%d)",
+			error(XFER_FAIL, "bad response id (%d), expected (%d)",
 			      (int) ID(axfr->q->packet),
 			      (int) axfr->query_id);
 			return 0;
 		}
 
 		if (RCODE(axfr->q->packet) != RCODE_OK) {
-			error("error response %d",
+			error(XFER_FAIL, "error response %d",
 			      (int) RCODE(axfr->q->packet));
 			return 0;
 		}
 
 		if (QDCOUNT(axfr->q->packet) > 1) {
-			error("query section count greater than 1");
+			error(XFER_FAIL, "query section count greater than 1");
 			return 0;
 		}
 
 		if (ANCOUNT(axfr->q->packet) == 0) {
-			error("answer section is empty");
+			error(XFER_FAIL, "answer section is empty");
 			return 0;
 		}
 
@@ -963,7 +935,7 @@ main(int argc, char *argv[])
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	if (!tsig_init(region)) {
-		error("TSIG initialization failed");
+		error(XFER_FAIL, "TSIG initialization failed");
 	}
 
 	/* Parse the command line... */
@@ -976,7 +948,7 @@ main(int argc, char *argv[])
 #ifdef INET6
 			default_family = AF_INET6;
 #else /* !INET6 */
-			error("IPv6 support not enabled.");
+			error(XFER_FAIL, "IPv6 support not enabled.");
 #endif /* !INET6 */
 			break;
 		case 'f':
@@ -993,7 +965,7 @@ main(int argc, char *argv[])
 			state.first_transfer = 0;
 			state.last_serial = strtottl(optarg, &t);
 			if (*t != '\0') {
-				error("bad serial '%s'", optarg);
+				error(XFER_FAIL, "bad serial '%s'", optarg);
 				exit(XFER_FAIL);
 			}
 			break;
@@ -1007,7 +979,7 @@ main(int argc, char *argv[])
 		case 'z':
 			state.zone = dname_parse(region, optarg);
 			if (!state.zone) {
-				error("incorrect domain name '%s'", optarg);
+				error(XFER_FAIL, "incorrect domain name '%s'", optarg);
 			}
 			break;
 		case '?':
@@ -1025,7 +997,7 @@ main(int argc, char *argv[])
 		tsig_algorithm_type *md5
 			= tsig_get_algorithm_by_name("hmac-md5");
 		if (!md5) {
-			error("cannot initialize hmac-md5: TSIG support not"
+			error(XFER_FAIL, "cannot initialize hmac-md5: TSIG support not"
 			      " enabled");
 			exit(XFER_FAIL);
 		}
@@ -1047,7 +1019,7 @@ main(int argc, char *argv[])
 	sigfillset(&mysigaction.sa_mask);
 	mysigaction.sa_flags = 0;
 	if (sigaction(SIGALRM, &mysigaction, NULL) < 0) {
-		error("cannot set signal handler");
+		error(XFER_FAIL, "cannot set signal handler");
 	}
 
 	for (; *argv; ++argv) {
@@ -1098,7 +1070,7 @@ main(int argc, char *argv[])
 			} else if (rc > 0) {
 				zone_file = fopen(zone_filename, "w");
 				if (!zone_file) {
-					error("cannot open or create zone file '%s' for writing: %s",
+					error(XFER_FAIL, "cannot open or create zone file '%s' for writing: %s",
 					      zone_filename, strerror(errno));
 					close(state.s);
 					exit(XFER_FAIL);

@@ -33,4 +33,23 @@
 #include "tsig-openssl.h"
 #include "util.h"
 #include "zonec.h"
+#include "client.h"
 
+void
+error(int exitcode, const char *format, ...)
+{
+        va_list args;
+        va_start(args, format);
+        log_vmsg(LOG_ERR, format, args);
+        va_end(args);
+        exit(exitcode);
+}
+
+void
+warning(const char *format, ...)
+{
+        va_list args;
+        va_start(args, format);
+        log_vmsg(LOG_WARNING, format, args);
+        va_end(args);
+}
