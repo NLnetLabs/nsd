@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.68.2.4 2003/06/18 09:11:22 erik Exp $
+ * $Id: nsd.c,v 1.68.2.5 2003/06/18 09:29:02 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -250,7 +250,7 @@ sig_handler (int sig)
 
 	/* Distribute the signal to the servers... */
 	for (i = 1; i <= nsd.tcp_open_conn; ++i) {
-		if (kill(nsd.pid[i], sig) == -1) {
+		if (nsd.pid[i] != 0 && kill(nsd.pid[i], sig) == -1) {
 			syslog(LOG_ERR, "problems killing %d: %m", nsd.pid[i]);
 		}
 	}
