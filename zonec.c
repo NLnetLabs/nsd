@@ -1168,6 +1168,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 #endif
 	
 	/* Check we have SOA */
+	/* [XXX] this is dead code */
 	if (zone->soa_rrset == NULL) {
 		if (rr->type != TYPE_SOA) {
 			error_prev_line("Missing SOA record on top of the zone");
