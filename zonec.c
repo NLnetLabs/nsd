@@ -424,22 +424,51 @@ zparser_conv_nxt(region_type *region, uint8_t nxtbits[])
 uint16_t *
 zparser_conv_nsec(region_type *region, uint8_t nsecbits[256][32])
 {
-	/* nxtbits[] consists of 16 bytes with some zero's in it
-	 * copy every byte with zero to r and write the length in
-	 * the first byte
+	/* nsecbits contains up to 64K of bits which represent the
+	 * types available for a name. Walk the bits according to
+	 * nsec++ draft from jakob
 	 */
 	uint16_t *r = NULL;
-	uint16_t i;
-	uint16_t last = 0;
+	uint16_t *ptr = NULL;
+	uint8_t i,j;
+	uint8_t window = 0;
+	uint16_t last = 1;
+	int used[256]; /* what windows are used, -1 terminates, we can
+		walk used in sequence, until we reach -1 */
+	int size[256]; /* what is the last byte used in the window, the
+		index of 'size' is the windows number*/
 
-	for (i = 0; i < 16; i++) {
-		if (nsecbits[i][0] != 0)
-			last = i + 1;
+	/* used[0] is the first window included in the nsec 
+	 * size[used[0]] is the size of that window
+	 */
+
+	/* walk through the 256 windows */
+	for (i = 0; i < 255; i++ ) {
+		/* check each of the 32 bytes */
+		for ( j = 0; j < 32; j++ ) {
+			if ( nsecbits[i][j] != 0 ) {
+				used[window++] = i;
+				size[i] = j;
+			}
+		}
 	}
-
+	/* sentinel */
+	used[window] = -1;
+	
+	i = 0;
+	while ( used[i++] != -1 ) 
+		last += size[used[i]];
+	
 	r = region_alloc(region, sizeof(uint16_t) + (last * sizeof(uint8_t)) );
 	*r = last;
-	memcpy(r+1, nsecbits, last);
+	ptr = r + 1;
+
+	/* now walk used and copy it */
+	i = 0;
+	while ( used[i++] != -1 ) {
+		memcpy(ptr, &nsecbits[ used[i] ], size[i] );
+		ptr += size[i] + 1;
+	}
 
 	return r;
 }

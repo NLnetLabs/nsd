@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.13 2003/11/05 12:53:33 miekg Exp $
+ * $Id: zlexer.lex,v 1.14 2003/12/04 14:14:53 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -337,7 +337,7 @@ zrrtype (char *word)
 	 * 'A' is first token defined in YACC. With this hack we
 	 * return the correct token based on our list of RR types
 	 */
-	int i;
+	int i,j;
 	for (i = 0; i < RRTYPES - 1; i++) {
 		if (strcasecmp(word, RRtypes[i]) == 0) {
 			LEXOUT(("%s ", word));
@@ -345,6 +345,11 @@ zrrtype (char *word)
 		}
 		
 	}
+	/* do the check for TYPE# here */
+	j = intbytypexx(yytext);
+
+
+
 	return 0;
 }
 
