@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.17 2002/02/19 14:25:11 alexis Exp $
+ * $Id: query.h,v 1.18 2002/03/28 02:24:09 alexis Exp $
  *
  * query.h -- manipulation with the queries
  *
@@ -165,7 +165,11 @@
 
 /* Query as we pass it around */
 struct query {
+#ifdef INET6
+	struct sockaddr_storage addr;
+#else
 	struct sockaddr_in addr;
+#endif
 	size_t addrlen;
 	size_t maxlen;
 	u_char *iobufptr;

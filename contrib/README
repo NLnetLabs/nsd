@@ -1,0 +1,8 @@
+This is NSD contributions directory and it contains various additions
+to NSD that are not a part of the official distribution but may be
+helpfull.
+
+USE AT YOUR OWN RISK.
+
+	netbsd-pkgsrc.shar	- a shell archive to add NSD as a package
+				to NetBSD, submitted by <itojun@iijlab.net>

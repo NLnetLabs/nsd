@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.19 2002/02/20 14:50:54 alexis Exp $
+ * $Id: zf.c,v 1.20 2002/03/28 02:24:09 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -325,8 +325,11 @@ inet6_aton(str)
 	char *str;
 {
 	char *addr;
+
+#ifndef	INET6
 	u_int16_t w;
 	char *p, *t, *z;
+#endif
 
 	addr = xalloc(IP6ADDRLEN);
 
@@ -335,6 +338,11 @@ inet6_aton(str)
 		return NULL;
 	}
 
+#ifdef	INET6
+	if(inet_pton(AF_INET6, str, addr) == 1) {
+		return addr;
+	}
+#else
 	for(p = str, t = addr; t < (addr + 8 * sizeof(u_int16_t)); p++) {
 		if((*p == ':') || (*p == '\000')) {
 			w = htons((u_int16_t) strtol(str, &z, 16));
@@ -351,6 +359,8 @@ inet6_aton(str)
 			}
 		}
 	}
+#endif
+
 	free(addr);
 	return NULL;
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.46 2002/02/28 15:02:50 alexis Exp $
+ * $Id: query.c,v 1.47 2002/03/28 02:24:09 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -44,7 +44,7 @@ void
 query_init(q)
 	struct query *q;
 {
-	q->addrlen = sizeof(struct sockaddr);
+	q->addrlen = sizeof(q->addr);
 	q->iobufsz = QIOBUFSZ;
 	q->iobufptr = q->iobuf;
 	q->maxlen = 512;	/* XXX Should not be here */

@@ -1,0 +1,96 @@
+# This is a shell archive.  Save it in a file, remove anything before
+# this line, and then unpack it by entering "sh file".  Note, it may
+# create directories; files and directories will be owned by you and
+# have default permissions.
+#
+# This archive contains:
+#
+#	./Makefile
+#	./distinfo
+#	./patches/patch-aa
+#	./DESCR
+#	./PLIST
+#
+echo x - ./Makefile
+sed 's/^X//' >./Makefile << 'END-of-./Makefile'
+X# $NetBSD$
+X
+XDISTNAME=	nsd-1.0-alpha
+XPKGNAME=	nsd-0.9
+XCATEGORIES=	net
+X#MASTER_SITES=	http://www.nlnetlabs.nl/downloads/nsd/
+X
+XMAINTAINER=	packages@netbsd.org
+XHOMEPAGE=	http://www.nlnetlabs.nl/nsd/index.en.html
+XCOMMENT=	authoritative-only DNS server
+X
+X_FETCH_MESSAGE= \
+X	${ECHO} '======================================================='; \
+X	${ECHO} '  You need to sign the agreement on ${HOMEPAGE}'; \
+X	${ECHO} '  and fetch on your own.'; \
+X	${ECHO} '======================================================='
+X
+X.include "../../mk/bsd.pkg.mk"
+X
+END-of-./Makefile
+echo x - ./distinfo
+sed 's/^X//' >./distinfo << 'END-of-./distinfo'
+X$NetBSD$
+X
+XSHA1 (nsd-1.0-alpha.tar.gz) = 320d035aa47cdaa06f6d41ae3b4f0bd8ba0cd912
+XSize (nsd-1.0-alpha.tar.gz) = 48910 bytes
+XSHA1 (patch-aa) = 9a724505a27eef2d145b9fa42d61ce46ad5ca54b
+END-of-./distinfo
+echo x - ./patches/patch-aa
+sed 's/^X//' >./patches/patch-aa << 'END-of-./patches/patch-aa'
+X$NetBSD$
+X
+X--- Makefile-	Wed Mar 20 08:13:49 2002
+X+++ Makefile	Wed Mar 20 08:13:58 2002
+X@@ -41,15 +41,14 @@
+X # Run-time enviroment settings
+X 
+X # The directory where the nsd nsdc and zonec binaries will be installed
+X-PREFIX		= /usr/local
+X NSDBINDIR       = ${PREFIX}/sbin
+X NSDMANDIR	= ${PREFIX}/man/man8
+X 
+X # The directory where the master zone files are located
+X-NSDZONESDIR     = ${PREFIX}/etc/nsd
+X+NSDZONESDIR     = /etc/nsd
+X 
+X # The file containing the list of the zones to be compiled into the NSD database
+X-NSDZONES	= ${PREFIX}/etc/nsd/nsd.zones
+X+NSDZONES	= /etc/nsd/nsd.zones
+X 
+X # The flags to pass to the NSD on startup
+X NSDFLAGS        = 
+END-of-./patches/patch-aa
+echo x - ./DESCR
+sed 's/^X//' >./DESCR << 'END-of-./DESCR'
+XThis is an ALPHA release of Name Server Daemon (NSD) version 1.0.
+X
+XNSD is a complete implementation of an autoritative DNS nameserver. 
+XFor further information about what NSD is and what NSD is not please 
+Xconsult the REQUIREMENTS document which is a part of this distribution 
+X(thanks to Olaf).
+X
+XPlease do not distribute this APLHA release further without permission.
+XThis distribution is available on request per email to nsd-team@nlnetlabs.nl
+X
+XThe final version 1.0 of NSD will be available for public download under 
+Xopen source software license (BSD).
+END-of-./DESCR
+echo x - ./PLIST
+sed 's/^X//' >./PLIST << 'END-of-./PLIST'
+X@comment $NetBSD$
+Xsbin/nsd
+Xsbin/nsdc
+Xsbin/zonec
+Xman/man8/nsd.8
+Xman/man8/nsdc.8
+Xman/man8/zonec.8
+END-of-./PLIST
+exit
+
+

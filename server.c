@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.27 2002/02/19 14:25:11 alexis Exp $
+ * $Id: server.c,v 1.28 2002/03/28 02:24:09 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -78,7 +78,7 @@ answer_udp(s, nsd)
 int
 answer_tcp(s, addr, addrlen, nsd)
 	int s;
-	struct sockaddr_in *addr;
+	struct sockaddr *addr;
 	size_t addrlen;
 	struct nsd *nsd;
 {
@@ -170,14 +170,23 @@ int
 server(nsd)
 	struct nsd *nsd;
 {
-	int udp_s, tcp_s, tcpc_s;
-	struct sockaddr_in udp_addr, tcp_addr, tcpc_addr;
+	int udp_s, tcp_s, tcpc_s, maxfd;
+#ifdef INET6
+	int udp6_s, tcp6_s;
+#endif
+	struct sockaddr_in udp_addr, tcp_addr;
+#ifdef INET6
+	struct sockaddr_in6 udp6_addr, tcp6_addr;
+	struct sockaddr_storage tcpc_addr;
+#else
+	struct sockaddr_in tcpc_addr;
+#endif
 	size_t tcpc_addrlen;
 	fd_set peer;
 	pid_t pid;
 
 	/* UDP */
-	bzero(&udp_addr, sizeof(struct sockaddr_in));
+	bzero(&udp_addr, sizeof(udp_addr));
 	udp_addr.sin_addr.s_addr = INADDR_ANY;
 	udp_addr.sin_port = htons(nsd->udp.port);
 	udp_addr.sin_family = AF_INET;
@@ -189,13 +198,32 @@ server(nsd)
 	}
 
 	/* Bind it... */
-	if(bind(udp_s, (struct sockaddr *)&udp_addr, sizeof(struct sockaddr_in)) != 0) {
+	if(bind(udp_s, (struct sockaddr *)&udp_addr, sizeof(udp_addr)) != 0) {
 		syslog(LOG_ERR, "cant bind the socket: %m");
 		return -1;
 	}
 
+#ifdef INET6
+	/* UDP */
+	bzero(&udp6_addr, sizeof(udp6_addr));
+	udp6_addr.sin6_port = htons(nsd->udp.port);
+	udp6_addr.sin6_family = AF_INET6;
+
+	/* Make a socket... */
+	if((udp6_s = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
+		syslog(LOG_ERR, "cant create a socket: %m");
+		return -1;
+	}
+
+	/* Bind it... */
+	if(bind(udp6_s, (struct sockaddr *)&udp6_addr, sizeof(udp6_addr)) != 0) {
+		syslog(LOG_ERR, "cant bind the socket: %m");
+		return -1;
+	}
+#endif
+
 	/* TCP */
-	bzero(&tcp_addr, sizeof(struct sockaddr_in));
+	bzero(&tcp_addr, sizeof(tcp_addr));
 	tcp_addr.sin_addr.s_addr = INADDR_ANY;
 	tcp_addr.sin_port = htons(nsd->tcp.port);
 	tcp_addr.sin_family = AF_INET;
@@ -207,7 +235,7 @@ server(nsd)
 	}
 
 	/* Bind it... */
-	if(bind(tcp_s, (struct sockaddr *)&tcp_addr, sizeof(struct sockaddr_in)) != 0) {
+	if(bind(tcp_s, (struct sockaddr *)&tcp_addr, sizeof(tcp_addr)) != 0) {
 		syslog(LOG_ERR, "cant bind the socket: %m");
 		return -1;
 	}
@@ -217,6 +245,31 @@ server(nsd)
 		syslog(LOG_ERR, "cant listen: %m");
 		return -1;
 	}
+
+#ifdef INET6
+	/* TCP */
+	bzero(&tcp6_addr, sizeof(tcp6_addr));
+	tcp6_addr.sin6_port = htons(nsd->tcp.port);
+	tcp6_addr.sin6_family = AF_INET6;
+
+	/* Make a socket... */
+	if((tcp6_s = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
+		syslog(LOG_ERR, "cant create a socket: %m");
+		return -1;
+	}
+
+	/* Bind it... */
+	if(bind(tcp6_s, (struct sockaddr *)&tcp6_addr, sizeof(tcp6_addr)) != 0) {
+		syslog(LOG_ERR, "cant bind the socket: %m");
+		return -1;
+	}
+
+	/* Listen to it... */
+	if(listen(tcp6_s, nsd->tcp.max_conn) == -1) {
+		syslog(LOG_ERR, "cant listen: %m");
+		return -1;
+	}
+#endif
 
 	/* The main loop... */	
 	while(nsd->mode != NSD_SHUTDOWN) {
@@ -262,12 +315,23 @@ server(nsd)
 
 		/* Set it up */
 		FD_ZERO(&peer);
-		FD_SET(udp_s, &peer);
-		FD_SET(tcp_s, &peer);
+		FD_SET(udp_s, &peer); maxfd = udp_s;
+		maxfd = tcp_s > maxfd ? tcp_s : maxfd;
+#ifdef INET6
+		FD_SET(udp6_s, &peer); maxfd = udp6_s > maxfd ? udp6_s : maxfd;
+		maxfd = tcp6_s > maxfd ? tcp6_s : maxfd;
+#endif
+
+		/* don't accept TCP if i'm already serving max # of clients */
+		if (nsd->tcp.open_conn < nsd->tcp.max_conn) {
+			FD_SET(tcp_s, &peer);
+#ifdef INET6
+			FD_SET(tcp6_s, &peer);
+#endif
+		}
 
 		/* Wait for a query or tcp connection... */
-		if(select((nsd->tcp.open_conn < nsd->tcp.max_conn) ? tcp_s + 1 : udp_s + 1,
-									&peer, NULL, NULL, NULL) == -1) {
+		if(select(maxfd + 1, &peer, NULL, NULL, NULL) == -1) {
 			if(errno == EINTR) {
 				/* We'll fall out of the loop if we need to shut down */
 				continue;
@@ -279,13 +343,18 @@ server(nsd)
 
 		/* Process it... */
 		if(FD_ISSET(udp_s, &peer)) {
-
 			/* UDP query... */
 			answer_udp(udp_s, nsd);
-
-		} else if(FD_ISSET(tcp_s, &peer)) {
+		}
+#ifdef INET6
+		else if (FD_ISSET(udp6_s, &peer)) {
+			/* UDP query... */
+			answer_udp(udp6_s, nsd);
+		}
+#endif
+		else if (FD_ISSET(tcp_s, &peer)) {
 			/* Accept the tcp connection */
-			tcpc_addrlen = sizeof(struct sockaddr_in);
+			tcpc_addrlen = sizeof(tcpc_addr);
 			if((tcpc_s = accept(tcp_s, (struct sockaddr *)&tcpc_addr, &tcpc_addrlen)) == -1) {
 				syslog(LOG_ERR, "accept failed: %m");
 			} else {
@@ -296,14 +365,38 @@ server(nsd)
 					break;
 				case 0:
 					/* CHILD */
-					answer_tcp(tcpc_s, &tcpc_addr, tcpc_addrlen, nsd);
+					answer_tcp(tcpc_s, (struct sockaddr *)&tcpc_addr, tcpc_addrlen, nsd);
 					exit(0);
 				default:
 					/* PARENT */
 					nsd->tcp.open_conn++;
 				}
 			}
-		} else {
+		}
+#ifdef INET6
+		else if (FD_ISSET(tcp6_s, &peer)) {
+			/* Accept the tcp6 connection */
+			tcpc_addrlen = sizeof(tcpc_addr);
+			if((tcpc_s = accept(tcp6_s, (struct sockaddr *)&tcpc_addr, &tcpc_addrlen)) == -1) {
+				syslog(LOG_ERR, "accept failed: %m");
+			} else {
+				/* Fork and answer it... */
+				switch(fork()) {
+				case -1:
+					syslog(LOG_ERR, "fork failed: %m");
+					break;
+				case 0:
+					/* CHILD */
+					answer_tcp(tcpc_s, (struct sockaddr *)&tcpc_addr, tcpc_addrlen, nsd);
+					exit(0);
+				default:
+					/* PARENT */
+					nsd->tcp.open_conn++;
+				}
+			}
+		}
+#endif
+		else {
 			/* Time out... */
 			syslog(LOG_ERR, "select timed out");
 		}

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.47 2002/02/28 15:18:04 alexis Exp $
+# $Id: Makefile,v 1.48 2002/03/28 02:24:09 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -63,7 +63,7 @@ NSDDB           = /var/db/nsd.db
 # Compile environment settings
 DEBUG=	# -g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -O6 -Wall ${DEBUG} -DUSE_HEAP_HASH -DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" -DMIMIC_BIND8 # -I/usr/local/include/db4 -DUSE_BERKELEY_DB 
+CFLAGS= -pipe -O6 -Wall ${DEBUG} -DUSE_HEAP_HASH -DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" -DMIMIC_BIND8 -DINET6 # -I/usr/local/include/db4 -DUSE_BERKELEY_DB
 LDFLAGS= # -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
