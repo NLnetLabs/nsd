@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.23 2003/02/10 09:54:32 alexis Exp $
+# $Id: nsdc.sh.in,v 1.24 2003/02/10 10:34:53 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -56,7 +56,7 @@ zonesfile="@zonesfile@"
 keysdir="@configdir@/keys"
 notify="@sbindir@/nsd-notify"
 namedxfer="@namedxfer@"
-pidfile ="@pidfile@"
+pidfile="@pidfile@"
 
 #
 # Read in configuration file if any
