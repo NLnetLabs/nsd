@@ -343,12 +343,18 @@ namedb_open (const char *filename)
 	
 	region_destroy(dname_region);
 
+#ifndef NDEBUG
+	fprintf(stderr, "database region after loading domain names: ");
+	region_dump_stats(db->region, stderr);
+	fprintf(stderr, "\n");
+#endif	
+
 	while ((rrset = read_rrset(db, dname_count, domains, zone_count, zones))) {
 		++rrset_count;
 		rr_count += rrset->rr_count;
 	}
 
-	DEBUG(DEBUG_DBACCESS, 2,
+	DEBUG(DEBUG_DBACCESS, 1,
 	      (stderr, "Retrieved %lu RRs in %lu RRsets\n",
 	       (unsigned long) rr_count, (unsigned long) rrset_count));
 	
@@ -362,6 +368,12 @@ namedb_open (const char *filename)
 
 	fclose(db->fd);
 	db->fd = NULL;
+
+#ifndef NDEBUG
+	fprintf(stderr, "database region after loading databse: ");
+	region_dump_stats(db->region, stderr);
+	fprintf(stderr, "\n");
+#endif	
 
 	return db;
 }
