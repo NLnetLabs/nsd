@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.14 2003/06/11 10:00:16 erik Exp $
+ * $Id: nsd.c,v 1.56.2.15 2003/06/12 08:47:36 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -286,7 +286,9 @@ bind8_stats(nsd)
 	time(&now);
 
 	/* NSTATS */
-	t = msg = buf + snprintf(buf, MAXSYSLOGMSGLEN, "NSTATS %lu %lu", now, nsd->st.boot);
+	t = msg = buf + snprintf(buf, MAXSYSLOGMSGLEN, "NSTATS %lu %lu",
+				 (unsigned long) now,
+				 (unsigned long) nsd->st.boot);
 	for(i = 0; i <= 255; i++) {
 		/* How much space left? */
 		if((len = buf + MAXSYSLOGMSGLEN - t) < 32) {
@@ -320,7 +322,7 @@ bind8_stats(nsd)
 		" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
 		" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
 		" SNXD=%lu RUQ=%lu RURQ=%lu RUXFR=%lu RUUpd=%lu",
-		now, nsd->st.boot,
+		(unsigned long) now, (unsigned long) nsd->st.boot,
 		nsd->st.dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, (unsigned long)0, nsd->st.raxfr, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped, (unsigned long)0,
