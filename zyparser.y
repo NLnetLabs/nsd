@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.34 2003/09/09 11:31:31 miekg Exp $
+ * $Id: zyparser.y,v 1.35 2003/09/10 12:52:34 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -18,7 +18,7 @@
 #include "zonec2.h"
 #include "zparser2.h"
 
-/* these need to be  global, otherwise they cannot be used inside yacc */
+/* these need to be global, otherwise they cannot be used inside yacc */
 struct zdefault_t * zdefault;
 struct RR * current_rr;
 
@@ -135,6 +135,15 @@ in:     IN
     {
         /* set the class */
         current_rr->class =  zdefault->class;
+    }
+    |   UN_CLASS
+    {
+	    /* unknown RR seen */
+	    current_rr->class = intbyclassxx($1.str);
+	    if ( current_rr->class == 0 ) {
+		    fprintf(stderr,"CLASSXXXX parse error, setting to IN class.\n");
+		    current_rr->class = zdefault->class;
+	    }
     }
     ;
 
@@ -281,7 +290,7 @@ rtype:  SOA SP rdata_soa
     }
     |	error NL
     {	
-	    yyerror("Unimplemented RR seen");
+	    fprintf(stderr,"Unimplemented RR seen\n");
     }
     ;
 

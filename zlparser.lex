@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.24 2003/09/01 12:13:01 miekg Exp $
+ * $Id: zlparser.lex,v 1.25 2003/09/10 12:52:34 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -54,6 +54,7 @@ Q       \"
     static enum rr_spot in_rr = outside;
     char *ztext;
     int i;
+    int j;
 {SPACE}*{COMMENT}.*     /* ignore */
 {COMMENT}.*{NEWLINE}    { 
                             zdefault->line++;
@@ -201,8 +202,19 @@ Q       \"
                             
                         }
 TYPE[0-9]+              {
-                            if ( in_rr == after_dname )
-                                return UN_TYPE;
+                            if ( in_rr == after_dname ) {
+				/* check the type */
+				j = intbytypexx(yytext);
+				if ( j != 0 )  {
+					return j - 1 + A;
+				}
+				else {
+					ztext = strdup(yytext);
+					yylval.len = zoctet(ztext);
+					yylval.str = ztext;
+                                	return UN_TYPE;
+				}
+			    }
 
                             if ( in_rr != after_dname)  {
                                 ztext = strdup(yytext); 
@@ -212,8 +224,17 @@ TYPE[0-9]+              {
                             }
                         }
 CLASS[0-9]+             {
-                            if ( in_rr == after_dname )
-                                return UN_TYPE;
+                            if ( in_rr == after_dname ) {
+				j = intbyclassxx(yytext);
+				if ( j == 1 )  
+					return IN;
+				else {
+					ztext = strdup(yytext);
+					yylval.len = zoctet(ztext);
+					yylval.str = ztext;
+                                	return UN_CLASS;
+				}
+			    }
 
                             if ( in_rr != after_dname)  {
                                 ztext = strdup(yytext); 
@@ -340,4 +361,64 @@ zoctet(char *word)
     }
     *p = '\0';
     return length;
+}
+
+/* 
+ * receive a CLASSXXXX string and return XXXX as
+ * an integer
+ */
+uint16_t
+intbyclassxx(void *str)
+{
+        char *where;
+        uint16_t type;
+
+        where = strstr((char*)str, "CLASS");
+        if ( where == NULL )
+                where = strstr((char*)str, "class");
+
+        if ( where == NULL )
+                /* nothing found */
+                return 0;
+
+        if ( where != (char*) str )
+                /* not the first character */
+                return 0;
+
+        /* the rest from the string, from
+         * where to the end must be a number */
+        type = (uint16_t) strtol(where + 5, (char**) NULL, 10);
+
+        /* zero if not ok */
+        return type;
+}
+
+/* 
+ * receive a TYPEXXXX string and return XXXX as
+ * an integer
+ */
+uint16_t
+intbytypexx(void *str)
+{
+        char *where;
+        uint16_t type;
+
+        where = strstr((char*)str, "TYPE");
+        if ( where == NULL )
+                where = strstr((char*)str, "type");
+
+        if ( where == NULL )
+                /* nothing found */
+                return 0;
+
+        if ( where != (char*) str )
+                /* not the first character */
+                return 0;
+
+        /* the rest from the string, from
+         * where to the end must be a number */
+        type = (uint16_t) strtol(where + 4, (char**) NULL, 10);
+
+        /* zero if not ok */
+        return type;
 }

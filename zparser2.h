@@ -183,5 +183,7 @@ void zprintrr(FILE *f, struct RR *rr);
 /* zlparser.lex */
 int zoctet(char *word);
 int zrrtype (char *word);
+uint16_t intbyclassxx(void *str);
+uint16_t intbytypexx(void *str);
 
 #endif /* _ZPARSER_H_ */

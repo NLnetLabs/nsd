@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.21 2003/08/28 14:27:57 miekg Exp $
+ * $Id: zparser2.c,v 1.22 2003/09/10 12:52:34 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -748,8 +748,6 @@ classbyint(uint16_t class)
 	return t;
 }
 
-
-
 /* DEBUG function used to print out RRs */
 
 /*
@@ -759,7 +757,7 @@ classbyint(uint16_t class)
  *
  *	nothing
  */
-void
+	void
 zprintrdata (FILE *f, int what, uint16_t *r)
 {
 	char buf[B64BUFSIZE];
@@ -770,62 +768,62 @@ zprintrdata (FILE *f, int what, uint16_t *r)
 
 	/* Depending on what we have to scan... */
 	switch (what) {
-	case RDATA_HEX:
-		if(*r == 0xffff) {
-			for(t = (uint8_t *)(r + 1) + 1; t < (uint8_t *)(r + 1) + *((uint8_t *)(r + 1)) + 1; t++) {
-				fprintf(f, "%.2x", *t);
+		case RDATA_HEX:
+			if(*r == 0xffff) {
+				for(t = (uint8_t *)(r + 1) + 1; t < (uint8_t *)(r + 1) + *((uint8_t *)(r + 1)) + 1; t++) {
+					fprintf(f, "%.2x", *t);
+				}
+			} else {
+				for(t = (uint8_t *)(r + 1); t < (uint8_t *)(r + 1) + *r; t++) {
+					fprintf(f, "%.2x", *t);
+				}
 			}
-		} else {
-			for(t = (uint8_t *)(r + 1); t < (uint8_t *)(r + 1) + *r; t++) {
-				fprintf(f, "%.2x", *t);
-			}
-		}
-		fprintf(f, " ");
-		break;
-	case RDATA_TIME:
-		memcpy(&l, &r[1], sizeof(uint32_t));
-		l = ntohl(l);
-		strftime(buf, B64BUFSIZE, "%Y%m%d%H%M%S ", gmtime((time_t *)&l));
-		fprintf(f, "%s", buf);
-		break;
-	case RDATA_TYPE:
-		fprintf(f, "%s ", typebyint(ntohs(r[1])));
-		break;
-	case RDATA_PROTO:
-	case RDATA_SERVICE:
-	case RDATA_PERIOD:
-	case RDATA_LONG:
-		memcpy(&l, &r[1], sizeof(uint32_t));
-		fprintf(f, "%lu ", (unsigned long) ntohl(l));
-		break;
-	case RDATA_SHORT:
-		fprintf(f, "%u ", (unsigned) ntohs(r[1]));
-		break;
-	case RDATA_BYTE:
-		fprintf(f, "%u ", (unsigned) *((char *)(&r[1])));
-		break;
-	case RDATA_A:
-		
-		memcpy(&in.s_addr, &r[1], sizeof(uint32_t));
-		fprintf(f, "%s ", inet_ntoa(in));
-		break;
-	case RDATA_A6:
-		fprintf(f, "%x:%x:%x:%x:%x:%x:%x:%x ", ntohs(r[1]), ntohs(r[2]), ntohs(r[3]),
-			ntohs(r[4]), ntohs(r[5]), ntohs(r[6]), ntohs(r[7]), ntohs(r[8]));
-		break;
-	case RDATA_DNAME:
-		fprintf(f, "%s ", dnamestr((uint8_t *)(&r[1])));
-		break;
-	case RDATA_TEXT:
-		fprintf(f, "\"%s\"", ((char *)&r[1]) + 1);
-		break;
-	case RDATA_B64:
-		b64_ntop((uint8_t *)(&r[1]), r[0], buf, B64BUFSIZE);
-		fprintf(f, "%s ", buf);
-		break;
-	default:
-		fprintf(f, "*** ERRROR *** ");
-		abort();
+			fprintf(f, " ");
+			break;
+		case RDATA_TIME:
+			memcpy(&l, &r[1], sizeof(uint32_t));
+			l = ntohl(l);
+			strftime(buf, B64BUFSIZE, "%Y%m%d%H%M%S ", gmtime((time_t *)&l));
+			fprintf(f, "%s", buf);
+			break;
+		case RDATA_TYPE:
+			fprintf(f, "%s ", typebyint(ntohs(r[1])));
+			break;
+		case RDATA_PROTO:
+		case RDATA_SERVICE:
+		case RDATA_PERIOD:
+		case RDATA_LONG:
+			memcpy(&l, &r[1], sizeof(uint32_t));
+			fprintf(f, "%lu ", (unsigned long) ntohl(l));
+			break;
+		case RDATA_SHORT:
+			fprintf(f, "%u ", (unsigned) ntohs(r[1]));
+			break;
+		case RDATA_BYTE:
+			fprintf(f, "%u ", (unsigned) *((char *)(&r[1])));
+			break;
+		case RDATA_A:
+
+			memcpy(&in.s_addr, &r[1], sizeof(uint32_t));
+			fprintf(f, "%s ", inet_ntoa(in));
+			break;
+		case RDATA_A6:
+			fprintf(f, "%x:%x:%x:%x:%x:%x:%x:%x ", ntohs(r[1]), ntohs(r[2]), ntohs(r[3]),
+					ntohs(r[4]), ntohs(r[5]), ntohs(r[6]), ntohs(r[7]), ntohs(r[8]));
+			break;
+		case RDATA_DNAME:
+			fprintf(f, "%s ", dnamestr((uint8_t *)(&r[1])));
+			break;
+		case RDATA_TEXT:
+			fprintf(f, "\"%s\"", ((char *)&r[1]) + 1);
+			break;
+		case RDATA_B64:
+			b64_ntop((uint8_t *)(&r[1]), r[0], buf, B64BUFSIZE);
+			fprintf(f, "%s ", buf);
+			break;
+		default:
+			fprintf(f, "*** ERRROR *** ");
+			abort();
 	}
 	return;
 }
@@ -838,116 +836,116 @@ zprintrdata (FILE *f, int what, uint16_t *r)
  *	nothing
  *
  */
-void
+	void
 zprintrrrdata(FILE *f, struct RR *rr)
 {
 	uint16_t **rdata;
 	uint16_t size;
 
 	switch (rr->type) {
-	case TYPE_A:
-		zprintrdata(f, RDATA_A, rr->rdata[0]);
-		return;
-	case TYPE_NS:
-	case TYPE_MD:
-	case TYPE_MF:
-	case TYPE_CNAME:
-	case TYPE_MB:
-	case TYPE_MG:
-	case TYPE_MR:
-	case TYPE_PTR:
-		zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
-		return;
-	case TYPE_MINFO:
-	case TYPE_RP:
-		zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
-		zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
-		return;
-	case TYPE_TXT:
-		for(rdata = rr->rdata; *rdata; rdata++) {
-			zprintrdata(f, RDATA_TEXT, *rdata);
-		}
-		return;
-	case TYPE_SOA:
-		zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
-		zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
-		zprintrdata(f, RDATA_PERIOD, rr->rdata[2]);
-		zprintrdata(f, RDATA_PERIOD, rr->rdata[3]);
-		zprintrdata(f, RDATA_PERIOD, rr->rdata[4]);
-		zprintrdata(f, RDATA_PERIOD, rr->rdata[5]);
-		zprintrdata(f, RDATA_PERIOD, rr->rdata[6]);
-		return;
-	case TYPE_HINFO:
-		zprintrdata(f, RDATA_TEXT, rr->rdata[0]);
-		zprintrdata(f, RDATA_TEXT, rr->rdata[1]);
-		return;
-	case TYPE_MX:
-		zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-		zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
-		return;
-	case TYPE_AAAA:
-		zprintrdata(f, RDATA_A6, rr->rdata[0]);
-		return;
-	case TYPE_SRV:
-		zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-		zprintrdata(f, RDATA_SHORT, rr->rdata[1]);
-		zprintrdata(f, RDATA_SHORT, rr->rdata[2]);
-		zprintrdata(f, RDATA_DNAME, rr->rdata[3]);
-		return;
-	case TYPE_NAPTR:
-		zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-		zprintrdata(f, RDATA_SHORT, rr->rdata[1]);
-		zprintrdata(f, RDATA_TEXT, rr->rdata[2]);
-		zprintrdata(f, RDATA_TEXT, rr->rdata[3]);
-		zprintrdata(f, RDATA_TEXT, rr->rdata[4]);
-		zprintrdata(f, RDATA_DNAME, rr->rdata[5]);
-		return;
-	case TYPE_AFSDB:
-		zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-		zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
-		return;
-	case TYPE_SIG:
-		zprintrdata(f, RDATA_TYPE, rr->rdata[0]);
-		zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
-		zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
-		zprintrdata(f, RDATA_LONG, rr->rdata[3]);
-		zprintrdata(f, RDATA_TIME, rr->rdata[4]);
-		zprintrdata(f, RDATA_TIME, rr->rdata[5]);
-		zprintrdata(f, RDATA_SHORT, rr->rdata[6]);
-		zprintrdata(f, RDATA_DNAME, rr->rdata[7]);
-		zprintrdata(f, RDATA_B64, rr->rdata[8]);
-		return;
-	case TYPE_NULL:
-		return;
-	case TYPE_KEY:
-		zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-		zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
-		zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
-		zprintrdata(f, RDATA_B64, rr->rdata[3]);
-		return;
-	case TYPE_DS:
-		zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
-		zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
-		zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
-		zprintrdata(f, RDATA_HEX, rr->rdata[3]);
-		return;
-		/* Unknown format */
-	case TYPE_NXT:
-	case TYPE_WKS:
-	case TYPE_LOC:
-	default:
-		fprintf(f, "\\# ");
-		for(size = 0, rdata = rr->rdata; *rdata; rdata++) {
-			if(**rdata == 0xffff) {
-				size += *((uint8_t *)(*rdata + 1));
-			} else {
-				size += **rdata;
+		case TYPE_A:
+			zprintrdata(f, RDATA_A, rr->rdata[0]);
+			return;
+		case TYPE_NS:
+		case TYPE_MD:
+		case TYPE_MF:
+		case TYPE_CNAME:
+		case TYPE_MB:
+		case TYPE_MG:
+		case TYPE_MR:
+		case TYPE_PTR:
+			zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
+			return;
+		case TYPE_MINFO:
+		case TYPE_RP:
+			zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
+			return;
+		case TYPE_TXT:
+			for(rdata = rr->rdata; *rdata; rdata++) {
+				zprintrdata(f, RDATA_TEXT, *rdata);
 			}
-		}
-		fprintf(f, "%u ", size);
-		for(rdata = rr->rdata; *rdata; rdata++)
-			zprintrdata(f, RDATA_HEX, *rdata);
-		return;
+			return;
+		case TYPE_SOA:
+			zprintrdata(f, RDATA_DNAME, rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
+			zprintrdata(f, RDATA_PERIOD, rr->rdata[2]);
+			zprintrdata(f, RDATA_PERIOD, rr->rdata[3]);
+			zprintrdata(f, RDATA_PERIOD, rr->rdata[4]);
+			zprintrdata(f, RDATA_PERIOD, rr->rdata[5]);
+			zprintrdata(f, RDATA_PERIOD, rr->rdata[6]);
+			return;
+		case TYPE_HINFO:
+			zprintrdata(f, RDATA_TEXT, rr->rdata[0]);
+			zprintrdata(f, RDATA_TEXT, rr->rdata[1]);
+			return;
+		case TYPE_MX:
+			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
+			return;
+		case TYPE_AAAA:
+			zprintrdata(f, RDATA_A6, rr->rdata[0]);
+			return;
+		case TYPE_SRV:
+			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
+			zprintrdata(f, RDATA_SHORT, rr->rdata[1]);
+			zprintrdata(f, RDATA_SHORT, rr->rdata[2]);
+			zprintrdata(f, RDATA_DNAME, rr->rdata[3]);
+			return;
+		case TYPE_NAPTR:
+			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
+			zprintrdata(f, RDATA_SHORT, rr->rdata[1]);
+			zprintrdata(f, RDATA_TEXT, rr->rdata[2]);
+			zprintrdata(f, RDATA_TEXT, rr->rdata[3]);
+			zprintrdata(f, RDATA_TEXT, rr->rdata[4]);
+			zprintrdata(f, RDATA_DNAME, rr->rdata[5]);
+			return;
+		case TYPE_AFSDB:
+			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
+			zprintrdata(f, RDATA_DNAME, rr->rdata[1]);
+			return;
+		case TYPE_SIG:
+			zprintrdata(f, RDATA_TYPE, rr->rdata[0]);
+			zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
+			zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
+			zprintrdata(f, RDATA_LONG, rr->rdata[3]);
+			zprintrdata(f, RDATA_TIME, rr->rdata[4]);
+			zprintrdata(f, RDATA_TIME, rr->rdata[5]);
+			zprintrdata(f, RDATA_SHORT, rr->rdata[6]);
+			zprintrdata(f, RDATA_DNAME, rr->rdata[7]);
+			zprintrdata(f, RDATA_B64, rr->rdata[8]);
+			return;
+		case TYPE_NULL:
+			return;
+		case TYPE_KEY:
+			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
+			zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
+			zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
+			zprintrdata(f, RDATA_B64, rr->rdata[3]);
+			return;
+		case TYPE_DS:
+			zprintrdata(f, RDATA_SHORT, rr->rdata[0]);
+			zprintrdata(f, RDATA_BYTE, rr->rdata[1]);
+			zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
+			zprintrdata(f, RDATA_HEX, rr->rdata[3]);
+			return;
+			/* Unknown format */
+		case TYPE_NXT:
+		case TYPE_WKS:
+		case TYPE_LOC:
+		default:
+			fprintf(f, "\\# ");
+			for(size = 0, rdata = rr->rdata; *rdata; rdata++) {
+				if(**rdata == 0xffff) {
+					size += *((uint8_t *)(*rdata + 1));
+				} else {
+					size += **rdata;
+				}
+			}
+			fprintf(f, "%u ", size);
+			for(rdata = rr->rdata; *rdata; rdata++)
+				zprintrdata(f, RDATA_HEX, *rdata);
+			return;
 	}
 }
 
@@ -959,11 +957,11 @@ zprintrrrdata(FILE *f, struct RR *rr)
  *	nothing
  *
  */
-void
+	void
 zprintrr(FILE *f, struct RR *rr)
 {
 	fprintf(f, "%s\t%u\t%s\t%s\t", dnamestr(rr->dname), rr->ttl,
-		classbyint(rr->class), typebyint(rr->type));
+			classbyint(rr->class), typebyint(rr->type));
 	if(rr->rdata != NULL) {
 		zprintrrrdata(f, rr);
 	} else {
