@@ -1,5 +1,5 @@
 -*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.3 2002/01/25 17:31:20 alexis Exp $
+$Id: REQUIREMENTS,v 1.4 2002/02/05 09:13:09 alexis Exp $
 
 
 NSD Requirements and Specifications
@@ -440,16 +440,10 @@ C 4.1 Actions based on QTYPE of incomming Query.
   authoritative server too.
 
 
-C 4.? Additional Data processing.
+C 4.2 Additional Data processing.
 
 
   Additional data is added as long as there is space in the packet.
-
-
-  If inclussion of an RRset in the Additional section is not possible
-  the entire RRset is not included.  Ommission of RRs from the
-  Additional section because of message size constraints will NOT lead
-  to setting of the TC bit. (rfc2181 9)
 
   When processing the additional section priority is (rfc 2535 3.5 and
   rfc 2974 4) 
@@ -458,9 +452,39 @@ C 4.? Additional Data processing.
       + AAAA 
       + KEY
 
+  For truncation see section C.4.4
+
+  NSD will act as being authoritative for one zone without having the 
+  other zones in cache. In other words:
+
+  If a NSD is authoritative for say both ripe.net and nlnetlabs.nl and
+  both these zones are secondary for each others NS. Then, at least
+  with my zone parser a query for ripe.net NS would return
+  
+
+  ANSWER:
+  ripe.net NS  ns.ripe.net
+	 NS  ns.nlnetlabs.nl
+  Additional 
+  ns.ripe.net A 10.0.0.1
 
 
-C 4.? Label compression in RDATA
+  and not
+
+  ANSWER:
+  ripe.net NS  ns.ripe.net
+	   NS  ns.nlnetlabs.nl
+  Additional 
+  ns.ripe.net A 10.1.0.1
+  ns.nlnetlabs.nl A 10.2.0.2
+
+  This behaviour is a concequence of NSD using precompiled packets. These
+  are 'constructed' zone by zone. It is an optimalization of speed versus
+  network optimalization.
+
+
+
+C 4.3 Label compression in RDATA
 
   In the spirrit of RFC 1035 section 3.3. and 4.4.1 ("Pointers can
   only be used for occurances of a domain name where the format is not
@@ -498,17 +522,18 @@ C 4.? Label compression in RDATA
 
 
 
-C 4.? Truncation handling. (as rfc2181 9)
+C 4.4 Truncation handling. (as rfc2181 9)
 
-  If inclussion of a RR set that is REQUIRED in either the answer or 
-  authority section leads to message truncation. The packet is left empty 
+  If inclusion of a RR set that is REQUIRED in either the answer or 
+  authority section leads to message truncation. The section is left empty 
   and the truncation (TC) bit is set.
 
 
-  If inclussion of a resource record in the Additional section is not possible
-  that resource reecord is not included.  Ommission of resource record from the
-  Additional section because of message size constraints will NOT lead
-  to setting of the TC bit. (rfc2181 9)
+  If inclusion of an RRset in the Additional section is not possible
+  RRs are omitted one by one. This may lead to incomplete RRsets.
+  Omission of RRs from the Additional section because of message size
+  constraints will NOT lead to setting of the TC bit. (rfc2181 9) We
+  allow for incomplete RRsets in the additional section.
 
 
 Appendix  A
@@ -703,4 +728,4 @@ RR records details.
 
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.3 2002/01/25 17:31:20 alexis Exp $
+$Id: REQUIREMENTS,v 1.4 2002/02/05 09:13:09 alexis Exp $
