@@ -72,6 +72,8 @@ $TTL    1H
 @       IN LOC   32 7 19 S 116 2 25 E 10m
 @       IN LOC   42 21 28.764 N 71 00 51.617 W -44m 2000m
 
+dotted\.label IN MX 10 "foo bar.nl"
+
 rt-host IN      A       127.0.0.1
         IN      AAAA    ::1
         IN      X25     "x25 address in text format"
@@ -79,3 +81,4 @@ rt-host IN      A       127.0.0.1
 kx-host IN      A       127.0.0.1
 kx-host IN      AAAA    ::1
         IN      X25     "x25 address in text format"
+

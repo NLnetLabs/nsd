@@ -305,54 +305,52 @@ dname_label_match_count(const dname_type *left, const dname_type *right)
 	return i;
 }
 
-
 const char *
 dname_to_string(const dname_type *dname, const dname_type *origin)
 {
-	static char buf[MAXDOMAINLEN + 1];
-	if (origin
-	    && dname->label_count > 1
-	    && dname_is_subdomain(dname, origin))
-	{
-		int common_labels = dname_label_match_count(dname, origin);
-		int label_count = dname->label_count - common_labels;
-		const uint8_t *label = dname_name(dname);
-		char *p = buf;
-		int i;
-		for (i = 0; i < label_count; ++i) {
-			memcpy(p, label_data(label), label_length(label));
-			p += label_length(label);
-			*p++ = '.';
-		}
-		*--p = '\0';
+	static char buf[MAXDOMAINLEN * 5];
+	size_t i;
+	size_t labels_to_convert = dname->label_count - 1;
+	int absolute = 1;
+	char *dst;
+	const uint8_t *src;
+
+	if (dname->label_count == 1) {
+		strcpy(buf, ".");
 		return buf;
-	} else {
-		return labels_to_string(dname_name(dname));
 	}
-}
-
-
-const char *
-labels_to_string(const uint8_t *dname)
-{
-	static char buf[MAXDOMAINLEN + 1];
-	char *p = buf;
-	const uint8_t *label = dname;
-
-	while (!label_is_root(label)) {
-		const uint8_t *data = label_data(label);
-		uint8_t i;
-		for (i = 0; i < label_length(label); ++i) {
-			*p++ = data[i];
-		}
-		*p++ = '.';
-		label = label_next(label);
-	}
-
-	if (buf == p)
-		*p++ = '.';
-	*p++ = '\0';
 	
+	if (origin && dname_is_subdomain(dname, origin)) {
+		int common_labels = dname_label_match_count(dname, origin);
+		labels_to_convert = dname->label_count - common_labels;
+		absolute = 0;
+	}
+
+	dst = buf;
+	src = dname_name(dname);
+	for (i = 0; i < labels_to_convert; ++i) {
+		size_t len = label_length(src);
+		size_t j;
+		++src;
+		for (j = 0; j < len; ++j) {
+			char ch = (char) *src++;
+			if (isalnum(ch) || ch == '-' || ch == '_') {
+				*dst++ = ch;
+			} else if (isgraph(ch)) {
+				*dst++ = '\\';
+				*dst++ = ch;
+			} else {
+				snprintf(dst, 5, "\\%03u", (unsigned) ch);
+				dst += 4;
+			}
+		}
+		*dst++ = '.';
+	}
+	if (absolute) {
+		*dst = '\0';
+	} else {
+		*--dst = '\0';
+	}
 	return buf;
 }
 

@@ -336,16 +336,6 @@ const char *dname_to_string(const dname_type *dname,
 
 
 /*
- * Convert DNAME to its string representation.  The result points to a
- * static buffer that is overwritten the next time this function is
- * invoked.
- *
- * Pre: dname != NULL
- */
-const char *labels_to_string(const uint8_t *dname);
-
-
-/*
  * Create a dname containing the single label specified by STR
  * followed by the root label.
  */
