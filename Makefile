@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.84.2.2 2002/10/29 11:54:18 alexis Exp $
+# $Id: Makefile,v 1.84.2.3 2003/01/02 10:43:14 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -226,13 +226,13 @@ nsdc.conf.sample: nsdc.conf.sample.in Makefile
 		-e "s,@@NSDKEYSDIR@@,${NSDKEYSDIR},g" -e "s,@@NSDNOTIFY@@,${NSDNOTIFY},g" $@.in > $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
-	${LINK} ${LIBWRAP} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o
+	${LINK} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o ${LIBWRAP}
 
 zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
 	${LINK} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
 
 nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
-	${LINK} ${LIBWRAP} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
+	${LINK} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o ${LIBWRAP}
 
 clean:
 	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
