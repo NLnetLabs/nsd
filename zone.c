@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.11 2002/01/17 22:16:15 alexis Exp $
+ * $Id: zone.c,v 1.12 2002/01/18 00:22:05 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -158,7 +158,7 @@ zone_read(name, zonefile)
 		}
 
 		/* Insert the record into a rrset */
-		if(rr->type == TYPE_NS && dnamecmp(rr->dname, z->dname) != 0) {
+		if(rr->type == TYPE_NS && ((dnamecmp(rr->dname, z->dname) != 0) || (z->soa == NULL))) {
 			h = z->cuts;
 		} else {
 			h = z->data;
@@ -240,6 +240,8 @@ zone_free(z)
 {
 	if(z) {
 		if(z->dname) free(z->dname);
+		HEAP_DESTROY(z->cuts);
+		HEAP_DESTROY(z->data);
 	}
 }
 
@@ -623,7 +625,7 @@ zone_addname(msg, dname)
 int
 usage()
 {
-	fprintf(stderr, "usage: zone name zone-file\n");
+	fprintf(stderr, "usage: zone name zone-file [name zone-file]\n");
 	exit(1);
 }
 
@@ -635,6 +637,7 @@ main(argc, argv)
 
 	struct zone *z;
 	struct db *db;
+	int i;
 
 #ifndef LOG_PERROR
 #define		LOG_PERROR 0
@@ -643,19 +646,24 @@ main(argc, argv)
 	openlog("zf", LOG_PERROR, LOG_LOCAL5);
 
 	/* Check the command line */
-	if(argc  != 3) {
+	if(argc  < 3) {
 		usage();
-	}
-
-	/* Open the file */
-	if((z = zone_read(argv[1], argv[2])) == NULL) {
-		exit(1);
 	}
 
 	if((db = db_create("nsd.db")) == NULL) {
 		exit(1);
 	}
-	zone_dump(z, db);
+
+	/* Open the file */
+	for(i = 1; i < argc; i += 2) {
+		if((z = zone_read(argv[i], argv[i+1])) == NULL) {
+			exit(1);
+		}
+
+		zone_dump(z, db);
+		zone_free(z);
+	}
+
 	db_sync(db);
 	db_close(db);
 	/* zone_print(z); */

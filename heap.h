@@ -1,5 +1,5 @@
 /*
- * $Id: heap.h,v 1.1 2002/01/08 13:29:20 alexis Exp $
+ * $Id: heap.h,v 1.2 2002/01/18 00:22:05 alexis Exp $
  *
  * heap.c -- generic heap operations
  *
@@ -64,4 +64,5 @@ extern dict_itor *_heap_itor;
 #define	HEAP_WALK(heap, key, data) for(_heap_itor = dict_itor_new(heap); \
 				dict_itor_valid(_heap_itor) && (key = dict_itor_key(_heap_itor)) && \
 				(data = dict_itor_data(_heap_itor)); dict_itor_next(_heap_itor))
-#define	HEAP_STOP() dict_itor_destroy(_heap_itor);
+#define	HEAP_STOP() dict_itor_destroy(_heap_itor)
+#define	HEAP_DESTROY(heap) dict_destroy(heap, 1)
