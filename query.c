@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.29 2002/02/06 13:11:45 alexis Exp $
+ * $Id: query.c,v 1.30 2002/02/06 13:20:32 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -164,6 +164,8 @@ query_process(q, db)
 #else
 		RCODE_SET(q, RCODE_IMPL);
 #endif
+		*(u_int16_t *)(q->iobuf + 2) = 0;
+		QR_SET(q);				/* This is an answer */
 		return 0;
 	}
 

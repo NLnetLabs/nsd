@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.10 2002/02/05 15:37:25 alexis Exp $
+ * $Id: nsd.c,v 1.11 2002/02/06 13:20:32 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -50,8 +50,7 @@ int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
 
 /* The nsd database */
 struct namedb *database, *newdb;
-int database_reload = 0;
-
+int server_mode = NSD_RUN;
 int tcp_open_connections = 0;
 
 /*
@@ -108,13 +107,13 @@ sig_handler(sig)
 		}
 		break;
 	case SIGHUP:
-		database_reload = 1;
+		server_mode = NSD_RELOAD;
 		break;
 	case SIGTERM:
 	default:
 		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
-		namedb_close(database);
-		exit(0);
+		server_mode = NSD_SHUTDOWN;
+		break;
 	}
 }
 
@@ -178,7 +177,7 @@ main(argc, argv)
 	}
 
 	/* Initialize... */
-	database_reload = 0;
+	server_mode = NSD_RUN;
 
 	/* Run the server... */
 	server(database);

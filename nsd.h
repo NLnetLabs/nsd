@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.11 2002/02/05 15:37:25 alexis Exp $
+ * $Id: nsd.h,v 1.12 2002/02/06 13:20:32 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -71,6 +71,10 @@
 #include "namedb.h"
 #include "query.h"
 
+#define	NSD_RUN	0
+#define	NSD_RELOAD 1
+#define	NSD_SHUTDOWN 2
+
 #define	CF_DBFILE	"nsd.db"
 #define	CF_PIDFILE	"/var/run/nsd.pid"
 #define	CF_TCP_MAX_CONNECTIONS	8
@@ -88,7 +92,7 @@ extern u_short	cf_udp_port;
 extern int	cf_udp_max_message_size;
 
 extern int	tcp_open_connections;
-extern int	database_reload;
+extern int	server_mode;
 
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));

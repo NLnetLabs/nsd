@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.11 2002/02/06 12:19:03 alexis Exp $
+ * $Id: server.c,v 1.12 2002/02/06 13:20:32 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -100,8 +100,9 @@ server(db)
 	/* The main loop... */	
 	while(1) {
 		/* Do we need to reload the database? */
-		if(database_reload) {
-			database_reload = 0;
+		switch(server_mode) {
+		case NSD_RELOAD:
+			server_mode = NSD_RUN;
 			if((newdb = namedb_open(db->filename)) == NULL) {
 				syslog(LOG_ERR, "unable to reload the database: %m");
 			}  else {
@@ -109,6 +110,15 @@ server(db)
 				db = newdb;
 				syslog(LOG_WARNING, "database reloaded...");
 			}
+			break;
+		case NSD_SHUTDOWN:
+			namedb_close(db);
+			exit(1);
+			break;
+		case NSD_RUN:
+			break;
+		default:
+			break;
 		}
 
 		/* Set it up */
