@@ -431,5 +431,11 @@ AH_BOTTOM([
 #endif /* !HAVE_ATTR_UNUSED */
 ])
 
+AH_BOTTOM([
+#ifndef IPV6_MIN_MTU
+#define IPV6_MIN_MTU 1280
+#endif
+])
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

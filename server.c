@@ -266,7 +266,7 @@ int
 server_init(struct nsd *nsd)
 {
 	size_t i;
-#if defined(SO_REUSEADDR) || (defined(INET6) && defined(IPV6_V6ONLY))
+#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU)))
 	int on = 1;
 #endif
 
@@ -279,13 +279,38 @@ server_init(struct nsd *nsd)
 			return -1;
 		}
 
-#if defined(INET6) && defined(IPV6_V6ONLY)
-		if (nsd->udp[i].addr->ai_family == AF_INET6 &&
-		    setsockopt(nsd->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
-		{
-			log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
-				strerror(errno));
-			return -1;
+#if defined(INET6)
+		if (nsd->udp[i].addr->ai_family == AF_INET6) {
+# if defined(IPV6_V6ONLY)
+			if (setsockopt(nsd->udp[i].s,
+				       IPPROTO_IPV6, IPV6_V6ONLY,
+				       &on, sizeof(on)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+# endif
+# if defined(IPV6_USE_MIN_MTU)
+			/*
+			 * IPv6 doesn't do automatic fragmentation of
+			 * UPD packets when a link is encountered that
+			 * has a smalled MTU than the MTU used to send
+			 * the packet.  In this case the packet will
+			 * simply be lost.
+			 *
+			 * So always try to send packets using the
+			 * minimum MTU of IPv6.
+			 */
+			if (setsockopt(nsd->udp[i].s,
+				       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
+				       &on, sizeof(on)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+# endif
 		}
 #endif
 

@@ -330,13 +330,30 @@ process_edns (struct query *q, uint8_t *qptr)
 				q->edns = -1;
 			} else {
 				/* Only care about UDP size larger than normal... */
-				if (!q->tcp && opt_class > UDP_MAX_MESSAGE_LEN) {
-					/* XXX Configuration parameter to limit the size needs to be here... */
-					if (opt_class < MAX_PACKET_SIZE) {
+				if (!q->tcp
+				    && opt_class > UDP_MAX_MESSAGE_LEN)
+				{
+					if (opt_class < EDNS_MAX_MESSAGE_LEN) {
 						q->maxlen = opt_class;
 					} else {
-						q->maxlen = MAX_PACKET_SIZE;
+						q->maxlen = EDNS_MAX_MESSAGE_LEN;
 					}
+
+#if defined(INET6) && !defined(IPV6_USE_MIN_MTU)
+					/*
+					 * Use IPv6 minimum MTU to
+					 * avoid sending packets that
+					 * are too large for some
+					 * links.  IPv6 will not
+					 * automatically fragment in
+					 * this case (unlike IPv4).
+					 */
+					if (q->addr.ss_family == AF_INET6
+					    && q->maxlen > IPV6_MIN_MTU)
+					{
+						q->maxlen = IPV6_MIN_MTU;
+					}
+#endif
 				}
 
 #ifdef STRICT_MESSAGE_PARSE
@@ -962,17 +979,23 @@ query_process(struct query *q, struct nsd *nsd)
 
 void
 query_addedns(struct query *q, struct nsd *nsd) {
+	struct edns_data *edns = &nsd->edns_ipv4;
+#if defined(INET6)
+	if (q->addr.ss_family == AF_INET6) {
+		edns = &nsd->edns_ipv6;
+	}
+#endif
 	switch (q->edns) {
 	case 1:	/* EDNS(0) packet... */
 		q->maxlen += OPT_LEN;
-		query_write(q, nsd->edns.opt_ok, OPT_LEN);
+		query_write(q, edns->ok, OPT_LEN);
 		ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 
 		STATUP(nsd, edns);
 		break;
 	case -1: /* EDNS(0) error... */
 		q->maxlen += OPT_LEN;
-		query_write(q, nsd->edns.opt_err, OPT_LEN);
+		query_write(q, edns->error, OPT_LEN);
 		ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 
 		STATUP(nsd, ednserr);
