@@ -169,7 +169,7 @@ dnl Check for libwrap
 dnl
 AC_ARG_WITH(libwrap,
 	AC_HELP_STRING([--with-libwrap=[pathname]],
-		[Compile in libwrap (tcp_wrappers) support.]))
+		[Compile in libwrap (tcp_wrappers) support.]), [], [withval="yes"])
 
 case "$withval" in
 	no|'')
