@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.23 2002/02/05 12:17:33 alexis Exp $
+ * $Id: query.c,v 1.24 2002/02/06 09:44:11 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -198,6 +198,18 @@ query_process(q, db)
 
 	bcopy(qptr, &qtype, 2); qptr += 2;
 	bcopy(qptr, &qclass, 2); qptr += 2;
+
+	/* Do we have any trailing garbage? */
+	if(qptr != q->iobufptr) {
+#ifdef	MIMIC_BIND8
+		/* If mimicing bind, strip it... */
+		q->iobufptr = qptr;
+#else
+		/* Otherwise FORMERR... */
+		RCODE_SET(q, RCODE_FORMAT);
+		return 0;
+#endif
+	}
 
 	/* Unsupported class */
 	if((ntohs(qclass) != CLASS_IN) && (ntohs(qclass) != CLASS_ANY)) {
