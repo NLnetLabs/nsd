@@ -1076,6 +1076,9 @@ process_rr(zparser_type *parser, rr_type *rr)
 	size_t max_rdlength;
 	int i;
 	
+	/* [XXX remove later] */
+	print_rr(rr);
+
 	/* We only support IN class */
 	if (rr->class != CLASS_IN) {
 		error_prev_line("Wrong class");
@@ -1488,4 +1491,119 @@ main (int argc, char **argv)
 #endif
 	
 	return totalerrors ? 1 : 0;
+}
+
+/* print a RR */
+int
+print_rr(rr_type *rr)
+{
+	uint32_t ttl;
+	uint8_t *owner;
+	uint16_t *r;
+	
+	owner	= (uint8_t*)dname_to_string( domain_dname(rr->domain) );
+	ttl	= rr->rrdata->ttl;
+	
+	printf("%s\t%ld IN %s\t", owner, ttl, namebyint(rr->type,ztypes));
+
+        switch (rr->type) {
+		case TYPE_A:
+			printf("%s",wire_conv_a(rr->rrdata->rdata[0]));
+			break;
+                case TYPE_NS:
+			printf("%s",wire_conv_domain(rr->rrdata->rdata[0]));
+                        break;
+		case TYPE_MX:
+			printf("%d %s",wire_conv_short(rr->rrdata->rdata[0]),
+					wire_conv_domain(rr->rrdata->rdata[1]));
+			break;
+		case TYPE_SOA:
+			printf("%s %s %d %d %d %d %d",
+				 	wire_conv_domain(rr->rrdata->rdata[0]),
+					wire_conv_domain(rr->rrdata->rdata[1]),
+					wire_conv_long(rr->rrdata->rdata[2]),
+					wire_conv_long(rr->rrdata->rdata[3]),
+					wire_conv_long(rr->rrdata->rdata[4]),
+					wire_conv_long(rr->rrdata->rdata[5]),
+					wire_conv_long(rr->rrdata->rdata[6]));
+			break;
+		case TYPE_TXT:
+			/* [XXX] need to loop */
+			printf("%s",
+					wire_conv_string(rr->rrdata->rdata[0]));
+			break;
+		case TYPE_HINFO:
+			printf("\"%s\" \"%s\"",
+					wire_conv_string(rr->rrdata->rdata[0]),
+					wire_conv_string(rr->rrdata->rdata[1]));
+			break;
+        }
+
+	printf("\n");
+
+        return 0;
+}
+
+uint8_t *
+wire_conv_domain(rdata_atom_type a)
+{
+	/* convert from wireformat to a printable owner name */
+
+	uint8_t *r;
+
+	r = (uint8_t*)dname_to_string(domain_dname(rdata_atom_domain(a)));
+
+	return r;
+}
+
+uint8_t *
+wire_conv_string(rdata_atom_type a)
+{
+	/* convert strings (TXT, HINFO), to printable string */
+
+	uint8_t *r;
+
+	r = (uint8_t*)rdata_atom_data(a);
+
+	return r;
+}
+
+int
+wire_conv_short(rdata_atom_type a)
+{
+	/* convert from wireformat to a short int */
+	uint16_t *r;
+
+	r = (uint16_t *)rdata_atom_data(a);
+
+	return ( ntohs(*r) );
+}
+
+long int 
+wire_conv_long(rdata_atom_type a)
+{
+	/* convert from wireformat to a long int */
+	/* [XXX] not endian safe! */
+	uint32_t *r;
+	
+	r = (uint32_t *)rdata_atom_data(a);
+
+	return ( ntohl(*r) );
+}
+
+uint8_t *
+wire_conv_a(rdata_atom_type a)
+{
+	/* convert from wireformat to a ip address */
+
+	uint16_t *r;
+	uint8_t  *dst;
+
+	dst = malloc(INET_ADDRSTRLEN);
+
+	r = (uint16_t *)rdata_atom_data(a);
+
+	inet_ntop(AF_INET, r, dst, INET_ADDRSTRLEN);
+	
+	return dst;
 }
