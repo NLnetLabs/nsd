@@ -72,8 +72,8 @@ int deny_severity = LOG_NOTICE;
 /*
  * Generate an error response with the specified RCODE.
  */
-static void
-error_response (struct query *q, int rcode)
+void
+query_error (struct query *q, int rcode)
 {
 	QR_SET(q);		/* This is an answer.  */
 	RCODE_SET(q, rcode);	/* Error code.  */
@@ -86,7 +86,7 @@ error_response (struct query *q, int rcode)
 static void 
 query_formerr (struct query *query)
 {
-	error_response(query, RCODE_FORMAT);
+	query_error(query, RCODE_FORMAT);
 }
 
 int 
@@ -501,7 +501,7 @@ answer_notify (struct query *query)
 			syslog(LOG_INFO, "notify from %s", namebuf);
 		}
 	default:
-		error_response(query, RCODE_IMPL);
+		query_error(query, RCODE_IMPL);
 		return 1;
 	}
 }

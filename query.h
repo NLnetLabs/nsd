@@ -186,5 +186,6 @@ void query_addtxt(struct query *q, u_char *dname, int class, int32_t ttl, const 
 void query_addanswer(struct query *q, const u_char *dname, const struct answer *a, int trunc);
 int query_process(struct query *q, struct nsd *nsd);
 void query_addedns(struct query *q, struct nsd *nsd);
+void query_error(struct query *q, int rcode);
 
 #endif /* _QUERY_H_ */

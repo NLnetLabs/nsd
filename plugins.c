@@ -191,13 +191,7 @@ handle_callback_result(
 	case NSD_PLUGIN_ANSWER:
 		return 0;
 	case NSD_PLUGIN_ERROR:
-		QR_SET(args->query);
-		RCODE_SET(args->query, args->result_code);
-		QDCOUNT(args->query) = 0;
-		ANCOUNT(args->query) = 0;
-		NSCOUNT(args->query) = 0;
-		ARCOUNT(args->query) = 0;
-		args->query->iobufptr = args->query->iobuf + QHEADERSZ;
+		error_response(args->query, args->result_code);
 		return 0;
 	case NSD_PLUGIN_ABANDON:
 		return -1;
