@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+2.2.1
+=============
+BUG FIXES:
+	- Zero length unknown RR notation was not working (except for
+          the APL type).
+
 2.2.0
 =============
 FEATURES:
