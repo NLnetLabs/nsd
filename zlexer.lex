@@ -240,14 +240,12 @@ zrrtype (const char *word)
 	 * 'A' is first token defined in YACC. With this hack we
 	 * return the correct token based on our list of RR types
 	 */
-	int i,j,l;
+	int i,j;
 	const char *c;
-
-	l = strlen(word);
 
 	i = 0;
 	while ( RRtypes[i] != NULL ) {
-		if (strncasecmp(word, RRtypes[i],l) == 0) {
+		if (strcasecmp(word, RRtypes[i]) == 0) {
 			LEXOUT(("%s ", word));
 			return i + A;
 		}
