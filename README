@@ -1,4 +1,4 @@
-$Id: README,v 1.13.2.7 2002/08/20 15:17:48 alexis Exp $
+$Id: README,v 1.13.2.8 2002/08/20 15:28:40 alexis Exp $
 
 1.0 Introduction
 
@@ -44,9 +44,9 @@ Step 2:
 Step 3:
 	Glance through the Makefile to make sure you like the pathnames
 	et cetera. You might want to comment out -DINET6 if you dont want
-	IPv6 transport support and -DHOSTS_ACCESS if you dont want to use
-	hosts_acccess(5) tcp wrappers for AXFR access control. If you do
-	that you might as well want to disable AXFR with -DDISABLE_AXFR
+	IPv6 transport support and -DHOSTS_ACCESS and -lwrap if you dont
+	want to use hosts_acccess(5) tcp wrappers for AXFR access control.
+	If you do that you might as well want to disable AXFR with -DDISABLE_AXFR
 
 Step 4:	make all
 
