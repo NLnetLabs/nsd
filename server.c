@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.9 2002/02/05 15:37:25 alexis Exp $
+ * $Id: server.c,v 1.10 2002/02/06 12:11:04 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -133,7 +133,8 @@ server(db)
 			if((received = recvfrom(s_udp, q->iobuf, q->iobufsz, 0,
 					(struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
 				syslog(LOG_ERR, "recvfrom failed: %m");
-				break;
+				/* XXX: We should think of better action here in instead of break; */
+				continue;
 			}
 			q->iobufptr = q->iobuf + received;
 
@@ -141,9 +142,8 @@ server(db)
 				if((sent = sendto(s_udp, q->iobuf, q->iobufptr - q->iobuf, 0,
 					(struct sockaddr *)&q->addr, q->addrlen)) == -1) {
 					syslog(LOG_ERR, "sendto failed: %m");
-					break;
-				}
-				if(sent != q->iobufptr - q->iobuf) {
+					/* XXX: We should think of better action here in instead of break; */
+				} else if(sent != q->iobufptr - q->iobuf) {
 					syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q->iobufptr - q->iobuf);
 				}
 			}
@@ -237,6 +237,7 @@ server(db)
 			/* Time out... */
 			syslog(LOG_ERR, "select timed out");
 		}
+		/* Mostly NOTREACHED */
 	}
 
 	/* Clean up */
