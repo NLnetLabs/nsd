@@ -132,9 +132,9 @@ packet_encode_rrset(query_type *query,
 
 	if (all_added &&
 	    query->edns.dnssec_ok &&
-	    zone_is_secure(rrset->zone) &&
+	    zone_is_secure(query->zone) &&
 	    rrset_rrtype(rrset) != TYPE_RRSIG &&
-	    (rrsig = domain_find_rrset(owner, rrset->zone, TYPE_RRSIG)))
+	    (rrsig = domain_find_rrset(owner, TYPE_RRSIG)))
 	{
 		for (i = 0; i < rrsig->rr_count; ++i) {
 			if (rr_rrsig_type_covered(&rrsig->rrs[i])

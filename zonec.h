@@ -31,6 +31,15 @@ struct lex_data {
 #define DEFAULT_TTL 3600
 #define MAXINCLUDES 10
 
+struct rdata_field
+{
+	int is_domain;
+	union {
+		const dname_type *dname;
+		uint16_t *data;
+	} u;
+};
+
 /* administration struct */
 typedef struct zparser zparser_type;
 struct zparser {
@@ -43,15 +52,26 @@ struct zparser {
 	int32_t default_minimum;
 	uint16_t default_class;
 	zone_type *current_zone;
-	domain_type *origin;
-	domain_type *prev_dname;
+	
+	region_type *origin_region;
+	const dname_type *origin;
+
+	region_type *prev_dname_region;
+	const dname_type *prev_dname;
 
 	int error_occurred;
 	unsigned int errors;
 	unsigned int line;
 
-	rr_type current_rr;
-	rdata_atom_type *temporary_rdatas;
+	struct {
+		const dname_type *owner;
+		uint32_t ttl;
+		uint16_t type;
+		uint16_t klass;
+		size_t rdata_count;
+		struct rdata_field rdatas[MAXRDATALEN];
+		uint16_t *unknown_rdata;
+	} rr;
 };
 
 extern zparser_type *parser;
@@ -97,11 +117,9 @@ uint16_t *zparser_conv_certificate_type(region_type *region,
 					const char *typestr);
 uint16_t *zparser_conv_apl_rdata(region_type *region, char *str);
 
-void parse_unknown_rdata(uint16_t type, uint16_t *wireformat);
-
 int32_t zparser_ttl2int(const char *ttlstr);
 void zadd_rdata_wireformat(uint16_t *data);
-void zadd_rdata_domain(domain_type *domain);
+void zadd_rdata_domain(const dname_type *dname);
 void zprintrr(FILE *f, rr_type *rr);
 
 void set_bitnsec(uint8_t  bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],

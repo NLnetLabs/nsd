@@ -834,55 +834,50 @@ zparser_ttl2int(const char *ttlstr)
 void
 zadd_rdata_wireformat(uint16_t *data)
 {
-	if (parser->current_rr.rdata_count > MAXRDATALEN) {
+	if (parser->rr.rdata_count > MAXRDATALEN) {
 		zc_error_prev_line("too many rdata elements");
 	} else {
-		parser->current_rr.rdatas[parser->current_rr.rdata_count].data
-			= data;
-		++parser->current_rr.rdata_count;
+		parser->rr.rdatas[parser->rr.rdata_count].is_domain = 0;
+		parser->rr.rdatas[parser->rr.rdata_count].u.data = data;
+		++parser->rr.rdata_count;
 	}
 }
 
 void
-zadd_rdata_domain(domain_type *domain)
+zadd_rdata_domain(const dname_type *dname)
 {
-	if (parser->current_rr.rdata_count > MAXRDATALEN) {
+	if (parser->rr.rdata_count > MAXRDATALEN) {
 		zc_error_prev_line("too many rdata elements");
 	} else {
-		parser->current_rr.rdatas[parser->current_rr.rdata_count].domain
-			= domain;
-		++parser->current_rr.rdata_count;
+		parser->rr.rdatas[parser->rr.rdata_count].is_domain = 1;
+		parser->rr.rdatas[parser->rr.rdata_count].u.dname = dname;
+		++parser->rr.rdata_count;
 	}
 }
 
-void
-parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
+static void
+parse_unknown_rdata(rr_type *rr, uint16_t *wireformat)
 {
 	buffer_type packet;
 	uint16_t size = *wireformat;
 	ssize_t rdata_count;
-	ssize_t i;
 	rdata_atom_type *rdatas;
 
 	buffer_create_from(&packet, wireformat + 1, *wireformat);
-	rdata_count = rdata_wireformat_to_rdata_atoms(parser->region,
-						      parser->db->domains,
-						      type,
-						      size,
-						      &packet,
-						      &rdatas);
+	rdata_count = rdata_wireformat_to_rdata_atoms(
+		parser->region,
+		parser->current_zone->domains,
+		rr->type,
+		size,
+		&packet,
+		&rdatas);
 	if (rdata_count == -1) {
 		zc_error_prev_line("bad unknown RDATA");
 		return;
 	}
-	
-	for (i = 0; i < rdata_count; ++i) {
-		if (rdata_atom_is_domain(type, i)) {
-			zadd_rdata_domain(rdatas[i].domain);
-		} else {
-			zadd_rdata_wireformat(rdatas[i].data);
-		}
-	}
+
+	rr->rdata_count = rdata_count;
+	rr->rdatas = rdatas;
 }
 
 
@@ -993,83 +988,107 @@ cleanup_rrset(void *r)
 int
 process_rr()
 {
-	zone_type *zone = parser->current_zone;
-	rr_type *rr = &parser->current_rr;
+	rr_type rr;
 	rrset_type *rrset;
 	size_t max_rdlength;
 	int i;
 	rrtype_descriptor_type *descriptor
-		= rrtype_descriptor_by_type(rr->type);
+		= rrtype_descriptor_by_type(parser->rr.type);
 	
 	/* We only support IN class */
-	if (rr->klass != CLASS_IN) {
+	if (parser->rr.klass != CLASS_IN) {
 		zc_error_prev_line("only class IN is supported");
 		return 0;
 	}
 
-	/* Make sure the maximum RDLENGTH does not exceed 65535 bytes.	*/
-	max_rdlength = rdata_maximum_wireformat_size(
-		descriptor, rr->rdata_count, rr->rdatas);
-
-	if (max_rdlength > MAX_RDLENGTH) {
-		zc_error_prev_line("maximum rdata length exceeds %d octets", MAX_RDLENGTH);
-		return 0;
-	}
-		     
-	if (rr->type == TYPE_SOA) {
+	if (parser->rr.type == TYPE_SOA) {
 		/*
 		 * This is a SOA record, start a new zone or continue
 		 * an existing one.
 		 */
-		zone = namedb_find_zone(parser->db, rr->owner);
-		if (!zone) {
-			/* new zone part */
-			zone = (zone_type *) region_alloc(parser->region,
-							  sizeof(zone_type));
-			zone->apex = rr->owner;
-			zone->soa_rrset = NULL;
-			zone->ns_rrset = NULL;
-			zone->is_secure = 0;
-			
-			/* insert in front of zone list */
-			zone->next = parser->db->zones;
-			parser->db->zones = zone;
-		}
-		
-		/* parser part */
-		parser->current_zone = zone;
+		parser->current_zone
+			= namedb_insert_zone(parser->db, parser->rr.owner);
 	}
 
-	if (!dname_is_subdomain(domain_dname(rr->owner),
-				domain_dname(zone->apex)))
+	switch (parser->rr.type) {
+	case TYPE_MD:
+		zc_warning_prev_line("MD is obsolete");
+		break;
+	case TYPE_MF:
+		zc_warning_prev_line("MF is obsolete");
+		break;
+	case TYPE_MB:
+		zc_warning_prev_line("MB is obsolete");
+		break;
+	default:
+		break;
+	}	
+
+	if (!dname_is_subdomain(parser->rr.owner,
+				domain_dname(parser->current_zone->apex)))
 	{
 		zc_error_prev_line("out of zone data");
 		return 0;
 	}
 
+	/*
+	 * Convert the data from the parser into an RR.
+	 */
+	rr.owner = domain_table_insert(parser->current_zone->domains,
+				       parser->rr.owner);
+	rr.ttl = parser->rr.ttl;
+	rr.type = parser->rr.type;
+	rr.klass = parser->rr.klass;
+	if (parser->rr.unknown_rdata) {
+		parse_unknown_rdata(&rr, parser->rr.unknown_rdata);
+	} else {
+		rr.rdata_count = parser->rr.rdata_count;
+		rr.rdatas = (rdata_atom_type *) region_alloc(
+			parser->region,
+			rr.rdata_count * sizeof(rdata_atom_type));
+		for (i = 0; i < rr.rdata_count; ++i) {
+			if (parser->rr.rdatas[i].is_domain) {
+				rr.rdatas[i].domain = domain_table_insert(
+					parser->current_zone->domains,
+					parser->rr.rdatas[i].u.dname);
+			} else {
+				rr.rdatas[i].data = parser->rr.rdatas[i].u.data;
+			}
+		}
+	}
+	
+	/* Make sure the maximum RDLENGTH does not exceed 65535 bytes.	*/
+	max_rdlength = rdata_maximum_wireformat_size(
+		descriptor, rr.rdata_count, rr.rdatas);
+	if (max_rdlength > MAX_RDLENGTH) {
+		zc_error_prev_line("maximum rdata length exceeds %d octets",
+				   MAX_RDLENGTH);
+		return 0;
+	}
+		     
 	/* Do we have this type of rrset already? */
-	rrset = domain_find_rrset(rr->owner, zone, rr->type);
+	rrset = domain_find_rrset(rr.owner, rr.type);
 	if (!rrset) {
 		rrset = (rrset_type *) region_alloc(parser->region,
 						    sizeof(rrset_type));
-		rrset->zone = zone;
 		rrset->rr_count = 1;
 		rrset->rrs = (rr_type *) xalloc(sizeof(rr_type));
-		rrset->rrs[0] = *rr;
+		rrset->rrs[0] = rr;
 			
 		region_add_cleanup(parser->region, cleanup_rrset, rrset);
 
 		/* Add it */
-		domain_add_rrset(rr->owner, rrset);
+		domain_add_rrset(rr.owner, rrset);
 	} else {
-		if (rr->type != TYPE_RRSIG && rrset->rrs[0].ttl != rr->ttl) {
+		if (rr.type != TYPE_RRSIG && rrset->rrs[0].ttl != rr.ttl) {
 			zc_warning_prev_line(
 				"TTL does not match the TTL of the RRset");
 		}
 
 		/* Search for possible duplicates... */
-		for (i = 0; i < rrset->rr_count; i++) {
-			if (!zrdatacmp(rr->type, rr, &rrset->rrs[i])) {
+		for (i = 0; i < rrset->rr_count; ++i) {
+			/* TODO: Why pass rr.type? */
+			if (!zrdatacmp(rr.type, &rr, &rrset->rrs[i])) {
 				break;
 			}
 		}
@@ -1083,36 +1102,40 @@ process_rr()
 		rrset->rrs = (rr_type *) xrealloc(
 			rrset->rrs,
 			(rrset->rr_count + 1) * sizeof(rr_type));
-		rrset->rrs[rrset->rr_count] = *rr;
+		rrset->rrs[rrset->rr_count] = rr;
 		++rrset->rr_count;
 	}
 
 #ifdef DNSSEC
-	if (rr->type == TYPE_RRSIG && rr_rrsig_type_covered(rr) == TYPE_SOA) {
-		rrset->zone->is_secure = 1;
+	if (rr.owner == parser->current_zone->apex
+	    && rr.type == TYPE_RRSIG
+	    && rr_rrsig_type_covered(&rr) == TYPE_SOA)
+	{
+		parser->current_zone->is_secure = 1;
 	}
 #endif
 	
 	/* Check we have SOA */
 	/* [XXX] this is dead code */
-	if (zone->soa_rrset == NULL) {
-		if (rr->type != TYPE_SOA) {
+	if (parser->current_zone->soa_rrset == NULL) {
+		if (rr.type != TYPE_SOA) {
 			zc_error_prev_line(
 				"missing SOA record on top of the zone");
-		} else if (rr->owner != zone->apex) {
+		} else if (rr.owner != parser->current_zone->apex) {
+			/* Can't happen.  */
 			zc_error_prev_line(
 				"SOA record with invalid domain name");
 		} else {
-			zone->soa_rrset = rrset;
+			parser->current_zone->soa_rrset = rrset;
 		}
-	} else if (rr->type == TYPE_SOA) {
+	} else if (rr.type == TYPE_SOA) {
 		zc_error_prev_line("duplicate SOA record discarded");
 		--rrset->rr_count;
 	}
 
 	/* Is this a zone NS? */
-	if (rr->type == TYPE_NS && rr->owner == zone->apex) {
-		zone->ns_rrset = rrset;
+	if (rr.type == TYPE_NS && rr.owner == parser->current_zone->apex) {
+		parser->current_zone->ns_rrset = rrset;
 	}
 	if (vflag > 1 && totalrrs > 0 && (totalrrs % progress == 0)) {
 		printf("%ld\n", totalrrs);

@@ -23,15 +23,8 @@
 #include "namedb.h"
 #include "util.h"
 
-int
-namedb_lookup(struct namedb    *db,
-	      const dname_type *dname,
-	      domain_type     **closest_match,
-	      domain_type     **closest_encloser)
-{
-	return domain_table_search(
-		db->domains, dname, closest_match, closest_encloser);
-}
+
+static void initialize_zone_info(namedb_type *db);
 
 static int
 read_magic(namedb_type *db)
@@ -83,20 +76,6 @@ read_domain(namedb_type *db, uint32_t domain_count, domain_type **domains)
 	return domains[domain_number - 1];
 }
 
-static zone_type *
-read_zone(namedb_type *db, uint32_t zone_count, zone_type **zones)
-{
-	uint32_t zone_number;
-
-	if (!read_size(db, &zone_number))
-		return NULL;
-
-	if (zone_number == 0 || zone_number > zone_count)
-		return NULL;
-
-	return zones[zone_number - 1];
-}
-
 static int
 read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count, domain_type **domains, rdata_atom_type *result)
 {
@@ -125,9 +104,8 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count
 }
 
 static rrset_type *
-read_rrset(namedb_type *db,
-	   uint32_t domain_count, domain_type **domains,
-	   uint32_t zone_count, zone_type **zones)
+read_rrset(namedb_type *db, zone_type *zone,
+	   uint32_t domain_count, domain_type **domains)
 {
 	rrset_type *rrset;
 	int i, j;
@@ -141,10 +119,6 @@ read_rrset(namedb_type *db,
 
 	rrset = (rrset_type *) region_alloc(db->region, sizeof(rrset_type));
 			     
-	rrset->zone = read_zone(db, zone_count, zones);
-	if (!rrset->zone)
-		return NULL;
-	
 	if (fread(&type, sizeof(type), 1, db->fd) != 1)
 		return NULL;
 	type = ntohs(type);
@@ -186,19 +160,17 @@ read_rrset(namedb_type *db,
 	domain_add_rrset(owner, rrset);
 
 	if (rrset_rrtype(rrset) == TYPE_SOA) {
-		assert(owner == rrset->zone->apex);
-		rrset->zone->soa_rrset = rrset;
-	} else if (owner == rrset->zone->apex
-		   && rrset_rrtype(rrset) == TYPE_NS)
-	{
-		rrset->zone->ns_rrset = rrset;
+		assert(owner == zone->apex);
+		zone->soa_rrset = rrset;
+	} else if (owner == zone->apex && rrset_rrtype(rrset) == TYPE_NS) {
+		zone->ns_rrset = rrset;
 	}
 
 #ifdef DNSSEC
-	if (rrset_rrtype(rrset) == TYPE_RRSIG && owner == rrset->zone->apex) {
+	if (owner == zone->apex && rrset_rrtype(rrset) == TYPE_RRSIG) {
 		for (i = 0; i < rrset->rr_count; ++i) {
 			if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_SOA) {
-				rrset->zone->is_secure = 1;
+				zone->is_secure = 1;
 				break;
 			}
 		}
@@ -208,8 +180,8 @@ read_rrset(namedb_type *db,
 	return rrset;
 }
 
-struct namedb *
-namedb_open (const char *filename)
+namedb_type *
+namedb_open(const char *filename)
 {
 	namedb_type *db;
 
@@ -237,11 +209,8 @@ namedb_open (const char *filename)
 	domain_type **domains;	/* Indexed by domain number.  */
 
 	uint32_t zone_count;
-	zone_type **zones;	/* Indexed by zone number.  */
 	
 	uint32_t i;
-	uint32_t rrset_count = 0;
-	uint32_t rr_count = 0;
 
 	rrset_type *rrset;
 	
@@ -261,10 +230,9 @@ namedb_open (const char *filename)
 	      (stderr, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
 
 	db_region = region_create(xalloc, free);
-	db = (namedb_type *) region_alloc(db_region, sizeof(struct namedb));
+	db = (namedb_type *) region_alloc(db_region, sizeof(namedb_type));
 	db->region = db_region;
-	db->domains = domain_table_create(db->region);
-	db->zones = NULL;
+	db->zones = heap_create(db->region, dname_compare_void);
 	db->filename = region_strdup(db->region, filename);
 	
 	/* Open it... */
@@ -277,13 +245,15 @@ namedb_open (const char *filename)
 	}
 
 	if (!read_magic(db)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database (bad magic): %s",
+			db->filename);
 		namedb_close(db);
 		return NULL;
 	}
 
 	if (!read_size(db, &zone_count)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database (no zones): %s",
+			db->filename);
 		namedb_close(db);
 		return NULL;
 	}
@@ -293,79 +263,83 @@ namedb_open (const char *filename)
 
 	temp_region = region_create(xalloc, free);
 	dname_region = region_create(xalloc, free);
-	
-	zones = (zone_type **) region_alloc(temp_region,
-					    zone_count * sizeof(zone_type *));
 	for (i = 0; i < zone_count; ++i) {
-		const dname_type *dname = read_dname(db->fd, dname_region);
-		if (!dname) {
-			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		uint32_t j;
+		uint32_t rrset_count;
+		uint32_t rr_count;
+		zone_type *zone;
+		const dname_type *apex;
+
+		apex = read_dname(db->fd, dname_region);
+		if (!apex) {
+			log_msg(LOG_ERR,
+				"corrupted database (missing zone): %s",
+				db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
 			namedb_close(db);
 			return NULL;
 		}
-		zones[i] = (zone_type *) region_alloc(db->region,
-						      sizeof(zone_type));
-		zones[i]->next = db->zones;
-		db->zones = zones[i];
-		zones[i]->apex = domain_table_insert(db->domains, dname);
-		zones[i]->soa_rrset = NULL;
-		zones[i]->ns_rrset = NULL;
-		zones[i]->number = i + 1;
-		zones[i]->is_secure = 0;
-
+		zone = namedb_insert_zone(db, apex);
 		region_free_all(dname_region);
-	}
 	
-	if (!read_size(db, &dname_count)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
-		region_destroy(dname_region);
-		region_destroy(temp_region);
-		namedb_close(db);
-		return NULL;
-	}
-
-	DEBUG(DEBUG_DBACCESS, 1,
-	      (stderr, "Retrieving %lu domain names\n", (unsigned long) dname_count));
-	
-	domains = (domain_type **) region_alloc(
-		temp_region, dname_count * sizeof(domain_type *));
-	for (i = 0; i < dname_count; ++i) {
-		const dname_type *dname = read_dname(db->fd, dname_region);
-		if (!dname) {
-			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		if (!read_size(db, &dname_count)) {
+			log_msg(LOG_ERR,
+				"corrupted database (missing domain table): %s",
+				db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
 			namedb_close(db);
 			return NULL;
 		}
-		domains[i] = domain_table_insert(db->domains, dname);
-		domains[i]->number = i + 1;
-		region_free_all(dname_region);
+
+		DEBUG(DEBUG_DBACCESS, 1,
+		      (stderr, "Retrieving %lu domain names for zone %s\n",
+		       (unsigned long) dname_count,
+		       dname_to_string(domain_dname(zone->apex), NULL)));
+
+		domains = (domain_type **) region_alloc(
+			temp_region, dname_count * sizeof(domain_type *));
+		for (j = 0; j < dname_count; ++j) {
+			const dname_type *dname
+				= read_dname(db->fd, dname_region);
+			if (!dname) {
+				log_msg(LOG_ERR, "corrupted database (missing domain name): %s",
+					db->filename);
+				region_destroy(dname_region);
+				region_destroy(temp_region);
+				namedb_close(db);
+				return NULL;
+			}
+			DEBUG(DEBUG_DBACCESS, 3,
+			      (stderr, "Retreived domain name %s\n",
+			       dname_to_string(dname, NULL)));
+			domains[j] = domain_table_insert(zone->domains, dname);
+			domains[j]->number = j + 1;
+			region_free_all(dname_region);
+		}
+
+		rrset_count = 0;
+		rr_count = 0;
+		
+		while ((rrset = read_rrset(db, zone, dname_count, domains))) {
+			++rrset_count;
+			rr_count += rrset->rr_count;
+		}
+		
+		DEBUG(DEBUG_DBACCESS, 1,
+		      (stderr, "Retrieved %lu RRs in %lu RRsets for zone %s\n",
+		       (unsigned long) rr_count,
+		       (unsigned long) rrset_count,
+		       dname_to_string(domain_dname(zone->apex), NULL)));
 	}
-	
+
 	region_destroy(dname_region);
-
-#ifndef NDEBUG
-	fprintf(stderr, "database region after loading domain names: ");
-	region_dump_stats(db->region, stderr);
-	fprintf(stderr, "\n");
-#endif	
-
-	while ((rrset = read_rrset(db, dname_count, domains, zone_count, zones))) {
-		++rrset_count;
-		rr_count += rrset->rr_count;
-	}
-
-	DEBUG(DEBUG_DBACCESS, 1,
-	      (stderr, "Retrieved %lu RRs in %lu RRsets\n",
-	       (unsigned long) rr_count, (unsigned long) rrset_count));
-	
 	region_destroy(temp_region);
 	
 	if (!read_magic(db)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database (bad magic): %s",
+			db->filename);
 		namedb_close(db);
 		return NULL;
 	}
@@ -373,6 +347,8 @@ namedb_open (const char *filename)
 	fclose(db->fd);
 	db->fd = NULL;
 
+	initialize_zone_info(db);
+	
 #ifndef NDEBUG
 	fprintf(stderr, "database region after loading database: ");
 	region_dump_stats(db->region, stderr);
@@ -383,7 +359,7 @@ namedb_open (const char *filename)
 }
 
 void
-namedb_close (struct namedb *db)
+namedb_close (namedb_type *db)
 {
 	if (db) {
 		if (db->fd) {
@@ -391,4 +367,68 @@ namedb_close (struct namedb *db)
 		}
 		region_destroy(db->region);
 	}
+}
+
+static void
+initialize_zone_info(namedb_type *db)
+{
+	const dname_type *apex;
+	zone_type *zone;
+	region_type *region = region_create(xalloc, free);
+
+	/* Find closest enclosing auhoritative zones.  */
+	HEAP_WALK(db->zones, apex, zone) {
+		const dname_type *temp = apex;
+		while (!dname_is_root(temp)) {
+			zone_type *closest_ancestor;
+			
+			temp = dname_origin(region, temp);
+			closest_ancestor = namedb_find_zone(db, temp);
+			if (closest_ancestor) {
+				DEBUG(DEBUG_DBACCESS, 2,
+				      (stderr,
+				       "%s is the closest enclosing zone of ",
+				       dname_to_string(
+					       domain_dname(
+						       closest_ancestor->apex),
+					       NULL)));
+				DEBUG(DEBUG_DBACCESS, 2,
+				      (stderr, "%s\n",
+				       dname_to_string(apex, NULL)));
+				zone->closest_ancestor = closest_ancestor;
+
+				break;
+			}
+		}
+
+		region_free_all(region);
+	}
+	
+	/*
+	 * Check if the closest authoritative enclosing zone is the
+	 * parent zone.  The parent zone has a zone cut at the child
+	 * zone's apex.
+	 */
+	HEAP_WALK(db->zones, apex, zone) {
+		zone_type *parent = zone->closest_ancestor;
+		domain_type *zone_cut;
+		
+		if (parent
+		    && (zone_cut = domain_table_find(parent->domains, apex))
+		    && domain_find_rrset(zone_cut, TYPE_NS))
+		{
+			DEBUG(DEBUG_DBACCESS, 2,
+			      (stderr, "%s is the parent zone of ",
+			       dname_to_string(domain_dname(parent->apex),
+					       NULL)));
+			DEBUG(DEBUG_DBACCESS, 2,
+			      (stderr, "%s\n", dname_to_string(apex, NULL)));
+			
+			zone->parent = parent;
+		} else {
+			zone->parent = NULL;
+		}
+	}
+
+	region_destroy(region);
 }

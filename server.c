@@ -212,10 +212,22 @@ restart_child_servers(struct nsd *nsd)
 static void
 initialize_dname_compression_tables(struct nsd *nsd)
 {
-	compressed_dname_offsets = (uint16_t *) xalloc(
-		(domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
-	memset(compressed_dname_offsets, 0,
-	       (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	uint32_t max_domains = 0;
+	const dname_type *key;
+	zone_type *zone;
+	
+	HEAP_WALK(nsd->db->zones, key, zone) {
+		if (max_domains < domain_table_count(zone->domains)) {
+			max_domains = domain_table_count(zone->domains);
+		}
+	}
+
+	/* Reserve space for the query name offset.  */
+	++max_domains;
+	
+	compressed_dname_offsets
+		= (uint16_t *) xalloc(max_domains * sizeof(uint16_t));
+	memset(compressed_dname_offsets, 0, max_domains * sizeof(uint16_t));
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 	region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
 }

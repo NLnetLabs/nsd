@@ -23,9 +23,6 @@ int deny_severity = LOG_NOTICE;
 query_state_type
 query_axfr (struct nsd *nsd, struct query *query)
 {
-	domain_type *closest_match;
-	domain_type *closest_encloser;
-	int exact;
 	int added;
 	uint16_t total_added = 0;
 
@@ -39,25 +36,16 @@ query_axfr (struct nsd *nsd, struct query *query)
 
 	if (query->axfr_zone == NULL) {
 		/* Start AXFR.  */
-		exact = namedb_lookup(nsd->db,
-				      query->qname,
-				      &closest_match,
-				      &closest_encloser);
-		
-		query->domain = closest_encloser;
-		query->axfr_zone = domain_find_zone(closest_encloser);
-		
-		if (!exact
-		    || query->axfr_zone == NULL
-		    || query->axfr_zone->apex != query->domain)
-		{
-			/* No SOA no transfer */
+		query->axfr_zone = namedb_find_zone(nsd->db, query->qname);
+		if (!query->axfr_zone) {
+			/* Zone not found.  */
 			RCODE_SET(query->packet, RCODE_REFUSE);
 			return QUERY_PROCESSED;
 		}
 
-		query->axfr_current_domain
-			= (domain_type *) heap_first(nsd->db->domains->names_to_domains);
+		query->domain
+			= query->axfr_current_domain
+			= query->axfr_zone->apex;
 		query->axfr_current_rrset = NULL;
 		query->axfr_current_rr = 0;
 
@@ -88,16 +76,17 @@ query_axfr (struct nsd *nsd, struct query *query)
 	
 	while ((rbnode_t *) query->axfr_current_domain != HEAP_NULL) {
 		if (!query->axfr_current_rrset) {
-			query->axfr_current_rrset = domain_find_any_rrset(
-				query->axfr_current_domain,
-				query->axfr_zone);
+			query->axfr_current_rrset
+				= query->axfr_current_domain->rrsets;
 			query->axfr_current_rr = 0;
 		}
 		while (query->axfr_current_rrset) {
-			if (query->axfr_current_rrset != query->axfr_zone->soa_rrset
-			    && query->axfr_current_rrset->zone == query->axfr_zone)
+			if (query->axfr_current_rrset
+			    != query->axfr_zone->soa_rrset)
 			{
-				while (query->axfr_current_rr < query->axfr_current_rrset->rr_count) {
+				while (query->axfr_current_rr
+				       < query->axfr_current_rrset->rr_count)
+				{
 					added = packet_encode_rr(
 						query,
 						query->axfr_current_domain,
@@ -109,7 +98,8 @@ query_axfr (struct nsd *nsd, struct query *query)
 				}
 			}
 
-			query->axfr_current_rrset = query->axfr_current_rrset->next;
+			query->axfr_current_rrset
+				= query->axfr_current_rrset->next;
 			query->axfr_current_rr = 0;
 		}
 		assert(query->axfr_current_domain);

@@ -56,12 +56,23 @@ struct domain
 
 struct zone
 {
-	zone_type   *next;
-	domain_type *apex;
-	rrset_type  *soa_rrset;
-	rrset_type  *ns_rrset;
-	uint32_t     number;
-	unsigned     is_secure : 1;
+	rbnode_t           node;
+	domain_table_type *domains;
+	domain_type       *apex;
+	rrset_type        *soa_rrset;
+	rrset_type        *ns_rrset;
+
+	/*
+	 * The closest ancestor zone stored in the database.
+	 */
+	zone_type         *closest_ancestor;
+	
+	/*
+	 * The direct parent zone if stored in the database.
+	 */
+	zone_type         *parent;
+
+	unsigned           is_secure : 1;
 };
 
 /* a RR in DNS */
@@ -75,13 +86,11 @@ struct rr {
 };
 
 /*
- * An RRset consists of at least one RR.  All RRs are from the same
- * zone.
+ * An RRset consists of at least one RR.
  */
 struct rrset
 {
 	rrset_type *next;
-	zone_type  *zone;
 	rr_type    *rrs;
 	uint16_t    rr_count;
 };
@@ -117,7 +126,7 @@ int domain_table_search(domain_table_type *table,
  * The number of domains stored in the table (minimum is one for the
  * root domain).
  */
-static inline uint32_t
+static inline size_t
 domain_table_count(domain_table_type *table)
 {
 	return table->names_to_domains->count;
@@ -157,18 +166,33 @@ void domain_table_iterate(domain_table_type *table,
  */
 void domain_add_rrset(domain_type *domain, rrset_type *rrset);
 
-rrset_type *domain_find_rrset(domain_type *domain, zone_type *zone, uint16_t type);
-rrset_type *domain_find_any_rrset(domain_type *domain, zone_type *zone);
+/*
+ * Find a specific RRset for DOMAIN with the indicated TYPE.
+ */
+rrset_type *domain_find_rrset(domain_type *domain, uint16_t type);
 
-zone_type *domain_find_zone(domain_type *domain);
-zone_type *domain_find_parent_zone(zone_type *zone);
+/*
+ * Find the RRset of TYPE in DOMAIN or one of its ancestor domains.
+ */
+domain_type *domain_find_enclosing_rrset(domain_type *domain,
+					 uint16_t type,
+					 rrset_type **rrset);
 
-domain_type *domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns);
+/*
+ * True if DOMAIN is at or below a zone cut.
+ */
+int domain_is_glue(domain_type *domain);
 
-int domain_is_glue(domain_type *domain, zone_type *zone);
-
+/*
+ * Returns the wildcard child of DOMAIN or NULL if there is no such
+ * domain.
+ */
 domain_type *domain_wildcard_child(domain_type *domain);
 
+/*
+ * Returns true if ZONE is secure (there is an RRSIG RR for the zone's
+ * SOA RRset).
+ */
 int zone_is_secure(zone_type *zone);
 
 static inline const dname_type *
@@ -200,8 +224,7 @@ typedef struct namedb namedb_type;
 struct namedb
 {
 	region_type       *region;
-	domain_table_type *domains;
-	zone_type         *zones;
+	heap_t            *zones;
 	char              *filename;
 	FILE              *fd;
 };
@@ -228,23 +251,35 @@ rdata_atom_data(rdata_atom_type atom)
 
 
 /*
- * Find the zone for the specified DOMAIN in DB.
+ * Find the zone for the specified domain name in DB.
  */
-zone_type *namedb_find_zone(namedb_type *db, domain_type *domain);
+zone_type *namedb_find_zone(namedb_type *db, const dname_type *apex);
 
+/*
+ * Find the zone authoritative for DNAME (not taking into account zone
+ * cuts).
+ */
+zone_type *namedb_find_authoritative_zone(namedb_type *db,
+					  const dname_type *dname);
+
+/*
+ * Find or insert a zone in DB.
+ */
+zone_type *namedb_insert_zone(namedb_type *db, const dname_type *apex);
+
+int zone_lookup (zone_type        *zone,
+		 const dname_type *dname,
+		 domain_type     **closest_match,
+		 domain_type     **closest_encloser);
 /* dbcreate.c */
-struct namedb *namedb_new(const char *filename);
-int namedb_save(struct namedb *db);
-void namedb_discard(struct namedb *db);
+namedb_type *namedb_new(const char *filename);
+int namedb_save(namedb_type *db);
+void namedb_discard(namedb_type *db);
 
 
 /* dbaccess.c */
-int namedb_lookup (struct namedb    *db,
-		   const dname_type *dname,
-		   domain_type     **closest_match,
-		   domain_type     **closest_encloser);
-struct namedb *namedb_open(const char *filename);
-void namedb_close(struct namedb *db);
+namedb_type *namedb_open(const char *filename);
+void namedb_close(namedb_type *db);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)
