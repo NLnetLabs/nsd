@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.11 2002/02/06 13:20:32 alexis Exp $
+ * $Id: nsd.c,v 1.12 2002/02/07 14:02:16 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -107,6 +107,7 @@ sig_handler(sig)
 		}
 		break;
 	case SIGHUP:
+		syslog(LOG_WARNING, "signal %d received, reloading...", sig);
 		server_mode = NSD_RELOAD;
 		break;
 	case SIGTERM:
