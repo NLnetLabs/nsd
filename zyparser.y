@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.13 2003/08/19 12:29:49 miekg Exp $
+ * $Id: zyparser.y,v 1.14 2003/08/19 13:36:08 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -59,7 +59,7 @@ line:   NL
     |   DIR_ORIG dir_orig
     |   rr
     {   /* rr should be fully parsed */
-        zprintrr(stderr, current_rr);
+        /*zprintrr(stderr, current_rr); DEBUG */
         rrlist = list_add(rrlist, current_rr);
         current_rr = xalloc(sizeof(struct RR));
         zreset_current_rr(zdefault);

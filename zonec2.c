@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.5 2003/08/18 16:20:03 miekg Exp $
+ * $Id: zonec2.c,v 1.6 2003/08/19 13:36:08 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -397,8 +397,9 @@ zone_read (char *name, char *zonefile)
 	while (l->next != NULL ) {
 
 		rr = l->rr;
+        fprintf(stderr, "\n");        
         zprintrr(stderr, rr);
-        fprintf(stderr,"\n");
+        fprintf(stderr, "\n");        
 		
 		/* Report progress... 
 		   if(vflag > 1) {
@@ -448,8 +449,10 @@ zone_read (char *name, char *zonefile)
 		/* Do we have this domain name in heap? */
 		if((rrset = heap_search(h, rr->dname)) != NULL) {
 			for(r = rrset; r; r = r->next) {
-				if(r->type == rr->type)
+				if(r->type == rr->type) {
+                    /*l = l->next; /* next */
 					break;
+                }
 			}
 		} else {
 			r = NULL;
@@ -485,18 +488,22 @@ zone_read (char *name, char *zonefile)
 		} else {
 			if(r->ttl != rr->ttl) {
 				zerror("ttl doesn't match the ttl of the rrset");
+                l = l->next; /* next! */
 				continue;
 			}
 
 			/* Search for possible duplicates... */
 			for(i = 0; i < r->rrslen; i++) {
-				if(!zrdatacmp(r->rrs[i], rr->rdata))
+				if(!zrdatacmp(r->rrs[i], rr->rdata)) {
+                    /*l = l->next; /* next! */
 					break;
+                }
 			}
 
 			/* Discard the duplicates... */
 			if(i < r->rrslen) {
 				zrdatafree(rr->rdata);
+                l = l->next;
 				continue;
 			}
 
