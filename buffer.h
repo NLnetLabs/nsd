@@ -237,7 +237,9 @@ buffer_remaining(buffer_type *buffer)
 static inline int
 buffer_available_at(buffer_type *buffer, size_t at, size_t count)
 {
-	return count <= buffer_remaining_at(buffer, at);
+	return (at >= buffer->_limit
+		? count == 0
+		: count <= buffer_remaining_at(buffer, at));
 }
 
 static inline int
