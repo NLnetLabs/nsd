@@ -435,15 +435,16 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 		while (!match->is_existing) {
 			match = match->parent;
 		}
-		if (additional != match && match->wildcard_child) {
+		if (additional != match && domain_wildcard_child(match)) {
+			domain_type *wildcard_child = domain_wildcard_child(match);
 			domain_type *temp = region_alloc(query->region, sizeof(domain_type));
 			temp->dname = additional->dname;
 			temp->number = additional->number;
 			temp->parent = match;
-			temp->wildcard_child = NULL;
-			temp->rrsets = match->wildcard_child->rrsets;
-			temp->plugin_data = match->wildcard_child->plugin_data;
-			temp->is_existing = match->wildcard_child->is_existing;
+			temp->wildcard_child_closest_match = NULL;
+			temp->rrsets = wildcard_child->rrsets;
+			temp->plugin_data = wildcard_child->plugin_data;
+			temp->is_existing = wildcard_child->is_existing;
 			additional = temp;
 		}
 
@@ -508,6 +509,7 @@ answer_delegation(struct query *query, answer_type *answer)
 		  AUTHORITY_SECTION,
 		  query->delegation_domain,
 		  query->delegation_rrset);
+	/* XXX: Add DS records.  */
 	query->domain = query->delegation_domain;
 }
 
@@ -535,6 +537,12 @@ static void
 answer_nxtype(struct query *query, answer_type *answer, domain_type *domain)
 {
 	answer_soa(query, answer);
+	if (query->dnssec_ok && zone_is_secure(query->zone)) {
+		rrset_type *nsec = domain_find_rrset(domain, query->zone, TYPE_NSEC);
+		if (nsec) {
+			add_rrset(query, answer, AUTHORITY_SECTION, domain, nsec);
+		}
+	}
 }
 
 static void
@@ -555,7 +563,11 @@ answer_domain(struct query *q, answer_type *answer, domain_type *domain)
 	
 	if (q->type == TYPE_ANY && (rrset = domain_find_any_rrset(domain, q->zone))) {
 		for (; rrset; rrset = rrset->next) {
-			if (rrset->zone == q->zone) {
+			if (rrset->zone == q->zone
+			    && (!q->dnssec_ok
+				|| rrset->type != TYPE_RRSIG
+				|| !zone_is_secure(q->zone)))
+			{
 				add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 			}
 		}
@@ -700,10 +712,26 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 }
 
 
+static domain_type *
+find_covering_nsec(rbnode_t *closest_match, zone_type *zone, rrset_type **nsec_rrset)
+{
+	assert(closest_match);
+	assert(nsec_rrset);
+
+	do {
+		*nsec_rrset = domain_find_rrset(closest_match->data, zone, TYPE_NSEC);
+		if (*nsec_rrset)
+			return closest_match->data;
+		closest_match = heap_previous(closest_match);
+	} while (closest_match->data != zone->domain);
+	return NULL;
+}
+
+
 static void
 answer_query(struct nsd *nsd, struct query *q)
 {
-	domain_type *closest_match;
+	rbnode_t *closest_match;
 	domain_type *closest_encloser;
 	domain_type *match;
 	uint16_t offset;
@@ -725,21 +753,24 @@ answer_query(struct nsd *nsd, struct query *q)
 		return;
 	}
 
+	answer_init(&answer);
+
 	offset = dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
 
 	if (exact) {
 		match = closest_encloser;
-	} else if (closest_encloser->wildcard_child) {
+	} else if (domain_wildcard_child(closest_encloser)) {
 		/* Generate the domain from the wildcard.  */
+		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
 		match = region_alloc(q->region, sizeof(domain_type));
 		match->dname = q->name;
 		match->parent = closest_encloser;
-		match->wildcard_child = NULL;
+		match->wildcard_child_closest_match = NULL;
 		match->number = 0; /* Number 0 is always available. */
-		match->rrsets = closest_encloser->wildcard_child->rrsets;
-		match->plugin_data = closest_encloser->wildcard_child->plugin_data;
-		match->is_existing = closest_encloser->wildcard_child->is_existing;
+		match->rrsets = wildcard_child->rrsets;
+		match->plugin_data = wildcard_child->plugin_data;
+		match->is_existing = wildcard_child->is_existing;
 		query_put_dname_offset(q, match, QHEADERSZ);
 	} else {
 		match = NULL;
@@ -759,8 +790,36 @@ answer_query(struct nsd *nsd, struct query *q)
 		if (zone)
 			q->zone = zone;
 	}
+
+	if (q->dnssec_ok && zone_is_secure(q->zone)) {
+		if (match != closest_encloser) {
+			domain_type *nsec_domain;
+			rrset_type *nsec_rrset;
+			
+			/*
+			 * No match found or generated from wildcard,
+			 * include NSEC record.
+			 */
+			nsec_domain = find_covering_nsec(closest_match, q->zone, &nsec_rrset);
+			if (nsec_domain) {
+				add_rrset(q, &answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
+			}
+		}
+		if (!match) {
+			domain_type *nsec_domain;
+			rrset_type *nsec_rrset;
+
+			/*
+			 * No match and no wildcard.  Include NSEC
+			 * proving there is no wildcard.
+			 */
+			nsec_domain = find_covering_nsec(closest_encloser->wildcard_child_closest_match, q->zone, &nsec_rrset);
+			if (nsec_domain) {
+				add_rrset(q, &answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
+			}
+		}
+	}
 	
-	answer_init(&answer);
 	if (q->type == TYPE_DS && match == q->zone->domain) {
 		answer_domain(q, &answer, match);
 	} else {

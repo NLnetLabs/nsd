@@ -45,7 +45,7 @@
 query_state_type
 query_axfr (struct nsd *nsd, struct query *query)
 {
-	domain_type *closest_match;
+	rbnode_t *closest_match;
 	domain_type *closest_encloser;
 	int exact;
 	int added;
@@ -100,7 +100,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 	/* Add zone RRs until answer is full.  */
 	assert(query->axfr_current_domain);
 	
-	while (query->axfr_current_domain != heap_last()) {
+	while (query->axfr_current_domain != HEAP_NULL) {
 		if (!query->axfr_current_rrset) {
 			query->axfr_current_rrset = domain_find_any_rrset(
 				query->axfr_current_domain->data,

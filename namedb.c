@@ -68,7 +68,7 @@ allocate_domain_info(domain_table_type *table,
 	result->dname = dname_partial_copy(
 		table->region, dname, parent->dname->label_count + 1);
 	result->parent = parent;
-	result->wildcard_child = NULL;
+	result->wildcard_child_closest_match = NULL;
 	result->rrsets = NULL;
 	result->number = 0;
 	result->plugin_data = NULL;
@@ -91,7 +91,7 @@ domain_table_create(region_type *region)
 	root = region_alloc(region, sizeof(domain_type));
 	root->dname = origin;
 	root->parent = NULL;
-	root->wildcard_child = NULL;
+	root->wildcard_child_closest_match = NULL;
 	root->rrsets = NULL;
 	root->number = 0;
 	root->plugin_data = NULL;
@@ -110,11 +110,10 @@ domain_table_create(region_type *region)
 
 int
 domain_table_search(domain_table_type *table,
-		   const dname_type *dname,
-		   domain_type **closest_match,
-		   domain_type **closest_encloser)
+		   const dname_type   *dname,
+		   rbnode_t          **closest_match,
+		   domain_type       **closest_encloser)
 {
-	rbnode_t *child;
 	int exact;
 	uint8_t label_match_count;
 	
@@ -123,14 +122,14 @@ domain_table_search(domain_table_type *table,
 	assert(closest_match);
 	assert(closest_encloser);
 
-	exact = rbtree_find_less_equal(table->names_to_domains, dname, &child);
-	assert(child);
+	exact = rbtree_find_less_equal(table->names_to_domains, dname, closest_match);
+	assert(*closest_match);
 
-	*closest_match = *closest_encloser = child->data;
+	*closest_encloser = (*closest_match)->data;
 	
 	if (!exact) {
 		label_match_count = dname_label_match_count(
-			(*closest_match)->dname,
+			(*closest_encloser)->dname,
 			dname);
 		assert(label_match_count < dname->label_count);
 		while (label_match_count < (*closest_encloser)->dname->label_count) {
@@ -146,13 +145,13 @@ domain_type *
 domain_table_find(domain_table_type *table,
 		 const dname_type *dname)
 {
-	domain_type *closest_match;
+	rbnode_t *closest_match;
 	domain_type *closest_encloser;
 	int exact;
 
 	exact = domain_table_search(
 		table, dname, &closest_match, &closest_encloser);
-	return exact ? closest_match : NULL;
+	return exact ? closest_encloser : NULL;
 }
 
 
@@ -160,7 +159,7 @@ domain_type *
 domain_table_insert(domain_table_type *table,
 		    const dname_type  *dname)
 {
-	domain_type *closest_match;
+	rbnode_t *closest_match;
 	domain_type *closest_encloser;
 	domain_type *result;
 	int exact;
@@ -171,21 +170,32 @@ domain_table_insert(domain_table_type *table,
 	exact = domain_table_search(
 		table, dname, &closest_match, &closest_encloser);
 	if (exact) {
-		result = closest_match;
+		result = closest_encloser;
 	} else {
 		assert(closest_encloser->dname->label_count < dname->label_count);
 	
 		/* Insert new node(s).  */
 		do {
+			rbnode_t *node;
+			
 			result = allocate_domain_info(table,
 						      dname,
 						      closest_encloser);
-			heap_insert(table->names_to_domains, result->dname, result, 1);
-			if (label_is_wildcard(
-				    dname_label(dname,
-						closest_encloser->dname->label_count)))
+			node = heap_insert(table->names_to_domains, result->dname, result, 1);
+			result->wildcard_child_closest_match = node;
+
+			/*
+			 * If the newly added domain name is larger
+			 * than the current
+			 * wildcard_child_closest_match but smaller or
+			 * equal to the wildcard domain name, update
+			 * the parent's wildcard_child_closest_match
+			 * field.
+			 */
+			if (dname_compare(result->dname, closest_encloser->dname) > 0
+			    && label_compare(dname_name(result->dname), (const uint8_t *) "\001*") <= 0)
 			{
-				closest_encloser->wildcard_child = result;
+				closest_encloser->wildcard_child_closest_match = node;
 			}
 			closest_encloser = result;
 		} while (closest_encloser->dname->label_count < dname->label_count);
@@ -303,6 +313,42 @@ domain_is_glue(domain_type *domain, zone_type *zone)
 		domain_find_rrset(ns_domain, zone, TYPE_SOA) == NULL);
 }
 
+domain_type *
+domain_wildcard_child(domain_type *domain)
+{
+	domain_type *wildcard_child;
+	
+	assert(domain);
+	assert(domain->wildcard_child_closest_match);
+	assert(domain->wildcard_child_closest_match->data);
+
+	wildcard_child = domain->wildcard_child_closest_match->data;
+	return (label_is_wildcard(dname_name(wildcard_child->dname))
+		? wildcard_child
+		: NULL);
+}
+
+int
+zone_is_secure(zone_type *zone)
+{
+	/* XXX: Zone is secure if the SOA record is signed?  */
+	return 1;
+}
+
+uint16_t
+rrset_rrsig_type_covered(rrset_type *rrset, uint16_t rr)
+{
+	rdata_atom_type atom;
+	
+	assert(rrset->type == TYPE_RRSIG);
+	assert(rr < rrset->rrslen);
+
+	atom = rrset->rrs[rr]->rdata[0];
+	assert(!rdata_atom_is_terminator(atom));
+	assert(rdata_atom_size(atom) == sizeof(uint16_t));
+	
+	return ntohs(* (uint16_t *) rdata_atom_data(atom));
+}
 
 /*
  * The type of the rdatas for each known RR type.  The possible types

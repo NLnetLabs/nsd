@@ -203,7 +203,7 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
 /*
  * Inserts a node into a red black tree.
  *
- * Returns NULL on failure or the pointer to the newly added data
+ * Returns NULL on failure or the pointer to the newly added node
  * otherwise.
  *
  * If told to overwrite will replace the duplicate key and data with
@@ -212,7 +212,7 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
  * data.
  *
  */
-void *
+rbnode_t *
 rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 {
 	/* XXX Not necessary, but keeps compiler quiet... */
@@ -267,7 +267,7 @@ rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 	/* Fix up the red-black properties... */
 	rbtree_insert_fixup(rbtree, node);
 
-	return node->data;
+	return node;
 }
 
 /*
@@ -346,6 +346,25 @@ rbtree_next (rbnode_t *node)
 	} else {
 		parent = node->parent;
 		while (parent != RBTREE_NULL && node == parent->right) {
+			node = parent;
+			parent = parent->parent;
+		}
+		node = parent;
+	}
+	return node;
+}
+
+rbnode_t *
+rbtree_previous(rbnode_t *node)
+{
+	rbnode_t *parent;
+
+	if (node->left != RBTREE_NULL) {
+		/* One left, then keep on going right... */
+		for (node = node->left; node->right != RBTREE_NULL; node = node->right);
+	} else {
+		parent = node->parent;
+		while (parent != RBTREE_NULL && node == parent->left) {
 			node = parent;
 			parent = parent->parent;
 		}

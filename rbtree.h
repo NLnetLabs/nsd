@@ -71,19 +71,19 @@ struct rbtree_t {
 	int (*cmp) (const void *, const void *);
 };
 
-#define	rbtree_last() RBTREE_NULL
-
 /* rbtree.c */
 rbtree_t *rbtree_create(region_type *region, int (*cmpf)(const void *, const void *));
-void *rbtree_insert(rbtree_t *rbtree, const void *key, void *data, int overwrite);
+rbnode_t *rbtree_insert(rbtree_t *rbtree, const void *key, void *data, int overwrite);
 void *rbtree_search(rbtree_t *rbtree, const void *key);
 int rbtree_find_less_equal(rbtree_t *rbtree, const void *key, rbnode_t **result);
 rbnode_t *rbtree_first(rbtree_t *rbtree);
+rbnode_t *rbtree_last(rbtree_t *rbtree);
 rbnode_t *rbtree_next(rbnode_t *rbtree);
+rbnode_t *rbtree_previous(rbnode_t *rbtree);
 
 #define	RBTREE_WALK(rbtree, k, d) \
 	for((rbtree)->_node = rbtree_first(rbtree);\
-		(rbtree)->_node != rbtree_last() && ((k) = (rbtree)->_node->key) && \
+		(rbtree)->_node != RBTREE_NULL && ((k) = (rbtree)->_node->key) && \
 		((d) = (rbtree)->_node->data); (rbtree)->_node = rbtree_next((rbtree)->_node))
 
 #endif /* _RBTREE_H_ */

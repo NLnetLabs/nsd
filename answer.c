@@ -41,6 +41,7 @@
 #include <string.h>
 
 #include "answer.h"
+#include "dns.h"
 
 void
 answer_init(answer_type *answer)
@@ -162,7 +163,10 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 	uint8_t *truncation_point = q->iobufptr;
 	uint16_t added = 0;
 	int all_added = 1;
+	rrset_type *rrsig;
 	
+	assert(rrset->rrslen > 0);
+
 	for (i = 0; i < rrset->rrslen; ++i) {
 		if (encode_rr(q, owner, rrset, i)) {
 			++added;
@@ -179,6 +183,31 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 		}
 	}
 
+	if (all_added &&
+	    q->dnssec_ok &&
+	    zone_is_secure(rrset->zone) &&
+	    rrset->type != TYPE_RRSIG &&
+	    (rrsig = domain_find_rrset(owner, rrset->zone, TYPE_RRSIG)))
+	{
+		for (i = 0; i < rrsig->rrslen; ++i) {
+			if (rrset_rrsig_type_covered(rrsig, i) == rrset->type) {
+				if (encode_rr(q, owner, rrsig, i)) {
+					++added;
+				} else {
+					all_added = 0;
+					if (truncate) {
+						/* Truncate entire RRset and set truncate flag.  */
+						q->iobufptr = truncation_point;
+						TC_SET(q);
+						added = 0;
+						query_clear_dname_offsets(q);
+					}
+					break;
+				}
+			}
+		}
+	}
+	
 	(*count) += added;
 
 	return all_added;

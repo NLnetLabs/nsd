@@ -77,7 +77,7 @@ struct domain
 {
 	const dname_type  *dname;
 	domain_type       *parent;
-	domain_type       *wildcard_child;
+	rbnode_t          *wildcard_child_closest_match;
 	rrset_type        *rrsets;
 	uint32_t           number; /* Unique domain name number.  */
 	void             **plugin_data;
@@ -128,7 +128,7 @@ domain_table_type *domain_table_create(region_type *region);
  */
 int domain_table_search(domain_table_type *table,
 			const dname_type  *dname,
-			domain_type      **closest_match,
+			rbnode_t         **closest_match,
 			domain_type      **closest_encloser);
 
 /*
@@ -184,6 +184,16 @@ zone_type *domain_find_parent_zone(zone_type *zone);
 domain_type *domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns);
 
 int domain_is_glue(domain_type *domain, zone_type *zone);
+
+domain_type *domain_wildcard_child(domain_type *domain);
+
+int zone_is_secure(zone_type *zone);
+
+/*
+ * The type covered by the signature in the specified RR in the RRSIG
+ * RRset.
+ */
+uint16_t rrset_rrsig_type_covered(rrset_type *rrset, uint16_t rr);
 
 typedef struct namedb namedb_type;
 struct namedb
@@ -243,8 +253,8 @@ void namedb_discard(struct namedb *db);
 /* dbaccess.c */
 int namedb_lookup (struct namedb    *db,
 		   const dname_type *dname,
-		   domain_type **less_equal,
-		   domain_type **closest_encloser);
+		   rbnode_t        **closest_match,
+		   domain_type     **closest_encloser);
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);
 
