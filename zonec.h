@@ -13,7 +13,7 @@
 #include "namedb.h"
 
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
-#define	B64BUFSIZE	16384		/* Buffer size for b64 conversion */
+#define	B64BUFSIZE	65535		/* Buffer size for b64 conversion */
 #define	ROOT		(const uint8_t *)"\001"
 #define	MAXINCLUDES	10
 
@@ -83,12 +83,12 @@ uint16_t *zparser_conv_hex(region_type *region, const char *hex);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
 uint16_t *zparser_conv_services(region_type *region, const char *protostr, char *servicestr);
 uint16_t *zparser_conv_period(region_type *region, const char *periodstr);
-uint16_t *zparser_conv_short(region_type *region, const char *shortstr);
-uint16_t *zparser_conv_long(region_type *region, const char *longstr);
-uint16_t *zparser_conv_byte(region_type *region, const char *bytestr);
-uint16_t *zparser_conv_a(region_type *region, const char *a);
-uint16_t *zparser_conv_text(region_type *region, const char *txt, size_t len);
-uint16_t *zparser_conv_a6(region_type *region, const char *a6);
+uint16_t *zparser_conv_short(region_type *region, const char *text);
+uint16_t *zparser_conv_long(region_type *region, const char *text);
+uint16_t *zparser_conv_byte(region_type *region, const char *text);
+uint16_t *zparser_conv_a(region_type *region, const char *text);
+uint16_t *zparser_conv_aaaa(region_type *region, const char *text);
+uint16_t *zparser_conv_text(region_type *region, const char *text, size_t len);
 uint16_t *zparser_conv_b64(region_type *region, const char *b64);
 uint16_t *zparser_conv_rrtype(region_type *region, const char *rr);
 uint16_t *zparser_conv_nxt(region_type *region, uint8_t nxtbits[]);

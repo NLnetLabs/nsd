@@ -59,6 +59,28 @@ static long int totalrrs = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
+
+/*
+ * Allocate SIZE+sizeof(uint16_t) bytes and store SIZE in the first
+ * element.  Return a pointer to the allocation.
+ */
+static uint16_t *
+alloc_rdata(region_type *region, size_t size)
+{
+	uint16_t *result = region_alloc(region, sizeof(uint16_t) + size);
+	*result = size;
+	return result;
+}
+
+static uint16_t *
+alloc_rdata_init(region_type *region, const void *data, size_t size)
+{
+	uint16_t *result = region_alloc(region, sizeof(uint16_t) + size);
+	*result = size;
+	memcpy(result + 1, data, size);
+	return result;
+}
+
 /* 
  * These are parser function for generic zone file stuff.
  */
@@ -79,9 +101,7 @@ zparser_conv_hex(region_type *region, const char *hex)
 				   MAX_RDLENGTH);
 	} else {
 		/* the length part */
-		r = (uint16_t *) region_alloc(region,
-					      sizeof(uint16_t) + len/2);
-		*r = len/2;
+		r = alloc_rdata(region, len/2);
 		t = (uint8_t *)(r + 1);
     
 		/* Now process octet by octet... */
@@ -135,19 +155,13 @@ zparser_conv_time(region_type *region, const char *time)
 	/* convert a time YYHM to wireformat */
 	uint16_t *r = NULL;
 	struct tm tm;
-	uint32_t l;
 
 	/* Try to scan the time... */
-	/* [XXX] the cast fixes compile time warning */
-	if((char*)strptime(time, "%Y%m%d%H%M%S", &tm) == NULL) {
+	if (!strptime(time, "%Y%m%d%H%M%S", &tm)) {
 		zc_error_prev_line("Date and time is expected");
 	} else {
-
-		r = (uint16_t *) region_alloc(
-			region, sizeof(uint32_t) + sizeof(uint16_t));
-		l = htonl(timegm(&tm));
-		memcpy(r + 1, &l, sizeof(uint32_t));
-		*r = sizeof(uint32_t);
+		uint32_t l = htonl(timegm(&tm));
+		r = alloc_rdata_init(region, &l, sizeof(l));
 	}
 	return r;
 }
@@ -210,13 +224,10 @@ zparser_conv_services(region_type *region, const char *protostr,
 		}
         }
 
-	r = (uint16_t *) region_alloc(
-		region,
-		sizeof(uint16_t) + sizeof(uint8_t) + max_port / 8 + 1);
-	*r =  sizeof(uint8_t) + max_port / 8 + 1;
+	r = alloc_rdata(region, sizeof(uint8_t) + max_port / 8 + 1);
 	p = (uint8_t *) (r + 1);
-	*p++ = proto->p_proto;
-	memcpy(p, bitmap, *r);
+	*p = proto->p_proto;
+	memcpy(p + 1, bitmap, *r);
 	
 	return r;
 }
@@ -225,231 +236,179 @@ uint16_t *
 zparser_conv_period(region_type *region, const char *periodstr)
 {
 	/* convert a time period (think TTL's) to wireformat) */
-
 	uint16_t *r = NULL;
-	uint32_t l;
+	uint32_t period;
 	const char *end; 
 
 	/* Allocate required space... */
-	r = (uint16_t *) region_alloc(
-		region, sizeof(uint16_t) + sizeof(uint32_t));
-	l = htonl((uint32_t)strtottl(periodstr, &end));
-
-        if(*end != 0) {
+	period = (uint32_t) strtottl(periodstr, &end);
+        if (*end != 0) {
 		zc_error_prev_line("Time period is expected");
         } else {
-		memcpy(r + 1, &l, sizeof(uint32_t));
-		*r = sizeof(uint32_t);
+		period = htonl(period);
+		r = alloc_rdata_init(region, &period, sizeof(period));
         }
 	return r;
 }
 
 uint16_t *
-zparser_conv_short(region_type *region, const char *shortstr)
+zparser_conv_short(region_type *region, const char *text)
 {
-	/* convert a short INT to wire format */
-
-	char *end;      /* Used to parse longs, ttls, etc.  */
+	/* convert a short to wire format */
 	uint16_t *r = NULL;
+	uint16_t value;
+	char *end;
    
-	r = (uint16_t *) region_alloc(
-		region, sizeof(uint16_t) + sizeof(uint16_t));
-    	*(r+1)  = htons((uint16_t)strtol(shortstr, &end, 0));
-            
-	if(*end != 0) {
+    	value = htons((uint16_t) strtol(text, &end, 0));
+	if (*end != 0) {
 		zc_error_prev_line("Unsigned short value is expected");
 	} else {
-		*r = sizeof(uint16_t);
+		r = alloc_rdata_init(region, &value, sizeof(value));
 	}
 	return r;
 }
 
 uint16_t *
-zparser_conv_long(region_type *region, const char *longstr)
+zparser_conv_long(region_type *region, const char *text)
 {
-	char *end;      /* Used to parse longs, ttls, etc.  */
+	/* Convert a long to wire format.  */
 	uint16_t *r = NULL;
-	uint32_t l;
-
-	r = (uint16_t *) region_alloc(region,
-				      sizeof(uint16_t) + sizeof(uint32_t));
-	l = htonl((uint32_t)strtol(longstr, &end, 0));
-
-	if(*end != 0) {
-		zc_error_prev_line("Long decimal value is expected");
-        } else {
-		memcpy(r + 1, &l, sizeof(uint32_t));
-		*r = sizeof(uint32_t);
+	uint32_t value;
+	char *end;
+   
+    	value = htonl((uint32_t) strtol(text, &end, 0));
+	if (*end != 0) {
+		zc_error_prev_line("Unsigned long value is expected");
+	} else {
+		r = alloc_rdata_init(region, &value, sizeof(value));
 	}
 	return r;
 }
 
 uint16_t *
-zparser_conv_byte(region_type *region, const char *bytestr)
+zparser_conv_byte(region_type *region, const char *text)
 {
-
-	/* convert a byte value to wireformat */
-	char *end;      /* Used to parse longs, ttls, etc.  */
+	/* Convert a byte to wire format.  */
 	uint16_t *r = NULL;
- 
-        r = (uint16_t *) region_alloc(region,
-				      sizeof(uint16_t) + sizeof(uint8_t));
-
-        *((uint8_t *)(r+1)) = (uint8_t)strtol(bytestr, &end, 0);
-
-        if(*end != 0) {
-		zc_error_prev_line("Decimal value is expected");
-        } else {
-		*r = sizeof(uint8_t);
-        }
+	uint8_t value;
+	char *end;
+   
+    	value = (uint8_t) strtol(text, &end, 0);
+	if (*end != 0) {
+		zc_error_prev_line("Unsigned byte value is expected");
+	} else {
+		r = alloc_rdata_init(region, &value, sizeof(value));
+	}
 	return r;
 }
 
 uint16_t *
-zparser_conv_algorithm(region_type *region, const char *algstr)
+zparser_conv_algorithm(region_type *region, const char *text)
 {
-	/* convert a algoritm string to integer */
-	uint16_t *r = NULL;
 	const lookup_table_type *alg;
-
-	alg = lookup_by_name(dns_algorithms, algstr);
-
+	uint8_t id;
+	
+	alg = lookup_by_name(dns_algorithms, text);
 	if (!alg) {
 		/* not a memonic */
-		return zparser_conv_byte(region, algstr);
+		return zparser_conv_byte(region, text);
 	}
 
-        r = (uint16_t *) region_alloc(region,
-				      sizeof(uint16_t) + sizeof(uint8_t));
-	*((uint8_t *)(r+1)) = alg->id;
-	*r = sizeof(uint8_t);
-	return r;
+	id = (uint8_t) alg->id;
+	return alloc_rdata_init(region, &id, sizeof(id));
 }
 
 uint16_t *
-zparser_conv_certificate_type(region_type *region, const char *typestr)
+zparser_conv_certificate_type(region_type *region, const char *text)
 {
 	/* convert a algoritm string to integer */
-	uint16_t *r = NULL;
 	const lookup_table_type *type;
-
-	type = lookup_by_name(dns_certificate_types, typestr);
-
+	uint16_t id;
+	
+	type = lookup_by_name(dns_certificate_types, text);
 	if (!type) {
 		/* not a memonic */
-		return zparser_conv_short(region, typestr);
+		return zparser_conv_short(region, text);
 	}
 
-        r = (uint16_t *) region_alloc(region,
-				      sizeof(uint16_t) + sizeof(uint16_t));
-	*r = sizeof(uint16_t);
-	write_uint16(r + 1, type->id);
-	return r;
+	id = htons((uint16_t) type->id);
+	return alloc_rdata_init(region, &id, sizeof(id));
 }
 
 uint16_t *
-zparser_conv_a(region_type *region, const char *a)
+zparser_conv_a(region_type *region, const char *text)
 {
-	/* convert a A rdata to wire format */
-	in_addr_t pin;
+	in_addr_t address;
 	uint16_t *r = NULL;
 
-	r = (uint16_t *) region_alloc(region,
-				      sizeof(uint16_t) + sizeof(in_addr_t));
-	if(inet_pton(AF_INET, a, &pin) > 0) {
-		memcpy(r + 1, &pin, sizeof(in_addr_t));
-		*r = sizeof(in_addr_t);
+	if (inet_pton(AF_INET, text, &address) != 1) {
+		zc_error_prev_line("Invalid IPv4 address '%s'", text);
 	} else {
-		zc_error_prev_line("Invalid ip address");
+		r = alloc_rdata_init(region, &address, sizeof(address));
 	}
 	return r;
 }
 
-/*
- * XXX: add length parameter to handle null bytes, remove strlen
- * check.
- */
 uint16_t *
-zparser_conv_text(region_type *region, const char *txt, size_t len)
+zparser_conv_aaaa(region_type *region, const char *text)
 {
-	/* convert text to wireformat */
+	uint8_t address[IP6ADDRLEN];
 	uint16_t *r = NULL;
 
-	if(len > 255) {
-		zc_error_prev_line("Text string is longer than 255 charaters, try splitting in two");
+        if (inet_pton(AF_INET6, text, address) != 1) {
+		zc_error_prev_line("Invalid IPv6 address '%s'", text);
         } else {
-
-		/* Allocate required space... */
-		r = (uint16_t *) region_alloc(region,
-					      sizeof(uint16_t) + len + 1);
-
-		*((char *)(r+1))  = len;
-		memcpy(((char *)(r+1)) + 1, txt, len);
-
-		*r = len + 1;
-        }
-	return r;
-}
-
-uint16_t *
-zparser_conv_a6(region_type *region, const char *a6)
-{
-	/* convert ip v6 address to wireformat */
-	char pin[IP6ADDRLEN];
-	uint16_t *r = NULL;
-
-	r = (uint16_t *) region_alloc(region, sizeof(uint16_t) + IP6ADDRLEN);
-
-        /* Try to convert it */
-        if (inet_pton(AF_INET6, a6, pin) != 1) {
-		zc_error_prev_line("invalid IPv6 address");
-        } else {
-		*r = IP6ADDRLEN;
-		memcpy(r + 1, pin, IP6ADDRLEN);
+		r = alloc_rdata_init(region, address, sizeof(address));
         }
         return r;
+}
+
+uint16_t *
+zparser_conv_text(region_type *region, const char *text, size_t len)
+{
+	uint16_t *r = NULL;
+	
+	if (len > 255) {
+		zc_error_prev_line("Text string is longer than 255 characters,"
+				   " try splitting it into multiple parts");
+        } else {
+		uint8_t *p;
+		r = alloc_rdata(region, len + 1);
+		p = (uint8_t *) (r + 1);
+		*p = len;
+		memcpy(p + 1, text, len);
+        }
+	return r;
 }
 
 uint16_t *
 zparser_conv_b64(region_type *region, const char *b64)
 {
 	uint8_t buffer[B64BUFSIZE];
-	/* convert b64 encoded stuff to wireformat */
 	uint16_t *r = NULL;
 	int i;
 
-        /* Try to convert it */
-        if((i = b64_pton(b64, buffer, B64BUFSIZE)) == -1) {
-		zc_error_prev_line("Base64 encoding failed");
+	i = b64_pton(b64, buffer, B64BUFSIZE);
+        if (i == -1) {
+		zc_error_prev_line("Invalid base64 data");
         } else {
-		r = (uint16_t *) region_alloc(region, i + sizeof(uint16_t));
-		*r = i;
-		memcpy(r + 1, buffer, i);
+		r = alloc_rdata_init(region, buffer, i);
         }
         return r;
 }
 
 uint16_t *
-zparser_conv_rrtype(region_type *region, const char *rr)
+zparser_conv_rrtype(region_type *region, const char *text)
 {
-	/*
-	 * get the official number for the rr type and return
-	 * that. This is used by SIG in the type-covered field
-	 */
-
-	/* [XXX] error handling */
-	uint16_t type = lookup_type_by_name(rr);
-	uint16_t *r;
+	uint16_t *r = NULL;
+	uint16_t type = lookup_type_by_name(text);
 
 	if (type == 0) {
-		zc_error_prev_line("unrecognized type '%s'", rr);
-		return NULL;
+		zc_error_prev_line("Unrecognized RR type '%s'", text);
+	} else {
+		type = htons(type);
+		r = alloc_rdata_init(region, &type, sizeof(type));
 	}
-	
-	r = (uint16_t *) region_alloc(region,
-				      sizeof(uint16_t) + sizeof(uint16_t));
-	r[0] = sizeof(uint16_t);
-	r[1] = htons(type);
 	return r;
 }
 
@@ -460,7 +419,6 @@ zparser_conv_nxt(region_type *region, uint8_t nxtbits[])
 	 * copy every byte with zero to r and write the length in
 	 * the first byte
 	 */
-	uint16_t *r = NULL;
 	uint16_t i;
 	uint16_t last = 0;
 
@@ -469,12 +427,7 @@ zparser_conv_nxt(region_type *region, uint8_t nxtbits[])
 			last = i + 1;
 	}
 
-	r = (uint16_t *) region_alloc(
-		region, sizeof(uint16_t) + (last * sizeof(uint8_t)) );
-	*r = last;
-	memcpy(r+1, nxtbits, last);
-
-	return r;
+	return alloc_rdata_init(region, nxtbits, last);
 }
 
 
@@ -482,7 +435,8 @@ zparser_conv_nxt(region_type *region, uint8_t nxtbits[])
  * should be discarded
  */
 uint16_t *
-zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE])
+zparser_conv_nsec(region_type *region,
+		  uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE])
 {
 	/* nsecbits contains up to 64K of bits which represent the
 	 * types available for a name. Walk the bits according to
@@ -494,9 +448,10 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_
 	uint16_t window_count = 0;
 	uint16_t total_size = 0;
 
-	int used[NSEC_WINDOW_COUNT]; /* what windows are used. */
-	int size[NSEC_WINDOW_COUNT]; /* what is the last byte used in the window, the
-		index of 'size' is the window's number*/
+	/* The used windows.  */
+	int used[NSEC_WINDOW_COUNT];
+	/* The last byte used in each the window.  */
+	int size[NSEC_WINDOW_COUNT];
 
 	/* used[i] is the i-th window included in the nsec 
 	 * size[used[0]] is the size of window 0
@@ -522,9 +477,7 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_
 		total_size += sizeof(uint16_t) + size[used[i]];
 	}
 	
-	r = (uint16_t *) region_alloc(
-		region, sizeof(uint16_t) + total_size * sizeof(uint8_t));
-	*r = total_size;
+	r = alloc_rdata(region, total_size);
 	ptr = (uint8_t *) (r + 1);
 
 	/* now walk used and copy it */
@@ -540,11 +493,19 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_
 
 /* Parse an int terminated in the specified range. */
 static int
-parse_int(const char *str, char **end, int *result, const char *name, int min, int max)
+parse_int(const char *str,
+	  char **end,
+	  int *result,
+	  const char *name,
+	  int min,
+	  int max)
 {
 	*result = (int) strtol(str, end, 10);
 	if (*result < min || *result > max) {
-		zc_error_prev_line("%s must be within the [%d .. %d] range", name, min, max);
+		zc_error_prev_line("%s must be within the range [%d .. %d]",
+				   name,
+				   min,
+				   max);
 		return 0;
 	} else {
 		return 1;
@@ -593,7 +554,7 @@ precsize_aton (char *cp, char **endptr)
 
 	retval = (mantissa << 4) | exponent;
 
-	if(*cp == 'm') cp++;
+	if (*cp == 'm') cp++;
 
 	*endptr = cp;
 
@@ -613,6 +574,7 @@ uint16_t *
 zparser_conv_loc(region_type *region, char *str)
 {
 	uint16_t *r;
+	uint32_t *p;
 	int i;
 	int deg = 0, min = 0, secs = 0, secfraq = 0, altsign = 0, altmeters = 0, altfraq = 0;
 	uint32_t lat = 0, lon = 0, alt = 0;
@@ -759,14 +721,13 @@ zparser_conv_loc(region_type *region, char *str)
 	}
 
 	/* Allocate required space... */
-	r = (uint16_t *) region_alloc(region, sizeof(uint16_t) + 16);
-	*r = 16;
+	r = alloc_rdata(region, 16);
+	p = (uint32_t *) (r + 1);
 
-	memcpy(r + 1, vszhpvp, 4);
-
-	write_uint32(r + 3, lat);
-	write_uint32(r + 5, lon);
-	write_uint32(r + 7, alt);
+	memcpy(p, vszhpvp, 4);
+	write_uint32(p + 1, lat);
+	write_uint32(p + 2, lon);
+	write_uint32(p + 3, alt);
 
 	return r;
 }
@@ -847,8 +808,7 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 
 	rdlength = (sizeof(address_family) + sizeof(prefix) + sizeof(length)
 		    + length);
-	r = (uint16_t *) region_alloc(region, sizeof(uint16_t) + rdlength);
-	*r = rdlength;
+	r = alloc_rdata(region, rdlength);
 	t = (uint8_t *) (r + 1);
 	
 	memcpy(t, &address_family, sizeof(address_family));
@@ -881,7 +841,7 @@ zparser_ttl2int(const char *ttlstr)
 	const char *t;
 
 	ttl = strtottl(ttlstr, &t);
-	if(*t != 0) {
+	if (*t != 0) {
 		zc_error_prev_line("Invalid ttl value: %s",ttlstr);
 		ttl = -1;
 	}
@@ -1050,12 +1010,12 @@ zone_open(const char *filename, uint32_t ttl, uint16_t klass,
 	  const char *origin)
 {
 	/* Open the zone file... */
-	if ( strcmp(filename, "-" ) == 0 ) {
+	if (strcmp(filename, "-") == 0) {
 		/* check for stdin */
 		yyin = stdin;
 		filename = "STDIN";
 	} else {
-		if((yyin  = fopen(filename, "r")) == NULL) {
+		if ((yyin  = fopen(filename, "r")) == NULL) {
 			return 0;
 		}
 	}
@@ -1120,7 +1080,7 @@ process_rr()
 		return 0;
 	}
 		     
-	if ( rr->type == TYPE_SOA ) {
+	if (rr->type == TYPE_SOA) {
 		/*
 		 * This is a SOA record, start a new zone or continue
 		 * an existing one.
@@ -1209,7 +1169,7 @@ process_rr()
 		if (rr->type != TYPE_SOA) {
 			zc_error_prev_line("Missing SOA record on top of the zone");
 		} else if (rr->owner != zone->apex) {
-			zc_error_prev_line( "SOA record with invalid domain name");
+			zc_error_prev_line("SOA record with invalid domain name");
 		} else {
 			zone->soa_rrset = rrset;
 		}
@@ -1222,7 +1182,7 @@ process_rr()
 	if (rr->type == TYPE_NS && rr->owner == zone->apex) {
 		zone->ns_rrset = rrset;
 	}
-	if ( ( totalrrs % progress == 0 ) && vflag > 1  && totalrrs > 0) {
+	if ((totalrrs % progress == 0) && vflag > 1  && totalrrs > 0) {
 		printf("%ld\n", totalrrs);
 	}
 	++totalrrs;
@@ -1377,7 +1337,7 @@ main (int argc, char **argv)
 
 	if (strcmp(*argv,"-") == 0) {
 		/* ah, somebody give - (stdin) as input file name */
-		if ( nsd_stdin_origin == NULL ) {
+		if (!nsd_stdin_origin) {
 			fprintf(stderr,"zonec: need origin (-o switch) when reading from stdin.\n");
 			exit(1);
 		}
