@@ -3,8 +3,15 @@ NSD RELEASE NOTES
 2.2.1
 =============
 BUG FIXES:
-	- Zero length unknown RR notation was not working (except for
-          the APL type).
+	- Zero length RDATA using the unknown RR notation was not
+          working (except for the APL RR type).
+        - Bug #93: './configure' error message containing a comma must
+          be properly bracketed.
+        - Bug #94: nsd-xfer: Handle unexpected EOF when receiving AXFR
+          data.  Timeout if no data is received for more than 120
+          seconds (see the TCP_TIMEOUT parameter in config.h).
+        - Bug #95: An owner starting with an asterisk label ("*") was
+          being treated as its own wildcard child.
 
 2.2.0
 =============
