@@ -55,7 +55,7 @@ static uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
 /* other tokens */
 %token         DIR_TTL DIR_ORIG NL ORIGIN SP RD_ORIGIN
-%token <data>  STR PREV TTL
+%token <data>  STR PREV TTL BITLAB
 %token <klass> T_IN T_CH T_HS
 
 /* unknown RRs */
@@ -254,6 +254,12 @@ label: STR
 	    } else {
 		    $$ = create_dname(parser->rr_region, (uint8_t *) $1.str, $1.len);
 	    }
+    }
+    | BITLAB 
+    {
+		zc_error("\\[%s]: bitlabels are unsupported. RFC2673 has status experimental.",
+		$1.str);
+		$$ = error_dname;
     }
     ;
 

@@ -27,7 +27,17 @@ mail                    IN      A	192.168.1.2
 
 www                     IN      CNAME   elektron
 
-kasteel.wireless	IN	A	172.16.1.1
+
+
+
+\[b11010000011101]	IN	A	172.16.1.1
+\[o64072/14]		IN	A	172.16.1.1
+\[xd074/14]		IN	A	172.16.1.1
+\[208.116.0.0/14]	IN	A	172.16.1.1
+kasteel.\[208.116.0.0/14]	IN	A	172.16.1.1
+
+kasteel.wireless	IN	A	127.\[b11010000011101]
+kasteel.wireless	IN	NS	\[208.116.0.0/14]
 kopje.wireless		IN	A	172.16.1.1
 ufo.wireless		IN	A	172.16.1.2
 wap11.wireless		IN	A	172.16.1.3

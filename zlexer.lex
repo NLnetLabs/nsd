@@ -39,6 +39,7 @@ DOLLAR  \$
 COMMENT ;
 DOT     \.
 SLASH   \\
+BIT	[^\]]|\\.
 ANY     [^\"]|\\.
 Q       \"
 
@@ -199,12 +200,22 @@ Q       \"
                         }
 {SPACE}+                {
                             if ( paren_open == 0 ) {
-                                if ( in_rr == expecting_dname )
+                                if (in_rr == expecting_dname)
                                     in_rr = after_dname;
                             }
                             LEXOUT(("SP "));
                             return SP;
                         }
+\\\[{BIT}*\]	{
+			/* bitlabels */
+			yytext[strlen(yytext) - 1] = '\0';
+			yylval.data.len = strlen(yytext + 2);
+			yylval.data.str = region_strdup(parser->rr_region, yytext + 2);
+			if (in_rr == expecting_dname || in_rr == outside) 
+				in_rr = after_dname;
+			return BITLAB;
+		}
+
 {Q}({ANY})*{Q}   {
                             /* this matches quoted strings */
 			    /* Strip leading and ending quotes.  */
@@ -346,10 +357,11 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 			LEXOUT(("TTL "));
 			return TTL;
 		}
-		/* fall through, default first, order matters */
+		/* Fall through, default first, order matters.  */
 	default:
-		/* check to see if some bozo used @ in the rdata
-		 * if so return the origin str, and RD_ORIGIN token
+		/*
+		 * Check to see if someone used @ in the rdata if so
+		 * return the origin str, and RD_ORIGIN token.
 		 */
 		if (strcasecmp(yytext, "@") == 0) {
 			ztext = (char *)dname_to_string(domain_dname(parser->origin));

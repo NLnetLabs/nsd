@@ -1231,6 +1231,7 @@ zone_open(const char *filename, uint32_t ttl, uint16_t klass,
 	if ( strcmp(filename, "-" ) == 0 ) {
 		/* check for stdin */
 		yyin = stdin;
+		filename = "STDIN";
 	} else {
 		if((yyin  = fopen(filename, "r")) == NULL) {
 			return 0;

@@ -3,6 +3,7 @@
 # nsdc.sh -- a shell script to manage the beast
 #
 # Alexis Yushin, <alexis@nlnetlabs.nl>
+# Miek Gieben, <miekg@nlnetlabs.nl>
 #
 # Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
 #
@@ -69,7 +70,6 @@ fi
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
 #
-
 signal() {
 	if [ -s ${pidfile} ]
 	then
@@ -133,7 +133,28 @@ update)
  				tsiginfoarg="-T ${keysdir}/${masters}.tsiginfo.$$"
 			fi
 
-			$namedxfer -z $zone -f ${zonesdir}/$file ${tsiginfoarg} -s $serial $masters
+			# AXFR to a temp file $file.axfr
+			$namedxfer -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} -s $serial $masters
+			if [ $? -ne 0 ]
+			then
+				if [ -f ${zonesdir}/$file.axfr ]
+				then
+					# axfr succeeded
+					# test compile the zone to see what happens
+					${sbindir}/zonec -o ${zone} -f ${zonesdir}/$file.axfr.db - < ${zonesdir}/file.axfr 2>/dev/null
+					if [ $? -eq 1 ]
+					then
+						echo "Warning: AXFR of $zone did not compile"
+						rm -f ${zonesdir}/$file.axfr
+					else
+						# we succeed
+						mv -f ${zonesdir}/$file.axfr ${zonesdir}/$file
+					fi
+					rm -f ${zonesdir}/$file.axfr.db
+				else
+					echo "Warning: AXFR for $zone failed"
+				fi
+			fi
 
 			# Do we need to rebuild the database?
 			if [ ${zonesdir}/$file -nt ${dbfile} ]
