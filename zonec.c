@@ -78,14 +78,16 @@ zparser_conv_hex(region_type *region, const char *hex)
 	/* convert a hex value to wireformat */
 	uint16_t *r = NULL;
 	uint8_t *t;
+	size_t len;
 	int i;
-    
-	if ((i = strlen(hex)) % 2 != 0) {
+	
+	len = strlen(hex);
+	if (len % 2 != 0) {
 		error("hex representation must be a whole number of octets");
 	} else {
 		/* the length part */
-		r = region_alloc(region, sizeof(uint16_t) + i/2);
-		*r = i/2;
+		r = region_alloc(region, sizeof(uint16_t) + len/2);
+		*r = len/2;
 		t = (uint8_t *)(r + 1);
     
 		/* Now process octet by octet... */
@@ -103,24 +105,26 @@ zparser_conv_hex(region_type *region, const char *hex)
 				case '7':
 				case '8':
 				case '9':
-					*t += (*hex - '0') * i; /* first hex */
+					*t += (*hex - '0') * i;
 					break;
 				case 'a':
-				case 'A':
 				case 'b':
-				case 'B':
 				case 'c':
-				case 'C':
 				case 'd':
-				case 'D':
 				case 'e':
-				case 'E':
 				case 'f':
+					*t += (*hex - 'a' + 10) * i;
+					break;
+				case 'A':
+				case 'B':
+				case 'C':
+				case 'D':
+				case 'E':
 				case 'F':
-					*t += (*hex - 'a' + 10) * i;    /* second hex */
+					*t += (*hex - 'A' + 10) * i;
 					break;
 				default:
-					error("illegal hex character");
+					error("illegal hex character '%c'", (int)*hex);
 					return NULL;
 				}
 				*hex++;
