@@ -1,58 +1,61 @@
-.\"
-.\" $Id: nsd.8,v 1.17 2003/04/15 09:57:18 alexis Exp $
-.\"
-.\" nsd.8 -- nsd manual
-.\"
-.\" Alexis Yushin, <alexis@nlnetlabs.nl>
-.\"
-.\" Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
-.\"
-.\" This software is an open source.
-.\"
-.\" Redistribution and use in source and binary forms, with or without
-.\" modification, are permitted provided that the following conditions
-.\" are met:
-.\"
-.\" Redistributions of source code must retain the above copyright notice,
-.\" this list of conditions and the following disclaimer.
-.\"
-.\" Redistributions in binary form must reproduce the above copyright notice,
-.\" this list of conditions and the following disclaimer in the documentation
-.\" and/or other materials provided with the distribution.
-.\"
-.\" Neither the name of the NLNET LABS nor the names of its contributors may
-.\" be used to endorse or promote products derived from this software without
-.\" specific prior written permission.
-.\"
-.\" THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-.\" "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-.\" TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-.\" PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
-.\" LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-.\" CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-.\" SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-.\" INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-.\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-.\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-.\" POSSIBILITY OF SUCH DAMAGE.
-.\"
-.Dd August 20, 2002
-.Os FreeBSD
-.Dt nsd 8 
+.ig
+$Id: nsd.8,v 1.18 2003/06/30 09:39:02 erik Exp $
+
+nsd.8 -- nsd manual
+
+Alexis Yushin, <alexis@nlnetlabs.nl>
+
+Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+
+This software is an open source.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+Neither the name of the NLNET LABS nor the names of its contributors may
+be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+..
+.Dd June 30, 2003
+.Dt NSD 8 
 .Sh NAME
-.Nm nsd
+nsd
 .Nd Name Server Daemon (NSD)
 .Sh SYNOPSIS
 .Nm nsd
+.Op Fl 4
+.Op Fl 6
+.Op Fl a Ar ip-address
 .Op Fl d 
 .Op Fl f Ar database
-.Op Fl a Ar ip-address
-.Op Fl p Ar port
-.Op Fl u Ar username
-.Op Fl t Ar chrootdir
 .Op Fl i Ar identity
-.Op Fl s Ar secs
-.Op Fl n Ar max_tcp
+.Op Fl N Ar udp_servers
+.Op Fl n Ar tcp_servers
+.Op Fl p Ar port
+.Op Fl s Ar secondss
+.Op Fl t Ar chrootdir
+.Op Fl u Ar username
+.Op Fl X Ar plugin
 .Sh DESCRIPTION
 .Ic NSD
 is a complete implementation of an authoritative DNS nameserver. Upon
@@ -87,43 +90,32 @@ script or similar at the operating system startup.
 .Pp
 The available options are:
 .Bl -tag -width indent
-.It Fl n
-Handle upto
-.Ar n
-tcp connections simultaneously.
+
+.It Fl 4
+Only listen to IPv4 connections.
+
+.It Fl 6
+Only listen to IPv6 connections.
+
+.It Fl a Ar ip-address
+Listen to the specified
+.Ar ip-address .
+The 
+.Ar ip-address
+must be specified in numeric format (using the standard IPv4 or IPv6
+notation).  This flag can be specified multiple times to listen to
+multiple IP addresses.  If this flag is not specified NSD listens to
+all IP addresses.
+
 .It Fl d
 Turn on debugging mode, do not fork, stay in the foreground.
+
 .It Fl f Ar database
 Use the specified
 .Ar database
-instead of the default
-.Em /etc/nsd/nsd.db
-.It Fl a Ar ip-address
-Bind the socket to the specified
-.Ar ip-address
-.It Fl p Ar port
-Answer the queries on the specified
-.Ar port
-.It Fl u Ar username
-Drop user and group privileges to those of
-.Ar username
-after binding the socket.
-The
-.Ar username
-must be either:
-username
-id
-id.gid
-For example: nsd -or- 80 -or- 80.80
-.It Fl t Ar chroot
-specifies a directory to chroot to upon startup. This option requires you to
-ensure that appropriate 
-.Xr syslogd 8
-socket (e.g.
-.Ar chrootdir
-/dev/log) is available otherwise
-.Ic NSD
-won't produce any log output.
+instead of the default of
+.Em /etc/nsd/nsd.db .
+
 .It Fl i Ar identity
 Return the specified
 .Ar identity
@@ -132,18 +124,71 @@ when asked for
 (This option is used to determine which server is answering the queries
 when they are multicast)
 The default is the name returned by
-.Xr gethostname 3
-.It Fl s Ar secs
+.Xr gethostname 3 .
+
+.It Fl N Ar count
+Start
+.Ar count
+UDP servers.  Starting more than a single UDP server is only useful on
+machines with multiple CPUs and/or network adapters.
+
+.It Fl n Ar count
+Start
+.Ar count
+TCP servers.  This is also the maximum number of simultaneously
+handled TCP connections.
+
+.It Fl p Ar port
+Answer the queries on the specified
+.Ar port .
+Normally this is port 53.
+
+.It Fl s Ar seconds
 Produce statistics dump every 
-.Ar secs
+.Ar seconds
 seconds.
 This is equal to sending
 .Em SIGILL
 to the daemon periodically.
+
+.It Fl t Ar chroot
+specifies a directory to chroot to upon startup. This option requires you to
+ensure that appropriate 
+.Xr syslogd 8
+socket (e.g.
+.Ar chrootdir 
+/dev/log) is available otherwise
+.Ic NSD
+won't produce any log output.
+
+.It Fl u Ar username
+Drop user and group privileges to those of
+.Ar username
+after binding the socket.
+The
+.Ar username
+must one of: username, id, or id.gid.  For example: nsd, 80, or 80.80.
+
+.It Fl X Ar plugin
+Load a
+.Ar plugin .
+The
+.Ar plugin
+argument must be of the form 
+.Ar filename ,
+or 
+.Ar filename=argument .
+The filename must specify an NSD plugin compiled as a shared object
+(.so) file.  If the filename is not absolute shared object must be in
+a standard location using
+.Xr dlopen 3 .
+If an argument is specified it is passed to the initialization
+function of the plugin.
 .El
+
 .Pp
 .Ic NSD
-will react to the following signals:
+reacts to the following signals:
 .Bl -tag -width indent
 .It Dv SIGTERM
 Stop answer the queries, shutdown and exit normally.
@@ -167,11 +212,11 @@ the process id of the name server.
 will log all the problems via the standard
 .Xr syslog 8
 .Em daemon
-facility, unless
-.Ar d
+facility, unless the
+.Ar -d
 option is specified.
 .Sh SEE ALSO
-.Xr zonec 8
+.Xr zonec 8 ,
 .Xr nsdc 8
 .Sh AUTHORS
 .Ic NSD
@@ -182,15 +227,9 @@ in the distribution for further details.
 will answer the queries erroneously if the
 .Ar database
 was not properly compiled with
-.Xr zonec 8
+.Xr zonec 8 .
 Therefore problems with misconfigured master zone files or 
 .Xr zonec 8
 bugs may not be visible until the queries are actually answered
 with
-.Ic NSD
-.Pp
-Queries are answered from single socket, bound to the address given with
-.Ar ip-address
-or
-.Em INADDR_ANY
-by default. This might cause trouble on multi-homed hosts.
+.Ic NSD .
