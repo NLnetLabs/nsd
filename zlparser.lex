@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.5 2003/08/19 07:41:27 miekg Exp $
+ * $Id: zlparser.lex,v 1.6 2003/08/19 12:29:49 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -49,7 +49,10 @@ Q       \"
     static int in_rr = 0;
     char *ztext;
     int i;
-    yylval = xalloc(sizeof(YYSTYPE)); /* [XXX] really, really needed */
+    yylval = xalloc(sizeof(struct YYSTYPE_T)); /* [XXX] really, really needed */
+    static int j=0;
+    j++;
+    fprintf(stderr,"[%d: J %d]",lineno,j);
 
 {COMMENT}.*{NEWLINE}    { 
                             lineno++;

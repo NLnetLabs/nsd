@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.12 2003/08/19 11:37:47 miekg Exp $
+ * $Id: zyparser.y,v 1.13 2003/08/19 12:29:49 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -269,8 +269,19 @@ rdata_a:    STR '.' STR '.' STR '.' STR
         /* setup the string suitable for parsing */
         uint8_t * ipv4 = xalloc($1->len + $3->len + $5->len +
                             $7->len + 4);
-        sprintf(ipv4,"%s.%s.%s.%s",$1->str, $3->str, $5->str,
-                            $7->str);
+        memcpy(ipv4, $1->str, $1->len);
+        memcpy(ipv4 + $1->len , ".", 1);
+
+        memcpy(ipv4 + $1->len + 1 , $3->str, $3->len);
+        memcpy(ipv4 + $1->len + $3->len + 1, ".", 1);
+
+        memcpy(ipv4 + $1->len + $3->len + 2 , $5->str, $5->len);
+        memcpy(ipv4 + $1->len + $3->len + $5->len + 2, ".", 1);
+
+        memcpy(ipv4 + $1->len + $3->len + $5->len + 3 , $7->str, $7->len);
+        memcpy(ipv4 + $1->len + $3->len + $5->len + $7->len + 3, "\0", 1);
+
+        printf("IP ADDR %s\n",ipv4);
         zadd_rdata2(zdefault, zparser_conv_A((char*)ipv4));
         free(ipv4);
     }
