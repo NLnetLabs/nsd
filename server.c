@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59.2.8 2003/06/02 11:52:55 erik Exp $
+ * $Id: server.c,v 1.59.2.9 2003/06/02 12:19:03 erik Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -251,6 +251,27 @@ server_start_tcp(struct nsd *nsd)
 	return restart_tcp_child_servers(nsd);
 }
 
+static void
+close_all_udp_sockets(struct nsd *nsd)
+{
+	int i;
+
+	/* Close all the sockets... */
+	for (i = 0; i < nsd->ifs; ++i) {
+		if (nsd->udp[i].s != -1) {
+			close(nsd->udp[i].s);
+			nsd->udp[i].s = -1;
+		}
+	}
+
+#ifdef INET6
+	if (nsd->udp6.s != -1) {
+		close(nsd->udp6.s);
+		nsd->udp6.s = -1;
+	}
+#endif /* INET6 */
+}
+
 /*
  * Close the sockets, shutdown the server and exit.
  * Does not return.
@@ -259,19 +280,14 @@ server_start_tcp(struct nsd *nsd)
 void
 server_shutdown(struct nsd *nsd)
 {
-	int i;
 #ifdef	BIND8_STATS
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
-	/* Close all the sockets... */
-	for(i = 0; i < nsd->ifs; i++) {
-		close(nsd->udp[i].s);
-	}
-	close(nsd->tcp.s);
+	close_all_udp_sockets(nsd);
 
+	close(nsd->tcp.s);
 #ifdef INET6
-	close(nsd->udp6.s);
 	close(nsd->tcp6.s);
 #endif /* INET6 */
 
@@ -467,6 +483,8 @@ server_tcp(struct nsd *nsd)
 	u_int16_t tcplen;
 	struct query q;
 
+	close_all_udp_sockets(nsd);
+	
 	/* Allow sigalarm to get us out of the loop */
 	siginterrupt(SIGALRM, 1);
 	siginterrupt(SIGINT, 1);	/* These two are to avoid hanging tcp connections... */
