@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.1 2003/04/15 14:43:54 alexis Exp $
+ * $Id: nsq.c,v 1.2 2003/04/15 15:13:03 alexis Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -65,6 +65,7 @@
 static char *progname;
 
 static struct ztab opcodes[] = 	{\
+	{OPCODE_QUERY, "QUERY"},	\
 	{OPCODE_IQUERY, "IQUERY"},	\
 	{OPCODE_STATUS, "STATUS"},	\
 	{OPCODE_NOTIFY, "NOTIFY"},	\
@@ -133,12 +134,12 @@ xrealloc (register void *p, register size_t size)
 u_char *
 uncompress (struct query *q)
 {
-	static u_char dname[MAXDOMAINLEN];
+	static u_char dname[MAXDOMAINLEN + 1];
 
 	int i;
 
 	u_char *qptr = q->iobufptr;
-	u_char *t = dname;
+	u_char *t = dname + 1;
 	u_int16_t pointer;
 	int pointers = 0;
 
@@ -160,15 +161,16 @@ uncompress (struct query *q)
 			}
 
 			/* Set qptr to the pointer value and continue */
-			memcpy(&pointer, q->iobufptr, 2);
-			pointer = ntohs(pointer) & 0x3fff;
+			memcpy(&pointer, qptr, 2);
+			pointer = ntohs(pointer);
+			pointer &= 0x3fff;
 			qptr = q->iobuf + pointer;
 
 			continue;
 		}
 
 		/* MAXDOMAINLEN-1 exceeded? We always need trailing zero... */
-		if(t - dname + *qptr > MAXDOMAINLEN - 1) {
+		if(t - (dname + 1) + *qptr > MAXDOMAINLEN - 1) {
 			error("domain name is too long");
 			return NULL;
 		}
@@ -184,12 +186,12 @@ uncompress (struct query *q)
 
 	/* We have to copy the trailing zero now... */
 	*t++ = *qptr++;
+	*dname = t - (dname + 1) + *qptr;
 
 	/* Did we encounter any pointers? */
 	if(pointers == 0) {
 		q->iobufptr = qptr;
 	}
-
 	return dname;
 }
 
@@ -411,7 +413,7 @@ response(int s, struct query *q)
 {
 	u_int16_t tcplen, rdlength;
 	int n, rrsp;
-	struct RR *rr, **rrs;
+	struct RR **rrs;
 
 	/* Get the size... */
 	if(read(s, &tcplen, 2) == -1) {
@@ -484,7 +486,7 @@ response(int s, struct query *q)
 		memset(rrs[rrsp], 0, sizeof(struct RR));
 
 		/* Get the dname! */
-		if((rrs[rrsp]->dname = uncompress(q)) == NULL) {
+		if((rrs[rrsp]->dname = dnamedup(uncompress(q))) == NULL) {
 			return NULL;
 		}
 
@@ -524,6 +526,9 @@ response(int s, struct query *q)
 		/* Up to next resource record */
 		rrsp++;
 	}
+
+	rrs[rrsp] = NULL;
+	return rrs;
 }
 
 
@@ -624,8 +629,8 @@ main (int argc, char *argv[])
 	u_int16_t qtype = TYPE_A;
 	u_int16_t qclass = CLASS_IN;
 	u_char *qdname;
-	int qopcode;
-	struct RR **rrs;
+	int qopcode = 0;
+	struct RR **rrs, *rr;
 
 	/* Randomize for query ID... */
 	srand(time(NULL));
@@ -748,6 +753,12 @@ main (int argc, char *argv[])
 			close(s);
 			continue;
 		}
+
+		/* Print it */
+		for(rr = *rrs; rr != NULL; rr++) {
+			zprintrr(stdout, rr);
+		}
+		break;
 	}
 
 	exit(0);
