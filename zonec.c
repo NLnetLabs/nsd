@@ -1434,8 +1434,7 @@ zone_read (const char *name, const char *zonefile)
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
-		/* this display (null), need seperate call here */
-		zc_error("Cannot open '%s': %s", zonefile, strerror(errno));
+		fprintf(stderr, " ERR: Cannot open \'%s\': %s\n", zonefile, strerror(errno));
 		return;
 	}
 
