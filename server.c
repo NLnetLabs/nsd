@@ -128,6 +128,17 @@ restart_child_servers(struct nsd *nsd)
 	return 0;
 }
 
+static void
+initialize_dname_compression_tables(struct nsd *nsd)
+{
+	compressed_dname_offsets = xalloc(
+		(domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	memset(compressed_dname_offsets, 0,
+	       (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
+	region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
+}
+
 /*
  * Initialize the server, create and bind the sockets.
  * Drop the priviledges and chroot if requested.
@@ -232,12 +243,7 @@ server_init(struct nsd *nsd)
 		return -1;
 	}
 
-	compressed_dname_offsets = xalloc(
-		(domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
-	memset(compressed_dname_offsets, 0,
-	       (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
-	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
-	region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
+	initialize_dname_compression_tables(nsd);
 	
 #ifdef	BIND8_STATS
 	/* Initialize times... */
@@ -363,6 +369,8 @@ server_main(struct nsd *nsd)
 					exit(1);
 				}
 
+				initialize_dname_compression_tables(nsd);
+	
 #ifdef PLUGINS
 				if (plugin_database_reloaded() != NSD_PLUGIN_CONTINUE) {
 					log_msg(LOG_ERR, "plugin reload failed");
