@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.26 2003/09/11 09:11:55 erik Exp $
+ * $Id: zlparser.lex,v 1.27 2003/09/21 15:18:10 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -19,7 +19,7 @@
 const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "NXT", "KEY", "SOA", "SIG", "SRV", "CERT", "LOC", "MD", "MF", "MB",
     "MG", "MR", "NULL", "WKS", "HINFO", "MINFO", "RP", "AFSDB", "X25",
-    "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS" "EID", "NIMLOC", "ATMA",
+    "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS", "EID", "NIMLOC", "ATMA",
     "NAPTR", "KX", "A6", "DNAME", "SINK", "OPT", "APL", "UINFO", "UID",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA"};
 
