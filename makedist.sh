@@ -139,6 +139,10 @@ autoheader || error_cleanup "Autoheader failed."
 
 rm -r autom4te* || error_cleanup "Failed to remove autoconf cache directory."
 
+info "Building lexer and parser."
+flex -i -ozlparser.c zlparser.lex || error_cleanup "Failed to create lexer."
+bison -y -d -o zyparser.c zyparser.y || error_cleanup "Failed to create parser."
+
 find . -name .c-mode-rc.el -exec rm {} \;
 find . -name .cvsignore -exec rm {} \;
 rm makedist.sh || error_cleanup "Failed to remove makedist.sh."
