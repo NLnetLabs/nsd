@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.51 2002/04/22 12:19:59 alexis Exp $
+ * $Id: zonec.c,v 1.52 2002/04/22 12:43:36 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -689,6 +689,8 @@ zone_dump(z, db)
 	/* Set up the counter... */
 	if(vflag) {
 		fraction = (z->cuts->count + z->data->count) / 20;	/* Report every 5% */
+		if(fraction == 0)
+			fraction = 1;
 	}
 
 	/* AUTHORITY CUTS */
