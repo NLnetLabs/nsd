@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.8 2002/01/31 12:45:42 alexis Exp $
+ * $Id: nsd.c,v 1.9 2002/02/05 12:17:33 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -39,10 +39,6 @@
  */
 #include "nsd.h"
 
-u_char authmask[NAMEDB_BITMASKLEN];
-u_char starmask[NAMEDB_BITMASKLEN];
-u_char datamask[NAMEDB_BITMASKLEN];
-
 char *cf_dbfile = CF_DBFILE;
 char *cf_pidfile = CF_PIDFILE;
 int cf_tcp_max_connections = CF_TCP_MAX_CONNECTIONS;
@@ -53,7 +49,7 @@ int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
 
 
 /* The nsd database */
-DB *database;
+struct namedb *database, *newdb;
 
 int tcp_open_connections = 0;
 
@@ -90,53 +86,6 @@ xrealloc(p, size)
 	return p;
 }
 
-/*
- * Open the database db...
- *
- */
-DB *
-opendb(void)
-{
-	int r;
-	DBT key, data;
-	DB *db;
-
-	/* Setup the name database... */
-	if((r = db_create(&db, NULL, 0)) != 0) {
-		syslog(LOG_ERR, "db_create failed: %s", db_strerror(r));
-		return NULL;
-	}
-
-	/* Open the database... */
-	if((r = db->open(db, cf_dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
-		syslog(LOG_ERR, "cannot open the database %s: %s", cf_dbfile, db_strerror(r));
-		return NULL;
-	}
-
-	/* Read the bitmasks... */
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
-
-	key.size = 0;
-	key.data = NULL;
-	if((r = db->get(db, NULL, &key, &data, 0)) != 0) {
-		syslog(LOG_ERR, "cannot read the superblock from %s: %s", cf_dbfile, db_strerror(r));
-		return NULL;
-	}
-
-	if(data.size != NAMEDB_BITMASKLEN * 3) {
-		syslog(LOG_ERR, "corrupted superblock in %s", cf_dbfile);
-		return NULL;
-	}
-
-	bcopy(data.data, authmask, NAMEDB_BITMASKLEN);
-	bcopy(data.data + NAMEDB_BITMASKLEN, starmask, NAMEDB_BITMASKLEN);
-	bcopy(data.data + NAMEDB_BITMASKLEN * 2, datamask, NAMEDB_BITMASKLEN);
-
-	return db;
-}
-
-
 int
 usage()
 {
@@ -158,17 +107,18 @@ sig_handler(sig)
 		}
 		break;
 	case SIGHUP:
-		(void)database->close(database, 0);
-		if((database = opendb()) == NULL) {
-			syslog(LOG_ERR, "unable to reload the database, shutting down...");
-			exit(1);
+		if((newdb = namedb_open(database->filename)) == NULL) {
+			syslog(LOG_ERR, "unable to reload the database: %m");
+		}  else {
+			namedb_close(database);
+			database = newdb;
+			syslog(LOG_WARNING, "database reloaded...");
 		}
-		syslog(LOG_WARNING, "database reloaded...");
 		break;
 	case SIGTERM:
 	default:
 		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
-		(void)database->close(database, 0);
+		namedb_close(database);
 		exit(0);
 	}
 }
@@ -201,7 +151,8 @@ main(argc, argv)
 	signal(SIGCHLD, &sig_handler);
 
 	/* Open the database... */
-	if((database = opendb()) == NULL) {
+	if((database = namedb_open(cf_dbfile)) == NULL) {
+		syslog(LOG_ERR, "unable to load %s: %m", cf_dbfile);
 		exit(1);
 	}
 
@@ -223,8 +174,6 @@ main(argc, argv)
 		exit(1);
 	}
 
-	(void)chdir("/");
-
 	if((fd = open("/dev/null", O_RDWR, 0)) != -1) {
 		(void)dup2(fd, STDIN_FILENO);
 		(void)dup2(fd, STDOUT_FILENO);
@@ -237,6 +186,6 @@ main(argc, argv)
 	server(database);
 
 	/* Should we return... */
-	database->close(database, 0);
+	namedb_close(database);
 	exit(0);
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.4 2002/02/04 09:57:37 alexis Exp $
+ * $Id: zonec.h,v 1.5 2002/02/05 12:17:33 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -50,12 +50,10 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <db.h>
-
 #include "heap.h"
-#include "namedb.h"
 #include "dns.h"
 #include "zf.h"
+#include "namedb.h"
 
 #define	DEFAULT_DBFILE	"nsd.db"
 

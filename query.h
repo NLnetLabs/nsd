@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.7 2002/01/29 15:40:50 alexis Exp $
+ * $Id: query.h,v 1.8 2002/02/05 12:17:33 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -176,7 +176,7 @@ struct query {
 /* query.c */
 struct query *query_new __P((void));
 void query_destroy __P((struct query *));
-int query_process __P((struct query *, DB *));
+int query_process __P((struct query *, struct namedb *));
 void query_init __P((struct query *));
 void query_addanswer __P((struct query *, u_char *, struct answer *));
 

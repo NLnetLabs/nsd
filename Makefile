@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2002/02/04 09:57:37 alexis Exp $
+# $Id: Makefile,v 1.16 2002/02/05 12:17:33 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -38,9 +38,9 @@
 #
 SHELL = /bin/sh
 
-DEBUG=	-g -DDEBUG=1
+DEBUG=	-O6 -g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -O6  -Wall ${DEBUG} -I/usr/local/include/db4
+CFLAGS= -pipe -Wall ${DEBUG} -I/usr/local/include/db4 -DUSE_BERKELEY_DB
 LDFLAGS= -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
@@ -52,8 +52,8 @@ all:	nsd zonec
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
-nsd:	nsd.h dns.h nsd.o server.o query.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o
+nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o dbaccess.o
 
 zf:	zf.h dns.h zf.c
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c
@@ -62,8 +62,8 @@ heap:	heap.c
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ heap.c
 
 
-zonec:	zf.h dns.h zonec.h zf.o heap.o zonec.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o heap.o
+zonec:	zf.h dns.h zonec.h zf.o heap.o zonec.o dbcreate.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o heap.o dbcreate.o
 
 clean:
 	rm -f zf zonec nsd *.o y.* *.core *.gmon nsd.db

@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.8 2002/02/02 21:45:24 alexis Exp $
+ * $Id: namedb.h,v 1.9 2002/02/05 12:17:33 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -46,10 +46,15 @@
 #define	NAMEDB_DELEGATION	0x0001
 #define	NAMEDB_WILDCARD		0x0002
 
-#define	NAMEDB_TSTBITMASK(mask, depth) (mask[(depth) >> 3] & (1 << ((depth) & 0x7)))
-#define	NAMEDB_SETBITMASK(mask, depth) mask[(depth) >> 3] |= (1 << ((depth) & 0x7))
+#define	NAMEDB_AUTHMASK		0
+#define	NAMEDB_STARMASK		1
+#define	NAMEDB_DATAMASK		2
 
 #define	NAMEDB_BITMASKLEN	16
+
+#define	NAMEDB_TSTBITMASK(db, mask, depth) (db->masks[mask][(depth) >> 3] & (1 << ((depth) & 0x7)))
+#define	NAMEDB_SETBITMASK(db, mask, depth) db->masks[mask][(depth) >> 3] |= (1 << ((depth) & 0x7))
+
 
 #define	ANSWER_SIZE(a)		a->size
 #define	ANSWER_SIZE_PTR(a)	(&a->size)
@@ -92,6 +97,8 @@ struct domain {
 	u_int16_t	flags;
 };
 
+#define	NAMEDB_MAGIC		"NsdDBv00"
+
 #define	DOMAIN_WALK(d, a)	for(a = (struct answer *)(d + 1); ANSWER_SIZE(a) != 0; ((char *)a) += ANSWER_SIZE(a))
 #define	DOMAIN_SIZE(d)		d->size
 #define	DOMAIN_FLAGS(d)		d->flags
@@ -101,5 +108,45 @@ struct domain {
 #else
 #define	NAMEDB_NORMALIZE	tolower
 #endif
+
+
+#ifdef	USE_BERKELEY_DB
+
+#include <db.h>
+
+struct namedb {
+	DB *db;
+	u_char masks[3][NAMEDB_BITMASKLEN];
+	char *filename;
+};
+
+#else
+
+#include "heap.h"
+
+struct namedb {
+	heap_t *db;
+	u_char masks[3][NAMEDB_BITMASKLEN];
+	void *memory_pool;
+	char *filename;
+};
+
+#endif	/* USE_BERKELEY_DB */
+
+/* Routines for creating the database, namedb_create.c */
+struct namedb *namedb_new __P((char *));
+int namedb_put __P((struct namedb *, u_char *, struct domain *));
+int namedb_save __P((struct namedb *));
+void namedb_discard __P((struct namedb *));
+
+/* Routines for accessing the database, namedb_access.c */
+struct namedb *namedb_open __P((char *));
+struct domain *namedb_lookup __P((struct namedb *, u_char *key));
+struct answer *namedb_answer __P((struct domain *, u_int16_t type));
+void namedb_close __P((struct namedb *));
+
+/* Routines that the calling program must provide... */
+void *xalloc __P((size_t));
+void *xrealloc __P((void *, size_t));
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.13 2002/02/04 09:57:37 alexis Exp $
+ * $Id: zonec.c,v 1.14 2002/02/05 12:17:33 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -499,15 +499,13 @@ zone_read(name, zonefile, cache)
 int
 zone_dump(z, db)
 	struct 	zone *z;
-	DB *db;
+	struct namedb *db;
 {
 	struct domain *d;
 	struct message msg, msgany;
 	struct rrset *rrset, *cnamerrset, *additional;
 	u_char *dname, *cname, *nameptr;
-	int i, r;
-	int star, namedepth;
-	DBT key, data;
+	int i, star, namedepth;
 
 	/* AUTHORITY CUTS */
 	HEAP_WALK(z->cuts, (char *)dname, rrset) {
@@ -570,8 +568,8 @@ zone_dump(z, db)
 		d = addanswer(d, &msg, rrset->type);
 
 		/* Set the database masks */
-		NAMEDB_SETBITMASK(datamask, namedepth);
-		NAMEDB_SETBITMASK(authmask, namedepth);
+		NAMEDB_SETBITMASK(db, NAMEDB_DATAMASK, namedepth);
+		NAMEDB_SETBITMASK(db, NAMEDB_AUTHMASK, namedepth);
 
 		/* Add a terminator... */
 		d = xrealloc(d, d->size + sizeof(u_int32_t));
@@ -579,14 +577,8 @@ zone_dump(z, db)
 		d->size += sizeof(u_int32_t);
 
 		/* Store it */
-		bzero(&key, sizeof(key));
-		bzero(&data, sizeof(data));
-		key.size = *dname;
-		key.data = dname + 1;
-		data.size = d->size;
-		data.data = d;
-		if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
-			db->err(db, r, "DB->put");
+		if(namedb_put(db, dname, d) != 0) {
+			fprintf(stderr, "error writing the database: %s\n", strerror(errno));
 		}
 
 		free(d);
@@ -693,7 +685,7 @@ zone_dump(z, db)
 
 			/* Set the masks */
 			if(rrset->type == TYPE_SOA)
-				NAMEDB_SETBITMASK(authmask, namedepth);
+				NAMEDB_SETBITMASK(db, NAMEDB_AUTHMASK, namedepth);
 
 			rrset = rrset->next;
 		}
@@ -716,9 +708,9 @@ zone_dump(z, db)
 		d = addanswer(d, &msgany, TYPE_ANY);
 
 		/* Set the data mask */
-		NAMEDB_SETBITMASK(datamask, namedepth);
+		NAMEDB_SETBITMASK(db, NAMEDB_DATAMASK, namedepth);
 		if(star) {
-			NAMEDB_SETBITMASK(starmask, namedepth);
+			NAMEDB_SETBITMASK(db, NAMEDB_STARMASK, namedepth);
 		}
 
 		/* Add a terminator... */
@@ -727,14 +719,8 @@ zone_dump(z, db)
 		d->size += sizeof(u_int32_t);
 
 		/* Store it */
-		bzero(&key, sizeof(key));
-		bzero(&data, sizeof(data));
-		key.size = *dname;
-		key.data = dname + 1;
-		data.size = d->size;
-		data.data = d;
-		if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
-			db->err(db, r, "DB->put");
+		if(namedb_put(db, dname, d) != 0) {
+			fprintf(stderr, "error writing the database: %s\n", strerror(errno));
 		}
 
 		free(d);
@@ -755,9 +741,7 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-        DB *db;
-	DBT key, data;
-	int r;
+        struct namedb *db;
 	int aflag = 0;
 	int options = 1;
 	int cache = 0;
@@ -792,19 +776,10 @@ main(argc, argv)
 	}
 
 	/* Create the database */
-	if((r = db_create(&db, NULL, 0)) != 0) {
-                fprintf(stderr, "creating database: %s\n", db_strerror(r));
-                exit(1);
-        }
-        if((r = db->open(db, dbfile, NULL, DB_BTREE, aflag ? 0 : DB_CREATE | DB_TRUNCATE, 0664)) != 0) {
-                db->err(db, r, "%s", dbfile);
+	if((db = namedb_new(dbfile)) == NULL) {
+		fprintf(stderr, "erorr creating the database: %s\n", strerror(errno));
 		exit(1);
-        }
-
-	/* Initialize the masks... */
-	bzero(authmask, NAMEDB_BITMASKLEN);
-	bzero(datamask, NAMEDB_BITMASKLEN);
-	bzero(starmask, NAMEDB_BITMASKLEN);
+	}
 
 	/* Do the job */	
 	while(argc) {
@@ -838,22 +813,12 @@ main(argc, argv)
 		}
 	};
 
-	/* Write the bitmasks... */
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
-	data.size = NAMEDB_BITMASKLEN * 3;
-	data.data = bitmasks;
-
-	if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
-		db->err(db, r, "DB->put");
-	}
-
 	/* Close the database */
-	if((r = db->close(db, 0)) != 0) {
-		db->err(db, r, "closing the database");
-		unlink(dbfile);
+	if(namedb_save(db) != 0) {
+		fprintf(stderr, "error saving the database: %s\n", strerror(errno));
+		namedb_discard(db);
+		exit(1);
 	}
 
 	return 0;
 }
-

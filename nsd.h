@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.9 2002/01/30 15:34:08 alexis Exp $
+ * $Id: nsd.h,v 1.10 2002/02/05 12:17:33 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -89,11 +89,6 @@ extern int	cf_udp_max_message_size;
 
 extern int	tcp_open_connections;
 
-extern u_char authmask[NAMEDB_BITMASKLEN];
-extern u_char datamask[NAMEDB_BITMASKLEN];
-extern u_char starmask[NAMEDB_BITMASKLEN];
-
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
-int server __P((DB *));
-struct domain *lookup __P((DB *, u_char *, int));
+int server __P((struct namedb *));

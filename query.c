@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.22 2002/02/04 09:57:37 alexis Exp $
+ * $Id: query.c,v 1.23 2002/02/05 12:17:33 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -38,48 +38,6 @@
  *
  */
 #include "nsd.h"
-
-struct domain *
-lookup(db, dname, dnamelen)
-	DB *db;
-	u_char *dname;
-	int dnamelen;
-{
-	DBT key, data;
-
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
-	key.size = (size_t)dnamelen;
-	key.data = dname;
-
-	switch(db->get(db, NULL, &key, &data, 0)) {
-	case -1:
-		syslog(LOG_ERR, "database lookup failed: %m");
-		return NULL;
-	case DB_NOTFOUND:
-		return NULL;
-	case 0:
-		return data.data;
-	}
-
-	return NULL;
-}
-
-
-struct answer *
-answer(d, type)
-	struct domain *d;
-	u_int16_t type;
-{
-	struct answer *a;
-
-	DOMAIN_WALK(d, a) {
-		if(a->type == type) {
-			return a;
-		}
-	}
-	return NULL;
-}
 
 void
 query_init(q)
@@ -178,10 +136,10 @@ query_addanswer(q, dname, a)
 int
 query_process(q, db)
 	struct query *q;
-	DB *db;
+	struct namedb *db;
 {
 	u_char qstar[2] = "\001*";
-	u_char qnamebuf[MAXDOMAINLEN + 2];
+	u_char qnamebuf[MAXDOMAINLEN + 3];
 
 	/* The query... */
 	u_char	*qname, *qnamelow;
@@ -214,7 +172,7 @@ query_process(q, db)
 
 	/* Lets parse the qname and convert it to lower case */
 	qdepth = 0;
-	qnamelow = qnamebuf + 2;
+	qnamelow = qnamebuf + 3;
 	qname = qptr = q->iobuf + QHEADERSZ;
 	while(*qptr) {
 		/*  If we are out of buffer limits or we have a pointer in question dname or the domain name is longer than MAXDOMAINLEN ... */
@@ -230,7 +188,7 @@ query_process(q, db)
 		}
 	}
 	*qnamelow++ = *qptr++;
-	qnamelow = qnamebuf + 2;
+	qnamelow = qnamebuf + 3;
 
 	/* Make sure name is not too long... */
 	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q)) {
@@ -267,10 +225,11 @@ query_process(q, db)
 	}
 
 	/* Do we have the complete name? */
-	if(NAMEDB_TSTBITMASK(datamask, qdepth) && ((d = lookup(db, qnamelow, qnamelen)) != NULL)) {
+	*(qnamelow - 1) = qnamelen;
+	if(NAMEDB_TSTBITMASK(db, NAMEDB_DATAMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-			if((a = answer(d, htons(TYPE_NS))) == NULL) {
+			if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
 				RCODE_SET(q, RCODE_SERVFAIL);
 				return 0;
 			}
@@ -278,7 +237,7 @@ query_process(q, db)
 			query_addanswer(q, qname, a);
 			return 0;
 		} else {
-			if((a = answer(d, qtype)) != NULL) {
+			if((a = namedb_answer(d, qtype)) != NULL) {
 				if(ntohs(qclass) != CLASS_ANY) {
 					AA_SET(q);
 				} else {
@@ -288,7 +247,7 @@ query_process(q, db)
 				return 0;
 			} else {
 				/* Do we have SOA record in this domain? */
-				if((a = answer(d, htons(TYPE_SOA))) != NULL) {
+				if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
 					/* Setup truncation */
 					qptr = q->iobufptr;
 
@@ -323,9 +282,10 @@ query_process(q, db)
 		qdepth--;
 
 		/* Do we have a SOA or zone cut? */
-		if(NAMEDB_TSTBITMASK(authmask, qdepth) && ((d = lookup(db, qnamelow, qnamelen)) != NULL)) {
+		*(qnamelow - 1) = qnamelen;
+		if(NAMEDB_TSTBITMASK(db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
 			if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-				if((a = answer(d, htons(TYPE_NS))) == NULL) {
+				if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);
 					return 0;
 				}
@@ -334,7 +294,7 @@ query_process(q, db)
 				query_addanswer(q, qname, a);
 				return 0;
 			} else {
-				if((a = answer(d, htons(TYPE_SOA)))) {
+				if((a = namedb_answer(d, htons(TYPE_SOA)))) {
 					/* Setup truncation */
 					qptr = q->iobufptr;
 
@@ -356,16 +316,17 @@ query_process(q, db)
 			}
 		} else {
 			/* Only look for wildcards if we did not match a domain before */
-			if(NAMEDB_TSTBITMASK(starmask, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
+			if(NAMEDB_TSTBITMASK(db, NAMEDB_STARMASK, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
 				/* Prepend star */
 				bcopy(qstar, qnamelow - 2, 2);
 
 				/* Lookup star */
-				if((d = lookup(db, qnamelow - 2, qnamelen + 2)) != NULL) {
+				*(qnamelow - 3) = qnamelen + 2;
+				if((d = namedb_lookup(db, qnamelow - 3)) != NULL) {
 					/* We found a domain... */
 					RCODE_SET(q, RCODE_OK);
 
-					if((a = answer(d, qtype)) != NULL) {
+					if((a = namedb_answer(d, qtype)) != NULL) {
 						if(ntohs(qclass) != CLASS_ANY) {
 							AA_SET(q);
 						} else {
