@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.63.2.1 2002/08/06 11:54:28 alexis Exp $
+ * $Id: zonec.c,v 1.63.2.2 2002/08/06 12:07:51 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -1031,6 +1031,8 @@ main(argc, argv)
 			zone_dump(z, db);
 			if(pflag)
 				zone_print(z);
+		} else {
+			totalerrors++;
 		}
 
 	};
