@@ -46,10 +46,24 @@ extern int optind;
 
 static struct nsd nsd;
 
+/* static? */
+static lookup_table_type control_msgs[] = {
+	{ CONTROL_STATUS, "status.nsd" },	/* status control msg */
+	{ CONTROL_VERSION, "version.nsd" },	/* version control msg */
+	{ CONTROL_UNKNOWN, NULL } 		/* not known */
+};
+
+/* string gotten from the cmd line */
+static lookup_table_type arg_control_msgs[] = {
+	{ CONTROL_STATUS, "status" },
+	{ CONTROL_VERSION, "version" },
+	{ CONTROL_UNKNOWN, NULL }
+};
+
 static void
 usage(void)
 {
-	fprintf(stderr, "Usage: nsdc [OPTION]... {start|stop|reload|rebuild|restart|running|update|notify}\n");
+	fprintf(stderr, "Usage: nsdc [OPTION]... {stop|reload|rebuild|restart|running|update|notify|version}\n");
 	fprintf(stderr,
                 "Supported options:\n"
                 "  -f config-file  Specify the location of the configuration file.\n"
@@ -89,11 +103,14 @@ int
 main (int argc, char *argv[])
 {
 	int c;
-	const char *port;
+	uint16_t port;
+	uint8_t klass;
+	lookup_table_type *control;
 
-	port = DEFAULT_PORT;
+	port = DEFAULT_CONTROL_PORT;
+	klass = CLASS_CH;
 
-	log_init("nsd");
+	log_init("nsdc");
 		
         /* Initialize the server handler... */
         memset(&nsd, 0, sizeof(struct nsd));
@@ -113,7 +130,9 @@ main (int argc, char *argv[])
 				nsd.options_file = optarg;
 				break;
 			case 'p':
-				port = optarg;
+				port = atoi(optarg);
+				if (port == 0) 
+					error("port must be a number > 0");
 				break;
 			case 'v':
 				version();
@@ -132,10 +151,29 @@ main (int argc, char *argv[])
 	if (argc != 1)
 		usage();
 
+	/* what kind of service does the user want? */
+	control = lookup_by_name(arg_control_msgs, argv[0]);
+
+	if (!control) 
+		error("unknown control message\n");
+
+	printf("%d\n", control->id);
+
+	control = lookup_by_id(control_msgs, control->id);
+
+	printf("%s\n", control->name);
+	
+	/* open a socket, make a packet, send it */
+	
+
         nsd.options = load_configuration(nsd.region, nsd.options_file);
         if (!nsd.options) {
 		error("failed to load configuration file '%s'",
 				nsd.options_file);
         }
+
+	
+
+	
 }
  
