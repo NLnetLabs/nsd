@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.91 2003/02/26 10:51:51 alexis Exp $
+ * $Id: query.c,v 1.92 2003/02/26 11:04:40 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -521,12 +521,12 @@ query_process (struct query *q, struct nsd *nsd)
 		switch(ntohs(qtype)) {
 		case TYPE_ANY:
 		case TYPE_TXT:
-			if(qnamelen == 11 && bcmp(qnamelow, "\002id\006server", 11) == 0) {
+			if(qnamelen == 11 && memcmp(qnamelow, "\002id\006server", 11) == 0) {
 				/* Add ID */
 				query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->identity);
 				ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
 				return 0;
-			} else if(qnamelen == 16 && bcmp(qnamelow, "\007version\006server", 16) == 0) {
+			} else if(qnamelen == 16 && memcmp(qnamelow, "\007version\006server", 16) == 0) {
 				/* Add version */
 				query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->version);
 				ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);

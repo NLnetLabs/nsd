@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.29 2003/02/21 12:16:18 alexis Exp $
+ * $Id: dbaccess.c,v 1.30 2003/02/26 11:04:40 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -185,7 +185,7 @@ namedb_open (char *filename)
 	}
 
 	if((data.size != (NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE)) ||
-		bcmp(data.data, magic, NAMEDB_MAGIC_SIZE)) {
+		memcmp(data.data, magic, NAMEDB_MAGIC_SIZE)) {
 		syslog(LOG_ERR, "corrupted superblock in %s", db->filename);
 		namedb_close(db);
 		return NULL;
@@ -253,7 +253,7 @@ namedb_open (char *filename)
 
 	p = db->mpool;
 
-	if(bcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
+	if(memcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
 		syslog(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
 		return NULL;
@@ -278,7 +278,7 @@ namedb_open (char *filename)
 
 	p++;
 
-	if(bcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
+	if(memcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
 		syslog(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
 		return NULL;

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.79 2003/02/25 13:08:13 alexis Exp $
+ * $Id: zonec.c,v 1.80 2003/02/26 11:04:40 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -489,7 +489,7 @@ zone_read (char *name, char *zonefile)
 
 		/* Is this in-zone data? */
 		if((*z->dname > *rr->dname) ||
-			(bcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
+			(memcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
 			zerror(parser, "out of zone data");
 			continue;
 		}
@@ -634,7 +634,7 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 
 		/* This is a glue record */
 		if((*dkey < *msg.dnames[i]) &&
-		    (bcmp(dkey + 1, msg.dnames[i] + (*msg.dnames[i] - *dkey) + 1, *dkey) == 0)) {
+		    (memcmp(dkey + 1, msg.dnames[i] + (*msg.dnames[i] - *dkey) + 1, *dkey) == 0)) {
 			if(additional == NULL) {
 				fprintf(stderr, "zonec: missing glue record for %s\n", dnamestr(msg.dnames[i]));
 			} else {
