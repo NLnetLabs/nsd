@@ -1557,6 +1557,13 @@ print_rr(rr_type *rr)
 		case TYPE_RRSIG:
 			printf("%s",wire_conv_b64(rr->rrdata->rdata[8]));
 			break;	
+		case TYPE_DS:
+			printf("%d %d %d %s",
+					wire_conv_short(rr->rrdata->rdata[0]),
+					wire_conv_byte(rr->rrdata->rdata[1]),
+					wire_conv_byte(rr->rrdata->rdata[2]),
+					wire_conv_hex(rr->rrdata->rdata[3]));
+			break;		
 		case TYPE_TXT:
 			/* [XXX] need to loop */
 			printf("%s",
@@ -1570,8 +1577,9 @@ print_rr(rr_type *rr)
 		default:
 			/* print as hex */
 			/* todo, looping */
-			printf("\\# %d  ",rdata_atom_size(rr->rrdata->rdata[0]));
+			printf("\\# %d ",rdata_atom_size(rr->rrdata->rdata[0]));
 			/* todo print hex */
+			printf("%s",wire_conv_hex(rr->rrdata->rdata[0]));
         }
 
 	printf("\n");
@@ -1683,4 +1691,33 @@ wire_conv_byte(rdata_atom_type a)
 	/* convert wire to byte value */
 	
 	return ( (short int) *( (uint8_t*)rdata_atom_data(a)));
+}
+
+uint8_t *
+wire_conv_hex(rdata_atom_type a)
+{
+	/* convert wire to hex data */
+	int len; int i,j,pos;
+	char h[] = {'0','1','2','3','4','5','6','7','8','9',
+		'A','B','C','D','E','F'};
+	uint8_t *hex;
+	uint8_t *p;
+
+	/* per byte 2 hex numbers */
+	len = rdata_atom_size(a);
+
+	hex = (uint8_t *) malloc( len * 2 + 1);
+	
+	p   = (uint8_t*)rdata_atom_data(a);
+
+	j = 0;
+	for (i=0; i < len; ++i) {
+
+		hex[j]   = h[*p >> 4];
+		hex[++j] = h[*p & 0x0f];
+
+		p++; ++j;
+	}
+	hex[++j] = '\0';
+	return hex;
 }

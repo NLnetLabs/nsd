@@ -12,6 +12,9 @@ example.       3600 IN SOA ns1.example. bugs.x.w.example. (
                            VBU6+FZWzC2IJcc5liv2SXzyfiPu8diB9+Bj
                            CSITjVX0IGrQgd+PKkaTxWQzG9TDZ2TtgnyM
                            owLe/OV+Qqqic7ShV/S9l2YJF9I= )
+              3600 DS     42939 1 1 (
+                           4BA08982E5739A60E02B69409B0927F9524E
+			   3494 )
                3600 NS     ns1.example.
                3600 NS     ns2.example.
 	       3600 TYPE12442  \# 4  0A0000 01
