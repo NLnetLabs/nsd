@@ -1,0 +1,67 @@
+$Id: RELNOTES,v 1.2 2002/05/23 13:33:03 alexis Exp $
+
+1.0.1
+=============
+
+FEATURES:
+	- NSD drops permissions after binding the sockets
+	- ``cache'' zones are no longer allowed
+	- ID.Server & Version.Server compile time options
+	- AXFR implemented
+
+DESIGN CHANGES:
+	- the order of records in the database becomes important
+
+BUG:
+	- wont work with Berkeley DB
+
+1.0.0 RELEASE
+=============
+
+KNOWN BUGS:
+
+- Zone compiler will not parse properly zone files where comments or
+  parenthes are not surrounded with white space. For example, this is
+  NOT a valid syntax:
+
+	... MX 20 relay1;This is a comment
+	               ^^
+
+ This will fail as well:
+	                   vv
+	SOA hostmaster ns1 (2002151000 ; Serial
+
+- Although NSD allows one to configure a zone without SOA record and
+  use it as so called ``cached'' non-authoratative data, it is decided
+  that having this functionality is wrong, dangerous and will be removed
+  from the further versions.
+
+- If while processing EDNS(0) OPT record NSD encounters bad EDNS(0)
+  version it will answer with Format Error instead of EDNS(0) BADVERS
+
+PLATFORMS:
+
+	Tested and working on i386 FreeBSD-4.4, i386 Linux, dec alpha Linux,
+	sparc SunOS 4.x
+
+
+1.0.0-BETA2
+===========
+
+FIXES:
+	- wildcards bug fixed
+	- AA bit for class ANY bug fixed
+	- minor coredumps with really broken zones in zonec fixed
+	- linux & SunOS port
+
+1.0-ALPHA2
+==========
+FIXES:
+	- IPv6 transport support added by Jun-ichiro itojun Hagino (Use -DINET6)
+	- Makefile modified for easier compile time configuration
+	- EDNS(0) bug fixed
+	- Default database changed to all lowercase, red-black tree to make nsd
+	  DNSSEC ready
+	- REQUIREMENTS are cleaned up and updated
+	- Signal names changed in nsdc.sh.in
+	- Default compile options dont include -DMIMIC_BIND8

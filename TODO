@@ -1,90 +1,23 @@
-$Id: TODO,v 1.23 2002/04/02 13:28:03 alexis Exp $
+$Id: TODO,v 1.24 2002/05/23 13:33:03 alexis Exp $
 
 ZONE COMPILER
-- CHECK msg->buf and msg->bla boundaries. IT DOES DUMP CORE.
-
-- check memory usage, leaks and optimization
-- better detection of out of zone data
-- make empty pointers arrays for non-delegations
-- deal with multiple glue named style (glue after every NS that needs it)
-
-- major optimization needed when compiling a zone
-
+- memory allocation optimization is needed
 - parser is too smart: should not try to continue processing if there are errors...
 
-QUESTION: what do we do on errors? continue making database? exit?
-	what do we do when one of the arguement is not a valid file?
-
-DATABASE
-
-DONE - add separate masks for '*' zone cuts and data
-
 SERVER
-
+- in tcp the timeout should be handled different than with alarm()?
 - replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
-- tune the berkley db nicely
-- in server() dont quit on i/o errors
-
 - make sure that we dont copy anything from the query we dont want to copy, like
   funny headers etc
 
-+ first lowercase the query name
-
-TESTS
-
-	query with all zero's...
-	queries withe the size longer than the query
-
-PORTABILITY
-
-- solve alignment problems (the last one is in the database with mix of size_t and u_shorts)
-+ change all the u_short and long to u_int16_t and int32_t DONE
-+ consider using u_int8_t in place of u_char? DONE
-
-
----------- OLD TODO from the prototype ---------------
 SECURITY
-
-- all the arrays limits are not checked no nowhere
-- buffer limits have to be checked
-- runaway dnames in the packets
-
-BUGS
-
-1. both in zone->destroy and zone->print handle rrs at apex
-2. dnametoa, strdname etc needs to have checks for buffer overruns
-3. strdname write one zero too many or dnametoa prints one too few?
-
-
-PARSER
-
-- detect out of zone records (by using zone_search that detects authority
-  cuts, or maybe second stage parsing?)
-- set clear AA bit for every record
-- make links to complimentary records
-- parse TTL 2d5h3m10s
-- ttl should be taken from SOA ttl if there's no $TTL
-- shoudl check the buffer sizes. think of thousands of the same A glue
-  record which is misconfigured and tries to be added to a packet
-
-SERVER
-
-- when receiving too long of a packet select will go into infinite loop?
-- in tcp the timeout should be handled different than with alarm()?
-- decide where and how CNAME resolution should be done
-
-INITIALIZATION
-
-- make sure that zones are properly sorted in the zones list
+- drop euid after bind
 
 PURITY
-
-- dname sometimes has the entire length as a first byte and sometimes not
-- all the data is in network byte order except of the types (can anybody
-  think of smart initialization?)
+- some data is in network order some in host order, make it clear with prefixes
 - brush up the fuction and identifiers names
+- bzero pads so the databases can be cmp'd
 
 TESTS
-
 - set all the buffer sizes to ridiculously small values see if it causes
   core dumps

@@ -1,0 +1,41 @@
+$Id: ROADMAP,v 1.2 2002/05/23 13:33:03 alexis Exp $
+
+NSD Road Map
+===========
+
+1.0.0-RELEASE	1st June 2002
+
+Codebase:	1.0.0-BETA
+New features:	none
+Bug fixes:	none
+Known bugs:	missing white space problems
+		Wrong EDNS(0) results in Formerr instead of BADVERS
+Misc:		Specify memory requirements in release notes
+		Update release notes (f.i. with know bugs and adviced workarounds)
+		Specification of tested platforms, and possibly also some  untested
+		but supposedly working platforms.
+
+
+1.0.1-RELEASE	1st July 2002
+Codebase:	1.0.0-RELEASE
+Features:	AXFR
+		ID.server & VERSION.server
+		Send notify
+		NSD drops priviledges after socket binding
+		Disallow use of cached data
+		Correctly implement EDNS(0)
+Bug fixes:	
+
+
+1.1.0-RELEASE	1st Sep 2002
+Codebase:	1.1.0-BETA
+Features:	ANSI C
+		AXFR + ACL + TSIG
+		ID.server & VERSION.server
+		DNSSEC (ready?)
+		Notify both ways
+		Parser bugs fixed
+		Glue never fits checks
+		Tree search algorithm
+
+Bug fixes:

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.68 2002/05/23 13:20:57 alexis Exp $
+ * $Id: query.c,v 1.69 2002/05/23 13:33:03 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -39,6 +39,105 @@
  */
 #include "nsd.h"
 
+int 
+query_axfr(q, nsd, qname, zname, depth)
+	struct query *q;
+	struct nsd *nsd;
+	u_char *qname;
+	u_char *zname;
+	int depth;
+{
+	/* Per AXFR... */
+	static u_char *zone;
+	static struct answer *soa;
+	static struct domain *d = NULL;
+
+	struct answer *a;
+	u_char *dname;
+	u_char *qptr;
+
+	/* Is it new AXFR? */
+	if(qname) {
+		/* New AXFR... */
+		zone = zname;
+
+		/* Do we have the SOA? */
+		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, depth)
+			&& (d = namedb_lookup(nsd->db, zname)) != NULL
+				&& (soa = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
+
+			/* We'd rather have ANY than SOA to improve performance */
+			if((a = namedb_answer(d, htons(TYPE_ANY))) == NULL) {
+				a = soa;
+			}
+
+			qptr = q->iobufptr;
+			query_addanswer(q, qname, a, 0);
+
+			/* Truncate */
+			NSCOUNT(q) = 0;
+			ARCOUNT(q) = 0;
+			q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+
+			/* More data... */
+			return 1;
+
+		}
+
+		/* No SOA no transfer */
+		RCODE_SET(q, RCODE_REFUSE);
+		return 0;
+	}
+
+	/* Incorrect invocation? */
+	if(d == NULL) {
+		syslog(LOG_ERR, "query_axfr() is called without intialization");
+		RCODE_SET(q, RCODE_SERVFAIL);
+		return 0;
+	}
+
+	/* We've done everything already, let the server know... */
+	if(zone == NULL) {
+		return 0;	/* Done. */
+	}
+
+	/* Let get next domain */
+	dname = (char *)d + *((u_int32_t *)d);
+	d = (struct domain *)(dname + (((u_int32_t)*dname + 1 + 3) & 0xfffffffc));
+
+	/* End of the database or end of zone? */
+	if(*dname == 0 || namedb_answer(d, htons(TYPE_SOA)) != NULL) {
+		/* Prepare to send the terminating SOA record */
+		a = soa;
+		dname = zone;
+		zone = NULL;
+	} else {
+		/* Prepare the answer */
+		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
+			a = namedb_answer(d, htons(TYPE_NS));
+		} else {
+			a = namedb_answer(d, htons(TYPE_ANY));
+		}
+	}
+
+	/* Existing AXFR, strip the question section off... */
+	/* XXX Very interesting math... Can you figure it? I cant anymore... */
+	q->iobufptr = q->iobuf + QHEADERSZ + *dname - 2;
+	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
+
+	qptr = q->iobufptr;
+
+	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
+	bcopy(dname + 1, q->iobuf + QHEADERSZ, *dname);
+
+	/* Truncate */
+	NSCOUNT(q) = 0;
+	ARCOUNT(q) = 0;
+	q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+
+	/* More data... */
+	return 1;
+}
 
 /*
  * Stript the packet and set format error code.
@@ -64,6 +163,51 @@ query_init(q)
 	q->iobufptr = q->iobuf;
 	q->maxlen = 512;	/* XXX Should not be here */
 	q->edns = 0;
+	q->tcp = 0;
+}
+
+void
+query_addtxt(q, dname, class, ttl, txt)
+	struct query *q;
+	u_char *dname;
+	u_int16_t class;
+	int32_t ttl;
+	char *txt;
+{
+	u_int16_t pointer;
+	u_int16_t len = strlen(txt);
+	u_int16_t rdlength = htons(len + 1);
+	u_int16_t type = htons(TYPE_TXT);
+
+	ttl = htonl(ttl);
+	class = htons(class);
+
+	/* Add the dname */
+	if(dname >= q->iobuf  && dname <= q->iobufptr) {
+		pointer = htons(0xc000 | (dname - q->iobuf));
+		bcopy(&pointer, q->iobufptr, 2);
+		q->iobufptr += 2;
+	} else {
+		bcopy(dname + 1, q->iobufptr, *dname);
+		q->iobufptr += *dname;
+	}
+
+	bcopy(&type, q->iobufptr, 2);
+	q->iobufptr += 2;
+
+	bcopy(&class, q->iobufptr, 2);
+	q->iobufptr += 2;
+
+	bcopy(&ttl, q->iobufptr, 4);
+	q->iobufptr += 4;
+
+	bcopy(&rdlength, q->iobufptr, 2);
+	q->iobufptr += 2;
+
+	*q->iobufptr++ = (u_char)len;
+
+	bcopy(txt, q->iobufptr, len);
+	q->iobufptr += len;
 }
 
 void
@@ -153,11 +297,15 @@ query_addanswer(q, dname, a, truncate)
 	}
 }
 
-
+/*
+ * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
+ * -1 if the query has to be silently discarded.
+ *
+ */
 int
-query_process(q, db)
+query_process(q, nsd)
 	struct query *q;
-	struct namedb *db;
+	struct nsd *nsd;
 {
 	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 3];
@@ -233,6 +381,9 @@ query_process(q, db)
 		return 0;
 	}
 
+	/* Prepend qnamelen to qnamelow */
+	*(qnamelow - 1) = qnamelen;
+
 	bcopy(qptr, &qtype, 2); qptr += 2;
 	bcopy(qptr, &qclass, 2); qptr += 2;
 
@@ -272,38 +423,38 @@ query_process(q, db)
 
 		/* Check the version... */
 		if(*(qptr + 6) != 0) {
-			RCODE_SET(q, RCODE_IMPL);
-			return 0;
-		}
-
-		/* Make sure there are no other options... */
-		bcopy(qptr + 9, &opt_rdlen, 2);
-		if(opt_rdlen != 0) {
-			RCODE_SET(q, RCODE_IMPL);
-			return 0;
-		}
-
-		/* Only care about UDP size larger than normal... */
-		if(opt_class > 512) {
-			/* XXX Configuration parameter to limit the size needs to be here... */
-			if(opt_class < q->iobufsz) {
-				q->maxlen = opt_class;
+			q->edns = -1;
+		} else {
+			/* Make sure there are no other options... */
+			bcopy(qptr + 9, &opt_rdlen, 2);
+			if(opt_rdlen != 0) {
+				q->edns = -1;
 			} else {
-				q->maxlen = q->iobufsz;
-			}
-		}
+
+				/* Only care about UDP size larger than normal... */
+				if(opt_class > 512) {
+					/* XXX Configuration parameter to limit the size needs to be here... */
+					if(opt_class < q->iobufsz) {
+						q->maxlen = opt_class;
+					} else {
+						q->maxlen = q->iobufsz;
+					}
+				}
 
 #ifdef	STRICT_MESSAGE_PARSE
-		/* Trailing garbage? */
-		if((qptr + OPT_LEN) != q->iobufptr) {
-			query_formerr(q);
-			return 0;
-		}
+				/* Trailing garbage? */
+				if((qptr + OPT_LEN) != q->iobufptr) {
+					q->edns = 0;
+					query_formerr(q);
+					return 0;
+				}
 #endif
 
-		/* Strip the OPT resource record off... */
-		q->iobufptr = qptr;
-		ARCOUNT(q) = 0;
+				/* Strip the OPT resource record off... */
+				q->iobufptr = qptr;
+				ARCOUNT(q) = 0;
+			}
+		}
 	}
 
 	/* Do we have any trailing garbage? */
@@ -319,24 +470,48 @@ query_process(q, db)
 	}
 
 	/* Unsupported class */
-	if((ntohs(qclass) != CLASS_IN) && (ntohs(qclass) != CLASS_ANY)) {
+	switch(ntohs(qclass)) {
+	case CLASS_IN:
+	case CLASS_ANY:
+		break;
+	case CLASS_CHAOS:
+		AA_CLR(q);
+		switch(ntohs(qtype)) {
+		case TYPE_ANY:
+		case TYPE_TXT:
+			if(qnamelen == 11 && bcmp(qnamelow, "\002id\006server", 11) == 0) {
+				/* Add ID */
+				query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->identity);
+				ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
+				return 0;
+			} else if(qnamelen == 16 && bcmp(qnamelow, "\007version\006server", 16) == 0) {
+				/* Add version */
+				query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->version);
+				ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
+				return 0;
+			}
+			break;
+		}
+	default:
 		RCODE_SET(q, RCODE_REFUSE);
 		return 0;
 	}
 
+	/* Is it AXFR? */
 	switch(ntohs(qtype)) {
 	case TYPE_AXFR:
+		if(q->tcp)
+			return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
 	case TYPE_IXFR:
-			RCODE_SET(q, RCODE_REFUSE);
-			return 0;
-			break;
+		RCODE_SET(q, RCODE_REFUSE);
+		return 0;
 	}
 
 	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
 
 	/* Do we have complete name? */
-	*(qnamelow - 1) = qnamelen;
-	if(NAMEDB_TSTBITMASK(db, NAMEDB_DATAMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
+	if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) &&
+		((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 			if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
@@ -412,13 +587,13 @@ query_process(q, db)
 
 		qdepth--;
 		/* Only look for wildcards if we did not have any match before */
-		if(match == 0 && NAMEDB_TSTBITMASK(db, NAMEDB_STARMASK, qdepth + 1)) {
+		if(match == 0 && NAMEDB_TSTBITMASK(nsd->db, NAMEDB_STARMASK, qdepth + 1)) {
 			/* Prepend star */
 			bcopy(qstar, qnamelow - 2, 2);
 
 			/* Lookup star */
 			*(qnamelow - 3) = qnamelen + 2;
-			if((d = namedb_lookup(db, qnamelow - 3)) != NULL) {
+			if((d = namedb_lookup(nsd->db, qnamelow - 3)) != NULL) {
 				/* We found a domain... */
 				RCODE_SET(q, RCODE_OK);
 
@@ -449,7 +624,7 @@ query_process(q, db)
 
 		/* Do we have a SOA or zone cut? */
 		*(qnamelow - 1) = qnamelen;
-		if(NAMEDB_TSTBITMASK(db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
+		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
 			if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 				if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.27 2002/05/23 13:20:57 alexis Exp $
+ * $Id: nsd.h,v 1.28 2002/05/23 13:33:03 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -44,6 +44,7 @@
 #include "config.h"
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
@@ -64,9 +65,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "dns.h"
-#include "namedb.h"
-#include "query.h"
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
@@ -85,6 +83,10 @@ struct	nsd {
 	/* Configuration */
 	char	*dbfile;
 	char	*pidfile;
+	uid_t	uid;
+	gid_t	gid;
+	char	*version;
+	char	*identity;
 
 	/* TCP specific configuration */
 	struct	{
@@ -103,12 +105,18 @@ struct	nsd {
 
 	struct {
 		u_int16_t	max_msglen;
-		char		opt[OPT_LEN];
+		char		opt_ok[OPT_LEN];
+		char		opt_err[OPT_LEN];
 	} edns;
 };
+
+#include "dns.h"
+#include "namedb.h"
+#include "query.h"
 
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
 int server __P((struct nsd *));
-int writepid __P((pid_t, char *));
+int writepid __P((struct nsd *));
+
 #endif	/* _NSD_H_ */

@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.23 2002/05/23 13:20:57 alexis Exp $
+ * $Id: namedb.h,v 1.24 2002/05/23 13:33:03 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -102,7 +102,7 @@ struct domain {
 	u_int16_t	flags;
 };
 
-#define	NAMEDB_MAGIC		"NSDdbV00"
+#define	NAMEDB_MAGIC		"NSDdbV01"
 #define	NAMEDB_MAGIC_SIZE	8
 
 #define	NAMEDB_RRSET_WHITE	0x8000

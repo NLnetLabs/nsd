@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.61 2002/05/23 13:20:57 alexis Exp $
+# $Id: Makefile,v 1.62 2002/05/23 13:33:03 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -39,6 +39,9 @@
 SHELL = /bin/sh
 
 # Run-time enviroment settings
+
+# This particular server id.server
+NSDIDENTITY	= \'NLnet LABS nameserver @open.nlnetlabs.nl\'
 
 # The directory where the nsd nsdc and zonec binaries will be installed
 PREFIX		= /usr/local
@@ -92,7 +95,7 @@ NSDDB           = /var/db/nsd.db
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= # -DINET6
+FEATURES	= -DCF_UID=65534 -DCF_GID=65534 # -DINET6
 
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines
@@ -146,7 +149,8 @@ nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
 	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
-		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" $@.in > $@
+		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" \
+		-e "s,@@NSDIDENTITY@@,${NSDIDENTITY},g" $@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o

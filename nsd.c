@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.31 2002/05/23 13:20:57 alexis Exp $
+ * $Id: nsd.c,v 1.32 2002/05/23 13:33:03 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -78,7 +78,7 @@ xrealloc(p, size)
 int
 usage()
 {
-	fprintf(stderr, "usage: nsd [-d] [-p port] database\n");
+	fprintf(stderr, "usage: nsd [-d] [-p port] -f database\n");
 	exit(1);
 }
 
@@ -90,15 +90,25 @@ readpid(file)
 	pid_t pid;
 	char pidbuf[16];
 	char *t;
+	int l;
 
 	if((fd = open(file, O_RDONLY)) == -1) {
 		return -1;
 	}
 
-	if((read(fd, pidbuf, sizeof(pidbuf))) == -1) {
+	if(((l = read(fd, pidbuf, sizeof(pidbuf)))) == -1) {
 		close(fd);
 		return -1;
 	}
+
+	close(fd);
+
+	/* Empty pidfile means no pidfile... */
+	if(l == 0) {
+		errno = ENOENT;
+		return -1;
+	}
+
 	pid = strtol(pidbuf, &t, 10);
 
 	if(*t && *t != '\n') {
@@ -108,16 +118,15 @@ readpid(file)
 }
 
 int
-writepid(pid, file)
-	pid_t pid;
-	char *file;
+writepid(nsd)
+	struct nsd *nsd;
 {
 	int fd;
 	char pidbuf[16];
 
-	sprintf(pidbuf, "%u\n", pid);
+	sprintf(pidbuf, "%u\n", nsd->pid);
 
-	if((fd = open(file, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
+	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
 		return -1;
 	}
 
@@ -126,6 +135,12 @@ writepid(pid, file)
 		return -1;
 	}
 	close(fd);
+
+	if(chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
+		syslog(LOG_ERR, "cannot chown %u.%u %s: %m", nsd->uid, nsd->gid, nsd->pidfile);
+		return -1;
+	}
+
 	return 0;
 }
 	
@@ -181,13 +196,24 @@ main(argc, argv)
 	nsd.tcp.max_msglen = CF_TCP_MAX_MESSAGE_LEN;
 	nsd.udp.port	= CF_UDP_PORT;
 	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;
+	nsd.uid		= CF_UID == 0 ? getuid() : CF_UID;
+	nsd.gid		= CF_GID == 0 ? getgid() : CF_GID;
+	nsd.identity	= CF_IDENTITY;
+	nsd.version	= CF_VERSION;
 
 	/* EDNS0 */
 	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
-	nsd.edns.opt[1]	= (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
-	nsd.edns.opt[2] = TYPE_OPT & 0x00ff;	/* type_lo */
-	nsd.edns.opt[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
-	nsd.edns.opt[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
+	nsd.edns.opt_ok[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
+	nsd.edns.opt_ok[2] = TYPE_OPT & 0x00ff;	/* type_lo */
+	nsd.edns.opt_ok[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
+	nsd.edns.opt_ok[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
+
+	nsd.edns.opt_err[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
+	nsd.edns.opt_err[2] = TYPE_OPT & 0x00ff;	/* type_lo */
+	nsd.edns.opt_err[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
+	nsd.edns.opt_err[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
+	nsd.edns.opt_err[5] = 1;			/* XXX Extended RCODE=BAD VERS */
+
 
 /* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
 
@@ -199,7 +225,7 @@ main(argc, argv)
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "df:p:")) != -1) {
+	while((c = getopt(argc, argv, "df:p:i:")) != -1) {
 		switch (c) {
 		case 'd':
 			nsd.debug = 1;
@@ -210,6 +236,9 @@ main(argc, argv)
 		case 'p':
 			nsd.udp.port = atoi(optarg);
 			nsd.tcp.port = atoi(optarg);
+			break;
+		case 'i':
+			nsd.identity = optarg;
 			break;
 		case '?':
 		default:
@@ -234,18 +263,6 @@ main(argc, argv)
 		} else {
 			syslog(LOG_ERR, "...stale pid file from process %u", oldpid);
 		}
-	}
-
-	/* Write a temporary pid... */
-	if(writepid(getpid(), nsd.pidfile) == -1) {
-		syslog(LOG_ERR, "cannot write %s: %m", nsd.pidfile);
-	}
-
-	/* Open the database... */
-	if((nsd.db = namedb_open(nsd.dbfile)) == NULL) {
-		syslog(LOG_ERR, "unable to load %s: %m", nsd.dbfile);
-		unlink(nsd.pidfile);
-		exit(1);
 	}
 
 	/* Unless we're debugging, fork... */
@@ -288,7 +305,7 @@ main(argc, argv)
 	nsd.pid = getpid();
 
 	/* Overwrite pid... */
-	if(writepid(nsd.pid, nsd.pidfile) == -1) {
+	if(writepid(&nsd) == -1) {
 		syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd.pidfile);
 	}
 
@@ -300,7 +317,11 @@ main(argc, argv)
 
 	/* Not needed since we terminate anyway... */
 	/* namedb_close(nsd.db); */
-	unlink(nsd.pidfile);
+
+	if((fd = open(nsd.pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
+		syslog(LOG_ERR, "canot truncate the pid file %s: %m", nsd.pidfile);
+	}
+	close(fd);
 
 	exit(0);
 }

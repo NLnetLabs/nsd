@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.5 2002/05/23 13:20:57 alexis Exp $
+ * $Id: config.h,v 1.6 2002/05/23 13:33:03 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -41,6 +41,21 @@
 #ifndef	_CONFIG_H_
 #define	_CONFIG_H_
 
+#ifndef CF_VERSION
+#define	CF_VERSION	"NSD-1.0.1 Alpha"
+#endif
+
+#ifndef	CF_IDENTITY
+#define	CF_IDENTITY	"unidentified nameserver"
+#endif
+
+#ifndef	CF_UID
+#define	CF_UID	0
+#endif
+
+#ifndef CF_GID
+#define	CF_GID	0
+#endif
 
 #ifdef	DEBUG
 
@@ -78,15 +93,22 @@
 
 #endif	/* DEBUG */
 
-#if defined(sun)
-
+#ifdef __sun
 typedef          char  int8_t;
 typedef          short int16_t;
 typedef          int   int32_t;
 typedef unsigned char  u_int8_t;
 typedef unsigned short u_int16_t;
 typedef unsigned int   u_int32_t;
-
 #endif
+
+#ifdef __linux__
+#include <sys/select.h>
+#ifndef u_char_defined
+typedef __u_long u_long;
+typedef __u_char u_char;
+#endif /* u_char */
+#define u_char_defined
+#endif /* __linux__ */
 
 #endif /* _CONFIG_H_ */
