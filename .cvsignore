@@ -1,3 +1,4 @@
+.gdb_history
 Makefile
 autom4te.cache
 config.h
@@ -8,6 +9,7 @@ configure
 nsd
 nsd-axfr
 nsd-notify
+nsd-xfer
 nsdc.conf.sample
 nsdc.sh
 nsq
