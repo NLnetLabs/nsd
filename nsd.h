@@ -66,6 +66,12 @@ typedef	unsigned long stc_t;
 
 #endif /* BIND8_STATS */
 
+struct nsd_socket
+{
+	struct addrinfo	*	addr;
+	int			s;
+};
+
 /* NSD configuration and run-time variables */
 struct	nsd {
 	/* Run-time variables */
@@ -89,16 +95,10 @@ struct	nsd {
 	int	tcp_open_conn;
 
 	/* TCP specific configuration */
-	struct	{
-		struct addrinfo	*	addr;
-		int			s;
-	} tcp[MAX_INTERFACES];
+	struct nsd_socket tcp[MAX_INTERFACES];
 
 	/* UDP specific configuration */
-	struct	{
-		struct addrinfo	*	addr;
-		int			s;
-	} udp[MAX_INTERFACES];
+	struct nsd_socket udp[MAX_INTERFACES];
 
 	struct {
 		u_int16_t	max_msglen;

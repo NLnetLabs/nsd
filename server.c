@@ -248,15 +248,15 @@ server_start_tcp(struct nsd *nsd)
 }
 
 static void
-close_all_udp_sockets(struct nsd *nsd)
+close_all_sockets(struct nsd_socket sockets[], size_t n)
 {
-	int i;
+	size_t i;
 
 	/* Close all the sockets... */
-	for (i = 0; i < nsd->ifs; ++i) {
-		if (nsd->udp[i].s != -1) {
-			close(nsd->udp[i].s);
-			nsd->udp[i].s = -1;
+	for (i = 0; i < n; ++i) {
+		if (sockets[i].s != -1) {
+			close(sockets[i].s);
+			sockets[i].s = -1;
 		}
 	}
 }
@@ -269,17 +269,12 @@ close_all_udp_sockets(struct nsd *nsd)
 void
 server_shutdown(struct nsd *nsd)
 {
-	int i;
-
 #ifdef	BIND8_STATS
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
-	close_all_udp_sockets(nsd);
-
-	for (i = 0; i < nsd->ifs; ++i) {
-		close(nsd->tcp[i].s);
-	}
+	close_all_sockets(nsd->udp, nsd->ifs);
+	close_all_sockets(nsd->tcp, nsd->ifs);
 
 	exit(0);
 }
@@ -468,7 +463,7 @@ server_tcp(struct nsd *nsd)
 	u_int16_t tcplen;
 	struct query q;
 
-	close_all_udp_sockets(nsd);
+	close_all_sockets(nsd->udp, nsd->ifs);
 	
 	/* Allow sigalarm to get us out of the loop */
 	siginterrupt(SIGALRM, 1);
