@@ -1,6 +1,13 @@
 NSD RELEASE NOTES
 
 
+1.2.4
+=============
+BUG FIXES:
+        - Bug #72: If an RRset for a child domain is defined before
+          the RRset of the parent domain the parent's RRset would be
+          "lost".
+
 1.2.3
 =============
 BUG FIXES:
