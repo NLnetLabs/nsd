@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.68 2002/05/30 14:56:28 alexis Exp $
+# $Id: Makefile,v 1.69 2002/06/13 12:48:22 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -49,7 +49,6 @@ NSDFLAGS        =
 
 # The username for nsd to switch to before answering queries
 # Either	user
-#	or	user.group
 #	or	id
 #	or	id.gid
 #
@@ -115,10 +114,12 @@ NSDDB           = /var/db/nsd.db
 #
 FEATURES	= -DINET6 -DHOSTS_ACCESS
 
+LIBWRAP		= -lwrap
+
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines
 DBFLAGS		= -DUSE_HEAP_RBTREE
-LIBS		= -lwrap
+LIBS		= 
 
 # To compile NSD with internal hash database
 # uncomment the following two lines
@@ -174,7 +175,7 @@ nsdc.sh: nsdc.sh.in Makefile
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o
+	${CC} ${CFLAGS} ${LDFLAGS} ${LIBWRAP} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o
 
 zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o ${COMPAT_O}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o ${COMPAT_O}
