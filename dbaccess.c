@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.26 2003/01/20 09:43:16 alexis Exp $
+ * $Id: dbaccess.c,v 1.27 2003/01/21 12:01:25 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -98,8 +98,8 @@ namedb_lookup (struct namedb *db, u_char *dname)
 #ifdef USE_BERKELEY_DB
 	DBT key, data;
 
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
+	memset(&key, 0, sizeof(key));
+	memset(&data, 0, sizeof(data));
 	key.size = (size_t)*dname;
 	key.data = dname + 1;
 
@@ -173,8 +173,8 @@ namedb_open (char *filename)
 	}
 
 	/* Read the bitmasks... */
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
+	memset(&key, 0, sizeof(key));
+	memset(&data, 0, sizeof(data));
 
 	key.size = 0;
 	key.data = NULL;
@@ -190,9 +190,9 @@ namedb_open (char *filename)
 		return NULL;
 	}
 
-	bcopy(data.data + NAMEDB_MAGIC_SIZE, db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
-	bcopy(data.data + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
-	bcopy(data.data + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
+	memcpy(db->masks[NAMEDB_AUTHMASK], data.data + NAMEDB_MAGIC_SIZE, NAMEDB_BITMASKLEN);
+	memcpy(db->masks[NAMEDB_STARMASK], data.data + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
+	memcpy(db->masks[NAMEDB_DATAMASK], data.data + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
 
 #else
 
@@ -285,9 +285,9 @@ namedb_open (char *filename)
 	p += NAMEDB_MAGIC_SIZE;
 
 	/* Copy the bitmasks... */
-	bcopy(p, db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
-	bcopy(p + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
-	bcopy(p + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
+	memcpy(db->masks[NAMEDB_AUTHMASK], p, NAMEDB_BITMASKLEN);
+	memcpy(db->masks[NAMEDB_STARMASK], p + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
+	memcpy(db->masks[NAMEDB_DATAMASK], p + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
 
 #endif
 

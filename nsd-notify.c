@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.3 2003/01/20 09:43:16 alexis Exp $
+ * $Id: nsd-notify.c,v 1.4 2003/01/21 12:01:25 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -113,7 +113,7 @@ main (int argc, char *argv[])
 		usage();
 
 	/* Set up UDP */
-	bzero(&udp_addr, sizeof(udp_addr));
+	memset(&udp_addr, 0, sizeof(udp_addr));
 	udp_addr.sin_port = 0;
 	udp_addr.sin_addr.s_addr = INADDR_ANY;
 	udp_addr.sin_family = AF_INET;
@@ -132,11 +132,11 @@ main (int argc, char *argv[])
 
 
 	/* Initialize the query */
-	bzero(&q, sizeof(struct query));
+	memset(&q, 0, sizeof(struct query));
 	query_init(&q);
 
 	/* Setup the address */
-	bzero(&q.addr, sizeof(struct sockaddr));
+	memset(&q.addr, 0, sizeof(struct sockaddr));
 	((struct sockaddr_in *)&q.addr)->sin_port = htons(53);
 	((struct sockaddr_in *)&q.addr)->sin_family = AF_INET;
 
@@ -152,13 +152,13 @@ main (int argc, char *argv[])
 		fprintf(stderr, "zone name length exceeds %d\n", MAXDOMAINLEN);
 		exit(1);
 	}
-	bcopy(zone + 1, q.iobufptr, *zone);
+	memcpy(q.iobufptr, zone + 1, *zone);
 	q.iobufptr += *zone;
 
 	/* Add type & class */
-	bcopy(&qtype, q.iobufptr, 2);
+	memcpy(q.iobufptr, &qtype, 2);
 	q.iobufptr += 2;
-	bcopy(&qclass, q.iobufptr, 2);
+	memcpy(q.iobufptr, &qclass, 2);
 	q.iobufptr += 2;
 
 	/* Set QDCOUNT=1 */

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.58 2003/01/20 09:43:16 alexis Exp $
+ * $Id: nsd.c,v 1.59 2003/01/21 12:01:25 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -325,7 +325,7 @@ main (int argc, char *argv[])
 	pid_t	oldpid;
 
 	/* Initialize the server handler... */
-	bzero(&nsd, sizeof(struct nsd));
+	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.dbfile	= CF_DBFILE;
 	nsd.pidfile	= CF_PIDFILE;
 	nsd.tcp.open_conn = 1;

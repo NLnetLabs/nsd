@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.16 2003/01/20 09:43:16 alexis Exp $
+ * $Id: dbcreate.c,v 1.17 2003/01/21 12:01:25 alexis Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -93,12 +93,12 @@ namedb_new (char *filename)
 #endif	/* USE_BERKELEY_DB */
 
 	/* Initialize the masks... */
-	bzero(db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
-	bzero(db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
-	bzero(db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
+	memset(db->masks[NAMEDB_AUTHMASK], 0, NAMEDB_BITMASKLEN);
+	memset(db->masks[NAMEDB_STARMASK], 0, NAMEDB_BITMASKLEN);
+	memset(db->masks[NAMEDB_DATAMASK], 0, NAMEDB_BITMASKLEN);
 
 	return db;
-};
+}
 
 
 int 
@@ -108,8 +108,8 @@ namedb_put (struct namedb *db, u_char *dname, struct domain *d)
 	DBT key, data;
 
 	/* Store it */
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
+	memset(&key, 0, sizeof(key));
+	memset(&data, 0, sizeof(data));
 
 	key.size = *dname;
 	key.data = dname + 1;
@@ -132,7 +132,7 @@ namedb_put (struct namedb *db, u_char *dname, struct domain *d)
 #endif	/* USE_BERKELEY_DB */
 
 	return 0;
-};
+}
 
 int 
 namedb_save (struct namedb *db)
@@ -144,14 +144,14 @@ namedb_save (struct namedb *db)
 	DBT key, data;
 
 	/* Create the super block */
-	bcopy(NAMEDB_MAGIC, sbuf, NAMEDB_MAGIC_SIZE);
-	bcopy(db->masks[NAMEDB_AUTHMASK], sbuf + NAMEDB_MAGIC_SIZE, NAMEDB_BITMASKLEN);
-	bcopy(db->masks[NAMEDB_STARMASK], sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
-	bcopy(db->masks[NAMEDB_DATAMASK], sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
+	memcpy(sbuf, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE);
+	memcpy(sbuf + NAMEDB_MAGIC_SIZE, db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
+	memcpy(sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
+	memcpy(sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
 
 	/* Write the bitmasks... */
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
+	memset(&key, 0, sizeof(key));
+	memset(&data, 0, sizeof(data));
 	data.size = NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE;
 	data.data = sbuf;
 

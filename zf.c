@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.37 2003/01/20 09:43:16 alexis Exp $
+ * $Id: zf.c,v 1.38 2003/01/21 12:01:26 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -110,7 +110,7 @@ strdname (char *s, u_char *o)
 	register u_char *d = dname + 1;
 
 	if(*s == '@' && *(s+1) == 0) {
-		for(p = dname, s = o; (u_char *)s < o + *o + 1; p++, s++)
+		for(p = dname, s = (char *)o; (u_char *)s < o + *o + 1; p++, s++)
 			*p = NAMEDB_NORMALIZE(*s);
 	} else {
 		for(h = d, p = h + 1; *s; s++, p++) {
@@ -131,7 +131,7 @@ strdname (char *s, u_char *o)
 
 		/* If not absolute, append origin... */
 		if((*(p-1) != 0) && (o != NULL)) {
-			for(s = o + 1; (u_char *)s < o + *o + 1; p++, s++)
+			for(s = (char *)o + 1; (u_char *)s < o + *o + 1; p++, s++)
 				*p = NAMEDB_NORMALIZE(*s);
 		}
 
@@ -505,7 +505,7 @@ zf_token (struct zf *zf, char *s)
  *
  */
 int 
-zf_open_include (struct zf *zf, char *filename, char *origin, int32_t ttl)
+zf_open_include (struct zf *zf, char *filename, u_char *origin, int32_t ttl)
 {
 	if((zf->iptr + 1 > MAXINCLUDES)) {
 		zf_error(zf, "too many nested include files");
@@ -522,7 +522,8 @@ zf_open_include (struct zf *zf, char *filename, char *origin, int32_t ttl)
 
 	zf->i[zf->iptr].lineno = 0;
 	zf->i[zf->iptr].filename = strdup(filename);
-	zf->i[zf->iptr].origin = strdup(origin);	/* XXX strdup() should be replaced with dnamedup() */
+	zf->i[zf->iptr].origin = (u_char *)strdup((char *)origin);
+					/* XXX strdup() should be replaced with dnamedup() */
 	zf->i[zf->iptr].ttl = ttl;
 	zf->i[zf->iptr].parentheses = 0;
 	return 0;
@@ -533,7 +534,7 @@ zf_open_include (struct zf *zf, char *filename, char *origin, int32_t ttl)
  * Opens a zone file and sets us up for parsing.
  */
 struct zf *
-zf_open (char *filename, u_char *origin)
+zf_open (char *filename, char *strorigin)
 {
 	struct zf *zf;
 
@@ -548,7 +549,7 @@ zf_open (char *filename, u_char *origin)
 	bzero(&zf->line, sizeof(struct zf_entry));
 
 	/* Open the main file... */
-	if(zf_open_include(zf, filename, strdname(origin, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
+	if(zf_open_include(zf, filename, strdname(strorigin, (u_char *)ROOT_ORIGIN), DEFAULT_TTL) == -1) {
 		free(zf);
                 return NULL;
         }
@@ -732,11 +733,11 @@ zf_read (struct zf *zf)
 					zf_syntax(zf);
 					continue;
 				}
-				if((t = strdname(token, zf->i[zf->iptr].origin)) == NULL) {
+				if((t = (char *)strdname(token, zf->i[zf->iptr].origin)) == NULL) {
 					return NULL;
 				}
 				free(zf->i[zf->iptr].origin);
-				zf->i[zf->iptr].origin = t;	/* XXX Will fail on binary labels */
+				zf->i[zf->iptr].origin = (u_char *)t;	/* XXX Will fail on binary labels */
 			} else if(strcasecmp(token, "$INCLUDE") == 0) {
 				if((token = zf_token(zf, NULL)) == NULL) {
 					zf_syntax(zf);

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.86 2003/01/20 15:58:30 alexis Exp $
+ * $Id: query.c,v 1.87 2003/01/21 12:01:26 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -100,7 +100,7 @@ query_axfr (struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int 
 
 	/* Let get next domain */
 	do {
-		dname = (char *)d + *((u_int32_t *)d);
+		dname = (u_char *)d + *((u_int32_t *)d);
 		d = (struct domain *)(dname + (((u_int32_t)*dname + 1 + 3) & 0xfffffffc));
 	} while(*dname && (DOMAIN_FLAGS(d) & NAMEDB_STEALTH));
 
@@ -135,7 +135,7 @@ query_axfr (struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int 
 	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
 
 	if(ANSWER_PTRS(a, 0) == 0) {
-		bcopy(dname + 1, q->iobuf + QHEADERSZ, *dname);
+		memcpy(q->iobuf + QHEADERSZ, dname + 1, *dname);
 	}
 
 	/* Truncate */
@@ -192,28 +192,28 @@ query_addtxt (struct query *q, u_char *dname, int class, int32_t ttl, char *txt)
 	/* Add the dname */
 	if(dname >= q->iobuf  && dname <= q->iobufptr) {
 		pointer = htons(0xc000 | (dname - q->iobuf));
-		bcopy(&pointer, q->iobufptr, 2);
+		memcpy(q->iobufptr, &pointer, 2);
 		q->iobufptr += 2;
 	} else {
-		bcopy(dname + 1, q->iobufptr, *dname);
+		memcpy(q->iobufptr, dname + 1, *dname);
 		q->iobufptr += *dname;
 	}
 
-	bcopy(&type, q->iobufptr, 2);
+	memcpy(q->iobufptr, &type, 2);
 	q->iobufptr += 2;
 
-	bcopy(&class, q->iobufptr, 2);
+	memcpy(q->iobufptr, &class, 2);
 	q->iobufptr += 2;
 
-	bcopy(&ttl, q->iobufptr, 4);
+	memcpy(q->iobufptr, &ttl, 4);
 	q->iobufptr += 4;
 
-	bcopy(&rdlength, q->iobufptr, 2);
+	memcpy(q->iobufptr, &rdlength, 2);
 	q->iobufptr += 2;
 
 	*q->iobufptr++ = (u_char)len;
 
-	bcopy(txt, q->iobufptr, len);
+	memcpy(q->iobufptr, txt, len);
 	q->iobufptr += len;
 }
 
@@ -237,12 +237,12 @@ query_addanswer (struct query *q, u_char *dname, struct answer *a, int trunc)
 	ARCOUNT(q) = ANSWER_ARCOUNT(a);
 
 	/* Then copy the data */
-	bcopy(ANSWER_DATA_PTR(a), q->iobufptr, ANSWER_DATALEN(a));
+	memcpy(q->iobufptr, ANSWER_DATA_PTR(a), ANSWER_DATALEN(a));
 
 	/* Walk the pointers */
 	for(j = 0; j < ANSWER_PTRSLEN(a); j++) {
 		qptr = q->iobufptr + ANSWER_PTRS(a, j);
-		bcopy(qptr, &pointer, 2);
+		memcpy(&pointer, qptr, 2);
 		switch((pointer & 0xf000)) {
 		case 0xc000:			/* This pointer is relative to the name in the query.... */
 			/* XXX Check if dname is within packet */
@@ -255,7 +255,7 @@ query_addanswer (struct query *q, u_char *dname, struct answer *a, int trunc)
 			/* This pointer is relative to the answer that we have in the database... */
 			pointer = htons(0xc000 | (u_int16_t)(pointer + q->iobufptr - q->iobuf));
 		}
-		bcopy(&pointer, qptr, 2);
+		memcpy(qptr, &pointer, 2);
 	}
 
 	/* If we dont need truncation, return... */
@@ -404,8 +404,8 @@ query_process (struct query *q, struct nsd *nsd)
 	/* Prepend qnamelen to qnamelow */
 	*(qnamelow - 1) = qnamelen;
 
-	bcopy(qptr, &qtype, 2); qptr += 2;
-	bcopy(qptr, &qclass, 2); qptr += 2;
+	memcpy(&qtype, qptr, 2); qptr += 2;
+	memcpy(&qclass, qptr, 2); qptr += 2;
 
 	/* Update the type and class */
 	STATUP2(nsd, qtype, ntohs(qtype));
@@ -432,7 +432,7 @@ query_process (struct query *q, struct nsd *nsd)
 		}
 
 		/* Must be of the type OPT... */
-		bcopy(qptr + 1, &opt_type, 2);
+		memcpy(&opt_type, qptr + 1, 2);
 		if(ntohs(opt_type) != TYPE_OPT) {
 			query_formerr(q);
 			return 0;
@@ -442,7 +442,7 @@ query_process (struct query *q, struct nsd *nsd)
 		q->edns = 1;
 
 		/* Get the UDP size... */
-		bcopy(qptr + 3, &opt_class, 2);
+		memcpy(&opt_class, qptr + 3, 2);
 		opt_class = ntohs(opt_class);
 
 		/* Check the version... */
@@ -450,7 +450,7 @@ query_process (struct query *q, struct nsd *nsd)
 			q->edns = -1;
 		} else {
 			/* Make sure there are no other options... */
-			bcopy(qptr + 9, &opt_rdlen, 2);
+			memcpy(&opt_rdlen, qptr + 9, 2);
 			if(opt_rdlen != 0) {
 				q->edns = -1;
 			} else {
@@ -650,7 +650,7 @@ query_process (struct query *q, struct nsd *nsd)
 		/* Only look for wildcards if we did not have any match before */
 		if(match == 0 && NAMEDB_TSTBITMASK(nsd->db, NAMEDB_STARMASK, qdepth + 1)) {
 			/* Prepend star */
-			bcopy(qstar, qnamelow - 2, 2);
+			memcpy(qnamelow - 2, qstar, 2);
 
 			/* Lookup star */
 			*(qnamelow - 3) = qnamelen + 2;
@@ -740,7 +740,7 @@ query_addedns(struct query *q, struct nsd *nsd) {
 	switch(q->edns) {
 	case 1:	/* EDNS(0) packet... */
 		if((q->iobufptr - q->iobuf + OPT_LEN) <= q->iobufsz) {
-			bcopy(nsd->edns.opt_ok, q->iobufptr, OPT_LEN);
+			memcpy(q->iobufptr, nsd->edns.opt_ok, OPT_LEN);
 			q->iobufptr += OPT_LEN;
 			ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 		}
@@ -749,7 +749,7 @@ query_addedns(struct query *q, struct nsd *nsd) {
 		break;
 	case -1: /* EDNS(0) error... */
 		if((q->iobufptr - q->iobuf + OPT_LEN) <= q->iobufsz) {
-			bcopy(nsd->edns.opt_err, q->iobufptr, OPT_LEN);
+			memcpy(q->iobufptr, nsd->edns.opt_err, OPT_LEN);
 			q->iobufptr += OPT_LEN;
 			ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 		}

@@ -4,7 +4,7 @@ dnl
 AC_INIT(NSD,1.1a,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
-CFLAGS="-Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wconversion"
+CFLAGS="-ansi -pedantic"
 
 dnl
 dnl Some macro's from autoconf macro archive
@@ -133,7 +133,7 @@ AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm bzero dup2 endpwent gethostname inet_ntoa memset munmap select socket strcasecmp strchr strdup strerror strncasecmp strtol])
+AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_ntoa memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol])
 
 AC_CHECK_FUNCS(basename, [], [COMPAT_O="$COMPAT_O basename.o"])
 AC_CHECK_FUNCS(inet_pton, [], [COMPAT_O="$COMPAT_O inet_pton.o"])

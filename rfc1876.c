@@ -1,5 +1,5 @@
 /*
- * $Id: rfc1876.c,v 1.5 2003/01/20 09:43:16 alexis Exp $
+ * $Id: rfc1876.c,v 1.6 2003/01/21 12:01:26 alexis Exp $
  *
  * rfc1876.c -- LOC record conversion routines taken from RFC1876
  *
@@ -88,9 +88,9 @@ precsize_aton (char **strptr)
 /* converts ascii lat/lon to unsigned encoded 32-bit number.
  *  moves pointer. */
 static u_int32_t 
-latlon2ul (char **latlonstrptr, int *which)
+latlon2ul (const char **latlonstrptr, int *which)
 {
-        register char *cp;
+        register const char *cp;
         u_int32_t retval;
         int deg = 0, min = 0, secs = 0, secsfrac = 0;
 
@@ -412,8 +412,7 @@ loc_ntoa (const u_char *binary, char *ascii, size_t l)
 	}
 
         snprintf(cp, ep - cp,
-                "%d %.2d %.2d.%.3d %c %d %.2d %.2d.%.3d %c %d.%.2dm
-                %sm %sm %sm",
+                "%d %.2d %.2d.%.3d %c %d %.2d %.2d.%.3d %c %d.%.2dm %sm %sm %sm",
                 latdeg, latmin, latsec, latsecfrac, northsouth,
                 longdeg, longmin, longsec, longsecfrac, eastwest,
                 altmeters, altfrac, sizestr, hpstr, vpstr);

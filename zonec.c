@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.68 2003/01/20 11:02:39 alexis Exp $
+ * $Id: zonec.c,v 1.69 2003/01/21 12:01:26 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -161,7 +161,7 @@ zone_addbuf (struct message *msg, const void *data, size_t size)
 		exit(1);	/* XXX: do something smart */
 	}
 
-	bcopy(data, msg->bufptr, size);
+	memcpy(msg->bufptr, data, size);
 	msg->bufptr += size;
 }
 
@@ -194,7 +194,8 @@ zone_addname (struct message *msg, u_char *dname)
 			/* Walk through the dnames that we have already in the packet */
 			for(j = 0; j < msg->comprlen; j++) {
 				if((msg->compr[j].dnamelen == (dname + 1 + *dname - t)) &&
-					(strncasecmp(t, msg->compr[j].dname, msg->compr[j].dnamelen) == 0)) {
+					(strncasecmp((char *)t, (char *)msg->compr[j].dname,
+						msg->compr[j].dnamelen) == 0)) {
 					/* Match, first write down unmatched part */
 					zone_addbuf(msg, dname + 1, t - (dname + 1));
 					rdlength += (t - (dname + 1));
@@ -231,7 +232,7 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 	u_int16_t class = htons(CLASS_IN);
 	int32_t ttl;
 	union zf_rdatom *rdata;
-	char *rdlengthptr;
+	u_char *rdlengthptr;
 	char *f;
 	size_t size;
 	u_int16_t rdlength;
@@ -363,7 +364,7 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 			rdlength += size;
 		}
 		rdlength = htons(rdlength);
-		bcopy(&rdlength, rdlengthptr, sizeof(u_int16_t));
+		memcpy(rdlengthptr, &rdlength, sizeof(u_int16_t));
 	}
 	return rrcount;
 }
@@ -402,9 +403,9 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
 	ANSWER_RRSLEN(a) = msg->rrsetsoffslen;
 	ANSWER_DATALEN(a) = datasize;
 
-	bcopy(msg->pointers, ANSWER_PTRS_PTR(a), sizeof(u_int16_t) * msg->pointerslen);
-	bcopy(msg->rrsetsoffs, ANSWER_RRS_PTR(a), sizeof(u_int16_t) * msg->rrsetsoffslen);
-	bcopy(msg->buf, ANSWER_DATA_PTR(a), datasize);
+	memcpy(ANSWER_PTRS_PTR(a), msg->pointers, sizeof(u_int16_t) * msg->pointerslen);
+	memcpy(ANSWER_RRS_PTR(a), msg->rrsetsoffs, sizeof(u_int16_t) * msg->rrsetsoffslen);
+	memcpy(ANSWER_DATA_PTR(a), msg->buf, datasize);
 
 	d->size += size;
 
@@ -443,10 +444,10 @@ zone_read (char *name, char *zonefile)
 
 	/* Allocate new zone structure */
 	z = xalloc(sizeof(struct zone));
-	bzero(z, sizeof(struct zone));
+	memset(z, 0, sizeof(struct zone));
 
 	/* Get the zone name */
-	if((z->dname = strdname(name, ROOT_ORIGIN)) == NULL) {
+	if((z->dname = strdname(name, (u_char *)ROOT_ORIGIN)) == NULL) {
 		zone_free(z);
 		return NULL;
 	}
@@ -527,7 +528,7 @@ zone_read (char *name, char *zonefile)
 			/* Add it */
 			if(rrset == NULL) {
 				/* XXX We can use this more smart... */
-				heap_insert(h, strdup(rr->dname), r, 1);
+				heap_insert(h, strdup((char *)rr->dname), r, 1);
 			} else {
 				r->next = rrset->next;
 				rrset->next = r;
@@ -661,7 +662,7 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 
 	/* Add a terminator... */
 	d = xrealloc(d, d->size + sizeof(u_int32_t));
-	bzero((char *)d + d->size, sizeof(u_int32_t));
+	memset((char *)d + d->size, 0, sizeof(u_int32_t));
 	d->size += sizeof(u_int32_t);
 
 	/* Store it */
@@ -802,7 +803,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 
 	/* Add a terminator... */
 	d = xrealloc(d, d->size + sizeof(u_int32_t));
-	bzero((char *)d + d->size, sizeof(u_int32_t));
+	memset((char *)d + d->size, 0, sizeof(u_int32_t));
 	d->size += sizeof(u_int32_t);
 
 	/* Store it */
@@ -887,7 +888,7 @@ zone_dump (struct zone *z, struct namedb *db)
 			continue;
 
 		/* This is an ugly slow way to find out of zone data... */
-		bcopy(dname, dnamebuf, *dname + 1);
+		memcpy(dnamebuf, dname, *dname + 1);
 		for(nameptr = dnamebuf + 1; *(nameptr - 1) > *z->dname; 
 				nameptr += *nameptr + 1, *(nameptr - 1) = dnamebuf + *dnamebuf - nameptr + 1) {
 

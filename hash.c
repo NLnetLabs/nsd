@@ -1,5 +1,5 @@
 /*
- * $Id: hash.c,v 1.14 2003/01/20 09:43:16 alexis Exp $
+ * $Id: hash.c,v 1.15 2003/01/21 12:01:25 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -72,14 +72,14 @@ hash_create (void *(*mallocf)(size_t), int (*cmpf)(void *, void *), unsigned lon
 	/* Initialize it */
 	hash->table = (hnode_t *)(hash + 1);
 	hash->size = size;
-	bzero(hash->table, sizeof(hnode_t) * hash->size);
+	memset(hash->table, 0, sizeof(hnode_t) * hash->size);
 	hash->collisions = hash->count = 0;
 	hash->mallocf = mallocf;
 	hash->cmp = cmpf;
 	hash->hash = hashf;
 
 	return hash;
-};
+}
 
 /*
  * Inserts a node into a hash.
@@ -124,7 +124,7 @@ hash_insert (hash_t *hash, void *key, void *data, int overwrite)
 		hash->count++;
 		hash->collisions++;
 
-		bzero(node->next, sizeof(hnode_t));
+		memset(node->next, 0, sizeof(hnode_t));
 		node->next->key = key;
 		node->next->data = data;
 	}

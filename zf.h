@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.17 2003/01/20 09:43:16 alexis Exp $
+ * $Id: zf.h,v 1.18 2003/01/21 12:01:26 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -190,9 +190,9 @@ char *zone_strtok(register char *s);
 int dnamecmp(register u_char *a, register u_char *b);
 int zf_close_include(struct zf *zf);
 int zf_cmp_rdata(union zf_rdatom *a, union zf_rdatom *b, register char *f);
-int zf_open_include(struct zf *zf, char *filename, char *origin, int32_t ttl);
+int zf_open_include(struct zf *zf, char *filename, u_char *origin, int32_t ttl);
 long strtottl(char *nptr, char **endptr);
-struct zf *zf_open(char *filename, u_char *origin);
+struct zf *zf_open(char *filename, char *strorigin);
 struct zf_class_tab *classbyname(char *a);
 struct zf_entry *zf_read(struct zf *zf);
 struct zf_type_tab *typebyname(char *a);
