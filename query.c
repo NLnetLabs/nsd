@@ -595,8 +595,22 @@ static int
 answer_chaos(struct nsd *nsd,
 	     struct query *q,
 	     const u_char *qnamelow, u_char qnamelen,
+	     u_int16_t qclass,
 	     u_int16_t qtype)
 {
+	switch(ntohs(qclass)) {
+	case CLASS_IN:
+	case CLASS_ANY:
+		/* Not handled by this function. */
+		return 0;
+	case CLASS_CHAOS:
+		/* Handled below.  */
+		break;
+	default:
+		RCODE_SET(q, RCODE_REFUSE);
+		return 1;
+	}
+
 	AA_CLR(q);
 	switch(ntohs(qtype)) {
 	case TYPE_ANY:
@@ -612,9 +626,9 @@ answer_chaos(struct nsd *nsd,
 			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
 			return 1;
 		}
-		return 0;
 	default:
-		return 0;
+		RCODE_SET(q, RCODE_REFUSE);
+		return 1;
 	}
 }
 
@@ -718,18 +732,7 @@ query_process (struct query *q, struct nsd *nsd)
 #endif
 	}
 
-	/* Unsupported class */
-	switch(ntohs(qclass)) {
-	case CLASS_IN:
-	case CLASS_ANY:
-		/* Handled below.  */
-		break;
-	case CLASS_CHAOS:
-		if (answer_chaos(nsd, q, qnamelow, qnamelen, qtype)) {
-			return 0;
-		}
-	default:
-		RCODE_SET(q, RCODE_REFUSE);
+	if (answer_chaos(nsd, q, qnamelow, qnamelen, qclass, qtype)) {
 		return 0;
 	}
 
