@@ -60,7 +60,7 @@ static int vflag = 0;
 static int progress = 10000;
 
 /* Total errors counter */
-static int totalerrors = 0;
+static long int totalerrors = 0;
 static long int totalrrs = 0;
 
 int error_occurred = 0;
@@ -1268,15 +1268,6 @@ error_va_list(const char *fmt, va_list args)
 	error_occurred = 1;
 }
 
-static void
-warning_va_list(const char *fmt, va_list args)
-{
-	fprintf(stderr,"WARN: Line %u in %s: ", current_parser->line,
-			current_parser->filename);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
-}
-
 /* the line counting sux, to say the least 
  * with this grose hack we try do give sane
  * numbers back */
@@ -1305,6 +1296,15 @@ error(const char *fmt, ...)
 	va_end(args);
 }
 
+static void
+warning_va_list(const char *fmt, va_list args)
+{
+	fprintf(stderr,"WARN: Line %u in %s: ", current_parser->line,
+			current_parser->filename);
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
+}
+
 void
 warning_prev_line(const char *fmt, ...) 
 {
@@ -1329,7 +1329,6 @@ warning(const char *fmt, ... )
 
 	va_end(args);
 }
-
 
 extern char *optarg;
 extern int optind;
@@ -1480,7 +1479,7 @@ main (int argc, char **argv)
 	}
 
 	/* Print the total number of errors */
-	fprintf(stderr, "zonec: done with %d errors.\n", totalrrs, totalerrors);
+	fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
 
 	/* Disable this to save some time.  */
 #if 0
