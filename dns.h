@@ -70,15 +70,9 @@
 #define	TYPE_NXT	30 	/* 2535typecode */
 
 /* type code rollover */
-#ifdef TCR_USE_OLD_TYPES /* old types */
-#define	TYPE_RRSIG	TYPE_SIG	/* map to old type codes */
-#define	TYPE_NSEC	TYPE_NXT 	
-#define	TYPE_DNSKEY	TYPE_KEY
-#else	/* new types */
 #define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
 #define TYPE_NSEC	47	
 #define TYPE_DNSKEY	48
-#endif
 
 #define TYPE_AAAA	28	/* ipv6 address */
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
