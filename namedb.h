@@ -43,10 +43,10 @@ struct domain
 	domain_type *parent;
 	domain_type *wildcard_child_closest_match;
 	rrset_type  *rrsets;
-	uint32_t     number; /* Unique domain name number.  */
 #ifdef PLUGINS
 	void       **plugin_data;
 #endif
+	uint32_t     number; /* Unique domain name number.  */
 	
 	/*
 	 * This domain name exists (see wildcard clarification draft).
@@ -67,11 +67,11 @@ struct zone
 /* a RR in DNS */
 struct rr {
 	domain_type     *owner;
+	rdata_atom_type *rdatas;
+	uint32_t         ttl;
 	uint16_t         type;
 	uint16_t         klass;
-	uint32_t         ttl;
 	uint16_t         rdata_count;
-	rdata_atom_type *rdatas;
 };
 
 /*
@@ -82,8 +82,8 @@ struct rrset
 {
 	rrset_type *next;
 	zone_type  *zone;
-	uint16_t    rr_count;
 	rr_type    *rrs;
+	uint16_t    rr_count;
 };
 
 /*

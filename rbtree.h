@@ -22,8 +22,8 @@ struct rbnode_t {
 	rbnode_t   *parent;
 	rbnode_t   *left;
 	rbnode_t   *right;
-	int	    color;
 	const void *key;
+	uint8_t	    color;
 };
 
 #define	RBTREE_NULL &rbtree_null_node
@@ -31,16 +31,16 @@ extern	rbnode_t	rbtree_null_node;
 
 typedef struct rbtree_t rbtree_t;
 struct rbtree_t {
-	region_type     *region;
+	region_type *region;
 	
 	/* The root of the red-black tree */
-	rbnode_t	*root;
+	rbnode_t    *root;
 
 	/* The number of the nodes in the tree */
-	unsigned long count;
+	size_t       count;
 
 	/* Current node for walks... */
-	rbnode_t	*_node;
+	rbnode_t    *_node;
 
 	/* Key compare function */
 	int (*cmp) (const void *, const void *);
