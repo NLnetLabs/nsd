@@ -152,6 +152,7 @@ AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
+AC_REPLACE_FUNCS(timegm)
 
 dnl
 dnl Check for libwrap

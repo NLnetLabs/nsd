@@ -1,4 +1,17 @@
-$Id: RELNOTES,v 1.13 2003/03/20 10:03:06 alexis Exp $
+$Id: RELNOTES,v 1.14 2003/03/27 10:56:58 alexis Exp $
+
+
+1.1
+=============
+FEATURES:
+	- ANSI C
+	- autoconf/configure
+	- support for various RR types in zonec
+
+CHANGES:
+
+
+BUG FIXES:
 
 1.0.2
 =============

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.29 2003/03/25 12:46:12 alexis Exp $
+# $Id: Makefile.in,v 1.30 2003/03/27 10:56:58 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -144,6 +144,10 @@ snprintf.o:	compat/snprintf.c
 
 vsnprintf.o:	compat/vsnprintf.c
 	$(COMPILE) -c compat/vsnprintf.c -o vsnprintf.o
+
+timegm.o:	compat/timegm.c
+	$(COMPILE) -c compat/timegm.c -o timegm.o
+
 
 # Test programs
 rbtree:	rbtree.c rbtree.h
