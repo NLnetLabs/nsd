@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.45 2003/10/23 12:29:16 erik Exp $
+ * $Id: zyparser.y,v 1.46 2003/10/23 14:09:46 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -64,7 +64,7 @@ rdata_atom_type temporary_rdata[MAXRDATALEN + 1];
 
 %type <domain> owner_dname nonowner_dname
 %type <dname>  dname abs_dname rel_dname
-%type <data>   str_seq
+%type <data>   str_seq hex_seq
 
 %%
 lines:  /* empty line */
@@ -254,6 +254,20 @@ str_seq:	STR
         	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $3.str));
     	}	
     	;
+hex_seq:	STR
+	{
+		$$ = $1;
+	}
+	|	hex_seq sp STR
+	{
+		char *hex = (char*)malloc($3.len + $1.len);
+		memcpy(hex, $1.str, $1.len);
+		memcpy(hex + $1.len, $3.str, $3.len);
+		$$.str = hex;
+		$$.len = $1.len + $3.len;
+		fprintf(stderr,"hex: %s\n",$$);
+	}
+	;
 
 
 /* define what we can parse */
@@ -390,12 +404,12 @@ rdata_srv:	STR sp STR sp STR sp nonowner_dname trail
 	}
 	;
 
-rdata_ds:	STR sp STR sp STR sp str_seq trail
+rdata_ds:	STR sp STR sp STR sp hex_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* keytag */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* alg */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* type */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $7.str)); /* hash */
+		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $7.str)); /* hash */
 	}
 	;
 %%

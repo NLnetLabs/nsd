@@ -62,7 +62,7 @@ struct lex_data {
 
 
 #define DEFAULT_TTL 3600
-#define RRTYPES     52
+#define RRTYPES     54
 #define MAXINCLUDES 10
 
 /* a RR in DNS */

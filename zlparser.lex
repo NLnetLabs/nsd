@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.31 2003/10/23 12:25:50 miekg Exp $
+ * $Id: zlparser.lex,v 1.32 2003/10/23 14:09:46 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -293,10 +293,9 @@ zrrtype (char *word)
 	 * return the correct token based on our list of RR types
 	 */
 	int i;
-	for (i = 0; i < RRTYPES - 1; ++i) {
+	for (i = 0; i < RRTYPES - 1; i++) {
 		if (strcasecmp(word, RRtypes[i]) == 0) {
-			LEXOUT(word);
-			LEXOUT(" ");
+			LEXOUT("%s ",word);
 			return i + A;
 		}
 		
