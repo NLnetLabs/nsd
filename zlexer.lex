@@ -31,7 +31,7 @@ const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS", "EID", "NIMLOC", "ATMA",
     "NAPTR", "KX", "A6", "DNAME", "SINK", "OPT", "APL", "UINFO", "UID",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA",
-    "DS","RRSIG","NSEC","DNSKEY"};
+    "DS","RRSIG","NSEC","DNSKEY", NULL};
 
 YY_BUFFER_STATE include_stack[MAXINCLUDES];
 zparser_type zparser_stack[MAXINCLUDES];
@@ -295,12 +295,14 @@ zrrtype (char *word)
 	 */
 	int i,j;
 	/* known types */
-	for (i = 0; i < RRTYPES - 1; i++) {
+	i = 0;
+	while ( RRtypes[i] != NULL ) {
+	/*for (i = 0; i < RRTYPES - 1; i++) {*/
 		if (strcasecmp(word, RRtypes[i]) == 0) {
 			LEXOUT(("%s ", word));
 			return i + A;
 		}
-		
+		i++;	
 	}
 	/* it wasn't a known type, check to see if it maybe
 	 * was something like TYPExxxx */
@@ -312,8 +314,9 @@ zrrtype (char *word)
 	/* now it is TYPExxxx, and either we know it, or we don't */
 	LEXOUT(("TYPEx%d ", j));
 	
-	if ( j < RRTYPES ) {
-		return j + A; /* now it's know */
+	/* [XXX] need better handling here, this is not 100% tight */
+	if ( j < DNSKEY ) { /* last known type */
+		return j + A; /* now it's know, well does it? */
 	} else {
 		/* j == 0 is already handled */
 		return UTYPE;

@@ -72,7 +72,7 @@ uint8_t nsecbits[256][32];
 %%
 lines:  /* empty line */
     |   lines line
-    |   error      { error("syntax error"); yyerrok; }
+    |   error NL     { error("syntax error"); yyerrok; }
     ;
 
 line:   NL
