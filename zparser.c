@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.12 2003/02/17 12:35:42 alexis Exp $
+ * $Id: zparser.c,v 1.13 2003/02/17 12:42:29 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -807,6 +807,7 @@ zrdata (struct zparser *z)
 		case TYPE_WKS:
 		default:
 			zerror(z, "dont know how to parse this type, try \\# representation");
+			while(z->_t[++z->_tc] != NULL);
 	}
 
 	return -1;
