@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.16 2002/02/02 21:45:24 alexis Exp $
+ * $Id: query.c,v 1.17 2002/02/02 21:59:20 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -224,7 +224,8 @@ query_process(q, db)
 	qname = qptr = q->iobuf + QHEADERSZ;
 	while(*qptr) {
 		/*  If we are out of buffer limits or we have a pointer in question dname... */
-		if((qptr > q->iobufptr) || (*qptr & 0xc0)) {
+		if((qptr > q->iobufptr) || (*qptr & 0xc0) ||
+			((qptr - q->iobuf) > MAXDOMAINLEN)) {
 			RCODE_SET(q, RCODE_FORMAT);
 			return 0;
 		}
