@@ -353,7 +353,7 @@ process_edns (struct query *q, uint8_t *qptr)
 				ARCOUNT(q) = 0;
 
 				DEBUG(DEBUG_QUERY, 2,
-				      (stderr, "EDNS0 maxlen = %u\n", q->maxlen));
+				      (stderr, "EDNS0 maxlen = %lu\n", (unsigned long) q->maxlen));
 			}
 		}
 	}
