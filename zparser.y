@@ -766,7 +766,7 @@ rdata_unknown:	URR sp STR sp str_sp_seq trail
 int
 yywrap(void)
 {
-    return 1;
+	return 1;
 }
 
 /*
