@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.57 2002/10/14 13:35:44 alexis Exp $
+ * $Id: server.c,v 1.58 2002/10/14 13:40:57 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -440,6 +440,8 @@ server_tcp(struct nsd *nsd)
 		maxfd = nsd->tcp6.s > maxfd ? nsd->tcp6.s : maxfd;
 #endif
 
+		/* Break from select() to dump statistics... */
+		siginterrupt(SIGILL, 1);
 		/* Wait for a query... */
 		if(select(maxfd + 1, &peer, NULL, NULL, NULL) == -1) {
 			if(errno == EINTR) {
@@ -450,6 +452,9 @@ server_tcp(struct nsd *nsd)
 				break;
 			}
 		}
+
+		/* Wait for transaction completion before dumping stats... */
+		siginterrupt(SIGILL, 0);
 
 		/* Process it... */
 		if(FD_ISSET(nsd->tcp.s, &peer)) {
