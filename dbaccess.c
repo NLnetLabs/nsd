@@ -153,75 +153,77 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count
 	return 1;
 }
 
-static int
+static rrset_type *
 read_rrset(namedb_type *db,
 	   uint32_t domain_count, domain_type **domains,
 	   uint32_t zone_count, zone_type **zones)
 {
 	rrset_type *rrset;
 	int i, j;
-	uint16_t rdcount;
-	uint32_t ttl;
 	domain_type *owner;
+	uint16_t type;
+	uint16_t klass;
 	
 	owner = read_domain(db, domain_count, domains);
 	if (!owner)
-		return 0;
+		return NULL;
 
 	rrset = (rrset_type *) region_alloc(db->region, sizeof(rrset_type));
 			     
 	rrset->zone = read_zone(db, zone_count, zones);
 	if (!rrset->zone)
-		return 0;
+		return NULL;
 	
-	if (fread(&rrset->type, sizeof(rrset->type), 1, db->fd) != 1)
-		return 0;
-
-	if (fread(&rrset->klass, sizeof(rrset->klass), 1, db->fd) != 1)
-		return 0;
-
-	if (fread(&rrset->rrslen, sizeof(rrset->rrslen), 1, db->fd) != 1)
-		return 0;
-
-	rrset->type = ntohs(rrset->type);
-	rrset->klass = ntohs(rrset->klass);
-	rrset->rrslen = ntohs(rrset->rrslen);
-
-	rrset->rrs = (rrdata_type **) region_alloc(
-		db->region, rrset->rrslen * sizeof(rrdata_type *));
+	if (fread(&type, sizeof(type), 1, db->fd) != 1)
+		return NULL;
+	type = ntohs(type);
 	
-	for (i = 0; i < rrset->rrslen; ++i) {
-		if (fread(&rdcount, sizeof(rdcount), 1, db->fd) != 1)
-			return 0;
+	if (fread(&klass, sizeof(klass), 1, db->fd) != 1)
+		return NULL;
+	klass = ntohs(klass);
 
-		if (fread(&ttl, sizeof(ttl), 1, db->fd) != 1)
-			return 0;
+	if (fread(&rrset->rr_count, sizeof(rrset->rr_count), 1, db->fd) != 1)
+		return NULL;
+	rrset->rr_count = ntohs(rrset->rr_count);
+	rrset->rrs = (rr_type *) region_alloc(
+		db->region, rrset->rr_count * sizeof(rr_type));
 
-		rdcount = ntohs(rdcount);
+	assert(rrset->rr_count > 0);
+	
+	for (i = 0; i < rrset->rr_count; ++i) {
+		rr_type *rr = &rrset->rrs[i];
+
+		rr->type = type;
+		rr->klass = klass;
 		
-		rrset->rrs[i] = (rrdata_type *) region_alloc(
-			db->region, rrdata_size(rdcount));
-		rrset->rrs[i]->ttl = ntohl(ttl);
-		rrset->rrs[i]->rdata_count = rdcount;
-		
-		for (j = 0; j < rdcount; ++j) {
-			if (!read_rdata_atom(db, rrset->type, j, domain_count, domains, &rrset->rrs[i]->rdata[j]))
-				return 0;
+		if (fread(&rr->rdata_count, sizeof(rr->rdata_count), 1, db->fd) != 1)
+			return NULL;
+		rr->rdata_count = ntohs(rr->rdata_count);
+		rr->rdatas = (rdata_atom_type *) region_alloc(
+			db->region, rr->rdata_count * sizeof(rdata_atom_type));
+
+		if (fread(&rr->ttl, sizeof(rr->ttl), 1, db->fd) != 1)
+			return NULL;
+		rr->ttl = ntohl(rr->ttl);
+
+		for (j = 0; j < rr->rdata_count; ++j) {
+			if (!read_rdata_atom(db, rr->type, j, domain_count, domains, &rr->rdatas[j]))
+				return NULL;
 		}
 	}
 
 	domain_add_rrset(owner, rrset);
 
-	if (rrset->type == TYPE_SOA) {
+	if (rrset->rrs[0].type == TYPE_SOA) {
 		assert(owner == rrset->zone->apex);
 		rrset->zone->soa_rrset = rrset;
-	} else if (owner == rrset->zone->apex && rrset->type == TYPE_NS) {
+	} else if (owner == rrset->zone->apex && rrset->rrs[0].type == TYPE_NS) {
 		rrset->zone->ns_rrset = rrset;
 	}
 
 #ifdef DNSSEC
-	if (rrset->type == TYPE_RRSIG && owner == rrset->zone->apex) {
-		for (i = 0; i < rrset->rrslen; ++i) {
+	if (rrset->rrs[0].type == TYPE_RRSIG && owner == rrset->zone->apex) {
+		for (i = 0; i < rrset->rr_count; ++i) {
 			if (rrset_rrsig_type_covered(rrset, i) == TYPE_SOA) {
 				rrset->zone->is_secure = 1;
 				break;
@@ -230,7 +232,7 @@ read_rrset(namedb_type *db,
 	}
 #endif
 	
-	return 1;
+	return rrset;
 }
 
 struct namedb *
@@ -266,6 +268,9 @@ namedb_open (const char *filename)
 	
 	uint32_t i;
 	uint32_t rrset_count = 0;
+	uint32_t rr_count = 0;
+
+	rrset_type *rrset;
 	
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "sizeof(namedb_type) = %lu\n", (unsigned long) sizeof(namedb_type)));
@@ -275,6 +280,10 @@ namedb_open (const char *filename)
 	      (stderr, "sizeof(domain_type) = %lu\n", (unsigned long) sizeof(domain_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "sizeof(rrset_type) = %lu\n", (unsigned long) sizeof(rrset_type)));
+	DEBUG(DEBUG_DBACCESS, 2,
+	      (stderr, "sizeof(rr_type) = %lu\n", (unsigned long) sizeof(rr_type)));
+	DEBUG(DEBUG_DBACCESS, 2,
+	      (stderr, "sizeof(rdata_atom_type) = %lu\n", (unsigned long) sizeof(rdata_atom_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
 
@@ -363,11 +372,14 @@ namedb_open (const char *filename)
 	
 	region_destroy(dname_region);
 
-	while (read_rrset(db, dname_count, domains, zone_count, zones))
+	while ((rrset = read_rrset(db, dname_count, domains, zone_count, zones))) {
 		++rrset_count;
+		rr_count += rrset->rr_count;
+	}
 
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "Retrieved %lu RRsets\n", (unsigned long) rrset_count));
+	      (stderr, "Retrieved %lu RRs in %lu RRsets\n",
+	       (unsigned long) rr_count, (unsigned long) rrset_count));
 	
 	region_destroy(temp_region);
 	

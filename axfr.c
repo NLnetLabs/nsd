@@ -61,11 +61,10 @@ query_axfr (struct nsd *nsd, struct query *query)
 
 		query_add_compression_domain(query, query->domain, QHEADERSZ);
 
-		assert(query->axfr_zone->soa_rrset->rrslen == 1);
+		assert(query->axfr_zone->soa_rrset->rr_count == 1);
 		added = encode_rr(query,
 				  query->axfr_zone->apex,
-				  query->axfr_zone->soa_rrset,
-				  0);
+				  &query->axfr_zone->soa_rrset->rrs[0]);
 		if (!added) {
 			/* XXX: This should never happen... generate error code? */
 			abort();
@@ -96,11 +95,10 @@ query_axfr (struct nsd *nsd, struct query *query)
 			if (query->axfr_current_rrset != query->axfr_zone->soa_rrset
 			    && query->axfr_current_rrset->zone == query->axfr_zone)
 			{
-				while (query->axfr_current_rr < query->axfr_current_rrset->rrslen) {
+				while (query->axfr_current_rr < query->axfr_current_rrset->rr_count) {
 					added = encode_rr(query,
 							  query->axfr_current_domain,
-							  query->axfr_current_rrset,
-							  query->axfr_current_rr);
+							  &query->axfr_current_rrset->rrs[query->axfr_current_rr]);
 					if (!added)
 						goto return_answer;
 					++total_added;
@@ -117,11 +115,10 @@ query_axfr (struct nsd *nsd, struct query *query)
 	}
 
 	/* Add terminating SOA RR.  */
-	assert(query->axfr_zone->soa_rrset->rrslen == 1);
+	assert(query->axfr_zone->soa_rrset->rr_count == 1);
 	added = encode_rr(query,
 			  query->axfr_zone->apex,
-			  query->axfr_zone->soa_rrset,
-			  0);
+			  &query->axfr_zone->soa_rrset->rrs[0]);
 	if (added) {
 		++total_added;
 		query->axfr_is_done = 1;

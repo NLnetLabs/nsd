@@ -888,24 +888,24 @@ zparser_ttl2int(const char *ttlstr)
 void
 zadd_rdata_wireformat(uint16_t *data)
 {
-	if (parser->current_rr.rrdata->rdata_count > MAXRDATALEN) {
+	if (parser->current_rr.rdata_count > MAXRDATALEN) {
 		zc_error_prev_line("too many rdata elements");
 	} else {
-		parser->current_rr.rrdata
-			->rdata[parser->current_rr.rrdata->rdata_count].data = data;
-		++parser->current_rr.rrdata->rdata_count;
+		parser->current_rr.rdatas[parser->current_rr.rdata_count].data
+			= data;
+		++parser->current_rr.rdata_count;
 	}
 }
 
 void
 zadd_rdata_domain(domain_type *domain)
 {
-	if (parser->current_rr.rrdata->rdata_count > MAXRDATALEN) {
+	if (parser->current_rr.rdata_count > MAXRDATALEN) {
 		zc_error_prev_line("too many rdata elements");
 	} else {
-		parser->current_rr.rrdata
-			->rdata[parser->current_rr.rrdata->rdata_count].domain = domain;
-		++parser->current_rr.rrdata->rdata_count;
+		parser->current_rr.rdatas[parser->current_rr.rdata_count].domain
+			= domain;
+		++parser->current_rr.rdata_count;
 	}
 }
 
@@ -1086,7 +1086,7 @@ lookup_type_by_name(const char *name)
  *
  */
 static int
-zrdatacmp(uint16_t type, rrdata_type *a, rrdata_type *b)
+zrdatacmp(uint16_t type, rr_type *a, rr_type *b)
 {
 	int i = 0;
 	
@@ -1100,20 +1100,20 @@ zrdatacmp(uint16_t type, rrdata_type *a, rrdata_type *b)
 	/* Compare element by element */
 	for (i = 0; i < a->rdata_count; ++i) {
 		if (rdata_atom_is_domain(type, i)) {
-			if (rdata_atom_domain(a->rdata[i])
-			    != rdata_atom_domain(b->rdata[i]))
+			if (rdata_atom_domain(a->rdatas[i])
+			    != rdata_atom_domain(b->rdatas[i]))
 			{
 				return 1;
 			}
 		} else {
-			if (rdata_atom_size(a->rdata[i])
-			    != rdata_atom_size(b->rdata[i]))
+			if (rdata_atom_size(a->rdatas[i])
+			    != rdata_atom_size(b->rdatas[i]))
 			{
 				return 1;
 			}
-			if (memcmp(rdata_atom_data(a->rdata[i]),
-				   rdata_atom_data(b->rdata[i]),
-				   rdata_atom_size(a->rdata[i])) != 0)
+			if (memcmp(rdata_atom_data(a->rdatas[i]),
+				   rdata_atom_data(b->rdatas[i]),
+				   rdata_atom_size(a->rdatas[i])) != 0)
 			{
 				return 1;
 			}
@@ -1200,11 +1200,11 @@ process_rr()
 
 	/* Make sure the maximum RDLENGTH does not exceed 65535 bytes.  */
 	max_rdlength = 0;
-	for (i = 0; i < rr->rrdata->rdata_count; ++i) {
+	for (i = 0; i < rr->rdata_count; ++i) {
 		if (rdata_atom_is_domain(rr->type, i)) {
-			max_rdlength += domain_dname(rdata_atom_domain(rr->rrdata->rdata[i]))->name_size;
+			max_rdlength += domain_dname(rdata_atom_domain(rr->rdatas[i]))->name_size;
 		} else {
-			max_rdlength += rdata_atom_size(rr->rrdata->rdata[i]);
+			max_rdlength += rdata_atom_size(rr->rdatas[i]);
 		}
 	}
 
@@ -1252,43 +1252,46 @@ process_rr()
 		rrset = (rrset_type *) region_alloc(parser->region,
 						    sizeof(rrset_type));
 		rrset->zone = zone;
-		rrset->type = rr->type;
-		rrset->klass = rr->klass;
-		rrset->rrslen = 1;
-		rrset->rrs = (rrdata_type **) xalloc(sizeof(rrdata_type **));
-		rrset->rrs[0] = rr->rrdata;
+		rrset->rr_count = 1;
+		rrset->rrs = (rr_type *) xalloc(sizeof(rr_type));
+		memcpy(&rrset->rrs[0], rr, sizeof(rr_type));
 			
 		region_add_cleanup(parser->region, cleanup_rrset, rrset);
 
 		/* Add it */
 		domain_add_rrset(rr->owner, rrset);
 	} else {
-		if (rrset->type != TYPE_RRSIG && rrset->rrs[0]->ttl != rr->rrdata->ttl) {
+		if (rrset->rrs[0].type != TYPE_RRSIG
+		    && rrset->rrs[0].ttl != rr->ttl)
+		{
 			zc_warning_prev_line("TTL doesn't match the TTL of the RRset");
 		}
 
 		/* Search for possible duplicates... */
-		for (i = 0; i < rrset->rrslen; i++) {
-			if (!zrdatacmp(rrset->type, rrset->rrs[i], rr->rrdata))
+		for (i = 0; i < rrset->rr_count; i++) {
+			if (!zrdatacmp(rr->type, rr, &rrset->rrs[i]))
 			{
 				break;
 			}
 		}
 
 		/* Discard the duplicates... */
-		if (i < rrset->rrslen) {
+		if (i < rrset->rr_count) {
 			return 0;
 		}
 
 		/* Add it... */
-		rrset->rrs = (rrdata_type **) xrealloc(
+		rrset->rrs = (rr_type *) xrealloc(
 			rrset->rrs,
-			(rrset->rrslen + 1) * sizeof(rrdata_type **));
-		rrset->rrs[rrset->rrslen++] = rr->rrdata;
+			(rrset->rr_count + 1) * sizeof(rr_type));
+		memcpy(&rrset->rrs[rrset->rr_count], rr, sizeof(rr_type));
+		++rrset->rr_count;
 	}
 
 #ifdef DNSSEC
-	if (rrset->type == TYPE_RRSIG && rrset_rrsig_type_covered(rrset, rrset->rrslen - 1) == TYPE_SOA) {
+	if (rrset->rrs[0].type == TYPE_RRSIG
+	    && rrset_rrsig_type_covered(rrset, rrset->rr_count - 1) == TYPE_SOA)
+	{
 		rrset->zone->is_secure = 1;
 	}
 #endif
@@ -1305,7 +1308,7 @@ process_rr()
 		}
 	} else if (rr->type == TYPE_SOA) {
 		zc_error_prev_line("Duplicate SOA record discarded");
-		--rrset->rrslen;
+		--rrset->rr_count;
 	}
 
 	/* Is this a zone NS? */

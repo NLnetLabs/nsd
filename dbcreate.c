@@ -143,20 +143,16 @@ write_number(struct namedb *db, uint32_t number)
 static int
 write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 {
-	uint32_t ttl;
-	uint16_t klass;
-	uint16_t type;
-	uint16_t rdcount;
-	uint16_t rrslen;
+	uint16_t rr_count;
 	int i, j;
+	uint16_t type;
+	uint16_t klass;
 
 	assert(db);
 	assert(domain);
 	assert(rrset);
 	
-	klass = htons(rrset->klass);
-	type = htons(rrset->type);
-	rrslen = htons(rrset->rrslen);
+	rr_count = htons(rrset->rr_count);
 	
 	if (!write_number(db, domain->number))
 		return 0;
@@ -164,27 +160,33 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	if (!write_number(db, rrset->zone->number))
 		return 0;
 	
+	type = htons(rrset->rrs[0].type);
 	if (!write_data(db->fd, &type, sizeof(type)))
 		return 0;
-		
+
+	klass = htons(rrset->rrs[0].klass);
 	if (!write_data(db->fd, &klass, sizeof(klass)))
 		return 0;
-		
-	if (!write_data(db->fd, &rrslen, sizeof(rrslen)))
+
+	if (!write_data(db->fd, &rr_count, sizeof(rr_count)))
 		return 0;
 		
-	for (i = 0; i < rrset->rrslen; ++i) {
-		rdcount = htons(rrset->rrs[i]->rdata_count);
-		if (!write_data(db->fd, &rdcount, sizeof(rdcount)))
+	for (i = 0; i < rrset->rr_count; ++i) {
+		rr_type *rr = &rrset->rrs[i];
+		uint32_t ttl;
+		uint16_t rdata_count;
+		
+		rdata_count = htons(rr->rdata_count);
+		if (!write_data(db->fd, &rdata_count, sizeof(rdata_count)))
 			return 0;
 
-		ttl = htonl(rrset->rrs[i]->ttl);
+		ttl = htonl(rr->ttl);
 		if (!write_data(db->fd, &ttl, sizeof(ttl)))
 			return 0;
 
-		for (j = 0; j < rrset->rrs[i]->rdata_count; ++j) {
-			rdata_atom_type atom = rrset->rrs[i]->rdata[j];
-			if (rdata_atom_is_domain(rrset->type, j)) {
+		for (j = 0; j < rr->rdata_count; ++j) {
+			rdata_atom_type atom = rr->rdatas[j];
+			if (rdata_atom_is_domain(rr->type, j)) {
 				if (!write_number(db, rdata_atom_domain(atom)->number))
 					return 0;
 			} else {

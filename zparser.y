@@ -86,12 +86,11 @@ line:   NL
 		    {
 			    zc_error("RR before SOA skipped");
 		    } else {
-			    parser->current_rr.zone = parser->current_zone;
-			    parser->current_rr.rrdata
-				    = (rrdata_type *) region_alloc_init(
+			    parser->current_rr.rdatas
+				    = (rdata_atom_type *) region_alloc_init(
 					    parser->region,
-					    parser->current_rr.rrdata,
-					    rrdata_size(parser->current_rr.rrdata->rdata_count));
+					    parser->current_rr.rdatas,
+					    parser->current_rr.rdata_count * sizeof(rdata_atom_type));
 
 			    process_rr();
 		    }
@@ -100,8 +99,8 @@ line:   NL
 	    region_free_all(parser->rr_region);
 
 	    parser->current_rr.type = 0;
-	    parser->current_rr.rrdata = parser->temporary_rrdata;
-	    parser->current_rr.rrdata->rdata_count = 0;
+	    parser->current_rr.rdata_count = 0;
+	    parser->current_rr.rdatas = parser->temporary_rdatas;
 	    parser->error_occurred = 0;
     }
     | error NL
@@ -169,9 +168,9 @@ rr:     ORIGIN sp rrrest
 ttl:    TTL
     {
         /* set the ttl */
-        if ( (parser->current_rr.rrdata->ttl = 
+        if ( (parser->current_rr.ttl = 
 		zparser_ttl2int($1.str) ) == -1) {
-	            parser->current_rr.rrdata->ttl = parser->default_ttl;
+	            parser->current_rr.ttl = parser->default_ttl;
 		    return 0;
 	}
     }
@@ -197,12 +196,12 @@ class:  in
 
 classttl:   /* empty - fill in the default, def. ttl and IN class */
     {
-        parser->current_rr.rrdata->ttl = parser->default_ttl;
+        parser->current_rr.ttl = parser->default_ttl;
         parser->current_rr.klass = parser->default_class;
     }
     |   class sp         /* no ttl */
     {
-        parser->current_rr.rrdata->ttl = parser->default_ttl;
+        parser->current_rr.ttl = parser->default_ttl;
     }
     |	ttl sp		/* no class */
     {   
@@ -856,8 +855,8 @@ zparser_create(region_type *region, region_type *rr_region, namedb_type *db)
 	result->rr_region = rr_region;
 	result->db = db;
 	
-	result->temporary_rrdata = (rrdata_type *) region_alloc(
-		result->region, rrdata_size(MAXRDATALEN));
+	result->temporary_rdatas = (rdata_atom_type *) region_alloc(
+		result->region, MAXRDATALEN * sizeof(rdata_atom_type));
 	
 	return result;
 }
@@ -884,8 +883,8 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 	parser->errors = 0;
 	parser->line = 1;
 	parser->filename = filename;
-	parser->current_rr.rrdata = parser->temporary_rrdata;
-	parser->current_rr.rrdata->rdata_count = 0;
+	parser->current_rr.rdata_count = 0;
+	parser->current_rr.rdatas = parser->temporary_rdatas;
 }
 
 int

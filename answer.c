@@ -83,7 +83,7 @@ encode_dname(struct query *q, domain_type *domain)
 }
 
 int
-encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
+encode_rr(struct query *q, domain_type *owner, rr_type *rr)
 {
 	size_t truncation_mark;
 	uint16_t rdlength = 0;
@@ -92,9 +92,8 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	
 	assert(q);
 	assert(owner);
-	assert(rrset);
-	assert(rr < rrset->rrslen);
-
+	assert(rr);
+	
 	/*
 	 * If the record does not in fit in the packet the packet size
 	 * will be restored to the mark.
@@ -102,32 +101,31 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	truncation_mark = buffer_position(q->packet);
 	
 	encode_dname(q, owner);
-	buffer_write_u16(q->packet, rrset->type);
-	buffer_write_u16(q->packet, rrset->klass);
-	buffer_write_u32(q->packet, rrset->rrs[rr]->ttl);
+	buffer_write_u16(q->packet, rr->type);
+	buffer_write_u16(q->packet, rr->klass);
+	buffer_write_u32(q->packet, rr->ttl);
 
 	/* Reserve space for rdlength. */
 	rdlength_pos = buffer_position(q->packet);
 	buffer_skip(q->packet, sizeof(rdlength));
 
-	for (j = 0; j < rrset->rrs[rr]->rdata_count; ++j) {
-		switch (rdata_atom_wireformat_type(rrset->type, j)) {
+	for (j = 0; j < rr->rdata_count; ++j) {
+		switch (rdata_atom_wireformat_type(rr->type, j)) {
 		case RDATA_WF_COMPRESSED_DNAME:
-			encode_dname(q, rdata_atom_domain(
-					     rrset->rrs[rr]->rdata[j]));
+			encode_dname(q, rdata_atom_domain(rr->rdatas[j]));
 			break;
 		case RDATA_WF_UNCOMPRESSED_DNAME:
 		{
 			const dname_type *dname = domain_dname(
-				rdata_atom_domain(rrset->rrs[rr]->rdata[j]));
+				rdata_atom_domain(rr->rdatas[j]));
 			buffer_write(q->packet,
 				     dname_name(dname), dname->name_size);
 			break;
 		}
 		default:
 			buffer_write(q->packet,
-				     rdata_atom_data(rrset->rrs[rr]->rdata[j]),
-				     rdata_atom_size(rrset->rrs[rr]->rdata[j]));
+				     rdata_atom_data(rr->rdatas[j]),
+				     rdata_atom_size(rr->rdatas[j]));
 			break;
 		}
 	}
@@ -146,8 +144,8 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 }
 
 static int
-encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *rrset,
-	       int truncate)
+encode_rrset(struct query *q, uint16_t *count, domain_type *owner,
+	     rrset_type *rrset, int truncate)
 {
 	uint16_t i;
 	size_t truncation_mark;
@@ -155,12 +153,12 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 	int all_added = 1;
 	rrset_type *rrsig;
 	
-	assert(rrset->rrslen > 0);
+	assert(rrset->rr_count > 0);
 
 	truncation_mark = buffer_position(q->packet);
 	
-	for (i = 0; i < rrset->rrslen; ++i) {
-		if (encode_rr(q, owner, rrset, i)) {
+	for (i = 0; i < rrset->rr_count; ++i) {
+		if (encode_rr(q, owner, &rrset->rrs[i])) {
 			++added;
 		} else {
 			all_added = 0;
@@ -178,12 +176,12 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 	if (all_added &&
 	    q->edns.dnssec_ok &&
 	    zone_is_secure(rrset->zone) &&
-	    rrset->type != TYPE_RRSIG &&
+	    rrset->rrs[0].type != TYPE_RRSIG &&
 	    (rrsig = domain_find_rrset(owner, rrset->zone, TYPE_RRSIG)))
 	{
-		for (i = 0; i < rrsig->rrslen; ++i) {
-			if (rrset_rrsig_type_covered(rrsig, i) == rrset->type) {
-				if (encode_rr(q, owner, rrsig, i)) {
+		for (i = 0; i < rrsig->rr_count; ++i) {
+			if (rrset_rrsig_type_covered(rrsig, i) == rrset->rrs[0].type) {
+				if (encode_rr(q, owner, &rrsig->rrs[i])) {
 					++added;
 				} else {
 					all_added = 0;
@@ -219,9 +217,9 @@ encode_answer(struct query *q, const answer_type *answer)
 				int truncate = (section == ANSWER_SECTION
 						|| section == AUTHORITY_SECTION);
 				encode_rrset(q, &counts[section],
-					       answer->domains[i],
-					       answer->rrsets[i],
-					       truncate);
+					     answer->domains[i],
+					     answer->rrsets[i],
+					     truncate);
 			}
 		}
 	}

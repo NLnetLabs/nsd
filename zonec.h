@@ -32,16 +32,6 @@ struct lex_data {
 #define DEFAULT_TTL 3600
 #define MAXINCLUDES 10
 
-/* a RR in DNS */
-typedef struct rr rr_type;
-struct rr {
-	domain_type *owner;
-	zone_type   *zone;
-	uint16_t     klass;
-	uint16_t     type;
-	rrdata_type *rrdata;
-};
-
 /* administration struct */
 typedef struct zparser zparser_type;
 struct zparser {
@@ -62,7 +52,7 @@ struct zparser {
 	unsigned int line;
 
 	rr_type current_rr;
-	rrdata_type *temporary_rrdata;
+	rdata_atom_type *temporary_rdatas;
 };
 
 extern zparser_type *parser;
