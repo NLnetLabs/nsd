@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.40 2003/02/10 14:53:02 alexis Exp $
+ * $Id: zf.c,v 1.41 2003/02/10 15:12:25 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -58,6 +58,39 @@
 
 static struct zf_type_tab zf_types[] = ZONEFILE_TYPES;
 static struct zf_class_tab zf_classes[] = ZONEFILE_CLASSES;
+
+/*
+ * Converts one digit to a hex number
+ *
+ */
+int
+chartoi (char c)
+{
+	c = tolower(c);
+
+	switch(c) {
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+		return c - '0';
+	case 'a':
+	case 'b':
+	case 'c':
+	case 'd':
+	case 'e':
+	case 'f':
+		return c - 'a';
+	default:
+		return -1;
+	}
+}
 
 /*
  * Converts dname to text
@@ -705,45 +738,66 @@ zf_print_rdata (union zf_rdatom *rdata, char *rdatafmt)
  */
 int
 zf_parse_unkn (struct zf *zf, char *token) {
-	return -1;
-/* if(*token[0] == '\' && token[1] == '#') {
-	if(*token[2] != 0) {
-		zf_syntax(zf);
-		continue;
-	}
+	u_int16_t unkn_size;
+	char *t;
+	int c;
+	int error = 0;
+
+	/* Get the rdlength */
 	if((token = zf_token(zf, NULL)) == NULL) {
 		zf_syntax(zf);
-		continue;
+		return -1;
 	}
+
 	unkn_size = (u_int16_t)strtol(token, &t, 10);
-
 	if(t) {
-		zf_syntax(zf);
-		continue;
+		zf_error(zf, "illegal number of octets with uknown rr");
+		return -1;
 	}
 
-	if(unkn_size == 0) {
-		zf->line.rdatafmt = "";
-		return &zf->line;
-	}
-	zf->line.rdatafmt = xalloc(unkn_size + 1);
-	memset(zf->line.rdatafmt, 'c', unkn_size);
-	zf->line.rdata[0].p = xalloc(unkn_size);
-	t = zf->line.rdata[0].p;
-	while(unkn_size) {
+	zf->line.rdatafmt = strdup("U");
+
+	zf->line.rdata[0].p = xalloc(unkn_size + sizeof(u_int16_t));
+	*((u_int16_t *)zf->line.rdata[0].p) = unkn_size;
+
+	t = (char *)zf->line.rdata[0].p + sizeof(u_int16_t); 
+
+	while(unkn_size && !error) {
 		if((token = zf_token(zf, NULL)) == NULL) {
 			zf_error(zf, "insufficient bytes for unknown record");
+			error++;
 			break;
 		}
-			
+		while(*token) {
+			if((c = chartoi(*(token++))) == -1) {
+				zf_syntax(zf);
+				error++;
+				break;
+			}
+			*t = c * 16;
+			if(*token == 0) {
+				zf_error(zf, "uneven number of octets for unknown record");
+				error++;
+				break;
+			}
+			if((c = chartoi(*(token++))) == -1) {
+				zf_syntax(zf);
+				error++;
+				break;
+			}
+			*t += c;
+		}
 	}
-	/* If we did not parse everything means there was an error */
-/*
-	if(unkn_size) {
+	if(error || unkn_size != 0) {
+		if(error == 0) {
+			zf_error(zf, "insufficient number of octets");
+		}
+		free(zf->line.rdatafmt);
 		free(zf->line.rdata[0].p);
-		continue;
+		return -1;
 	}
-*/
+
+	return 0;
 }
 
 /*
