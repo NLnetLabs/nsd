@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.50 2002/09/26 14:18:36 alexis Exp $
+ * $Id: nsd.c,v 1.51 2002/09/26 20:19:33 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -602,6 +602,10 @@ main(argc, argv)
 		case 'p':
 			nsd.udp.addr.sin_port = htons(atoi(optarg));
 			nsd.tcp.addr.sin_port = htons(atoi(optarg));
+#ifdef INET6
+			nsd.udp6.addr.sin6_port = htons(atoi(optarg));
+			nsd.tcp6.addr.sin6_port = htons(atoi(optarg));
+#endif /* INET6 */
 			break;
 		case 'i':
 			nsd.identity = optarg;
