@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.32 2003/10/23 14:09:46 miekg Exp $
+ * $Id: zlparser.lex,v 1.33 2003/10/29 11:02:01 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -16,8 +16,8 @@
 #include "dname.h"
 #include "zyparser.h"
 
-#define LEXOUT  printf /* used ONLY when debugging */
-/*#define LEXOUT*/
+/*#define LEXOUT  printf *//* used ONLY when debugging */
+#define LEXOUT
 
 /* see  http://www.iana.org/assignments/dns-parameters */
 const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
