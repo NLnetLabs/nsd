@@ -30,21 +30,69 @@
 
 #include "printrr.h"
 
-/* [XXX check if these are needed */
-#include "dname.h"
-#include "dns.h"
-#include "namedb.h"
-#include "util.h"
-#include "region-allocator.h"
+
+/* print a entire zone */
+int 
+print_zone(zone_type *zone)
+{
+
+	zone_type *z;
+	for ( z = zone; z != NULL ; z=z->next )
+		print_rrset(z->domain->rrsets ,z->domain);
+
+}
+
+/* print a RR set */
+int
+print_rrset(rrset_type *rrset, domain_type *dom)
+{
+	/* print a RRset by calling print_rrdata for all the members */
+
+	uint16_t i;
+	uint32_t ttl;
+	uint8_t *owner, *type;
+
+	owner = (uint8_t *) dname_to_string( domain_dname(dom ));
+	type = (uint8_t *)namebyint(rrset->type,ztypes);
+
+	if ( type == NULL ) {
+		type = (uint8_t *) malloc(10);
+		sprintf(type, "TYPE%d", rrset->type);
+	}
+
+	for ( i = 0; i < rrset->rrslen; ++i ) {
+
+		if ( rrset->type == TYPE_SOA ) {
+			printf("%s\t%ld IN %s\t", owner,
+					rrset->rrs[i]->ttl, type);
+			print_rrdata( rrset->rrs[i] ,rrset->type);
+			printf("\n");
+			continue;
+		}
+		
+		/* print each rr data element */
+		if ( i == 0 || rrset->type == TYPE_RRSIG || rrset->type == TYPE_NSEC)
+			printf("%s\t%ld %s\t", owner,
+					rrset->rrs[i]->ttl, type);
+		else
+			printf("\t\t%ld %s\t",
+					rrset->rrs[i]->ttl, type);
+
+		print_rrdata( rrset->rrs[i] ,rrset->type);
+	}
+	printf("\n");
+	return 0;
+}
+
 
 /* print a RR */
 int
 print_rr(rr_type *rr)
 {
 	uint32_t ttl;
-	uint8_t *owner;
+	uint8_t *owner, *type;
 	uint16_t *r;
-	uint8_t *type, *typecovered;
+
 	int i;	/* counter */
 	char *j; /* unknown rr */
 	
@@ -61,85 +109,95 @@ print_rr(rr_type *rr)
 	
 	printf("%s\t%ld IN %s\t", owner, ttl, type);
 
-        switch (rr->type) {
+	print_rrdata(rr->rrdata	, rr->type);
+	return 0;
+}
+
+int
+print_rrdata(rrdata_type *rrdata, uint16_t type)
+{
+	/* print the RR data */
+	uint8_t *typecovered;
+
+        switch (type) {
 		case TYPE_A:
-			printf("%s",wire_conv_a(rr->rrdata->rdata[0]));
+			printf("%s",wire_conv_a(rrdata->rdata[0]));
 			break;
 		case TYPE_AAAA:
-			printf("%s",wire_conv_aaaa(rr->rrdata->rdata[0]));
+			printf("%s",wire_conv_aaaa(rrdata->rdata[0]));
 			break;
 		case TYPE_CNAME:
                 case TYPE_NS:
-			printf("%s",wire_conv_domain(rr->rrdata->rdata[0]));
+			printf("%s",wire_conv_domain(rrdata->rdata[0]));
                         break;
 		case TYPE_MX:
-			printf("%d %s",wire_conv_short(rr->rrdata->rdata[0]),
-					wire_conv_domain(rr->rrdata->rdata[1]));
+			printf("%d %s",wire_conv_short(rrdata->rdata[0]),
+					wire_conv_domain(rrdata->rdata[1]));
 			break;
 		case TYPE_SOA:
 			printf("%s %s %d %d %d %d %d",
-				 	wire_conv_domain(rr->rrdata->rdata[0]),
-					wire_conv_domain(rr->rrdata->rdata[1]),
-					wire_conv_long(rr->rrdata->rdata[2]),
-					wire_conv_long(rr->rrdata->rdata[3]),
-					wire_conv_long(rr->rrdata->rdata[4]),
-					wire_conv_long(rr->rrdata->rdata[5]),
-					wire_conv_long(rr->rrdata->rdata[6]));
+				 	wire_conv_domain(rrdata->rdata[0]),
+					wire_conv_domain(rrdata->rdata[1]),
+					wire_conv_long(rrdata->rdata[2]),
+					wire_conv_long(rrdata->rdata[3]),
+					wire_conv_long(rrdata->rdata[4]),
+					wire_conv_long(rrdata->rdata[5]),
+					wire_conv_long(rrdata->rdata[6]));
 			break;
 		case TYPE_DNSKEY:
 			printf("%d %d %d %s",
-					wire_conv_short(rr->rrdata->rdata[0]),
-					wire_conv_byte(rr->rrdata->rdata[1]),
-					wire_conv_byte(rr->rrdata->rdata[2]),
-					wire_conv_b64(rr->rrdata->rdata[3]));
+					wire_conv_short(rrdata->rdata[0]),
+					wire_conv_byte(rrdata->rdata[1]),
+					wire_conv_byte(rrdata->rdata[2]),
+					wire_conv_b64(rrdata->rdata[3]));
 			break;
 		case TYPE_NSEC:
 			printf("%s",
-					wire_conv_labels(rr->rrdata->rdata[0]));
+					wire_conv_labels(rrdata->rdata[0]));
 			break;
 		case TYPE_RRSIG:
 			typecovered = (uint8_t *)namebyint(
-					wire_conv_rrtype(rr->rrdata->rdata[0]),ztypes);
+					wire_conv_rrtype(rrdata->rdata[0]),ztypes);
 			if ( typecovered == NULL ) {
 				typecovered = (uint8_t *) malloc(10);
 				sprintf(typecovered, "TYPE%d", 
-						wire_conv_rrtype(rr->rrdata->rdata[0]));
+						wire_conv_rrtype(rrdata->rdata[0]));
 			}
 	
 			printf("%s %d %d %ld %s %s %d %s %s",
 					typecovered,
-					wire_conv_byte(rr->rrdata->rdata[1]),
-					wire_conv_byte(rr->rrdata->rdata[2]),
-					wire_conv_long(rr->rrdata->rdata[3]),
-					wire_conv_time(rr->rrdata->rdata[4]),
-					wire_conv_time(rr->rrdata->rdata[5]),
-					wire_conv_short(rr->rrdata->rdata[6]),
-					wire_conv_labels(rr->rrdata->rdata[7]),
-					wire_conv_b64(rr->rrdata->rdata[8]));
+					wire_conv_byte(rrdata->rdata[1]),
+					wire_conv_byte(rrdata->rdata[2]),
+					wire_conv_long(rrdata->rdata[3]),
+					wire_conv_time(rrdata->rdata[4]),
+					wire_conv_time(rrdata->rdata[5]),
+					wire_conv_short(rrdata->rdata[6]),
+					wire_conv_labels(rrdata->rdata[7]),
+					wire_conv_b64(rrdata->rdata[8]));
 			break;	
 		case TYPE_DS:
 			printf("%d %d %d %s",
-					wire_conv_short(rr->rrdata->rdata[0]),
-					wire_conv_byte(rr->rrdata->rdata[1]),
-					wire_conv_byte(rr->rrdata->rdata[2]),
-					wire_conv_hex(rr->rrdata->rdata[3]));
+					wire_conv_short(rrdata->rdata[0]),
+					wire_conv_byte(rrdata->rdata[1]),
+					wire_conv_byte(rrdata->rdata[2]),
+					wire_conv_hex(rrdata->rdata[3]));
 			break;		
 		case TYPE_TXT:
 			/* [XXX] need to loop */
 			printf("%s",
-					wire_conv_string(rr->rrdata->rdata[0]));
+					wire_conv_string(rrdata->rdata[0]));
 			break;
 		case TYPE_HINFO:
 			printf("\"%s\" \"%s\"",
-					wire_conv_string(rr->rrdata->rdata[0]),
-					wire_conv_string(rr->rrdata->rdata[1]));
+					wire_conv_string(rrdata->rdata[0]),
+					wire_conv_string(rrdata->rdata[1]));
 			break;
 		default:
 			/* print as hex */
 			/* todo, looping */
-			printf("\\# %d ",rdata_atom_size(rr->rrdata->rdata[0]));
+			printf("\\# %d ",rdata_atom_size(rrdata->rdata[0]));
 			/* todo print hex */
-			printf("%s",wire_conv_hex(rr->rrdata->rdata[0]));
+			printf("%s",wire_conv_hex(rrdata->rdata[0]));
         }
 
 	printf("\n");
