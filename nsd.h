@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.40 2002/09/26 14:18:36 alexis Exp $
+ * $Id: nsd.h,v 1.41 2002/10/08 09:57:54 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -74,7 +74,7 @@
 
 #define	OPT_LEN	11
 
-#ifdef NAMED8_STATS
+#ifdef BIND8_STATS
 
 typedef	unsigned long stc_t;
 
@@ -85,12 +85,12 @@ typedef	unsigned long stc_t;
 				nsd->st.stc[LASTELEM(nsd->st.stc)]++ */
 
 #define	STATUP2(nsd, stc, i) nsd->st.stc[(i) <= (LASTELEM(nsd->st.stc) - 1) ? i : LASTELEM(nsd->st.stc)]++
-#else	/* NAMED8_STATS */
+#else	/* BIND8_STATS */
 
 #define	STATUP(nsd, stc) /* Nothing */
 #define	STATUP2(nsd, stc, i) /* Nothing */
 
-#endif /* NAMED8_STATS */
+#endif /* BIND8_STATS */
 
 /* NSD configuration and run-time variables */
 struct	nsd {
@@ -145,12 +145,12 @@ struct	nsd {
 		char		opt_err[OPT_LEN];
 	} edns;
 
-#ifdef	NAMED8_STATS
+#ifdef	BIND8_STATS
 
 	char	*named8_stats;
 
 	struct nsdst {
-		time_t	reload;
+		time_t	last;
 		int	period;		/* Produce statistics dump every st_period seconds */
 		stc_t	qtype[257];	/* Counters per qtype */
 		stc_t	qclass[4];	/* Class IN or Class CH or other */
@@ -161,7 +161,7 @@ struct	nsd {
 		stc_t	dropped, truncated, wrongzone, txerr, rxerr;
 		stc_t 	edns, ednserr;
 	} st;
-#endif /* NAMED8_STATS */
+#endif /* BIND8_STATS */
 };
 
 #include "dns.h"
@@ -172,7 +172,7 @@ void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
 int server __P((struct nsd *));
 int writepid __P((struct nsd *));
-void stats __P((struct nsd *, FILE *f));
+void bind8_stats __P((struct nsd *));
 
 /* server.c */
 int server_init __P((struct nsd *nsd));

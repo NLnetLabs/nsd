@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.53 2002/10/01 11:40:13 alexis Exp $
+ * $Id: server.c,v 1.54 2002/10/08 09:57:54 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -146,9 +146,6 @@ server_init(struct nsd *nsd)
 
 		nsd->dbfile += l;
 		nsd->pidfile += l;
-#ifdef NAMED8_STATS
-		nsd->named8_stats += l;
-#endif
 
 		if(chroot(nsd->chrootdir)) {
 			syslog(LOG_ERR, "unable to chroot: %m");
@@ -168,11 +165,11 @@ server_init(struct nsd *nsd)
 		return -1;
 	}
 
-#ifdef	NAMED8_STATS
+#ifdef	BIND8_STATS
 	/* Initialize times... */
-	time(&nsd->st.reload);
+	time(&nsd->st.last);
 	alarm(nsd->st.period);
-#endif /* NAMED8_STATS */
+#endif /* BIND8_STATS */
 
 	return 0;
 }
@@ -234,11 +231,6 @@ server_udp(struct nsd *nsd)
 	int received, sent, maxfd, s;
 	struct query q;
 
-#ifdef NAMED8_STATS
-	FILE *stf;
-#endif /* NAMED8_STATS */
-
-
 	/* The main loop... */	
 	while(nsd->mode != NSD_SHUTDOWN) {
 		/* Do we need to reload the database? */
@@ -249,20 +241,14 @@ server_udp(struct nsd *nsd)
 			break;
 		case NSD_STATS:
 			nsd->mode = NSD_RUN;
-#ifdef NAMED8_STATS
-			/* Open the file */
-			if((stf = fopen(nsd->named8_stats, "a")) == NULL) {
-				syslog(LOG_ERR, "unable to open %s: %m", NAMED8_STATS);
-				break;
-			}
 
+#ifdef BIND8_STATS
 			/* Dump the statistics */
-			stats(nsd, stf);
+			bind8_stats(nsd);
 
-			fclose(stf);
-#else /* NAMED8_STATS */
-			syslog(LOG_NOTICE, "No statistics available, recompile with -DNAMED8_STATS");
-#endif /* NAMED8_STATS */
+#else /* BIND8_STATS */
+			syslog(LOG_NOTICE, "No statistics available, recompile with -DBIND8_STATS");
+#endif /* BIND8_STATS */
 			break;
 		case NSD_RELOAD:
 			nsd->mode = NSD_RUN;
@@ -290,10 +276,7 @@ server_udp(struct nsd *nsd)
 
 				/* Refork the tcp servers... */
 				server_start_tcp(nsd);
-#ifdef NAMED8_STATS
-				/* Remeber the time of the reload... */
-				time(&nsd->st.reload);
-#endif /* NAMED8_STATS */
+
 				/* Overwrite pid... */
 				if(writepid(nsd) == -1) {
 					syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
@@ -373,12 +356,12 @@ server_udp(struct nsd *nsd)
 				continue;
 			}
 
-#ifdef NAMED8_STATS
+#ifdef BIND8_STATS
 			/* Account the rcode & TC... */
 			STATUP2(nsd, rcode, RCODE((&q)));
 			if(TC((&q)))
 			STATUP(nsd, truncated);
-#endif /* NAMED8_STATS */
+#endif /* BIND8_STATS */
 		} else {
 			STATUP(nsd, dropped);
 		}

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.80 2002/09/26 14:24:04 alexis Exp $
+# $Id: Makefile,v 1.81 2002/10/08 09:57:54 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -135,14 +135,14 @@ NSDCCONF	= ${NSDZONESDIR}/nsdc.conf
 #			Log the incoming notifies along with the remote
 #			ip address.
 #
-#	-DNAMED8_STATS=\"/var/tmp/named.stats\"
+#	-DBIND8_STATS
 #
 #			Enable collection of statistics and dump statistics
-#			into the specified file bind8 style on ``nsdc stats''.
+#			via syslog bind8 style on ``nsdc stats''.
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DLOG_NOTIFIES -DINET6 -DHOSTS_ACCESS -DNAMED8_STATS=\"/var/tmp/nsd.stats\"
+FEATURES	= -DLOG_NOTIFIES -DINET6 -DHOSTS_ACCESS -DBIND8_STATS
 LIBWRAP		= -lwrap
 
 # To compile NSD with internal red-black tree database
