@@ -104,6 +104,10 @@ AC_PROG_CC
 AC_PROG_LN_S
 AC_PROG_INSTALL
 
+# Check C compiler
+AC_C_CONST
+AC_C_INLINE
+
 # Checks for libraries.
 
 # Checks for header files.
