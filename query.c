@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.80 2002/09/26 14:18:36 alexis Exp $
+ * $Id: query.c,v 1.81 2002/10/10 11:22:05 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -120,6 +120,7 @@ query_axfr(q, nsd, qname, zname, depth)
 		a = soa;
 		dname = zone;
 		zone = NULL;
+		d = NULL;
 	} else {
 		/* Prepare the answer */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
@@ -148,7 +149,7 @@ query_axfr(q, nsd, qname, zname, depth)
 	}
 
 	/* Truncate */
-	if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
+	if(d && DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 		ANCOUNT(q) = NSCOUNT(q);
 	}
 	NSCOUNT(q) = 0;
