@@ -11,3 +11,6 @@
 # following should both resolve. NSD 1.2.3 should barf on #6
 5:a.abc A
 6:a.bac A
+# add some any queries (with AA bit off)
+7:-c any abc
+8:-c any bac
