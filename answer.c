@@ -63,11 +63,14 @@ encode_answer(query_type *q, const answer_type *answer)
 	rr_section_type section;
 	size_t i;
 
+	for (section = ANSWER_SECTION; section < RR_SECTION_COUNT; ++section) {
+		counts[section] = 0;
+	}
+	
 	for (section = ANSWER_SECTION;
 	     !TC(q->packet) && section < RR_SECTION_COUNT;
 	     ++section)
 	{
-		counts[section] = 0;
 		for (i = 0; !TC(q->packet) && i < answer->rrset_count; ++i) {
 			if (answer->section[i] == section) {
 				int truncate
