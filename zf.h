@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.7 2002/02/18 10:55:06 erik Exp $
+ * $Id: zf.h,v 1.8 2002/02/19 14:13:42 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -72,12 +72,12 @@
 #ifndef _ZF_H_
 #define	_ZF_H_
 
-#define	MAXRDATALEN	7	/* SOA */
-#define	MAXINCLUDES	16	/* Maximum number of include files */
+#define	MAXRDATALEN	7		/* SOA */
+#define	MAXINCLUDES	16		/* Maximum number of include files */
+#define	LINEBUFSZ	2048		/* Maximum master file line length */
 #define	IP6ADDRLEN	128/8
-#define	ROOT_ORIGIN	"\001"	/* \001\000 */
+#define	ROOT_ORIGIN	"\001"		/* \001\000 */
 #define	DEFAULT_TTL	3600
-#define MAXTOKENLEN     255	/* Maximum length of a token in a zone file. */
 
 /* Rdata atom */
 union zf_rdatom {
@@ -102,7 +102,6 @@ struct zf {
 	int errors;
 	int iptr;
 	u_int32_t lines;
-	int ungetchar;
 	/* Include files.... */
 	struct {
 		FILE	*file;
@@ -113,6 +112,7 @@ struct zf {
 		int	parentheses;
 	} i[MAXINCLUDES+1];
 	struct zf_entry line;
+	char linebuf[LINEBUFSZ];
 };
 
 /* Structure to parse classes */
@@ -170,19 +170,27 @@ struct zf_type_tab {
 }
 
 /* Prototypes */
-struct zf *zf_open __P((char *, const char *origin));
+struct zf *zf_open __P((char *, u_char *));
 struct zf_entry *zf_read __P((struct zf *));
-const char *typetoa __P((u_int16_t));
-const char *classtoa __P((u_int16_t));
-void *inet6_aton __P((const char *));
+char *typetoa __P((u_int16_t));
+char *classtoa __P((u_int16_t));
+struct zf_type_tab *typebyname __P((char *));
+struct zf_class_tab *classbyname __P((char *));
+void *inet6_aton __P((char *));
+char *zone_strtok __P((register char *));
 void zf_error __P((struct zf *, char *));
 void zf_syntax __P((struct zf *));
+char *zf_getline __P((struct zf *));
+char *zf_token __P((struct zf *, char *));
+int zf_open_include __P((struct zf *, char *, char *, int32_t));
+void zf_print_entry __P((struct zf_entry *));
 void zf_print_rdata __P((union zf_rdatom *, char *));
+int zf_close_include __P((struct zf *));
 int zf_cmp_rdata __P((union zf_rdatom *, union zf_rdatom *, char *));
 void zf_free_rdata __P((union zf_rdatom *, char *));
 void zf_close __P((struct zf *));
-const char *dnamestr __P((const u_char *));
-u_char *text_to_dname __P((const char *s, const u_char *origin));
-int dnamecmp __P((const u_char *, const u_char *));
+char *dnamestr __P((u_char *));
+u_char *strdname __P((char *s, u_char *));
+int dnamecmp __P((register u_char *, register u_char *));
 
 #endif

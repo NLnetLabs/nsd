@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.32 2002/02/15 19:08:47 erik Exp $
+# $Id: Makefile,v 1.33 2002/02/19 14:13:42 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -38,47 +38,19 @@
 #
 SHELL = /bin/sh
 
-# Compile environment settings
 DEBUG=	-g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -ansi -O -Wall -W -Wunused -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DUSE_HEAP_HASH ${DEBUG} # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
+CFLAGS= -pipe -O6 -Wall -DUSE_HEAP_HASH ${DEBUG} # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
 LDFLAGS= # -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
-INSTALL = install -c
 
-# Run-time enviroment settings
-NSDBINDIR       = /home/alexis/nsd.bin
-NSDZONESDIR     = /home/alexis/nsd.zones
-NSDFLAGS        = 
-NSDPIDFILE      = /home/alexis/nsd.run/nsd.pid
-NSDDB           = /home/alexis/nsd.run/nsd.db
-
-#
-#
-# NO USER FRIENDLY CHARACTERS BELOW THIS LINE
-#
-#
 CLEANFILES+=*.core *.gmon
 
-all:	nsd zonec #nsdc.sh
+all:	nsd zonec
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
-
-install: nsd zonec nsdc.sh
-	[ -d ${NSDBINDIR} ] || mkdir ${NSDBINDIR}
-	[ -d ${NSDZONESDIR} ] || mkdir ${NSDZONESDIR}
-	${INSTALL} nsd ${NSDBINDIR}/nsd
-	${INSTALL} nsdc.sh ${NSDBINDIR}/nsdc
-	${INSTALL} zonec ${NSDBINDIR}/zonec
-
-nsdc.sh: nsdc.sh.in Makefile
-	rm -f -- $@
-	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
-		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
-		-e "s,@@NSDDB@@,${NSDDB},g" $@.in > $@
-	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o
@@ -87,7 +59,7 @@ zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o
 
 clean:
-	rm -f zonec nsd zf hash rbtree *.o y.* core *.core *.gmon nsd.db nsd.sh
+	rm -f zonec nsd zf hash rbtree *.o y.* *.core *.gmon nsd.db
 
 # Test programs
 rbtree:	rbtree.c rbtree.h
@@ -100,14 +72,3 @@ zf:	zf.h dns.h zf.c
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c
 
 ${OBJS}:	${HDRS}
-
-# Dependencies
-dbaccess.o: dbaccess.c namedb.h heap.h rbtree.h
-dbcreate.o: dbcreate.c namedb.h heap.h rbtree.h
-hash.o: hash.c hash.h
-nsd.o: nsd.c nsd.h dns.h namedb.h heap.h rbtree.h query.h
-query.o: query.c nsd.h dns.h namedb.h heap.h rbtree.h query.h
-rbtree.o: rbtree.c rbtree.h
-server.o: server.c nsd.h dns.h namedb.h heap.h rbtree.h query.h
-zf.o: zf.c dns.h nsd.h namedb.h heap.h rbtree.h query.h zf.h
-zonec.o: zonec.c zonec.h heap.h rbtree.h dns.h zf.h namedb.h

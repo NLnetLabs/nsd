@@ -1,5 +1,5 @@
 /*
- * $Id: hash.c,v 1.9 2002/02/15 19:29:18 erik Exp $
+ * $Id: hash.c,v 1.10 2002/02/19 14:13:42 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -40,7 +40,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -211,9 +211,6 @@ hash_destroy(hash, freekeys, freedata)
 {
 	unsigned i;
 	hnode_t *node;
-
-	if(hash == NULL)
-		return;
 
 	for(i = 0; i < hash->size; i++) {
 		while(hash->table[i].next) {

@@ -1,5 +1,5 @@
 /*
- * $Id: heap.h,v 1.7 2002/02/15 19:29:27 erik Exp $
+ * $Id: heap.h,v 1.8 2002/02/19 14:13:42 alexis Exp $
  *
  * heap.h -- generic heap
  *
@@ -72,8 +72,7 @@
 #define	heap_last	rbtree_last
 #define	HEAP_WALK	RBTREE_WALK
 
-#else
-# ifdef USE_HEAP_HASH
+#else if defined(USE_HEAP_HASH)
 
 #include "hash.h"
 
@@ -88,7 +87,6 @@
 #define	heap_last	hash_last
 #define	HEAP_WALK	HASH_WALK
 
-# endif
 #endif
 
 #endif /* _HEAP_H_ */

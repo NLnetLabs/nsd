@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.8 2002/02/15 19:29:32 erik Exp $
+ * $Id: zonec.h,v 1.9 2002/02/19 14:13:42 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -43,14 +43,12 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <libgen.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <netinet/in.h>         /* htons, ntohs */
 
 #include "heap.h"
 #include "dns.h"

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.29 2002/02/19 10:46:01 alexis Exp $
+ * $Id: zonec.c,v 1.30 2002/02/19 14:13:42 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -324,8 +324,7 @@ zone_addanswer(d, msg, type)
 	d = xrealloc(d, d->size + size);
 
 	a = (struct answer *)((char *)d + d->size);
-	memset(a, 0, sizeof(struct answer));
-	
+
 	ANSWER_SIZE(a) = size;
 	ANSWER_TYPE(a) = htons(type);
 	ANSWER_ANCOUNT(a) = htons(msg->ancount);
@@ -354,8 +353,8 @@ zone_free(z)
 {
 	if(z) {
 		if(z->dname) free(z->dname);
-		if(z->cuts) heap_destroy(z->cuts, 1, 1);
-		if(z->data) heap_destroy(z->data, 1, 1);
+		heap_destroy(z->cuts, 1, 1);
+		heap_destroy(z->data, 1, 1);
 		free(z);
 	}
 }
@@ -383,7 +382,7 @@ zone_read(name, zonefile, cache)
 	bzero(z, sizeof(struct zone));
 
 	/* Get the zone name */
-	if((z->dname = text_to_dname(name, ROOT_ORIGIN)) == NULL) {
+	if((z->dname = strdname(name, ROOT_ORIGIN)) == NULL) {
 		zone_free(z);
 		return NULL;
 	}
@@ -398,11 +397,9 @@ zone_read(name, zonefile, cache)
 #ifdef USE_HEAP_RBTREE
 	z->cuts = heap_create(xalloc, dnamecmp);
 	z->data = heap_create(xalloc, dnamecmp);
-#else
-# ifdef USE_HEAP_HASH
+#else ifdef USE_HEAP_HASH
 	z->cuts = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
 	z->data = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
-# endif
 #endif
 	z->soa = z->ns = NULL;
 
@@ -558,11 +555,6 @@ zone_dump(z, db)
 
 		/* Create a new domain */
         	d = xalloc(sizeof(struct domain));
-		/*
-		 * Initialize struct to avoid uninitialized padding
-		 * data being written.
-		 */
-		memset(d, 0, sizeof(struct domain));
 		d->size = sizeof(struct domain);
 		d->flags = NAMEDB_DELEGATION;
 
@@ -646,11 +638,6 @@ zone_dump(z, db)
 
 		/* Create a new domain, not a delegation */
         	d = xalloc(sizeof(struct domain));
-		/*
-		 * Initialize struct to avoid uninitialized padding
-		 * data being written.
-		 */
-		memset(d, 0, sizeof(struct domain));
 		d->size = sizeof(struct domain);
 		d->flags = 0;
 
@@ -791,8 +778,7 @@ zone_dump(z, db)
 int
 usage()
 {
-	fprintf(stderr, "usage: zonec [-f database] zone1.zone [ zone2.zone [ cache.cache ] ]\n");
-	fprintf(stderr, "	use root.zone or root.cache for the root zone\n");
+	fprintf(stderr, "usage: zonec [-a] [-f database] [-c cache-file] -z zone-name [zone-file] [...]\n");
 	exit(1);
 }
 
@@ -801,30 +787,39 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-	char *zonename, *zonefile, *s;
         struct namedb *db;
-	int c;
+	int aflag = 0;
+	int options = 1;
+	int cache = 0;
+	char *zonefile, *zonename;
+	struct zone *z;
 
-	int error = 0;
-	struct zone *z = NULL;
+	/* No command line? */
+	if(argc == 1)
+		usage();
 
-	/* Parse the command line... */
-	while((c = getopt(argc, argv, "f")) != -1) {
-		switch (c) {
-		case 'f':
-			dbfile = optarg;
+	/* Parse the command line */
+	while(options) {
+		argc--;
+		argv++;
+
+		if(argc == 0 || **argv != '-') usage();
+
+		switch(*(*argv+1)) {
+		case 'a':
+			aflag++;
 			break;
-		case '?':
+		case 'f':
+			dbfile = *(++argv); argc--;
+			break;
+		case 'c':
+		case 'z':
+			options = 0;
+			break;
 		default:
 			usage();
 		}
 	}
-
-	argc -= optind;
-	argv += optind;
-
-	if(argc < 1)
-		usage();
 
 	/* Create the database */
 	if((db = namedb_new(dbfile)) == NULL) {
@@ -833,46 +828,35 @@ main(argc, argv)
 	}
 
 	/* Do the job */	
-	for(;argc;argc--, argv++) {
-		if((zonename = basename(*argv)) == NULL) {
-			fprintf(stderr, "invalid filename %s: %s\n", *argv, strerror(errno));
-			error = 1;
-			continue;
-		}
-
-		if((zonefile = strdup(*argv)) == NULL) {
-			fprintf(stderr, "strdup failed: %s\n", strerror(errno));
-			exit(1);
-		}
-
-		/* Does it end with .zone? */
-		if((s = strstr(zonename, ".zone")) && *(s + 5) == 0) {
-			*s = '\0';
-			if(strcmp(zonename, "root") == 0) {
-				zonename[0] = '.';
-				zonename[1] = '\0';
+	while(argc) {
+		if(**argv == '-') {
+			if(*(*argv + 1) == 'c') {
+				cache = 1;
+			} else if(*(*argv + 1) == 'z') {
+				cache = 0;
+			} else {
+				fprintf(stderr, "either -z or -c expected\n");
+				break;
 			}
-			z = zone_read(zonename, zonefile, 0);
-		} else if((s = strstr(zonename, ".cache")) && *(s + 6) == 0) {
-			*s = '\0';
-			if(strcmp(zonename, "root") == 0) {
-				zonename[0] = '.';
-				zonename[1] = '\0';
-			}
-			z = zone_read(zonename, zonefile, 1);
 		} else {
-			fprintf(stderr, "error: %s is neither a zone or a cache\n", zonefile);
-			error = 1;
+			fprintf(stderr, "either -z or -c expected\n");
+			break;
+		}
+		argc--; zonename = *(++argv);
+
+		/* Look ahead... */
+		if(--argc > 0 && **(++argv) != '-') {
+			zonefile = *argv;
+			argv++; argc--;
+		} else {
+			zonefile = zonename;
 		}
 
-		/* If we did not have any errors... */
-		if(z) {
+		/* Read the zone... */
+		if((z = zone_read(zonename, zonefile, cache)) != NULL) {
 			zone_dump(z, db);
 			zone_free(z);
-			z = NULL;
 		}
-
-		free(zonefile);
 	};
 
 	/* Close the database */
@@ -882,5 +866,5 @@ main(argc, argv)
 		exit(1);
 	}
 
-	return error;
+	return 0;
 }
