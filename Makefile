@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.64 2002/05/25 09:40:42 alexis Exp $
+# $Id: Makefile,v 1.65 2002/05/30 10:48:48 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -43,10 +43,6 @@ SHELL = /bin/sh
 #	LOCAL SITE CONFIGURATION
 #
 #
-
-# Run-time enviroment settings
-# This particular server id.server
-NSDIDENTITY	= \'NLnet LABS nameserver @open.nlnetlabs.nl\'
 
 # The flags to pass to the NSD on startup
 NSDFLAGS        = 
@@ -117,7 +113,7 @@ NSDDB           = /var/db/nsd.db
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DINET6 -DHOSTS_ACCESS
+FEATURES	= # -DINET6 -DHOSTS_ACCESS
 
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines

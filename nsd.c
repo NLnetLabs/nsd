@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.35 2002/05/30 10:32:25 alexis Exp $
+ * $Id: nsd.c,v 1.36 2002/05/30 10:48:48 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -41,6 +41,7 @@
 
 /* The server handler... */
 struct nsd nsd;
+char hostname[MAXHOSTNAMELEN];
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -222,6 +223,14 @@ main(argc, argv)
 
 	/* Set up the logging... */
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
+
+	/* Set up our default identity to gethostname(2) */
+	if(gethostname(hostname, MAXHOSTNAMELEN) == 0) {
+		nsd.identity = hostname;
+	} else {
+                syslog(LOG_ERR, "failed to get the host name: %m - using default identity");
+	}
+
 
 	/* Parse the command line... */
 	while((c = getopt(argc, argv, "df:p:i:u:")) != -1) {
