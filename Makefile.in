@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.12 2003/02/14 18:46:42 alexis Exp $
+# $Id: Makefile.in,v 1.13 2003/02/14 18:50:26 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -55,7 +55,7 @@ namedxfer = @namedxfer@
 user = @user@
 
 CC		= @CC@
-CFLAGS		= @CFLAGS@ @DEFS@ -DDBFILE=\"$(dbfile)\" -DPIDFILE=\"$(pidfile)\" -DUSER=\"$(user)\"
+CFLAGS		= @CFLAGS@ @DEFS@ -I. -DDBFILE=\"$(dbfile)\" -DPIDFILE=\"$(pidfile)\" -DUSER=\"$(user)\"
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
 LIBWRAP		= @LIBWRAP@
