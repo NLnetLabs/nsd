@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.16 2002/09/26 14:18:36 alexis Exp $
+# $Id: nsdc.sh.in,v 1.17 2002/10/10 12:41:57 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -125,7 +125,7 @@ update)
  			if [ -f "${NSDKEYSDIR}/${masters}.tsiginfo" ]
  			then
  				ln "${NSDKEYSDIR}/${masters}.tsiginfo" "${NSDKEYSDIR}/${masters}.tsiginfo.$$"
- 				tsiginfoarg="-T \"${NSDKEYSDIR}/${masters}.tsiginfo.$$\""
+ 				tsiginfoarg="-T ${NSDKEYSDIR}/${masters}.tsiginfo.$$"
 			fi
 
 			$NAMEDXFER -z $zone -f ${NSDZONESDIR}/$file ${tsiginfoarg} -s $serial $masters
