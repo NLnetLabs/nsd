@@ -1,4 +1,4 @@
-.\" @(#)nsd.8 1.0 2002 
+.\" @(#)nsd.8 2002 
 .TH nsd 8  "20 Feb 2002"
 .SH NAME
 nsd \- Name Server Daemon
@@ -21,7 +21,7 @@ in mind:
 .TP
 .B RFC Compliant
 \fBnsd\fR is fully compliant with the relevant RFC (1034/35 etc). Only
-were there is a speed tradeoff the compliancy is relaxed (also see
+were there is a speed trade off the compliance is relaxed (also see
 REQUIREMENTS in the \fBnsd\fR source).
 .TP
 .B Speed
@@ -30,12 +30,12 @@ queries (O(20k/sec)), without breaking a sweat. It's main use
 is thus on heavy loaded servers, like the root-server and TLD servers.
 .TP
 .B Only authoritative
-To increase its spead \fBnsd\fR does not do any recursion. And thus
+To increase its speed \fBnsd\fR does not do any recursion. And thus
 only suitable on authoritative nameservers.
 .TP
 .B Compatible with \fBBIND\fR
-\fBnsd\fR should behave exactly as \fBBIND8/9\fR? does. See [BLA] for
-more information.
+\fBnsd\fR should behave exactly as \fBBIND8/9\fR does. See
+REQUIREMENTS for more information.
 .TP
 .B No code sharing with \fBBIND\fR
 There is no code from \fBBIND4/8/9\fR in \fBnsd\fR.
@@ -52,14 +52,14 @@ specify the port number \fBnsd\fR will use. This defaults to 53.
 .TP
 .B \-f \fIdatabase\fR
 specify the database to use. The \fIdatabase\fR given
-as a argument will superseed this option.
+as a argument will supersede this option.
 
 .TP
 .B database
-the \fBdatabase\fR \fBnsd\fR will use. This superseeds the \fB-f\fR
+the \fBdatabase\fR \fBnsd\fR will use. This supersedes the \fB-f\fR
 option (if given).
 The database contains all the information about the configured zones
-in a \fImachine dependent\fR format. It is nessecary to compile the
+in a \fImachine dependent\fR format. It is necessary to compile the
 zone information into this format, \fBzonec\fR is used for this purpose
 (see man 8 zonec).
 
@@ -76,7 +76,7 @@ cache           .               root.cache
 zone            example.com     example.com
 
 The first word on a line must be \fIcache\fR or \fIzone\fR.
-It indicates that the zone should be loaded as authorative data 
+It indicates that the zone should be loaded as authoritative data 
 (in case of \fIzone\fR) or just like non-authoritative redirection 
 information in case of \fIcache\fR.
 
