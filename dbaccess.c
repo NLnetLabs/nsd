@@ -141,7 +141,7 @@ namedb_open (const char *filename)
 #else /* !USE_MMAP */
 	db->mpool = region_alloc(region, db->mpoolsz);
 
-	if (read( fileno(db->fd), db->mpool, db->mpoolsz) != db->mpoolsz) {
+	if (read( fileno(db->fd), db->mpool, db->mpoolsz) != (ssize_t) db->mpoolsz) {
 		log_msg(LOG_ERR, "read failed: %s", strerror(errno));
 		fclose(db->fd);
 		region_destroy(region);
