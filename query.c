@@ -430,6 +430,88 @@ process_notify (struct query *query)
 	error_response (query, RCODE_IMPL);
 }
 
+
+/*
+ * Process an optional EDNS OPT record.  Sets QUERY->EDNS to 0 if
+ * there was no EDNS record, to -1 if there was an invalid or
+ * unsupported EDNS record, and to 1 otherwise.  Updates QUERY->MAXLEN
+ * if the EDNS record specifies a maximum supported response length.
+ *
+ * Return 0 on failure, 1 on success.
+ */
+static int
+process_edns (struct query *q, u_char *qptr)
+{
+	/* OPT record type... */
+	u_int16_t opt_type, opt_class, opt_rdlen;
+
+	/* Do we have an OPT record? */
+	if(ARCOUNT(q) > 0) {
+		/* Only one opt is allowed... */
+		if(ntohs(ARCOUNT(q)) != 1) {
+			query_formerr(q);
+			return 0;
+		}
+
+		/* Must have root owner name... */
+		if(*qptr != 0) {
+			query_formerr(q);
+			return 0;
+		}
+
+		/* Must be of the type OPT... */
+		memcpy(&opt_type, qptr + 1, 2);
+		if(ntohs(opt_type) != TYPE_OPT) {
+			query_formerr(q);
+			return 0;
+		}
+
+		/* Ok, this is EDNS(0) packet... */
+		q->edns = 1;
+
+		/* Get the UDP size... */
+		memcpy(&opt_class, qptr + 3, 2);
+		opt_class = ntohs(opt_class);
+
+		/* Check the version... */
+		if(*(qptr + 6) != 0) {
+			q->edns = -1;
+		} else {
+			/* Make sure there are no other options... */
+			memcpy(&opt_rdlen, qptr + 9, 2);
+			if(opt_rdlen != 0) {
+				q->edns = -1;
+			} else {
+
+				/* Only care about UDP size larger than normal... */
+				if(opt_class > 512) {
+					/* XXX Configuration parameter to limit the size needs to be here... */
+					if(opt_class < q->iobufsz) {
+						q->maxlen = opt_class;
+					} else {
+						q->maxlen = q->iobufsz;
+					}
+				}
+
+#ifdef	STRICT_MESSAGE_PARSE
+				/* Trailing garbage? */
+				if((qptr + OPT_LEN) != q->iobufptr) {
+					q->edns = 0;
+					query_formerr(q);
+					return 0;
+				}
+#endif
+
+				/* Strip the OPT resource record off... */
+				q->iobufptr = qptr;
+				ARCOUNT(q) = 0;
+			}
+		}
+	}
+	
+	return 1;
+}
+
 /*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
  * -1 if the query has to be silently discarded.
@@ -449,9 +531,6 @@ query_process (struct query *q, struct nsd *nsd)
 	u_char *qptr;
 	int qdepth;
 	int recursion_desired;
-
-	/* OPT record type... */
-	u_int16_t opt_type, opt_class, opt_rdlen;
 
 	struct domain *d;
 	struct answer *a;
@@ -517,68 +596,8 @@ query_process (struct query *q, struct nsd *nsd)
 		return 0;
 	}
 
-	/* Do we have an OPT record? */
-	if(ARCOUNT(q) > 0) {
-		/* Only one opt is allowed... */
-		if(ntohs(ARCOUNT(q)) != 1) {
-			query_formerr(q);
-			return 0;
-		}
-
-		/* Must have root owner name... */
-		if(*qptr != 0) {
-			query_formerr(q);
-			return 0;
-		}
-
-		/* Must be of the type OPT... */
-		memcpy(&opt_type, qptr + 1, 2);
-		if(ntohs(opt_type) != TYPE_OPT) {
-			query_formerr(q);
-			return 0;
-		}
-
-		/* Ok, this is EDNS(0) packet... */
-		q->edns = 1;
-
-		/* Get the UDP size... */
-		memcpy(&opt_class, qptr + 3, 2);
-		opt_class = ntohs(opt_class);
-
-		/* Check the version... */
-		if(*(qptr + 6) != 0) {
-			q->edns = -1;
-		} else {
-			/* Make sure there are no other options... */
-			memcpy(&opt_rdlen, qptr + 9, 2);
-			if(opt_rdlen != 0) {
-				q->edns = -1;
-			} else {
-
-				/* Only care about UDP size larger than normal... */
-				if(opt_class > 512) {
-					/* XXX Configuration parameter to limit the size needs to be here... */
-					if(opt_class < q->iobufsz) {
-						q->maxlen = opt_class;
-					} else {
-						q->maxlen = q->iobufsz;
-					}
-				}
-
-#ifdef	STRICT_MESSAGE_PARSE
-				/* Trailing garbage? */
-				if((qptr + OPT_LEN) != q->iobufptr) {
-					q->edns = 0;
-					query_formerr(q);
-					return 0;
-				}
-#endif
-
-				/* Strip the OPT resource record off... */
-				q->iobufptr = qptr;
-				ARCOUNT(q) = 0;
-			}
-		}
+	if (!process_edns(q, qptr)) {
+		return 0;
 	}
 
 	/* Do we have any trailing garbage? */
