@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.8 2002/01/30 15:20:31 alexis Exp $
+ * $Id: nsd.h,v 1.9 2002/01/30 15:34:08 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -56,6 +56,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -72,7 +73,6 @@
 
 #define	CF_DBFILE	"nsd.db"
 #define	CF_PIDFILE	"/var/run/nsd.pid"
-#define	CF_DIRECTORY	"/var/run"
 #define	CF_TCP_MAX_CONNECTIONS	8
 #define	CF_TCP_PORT		4096
 #define	CF_TCP_MAX_MESSAGE_SIZE	16384
@@ -81,7 +81,6 @@
 
 extern char	*cf_dbfile;
 extern char	*cf_pidfile;
-extern char	*cf_directory;
 extern int	cf_tcp_max_connections;
 extern u_short	cf_tcp_port;
 extern int	cf_tcp_max_message_size;

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.6 2002/01/30 15:20:31 alexis Exp $
+ * $Id: nsd.c,v 1.7 2002/01/30 15:34:08 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -43,13 +43,12 @@ u_char authmask[NAMEDB_BITMASKLEN];
 u_char starmask[NAMEDB_BITMASKLEN];
 u_char datamask[NAMEDB_BITMASKLEN];
 
-char *cf_dbfile	= CF_DBFILE;
+char *cf_dbfile = CF_DBFILE;
 char *cf_pidfile = CF_PIDFILE;
-char *cf_directory = CF_DIRECTORY;
 int cf_tcp_max_connections = CF_TCP_MAX_CONNECTIONS;
-u_short	cf_tcp_port = CF_TCP_PORT;
+u_short cf_tcp_port = CF_TCP_PORT;
 int cf_tcp_max_message_size = CF_TCP_MAX_MESSAGE_SIZE;
-u_short	cf_udp_port = CF_UDP_PORT;
+u_short cf_udp_port = CF_UDP_PORT;
 int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
 
 
@@ -67,7 +66,7 @@ int tcp_open_connections = 0;
  */
 void *
 xalloc(size)
-	register size_t	size;
+	register size_t size;
 {
 	register void *p;
 
@@ -81,7 +80,7 @@ xalloc(size)
 void *
 xrealloc(p, size)
 	register void *p;
-	register size_t	size;
+	register size_t size;
 {
 
 	if((p = realloc(p, size)) == NULL) {
@@ -104,15 +103,15 @@ opendb(void)
 
 	/* Setup the name database... */
 	if((r = db_create(&db, NULL, 0)) != 0) {
-                syslog(LOG_ERR, "db_create failed: %s", db_strerror(r));
-                return NULL;
-        }
+		syslog(LOG_ERR, "db_create failed: %s", db_strerror(r));
+		return NULL;
+	}
 
 	/* Open the database... */
-        if((r = db->open(db, cf_dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
+	if((r = db->open(db, cf_dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
 		syslog(LOG_ERR, "cannot open the database %s: %s", cf_dbfile, db_strerror(r));
 		return NULL;
-        }
+	}
 
 	/* Read the bitmasks... */
 	bzero(&key, sizeof(key));
@@ -179,6 +178,8 @@ main(argc, argv)
 	int argc;
 	char *argv[];
 {
+	int fd;
+
 #	ifndef	LOG_PERROR
 #		define	LOG_PERROR 0
 #	endif
@@ -204,9 +205,36 @@ main(argc, argv)
 	}
 
 	/* Take off... */
+	switch(fork()) {
+	case 0:
+		break;
+	case -1:
+		syslog(LOG_ERR, "fork failed: %m");
+		exit(1);
+	default:
+		exit(0);
+	}
+
+	/* Detach ourselves... */
+	if(setsid() == -1) {
+		syslog(LOG_ERR, "setsid() failed: %m");
+		exit(1);
+	}
+
+	(void)chdir("/");
+
+	if((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+		(void)dup2(fd, STDIN_FILENO);
+		(void)dup2(fd, STDOUT_FILENO);
+		(void)dup2(fd, STDERR_FILENO);
+		if (fd > 2)
+			(void)close(fd);
+	}
+
+	/* Run the server... */
 	server(database);
 
+	/* Should we return... */
 	database->close(database, 0);
-
 	exit(0);
 }
