@@ -178,14 +178,14 @@ main (int argc, char *argv[])
         memset(buffer_begin(q.packet), 0, buffer_remaining(q.packet));
 
         /* Set up the header */
-        OPCODE_SET(q.packet, OPCODE_NOTIFY);
+        OPCODE_SET(q.packet, OPCODE_QUERY);
         ID_SET(q.packet, 42);   /* Does not need to be random. */
         AA_SET(q.packet);
         QDCOUNT_SET(q.packet, 1);
         buffer_skip(q.packet, QHEADERSZ);
         buffer_write(q.packet, dname_name(control_msg), dname_length(control_msg));
-        buffer_write_u16(q.packet, TYPE_SOA);
-        buffer_write_u16(q.packet, CLASS_IN);
+        buffer_write_u16(q.packet, TYPE_TXT);
+        buffer_write_u16(q.packet, CLASS_CH);
         buffer_flip(q.packet);
 
 	memset(&hints, 0, sizeof(hints));
@@ -211,6 +211,21 @@ main (int argc, char *argv[])
 		close(sockfd);
 		exit(EXIT_FAILURE);
 	}
+
+	memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
+
+	/* WE ARE READY SEND IT OUT */
+	if (sendto(sockfd,
+				buffer_current(q.packet),
+				buffer_remaining(q.packet), 0,
+				res->ai_addr, res->ai_addrlen) == -1)
+	{
+		fprintf(stderr,
+				"send to %s failed: %s\n", *argv,
+				strerror(errno));
+	}
+
+
 
 
 	close(sockfd);
