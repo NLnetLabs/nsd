@@ -97,12 +97,14 @@ install: all
 	$(INSTALL) -d $(mandir)/man8
 	$(INSTALL) nsd $(sbindir)/nsd
 	$(INSTALL) zonec $(sbindir)/zonec
+	$(INSTALL) nsq $(sbindir)/nsq
 	$(INSTALL) nsd-axfr $(sbindir)/nsd-axfr
 	$(INSTALL) nsdc.sh $(sbindir)/nsdc
 	$(INSTALL_DATA) nsd.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
 	$(INSTALL_DATA) zonec.8 $(mandir)/man8
-	$(INSTALL_DATA) nsd-axfr.8 $(mandir)/man8
+#	$(INSTALL_DATA) nsq.8 $(mandir)/man8
+#	$(INSTALL_DATA) nsd-axfr.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.conf.sample $(configfile).sample
 	$(INSTALL_DATA) nsd.zones.sample $(zonesfile).sample
 
