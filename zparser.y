@@ -403,60 +403,40 @@ rtype:
      * RFC 1035 RR types.  We don't support NULL, WKS, and types
      * marked obsolete.
      */
-      T_CNAME sp rdata_compress_domain_name 
-    | T_CNAME sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_HINFO sp rdata_hinfo 
-    | T_HINFO sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MB sp rdata_compress_domain_name		/* Experimental */
-    { error("MD is obsolete"); }
-    | T_MB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MD sp rdata_compress_domain_name		/* Obsolete */
-    { error("MF is obsolete"); }
-    | T_MD sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MF sp rdata_compress_domain_name		/* Obsolete */
-    | T_MF sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MG sp rdata_compress_domain_name		/* Experimental */
-    | T_MG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MINFO sp rdata_minfo /* Experimental */
-    | T_MINFO sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MR sp rdata_compress_domain_name		/* Experimental */
-    | T_MR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MX sp rdata_mx 
-    | T_MX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_NS sp rdata_compress_domain_name 
+      T_A sp rdata_a 
+    | T_A sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_NS sp rdata_domain_name 
     | T_NS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_PTR sp rdata_compress_domain_name 
-    | T_PTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MD sp rdata_domain_name { error("MD is obsolete"); }
+    | T_MD sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MF sp rdata_domain_name { error("MF is obsolete"); }
+    | T_MF sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_CNAME sp rdata_domain_name 
+    | T_CNAME sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_SOA sp rdata_soa 
     | T_SOA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MB sp rdata_domain_name { error("MB is obsolete"); }
+    | T_MB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MG sp rdata_domain_name
+    | T_MG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MR sp rdata_domain_name
+    | T_MR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+      /* NULL */
+      /* WKS */
+    | T_PTR sp rdata_domain_name 
+    | T_PTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_HINFO sp rdata_hinfo 
+    | T_HINFO sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MINFO sp rdata_minfo /* Experimental */
+    | T_MINFO sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MX sp rdata_mx 
+    | T_MX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_TXT sp rdata_txt
     | T_TXT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_A sp rdata_a 
-    | T_A sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_AAAA sp rdata_aaaa 
-    | T_AAAA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_LOC sp rdata_loc
-    | T_LOC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_SRV sp rdata_srv
-    | T_SRV sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_DS sp rdata_ds
-    | T_DS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_KEY sp rdata_dnskey	/* XXX: Compatible format? */
-    | T_KEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_DNSKEY sp rdata_dnskey
-    | T_DNSKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_NXT sp rdata_nxt
-    | T_NXT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_NSEC sp rdata_nsec
-    | T_NSEC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_SIG sp rdata_rrsig	/* XXX: Compatible format? */
-    | T_SIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_RRSIG sp rdata_rrsig
-    | T_RRSIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_AFSDB sp rdata_afsdb	/* RFC 1183 */
-    | T_AFSDB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_RP sp rdata_rp		/* RFC 1183 */
     | T_RP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_AFSDB sp rdata_afsdb	/* RFC 1183 */
+    | T_AFSDB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_X25 sp rdata_x25 	/* RFC 1183 */
     | T_X25 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_ISDN sp rdata_isdn 	/* RFC 1183 */
@@ -465,21 +445,41 @@ rtype:
     | T_RT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NSAP sp rdata_nsap	/* RFC 1706 */
     | T_NSAP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_SIG sp rdata_rrsig	/* XXX: Compatible format? */
+    | T_SIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_KEY sp rdata_dnskey	/* XXX: Compatible format? */
+    | T_KEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_PX sp rdata_px		/* RFC 2163 */
     | T_PX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_AAAA sp rdata_aaaa 
+    | T_AAAA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_LOC sp rdata_loc
+    | T_LOC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_NXT sp rdata_nxt
+    | T_NXT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_SRV sp rdata_srv
+    | T_SRV sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NAPTR sp rdata_naptr	/* RFC 2915 */
     | T_NAPTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_KX sp rdata_kx		/* RFC 2230 */
     | T_KX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_CERT sp rdata_cert	/* RFC 2538 */
     | T_CERT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_DNAME sp rdata_dname	/* RFC 2672 */
+    | T_DNAME sp rdata_domain_name /* RFC 2672 */
     | T_DNAME sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_APL trail		/* RFC 3123 */
     | T_APL sp rdata_apl	/* RFC 3123 */
     | T_APL sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_DS sp rdata_ds
+    | T_DS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_SSHFP sp rdata_sshfp
     | T_SSHFP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_RRSIG sp rdata_rrsig
+    | T_RRSIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_NSEC sp rdata_nsec
+    | T_NSEC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_DNSKEY sp rdata_dnskey
+    | T_DNSKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_UTYPE sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | STR error NL
     {
@@ -493,12 +493,21 @@ rtype:
  *
  */
 
-rdata_minfo:   dname sp dname trail
+rdata_a:    dotted_str trail
+	{
+		zadd_rdata_wireformat(zparser_conv_a(parser->region, $1.str));
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in A record"); }
+    ;
+
+rdata_domain_name:   dname trail
     {
         /* convert a single dname record */
         zadd_rdata_domain($1);
-        zadd_rdata_domain($3);
     }
+	|   error NL
+	{ error_prev_line("Syntax error in RDATA (domain name expected)"); }
     ;
 
 rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
@@ -520,27 +529,22 @@ rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
 	{ error_prev_line("Syntax error in SOA record"); }
     ;
 
-rdata_compress_domain_name:   dname trail
+rdata_hinfo:	STR sp STR trail
+	{
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* CPU */
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str)); /* OS*/
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in HINFO record"); }
+	;
+
+rdata_minfo:   dname sp dname trail
     {
         /* convert a single dname record */
         zadd_rdata_domain($1);
+        zadd_rdata_domain($3);
     }
-	|   error NL
-	{ error_prev_line("Syntax error in RDATA (domain name expected)"); }
     ;
-
-rdata_a:    dotted_str trail
-	{
-		zadd_rdata_wireformat(zparser_conv_a(parser->region, $1.str));
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in A record"); }
-    ;
-
-rdata_txt: str_seq trail {}
-	|   error NL
-	{ error_prev_line("Syntax error in TXT record"); }
-	;
 
 rdata_mx:   STR sp dname trail
     	{
@@ -551,99 +555,19 @@ rdata_mx:   STR sp dname trail
 	{ error_prev_line("Syntax error in MX record"); }
     	;
 
-rdata_aaaa: STR trail
-    	{
-        	zadd_rdata_wireformat(zparser_conv_a6(parser->region, $1.str));  /* IPv6 address */
-    	}
+rdata_txt: str_seq trail {}
 	|   error NL
-	{ error_prev_line("Syntax error in AAAA record"); }
-    	;
-
-rdata_loc: concatenated_str_seq trail
-	{
-		zadd_rdata_wireformat(zparser_conv_loc(parser->region, $1.str)); /* Location */
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in LOC record"); }
+	{ error_prev_line("Syntax error in TXT record"); }
 	;
 
-rdata_hinfo:	STR sp STR trail
+/* RFC 1183 */
+rdata_rp:	dname sp dname trail
 	{
-        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* CPU */
-        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str)); /* OS*/
+		zadd_rdata_domain($1); /* mbox d-name */
+		zadd_rdata_domain($3); /* txt d-name */
 	}
 	|   error NL
-	{ error_prev_line("Syntax error in HINFO record"); }
-	;
-
-rdata_srv:	STR sp STR sp STR sp dname trail
-	{
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* prio */
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* weight */
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $5.str)); /* port */
-		zadd_rdata_domain($7); /* target name */
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in SRV record"); }
-	;
-
-rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
-	{
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
-		zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str)); /* hash */
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in DS record"); }
-	;
-
-rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
-	{
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* flags */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* proto */
-		zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $5.str)); /* alg */
-		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $7.str)); /* hash */
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in DNSKEY record"); }
-	;
-
-rdata_nxt:	dname sp nxt_seq trail
-	{
-		zadd_rdata_domain($1); /* nxt name */
-		zadd_rdata_wireformat(zparser_conv_nxt(parser->region, nxtbits)); /* nxt bitlist */
-		memset(nxtbits, 0, sizeof(nxtbits));
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in NXT record"); }
-	;
-
-rdata_nsec:	dname sp nsec_seq trail
-	{
-		zadd_rdata_domain($1); /* nsec name */
-		zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
-		memset(nsecbits, 0, sizeof(nsecbits));
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in NSEC record"); }
-	;
-
-
-rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
-	{
-		zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
-		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
-		zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $7.str)); /* # orig TTL */
-		zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
-		zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
-		zadd_rdata_domain($15); /* signer name */
-		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $17.str)); /* sig data */
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in RRSIG record"); }
+	{ error_prev_line("Syntax error in RP record"); }
 	;
 
 /* RFC 1183 */
@@ -655,16 +579,6 @@ rdata_afsdb:   STR sp dname trail
 	|   error NL
 	{ error_prev_line("Syntax error in AFSDB record"); }
        ;
-
-/* RFC 1183 */
-rdata_rp:	dname sp dname trail
-	{
-		zadd_rdata_domain($1); /* mbox d-name */
-		zadd_rdata_domain($3); /* txt d-name */
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in RP record"); }
-	;
 
 /* RFC 1183 */
 rdata_x25:	STR trail
@@ -721,13 +635,50 @@ rdata_px:	STR sp dname sp dname trail
 	       zadd_rdata_domain($5); /* MAPX400 */
 	}
 	|   error NL
-	{ error_prev_line("Syntax error in RT record"); }
+	{ error_prev_line("Syntax error in PX record"); }
+	;
+
+rdata_aaaa: STR trail
+    	{
+        	zadd_rdata_wireformat(zparser_conv_a6(parser->region, $1.str));  /* IPv6 address */
+    	}
+	|   error NL
+	{ error_prev_line("Syntax error in AAAA record"); }
+    	;
+
+rdata_loc: concatenated_str_seq trail
+	{
+		zadd_rdata_wireformat(zparser_conv_loc(parser->region, $1.str)); /* Location */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in LOC record"); }
+	;
+
+rdata_nxt:	dname sp nxt_seq trail
+	{
+		zadd_rdata_domain($1); /* nxt name */
+		zadd_rdata_wireformat(zparser_conv_nxt(parser->region, nxtbits)); /* nxt bitlist */
+		memset(nxtbits, 0, sizeof(nxtbits));
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in NXT record"); }
+	;
+
+rdata_srv:	STR sp STR sp STR sp dname trail
+	{
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* prio */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* weight */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $5.str)); /* port */
+		zadd_rdata_domain($7); /* target name */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in SRV record"); }
 	;
 
 /* RFC 2915 */
 rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
 	{
-		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));	/* order */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* order */
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* preference */
 		zadd_rdata_wireformat(zparser_conv_text(parser->region, $5.str)); /* flags */
 		zadd_rdata_wireformat(zparser_conv_text(parser->region, $7.str)); /* service */
@@ -751,23 +702,13 @@ rdata_kx:	STR sp dname trail
 /* RFC 2538 */
 rdata_cert:	STR sp STR sp STR sp str_sp_seq trail
 	{
-		/* XXX: Handle memnonics */
-		zadd_rdata_wireformat(zparser_conv_certificate_type(parser->region, $1.str));	/* type */
+		zadd_rdata_wireformat(zparser_conv_certificate_type(parser->region, $1.str)); /* type */
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* key tag */
 		zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $5.str)); /* algorithm */
 		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $7.str)); /* certificate or CRL */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in CERT record"); }
-	;
-
-/* RFC 2672 */
-rdata_dname:	dname trail
-	{
-		zadd_rdata_domain($1);
-	}
-	|   error NL
-	{ error_prev_line("Syntax error in DNAME record"); }
 	;
 
 /* RFC 3123 */
@@ -786,6 +727,17 @@ rdata_apl_seq: dotted_str
 	}
 	;
 
+rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
+	{
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
+		zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str)); /* hash */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in DS record"); }
+	;
+
 rdata_sshfp:   STR sp STR sp str_sp_seq trail
        {
                zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* alg */
@@ -795,6 +747,44 @@ rdata_sshfp:   STR sp STR sp str_sp_seq trail
 	|   error NL
 	{ error_prev_line("Syntax error in SSHFP record"); }
        ;
+
+rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
+	{
+		zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
+		zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $7.str)); /* # orig TTL */
+		zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
+		zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
+		zadd_rdata_domain($15); /* signer name */
+		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $17.str)); /* sig data */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in RRSIG record"); }
+	;
+
+rdata_nsec:	dname sp nsec_seq trail
+	{
+		zadd_rdata_domain($1); /* nsec name */
+		zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
+		memset(nsecbits, 0, sizeof(nsecbits));
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in NSEC record"); }
+	;
+
+
+rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
+	{
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* flags */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* proto */
+		zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $5.str)); /* alg */
+		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $7.str)); /* hash */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in DNSKEY record"); }
+	;
 
 rdata_unknown:	URR sp STR sp str_sp_seq trail
 	{
