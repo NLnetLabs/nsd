@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.43 2003/02/11 14:21:57 alexis Exp $
+ * $Id: zf.c,v 1.44 2003/02/11 14:51:54 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -1012,6 +1012,7 @@ zf_parse_b64 (struct zf *zf, char *token, int start)
 	}
 	*((u_int16_t *)zf->line.rdata[start].p) = t - zf->line.rdata[start].p
 		- sizeof(u_int16_t);
+	zf->line.rdata[start].p = xrealloc(zf->line.rdata[start].p, *((u_int16_t *)zf->line.rdata[start].p));
 
 	return 0;
 }
