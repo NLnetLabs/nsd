@@ -370,45 +370,6 @@ namedb_find_zone(namedb_type *db, domain_type *domain)
 	return zone;
 }
 
-/*
- * The type of the rdatas for each known RR type.  Only types up to
- * RT and the first two RDATa elements must be provided.  See the
- * definition of rdata_atom_is_domain in namedb.h.  The possible types
- * are:
- *
- *   2 - 2 octet field.
- *   4 - 4 octet field
- *   d - a compressable domain name.
- *   X - no rdata at this position.
- *
- * Currently only type 'd' is checked for.
- */
-const char *rdata_types[] =
-{
-	"XX",
-	"XX",			/*  1, A */
-	"dX",			/*  2, NS */
-	"dX",			/*  3, MD */
-	"dX",			/*  4, MF */
-	"dX",			/*  5, CNAME */
-	"dd44444",		/*  6, SOA */
-	"dX",			/*  7, MB */
-	"dX",			/*  8, MG */
-	"dX",			/*  9, MR */
-	"XX",			/* 10, NULL */
-	"XX",			/* 11, WKS */
-	"dX",			/* 12, PTR */
-	"XX",			/* 13, HINFO */
-	"dd",			/* 14, MINFO */
-	"2d",			/* 15, MX */
-	"XX",			/* 16, TXT */
-	"dd",			/* 17, RP */
-	"2d",			/* 18, AFSDB */
-	"XX",			/* 19, X25 */
-	"XX",			/* 20, ISDN */
-	"2d", 			/* 21, RT */
-};
-
 #ifdef TEST
 
 #include <stdio.h>
