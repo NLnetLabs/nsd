@@ -495,7 +495,11 @@ main (int argc, char *argv[])
 #endif /* !BIND8_STATS */
 			break;
 		case 't':
+#ifdef HAVE_CHROOT
 			nsd.chrootdir = optarg;
+#else /* !HAVE_CHROOT */
+			error("chroot not supported on this platform.");
+#endif /* !HAVE_CHROOT */
 			break;
 		case 'u':
 			nsd.username = optarg;
@@ -623,12 +627,12 @@ main (int argc, char *argv[])
 		int l = strlen(nsd.chrootdir);
 
 		if(strncmp(nsd.chrootdir, nsd.pidfile, l) != 0) {
-			syslog(LOG_ERR, "%s isnt relative to %s: wont chroot",
-				nsd.pidfile, nsd.chrootdir);
+			syslog(LOG_ERR, "%s is not relative to %s: will not chroot",
+			       nsd.pidfile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
 		} else if(strncmp(nsd.chrootdir, nsd.dbfile, l) != 0) {
-			syslog(LOG_ERR, "%s isnt relative to %s: wont chroot",
-				nsd.dbfile, nsd.chrootdir);
+			syslog(LOG_ERR, "%s is not relative to %s: will not chroot",
+			       nsd.dbfile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
 		}
 	}

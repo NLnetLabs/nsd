@@ -193,6 +193,7 @@ server_init(struct nsd *nsd)
 		}
 	}
 
+#ifdef HAVE_CHROOT
 	/* Chroot */
 	if(nsd->chrootdir) {
 		int l = strlen(nsd->chrootdir);
@@ -205,6 +206,7 @@ server_init(struct nsd *nsd)
 			return -1;
 		}
 	}
+#endif
 
 	/* Drop the permissions */
 	if(setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
