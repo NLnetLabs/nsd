@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.4 2002/01/31 13:30:00 alexis Exp $
+ * $Id: zf.c,v 1.5 2002/01/31 13:51:46 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -303,6 +303,7 @@ strtottl(nptr, endptr)
 			i += (**endptr - '0');
 			break;
 		default:
+			seconds += i;
 			return (sign == -1) ? -seconds : seconds;
 		}
 	}
@@ -760,7 +761,7 @@ zf_read(zf)
 		for(type = NULL; token; token = zf_token(zf, NULL)) {
 			/* Is this a TTL? */
 			if(isdigit(*token)) {
-				zf->line.ttl = htonl(strtottl(token, &t));
+				zf->line.ttl = strtottl(token, &t);
 				if(*t) {
 					zf_error(zf, "ttl is not a number");
 					token = NULL;
