@@ -280,7 +280,8 @@ server_main(struct nsd *nsd)
 {
 	int fd;
 	int status;
-	pid_t child;
+	pid_t child_pid;
+	pid_t reload_pid = -1;
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
@@ -292,30 +293,43 @@ server_main(struct nsd *nsd)
 	while (nsd->mode != NSD_SHUTDOWN) {
 		switch (nsd->mode) {
 		case NSD_RUN:
-			child = waitpid(0, &status, 0);
+			child_pid = waitpid(0, &status, 0);
 		
-			if (child == -1) {
+			if (child_pid == -1) {
 				if (errno == EINTR) {
 					continue;
 				}
 				syslog(LOG_WARNING, "wait failed: %m");
 			} else {
-				int is_child = delete_child_pid(nsd, child);
+				int is_child = delete_child_pid(nsd, child_pid);
 				if (is_child) {
 					syslog(LOG_WARNING,
 					       "server %d died unexpectedly with status %d, restarting",
-					       (int) child, status);
+					       (int) child_pid, status);
 					restart_child_servers(nsd);
-				} else {
+				} else if (child_pid == reload_pid) {
 					syslog(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
-					       (int) child, status);
+					       (int) child_pid, status);
+					reload_pid = -1;
+				} else {
+					syslog(LOG_WARNING,
+					       "Unknown child %d terminated with status %d",
+					       (int) child_pid, status);
 				}
 			}
 			break;
 		case NSD_RELOAD:
 			nsd->mode = NSD_RUN;
-			switch(fork()) {
+
+			if (reload_pid != -1) {
+				syslog(LOG_WARNING, "Reload already in progress (pid = %d)",
+				       (int) reload_pid);
+				break;
+			}
+
+			reload_pid = fork();
+			switch (reload_pid) {
 			case -1:
 				syslog(LOG_ERR, "fork failed: %m");
 				break;
@@ -335,13 +349,14 @@ server_main(struct nsd *nsd)
 				}
 #endif /* PLUGINS */
 
-				/* Send the child SIGINT to the parent to terminate quitely... */
+				/* Send SIGINT to terminate the parent quitely... */
 				if (kill(nsd->pid, SIGINT) != 0) {
 					syslog(LOG_ERR, "cannot kill %d: %m", nsd->pid);
 					exit(1);
 				}
 
 				nsd->pid = getpid();
+				reload_pid = -1;
 
 				/* Refork the servers... */
 				server_start_children(nsd);
@@ -365,6 +380,7 @@ server_main(struct nsd *nsd)
 		default:
 			syslog(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);
 			nsd->mode = NSD_RUN;
+			break;
 		}
 	}
 

@@ -194,6 +194,11 @@ sig_handler (int sig)
 	/* Are we a child server? */
 	if (nsd.server_kind != NSD_SERVER_MAIN) {
 		switch(sig) {
+		case SIGCHLD:
+			/* Plugins may fork, reap all terminated children.  */
+			while (waitpid(0, NULL, WNOHANG) > 0)
+				;
+			break;
 		case SIGALRM:
 			break;
 		case SIGHUP:

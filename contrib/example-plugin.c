@@ -8,6 +8,10 @@
  */
 
 #include <nsd-plugin.h>
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <syslog.h>
 
 static nsd_plugin_callback_result_type reload(
@@ -69,7 +73,19 @@ query_received(
 	nsd_plugin_id_type               id,
 	nsd_plugin_callback_args_type   *args)
 {
-	return NSD_PLUGIN_CONTINUE;
+	switch (fork()) {
+	case -1:
+		/* error */
+		syslog(LOG_ERR, "Plugin fork failed: %m");
+		return NSD_PLUGIN_ABANDON;
+	case 0:
+		/* child */
+		syslog(LOG_NOTICE, "Plugin forked child");
+		exit(0);
+	default:
+		/* parent */
+		return NSD_PLUGIN_CONTINUE;
+	}
 }
 
 static nsd_plugin_callback_result_type
