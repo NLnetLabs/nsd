@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.98 2003/07/07 11:47:16 erik Exp $
+ * $Id: zonec.c,v 1.99 2003/07/18 08:48:53 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -579,6 +579,9 @@ zone_read (char *name, char *zonefile)
 	fflush(stdout);
 	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), parser->errors);
 	totalerrors += parser->errors;
+
+	zclose(parser);
+	
 	return z;
 }
 
@@ -712,6 +715,18 @@ zone_adddata(uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb 
 		 * dname - cname's rrset owner name
 		 */
 		while(rrset || cnamerrset) {
+			/*
+			 * When a CNAME points to a SOA record, don't
+			 * add it to the answer.  Otherwise bug #56
+			 * gets triggered because AXFR terminates
+			 * early (because it thinks the final SOA
+			 * record was encountered).
+			 */
+			if (cnamerrset && rrset && rrset->type == TYPE_SOA) {
+				rrset = rrset->next;
+				continue;
+			}
+			
 			/* Initialize message */
 			zone_initmsg(&msg);
 
