@@ -7,7 +7,7 @@ use strict;
 # even be folded into this script with Net::DNS.
 
 # answer are stored in $number.$$.current
-# then compared with stuff in: $number.answer.valid
+# then compared with stuff in: $number.valid
 # any diffs from that are stored in $number.$$.diff
 # if there is no diff than nothing happens
 
@@ -26,7 +26,7 @@ while (<>) {
 	($number,$question) = split /:/;
 
 	$q=$dig . $question;
-	print "$q\t\t";
+	print "Q $number: $q\n";
 	@answer = `$q | ./stripdig.pl`;
 	if ( $? == -1 ) { 
 		print "Failed to query\n";
@@ -38,23 +38,23 @@ while (<>) {
 		print ANSWER @answer;
 	close ANSWER;
 
-	if ( ! -f "$number.answer.valid" ) {
-		print "- no comparsion answer found, SKIP\n";
+	if ( ! -f "$number.valid" ) {
+		print "\t- no comparsion answer found, SKIP\n";
 		next;
 	}
 
 	# diff the SOB
-	@diff = `$diff "$number.$pid.current" "$number.answer.valid"`;
+	@diff = `$diff "$number.$pid.current" "$number.valid"`;
 
 	if ( @diff == () ) {
 		# empty no diff
-		print " - no diff, OK\n";
+		print "\t- no diff, OK\n";
+		# remove the .current file
+		unlink "$number.$pid.current";
 	} else {
-		print " - diff, FAILURE (see $number.$pid.diff)\n";
+		print "\t- diff, FAILURE (see $number.$pid.diff)\n";
 		open DIFF, ">$number.$pid.diff";
 			print DIFF @diff;
 		close DIFF;
 	}	
-	# remove the .current file
-	unlink "$number.$pid.current";
 }

@@ -6,7 +6,7 @@
 
 while(<>) {
 	if ( /^;; ([A-Z]+) SECTION:/i ) {
-		print "\n$1 SECTION:\n";
+		print ";; $1\n";
 		next;
 	}
 	if ( /^;[a-z0-9]+/i ) {
@@ -16,7 +16,24 @@ while(<>) {
 		next;
 	}
 
+	if ( /;; flags: (.*)/ ) {
+		$up = uc($1);
+		print ";; FLAGS: $up";
+	}
+
 	if ( /^;/ or /^$/ ) { next; }
+
+	# quick hack the not entirely correct fixes the TCR
+	s/TYPE46/RRSIG/;
+	s/TYPE47/NSEC/;
+	s/TYPE48/DNSKEY/;
+
 
 	print;
 }
+
+
+
+
+
+
