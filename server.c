@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.66 2003/02/21 11:00:39 alexis Exp $
+ * $Id: server.c,v 1.67 2003/02/21 12:16:18 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -55,6 +55,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

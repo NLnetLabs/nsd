@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.18 2003/02/21 12:09:39 alexis Exp $
+# $Id: Makefile.in,v 1.19 2003/02/21 12:16:18 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -94,7 +94,7 @@ nsdc.conf.sample:	nsdc.conf.sample.in
 
 install: all
 	[ -d $(sbindir) ] || mkdir $(sbindir)
-	[ -d $(configdir) ] || mkdir $configdir
+	[ -d $(configdir) ] || mkdir $(configdir)
 	[ -d $(mandir) ] || mkdir $(mandir)
 	$(INSTALL) -s nsd $(sbindir)/nsd
 	$(INSTALL) -s zonec $(sbindir)/zonec
@@ -111,9 +111,9 @@ uninstall:
 	@echo
 	rm -f -- $(sbindir)/nsd $(sbindir)/zonec $(sbindir)/nsdc $(sbindir)/nsd-notify
 	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8
-	rm -f -- $(NSDPIDFILE)
+	rm -f -- $(pidfile)
 	@echo
-	@echo "You still need to remove $(NSDHOME) directory by hand."
+	@echo "You still need to remove $(confdir) directory by hand."
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS) $(LIBWRAP)
