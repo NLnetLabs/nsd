@@ -13,7 +13,7 @@
 
 #include "buffer.h"
 
-void
+static void
 buffer_cleanup(void *arg)
 {
 	buffer_type *buffer = (buffer_type *) arg;
