@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.23 2003/08/28 17:58:12 miekg Exp $
+ * $Id: zlparser.lex,v 1.24 2003/09/01 12:13:01 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -16,7 +16,6 @@
 #include "zyparser.h"
 
 /* see  http://www.iana.org/assignments/dns-parameters */
-/* added: IN HS CH class */
 char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "NXT", "KEY", "SOA", "SIG", "SRV", "CERT", "LOC", "MD", "MF", "MB",
     "MG", "MR", "NULL", "WKS", "HINFO", "MINFO", "RP", "AFSDB", "X25",
