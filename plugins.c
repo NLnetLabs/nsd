@@ -178,7 +178,7 @@ plugin_finalize_all(void)
 nsd_plugin_callback_result_type
 plugin_database_reloaded(void)
 {
-	int rc;
+	nsd_plugin_callback_result_type rc;
 	nsd_plugin_type *plugin;
 
 	for (plugin = first_plugin; plugin; plugin = plugin->next) {
