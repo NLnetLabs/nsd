@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.2 2002/01/08 15:35:34 alexis Exp $
+ * $Id: db.c,v 1.3 2002/01/08 15:47:48 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -42,6 +42,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,106 +55,47 @@
 #include <db.h>
 #include "dns.h"
 #include "nsd.h"
+#include "db.h"
 #include "zf.h"
 
 
-/*
- * Opens specified database for reading
- *
- */
-struct db *
-db_open(filename)
-	char *filename;
-{
-}
-
-/*
- * Closes specified database
- *
- */
-void
-db_close(db)
-	struct db *db;
-{
-}
-
-/*
- * Creates a database and opens it for writing.
- */
 struct db *
 db_create(filename)
 	char *filename;
 {
+	static struct db db;
+
+	/* Create the database */
+	if((db.db = dbopen(filename, O_CREAT | O_RDWR | O_TRUNC, 0644, DB_HASH, NULL)) == NULL) {
+		syslog(LOG_ERR, "dbcreate failed for %s: %m", filename);
+		return NULL;
+	}
+	return &db;
 }
 
-/*
- * Creates a new domain in memory
- */
-char *
-db_newdomain(dname, dnamelen)
-	char *dname;
-	int dnamelen;
-{
-}
-
-/*
- * Creates a new answer in memory
- *
- */
-char *
-db_newanswer(type)
-	u_short type;
-{
-}
-
-/*
- * Adds an rsset and associated glue to an answer.
- *
- * Returns number of resource records added.
- *
- */
-u_short
-db_addrrset(answer, rrset)
-	struct answer *answer;
-	struct rrset *rrset;
-{
-}
-
-/*
- * Adds an answer to a domain
- *
- */
 void
-db_addanswer(domain, answer)
-{
-}
-
-/*
- * Writes a domain into a database.
- *
- */
-void
-db_write(db, domain)
-{
-}
-
-/*
- * Looks up domain in an open database.
- */
-char *
-db_lookupdomain(db, dname, dnamelen)
+db_close(db)
 	struct db *db;
-	char *dname;
-	int dnamelen;
 {
+	db->db->close(db->db);
 }
 
-/*
- * Looks up type in a domain
- */
-char *
-db_lookuptype(domain, type)
-	char *domain;
-	u_short type;
+void
+db_write(db, dname, answer)
+	struct db *db;
+	u_char *dname;
+	struct answer *answer;
 {
+	DBT key, data;
+
+	key.size = (size_t)(*dname);
+	key.data = dname;
+
+	data.size = answer->size;
+	data.data = answer;
+
+	if(db->db->put(db->db, &key, &data, 0)) {
+		syslog(LOG_ERR, "failed to write to database: %m");
+		return;
+	}
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.2 2002/01/08 15:35:34 alexis Exp $
+ * $Id: zone.c,v 1.3 2002/01/08 15:47:48 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -243,48 +243,6 @@ zone_free(z)
 	}
 }
 
-#ifdef TEST
-
-int
-usage()
-{
-	fprintf(stderr, "usage: zone name zone-file\n");
-	exit(1);
-}
-
-int
-main(argc, argv)
-	int argc;
-	char *argv[];
-{
-
-	struct zone *z;
-
-#ifndef LOG_PERROR
-#define		LOG_PERROR 0
-#endif
-	/* Set up the logging... */
-	openlog("zf", LOG_PERROR, LOG_LOCAL5);
-
-	/* Check the command line */
-	if(argc  != 3) {
-		usage();
-	}
-
-	/* Open the file */
-	if((z = zone_read(argv[1], argv[2])) == NULL) {
-		exit(1);
-	}
-
-	zone_dump(z, NULL);
-	zone_print(z);
-
-	return 0;
-}
-
-#endif
-
-
 /*
  * Writes zone data into open database *db
  *
@@ -336,7 +294,7 @@ zone_dump(z, db)
 
 		/* Write it into the database */
 		answer = zone_answer(&msg, rrset->type);
-		db_write(db, answer);
+		db_write(db, dname, answer);
 		free(answer);
 	}
 	HEAP_STOP();
@@ -517,3 +475,49 @@ zone_answer(msg, type)
 
 	return a;
 };
+
+#ifdef TEST
+
+int
+usage()
+{
+	fprintf(stderr, "usage: zone name zone-file\n");
+	exit(1);
+}
+
+int
+main(argc, argv)
+	int argc;
+	char *argv[];
+{
+
+	struct zone *z;
+	struct db *db;
+
+#ifndef LOG_PERROR
+#define		LOG_PERROR 0
+#endif
+	/* Set up the logging... */
+	openlog("zf", LOG_PERROR, LOG_LOCAL5);
+
+	/* Check the command line */
+	if(argc  != 3) {
+		usage();
+	}
+
+	/* Open the file */
+	if((z = zone_read(argv[1], argv[2])) == NULL) {
+		exit(1);
+	}
+
+	if((db = db_create("nsd.db")) == NULL) {
+		exit(1);
+	}
+	zone_dump(z, db);
+	db_close(db);
+	zone_print(z);
+
+	return 0;
+}
+
+#endif

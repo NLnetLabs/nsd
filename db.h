@@ -1,5 +1,5 @@
 /*
- * $Id: db.h,v 1.2 2002/01/08 15:35:34 alexis Exp $
+ * $Id: db.h,v 1.3 2002/01/08 15:47:48 alexis Exp $
  *
  * db.h -- nsd(8) internal namespace database
  *
@@ -37,6 +37,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#include <db.h>
+
 struct answer {
 	size_t size;
 	u_short type;
@@ -52,7 +55,9 @@ struct domain {
 };
 
 struct db {
-	u_short flags;
+	DB *db;
 };
 
-void db_write __P((struct db *, struct answer *));
+void db_write __P((struct db *, u_char *, struct answer *));
+struct db *db_create __P((char *));
+void db_close __P((struct db *));

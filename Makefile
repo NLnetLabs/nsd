@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2002/01/08 13:29:20 alexis Exp $
+# $Id: Makefile,v 1.3 2002/01/08 15:47:48 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -55,8 +55,8 @@ all:	zf zone
 zf:	zf.h dns.h zf.c util.o
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c util.o
 
-zone:	zf.h dns.h zone.h zone.c zf.o util.o heap.o
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zone.c zf.o util.o heap.o
+zone:	zf.h dns.h zone.h zone.c zf.o util.o heap.o db.o
+	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zone.c zf.o util.o heap.o db.o
 
 clean:
 	rm -f zf zone *.o y.* *.core *.gmon
