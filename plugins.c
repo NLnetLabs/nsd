@@ -191,7 +191,7 @@ handle_callback_result(
 	case NSD_PLUGIN_ANSWER:
 		return 0;
 	case NSD_PLUGIN_ERROR:
-		error_response(args->query, args->result_code);
+		query_error(args->query, args->result_code);
 		return 0;
 	case NSD_PLUGIN_ABANDON:
 		return -1;
