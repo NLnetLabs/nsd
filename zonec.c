@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.91 2003/06/26 11:27:21 erik Exp $
+ * $Id: zonec.c,v 1.92 2003/06/26 12:07:15 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -686,6 +686,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 	d = xalloc(sizeof(struct domain));
 	d->size = sizeof(struct domain);
 	d->flags = 0;
+	d->runtime_data = NULL;
 
 	/* This is not a wildcard */
 	star = 0;
