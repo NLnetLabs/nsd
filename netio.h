@@ -14,6 +14,8 @@
 #include <sys/select.h>
 #endif
 
+#include <signal.h>
+
 #include "region-allocator.h"
 
 enum netio_event_types {
