@@ -85,15 +85,13 @@ alloc_rdata_init(region_type *region, const void *data, size_t size)
  * These are parser function for generic zone file stuff.
  */
 uint16_t *
-zparser_conv_hex(region_type *region, const char *hex)
+zparser_conv_hex(region_type *region, const char *hex, size_t len)
 {
 	/* convert a hex value to wireformat */
 	uint16_t *r = NULL;
 	uint8_t *t;
-	size_t len;
 	int i;
 	
-	len = strlen(hex);
 	if (len % 2 != 0) {
 		zc_error_prev_line("number of hex digits must be a multiple of 2");
 	} else if (len > MAX_RDLENGTH * 2) {
@@ -111,7 +109,9 @@ zparser_conv_hex(region_type *region, const char *hex)
 				if (isxdigit(*hex)) {
 					*t += hexdigit_to_int(*hex) * i;
 				} else {
-					zc_error_prev_line("illegal hex character '%c'", (int)*hex);
+					zc_error_prev_line(
+						"illegal hex character '%c'",
+						(int) *hex);
 					return NULL;
 				}
 				++hex;

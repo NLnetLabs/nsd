@@ -77,7 +77,7 @@ void zc_error(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 void zc_error_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 
 int process_rr(void);
-uint16_t *zparser_conv_hex(region_type *region, const char *hex);
+uint16_t *zparser_conv_hex(region_type *region, const char *hex, size_t len);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
 uint16_t *zparser_conv_services(region_type *region, const char *protostr, char *servicestr);
 uint16_t *zparser_conv_period(region_type *region, const char *periodstr);

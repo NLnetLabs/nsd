@@ -610,7 +610,7 @@ rdata_nsap:	str_dot_seq trail
 	    if (strncasecmp($1.str, "0x", 2) != 0) {
 		    zc_error_prev_line("NSAP rdata must start with '0x'");
 	    } else {
-		    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $1.str + 2)); /* NSAP */
+		    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $1.str + 2, $1.len - 2)); /* NSAP */
 	    }
     }
     ;
@@ -702,7 +702,7 @@ rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
-	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str)); /* hash */
+	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str, $7.len)); /* hash */
     }
     ;
 
@@ -710,7 +710,7 @@ rdata_sshfp:	STR sp STR sp str_sp_seq trail
     {
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* fp type */
-	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str)); /* hash */
+	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str, $5.len)); /* hash */
     }
     ;
 
@@ -749,16 +749,16 @@ rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
 rdata_unknown:	URR sp STR sp str_sp_seq trail
     {
 	    /* $2 is the number of octects, currently ignored */
-	    $$ = zparser_conv_hex(parser->region, $5.str);
+	    $$ = zparser_conv_hex(parser->region, $5.str, $5.len);
 
     }
     |	URR sp STR trail
     {
-	    $$ = zparser_conv_hex(parser->region, "");
+	    $$ = zparser_conv_hex(parser->region, "", 0);
     }
     |	URR error NL
     {
-	    $$ = zparser_conv_hex(parser->region, "");
+	    $$ = zparser_conv_hex(parser->region, "", 0);
     }
     ;
 %%
