@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.30 2003/08/28 17:58:12 miekg Exp $
+ * $Id: zyparser.y,v 1.31 2003/09/01 12:14:27 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -261,9 +261,9 @@ rdata_soa:  dname SP dname SP STR STR STR STR STR
         zadd_rdata2( zdefault, zparser_conv_dname($1.str) );   /* prim. ns */
         zadd_rdata2( zdefault, zparser_conv_dname($3.str) );   /* email */
         zadd_rdata2( zdefault, zparser_conv_rdata_period($5.str) ); /* serial */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($6.str) ); /* obscure item */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($7.str) ); /* obscure item */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($8.str) ); /* obscure item */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($6.str) ); /* refresh */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($7.str) ); /* retry */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($8.str) ); /* expire */
         zadd_rdata2( zdefault, zparser_conv_rdata_period($9.str) ); /* minimum */
 
         /* [XXX] also store the minium in case of no TTL? */
