@@ -1500,7 +1500,7 @@ print_rr(rr_type *rr)
 	uint32_t ttl;
 	uint8_t *owner;
 	uint16_t *r;
-	uint8_t *type;
+	uint8_t *type, *typecovered;
 	int i;	/* counter */
 	char *j; /* unknown rr */
 	
@@ -1550,12 +1550,29 @@ print_rr(rr_type *rr)
 					wire_conv_b64(rr->rrdata->rdata[3]));
 			break;
 		case TYPE_NSEC:
-			/*printf("%s",
-					wire_conv_domain(rr->rrdata->rdata[0]));
-					*/
+			printf("%s",
+					wire_conv_labels(rr->rrdata->rdata[0]));
 			break;
 		case TYPE_RRSIG:
-			printf("%s",wire_conv_b64(rr->rrdata->rdata[8]));
+			typecovered = (uint8_t *)namebyint(
+					wire_conv_rrtype(rr->rrdata->rdata[0]),ztypes);
+			if ( typecovered == NULL ) {
+				typecovered = (uint8_t *) malloc(10);
+				sprintf(typecovered, "TYPE%d", 
+						wire_conv_rrtype(rr->rrdata->rdata[0]));
+				printf("[%d]\n",wire_conv_rrtype(rr->rrdata->rdata[0]));
+			}
+	
+			printf("%s %d %d %ld %s %s %d %s %s",
+					typecovered,
+					wire_conv_byte(rr->rrdata->rdata[1]),
+					wire_conv_byte(rr->rrdata->rdata[2]),
+					wire_conv_long(rr->rrdata->rdata[3]),
+					wire_conv_time(rr->rrdata->rdata[4]),
+					wire_conv_time(rr->rrdata->rdata[5]),
+					wire_conv_short(rr->rrdata->rdata[6]),
+					wire_conv_labels(rr->rrdata->rdata[7]),
+					wire_conv_b64(rr->rrdata->rdata[8]));
 			break;	
 		case TYPE_DS:
 			printf("%d %d %d %s",
@@ -1590,14 +1607,52 @@ print_rr(rr_type *rr)
 uint8_t *
 wire_conv_domain(rdata_atom_type a)
 {
-	/* convert from wireformat to a printable owner name */
+	/* convert from wireformat to a printable owner name
+	 * only works if  rdata_atom_is_domain() is true */
 
-	uint8_t *r;
+	uint8_t *r = malloc(rdata_atom_size(a) + 1 );
 
-	r = (uint8_t*)dname_to_string(domain_dname(rdata_atom_domain(a)));
+	strcpy(r, (uint8_t*)dname_to_string(domain_dname(rdata_atom_domain(a))));
 
 	return r;
 }
+
+uint8_t *
+wire_conv_labels(rdata_atom_type a)
+{
+	/* convert from wireformat to a printable owner name
+	 * only works if rdata_atom_is_domain() is false */
+	
+	uint8_t *r;
+	uint8_t *s,*o;
+	unsigned int l;
+
+	/* with dots? TODO */
+	s = (uint8_t*) malloc(MAXDOMAINLEN + 1);
+
+	o = s; /* remember for later */
+
+	/* start of the labels */
+	r = (uint8_t*)rdata_atom_data(a);
+
+	while ( *r != 0 ) {
+
+		/* copy */
+		memcpy(s, (r+1), *r);
+		/* insert . */
+		*(s + *r) = '.';
+		*(s + *r + 1) = '\0';
+
+		s = s + 1 + *r;
+		r = r + 1 + *r; /* move to next */
+
+	}
+
+	s    = o; /* rewind */
+
+	return s;
+}
+
 
 uint8_t *
 wire_conv_string(rdata_atom_type a)
@@ -1720,4 +1775,47 @@ wire_conv_hex(rdata_atom_type a)
 	}
 	hex[++j] = '\0';
 	return hex;
+}
+
+uint8_t *
+wire_conv_time(rdata_atom_type a)
+{
+	/* convert wire timeformat to long */
+
+        uint32_t *r;
+        uint32_t l;
+	const time_t * timep;
+        struct tm *tm; 
+	uint8_t *s;
+
+	tm = (struct tm*) malloc(sizeof(struct tm));
+
+	r = rdata_atom_data(a);
+
+	l = ntohl(*r);
+	timep = (time_t*)&l;
+
+	gmtime_r( timep, tm );
+
+	s = (uint8_t*)malloc(16);
+
+	strftime(s, 15, "%Y%m%d%H%M%S" , tm);
+
+        return s;
+}
+
+/* uint? */
+uint16_t
+wire_conv_rrtype(rdata_atom_type a)
+{
+	/* convert wire rrtype to int */
+
+	/* werkt niet */
+
+	uint16_t *r;
+
+	r = rdata_atom_data(a);
+
+	return (ntohs(*r));
+
 }

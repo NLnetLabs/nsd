@@ -18,6 +18,7 @@ example.       3600 IN SOA ns1.example. bugs.x.w.example. (
                3600 NS     ns1.example.
                3600 NS     ns2.example.
 	       3600 TYPE12442  \# 4  0A0000 01
+	       3600 TYPE41234  \# 4  0A0000 01
                3600 RRSIG  NS 5 1 3600 20040115201552 (
                            20031216201552 41681 example.
                            YgTFj4yXRzbOddwfOTQhLHGPWm7x55ZRoPVz

@@ -189,10 +189,12 @@ void set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE], int ind
 /* print_rr and helper functions */
 uint8_t * wire_conv_string(rdata_atom_type);
 uint8_t * wire_conv_domain(rdata_atom_type);
+uint8_t * wire_conv_labels(rdata_atom_type);
 uint8_t * wire_conv_a(rdata_atom_type);
 uint8_t * wire_conv_aaaa(rdata_atom_type);
 uint8_t * wire_conv_b64(rdata_atom_type);
 uint8_t * wire_conv_hex(rdata_atom_type);
+uint8_t * wire_conv_time(rdata_atom_type a);
 long int wire_conv_long(rdata_atom_type);
 short int wire_conv_byte(rdata_atom_type);
 int wire_conv_short(rdata_atom_type);
