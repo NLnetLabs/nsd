@@ -1,4 +1,4 @@
-$Id: DESIGN,v 1.8 2002/02/08 12:32:40 alexis Exp $
+$Id: DESIGN,v 1.9 2002/05/28 11:55:52 alexis Exp $
 
 Database format
 ---------------
@@ -9,16 +9,11 @@ The namespace database consists of a number of records, where the key is the
 domain name (owner name) of the data, and the data is a set of precompiled
 answers in a para-wire format.
 
-NSD supports two types of databases: internal and Berkeley DB. In order to use
-Berkeley DB you need to have libdb version 3 or later installed and specify its
-location in the Makefile. You also need to add -DUSE_BERKELEY_DB into the CFLAGS
-in the Makefile.
-
 1.1 Internal database format
 
 Internal database has the following format:
 
-+0	u_char magic[8] = "NSDdbV00";
++0	u_char magic[8] = "NSDdbV01";
 +8	struct key {
 		u_char	length;
 		char	data[...];
@@ -32,7 +27,7 @@ Internal database has the following format:
 ....
 
 +even	\0
-+1	u_char magic[8] = "NSDdbV00";
++1	u_char magic[8] = "NSDdbV01";
 +9	u_char authmask[16];
 +25	u_char starmask[16];
 +41	u_char datamask[16];
@@ -44,14 +39,12 @@ and the masks.
 
 All the numbers are in the machine byte order unless specified otherwise.
 
+1.3 Database compatibility
 
-1.2 Berkeley database format
+NSD 1.0.0 uses database version 00, NSD 1.0.1 uses database version 01
 
-The key int the Berkeley database is a dname in RFC1035 format. The data in the database is
-the struct domain with all the necessery paddings in it.
-
-When using the berkeley database a special data which contains the magic and the masks is
-stored with a NULL key.
+The difference is that in the database version 01 all the database records
+must be in the same order as they are to be for AXFR.
 
 2.0 Data structures description
 
@@ -135,6 +128,8 @@ it is pointing to from the beginning of the answer.data When such a pointer begi
 with 0b11 (& 0xc...) it should contain offset of the domain name it is pointing to
 from the beginning of the domain name in the key of the domain.
 
+
+
 At the run time the NSD adjusts all the pointers by adding the offsets to the
 actual data to them.
 
@@ -164,7 +159,7 @@ The format of the superblock is as follows:
 		u_char datamask[16];
 	}
 
-Where the magic is "NSDdbV00"
+Where the magic is "NSDdbV01"
 
 And the bitmasks are bitvectors, which indicates presence of particular sort of data at a particular
 subdomain. Zero bit in the vector indicates root level, first bit set top level domain, second bit
