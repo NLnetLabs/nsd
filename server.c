@@ -941,10 +941,22 @@ handle_tcp_reading(netio_type *netio,
 
 	assert(query_used_size(q) == q->tcplen);
 
+	/* Account... */
+#ifndef INET6
+	STATUP(data->nsd, ctcp);
+#else
+	if (data->query.addr.ss_family == AF_INET) {
+		STATUP(data->nsd, ctcp);
+	} else if (data->query.addr.ss_family == AF_INET6) {
+		STATUP(data->nsd, ctcp6);
+	}
+#endif
+
 	/* We have a complete query, process it.  */
 	data->query_state = process_query(data->nsd, q);
 	if (data->query_state == QUERY_DISCARDED) {
-		/* Drop the entire connection... */
+		/* Drop the packet and the entire connection... */
+		STATUP(data->nsd, dropped);
 		cleanup_tcp_handler(netio, handler);
 		return;
 	}
@@ -1118,13 +1130,6 @@ handle_tcp_accept(netio_type *netio,
 		return;
 	}
 	
-	/* Account... */
-	if (data->socket->addr->ai_family == AF_INET) {
-		STATUP(data->nsd, ctcp);
-	} else if (data->socket->addr->ai_family == AF_INET6) {
-		STATUP(data->nsd, ctcp6);
-	}
-
 	/* Accept it... */
 	addrlen = sizeof(addr);
 	if ((s = accept(handler->fd, (struct sockaddr *)&addr, &addrlen)) == -1) {
