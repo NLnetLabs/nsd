@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59.2.2 2002/10/26 12:51:25 alexis Exp $
+ * $Id: server.c,v 1.59.2.3 2002/10/29 12:15:43 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -221,6 +221,11 @@ server_start_tcp(struct nsd *nsd)
 void
 server_shutdown(struct nsd *nsd)
 {
+
+#ifdef	BIND8_STATS
+	bind8_stats(nsd);
+#endif /* BIND8_STATS */
+
 	/* Close all the sockets... */
 	close(nsd->udp.s);
 	close(nsd->tcp.s);
