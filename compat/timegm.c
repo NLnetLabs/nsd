@@ -1,3 +1,13 @@
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_STDLIB_C
+#include <stdlib.h>
+#endif
+
+#include <time.h>
+
 static time_t
 timegm (struct tm *tm) {
 	time_t ret;
