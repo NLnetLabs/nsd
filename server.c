@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.31.4.1 2002/05/21 09:21:11 alexis Exp $
+ * $Id: server.c,v 1.31.4.2 2002/05/21 09:49:08 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -288,7 +288,7 @@ server(nsd)
 #endif
 
 	/* Drop the permissions */
-	if(setegid(nsd->gid) != 0 || seteuid(nsd->uid) !=0) {
+	if(setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
 		syslog(LOG_ERR, "unable to drop user priviledges: %m");
 		return -1;
 	}
@@ -328,7 +328,7 @@ server(nsd)
 				nsd->pid  = getpid();
 
 				/* Overwrite pid... */
-				if(writepid(nsd->pid, nsd->pidfile) == -1) {
+				if(writepid(nsd) == -1) {
 					syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
 				}
 
