@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.20 2002/04/02 10:00:16 alexis Exp $
+ * $Id: namedb.h,v 1.21 2002/04/11 13:26:30 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -142,6 +142,7 @@ struct namedb {
 	heap_t *heap;
 	u_char masks[3][NAMEDB_BITMASKLEN];
 	char *mpool;
+	size_t	mpoolsz;
 	char *filename;
 	int fd;
 };

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.51 2002/04/02 13:53:49 alexis Exp $
+# $Id: Makefile,v 1.52 2002/04/11 13:26:29 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -77,6 +77,10 @@ NSDDB           = /var/db/nsd.db
 #	-DNAMEDB_LOWERCASE	(default)
 #			Lowercase all the domain names in the internal
 #			database.
+#
+#	-DUSE_MMAP	Use mmap() in place of malloc() to load the
+#			database into memory. (Usefull for extremely
+#			large databases)
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #

@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.18 2002/02/20 14:25:24 alexis Exp $
+ * $Id: dbaccess.c,v 1.19 2002/04/11 13:26:30 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -40,6 +40,10 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef	USE_MMAP
+#include <sys/mman.h>
+#endif
 
 #include <errno.h>
 #include <stdlib.h>
@@ -145,8 +149,8 @@ namedb_open(filename)
 #ifdef	USE_BERKELEY_DB
 	DBT key, data;
 #else
-	struct stat st;
 	char *p;
+	struct stat st;
 #endif
 
 	/* Allocate memory for it... */
@@ -212,18 +216,30 @@ namedb_open(filename)
 		return NULL;
 	}
 
-	if((db->mpool = malloc(st.st_size)) == NULL) {
+	/* What its size? */
+	db->mpoolsz = st.st_size;
+
+#ifdef	USE_MMAP
+	if((db->mpool = mmap(NULL, db->mpoolsz, PROT_READ, 0, db->fd, 0)) == MAP_FAILED) {
+		free(db->filename);
+		free(db);
+		return NULL;
+	}
+#else
+
+	if((db->mpool = malloc(db->mpoolsz)) == NULL) {
 		free(db->filename);
 		free(db);
 		return NULL;
 	}
 
-	if(read(db->fd, db->mpool, st.st_size) == -1) {
+	if(read(db->fd, db->mpool, db->mpoolsz) == -1) {
 		free(db->mpool);
 		free(db->filename);
 		free(db);
 		return NULL;
 	}
+#endif	/* USE_MMAP */
 
 	(void)close(db->fd);
 
@@ -257,7 +273,7 @@ namedb_open(filename)
 		}
 		p += (((u_int32_t)*p + 1 + 3) & 0xfffffffc);
 		p += *((u_int32_t *)p);
-		if(p > (db->mpool + st.st_size)) {
+		if(p > (db->mpool + db->mpoolsz)) {
 			syslog(LOG_ERR, "corrupted database %s", db->filename);
 			namedb_close(db);
 			errno = EINVAL;
@@ -280,6 +296,7 @@ namedb_open(filename)
 	bcopy(p + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
 
 #endif
+
 #if !defined(USE_BERKELEY_DB)
 #if defined(USE_HEAP_HASH)
 	syslog(LOG_WARNING, "loaded %s, %lu entries %lu hash collisions", db->filename,
@@ -301,7 +318,11 @@ namedb_close(db)
 	db->db->close(db->db, 0);
 #else
 	heap_destroy(db->heap, 0, 0);
+#ifdef	USE_MMAP
+	munmap(db->mpool, db->mpoolsz);
+#else
 	free(db->mpool);
+#endif	/* USE_MMAP */
 #endif
 	if(db->filename)
 		free(db->filename);
