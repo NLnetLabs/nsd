@@ -116,6 +116,7 @@ ZONEC_OBJECTS	=				\
 NSD_NOTIFY_OBJECTS	= 			\
 	nsd-notify.o 				\
 	dname.o 				\
+	dns.o					\
 	namedb.o				\
 	rbtree.o				\
 	region-allocator.o			\
