@@ -262,15 +262,15 @@ region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h dns.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h nsd.h plugins.h nsd-plugin.h query.h util.h
 util.o: util.c config.h util.h
-zlparser.o: zlparser.c config.h zparser2.h util.h dname.h heap.h rbtree.h \
-  region-allocator.h zyparser.h
+zlparser.o: zlparser.c config.h zparser2.h dns.h util.h dname.h heap.h \
+  rbtree.h region-allocator.h zyparser.h
 zonec2.o: zonec2.c config.h dname.h heap.h rbtree.h region-allocator.h \
-  dns.h namedb.h util.h zonec.h zparser2.h
+  dns.h namedb.h util.h zonec2.h zparser2.h
 zonec.o: zonec.c config.h dname.h heap.h rbtree.h region-allocator.h \
   dns.h namedb.h util.h zonec.h zparser.h
-zparser2.o: zparser2.c config.h zparser2.h util.h dns.h dname.h heap.h \
+zparser2.o: zparser2.c config.h zparser2.h dns.h util.h dname.h heap.h \
   rbtree.h region-allocator.h
 zparser.o: zparser.c config.h dns.h zparser.h dname.h heap.h rbtree.h \
   region-allocator.h util.h
 zyparser.o: zyparser.c config.h dname.h heap.h rbtree.h \
-  region-allocator.h zonec2.h zparser2.h util.h
+  region-allocator.h zonec2.h zparser2.h dns.h util.h
