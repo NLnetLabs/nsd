@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.31 2002/09/09 11:03:54 alexis Exp $
+ * $Id: zf.c,v 1.32 2002/09/19 13:36:15 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -117,11 +117,16 @@ strdname(s, o)
 			*p = NAMEDB_NORMALIZE(*s);
 	} else {
 		for(h = d, p = h + 1; *s; s++, p++) {
-			if(*s == '.') {
+			switch(*s) {
+			case '.':
 				if(p == (h + 1)) p--;	/* Suppress empty labels */
 				*h = p - h - 1;
 				h = p;
-			} else {
+				break;
+			case '\\':			/* Do we have a \. ? */
+				if(*(s + 1) == '.')
+					s++;
+			default:
 				*p = NAMEDB_NORMALIZE(*s);
 			}
 		}
