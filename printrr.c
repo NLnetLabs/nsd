@@ -31,18 +31,6 @@
 #include "printrr.h"
 
 
-/* print a entire zone */
-int 
-print_zone(zone_type *zone)
-{
-
-	/* TODO DOESN't WORK */
-	zone_type *z;
-	for ( z = zone; z != NULL ; z=z->next )
-		print_rrset(z->domain->rrsets ,z->domain);
-
-}
-
 /* print a RR set */
 int
 print_rrset(rrset_type *rrset, domain_type *dom)
@@ -415,6 +403,7 @@ wire_conv_rrtype(rdata_atom_type a)
 	uint16_t *r;
 
 	r = rdata_atom_data(a);
+	printf("[%d]\n",ntohs(*r));
 	
 	return (ntohs(*r));
 

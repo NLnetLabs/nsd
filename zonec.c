@@ -1076,6 +1076,8 @@ process_rr(zparser_type *parser, rr_type *rr)
 	size_t max_rdlength;
 	int i;
 	
+	print_rr(rr);
+	
 	/* We only support IN class */
 	if (rr->class != CLASS_IN) {
 		error_prev_line("Wrong class");
@@ -1459,9 +1461,9 @@ main (int argc, char **argv)
 				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 			}
 
-			fprintf(stderr,"zonec: reading zone \"%s\".\n",zonename);
+			if (vflag >0) fprintf(stderr,"zonec: reading zone \"%s\".\n",zonename);
 			zone_read(zonename, zonefile);
-			fprintf(stderr,"zonec: processed %ld RRs in \"%s\".\n", totalrrs, zonename);
+			if (vflag >0) fprintf(stderr,"zonec: processed %ld RRs in \"%s\".\n", totalrrs, zonename);
 			totalrrs = 0;
 
 #ifndef NDEBUG
