@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.3 2003/08/18 11:55:23 miekg Exp $
+ * $Id: zparser2.c,v 1.4 2003/08/18 13:25:47 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -903,28 +903,10 @@ usage (void)
 	exit(1);
 }
 
-/* create a dname label from a string and a length */
-const uint8_t *
-strlendname(const uint8_t *str, const size_t len)
-{
-    uint8_t *dname;
-    
-    dname = (uint8_t*)xalloc(MAXDOMAINLEN+1);
-
-    /* copy the str to the right place 
-     * first byte is used for the length
-     */
-    memcpy( (dname + 1), str, len);
-    
-    *dname = (uint8_t) (len);
-
-    return dname;
-}
-
-
 /* create a dname, constructed like this
  * byte         byte        data       \000
  * total len    label len   label data  . (root)
+ * total len = label(s) + label(s) len + \000
  */
 const uint8_t *
 creat_dname(const uint8_t *str, const size_t len)
@@ -943,7 +925,7 @@ creat_dname(const uint8_t *str, const size_t len)
     return dname;
 }
 
-/* concatenate 2 dname, both made with creat_dname
+/* concatenate 2 dnames, both made with creat_dname
  * create a new dname, with on the first byte the
  * total length
  */
@@ -955,76 +937,29 @@ cat_dname(const uint8_t *left, const uint8_t *right)
     size_t sleft, sright;
 
     /* extract the lengths from left and right */
-    sleft = (size_t) left;
-    sright= (size_t) right;
+    sleft = (size_t) left[0];
+    sright= (size_t) right[0];
 
-    dname = (uint8_t*)xalloc( sleft + sright - 1);
+    printf("left %s\n", left+2);
+    printf("right %s\n", right+2);
+    printf("left %d\n", left[1]);
+    printf("right %d\n", right[1]);
+    printf("left %d\n", left[0]);
+    printf("right %d\n", right[0]);
+    printf("sleft %d + sright %d\n", sleft, sright);
+    fflush;
+    
+    dname = (uint8_t*)xalloc( sleft + sright);
     dname[0] = (uint8_t) (sleft + sright - 1);  /* the new length */
 
-    memcpy( dname+1, left, sleft - 1); /* cp left, exclude the null byte */
-    memcpy( dname + sleft , right, sright ); /* cp the whole of right */
+    memcpy( dname+1, left + 1, sleft ); /* cp left, not the lenght byte */
+    memcpy( dname + sleft , right + 1 , sright ); /* cp the whole of right, skip
+                                                    length byte */
 
-    dname[ sleft + sright - 1 ] = '\0';
+    dname[ sleft + sright] = '\0';
     
     return dname;
 }
-
-/* concatenate a dname with a label
- * the first byte in the label is the lenght
- */
-const uint8_t *
-dnamecat(const uint8_t *left, size_t llen, const uint8_t *right)
-{
-    uint8_t *dname;
-    
-    size_t tlen, rlen;
-    dname = (uint8_t*)xalloc(MAXDOMAINLEN+1);
-    
-    rlen = (size_t) right[0] + 1;
-    tlen = llen + rlen;
-
-    /* glue it together */
-    memcpy(dname, left, llen);
-    memcpy(dname + llen, right, rlen);
-
-    return dname;
-}
-
-/* add two dnames, chop off the total length byte of right
- * when adding */
-const uint8_t *
-dnamecatdname(const uint8_t *left, size_t llen, const uint8_t *right)
-{
-    uint8_t *dname;
-    
-    size_t tlen, rlen;
-    dname = (uint8_t*)xalloc(MAXDOMAINLEN+1);
-    
-    rlen = (size_t) right[0] + 1;
-    tlen = llen + rlen;
-
-    /* glue it together */
-    memcpy(dname, left, llen);
-    memcpy(dname + llen, right + 1, rlen);
-
-    return dname;
-}
-
-/* add the final root label to a name */
-const uint8_t *
-dnameroot(const uint8_t *left, size_t llen)
-{
-    uint8_t *dname;
-    
-    dname = (uint8_t*)xalloc(MAXDOMAINLEN+1);
-
-    memcpy(dname + 1, left, llen);
-    *(dname + llen+ 2) = '\0';
-    *dname = (uint8_t) (llen + 1);
-    
-    return dname;
-}
-
 
 /*
  * Prints a specific part of rdata.

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.3 2003/08/18 11:55:23 miekg Exp $
+ * $Id: zonec2.c,v 1.4 2003/08/18 13:25:47 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -394,10 +394,10 @@ zone_read (char *name, char *zonefile)
 
 	/* Read the linked list */
 	while (l->next != NULL ) {
-		printf("addr: %x\n", l);
 
 		rr = l->rr;
-		zprintrrrdata(stderr, rr);
+        zprintrr(stderr, rr);
+        fprintf(stderr,"\n");
 		
 		/* Report progress... 
 		   if(vflag > 1) {
@@ -418,6 +418,14 @@ zone_read (char *name, char *zonefile)
 		}
 
 		/* Is this in-zone data? */
+		printf("d name: [%s]\n", z->dname+2);
+		printf("rr name: [%s]\n", rr->dname+2);
+		printf("d name: [%d]\n", (int)z->dname[0]);
+		printf("rr name: [%d]\n", (int)rr->dname[0]);
+		printf("d name: [%d]\n", (int)z->dname[1]);
+		printf("rr name: [%d]\n", (int)rr->dname[1]);
+		printf("d name: [%d]\n", (int)z->dname[6]);
+		printf("rr name: [%d]\n", (int)rr->dname[6]);
 		printf("d name: [%s]\n", dnamestr(z->dname));
 		printf("rr name: [%s]\n", dnamestr(rr->dname));
 		if((*z->dname > *rr->dname) ||

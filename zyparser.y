@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.3 2003/08/15 11:33:22 miekg Exp $
+ * $Id: zyparser.y,v 1.4 2003/08/18 13:25:47 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -162,15 +162,15 @@ dname:  abs_dname
         $$->str = $1->str;
         $$->len = $1->len;
         /* not here?!? $$->str = strlendname($$->str, $$->len); */
+        printf("NEW ABS\n");
         printf("length %d\n", $$->len);
-        printf("\n\nNEW ABS\n\n");
     }
     |   rel_dname
     {
         /* append origin */
-        $$->str = (uint8_t *)dnamecatdname($1->str, $1->len, zdefault->origin);
+        $$->str = (uint8_t *)cat_dname($1->str, $1->len, zdefault->origin);
         $$->len = $1->len + zdefault->origin_len;
-        $$->str = (uint8_t *)strlendname($$->str, $$->len);
+        $$->str = (uint8_t *)creat_dname($$->str, $$->len);
         printf("length %d\n", $$->len);
         printf("length orig %d\n", zdefault->origin_len);
         printf("\n\nNEW REL\n\n");
@@ -188,21 +188,28 @@ abs_dname:  '.'
     }
     |       rel_dname '.'
     {
-            $$->str = (uint8_t *)dnameroot($1->str, $1->len);
-            $$->len = $1->len + 1;
+            $$->str = $1->str;
+            $$->len = $1->len;
 
     }
     ;
 
 rel_dname:  STR
     {
-        $$->str = (uint8_t *)strlendname($1->str, $1->len);
-        $$->len = $1->len + 1; /* length byte */
+        $$->str = (uint8_t *) creat_dname($1->str, $1->len);
+        $$->len = $1->len + 2; /* total length, label + len byte */
+        /*$$->str = (uint8_t *)strlendname($1->str, $1->len);
+        $$->len = $1->len + 1;  length byte */
     }
     |       rel_dname '.' STR
     {  
+        $$->str = (uint8_t *) cat_dname ($1->str, creat_dname($3->str,
+                    $3->len));
+        $$->len = $1->len + $3->len;
+        /*
         $$->str = (uint8_t *)dnamecat( $1->str, $1->len, strlendname( $3->str, $3->len));
         $$->len = $1->len + $3->len + 1;
+        */
     }
     ;
 
