@@ -1,6 +1,18 @@
 NSD RELEASE NOTES
 
 
+1.2.2
+=============
+BUG FIXES:
+        - Bug #59: NSD returns FORMERR when the query name is >= 246
+          bytes.
+        - Bug #60: Zonec runs out of file descriptors with many zones.
+        - Bug #61: nsdc uses /bin/sh hardwired (and should not).
+        - Bug #62: NSD is not able to log to a file.
+        - Bug #63: nsdc update and zonec are too tallkative.
+        - Bug #64: Answer for request of a host resolved by a
+          wildcard-resource-record is not understandable by dig.
+
 1.2.1
 =============
 BUG FIXES:
