@@ -6,8 +6,9 @@
  * See LICENSE for license
  */
 
+#ifndef _ZPARSER_H_
+#define	_ZPARSER_H_
 
-#include "config.h"
 #include "util.h"
 #include <assert.h>
 #include <fcntl.h>
@@ -23,8 +24,8 @@
 
 
 struct YYSTYPE_T {
-    size_t len;     /* holds the label length */
-    uint8_t * str;  /* holds the data */
+    size_t   len;		/* holds the label length */
+    void    *str;		/* holds the data */
 };
 
 
@@ -48,12 +49,6 @@ struct RR {
         uint16_t **rdata;
 };
 
-/* linked list of nodes with the RRs */
-struct node_t {
-    struct RR * rr;
-    struct node_t * next;
-};
-
 /* administration struct */
 struct zdefault_t {
     int32_t ttl;
@@ -73,16 +68,13 @@ extern unsigned int lineno;
 extern unsigned int error;
 extern struct zdefault_t *zdefault;
 extern struct RR * current_rr;
-extern struct node_t * root;
-extern struct node_t * rrlist;
 
 /* used in zonec.lex */
 extern FILE * yyin;
-extern int yylex();
+int yyparse(void);
+int yylex(void);
+int yyerror(char *s);
 void yyrestart(FILE *);
-
-#ifndef _ZPARSER_H_
-#define	_ZPARSER_H_
 
 #define	ZBUFSIZE	16384		/* Maximum master file entry size */
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
@@ -159,26 +151,24 @@ extern struct ztab ztypes[];
 extern struct ztab zclasses[];
 
 /* zparser2.c */
-uint16_t * zparser_conv_hex(const char *hex);
-uint16_t * zparser_conv_time(const char *time);
-uint16_t * zparser_conv_rdata_type(struct RR * current, const char *type);
-uint16_t * zparser_conv_rdata_proto(const char *protostr);
-uint16_t * zparser_conv_rdata_service(const char *servicestr, const int arg);
-uint16_t * zparser_conv_rdata_period(const char *periodstr);
-uint16_t * zparser_conv_short(const char *shortstr);
-uint16_t * zparser_conv_long(const char *longstr);
-uint16_t * zparser_conv_byte(const char *bytestr);
-uint16_t * zparser_conv_A(const char *a);
-uint16_t * zparser_conv_dname(const uint8_t *dname);
-uint16_t * zparser_conv_text(const char *txt);
-uint16_t * zparser_conv_a6(const char *a6);
-uint16_t * zparser_conv_b64(const char *b64);
+uint16_t *zparser_conv_hex(const char *hex);
+uint16_t *zparser_conv_time(const char *time);
+uint16_t *zparser_conv_rdata_type(struct RR * current, const char *type);
+uint16_t *zparser_conv_rdata_proto(const char *protostr);
+uint16_t *zparser_conv_rdata_service(const char *servicestr, const int arg);
+uint16_t *zparser_conv_rdata_period(const char *periodstr);
+uint16_t *zparser_conv_short(const char *shortstr);
+uint16_t *zparser_conv_long(const char *longstr);
+uint16_t *zparser_conv_byte(const char *bytestr);
+uint16_t *zparser_conv_A(const char *a);
+uint16_t *zparser_conv_dname(const uint8_t *dname);
+uint16_t *zparser_conv_text(const char *txt);
+uint16_t *zparser_conv_a6(const char *a6);
+uint16_t *zparser_conv_b64(const char *b64);
 int32_t zparser_ttl2int(char *ttlstr);
-struct node_t * list_add(struct node_t *list, struct RR * rr);
-void zreset_current_rr(struct zdefault_t *zdefault);
 void zadd_rdata2(struct zdefault_t *zdefault, uint16_t *r);
 void zadd_rdata_finalize(struct zdefault_t *zdefault);
-void zadd_rtype(uint8_t *type);
+void zadd_rtype(const char *type);
 uint8_t * dnamedup (const uint8_t *dname);
 const uint8_t * cat_dname(const uint8_t *left, const uint8_t *right);
 const uint8_t * creat_dname(const uint8_t *str, const size_t len);
@@ -190,14 +180,13 @@ void zerror (const char *msg);
 void zsyntax (struct zdefault_t *z);
 void zunexpected (struct zdefault_t *z);
 struct zdefault_t * nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origin);
-struct RR * zread (struct node_t *list);
 void zclose (struct zdefault_t *z);
 void zrdatafree(uint16_t **p);
 const char * precsize_ntoa (int prec);
 uint8_t precsize_aton (register char *cp, char **endptr);
 const char * typebyint(uint16_t type);
 const char * classbyint(uint16_t class);
-static void usage (void);
+void zprintrr(FILE *f, struct RR *rr);
 
 /* zlparser.lex */
 int zoctet(char *word);

@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.17 2003/08/20 10:23:58 miekg Exp $
+ * $Id: zyparser.y,v 1.18 2003/08/20 11:28:38 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -9,16 +9,18 @@
  * See LICENSE for the license
  */
 
-#include"zparser2.h"
-#include<stdio.h>
-#include<string.h>
+#include <config.h>
+	
+#include <stdio.h>
+#include <string.h>
+
+#include "dname.h"
+#include "zonec2.h"
+#include "zparser2.h"
 
 /* these need to be  global, otherwise they cannot be used inside yacc */
 unsigned int lineno;
 struct zdefault_t * zdefault;
-struct node_t * root;       /* root of the list */
-struct node_t * rrlist;     /* hold all RRs as a linked list -- this is our
-                               interface with the old zonec code */
 struct RR * current_rr;
 
 /* [XXX] should be local */
@@ -60,9 +62,8 @@ line:   NL
     |   rr
     {   /* rr should be fully parsed */
         /*zprintrr(stderr, current_rr); DEBUG */
-        rrlist = list_add(rrlist, current_rr);
-        current_rr = xalloc(sizeof(struct RR));
-        zreset_current_rr(zdefault);
+	    process_rr(current_rr);
+	    zdefault->_rc = 0;
     }
     ;
 
@@ -72,7 +73,7 @@ dir_ttl:    SP STR NL
             yyerror("TTL thingy too large");
             return 1;
         } 
-        printf("\nttl-directive parsed: %s\n",  $2->str);
+        printf("\nttl-directive parsed: %s\n",  (char *) $2->str);
         /* perform TTL conversion */
         if ( ( zdefault->ttl = zparser_ttl2int($2->str)) == -1 )
             zdefault->ttl = DEFAULT_TTL;
@@ -267,8 +268,7 @@ rdata_dname:   dname
 rdata_a:    STR '.' STR '.' STR '.' STR
     {
         /* setup the string suitable for parsing */
-        uint8_t * ipv4 = xalloc($1->len + $3->len + $5->len +
-                            $7->len + 4);
+	    char *ipv4 = xalloc($1->len + $3->len + $5->len + $7->len + 4);
         memcpy(ipv4, $1->str, $1->len);
         memcpy(ipv4 + $1->len , ".", 1);
 
@@ -281,7 +281,7 @@ rdata_a:    STR '.' STR '.' STR '.' STR
         memcpy(ipv4 + $1->len + $3->len + $5->len + 3 , $7->str, $7->len);
         memcpy(ipv4 + $1->len + $3->len + $5->len + $7->len + 3, "\0", 1);
 
-        zadd_rdata2(zdefault, zparser_conv_A((char*)ipv4));
+        zadd_rdata2(zdefault, zparser_conv_A(ipv4));
         free(ipv4);
     }
     ;
@@ -307,12 +307,16 @@ rdata_aaaa: STR
 
 %%
 
-int yywrap(){
+int
+yywrap()
+{
     return 1;
 }
 
-int yyerror(char *s) {
-    fprintf(stderr,"\n[%d]error: %s: %s\n", lineno, s, yylval);
+int
+yyerror(char *s)
+{
+    fprintf(stderr,"\n[%d]error: %s: %s\n", lineno, s, (char *) yylval->str);
     if ( error++ > 50 ) {
         fprintf(stderr,"too many errors (50+)\n");
         exit(1);

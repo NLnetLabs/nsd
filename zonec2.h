@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.h,v 1.1 2003/08/14 10:16:32 erik Exp $
+ * $Id: zonec2.h,v 1.2 2003/08/20 11:28:35 erik Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -40,6 +40,9 @@
 
 #ifndef _ZONEC_H_
 #define _ZONEC_H_
+
+#include "heap.h"
+#include "zparser2.h"
 
 struct rrset {
 	struct rrset *next;
@@ -85,5 +88,9 @@ struct message {
 	} compr[MAXRRSPP];
 	uint8_t buf[IOBUFSZ];
 };
+
+extern struct zone *current_zone;
+
+int process_rr(struct RR *rr);
 
 #endif /* _ZONEC_H_ */

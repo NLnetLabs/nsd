@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.8 2003/08/20 10:23:58 miekg Exp $
+ * $Id: zonec2.c,v 1.9 2003/08/20 11:28:34 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -31,6 +31,8 @@
 #include "region-allocator.h"
 #include "zonec.h"
 #include "zparser2.h"
+
+struct zone *current_zone = NULL;
 
 static void zone_addbuf (struct message *, const void *, size_t);
 static void zone_addcompr (struct message *msg, const uint8_t *dname, int offset, int len);
@@ -341,6 +343,169 @@ cleanup_rrset(void *r)
 	}
 }
 
+int
+process_rr(struct RR *rr)
+{
+	heap_t *h;
+	struct rrset *rrset, *r;
+	int i;
+	uint8_t *dname, *t;
+	struct zone *z = current_zone;
+	
+        fprintf(stderr, "\n");        
+        zprintrr(stderr, rr);
+        fprintf(stderr, "\n");        
+		
+	/* Report progress... 
+	   if(vflag > 1) {
+	   if((parser->lines % 100000) == 0) {
+	   printf("zonec: reading zone \"%s\": %lu\r", dnamestr(z->dname), (unsigned long) parser->lines);
+	   fflush(stdout);
+	   }
+	   }
+	   [XXX] done inside lex whatever
+	*/
+
+	/* We only support IN class */
+	if(rr->class != CLASS_IN) {
+		zerror("wrong class");
+		return 0;
+	}
+
+	/* Is this in-zone data? */
+        /* DEBUG 
+	   printf("d name: [%s]\n", z->dname+2);
+	   printf("rr name: [%s]\n", rr->dname+2);
+	   printf("d name: [%d]\n", (int)z->dname[0]);
+	   printf("rr name: [%d]\n", (int)rr->dname[0]);
+	   printf("d name: [%d]\n", (int)z->dname[1]);
+	   printf("rr name: [%d]\n", (int)rr->dname[1]);
+	   printf("d name: [%d]\n", (int)z->dname[6]);
+	   printf("rr name: [%d]\n", (int)rr->dname[6]);
+	   printf("d name: [%s]\n", dnamestr(z->dname));
+	   printf("rr name: [%s]\n", dnamestr(rr->dname));
+        */
+	if((*z->dname > *rr->dname) ||
+	   (memcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
+		zerror("out of zone data");
+		return 0;
+	}
+
+	/* Insert the record into a rrset */
+	if(rr->type == TYPE_NS && ((dnamecmp(rr->dname, z->dname) != 0) || (z->soa == NULL))) {
+		h = z->cuts;
+	} else {
+		h = z->data;
+	}
+
+	/* Do we have this domain name in heap? */
+	if((rrset = heap_search(h, rr->dname)) != NULL) {
+		for(r = rrset; r; r = r->next) {
+			if(r->type == rr->type) {
+				break;
+			}
+		}
+	} else {
+		r = NULL;
+	}
+
+	/* Do we have this particular rrset? */
+	if(r == NULL) {
+		r = region_alloc(zone_region, sizeof(struct rrset));
+		region_add_cleanup(zone_region, cleanup_rrset, r);
+		r->type = 0;
+	}
+	if(r->type == 0) {
+		r->next = NULL;
+		r->type = rr->type;
+		r->class = rr->class;
+		r->ttl = rr->ttl;
+		r->rrslen = 1;
+		r->rrs = xalloc(sizeof(uint16_t *) * 2);
+		r->glue = r->color = 0;
+		r->rrs[0] = rr->rdata;
+		r->rrs[1] = NULL;
+			
+		/* Add it */
+		if(rrset == NULL) {
+			/* XXX We can use this more smart... */
+			uint8_t *key = dnamedup(rr->dname);
+			region_add_cleanup(zone_region, free, key);
+			heap_insert(h, key, r, 1);
+		} else {
+			r->next = rrset->next;
+			rrset->next = r;
+		}
+	} else {
+		if(r->ttl != rr->ttl) {
+			zerror("ttl doesn't match the ttl of the rrset");
+			return 0;
+		}
+
+		/* Search for possible duplicates... */
+		for(i = 0; i < r->rrslen; i++) {
+			if(!zrdatacmp(r->rrs[i], rr->rdata)) {
+				break;
+			}
+		}
+
+		/* Discard the duplicates... */
+		if(i < r->rrslen) {
+			zrdatafree(rr->rdata);
+			return 0;
+		}
+
+		/* Add it... */
+		r->rrs = xrealloc(r->rrs, ((r->rrslen + 2) * sizeof(uint16_t *)));
+		r->rrs[r->rrslen++] = rr->rdata;
+		r->rrs[r->rrslen] = NULL;
+	}
+
+	/* Now create necessary empty nodes... */
+	dname = dnamedup(rr->dname);
+	for(t = dname + 2 + *(dname + 1); (t < (dname + 1 + *dname - *z->dname)); t += *t + 1) {
+		*(t - 1) = dname + *dname - t + 1;
+		if((rrset = heap_search(z->data, t - 1)) == NULL) {
+			uint8_t *key = dnamedup(t - 1);
+			region_add_cleanup(zone_region, free, key);
+			r = region_alloc(zone_region, sizeof(struct rrset));
+			memset(r, 0, sizeof(struct rrset));
+			region_add_cleanup(zone_region, cleanup_rrset, r);
+
+			/* Add it */
+			heap_insert(z->data, key, r, 1);
+		}
+	}
+	free(dname);
+
+	/* Check we have SOA */
+	if(z->soa == NULL) {
+		if(rr->type != TYPE_SOA) {
+			zerror("missing SOA record on top of the zone");
+		} else {
+			if(dnamecmp(rr->dname, z->dname) != 0) {
+				zerror( "SOA record with invalid domain name");
+			} else {
+				z->soa = r;
+			}
+		}
+	} else {
+		if(rr->type == TYPE_SOA) {
+			zerror("duplicate SOA record discarded");
+			zrdatafree(r->rrs[--r->rrslen]);
+		}
+	}
+
+	/* Is this a zone NS? */
+	if(rr->type == TYPE_NS && h == z->data) {
+		z->ns = r;
+	}
+        /* free the data */
+        /*zrdatafree( rr->rdata );*/
+
+	return 1;
+}
+
 /*
  * Reads the specified zone into the memory
  *
@@ -348,15 +513,7 @@ cleanup_rrset(void *r)
 static struct zone *
 zone_read (char *name, char *zonefile)
 {
-	heap_t *h;
-	int i;
-	uint8_t *t, *dname;
-
 	struct zone *z;
-	/*struct zparser *parser;*/
-	struct RR *rr;
-	struct rrset *rrset, *r;
-	struct node_t *l;
 
 	/* Allocate new zone structure */
 	z = region_alloc(zone_region, sizeof(struct zone));
@@ -383,177 +540,15 @@ zone_read (char *name, char *zonefile)
 		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
 		return NULL;
 	}
-	/* set l to the start of the list 
-	 * root is globally set in nsd_zopen
-	 */
-	l = root; /* root is global */
 
 	/* Two heaps: zone cuts and other data */
 	z->cuts = heap_create(zone_region, dnamecmp);
 	z->data = heap_create(zone_region, dnamecmp);
 	z->soa = z->ns = NULL;
-
-	/* Read the linked list */
-	while (l->next != NULL ) {
-
-		rr = l->rr;
-        fprintf(stderr, "\n");        
-        zprintrr(stderr, rr);
-        fprintf(stderr, "\n");        
-		
-		/* Report progress... 
-		   if(vflag > 1) {
-		   if((parser->lines % 100000) == 0) {
-		   printf("zonec: reading zone \"%s\": %lu\r", dnamestr(z->dname), (unsigned long) parser->lines);
-		   fflush(stdout);
-		   }
-		   }
-		   [XXX] done inside lex whatever
-		*/
-
-
-		/* We only support IN class */
-		if(rr->class != CLASS_IN) {
-			zerror("wrong class");
-			l = l->next; /* jump to the next one */
-			continue;
-		}
-
-		/* Is this in-zone data? */
-        /* DEBUG 
-		printf("d name: [%s]\n", z->dname+2);
-		printf("rr name: [%s]\n", rr->dname+2);
-		printf("d name: [%d]\n", (int)z->dname[0]);
-		printf("rr name: [%d]\n", (int)rr->dname[0]);
-		printf("d name: [%d]\n", (int)z->dname[1]);
-		printf("rr name: [%d]\n", (int)rr->dname[1]);
-		printf("d name: [%d]\n", (int)z->dname[6]);
-		printf("rr name: [%d]\n", (int)rr->dname[6]);
-		printf("d name: [%s]\n", dnamestr(z->dname));
-		printf("rr name: [%s]\n", dnamestr(rr->dname));
-        */
-		if((*z->dname > *rr->dname) ||
-		   (memcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
-			zerror("out of zone data");
-			l = l->next; /* jump to the next one */
-			continue;
-		}
-
-		/* Insert the record into a rrset */
-		if(rr->type == TYPE_NS && ((dnamecmp(rr->dname, z->dname) != 0) || (z->soa == NULL))) {
-			h = z->cuts;
-		} else {
-			h = z->data;
-		}
-
-		/* Do we have this domain name in heap? */
-		if((rrset = heap_search(h, rr->dname)) != NULL) {
-			for(r = rrset; r; r = r->next) {
-				if(r->type == rr->type) {
-					break;
-                }
-			}
-		} else {
-			r = NULL;
-		}
-
-		/* Do we have this particular rrset? */
-		if(r == NULL) {
-			r = region_alloc(zone_region, sizeof(struct rrset));
-			region_add_cleanup(zone_region, cleanup_rrset, r);
-			r->type = 0;
-		}
-		if(r->type == 0) {
-			r->next = NULL;
-			r->type = rr->type;
-			r->class = rr->class;
-			r->ttl = rr->ttl;
-			r->rrslen = 1;
-			r->rrs = xalloc(sizeof(uint16_t *) * 2);
-			r->glue = r->color = 0;
-			r->rrs[0] = rr->rdata;
-			r->rrs[1] = NULL;
-			
-			/* Add it */
-			if(rrset == NULL) {
-				/* XXX We can use this more smart... */
-				uint8_t *key = dnamedup(rr->dname);
-				region_add_cleanup(zone_region, free, key);
-				heap_insert(h, key, r, 1);
-			} else {
-				r->next = rrset->next;
-				rrset->next = r;
-			}
-		} else {
-			if(r->ttl != rr->ttl) {
-				zerror("ttl doesn't match the ttl of the rrset");
-                l = l->next; /* next! */
-				continue;
-			}
-
-			/* Search for possible duplicates... */
-			for(i = 0; i < r->rrslen; i++) {
-				if(!zrdatacmp(r->rrs[i], rr->rdata)) {
-					break;
-                }
-			}
-
-			/* Discard the duplicates... */
-			if(i < r->rrslen) {
-				zrdatafree(rr->rdata);
-                l = l->next;
-				continue;
-			}
-
-			/* Add it... */
-			r->rrs = xrealloc(r->rrs, ((r->rrslen + 2) * sizeof(uint16_t *)));
-			r->rrs[r->rrslen++] = rr->rdata;
-			r->rrs[r->rrslen] = NULL;
-		}
-
-		/* Now create necessary empty nodes... */
-		dname = dnamedup(rr->dname);
-		for(t = dname + 2 + *(dname + 1); (t < (dname + 1 + *dname - *z->dname)); t += *t + 1) {
-			*(t - 1) = dname + *dname - t + 1;
-			if((rrset = heap_search(z->data, t - 1)) == NULL) {
-				uint8_t *key = dnamedup(t - 1);
-				region_add_cleanup(zone_region, free, key);
-				r = region_alloc(zone_region, sizeof(struct rrset));
-				memset(r, 0, sizeof(struct rrset));
-				region_add_cleanup(zone_region, cleanup_rrset, r);
-
-				/* Add it */
-				heap_insert(z->data, key, r, 1);
-			}
-		}
-		free(dname);
-
-		/* Check we have SOA */
-		if(z->soa == NULL) {
-			if(rr->type != TYPE_SOA) {
-				zerror("missing SOA record on top of the zone");
-			} else {
-				if(dnamecmp(rr->dname, z->dname) != 0) {
-					zerror( "SOA record with invalid domain name");
-				} else {
-					z->soa = r;
-				}
-			}
-		} else {
-			if(rr->type == TYPE_SOA) {
-				zerror("duplicate SOA record discarded");
-				zrdatafree(r->rrs[--r->rrslen]);
-			}
-		}
-
-		/* Is this a zone NS? */
-		if(rr->type == TYPE_NS && h == z->data) {
-			z->ns = r;
-		}
-        /* free the data */
-        /*zrdatafree( rr->rdata );*/
-		l = l->next; /* go to the next */
-	}
+	current_zone = z;
+	
+	/* Parse and process all RRs.  */
+	yyparse();
 
 	fflush(stdout);
 	/*

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.11 2003/08/19 14:51:35 miekg Exp $
+ * $Id: zparser2.c,v 1.12 2003/08/20 11:28:36 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -405,67 +405,6 @@ zparser_ttl2int(char *ttlstr)
 }
 
 
-/* 
- * Now some function that are used in zonec.y, but don't belong there 
- * 
- */
-
-struct node_t * 
-list_add(struct node_t *list, struct RR * rr)
-{
-    /* extend the current linked list with one new item */
-    struct node_t *node;
-
-    assert(list);
-    assert(list->next == NULL);
-
-    node = xalloc(sizeof(struct node_t));
-    node->rr = NULL;
-    node->next = NULL;
-
-    /* fill it in */
-    list->rr = xalloc(sizeof(struct RR));
-    list->rr = rr;
-    
-    /* connect it */
-    list->next = node;
-    list = list->next;  /* jump one further */
-    
-    return list;
-}
-
-void
-list_walk(struct node_t *list)
-{
-    /* walk the list from start, till end and 
-     * print out some interesting stuff */
-
-    struct node_t * cur = list;
-
-    while (cur->next != NULL) {
-        
-        fprintf(stdout,"rr dname: %s\n",dnamestr(cur->rr->dname));
-        fprintf(stdout,"rr ttl: %d\n",cur->rr->ttl);
-        fprintf(stdout,"rr class: %d\n",cur->rr->class);
-        fprintf(stdout,"rr type: %d\n",cur->rr->type);
-        fprintf(stdout,"\trr rdata not printed\n");
-
-        cur = cur->next;
-    }
-}
-
-void
-zreset_current_rr(struct zdefault_t *zdefault)
-{
-    /* generate a new, clean current_rr */
-
-    current_rr = xalloc(sizeof(struct RR));
-    current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
-
-    /* ok, to this here */
-    zdefault->_rc = 0;
-}
-
 /* struct * RR current_rr is global, no 
  * need to pass it along */
 void
@@ -492,7 +431,7 @@ zadd_rdata_finalize(struct zdefault_t *zdefault)
 }
 
 void
-zadd_rtype(uint8_t *type)
+zadd_rtype(const char *type)
 {
     /* add the type to the current resource record */
 
@@ -693,7 +632,7 @@ zerror (const char *msg)
  *	nothing
  */
 void 
-zsyntax (struct zdefault_t *z)
+zsyntax (struct zdefault_t *z ATTR_UNUSED)
 {
 }
 
@@ -707,7 +646,7 @@ zsyntax (struct zdefault_t *z)
  *	nothing
  */
 void 
-zunexpected (struct zdefault_t *z)
+zunexpected (struct zdefault_t *z ATTR_UNUSED)
 {
 }
 
@@ -750,17 +689,11 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     zdefault->prev_dname = '\0';
     zdefault->prev_dname_len = 0;
 
-    zreset_current_rr(zdefault);
-    printf("zp2.c: origin %s",dnamestr(zdefault->origin));
-
-    rrlist = xalloc(sizeof(struct node_t));
-    rrlist->next = NULL;
-    root = rrlist;
-
-    yyparse();
-
-    error == 1 ? printf("\nparsing complete, with %d error\n",error) : \
-            printf("\nparsing complete, with %d errors\n",error);
+    current_rr = xalloc(sizeof(struct RR));
+    current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
+    zdefault->_rc = 0;
+    
+    printf("zp2.c: origin %s", dnamestr(zdefault->origin));
 
     return zdefault;
 }
@@ -878,17 +811,6 @@ classbyint(uint16_t class)
 		t = classbuf;
 	}
 	return t;
-}
-
-/*
- * Standard usage function for testing puposes.
- *
- */
-static void
-usage (void)
-{
-	fprintf(stderr, "usage: zparser zone-file [origin]\n");
-	exit(1);
 }
 
 /* create a dname, constructed like this
