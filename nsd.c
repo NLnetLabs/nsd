@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.29.2.1 2002/05/14 12:17:05 miekg Exp $
+ * $Id: nsd.c,v 1.29.2.1.2.1 2002/05/21 09:21:11 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -292,6 +292,15 @@ main(argc, argv)
 		syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd.pidfile);
 	}
 
+	/* Are we going to drop the priviledges? */
+	if(nsd.gid == 0) {
+		nsd.gid = getgid();
+	}
+
+	if(nsd.uid == 0) {
+		nsd.uid = getuid();
+	}
+
 	/* Initialize... */
 	nsd.mode = NSD_RUN;
 
@@ -300,6 +309,10 @@ main(argc, argv)
 
 	/* Not needed since we terminate anyway... */
 	/* namedb_close(nsd.db); */
+
+	seteuid(getuid());
+	setegid(getgid());
+
 	unlink(nsd.pidfile);
 
 	exit(0);
