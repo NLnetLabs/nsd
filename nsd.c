@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.52 2002/10/08 09:57:54 alexis Exp $
+ * $Id: nsd.c,v 1.53 2002/10/08 10:10:01 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -223,7 +223,7 @@ bind8_stats(nsd)
 	fprintf(f, "%lu	time since reset (secs)\n", now - nsd->st.last);
 	fprintf(f, "%lu	Unknown query types\n", nsd->st.qtype[LASTELEM(nsd->st.qtype)]); */
 
-	syslog(LOG_INFO, "[ID 42 daemon.info] NSTATS %lu %lu"
+	syslog(LOG_INFO, "NSTATS %lu %lu"
 		" A=%lu NS=%lu MD=%lu MF=%lu CNAME=%lu SOA=%lu MB=%lu MG=%lu"
 		" MR=%lu NULL=%lu WKS=%lu PTR=%lu HINFO=%lu MINFO=%lu MX=%lu TXT=%lu"
 		" RP=%lu AFSDB=%lu X25=%lu ISDN=%lu RT=%lu NSAP=%lu NSAP_PTR=%lu SIG=%lu"
@@ -250,7 +250,7 @@ bind8_stats(nsd)
 		nsd->st.qtype[57], nsd->st.qtype[58], nsd->st.qtype[59], nsd->st.qtype[60],
 		nsd->st.qtype[61], nsd->st.qtype[62], nsd->st.qtype[63], nsd->st.qtype[64]);
 
-	syslog(LOG_INFO, "[ID 42 daemon.info] NSTATS %lu %lu"
+	syslog(LOG_INFO, "NSTATS %lu %lu"
 		" TYPE65=%lu TYPE66=%lu TYPE67=%lu TYPE68=%lu TYPE69=%lu TYPE70=%lu TYPE71=%lu TYPE72=%lu"
 		" TYPE73=%lu TYPE74=%lu TYPE75=%lu TYPE76=%lu TYPE77=%lu TYPE78=%lu TYPE79=%lu TYPE80=%lu"
 		" TYPE81=%lu TYPE82=%lu TYPE83=%lu TYPE84=%lu TYPE85=%lu TYPE86=%lu TYPE87=%lu TYPE88=%lu"
@@ -277,7 +277,7 @@ bind8_stats(nsd)
 		nsd->st.qtype[121], nsd->st.qtype[122], nsd->st.qtype[123], nsd->st.qtype[124],
 		nsd->st.qtype[125], nsd->st.qtype[126], nsd->st.qtype[127], nsd->st.qtype[128]);
 
-	syslog(LOG_INFO, "[ID 42 daemon.info] NSTATS %lu %lu"
+	syslog(LOG_INFO, "NSTATS %lu %lu"
 		" TYPE129=%lu TYPE130=%lu TYPE131=%lu TYPE132=%lu TYPE133=%lu TYPE134=%lu TYPE135=%lu TYPE136=%lu"
 		" TYPE137=%lu TYPE138=%lu TYPE139=%lu TYPE140=%lu TYPE141=%lu TYPE142=%lu TYPE143=%lu TYPE144=%lu"
 		" TYPE145=%lu TYPE146=%lu TYPE147=%lu TYPE148=%lu TYPE149=%lu TYPE150=%lu TYPE151=%lu TYPE152=%lu"
@@ -304,7 +304,7 @@ bind8_stats(nsd)
 		nsd->st.qtype[185], nsd->st.qtype[186], nsd->st.qtype[187], nsd->st.qtype[188],
 		nsd->st.qtype[189], nsd->st.qtype[190], nsd->st.qtype[191], nsd->st.qtype[192]);
 
-	syslog(LOG_INFO, "[ID 42 daemon.info] NSTATS %lu %lu"
+	syslog(LOG_INFO, "NSTATS %lu %lu"
 		" TYPE193=%lu TYPE194=%lu TYPE195=%lu TYPE196=%lu TYPE197=%lu TYPE198=%lu TYPE199=%lu TYPE200=%lu"
 		" TYPE201=%lu TYPE202=%lu TYPE203=%lu TYPE204=%lu TYPE205=%lu TYPE206=%lu TYPE207=%lu TYPE208=%lu"
 		" TYPE209=%lu TYPE210=%lu TYPE211=%lu TYPE212=%lu TYPE213=%lu TYPE214=%lu TYPE215=%lu TYPE216=%lu"
