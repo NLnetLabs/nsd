@@ -32,10 +32,7 @@ The source code is available for download from:
 
 NSD consists of two programs: the zone compiler 'zonec' and the name
 server 'nsd' itself. The name server works with an intermediate
-database prepared by the zone compiler from standard zone files. Most
-of the complexity in preparing answers is dealt with in zonec, such
-that the processing NSD has to do per query is kept at the absolutely
-necessary minimum.
+database prepared by the zone compiler from standard zone files.
 
 For NSD operation this means that zones have to be compiled by zonec
 before NSD can use them.
@@ -233,8 +230,7 @@ Become a superuser (if necessary) and type ``make install''
 This step should install three binaries
 
 nsd             - the daemon itself
-nsdc            - a very (not anymore so) simple shell script to
-		  control the daemon
+nsdc            - a shell script to control the daemon
 zonec           - zone compiler
 nsd-notify	- a simple C program to send outbound notifies
 
