@@ -154,6 +154,14 @@ xalloc(size_t size)
 }
 
 void *
+xalloc_zero(size_t size)
+{
+	void *result = xalloc(size);
+	memset(result, 0, size);
+	return result;
+}
+
+void *
 xrealloc(void *ptr, size_t size)
 {
 	ptr = realloc(ptr, size);

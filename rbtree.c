@@ -1,6 +1,4 @@
 /*
- * $Id: rbtree.c,v 1.15 2003/07/01 13:18:36 erik Exp $
- *
  * rbtree.c -- generic red black tree
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
@@ -59,23 +57,23 @@ static void rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node);
 /*
  * Creates a new red black tree, intializes and returns a pointer to it.
  *
- * Return NULL if mallocf() fails.
+ * Return NULL on failure.
  *
  */
 rbtree_t *
-rbtree_create (void *(*mallocf)(size_t), int (*cmpf)(const void *, const void *))
+rbtree_create (region_type *region, int (*cmpf)(const void *, const void *))
 {
 	rbtree_t *rbtree;
 
 	/* Allocate memory for it */
-	if((rbtree = mallocf(sizeof(rbtree_t))) == NULL) {
+	if((rbtree = region_alloc(region, sizeof(rbtree_t))) == NULL) {
 		return NULL;
 	}
 
 	/* Initialize it */
 	rbtree->root = RBTREE_NULL;
 	rbtree->count = 0;
-	rbtree->mallocf = mallocf;
+	rbtree->region = region;
 	rbtree->cmp = cmpf;
 
 	return rbtree;
@@ -202,8 +200,8 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
 /*
  * Inserts a node into a red black tree.
  *
- * Returns if rbtree->mallocf() fails or the pointer to the newly added
- * data otherwise.
+ * Returns NULL on failure or the pointer to the newly added data
+ * otherwise.
  *
  * If told to overwrite will replace the duplicate key and data with
  * the new values (thus will NOT destroy the existing node first),
@@ -241,7 +239,7 @@ rbtree_insert (rbtree_t *rbtree, void *key, void *data, int overwrite)
 	}
 
 	/* Create the new node */
-	if((node = rbtree->mallocf(sizeof(rbnode_t))) == NULL) {
+	if((node = region_alloc(rbtree->region, sizeof(rbnode_t))) == NULL) {
 		return NULL;
 	}
 
@@ -332,43 +330,6 @@ rbtree_next (rbnode_t *node)
 	return node;
 }
 
-void 
-rbtree_destroy (rbtree_t *rbtree, int freekeys, int freedata)
-{
-	rbnode_t *parent;
-	rbnode_t *node;
-
-	if(rbtree == NULL) return;
-	node = rbtree->root;
-
-	while(node != RBTREE_NULL) {
-		parent = node->parent;
-		if(node->left != RBTREE_NULL) {
-			/* Go all the way to the left... */
-			node = node->left;
-		} else if(node->right != RBTREE_NULL) {
-			/* Then to the right... */
-			node = node->right;
-		} else {
-			if(freekeys)
-				free(node->key);
-			if(freedata)
-				free(node->data);
-			free(node);
-
-			if(parent != RBTREE_NULL) {
-				if(parent->left == node) {
-					parent->left = RBTREE_NULL;
-				} else {
-					parent->right = RBTREE_NULL;
-				}
-			}
-			node = parent;
-		}
-	}
-	free(rbtree);
-}
-
 #ifdef TEST
 
 #define	BUFSZ	1000
@@ -379,8 +340,9 @@ main (int argc, char **argv)
 	rbtree_t *rbtree;
 	char buf[BUFSZ];
 	char *key, *data;
-
-	if((rbtree = rbtree_create(malloc, strcmp)) == NULL) {
+	region_type *region = region_create(malloc, free);
+	
+	if((rbtree = rbtree_create(region, strcmp)) == NULL) {
 		perror("cannot create red black tree");
 		exit(1);
 	}
@@ -394,7 +356,7 @@ main (int argc, char **argv)
 	RBTREE_WALK(rbtree, key, data) {
 		printf("%s", key);
 	}
-	rbtree_destroy(rbtree, 1, 1);
+	region_destroy(region);
 	return 0;
 }
 #endif

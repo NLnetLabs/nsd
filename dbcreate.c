@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.24 2003/08/04 12:35:46 erik Exp $
+ * $Id: dbcreate.c,v 1.25 2003/08/05 12:21:43 erik Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -54,25 +54,25 @@ struct namedb *
 namedb_new (const char *filename)
 {
 	struct namedb *db;
-
+	region_type *region = region_create(xalloc, free);
+	
 	/* Make a new structure... */
-	if((db = xalloc(sizeof(struct namedb))) == NULL) {
-		return NULL;
-	}
-
+	db = region_alloc(region, sizeof(struct namedb));
+	db->region = region;
+	
 	if((db->filename = strdup(filename)) == NULL) {
-		free(db);
+		region_destroy(region);
 		return NULL;
 	}
+	region_add_cleanup(region, free, db->filename);
 
 	/* Create the database */
         if((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
-		free(db->filename);
-		free(db);
+		region_destroy(region);
 		return NULL;
         }
 
-	if(write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
+	if (write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
 		close(db->fd);
 		namedb_discard(db);
 		return NULL;
@@ -91,12 +91,19 @@ int
 namedb_put (struct namedb *db, const uint8_t *dname, struct domain *d)
 {
 	/* Store the key */
-	if(write(db->fd, dname, ALIGN_UP(*dname + 1, NAMEDB_ALIGNMENT)) == -1) {
+	static const char zeroes[NAMEDB_ALIGNMENT];
+	size_t padding = PADDING(*dname + 1, NAMEDB_ALIGNMENT);
+
+	if (write(db->fd, dname, *dname + 1) == -1) {
 		return -1;
 	}
 
+	if (write(db->fd, zeroes, padding) == -1) {
+		return -1;
+	}
+	
 	/* Store the domain */
-	if(write(db->fd, d, d->size) == -1) {
+	if (write(db->fd, d, d->size) == -1) {
 		return -1;
 	}
 
@@ -107,19 +114,19 @@ int
 namedb_save (struct namedb *db)
 {
 	/* Write an empty key... */
-	if(write(db->fd, "", 1) == -1) {
+	if (write(db->fd, "", 1) == -1) {
 		close(db->fd);
 		return -1;
 	}
 
 	/* Write the magic... */
-	if(write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
+	if (write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
 		close(db->fd);
 		return -1;
 	}
 
 	/* Write the bitmasks... */
-	if(write(db->fd, db->masks, NAMEDB_BITMASKLEN * 3) == -1) {
+	if (write(db->fd, db->masks, NAMEDB_BITMASKLEN * 3) == -1) {
 		close(db->fd);
 		return -1;
 	}
@@ -127,9 +134,7 @@ namedb_save (struct namedb *db)
 	/* Close the database */
 	close(db->fd);
 
-	free(db->filename);
-	free(db);
-
+	region_destroy(db->region);
 	return 0;
 }
 
@@ -138,6 +143,5 @@ void
 namedb_discard (struct namedb *db)
 {
 	unlink(db->filename);
-	free(db->filename);
-	free(db);
+	region_destroy(db->region);
 }

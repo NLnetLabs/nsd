@@ -1,6 +1,4 @@
 /*
- * $Id: dbaccess.c,v 1.41 2003/08/04 12:35:45 erik Exp $
- *
  * dbaccess.c -- access methods for nsd(8) database
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
@@ -96,56 +94,44 @@ namedb_open (const char *filename)
 
 	char *p;
 	struct stat st;
+	region_type *region = region_create(xalloc, free);
 
-	/* Allocate memory for it... */
-	if((db = xalloc(sizeof(struct namedb))) == NULL) {
-		return NULL;
-	}
-
+	db = region_alloc(region, sizeof(struct namedb));
+	db->region = region;
+	
 	/* Copy the name... */
 	if((db->filename = strdup(filename)) == NULL) {
-		free(db);
+		region_destroy(region);
 		return NULL;
 	}
+	region_add_cleanup(region, free, db->filename);
 
 	/* Open it... */
 	if((db->fd = open(db->filename, O_RDONLY)) == -1) {
-		free(db->filename);
-		free(db);
+		region_destroy(region);
 		return NULL;
 	}
 
 	/* Is it there? */
 	if(fstat(db->fd, &st) == -1) {
-		free(db->filename);
-		free(db);
+		close(db->fd);
+		region_destroy(region);
 		return NULL;
 	}
 
 	/* What its size? */
 	db->mpoolsz = st.st_size;
-
-	if((db->mpool = xalloc(db->mpoolsz)) == NULL) {
-		free(db->filename);
-		free(db);
-		return NULL;
-	}
+	db->mpool = region_alloc(region, db->mpoolsz);
 
 	if(read(db->fd, db->mpool, db->mpoolsz) == -1) {
-		free(db->mpool);
-		free(db->filename);
-		free(db);
+		close(db->fd);
+		region_destroy(region);
 		return NULL;
 	}
 
-	(void)close(db->fd);
+	close(db->fd);
 
-	if((db->heap = heap_create(xalloc, domaincmp)) == NULL) {
-		free(db->mpool);
-		free(db->filename);
-		free(db);
-		return NULL;
-	}
+	db->heap = heap_create(db->region, domaincmp);
 
 	p = db->mpool;
 
@@ -197,9 +183,5 @@ namedb_close (struct namedb *db)
 	/* If it is already closed... */
 	if(db == NULL)
 		return;
-	heap_destroy(db->heap, 0, 0);
-	free(db->mpool);
-	if(db->filename)
-		free(db->filename);
-	free(db);
+	region_destroy(db->region);
 }

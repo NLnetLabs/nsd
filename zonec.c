@@ -55,11 +55,17 @@
 #include "heap.h"
 #include "namedb.h"
 #include "util.h"
+#include "region-allocator.h"
 #include "zonec.h"
 #include "zparser.h"
 
 static void zone_addbuf (struct message *, const void *, size_t);
 static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len);
+
+/*
+ * This region is free'd after each zone is compiled.
+ */
+static region_type *zone_region;
 
 /* The database file... */
 static const char *dbfile = DBFILE;
@@ -327,7 +333,8 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
 	size = ALIGN_UP(size, NAMEDB_ALIGNMENT);
 
 	d = xrealloc(d, d->size + size);
-
+	memset((char *)d + d->size, 0, size);
+	
 	a = (struct answer *)((char *)d + d->size);
 
 	ANSWER_SIZE(a) = size;
@@ -348,18 +355,16 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
 	return d;
 }
 
-/*
- * Frees all the data structures associated with the zone
- *
- */
-static void 
-zone_free (struct zone *z)
+static void
+cleanup_rrset(void *r)
 {
-	if(z) {
-		if(z->dname) free(z->dname);
-		if(z->cuts) heap_destroy(z->cuts, 1, 1);
-		if(z->data) heap_destroy(z->data, 1, 1);
-		free(z);
+	struct rrset *rrset = r;
+	size_t i;
+	if (rrset && rrset->rrs) {
+		for (i = 0; rrset->rrs[i]; ++i) {
+			zrdatafree(rrset->rrs[i]);
+		}
+		free(rrset->rrs);
 	}
 }
 
@@ -380,20 +385,19 @@ zone_read (char *name, char *zonefile)
 	struct rrset *rrset, *r;
 
 	/* Allocate new zone structure */
-	z = xalloc(sizeof(struct zone));
+	z = region_alloc(zone_region, sizeof(struct zone));
 	memset(z, 0, sizeof(struct zone));
 
 	/* Get the zone name */
 	if((z->dname = dnamedup(strdname(name, ROOT))) == NULL) {
-		zone_free(z);
 		return NULL;
 	}
+	region_add_cleanup(zone_region, free, z->dname);
 
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
 	if(dnamecmp(z->dname, ROOT) == 0) {
 		fprintf(stderr, "zonec: Not configured as a root server. See the documentation.\n");
-		zone_free(z);
 		return NULL;
 	}
 #endif
@@ -401,13 +405,12 @@ zone_read (char *name, char *zonefile)
 	/* Open the zone file */
 	if((parser = nsd_zopen(zonefile, 3600, CLASS_IN, name)) == NULL) {
 		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
-		zone_free(z);
 		return NULL;
 	}
 
 	/* Two heaps: zone cuts and other data */
-	z->cuts = heap_create(xalloc, dnamecmp);
-	z->data = heap_create(xalloc, dnamecmp);
+	z->cuts = heap_create(zone_region, dnamecmp);
+	z->data = heap_create(zone_region, dnamecmp);
 	z->soa = z->ns = NULL;
 
 	/* Read the file */
@@ -453,7 +456,8 @@ zone_read (char *name, char *zonefile)
 
 		/* Do we have this particular rrset? */
 		if(r == NULL) {
-			r = xalloc(sizeof(struct rrset));
+			r = region_alloc(zone_region, sizeof(struct rrset));
+			region_add_cleanup(zone_region, cleanup_rrset, r);
 			r->type = 0;
 		}
 		if(r->type == 0) {
@@ -465,11 +469,14 @@ zone_read (char *name, char *zonefile)
 			r->rrs = xalloc(sizeof(uint16_t *) * 2);
 			r->glue = r->color = 0;
 			r->rrs[0] = rr->rdata;
-
+			r->rrs[1] = NULL;
+			
 			/* Add it */
 			if(rrset == NULL) {
 				/* XXX We can use this more smart... */
-				heap_insert(h, dnamedup(rr->dname), r, 1);
+				uint8_t *key = dnamedup(rr->dname);
+				region_add_cleanup(zone_region, free, key);
+				heap_insert(h, key, r, 1);
 			} else {
 				r->next = rrset->next;
 				rrset->next = r;
@@ -504,11 +511,14 @@ zone_read (char *name, char *zonefile)
 		for(t = dname + 2 + *(dname + 1); (t < (dname + 1 + *dname - *z->dname)); t += *t + 1) {
 			*(t - 1) = dname + *dname - t + 1;
 			if((rrset = heap_search(z->data, t - 1)) == NULL) {
-				r = xalloc(sizeof(struct rrset));
+				uint8_t *key = dnamedup(t - 1);
+				region_add_cleanup(zone_region, free, key);
+				r = region_alloc(zone_region, sizeof(struct rrset));
 				memset(r, 0, sizeof(struct rrset));
+				region_add_cleanup(zone_region, cleanup_rrset, r);
 
 				/* Add it */
-				heap_insert(z->data, dnamedup(t - 1), r, 1);
+				heap_insert(z->data, key, r, 1);
 			}
 		}
 		free(dname);
@@ -569,7 +579,7 @@ zone_addzonecut(uint8_t *dkey, uint8_t *dname, struct rrset *rrset, struct zone 
 	zone_initmsg(&msg);
 
 	/* Create a new domain */
-	d = xalloc(sizeof(struct domain));
+	d = xalloc_zero(sizeof(struct domain));
 	d->size = sizeof(struct domain);
 	d->flags = NAMEDB_DELEGATION;
 	d->runtime_data = NULL;
@@ -648,7 +658,7 @@ zone_adddata(uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb 
 	int namedepth = 0;
 
 	/* Create a new domain, not a delegation */
-	d = xalloc(sizeof(struct domain));
+	d = xalloc_zero(sizeof(struct domain));
 	d->size = sizeof(struct domain);
 	d->flags = 0;
 	d->runtime_data = NULL;
@@ -935,6 +945,7 @@ main (int argc, char **argv)
 	struct zone *z = NULL;
 
 	log_init("zonec");
+	zone_region = region_create(xalloc, free);
 	
 	totalerrors = 0;
 
@@ -1012,12 +1023,6 @@ main (int argc, char **argv)
 			fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 		}
 
-		/* Free a zone if any... */
-		if(z != NULL) {
-			zone_free(z);
-			z = NULL;
-		}
-
 		/* If we did not have any errors... */
 		if((z = zone_read(zonename, zonefile)) != NULL) {
 			zone_dump(z, db);
@@ -1027,6 +1032,7 @@ main (int argc, char **argv)
 			totalerrors++;
 		}
 
+		region_free_all(zone_region);
 	};
 
 	/* Close the database */
@@ -1039,5 +1045,7 @@ main (int argc, char **argv)
 	/* Print the total number of errors */
 	fprintf(stderr, "zonec: done with total %d errors.\n", totalerrors);
 
+	region_destroy(zone_region);
+	
 	return totalerrors ? 1 : 0;
 }

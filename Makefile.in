@@ -91,7 +91,15 @@ NSD_OBJECTS	= 				\
 	server.o 				\
 	util.o
 
-ZONEC_OBJECTS	= zparser.o dname.o zonec.o dbcreate.o rbtree.o util.o 
+ZONEC_OBJECTS	= 				\
+	dbcreate.o 				\
+	dname.o 				\
+	rbtree.o 				\
+	region-allocator.o			\
+	util.o 					\
+	zonec.o 				\
+	zparser.o 	
+
 NSD_NOTIFY_OBJECTS	= nsd-notify.o dname.o util.o
 
 all:	$(TARGETS)
@@ -174,8 +182,8 @@ malloc.o:	compat/malloc.c
 
 
 # Test programs
-rbtree:	rbtree.c rbtree.h
-	$(LINK) $(CPPFLAGS) -D TEST -o $@ rbtree.c $(LIBS)
+rbtree:	rbtree.c rbtree.h region-allocator.o
+	$(LINK) $(CPPFLAGS) -D TEST -o $@ rbtree.c region-allocator.o $(LIBS)
 
 zparser:	zparser.c dname.o util.o $(LIBOBJS)
 	$(LINK) $(CPPFLAGS) -D TEST -o $@ zparser.c dname.o util.o $(LIBOBJS) $(LIBS)
@@ -208,11 +216,11 @@ nsd-notify.o: nsd-notify.c config.h dns.h namedb.h region-allocator.h \
 plugins.o: plugins.c config.h
 query.o: query.c config.h dns.h dname.h nsd.h namedb.h region-allocator.h \
   heap.h rbtree.h plugins.h query.h util.h
-rbtree.o: rbtree.c rbtree.h
+rbtree.o: rbtree.c rbtree.h region-allocator.h
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h dns.h namedb.h region-allocator.h heap.h \
   rbtree.h dname.h nsd.h plugins.h query.h util.h
 util.o: util.c config.h util.h
-zonec.o: zonec.c config.h dname.h dns.h heap.h rbtree.h namedb.h \
-  region-allocator.h util.h zonec.h zparser.h
+zonec.o: zonec.c config.h dname.h dns.h heap.h rbtree.h \
+  region-allocator.h namedb.h util.h zonec.h zparser.h
 zparser.o: zparser.c config.h dns.h zparser.h dname.h util.h

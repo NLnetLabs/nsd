@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.14 2003/07/01 13:18:37 erik Exp $
+ * $Id: rbtree.h,v 1.15 2003/08/05 12:21:51 erik Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -41,6 +41,8 @@
 #ifndef _RBTREE_H_
 #define	_RBTREE_H_
 
+#include "region-allocator.h"
+
 typedef struct rbnode_t rbnode_t;
 struct rbnode_t {
 	rbnode_t *parent;
@@ -56,6 +58,8 @@ extern	rbnode_t	rbtree_null_node;
 
 typedef struct rbtree_t rbtree_t;
 struct rbtree_t {
+	region_type     *region;
+	
 	/* The root of the red-black tree */
 	rbnode_t	*root;
 
@@ -65,17 +69,16 @@ struct rbtree_t {
 	/* Current node for walks... */
 	rbnode_t	*_node;
 
-	/* Free and compare functions */
-	void *(*mallocf)(size_t);
+	/* Key compare function */
 	int (*cmp) (const void *, const void *);
 };
 
 #define	rbtree_last() RBTREE_NULL
+
 /* rbtree.c */
-rbtree_t *rbtree_create(void *(*mallocf)(size_t), int (*cmpf)(const void *, const void *));
+rbtree_t *rbtree_create(region_type *region, int (*cmpf)(const void *, const void *));
 void *rbtree_insert(rbtree_t *rbtree, void *key, void *data, int overwrite);
 void *rbtree_search(rbtree_t *rbtree, const void *key);
-void rbtree_destroy(rbtree_t *rbtree, int freekeys, int freedata);
 rbnode_t *rbtree_first(rbtree_t *rbtree);
 rbnode_t *rbtree_next(rbnode_t *rbtree);
 

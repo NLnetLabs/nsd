@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.40 2003/08/04 12:35:48 erik Exp $
+ * $Id: namedb.h,v 1.41 2003/08/05 12:21:49 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -128,6 +128,7 @@ struct domain {
 #include "heap.h"
 
 struct namedb {
+	region_type *region;
 	heap_t *heap;
 	uint8_t masks[3][NAMEDB_BITMASKLEN];
 	char *mpool;

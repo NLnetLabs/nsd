@@ -1,5 +1,5 @@
 /*
- * $Id: heap.h,v 1.15 2003/07/01 13:18:33 erik Exp $
+ * $Id: heap.h,v 1.16 2003/08/05 12:21:45 erik Exp $
  *
  * heap.h -- generic heap
  *
@@ -48,7 +48,6 @@
 #define	heap_insert	rbtree_insert
 #define	heap_search	rbtree_search
 #define	heap_delete	rbtree_delete
-#define	heap_destroy	rbtree_destroy
 #define	heap_first	rbtree_first
 #define	heap_next	rbtree_next
 #define	heap_last	rbtree_last

@@ -74,11 +74,12 @@ struct region
 static region_type *current_region = NULL;
 
 region_type *
-region_create(void *(*allocator)(size_t size), void (*deallocator)(void *))
+region_create(void *(*allocator)(size_t size),
+	      void (*deallocator)(void *))
 {
     region_type *result = allocator(sizeof(region_type));
     if (!result) return NULL;
-    
+
     result->allocated = 0;
     result->data = allocator(CHUNK_SIZE);
     if (!result->data) {
@@ -154,14 +155,17 @@ region_add_cleanup(region_type *region, void (*action)(void *), void *data)
 }
 
 void *
-region_alloc(region_type *region, size_t count, size_t size)
+region_alloc(region_type *region, size_t size)
 {
     void *result;
-    size_t total_size;
     
-    total_size = count * size;
-    if (total_size >= LARGE_OBJECT_SIZE) {
-        result = region->allocator(total_size);
+    if (size == 0) {
+        size = 1;
+    }
+    size = ALIGN_UP(size, ALIGNMENT);
+    
+    if (size >= LARGE_OBJECT_SIZE) {
+        result = region->allocator(size);
         if (!result) return NULL;
         
         if (!region_add_cleanup(region, region->deallocator, result)) {
@@ -172,12 +176,7 @@ region_alloc(region_type *region, size_t count, size_t size)
         return result;
     }
     
-    if (total_size == 0) {
-        total_size = 1;
-    }
-    
-    total_size = ALIGN_UP(total_size, ALIGNMENT);
-    if (region->allocated + total_size > CHUNK_SIZE) {
+    if (region->allocated + size > CHUNK_SIZE) {
         void *chunk = region->allocator(CHUNK_SIZE);
         if (!chunk) return NULL;
         
@@ -187,14 +186,14 @@ region_alloc(region_type *region, size_t count, size_t size)
     }
 
     result = region->data + region->allocated;
-    region->allocated += total_size;
+    region->allocated += size;
     return result;
 }
 
 void *
 region_alloc_current(size_t size)
 {
-    return region_alloc(current_region, 1, size);
+    return region_alloc(current_region, size);
 }
 
 void
@@ -240,25 +239,25 @@ main(void)
     void *a;
     void *b;
     void *c;
-    region_type *r = region_create(xalloc, free);
+    region_type *r = region_create(NULL, xalloc, free);
     assert(r);
 
     assert(r->cleanup_count == 0);
 
-    region_alloc(r, 1, 3);
-    assert((intptr_t) region_alloc(r, 1, 1) % ALIGNMENT == 0);
+    region_alloc(r, 3);
+    assert((intptr_t) region_alloc(r, 1) % ALIGNMENT == 0);
     
-    a = region_alloc(r, 1, 41);
+    a = region_alloc(r, 41);
     assert(a);
     assert(r->cleanup_count == 0);
 
     assert((intptr_t) a % ALIGNMENT == 0);
     
-    b = region_alloc(r, LARGE_OBJECT_SIZE, 1);
+    b = region_alloc(r, LARGE_OBJECT_SIZE);
     assert(b);
     assert(r->cleanup_count == 1);
 
-    c = region_alloc(r, 1, 100);
+    c = region_alloc(r, 100);
     assert(c);
     assert(r->cleanup_count == 1);
 
@@ -285,7 +284,7 @@ main(void)
     assert(r->cleanup_count == 0);
 
     for (i = 0; i < CHUNK_SIZE / 128; ++i) {
-        region_alloc(r, 1, 128);
+        region_alloc(r, 128);
     }
 
     assert(r->cleanup_count == 0);
@@ -307,10 +306,10 @@ void
 region_loop(void)
 {
     int i;
-    region_type *r = region_create(xalloc, free);
+    region_type *r = region_create(NULL, xalloc, free);
     
     for (i = 0; i < 100000 * ALLOCS; ++i) {
-        region_alloc(r, i % 50, 15);
+        region_alloc(r, i % 50 * 15);
         if (i % ALLOCS == ALLOCS - 1)
             region_free_all(r);
     }

@@ -44,8 +44,10 @@
 #include <stdarg.h>
 #include <syslog.h>
 
-
-#define ALIGN_UP(n, alignment)  (((n) + alignment - 1) & (~(alignment - 1)))
+#define ALIGN_UP(n, alignment)  \
+	(((n) + (alignment) - 1) & (~((alignment) - 1)))
+#define PADDING(n, alignment)   \
+	(ALIGN_UP((n), (alignment)) - (n))
 
 
 /*
@@ -103,6 +105,7 @@ void log_vmsg(int priority, const char *format, va_list args);
  * returns NULL.
  */
 void *xalloc(size_t size);
+void *xalloc_zero(size_t size);
 void *xrealloc(void *ptr, size_t size);
 
 #endif /* _UTIL_H_ */

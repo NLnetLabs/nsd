@@ -69,11 +69,10 @@ size_t region_add_cleanup(region_type *region,
 
 
 /*
- * Allocate COUNT elements of SIZE bytes of memory inside REGION.  The
- * memory is deallocated when region_free_all is called for this
- * region.
+ * Allocate SIZE bytes of memory inside REGION.  The memory is
+ * deallocated when region_free_all is called for this region.
  */
-void *region_alloc(region_type *region, size_t count, size_t size);
+void *region_alloc(region_type *region, size_t size);
 
 
 /*
