@@ -1,4 +1,4 @@
-$Id: REQUIREMENTS,v 1.15 2004/01/08 13:03:18 erik Exp $
+$Id: REQUIREMENTS,v 1.16 2004/01/22 13:59:26 erik Exp $
 
 
 NSD Requirements and Specifications
@@ -183,9 +183,12 @@ C.1. Zone file format and RR records.
    DNSSEC processing of data in a zone will only take place if that
    zone is marked to be secure. A zone is marked secure if the SOA
    record is signed. The zone data is not cryptographically checked at
-   the time the zone db is generated; on DNSSEC queries the server
-   will set the AD bit on answering data from the database.
-   
+   the time the zone db is generated; on queries the server will never
+   set the AD bit on answering data from a secure zone in the
+   database.
+ 
+   NSD always copies the CD bit from the query to the response.
+  
 C.2. Server and connection management.
 
    The server listens on port 53. The server answers with the same IP
@@ -933,6 +936,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.15 2004/01/08 13:03:18 erik Exp $
+$Id: REQUIREMENTS,v 1.16 2004/01/22 13:59:26 erik Exp $
 
 

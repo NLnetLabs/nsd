@@ -825,14 +825,6 @@ answer_query(struct nsd *nsd, struct query *q)
 		}
 	}
 
-	/*
-	 * Set the AD bit when secure zones contain authenticated
-	 * data.
-	 */
-	if (nsd->authenticated_data && zone_is_secure(q->zone)) {
-		AD_SET(q);
-	}
-	
 	offset = dname_label_offsets(q->name)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
 

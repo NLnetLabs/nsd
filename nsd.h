@@ -119,8 +119,6 @@ struct	nsd {
 	const char	*version;
 	const char	*identity;
 
-	unsigned         authenticated_data;
-	
 	size_t	ifs;
 
 	/* TCP specific configuration */

@@ -400,7 +400,6 @@ main (int argc, char *argv[])
 	nsd.dbfile	= DBFILE;
 	nsd.pidfile	= PIDFILE;
 	nsd.server_kind = NSD_SERVER_MAIN;
-	nsd.authenticated_data = 0;
 	
 	/* Initialise the ports */
 	udp_port = UDP_PORT;
@@ -443,7 +442,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46Aa:df:hi:l:N:n:p:s:u:t:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:df:hi:l:N:n:p:s:u:t:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -458,9 +457,6 @@ main (int argc, char *argv[])
 #else /* !INET6 */
 			error("IPv6 support not enabled.");
 #endif /* !INET6 */
-			break;
-		case 'A':
-			nsd.authenticated_data = 1;
 			break;
 		case 'a':
 			nodes[nsd.ifs] = optarg;
