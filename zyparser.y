@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.52 2003/10/29 09:56:12 miekg Exp $
+ * $Id: zyparser.y,v 1.53 2003/10/29 10:16:20 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -123,6 +123,7 @@ dir_ttl:    SP STR trail
 dir_orig:   SP nonowner_dname trail
     {
         /* [xxx] does $origin not effect previous */
+	/* [XXX] label length checks should be in dname functions */
         if ( $2->dname->name_size > MAXDOMAINLEN ) { 
             yyerror("$ORIGIN domain name is too large");
             return 1;
@@ -258,6 +259,7 @@ str_seq:	STR
     	;
 
 /* used to convert a nxt list of types */
+/* XXX goes wrong now */
 /* get the type and flip a bit */
 nxt_seq:	STR
 	{
