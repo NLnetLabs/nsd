@@ -627,9 +627,14 @@ answer_domain(struct query *q, answer_type *answer,
 		int added = 0;
 		for (rrset = domain_find_any_rrset(domain, q->zone); rrset; rrset = rrset->next) {
 			if (rrset->zone == q->zone
-			    && (!q->edns.dnssec_ok
-				|| rrset_rrtype(rrset) != TYPE_RRSIG
-				|| !zone_is_secure(q->zone)))
+			    /*
+			     * Don't include the RRSIG RRset when
+			     * DNSSEC is used, because it is added
+			     * automatically on an per-RRset basis.
+			     */
+			    && !(q->edns.dnssec_ok
+				 && zone_is_secure(q->zone)
+				 && rrset_rrtype(rrset) == TYPE_RRSIG))
 			{
 				add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 				++added;
