@@ -242,7 +242,7 @@ query_addtxt (struct query *q, u_char *dname, int class, int32_t ttl, const char
 }
 
 void 
-query_addanswer (struct query *q, u_char *dname, struct answer *a, int trunc)
+query_addanswer (struct query *q, const u_char *dname, struct answer *a, int trunc)
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -382,6 +382,25 @@ process_query_section(struct query *query,
 	
 	return src + 2*sizeof(u_int16_t);
 }
+
+
+/*
+ *
+ */
+static void
+process_delegation(struct query *query, const u_char *qname, struct domain *domain)
+{
+	struct answer *answer = namedb_answer(domain, htons(TYPE_NS));
+
+	if (answer) {
+		RCODE_SET(query, RCODE_OK);
+		AA_CLR(query);
+		query_addanswer(query, qname, answer, 1);
+	} else {
+		RCODE_SET(query, RCODE_SERVFAIL);
+	}
+}
+
 
 /*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
@@ -643,12 +662,7 @@ query_process (struct query *q, struct nsd *nsd)
 		((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-			if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
-				RCODE_SET(q, RCODE_SERVFAIL);
-				return 0;
-			}
-			AA_CLR(q);
-			query_addanswer(q, qname, a, 1);
+			process_delegation(q, qname, d);
 			return 0;
 		} else {
 			if(((a = namedb_answer(d, qtype)) != NULL) ||	/* The query type? */
@@ -757,13 +771,7 @@ query_process (struct query *q, struct nsd *nsd)
 		*(qnamelow - 1) = qnamelen;
 		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
 			if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-				if((a = namedb_answer(d, htons(TYPE_NS))) == NULL) {
-					RCODE_SET(q, RCODE_SERVFAIL);
-					return 0;
-				}
-				RCODE_SET(q, RCODE_OK);
-				AA_CLR(q);
-				query_addanswer(q, qname, a, 1);
+				process_delegation(q, qname, d);
 				return 0;
 			} else {
 				if((a = namedb_answer(d, htons(TYPE_SOA)))) {

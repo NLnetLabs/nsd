@@ -180,7 +180,7 @@ int query_axfr(struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, i
 void query_formerr(struct query *q);
 void query_init(struct query *q);
 void query_addtxt(struct query *q, u_char *dname, int class, int32_t ttl, const char *txt);
-void query_addanswer(struct query *q, u_char *dname, struct answer *a, int trunc);
+void query_addanswer(struct query *q, const u_char *dname, struct answer *a, int trunc);
 int query_process(struct query *q, struct nsd *nsd);
 void query_addedns(struct query *q, struct nsd *nsd);
 
