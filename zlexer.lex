@@ -33,6 +33,8 @@ const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA",
     "DS","SSHFP","RRSIG","NSEC","DNSKEY", NULL};
 
+static int parsestr(char * yytext, enum rr_spot *in_rr);
+
 YY_BUFFER_STATE include_stack[MAXINCLUDES];
 zparser_type zparser_stack[MAXINCLUDES];
 int include_stack_ptr = 0;
@@ -55,8 +57,6 @@ Q       \"
 %%
     static int paren_open = 0;
     static enum rr_spot in_rr = outside;
-    char *ztext;
-    int i;
 {SPACE}*{COMMENT}.*     /* ignore */
 ^@                      {
                             in_rr = expecting_dname;
@@ -363,8 +363,8 @@ intbytypexx(void *str)
         return type;
 }
 
-YYTOKENTYPE
-parsestr(char * yytext, enum rr_spot *in_rr)
+static int
+parsestr(char *yytext, enum rr_spot *in_rr)
 {
 	int i;
 	char *t; char *ztext;
