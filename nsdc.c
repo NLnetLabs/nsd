@@ -37,6 +37,7 @@
 #include <unistd.h>
 
 #include "nsd.h"
+#include "client.h"
 #include "options.h"
 #include "plugins.h"
 
