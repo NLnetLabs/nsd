@@ -1,5 +1,46 @@
-$Id: RELNOTES,v 1.17 2003/06/12 12:31:18 erik Exp $
+NSD RELEASE NOTES
 
+
+1.2
+=============
+FEATURES:
+        - NSD is now a single parent process (handling child
+          termination and database reloads) plus multiple UDP and TCP
+          child processes handling queries.  Before the parent process
+          also handled UDP queries.  This change simplifies the parent
+          and child processes and allows the use of multiple
+          concurrent UDP servers.
+	- Experimental plugin support.  This required a minor,
+          incompatible change to the database format.  Make sure you
+          recompile your database.  Use --enable-plugins to enable.
+        - Full IPv6 support (for multi-homing and for Linux, thanks to
+          Colm MacCárthaigh and Jun-ichiro itojun Hagino).  Use
+          --enable-ipv6 to enable.
+        - Support for multi-homing with TCP connections.
+        - Support for SunOS 4.x has been dropped.
+
+CODE CHANGES:
+        - NSD should now conform to the Single Unix Specification
+          (http://www.unix.org/).
+        - Const correctness for strings and some other data types.
+        - Removed code for Berkeley DB, hash tables, and mmap(2).
+        - Separate preprocessor flags from code flags (CPPFLAGS and
+          CFLAGS).
+        - Use uint8_t instead of u_char, uint{16,32}_t instead of
+          u_int{16,32}_t.
+        - Fixed warnings from mixing signed and unsigned types.
+        - Use sigaction(2) instead of signal(2).
+        - The query_process function has been split up for clarity.
+
+BUG FIXES:
+	- CHAOS TXT queries failed on big-endian machines.
+        - Portability fixes for Tru64 (thanks to Stephane Bortzmeyer),
+          HP-UX, and MacOS X (thanks to Ronald van der Pol).
+        - Removed compile time limit on maximum number of TCP child
+          servers.
+        - Support for debugging UDP and TCP queries.
+        - Always ensure there is enough room for the EDNS record when
+          answering a query with EDNS enabled.
 
 1.1
 =============
