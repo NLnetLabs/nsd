@@ -1,9 +1,10 @@
-$Id: TODO,v 1.12 2002/01/28 16:15:19 alexis Exp $
+$Id: TODO,v 1.13 2002/01/28 16:52:50 alexis Exp $
 
 ZONE COMPILER
 - check memory usage, leaks and optimization
 - better detection of out of zone data
 - make empty pointers arrays for non-delegations
+- deal with multiple glue named style (glue after every NS that needs it)
 
 + replace libdict with own library
 
