@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.3 2002/01/29 15:40:50 alexis Exp $
+ * $Id: namedb.h,v 1.4 2002/01/30 14:40:58 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -84,11 +84,8 @@ struct domain {
 	u_int16_t	flags;
 };
 
-#define	DOMAIN_WALK(domain, answer)	for(answer = (struct answer *)(domain + 1); \
-						*ANSWER_SIZE(answer) != 0; \
-						((char *)answer) += *ANSWER_SIZE(answer))
-
-#define	DOMAIN_SIZE(domain)	(size_t *)(&((struct domain *)domain)->size)
-#define	DOMAIN_FLAGS(domain)	(u_int16_t *)(&((struct domain *)domain)->flags)
+#define	DOMAIN_WALK(d, a)	for(a = (struct answer *)(d + 1); *ANSWER_SIZE(a) != 0; ((char *)a) += *ANSWER_SIZE(a))
+#define	DOMAIN_SIZE(d)		(size_t *)(&((struct domain *)d)->size)
+#define	DOMAIN_FLAGS(d)		(u_int16_t *)(&((struct domain *)d)->flags)
 
 #endif

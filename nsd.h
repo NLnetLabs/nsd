@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.6 2002/01/29 15:40:50 alexis Exp $
+ * $Id: nsd.h,v 1.7 2002/01/30 14:40:58 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -49,6 +49,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -69,33 +70,23 @@
 #include "namedb.h"
 #include "query.h"
 
-#define	NCLASS_IN	_nshorts[1]	/* Class IN */
-#define	NCLASS_ANY	_nshorts[255]	/* Class IN */
+#define	CF_DBFILE	"nsd.db"
+#define	CF_PIDFILE	"/var/run/nsd.pid"
+#define	CF_DIRECTORY	"/var/run"
+#define	CF_TCP_MAX_CONNECTIONS	8
+#define	CF_TCP_PORT		4096
+#define	CF_TCP_MAX_MESSAGE_SIZE	16384
+#define	CF_UDP_PORT		4096
+#define	CF_UPD_MAX_MESSAGE_SIZE	512
 
-#define NTYPE_A		_nshorts[1]	/* a host address */
-#define NTYPE_NS	_nshorts[2]	/* an authoritative name server */
-#define NTYPE_MD	_nshorts[3]	/* a mail destination (Obsolete - use MX) */
-#define NTYPE_MF	_nshorts[4]	/* a mail forwarder (Obsolete - use MX) */
-#define NTYPE_CNAME	_nshorts[5]	/* the canonical name for an alias */
-#define NTYPE_SOA	_nshorts[6]	/* marks the start of a zone of authority */
-#define NTYPE_MB	_nshorts[7]	/* a mailbox domain name (EXPERIMENTAL) */
-#define NTYPE_MG	_nshorts[8]	/* a mail group member (EXPERIMENTAL) */
-#define NTYPE_MR	_nshorts[9]	/* a mail rename domain name (EXPERIMENTAL) */
-#define NTYPE_NULL	_nshorts[10]	/* a null RR (EXPERIMENTAL) */
-#define NTYPE_WKS	_nshorts[11]	/* a well known service description */
-#define NTYPE_PTR	_nshorts[12]	/* a domain name pointer */
-#define NTYPE_HINFO	_nshorts[13]	/* host information */
-#define NTYPE_MINFO	_nshorts[14]	/* mailbox or mail list information */
-#define NTYPE_MX	_nshorts[15]	/* mail exchange */
-#define NTYPE_TXT	_nshorts[16]	/* text strings */
-#define NTYPE_AAAA	_nshorts[28]	/* ipv6 address */
-#define	NTYPE_AXFR	_nshorts[252]
-#define	NTYPE_IXFR	_nshorts[251]
-#define	NTYPE_MAILB	_nshorts[253] 	/* A request for mailbox-related records (MB, MG or MR) */
-#define	NTYPE_MAILA	_nshorts[254]	/* A request for mail agent RRs (Obsolete - see MX) */
-#define NTYPE_ANY	_nshorts[255]	/* any type (wildcard) */
-
-#define	NSHORTSLEN	256
+extern char	*cf_dbfile;
+extern char	*cf_pidfile;
+extern char	*cf_directory;
+extern int	cf_tcp_max_connections;
+extern u_short	cf_tcp_port;
+extern int	cf_tcp_max_message_size;
+extern u_short	cf_udp_port;
+extern int	cf_udp_max_message_size;
 
 extern u_char authmask[NAMEDB_BITMASKLEN];
 extern u_char datamask[NAMEDB_BITMASKLEN];
@@ -103,5 +94,5 @@ extern u_char starmask[NAMEDB_BITMASKLEN];
 
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
-int server __P((u_int16_t, DB *));
+int server __P((DB *));
 struct domain *lookup __P((DB *, u_char *, int));

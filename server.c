@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.5 2002/01/29 15:40:50 alexis Exp $
+ * $Id: server.c,v 1.6 2002/01/30 14:40:58 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -40,8 +40,7 @@
 #include "nsd.h"
 
 int
-server(port, db)
-	u_int16_t port;
+server(db)
 	DB *db;
 {
 	struct query *q;
@@ -49,12 +48,16 @@ server(port, db)
 	int s_udp, s_tcp, s_tcpio;
 	u_int16_t tcplen;
 	int received, sent;
+	int childrenstatus;
 	fd_set peer;
+
+	/* A message to reject tcp connections... */
+	int tcp_connections = 0;
 
 	/* UDP */
 	bzero(&addr, sizeof(struct sockaddr_in));
 	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons(port);
+	addr.sin_port = htons(cf_udp_port);
 	addr.sin_family = AF_INET;
 
 	/* Make a socket... */
@@ -82,7 +85,7 @@ server(port, db)
 	}
 
 	/* Listen to it... */
-	if(listen(s_tcp, 16) == -1) {
+	if(listen(s_tcp, cf_tcp_max_connections) == -1) {
 		syslog(LOG_ERR, "cant listen: %m");
 		return -1;
 	}
@@ -96,12 +99,19 @@ server(port, db)
 
 	/* The main loop... */	
 	while(1) {
+		/* Any tcp children willing to report? */
+		if(waitpid(0, &childrenstatus, WNOHANG) != 0) {
+			if(tcp_connections)
+				tcp_connections--;
+		}
+
 		/* Set it up */
 		FD_ZERO(&peer);
 		FD_SET(s_udp, &peer);
 		FD_SET(s_tcp, &peer);
 
-		if(select(s_tcp + 1, &peer, NULL, NULL, NULL) == -1) {
+		if(select((tcp_connections < cf_tcp_max_connections) ? s_tcp + 1 : s_udp + 1,
+									&peer, NULL, NULL, NULL) == -1) {
 			if(errno == EINTR) {
 				/* We'll fall out of the loop if we need to shut down */
 				continue;
@@ -134,14 +144,10 @@ server(port, db)
 			}
 		} else if(FD_ISSET(s_tcp, &peer)) {
 			query_init(q);
-			q->maxlen = q->iobufsz;
+			q->maxlen = (q->iobufsz > cf_tcp_max_message_size) ? cf_tcp_max_message_size : q->iobufsz;
 #if DEBUG
 			syslog(LOG_NOTICE, "tcp connection!");
 #endif
-			if((s_tcpio = accept(s_tcp, (struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
-				syslog(LOG_ERR, "accept failed: %m");
-				break;
-			}
 
 			switch(fork()) {
 			case -1:
@@ -149,6 +155,12 @@ server(port, db)
 				break;
 			case 0:
 				alarm(120);
+
+				if((s_tcpio = accept(s_tcp, (struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
+					syslog(LOG_ERR, "accept failed: %m");
+					break;
+				}
+
 
 				/* Until we've got end of file */
 				while((received = read(s_tcpio, &tcplen, 2)) == 2) {
@@ -214,6 +226,7 @@ server(port, db)
 				close(s_tcpio);
 				exit(0);
 			default:
+				tcp_connections++;
 				/* PARENT */
 			}
 		} else {

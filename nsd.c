@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.4 2002/01/29 15:40:50 alexis Exp $
+ * $Id: nsd.c,v 1.5 2002/01/30 14:40:58 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -43,7 +43,14 @@ u_char authmask[NAMEDB_BITMASKLEN];
 u_char starmask[NAMEDB_BITMASKLEN];
 u_char datamask[NAMEDB_BITMASKLEN];
 
-static u_int16_t _nshorts[NSHORTSLEN];
+char *cf_dbfile	= CF_DBFILE;
+char *cf_pidfile = CF_PIDFILE;
+char *cf_directory = CF_DIRECTORY;
+int cf_tcp_max_connections = CF_TCP_MAX_CONNECTIONS;
+u_short	cf_tcp_port = CF_TCP_PORT;
+int cf_tcp_max_message_size = CF_TCP_MAX_MESSAGE_SIZE;
+u_short	cf_udp_port = CF_UDP_PORT;
+int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -99,8 +106,7 @@ main(argc, argv)
 {
 	DB *db;
 	DBT key, data;
-	int r, i;
-	char *dbfile;
+	int r;
 
 #	ifndef	LOG_PERROR
 #		define	LOG_PERROR 0
@@ -109,14 +115,9 @@ main(argc, argv)
 	/* Set up the logging... */
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
-	/* Convert the network byte order translation table... */
-	for(i = 0; i < NSHORTSLEN; i++) _nshorts[i] = htons((u_int16_t)i);
-
 	/* Parse the command line... */
-	if(argc != 2) {
-		dbfile = "nsd.db";
-	} else {
-		dbfile = argv[1];
+	if(argc == 2) {
+		cf_dbfile = argv[1];
 	}
 
 	/* Parser the configuration file...*/
@@ -131,8 +132,8 @@ main(argc, argv)
         }
 
 	/* Open the database... */
-        if((r = db->open(db, dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
-		syslog(LOG_ERR, "cannot open the database %s: %s", dbfile, db_strerror(r));
+        if((r = db->open(db, cf_dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
+		syslog(LOG_ERR, "cannot open the database %s: %s", cf_dbfile, db_strerror(r));
                 exit(1);
         }
 
@@ -143,12 +144,12 @@ main(argc, argv)
 	key.size = 0;
 	key.data = NULL;
 	if((r = db->get(db, NULL, &key, &data, 0)) != 0) {
-		syslog(LOG_ERR, "cannot read the superblock from %s: %s", dbfile, db_strerror(r));
+		syslog(LOG_ERR, "cannot read the superblock from %s: %s", cf_dbfile, db_strerror(r));
 		exit(1);
 	}
 
 	if(data.size != NAMEDB_BITMASKLEN * 3) {
-		syslog(LOG_ERR, "corrupted superblock in %s", dbfile);
+		syslog(LOG_ERR, "corrupted superblock in %s", cf_dbfile);
 		exit(1);
 	}
 
@@ -157,7 +158,8 @@ main(argc, argv)
 	bcopy(data.data + NAMEDB_BITMASKLEN * 2, datamask, NAMEDB_BITMASKLEN);
 
 
-	server(4096, db);
+	/* Take off... */
+	server(db);
 
 	db->close(db, 0);
 
