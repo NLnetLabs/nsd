@@ -1,7 +1,7 @@
 /*
- * $Id: query.h,v 1.9 2002/02/06 11:15:35 alexis Exp $
+ * $Id: query.h,v 1.10 2002/02/06 13:12:50 alexis Exp $
  *
- * zone.h -- internal zone representation
+ * query.h -- manipulation with the queries
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
