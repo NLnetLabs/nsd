@@ -156,13 +156,26 @@
 #define	IP6ADDRLEN		128/8
 
 /* Miscelaneous limits */
-#define	QIOBUFSZ	65536+20	/* XXX: Is it too big now?? Input output buffer for queries */
+#define	QIOBUFSZ	65536
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
 #define	MAXRRSPP	1024	/* Maximum number of rr's per packet */
 #define	MINRDNAMECOMP	3	/* Minimum dname to be compressed */
 
+/* Current amount of data in the query IO buffer.  */
+#define QUERY_USED_SIZE(q)  ((q)->iobufptr - (q)->iobuf)
 
+/* Current available data size of the query IO buffer.  */
+#define QUERY_AVAILABLE_SIZE(q) ((q)->iobufsz - QUERY_USED_SIZE(q))
+
+/* Append data to the query IO buffer.  */
+#define QUERY_WRITE(query, data, size)				\
+	do {							\
+		assert(size <= QUERY_AVAILABLE_SIZE(query));	\
+		memcpy((query)->iobufptr, data, size);		\
+		(query)->iobufptr += size;			\
+	} while (0)
+	
 /* Query as we pass it around */
 struct query {
 #ifdef INET6
@@ -186,7 +199,7 @@ struct query {
 /* query.c */
 int query_axfr(struct query *q, struct nsd *nsd, const u_char *qname, const u_char *zname, int depth);
 void query_init(struct query *q);
-void query_addtxt(struct query *q, u_char *dname, int class, int32_t ttl, const char *txt);
+void query_addtxt(struct query *q, u_char *dname, int16_t class, int32_t ttl, const char *txt);
 void query_addanswer(struct query *q, const u_char *dname, const struct answer *a, int trunc);
 int query_process(struct query *q, struct nsd *nsd);
 void query_addedns(struct query *q, struct nsd *nsd);

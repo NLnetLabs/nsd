@@ -201,7 +201,7 @@ query_init (struct query *q)
 	q->addrlen = sizeof(q->addr);
 	q->iobufsz = QIOBUFSZ;
 	q->iobufptr = q->iobuf;
-	q->maxlen = 512;	/* XXX Should not be here */
+	q->maxlen = UDP_MAX_MESSAGE_LEN;
 	q->edns = 0;
 	q->tcp = 0;
 #ifdef PLUGINS
@@ -211,42 +211,33 @@ query_init (struct query *q)
 }
 
 void 
-query_addtxt (struct query *q, u_char *dname, int class, int32_t ttl, const char *txt)
+query_addtxt (struct query *q, u_char *dname, int16_t class, int32_t ttl, const char *txt)
 {
 	u_int16_t pointer;
-	u_int16_t len = strlen(txt);
+	size_t txt_length = strlen(txt);
+	u_char len = (u_char) txt_length;
 	u_int16_t rdlength = htons(len + 1);
 	u_int16_t type = htons(TYPE_TXT);
 
+	assert(txt_length <= UCHAR_MAX);
+	
 	ttl = htonl(ttl);
 	class = htons(class);
 
 	/* Add the dname */
 	if(dname >= q->iobuf  && dname <= q->iobufptr) {
 		pointer = htons(0xc000 | (dname - q->iobuf));
-		memcpy(q->iobufptr, &pointer, 2);
-		q->iobufptr += 2;
+		QUERY_WRITE(q, &pointer, sizeof(pointer));
 	} else {
-		memcpy(q->iobufptr, dname + 1, *dname);
-		q->iobufptr += *dname;
+		QUERY_WRITE(q, dname + 1, *dname);
 	}
 
-	memcpy(q->iobufptr, &type, 2);
-	q->iobufptr += 2;
-
-	memcpy(q->iobufptr, &class, 2);
-	q->iobufptr += 2;
-
-	memcpy(q->iobufptr, &ttl, 4);
-	q->iobufptr += 4;
-
-	memcpy(q->iobufptr, &rdlength, 2);
-	q->iobufptr += 2;
-
-	*q->iobufptr++ = (u_char)len;
-
-	memcpy(q->iobufptr, txt, len);
-	q->iobufptr += len;
+	QUERY_WRITE(q, &type, sizeof(type));
+	QUERY_WRITE(q, &class, sizeof(class));
+	QUERY_WRITE(q, &ttl, sizeof(ttl));
+	QUERY_WRITE(q, &rdlength, sizeof(rdlength));
+	QUERY_WRITE(q, &len, sizeof(len));
+	QUERY_WRITE(q, txt, len);
 }
 
 void 
@@ -257,7 +248,7 @@ query_addanswer (struct query *q, const u_char *dname, const struct answer *a, i
 	int  i, j;
 
 	/* Check that the answer fits into our query buffer... */
-	if(ANSWER_DATALEN(a) > (q->iobufptr - q->iobuf + q->iobufsz)) {
+	if(ANSWER_DATALEN(a) > QUERY_AVAILABLE_SIZE(q)) {
 		syslog(LOG_ERR, "the answer in the database is larger then the query buffer");
 		RCODE_SET(q, RCODE_SERVFAIL);
 		return;
@@ -445,9 +436,9 @@ process_edns (struct query *q, u_char *qptr)
 			} else {
 
 				/* Only care about UDP size larger than normal... */
-				if(opt_class > 512) {
+				if (opt_class > UDP_MAX_MESSAGE_LEN) {
 					/* XXX Configuration parameter to limit the size needs to be here... */
-					if(opt_class < q->iobufsz) {
+					if (opt_class < q->iobufsz) {
 						q->maxlen = opt_class;
 					} else {
 						q->maxlen = q->iobufsz;
@@ -468,6 +459,11 @@ process_edns (struct query *q, u_char *qptr)
 				ARCOUNT(q) = 0;
 			}
 		}
+	}
+
+	/* Leave enough room for the EDNS field.  */
+	if (q->edns != 0) {
+		q->maxlen -= OPT_LEN;
 	}
 	
 	return 1;
@@ -936,18 +932,16 @@ void
 query_addedns(struct query *q, struct nsd *nsd) {
 	switch(q->edns) {
 	case 1:	/* EDNS(0) packet... */
-		if((q->iobufptr - q->iobuf + OPT_LEN) <= q->iobufsz) {
-			memcpy(q->iobufptr, nsd->edns.opt_ok, OPT_LEN);
-			q->iobufptr += OPT_LEN;
+		if (OPT_LEN <= QUERY_AVAILABLE_SIZE(q)) {
+			QUERY_WRITE(q, nsd->edns.opt_ok, OPT_LEN);
 			ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 		}
 
 		STATUP(nsd, edns);
 		break;
 	case -1: /* EDNS(0) error... */
-		if((q->iobufptr - q->iobuf + OPT_LEN) <= q->iobufsz) {
-			memcpy(q->iobufptr, nsd->edns.opt_err, OPT_LEN);
-			q->iobufptr += OPT_LEN;
+		if (OPT_LEN <= QUERY_AVAILABLE_SIZE(q)) {
+			QUERY_WRITE(q, nsd->edns.opt_err, OPT_LEN);
 			ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 		}
 
