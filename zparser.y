@@ -324,15 +324,12 @@ nxt_seq:	STR
 
 nsec_seq:	STR
 	{
-		/* what if NULL?... */
 		uint16_t type = lookup_type_by_name($1.str);
 		if (type != 0) {
 			set_bitnsec(nsecbits, type);
 		} else {
 			error("bad type %d in NSEC record", (int) type);
 		}
-		
-		/* waar bij houden? */
 	}
 	|	nsec_seq sp STR
 	{
