@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.8 2003/02/26 12:00:56 alexis Exp $
+ * $Id: nsd-notify.c,v 1.9 2003/03/19 14:15:31 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -95,7 +95,7 @@ xrealloc (register void *p, register size_t size)
 }
 
 
-int 
+void 
 usage (void)
 {
 	fprintf(stderr, "usage: nsd-notify -z zone servers\n");
