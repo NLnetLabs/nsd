@@ -91,7 +91,7 @@ struct	nsd {
 	
 	/* Run-time variables */
 	pid_t		pid;
-	int		mode;
+	volatile sig_atomic_t mode;
 	unsigned        server_kind;
 	struct namedb	*db;
 	int		debug;

@@ -164,7 +164,7 @@ AC_CHECK_UNUSED_ATTRIBUTE
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h openssl/hmac.h])
+AC_CHECK_HEADERS([arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h openssl/hmac.h])
 
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
@@ -204,6 +204,10 @@ changequote([,]), [
 #include <arpa/inet.h>
 #endif
 
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
+
 /* For Tru64 */
 #ifdef HAVE_SYS_BITYPES_H
 #include <sys/bitypes.h>
@@ -222,6 +226,7 @@ AC_LIBGTOP_CHECK_TYPE(uint8_t, unsigned char)
 AC_LIBGTOP_CHECK_TYPE(uint16_t, unsigned short)
 AC_LIBGTOP_CHECK_TYPE(uint32_t, unsigned int)
 AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
+AC_LIBGTOP_CHECK_TYPE(sig_atomic_t, int)
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
