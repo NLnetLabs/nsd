@@ -96,4 +96,10 @@
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
 
+#define MAX_RDLENGTH            65535
+
+/* Maximum size of a single RR.  */
+#define MAX_RR_SIZE \
+	(MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)
+
 #endif /* _DNS_H_ */

@@ -13,7 +13,6 @@
 #include "dns.h"
 #include "namedb.h"
 
-#define	ZBUFSIZE	16384		/* Maximum master file entry size */
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
 #define	B64BUFSIZE	16384		/* Buffer size for b64 conversion */
@@ -188,6 +187,8 @@ uint16_t *zparser_conv_nxt(region_type *region, uint8_t nxtbits[]);
 uint16_t *zparser_conv_domain(region_type *region, domain_type *domain);
 uint16_t *zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE]);
 uint16_t *zparser_conv_loc(region_type *region, char *str);
+
+long strtottl(char *nptr, char **endptr);
 
 int32_t zparser_ttl2int(char *ttlstr);
 void zadd_rdata_wireformat(zparser_type *parser, uint16_t *data);

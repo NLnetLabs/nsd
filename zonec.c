@@ -754,23 +754,23 @@ zparser_ttl2int(char *ttlstr)
 void
 zadd_rdata_wireformat(zparser_type *parser, uint16_t *data)
 {
-	if(parser->_rc >= MAXRDATALEN - 1) {
-		fprintf(stderr,"too many rdata elements");
-		abort();
+	if (parser->_rc > MAXRDATALEN) {
+		error("too many rdata elements");
+	} else {
+		current_rr->rrdata->rdata[parser->_rc].data = data;
+		++parser->_rc;
 	}
-	current_rr->rrdata->rdata[parser->_rc].data = data;
-	++parser->_rc;
 }
 
 void
 zadd_rdata_domain(zparser_type *parser, domain_type *domain)
 {
-	if(parser->_rc >= MAXRDATALEN - 1) {
-		fprintf(stderr,"too many rdata elements");
-		abort();
+	if (parser->_rc > MAXRDATALEN) {
+		error("too many rdata elements");
+	} else {
+		current_rr->rrdata->rdata[parser->_rc].data = domain;
+		++parser->_rc;
 	}
-	current_rr->rrdata->rdata[parser->_rc].data = domain;
-	++parser->_rc;
 }
 
 void
@@ -1072,6 +1072,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 {
 	zone_type *zone = parser->current_zone;
 	rrset_type *rrset;
+	size_t max_rdlength;
 	int i;
 	
 	/* We only support IN class */
@@ -1079,6 +1080,22 @@ process_rr(zparser_type *parser, rr_type *rr)
 		error("Wrong class");
 		return 0;
 	}
+
+	/* Make sure the maximum RDLENGTH does not exceed 65535 bytes.  */
+	max_rdlength = 0;
+	for (i = 0; !rdata_atom_is_terminator(rr->rrdata->rdata[i]); ++i) {
+		if (rdata_atom_is_domain(rr->type, i)) {
+			max_rdlength += domain_dname(rdata_atom_domain(rr->rrdata->rdata[i]))->name_size;
+		} else {
+			max_rdlength += rdata_atom_size(rr->rrdata->rdata[i]);
+		}
+	}
+
+	if (max_rdlength > MAX_RDLENGTH) {
+		error("maximum rdata length exceeds %d octets", MAX_RDLENGTH);
+		return 0;
+	}
+		     
 	if ( rr->type == TYPE_SOA ) {
 		/* This is a SOA record, start a new zone */
 

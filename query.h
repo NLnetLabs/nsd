@@ -175,8 +175,9 @@
 
 /* Miscelaneous limits */
 #define MAX_PACKET_SIZE         16384   /* Maximum supported size of DNS packets.  */
-#define MAX_RDATA_SIZE          65536   /* Maximum size of rdata.  */
-#define	QIOBUFSZ		(MAX_PACKET_SIZE + MAX_RDATA_SIZE)	 
+
+#define	QIOBUFSZ		(MAX_PACKET_SIZE + MAX_RR_SIZE)
+
 #define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
 #define MAX_COMPRESSED_DNAMES	MAXRRSPP /* Maximum number of compressed domains. */
 
