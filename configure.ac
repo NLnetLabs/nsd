@@ -162,7 +162,6 @@ AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_ntoa memset memcpy select s
 AC_REPLACE_FUNCS(basename)
 AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(snprintf)
-AC_REPLACE_FUNCS(vsnprintf)
 AC_REPLACE_FUNCS(b64_pton)
 
 dnl
