@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.23 2002/05/23 13:20:57 alexis Exp $
+ * $Id: dbaccess.c,v 1.24 2002/05/27 14:43:34 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -37,6 +37,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.8 2002/05/25 09:40:42 alexis Exp $
+ * $Id: config.h,v 1.9 2002/05/27 14:43:34 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -103,12 +103,8 @@ typedef unsigned int   u_int32_t;
 #endif
 
 #ifdef __linux__
-#include <sys/select.h>
-#ifndef u_char_defined
-typedef __u_long u_long;
-typedef __u_char u_char;
-#endif /* u_char */
-#define u_char_defined
+#define _BSD_SOURCE
+#define	_POSIX_C_SOURCE 2
 #endif /* __linux__ */
 
 #endif /* _CONFIG_H_ */
