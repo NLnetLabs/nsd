@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.56 2002/04/23 12:15:08 alexis Exp $
+ * $Id: zonec.c,v 1.57 2002/04/23 12:41:39 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -481,7 +481,7 @@ zone_read(name, zonefile, cache)
 		/* Report progress... */
 		if(vflag) {
 			if((zf->lines % 100000) == 0) {
-				printf("reading zone \"%s\": %u lines\r", dnamestr(z->dname), zf->lines);
+				printf("zonec: reading zone \"%s\": %d\r", dnamestr(z->dname), zf->lines);
 				fflush(stdout);
 			}
 		}
@@ -590,7 +590,8 @@ zone_read(name, zonefile, cache)
 
 	}
 
-	fprintf(stderr, "zonec: reading zone \"%s\" completed: %d errors\n", dnamestr(z->dname), zf->errors);
+	fflush(stdout);
+	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), zf->errors);
 	return z;
 }
 
@@ -713,7 +714,7 @@ zone_dump(z, db)
 		/* Report progress... */
 		if(vflag) {
 			if((++progress % fraction) == 0) {
-				printf("writing zone \"%s\": %d%%\r", dnamestr(z->dname), percentage);
+				printf("zonec: writing zone \"%s\": %d%%\r", dnamestr(z->dname), percentage);
 				percentage += 5;
 				fflush(stdout);
 			}
@@ -730,9 +731,8 @@ zone_dump(z, db)
 		/* Report progress... */
 		if(vflag) {
 			if((++progress % fraction) == 0) {
+				printf("zonec: writing zone \"%s\": %d%%\r", dnamestr(z->dname), percentage);
 				percentage += 5;
-				printf("%d%% written...\r", percentage);
-				printf("writing database: zone %s: %d%%\r", dnamestr(z->dname), percentage);
 				fflush(stdout);
 			}
 		}
@@ -889,7 +889,8 @@ zone_dump(z, db)
 		free(d);
 	}
 
-	fprintf(stderr, "writing zone \"%s\": done.\n", dnamestr(z->dname));
+	fflush(stdout);
+	fprintf(stderr, "zonec: writing zone \"%s\": done.\n", dnamestr(z->dname), percentage);
 
 	return 0;
 }
