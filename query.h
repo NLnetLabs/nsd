@@ -61,7 +61,11 @@ struct query {
 	buffer_type *packet;
 
 	/* Normalized query domain name.  */
-	const dname_type *name;
+	const dname_type *qname;
+
+	/* Query type and class in host byte order.  */
+	uint16_t qtype;
+	uint16_t qclass;
 
 	/* The zone used to answer the query.  */
 	zone_type *zone;
@@ -78,10 +82,6 @@ struct query {
 	/* Original opcode.  */
 	uint8_t opcode;
 	
-	/* Query class and type in host byte order.  */
-	uint16_t klass;
-	uint16_t type;
-
 	/*
 	 * The number of CNAMES followed.  After a CNAME is followed
 	 * we no longer change the RCODE to NXDOMAIN and no longer add

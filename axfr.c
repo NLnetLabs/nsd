@@ -37,7 +37,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 	if (query->axfr_zone == NULL) {
 		/* Start AXFR.  */
 		exact = namedb_lookup(nsd->db,
-				      query->name,
+				      query->qname,
 				      &closest_match,
 				      &closest_encloser);
 		
@@ -139,14 +139,14 @@ query_state_type
 answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 {
 	/* Is it AXFR? */
-	switch (q->type) {
+	switch (q->qtype) {
 	case TYPE_AXFR:
 #ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
 		if (q->tcp) {
 #ifdef LIBWRAP
 			struct request_info request;
 #ifdef AXFR_DAEMON_PREFIX
-			const uint8_t *qptr = dname_name(q->name);
+			const uint8_t *qptr = dname_name(q->qname);
 			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
 			char *t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1;
 
