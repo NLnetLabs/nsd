@@ -1,4 +1,4 @@
-$Id: REQUIREMENTS,v 1.13 2003/11/05 10:44:05 erik Exp $
+$Id: REQUIREMENTS,v 1.14 2003/11/13 15:20:43 miekg Exp $
 
 
 NSD Requirements and Specifications
@@ -313,7 +313,7 @@ C 4  Further Query processing.
      zones are searched in the same manner. The difference in the
      response will be in the Authority information.
 
-   + It is known if the requester supports EDNS0 [not implemented in alpha]
+   + It is known if the requester supports EDNS0
 
    + There is only one query in the DNS message to be answered. 
 
@@ -513,8 +513,6 @@ C 4.2 Additional Data processing.
 
 
   Additional data is added as long as there is space in the packet.
-  [ Note:  A6 and KEY RRs implementation is deferred to version 1.1.0 or 
-    later ]
 
   When processing the additional section priority is (rfc 2535 3.5 and
   rfc 2874 4) 
@@ -526,7 +524,9 @@ C 4.2 Additional Data processing.
   For truncation see section C.4.4
 
   If the DO bit is set SIGs will be included with the additional data.
+  
   Although not specified in the RFCs we will assume the following priority:
+  Note that A glue is always added before any AAAA glue.
 
       + A 
       + SIG A
@@ -564,8 +564,6 @@ C 4.2 Additional Data processing.
   This behavior is a consequence of NSD using precompiled packets. These
   are 'constructed' zone by zone. It is an optimisation of speed versus
   network optimisation.
-
-
 
 C 4.3 Label compression in RDATA
 
@@ -936,6 +934,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.13 2003/11/05 10:44:05 erik Exp $
+$Id: REQUIREMENTS,v 1.14 2003/11/13 15:20:43 miekg Exp $
 
 
