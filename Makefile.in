@@ -78,7 +78,9 @@ EDIT		= sed \
 			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
-all:	nsd zonec nsd-notify nsdc.sh nsdc.conf.sample
+TARGETS 	= nsd zonec nsd-notify nsdc.sh nsdc.conf.sample
+
+all:	$(TARGETS)
 
 .c.o:
 	$(COMPILE) -c $<
@@ -125,7 +127,8 @@ nsd-notify:	nsd-notify.o dname.o $(LIBOBJS)
 	$(LINK) -o $@ nsd-notify.o dname.o $(LIBOBJS) $(LIBS)
 
 clean:
-	rm -f zonec nsd zparser hash rbtree nsd-notify *.o *.so y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
+	rm -f zparser hash rbtree *.o *.so y.* *.core *.gmon
+	rm -f $(TARGETS)
 
 realclean: clean
 	rm -f Makefile config.h config.h.in config.log config.status configure
