@@ -388,24 +388,6 @@ process_query_section(struct query *query,
 
 
 /*
- * Handle a delegated domain.
- */
-static void
-process_delegation(struct query *query, const u_char *qname, struct domain *domain)
-{
-	struct answer *answer = namedb_answer(domain, htons(TYPE_NS));
-
-	if (answer) {
-		RCODE_SET(query, RCODE_OK);
-		AA_CLR(query);
-		query_addanswer(query, qname, answer, 1);
-	} else {
-		RCODE_SET(query, RCODE_SERVFAIL);
-	}
-}
-
-
-/*
  * Log notifies and return an RCODE_IMPL error to the client.
  *
  * XXX: erik: Is this the right way to handle notifies?
@@ -511,6 +493,31 @@ process_edns (struct query *q, u_char *qptr)
 	
 	return 1;
 }
+
+
+/*
+ * Answer if this is a delegation.
+ *
+ * Return 1 if answered, 0 otherwise.
+ */
+static int
+answer_delegation(struct query *query, const u_char *qname, struct domain *domain)
+{
+	if (DOMAIN_FLAGS(domain) & NAMEDB_DELEGATION) {
+		struct answer *answer = namedb_answer(domain, htons(TYPE_NS));
+		
+		if (answer) {
+			RCODE_SET(query, RCODE_OK);
+			AA_CLR(query);
+			query_addanswer(query, qname, answer, 1);
+		} else {
+			RCODE_SET(query, RCODE_SERVFAIL);
+		}
+		return 1;
+	}
+	return 0;
+}
+
 
 static int
 answer_domain(struct query *q,
@@ -763,8 +770,7 @@ query_process (struct query *q, struct nsd *nsd)
 	if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_DATAMASK, qdepth) &&
 		((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
-		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-			process_delegation(q, qname, d);
+		if (answer_delegation(q, qname, d)) {
 			return 0;
 		}
 
@@ -812,8 +818,7 @@ query_process (struct query *q, struct nsd *nsd)
 		/* Do we have a SOA or zone cut? */
 		*(qnamelow - 1) = qnamelen;
 		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, qdepth) && ((d = namedb_lookup(nsd->db, qnamelow - 1)) != NULL)) {
-			if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-				process_delegation(q, qname, d);
+			if (answer_delegation(q, qname, d)) {
 				return 0;
 			}
 
