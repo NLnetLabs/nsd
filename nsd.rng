@@ -51,6 +51,16 @@
           </element>
         </optional>
         <optional>
+          <element name="chroot-directory">
+            <text/>
+          </element>
+        </optional>
+        <optional>
+          <element name="log-file">
+            <text/>
+          </element>
+        </optional>
+        <optional>
           <element name="pid-file">
             <text/>
           </element>

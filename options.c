@@ -96,12 +96,16 @@ load_configuration(region_type *region, const char *filename)
 					"/nsd/options/identity/text()");
 	options->directory = lookup_text(region, xpath_context,
 					 "/nsd/options/directory/text()");
+	options->chroot_directory = lookup_text(
+		region, xpath_context, "/nsd/options/chroot-directory/text()");
+	options->log_file = lookup_text(region, xpath_context,
+					"/nsd/options/log-file/text()");
 	options->pid_file = lookup_text(region, xpath_context,
 					"/nsd/options/pid-file/text()");
+	options->statistics_period = lookup_integer(
+		xpath_context, "/nsd/options/statistics-period/text()", 0);
 	options->server_count = lookup_integer(
-		xpath_context,
-		"/nsd/options/server-count/text()",
-		1);
+		xpath_context, "/nsd/options/server-count/text()", 1);
 	options->maximum_tcp_connection_count = lookup_integer(
 		xpath_context,
 		"/nsd/options/maximum-tcp-connection-count/text()",

@@ -25,8 +25,11 @@ struct nsd_options {
 	const char *version;
 	const char *identity;
 	const char *directory;
+	const char *chroot_directory;
+	const char *log_file;
 	const char *pid_file;
 
+	unsigned statistics_period;
 	size_t server_count;
 	size_t maximum_tcp_connection_count;
 

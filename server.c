@@ -334,14 +334,15 @@ server_init(struct nsd *nsd)
 
 #ifdef HAVE_CHROOT
 	/* Chroot */
-	if (nsd->chrootdir) {
-		size_t length = strlen(nsd->chrootdir);
+	if (nsd->options->chroot_directory) {
+		size_t length = strlen(nsd->options->chroot_directory);
 
 		nsd->options->database += length;
 		nsd->options->pid_file += length;
 
-		if (chroot(nsd->chrootdir)) {
-			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
+		if (chroot(nsd->options->chroot_directory)) {
+			log_msg(LOG_ERR, "unable to chroot: %s",
+				strerror(errno));
 			return -1;
 		}
 	}
@@ -363,7 +364,7 @@ server_init(struct nsd *nsd)
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st.boot);
-	alarm(nsd->st.period);
+	alarm(nsd->options->statistics_period);
 #endif /* BIND8_STATS */
 
 	return 0;
@@ -514,7 +515,7 @@ server_main(struct nsd *nsd)
 
 #ifdef BIND8_STATS
 				/* Restart dumping stats if required.  */
-				alarm(nsd->st.period);
+				alarm(nsd->options->statistics_period);
 #endif
 
 				break;

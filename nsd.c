@@ -57,21 +57,11 @@ usage (void)
 		"  -a ip-address   Listen to the specified incoming IP address (may be\n"
 		"                  specified multiple times).\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
-		"  -f database     Specify the database to load.\n"
+		"  -f config-file  Specify the location of the configuration file.\n"
 		"  -h              Print this help information.\n"
 		);
 	fprintf(stderr,
-		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
-		"  -l filename     Specify the log file.\n"
-		"  -N server-count The number of servers to start.\n"
-		"  -n tcp-count    The maximum number of TCP connections per server.\n"
-		"  -P pidfile      Specify the PID file to write.\n"
 		"  -p port         Specify the port to listen to.\n"
-		"  -s seconds      Dump statistics every SECONDS seconds.\n"
-		"  -t chrootdir    Change root to specified directory on startup.\n"
-		);
-	fprintf(stderr,
-		"  -u user         Change effective uid to the specified user.\n"
 		"  -v              Print version information.\n"
 		"  -X plugin       Load a plugin (may be specified multiple times).\n\n"
 		);
@@ -203,7 +193,7 @@ sig_handler (int sig)
 		return;
 	case SIGALRM:
 #ifdef BIND8_STATS
-		alarm(nsd.st.period);
+		alarm(nsd.options->statistics_period);
 #endif
 		sig = SIGUSR1;
 		break;
@@ -359,8 +349,6 @@ main (int argc, char *argv[])
 	const char *nodes[MAX_INTERFACES];
 	const char *port;
 
-	const char *log_filename = NULL;
-
 #ifdef PLUGINS
 	nsd_plugin_id_type plugin_count = 0;
 	char **plugins = (char **) xalloc(sizeof(char *));
@@ -386,8 +374,6 @@ main (int argc, char *argv[])
 
 	nsd.options_file = CONFIGFILE;
 	nsd.options      = NULL;
-	nsd.chrootdir	 = NULL;
-
 	nsd.current_tcp_connection_count = 0;
 
 	/* EDNS0 */
@@ -401,7 +387,7 @@ main (int argc, char *argv[])
 #endif
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:df:hl:N:n:p:s:t:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:df:hp:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -434,25 +420,8 @@ main (int argc, char *argv[])
 		case 'h':
 			usage();
 			break;
-		case 'l':
-			log_filename = optarg;
-			break;
 		case 'p':
 			port = optarg;
-			break;
-		case 's':
-#ifdef BIND8_STATS
-			nsd.st.period = atoi(optarg);
-#else /* !BIND8_STATS */
-			error("BIND 8 statistics not enabled.");
-#endif /* !BIND8_STATS */
-			break;
-		case 't':
-#ifdef HAVE_CHROOT
-			nsd.chrootdir = optarg;
-#else /* !HAVE_CHROOT */
-			error("chroot not supported on this platform.");
-#endif /* !HAVE_CHROOT */
 			break;
 		case 'X':
 #ifdef PLUGINS
@@ -495,6 +464,12 @@ main (int argc, char *argv[])
 		error("failed to load configuration file '%s'",
 		      nsd.options_file);
 	}
+
+#ifndef BIND8_STATS
+	if (nsd.options->statistics_period > 0) {
+			error("BIND 8 statistics not enabled.");
+	}
+#endif /* !BIND8_STATS */
 
 	if (!nsd.options->user_id) {
 		nsd.options->user_id = USER;
@@ -620,24 +595,34 @@ main (int argc, char *argv[])
 	}
 
 	/* Set up the logging... */
-	log_open(LOG_PID, FACILITY, log_filename);
-	if (!log_filename) {
+	log_open(LOG_PID, FACILITY, nsd.options->log_file);
+	if (!nsd.options->log_file) {
 		log_set_log_function(log_syslog);
 	}
 
 	/* Relativize the pathnames for chroot... */
-	if (nsd.chrootdir) {
-		size_t l = strlen(nsd.chrootdir);
+	if (nsd.options->chroot_directory) {
+#ifndef HAVE_CHROOT
+		error("chroot not supported on this platform.");
+#else /* !HAVE_CHROOT */
+		size_t length = strlen(nsd.options->chroot_directory);
 
-		if (strncmp(nsd.chrootdir, nsd.options->pid_file, l) != 0) {
-			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
-				nsd.options->pid_file, nsd.chrootdir);
-			nsd.chrootdir = NULL;
-		} else if (strncmp(nsd.chrootdir, nsd.options->database, l) != 0) {
-			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
-				nsd.options->database, nsd.chrootdir);
-			nsd.chrootdir = NULL;
+		if (strncmp(nsd.options->chroot_directory,
+			    nsd.options->pid_file,
+			    length) != 0)
+		{
+			error("%s is not relative to chroot-directory %s",
+			      nsd.options->pid_file,
+			      nsd.options->chroot_directory);
+		} else if (strncmp(nsd.options->chroot_directory,
+				   nsd.options->database,
+				   length) != 0)
+		{
+			error("%s is not relative to chroot-directory %s",
+			      nsd.options->database,
+			      nsd.options->chroot_directory);
 		}
+#endif /* !HAVE_CHROOT */
 	}
 
 	/* Do we have a running nsd? */

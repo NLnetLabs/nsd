@@ -95,7 +95,6 @@ struct	nsd
 
 	uid_t	uid;
 	gid_t	gid;
-	const char	*chrootdir;
 
 	size_t	ifs;
 
@@ -119,7 +118,6 @@ struct	nsd
 
 	struct nsdst {
 		time_t	boot;
-		int	period;		/* Produce statistics dump every st_period seconds */
 		stc_t	qtype[257];	/* Counters per qtype */
 		stc_t	qclass[4];	/* Class IN or Class CH or other */
 		stc_t	qudp, qudp6;	/* Number of queries udp and udp6 */
