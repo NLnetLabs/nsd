@@ -1,15 +1,18 @@
-$Id: RELNOTES,v 1.11.2.2 2003/06/02 12:19:26 erik Exp $
+$Id: RELNOTES,v 1.11.2.3 2003/06/05 15:09:26 erik Exp $
 
 1.0.3
 =============
-1.0.3 is a bug fix release and does not add any new features.
+1.0.3 was released on XX/XX/XXXX.  This release is a bug fix release
+and does not add any new features.
 
 BUG FIXES:
         - Ignore SIGPIPE errors (bug #43).
         - Keep track of TCP child servers and restart if necessary.
           (bug #55)
-        - Handle reload failures correctly.
+        - Handle database reload failures correctly.
         - Close UDP sockets in TCP child servers.
+        - Handle escaped characters (besides \.) in labels.
+        - Preserve the query's RD flag in the answer.
 
 1.0.2
 =============
