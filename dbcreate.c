@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.15 2002/05/27 14:43:34 alexis Exp $
+ * $Id: dbcreate.c,v 1.15.4.1 2003/06/12 08:37:15 erik Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -45,6 +45,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 
 #include "namedb.h"

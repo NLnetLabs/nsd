@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.84.2.3 2003/01/02 10:43:14 alexis Exp $
+# $Id: Makefile,v 1.84.2.4 2003/06/12 08:37:16 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -142,18 +142,39 @@ NSDCCONF	= ${NSDZONESDIR}/nsdc.conf
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DLOG_NOTIFIES -DINET6 -DHOSTS_ACCESS -DBIND8_STATS
-LIBWRAP		= -lwrap
 
-# To compile NSD with internal red-black tree database
-# uncomment the following two lines
-DBFLAGS		= -DUSE_HEAP_RBTREE
+# To compile NSD on FreeBSD.
+FEATURES	= -DLOG_NOTIFIES -DINET6 -DHOSTS_ACCESS -DBIND8_STATS
+EXTRA_CFLAGS	= 
+LIBWRAP		= -lwrap
 LIBS		= 
 
+# To compile NSD on Linux (IPv6 is not supported on Linux by NSD).
+#FEATURES	= -DLOG_NOTIFIES -DHOSTS_ACCESS -DBIND8_STATS
+#EXTRA_CFLAGS	= 
+#LIBWRAP		= -lwrap
+#LIBS		= 
+
+# To compile NSD on Solaris.
+#FEATURES	= -DLOG_NOTIFIES -DINET6 -DBIND8_STATS
+#EXTRA_CFLAGS	= -D__EXTENSIONS__   # Add -m64 to compile a 64-bit version.
+#LIBWRAP		= 
+#LIBS		= -lsocket -lnsl
+
+# To compile NSD on SunOS 4.x.
+#FEATURES	= -DLOG_NOTIFIES -DBIND8_STATS
+#EXTRA_CFLAGS	= 
+#LIBWRAP		= 
+#LIBS		= 
+#COMPAT_O	= basename.o snprintf.o
+
+# To compile NSD with internal red-black tree database
+# uncomment the following line.
+DBFLAGS		= -DUSE_HEAP_RBTREE
+
 # To compile NSD with internal hash database
-# uncomment the following two lines
+# uncomment the following line.
 #DBFLAGS	= -DUSE_HEAP_HASH
-#LIBS		=
 
 # To compile NSD with Berkeley DB uncomment the following two lines
 #
@@ -165,17 +186,14 @@ LIBS		=
 # Compile environment settings
 DEBUG		= # -g -DDEBUG=1
 CC		= gcc
-CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG}
+CFLAGS		= -ansi -Wall -O2 ${EXTRA_CFLAGS} ${DEBUG}
 DEFS		= ${DBFLAGS} ${FEATURES} -DCF_PIDFILE=\"${NSDPIDFILE}\" \
 	 	  -DCF_DBFILE=\"${NSDDB}\" -DCF_USERNAME=\"${NSDUSER}\"
 LDFLAGS		= ${LIBS}
 
 COMPILE		= ${CC} ${CFLAGS} ${DEFS} -c
-LINK		= ${CC} ${LDFLAGS}
+LINK		= ${CC} ${CFLAGS} ${LDFLAGS}
 INSTALL		= install -c
-
-# This might be necessary for a system like SunOS 4.x
-COMPAT_O =	#	basename.o
 
 #
 #
@@ -225,20 +243,22 @@ nsdc.conf.sample: nsdc.conf.sample.in Makefile
 		-e "s,@@NSDZONES@@,${NSDZONES},g" -e "s,@@NAMEDXFER@@,${NAMEDXFER},g" \
 		-e "s,@@NSDKEYSDIR@@,${NSDKEYSDIR},g" -e "s,@@NSDNOTIFY@@,${NSDNOTIFY},g" $@.in > $@
 
-nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
-	${LINK} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o ${LIBWRAP}
+nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o ${COMPAT_O}
+	${LINK} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o ${COMPAT_O} ${LIBWRAP}
 
 zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
 	${LINK} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
 
-nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
-	${LINK} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o ${LIBWRAP}
+nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
+	${LINK} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o hash.o rfc1876.o ${COMPAT_O} ${LIBWRAP}
 
 clean:
 	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
 
 basename.o:	compat/basename.c
 	${COMPILE} compat/basename.c -o basename.o
+snprintf.o:	compat/snprintf.c
+	${COMPILE} compat/snprintf.c -o snprintf.o
 
 # Test programs
 rbtree:	rbtree.c rbtree.h

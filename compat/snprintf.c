@@ -1,13 +1,7 @@
-#include <config.h>
-
-#ifndef HAVE_SNPRINTF
-
 #include <ctype.h>
 #include <sys/types.h>
 
-/* Define this as a fall through, HAVE_STDARG_H is probably already set */
-
-#define HAVE_VARARGS_H
+#define HAVE_STDARG_H /* or use HAVE_VARARGS_H */
 
 /**************************************************************
  * Original:
@@ -766,5 +760,3 @@ int main (void)
   printf ("%d tests failed out of %d.\n", fail, num);
 }
 #endif /* SNPRINTF_TEST */
-
-#endif /* !HAVE_SNPRINTF */

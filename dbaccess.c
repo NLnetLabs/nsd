@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.25 2002/09/10 13:04:55 alexis Exp $
+ * $Id: dbaccess.c,v 1.25.2.1 2003/06/12 08:37:14 erik Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -50,6 +50,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <syslog.h>
 #include <unistd.h>
 #include <fcntl.h>

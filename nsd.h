@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.43.2.5 2003/06/11 10:00:17 erik Exp $
+ * $Id: nsd.h,v 1.43.2.6 2003/06/12 08:41:52 erik Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -56,12 +56,14 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <netdb.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.35.2.2 2003/06/11 10:00:20 erik Exp $
+ * $Id: zf.c,v 1.35.2.3 2003/06/12 08:41:53 erik Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -44,6 +44,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

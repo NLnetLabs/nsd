@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.19.2.6 2003/06/02 12:23:17 erik Exp $
+ * $Id: config.h,v 1.19.2.7 2003/06/12 08:37:13 erik Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -114,7 +114,6 @@ typedef          int   int32_t;
 typedef unsigned char  u_int8_t;
 typedef unsigned short u_int16_t;
 typedef unsigned int   u_int32_t;
-typedef	unsigned long  in_addr_t;
 
 #define	USE_INET_ADDR
 #endif
