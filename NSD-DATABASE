@@ -1,4 +1,4 @@
-NSD 1.4 DATABASE FORMAT
+NSD 1.4-2.0 DATABASE FORMAT
 
 As of NSD release 1.4 the database is extensively redesigned.  The main goal
 for the redesign was to accomodate DNSSEC.
