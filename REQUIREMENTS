@@ -1,4 +1,4 @@
-$Id: REQUIREMENTS,v 1.14 2003/11/13 15:20:43 miekg Exp $
+$Id: REQUIREMENTS,v 1.15 2004/01/08 13:03:18 erik Exp $
 
 
 NSD Requirements and Specifications
@@ -298,7 +298,6 @@ C.3 Incoming DNS Message processing.
       VERSION > 0 then the server will respond with an OPT with
       RCODE=BADVERSION and VERSION=0 (The server supports EDNS0) In
       further processing ENDS0 support is taken into account.
-      [not implemented in alpha]
 
     + If the DNSSEC OK bit (DO bit) is set then the query will be
       processed as a DNSSEC request. Although RFC3225 does not
@@ -934,6 +933,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.14 2003/11/13 15:20:43 miekg Exp $
+$Id: REQUIREMENTS,v 1.15 2004/01/08 13:03:18 erik Exp $
 
 
