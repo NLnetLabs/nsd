@@ -298,9 +298,9 @@ zoctet(char *text)
 			*p = *s;
 		} else if (isdigit(s[1]) && isdigit(s[2]) && isdigit(s[3])) {
 			/* \DDD escape.  */
-			int val = (digittoint(s[1]) * 100 +
-				   digittoint(s[2]) * 10 +
-				   digittoint(s[3]));
+			int val = (hexdigit_to_int(s[1]) * 100 +
+				   hexdigit_to_int(s[2]) * 10 +
+				   hexdigit_to_int(s[3]));
 			if (0 <= val && val <= 255) {
 				s += 3;
 				*p = val;

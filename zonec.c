@@ -108,36 +108,9 @@ zparser_conv_hex(region_type *region, const char *hex)
 		while (*hex) {
 			*t = 0;
 			for (i = 16; i >= 1; i -= 15) {
-				switch (*hex) {
-				case '0':
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
-				case '9':
-					*t += (*hex - '0') * i;
-					break;
-				case 'a':
-				case 'b':
-				case 'c':
-				case 'd':
-				case 'e':
-				case 'f':
-					*t += (*hex - 'a' + 10) * i;
-					break;
-				case 'A':
-				case 'B':
-				case 'C':
-				case 'D':
-				case 'E':
-				case 'F':
-					*t += (*hex - 'A' + 10) * i;
-					break;
-				default:
+				if (isxdigit(*hex)) {
+					*t += hexdigit_to_int(*hex) * i;
+				} else {
 					zc_error_prev_line("illegal hex character '%c'", (int)*hex);
 					return NULL;
 				}

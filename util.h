@@ -247,4 +247,9 @@ ssize_t hex_ntop(uint8_t const *src, size_t srclength, char *target,
  */
 void strip_string(char *str);
 
+/*
+ * Convert a single (hexidecimal) digit to its integer value.
+ */
+int hexdigit_to_int(char ch);
+
 #endif /* _UTIL_H_ */
