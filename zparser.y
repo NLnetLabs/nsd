@@ -192,12 +192,12 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
     {
         current_rr->rrdata->ttl = current_parser->ttl;
     }
+    |	ttl SP		/* no class */
     {   
         current_rr->class = current_parser->class;
     }
     |   ttl SP class SP  /* the lot */
     |   class SP ttl SP  /* the lot - reversed */
-    |   ttl SP        /* no class */
     ;
 
 dname:      abs_dname
