@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.1 2002/01/28 16:02:59 alexis Exp $
+ * $Id: namedb.h,v 1.2 2002/01/29 13:53:21 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -51,18 +51,18 @@
 
 #define	NAMEDB_BITMASKLEN	16
 
-#define	ANSWER_SIZE(answer)	(size_t *)(&answer->size)
-#define	ANSWER_TYPE(answer)	(u_short *)(&answer->type)
-#define	ANSWER_ANCOUNT(answer)	(u_short *)(&answer->ancount)
-#define	ANSWER_NSCOUNT(answer)	(u_short *)(&answer->nscount)
-#define	ANSWER_ARCOUNT(answer)	(u_short *)(&answer->arcount)
-#define	ANSWER_PTRLEN(answer)	(u_short *)(&answer->ptrlen)
-#define	ANSWER_RRSLEN(answer)	(u_short *)(&answer->rrslen)
-#define	ANSWER_DATALEN(answer)	(size_t *)(&answer->datalen)
-#define	ANSWER_END(answer)	(ANSWER_DATALEN(answer)+1)
-#define	ANSWER_PTRS(answer)	((u_short *)ANSWER_END(answer))
-#define	ANSWER_RRS(answer)	((u_short *)ANSWER_END(answer))+*ANSWER_PTRLEN(answer)
-#define	ANSWER_DATA(answer)	(u_char *)(((u_short *)ANSWER_END(answer))+*ANSWER_PTRLEN(answer)+*ANSWER_RRSLEN(answer))
+#define	ANSWER_SIZE(a)		(size_t *)(&a->size)
+#define	ANSWER_TYPE(a)		(u_short *)(&a->type)
+#define	ANSWER_ANCOUNT(a)	(u_short *)(&a->ancount)
+#define	ANSWER_NSCOUNT(a)	(u_short *)(&a->nscount)
+#define	ANSWER_ARCOUNT(a)	(u_short *)(&a->arcount)
+#define	ANSWER_PTRLEN(a)	(u_short *)(&a->ptrlen)
+#define	ANSWER_RRSLEN(a)	(u_short *)(&a->rrslen)
+#define	ANSWER_DATALEN(a)	(size_t *)(&a->datalen)
+#define	ANSWER_END(a)		((struct answer *)a+1)
+#define	ANSWER_PTRS(a)		((u_short *)ANSWER_END(a))
+#define	ANSWER_RRS(a)		((u_short *)ANSWER_END(a))+*ANSWER_PTRLEN(a)
+#define	ANSWER_DATA(a)		(u_char *)(((u_short *)ANSWER_END(a))+*ANSWER_PTRLEN(a)+*ANSWER_RRSLEN(a))
 
 
 struct answer {
