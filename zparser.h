@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.6 2003/02/14 22:49:16 alexis Exp $
+ * $Id: zparser.h,v 1.7 2003/02/17 12:22:40 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -87,6 +87,7 @@ struct zparser {
 	int	_tc;			/* Current token to be parsed */
 	int	_rc;			/* Current rdata to be parsed */
 	char	*_t[MAXTOKENSLEN];	/* Tokens in the current line */
+	u_long	_tlineno[MAXTOKENSLEN];	/* Line number of the respective token */
 	char	_buf[ZBUFSIZE];	/* Current input buffer */
 };
 

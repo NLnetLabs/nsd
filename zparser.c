@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.10 2003/02/17 11:39:51 alexis Exp $
+ * $Id: zparser.c,v 1.11 2003/02/17 12:22:40 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -118,7 +118,21 @@ intbyname (char *a, struct ztab *tab)
 		if(strcasecmp(a, tab->name) == 0) return tab->sym;
 		tab++;
 	}
-	return  NULL;
+	return 0;
+}
+
+/*
+ * Looks up the string value of the symbol, returns NULL if not found.
+ *
+ */
+char *
+namebyint (u_int16_t n, struct ztab *tab)
+{
+	while(tab->sym != 0) {
+		if(tab->sym == n) return tab->name;
+		tab++;
+	}
+	return NULL;
 }
 
 /*
@@ -262,7 +276,7 @@ strtottl(nptr, endptr)
 void 
 zerror (struct zparser *z, char *msg)
 {
-	fprintf(stderr, "%s in %s, line %lu\n", msg, z->filename, z->_lineno);
+	fprintf(stderr, "error: %s in %s, line %lu\n", msg, z->filename, z->_tlineno[z->_tc]);
 	z->errors++;
 }
 
@@ -604,11 +618,25 @@ zrdata (struct zparser *z)
 
 	/* Is this resource record in unknown format? */
 	if(strcmp(z->_t[z->_tc], "\\#") == 0) {
+		z->_tc++;
 		if(!zrdatascan(z, RDATA_SHORT)) return 0;
 
 		r = z->_rr.rdata[--z->_rc];
 		z->_rr.rdata[z->_rc] = NULL;
 		i = 0;
+
+		/* No rdata... */
+		if(r[1] == 0) {
+			free(r);
+
+			/* Known types may not have empty rdata */
+			if(z->_rr.type != TYPE_NULL && namebyint(z->_rr.type, ztypes) != NULL) {
+				zerror(z, "this type may not have empty rdata");
+				return 0;
+			}
+
+			return 1;
+		}
 
 		/* The scan anything's left */
 		while(zrdatascan(z, RDATA_HEX)) {
@@ -827,7 +855,8 @@ zrdatascan (struct zparser *z, int what)
 			/* Now process octet by octet... */
 			while(*z->_t[z->_tc]) {
 				*t = 0;
-				for(i = 0; i <= 16; i += 16) {
+				for(i = 1; i <= 16; i += 15) {
+					*z->_t[z->_tc] = tolower(*z->_t[z->_tc]);
 					switch(*z->_t[z->_tc]) {
 					case '0':
 					case '1':
@@ -1098,6 +1127,7 @@ zaddtoken (struct zparser *z, char *t)
 		zerror(z, "too many token per entry");
 		abort();
 	}
+	z->_tlineno[z->_tc] = z->_lineno;
 	z->_t[z->_tc++] = t;
 }
 
