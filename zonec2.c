@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.22 2003/10/22 09:47:09 erik Exp $
+ * $Id: zonec2.c,v 1.23 2003/10/23 12:25:50 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -482,9 +482,11 @@ main (int argc, char **argv)
 			totalerrors++;
 		}
 
-		fprintf(stderr, "zone_region: ");
+		/*[XXX] ik zie niks */
+		/*fprintf(stderr, "zone_region: ");
 		region_dump_stats(zone_region, stderr);
 		fprintf(stderr, "\n");
+		*/
 	};
 
 	if (db_dump(db) != 0) {

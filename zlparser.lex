@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.30 2003/10/23 10:18:23 miekg Exp $
+ * $Id: zlparser.lex,v 1.31 2003/10/23 12:25:50 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -136,8 +136,10 @@ Q       \"
                             current_parser->line++;
                             if ( paren_open == 0 ) { 
                                 in_rr = outside;
+				LEXOUT("NL \n");
                                 return NL;
                             } else {
+				    LEXOUT("SP ");
 				    return SP;
 			    }
                         }
@@ -146,7 +148,7 @@ Q       \"
                                 yyerror( "nested parentheses" );
                                 yyterminate();
                             }
-                            LEXOUT("SP(");
+                            LEXOUT("SP( ");
                             paren_open = 1;
                             return SP;
                         }
@@ -155,7 +157,7 @@ Q       \"
                                 yyerror( "unterminated parentheses" );
                                 yyterminate();
                             }
-                            LEXOUT("SP)");
+                            LEXOUT("SP) ");
                             paren_open = 0;
                             return SP;
                         }
@@ -163,9 +165,9 @@ Q       \"
                             if ( paren_open == 0 ) {
                                 if ( in_rr == expecting_dname )
                                     in_rr = after_dname;
-
-                                return SP;
                             }
+                            LEXOUT("SP ");
+                            return SP;
                         }
 ^({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word. Needs to be located
@@ -175,6 +177,7 @@ Q       \"
                             yylval.data.len = zoctet(ztext);
                             yylval.data.str = ztext;
                             in_rr = expecting_dname;
+			    LEXOUT("STR ");
                             return STR;
                         }
 {CLASS}                 {
@@ -253,6 +256,7 @@ CLASS[0-9]+             {
                                     in_rr = reading_type; return i;
                                 }
                             }
+			    LEXOUT("STR ");
                             return STR;
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
@@ -269,7 +273,7 @@ CLASS[0-9]+             {
                             ztext = region_strdup(rr_region, yytext);
                             yylval.data.len = zoctet(ztext);
                             yylval.data.str = ztext;
-                            
+			    LEXOUT("STR ");
                             return STR;
                         }
 .                       {
@@ -290,8 +294,11 @@ zrrtype (char *word)
 	 */
 	int i;
 	for (i = 0; i < RRTYPES - 1; ++i) {
-		if (strcasecmp(word, RRtypes[i]) == 0)
+		if (strcasecmp(word, RRtypes[i]) == 0) {
+			LEXOUT(word);
+			LEXOUT(" ");
 			return i + A;
+		}
 		
 	}
 	return 0;
