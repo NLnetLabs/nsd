@@ -173,12 +173,8 @@ AC_DEFUN([CHECK_SSL], [
             if test -f "$dir/include/openssl/ssl.h"; then
                 found_ssl="yes";
                 AC_DEFINE_UNQUOTED([HAVE_SSL], [], [Define if you have the SSL libraries installed.])
+                CPPFLAGS="$CPPFLAGS -I$ssldir/include";
                 break;
-            fi
-            if test -f "$dir/include/ssl.h"; then
-                found_ssl="yes";
-                AC_DEFINE_UNQUOTED([HAVE_SSL], [], [Define if you have the SSL libraries installed.])
-                break
             fi
         done 
         if test x_$found_ssl != x_yes; then
