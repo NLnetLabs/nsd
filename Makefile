@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.50 2002/04/02 13:21:25 alexis Exp $
+# $Id: Makefile,v 1.51 2002/04/02 13:53:49 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -60,14 +60,34 @@ NSDPIDFILE      = /var/run/nsd.pid
 # The NSD run-time database
 NSDDB           = /var/db/nsd.db
 
-FEATURES	= -DMIMIC_BIND8 # -DINET6
+#
+# Use the following compile options to modify features set of NSD
+#
+#	-DMIMIC_BIND8	Try answer queries as similar as possible to
+#			BIND version 8. (Implies -DNAMEDB_UPPERCASE)
+#
+#	-DINET6		Include IPv6 transport (tcp6 and udp6).
+#
+#	-DDNSSEC	Not yet implemented.
+#
+#	-DNAMEDB_UPPERCASE
+#			Uppercase all the domain names in the internal
+#			database.
+#
+#	-DNAMEDB_LOWERCASE	(default)
+#			Lowercase all the domain names in the internal
+#			database.
+#
+#	Please see DBFLAGS below to switch the internal database type.
+#
+FEATURES	= # -DMIMIC_BIND8  -DINET6
 
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines
 DBFLAGS		= -DUSE_HEAP_RBTREE
 LIBS		=
 
-# To compile NSD with internal heap database
+# To compile NSD with internal hash database
 # uncomment the following two lines
 #DBFLAGS	= -DUSE_HEAP_HASH
 #LIBS		=
