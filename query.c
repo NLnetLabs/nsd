@@ -71,6 +71,44 @@ int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* LIBWRAP */
 
+static int
+generate_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr);
+
+static int
+generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *rrset,
+	       int truncate);
+
+/*
+ * Remove all compressed dnames that have an offset that points beyond
+ * the end of the current answer.  This must be done after some RRs
+ * are truncated and before adding new RRs.  Otherwise dnames may be
+ * compressed using truncated data!
+ */
+static void
+query_clear_dname_offsets(struct query *q)
+{
+	uint16_t max_offset = q->iobufptr - q->iobuf;
+	
+	while (q->dname_stored_count > 0
+	       && (q->dname_offsets[q->dname_stored[q->dname_stored_count - 1]->number]
+		   >= max_offset))
+	{
+		q->dname_offsets[q->dname_stored[q->dname_stored_count - 1]->number] = 0;
+		--q->dname_stored_count;
+	}
+}
+
+static void
+clear_compressed_dname_tables(struct query *q)
+{
+	uint16_t i;
+	
+	for (i = 0; i < q->dname_stored_count; ++i) {
+		q->dname_offsets[q->dname_stored[i]->number] = 0;
+	}
+	q->dname_stored_count = 0;
+}
+
 static void
 answer_add_rrset(answer_type *answer, answer_section_type section, domain_type *domain, rrset_type *rrset)
 {
@@ -121,123 +159,96 @@ query_formerr (struct query *query)
 }
 
 int 
-query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
+query_axfr (struct nsd *nsd, struct query *query)
 {
-	return 0;
-#if 0
-	/* Per AXFR... */
-	static const dname_type *zone;
-	static const struct answer *soa;
-	static const struct rrset *d = NULL;
+	domain_type *closest_match;
+	domain_type *closest_encloser;
+	int exact;
+	int added;
+	uint16_t total_added = 0;
+
+	if (query->axfr_is_done)
+		return 0;
+
+	query->overflow = 0;
+	query->maxlen = QIOBUFSZ;
 	
-	const struct answer *a;
-	const uint8_t *p;
-	const dname_type *dname = NULL;
-	uint8_t *qptr;
-	dname_info_type *closest_match;
-	dname_info_type *closest_encloser;
+	if (query->axfr_zone == NULL) {
+		/* Start AXFR.  */
+		exact = namedb_lookup(nsd->db, query->name, &closest_match, &closest_encloser);
+		query->domain = closest_encloser;
+		query->axfr_zone = domain_find_zone(closest_encloser);
+		if (!exact || !query->axfr_zone || query->axfr_zone->domain != closest_encloser) {
+			/* No SOA no transfer */
+			RCODE_SET(query, RCODE_REFUSE);
+			return 0;
+		}
 
-	STATUP(nsd, raxfr);
+		query->axfr_current_domain = heap_first(nsd->db->domains->names_to_domains);
+		query->axfr_current_rrset = NULL;
+		query->axfr_current_rr = 0;
 
-	/* Is it new AXFR? */
-	if (qname) {
-		/* New AXFR... */
-		zone = dname_copy(q->region, q->name);
+		/* TODO: Add query name to compression table.  */
+		added = generate_rr(query,
+				    query->axfr_zone->domain,
+				    query->axfr_zone->soa_rrset,
+				    0);
+		if (!added)
+			goto return_answer;
+		++total_added;
+	} else {
+		/* Query name only needs to be preserved in first answer packet.  */
+		query->iobufptr = query->iobuf + QHEADERSZ;
+		QDCOUNT(query) = 0;
+	}
 
-		/* Do we have the SOA? */
-		if (namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser)
-		    && (soa = namedb_answer(closest_encloser->rrsets, TYPE_SOA)))
-		{
-			d = closest_encloser->rrsets;
-			
-			/* We'd rather have ANY than SOA to improve performance */
-			if ((a = namedb_answer(d, TYPE_ANY)) == NULL) {
-				a = soa;
+	/* Add zone RRs until answer is full.  */
+	assert(query->axfr_current_domain);
+	
+	while (query->axfr_current_domain != heap_last()) {
+		if (!query->axfr_current_rrset) {
+			query->axfr_current_rrset = domain_find_any_rrset(query->axfr_current_domain->data, query->axfr_zone);
+			query->axfr_current_rr = 0;
+		}
+		while (query->axfr_current_rrset) {
+			if (query->axfr_current_rrset != query->axfr_zone->soa_rrset
+			    && query->axfr_current_rrset->zone == query->axfr_zone)
+			{
+				while (query->axfr_current_rr < query->axfr_current_rrset->rrslen) {
+					added = generate_rr(query,
+							    query->axfr_current_domain->data,
+							    query->axfr_current_rrset,
+							    query->axfr_current_rr);
+					if (!added)
+						goto return_answer;
+					++total_added;
+					++query->axfr_current_rr;
+				}
 			}
 
-			qptr = q->iobufptr;
-			query_addanswer(q, qname, a, 0);
-
-			/* Truncate */
-			NSCOUNT(q) = 0;
-			ARCOUNT(q) = 0;
-			q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
-
-			/* More data... */
-			return 1;
-
+			query->axfr_current_rrset = query->axfr_current_rrset->next;
+			query->axfr_current_rr = 0;
 		}
-
-		/* No SOA no transfer */
-		RCODE_SET(q, RCODE_REFUSE);
-		return 0;
+		assert(query->axfr_current_domain);
+		query->axfr_current_domain = heap_next(query->axfr_current_domain);
 	}
 
-	/* We've done everything already, let the server know... */
-	if (d == NULL) {
-		return 0;	/* Done. */
+	/* Add terminating SOA RR.  */
+	added = generate_rr(query,
+			    query->axfr_zone->domain,
+			    query->axfr_zone->soa_rrset,
+			    0);
+	if (added) {
+		++total_added;
+		query->axfr_is_done = 1;
 	}
 
-	/* Let get next domain */
-	do {
-		p = (const uint8_t *) d + d->size;
-		if (!*p) break;
-		dname = (const dname_type *) p;
-		d = (const struct domain *) (p + ALIGN_UP(dname_total_size(dname), NAMEDB_ALIGNMENT));
-	} while (DOMAIN_FLAGS(d) & NAMEDB_STEALTH);
-
-	/* End of the database or end of zone? */
-	if (*p == 0 || namedb_answer(d, TYPE_SOA) != NULL) {
-		/* Prepare to send the terminating SOA record */
-		a = soa;
-		dname = zone;
-		d = NULL;
-	} else {
-		/* Prepare the answer */
-		if (DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-			a = namedb_answer(d, TYPE_NS);
-		} else {
-			a = namedb_answer(d, TYPE_ANY);
-		}
-	}
-
-	/* Existing AXFR, strip the question section off... */
-	q->iobufptr = q->iobuf + QHEADERSZ;
-
-	/*
-	 * Is the first dname a pointer?  If so, make room to store
-	 * the complete dname.
-	 */
-	if (ANSWER_PTRS(a, 0) == 0) {
-		/*
-		 * Two bytes are already available because of the
-		 * pointer.
-		 */
-		q->iobufptr += dname->name_size - 2;
-		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-	}
-
-	qptr = q->iobufptr;
-
-	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
-
-	if (ANSWER_PTRS(a, 0) == 0) {
-		memcpy(q->iobuf + QHEADERSZ, dname_name(dname), dname->name_size);
-	}
-
-	/* Truncate */
-	if (d && DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-		ANCOUNT(q) = htons(ntohs(NSCOUNT(q)) + ntohs(ARCOUNT(q)));
-	} else {
-		q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
-	}
-
-	ARCOUNT(q) = 0;
-	NSCOUNT(q) = 0;
-
-	/* More data... */
+return_answer:
+	ANCOUNT(query) = htons(total_added);
+	NSCOUNT(query) = 0;
+	ARCOUNT(query) = 0;
+	clear_compressed_dname_tables(query);
 	return 1;
-#endif
 }
 
 void 
@@ -259,6 +270,12 @@ query_init (struct query *q)
 	q->delegation_domain = NULL;
 	q->delegation_rrset = NULL;
 	q->dname_stored_count = 0;
+
+	q->axfr_is_done = 0;
+	q->axfr_zone = NULL;
+	q->axfr_current_domain = NULL;
+	q->axfr_current_rrset = NULL;
+	q->axfr_current_rr = 0;
 }
 
 void 
@@ -665,7 +682,7 @@ answer_chaos(struct nsd *nsd, struct query *q)
  * Return 1 if answered, 0 otherwise.
  */
 static int
-answer_axfr_ixfr(struct nsd *nsd, struct query *q, const uint8_t *qname, int *is_axfr)
+answer_axfr_ixfr(struct nsd *nsd, struct query *q, int *is_axfr)
 {
 	/* Is it AXFR? */
 	switch (q->type) {
@@ -708,7 +725,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q, const uint8_t *qname, int *is
 #endif /* AXFR_DAEMON_PREFIX */
 			}
 #endif /* LIBWRAP */
-			*is_axfr = query_axfr(nsd, q, qname);
+			*is_axfr = query_axfr(nsd, q);
 			return 1;
 		}
 #endif	/* DISABLE_AXFR */
@@ -748,67 +765,86 @@ generate_dname(struct query *q, domain_type *domain)
 	}
 }
 
-static void
-generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *rrset,
-	       int truncate)
+static int
+generate_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 {
-	uint16_t i, j;
+	uint8_t *truncation_point = q->iobufptr;
 	uint16_t type;
 	uint16_t class;
 	uint32_t ttl;
 	uint16_t rdlength = 0;
 	uint8_t *rdlength_pos;
+	uint16_t j;
+	
+	assert(q);
+	assert(owner);
+	assert(rrset);
+	assert(rr < rrset->rrslen);
+
+/* 	fprintf(stderr, "generate_rr: compress_dnames = %d\n", q->dname_stored_count); */
+	
+	generate_dname(q, owner);
+	type = htons(rrset->type);
+	QUERY_WRITE(q, &type, sizeof(type));
+	class = htons(rrset->class);
+	QUERY_WRITE(q, &class, sizeof(class));
+	ttl = htonl(rrset->ttl);
+	QUERY_WRITE(q, &ttl, sizeof(ttl));
+
+	/* Reserve space for rdlength. */
+	rdlength_pos = q->iobufptr;
+	QUERY_WRITE(q, &rdlength, sizeof(rdlength));
+
+	for (j = 0; !rdata_atom_is_terminator(rrset->rrs[rr][j]); ++j) {
+		if (rdata_atom_is_domain(rrset->type, j)) {
+			generate_dname(q, rdata_atom_domain(rrset->rrs[rr][j]));
+		} else {
+			QUERY_WRITE(q,
+				    rdata_atom_data(rrset->rrs[rr][j]),
+				    rdata_atom_size(rrset->rrs[rr][j]));
+		}
+	}
+
+	if (!q->overflow) {
+		rdlength = htons(q->iobufptr - rdlength_pos - sizeof(rdlength));
+		memcpy(rdlength_pos, &rdlength, sizeof(rdlength));
+		return 1;
+	} else {
+		q->iobufptr = truncation_point;
+		query_clear_dname_offsets(q);
+		return 0;
+	}
+}
+
+static int
+generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *rrset,
+	       int truncate)
+{
+	uint16_t i;
 	uint8_t *truncation_point = q->iobufptr;
-	uint16_t compressed_dname_count = q->dname_stored_count;
 	uint16_t added = 0;
+	int all_added = 1;
 	
 	for (i = 0; i < rrset->rrslen; ++i) {
-		if (!truncate) {
-			/* Truncate on RR level.  */
-			truncation_point = q->iobufptr;
-			compressed_dname_count = q->dname_stored_count;
-		}
-
-		generate_dname(q, owner);
-		type = htons(rrset->type);
-		QUERY_WRITE(q, &type, sizeof(type));
-		class = htons(rrset->class);
-		QUERY_WRITE(q, &class, sizeof(class));
-		ttl = htonl(rrset->ttl);
-		QUERY_WRITE(q, &ttl, sizeof(ttl));
-
-		/* Reserve space for rdlength. */
-		rdlength_pos = q->iobufptr;
-		QUERY_WRITE(q, &rdlength, sizeof(rdlength));
-
-		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
-			if (rdata_atom_is_domain(rrset->type, j)) {
-				generate_dname(q, rdata_atom_domain(rrset->rrs[i][j]));
-			} else {
-				QUERY_WRITE(q,
-					    rdata_atom_data(rrset->rrs[i][j]),
-					    rdata_atom_size(rrset->rrs[i][j]));
-			}
-		}
-
-		if (!q->overflow) {
+		if (generate_rr(q, owner, rrset, i)) {
 			++added;
-			rdlength = htons(q->iobufptr - rdlength_pos - sizeof(rdlength));
-			memcpy(rdlength_pos, &rdlength, sizeof(rdlength));
 		} else {
+			all_added = 0;
 			q->overflow = 0;
-			q->iobufptr = truncation_point;
-			query_clear_dname_offsets(q, compressed_dname_count);
 			if (truncate) {
 				/* Truncate entire RRset and set truncate flag.  */
+				q->iobufptr = truncation_point;
 				TC_SET(q);
 				added = 0;
+				query_clear_dname_offsets(q);
 			}
 			break;
 		}
 	}
 
 	(*count) += added;
+
+	return all_added;
 }
 
 static void
@@ -847,7 +883,6 @@ answer_query(struct nsd *nsd, struct query *q)
 	domain_type *temp;
 	uint16_t offset;
 	int exact;
-	size_t i;
 	
 	exact = namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser);
 	if (!closest_encloser->is_existing) {
@@ -910,10 +945,7 @@ answer_query(struct nsd *nsd, struct query *q)
 
 	generate_answer(q);
 
-	for (i = 0; i < q->dname_stored_count; ++i) {
-		q->dname_offsets[q->dname_stored[i]->number] = 0;
-	}
-	q->dname_stored_count = 0;
+	clear_compressed_dname_tables(q);
 }
 
 
@@ -1001,7 +1033,7 @@ query_process (struct query *q, struct nsd *nsd)
 		return 0;
 	}
 
-	if (answer_axfr_ixfr(nsd, q, qname, &axfr)) {
+	if (answer_axfr_ixfr(nsd, q, &axfr)) {
 		return axfr;
 	}
 

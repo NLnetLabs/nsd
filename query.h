@@ -160,10 +160,10 @@
 #define	IP6ADDRLEN		128/8
 
 /* Miscelaneous limits */
-#define	QIOBUFSZ	4096	/* Maximum size of returned packet.  */
+#define	QIOBUFSZ	4000	/* Maximum size of returned packet.  */
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
-#define	MAXRRSPP	1024	/* Maximum number of rr's per packet */
+#define	MAXRRSPP	10240	/* Maximum number of rr's per packet */
 
 /* Current amount of data in the query IO buffer.  */
 #define QUERY_USED_SIZE(q)  ((size_t) ((q)->iobufptr - (q)->iobuf))
@@ -215,7 +215,7 @@ struct query {
 	uint8_t iobuf[QIOBUFSZ];
 
 	int overflow;		/* True if the I/O buffer overflowed.  */
-	
+
 	answer_type answer;
 
 	/* Normalized query domain name.  */
@@ -246,6 +246,16 @@ struct query {
 	  */
 	uint16_t    *dname_offsets;
 	domain_type *dname_stored[MAXRRSPP];
+
+
+	/*
+	 * Used for AXFR processing.
+	 */
+	int          axfr_is_done;
+	zone_type   *axfr_zone;
+	rbnode_t    *axfr_current_domain;
+	rrset_type  *axfr_current_rrset;
+	uint16_t     axfr_current_rr;
 };
 
 static inline void
@@ -256,14 +266,6 @@ query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 	++q->dname_stored_count;
 }
 
-static inline void
-query_clear_dname_offsets(struct query *q, uint16_t downto)
-{
-	for (; q->dname_stored_count > downto; --q->dname_stored_count) {
-		q->dname_offsets[q->dname_stored[q->dname_stored_count - 1]->number] = 0;
-	}
-}
-
 static inline uint16_t
 query_get_dname_offset(struct query *q, domain_type *domain)
 {
@@ -271,7 +273,7 @@ query_get_dname_offset(struct query *q, domain_type *domain)
 }
 
 /* query.c */
-int query_axfr(struct nsd *nsd, struct query *q, const uint8_t *qname);
+int query_axfr(struct nsd *nsd, struct query *q);
 void query_init(struct query *q);
 void query_addtxt(struct query *q, uint8_t *dname, int16_t class, int32_t ttl, const char *txt);
 int query_process(struct query *q, struct nsd *nsd);

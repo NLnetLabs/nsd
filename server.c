@@ -662,7 +662,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 
 				/* Do we have AXFR in progress? */
 				if (axfr) {
-					axfr = query_axfr(nsd, &q, NULL);
+					axfr = query_axfr(nsd, &q);
 				}
 			} while (axfr);
 		} else {

@@ -41,7 +41,8 @@
 
 #include "rbtree.h"
 
-#define	heap_t	rbtree_t
+#define	heap_t	        rbtree_t
+#define heapnode_t      rbnode_t
 #define	heap_create	rbtree_create
 #define	heap_insert	rbtree_insert
 #define	heap_search	rbtree_search
