@@ -53,11 +53,11 @@ static int write_db (namedb_type *db);
 struct namedb *
 namedb_new (const char *filename)
 {
-	struct namedb *db;
+	namedb_type *db;
 	region_type *region = region_create(xalloc, free);
 	
 	/* Make a new structure... */
-	db = region_alloc(region, sizeof(namedb_type));
+	db = (namedb_type *) region_alloc(region, sizeof(namedb_type));
 	db->region = region;
 	db->domains = domain_table_create(region);
 	db->zones = NULL;
@@ -144,7 +144,7 @@ static int
 write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 {
 	uint32_t ttl;
-	uint16_t class;
+	uint16_t klass;
 	uint16_t type;
 	uint16_t rdcount;
 	uint16_t rrslen;
@@ -154,7 +154,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	assert(domain);
 	assert(rrset);
 	
-	class = htons(rrset->class);
+	klass = htons(rrset->klass);
 	type = htons(rrset->type);
 	rrslen = htons(rrset->rrslen);
 	
@@ -167,18 +167,14 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	if (!write_data(db->fd, &type, sizeof(type)))
 		return 0;
 		
-	if (!write_data(db->fd, &class, sizeof(class)))
+	if (!write_data(db->fd, &klass, sizeof(klass)))
 		return 0;
 		
 	if (!write_data(db->fd, &rrslen, sizeof(rrslen)))
 		return 0;
 		
 	for (i = 0; i < rrset->rrslen; ++i) {
-		rdcount = 0;
-		for (rdcount = 0; !rdata_atom_is_terminator(rrset->rrs[i]->rdata[rdcount]); ++rdcount)
-			;
-		
-		rdcount = htons(rdcount);
+		rdcount = htons(rrset->rrs[i]->rdata_count);
 		if (!write_data(db->fd, &rdcount, sizeof(rdcount)))
 			return 0;
 
@@ -186,7 +182,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 		if (!write_data(db->fd, &ttl, sizeof(ttl)))
 			return 0;
 
-		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i]->rdata[j]); ++j) {
+		for (j = 0; j < rrset->rrs[i]->rdata_count; ++j) {
 			rdata_atom_type atom = rrset->rrs[i]->rdata[j];
 			if (rdata_atom_is_domain(rrset->type, j)) {
 				if (!write_number(db, rdata_atom_domain(atom)->number))
@@ -209,7 +205,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 static void
 number_dnames_iterator(domain_type *node, void *user_data)
 {
-	uint32_t *current_number = user_data;
+	uint32_t *current_number = (uint32_t *) user_data;
 
 	node->number = *current_number;
 	++*current_number;
@@ -218,7 +214,7 @@ number_dnames_iterator(domain_type *node, void *user_data)
 static void
 write_dname_iterator(domain_type *node, void *user_data)
 {
-	struct namedb *db = user_data;
+	namedb_type *db = (namedb_type *) user_data;
 	
 	write_dname(db, node);
 }
@@ -226,8 +222,8 @@ write_dname_iterator(domain_type *node, void *user_data)
 static void
 write_domain_iterator(domain_type *node, void *user_data)
 {
-	struct namedb *db = user_data;
-	struct rrset *rrset;
+	namedb_type *db = (namedb_type *) user_data;
+	rrset_type *rrset;
 
 	for (rrset = node->rrsets; rrset; rrset = rrset->next) {
 		write_rrset(db, node, rrset);
@@ -254,7 +250,7 @@ write_db(namedb_type *db)
 		
 		if (!zone->soa_rrset) {
 			fprintf(stderr, "SOA record not present in %s\n",
-				dname_to_string(domain_dname(zone->domain)));
+				dname_to_string(domain_dname(zone->apex)));
 			++errors;
 		}
 	}
@@ -266,7 +262,7 @@ write_db(namedb_type *db)
 	if (!write_number(db, zone_count))
 		return -1;
 	for (zone = db->zones; zone; zone = zone->next) {
-		if (!write_dname(db, zone->domain))
+		if (!write_dname(db, zone->apex))
 			return -1;
 	}
 	

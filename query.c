@@ -65,11 +65,11 @@
 #include "query.h"
 #include "util.h"
 
-static int add_rrset(struct query       *query,
-		     answer_type        *answer,
-		     answer_section_type section,
-		     domain_type        *owner,
-		     rrset_type         *rrset);
+static int add_rrset(struct query  *query,
+		     answer_type    *answer,
+		     rr_section_type section,
+		     domain_type    *owner,
+		     rrset_type     *rrset);
 
 static void answer_authoritative(struct query     *q,
 				 answer_type      *answer,
@@ -170,7 +170,7 @@ query_init(struct query *q, region_type *region, uint16_t *compressed_dname_offs
 	q->zone = NULL;
 	q->domain = NULL;
 	q->opcode = 0;
-	q->class = 0;
+	q->klass = 0;
 	q->type = 0;
 	q->cname_count = 0;
 	q->delegation_domain = NULL;
@@ -187,7 +187,7 @@ query_init(struct query *q, region_type *region, uint16_t *compressed_dname_offs
 static void 
 query_addtxt(struct query  *q,
 	     const uint8_t *dname,
-	     uint16_t       class,
+	     uint16_t       klass,
 	     uint32_t       ttl,
 	     const char    *txt)
 {
@@ -204,7 +204,7 @@ query_addtxt(struct query  *q,
 	}
 
 	query_write_u16(q, TYPE_TXT);
-	query_write_u16(q, class);
+	query_write_u16(q, klass);
 	query_write_u32(q, ttl);
 	query_write_u16(q, len + 1);
 	query_write_u8(q, len);
@@ -266,9 +266,9 @@ process_query_section(struct query *query)
 
 	query->opcode = OPCODE(query);
 	memcpy(&query->type, src, sizeof(uint16_t));
-	memcpy(&query->class, src + sizeof(uint16_t), sizeof(uint16_t));
+	memcpy(&query->klass, src + sizeof(uint16_t), sizeof(uint16_t));
 	query->type = ntohs(query->type);
-	query->class = ntohs(query->class);
+	query->klass = ntohs(query->klass);
 	
 	return src + 2*sizeof(uint16_t);
 }
@@ -330,13 +330,30 @@ process_edns (struct query *q, uint8_t *qptr)
 				q->edns = -1;
 			} else {
 				/* Only care about UDP size larger than normal... */
-				if (!q->tcp && opt_class > UDP_MAX_MESSAGE_LEN) {
-					/* XXX Configuration parameter to limit the size needs to be here... */
-					if (opt_class < MAX_PACKET_SIZE) {
+				if (!q->tcp
+				    && opt_class > UDP_MAX_MESSAGE_LEN)
+				{
+					if (opt_class < EDNS_MAX_MESSAGE_LEN) {
 						q->maxlen = opt_class;
 					} else {
-						q->maxlen = MAX_PACKET_SIZE;
+						q->maxlen = EDNS_MAX_MESSAGE_LEN;
 					}
+
+#if defined(INET6) && !defined(IPV6_USE_MIN_MTU)
+					/*
+					 * Use IPv6 minimum MTU to
+					 * avoid sending packets that
+					 * are too large for some
+					 * links.  IPv6 will not
+					 * automatically fragment in
+					 * this case (unlike IPv4).
+					 */
+					if (q->addr.ss_family == AF_INET6
+					    && q->maxlen > IPV6_MIN_MTU)
+					{
+						q->maxlen = IPV6_MIN_MTU;
+					}
+#endif
 				}
 
 #ifdef STRICT_MESSAGE_PARSE
@@ -353,7 +370,7 @@ process_edns (struct query *q, uint8_t *qptr)
 				ARCOUNT(q) = 0;
 
 				DEBUG(DEBUG_QUERY, 2,
-				      (stderr, "EDNS0 maxlen = %u\n", q->maxlen));
+				      (stderr, "EDNS0 maxlen = %lu\n", (unsigned long) q->maxlen));
 			}
 		}
 	}
@@ -450,15 +467,35 @@ find_covering_nsec(domain_type *closest_match, zone_type *zone, rrset_type **nse
 		if (*nsec_rrset)
 			return closest_match;
 		closest_match = (domain_type *) heap_previous((rbnode_t *) closest_match);
-	} while (closest_match != zone->domain);
+	} while (closest_match != zone->apex);
 	return NULL;
 }
 
 
+struct additional_rr_types
+{
+	uint16_t        rr_type;
+	rr_section_type rr_section;
+};
+
+struct additional_rr_types default_additional_rr_types[] = {
+	{ TYPE_A, ADDITIONAL_A_SECTION },
+	{ TYPE_AAAA, ADDITIONAL_AAAA_SECTION },
+	{ 0, (rr_section_type) 0 }
+};
+
+struct additional_rr_types rt_additional_rr_types[] = {
+	{ TYPE_A, ADDITIONAL_A_SECTION },
+	{ TYPE_AAAA, ADDITIONAL_AAAA_SECTION },
+	{ TYPE_X25, ADDITIONAL_OTHER_SECTION },
+	{ TYPE_ISDN, ADDITIONAL_OTHER_SECTION },
+	{ 0, (rr_section_type) 0 }
+};
+
 static void
 add_additional_rrsets(struct query *query, answer_type *answer,
-		      rrset_type *master_rrset,
-		      size_t rdata_index, int allow_glue)
+		      rrset_type *master_rrset, size_t rdata_index,
+		      int allow_glue, struct additional_rr_types types[])
 {
 	size_t i;
 	
@@ -468,7 +505,7 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 	assert(rdata_atom_is_domain(master_rrset->type, rdata_index));
 	
 	for (i = 0; i < master_rrset->rrslen; ++i) {
-		rrset_type *rrset;
+		int j;
 		domain_type *additional = rdata_atom_domain(master_rrset->rrs[i]->rdata[rdata_index]);
 		domain_type *match = additional;
 		
@@ -486,7 +523,8 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 		}
 		if (additional != match && domain_wildcard_child(match)) {
 			domain_type *wildcard_child = domain_wildcard_child(match);
-			domain_type *temp = region_alloc(query->region, sizeof(domain_type));
+			domain_type *temp = (domain_type *) region_alloc(
+				query->region, sizeof(domain_type));
 			memcpy(&temp->node, &additional->node, sizeof(rbnode_t));
 			temp->number = additional->number;
 			temp->parent = match;
@@ -499,21 +537,23 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 			additional = temp;
 		}
 
-		if ((rrset = domain_find_rrset(additional, query->zone, TYPE_A))) {
-			answer_add_rrset(answer, ADDITIONAL_A_SECTION, additional, rrset);
-		}
-		if ((rrset = domain_find_rrset(additional, query->zone, TYPE_AAAA))) {
-			answer_add_rrset(answer, ADDITIONAL_AAAA_SECTION, additional, rrset);
+		for (j = 0; types[j].rr_type != 0; ++j) {
+			rrset_type *rrset = domain_find_rrset(
+				additional, query->zone, types[j].rr_type);
+			if (rrset) {
+				answer_add_rrset(answer, types[j].rr_section,
+						 additional, rrset);
+			}
 		}
 	}
 }
 
 static int
-add_rrset(struct query       *query,
-	  answer_type        *answer,
-	  answer_section_type section,
-	  domain_type        *owner,
-	  rrset_type         *rrset)
+add_rrset(struct query   *query,
+	  answer_type    *answer,
+	  rr_section_type section,
+	  domain_type    *owner,
+	  rrset_type     *rrset)
 {
 	int result;
 	
@@ -521,18 +561,26 @@ add_rrset(struct query       *query,
 	assert(answer);
 	assert(owner);
 	assert(rrset);
-	assert(rrset->class == CLASS_IN);
+	assert(rrset->klass == CLASS_IN);
 	
 	result = answer_add_rrset(answer, section, owner, rrset);
 	switch (rrset->type) {
 	case TYPE_NS:
-		add_additional_rrsets(query, answer, rrset, 0, 1);
+		add_additional_rrsets(query, answer, rrset, 0, 1,
+				      default_additional_rr_types);
 		break;
 	case TYPE_MB:
-		add_additional_rrsets(query, answer, rrset, 0, 0);
+		add_additional_rrsets(query, answer, rrset, 0, 0,
+				      default_additional_rr_types);
 		break;
 	case TYPE_MX:
-		add_additional_rrsets(query, answer, rrset, 1, 0);
+	case TYPE_KX:
+		add_additional_rrsets(query, answer, rrset, 1, 0,
+				      default_additional_rr_types);
+		break;
+	case TYPE_RT:
+		add_additional_rrsets(query, answer, rrset, 1, 0,
+				      rt_additional_rr_types);
 		break;
 	default:
 		break;
@@ -581,12 +629,12 @@ answer_delegation(struct query *query, answer_type *answer)
 static void
 answer_soa(struct query *query, answer_type *answer)
 {
-	query->domain = query->zone->domain;
+	query->domain = query->zone->apex;
 	
-	if (query->class != CLASS_ANY) {
+	if (query->klass != CLASS_ANY) {
 		add_rrset(query, answer,
 			  AUTHORITY_SECTION,
-			  query->zone->domain,
+			  query->zone->apex,
 			  query->zone->soa_rrset);
 	}
 }
@@ -688,8 +736,9 @@ answer_domain(struct query *q, answer_type *answer,
 
 	q->domain = domain;
 	
-	if (q->class != CLASS_ANY && q->zone->ns_rrset) {
-		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->domain, q->zone->ns_rrset);
+	if (q->klass != CLASS_ANY && q->zone->ns_rrset) {
+		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->apex,
+			  q->zone->ns_rrset);
 	}
 }
 
@@ -720,7 +769,8 @@ answer_authoritative(struct query *q,
 		/* Generate the domain from the wildcard.  */
 		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
 
-		match = region_alloc(q->region, sizeof(domain_type));
+		match = (domain_type *) region_alloc(q->region,
+						     sizeof(domain_type));
 		memcpy(&match->node, &wildcard_child->node, sizeof(rbnode_t));
 		match->parent = closest_encloser;
 		match->wildcard_child_closest_match = match;
@@ -809,7 +859,7 @@ answer_query(struct nsd *nsd, struct query *q)
 	 * See 3.1.4.1 Responding to Queries for DS RRs in DNSSEC
 	 * protocol.
 	 */
-	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->domain) {
+	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at a zone cut, use the responsible
 		 * parent zone to generate the answer if we are
@@ -820,12 +870,12 @@ answer_query(struct nsd *nsd, struct query *q)
 			q->zone = zone;
 	}
 
-	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->domain) {
+	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at the zone apex (and the server is
 		 * not authoratitive for the parent zone).
 		 */
-		if (q->class == CLASS_ANY) {
+		if (q->klass == CLASS_ANY) {
 			AA_CLR(q);
 		} else {
 			AA_SET(q);
@@ -838,7 +888,7 @@ answer_query(struct nsd *nsd, struct query *q)
 		if (!q->delegation_domain
 		    || (exact && q->type == TYPE_DS && closest_encloser == q->delegation_domain))
 		{
-			if (q->class == CLASS_ANY) {
+			if (q->klass == CLASS_ANY) {
 				AA_CLR(q);
 			} else {
 				AA_SET(q);
@@ -887,7 +937,7 @@ query_process(struct query *q, struct nsd *nsd)
 	/* Update statistics.  */
 	STATUP2(nsd, opcode, q->opcode);
 	STATUP2(nsd, qtype, q->type);
-	STATUP2(nsd, qclass, q->class);
+	STATUP2(nsd, qclass, q->klass);
 
 	if (q->opcode != OPCODE_QUERY) {
 		if (q->opcode == OPCODE_NOTIFY) {
@@ -941,8 +991,8 @@ query_process(struct query *q, struct nsd *nsd)
 	if (checking_disabled)
 		CD_SET(q);	/* Restore the CD flag.  */
 	
-	if (q->class != CLASS_IN && q->class != CLASS_ANY) {
-		if (q->class == CLASS_CHAOS) {
+	if (q->klass != CLASS_IN && q->klass != CLASS_ANY) {
+		if (q->klass == CLASS_CHAOS) {
 			return answer_chaos(nsd, q);
 		} else {
 			query_error(q, RCODE_REFUSE);
@@ -962,17 +1012,23 @@ query_process(struct query *q, struct nsd *nsd)
 
 void
 query_addedns(struct query *q, struct nsd *nsd) {
+	struct edns_data *edns = &nsd->edns_ipv4;
+#if defined(INET6)
+	if (q->addr.ss_family == AF_INET6) {
+		edns = &nsd->edns_ipv6;
+	}
+#endif
 	switch (q->edns) {
 	case 1:	/* EDNS(0) packet... */
 		q->maxlen += OPT_LEN;
-		query_write(q, nsd->edns.opt_ok, OPT_LEN);
+		query_write(q, edns->ok, OPT_LEN);
 		ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 
 		STATUP(nsd, edns);
 		break;
 	case -1: /* EDNS(0) error... */
 		q->maxlen += OPT_LEN;
-		query_write(q, nsd->edns.opt_err, OPT_LEN);
+		query_write(q, edns->error, OPT_LEN);
 		ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 
 		STATUP(nsd, ednserr);

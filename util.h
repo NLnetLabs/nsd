@@ -128,7 +128,7 @@ copy_uint16(void *dst, uint16_t data)
 #ifdef ALLOW_UNALIGNED_ACCESSES
 	* (uint16_t *) dst = htons(data);
 #else
-	uint8_t *p = dst;
+	uint8_t *p = (uint8_t *) dst;
 	p[0] = (uint8_t) ((data >> 8) & 0xff);
 	p[1] = (uint8_t) (data & 0xff);
 #endif
@@ -140,7 +140,7 @@ copy_uint32(void *dst, uint32_t data)
 #ifdef ALLOW_UNALIGNED_ACCESSES
 	* (uint32_t *) dst = htonl(data);
 #else
-	uint8_t *p = dst;
+	uint8_t *p = (uint8_t *) dst;
 	p[0] = (uint8_t) ((data >> 24) & 0xff);
 	p[1] = (uint8_t) ((data >> 16) & 0xff);
 	p[2] = (uint8_t) ((data >> 8) & 0xff);

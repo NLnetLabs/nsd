@@ -84,7 +84,7 @@ register_data(
 
 	if (!domain->plugin_data) {
 		domain->plugin_data
-			= region_alloc_zero(
+			= (void **) region_alloc_zero(
 				nsd->nsd->db->region,
 				maximum_plugin_count * sizeof(void *));
 	}
@@ -149,7 +149,8 @@ plugin_load(struct nsd *nsd, const char *name, const char *arg)
 		return 0;
 	}
 
-	plugin = region_alloc(nsd->region, sizeof(struct nsd_plugin));
+	plugin = (nsd_plugin_type *) region_alloc(nsd->region,
+					     sizeof(struct nsd_plugin));
 	plugin->next = NULL;
 	plugin->handle = handle;
 	plugin->id = plugin_count;
@@ -236,7 +237,7 @@ function_name(								\
 MAKE_PERFORM_CALLBACKS(query_received_callbacks, query_received)
 MAKE_PERFORM_CALLBACKS(query_processed_callbacks, query_processed)
 
-int
+query_state_type
 handle_callback_result(
 	nsd_plugin_callback_result_type result,
 	nsd_plugin_callback_args_type *args)
@@ -244,16 +245,16 @@ handle_callback_result(
 	switch (result) {
 	case NSD_PLUGIN_CONTINUE:
 	case NSD_PLUGIN_ANSWER:
-		return 0;
+		return QUERY_PROCESSED;
 	case NSD_PLUGIN_ERROR:
 		query_error(args->query, args->result_code);
-		return 0;
+		return QUERY_PROCESSED;
 	case NSD_PLUGIN_ABANDON:
-		return -1;
+		return QUERY_DISCARDED;
 	default:
 		log_msg(LOG_WARNING, "bad callback result code %d from plugin",
 			(int) result);
-		return -1;
+		return QUERY_DISCARDED;
 	}
 }
 

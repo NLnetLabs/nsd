@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,2.1.1,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,2.1.2,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 dnl
@@ -429,6 +429,12 @@ AH_BOTTOM([
 #else /* !HAVE_ATTR_UNUSED */
 #define ATTR_UNUSED /* empty */
 #endif /* !HAVE_ATTR_UNUSED */
+])
+
+AH_BOTTOM([
+#ifndef IPV6_MIN_MTU
+#define IPV6_MIN_MTU 1280
+#endif
 ])
 
 AC_CONFIG_FILES([Makefile])

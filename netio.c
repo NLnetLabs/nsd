@@ -38,7 +38,7 @@ netio_create(region_type *region)
 	
 	assert(region);
 
-	result = region_alloc(region, sizeof(netio_type));
+	result = (netio_type *) region_alloc(region, sizeof(netio_type));
 	result->region = region;
 	result->handlers = NULL;
 	result->deallocated = NULL;
@@ -64,7 +64,8 @@ netio_add_handler(netio_type *netio, netio_handler_type *handler)
 		/*
 		 * Allocate a new one.
 		 */
-		elt = region_alloc(netio->region, sizeof(netio_handler_list_type));
+		elt = (netio_handler_list_type *) region_alloc(
+			netio->region, sizeof(netio_handler_list_type));
 	}
 
 	elt->next = netio->handlers;
@@ -225,7 +226,8 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 			netio_handler_list_type *next = elt->next;
 			netio_handler_type *handler = elt->handler;
 			if (handler->fd >= 0) {
-				netio_event_types_type event_types = 0;
+				netio_event_types_type event_types
+					= NETIO_EVENT_NONE;
 				if (FD_ISSET(handler->fd, &readfds)) {
 					event_types |= NETIO_EVENT_READ;
 				}

@@ -227,7 +227,7 @@ struct query {
 	uint8_t opcode;
 	
 	/* Query class and type in host byte order.  */
-	uint16_t class;
+	uint16_t klass;
 	uint16_t type;
 
 	/*

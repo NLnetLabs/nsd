@@ -64,7 +64,8 @@ allocate_domain_info(domain_table_type *table,
 	assert(dname);
 	assert(parent);
 	
-	result = region_alloc(table->region, sizeof(domain_type));
+	result = (domain_type *) region_alloc(table->region,
+					      sizeof(domain_type));
 	result->node.key = dname_partial_copy(
 		table->region, dname, domain_dname(parent)->label_count + 1);
 	result->parent = parent;
@@ -90,7 +91,7 @@ domain_table_create(region_type *region)
 	
 	origin = dname_make(region, (uint8_t *) "");
 
-	root = region_alloc(region, sizeof(domain_type));
+	root = (domain_type *) region_alloc(region, sizeof(domain_type));
 	root->node.key = origin;
 	root->parent = NULL;
 	root->rrsets = NULL;
@@ -100,7 +101,8 @@ domain_table_create(region_type *region)
 #endif
 	root->is_existing = 0;
 	
-	result = region_alloc(region, sizeof(domain_table_type));
+	result = (domain_table_type *) region_alloc(region,
+						    sizeof(domain_table_type));
 	result->region = region;
 	result->names_to_domains = heap_create(
 		region, (int (*)(const void *, const void *)) dname_compare);
@@ -289,7 +291,7 @@ domain_find_parent_zone(zone_type *zone)
 
 	assert(zone);
 
-	for (rrset = zone->domain->rrsets; rrset; rrset = rrset->next) {
+	for (rrset = zone->apex->rrsets; rrset; rrset = rrset->next) {
 		if (rrset->zone != zone && rrset->type == TYPE_NS) {
 			return rrset->zone;
 		}
@@ -300,7 +302,7 @@ domain_find_parent_zone(zone_type *zone)
 domain_type *
 domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
 {
-	while (domain && domain != zone->domain) {
+	while (domain && domain != zone->apex) {
 		*ns = domain_find_rrset(domain, zone, TYPE_NS);
 		if (*ns)
 			return domain;
@@ -347,43 +349,26 @@ rrset_rrsig_type_covered(rrset_type *rrset, uint16_t rr)
 	
 	assert(rrset->type == TYPE_RRSIG);
 	assert(rr < rrset->rrslen);
-
+	assert(rrset->rrs[rr]->rdata_count > 0);
+	
 	atom = rrset->rrs[rr]->rdata[0];
-	assert(!rdata_atom_is_terminator(atom));
 	assert(rdata_atom_size(atom) == sizeof(uint16_t));
 	
 	return ntohs(* (uint16_t *) rdata_atom_data(atom));
 }
 
-/*
- * The type of the rdatas for each known RR type.  The possible types
- * are:
- *
- *   2 - 2 octet field.
- *   4 - 4 octet field
- *   d - a compressable domain name.
- *   X - no rdata at this position.
- */
-const char *rdata_types[] =
+zone_type *
+namedb_find_zone(namedb_type *db, domain_type *domain)
 {
-	"XX",
-	"XX",			/*  1, A */
-	"dX",			/*  2, NS */
-	"dX",			/*  3, MD */
-	"dX",			/*  4, MF */
-	"dX",			/*  5, CNAME */
-	"dd44444",		/*  6, SOA */
-	"dX",			/*  7, MB */
-	"dX",			/*  8, MG */
-	"dX",			/*  9, MR */
-	"XX",			/* 10, NULL */
-	"XX",			/* 11, WKS */
-	"dX",			/* 12, PTR */
-	"XX",			/* 13, HINFO */
-	"dd",			/* 14, MINFO */
-	"2d",			/* 15, MX */
-	"XX",			/* 16, TXT */
-};
+	zone_type *zone;
+
+	for (zone = db->zones; zone; zone = zone->next) {
+		if (zone->apex == domain)
+			break;
+	}
+
+	return zone;
+}
 
 #ifdef TEST
 

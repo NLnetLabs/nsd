@@ -50,12 +50,12 @@ answer_init(answer_type *answer)
 }
 
 int
-answer_add_rrset(answer_type *answer, answer_section_type section,
+answer_add_rrset(answer_type *answer, rr_section_type section,
 		 domain_type *domain, rrset_type *rrset)
 {
 	size_t i;
 	
-	assert(section >= ANSWER_SECTION && section <= ADDITIONAL_AAAA_SECTION);
+	assert(section >= ANSWER_SECTION && section < RR_SECTION_COUNT);
 	assert(domain);
 	assert(rrset);
 
@@ -126,20 +126,31 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 
 	encode_dname(q, owner);
 	query_write_u16(q, rrset->type);
-	query_write_u16(q, rrset->class);
+	query_write_u16(q, rrset->klass);
 	query_write_u32(q, rrset->rrs[rr]->ttl);
 
 	/* Reserve space for rdlength. */
 	rdlength_pos = q->iobufptr;
 	q->iobufptr += sizeof(rdlength);
 
-	for (j = 0; !rdata_atom_is_terminator(rrset->rrs[rr]->rdata[j]); ++j) {
-		if (rdata_atom_is_domain(rrset->type, j)) {
-			encode_dname(q, rdata_atom_domain(rrset->rrs[rr]->rdata[j]));
-		} else {
+	for (j = 0; j < rrset->rrs[rr]->rdata_count; ++j) {
+		switch (rdata_atom_wireformat_type(rrset->type, j)) {
+		case RDATA_WF_COMPRESSED_DNAME:
+			encode_dname(q, rdata_atom_domain(
+					     rrset->rrs[rr]->rdata[j]));
+			break;
+		case RDATA_WF_UNCOMPRESSED_DNAME:
+		{
+			const dname_type *dname = domain_dname(
+				rdata_atom_domain(rrset->rrs[rr]->rdata[j]));
+			query_write(q, dname_name(dname), dname->name_size);
+			break;
+		}
+		default:
 			query_write(q,
 				    rdata_atom_data(rrset->rrs[rr]->rdata[j]),
 				    rdata_atom_size(rrset->rrs[rr]->rdata[j]));
+			break;
 		}
 	}
 
@@ -216,11 +227,11 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 void
 encode_answer(struct query *q, const answer_type *answer)
 {
-	uint16_t counts[ADDITIONAL_AAAA_SECTION + 1];
-	answer_section_type section;
+	uint16_t counts[RR_SECTION_COUNT];
+	rr_section_type section;
 	size_t i;
 
-	for (section = ANSWER_SECTION; section <= ADDITIONAL_AAAA_SECTION; ++section) {
+	for (section = ANSWER_SECTION; section < RR_SECTION_COUNT; ++section) {
 		counts[section] = 0;
 		for (i = 0; !query_overflow(q) && i < answer->rrset_count; ++i) {
 			if (answer->section[i] == section) {
@@ -236,5 +247,7 @@ encode_answer(struct query *q, const answer_type *answer)
 
 	ANCOUNT(q) = htons(counts[ANSWER_SECTION]);
 	NSCOUNT(q) = htons(counts[AUTHORITY_SECTION]);
-	ARCOUNT(q) = htons(counts[ADDITIONAL_A_SECTION] + counts[ADDITIONAL_AAAA_SECTION]);
+	ARCOUNT(q) = htons(counts[ADDITIONAL_A_SECTION]
+			   + counts[ADDITIONAL_AAAA_SECTION]
+			   + counts[ADDITIONAL_OTHER_SECTION]);
 }

@@ -64,7 +64,8 @@ rbtree_create (region_type *region, int (*cmpf)(const void *, const void *))
 	rbtree_t *rbtree;
 
 	/* Allocate memory for it */
-	if ((rbtree = region_alloc(region, sizeof(rbtree_t))) == NULL) {
+	rbtree = (rbtree_t *) region_alloc(region, sizeof(rbtree_t));
+	if (!rbtree) {
 		return NULL;
 	}
 

@@ -56,7 +56,7 @@ nsd_plugin_callback_result_type query_received_callbacks(
 nsd_plugin_callback_result_type query_processed_callbacks(
 	nsd_plugin_callback_args_type *args,
 	void **data);
-int handle_callback_result(
+query_state_type handle_callback_result(
 	nsd_plugin_callback_result_type result,
 	nsd_plugin_callback_args_type *args);
 

@@ -94,6 +94,12 @@ struct nsd_child
 	pid_t pid;
 };
 
+struct edns_data
+{
+	char ok[OPT_LEN];
+	char error[OPT_LEN];
+};
+
 /* NSD configuration and run-time variables */
 struct	nsd {
 	/*
@@ -130,11 +136,10 @@ struct	nsd {
 	/* UDP specific configuration */
 	struct nsd_socket udp[MAX_INTERFACES];
 
-	struct {
-		uint16_t	max_msglen;
-		char		opt_ok[OPT_LEN];
-		char		opt_err[OPT_LEN];
-	} edns;
+	struct edns_data  edns_ipv4;	
+#if defined(INET6)
+	struct edns_data  edns_ipv6;
+#endif
 
 	int maximum_tcp_count;
 	int current_tcp_count;

@@ -378,6 +378,21 @@ bind8_stats (struct nsd *nsd)
 extern char *optarg;
 extern int optind;
 
+static void
+initialize_edns(struct edns_data *data, uint16_t max_length)
+{
+	memset(data, 0, sizeof(struct edns_data));
+	data->ok[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
+	data->ok[2] = TYPE_OPT & 0x00ff;	/* type_lo */
+	data->ok[3] = (max_length & 0xff00) >> 8; /* size_hi */
+	data->ok[4] = max_length & 0x00ff;	  /* size_lo */
+	data->error[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
+	data->error[2] = TYPE_OPT & 0x00ff;		/* type_lo */
+	data->error[3] = (max_length & 0xff00) >> 8;	/* size_hi */
+	data->error[4] = max_length & 0x00ff;		/* size_lo */
+	data->error[5] = 1;	/* XXX Extended RCODE=BAD VERS */
+}
+
 int 
 main (int argc, char *argv[])
 {
@@ -397,7 +412,7 @@ main (int argc, char *argv[])
 	
 #ifdef PLUGINS
 	nsd_plugin_id_type plugin_count = 0;
-	char **plugins = xalloc(sizeof(char *));
+	char **plugins = (char **) xalloc(sizeof(char *));
 	maximum_plugin_count = 1;
 #endif /* PLUGINS */
 
@@ -432,17 +447,14 @@ main (int argc, char *argv[])
 	nsd.current_tcp_count = 0;
 	
 	/* EDNS0 */
-	nsd.edns.max_msglen = EDNS_MAX_MESSAGE_LEN;
-	nsd.edns.opt_ok[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
-	nsd.edns.opt_ok[2] = TYPE_OPT & 0x00ff;	/* type_lo */
-	nsd.edns.opt_ok[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
-	nsd.edns.opt_ok[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
-
-	nsd.edns.opt_err[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
-	nsd.edns.opt_err[2] = TYPE_OPT & 0x00ff;	/* type_lo */
-	nsd.edns.opt_err[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
-	nsd.edns.opt_err[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
-	nsd.edns.opt_err[5] = 1;			/* XXX Extended RCODE=BAD VERS */
+	initialize_edns(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
+#if defined(INET6)
+# if defined(IPV6_USE_MIN_MTU)
+	initialize_edns(&nsd.edns_ipv6, EDNS_MAX_MESSAGE_LEN);
+# else /* !defined(IPV6_USE_MIN_MTU) */
+	initialize_edns(&nsd.edns_ipv6, IPV6_MIN_MTU);
+# endif
+#endif
 
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
@@ -531,7 +543,9 @@ main (int argc, char *argv[])
 #ifdef PLUGINS
 			if (plugin_count == maximum_plugin_count) {
 				maximum_plugin_count *= 2;
-				plugins = xrealloc(plugins, maximum_plugin_count * sizeof(char *));
+				plugins = (char **) xrealloc(
+					plugins,
+					maximum_plugin_count * sizeof(char *));
 			}
 			plugins[plugin_count] = optarg;
 			++plugin_count;
@@ -567,7 +581,7 @@ main (int argc, char *argv[])
 	}
 	
 	/* Number of child servers to fork.  */
-	nsd.children = region_alloc(
+	nsd.children = (struct nsd_child *) region_alloc(
 		nsd.region, nsd.child_count * sizeof(struct nsd_child));
 	for (i = 0; i < nsd.child_count; ++i) {
 		nsd.children[i].kind = NSD_SERVER_BOTH;

@@ -65,13 +65,12 @@ namedb_lookup(struct namedb    *db,
 static int
 read_magic(namedb_type *db)
 {
-	static const char magic[NAMEDB_MAGIC_SIZE] = NAMEDB_MAGIC;
 	char buf[NAMEDB_MAGIC_SIZE];
 
 	if (fread(buf, sizeof(char), sizeof(buf), db->fd) != sizeof(buf))
 		return 0;
 
-	return memcmp(buf, magic, NAMEDB_MAGIC_SIZE) == 0;
+	return memcmp(buf, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == 0;
 }
 
 static const dname_type *
@@ -133,8 +132,8 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count
 	uint8_t data[65536];
 
 	if (rdata_atom_is_domain(type, index)) {
-		result->data = read_domain(db, domain_count, domains);
-		if (!result->data)
+		result->domain = read_domain(db, domain_count, domains);
+		if (!result->domain)
 			return 0;
 	} else {
 		uint16_t size;
@@ -145,7 +144,8 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count
 		if (fread(data, sizeof(uint8_t), size, db->fd) != size)
 			return 0;
 
-		result->data = region_alloc(db->region, sizeof(uint16_t) + size);
+		result->data = (uint16_t *) region_alloc(
+			db->region, sizeof(uint16_t) + size);
 		memcpy(result->data, &size, sizeof(uint16_t));
 		memcpy((uint8_t *) result->data + sizeof(uint16_t), data, size);
 	}
@@ -168,7 +168,7 @@ read_rrset(namedb_type *db,
 	if (!owner)
 		return 0;
 
-	rrset = region_alloc(db->region, sizeof(rrset_type));
+	rrset = (rrset_type *) region_alloc(db->region, sizeof(rrset_type));
 			     
 	rrset->zone = read_zone(db, zone_count, zones);
 	if (!rrset->zone)
@@ -177,17 +177,18 @@ read_rrset(namedb_type *db,
 	if (fread(&rrset->type, sizeof(rrset->type), 1, db->fd) != 1)
 		return 0;
 
-	if (fread(&rrset->class, sizeof(rrset->class), 1, db->fd) != 1)
+	if (fread(&rrset->klass, sizeof(rrset->klass), 1, db->fd) != 1)
 		return 0;
 
 	if (fread(&rrset->rrslen, sizeof(rrset->rrslen), 1, db->fd) != 1)
 		return 0;
 
 	rrset->type = ntohs(rrset->type);
-	rrset->class = ntohs(rrset->class);
+	rrset->klass = ntohs(rrset->klass);
 	rrset->rrslen = ntohs(rrset->rrslen);
 
-	rrset->rrs = region_alloc(db->region, rrset->rrslen * sizeof(rrdata_type *));
+	rrset->rrs = (rrdata_type **) region_alloc(
+		db->region, rrset->rrslen * sizeof(rrdata_type *));
 	
 	for (i = 0; i < rrset->rrslen; ++i) {
 		if (fread(&rdcount, sizeof(rdcount), 1, db->fd) != 1)
@@ -198,27 +199,28 @@ read_rrset(namedb_type *db,
 
 		rdcount = ntohs(rdcount);
 		
-		rrset->rrs[i] = region_alloc(db->region, rrdata_size(rdcount));
+		rrset->rrs[i] = (rrdata_type *) region_alloc(
+			db->region, rrdata_size(rdcount));
 		rrset->rrs[i]->ttl = ntohl(ttl);
+		rrset->rrs[i]->rdata_count = rdcount;
 		
 		for (j = 0; j < rdcount; ++j) {
 			if (!read_rdata_atom(db, rrset->type, j, domain_count, domains, &rrset->rrs[i]->rdata[j]))
 				return 0;
 		}
-		rrset->rrs[i]->rdata[rdcount].data = NULL;
 	}
 
 	domain_add_rrset(owner, rrset);
 
 	if (rrset->type == TYPE_SOA) {
-		assert(owner == rrset->zone->domain);
+		assert(owner == rrset->zone->apex);
 		rrset->zone->soa_rrset = rrset;
-	} else if (owner == rrset->zone->domain && rrset->type == TYPE_NS) {
+	} else if (owner == rrset->zone->apex && rrset->type == TYPE_NS) {
 		rrset->zone->ns_rrset = rrset;
 	}
 
 #ifdef DNSSEC
-	if (rrset->type == TYPE_RRSIG && owner == rrset->zone->domain) {
+	if (rrset->type == TYPE_RRSIG && owner == rrset->zone->apex) {
 		for (i = 0; i < rrset->rrslen; ++i) {
 			if (rrset_rrsig_type_covered(rrset, i) == TYPE_SOA) {
 				rrset->zone->is_secure = 1;
@@ -266,18 +268,18 @@ namedb_open (const char *filename)
 	uint32_t rrset_count = 0;
 	
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(namedb_type) = %d\n", sizeof(namedb_type)));
+	      (stderr, "sizeof(namedb_type) = %lu\n", (unsigned long) sizeof(namedb_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(zone_type) = %d\n", sizeof(zone_type)));
+	      (stderr, "sizeof(zone_type) = %lu\n", (unsigned long) sizeof(zone_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(domain_type) = %d\n", sizeof(domain_type)));
+	      (stderr, "sizeof(domain_type) = %lu\n", (unsigned long) sizeof(domain_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(rrset_type) = %d\n", sizeof(rrset_type)));
+	      (stderr, "sizeof(rrset_type) = %lu\n", (unsigned long) sizeof(rrset_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(rbnode_t) = %d\n", sizeof(rbnode_t)));
+	      (stderr, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
 
 	db_region = region_create(xalloc, free);
-	db = region_alloc(db_region, sizeof(struct namedb));
+	db = (namedb_type *) region_alloc(db_region, sizeof(struct namedb));
 	db->region = db_region;
 	db->domains = domain_table_create(db->region);
 	db->zones = NULL;
@@ -308,7 +310,8 @@ namedb_open (const char *filename)
 	temp_region = region_create(xalloc, free);
 	dname_region = region_create(xalloc, free);
 	
-	zones = region_alloc(temp_region, zone_count * sizeof(zone_type *));
+	zones = (zone_type **) region_alloc(temp_region,
+					    zone_count * sizeof(zone_type *));
 	for (i = 0; i < zone_count; ++i) {
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
@@ -318,10 +321,11 @@ namedb_open (const char *filename)
 			namedb_close(db);
 			return NULL;
 		}
-		zones[i] = region_alloc(db->region, sizeof(zone_type));
+		zones[i] = (zone_type *) region_alloc(db->region,
+						      sizeof(zone_type));
 		zones[i]->next = db->zones;
 		db->zones = zones[i];
-		zones[i]->domain = domain_table_insert(db->domains, dname);
+		zones[i]->apex = domain_table_insert(db->domains, dname);
 		zones[i]->soa_rrset = NULL;
 		zones[i]->ns_rrset = NULL;
 		zones[i]->number = i + 1;
@@ -341,7 +345,8 @@ namedb_open (const char *filename)
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (stderr, "Retrieving %lu domain names\n", (unsigned long) dname_count));
 	
-	domains = region_alloc(temp_region, dname_count * sizeof(domain_type *));
+	domains = (domain_type **) region_alloc(
+		temp_region, dname_count * sizeof(domain_type *));
 	for (i = 0; i < dname_count; ++i) {
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
