@@ -196,8 +196,7 @@ static void handle_tcp_writing(netio_type *netio,
  * Change the event types the HANDLERS are interested in to
  * EVENT_TYPES.
  */
-static void configure_handler_event_types(netio_type *netio,
-					  size_t count,
+static void configure_handler_event_types(size_t count,
 					  netio_handler_type *handlers,
 					  netio_event_types_type event_types);
 
@@ -800,8 +799,7 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 	 * of TCP connections.
 	 */
 	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
-		configure_handler_event_types(netio,
-					      data->tcp_accept_handler_count,
+		configure_handler_event_types(data->tcp_accept_handler_count,
 					      data->tcp_accept_handlers,
 					      NETIO_EVENT_READ);
 	}
@@ -1156,22 +1154,19 @@ handle_tcp_accept(netio_type *netio,
 	 */
 	++data->nsd->current_tcp_count;
 	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
-		configure_handler_event_types(netio,
-					      data->tcp_accept_handler_count,
+		configure_handler_event_types(data->tcp_accept_handler_count,
 					      data->tcp_accept_handlers,
 					      NETIO_EVENT_NONE);
 	}
 }
 
 static void
-configure_handler_event_types(netio_type *netio ATTR_UNUSED,
-			      size_t count,
+configure_handler_event_types(size_t count,
 			      netio_handler_type *handlers,
 			      netio_event_types_type event_types)
 {
 	size_t i;
 
-	assert(netio);
 	assert(handlers);
 	
 	for (i = 0; i < count; ++i) {
