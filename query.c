@@ -810,12 +810,9 @@ answer_query(struct nsd *nsd, struct query *q)
 		q->delegation_domain = domain_find_ns_rrsets(
 			closest_encloser, q->zone, &q->delegation_rrset);
 
-		if (q->delegation_domain &&
-		    !(q->type == TYPE_DS && closest_encloser == q->delegation_domain))
+		if (!q->delegation_domain ||
+		    (exact && q->type == TYPE_DS && closest_encloser == q->delegation_domain))
 		{
-			answer_delegation(q, &answer);
-		}
-		else {
 			if (q->class == CLASS_ANY) {
 				AA_CLR(q);
 			} else {
@@ -823,6 +820,9 @@ answer_query(struct nsd *nsd, struct query *q)
 			}
 			answer_authoritative(q, &answer, 0, exact,
 					     closest_match, closest_encloser);
+		}
+		else {
+			answer_delegation(q, &answer);
 		}
 	}
 
