@@ -1,5 +1,5 @@
 /*
- * $Id: dict.c,v 1.1 2002/01/24 03:30:52 alexis Exp $
+ * $Id: dict.c,v 1.2 2002/01/28 16:02:59 alexis Exp $
  *
  * dict.c -- generic dictionary based on red-black tree
  *
@@ -351,7 +351,10 @@ dict_destroy(dict, freekeys, freedata)
 	int freedata;
 {
 	dnode_t *parent;
-	dnode_t *node = dict->root;
+	dnode_t *node;
+
+	if(dict == NULL) return;
+	node = dict->root;
 
 	while(node != DICT_NULL) {
 		parent = node->parent;

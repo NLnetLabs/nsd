@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.1 2002/01/08 16:06:20 alexis Exp $
+ * $Id: nsd.c,v 1.2 2002/01/28 16:02:59 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -37,20 +37,46 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include <sys/types.h>
-
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <signal.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-
 #include "nsd.h"
-#include "db.h"
+
+u_char authmask[NAMEDB_BITMASKLEN];
+u_char starmask[NAMEDB_BITMASKLEN];
+u_char datamask[NAMEDB_BITMASKLEN];
+
+static u_short _nshorts[NSHORTSLEN];
+
+/*
+ * Allocates ``size'' bytes of memory, returns the
+ * pointer to the allocated memory or NULL and errno
+ * set in case of error. Also reports the error via
+ * syslog().
+ *
+ */
+void *
+xalloc(size)
+	register size_t	size;
+{
+	register void *p;
+
+	if((p = malloc(size)) == NULL) {
+		syslog(LOG_ERR, "malloc failed: %m");
+		exit(1);
+	}
+	return p;
+}
+
+void *
+xrealloc(p, size)
+	register void *p;
+	register size_t	size;
+{
+
+	if((p = realloc(p, size)) == NULL) {
+		syslog(LOG_ERR, "realloc failed: %m");
+		exit(1);
+	}
+	return p;
+}
 
 int
 usage()
@@ -71,23 +97,65 @@ main(argc, argv)
 	int argc;
 	char *argv[];
 {
-	struct db *db;
+	DB *db;
+	DBT key, data;
+	int r, i;
+	char *dbfile;
 
 	/* Set up the logging... */
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
+	/* Convert the network byte order translation table... */
+	for(i = 0; i < NSHORTSLEN; i++) _nshorts[i] = htons((u_short)i);
+
+	/* Parse the command line... */
 	if(argc != 2) {
-		usage();
+		dbfile = "nsd.db";
+	} else {
+		dbfile = argv[1];
 	}
 
+	/* Parser the configuration file...*/
+
+	/* Setup the signal handling... */
 	signal(SIGTERM, &sig_handler);
 
-	if((db = db_open(argv[1])) == NULL) {
+	/* Setup the name database... */
+	if((r = db_create(&db, NULL, 0)) != 0) {
+                syslog(LOG_ERR, "db_create failed: %s", db_strerror(r));
+                exit(1);
+        }
+
+	/* Open the database... */
+        if((r = db->open(db, dbfile, NULL, DB_UNKNOWN, DB_RDONLY, 0664)) != 0) {
+		syslog(LOG_ERR, "cannot open the database %s: %s", dbfile, db_strerror(r));
+                exit(1);
+        }
+
+	/* Read the bitmasks... */
+	bzero(&key, sizeof(key));
+	bzero(&data, sizeof(data));
+
+	key.size = 0;
+	key.data = NULL;
+	if((r = db->get(db, NULL, &key, &data, 0)) != 0) {
+		syslog(LOG_ERR, "cannot read the superblock from %s: %s", dbfile, db_strerror(r));
 		exit(1);
 	}
 
+	if(data.size != NAMEDB_BITMASKLEN * 3) {
+		syslog(LOG_ERR, "corrupted superblock in %s", dbfile);
+		exit(1);
+	}
+
+	bcopy(data.data, authmask, NAMEDB_BITMASKLEN);
+	bcopy(data.data + NAMEDB_BITMASKLEN, starmask, NAMEDB_BITMASKLEN);
+	bcopy(data.data + NAMEDB_BITMASKLEN * 2, datamask, NAMEDB_BITMASKLEN);
+
+
 	server(4096, db);
 
-	db_close(db);
+	db->close(db, 0);
+
 	exit(0);
 }

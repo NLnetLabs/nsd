@@ -1,7 +1,7 @@
 /*
- * $Id: db.h,v 1.11 2002/01/11 13:54:34 alexis Exp $
+ * $Id: zonec.h,v 1.1 2002/01/28 16:02:59 alexis Exp $
  *
- * db.h -- nsd(8) internal namespace database
+ * zone.h -- internal zone representation
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -38,49 +38,67 @@
  *
  */
 
-#include <db.h>
+#include <sys/types.h>
 
-#define	DB_DELEGATION	0x0001
-#define	DB_WILDCARD	0x0002
-#define	DB_CNAME	0x0004
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
 
-struct answer {
-	size_t size;
+#include <db3/db.h>
+
+#include "dict.h"
+#include "namedb.h"
+#include "dns.h"
+#include "zf.h"
+
+#define	DEFAULT_DBFILE	"nsd.db"
+
+struct rrset {
+	struct rrset *next;
 	u_short type;
-	u_short	ancount;
+	u_short class;
+	long ttl;
+	char *fmt;
+	u_short rrslen;
+	int glue;
+	union zf_rdatom **rrs;
+};
+
+struct zone {
+	u_char *dname;
+	dict_t	*cuts;
+	dict_t	*data;
+	struct rrset *soa;
+	struct rrset *ns;
+};
+
+#define MAXRRSPP	1024
+#define	IOBUFSZ		MAXRRSPP * 64
+
+struct message {
+	u_char *bufptr;
+	u_short ancount;
 	u_short nscount;
 	u_short arcount;
-	u_short ptrlen;
-	u_short rrslen;
-	/* u_short ptrs[0]; */
-	/* u_short rrs[0]; */
+	int dnameslen;
+	int rrsetslen;
+	int comprlen;
+	u_short pointerslen;
+	u_short pointers[MAXRRSPP];
+	u_short rrsetsoffslen;
+	u_short rrsetsoffs[MAXRRSPP];
+	struct rrset *rrsets[MAXRRSPP];
+	u_char *dnames[MAXRRSPP];
+	struct {
+		u_char *dname;
+		u_short dnameoff;
+		u_char dnamelen;
+	} compr[MAXRRSPP];
+	u_char buf[IOBUFSZ];
 };
-
-struct domain {
-	size_t size;
-	u_short	flags;
-};
-
-struct db_mask {
-	u_char	data[16];
-	u_char	auth[16];
-	u_char	stars[16];
-};
-
-struct db {
-	DB *db;
-	struct db_mask mask;
-};
-
-#define	TSTMASK(mask, depth) (mask[(depth) >> 3] & (1 << ((depth) & 0x7)))
-#define	SETMASK(mask, depth) mask[(depth) >> 3] |= (1 << ((depth) & 0x7))
-
-void db_write __P((struct db *, u_char *, struct domain *));
-struct db *db_create __P((char *));
-void db_close __P((struct db *));
-struct db *db_open __P((char *));
-struct domain *db_lookup __P((struct db *, u_char *, u_char));
-/* void db_addanswer __P((struct domain *, struct message *, u_short)); */
-struct domain *db_newdomain __P((u_short));
-struct answer *db_answer __P((struct domain *, u_short));
-void db_sync __P((struct db *));

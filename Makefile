@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2002/01/24 12:41:44 alexis Exp $
+# $Id: Makefile,v 1.12 2002/01/28 16:02:59 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -40,29 +40,29 @@ SHELL = /bin/sh
 
 DEBUG=	-g -DDEBUG=1
 CC=gcc
-CFLAGS= -O6 -pipe -Wall ${DEBUG}
-LDFLAGS=
+CFLAGS= -pipe -Wall ${DEBUG} -I/usr/local/include
+LDFLAGS= -L/usr/local/lib
 LDADD=
 LIBS =
 
 CLEANFILES+=*.core *.gmon
 
-all:	nsd zf zone
+all:	nsd zonec
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
 
-nsd:	nsd.h dns.h db.h db.o nsd.o server.o query.o util.o
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ nsd.o db.o server.o query.o util.o
+nsd:	nsd.h dns.h nsd.o server.o query.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o -ldb3
 
-zf:	zf.h dns.h zf.c util.o
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c util.o
+zf:	zf.h dns.h zf.c
+	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c
 
-zone:	zf.h dns.h zone.h zone.c zf.o util.o dict.o db.o
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zone.c zf.o util.o dict.o db.o
+zonec:	zf.h dns.h zonec.h zf.o dict.o zonec.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dict.o -ldb3
 
 clean:
-	rm -f zf zone nsd *.o y.* *.core *.gmon nsd.db
+	rm -f zf zonec nsd *.o y.* *.core *.gmon nsd.db
 
 ${OBJS}:	${HDRS}

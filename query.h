@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.4 2002/01/11 13:54:34 alexis Exp $
+ * $Id: query.h,v 1.5 2002/01/28 16:02:59 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -37,6 +37,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#ifndef _QUERY_H_
+#define _QUERY_H_
 
 /*
  * Set of macro's to deal with the dns message header as specified
@@ -154,12 +157,8 @@
 
 /* Miscelaneous limits */
 #define	QIOBUFSZ	1024	/* Input output buffer for queries */
-#define	WIREBUFSZ	1024
-#define	LINEBUFSZ	1024
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
-#define STACKSZ		256	/* Multi purpose stack we use for dname parsing and glue */
-#define MAXINCLUDES	10	/* Maximum nested includes */
 #define	MAXRRSPP	1024	/* Maximum number of rr's per packet */
 #define	MINRDNAMECOMP	3	/* Minimum dname to be compressed */
 
@@ -177,6 +176,8 @@ struct query {
 /* query.c */
 struct query *query_new __P((void));
 void query_destroy __P((struct query *));
-int query_process __P((struct query *, struct db *));
+int query_process __P((struct query *, DB *));
 void query_init __P((struct query *));
 void query_addanswer __P((struct query *, u_char *, struct answer *));
+
+#endif /* _QUERY_H_ */

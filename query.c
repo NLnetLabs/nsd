@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.11 2002/01/23 16:15:03 alexis Exp $
+ * $Id: query.c,v 1.12 2002/01/28 16:02:59 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -37,26 +37,49 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/uio.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-
 #include "nsd.h"
-#include "dns.h"
-#include "db.h"
-#include "query.h"
+
+struct domain *
+lookup(db, dname, dnamelen)
+	DB *db;
+	u_char *dname;
+	int dnamelen;
+{
+	DBT key, data;
+
+	bzero(&key, sizeof(key));
+	bzero(&data, sizeof(data));
+	key.size = (size_t)dnamelen;
+	key.data = dname;
+
+	switch(db->get(db, NULL, &key, &data, 0)) {
+	case -1:
+		syslog(LOG_ERR, "database lookup failed: %m");
+		return NULL;
+	case DB_NOTFOUND:
+		return NULL;
+	case 0:
+		return data.data;
+	}
+
+	return NULL;
+}
+
+
+struct answer *
+answer(d, type)
+	struct domain *d;
+	u_short type;
+{
+	struct answer *a;
+
+	for(a = (struct answer *)(d + 1); *ANSWER_SIZE(a) != 0; ((char *)a) += *ANSWER_SIZE(a)) {
+		if(a->type == type) {
+			return a;
+		}
+	}
+	return NULL;
+}
 
 void
 query_init(q)
@@ -97,23 +120,19 @@ query_addanswer(q, dname, a)
 {
 	u_char *qptr;
 	u_short pointer;
-	u_short *ptrs;
-	u_short *rrs;
 	int  i, j;
 
-	/* The size of the data */
-	size_t datasize = a->size - ((a->ptrlen + a->rrslen + 6) * sizeof(u_short) + sizeof(size_t));
-
 	/* Copy the counters */
-	bcopy(&a->ancount, q->iobuf + 6, 6);
+	ANCOUNT(q) = *ANSWER_ANCOUNT(a);
+	NSCOUNT(q) = *ANSWER_NSCOUNT(a);
+	ARCOUNT(q) = *ANSWER_ARCOUNT(a);
 
 	/* Then copy the data */
-	bcopy(&a->rrslen + a->ptrlen + a->rrslen + 1, q->iobufptr, datasize);
-	ptrs = &a->rrslen + 1;
+	bcopy(ANSWER_DATA(a), q->iobufptr, *ANSWER_DATALEN(a));
 
 	/* Walk the pointers */
-	for(j = 0; j < a->ptrlen; j++) {
-		qptr = q->iobufptr + ptrs[j];
+	for(j = 0; j < *ANSWER_PTRLEN(a); j++) {
+		qptr = q->iobufptr + *(ANSWER_PTRS(a)+j);
 		bcopy(qptr, &pointer, 2);
 		if(pointer & 0xc000) {
 			/* XXX Check if dname is within packet */
@@ -125,14 +144,13 @@ query_addanswer(q, dname, a)
 	}
 
 	/* Truncate if necessary */
-	if(q->maxlen < (q->iobufptr - q->iobuf + datasize)) {
-		rrs = &a->rrslen + a->ptrlen + 1;
+	if(q->maxlen < (q->iobufptr - q->iobuf + *ANSWER_DATALEN(a))) {
 
 		/* Start with the additional section, record by record... */
-		for(i = ntohs(a->arcount) - 1, j = a->rrslen - 1; i > 0 && j > 0; j--, i--) {
-			if(q->maxlen >= (q->iobufptr - q->iobuf + rrs[j-1])) {
+		for(i = ntohs(*(ANSWER_ARCOUNT(a) - 1)), j = *ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
+			if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS(a) + j - 1))) {
 				ARCOUNT(q) = htons(i-1);
-				q->iobufptr += rrs[j-1];
+				q->iobufptr += *(ANSWER_RRS(a) + j - 1);
 				return;
 			}
 		}
@@ -140,10 +158,10 @@ query_addanswer(q, dname, a)
 		ARCOUNT(q) = htons(0);
 		TC_SET(q);
 
-		if(q->maxlen >= (q->iobufptr - q->iobuf + rrs[j - ntohs(a->nscount) - 1])) {
+		if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS(a) + j - ntohs(a->nscount) - 1))) {
 			/* Truncate the athority section */
 			NSCOUNT(q) = htons(0);
-			q->iobufptr += rrs[j - ntohs(a->nscount) ];
+			q->iobufptr += *(ANSWER_RRS(a) + j - ntohs(a->nscount));
 			return;
 		}
 
@@ -152,7 +170,7 @@ query_addanswer(q, dname, a)
 		ANCOUNT(q) = 0;
 		return;
 	} else {
-		q->iobufptr += datasize;
+		q->iobufptr += *ANSWER_DATALEN(a);
 	}
 }
 
@@ -160,7 +178,7 @@ query_addanswer(q, dname, a)
 int
 query_process(q, db)
 	struct query *q;
-	struct db *db;
+	DB *db;
 {
 	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 2];
@@ -251,10 +269,10 @@ query_process(q, db)
 	}
 
 	/* Do we have the complete name? */
-	if(TSTMASK(db->mask.data, qdepth) && ((d = db_lookup(db, qnamelow, qnamelen)) != NULL)) {
+	if(NAMEDB_TSTBITMASK(datamask, qdepth) && ((d = lookup(db, qnamelow, qnamelen)) != NULL)) {
 		/* Is this a delegation point? */
-		if(d->flags & DB_DELEGATION) {
-			if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
+		if(d->flags & NAMEDB_DELEGATION) {
+			if((a = answer(d, htons(TYPE_NS))) == NULL) {
 				RCODE_SET(q, RCODE_SERVFAIL);
 				return 0;
 			}
@@ -262,7 +280,7 @@ query_process(q, db)
 			query_addanswer(q, qname, a);
 			return 0;
 		} else {
-			if((a = db_answer(d, qtype)) != NULL) {
+			if((a = answer(d, qtype)) != NULL) {
 				if(ntohs(qclass) != CLASS_ANY) {
 					AA_SET(q);
 				} else {
@@ -272,7 +290,7 @@ query_process(q, db)
 				return 0;
 			} else {
 				/* Do we have SOA record in this domain? */
-				if((a = db_answer(d, htons(TYPE_SOA))) != NULL) {
+				if((a = answer(d, htons(TYPE_SOA))) != NULL) {
 					/* Setup truncation */
 					qptr = q->iobufptr;
 
@@ -288,7 +306,7 @@ query_process(q, db)
 					ANCOUNT(q) = 0;
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
-					q->iobufptr = qptr + rrs[1];
+					q->iobufptr = qptr + *(ANSWER_RRS(a) + 1);
 
 					return 0;
 				}
@@ -308,9 +326,9 @@ query_process(q, db)
 		qdepth--;
 
 		/* Do we have a SOA or zone cut? */
-		if(TSTMASK(db->mask.auth, qdepth) && ((d = db_lookup(db, qnamelow, qnamelen)) != NULL)) {
-			if(d->flags & DB_DELEGATION) {
-				if((a = db_answer(d, htons(TYPE_NS))) == NULL) {
+		if(NAMEDB_TSTBITMASK(authmask, qdepth) && ((d = lookup(db, qnamelow, qnamelen)) != NULL)) {
+			if(d->flags & NAMEDB_DELEGATION) {
+				if((a = answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);
 					return 0;
 				}
@@ -319,7 +337,7 @@ query_process(q, db)
 				query_addanswer(q, qname, a);
 				return 0;
 			} else {
-				if((a = db_answer(d, htons(TYPE_SOA)))) {
+				if((a = answer(d, htons(TYPE_SOA)))) {
 					/* Setup truncation */
 					qptr = q->iobufptr;
 
@@ -335,23 +353,23 @@ query_process(q, db)
 					ANCOUNT(q) = 0;
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
-					q->iobufptr = qptr + rrs[1];
+					q->iobufptr = qptr + *(ANSWER_RRS(a) + 1);
 
 					return 0;
 				}
 			}
 		} else {
 			/* Only look for wildcards if we did not match a domain before */
-			if(TSTMASK(db->mask.stars, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
+			if(NAMEDB_TSTBITMASK(starmask, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
 				/* Prepend star */
 				bcopy(qstar, qnamelow - 2, 2);
 
 				/* Lookup star */
-				if((d = db_lookup(db, qnamelow - 2, qnamelen + 2)) != NULL) {
+				if((d = lookup(db, qnamelow - 2, qnamelen + 2)) != NULL) {
 					/* We found a domain... */
 					RCODE_SET(q, RCODE_OK);
 
-					if((a = db_answer(d, qtype)) != NULL) {
+					if((a = answer(d, qtype)) != NULL) {
 						if(ntohs(qclass) != CLASS_ANY) {
 							AA_SET(q);
 						} else {

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.1 2002/01/08 13:29:21 alexis Exp $
+ * $Id: zf.c,v 1.2 2002/01/28 16:02:59 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -46,7 +46,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -55,8 +54,8 @@
 #include "nsd.h"
 #include "zf.h"
 
-struct zf_type_tab types[] = ZONEFILE_TYPES;
-struct zf_class_tab classes[] = ZONEFILE_CLASSES;
+static struct zf_type_tab zf_types[] = ZONEFILE_TYPES;
+static struct zf_class_tab zf_classes[] = ZONEFILE_CLASSES;
 
 /*
  * Converts dname to text
@@ -174,7 +173,7 @@ typetoa(n)
 	struct zf_type_tab *type;
 	static char name[5];
 
-	for(type = types; type->type; type++)
+	for(type = zf_types; type->type; type++)
 		if(n == type->type) return type->name;
 
 	sprintf(name, "%u", n);
@@ -192,7 +191,7 @@ classtoa(n)
 	struct zf_class_tab *class;
 	static char name[5];
 
-	for(class = classes; class->class; class++)
+	for(class = zf_classes; class->class; class++)
 		if(n == class->class) return class->name;
 
 	sprintf(name, "%u", n);
@@ -209,7 +208,7 @@ typebyname(a)
 {
 	struct zf_type_tab *type;
 
-	for(type = types; type->type; type++)
+	for(type = zf_types; type->type; type++)
 		if(strcasecmp(a, type->name) == 0) return type;
 	return  NULL;
 }
@@ -224,7 +223,7 @@ classbyname(a)
 {
 	struct zf_class_tab *class;
 
-	for(class = classes; class->class; class++)
+	for(class = zf_classes; class->class; class++)
 		if(strcasecmp(a, class->name) == 0) return class;
 	return  NULL;
 }
@@ -298,7 +297,7 @@ zone_strtok(s)
 			p = t + 1;
 			return s;
 		} else {
-			syslog(LOG_ERR, "missing closing quote");
+			fprintf(stderr, "missing closing quote\n");
 			return NULL;
 		}
 
@@ -326,11 +325,11 @@ zf_error(zf, msg)
 	char *msg;
 {
 	if(zf->iptr > -1) {
-		syslog(LOG_ERR, "%s in %s, line %lu", msg,
+		fprintf(stderr, "%s in %s, line %lu\n", msg,
 			zf->i[zf->iptr].filename,
 			zf->i[zf->iptr].lineno);
 	} else {
-		syslog(LOG_ERR, "%s", msg);
+		fprintf(stderr, "%s\n", msg);
 	}
 	zf->errors++;
 }
@@ -458,7 +457,7 @@ zf_open_include(zf, filename, origin, ttl)
 	zf->iptr++;
 
 	if((zf->i[zf->iptr].file = fopen(filename, "r")) == NULL) {
-		syslog(LOG_ERR, "cannot open file %s: %m", filename);
+		fprintf(stderr, "cannot open file %s: %s\n", filename, strerror(errno));
 		zf->iptr--;
 		return -1;
 	}
@@ -769,7 +768,7 @@ zf_read(zf)
 				}
 				break;
 			default:
-				syslog(LOG_ERR, "panic! uknown atom in format %c", *f);
+				fprintf(stderr, "panic! uknown atom in format %c\n", *f);
 				assert(0);
 				return NULL;
 			}
@@ -813,6 +812,19 @@ zf_close(zf)
 
 #ifdef TEST
 
+void *
+xalloc(size)
+	register size_t	size;
+{
+	register void *p;
+
+	if((p = malloc(size)) == NULL) {
+		fprintf(stderr, "malloc failed: %m\n");
+		exit(1);
+	}
+	return p;
+}
+
 int
 usage()
 {
@@ -830,12 +842,6 @@ main(argc, argv)
 	struct zf_entry *rr;
 	u_char *origin;
 
-
-#ifndef LOG_PERROR
-#define		LOG_PERROR 0
-#endif
-	/* Set up the logging... */
-	openlog("zf", LOG_PERROR, LOG_LOCAL5);
 
 	/* Check the command line */
 	if(argc < 2 || argc > 3) {

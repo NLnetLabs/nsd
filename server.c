@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.3 2002/01/11 13:54:34 alexis Exp $
+ * $Id: server.c,v 1.4 2002/01/28 16:02:59 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -37,32 +37,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/uio.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-#include <unistd.h>
-
-
 #include "nsd.h"
-#include "db.h"
-#include "query.h"
 
 int
 server(port, db)
 	u_short port;
-	struct db *db;
+	DB *db;
 {
 	struct query *q;
 	struct sockaddr_in addr;

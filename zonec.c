@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.14 2002/01/24 03:30:52 alexis Exp $
+ * $Id: zonec.c,v 1.1 2002/01/28 16:02:59 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -37,23 +37,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include <sys/types.h>
 
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
+#include "zonec.h"
 
-#include "dns.h"
-#include "nsd.h"
-#include "zf.h"
-#include "dict.h"
-#include "db.h"
-#include "zone.h"
+
+/* The database file... */
+char *dbfile = DEFAULT_DBFILE;
+
+/* The database masks */
+u_char bitmasks[NAMEDB_BITMASKLEN * 3];
+u_char *authmask = bitmasks;
+u_char *starmask = bitmasks + NAMEDB_BITMASKLEN;
+u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
+
+/*
+ * Allocates ``size'' bytes of memory, returns the
+ * pointer to the allocated memory or NULL and errno
+ * set in case of error. Also reports the error via
+ * fprintf(stderr, ...);
+ *
+ */
+void *
+xalloc(size)
+	register size_t	size;
+{
+	register void *p;
+
+	if((p = malloc(size)) == NULL) {
+		fprintf(stderr, "malloc failed: %m\n");
+		exit(1);
+	}
+	return p;
+}
+
+void *
+xrealloc(p, size)
+	register void *p;
+	register size_t	size;
+{
+
+	if((p = realloc(p, size)) == NULL) {
+		fprintf(stderr, "realloc failed: %m\n");
+		exit(1);
+	}
+	return p;
+}
 
 void
 zone_print(z)
@@ -92,373 +120,55 @@ zone_print(z)
 	}
 }
 
-
-/*
- * Reads the specified zone into the memory
- *
- */
-struct zone *
-zone_read(name, zonefile)
-	char *name;
-	char *zonefile;
+u_short
+zone_addname(msg, dname)
+	struct message *msg;
+	u_char *dname;
 {
-	dict_t *h;
+	/* Lets try rdata dname compression */
+	int rdlength = 0;
+	int j;
+	u_short rdname_pointer = 0;
+	register u_char *t;
 
-	struct zone *z;
-	struct zf *zf;
-	struct zf_entry *rr;
-	struct rrset *rrset, *r;
+	/* Walk through the labels in the dname to be compressed */
+	if(*dname > 1) {
+		for(t = dname + 1; (t < (dname + 1 + *dname)); t += *t + 1) {
+			/* Walk through the dnames that we have already in the packet */
+			for(j = 0; j < msg->comprlen; j++) {
+				if((msg->compr[j].dnamelen == (dname + 1 + *dname - t)) &&
+					(strncasecmp(t, msg->compr[j].dname, msg->compr[j].dnamelen) == 0)) {
+					/* Match, first write down unmatched part */
+					bcopy(dname + 1, msg->bufptr,
+						(t - (dname + 1)));
+					msg->bufptr += (t - (dname + 1));
+					rdlength += (t - (dname + 1));
 
-	/* Allocate new zone structure */
-	z = xalloc(sizeof(struct zone));
-	bzero(z, sizeof(struct zone));
+					/* Then construct the pointer, and add it */
+					rdname_pointer = (u_short)msg->compr[j].dnameoff;
+					bcopy(&rdname_pointer, msg->bufptr, 2);
 
-	/* Get the zone name */
-	if((z->dname = strdname(name, ROOT_ORIGIN)) == NULL) {
-		zone_free(z);
-		return NULL;
-	}
+					msg->pointers[msg->pointerslen++] = msg->bufptr - msg->buf;
 
-	/* Open the zone file */
-	if((zf = zf_open(zonefile, z->dname)) == NULL) {
-		zone_free(z);
-		return NULL;
-	}
-
-	/* Two heaps: zone cuts and other data */
-	z->cuts = dict_create(xalloc, dnamecmp);
-	z->data = dict_create(xalloc, dnamecmp);
-	z->soa = z->ns = NULL;
-
-	/* Read the file */
-	while((rr = zf_read(zf)) != NULL) {
-
-#ifdef DEBUG
-		/* Report progress... */
-		if((zf->lines % 100000) == 0) {
-			fprintf(stderr, "read %lu lines...\n", zf->lines);
-		}
-#endif
-
-		/* We only support IN class */
-		if(rr->class != CLASS_IN) {
-			zf_error(zf, "wrong class");
-			continue;
-		}
-
-		/* Is this in-zone data? */
-		if((*z->dname > *rr->dname) ||
-			(bcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
-			zf_error(zf, "out of zone data");
-			continue;
-		}
-
-		/* Insert the record into a rrset */
-		if(rr->type == TYPE_NS && ((dnamecmp(rr->dname, z->dname) != 0) || (z->soa == NULL))) {
-			h = z->cuts;
-		} else {
-			h = z->data;
-		}
-
-		/* Do we have this domain name in heap? */
-		if((rrset = dict_search(h, rr->dname)) != NULL) {
-			for(r = rrset; r; r = r->next) {
-				if(r->type == rr->type)
-					break;
-			}
-		} else {
-			r = NULL;
-		}
-
-		/* Do we have this particular rrset? */
-		if(r == NULL) {
-			r = xalloc(sizeof(struct rrset));
-			bzero(r, sizeof(struct rrset));
-			r->type = rr->type;
-			r->class = rr->class;
-			r->ttl = rr->ttl;
-			r->fmt = rr->rdatafmt;
-			r->rrslen = 1;
-			r->rrs = xalloc(sizeof(union zf_rdatom *));
-			r->rrs[0] = rr->rdata;
-
-			/* Add it */
-			if(rrset == NULL) {
-				/* XXX We can use this more smart... */
-				dict_insert(h, strdup(rr->dname), r, 1);
-			} else {
-				r->next = rrset->next;
-				rrset->next = r;
-			}
-		} else {
-			if(r->ttl != rr->ttl) {
-				zf_error(zf, "rr ttl doesnt match the ttl of the rdataset");
-				continue;
-			}
-			r->rrs = xrealloc(r->rrs, ((r->rrslen + 1) * sizeof(union zf_rdatom *)));
-			r->rrs[r->rrslen++] = rr->rdata;
-		}
-
-		/* Check we have SOA */
-		if(z->soa == NULL) {
-			if(rr->type != TYPE_SOA) {
-				zf_error(zf, "missing SOA record on top of the zone");
-			} else {
-				if(dnamecmp(rr->dname, z->dname) != 0) {
-					zf_error(zf, "SOA record with invalid domain name");
-				} else {
-					z->soa = r;
+					msg->bufptr += 2;
+					return rdlength + 2;
 				}
 			}
-		} else {
-			if(rr->type == TYPE_SOA) {
-				zf_error(zf, "duplicate SOA record");
+			/* Add this part of dname */
+			if((dname + 1 + *dname - t) > 1) {
+				msg->compr[msg->comprlen].dname = t;
+				msg->compr[msg->comprlen].dnameoff = msg->bufptr - msg->buf + (t - (dname + 1));
+				msg->compr[msg->comprlen].dnamelen = (dname + 1 + *dname - t);
+				msg->comprlen++;
 			}
 		}
-
-		/* Is this a zone NS? */
-		if(rr->type == TYPE_NS && h == z->data) {
-			z->ns = r;
-		}
-
 	}
-
-	fprintf(stderr, "complete: %d errors\n", zf->errors);
-	return z;
+	bcopy(dname +1, msg->bufptr, *dname);
+	msg->bufptr += *dname;
+	return *dname;
 }
 
-/*
- * Frees all the data structures associated with the zone
- *
- */
-void
-zone_free(z)
-	struct zone *z;
-{
-	if(z) {
-		if(z->dname) free(z->dname);
-		dict_destroy(z->cuts, 1, 1);
-		dict_destroy(z->data, 1, 1);
-	}
-}
 
-/*
- * Writes zone data into open database *db
- *
- * Returns zero if success.
- */
-int
-zone_dump(z, db)
-	struct 	zone *z;
-	struct	db *db;
-{
-	struct domain *d;
-	struct message msg, msgany;
-	struct rrset *rrset, *cnamerrset, *additional;
-	u_char *dname, *cname, *nameptr;
-	int star, i, namedepth;
-
-	/* AUTHORITY CUTS */
-	DICT_WALK(z->cuts, (char *)dname, rrset) {
-		/* Make sure the data is intact */
-		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
-
-		/* Make sure it is not a wildcard */
-		if(*dname >= 2 && *(dname + 1) == '\001' && *(dname + 2) == '*') {
-			syslog(LOG_ERR, "wildcard delegations are not allowed");
-			continue;
-		}
-
-		/* Initialize message */
-		bzero(&msg, sizeof(struct message));
-		msg.bufptr = msg.buf;
-
-		/* Create a new domain */
-		d = db_newdomain(DB_DELEGATION);
-
-		/* Put the dname into compression array */
-		for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
-			if((dname + *dname + 1 - nameptr) > 1) {
-				msg.compr[msg.comprlen].dname = nameptr;
-				msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1)) | 0xc000;
-				msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
-				msg.comprlen++;
-			}
-		}
-
-		/* Authority section */
-		msg.nscount = zone_addrrset(&msg, dname, rrset);
-
-		/* Additional section */
-		for(i = 0; i < msg.dnameslen; i++) {
-
-			additional = dict_search(z->data, msg.dnames[i]);
-
-			/* This is a glue record */
-			if((*z->dname < *msg.dnames[i]) &&
-			    (bcmp(z->dname + 1, msg.dnames[i] + (*msg.dnames[i] - *z->dname) + 1, *z->dname) == 0)) {
-				if(additional == NULL) {
-					syslog(LOG_ERR, "missing glue record");
-				}
-
-				/* Mark it as out of zone data */
-				additional->glue = 1;
-			}
-
-			while(additional) {
-				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
-					msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
-				}
-				additional = additional->next;
-			}
-		}
-
-		/* Add this answer */
-		d = db_addanswer(d, &msg, rrset->type);
-
-		/* Set the database masks */
-		SETMASK(db->mask.data, namedepth);
-		SETMASK(db->mask.auth, namedepth);
-
-		/* Store it */
-		db_write(db, dname, d);
-		free(d);
-	}
-
-	/* OTHER DATA */
-	DICT_WALK(z->data, (char *)dname, rrset) {
-		/* Skip out of zone data */
-		if(rrset->glue == 1)
-			continue;
-
-		/* Create a new domain, not a delegation */
-		d = db_newdomain(0);
-
-		/* This is not a wildcard */
-		star = 0;
-
- 		/* Is this a CNAME */
- 		if(rrset->type == TYPE_CNAME) {
- 			assert(rrset->next == NULL);
- 			cnamerrset = rrset;
- 			cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
- 			rrset = dict_search(z->data, cname);
- 		} else {
- 			cnamerrset = NULL;
- 			cname = NULL;
- 		}
-
-		/* Initialize message for TYPE_ANY */
-		bzero(&msgany, sizeof(struct message));
-		msgany.bufptr = msgany.buf;
-
-		/* XXX This is a bit confusing, needs renaming:
-		 *
-		 * cname - name of the target set
-		 * rrset - target rr set
-		 * cnamerrset - cname own rrset 
-		 * dname - cname's rrset owner name
-		 */
- 		while(rrset || cnamerrset) {
-			/* Initialize message */
-			bzero(&msg, sizeof(struct message));
-			msg.bufptr = msg.buf;
-
- 			/* If we're done with the target sets, add CNAME itself */
- 			if(rrset == NULL) {
- 				rrset = cnamerrset;
- 				cnamerrset = NULL;
- 			}
- 
-			/* Put the dname into compression array */
-			for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
-				/* Do we have a wildcard? */
-				if((namedepth == 0) && (*(nameptr+1) == '*')) {
-					star = *nameptr + 1;
-				} else {
-					if((dname + *dname + 1 - nameptr) > 1) {
-						msg.compr[msg.comprlen].dname = nameptr;
-						msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
-						msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
-						msg.comprlen++;
-
-						msgany.compr[msgany.comprlen].dname = nameptr;
-						msgany.compr[msgany.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
-						msgany.compr[msgany.comprlen].dnamelen = dname + *dname + 1 - nameptr;
-						msgany.comprlen++;
-					}
-				}
-			}
-
-			/* Are we doing CNAME? */
-			if(cnamerrset) {
-				/* Add CNAME itself */
-				msg.ancount += zone_addrrset(&msg, dname, cnamerrset);
-
-				/* Add answer */
-				msg.ancount += zone_addrrset(&msg, cname, rrset);
-			} else {
-				/* Answer section */
-				msg.ancount += zone_addrrset(&msg, dname, rrset);
-
-				/* Answer section of message any */
-				msgany.ancount += zone_addrrset(&msgany, dname, rrset);
-			}
-
-			/* Authority section */
-			msg.nscount = zone_addrrset(&msg, z->dname, z->ns);
-
-			/* Additional section */
-			for(i = 0; i < msg.dnameslen; i++) {
-				additional = dict_search(z->data, msg.dnames[i]);
-				while(additional) {
-					if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
-						msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
-					}
-					additional = additional->next;
-				}
-			}
-
-			/* Add this answer */
-			d = db_addanswer(d, &msg, rrset->type);
-
-			/* Set the masks */
-			if(rrset->type == TYPE_SOA)
-				SETMASK(db->mask.auth, namedepth);
-
-			rrset = rrset->next;
-		}
-
-		/* Authority section for TYPE_ANY */
-		msgany.nscount = zone_addrrset(&msgany, z->dname, z->ns);
-
-		/* Additional section for TYPE_ANY */
-		for(i = 0; i < msgany.dnameslen; i++) {
-			additional = dict_search(z->data, msgany.dnames[i]);
-			while(additional) {
-				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
-					msgany.arcount += zone_addrrset(&msgany, msgany.dnames[i], additional);
-				}
-				additional = additional->next;
-			}
-		}
-
-		/* Add this answer */
-		d = db_addanswer(d, &msgany, TYPE_ANY);
-
-		/* Set the data mask */
-		SETMASK(db->mask.data, namedepth);
-		if(star) {
-			SETMASK(db->mask.stars, namedepth);
-		}
-
-		/* Store it */
-		db_write(db, dname, d);
-		free(d);
-	}
-
-	return 0;
-}
 
 /*
  * XXXX: Check msg->buf boundaries!!!!!
@@ -553,7 +263,7 @@ zone_addrrset(msg, dname, rrset)
 				bcopy((char *)&s, msg->bufptr, size);
 				break;
 			default:
-				syslog(LOG_ERR, "panic! uknown atom in format %c", *f);
+				fprintf(stderr, "panic! uknown atom in format %c\n", *f);
 				return rrcount;
 			}
 			msg->bufptr += size;
@@ -565,105 +275,553 @@ zone_addrrset(msg, dname, rrset)
 	return rrcount;
 }
 
-
-u_short
-zone_addname(msg, dname)
+/*
+ * Adds an answer to a domain
+ *
+ */
+struct domain *
+addanswer(d, msg, type)
+	struct domain *d;
 	struct message *msg;
-	u_char *dname;
+	u_short type;
 {
-	/* Lets try rdata dname compression */
-	int rdlength = 0;
-	int j;
-	u_short rdname_pointer = 0;
-	register u_char *t;
+	struct answer *a;
+	size_t datasize = msg->bufptr - msg->buf;
+	size_t size = sizeof(struct answer) + msg->pointerslen * sizeof(u_short) /* ptrs */
+		+ (msg->rrsetsoffslen) * sizeof(u_short)	/* rrs */
+		+ datasize;					/* data */
 
-	/* Walk through the labels in the dname to be compressed */
-	if(*dname > 1) {
-		for(t = dname + 1; (t < (dname + 1 + *dname)); t += *t + 1) {
-			/* Walk through the dnames that we have already in the packet */
-			for(j = 0; j < msg->comprlen; j++) {
-				if((msg->compr[j].dnamelen == (dname + 1 + *dname - t)) &&
-					(strncasecmp(t, msg->compr[j].dname, msg->compr[j].dnamelen) == 0)) {
-					/* Match, first write down unmatched part */
-					bcopy(dname + 1, msg->bufptr,
-						(t - (dname + 1)));
-					msg->bufptr += (t - (dname + 1));
-					rdlength += (t - (dname + 1));
+	d = xrealloc(d, d->size + size);
 
-					/* Then construct the pointer, and add it */
-					rdname_pointer = (u_short)msg->compr[j].dnameoff;
-					bcopy(&rdname_pointer, msg->bufptr, 2);
+	a = (struct answer *)((char *)d + d->size);
 
-					msg->pointers[msg->pointerslen++] = msg->bufptr - msg->buf;
+	*ANSWER_SIZE(a) = size;
+	*ANSWER_TYPE(a) = htons(type);
+	*ANSWER_ANCOUNT(a) = htons(msg->ancount);
+	*ANSWER_NSCOUNT(a) = htons(msg->nscount);
+	*ANSWER_ARCOUNT(a) = htons(msg->arcount);
+	*ANSWER_PTRLEN(a) = msg->pointerslen;
+	*ANSWER_RRSLEN(a) = msg->rrsetsoffslen;
+	*ANSWER_DATALEN(a) = datasize;
 
-					msg->bufptr += 2;
-					return rdlength + 2;
-				}
-			}
-			/* Add this part of dname */
-			if((dname + 1 + *dname - t) > 1) {
-				msg->compr[msg->comprlen].dname = t;
-				msg->compr[msg->comprlen].dnameoff = msg->bufptr - msg->buf + (t - (dname + 1));
-				msg->compr[msg->comprlen].dnamelen = (dname + 1 + *dname - t);
-				msg->comprlen++;
-			}
-		}
-	}
-	bcopy(dname +1, msg->bufptr, *dname);
-	msg->bufptr += *dname;
-	return *dname;
+	bcopy(msg->pointers, ANSWER_PTRS(a), sizeof(u_short) * msg->pointerslen);
+	bcopy(msg->rrsetsoffs, ANSWER_RRS(a), sizeof(u_short) * msg->rrsetsoffslen);
+	bcopy(msg->buf, ANSWER_DATA(a), datasize);
+
+	d->size += size;
+
+	return d;
 }
 
+/*
+ * Frees all the data structures associated with the zone
+ *
+ */
+void
+zone_free(z)
+	struct zone *z;
+{
+	if(z) {
+		if(z->dname) free(z->dname);
+		dict_destroy(z->cuts, 1, 1);
+		dict_destroy(z->data, 1, 1);
+		free(z);
+	}
+}
 
-#ifdef TEST
+/*
+ * Reads the specified zone into the memory
+ *
+ */
+struct zone *
+zone_read(name, zonefile, cache)
+	char *name;
+	char *zonefile;
+	int cache;
+{
+	dict_t *h;
+
+	struct zone *z;
+	struct zf *zf;
+	struct zf_entry *rr;
+	struct rrset *rrset, *r;
+
+	/* Allocate new zone structure */
+	z = xalloc(sizeof(struct zone));
+	bzero(z, sizeof(struct zone));
+
+	/* Get the zone name */
+	if((z->dname = strdname(name, ROOT_ORIGIN)) == NULL) {
+		zone_free(z);
+		return NULL;
+	}
+
+	/* Open the zone file */
+	if((zf = zf_open(zonefile, name)) == NULL) {
+		zone_free(z);
+		return NULL;
+	}
+
+	/* Two heaps: zone cuts and other data */
+	z->cuts = dict_create(xalloc, dnamecmp);
+	z->data = dict_create(xalloc, dnamecmp);
+	z->soa = z->ns = NULL;
+
+	/* Read the file */
+	while((rr = zf_read(zf)) != NULL) {
+
+#ifdef DEBUG
+		/* Report progress... */
+		if((zf->lines % 100000) == 0) {
+			fprintf(stderr, "read %lu lines...\n", zf->lines);
+		}
+#endif
+
+		/* We only support IN class */
+		if(rr->class != CLASS_IN) {
+			zf_error(zf, "wrong class");
+			continue;
+		}
+
+		/* Is this in-zone data? */
+		if((*z->dname > *rr->dname) ||
+			(bcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
+			zf_error(zf, "out of zone data");
+			continue;
+		}
+
+		/* Insert the record into a rrset */
+		if(rr->type == TYPE_NS && ((dnamecmp(rr->dname, z->dname) != 0) || (z->soa == NULL))) {
+			h = z->cuts;
+		} else {
+			h = z->data;
+		}
+
+		/* Do we have this domain name in heap? */
+		if((rrset = dict_search(h, rr->dname)) != NULL) {
+			for(r = rrset; r; r = r->next) {
+				if(r->type == rr->type)
+					break;
+			}
+		} else {
+			r = NULL;
+		}
+
+		/* Do we have this particular rrset? */
+		if(r == NULL) {
+			r = xalloc(sizeof(struct rrset));
+			bzero(r, sizeof(struct rrset));
+			r->type = rr->type;
+			r->class = rr->class;
+			r->ttl = rr->ttl;
+			r->fmt = rr->rdatafmt;
+			r->rrslen = 1;
+			r->rrs = xalloc(sizeof(union zf_rdatom *));
+			r->rrs[0] = rr->rdata;
+
+			/* Add it */
+			if(rrset == NULL) {
+				/* XXX We can use this more smart... */
+				dict_insert(h, strdup(rr->dname), r, 1);
+			} else {
+				r->next = rrset->next;
+				rrset->next = r;
+			}
+		} else {
+			if(r->ttl != rr->ttl) {
+				zf_error(zf, "rr ttl doesnt match the ttl of the rdataset");
+				continue;
+			}
+			r->rrs = xrealloc(r->rrs, ((r->rrslen + 1) * sizeof(union zf_rdatom *)));
+			r->rrs[r->rrslen++] = rr->rdata;
+		}
+
+		/* Check we have SOA */
+		if(z->soa == NULL) {
+			if(rr->type != TYPE_SOA) {
+				if(!cache) {
+					zf_error(zf, "missing SOA record on top of the zone");
+				}
+			} else {
+				if(dnamecmp(rr->dname, z->dname) != 0) {
+					zf_error(zf, "SOA record with invalid domain name");
+				} else {
+					if(!cache) {
+						z->soa = r;
+					} else {
+						zf_error(zf, "SOA record present in the cache");
+					}
+				}
+			}
+		} else {
+			if(rr->type == TYPE_SOA) {
+				zf_error(zf, "duplicate SOA record");
+			}
+		}
+
+		/* Is this a zone NS? */
+		if(rr->type == TYPE_NS && h == z->data) {
+			z->ns = r;
+		}
+
+	}
+
+	fprintf(stderr, "complete: %d errors\n", zf->errors);
+	return z;
+}
+
+/*
+ * Writes zone data into open database *db
+ *
+ * Returns zero if success.
+ */
+int
+zone_dump(z, db)
+	struct 	zone *z;
+	DB *db;
+{
+	struct domain *d;
+	struct message msg, msgany;
+	struct rrset *rrset, *cnamerrset, *additional;
+	u_char *dname, *cname, *nameptr;
+	int star, i, namedepth, r;
+	DBT key, data;
+
+	/* AUTHORITY CUTS */
+	DICT_WALK(z->cuts, (char *)dname, rrset) {
+		/* Make sure the data is intact */
+		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
+
+		/* Make sure it is not a wildcard */
+		if(*dname >= 2 && *(dname + 1) == '\001' && *(dname + 2) == '*') {
+			fprintf(stderr, "wildcard delegations are not allowed\n");
+			continue;
+		}
+
+		/* Initialize message */
+		bzero(&msg, sizeof(struct message));
+		msg.bufptr = msg.buf;
+
+		/* Create a new domain */
+        	d = xalloc(sizeof(struct domain));
+		d->size = sizeof(struct domain);
+		d->flags = NAMEDB_DELEGATION;
+
+		/* Put the dname into compression array */
+		for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
+			if((dname + *dname + 1 - nameptr) > 1) {
+				msg.compr[msg.comprlen].dname = nameptr;
+				msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1)) | 0xc000;
+				msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
+				msg.comprlen++;
+			}
+		}
+
+		/* Authority section */
+		msg.nscount = zone_addrrset(&msg, dname, rrset);
+
+		/* Additional section */
+		for(i = 0; i < msg.dnameslen; i++) {
+
+			additional = dict_search(z->data, msg.dnames[i]);
+
+			/* This is a glue record */
+			if((*z->dname < *msg.dnames[i]) &&
+			    (bcmp(z->dname + 1, msg.dnames[i] + (*msg.dnames[i] - *z->dname) + 1, *z->dname) == 0)) {
+				if(additional == NULL) {
+					fprintf(stderr, "missing glue record\n");
+				}
+
+				/* Mark it as out of zone data */
+				additional->glue = 1;
+			}
+
+			while(additional) {
+				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
+					msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
+				}
+				additional = additional->next;
+			}
+		}
+
+		/* Add this answer */
+		d = addanswer(d, &msg, rrset->type);
+
+		/* Set the database masks */
+		NAMEDB_SETBITMASK(datamask, namedepth);
+		NAMEDB_SETBITMASK(authmask, namedepth);
+
+		/* Store it */
+		bzero(&key, sizeof(key));
+		bzero(&data, sizeof(data));
+		key.size = *dname;
+		key.data = dname + 1;
+		data.size = d->size;
+		data.data = d;
+		if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
+			db->err(db, r, "DB->put");
+		}
+
+		free(d);
+	}
+
+	/* OTHER DATA */
+	DICT_WALK(z->data, (char *)dname, rrset) {
+		/* Skip out of zone data */
+		if(rrset->glue == 1)
+			continue;
+
+		/* Create a new domain, not a delegation */
+        	d = xalloc(sizeof(struct domain));
+		d->size = sizeof(struct domain);
+		d->flags = 0;
+
+		/* This is not a wildcard */
+		star = 0;
+
+ 		/* Is this a CNAME */
+ 		if(rrset->type == TYPE_CNAME) {
+ 			assert(rrset->next == NULL);
+ 			cnamerrset = rrset;
+ 			cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
+ 			rrset = dict_search(z->data, cname);
+ 		} else {
+ 			cnamerrset = NULL;
+ 			cname = NULL;
+ 		}
+
+		/* Initialize message for TYPE_ANY */
+		bzero(&msgany, sizeof(struct message));
+		msgany.bufptr = msgany.buf;
+
+		/* XXX This is a bit confusing, needs renaming:
+		 *
+		 * cname - name of the target set
+		 * rrset - target rr set
+		 * cnamerrset - cname own rrset 
+		 * dname - cname's rrset owner name
+		 */
+ 		while(rrset || cnamerrset) {
+			/* Initialize message */
+			bzero(&msg, sizeof(struct message));
+			msg.bufptr = msg.buf;
+
+ 			/* If we're done with the target sets, add CNAME itself */
+ 			if(rrset == NULL) {
+ 				rrset = cnamerrset;
+ 				cnamerrset = NULL;
+ 			}
+ 
+			/* Put the dname into compression array */
+			for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
+				/* Do we have a wildcard? */
+				if((namedepth == 0) && (*(nameptr+1) == '*')) {
+					star = *nameptr + 1;
+				} else {
+					if((dname + *dname + 1 - nameptr) > 1) {
+						msg.compr[msg.comprlen].dname = nameptr;
+						msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
+						msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
+						msg.comprlen++;
+
+						msgany.compr[msgany.comprlen].dname = nameptr;
+						msgany.compr[msgany.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
+						msgany.compr[msgany.comprlen].dnamelen = dname + *dname + 1 - nameptr;
+						msgany.comprlen++;
+					}
+				}
+			}
+
+			/* Are we doing CNAME? */
+			if(cnamerrset) {
+				/* Add CNAME itself */
+				msg.ancount += zone_addrrset(&msg, dname, cnamerrset);
+
+				/* Add answer */
+				msg.ancount += zone_addrrset(&msg, cname, rrset);
+			} else {
+				/* Answer section */
+				msg.ancount += zone_addrrset(&msg, dname, rrset);
+
+				/* Answer section of message any */
+				msgany.ancount += zone_addrrset(&msgany, dname, rrset);
+			}
+
+			/* Authority section */
+			msg.nscount = zone_addrrset(&msg, z->dname, z->ns);
+
+			/* Additional section */
+			for(i = 0; i < msg.dnameslen; i++) {
+				additional = dict_search(z->data, msg.dnames[i]);
+				while(additional) {
+					if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
+						msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
+					}
+					additional = additional->next;
+				}
+			}
+
+			/* Add this answer */
+			d = addanswer(d, &msg, rrset->type);
+
+			/* Set the masks */
+			if(rrset->type == TYPE_SOA)
+				NAMEDB_SETBITMASK(authmask, namedepth);
+
+			rrset = rrset->next;
+		}
+
+		/* Authority section for TYPE_ANY */
+		msgany.nscount = zone_addrrset(&msgany, z->dname, z->ns);
+
+		/* Additional section for TYPE_ANY */
+		for(i = 0; i < msgany.dnameslen; i++) {
+			additional = dict_search(z->data, msgany.dnames[i]);
+			while(additional) {
+				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
+					msgany.arcount += zone_addrrset(&msgany, msgany.dnames[i], additional);
+				}
+				additional = additional->next;
+			}
+		}
+
+		/* Add this answer */
+		d = addanswer(d, &msgany, TYPE_ANY);
+
+		/* Set the data mask */
+		NAMEDB_SETBITMASK(datamask, namedepth);
+		if(star) {
+			NAMEDB_SETBITMASK(starmask, namedepth);
+		}
+
+		/* Store it */
+		bzero(&key, sizeof(key));
+		bzero(&data, sizeof(data));
+		key.size = *dname;
+		key.data = dname + 1;
+		data.size = d->size;
+		data.data = d;
+		if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
+			db->err(db, r, "DB->put");
+		}
+
+		free(d);
+	}
+
+	return 0;
+}
 
 int
 usage()
 {
-	fprintf(stderr, "usage: zone name zone-file [name zone-file]\n");
+	fprintf(stderr, "usage: zonec [-a] [-f database] [-c cache-file] -z zone-name [zone-file] [...]\n");
 	exit(1);
 }
 
 int
 main(argc, argv)
 	int argc;
-	char *argv[];
+	char **argv;
 {
-
+        DB *db;
+	DBT key, data;
+	int r;
+	int aflag = 0;
+	int options = 1;
+	int cache = 0;
+	char *zonefile, *zonename;
 	struct zone *z;
-	struct db *db;
-	int i;
 
-#ifndef LOG_PERROR
-#define		LOG_PERROR 0
-#endif
-	/* Set up the logging... */
-	openlog("zf", LOG_PERROR, LOG_LOCAL5);
-
-	/* Check the command line */
-	if(argc  < 3) {
+	/* No command line? */
+	if(argc == 1)
 		usage();
+
+	/* Parse the command line */
+	while(options) {
+		argc--;
+		argv++;
+
+		if(**argv != '-' || argc == 0) usage();
+
+		switch(*(*argv+1)) {
+		case 'a':
+			aflag++;
+			break;
+		case 'f':
+			dbfile = *(++argv); argc--;
+			break;
+		case 'c':
+		case 'z':
+			options = 0;
+			break;
+		default:
+			usage();
+		}
 	}
 
-	if((db = db_create("nsd.db")) == NULL) {
+	/* Create the database */
+	if((r = db_create(&db, NULL, 0)) != 0) {
+                fprintf(stderr, "creating database: %s\n", db_strerror(r));
+                exit(1);
+        }
+        if((r = db->open(db, dbfile, NULL, DB_BTREE, aflag ? 0 : DB_CREATE | DB_TRUNCATE, 0664)) != 0) {
+                db->err(db, r, "%s", dbfile);
 		exit(1);
-	}
+        }
 
-	/* Open the file */
-	for(i = 1; i < argc; i += 2) {
-		if((z = zone_read(argv[i], argv[i+1])) == NULL) {
-			exit(1);
+	/* Initialize the masks... */
+	bzero(authmask, NAMEDB_BITMASKLEN);
+	bzero(datamask, NAMEDB_BITMASKLEN);
+	bzero(starmask, NAMEDB_BITMASKLEN);
+
+	/* Do the job */	
+	while(argc) {
+		if(**argv == '-') {
+			if(*(*argv + 1) == 'c') {
+				cache = 1;
+			} else if(*(*argv + 1) == 'z') {
+				cache = 0;
+			} else {
+				fprintf(stderr, "either -z or -c expected\n");
+				break;
+			}
+		} else {
+			fprintf(stderr, "either -z or -c expected\n");
+			break;
+		}
+		argc--; zonename = *(++argv);
+
+		/* Look ahead... */
+		if(--argc > 0 && **(++argv) != '-') {
+			zonefile = *argv;
+			argv++; argc--;
+		} else {
+			zonefile = zonename;
 		}
 
-		zone_dump(z, db);
-		zone_free(z);
+		/* Read the zone... */
+		if((z = zone_read(zonename, zonefile, cache)) != NULL) {
+			zone_dump(z, db);
+			zone_free(z);
+		}
+	};
+
+	/* Write the bitmasks... */
+	bzero(&key, sizeof(key));
+	bzero(&data, sizeof(data));
+	data.size = NAMEDB_BITMASKLEN * 3;
+	data.data = bitmasks;
+
+	if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
+		db->err(db, r, "DB->put");
 	}
 
-	db_sync(db);
-	db_close(db);
-	/* zone_print(z); */
+	/* Close the database */
+	if((r = db->close(db, 0)) != 0) {
+		db->err(db, r, "closing the database");
+		unlink(dbfile);
+	}
 
 	return 0;
 }
 
-#endif
