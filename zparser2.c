@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.20 2003/08/28 12:14:08 erik Exp $
+ * $Id: zparser2.c,v 1.21 2003/08/28 14:27:57 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -248,7 +248,7 @@ zparser_conv_byte(const char *bytestr)
 }
 
 uint16_t *
-zparser_conv_A(const char *a)
+zparser_conv_a(const char *a)
 {
    
 	/* convert a A rdata to wire format */

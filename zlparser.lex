@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.21 2003/08/28 12:13:37 erik Exp $
+ * $Id: zlparser.lex,v 1.22 2003/08/28 14:27:57 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -51,7 +51,7 @@ Q       \"
 
 %%
     static int paren_open = 0;
-    static int in_rr = 0;
+    static enum rr_spot in_rr = outside;
     char *ztext;
     int i;
 {SPACE}*{COMMENT}.*     /* ignore */
@@ -64,7 +64,7 @@ Q       \"
                             ztext = strdup(yytext);
                             yylval.len = zoctet(ztext);
                             yylval.str = ztext;
-                            in_rr = 1;
+                            in_rr = expecting_dname;
                             return ORIGIN;
                         }
 ^{DOLLAR}TTL            return DIR_TTL;
@@ -126,35 +126,35 @@ Q       \"
 ^{DOLLAR}{LETTER}+      { yyerror("Uknown $-directive"); }
 ^{DOT}                  {
                             /* a ^. means the root zone... also set in_rr */
-                            in_rr = 1;
+                            in_rr = expecting_dname;
                             return '.';
                         }
 {DOT}                   return '.';
 {SLASH}#                return UN_RR;
 ^{SPACE}+               {
                             if ( paren_open == 0 ) { 
-                                in_rr = 2;
+                                in_rr = after_dname;
                                 return PREV;
                             }
                         }
 {NEWLINE}               {
                             zdefault->line++;
                             if ( paren_open == 0 ) { 
-                                in_rr = 0;
+                                in_rr = outside;
                                 return NL;
                             }
                         }
 {SPACE}+{NEWLINE}       {
                             zdefault->line++;
                             if ( paren_open == 0 ) { 
-                                in_rr = 0;
+                                in_rr = outside;
                                 return NL;
                             }
                         }
 {SPACE}+                {
                             if ( paren_open == 0 ) {
-                                if ( in_rr == 1 )
-                                    in_rr = 2;
+                                if ( in_rr == expecting_dname )
+                                    in_rr = after_dname;
 
                                 return SP;
                             }
@@ -180,11 +180,11 @@ Q       \"
                             ztext = strdup(yytext);
                             yylval.len = zoctet(ztext);
                             yylval.str = ztext;
-                            in_rr = 1;
+                            in_rr = expecting_dname;
                             return STR;
                         }
 {CLASS}                 {
-                            if ( in_rr == 2) { 
+                            if ( in_rr == after_dname) { 
                                 if ( strcasecmp(yytext, "IN") == 0 )
                                     return IN;
                                 if ( strcasecmp(yytext, "CH") == 0 )
@@ -192,7 +192,7 @@ Q       \"
                                 if ( strcasecmp(yytext, "HS") == 0 )
                                     return HS;
                             }
-                            if ( in_rr != 2) { 
+                            if ( in_rr != after_dname) { 
                                 ztext = strdup(yytext); 
                                 yylval.len = zoctet(ztext);
                                 yylval.str = ztext;
@@ -200,10 +200,10 @@ Q       \"
                             }
                         }
 TYPE[0-9]+              {
-                            if ( in_rr == 2)
+                            if ( in_rr == after_dname )
                                 return UN_TYPE;
 
-                            if ( in_rr != 2)  {
+                            if ( in_rr != after_dname)  {
                                 ztext = strdup(yytext); 
                                 yylval.len = zoctet(ztext);
                                 yylval.str = ztext;
@@ -211,10 +211,10 @@ TYPE[0-9]+              {
                             }
                         }
 CLASS[0-9]+             {
-                            if ( in_rr == 2)
+                            if ( in_rr == after_dname )
                                 return UN_TYPE;
 
-                            if ( in_rr != 2)  {
+                            if ( in_rr != after_dname)  {
                                 ztext = strdup(yytext); 
                                 yylval.len = zoctet(ztext);
                                 yylval.str = ztext;
@@ -223,10 +223,10 @@ CLASS[0-9]+             {
                         }
 {Q}({ANY})({ANY})*{Q}   {
                             /* this matches quoted strings */
-                            if ( in_rr == 2 ) {
+                            if ( in_rr == after_dname ) {
                                 i = zrrtype(yytext);
                                 if ( i ) {
-                                    in_rr = 3; return i;
+                                    in_rr = reading_type; return i;
                                 }
                             }
                             ztext = strdup(yytext);
@@ -236,10 +236,10 @@ CLASS[0-9]+             {
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word */
-                            if ( in_rr == 2 ) {
+                            if ( in_rr == after_dname ) {
                                 i = zrrtype(yytext);
                                 if ( i ) {
-                                    in_rr = 3; return i;
+                                    in_rr = reading_type; return i;
                                 } 
                             }
                             ztext = strdup(yytext);

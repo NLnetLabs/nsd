@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.28 2003/08/27 14:15:29 miekg Exp $
+ * $Id: zyparser.y,v 1.29 2003/08/28 14:27:57 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -89,6 +89,7 @@ dir_orig:   SP dname NL
             yyerror("$ORIGIN domain name is too large");
             return 1;
         } 
+	free(zdefault->origin); /* old one can go */
         zdefault->origin = (uint8_t *)dnamedup($2.str);
         zdefault->origin_len = $2.len;
         free($2.str);
@@ -298,7 +299,7 @@ rdata_a:    STR '.' STR '.' STR '.' STR
         memcpy(ipv4 + $1.len + $3.len + $5.len + 3 , $7.str, $7.len);
         memcpy(ipv4 + $1.len + $3.len + $5.len + $7.len + 3, "\0", 1);
 
-        zadd_rdata2(zdefault, zparser_conv_A(ipv4));
+        zadd_rdata2(zdefault, zparser_conv_a(ipv4));
         free($1.str);free($3.str);free($5.str);free($7.str);
         free(ipv4);
     }

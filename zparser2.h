@@ -72,6 +72,8 @@ int yylex(void);
 int yyerror(const char *s);
 void yyrestart(FILE *);
 
+enum rr_spot { outside, expecting_dname, after_dname, reading_type };
+
 #define	ZBUFSIZE	16384		/* Maximum master file entry size */
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
@@ -155,7 +157,7 @@ uint16_t *zparser_conv_rdata_period(const char *periodstr);
 uint16_t *zparser_conv_short(const char *shortstr);
 uint16_t *zparser_conv_long(const char *longstr);
 uint16_t *zparser_conv_byte(const char *bytestr);
-uint16_t *zparser_conv_A(const char *a);
+uint16_t *zparser_conv_a(const char *a);
 uint16_t *zparser_conv_dname(const uint8_t *dname);
 uint16_t *zparser_conv_text(const char *txt);
 uint16_t *zparser_conv_a6(const char *a6);
