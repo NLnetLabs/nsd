@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.47 2002/03/28 02:24:09 alexis Exp $
+ * $Id: query.c,v 1.48 2002/03/28 03:06:38 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -178,7 +178,7 @@ query_process(q, db)
 	*(u_int16_t *)(q->iobuf + 2) = 0;
 	QR_SET(q);				/* This is an answer */
 
-	/* Dont bother to answer more than one question at once, but this will change for EDNS(0) */
+	/* Dont bother to answer more than one question at once... */
 	if(ntohs(QDCOUNT(q)) != 1) {
 #ifdef	MIMIC_BIND8
 		RCODE_SET(q, RCODE_FORMAT);
@@ -235,7 +235,7 @@ query_process(q, db)
 	/* Do we have an OPT record? */
 	if(ARCOUNT(q) > 0) {
 		/* Only one opt is allowed... */
-		if(ntohs(ARCOUNT(q)) != 0) {
+		if(ntohs(ARCOUNT(q)) != 1) {
 			RCODE_SET(q, RCODE_FORMAT);
 			return 0;
 		}
