@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.26 2003/03/20 10:52:11 alexis Exp $
+ * $Id: zparser.c,v 1.27 2003/03/20 10:53:33 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -1388,7 +1388,7 @@ zaddtoken (struct zparser *z, char *t)
 int
 zparseline (struct zparser *z)
 {
-	int parenthes = 0;
+	int parentheses = 0;
 	int newline;
 	register char *s, *t;
 
@@ -1405,7 +1405,7 @@ zparseline (struct zparser *z)
 		z->_lineno++;
 		newline = 0;
 
-		if(!parenthes) {
+		if(!parentheses) {
 			/* We have the same domain name as before, add it as a token... */
 			if(*p == ' ' || *p == '\t') {
 				*p = ' ';
@@ -1440,20 +1440,20 @@ zparseline (struct zparser *z)
 				/* What do we do now... */
 				switch(*t) {
 				case '(':
-					if(parenthes) {
-						zerror(z, "nested parenthes");
+					if(parentheses) {
+						zerror(z, "nested parentheses");
 						return -1;
 					}
-					parenthes = 1;
+					parentheses = 1;
 					*t = 0;
 					p = t + 1;
 					break;
 				case ')':
-					if(!parenthes) {
-						zerror(z, "missing opening parenthes");
+					if(!parentheses) {
+						zerror(z, "missing opening parentheses");
 						return -1;
 					}
-					parenthes = 0;
+					parentheses = 0;
 					*t = 0;
 					p = t + 1;
 					break;
@@ -1493,8 +1493,8 @@ zparseline (struct zparser *z)
 		if(z->_tc == 0)
 			continue;
 
-		/* If we're within parenthes, keep on scanning... */
-		if(parenthes)
+		/* If we're within parentheses, keep on scanning... */
+		if(parentheses)
 			continue;
 
 		/* Otherwise add a terminating NULL... */
@@ -1510,9 +1510,9 @@ zparseline (struct zparser *z)
 		return -1;
 	}
 
-	/* Still open parenthes?... */
-	if(parenthes) {
-		zerror(z, "end of file within parenthes");
+	/* Still open parentheses?... */
+	if(parentheses) {
+		zerror(z, "end of file within parentheses");
 		return -1;
 	}
 
