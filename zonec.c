@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.5 2002/01/30 15:20:31 alexis Exp $
+ * $Id: zonec.c,v 1.6 2002/01/31 11:47:24 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -557,9 +557,9 @@ zone_dump(z, db)
 		NAMEDB_SETBITMASK(authmask, namedepth);
 
 		/* Add a terminator... */
-		d = xrealloc(d, d->size + sizeof(size_t));
-		bzero((char *)d + d->size, sizeof(size_t));
-		d->size += sizeof(size_t);
+		d = xrealloc(d, d->size + sizeof(u_int32_t));
+		bzero((char *)d + d->size, sizeof(u_int32_t));
+		d->size += sizeof(u_int32_t);
 
 		/* Store it */
 		bzero(&key, sizeof(key));
@@ -705,9 +705,9 @@ zone_dump(z, db)
 		}
 
 		/* Add a terminator... */
-		d = xrealloc(d, d->size + sizeof(size_t));
-		bzero((char *)d + d->size, sizeof(size_t));
-		d->size += sizeof(size_t);
+		d = xrealloc(d, d->size + sizeof(u_int32_t));
+		bzero((char *)d + d->size, sizeof(u_int32_t));
+		d->size += sizeof(u_int32_t);
 
 		/* Store it */
 		bzero(&key, sizeof(key));

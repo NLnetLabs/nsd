@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.4 2002/01/30 14:40:58 alexis Exp $
+ * $Id: namedb.h,v 1.5 2002/01/31 11:47:24 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -51,14 +51,14 @@
 
 #define	NAMEDB_BITMASKLEN	16
 
-#define	ANSWER_SIZE(a)		(size_t *)(&a->size)
+#define	ANSWER_SIZE(a)		(u_int32_t *)(&a->size)
 #define	ANSWER_TYPE(a)		(u_int16_t *)(&a->type)
 #define	ANSWER_ANCOUNT(a)	(u_int16_t *)(&a->ancount)
 #define	ANSWER_NSCOUNT(a)	(u_int16_t *)(&a->nscount)
 #define	ANSWER_ARCOUNT(a)	(u_int16_t *)(&a->arcount)
 #define	ANSWER_PTRLEN(a)	(u_int16_t *)(&a->ptrlen)
 #define	ANSWER_RRSLEN(a)	(u_int16_t *)(&a->rrslen)
-#define	ANSWER_DATALEN(a)	(size_t *)(&a->datalen)
+#define	ANSWER_DATALEN(a)	(u_int32_t *)(&a->datalen)
 #define	ANSWER_END(a)		((struct answer *)a+1)
 #define	ANSWER_PTRS(a)		((u_int16_t *)ANSWER_END(a))
 #define	ANSWER_RRS(a)		((u_int16_t *)ANSWER_END(a))+*ANSWER_PTRLEN(a)
@@ -66,26 +66,26 @@
 
 
 struct answer {
-	size_t size;
+	u_int32_t size;
 	u_int16_t type;
 	u_int16_t	ancount;
 	u_int16_t nscount;
 	u_int16_t arcount;
 	u_int16_t ptrlen;
 	u_int16_t rrslen;
-	size_t datalen;
+	u_int32_t datalen;
 	/* u_int16_t ptrs[0]; */
 	/* u_int16_t rrs[0]; */
 	/* char *data; */
 };
 
 struct domain {
-	size_t size;
+	u_int32_t size;
 	u_int16_t	flags;
 };
 
 #define	DOMAIN_WALK(d, a)	for(a = (struct answer *)(d + 1); *ANSWER_SIZE(a) != 0; ((char *)a) += *ANSWER_SIZE(a))
-#define	DOMAIN_SIZE(d)		(size_t *)(&((struct domain *)d)->size)
+#define	DOMAIN_SIZE(d)		(u_int32_t *)(&((struct domain *)d)->size)
 #define	DOMAIN_FLAGS(d)		(u_int16_t *)(&((struct domain *)d)->flags)
 
 #endif
