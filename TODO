@@ -1,4 +1,4 @@
-$Id: TODO,v 1.36 2003/02/17 11:39:51 alexis Exp $
+$Id: TODO,v 1.37 2003/02/18 12:56:48 alexis Exp $
 
 AUTOCONF
 
@@ -21,7 +21,6 @@ This will generate an error, when in the end of file:
 18D0E3FE93A6FB31AF9B85359CAF5719D2986CE8 )
 - add a check to make sure that the biggest answer in the database does not
   exceed the query buffer
-
 - fix the strdname() routine
 
 
