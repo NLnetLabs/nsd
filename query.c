@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.73 2002/06/11 11:12:45 alexis Exp $
+ * $Id: query.c,v 1.74 2002/06/11 13:28:26 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -41,6 +41,9 @@
 
 #ifdef HOSTS_ACCESS
 #include <tcpd.h>
+
+int allow_severity = LOG_INFO;
+int deny_severity = LOG_NOTICE;
 #endif
 
 int 
