@@ -476,23 +476,27 @@ handle_udp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	int received, sent, s;
 	struct query q;
 	size_t i;
-	
+	static size_t last_index = 0;
+	size_t index = 0;
+
 	/* Process it... */
 	s = -1;
 	for (i = 0; i < nsd->ifs; i++) {
-		if (FD_ISSET(nsd->udp[i].s, peer)) {
-			s = nsd->udp[i].s;
-			if (nsd->udp[i].addr->ai_family == AF_INET)
+		index = (i + last_index) % nsd->ifs;
+		if (FD_ISSET(nsd->udp[index].s, peer)) {
+			s = nsd->udp[index].s;
+			if (nsd->udp[index].addr->ai_family == AF_INET)
 			{
 				/* Account... */
 				STATUP(nsd, qudp);
-			} else if (nsd->udp[i].addr->ai_family == AF_INET6) {
+			} else if (nsd->udp[index].addr->ai_family == AF_INET6) {
 				/* Account... */
 				STATUP(nsd, qudp6);
 			}
 			break;
 		}
 	}
+	last_index = index + 1;
 
 	if (s == -1) {
 		return 0;
@@ -577,14 +581,18 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	struct query q;
 	size_t i;
 	query_state_type query_state;
+	static size_t last_index = 0;
+	size_t index = 0;
 	
 	s = -1;
 	for (i = 0; i < nsd->ifs; i++) {
-		if (FD_ISSET(nsd->tcp[i].s, peer)) {
-			s = nsd->tcp[i].s;
+		index = (i + last_index) % nsd->ifs;
+		if (FD_ISSET(nsd->tcp[index].s, peer)) {
+			s = nsd->tcp[index].s;
 			break;
 		}
 	}
+	last_index = index + 1;
 
 	if (s == -1) {
 		log_msg(LOG_ERR, "selected non-existant socket");
