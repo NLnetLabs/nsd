@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.38 2003/07/07 08:56:23 erik Exp $
+ * $Id: zparser.c,v 1.39 2003/07/07 10:07:40 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -860,7 +860,7 @@ zrdata (struct zparser *z)
 			}
 			return 0;
 		default:
-			zerror(z, "dont know how to parse this type, try \\# representation");
+			zerror(z, "don't know how to parse this type, try \\# representation");
 			while(z->_t[++z->_tc] != NULL);
 	}
 
@@ -1137,7 +1137,7 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		}
 		break;
 	default:
-		zerror(z, "dont know how to scan this token");
+		zerror(z, "don't know how to scan this token");
 		abort();
 	}
 
