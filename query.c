@@ -591,6 +591,34 @@ answer_soa(struct query *q,
 	return 0;
 }
 
+static int
+answer_chaos(struct nsd *nsd,
+	     struct query *q,
+	     const u_char *qnamelow, u_char qnamelen,
+	     u_int16_t qtype)
+{
+	AA_CLR(q);
+	switch(ntohs(qtype)) {
+	case TYPE_ANY:
+	case TYPE_TXT:
+		if(qnamelen == 11 && memcmp(qnamelow, "\002id\006server", 11) == 0) {
+			/* Add ID */
+			query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->identity);
+			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
+			return 1;
+		} else if(qnamelen == 16 && memcmp(qnamelow, "\007version\006server", 16) == 0) {
+			/* Add version */
+			query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->version);
+			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
+			return 1;
+		}
+		return 0;
+	default:
+		return 0;
+	}
+}
+
+
 /*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
  * -1 if the query has to be silently discarded.
@@ -694,24 +722,11 @@ query_process (struct query *q, struct nsd *nsd)
 	switch(ntohs(qclass)) {
 	case CLASS_IN:
 	case CLASS_ANY:
+		/* Handled below.  */
 		break;
 	case CLASS_CHAOS:
-		AA_CLR(q);
-		switch(ntohs(qtype)) {
-		case TYPE_ANY:
-		case TYPE_TXT:
-			if(qnamelen == 11 && memcmp(qnamelow, "\002id\006server", 11) == 0) {
-				/* Add ID */
-				query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->identity);
-				ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
-				return 0;
-			} else if(qnamelen == 16 && memcmp(qnamelow, "\007version\006server", 16) == 0) {
-				/* Add version */
-				query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->version);
-				ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
-				return 0;
-			}
-			break;
+		if (answer_chaos(nsd, q, qnamelow, qnamelen, qtype)) {
+			return 0;
 		}
 	default:
 		RCODE_SET(q, RCODE_REFUSE);
