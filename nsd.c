@@ -185,7 +185,8 @@ writepid (struct nsd *nsd)
 
 	if (chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
 		log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",
-			nsd->uid, nsd->gid, nsd->pidfile, strerror(errno));
+			(unsigned) nsd->uid, (unsigned) nsd->gid,
+			nsd->pidfile, strerror(errno));
 		return -1;
 	}
 
@@ -251,7 +252,7 @@ sig_handler (int sig)
 	for (i = 0; i < nsd.child_count; ++i) {
 		if (nsd.children[i].pid > 0 && kill(nsd.children[i].pid, sig) == -1) {
 			log_msg(LOG_ERR, "problems killing %d: %s",
-				nsd.children[i].pid, strerror(errno));
+				(int) nsd.children[i].pid, strerror(errno));
 		}
 	}
 }
@@ -614,7 +615,7 @@ main (int argc, char *argv[])
 			} else {
 				/* Lookup the group id in /etc/passwd */
 				if ((pwd = getpwuid(nsd.uid)) == NULL) {
-					error("user id %d does not exist.", nsd.uid);
+					error("user id %u does not exist.", (unsigned) nsd.uid);
 				} else {
 					nsd.gid = pwd->pw_gid;
 				}
@@ -756,7 +757,7 @@ main (int argc, char *argv[])
 	free(plugins);
 #endif /* PLUGINS */
 	
-	log_msg(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
+	log_msg(LOG_NOTICE, "nsd started, pid %d", (int) nsd.pid);
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {
 		server_main(&nsd);
