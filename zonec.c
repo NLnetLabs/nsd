@@ -38,6 +38,10 @@
 #include "util.h"
 #include "zparser.h"
 
+#ifndef TIMEGM
+time_t timegm(struct tm *tm);
+#endif /* !TIMEGM */
+
 const dname_type *error_dname;
 domain_type *error_domain;
 

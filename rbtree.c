@@ -17,7 +17,13 @@
 #define	BLACK	0
 #define	RED	1
 
-rbnode_t	rbtree_null_node = {RBTREE_NULL, RBTREE_NULL, RBTREE_NULL, BLACK, NULL};
+rbnode_t	rbtree_null_node = {
+	RBTREE_NULL,		/* Parent.  */
+	RBTREE_NULL,		/* Left.  */
+	RBTREE_NULL,		/* Right.  */
+	NULL,			/* Key.  */
+	BLACK			/* Color.  */
+};
 
 static void rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node);
 static void rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node);
