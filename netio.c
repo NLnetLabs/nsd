@@ -233,15 +233,6 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 					event_types |= NETIO_EVENT_EXCEPT;
 				}
 
-				/*
-				 * Mask out events the handler is not
-				 * interested in.  This only has an
-				 * effect when there are multiple
-				 * handlers for the same file
-				 * descriptor, which is probably
-				 * suspicious usage.
-				 */
-				event_types &= handler->event_types;
 				if (event_types) {
 					handler->event_handler(netio, handler, event_types);
 					++result;

@@ -123,7 +123,7 @@ struct netio_handler
 	 * The event handler.  The event_types parameter contains the
 	 * OR'ed set of event types that actually triggered.  The
 	 * event handler is allowed to modify this handler object.
-	 * The event handler SHOULD NOT block!
+	 * The event handler SHOULD NOT block.
 	 */
 	netio_event_handler_type event_handler;
 };
