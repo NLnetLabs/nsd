@@ -61,12 +61,19 @@ error_cleanup () {
     exit 1
 }
 
-replace_version () {
-    info "Updating '$1' with the version number."
+replace_text () {
     (cp "$1" "$1".orig && \
-        sed -e "s/@version@/$version/g" < "$1".orig > "$1" && \
-        rm "$1".orig) || error_cleanup "Version replacement for $1 failed."
+        sed -e "s/$2/$3/g" < "$1".orig > "$1" && \
+        rm "$1".orig) || error_cleanup "Replacement for $1 failed."
 }
+
+replace_all () {
+    info "Updating '$1' with the version number."
+    replace_text "$1" "@version@" "$version"
+    info "Updating '$1' with today's date."
+    replace_text "$1" "@date@" "`date +'%b %e, %Y'`"
+}
+    
 
 REVISION="HEAD"
 SNAPSHOT="no"
@@ -148,10 +155,11 @@ if [ "$SNAPSHOT" = "yes" ]; then
     info "Snapshot version number: $version"
 fi
 
-replace_version README
-replace_version nsd.8
-replace_version nsdc.8
-replace_version zonec.8
+replace_all README
+replace_all nsd.8
+replace_all nsdc.8
+replace_all nsd-notify.8
+replace_all zonec.8
 
 info "Renaming NSD directory to nsd-$version."
 cd ..
