@@ -490,7 +490,7 @@ handle_udp(struct nsd *nsd, fd_set *peer)
 			STATUP(nsd, txerr);
 			return 1;
 		} else if (sent != q.iobufptr - q.iobuf) {
-			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
+			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, (int) QUERY_USED_SIZE(q));
 			return 1;
 		}
 
@@ -598,8 +598,8 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 					break;
 				}
 				if (sent != q.iobufptr - q.iobuf) {
-					syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr
-					       - q.iobuf);
+					syslog(LOG_ERR, "sent %d in place of %d bytes",
+					       sent, (int) QUERY_USED_SIZE(q));
 					break;
 				}
 

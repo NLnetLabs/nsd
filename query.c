@@ -290,11 +290,11 @@ query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, 
 	}
 
 	/* Truncate if necessary */
-	if(q->maxlen < (q->iobufptr - q->iobuf + ANSWER_DATALEN(a))) {
+	if(q->maxlen < QUERY_USED_SIZE(q) + ANSWER_DATALEN(a)) {
 
 		/* Start with the additional section, record by record... */
 		for(i = ntohs(ANSWER_ARCOUNT(a)), j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
-			if(q->maxlen >= (q->iobufptr - q->iobuf + ANSWER_RRS(a, j - 1))) {
+			if(q->maxlen >= QUERY_USED_SIZE(q) + ANSWER_RRS(a, j - 1)) {
 				/* Make sure we remove the entire RRsets... */
 				while(ANSWER_RRS_COLOR(a, j - 1) == ANSWER_RRS_COLOR(a, j - 2)) {
 					j--; i--;
@@ -308,7 +308,7 @@ query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, 
 		ARCOUNT(q) = htons(0);
 		TC_SET(q);
 
-		if(q->maxlen >= (q->iobufptr - q->iobuf + ANSWER_RRS(a, j - ntohs(a->nscount) - 1))) {
+		if(q->maxlen >= QUERY_USED_SIZE(q) + ANSWER_RRS(a, j - ntohs(a->nscount) - 1)) {
 			/* Truncate the athority section */
 			NSCOUNT(q) = htons(0);
 			q->iobufptr += ANSWER_RRS(a, j - ntohs(a->nscount) - 1);
