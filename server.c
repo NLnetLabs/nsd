@@ -440,7 +440,10 @@ process_query(struct nsd *nsd, struct query *query)
 		callback_args.result_code = RCODE_OK;
 
 		callback_result = query_processed_callbacks(
-			&callback_args, query->domain->plugin_data);
+			&callback_args,
+			(query->domain
+			 ? query->domain->plugin_data
+			 : NULL));
 		if (callback_result != NSD_PLUGIN_CONTINUE) {
 			return handle_callback_result(callback_result, &callback_args);
 		}
