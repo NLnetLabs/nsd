@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.14 2003/02/17 15:58:57 alexis Exp $
+ * $Id: zparser.c,v 1.15 2003/02/21 12:07:41 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -1034,7 +1034,7 @@ zrdatascan (struct zparser *z, int what)
 		r = xalloc(sizeof(u_int16_t) + B64BUFSIZE);
 
 		/* Try to convert it */
-		if((i = __b64_pton(z->_t[z->_tc], r + 1, B64BUFSIZE)) == -1) {
+		if((i = b64_pton(z->_t[z->_tc], r + 1, B64BUFSIZE)) == -1) {
 			zerror(z, "base64 encoding failed");
 			error++;
 		} else {

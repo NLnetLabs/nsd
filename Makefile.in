@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.16 2003/02/17 15:58:57 alexis Exp $
+# $Id: Makefile.in,v 1.17 2003/02/21 12:07:41 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -136,6 +136,11 @@ basename.o:	compat/basename.c
 inet_pton.o:	compat/inet_pton.c
 	$(COMPILE) -c compat/inet_pton.c -o inet_pton.o
 
+b64_pton.o:	compat/b64_pton.c
+	$(COMPILE) -c compat/b64_pton.c -o b64_pton.o
+
+b64_ntop.o:	compat/b64_ntop.c
+	$(COMPILE) -c compat/b64_ntop.c -o b64_ntop.o
 
 # Test programs
 rbtree:	rbtree.c rbtree.h
