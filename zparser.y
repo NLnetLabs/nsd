@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.6 2003/11/05 11:14:37 miekg Exp $
+ * $Id: zparser.y,v 1.7 2003/11/05 11:47:51 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -263,7 +263,7 @@ hex_seq:	STR
 	}
 	|	hex_seq sp STR
 	{
-		char *hex = (char*)malloc($3.len + $1.len + 1);
+		char *hex = region_alloc(rr_region, $3.len + $1.len + 1);
 		memcpy(hex, $1.str, $1.len);
 		memcpy(hex + $1.len, $3.str, $3.len);
 		/* no +1 here */
