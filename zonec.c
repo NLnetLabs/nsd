@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.47 2002/02/28 15:02:50 alexis Exp $
+ * $Id: zonec.c,v 1.48 2002/04/10 10:46:14 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -56,6 +56,7 @@ u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
 
 /* Some global flags... */
 int vflag = 0;
+int pflag = 0;
 
 #ifdef	USE_HEAP_HASH
 
@@ -870,8 +871,11 @@ main(argc, argv)
 	struct zone *z = NULL;
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "d:f:v")) != -1) {
+	while((c = getopt(argc, argv, "d:f:vp")) != -1) {
 		switch (c) {
+		case 'p':
+			pflag = 1;
+			break;
 		case 'v':
 			vflag = 1;
 			break;
@@ -953,6 +957,8 @@ main(argc, argv)
 		/* If we did not have any errors... */
 		if((z = zone_read(zonename, zonefile, cache)) != NULL) {
 			zone_dump(z, db);
+			if(pflag)
+				zone_print(z);
 		}
 
 	};
