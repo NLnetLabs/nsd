@@ -354,7 +354,7 @@ create_dname(region_type *region, const uint8_t *str, const size_t len)
 	uint8_t temp[MAXDOMAINLEN + 1];
 	size_t i;
 
-	assert(len > 0 && len < 64);
+	assert(len > 0 && len <= MAXLABELLEN);
 
 	temp[0] = len;
 	for (i = 0; i < len; ++i) {
