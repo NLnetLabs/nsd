@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.38 2003/07/04 07:55:09 erik Exp $
+ * $Id: dbaccess.c,v 1.39 2003/07/04 08:30:08 erik Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -75,10 +75,10 @@ namedb_lookup (struct namedb *db, const uint8_t *dname)
 	return (struct domain *)heap_search(db->heap, dname);
 }
 
-struct answer *
+const struct answer *
 namedb_answer (const struct domain *d, int type)
 {
-	struct answer *a;
+	const struct answer *a;
 
 	DOMAIN_WALK(d, a) {
 		if(a->type == type) {

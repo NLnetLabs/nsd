@@ -513,7 +513,7 @@ static int
 answer_delegation(struct query *query, struct domain *domain, const uint8_t *qname)
 {
 	if (DOMAIN_FLAGS(domain) & NAMEDB_DELEGATION) {
-		struct answer *answer = namedb_answer(domain, htons(TYPE_NS));
+		const struct answer *answer = namedb_answer(domain, htons(TYPE_NS));
 		
 		if (answer) {
 			RCODE_SET(query, RCODE_OK);
@@ -540,7 +540,7 @@ answer_domain(struct query *q,
 	      uint16_t qclass,
 	      uint16_t qtype)
 {
-	struct answer *a;
+	const struct answer *a;
 	uint8_t *qptr;
 	
 	if(((a = namedb_answer(d, qtype)) != NULL) ||	/* The query type? */
@@ -580,7 +580,7 @@ answer_soa(struct query *q,
 	   const uint8_t *qname,
 	   uint16_t qclass)
 {
-	struct answer *a;
+	const struct answer *a;
 	uint8_t *qptr;
 	
 	/* Do we have SOA record in this domain? */

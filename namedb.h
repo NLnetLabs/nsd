@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.37 2003/07/04 07:55:10 erik Exp $
+ * $Id: namedb.h,v 1.38 2003/07/04 08:30:10 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -146,7 +146,7 @@ void namedb_discard(struct namedb *db);
 int domaincmp(const void *a, const void *b);
 unsigned long domainhash(const uint8_t *dname);
 struct domain *namedb_lookup(struct namedb *db, const uint8_t *dname);
-struct answer *namedb_answer(const struct domain *d, int type);
+const struct answer *namedb_answer(const struct domain *d, int type);
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);
 
