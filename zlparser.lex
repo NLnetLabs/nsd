@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.14 2003/08/25 14:23:06 miekg Exp $
+ * $Id: zlparser.lex,v 1.15 2003/08/25 16:57:37 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -22,8 +22,6 @@ char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS" "EID", "NIMLOC", "ATMA",
     "NAPTR", "KX", "A6", "DNAME", "SINK", "OPT", "APL", "UINFO", "UID",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA"};
-
-unsigned int lineno = 0;
 
 /* in_rr:
  * 0 = not in an rr
@@ -53,7 +51,7 @@ Q       \"
     int i;
 
 {COMMENT}.*{NEWLINE}    { 
-                            lineno++;
+                            zdefault->line++;
                             if ( paren_open == 0 )
                                 return NL;
                         }
@@ -66,7 +64,7 @@ Q       \"
                         }
 ^{DOLLAR}TTL            return DIR_TTL;
 ^{DOLLAR}ORIGIN         return DIR_ORIG;
-^{DOLLAR}INCLUDE.*      /* ignore for now */    /* INCLUDE FILE DOMAINNAME */
+^{DOLLAR}INCLUDE.*      /* ignore for now  put zdefault also on the stack */
 ^{DOLLAR}{LETTER}+      { printf("UNKNOWN DIRECTIVE - ignored");}
 ^{DOT}                  {
                             /* a ^. means the root zone... also set in_rr */
@@ -82,14 +80,14 @@ Q       \"
                             }
                         }
 {NEWLINE}               {
-                            lineno++;
+                            zdefault->line++;
                             if ( paren_open == 0 ) { 
                                 in_rr = 0;
                                 return NL;
                             }
                         }
 {SPACE}+{NEWLINE}       {
-                            lineno++;
+                            zdefault->line++;
                             if ( paren_open == 0 ) { 
                                 in_rr = 0;
                                 return NL;

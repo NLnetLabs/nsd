@@ -57,14 +57,12 @@ struct zdefault_t {
     size_t origin_len;
     uint8_t *prev_dname;
     size_t prev_dname_len;
-    int _rc;   /* current rdata cnt */
-    size_t _tlineno;
-    char *filename;
+    unsigned int _rc;   /* current rdata cnt */
+    unsigned int errors;
+    size_t line;
+    const char *filename;
 };
 
-/* defined in zonec.y */
-extern unsigned int lineno;
-extern unsigned int error;
 extern struct zdefault_t *zdefault;
 extern struct RR * current_rr;
 

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.12 2003/08/21 11:43:18 erik Exp $
+ * $Id: zonec2.c,v 1.13 2003/08/25 16:57:37 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -517,7 +517,6 @@ zone_read (char *name, char *zonefile)
 	memset(z, 0, sizeof(struct zone));
 
 	/* Get the zone name */
-	printf("origin [%s]\n",name);
 	if((z->dname = dnamedup(strdname(name, ROOT))) == NULL) {
 		return NULL;
 	}
@@ -531,7 +530,6 @@ zone_read (char *name, char *zonefile)
 	}
 #endif
 
-    printf("origine [%s]\n",name);
 	/* Open the zone file */
 	if( nsd_zopen(zonefile, 3600, CLASS_IN, name) == NULL) {
 		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
@@ -554,7 +552,7 @@ zone_read (char *name, char *zonefile)
 	  dnamestr(z->dname), parser->errors);
 	  }
 	*/
-	/*totalerrors += parser->errors;*/
+	totalerrors += zdefault->errors;
 
 	/*zclose(parser);*/
 	

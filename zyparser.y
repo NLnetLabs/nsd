@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.24 2003/08/25 14:23:06 miekg Exp $
+ * $Id: zyparser.y,v 1.25 2003/08/25 16:57:37 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -19,12 +19,10 @@
 #include "zparser2.h"
 
 /* these need to be  global, otherwise they cannot be used inside yacc */
-unsigned int lineno;
 struct zdefault_t * zdefault;
 struct RR * current_rr;
 
 /* [XXX] should be local */
-unsigned int error = 0;
 int progress = 10000;
 int yydebug = 1;
 
@@ -49,9 +47,9 @@ int yydebug = 1;
 %%
 lines:  /* empty line */
     |   lines line
-    { if ( lineno % progress == 0 )
+    { if ( zdefault->line % progress == 0 )
         printf("\nzonec: reading zone \"%s\": %d\n", zdefault->filename,
-        lineno);
+        zdefault->line);
     }
     |    error      { yyerrok; }
     ;
@@ -73,10 +71,9 @@ line:   NL
 dir_ttl:    SP STR NL
     { 
         if ($2.len > MAXDNAME ) {
-            yyerror("TTL thingy too large");
+            yyerror("$TTL value is too large");
             return 1;
         } 
-        printf("\nttl-directive parsed: %s\n",  (char *) $2.str);
         /* perform TTL conversion */
         if ( ( zdefault->ttl = zparser_ttl2int($2.str)) == -1 )
             zdefault->ttl = DEFAULT_TTL;
@@ -89,7 +86,7 @@ dir_orig:   SP dname NL
     {
         /* [xxx] does $origin not effect previous */
         if ( $2.len > MAXDNAME ) { 
-            yyerror("origin thingy too large");
+            yyerror("$ORIGIN domain name is too large");
             return 1;
         } 
         zdefault->origin = (uint8_t *)dnamedup($2.str);
@@ -165,10 +162,10 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
     }
     |   CH SP         { yyerror("chaos class not supported"); }
     |   HS SP         { yyerror("hesiod class not supported"); }
-    |   ttl CH SP         { yyerror("chaos class not supported"); }
-    |   ttl HS SP         { yyerror("hesiod class not supported"); }
-    |   CH ttl SP         { yyerror("chaos class not supported"); }
-    |   HS ttl SP         { yyerror("hesiod class not supported"); }
+    |   ttl SP CH SP         { yyerror("chaos class not supported"); }
+    |   ttl SP HS SP         { yyerror("hesiod class not supported"); }
+    |   CH SP ttl SP         { yyerror("chaos class not supported"); }
+    |   HS SP ttl SP         { yyerror("hesiod class not supported"); }
     ;
 
 dname:  abs_dname
@@ -340,11 +337,15 @@ yywrap()
     return 1;
 }
 
+/* print an error. S has the message. zdefault is global so just
+ * access it 
+ */
 int
 yyerror(char *s)
 {
-    fprintf(stderr,"\n[%d]error: %s: %s\n", lineno, s, (char *) yylval.str);
-    if ( error++ > 50 ) {
+    fprintf(stderr,"error: %s in %s, line %lu\n",s, zdefault->filename,
+    (unsigned long) zdefault->line);
+    if ( zdefault->errors++ > 50 ) {
         fprintf(stderr,"too many errors (50+)\n");
         exit(1);
     }

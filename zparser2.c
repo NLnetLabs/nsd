@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.15 2003/08/25 14:25:45 miekg Exp $
+ * $Id: zparser2.c,v 1.16 2003/08/25 16:57:37 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -46,7 +46,6 @@ zparser_conv_hex(const char *hex)
     
     if ((i = strlen(hex)) % 2 != 0) {
             zerror("hex representation must be a whole number of octets");
-            error++;
     } else {
         /* the length part */
         r = xalloc(sizeof(uint16_t) + i/2);
@@ -86,7 +85,6 @@ zparser_conv_hex(const char *hex)
                         break;
                     default:
                         zerror("illegal hex character");
-                        error++;
                         free(r);
                         return 0;
                     }
@@ -110,7 +108,6 @@ zparser_conv_time(const char *time)
     /* [XXX] the cast fixes compile time warning */
     if((char*)strptime(time, "%Y%m%d%H%M%S", &tm) == NULL) {
             zerror("date and time is expected");
-            error++;
     } else {
 
             r = xalloc(sizeof(uint32_t) + sizeof(uint16_t));
@@ -136,7 +133,6 @@ zparser_conv_rdata_type(struct RR * current, const char *type)
 
     if(*(r + 1) == 0) {
             zerror("resource record type is expected");
-            error++;
     } else {
             *r = sizeof(uint16_t);
     }
@@ -153,7 +149,6 @@ zparser_conv_rdata_proto(const char *protostr)
  
     if((proto = getprotobyname(protostr)) == NULL) {
             zerror("unknown protocol");
-            error++;
     } else {
 
             r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
@@ -176,11 +171,9 @@ zparser_conv_rdata_service(const char *servicestr, const int arg)
     /* [XXX] need extra arg here .... */
     if((proto = getprotobynumber(arg)) == NULL) {
             zerror("unknown protocol, internal error");
-            error++;
         } else {
             if((service = getservbyname(servicestr, proto->p_name)) == NULL) {
                 zerror("unknown service");
-                error++;
             } else {
                 /* Allocate required space... */
                 r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
@@ -208,7 +201,6 @@ zparser_conv_rdata_period(const char *periodstr)
 
         if(*end != 0) {
             zerror("time period is expected");
-            error++;
         } else {
             memcpy(r + 1, &l, sizeof(uint32_t));
             *r = sizeof(uint32_t);
@@ -230,7 +222,6 @@ zparser_conv_short(const char *shortstr)
             
     if(*end != 0) {
             zerror("unsigned short value is expected");
-            error++;
     } else {
         *r = sizeof(uint16_t);
     }
@@ -250,7 +241,6 @@ zparser_conv_long(const char *longstr)
 
     if(*end != 0) {
             zerror("long decimal value is expected");
-            error++;
         } else {
             memcpy(r + 1, &l, sizeof(uint32_t));
             *r = sizeof(uint32_t);
@@ -272,7 +262,6 @@ zparser_conv_byte(const char *bytestr)
 
         if(*end != 0) {
             zerror("decimal value is expected");
-            error++;
         } else {
             *r = sizeof(uint8_t);
         }
@@ -294,8 +283,6 @@ zparser_conv_A(const char *a)
         *r = sizeof(uint32_t);
      } else {
             zerror("invalid ip address");
-            fprintf(stderr, "IP: [%s]\n",a);
-            error++;
      }
     return r;
 }
@@ -304,9 +291,11 @@ uint16_t *
 zparser_conv_dname(const uint8_t *dname)
 {
     /* convert a domain name to wireformat */
-    /* [XXX] dname, dnam were declared as the same thing
-     * need to fix it */
     uint16_t *r = NULL;
+
+    if ( dname == NULL ) {
+        printf("something is not right\n");
+    }
 
     /* Allocate required space... */
     r = xalloc(sizeof(uint16_t) + *dname + 1);
@@ -326,7 +315,6 @@ zparser_conv_text(const char *txt)
 
     if((i = strlen(txt)) > 255) {
             zerror("text string is longer than 255 charaters, try splitting in two");
-            error++;
         } else {
 
             /* Allocate required space... */
@@ -352,7 +340,6 @@ zparser_conv_a6(const char *a6)
         /* Try to convert it */
         if(inet_pton(AF_INET6, a6, r + 1) != 1) {
             zerror("invalid ipv6 address");
-            error++;
         } else {
             *r = IP6ADDRLEN;
         }
@@ -371,7 +358,6 @@ zparser_conv_b64(const char *b64)
         /* Try to convert it */
         if((i = b64_pton(b64, (uint8_t *) (r + 1), B64BUFSIZE)) == -1) {
             zerror("base64 encoding failed");
-            error++;
         } else {
             *r = i;
             r = xrealloc(r, i + sizeof(uint16_t));
@@ -619,7 +605,7 @@ zerror (struct zdefault_t *z, const char *msg)
 void 
 zerror (const char *msg)
 {   
-    fprintf(stderr, msg);
+    yyerror(msg);
 }
 
 /*
@@ -673,28 +659,28 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     setprotoent(1);
     setservent(1);
 
-    printf("getting the origin [%s]\n", origin);
+    /* XXX printf("getting the origin [%s]\n", origin); */
 
     /* Initialize the rest of the structure */
     zdefault = xalloc( sizeof(struct zdefault_t));
     
     zdefault->prev_dname = xalloc(MAXDNAME);
     zdefault->ttl = ttl;
-    zdefault->class = 1;
     zdefault->class = class;
+    zdefault->line = 0;
     
     zdefault->origin = xalloc(MAXDNAME);
     zdefault->origin = (uint8_t *)strdname(origin, ROOT);  /* hmm [XXX] MG */
     zdefault->origin_len = 0;
     zdefault->prev_dname = '\0';
     zdefault->prev_dname_len = 0;
+    zdefault->_rc = 0;
+    zdefault->errors = 0;
+    zdefault->filename = filename;
 
     current_rr = xalloc(sizeof(struct RR));
     current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
-    zdefault->_rc = 0;
     
-    printf("zp2.c: origin %s", dnamestr(zdefault->origin));
-
     return zdefault;
 }
 
