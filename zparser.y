@@ -190,7 +190,10 @@ dname:	abs_dname
     {
 	    if ($1 == error_dname) {
 		    $$ = error_domain;
-	    } else if ($1->name_size + domain_dname(parser->origin)->name_size - 1 > MAXDOMAINLEN) {
+	    } else if ((dname_length($1)
+			+ dname_length(domain_dname(parser->origin)) - 1)
+		       > MAXDOMAINLEN)
+	    {
 		    zc_error("domain name exceeds %d character limit", MAXDOMAINLEN);
 		    $$ = error_domain;
 	    } else {
@@ -245,7 +248,7 @@ rel_dname:	label
     {
 	    if ($1 == error_dname || $3 == error_dname) {
 		    $$ = error_dname;
-	    } else if ($1->name_size + $3->name_size - 1 > MAXDOMAINLEN) {
+	    } else if (dname_length($1) + dname_length($3) - 1 > MAXDOMAINLEN) {
 		    zc_error("domain name exceeds %d character limit",
 			     MAXDOMAINLEN);
 		    $$ = error_dname;

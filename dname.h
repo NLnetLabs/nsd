@@ -31,20 +31,11 @@ typedef struct dname dname_type;
 struct dname
 {
 	/*
-	 * The size (in bytes) of the domain name in wire format.
+	 * The size (in bytes) of the domain name in wire format
+	 * followed by the wireformat data, followed by the canonical
+	 * representation.
 	 */
-	uint8_t name_size;
-	
-	/*
-	 * The number of labels in this domain name (including the
-	 * root label).
-	 */
-	uint8_t label_count;
-
-	/*
-	  uint8_t label_offsets[label_count];
-	  uint8_t name[name_size];
-	*/
+	uint8_t _data[1];
 };
 
 
@@ -54,8 +45,7 @@ struct dname
  *
  * Pre: NAME != NULL.
  */
-const dname_type *dname_make(region_type *region, const uint8_t *name,
-			     int normalize);
+const dname_type *dname_make(region_type *region, const uint8_t *name);
 
 
 /*
@@ -66,8 +56,7 @@ const dname_type *dname_make(region_type *region, const uint8_t *name,
  */
 const dname_type *dname_make_from_packet(region_type *region,
 					 buffer_type *packet,
-					 int allow_pointers,
-					 int normalize);
+					 int allow_pointers);
 
 
 /*
@@ -91,11 +80,16 @@ const dname_type *dname_copy(region_type *region, const dname_type *dname);
 
 
 /*
- * Copy the most significant LABEL_COUNT labels from dname.
+ * The number of labels in DNAME including the terminating root label.
+ */
+size_t dname_label_count(const dname_type *dname);
+
+/*
+ * Copy the most significant COUNT labels from dname.
  */
 const dname_type *dname_partial_copy(region_type *region,
 				     const dname_type *dname,
-				     uint8_t label_count);
+				     uint8_t count);
 
 
 /*
@@ -110,16 +104,13 @@ int dname_is_subdomain(const dname_type *left, const dname_type *right);
 
 
 /*
- * Offsets into NAME for each label starting with the most
- * significant label (the root label, followed by the TLD,
- * etc).
+ * The length of the dname in wireformat octets.
  */
-static inline const uint8_t *
-dname_label_offsets(const dname_type *dname)
+static inline uint8_t
+dname_length(const dname_type *dname)
 {
-	return (const uint8_t *) ((const char *) dname + sizeof(dname_type));
+	return dname->_data[0];
 }
-
 
 /*
  * The actual name in wire format (a sequence of label, each
@@ -129,32 +120,30 @@ dname_label_offsets(const dname_type *dname)
 static inline const uint8_t *
 dname_name(const dname_type *dname)
 {
-	return (const uint8_t *) ((const char *) dname
-				  + sizeof(dname_type)
-				  + dname->label_count * sizeof(uint8_t));
+	return &dname->_data[1];
 }
 
+static inline const uint8_t *
+dname_canonical_name(const dname_type *dname)
+{
+	return &dname->_data[1 + dname_length(dname)];
+}
+
+static inline int
+dname_is_root(const dname_type *dname)
+{
+	assert(dname);
+	return dname_length(dname) == 1;
+}
 
 /*
- * Return the label for DNAME specified by LABEL_INDEX.  The first
- * label (LABEL_INDEX == 0) is the root label, the next label is the
- * TLD, etc.
+ * Return the label for DNAME specified by INDEX.  The first label
+ * (INDEX == 0) is the root label, the next label is the TLD, etc.
  *
- * Pre: dname != NULL && label_index < dname->label_count.
+ * Pre: dname != NULL && index < dname_label_count(dname).
  */
-static inline const uint8_t *
-dname_label(const dname_type *dname, uint8_t label)
-{
-	uint8_t label_index;
-	
-	assert(dname != NULL);
-	assert(label < dname->label_count);
-
-	label_index = dname_label_offsets(dname)[label];
-	assert(label_index < dname->name_size);
-		
-	return dname_name(dname) + label_index;
-}
+const uint8_t *
+dname_label(const dname_type *dname, size_t index);
 
 
 /*
@@ -202,9 +191,7 @@ uint8_t dname_label_match_count(const dname_type *left,
 static inline size_t
 dname_total_size(const dname_type *dname)
 {
-	return (sizeof(dname_type)
-		+ ((dname->label_count + dname->name_size)
-		   * sizeof(uint8_t)));
+	return sizeof(dname_type) + (2 * dname_length(dname));
 }
 
 

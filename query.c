@@ -255,7 +255,7 @@ process_query_section(query_type *query)
 	}
 	buffer_set_position(query->packet, src - buffer_begin(query->packet));
 
-	query->qname = dname_make(query->region, qnamebuf, 1);
+	query->qname = dname_make(query->region, qnamebuf);
 	query->qtype = buffer_read_u16(query->packet);
 	query->qclass = buffer_read_u16(query->packet);
 	query->opcode = OPCODE(query->packet);
@@ -346,10 +346,12 @@ answer_chaos(struct nsd *nsd, query_type *q)
 	switch (q->qtype) {
 	case TYPE_ANY:
 	case TYPE_TXT:
-		if ((q->qname->name_size == 11
-		     && memcmp(dname_name(q->qname), "\002id\006server", 11) == 0) || 
-		    (q->qname->name_size ==  15
-		     && memcmp(dname_name(q->qname), "\010hostname\004bind", 15) == 0))
+		if ((dname_length(q->qname) == 11
+		     && memcmp(dname_canonical_name(q->qname),
+			       "\006server\002id", 11) == 0) || 
+		    (dname_length(q->qname) == 15
+		     && memcmp(dname_canonical_name(q->qname),
+			       "\004bind\010hostname", 15) == 0))
 		{
 			/* Add ID */
 			query_addtxt(q,
@@ -358,10 +360,12 @@ answer_chaos(struct nsd *nsd, query_type *q)
 				     0,
 				     nsd->identity);
 			ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
-		} else if ((q->qname->name_size == 16
-			    && memcmp(dname_name(q->qname), "\007version\006server", 16) == 0) ||
-			   (q->qname->name_size == 14
-			    && memcmp(dname_name(q->qname), "\007version\004bind", 14) == 0))
+		} else if ((dname_length(q->qname) == 16
+			    && memcmp(dname_canonical_name(q->qname),
+				      "\006server\007version", 16) == 0) ||
+			   (dname_length(q->qname) == 14
+			    && memcmp(dname_canonical_name(q->qname),
+				      "\004bind\007version", 14) == 0))
 		{
 			/* Add version */
 			query_addtxt(q,
@@ -844,7 +848,9 @@ answer_query(struct nsd *nsd, struct query *q)
 		}
 	}
 
-	offset = dname_label_offsets(q->qname)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
+	offset = (QHEADERSZ
+		  + dname_length(q->qname)
+		  - dname_length(domain_dname(closest_encloser)));
 	query_add_compression_domain(q, closest_encloser, offset);
 
 	encode_answer(q, &answer);

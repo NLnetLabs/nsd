@@ -69,7 +69,8 @@ void
 plugin_init(struct nsd *nsd)
 {
 	plugin_interface.nsd = nsd;
-	plugin_interface.root_dname = dname_make(nsd->region, (const uint8_t *) "", 0);
+	plugin_interface.root_dname = dname_make(nsd->region,
+						 (const uint8_t *) "");
 	plugin_interface.register_data = register_data;
 	plugin_interface.log_msg = log_msg;
 	plugin_interface.xalloc = xalloc;

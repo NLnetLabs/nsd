@@ -790,7 +790,7 @@ init_query(query_type *q,
 	buffer_skip(q->packet, QHEADERSZ);
 
 	/* The question record.  */
-	buffer_write(q->packet, dname_name(dname), dname->name_size);
+	buffer_write(q->packet, dname_name(dname), dname_length(dname));
 	buffer_write_u16(q->packet, type);
 	buffer_write_u16(q->packet, klass);
 

@@ -1138,7 +1138,7 @@ zone_read(const char *name, const char *zonefile)
 	
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
-	if (dname->label_count == 1) {
+	if (dname_is_root(dname) == 1) {
 		zc_error("not configured as a root server");
 		return;
 	}

@@ -93,11 +93,11 @@ static int
 write_dname(struct namedb *db, domain_type *domain)
 {
 	const dname_type *dname = domain_dname(domain);
+	uint8_t length = dname_length(dname);
 	
-	if (!write_data(db->fd, &dname->name_size, sizeof(dname->name_size)))
+	if (!write_data(db->fd, &length, sizeof(length)))
 		return 0;
-
-	if (!write_data(db->fd, dname_name(dname), dname->name_size))
+	if (!write_data(db->fd, dname_name(dname), length))
 		return 0;
 
 	return 1;

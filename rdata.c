@@ -492,7 +492,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 
 		if (is_domain) {
 			const dname_type *dname = dname_make_from_packet(
-				temp_region, packet, 1, 1);
+				temp_region, packet, 1);
 			if (!dname) {
 				region_destroy(temp_region);
 				return -1;
@@ -534,7 +534,8 @@ rdata_maximum_wireformat_size(rrtype_descriptor_type *descriptor,
 	size_t i;
 	for (i = 0; i < rdata_count; ++i) {
 		if (rdata_atom_is_domain(descriptor->type, i)) {
-			result += domain_dname(rdata_atom_domain(rdatas[i]))->name_size;
+			result += dname_length(
+				domain_dname(rdata_atom_domain(rdatas[i])));
 		} else {
 			result += rdata_atom_size(rdatas[i]);
 		}
@@ -557,7 +558,7 @@ rdata_atoms_to_unknown_string(buffer_type *output,
 			const dname_type *dname =
 				domain_dname(rdata_atom_domain(rdatas[i]));
 			hex_to_string(
-				output, dname_name(dname), dname->name_size);
+				output, dname_name(dname), dname_length(dname));
 		} else {
 			rdata_hex_to_string(output, rdatas[i]);
 		}

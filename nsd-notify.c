@@ -98,7 +98,7 @@ main (int argc, char *argv[])
 	AA_SET(q.packet);
 	QDCOUNT_SET(q.packet, 1);
 	buffer_skip(q.packet, QHEADERSZ);
-	buffer_write(q.packet, dname_name(zone), zone->name_size);
+	buffer_write(q.packet, dname_name(zone), dname_length(zone));
 	buffer_write_u16(q.packet, TYPE_SOA);
 	buffer_write_u16(q.packet, CLASS_IN);
 	buffer_flip(q.packet);

@@ -80,7 +80,8 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 			const dname_type *dname = domain_dname(
 				rdata_atom_domain(rr->rdatas[j]));
 			buffer_write(q->packet,
-				     dname_name(dname), dname->name_size);
+				     dname_name(dname),
+				     dname_length(dname));
 			break;
 		}
 		default:
@@ -220,7 +221,7 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	rdata_atom_type *rdatas;
 	rr_type *result = (rr_type *) region_alloc(region, sizeof(rr_type));
 	
-	owner = dname_make_from_packet(region, packet, 1, 1);
+	owner = dname_make_from_packet(region, packet, 1);
 	if (!owner || !buffer_available(packet, 2*sizeof(uint16_t))) {
 		return NULL;
 	}

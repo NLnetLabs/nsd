@@ -48,7 +48,7 @@ tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 	if (!tsig_timers_only) {
 		tsig->algorithm->hmac_update(tsig->context,
 					     dname_name(tsig->key_name),
-					     tsig->key_name->name_size);
+					     dname_length(tsig->key_name));
 		tsig->algorithm->hmac_update(tsig->context,
 					     &klass,
 					     sizeof(klass));
@@ -57,7 +57,7 @@ tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 					     sizeof(ttl));
 		tsig->algorithm->hmac_update(tsig->context,
 					     dname_name(tsig->algorithm_name),
-					     tsig->algorithm_name->name_size);
+					     dname_length(tsig->algorithm_name));
 	}
 	tsig->algorithm->hmac_update(tsig->context,
 				     &signed_time_high,
@@ -438,7 +438,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->other_data = NULL;
 	region_free_all(tsig->rr_region);
 	
-	tsig->key_name = dname_make_from_packet(tsig->rr_region, packet, 1, 1);
+	tsig->key_name = dname_make_from_packet(tsig->rr_region, packet, 1);
 	if (!tsig->key_name) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
@@ -466,7 +466,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	}
 
 	tsig->algorithm_name = dname_make_from_packet(
-		tsig->rr_region, packet, 1, 1);
+		tsig->rr_region, packet, 1);
 	if (!tsig->algorithm_name || !buffer_available(packet, 10)) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
@@ -509,14 +509,14 @@ tsig_append_rr(tsig_record_type *tsig, buffer_type *packet)
 
 	/* XXX: key name compression? */
 	buffer_write(packet, dname_name(tsig->key_name),
-		     tsig->key_name->name_size);
+		     dname_length(tsig->key_name));
 	buffer_write_u16(packet, TYPE_TSIG);
 	buffer_write_u16(packet, CLASS_ANY);
 	buffer_write_u32(packet, 0); /* TTL */
 	rdlength_pos = buffer_position(packet);
 	buffer_skip(packet, sizeof(uint16_t));
 	buffer_write(packet, dname_name(tsig->algorithm_name),
-		     tsig->algorithm_name->name_size);
+		     dname_length(tsig->algorithm_name));
 	buffer_write_u16(packet, tsig->signed_time_high);
 	buffer_write_u32(packet, tsig->signed_time_low);
 	buffer_write_u16(packet, tsig->signed_time_fudge);
@@ -538,19 +538,19 @@ tsig_reserved_space(tsig_record_type *tsig)
 	if (tsig->status == TSIG_NOT_PRESENT)
 		return 0;
 
-	return (tsig->key_name->name_size   /* Owner */
-		+ sizeof(uint16_t)	    /* Type */
-		+ sizeof(uint16_t)	    /* Class */
-		+ sizeof(uint32_t)	    /* TTL */
-		+ sizeof(uint16_t)	    /* RDATA length */
-		+ tsig->algorithm_name->name_size
-		+ sizeof(uint16_t)	    /* Signed time (high) */
-		+ sizeof(uint32_t)	    /* Signed time (low) */
-		+ sizeof(uint16_t)	    /* Signed time fudge */
-		+ sizeof(uint16_t)	    /* MAC size */
+	return (dname_length(tsig->key_name) /* Owner */
+		+ sizeof(uint16_t)	     /* Type */
+		+ sizeof(uint16_t)	     /* Class */
+		+ sizeof(uint32_t)	     /* TTL */
+		+ sizeof(uint16_t)	     /* RDATA length */
+		+ dname_length(tsig->algorithm_name)
+		+ sizeof(uint16_t)	     /* Signed time (high) */
+		+ sizeof(uint32_t)	     /* Signed time (low) */
+		+ sizeof(uint16_t)	     /* Signed time fudge */
+		+ sizeof(uint16_t)	     /* MAC size */
 		+ tsig->algorithm->maximum_digest_size /* MAC data */
-		+ sizeof(uint16_t)	    /* Original query ID */
-		+ sizeof(uint16_t)	    /* Error code */
-		+ sizeof(uint16_t)	    /* Other size */
-		+ tsig->other_size);	    /* Other data */
+		+ sizeof(uint16_t)	     /* Original query ID */
+		+ sizeof(uint16_t)	     /* Error code */
+		+ sizeof(uint16_t)	     /* Other size */
+		+ tsig->other_size);	     /* Other data */
 }
