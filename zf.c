@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.29.2.2 2002/08/15 11:34:36 alexis Exp $
+ * $Id: zf.c,v 1.29.2.3 2002/08/15 11:46:39 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -764,6 +764,11 @@ struct zf_entry *
 zf_read(zf)
 	struct zf *zf;
 {
+
+#ifndef USE_INET_ADDR
+	struct in_addr pin;
+#endif /* !USE_INET_ADDR */
+
 	int parse_error;
 	char *line, *token;
 	char *t, *f;
@@ -918,7 +923,13 @@ zf_read(zf)
 
 			switch(*f) {
 			case '4':
+#ifdef USE_INET_ADDR
 				if((zf->line.rdata[i].l = inet_addr(token)) == -1) {
+#else
+					if(inet_aton(token, &pin) == 1) {
+						zf->line.rdata[i].l = pin.s_addr;
+					} else {
+#endif /* USE_INET_ADDR */
 					zf_error(zf, "malformed ipv4 address");
 					parse_error++;
 				}

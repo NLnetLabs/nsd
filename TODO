@@ -1,4 +1,4 @@
-$Id: TODO,v 1.26.2.5 2002/08/15 11:32:01 alexis Exp $
+$Id: TODO,v 1.26.2.6 2002/08/15 11:46:39 alexis Exp $
 
 ZONE COMPILER
 - memory allocation optimization is needed
@@ -36,6 +36,4 @@ MISC
 - WKS (low prio)
 - axfr lock, rebuild lock in the scripts
 - trailing garba .eunet.si
-- ip 255.255.255.255 fix
-
-
+- ip 255.255.255.255 fix (fixed) unless #define USE_INET_ADDR
