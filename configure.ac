@@ -233,7 +233,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy pselect socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
 
 #
 # Checking for missing functions we can replace

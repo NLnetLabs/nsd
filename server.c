@@ -640,13 +640,11 @@ server_child(struct nsd *nsd)
 	fd_set peer;
 	int maxfd;
 	size_t i;
-	sigset_t block_sigill;
+	sigset_t block_sigmask;
+	sigset_t default_sigmask;
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	
-	sigemptyset(&block_sigill);
-	sigaddset(&block_sigill, SIGILL);
-
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		close_all_sockets(nsd->tcp, nsd->ifs);
 	}
@@ -659,6 +657,16 @@ server_child(struct nsd *nsd)
 	siginterrupt(SIGINT, 1);	/* These two are to avoid hanging tcp connections... */
 	siginterrupt(SIGTERM, 1);	/* ...on server restart. */
 
+	/*
+	 * Block SIGILL and SIGTERM as the modify nsd->mode, which
+	 * must be tested atomically.  These signals are only
+	 * unblocked while waiting in pselect below.
+	 */
+	sigemptyset(&block_sigmask);
+	sigaddset(&block_sigmask, SIGILL);
+	sigaddset(&block_sigmask, SIGTERM);
+	sigprocmask(SIG_BLOCK, &block_sigmask, &default_sigmask);
+	
 	/* The main loop... */	
 	while (nsd->mode != NSD_QUIT) {
 
@@ -669,9 +677,8 @@ server_child(struct nsd *nsd)
 #ifdef BIND8_STATS
 			/* Dump the statistics */
 			bind8_stats(nsd);
-
 #else /* BIND8_STATS */
-			log_msg(LOG_NOTICE, "No statistics available, recompile with -DBIND8_STATS");
+			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
 #endif /* BIND8_STATS */
 		}
 		
@@ -693,11 +700,8 @@ server_child(struct nsd *nsd)
 			}
 		}
 		
-		/* Break from select() to dump statistics... */
-		sigprocmask(SIG_UNBLOCK, &block_sigill, NULL);
-		
 		/* Wait for a query... */
-		if (select(maxfd + 1, &peer, NULL, NULL, NULL) == -1) {
+		if (pselect(maxfd + 1, &peer, NULL, NULL, NULL, &default_sigmask) == -1) {
 			if (errno == EINTR) {
 				/* We'll fall out of the loop if we need to shut down */
 				continue;
@@ -706,9 +710,6 @@ server_child(struct nsd *nsd)
 				break;
 			}
 		}
-
-		/* Wait for transaction completion before dumping stats... */
-		sigprocmask(SIG_BLOCK, &block_sigill, NULL);
 
 		if ((nsd->server_kind & NSD_SERVER_UDP) &&
 		    handle_udp(nsd, &peer))
