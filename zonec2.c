@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.10 2003/08/20 12:06:53 miekg Exp $
+ * $Id: zonec2.c,v 1.11 2003/08/20 13:28:09 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -372,21 +372,19 @@ process_rr(struct RR *rr)
 	}
 
 	/* Is this in-zone data? */
-        /* DEBUG 
-	   printf("d name: [%s]\n", z->dname+2);
-	   printf("rr name: [%s]\n", rr->dname+2);
+      /* 
+	   printf("d name: [%s]\n", z->dname);
+	   printf("rr name: [%s]\n", rr->dname);
 	   printf("d name: [%d]\n", (int)z->dname[0]);
 	   printf("rr name: [%d]\n", (int)rr->dname[0]);
 	   printf("d name: [%d]\n", (int)z->dname[1]);
 	   printf("rr name: [%d]\n", (int)rr->dname[1]);
-	   printf("d name: [%d]\n", (int)z->dname[6]);
-	   printf("rr name: [%d]\n", (int)rr->dname[6]);
 	   printf("d name: [%s]\n", dnamestr(z->dname));
 	   printf("rr name: [%s]\n", dnamestr(rr->dname));
-        */
+       */
 	if((*z->dname > *rr->dname) ||
 	   (memcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
-		zerror("out of zone data");
+		zerror("out of zone data\n");
 		return 0;
 	}
 

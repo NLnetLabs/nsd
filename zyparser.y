@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.20 2003/08/20 12:06:53 miekg Exp $
+ * $Id: zyparser.y,v 1.21 2003/08/20 13:28:09 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -25,7 +25,7 @@ struct RR * current_rr;
 
 /* [XXX] should be local */
 unsigned int error = 0;
-int progress = 1000;
+int progress = 10000;
 int yydebug = 1;
 
 %}
@@ -172,7 +172,7 @@ dname:  abs_dname
     |   rel_dname
     {
         /* append origin */
-        $$->str = (uint8_t *)cat_dname($$->str, zdefault->origin);
+        $$->str = (uint8_t *)cat_dname($1->str, zdefault->origin);
         $$->len = $1->len;
     }
     ;
@@ -184,8 +184,9 @@ abs_dname:  '.'
     }
     |       rel_dname '.'
     {
-            $$->str = $1->str;
-            $$->len = $1->len;
+            /* also add root */
+            $$->str = cat_dname($1->str, ROOT);
+            $$->len = $1->len + 1;
     }
     ;
 
@@ -259,6 +260,8 @@ rdata_soa:  dname SP dname SP STR STR STR STR STR
         /* [XXX] also store the minium in case of no TTL? */
         if ( (zdefault->minimum = zparser_ttl2int($9->str) ) == -1 )
             zdefault->minimum = DEFAULT_TTL;
+        free($1->str);free($3->str);free($5->str);free($6->str);
+        free($7->str);free($8->str);free($9->str);
     }
     ;
 
@@ -266,6 +269,7 @@ rdata_dname:   dname
     {
         /* convert a single dname record */
         zadd_rdata2( zdefault, zparser_conv_dname($1->str) ); /* domain name */
+        free($1->str);
     }
     ;
 
@@ -286,6 +290,7 @@ rdata_a:    STR '.' STR '.' STR '.' STR
         memcpy(ipv4 + $1->len + $3->len + $5->len + $7->len + 3, "\0", 1);
 
         zadd_rdata2(zdefault, zparser_conv_A(ipv4));
+        free($1->str);free($3->str);free($5->str);free($7->str);
         free(ipv4);
     }
     ;
@@ -293,6 +298,7 @@ rdata_a:    STR '.' STR '.' STR '.' STR
 rdata_txt:  STR
     {
         zadd_rdata2( zdefault, zparser_conv_text($1->str));
+        free($1->str);
     }
     ;
 
@@ -300,12 +306,14 @@ rdata_mx:   STR SP dname
     {
         zadd_rdata2( zdefault, zparser_conv_short($1->str) );  /* priority */
         zadd_rdata2( zdefault, zparser_conv_dname($3->str) );  /* MX host */
+        free($1->str);free($3->str);
     }
     ;
 
 rdata_aaaa: STR
     {
         zadd_rdata2( zdefault, zparser_conv_a6($1->str) );  /* IPv6 address */
+        free($1->str);
     }
     ;
 
