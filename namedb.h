@@ -207,10 +207,10 @@ rdata_atom_size(rdata_atom_type atom)
 	return *atom.data;
 }
 
-static inline void *
+static inline uint8_t *
 rdata_atom_data(rdata_atom_type atom)
 {
-	return atom.data + 1;
+	return (uint8_t *) (atom.data + 1);
 }
 
 

@@ -36,7 +36,8 @@ tsig_openssl_init(region_type *region)
 		return 0;
 	}
 
-	md5_algorithm = region_alloc(region, sizeof(tsig_algorithm_type));
+	md5_algorithm = (tsig_algorithm_type *) region_alloc(
+		region, sizeof(tsig_algorithm_type));
 	md5_algorithm->short_name = "hmac-md5";
 	md5_algorithm->wireformat_name
 		= dname_parse(region, "hmac-md5.sig-alg.reg.int.", NULL);
@@ -61,7 +62,8 @@ cleanup_context(void *data)
 static void *
 create_context(region_type *region)
 {
-	HMAC_CTX *context = region_alloc(region, sizeof(HMAC_CTX));
+	HMAC_CTX *context
+		= (HMAC_CTX *) region_alloc(region, sizeof(HMAC_CTX));
 	region_add_cleanup(region, cleanup_context, context);
 	HMAC_CTX_init(context);
 	return context;

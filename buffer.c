@@ -24,11 +24,12 @@ buffer_cleanup(void *arg)
 buffer_type *
 buffer_create(region_type *region, size_t capacity)
 {
-	buffer_type *buffer = region_alloc(region, sizeof(buffer_type));
+	buffer_type *buffer
+		= (buffer_type *) region_alloc(region, sizeof(buffer_type));
 	if (!buffer)
 		return NULL;
 	
-	buffer->_data = xalloc(capacity);
+	buffer->_data = (uint8_t *) xalloc(capacity);
 	buffer->_position = 0;
 	buffer->_limit = buffer->_capacity = capacity;
 	buffer->_fixed = 0;
@@ -46,7 +47,7 @@ buffer_create_from(buffer_type *buffer, void *data, size_t size)
 
 	buffer->_position = 0;
 	buffer->_limit = buffer->_capacity = size;
-	buffer->_data = data;
+	buffer->_data = (uint8_t *) data;
 	buffer->_fixed = 1;
 	
 	buffer_invariant(buffer);
@@ -83,7 +84,7 @@ buffer_set_capacity(buffer_type *buffer, size_t capacity)
 {
 	buffer_invariant(buffer);
 	assert(buffer->_position <= capacity);
-	buffer->_data = xrealloc(buffer->_data, capacity);
+	buffer->_data = (uint8_t *) xrealloc(buffer->_data, capacity);
 	buffer->_limit = buffer->_capacity = capacity;
 }
 

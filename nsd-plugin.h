@@ -87,7 +87,7 @@ struct nsd_plugin_callback_args
 	/*
 	 * Set this if the callback returns NSD_PLUGIN_ERROR.
 	 */
-	int                  result_code;
+	nsd_rc_type          result_code;
 };
 typedef struct nsd_plugin_callback_args nsd_plugin_callback_args_type;
 

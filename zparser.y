@@ -33,6 +33,8 @@ static uint8_t nxtbits[16];
 /* still need to reset the bastard somewhere */
 static uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
+int yyerror(const char *message);
+
 %}
 %union {
 	domain_type      *domain;
@@ -894,7 +896,7 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 }
 
 int
-yyerror(const char *message ATTR_UNUSED)
+yyerror(const char *ATTR_UNUSED(message))
 {
 	/* don't do anything with this */
 	return 0;

@@ -143,7 +143,8 @@ query_cleanup(void *data)
 query_type *
 query_create(region_type *region, uint16_t *compressed_dname_offsets)
 {
-	query_type *query = region_alloc_zero(region, sizeof(query_type));
+	query_type *query
+		= (query_type *) region_alloc_zero(region, sizeof(query_type));
 	query->region = region_create(xalloc, free);
 	query->compressed_dname_offsets = compressed_dname_offsets;
 	query->packet = buffer_create(region, QIOBUFSZ);
@@ -316,7 +317,7 @@ process_edns(struct query *q)
 }
 
 static nsd_rc_type
-process_tsig(query_type *q ATTR_UNUSED)
+process_tsig(query_type *q)
 {
 	nsd_rc_type result;
 

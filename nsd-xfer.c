@@ -156,7 +156,8 @@ static tsig_key_type *
 read_tsig_key_data(region_type *region, FILE *in, int default_family)
 {
 	char line[4000];
-	tsig_key_type *key = region_alloc(region, sizeof(tsig_key_type));
+	tsig_key_type *key = (tsig_key_type *) region_alloc(
+		region, sizeof(tsig_key_type));
 	struct addrinfo hints;
 	int gai_rc;
 	int size;
@@ -211,7 +212,7 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 	}
 
 	key->size = size;
-	key->data = region_alloc_init(region, data, key->size);
+	key->data = (uint8_t *) region_alloc_init(region, data, key->size);
 
 	return key;
 }
@@ -257,7 +258,7 @@ read_tsig_key(region_type *region,
 static int
 write_socket(int s, const void *buf, size_t size)
 {
-	const char *data = buf;
+	const char *data = (const char *) buf;
 	size_t total_count = 0;
 
 	while (total_count < size) {
@@ -282,7 +283,7 @@ write_socket(int s, const void *buf, size_t size)
 static int
 read_socket(int s, void *buf, size_t size)
 {
-	char *data = buf;
+	char *data = (char *) buf;
 	size_t total_count = 0;
 
 	while (total_count < size) {
@@ -315,8 +316,10 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 		} else {
 			buffer_printf(output, " ");
 		}
-		if (!rdata_atom_to_string(output, descriptor->zoneformat[i],
-					  record->rdatas[i]))
+		if (!rdata_atom_to_string(
+			    output,
+			    (rdata_zoneformat_type) descriptor->zoneformat[i],
+			    record->rdatas[i]))
 		{
 			buffer_set_position(output, saved_position);
 			return 0;
@@ -902,7 +905,8 @@ main (int argc, char *argv[])
 
 		tsig_add_key(tsig_key);
 		
-		tsig = region_alloc(region, sizeof(tsig_record_type));
+		tsig = (tsig_record_type *) region_alloc(
+			region, sizeof(tsig_record_type));
 		tsig_init_record(tsig, region, md5, tsig_key);
 	}
 	
@@ -930,7 +934,7 @@ main (int argc, char *argv[])
 		}
 
 		for (res = res0; res; res = res->ai_next) {
-			uint32_t zone_serial = -1;
+			uint32_t zone_serial = (uint32_t) -1;
 			int s;
 			
 			if (res->ai_addrlen > sizeof(q.addr))

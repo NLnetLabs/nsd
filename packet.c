@@ -212,7 +212,7 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	uint16_t rdlength;
 	ssize_t rdata_count;
 	rdata_atom_type *rdatas;
-	rr_type *result = region_alloc(region, sizeof(rr_type));
+	rr_type *result = (rr_type *) region_alloc(region, sizeof(rr_type));
 	
 	owner = dname_make_from_packet(region, packet, 1, 1);
 	if (!owner || !buffer_available(packet, 2*sizeof(uint16_t))) {

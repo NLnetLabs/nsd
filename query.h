@@ -315,7 +315,7 @@ void query_add_optional(query_type *q, nsd_type *nsd);
  * Write an error response into the query structure with the indicated
  * RCODE.
  */
-query_state_type query_error(query_type *q, int rcode);
+query_state_type query_error(query_type *q, nsd_rc_type rcode);
 
 static inline int
 query_overflow(query_type *q)

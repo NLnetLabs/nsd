@@ -185,13 +185,13 @@ domain_table_iterate(domain_table_type *table,
 		    domain_table_iterator_type iterator,
 		    void *user_data)
 {
-	const dname_type *dname;
-	domain_type *node;
+	const void *dname;
+	void *node;
 
 	assert(table);
 
 	HEAP_WALK(table->names_to_domains, dname, node) {
-		iterator(node, user_data);
+		iterator((domain_type *) node, user_data);
 	}
 }
 

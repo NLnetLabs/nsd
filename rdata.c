@@ -86,7 +86,7 @@ rdata_text_to_string(buffer_type *output, rdata_atom_type rdata)
 static int
 rdata_byte_to_string(buffer_type *output, rdata_atom_type rdata)
 {
-	uint8_t data = * (uint8_t *) rdata_atom_data(rdata);
+	uint8_t data = *rdata_atom_data(rdata);
 	buffer_printf(output, "%lu", (unsigned long) data);
 	return 1;
 }
@@ -142,7 +142,7 @@ rdata_rrtype_to_string(buffer_type *output, rdata_atom_type rdata)
 static int
 rdata_algorithm_to_string(buffer_type *output, rdata_atom_type rdata)
 {
-	uint8_t id = * (uint8_t *) rdata_atom_data(rdata);
+	uint8_t id = *rdata_atom_data(rdata);
 	lookup_table_type *alg
 		= lookup_by_id(dns_algorithms, id);
 	if (alg) {
@@ -367,8 +367,8 @@ rdata_nsec_to_string(buffer_type *output, rdata_atom_type rdata)
 }
 
 static int
-rdata_loc_to_string(buffer_type *output ATTR_UNUSED,
-		    rdata_atom_type rdata ATTR_UNUSED)
+rdata_loc_to_string(buffer_type *ATTR_UNUSED(output),
+		    rdata_atom_type ATTR_UNUSED(rdata))
 {
 	/*
 	 * Returning 0 forces the record to be printed in unknown

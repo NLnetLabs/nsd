@@ -68,7 +68,7 @@ log_finalize(void)
 }
 
 void
-log_file(int priority ATTR_UNUSED, const char *message)
+log_file(int ATTR_UNUSED(priority), const char *message)
 {
 	size_t length;
 	

@@ -550,7 +550,7 @@ process_query(struct nsd *nsd, struct query *query)
 	
 	callback_args.query = query;
 	callback_args.data = NULL;
-	callback_args.result_code = RCODE_OK;
+	callback_args.result_code = NSD_RC_OK;
 
 	callback_result = query_received_callbacks(&callback_args, NULL);
 	if (callback_result != NSD_PLUGIN_CONTINUE) {
@@ -560,7 +560,7 @@ process_query(struct nsd *nsd, struct query *query)
 	rc = query_process(query, nsd);
 	if (rc == QUERY_PROCESSED) {
 		callback_args.data = NULL;
-		callback_args.result_code = RCODE_OK;
+		callback_args.result_code = NSD_RC_OK;
 
 		callback_result = query_processed_callbacks(
 			&callback_args,
@@ -686,7 +686,7 @@ server_child(struct nsd *nsd)
 
 
 static void
-handle_udp(netio_type *netio ATTR_UNUSED,
+handle_udp(netio_type *ATTR_UNUSED(netio),
 	   netio_handler_type *handler,
 	   netio_event_types_type event_types)
 {

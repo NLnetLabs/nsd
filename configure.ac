@@ -432,10 +432,12 @@ AH_BOTTOM([
 #else /* !HAVE_ATTR_FORMAT */
 #define ATTR_FORMAT(archetype, string_index, first_to_check) /* empty */
 #endif /* !HAVE_ATTR_FORMAT */
-#ifdef HAVE_ATTR_UNUSED
-#define ATTR_UNUSED __attribute__((unused))
+#if defined(__cplusplus)
+#define ATTR_UNUSED(x)
+#elif defined(HAVE_ATTR_UNUSED)
+#define ATTR_UNUSED(x)  x __attribute__((unused))
 #else /* !HAVE_ATTR_UNUSED */
-#define ATTR_UNUSED /* empty */
+#define ATTR_UNUSED(x)  x
 #endif /* !HAVE_ATTR_UNUSED */
 ])
 

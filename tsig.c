@@ -98,7 +98,7 @@ tsig_init(region_type *region)
 void
 tsig_add_key(tsig_key_type *key)
 {
-	tsig_key_table_type *entry = region_alloc(
+	tsig_key_table_type *entry = (tsig_key_table_type *) region_alloc(
 		tsig_region, sizeof(tsig_key_table_type));
 	entry->key = key;
 	entry->next = tsig_key_table;
@@ -108,8 +108,9 @@ tsig_add_key(tsig_key_type *key)
 void
 tsig_add_algorithm(tsig_algorithm_type *algorithm)
 {
-	tsig_algorithm_table_type *entry = region_alloc(
-		tsig_region, sizeof(tsig_algorithm_table_type));
+	tsig_algorithm_table_type *entry
+		= (tsig_algorithm_table_type *) region_alloc(
+			tsig_region, sizeof(tsig_algorithm_table_type));
 	entry->algorithm = algorithm;
 	entry->next = tsig_algorithm_table;
 	tsig_algorithm_table = entry;
@@ -184,8 +185,9 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->algorithm = algorithm;
 	tsig->key = key;
 	tsig->prior_mac_size = 0;
-	tsig->prior_mac_data = region_alloc(region,
-					    algorithm->maximum_digest_size);
+	tsig->prior_mac_data
+		= (uint8_t *) region_alloc(region,
+					   algorithm->maximum_digest_size);
 	tsig->rr_region = region_create(xalloc, free);
 	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
 }
@@ -268,7 +270,7 @@ tsig_from_query(tsig_record_type *tsig)
 		current_time_high = (uint16_t) (current_time >> 32);
 		current_time_low = (uint32_t) current_time;
 		tsig->other_size = 6;
-		tsig->other_data = region_alloc(
+		tsig->other_data = (uint8_t *) region_alloc(
 			tsig->rr_region, sizeof(uint16_t) + sizeof(uint32_t));
 		write_uint16(tsig->other_data, current_time_high);
 		write_uint32(tsig->other_data + 2, current_time_low);
@@ -470,7 +472,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 		buffer_set_position(packet, tsig->position);
 		return 0;
 	}
-	tsig->mac_data = region_alloc_init(
+	tsig->mac_data = (uint8_t *) region_alloc_init(
 		tsig->rr_region, buffer_current(packet), tsig->mac_size);
 	buffer_skip(packet, tsig->mac_size);
 	if (!buffer_available(packet, 6)) {
@@ -484,7 +486,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 		buffer_set_position(packet, tsig->position);
 		return 0;
 	}
-	tsig->other_data = region_alloc_init(
+	tsig->other_data = (uint8_t *) region_alloc_init(
 		tsig->rr_region, buffer_current(packet), tsig->other_size);
 	buffer_skip(packet, tsig->other_size);
 	tsig->status = TSIG_OK;
