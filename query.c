@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.15 2002/01/31 15:35:13 alexis Exp $
+ * $Id: query.c,v 1.15.2.1 2002/02/02 15:38:57 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -38,33 +38,6 @@
  *
  */
 #include "nsd.h"
-
-struct domain *
-lookup(db, dname, dnamelen)
-	DB *db;
-	u_char *dname;
-	int dnamelen;
-{
-	DBT key, data;
-
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
-	key.size = (size_t)dnamelen;
-	key.data = dname;
-
-	switch(db->get(db, NULL, &key, &data, 0)) {
-	case -1:
-		syslog(LOG_ERR, "database lookup failed: %m");
-		return NULL;
-	case DB_NOTFOUND:
-		return NULL;
-	case 0:
-		return data.data;
-	}
-
-	return NULL;
-}
-
 
 struct answer *
 answer(d, type)
@@ -178,10 +151,10 @@ query_addanswer(q, dname, a)
 int
 query_process(q, db)
 	struct query *q;
-	DB *db;
+	dict_t *db;
 {
 	u_char qstar[2] = "\001*";
-	u_char qnamebuf[MAXDOMAINLEN + 2];
+	u_char qnamebuf[MAXDOMAINLEN + 3];
 
 	/* The query... */
 	u_char	*qname, *qnamelow;
@@ -220,7 +193,7 @@ query_process(q, db)
 
 	/* Lets parse the qname and convert it to lower case */
 	qdepth = 0;
-	qnamelow = qnamebuf + 2;
+	qnamelow = qnamebuf + 3;
 	qname = qptr = q->iobuf + QHEADERSZ;
 	while(*qptr) {
 		/*  If we are out of buffer limits or we have a pointer in question dname... */
@@ -235,7 +208,7 @@ query_process(q, db)
 		}
 	}
 	*qnamelow++ = *qptr++;
-	qnamelow = qnamebuf + 2;
+	qnamelow = qnamebuf + 3;
 
 	/* Make sure name is not too long... */
 	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q)) {
@@ -266,7 +239,8 @@ query_process(q, db)
 	}
 
 	/* Do we have the complete name? */
-	if(NAMEDB_TSTBITMASK(datamask, qdepth) && ((d = lookup(db, qnamelow, qnamelen)) != NULL)) {
+	*(qnamelow - 1) = qnamelen;
+	if(NAMEDB_TSTBITMASK(datamask, qdepth) && ((d = dict_search(db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 			if((a = answer(d, htons(TYPE_NS))) == NULL) {
@@ -322,7 +296,8 @@ query_process(q, db)
 		qdepth--;
 
 		/* Do we have a SOA or zone cut? */
-		if(NAMEDB_TSTBITMASK(authmask, qdepth) && ((d = lookup(db, qnamelow, qnamelen)) != NULL)) {
+		*(qnamelow - 1) = qnamelen;
+		if(NAMEDB_TSTBITMASK(authmask, qdepth) && ((d = dict_search(db, qnamelow - 1)) != NULL)) {
 			if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 				if((a = answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);
@@ -360,7 +335,8 @@ query_process(q, db)
 				bcopy(qstar, qnamelow - 2, 2);
 
 				/* Lookup star */
-				if((d = lookup(db, qnamelow - 2, qnamelen + 2)) != NULL) {
+				*(qnamelow - 3) = qnamelen + 2;
+				if((d = dict_search(db, qnamelow - 3)) != NULL) {
 					/* We found a domain... */
 					RCODE_SET(q, RCODE_OK);
 
