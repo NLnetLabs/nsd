@@ -361,33 +361,31 @@ Appendix B
 
 Comparison of responses to NL TLD queries:
 
--------------------------------------------------------------------------
-                                            Total Answers: 883472
+--------------------------------------------------------------------------
+                                            Total Answers:  69771
+                                Skipped ambiguous changes:      6 /  0.01%
+
 --------------------------------------------------------------------------
 
-                                   d-bcacheglu b-multrrset 104984 / 11.88%
-                                               d-nnotimpny  50368 /  5.70%
-                                   b-multrrset d-nnocachns  46010 /  5.21%
-                                               d-nnotimpup  36243 /  4.10%
-                                               d-nnocachns  13069 /  1.48%
-                                               d-nclrcdbit   8196 /  0.93%
-                                               d-nameencod    890 /  0.10%
-                                    parseerror d-nnocachns     11 /  0.00%
-                                    parseerror d-nnotimpup      1 /  0.00%
-                                                parseerror      1 /  0.00%
+                                   d-bcacheglu b-multrrset   8027 / 11.50%
+                                   b-multrrset d-nnocachns   6304 /  9.04%
+                                               d-nnotimpup   2130 /  3.05%
+                                               d-nnotimpny   1062 /  1.52%
+                                               d-nclrcdbit    500 /  0.72%
+                                               d-nameencod    100 /  0.14%
+                                               d-nnocachns     29 /  0.04%
 --------------------------------------------------------------------------
-                                 Total Different Responses 259773 / 29.40%
+                                 Total Different Responses  18152 / 26.02%
 ==========================================================================
 
-b-multrrset -   bind puts same RRSet in multiple sections: 150994 / 36.76%
-d-bcacheglu -              bind answers with chached glue: 104984 / 25.56%
-d-nameencod -                     different name encoding:    890 /  0.22%
-                                  Additional bytes:   3136
-d-nclrcdbit -               nsd clears CD bit in response:   8196 /  2.00%
-d-nnocachns -     ns returns no non-authoritative answers:  59090 / 14.38%
-d-nnotimpny -       nsd returns NotImp on notify requests:  50368 / 12.26%
-d-nnotimpup -       nsd returns NotImp on update requests:  36244 /  8.82%
-parseerror  -    Could not parse tcpdump output correctly:     13 /  0.00%
+b-multrrset -   bind puts same RRSet in multiple sections:  14331 / 44.12%
+d-bcacheglu -              bind answers with chached glue:   8027 / 24.71%
+d-nameencod -                     different name encoding:    100 /  0.31%
+                                  Additional bytes:    371
+d-nclrcdbit -               nsd clears CD bit in response:    500 /  1.54%
+d-nnocachns -     ns returns no non-authoritative answers:   6333 / 19.50%
+d-nnotimpny -       nsd returns NotImp on notify requests:   1062 /  3.27%
+d-nnotimpup -       nsd returns NotImp on update requests:   2130 /  6.56%
 --------------------------------------------------------------------------
-                                         Total Differences 410779 /100.00%
+                                         Total Differences  32483 /100.00%
 ==========================================================================
