@@ -786,7 +786,7 @@ answer_query(struct nsd *nsd,
 				/* We found a domain... */
 				RCODE_SET(q, RCODE_OK);
 
-				if (answer_domain(q, d, qname, qclass, qtype)) {
+				if (answer_domain(q, d, qname - 2, qclass, qtype)) {
 #ifdef PLUGINS
 					q->plugin_data = d->runtime_data;
 #endif /* PLUGINS */
