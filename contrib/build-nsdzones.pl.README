@@ -1,0 +1,60 @@
+
+## build-nsdzones.pl - Copyright (C) 2003 Bruce Campbell, RIPE NCC.
+## bruce.campbell@ripe.net
+
+The script 'build-nsdzones.pl' converts a named.conf file as used by BIND to
+files that can be used by NSD.  You will still need to invoke the zone 
+compiler via 'nsdc update' in order to get NSD to reload.
+
+Requirements:
+
+		Valid named.conf  (includes are processed)
+
+		The perl library from CPAN: DNS::Config
+
+Outputs:
+
+		nsd.zones
+
+		nsdc.conf
+
+		TSIG key files
+
+Invoking:
+
+	$ build-nsdzones.pl 
+		--nsdcconf /var/nsd/etc/nsdc.conf 
+			Specify where to write the nsdc.conf file.
+		--nsdkeysdir /var/nsd/tsig-keys
+			Specify where to write the TSIG keys.
+		--nsdzones /var/nsd/zones/nsd.zones
+			Specify where to write the nsd.zones file.
+		--bindconf /etc/bind/named.conf
+			Specify where to read the named.conf file from.
+		--root
+			If this option is present, the root '.' zone will
+			be included in the output nsd.zones file.  If your
+			nameserver is not running as a formal root server,
+			you do not want to specify this option, as it will
+			lead to NSD giving authoritative NXDOMAIN for queries
+			which are not in any of its zone files.
+
+TSIG Files:
+
+	The TSIG files that this script outputs are suitable for handing
+	to named-xfer, as invoked by 'nsdc update'.  They are written with
+	three different filenames, being:
+
+		zi-$zone-$ip.tsiginfo
+			Keys that are required to retrieve $zone from 
+			the $ip remote nameserver.
+
+		zo-$zone.tsiginfo
+			Keys that are required to retrieve $zone from
+			any remote nameserver.
+
+		ip-$ip.tsiginfo
+			Keys that are required to retrieve any zone from
+			the remote nameserver at $ip.
+	
+
