@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.23 2002/05/30 14:47:47 alexis Exp $
+ * $Id: query.h,v 1.24 2002/09/11 13:58:34 alexis Exp $
  *
  * query.h -- manipulation with the queries
  *
@@ -144,6 +144,7 @@
 #define OPCODE_IQUERY		1 	/* an inverse query (IQUERY) */
 #define OPCODE_STATUS		2 	/* a server status request (STATUS) */
 #define OPCODE_NOTIFY		4 	/* NOTIFY */
+#define OPCODE_UPDATE		5 	/* Dynamic update */
 
 /* Possible RCODE values */
 #define	RCODE_OK		0 	/* No error condition */

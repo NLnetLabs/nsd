@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.36 2002/09/11 13:36:31 alexis Exp $
+ * $Id: nsd.h,v 1.37 2002/09/11 13:58:34 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -138,7 +138,7 @@ struct	nsd {
 		stc_t	qclass[4];	/* Class IN or Class CH or other */
 		stc_t	qudp, qudp6;	/* Number of queries udp and udp6 */
 		stc_t	ctcp, ctcp6;	/* Number of tcp and tcp6 connections */
-		stc_t	rcode[17], opcode[5]; /* Rcodes & opcodes */
+		stc_t	rcode[17], opcode[6]; /* Rcodes & opcodes */
 		/* Dropped, truncated, queries for nonconfigured zone, tx errors */
 		stc_t	dropped, truncated, wrongzone, txerr;
 		stc_t 	edns, ednserr;
