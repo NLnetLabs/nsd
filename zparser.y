@@ -57,16 +57,17 @@ int yyerror(const char *message);
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
 
 /* other tokens */
-%token         DIR_TTL DIR_ORIG NL ORIGIN SP
-%token <data>  STR PREV TTL BITLAB
-%token <klass> T_IN T_CH T_HS
+%token         DOLLAR_TTL DOLLAR_ORIGIN NL SP
+%token <data>  STR PREV BITLAB
+%token <ttl>   T_TTL
+%token <klass> T_RRCLASS
 
 /* unknown RRs */
 %token         URR
 %token <type>  T_UTYPE
 
-%type <type>    rtype
-%type <domain>  dname abs_dname
+%type <type>    type_and_rdata
+%type <domain>  owner dname abs_dname
 %type <dname>   rel_dname label
 %type <data>    str_seq concatenated_str_seq str_sp_seq str_dot_seq dotted_str
 %type <data>    nxt_seq nsec_seq
@@ -79,8 +80,9 @@ lines:  /* empty file */
 
 line:   NL
     |   sp NL
-    |   DIR_TTL dir_ttl
-    |   DIR_ORIG dir_orig
+    |   PREV NL		{}    /* Lines containing only whitespace.  */
+    |   ttl_directive
+    |   origin_directive
     |   rr
     {   /* rr should be fully parsed */
 	    if (!parser->error_occurred) {
@@ -117,89 +119,72 @@ sp:		SP
   	|	sp SP
 	;
 
-trail:		NL
-	|	sp NL
-	;
+trail:	NL
+    |	sp NL
+    ;
 
-dir_ttl:    sp STR trail
-    { 
-        if ($2.len > MAXDOMAINLEN ) {
-            zc_error("$TTL value is too large");
-            return 1;
-        } 
-        /* perform TTL conversion */
-        if ( ( parser->default_ttl = zparser_ttl2int($2.str)) == -1 )
-            parser->default_ttl = DEFAULT_TTL;
+ttl_directive: DOLLAR_TTL sp STR trail
+    {
+	    parser->default_ttl = zparser_ttl2int($3.str);
+	    if (parser->default_ttl == -1) {
+		    parser->default_ttl = DEFAULT_TTL;
+	    }
     }
     ;
 
-dir_orig:   sp abs_dname trail
+origin_directive: DOLLAR_ORIGIN sp abs_dname trail
     {
-	    parser->origin = $2;
+	    parser->origin = $3;
     }
-    | sp rel_dname trail
+    | DOLLAR_ORIGIN sp rel_dname trail
     {
 	    zc_error_prev_line("$ORIGIN directive requires absolute domain name");
     }
     ;
 
-rr:     dname sp rrrest
+rr:     owner classttl type_and_rdata
     {
 	    parser->current_rr.owner = $1;
-	    parser->prev_dname = parser->current_rr.owner;
-    }
-    |   PREV rrrest
-    {
-	    /* Whitespace, use previously defined dname.  */
-	    parser->current_rr.owner = parser->prev_dname;
-        
+	    parser->current_rr.type = $3;
     }
     ;
 
-ttl:    TTL
+owner:	dname sp
     {
-        /* set the ttl */
-        if ( (parser->current_rr.ttl = 
-	      zparser_ttl2int($1.str) ) == (uint32_t) -1) {
-	            parser->current_rr.ttl = parser->default_ttl;
-		    return 0;
-	}
+	    parser->prev_dname = $1;
+	    $$ = $1;
     }
-    ;
-
-in:     T_IN
+    |	PREV
     {
-        /* set the class  (class unknown handled in lexer) */
-        parser->current_rr.klass =  parser->default_class;
+	    $$ = parser->prev_dname;
     }
-    ;
-
-rrrest: classttl rtype 
-    {
-	parser->current_rr.type = $2;
-    }
-    ;
-
-class:  in
-    |	T_CH  { zc_error("CHAOS class not supported"); }
-    |	T_HS   { zc_error("HESIOD Class not supported"); }
     ;
 
 classttl:   /* empty - fill in the default, def. ttl and IN class */
     {
-        parser->current_rr.ttl = parser->default_ttl;
-        parser->current_rr.klass = parser->default_class;
+	    parser->current_rr.ttl = parser->default_ttl;
+	    parser->current_rr.klass = parser->default_class;
     }
-    |   class sp         /* no ttl */
+    |   T_RRCLASS sp		/* no ttl */
     {
-        parser->current_rr.ttl = parser->default_ttl;
+	    parser->current_rr.ttl = parser->default_ttl;
+	    parser->current_rr.klass = $1;
     }
-    |	ttl sp		/* no class */
+    |	T_TTL sp		/* no class */
     {   
-        parser->current_rr.klass = parser->default_class;
+	    parser->current_rr.ttl = $1;
+	    parser->current_rr.klass = parser->default_class;
     }
-    |   ttl sp class sp  /* the lot */
-    |   class sp ttl sp  /* the lot - reversed */
+    |   T_TTL sp T_RRCLASS sp	/* the lot */
+    {   
+	    parser->current_rr.ttl = $1;
+	    parser->current_rr.klass = $3;
+    }
+    |   T_RRCLASS sp T_TTL sp	/* the lot - reversed */
+    {   
+	    parser->current_rr.ttl = $3;
+	    parser->current_rr.klass = $1;
+    }
     ;
 
 dname:      abs_dname
@@ -225,7 +210,7 @@ abs_dname:  '.'
     {
 	    $$ = parser->db->domains->root;
     }
-    | 	    ORIGIN
+    | 	    '@'
     {
 	    $$ = parser->origin;
     }
@@ -313,7 +298,7 @@ concatenated_str_seq: STR
 /* used to convert a nxt list of types */
 nxt_seq:	STR
 	{
-		uint16_t type = lookup_type_by_name($1.str);
+		uint16_t type = rrtype_from_string($1.str);
 		if (type != 0 && type < 128) {
 			set_bit(nxtbits, type);
 		} else {
@@ -322,7 +307,7 @@ nxt_seq:	STR
 	}
 	|	nxt_seq sp STR
 	{
-		uint16_t type = lookup_type_by_name($3.str);
+		uint16_t type = rrtype_from_string($3.str);
 		if (type != 0 && type < 128) {
 			set_bit(nxtbits, type);
 		} else {
@@ -333,7 +318,7 @@ nxt_seq:	STR
 
 nsec_seq:	STR
 	{
-		uint16_t type = lookup_type_by_name($1.str);
+		uint16_t type = rrtype_from_string($1.str);
 		if (type != 0) {
 			set_bitnsec(nsecbits, type);
 		} else {
@@ -342,7 +327,7 @@ nsec_seq:	STR
 	}
 	|	nsec_seq sp STR
 	{
-		uint16_t type = lookup_type_by_name($3.str);
+		uint16_t type = rrtype_from_string($3.str);
 		if (type != 0) {
 			set_bitnsec(nsecbits, type);
 		} else {
@@ -403,7 +388,7 @@ dotted_str:	STR
 	;
 
 /* define what we can parse */
-rtype:
+type_and_rdata:
     /*
      * All supported RR types.  We don't support NULL and types marked
      * obsolete.
@@ -892,8 +877,7 @@ yyerror(const char *ATTR_UNUSED(message))
 static void
 error_va_list(unsigned line, const char *fmt, va_list args)
 {
-	fprintf(stderr, " ERR: Line %u in %s: ", line,
-		parser->filename);
+	fprintf(stderr, "%s:%u: error: ", parser->filename, line);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 	++parser->errors;
@@ -925,8 +909,7 @@ zc_error(const char *fmt, ...)
 static void
 warning_va_list(unsigned line, const char *fmt, va_list args)
 {
-	fprintf(stderr, "WARN: Line %u in %s: ", line,
-		parser->filename);
+	fprintf(stderr, "%s:%u: warning: ", parser->filename, line);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 }

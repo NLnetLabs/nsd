@@ -24,6 +24,15 @@
 #include "zonec.h"
 #include "zparser.h"
 
+/* Taken from RFC 1035, section 3.2.4.  */
+static lookup_table_type dns_rrclasses[] = {
+	{ CLASS_IN, "IN" },	/* the Internet */
+	{ CLASS_CS, "CS" },	/* the CSNET class (Obsolete) */
+        { CLASS_CH, "CH" },	/* the CHAOS class */
+        { CLASS_HS, "HS" },	/* Hesiod */
+	{ 0, NULL }
+};
+
 rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	/* 0 */
 	{ 0, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
@@ -298,15 +307,85 @@ rrtype_to_string(uint16_t rrtype)
 	}
 }
 
+/*
+ * Lookup the type in the ztypes lookup table.  If not found, check if
+ * the type uses the "TYPExxx" notation for unknown types.
+ *
+ * Return 0 if no type matches.
+ */
+uint16_t
+rrtype_from_string(const char *name)
+{
+        char *end;
+        long rrtype;
+	rrtype_descriptor_type *entry;
+
+	entry = rrtype_descriptor_by_name(name);
+	if (entry) {
+		return entry->type;
+	}
+
+	if (strlen(name) < 5)
+		return 0;
+	
+	if (strncasecmp(name, "TYPE", 4) != 0)
+		return 0;
+
+	if (!isdigit(name[4]))
+		return 0;
+	
+	/* The rest from the string must be a number.  */
+	rrtype = strtol(name + 4, &end, 10);
+	if (*end != '\0')
+		return 0;
+	if (rrtype < 0 || rrtype > 65535L)
+		return 0;
+	
+        return (uint16_t) rrtype;
+}
+
 const char *
 rrclass_to_string(uint16_t rrclass)
 {
 	static char buf[20];
-	if (rrclass == CLASS_IN) {
-		return "IN";
+	lookup_table_type *entry = lookup_by_id(dns_rrclasses, rrclass);
+	if (entry) {
+		assert(strlen(entry->name) < sizeof(buf));
+		strcpy(buf, entry->name);
 	} else {
 		snprintf(buf, sizeof(buf), "CLASS%d", (int) rrclass);
-		return buf;
 	}
+	return buf;
 }
 
+uint16_t
+rrclass_from_string(const char *name)
+{
+        char *end;
+        long rrclass;
+	lookup_table_type *entry;
+
+	entry = lookup_by_name(dns_rrclasses, name);
+	if (entry) {
+		return (uint16_t) entry->id;
+	}
+
+	if (strlen(name) < 6)
+		return 0;
+	
+	if (strncasecmp(name, "CLASS", 5) != 0)
+		return 0;
+
+	if (!isdigit(name[5]))
+		return 0;
+	
+	/* The rest from the string must be a number.  */
+	rrclass = strtol(name + 5, &end, 10);
+	if (*end != '\0')
+		return 0;
+	if (rrclass < 0 || rrclass > 65535L)
+		return 0;
+	
+        return (uint16_t) rrclass;
+	
+}

@@ -107,10 +107,6 @@ void zprintrr(FILE *f, rr_type *rr);
 void set_bitnsec(uint8_t  bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
 		 uint16_t index);
 
-uint16_t intbytypexx(const char *str);
-
-uint16_t lookup_type_by_name(const char *name);
-
 /* zparser.y */
 zparser_type *zparser_create(region_type *region, region_type *rr_region,
 			     namedb_type *db);

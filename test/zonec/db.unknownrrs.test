@@ -20,6 +20,8 @@ mail    IN      CNAME   a
 ; unknown rr stuff
 a   CLASS32     TYPE731         \# 6 abcd (
                                                    ef 01 23 45 )
+a   HS          TYPE444         \# 6 abcd (
+                                                   ef 01 23 45 )
 e   IN          A               \# 4 0A000001
 e   CLASS1      TYPE1           10.0.0.2
 

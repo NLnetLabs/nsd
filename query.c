@@ -359,7 +359,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 			/* Add ID */
 			query_addtxt(q,
 				     buffer_begin(q->packet) + QHEADERSZ,
-				     CLASS_CHAOS,
+				     CLASS_CH,
 				     0,
 				     nsd->identity);
 			ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
@@ -371,7 +371,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 			/* Add version */
 			query_addtxt(q,
 				     buffer_begin(q->packet) + QHEADERSZ,
-				     CLASS_CHAOS,
+				     CLASS_CH,
 				     0,
 				     nsd->version);
 			ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
@@ -953,7 +953,7 @@ query_process(query_type *q, nsd_type *nsd)
 	query_prepare_response(q);
 	
 	if (q->klass != CLASS_IN && q->klass != CLASS_ANY) {
-		if (q->klass == CLASS_CHAOS) {
+		if (q->klass == CLASS_CH) {
 			return answer_chaos(nsd, q);
 		} else {
 			return query_error(q, NSD_RC_REFUSE);

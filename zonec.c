@@ -401,7 +401,7 @@ uint16_t *
 zparser_conv_rrtype(region_type *region, const char *text)
 {
 	uint16_t *r = NULL;
-	uint16_t type = lookup_type_by_name(text);
+	uint16_t type = rrtype_from_string(text);
 
 	if (type == 0) {
 		zc_error_prev_line("Unrecognized RR type '%s'", text);
@@ -904,48 +904,6 @@ parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 	}
 }
 
-/* 
- * Receive a TYPEXXXX string and return XXXX as
- * an integer
- */
-uint16_t
-intbytypexx(const char *str)
-{
-        char *end;
-        long type;
-
-	if (strlen(str) < 5)
-		return 0;
-	
-	if (strncasecmp(str, "TYPE", 4) != 0)
-		return 0;
-
-	if (!isdigit(str[4]))
-		return 0;
-	
-	/* The rest from the string must be a number.  */
-	type = strtol(str + 4, &end, 10);
-
-	if (*end != '\0')
-		return 0;
-	if (type < 0 || type > 65535L)
-		return 0;
-	
-        return (uint16_t) type;
-}
-
-/*
- * Lookup the type in the ztypes lookup table.  If not found, check if
- * the type uses the "TYPExxx" notation for unknown types.
- *
- * Return 0 if no type matches.
- */
-uint16_t
-lookup_type_by_name(const char *name)
-{
-	rrtype_descriptor_type *entry = rrtype_descriptor_by_name(name);
-	return entry ? entry->type : intbytypexx(name);
-}
 
 /*
  * Compares two rdata arrays.
@@ -1011,13 +969,10 @@ zone_open(const char *filename, uint32_t ttl, uint16_t klass,
 {
 	/* Open the zone file... */
 	if (strcmp(filename, "-") == 0) {
-		/* check for stdin */
 		yyin = stdin;
-		filename = "STDIN";
-	} else {
-		if ((yyin  = fopen(filename, "r")) == NULL) {
-			return 0;
-		}
+		filename = "<stdin>";
+	} else if (!(yyin = fopen(filename, "r"))) {
+		return 0;
 	}
 
 	/* Open the network database */
@@ -1194,7 +1149,7 @@ process_rr()
  *
  */
 static void
-zone_read (const char *name, const char *zonefile)
+zone_read(const char *name, const char *zonefile)
 {
 	const dname_type *dname;
 
@@ -1258,10 +1213,9 @@ main (int argc, char **argv)
 	char buf[LINEBUFSZ];
 	struct namedb *db;
 	const char *sep = " \t\n";
-	char *nsd_stdin_origin = NULL;
+	char *origin = NULL;
 	int c;
 	int line = 0;
-	FILE *f;
 	region_type *global_region;
 	region_type *rr_region;
 	
@@ -1308,7 +1262,7 @@ main (int argc, char **argv)
 			break;
 #endif /* NDEBUG */
 		case 'o':
-			nsd_stdin_origin = optarg;
+			origin = optarg;
 			break;
 		case 'h':
 		case '?':
@@ -1320,8 +1274,9 @@ main (int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 1)
+	if (argc != 1) {
 		usage();
+	}
 
 	/* Create the database */
 	if ((db = namedb_new(dbfile)) == NULL) {
@@ -1335,34 +1290,28 @@ main (int argc, char **argv)
 	error_dname = (dname_type *) region_alloc(global_region, 0);
 	error_domain = (domain_type *) region_alloc(global_region, 0);
 
-	if (strcmp(*argv,"-") == 0) {
-		/* ah, somebody give - (stdin) as input file name */
-		if (!nsd_stdin_origin) {
-			fprintf(stderr,"zonec: need origin (-o switch) when reading from stdin.\n");
-			exit(1);
-		}
-		
-		zone_read(nsd_stdin_origin, "-");
-
-#ifndef NDEBUG
-		fprintf(stderr, "global_region: ");
-		region_dump_stats(global_region, stderr);
-		fprintf(stderr, "\n");
-		fprintf(stderr, "db->region: ");
-		region_dump_stats(db->region, stderr);
-		fprintf(stderr, "\n");
-#endif /* NDEBUG */
+	if (origin) {
+		/*
+		 * Read a single zone file with the specified origin
+		 * instead of the zone master file.
+		 */
+		zone_read(origin, *argv);
 	} else {
+		FILE *f;
+		
 		/* Open the master file... */
-		if ((f = fopen(*argv, "r")) == NULL) {
-			fprintf(stderr, "zonec: cannot open %s: %s\n", *argv, strerror(errno));
+		if (strcmp(*argv, "-") == 0) {
+			f = stdin;
+		} else if (!(f = fopen(*argv, "r"))) {
+			fprintf(stderr, "zonec: cannot open %s: %s\n",
+				*argv, strerror(errno));
 			exit(1);
 		}
 
 		/* Do the job */
 		while (fgets(buf, LINEBUFSZ - 1, f) != NULL) {
 			/* Count the lines... */
-			line++;
+			++line;
 
 			/* Skip empty lines and comments... */
 			if ((s = strtok(buf, sep)) == NULL || *s == ';')
@@ -1401,17 +1350,22 @@ main (int argc, char **argv)
 					totalrrs, zonename);
 			totalrrs = 0;
 
-#ifndef NDEBUG
-			fprintf(stderr, "global_region: ");
-			region_dump_stats(global_region, stderr);
-			fprintf(stderr, "\n");
-			fprintf(stderr, "db->region: ");
-			region_dump_stats(db->region, stderr);
-			fprintf(stderr, "\n");
-#endif /* NDEBUG */
+		}
+
+		if (f != stdin) {
+			fclose(f);
 		}
 	}
 
+#ifndef NDEBUG
+	fprintf(stderr, "global_region: ");
+	region_dump_stats(global_region, stderr);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "db->region: ");
+	region_dump_stats(db->region, stderr);
+	fprintf(stderr, "\n");
+#endif /* NDEBUG */
+	
 	/* Close the database */
 	if (namedb_save(db) != 0) {
 		fprintf(stderr, "zonec: error saving the database: %s\n", strerror(errno));
@@ -1421,8 +1375,8 @@ main (int argc, char **argv)
 
 	/* Print the total number of errors */
 	if (vflag > 0 || totalerrors > 0) {
-		fprintf(stderr, "\n");
-		fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
+		fprintf(stderr, "\nzonec: done with %ld errors.\n",
+			totalerrors);
 	}
 	
 	/* Disable this to save some time.  */

@@ -67,9 +67,10 @@ typedef enum nsd_rc nsd_rc_type;
 
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
-#define	CLASS_CHAOS	3	/* Class CHAOS */
-#define CLASS_HS        4       /* Class HS */
-#define	CLASS_ANY	255	/* Class IN */
+#define CLASS_CS	2	/* Class CS */
+#define	CLASS_CH	3	/* Class CHAOS */
+#define CLASS_HS	4       /* Class HS */
+#define	CLASS_ANY	255	/* Class ANY */
 
 #define TYPE_A		1	/* a host address */
 #define TYPE_NS		2	/* an authoritative name server */
@@ -216,8 +217,17 @@ rrtype_descriptor_by_type(uint16_t type)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 
 const char *rrtype_to_string(uint16_t rrtype);
-const char *rrclass_to_string(uint16_t rrclass);
 
+/*
+ * Lookup the type in the ztypes lookup table.  If not found, check if
+ * the type uses the "TYPExxx" notation for unknown types.
+ *
+ * Return 0 if no type matches.
+ */
+uint16_t rrtype_from_string(const char *name);
+
+const char *rrclass_to_string(uint16_t rrclass);
+uint16_t rrclass_from_string(const char *name);
 
 #ifdef __cplusplus
 inline rr_section_type
