@@ -343,7 +343,6 @@ server_init(struct nsd *nsd)
 
 	/* Open the database... */
 	if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
-		log_msg(LOG_ERR, "unable to load %s: %s", nsd->dbfile, strerror(errno));
 		return -1;
 	}
 

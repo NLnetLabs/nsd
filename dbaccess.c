@@ -270,6 +270,8 @@ namedb_open (const char *filename)
 	/* Open it... */
 	db->fd = fopen(db->filename, "r");
 	if (db->fd == NULL) {
+		log_msg(LOG_ERR, "unable to load %s: %s",
+			db->filename, strerror(errno));
 		region_destroy(db_region);
 		return NULL;
 	}
