@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.12 2002/02/06 13:20:32 alexis Exp $
+ * $Id: nsd.h,v 1.13 2002/02/07 13:40:28 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -64,8 +64,6 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-
-#include <db.h>
 
 #include "dns.h"
 #include "namedb.h"

@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.3 2002/02/07 12:56:51 alexis Exp $
+ * $Id: dbaccess.c,v 1.4 2002/02/07 13:40:28 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -182,21 +182,18 @@ namedb_open(filename)
 
 	/* Is it there? */
 	if(stat(db->filename, &st) == -1) {
-		syslog(LOG_ERR, "cannot stat %s: %m", db->filename);
 		free(db->filename);
 		free(db);
 		return NULL;
 	}
 
 	if((db->mpool = malloc(st.st_size)) == NULL) {
-		syslog(LOG_ERR, "failed to malloc: %m");
 		free(db->filename);
 		free(db);
 		return NULL;
 	}
 
 	if((db->fd = open(db->filename, O_RDONLY)) == -1) {
-		syslog(LOG_ERR, "cannot open %s: %m", db->filename);
 		free(db->mpool);
 		free(db->filename);
 		free(db);
@@ -204,7 +201,6 @@ namedb_open(filename)
 	}
 
 	if(read(db->fd, db->mpool, st.st_size) == -1) {
-		syslog(LOG_ERR, "cannot read %s: %m", db->filename);
 		free(db->mpool);
 		free(db->filename);
 		free(db);
@@ -214,7 +210,6 @@ namedb_open(filename)
 	(void)close(db->fd);
 
 	if((db->heap = heap_create(malloc, domaincmp)) == NULL) {
-		syslog(LOG_ERR, "failed to create database index: %m");
 		free(db->mpool);
 		free(db->filename);
 		free(db);
