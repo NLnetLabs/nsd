@@ -1,4 +1,4 @@
-$Id: README,v 1.21 2003/06/12 12:31:18 erik Exp $
+$Id: README,v 1.22 2003/06/12 12:35:34 erik Exp $
 
 1.0 Introduction
 1.1 Basic theory of operation
@@ -367,10 +367,6 @@ that keeping and updating the local master zone files is outside of the scope
 of the package and should be done either out of band or with help of separate
 tools. However starting with 1.0.1-beta4 NSD provides such functionality to
 a limited extent.
-
-The 1.1.2 version of NSD will have the AXFR machienery built in.
-
-The 1.1.2 version of NSD will have the AXFR machienery built in.
 
 It makes no difference for zonec(8) and nsd(8) whether the master zone file
 was created and maintained locally or was obtained via AXFR/IXFR or out of
