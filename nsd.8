@@ -1,5 +1,5 @@
 .\"
-.\" $Id: nsd.8,v 1.8.2.2 2002/08/20 14:39:19 alexis Exp $
+.\" $Id: nsd.8,v 1.8.2.3 2002/08/20 14:41:49 alexis Exp $
 .\"
 .\" nsd.8 -- nsd manual
 .\"
@@ -117,7 +117,7 @@ when they are multicast)
 The default is the name returned by
 .Xr gethostname 3
 .El
-.\" .Sh IMPLEMENTATION NOTES
+.Pp
 .Ic NSD
 will react to the following signals:
 .Bl -tag -width indent
@@ -125,6 +125,7 @@ will react to the following signals:
 Stop answer the queries, shutdown and exit normally.
 .It Dv SIGHUP
 Reload the database.
+.\" .Sh IMPLEMENTATION NOTES
 .Sh FILES
 .Bl -tag -width indent
 .It Pa /etc/nsd/nsd.db
