@@ -117,17 +117,18 @@ int write_data(FILE * file, const void *data, size_t size);
 
 
 /*
- * Copy data allowing for unaligned accesses.
+ * Copy data allowing for unaligned accesses in network byte order
+ * (big endian).
  */
 static inline void
 copy_uint16(void *dst, uint16_t data)
 {
 #ifdef ALLOW_UNALIGNED_ACCESSES
-	* (uint16_t *) dst = data;
+	* (uint16_t *) dst = htons(data);
 #else
 	uint8_t *p = dst;
-	p[0] = (uint8_t) (data & 0xff);
-	p[1] = (uint8_t) ((data >> 8) & 0xff);
+	p[0] = (uint8_t) ((data >> 8) & 0xff);
+	p[1] = (uint8_t) (data & 0xff);
 #endif
 }
 
@@ -135,13 +136,13 @@ static inline void
 copy_uint32(void *dst, uint32_t data)
 {
 #ifdef ALLOW_UNALIGNED_ACCESSES
-	* (uint32_t *) dst = data;
+	* (uint32_t *) dst = htonl(data);
 #else
 	uint8_t *p = dst;
-	p[0] = (uint8_t) (data & 0xff);
-	p[1] = (uint8_t) ((data >> 8) & 0xff);
-	p[2] = (uint8_t) ((data >> 16) & 0xff);
-	p[3] = (uint8_t) ((data >> 24) & 0xff);
+	p[0] = (uint8_t) ((data >> 24) & 0xff);
+	p[1] = (uint8_t) ((data >> 16) & 0xff);
+	p[2] = (uint8_t) ((data >> 8) & 0xff);
+	p[3] = (uint8_t) (data & 0xff);
 #endif
 }
 

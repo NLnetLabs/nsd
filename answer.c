@@ -100,7 +100,7 @@ encode_dname(struct query *q, domain_type *domain)
 		       dname_to_string(domain_dname(domain)),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
-		query_write_u16(q, htons(0xc000 | query_get_dname_offset(q, domain)));
+		query_write_u16(q, 0xc000 | query_get_dname_offset(q, domain));
 	} else {
 		query_write_u8(q, 0);
 	}
@@ -120,9 +120,9 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	assert(rr < rrset->rrslen);
 
 	encode_dname(q, owner);
-	query_write_u16(q, htons(rrset->type));
-	query_write_u16(q, htons(rrset->class));
-	query_write_u32(q, htonl(rrset->rrs[rr]->ttl));
+	query_write_u16(q, rrset->type);
+	query_write_u16(q, rrset->class);
+	query_write_u32(q, rrset->rrs[rr]->ttl);
 
 	/* Reserve space for rdlength. */
 	rdlength_pos = q->iobufptr;
@@ -139,7 +139,7 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	}
 
 	if (!query_overflow(q)) {
-		rdlength = htons(q->iobufptr - rdlength_pos - sizeof(rdlength));
+		rdlength = q->iobufptr - rdlength_pos - sizeof(rdlength);
 		copy_uint16(rdlength_pos, rdlength);
 		return 1;
 	} else {

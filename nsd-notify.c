@@ -123,9 +123,9 @@ main (int argc, char *argv[])
 	q.maxlen = 512;
 
 	/* Set up the header */
-	OPCODE_SET((&q), OPCODE_NOTIFY);
-	ID((&q)) = 42;          /* Does not need to be random. */
-	AA_SET((&q));
+	OPCODE_SET(&q, OPCODE_NOTIFY);
+	ID(&q) = 42;          /* Does not need to be random. */
+	AA_SET(&q);
 
 	q.iobufptr = q.iobuf + QHEADERSZ;
 

@@ -166,6 +166,7 @@ query_init (struct query *q)
 	q->name = NULL;
 	q->zone = NULL;
 	q->domain = NULL;
+	q->opcode = 0;
 	q->class = 0;
 	q->type = 0;
 	q->delegation_domain = NULL;
@@ -186,7 +187,6 @@ query_addtxt(struct query  *q,
 	     uint32_t       ttl,
 	     const char    *txt)
 {
-	uint16_t pointer;
 	size_t txt_length = strlen(txt);
 	uint8_t len = (uint8_t) txt_length;
 
@@ -194,16 +194,15 @@ query_addtxt(struct query  *q,
 	
 	/* Add the dname */
 	if (dname >= q->iobuf && dname <= q->iobufptr) {
-		pointer = htons(0xc000 | (dname - q->iobuf));
-		query_write_u16(q, pointer);
+		query_write_u16(q, 0xc000 | (dname - q->iobuf));
 	} else {
 		query_write(q, dname + 1, *dname);
 	}
 
-	query_write_u16(q, htons(TYPE_TXT));
-	query_write_u16(q, htons(class));
-	query_write_u32(q, htonl(ttl));
-	query_write_u16(q, htons(len + 1));
+	query_write_u16(q, TYPE_TXT);
+	query_write_u16(q, class);
+	query_write_u32(q, ttl);
+	query_write_u16(q, len + 1);
 	query_write_u8(q, len);
 	query_write(q, txt, len);
 }
@@ -261,6 +260,7 @@ process_query_section(struct query *query)
 
 	query->name = dname_make(query->region, qnamebuf);
 
+	query->opcode = OPCODE(query);
 	memcpy(&query->type, src, sizeof(uint16_t));
 	memcpy(&query->class, src + sizeof(uint16_t), sizeof(uint16_t));
 	query->type = ntohs(query->type);
@@ -366,58 +366,36 @@ process_edns (struct query *q, uint8_t *qptr)
 /*
  * Log notifies and return an RCODE_IMPL error to the client.
  *
- * Return 1 if answered, 0 otherwise.
- *
  * XXX: erik: Is this the right way to handle notifies?
  */
-static int
+static query_state_type
 answer_notify (struct query *query)
 {
 	char namebuf[BUFSIZ];
 
-	switch (OPCODE(query)) {
-	case OPCODE_QUERY:
-		/* Not handled by this function.  */
-		return 0;
-	case OPCODE_NOTIFY:
-		if (getnameinfo((struct sockaddr *) &(query->addr),
-				query->addrlen, namebuf, sizeof(namebuf), 
-				NULL, 0, NI_NUMERICHOST)
-		    != 0)
-		{
-			log_msg(LOG_INFO, "notify from unknown remote address");
-		} else {
-			log_msg(LOG_INFO, "notify from %s", namebuf);
-		}
-	default:
-		query_error(query, RCODE_IMPL);
-		return 1;
+	if (getnameinfo((struct sockaddr *) &(query->addr),
+			query->addrlen, namebuf, sizeof(namebuf), 
+			NULL, 0, NI_NUMERICHOST)
+	    != 0)
+	{
+		log_msg(LOG_INFO, "notify for %s from unknown remote address",
+			dname_to_string(query->name));
+	} else {
+		log_msg(LOG_INFO, "notify for %s from %s",
+			dname_to_string(query->name), namebuf);
 	}
+
+	query_error(query, RCODE_IMPL);
+	return QUERY_PROCESSED;
 }
 
 
 /*
- * Answer if this is a query in the CHAOS class or in a class not
- * supported by NSD.
- *
- * Return 1 if answered, 0 otherwise.
+ * Answer a query in the CHAOS class.
  */
-static int
+static query_state_type
 answer_chaos(struct nsd *nsd, struct query *q)
 {
-	switch (q->class) {
-	case CLASS_IN:
-	case CLASS_ANY:
-		/* Not handled by this function. */
-		return 0;
-	case CLASS_CHAOS:
-		/* Handled below.  */
-		break;
-	default:
-		RCODE_SET(q, RCODE_REFUSE);
-		return 1;
-	}
-
 	AA_CLR(q);
 	switch (q->type) {
 	case TYPE_ANY:
@@ -434,7 +412,6 @@ answer_chaos(struct nsd *nsd, struct query *q)
 				     0,
 				     nsd->identity);
 			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
-			return 1;
 		} else if ((q->name->name_size == 16
 			    && memcmp(dname_name(q->name), "\007version\006server", 16) == 0) ||
 			   (q->name->name_size == 14
@@ -447,12 +424,14 @@ answer_chaos(struct nsd *nsd, struct query *q)
 				     0,
 				     nsd->version);
 			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
-			return 1;
 		}
+		break;
 	default:
 		RCODE_SET(q, RCODE_REFUSE);
-		return 1;
+		break;
 	}
+
+	return QUERY_PROCESSED;
 }
 
 
@@ -858,7 +837,6 @@ query_state_type
 query_process(struct query *q, struct nsd *nsd)
 {
 	/* The query... */
-	uint8_t *qname;
 	uint8_t *qptr;
 	int recursion_desired;
 	query_state_type query_state;
@@ -869,10 +847,8 @@ query_process(struct query *q, struct nsd *nsd)
 		return QUERY_DISCARDED;
 	}
 
-	/* Account the OPCODE */
-	STATUP2(nsd, opcode, OPCODE(q));
-
-	if (answer_notify(q)) {
+	qptr = process_query_section(q);
+	if (!qptr) {
 		return QUERY_PROCESSED;
 	}
 
@@ -883,31 +859,6 @@ query_process(struct query *q, struct nsd *nsd)
 		query_formerr(q);
 		return QUERY_PROCESSED;
 	}
-
-	/* Save the RD flag (RFC1034 4.1.1).  */
-	recursion_desired = RD(q);
-
-	/* Zero the flags... */
-	*(uint16_t *)(q->iobuf + 2) = 0;
-	
-	QR_SET(q);		/* This is an answer */
-	if (recursion_desired)
-		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
-	
-	/*
-	 * Lets parse the qname and convert it to lower case.  Leave
-	 * some space in front of the qname for the wildcard label.
-	 */
-	qptr = process_query_section(q);
-	if (!qptr) {
-		return QUERY_PROCESSED;
-	}
-
-	qname = q->iobuf + QHEADERSZ;
-	
-	/* Update the type and class */
-	STATUP2(nsd, qtype, q->type);
-	STATUP2(nsd, qclass, q->class);
 
 	/* Dont allow any records in the answer or authority section... */
 	if (ANCOUNT(q) != 0 || NSCOUNT(q) != 0) {
@@ -931,7 +882,32 @@ query_process(struct query *q, struct nsd *nsd)
 #endif
 	}
 
-	if (answer_chaos(nsd, q)) {
+	/* Save the RD flag (RFC1034 4.1.1).  */
+	recursion_desired = RD(q);
+
+	/* Zero the flags... */
+	*(uint16_t *)(q->iobuf + 2) = 0;
+	
+	QR_SET(q);		/* This is an answer */
+	if (recursion_desired)
+		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
+	
+	/* Update statistics.  */
+	STATUP2(nsd, opcode, q->opcode);
+	STATUP2(nsd, qtype, q->type);
+	STATUP2(nsd, qclass, q->class);
+
+	if (q->opcode == OPCODE_NOTIFY) {
+		return answer_notify(q);
+	} else if (q->opcode != OPCODE_QUERY) {
+		query_formerr(q);
+		return QUERY_PROCESSED;
+	}
+
+	if (q->class == CLASS_CHAOS) {
+		return answer_chaos(nsd, q);
+	} else if (q->class != CLASS_IN) {
+		query_formerr(q);
 		return QUERY_PROCESSED;
 	}
 
