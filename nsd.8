@@ -10,44 +10,44 @@ nsd \- Name Server Daemon
 .BI database
 
 .SH WARNING
-\fBnsd\fR is currently ALPHA code. There are still rough edges and
+\fInsd\fR is currently ALPHA code. There are still rough edges and
 bugs. If you run into them please contact \fInsd-bugs@nlnetlabs.nl\fR.
 
 .SH DESCRIPTION
 .B nsd
-is the \fBn\fRame\fBs\fRerver \fBd\fRaemon written by NLnet Labs in cooperation
-with RIPE NCC. \fBnsd\fR was written with the following goals
+is the \fIn\fRame\fIs\fRerver \fId\fRaemon written by NLnet Labs in cooperation
+with RIPE NCC. \fInsd\fR was written with the following goals
 in mind:
 .TP
 .B RFC Compliant
-\fBnsd\fR is fully compliant with the relevant RFC (1034/35 etc). Only
+\fInsd\fR is fully compliant with the relevant RFC (1034/35 etc). Only
 were there is a speed trade off the compliance is relaxed (also see
-REQUIREMENTS in the \fBnsd\fR source).
+REQUIREMENTS in the \fInsd\fR source).
 .TP
 .B Speed
-The main purpose of \fBnsd\fR is to be able handle lots and lots of
+The main purpose of \fInsd\fR is to be able handle lots and lots of
 queries (O(20k/sec)), without breaking a sweat. It's main use
 is thus on heavy loaded servers, like the root-server and TLD servers.
 .TP
 .B Only authoritative
-To increase its speed \fBnsd\fR does not do any recursion. And thus
+To increase its speed \fInsd\fR does not do any recursion. And thus
 only suitable on authoritative nameservers.
 .TP
-.B Compatible with \fBBIND\fR
-\fBnsd\fR should behave exactly as \fBBIND8/9\fR does. See
+.B Compatible with \fIBIND\fR
+\fInsd\fR should behave exactly as \fIBIND8/9\fR does. See
 REQUIREMENTS for more information.
 .TP
-.B No code sharing with \fBBIND\fR
-There is no code from \fBBIND4/8/9\fR in \fBnsd\fR.
+.B No code sharing with \fIBIND\fR
+There is no code from \fIBIND4/8/9\fR in \fInsd\fR.
 .SH OPTIONS
 .TP
 .B \-d
-turn on debugging, \fBnsd\fR will be much more generous with error
+turn on debugging, \fInsd\fR will be much more generous with error
 messages.
 
 .TP
 .B \-p \fIport\fR
-specify the port number \fBnsd\fR will use. This defaults to 53.
+specify the port number \fInsd\fR will use. This defaults to 53.
 
 .TP
 .B \-f \fIdatabase\fR
@@ -56,15 +56,15 @@ as a argument will supersede this option.
 
 .TP
 .B database
-the \fBdatabase\fR \fBnsd\fR will use. This supersedes the \fB-f\fR
+the \fBdatabase\fR \fInsd\fR will use. This supersedes the \fB-f\fR
 option (if given).
 The database contains all the information about the configured zones
 in a \fImachine dependent\fR format. It is necessary to compile the
-zone information into this format, \fBzonec\fR is used for this purpose
+zone information into this format, \fIzonec\fR is used for this purpose
 (see man 8 zonec).
 
 .SH CONFIGURATION FILE
-The configuration file \fBnsd\fR uses has the following syntax
+The configuration file \fInsd\fR uses has the following syntax
 (";" denotes a comment):
 
 .BR
@@ -84,7 +84,7 @@ Second word is the name (\fIorigin\fR) of the zone.
 The third word is the \fIpathname\fR to the zone file. 
 
 .SH AUTHORS
-\fBnsd\fR is written by                
+\fInsd\fR is written by                
 Alexis Yushin, Eric Roozendaal, Ted Lindgreen, Miek Gieben (all NLnet
 Labs) and Olaf Kolkman, Daniel Karrenberg both from RIPE NCC.
 
@@ -93,7 +93,7 @@ Labs) and Olaf Kolkman, Daniel Karrenberg both from RIPE NCC.
 .BR nsdc (8).
 
 .SH LATEST CODE
-The latest version of \fBnsd\fR can always be downloaded from
+The latest version of \fInsd\fR can always be downloaded from
 .br
 \fIhttp://www.nlnetlabs.nl/nsd/index.en.html\fR
 
