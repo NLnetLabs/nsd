@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.20 2003/01/20 08:44:37 alexis Exp $
+# $Id: nsdc.sh.in,v 1.21 2003/01/20 12:58:22 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -45,12 +45,15 @@ NSDCCONF="@nsdcconf@"
 #
 # Default values in absense of ${NSDCCONF} (Usually ``/etc/nsd/nsdc.conf'')
 #
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+
 NSDBINDIR="@sbindir@"
-NSDZONESDIR="@nsdzonesdir@"
-NSDFLAGS="@nsdflags@"
+NSDZONESDIR="@nsdhome@"
+NSDFLAGS=""
 NSDDB="@nsddb@"
 NSDZONES="@nsdzones@"
-NSDKEYSDIR="@nsdkeysdir@"
+NSDKEYSDIR="@nsdhome@/keys"
 NSDNOTIFY="@sbindir@/nsd-notify"
 NAMEDXFER="@namedxfer@"
 
@@ -67,7 +70,7 @@ fi
 #
 
 # This one cannot be changed after compilation time
-NSDPIDFILE="@@NSDPIDFILE@@"
+NSDPIDFILE="@nsdpidfile@"
 
 signal() {
 	if [ -s ${NSDPIDFILE} ]
