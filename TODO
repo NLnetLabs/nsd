@@ -1,4 +1,4 @@
-$Id: TODO,v 1.15 2002/01/31 17:37:45 alexis Exp $
+$Id: TODO,v 1.16 2002/02/02 22:55:04 alexis Exp $
 
 ZONE COMPILER
 - CHECK msg->buf and msg->bla boundaries. IT DOES DUMP CORE.
@@ -22,10 +22,16 @@ SERVER
 
 + first lowercase the query name
 
+TESTS
+
+	query with all zero's...
+	queries withe the size longer than the query
+
 PORTABILITY
+
 - solve alignment problems (the last one is in the database with mix of size_t and u_shorts)
-- change all the u_short and long to u_int16_t and int32_t
-- consider using u_int8_t in place of u_char?
++ change all the u_short and long to u_int16_t and int32_t DONE
++ consider using u_int8_t in place of u_char? DONE
 
 
 ---------- OLD TODO from the prototype ---------------
