@@ -300,7 +300,7 @@ domain_find_parent_zone(zone_type *zone)
 domain_type *
 domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
 {
-	while (domain != zone->domain) {
+	while (domain && domain != zone->domain) {
 		*ns = domain_find_rrset(domain, zone, TYPE_NS);
 		if (*ns)
 			return domain;
