@@ -1,38 +1,61 @@
-$Id: TODO,v 1.40 2003/04/03 13:40:43 alexis Exp $
-
-AUTOCONF
-
-- check whether the --with-nsd-user exists in the system
-
-ZONE COMPILER
-- memory allocation optimization is needed
-- as writing the zone the order should be DNS SEC compliant (use dnameinvert())
-- error diagnostic has to be improved a lot
-- add a check to make sure that the biggest answer in the database does not
-  exceed the query buffer
-- improve the strdname() routine
-- empty node should not cause NXDOMAIN
+$Id: TODO,v 1.1 2001/12/12 13:38:28 alexis Exp $
 
 
-SERVER
-- in tcp the timeout should be handled different than with alarm()?
-- replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
-- make sure that we dont copy anything from the query we dont want to copy, like
-  funny headers etc
-- query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
 
+
+
+
+
+
+
+
+
+
+
+
+---------- OLD TODO from the prototype ---------------
 SECURITY
 
+- all the arrays limits are not checked no nowhere
+- buffer limits have to be checked
+- runaway dnames in the packets
+
+BUGS
+
+1. both in zone->destroy and zone->print handle rrs at apex
+2. dnametoa, strdname etc needs to have checks for buffer overruns
+3. strdname write one zero too many or dnametoa prints one too few?
+
+
+PARSER
+
+- detect out of zone records (by using zone_search that detects authority
+  cuts, or maybe second stage parsing?)
+- set clear AA bit for every record
+- make links to complimentary records
+- parse TTL 2d5h3m10s
+- ttl should be taken from SOA ttl if there's no $TTL
+- shoudl check the buffer sizes. think of thousands of the same A glue
+  record which is misconfigured and tries to be added to a packet
+
+SERVER
+
+- when receiving too long of a packet select will go into infinite loop?
+- in tcp the timeout should be handled different than with alarm()?
+- decide where and how CNAME resolution should be done
+
+INITIALIZATION
+
+- make sure that zones are properly sorted in the zones list
+
 PURITY
-- some data is in network order some in host order, make it clear with prefixes
+
+- dname sometimes has the entire length as a first byte and sometimes not
+- all the data is in network byte order except of the types (can anybody
+  think of smart initialization?)
 - brush up the fuction and identifiers names
-- bzero pads so the databases can be cmp'd
 
 TESTS
 
-MISC
-
-DOCUMENTATION
-
-- convert the manual pages into -man macros set for better compatibility?
-- update DESIGN document
+- set all the buffer sizes to ridiculously small values see if it causes
+  core dumps
