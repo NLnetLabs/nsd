@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.34 2003/06/16 15:13:16 erik Exp $
+ * $Id: zparser.c,v 1.35 2003/06/30 09:40:51 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -40,6 +40,7 @@
 #include <config.h>
 
 #include <sys/types.h>
+#include <sys/socket.h>
 
 #include <assert.h>
 #include <ctype.h>
@@ -894,9 +895,7 @@ zrdatascan (struct zparser *z, int what)
 int
 zrdatascan2 (struct zparser *z, int what, int arg)
 {
-#ifdef	HAVE_INET_ATON
 	struct in_addr pin;
-#endif
 	int i;
 	struct tm tm;
 	struct protoent *proto;
@@ -1079,23 +1078,13 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(in_addr_t));
 
-#ifdef HAVE_INET_ATON
-		if(inet_aton(z->_t[z->_tc], &pin) == 1) {
+		if(inet_pton(AF_INET, z->_t[z->_tc], &pin) > 0) {
 			memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
 			*r = sizeof(u_int32_t);
 		} else {
 			zerror(z, "invalid ip address");
 			error++;
 		}
-#else
-		if((l = inet_addr(z->_t[z->_tc])) == -1) {
-			zerror(z, "invalid ip address");
-			error++;
-		} else {
-			memcpy(r + 1, &l, sizeof(u_int32_t));
-			*r = sizeof(u_int32_t);
-		}
-#endif
 		break;
 	case RDATA_DNAME:
 		/* Try to parse the dname */
