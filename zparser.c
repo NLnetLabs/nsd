@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.25 2003/03/20 10:31:25 alexis Exp $
+ * $Id: zparser.c,v 1.26 2003/03/20 10:52:11 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -325,7 +325,7 @@ zunexpected (struct zparser *z)
 struct zparser *
 zopen (char *filename, u_int32_t ttl, u_int16_t class, char *origin)
 {
-	return _zopen(filename, ttl, class, strdname(origin, ROOT));
+	return _zopen(filename, ttl, class, strdname(origin, ROOT), 0);
 }
 
 /*
@@ -339,9 +339,15 @@ zopen (char *filename, u_int32_t ttl, u_int16_t class, char *origin)
  *
  */
 struct zparser *
-_zopen (char *filename, u_int32_t ttl, u_int16_t class, u_char *origin)
+_zopen (char *filename, u_int32_t ttl, u_int16_t class, u_char *origin, int n)
 {
 	struct zparser *z;
+
+	/* Check if we dont have an include loop... */
+	if(n > MAXINCLUDES) {
+		errno = 0;
+		return NULL;
+	}
 
 	/* Allocate new handling structure */
 	z = xalloc(sizeof(struct zparser));
@@ -365,6 +371,7 @@ _zopen (char *filename, u_int32_t ttl, u_int16_t class, u_char *origin)
 	z->ttl = ttl;
 	z->class = class;
 	z->include = NULL;
+	z->n = n + 1;
 	memset(&z->_rr, 0, sizeof(struct RR));
 
 	return z;
@@ -431,8 +438,13 @@ zread (struct zparser *z)
 					zerror(z, "missing include file name");
 				} else if((z->include = _zopen(z->_t[1], z->ttl, z->class,
 						z->_t[2] ? strdname(z->_t[2], z->origin) :
-							z->origin)) == NULL) {
-					zerror(z, "unable to open include file");
+							z->origin, z->n)) == NULL) {
+					/* Error or too much nestedness? */
+					if(errno == 0) {
+						zerror(z, "too many nested includes");
+					} else {
+						zerror(z, "unable to open include file");
+					}
 				} else {
 					/* Call ourselves again to start including */
 					return zread(z);
@@ -1323,9 +1335,15 @@ zrdata_loc (struct zparser *z)
 	*r = 16;
 
 	memcpy(r + 1, vszhpvp, 4);
-	*(u_int32_t *)(r + 3)  = htonl(lat);
-	*(u_int32_t *)(r + 5)  = htonl(lon);
-	*(u_int32_t *)(r + 7)  = htonl(alt);
+
+	lat = htonl(lat);
+	memcpy((u_int32_t *)(r + 3), &lat, 4);
+
+	lon = htonl(lon);
+	memcpy((u_int32_t *)(r + 5), &lon, 4);
+
+	alt = htonl(alt);
+	memcpy((u_int32_t *)(r + 7), &alt, 4);
 
 	zaddrdata(z, r);
 

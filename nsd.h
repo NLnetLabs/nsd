@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.50 2003/03/20 10:31:25 alexis Exp $
+ * $Id: nsd.h,v 1.51 2003/03/20 10:52:11 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -51,6 +51,7 @@
 
 #ifdef BIND8_STATS
 
+/* Counter for statistics */
 typedef	unsigned long stc_t;
 
 #define	LASTELEM(arr)	(sizeof(arr) / sizeof(arr[0]) - 1)

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.13 2003/03/20 10:31:25 alexis Exp $
+ * $Id: zparser.h,v 1.14 2003/03/20 10:52:11 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -46,6 +46,7 @@
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
 #define	B64BUFSIZE	16384		/* Buffer size for b64 conversion */
 #define	ROOT		(u_char *)"\001"
+#define	MAXINCLUDES	10
 
 #define	IP6ADDRLEN	128/8
 
@@ -86,6 +87,7 @@ struct zparser {
 	u_long	_lineno;		/* Current line no */
 	u_long	lines;			/* Total number of lines parser */
 	int32_t	ttl;			/* Default ttl */
+	int n;				/* Number of nested includes */
 	u_int16_t class;		/* Class of this zone file */
 	u_char	*origin;		/* Default origin */
 	struct zparser *include;	/* If we're including a file */
@@ -154,7 +156,7 @@ void zerror(struct zparser *z, char *msg);
 void zsyntax(struct zparser *z);
 void zunexpected(struct zparser *z);
 struct zparser *zopen(char *filename, u_int32_t ttl, u_int16_t class, char *origin);
-struct zparser *_zopen(char *filename, u_int32_t ttl, u_int16_t class, u_char *origin);
+struct zparser *_zopen(char *filename, u_int32_t ttl, u_int16_t class, u_char *origin, int n);
 struct RR *zread(struct zparser *z);
 void zclose(struct zparser *z);
 void zrdatafree(u_int16_t **p);
