@@ -106,8 +106,19 @@ static void
 usage (void)
 {
 	fprintf(stderr,
-		"Usage: nsd-xfer [-4] [-6] [-p port] [-s serial] -z zone"
-		" -f file servers...\n");
+		"Usage: nsd-xfer [OPTION]... -z zone -f file server...\n"
+		"NSD AXFR client.\n\nSupported options:\n"
+		"  -4           Only use IPv4 connections.\n"
+		"  -6           Only use IPv6 connections.\n"
+		"  -f file      Output zone file name.\n"
+		"  -p port      The port to connect to.\n"
+		"  -s serial    The current zone serial.\n"
+		"  -T tsiginfo  The TSIG key file name.  The file is removed "
+		"after reading the\n               key.\n"
+		"  -z zone      Specify the name of the zone to transfer.\n");
+	fprintf(stderr,
+		"  server       The name or IP address of the master server.\n"
+		"\nReport bugs to <%s>.\n", PACKAGE_BUGREPORT);
 	exit(XFER_FAIL);
 }
 
