@@ -165,7 +165,11 @@
 
 /* Query as we pass it around */
 struct query {
+#ifdef INET6
 	struct sockaddr_storage addr;
+#else
+	struct sockaddr_in addr;
+#endif
 	socklen_t addrlen;
 	size_t maxlen;
 	int edns;

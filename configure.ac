@@ -142,6 +142,14 @@ changequote([,]), [#include <sys/types.h>
 #include <stddef.h>
 #endif
 
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
 /* For Tru64 */
 #ifdef HAVE_SYS_BITYPES_H
 #include <sys/bitypes.h>
@@ -162,7 +170,6 @@ AC_LIBGTOP_CHECK_TYPE(u_int8_t, unsigned char)
 AC_LIBGTOP_CHECK_TYPE(u_int16_t, unsigned short)
 AC_LIBGTOP_CHECK_TYPE(u_int32_t, unsigned int)
 AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
-AC_LIBGTOP_CHECK_TYPE(sockaddr_storage, sockaddr_in)
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [u_int32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
