@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.12 2003/11/05 11:00:05 erik Exp $
+ * $Id: zlexer.lex,v 1.13 2003/11/05 12:53:33 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -106,16 +106,29 @@ Q       \"
 				zparser_stack[include_stack_ptr].line	   = 
 					current_parser->line;
 
-				/* PUT ON THE STACK
+				/* put the given origin on the stack
+				 * if no origin was present push the current
+				 * origin on it. This way the popping of the
+				 * origin always works ok */
+
 				if ( include_origin != NULL ) {
 					zparser_stack[include_stack_ptr].origin = 
-						include_origin;
-					current_parser->origin = include_origin;
+						domain_table_insert(
+						current_parser->db->domains,
+							dname_parse(zone_region,
+							include_origin,
+							NULL));
+					/* start using this origin */
+					current_parser->origin = 
+						domain_table_insert(
+						current_parser->db->domains,
+							dname_parse(zone_region,
+							include_origin,
+							NULL));
 				} else {
 					zparser_stack[include_stack_ptr].origin = 
 						current_parser->origin;
 				}
-				*/
 
 			        include_stack[include_stack_ptr++] = 
 					YY_CURRENT_BUFFER;
@@ -143,6 +156,8 @@ Q       \"
 					current_parser->line = 
 						zparser_stack[include_stack_ptr].line;
 					/* pop the origin */
+					current_parser->origin =
+						zparser_stack[include_stack_ptr].origin;
 					
             				yy_delete_buffer( YY_CURRENT_BUFFER );
             				yy_switch_to_buffer( include_stack[include_stack_ptr] );
