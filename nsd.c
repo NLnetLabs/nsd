@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.47 2002/09/11 14:51:20 alexis Exp $
+ * $Id: nsd.c,v 1.48 2002/09/18 13:00:11 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -79,7 +79,7 @@ xrealloc(p, size)
 int
 usage()
 {
-	fprintf(stderr, "usage: nsd [-d] [-p port] [-n identity] [-u user|uid] -f database\n");
+	fprintf(stderr, "usage: nsd [-d] [-p port] [-n identity] [-u user|uid] [-t chrootdir] -f database\n");
 	exit(1);
 }
 
@@ -508,6 +508,7 @@ main(argc, argv)
 	nsd.identity	= CF_IDENTITY;
 	nsd.version	= CF_VERSION;
 	nsd.username	= CF_USERNAME;
+	nsd.chrootdir	= NULL;
 
 	/* EDNS0 */
 	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
@@ -521,6 +522,10 @@ main(argc, argv)
 	nsd.edns.opt_err[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
 	nsd.edns.opt_err[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
 	nsd.edns.opt_err[5] = 1;			/* XXX Extended RCODE=BAD VERS */
+
+#ifdef	NAMED8_STATS
+	nsd.named8_stats = NAMED8_STATS;
+#endif
 
 /* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
 
@@ -540,7 +545,7 @@ main(argc, argv)
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "a:df:p:i:u:")) != -1) {
+	while((c = getopt(argc, argv, "a:df:p:i:u:t:")) != -1) {
 		switch (c) {
 		case 'a':
 			if((nsd.tcp.addr = nsd.udp.addr = inet_addr(optarg)) == -1)
@@ -561,6 +566,9 @@ main(argc, argv)
 			break;
 		case 'u':
 			nsd.username = optarg;
+			break;
+		case 't':
+			nsd.chrootdir = optarg;
 			break;
 		case '?':
 		default:
@@ -607,7 +615,27 @@ main(argc, argv)
 			endpwent();
 		}
 	}
-			
+
+	/* Relativize the pathnames for chroot... */
+	if(nsd.chrootdir) {
+		int l = strlen(nsd.chrootdir);
+
+		if(strncmp(nsd.chrootdir, nsd.pidfile, l) != 0) {
+			syslog(LOG_ERR, "%s isnt relative to %s: wont chroot",
+				nsd.pidfile, nsd.chrootdir);
+			nsd.chrootdir = NULL;
+		} else if(strncmp(nsd.chrootdir, nsd.dbfile, l) != 0) {
+			syslog(LOG_ERR, "%s isnt relative to %s: wont chroot",
+				nsd.dbfile, nsd.chrootdir);
+			nsd.chrootdir = NULL;
+#ifdef NAMED8_STATS
+		} else if(strncmp(nsd.chrootdir, nsd.named8_stats, l) != 0) {
+			syslog(LOG_ERR, "%s isnt relative to %s: wont chroot",
+				nsd.named8_stats, nsd.chrootdir);
+			nsd.chrootdir = NULL;
+#endif /* NAMED8_STATS */
+		}
+	}
 
 	/* Do we have a running nsd? */
 	if((oldpid = readpid(nsd.pidfile)) == -1) {

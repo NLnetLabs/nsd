@@ -1,4 +1,4 @@
-$Id: CREDITS,v 1.6 2002/09/09 10:59:15 alexis Exp $
+$Id: CREDITS,v 1.7 2002/09/18 13:00:11 alexis Exp $
 
 The NSD was primarily developed by NLnet LABS on request from and close
 cooperation with RIPE NCC, as an alternative name server software to be
@@ -17,3 +17,4 @@ Ted Lindgreen, <ted@nlnetlabs.nl> NLnet LABS	- design, code review, testing
 Contributors (in alphabetical order):
 
 Jun-ichiro itojun Hagino, <itojun@iijlab.net> IIJLab	- IPv6 transport
+Jakob Schlyter, <jakob@crt.se> Carlstedt R&T		- chroot patch

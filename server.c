@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.44 2002/09/11 13:19:35 alexis Exp $
+ * $Id: server.c,v 1.45 2002/09/18 13:00:11 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -363,6 +363,20 @@ server(nsd)
 	}
 #endif
 
+	/* Chroot */
+	if(nsd->chrootdir) {
+		int l = strlen(nsd->chrootdir);
+
+		nsd->dbfile += l;
+		nsd->pidfile += l;
+		nsd->named8_stats += l;
+
+		if(chroot(nsd->chrootdir)) {
+			syslog(LOG_ERR, "unable to chroot: %m");
+			return -1;
+		}
+	}
+
 	/* Drop the permissions */
 	if(setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
 		syslog(LOG_ERR, "unable to drop user priviledges: %m");
@@ -388,7 +402,7 @@ server(nsd)
 			nsd->mode = NSD_RUN;
 #ifdef NAMED8_STATS
 			/* Open the file */
-			if((stf = fopen(NAMED8_STATS, "a")) == NULL) {
+			if((stf = fopen(nsd->named8_stats, "a")) == NULL) {
 				syslog(LOG_ERR, "unable to open %s: %m", NAMED8_STATS);
 				break;
 			}

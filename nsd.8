@@ -1,5 +1,5 @@
 .\"
-.\" $Id: nsd.8,v 1.10 2002/09/09 10:59:15 alexis Exp $
+.\" $Id: nsd.8,v 1.11 2002/09/18 13:00:11 alexis Exp $
 .\"
 .\" nsd.8 -- nsd manual
 .\"
@@ -49,6 +49,7 @@
 .Op Fl a Ar ip-address
 .Op Fl p Ar port
 .Op Fl u Ar username
+.Op Fl t Ar chrootdir
 .Op Fl i Ar identity
 .Sh DESCRIPTION
 .Ic NSD
@@ -87,16 +88,13 @@ Use the specified
 .Ar database
 instead of the default
 .Em /etc/nsd/nsd.db
-.It Fl a
-.Ar ip-address
+.It Fl a Ar ip-address
 Bind the socket to the specified
 .Ar ip-address
-.It Fl p
-.Ar port
+.It Fl p Ar port
 Answer the queries on the specified
 .Ar port
-.It Fl u
-.Ar username
+.It Fl u Ar username
 Drop user and group privileges to those of
 .Ar username
 after binding the socket.
@@ -107,6 +105,8 @@ username
 id
 id.gid
 For example: nsd -or- 80 -or- 80.80
+.It Fl t Ar chroot
+specifies a directory to chroot to upon startup.
 .It Fl i Ar identity
 Return the specified
 .Ar identity

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.37 2002/09/11 13:58:34 alexis Exp $
+ * $Id: nsd.h,v 1.38 2002/09/18 13:00:11 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -105,6 +105,7 @@ struct	nsd {
 	char	*username;
 	uid_t	uid;
 	gid_t	gid;
+	char	*chrootdir;
 	char	*version;
 	char	*identity;
 
@@ -132,6 +133,9 @@ struct	nsd {
 	} edns;
 
 #ifdef	NAMED8_STATS
+
+	char	*named8_stats;
+
 	struct nsdst {
 		time_t	reload;
 		stc_t	qtype[257];	/* Counters per qtype */
