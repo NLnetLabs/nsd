@@ -1,5 +1,5 @@
 /*
- * $Id: rfc1876.c,v 1.3 2002/09/09 11:03:54 alexis Exp $
+ * $Id: rfc1876.c,v 1.4 2002/09/10 09:22:04 alexis Exp $
  *
  * rfc1876.c -- LOC record conversion routines taken from RFC1876
  *
@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <netinet/in.h>
 
 /*
  * routines to convert between on-the-wire RR format and zone file
