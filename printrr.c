@@ -36,6 +36,7 @@ int
 print_zone(zone_type *zone)
 {
 
+	/* TODO DOESN't WORK */
 	zone_type *z;
 	for ( z = zone; z != NULL ; z=z->next )
 		print_rrset(z->domain->rrsets ,z->domain);

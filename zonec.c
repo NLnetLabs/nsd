@@ -1229,7 +1229,6 @@ zone_read (const char *name, const char *zonefile)
 	memset(nsecbits, 0, 8192);
 	yyparse();
 
-	print_zone(current_parser->current_zone);
 	fflush(stdout);
 	totalerrors += current_parser->errors;
 }
