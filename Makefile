@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.10 2002/08/14 14:22:44 alexis Exp $
+# $Id: Makefile,v 1.69.2.11 2002/08/15 14:41:00 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -197,11 +197,11 @@ nsdc.sh: nsdc.sh.in Makefile
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
 	${CC} ${CFLAGS} ${LDFLAGS} ${LIBWRAP} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o
 
-zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o ${COMPAT_O}
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o ${COMPAT_O}
+zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o rfc1876.o ${COMPAT_O}
 
-nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o
-	${CC} ${CFLAGS} ${LDFLAGS} ${LIBWRAP} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o
+nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
+	${CC} ${CFLAGS} ${LDFLAGS} ${LIBWRAP} -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
 
 clean:
 	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh

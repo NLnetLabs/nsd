@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.63.2.5 2002/08/14 11:55:53 alexis Exp $
+ * $Id: zonec.c,v 1.63.2.6 2002/08/15 14:41:00 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -339,6 +339,10 @@ zone_addrrset(msg, dname, rrset)
 				break;
 			case '6':
 				size = IP6ADDRLEN;
+				zone_addbuf(msg, rdata[i].p, size);
+				break;
+			case 'L':
+				size = LOCRDLEN;
 				zone_addbuf(msg, rdata[i].p, size);
 				break;
 			case 'n':

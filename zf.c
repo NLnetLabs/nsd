@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.29.2.3 2002/08/15 11:46:39 alexis Exp $
+ * $Id: zf.c,v 1.29.2.4 2002/08/15 14:41:00 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -541,6 +541,9 @@ zf_token(zf, s)
 
 	switch(*t) {
 	case '(':
+		/* Disregard the bracket if it is quoted */
+		if(*(t-1) == '"') break;
+
 		if(zf->i[zf->iptr].parentheses) {
 			zf_error(zf, "nested open parenthes");
 		} else {
@@ -643,6 +646,7 @@ zf_free_rdata(rdata, f)
 			case 'n':
 			case '6':
 			case 't':
+			case 'L':
 				free(rdata[i].p);
 			}
 		}
@@ -680,6 +684,10 @@ zf_cmp_rdata(a, b, f)
 			break;
 		case '6':
 			if(bcmp(a[i].p, b[i].p, IP6ADDRLEN))
+				return 1;
+			break;
+		case 'L':
+			if(bcmp(a[i].p, b[i].p, LOCRDLEN))
 				return 1;
 			break;
 		default:
@@ -746,6 +754,9 @@ zf_print_rdata(rdata, rdatafmt)
 				putc(*(char *)(rdata[i].p+j+1), stdout);
 			}
 			putc('"', stdout);
+			break;
+		case 'L':
+			printf(" LOC record printing to be implemented");
 			break;
 		default:
 			printf("???");
@@ -968,6 +979,14 @@ zf_read(zf)
 					bcopy(token, zf->line.rdata[i].p + 1, j);
 					*(char *)zf->line.rdata[i].p = (u_char) j;
 				}
+				break;
+			case 'L':
+				zf->line.rdata[i].p = xalloc(LOCRDLEN);
+				
+				for(t = token; token; token = zf_token(zf, NULL)) 
+					*(token + strlen(token)) = ' ';
+				if(loc_aton(t, zf->line.rdata[i].p) != 16)
+					parse_error++;
 				break;
 			default:
 				fprintf(stderr, "panic! uknown atom in format %c\n", *f);
