@@ -111,7 +111,7 @@ plugin_load(const char *name, const char *arg)
 	nsd_plugin_init_type *init;
 	void *handle;
 	const char *error;
-	const char *init_name = "nsd_plugin_init_" STR(NSD_PLUGIN_INTERFACE_VERSION);
+	const char *init_name = STR(NSD_PLUGIN_INIT);
 	const nsd_plugin_descriptor_type *descriptor;
 
 	dlerror();		/* Discard previous errors (FreeBSD hack).  */

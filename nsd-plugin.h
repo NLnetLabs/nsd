@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-plugin.h,v 1.7 2003/07/07 08:56:19 erik Exp $
+ * $Id: nsd-plugin.h,v 1.8 2003/07/07 09:02:16 erik Exp $
  *
  * nsd-plugin.h -- interface to NSD for a plugin.
  *
@@ -57,7 +57,8 @@
 #include "query.h"
 
 /*
- * The version of the plugin interface.
+ * The version of the plugin interface and the name of the plugin
+ * initialization function.
  */
 #define NSD_PLUGIN_INTERFACE_VERSION 1
 #define NSD_PLUGIN_INIT nsd_plugin_init_1
