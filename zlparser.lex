@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.7 2003/08/19 13:36:08 miekg Exp $
+ * $Id: zlparser.lex,v 1.8 2003/08/19 14:38:46 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -128,16 +128,26 @@ Q       \"
                             }
                         }
 TYPE[0-9]+              {
-                            ztext = strdup(yytext); 
-                            yylval->len = zoctet(ztext);
-                            yylval->str = ztext;
-                            return UN_TYPE;
+                            if ( in_rr == 2)
+                                return UN_TYPE;
+
+                            if ( in_rr != 2)  {
+                                ztext = strdup(yytext); 
+                                yylval->len = zoctet(ztext);
+                                yylval->str = ztext;
+                                return STR;
+                            }
                         }
 CLASS[0-9]+             {
-                            ztext = strdup(yytext); 
-                            yylval->len = zoctet(ztext);
-                            yylval->str = ztext;
-                            return UN_CLASS;
+                            if ( in_rr == 2)
+                                return UN_TYPE;
+
+                            if ( in_rr != 2)  {
+                                ztext = strdup(yytext); 
+                                yylval->len = zoctet(ztext);
+                                yylval->str = ztext;
+                                return STR;
+                            }
                         }
 ^{Q}({ANY})({ANY})*{Q}  {
                             /* this matches quoted strings when ^ */
