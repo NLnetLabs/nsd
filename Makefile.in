@@ -83,7 +83,7 @@ EDIT		= sed \
 			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS 	= nsd zonec nsd-notify nsdc.sh nsdc.conf.sample
+TARGETS 	= nsd zonec nsdc.sh nsdc.conf.sample
 
 NSD_OBJECTS	= 				\
 	dbaccess.o 				\
@@ -137,7 +137,7 @@ install: all
 	$(INSTALL) nsd $(sbindir)/nsd
 	$(INSTALL) zonec $(sbindir)/zonec
 	$(INSTALL) nsdc.sh $(sbindir)/nsdc
-	$(INSTALL) nsd-notify $(sbindir)/nsd-notify
+#	$(INSTALL) nsd-notify $(sbindir)/nsd-notify
 	$(INSTALL_DATA) nsd.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
 	$(INSTALL_DATA) zonec.8 $(mandir)/man8
