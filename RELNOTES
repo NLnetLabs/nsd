@@ -1,6 +1,18 @@
 NSD RELEASE NOTES
 
 
+1.2.3
+=============
+BUG FIXES:
+        - Bug #65: The syslog facility is now a compile time option
+          (--with-facility=FACILITY).  The default facility is DAEMON.
+        - Bug #66: Automatic periodic dumping of the statistics (using
+          the -s option) is now continued after a database reload.
+        - NSD would try to kill pid -1 on startup if forking of a child
+          process failed.
+        - Do not log EAGAIN errors on calls to recvfrom.  These errors
+          should be harmless.
+
 1.2.2
 =============
 BUG FIXES:
