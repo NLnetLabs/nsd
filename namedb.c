@@ -47,10 +47,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "dns.h"
-#include "dname.h"
 #include "namedb.h"
-#include "util.h"
 
 
 static domain_type *

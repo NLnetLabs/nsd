@@ -20,8 +20,6 @@
 
 #include "dns.h"
 #include "dname.h"
-#include "namedb.h"
-#include "util.h"
 #include "query.h"
 
 static const uint8_t *strdname (const char *source, const uint8_t *o);

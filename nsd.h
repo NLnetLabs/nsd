@@ -14,24 +14,6 @@
 
 #include "dns.h"
 #include "edns.h"
-#include "region-allocator.h"
-
-/* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
-enum nsd_rc
-{
-	/* Discard the client request.  */
-	NSD_RC_DISCARD  = -1,
-	/* OK, continue normal processing.  */
-	NSD_RC_OK       = RCODE_OK,
-	/* Return the appropriate error code to the client.  */
-	NSD_RC_FORMAT   = RCODE_FORMAT,
-	NSD_RC_SERVFAIL = RCODE_SERVFAIL,
-	NSD_RC_NXDOMAIN = RCODE_NXDOMAIN,
-	NSD_RC_IMPL     = RCODE_IMPL,
-	NSD_RC_REFUSE   = RCODE_REFUSE,
-	NSD_RC_NOTAUTH  = RCODE_NOTAUTH
-};
-typedef enum nsd_rc nsd_rc_type;
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
@@ -85,7 +67,9 @@ struct nsd_child
 };
 
 /* NSD configuration and run-time variables */
-struct	nsd {
+typedef struct nsd nsd_type;
+struct	nsd
+{
 	/*
 	 * Global region that is not deallocated until NSD shuts down.
 	 */

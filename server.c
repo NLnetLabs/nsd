@@ -31,15 +31,9 @@
 #include <netdb.h>
 
 #include "axfr.h"
-#include "dns.h"
 #include "namedb.h"
-#include "dname.h"
 #include "netio.h"
-#include "nsd.h"
 #include "plugins.h"
-#include "query.h"
-#include "region-allocator.h"
-#include "util.h"
 
 
 /*

@@ -23,13 +23,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include "buffer.h"
-#include "dns.h"
-#include "dname.h"
-#include "nsd.h"
 #include "query.h"
-#include "region-allocator.h"
-#include "util.h"
 
 static void 
 usage (void)

@@ -20,11 +20,8 @@
 #include <strings.h>
 #endif
 
-#include "dns.h"
 #include "rdata.h"
-#include "namedb.h"
 #include "zonec.h"
-#include "zparser.h"
 
 #ifndef B64_PTON
 int b64_ntop(uint8_t const *src, size_t srclength,

@@ -10,6 +10,28 @@
 #ifndef _DNS_H_
 #define _DNS_H_
 
+enum rr_section {
+	QUESTION_SECTION,
+	ANSWER_SECTION,
+	AUTHORITY_SECTION,
+	ADDITIONAL_SECTION,
+	/*
+	 * Use a split additional section to ensure A records appear
+	 * before any AAAA records (this is recommended practice to
+	 * avoid truncating the additional section for IPv4 clients
+	 * that do not specify EDNS0), and AAAA records before other
+	 * types of additional records (such as X25 and ISDN).
+	 * Encode_answer sets the ARCOUNT field of the response packet
+	 * correctly.
+	 */
+	ADDITIONAL_A_SECTION = ADDITIONAL_SECTION,
+	ADDITIONAL_AAAA_SECTION,
+	ADDITIONAL_OTHER_SECTION,
+
+	RR_SECTION_COUNT
+};
+typedef enum rr_section rr_section_type;
+
 /* Possible OPCODE values */
 #define	OPCODE_QUERY		0 	/* a standard query (QUERY) */
 #define OPCODE_IQUERY		1 	/* an inverse query (IQUERY) */
@@ -25,6 +47,23 @@
 #define RCODE_IMPL		4 	/* Not implemented */
 #define RCODE_REFUSE		5 	/* Refused */
 #define RCODE_NOTAUTH           9	/* Not authorized */
+
+/* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
+enum nsd_rc
+{
+	/* Discard the client request.  */
+	NSD_RC_DISCARD  = -1,
+	/* OK, continue normal processing.  */
+	NSD_RC_OK       = RCODE_OK,
+	/* Return the appropriate error code to the client.  */
+	NSD_RC_FORMAT   = RCODE_FORMAT,
+	NSD_RC_SERVFAIL = RCODE_SERVFAIL,
+	NSD_RC_NXDOMAIN = RCODE_NXDOMAIN,
+	NSD_RC_IMPL     = RCODE_IMPL,
+	NSD_RC_REFUSE   = RCODE_REFUSE,
+	NSD_RC_NOTAUTH  = RCODE_NOTAUTH
+};
+typedef enum nsd_rc nsd_rc_type;
 
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
@@ -178,5 +217,15 @@ rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 
 const char *rrtype_to_string(uint16_t rrtype);
 const char *rrclass_to_string(uint16_t rrclass);
+
+
+#ifdef __cplusplus
+inline rr_section_type
+operator++(rr_section_type &lhs)
+{
+	lhs = (rr_section_type) ((int) lhs + 1);
+	return lhs;
+}
+#endif /* __cplusplus */
 
 #endif /* _DNS_H_ */

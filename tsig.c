@@ -12,10 +12,7 @@
 
 #ifdef TSIG
 
-#include "buffer.h"
-#include "region-allocator.h"
 #include "tsig.h"
-#include "query.h"
 
 #ifndef B64_PTON
 int b64_ntop(uint8_t const *src, size_t srclength,

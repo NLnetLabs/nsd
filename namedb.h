@@ -15,7 +15,6 @@
 #include "dname.h"
 #include "dns.h"
 #include "heap.h"
-#include "region-allocator.h"
 
 #define	NAMEDB_MAGIC		"NSDdbV06"
 #define	NAMEDB_MAGIC_SIZE	8

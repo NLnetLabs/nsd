@@ -10,7 +10,6 @@
 #ifndef _RDATA_H_
 #define _RDATA_H_
 
-#include "buffer.h"
 #include "dns.h"
 #include "namedb.h"
 

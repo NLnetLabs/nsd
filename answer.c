@@ -56,7 +56,7 @@ answer_add_rrset(answer_type *answer, rr_section_type section,
 }
 
 static void
-encode_dname(struct query *q, domain_type *domain)
+encode_dname(query_type *q, domain_type *domain)
 {
 	while (domain->parent && query_get_dname_offset(q, domain) == 0) {
 		query_put_dname_offset(q, domain, buffer_position(q->packet));
@@ -83,7 +83,7 @@ encode_dname(struct query *q, domain_type *domain)
 }
 
 int
-encode_rr(struct query *q, domain_type *owner, rr_type *rr)
+encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 {
 	size_t truncation_mark;
 	uint16_t rdlength = 0;
@@ -144,7 +144,7 @@ encode_rr(struct query *q, domain_type *owner, rr_type *rr)
 }
 
 static int
-encode_rrset(struct query *q, uint16_t *count, domain_type *owner,
+encode_rrset(query_type *q, uint16_t *count, domain_type *owner,
 	     rrset_type *rrset, int truncate)
 {
 	uint16_t i;
@@ -204,7 +204,7 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner,
 }
 
 void
-encode_answer(struct query *q, const answer_type *answer)
+encode_answer(query_type *q, const answer_type *answer)
 {
 	uint16_t counts[RR_SECTION_COUNT];
 	rr_section_type section;

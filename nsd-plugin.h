@@ -50,8 +50,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "nsd.h"
-#include "namedb.h"
 #include "query.h"
 
 /*

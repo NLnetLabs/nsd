@@ -14,8 +14,9 @@
 
 #include <openssl/hmac.h>
 
+#include "buffer.h"
 #include "dname.h"
-#include "nsd.h"
+#include "dns.h"
 
 #define TSIG_ERROR_NOERROR  0
 #define TSIG_ERROR_BADSIG   16

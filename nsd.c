@@ -34,14 +34,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "dname.h"
-#include "dns.h"
-#include "namedb.h"
 #include "nsd.h"
 #include "plugins.h"
 #include "tsig.h"
-#include "query.h"
-#include "util.h"
 
 
 /* The server handler... */

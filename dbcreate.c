@@ -46,7 +46,6 @@
 #include <unistd.h>
 
 #include "namedb.h"
-#include "util.h"
 
 static int write_db (namedb_type *db);
 

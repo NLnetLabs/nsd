@@ -18,9 +18,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "namedb.h"
+#include "nsd.h"
 #include "plugins.h"
-#include "util.h"
 
 nsd_plugin_id_type maximum_plugin_count = 0;
 static nsd_plugin_id_type plugin_count = 0;

@@ -21,7 +21,6 @@
 #endif
 
 #include "dns.h"
-#include "namedb.h"
 #include "zonec.h"
 #include "zparser.h"
 

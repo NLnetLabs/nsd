@@ -224,8 +224,8 @@ query_addtxt(struct query  *q,
  * Result code: NULL on failure, a pointer to the byte after the query
  * section otherwise.
  */
-nsd_rc_type
-process_query_section(struct query *query)
+static nsd_rc_type
+process_query_section(query_type *query)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
 
@@ -904,7 +904,7 @@ query_prepare_response(query_type *q)
  *
  */
 query_state_type
-query_process(struct query *q, struct nsd *nsd)
+query_process(query_type *q, nsd_type *nsd)
 {
 	/* The query... */
 	nsd_rc_type rc;
@@ -1004,7 +1004,7 @@ query_process(struct query *q, struct nsd *nsd)
 }
 
 void
-query_add_optional(struct query *q, struct nsd *nsd)
+query_add_optional(query_type *q, nsd_type *nsd)
 {
 	struct edns_data *edns = &nsd->edns_ipv4;
 #if defined(INET6)

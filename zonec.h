@@ -10,7 +10,6 @@
 #ifndef _ZONEC_H_
 #define _ZONEC_H_
 
-#include "dns.h"
 #include "namedb.h"
 
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */

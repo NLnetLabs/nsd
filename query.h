@@ -13,14 +13,9 @@
 #include <assert.h>
 #include <string.h>
 
-#include "buffer.h"
-#include "dname.h"
-#include "edns.h"
 #include "namedb.h"
 #include "nsd.h"
-#include "region-allocator.h"
 #include "tsig.h"
-#include "util.h"
 
 /*
  * Set of macro's to deal with the dns message header as specified
@@ -303,7 +298,7 @@ void query_reset(query_type *query, size_t maxlen, int is_tcp);
 /*
  * Process a query and write the response in the query I/O buffer.
  */
-query_state_type query_process(query_type *q, struct nsd *nsd);
+query_state_type query_process(query_type *q, nsd_type *nsd);
 
 /*
  * Prepare the query structure for writing the response. The packet
@@ -316,7 +311,7 @@ void query_prepare_response(query_type *q);
 /*
  * Add EDNS0 and TSIG information to the response if required.
  */
-void query_add_optional(query_type *q, struct nsd *nsd);
+void query_add_optional(query_type *q, nsd_type *nsd);
 
 /*
  * Write an error response into the query structure with the indicated

@@ -14,7 +14,6 @@
 
 #include "dns.h"
 #include "edns.h"
-#include "query.h"
 
 void
 edns_init_data(edns_data_type *data, uint16_t max_length)
