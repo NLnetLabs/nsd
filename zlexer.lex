@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.16 2003/12/08 15:13:09 miekg Exp $
+ * $Id: zlexer.lex,v 1.17 2003/12/09 08:28:15 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -19,13 +19,14 @@
 #include "dname.h"
 #include "zparser.h"
 
-#if 0
+#if 1
 #define LEXOUT(s)  printf s /* used ONLY when debugging */
 #else
 #define LEXOUT(s)
 #endif
 
 /* see  http://www.iana.org/assignments/dns-parameters */
+/* check the RRTYPES var in zonec.h also when making changes here */
 const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "NXT", "KEY", "SOA", "SIG", "SRV", "CERT", "LOC", "MD", "MF", "MB",
     "MG", "MR", "NULL", "WKS", "HINFO", "MINFO", "RP", "AFSDB", "X25",
@@ -170,7 +171,7 @@ Q       \"
                             return '.';
                         }
 {DOT}                   return '.';
-{SLASH}#                return URR;
+{SLASH}#                { LEXOUT(("\\# "));return URR; }
 ^{SPACE}+               {
                             if ( paren_open == 0 ) { 
                                 in_rr = after_dname;
@@ -248,27 +249,6 @@ Q       \"
 			    }
                             
                         }
-TYPE[0-9]+              {
-                            if ( in_rr == after_dname ) {
-				/* check the type */
-				j = intbytypexx(yytext);
-				if ( j != 0 )  {
-					yylval.type = intbyname(yytext, ztypes);
-					return j - 1 + A;
-				}
-				else {
-					ztext = region_strdup(rr_region, yytext);
-					yylval.data.len = zoctet(ztext);
-					yylval.data.str = ztext;
-                                	return UTYPE;
-				}
-			    } else {
-				    ztext = region_strdup(rr_region, yytext); 
-				    yylval.data.len = zoctet(ztext);
-				    yylval.data.str = ztext;
-				    return STR;
-                            }
-                        }
 {Q}({ANY})({ANY})*{Q}   {
                             /* this matches quoted strings */
                             ztext = region_strdup(rr_region, yytext);
@@ -318,6 +298,7 @@ zrrtype (char *word)
 	 * return the correct token based on our list of RR types
 	 */
 	int i,j;
+	/* known types */
 	for (i = 0; i < RRTYPES - 1; i++) {
 		if (strcasecmp(word, RRtypes[i]) == 0) {
 			LEXOUT(("%s ", word));
@@ -325,12 +306,22 @@ zrrtype (char *word)
 		}
 		
 	}
-	/* do the check for TYPE# here */
+	/* it wasn't a known type, check to see if it maybe
+	 * was something like TYPExxxx */
 	j = intbytypexx(yytext);
+	
+	if ( j == 0 ) 
+		return 0; /* bail out here */
 
-
-
-	return 0;
+	/* now it is TYPExxxx, and either we know it, or we don't */
+	printf("TYPEx%d ",j);
+	
+	if ( j < RRTYPES ) {
+		return j + A; /* now it's know */
+	} else {
+		/* j == 0 is already handled */
+		return UTYPE;
+	}
 }
 
 /* do some preparsing of the stuff */
@@ -345,6 +336,7 @@ zoctet(char *word)
     for (s = p = word; *s != '\0'; s++,p++ ) {
         switch ( *s ) {
             /* [XXX] what is so special about dots anyway?
+	    /* this needs to be fixed, somehow */
             case '.':
                 printf("Seeing dots\n\n");
                 if ( s[1] == '.' ) {
@@ -370,7 +362,7 @@ zoctet(char *word)
                         *p = val;
                         length++;
                     } else {
-                        printf("zlparser.lex: ASCII overflow\n");
+                        warning("zlparser.lex: ASCII overflow");
                     }
 
                 } else {
@@ -402,36 +394,6 @@ zoctet(char *word)
 }
 
 /* 
- * receive a CLASSXXXX string and return XXXX as
- * an integer
- */
-uint16_t
-intbyclassxx(void *str)
-{
-        char *where;
-        uint16_t type;
-
-        where = strstr((char*)str, "CLASS");
-        if ( where == NULL )
-                where = strstr((char*)str, "class");
-
-        if ( where == NULL )
-                /* nothing found */
-                return 0;
-
-        if ( where != (char*) str )
-                /* not the first character */
-                return 0;
-
-        /* the rest from the string, from
-         * where to the end must be a number */
-        type = (uint16_t) strtol(where + 5, (char**) NULL, 10);
-
-        /* zero if not ok */
-        return type;
-}
-
-/* 
  * receive a TYPEXXXX string and return XXXX as
  * an integer
  */
@@ -453,9 +415,8 @@ intbytypexx(void *str)
                 /* not the first character */
                 return 0;
 
-        /* the rest from the string, from
-         * where to the end must be a number */
-        type = (uint16_t) strtol(where + 4, (char**) NULL, 10);
+	/* the rest from the string, from where to the end must be a number */
+	type = (uint16_t) strtol(where + 4, (char**) NULL, 10);
 
         /* zero if not ok */
         return type;

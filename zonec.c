@@ -543,12 +543,16 @@ zadd_rdata_finalize(zparser_type *parser)
 uint16_t
 intbyname(const char *a, struct ztab *tab)
 {
+	int j;
+
 	while (tab->name != NULL) {
 		if (strcasecmp(a, tab->name) == 0)
 			return tab->sym;
 		tab++;
 	}
-	return 0;
+	/* still alive, maybe a is a TYPExxx thingy */
+	j = intbytypexx((void*) a); /* zero if not */
+	return j;
 }
 
 /*
@@ -1051,7 +1055,8 @@ error(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 
-	fprintf(stderr," ERR: Line %u: ", current_parser->line);
+	fprintf(stderr," ERR: Line %u in %s: ", current_parser->line,
+			current_parser->filename);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 
@@ -1067,7 +1072,8 @@ warning(const char *fmt, ... )
 
 	va_start(args, fmt);
 
-	fprintf(stderr,"WARN: Line %u: ", current_parser->line);
+	fprintf(stderr,"WARN: Line %u in %s: ", current_parser->line,
+			current_parser->filename);
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 

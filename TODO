@@ -1,4 +1,4 @@
-$Id: TODO,v 1.43 2003/12/04 13:13:56 miekg Exp $
+$Id: TODO,v 1.44 2003/12/09 08:28:14 miekg Exp $
 
 AUTOCONF
 
@@ -12,9 +12,7 @@ ZONE COMPILER
   exceed the query buffer
 - improve the strdname() routine
 + empty node should not cause NXDOMAIN
-- NSEC typecodes can also be integers
-- need to reset NSEC bits for first use
-
+- need to add unknown RR handling in grammar
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?
