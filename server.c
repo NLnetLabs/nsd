@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.32 2002/05/06 13:33:07 alexis Exp $
+ * $Id: server.c,v 1.33 2002/05/06 14:11:34 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -303,7 +303,7 @@ server(nsd)
 		case NSD_RELOAD:
 			nsd->mode = NSD_RUN;
 
-			switch((pid = fork())) {
+			switch(nsd->debug ? 0 : (pid = fork())) {
 			case -1:
 				syslog(LOG_ERR, "fork failed: %m");
 				break;
@@ -316,17 +316,19 @@ server(nsd)
 					exit(1);
 				}
 
-				/* Send the child SIGINT to the parent to terminate quitely... */
-				if(kill(nsd->pid, SIGINT) != 0) {
-					syslog(LOG_ERR, "cannot kill %d: %m", pid);
-					exit(1);
-				}
+				if(!nsd->debug) {
+					/* Send the child SIGINT to the parent to terminate quitely... */
+					if(kill(nsd->pid, SIGINT) != 0) {
+						syslog(LOG_ERR, "cannot kill %d: %m", pid);
+						exit(1);
+					}
 
-				nsd->pid  = getpid();
+					nsd->pid  = getpid();
 
-				/* Overwrite pid... */
-				if(writepid(nsd->pid, nsd->pidfile) == -1) {
-					syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
+					/* Overwrite pid... */
+					if(writepid(nsd->pid, nsd->pidfile) == -1) {
+						syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
+					}
 				}
 
 				break;
@@ -385,14 +387,15 @@ server(nsd)
 				syslog(LOG_ERR, "accept failed: %m");
 			} else {
 				/* Fork and answer it... */
-				switch(fork()) {
+				switch(nsd->debug ? 0 : fork()) {
 				case -1:
 					syslog(LOG_ERR, "fork failed: %m");
 					break;
 				case 0:
 					/* CHILD */
 					answer_tcp(tcpc_s, (struct sockaddr *)&tcpc_addr, tcpc_addrlen, nsd);
-					exit(0);
+					if(!nsd->debug)
+						exit(0);
 				default:
 					/* PARENT */
 					nsd->tcp.open_conn++;
