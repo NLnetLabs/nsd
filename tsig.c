@@ -144,16 +144,16 @@ tsig_error(int error_code)
 
 	switch (error_code) {
 	case TSIG_ERROR_NOERROR:
-		strcpy(message, "No Error");
+		return "No Error";
 		break;
 	case TSIG_ERROR_BADSIG:
-		strcpy(message, "Bad Signature");
+		return "Bad Signature";
 		break;
 	case TSIG_ERROR_BADKEY:
-		strcpy(message, "Bad Key");
+		return "Bad Key";
 		break;
 	case TSIG_ERROR_BADTIME:
-		strcpy(message, "Bad Time");
+		return "Bad Time";
 		break;
 	default:
 		snprintf(message, sizeof(message),
@@ -197,6 +197,8 @@ tsig_from_query(tsig_record_type *tsig)
 	tsig_key_type *key = NULL;
 	tsig_algorithm_table_type *algorithm_entry;
 	tsig_algorithm_type *algorithm = NULL;
+	uint64_t current_time;
+	uint64_t signed_time;
 	
 	assert(tsig->status == TSIG_OK);
 	assert(!tsig->algorithm);
@@ -232,6 +234,47 @@ tsig_from_query(tsig_record_type *tsig)
 		return 0;
 	}
 
+	signed_time = ((((uint64_t) tsig->signed_time_high) << 32) |
+		       ((uint64_t) tsig->signed_time_low));
+
+	current_time = (uint64_t) time(NULL);
+	if ((current_time < signed_time - tsig->signed_time_fudge)
+	    || (current_time > signed_time + tsig->signed_time_fudge))
+	{
+		char current_time_text[26];
+		char signed_time_text[26];
+		uint16_t current_time_high;
+		uint32_t current_time_low;
+		time_t clock;
+
+		clock = (time_t) current_time;
+		ctime_r(&clock, current_time_text);
+		current_time_text[24] = '\0';
+
+		clock = (time_t) signed_time;
+		ctime_r(&clock, signed_time_text);
+		signed_time_text[24] = '\0';
+
+#if 0				/* XXX */
+		log_msg(LOG_ERR,
+			"current server time %s is outside the range of TSIG"
+			" signed time %s with fudge %u",
+			current_time_text,
+			signed_time_text,
+			(unsigned) tsig->signed_time_fudge);
+#endif
+
+		tsig->error_code = TSIG_ERROR_BADTIME;
+		current_time_high = (uint16_t) (current_time >> 32);
+		current_time_low = (uint32_t) current_time;
+		tsig->other_size = 6;
+		tsig->other_data = region_alloc(
+			tsig->rr_region, sizeof(uint16_t) + sizeof(uint32_t));
+		write_uint16(tsig->other_data, current_time_high);
+		write_uint32(tsig->other_data + 2, current_time_low);
+		return 0;
+	}
+	
 	tsig->algorithm = algorithm;
 	tsig->key = key;
 	tsig->response_count = 0;
@@ -303,8 +346,9 @@ tsig_update(tsig_record_type *tsig, query_type *query, size_t length)
 void
 tsig_sign(tsig_record_type *tsig)
 {
-	tsig->signed_time_high = 0; /* XXX */
-	tsig->signed_time_low = (uint32_t) time(NULL);
+	uint64_t current_time = (uint64_t) time(NULL);
+	tsig->signed_time_high = (uint16_t) (current_time >> 32);
+	tsig->signed_time_low = (uint32_t) current_time;
 	tsig->signed_time_fudge = 300; /* XXX */
 
 	tsig_digest_variables(tsig, tsig->response_count > 1);
@@ -326,16 +370,16 @@ tsig_verify(tsig_record_type *tsig)
 				    tsig->prior_mac_data,
 				    &tsig->prior_mac_size);
 
-	if (tsig->mac_size == tsig->prior_mac_size 
-	    && memcmp(tsig->mac_data,
+	if (tsig->mac_size != tsig->prior_mac_size 
+	    || memcmp(tsig->mac_data,
 		      tsig->prior_mac_data,
-		      tsig->mac_size) == 0)
+		      tsig->mac_size) != 0)
 	{
-		return 1;
-	} else {
 		/* Digest is incorrect, cannot authenticate.  */
 		tsig->error_code = TSIG_ERROR_BADSIG;
 		return 0;
+	} else {
+		return 1;
 	}
 }
 

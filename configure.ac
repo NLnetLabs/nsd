@@ -214,9 +214,11 @@ fi
 AC_LIBGTOP_CHECK_TYPE(int8_t, char) 
 AC_LIBGTOP_CHECK_TYPE(int16_t, short)
 AC_LIBGTOP_CHECK_TYPE(int32_t, int)
+AC_LIBGTOP_CHECK_TYPE(int64_t, long long)
 AC_LIBGTOP_CHECK_TYPE(uint8_t, unsigned char)
 AC_LIBGTOP_CHECK_TYPE(uint16_t, unsigned short)
 AC_LIBGTOP_CHECK_TYPE(uint32_t, unsigned int)
+AC_LIBGTOP_CHECK_TYPE(uint64_t, unsigned long long)
 AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
 AC_LIBGTOP_CHECK_TYPE(sig_atomic_t, int)
 
