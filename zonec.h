@@ -51,7 +51,7 @@
 
 struct lex_data {
     size_t   len;		/* holds the label length */
-    void    *str;		/* holds the data */
+    char    *str;		/* holds the data */
 };
 
 
@@ -178,6 +178,7 @@ uint16_t *zparser_conv_rrtype(region_type *region, const char *rr);
 uint16_t *zparser_conv_nxt(region_type *region, uint8_t nxtbits[]);
 uint16_t *zparser_conv_domain(region_type *region, domain_type *domain);
 uint16_t *zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE]);
+uint16_t *zparser_conv_loc(region_type *region, char *str);
 
 int32_t zparser_ttl2int(char *ttlstr);
 void zadd_rdata_wireformat(zparser_type *parser, uint16_t *data);

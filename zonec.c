@@ -483,6 +483,241 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_
 	return r;
 }
 
+/* Parse an int terminated in the specified range. */
+static int
+parse_int(const char *str, char **end, int *result, const char *name, int min, int max)
+{
+	*result = (int) strtol(str, end, 10);
+	if (*result < min || *result > max) {
+		error("%s must be within the [%d .. %d] range", name, min, max);
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+/* RFC1876 conversion routines */
+static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
+				1000000,10000000,100000000,1000000000};
+
+/*
+ * Converts ascii size/precision X * 10**Y(cm) to 0xXY.
+ * Sets the given pointer to the last used character.
+ *
+ */
+static uint8_t 
+precsize_aton (char *cp, char **endptr)
+{
+	unsigned int mval = 0, cmval = 0;
+	uint8_t retval = 0;
+	int exponent;
+	int mantissa;
+
+	while (isdigit(*cp))
+		mval = mval * 10 + (*cp++ - '0');
+
+	if (*cp == '.') {	/* centimeters */
+		cp++;
+		if (isdigit(*cp)) {
+			cmval = (*cp++ - '0') * 10;
+			if (isdigit(*cp)) {
+				cmval += (*cp++ - '0');
+			}
+		}
+	}
+
+	cmval = (mval * 100) + cmval;
+
+	for (exponent = 0; exponent < 9; exponent++)
+		if (cmval < poweroften[exponent+1])
+			break;
+
+	mantissa = cmval / poweroften[exponent];
+	if (mantissa > 9)
+		mantissa = 9;
+
+	retval = (mantissa << 4) | exponent;
+
+	if(*cp == 'm') cp++;
+
+	*endptr = cp;
+
+	return (retval);
+}
+
+/*
+ * Parses a specific part of rdata.
+ *
+ * Returns:
+ *
+ *	number of elements parsed
+ *	zero on error
+ *
+ */
+uint16_t *
+zparser_conv_loc(region_type *region, char *str)
+{
+	uint16_t *r;
+	int i;
+	int deg = 0, min = 0, secs = 0, secfraq = 0, altsign = 0, altmeters = 0, altfraq = 0;
+	uint32_t lat = 0, lon = 0, alt = 0;
+	uint8_t vszhpvp[4] = {0, 0, 0, 0};
+
+	fprintf(stderr, "converting loc: %s\n", str);
+
+	for(;;) {
+		/* Degrees */
+		if (*str == '\0') {
+			error("unexpected end of LOC data");
+			return NULL;
+		}
+
+		if (!parse_int(str, &str, &deg, "degrees", 0, 180))
+			return NULL;
+		if (!isspace(*str)) {
+			error("space expected after degrees");
+			return NULL;
+		}
+		++str;
+		
+		/* Minutes? */
+		if (isdigit(*str)) {
+			if (!parse_int(str, &str, &min, "minutes", 0, 60))
+				return NULL;
+			if (!isspace(*str)) {
+				error("space expected after minutes");
+				return NULL;
+			}
+		}
+		++str;
+		
+		/* Seconds? */
+		if (isdigit(*str)) {
+			if (!parse_int(str, &str, &secs, "seconds", 0, 60))
+				return NULL;
+			if (!isspace(*str) && *str != '.') {
+				error("space expected after seconds");
+				return NULL;
+			}
+		}
+
+		if (*str == '.') {
+			secfraq = (int) strtol(str + 1, &str, 10);
+			if (!isspace(*str)) {
+				error("space expected after seconds");
+				return NULL;
+			}
+		}
+		++str;
+		
+		switch(*str) {
+		case 'N':
+		case 'n':
+			lat = ((unsigned)1<<31) + (((((deg * 60) + min) * 60) + secs)
+				* 1000) + secfraq;
+			deg = min = secs = secfraq = 0;
+			break;
+		case 'E':
+		case 'e':
+			lon = ((unsigned)1<<31) + (((((deg * 60) + min) * 60) + secs) * 1000)
+				+ secfraq;
+			deg = min = secs = secfraq = 0;
+			break;
+		case 'S':
+		case 's':
+			lat = ((unsigned)1<<31) - (((((deg * 60) + min) * 60) + secs) * 1000)
+				- secfraq;
+			deg = min = secs = secfraq = 0;
+			break;
+		case 'W':
+		case 'w':
+			lon = ((unsigned)1<<31) - (((((deg * 60) + min) * 60) + secs) * 1000)
+				- secfraq;
+			deg = min = secs = secfraq = 0;
+			break;
+		default:
+			error("invalid latitude/longtitude");
+			return NULL;
+		}
+		++str;
+		
+		if (lat != 0 && lon != 0)
+			break;
+
+		if (!isspace(*str)) {
+			error("space expected after latitude/longitude");
+			return NULL;
+		}
+		++str;
+	}
+
+	/* Altitude */
+	if (*str == '\0') {
+		error("unexpected end of LOC data");
+		return NULL;
+	}
+
+	/* Sign */
+	switch(*str) {
+	case '-':
+		altsign = -1;
+	case '+':
+		++str;
+		break;
+	}
+
+	/* Meters of altitude... */
+	altmeters = strtol(str, &str, 10);
+	switch(*str) {
+	case ' ':
+	case '\0':
+	case 'm':
+		break;
+	case '.':
+		++str;
+		altfraq = strtol(str + 1, &str, 10);
+		if (!isspace(*str) && *str != 0 && *str != 'm') {
+			error("altitude fraction must be a number");
+			return NULL;
+		}
+		break;
+	default:
+		error("altitude must be expressed in meters");
+		return NULL;
+	}
+	if (!isspace(*str) && *str != '\0')
+		++str;
+	
+	alt = (10000000 + (altsign * (altmeters * 100 + altfraq)));
+
+	if (!isspace(*str) && *str != '\0') {
+		error("unexpected character after altitude");
+		return NULL;
+	}
+
+	/* Now parse size, horizontal precision and vertical precision if any */
+	for(i = 1; isspace(*str) && i <= 3; i++) {
+		vszhpvp[i] = precsize_aton(str + 1, &str);
+
+		if (!isspace(*str) && *str != '\0') {
+			error("invalid size or precision");
+			return NULL;
+		}
+	}
+
+	/* Allocate required space... */
+	r = region_alloc(region, sizeof(uint16_t) + 16);
+	*r = 16;
+
+	memcpy(r + 1, vszhpvp, 4);
+
+	copy_uint32(r + 3, lat);
+	copy_uint32(r + 5, lon);
+	copy_uint32(r + 7, alt);
+
+	return r;
+}
+
 /* 
  * Below some function that also convert but not to wireformat
  * but to "normal" (int,long,char) types

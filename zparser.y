@@ -67,7 +67,7 @@ uint8_t nsecbits[256][32];
 
 %type <domain> dname abs_dname
 %type <dname>  rel_dname
-%type <data>   str_seq hex_seq nxt_seq nsec_seq
+%type <data>   str_seq concatenated_str_seq hex_seq nxt_seq nsec_seq
 
 %%
 lines:  /* empty line */
@@ -241,6 +241,33 @@ str_seq:	STR
     	}	
     	;
 
+/* Generate a single string from multiple STR tokens, separated by spaces. */
+concatenated_str_seq: STR
+	| '.'
+	{
+		$$.len = 1;
+		$$.str = ".";
+	}
+	| concatenated_str_seq sp STR
+	{
+		$$.len = $1.len + $3.len + 1;
+		$$.str = region_alloc(rr_region, $$.len + 1);
+		memcpy($$.str, $1.str, $1.len);
+		memcpy($$.str + $1.len, " ", 1);
+		memcpy($$.str + $1.len + 1, $3.str, $3.len);
+		$$.str[$$.len] = '\0';
+	}
+	| concatenated_str_seq '.' STR
+	{
+		$$.len = $1.len + $3.len + 1;
+		$$.str = region_alloc(rr_region, $$.len + 1);
+		memcpy($$.str, $1.str, $1.len);
+		memcpy($$.str + $1.len, ".", 1);
+		memcpy($$.str + $1.len + 1, $3.str, $3.len);
+		$$.str[$$.len] = '\0';
+	}
+	;
+
 /* used to convert a nxt list of types */
 /* XXX goes wrong now */
 /* get the type and flip a bit */
@@ -277,9 +304,6 @@ nsec_seq:	STR
 
 /* this is also (mis)used for b64 and other str lists */
 hex_seq:	STR
-	{
-		$$ = $1;
-	}
 	|	hex_seq sp STR
 	{
 		char *hex = region_alloc(rr_region, $1.len + $3.len + 1);
@@ -329,6 +353,8 @@ rtype:
     { current_rr->type = $1; }
     /* RFC 1886. */
     | AAAA sp rdata_aaaa 
+    { current_rr->type = $1; }
+    | LOC sp rdata_loc
     { current_rr->type = $1; }
     | SRV sp rdata_srv
     { current_rr->type = $1; }
@@ -428,6 +454,12 @@ rdata_aaaa: STR trail
         	zadd_rdata_wireformat( current_parser, zparser_conv_a6(zone_region, $1.str) );  /* IPv6 address */
     	}
     	;
+
+rdata_loc: concatenated_str_seq trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_loc(zone_region, $1.str)); /* Location */
+	}
+	;
 
 rdata_hinfo:	STR sp STR trail
 	{

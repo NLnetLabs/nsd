@@ -165,9 +165,10 @@ Q       \"
 ^{DOT}                  {
                             /* a ^. means the root zone... also set in_rr */
                             in_rr = expecting_dname;
+			    LEXOUT((". "));
                             return '.';
                         }
-{DOT}                   return '.';
+{DOT}                   { LEXOUT((". ")); return '.'; }
 {SLASH}#                { LEXOUT(("\\# "));return URR; }
 ^{SPACE}+               {
                             if ( paren_open == 0 ) { 
