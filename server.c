@@ -508,6 +508,34 @@ handle_udp(struct nsd *nsd, fd_set *peer)
 	return 1;
 }
 
+/*
+ * Read COUNT bytes from S and store in BUF.  If a single read(2)
+ * returns fewer than COUNT bytes keep reading until COUNT bytes are
+ * received or the socket is closed.
+ *
+ * Also returns early an error or signal occurs.  In this case -1 is
+ * returned and it is impossible to determine how many bytes have
+ * actually been read.
+ */
+static ssize_t
+read_socket(int s, void *buf, size_t count)
+{
+	ssize_t actual = 0;
+	
+	while (actual < (ssize_t) count) {
+		ssize_t result = read(s, (char *) buf + actual, count - actual);
+		if (result == -1) {
+			return -1;
+		} else if (result == 0) {
+			return actual;
+		} else {
+			actual += result;
+		}
+	}
+
+	return (ssize_t) actual;
+}
+
 static int
 handle_tcp(struct nsd *nsd, fd_set *peer)
 {
@@ -549,9 +577,16 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 
 	/* Until we've got end of file */
 	alarm(TCP_TIMEOUT);
-	while ((received = read(s, &tcplen, 2)) == 2) {
-		/* XXX Why 17???? */
-		if (ntohs(tcplen) < 17) {
+	while ((received = read_socket(s, &tcplen, 2)) == 2) {
+		/*
+		 * Minimum query size is:
+		 *
+		 *     Size of the header (12)
+		 *   + Root domain name   (1)
+		 *   + Query class        (2)
+		 *   + Query type         (2)
+		 */
+		if (ntohs(tcplen) < QHEADERSZ + 1 + sizeof(uint16_t) + sizeof(uint16_t)) {
 			log_msg(LOG_WARNING, "dropping bogus tcp connection");
 			break;
 		}
@@ -561,7 +596,7 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 			break;
 		}
 
-		if ((received = read(s, q.iobuf, ntohs(tcplen))) == -1) {
+		if ((received = read_socket(s, q.iobuf, ntohs(tcplen))) == -1) {
 			if(errno == EINTR)
 				log_msg(LOG_ERR, "timed out/interrupted reading tcp connection");
 			else
