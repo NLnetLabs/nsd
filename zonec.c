@@ -35,6 +35,7 @@
 #include "namedb.h"
 #include "util.h"
 #include "region-allocator.h"
+#include "zparser.h"
 
 #ifndef B64_PTON
 int b64_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize);
@@ -72,11 +73,57 @@ extern uint8_t nsecbits[256][32];
  * Resource records types, classes and algorithms that we know.
  *
  */
+const lookup_table_type zclasses[] = {
+	{ CLASS_IN, "IN", T_IN },
+	{ 0, NULL, 0 }
+};
 
-struct ztab ztypes[] = Z_TYPES;
-struct ztab zclasses[] = Z_CLASSES;
-struct ztab zalgs[] = Z_ALGS;
+const lookup_table_type ztypes[] = {
+	{ TYPE_A, "A", T_A },
+	{ TYPE_NS, "NS", T_NS },
+	{ TYPE_MD, "MD", T_MD },
+	{ TYPE_MF, "MF", T_MF },
+	{ TYPE_CNAME, "CNAME", T_CNAME },
+	{ TYPE_SOA, "SOA", T_SOA },
+	{ TYPE_MB, "MB", T_MB },
+	{ TYPE_MG, "MG", T_MG },
+	{ TYPE_MR, "MR", T_MR },
+	{ TYPE_NULL, "NULL", T_NULL },
+	{ TYPE_WKS, "WKS", T_WKS },
+	{ TYPE_PTR, "PTR", T_PTR },
+	{ TYPE_HINFO, "HINFO", T_HINFO },
+	{ TYPE_MINFO, "MINFO", T_MINFO },
+	{ TYPE_MX, "MX", T_MX },
+	{ TYPE_TXT, "TXT", T_TXT },
+        { TYPE_AAAA, "AAAA", T_AAAA },
+	{ TYPE_SRV, "SRV", T_SRV },
+	{ TYPE_NAPTR, "NAPTR", T_NAPTR },
+	{ TYPE_LOC, "LOC", T_LOC },
+	{ TYPE_AFSDB, "AFSDB", T_AFSDB },
+	{ TYPE_RP, "RP", T_RP },
+	{ TYPE_SIG, "SIG", T_SIG },
+	{ TYPE_KEY, "KEY", T_KEY },
+	{ TYPE_NXT, "NXT", T_NXT },
+	{ TYPE_DS, "DS", T_DS },
+	{ TYPE_SSHFP, "SSHFP", T_SSHFP },
+	{ TYPE_RRSIG, "RRSIG", T_RRSIG },
+	{ TYPE_NSEC, "NSEC", T_NSEC },
+	{ TYPE_DNSKEY, "DNSKEY", T_DNSKEY },
+	{ TYPE_ANY, "ANY", 0 },
+	{ 0, NULL, 0 }
+};
 
+const lookup_table_type zalgs[] = {
+	{ 1, "RSAMD5", 0 },
+	{ 2, "DS", 0 },
+	{ 3, "DSA", 0 },
+	{ 4, "ECC", 0 },
+	{ 5, "RSASHA1", 0 },
+	{ 252, "INDIRECT", 0 },
+	{ 253, "PRIVATEDNS", 0 },
+	{ 254, "PRIVATEOID", 0 },
+	{ 0, NULL, 0 }
+};
 
 /* 
  * These are parser function for generic zone file stuff.
@@ -300,18 +347,17 @@ zparser_conv_algorithm(region_type *region, const char *algstr)
 {
 	/* convert a algoritm string to integer */
 	uint16_t *r = NULL;
-	unsigned int alg;
+	const lookup_table_type *alg;
 
-	alg = intbyname(algstr, zalgs);
+	alg = lookup_by_name(algstr, zalgs);
 
-	if ( alg == 0 ) {
+	if (!alg) {
 		/* not a memonic */
-		return (zparser_conv_byte(region, algstr));
+		return zparser_conv_byte(region, algstr);
 	}
 
         r = region_alloc(region, sizeof(uint16_t) + sizeof(uint8_t));
-	/*  *((uint8_t *)(r+1)) = (uint8_t)strtol(bytestr, &end, 0);*/
-	*((uint8_t *)(r+1)) = alg;
+	*((uint8_t *)(r+1)) = alg->symbol;
 	*r = sizeof(uint8_t);
 	return r;
 }
@@ -413,7 +459,8 @@ zparser_conv_domain(region_type *region, domain_type *domain)
 uint16_t *
 zparser_conv_rrtype(region_type *region, const char *rr)
 {
-	/* get the official number for the rr type and return
+	/*
+	 * get the official number for the rr type and return
 	 * that. This is used by SIG in the type-covered field
 	 */
 
@@ -423,7 +470,7 @@ zparser_conv_rrtype(region_type *region, const char *rr)
 	r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
 
 	*(r+1)  = htons((uint16_t) 
-			intbyname(rr, ztypes)
+			lookup_by_name(rr, ztypes)->symbol
 			);
             
 	*r = sizeof(uint16_t);
@@ -805,64 +852,74 @@ zadd_rdata_finalize(zparser_type *parser)
 	current_rr->rrdata->rdata[parser->_rc].data = NULL;
 }
 
-/*
- * Looks up the numeric value of the symbol, returns 0 if not found.
+/* 
+ * Receive a TYPEXXXX string and return XXXX as
+ * an integer
  */
 uint16_t
-intbyname(const char *a, struct ztab *tab)
+intbytypexx(const char *str)
 {
-	int j;
+        char *end;
+        uint16_t type;
 
-	while (tab->name != NULL) {
-		if (strcasecmp(a, tab->name) == 0)
-			return tab->sym;
-		tab++;
-	}
-	/* still alive, maybe a is a TYPExxx thingy */
-	j = intbytypexx((void*) a); /* zero if not */
-	return j;
+	if (strlen(str) < 5)
+		return 0;
+	
+	if (strncasecmp(str, "TYPE", 4) != 0)
+		return 0;
+
+	if (!isdigit(str[4]))
+		return 0;
+	
+	/* the rest from the string, from where to the end must be a number */
+	type = (uint16_t) strtol(str + 4, &end, 10);
+
+	if (*end != '\0')
+		return 0;
+	
+        return type;
 }
 
 /*
- * Looks up the string value of the symbol, returns NULL if not found.
+ * Looks up the table entry by name, returns NULL if not found.
  */
-const char *
-namebyint(uint16_t n, struct ztab *tab)
+const lookup_table_type *
+lookup_by_name(const char *name, const lookup_table_type *table)
 {
-	while (tab->sym != 0) {
-		if (tab->sym == n)
-			return tab->name;
-		tab++;
+	while (table->name != NULL) {
+		if (strcasecmp(name, table->name) == 0)
+			return table;
+		table++;
 	}
 	return NULL;
 }
 
-#if 0
-static const char *
-typebyint(uint16_t type)
+/*
+ * Looks up the table entry by symbol, returns NULL if not found.
+ */
+const lookup_table_type *
+lookup_by_symbol(uint16_t symbol, const lookup_table_type *table)
 {
-	static char typebuf[] = "TYPEXXXXX";
-	const char *t = namebyint(type, ztypes);
-	if(t == NULL) {
-		snprintf(typebuf + 4, sizeof(typebuf) - 4, "%u", type);
-		t = typebuf;
+	while (table->name != NULL) {
+		if (table->symbol == symbol)
+			return table;
+		table++;
 	}
-	return t;
+	return NULL;
 }
 
-static const char *
-classbyint(uint16_t class)
+/*
+ * Lookup the type in the ztypes lookup table.  If not found, check if
+ * the type uses the "TYPExxx" notation for unknown types.
+ *
+ * Return 0 if no type matches.
+ */
+uint16_t
+lookup_type_by_name(const char *name)
 {
-	static char classbuf[] = "CLASSXXXXX";
-	const char *t = namebyint(class, zclasses);
-	if(t == NULL) {
-		snprintf(classbuf + 5, sizeof(classbuf) - 5, "%u", class);
-		t = classbuf;
-	}
-	return t;
+	const lookup_table_type *entry = lookup_by_name(name, ztypes);
+	return entry ? entry->symbol : intbytypexx(name);
 }
-#endif
-
 
 /*
  * Compares two rdata arrays.

@@ -43,24 +43,24 @@ uint8_t nsecbits[256][32];
 	uint16_t          type;
 }
 
-/* this list must be in exactly the same order as *RRtypes[] in zlexer.lex. 
- * The only changed are:
- * - NSAP-PRT is named NSAP_PTR
- * - NULL which is named YYNULL.
+/*
+ * Tokens to represent the known RR types of DNS.
  */
-%token <type> A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
-%token <type> MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
-%token <type> EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
-%token <type> UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA DS SSHFP RRSIG NSEC DNSKEY
+%token <type> T_A T_NS T_MX T_TXT T_CNAME T_AAAA T_PTR T_NXT T_KEY T_SOA T_SIG
+%token <type> T_SRV T_CERT T_LOC T_MD T_MF T_MB T_MG T_MR T_NULL T_WKS T_HINFO
+%token <type> T_MINFO T_RP T_AFSDB T_X25 T_ISDN T_RT T_NSAP T_NSAP_PTR T_PX
+%token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
+%token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
+%token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
 
 /* other tokens */
 %token         DIR_TTL DIR_ORIG NL ORIGIN SP
 %token <data>  STR PREV TTL
-%token <class> IN CH HS
+%token <class> T_IN T_CH T_HS
 
 /* unknown RRs */
 %token         URR
-%token <type>  UTYPE
+%token <type>  T_UTYPE
 
 %type <domain> dname abs_dname
 %type <dname>  rel_dname label
@@ -172,7 +172,7 @@ ttl:    TTL
     }
     ;
 
-in:     IN
+in:     T_IN
     {
         /* set the class  (class unknown handled in lexer) */
         current_rr->class =  current_parser->class;
@@ -186,8 +186,8 @@ rrrest: classttl rtype
     ;
 
 class:  in
-    |	CH  { error("CHAOS class not supported"); }
-    |	HS   { error("HESIOD Class not supported"); }
+    |	T_CH  { error("CHAOS class not supported"); }
+    |	T_HS   { error("HESIOD Class not supported"); }
     ;
 
 classttl:   /* empty - fill in the default, def. ttl and IN class */
@@ -304,32 +304,32 @@ concatenated_str_seq: STR
 /* get the type and flip a bit */
 nxt_seq:	STR
 	{
-		int t = intbyname($1.str,ztypes);
-		set_bit( nxtbits, t );
+		uint16_t t = lookup_type_by_name($1.str);
+		set_bit(nxtbits, t);
 		
 		/* waar bij houden? */
 	}
 	|	nxt_seq sp STR
 	{
-		int t = intbyname($3.str,ztypes);
-		set_bit( nxtbits, t );
+		uint16_t t = lookup_type_by_name($3.str);
+		set_bit(nxtbits, t);
 	}
 	;
 
 nsec_seq:	STR
 	{
-		/* what if zero... */
-		int t = intbyname($1.str,ztypes);
-		if ( t != 0 ) 
-			set_bitnsec( nsecbits, t );
+		/* what if NULL?... */
+		uint16_t type = lookup_type_by_name($1.str);
+		if (type != 0) 
+			set_bitnsec(nsecbits, type);
 		
 		/* waar bij houden? */
 	}
 	|	nsec_seq sp STR
 	{
-		int t = intbyname($3.str,ztypes);
-		if ( t != 0 )
-			set_bitnsec( nsecbits, t );
+		uint16_t type = lookup_type_by_name($3.str);
+		if (type != 0)
+			set_bitnsec(nsecbits, type);
 	}
 	;
 
@@ -354,108 +354,108 @@ rtype:
      * RFC 1035 RR types.  We don't support NULL, WKS, and types
      * marked obsolete.
      */
-      CNAME sp rdata_dname 
+      T_CNAME sp rdata_dname 
     { current_rr->type = $1; }
-    | HINFO sp rdata_hinfo 
+    | T_HINFO sp rdata_hinfo 
     { current_rr->type = $1; }
-    | HINFO sp rdata_unknown 
+    | T_HINFO sp rdata_unknown 
     { current_rr->type = $1; }
-    | MB sp rdata_dname		/* Experimental */
+    | T_MB sp rdata_dname		/* Experimental */
     { current_rr->type = $1; }
-    | MD sp rdata_dname		/* Obsolete */
+    | T_MD sp rdata_dname		/* Obsolete */
     { error("MD is obsolete"); }
-    | MF sp rdata_dname		/* Obsolete */
+    | T_MF sp rdata_dname		/* Obsolete */
     { error("MF is obsolete"); }
-    | MG sp rdata_dname		/* Experimental */
+    | T_MG sp rdata_dname		/* Experimental */
     { current_rr->type = $1; }
-    | MINFO sp rdata_minfo /* Experimental */
+    | T_MINFO sp rdata_minfo /* Experimental */
     { current_rr->type = $1; }
-    | MR sp rdata_dname		/* Experimental */
+    | T_MR sp rdata_dname		/* Experimental */
     { current_rr->type = $1; }
-    | MX sp rdata_mx 
+    | T_MX sp rdata_mx 
     { current_rr->type = $1; }
-    | NS sp rdata_dname 
+    | T_NS sp rdata_dname 
     { current_rr->type = $1; }
-    | PTR sp rdata_dname 
+    | T_PTR sp rdata_dname 
     { current_rr->type = $1; }
-    | SOA sp rdata_soa 
+    | T_SOA sp rdata_soa 
     { current_rr->type = $1; }
-    | TXT sp rdata_txt
+    | T_TXT sp rdata_txt
     { current_rr->type = $1; }
-    | TXT sp rdata_unknown
+    | T_TXT sp rdata_unknown
     { current_rr->type = $1; }
-    | A sp rdata_a 
+    | T_A sp rdata_a 
     { current_rr->type = $1; }
-    | A sp rdata_unknown
+    | T_A sp rdata_unknown
     { current_rr->type = $1; }
-    | AAAA sp rdata_aaaa 
+    | T_AAAA sp rdata_aaaa 
     { current_rr->type = $1; }
-    | AAAA sp rdata_unknown 
+    | T_AAAA sp rdata_unknown 
     { current_rr->type = $1; }
-    | LOC sp rdata_loc
+    | T_LOC sp rdata_loc
     { current_rr->type = $1; }
-    | LOC sp rdata_unknown
+    | T_LOC sp rdata_unknown
     { current_rr->type = $1; }
-    | SRV sp rdata_srv
+    | T_SRV sp rdata_srv
     { current_rr->type = $1; }
-    | SRV sp rdata_unknown
+    | T_SRV sp rdata_unknown
     { current_rr->type = $1; }
-    | DS sp rdata_ds
+    | T_DS sp rdata_ds
     { current_rr->type = $1; }
-    | DS sp rdata_unknown
+    | T_DS sp rdata_unknown
     { current_rr->type = $1; }
-    | KEY sp rdata_dnskey	/* XXX: Compatible format? */
+    | T_KEY sp rdata_dnskey	/* XXX: Compatible format? */
     { current_rr->type = $1; }
-    | KEY sp rdata_unknown 	
+    | T_KEY sp rdata_unknown 	
     { current_rr->type = $1; }
-    | DNSKEY sp rdata_dnskey
+    | T_DNSKEY sp rdata_dnskey
     { current_rr->type = $1; }
-    | DNSKEY sp rdata_unknown
+    | T_DNSKEY sp rdata_unknown
     { current_rr->type = $1; }
-    | NXT sp rdata_nxt
+    | T_NXT sp rdata_nxt
     { current_rr->type = $1; }
-    | NXT sp rdata_unknown
+    | T_NXT sp rdata_unknown
     { current_rr->type = $1; }
-    | NSEC sp rdata_nsec
+    | T_NSEC sp rdata_nsec
     { current_rr->type = $1; }
-    | NSEC sp rdata_unknown
+    | T_NSEC sp rdata_unknown
     { current_rr->type = $1; }
-    | SIG sp rdata_rrsig	/* XXX: Compatible format? */
+    | T_SIG sp rdata_rrsig	/* XXX: Compatible format? */
     { current_rr->type = $1; }
-    | SIG sp rdata_unknown
+    | T_SIG sp rdata_unknown
     { current_rr->type = $1; }
-    | RRSIG sp rdata_rrsig
+    | T_RRSIG sp rdata_rrsig
     { current_rr->type = $1; }
-    | RRSIG sp rdata_unknown
+    | T_RRSIG sp rdata_unknown
     { current_rr->type = $1; }
-    | RP sp rdata_rp
+    | T_RP sp rdata_rp
     { current_rr->type = $1; }
-    | RP sp rdata_unknown
+    | T_RP sp rdata_unknown
     { current_rr->type = $1; }
-    | SSHFP sp rdata_sshfp
+    | T_SSHFP sp rdata_sshfp
     { current_rr->type = $1; }
-    | SSHFP sp rdata_unknown
+    | T_SSHFP sp rdata_unknown
     { current_rr->type = $1; }
-    | NAPTR sp rdata_naptr
+    | T_NAPTR sp rdata_naptr
     { current_rr->type = $1; }
-    | AFSDB sp rdata_afsdb
+    | T_AFSDB sp rdata_afsdb
     { current_rr->type = $1; }
-    | AFSDB sp rdata_unknown
+    | T_AFSDB sp rdata_unknown
     { current_rr->type = $1; }
-    | UTYPE sp rdata_unknown
+    | T_UTYPE sp rdata_unknown
     { current_rr->type = $1; }
-    | CNAME sp rdata_unknown_err {}
-    | MB sp rdata_unknown_err	 {}
-    | MD sp rdata_unknown_err	 {}
-    | MF sp rdata_unknown_err	 {}
-    | MG sp rdata_unknown_err	 {}
-    | MINFO sp rdata_unknown_err {}
-    | MR sp rdata_unknown_err    {}
-    | MX sp rdata_unknown_err    {}
-    | NS sp rdata_unknown_err    {}
-    | PTR sp rdata_unknown_err   {}
-    | SOA sp rdata_unknown_err   {}
-    | NAPTR sp rdata_unknown_err {}
+    | T_CNAME sp rdata_unknown_err {}
+    | T_MB sp rdata_unknown_err	 {}
+    | T_MD sp rdata_unknown_err	 {}
+    | T_MF sp rdata_unknown_err	 {}
+    | T_MG sp rdata_unknown_err	 {}
+    | T_MINFO sp rdata_unknown_err {}
+    | T_MR sp rdata_unknown_err    {}
+    | T_MX sp rdata_unknown_err    {}
+    | T_NS sp rdata_unknown_err    {}
+    | T_PTR sp rdata_unknown_err   {}
+    | T_SOA sp rdata_unknown_err   {}
+    | T_NAPTR sp rdata_unknown_err {}
     | STR error NL
     {
 	    error_prev_line("Unrecognized RR type '%s'", $1.str);

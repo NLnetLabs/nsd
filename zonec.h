@@ -36,7 +36,6 @@ struct lex_data {
     char    *str;		/* holds the data */
 };
 
-
 #define DEFAULT_TTL 3600
 #define MAXINCLUDES 10
 
@@ -89,66 +88,16 @@ void yyrestart(FILE *);
 enum rr_spot { outside, expecting_dname, after_dname, reading_type };
 
 /* A generic purpose lookup table */
-struct ztab {
-	uint16_t sym;
+typedef struct lookup_table lookup_table_type;
+struct lookup_table {
+	uint16_t symbol;
 	const char *name;
+	int token;		/* Lexical token ID.  */
 };
 
-#define	Z_CLASSES {		\
-	{CLASS_IN, "IN"},	\
-	{0, NULL}		\
-}
-
-#define	Z_TYPES {		\
-	{TYPE_A, "A"},		\
-	{TYPE_NS, "NS"},	\
-	{TYPE_MD, "MD"},	\
-	{TYPE_MF, "MF"},	\
-	{TYPE_CNAME, "CNAME"},	\
-	{TYPE_SOA, "SOA"},	\
-	{TYPE_MB, "MB"},	\
-	{TYPE_MG, "MG"},	\
-	{TYPE_MR, "MR"},	\
-	{TYPE_NULL, "NULL"},	\
-	{TYPE_WKS, "WKS"},	\
-	{TYPE_PTR, "PTR"},	\
-	{TYPE_HINFO, "HINFO"},	\
-	{TYPE_MINFO, "MINFO"},	\
-	{TYPE_MX, "MX"},	\
-	{TYPE_TXT, "TXT"},	\
-        {TYPE_AAAA, "AAAA"},	\
-	{TYPE_SRV, "SRV"},	\
-	{TYPE_NAPTR, "NAPTR"},	\
-	{TYPE_LOC, "LOC"},	\
-	{TYPE_AFSDB, "AFSDB"},	\
-	{TYPE_RP, "RP"},	\
-	{TYPE_SIG, "SIG"},	\
-	{TYPE_KEY, "KEY"},	\
-	{TYPE_NXT, "NXT"},	\
-	{TYPE_DS, "DS"},	\
-	{TYPE_SSHFP, "SSHFP"},  \
-	{TYPE_RRSIG, "RRSIG"},	\
-	{TYPE_NSEC, "NSEC"},	\
-	{TYPE_DNSKEY, "DNSKEY"},\
-	{TYPE_ANY, "ANY"},	\
-	{0, NULL}		\
-}
-
-#define Z_ALGS	{		\
-	{1,	"RSAMD5"},	\
-	{2,	"DS"},		\
-	{3,	"DSA"},		\
-	{4,	"ECC"},		\
-	{5,	"RSASHA1"},	\
-	{252,	"INDIRECT"},	\
-	{253,	"PRIVATEDNS"},	\
-	{254,	"PRIVATEOID"},	\
-	{0,	NULL}		\
-}
-
-extern struct ztab ztypes[];
-extern struct ztab zclasses[];
-extern struct ztab zalgs[];
+extern const lookup_table_type ztypes[];
+extern const lookup_table_type zclasses[];
+extern const lookup_table_type zalgs[];
 
 /* zonec.c */
 /*
@@ -193,17 +142,17 @@ int32_t zparser_ttl2int(char *ttlstr);
 void zadd_rdata_wireformat(zparser_type *parser, uint16_t *data);
 void zadd_rdata_domain(zparser_type *parser, domain_type *domain);
 void zadd_rdata_finalize(zparser_type *parser);
-uint16_t intbyname (const char *a, struct ztab *tab);
-const char * namebyint (uint16_t n, struct ztab *tab);
 void zprintrr(FILE *f, rr_type *rr);
 
 void set_bit(uint8_t bits[], int index);
 void set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE], int index);
 
-/* zlexer.lex */
-int zoctet(char *word);
-int zrrtype (const char *word);
-uint16_t intbyclassxx(void *str);
-uint16_t intbytypexx(void *str);
+uint16_t intbytypexx(const char *str);
+
+const lookup_table_type *lookup_by_name (const char *a, const lookup_table_type tab[]);
+const lookup_table_type *lookup_by_symbol (uint16_t n, const lookup_table_type tab[]);
+const lookup_table_type *lookup_by_token (int token, const lookup_table_type tab[]);
+
+uint16_t lookup_type_by_name(const char *name);
 
 #endif /* _ZONEC_H_ */
