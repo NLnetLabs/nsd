@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.9 2003/11/04 14:21:56 miekg Exp $
+ * $Id: zlexer.lex,v 1.10 2003/11/05 09:26:38 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -82,10 +82,10 @@ Q       \"
 				char *include_origin;
 				
 				/* eat leading white space */
-				while ( (int)*yytext == 32 ) 
+				while ( isspace(*yytext) ) 
 					yytext++;
 
-				include_origin = rindex(yytext, 32); /* search for a space */
+				include_origin = strrchr(yytext, 32); /* search for a space */
 				
 				if ( include_origin != NULL ) {
 					/* split the original yytext */
