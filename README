@@ -259,7 +259,9 @@ Where bluesky.com should be the domain name you will be serving with
 NSD.
 
 The second line indicates that nsdc update should try to axfr the zone
-greysky.com from the master server 10.1.1.1
+greysky.com from the master server 10.1.1.1. Multiple masters are 
+supported. They are queried in order, if the first one fails the second
+one is queried, and so on.
 
 Since NSD is primarily written to be run on the root name servers,
 this file most likely to contain something like:
