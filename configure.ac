@@ -121,6 +121,7 @@ AC_CACHE_VAL(ac_cv_c_format_attribute,
 AC_TRY_COMPILE(
 [#include <stdio.h>
 void f (char *format, ...) __attribute__ ((format (printf, 1, 2)));
+void (*pf) (char *format, ...) __attribute__ ((format (printf, 1, 2)));
 ], [
    f ("%s", "str");
 ],
