@@ -142,9 +142,9 @@ addition to standard configure options, one may use the following:
 	specified, NSD will refuse to server ``.'' zone as a
 	misconfiguration safeguard.
 
-  --enable-ipv6
+  --disable-ipv6
 
-	Enables IPv6 support in NSD.
+	Disables IPv6 support in NSD.
 
   --enable-plugins
 

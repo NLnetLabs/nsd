@@ -321,9 +321,9 @@ case "$enable_root_server" in
                 ;;
 esac
 
-AC_ARG_ENABLE(ipv6, AC_HELP_STRING([--enable-ipv6], [Enables IPv6 support]))
+AC_ARG_ENABLE(ipv6, AC_HELP_STRING([--disable-ipv6], [Disables IPv6 support]))
 case "$enable_ipv6" in
-        no|'')
+        no)
                 ;;
         yes|*)
 		AC_DEFINE_UNQUOTED([INET6], [], [Define this to enable IPv6 support.])

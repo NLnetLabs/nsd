@@ -3,7 +3,11 @@ NSD RELEASE NOTES
 2.0.0
 =============
 FEATURES:
-        - DNSSEC implemented.
+        - Experimental DNSSEC support implemented, but disabled by
+          default.  Enable using the --enable-dnssec configuration
+          option.
+        - IPv6 enabled by default.  Disable using the --disable-ipv6
+          configuration option.
 
 BUG FIXES:
         - Bug #47: Domain name is now logged when a notify is
