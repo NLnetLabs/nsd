@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.52 2002/04/22 12:43:36 alexis Exp $
+ * $Id: zonec.c,v 1.53 2002/04/22 12:49:02 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -690,7 +690,7 @@ zone_dump(z, db)
 	if(vflag) {
 		fraction = (z->cuts->count + z->data->count) / 20;	/* Report every 5% */
 		if(fraction == 0)
-			fraction = 1;
+			fraction = ULONG_MAX;
 	}
 
 	/* AUTHORITY CUTS */
@@ -875,6 +875,7 @@ zone_dump(z, db)
 	}
 
 	if(vflag) {
+		fflush(stdout);
 		fprintf(stderr, "writing zone \"%s\": done.\n", dnamestr(z->dname));
 	}
 
