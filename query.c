@@ -325,6 +325,65 @@ query_addanswer (struct query *q, u_char *dname, struct answer *a, int trunc)
 }
 
 /*
+ * Parse the question section.  The query name is normalized and
+ * stored in DOMAIN_NAME.  The DOMAIN_NAME is prefixed by a total
+ * length byte.  DOMAIN_NAME must have room for at least MAXDOMAINLEN
+ * + 1 bytes.  The number of labels (excluding the "root" label) in
+ * the domain name is stored in LABEL_COUNT.  The query class and
+ * query type are stored in QUERY_CLASS and QUERY_TYPE, respectively,
+ * using network byte order.
+ *
+ * Result code: NULL on failure, a pointer to the byte after the query
+ * section otherwise.
+ */
+static u_char *
+process_query_section(struct query *query,
+		      u_char *domain_name, int *label_count,
+		      u_int16_t *query_type, u_int16_t *query_class)
+{
+	u_char *dst = domain_name + 1;
+	u_char *query_name = query->iobuf + QHEADERSZ;
+	u_char *src = query_name;
+	size_t i;
+	size_t len;
+	
+	/* Lets parse the query name and convert it to lower case.  */
+	*label_count = 0;
+	while (*src) {
+		/*
+		 * If we are out of buffer limits or we have a pointer
+		 * in question dname or the domain name is longer than
+		 * MAXDOMAINLEN ...
+		 */
+		if ((*src & 0xc0) || (src + *src > query->iobufptr) || 
+		    ((src - query->iobuf + *src) > MAXDOMAINLEN)) {
+			query_formerr(query);
+			return NULL;
+		}
+		++(*label_count);
+		*dst++ = *src;
+		for (i = *src++; i; i--) {
+			*dst++ = NAMEDB_NORMALIZE(*src++);
+		}
+	}
+	*dst++ = *src++;
+
+	/* Make sure name is not too long or we have stripped packet... */
+	len = src - query_name;
+	if (len > MAXDOMAINLEN || (src + 2*sizeof(u_int16_t) > query->iobufptr)) {
+		query_formerr(query);
+		return NULL;
+	}
+
+	*domain_name = len;
+
+	memcpy(query_type, src, sizeof(u_int16_t));
+	memcpy(query_class, src + sizeof(u_int16_t), sizeof(u_int16_t));
+	
+	return src + 2*sizeof(u_int16_t);
+}
+
+/*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
  * -1 if the query has to be silently discarded.
  *
@@ -341,7 +400,7 @@ query_process (struct query *q, struct nsd *nsd)
 	u_int16_t qtype;
 	u_int16_t qclass;
 	u_char *qptr;
-	int qdepth, i;
+	int qdepth;
 	int recursion_desired;
 
 	/* OPT record type... */
@@ -404,40 +463,19 @@ query_process (struct query *q, struct nsd *nsd)
 	if (recursion_desired)
 		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
 	
-	/* Lets parse the qname and convert it to lower case */
-	qdepth = 0;
-	qnamelow = qnamebuf + 3;
-	qname = qptr = q->iobuf + QHEADERSZ;
-	while(*qptr) {
-		/*  If we are out of buffer limits or we have a pointer in question dname or the domain name is longer than MAXDOMAINLEN ... */
-		if((qptr + *qptr > q->iobufptr) || (*qptr & 0xc0) ||
-			((qptr - q->iobuf + *qptr) > MAXDOMAINLEN)) {
-
-			query_formerr(q);
-			return 0;
-		}
-		qdepth++;
-		*qnamelow++ = *qptr;
-		for(i = *qptr++; i; i--) {
-			*qnamelow++ = NAMEDB_NORMALIZE(*qptr++);
-		}
-	}
-	*qnamelow++ = *qptr++;
-	qnamelow = qnamebuf + 3;
-
-	/* Make sure name is not too long or we have stripped packet... */
-	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN ||
-		(qptr + 4 > q->iobufptr)) {
-		query_formerr(q);
+	/*
+	 * Lets parse the qname and convert it to lower case.  Leave
+	 * some space in front of the qname for the wildcard label.
+	 */
+	qptr = process_query_section(q, qnamebuf + 2, &qdepth, &qtype, &qclass);
+	if (!qptr) {
 		return 0;
 	}
+	qnamelow = qnamebuf + 3;
+	qnamelen = qnamebuf[2];
 
-	/* Prepend qnamelen to qnamelow */
-	*(qnamelow - 1) = qnamelen;
-
-	memcpy(&qtype, qptr, 2); qptr += 2;
-	memcpy(&qclass, qptr, 2); qptr += 2;
-
+	qname = q->iobuf + QHEADERSZ;
+	
 	/* Update the type and class */
 	STATUP2(nsd, qtype, ntohs(qtype));
 	STATUP2(nsd, qclass, ntohs(qclass));
