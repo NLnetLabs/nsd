@@ -1,7 +1,10 @@
 %{
-/* zlparser.lex - lexical analyzer for DNS zone files
+/*
+ * $Id: zlparser.lex,v 1.3 2003/08/15 11:33:22 miekg Exp $
+ *
+ * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
- * Copyright (c) 2003, NLnet Labs. All rights reserved
+ * Copyright (c) 2001-2003, NLnet Labs. All rights reserved
  *
  * See LICENSE for the license
  */

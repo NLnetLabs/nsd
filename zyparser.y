@@ -1,4 +1,14 @@
 %{
+/*
+ * $Id: zyparser.y,v 1.3 2003/08/15 11:33:22 miekg Exp $
+ *
+ * zyparser.y -- yacc grammar for (DNS) zone files
+ *
+ * Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
+ *
+ * See LICENSE for the license
+ */
+
 #include "zparser2.h"
 #include<stdio.h>
 #include<string.h>

@@ -1,8 +1,7 @@
 /*
- * zone.c -- reads in a zone file and stores it in memory
+ * $Id: zonec2.c,v 1.2 2003/08/15 11:33:22 miekg Exp $
  *
- * Alexis Yushin, <alexis@nlnetlabs.nl>
- * Miek Gieben, <miek@nlnetlabs.nl>
+ * zone.c -- reads in a zone file and stores it in memory
  *
  * Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
  *
