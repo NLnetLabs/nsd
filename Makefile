@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69 2002/06/13 12:48:22 alexis Exp $
+# $Id: Makefile,v 1.69.2.1 2002/08/06 11:54:28 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -67,13 +67,13 @@ NSDMANDIR	= ${PREFIX}/man/man8
 NSDZONESDIR     = ${PREFIX}/etc/nsd
 
 # The file containing the list of the zones to be compiled into the NSD database
-NSDZONES	= ${PREFIX}/etc/nsd/nsd.zones
+NSDZONES	= ${NSDZONESDIR}/nsd.zones
 
 # The pid file of the nsd
 NSDPIDFILE      = /var/run/nsd.pid
 
 # The NSD run-time database
-NSDDB           = /var/db/nsd.db
+NSDDB           = ${NSDZONESDIR}/nsd.db
 
 #
 # Use the following compile options to modify features set of NSD
@@ -159,6 +159,7 @@ all:	nsd zonec nsdc.sh
 install: nsd zonec nsdc.sh
 	[ -d ${NSDBINDIR} ] || mkdir ${NSDBINDIR}
 	[ -d ${NSDZONESDIR} ] || mkdir ${NSDZONESDIR}
+	chown ${NSDUSER} ${NSDZONESDIR}
 	[ -d ${NSDMANDIR} ] || mkdir ${NSDMANDIR}
 	${INSTALL} nsd ${NSDBINDIR}/nsd
 	${INSTALL} nsdc.sh ${NSDBINDIR}/nsdc

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.63 2002/05/30 13:55:52 alexis Exp $
+ * $Id: zonec.c,v 1.63.2.1 2002/08/06 11:54:28 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -57,6 +57,9 @@ u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
 /* Some global flags... */
 int vflag = 0;
 int pflag = 0;
+
+/* Total errors counter */
+int totalerrors = 0;
 
 #ifdef	USE_HEAP_HASH
 
@@ -588,6 +591,7 @@ zone_read(name, zonefile)
 
 	fflush(stdout);
 	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), zf->errors);
+	totalerrors += zf->errors;
 	return z;
 }
 
@@ -939,8 +943,9 @@ main(argc, argv)
 	int line = 0;
 	FILE *f;
 
-	int error = 0;
 	struct zone *z = NULL;
+
+	totalerrors = 0;
 
 	/* Parse the command line... */
 	while((c = getopt(argc, argv, "d:f:vp")) != -1) {
@@ -1010,8 +1015,8 @@ main(argc, argv)
 			break;
 		}
 
-		/* Trailing garbage? */
-		if((s = strtok(NULL, sep)) != NULL && *s != ';') {
+		/* Trailing garbage? Ignore masters keyword that is used by nsdc.sh update */
+		if((s = strtok(NULL, sep)) != NULL && *s != ';' && strcasecmp(s, "masters") != 0) {
 			fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 		}
 
@@ -1037,5 +1042,8 @@ main(argc, argv)
 		exit(1);
 	}
 
-	return error;
+	/* Print the total number of errors */
+	fprintf(stderr, "zonec: done with total %d errors.\n", totalerrors);
+
+	return totalerrors ? 1 : 0;
 }
