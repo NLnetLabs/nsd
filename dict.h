@@ -1,5 +1,5 @@
 /*
- * $Id: dict.h,v 1.1 2002/01/24 03:30:52 alexis Exp $
+ * $Id: dict.h,v 1.2 2002/01/28 11:46:54 alexis Exp $
  *
  * dict.h -- generic dictionary based on red-black tree
  *
@@ -71,7 +71,7 @@ struct dict_t {
 	long long count;
 
 	/* Current node for walks... */
-	dnode_t	*node;
+	dnode_t	*_node;
 
 	/* Free and compare functions */
 	void *(*mallocf)();
@@ -88,8 +88,8 @@ dnode_t *dict_next __P((dnode_t *));
 #define	dict_last() DICT_NULL
 
 #define	DICT_WALK(dict, k, d) \
-	for((dict)->node = dict_first(dict), (k) = (dict)->node->key, (d) = (dict)->node->data;\
-		(dict)->node != dict_last(); \
-		(dict)->node = dict_next((dict)->node), (k) = (dict)->node->key, (d) = (dict)->node->data)
+	for((dict)->_node = dict_first(dict), (k) = (dict)->_node->key, (d) = (dict)->_node->data;\
+		(dict)->_node != dict_last(); \
+		(dict)->_node = dict_next((dict)->_node), (k) = (dict)->_node->key, (d) = (dict)->_node->data)
 
 #endif /* _DICT_H_ */
