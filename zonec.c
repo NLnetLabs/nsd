@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.63.2.3 2002/08/13 13:02:37 alexis Exp $
+ * $Id: zonec.c,v 1.63.2.4 2002/08/13 13:19:01 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -1017,7 +1017,7 @@ main(argc, argv)
 
 		/* Trailing garbage? Ignore masters keyword that is used by nsdc.sh update */
 		if((s = strtok(NULL, sep)) != NULL && *s != ';' && strcasecmp(s, "masters") != 0
-			&& && strcasecmp(s, "notify") != 0) {
+			&& strcasecmp(s, "notify") != 0) {
 			fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 		}
 
