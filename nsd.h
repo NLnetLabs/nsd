@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.25.4.4 2002/05/21 11:41:39 alexis Exp $
+ * $Id: nsd.h,v 1.25.4.5 2002/05/23 13:03:48 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -44,6 +44,7 @@
 #include "config.h"
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
