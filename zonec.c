@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.57 2002/04/23 12:41:39 alexis Exp $
+ * $Id: zonec.c,v 1.58 2002/05/06 18:59:31 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -383,8 +383,13 @@ zone_addanswer(d, msg, type)
 	u_int16_t type;
 {
 	struct answer *a;
-	size_t datasize = msg->bufptr - msg->buf;
-	size_t size = sizeof(struct answer) + msg->pointerslen * sizeof(u_int16_t) /* ptrs */
+	size_t size, datasize;
+
+	/* First add an extra rrset offset */
+	msg->rrsetsoffs[msg->rrsetsoffslen++] = (msg->bufptr - msg->buf);
+
+	datasize = msg->bufptr - msg->buf;
+	size = sizeof(struct answer) + msg->pointerslen * sizeof(u_int16_t) /* ptrs */
 		+ (msg->rrsetsoffslen) * sizeof(u_int16_t)	/* rrs */
 		+ datasize;					/* data */
 
