@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.7 2002/01/11 13:54:34 alexis Exp $
+ * $Id: query.c,v 1.8 2002/01/11 14:05:45 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -156,6 +156,9 @@ query_process(q, db)
 	u_char *qptr;
 	int qdepth;
 
+	/* XXX Alittle hack for SOA shouldnt be here */
+	u_short *rrs;
+
 	struct domain *d;
 	struct answer *a;
 
@@ -223,8 +226,19 @@ query_process(q, db)
 			} else {
 				/* Do we have SOA record in this domain? */
 				if((a = db_answer(d, htons(TYPE_SOA))) != NULL) {
+					/* Setup truncation */
+					qptr = q->iobufptr;
+
 					AA_SET(q);
 					query_addanswer(q, qname, a);
+
+					/* Truncate */
+					rrs = &a->rrslen + a->ptrlen + 1;
+					ANCOUNT(q) = 0;
+					NSCOUNT(q) = htons(1);
+					ARCOUNT(q) = 0;
+					q->iobufptr = qptr + rrs[1];
+
 					return 0;
 				}
 			}
@@ -254,8 +268,19 @@ query_process(q, db)
 				return 0;
 			} else {
 				if((a = db_answer(d, htons(TYPE_SOA)))) {
+					/* Setup truncation */
+					qptr = q->iobufptr;
+
 					AA_SET(q);
 					query_addanswer(q, qname, a);
+
+					/* Truncate */
+					rrs = &a->rrslen + a->ptrlen + 1;
+					ANCOUNT(q) = 0;
+					NSCOUNT(q) = htons(1);
+					ARCOUNT(q) = 0;
+					q->iobufptr = qptr + rrs[1];
+
 					return 0;
 				}
 			}
