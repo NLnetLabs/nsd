@@ -69,12 +69,13 @@ extern uint8_t nsecbits[256][32];
 
 /*
  *
- * Resource records types and classes that we know.
+ * Resource records types, classes and algorithms that we know.
  *
  */
 
 struct ztab ztypes[] = Z_TYPES;
 struct ztab zclasses[] = Z_CLASSES;
+struct ztab zalgs[] = Z_ALGS;
 
 
 /* 
@@ -291,6 +292,27 @@ zparser_conv_byte(region_type *region, const char *bytestr)
         } else {
 		*r = sizeof(uint8_t);
         }
+	return r;
+}
+
+uint16_t *
+zparser_conv_algorithm(region_type *region, const char *algstr)
+{
+	/* convert a algoritm string to integer */
+	uint16_t *r = NULL;
+	unsigned int alg;
+
+	alg = intbyname(algstr, zalgs);
+
+	if ( alg == 0 ) {
+		/* not a memonic */
+		return (zparser_conv_byte(region, algstr));
+	}
+
+        r = region_alloc(region, sizeof(uint16_t) + sizeof(uint8_t));
+	/*  *((uint8_t *)(r+1)) = (uint8_t)strtol(bytestr, &end, 0);*/
+	*((uint8_t *)(r+1)) = alg;
+	*r = sizeof(uint8_t);
 	return r;
 }
 
