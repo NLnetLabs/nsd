@@ -108,19 +108,31 @@
 #define	QR_SET(query)	(*((query)->iobuf+2) |= QR_MASK)
 #define	QR_CLR(query)	(*((query)->iobuf+2) &= ~QR_MASK)
 
+/* Second octet of flags */
 #define	RCODE_MASK	0x0fU
 #define	RCODE_SHIFT	0
 #define	RCODE(query)	(*((query)->iobuf+3) & RCODE_MASK)
 #define	RCODE_SET(query, rcode) \
 	(*((query)->iobuf+3) = ((*((query)->iobuf+3)) & ~RCODE_MASK) | (rcode))
 
-#define	Z_MASK		0x70U
-#define	Z_SHIFT		4
-#define	Z(query)	(*((query)->iobuf+3) & Z_MASK)
-#define	Z_SET(query, z) \
-	(*((query)->iobuf+3) = ((*((query)->iobuf+3)) & ~Z_MASK) | (z))
+#define	CD_MASK		0x10U
+#define	CD_SHIFT	4
+#define	CD(query)	(*((query)->iobuf+3) & CD_MASK)
+#define	CD_SET(query)	(*((query)->iobuf+3) |= CD_MASK)
+#define	CD_CLR(query)	(*((query)->iobuf+3) &= ~CD_MASK)
 
-/* Second octet of flags */
+#define	AD_MASK		0x20U
+#define	AD_SHIFT	5
+#define	AD(query)	(*((query)->iobuf+3) & AD_MASK)
+#define	AD_SET(query)	(*((query)->iobuf+3) |= AD_MASK)
+#define	AD_CLR(query)	(*((query)->iobuf+3) &= ~AD_MASK)
+
+#define	Z_MASK		0x40U
+#define	Z_SHIFT		6
+#define	Z(query)	(*((query)->iobuf+3) & Z_MASK)
+#define	Z_SET(query)	(*((query)->iobuf+3) |= Z_MASK)
+#define	Z_CLR(query)	(*((query)->iobuf+3) &= ~Z_MASK)
+
 #define	RA_MASK		0x80U
 #define	RA_SHIFT	7
 #define	RA(query)	(*((query)->iobuf+3) & RA_MASK)

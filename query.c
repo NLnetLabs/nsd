@@ -452,10 +452,9 @@ find_covering_nsec(domain_type *closest_match, zone_type *zone, rrset_type **nse
 
 
 static void
-add_dependent_rrsets(struct query *query, answer_type *answer,
-		     rrset_type *master_rrset,
-		     size_t rdata_index, uint16_t type_of_dependent,
-		     int allow_glue)
+add_additional_rrsets(struct query *query, answer_type *answer,
+		      rrset_type *master_rrset,
+		      size_t rdata_index, int allow_glue)
 {
 	size_t i;
 	
@@ -463,7 +462,7 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 	assert(answer);
 	assert(master_rrset);
 	assert(rdata_atom_is_domain(master_rrset->type, rdata_index));
-
+	
 	for (i = 0; i < master_rrset->rrslen; ++i) {
 		rrset_type *rrset;
 		domain_type *additional = rdata_atom_domain(master_rrset->rrs[i]->rdata[rdata_index]);
@@ -496,9 +495,12 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 			additional = temp;
 		}
 
-		rrset = domain_find_rrset(additional, query->zone, type_of_dependent);
-		if (rrset) {
-			answer_add_rrset(answer, ADDITIONAL_SECTION, additional, rrset);
+		for (rrset = additional->rrsets; rrset; rrset = rrset->next) {
+			if (rrset->type == TYPE_A) {
+				answer_add_rrset(answer, ADDITIONAL_A_SECTION, additional, rrset);
+			} else if (rrset->type == TYPE_AAAA) {
+				answer_add_rrset(answer, ADDITIONAL_AAAA_SECTION, additional, rrset);
+			}
 		}
 	}
 }
@@ -519,16 +521,13 @@ add_rrset(struct query       *query,
 	answer_add_rrset(answer, section, owner, rrset);
 	switch (rrset->type) {
 	case TYPE_NS:
-		add_dependent_rrsets(query, answer, rrset, 0, TYPE_A, 1);
-		add_dependent_rrsets(query, answer, rrset, 0, TYPE_AAAA, 1);
+		add_additional_rrsets(query, answer, rrset, 0, 1);
 		break;
 	case TYPE_MB:
-		add_dependent_rrsets(query, answer, rrset, 0, TYPE_A, 0);
-		add_dependent_rrsets(query, answer, rrset, 0, TYPE_AAAA, 0);
+		add_additional_rrsets(query, answer, rrset, 0, 0);
 		break;
 	case TYPE_MX:
-		add_dependent_rrsets(query, answer, rrset, 1, TYPE_A, 0);
-		add_dependent_rrsets(query, answer, rrset, 1, TYPE_AAAA, 0);
+		add_additional_rrsets(query, answer, rrset, 1, 0);
 		break;
 	default:
 		break;
@@ -823,6 +822,11 @@ answer_query(struct nsd *nsd, struct query *q)
 					     closest_match, closest_encloser);
 		}
 	}
+
+	/* Set the AD bit when answering DNSSEC queries.  */
+	if (q->dnssec_ok && zone_is_secure(q->zone)) {
+		AD_SET(q);
+	}
 	
 	offset = dname_label_offsets(q->name)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
@@ -855,6 +859,16 @@ query_process(struct query *q, struct nsd *nsd)
 	if (!qptr) {
 		return QUERY_PROCESSED;
 	}
+
+	/* Save the RD flag (RFC1034 4.1.1).  */
+	recursion_desired = RD(q);
+
+	/* Zero the flags... */
+	*(uint16_t *)(q->iobuf + 2) = 0;
+	
+	QR_SET(q);		/* This is an answer */
+	if (recursion_desired)
+		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
 
 	/* Update statistics.  */
 	STATUP2(nsd, opcode, q->opcode);
@@ -899,16 +913,6 @@ query_process(struct query *q, struct nsd *nsd)
 		q->iobufptr = qptr;
 #endif
 	}
-
-	/* Save the RD flag (RFC1034 4.1.1).  */
-	recursion_desired = RD(q);
-
-	/* Zero the flags... */
-	*(uint16_t *)(q->iobuf + 2) = 0;
-	
-	QR_SET(q);		/* This is an answer */
-	if (recursion_desired)
-		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
 
 	if (q->class != CLASS_IN && q->class != CLASS_ANY) {
 		if (q->class == CLASS_CHAOS) {

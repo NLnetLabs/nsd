@@ -55,7 +55,7 @@ answer_add_rrset(answer_type *answer, answer_section_type section,
 {
 	size_t i;
 	
-	assert(section >= ANSWER_SECTION && section <= ADDITIONAL_SECTION);
+	assert(section >= ANSWER_SECTION && section <= ADDITIONAL_AAAA_SECTION);
 	assert(domain);
 	assert(rrset);
 
@@ -211,11 +211,11 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 void
 encode_answer(struct query *q, const answer_type *answer)
 {
-	uint16_t counts[ADDITIONAL_SECTION + 1];
+	uint16_t counts[ADDITIONAL_AAAA_SECTION + 1];
 	answer_section_type section;
 	size_t i;
 
-	for (section = ANSWER_SECTION; section <= ADDITIONAL_SECTION; ++section) {
+	for (section = ANSWER_SECTION; section <= ADDITIONAL_AAAA_SECTION; ++section) {
 		counts[section] = 0;
 		for (i = 0; !query_overflow(q) && i < answer->rrset_count; ++i) {
 			if (answer->section[i] == section) {
@@ -231,5 +231,5 @@ encode_answer(struct query *q, const answer_type *answer)
 
 	ANCOUNT(q) = htons(counts[ANSWER_SECTION]);
 	NSCOUNT(q) = htons(counts[AUTHORITY_SECTION]);
-	ARCOUNT(q) = htons(counts[ADDITIONAL_SECTION]);
+	ARCOUNT(q) = htons(counts[ADDITIONAL_A_SECTION] + counts[ADDITIONAL_AAAA_SECTION]);
 }

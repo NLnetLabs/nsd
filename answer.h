@@ -46,7 +46,17 @@
 #include "util.h"
 
 enum answer_section {
-	QUESTION_SECTION, ANSWER_SECTION, AUTHORITY_SECTION, ADDITIONAL_SECTION
+	QUESTION_SECTION,
+	ANSWER_SECTION,
+	AUTHORITY_SECTION,
+	/*
+	 * Use a split additional section to ensure A records appear
+	 * before any AAAA records (this is recommended practice to
+	 * avoid truncating the additional section for IPv4 clients
+	 * that do not specify EDNS0).  Encode_answer sets the ARCOUNT
+	 * field of the response packet correctly.
+	 */
+	ADDITIONAL_A_SECTION, ADDITIONAL_AAAA_SECTION
 };
 typedef enum answer_section answer_section_type;
 
