@@ -1502,9 +1502,16 @@ main (int argc, char **argv)
 	}
 
 	/* Print the total number of errors */
-	if (vflag > 0) fprintf(stderr, "\n");
-	if (vflag > 0) fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
-
+	if (vflag > 0) {
+		fprintf(stderr, "\n");
+		fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
+	} else {
+		if (totalerrors > 0) {
+			fprintf(stderr, "\n");
+			fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
+		}
+	}
+	
 	/* Disable this to save some time.  */
 #if 0
 	region_destroy(zone_region);
