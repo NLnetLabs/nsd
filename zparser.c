@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.40.2.2 2003/07/23 14:03:42 erik Exp $
+ * $Id: zparser.c,v 1.40.2.3 2004/07/28 10:43:22 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -796,7 +796,7 @@ zrdata (struct zparser *z)
 			t = (uint8_t *)(r + 1);
 
 			/* Scan the types and add them to the bitmap */
-			while(zrdatascan2(z, RDATA_SERVICE, ntohs(z->_rr.rdata[1][1]))) {
+			while(zrdatascan2(z, RDATA_SERVICE, * (uint8_t *) (z->_rr.rdata[1] + 1))) {
 				z->_rc--;
 
 				/* Now convert the type back to host byte order */
@@ -955,10 +955,10 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 			error++;
 		} else {
 			/* Allocate required space... */
-			r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
+			r = xalloc(sizeof(uint16_t) + sizeof(uint8_t));
 
-			*(r + 1) = htons(proto->p_proto);
-			*r = sizeof(uint16_t);
+			*(uint8_t *)(r + 1) = proto->p_proto;
+			*r = sizeof(uint8_t);
 		}
 		break;
 	case RDATA_SERVICE:
@@ -1572,16 +1572,16 @@ zprintrdata (FILE *f, int what, uint16_t *r)
 	case RDATA_TYPE:
 		fprintf(f, "%s ", typebyint(ntohs(r[1])));
 		break;
-	case RDATA_PROTO:
-	case RDATA_SERVICE:
 	case RDATA_PERIOD:
 	case RDATA_LONG:
 		memcpy(&l, &r[1], sizeof(uint32_t));
 		fprintf(f, "%lu ", (unsigned long) ntohl(l));
 		break;
+	case RDATA_SERVICE:
 	case RDATA_SHORT:
 		fprintf(f, "%u ", (unsigned) ntohs(r[1]));
 		break;
+	case RDATA_PROTO:
 	case RDATA_BYTE:
 		fprintf(f, "%u ", (unsigned) *((char *)(&r[1])));
 		break;
