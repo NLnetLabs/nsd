@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.54 2002/10/08 09:57:54 alexis Exp $
+ * $Id: server.c,v 1.55 2002/10/14 12:16:18 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -48,9 +48,9 @@
 int
 server_init(struct nsd *nsd)
 {
-#if defined(INET6) && defined(IPV6_V6ONLY)
-	int v6only = 1;
-#endif 
+#if defined(INET6) || defined(IPV6_V6ONLY) || defined(SO_REUSEADDR)
+	int on = 1;
+#endif
 
 	/* UDP */
 
@@ -77,8 +77,8 @@ server_init(struct nsd *nsd)
 
 # ifdef IPV6_V6ONLY
 	if (setsockopt(nsd->udp6.s, IPPROTO_IPV6, IPV6_V6ONLY,
-			&v6only, sizeof (v6only)) < 0) {
-		syslog(LOG_ERR, "setsockopt() failed: %m");
+			&on, sizeof (on)) < 0) {
+		syslog(LOG_ERR, "setsockopt(..., IPV6ONLY, ...) failed: %m");
 		return -1;
 	}
 # endif
@@ -97,6 +97,13 @@ server_init(struct nsd *nsd)
 		syslog(LOG_ERR, "cant create a socket: %m");
 		return -1;
 	}
+
+#ifdef	SO_REUSEADDR
+	if(setsockopt(nsd->tcp.s, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) < 0) {
+		syslog(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %m");
+		return -1;
+	}
+#endif /* SO_REUSEADDR */
 
 	/* Bind it... */
 	if(bind(nsd->tcp.s, (struct sockaddr *)&nsd->tcp.addr, sizeof(nsd->tcp.addr)) != 0) {
@@ -121,11 +128,18 @@ server_init(struct nsd *nsd)
 
 # ifdef IPV6_V6ONLY
 	if (setsockopt(nsd->tcp6.s, IPPROTO_IPV6, IPV6_V6ONLY,
-			(char *)&v6only, sizeof (v6only)) < 0) {
-		syslog(LOG_ERR, "setsockopt() failed: %m");
+			(char *)&on, sizeof (on)) < 0) {
+		syslog(LOG_ERR, "setsockopt(..., IPV6_ONLY, ...) failed: %m");
 		return -1;
 	}
 # endif
+
+#ifdef	SO_REUSEADDR
+	if(setsockopt(nsd->tcp6.s, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) < 0) {
+		syslog(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %m");
+		return -1;
+	}
+#endif /* SO_REUSEADDR */
 
 	/* Bind it... */
 	if(bind(nsd->tcp6.s, (struct sockaddr *)&nsd->tcp6.addr, sizeof(nsd->tcp6.addr)) != 0) {
