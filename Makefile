@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.56 2002/04/27 15:29:51 alexis Exp $
+# $Id: Makefile,v 1.57 2002/05/01 15:58:23 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -78,7 +78,10 @@ NSDDB           = /var/db/nsd.db
 #			Lowercase all the domain names in the internal
 #			database.
 #
-#	-DUSE_MMAP	Use mmap() in place of malloc() to load the
+#	-DUSE_MMAP	XXX: DONT USE IT, IT IS BROKEN!!! For experimental
+#			puposes only! (nsdc reload will dump core)
+#
+#			Use mmap() in place of malloc() to load the
 #			database into memory. (Usefull for extremely
 #			large databases)
 #
@@ -89,7 +92,7 @@ NSDDB           = /var/db/nsd.db
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DUSE_MMAP # -DINET6
+FEATURES	= # -DINET6
 
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines

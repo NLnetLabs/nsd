@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.30 2002/04/22 10:37:28 alexis Exp $
+ * $Id: server.c,v 1.31 2002/05/01 15:58:23 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -300,7 +300,6 @@ server(nsd)
 				break;
 			case 0:
 				/* CHILD */
-				nsd->pid  = getpid();
 
 				namedb_close(nsd->db);
 				if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
@@ -313,6 +312,8 @@ server(nsd)
 					syslog(LOG_ERR, "cannot kill %d: %m", pid);
 					exit(1);
 				}
+
+				nsd->pid  = getpid();
 
 				/* Overwrite pid... */
 				if(writepid(nsd->pid, nsd->pidfile) == -1) {

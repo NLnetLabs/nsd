@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.19 2002/04/11 13:26:30 alexis Exp $
+ * $Id: dbaccess.c,v 1.20 2002/05/01 15:58:23 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -220,7 +220,7 @@ namedb_open(filename)
 	db->mpoolsz = st.st_size;
 
 #ifdef	USE_MMAP
-	if((db->mpool = mmap(NULL, db->mpoolsz, PROT_READ, 0, db->fd, 0)) == MAP_FAILED) {
+	if((db->mpool = mmap(NULL, db->mpoolsz, PROT_READ, MAP_PRIVATE, db->fd, 0)) == MAP_FAILED) {
 		free(db->filename);
 		free(db);
 		return NULL;
