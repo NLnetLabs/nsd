@@ -71,7 +71,6 @@ ZONESTR [a-zA-Z0-9+/=:_!\-\*#%&^\[\]?]
 DOLLAR  \$
 COMMENT ;
 DOT     \.
-SLASH   \\
 BIT	[^\]]|\\.
 ANY     [^\"]|\\.
 Q       \"
@@ -89,7 +88,7 @@ Q       \"
 			/* see
 			 * http://dinosaur.compilertools.net/flex/flex_12.html#SEC12
 			 */
-<incl>[^\n]+ 		{ 	
+<incl>.+ 		{ 	
 	char *tmp;
 	domain_type *origin = parser->origin;
 				
@@ -158,7 +157,7 @@ Q       \"
 	LEXOUT(("@ "));
 	return parse_token(ORIGIN, yytext, &lexer_state);
 }
-{SLASH}#                {
+\\# {
 	LEXOUT(("\\# "));
 	return parse_token(URR, yytext, &lexer_state);
 }
@@ -179,21 +178,21 @@ Q       \"
 		return SP;
 	}
 }
-{SPACE}*\({SPACE}*      {
+\( {
 	if (paren_open) {
 		zc_error("Nested parentheses");
 		yyterminate();
 	}
-	LEXOUT(("SP( "));
+	LEXOUT(("( "));
 	paren_open = 1;
 	return SP;
 }
-{SPACE}*\){SPACE}*      {
+\) {
 	if (!paren_open) {
 		zc_error("Unterminated parentheses");
 		yyterminate();
 	}
-	LEXOUT(("SP) "));
+	LEXOUT((") "));
 	paren_open = 0;
 	return SP;
 }
@@ -205,13 +204,9 @@ Q       \"
 	return SP;
 }
 \\\[{BIT}*\]	{
-	/* bitlabels */
+	/* Bitlabels.  Strip leading and ending brackets.  */
 	yytext[strlen(yytext) - 1] = '\0';
-	yylval.data.len = strlen(yytext + 2);
-	yylval.data.str = region_strdup(parser->rr_region, yytext + 2);
-	if (lexer_state == PARSING_OWNER || lexer_state == EXPECT_OWNER) 
-		lexer_state = PARSING_TTL_CLASS_TYPE;
-	return BITLAB;
+	return parse_token(BITLAB, yytext + 2, &lexer_state);
 }
 {Q}({ANY})*{Q}  {
 	/* this matches quoted strings */
@@ -219,11 +214,11 @@ Q       \"
 	yytext[strlen(yytext) - 1] = '\0';
 	return parse_token(STR, yytext + 1, &lexer_state);
 }
-({ZONESTR}|\\.)({ZONESTR}|\\.)* {
+({ZONESTR}|\\.)+ {
 	/* any allowed word */
 	return parse_token(STR, yytext, &lexer_state);
 }
-.                       {
+. {
 	/* we should NEVER reach this
 	 * bail out with an error */
 	zc_error("Unknown character seen - is this a zonefile?");
