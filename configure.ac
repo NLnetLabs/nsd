@@ -4,7 +4,7 @@ dnl
 AC_INIT(NSD,1.1a-210203,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
-CFLAGS="-ansi -pedantic -O2"
+CFLAGS="-ansi -Wall -O2 -D_XOPEN_SOURCE -D_BSD_SOURCE"
 
 dnl
 dnl Some macro's from autoconf macro archive

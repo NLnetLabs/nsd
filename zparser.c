@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.20 2003/02/25 14:03:22 alexis Exp $
+ * $Id: zparser.c,v 1.21 2003/02/26 10:51:51 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -63,6 +63,10 @@
 #include <dns.h>
 #include <zparser.h>
 #include <dname.h>
+
+#ifndef HAVE_B64_PTON
+int b64_pton(char const *src, u_char *target, size_t targsize);
+#endif
 
 /*
  *
@@ -1128,7 +1132,7 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		r = xalloc(sizeof(u_int16_t) + B64BUFSIZE);
 
 		/* Try to convert it */
-		if((i = b64_pton(z->_t[z->_tc], r + 1, B64BUFSIZE)) == -1) {
+		if((i = b64_pton(z->_t[z->_tc], (u_char *) (r + 1), B64BUFSIZE)) == -1) {
 			zerror(z, "base64 encoding failed");
 			error++;
 		} else {
@@ -1214,7 +1218,8 @@ zrdata_loc (struct zparser *z)
 
 				/* Fraction of seconds */
 				if(*t == '.') {
-					secfraq = (int)strtol(++t, &t, 10);
+					++t;
+					secfraq = (int)strtol(t, &t, 10);
 					if(*t != 0) {
 						zerror(z, "seconds fraction must be a number");
 						return 0;
@@ -1283,7 +1288,8 @@ zrdata_loc (struct zparser *z)
 	case 'm':
 		break;
 	case '.':
-		altfraq = strtol(++t, &t, 10);
+		++t;
+		altfraq = strtol(t, &t, 10);
 		if(*t != 0 && *t != 'm') {
 			zerror(z, "altitude fraction must be a number");
 			return 0;

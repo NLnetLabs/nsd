@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.6 2003/02/21 11:00:39 alexis Exp $
+ * $Id: nsd-notify.c,v 1.7 2003/02/26 10:51:51 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -150,7 +150,10 @@ main (int argc, char *argv[])
 
 	/* Initialize the query */
 	memset(&q, 0, sizeof(struct query));
-	query_init(&q);
+	q.addrlen = sizeof(q.addr);
+	q.iobufsz = QIOBUFSZ;
+	q.iobufptr = q.iobuf;
+	q.maxlen = 512;
 
 	/* Setup the address */
 	memset(&q.addr, 0, sizeof(struct sockaddr));
@@ -159,7 +162,7 @@ main (int argc, char *argv[])
 
 	/* Set up the header */
 	OPCODE_SET((&q), OPCODE_NOTIFY);
-	ID((&q)) = random();
+	ID((&q)) = 42;          /* Does not need to be random. */
 	AA_SET((&q));
 
 	q.iobufptr = q.iobuf + QHEADERSZ;

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.90 2003/02/21 11:00:39 alexis Exp $
+ * $Id: query.c,v 1.91 2003/02/26 10:51:51 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -44,6 +44,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <ctype.h>
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.22 2003/02/25 15:09:18 alexis Exp $
+# $Id: Makefile.in,v 1.23 2003/02/26 10:51:51 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -121,8 +121,8 @@ nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
 
-nsd-notify:	nsd-notify.c query.o dname.o dbaccess.o rbtree.o
-	$(LINK) $(CFLAGS) -o $@ nsd-notify.c query.o dname.o dbaccess.o rbtree.o
+nsd-notify:	nsd-notify.c dname.o
+	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o
 
 zparser:	zparser.c dname.o  $(LIBOBJS)
 	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c dname.o $(LIBOBJS)
@@ -156,5 +156,12 @@ rbtree:	rbtree.c rbtree.h
 hash:	hash.c hash.h
 	$(COMPILE) -DTEST hash.c
 	$(LINK) -o $@ hash.o
+
+# autoconf rules
+config.h.in:	configure.ac
+	autoheader
+
+configure:	configure.ac
+	autoconf
 
 # Dependencies
