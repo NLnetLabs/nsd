@@ -6,13 +6,15 @@ FEATURES:
         - NSD now fully supports unknown record types using the
           notation specified in RFC3597.
         - Support for the following RR types has been added: WKS, X25,
-          ISDN, RT, NSAP, PX, NAPTR, KX, CERT, DNAME, and APL.
+          ISDN, RT, NSAP, PX, NAPTR, KX, CERT, DNAME, and APL.  DNAME
+          special processing is not supported.
 
 BUG FIXES:
         - Bug #84: NSD now uses SIGUSR1 instead of SIGILL to report stats.
         - Bug #85: Support for WKS records.
         - Bug #86: The characters "#%&^[]?" can now be used without
           backslash in zone file domain names.
+        - Plugin callback return type fixed.
 
 2.1.1
 =============
