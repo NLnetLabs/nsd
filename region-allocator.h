@@ -41,8 +41,6 @@
 
 #include <stdio.h>
 
-#define region_alloc(region, size)  region_alloc2(__FILE__, __LINE__, region, size)
-
 typedef struct region region_type;
 
 
@@ -75,7 +73,7 @@ size_t region_add_cleanup(region_type *region,
  * Allocate SIZE bytes of memory inside REGION.  The memory is
  * deallocated when region_free_all is called for this region.
  */
-void *region_alloc2(const char *file, int line, region_type *region, size_t size);
+void *region_alloc(region_type *region, size_t size);
 
 
 /*
@@ -129,7 +127,5 @@ void *region_alloc_current(size_t size);
  * Print some REGION statistics to OUT.
  */
 void region_dump_stats(region_type *region, FILE *out);
-
-void region_allocator_dump_stats(FILE *out);
 
 #endif /* _REGION_ALLOCATOR_H_ */
