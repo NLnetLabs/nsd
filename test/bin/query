@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use Getopt::Std;
 use strict;
 
 # this is the main loop. Get the questions from QUESTIONS
@@ -11,7 +12,7 @@ use strict;
 # any diffs from that are stored in $number.$$.diff
 # if there is no diff than nothing happens
 
-my $STRIPDIG="/home/miekg/cvs/nsd/test/all/stripdig.pl";
+my %opt;
 my $question;
 my $number;
 my $pid=$$;
@@ -21,6 +22,14 @@ my $q;
 my @answer;
 my @diff;
 
+# search for stripdig.pl
+getopt('s:',\%opt);
+
+if ( $opt{'s'} eq "" ) {
+        print "stripdig.pl could not be found - exit.\n";
+        exit 1;
+}
+
 while (<>) {
 	chomp;
 	if ( /^#/ ) { next;} # comments
@@ -28,7 +37,7 @@ while (<>) {
 
 	$q=$dig . $question;
 	print "Q $number: $q\n";
-	@answer = `$q | $STRIPDIG`;
+	@answer = `$q | $opt{'s'}`;
 	if ( $? == -1 ) { 
 		print "Failed to query\n";
 		exit 1;

@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use Getopt::Std;
 use strict;
 
 # this is the main loop. Get the questions from QUESTIONS
@@ -10,7 +11,9 @@ use strict;
 # this must be carefully check as the .valid files
 # are used to validate answers from other DNS servers
 
-my $STRIPDIG="/home/miekg/cvs/nsd/test/all/stripdig.pl";
+# we get one argument: the location of stripdig.pl
+
+my %opt;
 my $question;
 my $number;
 my $pid=$$;
@@ -20,6 +23,14 @@ my $q;
 my @answer;
 my @diff;
 
+# search for stripdig.pl
+getopt('s:',\%opt);
+
+if ( $opt{'s'} eq "" ) {
+	print "stripdig.pl could not be found - exit.\n";
+	exit 1;
+}
+
 while (<>) {
 	chomp;
 	if ( /^#/ ) { next;} # comments
@@ -27,7 +38,7 @@ while (<>) {
 
 	$q=$dig . $question;
 	print "Q $number: $q\n";
-	@answer = `$q | $STRIPDIG`;
+	@answer = `$q | $opt{'s'}`;
 	if ( $? == -1 ) { 
 		print "Failed to query\n";
 		exit 1;

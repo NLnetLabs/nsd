@@ -6,6 +6,7 @@
 
 while(<>) {
 	if ( /^;; ([A-Z]+) SECTION:/i ) {
+		if ( $1 =~ /QUESTION/ ) { next;}
 		print ";; $1\n";
 		next;
 	}
@@ -18,7 +19,14 @@ while(<>) {
 
 	if ( /;; flags: (.*)/ ) {
 		$up = uc($1);
-		print ";; FLAGS: $up";
+		print ";; FLAGS: $up\n";
+		next;
+	}
+
+	if ( /;; .* opcode: +(.*), id:/ ) {
+		$up = uc($1);
+		print ";; OPCODE: $up\n";
+		next;
 	}
 
 	if ( /^;/ or /^$/ ) { next; }
@@ -28,12 +36,5 @@ while(<>) {
 	s/TYPE47/NSEC/;
 	s/TYPE48/DNSKEY/;
 
-
 	print;
 }
-
-
-
-
-
-
