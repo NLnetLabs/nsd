@@ -630,10 +630,6 @@ zone_addzonecut(const uint8_t *dkey, const uint8_t *dname, struct rrset *rrset, 
 	/* Add this answer */
 	d = zone_addanswer(d, &msg, rrset->type);
 
-	/* Set the database masks */
-	NAMEDB_SETBITMASK(db, NAMEDB_DATAMASK, namedepth);
-	NAMEDB_SETBITMASK(db, NAMEDB_AUTHMASK, namedepth);
-
 	/* Add a terminator... */
 	d = xrealloc(d, d->size + sizeof(uint32_t));
 	memset((char *)d + d->size, 0, sizeof(uint32_t));
@@ -760,10 +756,6 @@ zone_adddata(const uint8_t *dname, struct rrset *rrset, struct zone *z, struct n
 			/* Add this answer */
 			d = zone_addanswer(d, &msg, rrset->type);
 
-			/* Set the masks */
-			if(rrset->type == TYPE_SOA)
-				NAMEDB_SETBITMASK(db, NAMEDB_AUTHMASK, namedepth);
-
 			rrset = rrset->next;
 		}
 
@@ -787,12 +779,6 @@ zone_adddata(const uint8_t *dname, struct rrset *rrset, struct zone *z, struct n
 		/* This is an empty node...*/
 		d->flags |= NAMEDB_STEALTH;
 		for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++);
-	}
-
-	/* Set the data mask */
-	NAMEDB_SETBITMASK(db, NAMEDB_DATAMASK, namedepth);
-	if(star) {
-		NAMEDB_SETBITMASK(db, NAMEDB_STARMASK, namedepth);
 	}
 
 	/* Add a terminator... */

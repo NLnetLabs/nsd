@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.25 2003/08/05 12:21:43 erik Exp $
+ * $Id: dbcreate.c,v 1.26 2003/08/12 09:11:15 erik Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -78,11 +78,6 @@ namedb_new (const char *filename)
 		return NULL;
 	}
 
-	/* Initialize the masks... */
-	memset(db->masks[NAMEDB_AUTHMASK], 0, NAMEDB_BITMASKLEN);
-	memset(db->masks[NAMEDB_STARMASK], 0, NAMEDB_BITMASKLEN);
-	memset(db->masks[NAMEDB_DATAMASK], 0, NAMEDB_BITMASKLEN);
-
 	return db;
 }
 
@@ -121,12 +116,6 @@ namedb_save (struct namedb *db)
 
 	/* Write the magic... */
 	if (write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
-		close(db->fd);
-		return -1;
-	}
-
-	/* Write the bitmasks... */
-	if (write(db->fd, db->masks, NAMEDB_BITMASKLEN * 3) == -1) {
 		close(db->fd);
 		return -1;
 	}

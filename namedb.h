@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.42 2003/08/12 08:49:11 erik Exp $
+ * $Id: namedb.h,v 1.43 2003/08/12 09:11:17 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -51,16 +51,6 @@
 
 #define	NAMEDB_DELEGATION	0x0001
 #define	NAMEDB_STEALTH		0x0002
-
-#define	NAMEDB_AUTHMASK		0
-#define	NAMEDB_STARMASK		1
-#define	NAMEDB_DATAMASK		2
-
-#define	NAMEDB_BITMASKLEN	16
-
-#define	NAMEDB_TSTBITMASK(db, mask, depth) (db->masks[mask][(depth) >> 3] & (1 << ((depth) & 0x7)))
-#define	NAMEDB_SETBITMASK(db, mask, depth) db->masks[mask][(depth) >> 3] |= (1 << ((depth) & 0x7))
-
 
 #define	ANSWER_SIZE(a)		a->size
 #define	ANSWER_SIZE_PTR(a)	(&a->size)
@@ -131,7 +121,6 @@ struct namedb {
 	region_type *region;
 	dname_tree_type *dnames;
 	heap_t *heap;
-	uint8_t masks[3][NAMEDB_BITMASKLEN];
 	uint8_t *mpool;
 	size_t	mpoolsz;
 	char *filename;

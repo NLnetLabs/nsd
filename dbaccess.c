@@ -212,11 +212,6 @@ namedb_open (const char *filename)
 	}
 	p += NAMEDB_MAGIC_SIZE;
 
-	/* Copy the bitmasks... */
-	memcpy(db->masks[NAMEDB_AUTHMASK], p, NAMEDB_BITMASKLEN);
-	memcpy(db->masks[NAMEDB_STARMASK], p + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
-	memcpy(db->masks[NAMEDB_DATAMASK], p + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
-
 	log_msg(LOG_WARNING, "loaded %s, %lu entries", db->filename,
 		(unsigned long) entries);
 
