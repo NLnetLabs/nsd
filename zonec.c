@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.88 2003/06/16 15:13:16 erik Exp $
+ * $Id: zonec.c,v 1.89 2003/06/25 11:37:02 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -365,7 +365,7 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
 		+ datasize;					/* data */
 
 	/* Assure the alignment for the next answer... */
-	size = ((size + 3) & 0xfffffffc);
+	size = ALIGN(size);
 
 	d = xrealloc(d, d->size + size);
 

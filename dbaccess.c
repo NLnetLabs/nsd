@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.34 2003/06/25 11:23:33 erik Exp $
+ * $Id: dbaccess.c,v 1.35 2003/06/25 11:36:58 erik Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -170,12 +170,12 @@ namedb_open (const char *filename)
 	p += NAMEDB_MAGIC_SIZE;
 
 	while(*p) {
-		if(heap_insert(db->heap, p, p + ((*p + 1 +3) & 0xfffffffc), 1) == NULL) {
+		if(heap_insert(db->heap, p, p + ALIGN(*p + 1), 1) == NULL) {
 			syslog(LOG_ERR, "failed to insert a domain: %m");
 			namedb_close(db);
 			return NULL;
 		}
-		p += (((u_int32_t)*p + 1 + 3) & 0xfffffffc);
+		p += ALIGN(*p + 1);
 		p += *((u_int32_t *)p);
 		if(p > (db->mpool + db->mpoolsz)) {
 			syslog(LOG_ERR, "corrupted database %s", db->filename);
