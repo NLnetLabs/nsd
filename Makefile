@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.44 2002/02/22 11:37:12 alexis Exp $
+# $Id: Makefile,v 1.45 2002/02/23 20:23:21 miekg Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -41,13 +41,15 @@ SHELL = /bin/sh
 # Run-time enviroment settings
 
 # The directory where the nsd nsdc and zonec binaries will be installed
-NSDBINDIR       = /usr/local/sbin
+PREFIX		= /usr/local
+NSDBINDIR       = ${PREFIX}/sbin
+NSDMANDIR	= ${PREFIX}/man/man8
 
 # The directory where the master zone files are located
-NSDZONESDIR     = /usr/local/etc/nsd
+NSDZONESDIR     = ${PREFIX}/etc/nsd
 
 # The file containing the list of the zones to be compiled into the NSD database
-NSDZONES	= /usr/local/etc/nsd/nsd.zones
+NSDZONES	= ${PREFIX}/etc/nsd/nsd.zones
 
 # The flags to pass to the NSD on startup
 NSDFLAGS        = 
@@ -85,9 +87,13 @@ all:	nsd zonec nsdc.sh
 install: nsd zonec nsdc.sh
 	[ -d ${NSDBINDIR} ] || mkdir ${NSDBINDIR}
 	[ -d ${NSDZONESDIR} ] || mkdir ${NSDZONESDIR}
+	[ -d ${NSDMANDIR} ] || mkdir ${NSDMANDIR}
 	${INSTALL} nsd ${NSDBINDIR}/nsd
 	${INSTALL} nsdc.sh ${NSDBINDIR}/nsdc
 	${INSTALL} zonec ${NSDBINDIR}/zonec
+	${INSTALL} nsd.8 ${NSDMANDIR}
+	${INSTALL} nsdc.8 ${NSDMANDIR}
+	${INSTALL} zonec.8 ${NSDMANDIR}
 
 nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
