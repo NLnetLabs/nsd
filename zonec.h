@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.17 2003/01/20 08:44:37 alexis Exp $
+ * $Id: zonec.h,v 1.18 2003/01/20 09:43:16 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -37,6 +37,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#ifndef _ZONEC_H_
+#define _ZONEC_H_
 
 #include "config.h"
 
@@ -104,3 +107,19 @@ struct message {
 	} compr[MAXRRSPP];
 	u_char buf[IOBUFSZ];
 };
+
+/* zonec.c */
+unsigned long dnamehash(register u_char *dname);
+void *xalloc(register size_t size);
+void *xrealloc(register void *p, register size_t size);
+void zone_initmsg(struct message *m);
+void zone_print(struct zone *z);
+u_int16_t zone_addname(struct message *msg, u_char *dname);
+u_int16_t zone_addrrset(struct message *msg, u_char *dname, struct rrset *rrset);
+struct domain *zone_addanswer(struct domain *d, struct message *msg, int type);
+void zone_free(struct zone *z);
+struct zone *zone_read(char *name, char *zonefile);
+int zone_dump(struct zone *z, struct namedb *db);
+int usage(void);
+
+#endif /* _ZONEC_H_ */

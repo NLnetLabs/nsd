@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.44 2002/12/17 14:41:29 alexis Exp $
+ * $Id: nsd.h,v 1.45 2003/01/20 09:43:16 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -168,17 +168,20 @@ struct	nsd {
 #include "namedb.h"
 #include "query.h"
 
-void *xalloc __P((size_t));
-void *xrealloc __P((void *, size_t));
-int server __P((struct nsd *));
-int writepid __P((struct nsd *));
-void bind8_stats __P((struct nsd *));
+/* nsd.c */
+void *xalloc(register size_t size);
+void *xrealloc(register void *p, register size_t size);
+int usage(void);
+pid_t readpid(char *file);
+int writepid(struct nsd *nsd);
+void sig_handler(int sig);
+void bind8_stats(struct nsd *nsd);
 
 /* server.c */
-int server_init __P((struct nsd *nsd));
-int server_start_tcp __P((struct nsd *nsd));
-void server_shutdown __P((struct nsd *nsd));
-void server_udp __P((struct nsd *nsd));
-void server_tcp __P((struct nsd *nsd));
+int server_init(struct nsd *nsd);
+int server_start_tcp(struct nsd *nsd);
+void server_shutdown(struct nsd *nsd);
+void server_udp(struct nsd *nsd);
+void server_tcp(struct nsd *nsd);
 
 #endif	/* _NSD_H_ */

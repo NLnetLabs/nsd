@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.66 2003/01/20 08:44:37 alexis Exp $
+ * $Id: zonec.c,v 1.67 2003/01/20 09:43:16 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -42,8 +42,8 @@
 
 #include <netinet/in.h>		/* htons, htonl on Linux */
 
-static void zone_addbuf __P((struct message *, const void *, size_t));
-static void zone_addcompr __P((struct message *, u_char *, u_int16_t, u_char));
+static void zone_addbuf (struct message *, const void *, size_t);
+static void zone_addcompr (struct message *msg, u_char *dname, int offset, int len);
 
 /* The database file... */
 char *dbfile = CF_DBFILE;
@@ -63,9 +63,8 @@ int totalerrors = 0;
 
 #ifdef	USE_HEAP_HASH
 
-unsigned long
-dnamehash(dname)
-	register u_char *dname;
+unsigned long 
+dnamehash (register u_char *dname)
 {
         register unsigned long hash = 0;
 	register u_char *p = dname;
@@ -87,8 +86,7 @@ dnamehash(dname)
  *
  */
 void *
-xalloc(size)
-	register size_t	size;
+xalloc (register size_t size)
 {
 	register void *p;
 
@@ -100,9 +98,7 @@ xalloc(size)
 }
 
 void *
-xrealloc(p, size)
-	register void *p;
-	register size_t	size;
+xrealloc (register void *p, register size_t size)
 {
 
 	if((p = realloc(p, size)) == NULL) {
@@ -120,9 +116,8 @@ zone_initmsg(struct message *m)
 	m->bufptr = m->buf;
 }
 
-void
-zone_print(z)
-	struct zone *z;
+void 
+zone_print (struct zone *z)
 {
 	struct rrset *rrset;
 	u_char *dname;
@@ -157,11 +152,8 @@ zone_print(z)
 	}
 }
 
-static void
-zone_addbuf(msg, data, size)
-	struct message *msg;
-	const void *data;
-	size_t size;
+static void 
+zone_addbuf (struct message *msg, const void *data, size_t size)
 {
 	if(msg->bufptr - msg->buf + size > IOBUFSZ) {
 		fflush(stdout);
@@ -173,12 +165,8 @@ zone_addbuf(msg, data, size)
 	msg->bufptr += size;
 }
 
-static void
-zone_addcompr(msg, dname, offset, len)
-	struct message *msg;
-	u_char *dname;
-	u_int16_t offset;
-	u_char len;
+static void 
+zone_addcompr (struct message *msg, u_char *dname, int offset, int len)
 {
 	if (msg->comprlen >= MAXRRSPP) {
 		fflush(stdout);
@@ -192,10 +180,8 @@ zone_addcompr(msg, dname, offset, len)
 	msg->comprlen++;
 }
 
-u_int16_t
-zone_addname(msg, dname)
-	struct message *msg;
-	u_char *dname;
+u_int16_t 
+zone_addname (struct message *msg, u_char *dname)
 {
 	/* Lets try rdata dname compression */
 	int rdlength = 0;
@@ -239,11 +225,8 @@ zone_addname(msg, dname)
 
 
 
-u_int16_t
-zone_addrrset(msg, dname, rrset)
-	struct message *msg;
-	u_char *dname;
-	struct rrset *rrset;
+u_int16_t 
+zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 {
 	u_int16_t class = htons(CLASS_IN);
 	int32_t ttl;
@@ -390,10 +373,7 @@ zone_addrrset(msg, dname, rrset)
  *
  */
 struct domain *
-zone_addanswer(d, msg, type)
-	struct domain *d;
-	struct message *msg;
-	u_int16_t type;
+zone_addanswer (struct domain *d, struct message *msg, int type)
 {
 	struct answer *a;
 	size_t size, datasize;
@@ -435,9 +415,8 @@ zone_addanswer(d, msg, type)
  * Frees all the data structures associated with the zone
  *
  */
-void
-zone_free(z)
-	struct zone *z;
+void 
+zone_free (struct zone *z)
 {
 	if(z) {
 		if(z->dname) free(z->dname);
@@ -452,9 +431,7 @@ zone_free(z)
  *
  */
 struct zone *
-zone_read(name, zonefile)
-	char *name;
-	char *zonefile;
+zone_read (char *name, char *zonefile)
 {
 	heap_t *h;
 	int i;
@@ -841,10 +818,8 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
  *
  * Returns zero if success.
  */
-int
-zone_dump(z, db)
-	struct 	zone *z;
-	struct namedb *db;
+int 
+zone_dump (struct zone *z, struct namedb *db)
 {
 	u_char dnamebuf[MAXDOMAINLEN+1];
 	struct rrset *rrset;
@@ -944,8 +919,8 @@ zone_dump(z, db)
 	return 0;
 }
 
-int
-usage()
+int 
+usage (void)
 {
 	fprintf(stderr, "usage: zonec [-f database] [-d directory] zone-list-file\n");
 	exit(1);
@@ -954,10 +929,8 @@ usage()
 extern char *optarg;
 extern int optind;
 
-int
-main(argc, argv)
-	int argc;
-	char **argv;
+int 
+main (int argc, char **argv)
 {
 	char *zonename, *zonefile, *s;
 	char buf[LINEBUFSZ];

@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.25 2002/09/10 13:04:55 alexis Exp $
+ * $Id: dbaccess.c,v 1.26 2003/01/20 09:43:16 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -58,10 +58,8 @@
 
 #ifndef	USE_BERKELEY_DB
 
-int
-domaincmp(a, b)
-	register u_char *a;
-	register u_char *b;
+int 
+domaincmp (register u_char *a, register u_char *b)
 {
 	register int r;
 	register int alen = (int)*a;
@@ -77,9 +75,8 @@ domaincmp(a, b)
 
 #ifdef	USE_HEAP_HASH
 
-unsigned long
-domainhash(dname)
-	register u_char *dname;
+unsigned long 
+domainhash (register u_char *dname)
 {
         register unsigned long hash = 0;
 	register u_char *p = dname;
@@ -96,9 +93,7 @@ domainhash(dname)
 #endif
 
 struct domain *
-namedb_lookup(db, dname)
-	struct namedb *db;
-	u_char *dname;
+namedb_lookup (struct namedb *db, u_char *dname)
 {
 #ifdef USE_BERKELEY_DB
 	DBT key, data;
@@ -127,9 +122,7 @@ namedb_lookup(db, dname)
 }
 
 struct answer *
-namedb_answer(d, type)
-	struct domain *d;
-	u_int16_t type;
+namedb_answer (struct domain *d, int type)
 {
 	struct answer *a;
 
@@ -142,8 +135,7 @@ namedb_answer(d, type)
 }
 
 struct namedb *
-namedb_open(filename)
-	char *filename;
+namedb_open (char *filename)
 {
 	struct namedb *db;
 	char magic[NAMEDB_MAGIC_SIZE] = NAMEDB_MAGIC;
@@ -313,8 +305,7 @@ namedb_open(filename)
 }
 
 void
-namedb_close(db)
-	struct namedb *db;
+namedb_close (struct namedb *db)
 {
 	/* If it is already closed... */
 	if(db == NULL)

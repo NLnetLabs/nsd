@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.15 2002/05/27 14:43:34 alexis Exp $
+ * $Id: dbcreate.c,v 1.16 2003/01/20 09:43:16 alexis Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -50,8 +50,7 @@
 #include "namedb.h"
 
 struct namedb *
-namedb_new(filename)
-	char *filename;
+namedb_new (char *filename)
 {
 	struct namedb *db;
 
@@ -102,11 +101,8 @@ namedb_new(filename)
 };
 
 
-int
-namedb_put(db, dname, d)
-	struct namedb *db;
-	u_char *dname;
-	struct domain *d;
+int 
+namedb_put (struct namedb *db, u_char *dname, struct domain *d)
 {
 #ifdef	USE_BERKELEY_DB
 	DBT key, data;
@@ -138,9 +134,8 @@ namedb_put(db, dname, d)
 	return 0;
 };
 
-int
-namedb_save(db)
-	struct namedb *db;
+int 
+namedb_save (struct namedb *db)
 {
 #ifdef	USE_BERKELEY_DB
 	/* The buffer for the super block */
@@ -198,9 +193,8 @@ namedb_save(db)
 }
 
 
-void
-namedb_discard(db)
-	struct namedb *db;
+void 
+namedb_discard (struct namedb *db)
 {
 	unlink(db->filename);
 	free(db->filename);

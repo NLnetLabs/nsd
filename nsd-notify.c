@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.2 2003/01/20 08:44:37 alexis Exp $
+ * $Id: nsd-notify.c,v 1.3 2003/01/20 09:43:16 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -52,8 +52,7 @@
  *
  */
 void *
-xalloc(size)
-	register size_t size;
+xalloc (register size_t size)
 {
 	register void *p;
 
@@ -65,9 +64,7 @@ xalloc(size)
 }
 
 void *
-xrealloc(p, size)
-	register void *p;
-	register size_t size;
+xrealloc (register void *p, register size_t size)
 {
 
 	if((p = realloc(p, size)) == NULL) {
@@ -78,8 +75,8 @@ xrealloc(p, size)
 }
 
 
-int
-usage()
+int 
+usage (void)
 {
 	fprintf(stderr, "usage: nsd-notify -z zone servers\n");
 	exit(1);
@@ -88,10 +85,8 @@ usage()
 extern char *optarg;
 extern int optind;
 
-int
-main(argc, argv)
-	int argc;
-	char *argv[];
+int 
+main (int argc, char *argv[])
 {
 	int c, udp_s;
 	struct	query q;
@@ -176,7 +171,7 @@ main(argc, argv)
 		if((((struct sockaddr_in *)&q.addr)->sin_addr.s_addr = inet_addr(*argv)) == -1) {
 			fprintf(stderr, "skipping bad address %s\n", *argv);
 		} else {
-			if(sendto(udp_s, q.iobuf, q.iobufptr - q.iobuf, 0,
+			if(sendto(udp_s, q.iobuf, (size_t)(q.iobufptr - q.iobuf), 0,
 					(struct sockaddr *)&q.addr, sizeof(struct sockaddr_in)) == -1) {
 				fprintf(stderr, "send to %s failed: %s\n", *argv, strerror(errno));
 			}

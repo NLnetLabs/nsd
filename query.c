@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.84 2003/01/20 08:44:37 alexis Exp $
+ * $Id: query.c,v 1.85 2003/01/20 09:43:16 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -47,12 +47,7 @@ int deny_severity = LOG_NOTICE;
 #endif /* HAVE_LIBWRAP */
 
 int 
-query_axfr(q, nsd, qname, zname, depth)
-	struct query *q;
-	struct nsd *nsd;
-	u_char *qname;
-	u_char *zname;
-	int depth;
+query_axfr (struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int depth)
 {
 	/* Per AXFR... */
 	static u_char *zone;
@@ -159,9 +154,8 @@ query_axfr(q, nsd, qname, zname, depth)
  * Stript the packet and set format error code.
  *
  */
-void
-query_formerr(q)
-	struct query *q;
+void 
+query_formerr (struct query *q)
 {
 	/* Setup the header... */
 	QR_SET(q);		/* This is an answer */
@@ -173,9 +167,8 @@ query_formerr(q)
 	q->iobufptr = q->iobuf + QHEADERSZ;
 }
 
-void
-query_init(q)
-	struct query *q;
+void 
+query_init (struct query *q)
 {
 	q->addrlen = sizeof(q->addr);
 	q->iobufsz = QIOBUFSZ;
@@ -185,13 +178,8 @@ query_init(q)
 	q->tcp = 0;
 }
 
-void
-query_addtxt(q, dname, class, ttl, txt)
-	struct query *q;
-	u_char *dname;
-	u_int16_t class;
-	int32_t ttl;
-	char *txt;
+void 
+query_addtxt (struct query *q, u_char *dname, int class, int32_t ttl, char *txt)
 {
 	u_int16_t pointer;
 	u_int16_t len = strlen(txt);
@@ -229,12 +217,8 @@ query_addtxt(q, dname, class, ttl, txt)
 	q->iobufptr += len;
 }
 
-void
-query_addanswer(q, dname, a, truncate)
-	struct query *q;
-	u_char *dname;
-	struct answer *a;
-	int truncate;
+void 
+query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -321,10 +305,8 @@ query_addanswer(q, dname, a, truncate)
  * -1 if the query has to be silently discarded.
  *
  */
-int
-query_process(q, nsd)
-	struct query *q;
-	struct nsd *nsd;
+int 
+query_process (struct query *q, struct nsd *nsd)
 {
 	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 3];

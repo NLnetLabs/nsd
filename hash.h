@@ -1,5 +1,5 @@
 /*
- * $Id: hash.h,v 1.7 2002/02/13 11:19:37 alexis Exp $
+ * $Id: hash.h,v 1.8 2003/01/20 09:43:16 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -80,19 +80,22 @@ struct hash_t {
 	hnode_t	*table;
 };
 
-hash_t *hash_create __P((void *(*)(), int (*)(), unsigned long (*)(), unsigned long));
-void *hash_insert __P((hash_t *, void *, void *, int));
-void *hash_search __P((hash_t *, void *));
-void hash_delete __P((hash_t *, void *, int, int));
-void hash_destroy __P((hash_t *, int, int));
-hnode_t *hash_first __P((hash_t *));
-hnode_t *hash_next __P((hash_t *));
-#define	hash_last(h) NULL
-
 #define	HASH_WALK(hash, k, d) \
 	for((hash)->_node = hash_first(hash);\
 		(hash)->_node != hash_last(hash) && \
 		((k) = (hash)->_node->key) && ((d) = (hash)->_node->data); \
 		(hash)->_node = hash_next(hash))
+
+#define	hash_last(h) NULL
+
+/* hash.c */
+hash_t *hash_create(void *(*mallocf)(size_t), int (*cmpf)(void *, void *), unsigned long (*hashf)(void *), unsigned long size);
+void *hash_insert(hash_t *hash, void *key, void *data, int overwrite);
+void *hash_search(hash_t *hash, void *key);
+void hash_destroy(hash_t *hash, int freekeys, int freedata);
+unsigned long hashf(char *key);
+hnode_t *hash_first(hash_t *hash);
+hnode_t *hash_next(hash_t *hash);
+
 
 #endif /* _HASH_H_ */

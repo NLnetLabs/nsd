@@ -1,5 +1,5 @@
 /*
- * $Id: rfc1876.c,v 1.4 2002/09/10 09:22:04 alexis Exp $
+ * $Id: rfc1876.c,v 1.5 2003/01/20 09:43:16 alexis Exp $
  *
  * rfc1876.c -- LOC record conversion routines taken from RFC1876
  *
@@ -29,8 +29,7 @@ static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
 
 /* takes an XeY precision/size value, returns a string representation.*/
 static const char *
-precsize_ntoa(prec)
-        u_int8_t prec;
+precsize_ntoa (int prec)
 {
         static char retbuf[sizeof("90000000.00")];
         unsigned long val;
@@ -46,9 +45,8 @@ precsize_ntoa(prec)
 }
 
 /* converts ascii size/precision X * 10**Y(cm) to 0xXY. moves pointer.*/
-static u_int8_t
-precsize_aton(strptr)
-        char **strptr;
+static u_int8_t 
+precsize_aton (char **strptr)
 {
         unsigned int mval = 0, cmval = 0;
         u_int8_t retval = 0;
@@ -89,10 +87,8 @@ precsize_aton(strptr)
 
 /* converts ascii lat/lon to unsigned encoded 32-bit number.
  *  moves pointer. */
-static u_int32_t
-latlon2ul(latlonstrptr,which)
-        char **latlonstrptr;
-        int *which;
+static u_int32_t 
+latlon2ul (char **latlonstrptr, int *which)
 {
         register char *cp;
         u_int32_t retval;
@@ -188,10 +184,8 @@ latlon2ul(latlonstrptr,which)
 
 /* converts a zone file representation in a string to an RDATA
  * on-the-wire representation. */
-u_int32_t
-loc_aton(ascii, binary)
-        const char *ascii;
-        u_char *binary;
+u_int32_t 
+loc_aton (const char *ascii, u_char *binary)
 {
         const char *cp, *maxcp;
         u_char *bcp;
@@ -308,10 +302,7 @@ loc_aton(ascii, binary)
  * (human readable) format. */
 
 char *
-loc_ntoa(binary, ascii, l)
-        const u_char *binary;
-        char *ascii;
-	size_t l;
+loc_ntoa (const u_char *binary, char *ascii, size_t l)
 {
 
         static char tmpbuf[255*3];

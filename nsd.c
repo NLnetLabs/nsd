@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.57 2002/12/17 14:41:29 alexis Exp $
+ * $Id: nsd.c,v 1.58 2003/01/20 09:43:16 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -51,8 +51,7 @@ char hostname[MAXHOSTNAMELEN];
  *
  */
 void *
-xalloc(size)
-	register size_t size;
+xalloc (register size_t size)
 {
 	register void *p;
 
@@ -64,9 +63,7 @@ xalloc(size)
 }
 
 void *
-xrealloc(p, size)
-	register void *p;
-	register size_t size;
+xrealloc (register void *p, register size_t size)
 {
 
 	if((p = realloc(p, size)) == NULL) {
@@ -76,16 +73,15 @@ xrealloc(p, size)
 	return p;
 }
 
-int
-usage()
+int 
+usage (void)
 {
 	fprintf(stderr, "usage: nsd [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
 	exit(1);
 }
 
-pid_t
-readpid(file)
-	char *file;
+pid_t 
+readpid (char *file)
 {
 	int fd;
 	pid_t pid;
@@ -118,9 +114,8 @@ readpid(file)
 	return pid;
 }
 
-int
-writepid(nsd)
-	struct nsd *nsd;
+int 
+writepid (struct nsd *nsd)
 {
 	int fd;
 	char pidbuf[16];
@@ -146,9 +141,8 @@ writepid(nsd)
 }
 	
 
-void
-sig_handler(sig)
-	int sig;
+void 
+sig_handler (int sig)
 {
 	int status, i;
 
@@ -223,9 +217,8 @@ sig_handler(sig)
  *
  */
 #ifdef BIND8_STATS
-void
-bind8_stats(nsd)
-	struct nsd *nsd;
+void 
+bind8_stats (struct nsd *nsd)
 {
 	char buf[MAXSYSLOGMSGLEN];
 	char *msg, *t;
@@ -324,10 +317,8 @@ bind8_stats(nsd)
 extern char *optarg;
 extern int optind;
 
-int
-main(argc, argv)
-	int argc;
-	char *argv[];
+int 
+main (int argc, char *argv[])
 {
 	/* Scratch variables... */
 	int i, c;

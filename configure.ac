@@ -4,6 +4,8 @@ dnl
 AC_INIT(NSD,1.1a,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
+CFLAGS="-Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wconversion"
+
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC

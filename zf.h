@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.16 2003/01/20 08:44:37 alexis Exp $
+ * $Id: zf.h,v 1.17 2003/01/20 09:43:16 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -180,28 +180,29 @@ struct zf_type_tab {
 	{0, NULL, NULL}			\
 }
 
-/* Prototypes */
-struct zf *zf_open __P((char *, u_char *));
-struct zf_entry *zf_read __P((struct zf *));
-char *typetoa __P((u_int16_t));
-char *classtoa __P((u_int16_t));
-struct zf_type_tab *typebyname __P((char *));
-struct zf_class_tab *classbyname __P((char *));
-char *zone_strtok __P((register char *));
-void zf_error __P((struct zf *, char *));
-void zf_syntax __P((struct zf *));
-char *zf_getline __P((struct zf *));
-char *zf_token __P((struct zf *, char *));
-int zf_open_include __P((struct zf *, char *, char *, int32_t));
-void zf_print_entry __P((struct zf_entry *));
-void zf_print_rdata __P((union zf_rdatom *, char *));
-int zf_close_include __P((struct zf *));
-int zf_cmp_rdata __P((union zf_rdatom *, union zf_rdatom *, char *));
-void zf_free_rdata __P((union zf_rdatom *, char *));
-void zf_close __P((struct zf *));
-char *dnamestr __P((u_char *));
-u_char *strdname __P((char *s, u_char *));
-int dnamecmp __P((register u_char *, register u_char *));
-void *inet6_aton __P((char *));
+/* zf.c */
+char *classtoa(int n);
+char *dnamestr(u_char *dname);
+char *typetoa(int n);
+char *zf_getline(struct zf *zf);
+char *zf_token(struct zf *zf, char *s);
+char *zone_strtok(register char *s);
+int dnamecmp(register u_char *a, register u_char *b);
+int zf_close_include(struct zf *zf);
+int zf_cmp_rdata(union zf_rdatom *a, union zf_rdatom *b, register char *f);
+int zf_open_include(struct zf *zf, char *filename, char *origin, int32_t ttl);
+long strtottl(char *nptr, char **endptr);
+struct zf *zf_open(char *filename, u_char *origin);
+struct zf_class_tab *classbyname(char *a);
+struct zf_entry *zf_read(struct zf *zf);
+struct zf_type_tab *typebyname(char *a);
+u_char *strdname(char *s, u_char *o);
+void *inet6_aton(char *str);
+void zf_close(struct zf *zf);
+void zf_error(struct zf *zf, char *msg);
+void zf_free_rdata(union zf_rdatom *rdata, char *f);
+void zf_print_entry(struct zf_entry *rr);
+void zf_print_rdata(union zf_rdatom *rdata, char *rdatafmt);
+void zf_syntax(struct zf *zf);
 
 #endif
