@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.42 2003/02/10 16:03:14 alexis Exp $
+ * $Id: zf.c,v 1.43 2003/02/11 14:21:57 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -633,6 +633,10 @@ zf_cmp_rdata (union zf_rdatom *a, union zf_rdatom *b, register char *f)
 			if(a[i].s != b[i].s)
 				return 1;
 			break;
+		case 'c':
+			if(a[i].c != b[i].c)
+				return 1;
+			break;
 		case 'l':
 		case '4':
 			if(a[i].l != b[i].l)
@@ -703,6 +707,9 @@ zf_print_rdata (union zf_rdatom *rdata, char *rdatafmt)
 			break;
 		case 's':
 			printf("%d\t", rdata[i].s);
+			break;
+		case 'c':
+			printf("%d\t", rdata[i].c);
 			break;
 		case 't':
 			putc('"', stdout);
@@ -802,6 +809,7 @@ zf_parse_unkn (struct zf *zf, char *token) {
 	return 0;
 }
 
+
 /*
  * Special parser for LOC record.
  *
@@ -830,7 +838,7 @@ zf_parse_loc (struct zf *zf, char *token)
  *
  */
 int
-zf_parse_format (struct zf *zf, char *token)
+zf_parse_format (struct zf *zf, char *token, int start, int stop)
 {
 
 #ifndef USE_INET_ADDR
@@ -845,7 +853,10 @@ zf_parse_format (struct zf *zf, char *token)
 	assert(*zf->line.rdatafmt != '*');
 
 	/* Parse it */
-	for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; i++) {
+	for(parse_error = 0, i = start, f = zf->line.rdatafmt + start;
+			*f && token != NULL && !parse_error; i++) {
+
+
 		assert(i < MAXRDATALEN);
 
 #if DEBUG > 2
@@ -889,6 +900,15 @@ zf_parse_format (struct zf *zf, char *token)
 				parse_error++;
 			}
 			break;
+		case 'c':
+			j = (u_int16_t)strtol(token, &t, 10);
+			if(*t != 0 || j < 0 || j > 255) {
+				zf_error(zf, "decimal number is expected");
+				parse_error++;
+			} else {
+				zf->line.rdata[i].c = (u_char) j;
+			}
+			break;
 		case 't':
 			if((j = strlen(token)) > 255) {
 				zf_error(zf, "character string is too long");
@@ -905,6 +925,10 @@ zf_parse_format (struct zf *zf, char *token)
 			assert(0);
 			return NULL;
 		}
+
+		/* Dont do anything further if we have to stop... */
+		if(i == stop)
+			return 0;
 
 		f++;
 
@@ -926,9 +950,7 @@ zf_parse_format (struct zf *zf, char *token)
 		}
 
 		/* Get the next token... */
-		if((token = zf_token(zf, NULL)) == NULL) {
-			break;
-		}
+		token = zf_token(zf, NULL);
 	}
 
 	/* Was there a star? */
@@ -948,7 +970,7 @@ zf_parse_format (struct zf *zf, char *token)
 		return -1;
 	}
 
-	/* Trailing garbage */
+	/* Trailing garbage... */
 	if(token != NULL) {
 		zf_error(zf, "trailing garbage");
 		zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
@@ -956,6 +978,180 @@ zf_parse_format (struct zf *zf, char *token)
 	}
 
 	return 0;
+}
+
+/*
+ * Parse the rest of the line as base64 encoded string.
+ *
+ */
+int
+zf_parse_b64 (struct zf *zf, char *token, int start)
+{
+	int n;
+	u_char *t;
+	int s = 65535;
+
+	t = zf->line.rdata[start].p = xalloc(s + sizeof(u_int16_t));
+	t += sizeof(u_int16_t);
+	
+	while(token) {
+		if((n = __b64_pton(token, t, s)) == -1) {
+			zf_error(zf, "base64 encoding failed");
+			free(zf->line.rdata[start].p);
+			return -1;
+		}
+		t += n;
+		s -= n;
+		/* We ran out of buffer space... */
+		if(s <= 0) {
+			zf_error(zf, "out of buffer space");
+			free(zf->line.rdata[start].p);
+			return -1;
+		}
+		token = zf_token(zf, NULL);
+	}
+	*((u_int16_t *)zf->line.rdata[start].p) = t - zf->line.rdata[start].p
+		- sizeof(u_int16_t);
+
+	return 0;
+}
+
+/*
+ * Special parser for NXT record.
+ *
+ */
+int
+zf_parse_nxt (struct zf *zf, char *token)
+{
+	struct zf_type_tab *type;
+	int byte;
+
+	/* Parse the domain name... */
+	if(zf_parse_format(zf, token, 0, 0) != 0)
+		return -1;
+
+	/* Get the first name... */
+	if((token = zf_token(zf, NULL)) == NULL) {
+		zf_error(zf, "types covered expected for NXT record");
+		return -1;
+	}
+
+	zf->line.rdata[1].p = xalloc(16 + sizeof(u_int16_t));
+
+	/* Initial size is 0, however it will always be 4 because we always set NXT bit... */
+	*((u_int16_t *)zf->line.rdata[1].p) = 0;
+
+	do {
+		/* Find out which type is covered */
+		if((type = typebyname(token)) == NULL) {
+			zf_error(zf, "unknown type in a NXT record");
+			return -1;
+		}
+		/* We dont support anything higher than 127 */
+		if(type->type > 127) {
+			zf_error(zf, "types higher than TYPE127 are not supported at this time");
+			return -1;
+		}
+		/* Now set the bit and adjust the length of the bit map if needed */
+		byte = type->type >> 3;
+		zf->line.rdata[1].p[byte + 2] |= (1 << (type->type & 0x7));
+		if(*((u_int16_t *)zf->line.rdata[1].p) < byte)
+			*((u_int16_t *)zf->line.rdata[1].p) = byte;
+	} while((token = zf_token(zf, NULL)) != NULL);
+
+	/* Complain if NXT bit is not set */
+	if(!(zf->line.rdata[1].p[(TYPE_NXT >> 3) + 2] & (1 << (TYPE_NXT & 0x7)))) {
+		zf_error(zf, "NXT record must always cover NXT type");
+		return -1;
+	}
+	return 0;
+}
+
+/*
+ * Special parser for SIG record
+ *
+ */
+int
+zf_parse_sig (struct zf *zf, char *token)
+{
+	int i;
+	struct tm tm;
+	struct zf_type_tab *type;
+
+	if((type = typebyname(token)) == NULL) {
+		zf_error(zf, "unknown type in a SIG record");
+		return -1;
+	}
+
+	/* Here we assume that token is always large enough, i.e. A still fits 1 */
+	snprintf(token, strlen(token), "%d", type->type);
+
+	/* Parse the first part... */
+	if(zf_parse_format(zf, token, 0, 3) != 0)
+		return -1;
+
+	/* Now scan the dates */
+	for(i = 4; i <= 5; i++) {
+		if((token = zf_token(zf, NULL)) == NULL) {
+			zf_error(zf, "time field is expected");
+			free(zf->line.rdatafmt);
+			return -1;
+		}
+		if((token = strptime(token, "%Y%m%d%H%M%S", &tm)) == NULL || *token != 0) {
+			zf_error(zf, "invalid time value specified");
+			free(zf->line.rdatafmt);
+			return -1;
+		}
+		zf->line.rdata[i].l = mktime(&tm);
+	}
+
+
+	/* A bit more format */
+	if((token = zf_token(zf, NULL)) == NULL) {
+		zf_syntax(zf);
+		return -1;
+	}
+
+	if(zf_parse_format(zf, token, 6, 7) != 0)
+		return -1;
+
+	/* And the last bit */
+	if((token = zf_token(zf, NULL)) == NULL) {
+		zf_error(zf, "missing signature data");
+		return -1;
+	}
+
+	return zf_parse_b64(zf, token, 8);
+}
+
+/*
+ * Special parser for KEY record.
+ *
+ */
+int
+zf_parse_key (struct zf *zf, char *token)
+{
+	char *t;
+	zf->line.rdatafmt[3] = 0;
+
+	/* Parse the first part with a standard parser */
+	if(zf_parse_format(zf, token, 0, 2) != 0) {
+		free(zf->line.rdatafmt);
+		return -1;
+	}
+
+	/* A no key situation... */
+	if((zf->line.rdata[0].s & 0x1100) == 0x1100)
+		return 1;
+
+	/* Otherwise restart with base64 format parser... */
+	zf->line.rdatafmt[3] = 'U';
+	if((token = zf_token(zf, NULL)) == NULL) {
+		zf_error(zf, "key value is expected");
+		free(zf->line.rdatafmt);
+		return -1;
+	}
+	return zf_parse_b64(zf, token, 3);
 }
 
 /*
@@ -1114,13 +1310,25 @@ zf_read (struct zf *zf)
 				if(zf_parse_loc(zf, token) != 0)
 					continue;
 				break;
+			case TYPE_KEY:
+				if(zf_parse_key(zf, token) != 0)
+					continue;
+				break;
+			case TYPE_SIG:
+				if(zf_parse_sig(zf, token) != 0)
+					continue;
+				break;
+			case TYPE_NXT:
+				if(zf_parse_nxt(zf, token) != 0)
+					continue;
+				break;
 			default:
 				/* Do we support this type? */
 				if(zf->line.rdatafmt == NULL) {
 					zf_error(zf, "unsupported resource record type");
 					return NULL;
 				}
-				if(zf_parse_format(zf, token) != 0)
+				if(zf_parse_format(zf, token, 0, -1) != 0)
 					continue;
 				break;
 			}

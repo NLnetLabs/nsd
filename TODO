@@ -1,4 +1,4 @@
-$Id: TODO,v 1.31 2003/02/10 16:03:14 alexis Exp $
+$Id: TODO,v 1.32 2003/02/11 14:21:57 alexis Exp $
 
 AUTOCONF
 
@@ -17,6 +17,7 @@ SERVER
 - replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
 - make sure that we dont copy anything from the query we dont want to copy, like
   funny headers etc
+- query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
 
 SECURITY
 

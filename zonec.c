@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.72 2003/02/10 14:53:02 alexis Exp $
+ * $Id: zonec.c,v 1.73 2003/02/11 14:21:57 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -357,6 +357,10 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 				s = htons(rdata[i].s);
 				zone_addbuf(msg, &s, size);
 				break;
+			case 'c':
+				size = sizeof(u_int8_t);
+				zone_addbuf(msg, &rdata[i].c, size);
+				break;
 			default:
 				fprintf(stderr, "zonec: panic! uknown atom in format %c\n", *f);
 				return rrcount;
@@ -693,7 +697,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 
 	/* Is this a CNAME */
 	if(rrset->type == TYPE_CNAME) {
-		assert(rrset->next == NULL);
+		/* XXX Not necessarily with NXT, BUT OH OH * assert(rrset->next == NULL); */
 		cnamerrset = rrset;
 		cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
 		rrset = heap_search(z->data, cname);
@@ -905,9 +909,11 @@ zone_dump (struct zone *z, struct namedb *db)
 		/* CNAME & other data */
 		if((rrset->type == TYPE_CNAME && rrset->next != NULL) ||
 			(rrset->next != NULL && rrset->next->type == TYPE_CNAME)) {
-			fprintf(stderr, "CNAME and other data for %s\n", dnamestr(z->dname));
-			totalerrors++;
-			continue;
+			if(rrset->type != TYPE_NXT && rrset->next->type != TYPE_NXT) {
+				fprintf(stderr, "CNAME and other data for %s\n", dnamestr(z->dname));
+				totalerrors++;
+				continue;
+			}
 		}
 
 		/* Add it to the database */

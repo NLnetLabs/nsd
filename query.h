@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.27 2003/01/20 15:58:30 alexis Exp $
+ * $Id: query.h,v 1.28 2003/02/11 14:21:57 alexis Exp $
  *
  * query.h -- manipulation with the queries
  *
@@ -158,7 +158,7 @@
 #define	IP6ADDRLEN		128/8
 
 /* Miscelaneous limits */
-#define	QIOBUFSZ	1024	/* Input output buffer for queries */
+#define	QIOBUFSZ	65536	/* XXX: Is it too big now?? Input output buffer for queries */
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
 #define	MAXRRSPP	1024	/* Maximum number of rr's per packet */

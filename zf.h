@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.19 2003/02/10 14:53:02 alexis Exp $
+ * $Id: zf.h,v 1.20 2003/02/11 14:21:57 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -74,7 +74,7 @@
 
 #include "rfc1876.h"
 
-#define	MAXRDATALEN	7		/* SOA */
+#define	MAXRDATALEN	9		/* SIG */
 #define	MAXINCLUDES	16		/* Maximum number of include files */
 #define	LINEBUFSZ	2048		/* Maximum master file line length */
 #define	IP6ADDRLEN	128/8
@@ -85,6 +85,7 @@
 union zf_rdatom {
 	u_int16_t	s;
 	u_int32_t	l;
+	u_char c;
 	u_char	*p;
 };
 
@@ -177,10 +178,10 @@ struct zf_type_tab {
 	{TYPE_LOC, "LOC", "U"},		\
 	{TYPE_AFSDB, "AFSDB", "sn"},	\
 	{TYPE_RP, "RP", "nn"},		\
-	{TYPE_SIG, "SIG", NULL},	\
-	{TYPE_KEY, "KEY", NULL},	\
-	{TYPE_NXT, "NXT", NULL},	\
-	{TYPE_DS, "DS", NULL},		\
+	{TYPE_SIG, "SIG", "scclllsnU"},	\
+	{TYPE_KEY, "KEY", "sccU"},	\
+	{TYPE_NXT, "NXT", "nU"},	\
+	{TYPE_DS, "DS", "sccU"},	\
 	{TYPE_ANY, "ANY", NULL},	\
 	{0, NULL, NULL}			\
 }
