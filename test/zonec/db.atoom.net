@@ -1,0 +1,52 @@
+;
+; BIND data file for atoom.net for internal use
+;
+$TTL    1H
+@       IN      SOA     elektron.atoom.net. miekg.atoom.net. (
+                     2003062700         ; Serial
+                             6H         ; Refresh
+                             2H         ; Retry
+                             7D         ; Expire
+                             1H )       ; Negative Cache TTL
+;
+@       IN      NS      elektron
+@	IN	MX	10 elektron
+@	IN	A	192.168.1.2
+
+wireless	IN	MX	10 elektron
+
+kasteel			IN	A	192.168.1.1
+ns1			IN	A	192.168.1.1
+kopje			IN	A	192.168.1.1
+elektron		IN	A	192.168.1.2
+goffert			IN	A	192.168.1.3
+kuip			IN	A	192.168.1.4
+arena			IN	A	192.168.1.5
+mail                    IN      A	192.168.1.2
+
+www                     IN      CNAME   elektron
+
+kasteel.wireless	IN	A	172.16.1.1
+kopje.wireless		IN	A	172.16.1.1
+ufo.wireless		IN	A	172.16.1.2
+wap11.wireless		IN	A	172.16.1.3
+lappie.wireless		IN	A	172.16.1.8
+marike.wireless		IN	A	172.16.1.9
+guest1.wireless		IN	A	172.16.1.10
+guest2.wireless		IN	A	172.16.1.11
+guest3.wireless		IN	A	172.16.1.12
+guest4.wireless		IN	A	172.16.1.13
+guest5.wireless		IN	A	172.16.1.14
+elektron.wireless	IN	CNAME	elektron
+
+raymond			IN	A	131.174.120.42
+dabbert			IN	A	62.21.238.200
+
+; wifi stuff
+prospero       		IN      A       212.238.244.2
+drbob			IN	A	213.93.102.104
+
+; IPv6
+kopje6			IN	AAAA	2001:7b8:206:1003::abcd
+elektron6		IN	AAAA	2001:7b8:206:1003:280:48ff:feb3:26eb
+arena6                  IN      AAAA    2001:7b8:206:1003:250:fcff:fe85:83d7
