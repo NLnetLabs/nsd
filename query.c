@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.54 2002/04/22 10:58:51 alexis Exp $
+ * $Id: query.c,v 1.55 2002/04/23 09:48:13 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -159,10 +159,11 @@ query_process(q, db)
 
 	/* Sanity checks */
 	if(QR(q)) return -1;	/* Not a query? Drop it on the floor. */
+	*(u_int16_t *)(q->iobuf + 2) = 0;
+	QR_SET(q);		/* This is an answer */
 
 	/* Do we serve this type of query */
 	if(OPCODE(q) != OPCODE_QUERY) {
-		QR_SET(q);				/* This is an answer */
 #ifdef	MIMIC_BIND8
 		RCODE_SET(q, RCODE_REFUSE);
 #else
@@ -170,14 +171,12 @@ query_process(q, db)
 #endif
 
 		/* Truncate the question as well... */
-		QDCOUNT(q) = 0;
+		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
 		q->iobufptr = q->iobuf + QHEADERSZ;
 
 		return 0;
 	}
 
-	*(u_int16_t *)(q->iobuf + 2) = 0;
-	QR_SET(q);				/* This is an answer */
 
 	/* Dont bother to answer more than one question at once... */
 	if(ntohs(QDCOUNT(q)) != 1) {
@@ -187,7 +186,7 @@ query_process(q, db)
 		RCODE_SET(q, RCODE_IMPL);
 #endif
 		/* Truncate the question as well... */
-		QDCOUNT(q) = 0;
+		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
 		q->iobufptr = q->iobuf + QHEADERSZ;
 
 		return 0;
@@ -218,7 +217,7 @@ query_process(q, db)
 		RCODE_SET(q, RCODE_FORMAT);
 
 		/* Truncate the question as well... */
-		QDCOUNT(q) = 0;
+		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
 		q->iobufptr = q->iobuf + QHEADERSZ;
 
 		return 0;

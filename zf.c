@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.20 2002/03/28 02:24:09 alexis Exp $
+ * $Id: zf.c,v 1.21 2002/04/23 09:48:13 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -879,14 +879,14 @@ zf_read(zf)
 			case 'l':
 				zf->line.rdata[i].l = strtottl(token, &t);
 				if(*t != 0) {
-					zf_error(zf, "illegal long");
+					zf_error(zf, "missing whitespace");
 					parse_error++;
 				}
 				break;
 			case 's':
 				zf->line.rdata[i].s = (u_int16_t)strtol(token, &t, 10);
 				if(*t != 0) {
-					zf_error(zf, "illegal short");
+					zf_error(zf, "missing whitespace");
 					parse_error++;
 				}
 				break;
