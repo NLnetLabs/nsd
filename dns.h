@@ -93,6 +93,7 @@
 #define	TYPE_MAILA	254	/* A request for mail agent RRs (Obsolete - see MX) */
 #define TYPE_ANY	255	/* any type (wildcard) */
 
-#define MAXDOMAINLEN	255
+#define	MAXLABELLEN	63
+#define	MAXDOMAINLEN	255
 
 #endif /* _DNS_H_ */
