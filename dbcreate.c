@@ -130,11 +130,11 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	if (!write_number(db, rrset->zone->number))
 		return 0;
 	
-	type = htons(rrset->rrs[0].type);
+	type = htons(rrset_rrtype(rrset));
 	if (!write_data(db->fd, &type, sizeof(type)))
 		return 0;
 
-	klass = htons(rrset->rrs[0].klass);
+	klass = htons(rrset_rrclass(rrset));
 	if (!write_data(db->fd, &klass, sizeof(klass)))
 		return 0;
 

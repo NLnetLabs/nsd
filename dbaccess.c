@@ -185,17 +185,19 @@ read_rrset(namedb_type *db,
 
 	domain_add_rrset(owner, rrset);
 
-	if (rrset->rrs[0].type == TYPE_SOA) {
+	if (rrset_rrtype(rrset) == TYPE_SOA) {
 		assert(owner == rrset->zone->apex);
 		rrset->zone->soa_rrset = rrset;
-	} else if (owner == rrset->zone->apex && rrset->rrs[0].type == TYPE_NS) {
+	} else if (owner == rrset->zone->apex
+		   && rrset_rrtype(rrset) == TYPE_NS)
+	{
 		rrset->zone->ns_rrset = rrset;
 	}
 
 #ifdef DNSSEC
-	if (rrset->rrs[0].type == TYPE_RRSIG && owner == rrset->zone->apex) {
+	if (rrset_rrtype(rrset) == TYPE_RRSIG && owner == rrset->zone->apex) {
 		for (i = 0; i < rrset->rr_count; ++i) {
-			if (rrset_rrsig_type_covered(rrset, i) == TYPE_SOA) {
+			if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_SOA) {
 				rrset->zone->is_secure = 1;
 				break;
 			}

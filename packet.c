@@ -131,12 +131,16 @@ packet_encode_rrset(query_type *query,
 	if (all_added &&
 	    query->edns.dnssec_ok &&
 	    zone_is_secure(rrset->zone) &&
-	    rrset->rrs[0].type != TYPE_RRSIG &&
+	    rrset_rrtype(rrset) != TYPE_RRSIG &&
 	    (rrsig = domain_find_rrset(owner, rrset->zone, TYPE_RRSIG)))
 	{
 		for (i = 0; i < rrsig->rr_count; ++i) {
-			if (rrset_rrsig_type_covered(rrsig, i) == rrset->rrs[0].type) {
-				if (packet_encode_rr(query, owner, &rrsig->rrs[i])) {
+			if (rr_rrsig_type_covered(&rrsig->rrs[i])
+			    == rrset_rrtype(rrset))
+			{
+				if (packet_encode_rr(query, owner,
+						     &rrsig->rrs[i]))
+				{
 					++added;
 				} else {
 					all_added = 0;

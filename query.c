@@ -445,7 +445,7 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 	assert(query);
 	assert(answer);
 	assert(master_rrset);
-	assert(rdata_atom_is_domain(master_rrset->rrs[0].type, rdata_index));
+	assert(rdata_atom_is_domain(rrset_rrtype(master_rrset), rdata_index));
 	
 	for (i = 0; i < master_rrset->rr_count; ++i) {
 		int j;
@@ -504,10 +504,10 @@ add_rrset(struct query   *query,
 	assert(answer);
 	assert(owner);
 	assert(rrset);
-	assert(rrset->rrs[0].klass == CLASS_IN);
+	assert(rrset_rrclass(rrset) == CLASS_IN);
 	
 	result = answer_add_rrset(answer, section, owner, rrset);
-	switch (rrset->rrs[0].type) {
+	switch (rrset_rrtype(rrset)) {
 	case TYPE_NS:
 		add_additional_rrsets(query, answer, rrset, 0, 1,
 				      default_additional_rr_types);
@@ -635,7 +635,7 @@ answer_domain(struct query *q, answer_type *answer,
 		for (rrset = domain_find_any_rrset(domain, q->zone); rrset; rrset = rrset->next) {
 			if (rrset->zone == q->zone
 			    && (!q->edns.dnssec_ok
-				|| rrset->rrs[0].type != TYPE_RRSIG
+				|| rrset_rrtype(rrset) != TYPE_RRSIG
 				|| !zone_is_secure(q->zone)))
 			{
 				add_rrset(q, answer, ANSWER_SECTION, domain, rrset);

@@ -131,7 +131,7 @@ zparser_conv_time(region_type *region, const char *time)
 
 	/* Try to scan the time... */
 	if (!strptime(time, "%Y%m%d%H%M%S", &tm)) {
-		zc_error_prev_line("Date and time is expected");
+		zc_error_prev_line("date and time is expected");
 	} else {
 		uint32_t l = htonl(timegm(&tm));
 		r = alloc_rdata_init(region, &l, sizeof(l));
@@ -174,7 +174,7 @@ zparser_conv_services(region_type *region, const char *protostr,
 		service = getservbyname(word, proto->p_name);
 		if (service) {
 			/* Note: ntohs not ntohl!  Strange but true.  */
-			port = ntohs((short) service->s_port);
+			port = ntohs((uint16_t) service->s_port);
 		} else {
 			char *end;
 			port = strtol(word, &end, 10);
@@ -766,8 +766,10 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 	rc = inet_pton(af, colon + 1, address);
 	if (rc == 0) {
 		zc_error("invalid address '%s'", colon + 1);
+		return NULL;
 	} else if (rc == -1) {
 		zc_error("inet_pton failed: %s", strerror(errno));
+		return NULL;
 	}
 
 	/* Strip trailing zero octets.  */
@@ -778,8 +780,10 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 	p = strtol(slash + 1, &end, 10);
 	if (p < 0 || p > maximum_prefix) {
 		zc_error("prefix not in the range 0 .. %d", maximum_prefix);
+		return NULL;
 	} else if (*end != '\0') {
 		zc_error("invalid prefix '%s'", slash + 1);
+		return NULL;
 	}
 	prefix = (uint8_t) p;
 
@@ -819,7 +823,7 @@ zparser_ttl2int(const char *ttlstr)
 
 	ttl = strtottl(ttlstr, &t);
 	if (*t != 0) {
-		zc_error_prev_line("invalid ttl value: %s",ttlstr);
+		zc_error_prev_line("invalid TTL value: %s",ttlstr);
 		ttl = -1;
 	}
     
@@ -1045,9 +1049,7 @@ process_rr()
 
 	/* Do we have this type of rrset already? */
 	rrset = domain_find_rrset(rr->owner, zone, rr->type);
-
-	/* Do we have this particular rrset? */
-	if (rrset == NULL) {
+	if (!rrset) {
 		rrset = (rrset_type *) region_alloc(parser->region,
 						    sizeof(rrset_type));
 		rrset->zone = zone;
@@ -1060,10 +1062,9 @@ process_rr()
 		/* Add it */
 		domain_add_rrset(rr->owner, rrset);
 	} else {
-		if (rrset->rrs[0].type != TYPE_RRSIG
-		    && rrset->rrs[0].ttl != rr->ttl)
-		{
-			zc_warning_prev_line("TTL doesn't match the TTL of the RRset");
+		if (rr->type != TYPE_RRSIG && rrset->rrs[0].ttl != rr->ttl) {
+			zc_warning_prev_line(
+				"TTL does not match the TTL of the RRset");
 		}
 
 		/* Search for possible duplicates... */
@@ -1087,9 +1088,7 @@ process_rr()
 	}
 
 #ifdef DNSSEC
-	if (rrset->rrs[0].type == TYPE_RRSIG
-	    && rrset_rrsig_type_covered(rrset, rrset->rr_count - 1) == TYPE_SOA)
-	{
+	if (rr->type == TYPE_RRSIG && rr_rrsig_type_covered(rr) == TYPE_SOA) {
 		rrset->zone->is_secure = 1;
 	}
 #endif
@@ -1098,14 +1097,16 @@ process_rr()
 	/* [XXX] this is dead code */
 	if (zone->soa_rrset == NULL) {
 		if (rr->type != TYPE_SOA) {
-			zc_error_prev_line("Missing SOA record on top of the zone");
+			zc_error_prev_line(
+				"missing SOA record on top of the zone");
 		} else if (rr->owner != zone->apex) {
-			zc_error_prev_line("SOA record with invalid domain name");
+			zc_error_prev_line(
+				"SOA record with invalid domain name");
 		} else {
 			zone->soa_rrset = rrset;
 		}
 	} else if (rr->type == TYPE_SOA) {
-		zc_error_prev_line("Duplicate SOA record discarded");
+		zc_error_prev_line("duplicate SOA record discarded");
 		--rrset->rr_count;
 	}
 

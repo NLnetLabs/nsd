@@ -192,10 +192,9 @@ domain_next(domain_type *domain)
 }
 
 /*
- * The type covered by the signature in the specified RR in the RRSIG
- * RRset.
+ * The type covered by the signature in the specified RRSIG RR.
  */
-uint16_t rrset_rrsig_type_covered(rrset_type *rrset, uint16_t rr);
+uint16_t rr_rrsig_type_covered(rr_type *rr);
 
 typedef struct namedb namedb_type;
 struct namedb
@@ -265,5 +264,22 @@ rdata_atom_wireformat_type(uint16_t type, size_t index)
 	assert(index < descriptor->maximum);
 	return (rdata_wireformat_type) descriptor->wireformat[index];
 }
+
+static inline uint16_t
+rrset_rrtype(rrset_type *rrset)
+{
+	assert(rrset);
+	assert(rrset->rr_count > 0);
+	return rrset->rrs[0].type;
+}
+
+static inline uint16_t
+rrset_rrclass(rrset_type *rrset)
+{
+	assert(rrset);
+	assert(rrset->rr_count > 0);
+	return rrset->rrs[0].klass;
+}
+
 
 #endif

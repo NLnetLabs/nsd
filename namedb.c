@@ -214,7 +214,7 @@ domain_find_rrset(domain_type *domain, zone_type *zone, uint16_t type)
 	rrset_type *result = domain->rrsets;
 
 	while (result) {
-		if (result->zone == zone && result->rrs[0].type == type) {
+		if (result->zone == zone && rrset_rrtype(result) == type) {
 			return result;
 		}
 		result = result->next;
@@ -242,7 +242,7 @@ domain_find_zone(domain_type *domain)
 	rrset_type *rrset;
 	while (domain) {
 		for (rrset = domain->rrsets; rrset; rrset = rrset->next) {
-			if (rrset->rrs[0].type == TYPE_SOA) {
+			if (rrset_rrtype(rrset) == TYPE_SOA) {
 				return rrset->zone;
 			}
 		}
@@ -259,7 +259,7 @@ domain_find_parent_zone(zone_type *zone)
 	assert(zone);
 
 	for (rrset = zone->apex->rrsets; rrset; rrset = rrset->next) {
-		if (rrset->zone != zone && rrset->rrs[0].type == TYPE_NS) {
+		if (rrset->zone != zone && rrset_rrtype(rrset) == TYPE_NS) {
 			return rrset->zone;
 		}
 	}
@@ -310,18 +310,13 @@ zone_is_secure(zone_type *zone)
 }
 
 uint16_t
-rrset_rrsig_type_covered(rrset_type *rrset, uint16_t rr)
+rr_rrsig_type_covered(rr_type *rr)
 {
-	rdata_atom_type atom;
+	assert(rr->type == TYPE_RRSIG);
+	assert(rr->rdata_count > 0);
+	assert(rdata_atom_size(rr->rdatas[0]) == sizeof(uint16_t));
 	
-	assert(rrset->rrs[0].type == TYPE_RRSIG);
-	assert(rr < rrset->rr_count);
-	assert(rrset->rrs[rr].rdata_count > 0);
-	
-	atom = rrset->rrs[rr].rdatas[0];
-	assert(rdata_atom_size(atom) == sizeof(uint16_t));
-	
-	return ntohs(* (uint16_t *) rdata_atom_data(atom));
+	return ntohs(* (uint16_t *) rdata_atom_data(rr->rdatas[0]));
 }
 
 zone_type *
