@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.22 2002/02/19 15:28:14 alexis Exp $
+ * $Id: nsd.h,v 1.23 2002/02/20 13:11:35 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -41,13 +41,7 @@
 #ifndef	_NSD_H_
 #define	_NSD_H_
 
-#if !defined(__P)
-#	if defined(__STDC__)
-#		define __P(protos)     protos          /* full-blown ANSI C */
-# 	else
-# 		define __P(protos)
-# 	endif
-#endif
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -78,17 +72,23 @@
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
 
-#if	DEBUG > 2
+#ifdef	DEBUG
 
+#ifndef CF_DBFILE
 #define	CF_DBFILE	"nsd.db"
+#endif
+
+#ifndef CF_PIDFILE
 #define	CF_PIDFILE	"nsd.pid"
+#endif
+
 #define	CF_TCP_MAX_CONNECTIONS	8
 #define	CF_TCP_PORT		4096
 #define	CF_TCP_MAX_MESSAGE_LEN	16384
 #define	CF_UDP_PORT		4096
 #define	CF_UDP_MAX_MESSAGE_LEN	512
 
-#else
+#else	/* DEBUG */
 
 #ifndef CF_DBFILE
 #define	CF_DBFILE	"/var/db/nsd.db"

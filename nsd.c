@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.25 2002/02/19 15:28:14 alexis Exp $
+ * $Id: nsd.c,v 1.26 2002/02/20 13:11:35 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -159,6 +159,9 @@ sig_handler(sig)
 		
 	}
 }
+
+extern char *optarg;
+extern int optind;
 
 int
 main(argc, argv)

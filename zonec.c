@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.33 2002/02/19 14:29:51 alexis Exp $
+ * $Id: zonec.c,v 1.34 2002/02/20 13:11:35 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -782,6 +782,9 @@ usage()
 	fprintf(stderr, "	use root.zone or root.cache for the root zone\n");
 	exit(1);
 }
+
+extern char *optarg;
+extern int optind;
 
 int
 main(argc, argv)

@@ -1,7 +1,7 @@
 /*
- * $Id: zonec.h,v 1.11 2002/02/20 13:11:35 alexis Exp $
+ * $Id: config.h,v 1.1 2002/02/20 13:11:35 alexis Exp $
  *
- * zone.h -- internal zone representation
+ * config.h -- nsd(8) local configuration
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -38,69 +38,26 @@
  *
  */
 
-#include "config.h"
+#ifndef	_CONFIG_H_
+#define	_CONFIG_H_
 
-#include <sys/types.h>
+#if !defined(__P)
+#	if defined(__STDC__)
+#		define __P(protos)     protos          /* full-blown ANSI C */
+# 	else
+# 		define __P(protos)
+# 	endif
+#endif
 
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <libgen.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-#include <unistd.h>
+#if defined(sun)
 
-#include "heap.h"
-#include "dns.h"
-#include "zf.h"
-#include "namedb.h"
+typedef          char  int8_t;
+typedef          short int16_t;
+typedef          int   int32_t;
+typedef unsigned char  u_int8_t;
+typedef unsigned short u_int16_t;
+typedef unsigned int   u_int32_t;
 
-#define	DEFAULT_DBFILE	"nsd.db"
+#endif
 
-struct rrset {
-	struct rrset *next;
-	u_int16_t type;
-	u_int16_t class;
-	int32_t ttl;
-	char *fmt;
-	u_int16_t rrslen;
-	int glue;
-	int color;
-	union zf_rdatom **rrs;
-};
-
-struct zone {
-	u_char *dname;
-	heap_t	*cuts;
-	heap_t	*data;
-	struct rrset *soa;
-	struct rrset *ns;
-};
-
-#define MAXRRSPP	1024
-#define	IOBUFSZ		MAXRRSPP * 64
-
-struct message {
-	u_char *bufptr;
-	u_int16_t ancount;
-	u_int16_t nscount;
-	u_int16_t arcount;
-	int dnameslen;
-	int rrsetslen;
-	int comprlen;
-	u_int16_t pointerslen;
-	u_int16_t pointers[MAXRRSPP];
-	u_int16_t rrsetsoffslen;
-	u_int16_t rrsetsoffs[MAXRRSPP];
-	struct rrset *rrsets[MAXRRSPP];
-	u_char *dnames[MAXRRSPP];
-	struct {
-		u_char *dname;
-		u_int16_t dnameoff;
-		u_char dnamelen;
-	} compr[MAXRRSPP];
-	u_char buf[IOBUFSZ];
-};
+#endif /* _CONFIG_H_ */
