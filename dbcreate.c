@@ -174,11 +174,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 		return 0;
 		
 	for (i = 0; i < rrset->rrslen; ++i) {
-		rdcount = 0;
-		for (rdcount = 0; rdcount < rrset->rrs[i]->rdata_count; ++rdcount)
-			;
-		
-		rdcount = htons(rdcount);
+		rdcount = htons(rrset->rrs[i]->rdata_count);
 		if (!write_data(db->fd, &rdcount, sizeof(rdcount)))
 			return 0;
 
