@@ -47,6 +47,10 @@ enum nsd_xfer_exit_codes
 
 struct axfr_state
 {
+	int verbose;
+	size_t packets_received;
+	size_t bytes_received;
+	
 	int s;			/* AXFR socket.  */
 	query_type *q;		/* Query buffer.  */
 	uint16_t query_id;	/* AXFR query ID.  */
@@ -130,8 +134,9 @@ usage (void)
 		"  -s serial    The current zone serial.\n"
 		"  -T tsiginfo  The TSIG key file name.  The file is removed "
 		"after reading the\n               key.\n"
-		"  -z zone      Specify the name of the zone to transfer.\n");
+		"  -v           Verbose output.\n");
 	fprintf(stderr,
+		"  -z zone      Specify the name of the zone to transfer.\n"
 		"  server       The name or IP address of the master server.\n"
 		"\nReport bugs to <%s>.\n", PACKAGE_BUGREPORT);
 	exit(XFER_FAIL);
@@ -480,28 +485,31 @@ send_query(int s, query_type *q)
 }
 
 static int
-receive_response(int s, query_type *q)
+receive_response(axfr_state_type *state)
 {
 	uint16_t size;
 	
-	buffer_clear(q->packet);
-	if (!read_socket(s, &size, sizeof(size))) {
+	buffer_clear(state->q->packet);
+	if (!read_socket(state->s, &size, sizeof(size))) {
 		error("failed to read response size: %s", strerror(errno));
 		return 0;
 	}
 	size = ntohs(size);
-	if (size > q->maxlen) {
+	if (size > state->q->maxlen) {
 		error("response size (%d) exceeds maximum (%d)",
-		      (int) size, (int) q->maxlen);
+		      (int) size, (int) state->q->maxlen);
 		return 0;
 	}
-	if (!read_socket(s, buffer_begin(q->packet), size)) {
+	if (!read_socket(state->s, buffer_begin(state->q->packet), size)) {
 		error("failed to read response data: %s", strerror(errno));
 		return 0;
 	}
 
-	buffer_set_position(q->packet, size);
+	buffer_set_position(state->q->packet, size);
 
+	++state->packets_received;
+	state->bytes_received += sizeof(size) + size;
+	
 	return 1;
 }
 
@@ -577,7 +585,7 @@ check_serial(axfr_state_type *state)
 		tsig_prepare(state->tsig);
 	}
 	
-	if (!receive_response(state->s, state->q)) {
+	if (!receive_response(state)) {
 		return -1;
 	}
 	buffer_flip(state->q->packet);
@@ -684,7 +692,7 @@ static int
 handle_axfr_response(FILE *out, axfr_state_type *axfr)
 {
 	while (!axfr->done) {
-		if (!receive_response(axfr->s, axfr->q)) {
+		if (!receive_response(axfr)) {
 			return 0;
 		}
 		buffer_flip(axfr->q->packet);
@@ -823,6 +831,16 @@ print_zone_header(FILE *out, axfr_state_type *state, const char *server)
 }
 
 static void
+print_stats(axfr_state_type *state)
+{
+	log_msg(LOG_INFO,
+		"received %lu RRs in %lu bytes (using %lu response packets)",
+		(unsigned long) state->rr_count,
+		(unsigned long) state->bytes_received,
+		(unsigned long) state->packets_received);
+}
+
+static void
 cleanup_region(void *data)
 {
 	region_type *region = (region_type *) data;
@@ -851,9 +869,12 @@ main(int argc, char *argv[])
 	q.region = region;
 	q.addrlen = sizeof(q.addr);
 	q.packet = buffer_create(region, QIOBUFSZ);
-	q.maxlen = MAX_PACKET_SIZE;
+	q.maxlen = TCP_MAX_MESSAGE_LEN;
 
 	/* Initialize the state.  */
+	state.verbose = 0;
+	state.packets_received = 0;
+	state.bytes_received = 0;
 	state.q = &q;
 	state.tsig = NULL;
 	state.zone = NULL;
@@ -875,7 +896,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46f:hp:s:T:z:")) != -1) {
+	while ((c = getopt(argc, argv, "46f:hp:s:T:vz:")) != -1) {
 		switch (c) {
 		case '4':
 			default_family = AF_INET;
@@ -908,6 +929,9 @@ main(int argc, char *argv[])
 		}
 		case 'T':
 			tsig_key_filename = optarg;
+			break;
+		case 'v':
+			++state.verbose;
 			break;
 		case 'z':
 			state.zone = dname_parse(region, optarg);
@@ -1011,6 +1035,11 @@ main(int argc, char *argv[])
 					/* AXFR succeeded, done.  */
 					fclose(zone_file);
 					close(state.s);
+
+					if (state.verbose > 0) {
+						print_stats(&state);
+					}
+					
 					exit(XFER_SUCCESS);
 				}
 			}
@@ -1021,5 +1050,7 @@ main(int argc, char *argv[])
 		freeaddrinfo(res0);
 	}
 
-	exit(0);
+	log_msg(LOG_ERR, "cannot connect to an authorative server");
+	exit(XFER_FAIL);
+		
 }
