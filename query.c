@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.60 2002/04/27 15:29:51 alexis Exp $
+ * $Id: query.c,v 1.61 2002/05/01 16:08:20 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -39,6 +39,21 @@
  */
 #include "nsd.h"
 
+
+/*
+ * Stript the packet and set format error code.
+ *
+ */
+void
+query_formerr(q)
+	struct query *q;
+{
+	RCODE_SET(q, RCODE_FORMAT);
+
+	/* Truncate the question as well... */
+	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
+	q->iobufptr = q->iobuf + QHEADERSZ;
+}
 
 void
 query_init(q)
@@ -186,12 +201,7 @@ query_process(q, db)
 
 	/* Dont bother to answer more than one question at once... */
 	if(ntohs(QDCOUNT(q)) != 1) {
-		RCODE_SET(q, RCODE_FORMAT);
-
-		/* Truncate the question as well... */
-		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-		q->iobufptr = q->iobuf + QHEADERSZ;
-
+		query_formerr(q);
 		return 0;
 	}
 
@@ -203,7 +213,8 @@ query_process(q, db)
 		/*  If we are out of buffer limits or we have a pointer in question dname or the domain name is longer than MAXDOMAINLEN ... */
 		if((qptr + *qptr > q->iobufptr) || (*qptr & 0xc0) ||
 			((qptr - q->iobuf + *qptr) > MAXDOMAINLEN)) {
-			RCODE_SET(q, RCODE_FORMAT);
+
+			query_formerr(q);
 			return 0;
 		}
 		qdepth++;
@@ -215,14 +226,10 @@ query_process(q, db)
 	*qnamelow++ = *qptr++;
 	qnamelow = qnamebuf + 3;
 
-	/* Make sure name is not too long... */
-	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q)) {
-		RCODE_SET(q, RCODE_FORMAT);
-
-		/* Truncate the question as well... */
-		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-		q->iobufptr = q->iobuf + QHEADERSZ;
-
+	/* Make sure name is not too long or we have stripped packet... */
+	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q) ||
+		(qptr + 4 > q->iobufptr)) {
+		query_formerr(q);
 		return 0;
 	}
 
@@ -231,7 +238,7 @@ query_process(q, db)
 
 	/* Dont allow any records in the answer or authority section... */
 	if(ANCOUNT(q) != 0 || NSCOUNT(q) != 0) {
-		RCODE_SET(q, RCODE_FORMAT);
+		query_formerr(q);
 		return 0;
 	}
 
@@ -239,20 +246,20 @@ query_process(q, db)
 	if(ARCOUNT(q) > 0) {
 		/* Only one opt is allowed... */
 		if(ntohs(ARCOUNT(q)) != 1) {
-			RCODE_SET(q, RCODE_FORMAT);
+			query_formerr(q);
 			return 0;
 		}
 
 		/* Must have root owner name... */
 		if(*qptr != 0) {
-			RCODE_SET(q, RCODE_FORMAT);
+			query_formerr(q);
 			return 0;
 		}
 
 		/* Must be of the type OPT... */
 		bcopy(qptr + 1, &opt_type, 2);
 		if(ntohs(opt_type) != TYPE_OPT) {
-			RCODE_SET(q, RCODE_FORMAT);
+			query_formerr(q);
 			return 0;
 		}
 
@@ -289,7 +296,7 @@ query_process(q, db)
 #ifdef	STRICT_MESSAGE_PARSE
 		/* Trailing garbage? */
 		if((qptr + OPT_LEN) != q->iobufptr) {
-			RCODE_SET(q, RCODE_FORMAT);
+			query_formerr(q);
 			return 0;
 		}
 #endif
@@ -303,7 +310,7 @@ query_process(q, db)
 	if(qptr != q->iobufptr) {
 #ifdef	STRICT_MESSAGE_PARSE
 		/* If we're strict.... */
-		RCODE_SET(q, RCODE_FORMAT);
+		query_formerr(q);
 		return 0;
 #else
 		/* Otherwise, strip it... */
