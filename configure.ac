@@ -235,7 +235,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy mmap pselect socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy mmap socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
 
 #
 # Checking for missing functions we can replace
@@ -246,6 +246,7 @@ AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(timegm)
+AC_REPLACE_FUNCS(pselect)
 
 dnl
 dnl Check for libwrap

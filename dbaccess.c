@@ -129,7 +129,7 @@ namedb_open (const char *filename)
 #ifndef MAP_NORESERVE
 # define MAP_NORESERVE 0
 #endif
-	db->mpool = mmap(NULL, db->mpoolsz, PROT_READ, MAP_SHARED | MAP_NORESERVE, db->fd, 0);
+	db->mpool = mmap(NULL, db->mpoolsz, PROT_READ, MAP_SHARED | MAP_NORESERVE, fileno(db->fd), 0);
 	if (db->mpool == MAP_FAILED) {
 		log_msg(LOG_ERR, "mmap failed: %s", strerror(errno));
 		fclose(db->fd);

@@ -206,6 +206,9 @@ timegm.o:	compat/timegm.c
 malloc.o:	compat/malloc.c
 	$(COMPILE) -c compat/malloc.c -o malloc.o
 
+pselect.o:	compat/pselect.c
+	$(COMPILE) -c compat/pselect.c -o pselect.o
+
 zlparser.c:	zlparser.lex
 	$(LEX) -i -o$@ zlparser.lex
 

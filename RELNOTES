@@ -13,7 +13,9 @@ FEATURES:
 
         - Region based memory allocation and resource management.
 
-        - New name lookup algorithm.
+        - New name lookup algorithm.  This required a change to the
+          database format.  Performance should increase at the expense
+          of database size and memory usage.
 
 1.2.2
 =============
