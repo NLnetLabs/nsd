@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.10 2002/01/17 13:38:46 alexis Exp $
+ * $Id: query.c,v 1.11 2002/01/23 16:15:03 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -99,7 +99,7 @@ query_addanswer(q, dname, a)
 	u_short pointer;
 	u_short *ptrs;
 	u_short *rrs;
-	int j;
+	int  i, j;
 
 	/* The size of the data */
 	size_t datasize = a->size - ((a->ptrlen + a->rrslen + 6) * sizeof(u_short) + sizeof(size_t));
@@ -126,17 +126,34 @@ query_addanswer(q, dname, a)
 
 	/* Truncate if necessary */
 	if(q->maxlen < (q->iobufptr - q->iobuf + datasize)) {
-		TC_SET(q);
 		rrs = &a->rrslen + a->ptrlen + 1;
 
-		for(j = a->rrslen - 1; j > 0; j--) {
+		/* Start with the additional section, record by record... */
+		for(i = ntohs(a->arcount) - 1, j = a->rrslen - 1; i > 0 && j > 0; j--, i--) {
 			if(q->maxlen >= (q->iobufptr - q->iobuf + rrs[j-1])) {
+				ARCOUNT(q) = htons(i-1);
 				q->iobufptr += rrs[j-1];
-				break;
+				return;
 			}
 		}
+
+		ARCOUNT(q) = htons(0);
+		TC_SET(q);
+
+		if(q->maxlen >= (q->iobufptr - q->iobuf + rrs[j - ntohs(a->nscount) - 1])) {
+			/* Truncate the athority section */
+			NSCOUNT(q) = htons(0);
+			q->iobufptr += rrs[j - ntohs(a->nscount) ];
+			return;
+		}
+
+		/* Send empty message */
+		NSCOUNT(q) = 0;
+		ANCOUNT(q) = 0;
+		return;
+	} else {
+		q->iobufptr += datasize;
 	}
-	q->iobufptr += datasize;
 }
 
 

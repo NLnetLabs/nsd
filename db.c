@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.12 2002/01/11 13:54:34 alexis Exp $
+ * $Id: db.c,v 1.13 2002/01/23 16:15:03 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -53,10 +53,10 @@
 #include <arpa/inet.h>
 
 #include <db.h>
-#include "heap.h"
 #include "dns.h"
 #include "nsd.h"
 #include "db.h"
+#include "heap.h"
 #include "zone.h"
 
 
