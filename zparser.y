@@ -81,18 +81,21 @@ line:   NL
     |   rr
     {   /* rr should be fully parsed */
         /*zprintrr(stderr, current_rr); DEBUG */
-	    current_rr->zone = current_parser->current_zone;
-	    current_rr->rrdata = region_alloc_init(
-		    zone_region,
-		    current_rr->rrdata,
-		    rrdata_size(current_parser->_rc));
+	    if (current_rr->type != 0) {
+		    current_rr->zone = current_parser->current_zone;
+		    current_rr->rrdata = region_alloc_init(
+			    zone_region,
+			    current_rr->rrdata,
+			    rrdata_size(current_parser->_rc));
 
-	    process_rr(current_parser, current_rr);
+		    process_rr(current_parser, current_rr);
 
-	    region_free_all(rr_region);
-	    
-	    current_rr->rrdata = temporary_rrdata;
-	    current_parser->_rc = 0;
+		    region_free_all(rr_region);
+
+		    current_rr->type = 0;
+		    current_rr->rrdata = temporary_rrdata;
+		    current_parser->_rc = 0;
+	    }
     }
     ;
 
@@ -346,7 +349,8 @@ rtype:
     | RP sp rdata_rp
     { current_rr->type = $1; }
     | error NL
-    {	
+    {
+	    current_rr->type = 0;
 	    warning("Unimplemented RR seen");
     }
     ;

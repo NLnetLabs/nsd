@@ -1033,6 +1033,7 @@ zone_read (char *name, char *zonefile)
 	/* Parse and process all RRs.  */
 	/* reset the nsecbits to zero */
 	memset(nsecbits, 0 , 8192);
+	current_rr->type = 0;
 	yyparse();
 
 	fflush(stdout);
