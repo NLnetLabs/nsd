@@ -22,10 +22,12 @@
 #define	NSD_STATS 3
 #define	NSD_QUIT 4
 
-#define NSD_SERVER_MAIN 0x0U
-#define NSD_SERVER_UDP  0x1U
-#define NSD_SERVER_TCP  0x2U
-#define NSD_SERVER_BOTH (NSD_SERVER_UDP | NSD_SERVER_TCP)
+enum nsd_server_kind
+{
+	NSD_SERVER_KIND_MAIN,
+	NSD_SERVER_KIND_CHILD
+};
+typedef enum nsd_server_kind nsd_server_kind_type;
 
 #ifdef INET6
 #define DEFAULT_AI_FAMILY AF_UNSPEC
@@ -60,13 +62,13 @@ typedef	unsigned long stc_t;
 
 #endif /* BIND8_STATS */
 
-struct nsd_socket2
+struct nsd_socket
 {
 	nsd_socket_kind_type    kind;
 	struct addrinfo	*	addr;
 	int			s;
 };
-typedef struct nsd_socket2 nsd_socket_type;
+typedef struct nsd_socket nsd_socket_type;
 
 struct nsd_child
 {
@@ -89,7 +91,7 @@ struct	nsd
 	/* Run-time variables */
 	pid_t		pid;
 	volatile sig_atomic_t mode;
-	unsigned        server_kind;
+	nsd_server_kind_type server_kind;
 	struct namedb	*db;
 	int		debug;
 
@@ -106,13 +108,9 @@ struct	nsd
 	uid_t	uid;
 	gid_t	gid;
 
-	size_t	ifs;
-
-	/* TCP specific configuration */
-	nsd_socket_type tcp[MAX_INTERFACES];
-
-	/* UDP specific configuration */
-	nsd_socket_type udp[MAX_INTERFACES];
+	/* All sockets that NSD is using for incoming data.  */
+	size_t           socket_count;
+	nsd_socket_type *sockets;
 
 	edns_data_type edns_ipv4;
 #if defined(INET6)

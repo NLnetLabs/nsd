@@ -50,6 +50,7 @@ load_configuration(region_type *region, const char *filename)
 	xmlDocPtr options_doc = NULL;
 	xmlXPathContextPtr xpath_context = NULL;
 	xmlXPathObjectPtr listen_on_addresses = NULL;
+	xmlXPathObjectPtr controls_addresses = NULL;
 	nsd_options_type *options = NULL;
 
 	assert(filename);
@@ -110,8 +111,10 @@ load_configuration(region_type *region, const char *filename)
 		xpath_context,
 		"/nsd/options/maximum-tcp-connection-count/text()",
 		10);
-
-	options->listen_on = NULL; /* TODO */
+	options->listen_on_count = 0;
+	options->listen_on = NULL;
+	options->controls_count = 0;
+	options->controls = NULL;
 
 	listen_on_addresses = xmlXPathEvalExpression(
 		(const xmlChar *) "/nsd/options/listen-on/*",
@@ -137,7 +140,32 @@ load_configuration(region_type *region, const char *filename)
 		}
 	}
 
+	controls_addresses = xmlXPathEvalExpression(
+		(const xmlChar *) "/nsd/options/controls/*",
+		xpath_context);
+	if (!controls_addresses) {
+		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
+			"/nsd/options/controls/*");
+		goto exit;
+	} else if (controls_addresses->nodesetval) {
+		int i;
+
+		assert(controls_addresses->type == XPATH_NODESET);
+
+		options->controls_count
+			= controls_addresses->nodesetval->nodeNr;
+		options->controls = region_alloc(
+			region,	(options->controls_count
+				 * sizeof(nsd_options_address_type *)));
+		for (i = 0; i < controls_addresses->nodesetval->nodeNr; ++i) {
+			options->controls[i] = parse_address(
+				region,
+				controls_addresses->nodesetval->nodeTab[i]);
+		}
+	}
+
 exit:
+	xmlXPathFreeObject(controls_addresses);
 	xmlXPathFreeObject(listen_on_addresses);
 	xmlXPathFreeContext(xpath_context);
 	xmlFreeDoc(schema_doc);
@@ -284,10 +312,6 @@ parse_address(region_type *region, xmlNodePtr address_node)
 		goto exit;
 	}
 
-	if (!port) {
-		port = DEFAULT_PORT;
-	}
-
 	if (family_text) {
 		if (strcasecmp(family_text, "ipv4") == 0) {
 			family = AF_INET;
@@ -304,7 +328,7 @@ parse_address(region_type *region, xmlNodePtr address_node)
 
 	result = region_alloc(region, sizeof(nsd_options_address_type));
 	result->family = family;
-	result->port = port;
+	result->port = region_strdup(region, port);
 	result->address = region_strdup(
 		region,	(const char *) address_node->children->content);
 
@@ -312,3 +336,17 @@ exit:
 	return result;
 }
 
+
+nsd_options_address_type *
+options_address_make(region_type *region,
+		     int family,
+		     const char *port,
+		     const char *address)
+{
+	nsd_options_address_type *result
+		= region_alloc(region, sizeof(nsd_options_address_type));
+	result->family = family;
+	result->port = region_strdup(region, port);
+	result->address = region_strdup(region, address);
+	return result;
+}

@@ -254,16 +254,33 @@ server_init(struct nsd *nsd)
 	/* UDP */
 
 	/* Make a socket... */
-	for (i = 0; i < nsd->ifs; i++) {
-		if ((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
-			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+	for (i = 0; i < nsd->socket_count; ++i) {
+		nsd->sockets[i].s = socket(nsd->sockets[i].addr->ai_family,
+					   nsd->sockets[i].addr->ai_socktype,
+					   0);
+		if (nsd->sockets[i].s == -1) {
+			log_msg(LOG_ERR, "can't create a socket: %s",
+				strerror(errno));
 			return -1;
 		}
 
-#if defined(INET6)
-		if (nsd->udp[i].addr->ai_family == AF_INET6) {
-# if defined(IPV6_V6ONLY)
-			if (setsockopt(nsd->udp[i].s,
+#ifdef SO_REUSEADDR
+		if (nsd->sockets[i].kind != NSD_SOCKET_KIND_UDP
+		    && setsockopt(nsd->sockets[i].s,
+				  SOL_SOCKET, SO_REUSEADDR,
+				  &on, sizeof(on)) < 0)
+		{
+			log_msg(LOG_ERR,
+				"setsockopt(..., SO_REUSEADDR, ...) failed: %s",
+				strerror(errno));
+			return -1;
+		}
+#endif /* SO_REUSEADDR */
+
+#ifdef INET6
+		if (nsd->sockets[i].addr->ai_family == AF_INET6) {
+# ifdef IPV6_V6ONLY
+			if (setsockopt(nsd->sockets[i].s,
 				       IPPROTO_IPV6, IPV6_V6ONLY,
 				       &on, sizeof(on)) < 0)
 			{
@@ -271,68 +288,46 @@ server_init(struct nsd *nsd)
 					strerror(errno));
 				return -1;
 			}
-# endif
-# if defined(IPV6_USE_MIN_MTU)
-			/*
-			 * There is no fragmentation of IPv6 datagrams
-			 * during forwarding in the network. Therefore
-			 * we do not send UDP datagrams larger than
-			 * the minimum IPv6 MTU of 1280 octets. The
-			 * EDNS0 message length can be larger if the
-			 * network stack supports IPV6_USE_MIN_MTU.
-			 */
-			if (setsockopt(nsd->udp[i].s,
-				       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
-				       &on, sizeof(on)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s",
-					strerror(errno));
-				return -1;
+# endif	/* IPV6_V6ONLY */
+# ifdef IPV6_USE_MIN_MTU
+			if (nsd->sockets[i].kind == NSD_SOCKET_KIND_UDP) {
+				/*
+				 * There is no fragmentation of IPv6
+				 * datagrams during forwarding in the
+				 * network. Therefore we do not send
+				 * UDP datagrams larger than the
+				 * minimum IPv6 MTU of 1280
+				 * octets. The EDNS0 message length
+				 * can be larger if the network stack
+				 * supports IPV6_USE_MIN_MTU.
+				 */
+				if (setsockopt(nsd->sockets[i].s,
+					       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
+					       &on, sizeof(on)) < 0)
+				{
+					log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s",
+						strerror(errno));
+					return -1;
+				}
 			}
-# endif
+# endif	/* IPV6_USE_MIN_MTU */
 		}
-#endif
+#endif /* INET6 */
 
 		/* Bind it... */
-		if (bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
-			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
-			return -1;
-		}
-	}
-
-	/* TCP */
-
-	/* Make a socket... */
-	for (i = 0; i < nsd->ifs; i++) {
-		if ((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
-			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
-			return -1;
-		}
-
-#ifdef	SO_REUSEADDR
-		if (setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
-			return -1;
-		}
-#endif /* SO_REUSEADDR */
-
-#if defined(INET6) && defined(IPV6_V6ONLY)
-		if (nsd->tcp[i].addr->ai_family == AF_INET6 &&
-		    setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
+		if (bind(nsd->sockets[i].s,
+			 (struct sockaddr *) nsd->sockets[i].addr->ai_addr,
+			 nsd->sockets[i].addr->ai_addrlen) != 0)
 		{
-			log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
-			return -1;
-		}
-#endif
-
-		/* Bind it... */
-		if (bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
 			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
 			return -1;
 		}
 
-		/* Listen to it... */
-		if (listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
+
+		/* Listen on non-UDP sockets... */
+		if (nsd->sockets[i].kind != NSD_SOCKET_KIND_UDP
+		    && listen(nsd->sockets[i].s, TCP_BACKLOG) == -1)
+		{
 			log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 			return -1;
 		}
@@ -414,8 +409,7 @@ close_all_sockets(nsd_socket_type sockets[], size_t n)
 static void
 server_shutdown(nsd_type *nsd)
 {
-	close_all_sockets(nsd->udp, nsd->ifs);
-	close_all_sockets(nsd->tcp, nsd->ifs);
+	close_all_sockets(nsd->sockets, nsd->socket_count);
 
 	exit(0);
 }
@@ -433,7 +427,7 @@ server_main(struct nsd *nsd)
 	pid_t reload_pid = -1;
 	sig_atomic_t mode;
 
-	assert(nsd->server_kind == NSD_SERVER_MAIN);
+	assert(nsd->server_kind == NSD_SERVER_KIND_MAIN);
 
 	if (server_start_children(nsd) != 0) {
 		kill(nsd->pid, SIGTERM);
@@ -603,20 +597,31 @@ server_child(struct nsd *nsd)
 	size_t i;
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
+	size_t tcp_socket_count;
+	size_t tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
 	sig_atomic_t mode;
 
-	assert(nsd->server_kind != NSD_SERVER_MAIN);
+	assert(nsd->server_kind == NSD_SERVER_KIND_CHILD);
 
-	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
-		close_all_sockets(nsd->tcp, nsd->ifs);
-	}
-	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
-		close_all_sockets(nsd->udp, nsd->ifs);
+	tcp_socket_count = 0;
+	for (i = 0; i < nsd->socket_count; ++i) {
+		if (nsd->sockets[i].kind != NSD_SOCKET_KIND_UDP) {
+			++tcp_socket_count;
+		}
 	}
 
-	if (nsd->server_kind & NSD_SERVER_UDP) {
-		for (i = 0; i < nsd->ifs; ++i) {
+	/*
+	 * Keep track of all the TCP accept handlers so we can enable
+	 * and disable them based on the current number of active TCP
+	 * connections.
+	 */
+	tcp_accept_handler_count = 0;
+	tcp_accept_handlers = (netio_handler_type *) region_alloc(
+		server_region, tcp_socket_count * sizeof(netio_handler_type));
+
+	for (i = 0; i < nsd->socket_count; ++i) {
+		if (nsd->sockets[i].kind == NSD_SOCKET_KIND_UDP) {
 			struct udp_handler_data *data;
 			netio_handler_type *handler;
 
@@ -626,28 +631,17 @@ server_child(struct nsd *nsd)
 			data->query = query_create(
 				server_region, compressed_dname_offsets);
 			data->nsd = nsd;
-			data->socket = &nsd->udp[i];
+			data->socket = &nsd->sockets[i];
 
 			handler = (netio_handler_type *) region_alloc(
 				server_region, sizeof(netio_handler_type));
-			handler->fd = nsd->udp[i].s;
+			handler->fd = nsd->sockets[i].s;
 			handler->timeout = NULL;
 			handler->user_data = data;
 			handler->event_types = NETIO_EVENT_READ;
 			handler->event_handler = handle_udp;
 			netio_add_handler(netio, handler);
-		}
-	}
-
-	/*
-	 * Keep track of all the TCP accept handlers so we can enable
-	 * and disable them based on the current number of active TCP
-	 * connections.
-	 */
-	tcp_accept_handlers = (netio_handler_type *) region_alloc(
-		server_region, nsd->ifs * sizeof(netio_handler_type));
-	if (nsd->server_kind & NSD_SERVER_TCP) {
-		for (i = 0; i < nsd->ifs; ++i) {
+		} else {
 			struct tcp_accept_handler_data *data;
 			netio_handler_type *handler;
 
@@ -655,19 +649,22 @@ server_child(struct nsd *nsd)
 				server_region,
 				sizeof(struct tcp_accept_handler_data));
 			data->nsd = nsd;
-			data->socket = &nsd->tcp[i];
-			data->tcp_accept_handler_count = nsd->ifs;
+			data->socket = &nsd->sockets[i];
+			data->tcp_accept_handler_count = tcp_socket_count;
 			data->tcp_accept_handlers = tcp_accept_handlers;
 
-			handler = &tcp_accept_handlers[i];
-			handler->fd = nsd->tcp[i].s;
+			handler = &tcp_accept_handlers[tcp_accept_handler_count];
+			handler->fd = nsd->sockets[i].s;
 			handler->timeout = NULL;
 			handler->user_data = data;
 			handler->event_types = NETIO_EVENT_READ;
 			handler->event_handler = handle_tcp_accept;
 			netio_add_handler(netio, handler);
+			++tcp_accept_handler_count;
 		}
 	}
+
+	assert(tcp_socket_count == tcp_accept_handler_count);
 
 	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {

@@ -35,6 +35,9 @@ struct nsd_options {
 
 	size_t listen_on_count;
 	nsd_options_address_type **listen_on;
+
+	size_t controls_count;
+	nsd_options_address_type **controls;
 };
 typedef struct nsd_options nsd_options_type;
 
@@ -42,5 +45,10 @@ typedef struct nsd_options nsd_options_type;
  * Load the NSD configuration from FILENAME.
  */
 nsd_options_type *load_configuration(region_type *region, const char *filename);
+
+nsd_options_address_type *options_address_make(region_type *region,
+					       int family,
+					       const char *port,
+					       const char *address);
 
 #endif /* _OPTIONS_H_ */

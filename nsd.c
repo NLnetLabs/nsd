@@ -52,16 +52,11 @@ usage (void)
 	fprintf(stderr, "Name Server Daemon.\n\n");
 	fprintf(stderr,
 		"Supported options:\n"
-		"  -4              Only listen to IPv4 connections.\n"
-		"  -6              Only listen to IPv6 connections.\n"
-		"  -a ip-address   Listen to the specified incoming IP address (may be\n"
-		"                  specified multiple times).\n"
+		"  -c config-file  Specify the location of the configuration file.\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
-		"  -f config-file  Specify the location of the configuration file.\n"
 		"  -h              Print this help information.\n"
 		);
 	fprintf(stderr,
-		"  -p port         Specify the port to listen to.\n"
 		"  -v              Print version information.\n"
 		"  -X plugin       Load a plugin (may be specified multiple times).\n\n"
 		);
@@ -160,7 +155,7 @@ sig_handler (int sig)
 	size_t i;
 
 	/* Are we a child server? */
-	if (nsd.server_kind != NSD_SERVER_MAIN) {
+	if (nsd.server_kind != NSD_SERVER_KIND_MAIN) {
 		switch (sig) {
 		case SIGCHLD:
 			/* Plugins may fork, reap all terminated children.  */
@@ -305,7 +300,7 @@ bind8_stats (struct nsd *nsd)
 
 	/* XSTATS */
 	/* Only print it if we're in the main daemon or have anything to report... */
-	if (nsd->server_kind == NSD_SERVER_MAIN
+	if (nsd->server_kind == NSD_SERVER_KIND_MAIN
 	    || nsd->st.dropped || nsd->st.raxfr || (nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped)
 	    || nsd->st.txerr || nsd->st.opcode[OPCODE_QUERY] || nsd->st.opcode[OPCODE_IQUERY]
 	    || nsd->st.wrongzone || nsd->st.ctcp + nsd->st.ctcp6 || nsd->st.rcode[RCODE_SERVFAIL]
@@ -345,9 +340,7 @@ main (int argc, char *argv[])
 	struct sigaction action;
 
 	/* For initialising the address info structures */
-	struct addrinfo hints[MAX_INTERFACES];
-	const char *nodes[MAX_INTERFACES];
-	const char *port;
+	nsd_socket_type *current_socket;
 
 #ifdef PLUGINS
 	nsd_plugin_id_type plugin_count = 0;
@@ -360,17 +353,7 @@ main (int argc, char *argv[])
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.region      = region_create(xalloc, free);
-	nsd.server_kind = NSD_SERVER_MAIN;
-
-	/* Initialise the port */
-	port = DEFAULT_PORT;
-
-	for (i = 0; i < MAX_INTERFACES; i++) {
-		memset(&hints[i], 0, sizeof(hints[i]));
-		hints[i].ai_family = DEFAULT_AI_FAMILY;
-		hints[i].ai_flags = AI_PASSIVE;
-		nodes[i] = NULL;
-	}
+	nsd.server_kind = NSD_SERVER_KIND_MAIN;
 
 	nsd.options_file = CONFIGFILE;
 	nsd.options      = NULL;
@@ -387,30 +370,8 @@ main (int argc, char *argv[])
 #endif
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:c:dhp:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "c:dhX:vF:L:")) != -1) {
 		switch (c) {
-		case '4':
-			for (i = 0; i < MAX_INTERFACES; ++i) {
-				hints[i].ai_family = AF_INET;
-			}
-			break;
-		case '6':
-#ifdef INET6
-			for (i = 0; i < MAX_INTERFACES; ++i) {
-				hints[i].ai_family = AF_INET6;
-			}
-#else /* !INET6 */
-			error("IPv6 support not enabled.");
-#endif /* !INET6 */
-			break;
-		case 'a':
-			if (nsd.ifs < MAX_INTERFACES) {
-				nodes[nsd.ifs] = optarg;
-				++nsd.ifs;
-			} else {
-				error("too many interfaces ('-a') specified");
-			}
-			break;
 		case 'c':
 			nsd.options_file = optarg;
 			break;
@@ -419,9 +380,6 @@ main (int argc, char *argv[])
 			break;
 		case 'h':
 			usage();
-			break;
-		case 'p':
-			port = optarg;
 			break;
 		case 'X':
 #ifdef PLUGINS
@@ -510,12 +468,11 @@ main (int argc, char *argv[])
 		nsd.region,
 		nsd.options->server_count * sizeof(struct nsd_child));
 	for (i = 0; i < nsd.options->server_count; ++i) {
-		nsd.children[i].kind = NSD_SERVER_BOTH;
+		nsd.children[i].kind = NSD_SERVER_KIND_CHILD;
 	}
 
 	/* We need at least one active interface */
-	if (nsd.ifs == 0) {
-		nsd.ifs = 1;
+	if (nsd.options->listen_on_count == 0) {
 
 		/*
 		 * With IPv6 we'd like to open two separate sockets,
@@ -530,35 +487,103 @@ main (int argc, char *argv[])
 		 * automatically mapped to our IPv6 socket.
 		 */
 #ifdef INET6
-		if (hints[i].ai_family == AF_UNSPEC) {
 # ifdef IPV6_V6ONLY
-			hints[0].ai_family = AF_INET6;
-			hints[1].ai_family = AF_INET;
-			nsd.ifs = 2;
+		nsd.options->listen_on_count = 2;
+		nsd.options->listen_on = region_alloc(
+			nsd.region, 2 * sizeof(nsd_options_address_type *));
+		nsd.options->listen_on[0] = options_address_make(
+			nsd.region, AF_INET6, DEFAULT_DNS_PORT, NULL);
+		nsd.options->listen_on[1] = options_address_make(
+			nsd.region, AF_INET, DEFAULT_DNS_PORT, NULL);
 # else /* !IPV6_V6ONLY */
-			hints[0].ai_family = AF_INET6;
+		nsd.options->listen_on_count = 1;
+		nsd.options->listen_on = region_alloc(
+			nsd.region, 1 * sizeof(nsd_options_address_type *));
+		nsd.options->listen_on[0] = options_address_make(
+			AF_INET6, DEFAULT_DNS_PORT, NULL);
 # endif	/* !IPV6_V6ONLY */
-		}
-#endif /* INET6 */
+#else /* !INET6 */
+		nsd.options->listen_on_count = 1;
+		nsd.options->listen_on = region_alloc(
+			nsd.region, 1 * sizeof(nsd_options_address_type *));
+		nsd.options->listen_on[0] = options_address_make(
+			AF_INET, DEFAULT_PORT, NULL);
+#endif /* !INET6 */
 	}
 
+	/* TODO: defaults for controls port */
+	nsd.socket_count = (2 * nsd.options->listen_on_count
+			    + nsd.options->controls_count);
+	nsd.sockets = region_alloc(nsd.region,
+				   nsd.socket_count * sizeof(nsd_socket_type));
+	current_socket = &nsd.sockets[0];
+
 	/* Set up the address info structures with real interface/port data */
-	for (i = 0; i < nsd.ifs; ++i) {
-		/* We don't perform name-lookups */
-		if (nodes[i] != NULL)
-			hints[i].ai_flags |= AI_NUMERICHOST;
+	for (i = 0; i < nsd.options->listen_on_count; ++i) {
+		nsd_options_address_type *listen_on = nsd.options->listen_on[i];
+		struct addrinfo hints;
 
-		hints[i].ai_socktype = SOCK_DGRAM;
-		nsd.udp[i].kind = NSD_SOCKET_KIND_UDP;
-		if (getaddrinfo(nodes[i], port, &hints[i], &nsd.udp[i].addr) != 0) {
-			error("cannot parse address '%s'", nodes[i]);
+		if (!listen_on->port) {
+			listen_on->port = DEFAULT_DNS_PORT;
 		}
 
-		hints[i].ai_socktype = SOCK_STREAM;
-		nsd.tcp[i].kind = NSD_SOCKET_KIND_TCP;
-		if (getaddrinfo(nodes[i], port, &hints[i], &nsd.tcp[i].addr) != 0) {
-			error("cannot parse address '%s'", nodes[i]);
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = listen_on->family;
+		if (listen_on->address) {
+			hints.ai_flags = AI_NUMERICHOST;
+		} else {
+			hints.ai_flags = AI_PASSIVE;
 		}
+
+		hints.ai_socktype = SOCK_DGRAM;
+		current_socket->kind = NSD_SOCKET_KIND_UDP;
+		if (getaddrinfo(listen_on->address,
+				listen_on->port,
+				&hints,
+				&current_socket->addr) != 0)
+		{
+			error("cannot parse address '%s'", listen_on->address);
+		}
+		++current_socket;
+
+		hints.ai_socktype = SOCK_STREAM;
+		current_socket->kind = NSD_SOCKET_KIND_TCP;
+		if (getaddrinfo(listen_on->address,
+				listen_on->port,
+				&hints,
+				&current_socket->addr) != 0)
+		{
+			error("cannot parse address '%s'", listen_on->address);
+		}
+		++current_socket;
+	}
+
+	for (i = 0; i < nsd.options->controls_count; ++i) {
+		nsd_options_address_type *controls = nsd.options->controls[i];
+		struct addrinfo hints;
+
+		if (!controls->port) {
+			controls->port = DEFAULT_CONTROL_PORT;
+		}
+
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = controls->family;
+		if (controls->address) {
+			hints.ai_flags = AI_NUMERICHOST;
+		} else {
+			hints.ai_flags = AI_PASSIVE;
+		}
+
+		hints.ai_socktype = SOCK_STREAM;
+		current_socket->kind = NSD_SOCKET_KIND_NSDC;
+		if (getaddrinfo(controls->address,
+				controls->port,
+				&hints,
+				&current_socket->addr) != 0)
+		{
+			error("cannot parse address '%s'", controls->address);
+		}
+		++current_socket;
 	}
 
 	/* Parse the username into uid and gid */
@@ -649,7 +674,7 @@ main (int argc, char *argv[])
 
 	/* Unless we're debugging, fork... */
 	if (nsd.debug) {
-		nsd.server_kind = NSD_SERVER_BOTH;
+		nsd.server_kind = NSD_SERVER_KIND_CHILD;
 	} else {
 		int fd;
 
@@ -734,10 +759,13 @@ main (int argc, char *argv[])
 
 	log_msg(LOG_NOTICE, "nsd started, pid %d", (int) nsd.pid);
 
-	if (nsd.server_kind == NSD_SERVER_MAIN) {
+	switch (nsd.server_kind) {
+	case NSD_SERVER_KIND_MAIN:
 		server_main(&nsd);
-	} else {
+		break;
+	case NSD_SERVER_KIND_CHILD:
 		server_child(&nsd);
+		break;
 	}
 
 	/* NOTREACH */

@@ -10,8 +10,6 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
-/* the port where NSD listen for control messages */
-#define DEFAULT_CONTROL_PORT	"853"
 #define DEFAULT_CONTROL_TTL	0
 #define DEFAULT_CONTROL_HOST	"localhost"
 
@@ -41,10 +39,10 @@ void warning(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 void
 error(int exitcode, const char *format, ...);
 
-/*              
+/*
  * Read SIZE bytes from the socket into BUF.  Keep reading unless an
  * error occurs (except for EAGAIN) or EOF is reached.
- */             
+ */
 int read_socket(int s, void *buf, size_t size);
 
 /*

@@ -82,6 +82,13 @@
             </oneOrMore>
           </element>
         </optional>
+        <optional>
+          <element name="controls">
+            <zeroOrMore>
+              <ref name="address"/>
+            </zeroOrMore>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>

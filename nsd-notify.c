@@ -44,7 +44,7 @@ main (int argc, char *argv[])
 	struct addrinfo hints, *res0, *res;
 	int error;
 	int default_family = DEFAULT_AI_FAMILY;
-	const char *port = DEFAULT_PORT;
+	const char *port = DEFAULT_DNS_PORT;
 	region_type *region = region_create(xalloc, free);
 
 	log_init("nsd-notify");

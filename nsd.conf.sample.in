@@ -8,6 +8,11 @@
     <pid-file>@pidfile@</pid-file>
     <server-count>1</server-count>
     <maximum-tcp-connection-count>10</maximum-tcp-connection-count>
+    <controls>
+      <!-- TODO: access control -->
+      <address port="853">127.0.0.1</address>
+      <address port="853">::1</address>
+    </controls>
   </options>
 
   <zone name="sample.">

@@ -49,6 +49,9 @@ static void answer_authoritative(struct query     *q,
 				 domain_type      *closest_match,
 				 domain_type      *closest_encloser);
 
+static query_state_type process_control_command(nsd_type *nsd,
+						query_type *query);
+
 void
 query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 {
@@ -971,6 +974,10 @@ query_process(query_type *q, nsd_type *nsd)
 
 	query_prepare_response(q);
 
+	if (q->socket->kind == NSD_SOCKET_KIND_NSDC) {
+		return process_control_command(nsd, q);
+	}
+
 	if (q->qclass != CLASS_IN && q->qclass != CLASS_ANY) {
 		if (q->qclass == CLASS_CH) {
 			return answer_chaos(nsd, q);
@@ -1014,4 +1021,22 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		STATUP(nsd, ednserr);
 		break;
 	}
+}
+
+/*
+ * TODO: Should be moved somewhere else.
+ */
+static query_state_type
+process_control_command(nsd_type *nsd,
+			query_type *query)
+{
+	if (query->qclass != CLASS_CH) {
+		RCODE_SET(query->packet, RCODE_REFUSE);
+	} else {
+		log_msg(LOG_INFO, "Received command '%s'",
+			dname_to_string(query->qname, NULL));
+		RCODE_SET(query->packet, RCODE_IMPL);
+	}
+
+	return QUERY_PROCESSED;
 }
