@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.57.2.2.2.1 2002/05/21 09:53:32 alexis Exp $
+ * $Id: zonec.c,v 1.57.2.2.2.2 2002/05/23 13:03:49 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -674,6 +674,149 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 	free(d);
 }
 
+static void
+zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *db) {
+	struct domain *d;
+	struct message msg, msgany;
+	struct rrset *cnamerrset, *additional;
+	u_char *cname, *nameptr;
+	int i, star;
+
+	int namedepth = 0;
+
+	/* Create a new domain, not a delegation */
+	d = xalloc(sizeof(struct domain));
+	d->size = sizeof(struct domain);
+	d->flags = 0;
+
+	/* This is not a wildcard */
+	star = 0;
+
+	/* Is this a CNAME */
+	if(rrset->type == TYPE_CNAME) {
+		assert(rrset->next == NULL);
+		cnamerrset = rrset;
+		cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
+		rrset = heap_search(z->data, cname);
+	} else {
+		cnamerrset = NULL;
+		cname = NULL;
+	}
+
+	/* Initialize message for TYPE_ANY */
+	bzero(&msgany, sizeof(struct message));
+	msgany.bufptr = msgany.buf;
+
+	/* XXX This is a bit confusing, needs renaming:
+	 *
+	 * cname - name of the target set
+	 * rrset - target rr set
+	 * cnamerrset - cname own rrset 
+	 * dname - cname's rrset owner name
+	 */
+	while(rrset || cnamerrset) {
+		/* Initialize message */
+		bzero(&msg, sizeof(struct message));
+		msg.bufptr = msg.buf;
+
+		/* If we're done with the target sets, add CNAME itself */
+		if(rrset == NULL) {
+			rrset = cnamerrset;
+			cnamerrset = NULL;
+		}
+
+		/* Put the dname into compression array */
+		for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
+			/* Do we have a wildcard? */
+			if((namedepth == 0) && (*(nameptr+1) == '*')) {
+				star = 1;
+			} else {
+				if((dname + *dname + 1 - nameptr) > 1) {
+					zone_addcompr(&msg, nameptr,
+						      (nameptr - (dname + 1)) | 0xc000,
+						      dname + *dname + 1 - nameptr);
+					zone_addcompr(&msgany, nameptr,
+						      (nameptr - (dname + 1)) | 0xc000,
+						      dname + *dname + 1 - nameptr);
+				}
+			}
+		}
+
+		/* Are we doing CNAME? */
+		if(cnamerrset) {
+			/* Add CNAME itself */
+			msg.ancount += zone_addrrset(&msg, dname, cnamerrset);
+
+			/* Add answer */
+			msg.ancount += zone_addrrset(&msg, cname, rrset);
+		} else {
+			/* Answer section */
+			msg.ancount += zone_addrrset(&msg, dname, rrset);
+
+			/* Answer section of message any */
+			msgany.ancount += zone_addrrset(&msgany, dname, rrset);
+		}
+
+		/* Authority section */
+		msg.nscount = zone_addrrset(&msg, z->dname, z->ns);
+
+		/* Additional section */
+		for(i = 0; i < msg.dnameslen; i++) {
+			additional = heap_search(z->data, msg.dnames[i]);
+			while(additional) {
+				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
+					msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
+				}
+				additional = additional->next;
+			}
+		}
+
+		/* Add this answer */
+		d = zone_addanswer(d, &msg, rrset->type);
+
+		/* Set the masks */
+		if(rrset->type == TYPE_SOA)
+			NAMEDB_SETBITMASK(db, NAMEDB_AUTHMASK, namedepth);
+
+		rrset = rrset->next;
+	}
+
+	/* Authority section for TYPE_ANY */
+	msgany.nscount = zone_addrrset(&msgany, z->dname, z->ns);
+
+	/* Additional section for TYPE_ANY */
+	for(i = 0; i < msgany.dnameslen; i++) {
+		additional = heap_search(z->data, msgany.dnames[i]);
+		while(additional) {
+			if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
+				msgany.arcount += zone_addrrset(&msgany, msgany.dnames[i], additional);
+			}
+			additional = additional->next;
+		}
+	}
+
+	/* Add this answer */
+	d = zone_addanswer(d, &msgany, TYPE_ANY);
+
+	/* Set the data mask */
+	NAMEDB_SETBITMASK(db, NAMEDB_DATAMASK, namedepth);
+	if(star) {
+		NAMEDB_SETBITMASK(db, NAMEDB_STARMASK, namedepth);
+	}
+
+	/* Add a terminator... */
+	d = xrealloc(d, d->size + sizeof(u_int32_t));
+	bzero((char *)d + d->size, sizeof(u_int32_t));
+	d->size += sizeof(u_int32_t);
+
+	/* Store it */
+	if(namedb_put(db, dname, d) != 0) {
+		fprintf(stderr, "zonec: error writing the database: %s\n", strerror(errno));
+	}
+
+	free(d);
+}
+
 /*
  * Writes zone data into open database *db
  *
@@ -684,15 +827,10 @@ zone_dump(z, db)
 	struct 	zone *z;
 	struct namedb *db;
 {
-	struct domain *d;
-	struct message msg, msgany;
-	struct rrset *rrset, *cnamerrset, *additional;
-	u_char *dname, *cname, *nameptr;
 	u_char dnamebuf[MAXDOMAINLEN+1];
-	int i, star;
+	struct rrset *rrset;
+	u_char *dname, *nameptr;
 	
-	int namedepth = 0;
-
 	/* Progress reporting... */
 	unsigned long progress = 0;
 	unsigned long fraction = 0;
@@ -703,6 +841,14 @@ zone_dump(z, db)
 		fraction = (z->cuts->count + z->data->count) / 20;	/* Report every 5% */
 		if(fraction == 0)
 			fraction = ULONG_MAX;
+	}
+
+	/* SOA RECORD FIRST */
+	if(z->soa != NULL) {
+		zone_adddata(z->dname, z->soa, z, db);
+	} else {
+		fprintf(stderr, "SOA record not present in %s", dnamestr(z->dname));
+		/* return -1; */
 	}
 
 	/* AUTHORITY CUTS */
@@ -737,6 +883,10 @@ zone_dump(z, db)
 		if(rrset->glue == 1)
 			continue;
 
+		/* Skip SOA because we added it first */
+		if(rrset == z->soa)
+			continue;
+
 		/* This is an ugly slow way to find out of zone data... */
 		bcopy(dname, dnamebuf, *dname + 1);
 		for(nameptr = dnamebuf + 1; *(nameptr - 1) > *z->dname; 
@@ -752,137 +902,8 @@ zone_dump(z, db)
 		if(rrset->glue == 1)
 			continue;
 
-		/* Create a new domain, not a delegation */
-        	d = xalloc(sizeof(struct domain));
-		d->size = sizeof(struct domain);
-		d->flags = 0;
-
-		/* This is not a wildcard */
-		star = 0;
-
- 		/* Is this a CNAME */
- 		if(rrset->type == TYPE_CNAME) {
- 			assert(rrset->next == NULL);
- 			cnamerrset = rrset;
- 			cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
- 			rrset = heap_search(z->data, cname);
- 		} else {
- 			cnamerrset = NULL;
- 			cname = NULL;
- 		}
-
-		/* Initialize message for TYPE_ANY */
-		bzero(&msgany, sizeof(struct message));
-		msgany.bufptr = msgany.buf;
-
-		/* XXX This is a bit confusing, needs renaming:
-		 *
-		 * cname - name of the target set
-		 * rrset - target rr set
-		 * cnamerrset - cname own rrset 
-		 * dname - cname's rrset owner name
-		 */
- 		while(rrset || cnamerrset) {
-			/* Initialize message */
-			bzero(&msg, sizeof(struct message));
-			msg.bufptr = msg.buf;
-
- 			/* If we're done with the target sets, add CNAME itself */
- 			if(rrset == NULL) {
- 				rrset = cnamerrset;
- 				cnamerrset = NULL;
- 			}
- 
-			/* Put the dname into compression array */
-			for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
-				/* Do we have a wildcard? */
-				if((namedepth == 0) && (*(nameptr+1) == '*')) {
-					star = 1;
-				} else {
-					if((dname + *dname + 1 - nameptr) > 1) {
-						zone_addcompr(&msg, nameptr,
-							      (nameptr - (dname + 1)) | 0xc000,
-							      dname + *dname + 1 - nameptr);
-						zone_addcompr(&msgany, nameptr,
-							      (nameptr - (dname + 1)) | 0xc000,
-							      dname + *dname + 1 - nameptr);
-					}
-				}
-			}
-
-			/* Are we doing CNAME? */
-			if(cnamerrset) {
-				/* Add CNAME itself */
-				msg.ancount += zone_addrrset(&msg, dname, cnamerrset);
-
-				/* Add answer */
-				msg.ancount += zone_addrrset(&msg, cname, rrset);
-			} else {
-				/* Answer section */
-				msg.ancount += zone_addrrset(&msg, dname, rrset);
-
-				/* Answer section of message any */
-				msgany.ancount += zone_addrrset(&msgany, dname, rrset);
-			}
-
-			/* Authority section */
-			msg.nscount = zone_addrrset(&msg, z->dname, z->ns);
-
-			/* Additional section */
-			for(i = 0; i < msg.dnameslen; i++) {
-				additional = heap_search(z->data, msg.dnames[i]);
-				while(additional) {
-					if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
-						msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
-					}
-					additional = additional->next;
-				}
-			}
-
-			/* Add this answer */
-			d = zone_addanswer(d, &msg, rrset->type);
-
-			/* Set the masks */
-			if(rrset->type == TYPE_SOA)
-				NAMEDB_SETBITMASK(db, NAMEDB_AUTHMASK, namedepth);
-
-			rrset = rrset->next;
-		}
-
-		/* Authority section for TYPE_ANY */
-		msgany.nscount = zone_addrrset(&msgany, z->dname, z->ns);
-
-		/* Additional section for TYPE_ANY */
-		for(i = 0; i < msgany.dnameslen; i++) {
-			additional = heap_search(z->data, msgany.dnames[i]);
-			while(additional) {
-				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
-					msgany.arcount += zone_addrrset(&msgany, msgany.dnames[i], additional);
-				}
-				additional = additional->next;
-			}
-		}
-
-		/* Add this answer */
-		d = zone_addanswer(d, &msgany, TYPE_ANY);
-
-		/* Set the data mask */
-		NAMEDB_SETBITMASK(db, NAMEDB_DATAMASK, namedepth);
-		if(star) {
-			NAMEDB_SETBITMASK(db, NAMEDB_STARMASK, namedepth);
-		}
-
-		/* Add a terminator... */
-		d = xrealloc(d, d->size + sizeof(u_int32_t));
-		bzero((char *)d + d->size, sizeof(u_int32_t));
-		d->size += sizeof(u_int32_t);
-
-		/* Store it */
-		if(namedb_put(db, dname, d) != 0) {
-			fprintf(stderr, "zonec: error writing the database: %s\n", strerror(errno));
-		}
-
-		free(d);
+		/* Add it to the database */
+		zone_adddata(dname, rrset, z, db);
 	}
 
 	fflush(stdout);
