@@ -643,7 +643,7 @@ answer_chaos(struct nsd *nsd,
 	case TYPE_ANY:
 	case TYPE_TXT:
 		if ((qnamelen == 11 && memcmp(qnamelow, "\002id\006server", 11) == 0) ||
-		    (qnamelen == 15 && memcmp(qnamelow, "\010hostname\004bind", 15) == 0)
+		    (qnamelen == 15 && memcmp(qnamelow, "\010hostname\004bind", 15) == 0))
 		{
 			/* Add ID */
 			query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->identity);
