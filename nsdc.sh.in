@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.9 2002/05/25 09:40:43 alexis Exp $
+# $Id: nsdc.sh.in,v 1.10 2002/09/09 10:59:15 alexis Exp $
 #
-# nsdc.sh -- a shall script to manage the beast
+# nsdc.sh -- a shell script to manage the beast
 #
 # Alexis Yushin, <alexis@nlnetlabs.nl>
 #
@@ -42,12 +42,15 @@
 #
 # Modify the pathnames and settings below to reflect your local configuration
 #
-NSDBINDIR=@@NSDBINDIR@@
-NSDZONESDIR=@@NSDZONESDIR@@
-NSDFLAGS=@@NSDFLAGS@@
-NSDPIDFILE=@@NSDPIDFILE@@
-NSDDB=@@NSDDB@@
-NSDZONES=@@NSDZONES@@
+NSDBINDIR="@@NSDBINDIR@@"
+NSDZONESDIR="@@NSDZONESDIR@@"
+NSDFLAGS="@@NSDFLAGS@@"
+NSDPIDFILE="@@NSDPIDFILE@@"
+NSDDB="@@NSDDB@@"
+NSDZONES="@@NSDZONES@@"
+NSDKEYSDIR="@@NSDKEYSDIR@@"
+NSDNOTIFY="@@NSDNOTIFY@@"
+NAMEDXFER="@@NAMEDXFER@@"
 
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
@@ -65,27 +68,92 @@ signal() {
 case "$1" in
 start)
 	[ -x ${NSDBINDIR}/nsd ] && ${NSDBINDIR}/nsd -f ${NSDDB} ${NSDFLAGS}
+	$0 notify
 	;;
 stop)
 	signal "TERM"
 	;;
 reload)
 	signal "HUP"
+	$0 notify
 	;;
 running)
 	signal "0"
-	exit $?
 	;;
 rebuild)
-	${NSDBINDIR}/zonec -v -d ${NSDZONESDIR} -f ${NSDDB} ${NSDZONES}
+	${NSDBINDIR}/zonec -v -d ${NSDZONESDIR} -f ${NSDDB}.$$ ${NSDZONES} && mv ${NSDDB}.$$ ${NSDDB}
+	result=$?
+	rm -f ${NSDDB}.$$
+	exit ${result}
 	;;
+update)
+	#
+	if [ ! -x "${NAMEDXFER}" ]
+	then
+		echo "named-xfer program is not available, aborting..."
+		exit 1
+	fi
 
+	# read the nsd.zones file
+	while read zonekw zone file masterskw masters
+	do	
+		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
+		then
+			# now get the serial number
+			serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1 }' ${NSDZONESDIR}/$file`
+			serial=${serial:-0}
+
+ 			# take care of tsig info file if any
+ 			unset tsiginfoarg
+ 			if [ -f "${NSDKEYSDIR}/${masters}.tsiginfo" ]
+ 			then
+ 				ln "${NSDKEYSDIR}/${masters}.tsiginfo" "${NSDKEYSDIR}/${masters}.tsiginfo.$$"
+ 				tsiginfoarg="-T \"${NSDKEYSDIR}/${masters}.tsiginfo.$$\""
+			fi
+
+			$NAMEDXFER -z $zone -f ${NSDZONESDIR}/$file ${tsiginfoarg} -s $serial $masters
+
+			# Do we need to rebuild the database?
+			if [ ${NSDZONESDIR}/$file -nt ${NSDDB} ]
+			then
+				rebuild="yes"
+				export $rebuild
+			fi
+		fi
+	done < $NSDZONES
+
+	# Wait for everybody to terminate
+	wait
+
+	# Rebuild and reload?
+	if [ ! -f ${NSDDB} -o "x$rebuild" = "xyes" ]
+	then
+		echo "rebuilding the database...."
+		sh $0 rebuild && sh $0 reload
+	fi
+	;;
+notify)
+	if [ ! -x "${NSDNOTIFY}" ]
+	then
+		echo "nsd-notify was not installed on this system"
+		exit 1
+	fi
+
+	# read the nsd.zones file
+	while read zonekw zone file notifykw slaves
+	do	
+		if [ "X$zonekw" = "Xzone" -a "X$notifykw" = "Xnotify" ]
+		then
+			$NSDNOTIFY -z "$zone" $slaves
+		fi
+	done < $NSDZONES
+	;;
 restart)
-	$0 stop && $0 start
+	sh $0 stop && sh $0 start
 	;;
 *)
-	echo "Usage: `basename $0` {start|stop|reload|rebuild|restart|running}" >&2
+	echo "Usage: `basename $0` {start|stop|reload|rebuild|restart|running|update|notify}" >&2
 	;;
 esac
 
-exit 0
+exit $?

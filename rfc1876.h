@@ -1,7 +1,7 @@
 /*
- * $Id: config.h,v 1.11 2002/09/09 10:59:15 alexis Exp $
+ * $Id: rfc1876.h,v 1.2 2002/09/09 10:59:15 alexis Exp $
  *
- * config.h -- nsd(8) local configuration
+ * rfc1876.h -- LOC resource record routines from RFC1876
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -38,85 +38,11 @@
  *
  */
 
-#ifndef	_CONFIG_H_
-#define	_CONFIG_H_
+#ifndef	_RFC1876_H_
+#define	_RFC1876_H_
 
-#ifndef CF_VERSION
-#define	CF_VERSION	"NSD-1.0.1"
-#endif
+#define	LOCRDLEN 16
+u_int32_t loc_aton(const char *ascii, u_char *binary);
+char *loc_ntoa(const void *binary, u_char *ascii);
 
-#ifndef	CF_IDENTITY
-#define	CF_IDENTITY	"unidentified nameserver"
-#endif
-
-#ifndef	CF_USERNAME
-#define	CF_USERNAME	""
-#endif
-
-#ifdef HOSTS_ACCESS
-#ifndef	AXFR_DAEMON
-#define	AXFR_DAEMON	"axfr"
-#endif
-#ifndef AXFR_DAEMON_PREFIX
-#define	AXFR_DAEMON_PREFIX "axfr-"
-#endif
-#endif /* HOSTS_ACCESS */
-
-#ifndef	CF_FACILITY
-#define	CF_FACILITY	LOG_DAEMON
-#endif
-
-#ifdef	DEBUG
-
-#ifndef CF_DBFILE
-#define	CF_DBFILE	"nsd.db"
-#endif
-
-#ifndef CF_PIDFILE
-#define	CF_PIDFILE	"nsd.pid"
-#endif
-
-#define	CF_TCP_MAX_CONNECTIONS	8
-#define	CF_TCP_PORT		4096
-#define	CF_TCP_MAX_MESSAGE_LEN	16384
-#define	CF_UDP_PORT		4096
-#define	CF_UDP_MAX_MESSAGE_LEN	512
-#define	CF_EDNS_MAX_MESSAGE_LEN	4096
-
-#else	/* DEBUG */
-
-#ifndef CF_DBFILE
-#define	CF_DBFILE	"/var/db/nsd.db"
-#endif
-
-#ifndef CF_PIDFILE
-#define	CF_PIDFILE	"/var/run/nsd.pid"
-#endif
-
-#define	CF_TCP_MAX_CONNECTIONS	8
-#define	CF_TCP_PORT		53
-#define	CF_TCP_MAX_MESSAGE_LEN	16384
-#define	CF_UDP_PORT		53
-#define	CF_UDP_MAX_MESSAGE_LEN	512
-#define	CF_EDNS_MAX_MESSAGE_LEN	4096
-
-#endif	/* DEBUG */
-
-#ifdef __sun
-typedef          char  int8_t;
-typedef          short int16_t;
-typedef          int   int32_t;
-typedef unsigned char  u_int8_t;
-typedef unsigned short u_int16_t;
-typedef unsigned int   u_int32_t;
-typedef	unsigned long  in_addr_t;
-
-#define	USE_INET_ADDR
-#endif
-
-#ifdef __linux__
-#define _BSD_SOURCE
-#define	_POSIX_C_SOURCE 2
-#endif /* __linux__ */
-
-#endif /* _CONFIG_H_ */
+#endif	/* _RFC1876_H_ */

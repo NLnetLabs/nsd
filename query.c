@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.76 2002/07/02 09:14:08 alexis Exp $
+ * $Id: query.c,v 1.77 2002/09/09 10:59:15 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -167,6 +167,9 @@ void
 query_formerr(q)
 	struct query *q;
 {
+	/* Setup the header... */
+	QR_SET(q);		/* This is an answer */
+
 	RCODE_SET(q, RCODE_FORMAT);
 
 	/* Truncate the question as well... */
@@ -353,7 +356,19 @@ query_process(q, nsd)
 		/* Setup the header... */
 		QR_SET(q);		/* This is an answer */
 
-		RCODE_SET(q, RCODE_REFUSE);
+#ifdef LOG_NOTIFIES
+		if(OPCODE(q) == OPCODE_NOTIFY) {
+#ifdef INET6
+			if(q->addr.ss_family != AF_INET)
+				syslog(LOG_INFO, "notify from an non-ipv4 remote address");
+			else
+#endif /* INET6 */
+				syslog(LOG_INFO, "notify from %s",
+					inet_ntoa( ((struct sockaddr_in *)(&q->addr))->sin_addr));
+		}
+#endif /* LOG_NOTIFIES */
+
+		RCODE_SET(q, RCODE_IMPL);
 
 		/* Truncate the question as well... */
 		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
@@ -362,19 +377,19 @@ query_process(q, nsd)
 		return 0;
 	}
 
-	/* Setup the header... */
-	QR_SET(q);		/* This is an answer */
-
-
 	/* Dont bother to answer more than one question at once... */
 	if(ntohs(QDCOUNT(q)) != 1 || TC(q)) {
 		*(u_int16_t *)(q->iobuf + 2) = 0;
+
 		query_formerr(q);
 		return 0;
 	}
 
 	/* Zero the flags... */
 	*(u_int16_t *)(q->iobuf + 2) = 0;
+
+	/* Setup the header... */
+	QR_SET(q);		/* This is an answer */
 
 	/* Lets parse the qname and convert it to lower case */
 	qdepth = 0;
@@ -527,11 +542,38 @@ query_process(q, nsd)
 		if(q->tcp) {
 #ifdef HOSTS_ACCESS
 			struct request_info request;
+#ifdef AXFR_DAEMON_PREFIX
+			char *t;
+			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
+
+			memcpy(axfr_daemon, AXFR_DAEMON_PREFIX, sizeof(AXFR_DAEMON_PREFIX));
+
+			/* Copy the qname as a string */
+			for(t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1,
+					qptr = qnamelow; *qptr; t += *qptr, *t++ = '.', qptr += *qptr + 1) {
+				memcpy(t, qptr + 1, *qptr);
+				
+			}
+			*t = 0;
+			
+#endif /* AXFR_DAEMON_PREFIX */
 			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
 			sock_methods(&request);	/* This is to work around the bug in libwrap */
-			if(hosts_access(&request))
+			if(!hosts_access(&request)) {
+#ifdef AXFR_DAEMON_PREFIX
+				request_init(&request, RQ_DAEMON, axfr_daemon, RQ_CLIENT_SIN, &q->addr, 0);
+				sock_methods(&request);	/* This is to work around the bug in libwrap */
+				syslog(LOG_ERR, "checking %s", axfr_daemon);
+				if(!hosts_access(&request)) {
+#endif /* AXFR_DAEMON_PREFIX */
+					RCODE_SET(q, RCODE_REFUSE);
+					return 0;
+#ifdef AXFR_DAEMON_PREFIX
+				}
+#endif /* AXFR_DAEMON_PREFIX */
+			}
 #endif /* HOSTS_ACCESS */
-				return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
+			return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
 		}
 #endif	/* DISABLE_AXFR */
 	case TYPE_IXFR:

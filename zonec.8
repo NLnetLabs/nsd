@@ -1,66 +1,123 @@
-.\" @(#)zonec.8 2002 
-.TH zonec 8  "22 Feb 2002"
-.SH NAME
-zonec \- Zone Compiler
-.SH SYNOPSIS
-.B zonec
-[ \fB\-d\fR ] [ \fB\-v\fR ] [ \fB\-f \fIdatabase\fR ]
-.BI zone-list-file
-
-.SH DESCRIPTION
-.B zonec
-is the Zone Compiler from the \fBNSD\fP package written by NLnet Labs
-in collaboration with RIPE NCC. \fBNSD\fP stands for
-\fIn\fRame\fIs\fRerver \fId\fRaemon and provides
-authoritative DNS information. The zone compiler builds the
-precompiled database for the nsd daemon, nsd(8).
-There is an alternative zone database builder, written in Perl,
-available on request. The zone-compiler use RFC 1034/1035
-compliant zonefiles as input.
-
-.SH OPTIONS
-.TP
-.B \-d \fIdirectory\fB
-The working \fIdirectory\fR. Zonec will chdir to this
-directory before opening any files for input or output.
-
-.TP
-.B \-f \fIdatabase\fR
-specify the database to write to. Default is nsd.db in the
-working directory.
-
-.TP
-.B \-v
-turn on verbose mode: enable reporting per 100.000 lines read.
-Useful/informative when compiling large and huge zonefiles.
-
-.TP
-.B \-p
-print the compiled zones before writing them into the database (usefull
-for debugging)
-
-.TP
-.B zone-list-file
-A lists of files containing the zone information in RFC1035 style.
-
-.SH AUTHOR
-\fInsd\fR is written by Alexis Yushin (NLnet Labs) with
-valuable input and assistance from Jaap Akkerhuis (SIDN),
-Daniel Karrenberg and Olaf Kolkman (RIPE-NCC), and Miek
-Gieben, Erik Rozendaal, and Ted Lindgreen (NLnet Labs).
-
-.SH "SEE ALSO"
-.BR nsd (8),
-.BR nsdc (8).
-
-.SH CODE STATUS
-The current version, 1.0.0, has beta status. The latest
-version can be retrieved from
-.br
-\fIhttp://www.nlnetlabs.nl/nsd/index.en.html\fR
-
-.SH REPORTING BUGS
-Please report bugs to nsd-bugs@nlnetlabs.nl.
-
-.SH COPYRIGHT
-Copyright NLnet Labs 2002, BSD License.
+.\"
+.\" $Id: zonec.8,v 1.11 2002/09/09 10:59:15 alexis Exp $
+.\"
+.\" zonec.8 -- zonec manual
+.\"
+.\" Alexis Yushin, <alexis@nlnetlabs.nl>
+.\"
+.\" Copyright (c) 2001, NLnet Labs. All rights reserved.
+.\"
+.\" This software is an open source.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\"
+.\" Redistributions of source code must retain the above copyright notice,
+.\" this list of conditions and the following disclaimer.
+.\"
+.\" Redistributions in binary form must reproduce the above copyright notice,
+.\" this list of conditions and the following disclaimer in the documentation
+.\" and/or other materials provided with the distribution.
+.\"
+.\" Neither the name of the NLNET LABS nor the names of its contributors may
+.\" be used to endorse or promote products derived from this software without
+.\" specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+.\" "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+.\" TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+.\" PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+.\" LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+.\" CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+.\" SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+.\" INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+.\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+.\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+.\" POSSIBILITY OF SUCH DAMAGE.
+.\"
+.Dd August 20, 2002
+.Os FreeBSD
+.Dt zonec 8 
+.Sh NAME
+.Nm zonec
+.Nd NSD Zone Compiler
+.Sh SYNOPSIS
+.Nm zonec
+.Op Fl p v
+.Op Fl f Ar database
+.Op Fl d Ar directory
+.Ar nsd.zones
+.Sh DESCRIPTION
+.Ic Zonec
+is the
+.Xr nsd 8
+database compiler for creating name space databases from a set of
+input master zone files specified in
+.Ar nsd.zones
+file.
+.Pp
+It is normally invoked via
+.Xr nsdc 8
+rebuild command.
+.Ic Zonec
+will then parse every zone in
+.Ar nsd.zones
+file and add it to the name space database,
+.Pa /etc/nsd/nsd.db
+by default, that is used by
+.Xr nsd 8
+to answer incoming queries.
+.Pp
+Please see the
+.Pa README
+file for the
+.Ar nsd.zones
+file format.
+.Pp
+The available options are:
+.Bl -tag -width indent
+.It Fl d Ar directory
+Change the working directory to
+.Ar directory
+before doing any work.
+.It Fl f Ar database
+Create the specified
+.Ar database
+instead of the default
+.Pa /etc/nsd/nsd.db
+.It Fl v
+Be verbose about the progress, show percentage done for every zone file
+being processed.
+.It Fl p
+Print every zone after it was parsed (useful for debugging purposes only)
+.El
+.Sh FILES
+.Bl -tag -width indent
+.It Pa /etc/nsd/nsd.db
+default
+.Ic NSD
+database
+.El
+.Sh DIAGNOSTICS
+.Ic zonec
+will log all the problems via the standard error output and
+progress via stdout if
+.Fl v
+option is specified.
+.Sh SEE ALSO
+.Xr nsd 8
+.Xr nsdc 8
+.Pa README
+.Sh AUTHORS
+.Ic NSD
+was written by NLnet LABS and RIPE NCC joint team. Please see CREDITS file
+in the distribution for further details.
+.Sh BUGS
+.Ic Zonec
+has rather weak error diagnostics that will change in further versions.
+.Ic Zonec
+expects the input files to be free of syntax errors and very little
+fool proof checks are done.
+.Pp
+Very poor quotation handling, no backslashes handling at all.

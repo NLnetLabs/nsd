@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.5 2002/05/30 13:58:01 alexis Exp $
+$Id: RELNOTES,v 1.6 2002/09/09 10:59:15 alexis Exp $
 
 1.0.1
 =============
@@ -8,6 +8,9 @@ FEATURES:
 	- ``cache'' zones are no longer allowed
 	- ID.Server & Version.Server compile time options
 	- AXFR implemented (with tcpwrapper for access control)
+	- nsdc update and nsdc notify functinality
+	- using named-xfer with TSIG for inbound axfr
+
 
 CHANGES:
 	- the order of records in the database is from now
@@ -17,6 +20,9 @@ CHANGES:
 
 BUG FIXES:
 	- white space problem in zonec is fixed
+
+KNOWN BUGS:
+	- please see appropriate man pages for the known bugs
 
 1.0.0 RELEASE
 =============

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.29 2002/05/30 10:29:01 alexis Exp $
+ * $Id: zf.c,v 1.30 2002/09/09 10:59:15 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -331,45 +331,93 @@ void *
 inet6_aton(str)
 	char *str;
 {
+
+#ifdef	INET6
 	char *addr;
 
-#ifndef	INET6
-	u_int16_t w;
-	char *p, *t, *z;
-#endif
-
 	addr = xalloc(IP6ADDRLEN);
-
 	if(!str || !addr) {
 		errno = EINVAL;
 		return NULL;
 	}
-
-#ifdef	INET6
 	if(inet_pton(AF_INET6, str, addr) == 1) {
 		return addr;
 	}
-#else
-	for(p = str, t = addr; t < (addr + 8 * sizeof(u_int16_t)); p++) {
-		if((*p == ':') || (*p == '\000')) {
-			w = htons((u_int16_t) strtol(str, &z, 16));
-			if(z != p) return NULL;
-			bcopy(&w, t, sizeof(u_int16_t));
-			t += sizeof(u_int16_t);
-			str = p + 1;
-		}
-		if(*p == '\000') {
-			if(t == (addr + 8 * sizeof(u_int16_t))) {
-				return addr;
-			} else {
-				break;
-			}
-		}
-	}
-#endif
-
 	free(addr);
 	return NULL;
+
+#else
+
+#define IP6ADDR_I16S (IP6ADDRLEN/sizeof(u_int16_t))
+
+	u_int16_t front[IP6ADDR_I16S];	/* the front bits */
+	u_int16_t back[IP6ADDR_I16S];	/* the back bits */
+	unsigned frontlen, backlen, i;	/* lengths and index for above */
+	u_int16_t *addr;		/* pointer to result */
+	char *p;
+
+	if(!str) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	frontlen = 0;
+	backlen = 0;
+
+	if (*str == ':' && *(str+1) == ':') {	/* no front part */
+		str += 2;
+	}
+	else { 			/* slurp up the front bits */
+		for (i=0; i<IP6ADDR_I16S; i++) { 
+			front[i] = htons((u_int16_t) strtol(str, &p, 16));
+			if (p-str > 4) return NULL;
+			str = p;
+			if (!*str) break;
+			if (*str!=':') return NULL;
+			if (*(str+1)==':') {
+				str += 2;
+				break;
+			}
+			str++;
+		}
+		frontlen = i+1;
+	}
+
+	if (*str ) {	/* we have a  back part, slurp up the back bits */
+		if (*str==':') return NULL;
+		for (i=0; i<IP6ADDR_I16S-frontlen; i++) { 
+			back[i] = htons((u_int16_t) strtol(str, &p, 16));
+			if (p-str > 4) return NULL;
+			str = p;
+			if (!*str) break;
+			if (*str!=':') return NULL;
+			str++;
+		}
+		backlen = i+1;
+	}
+
+	if ((frontlen+backlen) > IP6ADDR_I16S) return NULL;
+
+	/* now allocate and fill the result from both sides */
+	addr = (u_int16_t *) xalloc(IP6ADDRLEN);
+	if(!addr) {
+		errno = EINVAL;
+		return NULL;
+	}
+	bzero(addr, IP6ADDRLEN);
+	if (frontlen) {
+		for (i=0; i<frontlen; i++) {
+			addr[i] = front[i];
+		}
+	}
+	if (backlen) {
+		for (i=0; i<backlen; i++) {
+			addr[IP6ADDR_I16S-backlen+i] = back[i];
+		}
+	}
+
+	return(addr);
+#endif
 }
 
 /*
@@ -541,6 +589,9 @@ zf_token(zf, s)
 
 	switch(*t) {
 	case '(':
+		/* Disregard the bracket if it is quoted */
+		if(*(t-1) == '"') break;
+
 		if(zf->i[zf->iptr].parentheses) {
 			zf_error(zf, "nested open parenthes");
 		} else {
@@ -643,6 +694,7 @@ zf_free_rdata(rdata, f)
 			case 'n':
 			case '6':
 			case 't':
+			case 'L':
 				free(rdata[i].p);
 			}
 		}
@@ -680,6 +732,10 @@ zf_cmp_rdata(a, b, f)
 			break;
 		case '6':
 			if(bcmp(a[i].p, b[i].p, IP6ADDRLEN))
+				return 1;
+			break;
+		case 'L':
+			if(bcmp(a[i].p, b[i].p, LOCRDLEN))
 				return 1;
 			break;
 		default:
@@ -747,6 +803,9 @@ zf_print_rdata(rdata, rdatafmt)
 			}
 			putc('"', stdout);
 			break;
+		case 'L':
+			printf("%s\t", loc_ntoa(rdata[i].p, NULL));
+			break;
 		default:
 			printf("???");
 			break;
@@ -764,6 +823,11 @@ struct zf_entry *
 zf_read(zf)
 	struct zf *zf;
 {
+
+#ifndef USE_INET_ADDR
+	struct in_addr pin;
+#endif /* !USE_INET_ADDR */
+
 	int parse_error;
 	char *line, *token;
 	char *t, *f;
@@ -881,9 +945,34 @@ zf_read(zf)
 		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
 		bzero(zf->line.rdata, sizeof(union zf_rdatom) * MAXRDATALEN);
 
+		/* Format starting with ``*'' is an error */
+		assert(*zf->line.rdatafmt != '*');
+
 		/* Parse it */
 		for(parse_error = 0, i = 0, f = zf->line.rdatafmt; *f && !parse_error; f++, i++) {
+			/* Handle the star case first... */
+			if(*f == '*') {
+				/* Make a private format for this RR initialy */
+				if(zf->line.rdatafmt == type->fmt) {
+					zf->line.rdatafmt = xalloc(MAXRDATALEN + 1);
+					strncpy(zf->line.rdatafmt, type->fmt, MAXRDATALEN + 2);
+					f = f - type->fmt + zf->line.rdatafmt;
+				}
+
+				/* Copy the previous atom */
+				*f = *(f - 1);
+				memcpy(f + 1, "*", 2);
+
+				/* Make sure we dont overflow */
+				if((f - zf->line.rdatafmt) >= MAXRDATALEN) {
+					zf_error(zf, "maximum number of elements exceeded");
+					parse_error++;
+					break;
+				}
+			}
+
 			assert(i < MAXRDATALEN);
+
 			if((token = zf_token(zf, NULL)) == NULL) {
 				break;
 			}
@@ -893,7 +982,13 @@ zf_read(zf)
 
 			switch(*f) {
 			case '4':
+#ifdef USE_INET_ADDR
 				if((zf->line.rdata[i].l = inet_addr(token)) == -1) {
+#else
+					if(inet_aton(token, &pin) == 1) {
+						zf->line.rdata[i].l = pin.s_addr;
+					} else {
+#endif /* USE_INET_ADDR */
 					zf_error(zf, "malformed ipv4 address");
 					parse_error++;
 				}
@@ -933,11 +1028,29 @@ zf_read(zf)
 					*(char *)zf->line.rdata[i].p = (u_char) j;
 				}
 				break;
+			case 'L':
+				zf->line.rdata[i].p = xalloc(LOCRDLEN);
+				
+				for(t = token; token; token = zf_token(zf, NULL)) 
+					*(token + strlen(token)) = ' ';
+				if(loc_aton(t, zf->line.rdata[i].p) != 16)
+					parse_error++;
+				break;
 			default:
 				fprintf(stderr, "panic! uknown atom in format %c\n", *f);
 				assert(0);
 				return NULL;
 			}
+		}
+
+		/* Was there a star? */
+		if(*(f + 1) == '*') *f = 0;
+
+		/* More atoms expected? */
+		if(*f != 0) {
+			zf_error(zf, "missing element");
+			zf_free_rdata(zf->line.rdata, zf->line.rdatafmt);
+			continue;
 		}
 
 		/* We couldnt parse it completely */

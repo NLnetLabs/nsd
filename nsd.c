@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.39 2002/07/16 10:57:15 alexis Exp $
+ * $Id: nsd.c,v 1.40 2002/09/09 10:59:15 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -79,7 +79,7 @@ xrealloc(p, size)
 int
 usage()
 {
-	fprintf(stderr, "usage: nsd [-d] [-p port] [-n identity] [-u user|uid] [-t chrootdir] -f database\n");
+	fprintf(stderr, "usage: nsd [-d] [-p port] [-n identity] [-u user|uid] -f database\n");
 	exit(1);
 }
 
@@ -202,7 +202,6 @@ main(argc, argv)
 	nsd.identity	= CF_IDENTITY;
 	nsd.version	= CF_VERSION;
 	nsd.username	= CF_USERNAME;
-	nsd.chrootdir	= NULL;
 
 	/* EDNS0 */
 	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
@@ -225,7 +224,7 @@ main(argc, argv)
 #	endif
 
 	/* Set up the logging... */
-	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
+	openlog("nsd", LOG_PERROR, CF_FACILITY);
 
 	/* Set up our default identity to gethostname(2) */
 	if(gethostname(hostname, MAXHOSTNAMELEN) == 0) {
@@ -236,7 +235,7 @@ main(argc, argv)
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "a:df:p:i:u:t:")) != -1) {
+	while((c = getopt(argc, argv, "a:df:p:i:u:")) != -1) {
 		switch (c) {
 		case 'a':
 			if((nsd.tcp.addr = nsd.udp.addr = inet_addr(optarg)) == -1)
@@ -257,9 +256,6 @@ main(argc, argv)
 			break;
 		case 'u':
 			nsd.username = optarg;
-			break;
-		case 't':
-			nsd.chrootdir = optarg;
 			break;
 		case '?':
 		default:
@@ -296,9 +292,6 @@ main(argc, argv)
 				endpwent();
 			}
 		} else {
-			/* Get the username part of it, ignore the rest */
-			nsd.username = strtok(nsd.username, ".");
-
 			/* Lookup the user id in /etc/passwd */
 			if((pwd = getpwnam(nsd.username)) == NULL) {
 				syslog(LOG_ERR, "user %s doesnt exist, will not setuid", nsd.username);

@@ -1,5 +1,5 @@
 >-*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.9 2002/07/08 09:09:31 alexis Exp $
+$Id: REQUIREMENTS,v 1.10 2002/09/09 10:59:15 alexis Exp $
 
 
 NSD Requirements and Specifications
@@ -258,11 +258,11 @@ C.3 Incoming DNS Message processing.
 
      + OPCODE 0 (QUERY)    results in normal handling 
 					     of packet (rfc1035)
-       OPCODE 1 (IQUERY)   results in  RCODE=5 REFUSED  (rfc1035)
-       OPCODE 2 (STATUS)   results in  RCODE=5 REFUSED  (rfc1035)
-       OPCODE 3 (RESERVED) results in  RCODE=5 REFUSED 
-       OPCODE 4 (NOTIFY)   results in  RCODE=5 REFUSED  (rfc1035)
-       OPCODE 5 (UPDATE)   results in  RCODE=5 REFUSED  (rfc2136 sect 3)
+       OPCODE 1 (IQUERY)   results in  RCODE=4 NOTIMPL  (rfc1035)
+       OPCODE 2 (STATUS)   results in  RCODE=4 NOTIMPL  (rfc1035)
+       OPCODE 3 (RESERVED) results in  RCODE=4 NOTIMPL 
+       OPCODE 4 (NOTIFY)   results in  RCODE=4 NOTIMPL  (rfc1035)
+       OPCODE 5 (UPDATE)   results in  RCODE=4 NOTIMPL  (rfc2136 sect 3)
 
      + AA bit in query packet is ignored.
 
@@ -948,6 +948,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.9 2002/07/08 09:09:31 alexis Exp $
+$Id: REQUIREMENTS,v 1.10 2002/09/09 10:59:15 alexis Exp $
 
 

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.14 2002/06/13 13:13:11 alexis Exp $
+ * $Id: zf.h,v 1.15 2002/09/09 10:59:15 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -71,6 +71,8 @@
 
 #ifndef _ZF_H_
 #define	_ZF_H_
+
+#include "rfc1876.h"
 
 #define	MAXRDATALEN	7		/* SOA */
 #define	MAXINCLUDES	16		/* Maximum number of include files */
@@ -167,10 +169,13 @@ struct zf_type_tab {
 	{TYPE_HINFO, "HINFO", "tt"},	\
 	{TYPE_MINFO, "MINFO", "nn"},	\
 	{TYPE_MX, "MX", "sn"},		\
-	{TYPE_TXT, "TXT", "t"},		\
+	{TYPE_TXT, "TXT", "t*"},	\
         {TYPE_AAAA, "AAAA", "6"},	\
 	{TYPE_SRV, "SRV", "sssn"},	\
 	{TYPE_NAPTR, "NAPTR", "sstttn"},	\
+	{TYPE_LOC, "LOC", "L"},		\
+	{TYPE_AFSDB, "AFSDB", "sn"},	\
+	{TYPE_RP, "RP", "nn"},		\
 	{TYPE_ANY, "ANY", NULL},	\
 	{0, NULL, NULL}			\
 }

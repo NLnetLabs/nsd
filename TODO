@@ -1,15 +1,17 @@
-$Id: TODO,v 1.26 2002/07/01 16:49:55 alexis Exp $
+$Id: TODO,v 1.27 2002/09/09 10:59:15 alexis Exp $
 
 ZONE COMPILER
 - memory allocation optimization is needed
 - parser is too smart: should not try to continue processing if there are errors...
 - as writing the zone the order should be DNS SEC compliant (use dnameinvert())
+- missing closing quote doesnt register as an error
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?
 - replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
 - make sure that we dont copy anything from the query we dont want to copy, like
   funny headers etc
+- add chroot() call submitted by Jakob
 
 SECURITY
 
@@ -23,5 +25,10 @@ TESTS
   core dumps
 
 MISC
-- functions should be regroupped differently in .c files, so nsd-notify
+- functions should be regrouped differently in .c files, so nsd-notify
   doesnt have to be linked with all the unnecessary stuff
+
+DOCUMENTATION
+
+- convert the manual pages into -man macros set for better compatibility?
+- update DESIGN document

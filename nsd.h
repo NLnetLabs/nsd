@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.32 2002/07/16 10:57:15 alexis Exp $
+ * $Id: nsd.h,v 1.33 2002/09/09 10:59:15 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -86,7 +86,6 @@ struct	nsd {
 	char	*username;
 	uid_t	uid;
 	gid_t	gid;
-	char	*chrootdir;
 	char	*version;
 	char	*identity;
 

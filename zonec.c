@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.63 2002/05/30 13:55:52 alexis Exp $
+ * $Id: zonec.c,v 1.64 2002/09/09 10:59:15 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -57,6 +57,9 @@ u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
 /* Some global flags... */
 int vflag = 0;
 int pflag = 0;
+
+/* Total errors counter */
+int totalerrors = 0;
 
 #ifdef	USE_HEAP_HASH
 
@@ -338,6 +341,10 @@ zone_addrrset(msg, dname, rrset)
 				size = IP6ADDRLEN;
 				zone_addbuf(msg, rdata[i].p, size);
 				break;
+			case 'L':
+				size = LOCRDLEN;
+				zone_addbuf(msg, rdata[i].p, size);
+				break;
 			case 'n':
 				if (msg->dnameslen >= MAXRRSPP) {
 					fflush(stdout);
@@ -588,6 +595,7 @@ zone_read(name, zonefile)
 
 	fflush(stdout);
 	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), zf->errors);
+	totalerrors += zf->errors;
 	return z;
 }
 
@@ -851,7 +859,8 @@ zone_dump(z, db)
 	if(z->soa != NULL) {
 		zone_adddata(z->dname, z->soa, z, db);
 	} else {
-		fprintf(stderr, "SOA record not present in %s", dnamestr(z->dname));
+		fprintf(stderr, "SOA record not present in %s\n", dnamestr(z->dname));
+		totalerrors++;
 		/* return -1; */
 	}
 
@@ -867,7 +876,11 @@ zone_dump(z, db)
 		}
 
 		/* Make sure the data is intact */
-		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
+		if(rrset->type != TYPE_NS || rrset->next != NULL) {
+			fprintf(stderr, "NS record with other data for %s\n", dnamestr(z->dname));
+			totalerrors++;
+			continue;
+		}
 		zone_addzonecut(dname, dname, rrset, z, db);
 
 	}
@@ -906,6 +919,14 @@ zone_dump(z, db)
 		if(rrset->glue == 1)
 			continue;
 
+		/* CNAME & other data */
+		if((rrset->type == TYPE_CNAME && rrset->next != NULL) ||
+			(rrset->next != NULL && rrset->next->type == TYPE_CNAME)) {
+			fprintf(stderr, "CNAME and other data for %s\n", dnamestr(z->dname));
+			totalerrors++;
+			continue;
+		}
+
 		/* Add it to the database */
 		zone_adddata(dname, rrset, z, db);
 	}
@@ -939,8 +960,9 @@ main(argc, argv)
 	int line = 0;
 	FILE *f;
 
-	int error = 0;
 	struct zone *z = NULL;
+
+	totalerrors = 0;
 
 	/* Parse the command line... */
 	while((c = getopt(argc, argv, "d:f:vp")) != -1) {
@@ -1010,8 +1032,9 @@ main(argc, argv)
 			break;
 		}
 
-		/* Trailing garbage? */
-		if((s = strtok(NULL, sep)) != NULL && *s != ';') {
+		/* Trailing garbage? Ignore masters keyword that is used by nsdc.sh update */
+		if((s = strtok(NULL, sep)) != NULL && *s != ';' && strcasecmp(s, "masters") != 0
+			&& strcasecmp(s, "notify") != 0) {
 			fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 		}
 
@@ -1026,6 +1049,8 @@ main(argc, argv)
 			zone_dump(z, db);
 			if(pflag)
 				zone_print(z);
+		} else {
+			totalerrors++;
 		}
 
 	};
@@ -1037,5 +1062,8 @@ main(argc, argv)
 		exit(1);
 	}
 
-	return error;
+	/* Print the total number of errors */
+	fprintf(stderr, "zonec: done with total %d errors.\n", totalerrors);
+
+	return totalerrors ? 1 : 0;
 }

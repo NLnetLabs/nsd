@@ -1,68 +1,169 @@
-.\" @(#)nsd.8 2002 
-.TH nsd 8  "20 Feb 2002"
-.SH NAME
-nsd \- Name Server Daemon
-.SH SYNOPSIS
-.B nsd
-[ \fB\-d\fR ]
-[ \fB\-f \fIdatabase\fR ]
-[ \fB\-t \fIchrootdir\fR ]
-[ \fB\-p \fIport\fR]
-[ \fB\-a \fIaddress\fR]
-
-.SH DESCRIPTION
-.B nsd
-is the daemon part of the \fBNSD\fP package written by NLnet Labs
-in collaboration with RIPE NCC. \fBNSD\fP stands for
-\fIn\fRame\fIs\fRerver \fId\fRaemon and provides
-authoritative DNS information. The daemon uses a precompiled zone
-database, which is usually build with zonec(8) another part of
-the package. There is an alternative zone database builder,
-written in Perl, available.
-The zone-compilers use an RFC 1034/1035
-compliant zonefile as input.
-.SH OPTIONS
-.TP
-.B \-d
-enable outputting debug information.
-
-.TP
-.B \-p \fIport\fR
-specify the port number for \fInsd\fR to use.
-The default portnumber is 53.
-
-.TP
-.B \-a \fIaddress\fR
-specifies the IPv4 address to bind the socket to.
-The default is INADDR_ANY
-
-.TP
-.B \-f \fIdatabase\fR
-specify the database to use. If not specified, \fInsd\fR expects
-the database in /var/db/nsd.db.
-
-.TP
-.B \-t \fIchroot\fR
-specifies a directory to which \fInsd\fR will chroot upon startup.
-
-.SH AUTHOR
-\fInsd\fR is written by Alexis Yushin (NLnet Labs) with
-valuable input and assistance from Jaap Akkerhuis (SIDN),
-Daniel Karrenberg and Olaf Kolkman (RIPE-NCC), and Miek
-Gieben, Erik Rozendaal, and Ted Lindgreen (NLnet Labs).
-
-.SH "SEE ALSO"
-.BR zonec (8),
-.BR nsdc (8).
-
-.SH CODE STATUS
-The current version, 1.0.0, has beta status. The latest
-version can be retrieved from
-.br
-\fIhttp://www.nlnetlabs.nl/nsd/index.en.html\fR
-
-.SH REPORTING BUGS
-Please report bugs to nsd-bugs@nlnetlabs.nl.
-
-.SH COPYRIGHT
-Copyright NLnet Labs 2002, BSD License.
+.\"
+.\" $Id: nsd.8,v 1.10 2002/09/09 10:59:15 alexis Exp $
+.\"
+.\" nsd.8 -- nsd manual
+.\"
+.\" Alexis Yushin, <alexis@nlnetlabs.nl>
+.\"
+.\" Copyright (c) 2001, NLnet Labs. All rights reserved.
+.\"
+.\" This software is an open source.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\"
+.\" Redistributions of source code must retain the above copyright notice,
+.\" this list of conditions and the following disclaimer.
+.\"
+.\" Redistributions in binary form must reproduce the above copyright notice,
+.\" this list of conditions and the following disclaimer in the documentation
+.\" and/or other materials provided with the distribution.
+.\"
+.\" Neither the name of the NLNET LABS nor the names of its contributors may
+.\" be used to endorse or promote products derived from this software without
+.\" specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+.\" "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+.\" TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+.\" PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+.\" LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+.\" CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+.\" SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+.\" INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+.\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+.\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+.\" POSSIBILITY OF SUCH DAMAGE.
+.\"
+.Dd August 20, 2002
+.Os FreeBSD
+.Dt nsd 8 
+.Sh NAME
+.Nm nsd
+.Nd Name Server Daemon (NSD)
+.Sh SYNOPSIS
+.Nm nsd
+.Op Fl d 
+.Op Fl f Ar database
+.Op Fl a Ar ip-address
+.Op Fl p Ar port
+.Op Fl u Ar username
+.Op Fl i Ar identity
+.Sh DESCRIPTION
+.Ic NSD
+is a complete implementation of an authoritative DNS nameserver. Upon
+startup
+.Ic NSD
+will read the database specified with
+.Ar database
+argument and put itself into background and answer queries on the
+standard port 53 or port specified with
+.Ar port
+option.
+The
+.Ar database
+must be generated beforehand
+.Xr zonec 8
+By default NSD will bind all the local interfaces available. Use
+.Ar ip-address
+option to specify a single particular interface address to be bound.
+.Pp
+Normally
+.Ic NSD
+should be started with
+.Xr nsdc 8
+start
+command invoked from a
+.Em /etc/rc.d/nsd.sh
+script or similar at the operating system startup.
+.Pp
+The available options are:
+.Bl -tag -width indent
+.It Fl d
+Turn on debugging mode, do not fork, stay in the foreground.
+.It Fl f Ar database
+Use the specified
+.Ar database
+instead of the default
+.Em /etc/nsd/nsd.db
+.It Fl a
+.Ar ip-address
+Bind the socket to the specified
+.Ar ip-address
+.It Fl p
+.Ar port
+Answer the queries on the specified
+.Ar port
+.It Fl u
+.Ar username
+Drop user and group privileges to those of
+.Ar username
+after binding the socket.
+The
+.Ar username
+must be either:
+username
+id
+id.gid
+For example: nsd -or- 80 -or- 80.80
+.It Fl i Ar identity
+Return the specified
+.Ar identity
+when asked for
+.Em CH TXT ID.SERVER
+(This option is used to determine which server is answering the queries
+when they are multicast)
+The default is the name returned by
+.Xr gethostname 3
+.El
+.Pp
+.Ic NSD
+will react to the following signals:
+.Bl -tag -width indent
+.It Dv SIGTERM
+Stop answer the queries, shutdown and exit normally.
+.It Dv SIGHUP
+Reload the database.
+.\" .Sh IMPLEMENTATION NOTES
+.Sh FILES
+.Bl -tag -width indent
+.It Pa /etc/nsd/nsd.db
+default
+.Ic NSD
+database
+.It Pa /var/run/nsd.pid
+the process id of the name server.
+.El
+.Sh DIAGNOSTICS
+.Ic NSD
+will log all the problems via the standard
+.Xr syslog 8
+.Em daemon
+facility, unless
+.Ar d
+option is specified.
+.Sh SEE ALSO
+.Xr zonec 8
+.Xr nsdc 8
+.Sh AUTHORS
+.Ic NSD
+was written by NLnet LABS and RIPE NCC joint team. Please see CREDITS file
+in the distribution for further details.
+.Sh BUGS
+.Ic NSD
+will answer the queries erroneously if the
+.Ar database
+was not properly compiled with
+.Xr zonec 8
+Therefore problems with misconfigured master zone files or 
+.Xr zonec 8
+bugs may not be visible until the queries are actually answered
+with
+.Ic NSD
+.Pp
+Queries are answered from single socket, bound to the address given with
+.Ar ip-address
+or
+.Em INADDR_ANY
+by default. This might cause trouble on multi-homed hosts.

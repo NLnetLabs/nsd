@@ -1,5 +1,5 @@
 /*
- * $Id: dns.h,v 1.6 2002/06/13 13:13:11 alexis Exp $
+ * $Id: dns.h,v 1.7 2002/09/09 10:59:15 alexis Exp $
  *
  * dns.h -- all we need to know about DNS protocol, nsd(8)
  *
@@ -63,6 +63,8 @@
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
 #define	TYPE_SRV	33	/* SRV record RFC2782 */
 #define	TYPE_NAPTR	35	/* NAPTR record RFC2915 */
+#define	TYPE_AFSDB	18	/* RFC1183 */
+#define	TYPE_RP		17	/* RFC1183 */
 #define	TYPE_AXFR	252
 #define	TYPE_IXFR	251
 #define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */

@@ -1,68 +1,163 @@
-.\" @(#)nsdc.8 2002 
-.TH nsdc 8  "20 Feb 2002"
-.SH NAME
-nsdc \- Name Server Daemon Control
-.SH SYNOPSIS
-.B nsdc
-[ 
-\fBstart\fR|\fBstop\fR|\fBreload\fR|\fBrunning\fR|\fBrebuild\fR|\fBrestart\fR
-]
-
-.SH DESCRIPTION
-.B nsdc 
-is a control tool for nsd(8) and zonec(8) and is part of
-the \fBNSD\fP package written by NLnet Labs
-in collaboration with RIPE NCC. \fBNSD\fP stands for
-\fIn\fRame\fIs\fRerver \fId\fRaemon and provides
-authoritative DNS information.
-.br
-Nsdc expects various files, like zonefiles
-and database, to be in specific places, but as it is a simple
-shell script it can easily be editted.
-
-.SH OPTIONS
-.TP
-.B start
-start \fInsd\fR.
-
-.TP
-.B stop
-stop \fInsd\fR.
-
-.TP
-.B reload
-reload the database \fInsd\fR is using.
-
-.TP
-.B running
-check if \fInsd\fR is running.
-
-.TP
-.B rebuild
-rebuild the zone database using \fIzonec\fR.
-
-.TP
-.B restart
-restart \fInsd\fR.
-
-.SH AUTHOR
-\fInsd\fR is written by Alexis Yushin (NLnet Labs) with
-valuable input and assistance from Jaap Akkerhuis (SIDN),
-Daniel Karrenberg and Olaf Kolkman (RIPE-NCC), and Miek
-Gieben, Erik Rozendaal, and Ted Lindgreen (NLnet Labs).
-
-.SH "SEE ALSO"
-.BR zonec (8),
-.BR nsd (8).
-
-.SH CODE STATUS
-The current version, 1.0.0, has beta status. The latest
-version can be retrieved from
-.br
-\fIhttp://www.nlnetlabs.nl/nsd/index.en.html\fR
-
-.SH REPORTING BUGS
-Please report bugs to nsd-bugs@nlnetlabs.nl.
-
-.SH COPYRIGHT
-Copyright NLnet Labs 2002, BSD License.
+.\"
+.\" $Id: nsdc.8,v 1.7 2002/09/09 10:59:15 alexis Exp $
+.\"
+.\" nsdc.8 -- nsdc manual
+.\"
+.\" Alexis Yushin, <alexis@nlnetlabs.nl>
+.\"
+.\" Copyright (c) 2001, NLnet Labs. All rights reserved.
+.\"
+.\" This software is an open source.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\"
+.\" Redistributions of source code must retain the above copyright notice,
+.\" this list of conditions and the following disclaimer.
+.\"
+.\" Redistributions in binary form must reproduce the above copyright notice,
+.\" this list of conditions and the following disclaimer in the documentation
+.\" and/or other materials provided with the distribution.
+.\"
+.\" Neither the name of the NLNET LABS nor the names of its contributors may
+.\" be used to endorse or promote products derived from this software without
+.\" specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+.\" "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+.\" TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+.\" PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE
+.\" LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+.\" CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+.\" SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+.\" INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+.\" CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+.\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+.\" POSSIBILITY OF SUCH DAMAGE.
+.\"
+.Dd August 20, 2002
+.Os FreeBSD
+.Dt nsdc 8 
+.Sh NAME
+.Nm nsdc
+.Nd Name Server Daemon (NSD) Control Script
+.Sh SYNOPSIS
+.Nm nsdc
+.Ar start|stop|reload|rebuild|restart|running|update|notify
+.Sh DESCRIPTION
+.Ic Nsdc
+is the shell script that used to control
+.Xr nsd 8
+and
+.Xr zonec 8
+from
+.IC NSD
+distribution.
+.Ic Nsdc
+is also suitable to be linked into
+.Pa /etc/rc.d
+directory on
+.Em BSD
+like systems for automatic startup of
+.Xr nsd 8
+at the boot time.
+.Pp
+Possible
+.Ic nsdc
+applications are:
+.Bl -tag -width indent
+.It Ar start
+Start
+.Xr nsd 8
+.It Ar stop
+Shut down
+.Xr nsd 8
+by sending
+.Em SIGTERM
+to it.
+.It Ar reload
+Initiate
+.Xr nsd 8
+name space database reload by sending
+.Em SIGHUP
+.It rebuild
+Rebuild the
+.Xr nsd 8
+database by invoking
+.Xr zonec 8
+with appropriate arguments.
+.It Ar restart
+Restart
+.Xr nsdc 8
+This equals to nsdc stop && nsdc start
+.It Ar running
+Check whether
+.Xr nsd 8
+is running. Returns error message and error code if it is not
+running, and no message and zero error code otherwise.
+.It Ar update
+Updates all the slave zones which have
+.Em master
+keyword in
+.Pa nsd.zones
+file from its masters and invokes
+.Em nsdc rebuild
+and
+.Em nsdc reload
+if necessary.
+.It Ar notify
+Sends
+.Em notify
+message to all the masters for all the zones that have
+.Em notify
+keyword in
+.Pa nsd.zones
+file.
+.El
+.Pp
+See the
+.Pa README
+file for detailed description of
+.Pa nsd.zones
+file format.
+.Sh FILES
+.Bl -tag -width indent
+.It Pa /etc/nsd.zones
+Default location of configuration file.
+.It Pa /etc/nsd/nsd.db
+default
+.Ic NSD
+database
+.It Pa /var/run/nsd.pid
+the process id of the name server.
+.El
+.Sh DIAGNOSTICS
+.Ic Nsdc
+will return zero return code if operation was successful and
+an error message to standard output plus a non-zero return code
+otherwise.
+.Sh SEE ALSO
+.Xr zonec 8
+.Xr nsd 8
+.Xr README
+.Sh AUTHORS
+.Ic NSD
+was written by NLnet LABS and RIPE NCC joint team. Please see CREDITS file
+in the distribution for further details.
+.Sh BUGS
+.Pa nsd.zones
+syntax checking is almost nonexistent in
+.Ic nsdc
+erroneous lines are most likely to be ignored or will produce unexpected
+results. There is no locking for
+.Em nsdc rebuild
+and
+.Em nsdc update
+operations so those should be used with caution.
+.Pp
+.Em nsdc
+update with more than one master will give error messages and wont work
+with tsig. To fix the problem one can comment out checking for tsig
+file presence in
+.Em nsdc.sh.in
