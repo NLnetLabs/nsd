@@ -43,10 +43,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
 #endif /* HAVE_SYSLOG_H */
+#include <unistd.h>
 
 #include "util.h"
 
@@ -170,4 +170,21 @@ xrealloc(void *ptr, size_t size)
 		exit(1);
 	}
 	return ptr;
+}
+
+int
+write_data(int file, void *data, size_t size)
+{
+	ssize_t result;
+
+	result = write(file, data, size);
+	if (result == -1) {
+		log_msg(LOG_ERR, "write failed: %s", strerror(errno));
+		return 0;
+	} else if ((size_t) result != size) {
+		log_msg(LOG_ERR, "short write (disk full?)");
+		return 0;
+	} else {
+		return 1;
+	}
 }

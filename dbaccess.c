@@ -51,33 +51,13 @@
 #include "namedb.h"
 #include "util.h"
 
-int 
-domaincmp (const void *left, const void *right)
+int
+namedb_lookup (struct namedb    *db,
+	       const dname_type *dname,
+	       dname_tree_type **less_equal,
+	       dname_tree_type **closest_encloser)
 {
-	int r;
-	const uint8_t *a = left;
-	const uint8_t *b = right;
-	int alen = (int)*a;
-	int blen = (int)*b;
-
-	while(alen && blen) {
-		a++; b++;
-		if((r = *a - *b)) return r;
-		alen--; blen--;
-	}
-	return alen - blen;
-}
-
-struct domain *
-namedb_lookup (struct namedb *db, const dname_type *dname)
-{
-	dname_tree_type *less_equal;
-	dname_tree_type *closest_encloser;
-	if (dname_tree_search(db->dnames, dname, &less_equal, &closest_encloser)) {
-		return closest_encloser->data;
-	} else {
-		return NULL;
-	}
+	return dname_tree_search(db->dnames, dname, less_equal, closest_encloser);
 }
 
 const struct answer *
@@ -87,44 +67,11 @@ namedb_answer (const struct domain *d, uint16_t type)
 	type = htons(type);
 	
 	DOMAIN_WALK(d, a) {
-		if(a->type == type) {
+		if (a->type == type) {
 			return a;
 		}
 	}
 	return NULL;
-}
-
-struct dname_tree_info_type
-{
-	size_t nodes;
-	size_t max_depth;
-	size_t null_data;
-	size_t leaves;
-};
-
-static void
-dname_tree_info (const uint8_t *name, dname_tree_type *node, size_t depth, struct dname_tree_info_type *info)
-{
-	const uint8_t *label;
-	dname_tree_type *child;
-	
-	if (!node) return;
-
-	++info->nodes;
-	if (depth > info->max_depth)
-		info->max_depth = depth;
-	if (!node->data) {
-		fprintf(stderr, "empty node: %s\n", labels_to_string(name));
-		++info->null_data;
-	}
-
-	if (node->children) {
-		HEAP_WALK(node->children, label, child) {
-			dname_tree_info(label, child, depth + 1, info);
-		}
-	} else {
-		++info->leaves;
-	}
 }
 
 struct namedb *
@@ -142,20 +89,20 @@ namedb_open (const char *filename)
 	db->region = region;
 	
 	/* Copy the name... */
-	if((db->filename = strdup(filename)) == NULL) {
+	if ((db->filename = strdup(filename)) == NULL) {
 		region_destroy(region);
 		return NULL;
 	}
 	region_add_cleanup(region, free, db->filename);
 
 	/* Open it... */
-	if((db->fd = open(db->filename, O_RDONLY)) == -1) {
+	if ((db->fd = open(db->filename, O_RDONLY)) == -1) {
 		region_destroy(region);
 		return NULL;
 	}
 
 	/* Is it there? */
-	if(fstat(db->fd, &st) == -1) {
+	if (fstat(db->fd, &st) == -1) {
 		close(db->fd);
 		region_destroy(region);
 		return NULL;
@@ -165,7 +112,7 @@ namedb_open (const char *filename)
 	db->mpoolsz = st.st_size;
 	db->mpool = region_alloc(region, db->mpoolsz);
 
-	if(read(db->fd, db->mpool, db->mpoolsz) == -1) {
+	if (read(db->fd, db->mpool, db->mpoolsz) != db->mpoolsz) {
 		close(db->fd);
 		region_destroy(region);
 		return NULL;
@@ -178,14 +125,14 @@ namedb_open (const char *filename)
 
 	p = db->mpool;
 
-	if(memcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
+	if (memcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
 	p += NAMEDB_MAGIC_SIZE;
 
-	while(*p) {
+	while (*p) {
 		const dname_type *dname = (const dname_type *) p;
 		if (dname_tree_update(db->dnames, dname, p + ALIGN_UP(dname_total_size(dname), NAMEDB_ALIGNMENT)) == NULL) {
 			log_msg(LOG_ERR, "failed to insert a domain: %s", strerror(errno));
@@ -194,7 +141,7 @@ namedb_open (const char *filename)
 		}
 		p += ALIGN_UP(dname_total_size(dname), NAMEDB_ALIGNMENT);
 		p += *((uint32_t *)p);
-		if(p > (db->mpool + db->mpoolsz)) {
+		if (p > (db->mpool + db->mpoolsz)) {
 			log_msg(LOG_ERR, "corrupted database %s", db->filename);
 			namedb_close(db);
 			errno = EINVAL;
@@ -205,7 +152,7 @@ namedb_open (const char *filename)
 
 	p++;
 
-	if(memcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
+	if (memcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
 		return NULL;
@@ -215,20 +162,6 @@ namedb_open (const char *filename)
 	log_msg(LOG_WARNING, "loaded %s, %lu entries", db->filename,
 		(unsigned long) entries);
 
-	/* Debug */
-#if 1
-	{
-		struct dname_tree_info_type info;
-		info.nodes = 0;
-		info.max_depth = 0;
-		info.null_data = 0;
-		info.leaves = 0;
-		dname_tree_info("", db->dnames, 0, &info);
-		fprintf(stderr, "nodes: %u, max_depth: %u, null_data: %u, leaves: %u\n",
-			info.nodes, info.max_depth, info.null_data, info.leaves);
-	}
-#endif
-	
 	return db;
 }
 
@@ -236,7 +169,7 @@ void
 namedb_close (struct namedb *db)
 {
 	/* If it is already closed... */
-	if(db == NULL)
+	if (db == NULL)
 		return;
 	region_destroy(db->region);
 }

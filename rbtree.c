@@ -69,7 +69,7 @@ rbtree_create (region_type *region, int (*cmpf)(const void *, const void *))
 	rbtree_t *rbtree;
 
 	/* Allocate memory for it */
-	if((rbtree = region_alloc(region, sizeof(rbtree_t))) == NULL) {
+	if ((rbtree = region_alloc(region, sizeof(rbtree_t))) == NULL) {
 		return NULL;
 	}
 
@@ -91,13 +91,13 @@ rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node)
 {
 	rbnode_t *right = node->right;
 	node->right = right->left;
-	if(right->left != RBTREE_NULL)
+	if (right->left != RBTREE_NULL)
 		right->left->parent = node;
 
 	right->parent = node->parent;
 
-	if(node->parent != RBTREE_NULL) {
-		if(node == node->parent->left) {
+	if (node->parent != RBTREE_NULL) {
+		if (node == node->parent->left) {
 			node->parent->left = right;
 		} else  {
 			node->parent->right = right;
@@ -118,13 +118,13 @@ rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node)
 {
 	rbnode_t *left = node->left;
 	node->left = left->right;
-	if(left->right != RBTREE_NULL)
+	if (left->right != RBTREE_NULL)
 		left->right->parent = node;
 
 	left->parent = node->parent;
 
-	if(node->parent != RBTREE_NULL) {
-		if(node == node->parent->right) {
+	if (node->parent != RBTREE_NULL) {
+		if (node == node->parent->right) {
 			node->parent->right = left;
 		} else  {
 			node->parent->left = left;
@@ -142,13 +142,13 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
 	rbnode_t	*uncle;
 
 	/* While not at the root and need fixing... */
-	while(node != rbtree->root && node->parent->color == RED) {
+	while (node != rbtree->root && node->parent->color == RED) {
 		/* If our parent is left child of our grandparent... */
-		if(node->parent == node->parent->parent->left) {
+		if (node->parent == node->parent->parent->left) {
 			uncle = node->parent->parent->right;
 
 			/* If our uncle is red... */
-			if(uncle->color == RED) {
+			if (uncle->color == RED) {
 				/* Paint the parent and the uncle black... */
 				node->parent->color = BLACK;
 				uncle->color = BLACK;
@@ -160,7 +160,7 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
 				node = node->parent->parent;
 			} else {				/* Our uncle is black... */
 				/* Are we the right child? */
-				if(node == node->parent->right) {
+				if (node == node->parent->right) {
 					node = node->parent;
 					rbtree_rotate_left(rbtree, node);
 				}
@@ -173,7 +173,7 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
 			uncle = node->parent->parent->left;
 
 			/* If our uncle is red... */
-			if(uncle->color == RED) {
+			if (uncle->color == RED) {
 				/* Paint the parent and the uncle black... */
 				node->parent->color = BLACK;
 				uncle->color = BLACK;
@@ -185,7 +185,7 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
 				node = node->parent->parent;
 			} else {				/* Our uncle is black... */
 				/* Are we the right child? */
-				if(node == node->parent->left) {
+				if (node == node->parent->left) {
 					node = node->parent;
 					rbtree_rotate_right(rbtree, node);
 				}
@@ -223,10 +223,10 @@ rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 	rbnode_t	*parent = RBTREE_NULL;
 
 	/* Lets find the new parent... */
-	while(node != RBTREE_NULL) {
+	while (node != RBTREE_NULL) {
 		/* Compare two keys, do we have a duplicate? */
-		if((r = rbtree->cmp(key, node->key)) == 0) {
-			if(overwrite) {
+		if ((r = rbtree->cmp(key, node->key)) == 0) {
+			if (overwrite) {
 				node->key = key;
 				node->data = data;
 			}
@@ -234,7 +234,7 @@ rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 		}
 		parent = node;
 
-		if(r < 0) {
+		if (r < 0) {
 			node = node->left;
 		} else {
 			node = node->right;
@@ -242,7 +242,7 @@ rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 	}
 
 	/* Create the new node */
-	if((node = region_alloc(rbtree->region, sizeof(rbnode_t))) == NULL) {
+	if ((node = region_alloc(rbtree->region, sizeof(rbnode_t))) == NULL) {
 		return NULL;
 	}
 
@@ -254,8 +254,8 @@ rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 	rbtree->count++;
 
 	/* Insert it into the tree... */
-	if(parent != RBTREE_NULL) {
-		if(r < 0) {
+	if (parent != RBTREE_NULL) {
+		if (r < 0) {
 			parent->left = node;
 		} else {
 			parent->right = node;
@@ -327,7 +327,7 @@ rbtree_first (rbtree_t *rbtree)
 {
 	rbnode_t *node;
 
-	for(node = rbtree->root; node->left != RBTREE_NULL; node = node->left);
+	for (node = rbtree->root; node->left != RBTREE_NULL; node = node->left);
 	return node;
 }
 
@@ -340,12 +340,12 @@ rbtree_next (rbnode_t *node)
 {
 	rbnode_t *parent;
 
-	if(node->right != RBTREE_NULL) {
+	if (node->right != RBTREE_NULL) {
 		/* One right, then keep on going left... */
-		for(node = node->right; node->left != RBTREE_NULL; node = node->left);
+		for (node = node->right; node->left != RBTREE_NULL; node = node->left);
 	} else {
 		parent = node->parent;
-		while(parent != RBTREE_NULL && node == parent->right) {
+		while (parent != RBTREE_NULL && node == parent->right) {
 			node = parent;
 			parent = parent->parent;
 		}
@@ -366,13 +366,13 @@ main (int argc, char **argv)
 	char *key, *data;
 	region_type *region = region_create(malloc, free);
 	
-	if((rbtree = rbtree_create(region, strcmp)) == NULL) {
+	if ((rbtree = rbtree_create(region, strcmp)) == NULL) {
 		perror("cannot create red black tree");
 		exit(1);
 	}
 
-	while(fgets(buf, BUFSZ - 1, stdin)) {
-		if(rbtree_insert(rbtree, strdup(buf), strdup(buf), 1) == NULL) {
+	while (fgets(buf, BUFSZ - 1, stdin)) {
+		if (rbtree_insert(rbtree, strdup(buf), strdup(buf), 1) == NULL) {
 			perror("cannot insert into a red black tree");
 			exit(1);
 		}

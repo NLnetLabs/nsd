@@ -136,8 +136,8 @@ server_init(struct nsd *nsd)
 	/* UDP */
 
 	/* Make a socket... */
-	for(i = 0; i < nsd->ifs; i++) {
-		if((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
+	for (i = 0; i < nsd->ifs; i++) {
+		if ((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
 			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
@@ -153,7 +153,7 @@ server_init(struct nsd *nsd)
 #endif
 
 		/* Bind it... */
-		if(bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
+		if (bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
 			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
 			return -1;
 		}
@@ -162,14 +162,14 @@ server_init(struct nsd *nsd)
 	/* TCP */
 
 	/* Make a socket... */
-	for(i = 0; i < nsd->ifs; i++) {
-		if((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
+	for (i = 0; i < nsd->ifs; i++) {
+		if ((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
 			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
 
 #ifdef	SO_REUSEADDR
-		if(setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+		if (setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
 			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
 			return -1;
 		}
@@ -185,13 +185,13 @@ server_init(struct nsd *nsd)
 #endif
 
 		/* Bind it... */
-		if(bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
+		if (bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
 			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
 			return -1;
 		}
 
 		/* Listen to it... */
-		if(listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
+		if (listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
 			log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 			return -1;
 		}
@@ -199,13 +199,13 @@ server_init(struct nsd *nsd)
 
 #ifdef HAVE_CHROOT
 	/* Chroot */
-	if(nsd->chrootdir) {
+	if (nsd->chrootdir) {
 		int l = strlen(nsd->chrootdir);
 
 		nsd->dbfile += l;
 		nsd->pidfile += l;
 
-		if(chroot(nsd->chrootdir)) {
+		if (chroot(nsd->chrootdir)) {
 			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
 			return -1;
 		}
@@ -213,13 +213,13 @@ server_init(struct nsd *nsd)
 #endif
 
 	/* Drop the permissions */
-	if(setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
+	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
 		log_msg(LOG_ERR, "unable to drop user priviledges: %s", strerror(errno));
 		return -1;
 	}
 
 	/* Open the database... */
-	if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+	if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
 		log_msg(LOG_ERR, "unable to load %s: %s", nsd->dbfile, strerror(errno));
 		return -1;
 	}
@@ -343,7 +343,7 @@ server_main(struct nsd *nsd)
 				/* CHILD */
 
 				namedb_close(nsd->db);
-				if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+				if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
 					log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 					exit(1);
 				}
@@ -368,7 +368,7 @@ server_main(struct nsd *nsd)
 				server_start_children(nsd);
 
 				/* Overwrite pid... */
-				if(writepid(nsd) == -1) {
+				if (writepid(nsd) == -1) {
 					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 				}
 
@@ -400,7 +400,7 @@ server_main(struct nsd *nsd)
 #endif /* PLUGINS */
 	
 	/* Truncate the pid file.  */
-	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
+	if ((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
 		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->pidfile, strerror(errno));
 	}
 	close(fd);
@@ -504,7 +504,7 @@ handle_udp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 #ifdef BIND8_STATS
 		/* Account the rcode & TC... */
 		STATUP2(nsd, rcode, RCODE((&q)));
-		if(TC((&q)))
+		if (TC((&q)))
 			STATUP(nsd, truncated);
 #endif /* BIND8_STATS */
 	} else {
@@ -551,7 +551,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	
 	s = -1;
 	for (i = 0; i < nsd->ifs; i++) {
-		if(FD_ISSET(nsd->tcp[i].s, peer)) {
+		if (FD_ISSET(nsd->tcp[i].s, peer)) {
 			s = nsd->tcp[i].s;
 			break;
 		}
@@ -603,7 +603,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 		}
 
 		if ((received = read_socket(s, q.iobuf, ntohs(tcplen))) == -1) {
-			if(errno == EINTR)
+			if (errno == EINTR)
 				log_msg(LOG_ERR, "timed out/interrupted reading tcp connection");
 			else
 				log_msg(LOG_ERR, "failed reading tcp connection: %s", strerror(errno));
@@ -650,7 +650,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 				if (axfr) {
 					axfr = query_axfr(nsd, &q, NULL);
 				}
-			} while(axfr);
+			} while (axfr);
 		} else {
 			/* Drop the entire connection... */
 			break;
@@ -661,7 +661,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	
 	/* Connection closed */
 	if (received == -1) {
-		if(errno == EINTR)
+		if (errno == EINTR)
 			log_msg(LOG_ERR, "timed out/interrupted reading tcp connection");
 		else
 			log_msg(LOG_ERR, "failed reading tcp connection: %s", strerror(errno));
@@ -713,7 +713,7 @@ server_child(struct nsd *nsd)
 	while (nsd->mode != NSD_QUIT) {
 
 		/* Do we need to do the statistics... */
-		if(nsd->mode == NSD_STATS) {
+		if (nsd->mode == NSD_STATS) {
 			nsd->mode = NSD_RUN;
 
 #ifdef BIND8_STATS

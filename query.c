@@ -107,19 +107,19 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	STATUP(nsd, raxfr);
 
 	/* Is it new AXFR? */
-	if(qname) {
+	if (qname) {
 		/* New AXFR... */
 		*zone = q->name->name_size;
 		memcpy(zone + 1, dname_name(q->name), q->name->name_size);
 
 		/* Do we have the SOA? */
-		if (dname_tree_search(nsd->db->dnames, q->name, &less_equal, &closest_encloser)
+		if (namedb_lookup(nsd->db, q->name, &less_equal, &closest_encloser)
 		    && (soa = namedb_answer(closest_encloser->data, TYPE_SOA)))
 		{
 			d = closest_encloser->data;
 			
 			/* We'd rather have ANY than SOA to improve performance */
-			if((a = namedb_answer(d, TYPE_ANY)) == NULL) {
+			if ((a = namedb_answer(d, TYPE_ANY)) == NULL) {
 				a = soa;
 			}
 
@@ -142,7 +142,7 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	}
 
 	/* We've done everything already, let the server know... */
-	if(d == NULL) {
+	if (d == NULL) {
 		return 0;	/* Done. */
 	}
 
@@ -150,17 +150,17 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	do {
 		dname = (const uint8_t *)d + d->size;
 		d = (const struct domain *)(dname + ALIGN_UP(*dname + 1, NAMEDB_ALIGNMENT));
-	} while(*dname && (DOMAIN_FLAGS(d) & NAMEDB_STEALTH));
+	} while (*dname && (DOMAIN_FLAGS(d) & NAMEDB_STEALTH));
 
 	/* End of the database or end of zone? */
-	if(*dname == 0 || namedb_answer(d, TYPE_SOA) != NULL) {
+	if (*dname == 0 || namedb_answer(d, TYPE_SOA) != NULL) {
 		/* Prepare to send the terminating SOA record */
 		a = soa;
 		dname = zone;
 		d = NULL;
 	} else {
 		/* Prepare the answer */
-		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
+		if (DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 			a = namedb_answer(d, TYPE_NS);
 		} else {
 			a = namedb_answer(d, TYPE_ANY);
@@ -171,7 +171,7 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	q->iobufptr = q->iobuf + QHEADERSZ;
 
 	/* Is the first dname a pointer? */
-	if(ANSWER_PTRS(a, 0) == 0) {
+	if (ANSWER_PTRS(a, 0) == 0) {
 		/* XXX Very interesting math... Can you figure it? I cant anymore... */
 		q->iobufptr += *dname - 2;
 		QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
@@ -181,12 +181,12 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 
 	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
 
-	if(ANSWER_PTRS(a, 0) == 0) {
+	if (ANSWER_PTRS(a, 0) == 0) {
 		memcpy(q->iobuf + QHEADERSZ, dname + 1, *dname);
 	}
 
 	/* Truncate */
-	if(d && DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
+	if (d && DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 		ANCOUNT(q) = htons(ntohs(NSCOUNT(q)) + ntohs(ARCOUNT(q)));
 	} else {
 		q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
@@ -229,7 +229,7 @@ query_addtxt (struct query *q, uint8_t *dname, int16_t class, int32_t ttl, const
 	class = htons(class);
 
 	/* Add the dname */
-	if(dname >= q->iobuf  && dname <= q->iobufptr) {
+	if (dname >= q->iobuf  && dname <= q->iobufptr) {
 		pointer = htons(0xc000 | (dname - q->iobuf));
 		QUERY_WRITE(q, &pointer, sizeof(pointer));
 	} else {
@@ -252,7 +252,7 @@ query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, 
 	int  i, j;
 
 	/* Check that the answer fits into our query buffer... */
-	if(ANSWER_DATALEN(a) > QUERY_AVAILABLE_SIZE(q)) {
+	if (ANSWER_DATALEN(a) > QUERY_AVAILABLE_SIZE(q)) {
 		log_msg(LOG_ERR, "the answer in the database is larger then the query buffer");
 		RCODE_SET(q, RCODE_SERVFAIL);
 		return;
@@ -267,10 +267,10 @@ query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, 
 	memcpy(q->iobufptr, ANSWER_DATA_PTR(a), ANSWER_DATALEN(a));
 
 	/* Walk the pointers */
-	for(j = 0; j < ANSWER_PTRSLEN(a); j++) {
+	for (j = 0; j < ANSWER_PTRSLEN(a); j++) {
 		qptr = q->iobufptr + ANSWER_PTRS(a, j);
 		memcpy(&pointer, qptr, 2);
-		switch((pointer & 0xf000)) {
+		switch ((pointer & 0xf000)) {
 		case 0xc000:			/* This pointer is relative to the name in the query.... */
 			/* XXX Check if dname is within packet */
 			pointer = htons(0xc000 | (dname - q->iobuf + (pointer & 0x0fff)));/* dname - q->iobuf */
@@ -286,19 +286,19 @@ query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, 
 	}
 
 	/* If we dont need truncation, return... */
-	if(!trunc) {
+	if (!trunc) {
 		q->iobufptr += ANSWER_DATALEN(a);
 		return;
 	}
 
 	/* Truncate if necessary */
-	if(q->maxlen < QUERY_USED_SIZE(q) + ANSWER_DATALEN(a)) {
+	if (q->maxlen < QUERY_USED_SIZE(q) + ANSWER_DATALEN(a)) {
 
 		/* Start with the additional section, record by record... */
-		for(i = ntohs(ANSWER_ARCOUNT(a)), j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
-			if(q->maxlen >= QUERY_USED_SIZE(q) + ANSWER_RRS(a, j - 1)) {
+		for (i = ntohs(ANSWER_ARCOUNT(a)), j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
+			if (q->maxlen >= QUERY_USED_SIZE(q) + ANSWER_RRS(a, j - 1)) {
 				/* Make sure we remove the entire RRsets... */
-				while(ANSWER_RRS_COLOR(a, j - 1) == ANSWER_RRS_COLOR(a, j - 2)) {
+				while (ANSWER_RRS_COLOR(a, j - 1) == ANSWER_RRS_COLOR(a, j - 2)) {
 					j--; i--;
 				}
 				ARCOUNT(q) = htons(i-1);
@@ -310,7 +310,7 @@ query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, 
 		ARCOUNT(q) = htons(0);
 		TC_SET(q);
 
-		if(q->maxlen >= QUERY_USED_SIZE(q) + ANSWER_RRS(a, j - ntohs(a->nscount) - 1)) {
+		if (q->maxlen >= QUERY_USED_SIZE(q) + ANSWER_RRS(a, j - ntohs(a->nscount) - 1)) {
 			/* Truncate the athority section */
 			NSCOUNT(q) = htons(0);
 			q->iobufptr += ANSWER_RRS(a, j - ntohs(a->nscount) - 1);
@@ -404,22 +404,22 @@ process_edns (struct query *q, uint8_t *qptr)
 	uint16_t opt_type, opt_class, opt_rdlen;
 
 	/* Do we have an OPT record? */
-	if(ARCOUNT(q) > 0) {
+	if (ARCOUNT(q) > 0) {
 		/* Only one opt is allowed... */
-		if(ntohs(ARCOUNT(q)) != 1) {
+		if (ntohs(ARCOUNT(q)) != 1) {
 			query_formerr(q);
 			return 0;
 		}
 
 		/* Must have root owner name... */
-		if(*qptr != 0) {
+		if (*qptr != 0) {
 			query_formerr(q);
 			return 0;
 		}
 
 		/* Must be of the type OPT... */
 		memcpy(&opt_type, qptr + 1, 2);
-		if(ntohs(opt_type) != TYPE_OPT) {
+		if (ntohs(opt_type) != TYPE_OPT) {
 			query_formerr(q);
 			return 0;
 		}
@@ -432,12 +432,12 @@ process_edns (struct query *q, uint8_t *qptr)
 		opt_class = ntohs(opt_class);
 
 		/* Check the version... */
-		if(*(qptr + 6) != 0) {
+		if (*(qptr + 6) != 0) {
 			q->edns = -1;
 		} else {
 			/* Make sure there are no other options... */
 			memcpy(&opt_rdlen, qptr + 9, 2);
-			if(opt_rdlen != 0) {
+			if (opt_rdlen != 0) {
 				q->edns = -1;
 			} else {
 
@@ -453,7 +453,7 @@ process_edns (struct query *q, uint8_t *qptr)
 
 #ifdef	STRICT_MESSAGE_PARSE
 				/* Trailing garbage? */
-				if((qptr + OPT_LEN) != q->iobufptr) {
+				if ((qptr + OPT_LEN) != q->iobufptr) {
 					q->edns = 0;
 					query_formerr(q);
 					return 0;
@@ -550,7 +550,7 @@ answer_domain(struct query *q, struct domain *d, const uint8_t *qname)
 	
 	if (((a = namedb_answer(d, q->query_type)) != NULL) ||	/* The query type? */
 	    ((a = namedb_answer(d, TYPE_CNAME)) != NULL)) { /* Or CNAME? */
-		if(q->query_class != CLASS_ANY) {
+		if (q->query_class != CLASS_ANY) {
 			query_addanswer(q, qname, a, 1);
 			AA_SET(q);
 			return 1;
@@ -602,7 +602,7 @@ answer_soa(struct query *q, struct domain *d, const uint8_t *qname)
 			ANCOUNT(q) = 0;
 			NSCOUNT(q) = htons(1);
 			ARCOUNT(q) = 0;
-			if(ANSWER_RRSLEN(a) > 1)
+			if (ANSWER_RRSLEN(a) > 1)
 				q->iobufptr = qptr + ANSWER_RRS(a, 1);
 				
 		} else {
@@ -624,7 +624,7 @@ answer_soa(struct query *q, struct domain *d, const uint8_t *qname)
 static int
 answer_chaos(struct nsd *nsd, struct query *q)
 {
-	switch(q->query_class) {
+	switch (q->query_class) {
 	case CLASS_IN:
 	case CLASS_ANY:
 		/* Not handled by this function. */
@@ -641,7 +641,7 @@ answer_chaos(struct nsd *nsd, struct query *q)
 	switch (q->query_type) {
 	case TYPE_ANY:
 	case TYPE_TXT:
-		if(q->name->name_size == 11
+		if (q->name->name_size == 11
 		   && memcmp(dname_name(q->name), "\002id\006server", 11) == 0)
 		{
 			/* Add ID */
@@ -676,7 +676,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q, const uint8_t *qname, int *is
 	switch (q->query_type) {
 	case TYPE_AXFR:
 #ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
-		if(q->tcp) {
+		if (q->tcp) {
 #ifdef LIBWRAP
 			struct request_info request;
 #ifdef AXFR_DAEMON_PREFIX
@@ -699,12 +699,12 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q, const uint8_t *qname, int *is
 #endif /* AXFR_DAEMON_PREFIX */
 			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
 			sock_methods(&request);	/* This is to work around the bug in libwrap */
-			if(!hosts_access(&request)) {
+			if (!hosts_access(&request)) {
 #ifdef AXFR_DAEMON_PREFIX
 				request_init(&request, RQ_DAEMON, axfr_daemon, RQ_CLIENT_SIN, &q->addr, 0);
 				sock_methods(&request);	/* This is to work around the bug in libwrap */
 				log_msg(LOG_ERR, "checking %s", axfr_daemon);
-				if(!hosts_access(&request)) {
+				if (!hosts_access(&request)) {
 #endif /* AXFR_DAEMON_PREFIX */
 					RCODE_SET(q, RCODE_REFUSE);
 					return 1;
@@ -735,7 +735,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 	dname_tree_type *closest_encloser;
 	int exact;
 
-	exact = dname_tree_search(nsd->db->dnames, q->name, &less_equal, &closest_encloser);
+	exact = namedb_lookup(nsd->db, q->name, &less_equal, &closest_encloser);
 	if (exact) {
 		/* Exact match.  */
 		d = closest_encloser->data;
@@ -815,7 +815,7 @@ query_process (struct query *q, struct nsd *nsd)
 	int axfr;
 
 	/* Sanity checks */
-	if(QR(q))
+	if (QR(q))
 		return -1;	/* Not a query? Drop it on the floor. */
 
 	/* Account the OPCODE */
@@ -826,7 +826,7 @@ query_process (struct query *q, struct nsd *nsd)
 	}
 
 	/* Dont bother to answer more than one question at once... */
-	if(ntohs(QDCOUNT(q)) != 1 || TC(q)) {
+	if (ntohs(QDCOUNT(q)) != 1 || TC(q)) {
 		*(uint16_t *)(q->iobuf + 2) = 0;
 
 		query_formerr(q);
@@ -859,7 +859,7 @@ query_process (struct query *q, struct nsd *nsd)
 	STATUP2(nsd, qclass, q->query_class);
 
 	/* Dont allow any records in the answer or authority section... */
-	if(ANCOUNT(q) != 0 || NSCOUNT(q) != 0) {
+	if (ANCOUNT(q) != 0 || NSCOUNT(q) != 0) {
 		query_formerr(q);
 		return 0;
 	}
@@ -869,7 +869,7 @@ query_process (struct query *q, struct nsd *nsd)
 	}
 
 	/* Do we have any trailing garbage? */
-	if(qptr != q->iobufptr) {
+	if (qptr != q->iobufptr) {
 #ifdef	STRICT_MESSAGE_PARSE
 		/* If we're strict.... */
 		query_formerr(q);
@@ -902,7 +902,7 @@ query_process (struct query *q, struct nsd *nsd)
 
 void
 query_addedns(struct query *q, struct nsd *nsd) {
-	switch(q->edns) {
+	switch (q->edns) {
 	case 1:	/* EDNS(0) packet... */
 		if (OPT_LEN <= QUERY_AVAILABLE_SIZE(q)) {
 			QUERY_WRITE(q, nsd->edns.opt_ok, OPT_LEN);

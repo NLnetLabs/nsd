@@ -132,8 +132,10 @@ void namedb_discard(struct namedb *db);
 
 
 /* dbaccess.c */
-int domaincmp(const void *a, const void *b);
-struct domain *namedb_lookup(struct namedb *db, const dname_type *dname);
+int namedb_lookup (struct namedb    *db,
+		   const dname_type *dname,
+		   dname_tree_type **less_equal,
+		   dname_tree_type **closest_encloser);
 const struct answer *namedb_answer(const struct domain *d, uint16_t type);
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);

@@ -225,9 +225,9 @@ label_compare(const uint8_t *left, const uint8_t *right)
 	int alen = (int)*a;
 	int blen = (int)*b;
 
-	while(alen && blen) {
+	while (alen && blen) {
 		a++; b++;
-		if((r = *a - *b)) return r;
+		if ((r = *a - *b)) return r;
 		alen--; blen--;
 	}
 	return alen - blen;
@@ -372,9 +372,9 @@ dnamecmp (const void *left, const void *right)
 	int alen = (int)*a;
 	int blen = (int)*b;
 
-	while(alen && blen) {
+	while (alen && blen) {
 		a++; b++;
-		if((r = DNAME_NORMALIZE(*a) - DNAME_NORMALIZE(*b))) return r;
+		if ((r = DNAME_NORMALIZE(*a) - DNAME_NORMALIZE(*b))) return r;
 		alen--; blen--;
 	}
 	return alen - blen;
@@ -429,8 +429,8 @@ dnamestr (const uint8_t *dname)
 	n++;
 	p = s;
 
-	if(*n) {
-		while(n < dname + l) {
+	if (*n) {
+		while (n < dname + l) {
 			memcpy(p, n+1, (int) *n);
 			p += (int) *n;
 			*p++ = '.';
@@ -462,14 +462,14 @@ strdname (const char *source, const uint8_t *o)
 	uint8_t *p;
 	uint8_t *d = dname + 1;
 
-	if(*s == '@' && *(s+1) == 0) {
-		for(p = dname, s = o; s < o + *o + 1; p++, s++)
+	if (*s == '@' && *(s+1) == 0) {
+		for (p = dname, s = o; s < o + *o + 1; p++, s++)
 			*p = DNAME_NORMALIZE(*s);
 	} else {
-		for(h = d, p = h + 1; *s; s++, p++) {
-			switch(*s) {
+		for (h = d, p = h + 1; *s; s++, p++) {
+			switch (*s) {
 			case '.':
-				if(p == (h + 1)) p--;	/* Suppress empty labels */
+				if (p == (h + 1)) p--;	/* Suppress empty labels */
 				*h = p - h - 1;
 				h = p;
 				break;
@@ -499,8 +499,8 @@ strdname (const char *source, const uint8_t *o)
 		*h = p - h - 1;
 
 		/* If not absolute, append origin... */
-		if((*(p-1) != 0) && (o != NULL)) {
-			for(s = o + 1; s < o + *o + 1; p++, s++)
+		if ((*(p-1) != 0) && (o != NULL)) {
+			for (s = o + 1; s < o + *o + 1; p++, s++)
 				*p = DNAME_NORMALIZE(*s);
 		}
 
@@ -520,7 +520,7 @@ dnamedup (const uint8_t *dname)
 {
 	uint8_t *p;
 
-	if(dname == NULL)
+	if (dname == NULL)
 		return NULL;
 
 	p = xalloc((int)*dname + 1);

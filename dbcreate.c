@@ -58,19 +58,19 @@ namedb_new (const char *filename)
 	db = region_alloc(region, sizeof(struct namedb));
 	db->region = region;
 	
-	if((db->filename = strdup(filename)) == NULL) {
+	if ((db->filename = strdup(filename)) == NULL) {
 		region_destroy(region);
 		return NULL;
 	}
 	region_add_cleanup(region, free, db->filename);
 
 	/* Create the database */
-        if((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
+        if ((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
 		region_destroy(region);
 		return NULL;
         }
 
-	if (write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
+	if (!write_data(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE)) {
 		close(db->fd);
 		namedb_discard(db);
 		return NULL;
@@ -83,21 +83,21 @@ namedb_new (const char *filename)
 int 
 namedb_put (struct namedb *db, const uint8_t *dname, struct domain *d)
 {
-	/* Store the key */
 	static const char zeroes[NAMEDB_ALIGNMENT];
 	const dname_type *domain = dname_make(db->region, dname + 1);
 	size_t padding = PADDING(dname_total_size(domain), NAMEDB_ALIGNMENT);
 	
-	if (write(db->fd, domain, dname_total_size(domain)) == -1) {
+	/* Store the key */
+	if (!write_data(db->fd, domain, dname_total_size(domain))) {
 		return -1;
 	}
 
-	if (write(db->fd, zeroes, padding) == -1) {
+	if (!write_data(db->fd, zeroes, padding)) {
 		return -1;
 	}
 	
 	/* Store the domain */
-	if (write(db->fd, d, d->size) == -1) {
+	if (!write_data(db->fd, d, d->size)) {
 		return -1;
 	}
 
@@ -108,13 +108,13 @@ int
 namedb_save (struct namedb *db)
 {
 	/* Write an empty key... */
-	if (write(db->fd, "", 1) == -1) {
+	if (!write_data(db->fd, "", 1)) {
 		close(db->fd);
 		return -1;
 	}
 
 	/* Write the magic... */
-	if (write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
+	if (!write_data(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE)) {
 		close(db->fd);
 		return -1;
 	}

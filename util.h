@@ -108,4 +108,11 @@ void *xalloc(size_t size);
 void *xalloc_zero(size_t size);
 void *xrealloc(void *ptr, size_t size);
 
+/*
+ * Write SIZE bytes of DATA to FILE.  Report an error on failure.
+ *
+ * Returns 0 on failure, 1 on success.
+ */
+int write_data(int file, void *data, size_t size);
+
 #endif /* _UTIL_H_ */

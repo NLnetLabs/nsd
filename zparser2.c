@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.17 2003/08/26 10:41:36 miekg Exp $
+ * $Id: zparser2.c,v 1.18 2003/08/27 13:28:26 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -56,7 +56,7 @@ zparser_conv_hex(const char *hex)
         while(*hex) {
                 *t = 0;
                 for(i = 16; i >= 1; i -= 15) {
-                    switch(*hex) {
+                    switch (*hex) {
                     case '0':
                     case '1':
                     case '2':
@@ -522,7 +522,7 @@ strtottl(char *nptr, char **endptr)
 	long seconds = 0;
 
 	for(*endptr = nptr; **endptr; (*endptr)++) {
-		switch(**endptr) {
+		switch (**endptr) {
 		case ' ':
 		case '\t':
 			break;
@@ -820,7 +820,7 @@ zprintrdata (FILE *f, int what, uint16_t *r)
 
 
 	/* Depending on what we have to scan... */
-	switch(what) {
+	switch (what) {
 	case RDATA_HEX:
 		if(*r == 0xffff) {
 			for(t = (uint8_t *)(r + 1) + 1; t < (uint8_t *)(r + 1) + *((uint8_t *)(r + 1)) + 1; t++) {
@@ -895,7 +895,7 @@ zprintrrrdata(FILE *f, struct RR *rr)
 	uint16_t **rdata;
 	uint16_t size;
 
-	switch(rr->type) {
+	switch (rr->type) {
 	case TYPE_A:
 		zprintrdata(f, RDATA_A, rr->rdata[0]);
 		return;
