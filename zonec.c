@@ -1484,7 +1484,7 @@ zone_read (const char *name, const char *zonefile)
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
 	if (dname->label_count == 1) {
-		error("Not configured as a root server.");
+		fprintf(stderr, " ERR: Not configured as a root server.");
 		return;
 	}
 #endif
@@ -1492,8 +1492,7 @@ zone_read (const char *name, const char *zonefile)
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
-		/* this display (null), need seperate call here */
-		error("Cannot open '%s': %s", zonefile, strerror(errno));
+		fprintf(stderr, " ERR: Cannot open \'%s\': %s\n", zonefile, strerror(errno));
 		return;
 	}
 
