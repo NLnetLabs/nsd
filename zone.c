@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.10 2002/01/17 21:56:03 alexis Exp $
+ * $Id: zone.c,v 1.11 2002/01/17 22:16:15 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -254,7 +254,7 @@ zone_dump(z, db)
 	struct	db *db;
 {
 	struct domain *d;
-	struct message msg;
+	struct message msg, msgany;
 	struct rrset *rrset, *cnamerrset, *additional;
 	u_char *dname, *cname, *nameptr;
 	int star, i, namedepth;
@@ -350,6 +350,10 @@ zone_dump(z, db)
  			cname = NULL;
  		}
 
+		/* Initialize message for TYPE_ANY */
+		bzero(&msgany, sizeof(struct message));
+		msgany.bufptr = msgany.buf;
+
 		/* XXX This is a bit confusing, needs renaming:
 		 *
 		 * cname - name of the target set
@@ -379,6 +383,11 @@ zone_dump(z, db)
 						msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
 						msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
 						msg.comprlen++;
+
+						msgany.compr[msgany.comprlen].dname = nameptr;
+						msgany.compr[msgany.comprlen].dnameoff = (nameptr - (dname + 1 + star)) | 0xc000;
+						msgany.compr[msgany.comprlen].dnamelen = dname + *dname + 1 - nameptr;
+						msgany.comprlen++;
 					}
 				}
 			}
@@ -393,6 +402,9 @@ zone_dump(z, db)
 			} else {
 				/* Answer section */
 				msg.ancount += zone_addrrset(&msg, dname, rrset);
+
+				/* Answer section of message any */
+				msgany.ancount += zone_addrrset(&msgany, dname, rrset);
 			}
 
 			/* Authority section */
@@ -418,6 +430,23 @@ zone_dump(z, db)
 
 			rrset = rrset->next;
 		}
+
+		/* Authority section for TYPE_ANY */
+		msgany.nscount = zone_addrrset(&msgany, z->dname, z->ns);
+
+		/* Additional section for TYPE_ANY */
+		for(i = 0; i < msgany.dnameslen; i++) {
+			additional = HEAP_SEARCH(z->data, msgany.dnames[i]);
+			while(additional) {
+				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
+					msgany.arcount += zone_addrrset(&msgany, msgany.dnames[i], additional);
+				}
+				additional = additional->next;
+			}
+		}
+
+		/* Add this answer */
+		d = db_addanswer(d, &msgany, TYPE_ANY);
 
 		/* Set the data mask */
 		SETMASK(db->mask.data, namedepth);
