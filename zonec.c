@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.98.2.3 2003/07/21 10:18:52 erik Exp $
+ * $Id: zonec.c,v 1.98.2.4 2003/07/21 10:19:12 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -65,9 +65,6 @@ static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int 
 
 /* The database file... */
 const char *dbfile = DBFILE;
-
-/* The database masks */
-static uint8_t bitmasks[NAMEDB_BITMASKLEN * 3];
 
 /* Some global flags... */
 static int vflag = 0;
