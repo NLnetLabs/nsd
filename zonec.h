@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.5 2002/02/05 12:17:33 alexis Exp $
+ * $Id: zonec.h,v 1.6 2002/02/07 12:56:51 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -65,6 +65,7 @@ struct rrset {
 	char *fmt;
 	u_int16_t rrslen;
 	int glue;
+	int color;
 	union zf_rdatom **rrs;
 };
 

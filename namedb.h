@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.11 2002/02/06 09:44:11 alexis Exp $
+ * $Id: namedb.h,v 1.12 2002/02/07 12:56:51 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -74,7 +74,9 @@
 #define	ANSWER_DATALEN_PTR(a)	(&a->datalen)
 #define	ANSWER_END_PTR(a)	((struct answer *)a+1)
 #define	ANSWER_PTRS_PTR(a)	((u_int16_t *)ANSWER_END_PTR(a))
+#define	ANSWER_PTRS(a, i)	*((u_int16_t *)ANSWER_END_PTR(a) + (i))
 #define	ANSWER_RRS_PTR(a)	((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)
+#define	ANSWER_RRS(a, i)	(*(((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+(i)) & ~NAMEDB_RRSET_COLOR)
 #define	ANSWER_DATA_PTR(a)	(u_char *)(((u_int16_t *)ANSWER_END_PTR(a))+ANSWER_PTRSLEN(a)+ANSWER_RRSLEN(a))
 
 
@@ -98,6 +100,11 @@ struct domain {
 };
 
 #define	NAMEDB_MAGIC		"NsdDBv00"
+#define	NAMEDB_MAGIC_SIZE	8
+
+#define	NAMEDB_RRSET_WHITE	0x8000
+#define	NAMEDB_RRSET_BLACK	0x0000
+#define	NAMEDB_RRSET_COLOR	0x8000
 
 #define	DOMAIN_WALK(d, a)	for(a = (struct answer *)(d + 1); ANSWER_SIZE(a) != 0; ((char *)a) += ANSWER_SIZE(a))
 #define	DOMAIN_SIZE(d)		d->size

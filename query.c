@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.33 2002/02/06 16:32:08 alexis Exp $
+ * $Id: query.c,v 1.34 2002/02/07 12:56:51 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -92,7 +92,7 @@ query_addanswer(q, dname, a)
 
 	/* Walk the pointers */
 	for(j = 0; j < ANSWER_PTRSLEN(a); j++) {
-		qptr = q->iobufptr + *(ANSWER_PTRS_PTR(a)+j);
+		qptr = q->iobufptr + ANSWER_PTRS(a, j);
 		bcopy(qptr, &pointer, 2);
 		if((pointer & 0xc000) == 0xc000) {
 			/* This pointer is relative to the name in the query.... */
@@ -110,16 +110,14 @@ query_addanswer(q, dname, a)
 
 		/* Start with the additional section, record by record... */
 		for(i = ntohs(ANSWER_ARCOUNT(a)) - 1, j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
-			if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS_PTR(a) + j - 1))) {
-
+			if(q->maxlen >= (q->iobufptr - q->iobuf + ANSWER_RRS(a, j - 1))) {
 				/* Make sure we remove the entire RRsets... */
-/*				while(dnamecmp(q->iobufptr + *(ANSWER_RRS_PTR(a) + j - 1), q->iobufptr +
- *					*(ANSWER_RRS_PTR(a) + j - 2)) == 0) {
- *					j--; i--;
- *				}
- */
+				while((ANSWER_RRS(a, j - 1) & NAMEDB_RRSET_COLOR)
+						== (ANSWER_RRS(a, j - 2) & NAMEDB_RRSET_COLOR)) {
+					j--; i--;
+				}
 				ARCOUNT(q) = htons(i-1);
-				q->iobufptr += *(ANSWER_RRS_PTR(a) + j - 1);
+				q->iobufptr += ANSWER_RRS(a, j - 1);
 				return;
 			}
 		}
@@ -127,10 +125,10 @@ query_addanswer(q, dname, a)
 		ARCOUNT(q) = htons(0);
 		TC_SET(q);
 
-		if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS_PTR(a) + j - ntohs(a->nscount) - 1))) {
+		if(q->maxlen >= (q->iobufptr - q->iobuf + ANSWER_RRS(a, j - ntohs(a->nscount) - 1))) {
 			/* Truncate the athority section */
 			NSCOUNT(q) = htons(0);
-			q->iobufptr += *(ANSWER_RRS_PTR(a) + j - ntohs(a->nscount));
+			q->iobufptr += ANSWER_RRS(a, j - ntohs(a->nscount) - 1);
 			return;
 		}
 
@@ -277,7 +275,7 @@ query_process(q, db)
 
 		/* Trailing garbage? */
 		if((qptr + 11) != q->iobufptr) {
-#ifdef	MIMIC_BIND8
+#ifdef	STRICT_MESSAGE_PARSE
 			RCODE_SET(q, RCODE_FORMAT);
 			return 0;
 #endif
@@ -291,12 +289,12 @@ query_process(q, db)
 
 	/* Do we have any trailing garbage? */
 	if(qptr != q->iobufptr) {
-#ifdef	MIMIC_BIND8
-		/* If mimicing bind, strip it... */
-		q->iobufptr = qptr;
-#else
-		/* Otherwise FORMERR... */
+#ifdef	STRICT_MESSAGE_PARSE
+		/* If we're strict.... */
 		RCODE_SET(q, RCODE_FORMAT);
+#else
+		/* Otherwise, strip it... */
+		q->iobufptr = qptr;
 		return 0;
 #endif
 	}
@@ -359,7 +357,7 @@ query_process(q, db)
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
 					if(ANSWER_RRSLEN(a) > 1)
-						q->iobufptr = qptr + *(ANSWER_RRS_PTR(a) + 1);
+						q->iobufptr = qptr + ANSWER_RRS(a, 1);
 
 					return 0;
 				}
@@ -407,7 +405,7 @@ query_process(q, db)
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
 					if(ANSWER_RRSLEN(a) > 1)
-						q->iobufptr = qptr + *(ANSWER_RRS_PTR(a) + 1);
+						q->iobufptr = qptr + ANSWER_RRS(a, 1);
 
 					return 0;
 				}

@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.2 2002/02/05 13:11:25 alexis Exp $
+ * $Id: dbcreate.c,v 1.3 2002/02/07 12:56:51 alexis Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -83,7 +83,7 @@ namedb_new(filename)
 		return NULL;
         }
 
-	if(write(db->fd, NAMEDB_MAGIC, sizeof(NAMEDB_MAGIC)) == -1) {
+	if(write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
 		close(db->fd);
 		namedb_discard(db);
 		return NULL;
@@ -141,20 +141,20 @@ namedb_save(db)
 {
 #ifdef	USE_BERKELEY_DB
 	/* The buffer for the super block */
-	u_char sbuf[NAMEDB_BITMASKLEN * 3 + sizeof(NAMEDB_MAGIC)];
+	u_char sbuf[NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE];
 
 	DBT key, data;
 
 	/* Create the super block */
-	bcopy(NAMEDB_MAGIC, sbuf, sizeof(NAMEDB_MAGIC));
-	bcopy(db->masks[NAMEDB_AUTHMASK], sbuf + sizeof(NAMEDB_MAGIC), NAMEDB_BITMASKLEN);
-	bcopy(db->masks[NAMEDB_STARMASK], sbuf + sizeof(NAMEDB_MAGIC) + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
-	bcopy(db->masks[NAMEDB_DATAMASK], sbuf + sizeof(NAMEDB_MAGIC) + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
+	bcopy(NAMEDB_MAGIC, sbuf, NAMEDB_MAGIC_SIZE);
+	bcopy(db->masks[NAMEDB_AUTHMASK], sbuf + NAMEDB_MAGIC_SIZE, NAMEDB_BITMASKLEN);
+	bcopy(db->masks[NAMEDB_STARMASK], sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
+	bcopy(db->masks[NAMEDB_DATAMASK], sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
 
 	/* Write the bitmasks... */
 	bzero(&key, sizeof(key));
 	bzero(&data, sizeof(data));
-	data.size = NAMEDB_BITMASKLEN * 3 + sizeof(NAMEDB_MAGIC);
+	data.size = NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE;
 	data.data = sbuf;
 
 	if(db->db->put(db->db, NULL, &key, &data, 0) != 0) {
@@ -174,7 +174,7 @@ namedb_save(db)
 	}
 
 	/* Write the magic... */
-	if(write(db->fd, NAMEDB_MAGIC, sizeof(NAMEDB_MAGIC)) == -1) {
+	if(write(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) == -1) {
 		close(db->fd);
 		return -1;
 	}

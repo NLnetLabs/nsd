@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.2 2002/02/05 13:11:25 alexis Exp $
+ * $Id: dbaccess.c,v 1.3 2002/02/07 12:56:51 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -41,6 +41,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <errno.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <syslog.h>
@@ -121,7 +122,7 @@ namedb_open(filename)
 	char *filename;
 {
 	struct namedb *db;
-	char *magic = NAMEDB_MAGIC;
+	char magic[NAMEDB_MAGIC_SIZE] = NAMEDB_MAGIC;
 
 #ifdef	USE_BERKELEY_DB
 	DBT key, data;
@@ -166,16 +167,16 @@ namedb_open(filename)
 		return NULL;
 	}
 
-	if((data.size != (NAMEDB_BITMASKLEN * 3 + sizeof(NAMEDB_MAGIC))) ||
-		bcmp(data.data, magic, sizeof(NAMEDB_MAGIC))) {
+	if((data.size != (NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE)) ||
+		bcmp(data.data, magic, NAMEDB_MAGIC_SIZE)) {
 		syslog(LOG_ERR, "corrupted superblock in %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
 
-	bcopy(data.data + sizeof(NAMEDB_MAGIC), db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
-	bcopy(data.data + sizeof(NAMEDB_MAGIC) + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
-	bcopy(data.data + sizeof(NAMEDB_MAGIC) + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
+	bcopy(data.data + NAMEDB_MAGIC_SIZE, db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
+	bcopy(data.data + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
+	bcopy(data.data + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
 
 #else
 
@@ -222,12 +223,12 @@ namedb_open(filename)
 
 	p = db->mpool;
 
-	if(bcmp(p, magic, sizeof(NAMEDB_MAGIC))) {
+	if(bcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
 		syslog(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
-	p += sizeof(NAMEDB_MAGIC);
+	p += NAMEDB_MAGIC_SIZE;
 
 	while(*p) {
 		if(heap_insert(db->heap, p, p + ((*p + 1 +3) & 0xfffffffc), 1) == NULL) {
@@ -240,18 +241,19 @@ namedb_open(filename)
 		if(p > (db->mpool + st.st_size)) {
 			syslog(LOG_ERR, "corrupted database %s", db->filename);
 			namedb_close(db);
+			errno = EINVAL;
 			return NULL;
 		}
 	}
 
 	p++;
 
-	if(bcmp(p, magic, sizeof(NAMEDB_MAGIC))) {
+	if(bcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
 		syslog(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
-	p += sizeof(NAMEDB_MAGIC);
+	p += NAMEDB_MAGIC_SIZE;
 
 	/* Copy the bitmasks... */
 	bcopy(p, db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
@@ -271,8 +273,6 @@ namedb_close(db)
 #else
 	heap_destroy(db->heap, 0, 0);
 	free(db->mpool);
-	free(db->filename);
-	free(db);
 #endif
 	if(db->filename)
 		free(db->filename);

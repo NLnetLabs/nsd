@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.15 2002/02/06 10:32:22 alexis Exp $
+ * $Id: zonec.c,v 1.16 2002/02/07 12:56:51 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -203,12 +203,19 @@ zone_addrrset(msg, dname, rrset)
 		}
 	}
 
+	/* Paint me black... */
+	if(msg->rrsetslen) {
+		rrset->color = !msg->rrsets[msg->rrsetslen - 1]->color;
+	} else {
+		rrset->color = 0;
+	}
+
 	/* Please sign in here... */
 	msg->rrsets[msg->rrsetslen++] = rrset;
 
 	for(rrcount = 0, j = 0; j < rrset->rrslen; j++, rrcount++) {
 		/* Add the offset of this record */
-		msg->rrsetsoffs[msg->rrsetsoffslen++] = msg->bufptr - msg->buf;
+		msg->rrsetsoffs[msg->rrsetsoffslen++] = (msg->bufptr - msg->buf) | (rrset->color ? NAMEDB_RRSET_WHITE : 0);
 
 		rdata = rrset->rrs[j];
 
