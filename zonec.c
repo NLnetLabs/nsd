@@ -831,8 +831,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 
 		/* new zone part */
 		zone = region_alloc(zone_region, sizeof(zone_type));
-		zone->domain = domain_table_insert(parser->db->domains, 
-				rr->domain->dname);
+		zone->domain = rr->domain;
 		zone->soa_rrset = NULL;
 		zone->ns_rrset = NULL;
 
