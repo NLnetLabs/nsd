@@ -1,4 +1,3 @@
-b;aatr
 /*
  * nsdc.c - nsdc(8)
  *
