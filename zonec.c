@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.21 2002/02/12 13:26:55 alexis Exp $
+ * $Id: zonec.c,v 1.22 2002/02/12 13:49:36 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -52,16 +52,9 @@ u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
 
 #ifdef	USE_HEAP_HASH
 
-#ifdef __STDC__
-
-unsigned long 
-dnamehash (register u_char *dname)
-#else
-
 unsigned long
 dnamehash(dname)
 	register u_char *dname;
-#endif
 {
         register unsigned long hash = 0;
 	register u_char *p = dname;
@@ -82,56 +75,35 @@ dnamehash(dname)
  * fprintf(stderr, ...);
  *
  */
-#ifdef __STDC__
-
-void *
-xalloc (register size_t size)
-#else
-
 void *
 xalloc(size)
 	register size_t	size;
-#endif
 {
 	register void *p;
 
 	if((p = malloc(size)) == NULL) {
-		fprintf(stderr, "malloc failed: %s\n", strerror(errno));
+		fprintf(stderr, "malloc failed: %m\n");
 		exit(1);
 	}
 	return p;
 }
-
-#ifdef __STDC__
-
-void *
-xrealloc (register void *p, register size_t size)
-#else
 
 void *
 xrealloc(p, size)
 	register void *p;
 	register size_t	size;
-#endif
 {
 
 	if((p = realloc(p, size)) == NULL) {
-		fprintf(stderr, "realloc failed: %s\n", strerror(errno));
+		fprintf(stderr, "realloc failed: %m\n");
 		exit(1);
 	}
 	return p;
 }
 
-#ifdef __STDC__
-
-void 
-zone_print (struct zone *z)
-#else
-
 void
 zone_print(z)
 	struct zone *z;
-#endif
 {
 	struct rrset *rrset;
 	u_char *dname;
@@ -166,17 +138,10 @@ zone_print(z)
 	}
 }
 
-#ifdef __STDC__
-
-u_int16_t 
-zone_addname (struct message *msg, u_char *dname)
-#else
-
 u_int16_t
 zone_addname(msg, dname)
 	struct message *msg;
 	u_char *dname;
-#endif
 {
 	/* Lets try rdata dname compression */
 	int rdlength = 0;
@@ -226,18 +191,11 @@ zone_addname(msg, dname)
 /*
  * XXXX: Check msg->buf boundaries!!!!!
  */
-#ifdef __STDC__
-
-u_int16_t 
-zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
-#else
-
 u_int16_t
 zone_addrrset(msg, dname, rrset)
 	struct message *msg;
 	u_char *dname;
 	struct rrset *rrset;
-#endif
 {
 	u_int16_t class = htons(CLASS_IN);
 	int32_t ttl;
@@ -348,18 +306,11 @@ zone_addrrset(msg, dname, rrset)
  * Adds an answer to a domain
  *
  */
-#ifdef __STDC__
-
-struct domain *
-zone_addanswer (struct domain *d, struct message *msg, int type)
-#else
-
 struct domain *
 zone_addanswer(d, msg, type)
 	struct domain *d;
 	struct message *msg;
 	u_int16_t type;
-#endif
 {
 	struct answer *a;
 	size_t datasize = msg->bufptr - msg->buf;
@@ -396,16 +347,9 @@ zone_addanswer(d, msg, type)
  * Frees all the data structures associated with the zone
  *
  */
-#ifdef __STDC__
-
-void 
-zone_free (struct zone *z)
-#else
-
 void
 zone_free(z)
 	struct zone *z;
-#endif
 {
 	if(z) {
 		if(z->dname) free(z->dname);
@@ -419,18 +363,11 @@ zone_free(z)
  * Reads the specified zone into the memory
  *
  */
-#ifdef __STDC__
-
-struct zone *
-zone_read (char *name, char *zonefile, int cache)
-#else
-
 struct zone *
 zone_read(name, zonefile, cache)
 	char *name;
 	char *zonefile;
 	int cache;
-#endif
 {
 	heap_t *h;
 	int i;
@@ -589,17 +526,10 @@ zone_read(name, zonefile, cache)
  *
  * Returns zero if success.
  */
-#ifdef __STDC__
-
-int 
-zone_dump (struct zone *z, struct namedb *db)
-#else
-
 int
 zone_dump(z, db)
 	struct 	zone *z;
 	struct namedb *db;
-#endif
 {
 	struct domain *d;
 	struct message msg, msgany;
@@ -845,31 +775,17 @@ zone_dump(z, db)
 	return 0;
 }
 
-#ifdef __STDC__
-
-int 
-usage (void)
-#else
-
 int
 usage()
-#endif
 {
 	fprintf(stderr, "usage: zonec [-a] [-f database] [-c cache-file] -z zone-name [zone-file] [...]\n");
 	exit(1);
 }
 
-#ifdef __STDC__
-
-int 
-main (int argc, char **argv)
-#else
-
 int
 main(argc, argv)
 	int argc;
 	char **argv;
-#endif
 {
         struct namedb *db;
 	int aflag = 0;

@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.17 2002/02/12 13:26:55 alexis Exp $
+ * $Id: namedb.h,v 1.18 2002/02/12 13:49:36 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -146,21 +146,20 @@ struct namedb {
 
 #endif	/* USE_BERKELEY_DB */
 
-/* dbaccess.c */
-int domaincmp __P((register u_char *a, register u_char *b));
-unsigned long domainhash __P((register u_char *dname));
-struct domain *namedb_lookup __P((struct namedb *db, u_char *dname));
-struct answer *namedb_answer __P((struct domain *d, int type));
-struct namedb *namedb_open __P((char *filename));
-void namedb_close __P((struct namedb *db));
+/* Routines for creating the database, dbcreate.c */
+struct namedb *namedb_new __P((char *));
+int namedb_put __P((struct namedb *, u_char *, struct domain *));
+int namedb_save __P((struct namedb *));
+void namedb_discard __P((struct namedb *));
 
-/* dbcreate.c */
-struct namedb *namedb_new __P((char *filename));
-int namedb_put __P((struct namedb *db, u_char *dname, struct domain *d));
-int namedb_save __P((struct namedb *db));
-void namedb_discard __P((struct namedb *db));
+/* Routines for accessing the database, dbaccess.c */
+struct namedb *namedb_open __P((char *));
+struct domain *namedb_lookup __P((struct namedb *, u_char *key));
+struct answer *namedb_answer __P((struct domain *, u_int16_t type));
+void namedb_close __P((struct namedb *));
 
-void *xalloc __P((register size_t size));
-void *xrealloc __P((register void *p, register size_t size));
+/* Routines that the calling program must provide... */
+void *xalloc __P((size_t));
+void *xrealloc __P((void *, size_t));
 
 #endif

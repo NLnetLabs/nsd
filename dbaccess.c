@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.11 2002/02/12 13:36:48 alexis Exp $
+ * $Id: dbaccess.c,v 1.12 2002/02/12 13:49:36 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -52,17 +52,10 @@
 
 #ifndef	USE_BERKELEY_DB
 
-#ifdef __STDC__
-
-int 
-domaincmp (register u_char *a, register u_char *b)
-#else
-
 int
 domaincmp(a, b)
 	register u_char *a;
 	register u_char *b;
-#endif
 {
 	register int r;
 	register int alen = (int)*a;
@@ -78,16 +71,9 @@ domaincmp(a, b)
 
 #ifdef	USE_HEAP_HASH
 
-#ifdef __STDC__
-
-unsigned long 
-domainhash (register u_char *dname)
-#else
-
 unsigned long
 domainhash(dname)
 	register u_char *dname;
-#endif
 {
         register unsigned long hash = 0;
 	register u_char *p = dname;
@@ -103,17 +89,10 @@ domainhash(dname)
 
 #endif
 
-#ifdef __STDC__
-
-struct domain *
-namedb_lookup (struct namedb *db, u_char *dname)
-#else
-
 struct domain *
 namedb_lookup(db, dname)
 	struct namedb *db;
 	u_char *dname;
-#endif
 {
 #ifdef USE_BERKELEY_DB
 	DBT key, data;
@@ -141,17 +120,10 @@ namedb_lookup(db, dname)
 #endif /* USE_BERKELEY_DB */
 }
 
-#ifdef __STDC__
-
-struct answer *
-namedb_answer (struct domain *d, int type)
-#else
-
 struct answer *
 namedb_answer(d, type)
 	struct domain *d;
 	u_int16_t type;
-#endif
 {
 	struct answer *a;
 
@@ -163,16 +135,9 @@ namedb_answer(d, type)
 	return NULL;
 }
 
-#ifdef __STDC__
-
-struct namedb *
-namedb_open (char *filename)
-#else
-
 struct namedb *
 namedb_open(filename)
 	char *filename;
-#endif
 {
 	struct namedb *db;
 	char magic[NAMEDB_MAGIC_SIZE] = NAMEDB_MAGIC;
@@ -318,7 +283,7 @@ namedb_open(filename)
 	syslog(LOG_WARNING, "loaded %s, %lu entries %lu hash collisions", db->filename,
 		db->heap->count, db->heap->collisions);
 #else 
-	syslog(LOG_WARNING, "loaded %s, %u entries", db->filename, db->heap->count);
+	syslog(LOG_WARNING, "loaded %s, %lu entries", db->filename, db->heap->count);
 #endif
 #else
 	syslog(LOG_WARNING, "loaded %s", db->filename);
@@ -326,17 +291,9 @@ namedb_open(filename)
 	return db;
 }
 
-#ifdef __STDC__
-
-void
-namedb_close (struct namedb *db)
-
-#else
-
 void
 namedb_close(db)
 	struct namedb *db;
-#endif
 {
 #ifdef	USE_BERKELEY_DB
 	db->db->close(db->db, 0);

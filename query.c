@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.37 2002/02/12 13:26:55 alexis Exp $
+ * $Id: query.c,v 1.38 2002/02/12 13:49:36 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -40,16 +40,9 @@
 #include "nsd.h"
 
 
-#ifdef __STDC__
-
-void 
-query_init (struct query *q)
-#else
-
 void
 query_init(q)
 	struct query *q;
-#endif
 {
 	q->addrlen = sizeof(struct sockaddr);
 	q->iobufsz = QIOBUFSZ;
@@ -58,15 +51,8 @@ query_init(q)
 	q->edns = 0;
 }
 
-#ifdef __STDC__
-
-struct query *
-query_new (void)
-#else
-
 struct query *
 query_new()
-#endif
 {
 	struct query *q;
 
@@ -78,26 +64,13 @@ query_new()
 	return q;
 }
 
-#ifdef __STDC__
-
-void 
-query_destroy (struct query *q)
-#else
-
 void
 query_destroy(q)
 	struct query *q;
-#endif
 {
 	if(q)
 		free(q);
 }
-
-#ifdef __STDC__
-
-void 
-query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
-#else
 
 void
 query_addanswer(q, dname, a, truncate)
@@ -105,7 +78,6 @@ query_addanswer(q, dname, a, truncate)
 	u_char *dname;
 	struct answer *a;
 	int truncate;
-#endif
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -177,17 +149,10 @@ query_addanswer(q, dname, a, truncate)
 }
 
 
-#ifdef __STDC__
-
-int 
-query_process (struct query *q, struct namedb *db)
-#else
-
 int
 query_process(q, db)
 	struct query *q;
 	struct namedb *db;
-#endif
 {
 	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 3];

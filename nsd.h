@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.14 2002/02/12 13:26:55 alexis Exp $
+ * $Id: nsd.h,v 1.15 2002/02/12 13:49:36 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -92,9 +92,6 @@ extern int	cf_udp_max_message_size;
 extern int	tcp_open_connections;
 extern int	server_mode;
 
-/* nsd.c */
-void *xalloc __P((register size_t size));
-void *xrealloc __P((register void *p, register size_t size));
-
-/* server.c */
-int server __P((struct namedb *db));
+void *xalloc __P((size_t));
+void *xrealloc __P((void *, size_t));
+int server __P((struct namedb *));

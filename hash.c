@@ -1,5 +1,5 @@
 /*
- * $Id: hash.c,v 1.4 2002/02/12 13:26:55 alexis Exp $
+ * $Id: hash.c,v 1.5 2002/02/12 13:49:36 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -52,19 +52,12 @@
  * Return NULL if mallocf() fails.
  *
  */
-#ifdef __STDC__
-
-hash_t *
-hash_create (void *(*mallocf)(size_t), int (*cmpf)(void *, void *), unsigned long (*hashf)(void *), unsigned long size)
-#else
-
 hash_t *
 hash_create(mallocf, cmpf, hashf, size)
 	void *(*mallocf)(size_t);
 	int (*cmpf)(void *, void *);
 	unsigned long (*hashf)(void *);
 	unsigned long size;
-#endif
 {
 	hash_t *hash;
 
@@ -104,18 +97,11 @@ hash_create(mallocf, cmpf, hashf, size)
  * data.
  *
  */
-#ifdef __STDC__
-
-void *
-hash_insert (hash_t *hash, void *key, void *data, int overwrite)
-#else
-
 void *
 hash_insert(hash, key, data, overwrite)
 	hash_t *hash;
 	void *key, *data;
 	int overwrite;
-#endif
 {
 	hnode_t *node = &hash->table[hash->hash(key) % hash->size];
 
@@ -156,17 +142,10 @@ hash_insert(hash, key, data, overwrite)
  * Searches the hash, returns the data if key is found or NULL otherwise.
  *
  */
-#ifdef __STDC__
-
-void *
-hash_search (hash_t *hash, void *key)
-#else
-
 void *
 hash_search(hash, key)
 	hash_t *hash;
 	void *key;
-#endif
 {
 	hnode_t *node = &hash->table[hash->hash(key) % hash->size];
 
@@ -184,15 +163,9 @@ hash_search(hash, key)
  * Finds the first element in the hash
  *
  */
-#ifdef __STDC__
-
-hnode_t *hash_first(hash_t *hash)
-#else
-
 hnode_t *
 hash_first(hash)
 	hash_t *hash;
-#endif
 {
 	for(hash->_i = 0; hash->_i < hash->size; hash->_i++) {
 		if(hash->table[hash->_i].key != NULL)
@@ -206,16 +179,9 @@ hash_first(hash)
  * Returns the next node...
  *
  */
-#ifdef __STDC__
-
-
-hnode_t *hash_next(hash_t *hash)
-#else
-
 hnode_t *
 hash_next(hash)
 	hash_t *hash;
-#endif
 {
 	if(hash->_node->next) {
 		hash->_node = hash->_node->next;
@@ -237,18 +203,11 @@ hash_next(hash)
 
 /* void hash_delete __P((hash_t *, void *, int, int)); */
 
-#ifdef __STDC__
-
-void 
-hash_destroy (hash_t *hash, int freekeys, int freedata)
-#else
-
 void
 hash_destroy(hash, freekeys, freedata)
 	hash_t *hash;
 	int freekeys;
 	int freedata;
-#endif
 {
 	unsigned i;
 	hnode_t *node;
@@ -269,16 +228,9 @@ hash_destroy(hash, freekeys, freedata)
 
 #ifdef TEST
 
-#ifdef __STDC__
-
-unsigned long 
-hashf (char *key)
-#else
-
 unsigned long
 hashf(key)
 	char *key;
-#endif
 {
         unsigned hash = 0;
 
@@ -290,17 +242,10 @@ hashf(key)
 
 #define	BUFSZ	1000
 
-#ifdef __STDC__
-
-int 
-main (int argc, char **argv)
-#else
-
 int
 main(argc, argv)
 	int argc;
 	char **argv;
-#endif
 {
 	hash_t *hash;
 	char buf[BUFSZ];
