@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.78 2002/09/10 13:04:55 alexis Exp $
+ * $Id: query.c,v 1.79 2002/09/11 13:19:35 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -349,7 +349,8 @@ query_process(q, nsd)
 	int match;
 
 	/* Sanity checks */
-	if(QR(q)) return -1;	/* Not a query? Drop it on the floor. */
+	if(QR(q))
+		return -1;	/* Not a query? Drop it on the floor. */
 
 	/* Account the OPCODE */
 	STATUP2(nsd, opcode, OPCODE(q));

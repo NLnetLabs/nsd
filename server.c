@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.43 2002/09/10 13:22:09 alexis Exp $
+ * $Id: server.c,v 1.44 2002/09/11 13:19:35 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -83,18 +83,19 @@ answer_udp(s, nsd)
 
 		if((sent = sendto(s, q.iobuf, q.iobufptr - q.iobuf, 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
 			syslog(LOG_ERR, "sendto failed: %m");
+			STATUP(nsd, txerr);
 			return -1;
 		} else if(sent != q.iobufptr - q.iobuf) {
 			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
 			return -1;
 		}
 
-#ifdef STATS
+#ifdef NAMED8_STATS
 		/* Account the rcode & TC... */
 		STATUP2(nsd, rcode, RCODE((&q)));
 		if(TC((&q)))
 			STATUP(nsd, truncated);
-#endif /* STATS */
+#endif /* NAMED8_STATS */
 	} else {
 		STATUP(nsd, dropped);
 	}
@@ -251,9 +252,10 @@ server(nsd)
 	struct sockaddr_in tcpc_addr;
 #endif
 
-#ifdef	STATS
-	time_t now;
-#endif
+#ifdef NAMED8_STATS
+	FILE *stf;
+#endif /* NAMED8_STATS */
+
 
 	size_t tcpc_addrlen;
 	fd_set peer;
@@ -373,34 +375,31 @@ server(nsd)
 		return -1;
 	}
 
-#ifdef	STATS
+#ifdef	NAMED8_STATS
 	/* Initialize times... */
 	time(&nsd->st.reload);
-	time(&nsd->st.zero);
-#endif /* STATS */
+#endif /* NAMED8_STATS */
 
 	/* The main loop... */	
 	while(nsd->mode != NSD_SHUTDOWN) {
 		/* Do we need to reload the database? */
 		switch(nsd->mode) {
-		case NSD_ZERO:
 		case NSD_STATS:
-#ifdef STATS
-			/* Dump the statistics */
-			stats(nsd);
-
-			if(nsd->mode == NSD_ZERO) {
-				now = nsd->st.reload;
-				bzero(&nsd->st, sizeof(struct nsdst));
-				time(&nsd->st.zero);
-				nsd->st.reload = now;
-			}
-#else /* STATS */
-			syslog(LOG_NOTICE, "No statistics available, try recompiling with -DSTATS");
-#endif /* STATS */
-
 			nsd->mode = NSD_RUN;
+#ifdef NAMED8_STATS
+			/* Open the file */
+			if((stf = fopen(NAMED8_STATS, "a")) == NULL) {
+				syslog(LOG_ERR, "unable to open %s: %m", NAMED8_STATS);
+				break;
+			}
 
+			/* Dump the statistics */
+			stats(nsd, stf);
+
+			fclose(stf);
+#else /* NAMED8_STATS */
+			syslog(LOG_NOTICE, "No statistics available, recompile with -DNAMED8_STATS");
+#endif /* NAMED8_STATS */
 			break;
 		case NSD_RELOAD:
 			nsd->mode = NSD_RUN;
@@ -430,10 +429,10 @@ server(nsd)
 				if(writepid(nsd) == -1) {
 					syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
 				}
-#ifdef STATS
+#ifdef NAMED8_STATS
 				/* Remeber the time of the reload... */
 				time(&nsd->st.reload);
-#endif /* STATS */
+#endif /* NAMED8_STATS */
 				break;
 			default:
 				/* PARENT */

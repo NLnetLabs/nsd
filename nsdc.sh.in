@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.12 2002/09/10 13:04:55 alexis Exp $
+# $Id: nsdc.sh.in,v 1.13 2002/09/11 13:19:35 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -46,7 +46,6 @@ NSDBINDIR="@@NSDBINDIR@@"
 NSDZONESDIR="@@NSDZONESDIR@@"
 NSDFLAGS="@@NSDFLAGS@@"
 NSDPIDFILE="@@NSDPIDFILE@@"
-NSDSTATS="@@NSDSTATS@@"
 NSDDB="@@NSDDB@@"
 NSDZONES="@@NSDZONES@@"
 NSDKEYSDIR="@@NSDKEYSDIR@@"
@@ -75,10 +74,7 @@ stop)
 	signal "TERM"
 	;;
 stats)
-	signal "USR1"
-	;;
-zero)
-	signal "USR2"
+	signal "ILL"
 	;;
 reload)
 	signal "HUP"
@@ -126,6 +122,9 @@ update)
 				rebuild="yes"
 				export $rebuild
 			fi
+
+			# clean up
+			rm -f -- "${NSDKEYSDIR}"/*.tsiginfo.*
 		fi
 	done < $NSDZONES
 
