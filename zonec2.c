@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.17 2003/09/11 09:11:56 erik Exp $
+ * $Id: zonec2.c,v 1.17.2.1 2003/09/22 09:32:40 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -79,7 +79,7 @@ zone_print (struct zone *z)
 			rr.type = rrset->type;
 			for (i = 0; i < rrset->rrslen; i++) {
 				rr.rdata = rrset->rrs[i];
-				/*zprintrr(stdout, &rr);*/
+				zprintrr(stdout, &rr);
 			}
 			rrset = rrset->next;
 		}
@@ -94,7 +94,7 @@ zone_print (struct zone *z)
 			rr.type = rrset->type;
 			for (i = 0; i < rrset->rrslen; i++) {
 				rr.rdata = rrset->rrs[i];
-				/* zprintrr(stdout, &rr);*/
+				zprintrr(stdout, &rr);
 			}
 			rrset = rrset->next;
 		}
@@ -352,9 +352,6 @@ process_rr(struct RR *rr)
 	uint8_t *dname, *t;
 	struct zone *z = current_zone;
 	
-        if ( pflag > 0 ) 
-            zprintrr(stderr, rr);
-		
 	/* Report progress... 
 	   if (vflag > 1) {
 	   if ((parser->lines % 100000) == 0) {
