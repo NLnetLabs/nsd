@@ -64,7 +64,6 @@
 #include "plugins.h"
 #include "query.h"
 #include "util.h"
-#include "zonec.h"
 
 #ifdef LIBWRAP
 #include <tcpd.h>
