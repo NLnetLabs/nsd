@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.27 2003/08/27 14:09:15 miekg Exp $
+ * $Id: zyparser.y,v 1.28 2003/08/27 14:15:29 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -210,9 +210,7 @@ rel_dname:  STR
     }
     ;
 
-/* define what we can parse 
- * 19-08-2003: soa, a, ns, txt
- */
+/* define what we can parse */
 
 rtype:  SOA SP rdata_soa
     {   
@@ -245,6 +243,10 @@ rtype:  SOA SP rdata_soa
     |   AAAA SP rdata_aaaa
     {
         zadd_rtype("aaaa");
+    }
+    |	HINFO SP rdata_hinfo
+    {
+	zadd_rtype("hinfo");
     }
     ;
 
@@ -328,6 +330,14 @@ rdata_aaaa: STR
         free($1.str);
     }
     ;
+
+rdata_hinfo:	STR SP STR
+	{
+        	zadd_rdata2( zdefault, zparser_conv_short($1.str) ); /* CPU */
+        	zadd_rdata2( zdefault, zparser_conv_dname($3.str) );  /* OS*/
+        	free($1.str);free($3.str);
+	}
+	;
 
 %%
 
