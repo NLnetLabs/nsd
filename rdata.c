@@ -385,7 +385,7 @@ rdata_unknown_to_string(buffer_type *output, rdata_atom_type rdata)
 	return 1;
 }
 
-static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
+static rdata_to_string_type rdata_to_string_table[RDATA_KIND_UNKNOWN + 1] = {
 	rdata_dname_to_string,
 	rdata_text_to_string,
 	rdata_byte_to_string,
@@ -452,45 +452,45 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		}
 		
 		switch (rdata_atom_kind(rrtype, i)) {
-		case RDATA_ZF_DNAME:
+		case RDATA_KIND_DNAME:
 			is_domain = 1;
 			break;
-		case RDATA_ZF_TEXT:
+		case RDATA_KIND_TEXT:
 			/* Length is stored in the first byte.  */
 			length = 1 + buffer_current(packet)[0];
 			break;
-		case RDATA_ZF_BYTE:
-		case RDATA_ZF_ALGORITHM:
+		case RDATA_KIND_BYTE:
+		case RDATA_KIND_ALGORITHM:
 			length = sizeof(uint8_t);
 			break;
-		case RDATA_ZF_SHORT:
-		case RDATA_ZF_RRTYPE:
-		case RDATA_ZF_CERTIFICATE_TYPE:
+		case RDATA_KIND_SHORT:
+		case RDATA_KIND_RRTYPE:
+		case RDATA_KIND_CERTIFICATE_TYPE:
 			length = sizeof(uint16_t);
 			break;
-		case RDATA_ZF_LONG:
-		case RDATA_ZF_PERIOD:
-		case RDATA_ZF_TIME:
+		case RDATA_KIND_LONG:
+		case RDATA_KIND_PERIOD:
+		case RDATA_KIND_TIME:
 			length = sizeof(uint32_t);
 			break;
-		case RDATA_ZF_A:
+		case RDATA_KIND_A:
 			length = sizeof(in_addr_t);
 			break;
-		case RDATA_ZF_AAAA:
+		case RDATA_KIND_AAAA:
 			length = IP6ADDRLEN;
 			break;
-		case RDATA_ZF_BASE64:
-		case RDATA_ZF_HEX:
-		case RDATA_ZF_NSAP:
-		case RDATA_ZF_SERVICES:
-		case RDATA_ZF_NXT:
-		case RDATA_ZF_NSEC:
-		case RDATA_ZF_LOC:
-		case RDATA_ZF_UNKNOWN:
+		case RDATA_KIND_BASE64:
+		case RDATA_KIND_HEX:
+		case RDATA_KIND_NSAP:
+		case RDATA_KIND_SERVICES:
+		case RDATA_KIND_NXT:
+		case RDATA_KIND_NSEC:
+		case RDATA_KIND_LOC:
+		case RDATA_KIND_UNKNOWN:
 			/* All remaining RDATA.  */
 			length = end - buffer_position(packet);
 			break;
-		case RDATA_ZF_APL:
+		case RDATA_KIND_APL:
 			length = (sizeof(uint16_t)    /* address family */
 				  + sizeof(uint8_t)   /* prefix */
 				  + sizeof(uint8_t)); /* length */

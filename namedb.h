@@ -287,7 +287,7 @@ rdata_atom_is_domain(uint16_t type, size_t index)
 	const rrtype_descriptor_type *descriptor
 		= rrtype_descriptor_by_type(type);
 	return (index < descriptor->maximum
-		&& descriptor->rdata_kinds[index] == RDATA_ZF_DNAME);
+		&& descriptor->rdata_kinds[index] == RDATA_KIND_DNAME);
 }
 
 static inline rdata_kind_type

@@ -145,27 +145,27 @@ typedef enum nsd_rc nsd_rc_type;
  */
 enum rdata_kind
 {
-	RDATA_ZF_DNAME,		/* Domain name.  */
-	RDATA_ZF_TEXT,		/* Text string.  */
-	RDATA_ZF_BYTE,		/* 8-bit integer.  */
-	RDATA_ZF_SHORT,		/* 16-bit integer.  */
-	RDATA_ZF_LONG,		/* 32-bit integer.  */
-	RDATA_ZF_A,		/* 32-bit IPv4 address.  */
-	RDATA_ZF_AAAA,		/* 128-bit IPv6 address.  */
-	RDATA_ZF_RRTYPE,	/* RR type.  */
-	RDATA_ZF_ALGORITHM,	/* Cryptographic algorithm.  */
-	RDATA_ZF_CERTIFICATE_TYPE,
-	RDATA_ZF_PERIOD,	/* Time period.  */
-	RDATA_ZF_TIME,
-	RDATA_ZF_BASE64,	/* Base-64 binary data.  */
-	RDATA_ZF_HEX,		/* Hexadecimal binary data.  */
-	RDATA_ZF_NSAP,		/* NSAP.  */
-	RDATA_ZF_APL,		/* APL.  */
-	RDATA_ZF_SERVICES,	/* Protocol and port number bitmap.  */
-	RDATA_ZF_NXT,		/* NXT type bitmap.  */
-	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */
-	RDATA_ZF_LOC,		/* Location data.  */
-	RDATA_ZF_UNKNOWN	/* Unknown data.  */
+	RDATA_KIND_DNAME,	/* Domain name.  */
+	RDATA_KIND_TEXT,	/* Text string.  */
+	RDATA_KIND_BYTE,	/* 8-bit integer.  */
+	RDATA_KIND_SHORT,	/* 16-bit integer.  */
+	RDATA_KIND_LONG,	/* 32-bit integer.  */
+	RDATA_KIND_A,		/* 32-bit IPv4 address.  */
+	RDATA_KIND_AAAA,	/* 128-bit IPv6 address.  */
+	RDATA_KIND_RRTYPE,	/* RR type.  */
+	RDATA_KIND_ALGORITHM,	/* Cryptographic algorithm.  */
+	RDATA_KIND_CERTIFICATE_TYPE,
+	RDATA_KIND_PERIOD,	/* Time period (32-bits).  */
+	RDATA_KIND_TIME,	/* Time (32-bits).  */
+	RDATA_KIND_BASE64,	/* Base-64 binary data.  */
+	RDATA_KIND_HEX,		/* Hexadecimal binary data.  */
+	RDATA_KIND_NSAP,	/* NSAP.  */
+	RDATA_KIND_APL,		/* APL.  */
+	RDATA_KIND_SERVICES,	/* Protocol and port number bitmap.  */
+	RDATA_KIND_NXT,		/* NXT type bitmap.  */
+	RDATA_KIND_NSEC,	/* NSEC type bitmap.  */
+	RDATA_KIND_LOC,		/* Location data.  */
+	RDATA_KIND_UNKNOWN	/* Unknown data.  */
 };
 typedef enum rdata_kind rdata_kind_type;
 

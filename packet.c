@@ -74,7 +74,7 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 
 	for (j = 0; j < rr->rdata_count; ++j) {
 		switch (rdata_atom_kind(rr->type, j)) {
-		case RDATA_ZF_DNAME:
+		case RDATA_KIND_DNAME:
 			if (descriptor->allow_compression) {
 				encode_dname(q,
 					     rdata_atom_domain(rr->rdatas[j]));
