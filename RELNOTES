@@ -7,9 +7,9 @@ BUG FIXES:
         - Bug #88: allow ::FFFF:ipv4addr in AAAA records
         - Bug #89: Count the number of queries received over TCP,
           instead of the number of TCP connections.
-        - Zonec: when - is used as input, set the filename to 'STDIN'
-        - Let the nsdc script handle failed AXFRs more cracefully
-        - NSD emits an error when it sees bitlabels (RFC 2673)
+        - Zonec: when - is used as input, set the filename to 'STDIN'.
+        - The nsdc script handles failed AXFRs more gracefully.
+        - NSD emits an error when it sees bitlabels (RFC 2673).
 
 2.1.2
 =============
