@@ -1,25 +1,26 @@
-$Id: DESIGN,v 1.1 2002/01/09 13:38:23 alexis Exp $
+$Id: DESIGN,v 1.2 2002/01/09 15:34:36 alexis Exp $
 
 Database format
 ---------------
 
-key: dname + dnamelen
-data:
-     +------+----+
-     | size |flgs|
-     +------+--+----+----+----+
-     |size               |type|
-     +----+----+----+----+----+
-     |ans |auth|add |ptrs| p1 |
-     +------------------------+
-     | p2 | .............| pn |
-     +------------------------+
-     | data ..................|
-     |........................|
-     
-		.....
-     +----+----+----+----+----+
-     |size               |type|
-     +----+----+----+----+----+
-     |ans |auth|add |ptrs| p1 |
-		.....
+The namespace database consists of a number of records, where the key is the
+domain name (owner name) of the data, and the data is a set of precompiled
+answers in para-wire format.
+
+Key:	dname in RFC1035 format. 
+
+Data:
+	struct domain {
+		size_t size;			/* Size of the entire record in bytes */
+		u_short flags;			/* Flags, see db.h */
+		struct answer {
+			size_t size;		/* Size of this answer in bytes */
+			u_short type;		/* query type this answer serves in wire format */
+			u_short	ancount;	/* Number of answers */
+			u_short nscount;	/* Number of ns records */
+			u_short arcount;	/* Number of additional records */
+			u_short ptrlen;		/* Number of pointers to be updated */
+			u_short ptrs[...];	/* Offsets of the pointers in the data section */
+			u_char	data[...];	/* The precompiled answer in wire format */
+		}[...];
+	};

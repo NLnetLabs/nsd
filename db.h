@@ -1,5 +1,5 @@
 /*
- * $Id: db.h,v 1.7 2002/01/09 15:19:50 alexis Exp $
+ * $Id: db.h,v 1.8 2002/01/09 15:34:36 alexis Exp $
  *
  * db.h -- nsd(8) internal namespace database
  *
@@ -40,8 +40,9 @@
 
 #include <db.h>
 
-#define	DB_DELEGATION	1
-#define	DB_WILDCARD	2
+#define	DB_DELEGATION	0x0001
+#define	DB_WILDCARD	0x0002
+#define	DB_CNAME	0x0004
 
 struct answer {
 	size_t size;
