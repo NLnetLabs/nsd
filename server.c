@@ -689,16 +689,16 @@ server_child(struct nsd *nsd)
 	
 	/* Allow sigalarm to get us out of the loop */
 	siginterrupt(SIGALRM, 1);
-	siginterrupt(SIGINT, 1);	/* These two are to avoid hanging tcp connections... */
-	siginterrupt(SIGTERM, 1);	/* ...on server restart. */
 
 	/*
-	 * Block SIGILL and SIGTERM as the modify nsd->mode, which
-	 * must be tested atomically.  These signals are only
-	 * unblocked while waiting in pselect below.
+	 * Block signals that modify nsd->mode, which must be tested
+	 * for atomically.  These signals are only unblocked while
+	 * waiting in pselect below.
 	 */
 	sigemptyset(&block_sigmask);
+	sigaddset(&block_sigmask, SIGHUP);
 	sigaddset(&block_sigmask, SIGILL);
+	sigaddset(&block_sigmask, SIGINT);
 	sigaddset(&block_sigmask, SIGTERM);
 	sigprocmask(SIG_BLOCK, &block_sigmask, &default_sigmask);
 	
