@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.87 2003/01/21 12:01:26 alexis Exp $
+ * $Id: query.c,v 1.88 2003/02/10 09:54:32 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -338,7 +338,6 @@ query_process (struct query *q, struct nsd *nsd)
 		/* Setup the header... */
 		QR_SET(q);		/* This is an answer */
 
-#ifdef LOG_NOTIFIES
 		if(OPCODE(q) == OPCODE_NOTIFY) {
 #ifdef INET6
 			if(q->addr.ss_family != AF_INET)
@@ -348,7 +347,6 @@ query_process (struct query *q, struct nsd *nsd)
 				syslog(LOG_INFO, "notify from %s",
 					inet_ntoa( ((struct sockaddr_in *)(&q->addr))->sin_addr));
 		}
-#endif /* LOG_NOTIFIES */
 
 		RCODE_SET(q, RCODE_IMPL);
 

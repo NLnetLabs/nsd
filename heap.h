@@ -1,5 +1,5 @@
 /*
- * $Id: heap.h,v 1.12 2002/05/23 13:20:57 alexis Exp $
+ * $Id: heap.h,v 1.13 2003/02/10 09:54:32 alexis Exp $
  *
  * heap.h -- generic heap
  *
@@ -40,6 +40,10 @@
 
 #ifndef _HEAP_H_
 #define	_HEAP_H_
+
+#define	USE_HEAP_RBTREE
+
+
 
 #if !defined(__P)
 #	if defined(__STDC__)

@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.38 2003/01/21 12:01:26 alexis Exp $
+ * $Id: zf.c,v 1.39 2003/02/10 09:54:32 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -546,7 +546,7 @@ zf_open (char *filename, char *strorigin)
 	zf->iptr = -1;
 	zf->lines = 0;
 
-	bzero(&zf->line, sizeof(struct zf_entry));
+	memset(&zf->line, 0, sizeof(struct zf_entry));
 
 	/* Open the main file... */
 	if(zf_open_include(zf, filename, strdname(strorigin, (u_char *)ROOT_ORIGIN), DEFAULT_TTL) == -1) {
@@ -814,7 +814,7 @@ zf_read (struct zf *zf)
 		zf->line.type = type->type;
 		zf->line.rdatafmt = type->fmt;
 		zf->line.rdata = xalloc(sizeof(union zf_rdatom) * MAXRDATALEN);
-		bzero(zf->line.rdata, sizeof(union zf_rdatom) * MAXRDATALEN);
+		memset(zf->line.rdata, 0, sizeof(union zf_rdatom) * MAXRDATALEN);
 
 		/* Format starting with ``*'' is an error */
 		assert(*zf->line.rdatafmt != '*');

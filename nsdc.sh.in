@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.22 2003/01/21 13:36:40 alexis Exp $
+# $Id: nsdc.sh.in,v 1.23 2003/02/10 09:54:32 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -40,30 +40,30 @@
 #
 
 # Optional configuration file for nsdc
-NSDCCONF="@NSDCCONF@"
+configfile="@configfile@"
 
 #
-# Default values in absense of ${NSDCCONF} (Usually ``/etc/nsd/nsdc.conf'')
+# Default values in absense of ${configfile} (Usually ``/etc/nsd/nsdc.conf'')
 #
 prefix="@prefix@"
 exec_prefix="@exec_prefix@"
 
-NSDBINDIR="@sbindir@"
-NSDZONESDIR="@NSDHOME@"
-NSDFLAGS=""
-NSDDB="@NSDDB@"
-NSDZONES="@NSDZONES@"
-NSDKEYSDIR="@NSDHOME@/keys"
-NSDNOTIFY="@sbindir@/nsd-notify"
-NAMEDXFER="@NAMEDXFER@"
-NSDPIDFILE="@NSDPIDFILE@"
+sbindir="@sbindir@"
+zonesdir="@zonesdir@"
+flags=""
+dbfile="@dbfile@"
+zonesfile="@zonesfile@"
+keysdir="@configdir@/keys"
+notify="@sbindir@/nsd-notify"
+namedxfer="@namedxfer@"
+pidfile ="@pidfile@"
 
 #
 # Read in configuration file if any
 #
-if [ -f ${NSDCCONF} ]
+if [ -f ${configfile} ]
 then
-	. ${NSDCCONF}
+	. ${configfile}
 fi
 
 #
@@ -71,9 +71,9 @@ fi
 #
 
 signal() {
-	if [ -s ${NSDPIDFILE} ]
+	if [ -s ${pidfile} ]
 	then
-		kill -"$1" `cat ${NSDPIDFILE}` && return 0
+		kill -"$1" `cat ${pidfile}` && return 0
 	else
 		echo "nsd is not running"
 	fi
@@ -82,7 +82,7 @@ signal() {
 
 case "$1" in
 start)
-	[ -x ${NSDBINDIR}/nsd ] && ${NSDBINDIR}/nsd -f ${NSDDB} ${NSDFLAGS}
+	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -f ${dbfile} ${NSDFLAGS}
 	$0 notify
 	;;
 stop)
@@ -99,15 +99,15 @@ running)
 	signal "0"
 	;;
 rebuild)
-	${NSDBINDIR}/zonec -v -d ${NSDZONESDIR} -f ${NSDDB}.$$ ${NSDZONES} && mv ${NSDDB}.$$ ${NSDDB}
+	${sbindir}/zonec -v -d ${zonesdir} -f ${dbfile}.$$ ${zonesfile} && mv ${dbfile}.$$ ${dbfile}
 	result=$?
-	[ $result != 0 ] && echo "${NSDDB} is unmodified"
-	rm -f ${NSDDB}.$$
+	[ $result != 0 ] && echo "${dbfile} is unmodified"
+	rm -f ${dbfile}.$$
 	exit ${result}
 	;;
 update)
 	#
-	if [ ! -x "${NAMEDXFER}" ]
+	if [ ! -x "${namedxfer}" ]
 	then
 		echo "named-xfer program is not available, aborting..."
 		exit 1
@@ -119,21 +119,21 @@ update)
 		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
 		then
 			# now get the serial number
-			serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1 }' ${NSDZONESDIR}/$file`
+			serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1 }' ${zonesdir}/$file`
 			serial=${serial:-0}
 
  			# take care of tsig info file if any
  			unset tsiginfoarg
- 			if [ -f "${NSDKEYSDIR}/${masters}.tsiginfo" ]
+ 			if [ -f "${keysdir}/${masters}.tsiginfo" ]
  			then
- 				ln "${NSDKEYSDIR}/${masters}.tsiginfo" "${NSDKEYSDIR}/${masters}.tsiginfo.$$"
- 				tsiginfoarg="-T ${NSDKEYSDIR}/${masters}.tsiginfo.$$"
+ 				ln "${keysdir}/${masters}.tsiginfo" "${keysdir}/${masters}.tsiginfo.$$"
+ 				tsiginfoarg="-T ${keysdir}/${masters}.tsiginfo.$$"
 			fi
 
-			$NAMEDXFER -z $zone -f ${NSDZONESDIR}/$file ${tsiginfoarg} -s $serial $masters
+			$namedxfer -z $zone -f ${zonesdir}/$file ${tsiginfoarg} -s $serial $masters
 
 			# Do we need to rebuild the database?
-			if [ ${NSDZONESDIR}/$file -nt ${NSDDB} ]
+			if [ ${zonesdir}/$file -nt ${dbfile} ]
 			then
 				echo "zone $zone needs rebuilding..."
 				rebuild="yes"
@@ -141,22 +141,22 @@ update)
 			fi
 
 			# clean up
-			rm -f -- "${NSDKEYSDIR}"/*.tsiginfo.*
+			rm -f -- "${keysdir}"/*.tsiginfo.*
 		fi
-	done < $NSDZONES
+	done < $zonesfile
 
 	# Wait for everybody to terminate
 	wait
 
 	# Rebuild and reload?
-	if [ ! -f ${NSDDB} -o "x$rebuild" = "xyes" ]
+	if [ ! -f ${dbfile} -o "x$rebuild" = "xyes" ]
 	then
 		echo "rebuilding the database...."
 		sh $0 rebuild && sh $0 reload
 	fi
 	;;
 notify)
-	if [ ! -x "${NSDNOTIFY}" ]
+	if [ ! -x "${notify}" ]
 	then
 		echo "nsd-notify was not installed on this system"
 		exit 1
@@ -167,9 +167,9 @@ notify)
 	do	
 		if [ "X$zonekw" = "Xzone" -a "X$notifykw" = "Xnotify" ]
 		then
-			$NSDNOTIFY -z "$zone" $slaves
+			$notify -z "$zone" $slaves
 		fi
-	done < $NSDZONES
+	done < $zonesfile
 	;;
 restart)
 	sh $0 stop && sleep 1 && sh $0 start

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.45 2003/01/20 09:43:16 alexis Exp $
+ * $Id: nsd.h,v 1.46 2003/02/10 09:54:32 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -95,7 +95,7 @@ typedef	unsigned long stc_t;
 /* NSD configuration and run-time variables */
 struct	nsd {
 	/* Run-time variables */
-	pid_t		pid[CF_TCP_MAX_CONNECTIONS + 1];
+	pid_t		pid[TCP_MAX_CONNECTIONS + 1];
 	int		mode;
 	struct namedb	*db;
 	int		debug;
@@ -124,7 +124,7 @@ struct	nsd {
 	struct	{
 		struct sockaddr_in	addr;
 		int		s;
-	} udp[CF_MAX_INTERFACES];
+	} udp[MAX_INTERFACES];
 
 #ifdef INET6
 	struct {

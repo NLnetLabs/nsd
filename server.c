@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.61 2002/12/17 14:41:29 alexis Exp $
+ * $Id: server.c,v 1.62 2003/02/10 09:54:32 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -115,7 +115,7 @@ server_init(struct nsd *nsd)
 	}
 
 	/* Listen to it... */
-	if(listen(nsd->tcp.s, CF_TCP_BACKLOG) == -1) {
+	if(listen(nsd->tcp.s, TCP_BACKLOG) == -1) {
 		syslog(LOG_ERR, "cant listen: %m");
 		return -1;
 	}
@@ -151,7 +151,7 @@ server_init(struct nsd *nsd)
 	}
 
 	/* Listen to it... */
-	if(listen(nsd->tcp6.s, CF_TCP_BACKLOG) == -1) {
+	if(listen(nsd->tcp6.s, TCP_BACKLOG) == -1) {
 		syslog(LOG_ERR, "cant listen: %m");
 		return -1;
 	}
@@ -510,7 +510,7 @@ server_tcp(struct nsd *nsd)
 		q.tcp = 1;
 
 		/* Until we've got end of file */
-		alarm(CF_TCP_TIMEOUT);
+		alarm(TCP_TIMEOUT);
 		while((received = read(s, &tcplen, 2)) == 2) {
 			/* XXX Why 17???? */
 			if(ntohs(tcplen) < 17) {
@@ -551,7 +551,7 @@ server_tcp(struct nsd *nsd)
 				do {
 					query_addedns(&q, nsd);
 
-					alarm(CF_TCP_TIMEOUT);
+					alarm(TCP_TIMEOUT);
 					tcplen = htons(q.iobufptr - q.iobuf);
 					if(((sent = write(s, &tcplen, 2)) == -1) ||
 						((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {

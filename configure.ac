@@ -22,26 +22,6 @@ else
 fi;dnl
 ])
 
-AC_DEFUN([AC_PROMPT_USER_NO_DEFINE],
-dnl changequote(<<, >>) dnl
-dnl <<
-[
-if test "x$defaults" = "xno"; then
-echo $ac_n "$2 ($3): $ac_c"
-read tmpinput
-if test "$tmpinput" = "" -a "$3" != ""; then
-  tmpinput="$3"
-fi
-eval $1=\"$tmpinput\"
-else
-tmpinput="$3"
-eval $1=\"$tmpinput\"
-fi
-]
-dnl >>
-dnl changequote([, ])
-) dnl done AC_PROMPT_USER
-
 dnl
 dnl By default set $sysconfdir to /etc and $localstatedir to /var
 dnl
@@ -61,68 +41,81 @@ case "$prefix" in
 esac
 
 #
-# Check if /var/run exists, if so set pidfile to /var/run/nsd.pid
+# Determine configuration directory
+#
+configdir=$sysconfdir/nsd
+AC_ARG_WITH([configdir],
+	AC_HELP_STRING([--with-configdir=dir], [NSD configuration directory]),
+	[configdir=$withval])
+AC_SUBST(configdir)
+
+#
+# Determine the pidfile location. Check if /var/run exists, if so set pidfile
+# to /var/run/nsd.pid by default
 #
 if test -d ${localstatedir}/run; then
-	NSDPIDFILE=${localstatedir}/run/nsd.pid
+	pidfile=${localstatedir}/run/nsd.pid
+else
+	pidfile=${configdir}/nsd.pid
 fi
+AC_ARG_WITH([pidfile],
+	AC_HELP_STRING([--with-pidfile=path], [Pathname to the NSD pidfile]),
+	[pidfile=$withval])
+AC_SUBST(pidfile)
 
+#
+# Determine location of nsd.zones
+#
+zonesfile=$configdir/nsd.zones
+AC_ARG_WITH([zonesfile],
+	AC_HELP_STRING([--with-zonesfile=path], [Pathname to the NSD list of zones]),
+	[zonesfile=$withval])
+AC_SUBST(zonesfile)
 
-dnl
-dnl A number if --with arguements
-dnl
-AC_ARG_WITH(nsd-home,
-	AC_HELP_STRING([--with-nsd-home=directory],
-		[NSD ``home'' directory]), [NSDHOME="$withval"], [NSDHOME="$sysconfdir/nsd"])
-AC_SUBST(NSDHOME)
+#
+# Determine location of nsd.db
+#
+dbfile=$configdir/nsd.db
+AC_ARG_WITH([dbfile],
+	AC_HELP_STRING([--with-dbfile=path], [Pathname to the NSD database]),
+	[dbfile=$withval])
+AC_SUBST(dbfile)
 
-AC_ARG_WITH(nsd-zones,
-	AC_HELP_STRING([--with-nsd-zones=filename],
-		[The file containing the list of the zones to be served]),
-	[NSDZONES="$withval"], [NSDZONES="$NSDHOME/nsd.zones"])
-AC_SUBST(NSDZONES)
+#
+# Determine location of nsd config file
+#
+configfile=$configdir/nsdc.conf
+AC_ARG_WITH([configfile],
+	AC_HELP_STRING([--with-configfile=path], [Pathname to the NSD configuration file]),
+	[configfile=$withval])
+AC_SUBST(configfile)
 
-AC_ARG_WITH(nsd-db,
-	AC_HELP_STRING([--nsd-db=filename],
-	[The NSD run-time database (default $NSDHOME/nsd.db)]),
-		[NSDDB="$withval"], [NSDDB="$NSDHOME/nsd.db"])
-AC_SUBST(NSDDB)
+#
+# Determine the default directory for the master zone files
+#
+zonesdir=$configdir
+AC_ARG_WITH([zonesdir],
+	AC_HELP_STRING([--with-zonesdir=dir], [NSD default location for master zone files]),
+	[zonesdir=$withval])
+AC_SUBST(zonesdir)
 
-AC_ARG_WITH(nsdc-conf, AC_HELP_STRING([--nsdc-conf=filename],
-	[Optional configuration file for nsdc.sh]),
-		[NSDCCONF="$withval"], [NSDCCONF="$NSDHOME/nsdc.conf"])
-AC_SUBST(NSDCCONF)
+#
+# Determine the user name to drop privilidges to
+#
+user=nsd
+AC_ARG_WITH([user],
+	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
+	[user=$withval])
+AC_CHECK_USER($user)
+AC_SUBST(user)
 
-AC_ARG_WITH(nsd-pidfile,
-	AC_HELP_STRING([--nsd-pidfile=filename],
-	[The file pid file of the nsd (default /var/run/nsd.pid)]),
-		[NSDPIDFILE="$withval"])
-AC_SUBST(NSDPIDFILE)
-
-AC_ARG_WITH(nsd-user,
-	AC_HELP_STRING([--with-nsd-user=user],
-		[The username for nsd to setuid to before answering queries]),
-	[NSDUSER="$withval"])
-AC_SUBST(NSDUSER)
-
-AC_ARG_WITH(named-xfer,
-	AC_HELP_STRING([--with-named-xfer=pathname],
-		[Pathname to named-xfer program from bind distribution]),
-	[NAMEDXFER="$withval"])
-AC_SUBST(NAMEDXFER)
-
-
-dnl
-dnl Determine which user to use for NSD to setuid to.
-dnl
-if test "X$NSDUSER" = "X"; then
-	AC_PROMPT_USER_NO_DEFINE(NSDUSER, [With wich user priviledges should NSD answer the queries?], [nsd])
-fi
-AC_CHECK_USER(NSDUSER, $NSDUSER)
-if test "X$NSDUSER" = "X"; then
-	AC_MSG_ERROR([user doesnt exist.])
-fi
-
+#
+# Determine the location of namedxfer
+#
+AC_ARG_WITH([namedxfer],
+	AC_HELP_STRING([--with-namedxfer=path], [Pathname to BIND8 named-xfer program if any]),
+	[namedxfer=$withval], [namedxfer=""])
+AC_SUBST(namedxfer)
 
 # Checks for programs.
 AC_PROG_AWK
@@ -155,7 +148,6 @@ AC_CHECK_TYPE(in_addr_t, unsigned long)
 AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
-AC_FUNC_MMAP
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([alarm dup2 endpwent gethostname inet_ntoa memset memcpy select socket strcasecmp strchr strdup strerror strncasecmp strtol])
 
@@ -197,27 +189,21 @@ AC_SUBST(LIBWRAP)
 dnl
 dnl Some random defines's
 dnl
-AC_DEFINE_UNQUOTED([CF_IDENTITY], ["unindentified server"], [Define to the default nsd identity.])
-AC_DEFINE_UNQUOTED([CF_VERSION], [PACKAGE_STRING], [Define to the NSD version to answer version.server query.])
-AC_DEFINE_UNQUOTED([CF_TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
-AC_DEFINE_UNQUOTED([CF_TCP_MAX_CONNECTIONS], [8], [Define to the default maximum simultaneous tcp connections.])
-AC_DEFINE_UNQUOTED([CF_TCP_PORT], [53], [Define to the default tcp port.])
-AC_DEFINE_UNQUOTED([CF_TCP_MAX_MESSAGE_LEN], [16384], [Define to the default maxium message length.])
-AC_DEFINE_UNQUOTED([CF_TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
-AC_DEFINE_UNQUOTED([CF_UDP_PORT], [53], [Define to the default udp port.])
-AC_DEFINE_UNQUOTED([CF_UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
-AC_DEFINE_UNQUOTED([CF_EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
-AC_DEFINE_UNQUOTED([CF_MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
-AC_DEFINE_UNQUOTED([CF_FACILITY], [LOG_DAEMON], [Define to the default facility for syslog.])
+AC_DEFINE_UNQUOTED([IDENTITY], ["unindentified server"], [Define to the default nsd identity.])
+AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the NSD version to answer version.server query.])
+AC_DEFINE_UNQUOTED([TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
+AC_DEFINE_UNQUOTED([TCP_MAX_CONNECTIONS], [8], [Define to the default maximum simultaneous tcp connections.])
+AC_DEFINE_UNQUOTED([TCP_PORT], [53], [Define to the default tcp port.])
+AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [16384], [Define to the default maxium message length.])
+AC_DEFINE_UNQUOTED([TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
+AC_DEFINE_UNQUOTED([UDP_PORT], [53], [Define to the default udp port.])
+AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
+AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
+AC_DEFINE_UNQUOTED([MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
+AC_DEFINE_UNQUOTED([FACILITY], [LOG_DAEMON], [Define to the default facility for syslog.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
 AC_DEFINE_UNQUOTED([AXFR_DAEMON], ["axfr"], [Define to the default daemon name to check for axfr.])
 AC_DEFINE_UNQUOTED([AXFR_DAEMON_PREFIX], ["axfr-"], [Define to the default daemon prefix to check for axfr.])
-
-dnl
-dnl Features, that we always define, need to be changed permantently in the source.
-dnl
-AC_DEFINE_UNQUOTED([USE_HEAP_RBTREE], [], [Define to use red-black tree methods.])
-AC_DEFINE_UNQUOTED([LOG_NOTIFIES], [], [Define to log incoming notifies with syslog.])
 
 dnl
 dnl Features
@@ -261,5 +247,5 @@ case "$enable_bind8_stats" in
 esac
 
 
-AC_CONFIG_FILES([Makefile nsdc.sh nsdc.conf.sample])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.59 2003/01/21 12:01:25 alexis Exp $
+ * $Id: nsd.c,v 1.60 2003/02/10 09:54:32 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -326,36 +326,36 @@ main (int argc, char *argv[])
 
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
-	nsd.dbfile	= CF_DBFILE;
-	nsd.pidfile	= CF_PIDFILE;
+	nsd.dbfile	= DBFILE;
+	nsd.pidfile	= PIDFILE;
 	nsd.tcp.open_conn = 1;
 
-	for(i = 0; i < CF_MAX_INTERFACES; i++) {
+	for(i = 0; i < MAX_INTERFACES; i++) {
 		nsd.udp[i].addr.sin_addr.s_addr = INADDR_ANY;
-		nsd.udp[i].addr.sin_port = htons(CF_UDP_PORT);
+		nsd.udp[i].addr.sin_port = htons(UDP_PORT);
 		nsd.udp[i].addr.sin_family = AF_INET;
 	}
 
         nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
-        nsd.tcp.addr.sin_port = htons(CF_TCP_PORT);
+        nsd.tcp.addr.sin_port = htons(TCP_PORT);
         nsd.tcp.addr.sin_family = AF_INET;
 
 #ifdef INET6
-        nsd.udp6.addr.sin6_port = htons(CF_UDP_PORT);	/* XXX: SHOULD BE CF_UDP6_PORT? */
+        nsd.udp6.addr.sin6_port = htons(UDP_PORT);	/* XXX: SHOULD BE UDP6_PORT? */
         nsd.udp6.addr.sin6_family = AF_INET6;
 
-        nsd.tcp6.addr.sin6_port = htons(CF_TCP_PORT);	/* XXX: SHOULD BE CF_TCP6_PORT? */
+        nsd.tcp6.addr.sin6_port = htons(TCP_PORT);	/* XXX: SHOULD BE TCP6_PORT? */
         nsd.tcp6.addr.sin6_family = AF_INET6;
 #endif /* INET6 */
 
-	nsd.tcp.max_msglen = CF_TCP_MAX_MESSAGE_LEN;
-	nsd.identity	= CF_IDENTITY;
-	nsd.version	= CF_VERSION;
-	nsd.username	= CF_USERNAME;
+	nsd.tcp.max_msglen = TCP_MAX_MESSAGE_LEN;
+	nsd.identity	= IDENTITY;
+	nsd.version	= VERSION;
+	nsd.username	= USER;
 	nsd.chrootdir	= NULL;
 
 	/* EDNS0 */
-	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
+	nsd.edns.max_msglen = EDNS_MAX_MESSAGE_LEN;
 	nsd.edns.opt_ok[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
 	nsd.edns.opt_ok[2] = TYPE_OPT & 0x00ff;	/* type_lo */
 	nsd.edns.opt_ok[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
@@ -378,7 +378,7 @@ main (int argc, char *argv[])
 #endif
 
 	/* Set up the logging... */
-	openlog("nsd", LOG_PERROR | LOG_PID, CF_FACILITY);
+	openlog("nsd", LOG_PERROR | LOG_PID, FACILITY);
 
 	/* Set up our default identity to gethostname(2) */
 	if(gethostname(hostname, MAXHOSTNAMELEN) == 0) {
@@ -404,7 +404,7 @@ main (int argc, char *argv[])
 			nsd.dbfile = optarg;
 			break;
 		case 'p':
-			for(i = 0; i < CF_MAX_INTERFACES; i++) {
+			for(i = 0; i < MAX_INTERFACES; i++) {
 				nsd.udp[i].addr.sin_port = htons(atoi(optarg));
 			}
 			nsd.tcp.addr.sin_port = htons(atoi(optarg));
@@ -426,9 +426,9 @@ main (int argc, char *argv[])
 			i = atoi(optarg);
 			if(i <= 0) {
 				syslog(LOG_ERR, "max number of tcp connections must be greather than zero");
-			} else if(i > CF_TCP_MAX_CONNECTIONS) {
+			} else if(i > TCP_MAX_CONNECTIONS) {
 				syslog(LOG_ERR, "max number of tcp connections must be less than %d",
-					CF_TCP_MAX_CONNECTIONS);
+					TCP_MAX_CONNECTIONS);
 			} else {
 				nsd.tcp.open_conn = i;
 			}

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.70 2003/01/21 13:33:06 alexis Exp $
+ * $Id: zonec.c,v 1.71 2003/02/10 09:54:32 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -46,7 +46,7 @@ static void zone_addbuf (struct message *, const void *, size_t);
 static void zone_addcompr (struct message *msg, u_char *dname, int offset, int len);
 
 /* The database file... */
-char *dbfile = CF_DBFILE;
+char *dbfile = DBFILE;
 
 /* The database masks */
 u_char bitmasks[NAMEDB_BITMASKLEN * 3];

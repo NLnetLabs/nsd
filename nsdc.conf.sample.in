@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.conf.sample.in,v 1.3 2003/01/20 12:58:22 alexis Exp $
+# $Id: nsdc.conf.sample.in,v 1.4 2003/02/10 09:54:32 alexis Exp $
 #
 # nsdc.conf.sample -- configuration for nsdc.sh
 #
@@ -40,25 +40,25 @@
 #
 
 # Pathname to the directory containing zone file. De facto NSD ``home''
-NSDZONESDIR="@nsdhome@"
+configdir="@configdir@"
 
 # The directory where NSD binaries reside
-NSDBINDIR="@sbindir@"
+sbindir="@sbindir@"
 
 # Flags to pass to nsd on startup
-NSDFLAGS=""
+flags=""
 
 # Pathname of the database
-NSDDB="@nsddb@"
+dbfile="@dbfile@"
 
 # List of the configured zones
-NSDZONES="@nsdzones@"
+zonesfile="@zonesfile@"
 
 # The directory containing NSD keys
-NSDKEYSDIR="@nsdhome@/keys"
+keysdir = "@configdir@/keys"
 
 # Pathname of nsd-notify binary
-NSDNOTIFY="@sbindir@/nsd-notify"
+notify="@sbindir@/nsd-notify"
 
 # Pathname of named-xfer(8) binary from BIND8 distribution
-NAMEDXFER="@namedxfer@"
+namedxfer="@namedxfer@"
