@@ -591,7 +591,9 @@ answer_chaos(struct nsd *nsd, struct query *q)
 	case TYPE_ANY:
 	case TYPE_TXT:
 		if (q->name->name_size == 11
-		   && memcmp(dname_name(q->name), "\002id\006server", 11) == 0)
+		   && memcmp(dname_name(q->name), "\002id\006server", 11) == 0 || 
+		   q->name->name_size ==  15
+		   && memcmp(dname_name(q->name), "\010hostname\004bind", 15) == 0 )
 		{
 			/* Add ID */
 			query_addtxt(q,
@@ -602,7 +604,9 @@ answer_chaos(struct nsd *nsd, struct query *q)
 			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
 			return 1;
 		} else if (q->name->name_size == 16
-			   && memcmp(dname_name(q->name), "\007version\006server", 16) == 0)
+			   && memcmp(dname_name(q->name), "\007version\006server", 16) == 0 ||
+			   q->name->name_size == 14
+			   && memcmp(dname_name(q->name), "\007version\004bind", 14) == 0 )
 		{
 			/* Add version */
 			query_addtxt(q,
