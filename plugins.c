@@ -106,6 +106,7 @@ int
 load_plugin(struct nsd *nsd, const char *name, const char *arg)
 {
 	nsd_plugin_init_type *init;
+	void *handle;
 	const char *error;
 	const char *init_name = "nsd_plugin_init_" STR(NSD_PLUGIN_INTERFACE_VERSION);
 	const nsd_plugin_descriptor_type *descriptor;
@@ -114,16 +115,19 @@ load_plugin(struct nsd *nsd, const char *name, const char *arg)
 		syslog(LOG_ERR, "maximum number of plugins exceeded");
 		return 0;
 	}
+
+	dlerror();		/* Discard previous errors (FreeBSD hack).  */
 	
-	void *handle = dlopen(name, RTLD_NOW);
-	if (!handle) {
-		syslog(LOG_ERR, "failed to load plugin: %s", dlerror());
+	handle = dlopen(name, RTLD_NOW);
+	error = dlerror();
+	if (error) {
+		syslog(LOG_ERR, "failed to load plugin: %s", error);
 		return 0;
 	}
 
 	init = dlsym(handle, init_name);
 	error = dlerror();
-	if (error != NULL) {
+	if (error) {
 		syslog(LOG_ERR, "no plugin init function: %s", error);
 		dlclose(handle);
 		return 0;
