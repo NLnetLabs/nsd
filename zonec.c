@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.57.2.2 2002/05/07 09:28:26 alexis Exp $
+ * $Id: zonec.c,v 1.57.2.2.2.1 2002/05/21 09:53:32 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -437,10 +437,9 @@ zone_free(z)
  *
  */
 struct zone *
-zone_read(name, zonefile, cache)
+zone_read(name, zonefile)
 	char *name;
 	char *zonefile;
-	int cache;
 {
 	heap_t *h;
 	int i;
@@ -565,18 +564,12 @@ zone_read(name, zonefile, cache)
 		/* Check we have SOA */
 		if(z->soa == NULL) {
 			if(rr->type != TYPE_SOA) {
-				if(!cache) {
-					zf_error(zf, "missing SOA record on top of the zone");
-				}
+				zf_error(zf, "missing SOA record on top of the zone");
 			} else {
 				if(dnamecmp(rr->dname, z->dname) != 0) {
 					zf_error(zf, "SOA record with invalid domain name");
 				} else {
-					if(!cache) {
-						z->soa = r;
-					} else {
-						zf_error(zf, "SOA record present in the cache");
-					}
+					z->soa = r;
 				}
 			}
 		} else {
@@ -919,7 +912,6 @@ main(argc, argv)
 	char *sep = " \t\n";
 	int c;
 	int line = 0;
-	int cache = 0;
 	FILE *f;
 
 	int error = 0;
@@ -976,12 +968,7 @@ main(argc, argv)
 		if((s = strtok(buf, sep)) == NULL || *s == ';')
 			continue;
 
-		/* Either zone or a cache... */
-		if(strcasecmp(s, "cache") == 0) {
-			cache = 1;
-		} else if(strcasecmp(s, "zone") == 0) {
-			cache = 0;
-		} else {
+		if(strcasecmp(s, "zone") != 0) {
 			fprintf(stderr, "zonec: syntax error in %s line %d\n", *argv, line);
 			break;
 		}
@@ -1010,7 +997,7 @@ main(argc, argv)
 		}
 
 		/* If we did not have any errors... */
-		if((z = zone_read(zonename, zonefile, cache)) != NULL) {
+		if((z = zone_read(zonename, zonefile)) != NULL) {
 			zone_dump(z, db);
 			if(pflag)
 				zone_print(z);
