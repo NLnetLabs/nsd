@@ -1,5 +1,5 @@
 .\"
-.\" $Id: zonec.8,v 1.13 2003/07/07 09:29:26 erik Exp $
+.\" $Id: zonec.8,v 1.13.2.1 2003/07/21 10:18:51 erik Exp $
 .\"
 .\" zonec.8 -- zonec manual
 .\"
@@ -44,7 +44,8 @@
 .Nd NSD Zone Compiler
 .Sh SYNOPSIS
 .Nm zonec
-.Op Fl p v
+.Op Fl p
+.Op Fl v
 .Op Fl f Ar database
 .Op Fl d Ar directory
 .Ar nsd.zones
@@ -87,8 +88,8 @@ Create the specified
 instead of the default
 .Pa /etc/nsd/nsd.db
 .It Fl v
-Be verbose about the progress, show percentage done for every zone file
-being processed.
+Be verbose about the progress.  Specify multiple times for additional
+verbosity.
 .It Fl p
 Print every zone after it was parsed (useful for debugging purposes only)
 .El

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.98.2.2 2003/07/17 11:05:51 erik Exp $
+ * $Id: zonec.c,v 1.98.2.3 2003/07/21 10:18:52 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -67,17 +67,14 @@ static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int 
 const char *dbfile = DBFILE;
 
 /* The database masks */
-uint8_t bitmasks[NAMEDB_BITMASKLEN * 3];
-uint8_t *authmask = bitmasks;
-uint8_t *starmask = bitmasks + NAMEDB_BITMASKLEN;
-uint8_t *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
+static uint8_t bitmasks[NAMEDB_BITMASKLEN * 3];
 
 /* Some global flags... */
-int vflag = 0;
-int pflag = 0;
+static int vflag = 0;
+static int pflag = 0;
 
 /* Total errors counter */
-int totalerrors = 0;
+static int totalerrors = 0;
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -452,7 +449,7 @@ zone_read (char *name, char *zonefile)
 	while((rr = zread(parser)) != NULL) {
 
 		/* Report progress... */
-		if(vflag) {
+		if(vflag > 1) {
 			if((parser->lines % 100000) == 0) {
 				printf("zonec: reading zone \"%s\": %lu\r", dnamestr(z->dname), (unsigned long) parser->lines);
 				fflush(stdout);
@@ -577,7 +574,10 @@ zone_read (char *name, char *zonefile)
 	}
 
 	fflush(stdout);
-	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), parser->errors);
+	if (vflag > 0) {
+		fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n",
+			dnamestr(z->dname), parser->errors);
+	}
 	totalerrors += parser->errors;
 
 	zclose(parser);
@@ -851,7 +851,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	int percentage = 0;
 
 	/* Set up the counter... */
-	if(vflag) {
+	if(vflag > 1) {
 		fraction = (z->cuts->count + z->data->count) / 20;	/* Report every 5% */
 		if(fraction == 0)
 			fraction = ULONG_MAX;
@@ -869,7 +869,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	/* AUTHORITY CUTS */
 	HEAP_WALK(z->cuts, dname, rrset) {
 		/* Report progress... */
-		if(vflag) {
+		if(vflag > 1) {
 			if((++progress % fraction) == 0) {
 				printf("zonec: writing zone \"%s\": %d%%\r", dnamestr(z->dname), percentage);
 				percentage += 5;
@@ -890,7 +890,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	/* OTHER DATA */
 	HEAP_WALK(z->data, dname, rrset) {
 		/* Report progress... */
-		if(vflag) {
+		if(vflag > 1) {
 			if((++progress % fraction) == 0) {
 				printf("zonec: writing zone \"%s\": %d%%\r", dnamestr(z->dname), percentage);
 				percentage += 5;
@@ -938,7 +938,10 @@ zone_dump (struct zone *z, struct namedb *db)
 	}
 
 	fflush(stdout);
-	fprintf(stderr, "zonec: writing zone \"%s\": done.\n", dnamestr(z->dname));
+	if (vflag > 0) {
+		fprintf(stderr, "zonec: writing zone \"%s\": done.\n",
+			dnamestr(z->dname));
+	}
 
 	return 0;
 }
@@ -975,7 +978,7 @@ main (int argc, char **argv)
 			pflag = 1;
 			break;
 		case 'v':
-			vflag = 1;
+			++vflag;
 			break;
 		case 'f':
 			dbfile = optarg;
