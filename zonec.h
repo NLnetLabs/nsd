@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.2 2002/01/28 23:24:34 alexis Exp $
+ * $Id: zonec.h,v 1.3 2002/01/29 15:40:50 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -61,11 +61,11 @@
 
 struct rrset {
 	struct rrset *next;
-	u_short type;
-	u_short class;
-	long ttl;
+	u_int16_t type;
+	u_int16_t class;
+	int32_t ttl;
 	char *fmt;
-	u_short rrslen;
+	u_int16_t rrslen;
 	int glue;
 	union zf_rdatom **rrs;
 };
@@ -83,21 +83,21 @@ struct zone {
 
 struct message {
 	u_char *bufptr;
-	u_short ancount;
-	u_short nscount;
-	u_short arcount;
+	u_int16_t ancount;
+	u_int16_t nscount;
+	u_int16_t arcount;
 	int dnameslen;
 	int rrsetslen;
 	int comprlen;
-	u_short pointerslen;
-	u_short pointers[MAXRRSPP];
-	u_short rrsetsoffslen;
-	u_short rrsetsoffs[MAXRRSPP];
+	u_int16_t pointerslen;
+	u_int16_t pointers[MAXRRSPP];
+	u_int16_t rrsetsoffslen;
+	u_int16_t rrsetsoffs[MAXRRSPP];
 	struct rrset *rrsets[MAXRRSPP];
 	u_char *dnames[MAXRRSPP];
 	struct {
 		u_char *dname;
-		u_short dnameoff;
+		u_int16_t dnameoff;
 		u_char dnamelen;
 	} compr[MAXRRSPP];
 	u_char buf[IOBUFSZ];

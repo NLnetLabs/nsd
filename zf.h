@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.1 2002/01/08 13:29:21 alexis Exp $
+ * $Id: zf.h,v 1.2 2002/01/29 15:40:50 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -81,8 +81,8 @@
 
 /* Rdata atom */
 union zf_rdatom {
-	u_short	s;
-	u_long	l;
+	u_int16_t	s;
+	u_int32_t	l;
 	u_char	*p;
 };
 
@@ -90,9 +90,9 @@ union zf_rdatom {
 /* A line in a zone file */
 struct zf_entry {
 	u_char *dname;
-	long ttl;
-	u_short class;
-	u_short type;
+	int32_t ttl;
+	u_int16_t class;
+	u_int16_t type;
 	char *rdatafmt;
 	union zf_rdatom *rdata;
 };
@@ -101,14 +101,14 @@ struct zf_entry {
 struct zf {
 	int errors;
 	int iptr;
-	u_long lines;
+	u_int32_t lines;
 	/* Include files.... */
 	struct {
 		FILE	*file;
 		u_long	lineno;
 		char	*filename;
 		u_char	*origin;
-		long	ttl;
+		int32_t	ttl;
 		int	parentheses;
 	} i[MAXINCLUDES+1];
 	struct zf_entry line;
@@ -117,7 +117,7 @@ struct zf {
 
 /* Structure to parse classes */
 struct zf_class_tab {
-	u_short	class;
+	u_int16_t	class;
 	char	*name;
 };
 
@@ -142,7 +142,7 @@ struct zf_class_tab {
 
 /* Structure to parse types */
 struct zf_type_tab {
-	u_short	type;
+	u_int16_t	type;
 	char	*name;
 	char	*fmt;
 };
@@ -172,8 +172,8 @@ struct zf_type_tab {
 /* Prototypes */
 struct zf *zf_open __P((char *, u_char *));
 struct zf_entry *zf_read __P((struct zf *));
-char *typetoa __P((u_short));
-char *classtoa __P((u_short));
+char *typetoa __P((u_int16_t));
+char *classtoa __P((u_int16_t));
 struct zf_type_tab *typebyname __P((char *));
 struct zf_class_tab *classbyname __P((char *));
 void *inet6_aton __P((char *));
@@ -182,7 +182,7 @@ void zf_error __P((struct zf *, char *));
 void zf_syntax __P((struct zf *));
 char *zf_getline __P((struct zf *));
 char *zf_token __P((struct zf *, char *));
-int zf_open_include __P((struct zf *, char *, char *, long));
+int zf_open_include __P((struct zf *, char *, char *, int32_t));
 void zf_print_entry __P((struct zf_entry *));
 void zf_print_rdata __P((union zf_rdatom *, char *));
 int zf_close_include __P((struct zf *));

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.5 2002/01/28 23:24:34 alexis Exp $
+ * $Id: nsd.h,v 1.6 2002/01/29 15:40:50 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -103,5 +103,5 @@ extern u_char starmask[NAMEDB_BITMASKLEN];
 
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
-int server __P((u_short, DB *));
+int server __P((u_int16_t, DB *));
 struct domain *lookup __P((DB *, u_char *, int));

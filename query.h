@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.6 2002/01/28 16:45:20 alexis Exp $
+ * $Id: query.h,v 1.7 2002/01/29 15:40:50 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -121,23 +121,23 @@
 #define	RA_CLR(query)	*(query->iobuf+3) &= ~RA_MASK
 
 /* Query ID */
-#define	ID(query)		(*(u_short *)(query->iobuf))
+#define	ID(query)		(*(u_int16_t *)(query->iobuf))
 
 /* Counter of the question section */
 #define QDCOUNT_OFF		4
-#define	QDCOUNT(query)		(*(u_short *)(query->iobuf+QDCOUNT_OFF))
+#define	QDCOUNT(query)		(*(u_int16_t *)(query->iobuf+QDCOUNT_OFF))
 
 /* Counter of the answer section */
 #define ANCOUNT_OFF		6
-#define	ANCOUNT(query)		(*(u_short *)(query->iobuf+ANCOUNT_OFF))
+#define	ANCOUNT(query)		(*(u_int16_t *)(query->iobuf+ANCOUNT_OFF))
 
 /* Counter of the authority section */
 #define NSCOUNT_OFF		8
-#define	NSCOUNT(query)		(*(u_short *)(query->iobuf+NSCOUNT_OFF))
+#define	NSCOUNT(query)		(*(u_int16_t *)(query->iobuf+NSCOUNT_OFF))
 
 /* Counter of the additional section */
 #define ARCOUNT_OFF		10
-#define	ARCOUNT(query)		(*(u_short *)(query->iobuf+ARCOUNT_OFF))
+#define	ARCOUNT(query)		(*(u_int16_t *)(query->iobuf+ARCOUNT_OFF))
 
 /* Possible OPCODE values */
 #define	OPCODE_QUERY		0 	/* a standard query (QUERY) */

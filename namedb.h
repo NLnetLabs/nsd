@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.2 2002/01/29 13:53:21 alexis Exp $
+ * $Id: namedb.h,v 1.3 2002/01/29 15:40:50 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -52,36 +52,36 @@
 #define	NAMEDB_BITMASKLEN	16
 
 #define	ANSWER_SIZE(a)		(size_t *)(&a->size)
-#define	ANSWER_TYPE(a)		(u_short *)(&a->type)
-#define	ANSWER_ANCOUNT(a)	(u_short *)(&a->ancount)
-#define	ANSWER_NSCOUNT(a)	(u_short *)(&a->nscount)
-#define	ANSWER_ARCOUNT(a)	(u_short *)(&a->arcount)
-#define	ANSWER_PTRLEN(a)	(u_short *)(&a->ptrlen)
-#define	ANSWER_RRSLEN(a)	(u_short *)(&a->rrslen)
+#define	ANSWER_TYPE(a)		(u_int16_t *)(&a->type)
+#define	ANSWER_ANCOUNT(a)	(u_int16_t *)(&a->ancount)
+#define	ANSWER_NSCOUNT(a)	(u_int16_t *)(&a->nscount)
+#define	ANSWER_ARCOUNT(a)	(u_int16_t *)(&a->arcount)
+#define	ANSWER_PTRLEN(a)	(u_int16_t *)(&a->ptrlen)
+#define	ANSWER_RRSLEN(a)	(u_int16_t *)(&a->rrslen)
 #define	ANSWER_DATALEN(a)	(size_t *)(&a->datalen)
 #define	ANSWER_END(a)		((struct answer *)a+1)
-#define	ANSWER_PTRS(a)		((u_short *)ANSWER_END(a))
-#define	ANSWER_RRS(a)		((u_short *)ANSWER_END(a))+*ANSWER_PTRLEN(a)
-#define	ANSWER_DATA(a)		(u_char *)(((u_short *)ANSWER_END(a))+*ANSWER_PTRLEN(a)+*ANSWER_RRSLEN(a))
+#define	ANSWER_PTRS(a)		((u_int16_t *)ANSWER_END(a))
+#define	ANSWER_RRS(a)		((u_int16_t *)ANSWER_END(a))+*ANSWER_PTRLEN(a)
+#define	ANSWER_DATA(a)		(u_char *)(((u_int16_t *)ANSWER_END(a))+*ANSWER_PTRLEN(a)+*ANSWER_RRSLEN(a))
 
 
 struct answer {
 	size_t size;
-	u_short type;
-	u_short	ancount;
-	u_short nscount;
-	u_short arcount;
-	u_short ptrlen;
-	u_short rrslen;
+	u_int16_t type;
+	u_int16_t	ancount;
+	u_int16_t nscount;
+	u_int16_t arcount;
+	u_int16_t ptrlen;
+	u_int16_t rrslen;
 	size_t datalen;
-	/* u_short ptrs[0]; */
-	/* u_short rrs[0]; */
+	/* u_int16_t ptrs[0]; */
+	/* u_int16_t rrs[0]; */
 	/* char *data; */
 };
 
 struct domain {
 	size_t size;
-	u_short	flags;
+	u_int16_t	flags;
 };
 
 #define	DOMAIN_WALK(domain, answer)	for(answer = (struct answer *)(domain + 1); \
@@ -89,6 +89,6 @@ struct domain {
 						((char *)answer) += *ANSWER_SIZE(answer))
 
 #define	DOMAIN_SIZE(domain)	(size_t *)(&((struct domain *)domain)->size)
-#define	DOMAIN_FLAGS(domain)	(u_short *)(&((struct domain *)domain)->flags)
+#define	DOMAIN_FLAGS(domain)	(u_int16_t *)(&((struct domain *)domain)->flags)
 
 #endif

@@ -1,4 +1,4 @@
-$Id: DESIGN,v 1.4 2002/01/28 16:02:59 alexis Exp $
+$Id: DESIGN,v 1.5 2002/01/29 15:40:50 alexis Exp $
 
 Database format
 ---------------
@@ -12,18 +12,18 @@ Key:	dname in RFC1035 format.
 Data:
 	struct domain {
 		size_t size;			/* Size of the entire record in bytes */
-		u_short flags;			/* Flags, see db.h */
+		u_int16_t flags;			/* Flags, see db.h */
 		struct answer {
 			size_t size;		/* Size of this answer in bytes */
-			u_short type;		/* query type this answer serves in wire format */
-			u_short	ancount;	/* Number of answers */
-			u_short nscount;	/* Number of ns records */
-			u_short arcount;	/* Number of additional records */
-			u_short ptrlen;		/* Number of pointers to be updated */
-			u_short rrslen;		/* Number of pointers of the resource records offsets */
+			u_int16_t type;		/* query type this answer serves in wire format */
+			u_int16_t ancount;	/* Number of answers */
+			u_int16_t nscount;	/* Number of ns records */
+			u_int16_t arcount;	/* Number of additional records */
+			u_int16_t ptrlen;		/* Number of pointers to be updated */
+			u_int16_t rrslen;		/* Number of pointers of the resource records offsets */
 			size_t	datalen;	/* The size of the data */
-			u_short ptrs[...];	/* Offsets of the pointers in the data section */
-			u_short rrs[...];	/* Offsets of the resource record sets */
-			u_char	data[...];	/* The precompiled answer in wire format */
+			u_int16_t ptrs[...];	/* Offsets of the pointers in the data section */
+			u_int16_t rrs[...];	/* Offsets of the resource record sets */
+			u_int16_t	data[...];	/* The precompiled answer in wire format */
 		}[...];
 	};

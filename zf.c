@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.2 2002/01/28 16:02:59 alexis Exp $
+ * $Id: zf.c,v 1.3 2002/01/29 15:40:50 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -168,7 +168,7 @@ dnamecmp(a, b)
  */
 char *
 typetoa(n)
-	u_short n;
+	u_int16_t n;
 {
 	struct zf_type_tab *type;
 	static char name[5];
@@ -186,7 +186,7 @@ typetoa(n)
  */
 char *
 classtoa(n)
-	u_short n;
+	u_int16_t n;
 {
 	struct zf_class_tab *class;
 	static char name[5];
@@ -241,7 +241,7 @@ inet6_aton(str)
 	char *str;
 {
 	char *addr;
-	u_short w;
+	u_int16_t w;
 	char *p, *t, *z;
 
 	addr = xalloc(IP6ADDRLEN);
@@ -251,16 +251,16 @@ inet6_aton(str)
 		return NULL;
 	}
 
-	for(p = str, t = addr; t < (addr + 8 * sizeof(u_short)); p++) {
+	for(p = str, t = addr; t < (addr + 8 * sizeof(u_int16_t)); p++) {
 		if((*p == ':') || (*p == '\000')) {
-			w = htons((u_short) strtol(str, &z, 16));
+			w = htons((u_int16_t) strtol(str, &z, 16));
 			if(z != p) return NULL;
-			bcopy(&w, t, sizeof(u_short));
-			t += sizeof(u_short);
+			bcopy(&w, t, sizeof(u_int16_t));
+			t += sizeof(u_int16_t);
 			str = p + 1;
 		}
 		if(*p == '\000') {
-			if(t == (addr + 8 * sizeof(u_short))) {
+			if(t == (addr + 8 * sizeof(u_int16_t))) {
 				return addr;
 			} else {
 				break;
@@ -447,7 +447,7 @@ zf_open_include(zf, filename, origin, ttl)
 	struct zf *zf;
 	char *filename;
 	char *origin;
-	long ttl;
+	int32_t ttl;
 {
 	if((zf->iptr + 1 > MAXINCLUDES)) {
 		zf_error(zf, "too many nested include files");
@@ -532,7 +532,7 @@ void
 zf_print_entry(rr)
 	struct zf_entry *rr;
 {
-	printf("%s\t%ld\t%s\t%s\t", dnamestr(rr->dname), rr->ttl, classtoa(rr->class), typetoa(rr->type));
+	printf("%s\t%d\t%s\t%s\t", dnamestr(rr->dname), rr->ttl, classtoa(rr->class), typetoa(rr->type));
 
 	zf_print_rdata(rr->rdata, rr->rdatafmt);
 
@@ -556,20 +556,20 @@ zf_print_rdata(rdata, rdatafmt)
 			break;
 		case '6':
 			printf("%x:%x:%x:%x:%x:%x:%x:%x",
-				((u_short *)rdata[i].p)[0],
-				((u_short *)rdata[i].p)[1],
-				((u_short *)rdata[i].p)[2],
-				((u_short *)rdata[i].p)[3],
-				((u_short *)rdata[i].p)[4],
-				((u_short *)rdata[i].p)[5],
-				((u_short *)rdata[i].p)[6],
-				((u_short *)rdata[i].p)[7]);
+				((u_int16_t *)rdata[i].p)[0],
+				((u_int16_t *)rdata[i].p)[1],
+				((u_int16_t *)rdata[i].p)[2],
+				((u_int16_t *)rdata[i].p)[3],
+				((u_int16_t *)rdata[i].p)[4],
+				((u_int16_t *)rdata[i].p)[5],
+				((u_int16_t *)rdata[i].p)[6],
+				((u_int16_t *)rdata[i].p)[7]);
 			break;
 		case 'n':
 			printf("%s\t", dnamestr(rdata[i].p));
 			break;
 		case 'l':
-			printf("%ld\t", rdata[i].l);
+			printf("%d\t", rdata[i].l);
 			break;
 		case 's':
 			printf("%d\t", rdata[i].s);
@@ -606,7 +606,7 @@ zf_read(zf)
 	struct zf_type_tab *type;
 	struct zf_class_tab *class;
 
-	u_short default_class = CLASS_IN;
+	u_int16_t default_class = CLASS_IN;
 
 	/* Keep reading till we could parse a line or reached end of file */
 	while((line = zf_getline(zf))) {
@@ -750,7 +750,7 @@ zf_read(zf)
 				}
 				break;
 			case 's':
-				zf->line.rdata[i].s = (u_short)strtol(token, &t, 10);
+				zf->line.rdata[i].s = (u_int16_t)strtol(token, &t, 10);
 				if(*t != 0) {
 					zf_error(zf, "illegal short");
 					parse_error++;

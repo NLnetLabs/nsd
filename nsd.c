@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.3 2002/01/28 23:24:34 alexis Exp $
+ * $Id: nsd.c,v 1.4 2002/01/29 15:40:50 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -43,7 +43,7 @@ u_char authmask[NAMEDB_BITMASKLEN];
 u_char starmask[NAMEDB_BITMASKLEN];
 u_char datamask[NAMEDB_BITMASKLEN];
 
-static u_short _nshorts[NSHORTSLEN];
+static u_int16_t _nshorts[NSHORTSLEN];
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -110,7 +110,7 @@ main(argc, argv)
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
 	/* Convert the network byte order translation table... */
-	for(i = 0; i < NSHORTSLEN; i++) _nshorts[i] = htons((u_short)i);
+	for(i = 0; i < NSHORTSLEN; i++) _nshorts[i] = htons((u_int16_t)i);
 
 	/* Parse the command line... */
 	if(argc != 2) {

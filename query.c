@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.12 2002/01/28 16:02:59 alexis Exp $
+ * $Id: query.c,v 1.13 2002/01/29 15:40:50 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -69,7 +69,7 @@ lookup(db, dname, dnamelen)
 struct answer *
 answer(d, type)
 	struct domain *d;
-	u_short type;
+	u_int16_t type;
 {
 	struct answer *a;
 
@@ -119,7 +119,7 @@ query_addanswer(q, dname, a)
 	struct answer *a;
 {
 	u_char *qptr;
-	u_short pointer;
+	u_int16_t pointer;
 	int  i, j;
 
 	/* Copy the counters */
@@ -138,7 +138,7 @@ query_addanswer(q, dname, a)
 			/* XXX Check if dname is within packet */
 			pointer = htons(0xc000 | (dname - q->iobuf + (pointer & 0x0fff)));/* dname - q->iobuf */
 		} else {
-			pointer = htons(0xc000 | (u_short)(pointer + q->iobufptr - q->iobuf));
+			pointer = htons(0xc000 | (u_int16_t)(pointer + q->iobufptr - q->iobuf));
 		}
 		bcopy(&pointer, qptr, 2);
 	}
@@ -186,13 +186,10 @@ query_process(q, db)
 	/* The query... */
 	u_char	*qname, *qnamelow;
 	u_char qnamelen;
-	u_short qtype;
-	u_short qclass;
+	u_int16_t qtype;
+	u_int16_t qclass;
 	u_char *qptr;
 	int qdepth, i;
-
-	/* XXX Alittle hack for SOA shouldnt be here */
-	u_short *rrs;
 
 	struct domain *d;
 	struct answer *a;
@@ -200,7 +197,7 @@ query_process(q, db)
 	/* Sanity checks */
 	if(QR(q)) return -1;	/* Not a query? Drop it on the floor. */
 
-	*(u_short *)(q->iobuf + 2) = 0;
+	*(u_int16_t *)(q->iobuf + 2) = 0;
 	QR_SET(q);				/* This is an answer */
 
 	/* Do we serve this type of query */
@@ -302,7 +299,6 @@ query_process(q, db)
 					query_addanswer(q, qname, a);
 
 					/* Truncate */
-					rrs = &a->rrslen + a->ptrlen + 1;
 					ANCOUNT(q) = 0;
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
@@ -349,7 +345,6 @@ query_process(q, db)
 					query_addanswer(q, qname, a);
 
 					/* Truncate */
-					rrs = &a->rrslen + a->ptrlen + 1;
 					ANCOUNT(q) = 0;
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;

@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.4 2002/01/28 16:02:59 alexis Exp $
+ * $Id: server.c,v 1.5 2002/01/29 15:40:50 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -41,13 +41,13 @@
 
 int
 server(port, db)
-	u_short port;
+	u_int16_t port;
 	DB *db;
 {
 	struct query *q;
 	struct sockaddr_in addr;
 	int s_udp, s_tcp, s_tcpio;
-	u_short tcplen;
+	u_int16_t tcplen;
 	int received, sent;
 	fd_set peer;
 

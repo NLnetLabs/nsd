@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.3 2002/01/28 23:24:34 alexis Exp $
+ * $Id: zonec.c,v 1.4 2002/01/29 15:40:50 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -97,7 +97,7 @@ zone_print(z)
 	DICT_WALK(z->data, (char *)dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
-				printf("%s\t%ld\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
+				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
 					 classtoa(rrset->class), typetoa(rrset->type));
 				zf_print_rdata(rrset->rrs[i], rrset->fmt);
 				printf("\n");
@@ -110,7 +110,7 @@ zone_print(z)
 	DICT_WALK(z->cuts, (char *)dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
-				printf("%s\t%ld\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
+				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
 					 classtoa(rrset->class), typetoa(rrset->type));
 				zf_print_rdata(rrset->rrs[i], rrset->fmt);
 				printf("\n");
@@ -120,7 +120,7 @@ zone_print(z)
 	}
 }
 
-u_short
+u_int16_t
 zone_addname(msg, dname)
 	struct message *msg;
 	u_char *dname;
@@ -128,7 +128,7 @@ zone_addname(msg, dname)
 	/* Lets try rdata dname compression */
 	int rdlength = 0;
 	int j;
-	u_short rdname_pointer = 0;
+	u_int16_t rdname_pointer = 0;
 	register u_char *t;
 
 	/* Walk through the labels in the dname to be compressed */
@@ -145,7 +145,7 @@ zone_addname(msg, dname)
 					rdlength += (t - (dname + 1));
 
 					/* Then construct the pointer, and add it */
-					rdname_pointer = (u_short)msg->compr[j].dnameoff;
+					rdname_pointer = (u_int16_t)msg->compr[j].dnameoff;
 					bcopy(&rdname_pointer, msg->bufptr, 2);
 
 					msg->pointers[msg->pointerslen++] = msg->bufptr - msg->buf;
@@ -173,25 +173,25 @@ zone_addname(msg, dname)
 /*
  * XXXX: Check msg->buf boundaries!!!!!
  */
-u_short
+u_int16_t
 zone_addrrset(msg, dname, rrset)
 	struct message *msg;
 	u_char *dname;
 	struct rrset *rrset;
 {
-	u_short class = htons(CLASS_IN);
-	long ttl;
+	u_int16_t class = htons(CLASS_IN);
+	int32_t ttl;
 	union zf_rdatom *rdata;
 	char *rdlengthptr;
 	char *f;
 	size_t size;
-	u_short rdlength;
-	u_short type;
+	u_int16_t rdlength;
+	u_int16_t type;
 	int rrcount;
 	int i, j;
 
-	long l;
-	u_short s;
+	u_int32_t l;
+	u_int16_t s;
 
 	/* Did I see you before? */
 	for(i = 0; i < msg->rrsetslen; i++) {
@@ -215,32 +215,32 @@ zone_addrrset(msg, dname, rrset)
 
 		/* type */
 		type = htons(rrset->type);
-		bcopy(&type, msg->bufptr, sizeof(u_short));
-		msg->bufptr += sizeof(u_short);
+		bcopy(&type, msg->bufptr, sizeof(u_int16_t));
+		msg->bufptr += sizeof(u_int16_t);
 
 		/* class */
-		bcopy(&class, msg->bufptr, sizeof(u_short));
-		msg->bufptr += sizeof(u_short);
+		bcopy(&class, msg->bufptr, sizeof(u_int16_t));
+		msg->bufptr += sizeof(u_int16_t);
 
 		/* ttl */
 		ttl = htonl(rrset->ttl);
-		bcopy(&ttl, msg->bufptr, sizeof(long));
-		msg->bufptr += sizeof(long);
+		bcopy(&ttl, msg->bufptr, sizeof(int32_t));
+		msg->bufptr += sizeof(int32_t);
 
 		/* rdlength */
 		rdlengthptr = msg->bufptr;
 		rdlength = 0;
-		msg->bufptr += sizeof(u_short);
+		msg->bufptr += sizeof(u_int16_t);
 
 		/* Pack the rdata */
 		for(size = 0, i = 0, f = rrset->fmt; *f; f++, i++, size = 0) {
 			switch(*f) {
 			case '4':
-				size = sizeof(u_long);
+				size = sizeof(u_int32_t);
 				bcopy((char *)&rdata[i].l, msg->bufptr, size);
 				break;
 			case 'l':
-				size = sizeof(u_long);
+				size = sizeof(int32_t);
 				l = htonl(rdata[i].l);
 				bcopy((char *)&l, msg->bufptr, size);
 				break;
@@ -258,7 +258,7 @@ zone_addrrset(msg, dname, rrset)
 				bcopy((char *)rdata[i].p, msg->bufptr, size);
 				break;
 			case 's':
-				size = sizeof(u_short);
+				size = sizeof(u_int16_t);
 				s = htons(rdata[i].s);
 				bcopy((char *)&s, msg->bufptr, size);
 				break;
@@ -270,7 +270,7 @@ zone_addrrset(msg, dname, rrset)
 			rdlength += size;
 		}
 		rdlength = htons(rdlength);
-		bcopy(&rdlength, rdlengthptr, sizeof(u_short));
+		bcopy(&rdlength, rdlengthptr, sizeof(u_int16_t));
 	}
 	return rrcount;
 }
@@ -283,12 +283,12 @@ struct domain *
 addanswer(d, msg, type)
 	struct domain *d;
 	struct message *msg;
-	u_short type;
+	u_int16_t type;
 {
 	struct answer *a;
 	size_t datasize = msg->bufptr - msg->buf;
-	size_t size = sizeof(struct answer) + msg->pointerslen * sizeof(u_short) /* ptrs */
-		+ (msg->rrsetsoffslen) * sizeof(u_short)	/* rrs */
+	size_t size = sizeof(struct answer) + msg->pointerslen * sizeof(u_int16_t) /* ptrs */
+		+ (msg->rrsetsoffslen) * sizeof(u_int16_t)	/* rrs */
 		+ datasize;					/* data */
 
 	/* Assure the alignment for the next answer... */
@@ -307,8 +307,8 @@ addanswer(d, msg, type)
 	*ANSWER_RRSLEN(a) = msg->rrsetsoffslen;
 	*ANSWER_DATALEN(a) = datasize;
 
-	bcopy(msg->pointers, ANSWER_PTRS(a), sizeof(u_short) * msg->pointerslen);
-	bcopy(msg->rrsetsoffs, ANSWER_RRS(a), sizeof(u_short) * msg->rrsetsoffslen);
+	bcopy(msg->pointers, ANSWER_PTRS(a), sizeof(u_int16_t) * msg->pointerslen);
+	bcopy(msg->rrsetsoffs, ANSWER_RRS(a), sizeof(u_int16_t) * msg->rrsetsoffslen);
 	bcopy(msg->buf, ANSWER_DATA(a), datasize);
 
 	d->size += size;
@@ -376,7 +376,7 @@ zone_read(name, zonefile, cache)
 #ifdef DEBUG
 		/* Report progress... */
 		if((zf->lines % 100000) == 0) {
-			fprintf(stderr, "read %lu lines...\n", zf->lines);
+			fprintf(stderr, "read %u lines...\n", zf->lines);
 		}
 #endif
 
