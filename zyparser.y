@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.8 2003/08/19 07:41:27 miekg Exp $
+ * $Id: zyparser.y,v 1.9 2003/08/19 08:07:11 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -91,6 +91,7 @@ dir_orig:   SP dname NL
     ;
 
 rr:     ORIGIN SP rrrest NL
+    /* need to add reverse in here too */
     {
         /* starts with @, use the origin */
         current_rr->dname = (uint8_t *) dnamedup(zdefault->origin);
@@ -211,13 +212,21 @@ rtype:  SOA SP rdata_soa
     {
         zadd_rtype("a");
     }
-    |   NS SP rdata_ns
+    |   NS SP rdata_dname
     {
         zadd_rtype("ns");
+    }
+    |   CNAME SP rdata_dname
+    {
+        zadd_rtype("cname");
     }
     |   TXT SP rdata_txt
     {
         zadd_rtype("txt");
+    }
+    |   MX SP rdata_mx
+    {
+        zadd_rtype("mx");
     }
     ;
 
@@ -243,10 +252,10 @@ rdata_soa:  dname SP dname SP STR STR STR STR STR
     }
     ;
 
-rdata_ns:   dname
+rdata_dname:   dname
     {
-        /* convert a nameserver record */
-        zadd_rdata2( zdefault, zparser_conv_dname($1->str) ); /* nameserver */
+        /* convert a single dname record */
+        zadd_rdata2( zdefault, zparser_conv_dname($1->str) ); /* domain name */
     }
     ;
 
@@ -268,6 +277,12 @@ rdata_txt:  STR
     }
     ;
 
+rdata_mx:   STR SP dname
+    {
+        zadd_rdata2( zdefault, zparser_conv_short($1->str) );  /* priority */
+        zadd_rdata2( zdefault, zparser_conv_dname($3->str) );  /* MX host */
+    }
+    ;
 
 %%
 
