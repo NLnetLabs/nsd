@@ -226,7 +226,8 @@ zparser_conv_services(region_type *region, const char *proto, char *servicestr)
 		}
         }
 
-	r = region_alloc(region, sizeof(uint16_t) + max_port / 8 + 1);
+	r = (uint16_t *) region_alloc(region,
+				      sizeof(uint16_t) + max_port / 8 + 1);
 	*r = max_port / 8 + 1;
 	memcpy(r + 1, bitmap, *r);
 	

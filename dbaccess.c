@@ -144,7 +144,8 @@ read_rdata_atom(namedb_type *db, uint16_t type, int index, uint32_t domain_count
 		if (fread(data, sizeof(uint8_t), size, db->fd) != size)
 			return 0;
 
-		result->data = region_alloc(db->region, sizeof(uint16_t) + size);
+		result->data = (uint16_t *) region_alloc(
+			db->region, sizeof(uint16_t) + size);
 		memcpy(result->data, &size, sizeof(uint16_t));
 		memcpy((uint8_t *) result->data + sizeof(uint16_t), data, size);
 	}
