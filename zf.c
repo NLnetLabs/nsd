@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.30 2002/09/09 10:59:15 alexis Exp $
+ * $Id: zf.c,v 1.31 2002/09/09 11:03:54 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -178,7 +178,7 @@ typetoa(n)
 	for(type = zf_types; type->type; type++)
 		if(n == type->type) return type->name;
 
-	sprintf(name, "%u", n);
+	snprintf(name, sizeof(name), "%u", n);
 	return name;
 }
 
@@ -196,7 +196,7 @@ classtoa(n)
 	for(class = zf_classes; class->class; class++)
 		if(n == class->class) return class->name;
 
-	sprintf(name, "%u", n);
+	snprintf(name, sizeof(name), "%u", n);
 	return name;
 }
 
@@ -804,7 +804,7 @@ zf_print_rdata(rdata, rdatafmt)
 			putc('"', stdout);
 			break;
 		case 'L':
-			printf("%s\t", loc_ntoa(rdata[i].p, NULL));
+			printf("%s\t", loc_ntoa(rdata[i].p, NULL, 0));
 			break;
 		default:
 			printf("???");

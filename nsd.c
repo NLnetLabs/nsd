@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.40 2002/09/09 10:59:15 alexis Exp $
+ * $Id: nsd.c,v 1.41 2002/09/09 11:03:54 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -125,7 +125,7 @@ writepid(nsd)
 	int fd;
 	char pidbuf[16];
 
-	sprintf(pidbuf, "%u\n", nsd->pid);
+	snprintf(pidbuf, sizeof(pidbuf), "%u\n", nsd->pid);
 
 	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
 		return -1;

@@ -1,5 +1,5 @@
 /*
- * $Id: rfc1876.c,v 1.2 2002/09/09 10:59:15 alexis Exp $
+ * $Id: rfc1876.c,v 1.3 2002/09/09 11:03:54 alexis Exp $
  *
  * rfc1876.c -- LOC record conversion routines taken from RFC1876
  *
@@ -39,7 +39,7 @@ precsize_ntoa(prec)
 
         val = mantissa * poweroften[exponent];
 
-        (void) sprintf(retbuf,"%d.%.2d", val/100, val%100);
+        (void) sprintf(retbuf,"%lu.%.2lu", val/100, val%100);
         return (retbuf);
 }
 
@@ -306,14 +306,15 @@ loc_aton(ascii, binary)
  * (human readable) format. */
 
 char *
-loc_ntoa(binary,ascii)
+loc_ntoa(binary, ascii, l)
         const u_char *binary;
         char *ascii;
+	size_t l;
 {
 
         static char tmpbuf[255*3];
 
-        register char *cp;
+        register char *cp, *ep;
         register const u_char *rcp;
 
         int latdeg, latmin, latsec, latsecfrac;
@@ -334,12 +335,14 @@ loc_ntoa(binary,ascii)
                 cp = ascii;
         else {
                 cp = tmpbuf;
+		l = sizeof(tmpbuf);
         }
+	ep = cp + l;
 
         versionval = *rcp++;
 
         if (versionval) {
-                sprintf(cp,"; error: unknown LOC RR version");
+                snprintf(cp, ep - cp, "; error: unknown LOC RR version");
                 return (cp);
         }
 
@@ -400,10 +403,22 @@ loc_ntoa(binary,ascii)
         altmeters = (altval / 100) * altsign;
 
         sizestr = strdup(precsize_ntoa(sizeval));
+	if (!sizestr) {
+                snprintf(cp, ep - cp, "; error: malloc failure");
+                return (cp);
+	}
         hpstr = strdup(precsize_ntoa(hpval));
+	if (!hpstr) {
+                snprintf(cp, ep - cp, "; error: malloc failure");
+                return (cp);
+	}
         vpstr = strdup(precsize_ntoa(vpval));
+	if (!vpstr) {
+                snprintf(cp, ep - cp, "; error: malloc failure");
+                return (cp);
+	}
 
-        sprintf(cp,
+        snprintf(cp, ep - cp,
                 "%d %.2d %.2d.%.3d %c %d %.2d %.2d.%.3d %c %d.%.2dm
                 %sm %sm %sm",
                 latdeg, latmin, latsec, latsecfrac, northsouth,
