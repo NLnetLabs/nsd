@@ -1,7 +1,7 @@
 /*
- * $Id: heap.h,v 1.5 2002/02/07 14:30:26 alexis Exp $
+ * $Id: heap.h,v 1.6 2002/02/08 11:21:44 alexis Exp $
  *
- * heap.h -- generic heap based on red-black tree
+ * heap.h -- generic heap
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -53,47 +53,40 @@
 #define	NULL	(void *)0
 #endif
 
-typedef struct hnode_t hnode_t;
-struct hnode_t {
-	hnode_t *parent;
-	hnode_t *left;
-	hnode_t *right;
-	int	color;
-	void	*key;
-	void	*data;
-};
+#if !defined(USE_HEAP_RBTREE) && !defined(USE_HEAP_HASH)
+#define	USE_HEAP_RBTREE
+#endif
 
-#define	HEAP_NULL &heap_null_node
-extern	hnode_t	heap_null_node;
+#if defined(USE_HEAP_RBTREE)
 
-typedef struct heap_t heap_t;
-struct heap_t {
-	/* The root of the red-black tree */
-	hnode_t	*root;
+#include "rbtree.h"
 
-	/* The number of the nodes in the tree */
-	long long count;
+#define	heap_t	rbtree_t
+#define	heap_create	rbtree_create
+#define	heap_insert	rbtree_insert
+#define	heap_search	rbtree_search
+#define	heap_delete	rbtree_delete
+#define	heap_destroy	rbtree_destroy
+#define	heap_first	rbtree_first
+#define	heap_next	rbtree_next
+#define	heap_last	rbtree_last
+#define	HEAP_WALK	RBTREE_WALK
 
-	/* Current node for walks... */
-	hnode_t	*_node;
+#else if defined(USE_HEAP_HASH)
 
-	/* Free and compare functions */
-	void *(*mallocf)();
-	int (*cmp) ();
-};
+#include "hash.h"
 
-heap_t *heap_create __P((void *(*)(), int (*)()));
-void *heap_insert __P((heap_t *, void *, void *, int));
-void *heap_search __P((heap_t *, void *));
-void heap_delete __P((heap_t *, void *, int, int));
-void heap_destroy __P((heap_t *, int, int));
-hnode_t *heap_first __P((heap_t *));
-hnode_t *heap_next __P((hnode_t *));
-#define	heap_last() HEAP_NULL
+#define	heap_t	hash_t
+#define	heap_create	hash_create
+#define	heap_insert	hash_insert
+#define	heap_search	hash_search
+#define	heap_delete	hash_delete
+#define	heap_destroy	hash_destroy
+#define	heap_first	hash_first
+#define	heap_next	hash_next
+#define	heap_last	hash_last
+#define	HEAP_WALK	HASH_WALK
 
-#define	HEAP_WALK(heap, k, d) \
-	for((heap)->_node = heap_first(heap), (k) = (heap)->_node->key, (d) = (heap)->_node->data;\
-		(heap)->_node != heap_last(); \
-		(heap)->_node = heap_next((heap)->_node), (k) = (heap)->_node->key, (d) = (heap)->_node->data)
+#endif
 
 #endif /* _HEAP_H_ */

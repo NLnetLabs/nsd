@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.4 2002/02/07 13:40:28 alexis Exp $
+ * $Id: dbaccess.c,v 1.5 2002/02/08 11:21:44 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -68,6 +68,24 @@ domaincmp(a, b)
 	}
 	return alen - blen;
 }
+
+#ifdef	USE_HEAP_HASH
+
+unsigned long
+domainhash(dname)
+	register u_char *dname;
+{
+        register unsigned long hash = 0;
+	register u_char *p = dname;
+
+	dname += *dname + 1;
+
+        while (p < dname)
+                hash = hash * 31 + *p++;
+        return hash;
+}
+
+#endif
 
 #endif
 
@@ -209,7 +227,11 @@ namedb_open(filename)
 
 	(void)close(db->fd);
 
+#ifdef USE_HEAP_RBTREE
 	if((db->heap = heap_create(malloc, domaincmp)) == NULL) {
+#else ifdef(USE_HEAP_HASH)
+	if((db->heap = heap_create(malloc, domaincmp, domainhash, 65536)) == NULL) {
+#endif
 		free(db->mpool);
 		free(db->filename);
 		free(db);
@@ -255,6 +277,16 @@ namedb_open(filename)
 	bcopy(p + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
 	bcopy(p + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
 
+#endif
+#if !defined(USE_BERKLEY_DB)
+#if defined(USE_HEAP_HASH)
+	syslog(LOG_WARNING, "reloaded %s, %lu entries %lu hash collisions", db->filename,
+		db->heap->count, db->heap->collisions);
+#else 
+	syslog(LOG_WARNING, "reloaded %s, %lu entries", db->filename, db->heap->count);
+#endif
+#else
+	syslog(LOG_WARNING, "reloaded %s", db->filename);
 #endif
 	return db;
 }

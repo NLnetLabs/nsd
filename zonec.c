@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.18 2002/02/07 14:04:23 alexis Exp $
+ * $Id: zonec.c,v 1.19 2002/02/08 11:21:44 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -49,6 +49,24 @@ u_char bitmasks[NAMEDB_BITMASKLEN * 3];
 u_char *authmask = bitmasks;
 u_char *starmask = bitmasks + NAMEDB_BITMASKLEN;
 u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
+
+#ifdef	USE_HEAP_HASH
+
+unsigned long
+dnamehash(dname)
+	register u_char *dname;
+{
+        register unsigned long hash = 0;
+	register u_char *p = dname;
+
+	dname += *dname + 1;
+
+        while (p < dname)
+                hash = hash * 31 + *p++;
+        return hash;
+}
+
+#endif
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -376,8 +394,13 @@ zone_read(name, zonefile, cache)
 	}
 
 	/* Two heaps: zone cuts and other data */
+#ifdef USE_HEAP_RBTREE
 	z->cuts = heap_create(xalloc, dnamecmp);
 	z->data = heap_create(xalloc, dnamecmp);
+#else ifdef USE_HEAP_HASH
+	z->cuts = heap_create(xalloc, dnamecmp, dnamehash, 65536);
+	z->data = heap_create(xalloc, dnamecmp, dnamehash, 65536);
+#endif
 	z->soa = z->ns = NULL;
 
 	/* Read the file */

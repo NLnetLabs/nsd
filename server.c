@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.13 2002/02/07 14:02:16 alexis Exp $
+ * $Id: server.c,v 1.14 2002/02/08 11:21:44 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -108,7 +108,6 @@ server(db)
 			}  else {
 				namedb_close(db);
 				db = newdb;
-				syslog(LOG_WARNING, "database reloaded.");
 			}
 			break;
 		case NSD_SHUTDOWN:
