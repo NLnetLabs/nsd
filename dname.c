@@ -356,7 +356,7 @@ strdname (const char *source, const uint8_t *o)
 const dname_type *
 create_dname(region_type *region, const uint8_t *str, const size_t len)
 {
-	uint8_t temp[MAXDOMAINLEN + 1];
+	uint8_t temp[MAXDOMAINLEN];
 	size_t i;
 
 	assert(len > 0 && len <= MAXLABELLEN);
@@ -378,6 +378,8 @@ cat_dname(region_type *region,
 {
 	uint8_t temp[MAXDOMAINLEN];
 
+	assert(left->name_size + right->name_size - 1 <= MAXDOMAINLEN);
+	
 	memcpy(temp, dname_name(left), left->name_size - 1);
 	memcpy(temp + left->name_size - 1, dname_name(right), right->name_size);
 
