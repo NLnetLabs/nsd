@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.11 2003/02/17 12:22:40 alexis Exp $
+ * $Id: zparser.c,v 1.12 2003/02/17 12:35:42 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -803,7 +803,7 @@ zrdata (struct zparser *z)
 			if(!zrdatascan(z, RDATA_SHORT)) return 0;
 			if(!zrdatascan(z, RDATA_BYTE)) return 0;
 			if(!zrdatascan(z, RDATA_BYTE)) return 0;
-			if(!zrdatascan(z, RDATA_HEX)) return 0;
+			return zrdatascan(z, RDATA_HEX);
 		case TYPE_WKS:
 		default:
 			zerror(z, "dont know how to parse this type, try \\# representation");
