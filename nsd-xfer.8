@@ -4,7 +4,7 @@
 nsd\-xfer \- AXFR client to transfer zones from a name server
 .SH "SYNTAX"
 .LP 
-\fBnsd\-xfer\fR [\fB-4\fR] [\fB-6\fR] [\fB-p\fR \fIport\fR] \fB\-z\fR \fIzone\fR \fB\-f\fR \fIfile\fR \fIservers...\fR
+\fBnsd\-xfer\fR [\fB-4\fR] [\fB-6\fR] [\fB-p\fR \fIport\fR] [\fB-s\fR \fIserial\fR] [\fB-T\fR \fItsiginfo\fR] \fB\-z\fR \fIzone\fR \fB\-f\fR \fIfile\fR \fIservers...\fR
 .SH "DESCRIPTION"
 .LP 
 nsd\-xfer is program to transfer zones from a name server using AXFR.
@@ -19,14 +19,23 @@ Only send to IPv4 addresses.
 \fB\-6\fR
 Only send to IPv6 addresses.
 .TP 
+\fB\-f\fR \fIfile\fR
+The file to store the zone in.
+.TP 
 \fB\-p\fR \fIport\fR
 Specify the port to send to.
 .TP 
+\fB\-s\fR \fIserial\fR
+Specify the serial of the current zone.  The zone is only transferred
+if the master server has a zone with a greater serial number.
+.TP 
+\fB\-T\fR \fItsiginfo\fR
+Use TSIG to verify the zone transfer.  The \fItsiginfo\fR file must
+contain the TSIG key information.  The file is removed up-on
+successful reading of the key.
+.TP 
 \fB\-z\fR \fIzone\fR
 Specify the zone to receive.
-.TP 
-\fB\-f\fR \fIfile\fR
-The file to store the zone in.
 .TP 
 \fIservers...\fR
 List of nameservers to try.
@@ -40,4 +49,4 @@ nsd\-xfer \-z foobar.cz -f foobar.cz.zone 1.2.3.4
 NLnet Labs <info@nlnet.nl>
 .SH "SEE ALSO"
 .LP 
-nsd(8), nsd-notify(8), zonec(8)
+nsd(8), nsd-notify(8), nsdc(8), zonec(8)
