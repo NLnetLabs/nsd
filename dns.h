@@ -64,21 +64,30 @@
 #define TYPE_TXT	16	/* text strings */
 #define	TYPE_RP		17	/* RFC1183 */
 #define	TYPE_AFSDB	18	/* RFC1183 */
-/*#define	TYPE_SIG	24 */	/* RFC2065 */
+
+/* type code rollover */
+#ifdef _TCR /* new types */
+#define	TYPE_SIG	46	/* map to new type codes */
+#define	TYPE_NXT	47 	
+#define	TYPE_KEY	48	
+#define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
+#define TYPE_NSEC	47	
+#define TYPE_DNSKEY	48
+#else	/* old types */
 #define	TYPE_SIG	24	/* 2535typecode */
-/*#define	TYPE_KEY	25 */	/* RFC2065 */
 #define	TYPE_KEY	25	/* 2535typecode */
+#define	TYPE_NXT	30 	/* 2535typecode */
+#define TYPE_RRSIG	24	/* draft-ietf-dnsext-dnssec-2535typecode-change */
+#define TYPE_NSEC	30	/* map to the old type codes */
+#define TYPE_DNSKEY	25
+#endif /* _TCR */
+
 #define TYPE_AAAA	28	/* ipv6 address */
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
-/*#define	TYPE_NXT	30 */	/* RFC2065 */
-#define	TYPE_NXT	30 	/* 2535typecode */
 #define	TYPE_SRV	33	/* SRV record RFC2782 */
 #define	TYPE_NAPTR	35	/* NAPTR record RFC2915 */
 #define	TYPE_OPT	41	/* Pseudo OPT record... */
 #define	TYPE_DS		43	/* draft-ietf-dnsext-delegation */
-#define TYPE_RRSIG	24	/* draft-ietf-dnsext-dnssec-2535typecode-change */
-#define TYPE_NSEC	30	
-#define TYPE_DNSKEY	25
 #define	TYPE_IXFR	251
 #define	TYPE_AXFR	252
 #define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */
