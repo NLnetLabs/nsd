@@ -327,5 +327,8 @@ int dnamecmp(const void *a, const void *b);
 const char *dnamestr(const uint8_t *dname);
 const uint8_t *strdname(const char *s, const uint8_t *o);
 uint8_t *dnamedup(const uint8_t *dname);
+uint8_t *create_dname(const uint8_t *str, const size_t len);
+uint8_t *cat_dname(const uint8_t *left, const uint8_t *right);
+
 
 #endif /* _DNAME_H_ */

@@ -528,6 +528,62 @@ dnamedup (const uint8_t *dname)
 	return p;
 }
 
+/* create a dname, constructed like this
+ * byte         byte        data       \000
+ * total len    label len   label data  . (root)
+ * total len = label(s) + label(s) len + \000
+ */
+uint8_t *
+create_dname(const uint8_t *str, const size_t len)
+{   
+    uint8_t *dname;
+    uint8_t *t;
+    size_t i;
+    
+    dname = (uint8_t*)xalloc(len + 4);  /* 2 for length, 1 for root */
+
+    dname[0] = (uint8_t) (len + 2); /* total length, label len + label data + root*/
+    dname[1] = (uint8_t) len;       /* label length */
+
+    /* insert label data */
+    t = dname+2;
+    for ( i = 0; i <= len; i++) {
+        *(t+i) = DNAME_NORMALIZE( *(str+i) );
+    }   
+
+    /* memcpy( (dname+2), str, len);   [XXX] old */
+
+    dname[len + 3] = '\0';
+
+    return dname;   
+}
+         
+/* concatenate 2 dnames, both made with creat_dname
+ * create a new dname, with on the first byte the
+ * total length
+ */                 
+uint8_t *
+cat_dname(const uint8_t *left, const uint8_t *right)
+{
+
+    uint8_t *dname;
+    size_t sleft, sright;
+
+    /* extract the lengths from left and right */
+    sleft = (size_t) left[0];
+    sright= (size_t) right[0];
+
+    dname = (uint8_t*)xalloc( sleft + sright + 1);
+    dname[0] = (uint8_t) (sleft + sright - 1);  /* the new length */
+
+    memcpy( dname+1, left + 1, sleft ); /* cp left, not the lenght byte */
+    memcpy( dname + sleft , right + 1 , sright ); /* cp the whole of right, skip
+                                                    length byte */
+
+    dname[ sleft + sright] = '\0';
+
+    return dname;
+}
 
 #ifdef TEST
 
