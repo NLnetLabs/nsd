@@ -438,6 +438,8 @@ rtype:
     { current_rr->type = $1; }
     | NAPTR sp rdata_naptr
     { current_rr->type = $1; }
+    | AFSDB sp rdata_afsdb
+    { current_rr->type = $1; }
     | UTYPE sp rdata_unknown
     { current_rr->type = $1; }
     | CNAME sp rdata_unknown_err {}
@@ -661,6 +663,15 @@ rdata_naptr:   STR sp STR sp STR sp STR sp STR sp dname trail
        }
 	|   error NL
 	{ error_prev_line("Syntax error in NAPTR record"); }
+       ;
+
+rdata_afsdb:   STR sp dname trail
+       {
+               zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* subtype */
+               zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $3)); /* domain name */
+       }
+	|   error NL
+	{ error_prev_line("Syntax error in AFSDB record"); }
        ;
 
 rdata_unknown:	URR sp STR sp hex_seq trail
