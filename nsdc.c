@@ -158,8 +158,6 @@ main (int argc, char *argv[])
 	if (!control) 
 		error("unknown control message\n");
 
-	printf("%d\n", control->id);
-
 	control = lookup_by_id(control_msgs, control->id);
 
 	printf("qname to use: %s\n", control->name);
@@ -170,21 +168,14 @@ main (int argc, char *argv[])
 				nsdc.options_file);
         }
 	
-
 	q = query_create(nsdc.region, NULL);
-
 	
 	/* open a socket, make a packet, send it, receive reply, and print */
 
-	/*
-	 * from query.h
-	 * add_rrset
-	 * query_addtxt */
-
-
-
-	
-
-	
+	/* add the control message as a txt rr */
+	query_addtxt(q, (const uint8_t*) control->name,
+			CLASS_CH,
+			DEFAULT_CONTROL_TTL,
+			"");
 }
  

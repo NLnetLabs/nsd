@@ -12,6 +12,7 @@
 
 /* the port where NSD listen for control messages */
 #define DEFAULT_CONTROL_PORT	853
+#define DEFAULT_CONTROL_TTL	0
 
 /* the following commands are understood by NSD */
 enum control_msg {

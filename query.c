@@ -183,7 +183,7 @@ query_reset(query_type *q, size_t maxlen, nsd_socket_type *socket)
 	q->axfr_current_rr = 0;
 }
 
-static void
+void
 query_addtxt(struct query  *q,
 	     const uint8_t *dname,
 	     uint16_t       klass,
