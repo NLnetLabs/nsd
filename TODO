@@ -1,6 +1,7 @@
-$Id: TODO,v 1.5 2002/01/11 14:26:35 alexis Exp $
+$Id: TODO,v 1.6 2002/01/14 11:23:08 alexis Exp $
 
 ZONE COMPILER
+- check memory usage, leaks and optimization
 
 DATABASE
 
