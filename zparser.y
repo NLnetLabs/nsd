@@ -398,23 +398,37 @@ dotted_str:	STR
 
 rtype:
     /*
-     * RFC 1035 RR types.  We don't support NULL, WKS, and types
-     * marked obsolete.
+     * All supported RR types.  We don't support NULL and types marked
+     * obsolete.
      */
       T_A sp rdata_a 
     | T_A sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NS sp rdata_domain_name 
     | T_NS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MD sp rdata_domain_name { error("MD is obsolete"); }
-    | T_MD sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MF sp rdata_domain_name { error("MF is obsolete"); }
-    | T_MF sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MD sp rdata_domain_name { warning_prev_line("MD is obsolete"); }
+    | T_MD sp rdata_unknown
+    {
+	    warning_prev_line("MD is obsolete");
+	    $$ = $1; parse_unknown_rdata($1, $3);
+    }
+    | T_MF sp rdata_domain_name { warning_prev_line("MF is obsolete"); }
+    | T_MF sp rdata_unknown
+    {
+	    warning_prev_line("MF is obsolete");
+	    $$ = $1;
+	    parse_unknown_rdata($1, $3);
+    }
     | T_CNAME sp rdata_domain_name 
     | T_CNAME sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_SOA sp rdata_soa 
     | T_SOA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    | T_MB sp rdata_domain_name { error("MB is obsolete"); }
-    | T_MB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_MB sp rdata_domain_name { warning_prev_line("MB is obsolete"); }
+    | T_MB sp rdata_unknown
+    {
+	    warning_prev_line("MB is obsolete");
+	    $$ = $1;
+	    parse_unknown_rdata($1, $3);
+    }
     | T_MG sp rdata_domain_name
     | T_MG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_MR sp rdata_domain_name

@@ -45,7 +45,7 @@
 #include "query.h"
 #include "util.h"
 
-enum answer_section {
+enum rr_section {
 	QUESTION_SECTION,
 	ANSWER_SECTION,
 	AUTHORITY_SECTION,
@@ -53,12 +53,18 @@ enum answer_section {
 	 * Use a split additional section to ensure A records appear
 	 * before any AAAA records (this is recommended practice to
 	 * avoid truncating the additional section for IPv4 clients
-	 * that do not specify EDNS0).  Encode_answer sets the ARCOUNT
-	 * field of the response packet correctly.
+	 * that do not specify EDNS0), and AAAA records before other
+	 * types of additional records (such as X25 and ISDN).
+	 * Encode_answer sets the ARCOUNT field of the response packet
+	 * correctly.
 	 */
-	ADDITIONAL_A_SECTION, ADDITIONAL_AAAA_SECTION
+	ADDITIONAL_A_SECTION,
+	ADDITIONAL_AAAA_SECTION,
+	ADDITIONAL_OTHER_SECTION,
+	
+	RR_SECTION_COUNT
 };
-typedef enum answer_section answer_section_type;
+typedef enum rr_section rr_section_type;
 
 /*
  * Structure used to keep track of RRsets that need to be stored in
@@ -69,7 +75,7 @@ struct answer {
 	size_t rrset_count;
 	rrset_type *rrsets[MAXRRSPP];
 	domain_type *domains[MAXRRSPP];
-	answer_section_type section[MAXRRSPP];
+	rr_section_type section[MAXRRSPP];
 };
 
 
@@ -87,15 +93,15 @@ void answer_init(answer_type *answer);
  * the RRset is already present and in the same (or "higher") section
  * return 0, otherwise return 1.
  */
-int answer_add_rrset(answer_type *answer, answer_section_type section,
+int answer_add_rrset(answer_type *answer, rr_section_type section,
 		     domain_type *domain, rrset_type *rrset);
 
 
 #ifdef __cplusplus
-inline answer_section_type
-operator++(answer_section_type &lhs)
+inline rr_section_type
+operator++(rr_section_type &lhs)
 {
-	lhs = (answer_section_type) ((int) lhs + 1);
+	lhs = (rr_section_type) ((int) lhs + 1);
 	return lhs;
 }
 #endif /* __cplusplus */

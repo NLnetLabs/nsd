@@ -57,6 +57,9 @@ $TTL    1H
 
 
 rt-host IN      A       127.0.0.1
-rt-host IN      AAAA    ::1
+        IN      AAAA    ::1
+        IN      X25     "x25 address in text format"
+        IN      ISDN    "isdn address"
 kx-host IN      A       127.0.0.1
 kx-host IN      AAAA    ::1
+        IN      X25     "x25 address in text format"

@@ -65,11 +65,11 @@
 #include "query.h"
 #include "util.h"
 
-static int add_rrset(struct query       *query,
-		     answer_type        *answer,
-		     answer_section_type section,
-		     domain_type        *owner,
-		     rrset_type         *rrset);
+static int add_rrset(struct query  *query,
+		     answer_type    *answer,
+		     rr_section_type section,
+		     domain_type    *owner,
+		     rrset_type     *rrset);
 
 static void answer_authoritative(struct query     *q,
 				 answer_type      *answer,
@@ -472,10 +472,30 @@ find_covering_nsec(domain_type *closest_match, zone_type *zone, rrset_type **nse
 }
 
 
+struct additional_rr_types
+{
+	uint16_t        rr_type;
+	rr_section_type rr_section;
+};
+
+struct additional_rr_types default_additional_rr_types[] = {
+	{ TYPE_A, ADDITIONAL_A_SECTION },
+	{ TYPE_AAAA, ADDITIONAL_AAAA_SECTION },
+	{ 0, 0 }
+};
+
+struct additional_rr_types rt_additional_rr_types[] = {
+	{ TYPE_A, ADDITIONAL_A_SECTION },
+	{ TYPE_AAAA, ADDITIONAL_AAAA_SECTION },
+	{ TYPE_X25, ADDITIONAL_OTHER_SECTION },
+	{ TYPE_ISDN, ADDITIONAL_OTHER_SECTION },
+	{ 0, 0 }
+};
+
 static void
 add_additional_rrsets(struct query *query, answer_type *answer,
-		      rrset_type *master_rrset,
-		      size_t rdata_index, int allow_glue)
+		      rrset_type *master_rrset, size_t rdata_index,
+		      int allow_glue, struct additional_rr_types types[])
 {
 	size_t i;
 	
@@ -485,7 +505,7 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 	assert(rdata_atom_is_domain(master_rrset->type, rdata_index));
 	
 	for (i = 0; i < master_rrset->rrslen; ++i) {
-		rrset_type *rrset;
+		int j;
 		domain_type *additional = rdata_atom_domain(master_rrset->rrs[i]->rdata[rdata_index]);
 		domain_type *match = additional;
 		
@@ -517,21 +537,23 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 			additional = temp;
 		}
 
-		if ((rrset = domain_find_rrset(additional, query->zone, TYPE_A))) {
-			answer_add_rrset(answer, ADDITIONAL_A_SECTION, additional, rrset);
-		}
-		if ((rrset = domain_find_rrset(additional, query->zone, TYPE_AAAA))) {
-			answer_add_rrset(answer, ADDITIONAL_AAAA_SECTION, additional, rrset);
+		for (j = 0; types[j].rr_type != 0; ++j) {
+			rrset_type *rrset = domain_find_rrset(
+				additional, query->zone, types[j].rr_type);
+			if (rrset) {
+				answer_add_rrset(answer, types[j].rr_section,
+						 additional, rrset);
+			}
 		}
 	}
 }
 
 static int
-add_rrset(struct query       *query,
-	  answer_type        *answer,
-	  answer_section_type section,
-	  domain_type        *owner,
-	  rrset_type         *rrset)
+add_rrset(struct query   *query,
+	  answer_type    *answer,
+	  rr_section_type section,
+	  domain_type    *owner,
+	  rrset_type     *rrset)
 {
 	int result;
 	
@@ -544,15 +566,21 @@ add_rrset(struct query       *query,
 	result = answer_add_rrset(answer, section, owner, rrset);
 	switch (rrset->type) {
 	case TYPE_NS:
-		add_additional_rrsets(query, answer, rrset, 0, 1);
+		add_additional_rrsets(query, answer, rrset, 0, 1,
+				      default_additional_rr_types);
 		break;
 	case TYPE_MB:
-		add_additional_rrsets(query, answer, rrset, 0, 0);
+		add_additional_rrsets(query, answer, rrset, 0, 0,
+				      default_additional_rr_types);
 		break;
 	case TYPE_MX:
-	case TYPE_RT:
 	case TYPE_KX:
-		add_additional_rrsets(query, answer, rrset, 1, 0);
+		add_additional_rrsets(query, answer, rrset, 1, 0,
+				      default_additional_rr_types);
+		break;
+	case TYPE_RT:
+		add_additional_rrsets(query, answer, rrset, 1, 0,
+				      rt_additional_rr_types);
 		break;
 	default:
 		break;
