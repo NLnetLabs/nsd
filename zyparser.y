@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.53 2003/10/29 10:16:20 miekg Exp $
+ * $Id: zyparser.y,v 1.54 2003/10/29 13:26:49 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -30,8 +30,10 @@ int yywrap(void);
 
 rdata_atom_type temporary_rdata[MAXRDATALEN + 1];
 /* this hold the nxt bits */
-uint16_t nxtbits = 0;
-
+uint8_t nxtbits[16] = { '\0','\0','\0','\0',
+	 		'\0','\0','\0','\0',
+			'\0','\0','\0','\0',
+			'\0','\0','\0','\0' };
 %}
 /* this list must be in exactly the same order as *RRtypes[] in zlparser.lex. 
  * The only changed are:
@@ -263,12 +265,15 @@ str_seq:	STR
 /* get the type and flip a bit */
 nxt_seq:	STR
 	{
+		int t = intbyname($1.str,ztypes);
+		setbit( nxtbits, t );
+		
 		/* waar bij houden? */
-		nxtbits = nxtbits | ( 1 << intbyname($1.str,ztypes));
 	}
 	|	nxt_seq sp STR
 	{
-		nxtbits = nxtbits | ( 1 << intbyname($3.str,ztypes));
+		int t = intbyname($3.str,ztypes);
+		setbit( nxtbits, t );
 	}
 	;
 
@@ -428,8 +433,9 @@ rdata_key:	STR sp STR sp STR sp hex_seq trail
 rdata_nxt:	nonowner_dname sp nxt_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* nxt name */
-		zadd_rdata_wireformat(current_parser, &nxtbits); /* bitlist (with a hack) */
-		nxtbits = 0;
+		zadd_rdata_wireformat(current_parser,
+		zparser_conv_nxt(zone_region, nxtbits)); /* nxt name */
+		memset(nxtbits, 0 , 16);
 	}
 	;
 

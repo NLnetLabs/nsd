@@ -165,6 +165,7 @@ uint16_t *zparser_conv_text(region_type *region, const char *txt);
 uint16_t *zparser_conv_a6(region_type *region, const char *a6);
 uint16_t *zparser_conv_b64(region_type *region, const char *b64);
 uint16_t *zparser_conv_rrtype(region_type *region, const char *rr);
+uint16_t *zparser_conv_nxt(region_type *region, uint8_t nxtbits[]);
 uint16_t *zparser_conv_domain(region_type *region, domain_type *domain);
 
 int32_t zparser_ttl2int(char *ttlstr);

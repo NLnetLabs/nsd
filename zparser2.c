@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.29 2003/10/29 09:56:12 miekg Exp $
+ * $Id: zparser2.c,v 1.30 2003/10/29 13:26:49 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -363,6 +363,30 @@ zparser_conv_rrtype(region_type *region, const char *rr)
 			);
             
 	*r = sizeof(uint16_t);
+	return r;
+}
+
+uint16_t *
+zparser_conv_nxt(region_type *region, uint8_t nxtbits[])
+{
+	/* nxtbits[] consists of 16 bytes with some zero's in it
+	 * copy every byte with zero to r and write the length in
+	 * the first byte
+	 */
+	uint16_t *r = NULL;
+	unsigned int i, last;
+
+	for ( i = 0; i < 16; i++ ) {
+		if ( (int) nxtbits[i] > 0 )
+			last = i;
+	}
+	last++;
+
+	r = region_alloc(region, sizeof(uint16_t) + (last * sizeof(uint8_t)) );
+	*r = last;
+
+	memcpy(r+1, nxtbits, last);
+
 	return r;
 }
 
@@ -758,5 +782,18 @@ classbyint(uint16_t class)
 		t = classbuf;
 	}
 	return t;
+}
+
+int 
+setbit(uint8_t nxtbits[], int index)
+{
+
+	/* set bit #place in the byte */
+	/* the bits are counted from right to left
+	 * so bit #0 is the right most bit
+	 */
+
+	/* we're assuming here the byte has 8 bits */
+	nxtbits[index/8] |= ( 1 << ( 7 - index % 8 ));
 }
 
