@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.45 2002/02/23 20:23:21 miekg Exp $
+# $Id: Makefile,v 1.46 2002/02/28 15:02:50 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -125,3 +125,15 @@ zf:	zf.h dns.h zf.c
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c
 
 ${OBJS}:	${HDRS}
+
+# Dependencies (gcc -MM)
+dbaccess.o: dbaccess.c namedb.h config.h heap.h rbtree.h
+dbcreate.o: dbcreate.c namedb.h config.h heap.h rbtree.h
+hash.o: hash.c hash.h
+nsd.o: nsd.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
+query.o: query.c nsd.h config.h dns.h namedb.h heap.h rbtree.h query.h
+rbtree.o: rbtree.c rbtree.h
+server.o: server.c nsd.h config.h dns.h namedb.h heap.h rbtree.h \
+ query.h
+zf.o: zf.c dns.h nsd.h config.h namedb.h heap.h rbtree.h query.h zf.h
+zonec.o: zonec.c zonec.h config.h heap.h rbtree.h dns.h zf.h namedb.h

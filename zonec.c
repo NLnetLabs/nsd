@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.46 2002/02/22 11:37:12 alexis Exp $
+ * $Id: zonec.c,v 1.47 2002/02/28 15:02:50 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -944,11 +944,15 @@ main(argc, argv)
 			fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 		}
 
+		/* Free a zone if any... */
+		if(z != NULL) {
+			zone_free(z);
+			z = NULL;
+		}
+
 		/* If we did not have any errors... */
 		if((z = zone_read(zonename, zonefile, cache)) != NULL) {
 			zone_dump(z, db);
-			zone_free(z);
-			z = NULL;
 		}
 
 	};

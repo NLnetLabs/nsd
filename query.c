@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.45 2002/02/19 15:56:23 alexis Exp $
+ * $Id: query.c,v 1.46 2002/02/28 15:02:50 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -127,6 +127,7 @@ query_addanswer(q, dname, a, truncate)
 		/* Send empty message */
 		NSCOUNT(q) = 0;
 		ANCOUNT(q) = 0;
+
 		return;
 	} else {
 		q->iobufptr += ANSWER_DATALEN(a);
@@ -167,6 +168,10 @@ query_process(q, db)
 #else
 		RCODE_SET(q, RCODE_IMPL);
 #endif
+		/* Truncate the question as well... */
+		QDCOUNT(q) = 0;
+		q->iobufptr = q->iobuf + QHEADERSZ;
+
 		return 0;
 	}
 
@@ -175,7 +180,15 @@ query_process(q, db)
 
 	/* Dont bother to answer more than one question at once, but this will change for EDNS(0) */
 	if(ntohs(QDCOUNT(q)) != 1) {
+#ifdef	MIMIC_BIND8
+		RCODE_SET(q, RCODE_FORMAT);
+#else
 		RCODE_SET(q, RCODE_IMPL);
+#endif
+		/* Truncate the question as well... */
+		QDCOUNT(q) = 0;
+		q->iobufptr = q->iobuf + QHEADERSZ;
+
 		return 0;
 	}
 
@@ -202,6 +215,11 @@ query_process(q, db)
 	/* Make sure name is not too long... */
 	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q)) {
 		RCODE_SET(q, RCODE_FORMAT);
+
+		/* Truncate the question as well... */
+		QDCOUNT(q) = 0;
+		q->iobufptr = q->iobuf + QHEADERSZ;
+
 		return 0;
 	}
 
