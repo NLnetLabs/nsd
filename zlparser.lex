@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.34 2003/10/29 14:36:48 miekg Exp $
+ * $Id: zlparser.lex,v 1.35 2003/10/30 10:43:32 erik Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -16,8 +16,8 @@
 #include "dname.h"
 #include "zyparser.h"
 
-/*#define LEXOUT  printf *//* used ONLY when debugging */
-#define LEXOUT
+#define LEXOUT(s)  printf s /* used ONLY when debugging */
+/* #define LEXOUT(s) */
 
 /* see  http://www.iana.org/assignments/dns-parameters */
 const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
@@ -136,10 +136,10 @@ Q       \"
                             current_parser->line++;
                             if ( paren_open == 0 ) { 
                                 in_rr = outside;
-				LEXOUT("NL \n");
+				LEXOUT(("NL \n"));
                                 return NL;
                             } else {
-				    LEXOUT("SP ");
+				    LEXOUT(("SP "));
 				    return SP;
 			    }
                         }
@@ -148,7 +148,7 @@ Q       \"
                                 yyerror( "nested parentheses" );
                                 yyterminate();
                             }
-                            LEXOUT("SP( ");
+                            LEXOUT(("SP( "));
                             paren_open = 1;
                             return SP;
                         }
@@ -157,7 +157,7 @@ Q       \"
                                 yyerror( "unterminated parentheses" );
                                 yyterminate();
                             }
-                            LEXOUT("SP) ");
+                            LEXOUT(("SP) "));
                             paren_open = 0;
                             return SP;
                         }
@@ -166,7 +166,7 @@ Q       \"
                                 if ( in_rr == expecting_dname )
                                     in_rr = after_dname;
                             }
-                            LEXOUT("SP ");
+                            LEXOUT(("SP "));
                             return SP;
                         }
 ^({ZONESTR}|\\.)({ZONESTR}|\\.)* {
@@ -177,7 +177,7 @@ Q       \"
                             yylval.data.len = zoctet(ztext);
                             yylval.data.str = ztext;
                             in_rr = expecting_dname;
-			    LEXOUT("STR ");
+			    LEXOUT(("STR "));
                             return STR;
                         }
 {CLASS}                 {
@@ -256,7 +256,7 @@ CLASS[0-9]+             {
                                     in_rr = reading_type; return i;
                                 }
                             }
-			    LEXOUT("STR ");
+			    LEXOUT(("STR "));
                             return STR;
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
@@ -273,7 +273,7 @@ CLASS[0-9]+             {
                             ztext = region_strdup(rr_region, yytext);
                             yylval.data.len = zoctet(ztext);
                             yylval.data.str = ztext;
-			    LEXOUT("STR ");
+			    LEXOUT(("STR "));
                             return STR;
                         }
 .                       {
@@ -295,7 +295,7 @@ zrrtype (char *word)
 	int i;
 	for (i = 0; i < RRTYPES - 1; i++) {
 		if (strcasecmp(word, RRtypes[i]) == 0) {
-			LEXOUT("%s ",word);
+			LEXOUT(("%s ", word));
 			return i + A;
 		}
 		
