@@ -1,11 +1,9 @@
 ;
-; $Id: nsd.zones.sample,v 1.6 2003/06/12 12:31:18 erik Exp $
-;
 ; nsd.zones -- a list of the zones to be compiled into the NSD database
 ;
 ; Alexis Yushin, <alexis@nlnetlabs.nl>
 ;
-; Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+; Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
 ;
 ; This software is an open source.
 ;

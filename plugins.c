@@ -3,7 +3,7 @@
  *
  * Erik Rozendaal, <erik@nlnetlabs.nl>
  *
- * Copyright (c) 2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2003-2004, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

@@ -3,7 +3,7 @@
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *
@@ -37,11 +37,6 @@
  */
 
 #include <config.h>
-
-#ifdef TEST
-#include <stdio.h>
-#include <string.h>
-#endif
 
 #include <assert.h>
 #include <stdlib.h>
@@ -371,34 +366,3 @@ rbtree_previous(rbnode_t *node)
 	}
 	return node;
 }
-
-#ifdef TEST
-
-#define	BUFSZ	1000
-
-int 
-main (int argc, char **argv)
-{
-	rbtree_t *rbtree;
-	char buf[BUFSZ];
-	char *key, *data;
-	region_type *region = region_create(malloc, free);
-	
-	if ((rbtree = rbtree_create(region, strcmp)) == NULL) {
-		perror("cannot create red black tree");
-		exit(1);
-	}
-
-	while (fgets(buf, BUFSZ - 1, stdin)) {
-		if (rbtree_insert(rbtree, strdup(buf), strdup(buf), 1) == NULL) {
-			perror("cannot insert into a red black tree");
-			exit(1);
-		}
-	}
-	RBTREE_WALK(rbtree, key, data) {
-		printf("%s", key);
-	}
-	region_destroy(region);
-	return 0;
-}
-#endif

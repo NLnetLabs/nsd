@@ -1,12 +1,10 @@
 #!@shell@
 #
-# $Id: nsdc.sh.in,v 1.27 2003/07/28 12:28:39 erik Exp $
-#
 # nsdc.sh -- a shell script to manage the beast
 #
 # Alexis Yushin, <alexis@nlnetlabs.nl>
 #
-# Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+# Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
 #
 # This software is an open source.
 #

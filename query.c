@@ -3,7 +3,7 @@
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *
@@ -783,7 +783,6 @@ answer_query(struct nsd *nsd, struct query *q)
 
 	answer_init(&answer);
 
-#ifdef DNSSEC
 	/*
 	 * See 3.1.4.1 Responding to Queries for DS RRs in DNSSEC
 	 * protocol.
@@ -804,17 +803,12 @@ answer_query(struct nsd *nsd, struct query *q)
 			AA_SET(q);
 		}
 		answer_nodata(q, &answer, closest_encloser);
-	} else
-#endif /* DNSSEC */
-	{
+	} else {
 		q->delegation_domain = domain_find_ns_rrsets(
 			closest_encloser, q->zone, &q->delegation_rrset);
 
 		if (!q->delegation_domain
-#ifdef DNSSEC
-		    || (exact && q->type == TYPE_DS && closest_encloser == q->delegation_domain)
-#endif /* DNSSEC */
-			)
+		    || (exact && q->type == TYPE_DS && closest_encloser == q->delegation_domain))
 		{
 			if (q->class == CLASS_ANY) {
 				AA_CLR(q);

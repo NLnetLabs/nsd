@@ -3,7 +3,7 @@
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, 2002, 2003, 2004, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *
@@ -87,7 +87,10 @@ struct nsd_socket
 
 struct nsd_child
 {
+	 /* The type of child process (UDP or TCP handler). */
 	int   kind;
+
+	/* The child's process id.  */
 	pid_t pid;
 };
 

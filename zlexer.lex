@@ -2,7 +2,7 @@
 /*
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
- * Copyright (c) 2001-2003, NLnet Labs. All rights reserved
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved
  *
  * See LICENSE for the license
  */

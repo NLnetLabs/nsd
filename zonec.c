@@ -1,7 +1,7 @@
 /*
  * zonec.c -- zone compiler.
  *
- * Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -1140,9 +1140,11 @@ process_rr(zparser_type *parser, rr_type *rr)
 		rrset->rrs[rrset->rrslen++] = rr->rrdata;
 	}
 
+#ifdef DNSSEC
 	if (rrset->type == TYPE_RRSIG && rrset_rrsig_type_covered(rrset, rrset->rrslen - 1) == TYPE_SOA) {
 		rrset->zone->is_secure = 1;
 	}
+#endif
 	
 	/* Check we have SOA */
 	if (zone->soa_rrset == NULL) {

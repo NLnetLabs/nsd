@@ -3,7 +3,7 @@
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *
@@ -118,7 +118,7 @@ version(void)
 	fprintf(stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 	fprintf(stderr, "Written by NLnet Labs.\n\n");
 	fprintf(stderr,
-		"Copyright (C) 2001-2003 NLnet Labs.  This is free software.\n"
+		"Copyright (C) 2001-2004 NLnet Labs.  This is free software.\n"
 		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
 		"FOR A PARTICULAR PURPOSE.\n");
 	exit(0);

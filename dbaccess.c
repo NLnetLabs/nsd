@@ -3,7 +3,7 @@
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *
@@ -217,6 +217,7 @@ read_rrset(namedb_type *db,
 		rrset->zone->ns_rrset = rrset;
 	}
 
+#ifdef DNSSEC
 	if (rrset->type == TYPE_RRSIG && owner == rrset->zone->domain) {
 		for (i = 0; i < rrset->rrslen; ++i) {
 			if (rrset_rrsig_type_covered(rrset, i) == TYPE_SOA) {
@@ -225,6 +226,8 @@ read_rrset(namedb_type *db,
 			}
 		}
 	}
+#endif
+	
 	return 1;
 }
 
@@ -232,13 +235,33 @@ struct namedb *
 namedb_open (const char *filename)
 {
 	namedb_type *db;
+
+	/*
+	 * Region used to store the loaded database.  The region is
+	 * freed in namedb_close.
+	 */
+	region_type *db_region;
+
+	/*
+	 * Temporary region used while loading domain names from the
+	 * database.  The region is freed after each time a dname is
+	 * read from the database.
+	 */
+	region_type *dname_region;
+
+	/*
+	 * Temporary region used to store array of domains and zones
+	 * while loading the database.  The region is freed before
+	 * returning.
+	 */
+	region_type *temp_region;
 	
-	region_type *region = region_create(xalloc, free);
-	region_type *dname_region = region_create(xalloc, free);
 	uint32_t dname_count;
 	domain_type **domains;	/* Indexed by domain number.  */
+
 	uint32_t zone_count;
 	zone_type **zones;	/* Indexed by zone number.  */
+	
 	uint32_t i;
 	uint32_t rrset_count = 0;
 	
@@ -252,43 +275,46 @@ namedb_open (const char *filename)
 	      (stderr, "sizeof(rrset_type) = %d\n", sizeof(rrset_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "sizeof(rbnode_t) = %d\n", sizeof(rbnode_t)));
-	
-	db = region_alloc(region, sizeof(struct namedb));
-	db->region = region;
+
+	db_region = region_create(xalloc, free);
+	db = region_alloc(db_region, sizeof(struct namedb));
+	db->region = db_region;
 	db->domains = domain_table_create(db->region);
 	db->zones = NULL;
-	db->filename = region_strdup(region, filename);
-
+	db->filename = region_strdup(db->region, filename);
+	
 	/* Open it... */
-	if ((db->fd = fopen(db->filename, "r")) == NULL) {
-		region_destroy(region);
+	db->fd = fopen(db->filename, "r");
+	if (db->fd == NULL) {
+		region_destroy(db_region);
 		return NULL;
 	}
 
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
-		fclose(db->fd);
 		namedb_close(db);
 		return NULL;
 	}
 
 	if (!read_size(db, &zone_count)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
-		fclose(db->fd);
 		namedb_close(db);
 		return NULL;
 	}
 
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (stderr, "Retrieving %lu zones\n", (unsigned long) zone_count));
+
+	temp_region = region_create(xalloc, free);
+	dname_region = region_create(xalloc, free);
 	
-	zones = xalloc(zone_count * sizeof(zone_type *));
+	zones = region_alloc(temp_region, zone_count * sizeof(zone_type *));
 	for (i = 0; i < zone_count; ++i) {
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
 			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
-			free(zones);
-			fclose(db->fd);
+			region_destroy(dname_region);
+			region_destroy(temp_region);
 			namedb_close(db);
 			return NULL;
 		}
@@ -306,8 +332,8 @@ namedb_open (const char *filename)
 	
 	if (!read_size(db, &dname_count)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
-		free(zones);
-		fclose(db->fd);
+		region_destroy(dname_region);
+		region_destroy(temp_region);
 		namedb_close(db);
 		return NULL;
 	}
@@ -315,14 +341,13 @@ namedb_open (const char *filename)
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (stderr, "Retrieving %lu domain names\n", (unsigned long) dname_count));
 	
-	domains = xalloc(dname_count * sizeof(domain_type *));
+	domains = region_alloc(temp_region, dname_count * sizeof(domain_type *));
 	for (i = 0; i < dname_count; ++i) {
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
 			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
-			free(zones);
-			free(domains);
-			fclose(db->fd);
+			region_destroy(dname_region);
+			region_destroy(temp_region);
 			namedb_close(db);
 			return NULL;
 		}
@@ -333,44 +358,33 @@ namedb_open (const char *filename)
 	
 	region_destroy(dname_region);
 
-#ifndef NDEBUG
-	fprintf(stderr, "db_region (before RRsets): ");
-	region_dump_stats(region, stderr);
-	fprintf(stderr, "\n");
-#endif
-	    
 	while (read_rrset(db, dname_count, domains, zone_count, zones))
 		++rrset_count;
 
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "Retrieved %lu RRsets\n", (unsigned long) rrset_count));
 	
-	free(domains);
-	free(zones);
+	region_destroy(temp_region);
 	
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
-		fclose(db->fd);
 		namedb_close(db);
 		return NULL;
 	}
 
 	fclose(db->fd);
+	db->fd = NULL;
 
-#ifndef NDEBUG
-	fprintf(stderr, "db_region (after RRsets): ");
-	region_dump_stats(region, stderr);
-	fprintf(stderr, "\n");
-#endif
-	
 	return db;
 }
 
 void
 namedb_close (struct namedb *db)
 {
-	/* If it is already closed... */
-	if (db == NULL)
-		return;
-	region_destroy(db->region);
+	if (db) {
+		if (db->fd) {
+			fclose(db->fd);
+		}
+		region_destroy(db->region);
+	}
 }

@@ -1,8 +1,9 @@
-$Id: TODO,v 1.45 2004/01/29 09:33:08 erik Exp $
+$Id: TODO,v 1.46 2004/02/04 12:17:22 erik Exp $
 
 AUTOCONF
 
 + check whether the --with-nsd-user exists in the system
+- check if libwrap needs nsl library.
 
 
 ZONE COMPILER

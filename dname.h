@@ -3,7 +3,7 @@
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *
@@ -47,6 +47,7 @@
 
 #define DNAME_NORMALIZE        tolower
 
+
 /*
  * Domain names stored in memory add some additional information to be
  * able to quickly index and compare by label.
@@ -71,6 +72,7 @@ struct dname
 	*/
 };
 
+
 /*
  * Construct a new domain name based on NAME in wire format.  NAME
  * cannot contain (compression) pointers.
@@ -78,6 +80,7 @@ struct dname
  * Pre: NAME != NULL.
  */
 const dname_type *dname_make(region_type *region, const uint8_t *name);
+
 
 /*
  * Construct a new domain name based on the ASCII representation NAME.
@@ -94,10 +97,12 @@ const dname_type *dname_parse(region_type *region,
 			      const char *name,
 			      const dname_type *origin);
 
+
 /*
  * Return NULL if DNAME is NULL or a copy of DNAME otherwise.
  */
 const dname_type *dname_copy(region_type *region, const dname_type *dname);
+
 
 /*
  * Copy the most significant LABEL_COUNT labels from dname.
@@ -106,10 +111,12 @@ const dname_type *dname_partial_copy(region_type *region,
 				     const dname_type *dname,
 				     uint8_t label_count);
 
+
 /*
  * Return true if LEFT is a subdomain of RIGHT.
  */
 int dname_is_subdomain(const dname_type *left, const dname_type *right);
+
 
 /*
  * Offsets into NAME for each label starting with the most
@@ -121,6 +128,7 @@ dname_label_offsets(const dname_type *dname)
 {
 	return (const uint8_t *) ((const char *) dname + sizeof(dname_type));
 }
+
 
 /*
  * The actual name in wire format (a sequence of label, each
@@ -134,6 +142,7 @@ dname_name(const dname_type *dname)
 				  + sizeof(dname_type)
 				  + dname->label_count * sizeof(uint8_t));
 }
+
 
 /*
  * Return the label for DNAME specified by LABEL_INDEX.  The first
@@ -156,6 +165,7 @@ dname_label(const dname_type *dname, uint8_t label)
 	return dname_name(dname) + label_index;
 }
 
+
 /*
  * Compare two domain names.  The comparison defines a lexographical
  * ordering based on the domain name's labels, starting with the most
@@ -168,16 +178,6 @@ dname_label(const dname_type *dname, uint8_t label)
  */
 int dname_compare(const dname_type *left, const dname_type *right);
 
-uint8_t dname_label_match_count(const dname_type *left,
-				const dname_type *right);
-
-static inline size_t
-dname_total_size(const dname_type *dname)
-{
-	return (sizeof(dname_type)
-		+ ((dname->label_count + dname->name_size)
-		   * sizeof(uint8_t)));
-}
 
 /*
  * Compare two labels.  The comparison defines a lexographical
@@ -191,6 +191,32 @@ dname_total_size(const dname_type *dname)
  */
 int label_compare(const uint8_t *left, const uint8_t *right);
 
+
+/*
+ * Returns the number of labels that match in LEFT and RIGHT, starting
+ * with the most significant label.  Because the root label always
+ * matches, the result will always be >= 1.
+ *
+ * Pre: left != NULL && right != NULL
+ */
+uint8_t dname_label_match_count(const dname_type *left,
+				const dname_type *right);
+
+
+/*
+ * The total size (in bytes) allocated to store DNAME.
+ *
+ * Pre: dname != NULL
+ */
+static inline size_t
+dname_total_size(const dname_type *dname)
+{
+	return (sizeof(dname_type)
+		+ ((dname->label_count + dname->name_size)
+		   * sizeof(uint8_t)));
+}
+
+
 /*
  * Is LABEL a normal LABEL (not a pointer or reserved)?
  *
@@ -203,6 +229,7 @@ label_is_normal(const uint8_t *label)
 	return (label[0] & 0xc0) == 0;
 }
 
+
 /*
  * Is LABEL a pointer?
  *
@@ -214,6 +241,7 @@ label_is_pointer(const uint8_t *label)
 	assert(label);
 	return (label[0] & 0xc0) == 0xc0;
 }
+
 
 /*
  * LABEL's pointer location.
@@ -228,6 +256,7 @@ label_pointer_location(const uint8_t *label)
 	return ((uint16_t) (label[0] & ~0xc0) << 8) | (uint16_t) label[1];
 }
 
+
 /*
  * Length of LABEL.
  *
@@ -240,6 +269,7 @@ label_length(const uint8_t *label)
 	assert(label_is_normal(label));
 	return label[0];
 }
+
 
 /*
  * The data of LABEL.
@@ -254,6 +284,7 @@ label_data(const uint8_t *label)
 	return label + 1;
 }
 
+
 /*
  * Is LABEL the root label?
  *
@@ -266,6 +297,7 @@ label_is_root(const uint8_t *label)
 	return label[0] == 0;
 }
 
+
 /*
  * Is LABEL the wildcard label?
  *
@@ -277,6 +309,7 @@ label_is_wildcard(const uint8_t *label)
 	assert(label);
 	return label[0] == 1 && label[1] == '*';
 }
+
 
 /*
  * The next label of LABEL.
@@ -294,14 +327,33 @@ label_next(const uint8_t *label)
 	return label + label_length(label) + 1;
 }
 
+
+/*
+ * Convert DNAME to its string representation.  The result points to a
+ * static buffer that is overwritten the next time this function is
+ * invoked.
+ *
+ * Pre: dname != NULL
+ */
 const char *dname_to_string(const dname_type *dname);
+
+
+/*
+ * Convert DNAME to its string representation.  The result points to a
+ * static buffer that is overwritten the next time this function is
+ * invoked.
+ *
+ * Pre: dname != NULL
+ */
 const char *labels_to_string(const uint8_t *dname);
+
 
 /*
  * Create a dname containing the single label specified by STR followd
  * by the root label.
  */
 const dname_type *create_dname(region_type *region, const uint8_t *str, const size_t len);
+
 
 /*
  * Concatenate two dnames.

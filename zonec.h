@@ -1,7 +1,7 @@
 /*
  * zonec.h -- zone compiler.
  *
- * Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
