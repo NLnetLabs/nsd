@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.96 2003/07/07 10:07:39 erik Exp $
+ * $Id: zonec.c,v 1.97 2003/07/07 10:50:21 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -437,7 +437,7 @@ zone_read (char *name, char *zonefile)
 #endif
 
 	/* Open the zone file */
-	if((parser = zopen(zonefile, 3600, CLASS_IN, name)) == NULL) {
+	if((parser = nsd_zopen(zonefile, 3600, CLASS_IN, name)) == NULL) {
 		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
 		zone_free(z);
 		return NULL;

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.39 2003/07/07 10:07:40 erik Exp $
+ * $Id: zparser.c,v 1.40 2003/07/07 10:50:22 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -308,16 +308,6 @@ zunexpected (struct zparser *z)
 }
 
 /*
- * A wrapper for _zopen()
- *
- */
-struct zparser *
-zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin)
-{
-	return _zopen(filename, ttl, class, strdname(origin, ROOT), 0);
-}
-
-/*
  *
  * Initializes the parser and opens a zone file.
  *
@@ -327,8 +317,8 @@ zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin
  *	- NULL on error and errno set
  *
  */
-struct zparser *
-_zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin, int n)
+static struct zparser *
+nsd_zopen2 (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin, int n)
 {
 	struct zparser *z;
 
@@ -364,6 +354,16 @@ _zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origi
 	memset(&z->_rr, 0, sizeof(struct RR));
 
 	return z;
+}
+
+/*
+ * A wrapper for _zopen()
+ *
+ */
+struct zparser *
+nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin)
+{
+	return nsd_zopen2(filename, ttl, class, strdname(origin, ROOT), 0);
 }
 
 /*
@@ -427,7 +427,7 @@ zread (struct zparser *z)
 			} else if(strcasecmp(z->_t[0], "$INCLUDE") == 0) {
 				if(z->_t[1] == NULL) {
 					zerror(z, "missing include file name");
-				} else if((z->include = _zopen(z->_t[1], z->ttl, z->class,
+				} else if((z->include = nsd_zopen2(z->_t[1], z->ttl, z->class,
 						z->_t[2] ? strdname(z->_t[2], z->origin) :
 							z->origin, z->n)) == NULL) {
 					/* Error or too much nestedness? */

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.16 2003/07/04 07:55:10 erik Exp $
+ * $Id: zparser.h,v 1.17 2003/07/07 10:50:23 erik Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -155,8 +155,7 @@ long strtottl(char *nptr, char **endptr);
 void zerror(struct zparser *z, const char *msg);
 void zsyntax(struct zparser *z);
 void zunexpected(struct zparser *z);
-struct zparser *zopen(const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin);
-struct zparser *_zopen(const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin, int n);
+struct zparser *nsd_zopen(const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin);
 struct RR *zread(struct zparser *z);
 void zclose(struct zparser *z);
 void zrdatafree(uint16_t **p);
