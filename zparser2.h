@@ -9,8 +9,6 @@
 #ifndef _ZPARSER_H_
 #define	_ZPARSER_H_
 
-#include "util.h"
-#include "dns.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <ctype.h>
@@ -23,6 +21,8 @@
 #endif
 #include <unistd.h>
 
+#include "dns.h"
+#include "util.h"
 
 struct YYSTYPE_T {
     size_t   len;		/* holds the label length */
@@ -149,7 +149,6 @@ extern struct ztab zclasses[];
 /* zparser2.c */
 uint16_t *zparser_conv_hex(const char *hex);
 uint16_t *zparser_conv_time(const char *time);
-uint16_t *zparser_conv_rdata_type(struct RR * current, const char *type);
 uint16_t *zparser_conv_rdata_proto(const char *protostr);
 uint16_t *zparser_conv_rdata_service(const char *servicestr, const int arg);
 uint16_t *zparser_conv_rdata_period(const char *periodstr);
@@ -170,8 +169,6 @@ const char * namebyint (uint16_t n, struct ztab *tab);
 int zrdatacmp(uint16_t **a, uint16_t **b);
 long strtottl(char *nptr, char **endptr);
 void zerror (const char *msg);
-void zsyntax (struct zdefault_t *z);
-void zunexpected (struct zdefault_t *z);
 struct zdefault_t * nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origin);
 void zclose (struct zdefault_t *z);
 void zrdatafree(uint16_t **p);

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.19 2003/08/27 14:09:15 miekg Exp $
+ * $Id: zparser2.c,v 1.20 2003/08/28 12:14:08 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -9,7 +9,6 @@
  */
 
 #include <config.h>
-#include <zparser2.h>
 
 #include <assert.h>
 #include <ctype.h>
@@ -27,6 +26,7 @@
 #include <netdb.h>
 #endif
 
+#include "zparser2.h"
 #include "dns.h"
 #include "dname.h"
 #include "util.h"
@@ -39,309 +39,292 @@
 uint16_t *
 zparser_conv_hex(const char *hex)
 {
-    /* convert a hex value to wireformat */
-    uint16_t *r = NULL;
-    uint8_t *t;
-    int i;
+	/* convert a hex value to wireformat */
+	uint16_t *r = NULL;
+	uint8_t *t;
+	int i;
     
-    if ((i = strlen(hex)) % 2 != 0) {
-            zerror("hex representation must be a whole number of octets");
-    } else {
-        /* the length part */
-        r = xalloc(sizeof(uint16_t) + i/2);
-        *r = i/2;
-        t = (uint8_t *)(r + 1);
+	if ((i = strlen(hex)) % 2 != 0) {
+		zerror("hex representation must be a whole number of octets");
+	} else {
+		/* the length part */
+		r = xalloc(sizeof(uint16_t) + i/2);
+		*r = i/2;
+		t = (uint8_t *)(r + 1);
     
-        /* Now process octet by octet... */
-        while(*hex) {
-                *t = 0;
-                for(i = 16; i >= 1; i -= 15) {
-                    switch (*hex) {
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                        *t += (*hex - '0') * i; /* first hex */
-                        break;
-                    case 'a':
-                    case 'A':
-                    case 'b':
-                    case 'B':
-                    case 'c':
-                    case 'C':
-                    case 'd':
-                    case 'D':
-                    case 'e':
-                    case 'E':
-                    case 'f':
-                    case 'F':
-                        *t += (*hex - 'a' + 10) * i;    /* second hex */
-                        break;
-                    default:
-                        zerror("illegal hex character");
-                        free(r);
-                        return 0;
-                    }
-                    *hex++;
-                }
-                t++;
-            }
+		/* Now process octet by octet... */
+		while(*hex) {
+			*t = 0;
+			for(i = 16; i >= 1; i -= 15) {
+				switch (*hex) {
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					*t += (*hex - '0') * i; /* first hex */
+					break;
+				case 'a':
+				case 'A':
+				case 'b':
+				case 'B':
+				case 'c':
+				case 'C':
+				case 'd':
+				case 'D':
+				case 'e':
+				case 'E':
+				case 'f':
+				case 'F':
+					*t += (*hex - 'a' + 10) * i;    /* second hex */
+					break;
+				default:
+					zerror("illegal hex character");
+					free(r);
+					return 0;
+				}
+				*hex++;
+			}
+			t++;
+		}
         }
-    return r;
+	return r;
 }
 
 uint16_t *
 zparser_conv_time(const char *time)
 {
-    /* convert a time YYHM to wireformat */
-    uint16_t *r = NULL;
-    struct tm tm;
-    uint32_t l;
+	/* convert a time YYHM to wireformat */
+	uint16_t *r = NULL;
+	struct tm tm;
+	uint32_t l;
 
-    /* Try to scan the time... */
-    /* [XXX] the cast fixes compile time warning */
-    if((char*)strptime(time, "%Y%m%d%H%M%S", &tm) == NULL) {
-            zerror("date and time is expected");
-    } else {
+	/* Try to scan the time... */
+	/* [XXX] the cast fixes compile time warning */
+	if((char*)strptime(time, "%Y%m%d%H%M%S", &tm) == NULL) {
+		zerror("date and time is expected");
+	} else {
 
-            r = xalloc(sizeof(uint32_t) + sizeof(uint16_t));
+		r = xalloc(sizeof(uint32_t) + sizeof(uint16_t));
 
-            l = htonl(timegm(&tm));
-            memcpy(r + 1, &l, sizeof(uint32_t));
-            *r = sizeof(uint32_t);
-    }
-    return r;
+		l = htonl(timegm(&tm));
+		memcpy(r + 1, &l, sizeof(uint32_t));
+		*r = sizeof(uint32_t);
+	}
+	return r;
 }
-
-/* NOT USED 
-uint16_t *
-zparser_conv_rdata_type(struct RR * current, const char *type)
-{
-     convert rdata_type to wireformat
-
-    uint16_t *r = NULL;
-
-    r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
-
-    *(r+1)  = htons((uint16_t)intbyname(type, ztypes));
-
-    if(*(r + 1) == 0) {
-            zerror("resource record type is expected");
-    } else {
-            *r = sizeof(uint16_t);
-    }
-    return r;
-}
-*/
 
 uint16_t *
 zparser_conv_rdata_proto(const char *protostr)
 {
-    /* convert a protocol in the rdata to wireformat */
-    struct protoent *proto;
-    uint16_t *r = NULL;
+	/* convert a protocol in the rdata to wireformat */
+	struct protoent *proto;
+	uint16_t *r = NULL;
  
-    if((proto = getprotobyname(protostr)) == NULL) {
-            zerror("unknown protocol");
-    } else {
+	if((proto = getprotobyname(protostr)) == NULL) {
+		zerror("unknown protocol");
+	} else {
 
-            r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
+		r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
 
-            *(r + 1) = htons(proto->p_proto);
-            *r = sizeof(uint16_t);
-    } 
-    return r;
+		*(r + 1) = htons(proto->p_proto);
+		*r = sizeof(uint16_t);
+	} 
+	return r;
 }
 
 uint16_t *
 zparser_conv_rdata_service(const char *servicestr, const int arg)
 {
-    /* convert a service in the rdata to wireformat */
+	/* convert a service in the rdata to wireformat */
 
-    struct protoent *proto;
-    struct servent *service;
-    uint16_t *r = NULL;
+	struct protoent *proto;
+	struct servent *service;
+	uint16_t *r = NULL;
 
-    /* [XXX] need extra arg here .... */
-    if((proto = getprotobynumber(arg)) == NULL) {
-            zerror("unknown protocol, internal error");
+	/* [XXX] need extra arg here .... */
+	if((proto = getprotobynumber(arg)) == NULL) {
+		zerror("unknown protocol, internal error");
         } else {
-            if((service = getservbyname(servicestr, proto->p_name)) == NULL) {
-                zerror("unknown service");
-            } else {
-                /* Allocate required space... */
-                r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
+		if((service = getservbyname(servicestr, proto->p_name)) == NULL) {
+			zerror("unknown service");
+		} else {
+			/* Allocate required space... */
+			r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
 
-                *(r + 1) = service->s_port;
-                *r = sizeof(uint16_t);
-            }
+			*(r + 1) = service->s_port;
+			*r = sizeof(uint16_t);
+		}
         }
-    return r;
+	return r;
 }
 
 uint16_t *
 zparser_conv_rdata_period(const char *periodstr)
 {
-    /* convert a time period (think TTL's) to wireformat) */
+	/* convert a time period (think TTL's) to wireformat) */
 
-    uint16_t *r = NULL;
-    uint32_t l;
-    char *end; 
+	uint16_t *r = NULL;
+	uint32_t l;
+	char *end; 
 
-    /* Allocate required space... */
-    r = xalloc(sizeof(uint16_t) + sizeof(uint32_t));
+	/* Allocate required space... */
+	r = xalloc(sizeof(uint16_t) + sizeof(uint32_t));
 
-    l = htonl((uint32_t)strtottl((char *)periodstr, &end));
+	l = htonl((uint32_t)strtottl((char *)periodstr, &end));
 
         if(*end != 0) {
-            zerror("time period is expected");
+		zerror("time period is expected");
         } else {
-            memcpy(r + 1, &l, sizeof(uint32_t));
-            *r = sizeof(uint32_t);
+		memcpy(r + 1, &l, sizeof(uint32_t));
+		*r = sizeof(uint32_t);
         }
-    return r;
+	return r;
 }
 
 uint16_t *
 zparser_conv_short(const char *shortstr)
 {
-    /* convert a short INT to wire format */
+	/* convert a short INT to wire format */
 
-    char *end;      /* Used to parse longs, ttls, etc.  */
-    uint16_t *r = NULL;
+	char *end;      /* Used to parse longs, ttls, etc.  */
+	uint16_t *r = NULL;
    
-    r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
+	r = xalloc(sizeof(uint16_t) + sizeof(uint16_t));
     
-    *(r+1)  = htons((uint16_t)strtol(shortstr, &end, 0));
+	*(r+1)  = htons((uint16_t)strtol(shortstr, &end, 0));
             
-    if(*end != 0) {
-            zerror("unsigned short value is expected");
-    } else {
-        *r = sizeof(uint16_t);
-    }
-    return r;
+	if(*end != 0) {
+		zerror("unsigned short value is expected");
+	} else {
+		*r = sizeof(uint16_t);
+	}
+	return r;
 }
 
 uint16_t *
 zparser_conv_long(const char *longstr)
 {
-    char *end;      /* Used to parse longs, ttls, etc.  */
-    uint16_t *r = NULL;
-    uint32_t l;
+	char *end;      /* Used to parse longs, ttls, etc.  */
+	uint16_t *r = NULL;
+	uint32_t l;
 
-    r = xalloc(sizeof(uint16_t) + sizeof(uint32_t));
+	r = xalloc(sizeof(uint16_t) + sizeof(uint32_t));
 
-    l = htonl((uint32_t)strtol(longstr, &end, 0));
+	l = htonl((uint32_t)strtol(longstr, &end, 0));
 
-    if(*end != 0) {
-            zerror("long decimal value is expected");
+	if(*end != 0) {
+		zerror("long decimal value is expected");
         } else {
-            memcpy(r + 1, &l, sizeof(uint32_t));
-            *r = sizeof(uint32_t);
-    }
-    return r;
+		memcpy(r + 1, &l, sizeof(uint32_t));
+		*r = sizeof(uint32_t);
+	}
+	return r;
 }
 
 uint16_t *
 zparser_conv_byte(const char *bytestr)
 {
 
-    /* convert a byte value to wireformat */
-   char *end;      /* Used to parse longs, ttls, etc.  */
-   uint16_t *r = NULL;
+	/* convert a byte value to wireformat */
+	char *end;      /* Used to parse longs, ttls, etc.  */
+	uint16_t *r = NULL;
  
         r = xalloc(sizeof(uint16_t) + sizeof(uint8_t));
 
         *((uint8_t *)(r+1)) = (uint8_t)strtol(bytestr, &end, 0);
 
         if(*end != 0) {
-            zerror("decimal value is expected");
+		zerror("decimal value is expected");
         } else {
-            *r = sizeof(uint8_t);
+		*r = sizeof(uint8_t);
         }
-    return r;
+	return r;
 }
 
 uint16_t *
 zparser_conv_A(const char *a)
 {
    
-    /* convert a A rdata to wire format */
-    struct in_addr pin;
-    uint16_t *r = NULL;
+	/* convert a A rdata to wire format */
+	struct in_addr pin;
+	uint16_t *r = NULL;
 
-    r = xalloc(sizeof(uint16_t) + sizeof(in_addr_t));
+	r = xalloc(sizeof(uint16_t) + sizeof(in_addr_t));
 
-    if(inet_pton(AF_INET, a, &pin) > 0) {
-        memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
-        *r = sizeof(uint32_t);
-     } else {
-            zerror("invalid ip address");
-     }
-    return r;
+	if(inet_pton(AF_INET, a, &pin) > 0) {
+		memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
+		*r = sizeof(uint32_t);
+	} else {
+		zerror("invalid ip address");
+	}
+	return r;
 }
 
 uint16_t *
 zparser_conv_dname(const uint8_t *dname)
 {
-    /* convert a domain name to wireformat */
-    uint16_t *r = NULL;
+	/* convert a domain name to wireformat */
+	uint16_t *r = NULL;
 
-    if ( dname == NULL ) {
-        printf("something is not right\n");
-    }
+	if ( dname == NULL ) {
+		printf("something is not right\n");
+	}
 
-    /* Allocate required space... */
-    r = xalloc(sizeof(uint16_t) + *dname + 1);
+	/* Allocate required space... */
+	r = xalloc(sizeof(uint16_t) + *dname + 1);
     
-    memcpy(r+1, dname, *dname + 1);
+	memcpy(r+1, dname, *dname + 1);
     
-    *r = DNAME_MAGIC;
-    return r;
+	*r = DNAME_MAGIC;
+	return r;
 }
 
+/*
+ * XXX: add length parameter to handle null bytes, remove strlen
+ * check.
+ */
 uint16_t *
 zparser_conv_text(const char *txt)
 {
-    /* convert text to wireformat */
-    int i;
-    uint16_t *r = NULL;
+	/* convert text to wireformat */
+	int i;
+	uint16_t *r = NULL;
 
-    if((i = strlen(txt)) > 255) {
-            zerror("text string is longer than 255 charaters, try splitting in two");
+	if((i = strlen(txt)) > 255) {
+		zerror("text string is longer than 255 charaters, try splitting in two");
         } else {
 
-            /* Allocate required space... */
-            r = xalloc(sizeof(uint16_t) + i + 1);
+		/* Allocate required space... */
+		r = xalloc(sizeof(uint16_t) + i + 1);
 
-            *((char *)(r+1))  = i;
-            memcpy(((char *)(r+1)) + 1, txt, i);
+		*((char *)(r+1))  = i;
+		memcpy(((char *)(r+1)) + 1, txt, i);
 
-            *r = i + 1;
+		*r = i + 1;
         }
-    return r;
+	return r;
 }
 
 uint16_t *
 zparser_conv_a6(const char *a6)
 {
-    /* convert ip v6 address to wireformat */
+	/* convert ip v6 address to wireformat */
 
-    uint16_t *r = NULL;
+	uint16_t *r = NULL;
 
-    r = xalloc(sizeof(uint16_t) + IP6ADDRLEN);
+	r = xalloc(sizeof(uint16_t) + IP6ADDRLEN);
 
         /* Try to convert it */
         if(inet_pton(AF_INET6, a6, r + 1) != 1) {
-            zerror("invalid ipv6 address");
+		zerror("invalid ipv6 address");
         } else {
-            *r = IP6ADDRLEN;
+		*r = IP6ADDRLEN;
         }
         return r;
 }
@@ -349,18 +332,18 @@ zparser_conv_a6(const char *a6)
 uint16_t *
 zparser_conv_b64(const char *b64)
 {
-    /* convert b64 encoded stuff to wireformat */
-    uint16_t *r = NULL;
-    int i;
+	/* convert b64 encoded stuff to wireformat */
+	uint16_t *r = NULL;
+	int i;
 
-    r = xalloc(sizeof(uint16_t) + B64BUFSIZE);
+	r = xalloc(sizeof(uint16_t) + B64BUFSIZE);
 
         /* Try to convert it */
         if((i = b64_pton(b64, (uint8_t *) (r + 1), B64BUFSIZE)) == -1) {
-            zerror("base64 encoding failed");
+		zerror("base64 encoding failed");
         } else {
-            *r = i;
-            r = xrealloc(r, i + sizeof(uint16_t));
+		*r = i;
+		r = xrealloc(r, i + sizeof(uint16_t));
         }
         return r;
 }
@@ -373,21 +356,21 @@ zparser_conv_b64(const char *b64)
 int32_t
 zparser_ttl2int(char *ttlstr)
 {
-    /* convert a ttl value to a integer
-     * return the ttl in a int
-     * -1 on error
-     */
+	/* convert a ttl value to a integer
+	 * return the ttl in a int
+	 * -1 on error
+	 */
 
-    int32_t ttl;
-    char *t;
+	int32_t ttl;
+	char *t;
 
-    ttl = strtottl(ttlstr, &t);
-    if(*t != 0) {
-        zerror("invalid ttl value");
-        ttl = -1;
-    }
+	ttl = strtottl(ttlstr, &t);
+	if(*t != 0) {
+		zerror("invalid ttl value");
+		ttl = -1;
+	}
     
-    return ttl;
+	return ttl;
 }
 
 
@@ -396,32 +379,32 @@ zparser_ttl2int(char *ttlstr)
 void
 zadd_rdata2(struct zdefault_t *zdefault, uint16_t *r)
 {
-    /* add this rdata to the current resource record */
+	/* add this rdata to the current resource record */
     
-    if(zdefault->_rc >= MAXRDATALEN - 1) {
-        fprintf(stderr,"too many rdata elements");
-        abort();
-    }
-    current_rr->rdata[zdefault->_rc++] = r;
+	if(zdefault->_rc >= MAXRDATALEN - 1) {
+		fprintf(stderr,"too many rdata elements");
+		abort();
+	}
+	current_rr->rdata[zdefault->_rc++] = r;
 }
 
 void
 zadd_rdata_finalize(struct zdefault_t *zdefault)
 {
-    /* finalize the RR, and move on the next */
+	/* finalize the RR, and move on the next */
 
-    /* NULL signals the last rdata */
+	/* NULL signals the last rdata */
 
-    /* _rc is already incremented in zadd_rdata2 */
-    current_rr->rdata[zdefault->_rc] = NULL;
+	/* _rc is already incremented in zadd_rdata2 */
+	current_rr->rdata[zdefault->_rc] = NULL;
 }
 
 void
 zadd_rtype(const char *type)
 {
-    /* add the type to the current resource record */
+	/* add the type to the current resource record */
 
-    current_rr->type = intbyname(type, ztypes);
+	current_rr->type = intbyname(type, ztypes);
 }
 
 
@@ -462,7 +445,7 @@ namebyint (uint16_t n, struct ztab *tab)
 }
 
 /*
- * Compares two rdata arrrays.
+ * Compares two rdata arrays.
  *
  * Returns:
  *
@@ -479,7 +462,7 @@ zrdatacmp(uint16_t **a, uint16_t **b)
 		if(**a != **b)
 			return 1;
 		/* Is it a domain name */
-		if(**a == 0xffff) {
+		if(**a == DNAME_MAGIC) {
 			if(memcmp(*a+1, *b+1, *((uint8_t *)(*a + 1))))
 				return 1;
 		} else {
@@ -597,43 +580,10 @@ strtottl(char *nptr, char **endptr)
  *
  *	nothing
  */
-/*void 
-zerror (struct zdefault_t *z, const char *msg)
-{
-}
-*/
 void 
 zerror (const char *msg)
 {   
-    yyerror(msg);
-}
-
-/*
- * Prints syntax error message and the file name and line number of the file
- * where it happened. Also increments the number of errors for the
- * particular file.
- *
- * Returns:
- *
- *	nothing
- */
-void 
-zsyntax (struct zdefault_t *z ATTR_UNUSED)
-{
-}
-
-/*
- * Prints UEOL message and the file name and line number of the file
- * where it happened. Also increments the number of errors for the
- * particular file.
- *
- * Returns:
- *
- *	nothing
- */
-void 
-zunexpected (struct zdefault_t *z ATTR_UNUSED)
-{
+	yyerror(msg);
 }
 
 /*
@@ -649,39 +599,38 @@ zunexpected (struct zdefault_t *z ATTR_UNUSED)
 struct zdefault_t *
 nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
-    /* Open the zone file... */
-    /* [XXX] still need to handle recursion */
-    if(( yyin  = fopen(filename, "r")) == NULL) {
-        return NULL;
-    }
+	/* Open the zone file... */
+	/* [XXX] still need to handle recursion */
+	if(( yyin  = fopen(filename, "r")) == NULL) {
+		return NULL;
+	}
 
-    /* Open the network database */
-    setprotoent(1);
-    setservent(1);
+	/* Open the network database */
+	setprotoent(1);
+	setservent(1);
 
-    /* XXX printf("getting the origin [%s]\n", origin); */
+	/* XXX printf("getting the origin [%s]\n", origin); */
 
-    /* Initialize the rest of the structure */
-    zdefault = xalloc( sizeof(struct zdefault_t));
+	/* Initialize the rest of the structure */
+	zdefault = xalloc( sizeof(struct zdefault_t));
     
-    zdefault->prev_dname = xalloc(MAXDOMAINLEN);
-    zdefault->ttl = ttl;
-    zdefault->class = class;
-    zdefault->line = 1;
+	zdefault->prev_dname = xalloc(MAXDOMAINLEN);
+	zdefault->ttl = ttl;
+	zdefault->class = class;
+	zdefault->line = 1;
     
-    zdefault->origin = xalloc(MAXDOMAINLEN);
-    zdefault->origin = (uint8_t *)strdname(origin, ROOT);  /* hmm [XXX] MG */
-    zdefault->origin_len = 0;
-    zdefault->prev_dname = '\0';
-    zdefault->prev_dname_len = 0;
-    zdefault->_rc = 0;
-    zdefault->errors = 0;
-    zdefault->filename = filename;
+	zdefault->origin = dnamedup(strdname(origin, ROOT));  /* hmm [XXX] MG */
+	zdefault->origin_len = 0;
+	zdefault->prev_dname = '\0';
+	zdefault->prev_dname_len = 0;
+	zdefault->_rc = 0;
+	zdefault->errors = 0;
+	zdefault->filename = filename;
 
-    current_rr = xalloc(sizeof(struct RR));
-    current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
+	current_rr = xalloc(sizeof(struct RR));
+	current_rr->rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
     
-    return zdefault;
+	return zdefault;
 }
 
 /*
@@ -707,7 +656,7 @@ zrdatafree(uint16_t **p)
 
 /* RFC1876 conversion routines */
 static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000,
-				1000000,10000000,100000000,1000000000};
+				      1000000,10000000,100000000,1000000000};
 
 /*
  *
@@ -982,7 +931,7 @@ zprintrrrdata(FILE *f, struct RR *rr)
 		zprintrdata(f, RDATA_BYTE, rr->rdata[2]);
 		zprintrdata(f, RDATA_HEX, rr->rdata[3]);
 		return;
-	/* Unknown format */
+		/* Unknown format */
 	case TYPE_NXT:
 	case TYPE_WKS:
 	case TYPE_LOC:
