@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.24 2002/02/13 11:19:37 alexis Exp $
+ * $Id: zonec.c,v 1.25 2002/02/14 11:23:20 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -353,8 +353,8 @@ zone_free(z)
 {
 	if(z) {
 		if(z->dname) free(z->dname);
-		heap_destroy(z->cuts, 1, 1);
-		heap_destroy(z->data, 1, 1);
+		if(z->cuts) heap_destroy(z->cuts, 1, 1);
+		if(z->data) heap_destroy(z->data, 1, 1);
 		free(z);
 	}
 }
