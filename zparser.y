@@ -54,7 +54,7 @@ static uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
 
 /* other tokens */
-%token         DIR_TTL DIR_ORIG NL ORIGIN SP
+%token         DIR_TTL DIR_ORIG NL ORIGIN SP RD_ORIGIN
 %token <data>  STR PREV TTL
 %token <klass> T_IN T_CH T_HS
 
@@ -231,6 +231,10 @@ dname:      abs_dname
 abs_dname:  '.'
     {
 	    $$ = parser->db->domains->root;
+    }
+    | 	    RD_ORIGIN
+    {
+	    $$ = parser->origin;
     }
     |       rel_dname '.'
     { 
