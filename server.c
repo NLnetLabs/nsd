@@ -1164,7 +1164,7 @@ handle_tcp_accept(netio_type *netio,
 }
 
 static void
-configure_handler_event_types(netio_type *netio,
+configure_handler_event_types(netio_type *netio ATTR_UNUSED,
 			      size_t count,
 			      netio_handler_type *handlers,
 			      netio_event_types_type event_types)
