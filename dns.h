@@ -40,10 +40,6 @@
 #ifndef _DNS_H_
 #define _DNS_H_
 
-#ifndef _TCR
-#define _TCR
-#endif /* _TCR */
-
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
 #define	CLASS_CHAOS	3	/* Class CHAOS */
@@ -69,22 +65,20 @@
 #define	TYPE_RP		17	/* RFC1183 */
 #define	TYPE_AFSDB	18	/* RFC1183 */
 
-/* type code rollover */
-#ifdef _TCR /* new types */
-#define	TYPE_SIG	46	/* map to new type codes */
-#define	TYPE_NXT	47 	
-#define	TYPE_KEY	48	
-#define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
-#define TYPE_NSEC	47	
-#define TYPE_DNSKEY	48
-#else	/* old types */
 #define	TYPE_SIG	24	/* 2535typecode */
 #define	TYPE_KEY	25	/* 2535typecode */
 #define	TYPE_NXT	30 	/* 2535typecode */
-#define TYPE_RRSIG	24	/* draft-ietf-dnsext-dnssec-2535typecode-change */
-#define TYPE_NSEC	30	/* map to the old type codes */
-#define TYPE_DNSKEY	25
-#endif /* _TCR */
+
+/* type code rollover */
+#ifdef TCR_USE_OLD_TYPES /* old types */
+#define	TYPE_RRSIG	TYPE_SIG	/* map to old type codes */
+#define	TYPE_NSEC	TYPE_NXT 	
+#define	TYPE_DNSKEY	TYPE_KEY
+#else	/* new types */
+#define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
+#define TYPE_NSEC	47	
+#define TYPE_DNSKEY	48
+#endif
 
 #define TYPE_AAAA	28	/* ipv6 address */
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
