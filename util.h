@@ -264,5 +264,10 @@ timeval_to_timespec(struct timespec *left,
  */
 long strtottl(const char *nptr, const char **endptr);
 
+/*
+ * Convert binary data to a string of hexadecimal characters.
+ */
+ssize_t hex_ntop(uint8_t const *src, size_t srclength, char *target,
+		 size_t targsize);
 
 #endif /* _UTIL_H_ */

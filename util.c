@@ -374,3 +374,25 @@ strtottl(const char *nptr, const char **endptr)
 	seconds += i;
 	return (sign == -1) ? -seconds : seconds;
 }
+
+
+ssize_t
+hex_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
+{
+	static char hexdigits[] = {
+		'0', '1', '2', '3', '4', '5', '6', '7',
+		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+	};
+	size_t i;
+	
+	if (targsize < srclength * 2 + 1) {
+		return -1;
+	}
+
+	for (i = 0; i < srclength; ++i) {
+		*target++ = hexdigits[src[i] >> 4U];
+		*target++ = hexdigits[src[i] & 0xfU];
+	}
+	*target = '\0';
+	return 2 * srclength;
+}

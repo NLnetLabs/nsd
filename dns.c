@@ -63,7 +63,7 @@ rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	  { RDATA_WF_BINARY }, { RDATA_ZF_DNAME } },
 	/* 11 */
 	{ TYPE_WKS, "WKS", T_WKS, 2, 2,
-	  { RDATA_WF_A, RDATA_WF_BYTE, RDATA_WF_BINARY },
+	  { RDATA_WF_A, RDATA_WF_BINARY },
 	  { RDATA_ZF_A, RDATA_ZF_SERVICES } },
 	/* 12 */
 	{ TYPE_PTR, "PTR", T_PTR, 1, 1,

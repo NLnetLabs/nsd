@@ -186,12 +186,13 @@ print_rr(region_type *region, FILE *out, rr_type *record)
 	result = print_rdata(output, descriptor, record);
 	if (!result) {
 		/*
-		 * Some RDATA failed, so print the record's RDATA in
-		 * unknown format.
+		 * Some RDATA failed to print, so print the record's
+		 * RDATA in unknown format.
 		 */
-		abort();
-/* 		buffer_printf(output, " "); */
-/* 		result = rdata_to_string(output, RDATA_ZF_UNKNOWN, packet); */
+		result = rdata_atoms_to_unknown_string(output,
+						       descriptor,
+						       record->rdata_count,
+						       record->rdatas);
 	}
 	
 	if (result) {

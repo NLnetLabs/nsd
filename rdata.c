@@ -344,7 +344,8 @@ rdata_nsec_to_string(buffer_type *output, rdata_atom_type rdata)
 {
 	size_t saved_position = buffer_position(output);
 	buffer_type packet;
-
+	int insert_space = 0;
+	
 	buffer_create_from(
 		&packet, rdata_atom_data(rdata), rdata_atom_size(rdata));
 
@@ -361,14 +362,16 @@ rdata_nsec_to_string(buffer_type *output, rdata_atom_type rdata)
 
 		for (i = 0; i < bitmap_size * 8; ++i) {
 			if (get_bit(bitmap, i)) {
-				buffer_printf(output, "%s ", rrtype_to_string(
+				buffer_printf(output,
+					      "%s%s",
+					      insert_space ? " " : "",
+					      rrtype_to_string(
 						      window * 256 + i));
+				insert_space = 1;
 			}
 		}
 		buffer_skip(&packet, bitmap_size);
 	}
-
-	buffer_skip(output, -1);
 
 	return 1;
 }
@@ -387,8 +390,8 @@ rdata_loc_to_string(buffer_type *output ATTR_UNUSED,
 static int
 rdata_unknown_to_string(buffer_type *output, rdata_atom_type rdata)
 {
-	uint16_t size = rdata_atom_size(rdata);
-	buffer_printf(output, "\\# %lu ", (unsigned long) size);
+ 	uint16_t size = rdata_atom_size(rdata);
+ 	buffer_printf(output, "\\# %lu ", (unsigned long) size);
 	hex_to_string(output, rdata_atom_data(rdata), size);
 	return 1;
 }
@@ -492,7 +495,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				  + sizeof(uint8_t)   /* prefix */
 				  + sizeof(uint8_t)); /* length */
 			if (buffer_position(packet) + length <= end) {
-				length += buffer_current(packet)[sizeof(uint16_t) + sizeof(uint8_t)];
+				length += (buffer_current(packet)[sizeof(uint16_t) + sizeof(uint8_t)]) & 0x7f;
 			}
 
 			break;
@@ -531,4 +534,44 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		region, temp_rdatas, i * sizeof(rdata_atom_type));
 	region_destroy(temp_region);
 	return i;
+}
+
+size_t
+rdata_maximum_wireformat_size(rrtype_descriptor_type *descriptor,
+			      size_t rdata_count,
+			      rdata_atom_type *rdatas)
+{
+	size_t result = 0;
+	size_t i;
+	for (i = 0; i < rdata_count; ++i) {
+		if (rdata_atom_is_domain(descriptor->type, i)) {
+			result += domain_dname(rdata_atom_domain(rdatas[i]))->name_size;
+		} else {
+			result += rdata_atom_size(rdatas[i]);
+		}
+	}
+	return result;
+}
+
+int
+rdata_atoms_to_unknown_string(buffer_type *output,
+			      rrtype_descriptor_type *descriptor,
+			      size_t rdata_count,
+			      rdata_atom_type *rdatas)
+{
+	size_t i;
+	size_t size =
+		rdata_maximum_wireformat_size(descriptor, rdata_count, rdatas);
+	buffer_printf(output, " \\# %lu ", (unsigned long) size);
+	for (i = 0; i < rdata_count; ++i) {
+		if (rdata_atom_is_domain(descriptor->type, i)) {
+			const dname_type *dname =
+				domain_dname(rdata_atom_domain(rdatas[i]));
+			hex_to_string(
+				output, dname_name(dname), dname->name_size);
+		} else {
+			rdata_hex_to_string(output, rdatas[i]);
+		}
+	}
+	return 1;
 }

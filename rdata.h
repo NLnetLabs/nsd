@@ -34,5 +34,18 @@ ssize_t rdata_wireformat_to_rdata_atoms(region_type *region,
 					uint16_t rdata_size,
 					buffer_type *packet,
 					rdata_atom_type **rdatas);
-	
+
+/*
+ * Calculate the maximum size of the rdata assuming domain names are
+ * not compressed.
+ */
+size_t rdata_maximum_wireformat_size(rrtype_descriptor_type *descriptor,
+				     size_t rdata_count,
+				     rdata_atom_type *rdatas);
+
+int rdata_atoms_to_unknown_string(buffer_type *out,
+				  rrtype_descriptor_type *descriptor,
+				  size_t rdata_count,
+				  rdata_atom_type *rdatas);
+
 #endif /* _DNS_H_ */

@@ -195,7 +195,7 @@ zparser_conv_services(region_type *region, const char *protostr,
 			service = getservbyport(atoi(word), proto->p_name);
 		}
 		if (!service) {
-			zc_error_prev_line("Unknown service");
+			zc_error_prev_line("Unknown service '%s'", word);
 		} else if (service->s_port < 0 || service->s_port > 65535) {
 			zc_error_prev_line("bad port number %d", service->s_port);
 		} else {
@@ -1098,6 +1098,8 @@ process_rr()
 	rrset_type *rrset;
 	size_t max_rdlength;
 	int i;
+	rrtype_descriptor_type *descriptor
+		= rrtype_descriptor_by_type(rr->type);
 	
 	/* We only support IN class */
 	if (rr->klass != CLASS_IN) {
@@ -1106,14 +1108,8 @@ process_rr()
 	}
 
 	/* Make sure the maximum RDLENGTH does not exceed 65535 bytes.  */
-	max_rdlength = 0;
-	for (i = 0; i < rr->rdata_count; ++i) {
-		if (rdata_atom_is_domain(rr->type, i)) {
-			max_rdlength += domain_dname(rdata_atom_domain(rr->rdatas[i]))->name_size;
-		} else {
-			max_rdlength += rdata_atom_size(rr->rdatas[i]);
-		}
-	}
+	max_rdlength = rdata_maximum_wireformat_size(
+		descriptor, rr->rdata_count, rr->rdatas);
 
 	if (max_rdlength > MAX_RDLENGTH) {
 		zc_error_prev_line("maximum rdata length exceeds %d octets", MAX_RDLENGTH);
