@@ -18,8 +18,8 @@ www     IN      CNAME   a
 smtp    IN      CNAME   a
 mail    IN      CNAME   a
 ; unknown rr stuff
-a   CLASS32     TYPE731         \# 6 abcd (
-                                                   ef 01 23 45 )
-e   IN          A               \# 4 0A000001
-e   IN          A               \# 4 0A ( 000001 )
 e   CLASS1      TYPE1           10.0.0.2
+b   CLASS32     TYPE731         \# 6 abcd (
+                                                   ef 01 23 45 )
+c   IN          A               \# 4 0A000002
+d   IN          A               \# 4 0A ( 000003 )
