@@ -22,6 +22,33 @@
 #include "dname.h"
 #include "query.h"
 
+inline int
+label_compare(const uint8_t *left, const uint8_t *right)
+{
+	int left_length;
+	int right_length;
+	int size;
+	int result;
+	
+	assert(left);
+	assert(right);
+
+	assert(label_is_normal(left));
+	assert(label_is_normal(right));
+	
+	left_length = label_length(left);
+	right_length = label_length(right);
+	size = left_length < right_length ? left_length : right_length;
+	
+	result = memcmp(label_data(left), label_data(right), size);
+	if (result) {
+		return result;
+	} else {
+		return left_length - right_length;
+	}
+}
+
+
 const dname_type *
 dname_make(region_type *region, const uint8_t *name)
 {
@@ -301,33 +328,6 @@ dname_label(const dname_type *dname, size_t index)
 	}
 
 	return result;
-}
-
-
-inline int
-label_compare(const uint8_t *left, const uint8_t *right)
-{
-	int left_length;
-	int right_length;
-	int size;
-	int result;
-	
-	assert(left);
-	assert(right);
-
-	assert(label_is_normal(left));
-	assert(label_is_normal(right));
-	
-	left_length = label_length(left);
-	right_length = label_length(right);
-	size = left_length < right_length ? left_length : right_length;
-	
-	result = memcmp(label_data(left), label_data(right), size);
-	if (result) {
-		return result;
-	} else {
-		return left_length - right_length;
-	}
 }
 
 
