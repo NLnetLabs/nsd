@@ -91,7 +91,6 @@ domain_table_create(region_type *region)
 	root = region_alloc(region, sizeof(domain_type));
 	root->dname = origin;
 	root->parent = NULL;
-	root->wildcard_child_closest_match = NULL;
 	root->rrsets = NULL;
 	root->number = 0;
 	root->plugin_data = NULL;
@@ -103,7 +102,8 @@ domain_table_create(region_type *region)
 		region, (int (*)(const void *, const void *)) dname_compare);
 	result->root = root;
 
-	heap_insert(result->names_to_domains, origin, root, 1);
+	root->wildcard_child_closest_match
+		= heap_insert(result->names_to_domains, origin, root, 1);
 
 	return result;
 }
@@ -186,14 +186,14 @@ domain_table_insert(domain_table_type *table,
 
 			/*
 			 * If the newly added domain name is larger
-			 * than the current
+			 * than the parent's current
 			 * wildcard_child_closest_match but smaller or
 			 * equal to the wildcard domain name, update
 			 * the parent's wildcard_child_closest_match
 			 * field.
 			 */
-			if (dname_compare(result->dname, closest_encloser->dname) > 0
-			    && label_compare(dname_name(result->dname), (const uint8_t *) "\001*") <= 0)
+			if (label_compare(dname_name(result->dname), (const uint8_t *) "\001*") <= 0
+			    && dname_compare(result->dname, closest_encloser->dname) > 0)
 			{
 				closest_encloser->wildcard_child_closest_match = node;
 			}
