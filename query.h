@@ -161,7 +161,7 @@
 #define RCODE_REFUSE		5 	/* Refused */
 
 /* Miscelaneous limits */
-#define	QIOBUFSZ		4000	 /* Maximum size of returned packet.  */
+#define	QIOBUFSZ		16384	 /* Maximum size of returned packet.  */
 #define	MAXLABELLEN		63
 #define	MAXDOMAINLEN		255
 #define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
