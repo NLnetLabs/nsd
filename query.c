@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.52 2002/04/22 09:38:37 alexis Exp $
+ * $Id: query.c,v 1.53 2002/04/22 10:37:28 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -284,19 +284,18 @@ query_process(q, db)
 			}
 		}
 
-		/* Trailing garbage? */
-		if((qptr + 11) != q->iobufptr) {
 #ifdef	STRICT_MESSAGE_PARSE
+		/* Trailing garbage? */
+		if((qptr + OPT_LEN) != q->iobufptr) {
 			RCODE_SET(q, RCODE_FORMAT);
 			return 0;
-#endif
 		}
+#endif
 
 		/* Strip the OPT resource record off... */
 		q->iobufptr = qptr;
+		ARCOUNT(q) = 0;
 	}
-		
-
 
 	/* Do we have any trailing garbage? */
 	if(qptr != q->iobufptr) {

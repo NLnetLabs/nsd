@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.28 2002/02/22 11:34:24 alexis Exp $
+ * $Id: nsd.c,v 1.29 2002/04/22 10:37:28 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -180,7 +180,14 @@ main(argc, argv)
 	nsd.tcp.max_conn = CF_TCP_MAX_CONNECTIONS;
 	nsd.tcp.max_msglen = CF_TCP_MAX_MESSAGE_LEN;
 	nsd.udp.port	= CF_UDP_PORT;
-	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;;
+	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;
+
+	/* EDNS0 */
+	nsd.edns.max_msglen = CF_EDNS_MAX_MESSAGE_LEN;
+	nsd.edns.opt[1]	= (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
+	nsd.edns.opt[2] = TYPE_OPT & 0x00ff;	/* type_lo */
+	nsd.edns.opt[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
+	nsd.edns.opt[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
 
 /* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
 

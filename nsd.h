@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.24 2002/02/20 14:25:24 alexis Exp $
+ * $Id: nsd.h,v 1.25 2002/04/22 10:37:28 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -72,6 +72,8 @@
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
 
+#define	OPT_LEN	11
+
 /* NSD configuration and run-time variables */
 struct	nsd {
 	/* Run-time variables */
@@ -98,6 +100,11 @@ struct	nsd {
 		u_int16_t	port;
 		size_t		max_msglen;
 	} udp;
+
+	struct {
+		u_int16_t	max_msglen;
+		char		opt[OPT_LEN];
+	} edns;
 };
 
 void *xalloc __P((size_t));

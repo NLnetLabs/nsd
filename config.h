@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.2 2002/02/20 14:25:24 alexis Exp $
+ * $Id: config.h,v 1.3 2002/04/22 10:37:28 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -57,6 +57,7 @@
 #define	CF_TCP_MAX_MESSAGE_LEN	16384
 #define	CF_UDP_PORT		4096
 #define	CF_UDP_MAX_MESSAGE_LEN	512
+#define	CF_EDNS_MAX_MESSAGE_LEN	4096
 
 #else	/* DEBUG */
 
@@ -73,6 +74,7 @@
 #define	CF_TCP_MAX_MESSAGE_LEN	16384
 #define	CF_UDP_PORT		53
 #define	CF_UDP_MAX_MESSAGE_LEN	512
+#define	CF_EDNS_MAX_MESSAGE_LEN	4096
 
 #endif	/* DEBUG */
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.53 2002/04/11 14:23:51 alexis Exp $
+# $Id: Makefile,v 1.54 2002/04/22 10:37:28 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -89,7 +89,7 @@ NSDDB           = /var/db/nsd.db
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= # -DUSE_MMAP -DMIMIC_BIND8  -DINET6
+FEATURES	= -DUSE_MMAP # -DMIMIC_BIND8  -DINET6
 
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines
@@ -108,7 +108,7 @@ LIBS		=
 # Compile environment settings
 #DEBUG		= -g -DDEBUG=1
 CC=gcc
-CFLAGS		= -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
+CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
 	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\"
 LDFLAGS= ${LIBS}
 INSTALL = install -c
