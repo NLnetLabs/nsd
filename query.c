@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.62 2002/05/01 16:10:17 alexis Exp $
+ * $Id: query.c,v 1.62.4.1 2002/05/21 10:05:59 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -272,38 +272,38 @@ query_process(q, db)
 
 		/* Check the version... */
 		if(*(qptr + 6) != 0) {
-			RCODE_SET(q, RCODE_IMPL);
-			return 0;
-		}
-
-		/* Make sure there are no other options... */
-		bcopy(qptr + 9, &opt_rdlen, 2);
-		if(opt_rdlen != 0) {
-			RCODE_SET(q, RCODE_IMPL);
-			return 0;
-		}
-
-		/* Only care about UDP size larger than normal... */
-		if(opt_class > 512) {
-			/* XXX Configuration parameter to limit the size needs to be here... */
-			if(opt_class < q->iobufsz) {
-				q->maxlen = opt_class;
+			q->edns = -1;
+		} else {
+			/* Make sure there are no other options... */
+			bcopy(qptr + 9, &opt_rdlen, 2);
+			if(opt_rdlen != 0) {
+				q->edns = -1;
 			} else {
-				q->maxlen = q->iobufsz;
-			}
-		}
+
+				/* Only care about UDP size larger than normal... */
+				if(opt_class > 512) {
+					/* XXX Configuration parameter to limit the size needs to be here... */
+					if(opt_class < q->iobufsz) {
+						q->maxlen = opt_class;
+					} else {
+						q->maxlen = q->iobufsz;
+					}
+				}
 
 #ifdef	STRICT_MESSAGE_PARSE
-		/* Trailing garbage? */
-		if((qptr + OPT_LEN) != q->iobufptr) {
-			query_formerr(q);
-			return 0;
-		}
+				/* Trailing garbage? */
+				if((qptr + OPT_LEN) != q->iobufptr) {
+					q->edns = 0;
+					query_formerr(q);
+					return 0;
+				}
 #endif
 
-		/* Strip the OPT resource record off... */
-		q->iobufptr = qptr;
-		ARCOUNT(q) = 0;
+				/* Strip the OPT resource record off... */
+				q->iobufptr = qptr;
+				ARCOUNT(q) = 0;
+			}
+		}
 	}
 
 	/* Do we have any trailing garbage? */
