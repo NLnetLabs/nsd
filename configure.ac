@@ -9,6 +9,19 @@ CFLAGS="-Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wconversion"
 dnl
 dnl Some macro's from autoconf macro archive
 dnl
+AC_DEFUN([AC_CHECK_USER],[
+AC_MSG_CHECKING([for user $2])
+if grep ^$2: /etc/passwd > /dev/null; then
+        $1=$2
+        USER_HOME=`grep ^$2: /etc/passwd | sed "s/^\([[^:]]*:\)\{5\}\([[^:]]*\):[[^:]]*$/\2/"`
+        AC_MSG_RESULT([yes])
+else
+        unset $1
+        unset USER_HOME
+        AC_MSG_RESULT([no])
+fi;dnl
+])
+
 AC_DEFUN([AC_PROMPT_USER_NO_DEFINE],
 dnl changequote(<<, >>) dnl
 dnl <<
@@ -28,21 +41,6 @@ fi
 dnl >>
 dnl changequote([, ])
 ) dnl done AC_PROMPT_USER
-
-
-AC_DEFUN([AC_CHECK_USER],[
-AC_MSG_CHECKING([for user $2])
-if grep ^$2: /etc/passwd > /dev/null; then
-        $1=$2
-        USER_HOME=`grep ^$2: /etc/passwd | sed "s/^\([[^:]]*:\)\{5\}\([[^:]]*\):[[^:]]*$/\2/"`
-        AC_MSG_RESULT([yes])
-else
-        unset $1
-        unset USER_HOME
-        AC_MSG_RESULT([no])
-fi;dnl
-])
-
 
 dnl
 dnl A number if --with arguements
@@ -95,8 +93,8 @@ dnl Determine which user to use for NSD to setuid to.
 dnl
 if test "X$nsduser" = "X"; then
 	AC_PROMPT_USER_NO_DEFINE(nsduser, [With wich user priviledges should NSD answer the queries?], [nsd])
-	AC_CHECK_USER(nsduser, $nsduser)
 fi
+AC_CHECK_USER(nsduser, $nsduser)
 if test "X$nsduser" = "X"; then
 	AC_MSG_ERROR([user doesnt exist.])
 fi
