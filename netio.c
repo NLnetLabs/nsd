@@ -124,7 +124,8 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 	}
 
 	/*
-	 * Initialize the fd_sets based on the handler information.
+	 * Initialize the fd_sets and timeout based on the handler
+	 * information.
 	 */
 	max_fd = -1;
 	FD_ZERO(&readfds);
