@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.36 2002/02/20 13:11:35 alexis Exp $
+# $Id: Makefile,v 1.37 2002/02/20 13:21:54 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -75,7 +75,7 @@ install: nsd zonec nsdc.sh
 	${INSTALL} zonec ${NSDBINDIR}/zonec
 
 nsdc.sh: nsdc.sh.in Makefile
-	rm -f -- $@
+	rm -f $@
 	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
 		-e "s,@@NSDDB@@,${NSDDB},g" $@.in > $@
@@ -91,6 +91,7 @@ clean:
 	rm -f zonec nsd zf hash rbtree *.o y.* *.core *.gmon nsd.db nsdc.sh
 
 basename.o:	compat/basename.c
+	${CC} -c ${CFLAGS} compat/basename.c -o basename.o
 
 # Test programs
 rbtree:	rbtree.c rbtree.h
