@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.8.2.1 2003/06/10 09:39:52 erik Exp $
+ * $Id: dname.c,v 1.8.2.2 2003/06/10 09:41:26 erik Exp $
  *
  * dname.c -- dname operations
  *
@@ -42,12 +42,13 @@
 #include <sys/types.h>
 
 #include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <dns.h>
 #include <dname.h>
-
+#include <namedb.h>
 
 /*
  *
