@@ -9,7 +9,7 @@ QUERY=~/cvs/nsd/test/bin/query
 NSDOPT=-p 5353 -u `whoami`
 ## No serviceble parts below ##
 
-.PHONY: nsd valid test stop
+.PHONY: nsd valid test stop diffclean currentclean
 
 # you need to run make valid seperately
 all:	QUESTIONS nsd test
@@ -32,3 +32,11 @@ test:		QUESTIONS
 stop:	
 	@echo Stopping all named instances
 	killall nsd
+
+diffclean:
+	@echo Cleaning up .diff files
+	rm -f *.diff
+
+currentclean:
+	@echo Cleaning up .current files
+	rm -f *.current
