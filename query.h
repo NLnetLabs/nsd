@@ -33,6 +33,11 @@ struct query {
 	region_type *region;
 
 	/*
+	 * The socket the query was received from.
+	 */
+	nsd_socket_type *socket;
+
+	/*
 	 * The address the query was received from.
 	 */
 #ifdef INET6
@@ -69,7 +74,7 @@ struct query {
 
 	/* The zone used to answer the query.  */
 	zone_type *zone;
-	
+
 	/* The domain used to answer the query.  */
 	domain_type *domain;
 
@@ -81,7 +86,7 @@ struct query {
 
 	/* Original opcode.  */
 	uint8_t opcode;
-	
+
 	/*
 	 * The number of CNAMES followed.  After a CNAME is followed
 	 * we no longer change the RCODE to NXDOMAIN and no longer add
@@ -89,7 +94,7 @@ struct query {
 	 * and NODATA.
 	 */
 	int cname_count;
-	
+
 	/* Used for dname compression.  */
 	uint16_t     compressed_dname_count;
 	domain_type *compressed_dnames[MAXRRSPP];
@@ -144,7 +149,7 @@ void query_clear_dname_offsets(struct query *query, size_t max_offset);
  * Clear the compression tables.
  */
 void query_clear_compression_tables(struct query *query);
-	
+
 /*
  * Enter the specified domain into the compression table starting at
  * the specified offset.
@@ -164,7 +169,7 @@ query_type *query_create(region_type *region,
  * Reset a query structure so it is ready for receiving and processing
  * a new query.
  */
-void query_reset(query_type *query, size_t maxlen, int is_tcp);
+void query_reset(query_type *query, size_t maxlen, nsd_socket_type *socket);
 
 /*
  * Process a query and write the response in the query I/O buffer.

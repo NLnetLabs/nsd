@@ -33,6 +33,14 @@
 #define DEFAULT_AI_FAMILY AF_INET
 #endif
 
+enum nsd_socket_kind
+{
+	NSD_SOCKET_KIND_UDP,
+	NSD_SOCKET_KIND_TCP,
+	NSD_SOCKET_KIND_NSDC
+};
+typedef enum nsd_socket_kind nsd_socket_kind_type;
+
 #ifdef BIND8_STATS
 
 /* Counter for statistics */
@@ -52,11 +60,13 @@ typedef	unsigned long stc_t;
 
 #endif /* BIND8_STATS */
 
-struct nsd_socket
+struct nsd_socket2
 {
+	nsd_socket_kind_type    kind;
 	struct addrinfo	*	addr;
 	int			s;
 };
+typedef struct nsd_socket2 nsd_socket_type;
 
 struct nsd_child
 {
@@ -99,10 +109,10 @@ struct	nsd
 	size_t	ifs;
 
 	/* TCP specific configuration */
-	struct nsd_socket tcp[MAX_INTERFACES];
+	nsd_socket_type tcp[MAX_INTERFACES];
 
 	/* UDP specific configuration */
-	struct nsd_socket udp[MAX_INTERFACES];
+	nsd_socket_type udp[MAX_INTERFACES];
 
 	edns_data_type edns_ipv4;
 #if defined(INET6)

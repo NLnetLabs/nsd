@@ -41,9 +41,9 @@
  */
 struct udp_handler_data
 {
-	struct nsd        *nsd;
-	struct nsd_socket *socket;
-	query_type        *query;
+	nsd_type        *nsd;
+	nsd_socket_type *socket;
+	query_type      *query;
 };
 
 /*
@@ -51,8 +51,8 @@ struct udp_handler_data
  * to the TCP connection handler.
  */
 struct tcp_accept_handler_data {
-	struct nsd         *nsd;
-	struct nsd_socket  *socket;
+	nsd_type           *nsd;
+	nsd_socket_type    *socket;
 	size_t              tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
 };
@@ -82,7 +82,13 @@ struct tcp_handler_data
 	/*
 	 * The global nsd structure.
 	 */
-	struct nsd      *nsd;
+	nsd_type        *nsd;
+
+	/*
+	 * The socket used to accept the connection, _NOT_ the actual
+	 * TCP socket.
+	 */
+	nsd_socket_type *socket;
 
 	/*
 	 * The current query data for this TCP connection.
@@ -387,7 +393,7 @@ server_start_children(struct nsd *nsd)
 }
 
 static void
-close_all_sockets(struct nsd_socket sockets[], size_t n)
+close_all_sockets(nsd_socket_type sockets[], size_t n)
 {
 	size_t i;
 
@@ -406,7 +412,7 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
  *
  */
 static void
-server_shutdown(struct nsd *nsd)
+server_shutdown(nsd_type *nsd)
 {
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
@@ -719,7 +725,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 	}
 
 	/* Initialize the query... */
-	query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
+	query_reset(q, UDP_MAX_MESSAGE_LEN, data->socket);
 
 	received = recvfrom(handler->fd,
 			    buffer_begin(q->packet),
@@ -815,7 +821,7 @@ handle_tcp_reading(netio_type *netio,
 	assert(event_types & NETIO_EVENT_READ);
 
 	if (data->bytes_transmitted == 0) {
-		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
+		query_reset(data->query, TCP_MAX_MESSAGE_LEN, data->socket);
 	}
 
 	/*
@@ -1136,6 +1142,7 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data = (struct tcp_handler_data *) region_alloc(
 		tcp_region, sizeof(struct tcp_handler_data));
 	tcp_data->region = tcp_region;
+	tcp_data->socket = data->socket;
 	tcp_data->query = query_create(tcp_region, compressed_dname_offsets);
 	tcp_data->nsd = data->nsd;
 

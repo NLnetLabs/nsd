@@ -549,11 +549,13 @@ main (int argc, char *argv[])
 			hints[i].ai_flags |= AI_NUMERICHOST;
 
 		hints[i].ai_socktype = SOCK_DGRAM;
+		nsd.udp[i].kind = NSD_SOCKET_KIND_UDP;
 		if (getaddrinfo(nodes[i], port, &hints[i], &nsd.udp[i].addr) != 0) {
 			error("cannot parse address '%s'", nodes[i]);
 		}
 
 		hints[i].ai_socktype = SOCK_STREAM;
+		nsd.tcp[i].kind = NSD_SOCKET_KIND_TCP;
 		if (getaddrinfo(nodes[i], port, &hints[i], &nsd.tcp[i].addr) != 0) {
 			error("cannot parse address '%s'", nodes[i]);
 		}

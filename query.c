@@ -155,15 +155,16 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets)
 }
 
 void
-query_reset(query_type *q, size_t maxlen, int is_tcp)
+query_reset(query_type *q, size_t maxlen, nsd_socket_type *socket)
 {
 	region_free_all(q->region);
+	q->socket = socket;
 	q->addrlen = sizeof(q->addr);
 	q->maxlen = maxlen;
 	q->reserved_space = 0;
 	buffer_clear(q->packet);
 	edns_init_record(&q->edns);
-	q->tcp = is_tcp;
+	q->tcp = q->socket->kind != NSD_SOCKET_KIND_UDP;
 	q->qname = NULL;
 	q->qtype = 0;
 	q->qclass = 0;
