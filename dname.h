@@ -177,7 +177,7 @@ int dname_compare(const dname_type *left, const dname_type *right);
  * ordering based on the characters in the labels.
  *
  * Return < 0 if LEFT < RIGHT, 0 if LEFT == RIGHT, and > 0 if LEFT >
- * RIGHT.  The comparison is case insensitive.
+ * RIGHT.  The comparison is case sensitive.
  *
  * Pre: left != NULL && right != NULL
  *      label_is_normal(left) && label_is_normal(right)
