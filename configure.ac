@@ -181,9 +181,11 @@ AC_DEFUN([CHECK_SSL], [
             AC_MSG_ERROR(Cannot find the SSL libraries in $withval)
         else
             AC_MSG_RESULT(found in $ssldir)
-            LIBS="$LIBS -lssl -lcrypto";
+            HAVE_SSL=yes 
             LDFLAGS="$LDFLAGS -L$ssldir/lib";
-            HAVE_SSL=yes
+            AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
+                    AC_MSG_ERROR(OpenSSL found in $ssldir, but version 0.9.7 or higher is required)
+                ])
         fi
         AC_SUBST(HAVE_SSL)
     fi
