@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2002/01/28 23:35:46 alexis Exp $
+# $Id: Makefile,v 1.15 2002/02/04 09:57:37 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -52,15 +52,18 @@ all:	nsd zonec
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
-
 nsd:	nsd.h dns.h nsd.o server.o query.o
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o
 
 zf:	zf.h dns.h zf.c
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c
 
-zonec:	zf.h dns.h zonec.h zf.o dict.o zonec.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dict.o
+heap:	heap.c
+	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ heap.c
+
+
+zonec:	zf.h dns.h zonec.h zf.o heap.o zonec.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o heap.o
 
 clean:
 	rm -f zf zonec nsd *.o y.* *.core *.gmon nsd.db

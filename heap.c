@@ -1,7 +1,7 @@
 /*
- * $Id: dict.c,v 1.2 2002/01/28 16:02:59 alexis Exp $
+ * $Id: heap.c,v 1.3 2002/02/04 09:57:37 alexis Exp $
  *
- * dict.c -- generic dictionary based on red-black tree
+ * heap.c -- generic heapionary based on red-black tree
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -45,38 +45,38 @@
 
 #include <stdlib.h>
 
-#include "dict.h"
+#include "heap.h"
 
 #define	BLACK	0
 #define	RED	1
 
-dnode_t	dict_null_node = {DICT_NULL, DICT_NULL, DICT_NULL, BLACK, NULL, NULL};
+dnode_t	heap_null_node = {HEAP_NULL, HEAP_NULL, HEAP_NULL, BLACK, NULL, NULL};
 
 /*
- * Creates a new dictionary, intializes and returns a pointer to it.
+ * Creates a new heapionary, intializes and returns a pointer to it.
  *
  * Return NULL if mallocf() fails.
  *
  */
-dict_t *
-dict_create(mallocf, cmpf)
+heap_t *
+heap_create(mallocf, cmpf)
 	void *(*mallocf)(size_t);
 	int (*cmpf)(void *, void *);
 {
-	dict_t *dict;
+	heap_t *heap;
 
 	/* Allocate memory for it */
-	if((dict = mallocf(sizeof(dict_t))) == NULL) {
+	if((heap = mallocf(sizeof(heap_t))) == NULL) {
 		return NULL;
 	}
 
 	/* Initialize it */
-	dict->root = DICT_NULL;
-	dict->count = 0;
-	dict->mallocf = mallocf;
-	dict->cmp = cmpf;
+	heap->root = HEAP_NULL;
+	heap->count = 0;
+	heap->mallocf = mallocf;
+	heap->cmp = cmpf;
 
-	return dict;
+	return heap;
 };
 
 /*
@@ -84,25 +84,25 @@ dict_create(mallocf, cmpf)
  *
  */
 void
-dict_rotate_left(dict, node)
-	dict_t *dict;
+heap_rotate_left(heap, node)
+	heap_t *heap;
 	dnode_t *node;
 {
 	dnode_t *right = node->right;
 	node->right = right->left;
-	if(right->left != DICT_NULL)
+	if(right->left != HEAP_NULL)
 		right->left->parent = node;
 
 	right->parent = node->parent;
 
-	if(node->parent != DICT_NULL) {
+	if(node->parent != HEAP_NULL) {
 		if(node == node->parent->left) {
 			node->parent->left = right;
 		} else  {
 			node->parent->right = right;
 		}
 	} else {
-		dict->root = right;
+		heap->root = right;
 	}
 	right->left = node;
 	node->parent = right;
@@ -113,39 +113,39 @@ dict_rotate_left(dict, node)
  *
  */
 void
-dict_rotate_right(dict, node)
-	dict_t *dict;
+heap_rotate_right(heap, node)
+	heap_t *heap;
 	dnode_t *node;
 {
 	dnode_t *left = node->left;
 	node->left = left->right;
-	if(left->right != DICT_NULL)
+	if(left->right != HEAP_NULL)
 		left->right->parent = node;
 
 	left->parent = node->parent;
 
-	if(node->parent != DICT_NULL) {
+	if(node->parent != HEAP_NULL) {
 		if(node == node->parent->right) {
 			node->parent->right = left;
 		} else  {
 			node->parent->left = left;
 		}
 	} else {
-		dict->root = left;
+		heap->root = left;
 	}
 	left->right = node;
 	node->parent = left;
 };
 
 void
-dict_insert_fixup(dict, node)
-	dict_t *dict;
+heap_insert_fixup(heap, node)
+	heap_t *heap;
 	dnode_t *node;
 {
 	dnode_t	*uncle;
 
 	/* While not at the root and need fixing... */
-	while(node != dict->root && node->parent->color == RED) {
+	while(node != heap->root && node->parent->color == RED) {
 		/* If our parent is left child of our grandparent... */
 		if(node->parent == node->parent->parent->left) {
 			uncle = node->parent->parent->right;
@@ -165,12 +165,12 @@ dict_insert_fixup(dict, node)
 				/* Are we the right child? */
 				if(node == node->parent->right) {
 					node = node->parent;
-					dict_rotate_left(dict, node);
+					heap_rotate_left(heap, node);
 				}
 				/* Now we're the left child, repaint and rotate... */
 				node->parent->color = BLACK;
 				node->parent->parent->color = RED;
-				dict_rotate_right(dict, node->parent->parent);
+				heap_rotate_right(heap, node->parent->parent);
 			}
 		} else {
 			uncle = node->parent->parent->left;
@@ -190,23 +190,23 @@ dict_insert_fixup(dict, node)
 				/* Are we the right child? */
 				if(node == node->parent->left) {
 					node = node->parent;
-					dict_rotate_right(dict, node);
+					heap_rotate_right(heap, node);
 				}
 				/* Now we're the right child, repaint and rotate... */
 				node->parent->color = BLACK;
 				node->parent->parent->color = RED;
-				dict_rotate_left(dict, node->parent->parent);
+				heap_rotate_left(heap, node->parent->parent);
 			}
 		}
 	}
-	dict->root->color = BLACK;
+	heap->root->color = BLACK;
 }
 
 
 /*
- * Inserts a node into a dictionary.
+ * Inserts a node into a heapionary.
  *
- * Returns if dict->mallocf() fails or the pointer to the newly added
+ * Returns if heap->mallocf() fails or the pointer to the newly added
  * data otherwise.
  *
  * If told to overwrite will replace the duplicate key and data with
@@ -216,8 +216,8 @@ dict_insert_fixup(dict, node)
  *
  */
 void *
-dict_insert(dict, key, data, overwrite)
-	dict_t *dict;
+heap_insert(heap, key, data, overwrite)
+	heap_t *heap;
 	void *key, *data;
 	int overwrite;
 {
@@ -225,13 +225,13 @@ dict_insert(dict, key, data, overwrite)
 	int r = 0;
 
 	/* We start at the root of the tree */
-	dnode_t	*node = dict->root;
-	dnode_t	*parent = DICT_NULL;
+	dnode_t	*node = heap->root;
+	dnode_t	*parent = HEAP_NULL;
 
 	/* Lets find the new parent... */
-	while(node != DICT_NULL) {
+	while(node != HEAP_NULL) {
 		/* Compare two keys, do we have a duplicate? */
-		if((r = dict->cmp(key, node->key)) == 0) {
+		if((r = heap->cmp(key, node->key)) == 0) {
 			if(overwrite) {
 				node->key = key;
 				node->data = data;
@@ -248,52 +248,52 @@ dict_insert(dict, key, data, overwrite)
 	}
 
 	/* Create the new node */
-	if((node = dict->mallocf(sizeof(dnode_t))) == NULL) {
+	if((node = heap->mallocf(sizeof(dnode_t))) == NULL) {
 		return NULL;
 	}
 
 	node->parent = parent;
-	node->left = node->right = DICT_NULL;
+	node->left = node->right = HEAP_NULL;
 	node->color = RED;
 	node->key = key;
 	node->data = data;
-	dict->count++;
+	heap->count++;
 
 	/* Insert it into the tree... */
-	if(parent != DICT_NULL) {
+	if(parent != HEAP_NULL) {
 		if(r < 0) {
 			parent->left = node;
 		} else {
 			parent->right = node;
 		}
 	} else {
-		dict->root = node;
+		heap->root = node;
 	}
 
 	/* Fix up the red-black properties... */
-	dict_insert_fixup(dict, node);
+	heap_insert_fixup(heap, node);
 
 	return node->data;
 };
 
 /*
- * Searches the dictionary, returns the data if key is found or NULL otherwise.
+ * Searches the heapionary, returns the data if key is found or NULL otherwise.
  *
  */
 void *
-dict_search(dict, key)
-	dict_t *dict;
+heap_search(heap, key)
+	heap_t *heap;
 	void *key;
 {
 	int r;
 	dnode_t *node;
 
 	/* We start at root... */
-	node = dict->root;
+	node = heap->root;
 
 	/* While there are children... */
-	while(node != DICT_NULL) {
-		if((r = dict->cmp(key, node->key)) == 0) {
+	while(node != HEAP_NULL) {
+		if((r = heap->cmp(key, node->key)) == 0) {
 			return node->data;
 		}
 		if(r < 0) {
@@ -306,16 +306,16 @@ dict_search(dict, key)
 }
 
 /*
- * Finds the first element in the dictionary
+ * Finds the first element in the heapionary
  *
  */
 dnode_t *
-dict_first(dict)
-	dict_t *dict;
+heap_first(heap)
+	heap_t *heap;
 {
 	dnode_t *node;
 
-	for(node = dict->root; node->left != DICT_NULL; node = node->left);
+	for(node = heap->root; node->left != HEAP_NULL; node = node->left);
 	return node;
 }
 
@@ -324,17 +324,17 @@ dict_first(dict)
  *
  */
 dnode_t *
-dict_next(node)
+heap_next(node)
 	dnode_t *node;
 {
 	dnode_t *parent;
 
-	if(node->right != DICT_NULL) {
+	if(node->right != HEAP_NULL) {
 		/* One right, then keep on going left... */
-		for(node = node->right; node->left != DICT_NULL; node = node->left);
+		for(node = node->right; node->left != HEAP_NULL; node = node->left);
 	} else {
 		parent = node->parent;
-		while(parent != DICT_NULL && node == parent->right) {
+		while(parent != HEAP_NULL && node == parent->right) {
 			node = parent;
 			parent = parent->parent;
 		}
@@ -343,25 +343,25 @@ dict_next(node)
 	return node;
 }
 
-/* void dict_delete __P((dict_t *, void *, int, int)); */
+/* void heap_delete __P((heap_t *, void *, int, int)); */
 void
-dict_destroy(dict, freekeys, freedata)
-	dict_t *dict;
+heap_destroy(heap, freekeys, freedata)
+	heap_t *heap;
 	int freekeys;
 	int freedata;
 {
 	dnode_t *parent;
 	dnode_t *node;
 
-	if(dict == NULL) return;
-	node = dict->root;
+	if(heap == NULL) return;
+	node = heap->root;
 
-	while(node != DICT_NULL) {
+	while(node != HEAP_NULL) {
 		parent = node->parent;
-		if(node->left != DICT_NULL) {
+		if(node->left != HEAP_NULL) {
 			/* Go all the way to the left... */
 			node = node->left;
-		} else if(node->right != DICT_NULL) {
+		} else if(node->right != HEAP_NULL) {
 			/* Then to the right... */
 			node = node->right;
 		} else {
@@ -371,17 +371,17 @@ dict_destroy(dict, freekeys, freedata)
 				free(node->data);
 			free(node);
 
-			if(parent != DICT_NULL) {
+			if(parent != HEAP_NULL) {
 				if(parent->left == node) {
-					parent->left = DICT_NULL;
+					parent->left = HEAP_NULL;
 				} else {
-					parent->right = DICT_NULL;
+					parent->right = HEAP_NULL;
 				}
 			}
 			node = parent;
 		}
 	}
-	free(dict);
+	free(heap);
 }
 
 #ifdef TEST
@@ -393,24 +393,25 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-	dict_t *dict;
+	heap_t *heap;
 	char buf[BUFSZ];
 	char *key, *data;
 
-	if((dict = dict_create(malloc, strcmp)) == NULL) {
-		perror("cannot create dictionary");
+	if((heap = heap_create(malloc, strcmp)) == NULL) {
+		perror("cannot create heapionary");
 		exit(1);
 	}
 
 	while(fgets(buf, BUFSZ - 1, stdin)) {
-		if(dict_insert(dict, strdup(buf), strdup(buf), 1) == NULL) {
-			perror("cannot insert into a dictionary");
+		if(heap_insert(heap, strdup(buf), strdup(buf), 1) == NULL) {
+			perror("cannot insert into a heapionary");
 			exit(1);
 		}
 	}
-	DICT_WALK(dict, key, data) {
+	HEAP_WALK(heap, key, data) {
 		printf("%s", key);
 	}
-	dict_destroy(dict, 1, 1);
+	heap_destroy(heap, 1, 1);
+	return 0;
 }
 #endif

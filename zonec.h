@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.3 2002/01/29 15:40:50 alexis Exp $
+ * $Id: zonec.h,v 1.4 2002/02/04 09:57:37 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -52,7 +52,7 @@
 
 #include <db.h>
 
-#include "dict.h"
+#include "heap.h"
 #include "namedb.h"
 #include "dns.h"
 #include "zf.h"
@@ -72,8 +72,8 @@ struct rrset {
 
 struct zone {
 	u_char *dname;
-	dict_t	*cuts;
-	dict_t	*data;
+	heap_t	*cuts;
+	heap_t	*data;
 	struct rrset *soa;
 	struct rrset *ns;
 };

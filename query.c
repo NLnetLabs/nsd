@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.21 2002/02/04 09:47:45 alexis Exp $
+ * $Id: query.c,v 1.22 2002/02/04 09:57:37 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -231,6 +231,12 @@ query_process(q, db)
 	}
 	*qnamelow++ = *qptr++;
 	qnamelow = qnamebuf + 2;
+
+	/* Make sure name is not too long... */
+	if((qnamelen = qptr - (q->iobuf + QHEADERSZ)) > MAXDOMAINLEN || TC(q)) {
+		RCODE_SET(q, RCODE_FORMAT);
+		return 0;
+	}
 
 	bcopy(qptr, &qtype, 2); qptr += 2;
 	bcopy(qptr, &qclass, 2); qptr += 2;

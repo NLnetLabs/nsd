@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.12 2002/02/02 14:01:42 alexis Exp $
+ * $Id: zonec.c,v 1.13 2002/02/04 09:57:37 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -94,7 +94,7 @@ zone_print(z)
 	printf("; zone %s\n", dnamestr(z->dname));
 	printf("; zone data\n");
 
-	DICT_WALK(z->data, (char *)dname, rrset) {
+	HEAP_WALK(z->data, (char *)dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
 				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
@@ -107,7 +107,7 @@ zone_print(z)
 	}
 
 	printf("; zone cuts\n");
-	DICT_WALK(z->cuts, (char *)dname, rrset) {
+	HEAP_WALK(z->cuts, (char *)dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
 				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
@@ -328,8 +328,8 @@ zone_free(z)
 {
 	if(z) {
 		if(z->dname) free(z->dname);
-		dict_destroy(z->cuts, 1, 1);
-		dict_destroy(z->data, 1, 1);
+		heap_destroy(z->cuts, 1, 1);
+		heap_destroy(z->data, 1, 1);
 		free(z);
 	}
 }
@@ -344,7 +344,7 @@ zone_read(name, zonefile, cache)
 	char *zonefile;
 	int cache;
 {
-	dict_t *h;
+	heap_t *h;
 	int i;
 
 	struct zone *z;
@@ -369,8 +369,8 @@ zone_read(name, zonefile, cache)
 	}
 
 	/* Two heaps: zone cuts and other data */
-	z->cuts = dict_create(xalloc, dnamecmp);
-	z->data = dict_create(xalloc, dnamecmp);
+	z->cuts = heap_create(xalloc, dnamecmp);
+	z->data = heap_create(xalloc, dnamecmp);
 	z->soa = z->ns = NULL;
 
 	/* Read the file */
@@ -404,7 +404,7 @@ zone_read(name, zonefile, cache)
 		}
 
 		/* Do we have this domain name in heap? */
-		if((rrset = dict_search(h, rr->dname)) != NULL) {
+		if((rrset = heap_search(h, rr->dname)) != NULL) {
 			for(r = rrset; r; r = r->next) {
 				if(r->type == rr->type)
 					break;
@@ -428,7 +428,7 @@ zone_read(name, zonefile, cache)
 			/* Add it */
 			if(rrset == NULL) {
 				/* XXX We can use this more smart... */
-				dict_insert(h, strdup(rr->dname), r, 1);
+				heap_insert(h, strdup(rr->dname), r, 1);
 			} else {
 				r->next = rrset->next;
 				rrset->next = r;
@@ -510,7 +510,7 @@ zone_dump(z, db)
 	DBT key, data;
 
 	/* AUTHORITY CUTS */
-	DICT_WALK(z->cuts, (char *)dname, rrset) {
+	HEAP_WALK(z->cuts, (char *)dname, rrset) {
 		/* Make sure the data is intact */
 		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
 
@@ -545,7 +545,7 @@ zone_dump(z, db)
 		/* Additional section */
 		for(i = 0; i < msg.dnameslen; i++) {
 
-			additional = dict_search(z->data, msg.dnames[i]);
+			additional = heap_search(z->data, msg.dnames[i]);
 
 			/* This is a glue record */
 			if((*dname < *msg.dnames[i]) &&
@@ -593,7 +593,7 @@ zone_dump(z, db)
 	}
 
 	/* OTHER DATA */
-	DICT_WALK(z->data, (char *)dname, rrset) {
+	HEAP_WALK(z->data, (char *)dname, rrset) {
 		/* Skip out of zone data */
 		if(rrset->glue == 1)
 			continue;
@@ -611,7 +611,7 @@ zone_dump(z, db)
  			assert(rrset->next == NULL);
  			cnamerrset = rrset;
  			cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
- 			rrset = dict_search(z->data, cname);
+ 			rrset = heap_search(z->data, cname);
  		} else {
  			cnamerrset = NULL;
  			cname = NULL;
@@ -679,7 +679,7 @@ zone_dump(z, db)
 
 			/* Additional section */
 			for(i = 0; i < msg.dnameslen; i++) {
-				additional = dict_search(z->data, msg.dnames[i]);
+				additional = heap_search(z->data, msg.dnames[i]);
 				while(additional) {
 					if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
 						msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
@@ -703,7 +703,7 @@ zone_dump(z, db)
 
 		/* Additional section for TYPE_ANY */
 		for(i = 0; i < msgany.dnameslen; i++) {
-			additional = dict_search(z->data, msgany.dnames[i]);
+			additional = heap_search(z->data, msgany.dnames[i]);
 			while(additional) {
 				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
 					msgany.arcount += zone_addrrset(&msgany, msgany.dnames[i], additional);

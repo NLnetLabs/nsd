@@ -1,7 +1,7 @@
 /*
- * $Id: dict.h,v 1.3 2002/01/28 23:24:34 alexis Exp $
+ * $Id: heap.h,v 1.4 2002/02/04 09:57:37 alexis Exp $
  *
- * dict.h -- generic dictionary based on red-black tree
+ * heap.h -- generic heapionary based on red-black tree
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -38,8 +38,8 @@
  *
  */
 
-#ifndef _DICT_H_
-#define	_DICT_H_
+#ifndef _HEAP_H_
+#define	_HEAP_H_
 
 #if !defined(__P)
 #	if defined(__STDC__)
@@ -63,11 +63,11 @@ struct dnode_t {
 	void	*data;
 };
 
-#define	DICT_NULL &dict_null_node
-extern	dnode_t	dict_null_node;
+#define	HEAP_NULL &heap_null_node
+extern	dnode_t	heap_null_node;
 
-typedef struct dict_t dict_t;
-struct dict_t {
+typedef struct heap_t heap_t;
+struct heap_t {
 	/* The root of the red-black tree */
 	dnode_t	*root;
 
@@ -82,18 +82,18 @@ struct dict_t {
 	int (*cmp) ();
 };
 
-dict_t *dict_create __P((void *(*)(), int (*)()));
-void *dict_insert __P((dict_t *, void *, void *, int));
-void *dict_search __P((dict_t *, void *));
-void dict_delete __P((dict_t *, void *, int, int));
-void dict_destroy __P((dict_t *, int, int));
-dnode_t *dict_first __P((dict_t *));
-dnode_t *dict_next __P((dnode_t *));
-#define	dict_last() DICT_NULL
+heap_t *heap_create __P((void *(*)(), int (*)()));
+void *heap_insert __P((heap_t *, void *, void *, int));
+void *heap_search __P((heap_t *, void *));
+void heap_delete __P((heap_t *, void *, int, int));
+void heap_destroy __P((heap_t *, int, int));
+dnode_t *heap_first __P((heap_t *));
+dnode_t *heap_next __P((dnode_t *));
+#define	heap_last() HEAP_NULL
 
-#define	DICT_WALK(dict, k, d) \
-	for((dict)->_node = dict_first(dict), (k) = (dict)->_node->key, (d) = (dict)->_node->data;\
-		(dict)->_node != dict_last(); \
-		(dict)->_node = dict_next((dict)->_node), (k) = (dict)->_node->key, (d) = (dict)->_node->data)
+#define	HEAP_WALK(heap, k, d) \
+	for((heap)->_node = heap_first(heap), (k) = (heap)->_node->key, (d) = (heap)->_node->data;\
+		(heap)->_node != heap_last(); \
+		(heap)->_node = heap_next((heap)->_node), (k) = (heap)->_node->key, (d) = (heap)->_node->data)
 
-#endif /* _DICT_H_ */
+#endif /* _HEAP_H_ */
