@@ -74,11 +74,12 @@ must be generated beforehand with
 (8).
 By default NSD will bind to all local interfaces available. Use the -a
 .Ar ip-address
-option to specify a single particular interface address to be bound. If this option
-is given more than once,
+option to specify a single particular interface address to be
+bound. If this option is given more than once,
 .Ic NSD
-will bind its UDP sockets to all the specified ip-addresses separately and
-use INADDR_ANY for the TCP socket.
+will bind its UDP and TCP sockets to all the specified ip-addresses
+separately.  If IPv6 is enabled when NSD is compiled an IPv6 address
+can also be specified.
 .Pp
 Normally
 .Ic NSD
