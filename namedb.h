@@ -19,13 +19,6 @@
 #define	NAMEDB_MAGIC		"NSDdbV06"
 #define	NAMEDB_MAGIC_SIZE	8
 
-#if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
-#define	NAMEDB_NORMALIZE	toupper
-#else
-#define	NAMEDB_NORMALIZE	tolower
-#endif
-
-
 typedef union rdata_atom rdata_atom_type;
 typedef struct rrset rrset_type;
 typedef struct rr rr_type;

@@ -16,7 +16,11 @@
 #include "buffer.h"
 #include "region-allocator.h"
 
+#if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
+#define DNAME_NORMALIZE        toupper
+#else
 #define DNAME_NORMALIZE        tolower
+#endif
 
 
 /*

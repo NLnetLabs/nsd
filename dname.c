@@ -78,7 +78,7 @@ dname_make(region_type *region, const uint8_t *name, int normalize)
 			ssize_t len = label_length(src);
 			*dst++ = *src++;
 			for (i = 0; i < len; ++i) {
-				*dst++ = NAMEDB_NORMALIZE(*src++);
+				*dst++ = DNAME_NORMALIZE(*src++);
 			}
 		}
 		*dst = *src;
@@ -382,12 +382,12 @@ strdname (const char *source, const uint8_t *o)
 						   (s[3] - '0'));
 					if (val >= 0 && val <= UCHAR_MAX) {
 						s += 3;
-						*p = NAMEDB_NORMALIZE(val);
+						*p = DNAME_NORMALIZE(val);
 					} else {
-						*p = NAMEDB_NORMALIZE(*++s);
+						*p = DNAME_NORMALIZE(*++s);
 					}
 				} else if (s[1] != '\0') {
-					*p = NAMEDB_NORMALIZE(*++s);
+					*p = DNAME_NORMALIZE(*++s);
 				}
 				break;
 			default:
