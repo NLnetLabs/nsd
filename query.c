@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.85 2003/01/20 09:43:16 alexis Exp $
+ * $Id: query.c,v 1.86 2003/01/20 15:58:30 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -218,7 +218,7 @@ query_addtxt (struct query *q, u_char *dname, int class, int32_t ttl, char *txt)
 }
 
 void 
-query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
+query_addanswer (struct query *q, u_char *dname, struct answer *a, int trunc)
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -259,7 +259,7 @@ query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
 	}
 
 	/* If we dont need truncation, return... */
-	if(!truncate) {
+	if(!trunc) {
 		q->iobufptr += ANSWER_DATALEN(a);
 		return;
 	}
