@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.6 2003/08/18 16:20:03 miekg Exp $
+ * $Id: zparser2.c,v 1.7 2003/08/19 07:23:57 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -941,17 +941,6 @@ cat_dname(const uint8_t *left, const uint8_t *right)
     sleft = (size_t) left[0];
     sright= (size_t) right[0];
 
-    /*
-    printf("left %s\n", left+2);
-    printf("right %s\n", right+2);
-    printf("left %d\n", left[1]);
-    printf("right %d\n", right[1]);
-    printf("left %d\n", left[0]);
-    printf("right %d\n", right[0]);
-    printf("sleft %d + sright %d\n", sleft, sright);
-    fflush;
-    */
-    
     dname = (uint8_t*)xalloc( sleft + sright);
     dname[0] = (uint8_t) (sleft + sright - 1);  /* the new length */
 
