@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.2 2003/04/15 15:13:03 alexis Exp $
+ * $Id: nsq.c,v 1.3 2003/04/22 11:31:51 alexis Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -619,7 +619,7 @@ extern int optind;
 int 
 main (int argc, char *argv[])
 {
-	int c, s;
+	int c, s, i;
 	struct query q;
 	struct in_addr pin;
 	int port = 53;
@@ -630,7 +630,7 @@ main (int argc, char *argv[])
 	u_int16_t qclass = CLASS_IN;
 	u_char *qdname;
 	int qopcode = 0;
-	struct RR **rrs, *rr;
+	struct RR **rrs;
 
 	/* Randomize for query ID... */
 	srand(time(NULL));
@@ -755,8 +755,8 @@ main (int argc, char *argv[])
 		}
 
 		/* Print it */
-		for(rr = *rrs; rr != NULL; rr++) {
-			zprintrr(stdout, rr);
+		for(i = 0; rrs[i] != NULL; i++) {
+			zprintrr(stdout, rrs[i]);
 		}
 		break;
 	}
