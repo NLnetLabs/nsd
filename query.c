@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.57 2002/04/23 12:33:48 alexis Exp $
+ * $Id: query.c,v 1.58 2002/04/23 13:18:38 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -164,11 +164,13 @@ query_process(q, db)
 
 	/* Sanity checks */
 	if(QR(q)) return -1;	/* Not a query? Drop it on the floor. */
-	*(u_int16_t *)(q->iobuf + 2) = 0;
-	QR_SET(q);		/* This is an answer */
 
 	/* Do we serve this type of query */
 	if(OPCODE(q) != OPCODE_QUERY) {
+		/* Setup the header... */
+		*(u_int16_t *)(q->iobuf + 2) = 0;
+		QR_SET(q);		/* This is an answer */
+
 #ifdef	MIMIC_BIND8
 		RCODE_SET(q, RCODE_REFUSE);
 #else
@@ -181,6 +183,10 @@ query_process(q, db)
 
 		return 0;
 	}
+
+	/* Setup the header... */
+	*(u_int16_t *)(q->iobuf + 2) = 0;
+	QR_SET(q);		/* This is an answer */
 
 
 	/* Dont bother to answer more than one question at once... */
