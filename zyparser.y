@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.32 2003/09/03 15:32:13 miekg Exp $
+ * $Id: zyparser.y,v 1.33 2003/09/04 09:51:15 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -359,6 +359,7 @@ yyerror(const char *s)
 {
     fprintf(stderr,"error: %s in %s, line %lu\n",s, zdefault->filename,
     (unsigned long) zdefault->line);
+    zdefault->errors++;
     /*if ( zdefault->errors++ > 50 ) {
         fprintf(stderr,"too many errors (50+)\n");
         exit(1);
