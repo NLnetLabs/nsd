@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-axfr.c,v 1.9 2003/06/16 15:13:16 erik Exp $
+ * $Id: nsd-axfr.c,v 1.10 2003/06/17 14:50:24 erik Exp $
  *
  * nsd-axfr.c -- axfr utility for nsd(8)
  *
@@ -54,10 +54,10 @@
 #include <netdb.h>
 #include <unistd.h>
 
-
 #include <dns.h>
 #include <namedb.h>
 #include <dname.h>
+#include <network.h>
 #include <nsd.h>
 #include <query.h>
 #include <zparser.h>
@@ -122,7 +122,7 @@ void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [-F] [-p port] [-f zonefile] zone servers\n", progname);
+		"usage: %s [-4] [-6] [-F] [-p port] [-f zonefile] zone servers\n", progname);
 	exit(1);
 }
 
@@ -183,25 +183,32 @@ main (int argc, char *argv[])
 	struct RR **rrs;
 	u_char *zname;
 	char *zonefile = NULL;
-	struct hostent *h;
 	int transfer;
-	int port = 53;
+	const char *port = "53";
 	int force = 0;
 	u_int16_t id = 0;
 	u_int32_t serial = 0;
-
+	struct addrinfo *addrinfo;
+	int family = DEFAULT_AI_FAMILY;
+	
 	/* Randomize for query ID... */
 	srand(time(NULL));
 
 	/* Parse the command line... */
 	progname = *argv;
-	while((c = getopt(argc, argv, "p:f:F")) != -1) {
+	while((c = getopt(argc, argv, "46p:f:F")) != -1) {
 		switch (c) {
+		case '4':
+			family = PF_INET;
+			break;
+#ifdef INET6
+		case '6':
+			family = PF_INET6;
+			break;
+#endif
 		case 'p':
 			/* Port */
-			if((port = atoi(optarg)) <= 0) {
-				error("the port arguement must be a positive integer\n");
-			}
+			port = optarg;
 			break;
 		case 'F':
 			force++;
@@ -247,38 +254,45 @@ main (int argc, char *argv[])
 	}
 
 
+	addrinfo = NULL;
+
 	/* Try every server in turn.... */
 	for(argv++, argc--; *argv; argv++, argc--) {
-		/* Set up the query... */
-		q.addrlen = sizeof(q.addr);
-		memset(&q.addr, 0, q.addrlen);
-		q.addr.sin_port = htons(port);
-		q.addr.sin_family = AF_INET;
-
-		/* Try to resolve it... */
-		if((h = gethostbyname(*argv)) == NULL) {
-			fprintf(stderr, "unable to resolve %s", *argv);
-			herror(NULL);
+		struct addrinfo *addr;
+		
+		if (addrinfo != NULL) {
+			freeaddrinfo(addrinfo);
+			addrinfo = NULL;
+		}
+		if (nw_host_lookup(&addrinfo, *argv, port, SOCK_STREAM, family, 0) != 0) {
+			fprintf(stderr, "skipping illegal ip address: %s port %s\n", *argv, port);
 			continue;
 		}
 
-	    /* Now walk the addresses... */
-	    for(;*h->h_addr_list != NULL; h->h_addr_list++)
-		memcpy(&q.addr.sin_addr.s_addr, *h->h_addr_list, h->h_length);
-
+		addr = addrinfo;
+		
 		/* Make a tcp connection... */
-		if((s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-			fprintf(stderr, "failed creating a socket: %s\n", strerror(errno));
-			continue;
-		}
+		do {
+			s = socket(addr->ai_family, SOCK_STREAM, 0);
+			if (s == -1) {
+				fprintf(stderr, "socket: %s\n", strerror(errno));
+				addr = addr->ai_next;
+			}
+		} while (s == -1 && addr != NULL);
 
+		if (s == -1)
+			continue;
+	      
 		/* Connect to the server */
-		if(connect(s, (struct sockaddr *)&q.addr, q.addrlen) == -1) {
+		if(connect(s, addr->ai_addr, addr->ai_addrlen) == -1) {
 			fprintf(stderr, "unable to connect to %s: %s\n", *argv, strerror(errno));
 			close(s);
 			continue;
 		}
 
+		memcpy(&q.addr, addr->ai_addr, addr->ai_addrlen);
+		q.addrlen = addr->ai_addrlen;
+		
 		/* Send the query */
 		id = rand();
 		if(query(s, &q, zname, TYPE_SOA, CLASS_IN, id, 0, 1, 0, 1) != 0) {
@@ -348,7 +362,7 @@ main (int argc, char *argv[])
 					if(ntohl(*(u_int32_t *)(&rrs[i]->rdata[2][1])) != serial) {
 						fprintf(stderr, "zone changed during the transfer, retry...\n");
 						/* retrys++; */
-						h->h_addr_list--;
+						/*XXX: h->h_addr_list--; */
 						rrs = NULL;
 						break;
 					}

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.72 2003/06/16 15:13:16 erik Exp $
+ * $Id: nsd.c,v 1.73 2003/06/17 14:50:26 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -66,6 +66,7 @@
 #include <dns.h>
 #include <dname.h>
 #include <namedb.h>
+#include <network.h>
 #include <nsd.h>
 #include <query.h>
 
@@ -106,7 +107,7 @@ xrealloc (register void *p, register size_t size)
 void
 usage (void)
 {
-	fprintf(stderr, "usage: nsd [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
+	fprintf(stderr, "usage: nsd [-4] [-6] [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
 	exit(1);
 }
 
@@ -249,7 +250,7 @@ sig_handler (int sig)
 	}
 
 	/* Distribute the signal to the servers... */
-	for (i = 1; i <= nsd.tcp.open_conn; ++i) {
+	for (i = 1; i <= nsd.tcp_open_conn; ++i) {
 		if (kill(nsd.pid[i], sig) == -1) {
 			syslog(LOG_ERR, "problems killing %d: %m", nsd.pid[i]);
 		}
@@ -369,31 +370,31 @@ main (int argc, char *argv[])
 	int i, c;
 	pid_t	oldpid;
 
+	/* For initialising the address info structures */
+	const char *nodes[MAX_INTERFACES];
+	const char *udp_port;
+	const char *tcp_port;
+	int family[MAX_INTERFACES];
+
+	for (i = 0; i < MAX_INTERFACES; ++i) {
+		family[i] = DEFAULT_AI_FAMILY;
+	}
+	
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.dbfile	= DBFILE;
 	nsd.pidfile	= PIDFILE;
-	nsd.tcp.open_conn = 1;
+	nsd.tcp_open_conn = 1;
 
-	for(i = 0; i < MAX_INTERFACES; i++) {
-		nsd.udp[i].addr.sin_addr.s_addr = INADDR_ANY;
-		nsd.udp[i].addr.sin_port = htons(UDP_PORT);
-		nsd.udp[i].addr.sin_family = AF_INET;
+	/* Initialise the ports */
+	udp_port = UDP_PORT;
+	tcp_port = TCP_PORT;
+
+	for (i = 0; i < MAX_INTERFACES; ++i) {
+		nodes[i] = NULL;
 	}
 
-        nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
-        nsd.tcp.addr.sin_port = htons(TCP_PORT);
-        nsd.tcp.addr.sin_family = AF_INET;
-
-#ifdef INET6
-        nsd.udp6.addr.sin6_port = htons(UDP_PORT);	/* XXX: SHOULD BE UDP6_PORT? */
-        nsd.udp6.addr.sin6_family = AF_INET6;
-
-        nsd.tcp6.addr.sin6_port = htons(TCP_PORT);	/* XXX: SHOULD BE TCP6_PORT? */
-        nsd.tcp6.addr.sin6_family = AF_INET6;
-#endif /* INET6 */
-
-	nsd.tcp.max_msglen = TCP_MAX_MESSAGE_LEN;
+	nsd.tcp_max_msglen = TCP_MAX_MESSAGE_LEN;
 	nsd.identity	= IDENTITY;
 	nsd.version	= VERSION;
 	nsd.username	= USER;
@@ -434,13 +435,23 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "a:df:p:i:u:t:s:n:")) != -1) {
+	while((c = getopt(argc, argv, "46a:df:p:i:u:t:s:n:")) != -1) {
 		switch (c) {
+		case '4':
+			for (i = 0; i < MAX_INTERFACES; ++i) {
+				family[i] = PF_INET;
+			}
+			break;
+#ifdef INET6
+		case '6':
+			for (i = 0; i < MAX_INTERFACES; ++i) {
+				family[i] = PF_INET6;
+			}
+			break;
+#endif
 		case 'a':
-			if((nsd.tcp.addr.sin_addr.s_addr = nsd.udp[nsd.ifs++].addr.sin_addr.s_addr
-					= inet_addr(optarg)) == (in_addr_t) -1)
-				usage();
-			
+			nodes[nsd.ifs] = optarg;
+			++nsd.ifs;
 			break;
 		case 'd':
 			nsd.debug = 1;
@@ -449,14 +460,8 @@ main (int argc, char *argv[])
 			nsd.dbfile = optarg;
 			break;
 		case 'p':
-			for(i = 0; i < MAX_INTERFACES; i++) {
-				nsd.udp[i].addr.sin_port = htons(atoi(optarg));
-			}
-			nsd.tcp.addr.sin_port = htons(atoi(optarg));
-#ifdef INET6
-			nsd.udp6.addr.sin6_port = htons(atoi(optarg));
-			nsd.tcp6.addr.sin6_port = htons(atoi(optarg));
-#endif /* INET6 */
+			tcp_port = optarg;
+			udp_port = optarg;
 			break;
 		case 'i':
 			nsd.identity = optarg;
@@ -475,7 +480,7 @@ main (int argc, char *argv[])
 				syslog(LOG_ERR, "max number of tcp connections must be less than %d",
 					TCP_MAX_CONNECTIONS);
 			} else {
-				nsd.tcp.open_conn = i;
+				nsd.tcp_open_conn = i;
 			}
 			break;
 		case 's':
@@ -496,11 +501,49 @@ main (int argc, char *argv[])
 	if(argc != 0)
 		usage();
 
-	/* If multiple -a let nsd bind tcp socket to every interface */
-	if(nsd.ifs > 1)
-		nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
-	if(nsd.ifs == 0)
-		nsd.ifs++;
+	/* We need at least one active interface */
+	if(nsd.ifs == 0) {
+		nsd.ifs = 1;
+
+		/*
+		 * With IPv6 we'd like to open two separate sockets,
+		 * one for IPv4 and one for IPv6, both listening to
+		 * the wildcard address (unless the -4 or -6 flags are
+		 * specified).
+		 *
+		 * However, this is only supported on platforms where
+		 * we can turn the socket option IPV6_V6ONLY _on_.
+		 * Otherwise we just listen to a single IPv6 socket
+		 * and any incoming IPv4 connections will be
+		 * automatically mapped to our IPv6 socket.
+		 */
+#ifdef INET6
+		if (family[0] == PF_UNSPEC) {
+# ifdef IPV6_V6ONLY
+			family[0] = PF_INET6;
+			family[1] = PF_INET;
+			nsd.ifs = 2;
+# else
+			family[0] = PF_INET6;
+# endif
+		}
+#endif
+	}
+
+	/* Set up the address info structures with real interface/port data */
+	for(i = 0; i < nsd.ifs; i++) {
+		int flags = AI_PASSIVE;
+		
+		/* We don't perform name-lookups */
+		if (nodes[i] != NULL)
+			flags = AI_NUMERICHOST;
+		
+		if (nw_host_lookup(&nsd.udp[i].addr, nodes[i], udp_port, SOCK_DGRAM, family[i], flags) != 0)
+			usage();
+		
+		if (nw_host_lookup(&nsd.tcp[i].addr, nodes[i], udp_port, SOCK_STREAM, family[i], flags) != 0)
+			usage();
+	}
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();

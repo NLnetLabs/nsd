@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.55 2003/06/16 15:13:16 erik Exp $
+ * $Id: nsd.h,v 1.56 2003/06/17 14:50:27 erik Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -75,6 +75,8 @@ struct	nsd {
 	int		mode;
 	struct namedb	*db;
 	int		debug;
+	size_t		tcp_max_msglen;
+	time_t  	tcp_timeout;	/* XXX: Why is this unused ? */
 
 	/* Configuration */
 	const char	*dbfile;
@@ -86,34 +88,19 @@ struct	nsd {
 	const char	*version;
 	const char	*identity;
 	int	ifs;
+	int	tcp_open_conn;
 
 	/* TCP specific configuration */
 	struct	{
-		int		open_conn;
-		time_t		timeout;
-		size_t		max_msglen;
-		struct sockaddr_in	addr;
-		int		s;
-	} tcp;
+		struct addrinfo	*	addr;
+		int			s;
+	} tcp[MAX_INTERFACES];
 
 	/* UDP specific configuration */
 	struct	{
-		struct sockaddr_in	addr;
-		int		s;
+		struct addrinfo	*	addr;
+		int			s;
 	} udp[MAX_INTERFACES];
-
-#ifdef INET6
-	struct {
-		struct sockaddr_in6 addr;
-		int	s;
-	} udp6;
-
-	struct {
-		struct sockaddr_in6 addr;
-		int s;
-	} tcp6;
-
-#endif /* INET6 */
 
 	struct {
 		u_int16_t	max_msglen;

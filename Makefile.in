@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.37 2003/06/16 15:16:53 erik Exp $
+# $Id: Makefile.in,v 1.38 2003/06/17 14:50:21 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -116,17 +116,17 @@ uninstall:
 	@echo
 	@echo "You still need to remove $(configdir) directory by hand."
 
-nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o $(LIBOBJS)
-	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
+nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o network.o $(LIBOBJS)
+	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o network.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
-zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o $(LIBOBJS)
+zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o  $(LIBOBJS)
 	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o $(LIBOBJS) $(LIBS)
 
-nsq:	zparser.h dns.h nsq.o client.o zparser.o dname.o $(LIBOBJS)
-	$(LINK) -o $@ nsq.o client.o zparser.o dname.o $(LIBOBJS) $(LIBS)
+nsq:	zparser.h dns.h nsq.o client.o zparser.o dname.o network.o $(LIBOBJS)
+	$(LINK) -o $@ nsq.o client.o zparser.o dname.o network.o $(LIBOBJS) $(LIBS)
 
-nsd-axfr:	zparser.h dns.h nsd-axfr.o client.o zparser.o dname.o $(LIBOBJS)
-	$(LINK) -o $@ nsd-axfr.o client.o zparser.o dname.o $(LIBOBJS) $(LIBS)
+nsd-axfr:	zparser.h dns.h nsd-axfr.o client.o zparser.o dname.o network.o $(LIBOBJS)
+	$(LINK) -o $@ nsd-axfr.o client.o zparser.o dname.o network.o $(LIBOBJS) $(LIBS)
 
 clean:
 	rm -f zonec nsd zparser hash rbtree nsd-axfr nsq *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
@@ -178,12 +178,13 @@ client.o: client.c config.h dns.h namedb.h heap.h rbtree.h dname.h nsd.h \
 dbaccess.o: dbaccess.c config.h namedb.h heap.h rbtree.h
 dbcreate.o: dbcreate.c config.h namedb.h heap.h rbtree.h
 dname.o: dname.c config.h dns.h dname.h namedb.h heap.h rbtree.h
+network.o: network.c config.h network.h
 nsd-axfr.o: nsd-axfr.c config.h dns.h namedb.h heap.h rbtree.h dname.h \
-  nsd.h query.h zparser.h client.h
+  network.h nsd.h query.h zparser.h client.h
 nsd.o: nsd.c config.h dns.h dname.h namedb.h heap.h rbtree.h nsd.h \
   query.h
-nsq.o: nsq.c config.h dns.h namedb.h heap.h rbtree.h dname.h nsd.h \
-  zparser.h query.h zonec.h client.h
+nsq.o: nsq.c config.h dns.h namedb.h heap.h rbtree.h dname.h network.h \
+  nsd.h zparser.h query.h zonec.h client.h
 query.o: query.c config.h dns.h dname.h nsd.h namedb.h heap.h rbtree.h \
   query.h
 rbtree.o: rbtree.c rbtree.h

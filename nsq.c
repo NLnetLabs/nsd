@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.9 2003/06/16 15:13:16 erik Exp $
+ * $Id: nsq.c,v 1.10 2003/06/17 14:50:28 erik Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -57,6 +57,7 @@
 #include <dns.h>
 #include <namedb.h>
 #include <dname.h>
+#include <network.h>
 #include <nsd.h>
 #include <zparser.h>
 #include <query.h>
@@ -130,7 +131,7 @@ void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: %s [-p port] [-i id] [-a] [-r] [-o opcode] [-t type] [-c class] domain servers\n",
+		"usage: %s [-4] [-6] [-p port] [-i id] [-a] [-r] [-o opcode] [-t type] [-c class] domain servers\n",
 			progname);
 	exit(1);
 }
@@ -147,8 +148,7 @@ main (int argc, char *argv[])
 {
 	int c, s, i;
 	struct query q;
-	struct in_addr pin;
-	int port = 53;
+	const char *port = "53";
 	u_int32_t qid;
 	int aflag = 0;
 	int rflag = 0;
@@ -157,20 +157,28 @@ main (int argc, char *argv[])
 	const u_char *qdname;
 	int qopcode = 0;
 	struct RR **rrs;
-
+	struct addrinfo *addrinfo;
+	int family = DEFAULT_AI_FAMILY;
+	
 	/* Randomize for query ID... */
 	srand(time(NULL));
 	qid = rand();
 
 	/* Parse the command line... */
 	progname = *argv;
-	while((c = getopt(argc, argv, "p:i:aro:t:c:")) != -1) {
+	while((c = getopt(argc, argv, "46p:i:aro:t:c:")) != -1) {
 		switch (c) {
+		case '4':
+			family = PF_INET;
+			break;
+#ifdef INET6
+		case '6':
+			family = PF_INET6;
+			break;
+#endif
 		case 'p':
 			/* Port */
-			if((port = atoi(optarg)) <= 0) {
-				error("the port arguement must be a positive integer\n");
-			}
+			port = optarg;
 			break;
 		case 'i':
 			/* Query ID */
@@ -240,34 +248,46 @@ main (int argc, char *argv[])
 		error("invalid domain name");
 	}
 
+	addrinfo = NULL;
 	/* Try every server in turn.... */
 	for(argv++, argc--; *argv; argv++, argc--) {
-		/* Do we have a valid ip address here? */
-		q.addrlen = sizeof(q.addr);
-		memset(&q.addr, 0, q.addrlen);
-		q.addr.sin_port = htons(port);
-		q.addr.sin_family = AF_INET;
-
-		if(inet_aton(*argv, &pin) == 1) {
-			q.addr.sin_addr.s_addr = pin.s_addr;
-		} else {
-			fprintf(stderr, "skipping illegal ip address: %s", *argv);
+		struct addrinfo *addr;
+		int rc;
+		
+		if (addrinfo != NULL) {
+			freeaddrinfo(addrinfo);
+			addrinfo = NULL;
+		}
+		rc = nw_host_lookup(&addrinfo, *argv, port, SOCK_STREAM, family, 0);
+		if (rc != 0) {
+			fprintf(stderr, "nsq: %s:%s: %s\n", *argv, port, gai_strerror(rc));
 			continue;
 		}
 
+		addr = addrinfo;
+		
 		/* Make a tcp connection... */
-		if((s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-			fprintf(stderr, "failed creating a socket: %s\n", strerror(errno));
+		do {
+			s = socket(addr->ai_family, SOCK_STREAM, 0);
+			if (s == -1) {
+				fprintf(stderr, "socket: %s\n", strerror(errno));
+				addr = addr->ai_next;
+			}
+		} while (s == -1 && addr != NULL);
+
+		if (s == -1)
 			continue;
-		}
 
 		/* Connect to the server */
-		if(connect(s, (struct sockaddr *)&q.addr, q.addrlen) == -1) {
+		if(connect(s, addr->ai_addr, addr->ai_addrlen) == -1) {
 			fprintf(stderr, "unable to connect to %s: %s\n", *argv, strerror(errno));
 			close(s);
 			continue;
 		}
 
+		memcpy(&q.addr, addr->ai_addr, addr->ai_addrlen);
+		q.addrlen = addr->ai_addrlen;
+		
 		/* Send the query */
 		if(query(s, &q, qdname, qtype, qclass, qid, qopcode, aflag, rflag, 1) != 0) {
 			close(s);

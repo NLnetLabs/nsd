@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.70 2003/06/12 12:31:18 erik Exp $
+ * $Id: server.c,v 1.71 2003/06/17 14:50:31 erik Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -62,6 +62,7 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include <dns.h>
 #include <namedb.h>
@@ -78,7 +79,7 @@ int
 delete_tcp_child_pid(struct nsd *nsd, pid_t pid)
 {
 	int i;
-	for (i = 1; i <= nsd->tcp.open_conn; ++i) {
+	for (i = 1; i <= nsd->tcp_open_conn; ++i) {
 		if (nsd->pid[i] == pid) {
 			nsd->pid[i] = 0;
 			return 1;
@@ -96,7 +97,7 @@ restart_tcp_child_servers(struct nsd *nsd)
 	int i;
 
 	/* Pre-fork the tcp processes... */
-	for (i = 1; i <= nsd->tcp.open_conn; ++i) {
+	for (i = 1; i <= nsd->tcp_open_conn; ++i) {
 		if (nsd->pid[i] == 0) {
 			nsd->pid[i] = nsd->debug ? 0 : fork();
 			switch (nsd->pid[i]) {
@@ -123,7 +124,7 @@ int
 server_init(struct nsd *nsd)
 {
 	int i;
-#if defined(INET6) || defined(IPV6_V6ONLY) || defined(SO_REUSEADDR)
+#if defined(SO_REUSEADDR) || (defined(INET6) && defined(IPV6_V6ONLY))
 	int on = 1;
 #endif
 
@@ -131,105 +132,64 @@ server_init(struct nsd *nsd)
 
 	/* Make a socket... */
 	for(i = 0; i < nsd->ifs; i++) {
-		if((nsd->udp[i].s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+		if((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
 			syslog(LOG_ERR, "cant create a socket: %m");
 			return -1;
 		}
 
+#if defined(INET6) && defined(IPV6_V6ONLY)
+		if (nsd->udp[i].addr->ai_family == PF_INET6 &&
+		    setsockopt(nsd->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
+		{
+			syslog(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %m");
+			return -1;
+		}
+#endif
+
 		/* Bind it... */
-		if(bind(nsd->udp[i].s, (struct sockaddr *)&nsd->udp[i].addr, sizeof(nsd->udp[i].addr)) != 0) {
+		if(bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
 			syslog(LOG_ERR, "cant bind the socket: %m");
 			return -1;
 		}
 	}
 
-#ifdef INET6
-	/* UDP6 */
-
-	/* Make a socket... */
-	if((nsd->udp6.s = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
-		syslog(LOG_ERR, "cant create a socket: %m");
-		return -1;
-	}
-
-# ifdef IPV6_V6ONLY
-	if (setsockopt(nsd->udp6.s, IPPROTO_IPV6, IPV6_V6ONLY,
-			&on, sizeof (on)) < 0) {
-		syslog(LOG_ERR, "setsockopt(..., IPV6ONLY, ...) failed: %m");
-		return -1;
-	}
-# endif
-
-	/* Bind it... */
-	if(bind(nsd->udp6.s, (struct sockaddr *)&nsd->udp6.addr, sizeof(nsd->udp6.addr)) != 0) {
-		syslog(LOG_ERR, "cant bind the socket: %m");
-		return -1;
-	}
-#endif
-
 	/* TCP */
 
 	/* Make a socket... */
-	if((nsd->tcp.s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		syslog(LOG_ERR, "cant create a socket: %m");
-		return -1;
-	}
+	for(i = 0; i < nsd->ifs; i++) {
+		if((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
+			syslog(LOG_ERR, "cant create a socket: %m");
+			return -1;
+		}
 
 #ifdef	SO_REUSEADDR
-	if(setsockopt(nsd->tcp.s, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) < 0) {
-		syslog(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %m");
-		return -1;
-	}
+		if(setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+			syslog(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %m");
+			return -1;
+		}
 #endif /* SO_REUSEADDR */
 
-	/* Bind it... */
-	if(bind(nsd->tcp.s, (struct sockaddr *)&nsd->tcp.addr, sizeof(nsd->tcp.addr)) != 0) {
-		syslog(LOG_ERR, "cant bind the socket: %m");
-		return -1;
-	}
-
-	/* Listen to it... */
-	if(listen(nsd->tcp.s, TCP_BACKLOG) == -1) {
-		syslog(LOG_ERR, "cant listen: %m");
-		return -1;
-	}
-
-#ifdef INET6
-	/* TCP6 */
-
-	/* Make a socket... */
-	if((nsd->tcp6.s = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
-		syslog(LOG_ERR, "cant create a socket: %m");
-		return -1;
-	}
-
-# ifdef IPV6_V6ONLY
-	if (setsockopt(nsd->tcp6.s, IPPROTO_IPV6, IPV6_V6ONLY,
-			(char *)&on, sizeof (on)) < 0) {
-		syslog(LOG_ERR, "setsockopt(..., IPV6_ONLY, ...) failed: %m");
-		return -1;
-	}
-# endif
-
-#ifdef	SO_REUSEADDR
-	if(setsockopt(nsd->tcp6.s, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) < 0) {
-		syslog(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %m");
-		return -1;
-	}
-#endif /* SO_REUSEADDR */
-
-	/* Bind it... */
-	if(bind(nsd->tcp6.s, (struct sockaddr *)&nsd->tcp6.addr, sizeof(nsd->tcp6.addr)) != 0) {
-		syslog(LOG_ERR, "cant bind the socket: %m");
-		return -1;
-	}
-
-	/* Listen to it... */
-	if(listen(nsd->tcp6.s, TCP_BACKLOG) == -1) {
-		syslog(LOG_ERR, "cant listen: %m");
-		return -1;
-	}
+#if defined(INET6) && defined(IPV6_V6ONLY)
+		if (nsd->tcp[i].addr->ai_family == PF_INET6 &&
+		    setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
+		{
+			syslog(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %m");
+			return -1;
+		}
 #endif
+
+		/* Bind it... */
+		if(bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
+			syslog(LOG_ERR, "cant bind the socket: %m");
+			return -1;
+		}
+
+		/* Listen to it... */
+		if(listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
+			syslog(LOG_ERR, "cant listen: %m");
+			return -1;
+		}
+	}
 
 	/* Chroot */
 	if(nsd->chrootdir) {
@@ -274,7 +234,7 @@ server_start_tcp(struct nsd *nsd)
 	int i;
 
 	/* Start all child servers initially.  */
-	for (i = 1; i <= nsd->tcp.open_conn; ++i) {
+	for (i = 1; i <= nsd->tcp_open_conn; ++i) {
 		nsd->pid[i] = 0;
 	}
 
@@ -293,13 +253,6 @@ close_all_udp_sockets(struct nsd *nsd)
 			nsd->udp[i].s = -1;
 		}
 	}
-
-#ifdef INET6
-	if (nsd->udp6.s != -1) {
-		close(nsd->udp6.s);
-		nsd->udp6.s = -1;
- 	}
-#endif /* INET6 */
 }
 
 /*
@@ -310,16 +263,16 @@ close_all_udp_sockets(struct nsd *nsd)
 void
 server_shutdown(struct nsd *nsd)
 {
+	int i;
 #ifdef	BIND8_STATS
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
 	close_all_udp_sockets(nsd);
 
-	close(nsd->tcp.s);
-#ifdef INET6
-	close(nsd->tcp6.s);
-#endif /* INET6 */
+	for (i = 0; i < nsd->ifs; ++i) {
+		close(nsd->tcp[i].s);
+	}
 
 	exit(0);
 }
@@ -410,11 +363,6 @@ server_udp(struct nsd *nsd)
 			maxfd = nsd->udp[i].s;
 		}
 
-#ifdef INET6
-		FD_SET(nsd->udp6.s, &peer);
-		maxfd = nsd->udp6.s > maxfd ? nsd->udp6.s : maxfd;
-#endif
-
 		/* Wait for a query... */
 		if(select(maxfd + 1, &peer, NULL, NULL, NULL) == -1) {
 			if(errno == EINTR) {
@@ -431,18 +379,18 @@ server_udp(struct nsd *nsd)
 		for(i = 0; i < nsd->ifs; i++) {
 			if(FD_ISSET(nsd->udp[i].s, &peer)) {
 				s = nsd->udp[i].s;
-				/* Account... */
-				STATUP(nsd, qudp);
+				if (nsd->udp[i].addr->ai_family == AF_INET)
+				{
+					/* Account... */
+					STATUP(nsd, qudp);
+				} else if (nsd->udp[i].addr->ai_family == AF_INET6) {
+					/* Account... */
+					STATUP(nsd, qudp6);
+				}
 				break;
 			}
 		}
-#ifdef INET6
-		if(s == -1 && FD_ISSET(nsd->udp6.s, &peer)) {
-			s = nsd->udp6.s;
-			/* Account... */
-			STATUP(nsd, qudp6);
-		}
-#endif /* INET6 */
+
 		if(s == -1) {
 			syslog(LOG_ERR, "selected non-existant socket");
 			continue;
@@ -509,7 +457,7 @@ void
 server_tcp(struct nsd *nsd)
 {
 	fd_set peer;
-	int received, sent, axfr, maxfd, s;
+	int received, sent, axfr, maxfd, s, i;
 	u_int16_t tcplen;
 	struct query q;
 
@@ -540,13 +488,13 @@ server_tcp(struct nsd *nsd)
 
 		/* Set it up */
 		FD_ZERO(&peer);
-		FD_SET(nsd->tcp.s, &peer);
-		maxfd = nsd->tcp.s;
 
-#ifdef INET6
-		FD_SET(nsd->tcp6.s, &peer);
-		maxfd = nsd->tcp6.s > maxfd ? nsd->tcp6.s : maxfd;
-#endif
+		maxfd = nsd->tcp[0].s;
+
+		for(i = 0; i < nsd->ifs; i++) {
+			FD_SET(nsd->tcp[i].s, &peer);
+			maxfd = nsd->tcp[i].s;
+		}
 
 		/* Break from select() to dump statistics... */
 		siginterrupt(SIGILL, 1);
@@ -564,16 +512,15 @@ server_tcp(struct nsd *nsd)
 		/* Wait for transaction completion before dumping stats... */
 		siginterrupt(SIGILL, 0);
 
-		/* Process it... */
-		if(FD_ISSET(nsd->tcp.s, &peer)) {
-			s = nsd->tcp.s;
+		s = -1;
+		for(i = 0; i < nsd->ifs; i++) {
+			if(FD_ISSET(nsd->tcp[i].s, &peer)) {
+				s = nsd->tcp[i].s;
+				break;
+			}
 		}
-#ifdef INET6
-		else if (FD_ISSET(nsd->tcp6.s, &peer)) {
-			s = nsd->tcp6.s;
-		}
-#endif /* INET6 */
-		else {
+
+		if(s == -1) {
 			syslog(LOG_ERR, "selected non-existant socket");
 			continue;
 		}
@@ -593,7 +540,7 @@ server_tcp(struct nsd *nsd)
 		/* Initialize the query... */
 		query_init(&q);
 
-		q.maxlen = (q.iobufsz > nsd->tcp.max_msglen) ? nsd->tcp.max_msglen : q.iobufsz;
+		q.maxlen = (q.iobufsz > nsd->tcp_max_msglen) ? nsd->tcp_max_msglen : q.iobufsz;
 		q.tcp = 1;
 
 		/* Until we've got end of file */
