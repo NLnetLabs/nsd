@@ -852,6 +852,7 @@ query_process(struct query *q, struct nsd *nsd)
 	/* The query... */
 	uint8_t *qptr;
 	int recursion_desired;
+	int checking_disabled;
 	query_state_type query_state;
 	
 	/* Sanity checks */
@@ -909,16 +910,19 @@ query_process(struct query *q, struct nsd *nsd)
 #endif
 	}
 
-	/* Save the RD flag (RFC1034 4.1.1).  */
+	/* Save the RD and CD flags.  */
 	recursion_desired = RD(q);
+	checking_disabled = CD(q);
 
 	/* Zero the flags... */
 	*(uint16_t *)(q->iobuf + 2) = 0;
 	
 	QR_SET(q);		/* This is an answer */
 	if (recursion_desired)
-		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
-
+		RD_SET(q);	/* Restore the RD flag.  */
+	if (checking_disabled)
+		CD_SET(q);	/* Restore the CD flag.  */
+	
 	if (q->class != CLASS_IN && q->class != CLASS_ANY) {
 		if (q->class == CLASS_CHAOS) {
 			return answer_chaos(nsd, q);
