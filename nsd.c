@@ -447,9 +447,6 @@ main (int argc, char *argv[])
 			i = atoi(optarg);
 			if (i <= 0) {
 				syslog(LOG_ERR, "number of UDP servers must be greather than zero");
-			} else if (i >= MAX_CONNECTIONS) {
-				syslog(LOG_ERR, "number of UDP servers must be less than %d",
-				       MAX_CONNECTIONS);
 			} else {
 				udp_children = i;
 			}
@@ -458,9 +455,6 @@ main (int argc, char *argv[])
 			i = atoi(optarg);
 			if (i <= 0) {
 				syslog(LOG_ERR, "number of TCP servers must be greather than zero");
-			} else if (i >= MAX_CONNECTIONS) {
-				syslog(LOG_ERR, "number of TCP servers must be less than %d",
-					MAX_CONNECTIONS);
 			} else {
 				tcp_children = i;
 			}
@@ -485,13 +479,7 @@ main (int argc, char *argv[])
 
 	/* Number of child servers to fork.  */
 	nsd.child_count = udp_children + tcp_children;
-
-	if (nsd.child_count > MAX_CONNECTIONS) {
-		syslog(LOG_ERR, "total number of child servers must be less than %d",
-		       MAX_CONNECTIONS);
-		nsd.child_count = MAX_CONNECTIONS;
-	}
-	
+	nsd.children = xalloc(nsd.child_count * sizeof(struct nsd_child));
 	for (i = 0; i < udp_children; ++i) {
 		nsd.children[i].kind = NSD_SERVER_UDP;
 	}

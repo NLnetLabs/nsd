@@ -94,8 +94,8 @@ struct	nsd {
 	size_t		tcp_max_msglen;
 	time_t  	tcp_timeout;	/* XXX: Why is this unused ? */
 
-	size_t           child_count;
-	struct nsd_child children[MAX_CONNECTIONS];
+	size_t            child_count;
+	struct nsd_child *children;
 	
 	/* Configuration */
 	const char	*dbfile;
