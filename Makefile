@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.57.4.1 2002/05/21 09:49:08 alexis Exp $
+# $Id: Makefile,v 1.57.4.2 2002/05/21 11:41:39 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -39,6 +39,9 @@
 SHELL = /bin/sh
 
 # Run-time enviroment settings
+
+# This particular server id.server
+NSDIDENTITY	= \'NLnet LABS nameserver @open.nlnetlabs.nl\'
 
 # The directory where the nsd nsdc and zonec binaries will be installed
 PREFIX		= /usr/local
@@ -146,7 +149,8 @@ nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
 	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
-		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" $@.in > $@
+		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" \
+		-e "s,@@NSDIDENTITY@@,${NSDIDENTITY},g" $@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
