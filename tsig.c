@@ -186,6 +186,7 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->key = key;
 	tsig->prior_mac_size = 0;
 	tsig->prior_mac_data = NULL;
+	/* XXX: allocate rr_region lazily instead! */
 	tsig->rr_region = region_create(xalloc, free);
 	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
 }
