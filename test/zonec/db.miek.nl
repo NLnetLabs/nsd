@@ -14,10 +14,10 @@ $TTL    1H
 @	IN	MX	10 
 @	IN	A	192.168.1.2
 
-a	IN	A	192.168.1.2
+a	IN	A	192.1.2
 www     IN      CNAME   a
 smtp    IN      CNAME   a
-mail    IN      CNAME   a
+mail    IN      NAME    A
 
 ; extra stuff to fight spam
 frodo	IN	MX	10 elektron.atoom.net.

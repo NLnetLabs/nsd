@@ -79,7 +79,6 @@ line:   NL
     |   DIR_ORIG dir_orig
     |   rr
     {   /* rr should be fully parsed */
-        /*zprintrr(stderr, current_rr); DEBUG */
 	    if (current_rr->type != 0) {
 		    current_rr->zone = current_parser->current_zone;
 		    current_rr->rrdata = region_alloc_init(
@@ -156,7 +155,7 @@ ttl:    STR
     {
         /* set the ttl */
         if ( (current_rr->rrdata->ttl = zparser_ttl2int($1.str) ) == -1 )
-            current_rr->rrdata->ttl = DEFAULT_TTL;
+            current_rr->rrdata->ttl = current_parser->ttl;
     }
     ;
 
