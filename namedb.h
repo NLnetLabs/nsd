@@ -95,7 +95,7 @@ struct domain {
 	void     *runtime_data; /* Additional run-time data (used for plugins) */
 };
 
-#define	NAMEDB_MAGIC		"NSDdbV02"
+#define	NAMEDB_MAGIC		"NSDdbV03"
 #define	NAMEDB_MAGIC_SIZE	8
 
 #define	NAMEDB_RRSET_WHITE	0x8000U

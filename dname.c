@@ -80,7 +80,7 @@ dname_common_label_count(dname_type *left, dname_type *right)
 #endif
 
 const dname_type *
-dname_make(region_type *region, const uint8_t *name, int copy)
+dname_make(region_type *region, const uint8_t *name)
 {
 	size_t name_size = 0;
 	uint8_t label_offsets[MAXDOMAINLEN];
@@ -117,17 +117,15 @@ dname_make(region_type *region, const uint8_t *name, int copy)
 		label_offsets[label_count - i - 1] = tmp;
 	}
 
-	result = region_alloc(region, sizeof(dname_type) + label_count * sizeof(uint8_t));
+	result = region_alloc(region, sizeof(dname_type) + (label_count + name_size) * sizeof(uint8_t));
 	result->name_size = name_size;
 	result->label_count = label_count;
 	memcpy((uint8_t *) dname_label_offsets(result),
 	       label_offsets,
 	       label_count * sizeof(uint8_t));
-	result->name
-		= (copy
-		   ? region_alloc_init(
-			   region, name, name_size * sizeof(uint8_t))
-		   : name);
+	memcpy((uint8_t *) dname_name(result),
+	       name,
+	       name_size * sizeof(uint8_t));
 	return result;
 }
 
@@ -138,8 +136,8 @@ dname_parse(region_type *region, const char *name, const dname_type *origin)
 	uint8_t buf[MAXDOMAINLEN + 1];
 	assert(origin);
 	buf[0] = origin->name_size;
-	memcpy(buf + 1, origin->name, origin->name_size);
-	return dname_make(region, strdname(name, buf) + 1, 1);
+	memcpy(buf + 1, dname_name(origin), origin->name_size);
+	return dname_make(region, strdname(name, buf) + 1);
 }
 
 
@@ -150,14 +148,15 @@ dname_copy(region_type *region, const dname_type *dname)
 
 	assert(dname);
 
-	result = region_alloc(region, sizeof(dname_type) + dname->label_count * sizeof(uint8_t));
+	result = region_alloc(region, sizeof(dname_type) + (dname->label_count + dname->name_size) * sizeof(uint8_t));
 	result->name_size = dname->name_size;
 	result->label_count = dname->label_count;
 	memcpy((uint8_t *) dname_label_offsets(result),
 	       dname_label_offsets(dname),
 	       result->label_count * sizeof(uint8_t));
-	result->name = region_alloc_init(
-		region, dname->name, result->name_size * sizeof(uint8_t));
+	memcpy((uint8_t *) dname_name(result),
+	       dname_name(dname),
+	       result->name_size * sizeof(uint8_t));
 	
 	return result;
 }

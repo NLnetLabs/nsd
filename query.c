@@ -110,7 +110,7 @@ query_axfr (struct nsd *nsd, struct query *q, const uint8_t *qname)
 	if(qname) {
 		/* New AXFR... */
 		*zone = q->name->name_size;
-		memcpy(zone + 1, q->name->name, q->name->name_size);
+		memcpy(zone + 1, dname_name(q->name), q->name->name_size);
 
 		/* Do we have the SOA? */
 		if (dname_tree_search(nsd->db->dnames, q->name, &less_equal, &closest_encloser)
@@ -380,7 +380,7 @@ process_query_section(struct query *query)
 		return NULL;
 	}
 
-	query->name = dname_make(query->region, qnamebuf, 1);
+	query->name = dname_make(query->region, qnamebuf);
 
 	memcpy(&query->query_type, src, sizeof(uint16_t));
 	memcpy(&query->query_class, src + sizeof(uint16_t), sizeof(uint16_t));
@@ -644,14 +644,14 @@ answer_chaos(struct nsd *nsd, struct query *q)
 	case TYPE_ANY:
 	case TYPE_TXT:
 		if(q->name->name_size == 11
-		   && memcmp(dname_labels(q->name), "\002id\006server", 11) == 0)
+		   && memcmp(dname_name(q->name), "\002id\006server", 11) == 0)
 		{
 			/* Add ID */
 			query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->identity);
 			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
 			return 1;
 		} else if (q->name->name_size == 16
-			   && memcmp(dname_labels(q->name), "\007version\006server", 16) == 0)
+			   && memcmp(dname_name(q->name), "\007version\006server", 16) == 0)
 		{
 			/* Add version */
 			query_addtxt(q, q->iobuf + 12, CLASS_CHAOS, 0, nsd->version);
@@ -682,7 +682,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q, const uint8_t *qname, int *is
 #ifdef LIBWRAP
 			struct request_info request;
 #ifdef AXFR_DAEMON_PREFIX
-			const uint8_t *qptr = dname_labels(q->name);
+			const uint8_t *qptr = dname_name(q->name);
 			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
 			char *t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1;
 

@@ -85,9 +85,10 @@ namedb_put (struct namedb *db, const uint8_t *dname, struct domain *d)
 {
 	/* Store the key */
 	static const char zeroes[NAMEDB_ALIGNMENT];
-	size_t padding = PADDING(*dname + 1, NAMEDB_ALIGNMENT);
-
-	if (write(db->fd, dname, *dname + 1) == -1) {
+	const dname_type *domain = dname_make(db->region, dname + 1);
+	size_t padding = PADDING(dname_total_size(domain), NAMEDB_ALIGNMENT);
+	
+	if (write(db->fd, domain, dname_total_size(domain)) == -1) {
 		return -1;
 	}
 

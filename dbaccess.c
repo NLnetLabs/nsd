@@ -186,13 +186,13 @@ namedb_open (const char *filename)
 	p += NAMEDB_MAGIC_SIZE;
 
 	while(*p) {
-		const dname_type *dname = dname_make(region, p + 1, 0);
-		if(dname_tree_update(db->dnames, dname, p + ALIGN_UP(*p + 1, NAMEDB_ALIGNMENT)) == NULL) {
+		const dname_type *dname = (const dname_type *) p;
+		if (dname_tree_update(db->dnames, dname, p + ALIGN_UP(dname_total_size(dname), NAMEDB_ALIGNMENT)) == NULL) {
 			log_msg(LOG_ERR, "failed to insert a domain: %s", strerror(errno));
 			namedb_close(db);
 			return NULL;
 		}
-		p += ALIGN_UP(*p + 1, NAMEDB_ALIGNMENT);
+		p += ALIGN_UP(dname_total_size(dname), NAMEDB_ALIGNMENT);
 		p += *((uint32_t *)p);
 		if(p > (db->mpool + db->mpoolsz)) {
 			log_msg(LOG_ERR, "corrupted database %s", db->filename);

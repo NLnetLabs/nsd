@@ -54,13 +54,6 @@ typedef struct dname dname_type;
 struct dname
 {
 	/*
-	 * The actual name in wire format (a sequence of label, each
-	 * prefixed by a length byte, terminated by a zero length
-	 * label).
-	 */
-	const uint8_t *name;
-	
-	/*
 	 * The size (in bytes) of the domain name in wire format.
 	 */
 	uint8_t name_size;
@@ -70,6 +63,11 @@ struct dname
 	 * root label).
 	 */
 	uint8_t label_count;
+
+	/*
+	  uint8_t label_offsets[label_count];
+	  uint8_t name[name_size];
+	*/
 };
 
 /*
@@ -78,7 +76,7 @@ struct dname
  *
  * Pre: NAME != NULL.
  */
-const dname_type *dname_make(region_type *region, const uint8_t *name, int copy);
+const dname_type *dname_make(region_type *region, const uint8_t *name);
 
 /*
  * Construct a new domain name based on the ASCII representation NAME.
@@ -112,6 +110,19 @@ dname_label_offsets(const dname_type *dname)
 }
 
 /*
+ * The actual name in wire format (a sequence of label, each
+ * prefixed by a length byte, terminated by a zero length
+ * label).
+ */
+static inline const uint8_t *
+dname_name(const dname_type *dname)
+{
+	return (const uint8_t *) ((const char *) dname
+				  + sizeof(dname_type)
+				  + dname->label_count * sizeof(uint8_t));
+}
+
+/*
  * Return the label for DNAME specified by LABEL_INDEX.  The first
  * label (LABEL_INDEX == 0) is the root label, the next label is the
  * TLD, etc.
@@ -129,7 +140,7 @@ dname_label(const dname_type *dname, uint8_t label)
 	label_index = dname_label_offsets(dname)[label];
 	assert(label_index < dname->name_size);
 		
-	return dname->name + label_index;
+	return dname_name(dname) + label_index;
 }
 
 /*
@@ -144,10 +155,12 @@ dname_label(const dname_type *dname, uint8_t label)
  */
 int dname_compare(const dname_type *left, const dname_type *right);
 
-static inline const uint8_t *
-dname_labels(const dname_type *dname)
+static inline size_t
+dname_total_size(const dname_type *dname)
 {
-	return dname->name;
+	return (sizeof(dname_type)
+		+ ((dname->label_count + dname->name_size)
+		   * sizeof(uint8_t)));
 }
 
 /*
