@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.12 2003/06/02 11:52:53 erik Exp $
+ * $Id: nsd.c,v 1.56.2.13 2003/06/05 15:13:18 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -611,7 +611,7 @@ main(argc, argv)
 	exit(0);
 }
 
-
+
 /* Emacs:
 
 Local Variables:

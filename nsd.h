@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.43.2.3 2003/06/02 11:52:54 erik Exp $
+ * $Id: nsd.h,v 1.43.2.4 2003/06/05 15:13:19 erik Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -185,7 +185,7 @@ int restart_tcp_child_servers __P((struct nsd *nsd));
 
 #endif	/* _NSD_H_ */
 
-
+
 /* Emacs:
 
 Local Variables:

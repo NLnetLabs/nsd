@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59.2.9 2003/06/02 12:19:03 erik Exp $
+ * $Id: server.c,v 1.59.2.10 2003/06/05 15:13:20 erik Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -651,7 +651,7 @@ server_tcp(struct nsd *nsd)
 	/* NOTREACH */
 }
 
-
+
 /* Emacs:
 
 Local Variables:
