@@ -11,6 +11,8 @@ BUG FIXES:
           packets).
         - NSD now prints its version number and exits when invoked
           with the -v flag (bug #57).
+        - NSD prints help information and exits when invoked with the
+          -h flag.
 
 1.2.0
 =============
