@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.27 2003/10/23 18:41:39 miekg Exp $
+ * $Id: zparser2.c,v 1.28 2003/10/27 18:20:27 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -346,14 +346,6 @@ zparser_conv_domain(region_type *region, domain_type *domain)
 	return r;
 }
 
-uint16_t * 
-zparser_conv_next(region_type *region, const char *nxtlist)
-{
-	/* nxtlist: a list of RR type, for each type a specific bit
-	 * must be turned on in the bit list
-	 */
-}
-	
 uint16_t *
 zparser_conv_rrtype(region_type *region, const char *rr)
 {
@@ -361,6 +353,17 @@ zparser_conv_rrtype(region_type *region, const char *rr)
 	 * that. This is mainly used by SIG in the type-covered
 	 * field
 	 */
+	/* [XXX] error handling */
+	uint16_t *r = NULL;
+	
+	r = region_alloc(region, sizeof(uint16_t) + sizeof(uint16_t));
+
+	*(r+1)  = htons((uint16_t) 
+			intbyname(rr, ztypes)
+			);
+            
+	*r = sizeof(uint16_t);
+	return r;
 }
 
 /* 
