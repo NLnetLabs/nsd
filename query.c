@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.61 2002/05/01 16:08:20 alexis Exp $
+ * $Id: query.c,v 1.62 2002/05/01 16:10:17 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -328,11 +328,6 @@ query_process(q, db)
 	case TYPE_AXFR:
 	case TYPE_IXFR:
 			RCODE_SET(q, RCODE_REFUSE);
-			return 0;
-			break;
-	case TYPE_MAILA:
-	case TYPE_MAILB:
-			RCODE_SET(q, RCODE_IMPL);
 			return 0;
 			break;
 	}
