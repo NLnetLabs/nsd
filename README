@@ -244,6 +244,8 @@ nsd             - the daemon itself
 nsdc            - a shell script to control the daemon
 zonec           - zone compiler
 nsd-notify	- a simple C program to send outbound notifies
+nsd-xfer        - a program to receive zones from a master server
+                  using AXFR.
 
 Plus the manual pages.
 
@@ -489,7 +491,7 @@ key-name: nlnetlabs-axfr
 algorithm: hmac-md5
 secret: Y87923jksdXlsdv+LeXpUA==
 
-Then we need to create file ${NSDKEYSDIR}/nlnetlabs.tsiginfo containing:
+Then we need to create file ${NSDKEYSDIR}/nlnetlabs.nl.tsiginfo containing:
 213.53.69.1
 nlnetlabs-axfr
 157
