@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.14 2002/02/05 12:17:33 alexis Exp $
+ * $Id: zonec.c,v 1.15 2002/02/06 10:32:22 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -505,6 +505,7 @@ zone_dump(z, db)
 	struct message msg, msgany;
 	struct rrset *rrset, *cnamerrset, *additional;
 	u_char *dname, *cname, *nameptr;
+	u_char dnamebuf[MAXDOMAINLEN+1];
 	int i, star, namedepth;
 
 	/* AUTHORITY CUTS */
@@ -550,10 +551,10 @@ zone_dump(z, db)
 			    (bcmp(dname + 1, msg.dnames[i] + (*msg.dnames[i] - *dname) + 1, *dname) == 0)) {
 				if(additional == NULL) {
 					fprintf(stderr, "missing glue record\n");
+				} else {
+					/* Mark it as out of zone data */
+					additional->glue = 1;
 				}
-
-				/* Mark it as out of zone data */
-				additional->glue = 1;
 			}
 
 			while(additional) {
@@ -586,6 +587,21 @@ zone_dump(z, db)
 
 	/* OTHER DATA */
 	HEAP_WALK(z->data, (char *)dname, rrset) {
+		/* Skip out of zone data */
+		if(rrset->glue == 1)
+			continue;
+
+		/* This is an ugly slow way to find out of zone data... */
+		bcopy(dname, dnamebuf, *dname + 1);
+		for(nameptr = dnamebuf + 1; *(nameptr - 1) > *z->dname; 
+				nameptr += *nameptr + 1, *(nameptr - 1) = dnamebuf + *dnamebuf - nameptr + 1) {
+
+			if(heap_search(z->cuts, nameptr - 1)) {
+				rrset->glue = 1;
+				break;
+			}
+		}
+
 		/* Skip out of zone data */
 		if(rrset->glue == 1)
 			continue;

@@ -1,4 +1,4 @@
-$Id: TODO,v 1.16 2002/02/02 22:55:04 alexis Exp $
+$Id: TODO,v 1.17 2002/02/06 10:32:22 alexis Exp $
 
 ZONE COMPILER
 - CHECK msg->buf and msg->bla boundaries. IT DOES DUMP CORE.
@@ -7,6 +7,8 @@ ZONE COMPILER
 - better detection of out of zone data
 - make empty pointers arrays for non-delegations
 - deal with multiple glue named style (glue after every NS that needs it)
+
+- major optimization needed when compiling a zone
 
 + replace libdict with own library
 
