@@ -5,13 +5,12 @@ nsd \- Name Server Daemon
 .SH SYNOPSIS
 .B nsd
 [ \fB\-d\fR ]
-[ \fB\-v\fR ]
 [ \fB\-f \fIdatabase\fR ]
 [\fB\-p \fIport\fR]
 .BI database
 
 .SH WARNING
-\fBnsd\fR is currently ALPHA code. There is still rough edges and
+\fBnsd\fR is currently ALPHA code. There are still rough edges and
 bugs. If you run into them please contact \fInsd-bugs@nlnetlabs.nl\fR.
 
 .SH DESCRIPTION
@@ -22,7 +21,8 @@ in mind:
 .TP
 .B RFC Compliant
 \fBnsd\fR is fully compliant with the relevant RFC (1034/35 etc). Only
-were there is a speed tradeoff the compliancy is relaxed (see ???).
+were there is a speed tradeoff the compliancy is relaxed (also see
+REQUIREMENTS in the \fBnsd\fR source).
 .TP
 .B Speed
 The main purpose of \fBnsd\fR is to be able handle lots and lots of
@@ -46,10 +46,6 @@ turn on debugging, \fBnsd\fR will be much more generous with error
 messages.
 
 .TP
-.B \-v
-turn on verbose mode, \fBnsd\fR will be give much more information.
-
-.TP
 .B \-p \fIport\fR
 specify the port number \fBnsd\fR will use. This defaults to 53.
 
@@ -62,19 +58,39 @@ as a argument will superseed this option.
 .B database
 the \fBdatabase\fR \fBnsd\fR will use. This superseeds the \fB-f\fR
 option (if given).
-
-.SH DATABASE
 The database contains all the information about the configured zones
 in a \fImachine dependent\fR format. It is nessecary to compile the
 zone information into this format, \fBzonec\fR is used for this purpose
 (see man 8 zonec).
 
-.SH FILES
-[EXTEND] Lots and lots of them.
+.SH CONFIGURATION FILE
+The configuration file \fBnsd\fR uses has the following syntax
+(";" denotes a comment):
+
+.BR
+
+; zone type     origin          pathname
+
+cache           .               root.cache
+
+zone            example.com     example.com
+
+The first word on a line must be \fIcache\fR or \fIzone\fR.
+It indicates that the zone should be loaded as authorative data 
+(in case of \fIzone\fR) or just like non-authoritative redirection 
+information in case of \fIcache\fR.
+
+Second word is the name (\fIorigin\fR) of the zone.
+The third word is the \fIpathname\fR to the zone file. 
 
 .SH AUTHORS
-\fBnsd\fR is written by Alexis Yushin, Ted Lindgreen, Miek Gieben,
-Erik Roozendaal, Olaf Kolkman, Daniel Karrenberg.    
+\fBnsd\fR is written by                
+Alexis Yushin, Eric Roozendaal, Ted Lindgreen, Miek Gieben (all NLnet
+Labs) and Olaf Kolkman, Daniel Karrenberg both from RIPE NCC.
+
+.SH "SEE ALSO"
+.BR zonec (8),
+.BR nsdc (8).
 
 .SH LATEST CODE
 The latest version of \fBnsd\fR can always be downloaded from

@@ -1,0 +1,64 @@
+.\" @(#)nsd.8 1.0 2002 
+.TH nsdc 8  "20 Feb 2002"
+.SH NAME
+nsdc \- Name Server Daemon Control
+.SH SYNOPSIS
+.B nsdc
+[ 
+\fBstart\fR|\fBstop\fR|\fBreload\fR|\fBrunning\fR|\fBrebuild\fR|\fBrestart\fR
+]
+
+.SH WARNING
+\fBnsdc\fR is currently ALPHA code. There are rough edges and
+bugs. If you run into them please contact \fInsd-bugs@nlnetlabs.nl\fR.
+
+.SH DESCRIPTION
+.B nsdc 
+is the \fBn\fRame\fBs\fRerver \fBd\fRaemon \fBC\fRontrol. It a small
+shell script used as a wrapper for restarting \fBnsd\fR,reloading
+the zone information, etc. etc.
+
+.SH OPTIONS
+.TP
+.B start
+start \fBnsd\fR with some defaults.
+
+.TP
+.B stop
+stop \fBnsd\fR (with SIGTERM signal).
+
+.TP
+.B reload
+reload the database \fBnsd\fR is using.
+
+.TP
+.B running
+check if \fBnsd\fR is running.
+
+.TP
+.B rebuild
+rebuild the zone database using \fBzonec\fR.
+
+.TP
+.B restart
+restart \fBnsd\fR.
+
+.SH AUTHORS
+\fBnsd\fR is written by                
+Alexis Yushin, Eric Roozendaal, Ted Lindgreeni, Miek Gieben (All NLnet
+Labs) and Olaf Kolkman, Daniel Karrenberg both from RIPE NCC.
+
+.SH "SEE ALSO"
+.BR zonec (8),
+.BR nsd (8).
+
+.SH LATEST CODE
+The latest version of \fBnsd\fR can always be downloaded from
+.br
+\fIhttp://www.nlnetlabs.nl/nsd/index.en.html\fR
+
+.SH REPORTING BUGS
+Please report bugs to nsd-bugs@nlnetlabs.nl.
+
+.SH COPYRIGHT
+Copyright NLnet Labs 2002, BSD License.
