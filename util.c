@@ -177,7 +177,10 @@ write_data(FILE *file, const void *data, size_t size)
 {
 	size_t result;
 
-	result = fwrite(data, size, 1, file);
+	if (size == 0)
+		return 1;
+	
+	result = fwrite(data, 1, size, file);
 
 	if (result == 0) {
 		log_msg(LOG_ERR, "write failed: %s", strerror(errno));
