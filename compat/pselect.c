@@ -25,13 +25,17 @@ pselect (int n,
 	int result;
 	sigset_t saved_sigmask;
 	struct timeval saved_timeout;
-	saved_timeout.tv_sec = timeout->tv_sec;
-	saved_timeout.tv_usec = timeout->tv_nsec / 1000;
 
 	if (sigprocmask(SIG_SETMASK, sigmask, &saved_sigmask) == -1)
 		return -1;
 
-	result = select(n, readfds, writefds, exceptfds, &saved_timeout);
+	if (timeout) {
+		saved_timeout.tv_sec = timeout->tv_sec;
+		saved_timeout.tv_usec = timeout->tv_nsec / 1000;
+		result = select(n, readfds, writefds, exceptfds, &saved_timeout);
+	} else {
+		result = select(n, readfds, writefds, exceptfds, NULL);
+	}
 	
 	if (sigprocmask(SIG_SETMASK, &saved_sigmask, NULL) == -1)
 		return -1;
