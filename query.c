@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.63 2002/05/06 13:33:07 alexis Exp $
+ * $Id: query.c,v 1.64 2002/05/06 13:36:15 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -166,6 +166,7 @@ query_axfr(q, db, qname, zname, depth)
 	static struct domain *d;
 	static struct answer *a;
 	static u_char *dname;
+	u_char *qptr;
 	u_char iname[MAXDOMAINLEN+1];
 
 	/* Per AXFR... */
@@ -204,9 +205,15 @@ query_axfr(q, db, qname, zname, depth)
 				a = soa;
 			}
 
+			qptr = q->iobufptr;
+
 			query_addanswer(q, qname, a, 0);
 
-			/* XXX Strip */
+			/* Truncate */
+			NSCOUNT(q) = 0;
+			ARCOUNT(q) = 0;
+			q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+
 			return 1;
 		}
 	}
@@ -246,10 +253,15 @@ query_axfr(q, db, qname, zname, depth)
 	q->iobufptr = q->iobuf + QHEADERSZ + *dname - 2;
 	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
 
+	qptr = q->iobufptr;
+
 	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
 	bcopy(dname + 1, q->iobuf + QHEADERSZ, *dname);
 
-	/* XXX Strip */
+	/* Truncate */
+	NSCOUNT(q) = 0;
+	ARCOUNT(q) = 0;
+	q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
 
 	/* More data... */
 	return 1;
