@@ -131,8 +131,6 @@ main (int argc, char *argv[])
 	if (argc != 1)
 		usage();
 
-	/* dit is een bogus line */
-
         nsd.options = load_configuration(nsd.region, nsd.options_file);
         if (!nsd.options) {
 		error("failed to load configuration file '%s'",
