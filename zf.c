@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.12 2002/02/15 19:32:53 erik Exp $
+ * $Id: zf.c,v 1.13 2002/02/15 19:42:51 erik Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -512,10 +512,6 @@ zf_getchar(struct zf *zf, int start)
 	} else {
 		
 		while((ch = fgetc(zf->i[zf->iptr].file)) == EOF) {
-			if(zf->i[zf->iptr].parentheses) {
-				zf_error(zf, "end of file inside of parentheses");
-			}
-			
 			/*
 			 * Only close include file if we're at the
 			 * start of a token.  This way tokens can
@@ -524,6 +520,10 @@ zf_getchar(struct zf *zf, int start)
 			 */
 			if(!start) {
 				return EOF;
+			}
+			
+			if(zf->i[zf->iptr].parentheses) {
+				zf_error(zf, "end of file inside of parentheses");
 			}
 			
 			if(zf_close_include(zf) == 0) {
@@ -1137,7 +1137,7 @@ struct zf_entry *
 zf_read(struct zf *zf)
 {
 	/* Keep reading till we could parse a line or reached end of file */
-	while(zf_peekchar(zf, 0) != EOF) {
+	while(zf_peekchar(zf, 1) != EOF) {
 		int blank = isspace(zf_peekchar(zf, 0));
 		char *token = zf_token(zf);
 		if (token == NULL)
