@@ -100,7 +100,7 @@ restart_child_servers(struct nsd *nsd)
 
 	/* Fork the child processes... */
 	for (i = 0; i < nsd->child_count; ++i) {
-		if (nsd->children[i].pid == 0) {
+		if (nsd->children[i].pid <= 0) {
 			nsd->children[i].pid = fork();
 			switch (nsd->children[i].pid) {
 			case 0: /* CHILD */
