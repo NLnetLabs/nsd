@@ -1,4 +1,4 @@
-$Id: TODO,v 1.13 2002/01/28 16:52:50 alexis Exp $
+$Id: TODO,v 1.14 2002/01/29 15:27:23 alexis Exp $
 
 ZONE COMPILER
 - check memory usage, leaks and optimization
@@ -16,11 +16,14 @@ SERVER
 
 - replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
 - tune the berkley db nicely
+- in server() dont quit on i/o errors
 
 + first lowercase the query name
 
 PORTABILITY
-- solve alignment problems
+- solve alignment problems (the last one is in the database with mix of size_t and u_shorts)
+- change all the u_short and long to u_int16_t and int32_t
+- consider using u_int8_t in place of u_char?
 
 
 ---------- OLD TODO from the prototype ---------------
