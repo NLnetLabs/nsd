@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.27 2002/02/06 12:00:44 alexis Exp $
+ * $Id: query.c,v 1.28 2002/02/06 12:40:00 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -280,7 +280,8 @@ query_process(q, db)
 					ANCOUNT(q) = 0;
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
-					q->iobufptr = qptr + *(ANSWER_RRS_PTR(a) + 1);
+					if(ANSWER_RRSLEN(a) > 1)
+						q->iobufptr = qptr + *(ANSWER_RRS_PTR(a) + 1);
 
 					return 0;
 				}
@@ -327,7 +328,8 @@ query_process(q, db)
 					ANCOUNT(q) = 0;
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
-					q->iobufptr = qptr + *(ANSWER_RRS_PTR(a) + 1);
+					if(ANSWER_RRSLEN(a) > 1)
+						q->iobufptr = qptr + *(ANSWER_RRS_PTR(a) + 1);
 
 					return 0;
 				}
