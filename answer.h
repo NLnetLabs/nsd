@@ -29,7 +29,6 @@ struct answer {
 };
 
 
-int encode_rr(struct query *query, domain_type *owner, rr_type *rr);
 void encode_answer(struct query *q, const answer_type *answer);
 
 
