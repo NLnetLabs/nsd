@@ -11,6 +11,7 @@ use strict;
 # any diffs from that are stored in $number.$$.diff
 # if there is no diff than nothing happens
 
+my $STRIPDIG="/home/miekg/cvs/nsd/test/all/stripdig.pl";
 my $question;
 my $number;
 my $pid=$$;
@@ -27,7 +28,7 @@ while (<>) {
 
 	$q=$dig . $question;
 	print "Q $number: $q\n";
-	@answer = `$q | ./stripdig.pl`;
+	@answer = `$q | $STRIPDIG`;
 	if ( $? == -1 ) { 
 		print "Failed to query\n";
 		exit 1;

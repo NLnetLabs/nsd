@@ -10,6 +10,7 @@ use strict;
 # this must be carefully check as the .valid files
 # are used to validate answers from other DNS servers
 
+my $STRIPDIG="/home/miekg/cvs/nsd/test/all/stripdig.pl";
 my $question;
 my $number;
 my $pid=$$;
@@ -26,7 +27,7 @@ while (<>) {
 
 	$q=$dig . $question;
 	print "Q $number: $q\n";
-	@answer = `$q | ./stripdig.pl`;
+	@answer = `$q | $STRIPDIG`;
 	if ( $? == -1 ) { 
 		print "Failed to query\n";
 		exit 1;

@@ -1,8 +1,8 @@
 ZONEC=~/cvs/nsd/zonec
 NSD=~/cvs/nsd/nsd
 NSDOPT=-p 5353 -u `whoami`
-MKVALID=./mkvalid
-QUERY=./query
+MKVALID=~/cvs/nsd/test/all/mkvalid
+QUERY=~/cvs/nsd/test/all/query
 
 .PHONY: nsd valid
 
