@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.75.2.2 2002/08/07 16:14:12 alexis Exp $
+ * $Id: query.c,v 1.75.2.3 2002/08/13 13:02:37 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -167,6 +167,9 @@ void
 query_formerr(q)
 	struct query *q;
 {
+	/* Setup the header... */
+	QR_SET(q);		/* This is an answer */
+
 	RCODE_SET(q, RCODE_FORMAT);
 
 	/* Truncate the question as well... */
@@ -365,6 +368,7 @@ query_process(q, nsd)
 	/* Dont bother to answer more than one question at once... */
 	if(ntohs(QDCOUNT(q)) != 1 || TC(q)) {
 		*(u_int16_t *)(q->iobuf + 2) = 0;
+
 		query_formerr(q);
 		return 0;
 	}
