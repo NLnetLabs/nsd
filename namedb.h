@@ -39,6 +39,8 @@
 #ifndef _NAMEDB_H_
 #define	_NAMEDB_H_
 
+#include <stdio.h>
+
 #include "dname.h"
 #include "heap.h"
 #include "region-allocator.h"
@@ -121,7 +123,7 @@ struct namedb {
 	uint8_t *mpool;
 	size_t	mpoolsz;
 	char *filename;
-	int fd;
+	FILE * fd;
 };
 
 /* dbcreate.c */

@@ -173,15 +173,17 @@ xrealloc(void *ptr, size_t size)
 }
 
 int
-write_data(int file, const void *data, size_t size)
+write_data(FILE * file, const void *data, size_t size)
 {
-	ssize_t result;
+	size_t result;
 
-	result = write(file, data, size);
+	/*result = write(file, data, size);*/
+	result = fwrite(data, size, 1, file);
+
 	if (result == -1) {
 		log_msg(LOG_ERR, "write failed: %s", strerror(errno));
 		return 0;
-	} else if ((size_t) result != size) {
+	} else if ((size_t) ( result * size ) != size) {
 		log_msg(LOG_ERR, "short write (disk full?)");
 		return 0;
 	} else {

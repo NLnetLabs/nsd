@@ -75,13 +75,19 @@ namedb_new (const char *filename)
 	}
 	
 	/* Create the database */
-        if ((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
+        /*if ((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
 		region_destroy(region);
 		return NULL;
-        }
+        }*/
+	/* Create the database */
+        if ((db->fd = fopen(db->filename, "w")) == NULL) {
+		region_destroy(region);
+		return NULL;
+	}
+
 
 	if (!write_data(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE)) {
-		close(db->fd);
+		fclose(db->fd);
 		namedb_discard(db);
 		return NULL;
 	}
@@ -119,18 +125,18 @@ namedb_save (struct namedb *db)
 {
 	/* Write an empty key... */
 	if (!write_data(db->fd, "", 1)) {
-		close(db->fd);
+		fclose(db->fd);
 		return -1;
 	}
 
 	/* Write the magic... */
 	if (!write_data(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE)) {
-		close(db->fd);
+		fclose(db->fd);
 		return -1;
 	}
 
 	/* Close the database */
-	close(db->fd);
+	fclose(db->fd);
 
 	region_destroy(db->region);
 	return 0;

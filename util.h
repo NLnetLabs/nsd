@@ -113,6 +113,6 @@ void *xrealloc(void *ptr, size_t size);
  *
  * Returns 0 on failure, 1 on success.
  */
-int write_data(int file, const void *data, size_t size);
+int write_data(FILE * file, const void *data, size_t size);
 
 #endif /* _UTIL_H_ */

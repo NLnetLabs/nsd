@@ -110,14 +110,14 @@ namedb_open (const char *filename)
 	region_add_cleanup(region, free, db->filename);
 
 	/* Open it... */
-	if ((db->fd = open(db->filename, O_RDONLY)) == -1) {
+	if ((db->fd = fopen(db->filename, "r")) == NULL ) {
 		region_destroy(region);
 		return NULL;
 	}
 
 	/* Is it there? */
-	if (fstat(db->fd, &st) == -1) {
-		close(db->fd);
+	if (fstat( fileno(db->fd), &st) == -1) {
+		fclose(db->fd);
 		region_destroy(region);
 		return NULL;
 	}
@@ -132,7 +132,7 @@ namedb_open (const char *filename)
 	db->mpool = mmap(NULL, db->mpoolsz, PROT_READ, MAP_SHARED | MAP_NORESERVE, db->fd, 0);
 	if (db->mpool == MAP_FAILED) {
 		log_msg(LOG_ERR, "mmap failed: %s", strerror(errno));
-		close(db->fd);
+		fclose(db->fd);
 		region_destroy(region);
 		return NULL;
 	}
@@ -141,15 +141,15 @@ namedb_open (const char *filename)
 #else /* !USE_MMAP */
 	db->mpool = region_alloc(region, db->mpoolsz);
 
-	if (read(db->fd, db->mpool, db->mpoolsz) != db->mpoolsz) {
+	if (read( fileno(db->fd), db->mpool, db->mpoolsz) != db->mpoolsz) {
 		log_msg(LOG_ERR, "read failed: %s", strerror(errno));
-		close(db->fd);
+		fclose(db->fd);
 		region_destroy(region);
 		return NULL;
 	}
 #endif /* !USE_MMAP */
 	
-	close(db->fd);
+	fclose(db->fd);
 
 	db->heap = NULL;
 	db->dnames = dname_tree_create(db->region);

@@ -168,20 +168,20 @@ readpid (const char *file)
 int 
 writepid (struct nsd *nsd)
 {
-	int fd;
+	FILE * fd;
 	char pidbuf[16];
 
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
-	if ((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
+	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
 		return -1;
 	}
 
 	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
-		close(fd);
+		fclose(fd);
 		return -1;
 	}
-	close(fd);
+	fclose(fd);
 
 	if (chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
 		log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",
