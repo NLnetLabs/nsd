@@ -46,7 +46,7 @@
 extern nsd_plugin_id_type maximum_plugin_count;
 
 void plugin_init(struct nsd *nsd);
-int plugin_load(const char *name, const char *arg);
+int plugin_load(struct nsd *nsd, const char *name, const char *arg);
 void plugin_finalize_all(void);
 nsd_plugin_callback_result_type plugin_database_reloaded(void);
 

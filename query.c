@@ -209,11 +209,9 @@ query_init (struct query *q)
 	q->edns = 0;
 	q->tcp = 0;
 	q->name = NULL;
+	q->domain = NULL;
 	q->query_class = 0;
 	q->query_type = 0;
-#ifdef PLUGINS
-	q->plugin_data = NULL;
-#endif /* PLUGINS */
 }
 
 void 
@@ -746,9 +744,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 		    answer_domain(q, d, qname) ||
 		    answer_soa(q, d, qname))
 		{
-#ifdef PLUGINS
-			q->plugin_data = closest_encloser->plugin_data;
-#endif /* PLUGINS */
+			q->domain = closest_encloser;
 			return 1;
 		}
 
@@ -777,9 +773,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 			
 			if (answer_domain(q, d, qname - 2))
 			{
-#ifdef PLUGINS
-				q->plugin_data = closest_encloser->wildcard_child->plugin_data;
-#endif /* PLUGINS */
+				q->domain = closest_encloser->wildcard_child;
 				return 1;
 			}
 		}
@@ -788,9 +782,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 		if (answer_delegation(q, d, qname) ||
 		    answer_soa(q, d, qname))
 		{
-#ifdef PLUGINS
-			q->plugin_data = closest_encloser->plugin_data;
-#endif /* PLUGINS */
+			q->domain = closest_encloser;
 			return 1;
 		}
 

@@ -213,11 +213,14 @@ zyparser.c zyparser.h:	zyparser.y
 	$(YACC) -d -o zyparser.c zyparser.y
 
 # Test programs
-dname:	dname.c dname.h rbtree.o region-allocator.o util.o
+dname:	dname.c dname.h config.h rbtree.o region-allocator.o util.o
 	$(LINK) $(CPPFLAGS) -DTEST -o $@ dname.c rbtree.o region-allocator.o util.o $(LIBS)
 
-rbtree:	rbtree.c rbtree.h region-allocator.o
+rbtree:	rbtree.c rbtree.h config.h region-allocator.o
 	$(LINK) $(CPPFLAGS) -DTEST -o $@ rbtree.c region-allocator.o $(LIBS)
+
+region-allocator: region-allocator.c region-allocator.h config.h
+	$(LINK) $(CPPFLAGS) -DTEST -o $@ region-allocator.c $(LIBS)
 
 zparser:	zparser.c dname.o util.o $(LIBOBJS)
 	$(LINK) $(CPPFLAGS) -DTEST -o $@ zparser.c dname.o util.o $(LIBOBJS) $(LIBS)

@@ -543,7 +543,8 @@ main (int argc, char *argv[])
 	
 	/* Number of child servers to fork.  */
 	nsd.child_count = udp_children + tcp_children;
-	nsd.children = xalloc(nsd.child_count * sizeof(struct nsd_child));
+	nsd.children = region_alloc(
+		nsd.region, nsd.child_count * sizeof(struct nsd_child));
 	for (i = 0; i < udp_children; ++i) {
 		nsd.children[i].kind = NSD_SERVER_UDP;
 	}
@@ -746,7 +747,7 @@ main (int argc, char *argv[])
 			*eq = '\0';
 			arg = eq + 1;
 		}
-		if (!plugin_load(plugins[i], arg)) {
+		if (!plugin_load(&nsd, plugins[i], arg)) {
 			plugin_finalize_all();
 			unlink(nsd.pidfile);
 			exit(1);

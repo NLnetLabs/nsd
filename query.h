@@ -200,13 +200,12 @@ struct query {
 	/* Normalized query domain name.  */
 	const dname_type *name;
 
+	/* The domain used to answer the query.  */
+	dname_tree_type *domain;
+	
 	/* Query class and type in host byte order.  */
 	uint16_t query_class;
 	uint16_t query_type;
-
-#ifdef PLUGINS
-	void **plugin_data;
-#endif /* PLUGINS */
 };
 
 /* query.c */

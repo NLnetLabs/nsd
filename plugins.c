@@ -73,25 +73,22 @@ register_data(
 	const dname_type *               domain_name,
 	void *                           data)
 {
-	dname_tree_type *less_equal;
-	dname_tree_type *closest_encloser;
-	int exact;
+	dname_tree_type *domain;
 	
 	assert(plugin_id < maximum_plugin_count);
 	assert(domain_name);
 
-	exact = dname_tree_search(nsd->nsd->db->dnames,
-				  domain_name,
-				  &less_equal,
-				  &closest_encloser);
-	if (!exact)
+	domain = dname_tree_find(nsd->nsd->db->dnames, domain_name);
+	if (!domain)
 		return 0;
 	
-	if (!closest_encloser->plugin_data) {
-		closest_encloser->plugin_data
-			= xalloc_zero(maximum_plugin_count * sizeof(void *));
+	if (!domain->plugin_data) {
+		domain->plugin_data
+			= region_alloc_zero(
+				nsd->nsd->db->region,
+				maximum_plugin_count * sizeof(void *));
 	}
-	closest_encloser->plugin_data[plugin_id] = data;
+	domain->plugin_data[plugin_id] = data;
 	return 1;
 }
 
@@ -118,7 +115,7 @@ plugin_init(struct nsd *nsd)
 #define STR2(x) #x
 #define STR(x) STR2(x)
 int
-plugin_load(const char *name, const char *arg)
+plugin_load(struct nsd *nsd, const char *name, const char *arg)
 {
 	struct nsd_plugin *plugin;
 	nsd_plugin_init_type *init;
@@ -151,7 +148,7 @@ plugin_load(const char *name, const char *arg)
 		return 0;
 	}
 
-	plugin = xalloc(sizeof(struct nsd_plugin));
+	plugin = region_alloc(nsd->region, sizeof(struct nsd_plugin));
 	plugin->next = NULL;
 	plugin->handle = handle;
 	plugin->id = plugin_count;

@@ -276,14 +276,13 @@ dname_tree_search(dname_tree_type *dt,
 					 &child))
 	{
 		/* Exact match.  */
-/* 		assert(dt->dname->label_count == label); */
+		assert(dt->label_count == label);
 		dt = child->data;
 		++label;
 	}
 
 	if (label == dname->label_count) {
 		/* Exact match.  */
-/* 		assert(dt->dname->label_count == label); */
 		*less_equal = dt;
 		*closest_encloser = dt;
 		return 1;
@@ -301,6 +300,19 @@ dname_tree_search(dname_tree_type *dt,
 		return 0;
 	}
 }
+
+dname_tree_type *
+dname_tree_find(dname_tree_type *tree,
+		const dname_type *dname)
+{
+	dname_tree_type *less_equal;
+	dname_tree_type *closest_encloser;
+	int exact;
+
+	exact = dname_tree_search(tree, dname, &less_equal, &closest_encloser);
+	return exact ? closest_encloser : NULL;
+}
+
 
 dname_tree_type *
 dname_tree_update(dname_tree_type *dt,

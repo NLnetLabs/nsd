@@ -307,6 +307,9 @@ int dname_tree_search(dname_tree_type *dt,
 		      dname_tree_type **less_equal,
 		      dname_tree_type **closest_encloser);
 
+dname_tree_type *dname_tree_find(dname_tree_type *tree,
+				 const dname_type *dname);
+
 /*
  * Insert or update the data associated with a dname.  Empty data
  * nodes are inserted for parent dnames that are not yet in the tree.

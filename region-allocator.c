@@ -202,6 +202,15 @@ region_alloc_init(region_type *region, const void *init, size_t size)
 }
 
 void *
+region_alloc_zero(region_type *region, size_t size)
+{
+	void *result = region_alloc(region, size);
+	if (!result) return NULL;
+	memset(result, 0, size);
+	return result;
+}
+
+void *
 region_alloc_current(size_t size)
 {
 	return region_alloc(current_region, size);
@@ -251,7 +260,7 @@ main(void)
 	void *a;
 	void *b;
 	void *c;
-	region_type *r = region_create(NULL, xalloc, free);
+	region_type *r = region_create(xalloc, free);
 	assert(r);
 
 	assert(r->cleanup_count == 0);
@@ -318,7 +327,7 @@ void
 region_loop(void)
 {
 	int i;
-	region_type *r = region_create(NULL, xalloc, free);
+	region_type *r = region_create(xalloc, free);
     
 	for (i = 0; i < 100000 * ALLOCS; ++i) {
 		region_alloc(r, i % 50 * 15);
