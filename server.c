@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.37 2002/05/23 13:33:03 alexis Exp $
+ * $Id: server.c,v 1.38 2002/06/11 11:42:37 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -231,7 +231,7 @@ server(nsd)
 
 	/* UDP */
 	bzero(&udp_addr, sizeof(udp_addr));
-	udp_addr.sin_addr.s_addr = INADDR_ANY;
+	udp_addr.sin_addr.s_addr = nsd->udp.addr;
 	udp_addr.sin_port = htons(nsd->udp.port);
 	udp_addr.sin_family = AF_INET;
 
@@ -268,7 +268,7 @@ server(nsd)
 
 	/* TCP */
 	bzero(&tcp_addr, sizeof(tcp_addr));
-	tcp_addr.sin_addr.s_addr = INADDR_ANY;
+	tcp_addr.sin_addr.s_addr = nsd->tcp.addr;
 	tcp_addr.sin_port = htons(nsd->tcp.port);
 	tcp_addr.sin_family = AF_INET;
 

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.36 2002/05/30 10:48:48 alexis Exp $
+ * $Id: nsd.c,v 1.37 2002/06/11 11:42:37 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -193,9 +193,11 @@ main(argc, argv)
 	nsd.dbfile	= CF_DBFILE;
 	nsd.pidfile	= CF_PIDFILE;
 	nsd.tcp.port	= CF_TCP_PORT;
+	nsd.tcp.addr	= INADDR_ANY;
 	nsd.tcp.max_conn = CF_TCP_MAX_CONNECTIONS;
 	nsd.tcp.max_msglen = CF_TCP_MAX_MESSAGE_LEN;
 	nsd.udp.port	= CF_UDP_PORT;
+	nsd.udp.addr	= INADDR_ANY;
 	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;
 	nsd.identity	= CF_IDENTITY;
 	nsd.version	= CF_VERSION;
@@ -233,8 +235,12 @@ main(argc, argv)
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "df:p:i:u:")) != -1) {
+	while((c = getopt(argc, argv, "a:df:p:i:u:")) != -1) {
 		switch (c) {
+		case 'a':
+			if((nsd.tcp.addr = nsd.udp.addr = inet_addr(optarg)) == -1)
+				usage();
+			break;
 		case 'd':
 			nsd.debug = 1;
 			break;

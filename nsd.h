@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.30 2002/05/25 09:40:43 alexis Exp $
+ * $Id: nsd.h,v 1.31 2002/06/11 11:42:37 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -96,12 +96,14 @@ struct	nsd {
 		int		max_conn;
 		time_t		timeout;
 		size_t		max_msglen;
+		in_addr_t	addr;
 	} tcp;
 
 	/* UDP specific configuration */
 	struct	{
 		u_int16_t	port;
 		size_t		max_msglen;
+		in_addr_t	addr;
 	} udp;
 
 	struct {
