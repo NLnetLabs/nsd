@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.9.2.10 2002/08/12 14:02:53 alexis Exp $
+# $Id: nsdc.sh.in,v 1.9.2.11 2002/08/14 14:40:03 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -149,7 +149,7 @@ restart)
 	sh $0 stop && sh $0 start
 	;;
 *)
-	echo "Usage: `basename $0` {start|stop|reload|rebuild|restart|running|update}" >&2
+	echo "Usage: `basename $0` {start|stop|reload|rebuild|restart|running|update|notify}" >&2
 	;;
 esac
 

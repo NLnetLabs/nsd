@@ -1,4 +1,4 @@
-$Id: README,v 1.13.2.4 2002/08/13 08:49:43 alexis Exp $
+$Id: README,v 1.13.2.5 2002/08/14 14:40:03 alexis Exp $
 
 1.0 Introduction
 
@@ -199,6 +199,15 @@ axfr : 127.0.0.1 : allow
 axfr : ns1.ripe.net : allow
 axfr : ns1.sidn.nl : allow
 axfr : ALL : deny
+
+If -DAXFR_DAEMON_PREFIX is defined (which is the case by default) and
+the first lookup for ``axfr'' has failed (denied) then nsd will try second
+lookup in hosts.allow or hosts.deny for the daemon name axfr-zone.name.tld.
+(with trailing dot).
+
+Example:
+
+axfr-nlnetlabs.nl. : ns.sidn.nl : allow
 
 3.2 Keeping in sync the secondary zones with ``nsdc update''
 
