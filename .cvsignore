@@ -1,5 +1,4 @@
-nsd
-nsd.db
-nsd.pid
-zonec
-zf
+Makefile
+Makefile.in
+*.moc.cpp
+*.moc
