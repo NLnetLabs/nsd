@@ -361,6 +361,12 @@ dname_compare(const dname_type *left, const dname_type *right)
 	}
 }
 
+int
+dname_compare_void(const void *left, const void *right)
+{
+	return dname_compare((const dname_type *) left,
+			     (const dname_type *) right);
+}
 
 uint8_t
 dname_label_match_count(const dname_type *left, const dname_type *right)

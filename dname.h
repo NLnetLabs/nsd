@@ -158,6 +158,11 @@ dname_label(const dname_type *dname, size_t index);
  */
 int dname_compare(const dname_type *left, const dname_type *right);
 
+/*
+ * As dname_compare, but takes void parameters instead of
+ * dname_type.
+ */
+int dname_compare_void(const void *left, const void *right);
 
 /*
  * Compare two labels.  The comparison defines a lexographical
