@@ -64,7 +64,7 @@ esac
 # Check if /var/run exists, if so set pidfile to /var/run/nsd.pid
 #
 if test -d ${localstatedir}/run; then
-	NSDPIDFILE=${localstatedir}/run
+	NSDPIDFILE=${localstatedir}/run/nsd.pid
 fi
 
 
