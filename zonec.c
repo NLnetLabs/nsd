@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.57.2.1 2002/05/06 19:04:10 alexis Exp $
+ * $Id: zonec.c,v 1.57.2.2 2002/05/07 09:28:26 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -41,8 +41,6 @@
 #include "zonec.h"
 
 #include <netinet/in.h>		/* htons, htonl on Linux */
-
-#include <machine/limits.h>
 
 static void zone_addbuf __P((struct message *, const void *, size_t));
 static void zone_addcompr __P((struct message *, u_char *, u_int16_t, u_char));
@@ -895,7 +893,7 @@ zone_dump(z, db)
 	}
 
 	fflush(stdout);
-	fprintf(stderr, "zonec: writing zone \"%s\": done.\n", dnamestr(z->dname), percentage);
+	fprintf(stderr, "zonec: writing zone \"%s\": done.\n", dnamestr(z->dname));
 
 	return 0;
 }

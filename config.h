@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.3 2002/04/22 10:37:28 alexis Exp $
+ * $Id: config.h,v 1.3.2.1 2002/05/07 09:28:26 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -88,5 +88,14 @@ typedef unsigned short u_int16_t;
 typedef unsigned int   u_int32_t;
 
 #endif
+
+#ifdef __linux__
+#include <sys/select.h>
+#ifndef u_char_defined
+typedef __u_long u_long;
+typedef __u_char u_char;
+#endif /* u_char */
+#define u_char_defined
+#endif /* __linux__ */
 
 #endif /* _CONFIG_H_ */
