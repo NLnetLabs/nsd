@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.7 2002/01/30 15:20:31 alexis Exp $
+ * $Id: server.c,v 1.7.2.1 2002/02/02 15:38:57 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -41,7 +41,7 @@
 
 int
 server(db)
-	DB *db;
+	dict_t *db;
 {
 	struct query *q;
 	struct sockaddr_in addr;
