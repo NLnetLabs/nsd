@@ -108,7 +108,8 @@ ZONEC_OBJECTS	=				\
 	util.o					\
 	zonec.o  				\
 	zparser.o 				\
-	zlexer.o			
+	zlexer.o				\
+	printrr.o
 
 NSD_NOTIFY_OBJECTS	= 			\
 	nsd-notify.o 				\
@@ -255,3 +256,5 @@ zonec.o: zonec.c config.h zonec.h dns.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h util.h
 zparser.o: zparser.c config.h dname.h heap.h rbtree.h region-allocator.h \
   namedb.h dns.h zonec.h
+printrr.o:  printrr.c config.h zonec.h dns.h namedb.h dname.h heap.h rbtree.h \
+  region-allocator.h util.h
