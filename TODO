@@ -1,18 +1,25 @@
-$Id: TODO,v 1.44 2003/12/09 08:28:14 miekg Exp $
+$Id: TODO,v 1.45 2004/01/29 09:33:08 erik Exp $
 
 AUTOCONF
 
 + check whether the --with-nsd-user exists in the system
 
+
 ZONE COMPILER
-- memory allocation optimization is needed
-- as writing the zone the order should be DNS SEC compliant (use dnameinvert())
+? memory allocation optimization is needed
+? as writing the zone the order should be DNS SEC compliant (use dnameinvert())
 - error diagnostic has to be improved a lot
 - add a check to make sure that the biggest answer in the database does not
   exceed the query buffer
 - improve the strdname() routine
 + empty node should not cause NXDOMAIN
 - need to add unknown RR handling in grammar
+- remove quotes from quoted strings in lexer?
+- set yylval.type when handling quoted types?
+- handle lowercase IN, CH, CLASS1, etc?
+- unify dns type table (name, dns type, yacc token, rdata types)
+- unify dns class table (name, dns type, yacc token)
+
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?
@@ -20,21 +27,27 @@ SERVER
 - make sure that we dont copy anything from the query we dont want to copy, like
   funny headers etc
 - query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
+- change default of --enable-ipv6 to yes.
+
 
 SECURITY
+
 
 PURITY
 - some data is in network order some in host order, make it clear with prefixes
 - brush up the fuction and identifiers names
-- bzero pads so the databases can be cmp'd
+
 
 TESTS
 
+
 MISC
+
 
 CLEANUP
 - proper error/fatal/warning interfaces
 - separate parse for nsd.zones
+
 
 DOCUMENTATION
 
