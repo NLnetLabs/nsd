@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.55 2002/04/23 09:48:13 alexis Exp $
+ * $Id: query.c,v 1.56 2002/04/23 12:15:08 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -81,11 +81,15 @@ query_addanswer(q, dname, a, truncate)
 	for(j = 0; j < ANSWER_PTRSLEN(a); j++) {
 		qptr = q->iobufptr + ANSWER_PTRS(a, j);
 		bcopy(qptr, &pointer, 2);
-		if((pointer & 0xc000) == 0xc000) {
-			/* This pointer is relative to the name in the query.... */
+		switch((pointer & 0xf000)) {
+		case 0xc000:			/* This pointer is relative to the name in the query.... */
 			/* XXX Check if dname is within packet */
 			pointer = htons(0xc000 | (dname - q->iobuf + (pointer & 0x0fff)));/* dname - q->iobuf */
-		} else {
+			break;
+		case 0xd000:			/* This is the wildcard */
+			pointer = htons(0xc00c);
+			break;
+		default:
 			/* This pointer is relative to the answer that we have in the database... */
 			pointer = htons(0xc000 | (u_int16_t)(pointer + q->iobufptr - q->iobuf));
 		}
@@ -444,7 +448,7 @@ query_process(q, db)
 					} else {
 						AA_CLR(q);
 					}
-					query_addanswer(q, qname, a, 1);
+					query_addanswer(q, qname - 2, a, 1);
 					return 0;
 				}
 			}

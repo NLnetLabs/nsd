@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.54 2002/04/22 10:37:28 alexis Exp $
+# $Id: Makefile,v 1.55 2002/04/23 12:15:08 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -106,7 +106,7 @@ LIBS		=
 #LIBS		= -L/usr/local/lib -ldb4
 
 # Compile environment settings
-#DEBUG		= -g -DDEBUG=1
+DEBUG		= # -g -DDEBUG=1
 CC=gcc
 CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
 	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\"

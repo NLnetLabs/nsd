@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.55 2002/04/23 10:00:51 alexis Exp $
+ * $Id: zonec.c,v 1.56 2002/04/23 12:15:08 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -289,7 +289,20 @@ zone_addrrset(msg, dname, rrset)
 		rdata = rrset->rrs[j];
 
 		/* dname */
-		zone_addname(msg, dname);
+		if(*(dname + 1) == 1 && *(dname + 2) == '*') {
+			if(msg->pointerslen == MAXRRSPP) {
+				fflush(stdout);
+				fprintf(stderr, "zonec: too many pointers for %s\n", dnamestr(dname));
+				exit(1);
+			}
+
+			msg->pointers[msg->pointerslen++] = msg->bufptr - msg->buf;
+
+			s = 0xd000;
+			zone_addbuf(msg, &s, 2);
+		} else {
+			zone_addname(msg, dname);
+		}
 
 		/* type */
 		type = htons(rrset->type);
@@ -788,14 +801,14 @@ zone_dump(z, db)
 			for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
 				/* Do we have a wildcard? */
 				if((namedepth == 0) && (*(nameptr+1) == '*')) {
-					star = *nameptr + 1;
+					star = 1;
 				} else {
 					if((dname + *dname + 1 - nameptr) > 1) {
 						zone_addcompr(&msg, nameptr,
-							      (nameptr - (dname + 1 + star)) | 0xc000,
+							      (nameptr - (dname + 1)) | 0xc000,
 							      dname + *dname + 1 - nameptr);
 						zone_addcompr(&msgany, nameptr,
-							      (nameptr - (dname + 1 + star)) | 0xc000,
+							      (nameptr - (dname + 1)) | 0xc000,
 							      dname + *dname + 1 - nameptr);
 					}
 				}
