@@ -100,7 +100,12 @@ ZONEC_OBJECTS	= 				\
 	zonec.o 				\
 	zparser.o 	
 
-NSD_NOTIFY_OBJECTS	= nsd-notify.o dname.o util.o
+NSD_NOTIFY_OBJECTS	= 			\
+	nsd-notify.o 				\
+	dname.o 				\
+	rbtree.o				\
+	region-allocator.o			\
+	util.o
 
 all:	$(TARGETS)
 
@@ -149,7 +154,7 @@ nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJECTS) $(LIBOBJS) $(LIBS)
 
 clean:
-	rm -f zparser hash rbtree *.o *.so y.* *.core *.gmon
+	rm -f zparser dname rbtree *.o *.so y.* *.core *.gmon
 	rm -f $(TARGETS)
 
 realclean: clean
@@ -182,11 +187,14 @@ malloc.o:	compat/malloc.c
 
 
 # Test programs
+dname:	dname.c dname.h rbtree.o region-allocator.o util.o
+	$(LINK) $(CPPFLAGS) -DTEST -o $@ dname.c rbtree.o region-allocator.o util.o $(LIBS)
+
 rbtree:	rbtree.c rbtree.h region-allocator.o
-	$(LINK) $(CPPFLAGS) -D TEST -o $@ rbtree.c region-allocator.o $(LIBS)
+	$(LINK) $(CPPFLAGS) -DTEST -o $@ rbtree.c region-allocator.o $(LIBS)
 
 zparser:	zparser.c dname.o util.o $(LIBOBJS)
-	$(LINK) $(CPPFLAGS) -D TEST -o $@ zparser.c dname.o util.o $(LIBOBJS) $(LIBS)
+	$(LINK) $(CPPFLAGS) -DTEST -o $@ zparser.c dname.o util.o $(LIBOBJS) $(LIBS)
 
 # Example plugin
 example-plugin.o: contrib/example-plugin.c
@@ -207,20 +215,22 @@ dbaccess.o: dbaccess.c config.h namedb.h region-allocator.h heap.h \
   rbtree.h util.h
 dbcreate.o: dbcreate.c config.h namedb.h region-allocator.h heap.h \
   rbtree.h util.h
-dname.o: dname.c config.h dns.h dname.h namedb.h region-allocator.h \
-  heap.h rbtree.h util.h
-nsd.o: nsd.c config.h dname.h dns.h namedb.h region-allocator.h heap.h \
-  rbtree.h nsd.h plugins.h query.h util.h
+dname.o: dname.c config.h dns.h dname.h heap.h rbtree.h \
+  region-allocator.h namedb.h util.h
+nsd.o: nsd.c config.h dname.h heap.h rbtree.h region-allocator.h dns.h \
+  namedb.h nsd.h plugins.h nsd-plugin.h query.h util.h
 nsd-notify.o: nsd-notify.c config.h dns.h namedb.h region-allocator.h \
   heap.h rbtree.h dname.h nsd.h query.h util.h zparser.h
-plugins.o: plugins.c config.h
-query.o: query.c config.h dns.h dname.h nsd.h namedb.h region-allocator.h \
-  heap.h rbtree.h plugins.h query.h util.h
-rbtree.o: rbtree.c rbtree.h region-allocator.h
+plugins.o: plugins.c config.h namedb.h region-allocator.h heap.h rbtree.h \
+  plugins.h nsd-plugin.h nsd.h query.h util.h
+query.o: query.c config.h dns.h dname.h heap.h rbtree.h \
+  region-allocator.h nsd.h namedb.h plugins.h nsd-plugin.h query.h util.h
+rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h dns.h namedb.h region-allocator.h heap.h \
-  rbtree.h dname.h nsd.h plugins.h query.h util.h
+  rbtree.h dname.h nsd.h plugins.h nsd-plugin.h query.h util.h
 util.o: util.c config.h util.h
-zonec.o: zonec.c config.h dname.h dns.h heap.h rbtree.h \
-  region-allocator.h namedb.h util.h zonec.h zparser.h
-zparser.o: zparser.c config.h dns.h zparser.h dname.h util.h
+zonec.o: zonec.c config.h dname.h heap.h rbtree.h region-allocator.h \
+  dns.h namedb.h util.h zonec.h zparser.h
+zparser.o: zparser.c config.h dns.h zparser.h dname.h heap.h rbtree.h \
+  region-allocator.h util.h

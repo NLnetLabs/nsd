@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.26 2003/07/28 12:28:40 erik Exp $
+ * $Id: zonec.h,v 1.27 2003/08/06 14:24:53 erik Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -79,7 +79,7 @@ struct message {
 	struct rrset *rrsets[MAXRRSPP];
 	uint8_t *dnames[MAXRRSPP];
 	struct {
-		uint8_t *dname;
+		const uint8_t *dname;
 		uint16_t dnameoff;
 		uint8_t dnamelen;
 	} compr[MAXRRSPP];

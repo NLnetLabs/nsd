@@ -36,11 +36,14 @@
  *
  */
 
+#include <config.h>
+
 #ifdef TEST
 #include <stdio.h>
 #include <string.h>
 #endif
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "rbtree.h"
@@ -210,7 +213,7 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
  *
  */
 void *
-rbtree_insert (rbtree_t *rbtree, void *key, void *data, int overwrite)
+rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 {
 	/* XXX Not necessary, but keeps compiler quiet... */
 	int r = 0;
@@ -274,24 +277,45 @@ rbtree_insert (rbtree_t *rbtree, void *key, void *data, int overwrite)
 void *
 rbtree_search (rbtree_t *rbtree, const void *key)
 {
+	rbnode_t *node;
+
+	if (rbtree_find_less_equal(rbtree, key, &node)) {
+		return node->data;
+	} else {
+		return NULL;
+	}
+}
+
+int
+rbtree_find_less_equal(rbtree_t *rbtree, const void *key, rbnode_t **result)
+{
 	int r;
 	rbnode_t *node;
 
+	assert(result);
+	
 	/* We start at root... */
 	node = rbtree->root;
 
+	*result = NULL;
+	
 	/* While there are children... */
-	while(node != RBTREE_NULL) {
-		if((r = rbtree->cmp(key, node->key)) == 0) {
-			return node->data;
-		}
-		if(r < 0) {
+	while (node != RBTREE_NULL) {
+		r = rbtree->cmp(key, node->key);
+		if (r == 0) {
+			/* Exact match */
+			*result = node;
+			return 1;
+		} 
+		if (r < 0) {
 			node = node->left;
 		} else {
+			/* Temporary match */
+			*result = node;
 			node = node->right;
 		}
 	}
-	return NULL;
+	return 0;
 }
 
 /*

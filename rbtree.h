@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.15 2003/08/05 12:21:51 erik Exp $
+ * $Id: rbtree.h,v 1.16 2003/08/06 14:24:49 erik Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -49,7 +49,7 @@ struct rbnode_t {
 	rbnode_t *left;
 	rbnode_t *right;
 	int	color;
-	void	*key;
+	const void	*key;
 	void	*data;
 };
 
@@ -77,8 +77,9 @@ struct rbtree_t {
 
 /* rbtree.c */
 rbtree_t *rbtree_create(region_type *region, int (*cmpf)(const void *, const void *));
-void *rbtree_insert(rbtree_t *rbtree, void *key, void *data, int overwrite);
+void *rbtree_insert(rbtree_t *rbtree, const void *key, void *data, int overwrite);
 void *rbtree_search(rbtree_t *rbtree, const void *key);
+int rbtree_find_less_equal(rbtree_t *rbtree, const void *key, rbnode_t **result);
 rbnode_t *rbtree_first(rbtree_t *rbtree);
 rbnode_t *rbtree_next(rbnode_t *rbtree);
 

@@ -76,6 +76,14 @@ void *region_alloc(region_type *region, size_t size);
 
 
 /*
+ * Allocate SIZE bytes of memory inside REGION and copy INIT into it.
+ * The memory is deallocated when region_free_all is called for this
+ * region.
+ */
+void *region_alloc_init(region_type *region, const void *init, size_t size);
+
+
+/*
  * Run the cleanup actions and free all memory associated with REGION.
  */
 void region_free_all(region_type *region);

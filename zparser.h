@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.18 2003/07/28 12:28:40 erik Exp $
+ * $Id: zparser.h,v 1.19 2003/08/06 14:24:54 erik Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -72,7 +72,7 @@
 
 /* A single resource record */
 struct RR {
-	uint8_t *dname;
+	const uint8_t *dname;
 	int32_t ttl;
 	uint16_t class;
 	uint16_t type;

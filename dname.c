@@ -1,6 +1,4 @@
 /*
- * $Id: dname.c,v 1.13 2003/07/28 12:28:39 erik Exp $
- *
  * dname.c -- dname operations
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
@@ -42,6 +40,7 @@
 
 #include <sys/types.h>
 
+#include <assert.h>
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
@@ -51,6 +50,296 @@
 #include "dname.h"
 #include "namedb.h"
 #include "util.h"
+
+
+#if 0
+static uint8_t
+dname_common_label_count(dname_type *left, dname_type *right)
+{
+	uint8_t label_count;
+	uint8_t i;
+	
+	assert(left);
+	assert(right);
+
+	if (left == right) {
+		return left->label_count;
+	}
+
+	label_count = (left->label_count <= right->label_count
+		       ? left->label_count
+		       : right->label_count);
+	for (i = 1; i < label_count; ++i) {
+		int result = label_compare(dname_label(left, i),
+					   dname_label(right, i));
+		if (result)
+			break;
+	}
+	return i;
+}
+#endif
+
+const dname_type *
+dname_make(region_type *region, const uint8_t *name)
+{
+	size_t name_size = 0;
+	uint8_t label_offsets[MAXDOMAINLEN];
+	uint8_t label_count = 0;
+	const uint8_t *label = name;
+	dname_type *result;
+	ssize_t i;
+	
+	assert(name);
+	
+	while (1) {
+		if (label_is_pointer(label))
+			return NULL;
+		
+		label_offsets[label_count] = (uint8_t) (label - name);
+		++label_count;
+		name_size += label_length(label) + 1;
+
+		if (label_is_root(label))
+			break;
+		
+		label = label_next(label);
+	}
+
+	if (name_size > MAXDOMAINLEN)
+		return NULL;
+
+	assert(label_count <= MAXDOMAINLEN / 2 + 1);
+
+	/* Reverse label offsets.  */
+	for (i = 0; i < label_count / 2; ++i) {
+		uint8_t tmp = label_offsets[i];
+		label_offsets[i] = label_offsets[label_count - i - 1];
+		label_offsets[label_count - i - 1] = tmp;
+	}
+	
+	result = region_alloc(region, sizeof(dname_type));
+	result->name_size = name_size;
+	result->label_count = label_count;
+	result->name = region_alloc_init(
+		region, name, name_size * sizeof(uint8_t));
+	result->label_offsets = region_alloc_init(
+		region, label_offsets, label_count * sizeof(uint8_t));
+
+	return result;
+}
+
+
+const dname_type *
+dname_parse(region_type *region, const char *name, const dname_type *origin)
+{
+	uint8_t buf[MAXDOMAINLEN + 1];
+	assert(origin);
+	buf[0] = origin->name_size;
+	memcpy(buf + 1, origin->name, origin->name_size);
+	return dname_make(region, strdname(name, buf) + 1);
+}
+
+
+const dname_type *
+dname_copy(region_type *region, const dname_type *dname)
+{
+	dname_type *result;
+
+	assert(dname);
+
+	result = region_alloc(region, sizeof(dname_type));
+	result->name_size = dname->name_size;
+	result->label_count = dname->label_count;
+	result->name = region_alloc_init(
+		region, dname->name, result->name_size * sizeof(uint8_t));
+	result->label_offsets = region_alloc_init(
+		region, dname->label_offsets,
+		result->label_count * sizeof(uint8_t));
+	
+	return result;
+}
+
+
+const dname_type *
+dname_partial_copy(region_type *region,
+		   const dname_type *dname,
+		   uint8_t label_count)
+{
+	assert(label_count > 0);
+	assert(label_count <= dname->label_count);
+	return dname_make(region, dname_label(dname, label_count - 1));
+}
+
+
+int
+dname_compare(const dname_type *left, const dname_type *right)
+{
+	int result;
+	uint8_t label_count;
+	uint8_t i;
+	
+	assert(left);
+	assert(right);
+
+	if (left == right) {
+		return 0;
+	}
+
+	label_count = (left->label_count <= right->label_count
+		       ? left->label_count
+		       : right->label_count);
+
+	/* Skip the root label by starting at label 1.  */
+	for (i = 1; i < label_count; ++i) {
+		result = label_compare(dname_label(left, i),
+				       dname_label(right, i));
+		if (result) {
+			return result;
+		}
+	}
+
+	/* Dname with the fewest labels is "first".  */
+	return (int) left->label_count - (int) right->label_count;
+}
+
+
+int
+label_compare(const uint8_t *left, const uint8_t *right)
+{
+	uint8_t left_length;
+	uint8_t right_length;
+	uint8_t size;
+	uint8_t i;
+	int result;
+	
+	assert(left);
+	assert(right);
+
+	if (left == right) {
+		return 0;
+	}
+
+	left_length = label_length(left);
+	right_length = label_length(right);
+	size = left_length < right_length ? left_length : right_length;
+	
+	left = label_data(left);
+	right = label_data(right);
+
+	for (i = 0; i < size; ++i) {
+		result = DNAME_NORMALIZE((int) left[i]) - DNAME_NORMALIZE((int) right[i]);
+		if (result) {
+			return result;
+		}
+	}
+
+	return (int) left_length - (int) right_length;
+}
+
+
+static dname_tree_type *
+allocate_dname_tree(region_type *region, dname_tree_type *parent, const dname_type *dname, void *data)
+{
+	dname_tree_type *result;
+
+	result = region_alloc(region, sizeof(dname_tree_type));
+	result->region = region;
+	result->parent = parent;
+	result->children = heap_create(region,
+				       (int (*)(const void *, const void *)) label_compare);
+	result->wildcard_child = NULL;
+	result->dname = dname;
+	result->data = data;
+	
+	return result;
+}
+
+dname_tree_type *
+dname_tree_create(region_type *region)
+{
+	return allocate_dname_tree(region, NULL, dname_make(region, (uint8_t *) ""), NULL);
+}
+
+int
+dname_tree_search(dname_tree_type *dt,
+		  const dname_type *dname,
+		  dname_tree_type **less_equal,
+		  dname_tree_type **closest_encloser)
+{
+	rbnode_t *child;
+	uint8_t label = 1;
+	
+	assert(label <= dname->label_count);
+
+	while (label < dname->label_count
+	       && rbtree_find_less_equal(dt->children,
+					 dname_label(dname, label),
+					 &child))
+	{
+		/* Exact match.  */
+		assert(dt->dname->label_count == label);
+		dt = child->data;
+		++label;
+	}
+
+	if (label == dname->label_count) {
+		/* Exact match.  */
+		assert(dt->dname->label_count == label);
+		*less_equal = dt;
+		*closest_encloser = dt;
+		return 1;
+	} else if (child == NULL) {
+		/*
+		 * No predecessor children, so the closest encloser is
+		 * the predecessor.
+		 */
+		*less_equal = dt;
+		*closest_encloser = dt;
+		return 0;
+	} else {
+		*less_equal = child->data;
+		*closest_encloser = dt;
+		return 0;
+	}
+}
+
+dname_tree_type *
+dname_tree_update(dname_tree_type *dt,
+		  const dname_type *dname,
+		  void *data)
+{
+	dname_tree_type *less_equal;
+	dname_tree_type *closest_encloser;
+	dname_tree_type *result;
+	const dname_type *key;
+	
+	if (dname_tree_search(dt, dname, &less_equal, &closest_encloser)) {
+		closest_encloser->data = data;
+		return closest_encloser;
+	}
+
+	assert(closest_encloser->dname->label_count < dname->label_count);
+	
+	/* Insert new node(s).  */
+	do {
+		/*
+		 * Insert empty nodes between closest encloser and the
+		 * new entry.
+		 */
+		key = dname_partial_copy(dt->region, dname, closest_encloser->dname->label_count + 1);
+		result = allocate_dname_tree(dt->region, closest_encloser, key, NULL);
+		heap_insert(closest_encloser->children,
+			    dname_label(key, closest_encloser->dname->label_count),
+			    result, 0);
+		if (memcmp(dname_label(key, closest_encloser->dname->label_count), "\001*", 2) == 0) {
+			closest_encloser->wildcard_child = result;
+		}
+		closest_encloser = result;
+	} while (closest_encloser->dname->label_count < dname->label_count);
+
+	result->data = data;
+	return result;
+}
 
 /*
  *
@@ -191,3 +480,97 @@ dnamedup (const uint8_t *dname)
 	memcpy(p, dname, (int)*dname + 1);
 	return p;
 }
+
+
+#ifdef TEST
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define BUFSZ 1000
+
+int
+main(void)
+{
+	static char *dnames[] = {
+		"com",
+		"aaa.com",
+		"hhh.com",
+		"zzz.com",
+		"ns1.aaa.com",
+		"ns2.aaa.com",
+		"foo.bar.com",
+		"a.b.c.d.e.bar.com",
+		"*.aaa.com"
+	};
+	region_type *region = region_create(xalloc, free);
+	const dname_type *origin = dname_make(region, (uint8_t *) "");
+	dname_tree_type *tree = dname_tree_create(region);
+	const dname_type *dname;
+	size_t i;
+	dname_tree_type *less_equal;
+	dname_tree_type *closest_encloser;
+	int exact;
+	
+	for (i = 0; i < sizeof(dnames) / sizeof(char *); ++i) {
+		dname = dname_parse(region, dnames[i], origin);
+		dname_tree_update(tree, dname, dnames[i]);
+	}
+
+	
+	exact = dname_tree_search(
+		tree,
+		dname_parse(region, "foo.bar.com", origin),
+		&less_equal, &closest_encloser);
+	assert(exact);
+	assert(less_equal->data == dnames[6]);
+	assert(closest_encloser->data == dnames[6]);
+	
+	exact = dname_tree_search(
+		tree,
+		dname_parse(region, "a.b.hhh.com", origin),
+		&less_equal, &closest_encloser);
+	assert(!exact);
+	assert(less_equal->data == dnames[2]);
+	assert(closest_encloser->data == dnames[2]);
+	
+	exact = dname_tree_search(
+		tree,
+		dname_parse(region, "ns3.aaa.com", origin),
+		&less_equal, &closest_encloser);
+	assert(!exact);
+	assert(less_equal->data == dnames[5]);
+	assert(closest_encloser->data == dnames[1]);
+	
+	exact = dname_tree_search(
+		tree,
+		dname_parse(region, "a.ns1.aaa.com", origin),
+		&less_equal, &closest_encloser);
+	assert(!exact);
+	assert(less_equal->data == dnames[4]);
+	assert(closest_encloser->data == dnames[4]);
+	
+	exact = dname_tree_search(
+		tree,
+		dname_parse(region, "x.y.z.d.e.bar.com", origin),
+		&less_equal, &closest_encloser);
+	assert(!exact);
+	assert(dname_compare(less_equal->dname,
+			     dname_parse(region, "c.d.e.bar.com", origin)) == 0);
+	assert(dname_compare(closest_encloser->dname,
+			     dname_parse(region, "d.e.bar.com", origin)) == 0);
+	
+	exact = dname_tree_search(
+		tree,
+		dname_parse(region, "a.aaa.com", origin),
+		&less_equal, &closest_encloser);
+	assert(!exact);
+ 	assert(less_equal->data == dnames[8]);
+	assert(closest_encloser->data == dnames[1]);
+	assert(closest_encloser->wildcard_child);
+	assert(closest_encloser->wildcard_child->data == dnames[8]);
+	
+	exit(0);
+}
+
+#endif /* TEST */

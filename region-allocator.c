@@ -191,6 +191,15 @@ region_alloc(region_type *region, size_t size)
 }
 
 void *
+region_alloc_init(region_type *region, const void *init, size_t size)
+{
+	void *result = region_alloc(region, size);
+	if (!result) return NULL;
+	memcpy(result, init, size);
+	return result;
+}
+
+void *
 region_alloc_current(size_t size)
 {
     return region_alloc(current_region, size);

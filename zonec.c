@@ -60,7 +60,7 @@
 #include "zparser.h"
 
 static void zone_addbuf (struct message *, const void *, size_t);
-static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len);
+static void zone_addcompr (struct message *msg, const uint8_t *dname, int offset, int len);
 
 /*
  * This region is free'd after each zone is compiled.
@@ -90,7 +90,7 @@ zone_print (struct zone *z)
 {
 	struct rrset *rrset;
 	struct RR rr;
-	uint8_t *dname;
+	const uint8_t *dname;
 	int i;
 
 	printf("; zone %s\n", dnamestr(z->dname));
@@ -140,7 +140,7 @@ zone_addbuf (struct message *msg, const void *data, size_t size)
 }
 
 static void 
-zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len)
+zone_addcompr (struct message *msg, const uint8_t *dname, int offset, int len)
 {
 	if (msg->comprlen >= MAXRRSPP) {
 		fflush(stdout);
@@ -155,12 +155,12 @@ zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len)
 }
 
 static uint16_t 
-zone_addname (struct message *msg, uint8_t *dname)
+zone_addname (struct message *msg, const uint8_t *dname)
 {
 	/* Lets try rdata dname compression */
 	int rdlength = 0;
 	int j;
-	register uint8_t *t;
+	const uint8_t *t;
 
 	/* Walk through the labels in the dname to be compressed */
 	if(*dname > 1) {
@@ -201,7 +201,7 @@ zone_addname (struct message *msg, uint8_t *dname)
 
 
 static uint16_t 
-zone_addrrset (struct message *msg, uint8_t *dname, struct rrset *rrset)
+zone_addrrset (struct message *msg, const uint8_t *dname, struct rrset *rrset)
 {
 	uint16_t class = htons(CLASS_IN);
 	int32_t ttl;
@@ -561,12 +561,12 @@ zone_read (char *name, char *zonefile)
 }
 
 static void
-zone_addzonecut(uint8_t *dkey, uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb *db)
+zone_addzonecut(const uint8_t *dkey, const uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb *db)
 {
 	struct domain *d;
 	struct message msg;
 	struct rrset *additional;
-	uint8_t *nameptr;
+	const uint8_t *nameptr;
 	int i, namedepth;
 
 	/* Make sure it is not a wildcard */
@@ -648,11 +648,11 @@ zone_addzonecut(uint8_t *dkey, uint8_t *dname, struct rrset *rrset, struct zone 
 }
 
 static void
-zone_adddata(uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb *db) {
+zone_adddata(const uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb *db) {
 	struct domain *d;
 	struct message msg, msgany;
 	struct rrset *cnamerrset, *additional;
-	uint8_t *cname, *nameptr;
+	const uint8_t *cname, *nameptr;
 	int i, star;
 
 	int namedepth = 0;
@@ -818,7 +818,8 @@ zone_dump (struct zone *z, struct namedb *db)
 {
 	uint8_t dnamebuf[MAXDOMAINLEN+1];
 	struct rrset *rrset;
-	uint8_t *dname, *nameptr;
+	const uint8_t *dname;
+	uint8_t *nameptr;
 	
 	/* Progress reporting... */
 	unsigned long progress = 0;
