@@ -1,4 +1,4 @@
-$Id: TODO,v 1.39 2003/03/27 10:59:27 alexis Exp $
+$Id: TODO,v 1.40 2003/04/03 13:40:43 alexis Exp $
 
 AUTOCONF
 
@@ -11,6 +11,7 @@ ZONE COMPILER
 - add a check to make sure that the biggest answer in the database does not
   exceed the query buffer
 - improve the strdname() routine
+- empty node should not cause NXDOMAIN
 
 
 SERVER

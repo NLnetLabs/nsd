@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.14 2003/03/27 10:56:58 alexis Exp $
+$Id: RELNOTES,v 1.15 2003/04/03 13:40:43 alexis Exp $
 
 
 1.1
@@ -6,12 +6,18 @@ $Id: RELNOTES,v 1.14 2003/03/27 10:56:58 alexis Exp $
 FEATURES:
 	- ANSI C
 	- autoconf/configure
+	- new parser
 	- support for various RR types in zonec
+	- support for UNKN RR types
 
 CHANGES:
 
-
 BUG FIXES:
+	- lots of zone parsing errors eliminated
+	- empty node matching bug
+
+KNOWN BUGS:
+	- an empty node will give NXDOMAIN answer
 
 1.0.2
 =============

@@ -1,11 +1,11 @@
-$Id: README,v 1.18 2003/02/27 10:59:41 erik Exp $
+$Id: README,v 1.19 2003/04/03 13:40:43 alexis Exp $
 
 1.0 Introduction
 1.1 Basic theory of operation
 1.2 Quick build & install
 2.0 Building nsd
 2.1 Unpacking the source
-2.2 Editing the Makefile
+2.2 Configuring NSD
 2.3 Building
 2.4 Installing
 3.0 Running NSD
@@ -29,12 +29,12 @@ The source code is available for download from:
 
 1.1 Basic Theory of Operation
 
-NSD consists of two programs: the zone compiler 'zonec' 
-and the name server 'nsd' itself. The name server works with an 
-intermediate database prepared by the zone compiler from standard
-zone files. Most of the complexity in preparing answers is dealt
-with in zonec, such that the processing nsd has to do per query is 
-kept at the absolutely necessary minimum. 
+NSD consists of two programs: the zone compiler 'zonec' and the name
+server 'nsd' itself. The name server works with an intermediate database
+prepared by the zone compiler from standard zone files. Most of the
+complexity in preparing answers is dealt with in zonec, such that the
+processing nsd has to do per query is kept at the absolutely necessary
+minimum. 
 
 For nsd operation this means that zones have to be compiled by zonec
 before nsd can use them. 
@@ -52,15 +52,10 @@ Step 1:
 Step 2:
 
 	Create user nsd or any other unprivileged user of your
-	choice. In case of later set NSDUSER variable in the Makefile
-	to the username of your choice.
+	choice. In case of later make sure to use --with-user=<username>
+	while running configure.
 
-Step 3:
-	Glance through the Makefile to make sure you like the pathnames
-	et cetera. You might want to comment out -DINET6 if you dont want
-	IPv6 transport support and -DHOSTS_ACCESS and -lwrap if you dont
-	want to use hosts_access(5) tcp wrappers for AXFR access control.
-	If you do that you might as well want to disable AXFR with -DDISABLE_AXFR
+Step 3: ./configure
 
 Step 4:	make all
 
@@ -80,7 +75,8 @@ Step 7:
 
 Step 8:
 	Copy necessary master zone files into appropriate directories under
-	/etc/nsd/primary & /etc/nsd/secondary
+	/etc/nsd/primary & /etc/nsd/secondary You might consider using
+	contrib/build-nsdzones.pl script to automate task 7 & 8.
 
 Step 9:	Run nsdc update if necessary
 
@@ -114,60 +110,61 @@ $ gtar -xzvf nsd-@version@.tar.gz
 
 will unpack the source into the ./nsd-@version@ directory...
 
-2.2 Editing the Makefile
+2.2 Configuring NSD
 
-The package should be configured before compile time by editing the Makefile. 
-The following settings need to be revised:
+NSD can be configured using GNU autoconf's configure script. In addition to
+standard configure options, one may use the following:
 
-NSDBINDIR       The directory where the NSD binaries will be installed.
-		For example /usr/local/sbin
+  --enable-root-server
 
-NSDZONESDIR     Default directory for the master zone files.
-		For example /etc/local/nsd
+	Configure NSD as a root server. Unless this option is specified, NSD
+	will refuse to server ``.'' zone as a misconfiguration safeguard.
 
-NSDZONES        The name of the file containing the list of the zones to be
-                compiled by NSD zone compiler
-		For example /etc/local/nsd/nsd.zones
+  --enable-ipv6
 
-NSDFLAGS        Flags to be passed to NSD on startup (Can be left empty)
+	Enables IPv6 support in NSD. (Clever)
 
-NSDPIDFILE      Location of the pid file.
+  (--enable-dnssec)
 
-NSDDB           Pathname of the runtime database
-		For example /etc/local/nsd/nsd.db
+	Enables DNSSEC support in NSD. Not yet implemented.
 
-NSDUSER		The username for nsd to setuid(2) to 
-		For example nsd
+  --disable-axfr
 
-		This username must exist in /etc/passwd and the ${NSDDB} must be
-		readable for this user.
+	Disables outbound AXFR functionalities alltogether.
 
-CFLAGS          Use your favorite combination of the C flags appropriate
-                to your C compiler, plus following possible compile time
-                options:
+  --enable-bind8-stats
 
-  HOSTS_ACCESS		Use tcp_wrappers/hosts_access(3) routines to access
-			control AXFR operations
+	Enables BIND8-like statistics.
 
-  AXFR_DAEMON="axfr"	The daemon name for hosts_access(3) access control.
+  --with-configdir=dir
 
-  INET6			Compile IPv6 support
+	Specified, NSD configuration directory, default /etc/nsd
 
-  LOG_NOTIFIES		Log the incoming notifies
+  --with-pidfile=path
 
-COMPAT_O        You might want to uncomment some of the object files listed here
-                if your system miss some of them. (For example on SunOS 4.x you
-                dont have basename() in a standard C library)
+	Pathname to the NSD pidfile, default is platform specific, mostly
+	/var/run/nsd.pid
 
+  --with-zonesfile=path
+	Pathname to the NSD list of zones, default /etc/nsd/nsd.conf
 
-NAMEDXFER	Location of bind8 named-xfer programm
-		For example /usr/libexec/named-xfer
+  --with-dbfile=path
+	Pathname to the NSD database, default is /etc/nsd/nsd.db
 
-		If this variable is left empty nsdc update functionality wont be
-		available
+  --with-configfile=path  Pathname to the NSD configuration file
+	Pathname to the NSD configuration file, default /etc/nsd/nsdc.conf
 
-NSDKEYSDIR	The directory where crypto keys (for example for TSIG) are stored.
-		For now only used for named-xfer(8) tsig info files
+  --with-zonesdir=dir
+	NSD default location for master zone files, default /etc/nsd/
+	
+  --with-user=username
+	User name or ID to answer the queries with, default is nsd
+	
+  --with-namedxfer=path
+	Pathname to BIND8 named-xfer program if any
+
+  --with-libwrap=pathname
+	Compile in libwrap (tcp_wrappers) support.
 
 2.3 Building
 
@@ -187,21 +184,20 @@ nsdc            - a very (not anymore so) simple shell script to
 zonec           - zone compiler
 nsd-notify	- a simple C programm to send out bound NOTIFY's
 
-Plus manual pages if we managed to finish them by the time ALPHA is released.
+Plus the manual pages.
 
 3.0 Running NSD
 
-Before running NSD you need to build a name database $NSDDB, 
-in most cases something like /var/db/nsd.db or /etc/nsd/nsd.db.
+Before running NSD you need to build a name database specified with
+``--with-dbfile'' or /etc/nsd/nsd.db by default.
 
-The nsdc shell script can do it for you if you create a 
-$NSDZONES configuration file, for example /etc/nsd/nsd.zones
-which should be of the following format:
+The nsdc shell script can do it for you if you create a nsd.zones
+file file, for example /etc/nsd/nsd.zones which should be of the
+following format:
 
 ; Zone Name     Master zone file name
 zone    bluesky.com     primary/bluesky.com
 zone	greysky.com	secondary/greysky.com masters 10.1.1.1
-
 
 Where bluesky.com should be the domain name you will be serving with NSD.
 
@@ -213,14 +209,21 @@ this file most likely to contain something like:
 
 zone    .               root.zone
 
+You should only do that if you're intending to run a root server, NSD is
+not suited for running a . cache. Therefore if you choose to server the .
+zone you have to make sure that the complete root zone is timely and fully
+updated.
+
+To prevent misconfiguration, NSD configure has --enable-root-server switch,
+that is by default disabled.
+
 The first word on a line must be ``zone''. It indicates that the zone should
 be loaded as authoritative data. Cached non authoritative data is no longer
 supported (keyword ``cache'' is obsolete)
 
 Second word is the name (origin) of the zone and the third word 
 is the pathname to the master zone file. If you use zonec with 
-the -d option the pathname may be relative to the $NSDZONESDIR
-directory.
+the -d option the pathname may be relative to the NSD zones directory.
 
 Optionally masters list-of-ip-addresses can be present to update the respective
 zone with axfr from the given master servers. This option is ignored by zonec
@@ -333,18 +336,22 @@ A sample output of a slightly modified version:
 
 3.2 AXFR access
 
-When compiled with -DHOSTS_ACCESS nsd will use daemon name ``axfr'' to
-verify access privileges for the client trying to initiate the transfer.
-Since NSD doesn't do any hostname resolution internally the access list
-provided in the /etc/hosts.allow or /etc/hosts.deny should be ip number
-based.
+When compiled with libwrap nsd will use daemon name ``axfr'' and ``axfr-zone''
+to verify access privileges for the client trying to initiate the transfer.
+Since NSD doesn't do any hostname resolution internally the access list provided
+in the /etc/hosts.allow or /etc/hosts.deny should be ip number based.
 
 Example:
 
+axfr-nlnetlabs.nl. : ns.sidn.nl : allow
 axfr : 127.0.0.1 : allow
 axfr : ns1.ripe.net : allow
 axfr : ns1.sidn.nl : allow
 axfr : ALL : deny
+
+At first a check is made wether the particular client is allowed to do
+transfer of the particular zone.
+A
 
 If -DAXFR_DAEMON_PREFIX is defined (which is the case by default) and
 the first lookup for ``axfr'' has failed (denied) then nsd will try second
@@ -353,7 +360,6 @@ lookup in hosts.allow or hosts.deny for the daemon name axfr-zone.name.tld.
 
 Example:
 
-axfr-nlnetlabs.nl. : ns.sidn.nl : allow
 
 3.3 Keeping in sync the secondary zones with ``nsdc update''
 
