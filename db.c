@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.7 2002/01/09 13:20:14 alexis Exp $
+ * $Id: db.c,v 1.8 2002/01/09 13:38:23 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -153,7 +153,7 @@ db_addanswer(d, msg, type)
 
 	d = xrealloc(d, d->size + size);
 
-	a = (struct answer *)(d + 1);
+	a = (struct answer *)((char *)d + d->size);
 	a->size = size;
 	a->type = htons(type);
 	a->ancount = htons(msg->ancount);
@@ -184,7 +184,7 @@ db_answer(d, type)
 	u_short type;
 {
 	struct answer *a;
-	for(a = (struct answer *)(d + 1); a < ((char *)d + d->size); (char *)a += a->size) {
+	for(a = (struct answer *)((char *)d + sizeof(struct domain)); a < ((char *)d + d->size); (char *)a += a->size) {
 		if(a->type == type) {
 			return a;
 		}

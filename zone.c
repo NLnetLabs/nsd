@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.5 2002/01/09 13:20:14 alexis Exp $
+ * $Id: zone.c,v 1.6 2002/01/09 13:38:23 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -259,7 +259,7 @@ zone_dump(z, db)
 	u_char *dname, *nameptr;
 	int i;
 
-	/* First walk through all the zone cuts */
+	/* AUTHORITY CUTS */
 	HEAP_WALK(z->cuts, (char *)dname, rrset) {
 		/* Make sure the data is intact */
 		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
@@ -303,6 +303,57 @@ zone_dump(z, db)
 		free(d);
 	}
 	HEAP_STOP();
+
+	/* OTHER DATA */
+	HEAP_WALK(z->data, (char *)dname, rrset) {
+		/* Create a new domain, not a delegation */
+		d = db_newdomain(0);
+
+		while(rrset) {
+			/* Initialize message */
+			bzero(&msg, sizeof(struct message));
+			msg.bufptr = msg.buf;
+
+			/* Put the dname into compression array */
+			for(nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1) {
+				if((dname + *dname + 1 - nameptr) > 1) {
+					msg.compr[msg.comprlen].dname = nameptr;
+					msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1)) | 0xc000;
+					msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
+					msg.comprlen++;
+				}
+			}
+
+			/* Answer section */
+			msg.ancount = zone_addrrset(&msg, dname, rrset);
+
+			/* Authority section */
+			msg.nscount = zone_addrrset(&msg, z->dname, z->ns);
+
+			/* Additional section */
+			for(i = 0; i < msg.dnameslen; i++) {
+				additional = HEAP_SEARCH(z->data, msg.dnames[i]);
+				while(additional) {
+					if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
+						msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
+					}
+					additional = additional->next;
+				}
+			}
+
+			/* Add this answer */
+			d = db_addanswer(d, &msg, rrset->type);
+
+			rrset = rrset->next;
+		}
+
+		/* Store it */
+		db_write(db, dname, d);
+		free(d);
+	}
+	HEAP_STOP();
+
+
 	return 0;
 }
 
