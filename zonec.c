@@ -56,9 +56,12 @@ static const char *dbfile = DBFILE;
 
 /* Some global flags... */
 static int vflag = 0;
+/* if -v then print progress each 'progress' RRs */
+static int progress = 10000;
 
 /* Total errors counter */
 static int totalerrors = 0;
+static long int totalrrs = 0;
 
 int error_occurred = 0;
 
@@ -1184,7 +1187,9 @@ process_rr(zparser_type *parser, rr_type *rr)
 	if (rr->type == TYPE_NS && rr->domain == zone->domain) {
 		zone->ns_rrset = rrset;
 	}
-
+	if ( ( totalrrs % progress == 0 ) && vflag != 0 ) 
+		printf("%d  ", totalrrs);
+	++totalrrs;
 	return 1;
 }
 
@@ -1231,12 +1236,18 @@ zone_read (const char *name, const char *zonefile)
 static void 
 usage (void)
 {
+#ifndef NDEBUG
 	fprintf(stderr, "usage: zonec [-v|-h|-o|-F|-L] [-f database] [-d directory] zone-list-file\n\n");
+#else
+	fprintf(stderr, "usage: zonec [-v|-h|-o] [-f database] [-d directory] zone-list-file\n\n");
+#endif
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
 	fprintf(stderr, "\t-o\tSpecify a zone's origin (used zone-list-file equals \'-\').\n");
+#ifndef NDEBUG
 	fprintf(stderr, "\t-F\tSet debug facilities.\n");
 	fprintf(stderr, "\t-L\tSet debug level.\n");
+#endif
 	exit(1);
 }
 
@@ -1430,8 +1441,10 @@ main (int argc, char **argv)
 				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 			}
 
-			fprintf(stderr,"zonec: reading zone \"%s\"\n",zonename);
+			fprintf(stderr,"zonec: reading zone \"%s\".\n",zonename);
 			zone_read(zonename, zonefile);
+			fprintf(stderr,"\nzonec: processed %ld RRs in \"%s\".\n", totalrrs, zonename);
+			totalrrs = 0;
 
 #ifndef NDEBUG
 			fprintf(stderr, "zone_region: ");
@@ -1449,7 +1462,7 @@ main (int argc, char **argv)
 	}
 
 	/* Print the total number of errors */
-	fprintf(stderr, "zonec: done with total %d errors.\n", totalerrors);
+	fprintf(stderr, "zonec: done with %d errors.\n", totalrrs, totalerrors);
 
 	/* Disable this to save some time.  */
 #if 0
