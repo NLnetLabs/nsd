@@ -30,6 +30,31 @@ static YY_BUFFER_STATE include_stack[MAXINCLUDES];
 static zparser_type zparser_stack[MAXINCLUDES];
 static int include_stack_ptr = 0;
 
+static void
+push_parser_state(FILE *input)
+{
+	/*
+	 * Save file specific variables on the include stack.
+	 */
+	zparser_stack[include_stack_ptr].filename = parser->filename;
+	zparser_stack[include_stack_ptr].line = parser->line;
+	zparser_stack[include_stack_ptr].origin = parser->origin;
+	include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
+	yy_switch_to_buffer(yy_create_buffer(input, YY_BUF_SIZE));
+	++include_stack_ptr;
+}
+
+static void
+pop_parser_state(void)
+{
+	--include_stack_ptr;
+	parser->filename = zparser_stack[include_stack_ptr].filename;
+	parser->line = zparser_stack[include_stack_ptr].line;
+	parser->origin = zparser_stack[include_stack_ptr].origin;
+	yy_delete_buffer(YY_CURRENT_BUFFER);
+	yy_switch_to_buffer(include_stack[include_stack_ptr]);
+}
+
 %}
 
 SPACE   [ \t]
@@ -60,99 +85,68 @@ Q       \"
 ^{DOLLAR}INCLUDE        BEGIN(incl);
 
 			/* see
-			* http://dinosaur.compilertools.net/flex/flex_12.html#SEC12
-			*/
+			 * http://dinosaur.compilertools.net/flex/flex_12.html#SEC12
+			 */
 <incl>[^\n]+ 		{ 	
-				/* Need to fix this so that $INCLUDE * file origin works */
-    				/* got the include file name
-			     	 * open the new filename and continue parsing 
-			     	 */
-
-				char *include_origin;
+				char *tmp;
+				domain_type *origin = parser->origin;
 				
-				/* eat leading white space */
-				while ( isspace(*yytext) ) 
-					yytext++;
-
-				include_origin = strrchr(yytext, 32); /* search for a space */
-				
-				if ( include_origin != NULL ) {
-					/* split the original yytext */
-					*include_origin = '\0';
-					include_origin++;
-				}
-				
-
-				if ( include_stack_ptr >= MAXINCLUDES ) {
-				    zc_error("Includes nested too deeply (>10)");
-            			    exit(1);
+				if (include_stack_ptr >= MAXINCLUDES ) {
+					zc_error("Includes nested too deeply (>%d)",
+						 MAXINCLUDES);
+					exit(1);
             			}
 
-				/* push zdefault on the stack (only the
-				 * important values
-				 */
-				zparser_stack[include_stack_ptr].filename = 
-					parser->filename;
-				zparser_stack[include_stack_ptr].line	   = 
-					parser->line;
-
-				/* put the given origin on the stack
-				 * if no origin was present push the current
-				 * origin on it. This way the popping of the
-				 * origin always works ok */
-
-				if ( include_origin != NULL ) {
-					zparser_stack[include_stack_ptr].origin = 
-						domain_table_insert(
-							parser->db->domains,
-							dname_parse(parser->region,
-								    include_origin,
-								    NULL));
-					/* start using this origin */
-					parser->origin = 
-						domain_table_insert(
-							parser->db->domains,
-							dname_parse(parser->region,
-								    include_origin,
-								    NULL));
-				} else {
-					zparser_stack[include_stack_ptr].origin = 
-						parser->origin;
+				/* Remove trailing comment.  */
+				tmp = strrchr(yytext, ';');
+				if (tmp) {
+					*tmp = '\0';
 				}
+				strip_string(yytext);
 
-			        include_stack[include_stack_ptr++] = 
-					YY_CURRENT_BUFFER;
+				/* Parse origin for include file.  */
+				tmp = strrchr(yytext, ' ');
+				if (tmp) {
+					const dname_type *dname;
+					
+					/* split the original yytext */
+					*tmp = '\0';
+					strip_string(yytext);
 
-		        	yyin = fopen( yytext, "r" );
-        			if ( ! yyin ) {
-					zc_error("Cannot open $INCLUDE file: %s", yytext);
+					dname = dname_parse(parser->region,
+							    tmp + 1);
+					if (!dname) {
+						zc_error("incorrect include origin '%s'",
+							 tmp + 1);
+					} else {
+						origin = domain_table_insert(
+							parser->db->domains,
+							dname);
+					}
+				}
+				
+		        	yyin = fopen(yytext, "r");
+        			if (!yyin) {
+					zc_error("Cannot open include file '%s'",
+						 yytext);
 				    	exit(1);
 				}
 
-				/* reset for the current file */
-				parser->filename = region_strdup(parser->region, yytext);
+				push_parser_state(yyin);
+					
+				/* Initialize parser for include file.  */
+				parser->filename
+					= region_strdup(parser->region, yytext);
 				parser->line = 1;
-        			yy_switch_to_buffer( yy_create_buffer( yyin, YY_BUF_SIZE ) );
+				parser->origin = origin;
 
 			        BEGIN(INITIAL);
         		}	
-<<EOF>>			{	/* end of file is reached - check if we were including */
+<<EOF>>			{
 				if (include_stack_ptr == 0) {
 					yyterminate();
         			} else {
-					--include_stack_ptr;
-					
-					/* pop (once you pop, you can not stop) */
-					parser->filename =
-						zparser_stack[include_stack_ptr].filename;
-					parser->line = 
-						zparser_stack[include_stack_ptr].line;
-					/* pop the origin */
-					parser->origin =
-						zparser_stack[include_stack_ptr].origin;
-					
-            				yy_delete_buffer( YY_CURRENT_BUFFER );
-            				yy_switch_to_buffer( include_stack[include_stack_ptr] );
+					pop_parser_state();
             			}
         		}
 ^{DOLLAR}{LETTER}+      { zc_warning("Unknown $directive: %s", yytext); }

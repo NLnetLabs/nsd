@@ -40,7 +40,11 @@ tsig_openssl_init(region_type *region)
 		region, sizeof(tsig_algorithm_type));
 	md5_algorithm->short_name = "hmac-md5";
 	md5_algorithm->wireformat_name
-		= dname_parse(region, "hmac-md5.sig-alg.reg.int.", NULL);
+		= dname_parse(region, "hmac-md5.sig-alg.reg.int.");
+	if (!md5_algorithm->wireformat_name) {
+ 		log_msg(LOG_ERR, "cannot parse MD5 algorithm name");
+		return 0;
+	}
 	md5_algorithm->maximum_digest_size = EVP_MAX_MD_SIZE;
 	md5_algorithm->data = hmac_md5_algorithm;
 	md5_algorithm->hmac_create_context = create_context;

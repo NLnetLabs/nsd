@@ -124,9 +124,7 @@ struct nsd_plugin_interface
 	void *(*region_alloc)(region_type *region, size_t size);
 	void (*region_free_all)(region_type *region);
 
-	const dname_type *(*dname_parse)(region_type *region,
-					 const char *name,
-					 const dname_type *origin);
+	const dname_type *(*dname_parse)(region_type *region, const char *name);
 
 	const char *(*dname_to_string)(const dname_type *dname,
 				       const dname_type *origin);

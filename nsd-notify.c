@@ -60,15 +60,20 @@ main (int argc, char *argv[])
 			default_family = AF_INET6;
 			break;
 #else /* !INET6 */
-			fprintf(stderr, "nsd-notify: IPv6 support not enabled\n");
+			log_msg(LOG_ERR, "IPv6 support not enabled\n");
 			exit(1);
 #endif /* !INET6 */
 		case 'p':
 			port = optarg;
 			break;
 		case 'z':
-			if ((zone = dname_parse(region, optarg, NULL)) == NULL)
-				usage();
+			zone = dname_parse(region, optarg);
+			if (!zone) {
+				log_msg(LOG_ERR,
+					"incorrect domain name '%s'",
+					optarg);
+				exit(1);
+			}
 			break;
 		default:
 			usage();

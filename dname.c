@@ -22,8 +22,6 @@
 #include "dname.h"
 #include "query.h"
 
-static const uint8_t *strdname (const char *source, const uint8_t *o);
-
 const dname_type *
 dname_make(region_type *region, const uint8_t *name, int normalize)
 {
@@ -163,17 +161,65 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 }
 
 const dname_type *
-dname_parse(region_type *region, const char *name, const dname_type *origin)
+dname_parse(region_type *region, const char *name)
 {
-	uint8_t buf[MAXDOMAINLEN + 1];
-	if (origin) {
-		buf[0] = origin->name_size;
-		memcpy(buf + 1, dname_name(origin), origin->name_size);
-	} else {
-		buf[0] = 1;
-		buf[1] = 0;
+	uint8_t dname[MAXDOMAINLEN];
+
+	const uint8_t *s = (const uint8_t *) name;
+	uint8_t *h;
+	uint8_t *p;
+	uint8_t *d = dname;
+	size_t label_length;
+	
+	for (h = d, p = h + 1; *s; ++s, ++p) {
+		if (p - dname >= MAXDOMAINLEN) {
+			return NULL;
+		}
+		
+		switch (*s) {
+		case '.':
+			if (p == h + 1) {
+				/* Empty label.  */
+				return NULL;
+			} else {
+				label_length = p - h - 1;
+				if (label_length > MAXLABELLEN) {
+					return NULL;
+				}
+				*h = label_length;
+				h = p;
+			}
+			break;
+		case '\\':
+			/* Handle escaped characters (RFC1035 5.1) */
+			if (isdigit(s[1]) && isdigit(s[2]) && isdigit(s[3])) {
+				int val = (digittoint(s[1]) * 100 +
+					   digittoint(s[2]) * 10 +
+					   digittoint(s[3]));
+				if (val >= 0 && val <= 255) {
+					s += 3;
+					*p = val;
+				} else {
+					*p = *++s;
+				}
+			} else if (s[1] != '\0') {
+				*p = *++s;
+			}
+			break;
+		default:
+			*p = *s;
+			break;
+		}
 	}
-	return dname_make(region, strdname(name, buf) + 1, 0);
+	
+	label_length = p - h - 1;
+	if (label_length > MAXLABELLEN) {
+		return NULL;
+	}
+	*h = label_length;
+	*p = 0;
+	
+	return dname_make(region, dname, 1);
 }
 
 
@@ -352,75 +398,6 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 		*--dst = '\0';
 	}
 	return buf;
-}
-
-
-/*
- * Parses the string and returns a dname with
- * the first byte indicating the size of the entire
- * dname.
- *
- * XXX Check if we dont run out of space (p < d + len)
- * XXX Verify that every label dont exceed MAXLABELLEN
- * XXX Complain about empty labels (.nlnetlabs..nl)
- */
-static const uint8_t *
-strdname (const char *source, const uint8_t *o)
-{
-	static uint8_t dname[MAXDOMAINLEN+1];
-
-	const uint8_t *s = (const uint8_t *) source;
-	uint8_t *h;
-	uint8_t *p;
-	uint8_t *d = dname + 1;
-
-	if (*s == '@' && *(s+1) == 0) {
-		for (p = dname, s = o; s < o + *o + 1; p++, s++)
-			*p = DNAME_NORMALIZE(*s);
-	} else {
-		for (h = d, p = h + 1; *s; s++, p++) {
-			switch (*s) {
-			case '.':
-				if (p == (h + 1)) p--;	/* Suppress empty labels */
-				*h = p - h - 1;
-				h = p;
-				break;
-			case '\\':
-				/* Handle escaped characters (RFC1035 5.1) */
-				if ('0' <= s[1] && s[1] <= '9' &&
-				    '0' <= s[2] && s[2] <= '9' &&
-				    '0' <= s[3] && s[3] <= '9')
-				{
-					int val = ((s[1] - '0') * 100 +
-						   (s[2] - '0') * 10 +
-						   (s[3] - '0'));
-					if (val >= 0 && val <= UCHAR_MAX) {
-						s += 3;
-						*p = DNAME_NORMALIZE(val);
-					} else {
-						*p = DNAME_NORMALIZE(*++s);
-					}
-				} else if (s[1] != '\0') {
-					*p = DNAME_NORMALIZE(*++s);
-				}
-				break;
-			default:
-				*p = DNAME_NORMALIZE(*s);
-			}
-		}
-		*h = p - h - 1;
-
-		/* If not absolute, append origin... */
-		if ((*(p-1) != 0) && (o != NULL)) {
-			for (s = o + 1; s < o + *o + 1; p++, s++)
-				*p = DNAME_NORMALIZE(*s);
-		}
-
-		*dname = (uint8_t) (p - d);
-
-	}
-
-	return dname;
 }
 
 

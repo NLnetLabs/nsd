@@ -117,6 +117,6 @@ uint16_t lookup_type_by_name(const char *name);
 zparser_type *zparser_create(region_type *region, region_type *rr_region,
 			     namedb_type *db);
 void zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
-		  const char *origin);
+		  const dname_type *origin);
 
 #endif /* _ZONEC_H_ */

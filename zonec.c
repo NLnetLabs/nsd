@@ -1007,7 +1007,7 @@ zrdatacmp(uint16_t type, rr_type *a, rr_type *b)
  */
 static int
 zone_open(const char *filename, uint32_t ttl, uint16_t klass,
-	  const char *origin)
+	  const dname_type *origin)
 {
 	/* Open the zone file... */
 	if (strcmp(filename, "-") == 0) {
@@ -1198,22 +1198,22 @@ zone_read (const char *name, const char *zonefile)
 {
 	const dname_type *dname;
 
-	dname = dname_parse(parser->region, name, NULL);
+	dname = dname_parse(parser->region, name);
 	if (!dname) {
-		zc_error_prev_line("Cannot parse zone name '%s'", name);
+		zc_error_prev_line("incorrect zone name '%s'", name);
 		return;
 	}
 	
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
 	if (dname->label_count == 1) {
-		zc_error("Not configured as a root server.");
+		zc_error("not configured as a root server");
 		return;
 	}
 #endif
 
 	/* Open the zone file */
-	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
+	if (!zone_open(zonefile, 3600, CLASS_IN, dname)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
 		fprintf(stderr, " ERR: Cannot open \'%s\': %s\n", zonefile, strerror(errno));
 		return;

@@ -170,7 +170,7 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 	uint8_t data[4000];
 	
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key server address: %s\n",
+		error("failed to read TSIG key server address: '%s'",
 		      strerror(errno));
 		return NULL;
 	}
@@ -191,23 +191,23 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 	region_add_cleanup(region, cleanup_addrinfo, key->server);
 	
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key name: %s\n", strerror(errno));
+		error("failed to read TSIG key name: '%s'", strerror(errno));
 		return NULL;
 	}
 	
-	key->name = dname_parse(region, line, NULL);
+	key->name = dname_parse(region, line);
 	if (!key->name) {
-		error("failed to parse TSIG key name %s", line);
+		error("failed to parse TSIG key name '%s'", line);
 		return NULL;
 	}
 
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key type: %s\n", strerror(errno));
+		error("failed to read TSIG key type: '%s'", strerror(errno));
 		return NULL;
 	}
 
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key data: %s\n", strerror(errno));
+		error("failed to read TSIG key data: '%s'\n", strerror(errno));
 		return NULL;
 	}
 	
@@ -896,7 +896,7 @@ main(int argc, char *argv[])
 			state.first_transfer = 0;
 			state.last_serial = strtottl(optarg, &t);
 			if (*t != '\0') {
-				error("bad serial '%s'\n", optarg);
+				error("bad serial '%s'", optarg);
 				exit(XFER_FAIL);
 			}
 			break;
@@ -905,7 +905,10 @@ main(int argc, char *argv[])
 			tsig_key_filename = optarg;
 			break;
 		case 'z':
-			state.zone = dname_parse(region, optarg, NULL);
+			state.zone = dname_parse(region, optarg);
+			if (!state.zone) {
+				error("incorrect domain name '%s'", optarg);
+			}
 			break;
 		case '?':
 		default:

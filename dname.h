@@ -81,9 +81,7 @@ const dname_type *dname_make_from_packet(region_type *region,
  *
  * Pre: name != NULL.
  */
-const dname_type *dname_parse(region_type *region,
-			      const char *name,
-			      const dname_type *origin);
+const dname_type *dname_parse(region_type *region, const char *name);
 
 
 /*

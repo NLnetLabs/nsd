@@ -276,7 +276,8 @@ rel_dname:  label
 	    if ($1 == error_dname || $3 == error_dname) {
 		    $$ = error_dname;
 	    } else if ($1->name_size + $3->name_size - 1 > MAXDOMAINLEN) {
-		    zc_error("domain name exceeds %d character limit", MAXDOMAINLEN);
+		    zc_error("domain name exceeds %d character limit",
+			     MAXDOMAINLEN);
 		    $$ = error_dname;
 	    } else {
 		    $$ = dname_concatenate(parser->rr_region, $1, $3);
@@ -874,7 +875,7 @@ zparser_create(region_type *region, region_type *rr_region, namedb_type *db)
  */
 void
 zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
-	     const char *origin)
+	     const dname_type *origin)
 {
 	memset(nxtbits, 0, sizeof(nxtbits));
 	memset(nsecbits, 0, sizeof(nsecbits));
@@ -883,9 +884,7 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 	parser->default_minimum = 0;
 	parser->default_class = klass;
 	parser->current_zone = NULL;
-	parser->origin = domain_table_insert(
-		parser->db->domains,
-		dname_parse(parser->db->region, origin, NULL)); 
+	parser->origin = domain_table_insert(parser->db->domains, origin); 
 	parser->prev_dname = parser->origin;
 	parser->error_occurred = 0;
 	parser->errors = 0;
