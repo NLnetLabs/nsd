@@ -331,7 +331,7 @@ dname_tree_update(dname_tree_type *dt,
 		heap_insert(closest_encloser->children,
 			    dname_label(key, closest_encloser->dname->label_count),
 			    result, 0);
-		if (memcmp(dname_label(key, closest_encloser->dname->label_count), "\001*", 2) == 0) {
+		if (label_is_wildcard(dname_label(key, closest_encloser->dname->label_count))) {
 			closest_encloser->wildcard_child = result;
 		}
 		closest_encloser = result;
