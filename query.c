@@ -95,7 +95,7 @@ int
 query_axfr (struct query *q, struct nsd *nsd, const uint8_t *qname, const uint8_t *zname, int depth)
 {
 	/* Per AXFR... */
-	static const uint8_t *zone;
+	static uint8_t zone[MAXDOMAINLEN + 1];
 	static const struct answer *soa;
 	static const struct domain *d = NULL;
 
@@ -108,7 +108,7 @@ query_axfr (struct query *q, struct nsd *nsd, const uint8_t *qname, const uint8_
 	/* Is it new AXFR? */
 	if(qname) {
 		/* New AXFR... */
-		zone = zname;
+		memcpy(zone, zname, *zname + 1);
 
 		/* Do we have the SOA? */
 		if(NAMEDB_TSTBITMASK(nsd->db, NAMEDB_AUTHMASK, depth)
@@ -155,7 +155,6 @@ query_axfr (struct query *q, struct nsd *nsd, const uint8_t *qname, const uint8_
 		a = soa;
 		dname = zone;
 		d = NULL;
-		zone = NULL;
 	} else {
 		/* Prepare the answer */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
@@ -356,8 +355,10 @@ process_query_section(struct query *query,
 		 * in question dname or the domain name is longer than
 		 * MAXDOMAINLEN ...
 		 */
-		if ((*src & 0xc0) || (src + *src > query->iobufptr) || 
-		    ((src - query->iobuf + *src) > MAXDOMAINLEN)) {
+		if ((*src & 0xc0) ||
+		    (src + *src + 1 > query->iobufptr) || 
+		    (src + *src + 1 > query_name + MAXDOMAINLEN))
+		{
 			query_formerr(query);
 			return NULL;
 		}

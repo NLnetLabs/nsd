@@ -1,7 +1,20 @@
 NSD RELEASE NOTES
 
 
-1.2
+1.2.1
+=============
+BUG FIXES:
+        - AXFR terminates early if a zone containa a CNAME pointing
+          the the zone's domain name (SOA record) (bug #56).
+        - During an AXFR memory above the top of the stack was
+          accessed.  This could lead to occassional AXFR errors (bad
+          packets).
+        - NSD now prints its version number and exits when invoked
+          with the -v flag (bug #57).
+        - NSD prints help information and exits when invoked with the
+          -h flag.
+
+1.2.0
 =============
 FEATURES:
         - NSD is now a single parent process (handling child
@@ -10,7 +23,7 @@ FEATURES:
           also handled UDP queries.  This change simplifies the parent
           and child processes and allows the use of multiple
           concurrent UDP servers.
-	- Experimental plugin support.  This required a minor,
+        - Experimental plugin support.  This required a minor,
           incompatible change to the database format.  Make sure you
           recompile your database.  Use --enable-plugins to enable.
         - Full IPv6 support (for multi-homing and for Linux, thanks to
@@ -33,7 +46,7 @@ CODE CHANGES:
         - The query_process function has been split up for clarity.
 
 BUG FIXES:
-	- CHAOS TXT queries failed on big-endian machines.
+        - CHAOS TXT queries failed on big-endian machines.
         - Portability fixes for Tru64 (thanks to Stephane Bortzmeyer),
           HP-UX, and MacOS X (thanks to Ronald van der Pol).
         - Removed compile time limit on maximum number of TCP child
@@ -45,15 +58,15 @@ BUG FIXES:
 1.1
 =============
 FEATURES:
-	- ANSI C
-	- autoconf/configure
-	- new parser
-	- support for various RR types in zonec
-	- support for UNKN RR types
+        - ANSI C
+        - autoconf/configure
+        - new parser
+        - support for various RR types in zonec
+        - support for UNKN RR types
 
 BUG FIXES:
-	- lots of zone parsing errors eliminated
-	- empty node matching bug gives NXDOMAIN
+        - lots of zone parsing errors eliminated
+        - empty node matching bug gives NXDOMAIN
 
 1.0.3
 =============
@@ -71,46 +84,46 @@ BUG FIXES:
 1.0.2
 =============
 FEATURES:
-	- -DBIND8_STATS to enable bind8 like [NX]STATS
-	- -t flag to make nsd chroot to a certain directory
-	- -s flag to make nsd produce statistics every s seconds
-	- /etc/nsd/nsdc.conf to overwrite default variables
-	  for nsdc.sh
-	- less loggin and more radical tcp connection (mis)handling
-	- prefork -n processes to handle tcp connections
-	- multiple -a flags
+        - -DBIND8_STATS to enable bind8 like [NX]STATS
+        - -t flag to make nsd chroot to a certain directory
+        - -s flag to make nsd produce statistics every s seconds
+        - /etc/nsd/nsdc.conf to overwrite default variables
+          for nsdc.sh
+        - less loggin and more radical tcp connection (mis)handling
+        - prefork -n processes to handle tcp connections
+        - multiple -a flags
 
 CHANGES:
-	- named.stats file functionality is removed
+        - named.stats file functionality is removed
 
 BUG FIXES:
-	- couple of pedantic fixes in C code
-	- last zone in database axfr bug fixed
-	- nsdc update wont update bug fixed
+        - couple of pedantic fixes in C code
+        - last zone in database axfr bug fixed
+        - nsdc update wont update bug fixed
 
 1.0.1
 =============
 
 FEATURES:
-	- NSD drops permissions after binding the sockets
-	- ``cache'' zones are no longer allowed
-	- ID.Server & Version.Server compile time options
-	- AXFR implemented (with tcpwrapper for access control)
-	- nsdc update and nsdc notify functinality
-	- using named-xfer with TSIG for inbound axfr
+        - NSD drops permissions after binding the sockets
+        - ``cache'' zones are no longer allowed
+        - ID.Server & Version.Server compile time options
+        - AXFR implemented (with tcpwrapper for access control)
+        - nsdc update and nsdc notify functinality
+        - using named-xfer with TSIG for inbound axfr
 
 
 CHANGES:
-	- the order of records in the database is from now
-	  on significant
-	- since Berkeley DB doesnt define order for sequential
-	  access it is no longer supported
+        - the order of records in the database is from now
+          on significant
+        - since Berkeley DB doesnt define order for sequential
+          access it is no longer supported
 
 BUG FIXES:
-	- white space problem in zonec is fixed
+        - white space problem in zonec is fixed
 
 KNOWN BUGS:
-	- please see appropriate man pages for the known bugs
+        - please see appropriate man pages for the known bugs
 
 1.0.0 RELEASE
 =============
@@ -127,27 +140,27 @@ KNOWN BUGS:
 
 PLATFORMS:
 
-	Tested and working on i386 FreeBSD-4.4, i386 Linux, dec alpha Linux,
-	sparc SunOS 4.x
+        Tested and working on i386 FreeBSD-4.4, i386 Linux, dec alpha Linux,
+        sparc SunOS 4.x
 
 
 1.0.0-BETA2
 ===========
 
 FIXES:
-	- wildcards bug fixed
-	- AA bit for class ANY bug fixed
-	- minor coredumps with really broken zones in zonec fixed
-	- linux & SunOS port
+        - wildcards bug fixed
+        - AA bit for class ANY bug fixed
+        - minor coredumps with really broken zones in zonec fixed
+        - linux & SunOS port
 
 1.0-ALPHA2
 ==========
 FIXES:
-	- IPv6 transport support added by Jun-ichiro itojun Hagino (Use -DINET6)
-	- Makefile modified for easier compile time configuration
-	- EDNS(0) bug fixed
-	- Default database changed to all lowercase, red-black tree to make nsd
-	  DNSSEC ready
-	- REQUIREMENTS are cleaned up and updated
-	- Signal names changed in nsdc.sh.in
-	- Default compile options dont include -DMIMIC_BIND8
+        - IPv6 transport support added by Jun-ichiro itojun Hagino (Use -DINET6)
+        - Makefile modified for easier compile time configuration
+        - EDNS(0) bug fixed
+        - Default database changed to all lowercase, red-black tree to make nsd
+          DNSSEC ready
+        - REQUIREMENTS are cleaned up and updated
+        - Signal names changed in nsdc.sh.in
+        - Default compile options dont include -DMIMIC_BIND8

@@ -110,8 +110,41 @@ xrealloc (register void *p, register size_t size)
 static void
 usage (void)
 {
-	fprintf(stderr, "usage: nsd [-4] [-6] [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
+	fprintf(stderr, "Usage: nsd [OPTION]...\n");
+	fprintf(stderr, "Start the NSD name server daemon.\n\n");
+	fprintf(stderr,
+		"Supported options:\n"
+		"  -4              Only listen to IPv4 connections.\n"
+		"  -6              Only listen to IPv6 connections.\n"
+		"  -a ip-address   Listen to the specified incoming IP address (may be\n"
+                "                  specified multiple times).\n"
+		"  -d              Enable debug mode (do not fork as a daemon process).\n"
+		"  -f database     Specify the database to load.\n"
+		"  -h              Print this help information.\n"
+		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
+		"  -N udp-servers  Specify the number of child UDP servers.\n"
+		"  -n tcp-servers  Specify the number of child TCP servers.\n"
+		"  -p port         Specify the port to listen to.\n"
+		"  -s seconds      Dump statistics every SECONDS seconds.\n"
+		"  -t chrootdir    Change root to specified directory on startup.\n"
+		"  -u user         Change effective uid to the specified user.\n"
+		"  -v              Print version information.\n"
+		"  -X plugin       Load a plugin (may be specified multiple times).\n\n"
+		);
+	fprintf(stderr, "Report bugs to <%s>.\n", PACKAGE_BUGREPORT);
 	exit(1);
+}
+
+static void
+version(void)
+{
+	fprintf(stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+	fprintf(stderr, "Written by NLnet Labs.\n\n");
+	fprintf(stderr,
+		"Copyright (C) 2001-2003 NLnet Labs.  This is free software.\n"
+		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
+		"FOR A PARTICULAR PURPOSE.\n");
+	exit(0);
 }
 
 static void
@@ -438,7 +471,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "46a:df:i:N:n:p:s:u:t:X:")) != -1) {
+	while((c = getopt(argc, argv, "46a:df:hi:N:n:p:s:u:t:X:v")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -463,6 +496,9 @@ main (int argc, char *argv[])
 			break;
 		case 'f':
 			nsd.dbfile = optarg;
+			break;
+		case 'h':
+			usage();
 			break;
 		case 'i':
 			nsd.identity = optarg;
@@ -515,6 +551,9 @@ main (int argc, char *argv[])
 #else /* !PLUGINS */
 			error("plugin support not enabled.");
 #endif /* !PLUGINS */
+			break;
+		case 'v':
+			version();
 			break;
 		case '?':
 		default:

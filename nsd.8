@@ -46,14 +46,17 @@ nsd
 .Op Fl a Ar ip-address
 .Op Fl d 
 .Op Fl f Ar database
+.Op Fl h
 .Op Fl i Ar identity
-.Op Fl N Ar udp_servers
-.Op Fl n Ar tcp_servers
+.Op Fl N Ar udp-servers
+.Op Fl n Ar tcp-servers
 .Op Fl p Ar port
 .Op Fl s Ar secondss
 .Op Fl t Ar chrootdir
 .Op Fl u Ar username
+.Op Fl v
 .Op Fl X Ar plugin
+
 .Sh DESCRIPTION
 .Ic NSD
 is a complete implementation of an authoritative DNS nameserver. Upon
@@ -114,6 +117,9 @@ Use the specified
 instead of the default of
 .Em /etc/nsd/nsd.db .
 
+.It Fl h
+Print help information and exit.
+
 .It Fl i Ar identity
 Return the specified
 .Ar identity
@@ -167,6 +173,9 @@ The
 .Ar username
 must one of: username, id, or id.gid.  For example: nsd, 80, or 80.80.
 
+.It Fl v
+Print the version number of NSD to standard error and exit.
+
 .It Fl X Ar plugin
 Load a
 .Ar plugin .
@@ -182,6 +191,7 @@ searched for in the standard locations using
 .Xr dlopen 3 .
 If an argument is specified it is passed directly to the
 initialization function of the plugin.
+
 .El
 
 .Pp
