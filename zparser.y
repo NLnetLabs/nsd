@@ -62,7 +62,6 @@ uint8_t nsecbits[256][32];
 
 /* unknown RRs */
 %token         URR
-%token <class> UCLASS
 %token <type>  UTYPE
 
 %type <domain> dname abs_dname
@@ -142,7 +141,6 @@ rr:     ORIGIN SP rrrest
     |   PREV rrrest
     {
         /* a tab, use previously defined dname */
-        /* [XXX] is null -> error, not checked (yet) MG */
         current_rr->domain = current_parser->prev_dname;
         
     }
@@ -169,13 +167,8 @@ ttl:    STR
 
 in:     IN
     {
-        /* set the class */
+        /* set the class  (class unknown handled in lexer) */
         current_rr->class =  current_parser->class;
-    }
-    |   UCLASS
-    {
-	    /* unknown RR seen */
-	    current_rr->class = $1;
     }
     ;
 
@@ -185,27 +178,26 @@ rrrest: classttl rtype
     }
     ;
 
+class:  in
+    |	CH  { error("CHAOS class not supported"); }
+    |	HS   { error("HESIOD Class not supported"); }
+    ;
+
 classttl:   /* empty - fill in the default, def. ttl and IN class */
     {
         current_rr->rrdata->ttl = current_parser->ttl;
         current_rr->class = current_parser->class;
     }
-    |   in SP         /* no ttl */
+    |   class SP         /* no ttl */
     {
         current_rr->rrdata->ttl = current_parser->ttl;
     }
-    |   ttl SP in SP  /* the lot */
-    |   in SP ttl SP  /* the lot - reversed */
-    |   ttl SP        /* no class */
     {   
         current_rr->class = current_parser->class;
     }
-    |   CH SP         { error("CHAOS class not supported"); }
-    |   HS SP         { error("HESIOD Class not supported"); }
-    |   ttl SP CH SP         { error("CHAOS class not supported"); }
-    |   ttl SP HS SP         { error("HESIOD class not supported"); }
-    |   CH SP ttl SP         { error("CHAOS class not supported"); }
-    |   HS SP ttl SP         { error("HESIOD class not supported"); }
+    |   ttl SP class SP  /* the lot */
+    |   class SP ttl SP  /* the lot - reversed */
+    |   ttl SP        /* no class */
     ;
 
 dname:      abs_dname
