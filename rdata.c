@@ -247,10 +247,10 @@ rdata_apl_to_string(buffer_type *output, rdata_atom_type rdata)
 		uint16_t address_family = buffer_read_u16(&packet);
 		uint8_t prefix = buffer_read_u8(&packet);
 		uint8_t length = buffer_read_u8(&packet);
-		int negated = length & 0x80;
+		int negated = length & APL_NEGATION_MASK;
 		int af = -1;
 		
-		length &= 0x7f;
+		length &= APL_LENGTH_MASK;
 		switch (address_family) {
 		case 1: af = AF_INET; break;
 		case 2: af = AF_INET6; break;
@@ -449,7 +449,10 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_KIND_TEXT:
 			/* Length is stored in the first byte.  */
-			length = 1 + buffer_current(packet)[0];
+			length = 1;
+			if (buffer_position(packet) + length <= end) {
+				length += buffer_current(packet)[length - 1];
+			}
 			break;
 		case RDATA_KIND_BYTE:
 		case RDATA_KIND_ALGORITHM:
@@ -487,9 +490,10 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				  + sizeof(uint8_t)   /* prefix */
 				  + sizeof(uint8_t)); /* length */
 			if (buffer_position(packet) + length <= end) {
-				length += (buffer_current(packet)[sizeof(uint16_t) + sizeof(uint8_t)]) & 0x7f;
+				/* Mask out negation bit.  */
+				length += (buffer_current(packet)[length - 1]
+					   & APL_LENGTH_MASK);
 			}
-
 			break;
 		}
 

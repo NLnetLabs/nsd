@@ -184,7 +184,7 @@ AC_DEFUN([CHECK_SSL], [
             HAVE_SSL=yes 
             LDFLAGS="$LDFLAGS -L$ssldir/lib";
             AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
-                    AC_MSG_ERROR(OpenSSL found in $ssldir, but version 0.9.7 or higher is required)
+                    AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
                 ])
         fi
         AC_SUBST(HAVE_SSL)
