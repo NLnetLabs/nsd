@@ -1,0 +1,66 @@
+; File written on Thu Dec  9 16:22:56 2004
+; dnssec_signzone version 9.3.0
+dnssec.			3600	IN SOA	dnssec. admin.dnssec. (
+					2004120901 ; serial
+					21600      ; refresh (6 hours)
+					7200       ; retry (2 hours)
+					604800     ; expire (1 week)
+					3600       ; minimum (1 hour)
+					)
+			3600	RRSIG	SOA 1 1 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					OhPPWZeqtcNBznhkpn2YO7cncHF0PhxhTcrZ
+					hG3ZrIsX/PFOYHkA3lJPZX9lzTLlrxqeFVFb
+					60641NNKUiq4Aw== )
+			3600	NS	ns.dnssec.
+			3600	RRSIG	NS 1 1 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					tuikgzRDd8xEdmr1W0k0eo6sAlSqhhlNIn/f
+					ksld4w9C9SC/B/WR1RP1m/c4pZ1fXEimi0Io
+					rllFZpptJU6vRQ== )
+			3600	A	127.0.0.1
+			3600	RRSIG	A 1 1 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					dukS7Rw05gRu67NswMTOhUT1xSi5YkxmC1Yx
+					26JKdO7CWRIWjvANW9dy3h7I4MGUWkb3MIST
+					vecTgPcktpdVuQ== )
+			3600	NSEC	x.b.dnssec. A NS SOA RRSIG NSEC DNSKEY
+			3600	RRSIG	NSEC 1 1 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					sf1OC5knEAFj3rY5cv7ZrMPYRp/HRN3pZwMy
+					J/v8C6oOVffK8zqy9Kw1QErRq262Cg8ityUV
+					Gol8fvw9XSJCHg== )
+			3600	DNSKEY	256 3 1 (
+					AQPXh6HE5mN11gXURIE0aRGuBmi2ajzbo+tX
+					lwb0DtzI8HRNLT7GE+wSUWJl8vZxTNPpOwv/
+					cUfRfAuvA73aYs5b
+					) ; key id = 25294
+			3600	RRSIG	DNSKEY 1 1 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					ojTATeKyXphjgUvLpmsgM56QjRsg+U5K/nMH
+					CfQFzGwPhiA2oziDBMoT5WQqY29CV8UWmX/2
+					cPMDEJJDpjBsMw== )
+x.b.dnssec.		3600	IN TXT	"a.b.dnssec"
+			3600	RRSIG	TXT 1 3 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					ccy4PK4Knebo8bM/xabO1LBGbphikZ4AEzDX
+					hPLGObFvjZuAUQ29w8MdL9xQ4fTckh7jOpHf
+					kcjb4YcG8E3TIQ== )
+			3600	NSEC	x.d.dnssec. TXT RRSIG NSEC
+			3600	RRSIG	NSEC 1 3 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					MK9uctYjpYYumKKi5fh1ozhqemjvOLU7gNqC
+					LP3wvF/D9cm4brA0g3DMJLPTrXTfmEpQJJY8
+					fyZjvpzSBDqzfQ== )
+x.d.dnssec.		3600	IN TXT	"a.d.dnssec"
+			3600	RRSIG	TXT 1 3 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					UD5B+hZpbCXsUpAVTER2PEz+3wOfyQ+aGm8u
+					ZIIVaaRCkzNdLKjTUJm+OSMZvOycFLf69dE7
+					jOBzkuK8NMqO8Q== )
+			3600	NSEC	dnssec. TXT RRSIG NSEC
+			3600	RRSIG	NSEC 1 3 3600 20050108142256 (
+					20041209142256 25294 dnssec.
+					x0YRfyttas29o6bkc0SQL1kwDY+W0vaOP9pD
+					sq5q5M8AN5x72AYWiGrOzGwJ9RRYnbo8QL4J
+					byQokDS8O2IIYw== )
