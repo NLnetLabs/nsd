@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.12 2003/12/04 10:51:46 erik Exp $
+ * $Id: zparser.y,v 1.13 2003/12/04 13:13:56 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -31,6 +31,9 @@ uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 	 		'\0','\0','\0','\0',
 			'\0','\0','\0','\0',
 			'\0','\0','\0','\0' };
+/* 256 windows of 256 bits (32 bytes) */
+uint8_t nsecbits[256][32];
+
 %}
 /* this list must be in exactly the same order as *RRtypes[] in zlparser.lex. 
  * The only changed are:
@@ -65,7 +68,8 @@ uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 
 %type <domain> dname abs_dname
 %type <dname>  rel_dname
-%type <data>   str_seq hex_seq nxt_seq
+%type <data>   str_seq hex_seq nxt_seq nsec_seq
+
 
 %%
 lines:  /* empty line */
@@ -257,6 +261,20 @@ nxt_seq:	STR
 	}
 	;
 
+nsec_seq:	STR
+	{
+		int t = intbyname($1.str,ztypes);
+		set_bitnsec( nsecbits, t );
+		
+		/* waar bij houden? */
+	}
+	|	nsec_seq sp STR
+	{
+		int t = intbyname($3.str,ztypes);
+		set_bitnsec( nsecbits, t );
+	}
+	;
+
 /* this is also (mis)used for b64 and other str lists */
 hex_seq:	STR
 	{
@@ -320,6 +338,8 @@ rtype:
     | KEY sp rdata_key
     { current_rr->type = $1; }
     | NXT sp rdata_nxt
+    { current_rr->type = $1; }
+    | NSEC sp rdata_nsec
     { current_rr->type = $1; }
     | SIG sp rdata_sig
     { current_rr->type = $1; }
@@ -440,11 +460,19 @@ rdata_key:	STR sp STR sp STR sp hex_seq trail
 rdata_nxt:	dname sp nxt_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* nxt name */
-		zadd_rdata_wireformat(current_parser,
-		zparser_conv_nxt(zone_region, nxtbits)); /* nxt name */
+		zadd_rdata_wireformat(current_parser, zparser_conv_nxt(zone_region, nxtbits)); /* nxt bitlist */
 		memset(nxtbits, 0 , 16);
 	}
 	;
+
+rdata_nsec:	dname sp nsec_seq trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* nsec name */
+		zadd_rdata_wireformat(current_parser, zparser_conv_nsec(zone_region, nsecbits)); /* nsec bitlist */
+		memset(nsecbits, 0 , 8192);
+	}
+	;
+
 
 rdata_sig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp hex_seq trail
 	{

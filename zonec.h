@@ -183,6 +183,7 @@ const char * namebyint (uint16_t n, struct ztab *tab);
 void zprintrr(FILE *f, rr_type *rr);
 
 void set_bit(uint8_t bits[], int index);
+void set_bitnsec(uint8_t bits[][], int index);
 
 /* zlexer.lex */
 int zoctet(char *word);

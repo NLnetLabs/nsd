@@ -417,6 +417,33 @@ zparser_conv_nxt(region_type *region, uint8_t nxtbits[])
 	return r;
 }
 
+
+/* we potentially have 256 windows, each one is numbered. empty ones
+ * should be discarded
+ */
+uint16_t *
+zparser_conv_nsec(region_type *region, uint8_t nsecbits[256][32])
+{
+	/* nxtbits[] consists of 16 bytes with some zero's in it
+	 * copy every byte with zero to r and write the length in
+	 * the first byte
+	 */
+	uint16_t *r = NULL;
+	uint16_t i;
+	uint16_t last = 0;
+
+	for (i = 0; i < 16; i++) {
+		if (nsecbits[i][0] != 0)
+			last = i + 1;
+	}
+
+	r = region_alloc(region, sizeof(uint16_t) + (last * sizeof(uint8_t)) );
+	*r = last;
+	memcpy(r+1, nsecbits, last);
+
+	return r;
+}
+
 /* 
  * Below some function that also convert but not to wireformat
  * but to "normal" (int,long,char) types
@@ -803,6 +830,17 @@ set_bit(uint8_t bits[], int index)
 	 * so bit #0 is the right most bit
 	 */
 	bits[index / 8] |= (1 << (7 - index % 8));
+}
+
+void 
+set_bitnsec(uint8_t bits[256][32], int index)
+{
+	/* NEED TO CHANGE THIS [XXX] */
+	/* set bit #place in the byte */
+	/* the bits are counted from right to left
+	 * so bit #0 is the right most bit
+	 */
+	bits[0][index / 8] |= (1 << (7 - index % 8));
 }
 
 

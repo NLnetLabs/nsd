@@ -1,4 +1,4 @@
-$Id: TODO,v 1.42 2003/04/29 13:40:52 alexis Exp $
+$Id: TODO,v 1.43 2003/12/04 13:13:56 miekg Exp $
 
 AUTOCONF
 
@@ -12,6 +12,8 @@ ZONE COMPILER
   exceed the query buffer
 - improve the strdname() routine
 + empty node should not cause NXDOMAIN
+- NSEC typecodes can also be integers
+- need to reset NSEC bits for first use
 
 
 SERVER
