@@ -136,6 +136,7 @@ struct ztab {
 	{TYPE_KEY, "KEY"},	\
 	{TYPE_NXT, "NXT"},	\
 	{TYPE_DS, "DS"},	\
+	{TYPE_SSHFP, "SSHFP"},  \
 	{TYPE_RRSIG, "RRSIG"},	\
 	{TYPE_NSEC, "NSEC"},	\
 	{TYPE_DNSKEY, "DNSKEY"},\

@@ -53,7 +53,7 @@ uint8_t nsecbits[256][32];
 %token <type> A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
 %token <type> MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
 %token <type> EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
-%token <type> UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA DS RRSIG NSEC DNSKEY
+%token <type> UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA DS SSHFP RRSIG NSEC DNSKEY
 
 /* other tokens */
 %token         DIR_TTL DIR_ORIG NL ORIGIN SP
@@ -374,10 +374,14 @@ rtype:
     { current_rr->type = $1; }
     | RP sp rdata_rp
     { current_rr->type = $1; }
-    | error NL
+    | SSHFP sp rdata_sshfp
+    { current_rr->type = $1; }
+    | NAPTR sp rdata_naptr
+    { current_rr->type = $1; }
+    | STR error NL
     {
 	    current_rr->type = 0;
-	    warning("Unimplemented RR seen");
+	    warning("Unimplemented RR seen %s", $1);
     }
     ;
 
@@ -532,6 +536,24 @@ rdata_rp:	dname sp dname trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $3)); /* txt d-name */
 	}
 
+rdata_sshfp:   STR sp STR sp hex_seq trail
+       {
+               zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $1.str)); /* alg */
+               zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* fp type */
+               zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str)); /* hash */
+       }
+       ;
+
+rdata_naptr:   STR sp STR sp STR sp STR sp STR sp dname trail
+       {
+               zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* order */
+               zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* preference */
+               zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $5.str)); /* flags */
+               zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $7.str)); /* services */
+               zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $9.str)); /* regexp */
+               zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $11)); /* replacement */
+       }
+       ;
 %%
 
 int

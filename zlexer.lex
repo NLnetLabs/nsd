@@ -31,7 +31,7 @@ const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS", "EID", "NIMLOC", "ATMA",
     "NAPTR", "KX", "A6", "DNAME", "SINK", "OPT", "APL", "UINFO", "UID",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA",
-    "DS","RRSIG","NSEC","DNSKEY", NULL};
+    "DS","SSHFP","RRSIG","NSEC","DNSKEY", NULL};
 
 YY_BUFFER_STATE include_stack[MAXINCLUDES];
 zparser_type zparser_stack[MAXINCLUDES];
@@ -161,7 +161,7 @@ Q       \"
             				yy_switch_to_buffer( include_stack[include_stack_ptr] );
             			}
         		}
-^{DOLLAR}{LETTER}+      { warning("Uknown $directive: %s", yytext); }
+^{DOLLAR}{LETTER}+      { warning("Unknown $directive: %s", yytext); }
 ^{DOT}                  {
                             /* a ^. means the root zone... also set in_rr */
                             in_rr = expecting_dname;
@@ -280,7 +280,7 @@ Q       \"
 .                       {
                             /* we should NEVER reach this
                              * bail out with an error */
-			    error("Uknown character seen - is this a zonefile?");
+			    error("Unknown character seen - is this a zonefile?");
                             /*exit(1); [XXX] we should exit... */
                         }
 %%

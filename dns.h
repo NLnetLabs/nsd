@@ -86,6 +86,7 @@
 #define	TYPE_NAPTR	35	/* NAPTR record RFC2915 */
 #define	TYPE_OPT	41	/* Pseudo OPT record... */
 #define	TYPE_DS		43	/* draft-ietf-dnsext-delegation */
+#define TYPE_SSHFP	44	/* SSH Key Fingerprint */
 #define	TYPE_IXFR	251
 #define	TYPE_AXFR	252
 #define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */
