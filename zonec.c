@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.54 2002/04/23 09:48:13 alexis Exp $
+ * $Id: zonec.c,v 1.55 2002/04/23 10:00:51 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -876,10 +876,7 @@ zone_dump(z, db)
 		free(d);
 	}
 
-	if(vflag) {
-		fflush(stdout);
-		fprintf(stderr, "writing zone \"%s\": done.\n", dnamestr(z->dname));
-	}
+	fprintf(stderr, "writing zone \"%s\": done.\n", dnamestr(z->dname));
 
 	return 0;
 }
