@@ -160,7 +160,7 @@
 #define	IP6ADDRLEN		128/8
 
 /* Miscelaneous limits */
-#define	QIOBUFSZ	(65536+20)
+#define	QIOBUFSZ	4096	/* Maximum size of returned packet.  */
 #define	MAXLABELLEN	63
 #define	MAXDOMAINLEN	255
 #define	MAXRRSPP	1024	/* Maximum number of rr's per packet */
@@ -169,14 +169,17 @@
 #define QUERY_USED_SIZE(q)  ((size_t) ((q)->iobufptr - (q)->iobuf))
 
 /* Current available data size of the query IO buffer.  */
-#define QUERY_AVAILABLE_SIZE(q) ((q)->iobufsz - QUERY_USED_SIZE(q))
+#define QUERY_AVAILABLE_SIZE(q) ((q)->maxlen - QUERY_USED_SIZE(q))
 
 /* Append data to the query IO buffer.  */
 #define QUERY_WRITE(query, data, size)				\
 	do {							\
-		assert(size <= QUERY_AVAILABLE_SIZE(query));	\
-		memcpy((query)->iobufptr, data, size);		\
-		(query)->iobufptr += size;			\
+		if (size <= QUERY_AVAILABLE_SIZE(query)) {	\
+			memcpy((query)->iobufptr, data, size);	\
+			(query)->iobufptr += size;		\
+		} else {					\
+			(query)->overflow = 1;			\
+		}						\
 	} while (0)
 
 enum answer_section {
@@ -211,6 +214,8 @@ struct query {
 	size_t iobufsz;
 	uint8_t iobuf[QIOBUFSZ];
 
+	int overflow;		/* True if the I/O buffer overflowed.  */
+	
 	answer_type answer;
 
 	domain_type *soa_or_delegation_domain;
@@ -241,7 +246,16 @@ query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 	++q->dname_stored_count;
 }
 
-static inline uint16_t query_get_dname_offset(struct query *q, domain_type *domain)
+static inline void
+query_clear_dname_offsets(struct query *q, uint16_t downto)
+{
+	for (; q->dname_stored_count > downto; --q->dname_stored_count) {
+		q->dname_offsets[q->dname_stored[q->dname_stored_count - 1]->number] = 0;
+	}
+}
+
+static inline uint16_t
+query_get_dname_offset(struct query *q, domain_type *domain)
 {
 	return q->dname_offsets[domain->number];
 }

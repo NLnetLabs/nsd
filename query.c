@@ -246,6 +246,7 @@ query_init (struct query *q)
 	q->addrlen = sizeof(q->addr);
 	q->iobufsz = QIOBUFSZ;
 	q->iobufptr = q->iobuf;
+	q->overflow = 0;
 	q->maxlen = UDP_MAX_MESSAGE_LEN;
 	q->edns = 0;
 	q->tcp = 0;
@@ -426,6 +427,9 @@ process_edns (struct query *q, uint8_t *qptr)
 				/* Strip the OPT resource record off... */
 				q->iobufptr = qptr;
 				ARCOUNT(q) = 0;
+
+				DEBUG(DEBUG_QUERY, 2,
+				      (stderr, "EDNS0 maxlen = %u\n", q->maxlen));
 			}
 		}
 	}
@@ -478,15 +482,37 @@ add_dependent_rrsets(struct query *query, rrset_type *master_rrset,
 		     size_t rdata_index, uint16_t type_of_dependent)
 {
 	size_t i;
-
+	
 	assert(query);
 	assert(master_rrset);
 	assert(rdata_atom_is_domain(master_rrset->type, rdata_index));
-	
+
 	for (i = 0; i < master_rrset->rrslen; ++i) {
 		rrset_type *rrset;
 		domain_type *additional = rdata_atom_domain(master_rrset->rrs[i][rdata_index]);
+		domain_type *match = additional;
+		
 		assert(additional);
+
+		/*
+		 * Check to see if we need to generate the dependent
+		 * based on a wildcard domain.
+		 */
+		while (!match->is_existing) {
+			match = match->parent;
+		}
+		if (additional != match && match->wildcard_child) {
+			domain_type *temp = region_alloc(query->region, sizeof(domain_type));
+			temp->dname = additional->dname;
+			temp->number = additional->number;
+			temp->parent = match;
+			temp->wildcard_child = NULL;
+			temp->rrsets = match->wildcard_child->rrsets;
+			temp->plugin_data = match->wildcard_child->plugin_data;
+			temp->is_existing = match->wildcard_child->is_existing;
+			additional = temp;
+		}
+		
 		for (rrset = additional->rrsets; rrset; rrset = rrset->next) {
 			if (rrset->type == type_of_dependent) {
 				answer_add_rrset(&query->answer, section,
@@ -712,22 +738,29 @@ generate_dname(struct query *q, domain_type *domain)
 		uint8_t zero = 0;
 		QUERY_WRITE(q, &zero, sizeof(zero));
 	}
-			    
 }
 
 static void
-generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *rrset)
+generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *rrset,
+	       int truncate)
 {
 	uint16_t i, j;
 	uint16_t type;
 	uint16_t class;
 	uint32_t ttl;
-	uint16_t rdlength;
+	uint16_t rdlength = 0;
 	uint8_t *rdlength_pos;
+	uint8_t *truncation_point = q->iobufptr;
+	uint16_t compressed_dname_count = q->dname_stored_count;
+	uint16_t added = 0;
 	
-	(*count) += rrset->rrslen;
-
 	for (i = 0; i < rrset->rrslen; ++i) {
+		if (!truncate) {
+			/* Truncate on RR level.  */
+			truncation_point = q->iobufptr;
+			compressed_dname_count = q->dname_stored_count;
+		}
+
 		generate_dname(q, owner);
 		type = htons(rrset->type);
 		QUERY_WRITE(q, &type, sizeof(type));
@@ -738,7 +771,7 @@ generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type 
 
 		/* Reserve space for rdlength. */
 		rdlength_pos = q->iobufptr;
-		q->iobufptr += sizeof(rdlength);
+		QUERY_WRITE(q, &rdlength, sizeof(rdlength));
 
 		for (j = 0; !rdata_atom_is_terminator(rrset->rrs[i][j]); ++j) {
 			if (rdata_atom_is_domain(rrset->type, j)) {
@@ -750,9 +783,24 @@ generate_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type 
 			}
 		}
 
-		rdlength = htons(q->iobufptr - rdlength_pos - sizeof(rdlength));
-		memcpy(rdlength_pos, &rdlength, sizeof(rdlength));
+		if (!q->overflow) {
+			++added;
+			rdlength = htons(q->iobufptr - rdlength_pos - sizeof(rdlength));
+			memcpy(rdlength_pos, &rdlength, sizeof(rdlength));
+		} else {
+			q->overflow = 0;
+			q->iobufptr = truncation_point;
+			query_clear_dname_offsets(q, compressed_dname_count);
+			if (truncate) {
+				/* Truncate entire RRset and set truncate flag.  */
+				TC_SET(q);
+				added = 0;
+			}
+			break;
+		}
 	}
+
+	(*count) += added;
 }
 
 static void
@@ -766,9 +814,12 @@ generate_answer(struct query *q)
 		counts[section] = 0;
 		for (i = 0; i < q->answer.rrset_count; ++i) {
 			if (q->answer.section[i] == section) {
+				int truncate = (section == ANSWER_SECTION
+						|| section == AUTHORITY_SECTION);
 				generate_rrset(q, &counts[section],
 					       q->answer.domains[i],
-					       q->answer.rrsets[i]);
+					       q->answer.rrsets[i],
+					       truncate);
 			}
 		}
 	}
@@ -824,8 +875,8 @@ answer_query(struct nsd *nsd, struct query *q)
 		match->dname = q->name;
 		match->parent = closest_encloser;
 		match->wildcard_child = NULL;
-		match->rrsets = closest_encloser->wildcard_child->rrsets;
 		match->number = 0; /* Number 0 is always available. */
+		match->rrsets = closest_encloser->wildcard_child->rrsets;
 		match->plugin_data = closest_encloser->wildcard_child->plugin_data;
 		match->is_existing = closest_encloser->wildcard_child->is_existing;
 		query_put_dname_offset(q, match, QHEADERSZ);
@@ -954,18 +1005,16 @@ void
 query_addedns(struct query *q, struct nsd *nsd) {
 	switch (q->edns) {
 	case 1:	/* EDNS(0) packet... */
-		if (OPT_LEN <= QUERY_AVAILABLE_SIZE(q)) {
-			QUERY_WRITE(q, nsd->edns.opt_ok, OPT_LEN);
-			ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
-		}
+		q->maxlen += OPT_LEN;
+		QUERY_WRITE(q, nsd->edns.opt_ok, OPT_LEN);
+		ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 
 		STATUP(nsd, edns);
 		break;
 	case -1: /* EDNS(0) error... */
-		if (OPT_LEN <= QUERY_AVAILABLE_SIZE(q)) {
-			QUERY_WRITE(q, nsd->edns.opt_err, OPT_LEN);
-			ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
-		}
+		q->maxlen += OPT_LEN;
+		QUERY_WRITE(q, nsd->edns.opt_err, OPT_LEN);
+		ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
 
 		STATUP(nsd, ednserr);
 		break;
