@@ -485,12 +485,12 @@ handle_udp(struct nsd *nsd, fd_set *peer)
 		/* Add edns(0) info if necessary.. */
 		query_addedns(&q, nsd);
 
-		if ((sent = sendto(s, q.iobuf, q.iobufptr - q.iobuf, 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
+		if ((sent = sendto(s, q.iobuf, QUERY_USED_SIZE(&q), 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
 			syslog(LOG_ERR, "sendto failed: %m");
 			STATUP(nsd, txerr);
 			return 1;
 		} else if (sent != q.iobufptr - q.iobuf) {
-			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, (int) QUERY_USED_SIZE(q));
+			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, (int) QUERY_USED_SIZE(&q));
 			return 1;
 		}
 
@@ -590,7 +590,7 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 				alarm(TCP_TIMEOUT);
 				tcplen = htons(q.iobufptr - q.iobuf);
 				if (((sent = write(s, &tcplen, 2)) == -1) ||
-				    ((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
+				    ((sent = write(s, q.iobuf, QUERY_USED_SIZE(&q))) == -1)) {
 					if (errno == EINTR)
 						syslog(LOG_ERR, "timed out/interrupted writing");
 					else
@@ -599,7 +599,7 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 				}
 				if (sent != q.iobufptr - q.iobuf) {
 					syslog(LOG_ERR, "sent %d in place of %d bytes",
-					       sent, (int) QUERY_USED_SIZE(q));
+					       sent, (int) QUERY_USED_SIZE(&q));
 					break;
 				}
 
