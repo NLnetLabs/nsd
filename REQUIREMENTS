@@ -1,4 +1,4 @@
-$Id: REQUIREMENTS,v 1.19 2004/02/11 10:42:46 erik Exp $
+$Id: REQUIREMENTS,v 1.20 2004/08/18 11:45:34 erik Exp $
 
 
 NSD Requirements and Specifications
@@ -894,7 +894,7 @@ RFC Standards
 
 
    - AXFR will be implemented in 1.0.1 with simple IP based ACLs.  In
-     1.1.0. AXFR will also supported with RFC 2834 (TSIG)
+     1.1.0. AXFR will also supported with RFC 2845 (TSIG)
 
    - RFC 1996 (Notifies) will be available in 1.1.0 or later.
 
@@ -932,6 +932,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.19 2004/02/11 10:42:46 erik Exp $
+$Id: REQUIREMENTS,v 1.20 2004/08/18 11:45:34 erik Exp $
 
 

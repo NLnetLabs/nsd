@@ -136,7 +136,7 @@ main (int argc, char *argv[])
 	query_write(&q, &qclass, sizeof(qclass));
 
 	/* Set QDCOUNT=1 */
-	QDCOUNT((&q)) = htons(1);
+	QDCOUNT(&q) = htons(1);
 
 	for (/*empty*/; *argv; argv++) {
 		/* Set up UDP */

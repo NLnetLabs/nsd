@@ -18,12 +18,6 @@
 #define	ROOT		(const uint8_t *)"\001"
 #define	MAXINCLUDES	10
 
-#define	IP6ADDRLEN	(128/8)
-
-#ifndef AF_INET6
-#define AF_INET6	28	/* IPv6 */
-#endif /* AF_INET6 */
-
 #define NSEC_WINDOW_COUNT     256
 #define NSEC_WINDOW_BITS_COUNT 256
 #define NSEC_WINDOW_BITS_SIZE  (NSEC_WINDOW_BITS_COUNT / 8)

@@ -1,0 +1,43 @@
+.TH "nsd-xfer" "8" "@version@" "NLnet Labs" "nsd"
+.SH "NAME"
+.LP 
+nsd\-xfer \- AXFR client to transfer zones from a name server
+.SH "SYNTAX"
+.LP 
+\fBnsd\-xfer\fR [\fB-4\fR] [\fB-6\fR] [\fB-p\fR \fIport\fR] \fB\-z\fR \fIzone\fR \fB\-f\fR \fIfile\fR \fIservers...\fR
+.SH "DESCRIPTION"
+.LP 
+nsd\-xfer is program to transfer zones from a name server using AXFR.
+.br 
+NSD is a complete implementation of an authoritative DNS nameserver.
+.SH "OPTIONS"
+.LP 
+.TP
+\fB\-4\fR
+Only send to IPv4 addresses.
+.TP
+\fB\-6\fR
+Only send to IPv6 addresses.
+.TP 
+\fB\-p\fR \fIport\fR
+Specify the port to send to.
+.TP 
+\fB\-z\fR \fIzone\fR
+Specify the zone to receive.
+.TP 
+\fB\-f\fR \fIfile\fR
+The file to store the zone in.
+.TP 
+\fIservers...\fR
+List of nameservers to try.
+.SH "EXAMPLES"
+.LP 
+To run this program the standard way type:
+.LP 
+nsd\-xfer \-z foobar.cz -f foobar.cz.zone 1.2.3.4
+.SH "AUTHORS"
+.LP 
+NLnet Labs <info@nlnet.nl>
+.SH "SEE ALSO"
+.LP 
+nsd(8), nsd-notify(8), zonec(8)

@@ -123,7 +123,7 @@ int write_data(FILE * file, const void *data, size_t size);
  * (big endian).
  */
 static inline void
-copy_uint16(void *dst, uint16_t data)
+write_uint16(void *dst, uint16_t data)
 {
 #ifdef ALLOW_UNALIGNED_ACCESSES
 	* (uint16_t *) dst = htons(data);
@@ -135,7 +135,7 @@ copy_uint16(void *dst, uint16_t data)
 }
 
 static inline void
-copy_uint32(void *dst, uint32_t data)
+write_uint32(void *dst, uint32_t data)
 {
 #ifdef ALLOW_UNALIGNED_ACCESSES
 	* (uint32_t *) dst = htonl(data);
@@ -145,6 +145,32 @@ copy_uint32(void *dst, uint32_t data)
 	p[1] = (uint8_t) ((data >> 16) & 0xff);
 	p[2] = (uint8_t) ((data >> 8) & 0xff);
 	p[3] = (uint8_t) (data & 0xff);
+#endif
+}
+
+/*
+ * Copy data allowing for unaligned accesses in network byte order
+ * (big endian).
+ */
+static inline uint16_t
+read_uint16(const void *src)
+{
+#ifdef ALLOW_UNALIGNED_ACCESSES
+	return ntohs(* (uint16_t *) src);
+#else
+	uint8_t *p = (uint8_t *) src;
+	return (p[0] << 8) | p[1];
+#endif
+}
+
+static inline uint32_t
+read_uint32(const void *src)
+{
+#ifdef ALLOW_UNALIGNED_ACCESSES
+	return ntohl(* (uint32_t *) src);
+#else
+	uint8_t *p = (uint8_t *) src;
+	return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
 #endif
 }
 

@@ -356,7 +356,7 @@ zparser_conv_certificate_type(region_type *region, const char *typestr)
         r = (uint16_t *) region_alloc(region,
 				      sizeof(uint16_t) + sizeof(uint16_t));
 	*r = sizeof(uint16_t);
-	copy_uint16(r + 1, type->symbol);
+	write_uint16(r + 1, type->symbol);
 	return r;
 }
 
@@ -778,9 +778,9 @@ zparser_conv_loc(region_type *region, char *str)
 
 	memcpy(r + 1, vszhpvp, 4);
 
-	copy_uint32(r + 3, lat);
-	copy_uint32(r + 5, lon);
-	copy_uint32(r + 7, alt);
+	write_uint32(r + 3, lat);
+	write_uint32(r + 5, lon);
+	write_uint32(r + 7, alt);
 
 	return r;
 }

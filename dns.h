@@ -110,6 +110,8 @@
 #define MAX_RR_SIZE \
 	(MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)
 
+#define	IP6ADDRLEN	(128/8)
+
 /*
  * The different types of RDATA wireformat data.
  */

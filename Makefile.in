@@ -83,11 +83,12 @@ EDIT		= sed \
 			-e 's,@namedxfer\@,$(namedxfer),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS 	= nsd zonec nsd-notify nsdc.sh nsdc.conf.sample
+TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample
 
 NSD_OBJECTS	=				\
 	answer.o				\
 	axfr.o					\
+	buffer.o				\
 	dbaccess.o				\
 	dname.o					\
 	dns.o					\
@@ -109,16 +110,24 @@ ZONEC_OBJECTS	=				\
 	rbtree.o				\
 	region-allocator.o			\
 	util.o					\
+	zlexer.o				\
 	zonec.o					\
-	zparser.o				\
-	zlexer.o
+	zparser.o
 
 NSD_NOTIFY_OBJECTS	=			\
-	nsd-notify.o				\
 	dname.o					\
 	dns.o					\
 	namedb.o				\
+	nsd-notify.o				\
 	rbtree.o				\
+	region-allocator.o			\
+	util.o
+
+NSD_XFER_OBJECTS	=			\
+	buffer.o				\
+	dname.o					\
+	dns.o					\
+	nsd-xfer.o				\
 	region-allocator.o			\
 	util.o
 
@@ -144,17 +153,19 @@ install: all
 	$(INSTALL) zonec $(sbindir)/zonec
 	$(INSTALL) nsdc.sh $(sbindir)/nsdc
 	$(INSTALL) nsd-notify $(sbindir)/nsd-notify
+	$(INSTALL) nsd-xfer $(sbindir)/nsd-xfer
 	$(INSTALL_DATA) nsd.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
 	$(INSTALL_DATA) zonec.8 $(mandir)/man8
 	$(INSTALL_DATA) nsd-notify.8 $(mandir)/man8/nsd-notify.8
+	$(INSTALL_DATA) nsd-xfer.8 $(mandir)/man8/nsd-xfer.8
 	$(INSTALL_DATA) nsdc.conf.sample $(configfile).sample
 	$(INSTALL_DATA) nsd.zones.sample $(zonesfile).sample
 
 uninstall:
 	@echo
-	rm -f -- $(sbindir)/nsd $(sbindir)/zonec $(sbindir)/nsdc $(sbindir)/nsd-notify
-	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8
+	rm -f -- $(sbindir)/nsd $(sbindir)/zonec $(sbindir)/nsdc $(sbindir)/nsd-notify $(sbindir)/nsd-xfer
+	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8 $(mandir)/man8/nsd-xfer.8
 	rm -f -- $(pidfile) $(dbfile)
 	@echo
 	@echo "You still need to remove $(configdir) directory by hand."
@@ -167,6 +178,9 @@ zonec:	$(ZONEC_OBJECTS) $(LIBOBJS)
 
 nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJECTS) $(LIBOBJS) $(LIBS)
+
+nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBS)
 
 clean:
 	rm -f dname rbtree *.o *.so y.* *.core *.gmon
@@ -231,6 +245,7 @@ answer.o: answer.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h dns.h query.h nsd.h util.h
 axfr.o: axfr.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h dns.h query.h nsd.h util.h axfr.h
+buffer.o: buffer.c config.h buffer.h region-allocator.h util.h
 dbaccess.o: dbaccess.c config.h dns.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h util.h
 dbcreate.o: dbcreate.c config.h namedb.h dname.h heap.h rbtree.h \
@@ -244,6 +259,8 @@ namedb.o: namedb.c config.h dns.h dname.h heap.h rbtree.h \
 netio.o: netio.c config.h netio.h region-allocator.h util.h
 nsd-notify.o: nsd-notify.c config.h dns.h dname.h heap.h rbtree.h \
   region-allocator.h nsd.h query.h namedb.h util.h
+nsd-xfer.o: nsd-xfer.c config.h dname.h heap.h rbtree.h \
+  region-allocator.h dns.h query.h namedb.h nsd.h util.h zonec.h
 nsd.o: nsd.c config.h dname.h heap.h rbtree.h region-allocator.h dns.h \
   namedb.h nsd.h plugins.h nsd-plugin.h query.h util.h
 plugins.o: plugins.c config.h namedb.h dname.h heap.h rbtree.h \

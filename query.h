@@ -174,7 +174,7 @@
 #define RCODE_REFUSE		5 	/* Refused */
 
 /* Miscelaneous limits */
-#define MAX_PACKET_SIZE         16384   /* Maximum supported size of DNS packets.  */
+#define MAX_PACKET_SIZE         65535   /* Maximum supported size of DNS packets.  */
 
 #define	QIOBUFSZ		(MAX_PACKET_SIZE + MAX_RR_SIZE)
 
@@ -372,7 +372,7 @@ query_write_u8(struct query *q, uint8_t data)
 static inline void
 query_write_u16(struct query *q, uint16_t data)
 {
-	copy_uint16(q->iobufptr, data);
+	write_uint16(q->iobufptr, data);
 	q->iobufptr += sizeof(data);
 	assert(query_used_size(q) <= QIOBUFSZ);
 }
@@ -383,7 +383,7 @@ query_write_u16(struct query *q, uint16_t data)
 static inline void
 query_write_u32(struct query *q, uint32_t data)
 {
-	copy_uint32(q->iobufptr, data);
+	write_uint32(q->iobufptr, data);
 	q->iobufptr += sizeof(data);
 	assert(query_used_size(q) <= QIOBUFSZ);
 }

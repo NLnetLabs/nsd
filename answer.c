@@ -156,7 +156,7 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 
 	if (!query_overflow(q)) {
 		rdlength = q->iobufptr - rdlength_pos - sizeof(rdlength);
-		copy_uint16(rdlength_pos, rdlength);
+		write_uint16(rdlength_pos, rdlength);
 		return 1;
 	} else {
 		q->iobufptr = truncation_point;

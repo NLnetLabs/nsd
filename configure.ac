@@ -434,7 +434,11 @@ AH_BOTTOM([
 AH_BOTTOM([
 #ifndef IPV6_MIN_MTU
 #define IPV6_MIN_MTU 1280
-#endif
+#endif /* IPV6_MIN_MTU */
+
+#ifndef AF_INET6
+#define AF_INET6	28
+#endif /* AF_INET6 */
 ])
 
 AC_CONFIG_FILES([Makefile])
