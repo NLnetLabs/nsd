@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.44 2003/10/23 12:25:50 miekg Exp $
+ * $Id: zyparser.y,v 1.45 2003/10/23 12:29:16 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -358,7 +358,7 @@ rdata_a:    STR '.' STR '.' STR '.' STR trail
     ;
 
 
-rdata_txt: str_seq trail
+rdata_txt: str_seq trail {}
 	;
 
 rdata_mx:   STR sp nonowner_dname trail
@@ -397,6 +397,7 @@ rdata_ds:	STR sp STR sp STR sp str_seq trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* type */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $7.str)); /* hash */
 	}
+	;
 %%
 
 int
