@@ -954,7 +954,7 @@ usage (void)
 	fprintf(stderr, "usage: zonec [-v|-p|-o|-F|-L] [-f database] [-d directory] zone-list-file\n\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
 	fprintf(stderr, "\t-p\tPrint rr after compilation.\n");
-	fprintf(stderr, "\t-o\tSpecify a zone's origin (used zone-list-file equals \'-\'.)\n");
+	fprintf(stderr, "\t-o\tSpecify a zone's origin (used zone-list-file equals \'-\').\n");
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-F\tSet debug facilities.\n");
 	fprintf(stderr, "\t-L\tSet debug level.\n");
