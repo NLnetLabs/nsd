@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.26 2003/08/25 19:39:08 miekg Exp $
+ * $Id: zyparser.y,v 1.27 2003/08/27 14:09:15 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -70,7 +70,7 @@ line:   NL
 
 dir_ttl:    SP STR NL
     { 
-        if ($2.len > MAXDNAME ) {
+        if ($2.len > MAXDOMAINLEN ) {
             yyerror("$TTL value is too large");
             return 1;
         } 
@@ -85,7 +85,7 @@ dir_ttl:    SP STR NL
 dir_orig:   SP dname NL
     {
         /* [xxx] does $origin not effect previous */
-        if ( $2.len > MAXDNAME ) { 
+        if ( $2.len > MAXDOMAINLEN ) { 
             yyerror("$ORIGIN domain name is too large");
             return 1;
         } 

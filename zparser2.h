@@ -10,6 +10,7 @@
 #define	_ZPARSER_H_
 
 #include "util.h"
+#include "dns.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <ctype.h>
@@ -35,9 +36,6 @@ struct YYSTYPE_T {
 #define DNAME_MAGIC 0xffff  /* this is used to in the first byte
                                to signal the presence of a dname 
                                in the string */
-/* [XXX] fix MAXDNAME */
-#define MAXDNAME    255
-
 #define MAXINCLUDES 10
 
 /* a RR in DNS */

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.18 2003/08/27 13:28:26 erik Exp $
+ * $Id: zparser2.c,v 1.19 2003/08/27 14:09:15 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -664,12 +664,12 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     /* Initialize the rest of the structure */
     zdefault = xalloc( sizeof(struct zdefault_t));
     
-    zdefault->prev_dname = xalloc(MAXDNAME);
+    zdefault->prev_dname = xalloc(MAXDOMAINLEN);
     zdefault->ttl = ttl;
     zdefault->class = class;
     zdefault->line = 1;
     
-    zdefault->origin = xalloc(MAXDNAME);
+    zdefault->origin = xalloc(MAXDOMAINLEN);
     zdefault->origin = (uint8_t *)strdname(origin, ROOT);  /* hmm [XXX] MG */
     zdefault->origin_len = 0;
     zdefault->prev_dname = '\0';
