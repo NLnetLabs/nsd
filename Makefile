@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.49 2002/04/02 10:00:16 alexis Exp $
+# $Id: Makefile,v 1.50 2002/04/02 13:21:25 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -60,7 +60,7 @@ NSDPIDFILE      = /var/run/nsd.pid
 # The NSD run-time database
 NSDDB           = /var/db/nsd.db
 
-FEATURES	= -DMIMIC_BIND8 -DINET6
+FEATURES	= -DMIMIC_BIND8 # -DINET6
 
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines
