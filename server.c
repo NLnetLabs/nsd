@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.31.4.3 2002/05/21 10:05:59 alexis Exp $
+ * $Id: server.c,v 1.31.4.4 2002/05/21 11:41:39 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -56,7 +56,7 @@ answer_udp(s, nsd)
 	}
 	q.iobufptr = q.iobuf + received;
 
-	if(query_process(&q, nsd->db) != -1) {
+	if(query_process(&q, nsd) != -1) {
  		switch(q.edns) {
 		case 1:
  			if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
@@ -150,7 +150,7 @@ answer_tcp(s, addr, addrlen, nsd)
 
 		q.iobufptr = q.iobuf + received;
 
-		if(query_process(&q, nsd->db) != -1) {
+		if(query_process(&q, nsd) != -1) {
 			alarm(120);
 
 			switch(q.edns) {
