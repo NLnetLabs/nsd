@@ -72,6 +72,11 @@
 #include "region-allocator.h"
 #include "util.h"
 
+#ifndef HAVE_PSELECT
+int pselect(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+	    const struct timespec *timeout, const sigset_t *sigmask);
+#endif
+
 
 /*
  * Remove the specified pid from the list of child pids.  Returns 0 if

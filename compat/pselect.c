@@ -33,7 +33,7 @@ pselect (int n,
 
 	result = select(n, readfds, writefds, exceptfds, &saved_timeout);
 	
-	if (sigprocmask(SIG_SETMASK, saved_sigmask, NULL) == -1)
+	if (sigprocmask(SIG_SETMASK, &saved_sigmask, NULL) == -1)
 		return -1;
 
 	return result;
