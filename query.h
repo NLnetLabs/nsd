@@ -41,6 +41,8 @@
 
 #include <assert.h>
 
+#include "region-allocator.h"
+
 /*
  * Set of macro's to deal with the dns message header as specified
  * in RFC1035 in portable way.
@@ -180,6 +182,8 @@
 	
 /* Query as we pass it around */
 struct query {
+	/* Memory region freed after each query is processed. */
+	region_type *region;
 #ifdef INET6
 	struct sockaddr_storage addr;
 #else
@@ -192,14 +196,21 @@ struct query {
 	uint8_t *iobufptr;
 	size_t iobufsz;
 	uint8_t iobuf[QIOBUFSZ];
+
+	/* Normalized query domain name.  */
+	const dname_type *name;
+
+	/* Query class and type in host byte order.  */
+	uint16_t query_class;
+	uint16_t query_type;
+
 #ifdef PLUGINS
-	uint8_t normalized_domain_name[MAXDOMAINLEN];
 	void **plugin_data;
 #endif /* PLUGINS */
 };
 
 /* query.c */
-int query_axfr(struct query *q, struct nsd *nsd, const uint8_t *qname, const uint8_t *zname, int depth);
+int query_axfr(struct nsd *nsd, struct query *q, const uint8_t *qname);
 void query_init(struct query *q);
 void query_addtxt(struct query *q, uint8_t *dname, int16_t class, int32_t ttl, const char *txt);
 void query_addanswer(struct query *q, const uint8_t *dname, const struct answer *a, int trunc);

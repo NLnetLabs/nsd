@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.41 2003/08/05 12:21:49 erik Exp $
+ * $Id: namedb.h,v 1.42 2003/08/12 08:49:11 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -41,9 +41,11 @@
 #ifndef _NAMEDB_H_
 #define	_NAMEDB_H_
 
+#include "dname.h"
+#include "heap.h"
 #include "region-allocator.h"
 
-#define NAMEDB_ALIGNMENT        8
+#define NAMEDB_ALIGNMENT        (sizeof(void *))
 
 #define	NAMEDB_MAXDSIZE		32768	/* Maximum size of a domain */
 
@@ -125,13 +127,12 @@ struct domain {
 #endif
 
 
-#include "heap.h"
-
 struct namedb {
 	region_type *region;
+	dname_tree_type *dnames;
 	heap_t *heap;
 	uint8_t masks[3][NAMEDB_BITMASKLEN];
-	char *mpool;
+	uint8_t *mpool;
 	size_t	mpoolsz;
 	char *filename;
 	int fd;
@@ -146,9 +147,8 @@ void namedb_discard(struct namedb *db);
 
 /* dbaccess.c */
 int domaincmp(const void *a, const void *b);
-unsigned long domainhash(const uint8_t *dname);
-struct domain *namedb_lookup(struct namedb *db, const uint8_t *dname);
-const struct answer *namedb_answer(const struct domain *d, int type);
+struct domain *namedb_lookup(struct namedb *db, const dname_type *dname);
+const struct answer *namedb_answer(const struct domain *d, uint16_t type);
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);
 

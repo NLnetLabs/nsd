@@ -69,6 +69,7 @@
 #include "nsd.h"
 #include "plugins.h"
 #include "query.h"
+#include "region-allocator.h"
 #include "util.h"
 
 
@@ -442,7 +443,7 @@ process_query(struct nsd *nsd, struct query *query)
 }
 
 static int
-handle_udp(struct nsd *nsd, fd_set *peer)
+handle_udp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 {
 	int received, sent, s;
 	struct query q;
@@ -471,7 +472,8 @@ handle_udp(struct nsd *nsd, fd_set *peer)
 
 	/* Initialize the query... */
 	query_init(&q);
-
+	q.region = query_region;
+	
 	if ((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
 		log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
 		STATUP(nsd, rxerr);
@@ -537,7 +539,7 @@ read_socket(int s, void *buf, size_t count)
 }
 
 static int
-handle_tcp(struct nsd *nsd, fd_set *peer)
+handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 {
 	int received, sent, axfr, s;
 	uint16_t tcplen;
@@ -572,6 +574,7 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 	/* Initialize the query... */
 	query_init(&q);
 
+	q.region = query_region;
 	q.maxlen = (q.iobufsz > nsd->tcp_max_msglen) ? nsd->tcp_max_msglen : q.iobufsz;
 	q.tcp = 1;
 
@@ -642,7 +645,7 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 
 				/* Do we have AXFR in progress? */
 				if (axfr) {
-					axfr = query_axfr(&q, nsd, NULL, NULL, 0);
+					axfr = query_axfr(nsd, &q, NULL);
 				}
 			} while(axfr);
 		} else {
@@ -677,7 +680,8 @@ server_child(struct nsd *nsd)
 	size_t i;
 	sigset_t block_sigmask;
 	sigset_t default_sigmask;
-
+	region_type *query_region = region_create(xalloc, free);
+	
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
@@ -717,6 +721,8 @@ server_child(struct nsd *nsd)
 #endif /* BIND8_STATS */
 		}
 		
+		region_free_all(query_region);
+
 		/* Set it up */
 		FD_ZERO(&peer);
 
@@ -747,11 +753,11 @@ server_child(struct nsd *nsd)
 		}
 
 		if ((nsd->server_kind & NSD_SERVER_UDP) &&
-		    handle_udp(nsd, &peer))
+		    handle_udp(query_region, nsd, &peer))
 			continue;
 		
 		if ((nsd->server_kind & NSD_SERVER_TCP) &&
-		    handle_tcp(nsd, &peer))
+		    handle_tcp(query_region, nsd, &peer))
 			continue;
 
 		log_msg(LOG_ERR, "selected non-existant socket");
@@ -761,5 +767,7 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
+	region_destroy(query_region);
+	
 	server_shutdown(nsd);
 }

@@ -46,6 +46,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>		/* DEBUG */
 
 #include "namedb.h"
 #include "util.h"
@@ -68,16 +69,23 @@ domaincmp (const void *left, const void *right)
 }
 
 struct domain *
-namedb_lookup (struct namedb *db, const uint8_t *dname)
+namedb_lookup (struct namedb *db, const dname_type *dname)
 {
-	return (struct domain *)heap_search(db->heap, dname);
+	dname_tree_type *less_equal;
+	dname_tree_type *closest_encloser;
+	if (dname_tree_search(db->dnames, dname, &less_equal, &closest_encloser)) {
+		return closest_encloser->data;
+	} else {
+		return NULL;
+	}
 }
 
 const struct answer *
-namedb_answer (const struct domain *d, int type)
+namedb_answer (const struct domain *d, uint16_t type)
 {
 	const struct answer *a;
-
+	type = htons(type);
+	
 	DOMAIN_WALK(d, a) {
 		if(a->type == type) {
 			return a;
@@ -86,16 +94,50 @@ namedb_answer (const struct domain *d, int type)
 	return NULL;
 }
 
+struct dname_tree_info_type
+{
+	size_t nodes;
+	size_t max_depth;
+	size_t null_data;
+	size_t leaves;
+};
+
+static void
+dname_tree_info (const uint8_t *name, dname_tree_type *node, size_t depth, struct dname_tree_info_type *info)
+{
+	const uint8_t *label;
+	dname_tree_type *child;
+	
+	if (!node) return;
+
+	++info->nodes;
+	if (depth > info->max_depth)
+		info->max_depth = depth;
+	if (!node->data) {
+		fprintf(stderr, "empty node: %s\n", dname_to_string(name));
+		++info->null_data;
+	}
+
+	if (node->children) {
+		HEAP_WALK(node->children, label, child) {
+			dname_tree_info(label, child, depth + 1, info);
+		}
+	} else {
+		++info->leaves;
+	}
+}
+
 struct namedb *
 namedb_open (const char *filename)
 {
 	struct namedb *db;
 	char magic[NAMEDB_MAGIC_SIZE] = NAMEDB_MAGIC;
 
-	char *p;
+	uint8_t *p;
 	struct stat st;
 	region_type *region = region_create(xalloc, free);
-
+	size_t entries = 0;
+	
 	db = region_alloc(region, sizeof(struct namedb));
 	db->region = region;
 	
@@ -131,7 +173,8 @@ namedb_open (const char *filename)
 
 	close(db->fd);
 
-	db->heap = heap_create(db->region, domaincmp);
+	db->heap = NULL;
+	db->dnames = dname_tree_create(db->region);
 
 	p = db->mpool;
 
@@ -143,7 +186,8 @@ namedb_open (const char *filename)
 	p += NAMEDB_MAGIC_SIZE;
 
 	while(*p) {
-		if(heap_insert(db->heap, p, p + ALIGN_UP(*p + 1, NAMEDB_ALIGNMENT), 1) == NULL) {
+		const dname_type *dname = dname_make(region, p + 1, 0);
+		if(dname_tree_update(db->dnames, dname, p + ALIGN_UP(*p + 1, NAMEDB_ALIGNMENT)) == NULL) {
 			log_msg(LOG_ERR, "failed to insert a domain: %s", strerror(errno));
 			namedb_close(db);
 			return NULL;
@@ -156,6 +200,7 @@ namedb_open (const char *filename)
 			errno = EINVAL;
 			return NULL;
 		}
+		++entries;
 	}
 
 	p++;
@@ -172,8 +217,23 @@ namedb_open (const char *filename)
 	memcpy(db->masks[NAMEDB_STARMASK], p + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
 	memcpy(db->masks[NAMEDB_DATAMASK], p + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
 
-	log_msg(LOG_WARNING, "loaded %s, %lu entries", db->filename, db->heap->count);
+	log_msg(LOG_WARNING, "loaded %s, %lu entries", db->filename,
+		(unsigned long) entries);
 
+	/* Debug */
+#if 1
+	{
+		struct dname_tree_info_type info;
+		info.nodes = 0;
+		info.max_depth = 0;
+		info.null_data = 0;
+		info.leaves = 0;
+		dname_tree_info("", db->dnames, 0, &info);
+		fprintf(stderr, "nodes: %u, max_depth: %u, null_data: %u, leaves: %u\n",
+			info.nodes, info.max_depth, info.null_data, info.leaves);
+	}
+#endif
+	
 	return db;
 }
 

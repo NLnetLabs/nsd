@@ -85,7 +85,7 @@ struct dname
  *
  * Pre: NAME != NULL.
  */
-const dname_type *dname_make(region_type *region, const uint8_t *name);
+const dname_type *dname_make(region_type *region, const uint8_t *name, int copy);
 
 /*
  * Construct a new domain name based on the ASCII representation NAME.
@@ -139,6 +139,12 @@ dname_label(const dname_type *dname, uint8_t label)
  * Pre: left != NULL && right != NULL
  */
 int dname_compare(const dname_type *left, const dname_type *right);
+
+static inline const uint8_t *
+dname_labels(const dname_type *dname)
+{
+	return dname->name;
+}
 
 /*
  * Compare two labels.  The comparison defines a lexographical
@@ -266,7 +272,7 @@ struct dname_tree
 	dname_tree_type *parent;
 	heap_t *children;
 	dname_tree_type *wildcard_child;
-	const dname_type *dname;
+	uint8_t label_count;
 	void *data;
 };
 
@@ -292,6 +298,8 @@ int dname_tree_search(dname_tree_type *dt,
 dname_tree_type *dname_tree_update(dname_tree_type *dt,
 				   const dname_type *dname,
 				   void *data);
+
+const char *dname_to_string(const uint8_t *dname);
 
 int dnamecmp(const void *a, const void *b);
 const char *dnamestr(const uint8_t *dname);

@@ -662,7 +662,7 @@ main (int argc, char *argv[])
 			log_msg(LOG_ERR,
 				"nsd is already running as %u, stopping",
 				(unsigned) oldpid);
-			exit(0);
+/* 			exit(0); */
 		} else {
 			log_msg(LOG_ERR,
 				"...stale pid file from process %u",

@@ -83,6 +83,7 @@ TARGETS 	= nsd zonec nsd-notify nsdc.sh nsdc.conf.sample
 
 NSD_OBJECTS	= 				\
 	dbaccess.o 				\
+	dname.o					\
 	nsd.o					\
 	plugins.o 				\
 	query.o 				\
