@@ -119,8 +119,9 @@ update)
 		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
 		then
 			# now get the serial number
-			if [ -e ${zonedir}/$file ]; then
-			serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1; exit }' ${zonesdir}/$file`
+			serial=''
+			if [ -e ${zonesdir}/$file ]; then
+				serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1; exit }' ${zonesdir}/$file`
 			fi
 			serial=${serial:-0}
 
