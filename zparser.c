@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.40 2003/07/07 10:50:22 erik Exp $
+ * $Id: zparser.c,v 1.41 2003/07/28 12:28:40 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -59,6 +59,7 @@
 #include "dns.h"
 #include "zparser.h"
 #include "dname.h"
+#include "util.h"
 
 /*
  *
@@ -67,44 +68,6 @@
  */
 struct ztab ztypes[] = Z_TYPES;
 struct ztab zclasses[] = Z_CLASSES;
-
-#ifdef TEST
-/*
- *
- * When compiled with -DTEST this function allocates size bytes
- * of memory and terminates with a meaningfull message on failure.
- *
- */
-void *
-xalloc (size_t size)
-{
-	void *p;
-	if((p = malloc(size)) == NULL) {
-		fprintf(stderr, "failed allocating %u bytes: %s\n", size,
-			strerror(errno));
-		abort();
-	}
-	return p;
-}
-
-/*
- *
- * Same as xalloc() but then reallocates alrady allocated memory.
- *
- */
-void *
-xrealloc (void *p, size_t size)
-{
-	if((p = realloc(p, size)) == NULL) {
-		fprintf(stderr, "failed reallocating %u bytes: %s\n", size,
-			strerror(errno));
-		abort();
-	}
-	return p;
-}
-
-
-#endif /* TEST */
 
 /*
  * Looks up the numeric value of the symbol, returns 0 if not found.
@@ -361,7 +324,7 @@ nsd_zopen2 (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *o
  *
  */
 struct zparser *
-nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const uint8_t *origin)
+nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
 	return nsd_zopen2(filename, ttl, class, strdname(origin, ROOT), 0);
 }
@@ -1853,7 +1816,7 @@ main (int argc, char *argv[])
 	}
 
 	/* Open the file */
-	if((z = zopen(argv[1], 3600, CLASS_IN, origin)) == NULL) {
+	if((z = nsd_zopen(argv[1], 3600, CLASS_IN, origin)) == NULL) {
 		fprintf(stderr, "unable to open %s: %s\n", argv[1], strerror(errno));
 		exit(1);
 	}
@@ -1861,7 +1824,7 @@ main (int argc, char *argv[])
 	/* Read the file */
 	while((rr = zread(z)) != NULL) {
 		if((z->lines % 100000) == 0) {
-			fprintf(stderr, "read %lu lines...\n", z->lines);
+			fprintf(stderr, "read %lu lines...\n", (unsigned long) z->lines);
 		}
 	}
 

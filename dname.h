@@ -1,5 +1,5 @@
 /*
- * $Id: dname.h,v 1.5 2003/07/04 07:55:09 erik Exp $
+ * $Id: dname.h,v 1.6 2003/07/28 12:28:39 erik Exp $
  *
  * dname.h -- domain name operations
  *
@@ -43,9 +43,6 @@
 
 #define DNAME_NORMALIZE        tolower
 
-extern void *xalloc(size_t size);
-
-/* dname.c */
 int dnamecmp(const void *a, const void *b);
 const char *dnamestr(const uint8_t *dname);
 const uint8_t *strdname(const char *s, const uint8_t *o);

@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.39 2003/07/04 08:30:08 erik Exp $
+ * $Id: dbaccess.c,v 1.40 2003/07/28 12:28:39 erik Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -46,11 +46,11 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <unistd.h>
 #include <fcntl.h>
 
 #include "namedb.h"
+#include "util.h"
 
 int 
 domaincmp (const void *left, const void *right)
@@ -150,7 +150,7 @@ namedb_open (const char *filename)
 	p = db->mpool;
 
 	if(memcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
-		syslog(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
@@ -158,14 +158,14 @@ namedb_open (const char *filename)
 
 	while(*p) {
 		if(heap_insert(db->heap, p, p + ALIGN_UP(*p + 1), 1) == NULL) {
-			syslog(LOG_ERR, "failed to insert a domain: %m");
+			log_msg(LOG_ERR, "failed to insert a domain: %s", strerror(errno));
 			namedb_close(db);
 			return NULL;
 		}
 		p += ALIGN_UP(*p + 1);
 		p += *((uint32_t *)p);
 		if(p > (db->mpool + db->mpoolsz)) {
-			syslog(LOG_ERR, "corrupted database %s", db->filename);
+			log_msg(LOG_ERR, "corrupted database %s", db->filename);
 			namedb_close(db);
 			errno = EINVAL;
 			return NULL;
@@ -175,7 +175,7 @@ namedb_open (const char *filename)
 	p++;
 
 	if(memcmp(p, magic, NAMEDB_MAGIC_SIZE)) {
-		syslog(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
@@ -186,7 +186,7 @@ namedb_open (const char *filename)
 	memcpy(db->masks[NAMEDB_STARMASK], p + NAMEDB_BITMASKLEN, NAMEDB_BITMASKLEN);
 	memcpy(db->masks[NAMEDB_DATAMASK], p + NAMEDB_BITMASKLEN * 2, NAMEDB_BITMASKLEN);
 
-	syslog(LOG_WARNING, "loaded %s, %lu entries", db->filename, db->heap->count);
+	log_msg(LOG_WARNING, "loaded %s, %lu entries", db->filename, db->heap->count);
 
 	return db;
 }

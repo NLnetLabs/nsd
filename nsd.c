@@ -60,52 +60,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
-#include "dns.h"
 #include "dname.h"
+#include "dns.h"
 #include "namedb.h"
 #include "nsd.h"
-#include "query.h"
 #include "plugins.h"
+#include "query.h"
+#include "util.h"
 
 
 /* The server handler... */
 static struct nsd nsd;
 static char hostname[MAXHOSTNAMELEN];
 
-static const char *program_name;
-
-/*
- * Allocates ``size'' bytes of memory, returns the
- * pointer to the allocated memory or exits on error.
- * Also reports the error via syslog().
- *
- */
-void *
-xalloc (register size_t size)
-{
-	register void *p;
-
-	if((p = malloc(size)) == NULL) {
-		syslog(LOG_ERR, "malloc failed: %m");
-		exit(1);
-	}
-	return p;
-}
-
-void *
-xrealloc (register void *p, register size_t size)
-{
-
-	if((p = realloc(p, size)) == NULL) {
-		syslog(LOG_ERR, "realloc failed: %m");
-		exit(1);
-	}
-	return p;
-}
+static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 static void
 usage (void)
@@ -117,11 +88,14 @@ usage (void)
 		"  -4              Only listen to IPv4 connections.\n"
 		"  -6              Only listen to IPv6 connections.\n"
 		"  -a ip-address   Listen to the specified incoming IP address (may be\n"
-                "                  specified multiple times).\n"
+		"                  specified multiple times).\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
 		"  -f database     Specify the database to load.\n"
 		"  -h              Print this help information.\n"
 		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
+		);
+	fprintf(stderr,
+		"  -l filename     Specify the log file.\n"
 		"  -N udp-servers  Specify the number of child UDP servers.\n"
 		"  -n tcp-servers  Specify the number of child TCP servers.\n"
 		"  -p port         Specify the port to listen to.\n"
@@ -148,14 +122,12 @@ version(void)
 }
 
 static void
-error (const char *format, ...)
+error(const char *format, ...)
 {
 	va_list args;
-	fprintf(stderr, "%s: ", program_name);
 	va_start(args, format);
-	vfprintf(stderr, format, args);
+	log_vmsg(LOG_ERR, format, args);
 	va_end(args);
-	fprintf(stderr, "\n");
 	exit(1);
 }
 
@@ -212,7 +184,8 @@ writepid (struct nsd *nsd)
 	close(fd);
 
 	if(chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
-		syslog(LOG_ERR, "cannot chown %u.%u %s: %m", nsd->uid, nsd->gid, nsd->pidfile);
+		log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",
+			nsd->uid, nsd->gid, nsd->pidfile, strerror(errno));
 		return -1;
 	}
 
@@ -253,7 +226,7 @@ sig_handler (int sig)
 	case SIGCHLD:
 		return;
 	case SIGHUP:
-		syslog(LOG_WARNING, "signal %d received, reloading...", sig);
+		log_msg(LOG_WARNING, "signal %d received, reloading...", sig);
 		nsd.mode = NSD_RELOAD;
 		return;
 	case SIGALRM:
@@ -270,14 +243,15 @@ sig_handler (int sig)
 	case SIGTERM:
 	default:
 		nsd.mode = NSD_SHUTDOWN;
-		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
+		log_msg(LOG_WARNING, "signal %d received, shutting down...", sig);
 		break;
 	}
 
 	/* Distribute the signal to the servers... */
 	for (i = 0; i < nsd.child_count; ++i) {
 		if (nsd.children[i].pid != 0 && kill(nsd.children[i].pid, sig) == -1) {
-			syslog(LOG_ERR, "problems killing %d: %m", nsd.children[i].pid);
+			log_msg(LOG_ERR, "problems killing %d: %s",
+				nsd.children[i].pid, strerror(errno));
 		}
 	}
 }
@@ -295,39 +269,40 @@ bind8_stats (struct nsd *nsd)
 	int i, len;
 
 	/* XXX A bit ugly but efficient. Should be somewhere else. */
-	static
-	const char *types[] = {NULL, "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG",		/* 8 */
-			"MR", "NULL", "WKS", "PTR", "HINFO", "MINFO", "MX", "TXT",		/* 16 */
-			"RP", "AFSDB", "X25", "ISDN", "RT", "NSAP", "NSAP_PTR", "SIG",		/* 24 */
-			"KEY", "PX", "GPOS", "AAAA", "LOC", "NXT", "EID", "NIMLOC",		/* 32 */
-			"SRV", "ATMA", "NAPTR", "KX", "CERT", "A6", "DNAME", "SINK",		/* 40 */
-			"OPT", NULL, NULL, NULL, NULL, NULL, NULL, NULL,			/* 48 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 56 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 64 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 72 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 80 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 88 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 96 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 104 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 112 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 120 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 128 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 136 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 144 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 152 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 160 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 168 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 176 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 184 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 192 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 200 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 208 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 216 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 224 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 232 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 240 */
-			NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 248 */
-			"TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA", "ANY"};		/* 255 */
+	static const char *types[] = {
+		NULL, "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG",		/* 8 */
+		"MR", "NULL", "WKS", "PTR", "HINFO", "MINFO", "MX", "TXT",		/* 16 */
+		"RP", "AFSDB", "X25", "ISDN", "RT", "NSAP", "NSAP_PTR", "SIG",		/* 24 */
+		"KEY", "PX", "GPOS", "AAAA", "LOC", "NXT", "EID", "NIMLOC",		/* 32 */
+		"SRV", "ATMA", "NAPTR", "KX", "CERT", "A6", "DNAME", "SINK",		/* 40 */
+		"OPT", NULL, NULL, NULL, NULL, NULL, NULL, NULL,			/* 48 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 56 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 64 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 72 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 80 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 88 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 96 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 104 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 112 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 120 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 128 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 136 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 144 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 152 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 160 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 168 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 176 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 184 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 192 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 200 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 208 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 216 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 224 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 232 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 240 */
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 248 */
+		"TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA", "ANY"			/* 255 */
+	};
 
 
 	/* Current time... */
@@ -340,7 +315,7 @@ bind8_stats (struct nsd *nsd)
 	for(i = 0; i <= 255; i++) {
 		/* How much space left? */
 		if((len = buf + MAXSYSLOGMSGLEN - t) < 32) {
-			syslog(LOG_INFO, "%s", buf);
+			log_msg(LOG_INFO, "%s", buf);
 			t = msg;
 			len = buf + MAXSYSLOGMSGLEN - t;
 		}
@@ -354,32 +329,32 @@ bind8_stats (struct nsd *nsd)
 		}
 	}
 	if(t > msg)
-		syslog(LOG_INFO, "%s", buf);
+		log_msg(LOG_INFO, "%s", buf);
 
 	/* XSTATS */
 	/* Only print it if we're in the main daemon or have anything to report... */
 	if (nsd->server_kind == NSD_SERVER_MAIN
-		|| nsd->st.dropped || nsd->st.raxfr || (nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped)
-		|| nsd->st.txerr || nsd->st.opcode[OPCODE_QUERY] || nsd->st.opcode[OPCODE_IQUERY]
-		|| nsd->st.wrongzone || nsd->st.ctcp + nsd->st.ctcp6 || nsd->st.rcode[RCODE_SERVFAIL]
-		|| nsd->st.rcode[RCODE_FORMAT] || nsd->st.nona || nsd->st.rcode[RCODE_NXDOMAIN]
-		|| nsd->st.opcode[OPCODE_UPDATE]) {
+	    || nsd->st.dropped || nsd->st.raxfr || (nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped)
+	    || nsd->st.txerr || nsd->st.opcode[OPCODE_QUERY] || nsd->st.opcode[OPCODE_IQUERY]
+	    || nsd->st.wrongzone || nsd->st.ctcp + nsd->st.ctcp6 || nsd->st.rcode[RCODE_SERVFAIL]
+	    || nsd->st.rcode[RCODE_FORMAT] || nsd->st.nona || nsd->st.rcode[RCODE_NXDOMAIN]
+	    || nsd->st.opcode[OPCODE_UPDATE]) {
 
-	    syslog(LOG_INFO, "XSTATS %lu %lu"
-		" RR=%lu RNXD=%lu RFwdR=%lu RDupR=%lu RFail=%lu RFErr=%lu RErr=%lu RAXFR=%lu"
-		" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
-		" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
-		" SNXD=%lu RUQ=%lu RURQ=%lu RUXFR=%lu RUUpd=%lu",
-		(unsigned long) now, (unsigned long) nsd->st.boot,
-		nsd->st.dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
-		(unsigned long)0, (unsigned long)0, nsd->st.raxfr, (unsigned long)0, (unsigned long)0,
-		(unsigned long)0, nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped, (unsigned long)0,
+		log_msg(LOG_INFO, "XSTATS %lu %lu"
+			" RR=%lu RNXD=%lu RFwdR=%lu RDupR=%lu RFail=%lu RFErr=%lu RErr=%lu RAXFR=%lu"
+			" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
+			" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
+			" SNXD=%lu RUQ=%lu RURQ=%lu RUXFR=%lu RUUpd=%lu",
+			(unsigned long) now, (unsigned long) nsd->st.boot,
+			nsd->st.dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
+			(unsigned long)0, (unsigned long)0, nsd->st.raxfr, (unsigned long)0, (unsigned long)0,
+			(unsigned long)0, nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped, (unsigned long)0,
 			(unsigned long)0, nsd->st.txerr,
-		nsd->st.opcode[OPCODE_QUERY], nsd->st.opcode[OPCODE_IQUERY], nsd->st.wrongzone,
+			nsd->st.opcode[OPCODE_QUERY], nsd->st.opcode[OPCODE_IQUERY], nsd->st.wrongzone,
 			(unsigned long)0, nsd->st.ctcp + nsd->st.ctcp6,
-		(unsigned long)0, nsd->st.rcode[RCODE_SERVFAIL], nsd->st.rcode[RCODE_FORMAT],
+			(unsigned long)0, nsd->st.rcode[RCODE_SERVFAIL], nsd->st.rcode[RCODE_FORMAT],
 			nsd->st.nona, nsd->st.rcode[RCODE_NXDOMAIN],
-		(signed long)0, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
+			(unsigned long)0, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
 	}
 
 }
@@ -405,13 +380,15 @@ main (int argc, char *argv[])
 	const char *udp_port;
 	const char *tcp_port;
 
+	const char *log_filename = NULL;
+	
 #ifdef PLUGINS
 	nsd_plugin_id_type plugin_count = 0;
 	char **plugins = xalloc(sizeof(char *));
 	maximum_plugin_count = 1;
 #endif /* PLUGINS */
 
-	program_name = argv[0];
+	log_init("nsd");
 	
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
@@ -449,29 +426,18 @@ main (int argc, char *argv[])
 	nsd.edns.opt_err[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
 	nsd.edns.opt_err[5] = 1;			/* XXX Extended RCODE=BAD VERS */
 
-/* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
-
-#ifndef	LOG_PERROR
-# define LOG_PERROR 0
-#endif
-
-#ifndef LOG_PID
-# define LOG_PID 0
-#endif
-
-	/* Set up the logging... */
-	openlog("nsd", LOG_PERROR | LOG_PID, FACILITY);
-
 	/* Set up our default identity to gethostname(2) */
 	if(gethostname(hostname, MAXHOSTNAMELEN) == 0) {
 		nsd.identity = hostname;
 	} else {
-                syslog(LOG_ERR, "failed to get the host name: %m - using default identity");
+		log_msg(LOG_ERR,
+			"failed to get the host name: %s - using default identity",
+			strerror(errno));
 	}
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "46a:df:hi:N:n:p:s:u:t:X:v")) != -1) {
+	while((c = getopt(argc, argv, "46a:df:hi:l:N:n:p:s:u:t:X:v")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -503,10 +469,13 @@ main (int argc, char *argv[])
 		case 'i':
 			nsd.identity = optarg;
 			break;
+		case 'l':
+			log_filename = optarg;
+			break;
 		case 'N':
 			i = atoi(optarg);
 			if (i <= 0) {
-				syslog(LOG_ERR, "number of UDP servers must be greather than zero");
+				error("number of UDP servers must be greather than zero");
 			} else {
 				udp_children = i;
 			}
@@ -514,7 +483,7 @@ main (int argc, char *argv[])
 		case 'n':
 			i = atoi(optarg);
 			if (i <= 0) {
-				syslog(LOG_ERR, "number of TCP servers must be greather than zero");
+				error("number of TCP servers must be greather than zero");
 			} else {
 				tcp_children = i;
 			}
@@ -661,17 +630,23 @@ main (int argc, char *argv[])
 		}
 	}
 
+	/* Set up the logging... */
+	log_open(LOG_PID, FACILITY, log_filename);
+	if (!log_filename) {
+		log_set_log_function(log_syslog);
+	}
+	
 	/* Relativize the pathnames for chroot... */
 	if(nsd.chrootdir) {
 		int l = strlen(nsd.chrootdir);
 
 		if(strncmp(nsd.chrootdir, nsd.pidfile, l) != 0) {
-			syslog(LOG_ERR, "%s is not relative to %s: will not chroot",
-			       nsd.pidfile, nsd.chrootdir);
+			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
+				nsd.pidfile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
 		} else if(strncmp(nsd.chrootdir, nsd.dbfile, l) != 0) {
-			syslog(LOG_ERR, "%s is not relative to %s: will not chroot",
-			       nsd.dbfile, nsd.chrootdir);
+			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
+				nsd.dbfile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
 		}
 	}
@@ -679,14 +654,19 @@ main (int argc, char *argv[])
 	/* Do we have a running nsd? */
 	if((oldpid = readpid(nsd.pidfile)) == -1) {
 		if(errno != ENOENT) {
-			syslog(LOG_ERR, "can't read pidfile %s: %m", nsd.pidfile);
+			log_msg(LOG_ERR, "can't read pidfile %s: %s",
+				nsd.pidfile, strerror(errno));
 		}
 	} else {
 		if(kill(oldpid, 0) == 0 || errno == EPERM) {
-			syslog(LOG_ERR, "nsd is already running as %u, stopping", oldpid);
+			log_msg(LOG_ERR,
+				"nsd is already running as %u, stopping",
+				(unsigned) oldpid);
 			exit(0);
 		} else {
-			syslog(LOG_ERR, "...stale pid file from process %u", oldpid);
+			log_msg(LOG_ERR,
+				"...stale pid file from process %u",
+				(unsigned) oldpid);
 		}
 	}
 
@@ -701,7 +681,7 @@ main (int argc, char *argv[])
 		case 0:
 			break;
 		case -1:
-			syslog(LOG_ERR, "fork failed: %m");
+			log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
 			unlink(nsd.pidfile);
 			exit(1);
 		default:
@@ -710,7 +690,7 @@ main (int argc, char *argv[])
 
 		/* Detach ourselves... */
 		if(setsid() == -1) {
-			syslog(LOG_ERR, "setsid() failed: %m");
+			log_msg(LOG_ERR, "setsid() failed: %s", strerror(errno));
 			exit(1);
 		}
 
@@ -742,7 +722,8 @@ main (int argc, char *argv[])
 
 	/* Overwrite pid... */
 	if(writepid(&nsd) == -1) {
-		syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd.pidfile);
+		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
+			nsd.pidfile, strerror(errno));
 	}
 
 	/* Initialize... */
@@ -773,7 +754,7 @@ main (int argc, char *argv[])
 	free(plugins);
 #endif /* PLUGINS */
 	
-	syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
+	log_msg(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {
 		server_main(&nsd);

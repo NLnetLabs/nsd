@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.conf.sample.in,v 1.6 2003/03/20 10:31:25 alexis Exp $
+# $Id: nsdc.conf.sample.in,v 1.7 2003/07/28 12:28:39 erik Exp $
 #
 # nsdc.conf.sample -- configuration for nsdc.sh
 #
@@ -62,3 +62,6 @@ notify="@sbindir@/nsd-notify"
 
 # Pathname of named-xfer(8) binary from BIND8 distribution
 namedxfer="@namedxfer@"
+
+# Verbosity of "nsdc update". Set ZONEC_VERBOSE to -v, -vv or to a
+# null string ZONEC_VERBOSE=-v

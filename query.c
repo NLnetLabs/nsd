@@ -51,7 +51,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -62,7 +61,7 @@
 #include "namedb.h"
 #include "plugins.h"
 #include "query.h"
-
+#include "util.h"
 
 #ifdef LIBWRAP
 #include <tcpd.h>
@@ -250,7 +249,7 @@ query_addanswer (struct query *q, const uint8_t *dname, const struct answer *a, 
 
 	/* Check that the answer fits into our query buffer... */
 	if(ANSWER_DATALEN(a) > QUERY_AVAILABLE_SIZE(q)) {
-		syslog(LOG_ERR, "the answer in the database is larger then the query buffer");
+		log_msg(LOG_ERR, "the answer in the database is larger then the query buffer");
 		RCODE_SET(q, RCODE_SERVFAIL);
 		return;
 	}
@@ -495,9 +494,9 @@ answer_notify (struct query *query)
 				NULL, 0, NI_NUMERICHOST)
 		    != 0)
 		{
-			syslog(LOG_INFO, "notify from unknown remote address");
+			log_msg(LOG_INFO, "notify from unknown remote address");
 		} else {
-			syslog(LOG_INFO, "notify from %s", namebuf);
+			log_msg(LOG_INFO, "notify from %s", namebuf);
 		}
 	default:
 		query_error(query, RCODE_IMPL);
@@ -707,7 +706,7 @@ answer_axfr_ixfr(struct nsd *nsd,
 #ifdef AXFR_DAEMON_PREFIX
 				request_init(&request, RQ_DAEMON, axfr_daemon, RQ_CLIENT_SIN, &q->addr, 0);
 				sock_methods(&request);	/* This is to work around the bug in libwrap */
-				syslog(LOG_ERR, "checking %s", axfr_daemon);
+				log_msg(LOG_ERR, "checking %s", axfr_daemon);
 				if(!hosts_access(&request)) {
 #endif /* AXFR_DAEMON_PREFIX */
 					RCODE_SET(q, RCODE_REFUSE);
@@ -787,7 +786,7 @@ answer_query(struct nsd *nsd,
 				/* We found a domain... */
 				RCODE_SET(q, RCODE_OK);
 
-				if (answer_domain(q, d, qname, qclass, qtype)) {
+				if (answer_domain(q, d, qname - 2, qclass, qtype)) {
 #ifdef PLUGINS
 					q->plugin_data = d->runtime_data;
 #endif /* PLUGINS */

@@ -111,6 +111,51 @@ AC_TYPE_UID_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 
+AC_DEFUN([AC_CHECK_FORMAT_ATTRIBUTE],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)
+AC_CACHE_VAL(ac_cv_c_format_attribute,
+[ac_cv_c_format_attribute=no
+AC_TRY_COMPILE(
+[#include <stdio.h>
+void f (char *format, ...) __attribute__ ((format (printf, 1, 2)));
+], [
+   f ("%s", "str");
+],
+[ac_cv_c_format_attribute="yes"],
+[ac_cv_c_format_attribute="no"])
+])
+
+AC_MSG_RESULT($ac_cv_c_format_attribute)
+if test $ac_cv_c_format_attribute = yes; then
+  AC_DEFINE(HAVE_ATTR_FORMAT, 1, [Whether the C compiler accepts the "format" attribute])
+fi
+])dnl
+
+AC_DEFUN([AC_CHECK_UNUSED_ATTRIBUTE],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "unused" attribute)
+AC_CACHE_VAL(ac_cv_c_unused_attribute,
+[ac_cv_c_unused_attribute=no
+AC_TRY_COMPILE(
+[#include <stdio.h>
+void f (char *u __attribute__((unused)));
+], [
+   f ("x");
+],
+[ac_cv_c_unused_attribute="yes"],
+[ac_cv_c_unused_attribute="no"])
+])
+
+AC_MSG_RESULT($ac_cv_c_unused_attribute)
+if test $ac_cv_c_unused_attribute = yes; then
+  AC_DEFINE(HAVE_ATTR_UNUSED, 1, [Whether the C compiler accepts the "unused" attribute])
+fi
+])dnl
+
+AC_CHECK_FORMAT_ATTRIBUTE
+AC_CHECK_UNUSED_ATTRIBUTE
+
 # Checks for libraries.
 
 # Checks for header files.
@@ -342,6 +387,20 @@ AH_BOTTOM([
 #ifdef HAVE_SYS_BITYPES_H
 #include <sys/bitypes.h>
 #endif
+])
+
+AH_BOTTOM([
+#ifdef HAVE_ATTR_FORMAT
+#define ATTR_FORMAT(archetype, string_index, first_to_check) \
+    __attribute__ ((format (archetype, string_index, first_to_check)))
+#else /* !HAVE_ATTR_FORMAT */
+#define ATTR_FORMAT(archetype, string_index, first_to_check) /* empty */
+#endif /* !HAVE_ATTR_FORMAT */
+#ifdef HAVE_ATTR_UNUSED
+#define ATTR_UNUSED __attribute__((unused))
+#else /* !HAVE_ATTR_UNUSED */
+#define ATTR_UNUSED /* empty */
+#endif /* !HAVE_ATTR_UNUSED */
 ])
 
 AC_CONFIG_FILES([Makefile])

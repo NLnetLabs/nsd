@@ -59,7 +59,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -70,6 +69,7 @@
 #include "nsd.h"
 #include "plugins.h"
 #include "query.h"
+#include "util.h"
 
 
 /*
@@ -110,7 +110,8 @@ restart_child_servers(struct nsd *nsd)
 				/* NOTREACH */
 				exit(0);
 			case -1:
-				syslog(LOG_ERR, "fork failed: %m");
+				log_msg(LOG_ERR, "fork failed: %s",
+					strerror(errno));
 				return -1;
 			}
 		}
@@ -136,7 +137,7 @@ server_init(struct nsd *nsd)
 	/* Make a socket... */
 	for(i = 0; i < nsd->ifs; i++) {
 		if((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
-			syslog(LOG_ERR, "can't create a socket: %m");
+			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
 
@@ -144,14 +145,15 @@ server_init(struct nsd *nsd)
 		if (nsd->udp[i].addr->ai_family == AF_INET6 &&
 		    setsockopt(nsd->udp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
 		{
-			syslog(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %m");
+			log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
+				strerror(errno));
 			return -1;
 		}
 #endif
 
 		/* Bind it... */
 		if(bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
-			syslog(LOG_ERR, "can't bind the socket: %m");
+			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
 			return -1;
 		}
 	}
@@ -161,13 +163,13 @@ server_init(struct nsd *nsd)
 	/* Make a socket... */
 	for(i = 0; i < nsd->ifs; i++) {
 		if((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
-			syslog(LOG_ERR, "can't create a socket: %m");
+			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
 
 #ifdef	SO_REUSEADDR
 		if(setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
-			syslog(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %m");
+			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
 			return -1;
 		}
 #endif /* SO_REUSEADDR */
@@ -176,20 +178,20 @@ server_init(struct nsd *nsd)
 		if (nsd->tcp[i].addr->ai_family == AF_INET6 &&
 		    setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
 		{
-			syslog(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %m");
+			log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
 			return -1;
 		}
 #endif
 
 		/* Bind it... */
 		if(bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
-			syslog(LOG_ERR, "can't bind the socket: %m");
+			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
 			return -1;
 		}
 
 		/* Listen to it... */
 		if(listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
-			syslog(LOG_ERR, "can't listen: %m");
+			log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 			return -1;
 		}
 	}
@@ -203,7 +205,7 @@ server_init(struct nsd *nsd)
 		nsd->pidfile += l;
 
 		if(chroot(nsd->chrootdir)) {
-			syslog(LOG_ERR, "unable to chroot: %m");
+			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
 			return -1;
 		}
 	}
@@ -211,13 +213,13 @@ server_init(struct nsd *nsd)
 
 	/* Drop the permissions */
 	if(setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
-		syslog(LOG_ERR, "unable to drop user priviledges: %m");
+		log_msg(LOG_ERR, "unable to drop user priviledges: %s", strerror(errno));
 		return -1;
 	}
 
 	/* Open the database... */
 	if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
-		syslog(LOG_ERR, "unable to load %s: %m", nsd->dbfile);
+		log_msg(LOG_ERR, "unable to load %s: %s", nsd->dbfile, strerror(errno));
 		return -1;
 	}
 
@@ -302,21 +304,21 @@ server_main(struct nsd *nsd)
 				if (errno == EINTR) {
 					continue;
 				}
-				syslog(LOG_WARNING, "wait failed: %m");
+				log_msg(LOG_WARNING, "wait failed: %s", strerror(errno));
 			} else {
 				int is_child = delete_child_pid(nsd, child_pid);
 				if (is_child) {
-					syslog(LOG_WARNING,
+					log_msg(LOG_WARNING,
 					       "server %d died unexpectedly with status %d, restarting",
 					       (int) child_pid, status);
 					restart_child_servers(nsd);
 				} else if (child_pid == reload_pid) {
-					syslog(LOG_WARNING,
+					log_msg(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
 					       (int) child_pid, status);
 					reload_pid = -1;
 				} else {
-					syslog(LOG_WARNING,
+					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",
 					       (int) child_pid, status);
 				}
@@ -326,7 +328,7 @@ server_main(struct nsd *nsd)
 			nsd->mode = NSD_RUN;
 
 			if (reload_pid != -1) {
-				syslog(LOG_WARNING, "Reload already in progress (pid = %d)",
+				log_msg(LOG_WARNING, "Reload already in progress (pid = %d)",
 				       (int) reload_pid);
 				break;
 			}
@@ -334,27 +336,27 @@ server_main(struct nsd *nsd)
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:
-				syslog(LOG_ERR, "fork failed: %m");
+				log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
 				break;
 			case 0:
 				/* CHILD */
 
 				namedb_close(nsd->db);
 				if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
-					syslog(LOG_ERR, "unable to reload the database: %m");
+					log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 					exit(1);
 				}
 
 #ifdef PLUGINS
 				if (plugin_database_reloaded() != NSD_PLUGIN_CONTINUE) {
-					syslog(LOG_ERR, "plugin reload failed");
+					log_msg(LOG_ERR, "plugin reload failed");
 					exit(1);
 				}
 #endif /* PLUGINS */
 
 				/* Send SIGINT to terminate the parent quitely... */
 				if (kill(nsd->pid, SIGINT) != 0) {
-					syslog(LOG_ERR, "cannot kill %d: %m", nsd->pid);
+					log_msg(LOG_ERR, "cannot kill %d: %s", nsd->pid, strerror(errno));
 					exit(1);
 				}
 
@@ -366,7 +368,7 @@ server_main(struct nsd *nsd)
 
 				/* Overwrite pid... */
 				if(writepid(nsd) == -1) {
-					syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
+					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 				}
 
 				break;
@@ -381,7 +383,7 @@ server_main(struct nsd *nsd)
 		case NSD_SHUTDOWN:
 			break;
 		default:
-			syslog(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);
+			log_msg(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);
 			nsd->mode = NSD_RUN;
 			break;
 		}
@@ -393,7 +395,7 @@ server_main(struct nsd *nsd)
 	
 	/* Truncate the pid file.  */
 	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
-		syslog(LOG_ERR, "can not truncate the pid file %s: %m", nsd->pidfile);
+		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->pidfile, strerror(errno));
 	}
 	close(fd);
 
@@ -471,7 +473,7 @@ handle_udp(struct nsd *nsd, fd_set *peer)
 	query_init(&q);
 
 	if ((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-		syslog(LOG_ERR, "recvfrom failed: %m");
+		log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
 		STATUP(nsd, rxerr);
 		return 1;
 	}
@@ -486,11 +488,11 @@ handle_udp(struct nsd *nsd, fd_set *peer)
 		query_addedns(&q, nsd);
 
 		if ((sent = sendto(s, q.iobuf, QUERY_USED_SIZE(&q), 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
-			syslog(LOG_ERR, "sendto failed: %m");
+			log_msg(LOG_ERR, "sendto failed: %s", strerror(errno));
 			STATUP(nsd, txerr);
 			return 1;
 		} else if (sent != q.iobufptr - q.iobuf) {
-			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, (int) QUERY_USED_SIZE(&q));
+			log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) QUERY_USED_SIZE(&q));
 			return 1;
 		}
 
@@ -523,7 +525,7 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 	}
 
 	if (s == -1) {
-		syslog(LOG_ERR, "selected non-existant socket");
+		log_msg(LOG_ERR, "selected non-existant socket");
 		return 0;
 	}
 
@@ -534,7 +536,7 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 	q.addrlen = sizeof(q.addr);
 	if ((s = accept(s, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
 		if (errno != EINTR) {
-			syslog(LOG_ERR, "accept failed: %m");
+			log_msg(LOG_ERR, "accept failed: %s", strerror(errno));
 		}
 		return 1;
 	}
@@ -550,30 +552,30 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 	while ((received = read(s, &tcplen, 2)) == 2) {
 		/* XXX Why 17???? */
 		if (ntohs(tcplen) < 17) {
-			syslog(LOG_WARNING, "dropping bogus tcp connection");
+			log_msg(LOG_WARNING, "dropping bogus tcp connection");
 			break;
 		}
 
 		if (ntohs(tcplen) > q.iobufsz) {
-			syslog(LOG_ERR, "insufficient tcp buffer, dropping connection");
+			log_msg(LOG_ERR, "insufficient tcp buffer, dropping connection");
 			break;
 		}
 
 		if ((received = read(s, q.iobuf, ntohs(tcplen))) == -1) {
 			if(errno == EINTR)
-				syslog(LOG_ERR, "timed out/interrupted reading tcp connection");
+				log_msg(LOG_ERR, "timed out/interrupted reading tcp connection");
 			else
-				syslog(LOG_ERR, "failed reading tcp connection: %m");
+				log_msg(LOG_ERR, "failed reading tcp connection: %s", strerror(errno));
 			break;
 		}
 
 		if (received == 0) {
-			syslog(LOG_WARNING, "remote end closed connection");
+			log_msg(LOG_WARNING, "remote end closed connection");
 			break;
 		}
 
 		if (received != ntohs(tcplen)) {
-			syslog(LOG_WARNING, "couldnt read entire tcp message, dropping connection");
+			log_msg(LOG_WARNING, "couldnt read entire tcp message, dropping connection");
 			break;
 		}
 
@@ -592,13 +594,13 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 				if (((sent = write(s, &tcplen, 2)) == -1) ||
 				    ((sent = write(s, q.iobuf, QUERY_USED_SIZE(&q))) == -1)) {
 					if (errno == EINTR)
-						syslog(LOG_ERR, "timed out/interrupted writing");
+						log_msg(LOG_ERR, "timed out/interrupted writing");
 					else
-						syslog(LOG_ERR, "write failed: %s", strerror(errno));
+						log_msg(LOG_ERR, "write failed: %s", strerror(errno));
 					break;
 				}
 				if (sent != q.iobufptr - q.iobuf) {
-					syslog(LOG_ERR, "sent %d in place of %d bytes",
+					log_msg(LOG_ERR, "sent %d in place of %d bytes",
 					       sent, (int) QUERY_USED_SIZE(&q));
 					break;
 				}
@@ -619,9 +621,9 @@ handle_tcp(struct nsd *nsd, fd_set *peer)
 	/* Connection closed */
 	if (received == -1) {
 		if(errno == EINTR)
-			syslog(LOG_ERR, "timed out/interrupted reading tcp connection");
+			log_msg(LOG_ERR, "timed out/interrupted reading tcp connection");
 		else
-			syslog(LOG_ERR, "failed reading tcp connection: %m");
+			log_msg(LOG_ERR, "failed reading tcp connection: %s", strerror(errno));
 	}
 
 	close(s);
@@ -669,7 +671,7 @@ server_child(struct nsd *nsd)
 			bind8_stats(nsd);
 
 #else /* BIND8_STATS */
-			syslog(LOG_NOTICE, "No statistics available, recompile with -DBIND8_STATS");
+			log_msg(LOG_NOTICE, "No statistics available, recompile with -DBIND8_STATS");
 #endif /* BIND8_STATS */
 		}
 		
@@ -700,7 +702,7 @@ server_child(struct nsd *nsd)
 				/* We'll fall out of the loop if we need to shut down */
 				continue;
 			} else {
-				syslog(LOG_ERR, "select failed: %m");
+				log_msg(LOG_ERR, "select failed: %s", strerror(errno));
 				break;
 			}
 		}
@@ -716,7 +718,7 @@ server_child(struct nsd *nsd)
 		    handle_tcp(nsd, &peer))
 			continue;
 
-		syslog(LOG_ERR, "selected non-existant socket");
+		log_msg(LOG_ERR, "selected non-existant socket");
 	}
 
 #ifdef	BIND8_STATS

@@ -1,5 +1,5 @@
 .\"
-.\" $Id: zonec.8,v 1.13 2003/07/07 09:29:26 erik Exp $
+.\" $Id: zonec.8,v 1.14 2003/07/28 12:28:40 erik Exp $
 .\"
 .\" zonec.8 -- zonec manual
 .\"
@@ -44,7 +44,8 @@
 .Nd NSD Zone Compiler
 .Sh SYNOPSIS
 .Nm zonec
-.Op Fl p v
+.Op Fl p
+.Op Fl v
 .Op Fl f Ar database
 .Op Fl d Ar directory
 .Ar nsd.zones
@@ -87,11 +88,50 @@ Create the specified
 instead of the default
 .Pa /etc/nsd/nsd.db
 .It Fl v
-Be verbose about the progress, show percentage done for every zone file
-being processed.
+Be verbose about the progress.  Specify multiple times for additional
+verbosity.
 .It Fl p
 Print every zone after it was parsed (useful for debugging purposes only)
 .El
+.Sh FILE FORMAT
+The nsd.zones file is formatted as follows:
+.TS
+tab (@);
+l l.
+zone    <zonename>    <filename>    [master <IP>]
+.TE
+
+The first word on a line must be ``zone''. It indicates that the zone
+should be loaded as authoritative data. 
+
+The second word is the name (origin) of the zone and the third word is the
+pathname to the master zone file. If you use zonec with the -d option
+the pathname may be relative to the NSD zones directory.
+
+Optionally masters list-of-ip-addresses can be present to update the
+respective zone with axfr from the given master servers. This option
+is ignored by zonec and is only relevant for nsdc update.
+
+A typical example would be:
+.TS
+tab (@);
+l l.
+zone    example.com    primary/example.com    
+zone    example.net    secondary/example.net    master 10.1.1.1
+.TE
+
+The second line indicates that nsdc update should try to axfr the zone
+example.net from the master server 10.1.1.1
+
+Since NSD is primarily written to be run on the root name servers,
+this file most likely to contain something like:
+.TS
+tab (@);
+l l.
+zone    .               root.zone
+.TE
+
+
 .Sh FILES
 .Bl -tag -width indent
 .It Pa /etc/nsd/nsd.db

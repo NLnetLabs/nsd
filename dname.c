@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.12 2003/07/07 08:56:17 erik Exp $
+ * $Id: dname.c,v 1.13 2003/07/28 12:28:39 erik Exp $
  *
  * dname.c -- dname operations
  *
@@ -50,6 +50,7 @@
 #include "dns.h"
 #include "dname.h"
 #include "namedb.h"
+#include "util.h"
 
 /*
  *

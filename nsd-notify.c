@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.13 2003/07/07 10:07:25 erik Exp $
+ * $Id: nsd-notify.c,v 1.14 2003/07/28 12:28:39 erik Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -50,7 +50,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -60,38 +59,8 @@
 #include "dname.h"
 #include "nsd.h"
 #include "query.h"
+#include "util.h"
 #include "zparser.h"
-
-/*
- * Allocates ``size'' bytes of memory, returns the
- * pointer to the allocated memory or NULL and errno
- * set in case of error. Also reports the error via
- * fprintf(stderr, ...);
- *
- */
-void *
-xalloc (size_t size)
-{
-	void *p;
-
-	if ((p = malloc(size)) == NULL) {
-		fprintf(stderr, "nsd-notify: malloc failed: %s\n", strerror(errno));
-		exit(1);
-	}
-	return p;
-}
-
-void *
-xrealloc (void *p, size_t size)
-{
-
-	if ((p = realloc(p, size)) == NULL) {
-		fprintf(stderr, "zonec: realloc failed: %s\n", strerror(errno));
-		exit(1);
-	}
-	return p;
-}
-
 
 static void 
 usage (void)
@@ -115,6 +84,8 @@ main (int argc, char *argv[])
 	int error;
 	int default_family = DEFAULT_AI_FAMILY;
 	const char *port = UDP_PORT;
+
+	log_init("nsd-notify");
 	
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46p:z:")) != -1) {

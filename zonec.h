@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.25 2003/07/07 08:34:11 erik Exp $
+ * $Id: zonec.h,v 1.26 2003/07/28 12:28:40 erik Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -85,17 +85,5 @@ struct message {
 	} compr[MAXRRSPP];
 	uint8_t buf[IOBUFSZ];
 };
-
-/* zonec.c */
-void *xalloc(register size_t size);
-void *xrealloc(register void *p, register size_t size);
-void zone_initmsg(struct message *m);
-void zone_print(struct zone *z);
-uint16_t zone_addname(struct message *msg, uint8_t *dname);
-uint16_t zone_addrrset(struct message *msg, uint8_t *dname, struct rrset *rrset);
-struct domain *zone_addanswer(struct domain *d, struct message *msg, int type);
-void zone_free(struct zone *z);
-struct zone *zone_read(char *name, char *zonefile);
-int zone_dump(struct zone *z, struct namedb *db);
 
 #endif /* _ZONEC_H_ */

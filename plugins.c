@@ -1,5 +1,5 @@
 /*
- * plugins.c -- set or routines to manage plugins.
+ * plugins.c -- set of routines to manage plugins.
  *
  * Erik Rozendaal, <erik@nlnetlabs.nl>
  *
@@ -46,10 +46,10 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include "namedb.h"
 #include "plugins.h"
+#include "util.h"
 
 nsd_plugin_id_type maximum_plugin_count = 0;
 static nsd_plugin_id_type plugin_count = 0;
@@ -119,21 +119,21 @@ plugin_load(const char *name, const char *arg)
 	handle = dlopen(name, RTLD_NOW);
 	error = dlerror();
 	if (error) {
-		syslog(LOG_ERR, "failed to load plugin: %s", error);
+		log_msg(LOG_ERR, "failed to load plugin: %s", error);
 		return 0;
 	}
 
-	init = dlsym(handle, init_name);
+	init = (nsd_plugin_init_type *) dlsym(handle, init_name);
 	error = dlerror();
 	if (error) {
-		syslog(LOG_ERR, "no plugin init function: %s", error);
+		log_msg(LOG_ERR, "no plugin init function: %s", error);
 		dlclose(handle);
 		return 0;
 	}
 
 	descriptor = init(&plugin_interface, plugin_count, arg);
 	if (!descriptor) {
-		syslog(LOG_ERR, "plugin initialization failed");
+		log_msg(LOG_ERR, "plugin initialization failed");
 		dlclose(handle);
 		return 0;
 	}
@@ -151,7 +151,7 @@ plugin_load(const char *name, const char *arg)
 
 	++plugin_count;
 	
-	syslog(LOG_INFO, "Plugin %s %s loaded", descriptor->name, descriptor->version);
+	log_msg(LOG_INFO, "Plugin %s %s loaded", descriptor->name, descriptor->version);
 	
 	return 1;
 }
@@ -178,7 +178,7 @@ plugin_finalize_all(void)
 nsd_plugin_callback_result_type
 plugin_database_reloaded(void)
 {
-	int rc;
+	nsd_plugin_callback_result_type rc;
 	nsd_plugin_type *plugin;
 
 	for (plugin = first_plugin; plugin; plugin = plugin->next) {
@@ -240,8 +240,8 @@ handle_callback_result(
 	case NSD_PLUGIN_ABANDON:
 		return -1;
 	default:
-		syslog(LOG_WARNING, "bad callback result code %d from plugin",
-		       (int) result);
+		log_msg(LOG_WARNING, "bad callback result code %d from plugin",
+			(int) result);
 		return -1;
 	}
 }

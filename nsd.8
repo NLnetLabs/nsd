@@ -48,6 +48,7 @@ nsd
 .Op Fl f Ar database
 .Op Fl h
 .Op Fl i Ar identity
+.Op Fl l Ar logfile
 .Op Fl N Ar udp-servers
 .Op Fl n Ar tcp-servers
 .Op Fl p Ar port
@@ -130,6 +131,11 @@ when they are multicast)
 The default is the name returned by
 .Xr gethostname 3 .
 
+.It Fl l Ar logfile
+Log messages to the specified 
+.Ar logfile .
+The default is to log to stderr and syslog.
+
 .It Fl N Ar count
 Start
 .Ar count
@@ -199,11 +205,11 @@ initialization function of the plugin.
 reacts to the following signals:
 .Bl -tag -width indent
 .It Dv SIGTERM
-Stop answer the queries, shutdown and exit normally.
+Stop answering queries, shutdown, and exit normally.
 .It Dv SIGHUP
 Reload the database.
 .It Dv SIGILL
-Dump BIND8-style statistics via syslog. Ignored otherwise.
+Dump BIND8-style statistics into the log. Ignored otherwise.
 .El
 .\" .Sh IMPLEMENTATION NOTES
 .Sh FILES

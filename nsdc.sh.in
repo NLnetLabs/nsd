@@ -1,6 +1,6 @@
-#!/bin/sh
+#!@shell@
 #
-# $Id: nsdc.sh.in,v 1.26 2003/06/12 12:31:18 erik Exp $
+# $Id: nsdc.sh.in,v 1.27 2003/07/28 12:28:39 erik Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -58,6 +58,8 @@ notify="@sbindir@/nsd-notify"
 namedxfer="@namedxfer@"
 pidfile="@pidfile@"
 
+ZONEC_VERBOSE=-v
+
 #
 # Read in configuration file if any
 #
@@ -99,7 +101,7 @@ running)
 	signal "0"
 	;;
 rebuild)
-	${sbindir}/zonec -v -d ${zonesdir} -f ${dbfile}.$$ ${zonesfile} && mv ${dbfile}.$$ ${dbfile}
+	${sbindir}/zonec ${ZONEC_VERBOSE} -d ${zonesdir} -f ${dbfile}.$$ ${zonesfile} && mv ${dbfile}.$$ ${dbfile}
 	result=$?
 	[ $result != 0 ] && echo "${dbfile} is unmodified"
 	rm -f ${dbfile}.$$

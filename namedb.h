@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.38 2003/07/04 08:30:10 erik Exp $
+ * $Id: namedb.h,v 1.39 2003/07/28 12:28:39 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -149,9 +149,5 @@ struct domain *namedb_lookup(struct namedb *db, const uint8_t *dname);
 const struct answer *namedb_answer(const struct domain *d, int type);
 struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);
-
-/* Routines that the calling program must provide... */
-extern void *xalloc (size_t size);
-extern void *xrealloc(void *p, size_t size);
 
 #endif

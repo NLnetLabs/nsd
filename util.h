@@ -1,5 +1,5 @@
 /*
- * plugins.h -- set of routines to manage plugins.
+ * util.h -- set of various support routines.
  *
  * Erik Rozendaal, <erik@nlnetlabs.nl>
  *
@@ -36,30 +36,69 @@
  *
  */
 
-#ifndef _PLUGINS_H_
-#define _PLUGINS_H_
+#ifndef _UTIL_H_
+#define _UTIL_H_
 
-#ifdef PLUGINS
+#include <config.h>
 
-#include "nsd-plugin.h"
+#include <stdarg.h>
+#include <syslog.h>
 
-extern nsd_plugin_id_type maximum_plugin_count;
+/*
+ * Initialize the logging system.  All messages are logged to stderr
+ * until log_open and log_set_log_function are called.
+ */
+void log_init(const char *ident);
 
-void plugin_init(struct nsd *nsd);
-int plugin_load(const char *name, const char *arg);
-void plugin_finalize_all(void);
-nsd_plugin_callback_result_type plugin_database_reloaded(void);
+/*
+ * Open the system log.  If FILENAME is not NULL, a log file is opened
+ * as well.
+ */
+void log_open(int option, int facility, const char *filename);
 
-nsd_plugin_callback_result_type query_received_callbacks(
-	nsd_plugin_callback_args_type *args,
-	void **data);
-nsd_plugin_callback_result_type query_processed_callbacks(
-	nsd_plugin_callback_args_type *args,
-	void **data);
-int handle_callback_result(
-	nsd_plugin_callback_result_type result,
-	nsd_plugin_callback_args_type *args);
+/*
+ * Finalize the logging system.
+ */
+void log_finalize(void);
 
-#endif /* PLUGINS */
+/*
+ * Type of function to use for the actual logging.
+ */
+typedef void log_function_type(int priority, const char *format, va_list args);
 
-#endif /* _PLUGINS_H_ */
+/*
+ * The function used to log to the log file.
+ */
+log_function_type log_file;
+
+/*
+ * The function used to log to syslog.  The messages are also logged
+ * using log_file.
+ */
+log_function_type log_syslog;
+
+/*
+ * Set the logging function to use (log_file or log_syslog).
+ */
+void log_set_log_function(log_function_type *log_function);
+
+/*
+ * Log a message using the current log function.
+ */
+void log_msg(int priority, const char *format, ...)
+	ATTR_FORMAT(printf, 2, 3);
+
+/*
+ * Log a message using the current log function.
+ */
+void log_vmsg(int priority, const char *format, va_list args);
+
+/*
+ * (Re-)allocate SIZE bytes of memory.  Report an error if the memory
+ * could not be allocated and exit the program.  These functions never
+ * returns NULL.
+ */
+void *xalloc(size_t size);
+void *xrealloc(void *ptr, size_t size);
+
+#endif /* _UTIL_H_ */

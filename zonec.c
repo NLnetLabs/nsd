@@ -1,6 +1,4 @@
 /*
- * $Id: zonec.c,v 1.99 2003/07/18 08:48:53 erik Exp $
- *
  * zone.c -- reads in a zone file and stores it in memory
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
@@ -50,66 +48,30 @@
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
-#include <syslog.h>
 #include <unistd.h>
 
-#include "heap.h"
-#include "dns.h"
-#include "zparser.h"
-#include "namedb.h"
 #include "dname.h"
+#include "dns.h"
+#include "heap.h"
+#include "namedb.h"
+#include "util.h"
 #include "zonec.h"
+#include "zparser.h"
 
 static void zone_addbuf (struct message *, const void *, size_t);
 static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len);
 
 /* The database file... */
-const char *dbfile = DBFILE;
-
-/* The database masks */
-uint8_t bitmasks[NAMEDB_BITMASKLEN * 3];
-uint8_t *authmask = bitmasks;
-uint8_t *starmask = bitmasks + NAMEDB_BITMASKLEN;
-uint8_t *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
+static const char *dbfile = DBFILE;
 
 /* Some global flags... */
-int vflag = 0;
-int pflag = 0;
+static int vflag = 0;
+static int pflag = 0;
 
 /* Total errors counter */
-int totalerrors = 0;
+static int totalerrors = 0;
 
-/*
- * Allocates ``size'' bytes of memory, returns the
- * pointer to the allocated memory or NULL and errno
- * set in case of error. Also reports the error via
- * fprintf(stderr, ...);
- *
- */
-void *
-xalloc (register size_t size)
-{
-	register void *p;
-
-	if((p = malloc(size)) == NULL) {
-		fprintf(stderr, "zonec: malloc failed: %s\n", strerror(errno));
-		exit(1);
-	}
-	return p;
-}
-
-void *
-xrealloc (register void *p, register size_t size)
-{
-
-	if((p = realloc(p, size)) == NULL) {
-		fprintf(stderr, "zonec: realloc failed: %s\n", strerror(errno));
-		exit(1);
-	}
-	return p;
-}
-
-void
+static void
 zone_initmsg(struct message *m)
 {
 	m->ancount = m->nscount = m->arcount = m->dnameslen = m->rrsetslen
@@ -117,7 +79,7 @@ zone_initmsg(struct message *m)
 	m->bufptr = m->buf;
 }
 
-void 
+static void 
 zone_print (struct zone *z)
 {
 	struct rrset *rrset;
@@ -186,7 +148,7 @@ zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len)
 	msg->comprlen++;
 }
 
-uint16_t 
+static uint16_t 
 zone_addname (struct message *msg, uint8_t *dname)
 {
 	/* Lets try rdata dname compression */
@@ -232,7 +194,7 @@ zone_addname (struct message *msg, uint8_t *dname)
 
 
 
-uint16_t 
+static uint16_t 
 zone_addrrset (struct message *msg, uint8_t *dname, struct rrset *rrset)
 {
 	uint16_t class = htons(CLASS_IN);
@@ -347,7 +309,7 @@ zone_addrrset (struct message *msg, uint8_t *dname, struct rrset *rrset)
  * Adds an answer to a domain
  *
  */
-struct domain *
+static struct domain *
 zone_addanswer (struct domain *d, struct message *msg, int type)
 {
 	struct answer *a;
@@ -390,7 +352,7 @@ zone_addanswer (struct domain *d, struct message *msg, int type)
  * Frees all the data structures associated with the zone
  *
  */
-void 
+static void 
 zone_free (struct zone *z)
 {
 	if(z) {
@@ -405,7 +367,7 @@ zone_free (struct zone *z)
  * Reads the specified zone into the memory
  *
  */
-struct zone *
+static struct zone *
 zone_read (char *name, char *zonefile)
 {
 	heap_t *h;
@@ -452,7 +414,7 @@ zone_read (char *name, char *zonefile)
 	while((rr = zread(parser)) != NULL) {
 
 		/* Report progress... */
-		if(vflag) {
+		if(vflag > 1) {
 			if((parser->lines % 100000) == 0) {
 				printf("zonec: reading zone \"%s\": %lu\r", dnamestr(z->dname), (unsigned long) parser->lines);
 				fflush(stdout);
@@ -577,7 +539,10 @@ zone_read (char *name, char *zonefile)
 	}
 
 	fflush(stdout);
-	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), parser->errors);
+	if (vflag > 0) {
+		fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n",
+			dnamestr(z->dname), parser->errors);
+	}
 	totalerrors += parser->errors;
 
 	zclose(parser);
@@ -838,7 +803,7 @@ zone_adddata(uint8_t *dname, struct rrset *rrset, struct zone *z, struct namedb 
  *
  * Returns zero if success.
  */
-int 
+static int 
 zone_dump (struct zone *z, struct namedb *db)
 {
 	uint8_t dnamebuf[MAXDOMAINLEN+1];
@@ -851,7 +816,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	int percentage = 0;
 
 	/* Set up the counter... */
-	if(vflag) {
+	if(vflag > 1) {
 		fraction = (z->cuts->count + z->data->count) / 20;	/* Report every 5% */
 		if(fraction == 0)
 			fraction = ULONG_MAX;
@@ -869,7 +834,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	/* AUTHORITY CUTS */
 	HEAP_WALK(z->cuts, dname, rrset) {
 		/* Report progress... */
-		if(vflag) {
+		if(vflag > 1) {
 			if((++progress % fraction) == 0) {
 				printf("zonec: writing zone \"%s\": %d%%\r", dnamestr(z->dname), percentage);
 				percentage += 5;
@@ -890,7 +855,7 @@ zone_dump (struct zone *z, struct namedb *db)
 	/* OTHER DATA */
 	HEAP_WALK(z->data, dname, rrset) {
 		/* Report progress... */
-		if(vflag) {
+		if(vflag > 1) {
 			if((++progress % fraction) == 0) {
 				printf("zonec: writing zone \"%s\": %d%%\r", dnamestr(z->dname), percentage);
 				percentage += 5;
@@ -938,7 +903,10 @@ zone_dump (struct zone *z, struct namedb *db)
 	}
 
 	fflush(stdout);
-	fprintf(stderr, "zonec: writing zone \"%s\": done.\n", dnamestr(z->dname));
+	if (vflag > 0) {
+		fprintf(stderr, "zonec: writing zone \"%s\": done.\n",
+			dnamestr(z->dname));
+	}
 
 	return 0;
 }
@@ -966,6 +934,8 @@ main (int argc, char **argv)
 
 	struct zone *z = NULL;
 
+	log_init("zonec");
+	
 	totalerrors = 0;
 
 	/* Parse the command line... */
@@ -975,7 +945,7 @@ main (int argc, char **argv)
 			pflag = 1;
 			break;
 		case 'v':
-			vflag = 1;
+			++vflag;
 			break;
 		case 'f':
 			dbfile = optarg;
