@@ -97,12 +97,12 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 {
 	uint8_t buf[MAXDOMAINLEN + 1];
 	int done = 0;
-	uint8_t visited[MAX_PACKET_SIZE];
+	uint8_t visited[(MAX_PACKET_SIZE+7)/8];
 	size_t dname_length = 0;
 	const uint8_t *label;
 	ssize_t mark = -1;
 	
-	memset(visited, 0, buffer_limit(packet));
+	memset(visited, 0, (buffer_limit(packet)+7)/8);
 	
 	while (!done) {
 		if (!buffer_available(packet, 1)) {
@@ -110,11 +110,11 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 			return NULL;
 		}
 
-		if (visited[buffer_position(packet)]) {
+		if (get_bit(visited, buffer_position(packet))) {
 /* 			error("dname loops"); */
 			return NULL;
 		}
-		visited[buffer_position(packet)] = 1;
+		set_bit(visited, buffer_position(packet));
 
 		label = buffer_current(packet);
 		if (label_is_pointer(label)) {
