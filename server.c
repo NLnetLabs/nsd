@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.41 2002/09/10 13:04:55 alexis Exp $
+ * $Id: server.c,v 1.42 2002/09/10 13:09:06 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -137,8 +137,8 @@ answer_tcp(s, addr, addrlen, nsd)
 		}
 
 		if(ntohs(tcplen) > q.iobufsz) {
-			syslog(LOG_ERR, "insufficient tcp buffer, truncating incoming message");
-			tcplen = htons(q.iobufsz);
+			syslog(LOG_ERR, "insufficient tcp buffer, dropping connection");
+			return -1;
 		}
 
 		/* We should use select or settimer() */
@@ -160,7 +160,8 @@ answer_tcp(s, addr, addrlen, nsd)
 		}
 
 		if(received != ntohs(tcplen)) {
-			syslog(LOG_WARNING, "couldnt read entire tcp message");
+			syslog(LOG_WARNING, "couldnt read entire tcp message, dropping connection");
+			return -1;
 		}
 
 		alarm(0);
