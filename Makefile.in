@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.17 2003/02/21 12:07:41 alexis Exp $
+# $Id: Makefile.in,v 1.18 2003/02/21 12:09:39 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -150,14 +150,5 @@ rbtree:	rbtree.c rbtree.h
 hash:	hash.c hash.h
 	$(COMPILE) -DTEST hash.c
 	$(LINK) -o $@ hash.o
-
-nsdc.sh:	nsdc.sh.in ./config.status
-	./config.status
-
-nsdc.conf.sample:	nsdc.conf.sample.in ./config.status
-	./config.status
-
-depend:
-	$(COMPILE) -MM *.c >> Makefile
 
 # Dependencies
