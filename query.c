@@ -547,6 +547,43 @@ answer_domain(struct query *q,
 	return 0;
 }
 
+
+static int
+answer_soa(struct query *q,
+	   struct domain *d,
+	   u_int16_t qclass,
+	   const u_char *qname)
+{
+	struct answer *a;
+	u_char *qptr;
+	
+	/* Do we have SOA record in this domain? */
+	if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
+				
+		if(ntohs(qclass) != CLASS_ANY) {
+			AA_SET(q);
+					
+			/* Setup truncation */
+			qptr = q->iobufptr;
+					
+			query_addanswer(q, qname, a, 0);
+					
+			/* Truncate */
+			ANCOUNT(q) = 0;
+			NSCOUNT(q) = htons(1);
+			ARCOUNT(q) = 0;
+			if(ANSWER_RRSLEN(a) > 1)
+				q->iobufptr = qptr + ANSWER_RRS(a, 1);
+				
+		} else {
+			AA_CLR(q);
+		}
+				
+		return 1;
+	}
+	return 0;
+}
+
 /*
  * Processes the query, returns 0 if successfull, 1 if AXFR has been initiated
  * -1 if the query has to be silently discarded.
@@ -568,7 +605,6 @@ query_process (struct query *q, struct nsd *nsd)
 	int recursion_desired;
 
 	struct domain *d;
-	struct answer *a;
 	int match;
 
 	/* Sanity checks */
@@ -736,28 +772,7 @@ query_process (struct query *q, struct nsd *nsd)
 			return 0;
 		}
 
-		/* Do we have SOA record in this domain? */
-		if((a = namedb_answer(d, htons(TYPE_SOA))) != NULL) {
-				
-			if(ntohs(qclass) != CLASS_ANY) {
-				AA_SET(q);
-					
-				/* Setup truncation */
-				qptr = q->iobufptr;
-					
-				query_addanswer(q, qname, a, 0);
-					
-				/* Truncate */
-				ANCOUNT(q) = 0;
-				NSCOUNT(q) = htons(1);
-				ARCOUNT(q) = 0;
-				if(ANSWER_RRSLEN(a) > 1)
-					q->iobufptr = qptr + ANSWER_RRS(a, 1);
-				
-			} else {
-				AA_CLR(q);
-			}
-				
+		if (answer_soa(q, d, qclass, qname)) {
 			return 0;
 		}
 
@@ -802,27 +817,7 @@ query_process (struct query *q, struct nsd *nsd)
 				return 0;
 			}
 
-			if((a = namedb_answer(d, htons(TYPE_SOA)))) {
-
-				if(ntohs(qclass) != CLASS_ANY) {
-					/* Setup truncation */
-					qptr = q->iobufptr;
-					
-					AA_SET(q);
-					
-					query_addanswer(q, qname, a, 0);
-					
-					/* Truncate */
-					ANCOUNT(q) = 0;
-					NSCOUNT(q) = htons(1);
-					ARCOUNT(q) = 0;
-					if(ANSWER_RRSLEN(a) > 1)
-						q->iobufptr = qptr + ANSWER_RRS(a, 1);
-
-				} else {
-					AA_CLR(q);
-				}
-
+			if (answer_soa(q, d, qclass, qname)) {
 				return 0;
 			}
 
