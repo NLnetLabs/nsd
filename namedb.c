@@ -265,6 +265,21 @@ domain_find_zone(domain_type *domain)
 	return NULL;
 }
 
+zone_type *
+domain_find_parent_zone(zone_type *zone)
+{
+	rrset_type *rrset;
+
+	assert(zone);
+
+	for (rrset = zone->domain->rrsets; rrset; rrset = rrset->next) {
+		if (rrset->zone != zone && rrset->type == TYPE_NS) {
+			return rrset->zone;
+		}
+	}
+	return NULL;
+}
+
 domain_type *
 domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
 {

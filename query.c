@@ -526,6 +526,18 @@ answer_soa(struct query *query, answer_type *answer)
 	}
 }
 
+static void
+answer_nxtype(struct query *query, answer_type *answer, domain_type *domain)
+{
+	answer_soa(query, answer);
+}
+
+static void
+answer_nxdomain(struct query *query, answer_type *answer)
+{
+	RCODE_SET(query, RCODE_NXDOMAIN);
+	answer_soa(query, answer);
+}
 
 /*
  * Answer domain information (or SOA if we do not have an RRset for
@@ -549,7 +561,7 @@ answer_domain(struct query *q, answer_type *answer, domain_type *domain)
 		add_dependent_rrsets(
 			q, answer, ANSWER_SECTION, rrset, 0, q->type, 0);
 	} else {
-		answer_soa(q, answer);
+		answer_nxtype(q, answer, domain);
 		return;
 	}
 
@@ -590,10 +602,10 @@ answer_chaos(struct nsd *nsd, struct query *q)
 	switch (q->type) {
 	case TYPE_ANY:
 	case TYPE_TXT:
-		if (q->name->name_size == 11
-		   && memcmp(dname_name(q->name), "\002id\006server", 11) == 0 || 
-		   q->name->name_size ==  15
-		   && memcmp(dname_name(q->name), "\010hostname\004bind", 15) == 0 )
+		if ((q->name->name_size == 11
+		     && memcmp(dname_name(q->name), "\002id\006server", 11) == 0) || 
+		    (q->name->name_size ==  15
+		     && memcmp(dname_name(q->name), "\010hostname\004bind", 15) == 0))
 		{
 			/* Add ID */
 			query_addtxt(q,
@@ -603,10 +615,10 @@ answer_chaos(struct nsd *nsd, struct query *q)
 				     nsd->identity);
 			ANCOUNT(q) = htons(ntohs(ANCOUNT(q)) + 1);
 			return 1;
-		} else if (q->name->name_size == 16
-			   && memcmp(dname_name(q->name), "\007version\006server", 16) == 0 ||
-			   q->name->name_size == 14
-			   && memcmp(dname_name(q->name), "\007version\004bind", 14) == 0 )
+		} else if ((q->name->name_size == 16
+			    && memcmp(dname_name(q->name), "\007version\006server", 16) == 0) ||
+			   (q->name->name_size == 14
+			    && memcmp(dname_name(q->name), "\007version\004bind", 14) == 0))
 		{
 			/* Add version */
 			query_addtxt(q,
@@ -708,9 +720,6 @@ answer_query(struct nsd *nsd, struct query *q)
 		return;
 	}
 
-	q->delegation_domain = domain_find_ns_rrsets(
-		closest_encloser, q->zone, &q->delegation_rrset);
-
 	offset = dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
 
@@ -731,17 +740,38 @@ answer_query(struct nsd *nsd, struct query *q)
 		match = NULL;
 	}
 
+	/*
+	 * See 3.1.4.1 Responding to Queries for DS RRs in DNSSEC
+	 * protocol.
+	 */
+	if (q->type == TYPE_DS && match == q->zone->domain) {
+		/*
+		 * Type DS query at a zone cut, use the responsible
+		 * parent zone to generate the answer if we are
+		 * authoritative for the parent zone.
+		 */
+		zone_type *zone = domain_find_parent_zone(q->zone);
+		if (zone)
+			q->zone = zone;
+	}
+	
 	answer_init(&answer);
-	if (q->delegation_domain) {
-		/* Delegation.  */
-		answer_delegation(q, &answer);
+	if (q->type == TYPE_DS && match == q->zone->domain) {
+		answer_domain(q, &answer, match);
 	} else {
-		/* Authorative zone.  */
-		if (match) {
-			answer_domain(q, &answer, match);
+		q->delegation_domain = domain_find_ns_rrsets(
+			closest_encloser, q->zone, &q->delegation_rrset);
+
+		if (q->delegation_domain) {
+			/* Delegation.  */
+			answer_delegation(q, &answer);
 		} else {
-			RCODE_SET(q, RCODE_NXDOMAIN);
-			answer_soa(q, &answer);
+			/* Authorative zone.  */
+			if (match) {
+				answer_domain(q, &answer, match);
+			} else {
+				answer_nxdomain(q, &answer);
+			}
 		}
 	}
 
