@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.15 2002/09/19 11:37:16 alexis Exp $
+# $Id: nsdc.sh.in,v 1.16 2002/09/26 14:18:36 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -169,7 +169,7 @@ notify)
 	done < $NSDZONES
 	;;
 restart)
-	sh $0 stop && sh $0 start
+	sh $0 stop && sleep 1 && sh $0 start
 	;;
 *)
 	echo "Usage: `basename $0` {start|stop|reload|rebuild|restart|running|update|notify}" >&2

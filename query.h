@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.24 2002/09/11 13:58:34 alexis Exp $
+ * $Id: query.h,v 1.25 2002/09/26 14:18:36 alexis Exp $
  *
  * query.h -- manipulation with the queries
  *
@@ -186,5 +186,6 @@ int query_process __P((struct query *, struct nsd *));
 void query_init __P((struct query *));
 void query_addanswer __P((struct query *, u_char *, struct answer *, int));
 int query_axfr __P((struct query *, struct nsd *, u_char *, u_char *, int));
+void query_addedns __P((struct query *q, struct nsd *nsd));
 
 #endif /* _QUERY_H_ */

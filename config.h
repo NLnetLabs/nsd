@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.12 2002/09/11 13:19:35 alexis Exp $
+ * $Id: config.h,v 1.13 2002/09/26 14:18:36 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -93,9 +93,11 @@
 #define	CF_PIDFILE	"/var/run/nsd.pid"
 #endif
 
+#define	CF_TCP_BACKLOG		5
 #define	CF_TCP_MAX_CONNECTIONS	8
 #define	CF_TCP_PORT		53
 #define	CF_TCP_MAX_MESSAGE_LEN	16384
+#define	CF_TCP_TIMEOUT		120
 #define	CF_UDP_PORT		53
 #define	CF_UDP_MAX_MESSAGE_LEN	512
 #define	CF_EDNS_MAX_MESSAGE_LEN	4096

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.79 2002/09/11 13:19:35 alexis Exp $
+ * $Id: query.c,v 1.80 2002/09/26 14:18:36 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -755,4 +755,28 @@ query_process(q, nsd)
 	STATUP(nsd, wrongzone);
 
 	return 0;
+}
+
+void
+query_addedns(struct query *q, struct nsd *nsd) {
+	switch(q->edns) {
+	case 1:	/* EDNS(0) packet... */
+		if((q->iobufptr - q->iobuf + OPT_LEN) <= q->iobufsz) {
+			bcopy(nsd->edns.opt_ok, q->iobufptr, OPT_LEN);
+			q->iobufptr += OPT_LEN;
+			ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
+		}
+
+		STATUP(nsd, edns);
+		break;
+	case -1: /* EDNS(0) error... */
+		if((q->iobufptr - q->iobuf + OPT_LEN) <= q->iobufsz) {
+			bcopy(nsd->edns.opt_err, q->iobufptr, OPT_LEN);
+			q->iobufptr += OPT_LEN;
+			ARCOUNT((q)) = htons(ntohs(ARCOUNT((q))) + 1);
+		}
+
+		STATUP(nsd, ednserr);
+		break;
+	}
 }

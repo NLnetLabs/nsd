@@ -1,5 +1,5 @@
 .\"
-.\" $Id: nsd.8,v 1.12 2002/09/19 11:37:15 alexis Exp $
+.\" $Id: nsd.8,v 1.13 2002/09/26 14:18:36 alexis Exp $
 .\"
 .\" nsd.8 -- nsd manual
 .\"
@@ -82,6 +82,10 @@ script or similar at the operating system startup.
 .Pp
 The available options are:
 .Bl -tag -width indent
+.It Fl n
+Handle
+.Ar n
+tcp connections simultaneously.
 .It Fl d
 Turn on debugging mode, do not fork, stay in the foreground.
 .It Fl f Ar database

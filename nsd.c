@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.49 2002/09/19 11:37:15 alexis Exp $
+ * $Id: nsd.c,v 1.50 2002/09/26 14:18:36 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -79,7 +79,7 @@ xrealloc(p, size)
 int
 usage()
 {
-	fprintf(stderr, "usage: nsd [-d] [-p port] [-n identity] [-u user|uid] [-t chrootdir] -f database\n");
+	fprintf(stderr, "usage: nsd [-d] [-p port] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
 	exit(1);
 }
 
@@ -125,7 +125,7 @@ writepid(nsd)
 	int fd;
 	char pidbuf[16];
 
-	snprintf(pidbuf, sizeof(pidbuf), "%u\n", nsd->pid);
+	snprintf(pidbuf, sizeof(pidbuf), "%u\n", nsd->pid[0]);
 
 	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
 		return -1;
@@ -150,7 +150,21 @@ void
 sig_handler(sig)
 	int sig;
 {
-	int status;
+	int status, i;
+
+	/* Are we a tcp child? */
+	if(nsd.pid[0] == 0) {
+		switch(sig) {
+		case SIGALRM:
+			return;
+		case SIGHUP:
+		case SIGINT:
+		case SIGTERM:
+			nsd.mode = NSD_QUIT;
+		}
+		return;
+	}
+
 	switch(sig) {
 	case SIGCHLD:
 		/* Any tcp children willing to report? */
@@ -158,29 +172,35 @@ sig_handler(sig)
 			if(nsd.tcp.open_conn)
 				nsd.tcp.open_conn--;
 		}
-		break;
+		return;
 	case SIGHUP:
 		syslog(LOG_WARNING, "signal %d received, reloading...", sig);
 		nsd.mode = NSD_RELOAD;
-		break;
-	case SIGINT:
-		/* Silent shutdown... */
-		nsd.mode = NSD_SHUTDOWN;
-		break;
+		return;
 	case SIGALRM:
 #ifdef NAMED8_STATS
-		alarm(nsd.st_period);
+		alarm(nsd.st.period);
 #endif
 	case SIGILL:
 		/* Dump statistics... */
 		nsd.mode = NSD_STATS;
+		return;
+	case SIGINT:
+		/* Silent shutdown... */
+		nsd.mode = NSD_QUIT;
 		break;
 	case SIGTERM:
 	default:
-		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
 		nsd.mode = NSD_SHUTDOWN;
+		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
 		break;
-		
+	}
+
+	/* Distribute the signal to the servers... */
+	for(i = nsd.tcp.open_conn; i > 0; i--) {
+		if(kill(nsd.pid[i], sig) == -1) {
+			syslog(LOG_ERR, "problems killing %d: %m", nsd.pid[i]);
+		}
 	}
 }
 
@@ -495,19 +515,32 @@ main(argc, argv)
 	char *argv[];
 {
 	/* Scratch variables... */
-	int fd, c;
+	int i, c;
 	pid_t	oldpid;
 
 	/* Initialize the server handler... */
 	bzero(&nsd, sizeof(struct nsd));
 	nsd.dbfile	= CF_DBFILE;
 	nsd.pidfile	= CF_PIDFILE;
-	nsd.tcp.port	= CF_TCP_PORT;
-	nsd.tcp.addr	= INADDR_ANY;
-	nsd.tcp.max_conn = CF_TCP_MAX_CONNECTIONS;
+	nsd.tcp.open_conn = 1;
+
+        nsd.udp.addr.sin_addr.s_addr = INADDR_ANY;
+        nsd.udp.addr.sin_port = htons(CF_UDP_PORT);
+        nsd.udp.addr.sin_family = AF_INET;
+
+        nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
+        nsd.tcp.addr.sin_port = htons(CF_TCP_PORT);
+        nsd.tcp.addr.sin_family = AF_INET;
+
+#ifdef INET6
+        nsd.udp6.addr.sin6_port = htons(CF_UDP_PORT);	/* XXX: SHOULD BE CF_UDP6_PORT? */
+        nsd.udp6.addr.sin6_family = AF_INET6;
+
+        nsd.tcp6.addr.sin6_port = htons(CF_TCP_PORT);	/* XXX: SHOULD BE CF_TCP6_PORT? */
+        nsd.tcp6.addr.sin6_family = AF_INET6;
+#endif /* INET6 */
+
 	nsd.tcp.max_msglen = CF_TCP_MAX_MESSAGE_LEN;
-	nsd.udp.port	= CF_UDP_PORT;
-	nsd.udp.addr	= INADDR_ANY;
 	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;
 	nsd.identity	= CF_IDENTITY;
 	nsd.version	= CF_VERSION;
@@ -537,8 +570,12 @@ main(argc, argv)
 #		define	LOG_PERROR 0
 #	endif
 
+#	ifndef LOG_PID
+#		define LOG_PID	0
+#endif
+
 	/* Set up the logging... */
-	openlog("nsd", LOG_PERROR, CF_FACILITY);
+	openlog("nsd", LOG_PERROR | LOG_PID, CF_FACILITY);
 
 	/* Set up our default identity to gethostname(2) */
 	if(gethostname(hostname, MAXHOSTNAMELEN) == 0) {
@@ -549,10 +586,11 @@ main(argc, argv)
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "a:df:p:i:u:t:s:")) != -1) {
+	while((c = getopt(argc, argv, "a:df:p:i:u:t:s:n:")) != -1) {
 		switch (c) {
 		case 'a':
-			if((nsd.tcp.addr = nsd.udp.addr = inet_addr(optarg)) == -1)
+			if((nsd.tcp.addr.sin_addr.s_addr = nsd.udp.addr.sin_addr.s_addr
+					= inet_addr(optarg)) == -1)
 				usage();
 			break;
 		case 'd':
@@ -562,8 +600,8 @@ main(argc, argv)
 			nsd.dbfile = optarg;
 			break;
 		case 'p':
-			nsd.udp.port = atoi(optarg);
-			nsd.tcp.port = atoi(optarg);
+			nsd.udp.addr.sin_port = htons(atoi(optarg));
+			nsd.tcp.addr.sin_port = htons(atoi(optarg));
 			break;
 		case 'i':
 			nsd.identity = optarg;
@@ -574,9 +612,20 @@ main(argc, argv)
 		case 't':
 			nsd.chrootdir = optarg;
 			break;
+		case 'n':
+			i = atoi(optarg);
+			if(i <= 0) {
+				syslog(LOG_ERR, "max number of tcp connections must be greather than zero");
+			} else if(i > CF_TCP_MAX_CONNECTIONS) {
+				syslog(LOG_ERR, "max number of tcp connections must be less than %d",
+					CF_TCP_MAX_CONNECTIONS);
+			} else {
+				nsd.tcp.open_conn = i;
+			}
+			break;
 		case 's':
 #ifdef NAMED8_STATS
-			nsd.st_period = atoi(optarg);
+			nsd.st.period = atoi(optarg);
 #else /* NAMED8_STATS */
 			syslog(LOG_ERR, "option unavailabe, recompile with -DNAMED8_STATS");
 #endif /* NAMED8_STATS */
@@ -665,7 +714,7 @@ main(argc, argv)
 	/* Unless we're debugging, fork... */
 	if(!nsd.debug) {
 		/* Take off... */
-		switch((nsd.pid = fork())) {
+		switch((nsd.pid[0] = fork())) {
 		case 0:
 			break;
 		case -1:
@@ -673,7 +722,7 @@ main(argc, argv)
 			unlink(nsd.pidfile);
 			exit(1);
 		default:
-			syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
+			syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid[0]);
 			exit(0);
 		}
 
@@ -683,12 +732,12 @@ main(argc, argv)
 			exit(1);
 		}
 
-		if((fd = open("/dev/null", O_RDWR, 0)) != -1) {
-			(void)dup2(fd, STDIN_FILENO);
-			(void)dup2(fd, STDOUT_FILENO);
-			(void)dup2(fd, STDERR_FILENO);
-			if (fd > 2)
-				(void)close(fd);
+		if((i = open("/dev/null", O_RDWR, 0)) != -1) {
+			(void)dup2(i, STDIN_FILENO);
+			(void)dup2(i, STDOUT_FILENO);
+			(void)dup2(i, STDERR_FILENO);
+			if (i > 2)
+				(void)close(i);
 		}
 	}
 
@@ -700,12 +749,8 @@ main(argc, argv)
 	signal(SIGILL, &sig_handler);
 	signal(SIGALRM, &sig_handler);
 
-#ifdef NAMED8_STATS
-	alarm(nsd.st_period);
-#endif	/* NAMED8_STATS */
-
 	/* Get our process id */
-	nsd.pid = getpid();
+	nsd.pid[0] = getpid();
 
 	/* Overwrite pid... */
 	if(writepid(&nsd) == -1) {
@@ -716,15 +761,15 @@ main(argc, argv)
 	nsd.mode = NSD_RUN;
 
 	/* Run the server... */
-	server(&nsd);
-
-	/* Not needed since we terminate anyway... */
-	/* namedb_close(nsd.db); */
-
-	if((fd = open(nsd.pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
-		syslog(LOG_ERR, "canot truncate the pid file %s: %m", nsd.pidfile);
+	if(server_init(&nsd) != 0)
+		exit(1);
+	if(server_start_tcp(&nsd) != 0) {
+		kill(nsd.pid[0], SIGTERM);
+		exit(1);
 	}
-	close(fd);
 
+	server_udp(&nsd);
+
+	/* NOTREACH */
 	exit(0);
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.39 2002/09/19 11:37:16 alexis Exp $
+ * $Id: nsd.h,v 1.40 2002/09/26 14:18:36 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -70,6 +70,7 @@
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
 #define	NSD_STATS 3
+#define	NSD_QUIT 4
 
 #define	OPT_LEN	11
 
@@ -94,7 +95,7 @@ typedef	unsigned long stc_t;
 /* NSD configuration and run-time variables */
 struct	nsd {
 	/* Run-time variables */
-	pid_t		pid;
+	pid_t		pid[CF_TCP_MAX_CONNECTIONS + 1];
 	int		mode;
 	struct namedb	*db;
 	int		debug;
@@ -111,20 +112,32 @@ struct	nsd {
 
 	/* TCP specific configuration */
 	struct	{
-		u_int16_t	port;
 		int		open_conn;
-		int		max_conn;
 		time_t		timeout;
 		size_t		max_msglen;
-		in_addr_t	addr;
+		struct sockaddr_in	addr;
+		int		s;
 	} tcp;
 
 	/* UDP specific configuration */
 	struct	{
-		u_int16_t	port;
 		size_t		max_msglen;
-		in_addr_t	addr;
+		struct sockaddr_in	addr;
+		int		s;
 	} udp;
+
+#ifdef INET6
+	struct {
+		struct sockaddr_in6 addr;
+		int	s;
+	} udp6;
+
+	struct {
+		struct sockaddr_in6 addr;
+		int s;
+	} tcp6;
+
+#endif /* INET6 */
 
 	struct {
 		u_int16_t	max_msglen;
@@ -135,17 +148,17 @@ struct	nsd {
 #ifdef	NAMED8_STATS
 
 	char	*named8_stats;
-	int	st_period;		/* Produce statistics dump every st_period seconds */
 
 	struct nsdst {
 		time_t	reload;
+		int	period;		/* Produce statistics dump every st_period seconds */
 		stc_t	qtype[257];	/* Counters per qtype */
 		stc_t	qclass[4];	/* Class IN or Class CH or other */
 		stc_t	qudp, qudp6;	/* Number of queries udp and udp6 */
 		stc_t	ctcp, ctcp6;	/* Number of tcp and tcp6 connections */
 		stc_t	rcode[17], opcode[6]; /* Rcodes & opcodes */
 		/* Dropped, truncated, queries for nonconfigured zone, tx errors */
-		stc_t	dropped, truncated, wrongzone, txerr;
+		stc_t	dropped, truncated, wrongzone, txerr, rxerr;
 		stc_t 	edns, ednserr;
 	} st;
 #endif /* NAMED8_STATS */
@@ -160,5 +173,12 @@ void *xrealloc __P((void *, size_t));
 int server __P((struct nsd *));
 int writepid __P((struct nsd *));
 void stats __P((struct nsd *, FILE *f));
+
+/* server.c */
+int server_init __P((struct nsd *nsd));
+int server_start_tcp __P((struct nsd *nsd));
+void server_shutdown __P((struct nsd *nsd));
+void server_udp __P((struct nsd *nsd));
+void server_tcp __P((struct nsd *nsd));
 
 #endif	/* _NSD_H_ */
