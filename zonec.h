@@ -1,9 +1,7 @@
 /*
- * $Id: zonec.h,v 1.30 2003/10/30 11:27:13 miekg Exp $
+ * zonec.h -- zone compiler.
  *
- * zonec.h -- internal zone representation.
- *
- * Copyright (c) 2001- 2003, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -11,7 +9,6 @@
 
 #ifndef _ZONEC_H_
 #define _ZONEC_H_
-#endif /* _ZONEC_H_ */
 
 #include "dname.h"
 #include "region-allocator.h"
@@ -158,6 +155,7 @@ extern region_type *zone_region;
  * This region is deallocated after each RR is parsed and analyzed.
  */
 extern region_type *rr_region;
+
 int process_rr(zparser_type *parser, rr_type *rr);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
@@ -201,3 +199,4 @@ int zrrtype (char *word);
 uint16_t intbyclassxx(void *str);
 uint16_t intbytypexx(void *str);
 
+#endif /* _ZONEC_H_ */

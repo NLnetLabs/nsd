@@ -1,7 +1,5 @@
 /*
- * $Id: zonec.c,v 1.108 2003/10/30 11:27:13 miekg Exp $
- *
- * zonec.c -- reads in a zone file and stores it in memory
+ * zonec.c -- zone compiler.
  *
  * Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
  *
