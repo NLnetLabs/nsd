@@ -49,7 +49,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 		    || query->axfr_zone->apex != query->domain)
 		{
 			/* No SOA no transfer */
-			RCODE_SET(query, RCODE_REFUSE);
+			RCODE_SET(query->packet, RCODE_REFUSE);
 			return QUERY_PROCESSED;
 		}
 
@@ -76,7 +76,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 		 */
 		query->edns.status = EDNS_NOT_PRESENT;
 		buffer_set_limit(query->packet, QHEADERSZ);
-		QDCOUNT_SET(query, 0);
+		QDCOUNT_SET(query->packet, 0);
 		query_prepare_response(query);
 	}
 
@@ -125,9 +125,9 @@ query_axfr (struct nsd *nsd, struct query *query)
 	}
 
 return_answer:
-	ANCOUNT_SET(query, total_added);
-	NSCOUNT_SET(query, 0);
-	ARCOUNT_SET(query, 0);
+	ANCOUNT_SET(query->packet, total_added);
+	NSCOUNT_SET(query->packet, 0);
+	ARCOUNT_SET(query->packet, 0);
 	query_clear_compression_tables(query);
 	return QUERY_IN_AXFR;
 }
@@ -172,7 +172,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 				log_msg(LOG_ERR, "checking %s", axfr_daemon);
 				if (!hosts_access(&request)) {
 #endif /* AXFR_DAEMON_PREFIX */
-					RCODE_SET(q, RCODE_REFUSE);
+					RCODE_SET(q->packet, RCODE_REFUSE);
 					return QUERY_PROCESSED;
 #ifdef AXFR_DAEMON_PREFIX
 				}
@@ -183,7 +183,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 		}
 #endif	/* DISABLE_AXFR */
 	case TYPE_IXFR:
-		RCODE_SET(q, RCODE_REFUSE);
+		RCODE_SET(q->packet, RCODE_REFUSE);
 		return QUERY_PROCESSED;
 	default:
 		return QUERY_DISCARDED;

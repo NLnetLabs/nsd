@@ -149,7 +149,7 @@ packet_encode_rrset(query_type *query,
 		/* Truncate entire RRset and set truncate flag.  */
 		buffer_set_position(query->packet, truncation_mark);
 		query_clear_dname_offsets(query, truncation_mark);
-		TC_SET(query);
+		TC_SET(query->packet);
 		added = 0;
 	}
 	

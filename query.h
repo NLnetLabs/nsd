@@ -48,88 +48,88 @@
 /* First octet of flags */
 #define	RD_MASK		0x01U
 #define	RD_SHIFT	0
-#define	RD(query)	(*((query)->packet->_data+2) & RD_MASK)
-#define	RD_SET(query)	(*((query)->packet->_data+2) |= RD_MASK)
-#define	RD_CLR(query)	(*((query)->packet->_data+2) &= ~RD_MASK)
+#define	RD(packet)      (*buffer_at((packet), 2) & RD_MASK)
+#define	RD_SET(packet)	(*buffer_at((packet), 2) |= RD_MASK)
+#define	RD_CLR(packet)	(*buffer_at((packet), 2) &= ~RD_MASK)
 
 #define TC_MASK		0x02U
 #define TC_SHIFT	1
-#define	TC(query)	(*((query)->packet->_data+2) & TC_MASK)
-#define	TC_SET(query)	(*((query)->packet->_data+2) |= TC_MASK)
-#define	TC_CLR(query)	(*((query)->packet->_data+2) &= ~TC_MASK)
+#define	TC(packet)	(*buffer_at((packet), 2) & TC_MASK)
+#define	TC_SET(packet)	(*buffer_at((packet), 2) |= TC_MASK)
+#define	TC_CLR(packet)	(*buffer_at((packet), 2) &= ~TC_MASK)
 
 #define	AA_MASK		0x04U
 #define	AA_SHIFT	2
-#define	AA(query)	(*((query)->packet->_data+2) & AA_MASK)
-#define	AA_SET(query)	(*((query)->packet->_data+2) |= AA_MASK)
-#define	AA_CLR(query)	(*((query)->packet->_data+2) &= ~AA_MASK)
+#define	AA(packet)	(*buffer_at((packet), 2) & AA_MASK)
+#define	AA_SET(packet)	(*buffer_at((packet), 2) |= AA_MASK)
+#define	AA_CLR(packet)	(*buffer_at((packet), 2) &= ~AA_MASK)
 
 #define	OPCODE_MASK	0x78U
 #define	OPCODE_SHIFT	3
-#define	OPCODE(query)	((*((query)->packet->_data+2) & OPCODE_MASK) >> OPCODE_SHIFT)
-#define	OPCODE_SET(query, opcode) \
-	(*((query)->packet->_data+2) = ((*((query)->packet->_data+2)) & ~OPCODE_MASK) | ((opcode) << OPCODE_SHIFT))
+#define	OPCODE(packet)	((*buffer_at((packet), 2) & OPCODE_MASK) >> OPCODE_SHIFT)
+#define	OPCODE_SET(packet, opcode) \
+	(*buffer_at((packet), 2) = (*buffer_at((packet), 2) & ~OPCODE_MASK) | ((opcode) << OPCODE_SHIFT))
 
 #define	QR_MASK		0x80U
 #define	QR_SHIFT	7
-#define	QR(query)	(*((query)->packet->_data+2) & QR_MASK)
-#define	QR_SET(query)	(*((query)->packet->_data+2) |= QR_MASK)
-#define	QR_CLR(query)	(*((query)->packet->_data+2) &= ~QR_MASK)
+#define	QR(packet)	(*buffer_at((packet), 2) & QR_MASK)
+#define	QR_SET(packet)	(*buffer_at((packet), 2) |= QR_MASK)
+#define	QR_CLR(packet)	(*buffer_at((packet), 2) &= ~QR_MASK)
 
 /* Second octet of flags */
 #define	RCODE_MASK	0x0fU
 #define	RCODE_SHIFT	0
-#define	RCODE(query)	(*((query)->packet->_data+3) & RCODE_MASK)
-#define	RCODE_SET(query, rcode) \
-	(*((query)->packet->_data+3) = ((*((query)->packet->_data+3)) & ~RCODE_MASK) | (rcode))
+#define	RCODE(packet)	(*buffer_at((packet), 3) & RCODE_MASK)
+#define	RCODE_SET(packet, rcode) \
+	(*buffer_at((packet), 3) = (*buffer_at((packet), 3) & ~RCODE_MASK) | (rcode))
 
 #define	CD_MASK		0x10U
 #define	CD_SHIFT	4
-#define	CD(query)	(*((query)->packet->_data+3) & CD_MASK)
-#define	CD_SET(query)	(*((query)->packet->_data+3) |= CD_MASK)
-#define	CD_CLR(query)	(*((query)->packet->_data+3) &= ~CD_MASK)
+#define	CD(packet)	(*buffer_at((packet), 3) & CD_MASK)
+#define	CD_SET(packet)	(*buffer_at((packet), 3) |= CD_MASK)
+#define	CD_CLR(packet)	(*buffer_at((packet), 3) &= ~CD_MASK)
 
 #define	AD_MASK		0x20U
 #define	AD_SHIFT	5
-#define	AD(query)	(*((query)->packet->_data+3) & AD_MASK)
-#define	AD_SET(query)	(*((query)->packet->_data+3) |= AD_MASK)
-#define	AD_CLR(query)	(*((query)->packet->_data+3) &= ~AD_MASK)
+#define	AD(packet)	(*buffer_at((packet), 3) & AD_MASK)
+#define	AD_SET(packet)	(*buffer_at((packet), 3) |= AD_MASK)
+#define	AD_CLR(packet)	(*buffer_at((packet), 3) &= ~AD_MASK)
 
 #define	Z_MASK		0x40U
 #define	Z_SHIFT		6
-#define	Z(query)	(*((query)->packet->_data+3) & Z_MASK)
-#define	Z_SET(query)	(*((query)->packet->_data+3) |= Z_MASK)
-#define	Z_CLR(query)	(*((query)->packet->_data+3) &= ~Z_MASK)
+#define	Z(packet)	(*buffer_at((packet), 3) & Z_MASK)
+#define	Z_SET(packet)	(*buffer_at((packet), 3) |= Z_MASK)
+#define	Z_CLR(packet)	(*buffer_at((packet), 3) &= ~Z_MASK)
 
 #define	RA_MASK		0x80U
 #define	RA_SHIFT	7
-#define	RA(query)	(*((query)->packet->_data+3) & RA_MASK)
-#define	RA_SET(query)	(*((query)->packet->_data+3) |= RA_MASK)
-#define	RA_CLR(query)	(*((query)->packet->_data+3) &= ~RA_MASK)
+#define	RA(packet)	(*buffer_at((packet), 3) & RA_MASK)
+#define	RA_SET(packet)	(*buffer_at((packet), 3) |= RA_MASK)
+#define	RA_CLR(packet)	(*buffer_at((packet), 3) &= ~RA_MASK)
 
 /* Query ID */
-#define	ID(query)		(buffer_read_u16_at((query)->packet, 0))
-#define	ID_SET(query, id)	(buffer_write_u16_at((query)->packet, 0, (id)))
+#define	ID(packet)		(buffer_read_u16_at((packet), 0))
+#define	ID_SET(packet, id)	(buffer_write_u16_at((packet), 0, (id)))
 
 /* Flags, RCODE, and OPCODE. */
-#define FLAGS(query)		(buffer_read_u16_at((query)->packet, 2))
-#define FLAGS_SET(query, f)	(buffer_write_u16_at((query)->packet, 2, (f)))
+#define FLAGS(packet)		(buffer_read_u16_at((packet), 2))
+#define FLAGS_SET(packet, f)	(buffer_write_u16_at((packet), 2, (f)))
 
 /* Counter of the question section */
-#define	QDCOUNT(query)		(buffer_read_u16_at((query)->packet, 4))
-#define QDCOUNT_SET(query, c)   (buffer_write_u16_at((query)->packet, 4, (c)))
+#define	QDCOUNT(packet)		(buffer_read_u16_at((packet), 4))
+#define QDCOUNT_SET(packet, c)	(buffer_write_u16_at((packet), 4, (c)))
 
 /* Counter of the answer section */
-#define	ANCOUNT(query)		(buffer_read_u16_at((query)->packet, 6))
-#define ANCOUNT_SET(query, c)   (buffer_write_u16_at((query)->packet, 6, (c)))
+#define	ANCOUNT(packet)		(buffer_read_u16_at((packet), 6))
+#define ANCOUNT_SET(packet, c)	(buffer_write_u16_at((packet), 6, (c)))
 
 /* Counter of the authority section */
-#define	NSCOUNT(query)		(buffer_read_u16_at((query)->packet, 8))
-#define NSCOUNT_SET(query, c)   (buffer_write_u16_at((query)->packet, 8, (c)))
+#define	NSCOUNT(packet)		(buffer_read_u16_at((packet), 8))
+#define NSCOUNT_SET(packet, c)	(buffer_write_u16_at((packet), 8, (c)))
 
 /* Counter of the additional section */
-#define	ARCOUNT(query)		(buffer_read_u16_at((query)->packet, 10))
-#define ARCOUNT_SET(query, c)   (buffer_write_u16_at((query)->packet, 10, (c)))
+#define	ARCOUNT(packet)		(buffer_read_u16_at((packet), 10))
+#define ARCOUNT_SET(packet, c)	(buffer_write_u16_at((packet), 10, (c)))
 
 /* Miscelaneous limits */
 #define MAX_PACKET_SIZE         65535   /* Maximum supported size of DNS packets.  */

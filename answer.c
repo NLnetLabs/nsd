@@ -63,11 +63,11 @@ encode_answer(query_type *q, const answer_type *answer)
 	size_t i;
 
 	for (section = ANSWER_SECTION;
-	     !TC(q) && section < RR_SECTION_COUNT;
+	     !TC(q->packet) && section < RR_SECTION_COUNT;
 	     ++section)
 	{
 		counts[section] = 0;
-		for (i = 0; !TC(q) && i < answer->rrset_count; ++i) {
+		for (i = 0; !TC(q->packet) && i < answer->rrset_count; ++i) {
 			if (answer->section[i] == section) {
 				int truncate
 					= (section == ANSWER_SECTION
@@ -81,9 +81,9 @@ encode_answer(query_type *q, const answer_type *answer)
 		}
 	}
 
-	ANCOUNT_SET(q, counts[ANSWER_SECTION]);
-	NSCOUNT_SET(q, counts[AUTHORITY_SECTION]);
-	ARCOUNT_SET(q,
+	ANCOUNT_SET(q->packet, counts[ANSWER_SECTION]);
+	NSCOUNT_SET(q->packet, counts[AUTHORITY_SECTION]);
+	ARCOUNT_SET(q->packet,
 		    counts[ADDITIONAL_A_SECTION]
 		    + counts[ADDITIONAL_AAAA_SECTION]
 		    + counts[ADDITIONAL_OTHER_SECTION]);

@@ -344,7 +344,7 @@ tsig_update(tsig_record_type *tsig, query_type *query, size_t length)
 		tsig->context, 
 		buffer_at(query->packet, sizeof(original_query_id)),
 		length - sizeof(original_query_id));
-	if (QR(query)) {
+	if (QR(query->packet)) {
 		++tsig->response_count;
 	}
 
@@ -395,12 +395,14 @@ int
 tsig_find_rr(tsig_record_type *tsig, query_type *query)
 {
 	size_t saved_position = buffer_position(query->packet);
-	size_t rrcount = (QDCOUNT(query) + ANCOUNT(query) +
-			  NSCOUNT(query) + ARCOUNT(query));
+	size_t rrcount = (QDCOUNT(query->packet)
+			  + ANCOUNT(query->packet)
+			  + NSCOUNT(query->packet)
+			  + ARCOUNT(query->packet));
 	size_t i;
 	int result;
 
-	if (ARCOUNT(query) == 0) {
+	if (ARCOUNT(query->packet) == 0) {
 		tsig->status = TSIG_NOT_PRESENT;
 		return 1;
 	}
@@ -409,7 +411,8 @@ tsig_find_rr(tsig_record_type *tsig, query_type *query)
 
 	/* TSIG must be the last record, so skip all others.  */
 	for (i = 0; i < rrcount - 1; ++i) {
-		if (!packet_skip_rr(query->packet, i < QDCOUNT(query))) {
+		if (!packet_skip_rr(query->packet, i < QDCOUNT(query->packet)))
+		{
 			buffer_set_position(query->packet, saved_position);
 			return 0;
 		}

@@ -87,9 +87,9 @@ main (int argc, char *argv[])
 	q.maxlen = 512;
 
 	/* Set up the header */
-	OPCODE_SET(&q, OPCODE_NOTIFY);
-	ID_SET(&q, 42);          /* Does not need to be random. */
-	AA_SET(&q);
+	OPCODE_SET(q.packet, OPCODE_NOTIFY);
+	ID_SET(q.packet, 42);	/* Does not need to be random. */
+	AA_SET(q.packet);
 	
 	buffer_skip(q.packet, QHEADERSZ);
 	buffer_write(q.packet, dname_name(zone), zone->name_size);
@@ -97,7 +97,7 @@ main (int argc, char *argv[])
 	buffer_write_u16(q.packet, CLASS_IN);
 
 	/* Set QDCOUNT=1 */
-	QDCOUNT_SET(&q, 1);
+	QDCOUNT_SET(q.packet, 1);
 
 	for (/*empty*/; *argv; argv++) {
 		/* Set up UDP */

@@ -115,14 +115,14 @@ query_error (struct query *q, nsd_rc_type rcode)
 	
 	buffer_clear(q->packet);
 	
-	QR_SET(q);		   /* This is an answer.  */
-	RCODE_SET(q, (int) rcode); /* Error code.  */
+	QR_SET(q->packet);	   /* This is an answer.  */
+	RCODE_SET(q->packet, (int) rcode); /* Error code.  */
 	
 	/* Truncate the question as well... */
-	QDCOUNT_SET(q, 0);
-	ANCOUNT_SET(q, 0);
-	NSCOUNT_SET(q, 0);
-	ARCOUNT_SET(q, 0);
+	QDCOUNT_SET(q->packet, 0);
+	ANCOUNT_SET(q->packet, 0);
+	NSCOUNT_SET(q->packet, 0);
+	ARCOUNT_SET(q->packet, 0);
 	buffer_set_position(q->packet, QHEADERSZ);
 	return QUERY_PROCESSED;
 }
@@ -261,7 +261,7 @@ process_query_section(query_type *query)
 	buffer_set_position(query->packet, src - buffer_begin(query->packet));
 
 	query->name = dname_make(query->region, qnamebuf, 1);
-	query->opcode = OPCODE(query);
+	query->opcode = OPCODE(query->packet);
 	query->type = buffer_read_u16(query->packet);
 	query->klass = buffer_read_u16(query->packet);
 
@@ -310,7 +310,7 @@ process_edns(struct query *q)
 		/* Strip the OPT resource record off... */
 		buffer_set_position(q->packet, q->edns.position);
 		buffer_set_limit(q->packet, q->edns.position);
-		ARCOUNT_SET(q, ARCOUNT(q) - 1);
+		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
 	}
 	return NSD_RC_OK;
 }
@@ -345,9 +345,9 @@ answer_notify (struct query *query)
  * Answer a query in the CHAOS class.
  */
 static query_state_type
-answer_chaos(struct nsd *nsd, struct query *q)
+answer_chaos(struct nsd *nsd, query_type *q)
 {
-	AA_CLR(q);
+	AA_CLR(q->packet);
 	switch (q->type) {
 	case TYPE_ANY:
 	case TYPE_TXT:
@@ -362,7 +362,7 @@ answer_chaos(struct nsd *nsd, struct query *q)
 				     CLASS_CHAOS,
 				     0,
 				     nsd->identity);
-			ANCOUNT_SET(q, ANCOUNT(q) + 1);
+			ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
 		} else if ((q->name->name_size == 16
 			    && memcmp(dname_name(q->name), "\007version\006server", 16) == 0) ||
 			   (q->name->name_size == 14
@@ -374,11 +374,11 @@ answer_chaos(struct nsd *nsd, struct query *q)
 				     CLASS_CHAOS,
 				     0,
 				     nsd->version);
-			ANCOUNT_SET(q, ANCOUNT(q) + 1);
+			ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
 		}
 		break;
 	default:
-		RCODE_SET(q, RCODE_REFUSE);
+		RCODE_SET(q->packet, RCODE_REFUSE);
 		break;
 	}
 
@@ -541,13 +541,13 @@ add_rrset(struct query   *query,
  * record proving the DS RRset does not exist.
  */
 static void
-answer_delegation(struct query *query, answer_type *answer)
+answer_delegation(query_type *query, answer_type *answer)
 {
 	assert(answer);
 	assert(query->delegation_domain);
 	assert(query->delegation_rrset);
 	
-	AA_CLR(query);
+	AA_CLR(query->packet);
 	add_rrset(query,
 		  answer,
 		  AUTHORITY_SECTION,
@@ -612,10 +612,10 @@ answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 }
 
 static void
-answer_nxdomain(struct query *query, answer_type *answer)
+answer_nxdomain(query_type *query, answer_type *answer)
 {
 	if (query->cname_count == 0) {
-		RCODE_SET(query, RCODE_NXDOMAIN);
+		RCODE_SET(query->packet, RCODE_NXDOMAIN);
 		answer_soa(query, answer);
 	}
 }
@@ -793,7 +793,7 @@ answer_query(struct nsd *nsd, struct query *q)
 	
 	q->zone = domain_find_zone(closest_encloser);
 	if (!q->zone) {
-		RCODE_SET(q, RCODE_SERVFAIL);
+		RCODE_SET(q->packet, RCODE_SERVFAIL);
 		return;
 	}
 
@@ -820,9 +820,9 @@ answer_query(struct nsd *nsd, struct query *q)
 		 * not authoratitive for the parent zone).
 		 */
 		if (q->klass == CLASS_ANY) {
-			AA_CLR(q);
+			AA_CLR(q->packet);
 		} else {
-			AA_SET(q);
+			AA_SET(q->packet);
 		}
 		answer_nodata(q, &answer, closest_encloser);
 	} else {
@@ -833,9 +833,9 @@ answer_query(struct nsd *nsd, struct query *q)
 		    || (exact && q->type == TYPE_DS && closest_encloser == q->delegation_domain))
 		{
 			if (q->klass == CLASS_ANY) {
-				AA_CLR(q);
+				AA_CLR(q->packet);
 			} else {
-				AA_SET(q);
+				AA_SET(q->packet);
 			}
 			answer_authoritative(q, &answer, 0, exact,
 					     closest_match, closest_encloser);
@@ -870,14 +870,14 @@ query_prepare_response(query_type *q)
 	q->reserved_space = edns_reserved_space(&q->edns);
 	
 	/* Update the flags.  */
-	flags = FLAGS(q);
+	flags = FLAGS(q->packet);
 #ifdef DNSSEC
 	flags &= 0x0110U;	/* Preserve the RD and CD flags.  */
 #else
 	flags &= 0x0100U;	/* Preserve the RD flag.  */
 #endif
 	flags |= 0x8000U;	/* Set the QR flag.  */
-	FLAGS_SET(q, flags);
+	FLAGS_SET(q->packet, flags);
 }
 
 /*
@@ -893,7 +893,7 @@ query_process(query_type *q, nsd_type *nsd)
 	uint16_t arcount;
 	
 	/* Sanity checks */
-	if (QR(q)) {
+	if (QR(q->packet)) {
 		/* Not a query? Drop it on the floor. */
 		return QUERY_DISCARDED;
 	}
@@ -917,17 +917,17 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 
 	/* Dont bother to answer more than one question at once... */
-	if (QDCOUNT(q) != 1 || TC(q)) {
+	if (QDCOUNT(q->packet) != 1 || TC(q->packet)) {
 		buffer_write_u16_at(q->packet, 2, 0);
 		return query_formerr(q);
 	}
 
 	/* Dont allow any records in the answer or authority section... */
-	if (ANCOUNT(q) != 0 || NSCOUNT(q) != 0) {
+	if (ANCOUNT(q->packet) != 0 || NSCOUNT(q->packet) != 0) {
 		return query_formerr(q);
 	}
 
-	arcount = ARCOUNT(q);
+	arcount = ARCOUNT(q->packet);
 	if (arcount > 0) {
 		if (edns_parse_record(&q->edns, q->packet))
 			--arcount;
@@ -985,13 +985,13 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	case EDNS_OK:
 		buffer_write(q->packet, edns->ok, OPT_LEN);
-		ARCOUNT_SET(q, ARCOUNT(q) + 1);
+		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, edns);
 		break;
 	case EDNS_ERROR:
 		buffer_write(q->packet, edns->error, OPT_LEN);
-		ARCOUNT_SET(q, ARCOUNT(q) + 1);
+		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, ednserr);
 		break;

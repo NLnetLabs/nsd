@@ -410,8 +410,8 @@ static int
 parse_response(FILE *out, axfr_state_type *state)
 {
 	size_t rr_count;
-	size_t qdcount = QDCOUNT(state->q);
-	size_t ancount = ANCOUNT(state->q);
+	size_t qdcount = QDCOUNT(state->q->packet);
+	size_t ancount = ANCOUNT(state->q->packet);
 
 	/* Skip question section.  */
 	for (rr_count = 0; rr_count < qdcount; ++rr_count) {
@@ -524,7 +524,7 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 		return 1;
 	}
 	
-	ARCOUNT_SET(q, ARCOUNT(q) - 1);
+	ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
 	
 	if (tsig->status == TSIG_ERROR) {
 		error("TSIG record is not correct");
@@ -588,33 +588,33 @@ check_serial(int s,
 		return -1;
 	}
 
-	if (!QR(q)) {
+	if (!QR(q->packet)) {
 		error("response is not a response");
 		return -1;
 	}
 
-	if (TC(q)) {
+	if (TC(q->packet)) {
 		error("response is truncated");
 		return -1;
 	}
 	
-	if (ID(q) != query_id) {
+	if (ID(q->packet) != query_id) {
 		error("bad response id (%d), expected (%d)",
-		      (int) ID(q), (int) query_id);
+		      (int) ID(q->packet), (int) query_id);
 		return -1;
 	}
 	
-	if (RCODE(q) != RCODE_OK) {
-		error("error response %d", (int) RCODE(q));
+	if (RCODE(q->packet) != RCODE_OK) {
+		error("error response %d", (int) RCODE(q->packet));
 		return -1;
 	}
 	
-	if (QDCOUNT(q) != 1) {
+	if (QDCOUNT(q->packet) != 1) {
 		error("question section count not equal to 1");
 		return -1;
 	}
 	
-	if (ANCOUNT(q) == 0) {
+	if (ANCOUNT(q->packet) == 0) {
 		error("answer section is empty");
 		return -1;
 	}
@@ -629,7 +629,7 @@ check_serial(int s,
 	owners = domain_table_create(local);
 	
 	/* Skip question records. */
-	for (i = 0; i < QDCOUNT(q); ++i) {
+	for (i = 0; i < QDCOUNT(q->packet); ++i) {
 		rr_type *record = packet_read_rr(local, owners, q->packet, 1);
 		if (!record) {
 			error("bad RR in question section");
@@ -648,7 +648,7 @@ check_serial(int s,
 	}
 	
 	/* Find the SOA record in the response.  */
-	for (i = 0; i < ANCOUNT(q); ++i) {
+	for (i = 0; i < ANCOUNT(q->packet); ++i) {
 		rr_type *record = packet_read_rr(local, owners, q->packet, 0);
 		if (!record) {
 			error("bad RR in answer section");
@@ -692,28 +692,30 @@ handle_axfr_response(FILE *out, axfr_state_type *axfr)
 			return 0;
 		}
 
-		if (!QR(axfr->q)) {
+		if (!QR(axfr->q->packet)) {
 			error("response is not a response");
 			return 0;
 		}
 
-		if (ID(axfr->q) != axfr->query_id) {
+		if (ID(axfr->q->packet) != axfr->query_id) {
 			error("bad response id (%d), expected (%d)",
-			      (int) ID(axfr->q), (int) axfr->query_id);
+			      (int) ID(axfr->q->packet),
+			      (int) axfr->query_id);
 			return 0;
 		}
 
-		if (RCODE(axfr->q) != RCODE_OK) {
-			error("error response %d", (int) RCODE(axfr->q));
+		if (RCODE(axfr->q->packet) != RCODE_OK) {
+			error("error response %d",
+			      (int) RCODE(axfr->q->packet));
 			return 0;
 		}
 
-		if (QDCOUNT(axfr->q) > 1) {
+		if (QDCOUNT(axfr->q->packet) > 1) {
 			error("query section count greater than 1");
 			return 0;
 		}
 
-		if (ANCOUNT(axfr->q) == 0) {
+		if (ANCOUNT(axfr->q->packet) == 0) {
 			error("answer section is empty");
 			return 0;
 		}
@@ -782,14 +784,14 @@ init_query(query_type *q,
 	buffer_clear(q->packet);
 	
 	/* Set up the header */
-	ID_SET(q, query_id);
-	FLAGS_SET(q, 0);
-	OPCODE_SET(q, OPCODE_QUERY);
-	AA_SET(q);
-	QDCOUNT_SET(q, 1);
-	ANCOUNT_SET(q, 0);
-	NSCOUNT_SET(q, 0);
-	ARCOUNT_SET(q, 0);
+	ID_SET(q->packet, query_id);
+	FLAGS_SET(q->packet, 0);
+	OPCODE_SET(q->packet, OPCODE_QUERY);
+	AA_SET(q->packet);
+	QDCOUNT_SET(q->packet, 1);
+	ANCOUNT_SET(q->packet, 0);
+	NSCOUNT_SET(q->packet, 0);
+	ARCOUNT_SET(q->packet, 0);
 	buffer_skip(q->packet, QHEADERSZ);
 
 	/* The question record.  */
@@ -803,12 +805,12 @@ init_query(query_type *q,
 		tsig_update(tsig, q, buffer_position(q->packet));
 		tsig_sign(tsig);
 		tsig_append_rr(tsig, q->packet);
-		ARCOUNT_SET(q, 1);
+		ARCOUNT_SET(q->packet, 1);
 	}
 	
 	buffer_flip(q->packet);
 
-	return ID(q);
+	return ID(q->packet);
 }
 
 int 

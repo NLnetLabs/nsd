@@ -726,7 +726,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 
 		/* Process and answer the query... */
 		if (process_query(data->nsd, q) != QUERY_DISCARDED) {
-			if (RCODE(q) == RCODE_OK && !AA(q))
+			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet))
 				STATUP(data->nsd, nona);
 
 			/* Add EDNS0 and TSIG info if necessary.  */
@@ -748,8 +748,8 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 			} else {
 #ifdef BIND8_STATS
 				/* Account the rcode & TC... */
-				STATUP2(data->nsd, rcode, RCODE(q));
-				if (TC(q))
+				STATUP2(data->nsd, rcode, RCODE(q->packet));
+				if (TC(q->packet))
 					STATUP(data->nsd, truncated);
 #endif /* BIND8_STATS */
 			}
@@ -925,7 +925,9 @@ handle_tcp_reading(netio_type *netio,
 		return;
 	}
 
-	if (RCODE(data->query) == RCODE_OK && !AA(data->query)) {
+	if (RCODE(data->query->packet) == RCODE_OK
+	    && !AA(data->query->packet))
+	{
 		STATUP(data->nsd, nona);
 	}
 		
