@@ -1,5 +1,5 @@
 -*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.4 2002/02/05 09:13:09 alexis Exp $
+$Id: REQUIREMENTS,v 1.5 2002/02/06 18:07:12 alexis Exp $
 
 
 NSD Requirements and Specifications
@@ -115,6 +115,7 @@ B.2. Explicit NON-Requirements
 
 C. Technical Specification.
 
+
 C.0 Environment
 
    The server runs with the least possible permissions.
@@ -131,7 +132,8 @@ C.1. Zone file format and RR records.
 
    Unknown RRs are supported as in draft-ietf-dnsext-unknown-rr.
 
-   Zone file MUST not contain errors. i.e. the loading process will fail when:
+   Zone file MUST not contain errors. i.e. the loading process may fail
+   or nsd may produce unpredictable results when:
      - RRs that are obsolete and not implemented are encountered.
      - Syntax errors are found (rfc1035 5.2)
 	+ not all RRs are of the same zone
@@ -143,6 +145,7 @@ C.1. Zone file format and RR records.
 	+ if a DNAME exist at node N there may not be any other data
 	  at 'N' (except CNAME or DNAME) and there MUST not be any
 	  other data at subnodes of 'N' (rfc 2672 section 3).
+
           [DNAME not implemented in alpha]
 
      - The default minimum TTL is not specified.
@@ -154,8 +157,8 @@ C.1. Zone file format and RR records.
    their TTL defined to the minimum TTL unless the RR is part of a
    RRset and the TTL is set for one of the RRs in the RRset.
 
-   Parsing of the labels in zone files is case sensitive (1034  3.1)
-   (Note: rfc1035 2.3.3
+   Parsing of the labels in zone files is case insensitive 
+   (Note: rfc1035 2.3.3 also see 1034  3.1
  
      "The basic rule is that case can be discarded only when data is
       used to define structure in a database, and two names are
@@ -215,7 +218,7 @@ C.3 Incomming DNS Message processing.
      + Non parsable messages are replied to with a FORMERR.
 
      + Only the first message in a TCP message is handled. If there are
-       more messages in the stream a SERVFAIL is returned.
+       more messages in the stream a RCODE indicating an error is returned.
 
        (Argument for this is in draft-dnsind-edns1: applicability of
 	some DNS message Header flags and of RCODE fields only to
@@ -341,8 +344,10 @@ C 4.1 Actions based on QTYPE of incomming Query.
   draft-ietf-dnsext-dnssec-okbit-03.txt
 
   The first versions of nsd will not have DNSSEC processing
-  implemented.
+  implemented. (Read this as the OK bit is not set) 
 
+  [OK***: Precise DNSSEC specification might change and need to be
+  checked.]
 
    1. Search the available zones for the zone which is the nearest
       ancestor to QNAME.  If such a zone is found, go to step 2,
@@ -728,4 +733,4 @@ RR records details.
 
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.4 2002/02/05 09:13:09 alexis Exp $
+$Id: REQUIREMENTS,v 1.5 2002/02/06 18:07:12 alexis Exp $
