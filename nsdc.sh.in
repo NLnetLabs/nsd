@@ -144,7 +144,7 @@ update)
 					cat ${zonesdir}/$file.axfr | ${sbindir}/zonec -o ${zone} -f ${zonesdir}/$file.axfr.db - 2>/dev/null
 					if [ $? -eq 1 ]
 					then
-						echo "Waning: AXFR of $zone did not comile"
+						echo "Warning: AXFR of $zone did not compile"
 						rm -f ${zonesdir}/$file.axfr
 					else
 						# we succeed
