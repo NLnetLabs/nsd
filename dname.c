@@ -310,9 +310,28 @@ dname_label_match_count(const dname_type *left, const dname_type *right)
 
 
 const char *
-dname_to_string(const dname_type *dname)
+dname_to_string(const dname_type *dname, const dname_type *origin)
 {
-	return labels_to_string(dname_name(dname));
+	static char buf[MAXDOMAINLEN + 1];
+	if (origin
+	    && dname->label_count > 1
+	    && dname_is_subdomain(dname, origin))
+	{
+		int common_labels = dname_label_match_count(dname, origin);
+		int label_count = dname->label_count - common_labels;
+		const uint8_t *label = dname_name(dname);
+		char *p = buf;
+		int i;
+		for (i = 0; i < label_count; ++i) {
+			memcpy(p, label_data(label), label_length(label));
+			p += label_length(label);
+			*p++ = '.';
+		}
+		*--p = '\0';
+		return buf;
+	} else {
+		return labels_to_string(dname_name(dname));
+	}
 }
 
 

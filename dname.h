@@ -321,9 +321,13 @@ label_next(const uint8_t *label)
  * static buffer that is overwritten the next time this function is
  * invoked.
  *
+ * If ORIGIN is provided and DNAME is a subdomain of ORIGIN the dname
+ * will be represented relative to ORIGIN.
+ *
  * Pre: dname != NULL
  */
-const char *dname_to_string(const dname_type *dname);
+const char *dname_to_string(const dname_type *dname,
+			    const dname_type *origin);
 
 
 /*

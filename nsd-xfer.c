@@ -44,6 +44,17 @@ enum nsd_xfer_exit_codes
 	XFER_FAIL     = 3
 };
 
+struct axfr_state
+{
+	int    done;		/* AXFR is complete.  */
+	size_t rr_count;	/* Number of RRs transferred.  */
+
+	region_type *previous_owner_region;
+	const dname_type *previous_owner;
+	const dname_type *previous_owner_origin;
+};
+typedef struct axfr_state axfr_state_type;
+
 extern char *optarg;
 extern int optind;
 
@@ -267,10 +278,13 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 	size_t saved_position = buffer_position(output);
 	
 	for (i = 0; i < record->rdata_count; ++i) {
-		if (descriptor->type == TYPE_SOA && i == 2) {
+		if (i == 0) {
+			buffer_printf(output, "\t");
+		} else if (descriptor->type == TYPE_SOA && i == 2) {
 			buffer_printf(output, " (\n\t\t");
+		} else {
+			buffer_printf(output, " ");
 		}
-		buffer_printf(output, " ");
 		if (!rdata_atom_to_string(output, descriptor->zoneformat[i],
 					  record->rdatas[i]))
 		{
@@ -279,21 +293,57 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 		}
 	}
 	if (descriptor->type == TYPE_SOA) {
-		buffer_printf(output, ")");
+		buffer_printf(output, " )");
 	}
 	
 	return 1;
 }
 
+
+static void
+set_previous_owner(axfr_state_type *state, const dname_type *dname)
+{
+	region_free_all(state->previous_owner_region);
+	state->previous_owner = dname_copy(state->previous_owner_region, dname);
+	if (dname->label_count > 1) {
+		state->previous_owner_origin = dname_partial_copy(
+			state->previous_owner_region,
+			dname,
+			dname->label_count - 1);
+	} else {
+		state->previous_owner_origin = state->previous_owner;
+	}
+}
+	
+
 static int
-print_rr(region_type *region, FILE *out, rr_type *record)
+print_rr(region_type *region,
+	 FILE *out,
+	 axfr_state_type *state,
+	 rr_type *record)
 {
 	buffer_type *output = buffer_create(region, 1000);
-	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(record->type);
+	rrtype_descriptor_type *descriptor
+		= rrtype_descriptor_by_type(record->type);
 	int result;
+
+	if (!state->previous_owner
+	    || dname_compare(state->previous_owner,
+			     domain_dname(record->owner)) != 0)
+	{
+		set_previous_owner(state, domain_dname(record->owner));
+		buffer_printf(
+			output,
+			"$ORIGIN %s\n",
+			dname_to_string(state->previous_owner_origin, NULL));
+		buffer_printf(output,
+			      "%s",
+			      dname_to_string(domain_dname(record->owner),
+					      state->previous_owner_origin));
+	}
 	
-	buffer_printf(output, "%s %lu %s %s",
-		      dname_to_string(domain_dname(record->owner)),
+	buffer_printf(output,
+		      "\t%lu\t%s\t%s",
 		      (unsigned long) record->ttl,
 		      rrclass_to_string(record->klass),
 		      rrtype_to_string(record->type));
@@ -321,9 +371,9 @@ print_rr(region_type *region, FILE *out, rr_type *record)
 	return result;
 }
 
-	
+
 static int
-parse_response(struct query *q, FILE *out, int first, int *done)
+parse_response(query_type *q, FILE *out, axfr_state_type *state)
 {
 	region_type *rr_region = region_create(xalloc, free);
 	size_t rr_count;
@@ -348,17 +398,24 @@ parse_response(struct query *q, FILE *out, int first, int *done)
 		}
 
 		if (rr_count >= qdcount) {
-			if (first && (record.type != TYPE_SOA || record.klass != CLASS_IN)) {
-				error("First RR is not SOA, but %u", record.type);
+			if (state->rr_count == 0
+			    && (record.type != TYPE_SOA
+				|| record.klass != CLASS_IN))
+			{
+				error("First RR must be the SOA record, but is a %s record",
+				      rrtype_to_string(record.type));
 				region_destroy(rr_region);
 				return 0;
-			} else if (!first && record.type == TYPE_SOA) {
-				*done = 1;
+			} else if (state->rr_count > 0
+				   && record.type == TYPE_SOA
+				   && record.klass == CLASS_IN)
+			{
+				state->done = 1;
 				break;
 			}
+			++state->rr_count;
 
-			first = 0;
-			if (!print_rr(rr_region, out, &record)) {
+			if (!print_rr(rr_region, out, state, &record)) {
 				region_destroy(rr_region);
 				return 0;
 			}
@@ -372,7 +429,7 @@ parse_response(struct query *q, FILE *out, int first, int *done)
 }
 
 static int
-send_query(int s, struct query *q)
+send_query(int s, query_type *q)
 {
 	uint16_t size = htons(buffer_remaining(q->packet));
 	
@@ -637,12 +694,11 @@ axfr(int s,
      FILE *out,
      tsig_record_type *tsig)
 {
-	int done = 0;
-	int first = 1;
+	axfr_state_type state;
 	uint16_t query_id;
-	
+
 	assert(q->maxlen <= QIOBUFSZ);
-	
+
 	query_id = init_query(q, zone, TYPE_AXFR, CLASS_IN, tsig);
 
 	if (!send_query(s, q)) {
@@ -654,7 +710,13 @@ axfr(int s,
 		tsig_prepare(tsig);
 	}
 	
-	while (!done) {
+	state.done = 0;
+	state.rr_count = 0;
+	state.previous_owner_region = region_create(xalloc, free);
+	state.previous_owner = NULL;
+	state.previous_owner_origin = NULL;
+	
+	while (!state.done) {
 		if (!receive_response(s, q)) {
 			return 0;
 		}
@@ -697,10 +759,9 @@ axfr(int s,
 	
 		buffer_set_position(q->packet, QHEADERSZ);
 		
-		if (!parse_response(q, out, first, &done))
+		if (!parse_response(q, out, &state)) {
 			return 0;
-
-		first = 0;
+		}
 	}
 	return 1;
 }
@@ -750,7 +811,7 @@ int
 main (int argc, char *argv[])
 {
 	int c;
-	struct query q;
+	query_type q;
 	struct addrinfo hints, *res0, *res;
 	const dname_type *zone = NULL;
 	const char *file = NULL;
@@ -848,7 +909,7 @@ main (int argc, char *argv[])
 #endif
 	
 	/* Initialize the query */
-	memset(&q, 0, sizeof(struct query));
+	memset(&q, 0, sizeof(query_type));
 	q.region = region;
 	q.addrlen = sizeof(q.addr);
 	q.packet = buffer_create(region, QIOBUFSZ);

@@ -128,10 +128,11 @@ tsig_error(int error_code)
 }
 
 static void
-tsig_cleanup_hmac_context(void *data)
+tsig_cleanup(void *data)
 {
-	HMAC_CTX *context = (HMAC_CTX *) data;
-	HMAC_CTX_cleanup(context);
+	tsig_record_type *tsig = (tsig_record_type *) data;
+	HMAC_CTX_cleanup(&tsig->context);
+	region_destroy(tsig->rr_region);
 }
 
 void
@@ -147,12 +148,11 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->algorithm = algorithm;
 	tsig->key = key;
 	tsig->prior_mac_size = 0;
-	tsig->prior_mac_data = NULL;
+
+	tsig->rr_region = region_create(xalloc, free);
 
 	HMAC_CTX_init(&tsig->context);
-	region_add_cleanup(tsig->region,
-			   tsig_cleanup_hmac_context,
-			   &tsig->context);
+	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
 }
 
 int
@@ -197,7 +197,6 @@ tsig_from_query(tsig_record_type *tsig)
 	tsig->key = key;
 	tsig->response_count = 0;
 	tsig->prior_mac_size = 0;
-	tsig->prior_mac_data = NULL;
 	
 	return 1;
 }
@@ -211,7 +210,6 @@ tsig_init_query(tsig_record_type *tsig, uint16_t original_query_id)
 	
 	tsig->response_count = 0;
 	tsig->prior_mac_size = 0;
-	tsig->prior_mac_data = NULL;
 	tsig->algorithm_name = tsig->algorithm->wireformat_name;
 	tsig->key_name = tsig->key->name;
 	tsig->mac_size = 0;
@@ -229,7 +227,7 @@ tsig_prepare(tsig_record_type *tsig)
 		     tsig->key->data, tsig->key->size,
 		     tsig->algorithm->openssl_algorithm, NULL);
 
-	if (tsig->prior_mac_data) {
+	if (tsig->prior_mac_size > 0) {
 		uint16_t mac_size = htons(tsig->prior_mac_size);
 		HMAC_Update(&tsig->context,
 			    (uint8_t *) &mac_size,
@@ -264,38 +262,29 @@ tsig_update(tsig_record_type *tsig, query_type *query, size_t length)
 void
 tsig_sign(tsig_record_type *tsig)
 {
-	unsigned digest_size;
-	uint8_t digest_data[EVP_MAX_MD_SIZE];
-
 	tsig->signed_time_high = 0; /* XXX */
 	tsig->signed_time_low = (uint32_t) time(NULL);
 	tsig->signed_time_fudge = 300; /* XXX */
 
 	tsig_digest_variables(tsig, tsig->response_count > 1);
 	
-	HMAC_Final(&tsig->context, digest_data, &digest_size);
+	HMAC_Final(&tsig->context, tsig->prior_mac_data, &tsig->prior_mac_size);
 
-	tsig->prior_mac_size = tsig->mac_size = digest_size;
-	tsig->prior_mac_data = tsig->mac_data = region_alloc_init(
-		tsig->region, digest_data, digest_size);
+	tsig->mac_size = tsig->prior_mac_size;
+	tsig->mac_data = tsig->prior_mac_data;
 }
 
 int
 tsig_verify(tsig_record_type *tsig)
 {
-	unsigned digest_size;
-	uint8_t digest_data[EVP_MAX_MD_SIZE];
-
 	tsig_digest_variables(tsig, tsig->response_count > 1);
 	
-	HMAC_Final(&tsig->context, digest_data, &digest_size);
+	HMAC_Final(&tsig->context, tsig->prior_mac_data, &tsig->prior_mac_size);
 
-	tsig->prior_mac_size = digest_size;
-	tsig->prior_mac_data = region_alloc_init(
-		tsig->region, digest_data, digest_size);
-
-	if (tsig->mac_size == digest_size 
-	    && memcmp(tsig->mac_data, digest_data, digest_size) == 0)
+	if (tsig->mac_size == tsig->prior_mac_size 
+	    && memcmp(tsig->mac_data,
+		      tsig->prior_mac_data,
+		      tsig->mac_size) == 0)
 	{
 		return 1;
 	} else {
@@ -392,8 +381,13 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 
 	tsig->status = TSIG_NOT_PRESENT;
 	tsig->position = buffer_position(packet);
+	tsig->key_name = NULL;
+	tsig->algorithm_name = NULL;
+	tsig->mac_data = NULL;
+	tsig->other_data = NULL;
+	region_free_all(tsig->rr_region);
 	
-	tsig->key_name = dname_make_from_packet(tsig->region, packet, 1, 1);
+	tsig->key_name = dname_make_from_packet(tsig->rr_region, packet, 1, 1);
 	if (!tsig->key_name) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
@@ -413,14 +407,15 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	
 	ttl = buffer_read_u32(packet);
 	rdlen = buffer_read_u16(packet);
-	
+
 	tsig->status = TSIG_ERROR;
 	if (ttl != 0 || !buffer_available(packet, rdlen)) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
 	}
 
-	tsig->algorithm_name = dname_make_from_packet(tsig->region, packet, 1, 1);
+	tsig->algorithm_name = dname_make_from_packet(
+		tsig->rr_region, packet, 1, 1);
 	if (!tsig->algorithm_name || !buffer_available(packet, 10)) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
@@ -435,7 +430,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 		return 0;
 	}
 	tsig->mac_data = region_alloc_init(
-		tsig->region, buffer_current(packet), tsig->mac_size);
+		tsig->rr_region, buffer_current(packet), tsig->mac_size);
 	buffer_skip(packet, tsig->mac_size);
 	if (!buffer_available(packet, 6)) {
 		buffer_set_position(packet, tsig->position);
@@ -449,7 +444,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 		return 0;
 	}
 	tsig->other_data = region_alloc_init(
-		tsig->region, buffer_current(packet), tsig->other_size);
+		tsig->rr_region, buffer_current(packet), tsig->other_size);
 	buffer_skip(packet, tsig->other_size);
 	tsig->status = TSIG_OK;
 

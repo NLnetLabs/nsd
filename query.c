@@ -366,10 +366,10 @@ answer_notify (struct query *query)
 	    != 0)
 	{
 		log_msg(LOG_INFO, "notify for %s from unknown remote address",
-			dname_to_string(query->name));
+			dname_to_string(query->name, NULL));
 	} else {
 		log_msg(LOG_INFO, "notify for %s from %s",
-			dname_to_string(query->name), namebuf);
+			dname_to_string(query->name, NULL), namebuf);
 	}
 
 	return query_error(query, NSD_RC_IMPL);

@@ -364,7 +364,8 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 		 * return the origin str, and RD_ORIGIN token.
 		 */
 		if (strcasecmp(yytext, "@") == 0) {
-			ztext = (char *)dname_to_string(domain_dname(parser->origin));
+			ztext = (char *)dname_to_string(
+				domain_dname(parser->origin), NULL);
 			yylval.data.len = strlen(ztext);
 			yylval.data.str = ztext;
 			LEXOUT(("RDATA_ORI "));

@@ -157,7 +157,8 @@ struct nsd_plugin_interface
 					 const char *name,
 					 const dname_type *origin);
 
-	const char *(*dname_to_string)(const dname_type *dname);
+	const char *(*dname_to_string)(const dname_type *dname,
+				       const dname_type *origin);
 };
 typedef struct nsd_plugin_interface nsd_plugin_interface_type;
 

@@ -65,9 +65,11 @@ struct tsig_record
 	HMAC_CTX          context;
 	const tsig_algorithm_type *algorithm;
 	const tsig_key_type *key;
-	uint16_t          prior_mac_size;
-	uint8_t          *prior_mac_data;
-	
+	unsigned          prior_mac_size;
+	uint8_t           prior_mac_data[EVP_MAX_MD_SIZE];
+
+	/* TSIG RR data is allocated in the rr_region.  */
+	region_type      *rr_region;
 	const dname_type *key_name;
 	const dname_type *algorithm_name;
 	uint16_t          signed_time_high;

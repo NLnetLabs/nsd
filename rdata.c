@@ -54,7 +54,8 @@ rdata_dname_to_string(buffer_type *output, rdata_atom_type rdata)
 {
 	buffer_printf(output,
 		      "%s",
-		      dname_to_string(domain_dname(rdata_atom_domain(rdata))));
+		      dname_to_string(domain_dname(rdata_atom_domain(rdata)),
+				      NULL));
 	return 1;
 }
 
