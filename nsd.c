@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.53 2002/10/08 10:10:01 alexis Exp $
+ * $Id: nsd.c,v 1.54 2002/10/08 10:12:24 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -332,7 +332,7 @@ bind8_stats(nsd)
 		nsd->st.qtype[253], nsd->st.qtype[254], nsd->st.qtype[255]);
 
 	/* XSTATS */
-	syslog(LOG_INFO, "[ID 42 daemon.info] XSTATS %lu %lu"
+	syslog(LOG_INFO, "XSTATS %lu %lu"
 		" RR=%lu RNXD=%lu RFwdR=%lu RDupR=%lu RFail=%lu RFErr=%lu RErr=%lu RAXFR=%lu"
 		" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
 		" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
