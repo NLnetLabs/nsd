@@ -4,21 +4,23 @@ run on the root name server RIPE NCC operates.
 
 Below is the NSD team (nsd-team@nlnetlabs.nl) in alphabetical order:
 
-Alexis Yushin, NLnet Labs	- design and most of the code
-Daniel Karrenberg, RIPE NCC	- design, major testing and bug reports
-Erik Rozendaal, NLnet Labs	- code review, testing, NSD2
-Jaap Akkerhuis, SIDN NL		- consultancy, advice and company :)
-Miek Gieben, NLnet Labs		- testing, patches, zone compiler, NSD2
-Olaf Kolkman, RIPE NCC		- protocol purist, design, perl test implementation
-Ronald van der Pol, NLnet Labs	- code review, MacOS X portability, IPv6.
-Ted Lindgreen, NLnet Labs	- design, code review, testing
+Alexis Yushin, NLnet Labs       - design and implementation for NSD 1.0.x 
+                                  and 1.1.x.
+Erik Rozendaal, NLnet Labs      - design and implementation for NSD 1.2.x
+                                  and later.
+Daniel Karrenberg, RIPE NCC     - design, major testing and bug reports
+Jaap Akkerhuis, SIDN NL         - consultancy, advice and company :)
+Miek Gieben, NLnet Labs         - testing, patches, zone compiler, NSD2
+Olaf Kolkman, RIPE NCC          - protocol purist, design, perl test implementation
+Ronald van der Pol, NLnet Labs  - code review, MacOS X portability, IPv6.
+Ted Lindgreen, NLnet Labs       - design, code review, testing
 
 Contributors (in alphabetical order):
 
-Colm MacCárthaigh,                		- IPv6 binding and cleanups.
-Jakob Schlyter, Carlstedt Research & Technology	- chroot patch
-Jun-ichiro itojun Hagino, IIJLab		- IPv6 transport
-Ondrej Sury 					- nsd-notify.8 man page
-Stephane Bortzmeyer				- Tru64 portability.
-Paul Wouters					- zone compiler testing
-Markus Heimhilcher				- .AT zones for testing	
+Colm MacCárthaigh,                              - IPv6 binding and cleanups.
+Jakob Schlyter, Carlstedt Research & Technology - chroot patch
+Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport
+Ondrej Sury                                     - nsd-notify.8 man page
+Stephane Bortzmeyer                             - Tru64 portability.
+Paul Wouters                                    - zone compiler testing
+Markus Heimhilcher                              - .AT zones for testing 
