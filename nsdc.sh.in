@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.6 2002/03/28 02:43:25 alexis Exp $
+# $Id: nsdc.sh.in,v 1.7 2002/04/23 12:49:37 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -77,7 +77,7 @@ running)
 	exit $?
 	;;
 rebuild)
-	${NSDBINDIR}/zonec -d ${NSDZONESDIR} -f ${NSDDB} ${NSDZONES}
+	${NSDBINDIR}/zonec -v -d ${NSDZONESDIR} -f ${NSDDB} ${NSDZONES}
 	;;
 
 restart)
