@@ -21,3 +21,4 @@ Jakob Schlyter, <jakob@crt.se> Carlstedt Research & Technology	- chroot patch
 Jun-ichiro itojun Hagino, <itojun@iijlab.net> IIJLab		- IPv6 transport
 Ondrej Sury, <ondrej@sury.org>					- nsd-notify.8 man page
 Stephane Bortzmeyer, <bortzmeyer@nic.fr>                        - Tru64 portability.
+Paul Wouters, <paul@xtdnet.nl>                  - zone compiler testing
