@@ -1187,7 +1187,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 		zone->ns_rrset = rrset;
 	}
 	if ( ( totalrrs % progress == 0 ) && vflag != 0  && totalrrs > 0) {
-		printf("%d\n", totalrrs);
+		printf("%ld\n", totalrrs);
 	}
 	++totalrrs;
 	return 1;
