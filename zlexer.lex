@@ -18,7 +18,7 @@
 #include "zparser.h"
 
 #if 0
-#define LEXOUT(s)  printf s /* used ONLY when debugging */
+#define LEXOUT(s)  printf(s) /* used ONLY when debugging */
 #else
 #define LEXOUT(s)
 #endif
@@ -39,6 +39,7 @@ DOLLAR  \$
 COMMENT ;
 DOT     \.
 SLASH   \\
+BIT	[^\]]|\\.
 ANY     [^\"]|\\.
 Q       \"
 
@@ -198,12 +199,22 @@ Q       \"
                         }
 {SPACE}+                {
                             if ( paren_open == 0 ) {
-                                if ( in_rr == expecting_dname )
+                                if (in_rr == expecting_dname)
                                     in_rr = after_dname;
                             }
                             LEXOUT(("SP "));
                             return SP;
                         }
+\\\[{BIT}*\]	{
+			/* bitlabels */
+			yytext[strlen(yytext) - 1] = '\0';
+			yylval.data.len = strlen(yytext + 2);
+			yylval.data.str = region_strdup(parser->rr_region, yytext + 2);
+			if (in_rr == expecting_dname || in_rr == outside) 
+				in_rr = after_dname;
+			return BITLAB;
+		}
+
 {Q}({ANY})*{Q}   {
                             /* this matches quoted strings */
 			    /* Strip leading and ending quotes.  */
