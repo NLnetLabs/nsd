@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.50 2002/04/11 14:28:18 alexis Exp $
+ * $Id: zonec.c,v 1.51 2002/04/22 12:19:59 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -466,7 +466,7 @@ zone_read(name, zonefile, cache)
 		/* Report progress... */
 		if(vflag) {
 			if((zf->lines % 100000) == 0) {
-				printf("read %u lines...\r", zf->lines);
+				printf("reading zone \"%s\": %u lines\r", dnamestr(z->dname), zf->lines);
 				fflush(stdout);
 			}
 		}
@@ -575,7 +575,7 @@ zone_read(name, zonefile, cache)
 
 	}
 
-	fprintf(stderr, "zonec: zone \"%s\" completed: %d errors\n", dnamestr(z->dname), zf->errors);
+	fprintf(stderr, "zonec: reading zone \"%s\" completed: %d errors\n", dnamestr(z->dname), zf->errors);
 	return z;
 }
 
@@ -624,7 +624,7 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 		if((*dkey < *msg.dnames[i]) &&
 		    (bcmp(dkey + 1, msg.dnames[i] + (*msg.dnames[i] - *dkey) + 1, *dkey) == 0)) {
 			if(additional == NULL) {
-				fprintf(stderr, "zonec: missing glue record\n");
+				fprintf(stderr, "zonec: missing glue record for %s\n", dnamestr(msg.dnames[i]));
 			} else {
 				/* Add duplicate for this glue with better name compression... */
 				zone_addzonecut(msg.dnames[i], dname, rrset, z, db);
@@ -677,19 +677,49 @@ zone_dump(z, db)
 	struct rrset *rrset, *cnamerrset, *additional;
 	u_char *dname, *cname, *nameptr;
 	u_char dnamebuf[MAXDOMAINLEN+1];
-	int i, star, namedepth;
+	int i, star;
+	
+	int namedepth = 0;
+
+	/* Progress reporting... */
+	unsigned long progress = 0;
+	unsigned long fraction = 0;
+	int percentage = 0;
+
+	/* Set up the counter... */
+	if(vflag) {
+		fraction = (z->cuts->count + z->data->count) / 20;	/* Report every 5% */
+	}
 
 	/* AUTHORITY CUTS */
 	HEAP_WALK(z->cuts, (char *)dname, rrset) {
+		/* Report progress... */
+		if(vflag) {
+			if((++progress % fraction) == 0) {
+				printf("writing zone \"%s\": %d%%\r", dnamestr(z->dname), percentage);
+				percentage += 5;
+				fflush(stdout);
+			}
+		}
+
 		/* Make sure the data is intact */
 		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
-
 		zone_addzonecut(dname, dname, rrset, z, db);
 
 	}
 
 	/* OTHER DATA */
 	HEAP_WALK(z->data, (char *)dname, rrset) {
+		/* Report progress... */
+		if(vflag) {
+			if((++progress % fraction) == 0) {
+				percentage += 5;
+				printf("%d%% written...\r", percentage);
+				printf("writing database: zone %s: %d%%\r", dnamestr(z->dname), percentage);
+				fflush(stdout);
+			}
+		}
+
 		/* Skip out of zone data */
 		if(rrset->glue == 1)
 			continue;
@@ -840,6 +870,10 @@ zone_dump(z, db)
 		}
 
 		free(d);
+	}
+
+	if(vflag) {
+		fprintf(stderr, "writing zone \"%s\": done.\n", dnamestr(z->dname));
 	}
 
 	return 0;
