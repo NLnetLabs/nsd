@@ -1,8 +1,6 @@
 .ig
 nsd.8 -- nsd manual
 
-Alexis Yushin, <alexis@nlnetlabs.nl>
-
 Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
 
 This software is an open source.
@@ -63,23 +61,24 @@ nsd
 is a complete implementation of an authoritative DNS nameserver. Upon
 startup
 .Ic NSD
-will read the database specified with
+will read the database specified with -f
 .Ar database
-argument and put itself into background and answer queries on the
-standard port 53 or port specified with
+argument and put itself into background and answers queries on port 53
+or a different port specified with -p
 .Ar port
 option.
 The
 .Ar database
-must be generated beforehand
-.Xr zonec 8
-By default NSD will bind all the local interfaces available. Use
+must be generated beforehand with
+.Xr zonec
+(8).
+By default NSD will bind to all local interfaces available. Use the -a
 .Ar ip-address
 option to specify a single particular interface address to be bound. If this option
 is given more than once,
 .Ic NSD
-will bind its udp sockets to all the specified ip-addresses separately and
-use INADDR_ANY for the tcp socket.
+will bind its UDP sockets to all the specified ip-addresses separately and
+use INADDR_ANY for the TCP socket.
 .Pp
 Normally
 .Ic NSD
