@@ -82,7 +82,7 @@ signal() {
 
 case "$1" in
 start)
-	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -f ${dbfile} ${flags}
+	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -f ${dbfile} -P ${pidfile} ${flags}
 	$0 notify
 	;;
 stop)

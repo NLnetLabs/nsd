@@ -92,6 +92,7 @@ usage (void)
 		"                  specified multiple times).\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
 		"  -f database     Specify the database to load.\n"
+		"  -P pidfile      Specify the PID file to write.\n"
 		"  -h              Print this help information.\n"
 		);
 	fprintf(stderr,
@@ -467,7 +468,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:df:hi:l:N:n:p:s:u:t:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:df:P:hi:l:N:n:p:s:u:t:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -492,6 +493,9 @@ main (int argc, char *argv[])
 			break;
 		case 'f':
 			nsd.dbfile = optarg;
+			break;
+		case 'P':
+			nsd.pidfile = optarg;
 			break;
 		case 'h':
 			usage();

@@ -2,6 +2,9 @@ NSD RELEASE NOTES
 
 2.1.3
 =============
+FEATURES:
+        - nsd: The pidfile can be specified using the '-P' option.
+
 BUG FIXES:
         - Bug #87: allow @ in the rdata
         - Bug #88: allow ::FFFF:ipv4addr in AAAA records
