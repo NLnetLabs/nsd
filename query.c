@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.26 2002/02/06 11:15:35 alexis Exp $
+ * $Id: query.c,v 1.27 2002/02/06 12:00:44 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -163,7 +163,7 @@ query_process(q, db)
 	/* Do we serve this type of query */
 	if(OPCODE(q) != OPCODE_QUERY) {
 #ifdef	MIMIC_BIND8
-		RCODE_SET(q, RCODE_REFUCE);
+		RCODE_SET(q, RCODE_REFUSE);
 #else
 		RCODE_SET(q, RCODE_IMPL);
 #endif
