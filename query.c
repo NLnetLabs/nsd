@@ -781,6 +781,9 @@ answer_query(struct nsd *nsd, struct query *q)
 		return;
 	}
 
+	answer_init(&answer);
+
+#ifdef DNSSEC
 	/*
 	 * See 3.1.4.1 Responding to Queries for DS RRs in DNSSEC
 	 * protocol.
@@ -794,23 +797,24 @@ answer_query(struct nsd *nsd, struct query *q)
 		zone_type *zone = domain_find_parent_zone(q->zone);
 		if (zone)
 			q->zone = zone;
-	}
 
-	answer_init(&answer);
-
-	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->domain) {
 		if (q->class == CLASS_ANY) {
 			AA_CLR(q);
 		} else {
 			AA_SET(q);
 		}
 		answer_nodata(q, &answer, closest_encloser);
-	} else {
+	} else
+#endif /* DNSSEC */
+	{
 		q->delegation_domain = domain_find_ns_rrsets(
 			closest_encloser, q->zone, &q->delegation_rrset);
 
-		if (!q->delegation_domain ||
-		    (exact && q->type == TYPE_DS && closest_encloser == q->delegation_domain))
+		if (!q->delegation_domain
+#ifdef DNSSEC
+		    || (exact && q->type == TYPE_DS && closest_encloser == q->delegation_domain)
+#endif /* DNSSEC */
+			)
 		{
 			if (q->class == CLASS_ANY) {
 				AA_CLR(q);
