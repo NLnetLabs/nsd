@@ -40,6 +40,7 @@
 #include "options.h"
 #include "plugins.h"
 #include "client.h"
+#include "query.h"
 
 extern char *optarg;
 extern int optind;
@@ -95,20 +96,21 @@ main (int argc, char *argv[])
 	const char * port;
 	uint8_t klass;
 	lookup_table_type *control;
-	struct query_type *q;
+	struct query q;
+	const dname_type *control_msg;
 	int default_family;
 	int rc;
-
 	struct addrinfo hints, *res;
 	int sockfd;
 
+	control_msg = NULL;
 	default_family = DEFAULT_AI_FAMILY;
 	port = DEFAULT_CONTROL_PORT;
 	klass = CLASS_CH;
 
 	log_init("nsdc");
 
-        /* Initialize the server handler... */
+        /* Initialize the handler... */
         memset(&nsdc, 0, sizeof(struct nsd));
         nsdc.region      = region_create(xalloc, free);
 #if 0  
@@ -161,12 +163,36 @@ main (int argc, char *argv[])
 				nsdc.options_file);
         }
 
+	control_msg = dname_parse(nsdc.region, control->name);
+	if (!control_msg) {
+		error(EXIT_FAILURE,
+				"incorrect domain name '%s'",
+				control->name);
+	}
+
+	/* Initialize the query */
+        memset(&q, 0, sizeof(struct query));
+        q.addrlen = sizeof(q.addr);
+        q.maxlen = 512;
+        q.packet = buffer_create(nsdc.region, QIOBUFSZ);
+        memset(buffer_begin(q.packet), 0, buffer_remaining(q.packet));
+
+        /* Set up the header */
+        OPCODE_SET(q.packet, OPCODE_NOTIFY);
+        ID_SET(q.packet, 42);   /* Does not need to be random. */
+        AA_SET(q.packet);
+        QDCOUNT_SET(q.packet, 1);
+        buffer_skip(q.packet, QHEADERSZ);
+        buffer_write(q.packet, dname_name(control_msg), dname_length(control_msg));
+        buffer_write_u16(q.packet, TYPE_SOA);
+        buffer_write_u16(q.packet, CLASS_IN);
+        buffer_flip(q.packet);
+
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = default_family;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 
-	
 	rc = getaddrinfo(DEFAULT_CONTROL_HOST, port, &hints, &res);
 	if (rc) 
 		error(EXIT_FAILURE, "bad address %s: %s\n", DEFAULT_CONTROL_HOST,
@@ -187,15 +213,6 @@ main (int argc, char *argv[])
 	}
 
 
-	q = query_create(nsdc.region, NULL);
-	
-	/* open a socket, make a packet, send it, receive reply, and print */
-
-	/* add the control message as a txt rr */
-	query_addtxt(q, (const uint8_t*) control->name,
-			CLASS_CH,
-			DEFAULT_CONTROL_TTL,
-			"");
 	close(sockfd);
 }
  
