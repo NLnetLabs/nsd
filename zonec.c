@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.12 2002/02/02 14:01:42 alexis Exp $
+ * $Id: zonec.c,v 1.12.2.1 2002/02/02 15:38:57 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -499,15 +499,14 @@ zone_read(name, zonefile, cache)
 int
 zone_dump(z, db)
 	struct 	zone *z;
-	DB *db;
+	int db;
 {
 	struct domain *d;
 	struct message msg, msgany;
 	struct rrset *rrset, *cnamerrset, *additional;
 	u_char *dname, *cname, *nameptr;
-	int i, r;
+	int i;
 	int star, namedepth;
-	DBT key, data;
 
 	/* AUTHORITY CUTS */
 	DICT_WALK(z->cuts, (char *)dname, rrset) {
@@ -579,16 +578,12 @@ zone_dump(z, db)
 		d->size += sizeof(u_int32_t);
 
 		/* Store it */
-		bzero(&key, sizeof(key));
-		bzero(&data, sizeof(data));
-		key.size = *dname;
-		key.data = dname + 1;
-		data.size = d->size;
-		data.data = d;
-		if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
-			db->err(db, r, "DB->put");
+		if(write(db, dname, (((u_int32_t)*dname + 3) & 0xfffffffc)) == -1) {
+			perror("failure storing a key");
 		}
-
+		if(write(db, d, d->size) == -1) {
+			perror("failure storing a domain");
+		}
 		free(d);
 	}
 
@@ -727,16 +722,12 @@ zone_dump(z, db)
 		d->size += sizeof(u_int32_t);
 
 		/* Store it */
-		bzero(&key, sizeof(key));
-		bzero(&data, sizeof(data));
-		key.size = *dname;
-		key.data = dname + 1;
-		data.size = d->size;
-		data.data = d;
-		if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
-			db->err(db, r, "DB->put");
+		if(write(db, dname, (((u_int32_t)*dname + 3) & 0xfffffffc)) == -1) {
+			perror("failure storing a key");
 		}
-
+		if(write(db, d, d->size) == -1) {
+			perror("failure storing a domain");
+		}
 		free(d);
 	}
 
@@ -755,9 +746,7 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-        DB *db;
-	DBT key, data;
-	int r;
+        int db;
 	int aflag = 0;
 	int options = 1;
 	int cache = 0;
@@ -792,12 +781,8 @@ main(argc, argv)
 	}
 
 	/* Create the database */
-	if((r = db_create(&db, NULL, 0)) != 0) {
-                fprintf(stderr, "creating database: %s\n", db_strerror(r));
-                exit(1);
-        }
-        if((r = db->open(db, dbfile, NULL, DB_BTREE, aflag ? 0 : DB_CREATE | DB_TRUNCATE, 0664)) != 0) {
-                db->err(db, r, "%s", dbfile);
+        if((db = open(dbfile, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
+		perror("cannot create the database file");
 		exit(1);
         }
 
@@ -839,20 +824,19 @@ main(argc, argv)
 	};
 
 	/* Write the bitmasks... */
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
-	data.size = NAMEDB_BITMASKLEN * 3;
-	data.data = bitmasks;
-
-	if((r = db->put(db, NULL, &key, &data, 0)) != 0) {
-		db->err(db, r, "DB->put");
+	if(write(db, "", 1) == -1) {
+		perror("write failed");
+		close(db);
+		exit(1);
 	}
 
+	if(write(db, bitmasks, NAMEDB_BITMASKLEN * 3) == -1) {
+		perror("write failed");
+		close(db);
+		exit(1);
+	}
 	/* Close the database */
-	if((r = db->close(db, 0)) != 0) {
-		db->err(db, r, "closing the database");
-		unlink(dbfile);
-	}
+	close(db);
 
 	return 0;
 }
