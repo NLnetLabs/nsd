@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.9.2.12 2002/08/21 12:14:41 alexis Exp $
+# $Id: nsdc.sh.in,v 1.9.2.13 2002/08/22 11:40:52 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -51,7 +51,6 @@ NSDZONES="@@NSDZONES@@"
 NSDKEYSDIR="@@NSDKEYSDIR@@"
 NSDNOTIFY="@@NSDNOTIFY@@"
 NAMEDXFER="@@NAMEDXFER@@"
-MAXXFRS="@@MAXXFRS@@"
 
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
@@ -95,16 +94,9 @@ update)
 		exit 1
 	fi
 
-	# set up the max number of axfrs and current run
-	MAXXFRS=${MAXXFRS:-1}
-	axfrs="0"
-
 	# read the nsd.zones file
 	while read zonekw zone file masterskw masters
 	do	
-		# setup the trap
-		trap "axfrs=$(($axfrs - 1))" USR1
-
 		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
 		then
 			# now get the serial number
@@ -119,16 +111,7 @@ update)
  				tsiginfoarg="-T ${NSDKEYSDIR}/${masters}.tsiginfo.$$"
 			fi
 
-			$NAMEDXFER -z $zone -f ${NSDZONESDIR}/$file ${tsiginfoarg} -s $serial $masters;\
-				kill -USR1 $$ &
-
-			# another axfr in progress
-			axfrs=$(($axfrs + 1))
-
-			if [ $axfrs -gt ${MAXXFRS} ]
-			then
-				sleep 1
-			fi
+			$NAMEDXFER -z $zone -f ${NSDZONESDIR}/$file ${tsiginfoarg} -s $serial $masters
 
 			# Do we need to rebuild the database?
 			if [ ${NSDZONESDIR}/$file -nt ${NSDDB} ]
