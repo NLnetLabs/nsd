@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.7 2002/01/31 12:45:42 alexis Exp $
+ * $Id: zonec.c,v 1.8 2002/01/31 15:53:00 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -460,7 +460,8 @@ zone_read(name, zonefile, cache)
 			}
 		} else {
 			if(rr->type == TYPE_SOA) {
-				zf_error(zf, "duplicate SOA record");
+				zf_error(zf, "duplicate SOA record discarded");
+				free(r->rrs[--r->rrslen]);
 			}
 		}
 
@@ -489,7 +490,8 @@ zone_dump(z, db)
 	struct message msg, msgany;
 	struct rrset *rrset, *cnamerrset, *additional;
 	u_char *dname, *cname, *nameptr;
-	int star, i, namedepth, r;
+	int i, j, r;
+	int star, namedepth;
 	DBT key, data;
 
 	/* AUTHORITY CUTS */
@@ -544,6 +546,13 @@ zone_dump(z, db)
 			while(additional) {
 				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
 					msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
+					/* If this is a glue, strip it down to the first record in the set... */
+					if(additional->glue) {
+						for(j = 1; j < additional->rrslen; j++)
+							free(additional->rrs[j]);
+						additional->rrslen = 1;
+					}
+
 				}
 				additional = additional->next;
 			}
