@@ -209,7 +209,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 static void
 number_dnames_iterator(domain_type *node, void *user_data)
 {
-	size_t *current_number = user_data;
+	uint32_t *current_number = user_data;
 
 	node->number = *current_number;
 	++*current_number;
