@@ -1,5 +1,5 @@
 /*
- * $Id: zone.h,v 1.3 2002/01/11 13:54:34 alexis Exp $
+ * $Id: zone.h,v 1.4 2002/01/24 03:30:52 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -38,6 +38,8 @@
  *
  */
 
+#include "dict.h"
+
 struct rrset {
 	struct rrset *next;
 	u_short type;
@@ -51,8 +53,8 @@ struct rrset {
 
 struct zone {
 	u_char *dname;
-	heap_t	*cuts;
-	heap_t	*data;
+	dict_t	*cuts;
+	dict_t	*data;
 	struct rrset *soa;
 	struct rrset *ns;
 };

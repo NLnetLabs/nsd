@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.13 2002/01/23 16:15:03 alexis Exp $
+ * $Id: zone.c,v 1.14 2002/01/24 03:30:52 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -51,7 +51,7 @@
 #include "dns.h"
 #include "nsd.h"
 #include "zf.h"
-#include "heap.h"
+#include "dict.h"
 #include "db.h"
 #include "zone.h"
 
@@ -66,7 +66,7 @@ zone_print(z)
 	printf("; zone %s\n", dnamestr(z->dname));
 	printf("; zone data\n");
 
-	HEAP_WALK(z->data, (char *)dname, rrset) {
+	DICT_WALK(z->data, (char *)dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
 				printf("%s\t%ld\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
@@ -77,10 +77,9 @@ zone_print(z)
 			rrset = rrset->next;
 		}
 	}
-	HEAP_STOP();
 
 	printf("; zone cuts\n");
-	HEAP_WALK(z->cuts, (char *)dname, rrset) {
+	DICT_WALK(z->cuts, (char *)dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
 				printf("%s\t%ld\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
@@ -91,7 +90,6 @@ zone_print(z)
 			rrset = rrset->next;
 		}
 	}
-	HEAP_STOP();
 }
 
 
@@ -104,14 +102,12 @@ zone_read(name, zonefile)
 	char *name;
 	char *zonefile;
 {
-	heap_t *h;
+	dict_t *h;
 
 	struct zone *z;
 	struct zf *zf;
 	struct zf_entry *rr;
 	struct rrset *rrset, *r;
-
-	HEAP_INIT(xalloc);
 
 	/* Allocate new zone structure */
 	z = xalloc(sizeof(struct zone));
@@ -130,8 +126,8 @@ zone_read(name, zonefile)
 	}
 
 	/* Two heaps: zone cuts and other data */
-	z->cuts = HEAP_NEW(dnamecmp);
-	z->data = HEAP_NEW(dnamecmp);
+	z->cuts = dict_create(xalloc, dnamecmp);
+	z->data = dict_create(xalloc, dnamecmp);
 	z->soa = z->ns = NULL;
 
 	/* Read the file */
@@ -165,7 +161,7 @@ zone_read(name, zonefile)
 		}
 
 		/* Do we have this domain name in heap? */
-		if((rrset = HEAP_SEARCH(h, rr->dname)) != NULL) {
+		if((rrset = dict_search(h, rr->dname)) != NULL) {
 			for(r = rrset; r; r = r->next) {
 				if(r->type == rr->type)
 					break;
@@ -188,7 +184,8 @@ zone_read(name, zonefile)
 
 			/* Add it */
 			if(rrset == NULL) {
-				HEAP_INSERT(h, strdup(rr->dname), r);
+				/* XXX We can use this more smart... */
+				dict_insert(h, strdup(rr->dname), r, 1);
 			} else {
 				r->next = rrset->next;
 				rrset->next = r;
@@ -240,8 +237,8 @@ zone_free(z)
 {
 	if(z) {
 		if(z->dname) free(z->dname);
-		HEAP_DESTROY(z->cuts);
-		HEAP_DESTROY(z->data);
+		dict_destroy(z->cuts, 1, 1);
+		dict_destroy(z->data, 1, 1);
 	}
 }
 
@@ -262,7 +259,7 @@ zone_dump(z, db)
 	int star, i, namedepth;
 
 	/* AUTHORITY CUTS */
-	HEAP_WALK(z->cuts, (char *)dname, rrset) {
+	DICT_WALK(z->cuts, (char *)dname, rrset) {
 		/* Make sure the data is intact */
 		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
 
@@ -295,7 +292,7 @@ zone_dump(z, db)
 		/* Additional section */
 		for(i = 0; i < msg.dnameslen; i++) {
 
-			additional = HEAP_SEARCH(z->data, msg.dnames[i]);
+			additional = dict_search(z->data, msg.dnames[i]);
 
 			/* This is a glue record */
 			if((*z->dname < *msg.dnames[i]) &&
@@ -327,10 +324,9 @@ zone_dump(z, db)
 		db_write(db, dname, d);
 		free(d);
 	}
-	HEAP_STOP();
 
 	/* OTHER DATA */
-	HEAP_WALK(z->data, (char *)dname, rrset) {
+	DICT_WALK(z->data, (char *)dname, rrset) {
 		/* Skip out of zone data */
 		if(rrset->glue == 1)
 			continue;
@@ -346,7 +342,7 @@ zone_dump(z, db)
  			assert(rrset->next == NULL);
  			cnamerrset = rrset;
  			cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
- 			rrset = HEAP_SEARCH(z->data, cname);
+ 			rrset = dict_search(z->data, cname);
  		} else {
  			cnamerrset = NULL;
  			cname = NULL;
@@ -414,7 +410,7 @@ zone_dump(z, db)
 
 			/* Additional section */
 			for(i = 0; i < msg.dnameslen; i++) {
-				additional = HEAP_SEARCH(z->data, msg.dnames[i]);
+				additional = dict_search(z->data, msg.dnames[i]);
 				while(additional) {
 					if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
 						msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
@@ -438,7 +434,7 @@ zone_dump(z, db)
 
 		/* Additional section for TYPE_ANY */
 		for(i = 0; i < msgany.dnameslen; i++) {
-			additional = HEAP_SEARCH(z->data, msgany.dnames[i]);
+			additional = dict_search(z->data, msgany.dnames[i]);
 			while(additional) {
 				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
 					msgany.arcount += zone_addrrset(&msgany, msgany.dnames[i], additional);
@@ -460,7 +456,6 @@ zone_dump(z, db)
 		db_write(db, dname, d);
 		free(d);
 	}
-	HEAP_STOP();
 
 	return 0;
 }

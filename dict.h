@@ -1,7 +1,7 @@
 /*
- * $Id: heap.c,v 1.1 2002/01/08 13:29:20 alexis Exp $
+ * $Id: dict.h,v 1.1 2002/01/24 03:30:52 alexis Exp $
  *
- * heap.c -- generic heap operations
+ * dict.h -- generic dictionary based on red-black tree
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
@@ -37,6 +37,59 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include "heap.h"
 
-dict_itor *_heap_itor;
+#ifndef _DICT_H_
+#define	_DICT_H_
+
+#if !defined(__P)
+#	if defined(__STDC__)
+#		define __P(protos)     protos          /* full-blown ANSI C */
+# 	else
+# 		define __P(protos)
+# 	endif
+#endif
+
+typedef struct dnode_t dnode_t;
+struct dnode_t {
+	dnode_t *parent;
+	dnode_t *left;
+	dnode_t *right;
+	int	color;
+	void	*key;
+	void	*data;
+};
+
+#define	DICT_NULL &dict_null_node
+extern	dnode_t	dict_null_node;
+
+typedef struct dict_t dict_t;
+struct dict_t {
+	/* The root of the red-black tree */
+	dnode_t	*root;
+
+	/* The number of the nodes in the tree */
+	long long count;
+
+	/* Current node for walks... */
+	dnode_t	*node;
+
+	/* Free and compare functions */
+	void *(*mallocf)();
+	int (*cmp) ();
+};
+
+dict_t *dict_create __P((void *(*)(), int (*)()));
+void *dict_insert __P((dict_t *, void *, void *, int));
+void *dict_search __P((dict_t *, void *));
+void dict_delete __P((dict_t *, void *, int, int));
+void dict_destroy __P((dict_t *, int, int));
+dnode_t *dict_first __P((dict_t *));
+dnode_t *dict_next __P((dnode_t *));
+#define	dict_last() DICT_NULL
+
+#define	DICT_WALK(dict, k, d) \
+	for((dict)->node = dict_first(dict), (k) = (dict)->node->key, (d) = (dict)->node->data;\
+		(dict)->node != dict_last(); \
+		(dict)->node = dict_next((dict)->node), (k) = (dict)->node->key, (d) = (dict)->node->data)
+
+#endif /* _DICT_H_ */

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2002/01/17 21:56:03 alexis Exp $
+# $Id: Makefile,v 1.10 2002/01/24 03:30:52 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -59,8 +59,8 @@ nsd:	nsd.h dns.h db.h db.o nsd.o server.o query.o util.o
 zf:	zf.h dns.h zf.c util.o
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c util.o
 
-zone:	zf.h dns.h zone.h zone.c zf.o util.o heap.o db.o
-	${CC} ${CFLAGS} ${LDFLAGS} -ldict -DTEST -o $@ zone.c zf.o util.o heap.o db.o
+zone:	zf.h dns.h zone.h zone.c zf.o util.o dict.o db.o
+	${CC} ${CFLAGS} ${LDFLAGS} -ldict -DTEST -o $@ zone.c zf.o util.o dict.o db.o
 
 clean:
 	rm -f zf zone nsd *.o y.* *.core *.gmon nsd.db
