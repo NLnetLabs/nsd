@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.24 2002/02/06 09:44:11 alexis Exp $
+ * $Id: query.c,v 1.25 2002/02/06 10:49:04 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -92,10 +92,12 @@ query_addanswer(q, dname, a)
 	for(j = 0; j < ANSWER_PTRSLEN(a); j++) {
 		qptr = q->iobufptr + *(ANSWER_PTRS_PTR(a)+j);
 		bcopy(qptr, &pointer, 2);
-		if(pointer & 0xc000) {
+		if((pointer & 0xc000) == 0xc000) {
+			/* This pointer is relative to the name in the query.... */
 			/* XXX Check if dname is within packet */
 			pointer = htons(0xc000 | (dname - q->iobuf + (pointer & 0x0fff)));/* dname - q->iobuf */
 		} else {
+			/* This pointer is relative to the answer that we have in the database... */
 			pointer = htons(0xc000 | (u_int16_t)(pointer + q->iobufptr - q->iobuf));
 		}
 		bcopy(&pointer, qptr, 2);
