@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+2.1.2
+=============
+BUG FIXES:
+	- When -f - is used, set the filename to 'STDIN'
+	- Let the nsdc script handle failed AXFRs more cracefully
+
 2.1.1
 =============
 BUG FIXES:
