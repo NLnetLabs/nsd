@@ -1139,7 +1139,10 @@ main (int argc, char **argv)
 	/* Print the total number of errors */
 	fprintf(stderr, "zonec: done with total %d errors.\n", totalerrors);
 
+	/* Disable this to save some time.  */
+#if 0
 	region_destroy(zone_region);
+#endif
 	
 	return totalerrors ? 1 : 0;
 }
