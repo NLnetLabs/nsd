@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2002/01/28 16:52:50 alexis Exp $
+# $Id: Makefile,v 1.14 2002/01/28 23:35:46 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -40,8 +40,8 @@ SHELL = /bin/sh
 
 DEBUG=	-g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -O6  -Wall ${DEBUG} -I/usr/local/include
-LDFLAGS= -L/usr/local/lib
+CFLAGS= -pipe -O6  -Wall ${DEBUG} -I/usr/local/include/db4
+LDFLAGS= -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
 
@@ -54,13 +54,13 @@ all:	nsd zonec
 
 
 nsd:	nsd.h dns.h nsd.o server.o query.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o -ldb3
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o
 
 zf:	zf.h dns.h zf.c
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c
 
 zonec:	zf.h dns.h zonec.h zf.o dict.o zonec.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dict.o -ldb3
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dict.o
 
 clean:
 	rm -f zf zonec nsd *.o y.* *.core *.gmon nsd.db
