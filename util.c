@@ -375,10 +375,15 @@ strip_string(char *str)
 
 	while (isspace(*start))
 		++start;
-	while (isspace(*end))
-		--end;
-	*++end = '\0';
-	
-	if (str != start)
-		memmove(str, start, end - start + 1);
+	if (start > end) {
+		/* Completely blank. */
+		str[0] = '\0';
+	} else {
+		while (isspace(*end))
+			--end;
+		*++end = '\0';
+		
+		if (str != start)
+			memmove(str, start, end - start + 1);
+	}
 }
