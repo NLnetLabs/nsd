@@ -53,6 +53,7 @@
 #include <netdb.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,6 +74,8 @@
 /* The server handler... */
 static struct nsd nsd;
 char hostname[MAXHOSTNAMELEN];
+
+static const char *program_name;
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -107,6 +110,18 @@ void
 usage (void)
 {
 	fprintf(stderr, "usage: nsd [-4] [-6] [-d] [-p port] [-a address] [-i identity] [-n tcp_servers ] [-u user|uid] [-t chrootdir] -f database\n");
+	exit(1);
+}
+
+static void
+error (const char *format, ...)
+{
+	va_list args;
+	fprintf(stderr, "%s: ", program_name);
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+	fprintf(stderr, "\n");
 	exit(1);
 }
 
@@ -176,19 +191,21 @@ sig_handler (int sig)
 {
 	size_t i;
 	
-	/* Are we a tcp child? */
+	/* Are we a child server? */
 	if (nsd.server_kind != NSD_SERVER_MAIN) {
 		switch(sig) {
 		case SIGALRM:
-			return;
+			break;
 		case SIGHUP:
 		case SIGINT:
 		case SIGTERM:
 			nsd.mode = NSD_QUIT;
-			return;
+			break;
 		case SIGILL:
 			nsd.mode = NSD_STATS;
-			return;
+			break;
+		default:
+			break;
 		}
 		return;
 	}
@@ -353,6 +370,8 @@ main (int argc, char *argv[])
 	char *plugins[MAX_PLUGIN_COUNT];
 	size_t plugin_count = 0;
 #endif /* PLUGINS */
+
+	program_name = argv[0];
 	
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
@@ -412,20 +431,22 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "46a:df:p:i:u:t:s:N:n:X:")) != -1) {
+	while((c = getopt(argc, argv, "46a:df:i:N:n:p:s:u:t:X:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
 				hints[i].ai_family = PF_INET;
 			}
 			break;
-#ifdef INET6
 		case '6':
+#ifdef INET6
 			for (i = 0; i < MAX_INTERFACES; ++i) {
 				hints[i].ai_family = PF_INET6;
 			}
+#else /* !INET6 */
+			error("IPv6 support not enabled.");
+#endif /* !INET6 */
 			break;
-#endif
 		case 'a':
 			nodes[nsd.ifs] = optarg;
 			++nsd.ifs;
@@ -436,18 +457,8 @@ main (int argc, char *argv[])
 		case 'f':
 			nsd.dbfile = optarg;
 			break;
-		case 'p':
-			tcp_port = optarg;
-			udp_port = optarg;
-			break;
 		case 'i':
 			nsd.identity = optarg;
-			break;
-		case 'u':
-			nsd.username = optarg;
-			break;
-		case 't':
-			nsd.chrootdir = optarg;
 			break;
 		case 'N':
 			i = atoi(optarg);
@@ -465,23 +476,34 @@ main (int argc, char *argv[])
 				tcp_children = i;
 			}
 			break;
+		case 'p':
+			tcp_port = optarg;
+			udp_port = optarg;
+			break;
 		case 's':
 #ifdef BIND8_STATS
 			nsd.st.period = atoi(optarg);
-#else /* BIND8_STATS */
-			syslog(LOG_ERR, "option unavailabe, recompile with -DBIND8_STATS");
-#endif /* BIND8_STATS */
+#else /* !BIND8_STATS */
+			error("BIND 8 statistics not enabled.");
+#endif /* !BIND8_STATS */
 			break;
-#ifdef PLUGINS
+		case 't':
+			nsd.chrootdir = optarg;
+			break;
+		case 'u':
+			nsd.username = optarg;
+			break;
 		case 'X':
+#ifdef PLUGINS
 			if (plugin_count == MAX_PLUGIN_COUNT) {
-				fprintf(stderr, "maximum plugin count exceeded\n");
-				exit(1);
+				error("maximum number of plugins exceeded.");
 			}
 			plugins[plugin_count] = optarg;
 			++plugin_count;
+#else /* !PLUGINS */
+			error("plugin support not enabled.");
+#endif /* !PLUGINS */
 			break;
-#endif /* PLUGINS */
 		case '?':
 		default:
 			usage();
@@ -525,11 +547,11 @@ main (int argc, char *argv[])
 			hints[0].ai_family = PF_INET6;
 			hints[1].ai_family = PF_INET;
 			nsd.ifs = 2;
-# else
+# else /* !IPV6_V6ONLY */
 			hints[0].ai_family = PF_INET6;
-# endif
+# endif	/* !IPV6_V6ONLY */
 		}
-#endif
+#endif /* INET6 */
 	}
 
 	/* Set up the address info structures with real interface/port data */
@@ -537,7 +559,7 @@ main (int argc, char *argv[])
 	{
 		/* We don't perform name-lookups */
 		if (nodes[i] != NULL)
-			hints[i].ai_flags = AI_NUMERICHOST;
+			hints[i].ai_flags |= AI_NUMERICHOST;
 		
 		hints[i].ai_socktype = SOCK_DGRAM;
 		if ( getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr) != 0)
@@ -559,14 +581,13 @@ main (int argc, char *argv[])
 			nsd.uid = strtol(nsd.username, &t, 10);
 			if(*t != 0) {
 				if(*t != '.' || !isdigit(*++t)) {
-					syslog(LOG_ERR, "usage: -u user or -u uid  or -u uid.gid");
-					exit(1);
+					error("-u user or -u uid or -u uid.gid");
 				}
 				nsd.gid = strtol(t, &t, 10);
 			} else {
 				/* Lookup the group id in /etc/passwd */
 				if((pwd = getpwuid(nsd.uid)) == NULL) {
-					syslog(LOG_ERR, "user id %d doesnt exist, will not setgid", nsd.uid);
+					error("user id %d does not exist.", nsd.uid);
 				} else {
 					nsd.gid = pwd->pw_gid;
 				}
@@ -575,7 +596,7 @@ main (int argc, char *argv[])
 		} else {
 			/* Lookup the user id in /etc/passwd */
 			if((pwd = getpwnam(nsd.username)) == NULL) {
-				syslog(LOG_ERR, "user %s doesnt exist, will not setuid", nsd.username);
+				error("user '%s' does not exist.", nsd.username);
 			} else {
 				nsd.uid = pwd->pw_uid;
 				nsd.gid = pwd->pw_gid;
@@ -602,7 +623,7 @@ main (int argc, char *argv[])
 	/* Do we have a running nsd? */
 	if((oldpid = readpid(nsd.pidfile)) == -1) {
 		if(errno != ENOENT) {
-			syslog(LOG_ERR, "cant read pidfile %s: %m", nsd.pidfile);
+			syslog(LOG_ERR, "can't read pidfile %s: %m", nsd.pidfile);
 		}
 	} else {
 		if(kill(oldpid, 0) == 0 || errno == EPERM) {
