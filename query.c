@@ -230,7 +230,6 @@ process_query_section(struct query *query)
 	uint8_t *dst = qnamebuf;
 	uint8_t *query_name = buffer_at(query->packet, QHEADERSZ);
 	uint8_t *src = query_name;
-	size_t i;
 	size_t len;
 	
 	/* Lets parse the query name and convert it to lower case.  */
@@ -246,10 +245,9 @@ process_query_section(struct query *query)
 		{
 			return NSD_RC_FORMAT;
 		}
-		*dst++ = *src;
-		for (i = *src++; i; i--) {
-			*dst++ = NAMEDB_NORMALIZE(*src++);
-		}
+		memcpy(dst, src, *src + 1);
+		dst += *src + 1;
+		src += *src + 1;
 	}
 	*dst++ = *src++;
 
@@ -262,7 +260,7 @@ process_query_section(struct query *query)
 	}
 	buffer_set_position(query->packet, src - buffer_begin(query->packet));
 
-	query->name = dname_make(query->region, qnamebuf);
+	query->name = dname_make(query->region, qnamebuf, 1);
 	query->opcode = OPCODE(query);
 	query->type = buffer_read_u16(query->packet);
 	query->klass = buffer_read_u16(query->packet);

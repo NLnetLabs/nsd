@@ -15,6 +15,14 @@
 #include "tsig.h"
 #include "query.h"
 
+#ifndef B64_PTON
+int b64_ntop(uint8_t const *src, size_t srclength,
+	     char *target, size_t targsize);
+#endif /* !B64_PTON */
+#ifndef B64_NTOP
+int b64_pton(char const *src, uint8_t *target, size_t targsize);
+#endif /* !B64_NTOP */
+
 /* Number of supported algorithms. */
 #define TSIG_ALGORITHM_COUNT 1
 
@@ -86,7 +94,7 @@ tsig_parse_record(tsig_record_type *tsig, buffer_type *packet)
 
 	tsig->position = buffer_position(packet);
 	
-	tsig->key_name = dname_make_from_packet(tsig->region, packet, 1);
+	tsig->key_name = dname_make_from_packet(tsig->region, packet, 1, 1);
 	if (!tsig->key_name) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
@@ -115,7 +123,7 @@ tsig_parse_record(tsig_record_type *tsig, buffer_type *packet)
 		return 0;
 	}
 
-	tsig->algorithm_name = dname_make_from_packet(tsig->region, packet, 1);
+	tsig->algorithm_name = dname_make_from_packet(tsig->region, packet, 1, 1);
 	if (!tsig->algorithm_name || !buffer_available(packet, 10)) {
 		buffer_set_position(packet, tsig->position);
 		return 0;

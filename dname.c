@@ -27,7 +27,7 @@
 static const uint8_t *strdname (const char *source, const uint8_t *o);
 
 const dname_type *
-dname_make(region_type *region, const uint8_t *name)
+dname_make(region_type *region, const uint8_t *name, int normalize)
 {
 	size_t name_size = 0;
 	uint8_t label_offsets[MAXDOMAINLEN];
@@ -73,23 +73,36 @@ dname_make(region_type *region, const uint8_t *name)
 	memcpy((uint8_t *) dname_label_offsets(result),
 	       label_offsets,
 	       label_count * sizeof(uint8_t));
-	memcpy((uint8_t *) dname_name(result),
-	       name,
-	       name_size * sizeof(uint8_t));
+	if (normalize) {
+		uint8_t *dst = (uint8_t *) dname_name(result);
+		const uint8_t *src = name;
+		while (!label_is_root(src)) {
+			ssize_t len = label_length(src);
+			*dst++ = *src++;
+			for (i = 0; i < len; ++i) {
+				*dst++ = NAMEDB_NORMALIZE(*src++);
+			}
+		}
+		*dst = *src;
+	} else {
+		memcpy((uint8_t *) dname_name(result),
+		       name,
+		       name_size * sizeof(uint8_t));
+	}
 	return result;
 }
 
 
 const dname_type *
-dname_make_from_packet(region_type *region, buffer_type *packet, int normalize)
+dname_make_from_packet(region_type *region, buffer_type *packet,
+		       int allow_pointers, int normalize)
 {
 	uint8_t buf[MAXDOMAINLEN + 1];
 	int done = 0;
 	uint8_t visited[MAX_PACKET_SIZE];
 	size_t dname_length = 0;
 	const uint8_t *label;
-	int followed_pointer = 0;
-	size_t mark;
+	ssize_t mark = -1;
 	
 	memset(visited, 0, buffer_limit(packet));
 	
@@ -108,6 +121,9 @@ dname_make_from_packet(region_type *region, buffer_type *packet, int normalize)
 		label = buffer_current(packet);
 		if (label_is_pointer(label)) {
 			size_t pointer;
+			if (!allow_pointers) {
+				return NULL;
+			}
 			if (!buffer_available(packet, 2)) {
 /* 				error("dname pointer out of bounds"); */
 				return NULL;
@@ -118,8 +134,7 @@ dname_make_from_packet(region_type *region, buffer_type *packet, int normalize)
 				return NULL;
 			}
 			buffer_skip(packet, 2);
-			if (!followed_pointer) {
-				followed_pointer = 1;
+			if (mark == -1) {
 				mark = buffer_position(packet);
 			}
 			buffer_set_position(packet, pointer);
@@ -134,26 +149,19 @@ dname_make_from_packet(region_type *region, buffer_type *packet, int normalize)
 /* 				error("dname too large"); */
 				return NULL;
 			}
-			if (normalize) {
-				buf[dname_length++] = buffer_read_u8(packet);
-				for (; length > 1; --length) {
-					buf[dname_length++] = NAMEDB_NORMALIZE(buffer_read_u8(packet));
-				}
-			} else {
-				buffer_read(packet, buf + dname_length, length);
-				dname_length += length;
-			}
+			buffer_read(packet, buf + dname_length, length);
+			dname_length += length;
 		} else {
 /* 			error("bad label type"); */
 			return NULL;
 		}
 	}
 
-	if (followed_pointer) {
+	if (mark != -1) {
 		buffer_set_position(packet, mark);
 	}
 
-	return dname_make(region, buf);
+	return dname_make(region, buf, normalize);
 }
 
 const dname_type *
@@ -167,7 +175,7 @@ dname_parse(region_type *region, const char *name, const dname_type *origin)
 		buf[0] = 1;
 		buf[1] = 0;
 	}
-	return dname_make(region, strdname(name, buf) + 1);
+	return dname_make(region, strdname(name, buf) + 1, 0);
 }
 
 
@@ -202,7 +210,7 @@ dname_partial_copy(region_type *region, const dname_type *dname, uint8_t label_c
 	
 	assert(label_count <= dname->label_count);
 
-	return dname_make(region, dname_label(dname, label_count - 1));
+	return dname_make(region, dname_label(dname, label_count - 1), 0);
 }
 
 
@@ -405,27 +413,25 @@ strdname (const char *source, const uint8_t *o)
 
 
 const dname_type *
-create_dname(region_type *region, const uint8_t *str, const size_t len)
+dname_make_from_label(region_type *region,
+		      const uint8_t *label, const size_t length)
 {
-	uint8_t temp[MAXDOMAINLEN];
-	size_t i;
+	uint8_t temp[MAXLABELLEN + 2];
 
-	assert(len > 0 && len <= MAXLABELLEN);
+	assert(length > 0 && length <= MAXLABELLEN);
 
-	temp[0] = len;
-	for (i = 0; i < len; ++i) {
-		temp[i + 1] = DNAME_NORMALIZE(str[i]);
-	}
-	temp[len + 1] = '\000';
+	temp[0] = length;
+	memcpy(temp + 1, label, length * sizeof(uint8_t));
+	temp[length + 1] = '\000';
 
-	return dname_make(region, temp);
+	return dname_make(region, temp, 1);
 }
          
 
 const dname_type *
-cat_dname(region_type *region,
-	  const dname_type *left,
-	  const dname_type *right)
+dname_concatenate(region_type *region,
+		  const dname_type *left,
+		  const dname_type *right)
 {
 	uint8_t temp[MAXDOMAINLEN];
 
@@ -434,5 +440,5 @@ cat_dname(region_type *region,
 	memcpy(temp, dname_name(left), left->name_size - 1);
 	memcpy(temp + left->name_size - 1, dname_name(right), right->name_size);
 
-	return dname_make(region, temp);
+	return dname_make(region, temp, 0);
 }

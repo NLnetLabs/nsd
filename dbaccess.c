@@ -84,7 +84,7 @@ read_dname(FILE *fd, region_type *region)
 	if (fread(temp, sizeof(uint8_t), size, fd) != size)
 		return NULL;
 
-	return dname_make(region, temp);
+	return dname_make(region, temp, 1);
 }
 
 static int

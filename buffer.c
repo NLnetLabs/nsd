@@ -17,6 +17,7 @@ void
 buffer_cleanup(void *arg)
 {
 	buffer_type *buffer = (buffer_type *) arg;
+	assert(!buffer->_fixed);
 	free(buffer->_data);
 }
 
@@ -30,6 +31,7 @@ buffer_create(region_type *region, size_t capacity)
 	buffer->_data = xalloc(capacity);
 	buffer->_position = 0;
 	buffer->_limit = buffer->_capacity = capacity;
+	buffer->_fixed = 0;
 	buffer_invariant(buffer);
 	
 	region_add_cleanup(region, buffer_cleanup, buffer);
@@ -37,22 +39,17 @@ buffer_create(region_type *region, size_t capacity)
 	return buffer;
 }
 
-buffer_type *
-buffer_create_from(region_type *region, void *data, size_t size)
+void
+buffer_create_from(buffer_type *buffer, void *data, size_t size)
 {
-	buffer_type *buffer = region_alloc(region, sizeof(buffer_type));
-	if (!buffer)
-		return NULL;
-
 	assert(data);
 
 	buffer->_position = 0;
 	buffer->_limit = buffer->_capacity = size;
 	buffer->_data = data;
-
-	buffer_invariant(buffer);
+	buffer->_fixed = 1;
 	
-	return buffer;
+	buffer_invariant(buffer);
 }
 
 void
@@ -94,6 +91,7 @@ void
 buffer_reserve(buffer_type *buffer, size_t amount)
 {
 	buffer_invariant(buffer);
+	assert(!buffer->_fixed);
 	if (buffer->_capacity < buffer->_position + amount) {
 		size_t new_capacity = buffer->_capacity * 3 / 2;
 		if (new_capacity < buffer->_position + amount) {

@@ -169,7 +169,7 @@ ttl:    TTL
     {
         /* set the ttl */
         if ( (parser->current_rr.ttl = 
-		zparser_ttl2int($1.str) ) == -1) {
+	      zparser_ttl2int($1.str) ) == (uint32_t) -1) {
 	            parser->current_rr.ttl = parser->default_ttl;
 		    return 0;
 	}
@@ -222,7 +222,10 @@ dname:      abs_dname
 		} else {
 			$$ = domain_table_insert(
 				parser->db->domains, 
-				cat_dname(parser->rr_region, $1, domain_dname(parser->origin)));
+				dname_concatenate(
+					parser->rr_region,
+					$1,
+					domain_dname(parser->origin)));
 		}
     	}
     	;
@@ -251,7 +254,9 @@ label: STR
 		    zc_error("label exceeds %d character limit", MAXLABELLEN);
 		    $$ = error_dname;
 	    } else {
-		    $$ = create_dname(parser->rr_region, (uint8_t *) $1.str, $1.len);
+		    $$ = dname_make_from_label(parser->rr_region,
+					       (uint8_t *) $1.str,
+					       $1.len);
 	    }
     }
     | BITLAB 
@@ -271,7 +276,7 @@ rel_dname:  label
 		    zc_error("domain name exceeds %d character limit", MAXDOMAINLEN);
 		    $$ = error_dname;
 	    } else {
-		    $$ = cat_dname(parser->rr_region, $1, $3);
+		    $$ = dname_concatenate(parser->rr_region, $1, $3);
 	    }
     }
     ;

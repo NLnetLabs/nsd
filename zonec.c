@@ -33,8 +33,9 @@
 #include "dname.h"
 #include "dns.h"
 #include "namedb.h"
-#include "util.h"
+#include "rdata.h"
 #include "region-allocator.h"
+#include "util.h"
 #include "zparser.h"
 
 #ifndef B64_PTON
@@ -909,127 +910,33 @@ zadd_rdata_domain(domain_type *domain)
 	}
 }
 
-static const dname_type *
-parse_dname(uint8_t *data, uint8_t *end)
-{
-	const uint8_t *current = data;
-
-	while (1) {
-		if (label_is_pointer(current)) {
-			zc_error_prev_line("unknown RDATA contains domain name with compression pointer.");
-			return NULL;
-		}
-
-		if (label_length(current) > MAXLABELLEN) {
-			zc_error_prev_line("unknown RDATA contains domain name with label exceeding %d octets.", MAXLABELLEN);
-			return NULL;
-		}
-
-		if (current + label_length(current) + 1 > end) {
-			zc_error_prev_line("unknown RDATA contains unterminated domain name.");
-			return NULL;
-		}
-
-		if (label_is_root(current))
-			break;
-		
-		current = label_next(current);
-	}
-
-	return dname_make(parser->rr_region, data);
-}
-
 void
 parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 {
+	buffer_type packet;
 	uint16_t size = *wireformat;
-	uint8_t *data = (uint8_t *) (wireformat + 1);
-	uint8_t *end = data + size;
-	int i;
-	size_t length = end - data;
-	
-	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(type);
+	ssize_t rdata_count;
+	ssize_t i;
+	rdata_atom_type *rdatas;
 
-	for (i = 0; i < descriptor->maximum; ++i) {
-		int is_domain = 0;
-
-		if (data == end) {
-			if (i < descriptor->minimum) {
-				zc_error_prev_line("unknown RDATA is not complete");
-				return;
-			} else {
-				break;
-			}
-		}
-		
-		switch (rdata_atom_wireformat_type(type, i)) {
-		case RDATA_WF_COMPRESSED_DNAME:
-		case RDATA_WF_UNCOMPRESSED_DNAME:
-			is_domain = 1;
-			break;
-		case RDATA_WF_BYTE:
-			length = sizeof(uint8_t);
-			break;
-		case RDATA_WF_SHORT:
-			length = sizeof(uint16_t);
-			break;
-		case RDATA_WF_LONG:
-			length = sizeof(uint32_t);
-			break;
-		case RDATA_WF_TEXT:
-			/* Length is stored in the first byte.  */
-			length = data[0];
-			break;
-		case RDATA_WF_A:
-			length = sizeof(in_addr_t);
-			break;
-		case RDATA_WF_AAAA:
-			length = IP6ADDRLEN;
-			break;
-		case RDATA_WF_BINARY:
-			/* Remaining RDATA is binary.  */
-			length = end - data;
-			break;
-		case RDATA_WF_APL:
-			length = (sizeof(uint16_t)    /* address family */
-				  + sizeof(uint8_t)   /* prefix */
-				  + sizeof(uint8_t)); /* length */
-			if (data + length <= end) {
-				length += data[sizeof(uint16_t)
-					       + sizeof(uint8_t)];
-			}
-
-			break;
-		}
-
-		if (is_domain) {
-			const dname_type *dname = parse_dname(data, end);
-			if (!dname)
-				return;
-			data += dname->name_size;
-			zadd_rdata_domain(domain_table_insert(
-						  parser->db->domains, dname));
-		} else {
-			uint16_t *rdata;
-
-			if (data + length > end) {
-				zc_error_prev_line("unknown RDATA is truncated");
-				return;
-			}
-			
-			rdata = (uint16_t *) region_alloc(
-				parser->region,
-				sizeof(uint16_t) + length);
-			*rdata = length;
-			memcpy(rdata + 1, data, length);
-			data += length;
-			zadd_rdata_wireformat(rdata);
-		}
-	}
-
-	if (data < end) {
-		zc_error_prev_line("unknown RDATA has trailing garbage");
+	buffer_create_from(&packet, wireformat + 1, *wireformat);
+	rdata_count = rdata_wireformat_to_rdatas(parser->region,
+						 parser->db->domains,
+						 type,
+						 size,
+						 &packet,
+						 &rdatas);
+	if (rdata_count == -1) {
+		zc_error_prev_line("bad unknown RDATA");
 		return;
+	}
+	
+	for (i = 0; i < rdata_count; ++i) {
+		if (rdata_atom_is_domain(type, i)) {
+			zadd_rdata_domain(rdatas[i].domain);
+		} else {
+			zadd_rdata_wireformat(rdatas[i].data);
+		}
 	}
 }
 

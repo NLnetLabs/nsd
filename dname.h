@@ -14,7 +14,6 @@
 #include <stdio.h>
 
 #include "buffer.h"
-#include "heap.h"
 #include "region-allocator.h"
 
 #define DNAME_NORMALIZE        tolower
@@ -47,11 +46,12 @@ struct dname
 
 /*
  * Construct a new domain name based on NAME in wire format.  NAME
- * cannot contain (compression) pointers.
+ * cannot contain compression pointers.
  *
  * Pre: NAME != NULL.
  */
-const dname_type *dname_make(region_type *region, const uint8_t *name);
+const dname_type *dname_make(region_type *region, const uint8_t *name,
+			     int normalize);
 
 
 /*
@@ -62,6 +62,7 @@ const dname_type *dname_make(region_type *region, const uint8_t *name);
  */
 const dname_type *dname_make_from_packet(region_type *region,
 					 buffer_type *packet,
+					 int allow_pointers,
 					 int normalize);
 
 
@@ -332,17 +333,19 @@ const char *labels_to_string(const uint8_t *dname);
 
 
 /*
- * Create a dname containing the single label specified by STR followd
- * by the root label.
+ * Create a dname containing the single label specified by STR
+ * followed by the root label.
  */
-const dname_type *create_dname(region_type *region, const uint8_t *str, const size_t len);
+const dname_type *dname_make_from_label(region_type *region,
+					const uint8_t *label,
+					const size_t length);
 
 
 /*
  * Concatenate two dnames.
  */
-const dname_type *cat_dname(region_type *region,
-			    const dname_type *left,
-			    const dname_type *right);
+const dname_type *dname_concatenate(region_type *region,
+				    const dname_type *left,
+				    const dname_type *right);
 
 #endif /* _DNAME_H_ */

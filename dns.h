@@ -10,9 +10,6 @@
 #ifndef _DNS_H_
 #define _DNS_H_
 
-#include "buffer.h"
-#include "region-allocator.h"
-
 /* Possible OPCODE values */
 #define	OPCODE_QUERY		0 	/* a standard query (QUERY) */
 #define OPCODE_IQUERY		1 	/* an inverse query (IQUERY) */
@@ -169,9 +166,6 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
 #define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_DNSKEY+1)
 extern rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH];
 
-extern lookup_table_type dns_certificate_types[];
-extern lookup_table_type dns_algorithms[];
-
 static inline rrtype_descriptor_type *
 rrtype_descriptor_by_type(uint16_t type)
 {
@@ -185,7 +179,4 @@ rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 const char *rrtype_to_string(uint16_t rrtype);
 const char *rrclass_to_string(uint16_t rrclass);
 
-int rdata_to_string(buffer_type *output, rdata_zoneformat_type type,
-		    buffer_type *packet);
-		
 #endif /* _DNS_H_ */

@@ -43,8 +43,19 @@ struct buffer
 	 * The data contained in the buffer.
 	 */
 	uint8_t *_data;
+
+	/*
+	 * If the buffer is fixed it cannot be resized.
+	 */
+	unsigned _fixed : 1;
 };
 
+#ifdef NDEBUG
+static inline void
+buffer_invariant(buffer_type *buffer ATTR_UNUSED)
+{
+}
+#else
 static inline void
 buffer_invariant(buffer_type *buffer)
 {
@@ -53,6 +64,7 @@ buffer_invariant(buffer_type *buffer)
 	assert(buffer->_limit <= buffer->_capacity);
 	assert(buffer->_data);
 }
+#endif
 
 /*
  * Create a new buffer with the specified capacity.
@@ -60,9 +72,11 @@ buffer_invariant(buffer_type *buffer)
 buffer_type *buffer_create(region_type *region, size_t capacity);
 
 /*
- * Create a buffer with the specified data.
+ * Create a buffer with the specified data.  The data is not copied
+ * and no memory allocations are done.  The buffer is fixed and cannot
+ * be resized using buffer_reserve().
  */
-buffer_type *buffer_create_from(region_type *region, void *data, size_t size);
+void buffer_create_from(buffer_type *buffer, void *data, size_t size);
 
 /*
  * Clear the buffer and make it ready for writing.  The buffer's limit

@@ -89,7 +89,7 @@ domain_table_create(region_type *region)
 
 	assert(region);
 	
-	origin = dname_make(region, (uint8_t *) "");
+	origin = dname_make(region, (uint8_t *) "", 0);
 
 	root = (domain_type *) region_alloc(region, sizeof(domain_type));
 	root->node.key = origin;
@@ -369,102 +369,3 @@ namedb_find_zone(namedb_type *db, domain_type *domain)
 
 	return zone;
 }
-
-#ifdef TEST
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#define BUFSZ 1000
-
-int
-main(void)
-{
-	static const char *dnames[] = {
-		"com",
-		"aaa.com",
-		"hhh.com",
-		"zzz.com",
-		"ns1.aaa.com",
-		"ns2.aaa.com",
-		"foo.bar.com",
-		"a.b.c.d.e.bar.com",
-		"*.aaa.com"
-	};
-	region_type *region = region_create(xalloc, free);
-	dname_table_type *table = dname_table_create(region);
-	size_t key = dname_info_create_key(table);
-	const dname_type *dname;
-	size_t i;
-	dname_info_type *closest_match;
-	dname_info_type *closest_encloser;
-	int exact;
-	
-	for (i = 0; i < sizeof(dnames) / sizeof(char *); ++i) {
-		dname_info_type *temp;
-		dname = dname_parse(region, dnames[i], NULL);
-		temp = dname_table_insert(table, dname);
-		dname_info_put_ptr(temp, key, (void *) dnames[i]);
-	}
-	
-	exact = dname_table_search(
-		table,
-		dname_parse(region, "foo.bar.com", NULL),
-		&closest_match, &closest_encloser);
-	assert(exact);
-	assert(dname_info_get_ptr(closest_match, key) == dnames[6]);
-	assert(dname_info_get_ptr(closest_encloser, key) == dnames[6]);
-	
-	exact = dname_table_search(
-		table,
-		dname_parse(region, "a.b.hhh.com", NULL),
-		&closest_match, &closest_encloser);
-	assert(!exact);
-	assert(dname_info_get_ptr(closest_match, key) == dnames[2]);
-	assert(dname_info_get_ptr(closest_encloser, key) == dnames[2]);
-	
-	exact = dname_table_search(
-		table,
-		dname_parse(region, "ns3.aaa.com", NULL),
-		&closest_match, &closest_encloser);
-	assert(!exact);
-	assert(dname_info_get_ptr(closest_match, key) == dnames[5]);
-	assert(dname_info_get_ptr(closest_encloser, key) == dnames[1]);
-	
-	exact = dname_table_search(
-		table,
-		dname_parse(region, "a.ns1.aaa.com", NULL),
-		&closest_match, &closest_encloser);
-	assert(!exact);
-	assert(dname_info_get_ptr(closest_match, key) == dnames[4]);
-	assert(dname_info_get_ptr(closest_encloser, key) == dnames[4]);
-	
-	exact = dname_table_search(
-		table,
-		dname_parse(region, "x.y.z.d.e.bar.com", NULL),
-		&closest_match, &closest_encloser);
-	assert(!exact);
-/* 	assert(dname_compare(closest_match->dname, */
-/* 			     dname_parse(region, "c.d.e.bar.com", NULL)) == 0); */
-/* 	assert(dname_compare(closest_encloser->dname, */
-/* 			     dname_parse(region, "d.e.bar.com", NULL)) == 0); */
-	
-	exact = dname_table_search(
-		table,
-		dname_parse(region, "a.aaa.com", NULL),
-		&closest_match, &closest_encloser);
-	assert(!exact);
-	assert(dname_info_get_ptr(closest_match, key) == dnames[8]);
-	assert(dname_info_get_ptr(closest_encloser, key) == dnames[1]);
-	assert(closest_encloser->wildcard_child);
-	assert(dname_info_get_ptr(closest_encloser->wildcard_child, key)
-	       == dnames[8]);
-
-	dname = dname_parse(region, "a.b.c.d", NULL);
-	assert(dname_compare(dname_parse(region, "d", NULL),
-			     dname_partial_copy(region, dname, 2)) == 0);
-	
-	exit(0);
-}
-
-#endif /* TEST */
