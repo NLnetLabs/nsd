@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.70 2003/06/12 13:50:53 erik Exp $
+ * $Id: nsd.c,v 1.71 2003/06/12 13:51:58 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -362,13 +362,6 @@ bind8_stats (struct nsd *nsd)
 extern char *optarg;
 extern int optind;
 
-static void
-parse_addr(struct sockaddr_storage *addr, const char *value)
-{
-	if((nsd.tcp.addr.sin_addr.s_addr = nsd.udp[nsd.ifs++].addr.sin_addr.s_addr
-	    = inet_addr(optarg)) == -1)
-}
-
 int 
 main (int argc, char *argv[])
 {
@@ -382,11 +375,20 @@ main (int argc, char *argv[])
 	nsd.pidfile	= PIDFILE;
 	nsd.tcp.open_conn = 1;
 
+	for(i = 0; i < MAX_INTERFACES; i++) {
+		nsd.udp[i].addr.sin_addr.s_addr = INADDR_ANY;
+		nsd.udp[i].addr.sin_port = htons(UDP_PORT);
+		nsd.udp[i].addr.sin_family = AF_INET;
+	}
+
         nsd.tcp.addr.sin_addr.s_addr = INADDR_ANY;
         nsd.tcp.addr.sin_port = htons(TCP_PORT);
         nsd.tcp.addr.sin_family = AF_INET;
 
 #ifdef INET6
+        nsd.udp6.addr.sin6_port = htons(UDP_PORT);	/* XXX: SHOULD BE UDP6_PORT? */
+        nsd.udp6.addr.sin6_family = AF_INET6;
+
         nsd.tcp6.addr.sin6_port = htons(TCP_PORT);	/* XXX: SHOULD BE TCP6_PORT? */
         nsd.tcp6.addr.sin6_family = AF_INET6;
 #endif /* INET6 */
@@ -435,7 +437,8 @@ main (int argc, char *argv[])
 	while((c = getopt(argc, argv, "a:df:p:i:u:t:s:n:")) != -1) {
 		switch (c) {
 		case 'a':
-			if (!parse_addr(&nsd.udp[nsd.ifs++], optarg))
+			if((nsd.tcp.addr.sin_addr.s_addr = nsd.udp[nsd.ifs++].addr.sin_addr.s_addr
+					= inet_addr(optarg)) == -1)
 				usage();
 			
 			break;

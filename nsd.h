@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.53 2003/06/12 13:50:54 erik Exp $
+ * $Id: nsd.h,v 1.54 2003/06/12 13:51:59 erik Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -98,11 +98,16 @@ struct	nsd {
 
 	/* UDP specific configuration */
 	struct	{
-		struct sockaddr_storage	addr;
+		struct sockaddr_in	addr;
 		int		s;
 	} udp[MAX_INTERFACES];
 
 #ifdef INET6
+	struct {
+		struct sockaddr_in6 addr;
+		int	s;
+	} udp6;
+
 	struct {
 		struct sockaddr_in6 addr;
 		int s;
