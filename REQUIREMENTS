@@ -1,5 +1,5 @@
 -*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.5 2002/02/06 18:07:12 alexis Exp $
+$Id: REQUIREMENTS,v 1.6 2002/02/22 10:57:25 alexis Exp $
 
 
 NSD Requirements and Specifications
@@ -130,8 +130,6 @@ C.1. Zone file format and RR records.
    (http://www.iana.org/assignments/dns-parameters) except for RRs
    that are obsoleted by IANA, those MAY not be implemented.
 
-   Unknown RRs are supported as in draft-ietf-dnsext-unknown-rr.
-
    Zone file MUST not contain errors. i.e. the loading process may fail
    or nsd may produce unpredictable results when:
      - RRs that are obsolete and not implemented are encountered.
@@ -148,16 +146,17 @@ C.1. Zone file format and RR records.
 
           [DNAME not implemented in alpha]
 
-     - The default minimum TTL is not specified.
+     - The default minimum TTL is not specified by the $TTL directive
 
 
    Only zonefiles of CLASS "IN" are supported.
 
    The zonefile parser sets the TTL of those RRs that do not have
-   their TTL defined to the minimum TTL unless the RR is part of a
-   RRset and the TTL is set for one of the RRs in the RRset.
+   their TTL defined to the minimum TTL as defined by the $TTL
+   directive unless the RR is part of a RRset and the TTL is set for
+   one of the RRs in the RRset.
 
-   Parsing of the labels in zone files is case insensitive 
+   Parsing of the names in zone files is case insensitive 
    (Note: rfc1035 2.3.3 also see 1034  3.1
  
      "The basic rule is that case can be discarded only when data is
@@ -245,8 +244,6 @@ C.3 Incomming DNS Message processing.
 
      + AA bit in query packet is ignored.
 
-     [***OK: does this mean you only want authoritative answer.]
-
      + TC bit is set on a query packet is replied to with FORMERR.
 
      [This must allways be a broken implementation since the max
@@ -269,7 +266,7 @@ C.3 Incomming DNS Message processing.
        response off (rfc 1034 6.2)
 
        [OK***: BIND 8 does not return authority with an CLASS=ANY
-        query.  This needs a little further research]
+        query.  Why? ]
 
     
     + QCLASS!=IN && QCLASS!=ANY results in RCODE=REFUSED
@@ -661,10 +658,10 @@ RR records details.
   "GPOS"     27,    # RFC 1712 (obsolete)
   "AAAA"     28,    # RFC 1886, Section 2.1
   "LOC"      29,    # RFC 1876
-		     OK: No requirements on additional section processing.
+		     No requirements on additional section processing.
 
   "NXT"      30,    # RFC 2535
-		     OK: No requirements on additional section processing.
+		     No requirements on additional section processing.
 		     NXT dname field MAY be compressed.  (2535 4.2)
 
 
@@ -710,9 +707,9 @@ RR records details.
   "SINK"     40,    # [Eastlake]
 
   "OPT"      41,    # RFC 2671
-		    OK: Pseudo RR. Not in zone files. Could be in Query.
-
-  "APL"      42	    # RFC 3123   
+		    Pseudo RR. Not in zone files. 
+ 
+ "APL"      42	    # RFC 3123   
 		    An APL RR with empty RDATA is valid and implements an empty list.
 
 
@@ -733,4 +730,4 @@ RR records details.
 
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.5 2002/02/06 18:07:12 alexis Exp $
+$Id: REQUIREMENTS,v 1.6 2002/02/22 10:57:25 alexis Exp $

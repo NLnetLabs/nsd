@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.44 2002/02/21 15:42:13 alexis Exp $
+ * $Id: zonec.c,v 1.45 2002/02/22 10:56:45 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -574,8 +574,8 @@ zone_read(name, zonefile, cache)
 	return z;
 }
 
-void
-zone_addzonecut(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *db)
+static void
+zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *db)
 {
 	struct domain *d;
 	struct message msg;
@@ -585,7 +585,7 @@ zone_addzonecut(u_char *dname, struct rrset *rrset, struct zone *z, struct named
 
 	/* Make sure it is not a wildcard */
 	if(*dname >= 2 && *(dname + 1) == '\001' && *(dname + 2) == '*') {
-		fprintf(stderr, "zonec: wildcard delegations are not allowed\n");
+		fprintf(stderr, "zonec: wildcard delegations are not allowed (ignored)\n");
 		return;
 	}
 
@@ -598,12 +598,12 @@ zone_addzonecut(u_char *dname, struct rrset *rrset, struct zone *z, struct named
 	d->size = sizeof(struct domain);
 	d->flags = NAMEDB_DELEGATION;
 
-	/* Put the dname into compression array */
-	for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
-		if((dname + *dname + 1 - nameptr) > 1) {
+	/* Put the dkey into compression array */
+	for(namedepth = 0, nameptr = dkey + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
+		if((dkey + *dkey + 1 - nameptr) > 1) {
 			zone_addcompr(&msg, nameptr,
-				      (nameptr - (dname + 1)) | 0xc000,
-				      dname + *dname + 1 - nameptr);
+				      (nameptr - (dkey + 1)) | 0xc000,
+				      dkey + *dkey + 1 - nameptr);
 		}
 	}
 
@@ -616,12 +616,12 @@ zone_addzonecut(u_char *dname, struct rrset *rrset, struct zone *z, struct named
 		additional = heap_search(z->data, msg.dnames[i]);
 
 		/* This is a glue record */
-		if((*dname < *msg.dnames[i]) &&
-		    (bcmp(dname + 1, msg.dnames[i] + (*msg.dnames[i] - *dname) + 1, *dname) == 0)) {
+		if((*dkey < *msg.dnames[i]) &&
+		    (bcmp(dkey + 1, msg.dnames[i] + (*msg.dnames[i] - *dkey) + 1, *dkey) == 0)) {
 			if(additional == NULL) {
 				fprintf(stderr, "zonec: missing glue record\n");
 			} else {
-				/* XXX zone_addzonecut(msg.dnames[i], rrset, z, db); */
+				zone_addzonecut(msg.dnames[i], dname, rrset, z, db);
 				/* Mark it as out of zone data */
 				additional->glue = 1;
 			}
@@ -648,7 +648,7 @@ zone_addzonecut(u_char *dname, struct rrset *rrset, struct zone *z, struct named
 	d->size += sizeof(u_int32_t);
 
 	/* Store it */
-	if(namedb_put(db, dname, d) != 0) {
+	if(namedb_put(db, dkey, d) != 0) {
 		fprintf(stderr, "zonec: error writing the database: %s\n", strerror(errno));
 	}
 
@@ -677,7 +677,7 @@ zone_dump(z, db)
 		/* Make sure the data is intact */
 		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
 
-		zone_addzonecut(dname, rrset, z, db);
+		zone_addzonecut(dname, dname, rrset, z, db);
 
 	}
 
