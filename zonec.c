@@ -442,7 +442,7 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_
 		index of 'size' is the window's number*/
 
 	/* used[i] is the i-th window included in the nsec 
-	 * size[used[0]] is the size of window i
+	 * size[used[0]] is the size of window 0
 	 */
 
 	/* walk through the 256 windows */
