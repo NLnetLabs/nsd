@@ -815,7 +815,13 @@ answer_query(struct nsd *nsd, struct query *q)
 		zone_type *zone = domain_find_parent_zone(q->zone);
 		if (zone)
 			q->zone = zone;
+	}
 
+	if (exact && q->tpe == TYPE_DS && closest_encloser = q->zone->domain) {
+		/*
+		 * Type DS query at the zone apex (and the server is
+		 * not authoratitive for the parent zone).
+		 */
 		if (q->class == CLASS_ANY) {
 			AA_CLR(q);
 		} else {
