@@ -1,5 +1,5 @@
 /*
- * $Id: zone.h,v 1.1 2002/01/08 13:29:21 alexis Exp $
+ * $Id: zone.h,v 1.2 2002/01/08 15:35:34 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -57,4 +57,31 @@ struct zone {
 	struct rrset *ns;
 };
 
+#define MAXRRSPP	1024
+#define	IOBUFSZ		MAXRRSPP * 64
+
+struct message {
+	u_char *bufptr;
+	u_short ancount;
+	u_short nscount;
+	u_short arcount;
+	int dnameslen;
+	int rrsetslen;
+	int comprlen;
+	u_short pointerslen;
+	u_short pointers[MAXRRSPP];
+	struct rrset *rrsets[MAXRRSPP];
+	u_char *dnames[MAXRRSPP];
+	struct {
+		u_char *dname;
+		u_short dnameoff;
+		u_char dnamelen;
+	} compr[MAXRRSPP];
+	u_char buf[IOBUFSZ];
+};
+
 void zone_free __P((struct zone *));
+struct answer *zone_answer __P((struct message *, u_short));
+int zone_dump __P((struct zone *, struct db *));
+u_short zone_addname __P((struct message *, u_char *));
+u_short zone_addrrset __P((struct message *, u_char *, struct rrset *));

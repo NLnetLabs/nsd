@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.1 2002/01/08 13:29:21 alexis Exp $
+ * $Id: zone.c,v 1.2 2002/01/08 15:35:34 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -52,6 +52,7 @@
 #include "nsd.h"
 #include "zf.h"
 #include "heap.h"
+#include "db.h"
 #include "zone.h"
 
 void
@@ -242,51 +243,6 @@ zone_free(z)
 	}
 }
 
-void
-zone_dump(z)
-	struct zone *z;
-{
-	struct rrset *rrset, *glue;
-	u_char *dname, *nsname;
-	int i;
-
-	/* First we walk through all the zone cuts and write them out together with the glue */
-	HEAP_WALK(z->cuts, (char *)dname, rrset) {
-		/* We only have one rrset at zone delegation */
-		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
-
-		for(i = 0; i < rrset->rrslen; i++) {
-			/* Do we need glue? */
-			nsname = (u_char *)rrset->rrs[i].p;
-			if((*nsname > *z->dname) &&
-				(bcmp(z->dname + 1, nsname + (*nsname - *z->dname) + 1, *z->dname) == 0)) {
-				if((glue = HEAP_SEARCH(z->data, nsname)) != NULL) {
-					while(glue) {
-						if(glue->type == 
-
-			printf("%s\t%ld\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
-				 classtoa(rrset->class), typetoa(rrset->type));
-			zf_print_rdata(rrset->rrs[i], rrset->fmt);
-			printf("\n");
-		}
-	}
-	HEAP_STOP();
-
-	printf("; zone cuts\n");
-	HEAP_WALK(z->cuts, (char *)dname, rrset) {
-		while(rrset) {
-			for(i = 0; i < rrset->rrslen; i++) {
-				printf("%s\t%ld\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
-					 classtoa(rrset->class), typetoa(rrset->type));
-				zf_print_rdata(rrset->rrs[i], rrset->fmt);
-				printf("\n");
-			}
-			rrset = rrset->next;
-		}
-	}
-	HEAP_STOP();
-}
-
 #ifdef TEST
 
 int
@@ -320,9 +276,244 @@ main(argc, argv)
 		exit(1);
 	}
 
+	zone_dump(z, NULL);
 	zone_print(z);
 
 	return 0;
 }
 
 #endif
+
+
+/*
+ * Writes zone data into open database *db
+ *
+ * Returns zero if success.
+ */
+int
+zone_dump(z, db)
+	struct 	zone *z;
+	struct	db *db;
+{
+	struct answer *answer;
+	struct message msg;
+	struct rrset *rrset, *additional;
+	u_char *dname, *nameptr;
+	int i;
+
+	/* First walk through all the zone cuts */
+	HEAP_WALK(z->cuts, (char *)dname, rrset) {
+		/* Make sure the data is intact */
+		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
+
+		/* Initialize message */
+		bzero(&msg, sizeof(struct message));
+		msg.bufptr = msg.buf;
+
+		/* Put the dname into compression array */
+		for(nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1) {
+			if((dname + *dname + 1 - nameptr) > 1) {
+				msg.compr[msg.comprlen].dname = nameptr;
+				msg.compr[msg.comprlen].dnameoff = nameptr - dname + 1;
+				msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
+				msg.comprlen++;
+			}
+		}
+
+		/* Authority section */
+		msg.nscount = zone_addrrset(&msg, dname, rrset);
+
+		/* Additional section */
+		for(i = 0; i < msg.dnameslen; i++) {
+			additional = HEAP_SEARCH(z->data, msg.dnames[i]);
+			while(additional) {
+				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
+					msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
+				}
+				additional = additional->next;
+			}
+		}
+
+		/* Write it into the database */
+		answer = zone_answer(&msg, rrset->type);
+		db_write(db, answer);
+		free(answer);
+	}
+	HEAP_STOP();
+	return 0;
+}
+
+/*
+ * XXXX: Check msg->buf boundaries!!!!!
+ */
+u_short
+zone_addrrset(msg, dname, rrset)
+	struct message *msg;
+	u_char *dname;
+	struct rrset *rrset;
+{
+	u_short class = htons(CLASS_IN);
+	long ttl;
+	union zf_rdatom *rdata;
+	char *rdlengthptr;
+	char *f;
+	u_char *p;
+	size_t l;
+	u_short rdlength;
+	u_short type;
+	int rrcount;
+	int i, j;
+
+	/* Did I see you before? */
+	for(i = 0; i < msg->rrsetslen; i++) {
+		/* Not again, please! */
+		if(rrset == msg->rrsets[i]) {
+			return 0;
+		}
+	}
+
+	/* Please sign in here... */
+	msg->rrsets[msg->rrsetslen++] = rrset;
+
+	for(rrcount = 0, j = 0; j < rrset->rrslen; j++, rrcount++) {
+		rdata = rrset->rrs[j];
+
+		/* dname */
+		zone_addname(msg, dname);
+
+		/* type */
+		type = htons(rrset->type);
+		bcopy(&type, msg->bufptr, sizeof(u_short));
+		msg->bufptr += sizeof(u_short);
+
+		/* class */
+		bcopy(&class, msg->bufptr, sizeof(u_short));
+		msg->bufptr += sizeof(u_short);
+
+		/* ttl */
+		ttl = htonl(rrset->ttl);
+		bcopy(&ttl, msg->bufptr, sizeof(long));
+		msg->bufptr += sizeof(long);
+
+		/* rdlength */
+		rdlengthptr = msg->bufptr;
+		rdlength = 0;
+		msg->bufptr += sizeof(u_short);
+
+		/* Pack the rdata */
+		for(p = NULL, l = 0, i = 0, f = rrset->fmt; *f; f++, i++, p = NULL, l = 0) {
+			switch(*f) {
+			case '4':
+			case 'l':
+				p = (char *)&rdata[i].l;
+				l = sizeof(u_long);
+				break;
+			case '6':
+				p = rdata[i].p;
+				l = IP6ADDRLEN;
+				break;
+			case 'n':
+				p = NULL;
+				l = 0;
+				rdlength += zone_addname(msg, rdata[i].p);
+				msg->dnames[msg->dnameslen++] = rdata[i].p;
+				break;
+			case 't':
+				p = rdata[i].p;
+				l = (u_short) *p + 1;
+				break;
+			case 's':
+				p = (char *)&rdata[i].s;
+				l = sizeof(u_short);
+				break;
+			case 'g':
+			case 'a':
+				p = NULL;
+				l = 0;
+				break;
+			default:
+				syslog(LOG_ERR, "panic! uknown atom in format %c", *f);
+				return rrcount;
+			}
+			bcopy(p, msg->bufptr, l);
+			msg->bufptr += l;
+			rdlength += l;
+		}
+		rdlength = htons(rdlength);
+		bcopy(&rdlength, rdlengthptr, sizeof(u_short));
+	}
+	return rrcount;
+}
+
+
+u_short
+zone_addname(msg, dname)
+	struct message *msg;
+	u_char *dname;
+{
+	/* Lets try rdata dname compression */
+	int rdlength = 0;
+	int j;
+	u_short rdname_pointer = 0;
+	register u_char *t;
+
+	/* Walk through the labels in the dname to be compressed */
+	if(*dname > 1) {
+		for(t = dname + 1; (t < (dname + 1 + *dname)); t += *t + 1) {
+			/* Walk through the dnames that we have already in the packet */
+			for(j = 0; j < msg->comprlen; j++) {
+				if((msg->compr[j].dnamelen == (dname + 1 + *dname - t)) &&
+					(strncasecmp(t, msg->compr[j].dname, msg->compr[j].dnamelen) == 0)) {
+					/* Match, first write down unmatched part */
+					bcopy(dname + 1, msg->bufptr,
+						(t - (dname + 1)));
+					msg->bufptr += (t - (dname + 1));
+					rdlength += (t - (dname + 1));
+
+					/* Then construct the pointer, and add it */
+					rdname_pointer = (u_short)msg->compr[j].dnameoff;
+					bcopy(&rdname_pointer, msg->bufptr, 2);
+
+					msg->pointers[msg->pointerslen++] = msg->bufptr - msg->buf;
+
+					msg->bufptr += 2;
+					return rdlength + 2;
+				}
+			}
+			/* Add this part of dname */
+			if((dname + 1 + *dname - t) > 1) {
+				msg->compr[msg->comprlen].dname = t;
+				msg->compr[msg->comprlen].dnameoff = msg->bufptr - msg->buf + (t - (dname + 1));
+				msg->compr[msg->comprlen].dnamelen = (dname + 1 + *dname - t);
+				msg->comprlen++;
+			}
+		}
+	}
+	bcopy(dname +1, msg->bufptr, *dname);
+	msg->bufptr += *dname;
+	return *dname;
+}
+
+
+struct answer *
+zone_answer(msg, type)
+	struct message *msg;
+	u_short type;
+{
+	struct answer *a;
+	size_t size;
+
+	size = sizeof(size_t) + (sizeof(u_short) * (msg->pointerslen + 5)) + (msg->bufptr - msg->buf);
+
+	a = xalloc(size);
+	a->size = size;
+	a->type = htons(type);
+	a->ancount = htons(msg->ancount);
+	a->nscount = htons(msg->nscount);
+	a->arcount = htons(msg->arcount);
+	a->ptrlen = msg->pointerslen;
+	bcopy(msg->pointers, &a->ptrlen + 1, sizeof(u_short) * msg->pointerslen);
+	bcopy(msg->buf, &a->ptrlen + msg->pointerslen + 1, msg->bufptr - msg->buf);
+
+	return a;
+};

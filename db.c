@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.1 2002/01/08 13:29:20 alexis Exp $
+ * $Id: db.c,v 1.2 2002/01/08 15:35:34 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -107,11 +107,15 @@ db_newanswer(type)
 }
 
 /*
- * Adds an rdset to an answer.
+ * Adds an rsset and associated glue to an answer.
+ *
+ * Returns number of resource records added.
  *
  */
-void
+u_short
 db_addrrset(answer, rrset)
+	struct answer *answer;
+	struct rrset *rrset;
 {
 }
 
