@@ -57,7 +57,7 @@ int yyerror(const char *message);
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
 
 /* other tokens */
-%token         DIR_TTL DIR_ORIG NL ORIGIN SP RD_ORIGIN
+%token         DIR_TTL DIR_ORIG NL ORIGIN SP
 %token <data>  STR PREV TTL BITLAB
 %token <klass> T_IN T_CH T_HS
 
@@ -135,11 +135,7 @@ dir_ttl:    SP STR trail
 
 dir_orig:   SP abs_dname trail
     {
-        /* [xxx] does $origin not effect previous */
-	/* [XXX] label length checks should be in dname functions */
-
-	/* Copy from RR region to zone region.  */
-        parser->origin = $2;
+	    parser->origin = $2;
     }
     | SP rel_dname trail
     {
@@ -147,24 +143,16 @@ dir_orig:   SP abs_dname trail
     }
     ;
 
-rr:     ORIGIN sp rrrest
+rr:     dname sp rrrest
     {
-        parser->current_rr.owner = parser->origin;
-        parser->prev_dname = parser->origin;
+	    parser->current_rr.owner = $1;
+	    parser->prev_dname = parser->current_rr.owner;
     }
     |   PREV rrrest
     {
-        /* a tab, use previously defined dname */
-        parser->current_rr.owner = parser->prev_dname;
+	    /* Whitespace, use previously defined dname.  */
+	    parser->current_rr.owner = parser->prev_dname;
         
-    }
-    |   dname sp rrrest
-    {
-	    /* Copy from RR region to zone region.  */
-	    parser->current_rr.owner = $1;
-
-	    /* set this as previous */
-	    parser->prev_dname = parser->current_rr.owner;
     }
     ;
 
@@ -237,7 +225,7 @@ abs_dname:  '.'
     {
 	    $$ = parser->db->domains->root;
     }
-    | 	    RD_ORIGIN
+    | 	    ORIGIN
     {
 	    $$ = parser->origin;
     }

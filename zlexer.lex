@@ -294,7 +294,7 @@ static int
 parsestr(char *yytext, enum rr_spot *in_rr)
 {
 	int token;
-	const char *t; char *ztext;
+	const char *t;
 
 	switch(*in_rr) {
 	case after_dname:
@@ -331,27 +331,21 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 		/* Fall through, default first, order matters.  */
 	default:
 		/*
-		 * Check to see if someone used @ in the rdata if so
-		 * return the origin str, and RD_ORIGIN token.
+		 * Check to see if someone used @ in the rdata.  If so
+		 * return the ORIGIN token.
 		 */
-		if (strcasecmp(yytext, "@") == 0) {
-			ztext = (char *)dname_to_string(
-				domain_dname(parser->origin), NULL);
-			yylval.data.len = strlen(ztext);
-			yylval.data.str = ztext;
+		if (strcmp(yytext, "@") == 0) {
 			LEXOUT(("RDATA_ORI "));
-			return RD_ORIGIN;
+			return ORIGIN;
 		}
-		ztext = region_strdup(parser->rr_region, yytext);
-		yylval.data.len = zoctet(ztext);
-		yylval.data.str = ztext;
+		yylval.data.str = region_strdup(parser->rr_region, yytext);
+		yylval.data.len = zoctet(yylval.data.str);
 		LEXOUT(("STR "));
 		return STR;
 	case outside:
 		/* should match ^ */
-		ztext = region_strdup(parser->rr_region, yytext);
-		yylval.data.len = zoctet(ztext);
-		yylval.data.str = ztext;
+		yylval.data.str = region_strdup(parser->rr_region, yytext);
+		yylval.data.len = zoctet(yylval.data.str);
 		*in_rr = expecting_dname;
 		LEXOUT(("STR "));
 		return STR;
