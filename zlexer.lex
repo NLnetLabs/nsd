@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.8 2003/11/04 14:15:32 miekg Exp $
+ * $Id: zlexer.lex,v 1.9 2003/11/04 14:21:56 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -85,8 +85,6 @@ Q       \"
 				while ( (int)*yytext == 32 ) 
 					yytext++;
 
-				
-				printf("TEST %s\n",yytext);
 				include_origin = rindex(yytext, 32); /* search for a space */
 				
 				if ( include_origin != NULL ) {
@@ -94,7 +92,6 @@ Q       \"
 					*include_origin = '\0';
 					include_origin++;
 				}
-				 printf("TEST [%s] - [%s]\n",yytext, include_origin);
 				
 
 				if ( include_stack_ptr >= MAXINCLUDES ) {
