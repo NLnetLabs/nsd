@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.3 2002/01/29 15:40:50 alexis Exp $
+ * $Id: zf.c,v 1.4 2002/01/31 13:30:00 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -226,6 +226,89 @@ classbyname(a)
 	for(class = zf_classes; class->class; class++)
 		if(strcasecmp(a, class->name) == 0) return class;
 	return  NULL;
+}
+
+/*
+ * Converts a string representation of a period of time into
+ * a long integer of seconds.
+ *
+ * Set the endptr to the first illegal character.
+ *
+ * Interface is the same as strtol(3)
+ *
+ * Returns LONG_MIN if underflow occurs, LONG_MAX if overflow occurs.
+ *
+ * XXX This functions does not check the range.
+ *
+ */
+long
+strtottl(nptr, endptr)
+	char *nptr;
+	char **endptr;
+{
+	int sign = 0;
+	long i = 0;
+	long seconds = 0;
+
+	for(*endptr = nptr; **endptr; (*endptr)++) {
+		switch(**endptr) {
+		case ' ':
+		case '\t':
+			break;
+		case '-':
+			if(sign == 0) {
+				sign = -1;
+			} else {
+				return (sign == -1) ? -seconds : seconds;
+			}
+			break;
+		case '+':
+			if(sign == 0) {
+				sign = 1;
+			} else {
+				return (sign == -1) ? -seconds : seconds;
+			}
+			break;
+		case 'm':
+		case 'M':
+			seconds += i * 60;
+			i = 0;
+			break;
+		case 'h':
+		case 'H':
+			seconds += i * 60 * 60;
+			i = 0;
+			break;
+		case 'd':
+		case 'D':
+			seconds += i * 60 * 60 * 24;
+			i = 0;
+			break;
+		case 'w':
+		case 'W':
+			seconds += i * 60 * 60 * 24 * 7;
+			i = 0;
+			break;
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			i *= 10;
+			i += (**endptr - '0');
+			break;
+		default:
+			return (sign == -1) ? -seconds : seconds;
+		}
+	}
+	seconds += i;
+	return (sign == -1) ? -seconds : seconds;
+
 }
 
 /*
@@ -621,7 +704,7 @@ zf_read(zf)
 					continue;
 				}
 
-				zf->i[zf->iptr].ttl = strtol(token, &t, 10);
+				zf->i[zf->iptr].ttl = strtottl(token, &t);
 
 				if(*t) {
 					zf_error(zf, "default ttl is not a number");
@@ -677,7 +760,7 @@ zf_read(zf)
 		for(type = NULL; token; token = zf_token(zf, NULL)) {
 			/* Is this a TTL? */
 			if(isdigit(*token)) {
-				zf->line.ttl = htonl(strtol(token, &t, 10));
+				zf->line.ttl = htonl(strtottl(token, &t));
 				if(*t) {
 					zf_error(zf, "ttl is not a number");
 					token = NULL;
@@ -743,7 +826,7 @@ zf_read(zf)
 				}
 				break;
 			case 'l':
-				zf->line.rdata[i].l = strtol(token, &t, 10);
+				zf->line.rdata[i].l = strtottl(token, &t);
 				if(*t != 0) {
 					zf_error(zf, "illegal long");
 					parse_error++;
@@ -866,7 +949,7 @@ main(argc, argv)
 			break;
 		}
 		if((zf->lines % 100000) == 0) {
-			fprintf(stderr, "read %lu lines...\n", zf->lines);
+			fprintf(stderr, "read %u lines...\n", zf->lines);
 		}
 		zf_print_entry(rr);
 		zf_free_rdata(rr);
