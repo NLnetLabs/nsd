@@ -1,6 +1,8 @@
-$Id: TODO,v 1.14 2002/01/29 15:27:23 alexis Exp $
+$Id: TODO,v 1.15 2002/01/31 17:37:45 alexis Exp $
 
 ZONE COMPILER
+- CHECK msg->buf and msg->bla boundaries. IT DOES DUMP CORE.
+
 - check memory usage, leaks and optimization
 - better detection of out of zone data
 - make empty pointers arrays for non-delegations
