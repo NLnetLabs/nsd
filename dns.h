@@ -158,11 +158,13 @@ typedef enum rdata_zoneformat rdata_zoneformat_type;
 
 struct rrtype_descriptor
 {
-	uint16_t type;		/* RR type */
-	uint8_t  minimum;	/* Minimum number of RDATAs.  */
-	uint8_t  maximum;	/* Maximum number of RDATAs.  */
-	uint8_t  wireformat[MAXRDATALEN]; /* rdata_wireformat_type */
-	uint8_t  zoneformat[MAXRDATALEN]; /* rdata_zoneformat_type  */
+	uint16_t    type;	/* RR type */
+	const char *name;	/* Textual name.  */
+	int         token;	/* Parser token.  */
+	uint8_t     minimum;	/* Minimum number of RDATAs.  */
+	uint8_t     maximum;	/* Maximum number of RDATAs.  */
+	uint8_t     wireformat[MAXRDATALEN]; /* rdata_wireformat_type */
+	uint8_t     zoneformat[MAXRDATALEN]; /* rdata_zoneformat_type  */
 };
 typedef struct rrtype_descriptor rrtype_descriptor_type;
 
@@ -174,11 +176,13 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
 extern rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH];
 
 static inline rrtype_descriptor_type *
-rrtype_descriptor(uint16_t type)
+rrtype_descriptor_by_type(uint16_t type)
 {
 	return (type < RRTYPE_DESCRIPTORS_LENGTH
 		? &rrtype_descriptors[type]
 		: &rrtype_descriptors[0]);
 }
+
+rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 
 #endif /* _DNS_H_ */

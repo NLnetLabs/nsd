@@ -62,62 +62,8 @@ static long int totalrrs = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
-/*
- *
- * Resource records types, classes and algorithms that we know.
- *
- */
-const lookup_table_type zclasses[] = {
-	{ CLASS_IN, "IN", T_IN },
-	{ 0, NULL, 0 }
-};
-
-const lookup_table_type ztypes[] = {
-	{ TYPE_A, "A", T_A },
-	{ TYPE_NS, "NS", T_NS },
-	{ TYPE_MD, "MD", T_MD },
-	{ TYPE_MF, "MF", T_MF },
-	{ TYPE_CNAME, "CNAME", T_CNAME },
-	{ TYPE_SOA, "SOA", T_SOA },
-	{ TYPE_MB, "MB", T_MB },
-	{ TYPE_MG, "MG", T_MG },
-	{ TYPE_MR, "MR", T_MR },
-	{ TYPE_NULL, "NULL", T_NULL },
-	{ TYPE_WKS, "WKS", T_WKS },
-	{ TYPE_PTR, "PTR", T_PTR },
-	{ TYPE_HINFO, "HINFO", T_HINFO },
-	{ TYPE_MINFO, "MINFO", T_MINFO },
-	{ TYPE_MX, "MX", T_MX },
-	{ TYPE_TXT, "TXT", T_TXT },
-        { TYPE_AAAA, "AAAA", T_AAAA },
-	{ TYPE_SRV, "SRV", T_SRV },
-	{ TYPE_LOC, "LOC", T_LOC },
-	{ TYPE_AFSDB, "AFSDB", T_AFSDB }, /* RFC 1183 */
-	{ TYPE_RP, "RP", T_RP },	  /* RFC 1183 */
-	{ TYPE_X25, "X25", T_X25 },	  /* RFC 1183 */
-	{ TYPE_ISDN, "ISDN", T_ISDN },	  /* RFC 1183 */
-	{ TYPE_RT, "RT", T_RT },	  /* RFC 1183 */
-	{ TYPE_NSAP, "NSAP", T_NSAP },	  /* RFC 1706 */
-	{ TYPE_PX, "PX", T_PX },	  /* RFC 2163 */
-	{ TYPE_SIG, "SIG", T_SIG },
-	{ TYPE_KEY, "KEY", T_KEY },
-	{ TYPE_NXT, "NXT", T_NXT },
-	{ TYPE_NAPTR, "NAPTR", T_NAPTR }, /* RFC 2915 */
-	{ TYPE_KX, "KX", T_KX },	  /* RFC 2230 */
-	{ TYPE_CERT, "CERT", T_CERT },	  /* RFC 2538 */
-	{ TYPE_DNAME, "DNAME", T_DNAME }, /* RFC 2672 */
-	{ TYPE_APL, "APL", T_APL },	  /* RFC 3123 */
-	{ TYPE_DS, "DS", T_DS },
-	{ TYPE_SSHFP, "SSHFP", T_SSHFP },
-	{ TYPE_RRSIG, "RRSIG", T_RRSIG },
-	{ TYPE_NSEC, "NSEC", T_NSEC },
-	{ TYPE_DNSKEY, "DNSKEY", T_DNSKEY },
-	{ TYPE_ANY, "ANY", 0 },
-	{ 0, NULL, 0 }
-};
-
 /* Taken from RFC 2538, section 2.1.  */
-const lookup_table_type certificate_types[] = {
+static const lookup_table_type certificate_types[] = {
 	{ 1, "PKIX", 0 },	/* X.509 as per PKIX */
 	{ 2, "SPKI", 0 },	/* SPKI cert */
         { 3, "PGP", 0 },	/* PGP cert */
@@ -126,7 +72,7 @@ const lookup_table_type certificate_types[] = {
 };
 
 /* Taken from RFC 2535, section 7.  */
-const lookup_table_type zalgs[] = {
+static const lookup_table_type zalgs[] = {
 	{ 1, "RSAMD5", 0 },
 	{ 2, "DS", 0 },
 	{ 3, "DSA", 0 },
@@ -494,16 +440,18 @@ zparser_conv_rrtype(region_type *region, const char *rr)
 	 */
 
 	/* [XXX] error handling */
-	uint16_t *r = NULL;
+	uint16_t type = lookup_type_by_name(rr);
+	uint16_t *r;
+
+	if (type == 0) {
+		error_prev_line("unrecognized type '%s'", rr);
+		return NULL;
+	}
 	
 	r = (uint16_t *) region_alloc(region,
 				      sizeof(uint16_t) + sizeof(uint16_t));
-
-	*(r+1)  = htons((uint16_t) 
-			lookup_by_name(rr, ztypes)->symbol
-			);
-            
-	*r = sizeof(uint16_t);
+	r[0] = sizeof(uint16_t);
+	r[1] = htons(type);
 	return r;
 }
 
@@ -1008,7 +956,7 @@ parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 	int i;
 	size_t length = end - data;
 	
-	rrtype_descriptor_type *descriptor = rrtype_descriptor(type);
+	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(type);
 
 	for (i = 0; i < descriptor->maximum; ++i) {
 		int is_domain = 0;
@@ -1160,8 +1108,8 @@ lookup_by_symbol(uint16_t symbol, const lookup_table_type *table)
 uint16_t
 lookup_type_by_name(const char *name)
 {
-	const lookup_table_type *entry = lookup_by_name(name, ztypes);
-	return entry ? entry->symbol : intbytypexx(name);
+	rrtype_descriptor_type *entry = rrtype_descriptor_by_name(name);
+	return entry ? entry->type : intbytypexx(name);
 }
 
 /*

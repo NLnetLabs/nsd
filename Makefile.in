@@ -236,7 +236,8 @@ dbcreate.o: dbcreate.c config.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h dns.h util.h
 dname.o: dname.c config.h dns.h dname.h heap.h rbtree.h \
   region-allocator.h namedb.h util.h
-dns.o: dns.c config.h dns.h
+dns.o: dns.c config.h dns.h dname.h heap.h rbtree.h region-allocator.h \
+  namedb.h zonec.h zparser.h
 namedb.o: namedb.c config.h dns.h dname.h heap.h rbtree.h \
   region-allocator.h namedb.h util.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h

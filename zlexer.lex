@@ -232,15 +232,9 @@ zrrtype (const char *word, uint16_t *type)
 {
 	uint16_t t = lookup_type_by_name(word);
 	if (t != 0) {
-		const lookup_table_type *entry
-			= lookup_by_symbol(t, ztypes);
+		rrtype_descriptor_type *entry = rrtype_descriptor_by_type(t);
 		*type = t;
-		if (entry) {
-			return entry->token;
-		} else {
-			LEXOUT(("TYPEx%d ", (int) t));
-			return T_UTYPE;
-		}
+		return entry->token;
 	}
 
 	return 0;

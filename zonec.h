@@ -98,10 +98,6 @@ struct lookup_table {
 	int token;		/* Lexical token ID.  */
 };
 
-extern const lookup_table_type ztypes[];
-extern const lookup_table_type zclasses[];
-extern const lookup_table_type zalgs[];
-
 void warning(const char *fmt, ...);
 void warning_prev_line(const char *fmt, ...);
 void error(const char *fmt, ...);
