@@ -245,18 +245,20 @@ Q       \"
 			    }
                             
                         }
-{Q}({ANY})({ANY})*{Q}   {
+{Q}({ANY})*{Q}   {
                             /* this matches quoted strings */
-                            ztext = region_strdup(rr_region, yytext);
-                            yylval.data.len = zoctet(ztext);
-                            yylval.data.str = ztext;
-
                             if ( in_rr == after_dname ) {
-                                i = zrrtype(ztext);
+                                i = zrrtype(yytext);
                                 if ( i ) {
                                     in_rr = reading_type; return i;
                                 }
                             }
+
+			    /* Strip leading and ending quotes.  */
+			    yytext[strlen(yytext) - 1] = '\0';
+                            ztext = region_strdup(rr_region, yytext + 1);
+                            yylval.data.len = zoctet(ztext);
+                            yylval.data.str = ztext;
 			    LEXOUT(("STR "));
                             return STR;
                         }
