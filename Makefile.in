@@ -237,34 +237,34 @@ configure:	configure.ac
 
 # Dependencies
 answer.o: answer.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h query.h nsd.h util.h
+  region-allocator.h dns.h query.h nsd.h util.h
 axfr.o: axfr.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h query.h nsd.h util.h axfr.h
+  region-allocator.h dns.h query.h nsd.h util.h axfr.h
 dbaccess.o: dbaccess.c config.h dns.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h util.h
 dbcreate.o: dbcreate.c config.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h util.h
+  region-allocator.h dns.h util.h
 dname.o: dname.c config.h dns.h dname.h heap.h rbtree.h \
   region-allocator.h namedb.h util.h
 namedb.o: namedb.c config.h dns.h dname.h heap.h rbtree.h \
   region-allocator.h namedb.h util.h
 nsd.o: nsd.c config.h dname.h heap.h rbtree.h region-allocator.h dns.h \
   namedb.h nsd.h plugins.h nsd-plugin.h query.h util.h
-nsd-notify.o: nsd-notify.c config.h dns.h namedb.h dname.h heap.h \
-  rbtree.h region-allocator.h nsd.h query.h util.h
+nsd-notify.o: nsd-notify.c config.h dns.h dname.h heap.h rbtree.h \
+  region-allocator.h nsd.h query.h namedb.h util.h
 plugins.o: plugins.c config.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h plugins.h nsd-plugin.h nsd.h query.h util.h
+  region-allocator.h dns.h plugins.h nsd-plugin.h nsd.h query.h util.h
 query.o: query.c config.h answer.h namedb.h dname.h heap.h rbtree.h \
-  region-allocator.h query.h nsd.h util.h axfr.h dns.h plugins.h \
+  region-allocator.h dns.h query.h nsd.h util.h axfr.h plugins.h \
   nsd-plugin.h
 rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h region-allocator.h query.h \
-  dname.h heap.h rbtree.h namedb.h dns.h plugins.h nsd-plugin.h util.h
+  dname.h heap.h rbtree.h namedb.h dns.h util.h plugins.h nsd-plugin.h
 util.o: util.c config.h util.h
 zlexer.o: zlexer.c config.h zonec.h dns.h namedb.h dname.h heap.h \
   rbtree.h region-allocator.h zparser.h
 zonec.o: zonec.c config.h zonec.h dns.h namedb.h dname.h heap.h rbtree.h \
   region-allocator.h util.h
 zparser.o: zparser.c config.h dname.h heap.h rbtree.h region-allocator.h \
-  namedb.h zonec.h dns.h
+  namedb.h dns.h zonec.h
