@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.31 2003/04/03 14:58:11 alexis Exp $
+# $Id: Makefile.in,v 1.31.2.1 2003/04/29 11:32:13 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -104,8 +104,8 @@ install: all
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
 	$(INSTALL_DATA) zonec.8 $(mandir)/man8
 	$(INSTALL_DATA) nsd-notify.8 $(mandir)/man8
-	$(INSTALL_DATA) nsdc.conf.sample $(configfile).sample
-	$(INSTALL_DATA) nsd.zones.sample $(zonesfile).sample
+	[ -f $(configfile) ] || $(INSTALL_DATA) nsdc.conf.sample $(configfile)
+	[ -f $(zonesfile) ] || $(INSTALL_DATA) nsd.zones.sample $(zonesfile)
 
 uninstall:
 	@echo
@@ -121,8 +121,8 @@ nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o $(LIBOBJS) $(LIBS)
 
-nsd-notify:	nsd-notify.c dname.o
-	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o $(LIBS)
+nsd-notify:	nsd-notify.c dname.o 
+	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o $(LIBS) $(LIBOBJS)
 
 clean:
 	rm -f zonec nsd zparser hash rbtree nsd-notify nsd-axfr *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
