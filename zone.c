@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.9 2002/01/11 13:54:34 alexis Exp $
+ * $Id: zone.c,v 1.10 2002/01/17 21:56:03 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -255,8 +255,8 @@ zone_dump(z, db)
 {
 	struct domain *d;
 	struct message msg;
-	struct rrset *rrset, *additional;
-	u_char *dname, *nameptr;
+	struct rrset *rrset, *cnamerrset, *additional;
+	u_char *dname, *cname, *nameptr;
 	int star, i, namedepth;
 
 	/* AUTHORITY CUTS */
@@ -339,11 +339,35 @@ zone_dump(z, db)
 		/* This is not a wildcard */
 		star = 0;
 
-		while(rrset) {
+ 		/* Is this a CNAME */
+ 		if(rrset->type == TYPE_CNAME) {
+ 			assert(rrset->next == NULL);
+ 			cnamerrset = rrset;
+ 			cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
+ 			rrset = HEAP_SEARCH(z->data, cname);
+ 		} else {
+ 			cnamerrset = NULL;
+ 			cname = NULL;
+ 		}
+
+		/* XXX This is a bit confusing, needs renaming:
+		 *
+		 * cname - name of the target set
+		 * rrset - target rr set
+		 * cnamerrset - cname own rrset 
+		 * dname - cname's rrset owner name
+		 */
+ 		while(rrset || cnamerrset) {
 			/* Initialize message */
 			bzero(&msg, sizeof(struct message));
 			msg.bufptr = msg.buf;
 
+ 			/* If we're done with the target sets, add CNAME itself */
+ 			if(rrset == NULL) {
+ 				rrset = cnamerrset;
+ 				cnamerrset = NULL;
+ 			}
+ 
 			/* Put the dname into compression array */
 			for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++) {
 				/* Do we have a wildcard? */
@@ -359,8 +383,17 @@ zone_dump(z, db)
 				}
 			}
 
-			/* Answer section */
-			msg.ancount = zone_addrrset(&msg, dname, rrset);
+			/* Are we doing CNAME? */
+			if(cnamerrset) {
+				/* Add CNAME itself */
+				msg.ancount += zone_addrrset(&msg, dname, cnamerrset);
+
+				/* Add answer */
+				msg.ancount += zone_addrrset(&msg, cname, rrset);
+			} else {
+				/* Answer section */
+				msg.ancount += zone_addrrset(&msg, dname, rrset);
+			}
 
 			/* Authority section */
 			msg.nscount = zone_addrrset(&msg, z->dname, z->ns);
