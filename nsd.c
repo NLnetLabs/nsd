@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.9 2002/12/17 14:14:38 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.10 2002/12/17 14:42:06 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -151,6 +151,15 @@ sig_handler(sig)
 	int sig;
 {
 	int status, i;
+
+	/* Reinstall the signals... */
+	signal(SIGTERM, &sig_handler);
+	signal(SIGHUP, &sig_handler);
+	signal(SIGCHLD, &sig_handler);
+	signal(SIGINT, &sig_handler);
+	signal(SIGILL, &sig_handler);
+	signal(SIGALRM, &sig_handler);
+
 
 	/* Are we a tcp child? */
 	if(nsd.pid[0] == 0) {
