@@ -1,6 +1,6 @@
 %{
 /*
- * zlparser.lex - lexical analyzer for (DNS) zone files
+ * zlexer.lex - lexical analyzer for (DNS) zone files
  * 
  * Copyright (c) 2001-2004, NLnet Labs. All rights reserved
  *
@@ -25,9 +25,9 @@
 
 static int parsestr(char * yytext, enum rr_spot *in_rr);
 
-YY_BUFFER_STATE include_stack[MAXINCLUDES];
-zparser_type zparser_stack[MAXINCLUDES];
-int include_stack_ptr = 0;
+static YY_BUFFER_STATE include_stack[MAXINCLUDES];
+static zparser_type zparser_stack[MAXINCLUDES];
+static int include_stack_ptr = 0;
 
 %}
 
@@ -89,9 +89,9 @@ Q       \"
 				 * important values
 				 */
 				zparser_stack[include_stack_ptr].filename = 
-					current_parser->filename;
+					parser->filename;
 				zparser_stack[include_stack_ptr].line	   = 
-					current_parser->line;
+					parser->line;
 
 				/* put the given origin on the stack
 				 * if no origin was present push the current
@@ -101,20 +101,20 @@ Q       \"
 				if ( include_origin != NULL ) {
 					zparser_stack[include_stack_ptr].origin = 
 						domain_table_insert(
-						current_parser->db->domains,
-							dname_parse(zone_region,
-							include_origin,
-							NULL));
+							parser->db->domains,
+							dname_parse(parser->region,
+								    include_origin,
+								    NULL));
 					/* start using this origin */
-					current_parser->origin = 
+					parser->origin = 
 						domain_table_insert(
-						current_parser->db->domains,
-							dname_parse(zone_region,
-							include_origin,
-							NULL));
+							parser->db->domains,
+							dname_parse(parser->region,
+								    include_origin,
+								    NULL));
 				} else {
 					zparser_stack[include_stack_ptr].origin = 
-						current_parser->origin;
+						parser->origin;
 				}
 
 			        include_stack[include_stack_ptr++] = 
@@ -127,8 +127,8 @@ Q       \"
 				}
 
 				/* reset for the current file */
-				current_parser->filename = region_strdup(zone_region, yytext);
-				current_parser->line = 1;
+				parser->filename = region_strdup(parser->region, yytext);
+				parser->line = 1;
         			yy_switch_to_buffer( yy_create_buffer( yyin, YY_BUF_SIZE ) );
 
 			        BEGIN(INITIAL);
@@ -140,12 +140,12 @@ Q       \"
 					--include_stack_ptr;
 					
 					/* pop (once you pop, you can not stop) */
-					current_parser->filename =
+					parser->filename =
 						zparser_stack[include_stack_ptr].filename;
-					current_parser->line = 
+					parser->line = 
 						zparser_stack[include_stack_ptr].line;
 					/* pop the origin */
-					current_parser->origin =
+					parser->origin =
 						zparser_stack[include_stack_ptr].origin;
 					
             				yy_delete_buffer( YY_CURRENT_BUFFER );
@@ -168,7 +168,7 @@ Q       \"
                             }
                         }
 {NEWLINE}               {
-                            current_parser->line++;
+                            parser->line++;
                             if ( paren_open == 0 ) { 
                                 in_rr = outside;
 				LEXOUT(("NL \n"));
@@ -353,14 +353,14 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 		}
 		/* fall through, default first, order matters */
 	default:
-		ztext = region_strdup(rr_region, yytext);
+		ztext = region_strdup(parser->rr_region, yytext);
 		yylval.data.len = zoctet(ztext);
 		yylval.data.str = ztext;
 		LEXOUT(("STR "));
 		return STR;
 	case outside:
 		/* should match ^ */
-		ztext = region_strdup(rr_region, yytext);
+		ztext = region_strdup(parser->rr_region, yytext);
 		yylval.data.len = zoctet(ztext);
 		yylval.data.str = ztext;
 		*in_rr = expecting_dname;

@@ -9,32 +9,28 @@
 
 #include <config.h>
 	
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-
+	
 #include "dname.h"
 #include "namedb.h"
 #include "zonec.h"
 
 /* these need to be global, otherwise they cannot be used inside yacc */
-zparser_type *current_parser;
-rr_type *current_rr;
+zparser_type *parser;
 
 #ifdef __cplusplus
 extern "C"
 #endif /* __cplusplus */
 int yywrap(void);
 
-rrdata_type *temporary_rrdata = NULL;
-
 /* this hold the nxt bits */
-uint8_t nxtbits[16] = { '\0','\0','\0','\0',
-	 		'\0','\0','\0','\0',
-			'\0','\0','\0','\0',
-			'\0','\0','\0','\0' };
+static uint8_t nxtbits[16];
+
 /* 256 windows of 256 bits (32 bytes) */
 /* still need to reset the bastard somewhere */
-uint8_t nsecbits[256][32];
+static uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
 %}
 %union {
@@ -82,27 +78,29 @@ line:   NL
     |   DIR_ORIG dir_orig
     |   rr
     {   /* rr should be fully parsed */
-	    if (!error_occurred) {
-		    if (!current_parser->current_zone && current_rr->type != TYPE_SOA) {
+	    if (!parser->error_occurred) {
+		    if (!parser->current_zone
+			&& parser->current_rr.type != TYPE_SOA)
+		    {
 			    error("RR before SOA skipped");
 		    } else {
-			    current_rr->zone = current_parser->current_zone;
-			    current_rr->rrdata
+			    parser->current_rr.zone = parser->current_zone;
+			    parser->current_rr.rrdata
 				    = (rrdata_type *) region_alloc_init(
-					    zone_region,
-					    current_rr->rrdata,
-					    rrdata_size(current_parser->_rc));
+					    parser->region,
+					    parser->current_rr.rrdata,
+					    rrdata_size(parser->_rc));
 			    
-			    process_rr(current_parser, current_rr);
+			    process_rr();
 		    }
 	    }
 
-	    region_free_all(rr_region);
+	    region_free_all(parser->rr_region);
 
-	    current_rr->type = 0;
-	    current_rr->rrdata = temporary_rrdata;
-	    current_parser->_rc = 0;
-	    error_occurred = 0;
+	    parser->current_rr.type = 0;
+	    parser->current_rr.rrdata = parser->temporary_rrdata;
+	    parser->_rc = 0;
+	    parser->error_occurred = 0;
     }
     | error NL
     {
@@ -126,8 +124,8 @@ dir_ttl:    SP STR trail
             return 1;
         } 
         /* perform TTL conversion */
-        if ( ( current_parser->ttl = zparser_ttl2int($2.str)) == -1 )
-            current_parser->ttl = DEFAULT_TTL;
+        if ( ( parser->ttl = zparser_ttl2int($2.str)) == -1 )
+            parser->ttl = DEFAULT_TTL;
     }
     ;
 
@@ -137,7 +135,7 @@ dir_orig:   SP abs_dname trail
 	/* [XXX] label length checks should be in dname functions */
 
 	/* Copy from RR region to zone region.  */
-        current_parser->origin = $2;
+        parser->origin = $2;
     }
     | SP rel_dname trail
     {
@@ -147,32 +145,31 @@ dir_orig:   SP abs_dname trail
 
 rr:     ORIGIN sp rrrest
     {
-        current_rr->domain = current_parser->origin;
-
-        current_parser->prev_dname = current_parser->origin;
+        parser->current_rr.domain = parser->origin;
+        parser->prev_dname = parser->origin;
     }
     |   PREV rrrest
     {
         /* a tab, use previously defined dname */
-        current_rr->domain = current_parser->prev_dname;
+        parser->current_rr.domain = parser->prev_dname;
         
     }
     |   dname sp rrrest
     {
 	    /* Copy from RR region to zone region.  */
-	    current_rr->domain = $1;
+	    parser->current_rr.domain = $1;
 
 	    /* set this as previous */
-	    current_parser->prev_dname = current_rr->domain;
+	    parser->prev_dname = parser->current_rr.domain;
     }
     ;
 
 ttl:    TTL
     {
         /* set the ttl */
-        if ( (current_rr->rrdata->ttl = 
+        if ( (parser->current_rr.rrdata->ttl = 
 		zparser_ttl2int($1.str) ) == -1) {
-	            current_rr->rrdata->ttl = current_parser->ttl;
+	            parser->current_rr.rrdata->ttl = parser->ttl;
 		    return 0;
 	}
     }
@@ -181,14 +178,14 @@ ttl:    TTL
 in:     T_IN
     {
         /* set the class  (class unknown handled in lexer) */
-        current_rr->klass =  current_parser->klass;
+        parser->current_rr.klass =  parser->klass;
     }
     ;
 
 rrrest: classttl rtype 
     {
-        zadd_rdata_finalize(current_parser);
-	current_rr->type = $2;
+        zadd_rdata_finalize(parser);
+	parser->current_rr.type = $2;
     }
     ;
 
@@ -199,16 +196,16 @@ class:  in
 
 classttl:   /* empty - fill in the default, def. ttl and IN class */
     {
-        current_rr->rrdata->ttl = current_parser->ttl;
-        current_rr->klass = current_parser->klass;
+        parser->current_rr.rrdata->ttl = parser->ttl;
+        parser->current_rr.klass = parser->klass;
     }
     |   class sp         /* no ttl */
     {
-        current_rr->rrdata->ttl = current_parser->ttl;
+        parser->current_rr.rrdata->ttl = parser->ttl;
     }
     |	ttl sp		/* no class */
     {   
-        current_rr->klass = current_parser->klass;
+        parser->current_rr.klass = parser->klass;
     }
     |   ttl sp class sp  /* the lot */
     |   class sp ttl sp  /* the lot - reversed */
@@ -219,25 +216,25 @@ dname:      abs_dname
     	{
 		if ($1 == error_dname) {
 			$$ = error_domain;
-		} else if ($1->name_size + domain_dname(current_parser->origin)->name_size - 1 > MAXDOMAINLEN) {
+		} else if ($1->name_size + domain_dname(parser->origin)->name_size - 1 > MAXDOMAINLEN) {
 			error("domain name exceeds %d character limit", MAXDOMAINLEN);
 			$$ = error_domain;
 		} else {
 			$$ = domain_table_insert(
-				current_parser->db->domains, 
-				cat_dname(rr_region, $1, domain_dname(current_parser->origin)));
+				parser->db->domains, 
+				cat_dname(parser->rr_region, $1, domain_dname(parser->origin)));
 		}
     	}
     	;
 
 abs_dname:  '.'
     {
-	    $$ = current_parser->db->domains->root;
+	    $$ = parser->db->domains->root;
     }
     |       rel_dname '.'
     { 
 	    if ($1 != error_dname) {
-		    $$ = domain_table_insert(current_parser->db->domains, $1);
+		    $$ = domain_table_insert(parser->db->domains, $1);
 	    } else {
 		    $$ = error_domain;
 	    }
@@ -250,7 +247,7 @@ label: STR
 		    error("label exceeds %d character limit", MAXLABELLEN);
 		    $$ = error_dname;
 	    } else {
-		    $$ = create_dname(rr_region, (uint8_t *) $1.str, $1.len);
+		    $$ = create_dname(parser->rr_region, (uint8_t *) $1.str, $1.len);
 	    }
     }
     ;
@@ -264,18 +261,18 @@ rel_dname:  label
 		    error("domain name exceeds %d character limit", MAXDOMAINLEN);
 		    $$ = error_dname;
 	    } else {
-		    $$ = cat_dname(rr_region, $1, $3);
+		    $$ = cat_dname(parser->rr_region, $1, $3);
 	    }
     }
     ;
 
 str_seq:	STR
     	{
-        	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $1.str));
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str));
     	}
     	|   	str_seq sp STR
     	{
-        	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $3.str));
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str));
     	}	
     	;
 
@@ -284,12 +281,12 @@ concatenated_str_seq: STR
 	| '.'
 	{
 		$$.len = 1;
-		$$.str = region_strdup(rr_region, ".");
+		$$.str = region_strdup(parser->rr_region, ".");
 	}
 	| concatenated_str_seq sp STR
 	{
 		$$.len = $1.len + $3.len + 1;
-		$$.str = (char *) region_alloc(rr_region, $$.len + 1);
+		$$.str = (char *) region_alloc(parser->rr_region, $$.len + 1);
 		memcpy($$.str, $1.str, $1.len);
 		memcpy($$.str + $1.len, " ", 1);
 		memcpy($$.str + $1.len + 1, $3.str, $3.len);
@@ -298,7 +295,7 @@ concatenated_str_seq: STR
 	| concatenated_str_seq '.' STR
 	{
 		$$.len = $1.len + $3.len + 1;
-		$$.str = (char *) region_alloc(rr_region, $$.len + 1);
+		$$.str = (char *) region_alloc(parser->rr_region, $$.len + 1);
 		memcpy($$.str, $1.str, $1.len);
 		memcpy($$.str + $1.len, ".", 1);
 		memcpy($$.str + $1.len + 1, $3.str, $3.len);
@@ -356,7 +353,7 @@ nsec_seq:	STR
 str_sp_seq:	STR
 	|	str_sp_seq sp STR
 	{
-		char *result = (char *) region_alloc(rr_region,
+		char *result = (char *) region_alloc(parser->rr_region,
 						     $1.len + $3.len + 1);
 		memcpy(result, $1.str, $1.len);
 		memcpy(result + $1.len, $3.str, $3.len);
@@ -373,7 +370,7 @@ str_sp_seq:	STR
 str_dot_seq:	STR
 	|	str_dot_seq '.' STR
         {
-		char *result = (char *) region_alloc(rr_region,
+		char *result = (char *) region_alloc(parser->rr_region,
 						     $1.len + $3.len + 1);
 		memcpy(result, $1.str, $1.len);
 		memcpy(result + $1.len, $3.str, $3.len);
@@ -388,7 +385,7 @@ str_dot_seq:	STR
 dotted_str:	STR
 	|	dotted_str '.' STR
         {
-		char *result = (char *) region_alloc(rr_region,
+		char *result = (char *) region_alloc(parser->rr_region,
 						     $1.len + $3.len + 2);
 		memcpy(result, $1.str, $1.len);
 		result[$1.len] = '.';
@@ -496,25 +493,25 @@ rtype:
 rdata_minfo:   dname sp dname trail
     {
         /* convert a single dname record */
-        zadd_rdata_domain(current_parser, $1);
-        zadd_rdata_domain(current_parser, $3);
+        zadd_rdata_domain($1);
+        zadd_rdata_domain($3);
     }
     ;
 
 rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
     {
         /* convert the soa data */
-        zadd_rdata_domain( current_parser, $1);                                     /* prim. ns */
-        zadd_rdata_domain( current_parser, $3);                                     /* email */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $5.str) ); /* serial */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $7.str) ); /* refresh */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $9.str) ); /* retry */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $11.str) ); /* expire */
-        zadd_rdata_wireformat( current_parser, zparser_conv_rdata_period(zone_region, $13.str) ); /* minimum */
+        zadd_rdata_domain($1);	/* prim. ns */
+        zadd_rdata_domain($3);	/* email */
+        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $5.str)); /* serial */
+        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $7.str)); /* refresh */
+        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $9.str)); /* retry */
+        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $11.str)); /* expire */
+        zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $13.str)); /* minimum */
 
         /* [XXX] also store the minium in case of no TTL? */
-        if ( (current_parser->minimum = zparser_ttl2int($11.str) ) == -1 )
-            current_parser->minimum = DEFAULT_TTL;
+        if ( (parser->minimum = zparser_ttl2int($11.str) ) == -1 )
+            parser->minimum = DEFAULT_TTL;
     }
 	|   error NL
 	{ error_prev_line("Syntax error in SOA record"); }
@@ -523,7 +520,7 @@ rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
 rdata_compress_domain_name:   dname trail
     {
         /* convert a single dname record */
-        zadd_rdata_domain(current_parser, $1);
+        zadd_rdata_domain($1);
     }
 	|   error NL
 	{ error_prev_line("Syntax error in RDATA (domain name expected)"); }
@@ -531,7 +528,7 @@ rdata_compress_domain_name:   dname trail
 
 rdata_a:    dotted_str trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_a(zone_region, $1.str));
+		zadd_rdata_wireformat(zparser_conv_a(parser->region, $1.str));
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in A record"); }
@@ -544,8 +541,8 @@ rdata_txt: str_seq trail {}
 
 rdata_mx:   STR sp dname trail
     	{
-        	zadd_rdata_wireformat( current_parser, zparser_conv_short(zone_region, $1.str) );  /* priority */
-        	zadd_rdata_domain( current_parser, $3);  /* MX host */
+        	zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));  /* priority */
+        	zadd_rdata_domain($3);  /* MX host */
     	}
 	|   error NL
 	{ error_prev_line("Syntax error in MX record"); }
@@ -553,7 +550,7 @@ rdata_mx:   STR sp dname trail
 
 rdata_aaaa: STR trail
     	{
-        	zadd_rdata_wireformat( current_parser, zparser_conv_a6(zone_region, $1.str) );  /* IPv6 address */
+        	zadd_rdata_wireformat(zparser_conv_a6(parser->region, $1.str));  /* IPv6 address */
     	}
 	|   error NL
 	{ error_prev_line("Syntax error in AAAA record"); }
@@ -561,7 +558,7 @@ rdata_aaaa: STR trail
 
 rdata_loc: concatenated_str_seq trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_loc(zone_region, $1.str)); /* Location */
+		zadd_rdata_wireformat(zparser_conv_loc(parser->region, $1.str)); /* Location */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in LOC record"); }
@@ -569,8 +566,8 @@ rdata_loc: concatenated_str_seq trail
 
 rdata_hinfo:	STR sp STR trail
 	{
-        	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $1.str) ); /* CPU */
-        	zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $3.str) ); /* OS*/
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* CPU */
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str)); /* OS*/
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in HINFO record"); }
@@ -578,10 +575,10 @@ rdata_hinfo:	STR sp STR trail
 
 rdata_srv:	STR sp STR sp STR sp dname trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* prio */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* weight */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* port */
-		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $7)); /* target name */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* prio */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* weight */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $5.str)); /* port */
+		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $7)); /* target name */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in SRV record"); }
@@ -589,10 +586,10 @@ rdata_srv:	STR sp STR sp STR sp dname trail
 
 rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* keytag */
-		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* alg */
-		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $5.str)); /* type */
-		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $7.str)); /* hash */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
+		zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str)); /* hash */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in DS record"); }
@@ -600,10 +597,10 @@ rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
 
 rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* flags */
-		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* proto */
-		zadd_rdata_wireformat(current_parser, zparser_conv_algorithm(zone_region, $5.str)); /* alg */
-		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $7.str)); /* hash */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* flags */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* proto */
+		zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $5.str)); /* alg */
+		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $7.str)); /* hash */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in DNSKEY record"); }
@@ -611,9 +608,9 @@ rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
 
 rdata_nxt:	dname sp nxt_seq trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* nxt name */
-		zadd_rdata_wireformat(current_parser, zparser_conv_nxt(zone_region, nxtbits)); /* nxt bitlist */
-		memset(nxtbits, 0 , 16);
+		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $1)); /* nxt name */
+		zadd_rdata_wireformat(zparser_conv_nxt(parser->region, nxtbits)); /* nxt bitlist */
+		memset(nxtbits, 0, sizeof(nxtbits));
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in NXT record"); }
@@ -621,8 +618,8 @@ rdata_nxt:	dname sp nxt_seq trail
 
 rdata_nsec:	dname sp nsec_seq trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* nsec name */
-		zadd_rdata_wireformat(current_parser, zparser_conv_nsec(zone_region, nsecbits)); /* nsec bitlist */
+		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $1)); /* nsec name */
+		zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
 		memset(nsecbits, 0, sizeof(nsecbits));
 	}
 	|   error NL
@@ -632,15 +629,15 @@ rdata_nsec:	dname sp nsec_seq trail
 
 rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_rrtype(zone_region, $1.str)); /* rr covered */
-		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* alg */
-		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $5.str)); /* # labels */
-		zadd_rdata_wireformat(current_parser, zparser_conv_rdata_period(zone_region, $7.str)); /* # orig TTL */
-		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $9.str)); /* sig exp */
-		zadd_rdata_wireformat(current_parser, zparser_conv_time(zone_region, $11.str)); /* sig inc */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $13.str)); /* key id */
-		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $15)); /* signer name */
-		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $17.str)); /* sig data */
+		zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+		zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
+		zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $7.str)); /* # orig TTL */
+		zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
+		zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
+		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $15)); /* signer name */
+		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $17.str)); /* sig data */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in RRSIG record"); }
@@ -649,8 +646,8 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_se
 /* RFC 1183 */
 rdata_afsdb:   STR sp dname trail
        {
-               zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* subtype */
-               zadd_rdata_domain(current_parser, $3); /* domain name */
+               zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* subtype */
+               zadd_rdata_domain($3); /* domain name */
        }
 	|   error NL
 	{ error_prev_line("Syntax error in AFSDB record"); }
@@ -659,8 +656,8 @@ rdata_afsdb:   STR sp dname trail
 /* RFC 1183 */
 rdata_rp:	dname sp dname trail
 	{
-		zadd_rdata_domain(current_parser, $1); /* mbox d-name */
-		zadd_rdata_domain(current_parser, $3); /* txt d-name */
+		zadd_rdata_domain($1); /* mbox d-name */
+		zadd_rdata_domain($3); /* txt d-name */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in RP record"); }
@@ -669,7 +666,7 @@ rdata_rp:	dname sp dname trail
 /* RFC 1183 */
 rdata_x25:	STR trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $1.str)); /* X.25 address. */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* X.25 address. */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in X25 record"); }
@@ -678,12 +675,12 @@ rdata_x25:	STR trail
 /* RFC 1183 */
 rdata_isdn:	STR trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $1.str)); /* address */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* address */
 	}
 	| STR sp STR trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $1.str)); /* address */
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $3.str)); /* sub-address */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* address */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str)); /* sub-address */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in ISDN record"); }
@@ -692,8 +689,8 @@ rdata_isdn:	STR trail
 /* RFC 1183 */
 rdata_rt:	STR sp dname trail
 	{
-               zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* preference */
-               zadd_rdata_domain(current_parser, $3); /* intermediate host */
+               zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* preference */
+               zadd_rdata_domain($3); /* intermediate host */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in RT record"); }
@@ -706,7 +703,7 @@ rdata_nsap:	str_dot_seq trail
 		if (strncasecmp($1.str, "0x", 2) != 0) {
 			error_prev_line("");
 		} else {
-			zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $1.str + 2)); /* NSAP */
+			zadd_rdata_wireformat(zparser_conv_hex(parser->region, $1.str + 2)); /* NSAP */
 		}
 	}
 	|   error NL
@@ -716,9 +713,9 @@ rdata_nsap:	str_dot_seq trail
 /* RFC 2163 */
 rdata_px:	STR sp dname sp dname trail
 	{
-               zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* preference */
-	       zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $3)); /* MAP822 */
-	       zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $5)); /* MAPX400 */
+               zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* preference */
+	       zadd_rdata_wireformat(zparser_conv_domain(parser->region, $3)); /* MAP822 */
+	       zadd_rdata_wireformat(zparser_conv_domain(parser->region, $5)); /* MAPX400 */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in RT record"); }
@@ -727,12 +724,12 @@ rdata_px:	STR sp dname sp dname trail
 /* RFC 2915 */
 rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str));	/* order */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* preference */
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $5.str)); /* flags */
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $7.str)); /* service */
-		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $9.str)); /* regexp */
-		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $11)); /* target name */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str));	/* order */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* preference */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $5.str)); /* flags */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $7.str)); /* service */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $9.str)); /* regexp */
+		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $11)); /* target name */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in NAPTR record"); }
@@ -742,10 +739,10 @@ rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
 rdata_cert:	STR sp STR sp STR sp str_sp_seq trail
 	{
 		/* XXX: Handle memnonics */
-		zadd_rdata_wireformat(current_parser, zparser_conv_certificate_type(zone_region, $1.str));	/* type */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* key tag */
-		zadd_rdata_wireformat(current_parser, zparser_conv_algorithm(zone_region, $5.str)); /* algorithm */
-		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $7.str)); /* certificate or CRL */
+		zadd_rdata_wireformat(zparser_conv_certificate_type(parser->region, $1.str));	/* type */
+		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* key tag */
+		zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $5.str)); /* algorithm */
+		zadd_rdata_wireformat(zparser_conv_b64(parser->region, $7.str)); /* certificate or CRL */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in CERT record"); }
@@ -754,7 +751,7 @@ rdata_cert:	STR sp STR sp STR sp str_sp_seq trail
 /* RFC 2672 */
 rdata_dname:	dname trail
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1));
+		zadd_rdata_wireformat(zparser_conv_domain(parser->region, $1));
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in DNAME record"); }
@@ -768,19 +765,19 @@ rdata_apl: rdata_apl_seq trail
 
 rdata_apl_seq: dotted_str
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_apl_rdata(zone_region, $1.str));
+		zadd_rdata_wireformat(zparser_conv_apl_rdata(parser->region, $1.str));
 	}
 	| rdata_apl_seq sp dotted_str
 	{
-		zadd_rdata_wireformat(current_parser, zparser_conv_apl_rdata(zone_region, $3.str));
+		zadd_rdata_wireformat(zparser_conv_apl_rdata(parser->region, $3.str));
 	}
 	;
 
 rdata_sshfp:   STR sp STR sp str_sp_seq trail
        {
-               zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $1.str)); /* alg */
-               zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* fp type */
-               zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str)); /* hash */
+               zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* alg */
+               zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* fp type */
+               zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str)); /* hash */
        }
 	|   error NL
 	{ error_prev_line("Syntax error in SSHFP record"); }
@@ -789,11 +786,11 @@ rdata_sshfp:   STR sp STR sp str_sp_seq trail
 rdata_unknown:	URR sp STR sp str_sp_seq trail
 	{
 		/* $2 is the number of octects, currently ignored */
-		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str));
+		zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str));
 	}
 	| URR sp STR trail
 	{	
-		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, ""));
+		zadd_rdata_wireformat(zparser_conv_hex(parser->region, ""));
 		/* error_prev_line("\\# 0 not handled (yet)"); */
 	}
 	| URR error NL
@@ -809,4 +806,128 @@ int
 yywrap(void)
 {
     return 1;
+}
+
+/*
+ * Create the parser.
+ */
+zparser_type *
+zparser_create(region_type *region, region_type *rr_region, namedb_type *db)
+{
+	zparser_type *result;
+	
+	result = (zparser_type *) region_alloc(region, sizeof(zparser_type));
+	result->region = region;
+	result->rr_region = rr_region;
+	result->db = db;
+	
+	result->temporary_rrdata = (rrdata_type *) region_alloc(
+		result->region, rrdata_size(MAXRDATALEN));
+	
+	return result;
+}
+
+/*
+ * Initialize the parser for a new zone file.
+ */
+void
+zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
+	     const char *origin)
+{
+	memset(nxtbits, 0, sizeof(nxtbits));
+	memset(nsecbits, 0, sizeof(nsecbits));
+
+	parser->ttl = ttl;
+	parser->minimum = 0;
+	parser->klass = klass;
+	parser->current_zone = NULL;
+	parser->origin = domain_table_insert(
+		parser->db->domains,
+		dname_parse(parser->db->region, origin, NULL)); 
+	parser->prev_dname = parser->origin; 
+	parser->_rc = 0;
+	parser->errors = 0;
+	parser->line = 1;
+	parser->filename = filename;
+	parser->current_rr.rrdata = parser->temporary_rrdata;
+}
+
+int
+yyerror(const char *message ATTR_UNUSED)
+{
+	/* don't do anything with this */
+	return 0;
+}
+
+static void
+error_va_list(const char *fmt, va_list args)
+{
+	fprintf(stderr, " ERR: Line %u in %s: ", parser->line,
+		parser->filename);
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
+	++parser->errors;
+	parser->error_occurred = 1;
+}
+
+/* the line counting sux, to say the least 
+ * with this grose hack we try do give sane
+ * numbers back */
+void
+error_prev_line(const char *fmt, ...) 
+{
+	va_list args;
+	va_start(args, fmt);
+
+	--parser->line;
+	error_va_list(fmt, args);
+	++parser->line;
+
+	va_end(args);
+}
+
+void
+error(const char *fmt, ...)
+{
+	/* send an error message to stderr */
+	va_list args;
+	va_start(args, fmt);
+
+	error_va_list(fmt, args);
+
+	va_end(args);
+}
+
+static void
+warning_va_list(const char *fmt, va_list args)
+{
+	fprintf(stderr, "WARN: Line %u in %s: ", parser->line,
+		parser->filename);
+	vfprintf(stderr, fmt, args);
+	fprintf(stderr, "\n");
+}
+
+void
+warning_prev_line(const char *fmt, ...) 
+{
+	va_list args;
+	va_start(args, fmt);
+
+	--parser->line;
+	warning_va_list(fmt, args);
+	++parser->line;
+
+	va_end(args);
+}
+
+void 
+warning(const char *fmt, ... )
+{
+	va_list args;
+
+	va_start(args, fmt);
+	
+	warning_va_list(fmt, args);
+
+	va_end(args);
 }

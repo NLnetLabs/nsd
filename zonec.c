@@ -45,9 +45,6 @@ int b64_ntop(uint8_t const *src, size_t srclength,
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif /* !B64_NTOP */
 
-region_type *zone_region;
-region_type *rr_region;
-
 const dname_type *error_dname;
 domain_type *error_domain;
 
@@ -62,8 +59,6 @@ static int progress = 10000;
 /* Total errors counter */
 static long int totalerrors = 0;
 static long int totalrrs = 0;
-
-int error_occurred = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
@@ -962,26 +957,24 @@ zparser_ttl2int(char *ttlstr)
 }
 
 
-/* struct * RR current_rr is global, no 
- * need to pass it along */
 void
-zadd_rdata_wireformat(zparser_type *parser, uint16_t *data)
+zadd_rdata_wireformat(uint16_t *data)
 {
 	if (parser->_rc > MAXRDATALEN) {
 		error_prev_line("too many rdata elements");
 	} else {
-		current_rr->rrdata->rdata[parser->_rc].data = data;
+		parser->current_rr.rrdata->rdata[parser->_rc].data = data;
 		++parser->_rc;
 	}
 }
 
 void
-zadd_rdata_domain(zparser_type *parser, domain_type *domain)
+zadd_rdata_domain(domain_type *domain)
 {
 	if (parser->_rc > MAXRDATALEN) {
 		error_prev_line("too many rdata elements");
 	} else {
-		current_rr->rrdata->rdata[parser->_rc].data = domain;
+		parser->current_rr.rrdata->rdata[parser->_rc].data = domain;
 		++parser->_rc;
 	}
 }
@@ -990,7 +983,7 @@ void
 zadd_rdata_finalize(zparser_type *parser)
 {
 	/* Append terminating NULL.  */
-	current_rr->rrdata->rdata[parser->_rc].data = NULL;
+	parser->current_rr.rrdata->rdata[parser->_rc].data = NULL;
 }
 
 /* 
@@ -1194,20 +1187,6 @@ strtottl(char *nptr, char **endptr)
 }
 
 /*
- * Initializes the parser.
- */
-static zparser_type *
-zparser_init(namedb_type *db)
-{
-	zparser_type *result;
-	
-	result = (zparser_type *) region_alloc(zone_region,
-					       sizeof(zparser_type));
-	result->db = db;
-	return result;
-}
-
-/*
  *
  * Opens a zone file.
  *
@@ -1218,7 +1197,8 @@ zparser_init(namedb_type *db)
  *
  */
 static int
-zone_open(const char *filename, uint32_t ttl, uint16_t klass, const char *origin)
+zone_open(const char *filename, uint32_t ttl, uint16_t klass,
+	  const char *origin)
 {
 	/* Open the zone file... */
 	if ( strcmp(filename, "-" ) == 0 ) {
@@ -1234,24 +1214,7 @@ zone_open(const char *filename, uint32_t ttl, uint16_t klass, const char *origin
 	setprotoent(1);
 	setservent(1);
 
-	current_parser->ttl = ttl;
-	current_parser->minimum = 0;
-	current_parser->klass = klass;
-	current_parser->current_zone = NULL;
-	current_parser->origin = domain_table_insert(
-		current_parser->db->domains,
-		dname_parse(current_parser->db->region, origin, NULL)); 
-	current_parser->prev_dname =
-		current_parser->origin; 
-					
-					 
-	current_parser->_rc = 0;
-	current_parser->errors = 0;
-	current_parser->line = 1;
-	current_parser->filename = filename;
-
-	error_occurred = 0;
-	current_rr->rrdata = temporary_rrdata;
+	zparser_init(filename, ttl, klass, origin);
 
 	return 1;
 }
@@ -1292,9 +1255,10 @@ cleanup_rrset(void *r)
 }
 
 int
-process_rr(zparser_type *parser, rr_type *rr)
+process_rr()
 {
 	zone_type *zone = parser->current_zone;
+	rr_type *rr = &parser->current_rr;
 	rrset_type *rrset;
 	size_t max_rdlength;
 	int i;
@@ -1328,7 +1292,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 		zone = namedb_find_zone(parser->db, rr->domain);
 		if (!zone) {
 			/* new zone part */
-			zone = (zone_type *) region_alloc(zone_region,
+			zone = (zone_type *) region_alloc(parser->region,
 							  sizeof(zone_type));
 			zone->domain = rr->domain;
 			zone->soa_rrset = NULL;
@@ -1341,7 +1305,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 		}
 		
 		/* parser part */
-		current_parser->current_zone = zone;
+		parser->current_zone = zone;
 	}
 
 	if (!dname_is_subdomain(domain_dname(rr->domain), domain_dname(zone->domain))) {
@@ -1354,7 +1318,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 
 	/* Do we have this particular rrset? */
 	if (rrset == NULL) {
-		rrset = (rrset_type *) region_alloc(zone_region,
+		rrset = (rrset_type *) region_alloc(parser->region,
 						    sizeof(rrset_type));
 		rrset->zone = zone;
 		rrset->type = rr->type;
@@ -1363,7 +1327,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 		rrset->rrs = (rrdata_type **) xalloc(sizeof(rrdata_type **));
 		rrset->rrs[0] = rr->rrdata;
 			
-		region_add_cleanup(zone_region, cleanup_rrset, rrset);
+		region_add_cleanup(parser->region, cleanup_rrset, rrset);
 
 		/* Add it */
 		domain_add_rrset(rr->domain, rrset);
@@ -1432,7 +1396,7 @@ zone_read (const char *name, const char *zonefile)
 {
 	const dname_type *dname;
 
-	dname = dname_parse(zone_region, name, NULL);
+	dname = dname_parse(parser->region, name, NULL);
 	if (!dname) {
 		error_prev_line("Cannot parse zone name '%s'", name);
 		return;
@@ -1456,14 +1420,13 @@ zone_read (const char *name, const char *zonefile)
 
 	/* Parse and process all RRs.  */
 	/* reset the nsecbits to zero */
-	memset(nsecbits, 0, 8192);
 	yyparse();
 
 	fclose(yyin);
 	yyin = NULL;
 
 	fflush(stdout);
-	totalerrors += current_parser->errors;
+	totalerrors += parser->errors;
 }
 
 static void 
@@ -1484,86 +1447,6 @@ usage (void)
 	exit(1);
 }
 
-int
-yyerror(const char *message ATTR_UNUSED)
-{
-	/* don't do anything with this */
-	return 0;
-}
-
-static void
-error_va_list(const char *fmt, va_list args)
-{
-	fprintf(stderr," ERR: Line %u in %s: ", current_parser->line,
-			current_parser->filename);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
-	current_parser->errors++;
-	error_occurred = 1;
-}
-
-/* the line counting sux, to say the least 
- * with this grose hack we try do give sane
- * numbers back */
-void
-error_prev_line(const char *fmt, ...) 
-{
-	va_list args;
-	va_start(args, fmt);
-
-	current_parser->line--;
-	error_va_list(fmt, args);
-	current_parser->line++;
-
-	va_end(args);
-}
-
-void
-error(const char *fmt, ...)
-{
-	/* send an error message to stderr */
-	va_list args;
-	va_start(args, fmt);
-
-	error_va_list(fmt, args);
-
-	va_end(args);
-}
-
-static void
-warning_va_list(const char *fmt, va_list args)
-{
-	fprintf(stderr,"WARN: Line %u in %s: ", current_parser->line,
-			current_parser->filename);
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
-}
-
-void
-warning_prev_line(const char *fmt, ...) 
-{
-	va_list args;
-	va_start(args, fmt);
-
-	current_parser->line--;
-	warning_va_list(fmt, args);
-	current_parser->line++;
-
-	va_end(args);
-}
-
-void 
-warning(const char *fmt, ... )
-{
-	va_list args;
-
-	va_start(args, fmt);
-	
-	warning_va_list(fmt, args);
-
-	va_end(args);
-}
-
 extern char *optarg;
 extern int optind;
 
@@ -1578,11 +1461,13 @@ main (int argc, char **argv)
 	int c;
 	int line = 0;
 	FILE *f;
-
-	log_init("zonec");
-	zone_region = region_create(xalloc, free);
-	rr_region = region_create(xalloc, free);
+	region_type *global_region;
+	region_type *rr_region;
 	
+	log_init("zonec");
+
+	global_region = region_create(xalloc, free);
+	rr_region = region_create(xalloc, free);
 	totalerrors = 0;
 
 	/* Parse the command line... */
@@ -1630,16 +1515,12 @@ main (int argc, char **argv)
 		exit(1);
 	}
 
-	current_parser = zparser_init(db);
-	current_rr = (rr_type *) region_alloc(zone_region, sizeof(rr_type));
+	parser = zparser_create(global_region, rr_region, db);
 
 	/* Unique pointers used to mark errors.  */
-	error_dname = (dname_type *) region_alloc(zone_region, 0);
-	error_domain = (domain_type *) region_alloc(zone_region, 0);
+	error_dname = (dname_type *) region_alloc(global_region, 0);
+	error_domain = (domain_type *) region_alloc(global_region, 0);
 
-	temporary_rrdata = (rrdata_type *) region_alloc(
-		zone_region, rrdata_size(MAXRDATALEN));
-	
 	if (strcmp(*argv,"-") == 0) {
 		/* ah, somebody give - (stdin) as input file name */
 		if ( nsd_stdin_origin == NULL ) {
@@ -1650,8 +1531,8 @@ main (int argc, char **argv)
 		zone_read(nsd_stdin_origin, "-");
 
 #ifndef NDEBUG
-		fprintf(stderr, "zone_region: ");
-		region_dump_stats(zone_region, stderr);
+		fprintf(stderr, "global_region: ");
+		region_dump_stats(global_region, stderr);
 		fprintf(stderr, "\n");
 #endif /* NDEBUG */
 	} else {
@@ -1693,14 +1574,19 @@ main (int argc, char **argv)
 				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 			}
 
-			if (vflag > 0) fprintf(stderr,"zonec: reading zone \"%s\".\n",zonename);
+			if (vflag > 0)
+				fprintf(stderr, "zonec: reading zone \"%s\".\n",
+					zonename);
 			zone_read(zonename, zonefile);
-			if (vflag > 0) fprintf(stderr,"zonec: processed %ld RRs in \"%s\".\n", totalrrs, zonename);
+			if (vflag > 0)
+				fprintf(stderr,
+					"zonec: processed %ld RRs in \"%s\".\n",
+					totalrrs, zonename);
 			totalrrs = 0;
 
 #ifndef NDEBUG
-			fprintf(stderr, "zone_region: ");
-			region_dump_stats(zone_region, stderr);
+			fprintf(stderr, "global_region: ");
+			region_dump_stats(global_region, stderr);
 			fprintf(stderr, "\n");
 #endif /* NDEBUG */
 		}
@@ -1726,7 +1612,7 @@ main (int argc, char **argv)
 	
 	/* Disable this to save some time.  */
 #if 0
-	region_destroy(zone_region);
+	region_destroy(global_region);
 #endif
 	
 	return totalerrors ? 1 : 0;

@@ -52,26 +52,31 @@ struct rr {
 /* administration struct */
 typedef struct zparser zparser_type;
 struct zparser {
+	region_type *region;	/* Allocate for parser lifetime data.  */
+	region_type *rr_region;	/* Allocate RR lifetime data.  */
 	namedb_type *db;
+
+	const char *filename;
 	int32_t ttl;
 	int32_t minimum;
 	uint16_t klass;
 	zone_type *current_zone;
 	domain_type *origin;
 	domain_type *prev_dname;
-	unsigned int _rc;   /* current rdata cnt */
+
+	int error_occurred;
 	unsigned int errors;
 	unsigned int line;
-	const char *filename;
+
+	rr_type current_rr;
+	unsigned int _rc;   /* current rdata cnt */
+	rrdata_type *temporary_rrdata;
 };
 
-extern zparser_type *current_parser;
-extern rr_type *current_rr;
-extern rrdata_type *temporary_rrdata;
-extern int error_occurred;   /*  Error occurred while parsin an RR. */
+extern zparser_type *parser;
+
 /* used in zonec.lex */
 extern FILE *yyin;
-
 
 /*
  * Used to mark bad domains and domain names.  Do not dereference
@@ -99,24 +104,13 @@ extern const lookup_table_type ztypes[];
 extern const lookup_table_type zclasses[];
 extern const lookup_table_type zalgs[];
 
-/* zonec.c */
-/*
- * This region is deallocated after each zone is parsed and analyzed.
- */
-extern region_type *zone_region;
-
-/*
- * This region is deallocated after each RR is parsed and analyzed.
- */
-extern region_type *rr_region;
-
 void warning(const char *fmt, ...);
 void warning_prev_line(const char *fmt, ...);
 void error(const char *fmt, ...);
 void error_prev_line(const char *fmt, ...);
 int yyerror(const char *message); /* Dummy function.  */
 
-int process_rr(zparser_type *parser, rr_type *rr);
+int process_rr(void);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
 uint16_t *zparser_conv_rdata_proto(region_type *region, const char *protostr);
@@ -142,9 +136,9 @@ uint16_t *zparser_conv_apl_rdata(region_type *region, char *str);
 long strtottl(char *nptr, char **endptr);
 
 int32_t zparser_ttl2int(char *ttlstr);
-void zadd_rdata_wireformat(zparser_type *parser, uint16_t *data);
-void zadd_rdata_domain(zparser_type *parser, domain_type *domain);
-void zadd_rdata_finalize(zparser_type *parser);
+void zadd_rdata_wireformat(uint16_t *data);
+void zadd_rdata_domain(domain_type *domain);
+void zadd_rdata_finalize();
 void zprintrr(FILE *f, rr_type *rr);
 
 void set_bit(uint8_t bits[], uint16_t index);
@@ -153,10 +147,16 @@ void set_bitnsec(uint8_t  bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
 
 uint16_t intbytypexx(const char *str);
 
-const lookup_table_type *lookup_by_name (const char *a, const lookup_table_type tab[]);
-const lookup_table_type *lookup_by_symbol (uint16_t n, const lookup_table_type tab[]);
-const lookup_table_type *lookup_by_token (int token, const lookup_table_type tab[]);
+const lookup_table_type *lookup_by_name(const char *a, const lookup_table_type tab[]);
+const lookup_table_type *lookup_by_symbol(uint16_t n, const lookup_table_type tab[]);
+const lookup_table_type *lookup_by_token(int token, const lookup_table_type tab[]);
 
 uint16_t lookup_type_by_name(const char *name);
+
+/* zparser.y */
+zparser_type *zparser_create(region_type *region, region_type *rr_region,
+			     namedb_type *db);
+void zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
+		  const char *origin);
 
 #endif /* _ZONEC_H_ */
