@@ -355,8 +355,10 @@ process_query_section(struct query *query,
 		 * in question dname or the domain name is longer than
 		 * MAXDOMAINLEN ...
 		 */
-		if ((*src & 0xc0) || (src + *src > query->iobufptr) || 
-		    ((src - query->iobuf + *src) > MAXDOMAINLEN)) {
+		if ((*src & 0xc0) ||
+		    (src + *src + 1 > query->iobufptr) || 
+		    (src + *src + 1 > query_name + MAXDOMAINLEN))
+		{
 			query_formerr(query);
 			return NULL;
 		}
