@@ -5,3 +5,6 @@ all-test: ../../zonec2
 
 soa-test: ../../zonec2
 	../../zonec2 -p -v -f test.db soa.conf
+
+unknown-test: ../../zonec2
+	../../zonec2 -p -v -f test.db unknown.conf
