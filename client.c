@@ -133,31 +133,6 @@ warning(const char *format, ...)
 
 
 /*
- * Display usage information and exit.
- */
-static void
-usage (void)
-{
-	fprintf(stderr,
-		"Usage: nsd-xfer [OPTION]... -z zone -f file server...\n"
-		"NSD AXFR client.\n\nSupported options:\n"
-		"  -4           Only use IPv4 connections.\n"
-		"  -6           Only use IPv6 connections.\n"
-		"  -f file      Output zone file name.\n"
-		"  -p port      The port to connect to.\n"
-		"  -s serial    The current zone serial.\n"
-		"  -T tsiginfo  The TSIG key file name.  The file is removed "
-		"after reading the\n               key.\n"
-		"  -v           Verbose output.\n");
-	fprintf(stderr,
-		"  -z zone      Specify the name of the zone to transfer.\n"
-		"  server       The name or IP address of the master server.\n"
-		"\nReport bugs to <%s>.\n", PACKAGE_BUGREPORT);
-	exit(XFER_FAIL);
-}
-
-
-/*
  * Signal handler for timeouts (SIGALRM). This function is called when
  * the alarm() value that was set counts down to zero.  This indicates
  * that we haven't received a response from the server.
@@ -506,7 +481,7 @@ parse_response(FILE *out, axfr_state_type *state)
 	return 1;
 }
 
-static int
+int
 send_query(int s, query_type *q)
 {
 	uint16_t size = htons(buffer_remaining(q->packet));
@@ -521,7 +496,7 @@ send_query(int s, query_type *q)
 	return 1;
 }
 
-static int
+int
 receive_response_no_timeout(axfr_state_type *state)
 {
 	uint16_t size;
