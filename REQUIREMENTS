@@ -1,5 +1,5 @@
--*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.7 2002/04/02 10:00:16 alexis Exp $
+>-*- mode: Text; -*-
+$Id: REQUIREMENTS,v 1.8 2002/06/17 15:07:59 alexis Exp $
 
 
 NSD Requirements and Specifications
@@ -25,7 +25,7 @@ These requirements are in order of importance:
 
 2 Code diversity from other implementations
 
-   nsd is developed from scratch and does not share code or design
+   NSD is developed from scratch and does not share code or design
    with other implementations.
 
 3. Authoritative server only
@@ -34,7 +34,6 @@ These requirements are in order of importance:
    no facilities for caching or recursion.
 
 4. Open source
-
    The code will be open source after the first public release.
 
 5. Regression tested against bind8/9
@@ -50,7 +49,7 @@ These requirements are in order of importance:
 
    As many as UDP queries answered as possible per time interval.
    Aware of useless queries and limiting answers to conserve output
-   bandwith. This may superside strict RFC compliance.  Mitigation of
+   bandwidth. This may supersede strict RFC compliance.  Mitigation of
    DDoS attacks as far as feasible.
 
 7. Documentation
@@ -62,7 +61,7 @@ These requirements are in order of importance:
 
 8. Reviewed code
    
-   All code will be reviewed by at least two(?) persons other than the
+   All code will be reviewed by at least two persons other than the
    primary author before being included in a release version.
 
 9. Simplicity
@@ -71,18 +70,18 @@ These requirements are in order of importance:
    task: authoritative name serving. If in doubt a feature is more
    likely not to be included.
 
-   The code strives to be as simple and straightformward as possible,
+   The code strives to be as simple and straightforward as possible,
    even if it looks stupid ;-).
 
 10. Reasonable Portability
 
    Should be reasonably portable across hardware architectures and OS
    platforms.  Rough targets:
-   (Intel/SPARC/Alpha)(freebsd,linux,solaris)
+   (Intel/SPARC/Alpha)(FreeBSD,Linux,Solaris)
 
 11. maintenance for initial period
 
-   NLnet Labs and the RIPE NCC will support NSD for at least 12(?)
+   NLnet Labs and the RIPE NCC will support NSD for at least 12
    months after publication.
 
 
@@ -111,7 +110,7 @@ B.2. Explicit NON-Requirements
    round robin sequence of RRset members in consecutive answers,
 
 
-
+     
 
 C. Technical Specification.
 
@@ -120,57 +119,83 @@ C.0 Environment
 
    The server runs with the least possible permissions.
 
+   NSD will not implement special VM work-arounds to accommodate zones
+   larger than order 10 million RRs in 32-bit address space machines.
+   Operators requiring huge-zone support can use 64-bit machines.
+
+   
 C.1. Zone file format and RR records.
 
    Zone file format as specified in rfc1035 (5.1), including the $TTL
-   entry for default TTL as in rfc2308 (4) and the binary label format
-   as in rfc2673. (binary label not supported in beta).
+   entry for default TTL as in RFC2308 (4) and the binary label format
+   as in RFC2673. (binary label not supported in beta).
 
-   We implement all RRs currently assigned by IANA
+   We implement most RRs currently assigned by IANA
    (http://www.iana.org/assignments/dns-parameters) except for RRs
-   that are obsoleted by IANA, those MAY not be implemented.
+   that are obsoleted by IANA or assigned experimental, those MAY not
+   be implemented. The implementation of a number of RRs is deferred to
+   versions 1.0.1, 1.1.0 or later. See below and/or release notes.
 
-   Zone file MUST not contain errors. i.e. the loading process may fail
-   or nsd may produce unpredictable results when:
-     - RRs that are obsolete and not implemented are encountered.
-     - Syntax errors are found (rfc1035 5.2)
+   Zone file MUST not contain errors. i.e. the zonecompiler may fail
+   or produce unpredictable results when:
+      - RRs that are obsolete and not implemented are encountered.
+     - Syntax errors are found (RFC1035 5.2)
 	+ not all RRs are of the same zone
 	+ not exactly one SOA RR is present at the top of the zone.
 	+ delegations are present but required glue is not present.
 	+ Out of Zone, non-glue data is encountered.
-	+ not all RRs in a RRset have the same TTL (rfc2181 5.2)
+	+ not all RRs in a RRset have the same TTL (RFC2181 5.2)
 
 	+ if a DNAME exists at node N there may not be any other data
 	  at 'N' (except CNAME or DNAME) and there MUST not be any
-	  other data at subnodes of 'N' (rfc 2672 section 3).
+	  other data at subnodes of 'N' (RFC 2672 section 3).
 
           [DNAME not implemented in alpha]
 
      - The default minimum TTL is not specified by the $TTL directive
 
+   Zones that are parsed by the zonecompiler will be served by the nsd
+   daemon.
 
-   Only zonefiles of CLASS "IN" are supported.
 
-   The zonefile parser sets the TTL of those RRs that do not have
+
+    Only zone files of CLASS "IN" are supported.
+
+   The zone file parser sets the TTL of those RRs that do not have
    their TTL defined to the minimum TTL as defined by the $TTL
    directive unless the RR is part of a RRset and the TTL is set for
    one of the RRs in the RRset.
 
    Parsing of the names in zone files is case insensitive 
-   (Note: rfc1035 2.3.3 also see 1034  3.1
+   (Note: RFC1035 2.3.3 also see 1034  3.1
  
-     "The basic rule is that case can be discarded only when data is
-      used to define structure in a database, and two names are
-      identical when compared in a case insensitive manner."  
+    "The basic rule is that case can be discarded only when data is
+     used to define structure in a database, and two names are
+     identical when compared in a case insensitive manner."  
    )
 
-  The database relies on case; all names will be parsed to lower case.
-  Case of dnames in RDATA will be preserved as much as possible. Case
-  of dnames in RDATA may be lost during compression (compression has
-  preference over case preservation).
+   The database relies on case; all names will be parsed to lower
+   case.  Case of dnames in RDATA will be preserved except for dnames
+   for which dname compression in RDATA is allowed, those dname fields
+   are converted to lower case. (for that subset of RRs compression
+   has preference over case preservation).  Also see Appendix B for
+   dname compression in RDATA.
      
 
+   DNSSEC consideration (as of 1.1.0):
 
+   DNSSEC processing of data in a zone will only take place if that
+   zone is marked to be secure. A zone is marked secure if the SOA
+   record is signed. The zone data is not cryptographically checked at
+   the time the zone db is generated; on DNSSEC queries the server
+   will set the AD bit on answering data from the database.
+   
+   Implementation of wildcard processing  is problematic in DNSSEC and
+   behavior is not well specified. Full implementation NXT processing
+   under  the  assumption  of  existence  of  wildcards  is  therefore
+   deferred.
+
+   
 C.2. Server and connection management.
 
    The server listens on port 53. The server answers with the same IP
@@ -184,7 +209,6 @@ C.2. Server and connection management.
    The server is optimized to handle UDP queries. Large packet sizes
    are supported. The size is set by the OS
    (e.g. net.inet.udp.maxdgram on FreeBSD).
-
 
 
    TCP. 
@@ -215,25 +239,17 @@ C.2. Server and connection management.
 
 
 
-C.3 Incomming DNS Message processing.
+C.3 Incoming DNS Message processing.
 
-  NSD specific choises.
-  These issues are not addresed in the RFCs. Behaviour is defined below.
+  NSD specific choices.
+  These issues are not addressed in the RFCs. Behavior is defined below.
 
      + Non parsable messages are replied to with a FORMERR.
 
-     + Only the first message in a TCP message is handled. If there are
-       more messages in the stream a RCODE indicating an error is returned.
+     + Each UDP packet only carries one DNS Message. Any data behind
+       the DNS message is considered garbage and is ignored.
 
-       (Argument for this is in draft-dnsind-edns1: applicability of
-	some DNS message Header flags and of RCODE fields only to
-	single QNAME, QTYPE and QCLAS)
-
-
-     + Each UDP packet only carries one DNS Message. Packets with
-       trailing garbage are replied to with a FORMERR.
-
-     + Incomming DNS messages with the QR bit set to 1 (response) are
+     + Incoming DNS messages with the QR bit set to 1 (response) are
        discarded. (In spirit of rfc 1035 sect 7.3)
 
      + RD is copied into the response (rfc 1035 4.1.1) the RA bit is
@@ -260,40 +276,46 @@ C.3 Incomming DNS Message processing.
 
 
 
-     + QDCOUNT=0 results in RCODE=1  FORMERR.
-       QDCOUNT=1 results in further processing.
-       QDCOUNT>1 results in RCODE=4  NOTIMP.
+     + QDCOUNT=1 results in further processing.
+       QDCOUNT!=1 results in RCODE=1 FORMERR
  
      + Other sections should be empty otherwise FORMERR. 
 
      + QCLASS=IN results in further processing.
 
      + QCLASS=ANY results in further processing with the AA bit in the
-       response off (rfc 1034 6.2)
-
-       [OK***: BIND 8 does not return authority with an CLASS=ANY
-        query.  Why? ]
-
+       response off (rfc 1035 6.2)
     
-    + QCLASS!=IN && QCLASS!=ANY results in RCODE=REFUSED
+     + QLASS=CHAOS only leads to further processing if the queries are
+       for the names ID.SERVER or VERSION.SERVER.  Any other query in that
+       namespace will lead to RCODE=REFUSED.
+       For QTYPE other than TXT a NOERROR with a trivial SOA RR in the 
+       AUTHORITY section will be returned.
+       Behavior for QTYPE=TXT is defined in draft-ietf-dnsop-serverid-00.txt
+
+
+     + QCLASS!=IN && QCLASS!=ANY && QCLASS!=CHAOS results in RCODE=REFUSED
 
       [OK***: BIND8 generates a SERVFAIL but I would say that a A
               NOERROR message with empty Answer, Authority and
               Additional section is also a good answer and more in the
               spirit of RFC 1034 section 4.3.1.
 
-	      For now I choose to mimic the behaviour of bind.
+	      We choose to mimic the behavior of bind.
 
 	      BIND9 generates a status RCODE=5 REFUSED.
       ]
-
-
 
     + Presence of OPT RR indicates support of EDNS (rfc2671).  If the
       VERSION > 0 then the server will respond with an OPT with
       RCODE=BADVERSION and VERSION=0 (The server supports EDNS0) In
       further processing ENDS0 support is taken into account.
       [not implemented in alpha]
+
+    + If the DNSSEC OK bit (DO bit) is set then the query will be
+      processed as a DNSSEC request. Although RFC3225 does not
+      explicitly specify this NSD clears the DO bit in the answer.
+
  
 C 4  Further Query processing.
 
@@ -307,11 +329,20 @@ C 4  Further Query processing.
 
    + There is only one query in the DNS message to be answered. 
 
-   + The RD & message ID of the incomming query has been copied into
+   + The RD & message ID of the incoming query has been copied into
      the response message.
 
+   + It is known if the requester wants DNSSEC processing as indicated by
+     the DO bit being set.
 
-C 4.1 Actions based on QTYPE of incomming Query.
+
+C 4.1 Actions based on QTYPE of incoming Query.
+
+
+   [OK*** Note that we will support AXFR/TSIG ... this will need some
+   modification.]
+
+
 
   If QTYPE>=249 we are dealing with special queries.
 
@@ -322,129 +353,162 @@ C 4.1 Actions based on QTYPE of incomming Query.
    case QTYPE=IXFR respond the same way as QTYPE=AXFR (rfc1995 4) i.e. respond
 		   with RCODE=5 (REFUSED)
 
-
    case QTYPE=AXFR respond with RCODE=5 (REFUSED) [OK***: better than NOTIMPL]
 
    NOTE: AXFR may be supported in a later version of the server.
 
      
-   case QTYPE=MAILB respond with RCODE=4 (NOTIMP) 
-	This TYPE of query is marked experimental in rfc1035 8.2 and we do 
-	not support it.
-
-   case QTYPE=MAILA respond with RCODE=4 (NOTIMP) because it is obsolete.
+   case QTYPE=MAILB proceed with processing.
+   case QTYPE=MAILA proceed with processing.
 	
    case QTYPE=ANY proceed with processing.
 
-  QTYPE < 249 proccess the query
+  QTYPE < 249 process the query
 
 
-
-  Further proccessing of the packet is based on the algorithm from
+  Further processing of the packet is based on the algorithm from
   1034 as modified by (rfc2672 4). Below is the algorithm as applies
-  to an authoritative cacheless server and with the preconditions from
-  above.  We have also included DNSSEC considerations (rfc2535) and
-  draft-ietf-dnsext-dnssec-okbit-03.txt
+  to an authoritative cache-less server and with the preconditions from
+  above.  We have also included DNSSEC considerations (rfc2535 and
+  rfc3225)
 
   The first versions of nsd will not have DNSSEC processing
-  implemented. (Read this as the OK bit is not set) 
+  implemented. (Read this as the DO bit is not set). 
 
-  [OK***: Precise DNSSEC specification might change and need to be
-  checked.]
+  [OK*** this version of the REQUIREMENTS includes DNSSEC specs
+   assuming DS and OPT-IN style NXT records.]
 
    1. Search the available zones for the zone which is the nearest
       ancestor to QNAME.  If such a zone is found, go to step 2,
       otherwise step 3.
 
-   2. Start matching down, label by label, in the zone.  The matching
+   2. If the DO bit was set in the query and the zone is marked as
+      secure then set the AD bit. 
+
+      Start matching down, label by label, in the zone.  The matching
       process can terminate several ways:
+
 
       a. If the whole of QNAME is matched, we have found the node.
 
          If the data at the node is a CNAME, and QTYPE doesn't match
          CNAME, copy the CNAME RR into the answer section of the
          response, change QNAME to the canonical name in the CNAME RR,
-         and go back to step 1. If the OK bit is set in the query the
-	 SIG RR of the CNAME needs to be copied in the answer section
-         as well.
+         and go back to step 1. If the DO bit is set in the query the
+         SIG(CNAME) needs to be copied in the answer section as well.
 
-         Otherwise, copy all RRs which match QTYPE, and their
-         corresponding SIGs if the OK bit was set, into the answer
-         section and go to step 4.
+
+         Otherwise, copy all RRs which match QTYPE into the answer
+         section. 
+         Also copy corresponding SIGs into the answer section
+         if the DO bit was set, goto step 4.
+
+	 If QTYPE is 'ANY' copy all RRs including the security related
+	 RR types regardless if the DO bit was set into the answer section.
+
+	 If none of the RRtypes matched QTYPE, the DO bit was set and the
+	 zone is marked secure then the answer section is left empty and
+
+
 
       b. If a match would take us out of the authoritative data, we have
          a referral.  This happens when we encounter a node with NS RRs
          marking cuts along the bottom of a zone.
 
          Copy the NS RRs for the subzone into the authority section of
-         the reply.  Put whatever addresses are available into the
+         the reply.  
+
+	 If the DO bit has been set then 
+  	   
+	   if the zone is marked secure then
+
+	      if there is a NXT record or DS record then
+	   
+	        include the DS bit and associated SIG(DS) into the
+	        authority section if the DS record is present for this
+	        delegation. If there is no DS record present for this
+	        delegation then include the NXT record with the
+	        corresponding SIG(NXT) in the authority section.
+	   
+	      else 
+
+	        we are in an opt-in part of the zone and we should
+	        include the the NXT RR of the last secured RR in the
+	        zone and the corresponding SIG(NXT) into the authority
+	        section of the answer.
+
+	      fi
+           fi
+	      
+	 Put whatever addresses are available into the
          additional section, using glue RRs if the addresses are not
-         available from authoritative data. If the OK bit was set then
+         available from authoritative data. If the DO bit was set then
          also copy the SIGs for the addresses for which the server is
-         authoritative.  Go to step 4.
+         authoritative.  
+
+	 Go to step 4.
 
       c. If at some label, a match is impossible (i.e., the
          corresponding label does not exist), look to see whether the
          last label matched has a DNAME record.
+	      
+		  BEGIN DNAME
+	          [DNAME processing is deferred.
+	 
+	          If a DNAME record exists at that point, copy that record into
+		  the answer section, if the DO bit is set also copy the SIG.
 
-	 [DNAME processing is not implemented in the alpha version.] 
-
-         If a DNAME record exists at that point, copy that record into
-         the answer section, if the OK bit is set also copy the SIG.
-
-	 If substitution of its <target> for its <owner> in QNAME
-         would overflow the legal size for a <domain-name>, set RCODE
-         to YXDOMAIN [DNSUPD] and exit; otherwise perform the
-         substitution and continue.  If the query was not extended
-         [EDNS0] with a Version indicating understanding of the DNAME
-         record, the server SHOULD synthesize a CNAME record as
-         described above and include it in the answer section.  Go
-         back to step 1. Note that there should be no descendants of a
-         DNAME in the same zone (rfc2672 3). So if a DNAME has been
-         found only go to step 1 if another zone can be found.
-
+		  If substitution of its <target> for its <owner> in
+		  QNAME would overflow the legal size for a
+		  <domain-name>, set RCODE to YXDOMAIN [DNSUPD] and
+		  exit; otherwise perform the substitution and
+		  continue.  If the query was not extended [EDNS0]
+		  with a Version indicating understanding of the DNAME
+		  record, the server SHOULD synthesize a CNAME record
+		  as described above and include it in the answer
+		  section.  Go back to step 1. Note that there should
+		  be no descendants of a DNAME in the same zone
+		  (rfc2672 3). So if a DNAME has been found only go to
+		  step 1 if another zone can be found.
+		  
+		  ] END DNAME
+		  
          If there was no DNAME record, look to see if the "*" label
          exists.
-   
 
          If the "*" label does not exist, check whether the name we
          are looking for is the original QNAME in the query or a name
          we have followed due to a CNAME.  If the name is original,
-         set an authoritative name error in the response and exit.
-         Otherwise just exit. (Nn authoritative name error returns
-         RCODE=3 NXDOMAIN and the authority section must contained the
-         SOA record and, if the OK bit is set add the SIG over the SOA
-         and search for the closest matching label (in the terms of
-         canonical ordering) and add it's NXT record, also add
-         appropriate KEY material in the additional section)
+         set an authoritative name error (RCODE=3 NXDOMAIN) in the
+         response, if the DO bit was set then include the appropriate
+         NXT records (see section 4.5.) in the authority section,
+         then exit.
 
          If the "*" label does exist, match RRs at that node against
          QTYPE.  If any match, copy them into the answer section, but
          set the owner of the RR to be QNAME, and not the node with
-         the "*" label.  If the OK bit is set copy the SIG for the *
+         the "*" label.  If the DO bit is set copy the SIG for the *
          label and matching QTYPE also set the owner of the SIG RR to
-         be QNAME)
+         be QNAME). In addition a NXT record indicating that no
+         specific matches are possible should be returned in the
+         additional section.
+
+	 Otherwise just exit.
+
 
 	 Go to step 4.
 
    3. If a there was no delegation of authoritative data return the root
       delegation in the authority section and continue with 4. 
-      
-      [OK**** OPEN ISSUE 
-      If the root delegation data is not available (no hints file) we
-      return a SERVFAIL. It has been argued that this is a policy decision
-      and thus a REFUSE should be returned. 
-      While this is an open issue we will return SERVFAIL if there is no
-      root delegation data available.
-      ]
 
+      Also see Appendix B.1
 
    4. Using local data only, attempt to add other RRs which may be
-      useful to the additional section of the query if the OK bit was
-      set in the query then for retrieval of SOA or NS a key of the
+      useful to the additional section of the query if the DO bit was
+      set in the query then for retrieval of SOA or NS a KEY of the
       same name should be added. For retrieval of type A, AAAA or A6 RRs 
       the KEY should also be included.
-
+      See section 4.2 as well.
 
 
 
@@ -455,10 +519,14 @@ C 4.1 Actions based on QTYPE of incomming Query.
   authoritative server too.
 
 
+
+
 C 4.2 Additional Data processing.
 
 
   Additional data is added as long as there is space in the packet.
+  [ Note:  A6 and KEY RRs implementation is deferred to version 1.1.0 or 
+    later ]
 
   When processing the additional section priority is (rfc 2535 3.5 and
   rfc 2974 4) 
@@ -468,6 +536,18 @@ C 4.2 Additional Data processing.
       + KEY
 
   For truncation see section C.4.4
+
+  If the DO bit is set SIGs will be included with the additional data.
+  Although not specified in the RFCs we will assume the following priority:
+
+      + A 
+      + SIG A
+      + A6 
+      + SIG A6
+      + AAAA 
+      + SIG AAAA
+      + KEY
+      + SIG KEY
 
   NSD will act as being authoritative for one zone without having the 
   other zones in cache. In other words:
@@ -493,7 +573,7 @@ C 4.2 Additional Data processing.
   ns.ripe.net A 10.1.0.1
   ns.nlnetlabs.nl A 10.2.0.2
 
-  This behaviour is a concequence of NSD using precompiled packets. These
+  This behavior is a consequence of NSD using precompiled packets. These
   are 'constructed' zone by zone. It is an optimisation of speed versus
   network optimisation.
 
@@ -502,7 +582,7 @@ C 4.2 Additional Data processing.
 C 4.3 Label compression in RDATA
 
   In the spirit of RFC 1035 section 3.3. and 4.4.1 ("Pointers can
-  only be used for occurances of a domain name where the format is not
+  only be used for occurrences of a domain name where the format is not
   class specific.") we only do label compression for labels in rdata
   for which this is specifically mentioned in the RFC defining the RR.
 
@@ -512,7 +592,7 @@ C 4.3 Label compression in RDATA
     Others defined in (rfc 1035 3.3) are not compressed.
 
     BIND8 does compression for all RR from rfc 1035 for which dnames
-    apear in the rdata.
+    appear in the rdata.
 
     (Note that other RFCs do refer to e.g. MX dname in rdata being
     compressed (e.g. rfc2974 4.).
@@ -539,9 +619,10 @@ C 4.3 Label compression in RDATA
 
 C 4.4 Truncation handling. (as rfc2181 9)
 
-  If inclusion of a RR set that is REQUIRED in either the answer or 
-  authority section leads to message truncation. The section is left empty 
-  and the truncation (TC) bit is set.
+  If inclusion of a RR set that is REQUIRED in either the answer or
+  authority section leads to message truncation. The section is left
+  empty and the truncation (TC) bit is set. If the DO bit is set SIG
+  RRs are required in the answer and authority section.
 
 
   If inclusion of an RRset in the Additional section is not possible
@@ -550,6 +631,33 @@ C 4.4 Truncation handling. (as rfc2181 9)
   constraints will NOT lead to setting of the TC bit. (rfc2181 9) We
   allow for incomplete RRsets in the additional section.
 
+
+C 4.5 NXT processing.
+
+  The NXT record is required to be in the authority section if a QNAME
+  or a QTYPE cannot be matched (see section 5 or RFC2535). 
+
+  If the DO bit on the query is not set then NXT records should only be
+  required if QNAME and QTYPE match.
+
+  If the do bit on the query is set then we have to do NXT processing if 
+  a zone is marked as secure otherwise we should do nothing.
+
+  If the QNAME matches a name in the zone but the QTYPE does not match
+  then the answer section should remain empty and the Authority
+  section should have either the NXT RR that matches QNAME or the NXT
+  RR (opt-in) that indicates QNAME is in an insecure part of the zone.
+
+  If QNAME does not match a name from the zone then the negative
+  response is to be constructed so that all possible wildcard matches
+  are denied existence.   
+
+  [OK**** This is not yet complete. We need to work out the algorithm for
+  NXT processing]
+
+
+
+-------------------------------------------------------------------------------
 
 Appendix  A
 
@@ -594,7 +702,7 @@ RR records details.
 
 		    		    
 
-  "WKS"      11,    # RFC 1035, Section 3.4.2 (deprecated in favour of MX
+  "WKS"      11,    # RFC 1035, Section 3.4.2 (deprecated in favor of MX
 					      [RFC-1123] but not Obsolete)
 
 
@@ -655,7 +763,7 @@ RR records details.
 
   "PX"       26,    # RFC 2163,
 
-		    section 4 sais:
+		    section 4 says:
 
    		    PX records cause no additional section processing
 		    
@@ -722,13 +830,10 @@ RR records details.
   "OPT"      41,    # RFC 2671
 		    Pseudo RR. Not in zone files. 
  
- "APL"      42	    # RFC 3123   
+  "APL"      42	    # RFC 3123   
 		    An APL RR with empty RDATA is valid and implements an empty list.
 
-
-
-
-  "DS"       93,    # Not ASSIGNED YET...!!! draft
+  "DS"       43,    # Not ASSIGNED YET...!!! draft
   "UINFO"    100,   # [IANA-Reserved]
   "UID"      101,   # [IANA-Reserved]
   "GID"      102,   # [IANA-Reserved]
@@ -742,5 +847,107 @@ RR records details.
   "ANY"     255,    # RFC 1035
 
 
+
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.7 2002/04/02 10:00:16 alexis Exp $
+
+Appendix B  Details on specific design and implementation choices.
+
+
+B.1. Returning the root delegation when no answer can be found
+
+   From RFC1034/1035 it is not obvious if returning a root delegation
+   is a (non-)requirement for authoritative servers.
+
+   We have decided not to implement a root-hints since an
+   authoritative server should in normal circumstances only receive
+   queries for which the server is authoritative.
+   
+   Also see RFC 1123 section 6.1.2.5.
+
+   Whenever an answer cannot been provided we return a SERVFAIL. It
+   has been argued that this is a policy decision and thus a REFUSE
+   should be returned. However, in the spirit of RFC1034/1035 a server
+   should return cached data, if that cache cannot be reached a SERVFAIL
+   is an appropriate response.
+
+   Also see the discussion on the 'namedroppers list' Starting April
+   2002 with subject "name server without root cache "
+   (ftp://ops.ietf.org/pub/lists/)
+
+
+
+
+
+______________________________________________________________________
+
+Appendix C (Planned) Features
+
+
+RFC Standards
+
+  The first release ( 1.0.0 ) contains an implementation of the
+  standard RFC 1034 and RFC 1035, of proposed standards RFC2181
+  (clarifications), RFC2308 (negative caching). 
+
+  AXFR is not implemented in v1.0.0.
+
+
+   The RRs specified in the following RFCs are implemented in v1.0.0
+
+   - RFC 1183 (Multiple RRs) 
+   - RFC 1706 (NSAP)  (Informational)
+   - RFC 1876 (LOC RR)
+   - RFC 1886 (AAAA RR)
+   - RFC 2230 (KX RR)  (Informational)
+   - RFC 2536 (CERT RR)
+   - RFC 2671 (EDNS0)
+   - RFC 2782 (SRV)
+   - RFC 2915 (NAPTR RR)
+   - RFC 2915 (SRV RR)
+
+    
+   Planned implementation
+
+
+   - AXFR will be implemented in 1.0.1 with simple IP based ACLs.  In
+     1.1.0. AXFR will also supported with RFC 2834 (TSIG)
+
+   - RFC 1996 (Notifies) will be available in 1.1.0 or later.
+
+
+
+   - Version 1.0.1 will also support features from 
+     draft-ietf-dnsop-serverid-00.txt: The following names have associated
+     TXT RRs in the CHAOS class: ID.SERVER. and VERSION.SERVER.
+      
+
+   - RFC2535 (DNSSEC) will be implemented in (1.1.0) once the current
+     drafts DS and OPT-IN have made it to the standards track.
+     (DNSSEC also includes RFC2536 (DSA), RFC2537 (RSA), RFC3225 (DO
+     bit)
+
+     Version 1.1.0 will not allow wildcards in DNSEC signed zones.
+
+   - RFC 3123 (APL RR) will be implemented in 1.0.1 or later and not
+		      later than 1.1.0
+      
+   Deferred implementation
+
+   The following proposed standards will not be implemented in NSD
+   1.0.0, Release of these features will probably not happen before NSD
+   1.1.1.
+
+   - RFC 2672 (DNAME)
+   - RFC 2673 (Binary labels)
+   - RFC 2874 (A6)
+
+  Not implemented:
+
+  Proposed standards RFC1995 (IXFR), RFC2136
+  (Dynamic update) are not implemented and will not be implemented as
+  zone control is not implemented in NSD itself.
+
+______________________________________________________________________
+$Id: REQUIREMENTS,v 1.8 2002/06/17 15:07:59 alexis Exp $
+
+
