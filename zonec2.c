@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.15 2003/08/27 13:28:24 erik Exp $
+ * $Id: zonec2.c,v 1.16 2003/08/28 17:58:12 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -352,7 +352,7 @@ process_rr(struct RR *rr)
 	uint8_t *dname, *t;
 	struct zone *z = current_zone;
 	
-        if ( vflag > 0 ) 
+        if ( pflag > 0 ) 
             zprintrr(stderr, rr);
 		
 	/* Report progress... 
@@ -908,7 +908,9 @@ zone_dump (struct zone *z, struct namedb *db)
 static void 
 usage (void)
 {
-	fprintf(stderr, "usage: zonec [-f database] [-d directory] zone-list-file\n");
+	fprintf(stderr, "usage: zonec [-v] [-p] [-f database] [-d directory] zone-list-file\n\n");
+	fprintf(stderr, "\t-p\tprint rr after compilation\n");
+	fprintf(stderr, "\t-v\tbe more verbose\n");
 	exit(1);
 }
 

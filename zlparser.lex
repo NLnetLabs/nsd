@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.22 2003/08/28 14:27:57 miekg Exp $
+ * $Id: zlparser.lex,v 1.23 2003/08/28 17:58:12 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -16,6 +16,7 @@
 #include "zyparser.h"
 
 /* see  http://www.iana.org/assignments/dns-parameters */
+/* added: IN HS CH class */
 char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "NXT", "KEY", "SOA", "SIG", "SRV", "CERT", "LOC", "MD", "MF", "MB",
     "MG", "MR", "NULL", "WKS", "HINFO", "MINFO", "RP", "AFSDB", "X25",
@@ -107,13 +108,11 @@ Q       \"
 
 			        BEGIN(INITIAL);
         		}	
-<<EOF>>			{	/* end of file is reached - check if we were
-				 * including
-				 */
+<<EOF>>			{	/* end of file is reached - check if we were including */
         			if ( --include_stack_ptr < 0 )
 				            yyterminate();
         			else {
-					/* pop (once you pop, you can not stop */
+					/* pop (once you pop, you can not stop) */
 					zdefault->filename =
 						zdefault_stack[include_stack_ptr].filename;
 					zdefault->line = 
@@ -184,20 +183,23 @@ Q       \"
                             return STR;
                         }
 {CLASS}                 {
-                            if ( in_rr == after_dname) { 
-                                if ( strcasecmp(yytext, "IN") == 0 )
-                                    return IN;
-                                if ( strcasecmp(yytext, "CH") == 0 )
-                                    return CH;
-                                if ( strcasecmp(yytext, "HS") == 0 )
-                                    return HS;
-                            }
-                            if ( in_rr != after_dname) { 
+
                                 ztext = strdup(yytext); 
                                 yylval.len = zoctet(ztext);
                                 yylval.str = ztext;
-                                return STR;
+
+				/* \000 here will not cause problems */
+                            if ( in_rr == after_dname) { 
+                                if ( strcasecmp(ztext, "IN") == 0 )
+                                    return IN;
+                                if ( strcasecmp(ztext, "CH") == 0 )
+                                    return CH;
+                                if ( strcasecmp(ztext, "HS") == 0 )
+                                    return HS;
                             }
+                            if ( in_rr != after_dname)  
+                            return STR;
+                            
                         }
 TYPE[0-9]+              {
                             if ( in_rr == after_dname )
@@ -223,28 +225,30 @@ CLASS[0-9]+             {
                         }
 {Q}({ANY})({ANY})*{Q}   {
                             /* this matches quoted strings */
+                            ztext = strdup(yytext);
+                            yylval.len = zoctet(ztext);
+                            yylval.str = ztext;
+
                             if ( in_rr == after_dname ) {
-                                i = zrrtype(yytext);
+                                i = zrrtype(ztext);
                                 if ( i ) {
                                     in_rr = reading_type; return i;
                                 }
                             }
-                            ztext = strdup(yytext);
-                            yylval.len = zoctet(ztext);
-                            yylval.str = ztext;
                             return STR;
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word */
+                            ztext = strdup(yytext);
+                            yylval.len = zoctet(ztext);
+                            yylval.str = ztext;
+                            
                             if ( in_rr == after_dname ) {
-                                i = zrrtype(yytext);
+                                i = zrrtype(ztext);
                                 if ( i ) {
                                     in_rr = reading_type; return i;
                                 } 
                             }
-                            ztext = strdup(yytext);
-                            yylval.len = zoctet(ztext);
-                            yylval.str = ztext;
                             return STR;
                         }
 .                       {

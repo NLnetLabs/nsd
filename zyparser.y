@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.29 2003/08/28 14:27:57 miekg Exp $
+ * $Id: zyparser.y,v 1.30 2003/08/28 17:58:12 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -22,9 +22,8 @@
 struct zdefault_t * zdefault;
 struct RR * current_rr;
 
-/* [XXX] should be local */
+/* [XXX] should be local? */
 int progress = 10000;
-int yydebug = 1;
 
 %}
 /* this list must be in exactly the same order as *RRtypes[] in zlparser.lex. 
@@ -39,7 +38,7 @@ int yydebug = 1;
 %token UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA
 
 /* other tokens */
-%token ORIGIN NL SP STR DIR_TTL DIR_ORIG PREV IN CH HS 
+%token ORIGIN NL SP STR DIR_TTL DIR_ORIG PREV IN CH HS
 
 /* unknown RRs */
 %token UN_RR UN_CLASS UN_TYPE
