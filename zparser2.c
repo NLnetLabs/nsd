@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.25 2003/10/22 07:07:59 erik Exp $
+ * $Id: zparser2.c,v 1.26 2003/10/23 14:17:45 erik Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -640,7 +640,11 @@ nsd_zopen(zone_type *zone, const char *filename, uint32_t ttl, uint16_t class, c
 	current_parser->origin = domain_table_insert(
 		current_parser->db->domains,
 		dname_parse(zone_region, origin, NULL));  /* hmm [XXX] MG */
-	current_parser->prev_dname = NULL;
+	current_parser->prev_dname =
+		current_parser->origin; /* XXX Or NULL + error check
+					 * in zonec when first RR does
+					 * not mention a domain
+					 * name? */
 	current_parser->_rc = 0;
 	current_parser->errors = 0;
 	current_parser->line = 1;
