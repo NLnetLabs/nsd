@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.38.2.1 2002/08/06 12:18:39 alexis Exp $
+ * $Id: nsd.c,v 1.38.2.2 2002/08/06 15:23:23 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -292,9 +292,6 @@ main(argc, argv)
 				endpwent();
 			}
 		} else {
-			/* Get the username part of it, ignore the rest */
-			nsd.username = strtok(nsd.username, ".");
-
 			/* Lookup the user id in /etc/passwd */
 			if((pwd = getpwnam(nsd.username)) == NULL) {
 				syslog(LOG_ERR, "user %s doesnt exist, will not setuid", nsd.username);
