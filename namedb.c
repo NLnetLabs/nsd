@@ -268,14 +268,14 @@ domain_find_zone(domain_type *domain)
 domain_type *
 domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
 {
-	*ns = NULL;
-
 	while (domain != zone->domain) {
 		*ns = domain_find_rrset(domain, zone, TYPE_NS);
 		if (*ns)
 			return domain;
 		domain = domain->parent;
 	}
+
+	*ns = NULL;
 	return NULL;
 }
 
