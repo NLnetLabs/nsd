@@ -14,6 +14,7 @@
 
 #include <sys/time.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <syslog.h>
 #include <time.h>
 
@@ -118,7 +119,7 @@ void *xrealloc(void *ptr, size_t size);
  *
  * Returns 0 on failure, 1 on success.
  */
-int write_data(FILE * file, const void *data, size_t size);
+int write_data(FILE *file, const void *data, size_t size);
 
 
 /*
