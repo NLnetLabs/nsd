@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.13 2002/01/29 15:40:50 alexis Exp $
+ * $Id: query.c,v 1.14 2002/01/31 12:45:42 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -73,7 +73,7 @@ answer(d, type)
 {
 	struct answer *a;
 
-	for(a = (struct answer *)(d + 1); *ANSWER_SIZE(a) != 0; ((char *)a) += *ANSWER_SIZE(a)) {
+	DOMAIN_WALK(d, a) {
 		if(a->type == type) {
 			return a;
 		}
@@ -123,16 +123,16 @@ query_addanswer(q, dname, a)
 	int  i, j;
 
 	/* Copy the counters */
-	ANCOUNT(q) = *ANSWER_ANCOUNT(a);
-	NSCOUNT(q) = *ANSWER_NSCOUNT(a);
-	ARCOUNT(q) = *ANSWER_ARCOUNT(a);
+	ANCOUNT(q) = ANSWER_ANCOUNT(a);
+	NSCOUNT(q) = ANSWER_NSCOUNT(a);
+	ARCOUNT(q) = ANSWER_ARCOUNT(a);
 
 	/* Then copy the data */
-	bcopy(ANSWER_DATA(a), q->iobufptr, *ANSWER_DATALEN(a));
+	bcopy(ANSWER_DATA_PTR(a), q->iobufptr, ANSWER_DATALEN(a));
 
 	/* Walk the pointers */
-	for(j = 0; j < *ANSWER_PTRLEN(a); j++) {
-		qptr = q->iobufptr + *(ANSWER_PTRS(a)+j);
+	for(j = 0; j < ANSWER_PTRSLEN(a); j++) {
+		qptr = q->iobufptr + *(ANSWER_PTRS_PTR(a)+j);
 		bcopy(qptr, &pointer, 2);
 		if(pointer & 0xc000) {
 			/* XXX Check if dname is within packet */
@@ -144,13 +144,13 @@ query_addanswer(q, dname, a)
 	}
 
 	/* Truncate if necessary */
-	if(q->maxlen < (q->iobufptr - q->iobuf + *ANSWER_DATALEN(a))) {
+	if(q->maxlen < (q->iobufptr - q->iobuf + ANSWER_DATALEN(a))) {
 
 		/* Start with the additional section, record by record... */
-		for(i = ntohs(*(ANSWER_ARCOUNT(a) - 1)), j = *ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
-			if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS(a) + j - 1))) {
+		for(i = ntohs(ANSWER_ARCOUNT(a) - 1), j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
+			if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS_PTR(a) + j - 1))) {
 				ARCOUNT(q) = htons(i-1);
-				q->iobufptr += *(ANSWER_RRS(a) + j - 1);
+				q->iobufptr += *(ANSWER_RRS_PTR(a) + j - 1);
 				return;
 			}
 		}
@@ -158,10 +158,10 @@ query_addanswer(q, dname, a)
 		ARCOUNT(q) = htons(0);
 		TC_SET(q);
 
-		if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS(a) + j - ntohs(a->nscount) - 1))) {
+		if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS_PTR(a) + j - ntohs(a->nscount) - 1))) {
 			/* Truncate the athority section */
 			NSCOUNT(q) = htons(0);
-			q->iobufptr += *(ANSWER_RRS(a) + j - ntohs(a->nscount));
+			q->iobufptr += *(ANSWER_RRS_PTR(a) + j - ntohs(a->nscount));
 			return;
 		}
 
@@ -170,7 +170,7 @@ query_addanswer(q, dname, a)
 		ANCOUNT(q) = 0;
 		return;
 	} else {
-		q->iobufptr += *ANSWER_DATALEN(a);
+		q->iobufptr += ANSWER_DATALEN(a);
 	}
 }
 
@@ -268,7 +268,7 @@ query_process(q, db)
 	/* Do we have the complete name? */
 	if(NAMEDB_TSTBITMASK(datamask, qdepth) && ((d = lookup(db, qnamelow, qnamelen)) != NULL)) {
 		/* Is this a delegation point? */
-		if(d->flags & NAMEDB_DELEGATION) {
+		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 			if((a = answer(d, htons(TYPE_NS))) == NULL) {
 				RCODE_SET(q, RCODE_SERVFAIL);
 				return 0;
@@ -302,7 +302,7 @@ query_process(q, db)
 					ANCOUNT(q) = 0;
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
-					q->iobufptr = qptr + *(ANSWER_RRS(a) + 1);
+					q->iobufptr = qptr + *(ANSWER_RRS_PTR(a) + 1);
 
 					return 0;
 				}
@@ -323,7 +323,7 @@ query_process(q, db)
 
 		/* Do we have a SOA or zone cut? */
 		if(NAMEDB_TSTBITMASK(authmask, qdepth) && ((d = lookup(db, qnamelow, qnamelen)) != NULL)) {
-			if(d->flags & NAMEDB_DELEGATION) {
+			if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
 				if((a = answer(d, htons(TYPE_NS))) == NULL) {
 					RCODE_SET(q, RCODE_SERVFAIL);
 					return 0;
@@ -348,7 +348,7 @@ query_process(q, db)
 					ANCOUNT(q) = 0;
 					NSCOUNT(q) = htons(1);
 					ARCOUNT(q) = 0;
-					q->iobufptr = qptr + *(ANSWER_RRS(a) + 1);
+					q->iobufptr = qptr + *(ANSWER_RRS_PTR(a) + 1);
 
 					return 0;
 				}

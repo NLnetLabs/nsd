@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.7 2002/01/30 15:34:08 alexis Exp $
+ * $Id: nsd.c,v 1.8 2002/01/31 12:45:42 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -179,6 +179,7 @@ main(argc, argv)
 	char *argv[];
 {
 	int fd;
+	pid_t pid;
 
 #	ifndef	LOG_PERROR
 #		define	LOG_PERROR 0
@@ -205,13 +206,14 @@ main(argc, argv)
 	}
 
 	/* Take off... */
-	switch(fork()) {
+	switch((pid = fork())) {
 	case 0:
 		break;
 	case -1:
 		syslog(LOG_ERR, "fork failed: %m");
 		exit(1);
 	default:
+		syslog(LOG_NOTICE, "nsd started, pid %d", pid);
 		exit(0);
 	}
 

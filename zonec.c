@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.6 2002/01/31 11:47:24 alexis Exp $
+ * $Id: zonec.c,v 1.7 2002/01/31 12:45:42 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -300,18 +300,18 @@ addanswer(d, msg, type)
 
 	a = (struct answer *)((char *)d + d->size);
 
-	*ANSWER_SIZE(a) = size;
-	*ANSWER_TYPE(a) = htons(type);
-	*ANSWER_ANCOUNT(a) = htons(msg->ancount);
-	*ANSWER_NSCOUNT(a) = htons(msg->nscount);
-	*ANSWER_ARCOUNT(a) = htons(msg->arcount);
-	*ANSWER_PTRLEN(a) = msg->pointerslen;
-	*ANSWER_RRSLEN(a) = msg->rrsetsoffslen;
-	*ANSWER_DATALEN(a) = datasize;
+	ANSWER_SIZE(a) = size;
+	ANSWER_TYPE(a) = htons(type);
+	ANSWER_ANCOUNT(a) = htons(msg->ancount);
+	ANSWER_NSCOUNT(a) = htons(msg->nscount);
+	ANSWER_ARCOUNT(a) = htons(msg->arcount);
+	ANSWER_PTRSLEN(a) = msg->pointerslen;
+	ANSWER_RRSLEN(a) = msg->rrsetsoffslen;
+	ANSWER_DATALEN(a) = datasize;
 
-	bcopy(msg->pointers, ANSWER_PTRS(a), sizeof(u_int16_t) * msg->pointerslen);
-	bcopy(msg->rrsetsoffs, ANSWER_RRS(a), sizeof(u_int16_t) * msg->rrsetsoffslen);
-	bcopy(msg->buf, ANSWER_DATA(a), datasize);
+	bcopy(msg->pointers, ANSWER_PTRS_PTR(a), sizeof(u_int16_t) * msg->pointerslen);
+	bcopy(msg->rrsetsoffs, ANSWER_RRS_PTR(a), sizeof(u_int16_t) * msg->rrsetsoffslen);
+	bcopy(msg->buf, ANSWER_DATA_PTR(a), datasize);
 
 	d->size += size;
 
