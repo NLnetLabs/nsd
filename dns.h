@@ -74,6 +74,8 @@
 #define TYPE_PX         26	/* RFC2163 */
 #define	TYPE_NXT	30 	/* 2535typecode */
 
+#define TYPE_NAPTR      35	/* RFC2915 */
+
 /* type code rollover */
 #define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
 #define TYPE_NSEC	47	

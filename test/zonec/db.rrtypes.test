@@ -20,5 +20,8 @@ $TTL    1H
 @       IN      NSAP    0x47.0005.80.005a00.0000.0001.e133.ffffff000161.00
 @       IN      PX      2 map822 mapx400
 
+@       IN     NAPTR 100  10   ""  ""  "/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i" .
+@       IN     NAPTR 100  50  "s"  "http+I2L+I2C+I2R"  ""  _http._tcp.gatech.edu.
+
 rt-host IN      A       127.0.0.1
 rt-host IN      AAAA    ::1

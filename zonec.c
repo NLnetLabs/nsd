@@ -108,6 +108,7 @@ const lookup_table_type ztypes[] = {
 	{ TYPE_SIG, "SIG", T_SIG },
 	{ TYPE_KEY, "KEY", T_KEY },
 	{ TYPE_NXT, "NXT", T_NXT },
+	{ TYPE_NAPTR, "NAPTR", T_NAPTR }, /* RFC 2915 */
 	{ TYPE_DS, "DS", T_DS },
 	{ TYPE_SSHFP, "SSHFP", T_SSHFP },
 	{ TYPE_RRSIG, "RRSIG", T_RRSIG },

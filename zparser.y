@@ -400,6 +400,8 @@ rtype:
     | T_LOC sp rdata_unknown
     | T_SRV sp rdata_srv
     | T_SRV sp rdata_unknown
+    | T_NAPTR sp rdata_naptr	/* RFC2915 */
+    | T_NAPTR sp rdata_unknown	/* RFC2915 */
     | T_DS sp rdata_ds
     | T_DS sp rdata_unknown
     | T_KEY sp rdata_dnskey	/* XXX: Compatible format? */
@@ -559,6 +561,20 @@ rdata_srv:	STR sp STR sp STR sp dname trail
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* weight */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* port */
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $7)); /* target name */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in SRV record"); }
+	;
+
+/* RFC 2915 */
+rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
+	{
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str));	/* order */
+		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* preference */
+		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $5.str)); /* flags */
+		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $7.str)); /* service */
+		zadd_rdata_wireformat(current_parser, zparser_conv_text(zone_region, $9.str)); /* regexp */
+		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $11)); /* target name */
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in SRV record"); }
