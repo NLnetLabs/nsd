@@ -1,5 +1,5 @@
 /*
- * $Id: parser.h,v 1.2 2001/12/12 13:40:45 alexis Exp $
+ * $Id: parser.h,v 1.3 2001/12/12 15:05:08 alexis Exp $
  *
  * parser.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -165,7 +165,7 @@ struct parser_type_tab {
 }
 
 /* Prototypes */
-struct parser *parser_open __P((char *, char *));
+struct parser *parser_open __P((char *, u_char *));
 struct parser_entry *parser_get_entry __P((struct parser *));
 char *typetoa __P((u_short));
 char *classtoa __P((u_short));

@@ -1,5 +1,5 @@
 /*
- * $Id: parser.c,v 1.4 2001/12/12 14:01:41 alexis Exp $
+ * $Id: parser.c,v 1.5 2001/12/12 15:05:08 alexis Exp $
  *
  * parser.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -112,7 +112,8 @@ strdname(s, o)
 	register char *d = dname + 1;
 
 	if(*s == '@' && *(s+1) == 0) {
-		bcopy(o, dname, *o + 1);
+		for(p = dname, s = o; (u_char *)s < o + *o + 1; p++, s++)
+			*p = tolower(*s);
 	} else {
 		for(h = d, p = h + 1; *s; s++, p++) {
 			if(*s == '.') {
@@ -120,15 +121,15 @@ strdname(s, o)
 				*h = p - h - 1;
 				h = p;
 			} else {
-				*p = *s;
+				*p = tolower(*s);
 			}
 		}
 		*h = p - h - 1;
 
 		/* If not absolute, append origin... */
 		if((*(p-1) != 0) && (o != NULL)) {
-			bcopy(o+1, p, (int) *o);
-			p += *o;
+			for(s = o + 1; (u_char *)s < o + *o + 1; p++, s++)
+				*p = tolower(*s);
 		}
 
 		*dname = (u_char) (p - d);
@@ -479,9 +480,9 @@ parser_open_include(zf, filename, origin, ttl)
  * Opens a zone file and sets us up for parsing.
  */
 struct parser *
-parser_open(zonename, filename)
-	char *zonename;
+parser_open(filename, origin)
 	char *filename;
+	u_char *origin;
 {
 	struct parser *zf;
 
@@ -498,7 +499,7 @@ parser_open(zonename, filename)
 	bzero(&zf->line, sizeof(struct parser_entry));
 
 	/* Open the main file... */
-	if(parser_open_include(zf, filename, strdname(zonename, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
+	if(parser_open_include(zf, filename, strdname(origin, ROOT_ORIGIN), DEFAULT_TTL) == -1) {
 		free(zf);
                 return NULL;
         }
@@ -810,7 +811,7 @@ parser_close(zf)
 int
 usage()
 {
-	fprintf(stderr, "usage: parser zonename parser\n");
+	fprintf(stderr, "usage: parser zone-file [origin]\n");
 	exit(1);
 }
 
@@ -822,6 +823,7 @@ main(argc, argv)
 
 	struct parser *zf;
 	struct parser_entry *rr;
+	u_char *origin;
 
 
 #ifndef LOG_PERROR
@@ -831,12 +833,18 @@ main(argc, argv)
 	openlog("parser", LOG_PERROR, LOG_LOCAL5);
 
 	/* Check the command line */
-	if(argc != 3) {
+	if(argc < 2 || argc > 3) {
 		usage();
 	}
 
+	if(argc == 2) {
+		origin = ".";
+	} else {
+		origin = argv[2];
+	}
+
 	/* Open the file */
-	if((zf = parser_open(argv[1], argv[2])) == NULL) {
+	if((zf = parser_open(argv[1], origin)) == NULL) {
 		exit(1);
 	}
 
