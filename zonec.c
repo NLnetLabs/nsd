@@ -1187,8 +1187,10 @@ process_rr(zparser_type *parser, rr_type *rr)
 	if (rr->type == TYPE_NS && rr->domain == zone->domain) {
 		zone->ns_rrset = rrset;
 	}
-	if ( ( totalrrs % progress == 0 ) && vflag != 0 ) 
+	if ( ( totalrrs % progress == 0 ) && vflag != 0 ) {
 		printf("%d  ", totalrrs);
+		fflush(stdout);
+	}
 	++totalrrs;
 	return 1;
 }
