@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.85 2003/04/03 13:40:43 alexis Exp $
+ * $Id: zonec.c,v 1.86 2003/04/03 14:48:02 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -821,6 +821,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 	} else {
 		/* This is an empty node...*/
 		d->flags |= NAMEDB_STEALTH;
+		for(namedepth = 0, nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1, namedepth++);
 	}
 
 	/* Set the data mask */
