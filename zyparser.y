@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.5 2003/08/18 13:46:44 miekg Exp $
+ * $Id: zyparser.y,v 1.6 2003/08/18 14:12:36 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -92,7 +92,8 @@ rr:     ORIGIN SP rrrest NL
         current_rr->dname = (uint8_t *) dnamedup(zdefault->origin);
         /* also set this as the prev_dname */
         zdefault->prev_dname = zdefault->origin;
-        zdefault->prev_dname_len = zdefault->origin_len;
+        zdefault->prev_dname_len = zdefault->origin_len; /* what about
+        this len? */
     }
     |   PREV rrrest NL
     {
@@ -130,6 +131,10 @@ in:     IN
     ;
 
 rrrest: classttl rtype 
+    {
+        /* terminate the rdata list */
+        zadd_rdata_finalize(zdefault);
+    }
     ;
 
 classttl:   /* empty - fill in the default, def ttl and in */
@@ -155,13 +160,20 @@ rtype:  SOA SP rdata_soa
     {   
         zadd_rtype("soa");
     }
+    |   A SP rdata_a
+    {
+        zadd_rtype("a");
+    }
+    |   NS SP rdata_ns
+    {
+        zadd_rtype("ns");
+    }
     ;
 
 dname:  abs_dname
     {
         $$->str = $1->str;
         $$->len = $1->len;  /* length really not important anymore */
-        /* not here?!? $$->str = strlendname($$->str, $$->len); */
         printf("NEW ABS\n");
     }
     |   rel_dname
@@ -169,8 +181,7 @@ dname:  abs_dname
         /* append origin */
         $$->str = (uint8_t *)cat_dname($$->str, zdefault->origin);
         $$->len = $1->len;
-
-        printf("\n\nNEW REL\n\n");
+        printf("NEW REL\n");
     }
     ;
 
@@ -216,11 +227,26 @@ rdata_soa:  dname SP dname SP STR STR STR STR STR
         /* [XXX] also store the minium in case of no TTL? */
         if ( (zdefault->minimum = zparser_ttl2int($9->str) ) == -1 )
             zdefault->minimum = DEFAULT_TTL;
-
-        zadd_rdata_finalize(zdefault);
     }
     ;
 
+rdata_ns:   dname
+    {
+        /* convert a nameserver record */
+        zadd_rdata2( zdefault, zparser_conv_dname($1->str) ); /* nameserver */
+    }
+    ;
+
+rdata_a:    STR '.' STR '.' STR '.' STR
+    {
+        /* setup the string suitable for parsing */
+        uint8_t * ipv4 = xalloc($1->len + $3->len + $5->len +
+                            $7->len + 3);
+        sprintf(ipv4,"%s.%s.%s.%s",$1->str, $3->str, $5->str,
+                            $7->str);
+        zadd_rdata2(zdefault, zparser_conv_A((char*)ipv4));
+        free(ipv4);
+    }
 
 %%
 
