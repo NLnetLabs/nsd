@@ -1,4 +1,4 @@
-$Id: README,v 1.6 2002/02/21 12:36:24 dfk Exp $
+$Id: README,v 1.7 2002/02/21 13:07:27 dfk Exp $
 
 1.0 Introduction
 
@@ -47,41 +47,41 @@ will unpack the source into the ./nsd-1.0alpha directory...
 The package should be configured before compile time by editing the Makefile. 
 The following settings need to be revised:
 
-NSDBINDIR	The directory where the NSD binaries will be installed.
+NSDBINDIR       The directory where the NSD binaries will be installed.
 
-NSDZONESDIR	Default directory for the master zone files.
+NSDZONESDIR     Default directory for the master zone files.
 
-NSDZONES	The name of the file containing the list of the zones to be
-		compiled by NSD zone compiler
+NSDZONES        The name of the file containing the list of the zones to be
+                compiled by NSD zone compiler
 
 NSDFLAGS        Flags to be passed to NSD on startup (Can be left empty)
 
-NSDPIDFILE	Location of the pid file.
+NSDPIDFILE      Location of the pid file.
 
-NSDDB          	Pathname of the runtime database
+NSDDB           Pathname of the runtime database
 
-CFLAGS		Use your favourite combination of the C flags appropriate
-		to your C compiler, plus following possible compile time
-		options:
+CFLAGS          Use your favourite combination of the C flags appropriate
+                to your C compiler, plus following possible compile time
+                options:
 
-  USE_BERKELEY_DB	To use the Berkeley DB in place of the internal
-			database kept in memory. This is not recommended
-			unless memory consumtion is an issue because 
-			performance suffers.
-			
-  USE_HEAP_HASH		Use hash table to manipulate data internally (Default)
+  USE_BERKELEY_DB       To use the Berkeley DB in place of the internal
+                        database kept in memory. This is not recommended
+                        unless memory consumtion is an issue because 
+                        performance suffers.
+                        
+  USE_HEAP_HASH         Use hash table to manipulate data internally (Default)
 
-  USE_HEAP_RBTREE	Use red-black tree to manipulate data internally
+  USE_HEAP_RBTREE       Use red-black tree to manipulate data internally
 
-  MIMIC_BIND8		Aanswers queries as similar as possible to BIND 8
+  MIMIC_BIND8           Aanswers queries as similar as possible to BIND 8
 
-  NAMEDB_UPPERCASE	Uppercase all the domain names internally (as BIND9)
+  NAMEDB_UPPERCASE      Uppercase all the domain names internally (as BIND9)
 
-  NAMEDB_LOWERCASE 	Lowercase all the domain names internally (Default)
+  NAMEDB_LOWERCASE      Lowercase all the domain names internally (Default)
 
-COMPAT_O	You might want to uncomment some of the object files listed here
-		if your system miss some of them. (For example on SunOS 4.x you
-		dont have basename() in a standard C library)
+COMPAT_O        You might want to uncomment some of the object files listed here
+                if your system miss some of them. (For example on SunOS 4.x you
+                dont have basename() in a standard C library)
 
 2.3 Building
 
@@ -95,9 +95,9 @@ Become a superuser (if necessary) and type make install
 
 This step should install three binaries
 
-nsd		- the daemon itself
-nsdc		- a very simple shall script to controll the daemon
-zonec		- zone compiler
+nsd             - the daemon itself
+nsdc            - a very simple shall script to controll the daemon
+zonec           - zone compiler
 
 Plus manual pages if we managed to finish them by the time ALPHA is released.
 
@@ -112,9 +112,9 @@ The nsdc shell script can do it for you if you create a
 $NSDZONES configuration file, for example /etc/nsd/nsd.zones
 which should be of the following format:
 
-; Zone Name	Master zone file name
-cache	.		root.cache
-zone	bluesky.com	bluesky.com
+; Zone Name     Master zone file name
+cache   .               root.cache
+zone    bluesky.com     bluesky.com
 
 
 Where bluesky.com should be the domain name you will be serving with NSD, 
@@ -124,7 +124,7 @@ and . indicates that you want to load some data into NSD cache
 Since NSD is primarily written to be run on the root name servers, 
 this file most likely to contain something like:
 
-zone	.		root.zone
+zone    .               root.zone
 
 The first word on a line must be ``cache'' or ``zone''. 
 It indicates that the zone should be loaded as authorative data 
