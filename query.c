@@ -418,18 +418,32 @@ answer_chaos(struct nsd *nsd, struct query *q)
 }
 
 
+/*
+ * Find the covering NSEC for a non-existent domain name.  Normally
+ * the NSEC will be located at CLOSEST_MATCH, except when it is an
+ * empty non-terminal.  In this case the NSEC may be located at the
+ * previous domain name (in canonical ordering).
+ */
 static domain_type *
-find_covering_nsec(domain_type *closest_match, zone_type *zone, rrset_type **nsec_rrset)
+find_covering_nsec(domain_type *closest_match,
+		   zone_type   *zone,
+		   rrset_type **nsec_rrset)
 {
 	assert(closest_match);
 	assert(nsec_rrset);
 
-	do {
+	while ((rbnode_t *) closest_match != RBTREE_NULL) {
 		*nsec_rrset = domain_find_rrset(closest_match, zone, TYPE_NSEC);
-		if (*nsec_rrset)
+		if (*nsec_rrset) {
 			return closest_match;
-		closest_match = (domain_type *) heap_previous((rbnode_t *) closest_match);
-	} while (closest_match != zone->apex);
+		}
+		if (closest_match == zone->apex) {
+			/* Don't look outside the current zone.  */
+			return NULL;
+		}
+		closest_match = (domain_type *) heap_previous(
+			(rbnode_t *) closest_match);
+	}
 	return NULL;
 }
 
