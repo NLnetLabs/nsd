@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.35 2003/06/12 12:31:18 erik Exp $
+# $Id: Makefile.in,v 1.36 2003/06/12 12:34:54 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -105,7 +105,6 @@ install: all
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
 	$(INSTALL_DATA) zonec.8 $(mandir)/man8
 	$(INSTALL_DATA) nsd-axfr.8 $(mandir)/man8
-	$(INSTALL_DATA) nsd-notify.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.conf.sample $(configfile).sample
 	$(INSTALL_DATA) nsd.zones.sample $(zonesfile).sample
 
@@ -128,9 +127,6 @@ nsq:	zparser.h dns.h nsq.o client.o zparser.o dname.o $(LIBOBJS)
 
 nsd-axfr:	zparser.h dns.h nsd-axfr.o client.o zparser.o dname.o $(LIBOBJS)
 	$(LINK) -o $@ nsd-axfr.o client.o zparser.o dname.o $(LIBOBJS) $(LIBS)
-
-nsd-notify:	nsd-notify.c dname.o 
-	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o $(LIBS) $(LIBOBJS)
 
 clean:
 	rm -f zonec nsd zparser hash rbtree nsd-axfr nsq *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
