@@ -1,12 +1,5 @@
-This document is outdated, and will be updated for NSD 1.1.0-RELEASE
-when regression testing has been completed.
-
-Alexis
-
----
-
 Response Differences Between
-Bind 8.3.3-REL and nsd 1.0.1
+Bind 8.3.4-REL and nsd 1.2.0.
 
 Daniel Karrenberg
 <daniel.karrenberg@ripe.net>
@@ -320,40 +313,32 @@ Appendix A
 Comparison of responses to root queries:
 
 --------------------------------------------------------------------------
-                                            Total Answers: 899990
+                                            Total Answers:  99867
+                                Skipped ambiguous changes:     20 /  0.02%
+
 --------------------------------------------------------------------------
 
-                                               d-bcacheglu  47182 /  5.24%
-                                               d-nameencod   3779 /  0.42%
-                                               d-nclrcdbit   1619 /  0.18%
-                                   d-bcacheglu b-multrrset    628 /  0.07%
-                                               d-nameencom    340 /  0.04%
-                                               d-nrefclass    254 /  0.03%
-                                               d-nnotimpup     55 /  0.01%
-                                               d-nnocachns     17 /  0.00%
-                                               d-nnotimpny      4 /  0.00%
-                                       b-rootdot b-nonxdom      3 /  0.00%
-                                               d-bindchaos      2 /  0.00%
+                                               d-bcacheglu   5368 /  5.38%
+                                               d-nameencod    382 /  0.38%
+                                               d-nclrcdbit    134 /  0.13%
+                                   d-bcacheglu b-multrrset     49 /  0.05%
+                                               d-nrefclass     21 /  0.02%
+                                               d-nnotimpup      6 /  0.01%
+                                               d-bindchaos      1 /  0.00%
 --------------------------------------------------------------------------
-                                 Total Different Responses  53883 /  5.99%
+                                 Total Different Responses   5961 /  5.97%
 ==========================================================================
 
-b-multrrset -   bind puts same RRSet in multiple sections:    628 /  1.15%
-b-nonxdom   -       bind misses NXDomain when no zone cut:      3 /  0.01%
-b-rootdot   -              bind answers queries for ROOT.:      3 /  0.01%
-d-bcacheglu -              bind answers with chached glue:  47810 / 87.70%
-d-bindchaos -               bind answers to CHAOS *.bind.:      2 /  0.00%
-d-nameencod -                     different name encoding:   3779 /  6.93%
-                                  Additional bytes:  13711
-d-nameencom -  name enc. causes omission of additional RR:    340 /  0.62%
-                                       Omitted RRs:    340
-d-nclrcdbit -               nsd clears CD bit in response:   1619 /  2.97%
-d-nnocachns -     ns returns no non-authoritative answers:     17 /  0.03%
-d-nnotimpny -       nsd returns NotImp on notify requests:      4 /  0.01%
-d-nnotimpup -       nsd returns NotImp on update requests:     55 /  0.10%
-d-nrefclass -   nsd returns Refused on unknown class/type:    254 /  0.47%
+b-multrrset -   bind puts same RRSet in multiple sections:     49 /  0.82%
+d-bcacheglu -              bind answers with chached glue:   5417 / 90.13%
+d-bindchaos -               bind answers to CHAOS *.bind.:      1 /  0.02%
+d-nameencod -                     different name encoding:    382 /  6.36%
+                                  Additional bytes:   1364
+d-nclrcdbit -               nsd clears CD bit in response:    134 /  2.23%
+d-nnotimpup -       nsd returns NotImp on update requests:      6 /  0.10%
+d-nrefclass -   nsd returns Refused on unknown class/type:     21 /  0.35%
 --------------------------------------------------------------------------
-                                         Total Differences  54514 /100.00%
+                                         Total Differences   6010 /100.00%
 ==========================================================================
 
 
