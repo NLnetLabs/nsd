@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.84.2.1 2002/10/29 11:52:44 alexis Exp $
+# $Id: Makefile,v 1.84.2.2 2002/10/29 11:54:18 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -208,9 +208,6 @@ uninstall:
 	rm -f -- ${NSDPIDFILE}
 	@echo
 	@echo "You still need to remove ${NSDZONESDIR} directory by hand."
-
-dist:	clean
-
 
 nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
