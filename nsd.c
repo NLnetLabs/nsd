@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.41 2002/09/09 11:03:54 alexis Exp $
+ * $Id: nsd.c,v 1.42 2002/09/09 11:42:53 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -166,6 +166,10 @@ sig_handler(sig)
 	case SIGINT:
 		/* Silent shutdown... */
 		nsd.mode = NSD_SHUTDOWN;
+		break;
+	case SIGUSR1:
+		/* Dump statistics... */
+		nsd.mode = NSD_STATS;
 		break;
 	case SIGTERM:
 	default:
@@ -353,6 +357,7 @@ main(argc, argv)
 	signal(SIGHUP, &sig_handler);
 	signal(SIGCHLD, &sig_handler);
 	signal(SIGINT, &sig_handler);
+	signal(SIGUSR1, &sig_handler);
 
 	/* Get our process id */
 	nsd.pid = getpid();
