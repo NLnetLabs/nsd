@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.12 2002/08/20 15:40:51 alexis Exp $
+# $Id: Makefile,v 1.69.2.13 2002/08/20 15:42:17 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -127,9 +127,9 @@ NSDNOTIFY	= ${NSDBINDIR}/nsd-notify
 #			to check if a particular peer is allowed to tranfer
 #			the zone.
 #
-#	-DLOG_NOTIFYS
+#	-DLOG_NOTIFIES
 #
-#			Log the incoming notify's along with the remote
+#			Log the incoming notifies along with the remote
 #			ip address.
 #
 #
