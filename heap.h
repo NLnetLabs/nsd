@@ -1,5 +1,5 @@
 /*
- * $Id: heap.h,v 1.14 2003/03/20 10:31:25 alexis Exp $
+ * $Id: heap.h,v 1.15 2003/07/01 13:18:33 erik Exp $
  *
  * heap.h -- generic heap
  *
@@ -41,28 +41,6 @@
 #ifndef _HEAP_H_
 #define	_HEAP_H_
 
-#define	USE_HEAP_RBTREE
-
-
-
-#if !defined(__P)
-#	if defined(__STDC__)
-#		define __P(protos)     protos          /* full-blown ANSI C */
-# 	else
-# 		define __P(protos)
-# 	endif
-#endif
-
-#ifndef	NULL
-#define	NULL	(void *)0
-#endif
-
-#if !defined(USE_HEAP_RBTREE) && !defined(USE_HEAP_HASH)
-#define	USE_HEAP_RBTREE
-#endif
-
-#if defined(USE_HEAP_RBTREE)
-
 #include "rbtree.h"
 
 #define	heap_t	rbtree_t
@@ -75,24 +53,5 @@
 #define	heap_next	rbtree_next
 #define	heap_last	rbtree_last
 #define	HEAP_WALK	RBTREE_WALK
-
-#else
-# if defined(USE_HEAP_HASH)
-
-#include "hash.h"
-
-#define	heap_t	hash_t
-#define	heap_create	hash_create
-#define	heap_insert	hash_insert
-#define	heap_search	hash_search
-#define	heap_delete	hash_delete
-#define	heap_destroy	hash_destroy
-#define	heap_first	hash_first
-#define	heap_next	hash_next
-#define	heap_last	hash_last
-#define	HEAP_WALK	HASH_WALK
-
-# endif
-#endif
 
 #endif /* _HEAP_H_ */

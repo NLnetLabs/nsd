@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.35 2003/06/26 11:27:16 erik Exp $
+ * $Id: namedb.h,v 1.36 2003/07/01 13:18:35 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -48,7 +48,6 @@
 
 #define	NAMEDB_DELEGATION	0x0001
 #define	NAMEDB_STEALTH		0x0002
-#define	NAMEDB_HASH_SIZE	65521
 
 #define	NAMEDB_AUTHMASK		0
 #define	NAMEDB_STARMASK		1

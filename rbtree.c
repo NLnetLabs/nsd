@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.c,v 1.14 2003/07/01 13:06:53 erik Exp $
+ * $Id: rbtree.c,v 1.15 2003/07/01 13:18:36 erik Exp $
  *
  * rbtree.c -- generic red black tree
  *
@@ -332,7 +332,6 @@ rbtree_next (rbnode_t *node)
 	return node;
 }
 
-/* void rbtree_delete __P((rbtree_t *, void *, int, int)); */
 void 
 rbtree_destroy (rbtree_t *rbtree, int freekeys, int freedata)
 {

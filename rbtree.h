@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.13 2003/06/16 15:13:16 erik Exp $
+ * $Id: rbtree.h,v 1.14 2003/07/01 13:18:37 erik Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -40,18 +40,6 @@
 
 #ifndef _RBTREE_H_
 #define	_RBTREE_H_
-
-#if !defined(__P)
-#	if defined(__STDC__)
-#		define __P(protos)     protos          /* full-blown ANSI C */
-# 	else
-# 		define __P(protos)
-# 	endif
-#endif
-
-#ifndef	NULL
-#define	NULL	(void *)0
-#endif
 
 typedef struct rbnode_t rbnode_t;
 struct rbnode_t {
