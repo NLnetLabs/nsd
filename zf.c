@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.6 2002/02/02 13:44:55 alexis Exp $
+ * $Id: zf.c,v 1.7 2002/02/02 21:45:24 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -112,7 +112,7 @@ strdname(s, o)
 
 	if(*s == '@' && *(s+1) == 0) {
 		for(p = dname, s = o; (u_char *)s < o + *o + 1; p++, s++)
-			*p = tolower(*s);
+			*p = NAMEDB_NORMALIZE(*s);
 	} else {
 		for(h = d, p = h + 1; *s; s++, p++) {
 			if(*s == '.') {
@@ -120,7 +120,7 @@ strdname(s, o)
 				*h = p - h - 1;
 				h = p;
 			} else {
-				*p = tolower(*s);
+				*p = NAMEDB_NORMALIZE(*s);
 			}
 		}
 		*h = p - h - 1;
@@ -128,7 +128,7 @@ strdname(s, o)
 		/* If not absolute, append origin... */
 		if((*(p-1) != 0) && (o != NULL)) {
 			for(s = o + 1; (u_char *)s < o + *o + 1; p++, s++)
-				*p = tolower(*s);
+				*p = NAMEDB_NORMALIZE(*s);
 		}
 
 		*dname = (u_char) (p - d);
@@ -156,7 +156,7 @@ dnamecmp(a, b)
 
 	while(alen && blen) {
 		a++; b++;
-		if((r = tolower(*a) - tolower(*b))) return r;
+		if((r = NAMEDB_NORMALIZE(*a) - NAMEDB_NORMALIZE(*b))) return r;
 		alen--; blen--;
 	}
 	return alen - blen;

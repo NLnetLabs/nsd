@@ -16,6 +16,15 @@ Type make
 
 XXX to be written
 
+2.2. Compile time options
+
+#define	NAMEDB_UPPERCASE
+
+	Tells nsd to use toupper() instead of tolower() to
+normalize the keys in the name database.
+
+USE_BERKELEY_DB
+
 3.0 Configuring nsd
 
 4.0 Running nsd

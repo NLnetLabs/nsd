@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.15 2002/01/31 15:35:13 alexis Exp $
+ * $Id: query.c,v 1.16 2002/02/02 21:45:24 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -231,7 +231,7 @@ query_process(q, db)
 		qdepth++;
 		*qnamelow++ = *qptr;
 		for(i = *qptr++; i; i--) {
-			*qnamelow++ = tolower(*qptr++);
+			*qnamelow++ = NAMEDB_NORMALIZE(*qptr++);
 		}
 	}
 	*qnamelow++ = *qptr++;
