@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.95 2003/03/20 11:28:32 alexis Exp $
+ * $Id: query.c,v 1.96 2003/04/22 11:08:59 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -67,6 +67,13 @@
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* HAVE_LIBWRAP */
+
+int
+query_filter (struct query *q) {
+	/* XXX Some matching/policy code is to be inserted here */
+
+	return 0;
+}
 
 int 
 query_axfr (struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int depth)
@@ -349,6 +356,11 @@ query_process (struct query *q, struct nsd *nsd)
 	struct domain *d;
 	struct answer *a;
 	int match;
+
+	/* Drop the query on the floor if bogus... */
+	if(query_filter(q) != 0) {
+		return -1;
+	}
 
 	/* Sanity checks */
 	if(QR(q))
