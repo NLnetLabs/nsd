@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.9.2.3 2002/08/06 11:56:54 alexis Exp $
+# $Id: nsdc.sh.in,v 1.9.2.4 2002/08/06 12:01:19 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -48,6 +48,7 @@ NSDFLAGS="@@NSDFLAGS@@"
 NSDPIDFILE="@@NSDPIDFILE@@"
 NSDDB="@@NSDDB@@"
 NSDZONES="@@NSDZONES@@"
+NAMEDXFER="@@NAMEDXFER@@"
 
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
@@ -82,10 +83,16 @@ rebuild)
 	exit ${result}
 	;;
 update)
+	#
+	if [ "x${NAMEDXFER}" = "x" ]
+	then
+		echo "no named-xfer program configured, aborting..."
+		exit 1
+	fi
+
 	# read the nsd.zones file
 	while read zonekw zone file masterskw masters
 	do	
-		echo $zonekw $masterskw
 		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
 		then
 			# now get the serial number

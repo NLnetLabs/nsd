@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.1 2002/08/06 11:54:28 alexis Exp $
+# $Id: Makefile,v 1.69.2.2 2002/08/06 12:01:19 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -53,6 +53,10 @@ NSDFLAGS        =
 #	or	id.gid
 #
 NSDUSER		= nobody
+
+# This has to be set to the path of named-xfer program from bind if you
+# want ``nsdc update'' functionality
+NAMEDXFER	= 
 
 #
 # Pathnames
@@ -172,7 +176,8 @@ nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
 	sed -e "s,@@NSDBINDIR@@,${NSDBINDIR},g" -e "s,@@NSDZONESDIR@@,${NSDZONESDIR},g" \
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
-		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" $@.in > $@
+		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" \
+		-e "s,@@NAMEDXFER@@,${NAMEDXFER},g" $@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
