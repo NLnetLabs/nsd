@@ -1,20 +1,23 @@
-The NSD was primarily developed by NLnet LABS on request from and close
+The NSD was primarily developed by NLnet Labs on request from and close
 cooperation with RIPE NCC, as an alternative name server software to be
 run on the root name server RIPE NCC operates.
 
 Below is the NSD team (nsd-team@nlnetlabs.nl) in alphabetical order:
 
-Alexis Yushin, <alexis@nlnetlabs.nl> NLnet LABS	- design and most of the code
+Alexis Yushin, <alexis@nlnetlabs.nl> NLnet Labs	- design and most of the code
 Daniel Karrenberg, <dfk@ripe.net> RIPE NCC	- design, major testing and bug reports
-Erik Rozendaal, <erik@nlnetlabs.nl> NLnet LABS	- code review, testing, improvements and patches
+Erik Rozendaal, <erik@nlnetlabs.nl> NLnet Labs	- code review, testing, improvements and patches
 Jaap Akkerhuis, <jaap@sidn.nl> SIDN NL		- consultancy, advice and company :)
-Miek Gieben, <miekg@nlnetlabs.nl> NLnet LABS	- testing and patches
+Miek Gieben, <miekg@nlnetlabs.nl> NLnet Labs	- testing and patches
 Olaf Kolkman, <olaf@ripe.net> RIPE NCC		- protocol purist, design, perl test implementation
-Ted Lindgreen, <ted@nlnetlabs.nl> NLnet LABS	- design, code review, testing
+Ronald van der Pol, <rvdp@nlnetlabs.nl> NLnet Labs
+                                                - code review, MacOS X portability, IPv6.
+Ted Lindgreen, <ted@nlnetlabs.nl> NLnet Labs	- design, code review, testing
 
 Contributors (in alphabetical order):
 
-Jun-ichiro itojun Hagino, <itojun@iijlab.net> IIJLab		- IPv6 transport
 Colm MacCárthaigh, <colm.maccarthaigh@heanet.ie>                - IPv6 binding and cleanups.
 Jakob Schlyter, <jakob@crt.se> Carlstedt Research & Technology	- chroot patch
+Jun-ichiro itojun Hagino, <itojun@iijlab.net> IIJLab		- IPv6 transport
 Ondrej Sury, <ondrej@sury.org>					- nsd-notify.8 man page
+Stephane Bortzmeyer, <bortzmeyer@nic.fr>                        - Tru64 portability.
