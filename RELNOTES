@@ -14,6 +14,7 @@ BUG FIXES:
           received.
         - Bug #70: First include all A records in the additional
           section, followed by AAAA records.
+        - LOC records are supported again.
 
 1.4.0-alpha1
 =============
