@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.2 2003/11/03 14:54:28 miekg Exp $
+ * $Id: zparser.y,v 1.3 2003/11/03 18:24:58 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -21,9 +21,6 @@
 /* these need to be global, otherwise they cannot be used inside yacc */
 zparser_type *current_parser;
 rr_type *current_rr;
-
-/* [XXX] should be local? */
-int progress = 10000;
 
 int yywrap(void);
 
@@ -72,11 +69,7 @@ uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 %%
 lines:  /* empty line */
     |   lines line
-    { if ( current_parser->line % progress == 0 )
-        printf("\nzonec: reading zone \"%s\": %lu\n", current_parser->filename,
-	       (unsigned long) current_parser->line);
-    }
-    |    error      { yyerrok; }
+    |   error      { yyerrok; }
     ;
 
 line:   NL

@@ -34,11 +34,11 @@ NSD consists of two programs: the zone compiler 'zonec' and the name
 server 'nsd' itself. The name server works with an intermediate
 database prepared by the zone compiler from standard zone files. Most
 of the complexity in preparing answers is dealt with in zonec, such
-that the processing nsd has to do per query is kept at the absolutely
+that the processing NSD has to do per query is kept at the absolutely
 necessary minimum.
 
-For nsd operation this means that zones have to be compiled by zonec
-before nsd can use them.
+For NSD operation this means that zones have to be compiled by zonec
+before NSD can use them.
 
 All this can be controlled by a simple control script called 'nsdc'
 which uses a simple configuration file.
@@ -90,7 +90,7 @@ Step 14: If desired add nsdc update to your superuser crontab to
 
 
 
-2.0 Building nsd
+2.0 Building NSD
 
 
 2.1 Unpacking the source

@@ -1,5 +1,5 @@
 .\"
-.\" $Id: zonec.8,v 1.16 2003/10/31 23:33:27 miekg Exp $
+.\" $Id: zonec.8,v 1.17 2003/11/03 18:24:58 miekg Exp $
 .\"
 .\" zonec.8 -- zonec manual
 .\"
@@ -42,12 +42,13 @@
 .Nd NSD Zone Compiler
 .Sh SYNOPSIS
 .Nm zonec
-.Op Fl p
 .Op Fl v
-.Op Fl o Ar origin
 .Op Fl h
+.Op Fl L
+.Op Fl F
 .Op Fl F Ar database
 .Op Fl D Ar directory
+.Op Fl o Ar origin
 .Ar nsd.zones
 .Sh DESCRIPTION
 .Ic Zonec
@@ -56,7 +57,15 @@ is the
 database compiler for creating name space databases from a set of
 input master zone files specified in
 .Ar nsd.zones
-file.
+file. If 
+.Ar nsd.zones 
+file equals
+.Ar -
+then all zone information is read from stdin. Making constructs like:
+
+.Ic cat zones* | ./zonec -f nsd.db -o example.net -
+
+possible.
 .Pp
 It is normally invoked via
 .Xr nsdc 8
@@ -81,11 +90,20 @@ Create the specified
 .Ar database
 instead of the default
 .Pa /etc/nsd/nsd.db
+.It Fl o Ar origin
+When reading from stdin use this as the first origin. When reading zone
+from 
+.Pa nsd.zones
+this option is ignored.
 .It Fl v
 Be verbose about the progress.  Specify multiple times for additional
 verbosity.
 .It Fl p
 Print every zone after it was parsed (useful for debugging purposes only)
+.It Fl L
+Set debug facilities
+.It Fl L
+Set debug level. (If compiled with --enable-checking.)
 .El
 .Sh FILE FORMAT
 The nsd.zones file is formatted as follows:

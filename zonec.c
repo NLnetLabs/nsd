@@ -942,6 +942,7 @@ zone_read (struct namedb *db, char *name, char *zonefile)
 
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
+		/* cannot happen with stdin - so no fix needed for zonefile */
 		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
 		return NULL;
 	}
@@ -966,6 +967,20 @@ usage (void)
 	fprintf(stderr, "\t-F\tSet debug facilities.\n");
 	fprintf(stderr, "\t-L\tSet debug level.\n");
 	exit(1);
+}
+
+int
+error(void)
+{
+	/* standard way of handling errors in zonec */
+
+}
+
+int
+warning(void)
+{
+	/* standard way of handling errors in zonec */
+
 }
 
 extern char *optarg;
@@ -1032,7 +1047,7 @@ main (int argc, char **argv)
 
 	/* Create the database */
 	if ((db = namedb_new(dbfile)) == NULL) {
-		fprintf(stderr, "zonec: error creating the database: %s\n", strerror(errno));
+		fprintf(stderr, "zonec: error creating the database: %s\n", dbfile);
 		exit(1);
 	}
 
@@ -1048,10 +1063,11 @@ main (int argc, char **argv)
 		if ((z = zone_read(db, nsd_stdin_origin, "-")) == NULL) {
 			totalerrors++;
 		}
-
+#ifndef NDEBUG
 		fprintf(stderr, "zone_region: ");
 		region_dump_stats(zone_region, stderr);
 		fprintf(stderr, "\n");
+#endif /* NDEBUG */
 	} else {
 		/* Open the master file... */
 		if ((f = fopen(*argv, "r")) == NULL) {
@@ -1095,10 +1111,11 @@ main (int argc, char **argv)
 			if ((z = zone_read(db, zonename, zonefile)) == NULL) {
 				totalerrors++;
 			}
-
+#ifndef NDEBUG
 			fprintf(stderr, "zone_region: ");
 			region_dump_stats(zone_region, stderr);
 			fprintf(stderr, "\n");
+#endif /* NDEBUG */
 		}
 	}
 
