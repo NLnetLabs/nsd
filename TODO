@@ -1,25 +1,22 @@
-$Id: TODO,v 1.46 2004/02/04 12:17:22 erik Exp $
+$Id: TODO,v 1.47 2004/02/11 11:12:36 erik Exp $
+
+NOTE: Some of these are probably out of date.
+
 
 AUTOCONF
 
 + check whether the --with-nsd-user exists in the system
-- check if libwrap needs nsl library.
 
 
 ZONE COMPILER
 ? memory allocation optimization is needed
-? as writing the zone the order should be DNS SEC compliant (use dnameinvert())
 - error diagnostic has to be improved a lot
-- add a check to make sure that the biggest answer in the database does not
-  exceed the query buffer
 - improve the strdname() routine
 + empty node should not cause NXDOMAIN
 - need to add unknown RR handling in grammar
-- remove quotes from quoted strings in lexer?
-- set yylval.type when handling quoted types?
-- handle lowercase IN, CH, CLASS1, etc?
 - unify dns type table (name, dns type, yacc token, rdata types)
 - unify dns class table (name, dns type, yacc token)
+- detect cname loops
 
 
 SERVER
