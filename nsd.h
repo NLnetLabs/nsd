@@ -113,7 +113,6 @@ struct	nsd {
 	unsigned        server_kind;
 	struct namedb	*db;
 	int		debug;
-	size_t		tcp_max_msglen;
 
 	size_t            child_count;
 	struct nsd_child *children;

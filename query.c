@@ -94,10 +94,8 @@ query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 }
 
 void
-query_clear_dname_offsets(struct query *q)
+query_clear_dname_offsets(struct query *q, size_t max_offset)
 {
-	uint16_t max_offset = q->packet->position;
-	
 	while (q->compressed_dname_count > 0
 	       && (q->compressed_dname_offsets[q->compressed_dnames[q->compressed_dname_count - 1]->number]
 		   >= max_offset))
@@ -147,7 +145,7 @@ query_error (struct query *q, int rcode)
 	
 	/* Truncate the question as well... */
 	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
-	buffer_seek(q->packet, QHEADERSZ);
+	buffer_set_position(q->packet, QHEADERSZ);
 }
 
 static void 
@@ -156,15 +154,32 @@ query_formerr (struct query *query)
 	query_error(query, RCODE_FORMAT);
 }
 
-void 
-query_init(struct query *q, region_type *region, 
-	   uint16_t *compressed_dname_offsets, size_t maxlen, int is_tcp)
+static void
+query_cleanup(void *data)
 {
-	q->region = region;
-	q->compressed_dname_offsets = compressed_dname_offsets;
+	query_type *query = (query_type *) data;
+	region_destroy(query->region);
+}
+
+query_type *
+query_create(region_type *region, uint16_t *compressed_dname_offsets)
+{
+	query_type *query = region_alloc_zero(region, sizeof(query_type));
+	query->region = region_create(xalloc, free);
+	query->compressed_dname_offsets = compressed_dname_offsets;
+	query->packet = buffer_create(region, QIOBUFSZ);
+	region_add_cleanup(region, query_cleanup, query);
+	return query;
+}
+
+void 
+query_reset(query_type *q, size_t maxlen, int is_tcp)
+{
+	region_free_all(q->region);
 	q->addrlen = sizeof(q->addr);
-	buffer_clear(q->packet);
 	q->maxlen = maxlen;
+	buffer_clear(q->packet);
+	buffer_set_limit(q->packet, maxlen);
 	q->edns = 0;
 	q->dnssec_ok = 0;
 	q->tcp = is_tcp;
@@ -199,8 +214,11 @@ query_addtxt(struct query  *q,
 	assert(txt_length <= UCHAR_MAX);
 	
 	/* Add the dname */
-	if (dname >= q->packet->data && dname <= q->packet->data + q->packet->position) {
-		buffer_write_u16(q->packet, 0xc000 | (dname - q->packet->data));
+	if (dname >= buffer_begin(q->packet)
+	    && dname <= buffer_current(q->packet))
+	{
+		buffer_write_u16(q->packet,
+				 0xc000 | (dname - buffer_begin(q->packet)));
 	} else {
 		buffer_write(q->packet, dname + 1, *dname);
 	}
@@ -370,7 +388,9 @@ process_edns (struct query *q, uint8_t *qptr)
 #endif
 
 				/* Strip the OPT resource record off... */
-				q->packet->limit = qptr - q->packet->data;
+				buffer_set_limit(
+					q->packet,
+					qptr - buffer_begin(q->packet));
 				ARCOUNT(q) = 0;
 
 				DEBUG(DEBUG_QUERY, 2,
@@ -432,7 +452,7 @@ answer_chaos(struct nsd *nsd, struct query *q)
 		{
 			/* Add ID */
 			query_addtxt(q,
-				     q->packet->data + QHEADERSZ,
+				     buffer_begin(q->packet) + QHEADERSZ,
 				     CLASS_CHAOS,
 				     0,
 				     nsd->identity);
@@ -444,7 +464,7 @@ answer_chaos(struct nsd *nsd, struct query *q)
 		{
 			/* Add version */
 			query_addtxt(q,
-				     q->packet->data + QHEADERSZ,
+				     buffer_begin(q->packet) + QHEADERSZ,
 				     CLASS_CHAOS,
 				     0,
 				     nsd->version);
@@ -954,8 +974,7 @@ query_process(struct query *q, struct nsd *nsd)
 
 	/* Dont bother to answer more than one question at once... */
 	if (ntohs(QDCOUNT(q)) != 1 || TC(q)) {
-		*(uint16_t *)(q->packet->data + 2) = 0;
-
+		buffer_write_u16_at(q->packet, 2, 0);
 		query_formerr(q);
 		return QUERY_PROCESSED;
 	}
@@ -984,10 +1003,10 @@ query_process(struct query *q, struct nsd *nsd)
 	checking_disabled = CD(q);
 
 	buffer_clear(q->packet);
-	buffer_seek(q->packet, qptr - q->packet->data);
+	buffer_set_position(q->packet, qptr - buffer_begin(q->packet));
 	
 	/* Zero the flags... */
-	*(uint16_t *)(q->packet->data + 2) = 0;
+	buffer_write_u16_at(q->packet, 2, 0);
 	
 	QR_SET(q);		/* This is an answer */
 	if (recursion_desired)

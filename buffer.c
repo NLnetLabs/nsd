@@ -18,12 +18,12 @@ buffer_create(region_type *region, size_t capacity)
 	if (!buffer)
 		return NULL;
 	
-	buffer->data = region_alloc(region, capacity);
-	if (!buffer->data)
+	buffer->_data = region_alloc(region, capacity);
+	if (!buffer->_data)
 		return NULL;
 	
-	buffer->position = 0;
-	buffer->limit = buffer->capacity = capacity;
+	buffer->_position = 0;
+	buffer->_limit = buffer->_capacity = capacity;
 
 	buffer_invariant(buffer);
 	
@@ -39,9 +39,9 @@ buffer_create_from(region_type *region, void *data, size_t size)
 
 	assert(data);
 
-	buffer->position = 0;
-	buffer->limit = buffer->capacity = size;
-	buffer->data = data;
+	buffer->_position = 0;
+	buffer->_limit = buffer->_capacity = size;
+	buffer->_data = data;
 
 	buffer_invariant(buffer);
 	
@@ -53,8 +53,8 @@ buffer_clear(buffer_type *buffer)
 {
 	buffer_invariant(buffer);
 	
-	buffer->position = 0;
-	buffer->limit = buffer->capacity;
+	buffer->_position = 0;
+	buffer->_limit = buffer->_capacity;
 }
 
 void
@@ -62,8 +62,8 @@ buffer_flip(buffer_type *buffer)
 {
 	buffer_invariant(buffer);
 	
-	buffer->limit = buffer->position;
-	buffer->position = 0;
+	buffer->_limit = buffer->_position;
+	buffer->_position = 0;
 }
 
 void
@@ -71,5 +71,5 @@ buffer_rewind(buffer_type *buffer)
 {
 	buffer_invariant(buffer);
 	
-	buffer->position = 0;
+	buffer->_position = 0;
 }

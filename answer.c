@@ -88,7 +88,7 @@ static void
 encode_dname(struct query *q, domain_type *domain)
 {
 	while (domain->parent && query_get_dname_offset(q, domain) == 0) {
-		query_put_dname_offset(q, domain, q->packet->position);
+		query_put_dname_offset(q, domain, buffer_position(q->packet));
 		DEBUG(DEBUG_NAME_COMPRESSION, 1,
 		      (stderr, "dname: %s, number: %lu, offset: %u\n",
 		       dname_to_string(domain_dname(domain)),
@@ -128,7 +128,7 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	 * If the record does not in fit in the packet the packet size
 	 * will be restored to the mark.
 	 */
-	truncation_mark = q->packet->position;
+	truncation_mark = buffer_position(q->packet);
 	
 	encode_dname(q, owner);
 	buffer_write_u16(q->packet, rrset->type);
@@ -136,7 +136,7 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	buffer_write_u32(q->packet, rrset->rrs[rr]->ttl);
 
 	/* Reserve space for rdlength. */
-	rdlength_pos = q->packet->position;
+	rdlength_pos = buffer_position(q->packet);
 	buffer_skip(q->packet, sizeof(rdlength));
 
 	for (j = 0; j < rrset->rrs[rr]->rdata_count; ++j) {
@@ -162,12 +162,13 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	}
 
 	if (!query_overflow(q)) {
-		rdlength = q->packet->position - rdlength_pos - sizeof(rdlength);
+		rdlength = (buffer_position(q->packet) - rdlength_pos
+			    - sizeof(rdlength));
 		buffer_write_u16_at(q->packet, rdlength_pos, rdlength);
 		return 1;
 	} else {
-		buffer_seek(q->packet, truncation_mark);
-		query_clear_dname_offsets(q);
+		buffer_set_position(q->packet, truncation_mark);
+		query_clear_dname_offsets(q, truncation_mark);
 		assert(!query_overflow(q));
 		return 0;
 	}
@@ -185,7 +186,7 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 	
 	assert(rrset->rrslen > 0);
 
-	truncation_mark = q->packet->position;
+	truncation_mark = buffer_position(q->packet);
 	
 	for (i = 0; i < rrset->rrslen; ++i) {
 		if (encode_rr(q, owner, rrset, i)) {
@@ -194,10 +195,10 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 			all_added = 0;
 			if (truncate) {
 				/* Truncate entire RRset and set truncate flag.  */
-				buffer_seek(q->packet, truncation_mark);
+				buffer_set_position(q->packet, truncation_mark);
+				query_clear_dname_offsets(q, truncation_mark);
 				TC_SET(q);
 				added = 0;
-				query_clear_dname_offsets(q);
 			}
 			break;
 		}
@@ -217,10 +218,10 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 					all_added = 0;
 					if (truncate) {
 						/* Truncate entire RRset and set truncate flag.  */
-						buffer_seek(q->packet, truncation_mark);
+						buffer_set_position(q->packet, truncation_mark);
+						query_clear_dname_offsets(q, truncation_mark);
 						TC_SET(q);
 						added = 0;
-						query_clear_dname_offsets(q);
 					}
 					break;
 				}

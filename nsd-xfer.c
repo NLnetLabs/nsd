@@ -101,29 +101,29 @@ skip_dname(buffer_type *packet)
 	int done = 0;
 	const uint8_t *label;
 	uint8_t visited[MAX_PACKET_SIZE];
-	size_t mark = packet->position;
+	size_t mark = buffer_position(packet);
 	
-	memset(visited, 0, packet->limit);
+	memset(visited, 0, buffer_limit(packet));
 	
 	while (!done) {
 		if (!buffer_available(packet, 1)) {
 			error("dname out of bounds");
-			buffer_seek(packet, mark);
+			buffer_set_position(packet, mark);
 			return 0;
 		}
 
-		if (visited[packet->position]) {
+		if (visited[buffer_position(packet)]) {
 			error("dname loops");
-			buffer_seek(packet, mark);
+			buffer_set_position(packet, mark);
 			return 0;
 		}
-		visited[packet->position] = 1;
+		visited[buffer_position(packet)] = 1;
 
 		label = buffer_current(packet);
 		if (label_is_pointer(label)) {
 			if (!buffer_available(packet, 2)) {
 				error("dname out of bounds");
-				buffer_seek(packet, mark);
+				buffer_set_position(packet, mark);
 				return 0;
 			}
 			buffer_skip(packet, 2);
@@ -135,13 +135,13 @@ skip_dname(buffer_type *packet)
 			size_t length = label_length(label) + 1;
 			if (!buffer_available(packet, length)) {
 				error("dname out of bounds");
-				buffer_seek(packet, mark);
+				buffer_set_position(packet, mark);
 				return 0;
 			}
 			buffer_skip(packet, length);
 		} else {
 			error("bad dname label");
-			buffer_seek(packet, mark);
+			buffer_set_position(packet, mark);
 			return 0;
 		}
 	}
@@ -157,62 +157,62 @@ parse_dname(region_type *region, buffer_type *packet)
 	uint8_t visited[MAX_PACKET_SIZE];
 	size_t dname_length = 0;
 	const uint8_t *label;
-	size_t mark = packet->position;
+	size_t mark = buffer_position(packet);
 	
-	memset(visited, 0, packet->limit);
+	memset(visited, 0, buffer_limit(packet));
 	
 	while (!done) {
 		if (!buffer_available(packet, 1)) {
 			error("dname out of bounds");
-			buffer_seek(packet, mark);
+			buffer_set_position(packet, mark);
 			return NULL;
 		}
 
-		if (visited[packet->position]) {
+		if (visited[buffer_position(packet)]) {
 			error("dname loops");
-			buffer_seek(packet, mark);
+			buffer_set_position(packet, mark);
 			return NULL;
 		}
-		visited[packet->position] = 1;
+		visited[buffer_position(packet)] = 1;
 
 		label = buffer_current(packet);
 		if (label_is_pointer(label)) {
 			size_t pointer;
 			if (!buffer_available(packet, 2)) {
 				error("dname pointer out of bounds");
-				buffer_seek(packet, mark);
+				buffer_set_position(packet, mark);
 				return NULL;
 			}
 			pointer = label_pointer_location(label);
 			if (!buffer_available_at(packet, pointer, 0)) {
 				error("dname pointer points outside packet");
-				buffer_seek(packet, mark);
+				buffer_set_position(packet, mark);
 				return NULL;
 			}
-			buffer_seek(packet, pointer);
+			buffer_set_position(packet, pointer);
 		} else if (label_is_normal(label)) {
 			size_t length = label_length(label) + 1;
 			done = label_is_root(label);
 			if (!buffer_available(packet, length)) {
 				error("dname label out of bounds");
-				buffer_seek(packet, mark);
+				buffer_set_position(packet, mark);
 				return NULL;
 			}
 			if (dname_length + length >= sizeof(buf)) {
 				error("dname too large");
-				buffer_seek(packet, mark);
+				buffer_set_position(packet, mark);
 				return NULL;
 			}
 			buffer_read(packet, buf + dname_length, length);
 			dname_length += length;
 		} else {
 			error("bad label type");
-			buffer_seek(packet, mark);
+			buffer_set_position(packet, mark);
 			return NULL;
 		}
 	}
 
-	buffer_seek(packet, mark);
+	buffer_set_position(packet, mark);
 	return dname_make(region, buf);
 }
 
@@ -225,7 +225,7 @@ print_rr(region_type *region, buffer_type *packet, FILE *out,
 	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(rrtype);
 	const dname_type *dname;
 	char buf[100];
-	size_t end = packet->position + rdlength;
+	size_t end = buffer_position(packet) + rdlength;
 	size_t length;
 	
 	if (!buffer_available(packet, rdlength)) {
@@ -247,7 +247,7 @@ print_rr(region_type *region, buffer_type *packet, FILE *out,
 	}
 
 	for (i = 0; i < descriptor->maximum; ++i) {
-		if (packet->position >= end) {
+		if (buffer_position(packet) >= end) {
 			if (i < descriptor->minimum) {
 				error("RDATA is not complete");
 				return 0;
@@ -386,7 +386,7 @@ do_axfr(int s, struct query *q, FILE *out)
 {
 	int done = 0;
 	int first = 1;
-	uint16_t size = htons(q->packet->limit);
+	uint16_t size = htons(buffer_remaining(q->packet));
 	uint16_t query_id = ID(q);
 	
 	assert(q->maxlen <= QIOBUFSZ);
@@ -395,7 +395,7 @@ do_axfr(int s, struct query *q, FILE *out)
 		error("failed to send query size: %s", strerror(errno));
 		return 0;
 	}
-	if (!write_socket(s, buffer_begin(q->packet), q->packet->limit)) {
+	if (!write_socket(s, buffer_current(q->packet), buffer_remaining(q->packet))) {
 		error("failed to send query data: %s", strerror(errno));
 		return 0;
 	}

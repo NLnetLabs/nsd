@@ -437,7 +437,6 @@ main (int argc, char *argv[])
 		nodes[i] = NULL;
 	}
 
-	nsd.tcp_max_msglen = TCP_MAX_MESSAGE_LEN;
 	nsd.identity	= IDENTITY;
 	nsd.version	= VERSION;
 	nsd.username	= USER;

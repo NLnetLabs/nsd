@@ -79,7 +79,7 @@ struct udp_handler_data
 {
 	struct nsd        *nsd;
 	struct nsd_socket *socket;
-	struct query       query;
+	query_type        *query;
 };
 
 /*
@@ -89,7 +89,6 @@ struct udp_handler_data
 struct tcp_accept_handler_data {
 	struct nsd         *nsd;
 	struct nsd_socket  *socket;
-	region_type        *query_region;
 	size_t              tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
 };
@@ -124,7 +123,7 @@ struct tcp_handler_data
 	/*
 	 * The current query data for this TCP connection.
 	 */
-	struct query     query;
+	query_type      *query;
 
 	/*
 	 * These fields are used to enable the TCP accept handlers
@@ -622,7 +621,6 @@ server_child(struct nsd *nsd)
 	sigset_t block_sigmask;
 	sigset_t default_sigmask;
 	region_type *server_region = region_create(xalloc, free);
-	region_type *query_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type *tcp_accept_handlers;
 	
@@ -659,9 +657,8 @@ server_child(struct nsd *nsd)
 			data = (struct udp_handler_data *) region_alloc(
 				server_region,
 				sizeof(struct udp_handler_data));
-			data->query.region = query_region;
-			data->query.packet
-				= buffer_create(server_region, QIOBUFSZ);
+			data->query = query_create(
+				server_region, compressed_dname_offsets);
 			data->nsd = nsd;
 			data->socket = &nsd->udp[i];
 
@@ -691,7 +688,6 @@ server_child(struct nsd *nsd)
 			data = (struct tcp_accept_handler_data *) region_alloc(
 				server_region,
 				sizeof(struct tcp_accept_handler_data));
-			data->query_region = query_region;
 			data->nsd = nsd;
 			data->socket = &nsd->tcp[i];
 			data->tcp_accept_handler_count = nsd->ifs;
@@ -735,7 +731,6 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
-	region_destroy(query_region);
 	region_destroy(server_region);
 	
 	server_shutdown(nsd);
@@ -750,7 +745,7 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 	struct udp_handler_data *data
 		= (struct udp_handler_data *) handler->user_data;
 	int received, sent;
-	struct query *q = &data->query;
+	struct query *q = data->query;
 	
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
@@ -764,11 +759,15 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 	}
 
 	/* Initialize the query... */
-	query_init(q, q->region, compressed_dname_offsets, UDP_MAX_MESSAGE_LEN,
-		   0);
-	q->tcp = 0;
-	
-	if ((received = recvfrom(handler->fd, q->packet->data, MAX_PACKET_SIZE, 0, (struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
+	query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
+
+	received = recvfrom(handler->fd,
+			    buffer_begin(q->packet),
+			    buffer_remaining(q->packet),
+			    0,
+			    (struct sockaddr *)&q->addr,
+			    &q->addrlen);
+	if (received == -1) {
 		if (errno != EAGAIN && errno != EINTR) {
 			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
 			STATUP(data->nsd, rxerr);
@@ -785,12 +784,18 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 			query_addedns(q, data->nsd);
 
 			buffer_flip(q->packet);
-		
-			if ((sent = sendto(handler->fd, q->packet->data, q->packet->limit, 0, (struct sockaddr *)&q->addr, q->addrlen)) == -1) {
+
+			sent = sendto(handler->fd,
+				      buffer_begin(q->packet),
+				      buffer_remaining(q->packet),
+				      0,
+				      (struct sockaddr *) &q->addr,
+				      q->addrlen);
+			if (sent == -1) {
 				log_msg(LOG_ERR, "sendto failed: %s", strerror(errno));
 				STATUP(data->nsd, txerr);
-			} else if ((size_t) sent != q->packet->limit) {
-				log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) q->packet->limit);
+			} else if ((size_t) sent != buffer_remaining(q->packet)) {
+				log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) buffer_remaining(q->packet));
 			} else {
 #ifdef BIND8_STATS
 				/* Account the rcode & TC... */
@@ -803,8 +808,6 @@ handle_udp(netio_type *netio ATTR_UNUSED,
 			STATUP(data->nsd, dropped);
 		}
 	}
-	
-	region_free_all(q->region);
 }
 
 
@@ -829,7 +832,6 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 	--data->nsd->current_tcp_count;
 	assert(data->nsd->current_tcp_count >= 0);
 
-	region_free_all(data->query.region);
 	region_destroy(data->region);
 }
 
@@ -841,7 +843,6 @@ handle_tcp_reading(netio_type *netio,
 	struct tcp_handler_data *data
 		= (struct tcp_handler_data *) handler->user_data;
 	ssize_t received;
-	struct query *q = &data->query;
 
 	if (event_types & NETIO_EVENT_TIMEOUT) {
 		/* Connection timed out.  */
@@ -851,16 +852,24 @@ handle_tcp_reading(netio_type *netio,
 
 	assert(event_types & NETIO_EVENT_READ);
 
+	if (data->bytes_transmitted == 0) {
+		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
+	}
+
 	/*
 	 * Check if we received the leading packet length bytes yet.
 	 */
-	if (data->bytes_transmitted < sizeof(q->tcplen)) {
+	if (data->bytes_transmitted < sizeof(uint16_t)) {
 		received = read(handler->fd,
-				(char *) &q->tcplen + data->bytes_transmitted,
-				sizeof(q->tcplen) - data->bytes_transmitted);
+				(char *) &data->query->tcplen
+				+ data->bytes_transmitted,
+				sizeof(uint16_t) - data->bytes_transmitted);
 		if (received == -1) {
 			if (errno == EAGAIN || errno == EINTR) {
-				/* Read would block, wait until more data is available.  */
+				/*
+				 * Read would block, wait until more
+				 * data is available.
+				 */
 				return;
 			} else {
 				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
@@ -874,7 +883,7 @@ handle_tcp_reading(netio_type *netio,
 		}
 
 		data->bytes_transmitted += received;
-		if (data->bytes_transmitted < sizeof(q->tcplen)) {
+		if (data->bytes_transmitted < sizeof(uint16_t)) {
 			/*
 			 * Not done with the tcplen yet, wait for more
 			 * data to become available.
@@ -882,10 +891,10 @@ handle_tcp_reading(netio_type *netio,
 			return;
 		}
 
-		assert(data->bytes_transmitted == sizeof(q->tcplen));
+		assert(data->bytes_transmitted == sizeof(uint16_t));
 
-		q->tcplen = ntohs(q->tcplen);
-
+		data->query->tcplen = ntohs(data->query->tcplen);
+		
 		/*
 		 * Minimum query size is:
 		 *
@@ -894,28 +903,33 @@ handle_tcp_reading(netio_type *netio,
 		 *   + Query class        (2)
 		 *   + Query type         (2)
 		 */
-		if (q->tcplen < QHEADERSZ + 1 + sizeof(uint16_t) + sizeof(uint16_t)) {
+		if (data->query->tcplen < QHEADERSZ + 1 + sizeof(uint16_t) + sizeof(uint16_t)) {
 			log_msg(LOG_WARNING, "dropping bogus tcp connection");
 			cleanup_tcp_handler(netio, handler);
 			return;
 		}
 
-		if (q->tcplen > q->maxlen) {
+		if (data->query->tcplen > data->query->maxlen) {
 			log_msg(LOG_ERR, "insufficient tcp buffer, dropping connection");
 			cleanup_tcp_handler(netio, handler);
 			return;
 		}
+
+		buffer_set_limit(data->query->packet, data->query->tcplen);
 	}
 
-	assert(data->bytes_transmitted < q->tcplen + sizeof(q->tcplen));
+	assert(buffer_remaining(data->query->packet) > 0);
 
 	/* Read the (remaining) query data.  */
 	received = read(handler->fd,
-			q->packet->data + q->packet->position,
-			q->tcplen - q->packet->position);
+			buffer_current(data->query->packet),
+			buffer_remaining(data->query->packet));
 	if (received == -1) {
 		if (errno == EAGAIN || errno == EINTR) {
-			/* Read would block, wait until more data is available.  */
+			/*
+			 * Read would block, wait until more data is
+			 * available.
+			 */
 			return;
 		} else {
 			log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
@@ -929,8 +943,8 @@ handle_tcp_reading(netio_type *netio,
 	}
 
 	data->bytes_transmitted += received;
-	buffer_skip(q->packet, received);
-	if (q->packet->position < q->tcplen) {
+	buffer_skip(data->query->packet, received);
+	if (buffer_remaining(data->query->packet) > 0) {
 		/*
 		 * Message not yet complete, wait for more data to
 		 * become available.
@@ -938,27 +952,27 @@ handle_tcp_reading(netio_type *netio,
 		return;
 	}
 
-	assert(q->packet->position == q->tcplen);
+	assert(buffer_position(data->query->packet) == data->query->tcplen);
 
 	/* We have a complete query, process it.  */
 
-	buffer_flip(q->packet);
-	data->query_state = process_query(data->nsd, q);
+	buffer_flip(data->query->packet);
+	data->query_state = process_query(data->nsd, data->query);
 	if (data->query_state == QUERY_DISCARDED) {
 		/* Drop the entire connection... */
 		cleanup_tcp_handler(netio, handler);
 		return;
 	}
 
-	if (RCODE(q) == RCODE_OK && !AA(q)) {
+	if (RCODE(data->query) == RCODE_OK && !AA(data->query)) {
 		STATUP(data->nsd, nona);
 	}
 		
-	query_addedns(q, data->nsd);
+	query_addedns(data->query, data->nsd);
 
 	/* Switch to the tcp write handler.  */
-	buffer_flip(q->packet);
-	q->tcplen = q->packet->limit;
+	buffer_flip(data->query->packet);
+	data->query->tcplen = buffer_remaining(data->query->packet);
 	data->bytes_transmitted = 0;
 	
 	handler->timeout->tv_sec = TCP_TIMEOUT;
@@ -977,7 +991,7 @@ handle_tcp_writing(netio_type *netio,
 	struct tcp_handler_data *data
 		= (struct tcp_handler_data *) handler->user_data;
 	ssize_t sent;
-	struct query *q = &data->query;
+	struct query *q = data->query;
 
 	if (event_types & NETIO_EVENT_TIMEOUT) {
 		/* Connection timed out.  */
@@ -1022,8 +1036,8 @@ handle_tcp_writing(netio_type *netio,
 	assert(data->bytes_transmitted < q->tcplen + sizeof(q->tcplen));
 
 	sent = write(handler->fd,
-		     q->packet->data + data->bytes_transmitted - sizeof(q->tcplen),
-		     q->packet->limit - data->bytes_transmitted + sizeof(q->tcplen));
+		     buffer_current(q->packet),
+		     buffer_remaining(q->packet));
 	if (sent == -1) {
 		if (errno == EAGAIN || errno == EINTR) {
 			/*
@@ -1038,6 +1052,7 @@ handle_tcp_writing(netio_type *netio,
 		}
 	}
 
+	buffer_skip(q->packet, sent);
 	data->bytes_transmitted += sent;
 	if (data->bytes_transmitted < q->tcplen + sizeof(q->tcplen)) {
 		/*
@@ -1056,7 +1071,7 @@ handle_tcp_writing(netio_type *netio,
 		if (data->query_state != QUERY_PROCESSED) {
 			/* Reset data. */
 			buffer_flip(q->packet);
-			q->tcplen = q->packet->limit;
+			q->tcplen = buffer_remaining(q->packet);
 			data->bytes_transmitted = 0;
 			/* Reset timeout.  */
 			handler->timeout->tv_sec = TCP_TIMEOUT;
@@ -1075,13 +1090,6 @@ handle_tcp_writing(netio_type *netio,
 	 * Done sending, wait for the next request to arrive on the
 	 * TCP socket by installing the TCP read handler.
 	 */
-	region_free_all(data->query.region);
-	
-	query_init(&data->query,
-		   data->query.region,
-		   data->query.compressed_dname_offsets,
-		   data->query.maxlen,
-		   1);
 	data->bytes_transmitted = 0;
 	
 	handler->timeout->tv_sec = TCP_TIMEOUT;
@@ -1152,26 +1160,17 @@ handle_tcp_accept(netio_type *netio,
 	tcp_region = region_create(xalloc, free);
 	tcp_data = (struct tcp_handler_data *) region_alloc(
 		tcp_region, sizeof(struct tcp_handler_data));
-	tcp_data->query.region = data->query_region;
-	tcp_data->query.packet = buffer_create(tcp_region, QIOBUFSZ);
 	tcp_data->region = tcp_region;
+	tcp_data->query = query_create(tcp_region, compressed_dname_offsets);
 	tcp_data->nsd = data->nsd;
 	
-	query_init(&tcp_data->query,
-		   data->query_region,
-		   compressed_dname_offsets,
-		   (MAX_PACKET_SIZE < data->nsd->tcp_max_msglen
-		    ? MAX_PACKET_SIZE
-		    : data->nsd->tcp_max_msglen),
-		   1);
-
 	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;
 	tcp_data->tcp_accept_handlers = data->tcp_accept_handlers;
 
 	tcp_data->query_state = QUERY_PROCESSED;
 	tcp_data->bytes_transmitted = 0;
-	memcpy(&tcp_data->query.addr, &addr, addrlen);
-	tcp_data->query.addrlen = addrlen;
+	memcpy(&tcp_data->query->addr, &addr, addrlen);
+	tcp_data->query->addrlen = addrlen;
 	
 	tcp_handler = (netio_handler_type *) region_alloc(
 		tcp_region, sizeof(netio_handler_type));

@@ -161,7 +161,9 @@ main (int argc, char *argv[])
 			/* WE ARE READY SEND IT OUT */
 
 			buffer_flip(q.packet);
-			if (sendto(udp_s, q.packet->data, q.packet->limit, 0,
+			if (sendto(udp_s,
+				   buffer_current(q.packet),
+				   buffer_remaining(q.packet), 0,
 				   res->ai_addr, res->ai_addrlen) == -1)
 			{
 				fprintf(stderr,
