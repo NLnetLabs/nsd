@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.83 2003/03/20 10:31:25 alexis Exp $
+ * $Id: zonec.c,v 1.84 2003/03/20 11:28:32 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -449,7 +449,7 @@ zone_read (char *name, char *zonefile)
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
 	if(dnamecmp(z->dname, (u_char *)"\001") == 0) {
-		fprintf(stderr, "zonec: Not configured as a root server. See documentation\n");
+		fprintf(stderr, "zonec: Not configured as a root server. See the documentation.\n");
 		zone_free(z);
 		return NULL;
 	}

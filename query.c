@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.94 2003/03/20 10:31:25 alexis Exp $
+ * $Id: query.c,v 1.95 2003/03/20 11:28:32 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -292,7 +292,7 @@ query_addanswer (struct query *q, u_char *dname, struct answer *a, int trunc)
 	if(q->maxlen < (q->iobufptr - q->iobuf + ANSWER_DATALEN(a))) {
 
 		/* Start with the additional section, record by record... */
-		for(i = ntohs(ANSWER_ARCOUNT(a)) - 1, j = ANSWER_RRSLEN(a) - 2; i > 0 && j > 0; j--, i--) {
+		for(i = ntohs(ANSWER_ARCOUNT(a)), j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
 			if(q->maxlen >= (q->iobufptr - q->iobuf + ANSWER_RRS(a, j - 1))) {
 				/* Make sure we remove the entire RRsets... */
 				while(ANSWER_RRS_COLOR(a, j - 1) == ANSWER_RRS_COLOR(a, j - 2)) {

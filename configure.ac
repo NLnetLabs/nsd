@@ -205,11 +205,11 @@ dnl Features
 dnl
 AC_ARG_ENABLE(root-server, AC_HELP_STRING([--enable-root-server], [Configure NSD as a root server]))
 case "$enable_root_server" in
-        no|*)
-                ;;
         yes)
 		AC_DEFINE_UNQUOTED([ROOT_SERVER], [], [Define this to configure as a root server.])
 		;;
+        no|*)
+                ;;
 esac
 
 AC_ARG_ENABLE(ipv6, AC_HELP_STRING([--enable-ipv6], [Enables IPv6 support]))
