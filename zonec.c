@@ -812,8 +812,9 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 	memcpy(t, &prefix, sizeof(prefix));
 	t += sizeof(prefix);
 	memcpy(t, &length, sizeof(length));
-	if (negated)
-		*t |= 0x80;
+	if (negated) {
+		*t |= APL_NEGATION_MASK;
+	}
 	t += sizeof(length);
 	memcpy(t, address, length);
 
