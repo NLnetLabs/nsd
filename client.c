@@ -46,51 +46,6 @@
 
 #define SERIAL_BITS      32
 
-/*
- * Exit codes are based on named-xfer for now.  See ns_defs.h in
- * bind8.
- */
-enum nsd_xfer_exit_codes
-{
-	XFER_UPTODATE = 0,
-	XFER_SUCCESS  = 1,
-	XFER_FAIL     = 3
-};
-
-struct axfr_state
-{
-	int verbose;
-	size_t packets_received;
-	size_t bytes_received;
-
-	int s;			/* AXFR socket.  */
-	query_type *q;		/* Query buffer.  */
-	uint16_t query_id;	/* AXFR query ID.  */
-	tsig_record_type *tsig;	/* TSIG data.  */
-
-	int first_transfer;	 /* First transfer of this zone.  */
-	uint32_t last_serial;    /* Otherwise the last serial.  */
-	uint32_t zone_serial;	 /* And the new zone serial.  */
-	const dname_type *zone;	 /* Zone name.  */
-
-	int    done;		/* AXFR is complete.  */
-	size_t rr_count;	/* Number of RRs received so far.  */
-
-	/*
-	 * Region used to allocate data needed to process a single RR.
-	 */
-	region_type *rr_region;
-
-	/*
-	 * Region used to store owner and origin of previous RR (used
-	 * for pretty printing of zone data).
-	 */
-	region_type *previous_owner_region;
-	const dname_type *previous_owner;
-	const dname_type *previous_owner_origin;
-};
-typedef struct axfr_state axfr_state_type;
-
 static sig_atomic_t timeout_flag = 0;
 static void to_alarm(int sig);		/* our alarm() signal handler */
 
@@ -102,35 +57,6 @@ static uint16_t init_query(query_type *q,
 			   uint16_t type,
 			   uint16_t klass,
 			   tsig_record_type *tsig);
-
-/*
- * Log an error message and exit.
- */
-static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-static void
-error(const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	log_vmsg(LOG_ERR, format, args);
-	va_end(args);
-	exit(XFER_FAIL);
-}
-
-
-/*
- * Log a warning message.
- */
-static void warning(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-static void
-warning(const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	log_vmsg(LOG_WARNING, format, args);
-	va_end(args);
-}
-
 
 /*
  * Signal handler for timeouts (SIGALRM). This function is called when
@@ -154,122 +80,10 @@ cleanup_addrinfo(void *data)
 }
 
 /*
- * Read a line from IN.  If successful, the line is stripped of
- * leading and trailing whitespace and non-zero is returned.
- */
-static int
-read_line(FILE *in, char *line, size_t size)
-{
-	if (!fgets(line, size, in)) {
-		return 0;
-	} else {
-		strip_string(line);
-		return 1;
-	}
-}
-
-static tsig_key_type *
-read_tsig_key_data(region_type *region, FILE *in, int default_family)
-{
-	char line[4000];
-	tsig_key_type *key = (tsig_key_type *) region_alloc(
-		region, sizeof(tsig_key_type));
-	struct addrinfo hints;
-	int gai_rc;
-	int size;
-	uint8_t data[4000];
-
-	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key server address: '%s'",
-		      strerror(errno));
-		return NULL;
-	}
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags |= AI_NUMERICHOST;
-	hints.ai_family = default_family;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	gai_rc = getaddrinfo(line, NULL, &hints, &key->server);
-	if (gai_rc) {
-		error("cannot parse address '%s': %s",
-		      line,
-		      gai_strerror(gai_rc));
-		return NULL;
-	}
-
-	region_add_cleanup(region, cleanup_addrinfo, key->server);
-
-	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key name: '%s'", strerror(errno));
-		return NULL;
-	}
-
-	key->name = dname_parse(region, line);
-	if (!key->name) {
-		error("failed to parse TSIG key name '%s'", line);
-		return NULL;
-	}
-
-	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key type: '%s'", strerror(errno));
-		return NULL;
-	}
-
-	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key data: '%s'\n", strerror(errno));
-		return NULL;
-	}
-
-	size = b64_pton(line, data, sizeof(data));
-	if (size == -1) {
-		error("failed to parse TSIG key data");
-		return NULL;
-	}
-
-	key->size = size;
-	key->data = (uint8_t *) region_alloc_init(region, data, key->size);
-
-	return key;
-}
-
-/*
- * Read the TSIG key from a .tsiginfo file and remove the file.
- */
-static tsig_key_type *
-read_tsig_key(region_type *region,
-	      const char *tsiginfo_filename,
-	      int default_family)
-{
-	FILE *in;
-	tsig_key_type *key;
-
-	in = fopen(tsiginfo_filename, "r");
-	if (!in) {
-		error("failed to open %s: %s",
-		      tsiginfo_filename,
-		      strerror(errno));
-		return NULL;
-	}
-
-	key = read_tsig_key_data(region, in, default_family);
-
-	fclose(in);
-
-	if (unlink(tsiginfo_filename) == -1) {
-		warning("failed to remove %s: %s",
-			tsiginfo_filename,
-			strerror(errno));
-	}
-
-	return key;
-}
-
-/*
  * Write the complete buffer to the socket, irrespective of short
  * writes or interrupts.
  */
-static int
+int
 write_socket(int s, const void *buf, size_t size)
 {
 	const char *data = (const char *) buf;
@@ -297,7 +111,7 @@ write_socket(int s, const void *buf, size_t size)
  * Read SIZE bytes from the socket into BUF.  Keep reading unless an
  * error occurs (except for EAGAIN) or EOF is reached.
  */
-static int
+int
 read_socket(int s, void *buf, size_t size)
 {
 	char *data = (char *) buf;
