@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.16 2003/08/25 19:39:08 miekg Exp $
+ * $Id: zlparser.lex,v 1.17 2003/08/25 19:51:18 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -24,7 +24,7 @@ char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA"};
 
 YY_BUFFER_STATE include_stack[MAXINCLUDES];
-/* need to do something simular for zdefault [XXX] miek */
+struct zdefault_t zdefault_stack[MAXINCLUDES];
 int include_stack_ptr = 0;
 
 /* in_rr:
@@ -83,7 +83,16 @@ Q       \"
             			    exit(1);
             			}
 
-			        include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+				/* push zdefault on the stack (only the
+				 * important values
+				 */
+				zdefault_stack[include_stack_ptr].filename = 
+					zdefault->filename;
+				zdefault_stack[include_stack_ptr].line	   = 
+					zdefault->line;
+
+			        include_stack[include_stack_ptr++] = 
+					YY_CURRENT_BUFFER;
 
 		        	yyin = fopen( yytext, "r" );
         			if ( ! yyin ) {
@@ -91,6 +100,9 @@ Q       \"
 				    	exit(1);
 				}
 
+				/* reset for the current file */
+				zdefault->filename = strdup(yytext);
+				zdefault->line = 0;
         			yy_switch_to_buffer( yy_create_buffer( yyin, YY_BUF_SIZE ) );
 
 			        BEGIN(INITIAL);
@@ -101,6 +113,12 @@ Q       \"
         			if ( --include_stack_ptr < 0 )
 				            yyterminate();
         			else {
+					/* pop (once you pop, you can not stop */
+					zdefault->filename =
+						zdefault_stack[include_stack_ptr].filename;
+					zdefault->line = 
+						zdefault_stack[include_stack_ptr].line;
+					
             				yy_delete_buffer( YY_CURRENT_BUFFER );
             				yy_switch_to_buffer( include_stack[include_stack_ptr] );
             			}
