@@ -478,8 +478,10 @@ handle_udp(struct nsd *nsd, fd_set *peer)
 	query_init(&q);
 
 	if ((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-		log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
-		STATUP(nsd, rxerr);
+		if (errno != EAGAIN) {
+			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
+			STATUP(nsd, rxerr);
+		}
 		return 1;
 	}
 	q.iobufptr = q.iobuf + received;
