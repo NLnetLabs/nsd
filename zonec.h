@@ -202,7 +202,7 @@ void set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE], int ind
 
 /* zlexer.lex */
 int zoctet(char *word);
-int zrrtype (char *word);
+int zrrtype (const char *word);
 uint16_t intbyclassxx(void *str);
 uint16_t intbytypexx(void *str);
 

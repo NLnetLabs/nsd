@@ -233,7 +233,7 @@ Q       \"
 %%
 
 int
-zrrtype (char *word) 
+zrrtype (const char *word) 
 {
 	/*
 	 * Check to see if word is in the list of reconized keywords.
@@ -260,21 +260,13 @@ zrrtype (char *word)
 	if ( j == 0 ) 
 		return 0; 
 
-	/* is the unknown known? */
+	/* In case the TYPExxxx format was used for a known record type (such as A or MX) */
 	c = namebyint(j, ztypes);
 	if (c == NULL) {
 		LEXOUT(("TYPEx%d ", j));
 		return UTYPE;
 	} else {
-		/* re-check the known types again */
-		i = 0;
-		while ( RRtypes[i] != NULL ) {
-			if (strcasecmp(c, RRtypes[i]) == 0) {
-				LEXOUT(("%s ", c));
-				return i + A;
-			}
-			i++;	
-		}
+		return zrrtype(c);
 	}
 }
 
