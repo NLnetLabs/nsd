@@ -120,7 +120,7 @@ struct namedb {
 	region_type *region;
 	dname_tree_type *dnames;
 	heap_t *heap;
-	uint8_t *mpool;
+	void *mpool;
 	size_t	mpoolsz;
 	char *filename;
 	FILE * fd;

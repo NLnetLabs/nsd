@@ -172,7 +172,7 @@ namedb_open (const char *filename)
 		}
 		p += ALIGN_UP(dname_total_size(dname), NAMEDB_ALIGNMENT);
 		p += *((uint32_t *)p);
-		if (p > (db->mpool + db->mpoolsz)) {
+		if (p > ((uint8_t *) db->mpool + db->mpoolsz)) {
 			log_msg(LOG_ERR, "corrupted database %s", db->filename);
 			namedb_close(db);
 			errno = EINVAL;
