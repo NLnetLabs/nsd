@@ -16,10 +16,11 @@ $TTL    1H
 a	IN	A	192.168.1.2
 www     IN      CNAME   a
 smtp    IN      CNAME   a
-mail    IN      CNAME   a
+mail    IN      CNAME   ( a )
 ; unknown rr stuff
 e   CLASS1      TYPE1           10.0.0.2
 b   CLASS32     TYPE731         \# 6 abcd (
                                                    ef 01 23 45 )
 c   IN          A               \# 4 0A000002
-d   IN          A               \# 4 0A ( 000003 )
+d   IN          A               \# 4 0A ( 0B0C03 )
+f   IN          A               \# 4 ( 0A0B0C03 )

@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.37 2003/09/15 12:44:19 erik Exp $
+ * $Id: zyparser.y,v 1.37.2.1 2003/09/24 14:09:16 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -67,6 +67,15 @@ line:   NL
     }
     ;
 
+/* a string of whitespaces usefull when people use ( in files */
+sp:		SP
+	|	sp SP
+	;
+
+trail:		/* empty */
+	|	sp
+	;
+
 dir_ttl:    SP STR NL
     { 
         if ($2.len > MAXDOMAINLEN ) {
@@ -81,7 +90,7 @@ dir_ttl:    SP STR NL
     }
     ;
 
-dir_orig:   SP dname NL
+dir_orig:   sp dname NL
     {
         /* [xxx] does $origin not effect previous */
         if ( $2.len > MAXDOMAINLEN ) { 
@@ -95,7 +104,7 @@ dir_orig:   SP dname NL
     }
     ;
 
-rr:     ORIGIN SP rrrest NL
+rr:     ORIGIN sp rrrest trail NL
     {
         /* starts with @, use the origin */
         current_rr->dname = zdefault->origin;
@@ -105,14 +114,14 @@ rr:     ORIGIN SP rrrest NL
         zdefault->prev_dname_len = zdefault->origin_len; /* what about this len? */
         free($1.str);
     }
-    |   PREV rrrest NL
+    |   PREV rrrest trail NL
     {
         /* a tab, use previously defined dname */
         /* [XXX] is null -> error, not checked (yet) MG */
         current_rr->dname = zdefault->prev_dname;
         
     }
-    |   dname SP rrrest NL
+    |   dname sp rrrest trail NL
     {
         current_rr->dname = $1.str;
 
@@ -121,7 +130,7 @@ rr:     ORIGIN SP rrrest NL
         zdefault->prev_dname_len = $1.len;
     }
     ;
- 
+
 ttl:    STR
     {
         /* set the ttl */
@@ -159,22 +168,22 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
         current_rr->ttl = zdefault->ttl;
         current_rr->class = zdefault->class;
     }
-    |   in SP         /* no ttl */
+    |   in sp         /* no ttl */
     {
         current_rr->ttl = zdefault->ttl;
     }
-    |   ttl SP in SP  /* the lot */
-    |   in SP ttl SP  /* the lot - reversed */
-    |   ttl SP        /* no class */
+    |   ttl sp in sp  /* the lot */
+    |   in sp ttl sp  /* the lot - reversed */
+    |   ttl sp        /* no class */
     {   
         current_rr->class = zdefault->class;
     }
-    |   CH SP         { yyerror("CHAOS class not supported"); }
-    |   HS SP         { yyerror("HESIOD Class not supported"); }
-    |   ttl SP CH SP         { yyerror("CHAOS class not supported"); }
-    |   ttl SP HS SP         { yyerror("HESIOD class not supported"); }
-    |   CH SP ttl SP         { yyerror("CHAOS class not supported"); }
-    |   HS SP ttl SP         { yyerror("HESIOD class not supported"); }
+    |   CH sp         { yyerror("CHAOS class not supported"); }
+    |   HS sp         { yyerror("HESIOD Class not supported"); }
+    |   ttl sp CH sp         { yyerror("CHAOS class not supported"); }
+    |   ttl sp HS sp         { yyerror("HESIOD class not supported"); }
+    |   CH sp ttl sp         { yyerror("CHAOS class not supported"); }
+    |   HS sp ttl sp         { yyerror("HESIOD class not supported"); }
     ;
 
 dname:  abs_dname
@@ -224,111 +233,106 @@ hex:	STR
 	$$.str = $1.str;
 	$$.len = $1.len;
     }
-    |	SP
+    |	hex sp STR
     {
-	free($1.str); /* discard */
-    }
-    |	hex STR
-    {
-	char *hexstr = xalloc($1.len + $2.len + 1);
+	printf("\nHEXS: %s %d\n",$1.str,$1.len);
+	printf("HEXS: %s %d\n",$3.str,$3.len);
+	char *hexstr = xalloc($1.len + $3.len + 1);
     	memcpy(hexstr, $1.str, $1.len);
-	memcpy(hexstr + $1.len + 1, $2.str, $2.len);
+	memcpy(hexstr + $1.len + 1, $3.str, $3.len);
 
-	$$.str = memcpy($$.str, hexstr, $1.len + $2.len);
-	$$.len = $1.len + $2.len;
-	free($1.str); free($2.str);free(hexstr);
-    }
-    |   hex SP
-    {
-	/* discard SP */
-	$$.str = $1.str;
-	$$.len = $1.len;
+
+	$$.str = memcpy($$.str, hexstr, $1.len + $3.len + 1);
+	*((char*)$$.str + $1.len + $3.len + 1) = '\0';
+	$$.len = $1.len + $3.len;
+	printf("HEX: %s %d\n", $$.str, $$.len);
+	free($1.str); free($3.str);free(hexstr);
     }
     ;
 
 /* define what we can parse */
 
-rtype:  SOA SP rdata_soa
+rtype:  SOA sp rdata_soa
     {   
         zadd_rtype("soa");
     }
-    |	SOA SP UN_RR SP rdata_unknown
+    |	SOA sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("soa");
     }
-    |   A SP rdata_a
+    |   A sp rdata_a
     {
         zadd_rtype("a");
     }
-    |	A SP UN_RR SP rdata_unknown
+    |	A sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("a");
     }
-    |   NS SP rdata_dname
+    |   NS sp rdata_dname
     {
         zadd_rtype("ns");
     }
-    |	NS SP UN_RR SP rdata_unknown
+    |	NS sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("ns");
     }
-    |   CNAME SP rdata_dname
+    |   CNAME sp rdata_dname
     {
         zadd_rtype("cname");
     }
-    |   CNAME SP UN_RR SP rdata_unknown
+    |   CNAME sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("cname");
     }
-    |   PTR SP rdata_dname
+    |   PTR sp rdata_dname
     {   
         zadd_rtype("ptr");
     }
-    |	PTR SP UN_RR SP rdata_unknown
+    |	PTR sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("ptr");
     }
-    |   TXT SP rdata_txt
+    |   TXT sp rdata_txt
     {
         zadd_rtype("txt");
     }
-    |	TXT SP UN_RR SP rdata_unknown
+    |	TXT sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("txt");
     }
-    |   MX SP rdata_mx
+    |   MX sp rdata_mx
     {
         zadd_rtype("mx");
     }
-    |   MX SP UN_RR SP rdata_unknown
+    |   MX sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("mx");
     }
-    |   AAAA SP rdata_aaaa
+    |   AAAA sp rdata_aaaa
     {
         zadd_rtype("aaaa");
     }
-    |	AAAA SP UN_RR SP rdata_unknown
+    |	AAAA sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("aaaa");
     }
-    |	HINFO SP rdata_hinfo
+    |	HINFO sp rdata_hinfo
     {
 	zadd_rtype("hinfo");
     }
-    |	HINFO SP UN_RR SP rdata_unknown
+    |	HINFO sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("hinfo");
     }
-    |   SRV SP rdata_srv
+    |   SRV sp rdata_srv
     {
 	zadd_rtype("srv");
     }
-    |	SRV SP UN_RR SP rdata_unknown
+    |	SRV sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("srv");
     }
-    |	UN_TYPE SP UN_RR SP rdata_unknown
+    |	UN_TYPE sp UN_RR sp rdata_unknown
     {
 	/* try to add the unknown type */
 	current_rr->type = intbytypexx($1.str);
@@ -348,7 +352,7 @@ rtype:  SOA SP rdata_soa
  * below are all the definition for all the different rdata 
  */
 
-rdata_unknown: STR SP hex
+rdata_unknown: STR sp hex
     {
 	/* check_hexlen($1.str, $2.str); */
 	zadd_rdata2( zdefault, zparser_conv_hex($3.str) );
@@ -356,22 +360,22 @@ rdata_unknown: STR SP hex
     }
     ;
 
-rdata_soa:  dname SP dname SP STR STR STR STR STR
+rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR
     {
         /* convert the soa data */
         zadd_rdata2( zdefault, zparser_conv_dname($1.str) );   /* prim. ns */
         zadd_rdata2( zdefault, zparser_conv_dname($3.str) );   /* email */
         zadd_rdata2( zdefault, zparser_conv_rdata_period($5.str) ); /* serial */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($6.str) ); /* refresh */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($7.str) ); /* retry */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($8.str) ); /* expire */
-        zadd_rdata2( zdefault, zparser_conv_rdata_period($9.str) ); /* minimum */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($7.str) ); /* refresh */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($9.str) ); /* retry */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($11.str) ); /* expire */
+        zadd_rdata2( zdefault, zparser_conv_rdata_period($13.str) ); /* minimum */
 
         /* [XXX] also store the minium in case of no TTL? */
-        if ( (zdefault->minimum = zparser_ttl2int($9.str) ) == -1 )
+        if ( (zdefault->minimum = zparser_ttl2int($11.str) ) == -1 )
             zdefault->minimum = DEFAULT_TTL;
-        free($1.str);free($3.str);free($5.str);free($6.str);
-        free($7.str);free($8.str);free($9.str);
+        free($1.str);free($3.str);free($5.str);free($7.str);
+        free($9.str);free($11.str);free($13.str);
     }
     ;
 
@@ -464,9 +468,9 @@ yyerror(const char *s)
     fprintf(stderr,"error: %s in %s, line %lu\n",s, zdefault->filename,
     (unsigned long) zdefault->line);
     zdefault->errors++;
-    /*if ( zdefault->errors++ > 50 ) {
+    if ( zdefault->errors++ > 10 ) {
         fprintf(stderr,"too many errors (50+)\n");
         exit(1);
-    }*/
+    }
     return 0;
 }

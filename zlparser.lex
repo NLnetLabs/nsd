@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.27 2003/09/21 15:18:10 miekg Exp $
+ * $Id: zlparser.lex,v 1.27.2.1 2003/09/24 14:09:16 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -15,8 +15,10 @@
 #include "dname.h"
 #include "zyparser.h"
 
+#define LEXOUT	printf /* used ONLY when debugging */
+/*#define LEXOUT*/
 /* see  http://www.iana.org/assignments/dns-parameters */
-const char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
+char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "NXT", "KEY", "SOA", "SIG", "SRV", "CERT", "LOC", "MD", "MF", "MB",
     "MG", "MR", "NULL", "WKS", "HINFO", "MINFO", "RP", "AFSDB", "X25",
     "ISDN", "RT", "NSAP", "NSAP-PTR", "PX", "GPOS", "EID", "NIMLOC", "ATMA",
@@ -112,7 +114,7 @@ Q       \"
         			if ( --include_stack_ptr < 0 )
 				            yyterminate();
         			else {
-					/* pop (once you pop, you can not stop) */
+					/* pop (once you pop, you can not * stop..,) */
 					zdefault->filename =
 						zdefault_stack[include_stack_ptr].filename;
 					zdefault->line = 
@@ -128,8 +130,8 @@ Q       \"
                             in_rr = expecting_dname;
                             return '.';
                         }
-{DOT}                   return '.';
-{SLASH}#                return UN_RR;
+{DOT}                   LEXOUT(".\n");return '.';
+{SLASH}#                LEXOUT("\\# ");return UN_RR;
 ^{SPACE}+               {
                             if ( paren_open == 0 ) { 
                                 in_rr = after_dname;
@@ -140,37 +142,40 @@ Q       \"
                             zdefault->line++;
                             if ( paren_open == 0 ) { 
                                 in_rr = outside;
+				LEXOUT("NL\n");
                                 return NL;
-                            }
+                            } else {
+				LEXOUT("SP\n");
+			    	return SP;
+			    }
                         }
-{SPACE}+{NEWLINE}       {
-                            zdefault->line++;
-                            if ( paren_open == 0 ) { 
-                                in_rr = outside;
-                                return NL;
+{SPACE}*\({SPACE}*	{
+	/* kill the white space */
+                            if ( paren_open == 1 ) {
+                                yyerror( "nested parentheses" );
+                                yyterminate();
                             }
+			    LEXOUT("SP ");
+                            paren_open = 1;
+			    return SP;
+                        }
+{SPACE}*\){SPACE}*	{
+                            if ( paren_open == 0 ) {
+                                yyerror( "unterminated parentheses" );
+                                yyterminate();
+                            }
+			    LEXOUT("SP ");
+                            paren_open = 0;
+			    return SP;
                         }
 {SPACE}+                {
                             if ( paren_open == 0 ) {
                                 if ( in_rr == expecting_dname )
                                     in_rr = after_dname;
 
-                                return SP;
                             }
-                        }
-\(                      {
-                            if ( paren_open == 1 ) {
-                                yyerror( "nested parentheses" );
-                                yyterminate();
-                            }
-                            paren_open = 1;
-                        }
-\){SPACE}*              {
-                            if ( paren_open == 0 ) {
-                                yyerror( "unterminated parentheses" );
-                                yyterminate();
-                            }
-                            paren_open = 0;
+			    LEXOUT("SP ");
+                            return SP;
                         }
 ^({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word. Needs to be located
@@ -180,6 +185,7 @@ Q       \"
                             yylval.len = zoctet(ztext);
                             yylval.str = ztext;
                             in_rr = expecting_dname;
+			    LEXOUT("STR ");
                             return STR;
                         }
 {CLASS}                 {
@@ -187,6 +193,7 @@ Q       \"
                                 ztext = strdup(yytext); 
                                 yylval.len = zoctet(ztext);
                                 yylval.str = ztext;
+				LEXOUT("IN ");
 
 				/* \000 here will not cause problems */
                             if ( in_rr == after_dname) { 
@@ -212,6 +219,7 @@ TYPE[0-9]+              {
 					ztext = strdup(yytext);
 					yylval.len = zoctet(ztext);
 					yylval.str = ztext;
+					LEXOUT("UN_T ");
                                 	return UN_TYPE;
 				}
 			    }
@@ -232,6 +240,7 @@ CLASS[0-9]+             {
 					ztext = strdup(yytext);
 					yylval.len = zoctet(ztext);
 					yylval.str = ztext;
+					LEXOUT("UN_C ");
                                 	return UN_CLASS;
 				}
 			    }
@@ -269,6 +278,7 @@ CLASS[0-9]+             {
                                     in_rr = reading_type; return i;
                                 } 
                             }
+			    LEXOUT("STR ");
                             return STR;
                         }
 .                       {
@@ -288,8 +298,10 @@ zrrtype (char *word)
      */
     int i;
     for( i=0; i < ( RRTYPES - 1 ); i++ ) {
-        if ( strcasecmp(word, RRtypes[i]) == 0 )
+        if ( strcasecmp(word, RRtypes[i]) == 0 ) {
+	    LEXOUT("%s ", RRtypes[i]);
             return (i + A);
+	}
         
     }
     return 0;

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.23 2003/09/11 09:11:57 erik Exp $
+ * $Id: zparser2.c,v 1.23.2.1 2003/09/24 14:09:16 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -43,6 +43,8 @@ zparser_conv_hex(const char *hex)
 	uint16_t *r = NULL;
 	uint8_t *t;
 	int i;
+	
+	printf("ZHEX: [%s]\n", hex);
     
 	if ((i = strlen(hex)) % 2 != 0) {
 		zerror("hex representation must be a whole number of octets");
