@@ -1259,13 +1259,13 @@ static void
 usage (void)
 {
 #ifndef NDEBUG
-	fprintf(stderr, "usage: zonec [-v|-h|-o|-F|-L] [-f database] [-d directory] zone-list-file\n\n");
+	fprintf(stderr, "usage: zonec [-v|-h|-F|-L] [-o origin] [-d directory] -f database zone-list-file\n\n");
 #else
-	fprintf(stderr, "usage: zonec [-v|-h|-o] [-f database] [-d directory] zone-list-file\n\n");
+	fprintf(stderr, "usage: zonec [-v|-h] [-o origin] [-d directory] -f database zone-list-file\n\n");
 #endif
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
-	fprintf(stderr, "\t-o\tSpecify a zone's origin (used zone-list-file equals \'-\').\n");
+	fprintf(stderr, "\t-o\tSpecify a zone's origin (only used if zone-list-file equals \'-\').\n");
 #ifndef NDEBUG
 	fprintf(stderr, "\t-F\tSet debug facilities.\n");
 	fprintf(stderr, "\t-L\tSet debug level.\n");
@@ -1503,7 +1503,7 @@ main (int argc, char **argv)
 
 	/* Print the total number of errors */
 	if (vflag > 0) fprintf(stderr, "\n");
-	fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
+	if (vflag > 0) fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
 
 	/* Disable this to save some time.  */
 #if 0

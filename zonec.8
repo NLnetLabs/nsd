@@ -44,9 +44,9 @@
 .Op Fl h
 .Op Fl L
 .Op Fl F
-.Op Fl f Ar database
-.Op Fl D Ar directory
+.Op Fl d Ar directory
 .Op Fl o Ar origin
+.Fl f Ar database
 .Ar nsd.zones
 .Sh DESCRIPTION
 .Ic Zonec
@@ -55,15 +55,7 @@ is the
 database compiler for creating name space databases from a set of
 input master zone files specified in
 .Ar nsd.zones
-file. If 
-.Ar nsd.zones 
-file equals
-.Ar -
-then all zone information is read from stdin. Making constructs like:
-
-.Ic cat zones* | ./zonec -f nsd.db -o example.net -
-
-possible.
+file. 
 .Pp
 It is normally invoked via
 .Xr nsdc 8
@@ -76,6 +68,14 @@ file and add it to the name space database,
 by default, that is used by
 .Xr nsd 8
 to answer incoming queries.
+.Pp
+If 
+.Ar nsd.zones 
+file equals `-` then all zone information is read from stdin. Making constructs like:
+
+.Ic cat zones* | ./zonec -f nsd.db -o example.net -
+
+possible.
 .Pp
 The available options are:
 .Bl -tag -width indent
