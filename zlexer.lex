@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.19 2003/12/09 09:16:39 miekg Exp $
+ * $Id: zlexer.lex,v 1.20 2003/12/10 10:31:58 erik Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -312,7 +312,7 @@ zrrtype (char *word)
 		return 0; /* bail out here */
 
 	/* now it is TYPExxxx, and either we know it, or we don't */
-	LEXOUT("TYPEx%d ",j);
+	LEXOUT(("TYPEx%d ", j));
 	
 	if ( j < RRTYPES ) {
 		return j + A; /* now it's know */
@@ -333,8 +333,8 @@ zoctet(char *word)
 
     for (s = p = word; *s != '\0'; s++,p++ ) {
         switch ( *s ) {
-            /* [XXX] what is so special about dots anyway?
-	    /* this needs to be fixed, somehow */
+            /* [XXX] what is so special about dots anyway?  this needs
+  	       to be fixed, somehow */
             case '.':
                 printf("Seeing dots\n\n");
                 if ( s[1] == '.' ) {
