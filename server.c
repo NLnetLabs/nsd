@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59 2002/10/21 09:25:37 alexis Exp $
+ * $Id: server.c,v 1.59.2.1 2002/10/22 12:37:27 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -358,6 +358,8 @@ server_udp(struct nsd *nsd)
 
 		/* Process and answer the query... */
 		if(query_process(&q, nsd) != -1) {
+			if(!AA((&q)))
+				STATUP(nsd, nona);
 			/* Add edns(0) info if necessary.. */
 			query_addedns(&q, nsd);
 
@@ -476,7 +478,7 @@ server_tcp(struct nsd *nsd)
 		/* Accept it... */
 		q.addrlen = sizeof(q.addr);
 		if((s = accept(s, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-			if(errno != ERRINTR) {
+			if(errno != EINTR) {
 				syslog(LOG_ERR, "accept failed: %m");
 			}
 			continue;
@@ -525,6 +527,8 @@ server_tcp(struct nsd *nsd)
 			alarm(0);
 
 			if((axfr = query_process(&q, nsd)) != -1) {
+				if(!AA((&q)))
+					STATUP(nsd, nona);
 				do {
 					query_addedns(&q, nsd);
 

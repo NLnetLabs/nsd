@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56 2002/10/14 13:35:44 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.1 2002/10/22 12:37:26 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -351,7 +351,7 @@ bind8_stats(nsd)
 			(unsigned long)0, nsd->st.ctcp + nsd->st.ctcp6,
 		(unsigned long)0, nsd->st.rcode[RCODE_SERVFAIL], nsd->st.rcode[RCODE_FORMAT],
 			(unsigned long)0, nsd->st.rcode[RCODE_NXDOMAIN],
-		(unsigned long)0, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
+		nsd->st.nona, (unsigned long)0, (unsigned long)0, nsd->st.opcode[OPCODE_UPDATE]);
 
 }
 #endif /* BIND8_STATS */
