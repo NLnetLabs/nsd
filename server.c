@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.31.4.4 2002/05/21 11:41:39 alexis Exp $
+ * $Id: server.c,v 1.31.4.5 2002/05/23 13:03:49 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -55,6 +55,7 @@ answer_udp(s, nsd)
 		return -1;
 	}
 	q.iobufptr = q.iobuf + received;
+	q.tcp = 0;
 
 	if(query_process(&q, nsd) != -1) {
  		switch(q.edns) {
@@ -101,7 +102,7 @@ answer_tcp(s, addr, addrlen, nsd)
 {
 	struct query q;
 	u_int16_t tcplen;
-	int received, sent;
+	int received, sent, axfr;
 
 	/* Initialize the query... */
 	query_init(&q);
@@ -110,6 +111,7 @@ answer_tcp(s, addr, addrlen, nsd)
 	q.addrlen = addrlen;
 
 	q.maxlen = (q.iobufsz > nsd->tcp.max_msglen) ? nsd->tcp.max_msglen : q.iobufsz;
+	q.tcp = 1;
 
 	/* Until we've got end of file */
 	while((received = read(s, &tcplen, 2)) == 2) {
@@ -150,36 +152,43 @@ answer_tcp(s, addr, addrlen, nsd)
 
 		q.iobufptr = q.iobuf + received;
 
-		if(query_process(&q, nsd) != -1) {
-			alarm(120);
+		if((axfr = query_process(&q, nsd)) != -1) {
+			do {
+				alarm(120);
 
-			switch(q.edns) {
-			case 1:
-				if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
-					bcopy(nsd->edns.opt_ok, q.iobufptr, OPT_LEN);
-					q.iobufptr += OPT_LEN;
-					ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
+				switch(q.edns) {
+				case 1:
+					if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
+						bcopy(nsd->edns.opt_ok, q.iobufptr, OPT_LEN);
+						q.iobufptr += OPT_LEN;
+						ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
+					}
+					break;
+				case -1:
+					if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
+						bcopy(nsd->edns.opt_err, q.iobufptr, OPT_LEN);
+						q.iobufptr += OPT_LEN;
+						ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
+					}
+					break;
 				}
-				break;
-			case -1:
-				if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
-					bcopy(nsd->edns.opt_err, q.iobufptr, OPT_LEN);
-					q.iobufptr += OPT_LEN;
-					ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
-				}
-				break;
-			}
 
-			tcplen = htons(q.iobufptr - q.iobuf);
-			if(((sent = write(s, &tcplen, 2)) == -1) ||
-				((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
-					syslog(LOG_ERR, "write failed: %m");
+				tcplen = htons(q.iobufptr - q.iobuf);
+				if(((sent = write(s, &tcplen, 2)) == -1) ||
+					((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
+						syslog(LOG_ERR, "write failed: %s", strerror(errno));
+						return -1;
+				}
+				if(sent != q.iobufptr - q.iobuf) {
+					syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
 					return -1;
-			}
-			if(sent != q.iobufptr - q.iobuf) {
-				syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
-				return -1;
-			}
+				}
+
+				/* Do we have AXFR in progress? */
+				if(axfr) {
+					axfr = query_axfr(&q, nsd, NULL, NULL, 0);
+				}
+			} while(axfr);
 		}
 		alarm(120);
 	}
@@ -407,7 +416,7 @@ server(nsd)
 				syslog(LOG_ERR, "accept failed: %m");
 			} else {
 				/* Fork and answer it... */
-				switch(fork()) {
+				switch(nsd->debug ? 0 : fork()) {
 				case -1:
 					syslog(LOG_ERR, "fork failed: %m");
 					break;
@@ -429,7 +438,7 @@ server(nsd)
 				syslog(LOG_ERR, "accept failed: %m");
 			} else {
 				/* Fork and answer it... */
-				switch(fork()) {
+				switch(nsd->debug? 0 : fork()) {
 				case -1:
 					syslog(LOG_ERR, "fork failed: %m");
 					break;
