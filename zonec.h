@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.13 2002/04/23 13:14:05 alexis Exp $
+ * $Id: zonec.h,v 1.14 2002/05/06 13:33:07 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -62,6 +62,7 @@
 
 struct rrset {
 	struct rrset *next;
+	u_char *dname;
 	u_int16_t type;
 	u_int16_t class;
 	int32_t ttl;

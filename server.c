@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.31 2002/05/01 15:58:23 alexis Exp $
+ * $Id: server.c,v 1.32 2002/05/06 13:33:07 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -55,6 +55,7 @@ answer_udp(s, nsd)
 		return -1;
 	}
 	q.iobufptr = q.iobuf + received;
+	q.tcp = 0;
 
 	if(query_process(&q, nsd->db) != -1) {
  		if(q.edns == 1) {
@@ -91,7 +92,7 @@ answer_tcp(s, addr, addrlen, nsd)
 {
 	struct query q;
 	u_int16_t tcplen;
-	int received, sent;
+	int received, sent, axfr;
 
 	/* Initialize the query... */
 	query_init(&q);
@@ -100,6 +101,7 @@ answer_tcp(s, addr, addrlen, nsd)
 	q.addrlen = addrlen;
 
 	q.maxlen = (q.iobufsz > nsd->tcp.max_msglen) ? nsd->tcp.max_msglen : q.iobufsz;
+	q.tcp = 1;
 
 	/* Until we've got end of file */
 	while((received = read(s, &tcplen, 2)) == 2) {
@@ -140,27 +142,34 @@ answer_tcp(s, addr, addrlen, nsd)
 
 		q.iobufptr = q.iobuf + received;
 
-		if(query_process(&q, nsd->db) != -1) {
-			alarm(120);
+		if((axfr = query_process(&q, nsd->db)) != -1) {
+			do {
+				alarm(120);
 
-			if(q.edns == 1) {
-				if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
-					bcopy(nsd->edns.opt, q.iobufptr, OPT_LEN);
-					q.iobufptr += OPT_LEN;
-					ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
+				if(q.edns == 1) {
+					if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
+						bcopy(nsd->edns.opt, q.iobufptr, OPT_LEN);
+						q.iobufptr += OPT_LEN;
+						ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
+					}
 				}
-			}
 
-			tcplen = htons(q.iobufptr - q.iobuf);
-			if(((sent = write(s, &tcplen, 2)) == -1) ||
-				((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
-					syslog(LOG_ERR, "write failed: %m");
+				tcplen = htons(q.iobufptr - q.iobuf);
+				if(((sent = write(s, &tcplen, 2)) == -1) ||
+					((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
+						syslog(LOG_ERR, "write failed: %m");
+						return -1;
+				}
+				if(sent != q.iobufptr - q.iobuf) {
+					syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
 					return -1;
-			}
-			if(sent != q.iobufptr - q.iobuf) {
-				syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
-				return -1;
-			}
+				}
+
+				/* Do we have AXFR in progress? */
+				if(axfr) {
+					axfr = query_axfr(&q, nsd->db, NULL, NULL, 0);
+				}
+			} while(axfr);
 		}
 		alarm(120);
 	}

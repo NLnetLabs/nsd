@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.21 2002/04/23 09:48:13 alexis Exp $
+ * $Id: zf.c,v 1.22 2002/05/06 13:33:07 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -138,28 +138,6 @@ strdname(s, o)
 	h = xalloc((int)*dname + 1);
 	bcopy(dname, h, (int)*dname + 1);
 	return h;
-}
-
-/*
- *
- * Compares two domain names.
- *
- */
-int
-dnamecmp(a, b)
-	register u_char *a;
-	register u_char *b;
-{
-	register int r;
-	register int alen = (int)*a;
-	register int blen = (int)*b;
-
-	while(alen && blen) {
-		a++; b++;
-		if((r = NAMEDB_NORMALIZE(*a) - NAMEDB_NORMALIZE(*b))) return r;
-		alen--; blen--;
-	}
-	return alen - blen;
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.62 2002/05/01 16:10:17 alexis Exp $
+ * $Id: query.c,v 1.63 2002/05/06 13:33:07 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -64,6 +64,7 @@ query_init(q)
 	q->iobufptr = q->iobuf;
 	q->maxlen = 512;	/* XXX Should not be here */
 	q->edns = 0;
+	q->tcp = 0;
 }
 
 void
@@ -153,6 +154,106 @@ query_addanswer(q, dname, a, truncate)
 	}
 }
 
+int
+query_axfr(q, db, qname, zname, depth)
+	struct query *q;
+	struct namedb *db;
+	u_char *qname;
+	u_char *zname;
+	int depth;
+{
+	static rbnode_t *node;
+	static struct domain *d;
+	static struct answer *a;
+	static u_char *dname;
+	u_char iname[MAXDOMAINLEN+1];
+
+	/* Per AXFR... */
+	static u_char *zone, *qnameptr;
+	static struct answer *soa;
+
+	/* Is it new AXFR? */
+	if(qname) {
+		/* New AXFR... */
+		zone = zname;
+		qnameptr = qname;
+
+		/* Do we have the SOA? */
+		if(NAMEDB_TSTBITMASK(db, NAMEDB_DATAMASK, depth)) {
+			dnameinvert(zone, iname);
+
+			if((node = heap_locate(db->iheap, iname)) == NULL) {
+				/* No SOA no transfer */
+				RCODE_SET(q, RCODE_REFUSE);
+				return 0;
+			}
+
+			dname = node->data;
+			d = node->data + (((u_int32_t)*((char *)node->data) + 1 + 3) & 0xfffffffc);
+
+			/* XXX We rely here that SOA will always be the first answer */
+			if((a = namedb_answer(d, htons(TYPE_SOA))) == NULL) {
+				/* No SOA no transfer */
+				RCODE_SET(q, RCODE_REFUSE);
+				return 0;
+			}
+			soa = a;
+
+			/* We'd rather have ANY than SOA to improve performance */
+			if((a = namedb_answer(d, htons(TYPE_ANY))) == NULL) {
+				a = soa;
+			}
+
+			query_addanswer(q, qname, a, 0);
+
+			/* XXX Strip */
+			return 1;
+		}
+	}
+
+	/* We've done everything already, let the server know... */
+	if(zone == NULL) {
+		return 0;	/* Done. */
+	}
+
+	/* Get next answer */
+	for(a = NULL; a == NULL; a = namedb_answer(d, htons(TYPE_ANY))) {
+		node = rbtree_next(node);
+
+		/* End of the tree? */
+		if(node == rbtree_last()) {
+			a = soa;
+			dname = zone;
+			zone = NULL;
+			break;
+		} else {
+			/* Get the name... */
+			dname = node->data;
+			d = node->data + (((u_int32_t)*((char *)node->data) + 1 + 3) & 0xfffffffc);
+
+			/* Outside the zone? */
+			if((*zone > *dname) || (bcmp(zone + 1, dname + (*dname - *zone) + 1, *zone) != 0)) {
+				a = soa;
+				dname = zone;
+				zone = NULL;
+				break;
+			}
+		}
+	}
+
+	/* Existing AXFR, strip the question section off... */
+	/* Very interesting math... Can you figure it? */
+	q->iobufptr = q->iobuf + QHEADERSZ + *dname - 2;
+	QDCOUNT(q) = ANCOUNT(q) = NSCOUNT(q) = ARCOUNT(q) = 0;
+
+	query_addanswer(q, q->iobuf + QHEADERSZ, a, 0);
+	bcopy(dname + 1, q->iobuf + QHEADERSZ, *dname);
+
+	/* XXX Strip */
+
+	/* More data... */
+	return 1;
+}
 
 int
 query_process(q, db)
@@ -324,8 +425,14 @@ query_process(q, db)
 		return 0;
 	}
 
+	/* Prepare the name... */
+	*(qnamelow - 1) = qnamelen;
+
+	/* Is it AXFR? */
 	switch(ntohs(qtype)) {
 	case TYPE_AXFR:
+			if(q->tcp)
+				return query_axfr(q, db, qname, qnamelow - 1, qdepth);
 	case TYPE_IXFR:
 			RCODE_SET(q, RCODE_REFUSE);
 			return 0;
@@ -335,7 +442,6 @@ query_process(q, db)
 	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
 
 	/* Do we have complete name? */
-	*(qnamelow - 1) = qnamelen;
 	if(NAMEDB_TSTBITMASK(db, NAMEDB_DATAMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
 		if(DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {

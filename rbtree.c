@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.c,v 1.6 2002/02/13 11:19:37 alexis Exp $
+ * $Id: rbtree.c,v 1.7 2002/05/06 13:33:07 alexis Exp $
  *
  * rbtree.c -- generic red black tree
  *
@@ -281,7 +281,7 @@ rbtree_insert(rbtree, key, data, overwrite)
  *
  */
 void *
-rbtree_search(rbtree, key)
+rbtree_locate(rbtree, key)
 	rbtree_t *rbtree;
 	void *key;
 {
@@ -294,13 +294,26 @@ rbtree_search(rbtree, key)
 	/* While there are children... */
 	while(node != RBTREE_NULL) {
 		if((r = rbtree->cmp(key, node->key)) == 0) {
-			return node->data;
+			return node;
 		}
 		if(r < 0) {
 			node = node->left;
 		} else {
 			node = node->right;
 		}
+	}
+	return NULL;
+}
+
+void *
+rbtree_search(rbtree, key)
+	rbtree_t *rbtree;
+	void *key;
+{
+	rbnode_t *node;
+
+	if((node = rbtree_locate(rbtree, key)) != NULL) {
+		return node->data;
 	}
 	return NULL;
 }

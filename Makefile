@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.57 2002/05/01 15:58:23 alexis Exp $
+# $Id: Makefile,v 1.58 2002/05/06 13:33:07 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -109,9 +109,9 @@ LIBS		=
 #LIBS		= -L/usr/local/lib -ldb4
 
 # Compile environment settings
-DEBUG		= # -g -DDEBUG=1
+DEBUG		= -g # -DDEBUG=1
 CC=gcc
-CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
+CFLAGS		= -ansi -pipe -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
 	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\"
 LDFLAGS= ${LIBS}
 INSTALL = install -c
@@ -149,11 +149,11 @@ nsdc.sh: nsdc.sh.in Makefile
 		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" $@.in > $@
 	chmod a+x $@
 
-nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o
+nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o dname.o zf.o
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o dname.o zf.o
 
-zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o ${COMPAT_O}
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o ${COMPAT_O}
+zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o dname.o ${COMPAT_O}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o dname.o ${COMPAT_O}
 
 clean:
 	rm -f zonec nsd zf hash rbtree *.o y.* *.core *.gmon nsd.db nsdc.sh

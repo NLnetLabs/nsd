@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.20 2002/05/01 15:58:23 alexis Exp $
+ * $Id: dbaccess.c,v 1.21 2002/05/06 13:33:07 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -53,6 +53,7 @@
 #include <fcntl.h>
 
 #include "namedb.h"
+#include "dns.h"
 
 #ifndef	USE_BERKELEY_DB
 
@@ -98,30 +99,8 @@ namedb_lookup(db, dname)
 	struct namedb *db;
 	u_char *dname;
 {
-#ifdef USE_BERKELEY_DB
-	DBT key, data;
-
-	bzero(&key, sizeof(key));
-	bzero(&data, sizeof(data));
-	key.size = (size_t)*dname;
-	key.data = dname + 1;
-
-	switch(db->db->get(db->db, NULL, &key, &data, 0)) {
-	case -1:
-		syslog(LOG_ERR, "database lookup failed: %m");
-		return NULL;
-	case DB_NOTFOUND:
-		return NULL;
-	case 0:
-		return data.data;
-	}
-
-	return NULL;
-
-#else 
 	return (struct domain *)heap_search(db->heap, dname);
 
-#endif /* USE_BERKELEY_DB */
 }
 
 struct answer *
@@ -243,13 +222,9 @@ namedb_open(filename)
 
 	(void)close(db->fd);
 
-#ifdef USE_HEAP_RBTREE
-	if((db->heap = heap_create(malloc, domaincmp)) == NULL) {
-#else
-# ifdef USE_HEAP_HASH
-	if((db->heap = heap_create(malloc, domaincmp, domainhash, NAMEDB_HASH_SIZE)) == NULL) {
-# endif
-#endif
+	if((db->heap = heap_create(malloc, domaincmp)) == NULL ||
+	    (db->iheap = heap_create(malloc, domaincmp)) == NULL) {
+		if(db->heap) heap_destroy(db->heap, 0, 0);
 		free(db->mpool);
 		free(db->filename);
 		free(db);
@@ -266,13 +241,23 @@ namedb_open(filename)
 	p += NAMEDB_MAGIC_SIZE;
 
 	while(*p) {
+		/* Insert the inverted domain */
+		if(heap_insert(db->iheap, p, p + ((*p + 1 +3) & 0xfffffffc), 1) == NULL) {
+			syslog(LOG_ERR, "failed to insert an inverted domain: %m");
+			namedb_close(db);
+			return NULL;
+		}
+		p += (((u_int32_t)*p + 1 + 3) & 0xfffffffc);
+
+		/* Insert the domain */
 		if(heap_insert(db->heap, p, p + ((*p + 1 +3) & 0xfffffffc), 1) == NULL) {
-			syslog(LOG_ERR, "failed to insert a domain: %m");
+			syslog(LOG_ERR, "failed to insert an inverted domain: %m");
 			namedb_close(db);
 			return NULL;
 		}
 		p += (((u_int32_t)*p + 1 + 3) & 0xfffffffc);
 		p += *((u_int32_t *)p);
+
 		if(p > (db->mpool + db->mpoolsz)) {
 			syslog(LOG_ERR, "corrupted database %s", db->filename);
 			namedb_close(db);
@@ -314,16 +299,15 @@ void
 namedb_close(db)
 	struct namedb *db;
 {
-#ifdef	USE_BERKELEY_DB
-	db->db->close(db->db, 0);
-#else
+	heap_destroy(db->iheap, 0, 0);
 	heap_destroy(db->heap, 0, 0);
+
 #ifdef	USE_MMAP
 	munmap(db->mpool, db->mpoolsz);
 #else
 	free(db->mpool);
 #endif	/* USE_MMAP */
-#endif
+
 	if(db->filename)
 		free(db->filename);
 	free(db);
