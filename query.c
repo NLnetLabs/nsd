@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.62 2002/05/01 16:10:17 alexis Exp $
+ * $Id: query.c,v 1.62.2.1 2002/06/12 12:54:25 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -347,7 +347,8 @@ query_process(q, db)
 			query_addanswer(q, qname, a, 1);
 			return 0;
 		} else {
-			if((a = namedb_answer(d, qtype)) != NULL) {
+			if(((a = namedb_answer(d, qtype)) != NULL) ||	/* The query type? */
+				((a = namedb_answer(d, htons(TYPE_CNAME))) != NULL)) { /* Or CNAME? */
 				if(ntohs(qclass) != CLASS_ANY) {
 					query_addanswer(q, qname, a, 1);
 					AA_SET(q);
@@ -422,7 +423,8 @@ query_process(q, db)
 				/* We found a domain... */
 				RCODE_SET(q, RCODE_OK);
 
-				if((a = namedb_answer(d, qtype)) != NULL) {
+				if(((a = namedb_answer(d, qtype)) != NULL) ||
+				 ((a = namedb_answer(d, htons(TYPE_CNAME))) != NULL)) {
 					if(ntohs(qclass) != CLASS_ANY) {
 						AA_SET(q);
 						query_addanswer(q, qname - 2, a, 1);
