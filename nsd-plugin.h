@@ -110,13 +110,6 @@ struct nsd_plugin_callback_args
 	struct query        *query;
 	
 	/*
-	 * NULL for the NSD_PLUGIN_QUERY_RECEIVED callback.  This is
-	 * the normalized domain name.  DOMAIN_NAME points to the
-	 * start of the first label.
-	 */
-	const uint8_t       *domain_name;
-
-	/*
 	 * NULL for the NSD_PLUGIN_QUERY_RECEIVED callback and for plugins
 	 * that have not registered any data for the domain_name.
 	 */
@@ -136,6 +129,8 @@ typedef struct nsd_plugin_callback_args nsd_plugin_callback_args_type;
 struct nsd_plugin_interface
 {
 	struct nsd *nsd;
+
+	const dname_type *root_dname;
 	
 	/*
 	 * Register plugin specific data for the specified
@@ -145,8 +140,26 @@ struct nsd_plugin_interface
 	int (*register_data)(
 		const struct nsd_plugin_interface *nsd,
 		nsd_plugin_id_type                 plugin_id,
-		const uint8_t *                    domain_name,
+		const dname_type *                 domain_name,
 		void *                             data);
+
+	void (*log_msg)(int priority, const char *format, ...) ATTR_FORMAT(printf, 2, 3);
+	
+	void *(*xalloc)(size_t size);
+	void *(*xrealloc)(void *ptr, size_t size);
+	void (*free)(void *ptr);
+
+	region_type *(*region_create)(void *(*allocator)(size_t),
+				      void (*deallocator)(void *));
+	void (*region_destroy)(region_type *region);
+	void *(*region_alloc)(region_type *region, size_t size);
+	void (*region_free_all)(region_type *region);
+
+	const dname_type *(*dname_parse)(region_type *region,
+					 const char *name,
+					 const dname_type *origin);
+
+	const char *(*dname_to_string)(const dname_type *dname);
 };
 typedef struct nsd_plugin_interface nsd_plugin_interface_type;
 

@@ -70,27 +70,29 @@ static int
 register_data(
 	const nsd_plugin_interface_type *nsd,
 	nsd_plugin_id_type               plugin_id,
-	const uint8_t *                  domain_name,
+	const dname_type *               domain_name,
 	void *                           data)
 {
-	struct domain *d;
-
+	dname_tree_type *less_equal;
+	dname_tree_type *closest_encloser;
+	int exact;
+	
 	assert(plugin_id < maximum_plugin_count);
 	assert(domain_name);
 
-	d = namedb_lookup(nsd->nsd->db, domain_name);
-	if (d) {
-		void **plugin_data;
-		if (!d->runtime_data) {
-			d->runtime_data = xalloc(maximum_plugin_count * sizeof(void *));
-			memset(d->runtime_data, 0, maximum_plugin_count * sizeof(void *));
-		}
-		plugin_data = (void **) d->runtime_data;
-		plugin_data[plugin_id] = data;
-		return 1;
-	} else {
+	exact = dname_tree_search(nsd->nsd->db->dnames,
+				  domain_name,
+				  &less_equal,
+				  &closest_encloser);
+	if (!exact)
 		return 0;
+	
+	if (!closest_encloser->plugin_data) {
+		closest_encloser->plugin_data
+			= xalloc_zero(maximum_plugin_count * sizeof(void *));
 	}
+	closest_encloser->plugin_data[plugin_id] = data;
+	return 1;
 }
 
 static nsd_plugin_interface_type plugin_interface;
@@ -99,7 +101,18 @@ void
 plugin_init(struct nsd *nsd)
 {
 	plugin_interface.nsd = nsd;
+	plugin_interface.root_dname = dname_make(nsd->region, (const uint8_t *) "");
 	plugin_interface.register_data = register_data;
+	plugin_interface.log_msg = log_msg;
+	plugin_interface.xalloc = xalloc;
+	plugin_interface.xrealloc = xrealloc;
+	plugin_interface.free = free;
+	plugin_interface.region_create = region_create;
+	plugin_interface.region_destroy = region_destroy;
+	plugin_interface.region_alloc = region_alloc;
+	plugin_interface.region_free_all = region_free_all;
+	plugin_interface.dname_parse = dname_parse;
+	plugin_interface.dname_to_string = dname_to_string;
 }
 
 #define STR2(x) #x

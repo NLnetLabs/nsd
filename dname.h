@@ -291,6 +291,7 @@ struct dname_tree
 	dname_tree_type *wildcard_child;
 	uint8_t label_count;
 	void *data;
+	void **plugin_data;
 };
 
 /*
@@ -316,7 +317,8 @@ dname_tree_type *dname_tree_update(dname_tree_type *dt,
 				   const dname_type *dname,
 				   void *data);
 
-const char *dname_to_string(const uint8_t *dname);
+const char *dname_to_string(const dname_type *dname);
+const char *labels_to_string(const uint8_t *dname);
 
 int dnamecmp(const void *a, const void *b);
 const char *dnamestr(const uint8_t *dname);

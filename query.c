@@ -747,7 +747,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 		    answer_soa(q, d, qname))
 		{
 #ifdef PLUGINS
-			q->plugin_data = d->runtime_data;
+			q->plugin_data = closest_encloser->plugin_data;
 #endif /* PLUGINS */
 			return 1;
 		}
@@ -778,7 +778,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 			if (answer_domain(q, d, qname - 2))
 			{
 #ifdef PLUGINS
-				q->plugin_data = d->runtime_data;
+				q->plugin_data = closest_encloser->wildcard_child->plugin_data;
 #endif /* PLUGINS */
 				return 1;
 			}
@@ -789,7 +789,7 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 		    answer_soa(q, d, qname))
 		{
 #ifdef PLUGINS
-			q->plugin_data = d->runtime_data;
+			q->plugin_data = closest_encloser->plugin_data;
 #endif /* PLUGINS */
 			return 1;
 		}

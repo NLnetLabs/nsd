@@ -582,7 +582,6 @@ zone_addzonecut(const uint8_t *dkey, const uint8_t *dname, struct rrset *rrset, 
 	d = xalloc_zero(sizeof(struct domain));
 	d->size = sizeof(struct domain);
 	d->flags = NAMEDB_DELEGATION;
-	d->runtime_data = NULL;
 	
 	/* Is this a real record? */
 	if(dkey != dname)
@@ -657,7 +656,6 @@ zone_adddata(const uint8_t *dname, struct rrset *rrset, struct zone *z, struct n
 	d = xalloc_zero(sizeof(struct domain));
 	d->size = sizeof(struct domain);
 	d->flags = 0;
-	d->runtime_data = NULL;
 
 	/* This is not a wildcard */
 	star = 0;

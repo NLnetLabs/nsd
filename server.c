@@ -415,7 +415,6 @@ process_query(struct nsd *nsd, struct query *query)
 	nsd_plugin_callback_result_type callback_result;
 	
 	callback_args.query = query;
-	callback_args.domain_name = NULL;
 	callback_args.data = NULL;
 	callback_args.result_code = RCODE_OK;
 
@@ -426,7 +425,6 @@ process_query(struct nsd *nsd, struct query *query)
 
 	rc = query_process(query, nsd);
 	if (rc == 0) {
-		callback_args.domain_name = query->normalized_domain_name;
 		callback_args.data = NULL;
 		callback_args.result_code = RCODE_OK;
 

@@ -247,6 +247,7 @@ allocate_dname_tree(region_type *region, dname_tree_type *parent, uint8_t label_
 	result->wildcard_child = NULL;
  	result->label_count = label_count;
 	result->data = data;
+	result->plugin_data = NULL;
 	
 	return result;
 }
@@ -368,7 +369,13 @@ dnamecmp (const void *left, const void *right)
 }
 
 const char *
-dname_to_string(const uint8_t *dname)
+dname_to_string(const dname_type *dname)
+{
+	return labels_to_string(dname_name(dname));
+}
+
+const char *
+labels_to_string(const uint8_t *dname)
 {
 	static char buf[MAXDOMAINLEN + 1];
 	char *p = buf;

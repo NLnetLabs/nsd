@@ -92,7 +92,6 @@ struct answer {
 struct domain {
 	uint32_t size;
 	uint16_t flags;
-	void     *runtime_data; /* Additional run-time data (used for plugins) */
 };
 
 #define	NAMEDB_MAGIC		"NSDdbV03"

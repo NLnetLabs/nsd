@@ -39,6 +39,8 @@
 #ifndef	_NSD_H_
 #define	_NSD_H_
 
+#include "region-allocator.h"
+
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
@@ -91,6 +93,11 @@ struct nsd_child
 
 /* NSD configuration and run-time variables */
 struct	nsd {
+	/*
+	 * Global region that is not deallocated until NSD shuts down.
+	 */
+	region_type    *region;
+	
 	/* Run-time variables */
 	pid_t		pid;
 	int		mode;

@@ -392,6 +392,7 @@ main (int argc, char *argv[])
 	
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
+	nsd.region      = region_create(xalloc, free);
 	nsd.dbfile	= DBFILE;
 	nsd.pidfile	= PIDFILE;
 	nsd.server_kind = NSD_SERVER_MAIN;

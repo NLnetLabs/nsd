@@ -114,7 +114,7 @@ dname_tree_info (const uint8_t *name, dname_tree_type *node, size_t depth, struc
 	if (depth > info->max_depth)
 		info->max_depth = depth;
 	if (!node->data) {
-		fprintf(stderr, "empty node: %s\n", dname_to_string(name));
+		fprintf(stderr, "empty node: %s\n", labels_to_string(name));
 		++info->null_data;
 	}
 
