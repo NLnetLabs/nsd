@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.1.2.1 2002/05/14 11:00:25 alexis Exp $
+$Id: RELNOTES,v 1.1.2.2 2002/05/16 10:57:14 alexis Exp $
 
 1.0.0 RELEASE
 =============
@@ -22,6 +22,11 @@ KNOWN BUGS:
 
 - If while processing EDNS(0) OPT record NSD encounters bad EDNS(0)
   version it will answer with Format Error instead of EDNS(0) BADVERS
+
+PLATFORMS:
+
+	Tested and working on i386 FreeBSD-4.4, i386 Linux, dec alpha Linux,
+	sparc SunOS 4.x
 
 
 1.0.0-BETA2
