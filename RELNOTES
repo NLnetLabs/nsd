@@ -1,9 +1,14 @@
-$Id: RELNOTES,v 1.7 2002/09/12 09:24:29 alexis Exp $
+$Id: RELNOTES,v 1.8 2002/09/19 12:00:38 alexis Exp $
 
 1.0.2
 =============
 FEATURES:
 	- -DNAMED8_STATS to enable bind8 like named.stats
+	- -t flag to make nsd chroot to a certain directory
+	- -s flag to make nsd produce statistics every s seconds
+	- /etc/nsd/nsdc.conf to overwrite default variables
+	  for nsdc.sh
+	- less loggin and more radical tcp connection (mis)handling
 
 BUG FIXES:
 	- couple of pedantic fixes in C code
