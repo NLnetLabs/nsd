@@ -401,17 +401,16 @@ zparser_conv_nxt(region_type *region, uint8_t nxtbits[])
 	 * the first byte
 	 */
 	uint16_t *r = NULL;
-	unsigned int i, last;
+	uint16_t i;
+	uint16_t last = 0;
 
-	for ( i = 0; i < 16; i++ ) {
-		if ( (int) nxtbits[i] > 0 )
-			last = i;
+	for (i = 0; i < 16; i++) {
+		if (nxtbits[i] != 0)
+			last = i + 1;
 	}
-	last++;
 
 	r = region_alloc(region, sizeof(uint16_t) + (last * sizeof(uint8_t)) );
 	*r = last;
-
 	memcpy(r+1, nxtbits, last);
 
 	return r;
