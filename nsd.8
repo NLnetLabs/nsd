@@ -158,7 +158,7 @@ Produce statistics dump every
 .Ar seconds
 seconds.
 This is equal to sending
-.Em SIGILL
+.Em SIGUSR1
 to the daemon periodically.
 
 .It Fl t Ar chroot
@@ -208,7 +208,7 @@ reacts to the following signals:
 Stop answering queries, shutdown, and exit normally.
 .It Dv SIGHUP
 Reload the database.
-.It Dv SIGILL
+.It Dv SIGUSR1
 Dump BIND8-style statistics into the log. Ignored otherwise.
 .El
 .\" .Sh IMPLEMENTATION NOTES

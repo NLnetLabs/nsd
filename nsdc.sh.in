@@ -89,7 +89,7 @@ stop)
 	signal "TERM"
 	;;
 stats)
-	signal "ILL"
+	signal "USR1"
 	;;
 reload)
 	signal "HUP"
