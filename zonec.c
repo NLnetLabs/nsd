@@ -193,7 +193,8 @@ zparser_conv_services(region_type *region, const char *protostr,
 		
 		service = getservbyname(word, proto->p_name);
 		if (service) {
-			port = ntohl(service->s_port);
+			/* Note: ntohs not ntohl!  Strange but true.  */
+			port = ntohs(service->s_port);
 		} else {
 			char *end;
 			port = strtol(word, &end, 10);
