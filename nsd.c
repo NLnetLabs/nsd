@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.13 2002/02/12 10:02:41 alexis Exp $
+ * $Id: nsd.c,v 1.14 2002/02/12 12:47:20 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -52,6 +52,7 @@ int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
 struct namedb *database, *newdb;
 int server_mode = NSD_RUN;
 int tcp_open_connections = 0;
+int debug = 0;
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -123,9 +124,10 @@ main(argc, argv)
 	int argc;
 	char *argv[];
 {
-	int fd;
+	int fd, c;
 	pid_t pid;
 
+/* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
 #	ifndef	LOG_PERROR
 #		define	LOG_PERROR 0
 #	endif
@@ -134,11 +136,25 @@ main(argc, argv)
 	openlog("nsd", LOG_PERROR, LOG_LOCAL5);
 
 	/* Parse the command line... */
-	if(argc == 2) {
-		cf_dbfile = argv[1];
+	while((c = getopt(argc, argv, "d")) != -1) {
+		switch (c) {
+		case 'd':
+			debug = 1;
+			break;
+		case '?':
+		default:
+			usage();
+		}
 	}
+	argc -= optind;
+	argv += optind;
 
-	/* Parser the configuration file...*/
+	if(argc > 1)
+		usage();
+
+	if(argc == 1) {
+		cf_dbfile = argv[0];
+	}
 
 	/* Setup the signal handling... */
 	signal(SIGTERM, &sig_handler);
@@ -151,30 +167,32 @@ main(argc, argv)
 		exit(1);
 	}
 
-	/* Take off... */
-	switch((pid = fork())) {
-	case 0:
-		break;
-	case -1:
-		syslog(LOG_ERR, "fork failed: %m");
-		exit(1);
-	default:
-		syslog(LOG_NOTICE, "nsd started, pid %d", pid);
-		exit(0);
-	}
+	if(!debug) {
+		/* Take off... */
+		switch((pid = fork())) {
+		case 0:
+			break;
+		case -1:
+			syslog(LOG_ERR, "fork failed: %m");
+			exit(1);
+		default:
+			syslog(LOG_NOTICE, "nsd started, pid %d", pid);
+			exit(0);
+		}
 
-	/* Detach ourselves... */
-	if(setsid() == -1) {
-		syslog(LOG_ERR, "setsid() failed: %m");
-		exit(1);
-	}
+		/* Detach ourselves... */
+		if(setsid() == -1) {
+			syslog(LOG_ERR, "setsid() failed: %m");
+			exit(1);
+		}
 
-	if((fd = open("/dev/null", O_RDWR, 0)) != -1) {
-		(void)dup2(fd, STDIN_FILENO);
-		(void)dup2(fd, STDOUT_FILENO);
-		(void)dup2(fd, STDERR_FILENO);
-		if (fd > 2)
-			(void)close(fd);
+		if((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+			(void)dup2(fd, STDIN_FILENO);
+			(void)dup2(fd, STDOUT_FILENO);
+			(void)dup2(fd, STDERR_FILENO);
+			if (fd > 2)
+				(void)close(fd);
+		}
 	}
 
 	/* Initialize... */
@@ -183,8 +201,8 @@ main(argc, argv)
 	/* Run the server... */
 	server(database);
 
-	/* Should we return... */
-	namedb_close(database);
+	/* Not necessary since we terminate anyway... */
+	/* namedb_close(database); */
 
 	exit(0);
 }

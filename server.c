@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.17 2002/02/12 10:02:41 alexis Exp $
+ * $Id: server.c,v 1.18 2002/02/12 12:47:20 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -124,6 +124,7 @@ server(db)
 					syslog(LOG_ERR, "unable to reload the database: %m");
 					exit(1);
 				}
+				/* XXX This should be SIGTERM with appropriate handling in the child... */
 				if(kill(pid, SIGKILL) != 0) {
 					syslog(LOG_ERR, "cannot kill %d: %m", pid);
 					exit(1);
