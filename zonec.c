@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.63.2.4 2002/08/13 13:19:01 alexis Exp $
+ * $Id: zonec.c,v 1.63.2.5 2002/08/14 11:55:53 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -855,7 +855,8 @@ zone_dump(z, db)
 	if(z->soa != NULL) {
 		zone_adddata(z->dname, z->soa, z, db);
 	} else {
-		fprintf(stderr, "SOA record not present in %s", dnamestr(z->dname));
+		fprintf(stderr, "SOA record not present in %s\n", dnamestr(z->dname));
+		totalerrors++;
 		/* return -1; */
 	}
 
@@ -871,7 +872,11 @@ zone_dump(z, db)
 		}
 
 		/* Make sure the data is intact */
-		assert((rrset->next == NULL) && (rrset->type == TYPE_NS));
+		if(rrset->type != TYPE_NS || rrset->next != NULL) {
+			fprintf(stderr, "NS record with other data for %s\n", dnamestr(z->dname));
+			totalerrors++;
+			continue;
+		}
 		zone_addzonecut(dname, dname, rrset, z, db);
 
 	}
@@ -909,6 +914,14 @@ zone_dump(z, db)
 		/* Skip out of zone data */
 		if(rrset->glue == 1)
 			continue;
+
+		/* CNAME & other data */
+		if((rrset->type == TYPE_CNAME && rrset->next != NULL) ||
+			(rrset->next != NULL && rrset->next->type == TYPE_CNAME)) {
+			fprintf(stderr, "CNAME and other data for %s\n", dnamestr(z->dname));
+			totalerrors++;
+			continue;
+		}
 
 		/* Add it to the database */
 		zone_adddata(dname, rrset, z, db);

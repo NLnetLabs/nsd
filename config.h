@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.10.2.3 2002/08/08 11:13:34 alexis Exp $
+ * $Id: config.h,v 1.10.2.4 2002/08/14 11:55:53 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -84,10 +84,6 @@
 #define	CF_PIDFILE	"/var/run/nsd.pid"
 #endif
 
-#ifndef	CF_FACILITY
-#define	CF_FACILITY	LOG_DAEMON
-#endif
-
 #define	CF_TCP_MAX_CONNECTIONS	8
 #define	CF_TCP_PORT		53
 #define	CF_TCP_MAX_MESSAGE_LEN	16384
@@ -96,6 +92,10 @@
 #define	CF_EDNS_MAX_MESSAGE_LEN	4096
 
 #endif	/* DEBUG */
+
+#ifndef	CF_FACILITY
+#define	CF_FACILITY	LOG_DAEMON
+#endif
 
 #ifdef __sun
 typedef          char  int8_t;
