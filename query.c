@@ -63,7 +63,9 @@
 
 
 #ifdef LIBWRAP
+#ifdef HAVE_TCPD_H
 #include <tcpd.h>
+#endif
 
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;

@@ -109,7 +109,7 @@ AC_PROG_INSTALL
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h sys/bitypes.h dlfcn.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h sys/bitypes.h dlfcn.h tcpd.h])
 
 AC_SEARCH_LIBS(inet_addr, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
