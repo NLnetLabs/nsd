@@ -1,0 +1,10 @@
+interop3597.rfc.se.     300     IN      SOA     nic.rfc.se. jakob.rfc.se. 5 3600 600 3600 300
+interop3597.rfc.se.     300     IN      NS      nic.rfc.se.
+interop3597.rfc.se.     300     IN      TXT     "Zone for RFC 3597 interoperability testing"
+a.interop3597.rfc.se.   300     IN      A       127.0.0.1
+a.interop3597.rfc.se.   300     IN      A       127.0.0.2
+a.interop3597.rfc.se.   300     IN      A       192.0.2.1
+olaf.interop3597.rfc.se. 300    IN      NS      ns.secret-wg.org.
+sshfp.interop3597.rfc.se. 300   IN      SSHFP   1 1 C691E90714A1629D167DE8E5EE0021F12A7EAA1E
+type62347.interop3597.rfc.se. 300 IN    TYPE62347 \# 0
+type731.interop3597.rfc.se. 300 IN      TYPE731 \# 6 ABCDEF012345 

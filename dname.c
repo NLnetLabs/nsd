@@ -432,7 +432,7 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 			char ch = (char) *src++;
 			if (isalnum(ch) || ch == '-' || ch == '_') {
 				*dst++ = ch;
-			} else if (isgraph(ch)) {
+			} else if (ch == '.' || ch == '\\') {
 				*dst++ = '\\';
 				*dst++ = ch;
 			} else {

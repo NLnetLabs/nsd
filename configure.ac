@@ -153,10 +153,48 @@ AC_CHECK_UNUSED_ATTRIBUTE
 
 # Checks for libraries.
 
+# Check for SSL, original taken from
+# http://www.gnu.org/software/ac-archive/htmldoc/check_ssl.html and
+# modified for NSD.
+AC_DEFUN([CHECK_SSL], [
+    AC_ARG_WITH(ssl, AC_HELP_STRING([--with-ssl=pathname],
+                                    [enable SSL (will check /usr/local/ssl
+                            /usr/lib/ssl /usr/ssl /usr/pkg /usr/local /usr)]),[
+        ],[
+            withval="yes"
+        ])
+    if test x_$withval != x_no; then
+        AC_MSG_CHECKING(for SSL)
+        if test x_$withval = x_ -o x_$withval = x_yes; then
+            withval="/usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/local /usr"
+        fi
+        for dir in $withval; do
+            ssldir="$dir"
+            if test -f "$dir/include/openssl/ssl.h"; then
+                found_ssl="yes";
+                AC_DEFINE_UNQUOTED([HAVE_SSL], [], [Define if you have the SSL libraries installed.])
+                CPPFLAGS="$CPPFLAGS -I$ssldir/include";
+                break;
+            fi
+        done 
+        if test x_$found_ssl != x_yes; then
+            AC_MSG_ERROR(Cannot find the SSL libraries in $withval)
+        else
+            AC_MSG_RESULT(found in $ssldir)
+            HAVE_SSL=yes 
+            LDFLAGS="$LDFLAGS -L$ssldir/lib";
+            AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
+                    AC_MSG_ERROR(OpenSSL found in $ssldir, but version 0.9.7 or higher is required)
+                ])
+        fi
+        AC_SUBST(HAVE_SSL)
+    fi
+])dnl
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h openssl/hmac.h])
+AC_CHECK_HEADERS([arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h])
 
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
@@ -379,7 +417,10 @@ case "$enable_tsig" in
         no)
 		;;
         yes|*)
-                AC_CHECK_LIB(crypto, HMAC_CTX_init,, [AC_MSG_ERROR(TSIG requires OpenSSL crypto libraries.)])
+                CHECK_SSL
+                if test x_$HAVE_SSL != x_yes; then
+                   AC_MSG_ERROR(SSL is required to enable TSIG support.  Use --with-ssl to specify the location of the SSL libraries or --disable-tsig to disable TSIG support.)
+                fi
                 AC_DEFINE([TSIG], [], [Define this to enable TSIG support.])
                 ;;
 esac

@@ -5,7 +5,11 @@ NSD RELEASE NOTES
 FEATURES:
         - nsd-xfer: replacement program for named-xfer to perform zone
           transfers using AXFR. TSIG is supported by nsd-xfer but not
-          yet by the nsd server. DNSSEC is also supported.
+          yet by the nsd server. DNSSEC is also supported.  TSIG
+          requires OpenSSL version 0.9.7 or higher, configure using
+          --disable-tsig if you do not have OpenSSL installed.
+          Configure using --with-ssl=path if OpenSSL is not installed
+          at a standard location.
 
 CODE CHANGES:
         - New data structure 'buffer_type' for representing binary
@@ -27,6 +31,10 @@ BUG FIXES:
         - The TSIG key for AXFRs can now also be stored in the file
           <zonename>.tsiginfo.  This makes it possible to use TSIG
           with multiple master servers.
+        - Signals are no longer blocked while performing I/O so the
+          server should respond quicker to signals.
+        - Fixed parsing of LOC rdata.  Fractions and altitude were not
+          handled correctly.
 
 2.1.5
 =============

@@ -88,7 +88,7 @@ tsig_init(region_type *region)
 	tsig_key_table = NULL;
 	tsig_algorithm_table = NULL;
 
-#if defined(TSIG) && defined(HAVE_OPENSSL_HMAC_H)
+#if defined(TSIG) && defined(HAVE_SSL)
 	tsig_openssl_init(region);
 #endif
 	
