@@ -201,12 +201,12 @@ read_rrset(namedb_type *db,
 		rrset->rrs[i] = (rrdata_type *) region_alloc(
 			db->region, rrdata_size(rdcount));
 		rrset->rrs[i]->ttl = ntohl(ttl);
+		rrset->rrs[i]->rdata_count = rdcount;
 		
 		for (j = 0; j < rdcount; ++j) {
 			if (!read_rdata_atom(db, rrset->type, j, domain_count, domains, &rrset->rrs[i]->rdata[j]))
 				return 0;
 		}
-		rrset->rrs[i]->rdata[rdcount].data = NULL;
 	}
 
 	domain_add_rrset(owner, rrset);
