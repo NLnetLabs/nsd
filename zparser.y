@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.18 2004/01/08 14:33:11 erik Exp $
+ * $Id: zparser.y,v 1.19 2004/01/08 15:17:05 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -123,10 +123,6 @@ dir_orig:   SP abs_dname trail
     {
         /* [xxx] does $origin not effect previous */
 	/* [XXX] label length checks should be in dname functions */
-        if (domain_dname($2)->name_size > MAXDOMAINLEN ) { 
-            error("$ORIGIN domain name is too large");
-            return 1;
-        }
 
 	/* Copy from RR region to zone region.  */
         current_parser->origin = $2;
