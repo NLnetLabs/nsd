@@ -1,10 +1,10 @@
 Response Differences Between
-Bind 8.3.7-REL and NSD 2.0.0.
+Bind 8.4.4 and NSD 2.0.0.
 
 Daniel Karrenberg <daniel.karrenberg@ripe.net>
 Erik Rozendaal <erik@nlnetlabs.nl>
 
-Version: 1.1
+Version: 1.2
 
 Abstract
 
@@ -131,7 +131,7 @@ conforming to the Internet standards.
 
 2.1 b-multrrset - Multiple RRSets in Response
 
-NOTE: This no longer applies to bind 8.3.6-REL.
+NOTE: This no longer applies to bind 8.3.6-REL (and later).
 
 NSD does not send an RRset more than once in a response as per RFC2181
 section 5.5.
@@ -207,6 +207,10 @@ de. soa dns.denic.de. ops.denic.de. 2002031701 10800 7200 3600000 3600;
 NSD clears the CD header-bit in responses, bind copies it from the
 query.  Security unaware servers should clear this bit as per RFC1035
 4.1.1.
+
+This difference no longer occurs with bind 8.4.4 (and maybe earlier
+versions).
+
 
 Analysis:
 
@@ -344,29 +348,29 @@ Appendix A
 Comparison of responses to root queries:
 
 --------------------------------------------------------------------------
-                                            Total Answers: 899887
+                                            Total Answers: 899262
+                                Skipped ambiguous changes:     34 /  0.00%
 
 --------------------------------------------------------------------------
 
-                                               d-nclrcdbit   1717 /  0.19%
                                                d-nrefclass    254 /  0.03%
                                                d-nnotimpup     55 /  0.01%
                                                 parseerror     28 /  0.00%
                                                d-nnotimpny      4 /  0.00%
                                                      other      2 /  0.00%
 --------------------------------------------------------------------------
-                                 Total Different Responses   2060 /  0.23%
+                                 Total Different Responses    343 /  0.04%
 ==========================================================================
 
-d-nclrcdbit -               nsd clears CD bit in response:   1717 / 83.35%
-d-nnotimpny -       nsd returns NotImp on notify requests:      4 /  0.19%
-d-nnotimpup -       nsd returns NotImp on update requests:     55 /  2.67%
-d-nrefclass -   nsd returns Refused on unknown class/type:    254 / 12.33%
-other       -                         Unknown Differences:      2 /  0.10%
-parseerror  -    Could not parse tcpdump output correctly:     28 /  1.36%
+d-nnotimpny -       nsd returns NotImp on notify requests:      4 /  1.17%
+d-nnotimpup -       nsd returns NotImp on update requests:     55 / 16.03%
+d-nrefclass -   nsd returns Refused on unknown class/type:    254 / 74.05%
+other       -                         Unknown Differences:      2 /  0.58%
+parseerror  -    Could not parse tcpdump output correctly:     28 /  8.16%
 --------------------------------------------------------------------------
-                                         Total Differences   2060 /100.00%
+                                         Total Differences    343 /100.00%
 ==========================================================================
+
 
 
 Appendix B
@@ -374,23 +378,19 @@ Appendix B
 Comparison of responses to NL TLD queries:
 
 --------------------------------------------------------------------------
-                                            Total Answers:  71440
-                                Skipped ambiguous changes:      3 /  0.00%
+                                            Total Answers:  71178
+                                Skipped ambiguous changes:   1901 /  2.67%
 
 --------------------------------------------------------------------------
 
-                                               d-nnotimpny   2575 /  3.60%
-                                               d-nnotimpup   1971 /  2.76%
-                                               d-nclrcdbit    903 /  1.26%
-                                                parseerror      1 /  0.00%
+                                               d-nnotimpup   1925 /  2.70%
+                                               d-nnotimpny    270 /  0.38%
 --------------------------------------------------------------------------
-                                 Total Different Responses   5450 /  7.63%
+                                 Total Different Responses   2195 /  3.08%
 ==========================================================================
 
-d-nclrcdbit -               nsd clears CD bit in response:    903 / 16.57%
-d-nnotimpny -       nsd returns NotImp on notify requests:   2575 / 47.25%
-d-nnotimpup -       nsd returns NotImp on update requests:   1971 / 36.17%
-parseerror  -    Could not parse tcpdump output correctly:      1 /  0.02%
+d-nnotimpny -       nsd returns NotImp on notify requests:    270 / 12.30%
+d-nnotimpup -       nsd returns NotImp on update requests:   1925 / 87.70%
 --------------------------------------------------------------------------
-                                         Total Differences   5450 /100.00%
+                                         Total Differences   2195 /100.00%
 ==========================================================================
