@@ -1,5 +1,5 @@
 /*
- * $Id: hash.c,v 1.1 2002/02/08 11:22:14 alexis Exp $
+ * $Id: hash.c,v 1.2 2002/02/11 12:48:02 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "hash.h"
 
@@ -60,15 +61,22 @@ hash_create(mallocf, cmpf, hashf, size)
 {
 	hash_t *hash;
 
+
+	/* Invalid argument... */
+	if(size == 0) {
+		errno = EINVAL;
+		return NULL;
+	}
+
 	/* Allocate memory for it */
-	if((hash = mallocf(sizeof(hash_t) + ((size > MIN_HASH_SIZE) ?
-			sizeof(hnode_t) * (size - MIN_HASH_SIZE) : 0))) == NULL) {
+	if((hash = mallocf(sizeof(hash_t) + sizeof(hnode_t) * size)) == NULL) {
 		return NULL;
 	}
 
 	/* Initialize it */
-	bzero(hash->table, sizeof(hash->table));
-	hash->size = (size > MIN_HASH_SIZE) ? size : MIN_HASH_SIZE;
+	hash->table = (hnode_t *)(hash + 1);
+	hash->size = size;
+	bzero(hash->table, sizeof(hnode_t) * hash->size);
 	hash->collisions = hash->count = 0;
 	hash->mallocf = mallocf;
 	hash->cmp = cmpf;

@@ -1,5 +1,5 @@
 /*
- * $Id: hash.h,v 1.1 2002/02/08 11:22:14 alexis Exp $
+ * $Id: hash.h,v 1.2 2002/02/11 12:48:02 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -77,7 +77,7 @@ struct hash_t {
 	unsigned long (*hash)();	/* The hash function */
 
 	/* The hash table */
-	hnode_t	table[MIN_HASH_SIZE];
+	hnode_t	*table;
 };
 
 hash_t *hash_create __P((void *(*)(), int (*)(), unsigned long (*)(), unsigned long));
