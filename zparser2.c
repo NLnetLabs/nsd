@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.7 2003/08/19 07:23:57 miekg Exp $
+ * $Id: zparser2.c,v 1.8 2003/08/19 07:41:27 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -744,7 +744,7 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     zdefault->class = 1;
     
     zdefault->origin = xalloc(MAXDNAME);
-    zdefault->origin = strdname(origin, ROOT);  /* hmm [XXX] MG */
+    zdefault->origin = (uint8_t *)strdname(origin, ROOT);  /* hmm [XXX] MG */
     zdefault->origin_len = 0;
     zdefault->prev_dname = '\0';
     zdefault->prev_dname_len = 0;
@@ -921,7 +921,7 @@ creat_dname(const uint8_t *str, const size_t len)
 
     memcpy( (dname+2), str, len);   /* insert label data */
 
-    dname[len + 3] = '\0';         /* closing root label */
+    dname[len + 3] = '\0';
 
     return dname;
 }
@@ -952,6 +952,9 @@ cat_dname(const uint8_t *left, const uint8_t *right)
     
     return dname;
 }
+
+
+/* DEBUG function used to print out RRs */
 
 /*
  * Prints a specific part of rdata.
@@ -1172,5 +1175,3 @@ zprintrr(FILE *f, struct RR *rr)
 	}
 	fprintf(f, "\n");
 }
-
-

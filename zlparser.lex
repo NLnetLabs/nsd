@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.4 2003/08/18 16:20:03 miekg Exp $
+ * $Id: zlparser.lex,v 1.5 2003/08/19 07:41:27 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -230,13 +230,12 @@ int zoctet(char *word) {
                            (s[3] - '0'));
 
                     if ( 0 <= val && val <= 255 ) {
-                        /* mega problem here: \0 */
-                        printf("value found [%c]", val);
+                        /* this also handles \0 */
                         s += 3;
                         *p = DNAME_NORMALIZE(val);
                         length++;
                     } else {
-                        printf("ASCII overflow\n");
+                        printf("zlparser.lex: ASCII overflow\n");
                     }
 
                 } else {

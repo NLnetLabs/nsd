@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.7 2003/08/18 16:20:03 miekg Exp $
+ * $Id: zyparser.y,v 1.8 2003/08/19 07:41:27 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -9,18 +9,19 @@
  * See LICENSE for the license
  */
 
-#include "zparser2.h"
+#include"zparser2.h"
 #include<stdio.h>
 #include<string.h>
 
-/* these are global, otherwise they cannot be used inside yacc */
+/* these need to be  global, otherwise they cannot be used inside yacc */
 unsigned int lineno;
 struct zdefault_t * zdefault;
 struct node_t * root;       /* root of the list */
-struct node_t * rrlist;     /* hold all RRs as a linked list */
+struct node_t * rrlist;     /* hold all RRs as a linked list -- this is our
+                               interface with the old zonec code */
 struct RR * current_rr;
 
-/* [XXX] needs to be local */
+/* [XXX] should be local */
 unsigned int error = 0;
 int progress = 5;
 int yydebug = 1;
@@ -31,13 +32,16 @@ int yydebug = 1;
  * - NSAP-PRT is named NSAP_PTR
  * - NULL which is named YYNULL.
  */
+/* RR types */
 %token A NS MX TXT CNAME AAAA PTR NXT KEY SOA SIG SRV CERT LOC MD MF MB
 %token MG MR YYNULL WKS HINFO MINFO RP AFSDB X25 ISDN RT NSAP NSAP_PTR PX GPOS 
 %token EID NIMLOC ATMA NAPTR KX A6 DNAME SINK OPT APL UINFO UID GID 
 %token UNSPEC TKEY TSIG IXFR AXFR MAILB MAILA
+
 /* other tokens */
 %token ORIGIN NL SP STR DIR_TTL DIR_ORIG PREV IN CH HS 
-/* unknown RR */
+
+/* unknown RRs */
 %token UN_RR UN_CLASS UN_TYPE
 
 %%
@@ -94,13 +98,12 @@ rr:     ORIGIN SP rrrest NL
 
         /* also set this as the prev_dname */
         zdefault->prev_dname = zdefault->origin;
-        zdefault->prev_dname_len = zdefault->origin_len; /* what about
-        this len? */
+        zdefault->prev_dname_len = zdefault->origin_len; /* what about this len? */
     }
     |   PREV rrrest NL
     {
         /* a tab, use previously defined dname */
-        /* [XXX] is null -> error, not checked (yet) MIEK */
+        /* [XXX] is null -> error, not checked (yet) MG */
         current_rr->dname = (uint8_t *) dnamedup(zdefault->prev_dname);
     }
     |   dname SP rrrest NL
@@ -137,7 +140,7 @@ rrrest: classttl rtype
     }
     ;
 
-classttl:   /* empty - fill in the default, def ttl and in */
+classttl:   /* empty - fill in the default, def. ttl and IN class */
     |   in SP         /* no ttl */
     {
         current_rr->ttl = zdefault->ttl;
@@ -196,7 +199,9 @@ rel_dname:  STR
     }
     ;
 
-/* define what we can parse */
+/* define what we can parse 
+ * 19-08-2003: soa, a, ns, txt
+ */
 
 rtype:  SOA SP rdata_soa
     {   
