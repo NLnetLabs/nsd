@@ -1,5 +1,5 @@
 /*
- * $Id: dns.h,v 1.13 2003/07/04 07:55:09 erik Exp $
+ * $Id: dns.h,v 1.14 2003/07/07 09:42:21 erik Exp $
  *
  * dns.h -- everything we wanted to know but were afraid
  *		to ask about DNS
@@ -41,44 +41,6 @@
 
 #ifndef _DNS_H_
 #define _DNS_H_
-
-/*
- *                                    1  1  1  1  1  1
- *      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
- *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- *    |                      ID                       |
- *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- *    |QR|   Opcode  |AA|TC|RD|RA|   Z    |   RCODE   |
- *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- *    |                    QDCOUNT                    |
- *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- *    |                    ANCOUNT                    |
- *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- *    |                    NSCOUNT                    |
- *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- *    |                    ARCOUNT                    |
- *    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
- *
- */
-
-struct dns_header {
-	uint16_t	id;
-
-	unsigned	rd:1,
-			tc:1,
-			aa:1,
-			opcode:4,
-			qr:1,
-			rcode:4,
-			z:3,
-			ra:1;
-
-	uint16_t	qdcount,
-			ancount,
-			nscount,
-			arcount;
-};
-
 
 /* RFC1035 */
 #define	CLASS_IN	1	/* Class IN */
