@@ -1239,7 +1239,7 @@ process_rr(zparser_type *parser, rr_type *rr)
  *
  */
 static void
-zone_read (char *name, char *zonefile)
+zone_read (const char *name, const char *zonefile)
 {
 	const dname_type *dname;
 
