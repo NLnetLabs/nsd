@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.25 2003/08/25 16:57:37 miekg Exp $
+ * $Id: zyparser.y,v 1.26 2003/08/25 19:39:08 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -160,12 +160,12 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
     {   
         current_rr->class = zdefault->class;
     }
-    |   CH SP         { yyerror("chaos class not supported"); }
-    |   HS SP         { yyerror("hesiod class not supported"); }
-    |   ttl SP CH SP         { yyerror("chaos class not supported"); }
-    |   ttl SP HS SP         { yyerror("hesiod class not supported"); }
-    |   CH SP ttl SP         { yyerror("chaos class not supported"); }
-    |   HS SP ttl SP         { yyerror("hesiod class not supported"); }
+    |   CH SP         { yyerror("CHAOS class not supported"); }
+    |   HS SP         { yyerror("HESIOD Class not supported"); }
+    |   ttl SP CH SP         { yyerror("CHAOS class not supported"); }
+    |   ttl SP HS SP         { yyerror("HESIOD class not supported"); }
+    |   CH SP ttl SP         { yyerror("CHAOS class not supported"); }
+    |   HS SP ttl SP         { yyerror("HESIOD class not supported"); }
     ;
 
 dname:  abs_dname
@@ -341,7 +341,7 @@ yywrap()
  * access it 
  */
 int
-yyerror(char *s)
+yyerror(const char *s)
 {
     fprintf(stderr,"error: %s in %s, line %lu\n",s, zdefault->filename,
     (unsigned long) zdefault->line);

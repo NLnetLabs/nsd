@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.13 2003/08/25 16:57:37 miekg Exp $
+ * $Id: zonec2.c,v 1.14 2003/08/25 19:39:08 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -367,7 +367,7 @@ process_rr(struct RR *rr)
 
 	/* We only support IN class */
 	if(rr->class != CLASS_IN) {
-		zerror("wrong class");
+		zerror("Wrong class");
 		return 0;
 	}
 
@@ -384,7 +384,7 @@ process_rr(struct RR *rr)
        */
 	if((*z->dname > *rr->dname) ||
 	   (memcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
-		zerror("out of zone data\n");
+		zerror("Out of zone data");
 		return 0;
 	}
 
@@ -478,7 +478,7 @@ process_rr(struct RR *rr)
 	/* Check we have SOA */
 	if(z->soa == NULL) {
 		if(rr->type != TYPE_SOA) {
-			zerror("missing SOA record on top of the zone");
+			zerror("Missing SOA record on top of the zone");
 		} else {
 			if(dnamecmp(rr->dname, z->dname) != 0) {
 				zerror( "SOA record with invalid domain name");
@@ -488,7 +488,7 @@ process_rr(struct RR *rr)
 		}
 	} else {
 		if(rr->type == TYPE_SOA) {
-			zerror("duplicate SOA record discarded");
+			zerror("Duplicate SOA record discarded");
 			zrdatafree(r->rrs[--r->rrslen]);
 		}
 	}

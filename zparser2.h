@@ -37,7 +37,8 @@ struct YYSTYPE_T {
                                in the string */
 /* [XXX] fix MAXDNAME */
 #define MAXDNAME    255
-/* strlen cannot be used, [XXX] we need our own calls */
+
+#define MAXINCLUDES 10
 
 /* a RR in DNS */
 struct RR {
@@ -70,7 +71,7 @@ extern struct RR * current_rr;
 extern FILE * yyin;
 int yyparse(void);
 int yylex(void);
-int yyerror(char *s);
+int yyerror(const char *s);
 void yyrestart(FILE *);
 
 #define	ZBUFSIZE	16384		/* Maximum master file entry size */

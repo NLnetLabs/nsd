@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.15 2003/08/25 16:57:37 miekg Exp $
+ * $Id: zlparser.lex,v 1.16 2003/08/25 19:39:08 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -23,6 +23,10 @@ char *RRtypes[] = {"A", "NS", "MX", "TXT", "CNAME", "AAAA", "PTR",
     "NAPTR", "KX", "A6", "DNAME", "SINK", "OPT", "APL", "UINFO", "UID",
     "GID", "UNSPEC", "TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA"};
 
+YY_BUFFER_STATE include_stack[MAXINCLUDES];
+/* need to do something simular for zdefault [XXX] miek */
+int include_stack_ptr = 0;
+
 /* in_rr:
  * 0 = not in an rr
  * 1 = reading ^dname
@@ -44,12 +48,13 @@ ANY     [^\"]|\\.
 CLASS   IN|CH|HS
 Q       \"
 
+%START	incl
+
 %%
     static int paren_open = 0;
     static int in_rr = 0;
     char *ztext;
     int i;
-
 {COMMENT}.*{NEWLINE}    { 
                             zdefault->line++;
                             if ( paren_open == 0 )
@@ -64,8 +69,43 @@ Q       \"
                         }
 ^{DOLLAR}TTL            return DIR_TTL;
 ^{DOLLAR}ORIGIN         return DIR_ORIG;
-^{DOLLAR}INCLUDE.*      /* ignore for now  put zdefault also on the stack */
-^{DOLLAR}{LETTER}+      { printf("UNKNOWN DIRECTIVE - ignored");}
+^{DOLLAR}INCLUDE        BEGIN(incl);
+
+<incl>[ \t]* 		/* eat the whitespace - ripped from 
+			* http://dinosaur.compilertools.net/flex/flex_12.html#SEC12
+			*/
+<incl>[^ \t\n]+ 	{ 	
+    				/* got the include file name
+			     	 * open the new filename and continue parsing 
+			     	 */
+				if ( include_stack_ptr >= MAXINCLUDES ) {
+			            yyerror( "Includes nested too deeply (>10)" );
+            			    exit(1);
+            			}
+
+			        include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+
+		        	yyin = fopen( yytext, "r" );
+        			if ( ! yyin ) {
+            				yyerror("Cannot open $INCLUDE file" );
+				    	exit(1);
+				}
+
+        			yy_switch_to_buffer( yy_create_buffer( yyin, YY_BUF_SIZE ) );
+
+			        BEGIN(INITIAL);
+        		}	
+<<EOF>>			{	/* end of file is reached - check if we were
+				 * including
+				 */
+        			if ( --include_stack_ptr < 0 )
+				            yyterminate();
+        			else {
+            				yy_delete_buffer( YY_CURRENT_BUFFER );
+            				yy_switch_to_buffer( include_stack[include_stack_ptr] );
+            			}
+        		}
+^{DOLLAR}{LETTER}+      { yyerror("Uknown $-directive"); }
 ^{DOT}                  {
                             /* a ^. means the root zone... also set in_rr */
                             in_rr = 1;
@@ -103,14 +143,14 @@ Q       \"
                         }
 \(                      {
                             if ( paren_open == 1 ) {
-                                printf( "nested parentheses\n" );
+                                yyerror( "nested parentheses" );
                                 yyterminate();
                             }
                             paren_open = 1;
                         }
 \){SPACE}*              {
                             if ( paren_open == 0 ) {
-                                printf( "unterminated parentheses\n" );
+                                yyerror( "unterminated parentheses" );
                                 yyterminate();
                             }
                             paren_open = 0;
