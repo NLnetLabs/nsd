@@ -169,7 +169,7 @@ zparser_conv_services(region_type *region, const char *protostr,
 	uint8_t bitmap[65536/8];
 	char sep[] = " ";
 	char *word;
-	int max_port = -8;
+	long max_port = -8;
 	/* convert a protocol in the rdata to wireformat */
 	struct protoent *proto;
 
@@ -189,19 +189,27 @@ zparser_conv_services(region_type *region, const char *protostr,
 	     word = strtok(NULL, sep))
 	{
 		struct servent *service;
-
+		long port;
+		
 		service = getservbyname(word, proto->p_name);
-		if (!service) {
-			service = getservbyport(atoi(word), proto->p_name);
-		}
-		if (!service) {
-			zc_error_prev_line("Unknown service '%s'", word);
-		} else if (service->s_port < 0 || service->s_port > 65535) {
-			zc_error_prev_line("bad port number %d", service->s_port);
+		if (service) {
+			port = service->s_port;
 		} else {
-			set_bit(bitmap, service->s_port);
-			if (service->s_port > max_port)
-				max_port = service->s_port;
+			char *end;
+			port = strtol(word, &end, 10);
+			if (*end != '\0') {
+				zc_error_prev_line("Unknown service '%s'",
+						   word);
+				continue;
+			}
+		}
+
+		if (port < 0 || port > 65535) {
+			zc_error_prev_line("bad port number %d", port);
+		} else {
+			set_bit(bitmap, port);
+			if (port > max_port)
+				max_port = port;
 		}
         }
 
