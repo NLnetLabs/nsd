@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.31 2003/09/01 12:14:27 miekg Exp $
+ * $Id: zyparser.y,v 1.32 2003/09/03 15:32:13 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -248,6 +248,10 @@ rtype:  SOA SP rdata_soa
     {
 	zadd_rtype("hinfo");
     }
+    |	error NL
+    {	
+	    yyerror("Unimplemented RR seen");
+    }
     ;
 
 
@@ -355,9 +359,9 @@ yyerror(const char *s)
 {
     fprintf(stderr,"error: %s in %s, line %lu\n",s, zdefault->filename,
     (unsigned long) zdefault->line);
-    if ( zdefault->errors++ > 50 ) {
+    /*if ( zdefault->errors++ > 50 ) {
         fprintf(stderr,"too many errors (50+)\n");
         exit(1);
-    }
+    }*/
     return 0;
 }
