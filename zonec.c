@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.9 2002/02/02 13:44:55 alexis Exp $
+ * $Id: zonec.c,v 1.10 2002/02/02 13:47:53 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -548,8 +548,8 @@ zone_dump(z, db)
 			additional = dict_search(z->data, msg.dnames[i]);
 
 			/* This is a glue record */
-			if((*z->dname < *msg.dnames[i]) &&
-			    (bcmp(z->dname + 1, msg.dnames[i] + (*msg.dnames[i] - *z->dname) + 1, *z->dname) == 0)) {
+			if((*dname < *msg.dnames[i]) &&
+			    (bcmp(dname + 1, msg.dnames[i] + (*msg.dnames[i] - *dname) + 1, *dname) == 0)) {
 				if(additional == NULL) {
 					fprintf(stderr, "missing glue record\n");
 				}
@@ -561,13 +561,6 @@ zone_dump(z, db)
 			while(additional) {
 				if(additional->type == TYPE_A || additional->type == TYPE_AAAA) {
 					msg.arcount += zone_addrrset(&msg, msg.dnames[i], additional);
-					/* If this is a glue, strip it down to the first record in the set... */
-					if(additional->glue) {
-						for(j = 1; j < additional->rrslen; j++)
-							free(additional->rrs[j]);
-						additional->rrslen = 1;
-					}
-
 				}
 				additional = additional->next;
 			}
