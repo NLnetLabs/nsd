@@ -56,11 +56,11 @@ load_configuration(region_type *region, const char *filename)
 
 	xmlLineNumbersDefault(1);
 
-	schema_doc = xmlParseFile("nsd.rng");
+	schema_doc = xmlParseFile(DATADIR "/nsd.rng");
 	if (!schema_doc) {
 		log_msg(LOG_WARNING, "cannot parse XML schema '%s', "
 			"configuration file will not be validated",
-			"nsd.rng");
+			DATADIR "/nsd.rng");
 	}
 
 	options_doc = xmlParseFile(filename);

@@ -13,6 +13,7 @@ prefix	= @prefix@
 exec_prefix = @exec_prefix@
 sbindir	= @sbindir@
 mandir = @mandir@
+datadir = @datadir@
 
 # NSD specific pathnames
 configdir = @configdir@
@@ -27,6 +28,7 @@ user = @user@
 CC		= @CC@
 CPPFLAGS	= @CPPFLAGS@ @DEFS@ -I. 		\
 		  -DCONFIGFILE=\"$(configfile)\"	\
+		  -DDATADIR=\"$(datadir)\"		\
 		  -DDBFILE=\"$(dbfile)\" 		\
 		  -DPIDFILE=\"$(pidfile)\" 		\
 		  -DUSER=\"$(user)\" 			\
@@ -150,6 +152,7 @@ install: all
 	$(INSTALL) nsdc.sh $(sbindir)/nsdc
 	$(INSTALL) nsd-notify $(sbindir)/nsd-notify
 	$(INSTALL) nsd-xfer $(sbindir)/nsd-xfer
+	$(INSTALL_DATA) nsd.rng $(datadir)/nsd.rng
 	$(INSTALL_DATA) nsd.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
 	$(INSTALL_DATA) zonec.8 $(mandir)/man8
@@ -160,7 +163,7 @@ install: all
 uninstall:
 	@echo
 	rm -f -- $(sbindir)/nsd $(sbindir)/zonec $(sbindir)/nsdc $(sbindir)/nsd-notify $(sbindir)/nsd-xfer
-	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8 $(mandir)/man8/nsd-xfer.8
+	rm -f -- $(datadir)/nsd.rng $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8 $(mandir)/man8/nsd-xfer.8
 	rm -f -- $(pidfile) $(dbfile)
 	@echo
 	@echo "You still need to remove $(configdir) directory by hand."
