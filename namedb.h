@@ -46,7 +46,7 @@
 #include "heap.h"
 #include "region-allocator.h"
 
-#define	NAMEDB_MAGIC		"NSDdbV05"
+#define	NAMEDB_MAGIC		"NSDdbV06"
 #define	NAMEDB_MAGIC_SIZE	8
 
 #if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
@@ -279,7 +279,7 @@ extern const char *rdata_types[];
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)
 {
-	return type < TYPE_TXT && index < 2 && rdata_types[type][index] == 'd';
+	return type <= TYPE_RT && index < 2 && rdata_types[type][index] == 'd';
 }
 
 #endif

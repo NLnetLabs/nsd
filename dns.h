@@ -64,9 +64,13 @@
 #define TYPE_TXT	16	/* text strings */
 #define	TYPE_RP		17	/* RFC1183 */
 #define	TYPE_AFSDB	18	/* RFC1183 */
+#define TYPE_X25        19	/* RFC1183 */
+#define TYPE_ISDN       20	/* RFC1183 */
+#define TYPE_RT         21	/* RFC1183 */
 
 #define	TYPE_SIG	24	/* 2535typecode */
 #define	TYPE_KEY	25	/* 2535typecode */
+#define TYPE_PX         26	/* RFC2163 */
 #define	TYPE_NXT	30 	/* 2535typecode */
 
 /* type code rollover */

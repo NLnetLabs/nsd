@@ -1,0 +1,23 @@
+$TTL    1H
+@       IN      SOA     elektron.atoom.net. miekg.atoom.net. (
+                     2002120700         ; Serial
+                             6H         ; Refresh
+                             2H         ; Retry
+                             7D         ; Expire
+                             1H )       ; Negative Cache TTL
+
+@       IN      NS      elektron.atoom.net.
+@	IN	MX	10 elektron.atoom.net.
+@	IN	A	192.168.1.2
+@       IN      TXT     "text description of domain"
+
+@       IN      AFSDB   12 atoom.net.
+@       IN      RP      miekg.atoom.net. net.
+@       IN      X25     "x25 address in text format"
+@       IN      ISDN    "isdn address"
+@       IN      ISDN    "isdn address" "subaddress"
+@       IN      RT      0 rt-host
+@       IN      PX      2 map822 mapx400
+
+rt-host IN      A       127.0.0.1
+rt-host IN      AAAA    ::1

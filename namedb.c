@@ -370,7 +370,7 @@ namedb_find_zone(namedb_type *db, domain_type *domain)
 
 /*
  * The type of the rdatas for each known RR type.  Only types up to
- * TXT and the first two RDATa elements must be provided.  See the
+ * RT and the first two RDATa elements must be provided.  See the
  * definition of rdata_atom_is_domain in namedb.h.  The possible types
  * are:
  *
@@ -400,6 +400,11 @@ const char *rdata_types[] =
 	"dd",			/* 14, MINFO */
 	"2d",			/* 15, MX */
 	"XX",			/* 16, TXT */
+	"dd",			/* 17, RP */
+	"2d",			/* 18, AFSDB */
+	"XX",			/* 19, X25 */
+	"XX",			/* 20, ISDN */
+	"2d", 			/* 21, RT */
 };
 
 #ifdef TEST

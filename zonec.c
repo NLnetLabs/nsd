@@ -98,8 +98,12 @@ const lookup_table_type ztypes[] = {
 	{ TYPE_SRV, "SRV", T_SRV },
 	{ TYPE_NAPTR, "NAPTR", T_NAPTR },
 	{ TYPE_LOC, "LOC", T_LOC },
-	{ TYPE_AFSDB, "AFSDB", T_AFSDB },
-	{ TYPE_RP, "RP", T_RP },
+	{ TYPE_AFSDB, "AFSDB", T_AFSDB }, /* RFC 1183 */
+	{ TYPE_RP, "RP", T_RP },	  /* RFC 1183 */
+	{ TYPE_X25, "X25", T_X25 },	  /* RFC 1183 */
+	{ TYPE_ISDN, "ISDN", T_ISDN },	  /* RFC 1183 */
+	{ TYPE_RT, "RT", T_RT },	  /* RFC 1183 */
+	{ TYPE_PX, "PX", T_PX },	  /* RFC 2163 */
 	{ TYPE_SIG, "SIG", T_SIG },
 	{ TYPE_KEY, "KEY", T_KEY },
 	{ TYPE_NXT, "NXT", T_NXT },
