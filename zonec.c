@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.59 2002/05/07 10:46:26 alexis Exp $
+ * $Id: zonec.c,v 1.60 2002/05/07 13:17:36 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -42,9 +42,6 @@
 
 #include <netinet/in.h>		/* htons, htonl on Linux */
 
-static void zone_addbuf __P((struct message *, const void *, size_t));
-static void zone_addcompr __P((struct message *, u_char *, u_int16_t, u_char));
-
 /* The database file... */
 char *dbfile = DEFAULT_DBFILE;
 
@@ -60,9 +57,8 @@ int pflag = 0;
 
 #ifdef	USE_HEAP_HASH
 
-unsigned long
-dnamehash(dname)
-	register u_char *dname;
+unsigned long 
+dnamehash (register u_char *dname)
 {
         register unsigned long hash = 0;
 	register u_char *p = dname;
@@ -84,34 +80,30 @@ dnamehash(dname)
  *
  */
 void *
-xalloc(size)
-	register size_t	size;
+xalloc (register size_t size)
 {
 	register void *p;
 
 	if((p = malloc(size)) == NULL) {
-		fprintf(stderr, "zonec: malloc failed: %m\n");
+		fprintf(stderr, "zonec: malloc failed: %s\n", strerror(errno));
 		exit(1);
 	}
 	return p;
 }
 
 void *
-xrealloc(p, size)
-	register void *p;
-	register size_t	size;
+xrealloc (register void *p, register size_t size)
 {
 
 	if((p = realloc(p, size)) == NULL) {
-		fprintf(stderr, "zonec: realloc failed: %m\n");
+		fprintf(stderr, "zonec: realloc failed: %s\n", strerror(errno));
 		exit(1);
 	}
 	return p;
 }
 
-void
-zone_print(z)
-	struct zone *z;
+void 
+zone_print (struct zone *z)
 {
 	struct rrset *rrset;
 	u_char *dname;
@@ -120,7 +112,7 @@ zone_print(z)
 	printf("; zone %s\n", dnamestr(z->dname));
 	printf("; zone data\n");
 
-	HEAP_WALK(z->data, (char *)dname, rrset) {
+	HEAP_WALK(z->data, dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
 				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
@@ -133,7 +125,7 @@ zone_print(z)
 	}
 
 	printf("; zone cuts\n");
-	HEAP_WALK(z->cuts, (char *)dname, rrset) {
+	HEAP_WALK(z->cuts, dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
 				printf("%s\t%d\t%s\t%s\t", dnamestr(dname), rrset->ttl, \
@@ -146,11 +138,8 @@ zone_print(z)
 	}
 }
 
-static void
-zone_addbuf(msg, data, size)
-	struct message *msg;
-	const void *data;
-	size_t size;
+static void 
+zone_addbuf (struct message *msg, const void *data, size_t size)
 {
 	if(msg->bufptr - msg->buf + size > IOBUFSZ) {
 		fflush(stdout);
@@ -162,12 +151,8 @@ zone_addbuf(msg, data, size)
 	msg->bufptr += size;
 }
 
-static void
-zone_addcompr(msg, dname, offset, len)
-	struct message *msg;
-	u_char *dname;
-	u_int16_t offset;
-	u_char len;
+static void 
+zone_addcompr (struct message *msg, u_char *dname, int offset, int len)
 {
 	if (msg->comprlen >= MAXRRSPP) {
 		fflush(stdout);
@@ -181,10 +166,8 @@ zone_addcompr(msg, dname, offset, len)
 	msg->comprlen++;
 }
 
-u_int16_t
-zone_addname(msg, dname)
-	struct message *msg;
-	u_char *dname;
+u_int16_t 
+zone_addname (struct message *msg, u_char *dname)
 {
 	/* Lets try rdata dname compression */
 	int rdlength = 0;
@@ -197,7 +180,8 @@ zone_addname(msg, dname)
 			/* Walk through the dnames that we have already in the packet */
 			for(j = 0; j < msg->comprlen; j++) {
 				if((msg->compr[j].dnamelen == (dname + 1 + *dname - t)) &&
-					(strncasecmp(t, msg->compr[j].dname, msg->compr[j].dnamelen) == 0)) {
+					(strncasecmp((char *)t, (char *)msg->compr[j].dname,
+						msg->compr[j].dnamelen) == 0)) {
 					/* Match, first write down unmatched part */
 					zone_addbuf(msg, dname + 1, t - (dname + 1));
 					rdlength += (t - (dname + 1));
@@ -228,11 +212,8 @@ zone_addname(msg, dname)
 
 
 
-u_int16_t
-zone_addrrset(msg, dname, rrset)
-	struct message *msg;
-	u_char *dname;
-	struct rrset *rrset;
+u_int16_t 
+zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 {
 	u_int16_t class = htons(CLASS_IN);
 	int32_t ttl;
@@ -314,7 +295,7 @@ zone_addrrset(msg, dname, rrset)
 		zone_addbuf(msg, &ttl, sizeof(int32_t));
 
 		/* rdlength */
-		rdlengthptr = msg->bufptr;
+		rdlengthptr = (char *)msg->bufptr;
 		rdlength = 0;
 		/*
 		 * Reserver space for rdata length.  The actual length
@@ -375,10 +356,7 @@ zone_addrrset(msg, dname, rrset)
  *
  */
 struct domain *
-zone_addanswer(d, msg, type)
-	struct domain *d;
-	struct message *msg;
-	u_int16_t type;
+zone_addanswer (struct domain *d, struct message *msg, int type)
 {
 	struct answer *a;
 	size_t size, datasize;
@@ -420,9 +398,8 @@ zone_addanswer(d, msg, type)
  * Frees all the data structures associated with the zone
  *
  */
-void
-zone_free(z)
-	struct zone *z;
+void 
+zone_free (struct zone *z)
 {
 	if(z) {
 		if(z->dname) free(z->dname);
@@ -437,10 +414,7 @@ zone_free(z)
  *
  */
 struct zone *
-zone_read(name, zonefile, cache)
-	char *name;
-	char *zonefile;
-	int cache;
+zone_read (char *name, char *zonefile, int cache)
 {
 	heap_t *h;
 	int i;
@@ -455,13 +429,13 @@ zone_read(name, zonefile, cache)
 	bzero(z, sizeof(struct zone));
 
 	/* Get the zone name */
-	if((z->dname = strdname(name, ROOT_ORIGIN)) == NULL) {
+	if((z->dname = strdname(name, (u_char *)ROOT_ORIGIN)) == NULL) {
 		zone_free(z);
 		return NULL;
 	}
 
 	/* Open the zone file */
-	if((zf = zf_open(zonefile, name)) == NULL) {
+	if((zf = zf_open(zonefile, (u_char *)name)) == NULL) {
 		zone_free(z);
 		return NULL;
 	}
@@ -534,7 +508,7 @@ zone_read(name, zonefile, cache)
 			/* Add it */
 			if(rrset == NULL) {
 				/* XXX We can use this more smart... */
-				heap_insert(h, strdup(rr->dname), r, 1);
+				heap_insert(h, strdup((char *)rr->dname), r, 1);
 			} else {
 				r->next = rrset->next;
 				rrset->next = r;
@@ -686,10 +660,8 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
  *
  * Returns zero if success.
  */
-int
-zone_dump(z, db)
-	struct 	zone *z;
-	struct namedb *db;
+int 
+zone_dump (struct zone *z, struct namedb *db)
 {
 	struct domain *d;
 	struct message msg, msgany;
@@ -713,7 +685,7 @@ zone_dump(z, db)
 	}
 
 	/* AUTHORITY CUTS */
-	HEAP_WALK(z->cuts, (char *)dname, rrset) {
+	HEAP_WALK(z->cuts, dname, rrset) {
 		/* Report progress... */
 		if(vflag) {
 			if((++progress % fraction) == 0) {
@@ -730,7 +702,7 @@ zone_dump(z, db)
 	}
 
 	/* OTHER DATA */
-	HEAP_WALK(z->data, (char *)dname, rrset) {
+	HEAP_WALK(z->data, dname, rrset) {
 		/* Report progress... */
 		if(vflag) {
 			if((++progress % fraction) == 0) {
@@ -898,8 +870,8 @@ zone_dump(z, db)
 	return 0;
 }
 
-int
-usage()
+int 
+usage (void)
 {
 	fprintf(stderr, "usage: zonec [-f database] [-d directory] zone-list-file\n");
 	exit(1);
@@ -908,10 +880,8 @@ usage()
 extern char *optarg;
 extern int optind;
 
-int
-main(argc, argv)
-	int argc;
-	char **argv;
+int 
+main (int argc, char **argv)
 {
 	char *zonename, *zonefile, *s;
 	char buf[LINEBUFSZ];

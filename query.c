@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.66 2002/05/06 19:21:30 alexis Exp $
+ * $Id: query.c,v 1.67 2002/05/07 13:17:36 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -44,9 +44,8 @@
  * Stript the packet and set format error code.
  *
  */
-void
-query_formerr(q)
-	struct query *q;
+void 
+query_formerr (struct query *q)
 {
 	RCODE_SET(q, RCODE_FORMAT);
 
@@ -55,9 +54,8 @@ query_formerr(q)
 	q->iobufptr = q->iobuf + QHEADERSZ;
 }
 
-void
-query_init(q)
-	struct query *q;
+void 
+query_init (struct query *q)
 {
 	q->addrlen = sizeof(q->addr);
 	q->iobufsz = QIOBUFSZ;
@@ -67,12 +65,8 @@ query_init(q)
 	q->tcp = 0;
 }
 
-void
-query_addanswer(q, dname, a, truncate)
-	struct query *q;
-	u_char *dname;
-	struct answer *a;
-	int truncate;
+void 
+query_addanswer (struct query *q, u_char *dname, struct answer *a, int truncate)
 {
 	u_char *qptr;
 	u_int16_t pointer;
@@ -154,13 +148,8 @@ query_addanswer(q, dname, a, truncate)
 	}
 }
 
-int
-query_axfr(q, db, qname, zname, depth)
-	struct query *q;
-	struct namedb *db;
-	u_char *qname;
-	u_char *zname;
-	int depth;
+int 
+query_axfr (struct query *q, struct namedb *db, u_char *qname, u_char *zname, int depth)
 {
 	static rbnode_t *node;
 	static struct domain *d;
@@ -191,7 +180,8 @@ query_axfr(q, db, qname, zname, depth)
 			}
 
 			dname = node->data;
-			d = node->data + (((u_int32_t)*((char *)node->data) + 1 + 3) & 0xfffffffc);
+			d = (void *)((char *)node->data + (((u_int32_t)*((char *)node->data) + 1 + 3)
+				& 0xfffffffc));
 
 			/* XXX We rely here that SOA will always be the first answer */
 			if((a = namedb_answer(d, htons(TYPE_SOA))) == NULL) {
@@ -240,7 +230,8 @@ query_axfr(q, db, qname, zname, depth)
 		} else {
 			/* Get the name... */
 			dname = node->data;
-			d = node->data + (((u_int32_t)*((char *)node->data) + 1 + 3) & 0xfffffffc);
+			d = (void *)((char *)node->data + (((u_int32_t)*((char *)node->data) + 1 + 3)
+				& 0xfffffffc));
 
 			/* Are we skipping an embedded zone? */
 			if(skipzone != NULL && *skipzone <= *dname &&
@@ -291,10 +282,8 @@ query_axfr(q, db, qname, zname, depth)
 	return 1;
 }
 
-int
-query_process(q, db)
-	struct query *q;
-	struct namedb *db;
+int 
+query_process (struct query *q, struct namedb *db)
 {
 	u_char qstar[2] = "\001*";
 	u_char qnamebuf[MAXDOMAINLEN + 3];

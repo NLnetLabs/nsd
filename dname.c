@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.1 2002/05/06 18:55:55 alexis Exp $
+ * $Id: dname.c,v 1.2 2002/05/07 13:17:36 alexis Exp $
  *
  * dname.c -- nsd(8) domain name manipulations
  *
@@ -39,10 +39,8 @@
  */
 #include "nsd.h"
 
-int
-dnamecmp(a, b)
-	register u_char *a;
-	register u_char *b;
+int 
+dnamecmp (register u_char *a, register u_char *b)
 {
 	register int r;
 	register int alen = (int)*a;
@@ -56,10 +54,8 @@ dnamecmp(a, b)
 	return alen - blen;
 }
 
-void
-dnameinvert(dname, iname)
-	u_char *dname;
-	u_char *iname;
+void 
+dnameinvert (u_char *dname, u_char *iname)
 {
 
 	u_char *stack[MAXDOMAINLEN];

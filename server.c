@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.33 2002/05/06 14:11:34 alexis Exp $
+ * $Id: server.c,v 1.34 2002/05/07 13:17:36 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -39,10 +39,8 @@
  */
 #include "nsd.h"
 
-int
-answer_udp(s, nsd)
-	int s;
-	struct nsd *nsd;
+int 
+answer_udp (int s, struct nsd *nsd)
 {
 	int received, sent;
 	struct query q;
@@ -51,7 +49,7 @@ answer_udp(s, nsd)
 	query_init(&q);
 
 	if((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-		syslog(LOG_ERR, "recvfrom failed: %m");
+		syslog(LOG_ERR, "recvfrom failed: %s", strerror(errno));
 		return -1;
 	}
 	q.iobufptr = q.iobuf + received;
@@ -66,7 +64,7 @@ answer_udp(s, nsd)
  			}
  		}
 		if((sent = sendto(s, q.iobuf, q.iobufptr - q.iobuf, 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
-			syslog(LOG_ERR, "sendto failed: %m");
+			syslog(LOG_ERR, "sendto failed: %s", strerror(errno));
 			return -1;
 		} else if(sent != q.iobufptr - q.iobuf) {
 			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
@@ -83,12 +81,8 @@ answer_udp(s, nsd)
  *
  *
  */
-int
-answer_tcp(s, addr, addrlen, nsd)
-	int s;
-	struct sockaddr *addr;
-	size_t addrlen;
-	struct nsd *nsd;
+int 
+answer_tcp (int s, struct sockaddr *addr, size_t addrlen, struct nsd *nsd)
 {
 	struct query q;
 	u_int16_t tcplen;
@@ -124,7 +118,7 @@ answer_tcp(s, addr, addrlen, nsd)
 				syslog(LOG_WARNING, "timed out reading tcp connection");
 				return -1;
 			} else {
-				syslog(LOG_ERR, "failed reading tcp connection: %m");
+				syslog(LOG_ERR, "failed reading tcp connection: %s", strerror(errno));
 				return -1;
 			}
 		}
@@ -157,7 +151,7 @@ answer_tcp(s, addr, addrlen, nsd)
 				tcplen = htons(q.iobufptr - q.iobuf);
 				if(((sent = write(s, &tcplen, 2)) == -1) ||
 					((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
-						syslog(LOG_ERR, "write failed: %m");
+						syslog(LOG_ERR, "write failed: %s", strerror(errno));
 						return -1;
 				}
 				if(sent != q.iobufptr - q.iobuf) {
@@ -179,7 +173,7 @@ answer_tcp(s, addr, addrlen, nsd)
 			syslog(LOG_WARNING, "timed out reading tcp connection");
 			return -1;
 		} else {
-			syslog(LOG_ERR, "failed reading tcp connection: %m");
+			syslog(LOG_ERR, "failed reading tcp connection: %s", strerror(errno));
 			return -1;
 		}
 	}
@@ -191,9 +185,8 @@ answer_tcp(s, addr, addrlen, nsd)
 }
 
 
-int
-server(nsd)
-	struct nsd *nsd;
+int 
+server (struct nsd *nsd)
 {
 	int udp_s, tcp_s, tcpc_s, maxfd;
 #ifdef INET6
@@ -218,13 +211,13 @@ server(nsd)
 
 	/* Make a socket... */
 	if((udp_s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-		syslog(LOG_ERR, "cant create a socket: %m");
+		syslog(LOG_ERR, "cant create a socket: %s", strerror(errno));
 		return -1;
 	}
 
 	/* Bind it... */
 	if(bind(udp_s, (struct sockaddr *)&udp_addr, sizeof(udp_addr)) != 0) {
-		syslog(LOG_ERR, "cant bind the socket: %m");
+		syslog(LOG_ERR, "cant bind the socket: %s", strerror(errno));
 		return -1;
 	}
 
@@ -236,13 +229,13 @@ server(nsd)
 
 	/* Make a socket... */
 	if((udp6_s = socket(AF_INET6, SOCK_DGRAM, 0)) == -1) {
-		syslog(LOG_ERR, "cant create a socket: %m");
+		syslog(LOG_ERR, "cant create a socket: %s", strerror(errno));
 		return -1;
 	}
 
 	/* Bind it... */
 	if(bind(udp6_s, (struct sockaddr *)&udp6_addr, sizeof(udp6_addr)) != 0) {
-		syslog(LOG_ERR, "cant bind the socket: %m");
+		syslog(LOG_ERR, "cant bind the socket: %s", strerror(errno));
 		return -1;
 	}
 #endif
@@ -255,19 +248,19 @@ server(nsd)
 
 	/* Make a socket... */
 	if((tcp_s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		syslog(LOG_ERR, "cant create a socket: %m");
+		syslog(LOG_ERR, "cant create a socket: %s", strerror(errno));
 		return -1;
 	}
 
 	/* Bind it... */
 	if(bind(tcp_s, (struct sockaddr *)&tcp_addr, sizeof(tcp_addr)) != 0) {
-		syslog(LOG_ERR, "cant bind the socket: %m");
+		syslog(LOG_ERR, "cant bind the socket: %s", strerror(errno));
 		return -1;
 	}
 
 	/* Listen to it... */
 	if(listen(tcp_s, nsd->tcp.max_conn) == -1) {
-		syslog(LOG_ERR, "cant listen: %m");
+		syslog(LOG_ERR, "cant listen: %s", strerror(errno));
 		return -1;
 	}
 
@@ -279,19 +272,19 @@ server(nsd)
 
 	/* Make a socket... */
 	if((tcp6_s = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
-		syslog(LOG_ERR, "cant create a socket: %m");
+		syslog(LOG_ERR, "cant create a socket: %s", strerror(errno));
 		return -1;
 	}
 
 	/* Bind it... */
 	if(bind(tcp6_s, (struct sockaddr *)&tcp6_addr, sizeof(tcp6_addr)) != 0) {
-		syslog(LOG_ERR, "cant bind the socket: %m");
+		syslog(LOG_ERR, "cant bind the socket: %s", strerror(errno));
 		return -1;
 	}
 
 	/* Listen to it... */
 	if(listen(tcp6_s, nsd->tcp.max_conn) == -1) {
-		syslog(LOG_ERR, "cant listen: %m");
+		syslog(LOG_ERR, "cant listen: %s", strerror(errno));
 		return -1;
 	}
 #endif
@@ -305,21 +298,21 @@ server(nsd)
 
 			switch(nsd->debug ? 0 : (pid = fork())) {
 			case -1:
-				syslog(LOG_ERR, "fork failed: %m");
+				syslog(LOG_ERR, "fork failed: %s", strerror(errno));
 				break;
 			case 0:
 				/* CHILD */
 
 				namedb_close(nsd->db);
 				if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
-					syslog(LOG_ERR, "unable to reload the database: %m");
+					syslog(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 					exit(1);
 				}
 
 				if(!nsd->debug) {
 					/* Send the child SIGINT to the parent to terminate quitely... */
 					if(kill(nsd->pid, SIGINT) != 0) {
-						syslog(LOG_ERR, "cannot kill %d: %m", pid);
+						syslog(LOG_ERR, "cannot kill %d: %s", pid, strerror(errno));
 						exit(1);
 					}
 
@@ -327,7 +320,7 @@ server(nsd)
 
 					/* Overwrite pid... */
 					if(writepid(nsd->pid, nsd->pidfile) == -1) {
-						syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
+						syslog(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 					}
 				}
 
@@ -364,7 +357,7 @@ server(nsd)
 				/* We'll fall out of the loop if we need to shut down */
 				continue;
 			} else {
-				syslog(LOG_ERR, "select failed: %m");
+				syslog(LOG_ERR, "select failed: %s", strerror(errno));
 				break;
 			}
 		}
@@ -384,12 +377,12 @@ server(nsd)
 			/* Accept the tcp connection */
 			tcpc_addrlen = sizeof(tcpc_addr);
 			if((tcpc_s = accept(tcp_s, (struct sockaddr *)&tcpc_addr, &tcpc_addrlen)) == -1) {
-				syslog(LOG_ERR, "accept failed: %m");
+				syslog(LOG_ERR, "accept failed: %s", strerror(errno));
 			} else {
 				/* Fork and answer it... */
 				switch(nsd->debug ? 0 : fork()) {
 				case -1:
-					syslog(LOG_ERR, "fork failed: %m");
+					syslog(LOG_ERR, "fork failed: %s", strerror(errno));
 					break;
 				case 0:
 					/* CHILD */
@@ -407,12 +400,12 @@ server(nsd)
 			/* Accept the tcp6 connection */
 			tcpc_addrlen = sizeof(tcpc_addr);
 			if((tcpc_s = accept(tcp6_s, (struct sockaddr *)&tcpc_addr, &tcpc_addrlen)) == -1) {
-				syslog(LOG_ERR, "accept failed: %m");
+				syslog(LOG_ERR, "accept failed: %s", strerror(errno));
 			} else {
 				/* Fork and answer it... */
 				switch(fork()) {
 				case -1:
-					syslog(LOG_ERR, "fork failed: %m");
+					syslog(LOG_ERR, "fork failed: %s", strerror(errno));
 					break;
 				case 0:
 					/* CHILD */
