@@ -1,5 +1,5 @@
 /*
- * $Id: query.h,v 1.18.4.1 2002/05/21 11:41:39 alexis Exp $
+ * $Id: query.h,v 1.18.4.2 2002/05/23 13:03:49 alexis Exp $
  *
  * query.h -- manipulation with the queries
  *
@@ -175,6 +175,7 @@ struct query {
 	u_char *iobufptr;
 	int  iobufsz;
 	int  edns;
+	int tcp;
 	u_char iobuf[QIOBUFSZ];
 };
 
@@ -182,5 +183,6 @@ struct query {
 int query_process __P((struct query *, struct nsd *));
 void query_init __P((struct query *));
 void query_addanswer __P((struct query *, u_char *, struct answer *, int));
+int query_axfr __P((struct query *, struct nsd *, u_char *, u_char *, int));
 
 #endif /* _QUERY_H_ */
