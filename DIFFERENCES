@@ -1,9 +1,10 @@
 Response Differences Between
-Bind 8.3.1-REL and nsd 1.0.1
+Bind 8.3.3-REL and nsd 1.0.1
 
 Daniel Karrenberg
 <daniel.karrenberg@ripe.net>
 
+Version: 1.0
 
 Abstract
 
@@ -26,7 +27,7 @@ to a root name server and a TLD name server.
 The most frequently ocurring  differences are due to 
 the fact that nsd is a true 'authoritative only' server.
 As such it does not return as much non-authoritative data
-as bind8 doest. We do not expec these differences to cause
+as bind8 does. We do not expect these differences to cause
 problems in resolvers.
 
 
@@ -40,6 +41,7 @@ Authoritative only service should not provide
 non authoritative data.
 
 Example:
+
 bind8: 115 21412 -   1/2/2 
 A? NS1.FASTSERVER.NL.;
 ns1.fastserver.nl. a 80.84.226.95;
@@ -47,6 +49,7 @@ fastserver.nl. ns ns1.fastserver.nl.
 fastserver.nl. ns ns2.fastserver.nl.;
 ns1.fastserver.nl. a 80.84.226.95
 ns2.fastserver.nl. a 80.84.226.98;
+
 nsd:  99 21412 -   0/2/2 
 A? NS1.FASTSERVER.NL.;
 fastserver.nl. ns ns1.fastserver.nl.
@@ -69,7 +72,8 @@ Authoritative only service should not provide
 non authoritative data.
 
 Example:
-139 25304 -   3/0/3 
+
+bind8: 139 25304 -   3/0/3 
 NS? flightcam.de.;
 flightcam.de. ns ns.kdt.de.
 flightcam.de. ns ns2.kdt.de.
@@ -77,7 +81,8 @@ flightcam.de. ns ns.wtal.de.;
 ns.kdt.de. a 195.8.224.1
 ns2.kdt.de. a 195.8.224.2
 ns.wtal.de. a 212.17.226.130;
-139 25304 -   0/3/3 
+
+nsd:139 25304 -   0/3/3 
 NS? flightcam.de.;
 flightcam.de. ns ns.kdt.de.
 flightcam.de. ns ns2.kdt.de.
@@ -91,7 +96,8 @@ ns.wtal.de. a 212.17.226.130;
 2. Bind Bugs
 
 Some differences are due to bind bugs 
-and/or bind answers not conforminc to the standard.
+and/or bind answers not conformin to the 
+Intenert standards.
 
 
 2.1 b-multrrset - Multiple RRSets in Response
@@ -104,12 +110,13 @@ answer and Additional sections.
 This is not conforming to the standard.
 
 Anaysis:
-NSD answers correctly as per the RFCs. 
+NSD answers correctly as per the standard. 
 Some incorrect and particularly naive resolver
 implementations could be affected.
 No such implementation is known.
 
 Example: 
+
 bind8: 24531*- q: A? A.ROOT-SERVERS.NET. 1/4/4 
 A.ROOT-SERVERS.NET. A 198.41.0.4 
 ns: ROOT-SERVERS.NET. NS A.ROOT-SERVERS.NET., 
@@ -151,11 +158,14 @@ Analysis:
 A bind bug.
 
 Example:
+
 zone file:
 www.pool-effekt 86400 IN A              194.246.96.72
+
 bind8: 82   889 *-  0/1/0 
 A? pool-effekt.de.;
 de. soa dns.denic.de. ops.denic.de. 2002031701 10800 7200 3600000 3600;
+
 nsd:   82   889 *-  0/1/0 NXDomain
 A? pool-effekt.de.;
 de. soa dns.denic.de. ops.denic.de. 2002031701 10800 7200 3600000 3600;
@@ -182,17 +192,20 @@ problems at all.
 
 3.1 d-nnotimpny - nsd returns Refused on notify requests
 
-nsd returns REFUSED to notify operations and does not return
+nsd returns NOTIMP to notify operations and does not return
 the original query.
 
 Example:
-bind8:  29     0 -   0/0/0 notify ServFail
+
+bind8: 29     0 -   0/0/0 notify ServFail
 SOA? smgcinc.com.;
-nsd:    12     0 *-  0/0/0 notify Refused
+
+nsd:  12     0 *-  0/0/0 notify NotImp;
 
 Analysis:
-This is a permanent error.
-Interpretation of the protocol standard differs. 
+NSD does not implement Notify and answers
+accordingly.
+
 
 
 3.2 d-nrefclass - nsd returns Refused on unknown class/type
@@ -206,10 +219,13 @@ Interpretation of the protocol
 standard differs. 
 
 Example:
+
 bind8: 32  1388 -   0/0/0 ServFail
 Type0 (Class 256)? 10.225.125.182.;
+
 nsd:   32  1388 -   0/0/0 Refused
 Type0 (Class 256)? 10.225.125.182.;
+
 
 
 3.3 d-nonrefut - nsd returns no data on refused upddate
@@ -268,7 +284,7 @@ increasingly severe ways.
   is negligible. It is shown as "Added Bytes:"
   in the comparisons.
 
-- same answer (d-nameenctr)
+- same answer (d-nameencom)
   The answer is the same; the additional
   section is shortened by one or more
   RRsets. This may cause some loss of 
@@ -294,79 +310,77 @@ This is an expected differences caused by design choices.
 
 Appendix A
 
-Comparison of responses to root NS queries: 
+Comparison of responses to root queries:
 
 --------------------------------------------------------------------------
-                                            Total Answers: 899720
+                                            Total Answers: 899990
 --------------------------------------------------------------------------
 
-                                               d-bcacheglu  46960 /  5.22%
-                                               d-nameencod   3764 /  0.42%
-                                               d-nclrcdbit   1616 /  0.18%
-                                   d-bcacheglu b-multrrset    626 /  0.07%
-                                               d-nameenctr    340 /  0.04%
-                                               d-nrefclass    252 /  0.03%
-                                                d-updrefut     55 /  0.01%
+                                               d-bcacheglu  47182 /  5.24%
+                                               d-nameencod   3779 /  0.42%
+                                               d-nclrcdbit   1619 /  0.18%
+                                   d-bcacheglu b-multrrset    628 /  0.07%
+                                               d-nameencom    340 /  0.04%
+                                               d-nrefclass    254 /  0.03%
+                                               d-nnotimpup     55 /  0.01%
                                                d-nnocachns     17 /  0.00%
                                                d-nnotimpny      4 /  0.00%
                                        b-rootdot b-nonxdom      3 /  0.00%
                                                d-bindchaos      2 /  0.00%
 --------------------------------------------------------------------------
-                                 Total Different Responses  53639 /  5.96%
+                                 Total Different Responses  53883 /  5.99%
 ==========================================================================
 
-b-multrrset -   bind puts same RRSet in multiple sections:    626 /  1.15%
+b-multrrset -   bind puts same RRSet in multiple sections:    628 /  1.15%
 b-nonxdom   -       bind misses NXDomain when no zone cut:      3 /  0.01%
 b-rootdot   -              bind answers queries for ROOT.:      3 /  0.01%
-d-bcacheglu -              bind answers with chached glue:  47586 / 87.69%
+d-bcacheglu -              bind answers with chached glue:  47810 / 87.70%
 d-bindchaos -               bind answers to CHAOS *.bind.:      2 /  0.00%
-d-nameencod -                     different name encoding:   3764 /  6.94%
-                                  Additional bytes:  13654
-d-nameenctr -       different name enc. causes truncation:    340 /  0.63%
-                                     Truncated RRs:    340
-d-nclrcdbit -               nsd clears CD bit in response:   1616 /  2.98%
+d-nameencod -                     different name encoding:   3779 /  6.93%
+                                  Additional bytes:  13711
+d-nameencom -  name enc. causes omission of additional RR:    340 /  0.62%
+                                       Omitted RRs:    340
+d-nclrcdbit -               nsd clears CD bit in response:   1619 /  2.97%
 d-nnocachns -     ns returns no non-authoritative answers:     17 /  0.03%
 d-nnotimpny -       nsd returns NotImp on notify requests:      4 /  0.01%
-d-nrefclass -   nsd returns Refused on unknown class/type:    252 /  0.46%
-d-nupdrefut -      nsd returns no data on refused upddate:     55 /  0.10%
+d-nnotimpup -       nsd returns NotImp on update requests:     55 /  0.10%
+d-nrefclass -   nsd returns Refused on unknown class/type:    254 /  0.47%
 --------------------------------------------------------------------------
-                                         Total Differences  54268 /100.00%
+                                         Total Differences  54514 /100.00%
 ==========================================================================
-
 
 
 Appendix B
 
 Comparison of responses to NL TLD queries:
 
---------------------------------------------------------------------------
-                                            Total Answers: 881774
+-------------------------------------------------------------------------
+                                            Total Answers: 883472
 --------------------------------------------------------------------------
 
-                                   d-bcacheglu b-multrrset 104769 / 11.88%
-                                   b-multrrset d-nnocachns  45906 /  5.21%
-                                               d-nnotimpny  44852 /  5.09%
-                                                d-updrefut  36149 /  4.10%
-                                               d-nnocachns  13055 /  1.48%
-                                               d-nclrcdbit   8177 /  0.93%
-                                               d-nameencod    888 /  0.10%
-                                    parseerror d-nnocachns      5 /  0.00%
-                                     parseerror d-updrefut      1 /  0.00%
+                                   d-bcacheglu b-multrrset 104984 / 11.88%
+                                               d-nnotimpny  50368 /  5.70%
+                                   b-multrrset d-nnocachns  46010 /  5.21%
+                                               d-nnotimpup  36243 /  4.10%
+                                               d-nnocachns  13069 /  1.48%
+                                               d-nclrcdbit   8196 /  0.93%
+                                               d-nameencod    890 /  0.10%
+                                    parseerror d-nnocachns     11 /  0.00%
+                                    parseerror d-nnotimpup      1 /  0.00%
                                                 parseerror      1 /  0.00%
 --------------------------------------------------------------------------
-                                 Total Different Responses 253803 / 28.78%
+                                 Total Different Responses 259773 / 29.40%
 ==========================================================================
 
-b-multrrset -   bind puts same RRSet in multiple sections: 150675 / 37.25%
-d-bcacheglu -              bind answers with chached glue: 104769 / 25.90%
-d-nameencod -                     different name encoding:    888 /  0.22%
-                                  Additional bytes:   3130
-d-nclrcdbit -               nsd clears CD bit in response:   8177 /  2.02%
-d-nnocachns -     ns returns no non-authoritative answers:  58966 / 14.58%
-d-nnotimpny -       nsd returns NotImp on notify requests:  44852 / 11.09%
-d-nupdrefut -      nsd returns no data on refused upddate:  36150 /  8.94%
-parseerror  -    Could not parse tcpdump output correctly:      7 /  0.00%
+b-multrrset -   bind puts same RRSet in multiple sections: 150994 / 36.76%
+d-bcacheglu -              bind answers with chached glue: 104984 / 25.56%
+d-nameencod -                     different name encoding:    890 /  0.22%
+                                  Additional bytes:   3136
+d-nclrcdbit -               nsd clears CD bit in response:   8196 /  2.00%
+d-nnocachns -     ns returns no non-authoritative answers:  59090 / 14.38%
+d-nnotimpny -       nsd returns NotImp on notify requests:  50368 / 12.26%
+d-nnotimpup -       nsd returns NotImp on update requests:  36244 /  8.82%
+parseerror  -    Could not parse tcpdump output correctly:     13 /  0.00%
 --------------------------------------------------------------------------
-                                         Total Differences 404484 /100.00%
+                                         Total Differences 410779 /100.00%
 ==========================================================================
-
