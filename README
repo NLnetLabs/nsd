@@ -1,8 +1,8 @@
-$Id: README,v 1.13.2.5 2002/08/14 14:40:03 alexis Exp $
+$Id: README,v 1.13.2.6 2002/08/20 09:02:40 alexis Exp $
 
 1.0 Introduction
 
-This is NSD Name Server Daemon (NSD) version 1.0.1 beta
+This is NSD Name Server Daemon (NSD) version 1.0.1
 
 NSD is a complete implementation of an authoritative DNS nameserver. 
 For further information about what NSD is and what NSD is not please 
@@ -36,9 +36,9 @@ which uses a simple configuration file.
 Use your favorite combination of tar and gnu zip to unpack the source, 
 for example
 
-$ gtar -xzvf nsd-1.0.1-beta.tar.gz
+$ gtar -xzvf nsd-1.0.1.tar.gz
 
-will unpack the source into the ./nsd-1.0.1-beta directory...
+will unpack the source into the ./nsd-1.0.1 directory...
 
 2.2 Editing the Makefile
 
