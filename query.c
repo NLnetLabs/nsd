@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.88 2003/02/10 09:54:32 alexis Exp $
+ * $Id: query.c,v 1.89 2003/02/18 10:54:45 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -140,11 +140,13 @@ query_axfr (struct query *q, struct nsd *nsd, u_char *qname, u_char *zname, int 
 
 	/* Truncate */
 	if(d && DOMAIN_FLAGS(d) & NAMEDB_DELEGATION) {
-		ANCOUNT(q) = NSCOUNT(q);
+		ANCOUNT(q) = htons(ntohs(NSCOUNT(q)) + ntohs(ARCOUNT(q)));
+	} else {
+		q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
 	}
-	NSCOUNT(q) = 0;
+
 	ARCOUNT(q) = 0;
-	q->iobufptr = qptr + ANSWER_RRS(a, ntohs(ANCOUNT(q)));
+	NSCOUNT(q) = 0;
 
 	/* More data... */
 	return 1;
