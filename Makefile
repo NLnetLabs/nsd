@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.9 2002/08/13 08:49:42 alexis Exp $
+# $Id: Makefile,v 1.69.2.10 2002/08/14 14:22:44 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -121,6 +121,12 @@ NSDNOTIFY	= ${NSDBINDIR}/nsd-notify
 #			Use TCP wrappers for AXFR access control
 #			Requires adding -lwrap to $LIBS
 #
+#	-DAXFR_DAEMON_PREFIX
+#
+#			Use this prefix in combination with the zone name
+#			to check if a particular peer is allowed to tranfer
+#			the zone.
+#
 #	Please see DBFLAGS below to switch the internal database type.
 #
 FEATURES	= -DINET6 -DHOSTS_ACCESS
@@ -145,7 +151,7 @@ LIBS		=
 #LIBS		= -L/usr/local/lib -ldb4
 
 # Compile environment settings
-DEBUG		= # -g -DDEBUG=1
+DEBUG		=  # -g -DDEBUG=1
 CC=gcc
 CFLAGS		= -ansi -pipe -O6 -Wall ${DEBUG} ${DBFLAGS} ${FEATURES} \
 	-DCF_PIDFILE=\"${NSDPIDFILE}\" -DCF_DBFILE=\"${NSDDB}\" -DCF_USERNAME=\"${NSDUSER}\"

@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.10.2.4 2002/08/14 11:55:53 alexis Exp $
+ * $Id: config.h,v 1.10.2.5 2002/08/14 14:22:44 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -53,8 +53,17 @@
 #define	CF_USERNAME	""
 #endif
 
+#ifdef HOSTS_ACCESS
 #ifndef	AXFR_DAEMON
 #define	AXFR_DAEMON	"axfr"
+#endif
+#ifndef AXFR_DAEMON_PREFIX
+#define	AXFR_DAEMON_PREFIX "axfr-"
+#endif
+#endif /* HOSTS_ACCESS */
+
+#ifndef	CF_FACILITY
+#define	CF_FACILITY	LOG_DAEMON
 #endif
 
 #ifdef	DEBUG
@@ -92,10 +101,6 @@
 #define	CF_EDNS_MAX_MESSAGE_LEN	4096
 
 #endif	/* DEBUG */
-
-#ifndef	CF_FACILITY
-#define	CF_FACILITY	LOG_DAEMON
-#endif
 
 #ifdef __sun
 typedef          char  int8_t;

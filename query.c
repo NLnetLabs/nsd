@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.75.2.3 2002/08/13 13:02:37 alexis Exp $
+ * $Id: query.c,v 1.75.2.4 2002/08/14 14:22:44 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -530,11 +530,38 @@ query_process(q, nsd)
 		if(q->tcp) {
 #ifdef HOSTS_ACCESS
 			struct request_info request;
+#ifdef AXFR_DAEMON_PREFIX
+			char *t;
+			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
+
+			memcpy(axfr_daemon, AXFR_DAEMON_PREFIX, sizeof(AXFR_DAEMON_PREFIX));
+
+			/* Copy the qname as a string */
+			for(t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1,
+					qptr = qnamelow; *qptr; t += *qptr, *t++ = '.', qptr += *qptr + 1) {
+				memcpy(t, qptr + 1, *qptr);
+				
+			}
+			*t = 0;
+			
+#endif /* AXFR_DAEMON_PREFIX */
 			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
 			sock_methods(&request);	/* This is to work around the bug in libwrap */
-			if(hosts_access(&request))
+			if(!hosts_access(&request)) {
+#ifdef AXFR_DAEMON_PREFIX
+				request_init(&request, RQ_DAEMON, axfr_daemon, RQ_CLIENT_SIN, &q->addr, 0);
+				sock_methods(&request);	/* This is to work around the bug in libwrap */
+				syslog(LOG_ERR, "checking %s", axfr_daemon);
+				if(!hosts_access(&request)) {
+#endif /* AXFR_DAEMON_PREFIX */
+					RCODE_SET(q, RCODE_REFUSE);
+					return 0;
+#ifdef AXFR_DAEMON_PREFIX
+				}
+#endif /* AXFR_DAEMON_PREFIX */
+			}
 #endif /* HOSTS_ACCESS */
-				return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
+			return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
 		}
 #endif	/* DISABLE_AXFR */
 	case TYPE_IXFR:
