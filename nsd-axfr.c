@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-axfr.c,v 1.4 2003/04/29 13:40:53 alexis Exp $
+ * $Id: nsd-axfr.c,v 1.5 2003/05/05 08:45:16 alexis Exp $
  *
  * nsd-axfr.c -- axfr utility for nsd(8)
  *
@@ -127,6 +127,46 @@ usage(void)
 extern char *optarg;
 extern int optind;
 
+int
+sane(struct query *q, u_int16_t id) {
+	/* Is it an answer? */
+	if(!QR(q)) {
+		fprintf(stderr, "server returned query instead of answer\n");
+		return -1;
+	}
+
+	/* Truncated? */
+	if(TC(q)) {
+		fprintf(stderr, "truncated answer over tcp\n");
+		return -1;
+	}
+
+	/* Not authorative? */
+	if(!AA(q)) {
+		fprintf(stderr, "received non-authorative data\n");
+		return -1;
+	}
+
+	/* Opcode? */
+	if(OPCODE(q) != OPCODE_QUERY) {
+		fprintf(stderr, "unexpected opcode in the answer\n");
+		return -1;
+	}
+
+	/* Rcode? */
+	if(RCODE(q) != RCODE_OK) {
+		fprintf(stderr, "error code %d received\n", RCODE(q));
+		return -1;
+	}
+
+	/* Wrong id? */
+	if(id != ntohs(ID(q))) {
+		fprintf(stderr, "query id mismatch\n");
+		return -1;
+	}
+	return 0;
+}
+
 /*
  * The main function.
  *
@@ -136,13 +176,16 @@ main (int argc, char *argv[])
 {
 	int c, s, i;
 	struct query q;
+	struct zparser *parser;
+	struct RR *rr;
 	struct RR **rrs;
 	struct in_addr pin;
 	u_char *zname;
-	char *zonefile;
+	char *zonefile = NULL;
 	int port = 53;
 	int force = 0;
 	u_int16_t id = 0;
+	u_int32_t serial = 0;
 
 	/* Randomize for query ID... */
 	srand(time(NULL));
@@ -181,6 +224,26 @@ main (int argc, char *argv[])
 		error("invalid zone name");
 	}
 
+	/* Do we have the file? */
+	if(zonefile != NULL) {
+		if((parser = zopen(zonefile, 3600, CLASS_IN, *argv)) == NULL) {
+			if(errno != ENOENT) {
+				error("unable to open the master zone file");
+			}
+		} else {
+			/* Do we have SOA? */
+			if((rr = zread(parser)) == NULL || rr->type != TYPE_SOA) {
+				error("missing SOA record on top of the master zone file");
+			}
+			serial = ntohl(*(u_int32_t *)(rr->rdata[2]));
+
+			zrdatafree(rr->rdata);
+			rr->rdata = NULL;
+			zclose(parser);
+		}
+	}
+
+
 	/* Try every server in turn.... */
 	for(argv++, argc--; *argv; argv++, argc--) {
 		/* Do we have a valid ip address here? */
@@ -210,25 +273,68 @@ main (int argc, char *argv[])
 		}
 
 		/* Send the query */
-		id = rand();
+/*		id = rand();
 		if(query(s, &q, zname, TYPE_SOA, CLASS_IN, id, 0, 1, 0) != 0) {
 			close(s);
 			continue;
-		}
+		} */
 
 		/* Receive & unpack it... */
-		if((rrs = response(s, &q)) == NULL) {
+/*		if((rrs = response(s, &q)) == NULL) {
+			close(s);
+			continue;
+		} */
+
+		/* Sanity check */
+/*		if(sane(&q, id) != 0) {
+			close(s);
+			continue;
+		} */
+
+		/* Do we have a SOA? Compare! */
+/*		if(rrs[ntohs(QDCOUNT((&q)))]->type != TYPE_SOA) {
+			fprintf(stderr, "did not receive a SOA record\n");
+			close(s);
+			continue;
+		} */
+
+		/* Compare serials... */
+/*		if(ntohl(*(u_int32_t *)(rrs[ntohs(QDCOUNT((&q)))]->rdata[2]))
+			<= serial) {
+			fprintf(stderr, "we have a larger SOA, no need to transfer the zone\n");
+			break;
+		} */
+
+		/* XXX free response */
+/*		zprintrr(stdout, rrs[ntohs(QDCOUNT((&q)))]); */
+
+
+		/* Zero the serial... *
+		serial = 0;
+
+		/* Do the AXFR */
+		id = rand();
+		if(query(s, &q, zname, TYPE_AXFR, CLASS_IN, id, 0, 1, 0) != 0) {
 			close(s);
 			continue;
 		}
 
-		/* Print it */
-		for(i = 0; rrs[i] != NULL; i++) {
-			zprintrr(stdout, rrs[i]);
+		/* Read it... */
+		while((rrs = response(s, &q)) != NULL) {
+			/* Print it... */
+			for(i = ntohs(QDCOUNT((&q))); rrs[i] != NULL && i < ntohs(QDCOUNT((&q))) + ntohs(ANCOUNT((&q))); i++) {
+				zprintrr(stdout, rrs[i]);
+			}
+                }
+
+		/* AXFR failed... */
+		if(rrs == NULL)  {
+			close(s);
+			continue;
 		}
+
 		break;
 	}
 
 	exit(0);
 }
-
