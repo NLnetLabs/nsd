@@ -810,9 +810,12 @@ answer_query(struct nsd *nsd, struct query *q)
 		q->delegation_domain = domain_find_ns_rrsets(
 			closest_encloser, q->zone, &q->delegation_rrset);
 
-		if (q->delegation_domain) {
+		if (q->delegation_domain &&
+		    !(q->type == TYPE_DS && closest_encloser == q->delegation_domain))
+		{
 			answer_delegation(q, &answer);
-		} else {
+		}
+		else {
 			if (q->class == CLASS_ANY) {
 				AA_CLR(q);
 			} else {
