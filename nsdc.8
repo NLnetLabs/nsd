@@ -8,24 +8,26 @@ nsdc \- Name Server Daemon Control
 \fBstart\fR|\fBstop\fR|\fBreload\fR|\fBrunning\fR|\fBrebuild\fR|\fBrestart\fR
 ]
 
-.SH WARNING
-\fInsdc\fR is currently ALPHA code. There are rough edges and
-bugs. If you run into them please contact \fInsd-bugs@nlnetlabs.nl\fR.
-
 .SH DESCRIPTION
 .B nsdc 
-is the \fIn\fRame\fIs\fRerver \fId\fRaemon \fIC\fRontrol. It a small
-shell script used as a wrapper for restarting \fInsd\fR,reloading
-the zone information, etc. etc.
+is a control tool for nsd(8) and zonec(8) and is part of
+the \fBNSD\fP package written by NLnet Labs
+in collaboration with RIPE NCC. \fBNSD\fP stands for
+\fIn\fRame\fIs\fRerver \fId\fRaemon and provides
+authoritative DNS information.
+.br
+Nsdc expects various files, like zonefiles
+and database, to be in specific places, but as it is a simple
+shell script it can easily be editted.
 
 .SH OPTIONS
 .TP
 .B start
-start \fInsd\fR with some defaults.
+start \fInsd\fR.
 
 .TP
 .B stop
-stop \fInsd\fR (with SIGTERM signal).
+stop \fInsd\fR.
 
 .TP
 .B reload
@@ -43,17 +45,19 @@ rebuild the zone database using \fIzonec\fR.
 .B restart
 restart \fInsd\fR.
 
-.SH AUTHORS
-\fInsd\fR is written by                
-Alexis Yushin, Erik Rozendaal, Ted Lindgreen, Miek Gieben (All NLnet
-Labs) and Olaf Kolkman, Daniel Karrenberg both from RIPE NCC.
+.SH AUTHOR
+\fInsd\fR is written by Alexis Yushin (NLnet Labs) with
+valuable input and assistance from Jaap Akkerhuis (SIDN),
+Daniel Karrenberg and Olaf Kolkman (RIPE-NCC), and Miek
+Gieben, Erik Rozendaal, and Ted Lindgreen (NLnet Labs).
 
 .SH "SEE ALSO"
 .BR zonec (8),
 .BR nsd (8).
 
-.SH LATEST CODE
-The latest version of \fInsd\fR can always be downloaded from
+.SH CODE STATUS
+The current version, 1.0.0, has beta status. The latest
+version can be retrieved from
 .br
 \fIhttp://www.nlnetlabs.nl/nsd/index.en.html\fR
 

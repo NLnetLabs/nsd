@@ -7,93 +7,46 @@ nsd \- Name Server Daemon
 [ \fB\-d\fR ]
 [ \fB\-f \fIdatabase\fR ]
 [\fB\-p \fIport\fR]
-.BI database
-
-.SH WARNING
-\fInsd\fR is currently ALPHA code. There are still rough edges and
-bugs. If you run into them please contact \fInsd-bugs@nlnetlabs.nl\fR.
 
 .SH DESCRIPTION
 .B nsd
-is the \fIn\fRame\fIs\fRerver \fId\fRaemon written by NLnet Labs in cooperation
-with RIPE NCC. \fInsd\fR was written with the following goals
-in mind:
-.TP
-.B RFC Compliant
-\fInsd\fR is fully compliant with the relevant RFC (1034/35 etc). Only
-were there is a speed trade off the compliance is relaxed (also see
-REQUIREMENTS in the \fInsd\fR source).
-.TP
-.B Speed
-The main purpose of \fInsd\fR is to be able handle lots and lots of
-queries (O(20k/sec)), without breaking a sweat. It's main use
-is thus on heavy loaded servers, like the root-server and TLD servers.
-.TP
-.B Only authoritative
-To increase its speed \fInsd\fR does not do any recursion. And thus
-only suitable on authoritative nameservers.
-.TP
-.B Compatible with \fIBIND\fR
-\fInsd\fR should behave exactly as \fIBIND8/9\fR does. See
-REQUIREMENTS for more information.
-.TP
-.B No code sharing with \fIBIND\fR
-There is no code from \fIBIND4/8/9\fR in \fInsd\fR.
+is the daemon part of the \fBNSD\fP package written by NLnet Labs
+in collaboration with RIPE NCC. \fBNSD\fP stands for
+\fIn\fRame\fIs\fRerver \fId\fRaemon and provides
+authoritative DNS information. The daemon uses a precompiled zone
+database, which is usually build with zonec(8) another part of
+the package. There is an alternative zone database builder,
+written in Perl, available.
+The zone-compilers use an RFC 1034/1035
+compliant zonefile as input.
 .SH OPTIONS
 .TP
 .B \-d
-turn on debugging, \fInsd\fR will be much more generous with error
-messages.
+enable outputting debug information.
 
 .TP
 .B \-p \fIport\fR
-specify the port number \fInsd\fR will use. This defaults to 53.
+specify the port number for \fInsd\fR to use.
+The default portnumber is 53.
 
 .TP
 .B \-f \fIdatabase\fR
-specify the database to use. The \fIdatabase\fR given
-as a argument will supersede this option.
+specify the database to use. If not specified, \fInsd\fR expects
+the database in /var/db/nsd.db.
 
-.TP
-.B database
-the \fBdatabase\fR \fInsd\fR will use. This supersedes the \fB-f\fR
-option (if given).
-The database contains all the information about the configured zones
-in a \fImachine dependent\fR format. It is necessary to compile the
-zone information into this format, \fIzonec\fR is used for this purpose
-(see man 8 zonec).
-
-.SH CONFIGURATION FILE
-The configuration file \fInsd\fR uses has the following syntax
-(";" denotes a comment):
-
-.BR
-
-; zone type     origin          pathname
-
-cache           .               root.cache
-
-zone            example.com     example.com
-
-The first word on a line must be \fIcache\fR or \fIzone\fR.
-It indicates that the zone should be loaded as authoritative data 
-(in case of \fIzone\fR) or just like non-authoritative redirection 
-information in case of \fIcache\fR.
-
-Second word is the name (\fIorigin\fR) of the zone.
-The third word is the \fIpathname\fR to the zone file. 
-
-.SH AUTHORS
-\fInsd\fR is written by                
-Alexis Yushin, Erik Rozendaal, Ted Lindgreen, Miek Gieben (all NLnet
-Labs) and Olaf Kolkman, Daniel Karrenberg both from RIPE NCC.
+.SH AUTHOR
+\fInsd\fR is written by Alexis Yushin (NLnet Labs) with
+valuable input and assistance from Jaap Akkerhuis (SIDN),
+Daniel Karrenberg and Olaf Kolkman (RIPE-NCC), and Miek
+Gieben, Erik Rozendaal, and Ted Lindgreen (NLnet Labs).
 
 .SH "SEE ALSO"
 .BR zonec (8),
 .BR nsdc (8).
 
-.SH LATEST CODE
-The latest version of \fInsd\fR can always be downloaded from
+.SH CODE STATUS
+The current version, 1.0.0, has beta status. The latest
+version can be retrieved from
 .br
 \fIhttp://www.nlnetlabs.nl/nsd/index.en.html\fR
 
