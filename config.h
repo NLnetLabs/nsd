@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.3.2.2.2.1 2002/05/21 09:49:08 alexis Exp $
+ * $Id: config.h,v 1.3.2.2.2.2 2002/05/21 11:41:39 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -40,6 +40,14 @@
 
 #ifndef	_CONFIG_H_
 #define	_CONFIG_H_
+
+#ifndef CF_VERSION
+#define	CF_VERSION	"NSD-1.0.1 Alpha"
+#endif
+
+#ifndef	CF_IDENTITY
+#define	CF_IDENTITY	"unidentified nameserver"
+#endif
 
 #ifndef	CF_UID
 #define	CF_UID	0
