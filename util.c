@@ -1,5 +1,5 @@
 /*
- * $Id: util.c,v 1.2 2001/12/12 13:52:52 alexis Exp $
+ * $Id: util.c,v 1.3 2001/12/12 14:38:07 alexis Exp $
  *
  * util.c -- miscelaneous utilities for nsd(8)
  *
@@ -58,7 +58,7 @@ xalloc(size)
 	register void *p;
 
 	if((p = malloc(size)) == NULL) {
-		syslog(LOG_ERR, "realloc failed: %m");
+		syslog(LOG_ERR, "malloc failed: %m");
 	}
 	return p;
 }
