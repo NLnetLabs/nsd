@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.27 2002/02/15 19:33:02 erik Exp $
+ * $Id: zonec.c,v 1.28 2002/02/18 13:40:00 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -324,7 +324,8 @@ zone_addanswer(d, msg, type)
 	d = xrealloc(d, d->size + size);
 
 	a = (struct answer *)((char *)d + d->size);
-
+	memset(a, 0, sizeof(struct answer));
+	
 	ANSWER_SIZE(a) = size;
 	ANSWER_TYPE(a) = htons(type);
 	ANSWER_ANCOUNT(a) = htons(msg->ancount);
@@ -557,6 +558,11 @@ zone_dump(z, db)
 
 		/* Create a new domain */
         	d = xalloc(sizeof(struct domain));
+		/*
+		 * Initialize struct to avoid uninitialized padding
+		 * data being written.
+		 */
+		memset(d, 0, sizeof(struct domain));
 		d->size = sizeof(struct domain);
 		d->flags = NAMEDB_DELEGATION;
 
@@ -640,6 +646,11 @@ zone_dump(z, db)
 
 		/* Create a new domain, not a delegation */
         	d = xalloc(sizeof(struct domain));
+		/*
+		 * Initialize struct to avoid uninitialized padding
+		 * data being written.
+		 */
+		memset(d, 0, sizeof(struct domain));
 		d->size = sizeof(struct domain);
 		d->flags = 0;
 
