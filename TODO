@@ -1,4 +1,8 @@
-$Id: TODO,v 1.28 2002/09/26 15:34:51 alexis Exp $
+$Id: TODO,v 1.29 2003/01/20 08:44:37 alexis Exp $
+
+AUTOCONF
+
+- check whether the --with-nsd-user exists in the system
 
 ZONE COMPILER
 - memory allocation optimization is needed

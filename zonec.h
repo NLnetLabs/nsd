@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.16 2002/05/23 13:33:03 alexis Exp $
+ * $Id: zonec.h,v 1.17 2003/01/20 08:44:37 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -59,8 +59,6 @@
 #include "dns.h"
 #include "zf.h"
 #include "namedb.h"
-
-#define	DEFAULT_DBFILE	"nsd.db"
 
 struct rrset {
 	struct rrset *next;

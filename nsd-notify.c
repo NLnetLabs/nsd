@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-notify.c,v 1.1 2002/05/30 14:56:28 alexis Exp $
+ * $Id: nsd-notify.c,v 1.2 2003/01/20 08:44:37 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
@@ -142,8 +142,8 @@ main(argc, argv)
 
 	/* Setup the address */
 	bzero(&q.addr, sizeof(struct sockaddr));
-	q.addr.sin_port = htons(53);
-	q.addr.sin_family = AF_INET;
+	((struct sockaddr_in *)&q.addr)->sin_port = htons(53);
+	((struct sockaddr_in *)&q.addr)->sin_family = AF_INET;
 
 	/* Set up the header */
 	OPCODE_SET((&q), OPCODE_NOTIFY);
@@ -173,7 +173,7 @@ main(argc, argv)
 
 	/* Set up the target port */
 	while(*argv) {
-		if((q.addr.sin_addr.s_addr = inet_addr(*argv)) == -1) {
+		if((((struct sockaddr_in *)&q.addr)->sin_addr.s_addr = inet_addr(*argv)) == -1) {
 			fprintf(stderr, "skipping bad address %s\n", *argv);
 		} else {
 			if(sendto(udp_s, q.iobuf, q.iobufptr - q.iobuf, 0,

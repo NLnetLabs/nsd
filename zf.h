@@ -1,5 +1,5 @@
 /*
- * $Id: zf.h,v 1.15 2002/09/09 10:59:15 alexis Exp $
+ * $Id: zf.h,v 1.16 2003/01/20 08:44:37 alexis Exp $
  *
  * zf.h -- RFC1035 master zone file parser, nsd(8)
  *
@@ -187,7 +187,6 @@ char *typetoa __P((u_int16_t));
 char *classtoa __P((u_int16_t));
 struct zf_type_tab *typebyname __P((char *));
 struct zf_class_tab *classbyname __P((char *));
-void *inet6_aton __P((char *));
 char *zone_strtok __P((register char *));
 void zf_error __P((struct zf *, char *));
 void zf_syntax __P((struct zf *));
@@ -203,5 +202,6 @@ void zf_close __P((struct zf *));
 char *dnamestr __P((u_char *));
 u_char *strdname __P((char *s, u_char *));
 int dnamecmp __P((register u_char *, register u_char *));
+void *inet6_aton __P((char *));
 
 #endif

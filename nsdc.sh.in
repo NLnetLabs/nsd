@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.19 2002/12/17 14:41:29 alexis Exp $
+# $Id: nsdc.sh.in,v 1.20 2003/01/20 08:44:37 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -40,19 +40,19 @@
 #
 
 # Optional configuration file for nsdc
-NSDCCONF="@@NSDCCONF@@"
+NSDCCONF="@nsdcconf@"
 
 #
 # Default values in absense of ${NSDCCONF} (Usually ``/etc/nsd/nsdc.conf'')
 #
-NSDBINDIR="@@NSDBINDIR@@"
-NSDZONESDIR="@@NSDZONESDIR@@"
-NSDFLAGS="@@NSDFLAGS@@"
-NSDDB="@@NSDDB@@"
-NSDZONES="@@NSDZONES@@"
-NSDKEYSDIR="@@NSDKEYSDIR@@"
-NSDNOTIFY="@@NSDNOTIFY@@"
-NAMEDXFER="@@NAMEDXFER@@"
+NSDBINDIR="@sbindir@"
+NSDZONESDIR="@nsdzonesdir@"
+NSDFLAGS="@nsdflags@"
+NSDDB="@nsddb@"
+NSDZONES="@nsdzones@"
+NSDKEYSDIR="@nsdkeysdir@"
+NSDNOTIFY="@sbindir@/nsd-notify"
+NAMEDXFER="@namedxfer@"
 
 #
 # Read in configuration file if any

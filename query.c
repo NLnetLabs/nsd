@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.83 2002/10/14 13:12:16 alexis Exp $
+ * $Id: query.c,v 1.84 2003/01/20 08:44:37 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -39,12 +39,12 @@
  */
 #include "nsd.h"
 
-#ifdef HOSTS_ACCESS
+#ifdef HAVE_LIBWRAP
 #include <tcpd.h>
 
 int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
-#endif
+#endif /* HAVE_LIBWRAP */
 
 int 
 query_axfr(q, nsd, qname, zname, depth)
@@ -544,7 +544,7 @@ query_process(q, nsd)
 	case TYPE_AXFR:
 #ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
 		if(q->tcp) {
-#ifdef HOSTS_ACCESS
+#ifdef HAVE_LIBWRAP
 			struct request_info request;
 #ifdef AXFR_DAEMON_PREFIX
 			char *t;
@@ -576,7 +576,7 @@ query_process(q, nsd)
 				}
 #endif /* AXFR_DAEMON_PREFIX */
 			}
-#endif /* HOSTS_ACCESS */
+#endif /* HAVE_LIBWRAP */
 			return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
 		}
 #endif	/* DISABLE_AXFR */
