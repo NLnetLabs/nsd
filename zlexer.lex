@@ -240,12 +240,14 @@ zrrtype (char *word)
 	 * 'A' is first token defined in YACC. With this hack we
 	 * return the correct token based on our list of RR types
 	 */
-	int i,j;
-	/* known types */
+	int i,j,l;
+	const char *c;
+
+	l = strlen(word);
+
 	i = 0;
 	while ( RRtypes[i] != NULL ) {
-	/*for (i = 0; i < RRTYPES - 1; i++) {*/
-		if (strcasecmp(word, RRtypes[i]) == 0) {
+		if (strncasecmp(word, RRtypes[i],l) == 0) {
 			LEXOUT(("%s ", word));
 			return i + A;
 		}
@@ -256,18 +258,23 @@ zrrtype (char *word)
 	j = intbytypexx(yytext);
 	
 	if ( j == 0 ) 
-		return 0; /* bail out here */
+		return 0; 
 
-	/* now it is TYPExxxx, and either we know it, or we don't */
-	LEXOUT(("TYPEx%d ", j));
-	
-	/* [XXX] need better handling here, this is not 100% tight */
-	if ( j < DNSKEY ) { /* last known type */
-		return j + A; /* now it's know, well does it? */
-	} else {
-		/* j == 0 is already handled */
-		LEXOUT(("UTYPE "));
+	/* is the unknown known? */
+	c = namebyint(j, ztypes);
+	if (c == NULL) {
+		LEXOUT(("TYPEx%d ", j));
 		return UTYPE;
+	} else {
+		/* re-check the known types again */
+		i = 0;
+		while ( RRtypes[i] != NULL ) {
+			if (strcasecmp(c, RRtypes[i]) == 0) {
+				LEXOUT(("%s ", c));
+				return i + A;
+			}
+			i++;	
+		}
 	}
 }
 

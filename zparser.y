@@ -661,12 +661,14 @@ rdata_unknown:	URR sp STR sp hex_seq trail
 		/* $2 is the number of octects, currently ignored */
 		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $5.str));
 	}
+	| URR sp STR trail
+	{	 error_prev_line("\\# 0 not handled (yet)"); }
 	| URR error NL
 	{ error_prev_line("Syntax error in UNKNOWN RR rdata"); }
        ;
 
 rdata_unknown_err:	URR error NL
-	{ error_prev_line("Not handled (yet)");}
+	{ error_prev_line("UKNOWN RR rdata for this type not handled (yet)");}
 	;
 %%
 
