@@ -1,5 +1,5 @@
 /*
- * $Id: client.c,v 1.3 2003/05/08 10:30:36 alexis Exp $
+ * $Id: client.c,v 1.4 2003/05/08 12:21:28 alexis Exp $
  *
  * client.c -- set of DNS client routines
  *
@@ -373,9 +373,12 @@ response(int s, struct query *q)
 
 	if(q->tcp) {
 		/* Get the size... */
-		if(read(s, &tcplen, 2) != 2) {
-			error("error reading message length");
-			return NULL;
+		for(len = 0; len < 2; len += r) {
+			r = read(s, &tcplen + len, 2 - len);
+			if(r == -1) {
+				error("error reading message length");
+				return NULL;
+			}
 		}
 
 		/* Do we have enough space? */
@@ -494,6 +497,7 @@ query(int s, struct query *q, u_char *dname, u_int16_t qtype, u_int16_t qclass, 
 	q->tcp = tcp;
 
 	/* Set up the header */
+	memset(q->iobuf, 0, QHEADERSZ);
 	OPCODE_SET(q, op);
 	ID(q) = htons(qid);
 

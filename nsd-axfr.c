@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-axfr.c,v 1.6 2003/05/08 10:30:36 alexis Exp $
+ * $Id: nsd-axfr.c,v 1.7 2003/05/08 12:21:28 alexis Exp $
  *
  * nsd-axfr.c -- axfr utility for nsd(8)
  *
@@ -185,6 +185,7 @@ main (int argc, char *argv[])
 	u_char *zname;
 	char *zonefile = NULL;
 	struct hostent *h;
+	int transfer;
 	int port = 53;
 	int force = 0;
 	u_int16_t id = 0;
@@ -223,7 +224,7 @@ main (int argc, char *argv[])
 	}
 
 	/* Now the zone name */
-	if((zname = strdname(*argv, ROOT)) == NULL) {
+	if((zname = strdup(strdname(*argv, ROOT))) == NULL) {
 		error("invalid zone name");
 	}
 
@@ -238,7 +239,7 @@ main (int argc, char *argv[])
 			if((rr = zread(parser)) == NULL || rr->type != TYPE_SOA) {
 				error("missing SOA record on top of the master zone file");
 			}
-			serial = ntohl(*(u_int32_t *)(rr->rdata[2]));
+			serial = ntohl(*(u_int32_t *)(&rr->rdata[2][1]));
 
 			zrdatafree(rr->rdata);
 			rr->rdata = NULL;
@@ -280,40 +281,41 @@ main (int argc, char *argv[])
 		}
 
 		/* Send the query */
-/*		id = rand();
-		if(query(s, &q, zname, TYPE_SOA, CLASS_IN, id, 0, 1, 0) != 0) {
+		id = rand();
+		if(query(s, &q, zname, TYPE_SOA, CLASS_IN, id, 0, 1, 0, 1) != 0) {
 			close(s);
 			continue;
-		} */
+		}
 
 		/* Receive & unpack it... */
-/*		if((rrs = response(s, &q)) == NULL) {
+		if((rrs = response(s, &q)) == NULL) {
 			close(s);
 			continue;
-		} */
+		}
 
 		/* Sanity check */
-/*		if(sane(&q, id) != 0) {
+		if(sane(&q, id) != 0) {
 			close(s);
 			continue;
-		} */
+		}
 
 		/* Do we have a SOA? Compare! */
-/*		if(rrs[ntohs(QDCOUNT((&q)))]->type != TYPE_SOA) {
+		if(rrs[ntohs(QDCOUNT((&q)))]->type != TYPE_SOA) {
 			fprintf(stderr, "did not receive a SOA record\n");
 			close(s);
 			continue;
-		} */
+		}
 
 		/* Compare serials... */
-/*		if(ntohl(*(u_int32_t *)(rrs[ntohs(QDCOUNT((&q)))]->rdata[2]))
+		if(ntohl(*(u_int32_t *)(&rrs[ntohs(QDCOUNT((&q)))]->rdata[2][1]))
 			<= serial) {
-			fprintf(stderr, "we have a larger SOA, no need to transfer the zone\n");
+			fprintf(stderr, "we have the same or newer serial, no transfer\n");
 			break;
-		} */
+		}
 
 		/* XXX free response */
-/*		zprintrr(stdout, rrs[ntohs(QDCOUNT((&q)))]); */
+		fprintf(stdout, "; ");
+		zprintrr(stdout, rrs[ntohs(QDCOUNT((&q)))]);
 
 
 		/* Zero the serial... *
@@ -326,16 +328,48 @@ main (int argc, char *argv[])
 			continue;
 		}
 
+		transfer = 1;
+
 		/* Read it... */
-		while((rrs = response(s, &q)) != NULL) {
+		while((transfer == 1) && ((rrs = response(s, &q)) != NULL)) {
+			/* Is it good? */
 			if(sane(&q, id) != 0) {
 				rrs = NULL;
 				break;
 			}
 
+
 			/* Print it... */
 			for(i = ntohs(QDCOUNT((&q))); rrs[i] != NULL && i < ntohs(QDCOUNT((&q))) + ntohs(ANCOUNT((&q))); i++) {
 				zprintrr(stdout, rrs[i]);
+
+				/* End of zone transfer? */
+				if(serial != 0 && rrs[i]->type == TYPE_SOA) {
+					transfer = 0;
+					if(ntohl(*(u_int32_t *)(&rrs[i]->rdata[2][1])) != serial) {
+						fprintf(stderr, "zone changed during the transfer, retry...\n");
+						/* retrys++; */
+						h->h_addr_list--;
+						rrs = NULL;
+						break;
+					}
+				}
+			}
+
+			/* We're just beginning AXFR... */
+			if(serial == 0) {
+				if(rrs[ntohs(QDCOUNT((&q)))]->type != TYPE_SOA) {
+					fprintf(stderr, "no SOA record at the beginning of axfr\n");
+					rrs = NULL;
+					break;
+				}
+				/* Save it... */
+				serial = ntohl(*(u_int32_t *)(&rrs[ntohs(QDCOUNT((&q)))]->rdata[2][1]));
+				if(serial == 0) {
+					fprintf(stderr, "received SOA with a null serial number\n");
+					rrs = NULL;
+					break;
+				}
 			}
                 }
 

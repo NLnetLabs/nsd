@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.7 2003/05/08 10:30:36 alexis Exp $
+ * $Id: nsq.c,v 1.8 2003/05/08 12:21:28 alexis Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -307,12 +307,6 @@ main (int argc, char *argv[])
 		for(; rrs[i] != NULL && i < ntohs(QDCOUNT((&q))) + ntohs(ANCOUNT((&q))) + ntohs(NSCOUNT((&q))) + ntohs(ARCOUNT((&q))); i++) {
 			zprintrr(stdout, rrs[i]);
 		}
-
-		/* Test */
-		header = q.iobuf;
-		printf(";; query id: %lu, qr: %d, opcode: %d, aa: %d, tc: %d, rd: %d, ra: %d, z: %d, rcode: %d\n",
-			ntohs(header->id), header->qr, header->opcode, header->aa, header->tc, header->rd,
-				header->ra, header->z, header->rcode);
 
 		break;
 	}
