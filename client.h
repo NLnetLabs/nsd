@@ -58,4 +58,17 @@ int write_socket(int s, const void *buf, size_t size);
  */
 int send_query(int s, query_type *q);
 
+/*
+ * print a RR to the filedescriptor *out
+ * for mem allocs use *region
+ */
+int print_rr_region(FILE *out, region_type *region, rr_type *record);
+
+/*
+ * print the rdata of an record to a buffer 
+ */
+int print_rdata(buffer_type *output, 
+		rrtype_descriptor_type *descriptor, 
+		rr_type *record);
+
 #endif /* _CLIENT_H_ */

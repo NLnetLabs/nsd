@@ -120,3 +120,97 @@ send_query(int s, query_type *q)
         }
         return 1;
 }
+
+int
+print_rr_region(FILE *out, region_type *region, rr_type *record)
+{
+        buffer_type *output = buffer_create(region, 1000);
+        rrtype_descriptor_type *descriptor
+                = rrtype_descriptor_by_type(record->type);
+        int result;
+        const dname_type *owner = domain_dname(record->owner);
+#if 0
+        const dname_type *owner_origin
+                = dname_origin(state->rr_region, owner);
+        int owner_changed
+                = (!state->previous_owner
+                   || dname_compare(state->previous_owner, owner) != 0);
+        if (owner_changed) {
+                int origin_changed = (!state->previous_owner_origin
+                                      || dname_compare(
+                                              state->previous_owner_origin,
+                                              owner_origin) != 0);
+                if (origin_changed) {
+                        buffer_printf(
+                                output,
+                                "$ORIGIN %s\n",
+                                dname_to_string(owner_origin, NULL));
+                }
+
+                set_previous_owner(state, owner);
+                buffer_printf(output,
+                              "%s",
+                              dname_to_string(owner,
+                                              state->previous_owner_origin));
+        }
+#endif
+
+        buffer_printf(output,
+                      "\t%lu\t%s\t%s",
+                      (unsigned long) record->ttl,
+                      rrclass_to_string(record->klass),
+                      rrtype_to_string(record->type));
+
+        result = print_rdata(output, descriptor, record);
+        if (!result) {
+                /*
+                 * Some RDATA failed to print, so print the record's
+                 * RDATA in unknown format.
+                 */
+                result = rdata_atoms_to_unknown_string(output,
+                                                       descriptor,
+                                                       record->rdata_count,
+                                                       record->rdatas);
+        }
+
+        if (result) {
+                buffer_printf(output, "\n");
+                buffer_flip(output);
+                fwrite(buffer_current(output), buffer_remaining(output), 1,
+                       out);
+/*              fflush(out); */
+        }
+        return result;
+}
+
+int
+print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
+            rr_type *record)
+{
+        size_t i;
+        size_t saved_position = buffer_position(output);
+
+        for (i = 0; i < record->rdata_count; ++i) {
+                if (i == 0) {
+                        buffer_printf(output, "\t");
+                } else if (descriptor->type == TYPE_SOA && i == 2) {
+                        buffer_printf(output, " (\n\t\t");
+                } else {
+                        buffer_printf(output, " ");
+                }
+                if (!rdata_atom_to_string(
+                            output,
+                            (rdata_kind_type) descriptor->rdata_kinds[i],
+                            record->rdatas[i]))
+                {
+                        buffer_set_position(output, saved_position);
+                        return 0;
+                }
+        }
+        if (descriptor->type == TYPE_SOA) {
+                buffer_printf(output, " )");
+        }
+
+        return 1;
+}
+

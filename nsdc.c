@@ -216,7 +216,7 @@ main (int argc, char *argv[])
 
 	send_query(sockfd, &q);
 
-
+	/* process the reply and print the RR in there */
 
 	close(sockfd);
 }

@@ -224,37 +224,6 @@ read_tsig_key(region_type *region,
 	return key;
 }
 
-static int
-print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
-	    rr_type *record)
-{
-	size_t i;
-	size_t saved_position = buffer_position(output);
-
-	for (i = 0; i < record->rdata_count; ++i) {
-		if (i == 0) {
-			buffer_printf(output, "\t");
-		} else if (descriptor->type == TYPE_SOA && i == 2) {
-			buffer_printf(output, " (\n\t\t");
-		} else {
-			buffer_printf(output, " ");
-		}
-		if (!rdata_atom_to_string(
-			    output,
-			    (rdata_kind_type) descriptor->rdata_kinds[i],
-			    record->rdatas[i]))
-		{
-			buffer_set_position(output, saved_position);
-			return 0;
-		}
-	}
-	if (descriptor->type == TYPE_SOA) {
-		buffer_printf(output, " )");
-	}
-
-	return 1;
-}
-
 static void
 set_previous_owner(axfr_state_type *state, const dname_type *dname)
 {
