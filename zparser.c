@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.28 2003/03/20 10:58:17 alexis Exp $
+ * $Id: zparser.c,v 1.29 2003/03/20 10:58:47 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -1795,7 +1795,7 @@ typebyint(u_int16_t type)
 	static char typebuf[] = "TYPEXXXXX";
 	char *t = namebyint(type, ztypes);
 	if(t == NULL) {
-		sprintf(typebuf + 4, sizeof(typebuf) - 4, "%u", type);
+		snprintf(typebuf + 4, sizeof(typebuf) - 4, "%u", type);
 		t = typebuf;
 	}
 	return t;
@@ -1807,7 +1807,7 @@ classbyint(u_int16_t class)
 	char classbuf[] = "CLASSXXXXX";
 	char *t = namebyint(class, zclasses);
 	if(t == NULL) {
-		sprintf(classbuf + 5, sizeof(classbuf) - 5, "%u", class);
+		snprintf(classbuf + 5, sizeof(classbuf) - 5, "%u", class);
 		t = classbuf;
 	}
 	return t;
