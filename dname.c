@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.8 2003/03/20 10:31:25 alexis Exp $
+ * $Id: dname.c,v 1.8.2.1 2003/06/10 09:39:52 erik Exp $
  *
  * dname.c -- dname operations
  *
@@ -112,16 +112,17 @@ dnamestr (u_char *dname)
  * XXX Complain about empty labels (.nlnetlabs..nl)
  */
 u_char *
-strdname (char *s, u_char *o)
+strdname (char *source, u_char *o)
 {
 	static u_char dname[MAXDOMAINLEN+1];
 
+	u_char *s = (u_char *) source;
 	register u_char *h;
 	register u_char *p;
 	register u_char *d = dname + 1;
 
 	if(*s == '@' && *(s+1) == 0) {
-		for(p = dname, s = (char *)o; (u_char *)s < o + *o + 1; p++, s++)
+		for(p = dname, s = o; s < o + *o + 1; p++, s++)
 			*p = DNAME_NORMALIZE(*s);
 	} else {
 		for(h = d, p = h + 1; *s; s++, p++) {
@@ -131,9 +132,25 @@ strdname (char *s, u_char *o)
 				*h = p - h - 1;
 				h = p;
 				break;
-			case '\\':			/* Do we have a \. ? */
-				if(*(s + 1) == '.')
-					s++;
+			case '\\':
+				/* Handle escaped characters (RFC1035 5.1) */
+				if ('0' <= s[1] && s[1] <= '9' &&
+				    '0' <= s[2] && s[2] <= '9' &&
+				    '0' <= s[3] && s[3] <= '9')
+				{
+					int val = ((s[1] - '0') * 100 +
+						   (s[2] - '0') * 10 +
+						   (s[3] - '0'));
+					if (val >= 0 && val <= UCHAR_MAX) {
+						s += 3;
+						*p = NAMEDB_NORMALIZE(val);
+					} else {
+						*p = NAMEDB_NORMALIZE(*++s);
+					}
+				} else if (s[1] != '\0') {
+					*p = NAMEDB_NORMALIZE(*++s);
+				}
+				break;
 			default:
 				*p = DNAME_NORMALIZE(*s);
 			}
@@ -142,7 +159,7 @@ strdname (char *s, u_char *o)
 
 		/* If not absolute, append origin... */
 		if((*(p-1) != 0) && (o != NULL)) {
-			for(s = (char *)o + 1; (u_char *)s < o + *o + 1; p++, s++)
+			for(s = o + 1; s < o + *o + 1; p++, s++)
 				*p = DNAME_NORMALIZE(*s);
 		}
 
@@ -169,3 +186,13 @@ dnamedup (u_char *dname)
 	memcpy(p, dname, (int)*dname + 1);
 	return p;
 }
+
+/* Emacs:
+
+Local Variables:
+c-basic-offset: 8
+c-indentation-style: bsd
+indent-tabs-mode: t
+End:
+
+*/

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.95.2.1 2003/04/29 11:33:06 alexis Exp $
+ * $Id: query.c,v 1.95.2.2 2003/06/10 09:39:52 erik Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -342,6 +342,7 @@ query_process (struct query *q, struct nsd *nsd)
 	u_int16_t qclass;
 	u_char *qptr;
 	int qdepth, i;
+	int recursion_desired;
 
 	/* OPT record type... */
 	u_int16_t opt_type, opt_class, opt_rdlen;
@@ -389,12 +390,16 @@ query_process (struct query *q, struct nsd *nsd)
 		return 0;
 	}
 
+	/* Save the RD flag (RFC1034 4.1.1).  */
+	recursion_desired = RD(q);
+
 	/* Zero the flags... */
 	*(u_int16_t *)(q->iobuf + 2) = 0;
-
-	/* Setup the header... */
+	
 	QR_SET(q);		/* This is an answer */
-
+	if (recursion_desired)
+		RD_SET(q);   /* Restore the RD flag (RFC1034 4.1.1) */
+	
 	/* Lets parse the qname and convert it to lower case */
 	qdepth = 0;
 	qnamelow = qnamebuf + 3;
@@ -780,3 +785,13 @@ query_addedns(struct query *q, struct nsd *nsd) {
 		break;
 	}
 }
+
+/* Emacs:
+
+Local Variables:
+c-basic-offset: 8
+c-indentation-style: bsd
+indent-tabs-mode: t
+End:
+
+*/
