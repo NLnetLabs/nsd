@@ -685,7 +685,7 @@ zparser_init(namedb_type *db)
  *
  */
 static int
-zone_open(zone_type *zone, const char *filename, uint32_t ttl, uint16_t class, const char *origin)
+zone_open(const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
 	/* Open the zone file... */
 	if ( strcmp(filename, "-" ) == 0 ) {
@@ -704,15 +704,14 @@ zone_open(zone_type *zone, const char *filename, uint32_t ttl, uint16_t class, c
 	current_parser->ttl = ttl;
 	current_parser->minimum = 0;
 	current_parser->class = class;
-	current_parser->current_zone = zone;
+	current_parser->current_zone = NULL;
 	current_parser->origin = domain_table_insert(
 		current_parser->db->domains,
-		dname_parse(zone_region, origin, NULL));  /* hmm [XXX] MG */
+		dname_parse(current_parser->db->region, origin, NULL)); 
 	current_parser->prev_dname =
-		current_parser->origin; /* XXX Or NULL + error check
-					 * in zonec when first RR does
-					 * not mention a domain
-					 * name? */
+		current_parser->origin; 
+					
+					 
 	current_parser->_rc = 0;
 	current_parser->errors = 0;
 	current_parser->line = 1;
@@ -827,6 +826,28 @@ process_rr(zparser_type *parser, rr_type *rr)
 		yyerror("Wrong class");
 		return 0;
 	}
+	if ( rr->type == TYPE_SOA ) {
+		/* This is a SOA record, start a new zone */
+
+		/* new zone part */
+		zone = region_alloc(zone_region, sizeof(zone_type));
+		zone->domain = domain_table_insert(parser->db->domains, 
+				rr->domain->dname);
+		zone->soa_rrset = NULL;
+		zone->ns_rrset = NULL;
+
+		/* ervoor plaatsen */
+		zone->next = parser->db->zones;
+		parser->db->zones = zone;
+
+		/* parser part */
+		current_parser->current_zone = zone;
+		current_parser->_rc = 0;
+		current_parser->errors = 0;
+		current_parser->line = 1;
+	}
+
+        /* [XXX] still need to check if we have seen this SOA already */
 
 	if (!dname_is_subdomain(rr->domain->dname, zone->domain->dname)) {
 		yyerror("Out of zone data");
@@ -839,7 +860,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 	/* Do we have this particular rrset? */
 	if (rrset == NULL) {
 		rrset = region_alloc(zone_region, sizeof(rrset_type));
-		rrset->zone = rr->zone;
+		rrset->zone = zone;
 		rrset->type = rr->type;
 		rrset->class = rr->class;
 		rrset->ttl = rr->ttl;
@@ -919,17 +940,8 @@ zone_read (struct namedb *db, char *name, char *zonefile)
 	}
 #endif
 
-	/* Allocate new zone structure */
-	zone = region_alloc(zone_region, sizeof(zone_type));
-	zone->domain = domain_table_insert(db->domains, dname);
-	zone->soa_rrset = NULL;
-	zone->ns_rrset = NULL;
-
-	zone->next = db->zones;
-	db->zones = zone;
-	
 	/* Open the zone file */
-	if (!zone_open(zone, zonefile, 3600, CLASS_IN, name)) {
+	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
 		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
 		return NULL;
 	}

@@ -1,6 +1,7 @@
 ;
 ; BIND data file for atoom.net for internal use
 ;
+$ORIGIN miek.nl
 $TTL    1H
 @       IN      SOA     elektron.atoom.net. miekg.atoom.net. (
                      2003062700         ; Serial

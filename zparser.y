@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.1 2003/10/30 11:27:13 miekg Exp $
+ * $Id: zparser.y,v 1.2 2003/11/03 14:54:28 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -65,8 +65,8 @@ uint8_t nxtbits[16] = { '\0','\0','\0','\0',
 %token <class> UN_CLASS
 %token <type>  UN_TYPE
 
-%type <domain> owner_dname nonowner_dname
-%type <dname>  dname abs_dname rel_dname
+%type <domain> dname abs_dname
+%type <dname>  rel_dname
 %type <data>   str_seq hex_seq nxt_seq
 
 %%
@@ -121,7 +121,7 @@ dir_ttl:    SP STR trail
     }
     ;
 
-dir_orig:   SP nonowner_dname trail
+dir_orig:   SP abs_dname trail
     {
         /* [xxx] does $origin not effect previous */
 	/* [XXX] label length checks should be in dname functions */
@@ -148,7 +148,7 @@ rr:     ORIGIN SP rrrest
         current_rr->domain = current_parser->prev_dname;
         
     }
-    |   owner_dname SP rrrest
+    |   dname SP rrrest
     {
 	    /* Copy from RR region to zone region.  */
 	    current_rr->domain = $1;
@@ -157,20 +157,6 @@ rr:     ORIGIN SP rrrest
 	    current_parser->prev_dname = current_rr->domain;
     }
     ;
-
-/* A domain name used as the owner of an RR.  */
-owner_dname: dname
-	{
-		$$ = domain_table_insert(current_parser->db->domains, $1);
-	}
-	;
-
-/* A domain name used in rdata or in an origin directive.  */
-nonowner_dname: dname
-	{
-		$$ = domain_table_insert(current_parser->db->domains, $1);
-	}
-	;
 
 ttl:    STR
     {
@@ -221,20 +207,21 @@ classttl:   /* empty - fill in the default, def. ttl and IN class */
     |   HS SP ttl SP         { yyerror("HESIOD class not supported"); }
     ;
 
-dname:  abs_dname
-    |   rel_dname
-    {
-        $$ = cat_dname(rr_region, $1, current_parser->origin->dname);
-    }
-    ;
+dname:      abs_dname
+    	|   rel_dname
+    	{
+		$$ = domain_table_insert(current_parser->db->domains, 
+        		cat_dname(rr_region, $1, current_parser->origin->dname));
+    	}
+    	;
 
 abs_dname:  '.'
     {
-            $$ = dname_make(rr_region, (const uint8_t *) "");
+	    $$ = current_parser->db->domains->root;
     }
     |       rel_dname '.'
     {
-            $$ = $1;
+		$$ = domain_table_insert(current_parser->db->domains, $1);
     }
     ;
 
@@ -335,7 +322,7 @@ rtype:  SOA sp rdata_soa
  *
  */
 
-rdata_soa:  nonowner_dname sp nonowner_dname sp STR sp STR sp STR sp STR sp STR trail
+rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
     {
         /* convert the soa data */
         zadd_rdata_domain( current_parser, $1);                                     /* prim. ns */
@@ -352,7 +339,7 @@ rdata_soa:  nonowner_dname sp nonowner_dname sp STR sp STR sp STR sp STR sp STR 
     }
     ;
 
-rdata_dname:   nonowner_dname trail
+rdata_dname:   dname trail
     {
         /* convert a single dname record */
         zadd_rdata_domain(current_parser, $1);
@@ -382,7 +369,7 @@ rdata_a:    STR '.' STR '.' STR '.' STR trail
 rdata_txt: str_seq trail {}
 	;
 
-rdata_mx:   STR sp nonowner_dname trail
+rdata_mx:   STR sp dname trail
     	{
         	zadd_rdata_wireformat( current_parser, zparser_conv_short(zone_region, $1.str) );  /* priority */
         	zadd_rdata_domain( current_parser, $3);  /* MX host */
@@ -402,7 +389,7 @@ rdata_hinfo:	STR sp STR trail
 	}
 	;
 
-rdata_srv:	STR sp STR sp STR sp nonowner_dname trail
+rdata_srv:	STR sp STR sp STR sp dname trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* prio */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* weight */
@@ -429,7 +416,7 @@ rdata_key:	STR sp STR sp STR sp hex_seq trail
 	}
 	;
 
-rdata_nxt:	nonowner_dname sp nxt_seq trail
+rdata_nxt:	dname sp nxt_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_domain(zone_region, $1)); /* nxt name */
 		zadd_rdata_wireformat(current_parser,
@@ -438,7 +425,7 @@ rdata_nxt:	nonowner_dname sp nxt_seq trail
 	}
 	;
 
-rdata_sig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp nonowner_dname sp hex_seq trail
+rdata_sig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp hex_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_rrtype(zone_region, $1.str)); /* rr covered */
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* alg */
