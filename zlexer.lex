@@ -82,7 +82,7 @@ Q       \"
 				
 
 				if ( include_stack_ptr >= MAXINCLUDES ) {
-				    error("Includes nested too deeply (>10)");
+				    zc_error("Includes nested too deeply (>10)");
             			    exit(1);
             			}
 
@@ -123,7 +123,7 @@ Q       \"
 
 		        	yyin = fopen( yytext, "r" );
         			if ( ! yyin ) {
-					error("Cannot open $INCLUDE file: %s", yytext);
+					zc_error("Cannot open $INCLUDE file: %s", yytext);
 				    	exit(1);
 				}
 
@@ -153,7 +153,7 @@ Q       \"
             				yy_switch_to_buffer( include_stack[include_stack_ptr] );
             			}
         		}
-^{DOLLAR}{LETTER}+      { warning("Unknown $directive: %s", yytext); }
+^{DOLLAR}{LETTER}+      { zc_warning("Unknown $directive: %s", yytext); }
 ^{DOT}                  {
                             /* a ^. means the root zone... also set in_rr */
                             in_rr = expecting_dname;
@@ -181,7 +181,7 @@ Q       \"
                         }
 {SPACE}*\({SPACE}*      {
                             if ( paren_open == 1 ) {
-				error("Nested parentheses");
+				zc_error("Nested parentheses");
                                 yyterminate();
                             }
                             LEXOUT(("SP( "));
@@ -190,7 +190,7 @@ Q       \"
                         }
 {SPACE}*\){SPACE}*      {
                             if ( paren_open == 0 ) {
-				error("Unterminated parentheses");
+				zc_error("Unterminated parentheses");
                                 yyterminate();
                             }
                             LEXOUT(("SP) "));
@@ -218,7 +218,7 @@ Q       \"
 .                       {
                             /* we should NEVER reach this
                              * bail out with an error */
-			    error("Unknown character seen - is this a zonefile?");
+			    zc_error("Unknown character seen - is this a zonefile?");
                             /*exit(1); [XXX] we should exit... */
                         }
 %%
@@ -255,7 +255,7 @@ zoctet(char *word)
             case '.':
 		/* [XXX] is empty label handled correctly? */
                 if (s[1] == '.') {
-                    warning("Empty label");
+                    zc_warning("Empty label");
                     break;
                 }
                 *p = *s;
@@ -277,7 +277,7 @@ zoctet(char *word)
                         *p = val;
                         length++;
                     } else {
-                        warning("ASCII \\DDD overflow");
+                        zc_warning("ASCII \\DDD overflow");
                     }
 
                 } else {

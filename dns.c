@@ -609,14 +609,6 @@ rdata_apl_to_string(buffer_type *output, buffer_type *packet)
 	return result;
 }
 
-void
-append_string_to_buffer(buffer_type *buffer, const char *str)
-{
-	size_t len = strlen(str);
-	buffer_reserve(buffer, len);
-	buffer_write(buffer, str, len);
-}
-
 static int
 rdata_services_to_string(buffer_type *output, buffer_type *packet)
 {
@@ -702,6 +694,10 @@ static int
 rdata_loc_to_string(buffer_type *output ATTR_UNUSED,
 		    buffer_type *packet ATTR_UNUSED)
 {
+	/*
+	 * Returning 0 forces the record to be printed in unknown
+	 * format.
+	 */
 	return 0;
 }
 

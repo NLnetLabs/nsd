@@ -20,29 +20,27 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "dname.h"
 #include "dns.h"
 #include "query.h"
 #include "region-allocator.h"
+#include "tsig.h"
 #include "util.h"
 #include "zonec.h"
 
 extern char *optarg;
 extern int optind;
 
+static void init_query(query_type *q, const dname_type *dname, uint16_t type,
+		       uint16_t klass);
+
+/*
+ * Log an error message and exit.
+ */
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-
-static void
-usage (void)
-{
-	fprintf(stderr,
-		"Usage: nsd-xfer [-4] [-6] [-p port] [-s serial] -z zone"
-		" -f file servers...\n");
-	exit(1);
-}
-
 static void
 error(const char *format, ...)
 {
@@ -53,6 +51,23 @@ error(const char *format, ...)
 	exit(1);
 }
 
+
+/*
+ * Display usage information and exit.
+ */
+static void
+usage (void)
+{
+	fprintf(stderr,
+		"Usage: nsd-xfer [-4] [-6] [-p port] [-s serial] -z zone"
+		" -f file servers...\n");
+	exit(1);
+}
+
+/*
+ * Write the complete buffer to the socket, irrespective of short
+ * writes or interrupts.
+ */
 static int
 write_socket(int s, const void *buf, size_t size)
 {
@@ -74,6 +89,10 @@ write_socket(int s, const void *buf, size_t size)
 	return 1;
 }
 
+/*
+ * Read SIZE bytes from the socket into BUF.  Keep reading unless an
+ * error occurs (except for EINTR) or EOF is reached.
+ */
 static int
 read_socket(int s, void *buf, size_t size)
 {
@@ -240,48 +259,139 @@ parse_response(struct query *q, FILE *out, int first, int *done)
 }
 
 static int
-do_axfr(int s, struct query *q, FILE *out)
+send_query(int s, struct query *q)
 {
-	int done = 0;
-	int first = 1;
 	uint16_t size = htons(buffer_remaining(q->packet));
-	uint16_t query_id = ID(q);
-	
-	assert(q->maxlen <= QIOBUFSZ);
 	
 	if (!write_socket(s, &size, sizeof(size))) {
 		error("failed to send query size: %s", strerror(errno));
 		return 0;
 	}
-	if (!write_socket(s, buffer_current(q->packet), buffer_remaining(q->packet))) {
+	if (!write_socket(s, buffer_begin(q->packet), buffer_limit(q->packet)))
+	{
 		error("failed to send query data: %s", strerror(errno));
 		return 0;
 	}
 
-	while (!done) {
-		buffer_clear(q->packet);
-		if (!read_socket(s, &size, sizeof(size))) {
-			error("failed to read response size: %s",
-			      strerror(errno));
-			return 0;
-		}
-		size = ntohs(size);
-		if (size > q->maxlen) {
-			error("response size (%d) exceeds maximum (%d)",
-			      (int) size, (int) q->maxlen);
-			return 0;
-		}
-		if (!read_socket(s, buffer_begin(q->packet), size)) {
-			error("failed to read response data: %s",
-			      strerror(errno));
-			return 0;
-		}
+	return 1;
+}
 
-		buffer_skip(q->packet, size);
-		buffer_flip(q->packet);
+static int
+receive_response(int s, query_type *q)
+{
+	uint16_t size;
+	
+	buffer_clear(q->packet);
+	if (!read_socket(s, &size, sizeof(size))) {
+		error("failed to read response size: %s", strerror(errno));
+		return 0;
+	}
+	size = ntohs(size);
+	if (size > q->maxlen) {
+		error("response size (%d) exceeds maximum (%d)",
+		      (int) size, (int) q->maxlen);
+		return 0;
+	}
+	if (!read_socket(s, buffer_begin(q->packet), size)) {
+		error("failed to read response data: %s", strerror(errno));
+		return 0;
+	}
+
+	buffer_set_limit(q->packet, size);
+	
+	return 1;
+}
+
+static int
+check_serial(int s, struct query *q, const dname_type *zone,
+	     const char *serial)
+{
+	region_type *local;
+	uint16_t query_id;
+	int result;
+	
+	init_query(q, zone, TYPE_SOA, CLASS_IN);
+	query_id = ID(q);
+	
+	if (!send_query(s, q)) {
+		return -1;
+	}
+	if (!receive_response(s, q)) {
+		return -1;
+	}
+
+	if (buffer_limit(q->packet) <= QHEADERSZ) {
+		error("response size (%d) is too small",
+		      (int) buffer_limit(q->packet));
+		return 0;
+	}
+	
+	if (!QR(q)) {
+		error("response is not a response");
+		return -1;
+	}
+
+	if (TC(q)) {
+		error("response is truncated");
+		return -1;
+	}
+	
+	if (ID(q) != query_id) {
+		error("bad response id (%d), expected (%d)",
+		      (int) ID(q), (int) query_id);
+		return -1;
+	}
+	
+	if (RCODE(q) != RCODE_OK) {
+		error("error response %d", (int) RCODE(q));
+		return -1;
+	}
+	
+	if (QDCOUNT(q) > 1) {
+		error("query section count greater than 1");
+		return -1;
+	}
+	
+	if (ANCOUNT(q) == 0) {
+		error("answer section is empty");
+		return -1;
+	}
+
+	buffer_skip(q->packet, QHEADERSZ);
+
+	local = region_create(xalloc, free);
+
+	/* Find the SOA record in the response.  */
+	
+	
+	region_destroy(local);
+	return result;
+}
+
+static int
+axfr(int s, struct query *q, const dname_type *zone, FILE *out)
+{
+	int done = 0;
+	int first = 1;
+	uint16_t size;
+	uint16_t query_id = ID(q);
+	
+	assert(q->maxlen <= QIOBUFSZ);
+	
+	init_query(q, zone, TYPE_AXFR, CLASS_IN);
+
+	if (!send_query(s, q)) {
+		return 0;
+	}
+	
+	while (!done) {
+		if (!receive_response(s, q)) {
+			return 0;
+		}
 		
-		if (size <= QHEADERSZ) {
-			error("response size (%d) is too small", (int) size);
+		if (buffer_limit(q->packet) <= QHEADERSZ) {
+			error("response size (%d) is too small",
+			      (int) buffer_limit(q->packet));
 			return 0;
 		}
 
@@ -323,10 +433,34 @@ do_axfr(int s, struct query *q, FILE *out)
 	return 1;
 }
 
+static void
+init_query(query_type *q, const dname_type *dname, uint16_t type,
+	   uint16_t klass)
+{
+	buffer_clear(q->packet);
+	
+	/* Set up the header */
+	ID_SET(q, (uint16_t) random());
+	FLAGS_SET(q, 0);
+	OPCODE_SET(q, OPCODE_QUERY);
+	AA_SET(q);
+	QDCOUNT_SET(q, 1);
+	ANCOUNT_SET(q, 0);
+	NSCOUNT_SET(q, 0);
+	ARCOUNT_SET(q, 0);
+	buffer_skip(q->packet, QHEADERSZ);
+
+	/* The question record.  */
+	buffer_write(q->packet, dname_name(dname), dname->name_size);
+	buffer_write_u16(q->packet, type);
+	buffer_write_u16(q->packet, klass);
+
+	buffer_flip(q->packet);
+}
+
 int 
 main (int argc, char *argv[])
 {
-	/* Scratch variables... */
 	int c;
 	struct query q;
 	struct addrinfo hints, *res0, *res;
@@ -339,6 +473,12 @@ main (int argc, char *argv[])
 	FILE *zone_file;
 	
 	log_init("nsd-xfer");
+
+	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
+
+	if (!tsig_init(region)) {
+		error("TSIG initialization failed");
+	}
 	
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46f:hp:s:z:")) != -1) {
@@ -392,21 +532,6 @@ main (int argc, char *argv[])
 	q.packet = buffer_create(region, QIOBUFSZ);
 	q.maxlen = MAX_PACKET_SIZE;
 
-	/* Set up the header */
-	OPCODE_SET(&q, OPCODE_QUERY);
-	ID_SET(&q, 42);          /* Does not need to be random. */
-	AA_SET(&q);
-
-	buffer_skip(q.packet, QHEADERSZ);
-	buffer_write(q.packet, dname_name(zone), zone->name_size);
-	buffer_write_u16(q.packet, TYPE_AXFR);
-	buffer_write_u16(q.packet, CLASS_IN);
-
-	/* Set QDCOUNT=1 */
-	QDCOUNT_SET(&q, 1);
-
-	buffer_flip(q.packet);
-	
 	for (; *argv; ++argv) {
 		/* Try each server separately until one succeeds.  */
 		int error;
@@ -437,7 +562,7 @@ main (int argc, char *argv[])
 			
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
-			if (do_axfr(s, &q, zone_file)) {
+			if (axfr(s, &q, zone, zone_file)) {
 				/* AXFR succeeded, done.  */
 				fclose(zone_file);
 				exit(0);

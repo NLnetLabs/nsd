@@ -104,6 +104,7 @@ NSD_XFER_OBJECTS	=			\
 	dns.o					\
 	nsd-xfer.o				\
 	region-allocator.o			\
+	tsig.o					\
 	util.o
 
 all:	$(TARGETS)

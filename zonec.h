@@ -84,11 +84,10 @@ void yyrestart(FILE *);
 
 enum rr_spot { outside, expecting_dname, after_dname, reading_type };
 
-void warning(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
-void warning_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
-void error(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
-void error_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
-int yyerror(const char *message); /* Dummy function.  */
+void zc_warning(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
+void zc_warning_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
+void zc_error(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
+void zc_error_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 
 int process_rr(void);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex);
