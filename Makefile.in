@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.7 2003/01/21 15:08:45 alexis Exp $
+# $Id: Makefile.in,v 1.8 2003/01/21 15:18:52 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -77,7 +77,7 @@ LINK		= ${CC} ${LDFLAGS}
 
 CLEANFILES+=*.core *.gmon
 
-all:	nsd zonec nsd-notify
+all:	nsd zonec nsd-notify nsdc.sh nsdc.conf.sample
 
 .c.o:
 	${CC} ${CFLAGS} -c $<
@@ -94,8 +94,8 @@ install: all
 	${INSTALL_DATA} nsdc.8 ${mandir}/man8
 	${INSTALL_DATA} zonec.8 ${mandir}/man8
 	${INSTALL_DATA} nsd-notify.8 ${mandir}/man8
-	${INSTAL_DATA} nsdc.conf.sample ${NSDCCONF}
-	${INSTAL_DATA} nsdc.zones.sample ${NSDZONES}
+	${INSTALL_DATA} nsdc.conf.sample ${NSDCCONF}.sample
+	${INSTALL_DATA} nsdc.zones.sample ${NSDZONES}.sample
 
 uninstall:
 	@echo
@@ -137,25 +137,11 @@ zf:	zf.h dns.h zf.c rfc1876.c
 	${COMPILE} -DTEST zf.c rfc1876.c
 	${LINK} -o $@ zf.o rfc1876.o
 
-# Autoconf dependencies
-$(srcdir)/configure: configure.ac aclocal.m4
-	cd $(srcdir) && autoconf
-
-# autoheader might not change config.h.in, so touch a stamp file.
-$(srcdir)/config.h.in: stamp-h.in
-$(srcdir)/stamp-h.in: configure.ac aclocal.m4
-	cd $(srcdir) && autoheader
-	echo timestamp > $(srcdir)/stamp-h.in
-
-config.h: stamp-h
-stamp-h: config.h.in config.status
+nsdc.sh:	nsdc.sh.in ./config.status
 	./config.status
 
-Makefile: Makefile.in config.status
+nsdc.conf.sample:	nsdc.conf.sample.in ./config.status
 	./config.status
-
-config.status: configure
-	./config.status --recheck
 
 # Dependencies
 dbaccess.o: dbaccess.c config.h namedb.h heap.h rbtree.h
