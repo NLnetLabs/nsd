@@ -1,5 +1,16 @@
 NSD RELEASE NOTES
 
+2.0.0
+=============
+FEATURES:
+        - DNSSEC implemented.
+
+BUG FIXES:
+        - Bug #47: Domain name is now logged when a notify is
+          received.
+        - Bug #70: First include all A records in the additional
+          section, followed by AAAA records.
+
 1.4.0-alpha1
 =============
 FEATURES:
