@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.34 2002/05/25 13:50:03 alexis Exp $
+ * $Id: nsd.c,v 1.35 2002/05/30 10:32:25 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -257,6 +257,7 @@ main(argc, argv)
 	nsd.gid = getgid();
 	nsd.uid = getuid();
 	if(*nsd.username) {
+		struct passwd *pwd;
 		if(isdigit(*nsd.username)) {
 			char *t;
 			nsd.uid = strtol(nsd.username, &t, 10);
@@ -266,10 +267,17 @@ main(argc, argv)
 					exit(1);
 				}
 				nsd.gid = strtol(t, &t, 10);
+			} else {
+				/* Lookup the group id in /etc/passwd */
+				if((pwd = getpwuid(nsd.uid)) == NULL) {
+					syslog(LOG_ERR, "user id %d doesnt exist, will not setgid", nsd.uid);
+				} else {
+					nsd.gid = pwd->pw_gid;
+				}
+				endpwent();
 			}
 		} else {
 			/* Lookup the user id in /etc/passwd */
-			struct passwd *pwd;
 			if((pwd = getpwnam(nsd.username)) == NULL) {
 				syslog(LOG_ERR, "user %s doesnt exist, will not setuid", nsd.username);
 			} else {
