@@ -1,4 +1,4 @@
-$Id: README,v 1.5 2002/02/21 12:31:28 dfk Exp $
+$Id: README,v 1.6 2002/02/21 12:36:24 dfk Exp $
 
 1.0 Introduction
 
@@ -9,6 +9,7 @@ For further information about what NSD is and what NSD is not please
 consult the REQUIREMENTS document which is a part of this distribution 
 (thanks to Olaf).
 
+Please do not distribute this APLHA release further without permission.
 This distribution is available on request per email to nsd-team@nlnetlabs.nl
 
 The final version 1.0 of NSD will be available for public download under 
@@ -17,14 +18,14 @@ open source software license (BSD).
 1.1 Basic Theory of Operation
 
 NSD consists of two programs: the zone compiler 'zonec' 
-nd the name server 'nsd' itself. The name server works from an 
+and the name server 'nsd' itself. The name server works with an 
 intermediate database prepared by the zone compiler from standard
 zone files. Most of the complexity in preparing answers is dealt
 with in zonec, such that the processing nsd has to do per query is 
 kept at the absolutely necessary minimum. 
 
 For nsd operation this means that zones have to be compiled by zonec
-before nsd can usethem. 
+before nsd can use them. 
 
 All this can be controlled by a simple control script called 'nsdc'
 which uses a simple configuration file.
@@ -132,7 +133,7 @@ information in case of ``cache''.
 
 Second word is the name (origin) of the zone and the third word 
 is the pathname to the master zone file. If you use zonec with 
--d option the pathname may be relative to the $NSDZONESDIR
+the -d option the pathname may be relative to the $NSDZONESDIR
 directory.
 
 If everything is done properly and installed into the default location 
