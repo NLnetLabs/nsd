@@ -1,0 +1,14 @@
+Makefile
+autom4te.cache
+config.h
+config.h.in
+config.log
+config.status
+configure
+nsd
+nsd-axfr
+nsd-notify
+nsdc.conf.sample
+nsdc.sh
+nsq
+zonec
