@@ -75,11 +75,6 @@ namedb_new (const char *filename)
 	}
 	
 	/* Create the database */
-        /*if ((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
-		region_destroy(region);
-		return NULL;
-        }*/
-	/* Create the database */
         if ((db->fd = fopen(db->filename, "w")) == NULL) {
 		region_destroy(region);
 		return NULL;

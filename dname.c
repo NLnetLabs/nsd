@@ -52,33 +52,6 @@
 #include "util.h"
 
 
-#if 0
-static uint8_t
-dname_common_label_count(dname_type *left, dname_type *right)
-{
-	uint8_t label_count;
-	uint8_t i;
-	
-	assert(left);
-	assert(right);
-
-	if (left == right) {
-		return left->label_count;
-	}
-
-	label_count = (left->label_count <= right->label_count
-		       ? left->label_count
-		       : right->label_count);
-	for (i = 1; i < label_count; ++i) {
-		int result = label_compare(dname_label(left, i),
-					   dname_label(right, i));
-		if (result)
-			break;
-	}
-	return i;
-}
-#endif
-
 const dname_type *
 dname_make(region_type *region, const uint8_t *name)
 {
@@ -218,20 +191,6 @@ label_compare(const uint8_t *left, const uint8_t *right)
 	} else {
 		return (int) left_length - (int) right_length;
 	}
-#if 0
-	int r;
-	const uint8_t *a = left;
-	const uint8_t *b = right;
-	int alen = (int)*a;
-	int blen = (int)*b;
-
-	while (alen && blen) {
-		a++; b++;
-		if ((r = *a - *b)) return r;
-		alen--; blen--;
-	}
-	return alen - blen;
-#endif
 }
 
 
