@@ -920,7 +920,9 @@ query_process(struct query *q, struct nsd *nsd)
 	/* The query... */
 	uint8_t *qptr;
 	int recursion_desired;
+#ifdef DNSSEC
 	int checking_disabled;
+#endif
 	query_state_type query_state;
 	
 	/* Sanity checks */
@@ -980,7 +982,9 @@ query_process(struct query *q, struct nsd *nsd)
 
 	/* Save the RD and CD flags.  */
 	recursion_desired = RD(q);
+#ifdef DNSSEC
 	checking_disabled = CD(q);
+#endif
 
 	/* Zero the flags... */
 	*(uint16_t *)(q->iobuf + 2) = 0;
@@ -988,8 +992,10 @@ query_process(struct query *q, struct nsd *nsd)
 	QR_SET(q);		/* This is an answer */
 	if (recursion_desired)
 		RD_SET(q);	/* Restore the RD flag.  */
+#ifdef DNSSEC
 	if (checking_disabled)
 		CD_SET(q);	/* Restore the CD flag.  */
+#endif
 	
 	if (q->klass != CLASS_IN && q->klass != CLASS_ANY) {
 		if (q->klass == CLASS_CHAOS) {
