@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.30 2002/02/06 13:20:32 alexis Exp $
+ * $Id: query.c,v 1.31 2002/02/06 13:37:22 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -159,13 +159,13 @@ query_process(q, db)
 
 	/* Do we serve this type of query */
 	if(OPCODE(q) != OPCODE_QUERY) {
+		*(u_int16_t *)(q->iobuf + 2) = 0;
+		QR_SET(q);				/* This is an answer */
 #ifdef	MIMIC_BIND8
 		RCODE_SET(q, RCODE_REFUSE);
 #else
 		RCODE_SET(q, RCODE_IMPL);
 #endif
-		*(u_int16_t *)(q->iobuf + 2) = 0;
-		QR_SET(q);				/* This is an answer */
 		return 0;
 	}
 
