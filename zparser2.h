@@ -57,7 +57,7 @@ struct node_t {
 /* administration struct */
 struct zdefault_t {
     int32_t ttl;
-    uint32_t minimum;
+    int32_t minimum;
     uint16_t class;
     uint8_t *origin;
     size_t origin_len;
@@ -158,7 +158,7 @@ struct ztab {
 extern struct ztab ztypes[];
 extern struct ztab zclasses[];
 
-/* zparser.c */
+/* zparser2.c */
 uint16_t * zparser_conv_hex(const char *hex);
 uint16_t * zparser_conv_time(const char *time);
 uint16_t * zparser_conv_rdata_type(struct RR * current, const char *type);
@@ -179,6 +179,9 @@ void zreset_current_rr(struct zdefault_t *zdefault);
 void zadd_rdata2(struct zdefault_t *zdefault, uint16_t *r);
 void zadd_rdata_finalize(struct zdefault_t *zdefault);
 void zadd_rtype(uint8_t *type);
+uint8_t * dnamedup (const uint8_t *dname);
+const uint8_t * cat_dname(const uint8_t *left, const uint8_t *right);
+const uint8_t * creat_dname(const uint8_t *str, const size_t len);
 uint16_t intbyname (const char *a, struct ztab *tab);
 const char * namebyint (uint16_t n, struct ztab *tab);
 int zrdatacmp(uint16_t **a, uint16_t **b);
@@ -195,5 +198,9 @@ uint8_t precsize_aton (register char *cp, char **endptr);
 const char * typebyint(uint16_t type);
 const char * classbyint(uint16_t class);
 static void usage (void);
+
+/* zlparser.lex */
+int zoctet(char *word);
+int zrrtype (char *word);
 
 #endif /* _ZPARSER_H_ */

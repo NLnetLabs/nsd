@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.15 2003/08/19 14:32:55 miekg Exp $
+ * $Id: zyparser.y,v 1.16 2003/08/19 14:51:35 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -318,4 +318,5 @@ int yyerror(char *s) {
         fprintf(stderr,"too many errors (50+)\n");
         exit(1);
     }
+    return 0;
 }

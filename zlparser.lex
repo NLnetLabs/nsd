@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.8 2003/08/19 14:38:46 miekg Exp $
+ * $Id: zlparser.lex,v 1.9 2003/08/19 14:51:35 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -200,7 +200,9 @@ CLASS[0-9]+             {
                         }
 %%
 
-int zrrtype (char *word) {
+int
+zrrtype (char *word) 
+{
     /* check to see if word is in the list of reconized keywords
      * 'A' is first token defined in YACC. With this hack we
      * return the correct token based on our list of RR types
@@ -215,7 +217,9 @@ int zrrtype (char *word) {
 }
 
 /* do some preparsing of the stuff */
-int zoctet(char *word) {
+int
+zoctet(char *word) 
+{
     /* remove \DDD constructs from the input. See RFC 1035, section 5.1 */
     /* s follows the string, p lags behind and rebuilds the new string */
     char * s; char * p;

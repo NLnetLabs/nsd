@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.10 2003/08/19 14:14:18 miekg Exp $
+ * $Id: zparser2.c,v 1.11 2003/08/19 14:51:35 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -122,10 +122,11 @@ zparser_conv_time(const char *time)
     return r;
 }
 
+/* NOT USED 
 uint16_t *
 zparser_conv_rdata_type(struct RR * current, const char *type)
 {
-    /* convert rdata_type to wireformat */
+     convert rdata_type to wireformat
 
     uint16_t *r = NULL;
 
@@ -141,6 +142,7 @@ zparser_conv_rdata_type(struct RR * current, const char *type)
     }
     return r;
 }
+*/
 
 uint16_t *
 zparser_conv_rdata_proto(const char *protostr)
@@ -722,9 +724,6 @@ zunexpected (struct zdefault_t *z)
 struct zdefault_t *
 nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origin)
 {
-
-    char *end;
-
     /* Open the zone file... */
     /* [XXX] still need to handle recursion */
     if(( yyin  = fopen(filename, "r")) == NULL) {
@@ -741,8 +740,9 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     zdefault = xalloc( sizeof(struct zdefault_t));
     
     zdefault->prev_dname = xalloc(MAXDNAME);
-    zdefault->ttl = DEFAULT_TTL;
+    zdefault->ttl = ttl;
     zdefault->class = 1;
+    zdefault->class = class;
     
     zdefault->origin = xalloc(MAXDNAME);
     zdefault->origin = (uint8_t *)strdname(origin, ROOT);  /* hmm [XXX] MG */
@@ -763,20 +763,6 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
             printf("\nparsing complete, with %d errors\n",error);
 
     return zdefault;
-}
-
-/*
- *
- * Closes a zone file and destroys  the parser.
- *
- * Returns:
- *
- *	Nothing
- *
- */
-void
-zclose (struct zdefault_t *z)
-{
 }
 
 /*

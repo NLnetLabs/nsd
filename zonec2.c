@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.6 2003/08/19 13:36:08 miekg Exp $
+ * $Id: zonec2.c,v 1.7 2003/08/19 14:51:35 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -450,7 +450,6 @@ zone_read (char *name, char *zonefile)
 		if((rrset = heap_search(h, rr->dname)) != NULL) {
 			for(r = rrset; r; r = r->next) {
 				if(r->type == rr->type) {
-                    /*l = l->next; /* next */
 					break;
                 }
 			}
@@ -495,7 +494,6 @@ zone_read (char *name, char *zonefile)
 			/* Search for possible duplicates... */
 			for(i = 0; i < r->rrslen; i++) {
 				if(!zrdatacmp(r->rrs[i], rr->rdata)) {
-                    /*l = l->next; /* next! */
 					break;
                 }
 			}
