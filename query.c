@@ -65,11 +65,11 @@
 #include "query.h"
 #include "util.h"
 
-static void add_rrset(struct query       *query,
-		      answer_type        *answer,
-		      answer_section_type section,
-		      domain_type        *owner,
-		      rrset_type         *rrset);
+static int add_rrset(struct query       *query,
+		     answer_type        *answer,
+		     answer_section_type section,
+		     domain_type        *owner,
+		     rrset_type         *rrset);
 
 static void answer_authoritative(struct query     *q,
 				 answer_type      *answer,
@@ -505,20 +505,22 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 	}
 }
 
-static void
+static int
 add_rrset(struct query       *query,
 	  answer_type        *answer,
 	  answer_section_type section,
 	  domain_type        *owner,
 	  rrset_type         *rrset)
 {
+	int result;
+	
 	assert(query);
 	assert(answer);
 	assert(owner);
 	assert(rrset);
 	assert(rrset->class == CLASS_IN);
 	
-	answer_add_rrset(answer, section, owner, rrset);
+	result = answer_add_rrset(answer, section, owner, rrset);
 	switch (rrset->type) {
 	case TYPE_NS:
 		add_additional_rrsets(query, answer, rrset, 0, 1);
@@ -532,6 +534,8 @@ add_rrset(struct query       *query,
 	default:
 		break;
 	}
+
+	return result;
 }
 
 
@@ -588,7 +592,7 @@ answer_soa(struct query *query, answer_type *answer)
 /*
  * Answer that the domain name exists but there is no RRset with the
  * requested type.
-
+ *
  * DNSSEC: Include the correct NSEC record proving that the type does
  * not exist.  In the wildcard no data (3.1.3.4) case the wildcard IS
  * NOT expanded, so the ORIGINAL parameter must point to the original
@@ -597,7 +601,10 @@ answer_soa(struct query *query, answer_type *answer)
 static void
 answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 {
-	answer_soa(query, answer);
+	if (query->cname_count == 0) {
+		answer_soa(query, answer);
+	}
+	
 	if (query->dnssec_ok && zone_is_secure(query->zone)) {
 		domain_type *nsec_domain;
 		rrset_type *nsec_rrset;
@@ -612,8 +619,10 @@ answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 static void
 answer_nxdomain(struct query *query, answer_type *answer)
 {
-	RCODE_SET(query, RCODE_NXDOMAIN);
-	answer_soa(query, answer);
+	if (query->cname_count == 0) {
+		RCODE_SET(query, RCODE_NXDOMAIN);
+		answer_soa(query, answer);
+	}
 }
 
 
@@ -647,10 +656,16 @@ answer_domain(struct query *q, answer_type *answer,
 		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 	} else if ((rrset = domain_find_rrset(domain, q->zone, TYPE_CNAME))) {
 		size_t i;
+		int added;
 
-		++q->cname_count;
-		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
-		if (q->cname_count < MAX_CNAME_COUNT) {
+		/*
+		 * If the CNAME is not added it is already in the
+		 * answer, so we have a CNAME loop.  Don't follow the
+		 * CNAME target in this case.
+		 */
+		added = add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
+		if (added) {
+			++q->cname_count;
 			for (i = 0; i < rrset->rrslen; ++i) {
 				domain_type *closest_match = rdata_atom_domain(rrset->rrs[i]->rdata[0]);
 				domain_type *closest_encloser = closest_match;

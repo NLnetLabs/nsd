@@ -176,8 +176,6 @@
 /* Miscelaneous limits */
 #define MAX_PACKET_SIZE         16384   /* Maximum supported size of DNS packets.  */
 
-#define MAX_CNAME_COUNT         20      /* Maximum number of times a CNAME is followed.  */
-
 #define	QIOBUFSZ		(MAX_PACKET_SIZE + MAX_RR_SIZE)
 
 #define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
@@ -231,7 +229,12 @@ struct query {
 	uint16_t class;
 	uint16_t type;
 
-	/* The number of CNAMEs followed when resolving the query.  */
+	/*
+	 * The number of CNAMES followed.  After a CNAME is followed
+	 * we no longer change the RCODE to NXDOMAIN and no longer add
+	 * SOA records to the authority section in case of NXDOMAIN
+	 * and NODATA.
+	 */
 	int cname_count;
 	
 	/* Used for dname compression.  */

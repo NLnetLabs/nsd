@@ -82,7 +82,12 @@ void encode_answer(struct query *q, const answer_type *answer);
 
 void answer_init(answer_type *answer);
 
-void answer_add_rrset(answer_type *answer, answer_section_type section,
-		      domain_type *domain, rrset_type *rrset);
+/*
+ * Add the specified RRset to the answer in the specified section.  If
+ * the RRset is already present and in the same (or "higher") section
+ * return 0, otherwise return 1.
+ */
+int answer_add_rrset(answer_type *answer, answer_section_type section,
+		     domain_type *domain, rrset_type *rrset);
 
 #endif /* _ANSWER_H_ */

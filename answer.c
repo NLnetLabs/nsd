@@ -49,7 +49,7 @@ answer_init(answer_type *answer)
 	answer->rrset_count = 0;
 }
 
-void
+int
 answer_add_rrset(answer_type *answer, answer_section_type section,
 		 domain_type *domain, rrset_type *rrset)
 {
@@ -62,21 +62,26 @@ answer_add_rrset(answer_type *answer, answer_section_type section,
 	/* Don't add an RRset multiple times.  */
 	for (i = 0; i < answer->rrset_count; ++i) {
 		if (answer->rrsets[i] == rrset) {
-			if (section < answer->section[i])
+			if (section < answer->section[i]) {
 				answer->section[i] = section;
-			return;
+				return 1;
+			} else {
+				return 0;
+			}
 		}
 	}
 	
 	if (answer->rrset_count >= MAXRRSPP) {
 		/* XXX: Generate warning/error? */
-		return;
+		return 0;
 	}
 	
 	answer->section[answer->rrset_count] = section;
 	answer->domains[answer->rrset_count] = domain;
 	answer->rrsets[answer->rrset_count] = rrset;
 	++answer->rrset_count;
+	
+	return 1;
 }
 
 static void
