@@ -81,6 +81,7 @@ netio_remove_handler(netio_type *netio, netio_handler_type *handler)
 	for (elt_ptr = &netio->handlers; *elt_ptr; elt_ptr = &(*elt_ptr)->next) {
 		if ((*elt_ptr)->handler == handler) {
 			netio_handler_list_type *next = (*elt_ptr)->next;
+			(*elt_ptr)->handler = NULL;
 			(*elt_ptr)->next = netio->deallocated;
 			netio->deallocated = *elt_ptr;
 			*elt_ptr = next;
@@ -146,7 +147,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 				FD_SET(handler->fd, &exceptfds);
 			}
 		}
-		if (handler->timeout) {
+		if (handler->timeout && (handler->event_types & NETIO_HANDLER_TIMEOUT)) {
 			struct timespec relative;
 
 			relative.tv_sec = handler->timeout->tv_sec;
@@ -176,15 +177,21 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 		return result;
 	}
 
-	/*
-	 * Check for events.
-	 */
+	/* Check for events.  */
 	rc = pselect(max_fd + 1, &readfds, &writefds, &exceptfds,
 		     have_timeout ? &minimum_timeout : NULL,
 		     sigmask);
 	if (rc == -1) {
 		return -1;
-	} else if (rc == 0) {
+	}
+
+	/* Initialize the current time member of netio.  */
+	if (gettimeofday(&current_timeval, NULL) == -1) {
+		return -1;
+	}
+	timeval_to_timespec(&netio->current_time, &current_timeval);
+	
+	if (rc == 0) {
 		/*
 		 * No events before the minimum timeout expired.
 		 * Dispatch to handler if interested.
@@ -195,9 +202,12 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 	} else {
 		/*
 		 * Dispatch all the events to interested handlers
-		 * based on the fd_sets.
+		 * based on the fd_sets.  Note that a handler might
+		 * deinstall itself, so store the next handler before
+		 * calling the current handler!
 		 */
-		for (elt = netio->handlers; elt; elt = elt->next) {
+		for (elt = netio->handlers; elt; ) {
+			netio_handler_list_type *next = elt->next;
 			netio_handler_type *handler = elt->handler;
 			if (handler->fd >= 0) {
 				netio_event_types_type event_types = 0;
@@ -225,6 +235,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 					++result;
 				}
 			}
+			elt = next;
 		}
 	}
 

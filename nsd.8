@@ -47,8 +47,8 @@ nsd
 .Op Fl h
 .Op Fl i Ar identity
 .Op Fl l Ar logfile
-.Op Fl N Ar udp-servers
-.Op Fl n Ar tcp-servers
+.Op Fl N Ar server-count
+.Op Fl n Ar concurrent-tcp-count
 .Op Fl p Ar port
 .Op Fl s Ar secondss
 .Op Fl t Ar chrootdir
@@ -139,14 +139,14 @@ The default is to log to stderr and syslog.
 .It Fl N Ar count
 Start
 .Ar count
-UDP servers.  Starting more than a single UDP server is only useful on
-machines with multiple CPUs and/or network adapters.
+NSD servers.  Starting more than a single server is only useful on
+machines with multiple CPUs and/or network adapters.  The default is 1.
 
-.It Fl n Ar count
-Start
-.Ar count
-TCP servers.  This is also the maximum number of simultaneously
-handled TCP connections.
+.It Fl n Ar number
+The maximum
+.Ar number
+of concurrent TCP connection that can be handled by each server.  The
+default is 10.
 
 .It Fl p Ar port
 Answer the queries on the specified

@@ -203,6 +203,7 @@ struct query {
 	int edns;
 	int dnssec_ok;
 	int tcp;
+	uint16_t tcplen;
 	
 	uint8_t *iobufptr;
 	uint8_t iobuf[QIOBUFSZ];

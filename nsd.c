@@ -373,8 +373,6 @@ main (int argc, char *argv[])
 	/* Scratch variables... */
 	int c;
 	pid_t	oldpid;
-	size_t udp_children = 1;
-	size_t tcp_children = 1;
 	size_t i;
 	struct sigaction action;
 	
@@ -418,6 +416,10 @@ main (int argc, char *argv[])
 	nsd.username	= USER;
 	nsd.chrootdir	= NULL;
 
+	nsd.child_count = 1;
+	nsd.maximum_tcp_count = 10;
+	nsd.current_tcp_count = 0;
+	
 	/* EDNS0 */
 	nsd.edns.max_msglen = EDNS_MAX_MESSAGE_LEN;
 	nsd.edns.opt_ok[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
@@ -480,17 +482,17 @@ main (int argc, char *argv[])
 		case 'N':
 			i = atoi(optarg);
 			if (i <= 0) {
-				error("number of UDP servers must be greather than zero");
+				error("number of child servers must be greather than zero");
 			} else {
-				udp_children = i;
+				nsd.child_count = i;
 			}
 			break;
 		case 'n':
 			i = atoi(optarg);
 			if (i <= 0) {
-				error("number of TCP servers must be greather than zero");
+				error("number of concurrent TCP connections must greater than zero");
 			} else {
-				tcp_children = i;
+				nsd.maximum_tcp_count = i;
 			}
 			break;
 		case 'p':
@@ -554,14 +556,10 @@ main (int argc, char *argv[])
 	}
 	
 	/* Number of child servers to fork.  */
-	nsd.child_count = udp_children + tcp_children;
 	nsd.children = region_alloc(
 		nsd.region, nsd.child_count * sizeof(struct nsd_child));
-	for (i = 0; i < udp_children; ++i) {
-		nsd.children[i].kind = NSD_SERVER_UDP;
-	}
-	for (; i < nsd.child_count; ++i) {
-		nsd.children[i].kind = NSD_SERVER_TCP;
+	for (i = 0; i < nsd.child_count; ++i) {
+		nsd.children[i].kind = NSD_SERVER_BOTH;
 	}
 	
 	/* We need at least one active interface */

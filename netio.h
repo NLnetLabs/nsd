@@ -17,6 +17,7 @@
 #include "region-allocator.h"
 
 enum netio_event_types {
+	NETIO_HANDLER_NONE    = 0,
 	NETIO_HANDLER_READ    = 1,
 	NETIO_HANDLER_WRITE   = 2,
 	NETIO_HANDLER_EXCEPT  = 4,
@@ -30,6 +31,13 @@ typedef struct netio_handler_list netio_handler_list_type;
 
 struct netio
 {
+	/*
+	 * The current time, which is initialized just before the
+	 * event handlers are called.
+	 */
+	struct timespec current_time;
+
+	/* Private.  */
 	region_type             *region;
 	netio_handler_list_type *handlers;
 	netio_handler_list_type *deallocated;

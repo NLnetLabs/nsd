@@ -136,6 +136,9 @@ struct	nsd {
 		char		opt_err[OPT_LEN];
 	} edns;
 
+	int maximum_tcp_count;
+	int current_tcp_count;
+	
 #ifdef	BIND8_STATS
 
 	char	*named8_stats;

@@ -219,6 +219,23 @@ timespec_compare(const struct timespec *left,
 	}
 }
 
+
+/* One second is 1e9 nanoseconds.  */
+#define NANOSECONDS_PER_SECOND   1000000000L
+
+void
+timespec_add(struct timespec *left,
+	     const struct timespec *right)
+{
+	left->tv_sec += right->tv_sec;
+	left->tv_nsec += right->tv_nsec;
+	if (left->tv_nsec >= NANOSECONDS_PER_SECOND) {
+		/* Carry.  */
+		++left->tv_sec;
+		left->tv_nsec -= NANOSECONDS_PER_SECOND;
+	}
+}
+
 void
 timespec_subtract(struct timespec *left,
 		  const struct timespec *right)
@@ -226,9 +243,8 @@ timespec_subtract(struct timespec *left,
 	left->tv_sec -= right->tv_sec;
 	left->tv_nsec -= right->tv_nsec;
 	if (left->tv_nsec < 0L) {
-		/* Borrow one second.  */
+		/* Borrow.  */
 		--left->tv_sec;
-		/* One second is 1e9 nanoseconds.  */
-		left->tv_nsec += 1000000000;
+		left->tv_nsec += NANOSECONDS_PER_SECOND;
 	}
 }

@@ -61,6 +61,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <netdb.h>
 
 #include "axfr.h"
@@ -73,6 +74,14 @@
 #include "query.h"
 #include "region-allocator.h"
 #include "util.h"
+
+
+static void handle_tcp_reading(netio_type *netio,
+			       netio_handler_type *handler,
+			       netio_event_types_type event_types);
+static void handle_tcp_writing(netio_type *netio,
+			       netio_handler_type *handler,
+			       netio_event_types_type event_types);
 
 
 static uint16_t *compressed_dname_offsets;
@@ -563,18 +572,278 @@ read_socket(int s, void *buf, size_t count)
 	return (ssize_t) actual;
 }
 
+struct tcp_handler_data
+{
+	region_type     *region;
+	struct nsd      *nsd;
+	struct query     query;
+	query_state_type query_state;
+	size_t           bytes_transmitted;
+};
+
 static void
-handle_tcp(netio_type *netio ATTR_UNUSED,
-	   netio_handler_type *handler,
-	   netio_event_types_type event_types)
+cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
+{
+	struct tcp_handler_data *data = handler->user_data;
+	netio_remove_handler(netio, handler);
+	close(handler->fd);
+	--data->nsd->current_tcp_count;
+	assert(data->nsd->current_tcp_count >= 0);
+	region_destroy(data->region);
+}
+
+static void
+handle_tcp_reading(netio_type *netio,
+		   netio_handler_type *handler,
+		   netio_event_types_type event_types)
+{
+	struct tcp_handler_data *data = handler->user_data;
+	ssize_t received;
+	struct query *q = &data->query;
+
+	if (event_types & NETIO_HANDLER_TIMEOUT) {
+		/* Connection timed out.  */
+		cleanup_tcp_handler(netio, handler);
+		return;
+	}
+
+	assert(event_types & NETIO_HANDLER_READ);
+
+	/*
+	 * Check if we received the leading packet length bytes yet.
+	 */
+	if (data->bytes_transmitted < sizeof(q->tcplen)) {
+		received = read_socket(handler->fd,
+				       (char *) &q->tcplen + data->bytes_transmitted,
+				       sizeof(q->tcplen) - data->bytes_transmitted);
+		if (received == -1) {
+			if (errno == EAGAIN) {
+				/* Read would block, wait until more data is available.  */
+				return;
+			} else {
+				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+				cleanup_tcp_handler(netio, handler);
+				return;
+			}
+		} else if (received == 0) {
+			/* EOF */
+			cleanup_tcp_handler(netio, handler);
+			return;
+		}
+
+		data->bytes_transmitted += received;
+		if (data->bytes_transmitted < sizeof(q->tcplen)) {
+			/*
+			 * We need more data, so wait until more data
+			 * becomes available and the event handler is
+			 * invoked again.
+			 */
+			return;
+		}
+
+		assert(data->bytes_transmitted == sizeof(q->tcplen));
+
+		q->tcplen = ntohs(q->tcplen);
+
+		/*
+		 * Minimum query size is:
+		 *
+		 *     Size of the header (12)
+		 *   + Root domain name   (1)
+		 *   + Query class        (2)
+		 *   + Query type         (2)
+		 */
+		if (q->tcplen < QHEADERSZ + 1 + sizeof(uint16_t) + sizeof(uint16_t)) {
+			log_msg(LOG_WARNING, "dropping bogus tcp connection");
+			cleanup_tcp_handler(netio, handler);
+			return;
+		}
+
+		if (q->tcplen > q->maxlen) {
+			log_msg(LOG_ERR, "insufficient tcp buffer, dropping connection");
+			cleanup_tcp_handler(netio, handler);
+			return;
+		}
+	}
+
+	assert(data->bytes_transmitted < q->tcplen + sizeof(q->tcplen));
+
+	/* Read the (remaining) query data.  */
+	received = read_socket(handler->fd, q->iobufptr, q->tcplen - query_used_size(q));
+	if (received == -1) {
+		if (errno == EAGAIN) {
+			/* Read would block, wait until more data is available.  */
+			return;
+		} else {
+			log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+			cleanup_tcp_handler(netio, handler);
+			return;
+		}
+	} else if (received == 0) {
+		/* EOF */
+		cleanup_tcp_handler(netio, handler);
+		return;
+	}
+
+	data->bytes_transmitted += received;
+	q->iobufptr += received;
+	if (query_used_size(q) < q->tcplen) {
+		/* Message not yet complete, wait until socket becomes readable again.  */
+		return;
+	}
+
+	assert(query_used_size(q) == q->tcplen);
+
+	/* We have a complete query, process it.  */
+	data->query_state = process_query(data->nsd, q);
+	if (data->query_state == QUERY_DISCARDED) {
+		/* Drop the entire connection... */
+		cleanup_tcp_handler(netio, handler);
+		return;
+	}
+
+	if (RCODE(q) == RCODE_OK && !AA(q))
+		STATUP(data->nsd, nona);
+		
+	query_addedns(q, data->nsd);
+
+	/* Switch to the tcp write handler.  */
+	q->tcplen = query_used_size(q);
+	data->bytes_transmitted = 0;
+	
+	handler->timeout->tv_sec = TCP_TIMEOUT;
+	handler->timeout->tv_nsec = 0L;
+	timespec_add(handler->timeout, &netio->current_time);
+	
+	handler->event_types = NETIO_HANDLER_WRITE | NETIO_HANDLER_TIMEOUT;
+	handler->event_handler = handle_tcp_writing;
+}
+
+static void
+handle_tcp_writing(netio_type *netio,
+		   netio_handler_type *handler,
+		   netio_event_types_type event_types)
+{
+	struct tcp_handler_data *data = handler->user_data;
+	ssize_t sent;
+	struct query *q = &data->query;
+
+	if (event_types & NETIO_HANDLER_TIMEOUT) {
+		/* Connection timed out.  */
+		cleanup_tcp_handler(netio, handler);
+		return;
+	}
+
+	assert(event_types & NETIO_HANDLER_WRITE);
+
+	if (data->bytes_transmitted < sizeof(q->tcplen)) {
+		/* Writing the response packet length.  */
+		uint16_t n_tcplen = htons(q->tcplen);
+		sent = write(handler->fd,
+			     (const char *) &n_tcplen + data->bytes_transmitted,
+			     sizeof(n_tcplen) - data->bytes_transmitted);
+		if (sent == -1) {
+			if (errno == EAGAIN) {
+				/*
+				 * Write would block, wait until
+				 * socket becomes writeable again.
+				 */
+				return;
+			} else {
+				log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
+				cleanup_tcp_handler(netio, handler);
+				return;
+			}
+		}
+
+		data->bytes_transmitted += sent;
+		if (data->bytes_transmitted < sizeof(q->tcplen)) {
+			/*
+			 * Writing not complete, wait until socket
+			 * becomes writeable again.
+			 */
+			return;
+		}
+
+		assert(data->bytes_transmitted == sizeof(q->tcplen));
+	}
+
+	assert(data->bytes_transmitted < q->tcplen + sizeof(q->tcplen));
+
+	sent = write(handler->fd,
+		     q->iobuf + data->bytes_transmitted - sizeof(q->tcplen),
+		     query_used_size(q) - data->bytes_transmitted + sizeof(q->tcplen));
+	if (sent == -1) {
+		if (errno == EAGAIN) {
+			/*
+			 * Write would block, wait until
+			 * socket becomes writeable again.
+			 */
+			return;
+		} else {
+			log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
+			cleanup_tcp_handler(netio, handler);
+			return;
+		}
+	}
+
+	data->bytes_transmitted += sent;
+	if (data->bytes_transmitted < q->tcplen + sizeof(q->tcplen)) {
+		/* Still more data to write when socket becomes writeable.  */
+		return;
+	}
+
+	assert(data->bytes_transmitted == q->tcplen + sizeof(q->tcplen));
+	       
+	if (data->query_state == QUERY_IN_AXFR) {
+		/* Continue processing AXFR and writing back results.  */
+		data->query_state = query_axfr(data->nsd, q);
+		if (data->query_state != QUERY_PROCESSED) {
+			/* Reset data. */
+			q->tcplen = query_used_size(q);
+			data->bytes_transmitted = 0;
+			/* Reset timeout.  */
+			handler->timeout->tv_sec = TCP_TIMEOUT;
+			handler->timeout->tv_nsec = 0;
+			timespec_add(handler->timeout, &netio->current_time);
+			/* Wait for socket to become writeable again. */
+			handle_tcp_writing(netio, handler, event_types);
+			return;
+		}
+	}
+
+	/*
+	 * Done sending and no AXFR, wait for the next request to
+	 * arrive on the TCP socket.
+	 */
+	query_init(&data->query);
+	data->bytes_transmitted = 0;
+	
+	handler->timeout->tv_sec = TCP_TIMEOUT;
+	handler->timeout->tv_nsec = 0;
+	timespec_add(handler->timeout, &netio->current_time);
+
+	handler->event_types = NETIO_HANDLER_READ | NETIO_HANDLER_TIMEOUT;
+	handler->event_handler = handle_tcp_reading;
+}
+
+
+static void
+handle_accept(netio_type *netio,
+	      netio_handler_type *handler,
+	      netio_event_types_type event_types)
 {
 	struct handler_data *data = handler->user_data;
-	int received, sent, s;
-	uint16_t tcplen;
-	struct query q;
-	query_state_type query_state;
-
+	int s;
+	struct tcp_handler_data *tcp_data;
+	region_type *tcp_region;
+	netio_handler_type *tcp_handler;
+	
 	if (!(event_types & NETIO_HANDLER_READ)) {
+		return;
+	}
+
+	if (data->nsd->current_tcp_count >= data->nsd->maximum_tcp_count) {
 		return;
 	}
 	
@@ -585,113 +854,52 @@ handle_tcp(netio_type *netio ATTR_UNUSED,
 		STATUP(data->nsd, ctcp6);
 	}
 
+	tcp_region = region_create(xalloc, free);
+	tcp_data = region_alloc(tcp_region, sizeof(struct tcp_handler_data));
+	tcp_data->region = tcp_region;
+	tcp_data->nsd = data->nsd;
+	
+	query_init(&tcp_data->query);
+	tcp_data->query.region = data->query_region;
+	tcp_data->query.compressed_dname_offsets = compressed_dname_offsets;
+	tcp_data->query.maxlen = (MAX_PACKET_SIZE < data->nsd->tcp_max_msglen
+				  ? MAX_PACKET_SIZE
+				  : data->nsd->tcp_max_msglen);
+	tcp_data->query.tcp = 1;
+	tcp_data->query_state = QUERY_PROCESSED;
+	tcp_data->bytes_transmitted = 0;
+	
 	/* Accept it... */
-	q.addrlen = sizeof(q.addr);
-	if ((s = accept(handler->fd, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
+	tcp_data->query.addrlen = sizeof(tcp_data->query.addr);
+	if ((s = accept(handler->fd, (struct sockaddr *)&tcp_data->query.addr, &tcp_data->query.addrlen)) == -1) {
 		if (errno != EINTR) {
 			log_msg(LOG_ERR, "accept failed: %s", strerror(errno));
 		}
+		region_destroy(tcp_region);
 		return;
 	}
 
-	/* Initialize the query... */
-	query_init(&q);
-	q.region = data->query_region;
-	q.compressed_dname_offsets = compressed_dname_offsets;
-	q.maxlen = (MAX_PACKET_SIZE < data->nsd->tcp_max_msglen
-		    ? MAX_PACKET_SIZE
-		    : data->nsd->tcp_max_msglen);
-	q.tcp = 1;
-
-	/* Until we've got end of file */
-	alarm(TCP_TIMEOUT);
-	while ((received = read_socket(s, &tcplen, 2)) == 2) {
-		/*
-		 * Minimum query size is:
-		 *
-		 *     Size of the header (12)
-		 *   + Root domain name   (1)
-		 *   + Query class        (2)
-		 *   + Query type         (2)
-		 */
-		if (ntohs(tcplen) < QHEADERSZ + 1 + sizeof(uint16_t) + sizeof(uint16_t)) {
-			log_msg(LOG_WARNING, "dropping bogus tcp connection");
-			break;
-		}
-
-		if (ntohs(tcplen) > MAX_PACKET_SIZE) {
-			log_msg(LOG_ERR, "insufficient tcp buffer, dropping connection");
-			break;
-		}
-
-		if ((received = read_socket(s, q.iobuf, ntohs(tcplen))) == -1) {
-			if (errno == EINTR)
-				log_msg(LOG_ERR, "timed out/interrupted reading tcp connection");
-			else
-				log_msg(LOG_ERR, "failed reading tcp connection: %s", strerror(errno));
-			break;
-		}
-
-		if (received == 0) {
-			log_msg(LOG_WARNING, "remote end closed connection");
-			break;
-		}
-
-		if (received != ntohs(tcplen)) {
-			log_msg(LOG_WARNING, "couldnt read entire tcp message, dropping connection");
-			break;
-		}
-
-		q.iobufptr = q.iobuf + received;
-
-		alarm(0);
-
-		query_state = process_query(data->nsd, &q);
-		if (query_state != QUERY_DISCARDED) {
-			if (RCODE((&q)) == RCODE_OK && !AA((&q)))
-				STATUP(data->nsd, nona);
-			do {
-				query_addedns(&q, data->nsd);
-
-				alarm(TCP_TIMEOUT);
-				tcplen = htons(q.iobufptr - q.iobuf);
-				if (((sent = write(s, &tcplen, 2)) == -1) ||
-				    ((sent = write(s, q.iobuf, query_used_size(&q))) == -1)) {
-					if (errno == EINTR)
-						log_msg(LOG_ERR, "timed out/interrupted writing");
-					else
-						log_msg(LOG_ERR, "write failed: %s", strerror(errno));
-					break;
-				}
-				if (sent != q.iobufptr - q.iobuf) {
-					log_msg(LOG_ERR, "sent %d in place of %d bytes",
-					       sent, (int) query_used_size(&q));
-					break;
-				}
-
-				/* Do we have AXFR in progress? */
-				if (query_state == QUERY_IN_AXFR) {
-					query_state = query_axfr(data->nsd, &q);
-				}
-			} while (query_state != QUERY_PROCESSED);
-		} else {
-			/* Drop the entire connection... */
-			break;
-		}
+	if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
+		log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
+		region_destroy(tcp_region);
+		return;
 	}
-
-	alarm(0);
 	
-	/* Connection closed */
-	if (received == -1) {
-		if (errno == EINTR)
-			log_msg(LOG_ERR, "timed out/interrupted reading tcp connection");
-		else
-			log_msg(LOG_ERR, "failed reading tcp connection: %s", strerror(errno));
-	}
+	tcp_handler = region_alloc(tcp_region, sizeof(netio_handler_type));
+	tcp_handler->fd = s;
+	tcp_handler->timeout = region_alloc(tcp_region, sizeof(struct timespec));
+	tcp_handler->timeout->tv_sec = TCP_TIMEOUT;
+	tcp_handler->timeout->tv_nsec = 0L;
+	timespec_add(tcp_handler->timeout, &netio->current_time);
 
-	close(s);
+	tcp_handler->user_data = tcp_data;
+	tcp_handler->event_types = NETIO_HANDLER_READ | NETIO_HANDLER_TIMEOUT;
+	tcp_handler->event_handler = handle_tcp_reading;
+
+	netio_add_handler(netio, tcp_handler);
+	++data->nsd->current_tcp_count;
 }
+
 
 
 /*
@@ -706,6 +914,7 @@ server_child(struct nsd *nsd)
 	region_type *server_region = region_create(xalloc, free);
 	region_type *query_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
+	netio_handler_type *tcp_accept_handlers;
 	
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	
@@ -750,7 +959,9 @@ server_child(struct nsd *nsd)
 			netio_add_handler(netio, handler);
 		}
 	}
-	
+
+	tcp_accept_handlers = region_alloc(server_region,
+					   nsd->ifs * sizeof(netio_handler_type));
 	if (nsd->server_kind & NSD_SERVER_TCP) {
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct handler_data *data;
@@ -761,12 +972,12 @@ server_child(struct nsd *nsd)
 			data->nsd = nsd;
 			data->socket = &nsd->tcp[i];
 
-			handler = region_alloc(server_region, sizeof(netio_handler_type));
+			handler = &tcp_accept_handlers[i];
 			handler->fd = nsd->tcp[i].s;
 			handler->timeout = NULL;
 			handler->user_data = data;
 			handler->event_types = NETIO_HANDLER_READ;
-			handler->event_handler = handle_tcp;
+			handler->event_handler = handle_accept;
 			netio_add_handler(netio, handler);
 		}
 	}
@@ -796,6 +1007,21 @@ server_child(struct nsd *nsd)
 			} else {
 				log_msg(LOG_ERR, "select failed: %s", strerror(errno));
 				break;
+			}
+		}
+
+		/*
+		 * Enable/disable TCP accept handlers when the maximum
+		 * number of concurrent TCP connections is
+		 * reached/not reached.
+		 */
+		if (nsd->server_kind & NSD_SERVER_TCP) {
+			for (i = 0; i < nsd->ifs; ++i) {
+				if (nsd->current_tcp_count < nsd->maximum_tcp_count) {
+					tcp_accept_handlers[i].event_types = NETIO_HANDLER_READ;
+				} else {
+					tcp_accept_handlers[i].event_types = NETIO_HANDLER_NONE;
+				}
 			}
 		}
 	}

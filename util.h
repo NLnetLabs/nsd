@@ -175,10 +175,9 @@ extern int nsd_debug_level;
 /*
  * Timespec functions.
  */
-int timespec_compare(const struct timespec *left,
-		     const struct timespec *right);
-void timespec_subtract(struct timespec *left,
-		       const struct timespec *right);
+int timespec_compare(const struct timespec *left, const struct timespec *right);
+void timespec_add(struct timespec *left, const struct timespec *right);
+void timespec_subtract(struct timespec *left, const struct timespec *right);
 
 static inline void
 timeval_to_timespec(struct timespec *left,
