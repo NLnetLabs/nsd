@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.50 2002/09/26 14:19:33 alexis Exp $
+ * $Id: server.c,v 1.51 2002/09/26 20:25:46 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -293,8 +293,8 @@ server_udp(struct nsd *nsd)
 #ifdef NAMED8_STATS
 				/* Remeber the time of the reload... */
 				time(&nsd->st.reload);
+				alarm(nsd->st.period);
 #endif /* NAMED8_STATS */
-				/* XXX: Sometimes this can be a problem if pid wasnt truncated yet by parent */
 				/* Overwrite pid... */
 				if(writepid(nsd) == -1) {
 					syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
