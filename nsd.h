@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.43.2.2 2002/12/05 22:25:07 alexis Exp $
+ * $Id: nsd.h,v 1.43.2.3 2003/06/02 11:52:54 erik Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -180,5 +180,18 @@ int server_start_tcp __P((struct nsd *nsd));
 void server_shutdown __P((struct nsd *nsd));
 void server_udp __P((struct nsd *nsd));
 void server_tcp __P((struct nsd *nsd));
+int delete_tcp_child_pid __P((struct nsd *nsd, pid_t pid));
+int restart_tcp_child_servers __P((struct nsd *nsd));
 
 #endif	/* _NSD_H_ */
+
+
+/* Emacs:
+
+Local Variables:
+c-basic-offset: 8
+c-indentation-style: bsd
+indent-tabs-mode: t
+End:
+
+*/

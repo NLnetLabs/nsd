@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.59.2.7 2003/02/12 11:31:09 alexis Exp $
+ * $Id: server.c,v 1.59.2.8 2003/06/02 11:52:55 erik Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -39,6 +39,50 @@
  */
 #include "nsd.h"
 
+
+/*
+ * Remove the specified pid from the list of TCP pids.	Returns 0 if
+ * the pid is not in the list, 1 otherwise.  The field is set to 0.
+ */
+int
+delete_tcp_child_pid(struct nsd *nsd, pid_t pid)
+{
+	int i;
+	for (i = 1; i <= nsd->tcp.open_conn; ++i) {
+		if (nsd->pid[i] == pid) {
+			nsd->pid[i] = 0;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/*
+ * Restart child TCP servers if necessary.
+ */
+int
+restart_tcp_child_servers(struct nsd *nsd)
+{
+	int i;
+
+	/* Pre-fork the tcp processes... */
+	for (i = 1; i <= nsd->tcp.open_conn; ++i) {
+		if (nsd->pid[i] == 0) {
+			nsd->pid[i] = nsd->debug ? 0 : fork();
+			switch (nsd->pid[i]) {
+			case 0: /* CHILD */
+				nsd->pid[0] = 0;
+				server_tcp(nsd);
+				/* NOTREACH */
+				exit(0);
+			case -1:
+				syslog(LOG_ERR, "fork failed: %m");
+				return -1;
+			}
+		}
+	}
+	return 0;
+}
 
 /*
  * Initialize the server, create and bind the sockets.
@@ -193,27 +237,18 @@ server_init(struct nsd *nsd)
 
 /*
  * Fork the required number of servers.
- *
  */
 int
 server_start_tcp(struct nsd *nsd)
 {
 	int i;
 
-	/* Pre-fork the tcp processes... */
-	for(i = 1; i <= nsd->tcp.open_conn; i++) {
-		switch((nsd->pid[i] = nsd->debug ? 0 : fork())) {
-		case 0: /* CHILD */
-			nsd->pid[0] = 0;
-			server_tcp(nsd);
-			/* NOTREACH */
-			exit(0);
-		case -1:
-			syslog(LOG_ERR, "fork failed: %m");
-			return -1;
-		}
+	/* Start all child servers initially.  */
+	for (i = 1; i <= nsd->tcp.open_conn; ++i) {
+		nsd->pid[i] = 0;
 	}
-	return 0;
+
+	return restart_tcp_child_servers(nsd);
 }
 
 /*
@@ -316,6 +351,9 @@ server_udp(struct nsd *nsd)
 			break;
 		}
 
+		/* Restart any TCP child processes that may have died.  */
+		restart_tcp_child_servers(nsd);
+		
 		/* Set it up */
 		FD_ZERO(&peer);
 
@@ -594,3 +632,14 @@ server_tcp(struct nsd *nsd)
 
 	/* NOTREACH */
 }
+
+
+/* Emacs:
+
+Local Variables:
+c-basic-offset: 8
+c-indentation-style: bsd
+indent-tabs-mode: t
+End:
+
+*/

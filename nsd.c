@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.56.2.11 2003/02/12 09:22:56 alexis Exp $
+ * $Id: nsd.c,v 1.56.2.12 2003/06/02 11:52:53 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -151,7 +151,8 @@ sig_handler(sig)
 	int sig;
 {
 	int status, i;
-
+	pid_t child;
+	
 	/* Reinstall the signals... */
 	signal(SIGTERM, &sig_handler);
 	signal(SIGHUP, &sig_handler);
@@ -181,10 +182,22 @@ sig_handler(sig)
 
 	switch(sig) {
 	case SIGCHLD:
-		/* Any tcp children willing to report? */
-		if(waitpid(0, &status, WNOHANG) != 0) {
-			if(nsd.tcp.open_conn)
-				nsd.tcp.open_conn--;
+		child = waitpid(0, &status, WNOHANG);
+		if (child == -1) {
+			syslog(LOG_WARNING, "waitpid failed: %m");
+		} else if (nsd.mode == NSD_QUIT || nsd.mode == NSD_SHUTDOWN) {
+			return;
+		} else if (child > 0) {
+			int is_tcp_child = delete_tcp_child_pid(&nsd, child);
+			if (is_tcp_child) {
+				syslog(LOG_WARNING,
+				       "TCP server %d died unexpectedly with status %d, restarting",
+				       (int) child, status);
+			} else {
+				syslog(LOG_WARNING,
+				       "Reload process %d failed with status %d, continuing with old database",
+				       (int) child, status);
+			}
 		}
 		return;
 	case SIGHUP:
@@ -212,8 +225,8 @@ sig_handler(sig)
 	}
 
 	/* Distribute the signal to the servers... */
-	for(i = nsd.tcp.open_conn; i > 0; i--) {
-		if(kill(nsd.pid[i], sig) == -1) {
+	for (i = 1; i <= nsd.tcp.open_conn; ++i) {
+		if (kill(nsd.pid[i], sig) == -1) {
 			syslog(LOG_ERR, "problems killing %d: %m", nsd.pid[i]);
 		}
 	}
@@ -597,3 +610,14 @@ main(argc, argv)
 	/* NOTREACH */
 	exit(0);
 }
+
+
+/* Emacs:
+
+Local Variables:
+c-basic-offset: 8
+c-indentation-style: bsd
+indent-tabs-mode: t
+End:
+
+*/
