@@ -433,13 +433,14 @@ zparser_conv_nsec(region_type *region, uint8_t nsecbits[256][32])
 	uint8_t i,j;
 	uint8_t window = 0;
 	uint16_t last = 1;
-	int used[256]; /* what windows are used, -1 terminates, we can
+
+	int used[257]; /* what windows are used, -1 terminates, we can
 		walk used in sequence, until we reach -1 */
 	int size[256]; /* what is the last byte used in the window, the
-		index of 'size' is the windows number*/
+		index of 'size' is the window's number*/
 
-	/* used[0] is the first window included in the nsec 
-	 * size[used[0]] is the size of that window
+	/* used[i] is the i-th window included in the nsec 
+	 * size[used[0]] is the size of window i
 	 */
 
 	/* walk through the 256 windows */
