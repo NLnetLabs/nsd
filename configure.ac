@@ -106,7 +106,10 @@ user=nsd
 AC_ARG_WITH([user],
 	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
 	[user=$withval])
-AC_CHECK_USER($user)
+AC_CHECK_USER(user, $user)
+if test "x$user" = "x"; then
+	AC_MSG_ERROR([user $user doesnt exist.])
+fi
 AC_SUBST(user)
 
 #
