@@ -481,7 +481,7 @@ struct additional_rr_types
 struct additional_rr_types default_additional_rr_types[] = {
 	{ TYPE_A, ADDITIONAL_A_SECTION },
 	{ TYPE_AAAA, ADDITIONAL_AAAA_SECTION },
-	{ 0, 0 }
+	{ 0, (rr_section_type) 0 }
 };
 
 struct additional_rr_types rt_additional_rr_types[] = {
@@ -489,7 +489,7 @@ struct additional_rr_types rt_additional_rr_types[] = {
 	{ TYPE_AAAA, ADDITIONAL_AAAA_SECTION },
 	{ TYPE_X25, ADDITIONAL_OTHER_SECTION },
 	{ TYPE_ISDN, ADDITIONAL_OTHER_SECTION },
-	{ 0, 0 }
+	{ 0, (rr_section_type) 0 }
 };
 
 static void
