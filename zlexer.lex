@@ -163,6 +163,7 @@ Q       \"
 	if (include_stack_ptr == 0) {
 		yyterminate();
 	} else {
+		fclose(yyin);
 		pop_parser_state();
 	}
 }

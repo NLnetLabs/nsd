@@ -1053,7 +1053,7 @@ process_rr()
 		rrset->zone = zone;
 		rrset->rr_count = 1;
 		rrset->rrs = (rr_type *) xalloc(sizeof(rr_type));
-		memcpy(&rrset->rrs[0], rr, sizeof(rr_type));
+		rrset->rrs[0] = *rr;
 			
 		region_add_cleanup(parser->region, cleanup_rrset, rrset);
 
@@ -1068,8 +1068,7 @@ process_rr()
 
 		/* Search for possible duplicates... */
 		for (i = 0; i < rrset->rr_count; i++) {
-			if (!zrdatacmp(rr->type, rr, &rrset->rrs[i]))
-			{
+			if (!zrdatacmp(rr->type, rr, &rrset->rrs[i])) {
 				break;
 			}
 		}
@@ -1083,7 +1082,7 @@ process_rr()
 		rrset->rrs = (rr_type *) xrealloc(
 			rrset->rrs,
 			(rrset->rr_count + 1) * sizeof(rr_type));
-		memcpy(&rrset->rrs[rrset->rr_count], rr, sizeof(rr_type));
+		rrset->rrs[rrset->rr_count] = *rr;
 		++rrset->rr_count;
 	}
 
@@ -1152,12 +1151,10 @@ zone_read(const char *name, const char *zonefile)
 	}
 
 	/* Parse and process all RRs.  */
-	/* reset the nsecbits to zero */
 	yyparse();
 
 	fclose(yyin);
-	yyin = NULL;
-
+	
 	fflush(stdout);
 	totalerrors += parser->errors;
 }
