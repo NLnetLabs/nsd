@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.69.2.3 2002/08/06 12:09:21 alexis Exp $
+# $Id: Makefile,v 1.69.2.4 2002/08/06 14:36:34 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -52,7 +52,7 @@ NSDFLAGS        =
 #	or	id
 #	or	id.gid
 #
-NSDUSER		= nobody
+NSDUSER		= nsd
 
 # This has to be set to the path of named-xfer program from bind if you
 # want ``nsdc update'' functionality
