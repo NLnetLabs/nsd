@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.34 2002/02/19 14:25:11 alexis Exp $
+# $Id: Makefile,v 1.34.2.1 2002/02/20 12:27:03 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -41,11 +41,15 @@ SHELL = /bin/sh
 # Compile environment settings
 DEBUG=	-g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -O6 -Wall -DUSE_HEAP_HASH ${DEBUG} # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
-LDFLAGS= # -L/usr/local/lib -ldb4
+CFLAGS= -pipe -O6 -Wall -DUSE_HEAP_HASH $(DEBUG) $(DMALLOC_CFLAGS) # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
+LDFLAGS= $(DMALLOC_LDFLAGS) # -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
 INSTALL = install -c
+
+# Uncomment these lines to enable dmalloc.
+#DMALLOC_CFLAGS= -DDMALLOC -I/usr/local/include 
+#DMALLOC_LDFLAGS= -L/usr/local/lib -ldmalloc
 
 # Run-time enviroment settings
 NSDBINDIR       = /home/alexis/nsd.bin
@@ -65,6 +69,9 @@ all:	nsd zonec nsdc.sh
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
+
+.c.s:
+	${CC} -S ${CFLAGS} $<
 
 install: nsd zonec nsdc.sh
 	[ -d ${NSDBINDIR} ] || mkdir ${NSDBINDIR}
