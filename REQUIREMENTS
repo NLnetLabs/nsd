@@ -1,12 +1,15 @@
-$Id: REQUIREMENTS,v 1.1 2001/11/30 13:11:44 alexis Exp $
+-*- mode: Text; -*-
+$Id: REQUIREMENTS,v 1.2 2001/12/07 00:08:48 alexis Exp $
+
+
 NSD Requirements and Specifications
 ______________________________________________________________________
 
 A. Scope.
 
-nsd is a complete implementation of an autoritative 
-DNS nameserver. This document describes the basic
-requirements for this implementation.
+nsd is a complete implementation of an autoritative DNS
+nameserver. This document describes the basic requirements and
+specifications for this implementation.
 
 B. Requirements
 
@@ -209,8 +212,13 @@ C.3 Incomming DNS Message processing.
 
      + Non parsable messages are replied to with a FORMERR.
 
-     + If a TCP srteam contains multiple DNS messages each is handled
-       individually.
+     + Only the first message in a TCP message is handled. If there are
+       more messages in the stream a SERVFAIL is returned.
+
+       (Argument for this is in draft-dnsind-edns1: applicability of
+	some DNS message Header flags and of RCODE fields only to
+	single QNAME, QTYPE and QCLAS)
+
 
      + Each UDP packet only carries one DNS Message. Packets with
        trailing garbage are replied to with a FORMERR.
@@ -683,4 +691,4 @@ RR records details.
 
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.1 2001/11/30 13:11:44 alexis Exp $
+$Id: REQUIREMENTS,v 1.2 2001/12/07 00:08:48 alexis Exp $
