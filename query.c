@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.56 2002/04/23 12:15:08 alexis Exp $
+ * $Id: query.c,v 1.57 2002/04/23 12:33:48 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -160,6 +160,7 @@ query_process(q, db)
 
 	struct domain *d;
 	struct answer *a;
+	int match;
 
 	/* Sanity checks */
 	if(QR(q)) return -1;	/* Not a query? Drop it on the floor. */
@@ -331,7 +332,9 @@ query_process(q, db)
 			break;
 	}
 
-	/* Do we have the complete name? */
+	/* BEWARE: THE RESOLVING ALGORITHM STARTS HERE */
+
+	/* Do we have complete name? */
 	*(qnamelow - 1) = qnamelen;
 	if(NAMEDB_TSTBITMASK(db, NAMEDB_DATAMASK, qdepth) && ((d = namedb_lookup(db, qnamelow - 1)) != NULL)) {
 		/* Is this a delegation point? */
@@ -377,11 +380,15 @@ query_process(q, db)
 
 					return 0;
 				}
+
+				/* We have a partial match */
+				match = 1;
 			}
 		}
 	} else {
 		/* Set this if we find SOA later */
 		RCODE_SET(q, RCODE_NXDOMAIN);
+		match = 0;
 	}
 
 	/* Start matching down label by label */
@@ -390,7 +397,30 @@ query_process(q, db)
 		qnamelen -= (*qname + 1);
 		qname += (*qname + 1);
 		qnamelow += (*qnamelow + 1);
+
 		qdepth--;
+		/* Only look for wildcards if we did not have any match before */
+		if(match == 0 && NAMEDB_TSTBITMASK(db, NAMEDB_STARMASK, qdepth + 1)) {
+			/* Prepend star */
+			bcopy(qstar, qnamelow - 2, 2);
+
+			/* Lookup star */
+			*(qnamelow - 3) = qnamelen + 2;
+			if((d = namedb_lookup(db, qnamelow - 3)) != NULL) {
+				/* We found a domain... */
+				RCODE_SET(q, RCODE_OK);
+
+				if((a = namedb_answer(d, qtype)) != NULL) {
+					if(ntohs(qclass) != CLASS_ANY) {
+						AA_SET(q);
+					} else {
+						AA_CLR(q);
+					}
+					query_addanswer(q, qname - 2, a, 1);
+					return 0;
+				}
+			}
+		}
 
 		/* Do we have a SOA or zone cut? */
 		*(qnamelow - 1) = qnamelen;
@@ -429,30 +459,10 @@ query_process(q, db)
 					return 0;
 				}
 			}
+			/* We found some data, so dont try to match the wildcards anymore... */
+			match = 1;
 		}
 
-		/* Only look for wildcards if we did not match a domain before */
-		if(NAMEDB_TSTBITMASK(db, NAMEDB_STARMASK, qdepth + 1) && (RCODE(q) == RCODE_NXDOMAIN)) {
-			/* Prepend star */
-			bcopy(qstar, qnamelow - 2, 2);
-
-			/* Lookup star */
-			*(qnamelow - 3) = qnamelen + 2;
-			if((d = namedb_lookup(db, qnamelow - 3)) != NULL) {
-				/* We found a domain... */
-				RCODE_SET(q, RCODE_OK);
-
-				if((a = namedb_answer(d, qtype)) != NULL) {
-					if(ntohs(qclass) != CLASS_ANY) {
-						AA_SET(q);
-					} else {
-						AA_CLR(q);
-					}
-					query_addanswer(q, qname - 2, a, 1);
-					return 0;
-				}
-			}
-		}
 	} while(*qname);
 
 	RCODE_SET(q, RCODE_SERVFAIL);
