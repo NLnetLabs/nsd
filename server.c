@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.22 2002/02/13 11:19:37 alexis Exp $
+ * $Id: server.c,v 1.23 2002/02/14 13:33:03 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -40,34 +40,156 @@
 #include "nsd.h"
 
 int
-server(db)
-	struct namedb *db;
+answer_udp(s, nsd)
+	int s;
+	struct nsd *nsd;
 {
-	struct query *q;
-	struct sockaddr_in udp_addr, tcp_addr;
-	int s_udp, s_tcp, s_tcpio;
-	u_int16_t tcplen;
-	pid_t pid;
 	int received, sent;
-	fd_set peer;
+	struct query q;
 
-	/* A message to reject tcp connections... */
-	tcp_open_connections = 0;
+	/* Initialize the query... */
+	query_init(&q);
+
+	if((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
+		syslog(LOG_ERR, "recvfrom failed: %m");
+		return -1;
+	}
+	q.iobufptr = q.iobuf + received;
+
+	if(query_process(&q, nsd->db) != -1) {
+		if((sent = sendto(s, q.iobuf, q.iobufptr - q.iobuf, 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
+			syslog(LOG_ERR, "sendto failed: %m");
+			return -1;
+		} else if(sent != q.iobufptr - q.iobuf) {
+			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+/*
+ *
+ * XXX This function must always be called from inside of a fork() since it uses alarm()
+ *
+ *
+ */
+int
+answer_tcp(s, addr, addrlen, nsd)
+	int s;
+	struct sockaddr_in *addr;
+	size_t addrlen;
+	struct nsd *nsd;
+{
+	struct query q;
+	u_int16_t tcplen;
+	int received, sent;
+
+	/* Initialize the query... */
+	query_init(&q);
+
+	bcopy(addr, &q.addr, addrlen);
+	q.addrlen = addrlen;
+
+	q.maxlen = (q.iobufsz > nsd->tcp.max_msglen) ? nsd->tcp.max_msglen : q.iobufsz;
+
+	/* Until we've got end of file */
+	while((received = read(s, &tcplen, 2)) == 2) {
+		/* XXX Why 17???? */
+		if(ntohs(tcplen) < 17) {
+			syslog(LOG_WARNING, "dropping bogus tcp connection");
+			return -1;
+		}
+
+		if(ntohs(tcplen) > q.iobufsz) {
+			syslog(LOG_ERR, "insufficient tcp buffer, truncating incoming message");
+			tcplen = htons(q.iobufsz);
+		}
+
+		/* We should use select or settimer() */
+		alarm(120);
+
+		if((received = read(s, q.iobuf, ntohs(tcplen))) == -1) {
+			if(errno == EINTR) {
+				syslog(LOG_WARNING, "timed out reading tcp connection");
+				return -1;
+			} else {
+				syslog(LOG_ERR, "failed reading tcp connection: %m");
+				return -1;
+			}
+		}
+
+		if(received == 0) {
+			syslog(LOG_WARNING, "remote closed connection");
+			return -1;
+		}
+
+		if(received != ntohs(tcplen)) {
+			syslog(LOG_WARNING, "couldnt read entire tcp message");
+		}
+
+		alarm(0);
+
+		q.iobufptr = q.iobuf + received;
+
+		if(query_process(&q, nsd->db) != -1) {
+			alarm(120);
+			tcplen = htons(q.iobufptr - q.iobuf);
+			if(((sent = write(s, &tcplen, 2)) == -1) ||
+				((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
+					syslog(LOG_ERR, "write failed: %m");
+					return -1;
+			}
+			if(sent != q.iobufptr - q.iobuf) {
+				syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
+				return -1;
+			}
+		}
+		alarm(120);
+	}
+
+	if(received == -1) {
+		if(errno == EINTR) {
+			syslog(LOG_WARNING, "timed out reading tcp connection");
+			return -1;
+		} else {
+			syslog(LOG_ERR, "failed reading tcp connection: %m");
+			return -1;
+		}
+	}
+
+	/* Shut down the connection.... */
+	close(s);
+
+	return 0;
+}
+
+
+int
+server(nsd)
+	struct nsd *nsd;
+{
+	int udp_s, tcp_s, tcpc_s;
+	struct sockaddr_in udp_addr, tcp_addr, tcpc_addr;
+	size_t tcpc_addrlen;
+	fd_set peer;
+	pid_t pid;
 
 	/* UDP */
 	bzero(&udp_addr, sizeof(struct sockaddr_in));
 	udp_addr.sin_addr.s_addr = INADDR_ANY;
-	udp_addr.sin_port = htons(cf_udp_port);
+	udp_addr.sin_port = htons(nsd->udp.port);
 	udp_addr.sin_family = AF_INET;
 
 	/* Make a socket... */
-	if((s_udp = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
+	if((udp_s = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
 		syslog(LOG_ERR, "cant create a socket: %m");
 		return -1;
 	}
 
 	/* Bind it... */
-	if(bind(s_udp, (struct sockaddr *)&udp_addr, sizeof(struct sockaddr_in)) != 0) {
+	if(bind(udp_s, (struct sockaddr *)&udp_addr, sizeof(struct sockaddr_in)) != 0) {
 		syslog(LOG_ERR, "cant bind the socket: %m");
 		return -1;
 	}
@@ -75,40 +197,33 @@ server(db)
 	/* TCP */
 	bzero(&tcp_addr, sizeof(struct sockaddr_in));
 	tcp_addr.sin_addr.s_addr = INADDR_ANY;
-	tcp_addr.sin_port = htons(cf_tcp_port);
+	tcp_addr.sin_port = htons(nsd->tcp.port);
 	tcp_addr.sin_family = AF_INET;
 
 	/* Make a socket... */
-	if((s_tcp = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+	if((tcp_s = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		syslog(LOG_ERR, "cant create a socket: %m");
 		return -1;
 	}
 
 	/* Bind it... */
-	if(bind(s_tcp, (struct sockaddr *)&tcp_addr, sizeof(struct sockaddr_in)) != 0) {
+	if(bind(tcp_s, (struct sockaddr *)&tcp_addr, sizeof(struct sockaddr_in)) != 0) {
 		syslog(LOG_ERR, "cant bind the socket: %m");
 		return -1;
 	}
 
 	/* Listen to it... */
-	if(listen(s_tcp, cf_tcp_max_connections) == -1) {
+	if(listen(tcp_s, nsd->tcp.max_conn) == -1) {
 		syslog(LOG_ERR, "cant listen: %m");
 		return -1;
 	}
 
-	/* Setup... */
-	if((q = query_new()) == NULL) {
-		syslog(LOG_ERR, "failed to allocate a query: %m");
-		return -1;
-	}
-
-
 	/* The main loop... */	
-	while(server_mode != NSD_SHUTDOWN) {
+	while(nsd->mode != NSD_SHUTDOWN) {
 		/* Do we need to reload the database? */
-		switch(server_mode) {
+		switch(nsd->mode) {
 		case NSD_RELOAD:
-			server_mode = NSD_RUN;
+			nsd->mode = NSD_RUN;
 
 			switch((pid = fork())) {
 			case -1:
@@ -119,8 +234,8 @@ server(db)
 				break;
 			default:
 				/* PARENT */
-				namedb_close(db);
-				if((db = namedb_open(db->filename)) == NULL) {
+				namedb_close(nsd->db);
+				if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
 					syslog(LOG_ERR, "unable to reload the database: %m");
 					exit(1);
 				}
@@ -138,10 +253,11 @@ server(db)
 
 		/* Set it up */
 		FD_ZERO(&peer);
-		FD_SET(s_udp, &peer);
-		FD_SET(s_tcp, &peer);
+		FD_SET(udp_s, &peer);
+		FD_SET(tcp_s, &peer);
 
-		if(select((tcp_open_connections < cf_tcp_max_connections) ? s_tcp + 1 : s_udp + 1,
+		/* Wait for a query or tcp connection... */
+		if(select((nsd->tcp.open_conn < nsd->tcp.max_conn) ? tcp_s + 1 : udp_s + 1,
 									&peer, NULL, NULL, NULL) == -1) {
 			if(errno == EINTR) {
 				/* We'll fall out of the loop if we need to shut down */
@@ -151,126 +267,42 @@ server(db)
 				break;
 			}
 		}
-		if(FD_ISSET(s_udp, &peer)) {
-#if DEBUG > 2
-			syslog(LOG_DEBUG, "udp packet!");
-#endif
-			query_init(q);
-			if((received = recvfrom(s_udp, q->iobuf, q->iobufsz, 0,
-					(struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
-				syslog(LOG_ERR, "recvfrom failed: %m");
-				/* XXX: We should think of better action here in instead of break; */
-				continue;
-			}
-			q->iobufptr = q->iobuf + received;
 
-			if(query_process(q, db) != -1) {
-				if((sent = sendto(s_udp, q->iobuf, q->iobufptr - q->iobuf, 0,
-					(struct sockaddr *)&q->addr, q->addrlen)) == -1) {
-					syslog(LOG_ERR, "sendto failed: %m");
-					/* XXX: We should think of better action here in instead of break; */
-				} else if(sent != q->iobufptr - q->iobuf) {
-					syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q->iobufptr - q->iobuf);
-				}
-			}
-		} else if(FD_ISSET(s_tcp, &peer)) {
-			query_init(q);
-			q->maxlen = (q->iobufsz > cf_tcp_max_message_size) ? cf_tcp_max_message_size : q->iobufsz;
-#if DEBUG > 2
-			syslog(LOG_NOTICE, "tcp connection!");
-#endif
+		/* Process it... */
+		if(FD_ISSET(udp_s, &peer)) {
 
-			if((s_tcpio = accept(s_tcp, (struct sockaddr *)&q->addr, &q->addrlen)) == -1) {
+			/* UDP query... */
+			answer_udp(udp_s, nsd);
+
+		} else if(FD_ISSET(tcp_s, &peer)) {
+			/* Accept the tcp connection */
+			tcpc_addrlen = sizeof(struct sockaddr_in);
+			if((tcpc_s = accept(tcp_s, (struct sockaddr *)&tcpc_addr, &tcpc_addrlen)) == -1) {
 				syslog(LOG_ERR, "accept failed: %m");
-				continue;
-			}
-
-			switch(fork()) {
-			case -1:
-				syslog(LOG_ERR, "fork failed: %m");
-				break;
-			case 0:
-				alarm(120);
-
-				/* Until we've got end of file */
-				while((received = read(s_tcpio, &tcplen, 2)) == 2) {
-					/* XXX Why 17???? */
-					if(ntohs(tcplen) < 17) {
-						syslog(LOG_WARNING, "dropping bogus tcp connection");
-						exit(0);
-					}
-
-					if(ntohs(tcplen) > q->iobufsz) {
-						syslog(LOG_ERR, "insufficient tcp buffer, truncating incoming message");
-						tcplen = htons(q->iobufsz);
-					}
-
-					/* We should use select or settimer() */
-					alarm(120);
-
-					if((received = read(s_tcpio, q->iobuf, ntohs(tcplen))) == -1) {
-						if(errno == EINTR) {
-							syslog(LOG_WARNING, "timed out reading tcp connection");
-							exit(0);
-						} else {
-							syslog(LOG_ERR, "failed reading tcp connection: %m");
-							exit(0);
-						}
-					}
-
-					if(received == 0) {
-						syslog(LOG_WARNING, "remote closed connection");
-						exit(0);
-					}
-
-					if(received != ntohs(tcplen)) {
-						syslog(LOG_WARNING, "couldnt read entire tcp message");
-					}
-
-					alarm(0);
-
-					q->iobufptr = q->iobuf + received;
-
-					if(query_process(q, db) != -1) {
-						alarm(120);
-						tcplen = htons(q->iobufptr - q->iobuf);
-						if(((sent = write(s_tcpio, &tcplen, 2)) == -1) ||
-							((sent = write(s_tcpio, q->iobuf, q->iobufptr - q->iobuf)) == -1)) {
-								syslog(LOG_ERR, "write failed: %m");
-								exit(0);
-						}
-						if(sent != q->iobufptr - q->iobuf) {
-							syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q->iobufptr - q->iobuf);
-						}
-					}
-					alarm(120);
+			} else {
+				/* Fork and answer it... */
+				switch(fork()) {
+				case -1:
+					syslog(LOG_ERR, "fork failed: %m");
+					break;
+				case 0:
+					/* CHILD */
+					answer_tcp(tcpc_s, &tcpc_addr, tcpc_addrlen, nsd);
+					exit(0);
+				default:
+					/* PARENT */
+					nsd->tcp.open_conn++;
 				}
-				if(received == -1) {
-					if(errno == EINTR) {
-						syslog(LOG_WARNING, "timed out reading tcp connection");
-						exit(0);
-					} else {
-						syslog(LOG_ERR, "failed reading tcp connection: %m");
-						exit(0);
-					}
-				}
-				close(s_tcpio);
-				exit(0);
-			default:
-				tcp_open_connections++;
-				/* PARENT */
 			}
 		} else {
 			/* Time out... */
 			syslog(LOG_ERR, "select timed out");
 		}
-		/* Mostly NOTREACHED */
 	}
 
 	/* Clean up */
-	query_destroy(q);
-	close(s_tcp);
-	close(s_udp);
+	close(tcp_s);
+	close(udp_s);
 
 	return 0;
 }

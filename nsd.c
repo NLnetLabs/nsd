@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.18 2002/02/13 11:19:37 alexis Exp $
+ * $Id: nsd.c,v 1.19 2002/02/14 13:33:03 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -39,20 +39,8 @@
  */
 #include "nsd.h"
 
-char *cf_dbfile = CF_DBFILE;
-char *cf_pidfile = CF_PIDFILE;
-int cf_tcp_max_connections = CF_TCP_MAX_CONNECTIONS;
-u_short cf_tcp_port = CF_TCP_PORT;
-int cf_tcp_max_message_size = CF_TCP_MAX_MESSAGE_SIZE;
-u_short cf_udp_port = CF_UDP_PORT;
-int cf_udp_max_message_size = CF_UPD_MAX_MESSAGE_SIZE;
-
-
-/* The nsd database */
-struct namedb *database, *newdb;
-int server_mode = NSD_RUN;
-int tcp_open_connections = 0;
-int debug = 0;
+/* The server handler... */
+struct nsd nsd;
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -103,18 +91,18 @@ sig_handler(sig)
 	case SIGCHLD:
 		/* Any tcp children willing to report? */
 		if(waitpid(0, &status, WNOHANG) != 0) {
-			if(tcp_open_connections)
-				tcp_open_connections--;
+			if(nsd.tcp.open_conn)
+				nsd.tcp.open_conn--;
 		}
 		break;
 	case SIGHUP:
 		syslog(LOG_WARNING, "signal %d received, reloading...", sig);
-		server_mode = NSD_RELOAD;
+		nsd.mode = NSD_RELOAD;
 		break;
 	case SIGTERM:
 	default:
 		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
-		server_mode = NSD_SHUTDOWN;
+		nsd.mode = NSD_SHUTDOWN;
 		break;
 	}
 }
@@ -124,10 +112,21 @@ main(argc, argv)
 	int argc;
 	char *argv[];
 {
+	/* Scratch variables... */
 	int fd, c;
-	pid_t pid;
+
+	/* Initialize the server handler... */
+	bzero(&nsd, sizeof(struct nsd));
+	nsd.dbfile	= CF_DBFILE;
+	nsd.pidfile	= CF_PIDFILE;
+	nsd.tcp.port	= CF_TCP_PORT;
+	nsd.tcp.max_conn = CF_TCP_MAX_CONNECTIONS;
+	nsd.tcp.max_msglen = CF_TCP_MAX_MESSAGE_LEN;
+	nsd.udp.port	= CF_UDP_PORT;
+	nsd.udp.max_msglen = CF_UDP_MAX_MESSAGE_LEN;;
 
 /* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
+
 #	ifndef	LOG_PERROR
 #		define	LOG_PERROR 0
 #	endif
@@ -139,7 +138,7 @@ main(argc, argv)
 	while((c = getopt(argc, argv, "d")) != -1) {
 		switch (c) {
 		case 'd':
-			debug = 1;
+			nsd.debug = 1;
 			break;
 		case '?':
 		default:
@@ -153,7 +152,7 @@ main(argc, argv)
 		usage();
 
 	if(argc == 1) {
-		cf_dbfile = argv[0];
+		nsd.dbfile = argv[0];
 	}
 
 	/* Setup the signal handling... */
@@ -162,21 +161,22 @@ main(argc, argv)
 	signal(SIGCHLD, &sig_handler);
 
 	/* Open the database... */
-	if((database = namedb_open(cf_dbfile)) == NULL) {
-		syslog(LOG_ERR, "unable to load %s: %m", cf_dbfile);
+	if((nsd.db = namedb_open(nsd.dbfile)) == NULL) {
+		syslog(LOG_ERR, "unable to load %s: %m", nsd.dbfile);
 		exit(1);
 	}
 
-	if(!debug) {
+	/* Unless we're debugging, fork... */
+	if(!nsd.debug) {
 		/* Take off... */
-		switch((pid = fork())) {
+		switch((nsd.pid = fork())) {
 		case 0:
 			break;
 		case -1:
 			syslog(LOG_ERR, "fork failed: %m");
 			exit(1);
 		default:
-			syslog(LOG_NOTICE, "nsd started, pid %d", pid);
+			syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
 			exit(0);
 		}
 
@@ -195,14 +195,17 @@ main(argc, argv)
 		}
 	}
 
+	/* Get our process id */
+	nsd.pid = getpid();
+
 	/* Initialize... */
-	server_mode = NSD_RUN;
+	nsd.mode = NSD_RUN;
 
 	/* Run the server... */
-	server(database);
+	server(&nsd);
 
-	/* Not necessary since we terminate anyway... */
-	/* namedb_close(database); */
+	/* Not needed since we terminate anyway... */
+	/* namedb_close(nsd.db); */
 
 	exit(0);
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.15 2002/02/12 13:49:36 alexis Exp $
+ * $Id: nsd.h,v 1.16 2002/02/14 13:33:03 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -37,6 +37,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+#ifndef	_NSD_H_
+#define	_NSD_H_
+
 #if !defined(__P)
 #	if defined(__STDC__)
 #		define __P(protos)     protos          /* full-blown ANSI C */
@@ -63,6 +67,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "dns.h"
@@ -77,21 +82,41 @@
 #define	CF_PIDFILE	"/var/run/nsd.pid"
 #define	CF_TCP_MAX_CONNECTIONS	8
 #define	CF_TCP_PORT		4096
-#define	CF_TCP_MAX_MESSAGE_SIZE	16384
+#define	CF_TCP_MAX_MESSAGE_LEN	16384
 #define	CF_UDP_PORT		4096
-#define	CF_UPD_MAX_MESSAGE_SIZE	512
+#define	CF_UDP_MAX_MESSAGE_LEN	512
 
-extern char	*cf_dbfile;
-extern char	*cf_pidfile;
-extern int	cf_tcp_max_connections;
-extern u_short	cf_tcp_port;
-extern int	cf_tcp_max_message_size;
-extern u_short	cf_udp_port;
-extern int	cf_udp_max_message_size;
 
-extern int	tcp_open_connections;
-extern int	server_mode;
+/* NSD configuration and run-time variables */
+struct	nsd {
+	/* Run-time variables */
+	pid_t		pid;
+	int		mode;
+	struct namedb	*db;
+	int		debug;
+
+	/* Configuration */
+	char	*dbfile;
+	char	*pidfile;
+
+	/* TCP specific configuration */
+	struct	{
+		u_int16_t	port;
+		int		open_conn;
+		int		max_conn;
+		time_t		timeout;
+		size_t		max_msglen;
+	} tcp;
+
+	/* UDP specific configuration */
+	struct	{
+		u_int16_t	port;
+		size_t		max_msglen;
+	} udp;
+};
 
 void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
-int server __P((struct namedb *));
+int server __P((struct nsd *));
+
+#endif	/* _NSD_H_ */
