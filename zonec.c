@@ -216,7 +216,7 @@ zparser_conv_services(region_type *region, const char *protostr,
 		}
 
 		if (port < 0 || port > 65535) {
-			zc_error_prev_line("bad port number %ld", port);
+			zc_error_prev_line("bad port number %d", port);
 		} else {
 			set_bit(bitmap, port);
 			if (port > max_port)
