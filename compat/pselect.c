@@ -26,7 +26,7 @@ pselect (int n,
 	sigset_t saved_sigmask;
 	struct timeval saved_timeout;
 
-	if (sigprocmask(SIG_SETMASK, sigmask, &saved_sigmask) == -1)
+	if (sigmask && sigprocmask(SIG_SETMASK, sigmask, &saved_sigmask) == -1)
 		return -1;
 
 	if (timeout) {
@@ -37,7 +37,7 @@ pselect (int n,
 		result = select(n, readfds, writefds, exceptfds, NULL);
 	}
 	
-	if (sigprocmask(SIG_SETMASK, &saved_sigmask, NULL) == -1)
+	if (sigmask && sigprocmask(SIG_SETMASK, &saved_sigmask, NULL) == -1)
 		return -1;
 
 	return result;
