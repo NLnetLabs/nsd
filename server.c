@@ -135,7 +135,7 @@ server_init(struct nsd *nsd)
 	/* Make a socket... */
 	for(i = 0; i < nsd->ifs; i++) {
 		if((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
-			syslog(LOG_ERR, "cant create a socket: %m");
+			syslog(LOG_ERR, "can't create a socket: %m");
 			return -1;
 		}
 
@@ -150,7 +150,7 @@ server_init(struct nsd *nsd)
 
 		/* Bind it... */
 		if(bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
-			syslog(LOG_ERR, "cant bind the socket: %m");
+			syslog(LOG_ERR, "can't bind the socket: %m");
 			return -1;
 		}
 	}
@@ -160,7 +160,7 @@ server_init(struct nsd *nsd)
 	/* Make a socket... */
 	for(i = 0; i < nsd->ifs; i++) {
 		if((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
-			syslog(LOG_ERR, "cant create a socket: %m");
+			syslog(LOG_ERR, "can't create a socket: %m");
 			return -1;
 		}
 
@@ -182,13 +182,13 @@ server_init(struct nsd *nsd)
 
 		/* Bind it... */
 		if(bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
-			syslog(LOG_ERR, "cant bind the socket: %m");
+			syslog(LOG_ERR, "can't bind the socket: %m");
 			return -1;
 		}
 
 		/* Listen to it... */
 		if(listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
-			syslog(LOG_ERR, "cant listen: %m");
+			syslog(LOG_ERR, "can't listen: %m");
 			return -1;
 		}
 	}
