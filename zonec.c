@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.64 2002/09/09 10:59:15 alexis Exp $
+ * $Id: zonec.c,v 1.65 2002/09/19 14:29:43 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -110,6 +110,14 @@ xrealloc(p, size)
 		exit(1);
 	}
 	return p;
+}
+
+void
+zone_initmsg(struct message *m)
+{
+	m->ancount = m->nscount = m->arcount = m->dnameslen = m->rrsetslen
+		= m->comprlen = m->pointerslen = m->rrsetsoffslen = 0;
+	m->bufptr = m->buf;
 }
 
 void
@@ -528,13 +536,15 @@ zone_read(name, zonefile)
 		/* Do we have this particular rrset? */
 		if(r == NULL) {
 			r = xalloc(sizeof(struct rrset));
-			bzero(r, sizeof(struct rrset));
+
+			r->next = NULL;
 			r->type = rr->type;
 			r->class = rr->class;
 			r->ttl = rr->ttl;
 			r->fmt = rr->rdatafmt;
 			r->rrslen = 1;
 			r->rrs = xalloc(sizeof(union zf_rdatom *));
+			r->glue = r->color = 0;
 			r->rrs[0] = rr->rdata;
 
 			/* Add it */
@@ -615,8 +625,7 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 	}
 
 	/* Initialize message */
-	bzero(&msg, sizeof(struct message));
-	msg.bufptr = msg.buf;
+	zone_initmsg(&msg);
 
 	/* Create a new domain */
 	d = xalloc(sizeof(struct domain));
@@ -716,8 +725,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 	}
 
 	/* Initialize message for TYPE_ANY */
-	bzero(&msgany, sizeof(struct message));
-	msgany.bufptr = msgany.buf;
+	zone_initmsg(&msgany);
 
 	/* XXX This is a bit confusing, needs renaming:
 	 *
@@ -728,8 +736,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 	 */
 	while(rrset || cnamerrset) {
 		/* Initialize message */
-		bzero(&msg, sizeof(struct message));
-		msg.bufptr = msg.buf;
+		zone_initmsg(&msg);
 
 		/* If we're done with the target sets, add CNAME itself */
 		if(rrset == NULL) {
