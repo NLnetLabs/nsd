@@ -129,12 +129,6 @@ to_alarm(int ATTR_UNUSED(sig))
 	timeout_flag = 1;
 }
 
-static void
-cleanup_addrinfo(void *data)
-{
-	freeaddrinfo((struct addrinfo *) data);
-}
-
 /*
  * Read a line from IN.  If successful, the line is stripped of
  * leading and trailing whitespace and non-zero is returned.
@@ -151,36 +145,20 @@ read_line(FILE *in, char *line, size_t size)
 }
 
 static tsig_key_type *
-read_tsig_key_data(region_type *region, FILE *in, int default_family)
+read_tsig_key_data(region_type *region, FILE *in)
 {
 	char line[4000];
 	tsig_key_type *key = (tsig_key_type *) region_alloc(
 		region, sizeof(tsig_key_type));
-	struct addrinfo hints;
-	int gai_rc;
 	int size;
 	uint8_t data[4000];
 
+	/* Server address (ignored).  */
 	if (!read_line(in, line, sizeof(line))) {
 		error(XFER_FAIL, "failed to read TSIG key server address: '%s'",
 		      strerror(errno));
 		return NULL;
 	}
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags |= AI_NUMERICHOST;
-	hints.ai_family = default_family;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	gai_rc = getaddrinfo(line, NULL, &hints, &key->server);
-	if (gai_rc) {
-		error(XFER_FAIL, "cannot parse address '%s': %s",
-		      line,
-		      gai_strerror(gai_rc));
-		return NULL;
-	}
-
-	region_add_cleanup(region, cleanup_addrinfo, key->server);
 
 	if (!read_line(in, line, sizeof(line))) {
 		error(XFER_FAIL, "failed to read TSIG key name: '%s'", strerror(errno));
@@ -220,8 +198,7 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
  */
 static tsig_key_type *
 read_tsig_key(region_type *region,
-	      const char *tsiginfo_filename,
-	      int default_family)
+	      const char *tsiginfo_filename)
 {
 	FILE *in;
 	tsig_key_type *key;
@@ -234,7 +211,7 @@ read_tsig_key(region_type *region,
 		return NULL;
 	}
 
-	key = read_tsig_key_data(region, in, default_family);
+	key = read_tsig_key_data(region, in);
 
 	fclose(in);
 
@@ -915,8 +892,7 @@ main(int argc, char *argv[])
 			exit(XFER_FAIL);
 		}
 
-		tsig_key = read_tsig_key(
-			region, tsig_key_filename, default_family);
+		tsig_key = read_tsig_key(region, tsig_key_filename);
 		if (!tsig_key) {
 			exit(XFER_FAIL);
 		}

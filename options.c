@@ -39,6 +39,8 @@ static int lookup_integer(xmlXPathContextPtr context,
 
 static nsd_options_address_type *parse_address(region_type *region,
 					       xmlNodePtr address_node);
+static nsd_options_key_type *parse_key(region_type *region,
+				       xmlNodePtr key_node);
 
 /*
  * Load the NSD configuration from FILENAME.
@@ -51,6 +53,7 @@ load_configuration(region_type *region, const char *filename)
 	xmlXPathContextPtr xpath_context = NULL;
 	xmlXPathObjectPtr listen_on_addresses = NULL;
 	xmlXPathObjectPtr controls_addresses = NULL;
+	xmlXPathObjectPtr keys = NULL;
 	nsd_options_type *options = NULL;
 
 	assert(filename);
@@ -115,13 +118,15 @@ load_configuration(region_type *region, const char *filename)
 	options->listen_on = NULL;
 	options->controls_count = 0;
 	options->controls = NULL;
+	options->key_count = 0;
+	options->keys = NULL;
 
 	listen_on_addresses = xmlXPathEvalExpression(
-		(const xmlChar *) "/nsd/options/listen-on/*",
+		(const xmlChar *) "/nsd/options/listen-on/address",
 		xpath_context);
 	if (!listen_on_addresses) {
 		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
-			"/nsd/options/listen-on/*");
+			"/nsd/options/listen-on/address");
 		goto exit;
 	} else if (listen_on_addresses->nodesetval) {
 		int i;
@@ -141,11 +146,11 @@ load_configuration(region_type *region, const char *filename)
 	}
 
 	controls_addresses = xmlXPathEvalExpression(
-		(const xmlChar *) "/nsd/options/controls/*",
+		(const xmlChar *) "/nsd/options/controls/address",
 		xpath_context);
 	if (!controls_addresses) {
 		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
-			"/nsd/options/controls/*");
+			"/nsd/options/controls/address");
 		goto exit;
 	} else if (controls_addresses->nodesetval) {
 		int i;
@@ -164,7 +169,32 @@ load_configuration(region_type *region, const char *filename)
 		}
 	}
 
+	keys = xmlXPathEvalExpression(
+		(const xmlChar *) "/nsd/key",
+		xpath_context);
+	if (!keys) {
+		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
+			"/nsd/key");
+		goto exit;
+	} else if (keys->nodesetval) {
+		int i;
+
+		assert(keys->type == XPATH_NODESET);
+
+		options->key_count
+			= keys->nodesetval->nodeNr;
+		options->keys = region_alloc(
+			region,	(options->key_count
+				 * sizeof(nsd_options_key_type *)));
+		for (i = 0; i < keys->nodesetval->nodeNr; ++i) {
+			options->keys[i] = parse_key(
+				region,
+				keys->nodesetval->nodeTab[i]);
+		}
+	}
+
 exit:
+	xmlXPathFreeObject(keys);
 	xmlXPathFreeObject(controls_addresses);
 	xmlXPathFreeObject(listen_on_addresses);
 	xmlXPathFreeContext(xpath_context);
@@ -296,6 +326,22 @@ get_attribute_text(xmlNodePtr node, const char *attribute)
 	}
 }
 
+static const char *
+get_element_text(xmlNodePtr node, const char *element)
+{
+	xmlNodePtr current;
+	for (current = node->children; current; current = current->next) {
+		if (current->type == XML_ELEMENT_NODE
+		    && strcmp((const char *) current->name, element) == 0
+		    && current->children
+		    && current->children->type == XML_TEXT_NODE)
+		{
+			return (const char *) current->children->content;
+		}
+	}
+	return NULL;
+}
+
 static nsd_options_address_type *
 parse_address(region_type *region, xmlNodePtr address_node)
 {
@@ -331,6 +377,31 @@ parse_address(region_type *region, xmlNodePtr address_node)
 	result->port = region_strdup(region, port);
 	result->address = region_strdup(
 		region,	(const char *) address_node->children->content);
+
+exit:
+	return result;
+}
+
+
+static nsd_options_key_type *
+parse_key(region_type *region, xmlNodePtr key_node)
+{
+	nsd_options_key_type *result = NULL;
+	const char *name = get_attribute_text(key_node, "name");
+	const char *algorithm = get_element_text(key_node, "algorithm");
+	const char *secret = get_element_text(key_node, "secret");
+
+	if (!name || !algorithm || !secret) {
+		log_msg(LOG_ERR,
+			"key does not define one of name, algorithm, or secret at line %d",
+			key_node->line);
+		goto exit;
+	}
+
+	result = region_alloc(region, sizeof(nsd_options_key_type));
+	result->name = region_strdup(region, name);
+	result->algorithm = region_strdup(region, algorithm);
+	result->secret = region_strdup(region, secret);
 
 exit:
 	return result;

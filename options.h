@@ -19,6 +19,13 @@ struct nsd_options_address {
 };
 typedef struct nsd_options_address nsd_options_address_type;
 
+struct nsd_options_key {
+	const char *name;
+	const char *algorithm;
+	const char *secret;
+};
+typedef struct nsd_options_key nsd_options_key_type;
+
 struct nsd_options {
 	const char *user_id;
 	const char *database;
@@ -38,6 +45,9 @@ struct nsd_options {
 
 	size_t controls_count;
 	nsd_options_address_type **controls;
+
+	size_t key_count;
+	nsd_options_key_type **keys;
 };
 typedef struct nsd_options nsd_options_type;
 

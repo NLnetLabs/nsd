@@ -90,7 +90,6 @@ struct tsig_algorithm
  */
 struct tsig_key
 {
-	struct addrinfo  *server;
 	const dname_type *name;
 	size_t            size;
 	const uint8_t    *data;
@@ -220,7 +219,7 @@ int tsig_verify(tsig_record_type *tsig);
  * field to find out if the TSIG record was present.
  */
 int tsig_find_rr(tsig_record_type *tsig, buffer_type *packet);
-	
+
 /*
  * Call this to analyze the TSIG RR starting at the current location
  * of PACKET. On success true is returned and the results are stored

@@ -37,7 +37,9 @@
 #include "nsd.h"
 #include "options.h"
 #include "plugins.h"
-
+#ifdef TSIG
+#include "tsig.h"
+#endif /* TSIG */
 
 /* The server handler... */
 static struct nsd nsd;
@@ -620,6 +622,43 @@ main (int argc, char *argv[])
 			endpwent();
 		}
 	}
+
+#ifdef TSIG
+	tsig_init(nsd.region);
+
+	for (i = 0; i < nsd.options->key_count; ++i) {
+		nsd_options_key_type *key_option;
+		tsig_key_type *key;
+		size_t secret_size;
+		int size;
+		uint8_t *data;
+
+		key_option = nsd.options->keys[i];
+		if (!key_option)
+			continue;
+
+
+		key = region_alloc(nsd.region, sizeof(tsig_key_type));
+		key->name = dname_parse(nsd.region, key_option->name);
+		if (!key->name) {
+			error("bad key name '%s'", key_option->name);
+		}
+
+		secret_size = strlen(key_option->secret);
+		data = region_alloc(nsd.region, secret_size);
+		size = b64_pton(key_option->secret, data, secret_size);
+		if (size == -1) {
+			error("bad key secret '%s'", key_option->secret);
+		}
+		key->data = data;
+		key->size = size;
+
+		tsig_add_key(key);
+
+		log_msg(LOG_INFO, "key '%s' added",
+			dname_to_string(key->name, NULL));
+	}
+#endif /* TSIG */
 
 	/* Set up the logging... */
 	log_open(LOG_PID, FACILITY, nsd.options->log_file);
