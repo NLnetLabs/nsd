@@ -522,6 +522,11 @@ main (int argc, char *argv[])
 	if(argc != 0)
 		usage();
 
+	if (strlen(nsd.identity) > UCHAR_MAX) {
+		error("server identity too long (%u characters)",
+		      (unsigned) strlen(nsd.identity));
+	}
+	
 	/* Number of child servers to fork.  */
 	nsd.child_count = udp_children + tcp_children;
 	nsd.children = xalloc(nsd.child_count * sizeof(struct nsd_child));
