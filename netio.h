@@ -69,6 +69,10 @@ typedef struct netio_handler_list netio_handler_list_type;
 
 struct netio
 {
+	region_type             *region;
+	netio_handler_list_type *handlers;
+	netio_handler_list_type *deallocated;
+
 	/*
 	 * Cached value of the current time.  The cached value is
 	 * cleared at the start of netio_dispatch to calculate the
@@ -80,11 +84,6 @@ struct netio
 	 */
 	int have_current_time;
 	struct timespec cached_current_time;
-
-	/* Private.  */
-	region_type             *region;
-	netio_handler_list_type *handlers;
-	netio_handler_list_type *deallocated;
 };
 
 typedef void (*netio_event_handler_type)(netio_type *netio,
