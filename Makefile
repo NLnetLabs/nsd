@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.82 2002/10/10 14:34:01 alexis Exp $
+# $Id: Makefile,v 1.83 2002/10/10 14:34:49 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -198,11 +198,11 @@ install: all
 	${INSTALL} zonec.8 ${NSDMANDIR}
 
 uninstall:
-	@rm -f -- ${NSDBINDIR}/nsd ${NSDBINDIR}/zonec ${NSDBINDIR}/nsdc ${NSDNOTIFY}
-	@rm -f -- ${NSDMANDIR}/nsd.8 ${NSDMANDIR}/nsdc.8 ${NSDMANDIR}/zonec.8
-	@rm -f -- ${NSDPIDFILE}
-	echo "NSD uninstalled."
-	echo "You still need to remove ${NSDZONESDIR} by hand"
+	rm -f -- ${NSDBINDIR}/nsd ${NSDBINDIR}/zonec ${NSDBINDIR}/nsdc ${NSDNOTIFY}
+	rm -f -- ${NSDMANDIR}/nsd.8 ${NSDMANDIR}/nsdc.8 ${NSDMANDIR}/zonec.8
+	rm -f -- ${NSDPIDFILE}
+	@echo "NSD uninstalled."
+	@echo "You still need to remove ${NSDZONESDIR} by hand"
 
 nsdc.sh: nsdc.sh.in Makefile
 	rm -f $@
