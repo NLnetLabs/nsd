@@ -451,24 +451,25 @@ database with the master servers:
 It is as well possible to update the master zone files (in bound AXFR)
 with nsdc(8) update using TSIG.
 
-This is done by passing the tsig key to named-xfer(8)
+This is done by passing the tsig key to nsd-xfer(8).
 
-Regretfully named-xfer(8) uses very cryptic format for so called
-tsig-info file, so a bit of black magic is necessary.
+nsd-xfer(8) uses the same cryptic file format as named-xfer(8) (to
+be backward compatible).  This is a so called tsig-info file. 
 
-First of all ${keyssdir} should be set in the nsdc(8) configuration
+First of all ${keysdir} should be set in the nsdc(8) configuration
 file to reflect the directory where all the TSIG keys will be stored.
 
 For example keysdir=/etc/nsd/keys would be a good location.
 
 Lets say we have following:
 
+zone: nlnetlabs.nl
 server:	213.53.69.1
 key-name: nlnetlabs-axfr
 algorithm: hmac-md5
 secret: Y87923jksdXlsdv+LeXpUA==
 
-Then we need to create file ${NSDKEYSDIR}/213.53.69.1.tsiginfo containing:
+Then we need to create file ${NSDKEYSDIR}/nlnetlabs.tsiginfo containing:
 213.53.69.1
 nlnetlabs-axfr
 157
@@ -477,9 +478,6 @@ Y87923jksdXlsdv+LeXpUA==
 Cryptic? Yes. The first line tells this key is to be used for
 213.53.69.1 Second one is the name of the key. 157 stands for hmac-md5
 algorithm and the last line is the secret.
-
-We're working on a small tool to create these files from somewhat more
-readable format.
 
 
 3.4 Sending notify to the secondaries on reload or restart
