@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.6 2002/01/31 12:45:42 alexis Exp $
+ * $Id: namedb.h,v 1.7 2002/01/31 15:35:13 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -61,8 +61,8 @@
 #define	ANSWER_NSCOUNT_PTR(a)	(&a->nscount)
 #define	ANSWER_ARCOUNT(a)	a->arcount
 #define	ANSWER_ARCOUNT_PTR(a)	(&a->arcount)
-#define	ANSWER_PTRSLEN(a)	a->ptrlen
-#define	ANSWER_PTRSLEN_PTR(a)	(&a->ptrlen)
+#define	ANSWER_PTRSLEN(a)	a->ptrslen
+#define	ANSWER_PTRSLEN_PTR(a)	(&a->ptrslen)
 #define	ANSWER_RRSLEN(a)	a->rrslen
 #define	ANSWER_RRSLEN_PTR(a)	(&a->rrslen)
 #define	ANSWER_DATALEN(a)	a->datalen
@@ -79,7 +79,7 @@ struct answer {
 	u_int16_t ancount;
 	u_int16_t nscount;
 	u_int16_t arcount;
-	u_int16_t ptrlen;
+	u_int16_t ptrslen;
 	u_int16_t rrslen;
 	u_int32_t datalen;
 	/* u_int16_t ptrs[0]; */

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.14 2002/01/31 12:45:42 alexis Exp $
+ * $Id: query.c,v 1.15 2002/01/31 15:35:13 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -147,7 +147,7 @@ query_addanswer(q, dname, a)
 	if(q->maxlen < (q->iobufptr - q->iobuf + ANSWER_DATALEN(a))) {
 
 		/* Start with the additional section, record by record... */
-		for(i = ntohs(ANSWER_ARCOUNT(a) - 1), j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
+		for(i = ntohs(ANSWER_ARCOUNT(a)) - 1, j = ANSWER_RRSLEN(a) - 1; i > 0 && j > 0; j--, i--) {
 			if(q->maxlen >= (q->iobufptr - q->iobuf + *(ANSWER_RRS_PTR(a) + j - 1))) {
 				ARCOUNT(q) = htons(i-1);
 				q->iobufptr += *(ANSWER_RRS_PTR(a) + j - 1);
