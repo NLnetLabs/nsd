@@ -117,6 +117,35 @@ int write_data(FILE * file, const void *data, size_t size);
 
 
 /*
+ * Copy data allowing for unaligned accesses.
+ */
+static inline void
+copy_uint16(void *dst, uint16_t data)
+{
+#ifdef ALLOW_UNALIGNED_ACCESSES
+	* (uint16_t *) dst = data;
+#else
+	uint8_t *p = dst;
+	p[0] = (uint8_t) (data & 0xff);
+	p[1] = (uint8_t) ((data >> 8) & 0xff);
+#endif
+}
+
+static inline void
+copy_uint32(void *dst, uint32_t data)
+{
+#ifdef ALLOW_UNALIGNED_ACCESSES
+	* (uint32_t *) dst = data;
+#else
+	uint8_t *p = dst;
+	p[0] = (uint8_t) (data & 0xff);
+	p[1] = (uint8_t) ((data >> 8) & 0xff);
+	p[2] = (uint8_t) ((data >> 16) & 0xff);
+	p[3] = (uint8_t) ((data >> 24) & 0xff);
+#endif
+}
+
+/*
  * Print debugging information using fprintf(3).
  */
 #define DEBUG_PARSER           0x0001U

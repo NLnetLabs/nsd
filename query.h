@@ -46,6 +46,7 @@
 #include "namedb.h"
 #include "nsd.h"
 #include "region-allocator.h"
+#include "util.h"
 
 /*
  * Set of macro's to deal with the dns message header as specified
@@ -161,7 +162,9 @@
 #define RCODE_REFUSE		5 	/* Refused */
 
 /* Miscelaneous limits */
-#define	QIOBUFSZ		16384	 /* Maximum size of returned packet.  */
+#define MAX_PACKET_SIZE         16384   /* Maximum supported size of DNS packets.  */
+#define MAX_RDATA_SIZE          65536   /* Maximum size of rdata.  */
+#define	QIOBUFSZ		(MAX_PACKET_SIZE + MAX_RDATA_SIZE)	 
 #define	MAXLABELLEN		63
 #define	MAXDOMAINLEN		255
 #define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
@@ -192,7 +195,6 @@ struct query {
 	
 	uint8_t *iobufptr;
 	uint8_t iobuf[QIOBUFSZ];
-	int overflow;		/* True if the I/O buffer overflowed.  */
 
 	/* Normalized query domain name.  */
 	const dname_type *name;
@@ -243,6 +245,8 @@ static inline size_t query_available_size(struct query *q);
 /* Append data to the query IO buffer until an overflow occurs.  */
 static inline void query_write(struct query *q, const void *data, size_t size);
 
+/* Check if the last write resulted in an overflow.  */
+static inline int query_overflow(struct query *q);
 
 /*
  * Store the offset of the specified domain in the dname compression
@@ -307,12 +311,38 @@ query_available_size(struct query *q)
 static inline void
 query_write(struct query *q, const void *data, size_t size)
 {
-	if (size <= query_available_size(q)) {
-		memcpy(q->iobufptr, data, size); 
-		q->iobufptr += size;
-	} else {
-		q->overflow = 1;
-	}	
+	memcpy(q->iobufptr, data, size); 
+	q->iobufptr += size;
+	assert(query_used_size(q) <= QIOBUFSZ);
+}
+
+static inline void
+query_write_u8(struct query *q, uint8_t data)
+{
+	*q->iobufptr++ = data;
+	assert(query_used_size(q) <= QIOBUFSZ);
+}
+
+static inline void
+query_write_u16(struct query *q, uint16_t data)
+{
+	copy_uint16(q->iobufptr, data);
+	q->iobufptr += sizeof(data);
+	assert(query_used_size(q) <= QIOBUFSZ);
+}
+
+static inline void
+query_write_u32(struct query *q, uint32_t data)
+{
+	copy_uint32(q->iobufptr, data);
+	q->iobufptr += sizeof(data);
+	assert(query_used_size(q) <= QIOBUFSZ);
+}
+
+static inline int
+query_overflow(struct query *q)
+{
+	return query_used_size(q) > q->maxlen;
 }
 
 #endif /* _QUERY_H_ */

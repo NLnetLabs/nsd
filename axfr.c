@@ -62,7 +62,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 	if (query->axfr_is_done)
 		return QUERY_PROCESSED;
 
-	query->overflow = 0;
+	assert(!query_overflow(query));
 	
 	if (query->axfr_zone == NULL) {
 		/* Start AXFR.  */

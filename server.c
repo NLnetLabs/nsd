@@ -607,7 +607,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 	query_init(&q);
 	q.region = query_region;
 	q.compressed_dname_offsets = compressed_dname_offsets;
-	q.maxlen = QIOBUFSZ < nsd->tcp_max_msglen ? QIOBUFSZ : nsd->tcp_max_msglen;
+	q.maxlen = MAX_PACKET_SIZE < nsd->tcp_max_msglen ? MAX_PACKET_SIZE : nsd->tcp_max_msglen;
 	q.tcp = 1;
 
 	/* Until we've got end of file */
@@ -626,7 +626,7 @@ handle_tcp(region_type *query_region, struct nsd *nsd, fd_set *peer)
 			break;
 		}
 
-		if (ntohs(tcplen) > QIOBUFSZ) {
+		if (ntohs(tcplen) > MAX_PACKET_SIZE) {
 			log_msg(LOG_ERR, "insufficient tcp buffer, dropping connection");
 			break;
 		}

@@ -159,7 +159,6 @@ query_init (struct query *q)
 {
 	q->addrlen = sizeof(q->addr);
 	q->iobufptr = q->iobuf;
-	q->overflow = 0;
 	q->maxlen = UDP_MAX_MESSAGE_LEN;
 	q->edns = 0;
 	q->dnssec_ok = 0;
@@ -190,27 +189,22 @@ query_addtxt(struct query  *q,
 	uint16_t pointer;
 	size_t txt_length = strlen(txt);
 	uint8_t len = (uint8_t) txt_length;
-	uint16_t rdlength = htons(len + 1);
-	uint16_t type = htons(TYPE_TXT);
 
 	assert(txt_length <= UCHAR_MAX);
 	
-	ttl = htonl(ttl);
-	class = htons(class);
-
 	/* Add the dname */
 	if (dname >= q->iobuf && dname <= q->iobufptr) {
 		pointer = htons(0xc000 | (dname - q->iobuf));
-		query_write(q, &pointer, sizeof(pointer));
+		query_write_u16(q, pointer);
 	} else {
 		query_write(q, dname + 1, *dname);
 	}
 
-	query_write(q, &type, sizeof(type));
-	query_write(q, &class, sizeof(class));
-	query_write(q, &ttl, sizeof(ttl));
-	query_write(q, &rdlength, sizeof(rdlength));
-	query_write(q, &len, sizeof(len));
+	query_write_u16(q, htons(TYPE_TXT));
+	query_write_u16(q, htons(class));
+	query_write_u32(q, htonl(ttl));
+	query_write_u16(q, htons(len + 1));
+	query_write_u8(q, len);
 	query_write(q, txt, len);
 }
 
@@ -334,10 +328,10 @@ process_edns (struct query *q, uint8_t *qptr)
 				/* Only care about UDP size larger than normal... */
 				if (!q->tcp && opt_class > UDP_MAX_MESSAGE_LEN) {
 					/* XXX Configuration parameter to limit the size needs to be here... */
-					if (opt_class < QIOBUFSZ) {
+					if (opt_class < MAX_PACKET_SIZE) {
 						q->maxlen = opt_class;
 					} else {
-						q->maxlen = QIOBUFSZ;
+						q->maxlen = MAX_PACKET_SIZE;
 					}
 				}
 

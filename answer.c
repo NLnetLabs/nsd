@@ -95,16 +95,14 @@ encode_dname(struct query *q, domain_type *domain)
 		domain = domain->parent;
 	}
 	if (domain->parent) {
-		uint16_t offset = htons(0xc000 | query_get_dname_offset(q, domain));
 		DEBUG(DEBUG_NAME_COMPRESSION, 1,
 		      (stderr, "dname: %s, number: %lu, pointer: %u\n",
 		       dname_to_string(domain_dname(domain)),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
-		query_write(q, &offset, sizeof(offset));
+		query_write_u16(q, htons(0xc000 | query_get_dname_offset(q, domain)));
 	} else {
-		uint8_t zero = 0;
-		query_write(q, &zero, sizeof(zero));
+		query_write_u8(q, 0);
 	}
 }
 
@@ -112,7 +110,6 @@ int
 encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 {
 	uint8_t *truncation_point = q->iobufptr;
-	uint8_t data[10];
 	uint16_t rdlength = 0;
 	uint8_t *rdlength_pos;
 	uint16_t j;
@@ -123,15 +120,13 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 	assert(rr < rrset->rrslen);
 
 	encode_dname(q, owner);
-	* (uint16_t *) &data[0] = htons(rrset->type);
-	* (uint16_t *) &data[2] = htons(rrset->class);
-	* (uint32_t *) &data[4] = htonl(rrset->rrs[rr]->ttl);
+	query_write_u16(q, htons(rrset->type));
+	query_write_u16(q, htons(rrset->class));
+	query_write_u32(q, htonl(rrset->rrs[rr]->ttl));
 
-	/* Mark space for rdlength. */
-	rdlength_pos = q->iobufptr + 8;
-
-	/* Copy data */
-	query_write(q, data, sizeof(data));
+	/* Reserve space for rdlength. */
+	rdlength_pos = q->iobufptr;
+	q->iobufptr += sizeof(rdlength);
 
 	for (j = 0; !rdata_atom_is_terminator(rrset->rrs[rr]->rdata[j]); ++j) {
 		if (rdata_atom_is_domain(rrset->type, j)) {
@@ -143,13 +138,14 @@ encode_rr(struct query *q, domain_type *owner, rrset_type *rrset, uint16_t rr)
 		}
 	}
 
-	if (!q->overflow) {
+	if (!query_overflow(q)) {
 		rdlength = htons(q->iobufptr - rdlength_pos - sizeof(rdlength));
-		memcpy(rdlength_pos, &rdlength, sizeof(rdlength));
+		copy_uint16(rdlength_pos, rdlength);
 		return 1;
 	} else {
 		q->iobufptr = truncation_point;
 		query_clear_dname_offsets(q);
+		assert(!query_overflow(q));
 		return 0;
 	}
 }
@@ -221,7 +217,7 @@ encode_answer(struct query *q, const answer_type *answer)
 
 	for (section = ANSWER_SECTION; section <= ADDITIONAL_SECTION; ++section) {
 		counts[section] = 0;
-		for (i = 0; !q->overflow && i < answer->rrset_count; ++i) {
+		for (i = 0; !query_overflow(q) && i < answer->rrset_count; ++i) {
 			if (answer->section[i] == section) {
 				int truncate = (section == ANSWER_SECTION
 						|| section == AUTHORITY_SECTION);
