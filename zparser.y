@@ -121,7 +121,7 @@ trail:		NL
 	|	sp NL
 	;
 
-dir_ttl:    SP STR trail
+dir_ttl:    sp STR trail
     { 
         if ($2.len > MAXDOMAINLEN ) {
             zc_error("$TTL value is too large");
@@ -133,11 +133,11 @@ dir_ttl:    SP STR trail
     }
     ;
 
-dir_orig:   SP abs_dname trail
+dir_orig:   sp abs_dname trail
     {
 	    parser->origin = $2;
     }
-    | SP rel_dname trail
+    | sp rel_dname trail
     {
 	    zc_error_prev_line("$ORIGIN directive requires absolute domain name");
     }

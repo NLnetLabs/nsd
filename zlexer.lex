@@ -24,7 +24,14 @@
 #define LEXOUT(s)
 #endif
 
-static int parsestr(char * yytext, enum rr_spot *in_rr);
+enum lexer_state {
+	EXPECT_OWNER,
+	PARSING_OWNER,
+	PARSING_TTL_CLASS_TYPE,
+	PARSING_RDATA
+};
+
+static int parse_token(int token, char *yytext, enum lexer_state *lexer_state);
 
 static YY_BUFFER_STATE include_stack[MAXINCLUDES];
 static zparser_type zparser_stack[MAXINCLUDES];
@@ -60,7 +67,7 @@ pop_parser_state(void)
 SPACE   [ \t]
 LETTER  [a-zA-Z]
 NEWLINE \n
-ZONESTR [a-zA-Z0-9+/=:_!\-\*#%&^\[\]?@]
+ZONESTR [a-zA-Z0-9+/=:_!\-\*#%&^\[\]?]
 DOLLAR  \$
 COMMENT ;
 DOT     \.
@@ -72,161 +79,156 @@ Q       \"
 %START	incl
 
 %%
-    static int paren_open = 0;
-    static enum rr_spot in_rr = outside;
+	static int paren_open = 0;
+	static enum lexer_state lexer_state = EXPECT_OWNER;
 {SPACE}*{COMMENT}.*     /* ignore */
-^@                      {
-		            LEXOUT(("ORIGIN "));		
-                            in_rr = expecting_dname;
-                            return ORIGIN;
-                        }
-^{DOLLAR}TTL            return DIR_TTL;
-^{DOLLAR}ORIGIN         return DIR_ORIG;
+^{DOLLAR}TTL            { lexer_state = PARSING_RDATA; return DIR_TTL; }
+^{DOLLAR}ORIGIN         { lexer_state = PARSING_RDATA; return DIR_ORIG; }
 ^{DOLLAR}INCLUDE        BEGIN(incl);
 
 			/* see
 			 * http://dinosaur.compilertools.net/flex/flex_12.html#SEC12
 			 */
 <incl>[^\n]+ 		{ 	
-				char *tmp;
-				domain_type *origin = parser->origin;
+	char *tmp;
+	domain_type *origin = parser->origin;
 				
-				if (include_stack_ptr >= MAXINCLUDES ) {
-					zc_error("Includes nested too deeply (>%d)",
-						 MAXINCLUDES);
-					exit(1);
-            			}
-
-				/* Remove trailing comment.  */
-				tmp = strrchr(yytext, ';');
-				if (tmp) {
-					*tmp = '\0';
-				}
-				strip_string(yytext);
-
-				/* Parse origin for include file.  */
-				tmp = strrchr(yytext, ' ');
-				if (tmp) {
-					const dname_type *dname;
-					
-					/* split the original yytext */
-					*tmp = '\0';
-					strip_string(yytext);
-
-					dname = dname_parse(parser->region,
-							    tmp + 1);
-					if (!dname) {
-						zc_error("incorrect include origin '%s'",
-							 tmp + 1);
-					} else {
-						origin = domain_table_insert(
-							parser->db->domains,
-							dname);
-					}
-				}
-				
-		        	yyin = fopen(yytext, "r");
-        			if (!yyin) {
-					zc_error("Cannot open include file '%s'",
-						 yytext);
-				    	exit(1);
-				}
-
-				push_parser_state(yyin);
-					
-				/* Initialize parser for include file.  */
-				parser->filename
-					= region_strdup(parser->region, yytext);
-				parser->line = 1;
-				parser->origin = origin;
-
-			        BEGIN(INITIAL);
-        		}	
-<<EOF>>			{
-				if (include_stack_ptr == 0) {
-					yyterminate();
-        			} else {
-					pop_parser_state();
-            			}
-        		}
-^{DOLLAR}{LETTER}+      { zc_warning("Unknown $directive: %s", yytext); }
-^{DOT}                  {
-                            /* a ^. means the root zone... also set in_rr */
-                            in_rr = expecting_dname;
-			    LEXOUT((". "));
-                            return '.';
-                        }
-{DOT}                   { LEXOUT((". ")); return '.'; }
-{SLASH}#                { LEXOUT(("\\# "));return URR; }
-^{SPACE}+               {
-                            if ( paren_open == 0 ) { 
-                                in_rr = after_dname;
-                                return PREV;
-                            }
-                        }
-{NEWLINE}               {
-                            parser->line++;
-                            if ( paren_open == 0 ) { 
-                                in_rr = outside;
-				LEXOUT(("NL \n"));
-                                return NL;
-                            } else {
-				    LEXOUT(("SP "));
-				    return SP;
-			    }
-                        }
-{SPACE}*\({SPACE}*      {
-                            if ( paren_open == 1 ) {
-				zc_error("Nested parentheses");
-                                yyterminate();
-                            }
-                            LEXOUT(("SP( "));
-                            paren_open = 1;
-                            return SP;
-                        }
-{SPACE}*\){SPACE}*      {
-                            if ( paren_open == 0 ) {
-				zc_error("Unterminated parentheses");
-                                yyterminate();
-                            }
-                            LEXOUT(("SP) "));
-                            paren_open = 0;
-                            return SP;
-                        }
-{SPACE}+                {
-                            if ( paren_open == 0 ) {
-                                if (in_rr == expecting_dname)
-                                    in_rr = after_dname;
-                            }
-                            LEXOUT(("SP "));
-                            return SP;
-                        }
-\\\[{BIT}*\]	{
-			/* bitlabels */
-			yytext[strlen(yytext) - 1] = '\0';
-			yylval.data.len = strlen(yytext + 2);
-			yylval.data.str = region_strdup(parser->rr_region, yytext + 2);
-			if (in_rr == expecting_dname || in_rr == outside) 
-				in_rr = after_dname;
-			return BITLAB;
+	if (include_stack_ptr >= MAXINCLUDES ) {
+		zc_error("Includes nested too deeply (>%d)", MAXINCLUDES);
+		exit(1);
+	}
+	
+	/* Remove trailing comment.  */
+	tmp = strrchr(yytext, ';');
+	if (tmp) {
+		*tmp = '\0';
+	}
+	strip_string(yytext);
+	
+	/* Parse origin for include file.  */
+	tmp = strrchr(yytext, ' ');
+	if (!tmp) {
+		tmp = strrchr(yytext, '\t');
+	}
+	if (tmp) {
+		const dname_type *dname;
+		
+		/* split the original yytext */
+		*tmp = '\0';
+		strip_string(yytext);
+		
+		dname = dname_parse(parser->region, tmp + 1);
+		if (!dname) {
+			zc_error("incorrect include origin '%s'", tmp + 1);
+		} else {
+			origin = domain_table_insert(parser->db->domains,
+						     dname);
 		}
+	}
+				
+	yyin = fopen(yytext, "r");
+	if (!yyin) {
+		zc_error("Cannot open include file '%s'", yytext);
+		exit(1);
+	}
 
-{Q}({ANY})*{Q}   {
-                            /* this matches quoted strings */
-			    /* Strip leading and ending quotes.  */
-			    yytext[strlen(yytext) - 1] = '\0';
-                            return parsestr(yytext + 1, &in_rr);
-                        }
+	push_parser_state(yyin);
+					
+	/* Initialize parser for include file.  */
+	parser->filename = region_strdup(parser->region, yytext);
+	parser->line = 1;
+	parser->origin = origin;
+	lexer_state = EXPECT_OWNER;
+	
+	BEGIN(INITIAL);
+}	
+<<EOF>>			{
+	if (include_stack_ptr == 0) {
+		yyterminate();
+	} else {
+		pop_parser_state();
+	}
+}
+^{DOLLAR}{LETTER}+      { zc_warning("Unknown $directive: %s", yytext); }
+{DOT}                   {
+	LEXOUT((". "));
+	return parse_token('.', yytext, &lexer_state);
+}
+@ 			{
+	LEXOUT(("@ "));
+	return parse_token(ORIGIN, yytext, &lexer_state);
+}
+{SLASH}#                {
+	LEXOUT(("\\# "));
+	return parse_token(URR, yytext, &lexer_state);
+}
+^{SPACE}+               {
+	if (!paren_open) { 
+		lexer_state = PARSING_TTL_CLASS_TYPE;
+		return PREV;
+	}
+}
+{NEWLINE}               {
+	++parser->line;
+	if (!paren_open) { 
+		lexer_state = EXPECT_OWNER;
+		LEXOUT(("NL\n"));
+		return NL;
+	} else {
+		LEXOUT(("SP "));
+		return SP;
+	}
+}
+{SPACE}*\({SPACE}*      {
+	if (paren_open) {
+		zc_error("Nested parentheses");
+		yyterminate();
+	}
+	LEXOUT(("SP( "));
+	paren_open = 1;
+	return SP;
+}
+{SPACE}*\){SPACE}*      {
+	if (!paren_open) {
+		zc_error("Unterminated parentheses");
+		yyterminate();
+	}
+	LEXOUT(("SP) "));
+	paren_open = 0;
+	return SP;
+}
+{SPACE}+                {
+	if (lexer_state == PARSING_OWNER) {
+		lexer_state = PARSING_TTL_CLASS_TYPE;
+	}
+	LEXOUT(("SP "));
+	return SP;
+}
+\\\[{BIT}*\]	{
+	/* bitlabels */
+	yytext[strlen(yytext) - 1] = '\0';
+	yylval.data.len = strlen(yytext + 2);
+	yylval.data.str = region_strdup(parser->rr_region, yytext + 2);
+	if (lexer_state == PARSING_OWNER || lexer_state == EXPECT_OWNER) 
+		lexer_state = PARSING_TTL_CLASS_TYPE;
+	return BITLAB;
+}
+{Q}({ANY})*{Q}  {
+	/* this matches quoted strings */
+	/* Strip leading and ending quotes.  */
+	yytext[strlen(yytext) - 1] = '\0';
+	return parse_token(STR, yytext + 1, &lexer_state);
+}
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
-                            /* any allowed word */
-			    return parsestr(yytext, &in_rr);
-                        }
+	/* any allowed word */
+	return parse_token(STR, yytext, &lexer_state);
+}
 .                       {
-                            /* we should NEVER reach this
-                             * bail out with an error */
-			    zc_error("Unknown character seen - is this a zonefile?");
-                            /*exit(1); [XXX] we should exit... */
-                        }
+	/* we should NEVER reach this
+	 * bail out with an error */
+	zc_error("Unknown character seen - is this a zonefile?");
+	/*exit(1); [XXX] we should exit... */
+}
 %%
 
 /*
@@ -291,18 +293,19 @@ zoctet(char *text)
 }
 
 static int
-parsestr(char *yytext, enum rr_spot *in_rr)
+parse_token(int token, char *yytext, enum lexer_state *lexer_state)
 {
-	int token;
-	const char *t;
+	if (*lexer_state == EXPECT_OWNER) {
+		*lexer_state = PARSING_OWNER;
+	} else if (*lexer_state == PARSING_TTL_CLASS_TYPE) {
+		const char *t;
+		int type_token;
 
-	switch(*in_rr) {
-	case after_dname:
 		/* type */
-		token = zrrtype(yytext, &yylval.type);
-		if (token != 0) {
-			*in_rr = reading_type;
-			return token;
+		type_token = zrrtype(yytext, &yylval.type);
+		if (type_token != 0) {
+			*lexer_state = PARSING_RDATA;
+			return type_token;
 		}
 
 		/* class */
@@ -321,33 +324,17 @@ parsestr(char *yytext, enum rr_spot *in_rr)
 
 		/* ttl */
 		strtottl(yytext, &t);
-		if ( *t == 0 ) {
+		if (*t == 0) {
 			/* was parseable */
 			yylval.data.str = yytext;
 			yylval.data.len = strlen(yytext); /*needed?*/
 			LEXOUT(("TTL "));
 			return TTL;
 		}
-		/* Fall through, default first, order matters.  */
-	default:
-		/*
-		 * Check to see if someone used @ in the rdata.  If so
-		 * return the ORIGIN token.
-		 */
-		if (strcmp(yytext, "@") == 0) {
-			LEXOUT(("RDATA_ORI "));
-			return ORIGIN;
-		}
-		yylval.data.str = region_strdup(parser->rr_region, yytext);
-		yylval.data.len = zoctet(yylval.data.str);
-		LEXOUT(("STR "));
-		return STR;
-	case outside:
-		/* should match ^ */
-		yylval.data.str = region_strdup(parser->rr_region, yytext);
-		yylval.data.len = zoctet(yylval.data.str);
-		*in_rr = expecting_dname;
-		LEXOUT(("STR "));
-		return STR;
 	}
+	
+	yylval.data.str = region_strdup(parser->rr_region, yytext);
+	yylval.data.len = zoctet(yylval.data.str);
+	LEXOUT(("%d ", token));
+	return token;
 }

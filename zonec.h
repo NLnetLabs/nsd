@@ -71,8 +71,6 @@ int yylex(void);
 /*int yyerror(const char *s);*/
 void yyrestart(FILE *);
 
-enum rr_spot { outside, expecting_dname, after_dname, reading_type };
-
 void zc_warning(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 void zc_warning_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 void zc_error(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
