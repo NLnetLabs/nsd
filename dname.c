@@ -1,11 +1,11 @@
 /*
- * $Id: dname.c,v 1.7 2003/02/26 10:51:51 alexis Exp $
+ * $Id: dname.c,v 1.8 2003/03/20 10:31:25 alexis Exp $
  *
  * dname.c -- dname operations
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

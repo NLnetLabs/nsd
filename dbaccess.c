@@ -1,11 +1,11 @@
 /*
- * $Id: dbaccess.c,v 1.30 2003/02/26 11:04:40 alexis Exp $
+ * $Id: dbaccess.c,v 1.31 2003/03/20 10:31:25 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

@@ -1,11 +1,11 @@
 /*
- * $Id: zparser.c,v 1.24 2003/03/19 14:10:59 alexis Exp $
+ * $Id: zparser.c,v 1.25 2003/03/20 10:31:25 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

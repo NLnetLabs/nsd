@@ -1,11 +1,11 @@
 /*
- * $Id: hash.c,v 1.16 2003/02/26 10:51:51 alexis Exp $
+ * $Id: hash.c,v 1.17 2003/03/20 10:31:25 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

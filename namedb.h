@@ -1,11 +1,11 @@
 /*
- * $Id: namedb.h,v 1.29 2003/01/21 12:01:25 alexis Exp $
+ * $Id: namedb.h,v 1.30 2003/03/20 10:31:25 alexis Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

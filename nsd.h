@@ -1,11 +1,11 @@
 /*
- * $Id: nsd.h,v 1.49 2003/03/19 14:08:53 alexis Exp $
+ * $Id: nsd.h,v 1.50 2003/03/20 10:31:25 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

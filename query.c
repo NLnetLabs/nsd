@@ -1,11 +1,11 @@
 /*
- * $Id: query.c,v 1.93 2003/02/26 12:00:57 alexis Exp $
+ * $Id: query.c,v 1.94 2003/03/20 10:31:25 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

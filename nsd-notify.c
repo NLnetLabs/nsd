@@ -1,11 +1,11 @@
 /*
- * $Id: nsd-notify.c,v 1.9 2003/03/19 14:15:31 alexis Exp $
+ * $Id: nsd-notify.c,v 1.10 2003/03/20 10:31:25 alexis Exp $
  *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

@@ -1,12 +1,12 @@
 #!/bin/sh
 #
-# $Id: nsdc.conf.sample.in,v 1.5 2003/02/25 13:08:13 alexis Exp $
+# $Id: nsdc.conf.sample.in,v 1.6 2003/03/20 10:31:25 alexis Exp $
 #
 # nsdc.conf.sample -- configuration for nsdc.sh
 #
 # Alexis Yushin, <alexis@nlnetlabs.nl>
 #
-# Copyright (c) 2001, NLnet Labs. All rights reserved.
+# Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
 #
 # This software is an open source.
 #

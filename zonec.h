@@ -1,11 +1,11 @@
 /*
- * $Id: zonec.h,v 1.21 2003/03/19 14:09:25 alexis Exp $
+ * $Id: zonec.h,v 1.22 2003/03/20 10:31:25 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *

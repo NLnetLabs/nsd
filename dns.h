@@ -1,12 +1,12 @@
 /*
- * $Id: dns.h,v 1.9 2003/02/12 21:43:35 alexis Exp $
+ * $Id: dns.h,v 1.10 2003/03/20 10:31:25 alexis Exp $
  *
  * dns.h -- everything we wanted to know but were afraid
  *		to ask about DNS
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
  *
- * Copyright (c) 2001, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001, 2002, 2003, NLnet Labs. All rights reserved.
  *
  * This software is an open source.
  *
