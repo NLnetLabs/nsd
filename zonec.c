@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.94 2003/07/07 08:34:11 erik Exp $
+ * $Id: zonec.c,v 1.95 2003/07/07 08:56:22 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -37,19 +37,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#include <config.h>
 
-#include <sys/types.h>
-#include <sys/param.h>
+#include <config.h>
 
 #include <assert.h>
 #include <fcntl.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-#include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -57,14 +53,12 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <heap.h>
-#include <dns.h>
-#include <zparser.h>
-#include <namedb.h>
-#include <dname.h>
-#include <zonec.h>
-
-#include <netinet/in.h>		/* htons, htonl on Linux */
+#include "heap.h"
+#include "dns.h"
+#include "zparser.h"
+#include "namedb.h"
+#include "dname.h"
+#include "zonec.h"
 
 static void zone_addbuf (struct message *, const void *, size_t);
 static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len);

@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.37 2003/07/07 08:34:11 erik Exp $
+ * $Id: zparser.c,v 1.38 2003/07/07 08:56:23 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -37,6 +37,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #include <config.h>
 
 #include <assert.h>

@@ -35,6 +35,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #include <config.h>
 
 #include <sys/types.h>
@@ -73,7 +74,7 @@
 
 /* The server handler... */
 static struct nsd nsd;
-char hostname[MAXHOSTNAMELEN];
+static char hostname[MAXHOSTNAMELEN];
 
 static const char *program_name;
 

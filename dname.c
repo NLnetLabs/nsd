@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.11 2003/07/04 07:55:09 erik Exp $
+ * $Id: dname.c,v 1.12 2003/07/07 08:56:17 erik Exp $
  *
  * dname.c -- dname operations
  *
@@ -37,6 +37,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #include <config.h>
 
 #include <sys/types.h>
@@ -46,9 +47,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <dns.h>
-#include <dname.h>
-#include <namedb.h>
+#include "dns.h"
+#include "dname.h"
+#include "namedb.h"
 
 /*
  *

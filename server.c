@@ -35,6 +35,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #include <config.h>
 
 #include <sys/types.h>
@@ -63,12 +64,12 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include <dns.h>
-#include <namedb.h>
-#include <dname.h>
-#include <nsd.h>
+#include "dns.h"
+#include "namedb.h"
+#include "dname.h"
+#include "nsd.h"
 #include "plugins.h"
-#include <query.h>
+#include "query.h"
 
 
 /*
