@@ -166,6 +166,7 @@ query_init (struct query *q)
 	q->type = 0;
 	q->delegation_domain = NULL;
 	q->delegation_rrset = NULL;
+	q->compressed_dname_count = 0;
 
 	q->axfr_is_done = 0;
 	q->axfr_zone = NULL;
