@@ -228,7 +228,7 @@ struct query {
 	 */
 	int          axfr_is_done;
 	zone_type   *axfr_zone;
-	rbnode_t    *axfr_current_domain;
+	domain_type *axfr_current_domain;
 	rrset_type  *axfr_current_rrset;
 	uint16_t     axfr_current_rr;
 };

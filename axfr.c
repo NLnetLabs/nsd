@@ -45,7 +45,7 @@
 query_state_type
 query_axfr (struct nsd *nsd, struct query *query)
 {
-	rbnode_t *closest_match;
+	domain_type *closest_match;
 	domain_type *closest_encloser;
 	int exact;
 	int added;
@@ -75,7 +75,8 @@ query_axfr (struct nsd *nsd, struct query *query)
 			return QUERY_PROCESSED;
 		}
 
-		query->axfr_current_domain = heap_first(nsd->db->domains->names_to_domains);
+		query->axfr_current_domain
+			= (domain_type *) heap_first(nsd->db->domains->names_to_domains);
 		query->axfr_current_rrset = NULL;
 		query->axfr_current_rr = 0;
 
@@ -100,10 +101,10 @@ query_axfr (struct nsd *nsd, struct query *query)
 	/* Add zone RRs until answer is full.  */
 	assert(query->axfr_current_domain);
 	
-	while (query->axfr_current_domain != HEAP_NULL) {
+	while ((rbnode_t *) query->axfr_current_domain != HEAP_NULL) {
 		if (!query->axfr_current_rrset) {
 			query->axfr_current_rrset = domain_find_any_rrset(
-				query->axfr_current_domain->data,
+				query->axfr_current_domain,
 				query->axfr_zone);
 			query->axfr_current_rr = 0;
 		}
@@ -113,7 +114,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 			{
 				while (query->axfr_current_rr < query->axfr_current_rrset->rrslen) {
 					added = encode_rr(query,
-							  query->axfr_current_domain->data,
+							  query->axfr_current_domain,
 							  query->axfr_current_rrset,
 							  query->axfr_current_rr);
 					if (!added)
@@ -127,7 +128,8 @@ query_axfr (struct nsd *nsd, struct query *query)
 			query->axfr_current_rr = 0;
 		}
 		assert(query->axfr_current_domain);
-		query->axfr_current_domain = heap_next(query->axfr_current_domain);
+		query->axfr_current_domain
+			= (domain_type *) heap_next((rbnode_t *) query->axfr_current_domain);
 	}
 
 	/* Add terminating SOA RR.  */

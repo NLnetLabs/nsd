@@ -55,7 +55,7 @@
 int
 namedb_lookup(struct namedb    *db,
 	      const dname_type *dname,
-	      rbnode_t        **closest_match,
+	      domain_type     **closest_match,
 	      domain_type     **closest_encloser)
 {
 	return domain_table_search(

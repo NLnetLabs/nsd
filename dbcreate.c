@@ -122,7 +122,7 @@ namedb_discard (struct namedb *db)
 static int
 write_dname(struct namedb *db, domain_type *domain)
 {
-	const dname_type *dname = domain->dname;
+	const dname_type *dname = domain_dname(domain);
 	
 	if (!write_data(db->fd, &dname->name_size, sizeof(dname->name_size)))
 		return 0;
@@ -254,7 +254,7 @@ write_db(namedb_type *db)
 		
 		if (!zone->soa_rrset) {
 			fprintf(stderr, "SOA record not present in %s\n",
-				dname_to_string(zone->domain->dname));
+				dname_to_string(domain_dname(zone->domain)));
 			++errors;
 		}
 	}

@@ -127,11 +127,11 @@ query_add_compression_domain(struct query *q, domain_type *domain, uint16_t offs
 	while (domain->parent) {
 		DEBUG(DEBUG_NAME_COMPRESSION, 1,
 		      (stderr, "query dname: %s, number: %lu, offset: %u\n",
-		       dname_to_string(domain->dname),
+		       dname_to_string(domain_dname(domain)),
 		       (unsigned long) domain->number,
 		       offset));
 		query_put_dname_offset(q, domain, offset);
-		offset += label_length(dname_name(domain->dname)) + 1;
+		offset += label_length(dname_name(domain_dname(domain))) + 1;
 		domain = domain->parent;
 	}
 }
@@ -404,6 +404,22 @@ answer_notify (struct query *query)
 }
 
 
+static domain_type *
+find_covering_nsec(domain_type *closest_match, zone_type *zone, rrset_type **nsec_rrset)
+{
+	assert(closest_match);
+	assert(nsec_rrset);
+
+	do {
+		*nsec_rrset = domain_find_rrset(closest_match, zone, TYPE_NSEC);
+		if (*nsec_rrset)
+			return closest_match;
+		closest_match = (domain_type *) heap_previous((rbnode_t *) closest_match);
+	} while (closest_match != zone->domain);
+	return NULL;
+}
+
+
 static void
 add_dependent_rrsets(struct query *query, answer_type *answer,
 		     answer_section_type section,
@@ -438,7 +454,7 @@ add_dependent_rrsets(struct query *query, answer_type *answer,
 		if (additional != match && domain_wildcard_child(match)) {
 			domain_type *wildcard_child = domain_wildcard_child(match);
 			domain_type *temp = region_alloc(query->region, sizeof(domain_type));
-			temp->dname = additional->dname;
+			memcpy(&temp->node, &additional->node, sizeof(rbnode_t));
 			temp->number = additional->number;
 			temp->parent = match;
 			temp->wildcard_child_closest_match = NULL;
@@ -547,9 +563,12 @@ answer_nxtype(struct query *query, answer_type *answer, domain_type *domain)
 {
 	answer_soa(query, answer);
 	if (query->dnssec_ok && zone_is_secure(query->zone)) {
-		rrset_type *nsec = domain_find_rrset(domain, query->zone, TYPE_NSEC);
-		if (nsec) {
-			add_rrset(query, answer, AUTHORITY_SECTION, domain, nsec);
+		domain_type *nsec_domain;
+		rrset_type *nsec_rrset;
+
+		nsec_domain = find_covering_nsec(domain, query->zone, &nsec_rrset);
+		if (nsec_domain) {
+			add_rrset(query, answer, AUTHORITY_SECTION, nsec_domain, nsec_rrset);
 		}
 	}
 }
@@ -721,26 +740,10 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 }
 
 
-static domain_type *
-find_covering_nsec(rbnode_t *closest_match, zone_type *zone, rrset_type **nsec_rrset)
-{
-	assert(closest_match);
-	assert(nsec_rrset);
-
-	do {
-		*nsec_rrset = domain_find_rrset(closest_match->data, zone, TYPE_NSEC);
-		if (*nsec_rrset)
-			return closest_match->data;
-		closest_match = heap_previous(closest_match);
-	} while (closest_match->data != zone->domain);
-	return NULL;
-}
-
-
 static void
 answer_query(struct nsd *nsd, struct query *q)
 {
-	rbnode_t *closest_match;
+	domain_type *closest_match;
 	domain_type *closest_encloser;
 	domain_type *match;
 	uint16_t offset;
@@ -764,7 +767,7 @@ answer_query(struct nsd *nsd, struct query *q)
 
 	answer_init(&answer);
 
-	offset = dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1] + QHEADERSZ;
+	offset = dname_label_offsets(q->name)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
 
 	if (exact) {
@@ -773,7 +776,8 @@ answer_query(struct nsd *nsd, struct query *q)
 		/* Generate the domain from the wildcard.  */
 		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
 		match = region_alloc(q->region, sizeof(domain_type));
-		match->dname = q->name;
+		memcpy(&match->node, &wildcard_child->node, sizeof(rbnode_t));
+		match->node.key = q->name;
 		match->parent = closest_encloser;
 		match->wildcard_child_closest_match = NULL;
 		match->number = 0; /* Number 0 is always available. */

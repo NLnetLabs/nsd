@@ -86,17 +86,19 @@ encode_dname(struct query *q, domain_type *domain)
 		query_put_dname_offset(q, domain, q->iobufptr - q->iobuf);
 		DEBUG(DEBUG_NAME_COMPRESSION, 1,
 		      (stderr, "dname: %s, number: %lu, offset: %u\n",
-		       dname_to_string(domain->dname),
+		       dname_to_string(domain_dname(domain)),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
-		query_write(q, dname_name(domain->dname), label_length(dname_name(domain->dname)) + 1U);
+		query_write(q,
+			    dname_name(domain_dname(domain)),
+			    label_length(dname_name(domain_dname(domain))) + 1U);
 		domain = domain->parent;
 	}
 	if (domain->parent) {
 		uint16_t offset = htons(0xc000 | query_get_dname_offset(q, domain));
 		DEBUG(DEBUG_NAME_COMPRESSION, 1,
 		      (stderr, "dname: %s, number: %lu, pointer: %u\n",
-		       dname_to_string(domain->dname),
+		       dname_to_string(domain_dname(domain)),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
 		query_write(q, &offset, sizeof(offset));

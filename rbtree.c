@@ -51,7 +51,7 @@
 #define	BLACK	0
 #define	RED	1
 
-rbnode_t	rbtree_null_node = {RBTREE_NULL, RBTREE_NULL, RBTREE_NULL, BLACK, NULL, NULL};
+rbnode_t	rbtree_null_node = {RBTREE_NULL, RBTREE_NULL, RBTREE_NULL, BLACK, NULL};
 
 static void rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node);
 static void rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node);
@@ -213,7 +213,7 @@ rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node)
  *
  */
 rbnode_t *
-rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
+rbtree_insert (rbtree_t *rbtree, rbnode_t *data)
 {
 	/* XXX Not necessary, but keeps compiler quiet... */
 	int r = 0;
@@ -225,12 +225,8 @@ rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 	/* Lets find the new parent... */
 	while (node != RBTREE_NULL) {
 		/* Compare two keys, do we have a duplicate? */
-		if ((r = rbtree->cmp(key, node->key)) == 0) {
-			if (overwrite) {
-				node->key = key;
-				node->data = data;
-			}
-			return node->data;
+		if ((r = rbtree->cmp(data->key, node->key)) == 0) {
+			return NULL;
 		}
 		parent = node;
 
@@ -241,46 +237,40 @@ rbtree_insert (rbtree_t *rbtree, const void *key, void *data, int overwrite)
 		}
 	}
 
-	/* Create the new node */
-	if ((node = region_alloc(rbtree->region, sizeof(rbnode_t))) == NULL) {
-		return NULL;
-	}
-
-	node->parent = parent;
-	node->left = node->right = RBTREE_NULL;
-	node->color = RED;
-	node->key = key;
-	node->data = data;
+	/* Initialize the new node */
+	data->parent = parent;
+	data->left = data->right = RBTREE_NULL;
+	data->color = RED;
 	rbtree->count++;
 
 	/* Insert it into the tree... */
 	if (parent != RBTREE_NULL) {
 		if (r < 0) {
-			parent->left = node;
+			parent->left = data;
 		} else {
-			parent->right = node;
+			parent->right = data;
 		}
 	} else {
-		rbtree->root = node;
+		rbtree->root = data;
 	}
 
 	/* Fix up the red-black properties... */
-	rbtree_insert_fixup(rbtree, node);
+	rbtree_insert_fixup(rbtree, data);
 
-	return node;
+	return data;
 }
 
 /*
  * Searches the red black tree, returns the data if key is found or NULL otherwise.
  *
  */
-void *
+rbnode_t *
 rbtree_search (rbtree_t *rbtree, const void *key)
 {
 	rbnode_t *node;
 
 	if (rbtree_find_less_equal(rbtree, key, &node)) {
-		return node->data;
+		return node;
 	} else {
 		return NULL;
 	}
@@ -328,6 +318,15 @@ rbtree_first (rbtree_t *rbtree)
 	rbnode_t *node;
 
 	for (node = rbtree->root; node->left != RBTREE_NULL; node = node->left);
+	return node;
+}
+
+rbnode_t *
+rbtree_last (rbtree_t *rbtree)
+{
+	rbnode_t *node;
+
+	for (node = rbtree->root; node->right != RBTREE_NULL; node = node->right);
 	return node;
 }
 
