@@ -35,7 +35,6 @@
 #include "zonec.h"
 #include "client.h"
 
-
 /*
  * Number of seconds to wait when recieving no data from the remote
  * server.
@@ -43,17 +42,6 @@
 #define MAX_WAITING_TIME TCP_TIMEOUT
 
 #define SERIAL_BITS      32
-
-/*
- * Exit codes are based on named-xfer for now.  See ns_defs.h in
- * bind8.
- */
-enum nsd_xfer_exit_codes
-{
-	XFER_UPTODATE = 0,
-	XFER_SUCCESS  = 1,
-	XFER_FAIL     = 3
-};
 
 struct axfr_state
 {
@@ -257,66 +245,6 @@ read_tsig_key(region_type *region,
 	}
 
 	return key;
-}
-
-/*
- * Write the complete buffer to the socket, irrespective of short
- * writes or interrupts.
- */
-static int
-write_socket(int s, const void *buf, size_t size)
-{
-	const char *data = (const char *) buf;
-	size_t total_count = 0;
-
-	while (total_count < size) {
-		ssize_t count
-			= write(s, data + total_count, size - total_count);
-		if (count == -1) {
-			if (errno != EAGAIN) {
-				error(XFER_FAIL, "network write failed: %s",
-				      strerror(errno));
-				return 0;
-			} else {
-				continue;
-			}
-		}
-		total_count += count;
-	}
-
-	return 1;
-}
-
-/*
- * Read SIZE bytes from the socket into BUF.  Keep reading unless an
- * error occurs (except for EAGAIN) or EOF is reached.
- */
-static int
-read_socket(int s, void *buf, size_t size)
-{
-	char *data = (char *) buf;
-	size_t total_count = 0;
-
-	while (total_count < size) {
-		ssize_t count = read(s, data + total_count, size - total_count);
-		if (count == -1) {
-			/* Error or interrupt.  */
-			if (errno != EAGAIN) {
-				error(XFER_FAIL, "network read failed: %s",
-				      strerror(errno));
-				return 0;
-			} else {
-				continue;
-			}
-		} else if (count == 0) {
-			/* End of file (connection closed?)  */
-			error(XFER_FAIL, "network read failed: Connection closed by peer");
-			return 0;
-		}
-		total_count += count;
-	}
-
-	return 1;
 }
 
 static int

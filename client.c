@@ -53,3 +53,55 @@ warning(const char *format, ...)
         log_vmsg(LOG_WARNING, format, args);
         va_end(args);
 }
+
+int      
+read_socket(int s, void *buf, size_t size)
+{               
+        char *data = (char *) buf;
+        size_t total_count = 0;
+
+        while (total_count < size) {
+                ssize_t count = read(s, data + total_count, size - total_count);
+                if (count == -1) {
+                        /* Error or interrupt.  */
+                        if (errno != EAGAIN) {
+                                error(XFER_FAIL, "network read failed: %s",
+                                      strerror(errno));
+                                return 0;
+                        } else {
+                                continue;
+                        }
+                } else if (count == 0) {
+                        /* End of file (connection closed?)  */
+                        error(XFER_FAIL, "network read failed: Connection closed by peer");
+                        return 0;
+                }
+                total_count += count;
+        }       
+
+        return 1;
+}       
+
+int
+write_socket(int s, const void *buf, size_t size)
+{
+        const char *data = (const char *) buf;
+        size_t total_count = 0;
+
+        while (total_count < size) {
+                ssize_t count
+                        = write(s, data + total_count, size - total_count);
+                if (count == -1) {
+                        if (errno != EAGAIN) {
+                                error(XFER_FAIL, "network write failed: %s",
+                                      strerror(errno));
+                                return 0;
+                        } else {
+                                continue;
+                        }
+                }
+                total_count += count;
+        }
+
+        return 1;
+}               
