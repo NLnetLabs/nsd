@@ -109,6 +109,7 @@ query_clear_compression_tables(struct query *q)
 	uint16_t i;
 	
 	for (i = 0; i < q->compressed_dname_count; ++i) {
+		assert(q->compressed_dnames);
 		q->compressed_dname_offsets[q->compressed_dnames[i]->number] = 0;
 	}
 	q->compressed_dname_count = 0;
@@ -320,9 +321,8 @@ process_edns (struct query *q, uint8_t *qptr)
 			if (opt_rdlen != 0) {
 				q->edns = -1;
 			} else {
-
 				/* Only care about UDP size larger than normal... */
-				if (opt_class > UDP_MAX_MESSAGE_LEN) {
+				if (!q->tcp && opt_class > UDP_MAX_MESSAGE_LEN) {
 					/* XXX Configuration parameter to limit the size needs to be here... */
 					if (opt_class < QIOBUFSZ) {
 						q->maxlen = opt_class;
