@@ -467,7 +467,7 @@ find_covering_nsec(domain_type *closest_match, zone_type *zone, rrset_type **nse
 		if (*nsec_rrset)
 			return closest_match;
 		closest_match = (domain_type *) heap_previous((rbnode_t *) closest_match);
-	} while (closest_match != zone->domain);
+	} while (closest_match != zone->apex);
 	return NULL;
 }
 
@@ -602,12 +602,12 @@ answer_delegation(struct query *query, answer_type *answer)
 static void
 answer_soa(struct query *query, answer_type *answer)
 {
-	query->domain = query->zone->domain;
+	query->domain = query->zone->apex;
 	
 	if (query->klass != CLASS_ANY) {
 		add_rrset(query, answer,
 			  AUTHORITY_SECTION,
-			  query->zone->domain,
+			  query->zone->apex,
 			  query->zone->soa_rrset);
 	}
 }
@@ -710,7 +710,8 @@ answer_domain(struct query *q, answer_type *answer,
 	q->domain = domain;
 	
 	if (q->klass != CLASS_ANY && q->zone->ns_rrset) {
-		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->domain, q->zone->ns_rrset);
+		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->apex,
+			  q->zone->ns_rrset);
 	}
 }
 
@@ -831,7 +832,7 @@ answer_query(struct nsd *nsd, struct query *q)
 	 * See 3.1.4.1 Responding to Queries for DS RRs in DNSSEC
 	 * protocol.
 	 */
-	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->domain) {
+	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at a zone cut, use the responsible
 		 * parent zone to generate the answer if we are
@@ -842,7 +843,7 @@ answer_query(struct nsd *nsd, struct query *q)
 			q->zone = zone;
 	}
 
-	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->domain) {
+	if (exact && q->type == TYPE_DS && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at the zone apex (and the server is
 		 * not authoratitive for the parent zone).

@@ -41,7 +41,7 @@ struct lex_data {
 /* a RR in DNS */
 typedef struct rr rr_type;
 struct rr {
-	domain_type *domain;
+	domain_type *owner;
 	zone_type   *zone;
 	uint16_t     klass;
 	uint16_t     type;
@@ -56,9 +56,9 @@ struct zparser {
 	namedb_type *db;
 
 	const char *filename;
-	int32_t ttl;
-	int32_t minimum;
-	uint16_t klass;
+	int32_t default_ttl;
+	int32_t default_minimum;
+	uint16_t default_class;
 	zone_type *current_zone;
 	domain_type *origin;
 	domain_type *prev_dname;

@@ -291,7 +291,7 @@ domain_find_parent_zone(zone_type *zone)
 
 	assert(zone);
 
-	for (rrset = zone->domain->rrsets; rrset; rrset = rrset->next) {
+	for (rrset = zone->apex->rrsets; rrset; rrset = rrset->next) {
 		if (rrset->zone != zone && rrset->type == TYPE_NS) {
 			return rrset->zone;
 		}
@@ -302,7 +302,7 @@ domain_find_parent_zone(zone_type *zone)
 domain_type *
 domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
 {
-	while (domain && domain != zone->domain) {
+	while (domain && domain != zone->apex) {
 		*ns = domain_find_rrset(domain, zone, TYPE_NS);
 		if (*ns)
 			return domain;
@@ -363,7 +363,7 @@ namedb_find_zone(namedb_type *db, domain_type *domain)
 	zone_type *zone;
 
 	for (zone = db->zones; zone; zone = zone->next) {
-		if (zone->domain == domain)
+		if (zone->apex == domain)
 			break;
 	}
 

@@ -126,8 +126,8 @@ dir_ttl:    SP STR trail
             return 1;
         } 
         /* perform TTL conversion */
-        if ( ( parser->ttl = zparser_ttl2int($2.str)) == -1 )
-            parser->ttl = DEFAULT_TTL;
+        if ( ( parser->default_ttl = zparser_ttl2int($2.str)) == -1 )
+            parser->default_ttl = DEFAULT_TTL;
     }
     ;
 
@@ -147,22 +147,22 @@ dir_orig:   SP abs_dname trail
 
 rr:     ORIGIN sp rrrest
     {
-        parser->current_rr.domain = parser->origin;
+        parser->current_rr.owner = parser->origin;
         parser->prev_dname = parser->origin;
     }
     |   PREV rrrest
     {
         /* a tab, use previously defined dname */
-        parser->current_rr.domain = parser->prev_dname;
+        parser->current_rr.owner = parser->prev_dname;
         
     }
     |   dname sp rrrest
     {
 	    /* Copy from RR region to zone region.  */
-	    parser->current_rr.domain = $1;
+	    parser->current_rr.owner = $1;
 
 	    /* set this as previous */
-	    parser->prev_dname = parser->current_rr.domain;
+	    parser->prev_dname = parser->current_rr.owner;
     }
     ;
 
@@ -171,7 +171,7 @@ ttl:    TTL
         /* set the ttl */
         if ( (parser->current_rr.rrdata->ttl = 
 		zparser_ttl2int($1.str) ) == -1) {
-	            parser->current_rr.rrdata->ttl = parser->ttl;
+	            parser->current_rr.rrdata->ttl = parser->default_ttl;
 		    return 0;
 	}
     }
@@ -180,7 +180,7 @@ ttl:    TTL
 in:     T_IN
     {
         /* set the class  (class unknown handled in lexer) */
-        parser->current_rr.klass =  parser->klass;
+        parser->current_rr.klass =  parser->default_class;
     }
     ;
 
@@ -197,16 +197,16 @@ class:  in
 
 classttl:   /* empty - fill in the default, def. ttl and IN class */
     {
-        parser->current_rr.rrdata->ttl = parser->ttl;
-        parser->current_rr.klass = parser->klass;
+        parser->current_rr.rrdata->ttl = parser->default_ttl;
+        parser->current_rr.klass = parser->default_class;
     }
     |   class sp         /* no ttl */
     {
-        parser->current_rr.rrdata->ttl = parser->ttl;
+        parser->current_rr.rrdata->ttl = parser->default_ttl;
     }
     |	ttl sp		/* no class */
     {   
-        parser->current_rr.klass = parser->klass;
+        parser->current_rr.klass = parser->default_class;
     }
     |   ttl sp class sp  /* the lot */
     |   class sp ttl sp  /* the lot - reversed */
@@ -511,8 +511,8 @@ rdata_soa:  dname sp dname sp STR sp STR sp STR sp STR sp STR trail
         zadd_rdata_wireformat(zparser_conv_rdata_period(parser->region, $13.str)); /* minimum */
 
         /* [XXX] also store the minium in case of no TTL? */
-        if ( (parser->minimum = zparser_ttl2int($11.str) ) == -1 )
-            parser->minimum = DEFAULT_TTL;
+        if ( (parser->default_minimum = zparser_ttl2int($11.str) ) == -1 )
+            parser->default_minimum = DEFAULT_TTL;
     }
 	|   error NL
 	{ error_prev_line("Syntax error in SOA record"); }
@@ -837,9 +837,9 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 	memset(nxtbits, 0, sizeof(nxtbits));
 	memset(nsecbits, 0, sizeof(nsecbits));
 
-	parser->ttl = ttl;
-	parser->minimum = 0;
-	parser->klass = klass;
+	parser->default_ttl = ttl;
+	parser->default_minimum = 0;
+	parser->default_class = klass;
 	parser->current_zone = NULL;
 	parser->origin = domain_table_insert(
 		parser->db->domains,

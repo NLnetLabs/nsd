@@ -1403,12 +1403,12 @@ process_rr()
 		 * This is a SOA record, start a new zone or continue
 		 * an existing one.
 		 */
-		zone = namedb_find_zone(parser->db, rr->domain);
+		zone = namedb_find_zone(parser->db, rr->owner);
 		if (!zone) {
 			/* new zone part */
 			zone = (zone_type *) region_alloc(parser->region,
 							  sizeof(zone_type));
-			zone->domain = rr->domain;
+			zone->apex = rr->owner;
 			zone->soa_rrset = NULL;
 			zone->ns_rrset = NULL;
 			zone->is_secure = 0;
@@ -1422,13 +1422,15 @@ process_rr()
 		parser->current_zone = zone;
 	}
 
-	if (!dname_is_subdomain(domain_dname(rr->domain), domain_dname(zone->domain))) {
+	if (!dname_is_subdomain(domain_dname(rr->owner),
+				domain_dname(zone->apex)))
+	{
 		error_prev_line("out of zone data");
 		return 0;
 	}
 
 	/* Do we have this type of rrset already? */
-	rrset = domain_find_rrset(rr->domain, zone, rr->type);
+	rrset = domain_find_rrset(rr->owner, zone, rr->type);
 
 	/* Do we have this particular rrset? */
 	if (rrset == NULL) {
@@ -1444,7 +1446,7 @@ process_rr()
 		region_add_cleanup(parser->region, cleanup_rrset, rrset);
 
 		/* Add it */
-		domain_add_rrset(rr->domain, rrset);
+		domain_add_rrset(rr->owner, rrset);
 	} else {
 		if (rrset->type != TYPE_RRSIG && rrset->rrs[0]->ttl != rr->rrdata->ttl) {
 			warning_prev_line("TTL doesn't match the TTL of the RRset");
@@ -1481,7 +1483,7 @@ process_rr()
 	if (zone->soa_rrset == NULL) {
 		if (rr->type != TYPE_SOA) {
 			error_prev_line("Missing SOA record on top of the zone");
-		} else if (rr->domain != zone->domain) {
+		} else if (rr->owner != zone->apex) {
 			error_prev_line( "SOA record with invalid domain name");
 		} else {
 			zone->soa_rrset = rrset;
@@ -1492,7 +1494,7 @@ process_rr()
 	}
 
 	/* Is this a zone NS? */
-	if (rr->type == TYPE_NS && rr->domain == zone->domain) {
+	if (rr->type == TYPE_NS && rr->owner == zone->apex) {
 		zone->ns_rrset = rrset;
 	}
 	if ( ( totalrrs % progress == 0 ) && vflag > 1  && totalrrs > 0) {

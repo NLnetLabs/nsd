@@ -212,14 +212,14 @@ read_rrset(namedb_type *db,
 	domain_add_rrset(owner, rrset);
 
 	if (rrset->type == TYPE_SOA) {
-		assert(owner == rrset->zone->domain);
+		assert(owner == rrset->zone->apex);
 		rrset->zone->soa_rrset = rrset;
-	} else if (owner == rrset->zone->domain && rrset->type == TYPE_NS) {
+	} else if (owner == rrset->zone->apex && rrset->type == TYPE_NS) {
 		rrset->zone->ns_rrset = rrset;
 	}
 
 #ifdef DNSSEC
-	if (rrset->type == TYPE_RRSIG && owner == rrset->zone->domain) {
+	if (rrset->type == TYPE_RRSIG && owner == rrset->zone->apex) {
 		for (i = 0; i < rrset->rrslen; ++i) {
 			if (rrset_rrsig_type_covered(rrset, i) == TYPE_SOA) {
 				rrset->zone->is_secure = 1;
@@ -324,7 +324,7 @@ namedb_open (const char *filename)
 						      sizeof(zone_type));
 		zones[i]->next = db->zones;
 		db->zones = zones[i];
-		zones[i]->domain = domain_table_insert(db->domains, dname);
+		zones[i]->apex = domain_table_insert(db->domains, dname);
 		zones[i]->soa_rrset = NULL;
 		zones[i]->ns_rrset = NULL;
 		zones[i]->number = i + 1;

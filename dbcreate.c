@@ -254,7 +254,7 @@ write_db(namedb_type *db)
 		
 		if (!zone->soa_rrset) {
 			fprintf(stderr, "SOA record not present in %s\n",
-				dname_to_string(domain_dname(zone->domain)));
+				dname_to_string(domain_dname(zone->apex)));
 			++errors;
 		}
 	}
@@ -266,7 +266,7 @@ write_db(namedb_type *db)
 	if (!write_number(db, zone_count))
 		return -1;
 	for (zone = db->zones; zone; zone = zone->next) {
-		if (!write_dname(db, zone->domain))
+		if (!write_dname(db, zone->apex))
 			return -1;
 	}
 	

@@ -94,7 +94,7 @@ struct domain
 struct zone
 {
 	zone_type   *next;
-	domain_type *domain;
+	domain_type *apex;
 	rrset_type  *soa_rrset;
 	rrset_type  *ns_rrset;
 	uint32_t     number;

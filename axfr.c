@@ -76,7 +76,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 		
 		if (!exact
 		    || query->axfr_zone == NULL
-		    || query->axfr_zone->domain != query->domain)
+		    || query->axfr_zone->apex != query->domain)
 		{
 			/* No SOA no transfer */
 			RCODE_SET(query, RCODE_REFUSE);
@@ -92,7 +92,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 
 		assert(query->axfr_zone->soa_rrset->rrslen == 1);
 		added = encode_rr(query,
-				  query->axfr_zone->domain,
+				  query->axfr_zone->apex,
 				  query->axfr_zone->soa_rrset,
 				  0);
 		if (!added) {
@@ -143,7 +143,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 	/* Add terminating SOA RR.  */
 	assert(query->axfr_zone->soa_rrset->rrslen == 1);
 	added = encode_rr(query,
-			  query->axfr_zone->domain,
+			  query->axfr_zone->apex,
 			  query->axfr_zone->soa_rrset,
 			  0);
 	if (added) {
