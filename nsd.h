@@ -14,6 +14,7 @@
 
 #include "dns.h"
 #include "edns.h"
+#include "options.h"
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
@@ -74,7 +75,7 @@ struct	nsd
 	 * Global region that is not deallocated until NSD shuts down.
 	 */
 	region_type    *region;
-	
+
 	/* Run-time variables */
 	pid_t		pid;
 	volatile sig_atomic_t mode;
@@ -84,16 +85,14 @@ struct	nsd
 
 	size_t            child_count;
 	struct nsd_child *children;
-	
+
 	/* Configuration */
-	const char	*dbfile;
-	const char	*pidfile;
-	const char	*username;
+	const char       *options_file;
+	nsd_options_type *options;
+
 	uid_t	uid;
 	gid_t	gid;
 	const char	*chrootdir;
-	const char	*version;
-	const char	*identity;
 
 	size_t	ifs;
 
@@ -103,14 +102,14 @@ struct	nsd
 	/* UDP specific configuration */
 	struct nsd_socket udp[MAX_INTERFACES];
 
-	edns_data_type edns_ipv4;	
+	edns_data_type edns_ipv4;
 #if defined(INET6)
 	edns_data_type edns_ipv6;
 #endif
 
 	int maximum_tcp_count;
 	int current_tcp_count;
-	
+
 #ifdef	BIND8_STATS
 
 	char	*named8_stats;
@@ -140,5 +139,5 @@ void bind8_stats(struct nsd *nsd);
 int server_init(struct nsd *nsd);
 void server_main(struct nsd *nsd);
 void server_child(struct nsd *nsd);
-  
+
 #endif	/* _NSD_H_ */

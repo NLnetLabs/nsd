@@ -925,7 +925,7 @@ main(int argc, char *argv[])
 	query_type q;
 	struct addrinfo hints, *res0, *res;
 	const char *zone_filename = NULL;
-	const char *port = TCP_PORT;
+	const char *port = DEFAULT_PORT;
 	int default_family = DEFAULT_AI_FAMILY;
 	struct sigaction mysigaction;
 	FILE *zone_file;

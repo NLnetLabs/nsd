@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<nsd>
+  <options>
+    <user-id>@user@</user-id>
+    <directory>@prefix@</directory>
+    <database>@dbfile@</database>
+    <pid-file>@pidfile@</pid-file>
+  </options>
+
+  <zone name="sample.">
+    <file>@zonesdir@/sample.zone</file>
+  </zone>
+</nsd>

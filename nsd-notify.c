@@ -25,7 +25,7 @@
 
 #include "query.h"
 
-static void 
+static void
 usage (void)
 {
 	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-p port] -z zone servers\n");
@@ -35,7 +35,7 @@ usage (void)
 extern char *optarg;
 extern int optind;
 
-int 
+int
 main (int argc, char *argv[])
 {
 	int c, udp_s;
@@ -44,11 +44,11 @@ main (int argc, char *argv[])
 	struct addrinfo hints, *res0, *res;
 	int error;
 	int default_family = DEFAULT_AI_FAMILY;
-	const char *port = UDP_PORT;
+	const char *port = DEFAULT_PORT;
 	region_type *region = region_create(xalloc, free);
-	
+
 	log_init("nsd-notify");
-	
+
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46p:z:")) != -1) {
 		switch (c) {

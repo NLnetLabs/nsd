@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- NSD configuration file RELAX NG schema.  -->
+<grammar
+   xmlns="http://relaxng.org/ns/structure/1.0"
+   datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <start>
+    <element name="nsd">
+      <interleave>
+        <ref name="options"/>
+        <zeroOrMore>
+          <ref name="key"/>
+        </zeroOrMore>
+        <oneOrMore>
+          <ref name="zone"/>
+        </oneOrMore>
+      </interleave>
+    </element>
+  </start>
+
+  <define name="options">
+    <element name="options">
+      <interleave>
+        <element name="user-id">
+          <data type="token"/>
+        </element>
+        <!-- The name of the file containing the compiled zones.  -->
+        <element name="database">
+          <text/>
+        </element>
+        <optional>
+          <!-- The value returned by a query for version.server CH TXT
+               or version.bind CH TXT.  Defaults to the "NSD
+               major.minor.patchlevel".  -->
+          <element name="version">
+            <text/>
+          </element>
+        </optional>
+        <optional>
+          <!-- The value returned by a query for identity.server CH
+               TXT or hostname.bind CH TXT.  Defaults to the value returned
+               by gethostname(3).  -->
+          <element name="identity">
+            <text/>
+          </element>
+        </optional>
+        <optional>
+          <element name="directory">
+            <text/>
+          </element>
+        </optional>
+        <optional>
+          <element name="pid-file">
+            <text/>
+          </element>
+        </optional>
+        <optional>
+          <element name="listen-on">
+            <oneOrMore>
+              <ref name="address"/>
+            </oneOrMore>
+          </element>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
+  <define name="key">
+    <element name="key">
+      <attribute name="name">
+        <text/>
+      </attribute>
+      <interleave>
+        <element name="algorithm">
+          <text/>
+        </element>
+        <element name="secret">
+          <text/>
+        </element>
+      </interleave>
+    </element>
+  </define>
+
+  <define name="zone">
+    <element name="zone">
+      <attribute name="name">
+        <text/>
+      </attribute>
+      <interleave>
+        <element name="file">
+          <text/>
+        </element>
+        <choice>
+          <zeroOrMore>
+            <element name="master">
+              <optional>
+                <element name="key">
+                  <text/>
+                </element>
+              </optional>
+              <oneOrMore>
+                <ref name="address"/>
+              </oneOrMore>
+            </element>
+          </zeroOrMore>
+          <element name="notify">
+            <oneOrMore>
+              <ref name="address"/>
+            </oneOrMore>
+          </element>
+        </choice>
+      </interleave>
+    </element>
+  </define>
+
+  <define name="address">
+    <element name="address">
+      <optional>
+        <attribute name="port">
+          <data type="string"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="family">
+          <choice>
+            <value>ipv4</value>
+            <value>IPv4</value>
+            <value>IPV4</value>
+            <value>ipv6</value>
+            <value>IPv6</value>
+            <value>IPV6</value>
+          </choice>
+        </attribute>
+      </optional>
+      <text/>
+    </element>
+  </define>
+
+</grammar>

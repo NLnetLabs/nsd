@@ -96,7 +96,7 @@ struct tcp_handler_data
 	 */
 	size_t              tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
-	
+
 	/*
 	 * The query_state is used to remember if we are performing an
 	 * AXFR, if we're done processing, or if we should discard the
@@ -215,7 +215,7 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	uint32_t max_domains = 0;
 	const dname_type *key;
 	zone_type *zone;
-	
+
 	HEAP_WALK(nsd->db->zones, key, zone) {
 		if (max_domains < domain_table_count(zone->domains)) {
 			max_domains = domain_table_count(zone->domains);
@@ -224,7 +224,7 @@ initialize_dname_compression_tables(struct nsd *nsd)
 
 	/* Reserve space for the query name offset.  */
 	++max_domains;
-	
+
 	compressed_dname_offsets
 		= (uint16_t *) xalloc(max_domains * sizeof(uint16_t));
 	memset(compressed_dname_offsets, 0, max_domains * sizeof(uint16_t));
@@ -335,10 +335,10 @@ server_init(struct nsd *nsd)
 #ifdef HAVE_CHROOT
 	/* Chroot */
 	if (nsd->chrootdir) {
-		int l = strlen(nsd->chrootdir);
+		size_t length = strlen(nsd->chrootdir);
 
-		nsd->dbfile += l;
-		nsd->pidfile += l;
+		nsd->options->database += length;
+		nsd->options->pid_file += length;
 
 		if (chroot(nsd->chrootdir)) {
 			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
@@ -354,12 +354,12 @@ server_init(struct nsd *nsd)
 	}
 
 	/* Open the database... */
-	if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+	if ((nsd->db = namedb_open(nsd->options->database)) == NULL) {
 		return -1;
 	}
 
 	initialize_dname_compression_tables(nsd);
-	
+
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st.boot);
@@ -425,7 +425,7 @@ server_main(struct nsd *nsd)
 	pid_t child_pid;
 	pid_t reload_pid = -1;
 	sig_atomic_t mode;
-	
+
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
 	if (server_start_children(nsd) != 0) {
@@ -437,7 +437,7 @@ server_main(struct nsd *nsd)
 		switch (mode) {
 		case NSD_RUN:
 			child_pid = waitpid(0, &status, 0);
-		
+
 			if (child_pid == -1) {
 				if (errno == EINTR) {
 					continue;
@@ -480,13 +480,13 @@ server_main(struct nsd *nsd)
 				/* CHILD */
 
 				namedb_close(nsd->db);
-				if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+				if ((nsd->db = namedb_open(nsd->options->database)) == NULL) {
 					log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 					exit(1);
 				}
 
 				initialize_dname_compression_tables(nsd);
-	
+
 #ifdef PLUGINS
 				if (plugin_database_reloaded() != NSD_PLUGIN_CONTINUE) {
 					log_msg(LOG_ERR, "plugin reload failed");
@@ -509,14 +509,14 @@ server_main(struct nsd *nsd)
 
 				/* Overwrite pid... */
 				if (writepid(nsd) == -1) {
-					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
+					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->options->pid_file, strerror(errno));
 				}
 
 #ifdef BIND8_STATS
 				/* Restart dumping stats if required.  */
 				alarm(nsd->st.period);
 #endif
-				
+
 				break;
 			default:
 				/* PARENT */
@@ -538,15 +538,15 @@ server_main(struct nsd *nsd)
 #ifdef PLUGINS
 	plugin_finalize_all();
 #endif /* PLUGINS */
-	
+
 	/* Truncate the pid file.  */
-	if ((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
-		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->pidfile, strerror(errno));
+	if ((fd = open(nsd->options->pid_file, O_WRONLY | O_TRUNC, 0644)) == -1) {
+		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->options->pid_file, strerror(errno));
 	}
 	close(fd);
 
 	/* Unlink it if possible... */
-	unlink(nsd->pidfile);
+	unlink(nsd->options->pid_file);
 
 	server_shutdown(nsd);
 }
@@ -558,7 +558,7 @@ process_query(struct nsd *nsd, struct query *query)
 	query_state_type rc;
 	nsd_plugin_callback_args_type callback_args;
 	nsd_plugin_callback_result_type callback_result;
-	
+
 	callback_args.query = query;
 	callback_args.data = NULL;
 	callback_args.result_code = NSD_RC_OK;
@@ -598,16 +598,16 @@ server_child(struct nsd *nsd)
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type *tcp_accept_handlers;
 	sig_atomic_t mode;
-	
+
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
-	
+
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		close_all_sockets(nsd->tcp, nsd->ifs);
 	}
 	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
 		close_all_sockets(nsd->udp, nsd->ifs);
 	}
-	
+
 	if (nsd->server_kind & NSD_SERVER_UDP) {
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
@@ -643,7 +643,7 @@ server_child(struct nsd *nsd)
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct tcp_accept_handler_data *data;
 			netio_handler_type *handler;
-			
+
 			data = (struct tcp_accept_handler_data *) region_alloc(
 				server_region,
 				sizeof(struct tcp_accept_handler_data));
@@ -651,7 +651,7 @@ server_child(struct nsd *nsd)
 			data->socket = &nsd->tcp[i];
 			data->tcp_accept_handler_count = nsd->ifs;
 			data->tcp_accept_handlers = tcp_accept_handlers;
-			
+
 			handler = &tcp_accept_handlers[i];
 			handler->fd = nsd->tcp[i].s;
 			handler->timeout = NULL;
@@ -661,8 +661,8 @@ server_child(struct nsd *nsd)
 			netio_add_handler(netio, handler);
 		}
 	}
-	
-	/* The main loop... */	
+
+	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {
 
 		/* Do we need to do the statistics... */
@@ -691,7 +691,7 @@ server_child(struct nsd *nsd)
 #endif /* BIND8_STATS */
 
 	region_destroy(server_region);
-	
+
 	server_shutdown(nsd);
 }
 
@@ -705,11 +705,11 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 		= (struct udp_handler_data *) handler->user_data;
 	int received, sent;
 	struct query *q = data->query;
-	
+
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
-	
+
 	/* Account... */
 	if (data->socket->addr->ai_family == AF_INET) {
 		STATUP(data->nsd, qudp);
@@ -854,7 +854,7 @@ handle_tcp_reading(netio_type *netio,
 		assert(data->bytes_transmitted == sizeof(uint16_t));
 
 		data->query->tcplen = ntohs(data->query->tcplen);
-		
+
 		/*
 		 * Minimum query size is:
 		 *
@@ -941,18 +941,18 @@ handle_tcp_reading(netio_type *netio,
 	{
 		STATUP(data->nsd, nona);
 	}
-		
+
 	query_add_optional(data->query, data->nsd);
 
 	/* Switch to the tcp write handler.  */
 	buffer_flip(data->query->packet);
 	data->query->tcplen = buffer_remaining(data->query->packet);
 	data->bytes_transmitted = 0;
-	
+
 	handler->timeout->tv_sec = TCP_TIMEOUT;
 	handler->timeout->tv_nsec = 0L;
 	timespec_add(handler->timeout, netio_current_time(netio));
-	
+
 	handler->event_types = NETIO_EVENT_WRITE | NETIO_EVENT_TIMEOUT;
 	handler->event_handler = handle_tcp_writing;
 }
@@ -1044,7 +1044,7 @@ handle_tcp_writing(netio_type *netio,
 		data->query_state = query_axfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
 			query_add_optional(data->query, data->nsd);
-			
+
 			/* Reset data. */
 			buffer_flip(q->packet);
 			q->tcplen = buffer_remaining(q->packet);
@@ -1067,7 +1067,7 @@ handle_tcp_writing(netio_type *netio,
 	 * TCP socket by installing the TCP read handler.
 	 */
 	data->bytes_transmitted = 0;
-	
+
 	handler->timeout->tv_sec = TCP_TIMEOUT;
 	handler->timeout->tv_nsec = 0;
 	timespec_add(handler->timeout, netio_current_time(netio));
@@ -1099,7 +1099,7 @@ handle_tcp_accept(netio_type *netio,
 	struct sockaddr_in addr;
 #endif
 	socklen_t addrlen;
-	
+
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
@@ -1107,7 +1107,7 @@ handle_tcp_accept(netio_type *netio,
 	if (data->nsd->current_tcp_count >= data->nsd->maximum_tcp_count) {
 		return;
 	}
-	
+
 	/* Accept it... */
 	addrlen = sizeof(addr);
 	s = accept(handler->fd, (struct sockaddr *) &addr, &addrlen);
@@ -1123,7 +1123,7 @@ handle_tcp_accept(netio_type *netio,
 		close(s);
 		return;
 	}
-	
+
 	/*
 	 * This region is deallocated when the TCP connection is
 	 * closed by the TCP handler.
@@ -1134,7 +1134,7 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data->region = tcp_region;
 	tcp_data->query = query_create(tcp_region, compressed_dname_offsets);
 	tcp_data->nsd = data->nsd;
-	
+
 	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;
 	tcp_data->tcp_accept_handlers = data->tcp_accept_handlers;
 
@@ -1142,7 +1142,7 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data->bytes_transmitted = 0;
 	memcpy(&tcp_data->query->addr, &addr, addrlen);
 	tcp_data->query->addrlen = addrlen;
-	
+
 	tcp_handler = (netio_handler_type *) region_alloc(
 		tcp_region, sizeof(netio_handler_type));
 	tcp_handler->fd = s;
@@ -1179,7 +1179,7 @@ configure_handler_event_types(size_t count,
 	size_t i;
 
 	assert(handlers);
-	
+
 	for (i = 0; i < count; ++i) {
 		handlers[i].event_types = event_types;
 	}

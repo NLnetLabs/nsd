@@ -66,7 +66,7 @@ AC_SUBST(dbfile)
 #
 # Determine location of nsd config file
 #
-configfile=$configdir/nsdc.conf
+configfile=$configdir/nsd.conf
 AC_ARG_WITH([configfile],
 	AC_HELP_STRING([--with-configfile=path], [Pathname to the NSD configuration file]),
 	[configfile=$withval])
@@ -97,6 +97,14 @@ AC_PROG_LN_S
 AC_PROG_INSTALL
 AC_PROG_LEX
 AC_PROG_YACC
+
+AC_PATH_PROG(LIBXML2_CONFIG, xml2-config, [no])
+if test $LIBXML2_CONFIG = no; then
+   AC_MSG_ERROR([libxml2 is required, please ensure it is installed and xml2-config is in the PATH])
+fi
+
+AC_SUBST(LIBXML2_CFLAGS, [`$LIBXML2_CONFIG --cflags`])
+AC_SUBST(LIBXML2_LIBS, [`$LIBXML2_CONFIG --libs`])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -346,10 +354,9 @@ dnl
 AC_DEFINE_UNQUOTED([IDENTITY], ["unindentified server"], [Define to the default nsd identity.])
 AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the NSD version to answer version.server query.])
 AC_DEFINE_UNQUOTED([TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
-AC_DEFINE_UNQUOTED([TCP_PORT], ["53"], [Define to the default tcp port.])
+AC_DEFINE_UNQUOTED([DEFAULT_PORT], ["53"], [Define to the default port to listen on.])
 AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximum message length.])
 AC_DEFINE_UNQUOTED([TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
-AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
 AC_DEFINE_UNQUOTED([MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
