@@ -215,6 +215,15 @@ AC_DEFINE_UNQUOTED([AXFR_DAEMON_PREFIX], ["axfr-"], [Define to the default daemo
 dnl
 dnl Features
 dnl
+AC_ARG_ENABLE(root-server, AC_HELP_STRING([--enable-root-server], [This NSD package will be used on a root server]))
+case "$enable_root_server" in
+        no|*)
+                ;;
+        yes)
+		AC_DEFINE_UNQUOTED([ROOT_SERVER], [], [Define this to serve the root zone.])
+		;;
+esac
+
 AC_ARG_ENABLE(ipv6, AC_HELP_STRING([--enable-ipv6], [Enables IPv6 support]))
 case "$enable_ipv6" in
         no|'')
