@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.31.4.2 2002/05/21 09:49:08 alexis Exp $
+ * $Id: server.c,v 1.31.4.3 2002/05/21 10:05:59 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -57,13 +57,23 @@ answer_udp(s, nsd)
 	q.iobufptr = q.iobuf + received;
 
 	if(query_process(&q, nsd->db) != -1) {
- 		if(q.edns == 1) {
+ 		switch(q.edns) {
+		case 1:
  			if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
- 				bcopy(nsd->edns.opt, q.iobufptr, OPT_LEN);
+ 				bcopy(nsd->edns.opt_ok, q.iobufptr, OPT_LEN);
  				q.iobufptr += OPT_LEN;
  				ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
  			}
+			break;
+		case -1:
+ 			if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
+ 				bcopy(nsd->edns.opt_err, q.iobufptr, OPT_LEN);
+ 				q.iobufptr += OPT_LEN;
+ 				ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
+ 			}
+			break;
  		}
+
 		if((sent = sendto(s, q.iobuf, q.iobufptr - q.iobuf, 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
 			syslog(LOG_ERR, "sendto failed: %m");
 			return -1;
@@ -143,12 +153,21 @@ answer_tcp(s, addr, addrlen, nsd)
 		if(query_process(&q, nsd->db) != -1) {
 			alarm(120);
 
-			if(q.edns == 1) {
+			switch(q.edns) {
+			case 1:
 				if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
-					bcopy(nsd->edns.opt, q.iobufptr, OPT_LEN);
+					bcopy(nsd->edns.opt_ok, q.iobufptr, OPT_LEN);
 					q.iobufptr += OPT_LEN;
 					ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
 				}
+				break;
+			case -1:
+				if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
+					bcopy(nsd->edns.opt_err, q.iobufptr, OPT_LEN);
+					q.iobufptr += OPT_LEN;
+					ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
+				}
+				break;
 			}
 
 			tcplen = htons(q.iobufptr - q.iobuf);
