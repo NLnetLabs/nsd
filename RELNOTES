@@ -1,5 +1,19 @@
 NSD RELEASE NOTES
 
+2.3.0
+=============
+FEATURES:
+        - NSD now preserves the case of domain names instead of
+          converting them all to lower case.  If a domain name is
+          spelled with differing case in the same zone file the first
+          spelling is used.
+
+CODE CHANGES:
+        - Each zone is now stored separately instead of combinding all
+          domain names into a single searchable tree.  This eliminates
+          some correctness (wildcard matches) and performance (AXFR,
+          NSEC lookup) corner cases.
+
 2.2.0
 =============
 FEATURES:
