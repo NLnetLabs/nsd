@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.69 2002/05/23 13:33:03 alexis Exp $
+ * $Id: query.c,v 1.70 2002/05/23 15:00:56 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -38,6 +38,10 @@
  *
  */
 #include "nsd.h"
+
+#ifdef HOSTS_ACCESS
+#include <tcpd.h>
+#endif
 
 int 
 query_axfr(q, nsd, qname, zname, depth)
@@ -500,8 +504,16 @@ query_process(q, nsd)
 	/* Is it AXFR? */
 	switch(ntohs(qtype)) {
 	case TYPE_AXFR:
-		if(q->tcp)
-			return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
+#ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
+		if(q->tcp) {
+#ifdef HOSTS_ACCESS
+			struct request_info request;
+			if(hosts_access(request_init(&request, RQ_DAEMON, AXFR_DAEMON,
+					RQ_CLIENT_ADDR, &q->addr, 0)))
+#endif /* HOSTS_ACCESS */
+				return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
+		}
+#endif	/* DISABLE_AXFR */
 	case TYPE_IXFR:
 		RCODE_SET(q, RCODE_REFUSE);
 		return 0;

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.28 2002/05/23 13:33:03 alexis Exp $
+ * $Id: nsd.h,v 1.29 2002/05/23 15:00:56 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -64,7 +64,6 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
-
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1

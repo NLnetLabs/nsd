@@ -1,5 +1,5 @@
 /*
- * $Id: config.h,v 1.6 2002/05/23 13:33:03 alexis Exp $
+ * $Id: config.h,v 1.7 2002/05/23 15:00:56 alexis Exp $
  *
  * config.h -- nsd(8) local configuration
  *
@@ -55,6 +55,10 @@
 
 #ifndef CF_GID
 #define	CF_GID	0
+#endif
+
+#ifndef	AXFR_DAEMON
+#define	AXFR_DAEMON	"axfr"
 #endif
 
 #ifdef	DEBUG

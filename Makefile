@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.62 2002/05/23 13:33:03 alexis Exp $
+# $Id: Makefile,v 1.63 2002/05/23 15:00:56 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -93,14 +93,22 @@ NSDDB           = /var/db/nsd.db
 #			Respond with ``format error'' to the queries with
 #			trailing garbage, instead of stripping them.
 #
+#	-DDISABLE_AXFR
+#			Disable AXFR zone transfers. Might be handy if
+#			you dont use -DUSE_LIBWRAP
+#
+#	-DHOSTS_ACCESS
+#			Use TCP wrappers for AXFR access control
+#			Requires adding -lwrap to $LIBS
+#
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DCF_UID=65534 -DCF_GID=65534 # -DINET6
+FEATURES	= -DCF_UID=65534 -DCF_GID=65534 -DINET6 -DHOSTS_ACCESS
 
 # To compile NSD with internal red-black tree database
 # uncomment the following two lines
 DBFLAGS		= -DUSE_HEAP_RBTREE
-LIBS		=
+LIBS		= -lwrap
 
 # To compile NSD with internal hash database
 # uncomment the following two lines
