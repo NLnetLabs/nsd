@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.42 2002/02/21 12:30:55 alexis Exp $
+ * $Id: zonec.c,v 1.43 2002/02/21 15:22:36 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -167,7 +167,7 @@ zone_addcompr(msg, dname, offset, len)
 {
 	if (msg->comprlen >= MAXRRSPP) {
 		fflush(stdout);
-		fprintf(stderr, "zonec: too many compressed dnames\n");
+		fprintf(stderr, "zonec: out of space many compressed dnames\n");
 		exit(1);
 	}
 	
