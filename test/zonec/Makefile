@@ -11,6 +11,8 @@ unknown: ../../zonec
 
 dnssec: ../../zonec
 	../../zonec -v -f test.db dnssec.conf
+miek:
+	../../zonec -v -f test.db miek.conf
 
 nsd:	../../nsd
 	@echo Running NSD on port 5353 with test.db 

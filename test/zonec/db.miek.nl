@@ -10,7 +10,8 @@ $TTL    1H
                              1H )       ; Negative Cache TTL
 
 @       IN      NS      elektron.atoom.net.
-@	IN	MX	10 elektron.atoom.net.
+@	IN	MX	elektron.atoom.net.
+@	IN	MX	10 
 @	IN	A	192.168.1.2
 
 a	IN	A	192.168.1.2

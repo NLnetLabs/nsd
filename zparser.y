@@ -72,7 +72,6 @@ uint8_t nsecbits[256][32];
 %%
 lines:  /* empty line */
     |   lines line
-    |   error NL     { error("syntax error"); yyerrok; }
     ;
 
 line:   NL
@@ -451,6 +450,11 @@ rdata_mx:   STR sp dname trail
         	zadd_rdata_wireformat( current_parser, zparser_conv_short(zone_region, $1.str) );  /* priority */
         	zadd_rdata_domain( current_parser, $3);  /* MX host */
     	}
+	|   dname trail
+	{ error("Missing priority in MX record"); }
+	|   STR trail
+	{ error("Missing hostname in MX record"); }
+
     	;
 
 rdata_aaaa: STR trail
