@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.48 2002/04/10 10:46:14 alexis Exp $
+ * $Id: zonec.c,v 1.49 2002/04/11 14:10:55 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -57,6 +57,7 @@ u_char *datamask = bitmasks + NAMEDB_BITMASKLEN * 2;
 /* Some global flags... */
 int vflag = 0;
 int pflag = 0;
+int mflag = 0;
 
 #ifdef	USE_HEAP_HASH
 
@@ -626,7 +627,11 @@ zone_addzonecut(u_char *dkey, u_char *dname, struct rrset *rrset, struct zone *z
 			if(additional == NULL) {
 				fprintf(stderr, "zonec: missing glue record\n");
 			} else {
-				zone_addzonecut(msg.dnames[i], dname, rrset, z, db);
+				/* Dont do it if we're trying to minimize the database... */
+				if(!mflag) {
+					/* Add duplicate for this glue with better name compression... */
+					zone_addzonecut(msg.dnames[i], dname, rrset, z, db);
+				}
 				/* Mark it as out of zone data */
 				additional->glue = 1;
 			}
@@ -871,8 +876,11 @@ main(argc, argv)
 	struct zone *z = NULL;
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "d:f:vp")) != -1) {
+	while((c = getopt(argc, argv, "d:f:vpm")) != -1) {
 		switch (c) {
+		case 'm':
+			mflag = 1;
+			break;
 		case 'p':
 			pflag = 1;
 			break;
