@@ -1,20 +1,20 @@
 # You may want to change the locations of the tools listed
-ZONEC=~/cvs/nsd/zonec
-NSD=~/cvs/nsd/nsd
-MKVALID=~/cvs/nsd/test/bin/mkvalid
-STRIPDIG=~/cvs/nsd/test/bin/stripdig.pl
-QUERY=~/cvs/nsd/test/bin/query
+ZONEC=../../../zonec
+NSD=../../../nsd
+MKVALID=../..//bin/mkvalid
+STRIPDIG=../../bin/stripdig.pl
+QUERY=../../bin/query
 
 # run on this port and under the current user
 NSDOPT=-p 5353 -u `whoami`
 ## No serviceble parts below ##
 
-.PHONY: nsd valid test stop diffclean currentclean
+.PHONY: nsd valid test stop diffclean currentclean realclean
 
 # you need to run make valid seperately
 all:	QUESTIONS nsd test
 
-nsd:
+nsd:	test.db
 	@echo Running NSD on port 5353 with test.db 
 	${NSD} ${NSDOPT} -f test.db
 
@@ -30,7 +30,7 @@ test:		QUESTIONS
 	${QUERY} -s ${STRIPDIG} QUESTIONS
 
 stop:	
-	@echo Stopping all named instances
+	@echo Stopping all nsd instances
 	killall nsd
 
 diffclean:
@@ -40,3 +40,5 @@ diffclean:
 currentclean:
 	@echo Cleaning up .current files
 	rm -f *.current
+realclean:	diffclean currentclean
+	rm -f test.db
