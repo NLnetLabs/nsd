@@ -383,7 +383,7 @@ zparser_conv_a(region_type *region, const char *a)
  * check.
  */
 uint16_t *
-zparser_conv_text(region_type *region, const char *txt, const int len)
+zparser_conv_text(region_type *region, const char *txt, size_t len)
 {
 	/* convert text to wireformat */
 	uint16_t *r = NULL;
