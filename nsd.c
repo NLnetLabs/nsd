@@ -82,7 +82,7 @@ static void
 usage (void)
 {
 	fprintf(stderr, "Usage: nsd [OPTION]...\n");
-	fprintf(stderr, "Start the NSD name server daemon.\n\n");
+	fprintf(stderr, "Name Server Daemon.\n\n");
 	fprintf(stderr,
 		"Supported options:\n"
 		"  -4              Only listen to IPv4 connections.\n"
