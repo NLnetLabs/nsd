@@ -145,8 +145,6 @@ struct	nsd {
 };
 
 /* nsd.c */
-void *xalloc(register size_t size);
-void *xrealloc(register void *p, register size_t size);
 pid_t readpid(const char *file);
 int writepid(struct nsd *nsd);
 void sig_handler(int sig);

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.98.2.5 2003/07/21 10:21:33 erik Exp $
+ * $Id: zonec.c,v 1.98.2.6 2003/07/21 13:52:07 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -50,15 +50,15 @@
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
-#include <syslog.h>
 #include <unistd.h>
 
-#include "heap.h"
-#include "dns.h"
-#include "zparser.h"
-#include "namedb.h"
 #include "dname.h"
+#include "dns.h"
+#include "heap.h"
+#include "namedb.h"
+#include "util.h"
 #include "zonec.h"
+#include "zparser.h"
 
 static void zone_addbuf (struct message *, const void *, size_t);
 static void zone_addcompr (struct message *msg, uint8_t *dname, int offset, int len);
@@ -72,36 +72,6 @@ static int pflag = 0;
 
 /* Total errors counter */
 static int totalerrors = 0;
-
-/*
- * Allocates ``size'' bytes of memory, returns the
- * pointer to the allocated memory or NULL and errno
- * set in case of error. Also reports the error via
- * fprintf(stderr, ...);
- *
- */
-void *
-xalloc (register size_t size)
-{
-	register void *p;
-
-	if((p = malloc(size)) == NULL) {
-		fprintf(stderr, "zonec: malloc failed: %s\n", strerror(errno));
-		exit(1);
-	}
-	return p;
-}
-
-void *
-xrealloc (register void *p, register size_t size)
-{
-
-	if((p = realloc(p, size)) == NULL) {
-		fprintf(stderr, "zonec: realloc failed: %s\n", strerror(errno));
-		exit(1);
-	}
-	return p;
-}
 
 static void
 zone_initmsg(struct message *m)
@@ -966,6 +936,8 @@ main (int argc, char **argv)
 
 	struct zone *z = NULL;
 
+	log_init("zonec");
+	
 	totalerrors = 0;
 
 	/* Parse the command line... */
