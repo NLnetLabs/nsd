@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.95.2.4 2003/06/18 09:11:25 erik Exp $
+ * $Id: query.c,v 1.95.2.5 2003/07/28 12:23:18 erik Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -408,9 +408,10 @@ query_process (struct query *q, struct nsd *nsd)
 	qname = qptr = q->iobuf + QHEADERSZ;
 	while(*qptr) {
 		/*  If we are out of buffer limits or we have a pointer in question dname or the domain name is longer than MAXDOMAINLEN ... */
-		if((qptr + *qptr > q->iobufptr) || (*qptr & 0xc0) ||
-			((qptr - q->iobuf + *qptr) > MAXDOMAINLEN)) {
-
+		if ((*qptr & 0xc0) ||
+		    (qptr + *qptr + 1 > q->iobufptr) || 
+		    (qptr + *qptr + 1 > q->iobuf + QHEADERSZ + MAXDOMAINLEN))
+		{
 			query_formerr(q);
 			return 0;
 		}
