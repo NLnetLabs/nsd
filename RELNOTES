@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+2.1.1
+=============
+BUG FIXES:
+        - Bug #83: Close zone files after parsing
+          
+
 2.1.0
 =============
 FEATURES:
