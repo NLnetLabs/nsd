@@ -1,4 +1,12 @@
-$Id: RELNOTES,v 1.6 2002/09/09 10:59:15 alexis Exp $
+$Id: RELNOTES,v 1.7 2002/09/12 09:24:29 alexis Exp $
+
+1.0.2
+=============
+FEATURES:
+	- -DNAMED8_STATS to enable bind8 like named.stats
+
+BUG FIXES:
+	- couple of pedantic fixes in C code
 
 1.0.1
 =============
