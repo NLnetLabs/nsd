@@ -330,6 +330,18 @@ rrtype_to_string(uint16_t rrtype)
 	}
 }
 
+const char *
+rrclass_to_string(uint16_t rrclass)
+{
+	static char buf[20];
+	if (rrclass == CLASS_IN) {
+		return "IN";
+	} else {
+		snprintf(buf, sizeof(buf), "CLASS%d", (int) rrclass);
+		return buf;
+	}
+}
+
 typedef int(*rdata_to_string_type)(buffer_type *output, buffer_type *packet);
 
 static int

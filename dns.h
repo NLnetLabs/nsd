@@ -166,6 +166,7 @@ rrtype_descriptor_by_type(uint16_t type)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 
 const char *rrtype_to_string(uint16_t rrtype);
+const char *rrclass_to_string(uint16_t rrclass);
 
 int rdata_to_string(buffer_type *output, rdata_zoneformat_type type,
 		    buffer_type *packet);

@@ -100,6 +100,7 @@ print_rdata(buffer_type *output, buffer_type *packet,
 	    rrtype_descriptor_type *descriptor)
 {
 	int i;
+	size_t saved_position = buffer_position(output);
 	
 	for (i = 0; i < descriptor->maximum; ++i) {
 		if (buffer_remaining(packet) == 0) {
@@ -113,6 +114,7 @@ print_rdata(buffer_type *output, buffer_type *packet,
 
 		buffer_printf(output, " ");
 		if (!rdata_to_string(output, descriptor->zoneformat[i], packet)) {
+			buffer_set_position(output, saved_position);
 			return 0;
 		}
 	}
@@ -138,40 +140,31 @@ print_rr(region_type *region, buffer_type *packet, FILE *out,
 
 	buffer_set_limit(packet, buffer_position(packet) + rdlength);
 	
-	fprintf(out, "%s %lu", dname_to_string(owner), (unsigned long) rrttl);
-	if (rrclass == CLASS_IN) {
-		fprintf(out, " IN");
-	} else {
-		fprintf(out, " CLASS%d", rrclass);
-	}
-	if (descriptor->name) {
-		fprintf(out, " %s", descriptor->name);
-	} else {
-		fprintf(out, " TYPE%d", rrtype);
-	}
+	buffer_printf(output, "%s %lu %s %s",
+		      dname_to_string(owner), (unsigned long) rrttl,
+		      rrclass_to_string(rrclass), rrtype_to_string(rrtype));
 
 	saved_position = buffer_position(packet);
 	result = print_rdata(output, packet, descriptor);
+	if (!result) {
+		/*
+		 * Some RDATA failed, so print the record's RDATA in
+		 * unknown format.
+		 */
+		buffer_set_position(packet, saved_position);
+		buffer_printf(output, " ");
+		result = rdata_to_string(output, RDATA_ZF_UNKNOWN, packet);
+	}
+	
 	assert(!result || buffer_remaining(packet) == 0);
+	
 	if (result) {
+		buffer_reserve(output, 1);
 		buffer_write_u8(output, 0);
 		buffer_flip(output);
 		fprintf(out, "%s\n", (char *) buffer_current(output));
-	} else {
-		/*
-		 * Some RDATA failed, so print the record in unknown
-		 * format.
-		 */
-		buffer_clear(output);
-		buffer_set_position(packet, saved_position);
-		if (rdata_to_string(output, RDATA_ZF_UNKNOWN, packet)) {
-			buffer_write_u8(output, '\0');
-			buffer_flip(output);
-			fprintf(out, " %s\n", (char *) buffer_current(output));
-			result = 1;
-		}
 	}
-		
+	
 	buffer_set_limit(packet, saved_limit);
 	
 	return result;
