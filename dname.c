@@ -162,18 +162,6 @@ dname_copy(region_type *region, const dname_type *dname)
 }
 
 
-const dname_type *
-dname_partial_copy(region_type *region,
-		   const dname_type *dname,
-		   uint8_t label_count,
-		   int copy)
-{
-	assert(label_count > 0);
-	assert(label_count <= dname->label_count);
-	return dname_make(region, dname_label(dname, label_count - 1), copy);
-}
-
-
 int
 dname_compare(const dname_type *left, const dname_type *right)
 {
