@@ -216,11 +216,7 @@ Q       \"
                             /* this matches quoted strings */
 			    /* Strip leading and ending quotes.  */
 			    yytext[strlen(yytext) - 1] = '\0';
-			    yytext++;
-
-                            /*ztext = region_strdup(rr_region, yytext + * 1);*/
-
-                            return parsestr(yytext, &in_rr);
+                            return parsestr(yytext + 1, &in_rr);
                         }
 ({ZONESTR}|\\.)({ZONESTR}|\\.)* {
                             /* any allowed word */
