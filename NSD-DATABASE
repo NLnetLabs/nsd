@@ -1,0 +1,47 @@
+NSD 1.4 DATABASE FORMAT
+
+As of NSD release 1.4 the database is extensively redesigned.  The main goal
+for the redesign was to accomodate DNSSEC.
+
+The idea of the database is that it stores RRsets in stead of complete answers.
+Also some of the name compression is done run time. NSD 1.2 did all compression
+at zone compile time.
+
+This has the following tradeoffs:
+        - the database is smaller (less duplication of material)
+        - the answer generation is slower ( ~ 15 % )
+
+But is was already suspected that DNSSEC would make NSD slower, that it will be
+only about 15 % is a big plus. That the database doesn't blow up in your face
+is also a big plus.
+
+The database is constructed as follows.
+
+        MAGIC
+
+        ZONE_COUNT [*]
+                dname of zone
+                dname of zone
+                ...
+
+        DNAME_COUNT [**]
+                dname
+                dname
+                ...
+
+        DNAME (index to [*]) ZONE (index to [**]) TYPE CLASS TTL
+                        #rr in rrset
+                        foreach rr
+                                #rdata
+                                rdata_1
+                                rdata_2
+                                ...
+                                rdata_N
+        NULL TERMINATED
+        MAGIC
+
+Dname's that can be compressed at compile time are compressed. Those are stored
+as an index into DNAME_COUNT.
+
+The rdata is stored as a uint16_t, where the first byte indicated the length
+of the data. The data itself is stored in wireformat.
