@@ -47,7 +47,7 @@ typedef struct region region_type;
  * Create a new region.
  */
 region_type *region_create(void *(*allocator)(size_t),
-                           void (*deallocator)(void *));
+			   void (*deallocator)(void *));
 
 
 /*
@@ -64,8 +64,8 @@ void region_destroy(region_type *region);
  * Returns 0 on failure.
  */
 size_t region_add_cleanup(region_type *region,
-                          void (*action)(void *),
-                          void *data);
+			  void (*action)(void *),
+			  void *data);
 
 
 /*
