@@ -1,5 +1,5 @@
 /*
- * $Id: hash.h,v 1.2 2002/02/11 12:48:02 alexis Exp $
+ * $Id: hash.h,v 1.3 2002/02/11 13:14:04 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -90,7 +90,7 @@ hnode_t *hash_next __P((hash_t *));
 #define	hash_last(h) NULL
 
 #define	HASH_WALK(hash, k, d) \
-	for((hash)->_node = hash_first(hash), (k) = (hash)->_node->key, (d) = (hash)->_node->data;\
+	for((hash)->_node = hash_first(hash);\
 		(hash)->_node != hash_last(hash) && \
 		((k) = (hash)->_node->key) && ((d) = (hash)->_node->data); \
 		(hash)->_node = hash_next(hash))

@@ -1,5 +1,5 @@
 /*
- * $Id: hash.c,v 1.2 2002/02/11 12:48:02 alexis Exp $
+ * $Id: hash.c,v 1.3 2002/02/11 13:11:40 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -167,8 +167,12 @@ hnode_t *
 hash_first(hash)
 	hash_t *hash;
 {
-	for(hash->_i = 0; hash->table[hash->_i].key == NULL && hash->_i < hash->size; hash->_i++);
-	return (hash->_node = &hash->table[hash->_i]);
+	for(hash->_i = 0; hash->_i < hash->size; hash->_i++) {
+		if(hash->table[hash->_i].key != NULL)
+			return (hash->_node = &hash->table[hash->_i]);
+	}
+
+	return (hash->_node = NULL);
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.1 2002/02/08 11:22:14 alexis Exp $
+ * $Id: rbtree.h,v 1.2 2002/02/11 13:14:04 alexis Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -92,7 +92,7 @@ rbnode_t *rbtree_next __P((rbnode_t *));
 #define	rbtree_last() RBTREE_NULL
 
 #define	RBTREE_WALK(rbtree, k, d) \
-	for((rbtree)->_node = rbtree_first(rbtree), (k) = (rbtree)->_node->key, (d) = (rbtree)->_node->data;\
+	for((rbtree)->_node = rbtree_first(rbtree);\
 		(rbtree)->_node != rbtree_last() && ((k) = (rbtree)->_node->key) && \
 		((d) = (rbtree)->_node->data); (rbtree)->_node = rbtree_next((rbtree)->_node))
 
