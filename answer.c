@@ -168,7 +168,6 @@ encode_rrset(struct query *q, uint16_t *count, domain_type *owner, rrset_type *r
 			++added;
 		} else {
 			all_added = 0;
-			q->overflow = 0;
 			if (truncate) {
 				/* Truncate entire RRset and set truncate flag.  */
 				q->iobufptr = truncation_point;
@@ -194,7 +193,7 @@ encode_answer(struct query *q, const answer_type *answer)
 
 	for (section = ANSWER_SECTION; section <= ADDITIONAL_SECTION; ++section) {
 		counts[section] = 0;
-		for (i = 0; i < answer->rrset_count; ++i) {
+		for (i = 0; !q->overflow && i < answer->rrset_count; ++i) {
 			if (answer->section[i] == section) {
 				int truncate = (section == ANSWER_SECTION
 						|| section == AUTHORITY_SECTION);
