@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.71 2002/09/09 10:59:15 alexis Exp $
+# $Id: Makefile,v 1.72 2002/09/10 13:04:55 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -83,6 +83,9 @@ NSDPIDFILE      = /var/run/nsd.pid
 # The NSD run-time database
 NSDDB           = ${NSDZONESDIR}/nsd.db
 
+# The NSD statistics file
+NSDSTATS	= /tmp/nsd.stats
+
 # The place to install nsd-notify
 NSDNOTIFY	= ${NSDBINDIR}/nsd-notify
 
@@ -132,11 +135,13 @@ NSDNOTIFY	= ${NSDBINDIR}/nsd-notify
 #			Log the incoming notifies along with the remote
 #			ip address.
 #
+#	-DSTATS
+#
+#			Collect statistics.
 #
 #	Please see DBFLAGS below to switch the internal database type.
 #
-FEATURES	= -DLOG_NOTIFIES -DINET6 -DHOSTS_ACCESS
-
+FEATURES	= -DSTATS -DLOG_NOTIFIES -DINET6 -DHOSTS_ACCESS
 LIBWRAP		= -lwrap
 
 # To compile NSD with internal red-black tree database
@@ -197,7 +202,7 @@ nsdc.sh: nsdc.sh.in Makefile
 		-e "s,@@NSDFLAGS@@,${NSDFLAGS},g" -e "s,@@NSDPIDFILE@@,${NSDPIDFILE},g" \
 		-e "s,@@NSDDB@@,${NSDDB},g" -e "s,@@NSDZONES@@,${NSDZONES},g" \
 		-e "s,@@NAMEDXFER@@,${NAMEDXFER},g" -e "s,@@NSDKEYSDIR@@,${NSDKEYSDIR},g" \
-		-e "s,@@NSDNOTIFY@@,${NSDNOTIFY},g" $@.in > $@
+		-e "s,@@NSDNOTIFY@@,${NSDNOTIFY},g" -e "s,@@NSDSTATS@@,${NSDSTATS},g" $@.in > $@
 	chmod a+x $@
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o

@@ -1,5 +1,5 @@
 /*
- * $Id: dbaccess.c,v 1.24 2002/05/27 14:43:34 alexis Exp $
+ * $Id: dbaccess.c,v 1.25 2002/09/10 13:04:55 alexis Exp $
  *
  * dbaccess.c -- access methods for nsd(8) database
  *
@@ -316,6 +316,9 @@ void
 namedb_close(db)
 	struct namedb *db;
 {
+	/* If it is already closed... */
+	if(db == NULL)
+		return;
 #ifdef	USE_BERKELEY_DB
 	db->db->close(db->db, 0);
 #else

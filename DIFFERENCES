@@ -139,7 +139,7 @@ J.ROOT-SERVERS.NET. A 198.41.0.10,
 K.ROOT-SERVERS.NET. A 193.0.14.129 (162) 
 
 
-2.2 b-rootdot - bind doe not return NXDOMAIN on 'root.'
+2.2 b-rootdot - bind does not return NXDOMAIN on 'root.'
 
 bind does not answer NXDOMAIN on queries for 'root.' while
 this domain does not exist in class IN.

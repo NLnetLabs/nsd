@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.42 2002/09/09 11:42:53 alexis Exp $
+ * $Id: nsd.c,v 1.43 2002/09/10 13:04:55 alexis Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -171,6 +171,10 @@ sig_handler(sig)
 		/* Dump statistics... */
 		nsd.mode = NSD_STATS;
 		break;
+	case SIGUSR2:
+		/* Clear statistics */
+		nsd.mode = NSD_ZERO;
+		break;
 	case SIGTERM:
 	default:
 		syslog(LOG_WARNING, "signal %d received, shutting down...", sig);
@@ -179,6 +183,43 @@ sig_handler(sig)
 		
 	}
 }
+
+/*
+ * Statistic output...
+ *
+ */
+#ifdef STATS
+void
+stats(nsd)
+	struct nsd *nsd;
+{
+	time_t now;
+
+	/* What time is it now? */
+	time(&now);
+	syslog(LOG_INFO, "reload: %lu seconds ago, zero: %lu seconds ago", now - nsd->st.reload,
+		now - nsd->st.zero);
+
+	/* Query totals */
+	syslog(LOG_INFO, "qudp: %lu, qudp6: %lu, ctcp: %lu, ctcp6: %lu", nsd->st.qudp, nsd->st.qudp6, nsd->st.ctcp, nsd->st.ctcp6);
+
+	/* Opcodes, rcodes... */
+	syslog(LOG_INFO, "opcode_query: %lu, opcode_iquery: %lu, opcode_status: %lu, opcode_notify: %lu opcode_other: %lu",
+		nsd->st.opcode[OPCODE_QUERY], nsd->st.opcode[OPCODE_IQUERY], nsd->st.opcode[OPCODE_STATUS],
+		nsd->st.opcode[OPCODE_NOTIFY], nsd->st.opcode[LASTELEM(nsd->st.opcode)]);
+
+	/* Rcodes... */
+	syslog(LOG_INFO, "NOERROR: %lu, FORMAT: %lu, SERVFAIL: %lu, NXDOMAIN: %lu, IMPL: %lu, REFUSE: %lu, OTHER: %lu",
+		nsd->st.rcode[RCODE_OK], nsd->st.rcode[RCODE_FORMAT], nsd->st.rcode[RCODE_SERVFAIL],
+		nsd->st.rcode[RCODE_NXDOMAIN], nsd->st.rcode[RCODE_IMPL], nsd->st.rcode[RCODE_REFUSE],
+		nsd->st.rcode[LASTELEM(nsd->st.rcode)]);
+
+	/* Classes... */
+	syslog(LOG_INFO, "qclass_in: %lu, qclass_ch: %lu, qclass_other: %lu",
+		nsd->st.qclass[CLASS_IN], nsd->st.qclass[CLASS_CHAOS], nsd->st.qclass[LASTELEM(nsd->st.qclass)]);
+
+}
+#endif /* STATS */
 
 extern char *optarg;
 extern int optind;
@@ -219,7 +260,6 @@ main(argc, argv)
 	nsd.edns.opt_err[3] = (nsd.edns.max_msglen & 0xff00) >> 8; 	/* size_hi */
 	nsd.edns.opt_err[4] = nsd.edns.max_msglen & 0x00ff; 	/* size_lo */
 	nsd.edns.opt_err[5] = 1;			/* XXX Extended RCODE=BAD VERS */
-
 
 /* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
 
@@ -358,6 +398,7 @@ main(argc, argv)
 	signal(SIGCHLD, &sig_handler);
 	signal(SIGINT, &sig_handler);
 	signal(SIGUSR1, &sig_handler);
+	signal(SIGUSR2, &sig_handler);
 
 	/* Get our process id */
 	nsd.pid = getpid();

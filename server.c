@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.40 2002/09/09 10:59:15 alexis Exp $
+ * $Id: server.c,v 1.41 2002/09/10 13:04:55 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -59,19 +59,25 @@ answer_udp(s, nsd)
 
 	if(query_process(&q, nsd) != -1) {
  		switch(q.edns) {
-		case 1:
+		case 1:	/* EDNS(0) packet... */
  			if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
  				bcopy(nsd->edns.opt_ok, q.iobufptr, OPT_LEN);
  				q.iobufptr += OPT_LEN;
  				ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
  			}
+
+			STATUP(nsd, edns);
+
 			break;
-		case -1:
+		case -1: /* EDNS(0) error... */
  			if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
  				bcopy(nsd->edns.opt_err, q.iobufptr, OPT_LEN);
  				q.iobufptr += OPT_LEN;
  				ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
  			}
+
+			STATUP(nsd, ednserr);
+
 			break;
  		}
 
@@ -82,6 +88,15 @@ answer_udp(s, nsd)
 			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
 			return -1;
 		}
+
+#ifdef STATS
+		/* Account the rcode & TC... */
+		STATUP2(nsd, rcode, RCODE((&q)));
+		if(TC((&q)))
+			STATUP(nsd, truncated);
+#endif /* STATS */
+	} else {
+		STATUP(nsd, dropped);
 	}
 
 	return 0;
@@ -163,6 +178,7 @@ answer_tcp(s, addr, addrlen, nsd)
 						q.iobufptr += OPT_LEN;
 						ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
 					}
+
 					break;
 				case -1:
 					if((q.iobufptr - q.iobuf + OPT_LEN) <= q.iobufsz) {
@@ -170,6 +186,7 @@ answer_tcp(s, addr, addrlen, nsd)
 						q.iobufptr += OPT_LEN;
 						ARCOUNT((&q)) = htons(ntohs(ARCOUNT((&q))) + 1);
 					}
+
 					break;
 				}
 
@@ -189,7 +206,11 @@ answer_tcp(s, addr, addrlen, nsd)
 					axfr = query_axfr(&q, nsd, NULL, NULL, 0);
 				}
 			} while(axfr);
+		} else {
+			/* Drop the entire connection... */
+			break;
 		}
+
 		alarm(120);
 	}
 
@@ -228,6 +249,11 @@ server(nsd)
 #else
 	struct sockaddr_in tcpc_addr;
 #endif
+
+#ifdef	STATS
+	time_t now;
+#endif
+
 	size_t tcpc_addrlen;
 	fd_set peer;
 	pid_t pid;
@@ -346,10 +372,35 @@ server(nsd)
 		return -1;
 	}
 
+#ifdef	STATS
+	/* Initialize times... */
+	time(&nsd->st.reload);
+	time(&nsd->st.zero);
+#endif /* STATS */
+
 	/* The main loop... */	
 	while(nsd->mode != NSD_SHUTDOWN) {
 		/* Do we need to reload the database? */
 		switch(nsd->mode) {
+		case NSD_ZERO:
+		case NSD_STATS:
+#ifdef STATS
+			/* Dump the statistics */
+			stats(nsd);
+
+			if(nsd->mode == NSD_ZERO) {
+				now = nsd->st.reload;
+				bzero(&nsd->st, sizeof(struct nsdst));
+				time(&nsd->st.zero);
+				nsd->st.reload = now;
+			}
+#else /* STATS */
+			syslog(LOG_NOTICE, "No statistics available, try recompiling with -DSTATS");
+#endif /* STATS */
+
+			nsd->mode = NSD_RUN;
+
+			break;
 		case NSD_RELOAD:
 			nsd->mode = NSD_RUN;
 
@@ -378,7 +429,10 @@ server(nsd)
 				if(writepid(nsd) == -1) {
 					syslog(LOG_ERR, "cannot overwrite the pidfile %s: %m", nsd->pidfile);
 				}
-
+#ifdef STATS
+				/* Remeber the time of the reload... */
+				time(&nsd->st.reload);
+#endif /* STATS */
 				break;
 			default:
 				/* PARENT */
@@ -419,16 +473,24 @@ server(nsd)
 
 		/* Process it... */
 		if(FD_ISSET(udp_s, &peer)) {
+			/* Account... */
+			STATUP(nsd, qudp);
+
 			/* UDP query... */
 			answer_udp(udp_s, nsd);
 		}
 #ifdef INET6
 		else if (FD_ISSET(udp6_s, &peer)) {
+			/* Account... */
+			STATUP(nsd, qudp6);
 			/* UDP query... */
 			answer_udp(udp6_s, nsd);
 		}
 #endif
 		else if (FD_ISSET(tcp_s, &peer)) {
+			/* Account... */
+			STATUP(nsd, ctcp);
+
 			/* Accept the tcp connection */
 			tcpc_addrlen = sizeof(tcpc_addr);
 			if((tcpc_s = accept(tcp_s, (struct sockaddr *)&tcpc_addr, &tcpc_addrlen)) == -1) {
@@ -451,6 +513,9 @@ server(nsd)
 		}
 #ifdef INET6
 		else if (FD_ISSET(tcp6_s, &peer)) {
+			/* Account... */
+			STATUP(nsd, ctcp6);
+
 			/* Accept the tcp6 connection */
 			tcpc_addrlen = sizeof(tcpc_addr);
 			if((tcpc_s = accept(tcp6_s, (struct sockaddr *)&tcpc_addr, &tcpc_addrlen)) == -1) {

@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.77 2002/09/09 10:59:15 alexis Exp $
+ * $Id: query.c,v 1.78 2002/09/10 13:04:55 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -351,6 +351,9 @@ query_process(q, nsd)
 	/* Sanity checks */
 	if(QR(q)) return -1;	/* Not a query? Drop it on the floor. */
 
+	/* Account the OPCODE */
+	STATUP2(nsd, opcode, OPCODE(q));
+
 	/* Do we serve this type of query */
 	if(OPCODE(q) != OPCODE_QUERY) {
 		/* Setup the header... */
@@ -424,6 +427,10 @@ query_process(q, nsd)
 
 	bcopy(qptr, &qtype, 2); qptr += 2;
 	bcopy(qptr, &qclass, 2); qptr += 2;
+
+	/* Update the type and class */
+	STATUP2(nsd, qtype, ntohs(qtype));
+	STATUP2(nsd, qclass, ntohs(qclass));
 
 	/* Dont allow any records in the answer or authority section... */
 	if(ANCOUNT(q) != 0 || NSCOUNT(q) != 0) {
@@ -742,5 +749,9 @@ query_process(q, nsd)
 	} while(*qname);
 
 	RCODE_SET(q, RCODE_SERVFAIL);
+
+	/* We got a query for the zone we dont have */
+	STATUP(nsd, wrongzone);
+
 	return 0;
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.33 2002/09/09 10:59:15 alexis Exp $
+ * $Id: nsd.h,v 1.34 2002/09/10 13:04:55 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -69,8 +69,27 @@
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
+#define	NSD_STATS 3
+#define	NSD_ZERO 4
 
 #define	OPT_LEN	11
+
+#ifdef	STATS
+
+typedef	unsigned long stc_t;
+
+#define	LASTELEM(arr)	(sizeof(arr) / sizeof(arr[0]) - 1)
+
+#define	STATUP(nsd, stc) nsd->st.stc++
+#define	STATUP2(nsd, stc, i)  ((i) <= (LASTELEM(nsd->st.stc) - 1)) ? nsd->st.stc[(i)]++ : \
+				nsd->st.stc[LASTELEM(nsd->st.stc)]++
+#else	/* STATS */
+
+#define	STATUP(nsd, stc) /* Nothing */
+M
+#define	STATUP2(nsd, stc, i) /* Nothing */
+
+#endif /* STATS */
 
 /* NSD configuration and run-time variables */
 struct	nsd {
@@ -111,6 +130,19 @@ struct	nsd {
 		char		opt_ok[OPT_LEN];
 		char		opt_err[OPT_LEN];
 	} edns;
+
+#ifdef	STATS
+	struct nsdst {
+		time_t	reload, zero;
+		stc_t	qtype[3];	/* Counters per qtype */
+		stc_t	qclass[256];	/* Class IN or Class CH or other */
+		stc_t	qudp, qudp6;	/* Number of queries udp and udp6 */
+		stc_t	ctcp, ctcp6;	/* Number of tcp and tcp6 connections */
+		stc_t	rcode[17], opcode[5]; /* Rcodes & opcodes */
+		stc_t	dropped, truncated, wrongzone;	/* Dropped, truncated, queries for nonconfigured zone */
+		stc_t 	edns, ednserr;
+	} st;
+#endif /* STATS */
 };
 
 #include "dns.h"
@@ -121,5 +153,6 @@ void *xalloc __P((size_t));
 void *xrealloc __P((void *, size_t));
 int server __P((struct nsd *));
 int writepid __P((struct nsd *));
+void stats __P((struct nsd *));
 
 #endif	/* _NSD_H_ */
