@@ -1,5 +1,5 @@
 /*
- * $Id: hash.h,v 1.3 2002/02/11 13:14:04 alexis Exp $
+ * $Id: hash.h,v 1.4 2002/02/12 13:26:55 alexis Exp $
  *
  * hash.h -- generic non-dynamic hash
  *
@@ -72,21 +72,21 @@ struct hash_t {
 	hnode_t *_node;
 	unsigned _i;
 
-	void *(*mallocf)();		/* Malloc function */
-	int (*cmp) ();			/* Compare function */
-	unsigned long (*hash)();	/* The hash function */
+	void *(*mallocf)(size_t);		/* Malloc function */
+	int (*cmp) (void *, void *);			/* Compare function */
+	unsigned long (*hash)(void *);	/* The hash function */
 
 	/* The hash table */
 	hnode_t	*table;
 };
 
-hash_t *hash_create __P((void *(*)(), int (*)(), unsigned long (*)(), unsigned long));
-void *hash_insert __P((hash_t *, void *, void *, int));
-void *hash_search __P((hash_t *, void *));
-void hash_delete __P((hash_t *, void *, int, int));
-void hash_destroy __P((hash_t *, int, int));
-hnode_t *hash_first __P((hash_t *));
-hnode_t *hash_next __P((hash_t *));
+/* hash.c */
+hash_t *hash_create __P((void *(*mallocf)(size_t), int (*cmpf)(void *, void *), unsigned long (*hashf)(void *), unsigned long size));
+void *hash_insert __P((hash_t *hash, void *key, void *data, int overwrite));
+void *hash_search __P((hash_t *hash, void *key));
+void hash_destroy __P((hash_t *hash, int freekeys, int freedata));
+hnode_t *hash_first __P((hash_t *hash));
+hnode_t *hash_next __P((hash_t *hash));
 #define	hash_last(h) NULL
 
 #define	HASH_WALK(hash, k, d) \

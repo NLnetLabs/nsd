@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.23 2002/02/08 11:21:44 alexis Exp $
+# $Id: Makefile,v 1.24 2002/02/12 13:26:55 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -40,8 +40,8 @@ SHELL = /bin/sh
 
 DEBUG=	-g -DDEBUG=1
 CC=gcc
-CFLAGS= -pipe -O6 -Wall -DUSE_HEAP_HASH ${DEBUG} # -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
-LDFLAGS= # -L/usr/local/lib -ldb4
+CFLAGS= -pipe -O6 -ansi -Wstrict-prototypes -Wall -DUSE_HEAP_HASH ${DEBUG} -I/usr/local/include/db4 -DMIMIC_BIND8 -DUSE_BERKELEY_DB 
+LDFLAGS= -L/usr/local/lib -ldb4
 LDADD=
 LIBS =
 

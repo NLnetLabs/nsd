@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.18 2002/02/12 12:47:20 alexis Exp $
+ * $Id: server.c,v 1.19 2002/02/12 13:26:55 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -39,9 +39,16 @@
  */
 #include "nsd.h"
 
+#ifdef __STDC__
+
+int 
+server (struct namedb *db)
+#else
+
 int
 server(db)
 	struct namedb *db;
+#endif
 {
 	struct query *q;
 	struct sockaddr_in udp_addr, tcp_addr;

@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.2 2002/02/11 13:14:04 alexis Exp $
+ * $Id: rbtree.h,v 1.3 2002/02/12 13:26:55 alexis Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -78,17 +78,16 @@ struct rbtree_t {
 	rbnode_t	*_node;
 
 	/* Free and compare functions */
-	void *(*mallocf)();
-	int (*cmp) ();
+	void *(*mallocf)(size_t);
+	int (*cmp) (void *, void *);
 };
 
-rbtree_t *rbtree_create __P((void *(*)(), int (*)()));
-void *rbtree_insert __P((rbtree_t *, void *, void *, int));
-void *rbtree_search __P((rbtree_t *, void *));
-void rbtree_delete __P((rbtree_t *, void *, int, int));
-void rbtree_destroy __P((rbtree_t *, int, int));
-rbnode_t *rbtree_first __P((rbtree_t *));
-rbnode_t *rbtree_next __P((rbnode_t *));
+
+/* rbtree.c */
+rbtree_t *rbtree_create __P((void *(*mallocf)(size_t), int (*cmpf)(void *, void *)));
+void *rbtree_insert __P((rbtree_t *rbtree, void *key, void *data, int overwrite));
+void *rbtree_search __P((rbtree_t *rbtree, void *key));
+void rbtree_destroy __P((rbtree_t *rbtree, int freekeys, int freedata));
 #define	rbtree_last() RBTREE_NULL
 
 #define	RBTREE_WALK(rbtree, k, d) \
