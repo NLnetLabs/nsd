@@ -801,7 +801,7 @@ answer_query(struct nsd *nsd, struct query *q)
 	exact = namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser);
 	if (!closest_encloser->is_existing) {
 		exact = 0;
-		while (!closest_encloser->is_existing)
+		while (closest_encloser != NULL && !closest_encloser->is_existing)
 			closest_encloser = closest_encloser->parent;
 	}
 
