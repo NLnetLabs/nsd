@@ -553,11 +553,16 @@ zparser_conv_loc(region_type *region, char *str)
 	uint16_t *r;
 	uint32_t *p;
 	int i;
-	int deg = 0, min = 0, secs = 0, secfraq = 0, altsign = 0, altmeters = 0, altfraq = 0;
+	int deg, min, secs;	/* Secs is stored times 1000.  */
 	uint32_t lat = 0, lon = 0, alt = 0;
 	uint8_t vszhpvp[4] = {0, 0, 0, 0};
+	char *start;
+	double d;
+			
 
 	for(;;) {
+		deg = min = secs = 0;
+		
 		/* Degrees */
 		if (*str == '\0') {
 			zc_error_prev_line("unexpected end of LOC data");
@@ -585,47 +590,48 @@ zparser_conv_loc(region_type *region, char *str)
 		
 		/* Seconds? */
 		if (isdigit(*str)) {
-			if (!parse_int(str, &str, &secs, "seconds", 0, 60))
-				return NULL;
-			if (!isspace(*str) && *str != '.') {
-				zc_error_prev_line("space expected after seconds");
+			start = str;
+			if (!parse_int(str, &str, &i, "seconds", 0, 60)) {
 				return NULL;
 			}
-		}
 
-		if (*str == '.') {
-			secfraq = (int) strtol(str + 1, &str, 10);
+			if (*str == '.' && !parse_int(str + 1, &str, &i, "seconds fraction", 0, 999)) {
+				return NULL;
+			}
+
 			if (!isspace(*str)) {
 				zc_error_prev_line("space expected after seconds");
 				return NULL;
 			}
+
+			if (sscanf(start, "%lf", &d) != 1) {
+				zc_error_prev_line("error parsing seconds");
+			}
+
+			if (d < 0.0 || d > 60.0) {
+				zc_error_prev_line("seconds not in range 0.0 .. 6.0");
+			}
+
+			secs = (int) (d * 1000.0);
 		}
 		++str;
 		
 		switch(*str) {
 		case 'N':
 		case 'n':
-			lat = ((unsigned)1<<31) + (((((deg * 60) + min) * 60) + secs)
-				* 1000) + secfraq;
-			deg = min = secs = secfraq = 0;
+			lat = ((uint32_t)1<<31) + (deg * 3600000 + min * 60000 + secs);
 			break;
 		case 'E':
 		case 'e':
-			lon = ((unsigned)1<<31) + (((((deg * 60) + min) * 60) + secs) * 1000)
-				+ secfraq;
-			deg = min = secs = secfraq = 0;
+			lon = ((uint32_t)1<<31) + (deg * 3600000 + min * 60000 + secs);
 			break;
 		case 'S':
 		case 's':
-			lat = ((unsigned)1<<31) - (((((deg * 60) + min) * 60) + secs) * 1000)
-				- secfraq;
-			deg = min = secs = secfraq = 0;
+			lat = ((uint32_t)1<<31) - (deg * 3600000 + min * 60000 + secs);
 			break;
 		case 'W':
 		case 'w':
-			lon = ((unsigned)1<<31) - (((((deg * 60) + min) * 60) + secs) * 1000)
-				- secfraq;
-			deg = min = secs = secfraq = 0;
+			lon = ((uint32_t)1<<31) - (deg * 3600000 + min * 60000 + secs);
 			break;
 		default:
 			zc_error_prev_line("invalid latitude/longtitude");
@@ -649,26 +655,31 @@ zparser_conv_loc(region_type *region, char *str)
 		return NULL;
 	}
 
+	if (!isspace(*str)) {
+		zc_error_prev_line("space expected before altitude");
+		return NULL;
+	}
+	++str;
+
+	start = str;
+
 	/* Sign */
-	switch(*str) {
-	case '-':
-		altsign = -1;
-	case '+':
+	if (*str == '+' || *str == '-') {
 		++str;
-		break;
 	}
 
 	/* Meters of altitude... */
-	altmeters = strtol(str, &str, 10);
+	(void) strtol(str, &str, 10);
 	switch(*str) {
 	case ' ':
 	case '\0':
 	case 'm':
 		break;
 	case '.':
-		++str;
-		altfraq = strtol(str + 1, &str, 10);
-		if (!isspace(*str) && *str != 0 && *str != 'm') {
+		if (!parse_int(str + 1, &str, &i, "altitude fraction", 0, 99)) {
+			return NULL;
+		}
+		if (!isspace(*str) && *str != '\0' && *str != 'm') {
 			zc_error_prev_line("altitude fraction must be a number");
 			return NULL;
 		}
@@ -679,8 +690,12 @@ zparser_conv_loc(region_type *region, char *str)
 	}
 	if (!isspace(*str) && *str != '\0')
 		++str;
+
+	if (sscanf(start, "%lf", &d) != 1) {
+		zc_error_prev_line("error parsing altitude");
+	}
 	
-	alt = (10000000 + (altsign * (altmeters * 100 + altfraq)));
+	alt = 10000000 + (int32_t) (d * 100);
 
 	if (!isspace(*str) && *str != '\0') {
 		zc_error_prev_line("unexpected character after altitude");
