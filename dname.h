@@ -120,13 +120,13 @@ dname_length(const dname_type *dname)
 static inline const uint8_t *
 dname_name(const dname_type *dname)
 {
-	return &dname->_data[1];
+	return &dname->_data[1 + dname_length(dname)];
 }
 
 static inline const uint8_t *
 dname_canonical_name(const dname_type *dname)
 {
-	return &dname->_data[1 + dname_length(dname)];
+	return &dname->_data[1];
 }
 
 static inline int

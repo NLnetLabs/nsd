@@ -61,8 +61,8 @@ dname_make(region_type *region, const uint8_t *name)
 	result = (dname_type *) region_alloc(
 		region,	sizeof(dname_type) + 2 * name_length);
 	result->_data[0] = name_length;
-	memcpy(&result->_data[1], name, name_length);
-	memcpy(&result->_data[1 + name_length], p, name_length);
+	memcpy(&result->_data[1], p, name_length);
+	memcpy(&result->_data[1 + name_length], name, name_length);
 	return result;
 }
 
