@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlexer.lex,v 1.21 2004/01/09 12:40:58 erik Exp $
+ * $Id: zlexer.lex,v 1.22 2004/01/19 10:54:36 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -335,7 +335,7 @@ zoctet(char *word)
             /* [XXX] what is so special about dots anyway?  this needs
   	       to be fixed, somehow */
             case '.':
-                printf("Seeing dots\n\n");
+                warning("Seeing dots\n\n");
                 if ( s[1] == '.' ) {
                     warning("Empty label");
                     break;
