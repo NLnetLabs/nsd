@@ -1,6 +1,4 @@
 /*
- * $Id: heap.h,v 1.16 2003/08/05 12:21:45 erik Exp $
- *
  * heap.h -- generic heap
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

@@ -1,6 +1,4 @@
 /*
- * $Id: zparser.h,v 1.19 2003/08/06 14:24:54 erik Exp $
- *
  * zparser.h -- master zone file parser
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

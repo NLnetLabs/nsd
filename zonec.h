@@ -1,6 +1,4 @@
 /*
- * $Id: zonec.h,v 1.27 2003/08/06 14:24:53 erik Exp $
- *
  * zone.h -- internal zone representation
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

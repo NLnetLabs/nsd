@@ -1,6 +1,4 @@
 /*
- * $Id: nsd-plugin.h,v 1.8 2003/07/07 09:02:16 erik Exp $
- *
  * nsd-plugin.h -- interface to NSD for a plugin.
  *
  * Erik Rozendaal, <erik@nlnetlabs.nl>

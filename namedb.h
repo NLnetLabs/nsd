@@ -1,6 +1,4 @@
 /*
- * $Id: namedb.h,v 1.43 2003/08/12 09:11:17 erik Exp $
- *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

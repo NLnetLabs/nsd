@@ -1,6 +1,4 @@
 /*
- * $Id: dns.h,v 1.14 2003/07/07 09:42:21 erik Exp $
- *
  * dns.h -- everything we wanted to know but were afraid
  *		to ask about DNS
  *

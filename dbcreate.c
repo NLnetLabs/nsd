@@ -1,6 +1,4 @@
 /*
- * $Id: dbcreate.c,v 1.26 2003/08/12 09:11:15 erik Exp $
- *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

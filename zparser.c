@@ -1,6 +1,4 @@
 /*
- * $Id: zparser.c,v 1.41 2003/07/28 12:28:40 erik Exp $
- *
  * zparser.c -- master zone file parser
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

@@ -1,6 +1,4 @@
 /*
- * $Id: nsd-notify.c,v 1.14 2003/07/28 12:28:39 erik Exp $
- *
  * nsd-notify.c -- sends notify(rfc1996) message to a list of servers
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>

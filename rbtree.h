@@ -1,6 +1,4 @@
 /*
- * $Id: rbtree.h,v 1.16 2003/08/06 14:24:49 erik Exp $
- *
  * rbtree.h -- generic red-black tree
  *
  * Alexis Yushin, <alexis@nlnetlabs.nl>
