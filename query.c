@@ -400,7 +400,7 @@ find_covering_nsec(domain_type *closest_match,
 	assert(closest_match);
 	assert(nsec_rrset);
 
-	while ((rbnode_t *) closest_match != RBTREE_NULL) {
+	while (closest_match) {
 		*nsec_rrset = domain_find_rrset(closest_match, zone, TYPE_NSEC);
 		if (*nsec_rrset) {
 			return closest_match;
@@ -409,8 +409,7 @@ find_covering_nsec(domain_type *closest_match,
 			/* Don't look outside the current zone.  */
 			return NULL;
 		}
-		closest_match = (domain_type *) heap_previous(
-			(rbnode_t *) closest_match);
+		closest_match = domain_previous(closest_match);
 	}
 	return NULL;
 }

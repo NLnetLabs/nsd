@@ -177,6 +177,20 @@ domain_dname(domain_type *domain)
 	return (const dname_type *) domain->node.key;
 }
 
+static inline domain_type *
+domain_previous(domain_type *domain)
+{
+	rbnode_t *prev = heap_previous((rbnode_t *) domain);
+	return prev == RBTREE_NULL ? NULL : (domain_type *) prev;
+}
+
+static inline domain_type *
+domain_next(domain_type *domain)
+{
+	rbnode_t *prev = heap_next((rbnode_t *) domain);
+	return prev == RBTREE_NULL ? NULL : (domain_type *) prev;
+}
+
 /*
  * The type covered by the signature in the specified RR in the RRSIG
  * RRset.
