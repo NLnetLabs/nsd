@@ -303,14 +303,14 @@ case "$enable_checking" in
                 ;;
 esac
 
-AH_VERBATIM([BITYPES],[
+AH_BOTTOM([
+#include <sys/types.h>
+])
+
+AH_BOTTOM([
 #ifdef HAVE_SYS_BITYPES_H
 #include <sys/bitypes.h>
 #endif
-])
-
-AH_VERBATIM([TYPES],[
-#include <sys/types.h>
 ])
 
 AC_CONFIG_FILES([Makefile])
