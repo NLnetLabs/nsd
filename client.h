@@ -1,5 +1,5 @@
 /*
- * $Id: client.h,v 1.2 2003/05/08 10:30:36 alexis Exp $
+ * $Id: client.h,v 1.3 2003/06/12 12:31:18 erik Exp $
  *
  * client.h -- set of DNS client routines
  *
@@ -45,4 +45,4 @@ int unpack(struct query *q, struct RR *rr, u_int16_t rdlength);
 struct RR **response(int s, struct query *q);
 int query(int s, struct query *q, u_char *dname, u_int16_t qtype, u_int16_t qclass, u_int32_t qid, int op, int aa, int rd, int tcp);
 
-#endif _CLIENT_H_
+#endif /* _CLIENT_H_ */

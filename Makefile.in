@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.34 2003/04/29 13:40:52 alexis Exp $
+# $Id: Makefile.in,v 1.35 2003/06/12 12:31:18 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -96,6 +96,7 @@ install: all
 	$(INSTALL) -d $(sbindir)
 	$(INSTALL) -d $(configdir)
 	$(INSTALL) -d $(mandir)
+	$(INSTALL) -d $(mandir)/man8
 	$(INSTALL) -s nsd $(sbindir)/nsd
 	$(INSTALL) -s zonec $(sbindir)/zonec
 	$(INSTALL) -s nsd-axfr $(sbindir)/nsd-axfr
@@ -104,6 +105,7 @@ install: all
 	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
 	$(INSTALL_DATA) zonec.8 $(mandir)/man8
 	$(INSTALL_DATA) nsd-axfr.8 $(mandir)/man8
+	$(INSTALL_DATA) nsd-notify.8 $(mandir)/man8
 	$(INSTALL_DATA) nsdc.conf.sample $(configfile).sample
 	$(INSTALL_DATA) nsd.zones.sample $(zonesfile).sample
 
@@ -113,7 +115,7 @@ uninstall:
 	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-axfr.8
 	rm -f -- $(pidfile) $(dbfile)
 	@echo
-	@echo "You still need to remove $(confdir) directory by hand."
+	@echo "You still need to remove $(configdir) directory by hand."
 
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS) $(LIBWRAP) $(LIBS)
@@ -127,8 +129,15 @@ nsq:	zparser.h dns.h nsq.o client.o zparser.o dname.o $(LIBOBJS)
 nsd-axfr:	zparser.h dns.h nsd-axfr.o client.o zparser.o dname.o $(LIBOBJS)
 	$(LINK) -o $@ nsd-axfr.o client.o zparser.o dname.o $(LIBOBJS) $(LIBS)
 
+nsd-notify:	nsd-notify.c dname.o 
+	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o $(LIBS) $(LIBOBJS)
+
 clean:
 	rm -f zonec nsd zparser hash rbtree nsd-axfr nsq *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
+
+realclean: clean
+	rm -f Makefile config.h config.h.in config.log config.status configure
+	rm -rf autom4te*
 
 basename.o:	compat/basename.c
 	$(COMPILE) -c compat/basename.c -o basename.o
@@ -172,3 +181,23 @@ configure:	configure.ac
 	autoconf
 
 # Dependencies
+client.o: client.c config.h dns.h namedb.h heap.h rbtree.h dname.h nsd.h \
+  zparser.h query.h zonec.h client.h
+dbaccess.o: dbaccess.c config.h namedb.h heap.h rbtree.h
+dbcreate.o: dbcreate.c config.h namedb.h heap.h rbtree.h
+dname.o: dname.c config.h dns.h dname.h namedb.h heap.h rbtree.h
+hash.o: hash.c hash.h
+nsd-axfr.o: nsd-axfr.c config.h dns.h namedb.h heap.h rbtree.h dname.h \
+  nsd.h query.h zparser.h client.h
+nsd.o: nsd.c config.h dns.h dname.h namedb.h heap.h rbtree.h nsd.h \
+  query.h
+nsq.o: nsq.c config.h dns.h namedb.h heap.h rbtree.h dname.h nsd.h \
+  zparser.h query.h zonec.h client.h
+query.o: query.c config.h dns.h dname.h nsd.h namedb.h heap.h rbtree.h \
+  query.h
+rbtree.o: rbtree.c rbtree.h
+server.o: server.c config.h dns.h namedb.h heap.h rbtree.h dname.h nsd.h \
+  query.h
+zonec.o: zonec.c config.h heap.h rbtree.h dns.h zparser.h namedb.h \
+  dname.h zonec.h
+zparser.o: zparser.c config.h dns.h zparser.h dname.h

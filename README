@@ -1,4 +1,4 @@
-$Id: README,v 1.20 2003/04/15 09:57:18 alexis Exp $
+$Id: README,v 1.21 2003/06/12 12:31:18 erik Exp $
 
 1.0 Introduction
 1.1 Basic theory of operation
@@ -352,6 +352,9 @@ axfr : ALL : deny
 At first a check is made wether the particular client is allowed to do
 transfer of the particular zone.
 
+NOTE: Make sure you dont forget the trailing dot. So for example ``axfr-se.''
+and NOT ``axfr-se''
+
 If -DAXFR_DAEMON_PREFIX is defined (which is the case by default) and
 the first lookup for ``axfr'' has failed (denied) then nsd will try second
 lookup in hosts.allow or hosts.deny for the daemon name axfr-zone.name.tld.
@@ -364,6 +367,8 @@ that keeping and updating the local master zone files is outside of the scope
 of the package and should be done either out of band or with help of separate
 tools. However starting with 1.0.1-beta4 NSD provides such functionality to
 a limited extent.
+
+The 1.1.2 version of NSD will have the AXFR machienery built in.
 
 The 1.1.2 version of NSD will have the AXFR machienery built in.
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.25 2003/03/20 10:31:25 alexis Exp $
+# $Id: nsdc.sh.in,v 1.26 2003/06/12 12:31:18 erik Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -82,7 +82,7 @@ signal() {
 
 case "$1" in
 start)
-	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -f ${dbfile} ${NSDFLAGS}
+	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -f ${dbfile} ${flags}
 	$0 notify
 	;;
 stop)
@@ -119,7 +119,7 @@ update)
 		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
 		then
 			# now get the serial number
-			serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1 }' ${zonesdir}/$file`
+			serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1; exit }' ${zonesdir}/$file`
 			serial=${serial:-0}
 
  			# take care of tsig info file if any

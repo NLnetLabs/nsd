@@ -1,5 +1,5 @@
 ;
-; $Id: nsd.zones.sample,v 1.5 2003/03/20 10:31:25 alexis Exp $
+; $Id: nsd.zones.sample,v 1.6 2003/06/12 12:31:18 erik Exp $
 ;
 ; nsd.zones -- a list of the zones to be compiled into the NSD database
 ;
@@ -39,7 +39,7 @@
 
 ; This is a comment
 
-; The filenames are relative to ${NSDZONESDIR}
+; The filenames are relative to ${zonesdir}
 ;
 ; The masters keyword indicates that the zone should be AXFR'd from appropriate
 ; ip-address of the master DNS server on subsquent nsdc(8) update if necessary.
@@ -48,6 +48,7 @@
 ; on every NSD database (re)load.
 ;
 ; zone	name		filename		[ masters/notify ip-address ]
-zone	.		primary/root.zone	notify 128.9.0.107 192.33.4.12 128.8.10.90
-zone	ww.net		primary/ww.net
-zone	nlnetlabs.nl	secondary/nlnetlabs.nl	masters 213.53.69.1
+;zone	.		primary/root.zone	notify 128.9.0.107 192.33.4.12 128.8.10.90
+;zone	ww.net		primary/ww.net
+;zone	nlnetlabs.nl	secondary/nlnetlabs.nl	masters 213.53.69.1
+

@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,1.1.0b,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,1.2.0,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 dnl
@@ -109,7 +109,7 @@ AC_PROG_INSTALL
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h netdb.h sys/bitypes.h])
 
 AC_SEARCH_LIBS(inet_addr, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
@@ -120,14 +120,46 @@ AC_TYPE_UID_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 
-AC_CHECK_TYPE(u_char, unsigned char)
-AC_CHECK_TYPE(u_long, unsigned long)
-AC_CHECK_TYPE(int8_t, char)
-AC_CHECK_TYPE(int16_t, short)
-AC_CHECK_TYPE(int32_t, int)
-AC_CHECK_TYPE(u_int8_t, unsigned char)
-AC_CHECK_TYPE(u_int16_t, unsigned short)
-AC_CHECK_TYPE(u_int32_t, unsigned int)
+dnl LIBGTOP_CHECK_TYPE
+dnl Stolen from Gnome's anjuta
+dnl Improved version of AC_CHECK_TYPE which takes into account
+dnl that we need to #include some other header files on some
+dnl systems to get some types.
+
+dnl AC_LIBGTOP_CHECK_TYPE(TYPE, DEFAULT)
+AC_DEFUN([AC_LIBGTOP_CHECK_TYPE],
+[AC_REQUIRE([AC_HEADER_STDC])dnl
+AC_MSG_CHECKING(for $1)
+AC_CACHE_VAL(ac_cv_type_$1,
+[AC_EGREP_CPP(dnl
+changequote(<<,>>)dnl
+<<(^|[^a-zA-Z_0-9])$1[^a-zA-Z_0-9]>>dnl
+changequote([,]), [#include <sys/types.h>
+#if STDC_HEADERS
+#include <stdlib.h>
+#include <stddef.h>
+#endif
+
+/* For Tru64 */
+#ifdef HAVE_SYS_BITYPES_H
+#include <sys/bitypes.h>
+#endif
+], ac_cv_type_$1=yes, ac_cv_type_$1=no)])dnl
+AC_MSG_RESULT($ac_cv_type_$1)
+if test $ac_cv_type_$1 = no; then
+  AC_DEFINE($1, $2, Define "$1" to "$2" if "$1" is missing)
+fi
+])
+
+AC_LIBGTOP_CHECK_TYPE([u_char], [unsigned char])
+AC_LIBGTOP_CHECK_TYPE(u_long, unsigned long)  
+AC_LIBGTOP_CHECK_TYPE(int8_t, char) 
+AC_LIBGTOP_CHECK_TYPE(int16_t, short)
+AC_LIBGTOP_CHECK_TYPE(int32_t, int)
+AC_LIBGTOP_CHECK_TYPE(u_int8_t, unsigned char)
+AC_LIBGTOP_CHECK_TYPE(u_int16_t, unsigned short)
+AC_LIBGTOP_CHECK_TYPE(u_int32_t, unsigned int)
+
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [u_int32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
@@ -252,6 +284,15 @@ case "$enable_bind8_stats" in
 		;;
 esac
 
+AH_VERBATIM([BITYPES],[
+#ifdef HAVE_SYS_BITYPES_H
+#include <sys/bitypes.h>
+#endif
+])
+
+AH_VERBATIM([TYPES],[
+#include <sys/types.h>
+])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

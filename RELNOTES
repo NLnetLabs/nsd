@@ -1,4 +1,4 @@
-$Id: RELNOTES,v 1.16 2003/04/15 09:57:18 alexis Exp $
+$Id: RELNOTES,v 1.17 2003/06/12 12:31:18 erik Exp $
 
 
 1.1
@@ -13,6 +13,19 @@ FEATURES:
 BUG FIXES:
 	- lots of zone parsing errors eliminated
 	- empty node matching bug gives NXDOMAIN
+
+1.0.3
+=============
+This release is a bug fix release and does not add any new features.
+
+BUG FIXES:
+        - Ignore SIGPIPE errors (bug #43).
+        - Keep track of TCP child servers and restart if necessary.
+          (bug #55)
+        - Handle database reload failures correctly.
+        - Close UDP sockets in TCP child servers.
+        - Handle escaped characters (besides \.) in labels.
+        - Preserve the query's RD flag in the answer.
 
 1.0.2
 =============

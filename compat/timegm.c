@@ -1,4 +1,16 @@
-static time_t
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <stdio.h>
+
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
+#include <time.h>
+
+time_t
 timegm (struct tm *tm) {
 	time_t ret;
 	char *tz;

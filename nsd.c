@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.68 2003/03/25 12:46:12 alexis Exp $
+ * $Id: nsd.c,v 1.69 2003/06/12 12:31:18 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -150,7 +150,7 @@ writepid (struct nsd *nsd)
 	int fd;
 	char pidbuf[16];
 
-	snprintf(pidbuf, sizeof(pidbuf), "%u\n", nsd->pid[0]);
+	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid[0]);
 
 	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
 		return -1;
@@ -175,7 +175,8 @@ void
 sig_handler (int sig)
 {
 	int status, i;
-
+	pid_t child;
+	
 	/* Reinstall the signals... */
 	signal(SIGTERM, &sig_handler);
 	signal(SIGHUP, &sig_handler);
@@ -205,10 +206,22 @@ sig_handler (int sig)
 
 	switch(sig) {
 	case SIGCHLD:
-		/* Any tcp children willing to report? */
-		if(waitpid(0, &status, WNOHANG) != 0) {
-			if(nsd.tcp.open_conn)
-				nsd.tcp.open_conn--;
+		child = waitpid(0, &status, WNOHANG);
+		if (child == -1) {
+			syslog(LOG_WARNING, "waitpid failed: %m");
+		} else if (nsd.mode == NSD_QUIT || nsd.mode == NSD_SHUTDOWN) {
+			return;
+		} else if (child > 0) {
+			int is_tcp_child = delete_tcp_child_pid(&nsd, child);
+			if (is_tcp_child) {
+				syslog(LOG_WARNING,
+				       "TCP server %d died unexpectedly with status %d, restarting",
+				       (int) child, status);
+			} else {
+				syslog(LOG_WARNING,
+				       "Reload process %d failed with status %d, continuing with old database",
+				       (int) child, status);
+			}
 		}
 		return;
 	case SIGHUP:
@@ -236,8 +249,8 @@ sig_handler (int sig)
 	}
 
 	/* Distribute the signal to the servers... */
-	for(i = nsd.tcp.open_conn; i > 0; i--) {
-		if(kill(nsd.pid[i], sig) == -1) {
+	for (i = 1; i <= nsd.tcp.open_conn; ++i) {
+		if (kill(nsd.pid[i], sig) == -1) {
 			syslog(LOG_ERR, "problems killing %d: %m", nsd.pid[i]);
 		}
 	}
@@ -296,7 +309,8 @@ bind8_stats (struct nsd *nsd)
 	time(&now);
 
 	/* NSTATS */
-	t = msg = buf + snprintf(buf, MAXSYSLOGMSGLEN, "NSTATS %lu %lu", now, nsd->st.boot);
+	t = msg = buf + snprintf(buf, MAXSYSLOGMSGLEN, "NSTATS %lu %lu",
+				 (unsigned long) now, (unsigned long) nsd->st.boot);
 	for(i = 0; i <= 255; i++) {
 		/* How much space left? */
 		if((len = buf + MAXSYSLOGMSGLEN - t) < 32) {
@@ -330,7 +344,7 @@ bind8_stats (struct nsd *nsd)
 		" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
 		" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
 		" SNXD=%lu RUQ=%lu RURQ=%lu RUXFR=%lu RUUpd=%lu",
-		now, nsd->st.boot,
+		(unsigned long) now, (unsigned long) nsd->st.boot,
 		nsd->st.dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, (unsigned long)0, nsd->st.raxfr, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped, (unsigned long)0,
