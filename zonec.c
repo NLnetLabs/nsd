@@ -69,12 +69,13 @@ extern uint8_t nsecbits[256][32];
 
 /*
  *
- * Resource records types and classes that we know.
+ * Resource records types, classes and algorithms that we know.
  *
  */
 
 struct ztab ztypes[] = Z_TYPES;
 struct ztab zclasses[] = Z_CLASSES;
+struct ztab zalgs[] = Z_ALGS;
 
 
 /* 
@@ -291,6 +292,27 @@ zparser_conv_byte(region_type *region, const char *bytestr)
         } else {
 		*r = sizeof(uint8_t);
         }
+	return r;
+}
+
+uint16_t *
+zparser_conv_algorithm(region_type *region, const char *algstr)
+{
+	/* convert a algoritm string to integer */
+	uint16_t *r = NULL;
+	unsigned int alg;
+
+	alg = intbyname(algstr, zalgs);
+
+	if ( alg == 0 ) {
+		/* not a memonic */
+		return (zparser_conv_byte(region, algstr));
+	}
+
+        r = region_alloc(region, sizeof(uint16_t) + sizeof(uint8_t));
+	/*  *((uint8_t *)(r+1)) = (uint8_t)strtol(bytestr, &end, 0);*/
+	*((uint8_t *)(r+1)) = alg;
+	*r = sizeof(uint8_t);
 	return r;
 }
 
@@ -1186,7 +1208,7 @@ process_rr(zparser_type *parser, rr_type *rr)
 	if (rr->type == TYPE_NS && rr->domain == zone->domain) {
 		zone->ns_rrset = rrset;
 	}
-	if ( ( totalrrs % progress == 0 ) && vflag != 0  && totalrrs > 0) {
+	if ( ( totalrrs % progress == 0 ) && vflag > 1  && totalrrs > 0) {
 		printf("%ld\n", totalrrs);
 	}
 	++totalrrs;
@@ -1459,9 +1481,9 @@ main (int argc, char **argv)
 				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 			}
 
-			if (vflag >0) fprintf(stderr,"zonec: reading zone \"%s\".\n",zonename);
+			if (vflag > 0) fprintf(stderr,"zonec: reading zone \"%s\".\n",zonename);
 			zone_read(zonename, zonefile);
-			if (vflag >0) fprintf(stderr,"zonec: processed %ld RRs in \"%s\".\n", totalrrs, zonename);
+			if (vflag > 0) fprintf(stderr,"zonec: processed %ld RRs in \"%s\".\n", totalrrs, zonename);
 			totalrrs = 0;
 
 #ifndef NDEBUG
@@ -1480,7 +1502,8 @@ main (int argc, char **argv)
 	}
 
 	/* Print the total number of errors */
-	fprintf(stderr, "\nzonec: done with %ld errors.\n", totalerrors);
+	if (vflag > 0) fprintf(stderr, "\n");
+	fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
 
 	/* Disable this to save some time.  */
 #if 0

@@ -580,7 +580,7 @@ rdata_dnskey:	STR sp STR sp STR sp hex_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* flags */
 		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* proto */
-		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $5.str)); /* alg */
+		zadd_rdata_wireformat(current_parser, zparser_conv_algorithm(zone_region, $5.str)); /* alg */
 		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $7.str)); /* hash */
 	}
 	|   error NL

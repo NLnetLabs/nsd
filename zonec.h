@@ -134,8 +134,21 @@ struct ztab {
 	{0, NULL}		\
 }
 
+#define Z_ALGS	{		\
+	{1,	"RSAMD5"},	\
+	{2,	"DS"},		\
+	{3,	"DSA"},		\
+	{4,	"ECC"},		\
+	{5,	"RSASHA1"},	\
+	{252,	"INDIRECT"},	\
+	{253,	"PRIVATEDNS"},	\
+	{254,	"PRIVATEOID"},	\
+	{0,	NULL}		\
+}
+
 extern struct ztab ztypes[];
 extern struct ztab zclasses[];
+extern struct ztab zalgs[];
 
 /* zonec.c */
 /*
@@ -172,6 +185,7 @@ uint16_t *zparser_conv_nxt(region_type *region, uint8_t nxtbits[]);
 uint16_t *zparser_conv_domain(region_type *region, domain_type *domain);
 uint16_t *zparser_conv_nsec(region_type *region, uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE]);
 uint16_t *zparser_conv_loc(region_type *region, char *str);
+uint16_t *zparser_conv_algorithm(region_type *region, const char *algstr);
 
 long strtottl(char *nptr, char **endptr);
 
