@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.41 2003/10/23 10:34:43 miekg Exp $
+ * $Id: zyparser.y,v 1.42 2003/10/23 11:31:09 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -131,7 +131,7 @@ dir_orig:   SP nonowner_dname trail
     }
     ;
 
-rr:     ORIGIN SP rrrest trail
+rr:     ORIGIN SP rrrest
     {
         /* starts with @, use the origin */
         current_rr->domain = current_parser->origin;
@@ -139,14 +139,14 @@ rr:     ORIGIN SP rrrest trail
         /* also set this as the prev_dname */
         current_parser->prev_dname = current_parser->origin;
     }
-    |   PREV rrrest NL
+    |   PREV rrrest
     {
         /* a tab, use previously defined dname */
         /* [XXX] is null -> error, not checked (yet) MG */
         current_rr->domain = current_parser->prev_dname;
         
     }
-    |   owner_dname SP rrrest NL
+    |   owner_dname SP rrrest
     {
 	    /* Copy from RR region to zone region.  */
 	    current_rr->domain = $1;
@@ -275,43 +275,43 @@ hex:	STR
 
 /* define what we can parse */
 
-rtype:  SOA SP rdata_soa
+rtype:  SOA SP rdata_soa trail
     {
 	    current_rr->type = $1;
     }
-    |   A SP rdata_a
+    |   A SP rdata_a trail
     {
 	    current_rr->type = $1;
     }
-    |   NS SP rdata_dname
+    |   NS SP rdata_dname trail
     {
 	    current_rr->type = $1;
     }
-    |   CNAME SP rdata_dname
+    |   CNAME SP rdata_dname trail
     {
 	    current_rr->type = $1;
     }
-    |   PTR SP rdata_dname
+    |   PTR SP rdata_dname trail
     {   
 	    current_rr->type = $1;
     }
-    |   TXT SP rdata_txt
+    |   TXT SP rdata_txt	/* "trail" handled in rdata_txt. */
     {
 	    current_rr->type = $1;
     }
-    |   MX SP rdata_mx
+    |   MX SP rdata_mx trail
     {
 	    current_rr->type = $1;
     }
-    |   AAAA SP rdata_aaaa
+    |   AAAA SP rdata_aaaa trail
     {
 	    current_rr->type = $1;
     }
-    |	HINFO SP rdata_hinfo
+    |	HINFO SP rdata_hinfo trail
     {
 	    current_rr->type = $1;
     }
-    |   SRV SP rdata_srv
+    |   SRV SP rdata_srv trail
     {
 	    current_rr->type = $1;
     }
@@ -374,7 +374,8 @@ rdata_txt:  STR
     {
         zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $1.str));
     }
-    |   rdata_txt SP STR
+    |   rdata_txt sp NL
+    |   rdata_txt sp STR
     {
         zadd_rdata_wireformat( current_parser, zparser_conv_text(zone_region, $3.str));
     }
