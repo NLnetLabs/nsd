@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.70 2002/05/23 15:00:56 alexis Exp $
+ * $Id: query.c,v 1.71 2002/05/30 13:07:56 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -508,8 +508,9 @@ query_process(q, nsd)
 		if(q->tcp) {
 #ifdef HOSTS_ACCESS
 			struct request_info request;
-			if(hosts_access(request_init(&request, RQ_DAEMON, AXFR_DAEMON,
-					RQ_CLIENT_ADDR, &q->addr, 0)))
+			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
+			sock_methods(&request);	/* This is to work around the bug in libwrap */
+			if(hosts_access(&request))
 #endif /* HOSTS_ACCESS */
 				return query_axfr(q, nsd, qname, qnamelow - 1, qdepth);
 		}
