@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.13 2003/02/14 18:50:26 alexis Exp $
+# $Id: Makefile.in,v 1.14 2003/02/14 21:15:56 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -118,14 +118,14 @@ uninstall:
 nsd:	nsd.h dns.h nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS)
 	$(LINK) -o $@ nsd.o server.o query.o dbaccess.o rbtree.o hash.o $(LIBOBJS) $(LIBWRAP)
 
-zonec:	zf.h dns.h zonec.h zf.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o $(LIBOBJS)
-	$(LINK) -o $@ zonec.o zf.o dbcreate.o rbtree.o hash.o rfc1876.o $(LIBOBJS)
+zonec:	zparser.h dns.h zonec.h zparser.o dname.o zonec.o dbcreate.o rbtree.o hash.o rfc1876.o $(LIBOBJS)
+	$(LINK) -o $@ zonec.o zparser.o dname.o dbcreate.o rbtree.o hash.o rfc1876.o $(LIBOBJS)
 
 nsd-notify:	nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
 	$(LINK) -o $@ nsd-notify.c query.o dbaccess.o zf.o rbtree.o rfc1876.o
 
-zparser:	zparser.o rfc1876.o dname.o
-	$(LINK) -o $@ zparser.o rfc1876.o dname.o
+zparser:	zparser.c rfc1876.o dname.o
+	$(LINK) $(CFLAGS) -D TEST -o $@ zparser.c rfc1876.o dname.o
 
 clean:
 	rm -f zonec nsd zf hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample

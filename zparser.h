@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.3 2003/02/14 18:46:42 alexis Exp $
+ * $Id: zparser.h,v 1.4 2003/02/14 21:15:56 alexis Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -45,11 +45,9 @@
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
 #define	B64BUFSIZE	16384		/* Buffer size for b64 conversion */
+#define	ROOT		(u_char *)"\001"
 
 #define	IP6ADDRLEN	128/8
-
-#define	_ZRDATA	(char *)(((u_int16_t *)z->_rr.rdata[z->rc]) + 1)
-#define	_ZRDATALEN	*((u_int16_t *)z->_rr.rdata[z->rc])
 
 /* Type of rdata elements we might encounter */
 #define RDATA_A		1
@@ -72,7 +70,7 @@ struct RR {
 	u_int16_t class;
 	u_int16_t type;
 	char *rdatafmt;
-	void *rdata[MAXRDATALEN];
+	u_int16_t **rdata;
 };
 
 /* An open parser */
@@ -135,8 +133,12 @@ struct ztab {
 	{0, NULL}		\
 }
 
+extern void *xalloc(size_t size);
+extern void *xrealloc(void *p, size_t size);
+
 /* zparser.c */
 u_int16_t intbyname(char *a, struct ztab *tab);
+int zrdatacmp(u_int16_t **a, u_int16_t **b);
 long strtottl(char *nptr, char **endptr);
 void zerror(struct zparser *z, char *msg);
 void zsyntax(struct zparser *z);
@@ -145,18 +147,12 @@ struct zparser *zopen(char *filename, u_int32_t ttl, u_int16_t class, char *orig
 struct zparser *_zopen(char *filename, u_int32_t ttl, u_int16_t class, u_char *origin);
 struct RR *zread(struct zparser *z);
 void zclose(struct zparser *z);
+void zrdatafree(u_int16_t **rdata);
 void zaddrdata(struct zparser *z, u_int16_t *r);
 int zrdata(struct zparser *z);
-int zrdata_short(struct zparser *z);
-int zrdata_long(struct zparser *z);
-int zrdata_byte(struct zparser *z);
-int zrdata_a(struct zparser *z);
-int zrdata_dname(struct zparser *z);
-int zrdata_text(struct zparser *z);
-int zrdata_a6(struct zparser *z);
+int zrdatascan(struct zparser *z, int what);
 int zrdata_loc(struct zparser *z);
-int zrdata_b64(struct zparser *z);
 void zaddtoken(struct zparser *z, char *t);
 int zparseline(struct zparser *z);
 
-#endif
+#endif /* _ZPARSER_H_ */

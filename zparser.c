@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.3 2003/02/14 18:46:42 alexis Exp $
+ * $Id: zparser.c,v 1.4 2003/02/14 21:15:56 alexis Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <netinet/in.h>
@@ -117,6 +118,42 @@ intbyname (char *a, struct ztab *tab)
 		tab++;
 	}
 	return  NULL;
+}
+
+/*
+ * Compares two rdata arrrays.
+ *
+ * Returns:
+ *
+ *	zero if they are equal
+ *	non-zero if not
+ *
+ */
+int
+zrdatacmp(u_int16_t **a, u_int16_t **b)
+{
+	/* Compare element by element */
+	while(*a != NULL && *b != NULL) {
+		/* Wrong size */
+		if(**a != **b)
+			return 1;
+		/* Is it a domain name */
+		if(**a == 0xffff) {
+			if(memcmp(*a+1, *b+1, *((char *)*(a+1))))
+				return 1;
+		} else {
+			if(memcmp(*a+1, *b+1, **a))
+				return 1;
+		}
+	}
+
+	/* One is shorter than another */
+	if((*a == NULL && *b != NULL) || (*b == NULL && *a != NULL)) {
+		return 1;
+	}
+
+	/* Otherwise they are equal */
+	return 0;
 }
 
 /*
@@ -264,7 +301,7 @@ zunexpected (struct zparser *z)
 struct zparser *
 zopen (char *filename, u_int32_t ttl, u_int16_t class, char *origin)
 {
-	return _zopen(filename, ttl, class, strdname(origin, (u_char *)"\001"));
+	return _zopen(filename, ttl, class, strdname(origin, ROOT));
 }
 
 /*
@@ -434,35 +471,28 @@ zread (struct zparser *z)
 			continue;
 		}
 
+		/* Initialize the rdata */
 		z->_rc = 0;
+		z->_rr.rdata = xalloc(sizeof(void *) * (MAXRDATALEN + 1));
 
 		/* Unless it is NULL record rdata must be present */
 		if(z->_t[++z->_tc] == NULL) {
 			if(z->_rr.type != TYPE_NULL) {
 				zsyntax(z);
 				continue;
-			} else {
-				zaddrdata(z, NULL);
-				z->_rc--;
-				return &z->_rr;
 			}
-		}
-
-		/* Now parse the rdata... */
-		if(zrdata(z) == 0) {
-			/* Free any used rdata and try another line... */
-			while(--z->_rc >= 0) {
-				if(z->_rr.rdata[z->_rc])
-					free(z->_rr.rdata[z->_rc]);
-				z->_rr.rdata[z->_rc] = NULL;
-				z->_rc--;
+		} else {
+			/* Now parse the rdata... */
+			if(zrdata(z) == 0) {
+				/* Free any used rdata and try another line... */
+				zrdatafree(z->_rr.rdata);
+				continue;
 			}
-			continue;
-		}
 
-		/* Do we have any tokens left? */
-		if(z->_t[z->_tc] != NULL) {
-			zerror(z, "trailing garbage");
+			/* Do we have any tokens left? */
+			if(z->_t[z->_tc] != NULL) {
+				zerror(z, "trailing garbage");
+			}
 		}
 
 		/* Add the trailing NULL and adjust the counter. */
@@ -470,6 +500,7 @@ zread (struct zparser *z)
 		z->_rc--;
 
 		/* Success! */
+		z->_rr.rdata = xrealloc(z->_rr.rdata, sizeof(void *) * z->_rc);
 		return &z->_rr;
 	}
 
@@ -499,6 +530,28 @@ zclose (struct zparser *z)
 	fclose(z->file);
 
 	free(z);
+}
+
+/*
+ * Frees any allocated rdata.
+ *
+ * Returns
+ *
+ *	nothing
+ *
+ */
+void
+zrdatafree(u_int16_t **p)
+{
+
+	if(p) {
+		/* Iterate intill we found NULL */
+		while(*p) {
+			free(*p);
+			*p++ = NULL;
+		}
+		free(p);
+	}
 }
 
 /*
@@ -665,7 +718,7 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
 
-		*(r+1)  = intbyname(z->_t[z->_tc], ztypes);
+		*(r+1)  = htons((u_int16_t)intbyname(z->_t[z->_tc], ztypes));
 
 		if(*(r + 1) == 0) {
 			zerror(z, "resource record type is expected");
@@ -678,7 +731,7 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
 
-		*((u_int32_t *)(r+1))  = (u_int32_t)strtottl(z->_t[z->_tc], (char **)&t);
+		*((u_int32_t *)(r+1))  = htonl((u_int32_t)strtottl(z->_t[z->_tc], (char **)&t));
 
 		if(*t != 0) {
 			zerror(z, "time period is expected");
@@ -691,7 +744,7 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
 
-		*(r+1)  = (u_int16_t)strtol(z->_t[z->_tc], (char **)&t, 10);
+		*(r+1)  = htons((u_int16_t)strtol(z->_t[z->_tc], (char **)&t, 10));
 
 		if(*t != 0) {
 			zerror(z, "unsigned short value is expected");
@@ -704,7 +757,7 @@ zrdatascan (struct zparser *z, int what)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
 
-		*((u_int32_t *)(r+1))  = (u_int32_t)strtol(z->_t[z->_tc], (char **)&t, 10);
+		*((u_int32_t *)(r+1))  = htonl((u_int32_t)strtol(z->_t[z->_tc], (char **)&t, 10));
 
 		if(*t != 0) {
 			zerror(z, "long decimal value is expected");
@@ -732,7 +785,7 @@ zrdatascan (struct zparser *z, int what)
 
 #ifdef HAVE_INET_NTOA
 		if(inet_aton(z->_t[z->_tc], &pin) == 1) {
-			*((in_addr_t *)(r + 1)) = pin.s_addr;
+			memcpy(r + 1, &pin.s_addr, sizeof(in_addr_t));
 			*r = sizeof(u_int32_t);
 		} else {
 			zerror(z, "invalid ip address");
@@ -923,7 +976,7 @@ zparseline (struct zparser *z)
 		if(!parenthes) {
 			/* We have the same domain name as before, add it as a token... */
 			if(*p == ' ' || *p == '\t') {
-				*p = '0';
+				*p = ' ';
 				zaddtoken(z, p++);
 			}
 		}

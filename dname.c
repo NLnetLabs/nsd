@@ -1,5 +1,5 @@
 /*
- * $Id: dname.c,v 1.5 2003/02/14 18:46:42 alexis Exp $
+ * $Id: dname.c,v 1.6 2003/02/14 21:15:56 alexis Exp $
  *
  * dname.c -- dname operations
  *
@@ -160,7 +160,12 @@ strdname (char *s, u_char *o)
 u_char *
 dnamedup (u_char *dname)
 {
-	u_char *p = xalloc((int)*dname + 1);
+	u_char *p;
+
+	if(dname == NULL)
+		return NULL;
+
+	p = xalloc((int)*dname + 1);
 	memcpy(p, dname, (int)*dname + 1);
 	return p;
 }

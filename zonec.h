@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.18 2003/01/20 09:43:16 alexis Exp $
+ * $Id: zonec.h,v 1.19 2003/02/14 21:15:56 alexis Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -41,28 +41,6 @@
 #ifndef _ZONEC_H_
 #define _ZONEC_H_
 
-#include "config.h"
-
-#include <sys/types.h>
-#include <sys/param.h>
-
-#include <assert.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <errno.h>
-#include <limits.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-#include <unistd.h>
-
-#include "heap.h"
-#include "dns.h"
-#include "zf.h"
-#include "namedb.h"
-
 struct rrset {
 	struct rrset *next;
 	u_int16_t type;
@@ -72,7 +50,7 @@ struct rrset {
 	u_int16_t rrslen;
 	int glue;
 	int color;
-	union zf_rdatom **rrs;
+	u_int16_t ***rrs;
 };
 
 struct zone {
@@ -85,6 +63,7 @@ struct zone {
 
 #define MAXRRSPP	1024
 #define	IOBUFSZ		MAXRRSPP * 64
+#define	LINEBUFSZ	1024
 
 struct message {
 	u_char *bufptr;

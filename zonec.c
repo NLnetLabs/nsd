@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.73 2003/02/11 14:21:57 alexis Exp $
+ * $Id: zonec.c,v 1.74 2003/02/14 21:15:56 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -37,8 +37,29 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include <config.h>
 
-#include "zonec.h"
+#include <sys/types.h>
+#include <sys/param.h>
+
+#include <assert.h>
+#include <fcntl.h>
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
+
+#include <heap.h>
+#include <dns.h>
+#include <zparser.h>
+#include <namedb.h>
+#include <dname.h>
+#include <zonec.h>
 
 #include <netinet/in.h>		/* htons, htonl on Linux */
 
@@ -125,7 +146,7 @@ zone_print (struct zone *z)
 
 	printf("; zone %s\n", dnamestr(z->dname));
 	printf("; zone data\n");
-
+/*
 	HEAP_WALK(z->data, dname, rrset) {
 		while(rrset) {
 			for(i = 0; i < rrset->rrslen; i++) {
@@ -150,6 +171,7 @@ zone_print (struct zone *z)
 			rrset = rrset->next;
 		}
 	}
+*/
 }
 
 static void 
@@ -231,7 +253,7 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 {
 	u_int16_t class = htons(CLASS_IN);
 	int32_t ttl;
-	union zf_rdatom *rdata;
+	u_int16_t **rdata;
 	u_char *rdlengthptr;
 	char *f;
 	size_t size;
@@ -279,7 +301,6 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 		
 		msg->rrsetsoffs[msg->rrsetsoffslen++] = (msg->bufptr - msg->buf) | (rrset->color ? NAMEDB_RRSET_WHITE : 0);
 
-		rdata = rrset->rrs[j];
 
 		/* dname */
 		if(*(dname + 1) == 1 && *(dname + 2) == '*') {
@@ -311,6 +332,7 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 		/* rdlength */
 		rdlengthptr = msg->bufptr;
 		rdlength = 0;
+
 		/*
 		 * Reserver space for rdata length.  The actual length
 		 * is filled in below.
@@ -318,54 +340,21 @@ zone_addrrset (struct message *msg, u_char *dname, struct rrset *rrset)
 		zone_addbuf(msg, &rdlength, sizeof(u_int16_t));
 
 		/* Pack the rdata */
-		for(size = 0, i = 0, f = rrset->fmt; *f; f++, i++, size = 0) {
-			switch(*f) {
-			case '4':
-				size = sizeof(u_int32_t);
-				zone_addbuf(msg, &rdata[i].l, size);
-				break;
-			case 'l':
-				size = sizeof(int32_t);
-				l = htonl(rdata[i].l);
-				zone_addbuf(msg, &l, size);
-				break;
-			case '6':
-				size = IP6ADDRLEN;
-				zone_addbuf(msg, rdata[i].p, size);
-				break;
-			case 'U':
-				size = *((u_int16_t *)rdata[i].p);
-				zone_addbuf(msg, rdata[i].p + sizeof(u_int16_t), size);
-				break;
-			case 'n':
+		
+		for(rdata = rrset->rrs[j]; *rdata; rdata++) {
+			/* Is it a domain name? */
+			if(**rdata == 0xffff) {
 				if (msg->dnameslen >= MAXRRSPP) {
 					fflush(stdout);
 					fprintf(stderr, "zonec: too many domain names\n");
 					exit(1);
 				}
-				
-				size = 0;
-				rdlength += zone_addname(msg, rdata[i].p);
-				msg->dnames[msg->dnameslen++] = rdata[i].p;
-				break;
-			case 't':
-				size = *((u_char *)rdata[i].p) + 1;
-				zone_addbuf(msg, rdata[i].p, size);
-				break;
-			case 's':
-				size = sizeof(u_int16_t);
-				s = htons(rdata[i].s);
-				zone_addbuf(msg, &s, size);
-				break;
-			case 'c':
-				size = sizeof(u_int8_t);
-				zone_addbuf(msg, &rdata[i].c, size);
-				break;
-			default:
-				fprintf(stderr, "zonec: panic! uknown atom in format %c\n", *f);
-				return rrcount;
+				rdlength += zone_addname(msg, (u_char *)(*rdata + 1));
+				msg->dnames[msg->dnameslen++] = (u_char *)(*rdata + 1);
+			} else {
+				zone_addbuf(msg, *rdata + 1, **rdata);
+				rdlength += **rdata;
 			}
-			rdlength += size;
 		}
 		rdlength = htons(rdlength);
 		memcpy(rdlengthptr, &rdlength, sizeof(u_int16_t));
@@ -442,8 +431,8 @@ zone_read (char *name, char *zonefile)
 	int i;
 
 	struct zone *z;
-	struct zf *zf;
-	struct zf_entry *rr;
+	struct zparser *parser;
+	struct RR *rr;
 	struct rrset *rrset, *r;
 
 	/* Allocate new zone structure */
@@ -451,13 +440,14 @@ zone_read (char *name, char *zonefile)
 	memset(z, 0, sizeof(struct zone));
 
 	/* Get the zone name */
-	if((z->dname = strdname(name, (u_char *)ROOT_ORIGIN)) == NULL) {
+	if((z->dname = dnamedup(strdname(name, ROOT))) == NULL) {
 		zone_free(z);
 		return NULL;
 	}
 
 	/* Open the zone file */
-	if((zf = zf_open(zonefile, name)) == NULL) {
+	if((parser = zopen(zonefile, 3600, CLASS_IN, name)) == NULL) {
+		fprintf(stderr, "zonec: unable to open %s: %s\n", zonefile, strerror(errno));
 		zone_free(z);
 		return NULL;
 	}
@@ -475,26 +465,26 @@ zone_read (char *name, char *zonefile)
 	z->soa = z->ns = NULL;
 
 	/* Read the file */
-	while((rr = zf_read(zf)) != NULL) {
+	while((rr = zread(parser)) != NULL) {
 
 		/* Report progress... */
 		if(vflag) {
-			if((zf->lines % 100000) == 0) {
-				printf("zonec: reading zone \"%s\": %d\r", dnamestr(z->dname), zf->lines);
+			if((parser->lines % 100000) == 0) {
+				printf("zonec: reading zone \"%s\": %d\r", dnamestr(z->dname), parser->lines);
 				fflush(stdout);
 			}
 		}
 
 		/* We only support IN class */
 		if(rr->class != CLASS_IN) {
-			zf_error(zf, "wrong class");
+			zerror(parser, "wrong class");
 			continue;
 		}
 
 		/* Is this in-zone data? */
 		if((*z->dname > *rr->dname) ||
 			(bcmp(z->dname + 1, rr->dname + (*rr->dname - *z->dname) + 1, *z->dname) != 0)) {
-			zf_error(zf, "out of zone data");
+			zerror(parser, "out of zone data");
 			continue;
 		}
 
@@ -525,56 +515,58 @@ zone_read (char *name, char *zonefile)
 			r->ttl = rr->ttl;
 			r->fmt = rr->rdatafmt;
 			r->rrslen = 1;
-			r->rrs = xalloc(sizeof(union zf_rdatom *));
+			r->rrs = xalloc(sizeof(u_int16_t *) * 2);
 			r->glue = r->color = 0;
 			r->rrs[0] = rr->rdata;
 
 			/* Add it */
 			if(rrset == NULL) {
 				/* XXX We can use this more smart... */
-				heap_insert(h, strdup((char *)rr->dname), r, 1);
+				heap_insert(h, dnamedup(rr->dname), r, 1);
 			} else {
 				r->next = rrset->next;
 				rrset->next = r;
 			}
 		} else {
 			if(r->ttl != rr->ttl) {
-				zf_error(zf, "rr ttl doesnt match the ttl of the rdataset");
+				zerror(parser, "ttl doesnt match the ttl of the rrset");
 				continue;
 			}
+
 			/* Search for possible duplicates... */
 			for(i = 0; i < r->rrslen; i++) {
-				if(!zf_cmp_rdata(r->rrs[i], rr->rdata, rr->rdatafmt))
+				if(!zrdatacmp(r->rrs[i], rr->rdata))
 					break;
 			}
 
 			/* Discard the duplicates... */
 			if(i < r->rrslen) {
-				/* zf_error(zf, "duplicate record"); */
-				zf_free_rdata(rr->rdata, rr->rdatafmt);
+				/* zerror(parser, "duplicate record"); */
+				zrdatafree(rr->rdata);
 				continue;
 			}
 
 			/* Add it... */
-			r->rrs = xrealloc(r->rrs, ((r->rrslen + 1) * sizeof(union zf_rdatom *)));
+			r->rrs = xrealloc(r->rrs, ((r->rrslen + 2) * sizeof(u_int16_t *)));
 			r->rrs[r->rrslen++] = rr->rdata;
+			r->rrs[r->rrslen] = NULL;
 		}
 
 		/* Check we have SOA */
 		if(z->soa == NULL) {
 			if(rr->type != TYPE_SOA) {
-				zf_error(zf, "missing SOA record on top of the zone");
+				zerror(parser, "missing SOA record on top of the zone");
 			} else {
 				if(dnamecmp(rr->dname, z->dname) != 0) {
-					zf_error(zf, "SOA record with invalid domain name");
+					zerror(parser, "SOA record with invalid domain name");
 				} else {
 					z->soa = r;
 				}
 			}
 		} else {
 			if(rr->type == TYPE_SOA) {
-				zf_error(zf, "duplicate SOA record discarded");
-				zf_free_rdata(r->rrs[--r->rrslen], r->fmt);
+				zerror(parser, "duplicate SOA record discarded");
+				zrdatafree(r->rrs[--r->rrslen]);
 			}
 		}
 
@@ -586,8 +578,8 @@ zone_read (char *name, char *zonefile)
 	}
 
 	fflush(stdout);
-	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), zf->errors);
-	totalerrors += zf->errors;
+	fprintf(stderr, "zonec: reading zone \"%s\": %d errors\n", dnamestr(z->dname), parser->errors);
+	totalerrors += parser->errors;
 	return z;
 }
 
@@ -699,7 +691,7 @@ zone_adddata(u_char *dname, struct rrset *rrset, struct zone *z, struct namedb *
 	if(rrset->type == TYPE_CNAME) {
 		/* XXX Not necessarily with NXT, BUT OH OH * assert(rrset->next == NULL); */
 		cnamerrset = rrset;
-		cname = (*cnamerrset->rrs)[0].p;	/* The name of the target set */
+		cname = (u_char *)((**cnamerrset->rrs[0]) + 1);	/* XXX WRONG? The name of the target set */
 		rrset = heap_search(z->data, cname);
 	} else {
 		cnamerrset = NULL;
