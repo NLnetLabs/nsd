@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.24 2003/02/26 12:00:56 alexis Exp $
+# $Id: Makefile.in,v 1.25 2003/02/27 12:40:36 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -128,7 +128,7 @@ nsd-notify:	nsd-notify.c dname.o
 	$(LINK) $(CFLAGS) -o $@ nsd-notify.c dname.o
 
 clean:
-	rm -f zonec nsd zparser hash rbtree nsd-notify *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
+	rm -f zonec nsd zparser hash rbtree nsd-notify nsd-axfr *.o y.* *.core *.gmon nsd.db nsdc.sh nsdc.conf.sample
 
 basename.o:	compat/basename.c
 	$(COMPILE) -c compat/basename.c -o basename.o
