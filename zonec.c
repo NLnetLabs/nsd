@@ -1640,14 +1640,9 @@ main (int argc, char **argv)
 	}
 
 	/* Print the total number of errors */
-	if (vflag > 0) {
+	if (vflag > 0 || totalerrors > 0) {
 		fprintf(stderr, "\n");
 		fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
-	} else {
-		if (totalerrors > 0) {
-			fprintf(stderr, "\n");
-			fprintf(stderr, "zonec: done with %ld errors.\n", totalerrors);
-		}
 	}
 	
 	/* Disable this to save some time.  */
