@@ -67,7 +67,7 @@ usage(void)
 	fprintf(stderr, "Usage: nsdc [OPTION]... {stop|reload|rebuild|restart|running|update|notify|version}\n");
 	fprintf(stderr,
                 "Supported options:\n"
-                "  -f config-file  Specify the location of the configuration file.\n"
+                "  -c config-file  Specify the location of the configuration file.\n"
                 "  -h              Print this help information.\n"
                 );
 	fprintf(stderr,
@@ -122,9 +122,9 @@ main (int argc, char *argv[])
         nsdc.options      = NULL;
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "f:hp:v")) != -1) {
+	while ((c = getopt(argc, argv, "c:hp:v")) != -1) {
 		switch (c) {
-			case 'f':
+			case 'c':
 				nsdc.options_file = optarg;
 				break;
 			case 'p':
