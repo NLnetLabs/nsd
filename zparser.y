@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.16 2003/12/09 08:28:15 miekg Exp $
+ * $Id: zparser.y,v 1.17 2003/12/10 15:34:24 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -265,14 +265,16 @@ nsec_seq:	STR
 	{
 		/* what if zero... */
 		int t = intbyname($1.str,ztypes);
-		set_bitnsec( nsecbits, t );
+		if ( t != 0 ) 
+			set_bitnsec( nsecbits, t );
 		
 		/* waar bij houden? */
 	}
 	|	nsec_seq sp STR
 	{
 		int t = intbyname($3.str,ztypes);
-		set_bitnsec( nsecbits, t );
+		if ( t != 0 )
+			set_bitnsec( nsecbits, t );
 	}
 	;
 
