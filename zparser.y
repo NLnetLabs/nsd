@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zparser.y,v 1.19 2004/01/08 15:17:05 miekg Exp $
+ * $Id: zparser.y,v 1.20 2004/01/09 12:39:23 erik Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -334,17 +334,17 @@ rtype:
     { current_rr->type = $1; }
     | DS sp rdata_ds
     { current_rr->type = $1; }
-    | KEY sp rdata_key
+    | KEY sp rdata_dnskey	/* XXX: Compatible format? */
     { current_rr->type = $1; }
-    | DNSKEY sp rdata_key
+    | DNSKEY sp rdata_dnskey
     { current_rr->type = $1; }
     | NXT sp rdata_nxt
     { current_rr->type = $1; }
     | NSEC sp rdata_nsec
     { current_rr->type = $1; }
-    | SIG sp rdata_sig
+    | SIG sp rdata_rrsig	/* XXX: Compatible format? */
     { current_rr->type = $1; }
-    | RRSIG sp rdata_sig
+    | RRSIG sp rdata_rrsig
     { current_rr->type = $1; }
     | error NL
     {	
@@ -445,17 +445,17 @@ rdata_srv:	STR sp STR sp STR sp dname trail
 rdata_ds:	STR sp STR sp STR sp hex_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* keytag */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* alg */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* type */
+		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* alg */
+		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $5.str)); /* type */
 		zadd_rdata_wireformat(current_parser, zparser_conv_hex(zone_region, $7.str)); /* hash */
 	}
 	;
 
-rdata_key:	STR sp STR sp STR sp hex_seq trail
+rdata_dnskey:	STR sp STR sp STR sp hex_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $1.str)); /* flags */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $3.str)); /* proto */
-		zadd_rdata_wireformat(current_parser, zparser_conv_short(zone_region, $5.str)); /* alg */
+		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* proto */
+		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $5.str)); /* alg */
 		zadd_rdata_wireformat(current_parser, zparser_conv_b64(zone_region, $7.str)); /* hash */
 	}
 	;
@@ -477,7 +477,7 @@ rdata_nsec:	dname sp nsec_seq trail
 	;
 
 
-rdata_sig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp hex_seq trail
+rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp hex_seq trail
 	{
 		zadd_rdata_wireformat(current_parser, zparser_conv_rrtype(zone_region, $1.str)); /* rr covered */
 		zadd_rdata_wireformat(current_parser, zparser_conv_byte(zone_region, $3.str)); /* alg */
