@@ -1,5 +1,5 @@
 /*
- * $Id: zone.c,v 1.3 2002/01/08 15:47:48 alexis Exp $
+ * $Id: zone.c,v 1.4 2002/01/09 11:45:39 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -272,7 +272,7 @@ zone_dump(z, db)
 		for(nameptr = dname + 1; *nameptr; nameptr += *nameptr + 1) {
 			if((dname + *dname + 1 - nameptr) > 1) {
 				msg.compr[msg.comprlen].dname = nameptr;
-				msg.compr[msg.comprlen].dnameoff = nameptr - dname + 1;
+				msg.compr[msg.comprlen].dnameoff = (nameptr - (dname + 1)) | 0xc000;
 				msg.compr[msg.comprlen].dnamelen = dname + *dname + 1 - nameptr;
 				msg.comprlen++;
 			}

@@ -1,5 +1,5 @@
 /*
- * $Id: db.c,v 1.5 2002/01/08 16:29:27 alexis Exp $
+ * $Id: db.c,v 1.6 2002/01/09 11:45:39 alexis Exp $
  *
  * db.c -- namespace database, nsd(8)
  *
@@ -89,7 +89,7 @@ db_write(db, dname, answer)
 	DBT key, data;
 
 	key.size = (size_t)(*dname);
-	key.data = dname;
+	key.data = dname + 1;
 
 	data.size = answer->size;
 	data.data = answer;

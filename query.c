@@ -1,5 +1,5 @@
 /*
- * $Id: query.c,v 1.2 2002/01/08 16:29:27 alexis Exp $
+ * $Id: query.c,v 1.3 2002/01/09 11:45:39 alexis Exp $
  *
  * query.c -- nsd(8) the resolver.
  *
@@ -161,8 +161,8 @@ query_process(q, db)
 	AA_SET(q);
 
 	for(i = 0; i < stacklen - 1; i++) {
-		if((answer = db_lookup(db, stack[i], (stack[stacklen - 1] - stack[i]) + sizeof(u_short))) != NULL) {
-			query_addanswer(q, answer);
+		if((answer = db_lookup(db, stack[i], stack[stacklen - 1] - stack[i])) != NULL) {
+			query_addanswer(q, stack[i], answer);
 			return 0;
 		}
 	}
@@ -172,8 +172,9 @@ query_process(q, db)
 
 
 void
-query_addanswer(q, a)
+query_addanswer(q, dname, a)
 	struct query *q;
+	u_char *dname;
 	struct answer *a;
 {
 	int j;
@@ -195,9 +196,9 @@ query_addanswer(q, a)
 	for(j = 0; j < a->ptrlen; j++) {
 		qptr = q->iobufptr + ptrs[j];
 		bcopy(qptr, &pointer, 2);
-		if(pointer == 0) {
+		if(pointer & 0xc000) {
 			/* XXX Check if dname is within packet */
-			pointer = htons(0xc000 | (u_short)(12));/* dname - q->iobuf */
+			pointer = htons(0xc000 | (dname - q->iobuf + (pointer & 0x0fff)));/* dname - q->iobuf */
 		} else {
 			pointer = htons(0xc000 | (u_short)(pointer + q->iobufptr - q->iobuf));
 		}

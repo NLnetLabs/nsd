@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2002/01/08 16:29:27 alexis Exp $
+# $Id: Makefile,v 1.6 2002/01/09 11:45:39 alexis Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -41,7 +41,7 @@ SHELL = /bin/sh
 DEBUG=	-g -DDEBUG=1
 CC=gcc
 CFLAGS= -pipe -Wall ${DEBUG} -I/usr/local/include
-LDFLAGS= -ldict -L/usr/local/lib
+LDFLAGS= -L/usr/local/lib
 LDADD=
 LIBS =
 
@@ -60,9 +60,9 @@ zf:	zf.h dns.h zf.c util.o
 	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zf.c util.o
 
 zone:	zf.h dns.h zone.h zone.c zf.o util.o heap.o db.o
-	${CC} ${CFLAGS} ${LDFLAGS} -DTEST -o $@ zone.c zf.o util.o heap.o db.o
+	${CC} ${CFLAGS} ${LDFLAGS} -ldict -DTEST -o $@ zone.c zf.o util.o heap.o db.o
 
 clean:
-	rm -f zf zone nsd *.o y.* *.core *.gmon
+	rm -f zf zone nsd *.o y.* *.core *.gmon nsd.db
 
 ${OBJS}:	${HDRS}
