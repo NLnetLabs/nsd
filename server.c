@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.28 2002/03/28 02:24:09 alexis Exp $
+ * $Id: server.c,v 1.29 2002/04/11 13:30:41 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -284,6 +284,8 @@ server(nsd)
 				break;
 			case 0:
 				/* CHILD */
+				nsd->pid  = getpid();
+
 				namedb_close(nsd->db);
 				if((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
 					syslog(LOG_ERR, "unable to reload the database: %m");
@@ -295,8 +297,6 @@ server(nsd)
 					syslog(LOG_ERR, "cannot kill %d: %m", pid);
 					exit(1);
 				}
-
-				nsd->pid  = getpid();
 
 				/* Overwrite pid... */
 				if(writepid(nsd->pid, nsd->pidfile) == -1) {
