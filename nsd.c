@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.71 2003/06/12 13:51:58 erik Exp $
+ * $Id: nsd.c,v 1.72 2003/06/16 15:13:16 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -71,7 +71,7 @@
 
 
 /* The server handler... */
-struct nsd nsd;
+static struct nsd nsd;
 char hostname[MAXHOSTNAMELEN];
 
 /*
@@ -111,7 +111,7 @@ usage (void)
 }
 
 pid_t 
-readpid (char *file)
+readpid (const char *file)
 {
 	int fd;
 	pid_t pid;
@@ -270,7 +270,7 @@ bind8_stats (struct nsd *nsd)
 
 	/* XXX A bit ugly but efficient. Should be somewhere else. */
 	static
-	char *types[] = {NULL, "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG",		/* 8 */
+	const char *types[] = {NULL, "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG",		/* 8 */
 			"MR", "NULL", "WKS", "PTR", "HINFO", "MINFO", "MX", "TXT",		/* 16 */
 			"RP", "AFSDB", "X25", "ISDN", "RT", "NSAP", "NSAP_PTR", "SIG",		/* 24 */
 			"KEY", "PX", "GPOS", "AAAA", "LOC", "NXT", "EID", "NIMLOC",		/* 32 */
@@ -438,7 +438,7 @@ main (int argc, char *argv[])
 		switch (c) {
 		case 'a':
 			if((nsd.tcp.addr.sin_addr.s_addr = nsd.udp[nsd.ifs++].addr.sin_addr.s_addr
-					= inet_addr(optarg)) == -1)
+					= inet_addr(optarg)) == (in_addr_t) -1)
 				usage();
 			
 			break;

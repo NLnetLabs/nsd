@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.h,v 1.12 2003/03/20 10:31:25 alexis Exp $
+ * $Id: rbtree.h,v 1.13 2003/06/16 15:13:16 erik Exp $
  *
  * rbtree.h -- generic red-black tree
  *
@@ -79,14 +79,14 @@ struct rbtree_t {
 
 	/* Free and compare functions */
 	void *(*mallocf)(size_t);
-	int (*cmp) (void *, void *);
+	int (*cmp) (const void *, const void *);
 };
 
 #define	rbtree_last() RBTREE_NULL
 /* rbtree.c */
-rbtree_t *rbtree_create(void *(*mallocf)(size_t), int (*cmpf)(void *, void *));
+rbtree_t *rbtree_create(void *(*mallocf)(size_t), int (*cmpf)(const void *, const void *));
 void *rbtree_insert(rbtree_t *rbtree, void *key, void *data, int overwrite);
-void *rbtree_search(rbtree_t *rbtree, void *key);
+void *rbtree_search(rbtree_t *rbtree, const void *key);
 void rbtree_destroy(rbtree_t *rbtree, int freekeys, int freedata);
 rbnode_t *rbtree_first(rbtree_t *rbtree);
 rbnode_t *rbtree_next(rbnode_t *rbtree);

@@ -1,5 +1,5 @@
 /*
- * $Id: nsd-axfr.c,v 1.8 2003/05/08 13:10:04 alexis Exp $
+ * $Id: nsd-axfr.c,v 1.9 2003/06/16 15:13:16 erik Exp $
  *
  * nsd-axfr.c -- axfr utility for nsd(8)
  *
@@ -71,7 +71,7 @@ static char *progname;
  *
  */
 void
-error(char *msg)
+error(const char *msg)
 {
 	if(errno != 0) {
 		fprintf(stderr, "%s: %s: %s\n", progname, msg, strerror(errno));
@@ -129,7 +129,7 @@ usage(void)
 extern char *optarg;
 extern int optind;
 
-int
+static int
 sane(struct query *q, u_int16_t id) {
 	/* Is it an answer? */
 	if(!QR(q)) {
@@ -181,7 +181,6 @@ main (int argc, char *argv[])
 	struct zparser *parser;
 	struct RR *rr;
 	struct RR **rrs;
-	struct in_addr pin;
 	u_char *zname;
 	char *zonefile = NULL;
 	struct hostent *h;
@@ -318,7 +317,7 @@ main (int argc, char *argv[])
 		zprintrr(stdout, rrs[ntohs(QDCOUNT((&q)))]);
 
 
-		/* Zero the serial... *
+		/* Zero the serial... */
 		serial = 0;
 
 		/* Do the AXFR */

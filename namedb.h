@@ -1,5 +1,5 @@
 /*
- * $Id: namedb.h,v 1.30 2003/03/20 10:31:25 alexis Exp $
+ * $Id: namedb.h,v 1.31 2003/06/16 15:13:16 erik Exp $
  *
  * namedb.h -- nsd(8) internal namespace database definitions
  *
@@ -104,9 +104,9 @@ struct domain {
 #define	NAMEDB_MAGIC		"NSDdbV01"
 #define	NAMEDB_MAGIC_SIZE	8
 
-#define	NAMEDB_RRSET_WHITE	0x8000
-#define	NAMEDB_RRSET_BLACK	0x0000
-#define	NAMEDB_RRSET_COLOR	0x8000
+#define	NAMEDB_RRSET_WHITE	0x8000U
+#define	NAMEDB_RRSET_BLACK	0x0000U
+#define	NAMEDB_RRSET_COLOR	0x8000U
 
 #define	DOMAIN_WALK(d, a)	for(a = (struct answer *)(d + 1); \
 					ANSWER_SIZE(a) != 0; \
@@ -121,18 +121,6 @@ struct domain {
 #endif
 
 
-#ifdef	USE_BERKELEY_DB
-
-#include <db.h>
-
-struct namedb {
-	DB *db;
-	u_char masks[3][NAMEDB_BITMASKLEN];
-	char *filename;
-};
-
-#else
-
 #include "heap.h"
 
 struct namedb {
@@ -144,21 +132,19 @@ struct namedb {
 	int fd;
 };
 
-#endif	/* USE_BERKELEY_DB */
-
 /* dbcreate.c */
-struct namedb *namedb_new(char *filename);
-int namedb_put(struct namedb *db, u_char *dname, struct domain *d);
+struct namedb *namedb_new(const char *filename);
+int namedb_put(struct namedb *db, const u_char *dname, struct domain *d);
 int namedb_save(struct namedb *db);
 void namedb_discard(struct namedb *db);
 
 
 /* dbaccess.c */
-int domaincmp(register u_char *a, register u_char *b);
-unsigned long domainhash(register u_char *dname);
-struct domain *namedb_lookup(struct namedb *db, u_char *dname);
+int domaincmp(const void *a, const void *b);
+unsigned long domainhash(const u_char *dname);
+struct domain *namedb_lookup(struct namedb *db, const u_char *dname);
 struct answer *namedb_answer(struct domain *d, int type);
-struct namedb *namedb_open(char *filename);
+struct namedb *namedb_open(const char *filename);
 void namedb_close(struct namedb *db);
 
 /* Routines that the calling program must provide... */

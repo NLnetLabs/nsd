@@ -53,6 +53,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <zparser.h>
+
 #define Assert(Cond) if (!(Cond)) abort()
 
 static const char Base64[] =

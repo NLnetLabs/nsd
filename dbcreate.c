@@ -1,5 +1,5 @@
 /*
- * $Id: dbcreate.c,v 1.18 2003/03/20 10:31:25 alexis Exp $
+ * $Id: dbcreate.c,v 1.19 2003/06/16 15:13:16 erik Exp $
  *
  * namedb_create.c -- routines to create an nsd(8) name database 
  *
@@ -50,7 +50,7 @@
 #include "namedb.h"
 
 struct namedb *
-namedb_new (char *filename)
+namedb_new (const char *filename)
 {
 	struct namedb *db;
 
@@ -64,20 +64,6 @@ namedb_new (char *filename)
 		return NULL;
 	}
 
-#ifdef	USE_BERKELEY_DB
-	/* Create the database */
-	if(db_create(&db->db, NULL, 0) != 0) {
-		free(db->filename);
-		free(db);
-                return NULL;
-        }
-
-        if(db->db->open(db->db, db->filename, NULL, DB_BTREE, DB_CREATE | DB_TRUNCATE, 0664) != 0) {
-		free(db->filename);
-		free(db);
-		return NULL;
-        }
-#else
 	/* Create the database */
         if((db->fd = open(db->filename, O_CREAT | O_TRUNC | O_WRONLY, 0664)) == -1) {
 		free(db->filename);
@@ -90,7 +76,6 @@ namedb_new (char *filename)
 		namedb_discard(db);
 		return NULL;
 	}
-#endif	/* USE_BERKELEY_DB */
 
 	/* Initialize the masks... */
 	memset(db->masks[NAMEDB_AUTHMASK], 0, NAMEDB_BITMASKLEN);
@@ -102,24 +87,8 @@ namedb_new (char *filename)
 
 
 int 
-namedb_put (struct namedb *db, u_char *dname, struct domain *d)
+namedb_put (struct namedb *db, const u_char *dname, struct domain *d)
 {
-#ifdef	USE_BERKELEY_DB
-	DBT key, data;
-
-	/* Store it */
-	memset(&key, 0, sizeof(key));
-	memset(&data, 0, sizeof(data));
-
-	key.size = *dname;
-	key.data = dname + 1;
-	data.size = d->size;
-	data.data = d;
-
-	if(db->db->put(db->db, NULL, &key, &data, 0) != 0) {
-		return -1;
-	}
-#else
 	/* Store the key */
 	if(write(db->fd, dname, (((u_int32_t)*dname + 1 + 3) & 0xfffffffc)) == -1) {
 		return -1;
@@ -129,7 +98,6 @@ namedb_put (struct namedb *db, u_char *dname, struct domain *d)
 	if(write(db->fd, d, d->size) == -1) {
 		return -1;
 	}
-#endif	/* USE_BERKELEY_DB */
 
 	return 0;
 }
@@ -137,34 +105,6 @@ namedb_put (struct namedb *db, u_char *dname, struct domain *d)
 int 
 namedb_save (struct namedb *db)
 {
-#ifdef	USE_BERKELEY_DB
-	/* The buffer for the super block */
-	u_char sbuf[NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE];
-
-	DBT key, data;
-
-	/* Create the super block */
-	memcpy(sbuf, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE);
-	memcpy(sbuf + NAMEDB_MAGIC_SIZE, db->masks[NAMEDB_AUTHMASK], NAMEDB_BITMASKLEN);
-	memcpy(sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN, db->masks[NAMEDB_STARMASK], NAMEDB_BITMASKLEN);
-	memcpy(sbuf + NAMEDB_MAGIC_SIZE + NAMEDB_BITMASKLEN * 2, db->masks[NAMEDB_DATAMASK], NAMEDB_BITMASKLEN);
-
-	/* Write the bitmasks... */
-	memset(&key, 0, sizeof(key));
-	memset(&data, 0, sizeof(data));
-	data.size = NAMEDB_BITMASKLEN * 3 + NAMEDB_MAGIC_SIZE;
-	data.data = sbuf;
-
-	if(db->db->put(db->db, NULL, &key, &data, 0) != 0) {
-		return -1;
-	}
-
-	/* Close the database */
-	if(db->db->close(db->db, 0) != 0) {
-		return -1;
-	}
-
-#else
 	/* Write an empty key... */
 	if(write(db->fd, "", 1) == -1) {
 		close(db->fd);
@@ -185,7 +125,7 @@ namedb_save (struct namedb *db)
 
 	/* Close the database */
 	close(db->fd);
-#endif
+
 	free(db->filename);
 	free(db);
 

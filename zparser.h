@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.h,v 1.14 2003/03/20 10:52:11 alexis Exp $
+ * $Id: zparser.h,v 1.15 2003/06/16 15:13:16 erik Exp $
  *
  * zparser.h -- master zone file parser
  *
@@ -45,7 +45,7 @@
 #define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
 #define	B64BUFSIZE	16384		/* Buffer size for b64 conversion */
-#define	ROOT		(u_char *)"\001"
+#define	ROOT		(const u_char *)"\001"
 #define	MAXINCLUDES	10
 
 #define	IP6ADDRLEN	128/8
@@ -102,7 +102,7 @@ struct zparser {
 /* A generic purpose lookup table */
 struct ztab {
 	u_int16_t sym;
-	char *name;
+	const char *name;
 };
 
 #define	Z_CLASSES {		\
@@ -148,15 +148,15 @@ extern struct ztab ztypes[];
 extern struct ztab zclasses[];
 
 /* zparser.c */
-u_int16_t intbyname(char *a, struct ztab *tab);
-char *namebyint(u_int16_t n, struct ztab *tab);
+u_int16_t intbyname(const char *a, struct ztab *tab);
+const char *namebyint(u_int16_t n, struct ztab *tab);
 int zrdatacmp(u_int16_t **a, u_int16_t **b);
 long strtottl(char *nptr, char **endptr);
-void zerror(struct zparser *z, char *msg);
+void zerror(struct zparser *z, const char *msg);
 void zsyntax(struct zparser *z);
 void zunexpected(struct zparser *z);
-struct zparser *zopen(char *filename, u_int32_t ttl, u_int16_t class, char *origin);
-struct zparser *_zopen(char *filename, u_int32_t ttl, u_int16_t class, u_char *origin, int n);
+struct zparser *zopen(const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origin);
+struct zparser *_zopen(const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origin, int n);
 struct RR *zread(struct zparser *z);
 void zclose(struct zparser *z);
 void zrdatafree(u_int16_t **p);
@@ -171,8 +171,15 @@ const char *precsize_ntoa(int prec);
 u_int8_t precsize_aton(register char *cp, char **endptr);
 void zprintrdata(FILE *f, int what, u_int16_t *r);
 void zprintrrrdata(FILE *f, struct RR *rr);
-char *typebyint(u_int16_t type);
-char *classbyint(u_int16_t class);
+const char *typebyint(u_int16_t type);
+const char *classbyint(u_int16_t class);
 void zprintrr(FILE *f, struct RR *rr);
+
+#ifndef HAVE_B64_PTON
+extern int b64_pton(char const *src, u_char *target, size_t targsize);
+#endif
+#ifndef HAVE_B64_NTOP
+extern int b64_ntop(u_char const *src, size_t srclength, char *target, size_t targsize);
+#endif
 
 #endif /* _ZPARSER_H_ */

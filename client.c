@@ -1,5 +1,5 @@
 /*
- * $Id: client.c,v 1.4 2003/05/08 12:21:28 alexis Exp $
+ * $Id: client.c,v 1.5 2003/06/16 15:13:16 erik Exp $
  *
  * client.c -- set of DNS client routines
  *
@@ -63,14 +63,6 @@
 #include <zonec.h>
 #include <client.h>
 
-static struct ztab opcodes[] = 	{\
-	{OPCODE_QUERY, "QUERY"},	\
-	{OPCODE_IQUERY, "IQUERY"},	\
-	{OPCODE_STATUS, "STATUS"},	\
-	{OPCODE_NOTIFY, "NOTIFY"},	\
-	{OPCODE_UPDATE, "UPDATE"},	\
-	{0, NULL}};
-
 /*
  *
  * Uncompresses a dname at the iobufptr, advances the iobufptr.
@@ -81,7 +73,7 @@ static struct ztab opcodes[] = 	{\
  *	NULL if the dname was invalid
  *
  */
-u_char *
+const u_char *
 uncompress (struct query *q)
 {
 	static u_char dname[MAXDOMAINLEN + 1];
@@ -145,7 +137,7 @@ uncompress (struct query *q)
 	return dname;
 }
 
-u_int16_t *
+static u_int16_t *
 rdatafromq(struct query *q, int n)
 {
 	u_int16_t *r;
@@ -162,11 +154,11 @@ rdatafromq(struct query *q, int n)
 	return r;
 }
 
-u_int16_t *
+static u_int16_t *
 dnamefromq(struct query *q)
 {
 	u_int16_t *r;
-	u_char *dname;
+	const u_char *dname;
 
 	if((dname = uncompress(q)) == NULL) {
 		return NULL;
@@ -179,7 +171,7 @@ dnamefromq(struct query *q)
 }
 
 
-u_int16_t **
+static u_int16_t **
 newrdata(int n)
 {
 	u_int16_t **r;
@@ -460,7 +452,7 @@ response(int s, struct query *q)
 
 			/* Unpack the rdata */
 			if(rdlength > 0) {
-				if(unpack(q, rrs[rrsp], rdlength) != NULL) {
+				if(unpack(q, rrs[rrsp], rdlength) == -1) {
 					return NULL;
 				}
 			}
@@ -485,7 +477,7 @@ response(int s, struct query *q)
  *
  */
 int
-query(int s, struct query *q, u_char *dname, u_int16_t qtype, u_int16_t qclass, u_int32_t qid, int op, int aa, int rd, int tcp)
+query(int s, struct query *q, const u_char *dname, u_int16_t qtype, u_int16_t qclass, u_int32_t qid, int op, int aa, int rd, int tcp)
 {
 	int len;
 	u_int16_t tcplen;

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.87 2003/04/15 09:57:18 alexis Exp $
+ * $Id: zonec.c,v 1.88 2003/06/16 15:13:16 erik Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -67,7 +67,7 @@ static void zone_addbuf (struct message *, const void *, size_t);
 static void zone_addcompr (struct message *msg, u_char *dname, int offset, int len);
 
 /* The database file... */
-char *dbfile = DBFILE;
+const char *dbfile = DBFILE;
 
 /* The database masks */
 u_char bitmasks[NAMEDB_BITMASKLEN * 3];
@@ -81,23 +81,6 @@ int pflag = 0;
 
 /* Total errors counter */
 int totalerrors = 0;
-
-#ifdef	USE_HEAP_HASH
-
-unsigned long 
-dnamehash (register u_char *dname)
-{
-        register unsigned long hash = 0;
-	register u_char *p = dname;
-
-	dname += *dname + 1;
-
-        while (p < dname)
-                hash = hash * 31 + *p++;
-        return hash;
-}
-
-#endif
 
 /*
  * Allocates ``size'' bytes of memory, returns the
@@ -449,7 +432,7 @@ zone_read (char *name, char *zonefile)
 
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
-	if(dnamecmp(z->dname, (u_char *)"\001") == 0) {
+	if(dnamecmp(z->dname, ROOT) == 0) {
 		fprintf(stderr, "zonec: Not configured as a root server. See the documentation.\n");
 		zone_free(z);
 		return NULL;
@@ -464,15 +447,8 @@ zone_read (char *name, char *zonefile)
 	}
 
 	/* Two heaps: zone cuts and other data */
-#ifdef USE_HEAP_RBTREE
-	z->cuts = heap_create(xalloc, (int (*)(void *, void *))dnamecmp);
-	z->data = heap_create(xalloc, (int (*)(void *, void *))dnamecmp);
-#else
-# ifdef USE_HEAP_HASH
-	z->cuts = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
-	z->data = heap_create(xalloc, dnamecmp, dnamehash, NAMEDB_HASH_SIZE);
-# endif
-#endif
+	z->cuts = heap_create(xalloc, dnamecmp);
+	z->data = heap_create(xalloc, dnamecmp);
 	z->soa = z->ns = NULL;
 
 	/* Read the file */
@@ -969,7 +945,7 @@ main (int argc, char **argv)
 	char *zonename, *zonefile, *s;
 	char buf[LINEBUFSZ];
         struct namedb *db;
-	char *sep = " \t\n";
+	const char *sep = " \t\n";
 	int c;
 	int line = 0;
 	FILE *f;

@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.h,v 1.22 2003/03/20 10:31:25 alexis Exp $
+ * $Id: zonec.h,v 1.23 2003/06/16 15:13:16 erik Exp $
  *
  * zone.h -- internal zone representation
  *
@@ -87,7 +87,6 @@ struct message {
 };
 
 /* zonec.c */
-unsigned long dnamehash(register u_char *dname);
 void *xalloc(register size_t size);
 void *xrealloc(register void *p, register size_t size);
 void zone_initmsg(struct message *m);

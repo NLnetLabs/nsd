@@ -1,5 +1,5 @@
 /*
- * $Id: rbtree.c,v 1.12 2003/03/20 10:31:25 alexis Exp $
+ * $Id: rbtree.c,v 1.13 2003/06/16 15:13:16 erik Exp $
  *
  * rbtree.c -- generic red black tree
  *
@@ -63,7 +63,7 @@ static void rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node);
  *
  */
 rbtree_t *
-rbtree_create (void *(*mallocf)(size_t), int (*cmpf)(void *, void *))
+rbtree_create (void *(*mallocf)(size_t), int (*cmpf)(const void *, const void *))
 {
 	rbtree_t *rbtree;
 
@@ -274,7 +274,7 @@ rbtree_insert (rbtree_t *rbtree, void *key, void *data, int overwrite)
  *
  */
 void *
-rbtree_search (rbtree_t *rbtree, void *key)
+rbtree_search (rbtree_t *rbtree, const void *key)
 {
 	int r;
 	rbnode_t *node;

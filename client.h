@@ -1,5 +1,5 @@
 /*
- * $Id: client.h,v 1.3 2003/06/12 12:31:18 erik Exp $
+ * $Id: client.h,v 1.4 2003/06/16 15:13:16 erik Exp $
  *
  * client.h -- set of DNS client routines
  *
@@ -40,9 +40,12 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
-u_char *uncompress(struct query *q);
+const u_char *uncompress(struct query *q);
 int unpack(struct query *q, struct RR *rr, u_int16_t rdlength);
 struct RR **response(int s, struct query *q);
-int query(int s, struct query *q, u_char *dname, u_int16_t qtype, u_int16_t qclass, u_int32_t qid, int op, int aa, int rd, int tcp);
+int query(int s, struct query *q, const u_char *dname, u_int16_t qtype, u_int16_t qclass, u_int32_t qid, int op, int aa, int rd, int tcp);
+
+/* Must be defined by user of client.c */
+void error(const char *msg);
 
 #endif /* _CLIENT_H_ */

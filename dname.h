@@ -1,5 +1,5 @@
 /*
- * $Id: dname.h,v 1.3 2003/03/20 10:31:25 alexis Exp $
+ * $Id: dname.h,v 1.4 2003/06/16 15:13:16 erik Exp $
  *
  * dname.h -- domain name operations
  *
@@ -46,9 +46,9 @@
 extern void *xalloc(size_t size);
 
 /* dname.c */
-int dnamecmp(register u_char *a, register u_char *b);
-char *dnamestr(u_char *dname);
-u_char *strdname(char *s, u_char *o);
-u_char *dnamedup(u_char *dname);
+int dnamecmp(const void *a, const void *b);
+const char *dnamestr(const u_char *dname);
+const u_char *strdname(const char *s, const u_char *o);
+u_char *dnamedup(const u_char *dname);
 
 #endif /* _DNAME_H_ */

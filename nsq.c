@@ -1,5 +1,5 @@
 /*
- * $Id: nsq.c,v 1.8 2003/05/08 12:21:28 alexis Exp $
+ * $Id: nsq.c,v 1.9 2003/06/16 15:13:16 erik Exp $
  *
  * nsq.c -- sends a DNS query and prints a response
  *
@@ -79,7 +79,7 @@ static struct ztab opcodes[] = 	{\
  *
  */
 void
-error(char *msg)
+error(const char *msg)
 {
 	if(errno != 0) {
 		fprintf(stderr, "%s: %s: %s\n", progname, msg, strerror(errno));
@@ -148,14 +148,13 @@ main (int argc, char *argv[])
 	int c, s, i;
 	struct query q;
 	struct in_addr pin;
-	struct dns_header *header;
 	int port = 53;
 	u_int32_t qid;
 	int aflag = 0;
 	int rflag = 0;
 	u_int16_t qtype = TYPE_A;
 	u_int16_t qclass = CLASS_IN;
-	u_char *qdname;
+	const u_char *qdname;
 	int qopcode = 0;
 	struct RR **rrs;
 
@@ -282,12 +281,13 @@ main (int argc, char *argv[])
 		}
 
 		/* Print the header.... */
-		printf(";; received %d bytes from %s, %lu questions, %lu answers, %lu authority, %lu additional\n",
-			q.iobufsz, *argv, ntohs(QDCOUNT((&q))), ntohs(ANCOUNT((&q))),
-					ntohs(NSCOUNT((&q))), ntohs(ARCOUNT((&q))));
-		printf(";; query id: %lu, qr: %d, opcode: %d, aa: %d, tc: %d, rd: %d, ra: %d, z: %d, rcode: %d\n",
-				ntohs(ID((&q))), QR((&q)) ? 1 : 0, OPCODE((&q)), AA((&q)) ? 1 : 0 , TC((&q)) ? 1 : 0,
-					RD((&q)) ? 1 : 0, RA((&q)) ? 1 : 0, Z((&q)), RCODE((&q)));
+		printf(";; received %d bytes from %s, %u questions, %u answers, %u authority, %u additional\n",
+			q.iobufsz, *argv,
+		       (unsigned) ntohs(QDCOUNT((&q))), (unsigned) ntohs(ANCOUNT((&q))),
+		       (unsigned) ntohs(NSCOUNT((&q))), (unsigned) ntohs(ARCOUNT((&q))));
+		printf(";; query id: %u, qr: %d, opcode: %d, aa: %d, tc: %d, rd: %d, ra: %d, z: %d, rcode: %d\n",
+		       (unsigned) ntohs(ID((&q))), QR((&q)) ? 1 : 0, OPCODE((&q)), AA((&q)) ? 1 : 0 , TC((&q)) ? 1 : 0,
+		       RD((&q)) ? 1 : 0, RA((&q)) ? 1 : 0, Z((&q)), RCODE((&q)));
 
 		/* Print it */
 		printf("; Question section\n");

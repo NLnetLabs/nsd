@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.33 2003/06/12 12:31:19 erik Exp $
+ * $Id: zparser.c,v 1.34 2003/06/16 15:13:16 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -64,13 +64,6 @@
 #include <zparser.h>
 #include <dname.h>
 
-#ifndef HAVE_B64_PTON
-extern int b64_pton(char const *src, u_char *target, size_t targsize);
-#endif
-#ifndef HAVE_B64_NTOP
-extern int b64_ntop(u_char const *src, size_t srclength, char *target, size_t targsize);
-#endif
-
 /*
  *
  * Resource records types and classes that we know.
@@ -122,7 +115,7 @@ xrealloc (void *p, size_t size)
  *
  */
 u_int16_t
-intbyname (char *a, struct ztab *tab)
+intbyname (const char *a, struct ztab *tab)
 {
 	while(tab->name != NULL) {
 		if(strcasecmp(a, tab->name) == 0) return tab->sym;
@@ -135,7 +128,7 @@ intbyname (char *a, struct ztab *tab)
  * Looks up the string value of the symbol, returns NULL if not found.
  *
  */
-char *
+const char *
 namebyint (u_int16_t n, struct ztab *tab)
 {
 	while(tab->sym != 0) {
@@ -282,7 +275,7 @@ strtottl(char *nptr, char **endptr)
  *	nothing
  */
 void 
-zerror (struct zparser *z, char *msg)
+zerror (struct zparser *z, const char *msg)
 {
 	fprintf(stderr, "error: %s in %s, line %lu\n", msg, z->filename, z->_tlineno[z->_tc]);
 	z->errors++;
@@ -323,7 +316,7 @@ zunexpected (struct zparser *z)
  *
  */
 struct zparser *
-zopen (char *filename, u_int32_t ttl, u_int16_t class, char *origin)
+zopen (const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origin)
 {
 	return _zopen(filename, ttl, class, strdname(origin, ROOT), 0);
 }
@@ -339,7 +332,7 @@ zopen (char *filename, u_int32_t ttl, u_int16_t class, char *origin)
  *
  */
 struct zparser *
-_zopen (char *filename, u_int32_t ttl, u_int16_t class, u_char *origin, int n)
+_zopen (const char *filename, u_int32_t ttl, u_int16_t class, const u_char *origin, int n)
 {
 	struct zparser *z;
 
@@ -424,14 +417,16 @@ zread (struct zparser *z)
 					}
 				}
 			} else if(strcasecmp(z->_t[0], "$ORIGIN") == 0) {
+				const u_char *dname;
 				if(z->_t[1] == NULL ||
-					(z->_rr.dname = strdname(z->_t[1], z->origin)) == NULL) {
+					(dname = strdname(z->_t[1], z->origin)) == NULL) {
 					zerror(z, "invalid or missing origin");
 				} else {
 					free(z->origin);
-					z->origin = dnamedup(z->_rr.dname);
+					z->origin = dnamedup(dname);
 				}
-				/* Clean up after use... */
+				/* Don't allow default after new origin. */
+				free(z->_rr.dname);
 				z->_rr.dname = NULL;
 			} else if(strcasecmp(z->_t[0], "$INCLUDE") == 0) {
 				if(z->_t[1] == NULL) {
@@ -463,13 +458,12 @@ zread (struct zparser *z)
 			}
 		} else {
 			/* Free the old name */
-			if(z->_rr.dname)
-				free(z->_rr.dname);
+			free(z->_rr.dname);
 
 			/* Parse the dname */
-			if((z->_rr.dname = dnamedup(strdname(z->_t[0], z->origin))) == NULL) {
+			z->_rr.dname = dnamedup(strdname(z->_t[0], z->origin));
+			if(z->_rr.dname == NULL) {
 				zerror(z, "invalid domain name");
-				z->_rr.dname = NULL;
 				continue;
 			}
 		}
@@ -907,7 +901,8 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 	struct tm tm;
 	struct protoent *proto;
 	struct servent *service;
-	u_char *t;
+	const u_char *dname;
+	char *end;		/* Used to parse longs, ttls, etc.  */
 	int error = 0;
 	u_int16_t *r = NULL;
 	u_int32_t l;
@@ -925,6 +920,7 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 			zerror(z, "hex representation must be a whole number of octets");
 			error++;
 		} else {
+			u_char *t;
 			/* Allocate required space... */
 			r = xalloc(sizeof(u_int16_t) + i/2);
 			*r = i/2;
@@ -1029,9 +1025,9 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
 
-		l = htonl((u_int32_t)strtottl(z->_t[z->_tc], (char **)&t));
+		l = htonl((u_int32_t)strtottl(z->_t[z->_tc], &end));
 
-		if(*t != 0) {
+		if(*end != 0) {
 			zerror(z, "time period is expected");
 			error++;
 		} else {
@@ -1043,9 +1039,9 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int16_t));
 
-		*(r+1)  = htons((u_int16_t)strtol(z->_t[z->_tc], (char **)&t, 0));
+		*(r+1)  = htons((u_int16_t)strtol(z->_t[z->_tc], &end, 0));
 
-		if(*t != 0) {
+		if(*end != 0) {
 			zerror(z, "unsigned short value is expected");
 			error++;
 		} else {
@@ -1056,9 +1052,9 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int32_t));
 
-		l = htonl((u_int32_t)strtol(z->_t[z->_tc], (char **)&t, 0));
+		l = htonl((u_int32_t)strtol(z->_t[z->_tc], &end, 0));
 
-		if(*t != 0) {
+		if(*end != 0) {
 			zerror(z, "long decimal value is expected");
 			error++;
 		} else {
@@ -1070,9 +1066,9 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		/* Allocate required space... */
 		r = xalloc(sizeof(u_int16_t) + sizeof(u_int8_t));
 
-		*((u_int8_t *)(r+1))  = (u_int8_t)strtol(z->_t[z->_tc], (char **)&t, 0);
+		*((u_int8_t *)(r+1)) = (u_int8_t)strtol(z->_t[z->_tc], &end, 0);
 
-		if(*t != 0) {
+		if(*end != 0) {
 			zerror(z, "decimal value is expected");
 			error++;
 		} else {
@@ -1103,15 +1099,15 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 		break;
 	case RDATA_DNAME:
 		/* Try to parse the dname */
-		if((t = strdname(z->_t[z->_tc], z->origin)) == NULL) {
+		if((dname = strdname(z->_t[z->_tc], z->origin)) == NULL) {
 			zerror(z, "invalid domain name");
 			error++;
 		} else {
 
 			/* Allocate required space... */
-			r = xalloc(sizeof(u_int16_t) + *t + 1);
+			r = xalloc(sizeof(u_int16_t) + *dname + 1);
 
-			memcpy((char *)(r+1), t, *t + 1);
+			memcpy(r+1, dname, *dname + 1);
 
 			*r = 0xffff;
 		}
@@ -1168,8 +1164,8 @@ zrdatascan2 (struct zparser *z, int what, int arg)
 	}
 
 	/* Add it to the rdata list */
-        zaddrdata(z, r);
-        z->_tc++;
+	zaddrdata(z, r);
+	z->_tc++;
 	return 1;
 }
 
@@ -1561,7 +1557,7 @@ precsize_aton (register char *cp, char **endptr)
 	while (isdigit(*cp))
 		mval = mval * 10 + (*cp++ - '0');
 
-	if (*cp == '.') {               /* centimeters */
+	if (*cp == '.') {	/* centimeters */
 		cp++;
 		if (isdigit(*cp)) {
 			cmval = (*cp++ - '0') * 10;
@@ -1650,7 +1646,7 @@ zprintrdata (FILE *f, int what, u_int16_t *r)
 	case RDATA_A6:
 		fprintf(f, "%x:%x:%x:%x:%x:%x:%x:%x ", ntohs(r[1]), ntohs(r[2]), ntohs(r[3]),
 			ntohs(r[4]), ntohs(r[5]), ntohs(r[6]), ntohs(r[7]), ntohs(r[8]));
-                        break;
+		break;
 	case RDATA_DNAME:
 		fprintf(f, "%s ", dnamestr((u_char *)(&r[1])));
 		break;
@@ -1789,11 +1785,11 @@ zprintrrrdata(FILE *f, struct RR *rr)
 	}
 }
 
-char *
+const char *
 typebyint(u_int16_t type)
 {
 	static char typebuf[] = "TYPEXXXXX";
-	char *t = namebyint(type, ztypes);
+	const char *t = namebyint(type, ztypes);
 	if(t == NULL) {
 		snprintf(typebuf + 4, sizeof(typebuf) - 4, "%u", type);
 		t = typebuf;
@@ -1801,11 +1797,11 @@ typebyint(u_int16_t type)
 	return t;
 }
 
-char *
+const char *
 classbyint(u_int16_t class)
 {
 	static char classbuf[] = "CLASSXXXXX";
-	char *t = namebyint(class, zclasses);
+	const char *t = namebyint(class, zclasses);
 	if(t == NULL) {
 		snprintf(classbuf + 5, sizeof(classbuf) - 5, "%u", class);
 		t = classbuf;
