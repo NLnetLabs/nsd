@@ -1207,6 +1207,7 @@ main (int argc, char **argv)
 				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
 			}
 
+			fprintf(stderr,"zonec: reading zone \"%s\"\n",zonename);
 			zone_read(zonename, zonefile);
 
 #ifndef NDEBUG
