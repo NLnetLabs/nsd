@@ -28,8 +28,8 @@
 static lookup_table_type dns_rrclasses[] = {
 	{ CLASS_IN, "IN" },	/* the Internet */
 	{ CLASS_CS, "CS" },	/* the CSNET class (Obsolete) */
-        { CLASS_CH, "CH" },	/* the CHAOS class */
-        { CLASS_HS, "HS" },	/* Hesiod */
+	{ CLASS_CH, "CH" },	/* the CHAOS class */
+	{ CLASS_HS, "HS" },	/* Hesiod */
 	{ 0, NULL }
 };
 

@@ -33,20 +33,20 @@ enum rr_section {
 typedef enum rr_section rr_section_type;
 
 /* Possible OPCODE values */
-#define	OPCODE_QUERY		0 	/* a standard query (QUERY) */
+#define OPCODE_QUERY		0 	/* a standard query (QUERY) */
 #define OPCODE_IQUERY		1 	/* an inverse query (IQUERY) */
 #define OPCODE_STATUS		2 	/* a server status request (STATUS) */
 #define OPCODE_NOTIFY		4 	/* NOTIFY */
 #define OPCODE_UPDATE		5 	/* Dynamic update */
 
 /* Possible RCODE values */
-#define	RCODE_OK		0 	/* No error condition */
+#define RCODE_OK		0 	/* No error condition */
 #define RCODE_FORMAT		1 	/* Format error */
 #define RCODE_SERVFAIL		2 	/* Server failure */
 #define RCODE_NXDOMAIN		3 	/* Name Error */
 #define RCODE_IMPL		4 	/* Not implemented */
 #define RCODE_REFUSE		5 	/* Refused */
-#define RCODE_NOTAUTH           9	/* Not authorized */
+#define RCODE_NOTAUTH		9	/* Not authorized */
 
 /* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
 enum nsd_rc
@@ -66,11 +66,11 @@ enum nsd_rc
 typedef enum nsd_rc nsd_rc_type;
 
 /* RFC1035 */
-#define	CLASS_IN	1	/* Class IN */
+#define CLASS_IN	1	/* Class IN */
 #define CLASS_CS	2	/* Class CS */
-#define	CLASS_CH	3	/* Class CHAOS */
-#define CLASS_HS	4       /* Class HS */
-#define	CLASS_ANY	255	/* Class ANY */
+#define CLASS_CH	3	/* Class CHAOS */
+#define CLASS_HS	4	/* Class HS */
+#define CLASS_ANY	255	/* Class ANY */
 
 #define TYPE_A		1	/* a host address */
 #define TYPE_NS		2	/* an authoritative name server */
@@ -88,57 +88,57 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_MINFO	14	/* mailbox or mail list information */
 #define TYPE_MX		15	/* mail exchange */
 #define TYPE_TXT	16	/* text strings */
-#define	TYPE_RP		17	/* RFC1183 */
-#define	TYPE_AFSDB	18	/* RFC1183 */
-#define TYPE_X25        19	/* RFC1183 */
-#define TYPE_ISDN       20	/* RFC1183 */
-#define TYPE_RT         21	/* RFC1183 */
-#define TYPE_NSAP       22	/* RFC1706 */
+#define TYPE_RP		17	/* RFC1183 */
+#define TYPE_AFSDB	18	/* RFC1183 */
+#define TYPE_X25	19	/* RFC1183 */
+#define TYPE_ISDN	20	/* RFC1183 */
+#define TYPE_RT		21	/* RFC1183 */
+#define TYPE_NSAP	22	/* RFC1706 */
 
-#define	TYPE_SIG	24	/* 2535typecode */
-#define	TYPE_KEY	25	/* 2535typecode */
-#define TYPE_PX         26	/* RFC2163 */
+#define TYPE_SIG	24	/* 2535typecode */
+#define TYPE_KEY	25	/* 2535typecode */
+#define TYPE_PX		26	/* RFC2163 */
 
 #define TYPE_AAAA	28	/* ipv6 address */
 #define TYPE_LOC	29	/* LOC record  RFC1876 */
-#define	TYPE_NXT	30 	/* 2535typecode */
+#define TYPE_NXT	30	/* 2535typecode */
 
-#define	TYPE_SRV	33	/* SRV record RFC2782 */
+#define TYPE_SRV	33	/* SRV record RFC2782 */
 
-#define TYPE_NAPTR      35	/* RFC2915 */
-#define TYPE_KX         36	/* RFC2230 */
-#define TYPE_CERT       37	/* RFC2538 */
+#define TYPE_NAPTR	35	/* RFC2915 */
+#define TYPE_KX		36	/* RFC2230 */
+#define TYPE_CERT	37	/* RFC2538 */
 
-#define TYPE_DNAME      39	/* RFC2672 */
+#define TYPE_DNAME	39	/* RFC2672 */
 
-#define	TYPE_OPT	41	/* Pseudo OPT record... */
-#define TYPE_APL        42	/* RFC3123 */
-#define	TYPE_DS		43	/* draft-ietf-dnsext-delegation */
+#define TYPE_OPT	41	/* Pseudo OPT record... */
+#define TYPE_APL	42	/* RFC3123 */
+#define TYPE_DS		43	/* draft-ietf-dnsext-delegation */
 #define TYPE_SSHFP	44	/* SSH Key Fingerprint */
 
 #define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
-#define TYPE_NSEC	47	
+#define TYPE_NSEC	47
 #define TYPE_DNSKEY	48
 
-#define TYPE_TSIG       250
-#define	TYPE_IXFR	251
-#define	TYPE_AXFR	252
-#define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */
-#define	TYPE_MAILA	254	/* A request for mail agent RRs (Obsolete - see MX) */
+#define TYPE_TSIG	250
+#define TYPE_IXFR	251
+#define TYPE_AXFR	252
+#define TYPE_MAILB	253	/* A request for mailbox-related records (MB, MG or MR) */
+#define TYPE_MAILA	254	/* A request for mail agent RRs (Obsolete - see MX) */
 #define TYPE_ANY	255	/* any type (wildcard) */
 
-#define	MAXLABELLEN	63
-#define	MAXDOMAINLEN	255
+#define MAXLABELLEN	63
+#define MAXDOMAINLEN	255
 
-#define	MAXRDATALEN	64		/* This is more than enough, think multiple TXT */
-#define MAX_RDLENGTH            65535
+#define MAXRDATALEN	64 /* This is more than enough, think multiple TXT.  */
+#define MAX_RDLENGTH	65535
 
 /* Maximum size of a single RR.  */
 #define MAX_RR_SIZE \
 	(MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)
 
-#define IP4ADDRLEN      (32/8)
-#define	IP6ADDRLEN	(128/8)
+#define IP4ADDRLEN	(32/8)
+#define IP6ADDRLEN	(128/8)
 
 /*
  * The different types of RDATA wireformat data.
