@@ -471,6 +471,43 @@ answer_notify (struct query *query)
 }
 
 
+static void
+add_dependent_rrsets(struct query *query, rrset_type *master_rrset,
+		     answer_section_type section,
+		     size_t rdata_index, uint16_t type_of_dependent)
+{
+	size_t i;
+
+	assert(query);
+	assert(master_rrset);
+	assert(rdata_atom_is_domain(master_rrset->type, rdata_index));
+	
+	for (i = 0; i < master_rrset->rrslen; ++i) {
+		rrset_type *rrset;
+		domain_type *additional = rdata_atom_domain(master_rrset->rrs[i][rdata_index]);
+		assert(additional);
+		for (rrset = additional->rrsets; rrset; rrset = rrset->next) {
+			if (rrset->type == type_of_dependent) {
+				answer_add_rrset(&query->answer, section,
+						 additional, rrset);
+			}
+		}
+	}
+}
+
+static void
+add_ns_rrset(struct query *query, domain_type *owner, rrset_type *ns_rrset)
+{
+	assert(query);
+	assert(ns_rrset);
+	assert(ns_rrset->type == TYPE_NS);
+	assert(ns_rrset->class == CLASS_IN);
+	
+	answer_add_rrset(&query->answer, AUTHORITY_SECTION, owner, ns_rrset);
+	add_dependent_rrsets(query, ns_rrset, ADDITIONAL_SECTION, 0, TYPE_A);
+	add_dependent_rrsets(query, ns_rrset, ADDITIONAL_SECTION, 0, TYPE_AAAA);
+}
+
 /*
  * Answer if this is a delegation.
  *
@@ -480,9 +517,7 @@ static void
 answer_delegation(struct query *query)
 {
 	AA_CLR(query);
-	answer_add_rrset(&query->answer, AUTHORITY_SECTION,
-			 query->soa_or_delegation_domain, query->ns_rrset);
-	/* TODO: Add additional section.  */
+	add_ns_rrset(query, query->soa_or_delegation_domain, query->ns_rrset);
 }
 
 
@@ -521,7 +556,7 @@ answer_domain(struct query *q, domain_type *domain, const uint8_t *qname)
 		answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
 	} else if ((rrset = domain_find_rrset(domain, TYPE_CNAME))) {
 		answer_add_rrset(&q->answer, ANSWER_SECTION, domain, rrset);
-		/* TODO: Add cname target in answer section.  */
+		add_dependent_rrsets(q, rrset, ANSWER_SECTION, 0, q->type);
 	} else {
 		/*
 		 * Domain exists with data but no matching type found,
@@ -535,8 +570,7 @@ answer_domain(struct query *q, domain_type *domain, const uint8_t *qname)
 		AA_CLR(q);
 	} else if (q->ns_rrset) {
 		AA_SET(q);
-		answer_add_rrset(&q->answer, AUTHORITY_SECTION, q->soa_or_delegation_domain, q->ns_rrset);
-		/* TODO: Add additional section.  */
+		add_ns_rrset(q, q->soa_or_delegation_domain, q->ns_rrset);
 	}
 }
 
@@ -730,7 +764,6 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 	int exact;
 
 	exact = namedb_lookup(nsd->db, q->name, &closest_match, &closest_encloser);
-	fprintf(stderr, "exact? %d\n", exact);
 	
 	q->soa_or_delegation_domain = domain_find_soa_ns_rrsets(
 		closest_encloser, &q->soa_rrset, &q->ns_rrset);
@@ -745,8 +778,6 @@ answer_query(struct nsd *nsd, struct query *q, const uint8_t *qname)
 			closest_encloser = closest_encloser->parent;
 	}
 
-	fprintf(stderr, "exact? %d\n", exact);
-	
 	if (!exact) {
 		/* Adjust query name to only contain the matching part.  */
 		qname += dname_label_offsets(q->name)[closest_encloser->dname->label_count - 1];
