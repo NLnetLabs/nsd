@@ -52,7 +52,7 @@ struct buffer
 
 #ifdef NDEBUG
 static inline void
-buffer_invariant(buffer_type *buffer ATTR_UNUSED)
+buffer_invariant(buffer_type *ATTR_UNUSED(buffer))
 {
 }
 #else
