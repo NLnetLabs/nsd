@@ -1,0 +1,116 @@
+=======================================
+Q:dig -p 5053 @localhost ANY nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 5, AUTHORITY: 0, ADDITIONAL: 0
+;; QUESTION SECTION:
+;nsd.test.example.		IN	ANY
+;; ANSWER SECTION:
+nsd.test.example.	3600	IN	SOA	nsd.test.example. root.nsd.test.example. 2002051700 21600 7200 604800 3600
+nsd.test.example.	3600	IN	A	127.0.0.1
+nsd.test.example.	3600	IN	MX	10 localhost.nsd.test.example.
+nsd.test.example.	3600	IN	NS	localhost.
+nsd.test.example.	3600	IN	NS	127.0.0.1.
+=======================================
+Q:dig -p 5053 @localhost NS nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 0
+;; QUESTION SECTION:
+;nsd.test.example.		IN	NS
+;; ANSWER SECTION:
+nsd.test.example.	3600	IN	NS	localhost.
+nsd.test.example.	3600	IN	NS	127.0.0.1.
+=======================================
+Q:dig -p 5053 @localhost IN A host.nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 2, ADDITIONAL: 0
+;; QUESTION SECTION:
+;host.nsd.test.example.		IN	A
+;; ANSWER SECTION:
+host.nsd.test.example.	3600	IN	A	127.0.0.2
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	NS	localhost.
+nsd.test.example.	3600	IN	NS	127.0.0.1.
+=======================================
+Q:dig -p 5053 @localhost IN CNAME host.nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;host.nsd.test.example.		IN	CNAME
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	SOA	nsd.test.example. root.nsd.test.example. 2002051700 21600 7200 604800 3600
+=======================================
+Q:dig -p 5053 @localhost IN CNAME nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;nsd.test.example.		IN	CNAME
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	SOA	nsd.test.example. root.nsd.test.example. 2002051700 21600 7200 604800 3600
+=======================================
+Q:dig -p 5053 @localhost IN CNAME a.nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 2, AUTHORITY: 2, ADDITIONAL: 0
+;; QUESTION SECTION:
+;a.nsd.test.example.		IN	CNAME
+;; ANSWER SECTION:
+a.nsd.test.example.	3600	IN	CNAME	b.nsd.test.example.
+b.nsd.test.example.	3600	IN	CNAME	c.nsd.test.example.
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	NS	localhost.
+nsd.test.example.	3600	IN	NS	127.0.0.1.
+=======================================
+Q:dig -p 5053 @localhost IN CNAME e.nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 2, AUTHORITY: 2, ADDITIONAL: 0
+;; QUESTION SECTION:
+;e.nsd.test.example.		IN	CNAME
+;; ANSWER SECTION:
+e.nsd.test.example.	3600	IN	CNAME	f.nsd.test.example.
+f.nsd.test.example.	3600	IN	CNAME	g.nsd.test.example.
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	NS	localhost.
+nsd.test.example.	3600	IN	NS	127.0.0.1.
+=======================================
+Q:dig -p 5053 @localhost IN A not.a.host.nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;not.a.host.nsd.test.example.	IN	A
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	SOA	nsd.test.example. root.nsd.test.example. 2002051700 21600 7200 604800 3600
+=======================================
+Q:dig -p 5053 @localhost IN TXT text.nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;text.nsd.test.example.		IN	TXT
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	SOA	nsd.test.example. root.nsd.test.example. 2002051700 21600 7200 604800 3600
+=======================================
+Q:dig -p 5053 @localhost IN TXT nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;nsd.test.example.		IN	TXT
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	SOA	nsd.test.example. root.nsd.test.example. 2002051700 21600 7200 604800 3600
+=======================================
+Q:dig -p 5053 @localhost IN A wildcard-a.nsd.test.example
+A:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: XXXXX
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;wildcard-a.nsd.test.example.	IN	A
+;; AUTHORITY SECTION:
+nsd.test.example.	3600	IN	SOA	nsd.test.example. root.nsd.test.example. 2002051700 21600 7200 604800 3600
+=======================================

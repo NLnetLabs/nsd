@@ -1,0 +1,4 @@
+; This is a comment
+
+; Type	 Zone Name	Filename relative to the $NSDZONESDIR
+zone	nsd.test.example test.zone

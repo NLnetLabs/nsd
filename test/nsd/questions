@@ -1,0 +1,18 @@
+# This are test question send to NSD
+# ; and # are comments in this file
+; standard stuff
+ANY nsd.test.example
+NS nsd.test.example
+IN A host.nsd.test.example
+IN CNAME host.nsd.test.example
+IN CNAME nsd.test.example
+IN CNAME a.nsd.test.example
+IN CNAME e.nsd.test.example
+; NX domain
+IN A not.a.host.nsd.test.example
+; text records
+IN TXT   text.nsd.test.example
+; test long records (tcp mode)
+IN TXT   nsd.test.example
+; wilcards
+IN A     wildcard-a.nsd.test.example

@@ -1,0 +1,39 @@
+;
+; NSD data file for test purposes
+;
+; This zone files contains some test stuff
+; to see if NSD handles it correctly
+;
+@       IN      SOA     nsd.test.example. root.nsd.test.example. (
+                     2002051700         ; Serial
+                             6H         ; Refresh
+                             2H         ; Retry
+                             7D         ; Expire
+                             1H )       ; Negative Cache TTL
+;
+@       IN      NS      localhost.
+; illegal NS to IP
+@       IN      NS      127.0.0.1.
+@       IN      MX      10 localhost
+@       IN      A       127.0.0.1
+
+; CNAME chain with dead end
+a               IN      CNAME   b
+b               IN      CNAME   c
+c               IN      CNAME   d
+d               IN      CNAME   not.a.host
+
+; correct CNAME chain
+host            IN      A       127.0.0.2
+e               IN      CNAME   f
+f               IN      CNAME   g
+g               IN      CNAME   h
+h               IN      CNAME   host
+
+; MX to CNAME, illegal
+mail            IN      MX      10 e
+
+; Wildcards
+
+; Long text records
+; Donated by Paul Wouters
