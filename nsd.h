@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.h,v 1.18 2002/02/14 15:21:30 alexis Exp $
+ * $Id: nsd.h,v 1.19 2002/02/14 17:41:56 alexis Exp $
  *
  * nsd.h -- nsd(8) definitions and prototypes
  *
@@ -90,7 +90,7 @@
 
 #else
 
-#define	CF_DBFILE	"/etc/nsd.db"
+#define	CF_DBFILE	"/var/db/nsd.db"
 #define	CF_PIDFILE	"/var/run/nsd.pid"
 #define	CF_TCP_MAX_CONNECTIONS	8
 #define	CF_TCP_PORT		53
