@@ -8,3 +8,5 @@ soa-test: ../../zonec2
 
 unknown-test: ../../zonec2
 	../../zonec2 -p -v -f test.db unknown.conf
+
+u-test:	unknown-test

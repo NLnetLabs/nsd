@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.27.2.1 2003/09/24 14:09:16 miekg Exp $
+ * $Id: zlparser.lex,v 1.27.2.2 2003/10/06 13:19:21 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -145,7 +145,7 @@ Q       \"
 				LEXOUT("NL\n");
                                 return NL;
                             } else {
-				LEXOUT("SP\n");
+				LEXOUT("SP+\n");
 			    	return SP;
 			    }
                         }
@@ -155,7 +155,7 @@ Q       \"
                                 yyerror( "nested parentheses" );
                                 yyterminate();
                             }
-			    LEXOUT("SP ");
+			    LEXOUT("SP(");
                             paren_open = 1;
 			    return SP;
                         }
@@ -164,7 +164,7 @@ Q       \"
                                 yyerror( "unterminated parentheses" );
                                 yyterminate();
                             }
-			    LEXOUT("SP ");
+			    LEXOUT("SP)");
                             paren_open = 0;
 			    return SP;
                         }

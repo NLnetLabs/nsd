@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zyparser.y,v 1.37.2.1 2003/09/24 14:09:16 miekg Exp $
+ * $Id: zyparser.y,v 1.37.2.2 2003/10/06 13:19:21 miekg Exp $
  *
  * zyparser.y -- yacc grammar for (DNS) zone files
  *
@@ -72,11 +72,11 @@ sp:		SP
 	|	sp SP
 	;
 
-trail:		/* empty */
-	|	sp
+trail:	NL	
+	|	sp NL
 	;
 
-dir_ttl:    SP STR NL
+dir_ttl:    SP STR trail
     { 
         if ($2.len > MAXDOMAINLEN ) {
             yyerror("$TTL value is too large");
@@ -90,7 +90,7 @@ dir_ttl:    SP STR NL
     }
     ;
 
-dir_orig:   sp dname NL
+dir_orig:   sp dname trail
     {
         /* [xxx] does $origin not effect previous */
         if ( $2.len > MAXDOMAINLEN ) { 
@@ -104,7 +104,7 @@ dir_orig:   sp dname NL
     }
     ;
 
-rr:     ORIGIN sp rrrest trail NL
+rr:     ORIGIN sp rrrest trail
     {
         /* starts with @, use the origin */
         current_rr->dname = zdefault->origin;
@@ -114,14 +114,14 @@ rr:     ORIGIN sp rrrest trail NL
         zdefault->prev_dname_len = zdefault->origin_len; /* what about this len? */
         free($1.str);
     }
-    |   PREV rrrest trail NL
+    |   PREV rrrest trail
     {
         /* a tab, use previously defined dname */
         /* [XXX] is null -> error, not checked (yet) MG */
         current_rr->dname = zdefault->prev_dname;
         
     }
-    |   dname sp rrrest trail NL
+    |   dname sp rrrest trail
     {
         current_rr->dname = $1.str;
 
@@ -228,27 +228,17 @@ rel_dname:  STR
     }
     ;
 
-hex:	STR
+/* hex and rdata_txt are equal and are put in the same place in
+ * in the zone file
+ */
+hex:	STR 
     {
 	$$.str = $1.str;
 	$$.len = $1.len;
     }
-    |	hex sp STR
-    {
-	printf("\nHEXS: %s %d\n",$1.str,$1.len);
-	printf("HEXS: %s %d\n",$3.str,$3.len);
-	char *hexstr = xalloc($1.len + $3.len + 1);
-    	memcpy(hexstr, $1.str, $1.len);
-	memcpy(hexstr + $1.len + 1, $3.str, $3.len);
-
-
-	$$.str = memcpy($$.str, hexstr, $1.len + $3.len + 1);
-	*((char*)$$.str + $1.len + $3.len + 1) = '\0';
-	$$.len = $1.len + $3.len;
-	printf("HEX: %s %d\n", $$.str, $$.len);
-	free($1.str); free($3.str);free(hexstr);
-    }
+    |	sp hex sp STR
     ;
+
 
 /* define what we can parse */
 
@@ -256,71 +246,31 @@ rtype:  SOA sp rdata_soa
     {   
         zadd_rtype("soa");
     }
-    |	SOA sp UN_RR sp rdata_unknown
-    {
-	zadd_rtype("soa");
-    }
     |   A sp rdata_a
     {
         zadd_rtype("a");
-    }
-    |	A sp UN_RR sp rdata_unknown
-    {
-	zadd_rtype("a");
     }
     |   NS sp rdata_dname
     {
         zadd_rtype("ns");
     }
-    |	NS sp UN_RR sp rdata_unknown
-    {
-	zadd_rtype("ns");
-    }
     |   CNAME sp rdata_dname
     {
         zadd_rtype("cname");
-    }
-    |   CNAME sp UN_RR sp rdata_unknown
-    {
-	zadd_rtype("cname");
     }
     |   PTR sp rdata_dname
     {   
         zadd_rtype("ptr");
     }
-    |	PTR sp UN_RR sp rdata_unknown
-    {
-	zadd_rtype("ptr");
-    }
-    |   TXT sp rdata_txt
-    {
-        zadd_rtype("txt");
-    }
-    |	TXT sp UN_RR sp rdata_unknown
-    {
-	zadd_rtype("txt");
-    }
     |   MX sp rdata_mx
     {
         zadd_rtype("mx");
-    }
-    |   MX sp UN_RR sp rdata_unknown
-    {
-	zadd_rtype("mx");
     }
     |   AAAA sp rdata_aaaa
     {
         zadd_rtype("aaaa");
     }
-    |	AAAA sp UN_RR sp rdata_unknown
-    {
-	zadd_rtype("aaaa");
-    }
     |	HINFO sp rdata_hinfo
-    {
-	zadd_rtype("hinfo");
-    }
-    |	HINFO sp UN_RR sp rdata_unknown
     {
 	zadd_rtype("hinfo");
     }
@@ -328,19 +278,16 @@ rtype:  SOA sp rdata_soa
     {
 	zadd_rtype("srv");
     }
-    |	SRV sp UN_RR sp rdata_unknown
+    /*
+    |	UN_TYPE sp UN_RR rdata_unknown
     {
-	zadd_rtype("srv");
-    }
-    |	UN_TYPE sp UN_RR sp rdata_unknown
-    {
-	/* try to add the unknown type */
 	current_rr->type = intbytypexx($1.str);
 	if ( current_rr->type == 0 ) {
 	    fprintf(stderr,"TYPEXXX parse error, setting to A.\n");
 	    current_rr->type = TYPE_A;
 	}
     }
+    */
     |	error NL
     {	
 	    fprintf(stderr,"Unimplemented RR seen\n");
@@ -352,11 +299,11 @@ rtype:  SOA sp rdata_soa
  * below are all the definition for all the different rdata 
  */
 
-rdata_unknown: STR sp hex
+rdata_unknown: sp STR sp hex
     {
 	/* check_hexlen($1.str, $2.str); */
-	zadd_rdata2( zdefault, zparser_conv_hex($3.str) );
-	free($3.str);
+	zadd_rdata2( zdefault, zparser_conv_hex($4.str) );
+	free($4.str);
     }
     ;
 
@@ -409,19 +356,8 @@ rdata_a:    STR '.' STR '.' STR '.' STR
     }
     ;
 
-rdata_txt:  STR 
-    {
-        zadd_rdata2( zdefault, zparser_conv_text($1.str));
-    	free($1.str);
-    }
-    |   rdata_txt SP STR
-    {
-        zadd_rdata2( zdefault, zparser_conv_text($3.str));
-        free($3.str);
-    }
-    ;
 
-rdata_mx:   STR SP dname
+rdata_mx:   STR sp dname
     {
         zadd_rdata2( zdefault, zparser_conv_short($1.str) );  /* priority */
         zadd_rdata2( zdefault, zparser_conv_dname($3.str) );  /* MX host */
@@ -436,7 +372,7 @@ rdata_aaaa: STR
     }
     ;
 
-rdata_hinfo:	STR SP STR
+rdata_hinfo:	STR sp STR
 	{
         	zadd_rdata2( zdefault, zparser_conv_text($1.str) ); /* CPU */
         	zadd_rdata2( zdefault, zparser_conv_text($3.str) );  /* OS*/
@@ -444,7 +380,7 @@ rdata_hinfo:	STR SP STR
 	}
 	;
 
-rdata_srv:	STR SP STR SP STR SP dname
+rdata_srv:	STR sp STR sp STR sp dname
 	{
 		zadd_rdata2( zdefault, zparser_conv_short($1.str) ); /* prio */
 		zadd_rdata2( zdefault, zparser_conv_short($3.str) ); /* weight */
