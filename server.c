@@ -293,14 +293,12 @@ server_init(struct nsd *nsd)
 # endif
 # if defined(IPV6_USE_MIN_MTU)
 			/*
-			 * IPv6 doesn't do automatic fragmentation of
-			 * UDP packets when a link is encountered that
-			 * has a smaller MTU than the MTU used to send
-			 * the packet.  In this case the packet will
-			 * simply be lost.
-			 *
-			 * So always try to send packets using the
-			 * minimum MTU of IPv6.
+			 * There is no fragmentation of IPv6 datagrams
+			 * during forwarding in the network. Therefore
+			 * we do not send UDP datagrams larger than
+			 * the minimum IPv6 MTU of 1280 octets. The
+			 * EDNS0 message length can be larger if the
+			 * network stack supports IPV6_USE_MIN_MTU.
 			 */
 			if (setsockopt(nsd->udp[i].s,
 				       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
