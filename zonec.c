@@ -1,5 +1,5 @@
 /*
- * $Id: zonec.c,v 1.36 2002/02/20 14:38:30 alexis Exp $
+ * $Id: zonec.c,v 1.37 2002/02/20 14:43:02 alexis Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -418,7 +418,7 @@ zone_read(name, zonefile, cache)
 #ifdef DEBUG
 		/* Report progress... */
 		if((zf->lines % 100000) == 0) {
-			fprintf(stderr, "read %u lines...\n", zf->lines);
+			printf("read %u lines...\r", zf->lines);
 		}
 #endif
 
@@ -526,7 +526,7 @@ zone_read(name, zonefile, cache)
 
 	}
 
-	fprintf(stderr, "complete: %d errors\n", zf->errors);
+	fprintf(stderr, "zone %s completed: %d errors\n", dnamestr(z->dname), zf->errors);
 	return z;
 }
 

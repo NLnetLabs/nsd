@@ -1,5 +1,5 @@
 /*
- * $Id: zf.c,v 1.18 2002/02/20 13:25:34 alexis Exp $
+ * $Id: zf.c,v 1.19 2002/02/20 14:50:54 alexis Exp $
  *
  * zf.c -- RFC1035 master zone file parser, nsd(8)
  *
@@ -548,7 +548,7 @@ zf_open_include(zf, filename, origin, ttl)
 
 	zf->i[zf->iptr].lineno = 0;
 	zf->i[zf->iptr].filename = strdup(filename);
-	zf->i[zf->iptr].origin = origin;
+	zf->i[zf->iptr].origin = strdup(origin);	/* XXX strdup() should be replaced with dnamedup() */
 	zf->i[zf->iptr].ttl = ttl;
 	zf->i[zf->iptr].parentheses = 0;
 	return 0;

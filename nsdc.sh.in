@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.4 2002/02/20 14:25:24 alexis Exp $
+# $Id: nsdc.sh.in,v 1.5 2002/02/20 14:47:48 alexis Exp $
 #
 # nsdc.sh -- a shall script to manage the beast
 #
@@ -72,6 +72,10 @@ stop)
 reload)
 	signal "SIGHUP"
 	;;
+running)
+	signal "0"
+	exit $?
+	;;
 rebuild)
 	${NSDBINDIR}/zonec -d ${NSDZONESDIR} -f ${NSDDB} ${NSDZONES}
 	;;
@@ -80,7 +84,7 @@ restart)
 	$0 stop && $0 start
 	;;
 *)
-	echo "Usage: `basename $0` {start|stop|reload|rebuild|restart}" >&2
+	echo "Usage: `basename $0` {start|stop|reload|rebuild|restart|running}" >&2
 	;;
 esac
 
