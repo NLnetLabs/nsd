@@ -169,6 +169,7 @@ query_init (struct query *q)
 	q->opcode = 0;
 	q->class = 0;
 	q->type = 0;
+	q->cname_count = 0;
 	q->delegation_domain = NULL;
 	q->delegation_rrset = NULL;
 	q->compressed_dname_count = 0;
@@ -646,18 +647,21 @@ answer_domain(struct query *q, answer_type *answer,
 		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 	} else if ((rrset = domain_find_rrset(domain, q->zone, TYPE_CNAME))) {
 		size_t i;
-		
+
+		++q->cname_count;
 		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
-		for (i = 0; i < rrset->rrslen; ++i) {
-			domain_type *closest_match = rdata_atom_domain(rrset->rrs[i]->rdata[0]);
-			domain_type *closest_encloser = closest_match;
-
-			while (!closest_encloser->is_existing)
-				closest_encloser = closest_encloser->parent;
-
-			answer_authoritative(q, answer, closest_match->number,
-					     closest_match == closest_encloser,
-					     closest_match, closest_encloser);
+		if (q->cname_count < MAX_CNAME_COUNT) {
+			for (i = 0; i < rrset->rrslen; ++i) {
+				domain_type *closest_match = rdata_atom_domain(rrset->rrs[i]->rdata[0]);
+				domain_type *closest_encloser = closest_match;
+				
+				while (!closest_encloser->is_existing)
+					closest_encloser = closest_encloser->parent;
+				
+				answer_authoritative(q, answer, closest_match->number,
+						     closest_match == closest_encloser,
+						     closest_match, closest_encloser);
+			}
 		}
 	} else {
 		answer_nodata(q, answer, original);
