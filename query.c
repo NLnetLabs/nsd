@@ -550,9 +550,8 @@ add_rrset(struct query       *query,
 		add_additional_rrsets(query, answer, rrset, 0, 0);
 		break;
 	case TYPE_MX:
-		add_additional_rrsets(query, answer, rrset, 1, 0);
-		break;
 	case TYPE_RT:
+	case TYPE_KX:
 		add_additional_rrsets(query, answer, rrset, 1, 0);
 		break;
 	default:

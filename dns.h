@@ -72,27 +72,28 @@
 #define	TYPE_SIG	24	/* 2535typecode */
 #define	TYPE_KEY	25	/* 2535typecode */
 #define TYPE_PX         26	/* RFC2163 */
+
+#define TYPE_AAAA	28	/* ipv6 address */
+#define TYPE_LOC	29	/* LOC record  RFC1876 */
 #define	TYPE_NXT	30 	/* 2535typecode */
 
-#define TYPE_NAPTR      35	/* RFC2915 */
+#define	TYPE_SRV	33	/* SRV record RFC2782 */
 
+#define TYPE_NAPTR      35	/* RFC2915 */
+#define TYPE_KX         36	/* RFC2230 */
 #define TYPE_CERT       37	/* RFC2538 */
 
 #define TYPE_DNAME      39	/* RFC2672 */
 
+#define	TYPE_OPT	41	/* Pseudo OPT record... */
 #define TYPE_APL        42	/* RFC3123 */
+#define	TYPE_DS		43	/* draft-ietf-dnsext-delegation */
+#define TYPE_SSHFP	44	/* SSH Key Fingerprint */
 
-/* type code rollover */
 #define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
 #define TYPE_NSEC	47	
 #define TYPE_DNSKEY	48
 
-#define TYPE_AAAA	28	/* ipv6 address */
-#define TYPE_LOC	29	/* LOC record  RFC1876 */
-#define	TYPE_SRV	33	/* SRV record RFC2782 */
-#define	TYPE_OPT	41	/* Pseudo OPT record... */
-#define	TYPE_DS		43	/* draft-ietf-dnsext-delegation */
-#define TYPE_SSHFP	44	/* SSH Key Fingerprint */
 #define	TYPE_IXFR	251
 #define	TYPE_AXFR	252
 #define	TYPE_MAILB	253 	/* A request for mailbox-related records (MB, MG or MR) */

@@ -469,6 +469,8 @@ rtype:
     | T_PX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_NAPTR sp rdata_naptr	/* RFC 2915 */
     | T_NAPTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    | T_KX sp rdata_kx		/* RFC 2230 */
+    | T_KX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_CERT sp rdata_cert	/* RFC 2538 */
     | T_CERT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     | T_DNAME sp rdata_dname	/* RFC 2672 */
@@ -734,6 +736,16 @@ rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
 	}
 	|   error NL
 	{ error_prev_line("Syntax error in NAPTR record"); }
+	;
+
+/* RFC 2230 */
+rdata_kx:	STR sp dname trail
+	{
+               zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* preference */
+	       zadd_rdata_domain($3); /* exchanger */
+	}
+	|   error NL
+	{ error_prev_line("Syntax error in KX record"); }
 	;
 
 /* RFC 2538 */

@@ -23,6 +23,8 @@ $TTL    1H
 @       IN     NAPTR 100  10   ""  ""  "/urn:cid:.+@([^\\.]+\\.)(.*)$/\\2/i" .
 @       IN     NAPTR 100  50  "s"  "http+I2L+I2C+I2R"  ""  _http._tcp.gatech.edu.
 
+@       IN     KX    10 kx-host    ; requires additional section processing
+
 @       IN     CERT  PKIX 65535    RSAMD5 (
                                 AQOppkQvFlPFLiWZc0NXX5/QY44jphv3vfX0dscHNmTh
                                 Ntfx0TUgfBb1YQKJX6MNrzu/vvtV3xpLcCJ+tIP8ADDi
@@ -54,3 +56,5 @@ $TTL    1H
 
 rt-host IN      A       127.0.0.1
 rt-host IN      AAAA    ::1
+kx-host IN      A       127.0.0.1
+kx-host IN      AAAA    ::1

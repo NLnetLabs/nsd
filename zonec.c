@@ -103,6 +103,7 @@ const lookup_table_type ztypes[] = {
 	{ TYPE_KEY, "KEY", T_KEY },
 	{ TYPE_NXT, "NXT", T_NXT },
 	{ TYPE_NAPTR, "NAPTR", T_NAPTR }, /* RFC 2915 */
+	{ TYPE_KX, "KX", T_KX },	  /* RFC 2230 */
 	{ TYPE_CERT, "CERT", T_CERT },	  /* RFC 2538 */
 	{ TYPE_DNAME, "DNAME", T_DNAME }, /* RFC 2672 */
 	{ TYPE_APL, "APL", T_APL },	  /* RFC 3123 */
