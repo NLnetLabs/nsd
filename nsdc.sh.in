@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: nsdc.sh.in,v 1.17 2002/10/10 12:41:57 alexis Exp $
+# $Id: nsdc.sh.in,v 1.18 2002/10/10 14:20:32 alexis Exp $
 #
 # nsdc.sh -- a shell script to manage the beast
 #
@@ -133,6 +133,7 @@ update)
 			# Do we need to rebuild the database?
 			if [ ${NSDZONESDIR}/$file -nt ${NSDDB} ]
 			then
+				echo "zone $zone needs rebuilding..."
 				rebuild="yes"
 				export $rebuild
 			fi
