@@ -1,5 +1,5 @@
 -*- mode: Text; -*-
-$Id: REQUIREMENTS,v 1.2 2001/12/07 00:08:48 alexis Exp $
+$Id: REQUIREMENTS,v 1.3 2002/01/25 17:31:20 alexis Exp $
 
 
 NSD Requirements and Specifications
@@ -143,6 +143,7 @@ C.1. Zone file format and RR records.
 	+ if a DNAME exist at node N there may not be any other data
 	  at 'N' (except CNAME or DNAME) and there MUST not be any
 	  other data at subnodes of 'N' (rfc 2672 section 3).
+          [DNAME not implemented in alpha]
 
      - The default minimum TTL is not specified.
 
@@ -168,13 +169,14 @@ C.2. Server and connection management.
    address and port (53) as the queries has been sent to.  Replies are
    sent to the address/port the queries originated from. (rfc 2181 4)
 
+   [IPv6 transport is not implemented in the alpha version]
+
    UDP.
 
    The server is optimized to handle UDP queries. Large packetsizes
    are supported. The size is set by the OS
    (e.g. net.inet.udp.maxdgram on FreeBSD).
 
-   EDNS0 (rfc2671) is supported.
 
 
    TCP. 
@@ -256,7 +258,7 @@ C.3 Incomming DNS Message processing.
        QDCOUNT=1 results in further processing.
        QDCOUNT>1 results in RCODE=4  NOTIMP.
  
-     + Other sections should be empty otherwise FORMERR [OK***: check EDNS0]
+     + Other sections should be empty otherwise FORMERR 
 
      + QCLASS=IN results in further processing.
 
@@ -285,7 +287,7 @@ C.3 Incomming DNS Message processing.
       VERSION > 0 then the server will respond with an OPT with
       RCODE=BADVESRION and VERSION=0 (The server supports EDNS0) In
       further processing ENDS0 support is taken into account.
-
+      [not implemented in alpha]
  
 C 4  Further Query processing.
 
@@ -295,7 +297,7 @@ C 4  Further Query processing.
      zones are searched in the same maner. The difference in the
      response will be in the Authority information.
 
-   + It is known if the requester supports EDNS0
+   + It is known if the requester supports EDNS0 [not implemented in alpha]
 
    + There is only one query in the DNS message to be answered. 
 
@@ -377,6 +379,8 @@ C 4.1 Actions based on QTYPE of incomming Query.
          corresponding label does not exist), look to see whether the
          last label matched has a DNAME record.
 
+	 [DNAME processing is not implemented in the alpha version.] 
+
          If a DNAME record exists at that point, copy that record into
          the answer section, if the OK bit is set also copy the SIG.
 
@@ -391,10 +395,9 @@ C 4.1 Actions based on QTYPE of incomming Query.
          DNAME in the same zone (rfc2672 3). So if a DNAME has been
          found only go to step 1 if another zone can be found.
 
-
-
          If there was no DNAME record, look to see if the "*" label
          exists.
+   
 
          If the "*" label does not exist, check whether the name we
          are looking for is the original QNAME in the query or a name
@@ -440,8 +443,7 @@ C 4.1 Actions based on QTYPE of incomming Query.
 C 4.? Additional Data processing.
 
 
-  Additional data is added as long as there is space in the packet,
-  taking possible EDNS0 into account.
+  Additional data is added as long as there is space in the packet.
 
 
   If inclussion of an RRset in the Additional section is not possible
@@ -496,7 +498,17 @@ C 4.? Label compression in RDATA
 
 
 
+C 4.? Truncation handling. (as rfc2181 9)
 
+  If inclussion of a RR set that is REQUIRED in either the answer or 
+  authority section leads to message truncation. The packet is left empty 
+  and the truncation (TC) bit is set.
+
+
+  If inclussion of a resource record in the Additional section is not possible
+  that resource reecord is not included.  Ommission of resource record from the
+  Additional section because of message size constraints will NOT lead
+  to setting of the TC bit. (rfc2181 9)
 
 
 Appendix  A
@@ -691,4 +703,4 @@ RR records details.
 
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.2 2001/12/07 00:08:48 alexis Exp $
+$Id: REQUIREMENTS,v 1.3 2002/01/25 17:31:20 alexis Exp $
