@@ -1,5 +1,5 @@
 /*
- * $Id: zonec2.c,v 1.2 2003/08/15 11:33:22 miekg Exp $
+ * $Id: zonec2.c,v 1.3 2003/08/18 11:55:23 miekg Exp $
  *
  * zone.c -- reads in a zone file and stores it in memory
  *
@@ -71,7 +71,7 @@ zone_print (struct zone *z)
 
 	HEAP_WALK(z->data, dname, rrset) {
 		while(rrset) {
-			rr.dname = dname;
+			rr.dname = (uint8_t *)dname;
 			rr.ttl = rrset->ttl;
 			rr.class = rrset->class;
 			rr.type = rrset->type;
@@ -86,7 +86,7 @@ zone_print (struct zone *z)
 	printf("; referrals\n");
 	HEAP_WALK(z->cuts, dname, rrset) {
 		while(rrset) {
-			rr.dname = dname;
+			rr.dname = (uint8_t *)dname;
 			rr.ttl = rrset->ttl;
 			rr.class = rrset->class;
 			rr.type = rrset->type;

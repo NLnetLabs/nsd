@@ -1,9 +1,7 @@
 /*
- * $Id: zparser2.c,v 1.2 2003/08/15 11:23:14 miekg Exp $
+ * $Id: zparser2.c,v 1.3 2003/08/18 11:55:23 miekg Exp $
  *
  * zparser2.c -- parser helper function
- *
- * Miek Gieben, <miekg@nlnetlabs.nl>
  *
  * Copyright (c) 2001-2003, NLnet Labs. All rights reserved.
  *
@@ -746,7 +744,7 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     zdefault->prev_dname = xalloc(MAXDNAME);
     zdefault->ttl = DEFAULT_TTL;
     zdefault->class = 1;
-    zdefault->origin = origin; /* needs to be in dname format */
+    zdefault->origin = (uint8_t *)origin; /* needs to be in dname format */
     zdefault->origin_len = strlen(origin);
     zdefault->prev_dname = '\0';
     zdefault->prev_dname_len = 0;
@@ -935,7 +933,7 @@ creat_dname(const uint8_t *str, const size_t len)
 
     dname = (uint8_t*)xalloc(len + 3);  /* 2 for length, 1 for root */
 
-    dname[0] = (uint8_t) (len + 1); /* total length, label len + label data */
+    dname[0] = (uint8_t) (len + 2); /* total length, label len + label data + root*/
     dname[1] = (uint8_t) len;       /* label length */
 
     memcpy( (dname+2), str, len);   /* insert label data */
@@ -952,7 +950,23 @@ creat_dname(const uint8_t *str, const size_t len)
 const uint8_t *
 cat_dname(const uint8_t *left, const uint8_t *right)
 {
+
+    uint8_t *dname;
+    size_t sleft, sright;
+
     /* extract the lengths from left and right */
+    sleft = (size_t) left;
+    sright= (size_t) right;
+
+    dname = (uint8_t*)xalloc( sleft + sright - 1);
+    dname[0] = (uint8_t) (sleft + sright - 1);  /* the new length */
+
+    memcpy( dname+1, left, sleft - 1); /* cp left, exclude the null byte */
+    memcpy( dname + sleft , right, sright ); /* cp the whole of right */
+
+    dname[ sleft + sright - 1 ] = '\0';
+    
+    return dname;
 }
 
 /* concatenate a dname with a label
