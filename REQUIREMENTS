@@ -1,4 +1,4 @@
-$Id: REQUIREMENTS,v 1.16 2004/01/22 13:59:26 erik Exp $
+$Id: REQUIREMENTS,v 1.17 2004/01/22 14:02:21 erik Exp $
 
 
 NSD Requirements and Specifications
@@ -188,6 +188,11 @@ C.1. Zone file format and RR records.
    database.
  
    NSD always copies the CD bit from the query to the response.
+
+   NSD does not include the DNSKEY RRset in the additional section on
+   queries for the SOA or NS records at the zone apex.  It is not
+   clear whether including the DNSKEY RRset is advantageous and not
+   doing so simplifies NSD.
   
 C.2. Server and connection management.
 
@@ -936,6 +941,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.16 2004/01/22 13:59:26 erik Exp $
+$Id: REQUIREMENTS,v 1.17 2004/01/22 14:02:21 erik Exp $
 
 
