@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: zlparser.lex,v 1.17 2003/08/25 19:51:18 miekg Exp $
+ * $Id: zlparser.lex,v 1.18 2003/08/26 10:41:36 miekg Exp $
  *
  * zlparser.lex - lexical analyzer for (DNS) zone files
  * 
@@ -55,6 +55,7 @@ Q       \"
     static int in_rr = 0;
     char *ztext;
     int i;
+{SPACE}*{COMMENT}.*     /* ignore */
 {COMMENT}.*{NEWLINE}    { 
                             zdefault->line++;
                             if ( paren_open == 0 )
@@ -102,7 +103,7 @@ Q       \"
 
 				/* reset for the current file */
 				zdefault->filename = strdup(yytext);
-				zdefault->line = 0;
+				zdefault->line = 1;
         			yy_switch_to_buffer( yy_create_buffer( yyin, YY_BUF_SIZE ) );
 
 			        BEGIN(INITIAL);

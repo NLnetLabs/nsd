@@ -1,5 +1,5 @@
 /*
- * $Id: zparser2.c,v 1.16 2003/08/25 16:57:37 miekg Exp $
+ * $Id: zparser2.c,v 1.17 2003/08/26 10:41:36 miekg Exp $
  *
  * zparser2.c -- parser helper function
  *
@@ -667,7 +667,7 @@ nsd_zopen (const char *filename, uint32_t ttl, uint16_t class, const char *origi
     zdefault->prev_dname = xalloc(MAXDNAME);
     zdefault->ttl = ttl;
     zdefault->class = class;
-    zdefault->line = 0;
+    zdefault->line = 1;
     
     zdefault->origin = xalloc(MAXDNAME);
     zdefault->origin = (uint8_t *)strdname(origin, ROOT);  /* hmm [XXX] MG */
