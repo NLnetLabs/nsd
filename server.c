@@ -1,5 +1,5 @@
 /*
- * $Id: server.c,v 1.38.2.1 2002/08/29 11:03:07 alexis Exp $
+ * $Id: server.c,v 1.38.2.2 2002/09/26 10:15:47 alexis Exp $
  *
  * server.c -- nsd(8) network input/output
  *
@@ -446,6 +446,7 @@ server(nsd)
 				default:
 					/* PARENT */
 					nsd->tcp.open_conn++;
+					close(tcpc_s);
 				}
 			}
 		}
