@@ -43,7 +43,7 @@ void log_finalize(void);
 /*
  * Type of function to use for the actual logging.
  */
-typedef void log_function_type(int priority, const char *format, va_list args);
+typedef void log_function_type(int priority, const char *message);
 
 /*
  * The function used to log to the log file.

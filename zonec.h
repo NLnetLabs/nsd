@@ -87,7 +87,7 @@ uint16_t *zparser_conv_short(region_type *region, const char *shortstr);
 uint16_t *zparser_conv_long(region_type *region, const char *longstr);
 uint16_t *zparser_conv_byte(region_type *region, const char *bytestr);
 uint16_t *zparser_conv_a(region_type *region, const char *a);
-uint16_t *zparser_conv_text(region_type *region, const char *txt);
+uint16_t *zparser_conv_text(region_type *region, const char *txt, size_t len);
 uint16_t *zparser_conv_a6(region_type *region, const char *a6);
 uint16_t *zparser_conv_b64(region_type *region, const char *b64);
 uint16_t *zparser_conv_rrtype(region_type *region, const char *rr);

@@ -1,5 +1,17 @@
 NSD RELEASE NOTES
 
+2.1.5
+=============
+BUG FIXES:
+        - Bug #90: handle \000 in TXT records correctly
+        - Fixed undefined behavior in the use of vsnprintf when
+          logging messages.  This caused crashes on Linux/PPC.
+
+2.1.4
+=============
+BUG FIXES:
+        - nsdc: Fixed a typo that caused AXFRs to stop working.
+
 2.1.3
 =============
 FEATURES:

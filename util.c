@@ -68,33 +68,28 @@ log_finalize(void)
 }
 
 void
-log_file(int priority ATTR_UNUSED, const char *format, va_list args)
+log_file(int priority ATTR_UNUSED, const char *message)
 {
-	char buffer[MAXSYSLOGMSGLEN + 1];
-	size_t end;
-
+	size_t length;
+	
 	assert(global_ident);
 	assert(current_log_file);
-	
-	vsnprintf(buffer, sizeof(buffer) - 1, format, args);
-	end = strlen(buffer);
-	if (buffer[end - 1] != '\n') {
-		buffer[end] = '\n';
-		buffer[end + 1] = '\0';
+
+	fprintf(current_log_file, "%s: %s", global_ident, message);
+	length = strlen(message);
+	if (length == 0 || message[length - 1] != '\n') {
+		fprintf(current_log_file, "\n");
 	}
-	fprintf(current_log_file, "%s: %s", global_ident, buffer);
 	fflush(current_log_file);
 }
 
 void
-log_syslog(int priority, const char *format, va_list args)
+log_syslog(int priority, const char *message)
 {
 #ifdef HAVE_SYSLOG_H
-	char buffer[MAXSYSLOGMSGLEN];
-	vsnprintf(buffer, sizeof(buffer), format, args);
-	syslog(priority, "%s", buffer);
-#endif /* HAVE_SYSLOG_H */
-	log_file(priority, format, args);
+	syslog(priority, "%s", message);
+#endif /* !HAVE_SYSLOG_H */
+	log_file(priority, message);
 }
 
 void
@@ -115,7 +110,9 @@ log_msg(int priority, const char *format, ...)
 void
 log_vmsg(int priority, const char *format, va_list args)
 {
-	current_log_function(priority, format, args);
+	char message[MAXSYSLOGMSGLEN];
+	vsnprintf(message, sizeof(message), format, args);
+	current_log_function(priority, message);
 }
 
 void 

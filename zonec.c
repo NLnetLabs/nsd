@@ -366,24 +366,23 @@ zparser_conv_a(region_type *region, const char *a)
  * check.
  */
 uint16_t *
-zparser_conv_text(region_type *region, const char *txt)
+zparser_conv_text(region_type *region, const char *txt, size_t len)
 {
 	/* convert text to wireformat */
-	int i;
 	uint16_t *r = NULL;
 
-	if((i = strlen(txt)) > 255) {
-		zc_error_prev_line("Text string is longer than 255 charaters, try splitting in two");
+	if(len > 255) {
+		error_prev_line("Text string is longer than 255 charaters, try splitting in two");
         } else {
 
 		/* Allocate required space... */
 		r = (uint16_t *) region_alloc(region,
-					      sizeof(uint16_t) + i + 1);
+					      sizeof(uint16_t) + len + 1);
 
-		*((char *)(r+1))  = i;
-		memcpy(((char *)(r+1)) + 1, txt, i);
+		*((char *)(r+1))  = len;
+		memcpy(((char *)(r+1)) + 1, txt, len);
 
-		*r = i + 1;
+		*r = len + 1;
         }
 	return r;
 }

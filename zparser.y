@@ -284,11 +284,11 @@ rel_dname:  label
 
 str_seq:	STR
     	{
-        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str));
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str, $1.len));
     	}
     	|   	str_seq sp STR
     	{
-        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str));
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str, $3.len));
     	}	
     	;
 
@@ -569,8 +569,8 @@ rdata_wks:	dotted_str sp STR sp concatenated_str_seq trail
 
 rdata_hinfo:	STR sp STR trail
 	{
-        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* CPU */
-        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str)); /* OS*/
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str, $1.len)); /* CPU */
+        	zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str, $3.len)); /* OS*/
 	}
 	|   error NL
 	{ zc_error_prev_line("Syntax error in HINFO record"); }
@@ -621,7 +621,7 @@ rdata_afsdb:   STR sp dname trail
 /* RFC 1183 */
 rdata_x25:	STR trail
 	{
-		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* X.25 address. */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str, $1.len)); /* X.25 address. */
 	}
 	|   error NL
 	{ zc_error_prev_line("Syntax error in X25 record"); }
@@ -630,12 +630,12 @@ rdata_x25:	STR trail
 /* RFC 1183 */
 rdata_isdn:	STR trail
 	{
-		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* address */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str, $1.len)); /* address */
 	}
 	| STR sp STR trail
 	{
-		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str)); /* address */
-		zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str)); /* sub-address */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str, $1.len)); /* address */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str, $3.len)); /* sub-address */
 	}
 	|   error NL
 	{ zc_error_prev_line("Syntax error in ISDN record"); }
@@ -718,9 +718,9 @@ rdata_naptr:	STR sp STR sp STR sp STR sp STR sp dname trail
 	{
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* order */
 		zadd_rdata_wireformat(zparser_conv_short(parser->region, $3.str)); /* preference */
-		zadd_rdata_wireformat(zparser_conv_text(parser->region, $5.str)); /* flags */
-		zadd_rdata_wireformat(zparser_conv_text(parser->region, $7.str)); /* service */
-		zadd_rdata_wireformat(zparser_conv_text(parser->region, $9.str)); /* regexp */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $5.str, $5.len)); /* flags */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $7.str, $7.len)); /* service */
+		zadd_rdata_wireformat(zparser_conv_text(parser->region, $9.str, $9.len)); /* regexp */
 		zadd_rdata_domain($11); /* target name */
 	}
 	|   error NL
