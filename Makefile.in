@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.in,v 1.31.2.4 2003/06/10 10:27:21 erik Exp $
+# $Id: Makefile.in,v 1.31.2.5 2003/06/12 09:27:30 erik Exp $
 #
 # Makefile -- one file to make them all, nsd(8)
 #
@@ -170,3 +170,19 @@ configure:	configure.ac
 	autoconf
 
 # Dependencies
+dbaccess.o: dbaccess.c config.h namedb.h heap.h rbtree.h
+dbcreate.o: dbcreate.c config.h namedb.h heap.h rbtree.h
+dname.o: dname.c config.h dns.h dname.h namedb.h heap.h rbtree.h
+hash.o: hash.c hash.h
+nsd.o: nsd.c config.h dns.h dname.h namedb.h heap.h rbtree.h nsd.h \
+  query.h
+nsd-notify.o: nsd-notify.c config.h dns.h namedb.h heap.h rbtree.h \
+  dname.h nsd.h query.h
+query.o: query.c config.h dns.h dname.h nsd.h namedb.h heap.h rbtree.h \
+  query.h
+rbtree.o: rbtree.c rbtree.h
+server.o: server.c config.h dns.h namedb.h heap.h rbtree.h dname.h nsd.h \
+  query.h
+zonec.o: zonec.c config.h heap.h rbtree.h dns.h zparser.h namedb.h \
+  dname.h zonec.h
+zparser.o: zparser.c config.h dns.h zparser.h dname.h

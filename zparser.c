@@ -1,5 +1,5 @@
 /*
- * $Id: zparser.c,v 1.30 2003/03/20 10:59:20 alexis Exp $
+ * $Id: zparser.c,v 1.30.2.1 2003/06/12 09:27:32 erik Exp $
  *
  * zparser.c -- master zone file parser
  *
@@ -1634,13 +1634,13 @@ zprintrdata (FILE *f, int what, u_int16_t *r)
 	case RDATA_PERIOD:
 	case RDATA_LONG:
 		memcpy(&l, &r[1], sizeof(u_int32_t));
-		fprintf(f, "%lu ", ntohl(l));
+		fprintf(f, "%lu ", (unsigned long) ntohl(l));
 		break;
 	case RDATA_SHORT:
-		fprintf(f, "%u ", ntohs(r[1]));
+		fprintf(f, "%u ", (unsigned) ntohs(r[1]));
 		break;
 	case RDATA_BYTE:
-		fprintf(f, "%u ", *((char *)(&r[1])));
+		fprintf(f, "%u ", (unsigned) *((char *)(&r[1])));
 		break;
 	case RDATA_A:
 		

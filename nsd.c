@@ -1,5 +1,5 @@
 /*
- * $Id: nsd.c,v 1.68.2.2 2003/06/11 10:07:42 erik Exp $
+ * $Id: nsd.c,v 1.68.2.3 2003/06/12 09:27:31 erik Exp $
  *
  * nsd.c -- nsd(8)
  *
@@ -150,7 +150,7 @@ writepid (struct nsd *nsd)
 	int fd;
 	char pidbuf[16];
 
-	snprintf(pidbuf, sizeof(pidbuf), "%u\n", nsd->pid[0]);
+	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid[0]);
 
 	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
 		return -1;
@@ -309,7 +309,8 @@ bind8_stats (struct nsd *nsd)
 	time(&now);
 
 	/* NSTATS */
-	t = msg = buf + snprintf(buf, MAXSYSLOGMSGLEN, "NSTATS %lu %lu", now, nsd->st.boot);
+	t = msg = buf + snprintf(buf, MAXSYSLOGMSGLEN, "NSTATS %lu %lu",
+				 (unsigned long) now, (unsigned long) nsd->st.boot);
 	for(i = 0; i <= 255; i++) {
 		/* How much space left? */
 		if((len = buf + MAXSYSLOGMSGLEN - t) < 32) {
@@ -343,7 +344,7 @@ bind8_stats (struct nsd *nsd)
 		" RLame=%lu ROpts=%lu SSysQ=%lu SAns=%lu SFwdQ=%lu SDupQ=%lu SErr=%lu RQ=%lu"
 		" RIQ=%lu RFwdQ=%lu RDupQ=%lu RTCP=%lu SFwdR=%lu SFail=%lu SFErr=%lu SNaAns=%lu"
 		" SNXD=%lu RUQ=%lu RURQ=%lu RUXFR=%lu RUUpd=%lu",
-		now, nsd->st.boot,
+		(unsigned long) now, (unsigned long) nsd->st.boot,
 		nsd->st.dropped, (unsigned long)0, (unsigned long)0, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, (unsigned long)0, nsd->st.raxfr, (unsigned long)0, (unsigned long)0,
 		(unsigned long)0, nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped, (unsigned long)0,

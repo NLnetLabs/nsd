@@ -2,13 +2,15 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_STDLIB_C
+#include <stdio.h>
+
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
 
 #include <time.h>
 
-static time_t
+time_t
 timegm (struct tm *tm) {
 	time_t ret;
 	char *tz;
