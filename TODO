@@ -1,4 +1,4 @@
-$Id: TODO,v 1.38 2003/02/27 14:04:40 alexis Exp $
+$Id: TODO,v 1.39 2003/03/27 10:59:27 alexis Exp $
 
 AUTOCONF
 
@@ -6,28 +6,14 @@ AUTOCONF
 
 ZONE COMPILER
 - memory allocation optimization is needed
-- parser is too smart: should not try to continue processing if there are errors...
 - as writing the zone the order should be DNS SEC compliant (use dnameinvert())
-- missing closing quote doesnt register as an error
-- MINOR BUG: unknown types and custom formats dont ever get freed()
 - error diagnostic has to be improved a lot
-- fix the ds parsing things
-
-This will generate an error, when in the end of file:
-
-                                        9n2kQyFLrkbbU84Jwks53iGXf7I= )
-
-                        DS      35861 5 1 (
-18D0E3FE93A6FB31AF9B85359CAF5719D2986CE8 )
-
 - add a check to make sure that the biggest answer in the database does not
   exceed the query buffer
-- fix the strdname() routine
-- make sure the parser doesnt loop includes
+- improve the strdname() routine
 
 
 SERVER
-- handle unknown types as known types
 - in tcp the timeout should be handled different than with alarm()?
 - replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
 - make sure that we dont copy anything from the query we dont want to copy, like
@@ -42,12 +28,8 @@ PURITY
 - bzero pads so the databases can be cmp'd
 
 TESTS
-- set all the buffer sizes to ridiculously small values see if it causes
-  core dumps
 
 MISC
-- functions should be regrouped differently in .c files, so nsd-notify
-  doesnt have to be linked with all the unnecessary stuff
 
 DOCUMENTATION
 
