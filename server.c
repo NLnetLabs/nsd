@@ -1141,7 +1141,8 @@ handle_tcp_accept(netio_type *netio,
 
 	/* Accept it... */
 	addrlen = sizeof(addr);
-	if ((s = accept(handler->fd, (struct sockaddr *)&addr, &addrlen)) == -1) {
+	s = accept(handler->fd, (struct sockaddr *) &addr, &addrlen);
+	if (s == -1) {
 		if (errno != EINTR) {
 			log_msg(LOG_ERR, "accept failed: %s", strerror(errno));
 		}
@@ -1150,6 +1151,7 @@ handle_tcp_accept(netio_type *netio,
 
 	if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
 		log_msg(LOG_ERR, "fcntl failed: %s", strerror(errno));
+		close(s);
 		return;
 	}
 	
