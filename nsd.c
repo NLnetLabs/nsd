@@ -149,7 +149,7 @@ writepid (struct nsd *nsd)
 	int fd;
 	char pidbuf[16];
 
-	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid[0]);
+	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
 	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC | O_CREAT, 0644)) == -1) {
 		return -1;
@@ -173,21 +173,10 @@ writepid (struct nsd *nsd)
 void 
 sig_handler (int sig)
 {
-	int status, i;
-	pid_t child;
+	size_t i;
 	
-	/* Reinstall the signals... */
-	signal(SIGTERM, &sig_handler);
-	signal(SIGHUP, &sig_handler);
-	signal(SIGCHLD, &sig_handler);
-	signal(SIGINT, &sig_handler);
-	signal(SIGILL, &sig_handler);
-	signal(SIGALRM, &sig_handler);
-	signal(SIGPIPE, SIG_IGN);
-
-
 	/* Are we a tcp child? */
-	if(nsd.pid[0] == 0) {
+	if (nsd.server_kind != NSD_SERVER_MAIN) {
 		switch(sig) {
 		case SIGALRM:
 			return;
@@ -205,23 +194,6 @@ sig_handler (int sig)
 
 	switch(sig) {
 	case SIGCHLD:
-		child = waitpid(0, &status, WNOHANG);
-		if (child == -1) {
-			syslog(LOG_WARNING, "waitpid failed: %m");
-		} else if (nsd.mode == NSD_QUIT || nsd.mode == NSD_SHUTDOWN) {
-			return;
-		} else if (child > 0) {
-			int is_tcp_child = delete_tcp_child_pid(&nsd, child);
-			if (is_tcp_child) {
-				syslog(LOG_WARNING,
-				       "TCP server %d died unexpectedly with status %d, restarting",
-				       (int) child, status);
-			} else {
-				syslog(LOG_WARNING,
-				       "Reload process %d failed with status %d, continuing with old database",
-				       (int) child, status);
-			}
-		}
 		return;
 	case SIGHUP:
 		syslog(LOG_WARNING, "signal %d received, reloading...", sig);
@@ -233,8 +205,6 @@ sig_handler (int sig)
 #endif
 		sig = SIGILL;
 	case SIGILL:
-		/* Dump statistics... */
-		nsd.mode = NSD_STATS;
 		break;
 	case SIGINT:
 		/* Silent shutdown... */
@@ -248,9 +218,9 @@ sig_handler (int sig)
 	}
 
 	/* Distribute the signal to the servers... */
-	for (i = 1; i <= nsd.tcp_open_conn; ++i) {
-		if (nsd.pid[i] != 0 && kill(nsd.pid[i], sig) == -1) {
-			syslog(LOG_ERR, "problems killing %d: %m", nsd.pid[i]);
+	for (i = 0; i < nsd.child_count; ++i) {
+		if (nsd.children[i].pid != 0 && kill(nsd.children[i].pid, sig) == -1) {
+			syslog(LOG_ERR, "problems killing %d: %m", nsd.children[i].pid);
 		}
 	}
 }
@@ -331,7 +301,7 @@ bind8_stats (struct nsd *nsd)
 
 	/* XSTATS */
 	/* Only print it if we're in the main daemon or have anything to report... */
-	if(nsd->pid[0] != 0 
+	if (nsd->server_kind == NSD_SERVER_MAIN
 		|| nsd->st.dropped || nsd->st.raxfr || (nsd->st.qudp + nsd->st.qudp6 - nsd->st.dropped)
 		|| nsd->st.txerr || nsd->st.opcode[OPCODE_QUERY] || nsd->st.opcode[OPCODE_IQUERY]
 		|| nsd->st.wrongzone || nsd->st.ctcp + nsd->st.ctcp6 || nsd->st.rcode[RCODE_SERVFAIL]
@@ -365,9 +335,13 @@ int
 main (int argc, char *argv[])
 {
 	/* Scratch variables... */
-	int i, c;
+	int c;
 	pid_t	oldpid;
-
+	size_t udp_children = 1;
+	size_t tcp_children = 1;
+	size_t i;
+	struct sigaction action;
+	
 	/* For initialising the address info structures */
 	struct addrinfo hints[MAX_INTERFACES];
 	const char *nodes[MAX_INTERFACES];
@@ -378,8 +352,8 @@ main (int argc, char *argv[])
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.dbfile	= DBFILE;
 	nsd.pidfile	= PIDFILE;
-	nsd.tcp_open_conn = 1;
-
+	nsd.server_kind = NSD_SERVER_MAIN;
+	
 	/* Initialise the ports */
 	udp_port = UDP_PORT;
 	tcp_port = TCP_PORT;
@@ -412,12 +386,12 @@ main (int argc, char *argv[])
 
 /* XXX A hack to let us compile without a change on systems which dont have LOG_PERROR option... */
 
-#	ifndef	LOG_PERROR
-#		define	LOG_PERROR 0
-#	endif
+#ifndef	LOG_PERROR
+# define LOG_PERROR 0
+#endif
 
-#	ifndef LOG_PID
-#		define LOG_PID	0
+#ifndef LOG_PID
+# define LOG_PID 0
 #endif
 
 	/* Set up the logging... */
@@ -432,7 +406,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while((c = getopt(argc, argv, "46a:df:p:i:u:t:s:n:")) != -1) {
+	while((c = getopt(argc, argv, "46a:df:p:i:u:t:s:N:n:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -469,15 +443,26 @@ main (int argc, char *argv[])
 		case 't':
 			nsd.chrootdir = optarg;
 			break;
+		case 'N':
+			i = atoi(optarg);
+			if (i <= 0) {
+				syslog(LOG_ERR, "number of UDP servers must be greather than zero");
+			} else if (i >= MAX_CONNECTIONS) {
+				syslog(LOG_ERR, "number of UDP servers must be less than %d",
+				       MAX_CONNECTIONS);
+			} else {
+				udp_children = i;
+			}
+			break;
 		case 'n':
 			i = atoi(optarg);
-			if(i <= 0) {
-				syslog(LOG_ERR, "max number of tcp connections must be greather than zero");
-			} else if(i > TCP_MAX_CONNECTIONS) {
-				syslog(LOG_ERR, "max number of tcp connections must be less than %d",
-					TCP_MAX_CONNECTIONS);
+			if (i <= 0) {
+				syslog(LOG_ERR, "number of TCP servers must be greather than zero");
+			} else if (i >= MAX_CONNECTIONS) {
+				syslog(LOG_ERR, "number of TCP servers must be less than %d",
+					MAX_CONNECTIONS);
 			} else {
-				nsd.tcp_open_conn = i;
+				tcp_children = i;
 			}
 			break;
 		case 's':
@@ -498,6 +483,22 @@ main (int argc, char *argv[])
 	if(argc != 0)
 		usage();
 
+	/* Number of child servers to fork.  */
+	nsd.child_count = udp_children + tcp_children;
+
+	if (nsd.child_count > MAX_CONNECTIONS) {
+		syslog(LOG_ERR, "total number of child servers must be less than %d",
+		       MAX_CONNECTIONS);
+		nsd.child_count = MAX_CONNECTIONS;
+	}
+	
+	for (i = 0; i < udp_children; ++i) {
+		nsd.children[i].kind = NSD_SERVER_UDP;
+	}
+	for (; i < nsd.child_count; ++i) {
+		nsd.children[i].kind = NSD_SERVER_TCP;
+	}
+	
 	/* We need at least one active interface */
 	if(nsd.ifs == 0) {
 		nsd.ifs = 1;
@@ -609,9 +610,13 @@ main (int argc, char *argv[])
 	}
 
 	/* Unless we're debugging, fork... */
-	if(!nsd.debug) {
+	if (nsd.debug) {
+		nsd.server_kind = NSD_SERVER_BOTH;
+	} else {
+		int fd;
+		
 		/* Take off... */
-		switch((nsd.pid[0] = fork())) {
+		switch ((nsd.pid = fork())) {
 		case 0:
 			break;
 		case -1:
@@ -628,27 +633,31 @@ main (int argc, char *argv[])
 			exit(1);
 		}
 
-		if((i = open("/dev/null", O_RDWR, 0)) != -1) {
-			(void)dup2(i, STDIN_FILENO);
-			(void)dup2(i, STDOUT_FILENO);
-			(void)dup2(i, STDERR_FILENO);
-			if (i > 2)
-				(void)close(i);
+		if((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+			(void)dup2(fd, STDIN_FILENO);
+			(void)dup2(fd, STDOUT_FILENO);
+			(void)dup2(fd, STDERR_FILENO);
+			if (fd > 2)
+				(void)close(fd);
 		}
 	}
 
 	/* Setup the signal handling... */
-	signal(SIGTERM, &sig_handler);
-	signal(SIGHUP, &sig_handler);
-	signal(SIGCHLD, &sig_handler);
-	signal(SIGINT, &sig_handler);
-	signal(SIGILL, &sig_handler);
-	signal(SIGALRM, &sig_handler);
-	signal(SIGPIPE, SIG_IGN);
+	action.sa_handler = sig_handler;
+	sigfillset(&action.sa_mask);
+	action.sa_flags = 0;
+	sigaction(SIGTERM, &action, NULL);
+	sigaction(SIGHUP, &action, NULL);
+	sigaction(SIGINT, &action, NULL);
+	sigaction(SIGILL, &action, NULL);
+	sigaction(SIGALRM, &action, NULL);
+	sigaction(SIGCHLD, &action, NULL);
+	action.sa_handler = SIG_IGN;
+	sigaction(SIGPIPE, &action, NULL);
 
 
 	/* Get our process id */
-	nsd.pid[0] = getpid();
+	nsd.pid = getpid();
 
 	/* Overwrite pid... */
 	if(writepid(&nsd) == -1) {
@@ -664,14 +673,13 @@ main (int argc, char *argv[])
 		exit(1);
 	}
 
-	syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid[0]);
+	syslog(LOG_NOTICE, "nsd started, pid %d", nsd.pid);
 
-	if(server_start_tcp(&nsd) != 0) {
-		kill(nsd.pid[0], SIGTERM);
-		exit(1);
+	if (nsd.server_kind == NSD_SERVER_MAIN) {
+		server_main(&nsd);
+	} else {
+		server_child(&nsd);
 	}
-
-	server_udp(&nsd);
 
 	/* NOTREACH */
 	exit(0);

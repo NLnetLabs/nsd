@@ -45,6 +45,11 @@
 #define	NSD_STATS 3
 #define	NSD_QUIT 4
 
+#define NSD_SERVER_MAIN 0x0U
+#define NSD_SERVER_UDP  0x1U
+#define NSD_SERVER_TCP  0x2U
+#define NSD_SERVER_BOTH (NSD_SERVER_UDP | NSD_SERVER_TCP)
+
 #define	OPT_LEN	11U
 
 #ifdef BIND8_STATS
@@ -72,16 +77,26 @@ struct nsd_socket
 	int			s;
 };
 
+struct nsd_child
+{
+	int   kind;
+	pid_t pid;
+};
+
 /* NSD configuration and run-time variables */
 struct	nsd {
 	/* Run-time variables */
-	pid_t		pid[TCP_MAX_CONNECTIONS + 1];
+	pid_t		pid;
 	int		mode;
+	unsigned        server_kind;
 	struct namedb	*db;
 	int		debug;
 	size_t		tcp_max_msglen;
 	time_t  	tcp_timeout;	/* XXX: Why is this unused ? */
 
+	size_t           child_count;
+	struct nsd_child children[MAX_CONNECTIONS];
+	
 	/* Configuration */
 	const char	*dbfile;
 	const char	*pidfile;
@@ -91,8 +106,7 @@ struct	nsd {
 	const char	*chrootdir;
 	const char	*version;
 	const char	*identity;
-	int	ifs;
-	int	tcp_open_conn;
+	size_t	ifs;
 
 	/* TCP specific configuration */
 	struct nsd_socket tcp[MAX_INTERFACES];
@@ -136,11 +150,7 @@ void bind8_stats(struct nsd *nsd);
 
 /* server.c */
 int server_init(struct nsd *nsd);
-int server_start_tcp(struct nsd *nsd);
-void server_shutdown(struct nsd *nsd);
-void server_udp(struct nsd *nsd);
-void server_tcp(struct nsd *nsd);
-int delete_tcp_child_pid(struct nsd *nsd, pid_t pid);
-int restart_tcp_child_servers(struct nsd *nsd);
+void server_main(struct nsd *nsd);
+void server_child(struct nsd *nsd);
   
 #endif	/* _NSD_H_ */

@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 
 #ifdef	HAVE_SYS_SELECT_H
 #include <sys/select.h>
@@ -70,16 +71,16 @@
 
 
 /*
- * Remove the specified pid from the list of TCP pids.	Returns 0 if
+ * Remove the specified pid from the list of child pids.  Returns 0 if
  * the pid is not in the list, 1 otherwise.  The field is set to 0.
  */
-int
-delete_tcp_child_pid(struct nsd *nsd, pid_t pid)
+static int
+delete_child_pid(struct nsd *nsd, pid_t pid)
 {
-	int i;
-	for (i = 1; i <= nsd->tcp_open_conn; ++i) {
-		if (nsd->pid[i] == pid) {
-			nsd->pid[i] = 0;
+	size_t i;
+	for (i = 0; i < nsd->child_count; ++i) {
+		if (nsd->children[i].pid == pid) {
+			nsd->children[i].pid = 0;
 			return 1;
 		}
 	}
@@ -87,29 +88,23 @@ delete_tcp_child_pid(struct nsd *nsd, pid_t pid)
 }
 
 /*
- * Restart child TCP servers if necessary.
+ * Restart child servers if necessary.
  */
-int
-restart_tcp_child_servers(struct nsd *nsd)
+static int
+restart_child_servers(struct nsd *nsd)
 {
-	int i;
+	size_t i;
 
-	if (nsd->debug) {
-		/*
-		 * NSD doesn't handle TCP connecties yet in debug mode
-		 * (forking interferes with profiling).
-		 */
-		return 0;
-	}
-	
-	/* Pre-fork the tcp processes... */
-	for (i = 1; i <= nsd->tcp_open_conn; ++i) {
-		if (nsd->pid[i] == 0) {
-			nsd->pid[i] = fork();
-			switch (nsd->pid[i]) {
+	/* Fork the child processes... */
+	for (i = 0; i < nsd->child_count; ++i) {
+		if (nsd->children[i].pid == 0) {
+			nsd->children[i].pid = fork();
+			switch (nsd->children[i].pid) {
 			case 0: /* CHILD */
-				nsd->pid[0] = 0;
-				server_tcp(nsd);
+				nsd->pid = 0;
+				nsd->child_count = 0;
+				nsd->server_kind = nsd->children[i].kind;
+				server_child(nsd);
 				/* NOTREACH */
 				exit(0);
 			case -1:
@@ -129,7 +124,7 @@ restart_tcp_child_servers(struct nsd *nsd)
 int
 server_init(struct nsd *nsd)
 {
-	int i;
+	size_t i;
 #if defined(SO_REUSEADDR) || (defined(INET6) && defined(IPV6_V6ONLY))
 	int on = 1;
 #endif
@@ -234,17 +229,17 @@ server_init(struct nsd *nsd)
 /*
  * Fork the required number of servers.
  */
-int
-server_start_tcp(struct nsd *nsd)
+static int
+server_start_children(struct nsd *nsd)
 {
-	int i;
+	size_t i;
 
 	/* Start all child servers initially.  */
-	for (i = 1; i <= nsd->tcp_open_conn; ++i) {
-		nsd->pid[i] = 0;
+	for (i = 0; i < nsd->child_count; ++i) {
+		nsd->children[i].pid = 0;
 	}
 
-	return restart_tcp_child_servers(nsd);
+	return restart_child_servers(nsd);
 }
 
 static void
@@ -266,13 +261,9 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
  * Does not return.
  *
  */
-void
+static void
 server_shutdown(struct nsd *nsd)
 {
-#ifdef	BIND8_STATS
-	bind8_stats(nsd);
-#endif /* BIND8_STATS */
-
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
 
@@ -280,39 +271,49 @@ server_shutdown(struct nsd *nsd)
 }
 
 /*
- *
- * Serve udp requests. Main server.
- *
+ * The main server simply waits for signals and child processes to
+ * terminate.  Child processes are restarted as necessary.
  */
 void
-server_udp(struct nsd *nsd)
+server_main(struct nsd *nsd)
 {
-	fd_set peer;
-	int received, sent, maxfd, s, i;
-	struct query q;
+	int fd;
+	int status;
+	pid_t child;
+	
+	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
-	/* The main loop... */	
-	while(nsd->mode != NSD_SHUTDOWN) {
-		/* Do we need to reload the database? */
-		switch(nsd->mode) {
-		case NSD_QUIT:
-			server_shutdown(nsd);
-			/* NOTREACH */
-			break;
-		case NSD_STATS:
-			nsd->mode = NSD_RUN;
+	if (server_start_children(nsd) != 0) {
+		kill(nsd->pid, SIGTERM);
+		exit(1);
+	}
 
-#ifdef BIND8_STATS
-			/* Dump the statistics */
-			bind8_stats(nsd);
-
-#else /* BIND8_STATS */
-			syslog(LOG_NOTICE, "No statistics available, recompile with -DBIND8_STATS");
-#endif /* BIND8_STATS */
+	while (nsd->mode != NSD_SHUTDOWN) {
+		switch (nsd->mode) {
+		case NSD_RUN:
+			child = waitpid(0, &status, 0);
+		
+			if (child == -1) {
+				if (errno == EINTR) {
+					continue;
+				}
+				syslog(LOG_WARNING, "wait failed: %m");
+			} else {
+				int is_child = delete_child_pid(nsd, child);
+				if (is_child) {
+					syslog(LOG_WARNING,
+					       "server %d died unexpectedly with status %d, restarting",
+					       (int) child, status);
+					restart_child_servers(nsd);
+				} else {
+					syslog(LOG_WARNING,
+					       "Reload process %d failed with status %d, continuing with old database",
+					       (int) child, status);
+				}
+			}
 			break;
 		case NSD_RELOAD:
 			nsd->mode = NSD_RUN;
-
 			switch(fork()) {
 			case -1:
 				syslog(LOG_ERR, "fork failed: %m");
@@ -327,15 +328,15 @@ server_udp(struct nsd *nsd)
 				}
 
 				/* Send the child SIGINT to the parent to terminate quitely... */
-				if(kill(nsd->pid[0], SIGINT) != 0) {
-					syslog(LOG_ERR, "cannot kill %d: %m", nsd->pid[0]);
+				if (kill(nsd->pid, SIGINT) != 0) {
+					syslog(LOG_ERR, "cannot kill %d: %m", nsd->pid);
 					exit(1);
 				}
 
-				nsd->pid[0]  = getpid();
+				nsd->pid = getpid();
 
-				/* Refork the tcp servers... */
-				server_start_tcp(nsd);
+				/* Refork the servers... */
+				server_start_children(nsd);
 
 				/* Overwrite pid... */
 				if(writepid(nsd) == -1) {
@@ -348,122 +349,242 @@ server_udp(struct nsd *nsd)
 				break;
 			}
 			break;
+		case NSD_QUIT:
+			server_shutdown(nsd);
+			break;
+		case NSD_SHUTDOWN:
+			break;
 		default:
+			syslog(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);
+			nsd->mode = NSD_RUN;
+		}
+	}
+
+	/* Truncate the pid file.  */
+	if((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
+		syslog(LOG_ERR, "can not truncate the pid file %s: %m", nsd->pidfile);
+	}
+	close(fd);
+
+	/* Unlink it if possible... */
+	unlink(nsd->pidfile);
+
+	server_shutdown(nsd);
+}
+
+
+static int
+handle_udp(struct nsd *nsd, fd_set *peer)
+{
+	int received, sent, s;
+	struct query q;
+	size_t i;
+	
+	/* Process it... */
+	s = -1;
+	for (i = 0; i < nsd->ifs; i++) {
+		if (FD_ISSET(nsd->udp[i].s, peer)) {
+			s = nsd->udp[i].s;
+			if (nsd->udp[i].addr->ai_family == AF_INET)
+			{
+				/* Account... */
+				STATUP(nsd, qudp);
+			} else if (nsd->udp[i].addr->ai_family == AF_INET6) {
+				/* Account... */
+				STATUP(nsd, qudp6);
+			}
+			break;
+		}
+	}
+
+	if (s == -1) {
+		return 0;
+	}
+
+	/* Initialize the query... */
+	query_init(&q);
+
+	if ((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
+		syslog(LOG_ERR, "recvfrom failed: %m");
+		STATUP(nsd, rxerr);
+		return 1;
+	}
+	q.iobufptr = q.iobuf + received;
+	q.tcp = 0;
+
+	/* Process and answer the query... */
+	if (query_process(&q, nsd) != -1) {
+		if (RCODE((&q)) == RCODE_OK && !AA((&q)))
+			STATUP(nsd, nona);
+		/* Add edns(0) info if necessary.. */
+		query_addedns(&q, nsd);
+
+		if ((sent = sendto(s, q.iobuf, q.iobufptr - q.iobuf, 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
+			syslog(LOG_ERR, "sendto failed: %m");
+			STATUP(nsd, txerr);
+			return 1;
+		} else if (sent != q.iobufptr - q.iobuf) {
+			syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
+			return 1;
+		}
+
+#ifdef BIND8_STATS
+		/* Account the rcode & TC... */
+		STATUP2(nsd, rcode, RCODE((&q)));
+		if(TC((&q)))
+			STATUP(nsd, truncated);
+#endif /* BIND8_STATS */
+	} else {
+		STATUP(nsd, dropped);
+	}
+	return 1;
+}
+
+static int
+handle_tcp(struct nsd *nsd, fd_set *peer)
+{
+	int received, sent, axfr, s;
+	u_int16_t tcplen;
+	struct query q;
+	size_t i;
+	
+	s = -1;
+	for (i = 0; i < nsd->ifs; i++) {
+		if(FD_ISSET(nsd->tcp[i].s, peer)) {
+			s = nsd->tcp[i].s;
+			break;
+		}
+	}
+
+	if (s == -1) {
+		syslog(LOG_ERR, "selected non-existant socket");
+		return 0;
+	}
+
+	/* Account... */
+	STATUP(nsd, ctcp);
+
+	/* Accept it... */
+	q.addrlen = sizeof(q.addr);
+	if ((s = accept(s, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
+		if (errno != EINTR) {
+			syslog(LOG_ERR, "accept failed: %m");
+		}
+		return 1;
+	}
+
+	/* Initialize the query... */
+	query_init(&q);
+
+	q.maxlen = (q.iobufsz > nsd->tcp_max_msglen) ? nsd->tcp_max_msglen : q.iobufsz;
+	q.tcp = 1;
+
+	/* Until we've got end of file */
+	alarm(TCP_TIMEOUT);
+	while ((received = read(s, &tcplen, 2)) == 2) {
+		/* XXX Why 17???? */
+		if (ntohs(tcplen) < 17) {
+			syslog(LOG_WARNING, "dropping bogus tcp connection");
 			break;
 		}
 
-		/* Restart any TCP child processes that may have died.  */
-		restart_tcp_child_servers(nsd);
-		
-		/* Set it up */
-		FD_ZERO(&peer);
-
-		maxfd = nsd->udp[0].s;
-
-		for(i = 0; i < nsd->ifs; i++) {
-			FD_SET(nsd->udp[i].s, &peer);
-			maxfd = nsd->udp[i].s;
+		if (ntohs(tcplen) > q.iobufsz) {
+			syslog(LOG_ERR, "insufficient tcp buffer, dropping connection");
+			break;
 		}
 
-		/* Wait for a query... */
-		if(select(maxfd + 1, &peer, NULL, NULL, NULL) == -1) {
-			if(errno == EINTR) {
-				/* We'll fall out of the loop if we need to shut down */
-				continue;
-			} else {
-				syslog(LOG_ERR, "select failed: %m");
-				break;
-			}
+		if ((received = read(s, q.iobuf, ntohs(tcplen))) == -1) {
+			if(errno == EINTR)
+				syslog(LOG_ERR, "timed out/interrupted reading tcp connection");
+			else
+				syslog(LOG_ERR, "failed reading tcp connection: %m");
+			break;
 		}
 
-		/* Process it... */
-		s = -1;
-		for(i = 0; i < nsd->ifs; i++) {
-			if(FD_ISSET(nsd->udp[i].s, &peer)) {
-				s = nsd->udp[i].s;
-				if (nsd->udp[i].addr->ai_family == AF_INET)
-				{
-					/* Account... */
-					STATUP(nsd, qudp);
-				} else if (nsd->udp[i].addr->ai_family == AF_INET6) {
-					/* Account... */
-					STATUP(nsd, qudp6);
-				}
-				break;
-			}
+		if (received == 0) {
+			syslog(LOG_WARNING, "remote end closed connection");
+			break;
 		}
 
-		if(s == -1) {
-			syslog(LOG_ERR, "selected non-existant socket");
-			continue;
+		if (received != ntohs(tcplen)) {
+			syslog(LOG_WARNING, "couldnt read entire tcp message, dropping connection");
+			break;
 		}
 
-		/* Initialize the query... */
-		query_init(&q);
-
-		if((received = recvfrom(s, q.iobuf, q.iobufsz, 0, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-			syslog(LOG_ERR, "recvfrom failed: %m");
-			STATUP(nsd, rxerr);
-			continue;
-		}
 		q.iobufptr = q.iobuf + received;
-		q.tcp = 0;
 
-		/* Process and answer the query... */
-		if(query_process(&q, nsd) != -1) {
-			if(RCODE((&q)) == RCODE_OK && !AA((&q)))
+		alarm(0);
+
+		if ((axfr = query_process(&q, nsd)) != -1) {
+			if (RCODE((&q)) == RCODE_OK && !AA((&q)))
 				STATUP(nsd, nona);
-			/* Add edns(0) info if necessary.. */
-			query_addedns(&q, nsd);
+			do {
+				query_addedns(&q, nsd);
 
-			if((sent = sendto(s, q.iobuf, q.iobufptr - q.iobuf, 0, (struct sockaddr *)&q.addr, q.addrlen)) == -1) {
-				syslog(LOG_ERR, "sendto failed: %m");
-				STATUP(nsd, txerr);
-				continue;
-			} else if(sent != q.iobufptr - q.iobuf) {
-				syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr - q.iobuf);
-				continue;
-			}
+				alarm(TCP_TIMEOUT);
+				tcplen = htons(q.iobufptr - q.iobuf);
+				if (((sent = write(s, &tcplen, 2)) == -1) ||
+				    ((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
+					if (errno == EINTR)
+						syslog(LOG_ERR, "timed out/interrupted writing");
+					else
+						syslog(LOG_ERR, "write failed: %s", strerror(errno));
+					break;
+				}
+				if (sent != q.iobufptr - q.iobuf) {
+					syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr
+					       - q.iobuf);
+					break;
+				}
 
-#ifdef BIND8_STATS
-			/* Account the rcode & TC... */
-			STATUP2(nsd, rcode, RCODE((&q)));
-			if(TC((&q)))
-			STATUP(nsd, truncated);
-#endif /* BIND8_STATS */
+				/* Do we have AXFR in progress? */
+				if (axfr) {
+					axfr = query_axfr(&q, nsd, NULL, NULL, 0);
+				}
+			} while(axfr);
 		} else {
-			STATUP(nsd, dropped);
+			/* Drop the entire connection... */
+			break;
 		}
-
 	}
 
-	/* Truncate the pid file... Reuse s... */
-	if((s = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
-		syslog(LOG_ERR, "can not truncate the pid file %s: %m", nsd->pidfile);
+	alarm(0);
+	
+	/* Connection closed */
+	if (received == -1) {
+		if(errno == EINTR)
+			syslog(LOG_ERR, "timed out/interrupted reading tcp connection");
+		else
+			syslog(LOG_ERR, "failed reading tcp connection: %m");
 	}
+
 	close(s);
-
-	/* Unlink it if possible... */
-	(void)unlink(nsd->pidfile);
-
-	server_shutdown(nsd);
-
-	exit(0);
+	return 1;
 }
+
+
 /*
- *
- * Serve tcp requests. Simplified server.
- *
+ * Serve DNS requests.
  */
 void
-server_tcp(struct nsd *nsd)
+server_child(struct nsd *nsd)
 {
 	fd_set peer;
-	int received, sent, axfr, maxfd, s, i;
-	u_int16_t tcplen;
-	struct query q;
+	int maxfd;
+	size_t i;
+	sigset_t block_sigill;
 
-	close_all_sockets(nsd->udp, nsd->ifs);
+	assert(nsd->server_kind != NSD_SERVER_MAIN);
+	
+	sigemptyset(&block_sigill);
+	sigaddset(&block_sigill, SIGILL);
+
+	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
+		close_all_sockets(nsd->tcp, nsd->ifs);
+	}
+	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
+		close_all_sockets(nsd->udp, nsd->ifs);
+	}
 	
 	/* Allow sigalarm to get us out of the loop */
 	siginterrupt(SIGALRM, 1);
@@ -471,9 +592,7 @@ server_tcp(struct nsd *nsd)
 	siginterrupt(SIGTERM, 1);	/* ...on server restart. */
 
 	/* The main loop... */	
-	while(nsd->mode != NSD_QUIT) {
-		/* Dont time out now... */
-		alarm(0);
+	while (nsd->mode != NSD_QUIT) {
 
 		/* Do we need to do the statistics... */
 		if(nsd->mode == NSD_STATS) {
@@ -487,22 +606,31 @@ server_tcp(struct nsd *nsd)
 			syslog(LOG_NOTICE, "No statistics available, recompile with -DBIND8_STATS");
 #endif /* BIND8_STATS */
 		}
-
+		
 		/* Set it up */
 		FD_ZERO(&peer);
 
-		maxfd = nsd->tcp[0].s;
+		maxfd = nsd->udp[0].s;
 
-		for(i = 0; i < nsd->ifs; i++) {
-			FD_SET(nsd->tcp[i].s, &peer);
-			maxfd = nsd->tcp[i].s;
+		if (nsd->server_kind & NSD_SERVER_UDP) {
+			for (i = 0; i < nsd->ifs; i++) {
+				FD_SET(nsd->udp[i].s, &peer);
+				maxfd = nsd->udp[i].s;
+			}
 		}
-
+		if (nsd->server_kind & NSD_SERVER_TCP) {
+			for (i = 0; i < nsd->ifs; i++) {
+				FD_SET(nsd->tcp[i].s, &peer);
+				maxfd = nsd->tcp[i].s;
+			}
+		}
+		
 		/* Break from select() to dump statistics... */
-		siginterrupt(SIGILL, 1);
+		sigprocmask(SIG_UNBLOCK, &block_sigill, NULL);
+		
 		/* Wait for a query... */
-		if(select(maxfd + 1, &peer, NULL, NULL, NULL) == -1) {
-			if(errno == EINTR) {
+		if (select(maxfd + 1, &peer, NULL, NULL, NULL) == -1) {
+			if (errno == EINTR) {
 				/* We'll fall out of the loop if we need to shut down */
 				continue;
 			} else {
@@ -512,120 +640,22 @@ server_tcp(struct nsd *nsd)
 		}
 
 		/* Wait for transaction completion before dumping stats... */
-		siginterrupt(SIGILL, 0);
+		sigprocmask(SIG_BLOCK, &block_sigill, NULL);
 
-		s = -1;
-		for(i = 0; i < nsd->ifs; i++) {
-			if(FD_ISSET(nsd->tcp[i].s, &peer)) {
-				s = nsd->tcp[i].s;
-				break;
-			}
-		}
-
-		if(s == -1) {
-			syslog(LOG_ERR, "selected non-existant socket");
+		if ((nsd->server_kind & NSD_SERVER_UDP) &&
+		    handle_udp(nsd, &peer))
 			continue;
-		}
-
-		/* Account... */
-		STATUP(nsd, ctcp);
-
-		/* Accept it... */
-		q.addrlen = sizeof(q.addr);
-		if((s = accept(s, (struct sockaddr *)&q.addr, &q.addrlen)) == -1) {
-			if(errno != EINTR) {
-				syslog(LOG_ERR, "accept failed: %m");
-			}
+		
+		if ((nsd->server_kind & NSD_SERVER_TCP) &&
+		    handle_tcp(nsd, &peer))
 			continue;
-		}
 
-		/* Initialize the query... */
-		query_init(&q);
+		syslog(LOG_ERR, "selected non-existant socket");
+	}
 
-		q.maxlen = (q.iobufsz > nsd->tcp_max_msglen) ? nsd->tcp_max_msglen : q.iobufsz;
-		q.tcp = 1;
+#ifdef	BIND8_STATS
+	bind8_stats(nsd);
+#endif /* BIND8_STATS */
 
-		/* Until we've got end of file */
-		alarm(TCP_TIMEOUT);
-		while((received = read(s, &tcplen, 2)) == 2) {
-			/* XXX Why 17???? */
-			if(ntohs(tcplen) < 17) {
-				syslog(LOG_WARNING, "dropping bogus tcp connection");
-				break;
-			}
-
-			if(ntohs(tcplen) > q.iobufsz) {
-				syslog(LOG_ERR, "insufficient tcp buffer, dropping connection");
-				break;
-			}
-
-			if((received = read(s, q.iobuf, ntohs(tcplen))) == -1) {
-				if(errno == EINTR)
-					syslog(LOG_ERR, "timed out/interrupted reading tcp connection");
-				else
-					syslog(LOG_ERR, "failed reading tcp connection: %m");
-				break;
-			}
-
-			if(received == 0) {
-				syslog(LOG_WARNING, "remote end closed connection");
-				break;
-			}
-
-			if(received != ntohs(tcplen)) {
-				syslog(LOG_WARNING, "couldnt read entire tcp message, dropping connection");
-				break;
-			}
-
-			q.iobufptr = q.iobuf + received;
-
-			alarm(0);
-
-			if((axfr = query_process(&q, nsd)) != -1) {
-				if(RCODE((&q)) == RCODE_OK && !AA((&q)))
-					STATUP(nsd, nona);
-				do {
-					query_addedns(&q, nsd);
-
-					alarm(TCP_TIMEOUT);
-					tcplen = htons(q.iobufptr - q.iobuf);
-					if(((sent = write(s, &tcplen, 2)) == -1) ||
-						((sent = write(s, q.iobuf, q.iobufptr - q.iobuf)) == -1)) {
-						if(errno == EINTR)
-							syslog(LOG_ERR, "timed out/interrupted writing");
-						else
-							syslog(LOG_ERR, "write failed: %s", strerror(errno));
-							break;
-					}
-					if(sent != q.iobufptr - q.iobuf) {
-						syslog(LOG_ERR, "sent %d in place of %d bytes", sent, q.iobufptr
-							- q.iobuf);
-						break;
-					}
-
-					/* Do we have AXFR in progress? */
-					if(axfr) {
-						axfr = query_axfr(&q, nsd, NULL, NULL, 0);
-					}
-				} while(axfr);
-			} else {
-				/* Drop the entire connection... */
-				break;
-			}
-		}
-
-		/* Connection closed */
-		if(received == -1) {
-			if(errno == EINTR)
-				syslog(LOG_ERR, "timed out/interrupted reading tcp connection");
-			else
-				syslog(LOG_ERR, "failed reading tcp connection: %m");
-		}
-
-		close(s);
-	} /* while(nsd->mode != ... */
-
-	server_shutdown(nsd);	/* Shouldn't truncate pid */
-
-	/* NOTREACH */
+	server_shutdown(nsd);
 }
