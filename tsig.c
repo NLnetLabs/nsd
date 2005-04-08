@@ -186,9 +186,7 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->key = key;
 	tsig->prior_mac_size = 0;
 	tsig->prior_mac_data = NULL;
-	/* XXX: allocate rr_region lazily instead! */
-	tsig->rr_region = region_create(xalloc, free);
-	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
+	tsig->rr_region = NULL;	/* Lazily initialized.  */
 }
 
 int
@@ -202,9 +200,7 @@ tsig_from_query(tsig_record_type *tsig)
 	uint64_t signed_time;
 
 	assert(tsig->status == TSIG_OK);
-
-	tsig->algorithm = NULL;
-	tsig->key = NULL;
+	assert(tsig->rr_region);
 
 	/* XXX: Todo */
 	for (key_entry = tsig_key_table;
@@ -236,6 +232,21 @@ tsig_from_query(tsig_record_type *tsig)
 		return 0;
 	}
 
+	if ((tsig->algorithm && algorithm != tsig->algorithm)
+	    || (tsig->key && key != tsig->key))
+	{
+		/*
+		 * TODO: Is this correct? The other option would be to
+		 * change signing context etc.
+		 */
+		/*
+		 * Algorithm or key changed during a single connection,
+		 *return error.
+		 */
+		tsig->error_code = TSIG_ERROR_BADKEY;
+		return 0;
+	}
+
 	signed_time = ((((uint64_t) tsig->signed_time_high) << 32) |
 		       ((uint64_t) tsig->signed_time_low));
 
@@ -243,10 +254,12 @@ tsig_from_query(tsig_record_type *tsig)
 	if ((current_time < signed_time - tsig->signed_time_fudge)
 	    || (current_time > signed_time + tsig->signed_time_fudge))
 	{
-		char current_time_text[26];
-		char signed_time_text[26];
 		uint16_t current_time_high;
 		uint32_t current_time_low;
+
+#if 0				/* XXX */
+		char current_time_text[26];
+		char signed_time_text[26];
 		time_t clock;
 
 		clock = (time_t) current_time;
@@ -257,7 +270,6 @@ tsig_from_query(tsig_record_type *tsig)
 		ctime_r(&clock, signed_time_text);
 		signed_time_text[24] = '\0';
 
-#if 0				/* XXX */
 		log_msg(LOG_ERR,
 			"current server time %s is outside the range of TSIG"
 			" signed time %s with fudge %u",
@@ -437,7 +449,12 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->algorithm_name = NULL;
 	tsig->mac_data = NULL;
 	tsig->other_data = NULL;
-	region_free_all(tsig->rr_region);
+	if (tsig->rr_region) {
+		region_free_all(tsig->rr_region);
+	} else {
+		tsig->rr_region = region_create(xalloc, free);
+		region_add_cleanup(tsig->region, tsig_cleanup, tsig);
+	}
 
 	tsig->key_name = dname_make_from_packet(tsig->rr_region, packet, 1);
 	if (!tsig->key_name) {
