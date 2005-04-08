@@ -431,6 +431,14 @@ main (int argc, char *argv[])
 	}
 #endif /* !BIND8_STATS */
 
+	if (nsd.options->directory) {
+		if (chdir(nsd.options->directory) == -1) {
+			error("cannot change directory to '%s': %s",
+			      nsd.options->directory,
+			      strerror(errno));
+		}
+	}
+
 	if (!nsd.options->user_id) {
 		nsd.options->user_id = USER;
 	}
