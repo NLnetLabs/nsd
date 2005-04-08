@@ -1071,14 +1071,20 @@ query_add_optional(query_type *q, nsd_type *nsd)
 #ifdef TSIG
 	switch (q->tsig.status) {
 	case TSIG_NOT_PRESENT:
+	case TSIG_ERROR:
 		break;
 	case TSIG_OK:
-	case TSIG_ERROR:
-		if (q->tsig.error_code == TSIG_ERROR_NOERROR) {
+		switch (q->tsig.error_code) {
+		case TSIG_ERROR_NOERROR:
+		case TSIG_ERROR_BADTIME:
 			tsig_prepare(&q->tsig);
 			tsig_update(&q->tsig, q->packet,
 				    buffer_position(q->packet));
 			tsig_sign(&q->tsig);
+		case TSIG_ERROR_BADKEY:
+		case TSIG_ERROR_BADSIG:
+			/* TODO: ? */
+			break;
 		}
 		tsig_append_rr(&q->tsig, q->packet);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
