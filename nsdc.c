@@ -90,6 +90,39 @@ version(void)
         exit(0);
 }
 
+static int
+parse_response(FILE *out, query_type *q, region_type *r)
+{
+        size_t rr_count;
+        size_t qdcount = QDCOUNT(q->packet);
+        size_t ancount = ANCOUNT(q->packet);
+
+        /* Skip question section.  */
+        for (rr_count = 0; rr_count < qdcount; ++rr_count) {
+                if (!packet_skip_rr(q->packet, 1)) {
+                        error(XFER_FAIL, "bad RR in question section");
+                        return 0;
+                }
+        }
+
+        /* Read RRs from answer section and print them.  */
+        for (rr_count = 0; rr_count < ancount; ++rr_count) {
+                domain_table_type *owners = domain_table_create(r);
+                rr_type *record = packet_read_rr(r, owners, q->packet, 0);
+                if (!record) {
+                        error(XFER_FAIL, "bad RR in answer section");
+                        return 0;
+                }
+
+                if (!print_rr_region(out, r, record)) {
+                        return 0;
+                }
+
+                region_free_all(r);
+        }
+        return 1;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -219,11 +252,11 @@ main (int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-#if 0
+	close(sockfd);
+	return 0;
 	/* process the reply and print the RR in there */
 	char buf[1024];
-	read_socket(sockfd, buf, 1025);
-#endif
+	read(sockfd, buf, 10);
 
 	close(sockfd);
 }
