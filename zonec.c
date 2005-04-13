@@ -33,6 +33,7 @@
 #include "dname.h"
 #include "dns.h"
 #include "namedb.h"
+#include "options.h"
 #include "rdata.h"
 #include "region-allocator.h"
 #include "util.h"
@@ -45,9 +46,6 @@ time_t timegm(struct tm *tm);
 const dname_type *error_dname;
 domain_type *error_domain;
 
-/* The database file... */
-static const char *dbfile = DBFILE;
-
 /* Some global flags... */
 static int vflag = 0;
 /* if -v then print progress each 'progress' RRs */
@@ -58,6 +56,8 @@ static long int totalerrors = 0;
 static long int totalrrs = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
+
+static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 
 /*
@@ -1214,7 +1214,7 @@ usage (void)
 	fprintf(stderr, "\t-F\tSet debug facilities.\n");
 	fprintf(stderr, "\t-L\tSet debug level.\n");
 #endif
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 extern char *optarg;
@@ -1223,15 +1223,15 @@ extern int optind;
 int
 main (int argc, char **argv)
 {
-	char *zonename, *zonefile, *s;
-	char buf[LINEBUFSZ];
-	struct namedb *db;
-	const char *sep = " \t\n";
+	namedb_type *db;
 	char *origin = NULL;
 	int c;
-	int line = 0;
 	region_type *global_region;
 	region_type *rr_region;
+	const char *options_file = CONFIGFILE;
+	const char *zone_file = NULL;
+	const char *database_file = NULL;
+	nsd_options_type *options = NULL;
 
 	log_init("zonec");
 
@@ -1257,19 +1257,13 @@ main (int argc, char **argv)
 	totalerrors = 0;
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "d:f:vhF:L:o:")) != -1) {
+	while ((c = getopt(argc, argv, "c:f:F:L:ho:v")) != -1) {
 		switch (c) {
-		case 'v':
-			++vflag;
+		case 'c':
+			options_file = optarg;
 			break;
 		case 'f':
-			dbfile = optarg;
-			break;
-		case 'd':
-			if (chdir(optarg)) {
-				fprintf(stderr, "zonec: cannot chdir to %s: %s\n", optarg, strerror(errno));
-				break;
-			}
+			database_file = optarg;
 			break;
 #ifndef NDEBUG
 		case 'F':
@@ -1282,6 +1276,9 @@ main (int argc, char **argv)
 		case 'o':
 			origin = optarg;
 			break;
+		case 'v':
+			++vflag;
+			break;
 		case 'h':
 		case '?':
 		default:
@@ -1292,14 +1289,38 @@ main (int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 1) {
+	if (origin) {
+		if (argc == 1) {
+			zone_file = argv[0];
+		} else {
+			usage();
+		}
+	} else if (argc != 0) {
 		usage();
+	} else {
+		options = nsd_load_config(global_region, options_file);
+		if (!options) {
+			error("failed to load configuration file '%s'",
+			      options_file);
+		}
+
+		if (options->directory) {
+			if (chdir(options->directory) == -1) {
+				error("cannot change directory to '%s': %s",
+				      options->directory,
+				      strerror(errno));
+			}
+		}
+
+		if (!database_file) {
+			database_file = options->database;
+		}
 	}
 
 	/* Create the database */
-	if ((db = namedb_new(dbfile)) == NULL) {
-		fprintf(stderr, "zonec: error creating the database: %s\n", dbfile);
-		exit(1);
+	db = namedb_new(database_file);
+	if (!db) {
+		error("error creating the database: %s\n", database_file);
 	}
 
 	parser = zparser_create(global_region, rr_region, db);
@@ -1313,65 +1334,31 @@ main (int argc, char **argv)
 		 * Read a single zone file with the specified origin
 		 * instead of the zone master file.
 		 */
-		zone_read(origin, *argv);
+		zone_read(origin, zone_file);
 	} else {
-		FILE *f;
+		size_t i;
 
-		/* Open the master file... */
-		if (strcmp(*argv, "-") == 0) {
-			f = stdin;
-		} else if (!(f = fopen(*argv, "r"))) {
-			fprintf(stderr, "zonec: cannot open %s: %s\n",
-				*argv, strerror(errno));
-			exit(1);
-		}
+		for (i = 0; i < options->zone_count; ++i) {
+			nsd_options_zone_type *zone = options->zones[i];
 
-		/* Do the job */
-		while (fgets(buf, LINEBUFSZ - 1, f) != NULL) {
-			/* Count the lines... */
-			++line;
-
-			/* Skip empty lines and comments... */
-			if ((s = strtok(buf, sep)) == NULL || *s == ';')
+			if (!zone) {
 				continue;
-
-			if (strcasecmp(s, "zone") != 0) {
-				fprintf(stderr, "zonec: syntax error in %s line %d: expected token 'zone'\n", *argv, line);
-				break;
 			}
 
-			/* Zone name... */
-			if ((zonename = strtok(NULL, sep)) == NULL) {
-				fprintf(stderr, "zonec: syntax error in %s line %d: expected zone name\n", *argv, line);
-				break;
+			if (vflag > 0) {
+				log_msg(LOG_INFO,
+					"reading zone '%s' from file '%s'",
+					zone->name, zone->file);
 			}
 
-			/* File name... */
-			if ((zonefile = strtok(NULL, sep)) == NULL) {
-				fprintf(stderr, "zonec: syntax error in %s line %d: expected file name\n", *argv, line);
-				break;
+			zone_read(zone->name, zone->file);
+			if (vflag > 1) {
+				log_msg(LOG_INFO,
+					"processed %ld RRs in zone '%s'",
+					totalrrs, zone->name);
 			}
 
-			/* Trailing garbage? Ignore masters keyword that is used by nsdc.sh update */
-			if ((s = strtok(NULL, sep)) != NULL && *s != ';' && strcasecmp(s, "masters") != 0
-				&& strcasecmp(s, "notify") != 0) {
-				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
-			}
-
-			if (vflag > 0)
-				fprintf(stderr, "zonec: reading zone \"%s\".\n",
-					zonename);
-			zone_read(zonename, zonefile);
-			if (vflag > 0)
-				fprintf(stderr,
-					"zonec: processed %ld RRs in \"%s\".\n",
-					totalrrs, zonename);
 			totalrrs = 0;
-
-		}
-
-		if (f != stdin) {
-			fclose(f);
 		}
 	}
 
@@ -1386,15 +1373,15 @@ main (int argc, char **argv)
 
 	/* Close the database */
 	if (namedb_save(db) != 0) {
-		fprintf(stderr, "zonec: error saving the database: %s\n", strerror(errno));
+		log_msg(LOG_ERR, "error saving the database: %s",
+			strerror(errno));
 		namedb_discard(db);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Print the total number of errors */
 	if (vflag > 0 || totalerrors > 0) {
-		fprintf(stderr, "\nzonec: done with %ld errors.\n",
-			totalerrors);
+		log_msg(LOG_INFO, "done with %ld errors.", totalerrors);
 	}
 
 	/* Disable this to save some time.  */
@@ -1402,5 +1389,15 @@ main (int argc, char **argv)
 	region_destroy(global_region);
 #endif
 
-	return totalerrors ? 1 : 0;
+	exit(totalerrors > 0 ? EXIT_FAILURE : EXIT_SUCCESS);
+}
+
+static void
+error(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	log_vmsg(LOG_ERR, format, args);
+	va_end(args);
+	exit(EXIT_FAILURE);
 }
