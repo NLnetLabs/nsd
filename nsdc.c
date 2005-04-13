@@ -189,7 +189,7 @@ main (int argc, char *argv[])
 
 	printf("qname to use: %s\n", control->name);
 
-        nsdc.options = load_configuration(nsdc.region, nsdc.options_file);
+        nsdc.options = nsd_load_config(nsdc.region, nsdc.options_file);
         if (!nsdc.options) {
 		error(EXIT_FAILURE, "failed to load configuration file '%s'",
 				nsdc.options_file);
@@ -259,5 +259,6 @@ main (int argc, char *argv[])
 	read(sockfd, buf, 10);
 
 	close(sockfd);
-}
 
+	exit(EXIT_SUCCESS);
+}

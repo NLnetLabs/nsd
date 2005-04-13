@@ -26,7 +26,15 @@ struct nsd_options_key {
 };
 typedef struct nsd_options_key nsd_options_key_type;
 
+struct nsd_options_zone {
+	const char *apex;
+	const char *filename;
+};
+typedef struct nsd_options_zone nsd_options_zone_type;
+
 struct nsd_options {
+	region_type *region;
+
 	const char *user_id;
 	const char *database;
 	const char *version;
@@ -48,13 +56,16 @@ struct nsd_options {
 
 	size_t key_count;
 	nsd_options_key_type **keys;
+
+	size_t zone_count;
+	nsd_options_zone_type **zones;
 };
 typedef struct nsd_options nsd_options_type;
 
 /*
  * Load the NSD configuration from FILENAME.
  */
-nsd_options_type *load_configuration(region_type *region, const char *filename);
+nsd_options_type *nsd_load_config(region_type *region, const char *filename);
 
 nsd_options_address_type *options_address_make(region_type *region,
 					       int family,
