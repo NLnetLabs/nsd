@@ -419,7 +419,7 @@ main (int argc, char *argv[])
 	if (argc != 0)
 		usage();
 
-	nsd.options = load_configuration(nsd.region, nsd.options_file);
+	nsd.options = nsd_load_config(nsd.region, nsd.options_file);
 	if (!nsd.options) {
 		error("failed to load configuration file '%s'",
 		      nsd.options_file);
