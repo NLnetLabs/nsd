@@ -1202,18 +1202,17 @@ zone_read(const char *name, const char *zonefile)
 static void
 usage (void)
 {
-#ifndef NDEBUG
-	fprintf(stderr, "usage: zonec [-v|-h|-F|-L] [-o origin] [-d directory] -f database zone-list-file\n\n");
-#else
-	fprintf(stderr, "usage: zonec [-v|-h] [-o origin] [-d directory] -f database zone-list-file\n\n");
-#endif
-	fprintf(stderr, "\t-v\tBe more verbose.\n");
-	fprintf(stderr, "\t-h\tPrint this help information.\n");
-	fprintf(stderr, "\t-o\tSpecify a zone's origin (only used if zone-list-file equals \'-\').\n");
-#ifndef NDEBUG
-	fprintf(stderr, "\t-F\tSet debug facilities.\n");
-	fprintf(stderr, "\t-L\tSet debug level.\n");
-#endif
+	fprintf(stderr, "usage: zonec [-v|-h] [-c config-file] [-f database]\n");
+	fprintf(stderr, "   or: zonec [-v|-h] -o origin -f database zone-file\n");
+	fprintf(stderr, "NSD Zone Compiler\n\nSupported options:\n");
+	fprintf(stderr, "  -c config-file  Specify the configuration file.\n");
+	fprintf(stderr, "  -f database     Specify the database file.\n");
+	fprintf(stderr, "  -h              Print this help information.\n");
+	fprintf(stderr, "  -o origin       Specify the origin for ZONE-FILE, the configuration file is\n");
+	fprintf(stderr, "                  ignored.\n");
+	fprintf(stderr, "  -v              Be more verbose, can be specified multiple times.\n");
+	fprintf(stderr, "\nReport bugs to <%s>.\n", PACKAGE_BUGREPORT);
+
 	exit(EXIT_FAILURE);
 }
 
