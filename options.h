@@ -27,8 +27,8 @@ struct nsd_options_key {
 typedef struct nsd_options_key nsd_options_key_type;
 
 struct nsd_options_zone {
-	const char *apex;
-	const char *filename;
+	const char *name;
+	const char *file;
 };
 typedef struct nsd_options_zone nsd_options_zone_type;
 

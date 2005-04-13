@@ -39,14 +39,18 @@ static int lookup_integer(xmlXPathContextPtr context,
 
 static nsd_options_address_type *parse_address(region_type *region,
 					       xmlNodePtr address_node);
-static nsd_options_key_type *parse_key(region_type *region,
-				       xmlNodePtr key_node);
-
 static int parse_listen_on_addresses(nsd_options_type *options,
 				     xmlXPathContextPtr context);
 static int parse_controls_addresses(nsd_options_type *options,
 				    xmlXPathContextPtr context);
+
+static nsd_options_key_type *parse_key(region_type *region,
+				       xmlNodePtr key_node);
 static int parse_keys(nsd_options_type *options, xmlXPathContextPtr context);
+
+
+static nsd_options_zone_type *parse_zone(region_type *region,
+					 xmlNodePtr zone_node);
 static int parse_zones(nsd_options_type *options, xmlXPathContextPtr context);
 
 
@@ -149,6 +153,21 @@ exit:
 	xmlFreeDoc(schema_doc);
 	xmlFreeDoc(options_doc);
 
+	return result;
+}
+
+
+nsd_options_address_type *
+options_address_make(region_type *region,
+		     int family,
+		     const char *port,
+		     const char *address)
+{
+	nsd_options_address_type *result
+		= region_alloc(region, sizeof(nsd_options_address_type));
+	result->family = family;
+	result->port = region_strdup(region, port);
+	result->address = region_strdup(region, address);
 	return result;
 }
 
@@ -290,6 +309,7 @@ get_element_text(xmlNodePtr node, const char *element)
 	return NULL;
 }
 
+
 static nsd_options_address_type *
 parse_address(region_type *region, xmlNodePtr address_node)
 {
@@ -327,46 +347,6 @@ parse_address(region_type *region, xmlNodePtr address_node)
 		region,	(const char *) address_node->children->content);
 
 exit:
-	return result;
-}
-
-
-static nsd_options_key_type *
-parse_key(region_type *region, xmlNodePtr key_node)
-{
-	nsd_options_key_type *result = NULL;
-	const char *name = get_attribute_text(key_node, "name");
-	const char *algorithm = get_element_text(key_node, "algorithm");
-	const char *secret = get_element_text(key_node, "secret");
-
-	if (!name || !algorithm || !secret) {
-		log_msg(LOG_ERR,
-			"key does not define one of name, algorithm, or secret at line %d",
-			key_node->line);
-		goto exit;
-	}
-
-	result = region_alloc(region, sizeof(nsd_options_key_type));
-	result->name = region_strdup(region, name);
-	result->algorithm = region_strdup(region, algorithm);
-	result->secret = region_strdup(region, secret);
-
-exit:
-	return result;
-}
-
-
-nsd_options_address_type *
-options_address_make(region_type *region,
-		     int family,
-		     const char *port,
-		     const char *address)
-{
-	nsd_options_address_type *result
-		= region_alloc(region, sizeof(nsd_options_address_type));
-	result->family = family;
-	result->port = region_strdup(region, port);
-	result->address = region_strdup(region, address);
 	return result;
 }
 
@@ -450,6 +430,31 @@ exit:
 	return result;
 }
 
+
+static nsd_options_key_type *
+parse_key(region_type *region, xmlNodePtr key_node)
+{
+	nsd_options_key_type *result = NULL;
+	const char *name = get_attribute_text(key_node, "name");
+	const char *algorithm = get_element_text(key_node, "algorithm");
+	const char *secret = get_element_text(key_node, "secret");
+
+	if (!name || !algorithm || !secret) {
+		log_msg(LOG_ERR,
+			"key does not define one of name, algorithm, or secret at line %d",
+			key_node->line);
+		goto exit;
+	}
+
+	result = region_alloc(region, sizeof(nsd_options_key_type));
+	result->name = region_strdup(region, name);
+	result->algorithm = region_strdup(region, algorithm);
+	result->secret = region_strdup(region, secret);
+
+exit:
+	return result;
+}
+
 static int
 parse_keys(nsd_options_type *options, xmlXPathContextPtr context)
 {
@@ -490,11 +495,64 @@ exit:
 	return result;
 }
 
+
+static nsd_options_zone_type *
+parse_zone(region_type *region, xmlNodePtr zone_node)
+{
+	nsd_options_zone_type *result = NULL;
+	const char *name = get_attribute_text(zone_node, "name");
+	const char *file = get_element_text(zone_node, "file");
+
+	if (!name || !file) {
+		log_msg(LOG_ERR,
+			"zone does not define one of name or file at line %d",
+			zone_node->line);
+		goto exit;
+	}
+
+	result = region_alloc(region, sizeof(nsd_options_zone_type));
+	result->name = region_strdup(region, name);
+	result->file = region_strdup(region, file);
+
+exit:
+	return result;
+}
+
 static int
 parse_zones(nsd_options_type *options, xmlXPathContextPtr context)
 {
 	int result = 1;
 	xmlXPathObjectPtr zones = NULL;
+
+	zones = xmlXPathEvalExpression(
+		(const xmlChar *) "/nsd/zone",
+		context);
+	if (!zones) {
+		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
+			"/nsd/zone");
+		goto exit;
+	} else if (zones->nodesetval) {
+		int i;
+
+		assert(zones->type == XPATH_NODESET);
+
+		result = 1;
+		options->zone_count
+			= zones->nodesetval->nodeNr;
+		options->zones = region_alloc(
+			options->region,
+			(options->zone_count
+			 * sizeof(nsd_options_zone_type *)));
+		for (i = 0; i < zones->nodesetval->nodeNr; ++i) {
+			options->zones[i] = parse_zone(
+				options->region,
+				zones->nodesetval->nodeTab[i]);
+			if (!options->zones[i]) {
+				result = 0;
+			}
+		}
+	}
+
 exit:
 	xmlXPathFreeObject(zones);
 	return result;
