@@ -482,7 +482,7 @@ main (int argc, char *argv[])
 	}
 
 	/* We need at least one active interface */
-	if (nsd.options->listen_on_count == 0) {
+	if (nsd.options->listen_on->count == 0) {
 
 		/*
 		 * With IPv6 we'd like to open two separate sockets,
@@ -498,39 +498,40 @@ main (int argc, char *argv[])
 		 */
 #ifdef INET6
 # ifdef IPV6_V6ONLY
-		nsd.options->listen_on_count = 2;
-		nsd.options->listen_on = region_alloc(
+		nsd.options->listen_on->count = 2;
+		nsd.options->listen_on->addresses = region_alloc(
 			nsd.region, 2 * sizeof(nsd_options_address_type *));
-		nsd.options->listen_on[0] = options_address_make(
+		nsd.options->listen_on->addresses[0] = options_address_make(
 			nsd.region, AF_INET6, DEFAULT_DNS_PORT, NULL);
-		nsd.options->listen_on[1] = options_address_make(
+		nsd.options->listen_on->addresses[1] = options_address_make(
 			nsd.region, AF_INET, DEFAULT_DNS_PORT, NULL);
 # else /* !IPV6_V6ONLY */
-		nsd.options->listen_on_count = 1;
-		nsd.options->listen_on = region_alloc(
+		nsd.options->listen_on->count = 1;
+		nsd.options->listen_on->addresses = region_alloc(
 			nsd.region, 1 * sizeof(nsd_options_address_type *));
-		nsd.options->listen_on[0] = options_address_make(
+		nsd.options->listen_on->addresses[0] = options_address_make(
 			AF_INET6, DEFAULT_DNS_PORT, NULL);
 # endif	/* !IPV6_V6ONLY */
 #else /* !INET6 */
-		nsd.options->listen_on_count = 1;
-		nsd.options->listen_on = region_alloc(
+		nsd.options->listen_on->count = 1;
+		nsd.options->listen_on->addresses = region_alloc(
 			nsd.region, 1 * sizeof(nsd_options_address_type *));
-		nsd.options->listen_on[0] = options_address_make(
+		nsd.options->listen_on->addresses[0] = options_address_make(
 			AF_INET, DEFAULT_PORT, NULL);
 #endif /* !INET6 */
 	}
 
 	/* TODO: defaults for controls port */
-	nsd.socket_count = (2 * nsd.options->listen_on_count
-			    + nsd.options->controls_count);
+	nsd.socket_count = (2 * nsd.options->listen_on->count
+			    + nsd.options->controls->count);
 	nsd.sockets = region_alloc(nsd.region,
 				   nsd.socket_count * sizeof(nsd_socket_type));
 	current_socket = &nsd.sockets[0];
 
 	/* Set up the address info structures with real interface/port data */
-	for (i = 0; i < nsd.options->listen_on_count; ++i) {
-		nsd_options_address_type *listen_on = nsd.options->listen_on[i];
+	for (i = 0; i < nsd.options->listen_on->count; ++i) {
+		nsd_options_address_type *listen_on
+			= nsd.options->listen_on->addresses[i];
 		struct addrinfo hints;
 
 		if (!listen_on->port) {
@@ -568,8 +569,9 @@ main (int argc, char *argv[])
 		++current_socket;
 	}
 
-	for (i = 0; i < nsd.options->controls_count; ++i) {
-		nsd_options_address_type *controls = nsd.options->controls[i];
+	for (i = 0; i < nsd.options->controls->count; ++i) {
+		nsd_options_address_type *controls
+			= nsd.options->controls->addresses[i];
 		struct addrinfo hints;
 
 		if (!controls->port) {

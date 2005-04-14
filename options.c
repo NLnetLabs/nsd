@@ -30,6 +30,13 @@
  */
 static int validate_config(xmlDocPtr schema_doc, xmlDocPtr options_doc);
 
+static xmlNodePtr first_element(xmlNodePtr parent, const char *name);
+static xmlNodePtr next_element(xmlNodePtr node, const char *name);
+
+static int is_element(xmlNodePtr node, const char *name);
+static size_t child_element_count(xmlNodePtr parent, const char *name);
+
+static xmlNodePtr lookup_node(xmlXPathContextPtr context, const char *xpath);
 static const char *lookup_text(region_type *region,
 			       xmlXPathContextPtr context,
 			       const char *expr);
@@ -39,10 +46,8 @@ static int lookup_integer(xmlXPathContextPtr context,
 
 static nsd_options_address_type *parse_address(region_type *region,
 					       xmlNodePtr address_node);
-static int parse_listen_on_addresses(nsd_options_type *options,
-				     xmlXPathContextPtr context);
-static int parse_controls_addresses(nsd_options_type *options,
-				    xmlXPathContextPtr context);
+static nsd_options_address_list_type *parse_address_list(region_type *region,
+							 xmlNodePtr   parent);
 
 static nsd_options_key_type *parse_key(region_type *region,
 				       xmlNodePtr key_node);
@@ -52,7 +57,8 @@ static int parse_keys(nsd_options_type *options, xmlXPathContextPtr context);
 static nsd_options_zone_type *parse_zone(region_type *region,
 					 xmlNodePtr zone_node);
 static int parse_zones(nsd_options_type *options, xmlXPathContextPtr context);
-
+static nsd_options_master_type *parse_zone_master(region_type *region,
+						  xmlNodePtr master_node);
 
 /*
  * Load the NSD configuration from FILENAME.
@@ -125,19 +131,21 @@ nsd_load_config(region_type *region, const char *filename)
 		xpath_context,
 		"/nsd/options/maximum-tcp-connection-count/text()",
 		10);
-	options->listen_on_count = 0;
 	options->listen_on = NULL;
-	options->controls_count = 0;
 	options->controls = NULL;
 	options->key_count = 0;
 	options->keys = NULL;
 	options->zone_count = 0;
 	options->zones = NULL;
 
-	if (!parse_listen_on_addresses(options, xpath_context)) {
+	options->listen_on = parse_address_list(
+		region, lookup_node(xpath_context, "/nsd/options/listen-on"));
+	if (!options->listen_on) {
 		goto exit;
 	}
-	if (!parse_controls_addresses(options, xpath_context)) {
+	options->controls = parse_address_list(
+		region, lookup_node(xpath_context, "/nsd/options/controls"));
+	if (!options->controls) {
 		goto exit;
 	}
 	if (!parse_keys(options, xpath_context)) {
@@ -213,6 +221,91 @@ exit:
 	xmlRelaxNGFree(schema);
 	xmlRelaxNGFreeParserCtxt(schema_parser_ctxt);
 
+	return result;
+}
+
+
+static xmlNodePtr
+first_element(xmlNodePtr parent, const char *name)
+{
+	xmlNodePtr current;
+
+	assert(parent);
+
+	for (current = parent->children; current; current = current->next) {
+		if (is_element(current, name)) {
+			return current;
+		}
+	}
+
+	return NULL;
+}
+
+static xmlNodePtr
+next_element(xmlNodePtr node, const char *name)
+{
+	xmlNodePtr current;
+
+	assert(node);
+
+	for (current = node->next; current; current = current->next) {
+		if (is_element(current, name)) {
+			return current;
+		}
+	}
+
+	return NULL;
+}
+
+static int
+is_element(xmlNodePtr node, const char *name)
+{
+	return (node
+		&& node->type == XML_ELEMENT_NODE
+		&& strcmp((const char *) node->name, name) == 0);
+}
+
+static size_t
+child_element_count(xmlNodePtr parent, const char *name)
+{
+	size_t result = 0;
+	xmlNodePtr current;
+
+	for (current = parent->children; current; current = current->next) {
+		if (is_element(current, name)) {
+			++result;
+		}
+	}
+
+	return result;
+}
+
+static xmlNodePtr
+lookup_node(xmlXPathContextPtr context, const char *xpath)
+{
+	xmlXPathObjectPtr object = NULL;
+	xmlNodePtr result = NULL;
+
+	assert(context);
+	assert(xpath);
+
+	object = xmlXPathEvalExpression((const xmlChar *) xpath, context);
+	if (!object) {
+		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
+			(const char *) xpath);
+		goto exit;
+	} else if (xmlXPathNodeSetIsEmpty(object->nodesetval)) {
+		result = NULL;
+	} else if (xmlXPathNodeSetGetLength(object->nodesetval) == 1) {
+		result = xmlXPathNodeSetItem(object->nodesetval, 0);
+	} else {
+		log_msg(LOG_ERR,
+			"xpath expression '%s' returned multiple results",
+			(const char *) xpath);
+	}
+
+exit:
+	xmlXPathFreeObject(object);
 	return result;
 }
 
@@ -350,83 +443,34 @@ exit:
 	return result;
 }
 
-static int
-parse_listen_on_addresses(nsd_options_type *options, xmlXPathContextPtr context)
+static nsd_options_address_list_type *
+parse_address_list(region_type *region, xmlNodePtr parent)
 {
-	int result = 0;
-	xmlXPathObjectPtr listen_on_addresses = NULL;
+	nsd_options_address_list_type *result;
+	xmlNodePtr current;
+	size_t i;
 
-	listen_on_addresses = xmlXPathEvalExpression(
-		(const xmlChar *) "/nsd/options/listen-on/address",
-		context);
-	if (!listen_on_addresses) {
-		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
-			"/nsd/options/listen-on/address");
-		goto exit;
-	} else if (listen_on_addresses->nodesetval) {
-		int i;
+	if (!parent) {
+		return NULL;
+	}
 
-		assert(listen_on_addresses->type == XPATH_NODESET);
+	result = region_alloc(region, sizeof(nsd_options_address_list_type));
+	result->count = child_element_count(parent, "address");
+	result->addresses = region_alloc(
+		region, result->count * sizeof(nsd_options_address_type *));
 
-		result = 1;
-		options->listen_on_count
-			= listen_on_addresses->nodesetval->nodeNr;
-		options->listen_on = region_alloc(
-			options->region,
-			(options->listen_on_count
-			 * sizeof(nsd_options_address_type *)));
-		for (i = 0; i < listen_on_addresses->nodesetval->nodeNr; ++i) {
-			options->listen_on[i] = parse_address(
-				options->region,
-				listen_on_addresses->nodesetval->nodeTab[i]);
-			if (!options->listen_on[i]) {
-				result = 0;
-			}
+	for (i = 0, current = first_element(parent, "address");
+	     current;
+	     ++i, current = next_element(current, "address"))
+	{
+		assert(i < result->count);
+		result->addresses[i] = parse_address(
+			region, current);
+		if (!result->addresses[i]) {
+			return NULL;
 		}
 	}
 
-exit:
-	xmlXPathFreeObject(listen_on_addresses);
-	return result;
-}
-
-static int
-parse_controls_addresses(nsd_options_type *options, xmlXPathContextPtr context)
-{
-	int result = 0;
-	xmlXPathObjectPtr controls_addresses = NULL;
-
-	controls_addresses = xmlXPathEvalExpression(
-		(const xmlChar *) "/nsd/options/controls/address",
-		context);
-	if (!controls_addresses) {
-		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
-			"/nsd/options/controls/address");
-		goto exit;
-	} else if (controls_addresses->nodesetval) {
-		int i;
-
-		assert(controls_addresses->type == XPATH_NODESET);
-
-		result = 1;
-		options->controls_count
-			= controls_addresses->nodesetval->nodeNr;
-		options->controls = region_alloc(
-			options->region,
-			(options->controls_count
-			 * sizeof(nsd_options_address_type *)));
-		for (i = 0; i < controls_addresses->nodesetval->nodeNr; ++i) {
-			options->controls[i] = parse_address(
-				options->region,
-				controls_addresses->nodesetval->nodeTab[i]);
-			if (!options->controls[i]) {
-				result = 0;
-			}
-		}
-	}
-
-exit:
-	xmlXPathFreeObject(controls_addresses);
 	return result;
 }
 
@@ -502,26 +546,53 @@ parse_zone(region_type *region, xmlNodePtr zone_node)
 	nsd_options_zone_type *result = NULL;
 	const char *name = get_attribute_text(zone_node, "name");
 	const char *file = get_element_text(zone_node, "file");
+	xmlNodePtr current;
+	size_t i;
 
 	if (!name || !file) {
 		log_msg(LOG_ERR,
-			"zone does not define one of name or file at line %d",
+			"zone element does not define name or file at line %d",
 			zone_node->line);
-		goto exit;
+		return NULL;
 	}
 
 	result = region_alloc(region, sizeof(nsd_options_zone_type));
 	result->name = region_strdup(region, name);
 	result->file = region_strdup(region, file);
+	result->master_count = child_element_count(zone_node, "master");
+	result->masters = region_alloc(
+		region,
+		result->master_count * sizeof(nsd_options_master_type *));
 
-exit:
+	for (i = 0, current = first_element(zone_node, "master");
+	     current;
+	     ++i, current = next_element(current, "master"))
+	{
+		assert(i < result->master_count);
+		result->masters[i] = parse_zone_master(
+			region, current);
+		if (!result->masters[i]) {
+			return NULL;
+		}
+	}
+
+	if (first_element(zone_node, "notify")) {
+		result->notify = parse_address_list(
+			region, first_element(zone_node, "notify"));
+		if (!result->notify) {
+			return NULL;
+		}
+	} else {
+		result->notify = NULL;
+	}
+
 	return result;
 }
 
 static int
 parse_zones(nsd_options_type *options, xmlXPathContextPtr context)
 {
-	int result = 1;
+	int result = 0;
 	xmlXPathObjectPtr zones = NULL;
 
 	zones = xmlXPathEvalExpression(
@@ -555,5 +626,23 @@ parse_zones(nsd_options_type *options, xmlXPathContextPtr context)
 
 exit:
 	xmlXPathFreeObject(zones);
+	return result;
+}
+
+static nsd_options_master_type *
+parse_zone_master(region_type *region,
+		  xmlNodePtr master_node)
+{
+	nsd_options_master_type *result;
+
+	assert(master_node);
+
+	result = region_alloc(region, sizeof(nsd_options_master_type));
+	result->key = NULL;
+	result->addresses = parse_address_list(region, master_node);
+	if (!result->addresses) {
+		return NULL;
+	}
+
 	return result;
 }

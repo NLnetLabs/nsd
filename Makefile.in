@@ -322,6 +322,7 @@ util.o: util.c config.h util.h
 zlexer.o: zlexer.c config.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h heap.h rbtree.h zparser.h
 zonec.o: zonec.c config.h zonec.h namedb.h dname.h buffer.h \
-  region-allocator.h util.h dns.h heap.h rbtree.h rdata.h zparser.h
+  region-allocator.h util.h dns.h heap.h rbtree.h options.h rdata.h \
+  zparser.h
 zparser.o: zparser.c config.h dname.h buffer.h region-allocator.h util.h \
   namedb.h dns.h heap.h rbtree.h zonec.h

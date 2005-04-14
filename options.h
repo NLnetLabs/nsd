@@ -19,6 +19,13 @@ struct nsd_options_address {
 };
 typedef struct nsd_options_address nsd_options_address_type;
 
+struct nsd_options_address_list
+{
+	size_t count;
+	nsd_options_address_type **addresses;
+};
+typedef struct nsd_options_address_list nsd_options_address_list_type;
+
 struct nsd_options_key {
 	const char *name;
 	const char *algorithm;
@@ -26,9 +33,20 @@ struct nsd_options_key {
 };
 typedef struct nsd_options_key nsd_options_key_type;
 
+struct nsd_options_master {
+	nsd_options_key_type *key;
+	nsd_options_address_list_type *addresses;
+};
+typedef struct nsd_options_master nsd_options_master_type;
+
 struct nsd_options_zone {
 	const char *name;
 	const char *file;
+
+	size_t master_count;
+	nsd_options_master_type **masters;
+
+	nsd_options_address_list_type *notify;
 };
 typedef struct nsd_options_zone nsd_options_zone_type;
 
@@ -48,11 +66,8 @@ struct nsd_options {
 	size_t server_count;
 	size_t maximum_tcp_connection_count;
 
-	size_t listen_on_count;
-	nsd_options_address_type **listen_on;
-
-	size_t controls_count;
-	nsd_options_address_type **controls;
+	nsd_options_address_list_type *listen_on;
+	nsd_options_address_list_type *controls;
 
 	size_t key_count;
 	nsd_options_key_type **keys;
