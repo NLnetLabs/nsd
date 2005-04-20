@@ -13,6 +13,8 @@
 #include <config.h>
 
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <syslog.h>
@@ -251,6 +253,12 @@ void strip_string(char *str);
  * Convert a single (hexidecimal) digit to its integer value.
  */
 int hexdigit_to_int(char ch);
+
+/*
+ * Convert ADDRESS to string notation.  The result is a pointer to a
+ * statically allocated string, or NULL if an error occurs.
+ */
+const char *sockaddr_to_string(const struct sockaddr *address);
 
 /*
  * Report an internal error and abort the program.

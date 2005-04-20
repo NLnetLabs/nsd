@@ -356,19 +356,9 @@ process_tsig(query_type *q)
 static query_state_type
 answer_notify (query_type *query)
 {
-	char namebuf[BUFSIZ];
-
-	if (getnameinfo((struct sockaddr *) &(query->addr),
-			query->addrlen, namebuf, sizeof(namebuf),
-			NULL, 0, NI_NUMERICHOST)
-	    != 0)
-	{
-		log_msg(LOG_INFO, "notify for %s from unknown remote address",
-			dname_to_string(query->qname, NULL));
-	} else {
-		log_msg(LOG_INFO, "notify for %s from %s",
-			dname_to_string(query->qname, NULL), namebuf);
-	}
+	log_msg(LOG_INFO, "notify for %s from %s",
+		dname_to_string(query->qname, NULL),
+		sockaddr_to_string((const struct sockaddr *) &query->addr));
 
 	return query_error(query, NSD_RC_IMPL);
 }

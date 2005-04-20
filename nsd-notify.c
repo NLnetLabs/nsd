@@ -23,59 +23,60 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include "client.h"
+#include "options.h"
 #include "packet.h"
 #include "query.h"
 
 static void
 usage (void)
 {
-	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-p port] -z zone servers\n");
-	exit(1);
+	fprintf(stderr, "usage: nsd-notify [-h] [-c config-file] -z zone\n");
+	fprintf(stderr, "NSD notify utility\n\nSupported options:\n");
+	fprintf(stderr, "  -c config-file  Specify the configuration file.\n");
+	fprintf(stderr, "  -z zone         The zone.\n");
+	fprintf(stderr, "  -h              Print this help information.\n");
+	fprintf(stderr, "\nReport bugs to <%s>.\n", PACKAGE_BUGREPORT);
+
+	exit(EXIT_FAILURE);
 }
 
 extern char *optarg;
 extern int optind;
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	int c, udp_s;
 	query_type q;
-	const dname_type *zone = NULL;
+	const dname_type *zone_name = NULL;
 	struct addrinfo hints, *res0, *res;
-	int error;
-	int default_family = DEFAULT_AI_FAMILY;
-	const char *port = DEFAULT_DNS_PORT;
+	int gai_error;
 	region_type *region = region_create(xalloc, free);
+	const char *options_file = CONFIGFILE;
+	nsd_options_type *options;
+	nsd_options_zone_type *zone_info;
+	size_t i;
 
 	log_init("nsd-notify");
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46p:z:")) != -1) {
+	while ((c = getopt(argc, argv, "c:hz:")) != -1) {
 		switch (c) {
-		case '4':
-			default_family = AF_INET;
-			break;
-		case '6':
-#ifdef INET6
-			default_family = AF_INET6;
-			break;
-#else /* !INET6 */
-			log_msg(LOG_ERR, "IPv6 support not enabled\n");
-			exit(1);
-#endif /* !INET6 */
-		case 'p':
-			port = optarg;
+		case 'c':
+			options_file = optarg;
 			break;
 		case 'z':
-			zone = dname_parse(region, optarg);
-			if (!zone) {
+			zone_name = dname_parse(region, optarg);
+			if (!zone_name) {
 				log_msg(LOG_ERR,
 					"incorrect domain name '%s'",
 					optarg);
 				exit(1);
 			}
 			break;
+		case 'h':
+		case '?':
 		default:
 			usage();
 		}
@@ -83,8 +84,22 @@ main (int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (argc == 0 || zone == NULL)
+	if (argc != 0 || zone_name == NULL) {
 		usage();
+	}
+
+	options = nsd_load_config(region, options_file);
+	if (!options) {
+		error(EXIT_FAILURE, "failed to load configuration file '%s'",
+		      options_file);
+	}
+
+	zone_info = nsd_options_find_zone(options, zone_name);
+	if (!zone_info) {
+		error(EXIT_FAILURE,
+		      "zone '%s' not found in the configuration file",
+		      dname_to_string(zone_name, NULL));
+	}
 
 	/* Initialize the query */
 	memset(&q, 0, sizeof(query_type));
@@ -99,21 +114,30 @@ main (int argc, char *argv[])
 	AA_SET(q.packet);
 	QDCOUNT_SET(q.packet, 1);
 	buffer_skip(q.packet, QHEADERSZ);
-	buffer_write(q.packet, dname_name(zone), dname_length(zone));
+	buffer_write(q.packet,
+		     dname_name(zone_info->name),
+		     dname_length(zone_info->name));
 	buffer_write_u16(q.packet, TYPE_SOA);
 	buffer_write_u16(q.packet, CLASS_IN);
 	buffer_flip(q.packet);
 
-	for (/*empty*/; *argv; argv++) {
+	for (i = 0; i < zone_info->notify->count; ++i) {
+		nsd_options_address_type *address
+			= zone_info->notify->addresses[i];
+
 		/* Set up UDP */
 		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = default_family;
+		hints.ai_family = address->family;
 		hints.ai_socktype = SOCK_DGRAM;
 		hints.ai_protocol = IPPROTO_UDP;
-		error = getaddrinfo(*argv, port, &hints, &res0);
-		if (error) {
-			fprintf(stderr, "skipping bad address %s: %s\n", *argv,
-			    gai_strerror(error));
+		gai_error = getaddrinfo(
+			address->address,
+			address->port ? address->port : DEFAULT_DNS_PORT,
+			&hints,
+			&res0);
+		if (gai_error) {
+			fprintf(stderr, "skipping bad address %s: %s\n",
+				address->address, gai_strerror(gai_error));
 			continue;
 		}
 
@@ -127,6 +151,10 @@ main (int argc, char *argv[])
 				continue;
 
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
+
+			fprintf(stderr, "notifying %s (%s)\n",
+				address->address,
+				sockaddr_to_string(res->ai_addr));
 
 			/* WE ARE READY SEND IT OUT */
 			if (sendto(udp_s,

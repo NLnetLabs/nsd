@@ -1165,26 +1165,18 @@ process_rr()
  *
  */
 static void
-zone_read(const char *name, const char *zonefile)
+zone_read(const dname_type *name, const char *zonefile)
 {
-	const dname_type *dname;
-
-	dname = dname_parse(parser->region, name);
-	if (!dname) {
-		zc_error_prev_line("incorrect zone name '%s'", name);
-		return;
-	}
-
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
-	if (dname_is_root(dname) == 1) {
+	if (dname_is_root(name) == 1) {
 		zc_error("not configured as a root server");
 		return;
 	}
 #endif
 
 	/* Open the zone file */
-	if (!zone_open(zonefile, 3600, CLASS_IN, dname)) {
+	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
 		fprintf(stderr, " ERR: Cannot open \'%s\': %s\n", zonefile, strerror(errno));
 		return;
@@ -1223,7 +1215,7 @@ int
 main (int argc, char **argv)
 {
 	namedb_type *db;
-	char *origin = NULL;
+	const dname_type *origin = NULL;
 	int c;
 	region_type *global_region;
 	region_type *rr_region;
@@ -1273,7 +1265,10 @@ main (int argc, char **argv)
 			break;
 #endif /* NDEBUG */
 		case 'o':
-			origin = optarg;
+			origin = dname_parse(global_region, optarg);
+			if (!origin) {
+				error("origin '%s' is not domain name", optarg);
+			}
 			break;
 		case 'v':
 			++vflag;
@@ -1347,14 +1342,16 @@ main (int argc, char **argv)
 			if (vflag > 0) {
 				log_msg(LOG_INFO,
 					"reading zone '%s' from file '%s'",
-					zone->name, zone->file);
+					dname_to_string(zone->name, NULL),
+					zone->file);
 			}
 
 			zone_read(zone->name, zone->file);
 			if (vflag > 1) {
 				log_msg(LOG_INFO,
 					"processed %ld RRs in zone '%s'",
-					totalrrs, zone->name);
+					totalrrs,
+					dname_to_string(zone->name, NULL));
 			}
 
 			totalrrs = 0;

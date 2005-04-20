@@ -10,6 +10,7 @@
 #ifndef _OPTIONS_H_
 #define _OPTIONS_H_
 
+#include "dname.h"
 #include "region-allocator.h"
 
 struct nsd_options_address {
@@ -40,7 +41,7 @@ struct nsd_options_master {
 typedef struct nsd_options_master nsd_options_master_type;
 
 struct nsd_options_zone {
-	const char *name;
+	const dname_type *name;
 	const char *file;
 
 	size_t master_count;
@@ -86,5 +87,8 @@ nsd_options_address_type *options_address_make(region_type *region,
 					       int family,
 					       const char *port,
 					       const char *address);
+
+nsd_options_zone_type *nsd_options_find_zone(nsd_options_type *options,
+					     const dname_type *name);
 
 #endif /* _OPTIONS_H_ */

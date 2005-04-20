@@ -180,6 +180,22 @@ options_address_make(region_type *region,
 }
 
 
+nsd_options_zone_type *
+nsd_options_find_zone(nsd_options_type *options, const dname_type *name)
+{
+	size_t i;
+
+	for (i = 0; i < options->zone_count; ++i) {
+		if (dname_compare(name, options->zones[i]->name) == 0) {
+			return options->zones[i];
+		}
+	}
+
+	return NULL;
+}
+
+
+
 static int
 validate_config(xmlDocPtr schema_doc, xmlDocPtr options_doc)
 {
@@ -548,6 +564,7 @@ parse_zone(region_type *region, xmlNodePtr zone_node)
 	const char *file = get_element_text(zone_node, "file");
 	xmlNodePtr current;
 	size_t i;
+	const dname_type *dname;
 
 	if (!name || !file) {
 		log_msg(LOG_ERR,
@@ -556,8 +573,15 @@ parse_zone(region_type *region, xmlNodePtr zone_node)
 		return NULL;
 	}
 
+	dname = dname_parse(region, name);
+	if (!dname) {
+		log_msg(LOG_ERR,
+			"zone name '%s' is not a valid domain name",
+			name);
+	}
+
 	result = region_alloc(region, sizeof(nsd_options_zone_type));
-	result->name = region_strdup(region, name);
+	result->name = dname;
 	result->file = region_strdup(region, file);
 	result->master_count = child_element_count(zone_node, "master");
 	result->masters = region_alloc(

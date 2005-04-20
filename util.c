@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <netdb.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -428,6 +429,29 @@ hexdigit_to_int(char ch)
 	default:
 		internal_error(__FILE__, __LINE__,
 			       "hexdigit_to_int: argument not a hexdigit");
+	}
+}
+
+const char *
+sockaddr_to_string(const struct sockaddr *address)
+{
+	static char result[NI_MAXHOST + NI_MAXSERV + 3];
+	char host[NI_MAXHOST];
+	char serv[NI_MAXSERV];
+
+	if (!address) {
+		return NULL;
+	}
+
+	if (getnameinfo(address, address->sa_len,
+			host, sizeof(host),
+			serv, sizeof(serv),
+			NI_NUMERICHOST | NI_NUMERICSERV) != 0)
+	{
+		return NULL;
+	} else {
+		snprintf(result, sizeof(result), "[%s]:%s", host, serv);
+		return result;
 	}
 }
 
