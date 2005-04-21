@@ -52,6 +52,7 @@ struct domain
 	 * This domain name exists (see wildcard clarification draft).
 	 */
 	unsigned     is_existing : 1;
+	unsigned     is_apex : 1;
 };
 
 struct zone

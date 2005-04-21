@@ -43,7 +43,8 @@ allocate_domain_info(domain_table_type *table,
 	result->plugin_data = NULL;
 #endif
 	result->is_existing = 0;
-	
+	result->is_apex = 0;
+
 	return result;
 }
 

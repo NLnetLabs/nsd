@@ -1037,8 +1037,14 @@ process_rr()
 		 * This is a SOA record, start a new zone or continue
 		 * an existing one.
 		 */
-		zone = namedb_find_zone(parser->db, rr->owner);
-		if (!zone) {
+		if (rr->owner->is_apex) {
+			/*
+			   should be error!
+			   every zone should be passed to zonec only once.
+			*/
+			zone = namedb_find_zone(parser->db, rr->owner);
+			assert(zone);
+		} else {
 			/* new zone part */
 			zone = (zone_type *) region_alloc(parser->region,
 							  sizeof(zone_type));
@@ -1046,10 +1052,12 @@ process_rr()
 			zone->soa_rrset = NULL;
 			zone->ns_rrset = NULL;
 			zone->is_secure = 0;
-			
+
 			/* insert in front of zone list */
 			zone->next = parser->db->zones;
 			parser->db->zones = zone;
+
+			rr->owner->is_apex = 1;
 		}
 		
 		/* parser part */
