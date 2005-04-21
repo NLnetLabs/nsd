@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,2.2.2-pre,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,2.3.0,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 dnl
@@ -366,13 +366,13 @@ case "$enable_ipv6" in
 		;;
 esac
 
-AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--enable-dnssec], [Enable experimental DNSSEC support according to the latest drafts.]))
+AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--disable-dnssec], [Disable DNSSEC support.]))
 case "$enable_dnssec" in
-        yes)
-		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable experimental DNSSEC support.])
-		;;
-        no|*)
+        no)
                 ;;
+        yes|*)
+		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable DNSSEC (RFCs 4033, 4034, and 4035) support.])
+		;;
 esac
 
 AC_ARG_ENABLE(axfr, AC_HELP_STRING([--disable-axfr], [Disables AXFR]))

@@ -799,8 +799,8 @@ answer_query(struct nsd *nsd, struct query *q)
 	answer_init(&answer);
 
 	/*
-	 * See 3.1.4.1 Responding to Queries for DS RRs in DNSSEC
-	 * protocol.
+	 * See RFC 4035 (DNSSEC protocol) section 3.1.4.1 Responding
+	 * to Queries for DS RRs.
 	 */
 	if (exact && q->qtype == TYPE_DS && closest_encloser == q->zone->apex) {
 		/*

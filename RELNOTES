@@ -1,5 +1,22 @@
 NSD RELEASE NOTES
 
+2.3.0
+=============
+FEATURES:
+        - DNSSEC is now enabled by default. NSD should be fully
+          compliant with RFC4033, RFC4034, and RFC4035.
+
+BUG FIXES:
+        - nsd: Ensure that the number of -a flags does not exceed the
+          maximum specified by MAX_INTERFACES in config.h.
+        - nsd-xfer: Use serial number arithmetic (RFC1982) for the
+          zone serial check
+        - nsdc: Don't pass (fake) serial number to nsd-xfer if the
+          zone file does not exist.
+        - zonec: Loading many zones would case namedb_find_zone to
+          slow down, performance patch by Kazunori Fujiwara.
+
+
 2.2.1
 =============
 FEATURES:
