@@ -89,11 +89,11 @@ update)
 		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
 		then
 			# now get the serial number
-			serial=''
+			serial_opt=''
 			if [ -e ${zonesdir}/$file ]; then
 				serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1; exit }' ${zonesdir}/$file`
+                                serial_opt="-s $serial"
 			fi
-			serial=${serial:-0}
 
  			# take care of tsig info file if any
 			# See bug #91 - move to ${zone} but be backward
@@ -113,7 +113,7 @@ update)
 			fi
 
 			# AXFR to a temp file $file.axfr
-			$nsdxfer -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} -s $serial $masters
+			$nsdxfer -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} $serial_opt $masters
 			if [ $? -eq 1 ]
 			then
 				if [ -f ${zonesdir}/$file.axfr ]
