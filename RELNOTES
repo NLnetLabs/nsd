@@ -16,7 +16,6 @@ BUG FIXES:
         - zonec: Loading many zones would case namedb_find_zone to
           slow down, performance patch by Kazunori Fujiwara.
 
-
 2.2.1
 =============
 FEATURES:
