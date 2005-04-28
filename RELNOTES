@@ -13,7 +13,7 @@ BUG FIXES:
           zone serial check
         - nsdc: Don't pass (fake) serial number to nsd-xfer if the
           zone file does not exist.
-        - zonec: Loading many zones would case namedb_find_zone to
+        - zonec: Loading many zones would cause namedb_find_zone to
           slow down, performance patch by Kazunori Fujiwara.
 
 2.2.1
