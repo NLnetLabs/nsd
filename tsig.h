@@ -16,6 +16,7 @@
 
 #include "buffer.h"
 #include "dname.h"
+#include "options.h"
 
 #define TSIG_ERROR_NOERROR  0
 #define TSIG_ERROR_BADSIG   16
@@ -133,6 +134,16 @@ int tsig_init(region_type *region);
  * Add the specified key to the TSIG key table.
  */
 void tsig_add_key(tsig_key_type *key);
+
+/*
+ * Load all the keys from OPTIONS.
+ */
+int tsig_load_keys(nsd_options_type *options);
+
+/*
+ * Find a key based on its name.
+ */
+tsig_key_type *tsig_get_key_by_name(const dname_type *name);
 
 /*
  * Add the specified algorithm to the TSIG algorithm table.

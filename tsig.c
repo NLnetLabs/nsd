@@ -105,6 +105,67 @@ tsig_add_key(tsig_key_type *key)
 	tsig_key_table = entry;
 }
 
+int
+tsig_load_keys(nsd_options_type *options)
+{
+	size_t i;
+
+	for (i = 0; i < options->key_count; ++i) {
+		nsd_options_key_type *key_option;
+		tsig_key_type *key;
+		size_t secret_size;
+		int size;
+		uint8_t *data;
+
+		key_option = options->keys[i];
+		if (!key_option)
+			continue;
+
+		key = region_alloc(tsig_region, sizeof(tsig_key_type));
+		key->name = dname_parse(tsig_region, key_option->name);
+		if (!key->name) {
+			log_msg(LOG_ERR, "bad key name '%s'", key_option->name);
+			return 0;
+		}
+
+		secret_size = strlen(key_option->secret);
+		data = region_alloc(tsig_region, secret_size);
+		size = b64_pton(key_option->secret, data, secret_size);
+		if (size == -1) {
+			log_msg(LOG_ERR,
+				"bad key secret '%s'", key_option->secret);
+			return 0;
+		}
+		key->data = data;
+		key->size = size;
+
+		tsig_add_key(key);
+
+		log_msg(LOG_INFO, "key '%s' added",
+			dname_to_string(key->name, NULL));
+	}
+
+	return 1;
+}
+
+tsig_key_type *
+tsig_get_key_by_name(const dname_type *name)
+{
+	tsig_key_table_type *entry;
+
+	for (entry = tsig_key_table;
+	     entry;
+	     entry = entry->next)
+	{
+		if (dname_compare(name, entry->key->name) == 0) {
+			return entry->key;
+		}
+	}
+
+	return NULL;
+}
+
+
 void
 tsig_add_algorithm(tsig_algorithm_type *algorithm)
 {
@@ -116,9 +177,6 @@ tsig_add_algorithm(tsig_algorithm_type *algorithm)
 	tsig_algorithm_table = entry;
 }
 
-/*
- * Find an HMAC algorithm based on its short name.
- */
 tsig_algorithm_type *
 tsig_get_algorithm_by_name(const char *name)
 {

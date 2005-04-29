@@ -754,15 +754,13 @@ main(int argc, char *argv[])
 	region_type *region = region_create(xalloc, free);
 	int c;
 	query_type q;
-	struct addrinfo hints, *res0, *res;
-	const char *zone_filename = NULL;
-	const char *port = DEFAULT_DNS_PORT;
-	int default_family = DEFAULT_AI_FAMILY;
+	const char *options_file = NULL;
 	struct sigaction mysigaction;
 	FILE *zone_file;
-	const char *tsig_key_filename = NULL;
-	tsig_key_type *tsig_key = NULL;
 	axfr_state_type state;
+	nsd_options_type *options;
+	nsd_options_zone_type *zone_info;
+	size_t i;
 
 	log_init("nsd-xfer");
 
@@ -798,39 +796,13 @@ main(int argc, char *argv[])
 	}
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46f:hp:s:T:vz:")) != -1) {
+	while ((c = getopt(argc, argv, "c:hz:v")) != -1) {
 		switch (c) {
-		case '4':
-			default_family = AF_INET;
-			break;
-		case '6':
-#ifdef INET6
-			default_family = AF_INET6;
-#else /* !INET6 */
-			error(XFER_FAIL, "IPv6 support not enabled.");
-#endif /* !INET6 */
-			break;
-		case 'f':
-			zone_filename = optarg;
+		case 'c':
+			options_file = optarg;
 			break;
 		case 'h':
 			usage();
-			break;
-		case 'p':
-			port = optarg;
-			break;
-		case 's': {
-			const char *t;
-			state.first_transfer = 0;
-			state.last_serial = strtottl(optarg, &t);
-			if (*t != '\0') {
-				error(XFER_FAIL, "bad serial '%s'", optarg);
-				exit(XFER_FAIL);
-			}
-			break;
-		}
-		case 'T':
-			tsig_key_filename = optarg;
 			break;
 		case 'v':
 			++state.verbose;
@@ -838,7 +810,7 @@ main(int argc, char *argv[])
 		case 'z':
 			state.zone = dname_parse(region, optarg);
 			if (!state.zone) {
-				error(XFER_FAIL, "incorrect domain name '%s'", optarg);
+				error(XFER_FAIL, "incorrect zone name '%s'", optarg);
 			}
 			break;
 		case '?':
@@ -849,29 +821,29 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (argc == 0 || !zone_filename || !state.zone)
+	if (argc != 0 || !state.zone) {
 		usage();
-
-	if (tsig_key_filename) {
-		tsig_algorithm_type *md5
-			= tsig_get_algorithm_by_name("hmac-md5");
-		if (!md5) {
-			error(XFER_FAIL, "cannot initialize hmac-md5: TSIG support not"
-			      " enabled");
-			exit(XFER_FAIL);
-		}
-
-		tsig_key = read_tsig_key(region, tsig_key_filename);
-		if (!tsig_key) {
-			exit(XFER_FAIL);
-		}
-
-		tsig_add_key(tsig_key);
-
-		state.tsig = (tsig_record_type *) region_alloc(
-			region, sizeof(tsig_record_type));
-		tsig_init_record(state.tsig, region, md5, tsig_key);
 	}
+
+	options = nsd_load_config(region, options_file);
+	if (!options) {
+		error(EXIT_FAILURE, "failed to load configuration file '%s'",
+		      options_file);
+	}
+
+	zone_info = nsd_options_find_zone(options, state.zone);
+	if (!zone_info) {
+		error(EXIT_FAILURE,
+		      "zone '%s' not found in the configuration file",
+		      dname_to_string(state.zone, NULL));
+	}
+
+#ifdef TSIG
+	tsig_init(region);
+	if (!tsig_load_keys(options)) {
+		exit(EXIT_FAILURE);
+	}
+#endif /* TSIG */
 
 	mysigaction.sa_handler = to_alarm;
 	sigfillset(&mysigaction.sa_mask);
@@ -880,81 +852,131 @@ main(int argc, char *argv[])
 		error(XFER_FAIL, "cannot set signal handler");
 	}
 
-	for (; *argv; ++argv) {
+	for (i = 0; i < zone_info->master_count; ++i) {
+		nsd_options_master_type *master = zone_info->masters[i];
+		size_t j;
+
 		/* Try each server separately until one succeeds.  */
-		int rc;
+		for (j = 0; j < master->addresses->count; ++j) {
+			nsd_options_address_type *address
+				= master->addresses->addresses[j];
+			struct addrinfo hints, *res0, *res;
+			int gai_error;
+			tsig_algorithm_type *tsig_algorithm;
+			tsig_key_type *tsig_key;
 
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = default_family;
-		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_protocol = IPPROTO_TCP;
-		rc = getaddrinfo(*argv, port, &hints, &res0);
-		if (rc) {
-			warning("skipping bad address %s: %s\n",
-				*argv,
-				gai_strerror(rc));
-			continue;
-		}
+			if (!master->key) {
+				state.tsig = NULL;
+			} else {
+				const dname_type *key_name;
 
-		for (res = res0; res; res = res->ai_next) {
-			if (res->ai_addrlen > sizeof(q.addr))
-				continue;
-
-			state.s = socket(res->ai_family, res->ai_socktype,
-					 res->ai_protocol);
-			if (state.s == -1)
-				continue;
-
-			if (connect(state.s, res->ai_addr, res->ai_addrlen) < 0)
-			{
-				warning("cannot connect to %s: %s\n",
-					*argv,
-					strerror(errno));
-				close(state.s);
-				continue;
-			}
-
-			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
-
-			rc = check_serial(&state);
-			if (rc == -1) {
-				close(state.s);
-				continue;
-			}
-			if (rc == 0) {
-				/* Zone is up-to-date.  */
-				close(state.s);
-				exit(XFER_UPTODATE);
-			} else if (rc > 0) {
-				zone_file = fopen(zone_filename, "w");
-				if (!zone_file) {
-					error(XFER_FAIL, "cannot open or create zone file '%s' for writing: %s",
-					      zone_filename, strerror(errno));
-					close(state.s);
-					exit(XFER_FAIL);
+				key_name = dname_parse(region,
+						       master->key->name);
+				if (!key_name) {
+					error(EXIT_FAILURE, "bad key name '%s'",
+					      master->key->name);
 				}
 
-				print_zone_header(zone_file, &state, *argv);
+				tsig_key = tsig_get_key_by_name(key_name);
+				if (!tsig_key) {
+					error(EXIT_FAILURE,
+					      "key '%s' not defined",
+					      master->key->name);
+				}
 
-				if (axfr(zone_file, &state, *argv)) {
-					/* AXFR succeeded, done.  */
-					fclose(zone_file);
+				tsig_algorithm = tsig_get_algorithm_by_name(
+					master->key->algorithm);
+				if (!tsig_algorithm) {
+					error(EXIT_FAILURE,
+					      "algorithm '%s' not supported",
+					      master->key->algorithm);
+				}
+
+				state.tsig = (tsig_record_type *) region_alloc(
+					region, sizeof(tsig_record_type));
+				tsig_init_record(state.tsig, region,
+						 tsig_algorithm, tsig_key);
+			}
+
+			memset(&hints, 0, sizeof(hints));
+			hints.ai_family = address->family;
+			hints.ai_socktype = SOCK_STREAM;
+			hints.ai_protocol = IPPROTO_TCP;
+			gai_error = getaddrinfo(address->address,
+						(address->port
+						 ? address->port
+						 : DEFAULT_DNS_PORT),
+						&hints,
+						&res0);
+			if (gai_error) {
+				warning("skipping bad address %s: %s\n",
+					address->address,
+					gai_strerror(gai_error));
+				continue;
+			}
+
+			for (res = res0; res; res = res->ai_next) {
+				int rc;
+
+				if (res->ai_addrlen > sizeof(q.addr))
+					continue;
+
+				state.s = socket(res->ai_family, res->ai_socktype,
+						 res->ai_protocol);
+				if (state.s == -1)
+					continue;
+
+				if (connect(state.s, res->ai_addr, res->ai_addrlen) < 0)
+				{
+					warning("cannot connect to %s: %s\n",
+						*argv,
+						strerror(errno));
 					close(state.s);
+					continue;
+				}
 
-					if (state.verbose > 0) {
-						print_stats(&state);
+				memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
+
+				rc = check_serial(&state);
+				if (rc == -1) {
+					close(state.s);
+					continue;
+				}
+				if (rc == 0) {
+					/* Zone is up-to-date.  */
+					close(state.s);
+					exit(XFER_UPTODATE);
+				} else if (rc > 0) {
+					zone_file = fopen(zone_info->file, "w");
+					if (!zone_file) {
+						error(XFER_FAIL, "cannot open or create zone file '%s' for writing: %s",
+						      zone_info->file, strerror(errno));
+						close(state.s);
+						exit(XFER_FAIL);
 					}
 
-					exit(XFER_SUCCESS);
+					print_zone_header(zone_file, &state, *argv);
+
+					if (axfr(zone_file, &state, *argv)) {
+						/* AXFR succeeded, done.  */
+						fclose(zone_file);
+						close(state.s);
+
+						if (state.verbose > 0) {
+							print_stats(&state);
+						}
+
+						exit(XFER_SUCCESS);
+					}
+
+					fclose(zone_file);
 				}
 
-				fclose(zone_file);
+				close(state.s);
 			}
 
-			close(state.s);
+			freeaddrinfo(res0);
 		}
-
-		freeaddrinfo(res0);
 	}
 
 	log_msg(LOG_ERR,

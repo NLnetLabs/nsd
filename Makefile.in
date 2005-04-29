@@ -144,6 +144,7 @@ NSD_XFER_OBJECTS	=			\
 	edns.o					\
 	namedb.o				\
 	nsd-xfer.o				\
+	options.o				\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
