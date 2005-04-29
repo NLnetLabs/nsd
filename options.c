@@ -21,8 +21,17 @@
 #include <strings.h>
 #endif
 
+#include "heap.h"
 #include "nsd.h"
 #include "util.h"
+
+struct options_node
+{
+	heapnode_t heap_node;
+	xmlNodePtr xml_node;
+	void      *data;
+};
+typedef struct options_node options_node_type;
 
 /*
  * Validates OPTIONS_DOC against the RelaxNG SCHEMA_DOC.  Returns
@@ -45,20 +54,32 @@ static int lookup_integer(xmlXPathContextPtr context,
 			  int default_value);
 
 static nsd_options_address_type *parse_address(region_type *region,
+					       heap_t *nodes_by_id,
 					       xmlNodePtr address_node);
 static nsd_options_address_list_type *parse_address_list(region_type *region,
+							 heap_t *nodes_by_id,
 							 xmlNodePtr   parent);
 
 static nsd_options_key_type *parse_key(region_type *region,
+				       heap_t *nodes_by_id,
 				       xmlNodePtr key_node);
-static int parse_keys(nsd_options_type *options, xmlXPathContextPtr context);
+static int parse_keys(nsd_options_type *options,
+		      heap_t *nodes_by_id,
+		      xmlXPathContextPtr context);
 
 
 static nsd_options_zone_type *parse_zone(region_type *region,
+					 heap_t *nodes_by_id,
 					 xmlNodePtr zone_node);
-static int parse_zones(nsd_options_type *options, xmlXPathContextPtr context);
+static int parse_zones(nsd_options_type *options,
+		       heap_t *nodes_by_id,
+		       xmlNodePtr parent);
 static nsd_options_master_type *parse_zone_master(region_type *region,
+						  heap_t *nodes_by_id,
 						  xmlNodePtr master_node);
+
+static int compare_ids(const void *left, const void *right);
+static int insert_elements_with_id(heap_t *heap, xmlNodePtr xml_node);
 
 /*
  * Load the NSD configuration from FILENAME.
@@ -71,6 +92,8 @@ nsd_load_config(region_type *region, const char *filename)
 	xmlXPathContextPtr xpath_context = NULL;
 	nsd_options_type *options = NULL;
 	nsd_options_type *result = NULL;
+	region_type *node_region = region_create(xalloc, free);
+	heap_t *nodes_by_id = heap_create(node_region, compare_ids);
 
 	assert(filename);
 
@@ -102,6 +125,12 @@ nsd_load_config(region_type *region, const char *filename)
 	xpath_context = xmlXPathNewContext(options_doc);
 	if (!xpath_context) {
 		log_msg(LOG_ERR, "cannot create XPath context");
+		goto exit;
+	}
+
+	if (!insert_elements_with_id(nodes_by_id,
+				     xmlDocGetRootElement(options_doc)))
+	{
 		goto exit;
 	}
 
@@ -139,19 +168,23 @@ nsd_load_config(region_type *region, const char *filename)
 	options->zones = NULL;
 
 	options->listen_on = parse_address_list(
-		region, lookup_node(xpath_context, "/nsd/options/listen-on"));
+		region,
+		nodes_by_id,
+		lookup_node(xpath_context, "/nsd/options/listen-on"));
 	if (!options->listen_on) {
 		goto exit;
 	}
 	options->controls = parse_address_list(
-		region, lookup_node(xpath_context, "/nsd/options/controls"));
+		region,
+		nodes_by_id,
+		lookup_node(xpath_context, "/nsd/options/controls"));
 	if (!options->controls) {
 		goto exit;
 	}
-	if (!parse_keys(options, xpath_context)) {
+	if (!parse_keys(options, nodes_by_id, xpath_context)) {
 		goto exit;
 	}
-	if (!parse_zones(options, xpath_context)) {
+	if (!parse_zones(options, nodes_by_id, lookup_node(xpath_context, "/nsd"))) {
 		goto exit;
 	}
 
@@ -160,6 +193,7 @@ exit:
 	xmlXPathFreeContext(xpath_context);
 	xmlFreeDoc(schema_doc);
 	xmlFreeDoc(options_doc);
+	region_destroy(node_region);
 
 	return result;
 }
@@ -420,7 +454,9 @@ get_element_text(xmlNodePtr node, const char *element)
 
 
 static nsd_options_address_type *
-parse_address(region_type *region, xmlNodePtr address_node)
+parse_address(region_type *region,
+	      heap_t *nodes_by_id,
+	      xmlNodePtr address_node)
 {
 	nsd_options_address_type *result = NULL;
 	const char *port = get_attribute_text(address_node, "port");
@@ -460,7 +496,9 @@ exit:
 }
 
 static nsd_options_address_list_type *
-parse_address_list(region_type *region, xmlNodePtr parent)
+parse_address_list(region_type *region,
+		   heap_t *nodes_by_id,
+		   xmlNodePtr parent)
 {
 	nsd_options_address_list_type *result;
 	xmlNodePtr current;
@@ -481,7 +519,7 @@ parse_address_list(region_type *region, xmlNodePtr parent)
 	{
 		assert(i < result->count);
 		result->addresses[i] = parse_address(
-			region, current);
+			region, nodes_by_id, current);
 		if (!result->addresses[i]) {
 			return NULL;
 		}
@@ -492,10 +530,12 @@ parse_address_list(region_type *region, xmlNodePtr parent)
 
 
 static nsd_options_key_type *
-parse_key(region_type *region, xmlNodePtr key_node)
+parse_key(region_type *region,
+	  heap_t *nodes_by_id,
+	  xmlNodePtr key_node)
 {
 	nsd_options_key_type *result = NULL;
-	const char *name = get_attribute_text(key_node, "name");
+	const char *name = get_element_text(key_node, "name");
 	const char *algorithm = get_element_text(key_node, "algorithm");
 	const char *secret = get_element_text(key_node, "secret");
 
@@ -516,7 +556,9 @@ exit:
 }
 
 static int
-parse_keys(nsd_options_type *options, xmlXPathContextPtr context)
+parse_keys(nsd_options_type *options,
+	   heap_t *nodes_by_id,
+	   xmlXPathContextPtr context)
 {
 	int result = 0;
 	xmlXPathObjectPtr keys = NULL;
@@ -543,6 +585,7 @@ parse_keys(nsd_options_type *options, xmlXPathContextPtr context)
 		for (i = 0; i < keys->nodesetval->nodeNr; ++i) {
 			options->keys[i] = parse_key(
 				options->region,
+				nodes_by_id,
 				keys->nodesetval->nodeTab[i]);
 			if (!options->keys[i]) {
 				result = 0;
@@ -557,10 +600,12 @@ exit:
 
 
 static nsd_options_zone_type *
-parse_zone(region_type *region, xmlNodePtr zone_node)
+parse_zone(region_type *region,
+	   heap_t *nodes_by_id,
+	   xmlNodePtr zone_node)
 {
 	nsd_options_zone_type *result = NULL;
-	const char *name = get_attribute_text(zone_node, "name");
+	const char *name = get_element_text(zone_node, "name");
 	const char *file = get_element_text(zone_node, "file");
 	xmlNodePtr current;
 	size_t i;
@@ -594,7 +639,7 @@ parse_zone(region_type *region, xmlNodePtr zone_node)
 	{
 		assert(i < result->master_count);
 		result->masters[i] = parse_zone_master(
-			region, current);
+			region, nodes_by_id, current);
 		if (!result->masters[i]) {
 			return NULL;
 		}
@@ -602,7 +647,7 @@ parse_zone(region_type *region, xmlNodePtr zone_node)
 
 	if (first_element(zone_node, "notify")) {
 		result->notify = parse_address_list(
-			region, first_element(zone_node, "notify"));
+			region, nodes_by_id, first_element(zone_node, "notify"));
 		if (!result->notify) {
 			return NULL;
 		}
@@ -614,47 +659,36 @@ parse_zone(region_type *region, xmlNodePtr zone_node)
 }
 
 static int
-parse_zones(nsd_options_type *options, xmlXPathContextPtr context)
+parse_zones(nsd_options_type *options,
+	    heap_t *nodes_by_id,
+	    xmlNodePtr parent)
 {
-	int result = 0;
-	xmlXPathObjectPtr zones = NULL;
+	int result = 1;
+	xmlNodePtr current;
+	size_t i;
 
-	zones = xmlXPathEvalExpression(
-		(const xmlChar *) "/nsd/zone",
-		context);
-	if (!zones) {
-		log_msg(LOG_ERR, "unable to evaluate xpath expression '%s'",
-			"/nsd/zone");
-		goto exit;
-	} else if (zones->nodesetval) {
-		int i;
+	options->zone_count = child_element_count(parent, "zone");
+	options->zones = region_alloc(
+		options->region,
+		options->zone_count * sizeof(nsd_options_zone_type *));
 
-		assert(zones->type == XPATH_NODESET);
-
-		result = 1;
-		options->zone_count
-			= zones->nodesetval->nodeNr;
-		options->zones = region_alloc(
-			options->region,
-			(options->zone_count
-			 * sizeof(nsd_options_zone_type *)));
-		for (i = 0; i < zones->nodesetval->nodeNr; ++i) {
-			options->zones[i] = parse_zone(
-				options->region,
-				zones->nodesetval->nodeTab[i]);
-			if (!options->zones[i]) {
-				result = 0;
-			}
+	for (i = 0, current = first_element(parent, "zone");
+	     current;
+	     ++i, current = next_element(current, "zone"))
+	{
+		options->zones[i] = parse_zone(options->region, nodes_by_id, current);
+		if (!options->zones[i]) {
+			result = 0;
+			break;
 		}
 	}
 
-exit:
-	xmlXPathFreeObject(zones);
 	return result;
 }
 
 static nsd_options_master_type *
 parse_zone_master(region_type *region,
+		  heap_t *nodes_by_id,
 		  xmlNodePtr master_node)
 {
 	nsd_options_master_type *result;
@@ -663,9 +697,56 @@ parse_zone_master(region_type *region,
 
 	result = region_alloc(region, sizeof(nsd_options_master_type));
 	result->key = NULL;
-	result->addresses = parse_address_list(region, master_node);
+	result->addresses = parse_address_list(region, nodes_by_id, master_node);
 	if (!result->addresses) {
 		return NULL;
+	}
+
+	return result;
+}
+
+static int
+compare_ids(const void *left, const void *right)
+{
+	return strcmp(left, right);
+}
+
+static int
+insert_elements_with_id(heap_t *heap, xmlNodePtr xml_node)
+{
+	int result = 1;
+
+	const char *id = get_attribute_text(xml_node, "id");
+	if (id) {
+		heapnode_t *heap_node = heap_search(heap, id);
+		if (heap_node) {
+			options_node_type *options_node
+				= (options_node_type *) heap_node;
+			log_msg(LOG_ERR,
+				"id on line %d duplicates id on line %d",
+				xml_node->line,
+				options_node->xml_node->line);
+			result = 0;
+		} else {
+			options_node_type *options_node
+				= region_alloc(heap->region,
+					       sizeof(options_node_type));
+			options_node->heap_node.key = id;
+			options_node->xml_node = xml_node;
+			options_node->data = NULL;
+			heap_insert(heap, (heapnode_t *) options_node);
+		}
+	}
+
+	for (xml_node = xml_node->children;
+	     xml_node;
+	     xml_node = xml_node->next)
+	{
+		if (xml_node->type == XML_ELEMENT_NODE) {
+			if (!insert_elements_with_id(heap, xml_node)) {
+				result = 0;
+			}
+		}
 	}
 
 	return result;
