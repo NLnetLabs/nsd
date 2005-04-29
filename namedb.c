@@ -47,7 +47,6 @@ namedb_insert_zone(namedb_type *db, const dname_type *apex)
 		zone->is_secure = 0;
 		zone->node.key = domain_dname(zone->apex);
 		heap_insert(db->zones, (rbnode_t *) zone);
-		fprintf(stderr, "zone %s inserted\n", dname_to_string(apex, NULL));
 	}
 	return zone;
 }
@@ -62,7 +61,7 @@ allocate_domain_info(domain_table_type *table,
 	assert(table);
 	assert(dname);
 	assert(parent);
-	
+
 	result = (domain_type *) region_alloc(table->region,
 					      sizeof(domain_type));
 	result->node.key = dname_partial_copy(
@@ -77,7 +76,7 @@ allocate_domain_info(domain_table_type *table,
 	result->plugin_data = NULL;
 #endif
 	result->is_existing = 0;
-	
+
 	return result;
 }
 
@@ -89,7 +88,7 @@ domain_table_create(region_type *region)
 	domain_type *root;
 
 	assert(region);
-	
+
 	origin = dname_make(region, (uint8_t *) "");
 
 	root = (domain_type *) region_alloc(region, sizeof(domain_type));
@@ -102,7 +101,7 @@ domain_table_create(region_type *region)
 	root->plugin_data = NULL;
 #endif
 	root->is_existing = 0;
-	
+
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));
 	result->region = region;
@@ -122,7 +121,7 @@ domain_table_search(domain_table_type *table,
 {
 	int exact;
 	uint8_t label_match_count;
-	
+
 	assert(table);
 	assert(dname);
 	assert(closest_match);
@@ -134,7 +133,7 @@ domain_table_search(domain_table_type *table,
 	assert(*closest_match);
 
 	*closest_encloser = *closest_match;
-	
+
 	if (!exact) {
 		size_t label_count
 			= dname_label_count(domain_dname(*closest_encloser));
@@ -150,7 +149,7 @@ domain_table_search(domain_table_type *table,
 				       domain_dname(*closest_encloser)));
 		}
 	}
-	
+
 	return exact;
 }
 
@@ -179,7 +178,7 @@ domain_table_insert(domain_table_type *table,
 
 	assert(table);
 	assert(dname);
-	
+
 	exact = domain_table_search(
 		table, dname, &closest_match, &closest_encloser);
 	if (exact) {
@@ -187,7 +186,7 @@ domain_table_insert(domain_table_type *table,
 	} else {
 		assert(dname_label_count(domain_dname(closest_encloser))
 		       < dname_label_count(dname));
-	
+
 		/* Insert new node(s).  */
 		do {
 			result = allocate_domain_info(table,
@@ -290,7 +289,7 @@ domain_type *
 domain_wildcard_child(domain_type *domain)
 {
 	domain_type *wildcard_child;
-	
+
 	assert(domain);
 	assert(domain->wildcard_child_closest_match);
 
@@ -316,7 +315,7 @@ rr_rrsig_type_covered(rr_type *rr)
 	assert(rr->type == TYPE_RRSIG);
 	assert(rr->rdata_count > 0);
 	assert(rdata_atom_size(rr->rdatas[0]) == sizeof(uint16_t));
-	
+
 	return ntohs(* (uint16_t *) rdata_atom_data(rr->rdatas[0]));
 }
 
