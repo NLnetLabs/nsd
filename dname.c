@@ -391,14 +391,14 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 		size_t j;
 		++src;
 		for (j = 0; j < len; ++j) {
-			char ch = (char) *src++;
+			uint8_t ch = *src++;
 			if (isalnum(ch) || ch == '-' || ch == '_') {
 				*dst++ = ch;
 			} else if (ch == '.' || ch == '\\') {
 				*dst++ = '\\';
 				*dst++ = ch;
 			} else {
-				snprintf(dst, 5, "\\%03u", (unsigned) ch);
+				snprintf(dst, 5, "\\%03u", ch);
 				dst += 4;
 			}
 		}
