@@ -115,6 +115,8 @@ ANY     [^\"\n]|\\.
 		zc_error("includes nested too deeply, skipped (>%d)",
 			 MAXINCLUDES);
 	} else {
+		FILE *input;
+
 		/* Remove trailing comment.  */
 		tmp = strrchr(yytext, ';');
 		if (tmp) {
@@ -146,13 +148,13 @@ ANY     [^\"\n]|\\.
 		
 		if (strlen(yytext) == 0) {
 			zc_error("missing file name in $INCLUDE directive");
-		} else if (!(yyin = fopen(yytext, "r"))) {
+		} else if (!(input = fopen(yytext, "r"))) {
 			zc_error("cannot open include file '%s': %s",
 				 yytext, strerror(errno));
 		} else {
 			/* Initialize parser for include file.  */
 			char *filename = region_strdup(parser->region, yytext);
-			push_parser_state(yyin); /* Destroys yytext.  */
+			push_parser_state(input); /* Destroys yytext.  */
 			parser->filename = filename;
 			parser->line = 1;
 			parser->origin = origin;
