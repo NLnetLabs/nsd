@@ -154,7 +154,8 @@ main(int argc, char *argv[])
 
 			fprintf(stderr, "notifying %s (%s)\n",
 				address->address,
-				sockaddr_to_string(res->ai_addr));
+				sockaddr_to_string(res->ai_addr,
+						   res->ai_addrlen));
 
 			/* WE ARE READY SEND IT OUT */
 			if (sendto(udp_s,

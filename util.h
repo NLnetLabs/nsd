@@ -258,7 +258,8 @@ int hexdigit_to_int(char ch);
  * Convert ADDRESS to string notation.  The result is a pointer to a
  * statically allocated string, or NULL if an error occurs.
  */
-const char *sockaddr_to_string(const struct sockaddr *address);
+const char *sockaddr_to_string(const struct sockaddr *address,
+			       socklen_t length);
 
 /*
  * Report an internal error and abort the program.

@@ -433,7 +433,7 @@ hexdigit_to_int(char ch)
 }
 
 const char *
-sockaddr_to_string(const struct sockaddr *address)
+sockaddr_to_string(const struct sockaddr *address, socklen_t length)
 {
 	static char result[NI_MAXHOST + NI_MAXSERV + 3];
 	char host[NI_MAXHOST];
@@ -443,7 +443,7 @@ sockaddr_to_string(const struct sockaddr *address)
 		return NULL;
 	}
 
-	if (getnameinfo(address, address->sa_len,
+	if (getnameinfo(address, length,
 			host, sizeof(host),
 			serv, sizeof(serv),
 			NI_NUMERICHOST | NI_NUMERICSERV) != 0)

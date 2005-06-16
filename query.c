@@ -358,7 +358,8 @@ answer_notify (query_type *query)
 {
 	log_msg(LOG_INFO, "notify for %s from %s",
 		dname_to_string(query->qname, NULL),
-		sockaddr_to_string((const struct sockaddr *) &query->addr));
+		sockaddr_to_string((const struct sockaddr *) &query->addr,
+				   query->addrlen));
 
 	return query_error(query, NSD_RC_IMPL);
 }
