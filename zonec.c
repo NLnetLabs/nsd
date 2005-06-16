@@ -871,7 +871,7 @@ zadd_rdata_domain(const dname_type *dname)
 	}
 }
 
-static void
+static int
 parse_unknown_rdata(rr_type *rr, uint16_t *wireformat)
 {
 	buffer_type packet;
@@ -889,11 +889,12 @@ parse_unknown_rdata(rr_type *rr, uint16_t *wireformat)
 		&rdatas);
 	if (rdata_count == -1) {
 		zc_error_prev_line("bad unknown RDATA");
-		return;
+		return 0;
 	}
 
 	rr->rdata_count = rdata_count;
 	rr->rdatas = rdatas;
+	return 1;
 }
 
 
@@ -1056,7 +1057,9 @@ process_rr()
 	rr.type = parser->rr.type;
 	rr.klass = parser->rr.klass;
 	if (parser->rr.unknown_rdata) {
-		parse_unknown_rdata(&rr, parser->rr.unknown_rdata);
+		if (!parse_unknown_rdata(&rr, parser->rr.unknown_rdata)) {
+			return 0;
+		}
 	} else {
 		rr.rdata_count = parser->rr.rdata_count;
 		rr.rdatas = (rdata_atom_type *) region_alloc(

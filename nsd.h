@@ -72,12 +72,23 @@ typedef struct nsd_socket nsd_socket_type;
 
 struct nsd_child
 {
-	 /* The type of child process (UDP or TCP handler). */
-	int   kind;
-
 	/* The child's process id.  */
 	pid_t pid;
+
+	/*
+	 * Socket used by the parent process to send commands and
+	 * receive responses to/from this child process.
+	 */
+	int child_fd;
+
+	/*
+	 * Socket used by the child process to receive commands and
+	 * send responses from/to the parent process.
+	 */
+	int parent_fd;
 };
+typedef struct nsd_child nsd_child_type;
+
 
 /* NSD configuration and run-time variables */
 typedef struct nsd nsd_type;
@@ -99,7 +110,10 @@ struct nsd
 	 * Number of servers is specified in the 'options'
 	 * structure.
 	 */
-	struct nsd_child *children;
+	nsd_child_type  *children;
+
+	/* NULL if this is the parent process.  */
+	nsd_child_type  *this_child;
 
 	/* Configuration */
 	const char       *options_file;

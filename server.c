@@ -159,6 +159,13 @@ static void handle_tcp_writing(netio_type *netio,
 			       netio_event_types_type event_types);
 
 /*
+ * Handle a command received from the parent process.
+ */
+static void handle_parent_command(netio_type *netio,
+				  netio_handler_type *handler,
+				  netio_event_types_type event_types);
+
+/*
  * Change the event types the HANDLERS are interested in to
  * EVENT_TYPES.
  */
@@ -193,16 +200,31 @@ static int
 restart_child_servers(nsd_type *nsd)
 {
 	size_t i;
+	int sv[2];
 
 	/* Fork the child processes... */
 	for (i = 0; i < nsd->options->server_count; ++i) {
 		if (nsd->children[i].pid <= 0) {
+			if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
+				log_msg(LOG_ERR, "socketpair: %s",
+					strerror(errno));
+				return -1;
+			}
+			nsd->children[i].child_fd = sv[0];
+			nsd->children[i].parent_fd = sv[1];
 			nsd->children[i].pid = fork();
 			switch (nsd->children[i].pid) {
+			default: /* MASTER */
+				close(nsd->children[i].parent_fd);
+				nsd->children[i].parent_fd = -1;
+				break;
 			case 0: /* CHILD */
 				nsd->pid = 0;
 				nsd->options->server_count = 0;
-				nsd->server_kind = nsd->children[i].kind;
+				nsd->server_kind = NSD_SERVER_KIND_CHILD;
+				nsd->this_child = &nsd->children[i];
+				close(nsd->this_child->child_fd);
+				nsd->this_child->child_fd = -1;
 				server_child(nsd);
 				/* NOTREACH */
 				exit(0);
@@ -598,17 +620,17 @@ server_child(nsd_type *nsd)
 	size_t i;
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
-	size_t tcp_socket_count;
+	size_t tcp_accept_count;
 	size_t tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
 	sig_atomic_t mode;
 
 	assert(nsd->server_kind == NSD_SERVER_KIND_CHILD);
 
-	tcp_socket_count = 0;
+	tcp_accept_count = 0;
 	for (i = 0; i < nsd->socket_count; ++i) {
 		if (nsd->sockets[i].kind != NSD_SOCKET_KIND_UDP) {
-			++tcp_socket_count;
+			++tcp_accept_count;
 		}
 	}
 
@@ -619,7 +641,20 @@ server_child(nsd_type *nsd)
 	 */
 	tcp_accept_handler_count = 0;
 	tcp_accept_handlers = (netio_handler_type *) region_alloc(
-		server_region, tcp_socket_count * sizeof(netio_handler_type));
+		server_region, tcp_accept_count * sizeof(netio_handler_type));
+
+	if (nsd->this_child && nsd->this_child->parent_fd != -1) {
+		netio_handler_type *handler;
+
+		handler = (netio_handler_type *) region_alloc(
+			server_region, sizeof(netio_handler_type));
+		handler->fd = nsd->this_child->parent_fd;
+		handler->timeout = NULL;
+		handler->user_data = nsd;
+		handler->event_types = NETIO_EVENT_READ;
+		handler->event_handler = handle_parent_command;
+		netio_add_handler(netio, handler);
+	}
 
 	for (i = 0; i < nsd->socket_count; ++i) {
 		if (nsd->sockets[i].kind == NSD_SOCKET_KIND_UDP) {
@@ -651,7 +686,7 @@ server_child(nsd_type *nsd)
 				sizeof(struct tcp_accept_handler_data));
 			data->nsd = nsd;
 			data->socket = &nsd->sockets[i];
-			data->tcp_accept_handler_count = tcp_socket_count;
+			data->tcp_accept_handler_count = tcp_accept_count;
 			data->tcp_accept_handlers = tcp_accept_handlers;
 
 			handler = &tcp_accept_handlers[tcp_accept_handler_count];
@@ -665,7 +700,7 @@ server_child(nsd_type *nsd)
 		}
 	}
 
-	assert(tcp_socket_count == tcp_accept_handler_count);
+	assert(tcp_accept_count == tcp_accept_handler_count);
 
 	/* The main loop... */
 	while ((mode = nsd->mode) != NSD_QUIT) {
@@ -1185,6 +1220,34 @@ handle_tcp_accept(netio_type *netio,
 		configure_handler_event_types(data->tcp_accept_handler_count,
 					      data->tcp_accept_handlers,
 					      NETIO_EVENT_NONE);
+	}
+}
+
+static void
+handle_parent_command(netio_type *netio,
+		      netio_handler_type *handler,
+		      netio_event_types_type event_types)
+{
+	sig_atomic_t mode;
+	nsd_type *nsd = (nsd_type *) handler->user_data;
+	if (!(event_types & NETIO_EVENT_READ)) {
+		return;
+	}
+
+	if (read(handler->fd, &mode, sizeof(mode)) == -1) {
+		log_msg(LOG_ERR, "handle_parent_command: read: %s",
+			strerror(errno));
+		return;
+	}
+
+	switch (mode) {
+	case NSD_STATS: case NSD_QUIT:
+		nsd->mode = mode;
+		break;
+	default:
+		log_msg(LOG_ERR, "handle_parent_command: bad mode %d",
+			(int) mode);
+		break;
 	}
 }
 
