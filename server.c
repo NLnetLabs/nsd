@@ -261,97 +261,98 @@ initialize_dname_compression_tables(nsd_type *nsd)
 	region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
 }
 
+static int
+create_socket(nsd_socket_type *nsd_socket)
+{
+#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU)))
+	int on = 1;
+#endif
+
+	nsd_socket->s = socket(nsd_socket->addr->ai_family,
+			       nsd_socket->addr->ai_socktype,
+			       0);
+	if (nsd_socket->s == -1) {
+		log_msg(LOG_ERR, "can't create a socket: %s",
+			strerror(errno));
+		return 0;
+	}
+
+#ifdef SO_REUSEADDR
+	if (nsd_socket->kind != NSD_SOCKET_KIND_UDP
+	    && setsockopt(nsd_socket->s, SOL_SOCKET, SO_REUSEADDR,
+			  &on, sizeof(on)) < 0)
+	{
+		log_msg(LOG_ERR, "setsockopt (SO_REUSEADDR) failed: %s",
+			strerror(errno));
+		return 0;
+	}
+#endif /* SO_REUSEADDR */
+
+#ifdef INET6
+	if (nsd_socket->addr->ai_family == AF_INET6) {
+# ifdef IPV6_V6ONLY
+		if (setsockopt(nsd_socket->s, IPPROTO_IPV6, IPV6_V6ONLY,
+			       &on, sizeof(on)) < 0)
+		{
+			log_msg(LOG_ERR, "setsockopt (IPV6_V6ONLY) failed: %s",
+				strerror(errno));
+			return 0;
+		}
+# endif	/* IPV6_V6ONLY */
+
+# ifdef IPV6_USE_MIN_MTU
+		/*
+		 * There is no fragmentation of IPv6 datagrams during
+		 * forwarding in the network. Therefore we do not send
+		 * UDP datagrams larger than the minimum IPv6 MTU of
+		 * 1280 octets. The EDNS0 message length can be larger
+		 * if the network stack supports IPV6_USE_MIN_MTU.
+		 */
+		if (nsd_socket->kind == NSD_SOCKET_KIND_UDP
+		    && setsockopt(nsd_socket->s, IPPROTO_IPV6, IPV6_USE_MIN_MTU,
+				  &on, sizeof(on)) < 0)
+		{
+			log_msg(LOG_ERR,
+				"setsockopt (IPV6_USE_MIN_MTU) failed: %s",
+				strerror(errno));
+			return 0;
+		}
+# endif	/* IPV6_USE_MIN_MTU */
+	}
+#endif /* INET6 */
+
+	/* Bind it... */
+	if (bind(nsd_socket->s,
+		 (struct sockaddr *) nsd_socket->addr->ai_addr,
+		 nsd_socket->addr->ai_addrlen) != 0)
+	{
+		log_msg(LOG_ERR, "bind failed: %s", strerror(errno));
+		return 0;
+	}
+
+	/* Listen on non-UDP sockets... */
+	if (nsd_socket->kind != NSD_SOCKET_KIND_UDP
+	    && listen(nsd_socket->s, TCP_BACKLOG) == -1)
+	{
+		log_msg(LOG_ERR, "listen failed: %s", strerror(errno));
+		return 0;
+	}
+
+	return 1;
+}
+
 /*
- * Initialize the server, create and bind the sockets.
- * Drop the priviledges and chroot if requested.
- *
+ * Initialize the server, create and bind the sockets.  Drop the
+ * privileges and chroot if requested.
  */
 int
 server_init(nsd_type *nsd)
 {
 	size_t i;
-#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU)))
-	int on = 1;
-#endif
 
-	/* UDP */
-
-	/* Make a socket... */
+	/* Initialize the communication sockets. */
 	for (i = 0; i < nsd->socket_count; ++i) {
-		nsd->sockets[i].s = socket(nsd->sockets[i].addr->ai_family,
-					   nsd->sockets[i].addr->ai_socktype,
-					   0);
-		if (nsd->sockets[i].s == -1) {
-			log_msg(LOG_ERR, "can't create a socket: %s",
-				strerror(errno));
-			return -1;
-		}
-
-#ifdef SO_REUSEADDR
-		if (nsd->sockets[i].kind != NSD_SOCKET_KIND_UDP
-		    && setsockopt(nsd->sockets[i].s,
-				  SOL_SOCKET, SO_REUSEADDR,
-				  &on, sizeof(on)) < 0)
-		{
-			log_msg(LOG_ERR,
-				"setsockopt(..., SO_REUSEADDR, ...) failed: %s",
-				strerror(errno));
-			return -1;
-		}
-#endif /* SO_REUSEADDR */
-
-#ifdef INET6
-		if (nsd->sockets[i].addr->ai_family == AF_INET6) {
-# ifdef IPV6_V6ONLY
-			if (setsockopt(nsd->sockets[i].s,
-				       IPPROTO_IPV6, IPV6_V6ONLY,
-				       &on, sizeof(on)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
-					strerror(errno));
-				return -1;
-			}
-# endif	/* IPV6_V6ONLY */
-# ifdef IPV6_USE_MIN_MTU
-			if (nsd->sockets[i].kind == NSD_SOCKET_KIND_UDP) {
-				/*
-				 * There is no fragmentation of IPv6
-				 * datagrams during forwarding in the
-				 * network. Therefore we do not send
-				 * UDP datagrams larger than the
-				 * minimum IPv6 MTU of 1280
-				 * octets. The EDNS0 message length
-				 * can be larger if the network stack
-				 * supports IPV6_USE_MIN_MTU.
-				 */
-				if (setsockopt(nsd->sockets[i].s,
-					       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
-					       &on, sizeof(on)) < 0)
-				{
-					log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s",
-						strerror(errno));
-					return -1;
-				}
-			}
-# endif	/* IPV6_USE_MIN_MTU */
-		}
-#endif /* INET6 */
-
-		/* Bind it... */
-		if (bind(nsd->sockets[i].s,
-			 (struct sockaddr *) nsd->sockets[i].addr->ai_addr,
-			 nsd->sockets[i].addr->ai_addrlen) != 0)
-		{
-			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
-			return -1;
-		}
-
-
-		/* Listen on non-UDP sockets... */
-		if (nsd->sockets[i].kind != NSD_SOCKET_KIND_UDP
-		    && listen(nsd->sockets[i].s, TCP_BACKLOG) == -1)
-		{
-			log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
+		if (!create_socket(&nsd->sockets[i])) {
 			return -1;
 		}
 	}
