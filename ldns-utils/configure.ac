@@ -2,8 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.57)
-AC_INIT(libdns-tests, 1.0, ldns@nlnetlabs.nl, ldns-tests-1.0)
-AC_CONFIG_SRCDIR([../ldns/config.h])
+#AC_INIT(nsd-ldns-utils, 1.0, nsd-users@nlnetlabs.nl, nsd-ldns-utils-1.0)
+AC_INIT(NSD,2.3-devel,nsd-bugs@nlnetlabs.nl)
+AC_CONFIG_SRCDIR([../config.h])
 
 AC_AIX
 # Checks for programs.
@@ -26,8 +27,6 @@ AC_CHECK_HEADERS(sys/param.h sys/mount.h,,,
 ])
 
 # ripped from http://autoconf-archive.cryp.to/check_ssl.html
-
-
 # check for ldns
 AC_ARG_WITH(ldns, AC_HELP_STRING([--with-ldns=pathname],[]))
 AC_MSG_CHECKING(for ldns/dns.h)

@@ -1,17 +1,53 @@
 /* 
+ * nsd-notify.c - nsd-notify(8)
+ * 
+ * Copyright (c) 2001-2005, NLnet Labs, All right reserved
+ *
+ * See LICENSE for the license
+ *
  * send a notify packet to a server
  */
 
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <unistd.h>
 #include <stdbool.h>
-
 #include <stdint.h>
 
+
+#include <nsd.h>
+#include <options.h>
+
 #include <ldns/dns.h>
+
+static void
+usage(void)
+{
+	fprintf(stderr, "usage: nsd-notify [-h] [-c config-file] -z zone\n");
+	fprintf(stderr, "NSD notify utility\n\n");
+	fprintf(stderr, " Supported options:\n");
+	fprintf(stderr, "\t-c config-file\tSpecify the configuration file\n");
+	fprintf(stderr, "\t-z zone\t The zone\n");
+	fprintf(stderr, "\t-v\t\tPrint version information\n");
+	fprintf(stderr, "\t-h\t\tPrint this help information\n\n");
+	fprintf(stderr, "Report bugs to <nsd-bugs@nlnetlabs.nl>\n");
+	exit(EXIT_FAILURE);
+}
+
+static void
+version(void)
+{
+        fprintf(stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+        fprintf(stderr, "Written by NLnet Labs.\n\n");
+        fprintf(stderr,
+                "Copyright (C) 2001-2005 NLnet Labs.  This is free software.\n"
+                "There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
+                "FOR A PARTICULAR PURPOSE.\n");
+        exit(EXIT_SUCCESS);
+}
 
 int
 main(int argc, char **argv)
