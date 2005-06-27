@@ -1,0 +1,3 @@
+need a way to convert to nsd specific type from ldns specific types
+
+After that it is not much work - as we do not fiddle with the database
