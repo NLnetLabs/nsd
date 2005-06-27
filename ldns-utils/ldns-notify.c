@@ -52,11 +52,55 @@ version(void)
 int
 main(int argc, char **argv)
 {
+	int c;
 	ldns_pkt *notify;
 	ldns_rr *question;
 	ldns_rdf *helper;
 	ldns_resolver *res;
+
+	nsd_options_type *options;
+	const char *options_file;
+	region_type *region = region_create(xalloc, free);
 	
+	log_init("nsd-notify");
+	 
+        while ((c = getopt(argc, argv, "c:vhz:")) != -1) {
+                switch (c) {
+                case 'c':
+                        options_file = optarg;
+                        break;
+                case 'z':
+#if 0
+                        zone_name = dname_parse(region, optarg);
+                        if (!zone_name) {
+                                log_msg(LOG_ERR,
+                                        "incorrect domain name '%s'",
+                                        optarg);
+                                exit(1);
+                        }
+                        break;
+#endif
+		case 'v':
+			version();
+                case 'h':
+                case '?':
+                default:
+                        usage();
+                }
+        }
+        argc -= optind;
+        argv += optind;
+
+        if (argc != 0) {  /* || zone_name == NULL) { */
+                usage();
+        }
+
+        options = nsd_load_config(region, options_file);
+        if (!options) {
+                error(EXIT_FAILURE, "failed to load configuration file '%s'",
+                      options_file);
+        }
+
 	notify = ldns_pkt_new();
 	question = ldns_rr_new();
 	res = ldns_resolver_new();

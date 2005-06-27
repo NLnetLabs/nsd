@@ -2,9 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.57)
-#AC_INIT(nsd-ldns-utils, 1.0, nsd-users@nlnetlabs.nl, nsd-ldns-utils-1.0)
 AC_INIT(NSD,2.3-devel,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_SRCDIR([../config.h])
+AC_CONFIG_HEADER([config.h])
 
 AC_AIX
 # Checks for programs.
@@ -25,6 +25,14 @@ AC_CHECK_HEADERS(sys/param.h sys/mount.h,,,
    #endif
   ]
 ])
+
+AC_PATH_PROG(LIBXML2_CONFIG, xml2-config, [no])
+if test $LIBXML2_CONFIG = no; then
+   AC_MSG_ERROR([libxml2 is required, please ensure it is installed and xml2-config is in the PATH])
+fi
+
+AC_SUBST(LIBXML2_CFLAGS, [`$LIBXML2_CONFIG --cflags`])
+AC_SUBST(LIBXML2_LIBS, [`$LIBXML2_CONFIG --libs`])
 
 # ripped from http://autoconf-archive.cryp.to/check_ssl.html
 # check for ldns
@@ -49,7 +57,6 @@ if test x_$found_ldns != x_yes; then
         AC_MSG_RESULT(no)
 	AC_MSG_ERROR(Cannot find ldns libraries)
 else
-#        printf "ldns found in $ldnsdir\n";
 	LIBS="$LIBS -lldns";
 	LDFLAGS="$LDFLAGS -L$ldnsdir/lib";
 	LDFLAGS="$LDFLAGS -L$ldnsdir/.libs"; # hack for dev.
@@ -58,7 +65,18 @@ else
 fi
 AC_SUBST(HAVE_LDNS)
 
-# I don't use these
+#
+# Determine location of nsd config file
+#
+configfile=$configdir/nsd.conf
+AC_ARG_WITH([configfile],
+        AC_HELP_STRING([--with-configfile=path], [Pathname to the NSD configuration file]),
+        [configfile=$withval])
+AC_SUBST(configfile)
+
+
+
+# some other stuff
 # Checks for typedefs, structures, and compiler characteristics.
 #AC_TYPE_UID_T
 #AC_TYPE_MODE_T
@@ -78,5 +96,4 @@ AC_SUBST(HAVE_LDNS)
 #AC_DEFINE_UNQUOTED(SYSCONFDIR, "$sysconfdir")
 
 AC_CONFIG_FILES([Makefile])
-AC_CONFIG_HEADER([config.h])
 AC_OUTPUT
