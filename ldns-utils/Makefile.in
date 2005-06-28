@@ -28,8 +28,9 @@ LIBS = @LIBS@  @LIBXML2_LIBS@
 COMPILE         = $(CC) -I../ $(CPPFLAGS) $(CFLAGS) 
 LINK            = $(CC) $(CFLAGS) $(LDFLAGS) $(LIBS)
 
-HEADER		= config.h
+HEADER		= config.h ldns-nsd-glue.h
 PROGS		= ldns-notify 
+LDNS_OBJ 	= ldns-nsd-glue.o
 NSD_OBJ 	= ../options.o ../util.o ../region-allocator.o ../rbtree.o \
 		  ../dname.o
 
@@ -37,7 +38,7 @@ NSD_OBJ 	= ../options.o ../util.o ../region-allocator.o ../rbtree.o \
 
 all:	$(PROGS)
 
-ldns-notify: 	ldns-notify.o
+ldns-notify: 	ldns-notify.o $(LDNS_OBJ)
 		$(LINK) $(NSD_OBJ) -o $@ $+ 
 
 ## implicit rule
