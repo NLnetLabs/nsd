@@ -34,8 +34,6 @@ dname2ldns_dname(const dname_type *nsd_dname)
 {
 	ldns_rdf *r;
 	
-	printf("lenght %d\n", dname_length(nsd_dname));
-	
 	/* I'm subtracting 1 here - is valid because 'we' (ldns) 
 	 * don't store the final null label */
 	r = ldns_rdf_new(LDNS_RDF_TYPE_DNAME, 
