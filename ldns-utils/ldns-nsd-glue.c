@@ -25,11 +25,17 @@
 const dname_type *
 ldns_dname2dname(ldns_rdf *ldns_dname)
 {
+	/* forget canonical name for now */
 	return NULL;
 }
 
 const ldns_rdf *
 dname2ldns_dname(const dname_type *nsd_dname)
 {
+	ldns_rdf *r;
+	
+	r = ldns_rdf_new(LDNS_RDF_TYPE_DNAME, 
+		(uint16_t)dname_length(nsd_dname),
+		(void*)dname_name(nsd_dname));
 	return NULL;
 }
