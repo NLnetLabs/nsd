@@ -1,0 +1,54 @@
+# Standard installation pathnames
+# See the file LICENSE for the license
+SHELL = @SHELL@
+VERSION = @PACKAGE_VERSION@
+basesrcdir = $(shell basename `pwd`)
+srcdir = @srcdir@
+prefix  = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+mandir = @mandir@
+
+# NSD specific pathnames
+configdir = @configdir@		
+pidfile = @pidfile@
+zonesfile = @zonesfile@
+dbfile = @dbfile@
+configfile = @configfile@
+zonesdir = @zonesdir@
+namedxfer = @namedxfer@
+user = @user@
+
+CC = @CC@
+# need to add something like this CPPFALGS = 
+CFLAGS = @CFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@  @LIBXML2_LIBS@
+
+COMPILE         = $(CC) -I../ $(CPPFLAGS) $(CFLAGS) 
+LINK            = $(CC) $(CFLAGS) $(LDFLAGS) $(LIBS)
+
+HEADER		= config.h
+PROGS		= ldns-notify 
+NSD_OBJ 	= ../options.o ../util.o ../region-allocator.o ../rbtree.o \
+		  ../dname.o
+
+.PHONY:	all clean realclean
+
+all:	$(PROGS)
+
+ldns-notify: 	ldns-notify.o
+		$(LINK) $(NSD_OBJ) -o $@ $+ 
+
+## implicit rule
+%.o:    %.c $(HEADER)
+	$(COMPILE) -c $<
+
+clean:
+	rm -f *.o
+	rm -f $(PROGS)
+
+realclean: clean
+	rm -rf autom4te.cache/
+	rm -f config.log config.status aclocal.m4 config.h.in configure Makefile
+	rm -f config.h
