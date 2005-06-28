@@ -22,3 +22,26 @@
 
 #include <ldns/dns.h>
 
+#include "ldns-nsd-glue.h"
+
+/*
+ * convert a ldns_rdf dname type to something
+ * NSD can understand
+ */
+const dname_type *
+ldns_dname2dname(ldns_rdf *ldns_dname)
+{
+	return NULL;
+}
+
+/*
+ * convert a dname_type * to something
+ * ldns can use
+ */
+const ldns_rdf *
+dname2ldns_dname(const dname_type *nsd_dname)
+{
+	return NULL;
+
+}
+

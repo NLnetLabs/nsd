@@ -17,11 +17,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-
+/* nsd includes */
 #include <nsd.h>
 #include <options.h>
 
+/* ldns */
 #include <ldns/dns.h>
+
+/* ldns-util specific includes */
+#include "ldns-nsd-glue.h"
 
 static void
 usage(void)
