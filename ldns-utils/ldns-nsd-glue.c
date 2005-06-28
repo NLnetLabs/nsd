@@ -22,20 +22,24 @@
 
 #include <ldns/dns.h>
 
-const dname_type *
-ldns_dname2dname(ldns_rdf *ldns_dname)
+dname_type *
+ldns_dname2dname(const ldns_rdf *ldns_dname)
 {
 	/* forget canonical name for now */
 	return NULL;
 }
 
-const ldns_rdf *
+ldns_rdf *
 dname2ldns_dname(const dname_type *nsd_dname)
 {
 	ldns_rdf *r;
 	
+	printf("lenght %d\n", dname_length(nsd_dname));
+	
+	/* I'm subtracting 1 here - is valid because 'we' (ldns) 
+	 * don't store the final null label */
 	r = ldns_rdf_new(LDNS_RDF_TYPE_DNAME, 
-		(uint16_t)dname_length(nsd_dname),
+		(uint16_t)(dname_length(nsd_dname) - 1),
 		(void*)dname_name(nsd_dname));
-	return NULL;
+	return r;
 }

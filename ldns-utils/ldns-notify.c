@@ -57,14 +57,21 @@ int
 main(int argc, char **argv)
 {
 	int c;
+
+
+	/* LDNS types */
 	ldns_pkt *notify;
 	ldns_rr *question;
 	ldns_rdf *helper;
 	ldns_resolver *res;
 
+	ldns_rdf *ldns_zone_name;
+
+	/* NSD types */
 	nsd_options_type *options;
 	const char *options_file;
 	region_type *region = region_create(xalloc, free);
+	const dname_type *zone_name;
 	
 	log_init("nsd-notify");
 	 
@@ -74,7 +81,6 @@ main(int argc, char **argv)
                         options_file = optarg;
                         break;
                 case 'z':
-#if 0
                         zone_name = dname_parse(region, optarg);
                         if (!zone_name) {
                                 log_msg(LOG_ERR,
@@ -82,8 +88,12 @@ main(int argc, char **argv)
                                         optarg);
                                 exit(1);
                         }
+			printf("Parsed zone name\n");
+			ldns_zone_name = dname2ldns_dname(zone_name);
+			ldns_rdf_print(stdout, (ldns_rdf*)ldns_zone_name);
+			printf("\n");
+
                         break;
-#endif
 		case 'v':
 			version();
                 case 'h':
