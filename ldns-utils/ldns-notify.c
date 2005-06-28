@@ -68,13 +68,13 @@ main(int argc, char **argv)
 	ldns_rdf *ldns_zone_name;
 
 	/* NSD types */
-	nsd_options_type *options;
-	const char *options_file;
+	nsd_options_type *options = NULL;
+	const char *options_file = NULL;
 	region_type *region = region_create(xalloc, free);
-	const dname_type *zone_name;
+	const dname_type *zone_name = NULL;
 	
 	log_init("nsd-notify");
-	 
+
         while ((c = getopt(argc, argv, "c:vhz:")) != -1) {
                 switch (c) {
                 case 'c':
@@ -109,10 +109,12 @@ main(int argc, char **argv)
         }
 
         options = nsd_load_config(region, options_file);
+#if 0
         if (!options) {
                 error(EXIT_FAILURE, "failed to load configuration file '%s'",
                       options_file);
         }
+#endif
 
 	notify = ldns_pkt_new();
 	question = ldns_rr_new();
