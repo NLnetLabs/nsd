@@ -86,13 +86,12 @@ main(int argc, char **argv)
                                 log_msg(LOG_ERR,
                                         "incorrect domain name '%s'",
                                         optarg);
-                                exit(1);
+                                exit(EXIT_FAILURE);
                         }
-			printf("Parsed zone name\n");
 			ldns_zone_name = dname2ldns_dname(zone_name);
-			ldns_rdf_print(stdout, (ldns_rdf*)ldns_zone_name);
-			printf("\n");
-
+			if (!ldns_zone_name) {
+				exit(EXIT_FAILURE);
+			}
                         break;
 		case 'v':
 			version();
@@ -130,8 +129,7 @@ main(int argc, char **argv)
 	/* create the rr */
 	ldns_rr_set_class(question, LDNS_RR_CLASS_IN);
 
-	helper = ldns_dname_new_frm_str("miek.nl");
-	ldns_rr_set_owner(question, helper);
+	ldns_rr_set_owner(question, ldns_zone_name);
 
 	ldns_rr_set_type(question, LDNS_RR_TYPE_SOA);
 
