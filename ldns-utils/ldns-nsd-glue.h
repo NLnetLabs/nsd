@@ -22,4 +22,11 @@ dname_type *ldns_dname2dname_clone(const ldns_rdf *ldns_dname);
  */
 ldns_rdf *dname2ldns_dname_clone(const dname_type *nsd_dname);
 
+
+/*
+ * convert an address_type (which is a string) to an ldns rdf* type
+ */
+ldns_rdf * options_address_type2rdf_clone(nsd_options_address_type *a);
+
+
 #endif /* ! _LDNS_NSD_GLUE_H_ */

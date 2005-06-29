@@ -30,7 +30,7 @@
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: nsd-notify [-h] [-c config-file] -z zone\n");
+	fprintf(stderr, "usage: nsd-notify [-h] [-v] [-c config-file] -z zone\n");
 	fprintf(stderr, "NSD notify utility\n\n");
 	fprintf(stderr, " Supported options:\n");
 	fprintf(stderr, "\t-c config-file\tSpecify the configuration file\n");
@@ -57,18 +57,20 @@ int
 main(int argc, char **argv)
 {
 	int c;
-
+	int i;
 
 	/* LDNS types */
 	ldns_pkt *notify;
 	ldns_rr *question;
 	ldns_rdf *helper;
 	ldns_resolver *res;
-
 	ldns_rdf *ldns_zone_name;
+	ldns_rdf *ns_addr;
 
 	/* NSD types */
 	nsd_options_type *options = NULL;
+	nsd_options_zone_type *zone_info = NULL;
+	nsd_options_address_type *address= NULL;
 	const char *options_file = NULL;
 	region_type *region = region_create(xalloc, free);
 	const dname_type *zone_name = NULL;
@@ -109,12 +111,17 @@ main(int argc, char **argv)
         }
 
         options = nsd_load_config(region, options_file);
-#if 0
         if (!options) {
                 error(EXIT_FAILURE, "failed to load configuration file '%s'",
                       options_file);
         }
-#endif
+
+	zone_info = nsd_options_find_zone(options, zone_name);
+	if (!zone_info) {
+		error(EXIT_FAILURE,
+				"zone '%s' not found in the configuration file",
+				dname_to_string(zone_name, NULL));
+	}
 
 	notify = ldns_pkt_new();
 	question = ldns_rr_new();
@@ -122,26 +129,41 @@ main(int argc, char **argv)
 
 	if (!notify || !question || !res) {
 		/* bail out */
-		return EXIT_FAILURE;
+		error(EXIT_FAILURE, "cannot create ldns types");
 	}
-	/* get the port and nameserver ip from the config */
-	ldns_resolver_set_port(res, LDNS_PORT);
-	/* ldns_resolver_push_nameserver(res, ns); */
 
-	/* create the rr */
+	/* create the rr for inside the pkt */
 	ldns_rr_set_class(question, LDNS_RR_CLASS_IN);
-
 	ldns_rr_set_owner(question, ldns_zone_name);
-
 	ldns_rr_set_type(question, LDNS_RR_TYPE_SOA);
-
 	ldns_pkt_set_opcode(notify, LDNS_PACKET_NOTIFY);
 	ldns_pkt_push_rr(notify, LDNS_PACKET_QUESTION, question);
 	ldns_pkt_set_aa(notify, true);
-	ldns_pkt_set_id(notify, 42); /* from nsd-notify... */
+	ldns_pkt_set_id(notify, 42); /* from original nsd-notify... */
 
-	ldns_pkt_print(stdout, notify);
+	/* walk all the servers */
+	for (i = 0; i < zone_info->notify->count; ++i) {
+		address = zone_info->notify->addresses[i];
 
-	/*ldns_resolver_send_pkt(NULL, res, notify)*/
+		/* set the port */
+		address->port ? 
+			ldns_resolver_set_port(res, 
+					(uint16_t)atoi(address->port)):
+			ldns_resolver_set_port(res, LDNS_PORT);
+
+		ns_addr = options_address_type2rdf_clone(address);
+		if (!ns_addr) {
+			 fprintf(stderr, "skipping bad address %s\n", address->address);
+			 continue;
+		}
+		ldns_resolver_push_nameserver(res, ns_addr);
+
+		ldns_pkt_print(stdout, notify);
+
+		if (ldns_resolver_send_pkt(NULL, res, notify) != LDNS_STATUS_OK) {
+			fprintf(stderr, "send to %s failed\n", *argv);
+		}
+		(void)ldns_resolver_pop_nameserver(res); /* remove the nameserver */
+	}
         return EXIT_SUCCESS;
 }

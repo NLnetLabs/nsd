@@ -41,3 +41,20 @@ dname2ldns_dname_clone(const dname_type *nsd_dname)
 		(void*)dname_name(nsd_dname));
 	return r;
 }
+
+ldns_rdf *
+options_address_type2rdf_clone(nsd_options_address_type *a)
+{
+ 	ldns_rdf *ns = NULL;
+
+	ns = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_AAAA, a->address);
+
+	if (!ns) {
+		ns = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_A, a->address);
+		if (!ns) {
+			/* all conversions failed */
+			return NULL;
+		}
+	}
+	return ns;
+}
