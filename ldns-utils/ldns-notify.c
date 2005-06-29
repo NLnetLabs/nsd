@@ -1,5 +1,5 @@
 /* 
- * nsd-notify.c - nsd-notify(8)
+ * ldns-notify.c - ldns-notify(8)
  * 
  * Copyright (c) 2001-2005, NLnet Labs, All right reserved
  *

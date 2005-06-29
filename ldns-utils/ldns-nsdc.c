@@ -1,5 +1,5 @@
 /*
- * nsdc.c - nsdc(8)
+ * ldns-nsdc.c - ldns-nsdc(8)
  *
  * Copyright (c) 2001-2005, NLnet Labs, All right reserved
  *
@@ -11,42 +11,34 @@
 
 #include <config.h>
 
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/uio.h>
-#include <sys/wait.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <netdb.h>
-#include <pwd.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <stddef.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-#include "nsd.h"
-#include "options.h"
-#include "plugins.h"
-#include "client.h"
-#include "packet.h"
-#include "query.h"
+/* nsd includes */
+#include <nsd.h>
+#include <options.h>
+
+/* ldns */
+#include <ldns/dns.h>
+
+/* ldns-util specific includes */
+#include "ldns-nsd-glue.h"
 
 extern char *optarg;
 extern int optind;
 
 static nsd_type nsdc;
+
+/* what can this prog do */
+enum control_msg {
+        CONTROL_UNKNOWN,
+        CONTROL_STATUS,
+        CONTROL_VERSION
+};
 
 /* static? */
 static lookup_table_type control_msgs[] = {
@@ -90,6 +82,13 @@ version(void)
         exit(0);
 }
 
+int
+main(void)
+{
+	return 0;
+}
+
+#if 0
 static int
 parse_response(FILE *out, query_type *q, region_type *r)
 {
@@ -145,10 +144,6 @@ main (int argc, char *argv[])
         /* Initialize the handler... */
         memset(&nsdc, 0, sizeof(nsd_type));
         nsdc.region      = region_create(xalloc, free);
-#if 0
-	- copied not needed I think
-        nsdc.server_kind = NSD_SERVER_MAIN;
-#endif
 
 	nsdc.options_file = CONFIGFILE;
         nsdc.options      = NULL;
@@ -262,3 +257,4 @@ main (int argc, char *argv[])
 
 	exit(EXIT_SUCCESS);
 }
+#endif
