@@ -88,7 +88,7 @@ main(int argc, char **argv)
                                         optarg);
                                 exit(EXIT_FAILURE);
                         }
-			ldns_zone_name = dname2ldns_dname(zone_name);
+			ldns_zone_name = dname2ldns_dname_clone(zone_name);
 			if (!ldns_zone_name) {
 				exit(EXIT_FAILURE);
 			}
