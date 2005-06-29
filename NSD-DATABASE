@@ -43,5 +43,5 @@ The database is constructed as follows.
 Dname's that can be compressed at compile time are compressed. Those are stored
 as an index into DNAME_COUNT.
 
-The rdata is stored as a uint16_t, where the first byte indicated the length
+The rdata is stored as a uint16_t*, where the first byte indicated the length
 of the data. The data itself is stored in wireformat.
