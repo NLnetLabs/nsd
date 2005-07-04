@@ -10,7 +10,13 @@
       <interleave>
         <ref name="options"/>
         <zeroOrMore>
+          <ref name="acl"/>
+        </zeroOrMore>
+        <zeroOrMore>
           <ref name="key"/>
+        </zeroOrMore>
+        <zeroOrMore>
+          <ref name="server"/>
         </zeroOrMore>
         <oneOrMore>
           <ref name="zone"/>
@@ -93,51 +99,58 @@
     </element>
   </define>
 
-  <define name="key">
-    <element name="key">
-      <attribute name="name">
-        <text/>
-      </attribute>
-      <interleave>
-        <element name="algorithm">
-          <text/>
-        </element>
-        <element name="secret">
-          <text/>
-        </element>
-      </interleave>
-    </element>
+  <define name="action-attribute">
+    <attribute name="action">
+      <choice>
+        <value>control</value>
+        <value>notify</value>
+        <value>query</value>
+        <value>transfer</value>
+      </choice>
+    </attribute>
   </define>
 
-  <define name="zone">
-    <element name="zone">
-      <attribute name="name">
-        <text/>
-      </attribute>
-      <interleave>
-        <element name="file">
-          <text/>
-        </element>
-        <choice>
-          <zeroOrMore>
-            <element name="master">
-              <optional>
-                <element name="key">
-                  <text/>
-                </element>
-              </optional>
-              <oneOrMore>
-                <ref name="address"/>
-              </oneOrMore>
-            </element>
-          </zeroOrMore>
-          <element name="notify">
-            <oneOrMore>
-              <ref name="address"/>
-            </oneOrMore>
-          </element>
-        </choice>
-      </interleave>
+  <define name="id-attribute">
+    <attribute name="id">
+      <text/>
+    </attribute>
+  </define>
+
+  <define name="ref-attribute">
+    <attribute name="ref">
+      <text/>
+    </attribute>
+  </define>
+
+  <define name="acl">
+    <element name="acl">
+      <choice>
+        <ref name="ref-attribute"/>
+        <group>
+          <optional>
+            <ref name="id-attribute"/>
+          </optional>
+          <ref name="action-attribute"/>
+          <oneOrMore>
+            <choice>
+              <element name="allow">
+                <choice>
+                  <empty/>
+                  <ref name="address"/>
+                  <ref name="key"/>
+                </choice>
+              </element>
+              <element name="deny">
+                <choice>
+                  <empty/>
+                  <ref name="address"/>
+                  <ref name="key"/>
+                </choice>
+              </element>
+            </choice>
+          </oneOrMore>
+        </group>
+      </choice>
     </element>
   </define>
 
@@ -161,6 +174,84 @@
         </attribute>
       </optional>
       <text/>
+    </element>
+  </define>
+
+  <define name="key">
+    <element name="key">
+      <choice>
+        <ref name="ref-attribute"/>
+        <group>
+          <optional>
+            <ref name="id-attribute"/>
+          </optional>
+          <interleave>
+            <element name="name">
+              <text/>
+            </element>
+            <element name="algorithm">
+              <text/>
+            </element>
+            <element name="secret">
+              <text/>
+            </element>
+          </interleave>
+        </group>
+      </choice>
+    </element>
+  </define>
+
+  <define name="server">
+    <element name="server">
+      <choice>
+        <ref name="ref-attribute"/>
+        <group>
+          <optional>
+            <ref name="id-attribute"/>
+          </optional>
+          <interleave>
+            <oneOrMore>
+              <ref name="address"/>
+            </oneOrMore>
+            <zeroOrMore>
+              <element name="credentials">
+                <ref name="action-attribute"/>
+                <ref name="key"/>
+              </element>
+            </zeroOrMore>
+          </interleave>
+        </group>
+      </choice>
+    </element>
+  </define>
+
+  <define name="zone">
+    <element name="zone">
+      <interleave>
+        <element name="name">
+          <text/>
+        </element>
+        <element name="file">
+          <text/>
+        </element>
+        <zeroOrMore>
+          <ref name="acl"/>
+        </zeroOrMore>
+        <optional>
+          <choice>
+            <element name="masters">
+              <oneOrMore>
+                <ref name="server"/>
+              </oneOrMore>
+            </element>
+            <element name="notify">
+              <oneOrMore>
+                <ref name="server"/>
+              </oneOrMore>
+            </element>
+          </choice>
+        </optional>
+      </interleave>
     </element>
   </define>
 
