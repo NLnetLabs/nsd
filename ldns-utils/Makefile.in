@@ -29,7 +29,7 @@ COMPILE         = $(CC) -I../ $(CPPFLAGS) $(CFLAGS)
 LINK            = $(CC) $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 HEADER		= config.h ldns-nsd-glue.h
-PROGS		= ldns-notify ldns-nsdc
+PROGS		= ldns-notify ldns-nsdc ldns-axfr
 LDNS_OBJ 	= ldns-nsd-glue.o
 NSD_OBJ 	= ../options.o ../util.o ../region-allocator.o ../rbtree.o \
 		  ../dname.o
@@ -39,6 +39,9 @@ NSD_OBJ 	= ../options.o ../util.o ../region-allocator.o ../rbtree.o \
 all:	$(PROGS)
 
 ldns-notify: 	ldns-notify.o $(LDNS_OBJ)
+		$(LINK) $(NSD_OBJ) -o $@ $+ 
+
+ldns-axfr: 	ldns-axfr.o $(LDNS_OBJ)
 		$(LINK) $(NSD_OBJ) -o $@ $+ 
 
 ldns-nsdc: 	ldns-nsdc.o $(LDNS_OBJ)
