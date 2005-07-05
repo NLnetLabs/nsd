@@ -34,7 +34,7 @@ usage(void)
 	fprintf(stderr, "NSD notify utility\n\n");
 	fprintf(stderr, " Supported options:\n");
 	fprintf(stderr, "\t-c config-file\tSpecify the configuration file\n");
-	fprintf(stderr, "\t-z zone\t The zone\n");
+	fprintf(stderr, "\t-z zone\t\tThe zone\n");
 	fprintf(stderr, "\t-v\t\tPrint version information\n");
 	fprintf(stderr, "\t-h\t\tPrint this help information\n\n");
 	fprintf(stderr, "Report bugs to <nsd-bugs@nlnetlabs.nl>\n");
