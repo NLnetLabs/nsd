@@ -56,7 +56,7 @@ main(int argc, char *argv[])
 	const char *options_file = CONFIGFILE;
 	nsd_options_type *options;
 	nsd_options_zone_type *zone_info;
-	size_t i;
+	size_t i, j;
 
 	log_init("nsd-notify");
 
@@ -121,57 +121,59 @@ main(int argc, char *argv[])
 	buffer_write_u16(q.packet, CLASS_IN);
 	buffer_flip(q.packet);
 
-	for (i = 0; i < zone_info->notify->count; ++i) {
-		nsd_options_address_type *address
-			= zone_info->notify->addresses[i];
+	for (i = 0; i < zone_info->notify_count; ++i) {
+		for (j = 0; j < zone_info->notify[i]->addresses->count; ++j) {
+			nsd_options_address_type *address
+				= &zone_info->notify[i]->addresses[j];
 
-		/* Set up UDP */
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = address->family;
-		hints.ai_socktype = SOCK_DGRAM;
-		hints.ai_protocol = IPPROTO_UDP;
-		gai_error = getaddrinfo(
-			address->address,
-			address->port ? address->port : DEFAULT_DNS_PORT,
-			&hints,
-			&res0);
-		if (gai_error) {
-			fprintf(stderr, "skipping bad address %s: %s\n",
-				address->address, gai_strerror(gai_error));
-			continue;
-		}
-
-		for (res = res0; res; res = res->ai_next) {
-			if (res->ai_addrlen > sizeof(q.addr))
-				continue;
-
-			udp_s = socket(res->ai_family, res->ai_socktype,
-				       res->ai_protocol);
-			if (udp_s == -1)
-				continue;
-
-			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
-
-			fprintf(stderr, "notifying %s (%s)\n",
+			/* Set up UDP */
+			memset(&hints, 0, sizeof(hints));
+			hints.ai_family = address->family;
+			hints.ai_socktype = SOCK_DGRAM;
+			hints.ai_protocol = IPPROTO_UDP;
+			gai_error = getaddrinfo(
 				address->address,
-				sockaddr_to_string(res->ai_addr,
-						   res->ai_addrlen));
-
-			/* WE ARE READY SEND IT OUT */
-			if (sendto(udp_s,
-				   buffer_current(q.packet),
-				   buffer_remaining(q.packet), 0,
-				   res->ai_addr, res->ai_addrlen) == -1)
-			{
-				fprintf(stderr,
-					"send to %s failed: %s\n", *argv,
-					strerror(errno));
+				address->port ? address->port : DEFAULT_DNS_PORT,
+				&hints,
+				&res0);
+			if (gai_error) {
+				fprintf(stderr, "skipping bad address %s: %s\n",
+					address->address, gai_strerror(gai_error));
+				continue;
 			}
 
-			close(udp_s);
-		}
+			for (res = res0; res; res = res->ai_next) {
+				if (res->ai_addrlen > sizeof(q.addr))
+					continue;
 
-		freeaddrinfo(res0);
+				udp_s = socket(res->ai_family, res->ai_socktype,
+					       res->ai_protocol);
+				if (udp_s == -1)
+					continue;
+
+				memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
+
+				fprintf(stderr, "notifying %s (%s)\n",
+					address->address,
+					sockaddr_to_string(res->ai_addr,
+							   res->ai_addrlen));
+
+				/* WE ARE READY SEND IT OUT */
+				if (sendto(udp_s,
+					   buffer_current(q.packet),
+					   buffer_remaining(q.packet), 0,
+					   res->ai_addr, res->ai_addrlen) == -1)
+				{
+					fprintf(stderr,
+						"send to %s failed: %s\n", *argv,
+						strerror(errno));
+				}
+
+				close(udp_s);
+			}
+
+			freeaddrinfo(res0);
+		}
 	}
 
 	exit(0);

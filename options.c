@@ -74,9 +74,9 @@ static nsd_options_zone_type *parse_zone(region_type *region,
 static int parse_zones(nsd_options_type *options,
 		       heap_t *nodes_by_id,
 		       xmlNodePtr parent);
-static nsd_options_master_type *parse_zone_master(region_type *region,
-						  heap_t *nodes_by_id,
-						  xmlNodePtr master_node);
+static nsd_options_server_type *parse_server(region_type *region,
+					     heap_t *nodes_by_id,
+					     xmlNodePtr server_node);
 
 static int compare_ids(const void *left, const void *right);
 static int insert_elements_with_id(heap_t *heap, xmlNodePtr xml_node);
@@ -320,6 +320,10 @@ child_element_count(xmlNodePtr parent, const char *name)
 {
 	size_t result = 0;
 	xmlNodePtr current;
+
+	if (!parent) {
+		return 0;
+	}
 
 	for (current = parent->children; current; current = current->next) {
 		if (is_element(current, name)) {
@@ -607,6 +611,8 @@ parse_zone(region_type *region,
 	nsd_options_zone_type *result = NULL;
 	const char *name = get_element_text(zone_node, "name");
 	const char *file = get_element_text(zone_node, "file");
+	xmlNodePtr masters_node;
+	xmlNodePtr notify_node;
 	xmlNodePtr current;
 	size_t i;
 	const dname_type *dname;
@@ -625,34 +631,47 @@ parse_zone(region_type *region,
 			name);
 	}
 
+	masters_node = first_element(zone_node, "masters");
+	notify_node = first_element(zone_node, "notify");
+
 	result = region_alloc(region, sizeof(nsd_options_zone_type));
 	result->name = dname;
 	result->file = region_strdup(region, file);
-	result->master_count = child_element_count(zone_node, "master");
+	result->master_count = child_element_count(masters_node, "server");
 	result->masters = region_alloc(
 		region,
-		result->master_count * sizeof(nsd_options_master_type *));
+		result->master_count * sizeof(nsd_options_server_type *));
+	result->notify_count = child_element_count(notify_node, "server");
+	result->notify = region_alloc(
+		region,
+		result->notify_count * sizeof(nsd_options_server_type *));
 
-	for (i = 0, current = first_element(zone_node, "master");
-	     current;
-	     ++i, current = next_element(current, "master"))
-	{
-		assert(i < result->master_count);
-		result->masters[i] = parse_zone_master(
-			region, nodes_by_id, current);
-		if (!result->masters[i]) {
-			return NULL;
+	if (masters_node) {
+		for (i = 0, current = first_element(masters_node, "server");
+		     current;
+		     ++i, current = next_element(current, "server"))
+		{
+			assert(i < result->master_count);
+			result->masters[i] = parse_server(
+				region, nodes_by_id, current);
+			if (!result->masters[i]) {
+				return NULL;
+			}
 		}
 	}
 
-	if (first_element(zone_node, "notify")) {
-		result->notify = parse_address_list(
-			region, nodes_by_id, first_element(zone_node, "notify"));
-		if (!result->notify) {
-			return NULL;
+	if (notify_node) {
+		for (i = 0, current = first_element(notify_node, "server");
+		     current;
+		     ++i, current = next_element(current, "server"))
+		{
+			assert(i < result->master_count);
+			result->notify[i] = parse_server(
+				region, nodes_by_id, current);
+			if (!result->notify[i]) {
+				return NULL;
+			}
 		}
-	} else {
-		result->notify = NULL;
 	}
 
 	return result;
@@ -686,18 +705,18 @@ parse_zones(nsd_options_type *options,
 	return result;
 }
 
-static nsd_options_master_type *
-parse_zone_master(region_type *region,
-		  heap_t *nodes_by_id,
-		  xmlNodePtr master_node)
+static nsd_options_server_type *
+parse_server(region_type *region,
+	     heap_t *nodes_by_id,
+	     xmlNodePtr server_node)
 {
-	nsd_options_master_type *result;
+	nsd_options_server_type *result;
 
-	assert(master_node);
+	assert(server_node);
 
-	result = region_alloc(region, sizeof(nsd_options_master_type));
+	result = region_alloc(region, sizeof(nsd_options_server_type));
 	result->key = NULL;
-	result->addresses = parse_address_list(region, nodes_by_id, master_node);
+	result->addresses = parse_address_list(region, nodes_by_id, server_node);
 	if (!result->addresses) {
 		return NULL;
 	}

@@ -34,20 +34,21 @@ struct nsd_options_key {
 };
 typedef struct nsd_options_key nsd_options_key_type;
 
-struct nsd_options_master {
+struct nsd_options_server {
 	nsd_options_key_type *key;
 	nsd_options_address_list_type *addresses;
 };
-typedef struct nsd_options_master nsd_options_master_type;
+typedef struct nsd_options_server nsd_options_server_type;
 
 struct nsd_options_zone {
 	const dname_type *name;
 	const char *file;
 
 	size_t master_count;
-	nsd_options_master_type **masters;
+	nsd_options_server_type **masters;
 
-	nsd_options_address_list_type *notify;
+	size_t notify_count;
+	nsd_options_server_type **notify;
 };
 typedef struct nsd_options_zone nsd_options_zone_type;
 

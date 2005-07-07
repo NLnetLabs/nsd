@@ -853,7 +853,7 @@ main(int argc, char *argv[])
 	}
 
 	for (i = 0; i < zone_info->master_count; ++i) {
-		nsd_options_master_type *master = zone_info->masters[i];
+		nsd_options_server_type *master = zone_info->masters[i];
 		size_t j;
 
 		/* Try each server separately until one succeeds.  */
