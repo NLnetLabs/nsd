@@ -57,7 +57,7 @@ int
 main(int argc, char **argv)
 {
 	int c;
-	int i;
+	int i, j;
 
 	/* LDNS types */
 	ldns_pkt *notify;
@@ -142,28 +142,30 @@ main(int argc, char **argv)
 	ldns_pkt_set_id(notify, 42); /* from original nsd-notify... */
 
 	/* walk all the servers */
-	for (i = 0; i < zone_info->notify->count; ++i) {
-		address = zone_info->notify->addresses[i];
+	for (i = 0; i < zone_info->notify_count; ++i) {
+		for (j = 0; j < zone_info->notify[i]->addresses->count; j++) {
+			address = zone_info->notify[i]->addresses->addresses[j];
 
-		/* set the port */
-		address->port ? 
-			ldns_resolver_set_port(res, 
-					(uint16_t)atoi(address->port)):
-			ldns_resolver_set_port(res, LDNS_PORT);
+			/* set the port */
+			address->port ? 
+				ldns_resolver_set_port(res, 
+						(uint16_t)atoi(address->port)):
+				ldns_resolver_set_port(res, LDNS_PORT);
 
-		ns_addr = options_address_type2rdf_clone(address);
-		if (!ns_addr) {
-			 fprintf(stderr, "skipping bad address %s\n", address->address);
-			 continue;
+			ns_addr = options_address_type2rdf_clone(address);
+			if (!ns_addr) {
+				 fprintf(stderr, "skipping bad address %s\n", address->address);
+				 continue;
+			}
+			ldns_resolver_push_nameserver(res, ns_addr);
+
+			ldns_pkt_print(stdout, notify);
+
+			if (ldns_resolver_send_pkt(NULL, res, notify) != LDNS_STATUS_OK) {
+				fprintf(stderr, "send to %s failed\n", *argv);
+			}
+			(void)ldns_resolver_pop_nameserver(res); /* remove the nameserver */
 		}
-		ldns_resolver_push_nameserver(res, ns_addr);
-
-		ldns_pkt_print(stdout, notify);
-
-		if (ldns_resolver_send_pkt(NULL, res, notify) != LDNS_STATUS_OK) {
-			fprintf(stderr, "send to %s failed\n", *argv);
-		}
-		(void)ldns_resolver_pop_nameserver(res); /* remove the nameserver */
 	}
         return EXIT_SUCCESS;
 }
