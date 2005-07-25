@@ -1,4 +1,5 @@
 /*
+ * MIEK: THIS ONE CAN PROBABLY ALSO GO
  * client.c -- contains all client (nsdc/nsd-xfer) code
  *
  * Copyright (c) 2001-2005, NLnet Labs. All rights reserved.

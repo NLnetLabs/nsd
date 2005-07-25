@@ -1179,7 +1179,7 @@ zone_read(const dname_type *name, const char *zonefile)
 #endif
 
 	/* Open the zone file */
-	if (!zone_open(zonefile, 3600, CLASS_IN, name)) {
+	if (!zone_open(zonefile, DEFAULT_TTL, CLASS_IN, name)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
 		fprintf(stderr, " ERR: Cannot open \'%s\': %s\n", zonefile, strerror(errno));
 		return;

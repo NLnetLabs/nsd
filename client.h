@@ -1,6 +1,7 @@
 /*
  * client.h - client (nsdc) code header file
  *
+ * MIEK: THIS FILE CAN GO
  * Copyright (c) 2001-2005, NLnet Labs, All right reserved
  *
  * See LICENSE for the license
