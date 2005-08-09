@@ -1156,7 +1156,7 @@ zone_read(const char *name, const char *zonefile)
 
 	dname = dname_parse(parser->region, name);
 	if (!dname) {
-		zc_error_prev_line("incorrect zone name '%s'", name);
+		zc_error("incorrect zone name '%s'", name);
 		return;
 	}
 	
@@ -1171,7 +1171,7 @@ zone_read(const char *name, const char *zonefile)
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, dname)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
-		fprintf(stderr, " ERR: Cannot open \'%s\': %s\n", zonefile, strerror(errno));
+		zc_error("cannot open '%s': %s\n", zonefile, strerror(errno));
 		return;
 	}
 
@@ -1182,6 +1182,7 @@ zone_read(const char *name, const char *zonefile)
 	
 	fflush(stdout);
 	totalerrors += parser->errors;
+	parser->filename = NULL;
 }
 
 static void 

@@ -521,7 +521,7 @@ rdata_soa:	dname sp dname sp STR sp STR sp STR sp STR sp STR trail
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $9.str)); /* retry */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $11.str)); /* expire */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $13.str)); /* minimum */
-	    
+
 	    /* [XXX] also store the minium in case of no TTL? */
 	    if ((parser->default_minimum = zparser_ttl2int($11.str)) == -1)
 		    parser->default_minimum = DEFAULT_TTL;
@@ -782,6 +782,11 @@ zparser_create(region_type *region, region_type *rr_region, namedb_type *db)
 	result->rr_region = rr_region;
 	result->db = db;
 
+	result->filename = NULL;
+	result->current_zone = NULL;
+	result->origin = NULL;
+	result->prev_dname = NULL;
+
 	result->temporary_rdatas = (rdata_atom_type *) region_alloc(
 		result->region, MAXRDATALEN * sizeof(rdata_atom_type));
 
@@ -821,9 +826,13 @@ yyerror(const char *message)
 static void
 error_va_list(unsigned line, const char *fmt, va_list args)
 {
-	fprintf(stderr, "%s:%u: error: ", parser->filename, line);
+	if (parser->filename) {
+		fprintf(stderr, "%s:%u: ", parser->filename, line);
+	}
+	fprintf(stderr, "error: ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
+
 	++parser->errors;
 	parser->error_occurred = 1;
 }
@@ -853,7 +862,10 @@ zc_error(const char *fmt, ...)
 static void
 warning_va_list(unsigned line, const char *fmt, va_list args)
 {
-	fprintf(stderr, "%s:%u: warning: ", parser->filename, line);
+	if (parser->filename) {
+		fprintf(stderr, "%s:%u: ", parser->filename, line);
+	}
+	fprintf(stderr, "warning: ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 }
