@@ -90,8 +90,8 @@ log_file(int priority, const char *message)
 		priority_text = priority_info->name;
 	}
 	
-	fprintf(current_log_file, "%s: %s: %s",
-		global_ident, priority_text, message);
+	fprintf(current_log_file, "%s[%d]: %s: %s",
+		global_ident, (int) getpid(), priority_text, message);
 	length = strlen(message);
 	if (length == 0 || message[length - 1] != '\n') {
 		fprintf(current_log_file, "\n");
