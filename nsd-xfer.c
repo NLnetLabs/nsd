@@ -100,6 +100,19 @@ static uint16_t init_query(query_type *q,
 			   uint16_t klass,
 			   tsig_record_type *tsig);
 
+
+/*
+ * Check if two getaddrinfo result lists have records with matching
+ * ai_family fields.
+ */
+int check_matching_address_family(struct addrinfo *a, struct addrinfo *b);
+
+/*
+ * Returns the first record with ai_family == FAMILY, or NULL if no
+ * such record is found.
+ */
+struct addrinfo *find_by_address_family(struct addrinfo *addrs, int family);
+
 /*
  * Log an error message and exit.
  */
@@ -140,6 +153,7 @@ usage (void)
 		"NSD AXFR client.\n\nSupported options:\n"
 		"  -4           Only use IPv4 connections.\n"
 		"  -6           Only use IPv6 connections.\n"
+		"  -a src       Local hostname/IP for the connection.\n"
 		"  -f file      Output zone file name.\n"
 		"  -p port      The port to connect to.\n"
 		"  -s serial    The current zone serial.\n"
@@ -925,6 +939,8 @@ main(int argc, char *argv[])
 	query_type q;
 	struct addrinfo hints, *res0, *res;
 	const char *zone_filename = NULL;
+	const char *local_hostname = NULL;
+	struct addrinfo *local_address, *local_addresses = NULL;
 	const char *port = TCP_PORT;
 	int default_family = DEFAULT_AI_FAMILY;
 	struct sigaction mysigaction;
@@ -967,7 +983,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46f:hp:s:T:vz:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:f:hp:s:T:vz:")) != -1) {
 		switch (c) {
 		case '4':
 			default_family = AF_INET;
@@ -978,6 +994,9 @@ main(int argc, char *argv[])
 #else /* !INET6 */
 			error("IPv6 support not enabled.");
 #endif /* !INET6 */
+			break;
+		case 'a':
+			local_hostname = optarg;
 			break;
 		case 'f':
 			zone_filename = optarg;
@@ -1050,14 +1069,25 @@ main(int argc, char *argv[])
 		error("cannot set signal handler");
 	}
 
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = default_family;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	if (local_hostname) {
+		int rc = getaddrinfo(local_hostname, NULL,
+				     &hints, &local_addresses);
+		if (rc) {
+			error("local hostname '%s' not found: %s",
+			      local_hostname,
+			      gai_strerror(rc));
+		}
+	}
+
 	for (; *argv; ++argv) {
 		/* Try each server separately until one succeeds.  */
 		int rc;
 
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = default_family;
-		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_protocol = IPPROTO_TCP;
 		rc = getaddrinfo(*argv, port, &hints, &res0);
 		if (rc) {
 			warning("skipping bad address %s: %s\n",
@@ -1066,14 +1096,49 @@ main(int argc, char *argv[])
 			continue;
 		}
 
+		if (local_addresses
+		    && !check_matching_address_family(res0, local_addresses))
+		{
+			warning("no local address family matches remote "
+				"address family, skipping server '%s'",
+				*argv);
+			continue;
+		}
+
 		for (res = res0; res; res = res->ai_next) {
 			if (res->ai_addrlen > sizeof(q.addr))
 				continue;
 
+			/*
+			 * If a local address is specified, use an
+			 * address with the same family as the remote
+			 * address.
+			 */
+			local_address = find_by_address_family(local_addresses,
+							       res->ai_family);
+			if (local_addresses && !local_address) {
+				/* Continue with next remote address.  */
+				continue;
+			}
+
 			state.s = socket(res->ai_family, res->ai_socktype,
 					 res->ai_protocol);
-			if (state.s == -1)
+			if (state.s == -1) {
+				warning("cannot create socket: %s\n",
+					strerror(errno));
 				continue;
+			}
+
+			/* Bind socket to local address, if required.  */
+			if (local_address
+			    && bind(state.s,
+				    local_address->ai_addr,
+				    local_address->ai_addrlen) < 0)
+			{
+				warning("cannot bind to %s: %s\n",
+					local_hostname,
+					strerror(errno));
+			}
 
 			if (connect(state.s, res->ai_addr, res->ai_addrlen) < 0)
 			{
@@ -1130,4 +1195,31 @@ main(int argc, char *argv[])
 	log_msg(LOG_ERR,
 		"cannot contact an authoritative server, zone NOT transferred");
 	exit(XFER_FAIL);
+}
+
+int
+check_matching_address_family(struct addrinfo *a0, struct addrinfo *b0)
+{
+	struct addrinfo *a;
+	struct addrinfo *b;
+
+	for (a = a0; a; a = a->ai_next) {
+		for (b = b0; b; b = b->ai_next) {
+			if (a->ai_family == b->ai_family) {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+struct addrinfo *
+find_by_address_family(struct addrinfo *addrs, int family)
+{
+	for (; addrs; addrs = addrs->ai_next) {
+		if (addrs->ai_family == family) {
+			return addrs;
+		}
+	}
+	return NULL;
 }

@@ -25,6 +25,7 @@ zonesfile="@zonesfile@"
 keysdir="@configdir@/keys"
 notify="@sbindir@/nsd-notify"
 nsdxfer="@sbindir@/nsd-xfer"
+nsdxfer_flags=""
 pidfile="@pidfile@"
 
 ZONEC_VERBOSE=-v
@@ -113,7 +114,7 @@ update)
 			fi
 
 			# AXFR to a temp file $file.axfr
-			$nsdxfer -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} $serial_opt $masters
+			$nsdxfer $nsdxfer_flags -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} $serial_opt $masters
 			if [ $? -eq 1 ]
 			then
 				if [ -f ${zonesdir}/$file.axfr ]

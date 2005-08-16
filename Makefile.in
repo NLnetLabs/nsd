@@ -21,7 +21,7 @@ zonesfile = @zonesfile@
 dbfile = @dbfile@
 configfile = @configfile@
 zonesdir = @zonesdir@
-namedxfer = @namedxfer@
+nsdxfer = @nsdxfer@
 user = @user@
 
 CC		= @CC@
