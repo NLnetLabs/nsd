@@ -35,11 +35,11 @@ lookup_table_type dns_certificate_types[] = {
 
 /* Taken from RFC 2535, section 7.  */
 lookup_table_type dns_algorithms[] = {
-	{ 1, "RSAMD5" },
-	{ 2, "DS" },
-	{ 3, "DSA" },
+	{ 1, "RSAMD5" },	/* RFC 2537 */
+	{ 2, "DH" },		/* RFC 2539 */
+	{ 3, "DSA" },		/* RFC 2536 */
 	{ 4, "ECC" },
-	{ 5, "RSASHA1" },	/* XXX: Where is this specified? */
+	{ 5, "RSASHA1" },	/* RFC 3110 */
 	{ 252, "INDIRECT" },
 	{ 253, "PRIVATEDNS" },
 	{ 254, "PRIVATEOID" },

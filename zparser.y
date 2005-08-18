@@ -700,7 +700,7 @@ rdata_apl_seq:	dotted_str
 rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
-	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $3.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
 	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str, $7.len)); /* hash */
     }
@@ -717,7 +717,7 @@ rdata_sshfp:	STR sp STR sp str_sp_seq trail
 rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
     {
 	    zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
-	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $3.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $7.str)); /* # orig TTL */
 	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */

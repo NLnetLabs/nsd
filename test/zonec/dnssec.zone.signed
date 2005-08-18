@@ -7,7 +7,7 @@ dnssec.			3600	IN SOA	dnssec. admin.dnssec. (
 					604800     ; expire (1 week)
 					3600       ; minimum (1 hour)
 					)
-			3600	RRSIG	SOA 1 1 3600 20050108142256 (
+			3600	RRSIG	SOA RSAMD5 1 3600 20050108142256 (
 					20041209142256 25294 dnssec.
 					OhPPWZeqtcNBznhkpn2YO7cncHF0PhxhTcrZ
 					hG3ZrIsX/PFOYHkA3lJPZX9lzTLlrxqeFVFb
@@ -30,7 +30,7 @@ dnssec.			3600	IN SOA	dnssec. admin.dnssec. (
 					sf1OC5knEAFj3rY5cv7ZrMPYRp/HRN3pZwMy
 					J/v8C6oOVffK8zqy9Kw1QErRq262Cg8ityUV
 					Gol8fvw9XSJCHg== )
-			3600	DNSKEY	256 3 1 (
+			3600	DNSKEY	256 3 RSAMD5 (
 					AQPXh6HE5mN11gXURIE0aRGuBmi2ajzbo+tX
 					lwb0DtzI8HRNLT7GE+wSUWJl8vZxTNPpOwv/
 					cUfRfAuvA73aYs5b
