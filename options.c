@@ -29,7 +29,6 @@ struct options_node
 {
 	heapnode_t heap_node;
 	xmlNodePtr xml_node;
-	void      *data;
 };
 typedef struct options_node options_node_type;
 
@@ -68,6 +67,10 @@ static int parse_keys(nsd_options_type *options,
 		      xmlXPathContextPtr context);
 
 
+static nsd_options_acl_type *parse_acl(region_type *region,
+				       heap_t *nodes_by_id,
+				       xmlNodePtr acl_node);
+
 static nsd_options_zone_type *parse_zone(region_type *region,
 					 heap_t *nodes_by_id,
 					 xmlNodePtr zone_node);
@@ -80,6 +83,7 @@ static nsd_options_server_type *parse_server(region_type *region,
 
 static int compare_ids(const void *left, const void *right);
 static int insert_elements_with_id(heap_t *heap, xmlNodePtr xml_node);
+static xmlNodePtr follow_ref(heap_t *heap, xmlNodePtr node);
 
 /*
  * Load the NSD configuration from FILENAME.
@@ -463,9 +467,14 @@ parse_address(region_type *region,
 	      xmlNodePtr address_node)
 {
 	nsd_options_address_type *result = NULL;
-	const char *port = get_attribute_text(address_node, "port");
-	const char *family_text = get_attribute_text(address_node, "family");
+	const char *port;
+	const char *family_text;
 	int family;
+
+	address_node = follow_ref(nodes_by_id, address_node);
+
+	port = get_attribute_text(address_node, "port");
+	family_text = get_attribute_text(address_node, "family");
 
 	if (!address_node->children
 	    || address_node->children->type != XML_TEXT_NODE)
@@ -539,23 +548,36 @@ parse_key(region_type *region,
 	  xmlNodePtr key_node)
 {
 	nsd_options_key_type *result = NULL;
-	const char *name = get_element_text(key_node, "name");
-	const char *algorithm = get_element_text(key_node, "algorithm");
-	const char *secret = get_element_text(key_node, "secret");
+	const char *name;
+	const char *algorithm;
+	const char *secret;
+
+	key_node = follow_ref(nodes_by_id, key_node);
+
+	name = get_element_text(key_node, "name");
+	algorithm = get_element_text(key_node, "algorithm");
+	secret = get_element_text(key_node, "secret");
 
 	if (!name || !algorithm || !secret) {
 		log_msg(LOG_ERR,
-			"key does not define one of name, algorithm, or secret at line %d",
+			"key at line %d does not define one of name, algorithm, or secret",
 			key_node->line);
-		goto exit;
+		return NULL;
 	}
 
 	result = region_alloc(region, sizeof(nsd_options_key_type));
-	result->name = region_strdup(region, name);
+
+	result->name = dname_parse(region, name);
+	if (!result->name) {
+		log_msg(LOG_ERR,
+			"key name at line %d is not a valid domain name",
+			key_node->line);
+		return NULL;
+	}
+
 	result->algorithm = region_strdup(region, algorithm);
 	result->secret = region_strdup(region, secret);
 
-exit:
 	return result;
 }
 
@@ -603,6 +625,127 @@ exit:
 }
 
 
+static nsd_options_acl_entry_type *
+parse_acl_entry(region_type *region,
+		heap_t *nodes_by_id,
+		xmlNodePtr entry_node)
+{
+	nsd_options_acl_entry_type *result;
+
+	result = region_alloc(region, sizeof(nsd_options_acl_entry_type));
+	if (is_element(entry_node, "allow")) {
+		result->allow = 1;
+	} else if (is_element(entry_node, "deny")) {
+		result->allow = 0;
+	} else {
+		log_msg(LOG_ERR, "%s element at line %d is not allow or deny",
+			entry_node->name,
+			entry_node->line);
+		return NULL;
+	}
+
+	result->address = NULL;
+	result->key = NULL;
+	if (first_element(entry_node, "address")) {
+		result->address = parse_address(
+			region,
+			nodes_by_id,
+			first_element(entry_node, "address"));
+		if (!result->address) {
+			return NULL;
+		}
+	} else if (first_element(entry_node, "key")) {
+		result->key = parse_key(
+			region,
+			nodes_by_id,
+			first_element(entry_node, "key"));
+		if (!result->key) {
+			return NULL;
+		}
+	}
+
+	if (result->address && result->key) {
+		log_msg(LOG_ERR,
+			"%s element at line %d specifies both key and address",
+			entry_node->name,
+			entry_node->line);
+		return NULL;
+	}
+
+	return result;
+}
+
+
+static nsd_options_acl_type *
+parse_acl(region_type *region,
+	  heap_t *nodes_by_id,
+	  xmlNodePtr acl_node)
+{
+	nsd_options_acl_type *result = NULL;
+	const char *action_text;
+	nsd_options_acl_action_type action;
+	size_t i;
+	xmlNodePtr current;
+
+	acl_node = follow_ref(nodes_by_id, acl_node);
+
+	action_text = get_attribute_text(acl_node, "action");
+	if (!action_text) {
+		log_msg(LOG_ERR,
+			"acl element at line %d does not define action",
+			acl_node->line);
+		return NULL;
+	}
+
+	if (strcasecmp(action_text, "control") == 0) {
+		action = NSD_OPTIONS_ACL_ACTION_CONTROL;
+	} else if (strcasecmp(action_text, "notify") == 0) {
+		action = NSD_OPTIONS_ACL_ACTION_NOTIFY;
+	} else if (strcasecmp(action_text, "query") == 0) {
+		action = NSD_OPTIONS_ACL_ACTION_QUERY;
+	} else if (strcasecmp(action_text, "transfer") == 0) {
+		action = NSD_OPTIONS_ACL_ACTION_TRANSFER;
+	} else {
+		log_msg(LOG_ERR,
+			"unrecognized ACL action '%s'",
+			action_text);
+		return NULL;
+	}
+
+	result = region_alloc(region, sizeof(nsd_options_acl_type));
+	result->action = action;
+	result->acl_entry_count	= (child_element_count(acl_node, "allow")
+				   + child_element_count(acl_node, "deny"));
+	result->acl_entries = region_alloc(
+		region,
+		result->acl_entry_count * sizeof(nsd_options_acl_entry_type *));
+
+	i = 0;
+	for (current = acl_node->children;
+	     current;
+	     current = current->next)
+	{
+		if (!is_element(current, "allow")
+		    && !is_element(current, "deny"))
+		{
+			continue;
+		}
+
+		assert(i < result->acl_entry_count);
+
+		result->acl_entries[i] = parse_acl_entry(
+			region, nodes_by_id, current);
+		if (!result->acl_entries[i]) {
+			return NULL;
+		}
+
+		++i;
+	}
+
+	return result;
+}
+
+
 static nsd_options_zone_type *
 parse_zone(region_type *region,
 	   heap_t *nodes_by_id,
@@ -619,7 +762,7 @@ parse_zone(region_type *region,
 
 	if (!name || !file) {
 		log_msg(LOG_ERR,
-			"zone element does not define name or file at line %d",
+			"zone element at line %d does not define name or file",
 			zone_node->line);
 		return NULL;
 	}
@@ -645,6 +788,10 @@ parse_zone(region_type *region,
 	result->notify = region_alloc(
 		region,
 		result->notify_count * sizeof(nsd_options_server_type *));
+	result->acl_count = child_element_count(zone_node, "acl");
+	result->acls = region_alloc(
+		region,
+		result->acl_count * sizeof(nsd_options_acl_type *));
 
 	if (masters_node) {
 		for (i = 0, current = first_element(masters_node, "server");
@@ -665,12 +812,23 @@ parse_zone(region_type *region,
 		     current;
 		     ++i, current = next_element(current, "server"))
 		{
-			assert(i < result->master_count);
+			assert(i < result->notify_count);
 			result->notify[i] = parse_server(
 				region, nodes_by_id, current);
 			if (!result->notify[i]) {
 				return NULL;
 			}
+		}
+	}
+
+	for (i = 0, current = first_element(zone_node, "acl");
+	     current;
+	     ++i, current = next_element(current, "acl"))
+	{
+		assert(i < result->acl_count);
+		result->acls[i] = parse_acl(region, nodes_by_id, current);
+		if (!result->acls[i]) {
+			return NULL;
 		}
 	}
 
@@ -734,8 +892,12 @@ static int
 insert_elements_with_id(heap_t *heap, xmlNodePtr xml_node)
 {
 	int result = 1;
+	const char *id;
 
-	const char *id = get_attribute_text(xml_node, "id");
+	assert(xml_node);
+	assert(xml_node->type == XML_ELEMENT_NODE);
+
+	id = get_attribute_text(xml_node, "id");
 	if (id) {
 		heapnode_t *heap_node = heap_search(heap, id);
 		if (heap_node) {
@@ -746,13 +908,18 @@ insert_elements_with_id(heap_t *heap, xmlNodePtr xml_node)
 				xml_node->line,
 				options_node->xml_node->line);
 			result = 0;
+		} else if (get_attribute_text(xml_node, "ref")) {
+			log_msg(LOG_ERR,
+				"node '%s' on line %d has both an id and ref attribute",
+				xml_node->name,
+				xml_node->line);
+			result = 0;
 		} else {
 			options_node_type *options_node
 				= region_alloc(heap->region,
 					       sizeof(options_node_type));
 			options_node->heap_node.key = id;
 			options_node->xml_node = xml_node;
-			options_node->data = NULL;
 			heap_insert(heap, (heapnode_t *) options_node);
 		}
 	}
@@ -769,4 +936,45 @@ insert_elements_with_id(heap_t *heap, xmlNodePtr xml_node)
 	}
 
 	return result;
+}
+
+static xmlNodePtr
+follow_ref(heap_t *heap, xmlNodePtr node)
+{
+	const char *ref;
+	heapnode_t *heapnode;
+
+	assert(node);
+
+	ref = get_attribute_text(node, "ref");
+	if (!ref) {
+		return node;
+	}
+
+	heapnode = heap_search(heap, ref);
+	if (!heapnode) {
+		log_msg(LOG_ERR,
+			"node '%s' on line %d references non-existant node '%s'",
+			node->name,
+			node->line,
+			ref);
+		return NULL;
+	}
+
+	return ((options_node_type *) heapnode)->xml_node;
+}
+
+const char *
+action_to_string(nsd_options_acl_action_type action)
+{
+	static const char *action_table[] = {
+		"control",
+		"notify",
+		"query",
+		"transfer"
+	};
+
+	assert(action <= NSD_OPTIONS_ACL_ACTION_TRANSFER);
+
+	return action_table[action];
 }

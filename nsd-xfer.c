@@ -868,20 +868,14 @@ main(int argc, char *argv[])
 			if (!master->key) {
 				state.tsig = NULL;
 			} else {
-				const dname_type *key_name;
-
-				key_name = dname_parse(region,
-						       master->key->name);
-				if (!key_name) {
-					error(EXIT_FAILURE, "bad key name '%s'",
-					      master->key->name);
-				}
-
-				tsig_key = tsig_get_key_by_name(key_name);
+				tsig_key = tsig_get_key_by_name(
+					master->key->name);
 				if (!tsig_key) {
 					error(EXIT_FAILURE,
 					      "key '%s' not defined",
-					      master->key->name);
+					      dname_to_string(
+						      master->key->name,
+						      NULL));
 				}
 
 				tsig_algorithm = tsig_get_algorithm_by_name(

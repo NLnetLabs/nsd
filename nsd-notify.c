@@ -124,7 +124,7 @@ main(int argc, char *argv[])
 	for (i = 0; i < zone_info->notify_count; ++i) {
 		for (j = 0; j < zone_info->notify[i]->addresses->count; ++j) {
 			nsd_options_address_type *address
-				= &zone_info->notify[i]->addresses[j];
+				= zone_info->notify[i]->addresses->addresses[j];
 
 			/* Set up UDP */
 			memset(&hints, 0, sizeof(hints));

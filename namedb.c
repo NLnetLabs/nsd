@@ -44,6 +44,7 @@ namedb_insert_zone(namedb_type *db, const dname_type *apex)
 		zone->ns_rrset = NULL;
 		zone->closest_ancestor = NULL;
 		zone->parent = NULL;
+		zone->options = NULL;
 		zone->is_secure = 0;
 		zone->node.key = domain_dname(zone->apex);
 		heap_insert(db->zones, (rbnode_t *) zone);

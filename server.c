@@ -384,6 +384,10 @@ server_init(nsd_type *nsd)
 		return -1;
 	}
 
+	namedb_set_zone_options(nsd->db,
+				nsd->options->zone_count,
+				nsd->options->zones);
+
 	initialize_dname_compression_tables(nsd);
 
 #ifdef	BIND8_STATS
@@ -509,6 +513,11 @@ server_main(nsd_type *nsd)
 					log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 					exit(1);
 				}
+
+				namedb_set_zone_options(
+					nsd->db,
+					nsd->options->zone_count,
+					nsd->options->zones);
 
 				initialize_dname_compression_tables(nsd);
 
@@ -1138,11 +1147,7 @@ handle_tcp_accept(netio_type *netio,
 	struct tcp_handler_data *tcp_data;
 	region_type *tcp_region;
 	netio_handler_type *tcp_handler;
-#ifdef INET6
 	struct sockaddr_storage addr;
-#else
-	struct sockaddr_in addr;
-#endif
 	socklen_t addrlen;
 
 	if (!(event_types & NETIO_EVENT_READ)) {

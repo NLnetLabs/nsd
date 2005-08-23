@@ -112,17 +112,17 @@ read_rrset(namedb_type *db, zone_type *zone,
 	domain_type *owner;
 	uint16_t type;
 	uint16_t klass;
-	
+
 	owner = read_domain(db, domain_count, domains);
 	if (!owner)
 		return NULL;
 
 	rrset = (rrset_type *) region_alloc(db->region, sizeof(rrset_type));
-			     
+
 	if (fread(&type, sizeof(type), 1, db->fd) != 1)
 		return NULL;
 	type = ntohs(type);
-	
+
 	if (fread(&klass, sizeof(klass), 1, db->fd) != 1)
 		return NULL;
 	klass = ntohs(klass);
@@ -134,13 +134,13 @@ read_rrset(namedb_type *db, zone_type *zone,
 		db->region, rrset->rr_count * sizeof(rr_type));
 
 	assert(rrset->rr_count > 0);
-	
+
 	for (i = 0; i < rrset->rr_count; ++i) {
 		rr_type *rr = &rrset->rrs[i];
 
 		rr->type = type;
 		rr->klass = klass;
-		
+
 		if (fread(&rr->rdata_count, sizeof(rr->rdata_count), 1, db->fd) != 1)
 			return NULL;
 		rr->rdata_count = ntohs(rr->rdata_count);
@@ -176,7 +176,7 @@ read_rrset(namedb_type *db, zone_type *zone,
 		}
 	}
 #endif
-	
+
 	return rrset;
 }
 
@@ -204,16 +204,16 @@ namedb_open(const char *filename)
 	 * returning.
 	 */
 	region_type *temp_region;
-	
+
 	uint32_t dname_count;
 	domain_type **domains;	/* Indexed by domain number.  */
 
 	uint32_t zone_count;
-	
+
 	uint32_t i;
 
 	rrset_type *rrset;
-	
+
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (stderr, "sizeof(namedb_type) = %lu\n", (unsigned long) sizeof(namedb_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
@@ -234,7 +234,7 @@ namedb_open(const char *filename)
 	db->region = db_region;
 	db->zones = heap_create(db->region, dname_compare_void);
 	db->filename = region_strdup(db->region, filename);
-	
+
 	/* Open it... */
 	db->fd = fopen(db->filename, "r");
 	if (db->fd == NULL) {
@@ -282,7 +282,7 @@ namedb_open(const char *filename)
 		}
 		zone = namedb_insert_zone(db, apex);
 		region_free_all(dname_region);
-	
+
 		if (!read_size(db, &dname_count)) {
 			log_msg(LOG_ERR,
 				"corrupted database (missing domain table): %s",
@@ -321,12 +321,12 @@ namedb_open(const char *filename)
 
 		rrset_count = 0;
 		rr_count = 0;
-		
+
 		while ((rrset = read_rrset(db, zone, dname_count, domains))) {
 			++rrset_count;
 			rr_count += rrset->rr_count;
 		}
-		
+
 		DEBUG(DEBUG_DBACCESS, 1,
 		      (stderr, "Retrieved %lu RRs in %lu RRsets for zone %s\n",
 		       (unsigned long) rr_count,
@@ -336,7 +336,7 @@ namedb_open(const char *filename)
 
 	region_destroy(dname_region);
 	region_destroy(temp_region);
-	
+
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database (bad magic): %s",
 			db->filename);
@@ -348,12 +348,12 @@ namedb_open(const char *filename)
 	db->fd = NULL;
 
 	initialize_zone_info(db);
-	
+
 #ifndef NDEBUG
 	fprintf(stderr, "database region after loading database: ");
 	region_dump_stats(db->region, stderr);
 	fprintf(stderr, "\n");
-#endif	
+#endif
 
 	return db;
 }
@@ -381,7 +381,7 @@ initialize_zone_info(namedb_type *db)
 		const dname_type *temp = apex;
 		while (!dname_is_root(temp)) {
 			zone_type *closest_ancestor;
-			
+
 			temp = dname_origin(region, temp);
 			closest_ancestor = namedb_find_zone(db, temp);
 			if (closest_ancestor) {
@@ -403,7 +403,7 @@ initialize_zone_info(namedb_type *db)
 
 		region_free_all(region);
 	}
-	
+
 	/*
 	 * Check if the closest authoritative enclosing zone is the
 	 * parent zone.  The parent zone has a zone cut at the child
@@ -412,7 +412,7 @@ initialize_zone_info(namedb_type *db)
 	HEAP_WALK(db->zones, apex, zone) {
 		zone_type *parent = zone->closest_ancestor;
 		domain_type *zone_cut;
-		
+
 		if (parent
 		    && (zone_cut = domain_table_find(parent->domains, apex))
 		    && domain_find_rrset(zone_cut, TYPE_NS))
@@ -423,7 +423,7 @@ initialize_zone_info(namedb_type *db)
 					       NULL)));
 			DEBUG(DEBUG_DBACCESS, 2,
 			      (stderr, "%s\n", dname_to_string(apex, NULL)));
-			
+
 			zone->parent = parent;
 		} else {
 			zone->parent = NULL;
@@ -431,4 +431,43 @@ initialize_zone_info(namedb_type *db)
 	}
 
 	region_destroy(region);
+}
+
+void
+namedb_set_zone_options(namedb_type *db,
+			size_t zone_count,
+			nsd_options_zone_type **zones)
+{
+	size_t i;
+	const dname_type *apex;
+	zone_type *zone;
+
+	/*
+	 * Link all the options for the zone to the database.
+	 */
+	for (i = 0; i < zone_count; ++i) {
+		nsd_options_zone_type *options = zones[i];
+		assert(options);
+
+		zone = namedb_find_zone(db, options->name);
+		if (!zone) {
+			log_msg(LOG_WARNING,
+				"zone '%s' specified in the configuration file is not present in the database",
+				dname_to_string(options->name, NULL));
+		} else {
+			zone->options = options;
+		}
+	}
+
+	/*
+	 * Check that every zone in the database is configured with
+	 * options.
+	 */
+	HEAP_WALK(db->zones, apex, zone) {
+		if (!zone->options) {
+			log_msg(LOG_WARNING,
+				"zone '%s' in the database has no configuration information",
+				dname_to_string(apex, NULL));
+		}
+	}
 }

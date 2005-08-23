@@ -15,6 +15,7 @@
 #include "dname.h"
 #include "dns.h"
 #include "heap.h"
+#include "options.h"
 
 #define	NAMEDB_MAGIC		"NSDdbV07"
 #define	NAMEDB_MAGIC_SIZE	8
@@ -47,7 +48,7 @@ struct domain
 	void       **plugin_data;
 #endif
 	uint32_t     number; /* Unique domain name number.  */
-	
+
 	/*
 	 * This domain name exists (see wildcard clarification draft).
 	 */
@@ -66,11 +67,16 @@ struct zone
 	 * The closest ancestor zone stored in the database.
 	 */
 	zone_type         *closest_ancestor;
-	
+
 	/*
 	 * The direct parent zone if stored in the database.
 	 */
 	zone_type         *parent;
+
+	/*
+	 * Configuration options for this zone (including ACLs).
+	 */
+	nsd_options_zone_type *options;
 
 	unsigned           is_secure : 1;
 };
@@ -280,6 +286,9 @@ void namedb_discard(namedb_type *db);
 /* dbaccess.c */
 namedb_type *namedb_open(const char *filename);
 void namedb_close(namedb_type *db);
+void namedb_set_zone_options(namedb_type *db,
+			     size_t zone_count,
+			     nsd_options_zone_type **zones);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)

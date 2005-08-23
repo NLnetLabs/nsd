@@ -34,11 +34,15 @@ query_axfr (nsd_type *nsd, query_type *query)
 
 	assert(!query_overflow(query));
 
-	if (query->axfr_zone == NULL) {
+	if (!query->axfr_zone) {
 		/* Start AXFR.  */
 		query->axfr_zone = namedb_find_zone(nsd->db, query->qname);
-		if (!query->axfr_zone) {
-			/* Zone not found.  */
+		if (!query->axfr_zone
+		    || !check_zone_acl(query,
+				       query->axfr_zone,
+				       NSD_OPTIONS_ACL_ACTION_TRANSFER))
+		{
+			/* Zone not found or access denied.  */
 			RCODE_SET(query->packet, RCODE_REFUSE);
 			return QUERY_PROCESSED;
 		}

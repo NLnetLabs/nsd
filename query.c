@@ -354,13 +354,20 @@ process_tsig(query_type *q)
  * XXX: erik: Is this the right way to handle notifies?
  */
 static query_state_type
-answer_notify (query_type *query)
+answer_notify (nsd_type *nsd, query_type *query)
 {
+	zone_type *zone = namedb_find_zone(nsd->db, query->qname);
+	if (!zone
+	    || !check_zone_acl(query, zone, NSD_OPTIONS_ACL_ACTION_NOTIFY))
+	{
+		return query_error(query, NSD_RC_REFUSE);
+	}
+
 	log_msg(LOG_INFO, "notify for %s from %s",
 		dname_to_string(query->qname, NULL),
-		sockaddr_to_string((const struct sockaddr *) &query->addr,
-				   query->addrlen));
-
+		sockaddr_to_string(
+			(const struct sockaddr *) &query->addr,
+			query->addrlen));
 	return query_error(query, NSD_RC_IMPL);
 }
 
@@ -804,7 +811,7 @@ answer_authoritative(query_type *q,
 	}
 }
 
-static void
+static query_state_type
 answer_query(nsd_type *nsd, query_type *q)
 {
 	domain_type *closest_match;
@@ -816,8 +823,7 @@ answer_query(nsd_type *nsd, query_type *q)
 
 	q->zone = namedb_find_authoritative_zone(nsd->db, q->qname);
 	if (!q->zone) {
-		RCODE_SET(q->packet, RCODE_SERVFAIL);
-		return;
+		return query_error(q, NSD_RC_SERVFAIL);
 	}
 
 
@@ -850,6 +856,10 @@ answer_query(nsd_type *nsd, query_type *q)
 		 */
 		q->zone = q->zone->parent;
 		ds_query_at_apex = 0;
+	}
+
+	if (!check_zone_acl(q, q->zone, NSD_OPTIONS_ACL_ACTION_QUERY)) {
+		return query_error(q, NSD_RC_REFUSE);
 	}
 
 	if (ds_query_at_apex) {
@@ -897,6 +907,8 @@ answer_query(nsd_type *nsd, query_type *q)
 	encode_answer(q, &answer);
 
 	query_clear_compression_tables(q);
+
+	return QUERY_PROCESSED;
 }
 
 void
@@ -938,31 +950,12 @@ query_process(query_type *q, nsd_type *nsd)
 {
 	/* The query... */
 	nsd_rc_type rc;
-	query_state_type query_state;
 	uint16_t arcount;
 
 	/* Sanity checks */
 	if (QR(q->packet)) {
 		/* Not a query? Drop it on the floor. */
 		return QUERY_DISCARDED;
-	}
-
-	rc = process_query_section(q);
-	if (rc != NSD_RC_OK) {
-		return query_error(q, rc);
-	}
-
-	/* Update statistics.  */
-	STATUP2(nsd, opcode, q->opcode);
-	STATUP2(nsd, qtype, q->qtype);
-	STATUP2(nsd, qclass, q->qclass);
-
-	if (q->opcode != OPCODE_QUERY) {
-		if (q->opcode == OPCODE_NOTIFY) {
-			return answer_notify(q);
-		} else {
-			return query_error(q, NSD_RC_IMPL);
-		}
 	}
 
 	/* Dont bother to answer more than one question at once... */
@@ -975,6 +968,16 @@ query_process(query_type *q, nsd_type *nsd)
 	if (ANCOUNT(q->packet) != 0 || NSCOUNT(q->packet) != 0) {
 		return query_formerr(q);
 	}
+
+	rc = process_query_section(q);
+	if (rc != NSD_RC_OK) {
+		return query_error(q, rc);
+	}
+
+	/* Update statistics.  */
+	STATUP2(nsd, opcode, q->opcode);
+	STATUP2(nsd, qtype, q->qtype);
+	STATUP2(nsd, qclass, q->qclass);
 
 	arcount = ARCOUNT(q->packet);
 	if (arcount > 0) {
@@ -1013,24 +1016,25 @@ query_process(query_type *q, nsd_type *nsd)
 
 	if (q->socket->kind == NSD_SOCKET_KIND_NSDC) {
 		return process_control_command(nsd, q);
-	}
-
-	if (q->qclass != CLASS_IN && q->qclass != CLASS_ANY) {
-		if (q->qclass == CLASS_CH) {
+	} else if (q->opcode == OPCODE_QUERY) {
+		if (q->qclass == CLASS_IN || q->qclass == CLASS_ANY) {
+			if (q->qtype == TYPE_AXFR) {
+				return answer_axfr_ixfr(nsd, q);
+			} else if (q->qtype == TYPE_IXFR) {
+				return query_error(q, NSD_RC_REFUSE);
+			} else {
+				return answer_query(nsd, q);
+			}
+		} else if (q->qclass == CLASS_CH) {
 			return answer_chaos(nsd, q);
 		} else {
 			return query_error(q, NSD_RC_REFUSE);
 		}
+	} else if (q->opcode == OPCODE_NOTIFY) {
+		return answer_notify(nsd, q);
+	} else {
+		return query_error(q, NSD_RC_IMPL);
 	}
-
-	query_state = answer_axfr_ixfr(nsd, q);
-	if (query_state == QUERY_PROCESSED || query_state == QUERY_IN_AXFR) {
-		return query_state;
-	}
-
-	answer_query(nsd, q);
-
-	return QUERY_PROCESSED;
 }
 
 void
@@ -1100,4 +1104,116 @@ process_control_command(nsd_type   *nsd,
 	}
 
 	return QUERY_PROCESSED;
+}
+
+static int
+sockaddr_equal(const struct sockaddr *left,
+	       const struct sockaddr *right)
+{
+	if (left->sa_family != right->sa_family) {
+		return 0;
+	}
+
+	if (left->sa_family == AF_INET) {
+		struct sockaddr_in *l = (struct sockaddr_in *) left;
+		struct sockaddr_in *r = (struct sockaddr_in *) right;
+
+		return l->sin_addr.s_addr == r->sin_addr.s_addr;
+#ifdef INET6
+	} else if (left->sa_family == AF_INET6) {
+		struct sockaddr_in6 *l = (struct sockaddr_in6 *) left;
+		struct sockaddr_in6 *r = (struct sockaddr_in6 *) right;
+
+		return (memcmp(&l->sin6_addr.s6_addr,
+			       &r->sin6_addr.s6_addr,
+			       sizeof(l->sin6_addr.s6_addr))
+			== 0);
+#endif
+	}
+
+	return 0;
+}
+
+static int
+match_acl_entry(query_type *query, nsd_options_acl_entry_type *entry)
+{
+	if (entry->address) {
+		/* Match address.  */
+		struct addrinfo hints;
+		struct addrinfo *res;
+		int rc;
+
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = entry->address->family;
+		hints.ai_flags = AI_NUMERICHOST;
+
+		rc = getaddrinfo(entry->address->address, NULL,
+				 &hints, &res);
+		if (rc) {
+			log_msg(LOG_ERR,
+				"Bad address '%s' in ACL entry: %s",
+				entry->address->address,
+				gai_strerror(rc));
+			return 0;
+		}
+
+		return sockaddr_equal(res->ai_addr,
+				      (struct sockaddr *) &query->addr);
+	} else if (entry->key) {
+		/* Match key.  */
+		return (query->tsig.status == TSIG_OK
+			&& dname_compare(query->tsig.key->name,
+					 entry->key->name) == 0);
+	} else {
+		/* Empty entry always matches.  */
+		return 1;
+	}
+}
+
+static int
+check_acl(query_type *query, nsd_options_acl_type *acl)
+{
+	size_t i;
+
+	for (i = 0; i < acl->acl_entry_count; ++i) {
+		if (match_acl_entry(query, acl->acl_entries[i])) {
+			return acl->acl_entries[i]->allow;
+		}
+	}
+
+	/* Deny if no entries match.  */
+	return 0;
+}
+
+int
+check_zone_acl(query_type *query,
+	       zone_type *zone,
+	       nsd_options_acl_action_type action)
+{
+	size_t i;
+
+	if (!zone->options) {
+		/* Allow access if no ACL is defined for the zone.  */
+		return 1;
+	}
+
+	for (i = 0; i < zone->options->acl_count; ++i) {
+		if (zone->options->acls[i]->action == action) {
+			int allow = check_acl(query, zone->options->acls[i]);
+			if (!allow) {
+				log_msg(LOG_INFO,
+					"%s denied for zone '%s' for client %s",
+					action_to_string(action),
+					dname_to_string(
+						domain_dname(zone->apex),
+						NULL),
+					sockaddr_to_string(
+						(struct sockaddr *) &query->addr,
+						query->addrlen));
+			}
+			return allow;
+		}
+	}
+
+	return 1;
 }

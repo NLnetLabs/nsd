@@ -122,11 +122,7 @@ tsig_load_keys(nsd_options_type *options)
 			continue;
 
 		key = region_alloc(tsig_region, sizeof(tsig_key_type));
-		key->name = dname_parse(tsig_region, key_option->name);
-		if (!key->name) {
-			log_msg(LOG_ERR, "bad key name '%s'", key_option->name);
-			return 0;
-		}
+		key->name = dname_copy(tsig_region, key_option->name);
 
 		secret_size = strlen(key_option->secret);
 		data = region_alloc(tsig_region, secret_size);

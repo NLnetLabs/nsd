@@ -47,11 +47,7 @@ struct query
 	/*
 	 * The address the query was received from.
 	 */
-#ifdef INET6
 	struct sockaddr_storage addr;
-#else
-	struct sockaddr_in addr;
-#endif
 	socklen_t addrlen;
 
 	/*
@@ -212,5 +208,12 @@ query_overflow(query_type *q)
 {
 	return buffer_position(q->packet) > (q->maxlen - q->reserved_space);
 }
+
+/*
+ * Check the ACL for the client for the specified action.
+ */
+int check_zone_acl(query_type *query,
+		   zone_type *zone,
+		   nsd_options_acl_action_type action);
 
 #endif /* _QUERY_H_ */
