@@ -1,5 +1,17 @@
 NSD RELEASE NOTES
 
+2.3.1
+=============
+BUG FIXES:
+        - zonec: Don't crash when generating error messages outside of zone
+          files.
+        - nsd: when logging to a file the pid is now printed.
+        - nsd: Reset 'boot' time in statistics when reloading the database,
+          since the statistics are reset to 0 on a reload.
+        - nsd-xfer.c: Added '-a' option to specify local address to connect
+          from.  Original patch supplied by Walter Hop <nsd@walter.transip.nl>.
+        - Bug #98: Allow mnemonics for DS and RRSIG algorithm field.
+
 2.3.0
 =============
 FEATURES:
