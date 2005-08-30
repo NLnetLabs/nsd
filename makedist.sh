@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Build a NSD distribution tar from the CVS repository.
+# Build a NSD distribution tar from the SVN repository.
 
 # Abort script on unexpected errors.
 set -e
@@ -11,17 +11,13 @@ cwd=`pwd`
 # Utility functions.
 usage () {
     cat >&2 <<EOF
-Usage $0: [-h] [-s] [-d CVS_root] [-r revision]
+Usage $0: [-h] [-s] [-d SVN_root]
 Generate a distribution tar file for NSD.
 
     -h           This usage information.
     -s           Build a snapshot distribution file.  The current date is
                  automatically appended to the current NSD version number.
-    -d CVS_root  Retrieve the NSD source from the specified repository.
-                 If this option is not specified the current value of the
-                 CVSROOT environment variable is used.
-    -r revision  Specify the NSD revision to retrieve.  If not specified
-                 the HEAD revision is retrieved.
+    -d SVN_root  Retrieve the NSD source from the specified repository.
 EOF
     exit 1
 }
@@ -75,7 +71,6 @@ replace_all () {
 }
     
 
-REVISION="HEAD"
 SNAPSHOT="no"
 
 # Parse the command line arguments.
@@ -85,11 +80,7 @@ while [ "$1" ]; do
             usage
             ;;
         "-d")
-            CVSROOT="$2"
-            shift
-            ;;
-        "-r")
-            REVISION="$2"
+            SVNROOT="$2"
             shift
             ;;
         "-s")
@@ -102,19 +93,13 @@ while [ "$1" ]; do
     shift
 done
 
-# Check if CVSROOT is specified.
-if [ -z "$CVSROOT" ]; then
-    error "CVSROOT must be specified (using -d)"
-fi
-
-# Check if the NSD CVS revision is specified.
-if [ -z "$REVISION" ]; then
-    error "REVISION must be specified (using -r)"
+# Check if SVNROOT is specified.
+if [ -z "$SVNROOT" ]; then
+    error "SVNROOT must be specified (using -d)"
 fi
 
 # Start the packaging process.
-info "CVSROOT  is $CVSROOT"
-info "REVISION is $REVISION"
+info "SVNROOT  is $SVNROOT"
 info "SNAPSHOT is $SNAPSHOT"
 
 question "Do you wish to continue with these settings?" || error "User abort."
@@ -126,10 +111,10 @@ temp_dir=`mktemp -d nsd-dist-XXXXXX`
 info "Directory '$temp_dir' created."
 cd $temp_dir
 
-info "Exporting source from CVS."
-cvs -d "$CVSROOT" -Q export -r "$REVISION" nsd || error_cleanup "CVS command failed"
+info "Exporting source from SVN."
+svn export "$SVNROOT" nsd || error_cleanup "SVN command failed"
 
-cd nsd || error_cleanup "NSD not exported correctly from CVS"
+cd nsd || error_cleanup "NSD not exported correctly from SVN"
 
 info "Building configure script (autoconf)."
 autoconf || error_cleanup "Autoconf failed."
