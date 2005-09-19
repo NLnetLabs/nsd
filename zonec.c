@@ -38,10 +38,6 @@
 #include "util.h"
 #include "zparser.h"
 
-#ifndef TIMEGM
-time_t timegm(struct tm *tm);
-#endif /* !TIMEGM */
-
 const dname_type *error_dname;
 domain_type *error_domain;
 
@@ -133,7 +129,7 @@ zparser_conv_time(region_type *region, const char *time)
 	if (!strptime(time, "%Y%m%d%H%M%S", &tm)) {
 		zc_error_prev_line("date and time is expected");
 	} else {
-		uint32_t l = htonl(timegm(&tm));
+		uint32_t l = htonl(mktime_from_utc(&tm));
 		r = alloc_rdata_init(region, &l, sizeof(l));
 	}
 	return r;

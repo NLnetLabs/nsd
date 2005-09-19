@@ -252,4 +252,10 @@ void strip_string(char *str);
  */
 int hexdigit_to_int(char ch);
 
+/*
+ * Convert TM to seconds since epoch (midnight, January 1st, 1970).
+ * Like timegm(3), which is not always available.
+ */
+time_t mktime_from_utc(const struct tm *tm);
+
 #endif /* _UTIL_H_ */
