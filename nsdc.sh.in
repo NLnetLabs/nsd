@@ -27,6 +27,7 @@ notify="@sbindir@/nsd-notify"
 nsdxfer="@sbindir@/nsd-xfer"
 nsdxfer_flags=""
 pidfile="@pidfile@"
+lockfile="@dbfile@.lock"
 
 ZONEC_VERBOSE=-v
 
@@ -49,6 +50,19 @@ signal() {
 		echo "nsd is not running"
 	fi
 	return 1
+}
+
+lock() {
+	if [ -f ${lockfile} ]; then
+		echo "database locked, aborting..."
+		exit 1
+	else
+		touch ${lockfile}
+	fi
+}
+
+unlock() {
+	rm -f ${lockfile}
 }
 
 case "$1" in
@@ -84,6 +98,8 @@ update)
 		exit 1
 	fi
 
+	lock
+
 	# read the nsd.zones file
 	while read zonekw zone file masterskw masters
 	do	
@@ -93,17 +109,17 @@ update)
 			serial_opt=''
 			if [ -e ${zonesdir}/$file ]; then
 				serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1; exit }' ${zonesdir}/$file`
-                                serial_opt="-s $serial"
+				serial_opt="-s $serial"
 			fi
 
- 			# take care of tsig info file if any
+			# take care of tsig info file if any
 			# See bug #91 - move to ${zone} but be backward
 			# compatible
- 			unset tsiginfoarg
- 			if [ -f "${keysdir}/${masters}.tsiginfo" ]
- 			then
- 				ln "${keysdir}/${masters}.tsiginfo" "${keysdir}/${masters}.tsiginfo.$$"
- 				tsiginfoarg="-T ${keysdir}/${masters}.tsiginfo.$$"
+			unset tsiginfoarg
+			if [ -f "${keysdir}/${masters}.tsiginfo" ]
+			then
+				ln "${keysdir}/${masters}.tsiginfo" "${keysdir}/${masters}.tsiginfo.$$"
+				tsiginfoarg="-T ${keysdir}/${masters}.tsiginfo.$$"
 			else 
 				if [ -f "${keysdir}/${zone}.tsiginfo" ]
 				then
@@ -131,7 +147,7 @@ update)
 						mv -f ${zonesdir}/$file.axfr ${zonesdir}/$file
 					fi
 					rm -f ${zonesdir}/$file.axfr.db
-			        else
+				else
 					echo "Warning: AXFR for $zone failed"
 				fi
 			fi
@@ -158,6 +174,8 @@ update)
 		echo "rebuilding the database...."
 		sh $0 rebuild && sh $0 reload
 	fi
+
+	unlock
 	;;
 notify)
 	if [ ! -x "${notify}" ]

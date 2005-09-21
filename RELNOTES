@@ -1,5 +1,13 @@
 NSD RELEASE NOTES
 
+2.3.2
+=============
+BUG FIXES:
+        - nsdc: use a lock file when rebuilding the database (patch by
+          Jakob Schlyter).
+        - Bug #100: replaced non-portable use of timegm(3) with
+          portable implementation (mktime_from_utc).
+
 2.3.1
 =============
 BUG FIXES:
