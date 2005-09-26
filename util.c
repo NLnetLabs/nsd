@@ -90,8 +90,9 @@ log_file(int priority, const char *message)
 		priority_text = priority_info->name;
 	}
 	
-	fprintf(current_log_file, "%s[%d]: %s: %s",
-		global_ident, (int) getpid(), priority_text, message);
+	/* Bug #104, add time_t timestamp */
+	fprintf(current_log_file, "[%d] %s[%d]: %s: %s",
+		time(NULL), global_ident, (int) getpid(), priority_text, message);
 	length = strlen(message);
 	if (length == 0 || message[length - 1] != '\n') {
 		fprintf(current_log_file, "\n");

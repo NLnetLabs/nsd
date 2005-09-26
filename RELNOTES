@@ -7,6 +7,8 @@ BUG FIXES:
           Jakob Schlyter).
         - Bug #100: replaced non-portable use of timegm(3) with
           portable implementation (mktime_from_utc).
+        - Bug #104: add a time_t timestamp to the log when logging to
+          a file.
 
 2.3.1
 =============
