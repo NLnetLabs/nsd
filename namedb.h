@@ -60,6 +60,7 @@ struct zone
 	zone_type   *next;
 	domain_type *apex;
 	rrset_type  *soa_rrset;
+	rrset_type  *soa_nx_rrset; /* see bug #103 */
 	rrset_type  *ns_rrset;
 	uint32_t     number;
 	unsigned     is_secure : 1;

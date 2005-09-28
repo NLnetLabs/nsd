@@ -573,7 +573,7 @@ answer_soa(struct query *query, answer_type *answer)
 		add_rrset(query, answer,
 			  AUTHORITY_SECTION,
 			  query->zone->apex,
-			  query->zone->soa_rrset);
+			  query->zone->soa_nx_rrset);
 	}
 }
 
