@@ -3,12 +3,14 @@ NSD RELEASE NOTES
 2.3.2
 =============
 BUG FIXES:
-        - nsdc: use a lock file when rebuilding the database (patch by
-          Jakob Schlyter).
         - Bug #100: replaced non-portable use of timegm(3) with
           portable implementation (mktime_from_utc).
+        - Bug #103: trim the SOA's TTL when returning a negative
+          answer.
         - Bug #104: add a time_t timestamp to the log when logging to
           a file.
+        - Bug #105: nsdc: use a lock file when rebuilding the database (patch by
+          Jakob Schlyter/Ted lindgreen).
 
 2.3.1
 =============
