@@ -11,6 +11,7 @@ BUG FIXES:
           a file.
         - Bug #105: nsdc: use a lock file when rebuilding the database (patch by
           Jakob Schlyter/Ted Lindgreen).
+        - Bug #101: add support for the SPF record.
 
 2.3.1
 =============
