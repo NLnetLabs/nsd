@@ -10,7 +10,7 @@ BUG FIXES:
         - Bug #104: add a time_t timestamp to the log when logging to
           a file.
         - Bug #105: nsdc: use a lock file when rebuilding the database (patch by
-          Jakob Schlyter/Ted lindgreen).
+          Jakob Schlyter/Ted Lindgreen).
 
 2.3.1
 =============

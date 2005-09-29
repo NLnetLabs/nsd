@@ -275,7 +275,141 @@ rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	{ TYPE_DNSKEY, "DNSKEY", T_DNSKEY, 4, 4,
 	  { RDATA_WF_SHORT, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BINARY },
 	  { RDATA_ZF_SHORT, RDATA_ZF_BYTE, RDATA_ZF_ALGORITHM,
-	    RDATA_ZF_BASE64 } }
+	    RDATA_ZF_BASE64 } },
+	/* 49 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 50 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 51 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 52 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 53 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 54 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 55 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 56 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 57 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 58 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 59 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 60 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 61 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 62 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 63 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 64 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 65 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 66 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 67 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 68 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 69 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 70 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 71 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 72 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 73 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 74 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 75 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 76 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 77 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 78 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 79 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 80 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 81 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 82 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 83 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 84 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 85 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 86 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 87 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 88 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 89 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 90 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 91 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 92 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 93 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 94 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 95 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 96 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 97 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 98 */
+	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	/* 99 */
+	{ TYPE_SPF, "SPF", T_SPF, 1, MAXRDATALEN,
+	  { RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
+	    RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT },
+	  { RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT } }
 };
 
 rrtype_descriptor_type *

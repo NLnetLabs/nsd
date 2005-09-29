@@ -120,6 +120,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_NSEC	47	/* RFC 4033, 4034, and 4035 */
 #define TYPE_DNSKEY	48	/* RFC 4033, 4034, and 4035 */
 
+#define TYPE_SPF        99      /* draft-schlitt-spf-classic-02.txt */
+
 #define TYPE_TSIG	250
 #define TYPE_IXFR	251
 #define TYPE_AXFR	252
@@ -130,7 +132,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
 
-#define MAXRDATALEN	64 /* This is more than enough, think multiple TXT.  */
+#define MAXRDATALEN	64      /* This is more than enough, think multiple TXT.  */
 #define MAX_RDLENGTH	65535
 
 /* Maximum size of a single RR.  */
@@ -203,7 +205,7 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  * Indexed by type.  The special type "0" can be used to get a
  * descriptor for unknown types (with one binary rdata).
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_DNSKEY+1)
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_SPF + 1)
 extern rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH];
 
 static inline rrtype_descriptor_type *

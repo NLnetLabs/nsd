@@ -55,6 +55,7 @@ void yyerror(const char *message);
 %token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
+%token <type> T_SPF
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -390,8 +391,7 @@ dotted_str:	STR
 /* define what we can parse */
 type_and_rdata:
     /*
-     * All supported RR types.	We don't support NULL and types marked
-     * obsolete.
+     * All supported RR types.	We don't support NULL and types marked obsolete.
      */
     	T_A sp rdata_a
     |	T_A sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
@@ -438,6 +438,8 @@ type_and_rdata:
     |	T_MX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_TXT sp rdata_txt
     |	T_TXT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_SPF sp rdata_txt
+    |	T_SPF sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_RP sp rdata_rp		/* RFC 1183 */
     |	T_RP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_AFSDB sp rdata_afsdb	/* RFC 1183 */

@@ -13,6 +13,8 @@ $ORIGIN miek.nl.
 		IN	NS	open.nlnetlabs.nl.
 		IN	NS	omval.tednet.nl.
 		IN	NS	elektron.atoom.net.
+                IN      SPF     "v=spf1 +mx a:colo.example.com/28 -all"
+                IN      SPF     "v=spf1 a -all"
 
 		IN	MX	20 mail.atoom.net.
 		IN	MX	20 sol.nlnetlabs.nl.
@@ -24,5 +26,3 @@ www     	IN 	CNAME 	a
 txt-test1       IN      TXT     "v=spf1 +mx a:colo.example.com/28 -all"
 spf-test1       IN      SPF     "v=spf1 +mx a:colo.example.com/28 -all"
 spf-test2       IN      SPF     "v=spf1 a -all"
-
-         
