@@ -33,6 +33,9 @@ static uint8_t nxtbits[16];
 /* still need to reset the bastard somewhere */
 static uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
+/* hold the highest rcode seen in a NSEC rdata , BUG #106 */
+uint16_t nsec_highest_rcode;
+
 void yyerror(const char *message);
 
 %}
@@ -321,6 +324,9 @@ nsec_seq:	STR
     {
 	    uint16_t type = rrtype_from_string($1.str);
 	    if (type != 0) {
+                    if (type > nsec_highest_rcode) {
+                            nsec_highest_rcode = type;
+                    }
 		    set_bitnsec(nsecbits, type);
 	    } else {
 		    zc_error("bad type %d in NSEC record", (int) type);
@@ -330,6 +336,9 @@ nsec_seq:	STR
     {
 	    uint16_t type = rrtype_from_string($3.str);
 	    if (type != 0) {
+                    if (type > nsec_highest_rcode) {
+                            nsec_highest_rcode = type;
+                    }
 		    set_bitnsec(nsecbits, type);
 	    } else {
 		    zc_error("bad type %d in NSEC record", (int) type);
@@ -735,9 +744,9 @@ rdata_nsec:	dname sp nsec_seq trail
 	    zadd_rdata_domain($1); /* nsec name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
 	    memset(nsecbits, 0, sizeof(nsecbits));
+            nsec_highest_rcode = 0;
     }
     ;
-
 
 rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
     {
@@ -804,6 +813,7 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 {
 	memset(nxtbits, 0, sizeof(nxtbits));
 	memset(nsecbits, 0, sizeof(nsecbits));
+        nsec_highest_rcode = 0;
 
 	parser->default_ttl = ttl;
 	parser->default_minimum = 0;
