@@ -54,6 +54,7 @@ static long int totalerrors = 0;
 static long int totalrrs = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
+extern uint16_t nsec_highest_rcode;
 
 
 /*
@@ -420,18 +421,21 @@ zparser_conv_nsec(region_type *region,
 	size_t i,j;
 	uint16_t window_count = 0;
 	uint16_t total_size = 0;
+	uint16_t window_max = 0;
 
 	/* The used windows.  */
 	int used[NSEC_WINDOW_COUNT];
 	/* The last byte used in each the window.  */
 	int size[NSEC_WINDOW_COUNT];
 
+	window_max = 1 + (nsec_highest_rcode / 256);
+
 	/* used[i] is the i-th window included in the nsec 
 	 * size[used[0]] is the size of window 0
 	 */
 
 	/* walk through the 256 windows */
-	for (i = 0; i < NSEC_WINDOW_COUNT; ++i) {
+	for (i = 0; i < window_max; ++i) {
 		int empty_window = 1;
 		/* check each of the 32 bytes */
 		for (j = 0; j < NSEC_WINDOW_BITS_SIZE; ++j) {
