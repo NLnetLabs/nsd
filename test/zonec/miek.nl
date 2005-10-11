@@ -21,3 +21,4 @@ miek.nl.	IN	A	80.127.17.126
 localhost	IN	A	127.0.0.1
 a	    	IN	A	80.127.17.126
 www     	IN 	CNAME 	a
+text            IN      TXT     "Hallo, ik ben Miek, wie gets mit dir?"
