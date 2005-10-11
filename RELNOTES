@@ -11,6 +11,10 @@ BUG FIXES:
           a file.
         - Bug #105: nsdc: use a lock file when rebuilding the database (patch by
           Jakob Schlyter/Ted Lindgreen).
+        - Bug #106: don't walk all 256 NSEC windows when that is not
+          needed.
+
+FEATURES:
         - Bug #101: add support for the SPF record.
 
 2.3.1
