@@ -875,10 +875,16 @@ void
 parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 {
 	buffer_type packet;
-	uint16_t size = *wireformat;
+	uint16_t size;
 	ssize_t rdata_count;
 	ssize_t i;
 	rdata_atom_type *rdatas;
+
+	if (wireformat) {
+		size = *wireformat;
+	} else {
+		return;
+	}
 
 	buffer_create_from(&packet, wireformat + 1, *wireformat);
 	rdata_count = rdata_wireformat_to_rdata_atoms(parser->region,
