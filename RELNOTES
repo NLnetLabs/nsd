@@ -13,7 +13,7 @@ BUG FIXES:
           Jakob Schlyter/Ted Lindgreen).
         - Bug #106: don't walk all 256 NSEC windows when that is not
           needed.
-	- Bug #107: fixed crash when encountering bad unknown rdata
+	- Bug #107: fixed crash when encountering bad unknown rdata.
 
 FEATURES:
         - Bug #101: add support for the SPF record.
