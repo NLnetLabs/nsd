@@ -3,8 +3,8 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-11 14:57 CEST by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/rfc3597-good.OhOUlB'.
+# Made on 2005-10-12 11:01 CEST by <miekg@elektron>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/rfc3597-good.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
@@ -12,7 +12,7 @@
 # length mode       name
 # ------ ---------- ------------------------------------------
 #     49 -rw------- rfc3597-good.conf
-#    311 -rw------- rfc3597-good.dsc
+#    327 -rw------- rfc3597-good.dsc
 #    544 -rw------- rfc3597-good.test
 #    701 -rw------- rfc3597-good.zone
 #
@@ -64,7 +64,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh06316; then
+if mkdir _sh27284; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -106,7 +106,7 @@ CreationDate: Tue Oct 11 14:35:00 CEST 2005
 Maintainer: Miek Gieben
 Category: 
 Component: zonec
-Depends: 
+Depends: nsd-compile.tpkg
 Pre: 
 Post: 
 Test: rfc3597-good.test
@@ -114,19 +114,19 @@ AuxFiles: rfc3597-good.conf, rfc3597-good.zone
 Passed:
 Failure:
 SHAR_EOF
-  (set 20 05 10 11 14 36 27 'rfc3597-good.dsc'; eval "$shar_touch") &&
+  (set 20 05 10 12 11 01 34 'rfc3597-good.dsc'; eval "$shar_touch") &&
   chmod 0600 'rfc3597-good.dsc' ||
   $echo 'restore of' 'rfc3597-good.dsc' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'rfc3597-good.dsc:' 'MD5 check failed'
-16d0973faf81876ca5d56dc4fc1b7b5c  rfc3597-good.dsc
+f267404d34d68751a7e51b37fb5287ce  rfc3597-good.dsc
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'rfc3597-good.dsc'`"
-    test 311 -eq "$shar_count" ||
-    $echo 'rfc3597-good.dsc:' 'original size' '311,' 'current size' "$shar_count!"
+    test 327 -eq "$shar_count" ||
+    $echo 'rfc3597-good.dsc:' 'original size' '327,' 'current size' "$shar_count!"
   fi
 fi
 # ============= rfc3597-good.test ==============
@@ -208,5 +208,5 @@ SHAR_EOF
     $echo 'rfc3597-good.zone:' 'original size' '701,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh06316
+rm -fr _sh27284
 exit 0

@@ -1,0 +1,138 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-10-12 11:11 CEST by <miekg@elektron>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/nsd-compile.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#    236 -rw------- nsd-compile.dsc
+#    182 -rw------- nsd-compile.test
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh28113; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= nsd-compile.dsc ==============
+if test -f 'nsd-compile.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'nsd-compile.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'nsd-compile.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'nsd-compile.dsc' &&
+BaseName: nsd-compile
+Version: 1.0
+Description: Compile NSD
+CreationDate: Wed Oct 12 10:56:29 CEST 2005
+Maintainer: Miek Gieben
+Category: building
+Component: nsd
+Depends: 
+Pre: 
+Post: 
+Test: nsd-compile.test
+AuxFiles: 
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 10 12 10 57 28 'nsd-compile.dsc'; eval "$shar_touch") &&
+  chmod 0600 'nsd-compile.dsc' ||
+  $echo 'restore of' 'nsd-compile.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'nsd-compile.dsc:' 'MD5 check failed'
+e574a16ad1dc3b36f4dd2f61736a5546  nsd-compile.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nsd-compile.dsc'`"
+    test 236 -eq "$shar_count" ||
+    $echo 'nsd-compile.dsc:' 'original size' '236,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= nsd-compile.test ==============
+if test -f 'nsd-compile.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'nsd-compile.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'nsd-compile.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'nsd-compile.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var ] && source ../.tpkg.var
+# svnserve resets the path you may need to adjust it
+X
+cd ../..
+autoreconf && \
+X./configure && \
+make
+SHAR_EOF
+  (set 20 05 10 12 10 58 44 'nsd-compile.test'; eval "$shar_touch") &&
+  chmod 0600 'nsd-compile.test' ||
+  $echo 'restore of' 'nsd-compile.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'nsd-compile.test:' 'MD5 check failed'
+0fb322a2d3ca802cbe5a65dafc96b73e  nsd-compile.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nsd-compile.test'`"
+    test 182 -eq "$shar_count" ||
+    $echo 'nsd-compile.test:' 'original size' '182,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh28113
+exit 0
