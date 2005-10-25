@@ -1,0 +1,218 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-10-25 14:41 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug098_mnemonic_rrsig.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     46 -rw------- bug098_mnemonic_rrsig.conf
+#    347 -rw------- bug098_mnemonic_rrsig.dsc
+#    403 -rw------- bug098_mnemonic_rrsig.test
+#    939 -rw------- bug098_mnemonic_rrsig.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh29786; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug098_mnemonic_rrsig.conf ==============
+if test -f 'bug098_mnemonic_rrsig.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug098_mnemonic_rrsig.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug098_mnemonic_rrsig.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug098_mnemonic_rrsig.conf' &&
+zone    dnssec.    bug098_mnemonic_rrsig.zone
+SHAR_EOF
+  (set 20 05 10 25 14 33 05 'bug098_mnemonic_rrsig.conf'; eval "$shar_touch") &&
+  chmod 0600 'bug098_mnemonic_rrsig.conf' ||
+  $echo 'restore of' 'bug098_mnemonic_rrsig.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug098_mnemonic_rrsig.conf:' 'MD5 check failed'
+1ebc93ecde542a357f16bb1b6f629e96  bug098_mnemonic_rrsig.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug098_mnemonic_rrsig.conf'`"
+    test 46 -eq "$shar_count" ||
+    $echo 'bug098_mnemonic_rrsig.conf:' 'original size' '46,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug098_mnemonic_rrsig.dsc ==============
+if test -f 'bug098_mnemonic_rrsig.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug098_mnemonic_rrsig.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug098_mnemonic_rrsig.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug098_mnemonic_rrsig.dsc' &&
+BaseName: bug098_mnemonic_rrsig
+Version: 1.0
+Description: RRSIG with mnemonics in alg field
+CreationDate: Tue Oct 25 14:28:00 CEST 2005
+Maintainer: Miek Gieben
+Category: 
+Component: zonec
+Depends: 0000_nsd-compile.tpkg
+Pre: 
+Post: 
+Test: bug098_mnemonic_rrsig.test
+AuxFiles: bug098_mnemonic_rrsig.conf, bug098_mnemonic_rrsig.zone
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 10 25 14 28 38 'bug098_mnemonic_rrsig.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug098_mnemonic_rrsig.dsc' ||
+  $echo 'restore of' 'bug098_mnemonic_rrsig.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug098_mnemonic_rrsig.dsc:' 'MD5 check failed'
+6351347f18b66cb33fc0e324eabc6e98  bug098_mnemonic_rrsig.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug098_mnemonic_rrsig.dsc'`"
+    test 347 -eq "$shar_count" ||
+    $echo 'bug098_mnemonic_rrsig.dsc:' 'original size' '347,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug098_mnemonic_rrsig.test ==============
+if test -f 'bug098_mnemonic_rrsig.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug098_mnemonic_rrsig.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug098_mnemonic_rrsig.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug098_mnemonic_rrsig.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var ] && source ../.tpkg.var
+# svnserve resets the path
+# you may need to adjust it
+X
+# we execute in a subdir, so everything in NSD is in ../../
+X
+# this crashes in NSD 2.3.1
+X
+# create .db file
+X../../zonec -v -f bug098_mnemonic_rrsig.db  bug098_mnemonic_rrsig.conf
+fail=$?         # should be zero (=success)
+rm -f  bug098_mnemonic_rrsig.db
+exit $fail
+SHAR_EOF
+  (set 20 05 10 25 14 33 19 'bug098_mnemonic_rrsig.test'; eval "$shar_touch") &&
+  chmod 0600 'bug098_mnemonic_rrsig.test' ||
+  $echo 'restore of' 'bug098_mnemonic_rrsig.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug098_mnemonic_rrsig.test:' 'MD5 check failed'
+c86ea25a0d01bd9bb5d072ea3ab73aee  bug098_mnemonic_rrsig.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug098_mnemonic_rrsig.test'`"
+    test 403 -eq "$shar_count" ||
+    $echo 'bug098_mnemonic_rrsig.test:' 'original size' '403,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug098_mnemonic_rrsig.zone ==============
+if test -f 'bug098_mnemonic_rrsig.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug098_mnemonic_rrsig.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug098_mnemonic_rrsig.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug098_mnemonic_rrsig.zone' &&
+; File written on Thu Dec  9 16:22:56 2004
+; dnssec_signzone version 9.3.0
+; both mnemonics as numbers as alg in RRSIGs
+dnssec.			3600	IN SOA	dnssec. admin.dnssec. (
+X					2004120901 ; serial
+X					21600      ; refresh (6 hours)
+X					7200       ; retry (2 hours)
+X					604800     ; expire (1 week)
+X					3600       ; minimum (1 hour)
+X					)
+X			3600	RRSIG	SOA RSAMD5 1 3600 20050108142256 (
+X					20041209142256 25294 dnssec.
+X					OhPPWZeqtcNBznhkpn2YO7cncHF0PhxhTcrZ
+X					hG3ZrIsX/PFOYHkA3lJPZX9lzTLlrxqeFVFb
+X					60641NNKUiq4Aw== )
+X			3600	NS	ns.dnssec.
+X			3600	RRSIG	NS 1 1 3600 20050108142256 (
+X					20041209142256 25294 dnssec.
+X					tuikgzRDd8xEdmr1W0k0eo6sAlSqhhlNIn/f
+X					ksld4w9C9SC/B/WR1RP1m/c4pZ1fXEimi0Io
+X					rllFZpptJU6vRQ== )
+X			3600	A	127.0.0.1
+X			3600	RRSIG	A 1 1 3600 20050108142256 (
+X					20041209142256 25294 dnssec.
+X					dukS7Rw05gRu67NswMTOhUT1xSi5YkxmC1Yx
+X					26JKdO7CWRIWjvANW9dy3h7I4MGUWkb3MIST
+X					vecTgPcktpdVuQ== )
+SHAR_EOF
+  (set 20 05 10 25 14 33 10 'bug098_mnemonic_rrsig.zone'; eval "$shar_touch") &&
+  chmod 0600 'bug098_mnemonic_rrsig.zone' ||
+  $echo 'restore of' 'bug098_mnemonic_rrsig.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug098_mnemonic_rrsig.zone:' 'MD5 check failed'
+b281d39aa9fcd4006d53b99533f9efcb  bug098_mnemonic_rrsig.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug098_mnemonic_rrsig.zone'`"
+    test 939 -eq "$shar_count" ||
+    $echo 'bug098_mnemonic_rrsig.zone:' 'original size' '939,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh29786
+exit 0

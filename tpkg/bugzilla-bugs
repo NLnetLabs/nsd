@@ -49,9 +49,9 @@
 87   "@ 12h IN MX 0 @ does not parse"
 88   "::FFFF:ipv4-addr does not parse as valid"
 90   "small error in handling of TXT rdata data"
-95   "screwy wildcard case"
+95   "screwy wildcard case" 
 96   "nsd-xfer cannot handle 8bit domainname correctly"
-98   "parsing error in zonec for RRSIGs"
+98   "parsing error in zonec for RRSIGs"        bug098_mnemonic_rrsig.tpkg
 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
 101   "SPF RR is not supported"         bug101_spf.tpkg
 102   "direct NSEC query response"      nsd puts nsec in auth. sec. is okay
