@@ -47,10 +47,13 @@
 85   "zonec cannot handle WKS records"
 86   "zonec cannot handle many characters (&
 87   "@ 12h IN MX 0 @ does not parse"
-88   "::FFFF:ipv4-addr does not parse as valid" deze ook nog
-90   "small error in handling of TXT rdata data"         bug090_000_txt.tpkg
-95   "screwy wildcard case" - HIER GEKOMEN
-96   "nsd-xfer cannot handle 8bit domainname correctly"
+
+---- tot hier gekomen ----
+
+88   "::FFFF:ipv4-addr does not parse as valid"         bug088_ff_ip4.tpkg
+90   "small error in handling of TXT rdata data"       bug090_000_txt.tpkg
+95   "screwy wildcard case" - MOET_NOG
+96   "nsd-xfer cannot handle 8bit domainname correctly" MOET_NOG
 98   "parsing error in zonec for RRSIGs"        bug098_mnemonic_rrsig.tpkg
 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
 101   "SPF RR is not supported"         bug101_spf.tpkg
