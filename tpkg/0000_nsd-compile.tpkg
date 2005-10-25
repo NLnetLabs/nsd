@@ -3,16 +3,16 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-12 11:11 CEST by <miekg@elektron>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/nsd-compile.dir'.
+# Made on 2005-10-25 11:15 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/0000_nsd-compile.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#    236 -rw------- nsd-compile.dsc
-#    182 -rw------- nsd-compile.test
+#    246 -rw------- 0000_nsd-compile.dsc
+#    596 -rw------- 0000_nsd-compile.test
 #
 save_IFS="${IFS}"
 IFS="${IFS}:"
@@ -62,19 +62,19 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh28113; then
+if mkdir _sh07613; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
   exit 1
 fi
-# ============= nsd-compile.dsc ==============
-if test -f 'nsd-compile.dsc' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'nsd-compile.dsc' '(file already exists)'
+# ============= 0000_nsd-compile.dsc ==============
+if test -f '0000_nsd-compile.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING '0000_nsd-compile.dsc' '(file already exists)'
 else
-  $echo 'x -' extracting 'nsd-compile.dsc' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'nsd-compile.dsc' &&
-BaseName: nsd-compile
+  $echo 'x -' extracting '0000_nsd-compile.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > '0000_nsd-compile.dsc' &&
+BaseName: 0000_nsd-compile
 Version: 1.0
 Description: Compile NSD
 CreationDate: Wed Oct 12 10:56:29 CEST 2005
@@ -84,55 +84,72 @@ Component: nsd
 Depends: 
 Pre: 
 Post: 
-Test: nsd-compile.test
+Test: 0000_nsd-compile.test
 AuxFiles: 
 Passed:
 Failure:
 SHAR_EOF
-  (set 20 05 10 12 10 57 28 'nsd-compile.dsc'; eval "$shar_touch") &&
-  chmod 0600 'nsd-compile.dsc' ||
-  $echo 'restore of' 'nsd-compile.dsc' 'failed'
+  (set 20 05 10 25 11 14 56 '0000_nsd-compile.dsc'; eval "$shar_touch") &&
+  chmod 0600 '0000_nsd-compile.dsc' ||
+  $echo 'restore of' '0000_nsd-compile.dsc' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'nsd-compile.dsc:' 'MD5 check failed'
-e574a16ad1dc3b36f4dd2f61736a5546  nsd-compile.dsc
+    || $echo '0000_nsd-compile.dsc:' 'MD5 check failed'
+6ada6663f16ffb6da4f0ed2b5ea03223  0000_nsd-compile.dsc
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nsd-compile.dsc'`"
-    test 236 -eq "$shar_count" ||
-    $echo 'nsd-compile.dsc:' 'original size' '236,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < '0000_nsd-compile.dsc'`"
+    test 246 -eq "$shar_count" ||
+    $echo '0000_nsd-compile.dsc:' 'original size' '246,' 'current size' "$shar_count!"
   fi
 fi
-# ============= nsd-compile.test ==============
-if test -f 'nsd-compile.test' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'nsd-compile.test' '(file already exists)'
+# ============= 0000_nsd-compile.test ==============
+if test -f '0000_nsd-compile.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING '0000_nsd-compile.test' '(file already exists)'
 else
-  $echo 'x -' extracting 'nsd-compile.test' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'nsd-compile.test' &&
+  $echo 'x -' extracting '0000_nsd-compile.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > '0000_nsd-compile.test' &&
 # source the var file when it's there
 [ -f ../.tpkg.var ] && source ../.tpkg.var
 # svnserve resets the path you may need to adjust it
 X
-cd ../..
-autoreconf && \
-X./configure && \
-make
+export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+# first arg is the build dir
+TPKG_BUILD=$1
+X
+echo $TPKG_BUILD
+cd $TPKG_BUILD
+X
+case $OSTYPE in
+X        linux*)
+X                libtoolize && autoreconf && \
+X                ./configure && \
+X                make
+X        ;;
+X        freebsd*)
+X                libtoolize15 && \
+X                autoconf259 && autoheader259 && \
+X                ./configure && \
+X                gmake
+X        ;;
+esac
 SHAR_EOF
-  (set 20 05 10 12 10 58 44 'nsd-compile.test'; eval "$shar_touch") &&
-  chmod 0600 'nsd-compile.test' ||
-  $echo 'restore of' 'nsd-compile.test' 'failed'
+  (set 20 05 10 25 11 15 27 '0000_nsd-compile.test'; eval "$shar_touch") &&
+  chmod 0600 '0000_nsd-compile.test' ||
+  $echo 'restore of' '0000_nsd-compile.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'nsd-compile.test:' 'MD5 check failed'
-0fb322a2d3ca802cbe5a65dafc96b73e  nsd-compile.test
+    || $echo '0000_nsd-compile.test:' 'MD5 check failed'
+813d9cb5dc6e7cadee507cd79b320765  0000_nsd-compile.test
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nsd-compile.test'`"
-    test 182 -eq "$shar_count" ||
-    $echo 'nsd-compile.test:' 'original size' '182,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < '0000_nsd-compile.test'`"
+    test 596 -eq "$shar_count" ||
+    $echo '0000_nsd-compile.test:' 'original size' '596,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh28113
+rm -fr _sh07613
 exit 0
