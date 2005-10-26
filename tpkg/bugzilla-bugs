@@ -45,11 +45,9 @@
 78   "Zonec doesn't compile complete zone with multiple zones and includes"
 81   "Unknown types not supported correctly"
 85   "zonec cannot handle WKS records"
-86   "zonec cannot handle many characters (&
-87   "@ 12h IN MX 0 @ does not parse"
-
 ---- tot hier gekomen ----
-
+86   "zonec cannot handle many characters (&            bug086_chars.tpkg
+M 87   "@ 12h IN MX 0 @ does not parse"
 88   "::FFFF:ipv4-addr does not parse as valid"         bug088_ff_ip4.tpkg
 90   "small error in handling of TXT rdata data"       bug090_000_txt.tpkg
 M 95   "screwy wildcard case"
