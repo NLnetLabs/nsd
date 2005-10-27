@@ -1,3 +1,7 @@
+T  - testcase written
+M  - Moet nog
+-  - too little information to write a testcase
+------------------------------------------------------------------------
 3   "RCODE for dynamic updates"
 - 4   "Correctly handle queries with too much data"  to little info
 6   "different name encodiungs?"
@@ -36,10 +40,10 @@
 53   "Over-pruning additional section if size(response)>512"
 54   "NSD does not copy RD bit from query"
 56   "axfr doesn't transfer cnames"
-59   "NSD returns FORMERR when the query name is >= 246 bytes (this applies to at least version 1.0.2 through 1.2.0
-64   "Answer for request of a host resolved by a wildcard-resource-record is not understandable by dig."
+T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
+64   "Answer for request resolved by a wildcard-resource-record is not understandable by dig."
 70   "add preferred (A) glue to the spec"
-72   "The order of records with overlapping resources determines which records resolve (version 1.2.3)"
+72   "The order of records with overlapping resources determines which records resolve )"
 76   "Recursive INCLUDE bug in nsd 1.2.4"
 77   "Nsd doesn't check the length of domain labels"
 78   "Zonec doesn't compile complete zone with multiple zones and includes"
@@ -52,9 +56,9 @@ M 87   "@ 12h IN MX 0 @ does not parse"
 90   "small error in handling of TXT rdata data"       bug090_000_txt.tpkg
 M 95   "screwy wildcard case"
 M 96   "nsd-xfer cannot handle 8bit domainname correctly"
-98   "parsing error in zonec for RRSIGs"        bug098_mnemonic_rrsig.tpkg
+T 98   "parsing error in zonec for RRSIGs"        bug098_mnemonic_rrsig.tpkg
 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
-101   "SPF RR is not supported"         bug101_spf.tpkg
-102   "direct NSEC query response"      nsd puts nsec in auth. sec. is okay
-103   "NXDOMAIN SOA TTL"        bug103.tpkg
-107   "segfault when encountering bad hex data in rfc3597 rdata"        rfc3597-bad.tpkg
+T 101   "SPF RR is not supported"         bug101_spf.tpkg
+T 102   "direct NSEC query response"      nsd puts nsec in auth. sec. is okay
+T 103   "NXDOMAIN SOA TTL"        bug103.tpkg
+T 107   "segfault when encountering bad hex data in rfc3597 rdata"        rfc3597-bad.tpkg
