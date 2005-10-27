@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# run the tests
+for i in *.tpkg; do
+        tpkg -a ../../ exe $i
+done
