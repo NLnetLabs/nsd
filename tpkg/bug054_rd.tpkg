@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-27 14:58 CEST by <miekg@floep>.
+# Made on 2005-10-27 15:33 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug054_rd.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh26486; then
+if mkdir _sh12440; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -244,7 +244,7 @@ X
 $TPKG_ZONEC -f bug054_rd.db bug054_rd.conf && \
 $TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug054_rd.db
 SHAR_EOF
-  (set 20 05 10 27 14 58 22 'bug054_rd.pre'; eval "$shar_touch") &&
+  (set 20 05 10 27 15 33 05 'bug054_rd.pre'; eval "$shar_touch") &&
   chmod 0600 'bug054_rd.pre' ||
   $echo 'restore of' 'bug054_rd.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
@@ -334,5 +334,5 @@ SHAR_EOF
     $echo 'bug054_rd.zone:' 'original size' '683,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh26486
+rm -fr _sh12440
 exit 0
