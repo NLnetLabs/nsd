@@ -9,15 +9,10 @@ AUTOCONF
 
 
 ZONE COMPILER
-? memory allocation optimization is needed
-- error diagnostic has to be improved a lot
-- improve the strdname() routine
 + empty node should not cause NXDOMAIN
-- need to add unknown RR handling in grammar
 - unify dns type table (name, dns type, yacc token, rdata types)
 - unify dns class table (name, dns type, yacc token)
 - detect cname loops
-
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?
