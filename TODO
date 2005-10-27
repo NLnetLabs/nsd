@@ -2,9 +2,7 @@ $Id$
 
 NOTE: Some of these are probably out of date.
 
-
 AUTOCONF
-
 + check whether the --with-nsd-user exists in the system
 
 
@@ -25,22 +23,16 @@ SERVER
 
 SECURITY
 
-
 PURITY
 - some data is in network order some in host order, make it clear with prefixes
 - brush up the fuction and identifiers names
 
-
 TESTS
-
-
-MISC
-
+- add a test for every bugzilla bug
 
 CLEANUP
-- proper error/fatal/warning interfaces
++ proper error/fatal/warning interfaces
 - separate parse for nsd.zones
-
 
 DOCUMENTATION
 
