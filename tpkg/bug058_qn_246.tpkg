@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-27 13:53 CEST by <miekg@floep>.
+# Made on 2005-10-27 14:34 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug058_qn_246.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -16,7 +16,7 @@
 #    143 -rw------- bug058_qn_246.help
 #    120 -rw------- bug058_qn_246.known_good_respons1
 #    388 -rw------- bug058_qn_246.post
-#    604 -rw------- bug058_qn_246.pre
+#    603 -rw------- bug058_qn_246.pre
 #    660 -rw------- bug058_qn_246.test
 #    683 -rw------- bug058_qn_246.zone
 #
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh22237; then
+if mkdir _sh24974; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -235,25 +235,25 @@ TPKG_ZONEC="$PRE/zonec"
 TPKG_NSD="$PRE/nsd"
 X
 # share the vars
-echo "export TPKG_PORT=$TPKG_PORT" >> ../$TPKG_VAR
+echo "export TPKG_PORT=$TPKG_PORT" > ../$TPKG_VAR
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> ../$TPKG_VAR
 X
 $TPKG_ZONEC -f bug058_qn_246.db bug058_qn_246.conf && \
 $TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug058_qn_246.db
 SHAR_EOF
-  (set 20 05 10 27 13 47 51 'bug058_qn_246.pre'; eval "$shar_touch") &&
+  (set 20 05 10 27 14 34 30 'bug058_qn_246.pre'; eval "$shar_touch") &&
   chmod 0600 'bug058_qn_246.pre' ||
   $echo 'restore of' 'bug058_qn_246.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug058_qn_246.pre:' 'MD5 check failed'
-77ff13486f7009f942f66335db24028b  bug058_qn_246.pre
+b859862a74b1cbbfcc22e55933a2087f  bug058_qn_246.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug058_qn_246.pre'`"
-    test 604 -eq "$shar_count" ||
-    $echo 'bug058_qn_246.pre:' 'original size' '604,' 'current size' "$shar_count!"
+    test 603 -eq "$shar_count" ||
+    $echo 'bug058_qn_246.pre:' 'original size' '603,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug058_qn_246.test ==============
@@ -339,5 +339,5 @@ SHAR_EOF
     $echo 'bug058_qn_246.zone:' 'original size' '683,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh22237
+rm -fr _sh24974
 exit 0
