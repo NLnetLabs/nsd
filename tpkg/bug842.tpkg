@@ -1,0 +1,337 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-10-27 14:59 CEST by <jeltejan@forest>.
+# Source directory was `/home/jeltejan/repos/nsd_current_release_branch/tpkg/bug842.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     33 -rw------- bug842.conf
+#    373 -rw------- bug842.dsc
+#     62 -rw------- bug842.known_good_respons1
+#     94 -rw------- bug842.known_good_respons2
+#    388 -rw------- bug842.post
+#    583 -rw------- bug842.pre
+#    570 -rw------- bug842.test
+#    711 -rw------- bug842.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh30361; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug842.conf ==============
+if test -f 'bug842.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug842.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug842.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug842.conf' &&
+zone	miek.nl         bug103.zone
+SHAR_EOF
+  (set 20 05 10 25 11 42 33 'bug842.conf'; eval "$shar_touch") &&
+  chmod 0600 'bug842.conf' ||
+  $echo 'restore of' 'bug842.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug842.conf:' 'MD5 check failed'
+407e203e1116101c3750cd1d72be24f0  bug842.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug842.conf'`"
+    test 33 -eq "$shar_count" ||
+    $echo 'bug842.conf:' 'original size' '33,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug842.dsc ==============
+if test -f 'bug842.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug842.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug842.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug842.dsc' &&
+BaseName: bug842
+Version: 1.0
+Description: Check if the SOA min value is used on NX queries
+CreationDate: Tue Oct 25 11:18:39 CEST 2005
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 0000_nsd-compile.tpkg
+Pre: bug842.pre
+Post: bug842.post
+Test: bug842.test
+AuxFiles: bug842.zone, bug842.conf, bug842.known_good_respons1, bug842.known_good_respons2
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 10 27 14 59 49 'bug842.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug842.dsc' ||
+  $echo 'restore of' 'bug842.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug842.dsc:' 'MD5 check failed'
+ac0dcf62a976b80909210feef1eef1d8  bug842.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug842.dsc'`"
+    test 373 -eq "$shar_count" ||
+    $echo 'bug842.dsc:' 'original size' '373,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug842.known_good_respons1 ==============
+if test -f 'bug842.known_good_respons1' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug842.known_good_respons1' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug842.known_good_respons1' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug842.known_good_respons1' &&
+miek.nl.                345600  IN      A       80.127.17.126
+SHAR_EOF
+  (set 20 05 10 25 12 18 23 'bug842.known_good_respons1'; eval "$shar_touch") &&
+  chmod 0600 'bug842.known_good_respons1' ||
+  $echo 'restore of' 'bug842.known_good_respons1' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug842.known_good_respons1:' 'MD5 check failed'
+5c9dd09b94a72cfcd5bd589e3140c4f2  bug842.known_good_respons1
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug842.known_good_respons1'`"
+    test 62 -eq "$shar_count" ||
+    $echo 'bug842.known_good_respons1:' 'original size' '62,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug842.known_good_respons2 ==============
+if test -f 'bug842.known_good_respons2' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug842.known_good_respons2' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug842.known_good_respons2' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug842.known_good_respons2' &&
+miek.nl.		86400	IN	SOA	open.nlnetlabs.nl. miekg.atoom.net. 2005061300 14400 3600 604800 86400
+SHAR_EOF
+  (set 20 05 10 25 12 21 57 'bug842.known_good_respons2'; eval "$shar_touch") &&
+  chmod 0600 'bug842.known_good_respons2' ||
+  $echo 'restore of' 'bug842.known_good_respons2' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug842.known_good_respons2:' 'MD5 check failed'
+413753fa17989e80936ce64587f758f6  bug842.known_good_respons2
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug842.known_good_respons2'`"
+    test 94 -eq "$shar_count" ||
+    $echo 'bug842.known_good_respons2:' 'original size' '94,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug842.post ==============
+if test -f 'bug842.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug842.post' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug842.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug842.post' &&
+# source the var file when it's there
+[ -f ../.tpkg.var ] && source ../.tpkg.var
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill $NSD_PID 2>/dev/null
+sleep 1 # should be really dead now - just to be sure kill it again
+kill $NSD_PID 2>/dev/null
+Xexit 0
+SHAR_EOF
+  (set 20 05 10 25 12 13 26 'bug842.post'; eval "$shar_touch") &&
+  chmod 0600 'bug842.post' ||
+  $echo 'restore of' 'bug842.post' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug842.post:' 'MD5 check failed'
+fae9b4c6b2dd8f9ea1604ebba24d17f4  bug842.post
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug842.post'`"
+    test 388 -eq "$shar_count" ||
+    $echo 'bug842.post:' 'original size' '388,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug842.pre ==============
+if test -f 'bug842.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug842.pre' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug842.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug842.pre' &&
+# source the var file when it's there
+[ -f ../.tpkg.var ] && source ../.tpkg.var
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+# start NSD
+((TPKG_PORT=5353+$RANDOM))
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_ZONEC="$PRE/zonec"
+TPKG_NSD="$PRE/nsd"
+X
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> ../$TPKG_VAR
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> ../$TPKG_VAR
+X
+$TPKG_ZONEC -f bug103.db bug103.conf && \
+$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug103.db
+SHAR_EOF
+  (set 20 05 10 25 12 13 02 'bug842.pre'; eval "$shar_touch") &&
+  chmod 0600 'bug842.pre' ||
+  $echo 'restore of' 'bug842.pre' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug842.pre:' 'MD5 check failed'
+a941432c8aa074bbd94d80c6975d2657  bug842.pre
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug842.pre'`"
+    test 583 -eq "$shar_count" ||
+    $echo 'bug842.pre:' 'original size' '583,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug842.test ==============
+if test -f 'bug842.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug842.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug842.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug842.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var ] && source ../.tpkg.var
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+# normal query
+dig +noall +answer @localhost -p $TPKG_PORT miek.nl a > bug103.current_respons1
+# check the ttl on this one
+dig +noall +authority @localhost -p $TPKG_PORT blaat.miek.nl > bug103.current_respons2
+X
+# both must be ok
+wdiff bug103.known_good_respons1 bug103.current_respons1 && \
+wdiff bug103.known_good_respons2 bug103.current_respons2
+SHAR_EOF
+  (set 20 05 10 25 12 22 01 'bug842.test'; eval "$shar_touch") &&
+  chmod 0600 'bug842.test' ||
+  $echo 'restore of' 'bug842.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug842.test:' 'MD5 check failed'
+287c42020dd2da759fa723c578b4bc22  bug842.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug842.test'`"
+    test 570 -eq "$shar_count" ||
+    $echo 'bug842.test:' 'original size' '570,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug842.zone ==============
+if test -f 'bug842.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug842.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug842.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug842.zone' &&
+;
+; BIND data file for miek.nl for public use
+;
+X
+$TTL    4D
+$ORIGIN miek.nl.
+@       IN      SOA     open.nlnetlabs.nl. miekg.atoom.net. (
+X                         2005061300         ; Serial
+X                             4H         ; Refresh
+X                             1H         ; Retry
+X                             7D         ; Expire
+X                             1D )       ; Negative Cache TTL
+X		IN	NS	open.nlnetlabs.nl.
+X		IN	NS	omval.tednet.nl.
+X		IN	NS	elektron.atoom.net.
+X
+X		IN	MX	20 mail.atoom.net.
+X		IN	MX	20 sol.nlnetlabs.nl.
+X
+miek.nl.	IN	A	80.127.17.126
+localhost	IN	A	127.0.0.1
+a	    	IN	A	80.127.17.126
+www     	IN 	CNAME 	a
+text            IN      TXT     "Hallo, ik ben Miek, wie gets mit dir?"
+SHAR_EOF
+  (set 20 05 10 25 11 53 24 'bug842.zone'; eval "$shar_touch") &&
+  chmod 0600 'bug842.zone' ||
+  $echo 'restore of' 'bug842.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug842.zone:' 'MD5 check failed'
+7b93765587236dcddb81d3f5efe00841  bug842.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug842.zone'`"
+    test 711 -eq "$shar_count" ||
+    $echo 'bug842.zone:' 'original size' '711,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh30361
+exit 0
