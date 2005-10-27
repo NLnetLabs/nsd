@@ -38,8 +38,8 @@ M  - Moet nog
 49   "No glue records in AXFR"          testable
 52   "dont answer NXDOMAIN for empty nodes"
 53   "Over-pruning additional section if size(response)>512"
-54   "NSD does not copy RD bit from query"
-T 56   "axfr doesn't transfer cnames"
+T 54   "NSD does not copy RD bit from query"
+56   "axfr doesn't transfer cnames"
 T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
 64   "Answer for request resolved by a wildcard-resource-record is not understandable by dig."
 70   "add preferred (A) glue to the spec"
@@ -47,7 +47,7 @@ T 59   "NSD returns FORMERR when the query name is >= 246 bytes
 76   "Recursive INCLUDE bug in nsd 1.2.4"
 77   "Nsd doesn't check the length of domain labels"
 78   "Zonec doesn't compile complete zone with multiple zones and includes"
-81   "Unknown types not supported correctly"
+T 81   "Unknown types not supported correctly"      bug107 duplicate
 85   "zonec cannot handle WKS records"
 ---- tot hier gekomen ----
 86   "zonec cannot handle many characters (&            bug086_chars.tpkg

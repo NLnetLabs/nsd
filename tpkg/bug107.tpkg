@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-25 13:37 CEST by <miekg@floep>.
+# Made on 2005-10-27 15:52 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug107.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -13,6 +13,7 @@
 # ------ ---------- ------------------------------------------
 #     48 -rw------- bug107.conf
 #    307 -rw------- bug107.dsc
+#    101 -rw------- bug107.help
 #    491 -rw------- bug107.test
 #    701 -rw------- bug107.zone
 #
@@ -64,7 +65,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh19079; then
+if mkdir _sh30735; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -101,7 +102,7 @@ else
   sed 's/^X//' << 'SHAR_EOF' > 'bug107.dsc' &&
 BaseName: bug107
 Version: 1.0
-Description: Compile a zone with unknown rr data (the zone is BAD)
+Description: Compile a zone with unknown rr data. Also test bug 81
 CreationDate: Tue Oct 11 14:55:00 CEST 2005
 Maintainer: Miek Gieben
 Category: 
@@ -114,19 +115,43 @@ AuxFiles: bug107.conf, bug107.zone
 Passed:
 Failure:
 SHAR_EOF
-  (set 20 05 10 25 13 37 50 'bug107.dsc'; eval "$shar_touch") &&
+  (set 20 05 10 27 15 51 21 'bug107.dsc'; eval "$shar_touch") &&
   chmod 0600 'bug107.dsc' ||
   $echo 'restore of' 'bug107.dsc' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug107.dsc:' 'MD5 check failed'
-a10ed50b589c39c2a620f919110c4bc6  bug107.dsc
+56779dbc10cba8e8aa0c5c5fdddcf46b  bug107.dsc
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug107.dsc'`"
     test 307 -eq "$shar_count" ||
     $echo 'bug107.dsc:' 'original size' '307,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug107.help ==============
+if test -f 'bug107.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug107.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug107.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug107.help' &&
+Test bogus unknown rdata. Also test correct unknown data.
+Bug 81 is thus also tested with this test.
+SHAR_EOF
+  (set 20 05 10 27 15 52 06 'bug107.help'; eval "$shar_touch") &&
+  chmod 0600 'bug107.help' ||
+  $echo 'restore of' 'bug107.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug107.help:' 'MD5 check failed'
+2776968e36873c7612a0339f03feaf99  bug107.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug107.help'`"
+    test 101 -eq "$shar_count" ||
+    $echo 'bug107.help:' 'original size' '101,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug107.test ==============
@@ -203,5 +228,5 @@ SHAR_EOF
     $echo 'bug107.zone:' 'original size' '701,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh19079
+rm -fr _sh30735
 exit 0

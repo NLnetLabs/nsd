@@ -4,3 +4,5 @@
 for i in *.tpkg; do
         tpkg -a ../../ exe $i
 done
+tpkg report
+tpkg clean
