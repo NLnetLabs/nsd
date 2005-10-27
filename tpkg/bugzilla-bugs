@@ -2,13 +2,15 @@ T  - testcase written
 M  - Moet nog
 -  - too little information to write a testcase
 ------------------------------------------------------------------------
+------------------------------------------------------------------------
 3   "RCODE for dynamic updates"
 - 4   "Correctly handle queries with too much data"  to little info
-6   "different name encodiungs?"
-7   "sometimes label compression skip some parts"
-8   "do not exit on sendto buffer exhaustion"
+- 6   "different name encodiungs?"
+- 7   "sometimes label compression skip some parts"
+- 8   "do not exit on sendto buffer exhaustion"
+---- to hier gekomen ----
 9   "SOA alone in apex"
-10   "Segmentation violation while trying to destroy the database on exit"
+- 10   "Segmentation violation while trying to destroy the database on exit"
 11   "EDNS(0) spurious formerr"
 12   "message truncation"
 13   "when truncating authority section no TC bit is set"
