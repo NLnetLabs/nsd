@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-27 16:18 CEST by <miekg@floep>.
+# Made on 2005-10-28 16:44 CEST by <miekg@elektron>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/rr-test.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -14,7 +14,7 @@
 #     37 -rw------- rr-test.conf
 #    263 -rw------- rr-test.dsc
 #     71 -rw------- rr-test.help
-#    295 -rw------- rr-test.test
+#    309 -rw------- rr-test.test
 #   3489 -rw------- rr-test.zone
 #
 save_IFS="${IFS}"
@@ -65,7 +65,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh32270; then
+if mkdir _sh17654; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -162,26 +162,26 @@ else
   $echo 'x -' extracting 'rr-test.test' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'rr-test.test' &&
 # source the var file when it's there
-[ -f ../$TPKG_VAR ] && source ../$TPKG_VAR
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # svnserve resets the path, you may need to adjust it, like this:
 export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
 X
 # create .db file
 X../../zonec -v -f rr-test.db rr-test.conf && rm -f rr-test.db
 SHAR_EOF
-  (set 20 05 10 27 16 18 19 'rr-test.test'; eval "$shar_touch") &&
+  (set 20 05 10 28 16 44 43 'rr-test.test'; eval "$shar_touch") &&
   chmod 0600 'rr-test.test' ||
   $echo 'restore of' 'rr-test.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'rr-test.test:' 'MD5 check failed'
-ba897fe25f1b082bdc1035ebd6a7b10e  rr-test.test
+33cc77b12b68ac2bdd4ab8b83ea253fd  rr-test.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'rr-test.test'`"
-    test 295 -eq "$shar_count" ||
-    $echo 'rr-test.test:' 'original size' '295,' 'current size' "$shar_count!"
+    test 309 -eq "$shar_count" ||
+    $echo 'rr-test.test:' 'original size' '309,' 'current size' "$shar_count!"
   fi
 fi
 # ============= rr-test.zone ==============
@@ -290,5 +290,5 @@ SHAR_EOF
     $echo 'rr-test.zone:' 'original size' '3489,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh32270
+rm -fr _sh17654
 exit 0

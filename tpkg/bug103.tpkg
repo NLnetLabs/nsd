@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-25 12:28 CEST by <miekg@floep>.
+# Made on 2005-10-28 16:42 CEST by <miekg@elektron>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug103.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -15,9 +15,9 @@
 #    373 -rw------- bug103.dsc
 #     62 -rw------- bug103.known_good_respons1
 #     94 -rw------- bug103.known_good_respons2
-#    388 -rw------- bug103.post
-#    583 -rw------- bug103.pre
-#    570 -rw------- bug103.test
+#    498 -rw------- bug103.post
+#    601 -rw------- bug103.pre
+#    631 -rw------- bug103.test
 #    711 -rw------- bug103.zone
 #
 save_IFS="${IFS}"
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh12137; then
+if mkdir _sh17304; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -186,9 +186,14 @@ else
   $echo 'x -' extracting 'bug103.post' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug103.post' &&
 # source the var file when it's there
-[ -f ../.tpkg.var ] && source ../.tpkg.var
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
 # svnserve resets the path, you may need to adjust it, like this:
 export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
 X
 # kill NSD
 NSD_PID=`cat $TPKG_NSD_PID`
@@ -197,19 +202,19 @@ sleep 1 # should be really dead now - just to be sure kill it again
 kill $NSD_PID 2>/dev/null
 Xexit 0
 SHAR_EOF
-  (set 20 05 10 25 12 13 26 'bug103.post'; eval "$shar_touch") &&
+  (set 20 05 10 28 16 42 27 'bug103.post'; eval "$shar_touch") &&
   chmod 0600 'bug103.post' ||
   $echo 'restore of' 'bug103.post' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug103.post:' 'MD5 check failed'
-fae9b4c6b2dd8f9ea1604ebba24d17f4  bug103.post
+14443050b0d91a849613534442473146  bug103.post
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug103.post'`"
-    test 388 -eq "$shar_count" ||
-    $echo 'bug103.post:' 'original size' '388,' 'current size' "$shar_count!"
+    test 498 -eq "$shar_count" ||
+    $echo 'bug103.post:' 'original size' '498,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug103.pre ==============
@@ -219,7 +224,7 @@ else
   $echo 'x -' extracting 'bug103.pre' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug103.pre' &&
 # source the var file when it's there
-[ -f ../.tpkg.var ] && source ../.tpkg.var
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # svnserve resets the path, you may need to adjust it, like this:
 export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
 X
@@ -231,25 +236,25 @@ TPKG_ZONEC="$PRE/zonec"
 TPKG_NSD="$PRE/nsd"
 X
 # share the vars
-echo "export TPKG_PORT=$TPKG_PORT" >> ../$TPKG_VAR
-echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> ../$TPKG_VAR
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 X
 $TPKG_ZONEC -f bug103.db bug103.conf && \
 $TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug103.db
 SHAR_EOF
-  (set 20 05 10 25 12 13 02 'bug103.pre'; eval "$shar_touch") &&
+  (set 20 05 10 28 16 41 39 'bug103.pre'; eval "$shar_touch") &&
   chmod 0600 'bug103.pre' ||
   $echo 'restore of' 'bug103.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug103.pre:' 'MD5 check failed'
-a941432c8aa074bbd94d80c6975d2657  bug103.pre
+55da5b25e747e95c44977ede2bc7498c  bug103.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug103.pre'`"
-    test 583 -eq "$shar_count" ||
-    $echo 'bug103.pre:' 'original size' '583,' 'current size' "$shar_count!"
+    test 601 -eq "$shar_count" ||
+    $echo 'bug103.pre:' 'original size' '601,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug103.test ==============
@@ -259,7 +264,8 @@ else
   $echo 'x -' extracting 'bug103.test' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug103.test' &&
 # source the var file when it's there
-[ -f ../.tpkg.var ] && source ../.tpkg.var
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
 # svnserve resets the path, you may need to adjust it, like this:
 export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
 X
@@ -272,19 +278,19 @@ X
 wdiff bug103.known_good_respons1 bug103.current_respons1 && \
 wdiff bug103.known_good_respons2 bug103.current_respons2
 SHAR_EOF
-  (set 20 05 10 25 12 22 01 'bug103.test'; eval "$shar_touch") &&
+  (set 20 05 10 28 16 42 05 'bug103.test'; eval "$shar_touch") &&
   chmod 0600 'bug103.test' ||
   $echo 'restore of' 'bug103.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug103.test:' 'MD5 check failed'
-287c42020dd2da759fa723c578b4bc22  bug103.test
+0853f327b926b63dc8699b68de48b86a  bug103.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug103.test'`"
-    test 570 -eq "$shar_count" ||
-    $echo 'bug103.test:' 'original size' '570,' 'current size' "$shar_count!"
+    test 631 -eq "$shar_count" ||
+    $echo 'bug103.test:' 'original size' '631,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug103.zone ==============
@@ -333,5 +339,5 @@ SHAR_EOF
     $echo 'bug103.zone:' 'original size' '711,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh12137
+rm -fr _sh17304
 exit 0
