@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-28 09:22 CEST by <miekg@elektron>.
+# Made on 2005-10-28 09:42 CEST by <miekg@elektron>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug054_rd.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -15,7 +15,7 @@
 #    298 -rw------- bug054_rd.dsc
 #     99 -rw------- bug054_rd.help
 #     69 -rw------- bug054_rd.known_good_respons1
-#    552 -rw------- bug054_rd.post
+#    527 -rw------- bug054_rd.post
 #    592 -rw------- bug054_rd.pre
 #    410 -rw------- bug054_rd.test
 #    683 -rw------- bug054_rd.zone
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh00367; then
+if mkdir _sh01991; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -199,26 +199,25 @@ kill $NSD_PID 2>/dev/null
 sleep 1 # should be really dead now - just to be sure kill it again
 kill $NSD_PID 2>/dev/null
 X
-# reset the tpkg.var file
-echo "export PATH=$PATH" > ../.tpkg.var
+echo "export PATH=$PATH" >> ../.tpkg.var
 echo "export LOGNAME=$LOGNAME" >> ../.tpkg.var
 echo "export USERNAME=$USERNAME" >> ../.tpkg.var
 X
 Xexit 0
 SHAR_EOF
-  (set 20 05 10 28 09 22 11 'bug054_rd.post'; eval "$shar_touch") &&
+  (set 20 05 10 28 09 42 24 'bug054_rd.post'; eval "$shar_touch") &&
   chmod 0600 'bug054_rd.post' ||
   $echo 'restore of' 'bug054_rd.post' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug054_rd.post:' 'MD5 check failed'
-2ec96c1538af935208919ef4a16e1c20  bug054_rd.post
+e1b2f2537d86ae58a0ba205a821c99e3  bug054_rd.post
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug054_rd.post'`"
-    test 552 -eq "$shar_count" ||
-    $echo 'bug054_rd.post:' 'original size' '552,' 'current size' "$shar_count!"
+    test 527 -eq "$shar_count" ||
+    $echo 'bug054_rd.post:' 'original size' '527,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug054_rd.pre ==============
@@ -336,5 +335,5 @@ SHAR_EOF
     $echo 'bug054_rd.zone:' 'original size' '683,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh00367
+rm -fr _sh01991
 exit 0

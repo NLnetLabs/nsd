@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-25 15:23 CEST by <miekg@floep>.
+# Made on 2005-10-28 09:42 CEST by <miekg@elektron>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug090_000_txt.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -14,7 +14,7 @@
 #     45 -rw------- bug090_000_txt.conf
 #    364 -rw------- bug090_000_txt.dsc
 #     69 -rw------- bug090_000_txt.known_good_respons1
-#    388 -rw------- bug090_000_txt.post
+#    553 -rw------- bug090_000_txt.post
 #    607 -rw------- bug090_000_txt.pre
 #    434 -rw------- bug090_000_txt.test
 #    656 -rw------- bug090_000_txt.zone
@@ -67,7 +67,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh32094; then
+if mkdir _sh01951; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -171,21 +171,27 @@ NSD_PID=`cat $TPKG_NSD_PID`
 kill $NSD_PID 2>/dev/null
 sleep 1 # should be really dead now - just to be sure kill it again
 kill $NSD_PID 2>/dev/null
+X
+# reset the tpkg.var file
+echo "export PATH=$PATH" >> ../.tpkg.var
+echo "export LOGNAME=$LOGNAME" >> ../.tpkg.var
+echo "export USERNAME=$USERNAME" >> ../.tpkg.var
+X
 Xexit 0
 SHAR_EOF
-  (set 20 05 10 25 15 09 57 'bug090_000_txt.post'; eval "$shar_touch") &&
+  (set 20 05 10 28 09 42 06 'bug090_000_txt.post'; eval "$shar_touch") &&
   chmod 0600 'bug090_000_txt.post' ||
   $echo 'restore of' 'bug090_000_txt.post' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug090_000_txt.post:' 'MD5 check failed'
-fae9b4c6b2dd8f9ea1604ebba24d17f4  bug090_000_txt.post
+9aefc7513e37ba949ff45e8947e3530b  bug090_000_txt.post
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug090_000_txt.post'`"
-    test 388 -eq "$shar_count" ||
-    $echo 'bug090_000_txt.post:' 'original size' '388,' 'current size' "$shar_count!"
+    test 553 -eq "$shar_count" ||
+    $echo 'bug090_000_txt.post:' 'original size' '553,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug090_000_txt.pre ==============
@@ -298,5 +304,5 @@ SHAR_EOF
     $echo 'bug090_000_txt.zone:' 'original size' '656,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh32094
+rm -fr _sh01951
 exit 0
