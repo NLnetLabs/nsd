@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-25 15:55 CEST by <miekg@floep>.
+# Made on 2005-10-28 16:34 CEST by <miekg@elektron>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug088_ff_ip4.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -13,7 +13,7 @@
 # ------ ---------- ------------------------------------------
 #     40 -rw------- bug088_ff_ip4.conf
 #    316 -rw------- bug088_ff_ip4.dsc
-#    372 -rw------- bug088_ff_ip4.test
+#    386 -rw------- bug088_ff_ip4.test
 #    574 -rw------- bug088_ff_ip4.zone
 #
 save_IFS="${IFS}"
@@ -64,7 +64,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh03883; then
+if mkdir _sh16540; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -136,7 +136,7 @@ else
   $echo 'x -' extracting 'bug088_ff_ip4.test' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug088_ff_ip4.test' &&
 # source the var file when it's there
-[ -f ../.tpkg.var ] && source ../.tpkg.var
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # svnserve resets the path, you may need to adjust it, like this:
 export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
 X
@@ -146,19 +146,19 @@ fail=$?         # should be zero (=success)
 rm -f bug088_ff_ip4.db
 exit $fail
 SHAR_EOF
-  (set 20 05 10 25 15 43 20 'bug088_ff_ip4.test'; eval "$shar_touch") &&
+  (set 20 05 10 28 16 33 58 'bug088_ff_ip4.test'; eval "$shar_touch") &&
   chmod 0600 'bug088_ff_ip4.test' ||
   $echo 'restore of' 'bug088_ff_ip4.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug088_ff_ip4.test:' 'MD5 check failed'
-94b29cdab6369000e5ba5d25bc283cc4  bug088_ff_ip4.test
+ce4c8671ffa50487e537ab9031df1a5f  bug088_ff_ip4.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug088_ff_ip4.test'`"
-    test 372 -eq "$shar_count" ||
-    $echo 'bug088_ff_ip4.test:' 'original size' '372,' 'current size' "$shar_count!"
+    test 386 -eq "$shar_count" ||
+    $echo 'bug088_ff_ip4.test:' 'original size' '386,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug088_ff_ip4.zone ==============
@@ -202,5 +202,5 @@ SHAR_EOF
     $echo 'bug088_ff_ip4.zone:' 'original size' '574,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh03883
+rm -fr _sh16540
 exit 0

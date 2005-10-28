@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-26 12:45 CEST by <miekg@elektron>.
+# Made on 2005-10-28 16:33 CEST by <miekg@elektron>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug086_chars.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -13,7 +13,7 @@
 # ------ ---------- ------------------------------------------
 #     42 -rw------- bug086_chars.conf
 #    309 -rw------- bug086_chars.dsc
-#    372 -rw------- bug086_chars.test
+#    386 -rw------- bug086_chars.test
 #    867 -rw------- bug086_chars.zone
 #
 save_IFS="${IFS}"
@@ -64,7 +64,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh19338; then
+if mkdir _sh16409; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -136,7 +136,7 @@ else
   $echo 'x -' extracting 'bug086_chars.test' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug086_chars.test' &&
 # source the var file when it's there
-[ -f ../.tpkg.var ] && source ../.tpkg.var
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # svnserve resets the path
 # you may need to adjust it
 X
@@ -150,19 +150,19 @@ fail=$?         # should be zero (=success)
 rm -f bug101_spf.db
 exit $fail
 SHAR_EOF
-  (set 20 05 10 26 12 30 58 'bug086_chars.test'; eval "$shar_touch") &&
+  (set 20 05 10 28 16 31 37 'bug086_chars.test'; eval "$shar_touch") &&
   chmod 0600 'bug086_chars.test' ||
   $echo 'restore of' 'bug086_chars.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug086_chars.test:' 'MD5 check failed'
-f77a63b6940458df494133a1cbb92c83  bug086_chars.test
+9c1788b3eec4138e4ffb85e5a8b0fd71  bug086_chars.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug086_chars.test'`"
-    test 372 -eq "$shar_count" ||
-    $echo 'bug086_chars.test:' 'original size' '372,' 'current size' "$shar_count!"
+    test 386 -eq "$shar_count" ||
+    $echo 'bug086_chars.test:' 'original size' '386,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug086_chars.zone ==============
@@ -214,5 +214,5 @@ SHAR_EOF
     $echo 'bug086_chars.zone:' 'original size' '867,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh19338
+rm -fr _sh16409
 exit 0
