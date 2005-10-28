@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-28 09:53 CEST by <miekg@elektron>.
+# Made on 2005-10-28 09:57 CEST by <miekg@elektron>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug090_000_txt.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -15,7 +15,7 @@
 #    364 -rw------- bug090_000_txt.dsc
 #     69 -rw------- bug090_000_txt.known_good_respons1
 #    553 -rw------- bug090_000_txt.post
-#    801 -rw------- bug090_000_txt.pre
+#    745 -rw------- bug090_000_txt.pre
 #    512 -rw------- bug090_000_txt.test
 #    656 -rw------- bug090_000_txt.zone
 #
@@ -67,7 +67,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh02864; then
+if mkdir _sh03113; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -216,26 +216,24 @@ X
 echo "export TPKG_PORT=$TPKG_PORT" >> ../$TPKG_VAR
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> ../$TPKG_VAR
 X
-LOGNAME=`basename $PWD` # subversion-make-it-work-hack
-X
 $TPKG_ZONEC -f bug090_000_txt.db bug090_000_txt.conf && \
 $TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug090_000_txt.db
 echo $TPKG_ZONEC -f bug090_000_txt.db bug090_000_txt.conf 
 echo $TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug090_000_txt.db
 SHAR_EOF
-  (set 20 05 10 28 09 52 58 'bug090_000_txt.pre'; eval "$shar_touch") &&
+  (set 20 05 10 28 09 56 51 'bug090_000_txt.pre'; eval "$shar_touch") &&
   chmod 0600 'bug090_000_txt.pre' ||
   $echo 'restore of' 'bug090_000_txt.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug090_000_txt.pre:' 'MD5 check failed'
-7fc32a0b8cb63caa9b9ce50c1c34d340  bug090_000_txt.pre
+a91a50215af1dc2092138d95914ecae5  bug090_000_txt.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug090_000_txt.pre'`"
-    test 801 -eq "$shar_count" ||
-    $echo 'bug090_000_txt.pre:' 'original size' '801,' 'current size' "$shar_count!"
+    test 745 -eq "$shar_count" ||
+    $echo 'bug090_000_txt.pre:' 'original size' '745,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug090_000_txt.test ==============
@@ -310,5 +308,5 @@ SHAR_EOF
     $echo 'bug090_000_txt.zone:' 'original size' '656,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh02864
+rm -fr _sh03113
 exit 0
