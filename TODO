@@ -1,11 +1,9 @@
 $Id$
 
-ahll
 NOTE: Some of these are probably out of date.
 
 AUTOCONF
 + check whether the --with-nsd-user exists in the system
-
 
 ZONE COMPILER
 + empty node should not cause NXDOMAIN
@@ -21,7 +19,6 @@ SERVER
 - query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
 - change default of --enable-ipv6 to yes.
 
-
 SECURITY
 
 PURITY
@@ -29,7 +26,7 @@ PURITY
 - brush up the fuction and identifiers names
 
 TESTS
-- add a test for every bugzilla bug
+- add a test for every bugzilla bug, this is on its way
 
 CLEANUP
 + proper error/fatal/warning interfaces
