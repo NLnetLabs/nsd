@@ -1,0 +1,222 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-10-31 12:20 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug087_parse_at.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     45 -rw------- bug087_parse_at.conf
+#    350 -rw------- bug087_parse_at.dsc
+#    133 -rw------- bug087_parse_at.help
+#    317 -rw------- bug087_parse_at.test
+#    383 -rw------- bug087_parse_at.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh23688; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug087_parse_at.conf ==============
+if test -f 'bug087_parse_at.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug087_parse_at.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug087_parse_at.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug087_parse_at.conf' &&
+zone    example.com.    bug087_parse_at.zone
+SHAR_EOF
+  (set 20 05 10 31 12 19 41 'bug087_parse_at.conf'; eval "$shar_touch") &&
+  chmod 0600 'bug087_parse_at.conf' ||
+  $echo 'restore of' 'bug087_parse_at.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug087_parse_at.conf:' 'MD5 check failed'
+c8ee321aec52900ef27c87d9c41ae3fc  bug087_parse_at.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug087_parse_at.conf'`"
+    test 45 -eq "$shar_count" ||
+    $echo 'bug087_parse_at.conf:' 'original size' '45,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug087_parse_at.dsc ==============
+if test -f 'bug087_parse_at.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug087_parse_at.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug087_parse_at.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug087_parse_at.dsc' &&
+BaseName: bug087_parse_at
+Version: 1.0
+Description: Compile a zone with  @ 12h IN MX 0 @ in it
+CreationDate: Mon Oct 31 12:18:00 CET 2005
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 0000_nsd-compile.tpkg
+Help: bug087_parse_at.help
+Pre:
+Post:
+Test: bug087_parse_at.test
+AuxFiles: bug087_parse_at.zone, bug087_parse_at.conf
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 10 31 12 18 35 'bug087_parse_at.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug087_parse_at.dsc' ||
+  $echo 'restore of' 'bug087_parse_at.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug087_parse_at.dsc:' 'MD5 check failed'
+3f6801844d9e147e9c4091b4cb2bc006  bug087_parse_at.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug087_parse_at.dsc'`"
+    test 350 -eq "$shar_count" ||
+    $echo 'bug087_parse_at.dsc:' 'original size' '350,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug087_parse_at.help ==============
+if test -f 'bug087_parse_at.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug087_parse_at.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug087_parse_at.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug087_parse_at.help' &&
+No arguments are required.
+The zone compilation should not fail.
+We should check the actual answer of NSD - but that will come later
+SHAR_EOF
+  (set 20 05 10 31 12 20 41 'bug087_parse_at.help'; eval "$shar_touch") &&
+  chmod 0600 'bug087_parse_at.help' ||
+  $echo 'restore of' 'bug087_parse_at.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug087_parse_at.help:' 'MD5 check failed'
+99634f9f342fe5f474041e5a4ee284b9  bug087_parse_at.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug087_parse_at.help'`"
+    test 133 -eq "$shar_count" ||
+    $echo 'bug087_parse_at.help:' 'original size' '133,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug087_parse_at.test ==============
+if test -f 'bug087_parse_at.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug087_parse_at.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug087_parse_at.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug087_parse_at.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path
+# you may need to adjust it
+X
+# we execute in a subdir, so everything in NSD is in ../../
+X
+# this crashes in NSD 2.3.1
+X
+# create .db file
+X../../zonec -v -f bug087_parse_at.db bug087_parse_at.conf
+SHAR_EOF
+  (set 20 05 10 31 12 19 17 'bug087_parse_at.test'; eval "$shar_touch") &&
+  chmod 0600 'bug087_parse_at.test' ||
+  $echo 'restore of' 'bug087_parse_at.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug087_parse_at.test:' 'MD5 check failed'
+87e9c2ec7fca157b66c4e5556c9fbaf7  bug087_parse_at.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug087_parse_at.test'`"
+    test 317 -eq "$shar_count" ||
+    $echo 'bug087_parse_at.test:' 'original size' '317,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug087_parse_at.zone ==============
+if test -f 'bug087_parse_at.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug087_parse_at.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug087_parse_at.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug087_parse_at.zone' &&
+example.com.       86400 IN SOA            dns.denic.de. ops.denic.de. (
+X                                        2002031701      ; serial
+X                                        10800   ; refresh
+X                                        7200    ; retry
+X                                        36000   ; expire
+X                                        3600)   ; minimum
+@ 12h IN MX 0 @
+SHAR_EOF
+  (set 20 05 10 31 12 19 35 'bug087_parse_at.zone'; eval "$shar_touch") &&
+  chmod 0600 'bug087_parse_at.zone' ||
+  $echo 'restore of' 'bug087_parse_at.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug087_parse_at.zone:' 'MD5 check failed'
+128aae98cad52a3a344007069c73907c  bug087_parse_at.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug087_parse_at.zone'`"
+    test 383 -eq "$shar_count" ||
+    $echo 'bug087_parse_at.zone:' 'original size' '383,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh23688
+exit 0
