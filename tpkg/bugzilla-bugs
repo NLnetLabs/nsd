@@ -3,19 +3,30 @@ M  - Moet nog
 -  - too little information to write a testcase
 !  - other ways to test this?
 ------------------------------------------------------------------------
-- 4   "Correctly handle queries with too much data"  to little info
-- 6   "different name encodiungs?"
-- 7   "sometimes label compression skip some parts"
-- 8   "do not exit on sendto buffer exhaustion"
-- 10   "Segmentation violation while trying to destroy the database on exit"
-- 14   "Magic string alignment"
-- 15   "nsd hangs on some queries..."
-- 16   "zonec dumps core with HASH -z nl nl -c . examples/zones/root"
-- 18   "name compression not quite 100% yet"
-- 19   "do not copy truncaed queries to answer", see > 246 qname queries
-- 26   "zone compiler thrashes on big zone files"
-- 36   "we should not bounce on RR Type when doing a referral"
-- 46   "proper wildcard matching"
+T 9   "SOA alone in apex"
+T 24   "parsing of integers in zone file / tokenizing?",
+T 25   "SRV RR (RFC2782) is not supported" 
+T 54   "NSD does not copy RD bit from query"
+T 56   "axfr doesn't transfer cnames"
+T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
+T 77   "Nsd doesn't check the length of domain labels"
+T 81   "Unknown types not supported correctly"     
+T 85   "zonec cannot handle WKS records" - see rr-test.tpkg
+T 86   "zonec cannot handle many characters (&           
+T 87   "@ 12h IN MX 0 @ does not parse"
+T 88   "::FFFF:ipv4-addr does not parse as valid"       
+T 90   "small error in handling of TXT rdata data"     
+T 95   "screwy wildcard case"
+T 98   "parsing error in zonec for RRSIGs"      
+T 101   "SPF RR is not supported"       
+T 102   "direct NSEC query response"   
+T 103   "NXDOMAIN SOA TTL"       
+T 107   "segfault when encountering bad hex data in rfc3597 rdata"
+== unrelated to bugzilla some are from the test/ directory
+T 0000 compile NSD
+T rr-test.tpkg compile a funny zone
+T soa-test.tpkg 
+T 213_large\.tpkg compile a larger (15M) zone
 
 ! 20   "256 questions per-se should generate form err"
 ! 22   "trailing byte in queries (see also bug4)" ALLOW TESTING WITH TRACES
@@ -46,32 +57,19 @@ M 76   "Recursive INCLUDE bug in nsd 1.2.4"
 M 78   "Zonec doesn't compile complete zone with multiple zones and includes"
 M 96   "nsd-xfer cannot handle 8bit domainname correctly"
 
-T 9   "SOA alone in apex"
-T 24   "parsing of integers in zone file / tokenizing?",
-T 25   "SRV RR (RFC2782) is not supported" 
-T 54   "NSD does not copy RD bit from query"
-T 56   "axfr doesn't transfer cnames"
-T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
-T 77   "Nsd doesn't check the length of domain labels"
-T 81   "Unknown types not supported correctly"     
-T 85   "zonec cannot handle WKS records" - see rr-test.tpkg
-T 86   "zonec cannot handle many characters (&           
-T 87   "@ 12h IN MX 0 @ does not parse"
-T 88   "::FFFF:ipv4-addr does not parse as valid"       
-T 90   "small error in handling of TXT rdata data"     
-T 95   "screwy wildcard case"
-T 98   "parsing error in zonec for RRSIGs"      
-T 101   "SPF RR is not supported"       
-T 102   "direct NSEC query response"   
-T 103   "NXDOMAIN SOA TTL"       
-T 107   "segfault when encountering bad hex data in rfc3597 rdata"
-== unrelated to bugzilla some are from the test/ directory
-T 0000 compile NSD
-T rr-test.tpkg compile a funny zone
-T soa-test.tpkg 
-T 213_large\.tpkg compile a larger (15M) zone
-
 ---- port over from test
 parent-child-order/     order in the database, bug #72
 
-
+- 4   "Correctly handle queries with too much data"  to little info
+- 6   "different name encodiungs?"
+- 7   "sometimes label compression skip some parts"
+- 8   "do not exit on sendto buffer exhaustion"
+- 10   "Segmentation violation while trying to destroy the database on exit"
+- 14   "Magic string alignment"
+- 15   "nsd hangs on some queries..."
+- 16   "zonec dumps core with HASH -z nl nl -c . examples/zones/root"
+- 18   "name compression not quite 100% yet"
+- 19   "do not copy truncaed queries to answer", see > 246 qname queries
+- 26   "zone compiler thrashes on big zone files"
+- 36   "we should not bounce on RR Type when doing a referral"
+- 46   "proper wildcard matching"
