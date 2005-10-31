@@ -1,5 +1,0 @@
-# these questions assume example. is loaded in the nameserver
-# example. is copied verbatim from protcol-03
-1:x.w.example. MX
-2:any example.
-3:+dnssec soa example.

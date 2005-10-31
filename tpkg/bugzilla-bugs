@@ -45,8 +45,6 @@ M 64   "Answer for request resolved by a wildcard-resource-record is not underst
 M 70   "add preferred (A) glue to the spec"
 M 72   "The order of records with overlapping resources determines which records resolve )"
 M 76   "Recursive INCLUDE bug in nsd 1.2.4"
-
-
 M 78   "Zonec doesn't compile complete zone with multiple zones and includes"
 M 85   "zonec cannot handle WKS records"
 M 95   "screwy wildcard case"
@@ -70,8 +68,10 @@ T 103   "NXDOMAIN SOA TTL"
 T 107   "segfault when encountering bad hex data in rfc3597 rdata"
 == unrelated to bugzilla some are from the test/ directory
 T 0000 compile NSD
-T 9999 kill all NSD's running
 T rr-test.tpkg compile a funny zone
+T soa-test.tpkg
 
 ---- port over from test
-parent-child-order/
+parent-child-order/     order in the database, bug #72
+
+
