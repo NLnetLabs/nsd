@@ -1,0 +1,358 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-10-31 11:28 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug009_soa_alone.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     43 -rw------- bug009_soa_alone.conf
+#    365 -rw------- bug009_soa_alone.dsc
+#     37 -rw------- bug009_soa_alone.help
+#     95 -rw------- bug009_soa_alone.known_good_respons1
+#     94 -rw------- bug009_soa_alone.known_good_respons2
+#    592 -rw------- bug009_soa_alone.post
+#    758 -rw------- bug009_soa_alone.pre
+#    714 -rw------- bug009_soa_alone.test
+#    351 -rw------- bug009_soa_alone.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh18314; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug009_soa_alone.conf ==============
+if test -f 'bug009_soa_alone.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.conf' &&
+zone	miek.nl         bug009_soa_alone.zone
+SHAR_EOF
+  (set 20 05 10 31 11 19 22 'bug009_soa_alone.conf'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.conf' ||
+  $echo 'restore of' 'bug009_soa_alone.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.conf:' 'MD5 check failed'
+353198ae291a439a807bcb244e31a055  bug009_soa_alone.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.conf'`"
+    test 43 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.conf:' 'original size' '43,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.dsc ==============
+if test -f 'bug009_soa_alone.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.dsc' &&
+BaseName: bug009_soa_alone
+Version: 1.0
+Description: Test bug 009 when soa is the only thing in the answer
+CreationDate: Mon Oct 31 11:14:53 CET 2005
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 0000_nsd-compile.tpkg
+Help: bug009_soa_alone.help
+Pre: bug009_soa_alone.pre
+Post: bug009_soa_alone.post
+Test: bug009_soa_alone.test
+AuxFiles: 
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 10 31 11 18 29 'bug009_soa_alone.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.dsc' ||
+  $echo 'restore of' 'bug009_soa_alone.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.dsc:' 'MD5 check failed'
+2826ade6620c02e4a88f31bc2bef3e1b  bug009_soa_alone.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.dsc'`"
+    test 365 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.dsc:' 'original size' '365,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.help ==============
+if test -f 'bug009_soa_alone.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.help' &&
+There are no arguments for this test
+SHAR_EOF
+  (set 20 05 10 31 11 18 00 'bug009_soa_alone.help'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.help' ||
+  $echo 'restore of' 'bug009_soa_alone.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.help:' 'MD5 check failed'
+528f43c1784ef350c3871f4cfd9ab1ba  bug009_soa_alone.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.help'`"
+    test 37 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.help:' 'original size' '37,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.known_good_respons1 ==============
+if test -f 'bug009_soa_alone.known_good_respons1' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.known_good_respons1' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.known_good_respons1' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.known_good_respons1' &&
+miek.nl.		345600	IN	SOA	open.nlnetlabs.nl. miekg.atoom.net. 2005061300 14400 3600 604800 86400
+SHAR_EOF
+  (set 20 05 10 31 11 23 10 'bug009_soa_alone.known_good_respons1'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.known_good_respons1' ||
+  $echo 'restore of' 'bug009_soa_alone.known_good_respons1' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.known_good_respons1:' 'MD5 check failed'
+265dc2db440d0c9e3423a1f55f5b18ce  bug009_soa_alone.known_good_respons1
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.known_good_respons1'`"
+    test 95 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.known_good_respons1:' 'original size' '95,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.known_good_respons2 ==============
+if test -f 'bug009_soa_alone.known_good_respons2' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.known_good_respons2' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.known_good_respons2' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.known_good_respons2' &&
+miek.nl.		86400	IN	SOA	open.nlnetlabs.nl. miekg.atoom.net. 2005061300 14400 3600 604800 86400
+SHAR_EOF
+  (set 20 05 10 31 11 23 02 'bug009_soa_alone.known_good_respons2'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.known_good_respons2' ||
+  $echo 'restore of' 'bug009_soa_alone.known_good_respons2' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.known_good_respons2:' 'MD5 check failed'
+413753fa17989e80936ce64587f758f6  bug009_soa_alone.known_good_respons2
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.known_good_respons2'`"
+    test 94 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.known_good_respons2:' 'original size' '94,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.post ==============
+if test -f 'bug009_soa_alone.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.post' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.post' &&
+# #-- bug009_soa_alone.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+#PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+#
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
+X
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill $NSD_PID 2>/dev/null
+sleep 1 # should be really dead now - just to be sure kill it again
+kill $NSD_PID 2>/dev/null
+Xexit 0
+SHAR_EOF
+  (set 20 05 10 31 11 17 24 'bug009_soa_alone.post'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.post' ||
+  $echo 'restore of' 'bug009_soa_alone.post' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.post:' 'MD5 check failed'
+8c228e6577186048c44ba47bba9070ba  bug009_soa_alone.post
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.post'`"
+    test 592 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.post:' 'original size' '592,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.pre ==============
+if test -f 'bug009_soa_alone.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.pre' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.pre' &&
+# #-- bug009_soa_alone.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+# start NSD
+((TPKG_PORT=5353+$RANDOM))
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_ZONEC="$PRE/zonec"
+TPKG_NSD="$PRE/nsd"
+X
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+X
+$TPKG_ZONEC -f bug009_soa_alone.db bug009_soa_alone.conf && \
+$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug009_soa_alone.db
+SHAR_EOF
+  (set 20 05 10 31 11 16 58 'bug009_soa_alone.pre'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.pre' ||
+  $echo 'restore of' 'bug009_soa_alone.pre' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.pre:' 'MD5 check failed'
+d0feac26539123d4b60558a3cacf3614  bug009_soa_alone.pre
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.pre'`"
+    test 758 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.pre:' 'original size' '758,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.test ==============
+if test -f 'bug009_soa_alone.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.test' &&
+# #-- bug009_soa_alone.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+dig +noall +answer @localhost -p $TPKG_PORT miek.nl soa > bug009_soa_alone.current_respons1
+dig +noall +auth @localhost -p $TPKG_PORT a.miek.nl a > bug009_soa_alone.current_respons2
+X
+# must be ok
+wdiff bug009_soa_alone.known_good_respons1 bug009_soa_alone.current_respons1 && \
+wdiff bug009_soa_alone.known_good_respons2 bug009_soa_alone.current_respons2 
+SHAR_EOF
+  (set 20 05 10 31 11 24 10 'bug009_soa_alone.test'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.test' ||
+  $echo 'restore of' 'bug009_soa_alone.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.test:' 'MD5 check failed'
+18f89853ca305b9afc35ffb4e96079f9  bug009_soa_alone.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.test'`"
+    test 714 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.test:' 'original size' '714,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.zone ==============
+if test -f 'bug009_soa_alone.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.zone' &&
+$TTL    4D
+$ORIGIN miek.nl.
+@       IN      SOA     open.nlnetlabs.nl. miekg.atoom.net. (
+X                         2005061300         ; Serial
+X                             4H         ; Refresh
+X                             1H         ; Retry
+X                             7D         ; Expire
+X                             1D )       ; Negative Cache TTL
+SHAR_EOF
+  (set 20 05 10 31 11 19 10 'bug009_soa_alone.zone'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.zone' ||
+  $echo 'restore of' 'bug009_soa_alone.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.zone:' 'MD5 check failed'
+63f98705a4af4c6d2cfa101bbf3b7fbb  bug009_soa_alone.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.zone'`"
+    test 351 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.zone:' 'original size' '351,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh18314
+exit 0

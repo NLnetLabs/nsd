@@ -1,65 +1,67 @@
 T  - testcase written
 M  - Moet nog
 -  - too little information to write a testcase
+!  - other ways to test this?
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
-3   "RCODE for dynamic updates"
 - 4   "Correctly handle queries with too much data"  to little info
 - 6   "different name encodiungs?"
 - 7   "sometimes label compression skip some parts"
 - 8   "do not exit on sendto buffer exhaustion"
----- to hier gekomen ----
-9   "SOA alone in apex"
 - 10   "Segmentation violation while trying to destroy the database on exit"
-11   "EDNS(0) spurious formerr"
-12   "message truncation"
-13   "when truncating authority section no TC bit is set"
-14   "Magic string alignment"
-15   "nsd hangs on some queries..."
-16   "zonec dumps core with HASH -z nl nl -c . examples/zones/root"
-18   "name compression not quite 100% yet"
-19   "do not copy truncaed queries to answer"
-20   "256 questions per-se should generate form err"
-21   "update refused gives wrong format answer"
-22   "trailing byte in queries (see also bug4)"
-23   "no answer section returned in answer to glue query"
-24   "parsing of integers in zone file / tokenizing?",
-25   "SRV RR (RFC2782) is not supported" 
-26   "zone compiler thrashes on big zone files"
-27   "Incorrect NXDomain Answer in case of Wildcard"
-28   "Wrong additional section RRcount in case of EDNS."
-29   "NSD sends answer on notify"
-31   "query section not included in 'NotImp' answers to updates"
-32   "nsd answers contain * on wildcards"
-33   "missing NXDomain error code"
-34   "nsd returns authority info in answers to class=any queries"
-35   "sending wrong name errors (NXDOMAIN)"
-36   "we should not bounce on RR Type when doing a referral"
-37   "invalid packet echoed on FormErr"
-46   "proper wildcard matching"         no test case
-49   "No glue records in AXFR"          testable
-52   "dont answer NXDOMAIN for empty nodes"
-53   "Over-pruning additional section if size(response)>512"
-T 54   "NSD does not copy RD bit from query"
-56   "axfr doesn't transfer cnames"
-T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
-64   "Answer for request resolved by a wildcard-resource-record is not understandable by dig."
-70   "add preferred (A) glue to the spec"
-72   "The order of records with overlapping resources determines which records resolve )"
-76   "Recursive INCLUDE bug in nsd 1.2.4"
-77   "Nsd doesn't check the length of domain labels"
-78   "Zonec doesn't compile complete zone with multiple zones and includes"
-T 81   "Unknown types not supported correctly"      bug107 duplicate
-85   "zonec cannot handle WKS records"
----- tot hier gekomen ----
-86   "zonec cannot handle many characters (&            bug086_chars.tpkg
+- 15   "nsd hangs on some queries..."
+- 16   "zonec dumps core with HASH -z nl nl -c . examples/zones/root"
+- 18   "name compression not quite 100% yet"
+- 19   "do not copy truncaed queries to answer", see > 246 qname queries
+- 26   "zone compiler thrashes on big zone files"
+- 46   "proper wildcard matching"         no test case
+- 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
+
+! 22   "trailing byte in queries (see also bug4)" ALLOW TESTING WITH TRACES
+
+M 3   "RCODE for dynamic updates"
+M 11   "EDNS(0) spurious formerr"
+M 12   "message truncation"
+M 13   "when truncating authority section no TC bit is set"
+M 14   "Magic string alignment"
+M 20   "256 questions per-se should generate form err"
+M 21   "update refused gives wrong format answer"
+M 23   "no answer section returned in answer to glue query"
+M 27   "Incorrect NXDomain Answer in case of Wildcard"
+M 28   "Wrong additional section RRcount in case of EDNS."
+M 29   "NSD sends answer on notify"
+M 31   "query section not included in 'NotImp' answers to updates"
+M 32   "nsd answers contain * on wildcards"
+M 33   "missing NXDomain error code"
+M 34   "nsd returns authority info in answers to class=any queries"
+M 35   "sending wrong name errors (NXDOMAIN)"
+M 36   "we should not bounce on RR Type when doing a referral"
+M 37   "invalid packet echoed on FormErr"
+M 49   "No glue records in AXFR"          testable
+M 52   "dont answer NXDOMAIN for empty nodes"
+M 53   "Over-pruning additional section if size(response)>512"
+M 56   "axfr doesn't transfer cnames"
+M 64   "Answer for request resolved by a wildcard-resource-record is not understandable by dig."
+M 70   "add preferred (A) glue to the spec"
+M 72   "The order of records with overlapping resources determines which records resolve )"
+M 76   "Recursive INCLUDE bug in nsd 1.2.4"
+M 77   "Nsd doesn't check the length of domain labels"
+M 78   "Zonec doesn't compile complete zone with multiple zones and includes"
+M 85   "zonec cannot handle WKS records"
 M 87   "@ 12h IN MX 0 @ does not parse"
-88   "::FFFF:ipv4-addr does not parse as valid"         bug088_ff_ip4.tpkg
-90   "small error in handling of TXT rdata data"       bug090_000_txt.tpkg
 M 95   "screwy wildcard case"
 M 96   "nsd-xfer cannot handle 8bit domainname correctly"
+
+T 9   "SOA alone in apex"
+T 24   "parsing of integers in zone file / tokenizing?",
+T 25   "SRV RR (RFC2782) is not supported" 
+T 54   "NSD does not copy RD bit from query"
+T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
+T 81   "Unknown types not supported correctly"      bug107 duplicate
+T 86   "zonec cannot handle many characters (&            bug086_chars.tpkg
+T 88   "::FFFF:ipv4-addr does not parse as valid"         bug088_ff_ip4.tpkg
+T 90   "small error in handling of TXT rdata data"       bug090_000_txt.tpkg
 T 98   "parsing error in zonec for RRSIGs"        bug098_mnemonic_rrsig.tpkg
-100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
 T 101   "SPF RR is not supported"         bug101_spf.tpkg
 T 102   "direct NSEC query response"      nsd puts nsec in auth. sec. is okay
 T 103   "NXDOMAIN SOA TTL"        bug103.tpkg
