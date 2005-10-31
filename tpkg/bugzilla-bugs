@@ -3,7 +3,6 @@ M  - Moet nog
 -  - too little information to write a testcase
 !  - other ways to test this?
 ------------------------------------------------------------------------
-------------------------------------------------------------------------
 - 4   "Correctly handle queries with too much data"  to little info
 - 6   "different name encodiungs?"
 - 7   "sometimes label compression skip some parts"
@@ -15,10 +14,10 @@ M  - Moet nog
 - 18   "name compression not quite 100% yet"
 - 19   "do not copy truncaed queries to answer", see > 246 qname queries
 - 26   "zone compiler thrashes on big zone files"
-- 46   "proper wildcard matching"         no test case
-- 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
+- 46   "proper wildcard matching"
 
 ! 22   "trailing byte in queries (see also bug4)" ALLOW TESTING WITH TRACES
+! 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
 
 M 3   "RCODE for dynamic updates"
 M 11   "EDNS(0) spurious formerr"
@@ -37,7 +36,9 @@ M 34   "nsd returns authority info in answers to class=any queries"
 M 35   "sending wrong name errors (NXDOMAIN)"
 M 36   "we should not bounce on RR Type when doing a referral"
 M 37   "invalid packet echoed on FormErr"
+
 M 49   "No glue records in AXFR"        
+
 M 52   "dont answer NXDOMAIN for empty nodes"
 M 53   "Over-pruning additional section if size(response)>512"
 M 56   "axfr doesn't transfer cnames"
@@ -46,8 +47,9 @@ M 70   "add preferred (A) glue to the spec"
 M 72   "The order of records with overlapping resources determines which records resolve )"
 M 76   "Recursive INCLUDE bug in nsd 1.2.4"
 M 78   "Zonec doesn't compile complete zone with multiple zones and includes"
-M 85   "zonec cannot handle WKS records"
+
 M 95   "screwy wildcard case"
+
 M 96   "nsd-xfer cannot handle 8bit domainname correctly"
 
 T 9   "SOA alone in apex"
@@ -57,6 +59,7 @@ T 54   "NSD does not copy RD bit from query"
 T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
 T 77   "Nsd doesn't check the length of domain labels"
 T 81   "Unknown types not supported correctly"     
+T 85   "zonec cannot handle WKS records" - see rr-test.tpkg
 T 86   "zonec cannot handle many characters (&           
 T 87   "@ 12h IN MX 0 @ does not parse"
 T 88   "::FFFF:ipv4-addr does not parse as valid"       
