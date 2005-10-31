@@ -48,7 +48,6 @@ M 72   "The order of records with overlapping resources determines which records
 M 76   "Recursive INCLUDE bug in nsd 1.2.4"
 M 78   "Zonec doesn't compile complete zone with multiple zones and includes"
 
-M 95   "screwy wildcard case"
 
 M 96   "nsd-xfer cannot handle 8bit domainname correctly"
 
@@ -64,6 +63,7 @@ T 86   "zonec cannot handle many characters (&
 T 87   "@ 12h IN MX 0 @ does not parse"
 T 88   "::FFFF:ipv4-addr does not parse as valid"       
 T 90   "small error in handling of TXT rdata data"     
+T 95   "screwy wildcard case"
 T 98   "parsing error in zonec for RRSIGs"      
 T 101   "SPF RR is not supported"       
 T 102   "direct NSEC query response"   
