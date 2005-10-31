@@ -69,7 +69,8 @@ T 107   "segfault when encountering bad hex data in rfc3597 rdata"
 == unrelated to bugzilla some are from the test/ directory
 T 0000 compile NSD
 T rr-test.tpkg compile a funny zone
-T soa-test.tpkg
+T soa-test.tpkg 
+T 213_large\.tpkg compile a larger (15M) zone
 
 ---- port over from test
 parent-child-order/     order in the database, bug #72
