@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-11-01 11:00 CET by <miekg@floep>.
+# Made on 2005-11-01 11:12 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug013_truncate.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -12,15 +12,18 @@
 # length mode       name
 # ------ ---------- ------------------------------------------
 #     34 -rw------- bug013_truncate.conf
+#   2068 -rw------- bug013_truncate.current_respons_a_before_aaaa
+#    966 -rw------- bug013_truncate.current_respons_full_answer
+#     72 -rw------- bug013_truncate.current_respons_truncated
 #   2757 -rw------- bug013_truncate.db
 #    522 -rw------- bug013_truncate.dsc
 #     91 -rw------- bug013_truncate.help
 #   3111 -rw------- bug013_truncate.known_good_respons_a_before_aaaa
 #   1616 -rw------- bug013_truncate.known_good_respons_full_answer
-#    110 -rw------- bug013_truncate.known_good_respons_truncated
+#     72 -rw------- bug013_truncate.known_good_respons_truncated
 #    590 -rw------- bug013_truncate.post
 #    754 -rw------- bug013_truncate.pre
-#   1196 -rw------- bug013_truncate.test
+#   1211 -rw------- bug013_truncate.test
 #   4124 -rw------- bug013_truncate.zone
 #
 save_IFS="${IFS}"
@@ -71,7 +74,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh08031; then
+if mkdir _sh08838; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -98,6 +101,149 @@ SHAR_EOF
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.conf'`"
     test 34 -eq "$shar_count" ||
     $echo 'bug013_truncate.conf:' 'original size' '34,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug013_truncate.current_respons_a_before_aaaa ==============
+if test -f 'bug013_truncate.current_respons_a_before_aaaa' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug013_truncate.current_respons_a_before_aaaa' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug013_truncate.current_respons_a_before_aaaa' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug013_truncate.current_respons_a_before_aaaa' &&
+;; Truncated, retrying in TCP mode.
+mx1.miek.nl.		14400	IN	A	127.0.0.1
+mx2.miek.nl.		14400	IN	A	127.0.0.1
+mx3.miek.nl.		14400	IN	A	127.0.0.1
+mx4.miek.nl.		14400	IN	A	127.0.0.1
+mx5.miek.nl.		14400	IN	A	127.0.0.1
+mx6.miek.nl.		14400	IN	A	127.0.0.1
+mx7.miek.nl.		14400	IN	A	127.0.0.1
+mx8.miek.nl.		14400	IN	A	127.0.0.1
+mx9.miek.nl.		14400	IN	A	127.0.0.1
+mx10.miek.nl.		14400	IN	A	127.0.0.1
+mx11.miek.nl.		14400	IN	A	127.0.0.1
+mx12.miek.nl.		14400	IN	A	127.0.0.1
+mx13.miek.nl.		14400	IN	A	127.0.0.1
+mx14.miek.nl.		14400	IN	A	127.0.0.1
+mx15.miek.nl.		14400	IN	A	127.0.0.1
+mx16.miek.nl.		14400	IN	A	127.0.0.1
+mx17.miek.nl.		14400	IN	A	127.0.0.1
+mx18.miek.nl.		14400	IN	A	127.0.0.1
+mx19.miek.nl.		14400	IN	A	127.0.0.1
+mx20.miek.nl.		14400	IN	A	127.0.0.1
+mx21.miek.nl.		14400	IN	A	127.0.0.1
+mx22.miek.nl.		14400	IN	A	127.0.0.1
+mx23.miek.nl.		14400	IN	A	127.0.0.1
+mx24.miek.nl.		14400	IN	A	127.0.0.1
+mx25.miek.nl.		14400	IN	A	127.0.0.1
+mx1.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx2.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx3.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx4.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx5.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx6.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx7.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx8.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx9.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx10.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx11.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx12.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx13.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx14.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx15.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx16.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx17.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx18.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx19.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx20.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx21.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx22.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx23.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx24.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+mx25.miek.nl.		14400	IN	AAAA	::ffff:127.0.0.1
+SHAR_EOF
+  (set 20 05 11 01 11 12 38 'bug013_truncate.current_respons_a_before_aaaa'; eval "$shar_touch") &&
+  chmod 0600 'bug013_truncate.current_respons_a_before_aaaa' ||
+  $echo 'restore of' 'bug013_truncate.current_respons_a_before_aaaa' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug013_truncate.current_respons_a_before_aaaa:' 'MD5 check failed'
+2a4967e30bacecebad3c47cf5c0cdf6c  bug013_truncate.current_respons_a_before_aaaa
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.current_respons_a_before_aaaa'`"
+    test 2068 -eq "$shar_count" ||
+    $echo 'bug013_truncate.current_respons_a_before_aaaa:' 'original size' '2068,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug013_truncate.current_respons_full_answer ==============
+if test -f 'bug013_truncate.current_respons_full_answer' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug013_truncate.current_respons_full_answer' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug013_truncate.current_respons_full_answer' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug013_truncate.current_respons_full_answer' &&
+miek.nl.		14400	IN	MX	20 mx1.miek.nl.
+miek.nl.		14400	IN	MX	20 mx2.miek.nl.
+miek.nl.		14400	IN	MX	20 mx3.miek.nl.
+miek.nl.		14400	IN	MX	20 mx4.miek.nl.
+miek.nl.		14400	IN	MX	20 mx5.miek.nl.
+miek.nl.		14400	IN	MX	20 mx6.miek.nl.
+miek.nl.		14400	IN	MX	20 mx7.miek.nl.
+miek.nl.		14400	IN	MX	20 mx8.miek.nl.
+miek.nl.		14400	IN	MX	20 mx9.miek.nl.
+miek.nl.		14400	IN	MX	20 mx10.miek.nl.
+miek.nl.		14400	IN	MX	20 mx11.miek.nl.
+miek.nl.		14400	IN	MX	20 mx12.miek.nl.
+miek.nl.		14400	IN	MX	20 mx13.miek.nl.
+miek.nl.		14400	IN	MX	20 mx14.miek.nl.
+miek.nl.		14400	IN	MX	20 mx15.miek.nl.
+miek.nl.		14400	IN	MX	20 mx16.miek.nl.
+miek.nl.		14400	IN	MX	20 mx17.miek.nl.
+miek.nl.		14400	IN	MX	20 mx18.miek.nl.
+miek.nl.		14400	IN	MX	20 mx19.miek.nl.
+miek.nl.		14400	IN	MX	20 mx20.miek.nl.
+miek.nl.		14400	IN	MX	20 mx21.miek.nl.
+miek.nl.		14400	IN	MX	20 mx22.miek.nl.
+miek.nl.		14400	IN	MX	20 mx23.miek.nl.
+miek.nl.		14400	IN	MX	20 mx24.miek.nl.
+miek.nl.		14400	IN	MX	20 mx25.miek.nl.
+SHAR_EOF
+  (set 20 05 11 01 11 12 38 'bug013_truncate.current_respons_full_answer'; eval "$shar_touch") &&
+  chmod 0600 'bug013_truncate.current_respons_full_answer' ||
+  $echo 'restore of' 'bug013_truncate.current_respons_full_answer' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug013_truncate.current_respons_full_answer:' 'MD5 check failed'
+f32e19b8e07046000df5107fc626d032  bug013_truncate.current_respons_full_answer
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.current_respons_full_answer'`"
+    test 966 -eq "$shar_count" ||
+    $echo 'bug013_truncate.current_respons_full_answer:' 'original size' '966,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug013_truncate.current_respons_truncated ==============
+if test -f 'bug013_truncate.current_respons_truncated' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug013_truncate.current_respons_truncated' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug013_truncate.current_respons_truncated' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug013_truncate.current_respons_truncated' &&
+;; flags: qr aa tc rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+SHAR_EOF
+  (set 20 05 11 01 11 12 38 'bug013_truncate.current_respons_truncated'; eval "$shar_touch") &&
+  chmod 0600 'bug013_truncate.current_respons_truncated' ||
+  $echo 'restore of' 'bug013_truncate.current_respons_truncated' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug013_truncate.current_respons_truncated:' 'MD5 check failed'
+1183fd567e5e067a8deda76dfe5eed39  bug013_truncate.current_respons_truncated
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.current_respons_truncated'`"
+    test 72 -eq "$shar_count" ||
+    $echo 'bug013_truncate.current_respons_truncated:' 'original size' '72,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug013_truncate.db ==============
@@ -172,7 +318,7 @@ M```!``$``0`!``$``#A```1_```!````(P````$`!0`!``$``0``.$`````(
 `
 end
 SHAR_EOF
-  (set 20 05 11 01 10 52 49 'bug013_truncate.db'; eval "$shar_touch") &&
+  (set 20 05 11 01 11 12 34 'bug013_truncate.db'; eval "$shar_touch") &&
   chmod 0600 'bug013_truncate.db' ||
   $echo 'restore of' 'bug013_truncate.db' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
@@ -376,21 +522,20 @@ else
   $echo 'x -' extracting 'bug013_truncate.known_good_respons_truncated' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug013_truncate.known_good_respons_truncated' &&
 ;; flags: qr aa tc rd; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
-; EDNS: version: 0, flags:; udp: 4096
 SHAR_EOF
-  (set 20 05 11 01 10 41 14 'bug013_truncate.known_good_respons_truncated'; eval "$shar_touch") &&
+  (set 20 05 11 01 11 12 26 'bug013_truncate.known_good_respons_truncated'; eval "$shar_touch") &&
   chmod 0600 'bug013_truncate.known_good_respons_truncated' ||
   $echo 'restore of' 'bug013_truncate.known_good_respons_truncated' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug013_truncate.known_good_respons_truncated:' 'MD5 check failed'
-d179c83ba0433de5aa7aaadb94053f6f  bug013_truncate.known_good_respons_truncated
+1183fd567e5e067a8deda76dfe5eed39  bug013_truncate.known_good_respons_truncated
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.known_good_respons_truncated'`"
-    test 110 -eq "$shar_count" ||
-    $echo 'bug013_truncate.known_good_respons_truncated:' 'original size' '110,' 'current size' "$shar_count!"
+    test 72 -eq "$shar_count" ||
+    $echo 'bug013_truncate.known_good_respons_truncated:' 'original size' '72,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug013_truncate.post ==============
@@ -500,8 +645,8 @@ X        DIG=/usr/local/bin/dig
 X        ;;
 esac
 # truncated
-$DIG +noignore +bufsize=100 @localhost -p $TPKG_PORT mx miek.nl | grep flags > \
-bug013_truncate.current_respons_truncated
+$DIG +noignore +bufsize=100 @localhost -p $TPKG_PORT mx miek.nl | grep flags | \
+grep -v EDNS > bug013_truncate.current_respons_truncated
 X
 # full answer
 $DIG +noall +answer +noignore +bufsize=700 @localhost -p $TPKG_PORT mx miek.nl > \
@@ -515,19 +660,19 @@ wdiff bug013_truncate.known_good_respons_truncated bug013_truncate.current_respo
 wdiff bug013_truncate.known_good_respons_full_answer bug013_truncate.current_respons_full_answer && \
 wdiff bug013_truncate.known_good_respons_a_before_aaaa bug013_truncate.current_respons_a_before_aaaa
 SHAR_EOF
-  (set 20 05 11 01 10 51 39 'bug013_truncate.test'; eval "$shar_touch") &&
+  (set 20 05 11 01 11 12 29 'bug013_truncate.test'; eval "$shar_touch") &&
   chmod 0600 'bug013_truncate.test' ||
   $echo 'restore of' 'bug013_truncate.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug013_truncate.test:' 'MD5 check failed'
-3270eefcd2b81143d55f7857997d68c5  bug013_truncate.test
+07053056b2c2c948fd67678fd201ad8e  bug013_truncate.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.test'`"
-    test 1196 -eq "$shar_count" ||
-    $echo 'bug013_truncate.test:' 'original size' '1196,' 'current size' "$shar_count!"
+    test 1211 -eq "$shar_count" ||
+    $echo 'bug013_truncate.test:' 'original size' '1211,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug013_truncate.zone ==============
@@ -656,5 +801,5 @@ SHAR_EOF
     $echo 'bug013_truncate.zone:' 'original size' '4124,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh08031
+rm -fr _sh08838
 exit 0
