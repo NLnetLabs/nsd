@@ -4,11 +4,15 @@ M  - Moet nog
 !  - other ways to test this?
 ------------------------------------------------------------------------
 T 9   "SOA alone in apex"
+T 12   "message truncation" bug013_truncate.tpkg
+T 13   "when truncating authority section no TC bit is set" bug013
+T 21   "update refused gives wrong format answer" bug013
 T 24   "parsing of integers in zone file / tokenizing?",
 T 25   "SRV RR (RFC2782) is not supported" 
 T 54   "NSD does not copy RD bit from query"
 T 56   "axfr doesn't transfer cnames"
 T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
+T 70   "add preferred (A) glue to the spec" bug013
 T 77   "Nsd doesn't check the length of domain labels"
 T 81   "Unknown types not supported correctly"     
 T 85   "zonec cannot handle WKS records" - see rr-test.tpkg
@@ -28,15 +32,13 @@ T rr-test.tpkg compile a funny zone
 T soa-test.tpkg 
 T 213_large\.tpkg compile a larger (15M) zone
 
+! 3   "RCODE for dynamic updates" --- how to send dynamic updates?
 ! 20   "256 questions per-se should generate form err"
 ! 22   "trailing byte in queries (see also bug4)" ALLOW TESTING WITH TRACES
 ! 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
 
-M 3   "RCODE for dynamic updates"
-M 11   "EDNS(0) spurious formerr"
-M 12   "message truncation"
-M 13   "when truncating authority section no TC bit is set"
-M 21   "update refused gives wrong format answer"
+- 11   "EDNS(0) spurious formerr"
+
 M 23   "no answer section returned in answer to glue query"
 M 27   "Incorrect NXDomain Answer in case of Wildcard"
 M 28   "Wrong additional section RRcount in case of EDNS."
@@ -51,7 +53,6 @@ M 49   "No glue records in AXFR"
 M 52   "dont answer NXDOMAIN for empty nodes"
 M 53   "Over-pruning additional section if size(response)>512"
 M 64   "Answer for request resolved by a wildcard-resource-record is not understandable by dig."
-M 70   "add preferred (A) glue to the spec"
 M 72   "The order of records with overlapping resources determines which records resolve )"
 M 76   "Recursive INCLUDE bug in nsd 1.2.4"
 M 78   "Zonec doesn't compile complete zone with multiple zones and includes"
