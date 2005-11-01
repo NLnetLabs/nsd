@@ -1,0 +1,274 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-11-01 11:35 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/zonec_tests.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     49 -rw------- zonec_tests.conf
+#     23 -rw------- zonec_tests.data
+#    351 -rw------- zonec_tests.dsc
+#     35 -rw------- zonec_tests.help
+#     51 -rw------- zonec_tests.include_zone
+#    376 -rw------- zonec_tests.soa
+#    511 -rw------- zonec_tests.test
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh10192; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= zonec_tests.conf ==============
+if test -f 'zonec_tests.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'zonec_tests.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'zonec_tests.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'zonec_tests.conf' &&
+zone    miek.nl         zonec_tests.include_zone
+SHAR_EOF
+  (set 20 05 11 01 11 30 59 'zonec_tests.conf'; eval "$shar_touch") &&
+  chmod 0600 'zonec_tests.conf' ||
+  $echo 'restore of' 'zonec_tests.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'zonec_tests.conf:' 'MD5 check failed'
+893418c16393606f624b67e2357b445b  zonec_tests.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'zonec_tests.conf'`"
+    test 49 -eq "$shar_count" ||
+    $echo 'zonec_tests.conf:' 'original size' '49,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= zonec_tests.data ==============
+if test -f 'zonec_tests.data' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'zonec_tests.data' '(file already exists)'
+else
+  $echo 'x -' extracting 'zonec_tests.data' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'zonec_tests.data' &&
+www     IN A 127.0.0.1
+SHAR_EOF
+  (set 20 05 11 01 11 29 34 'zonec_tests.data'; eval "$shar_touch") &&
+  chmod 0600 'zonec_tests.data' ||
+  $echo 'restore of' 'zonec_tests.data' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'zonec_tests.data:' 'MD5 check failed'
+cf52530ac9241024b6ba550fa0fe7683  zonec_tests.data
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'zonec_tests.data'`"
+    test 23 -eq "$shar_count" ||
+    $echo 'zonec_tests.data:' 'original size' '23,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= zonec_tests.dsc ==============
+if test -f 'zonec_tests.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'zonec_tests.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'zonec_tests.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'zonec_tests.dsc' &&
+BaseName: zonec_tests
+Version: 1.0
+Description: Test for various zonec bugs, #076 and #78
+CreationDate: Tue Nov  1 11:25:57 CET 2005
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 
+Help: zonec_tests.help
+Pre:
+Post:
+Test: zonec_tests.test
+AuxFiles: zonec_tests.conf, zonec_tests.soa, zonec_tests.data, zonec_tests.include_zone
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 11 01 11 34 56 'zonec_tests.dsc'; eval "$shar_touch") &&
+  chmod 0600 'zonec_tests.dsc' ||
+  $echo 'restore of' 'zonec_tests.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'zonec_tests.dsc:' 'MD5 check failed'
+d07710ad3582ef10c05e39511d41ba3a  zonec_tests.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'zonec_tests.dsc'`"
+    test 351 -eq "$shar_count" ||
+    $echo 'zonec_tests.dsc:' 'original size' '351,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= zonec_tests.help ==============
+if test -f 'zonec_tests.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'zonec_tests.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'zonec_tests.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'zonec_tests.help' &&
+No arguments are used in this test
+SHAR_EOF
+  (set 20 05 11 01 11 26 37 'zonec_tests.help'; eval "$shar_touch") &&
+  chmod 0600 'zonec_tests.help' ||
+  $echo 'restore of' 'zonec_tests.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'zonec_tests.help:' 'MD5 check failed'
+37c804368f8daaa79280c2c2256d38d9  zonec_tests.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'zonec_tests.help'`"
+    test 35 -eq "$shar_count" ||
+    $echo 'zonec_tests.help:' 'original size' '35,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= zonec_tests.include_zone ==============
+if test -f 'zonec_tests.include_zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'zonec_tests.include_zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'zonec_tests.include_zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'zonec_tests.include_zone' &&
+$INCLUDE zonec_tests.soa
+$INCLUDE zonec_tests.data
+SHAR_EOF
+  (set 20 05 11 01 11 28 53 'zonec_tests.include_zone'; eval "$shar_touch") &&
+  chmod 0600 'zonec_tests.include_zone' ||
+  $echo 'restore of' 'zonec_tests.include_zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'zonec_tests.include_zone:' 'MD5 check failed'
+4a8e609b078693f87ebeb0ecaa06083b  zonec_tests.include_zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'zonec_tests.include_zone'`"
+    test 51 -eq "$shar_count" ||
+    $echo 'zonec_tests.include_zone:' 'original size' '51,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= zonec_tests.soa ==============
+if test -f 'zonec_tests.soa' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'zonec_tests.soa' '(file already exists)'
+else
+  $echo 'x -' extracting 'zonec_tests.soa' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'zonec_tests.soa' &&
+$TTL    1H
+@       IN      SOA     elektron.atoom.net. miekg.atoom.net. (
+X                     2005060700         ; Serial
+X                             6H         ; Refresh
+X                             2H         ; Retry
+X                             7D         ; Expire
+X                             1H )       ; Negative Cache TTL
+X
+@       IN      NS      elektron.atoom.net.
+SHAR_EOF
+  (set 20 05 11 01 11 29 24 'zonec_tests.soa'; eval "$shar_touch") &&
+  chmod 0600 'zonec_tests.soa' ||
+  $echo 'restore of' 'zonec_tests.soa' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'zonec_tests.soa:' 'MD5 check failed'
+681f25bdfbe40348819ab7cb58cc9022  zonec_tests.soa
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'zonec_tests.soa'`"
+    test 376 -eq "$shar_count" ||
+    $echo 'zonec_tests.soa:' 'original size' '376,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= zonec_tests.test ==============
+if test -f 'zonec_tests.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'zonec_tests.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'zonec_tests.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'zonec_tests.test' &&
+# #-- zonec_tests.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+# start NSD
+PRE="../.."
+TPKG_ZONEC="$PRE/zonec"
+X
+# multiple includes - should 'just work' #76 and also bug 078
+$TPKG_ZONEC -f zonec_tests.db zonec_tests.conf
+SHAR_EOF
+  (set 20 05 11 01 11 33 03 'zonec_tests.test'; eval "$shar_touch") &&
+  chmod 0600 'zonec_tests.test' ||
+  $echo 'restore of' 'zonec_tests.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'zonec_tests.test:' 'MD5 check failed'
+905265e7ce5bf3c7293a2c074e91c44e  zonec_tests.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'zonec_tests.test'`"
+    test 511 -eq "$shar_count" ||
+    $echo 'zonec_tests.test:' 'original size' '511,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh10192
+exit 0
