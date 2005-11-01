@@ -1,0 +1,406 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-11-01 12:04 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug072_parent.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     78 -rw------- bug072_parent.conf
+#    491 -rw------- bug072_parent.dsc
+#     38 -rw------- bug072_parent.help
+#     29 -rw------- bug072_parent.known_good_respons1
+#     29 -rw------- bug072_parent.known_good_respons2
+#    499 -rw------- bug072_parent.order-abc_zone
+#    499 -rw------- bug072_parent.order-bac_zone
+#    589 -rw------- bug072_parent.post
+#    746 -rw------- bug072_parent.pre
+#    863 -rw------- bug072_parent.test
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh11570; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug072_parent.conf ==============
+if test -f 'bug072_parent.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.conf' &&
+zone abc. bug072_parent.order-abc_zone
+zone bac. bug072_parent.order-bac_zone
+SHAR_EOF
+  (set 20 05 11 01 11 54 47 'bug072_parent.conf'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.conf' ||
+  $echo 'restore of' 'bug072_parent.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.conf:' 'MD5 check failed'
+d0ab9dab5ee7648eb87e18cf1094cc4c  bug072_parent.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.conf'`"
+    test 78 -eq "$shar_count" ||
+    $echo 'bug072_parent.conf:' 'original size' '78,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.dsc ==============
+if test -f 'bug072_parent.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.dsc' &&
+BaseName: bug072_parent
+Version: 1.0
+Description: Bug #072 overlapping parent/child zone should be handled correctly
+CreationDate: Tue Nov  1 11:52:12 CET 2005
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 
+Help: bug072_parent.help
+Pre: bug072_parent.pre
+Post: bug072_parent.post
+Test: bug072_parent.test
+AuxFiles:  bug072_parent.order-bac_zone, bug072_parent.order-abc_zone, bug072_parent.conf, bug072_parent.known_good_respons1, bug072_parent.known_good_respons2
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 11 01 12 03 24 'bug072_parent.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.dsc' ||
+  $echo 'restore of' 'bug072_parent.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.dsc:' 'MD5 check failed'
+d70af97a89eaaa6b56afc6efa924cd21  bug072_parent.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.dsc'`"
+    test 491 -eq "$shar_count" ||
+    $echo 'bug072_parent.dsc:' 'original size' '491,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.help ==============
+if test -f 'bug072_parent.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.help' &&
+No arguments are needed for this test
+SHAR_EOF
+  (set 20 05 11 01 11 56 41 'bug072_parent.help'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.help' ||
+  $echo 'restore of' 'bug072_parent.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.help:' 'MD5 check failed'
+ccd89eb506031c5dd5a9306aa134a8e2  bug072_parent.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.help'`"
+    test 38 -eq "$shar_count" ||
+    $echo 'bug072_parent.help:' 'original size' '38,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.known_good_respons1 ==============
+if test -f 'bug072_parent.known_good_respons1' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.known_good_respons1' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.known_good_respons1' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.known_good_respons1' &&
+a.abc.			3600	IN	A	127.0.0.1
+SHAR_EOF
+  (set 20 05 11 01 12 01 17 'bug072_parent.known_good_respons1'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.known_good_respons1' ||
+  $echo 'restore of' 'bug072_parent.known_good_respons1' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.known_good_respons1:' 'MD5 check failed'
+c3777e808890ab346594c792c212bc39  bug072_parent.known_good_respons1
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.known_good_respons1'`"
+    test 29 -eq "$shar_count" ||
+    $echo 'bug072_parent.known_good_respons1:' 'original size' '29,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.known_good_respons2 ==============
+if test -f 'bug072_parent.known_good_respons2' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.known_good_respons2' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.known_good_respons2' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.known_good_respons2' &&
+a.bac.			3600	IN	A	127.0.0.1
+SHAR_EOF
+  (set 20 05 11 01 12 01 17 'bug072_parent.known_good_respons2'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.known_good_respons2' ||
+  $echo 'restore of' 'bug072_parent.known_good_respons2' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.known_good_respons2:' 'MD5 check failed'
+86706dcea2457d891b854c59e46473c6  bug072_parent.known_good_respons2
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.known_good_respons2'`"
+    test 29 -eq "$shar_count" ||
+    $echo 'bug072_parent.known_good_respons2:' 'original size' '29,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.order-abc_zone ==============
+if test -f 'bug072_parent.order-abc_zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.order-abc_zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.order-abc_zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.order-abc_zone' &&
+@       IN      SOA     abc.  abc.  (
+X                        2004010701              ; serial, todays date + todays
+X                        1H                      ; refresh, seconds
+X                        8H                      ; retry, seconds
+X                        4W                      ; expire, seconds
+X                        1H                      ; minimum ttl, seconds
+X                )
+X
+a       IN      A       127.0.0.1
+b.a     IN      A       127.0.0.2
+c       IN      CNAME   a
+SHAR_EOF
+  (set 20 05 11 01 11 54 12 'bug072_parent.order-abc_zone'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.order-abc_zone' ||
+  $echo 'restore of' 'bug072_parent.order-abc_zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.order-abc_zone:' 'MD5 check failed'
+c1a01a62891bf732b18a98f5129cd27e  bug072_parent.order-abc_zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.order-abc_zone'`"
+    test 499 -eq "$shar_count" ||
+    $echo 'bug072_parent.order-abc_zone:' 'original size' '499,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.order-bac_zone ==============
+if test -f 'bug072_parent.order-bac_zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.order-bac_zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.order-bac_zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.order-bac_zone' &&
+@       IN      SOA     abc.  abc.  (
+X                        2004010704              ; serial, todays date + todays
+X                        1H                      ; refresh, seconds
+X                        8H                      ; retry, seconds
+X                        4W                      ; expire, seconds
+X                        1H                      ; minimum ttl, seconds
+X                )
+X
+b.a     IN      A       127.0.0.2
+a       IN      A       127.0.0.1
+c       IN      CNAME   a
+SHAR_EOF
+  (set 20 05 11 01 11 53 59 'bug072_parent.order-bac_zone'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.order-bac_zone' ||
+  $echo 'restore of' 'bug072_parent.order-bac_zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.order-bac_zone:' 'MD5 check failed'
+ffd48d61e10ba59b1b5e2cc3157ce24f  bug072_parent.order-bac_zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.order-bac_zone'`"
+    test 499 -eq "$shar_count" ||
+    $echo 'bug072_parent.order-bac_zone:' 'original size' '499,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.post ==============
+if test -f 'bug072_parent.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.post' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.post' &&
+# #-- bug072_parent.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+#
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
+X
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill $NSD_PID 2>/dev/null
+sleep 1 # should be really dead now - just to be sure kill it again
+kill $NSD_PID 2>/dev/null
+Xexit 0
+X
+SHAR_EOF
+  (set 20 05 11 01 11 55 55 'bug072_parent.post'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.post' ||
+  $echo 'restore of' 'bug072_parent.post' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.post:' 'MD5 check failed'
+ac73bf20d206c198a409b495c8562eb9  bug072_parent.post
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.post'`"
+    test 589 -eq "$shar_count" ||
+    $echo 'bug072_parent.post:' 'original size' '589,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.pre ==============
+if test -f 'bug072_parent.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.pre' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.pre' &&
+# #-- bug072_parent.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+# start NSD
+((TPKG_PORT=5353+$RANDOM))
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_ZONEC="$PRE/zonec"
+TPKG_NSD="$PRE/nsd"
+X
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+X
+$TPKG_ZONEC -f bug072_parent.db bug072_parent.conf && \
+$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug072_parent.db
+SHAR_EOF
+  (set 20 05 11 01 11 55 40 'bug072_parent.pre'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.pre' ||
+  $echo 'restore of' 'bug072_parent.pre' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.pre:' 'MD5 check failed'
+627aee2833f684b19121c448d6473247  bug072_parent.pre
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.pre'`"
+    test 746 -eq "$shar_count" ||
+    $echo 'bug072_parent.pre:' 'original size' '746,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug072_parent.test ==============
+if test -f 'bug072_parent.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug072_parent.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug072_parent.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.test' &&
+# #-- bug072_parent.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+case $OSTYPE in
+X        linux*)
+X        DIG=/usr/bin/dig
+X        ;;
+X        freebsd*)
+X        DIG=/usr/local/bin/dig
+X        ;;
+esac
+X
+# both should give a normal answer, not abc/bac here!
+$DIG +noall +answer @localhost -p $TPKG_PORT A a.abc > bug072_parent.current_respons1
+$DIG +noall +answer @localhost -p $TPKG_PORT A a.bac > bug072_parent.current_respons2
+X
+wdiff bug072_parent.current_respons1 bug072_parent.known_good_respons1 && \
+wdiff bug072_parent.current_respons2 bug072_parent.known_good_respons2
+SHAR_EOF
+  (set 20 05 11 01 12 02 11 'bug072_parent.test'; eval "$shar_touch") &&
+  chmod 0600 'bug072_parent.test' ||
+  $echo 'restore of' 'bug072_parent.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug072_parent.test:' 'MD5 check failed'
+375a74a64a57e17e378b5530b4407efd  bug072_parent.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.test'`"
+    test 863 -eq "$shar_count" ||
+    $echo 'bug072_parent.test:' 'original size' '863,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh11570
+exit 0

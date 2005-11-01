@@ -4,21 +4,29 @@ M  - Moet nog
 !  - other ways to test this?
 *  - not a bug
 ------------------------------------------------------------------------
+T 0000 compile NSD
+T rr-test.tpkg compile a funny zone
+T soa-test.tpkg 
+T 213_large\.tpkg compile a larger (15M) zone
+
 T 9   "SOA alone in apex"
 T 12   "message truncation" bug013_truncate.tpkg
 T 13   "when truncating authority section no TC bit is set" bug013
+T 19   "do not copy truncaed queries to answer", see bug #059
 T 21   "update refused gives wrong format answer" bug013
 T 24   "parsing of integers in zone file / tokenizing?",
 T 25   "SRV RR (RFC2782) is not supported" 
 T 27   "Incorrect NXDomain Answer in case of Wildcard" --- test in #095
 T 32   "nsd answers contain * on wildcards", see 
 T 33   "missing NXDomain error code", see #27 and test for #95
+T 46   "proper wildcard matching", see screwy wildcard #095
 T 53   "Over-pruning additional section if size(response)>512", truncate see #013
 T 54   "NSD does not copy RD bit from query"
 T 56   "axfr doesn't transfer cnames"
 T 59   "NSD returns FORMERR when the query name is >= 246 bytes 
 T 64   "Answer for request resolved by a wildcard-resource-record is not understandable by dig."
 T 70   "add preferred (A) glue to the spec" bug013
+T 72   "The order of records with overlapping resources determines which records resolve )"
 T 76   "Recursive INCLUDE bug in nsd 1.2.4" zonec_tests.tpkg
 T 77   "Nsd doesn't check the length of domain labels"
 T 78   "Zonec doesn't compile complete zone with multiple zones and includes" zonec_tests.tpkg
@@ -35,11 +43,15 @@ T 102   "direct NSEC query response"
 T 103   "NXDOMAIN SOA TTL"       
 T 107   "segfault when encountering bad hex data in rfc3597 rdata"
 
-== unrelated to bugzilla some are from the test/ directory
-T 0000 compile NSD
-T rr-test.tpkg compile a funny zone
-T soa-test.tpkg 
-T 213_large\.tpkg compile a larger (15M) zone
+# moet nog
+M 29   "NSD sends answer on notify"
+M 34   "nsd returns authority info in answers to class=any queries"
+M 35   "sending wrong name errors (NXDOMAIN)"
+M 37   "invalid packet echoed on FormErr"
+# axfr
+M 49   "No glue records in AXFR"        
+M 52   "dont answer NXDOMAIN for empty nodes"
+M 96   "nsd-xfer cannot handle 8bit domainname correctly"
 
 ==== think about this
 ! 3   "RCODE for dynamic updates" --- how to send dynamic updates?
@@ -47,21 +59,7 @@ T 213_large\.tpkg compile a larger (15M) zone
 ! 22   "trailing byte in queries (see also bug4)" ALLOW TESTING WITH TRACES
 ! 31   "query section not included in 'NotImp' answers to updates"
 ! 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
-
-
-M 28   "Wrong additional section RRcount in case of EDNS."
-M 29   "NSD sends answer on notify"
-M 34   "nsd returns authority info in answers to class=any queries"
-M 35   "sending wrong name errors (NXDOMAIN)"
-M 37   "invalid packet echoed on FormErr"
-M 49   "No glue records in AXFR"        
-M 52   "dont answer NXDOMAIN for empty nodes"
-M 96   "nsd-xfer cannot handle 8bit domainname correctly"
-
----- port over from test
-parent-child-order/     order in the database, bug #72
-M 72   "The order of records with overlapping resources determines which records resolve )"
-
+===================================
 - 4   "Correctly handle queries with too much data"  to little info
 - 6   "different name encodiungs?"
 - 7   "sometimes label compression skip some parts"
@@ -72,8 +70,7 @@ M 72   "The order of records with overlapping resources determines which records
 - 15   "nsd hangs on some queries..."
 - 16   "zonec dumps core with HASH -z nl nl -c . examples/zones/root"
 - 18   "name compression not quite 100% yet"
-- 19   "do not copy truncaed queries to answer", see > 246 qname queries
-* 26   "zone compiler thrashes on big zone files", bug see 213_large
 * 23   "no answer section returned in answer to glue query"
+* 26   "zone compiler thrashes on big zone files", bug see 213_large
+- 28   "Wrong additional section RRcount in case of EDNS."
 - 36   "we should not bounce on RR Type when doing a referral"
-- 46   "proper wildcard matching"
