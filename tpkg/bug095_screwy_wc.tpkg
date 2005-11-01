@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-31 14:34 CET by <miekg@floep>.
+# Made on 2005-11-01 11:19 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug095_screwy_wc.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -13,8 +13,8 @@
 # ------ ---------- ------------------------------------------
 #    172 -rw------- bug095_screwy_wc.conf
 #    135 -rw------- bug095_screwy_wc.current_respons1
-#    385 -rw------- bug095_screwy_wc.dsc
-#     37 -rw------- bug095_screwy_wc.help
+#    395 -rw------- bug095_screwy_wc.dsc
+#     75 -rw------- bug095_screwy_wc.help
 #    135 -rw------- bug095_screwy_wc.known_good_respons1
 #    592 -rw------- bug095_screwy_wc.post
 #    758 -rw------- bug095_screwy_wc.pre
@@ -70,7 +70,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh32224; then
+if mkdir _sh09234; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -135,7 +135,7 @@ else
   sed 's/^X//' << 'SHAR_EOF' > 'bug095_screwy_wc.dsc' &&
 BaseName: bug095_screwy_wc
 Version: 1.0
-Description: [Put something nice here]
+Description: Test for wildcards #095, #032, #064
 CreationDate: Mon Oct 31 14:20:44 CET 2005
 Maintainer: Miek Gieben
 Category: 
@@ -149,19 +149,19 @@ AuxFiles: bug095_screwy_wc.conf, bug095_screwy_wc.zone1, bug095_screwy_wc.zone2
 Passed:
 Failure:
 SHAR_EOF
-  (set 20 05 10 31 14 32 25 'bug095_screwy_wc.dsc'; eval "$shar_touch") &&
+  (set 20 05 11 01 11 19 37 'bug095_screwy_wc.dsc'; eval "$shar_touch") &&
   chmod 0600 'bug095_screwy_wc.dsc' ||
   $echo 'restore of' 'bug095_screwy_wc.dsc' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug095_screwy_wc.dsc:' 'MD5 check failed'
-cac5ccccf3d9b2662fc146ea408962c1  bug095_screwy_wc.dsc
+545f18643880daaa94065cb32aefb0c5  bug095_screwy_wc.dsc
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug095_screwy_wc.dsc'`"
-    test 385 -eq "$shar_count" ||
-    $echo 'bug095_screwy_wc.dsc:' 'original size' '385,' 'current size' "$shar_count!"
+    test 395 -eq "$shar_count" ||
+    $echo 'bug095_screwy_wc.dsc:' 'original size' '395,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug095_screwy_wc.help ==============
@@ -171,21 +171,21 @@ else
   $echo 'x -' extracting 'bug095_screwy_wc.help' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug095_screwy_wc.help' &&
 No arguments are used for this test
-X
+This test also checks bug #032 and #64
 SHAR_EOF
-  (set 20 05 10 31 14 31 15 'bug095_screwy_wc.help'; eval "$shar_touch") &&
+  (set 20 05 11 01 11 19 15 'bug095_screwy_wc.help'; eval "$shar_touch") &&
   chmod 0600 'bug095_screwy_wc.help' ||
   $echo 'restore of' 'bug095_screwy_wc.help' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug095_screwy_wc.help:' 'MD5 check failed'
-ca5fc544884b153d0ace2f7de99f78a6  bug095_screwy_wc.help
+dab7b5531532d3ae33bb08a0474c5f5e  bug095_screwy_wc.help
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug095_screwy_wc.help'`"
-    test 37 -eq "$shar_count" ||
-    $echo 'bug095_screwy_wc.help:' 'original size' '37,' 'current size' "$shar_count!"
+    test 75 -eq "$shar_count" ||
+    $echo 'bug095_screwy_wc.help:' 'original size' '75,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug095_screwy_wc.known_good_respons1 ==============
@@ -406,5 +406,5 @@ SHAR_EOF
     $echo 'bug095_screwy_wc.zone2:' 'original size' '461,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh32224
+rm -fr _sh09234
 exit 0
