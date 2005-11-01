@@ -1,5 +1,0 @@
-abc.			3600	IN	SOA	abc. abc. 2004010701 3600 28800 2419200 3600
-a.abc.			3600	IN	A	127.0.0.1
-b.a.abc.		3600	IN	A	127.0.0.2
-c.abc.			3600	IN	CNAME	a.abc.
-abc.			3600	IN	SOA	abc. abc. 2004010701 3600 28800 2419200 3600
