@@ -1,0 +1,333 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-11-08 13:40 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug052_ent.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     37 -rw------- bug052_ent.conf
+#    304 -rw------- bug052_ent.dsc
+#     87 -rw------- bug052_ent.help
+#     94 -rw------- bug052_ent.known_good_respons1
+#    552 -rw------- bug052_ent.post
+#    613 -rw------- bug052_ent.pre
+#    459 -rw------- bug052_ent.test
+#    490 -rw------- bug052_ent.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh21249; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug052_ent.conf ==============
+if test -f 'bug052_ent.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug052_ent.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug052_ent.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug052_ent.conf' &&
+zone	miek.nl         bug052_ent.zone
+SHAR_EOF
+  (set 20 05 11 08 13 36 08 'bug052_ent.conf'; eval "$shar_touch") &&
+  chmod 0600 'bug052_ent.conf' ||
+  $echo 'restore of' 'bug052_ent.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug052_ent.conf:' 'MD5 check failed'
+0e9d15a6a363ccfab1c49074c8b59897  bug052_ent.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.conf'`"
+    test 37 -eq "$shar_count" ||
+    $echo 'bug052_ent.conf:' 'original size' '37,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug052_ent.dsc ==============
+if test -f 'bug052_ent.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug052_ent.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug052_ent.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug052_ent.dsc' &&
+BaseName: bug052_ent
+Version: 1.0
+Description: Test bug 52; answer correct for ENTs
+CreationDate: Tue Nov  8 13:32:24 CET 2005
+Maintainer: Miek Gieben
+Category: ops
+Component: nsd
+Depends: 
+Help: bug052_ent.help
+Pre: bug052_ent.pre
+Post: bug052_ent.post
+Test: bug052_ent.test
+AuxFiles: 
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 11 08 13 33 31 'bug052_ent.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug052_ent.dsc' ||
+  $echo 'restore of' 'bug052_ent.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug052_ent.dsc:' 'MD5 check failed'
+fda36f052260b4e7f998dbe28d159dce  bug052_ent.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.dsc'`"
+    test 304 -eq "$shar_count" ||
+    $echo 'bug052_ent.dsc:' 'original size' '304,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug052_ent.help ==============
+if test -f 'bug052_ent.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug052_ent.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug052_ent.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug052_ent.help' &&
+NSD should answer correct for empty non terminals
+X
+There are no arguments to the test.
+SHAR_EOF
+  (set 20 05 11 08 13 33 58 'bug052_ent.help'; eval "$shar_touch") &&
+  chmod 0600 'bug052_ent.help' ||
+  $echo 'restore of' 'bug052_ent.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug052_ent.help:' 'MD5 check failed'
+23deae5c3e0fabd3abced749d29fc41e  bug052_ent.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.help'`"
+    test 87 -eq "$shar_count" ||
+    $echo 'bug052_ent.help:' 'original size' '87,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug052_ent.known_good_respons1 ==============
+if test -f 'bug052_ent.known_good_respons1' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug052_ent.known_good_respons1' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug052_ent.known_good_respons1' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug052_ent.known_good_respons1' &&
+miek.nl.		86400	IN	SOA	open.nlnetlabs.nl. miekg.atoom.net. 2005061300 14400 3600 604800 86400
+SHAR_EOF
+  (set 20 05 11 08 13 38 31 'bug052_ent.known_good_respons1'; eval "$shar_touch") &&
+  chmod 0600 'bug052_ent.known_good_respons1' ||
+  $echo 'restore of' 'bug052_ent.known_good_respons1' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug052_ent.known_good_respons1:' 'MD5 check failed'
+413753fa17989e80936ce64587f758f6  bug052_ent.known_good_respons1
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.known_good_respons1'`"
+    test 94 -eq "$shar_count" ||
+    $echo 'bug052_ent.known_good_respons1:' 'original size' '94,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug052_ent.post ==============
+if test -f 'bug052_ent.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug052_ent.post' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug052_ent.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug052_ent.post' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+X
+rm -f bug052_ent.db
+rm -f bug052_ent.current_respons1
+X
+# kill NSD
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
+NSD_PID=`cat $TPKG_NSD_PID`
+kill $NSD_PID 2>/dev/null
+sleep 1 # should be really dead now - just to be sure kill it again
+kill $NSD_PID 2>/dev/null
+Xexit 0
+SHAR_EOF
+  (set 20 05 11 08 13 40 52 'bug052_ent.post'; eval "$shar_touch") &&
+  chmod 0600 'bug052_ent.post' ||
+  $echo 'restore of' 'bug052_ent.post' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug052_ent.post:' 'MD5 check failed'
+6e3a5c247d8af756acb868f4121c8437  bug052_ent.post
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.post'`"
+    test 552 -eq "$shar_count" ||
+    $echo 'bug052_ent.post:' 'original size' '552,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug052_ent.pre ==============
+if test -f 'bug052_ent.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug052_ent.pre' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug052_ent.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug052_ent.pre' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+# start NSD
+((TPKG_PORT=5353+$RANDOM))
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_ZONEC="$PRE/zonec"
+TPKG_NSD="$PRE/nsd"
+X
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+X
+$TPKG_ZONEC -f bug052_ent.db bug052_ent.conf && \
+$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug052_ent.db
+SHAR_EOF
+  (set 20 05 11 08 13 35 54 'bug052_ent.pre'; eval "$shar_touch") &&
+  chmod 0600 'bug052_ent.pre' ||
+  $echo 'restore of' 'bug052_ent.pre' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug052_ent.pre:' 'MD5 check failed'
+d759b94bf8884325a80b62412381b519  bug052_ent.pre
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.pre'`"
+    test 613 -eq "$shar_count" ||
+    $echo 'bug052_ent.pre:' 'original size' '613,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug052_ent.test ==============
+if test -f 'bug052_ent.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug052_ent.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug052_ent.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug052_ent.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+X
+# the query
+dig -p $TPKG_PORT +noall +auth @localhost a b.miek.nl > bug052_ent.current_respons1
+X
+# must match
+wdiff bug052_ent.known_good_respons1 bug052_ent.current_respons1 
+SHAR_EOF
+  (set 20 05 11 08 13 39 12 'bug052_ent.test'; eval "$shar_touch") &&
+  chmod 0600 'bug052_ent.test' ||
+  $echo 'restore of' 'bug052_ent.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug052_ent.test:' 'MD5 check failed'
+56e385b36695d839da70d02b5ea2e0d6  bug052_ent.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.test'`"
+    test 459 -eq "$shar_count" ||
+    $echo 'bug052_ent.test:' 'original size' '459,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug052_ent.zone ==============
+if test -f 'bug052_ent.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug052_ent.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug052_ent.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug052_ent.zone' &&
+$TTL    4D
+$ORIGIN miek.nl.
+@       IN      SOA     open.nlnetlabs.nl. miekg.atoom.net. (
+X                         2005061300         ; Serial
+X                             4H         ; Refresh
+X                             1H         ; Retry
+X                             7D         ; Expire
+X                             1D )       ; Negative Cache TTL
+X		IN	NS	open.nlnetlabs.nl.
+X
+; answers for b should be no-data responses
+a.b	IN	TXT     "b is an empty non terminal. a.b has a text record"
+SHAR_EOF
+  (set 20 05 11 08 13 37 52 'bug052_ent.zone'; eval "$shar_touch") &&
+  chmod 0600 'bug052_ent.zone' ||
+  $echo 'restore of' 'bug052_ent.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug052_ent.zone:' 'MD5 check failed'
+c833ca70f38a292b5c5ab7b71a816269  bug052_ent.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.zone'`"
+    test 490 -eq "$shar_count" ||
+    $echo 'bug052_ent.zone:' 'original size' '490,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh21249
+exit 0

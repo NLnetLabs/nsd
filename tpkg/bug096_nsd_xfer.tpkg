@@ -1,0 +1,358 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-11-08 14:11 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug096_nsd_xfer.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     43 -rw------- bug096_nsd_xfer.conf
+#    403 -rw------- bug096_nsd_xfer.dsc
+#     86 -rw------- bug096_nsd_xfer.help
+#    308 -rw------- bug096_nsd_xfer.known_good_respons1
+#    650 -rw------- bug096_nsd_xfer.post
+#    750 -rw------- bug096_nsd_xfer.pre
+#    687 -rw------- bug096_nsd_xfer.test
+#    709 -rw------- bug096_nsd_xfer.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh22783; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug096_nsd_xfer.conf ==============
+if test -f 'bug096_nsd_xfer.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug096_nsd_xfer.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug096_nsd_xfer.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug096_nsd_xfer.conf' &&
+zone    example.nl.   bug096_nsd_xfer.zone
+SHAR_EOF
+  (set 20 05 11 08 13 54 06 'bug096_nsd_xfer.conf'; eval "$shar_touch") &&
+  chmod 0600 'bug096_nsd_xfer.conf' ||
+  $echo 'restore of' 'bug096_nsd_xfer.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug096_nsd_xfer.conf:' 'MD5 check failed'
+6d341787cb3601ef20ebc1c784d70a6b  bug096_nsd_xfer.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.conf'`"
+    test 43 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.conf:' 'original size' '43,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug096_nsd_xfer.dsc ==============
+if test -f 'bug096_nsd_xfer.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug096_nsd_xfer.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug096_nsd_xfer.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug096_nsd_xfer.dsc' &&
+BaseName: bug096_nsd_xfer
+Version: 1.0
+Description: bug 96, test 8bit dnames with nsd_xfer
+CreationDate: Tue Nov  8 13:47:47 CET 2005
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 
+Help: bug096_nsd_xfer.help
+Pre: bug096_nsd_xfer.pre
+Post: bug096_nsd_xfer.post
+Test: bug096_nsd_xfer.test
+AuxFiles: bug096_nsd_xfer.conf, bug096_nsd_xfer.zone, bug096_nsd_xfer.known_good_respons1
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 11 08 13 51 50 'bug096_nsd_xfer.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug096_nsd_xfer.dsc' ||
+  $echo 'restore of' 'bug096_nsd_xfer.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug096_nsd_xfer.dsc:' 'MD5 check failed'
+d31ac077c89a00f24cfebb1d4a8f75e8  bug096_nsd_xfer.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.dsc'`"
+    test 403 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.dsc:' 'original size' '403,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug096_nsd_xfer.help ==============
+if test -f 'bug096_nsd_xfer.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug096_nsd_xfer.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug096_nsd_xfer.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug096_nsd_xfer.help' &&
+Test nsd_xfer in conjunction with 8bit zone data
+X
+no arguments are used in this test
+X
+SHAR_EOF
+  (set 20 05 11 08 13 52 03 'bug096_nsd_xfer.help'; eval "$shar_touch") &&
+  chmod 0600 'bug096_nsd_xfer.help' ||
+  $echo 'restore of' 'bug096_nsd_xfer.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug096_nsd_xfer.help:' 'MD5 check failed'
+2ed52dba9a5cdc0c9d1b554e265e7e50  bug096_nsd_xfer.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.help'`"
+    test 86 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.help:' 'original size' '86,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug096_nsd_xfer.known_good_respons1 ==============
+if test -f 'bug096_nsd_xfer.known_good_respons1' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug096_nsd_xfer.known_good_respons1' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug096_nsd_xfer.known_good_respons1' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug096_nsd_xfer.known_good_respons1' &&
+$ORIGIN nl.
+example	3600	IN	SOA	bla.example.nl. root.example.nl. (
+X		2003070707 3600 28800 2419200 3600 )
+X	3600	IN	NS	ns0.xname.org.
+X	3600	IN	NS	ns1.xname.org.
+$ORIGIN example.nl.
+localhost	3600	IN	A	127.0.0.1
+\128\129\130	3600	IN	A	127.0.0.2
+\200\201\202\203\204\205\206\207\208\209\210	3600	IN	A	127.0.0.2
+SHAR_EOF
+  (set 20 05 11 08 14 00 07 'bug096_nsd_xfer.known_good_respons1'; eval "$shar_touch") &&
+  chmod 0600 'bug096_nsd_xfer.known_good_respons1' ||
+  $echo 'restore of' 'bug096_nsd_xfer.known_good_respons1' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug096_nsd_xfer.known_good_respons1:' 'MD5 check failed'
+bf370d6638c8d3299d2106083a0f7109  bug096_nsd_xfer.known_good_respons1
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.known_good_respons1'`"
+    test 308 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.known_good_respons1:' 'original size' '308,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug096_nsd_xfer.post ==============
+if test -f 'bug096_nsd_xfer.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug096_nsd_xfer.post' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug096_nsd_xfer.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug096_nsd_xfer.post' &&
+# #-- bug056_axfr.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+rm -f bug096_nsd_xfer.db
+rm -f bug096_nsd_xfer.current_respons1
+X
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
+X
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill $NSD_PID 2>/dev/null
+sleep 1 # should be really dead now - just to be sure kill it again
+kill $NSD_PID 2>/dev/null
+Xexit 0
+SHAR_EOF
+  (set 20 05 11 08 13 54 25 'bug096_nsd_xfer.post'; eval "$shar_touch") &&
+  chmod 0600 'bug096_nsd_xfer.post' ||
+  $echo 'restore of' 'bug096_nsd_xfer.post' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug096_nsd_xfer.post:' 'MD5 check failed'
+5e6f1419d722ddcd649c878da6e40ad9  bug096_nsd_xfer.post
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.post'`"
+    test 650 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.post:' 'original size' '650,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug096_nsd_xfer.pre ==============
+if test -f 'bug096_nsd_xfer.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug096_nsd_xfer.pre' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug096_nsd_xfer.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug096_nsd_xfer.pre' &&
+# #-- bug056_axfr.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+# start NSD
+((TPKG_PORT=5353+$RANDOM))
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_ZONEC="$PRE/zonec"
+TPKG_NSD="$PRE/nsd"
+X
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+X
+$TPKG_ZONEC -f bug096_nsd_xfer.db bug096_nsd_xfer.conf && \
+$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug096_nsd_xfer.db
+SHAR_EOF
+  (set 20 05 11 08 13 54 17 'bug096_nsd_xfer.pre'; eval "$shar_touch") &&
+  chmod 0600 'bug096_nsd_xfer.pre' ||
+  $echo 'restore of' 'bug096_nsd_xfer.pre' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug096_nsd_xfer.pre:' 'MD5 check failed'
+952a709a340460f2bed088f6a90fe1de  bug096_nsd_xfer.pre
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.pre'`"
+    test 750 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.pre:' 'original size' '750,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug096_nsd_xfer.test ==============
+if test -f 'bug096_nsd_xfer.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug096_nsd_xfer.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug096_nsd_xfer.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug096_nsd_xfer.test' &&
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+PRE="../../"
+X
+$PRE/nsd-xfer -z example.nl. -s 10 -p $TPKG_PORT -f bug096_nsd_xfer.current_respons1.tmp localhost
+cat bug096_nsd_xfer.current_respons1.tmp | grep -v '^;' > bug096_nsd_xfer.current_respons1
+rm -f bug096_nsd_xfer.current_respons1.tmp
+X
+# check it
+wdiff bug096_nsd_xfer.current_respons1 bug096_nsd_xfer.known_good_respons1
+SHAR_EOF
+  (set 20 05 11 08 14 07 08 'bug096_nsd_xfer.test'; eval "$shar_touch") &&
+  chmod 0600 'bug096_nsd_xfer.test' ||
+  $echo 'restore of' 'bug096_nsd_xfer.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug096_nsd_xfer.test:' 'MD5 check failed'
+411a3322118ec4db7aa51f855bd0e40c  bug096_nsd_xfer.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.test'`"
+    test 687 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.test:' 'original size' '687,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug096_nsd_xfer.zone ==============
+if test -f 'bug096_nsd_xfer.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug096_nsd_xfer.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug096_nsd_xfer.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug096_nsd_xfer.zone' &&
+$ORIGIN example.nl.
+@       IN      SOA     bla  root (
+X                        2003070707              ; serial, todays date + todays serial #
+X                        1H                      ; refresh, seconds
+X                        8H                      ; retry, seconds
+X                        4W                      ; expire, seconds
+X                        1H                      ; minimum ttl, seconds
+X                )
+;
+@   NS      ns0.xname.org.          ; Thanks to xname.org
+@   NS      ns1.xname.org.          ; Thanks to xname.org
+localhost               IN  A  127.0.0.1
+X
+; some 8bit voodoo here
+\200\201\202\203\204\205\206\207\208\209\210    IN A 127.0.0.2
+\128\129\130    IN A 127.0.0.2
+SHAR_EOF
+  (set 20 05 11 08 14 01 19 'bug096_nsd_xfer.zone'; eval "$shar_touch") &&
+  chmod 0600 'bug096_nsd_xfer.zone' ||
+  $echo 'restore of' 'bug096_nsd_xfer.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug096_nsd_xfer.zone:' 'MD5 check failed'
+eaa8e54a37025c46ef7025ade07bf020  bug096_nsd_xfer.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.zone'`"
+    test 709 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.zone:' 'original size' '709,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh22783
+exit 0
