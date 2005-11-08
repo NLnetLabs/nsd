@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-31 15:01 CET by <miekg@floep>.
+# Made on 2005-11-08 13:29 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug056_axfr.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -12,13 +12,13 @@
 # length mode       name
 # ------ ---------- ------------------------------------------
 #     49 -rw------- bug056_axfr.conf
-#    390 -rw------- bug056_axfr.dsc
+#    388 -rw------- bug056_axfr.dsc
 #     36 -rw------- bug056_axfr.help
-#    661 -rw------- bug056_axfr.known_good_respons1
+#    834 -rw------- bug056_axfr.known_good_respons1
 #    604 -rw------- bug056_axfr.post
 #    738 -rw------- bug056_axfr.pre
 #    669 -rw------- bug056_axfr.test
-#   1245 -rw------- bug056_axfr.zone
+#   1497 -rw------- bug056_axfr.zone
 #
 save_IFS="${IFS}"
 IFS="${IFS}:"
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh02509; then
+if mkdir _sh20192; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -105,7 +105,7 @@ else
   sed 's/^X//' << 'SHAR_EOF' > 'bug056_axfr.dsc' &&
 BaseName: bug056_axfr
 Version: 1.0
-Description: test bug 56 do a zone transfer and check its completeness
+Description: test bug 56 do a zone transfer and check it (also #049)
 CreationDate: Mon Oct 31 14:44:58 CET 2005
 Maintainer: Miek Gieben
 Category: 
@@ -119,19 +119,19 @@ AuxFiles: bug056_axfr.conf, bug056_axfr.zone, bug056_axfr.known_good_respons1
 Passed:
 Failure:
 SHAR_EOF
-  (set 20 05 10 31 15 00 15 'bug056_axfr.dsc'; eval "$shar_touch") &&
+  (set 20 05 11 08 13 29 17 'bug056_axfr.dsc'; eval "$shar_touch") &&
   chmod 0600 'bug056_axfr.dsc' ||
   $echo 'restore of' 'bug056_axfr.dsc' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug056_axfr.dsc:' 'MD5 check failed'
-377d67040ee960ab8aac8c6f4b8cbcef  bug056_axfr.dsc
+80f4974486e09b794a9b665a80fd747c  bug056_axfr.dsc
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug056_axfr.dsc'`"
-    test 390 -eq "$shar_count" ||
-    $echo 'bug056_axfr.dsc:' 'original size' '390,' 'current size' "$shar_count!"
+    test 388 -eq "$shar_count" ||
+    $echo 'bug056_axfr.dsc:' 'original size' '388,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug056_axfr.help ==============
@@ -171,25 +171,28 @@ edmundrichardson.com.	3600	IN	NS	ns1.xname.org.
 edmundrichardson.com.	3600	IN	A	66.219.195.8
 edmundrichardson.com.	3600	IN	MX	10 mail.edmundrichardson.com.
 *.edmundrichardson.com.	3600	IN	MX	10 mail.edmundrichardson.com.
+blaat.edmundrichardson.com. 3600 IN	NS	ns.blaat.edmundrichardson.com.
+ns.blaat.edmundrichardson.com. 3600 IN	A	127.0.0.1
+ns2.blaat.edmundrichardson.com.	3600 IN	A	127.0.0.1
 localhost.edmundrichardson.com.	3600 IN	A	127.0.0.1
 mail.edmundrichardson.com. 3600	IN	CNAME	42dbc308.dsl.aros.net.
 www.edmundrichardson.com. 3600	IN	CNAME	edmundrichardson.com.
 edmundrichardson.com.	3600	IN	SOA	42dbc308.dsl.aros.net. drr.aros.net. 2003070707 3600 28800 2419200 3600
 X
 SHAR_EOF
-  (set 20 05 10 31 14 58 25 'bug056_axfr.known_good_respons1'; eval "$shar_touch") &&
+  (set 20 05 11 08 13 27 50 'bug056_axfr.known_good_respons1'; eval "$shar_touch") &&
   chmod 0600 'bug056_axfr.known_good_respons1' ||
   $echo 'restore of' 'bug056_axfr.known_good_respons1' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug056_axfr.known_good_respons1:' 'MD5 check failed'
-7fb9ad4a96ec02d2f44a39276e5eb63d  bug056_axfr.known_good_respons1
+88dda4e9bd294c60b3538c1975f2ce89  bug056_axfr.known_good_respons1
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug056_axfr.known_good_respons1'`"
-    test 661 -eq "$shar_count" ||
-    $echo 'bug056_axfr.known_good_respons1:' 'original size' '661,' 'current size' "$shar_count!"
+    test 834 -eq "$shar_count" ||
+    $echo 'bug056_axfr.known_good_respons1:' 'original size' '834,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug056_axfr.post ==============
@@ -220,7 +223,7 @@ sleep 1 # should be really dead now - just to be sure kill it again
 kill $NSD_PID 2>/dev/null
 Xexit 0
 SHAR_EOF
-  (set 20 05 10 31 15 01 11 'bug056_axfr.post'; eval "$shar_touch") &&
+  (set 20 05 11 08 13 08 51 'bug056_axfr.post'; eval "$shar_touch") &&
   chmod 0600 'bug056_axfr.post' ||
   $echo 'restore of' 'bug056_axfr.post' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
@@ -342,6 +345,12 @@ localhost               IN  A  127.0.0.1
 ;
 ; An address for the zone itself
 edmundrichardson.com.       IN  A  66.219.195.8
+X
+; Add glue test 
+; delegate
+blaat.edmundrichardson.com.     IN      NS ns.blaat.edmundrichardson.com.
+ns.blaat.edmundrichardson.com.     IN      A 127.0.0.1 ; glue!
+ns2.blaat.edmundrichardson.com.    IN      A 127.0.0.1 ; not glue! but is in the axfr
 ;
 ; Useful aliases
 mail         IN  CNAME        42dbc308.dsl.aros.net.
@@ -354,20 +363,20 @@ www          IN  CNAME        edmundrichardson.com.
 edmundrichardson.com.           MX      10 mail   ; Primary Mail Exchanger
 *.edmundrichardson.com.         MX      10 mail   ; Primary Mail Exchanger
 SHAR_EOF
-  (set 20 05 10 31 14 45 56 'bug056_axfr.zone'; eval "$shar_touch") &&
+  (set 20 05 11 08 13 27 06 'bug056_axfr.zone'; eval "$shar_touch") &&
   chmod 0600 'bug056_axfr.zone' ||
   $echo 'restore of' 'bug056_axfr.zone' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug056_axfr.zone:' 'MD5 check failed'
-8b56720408d2d122b46449c80e93ce31  bug056_axfr.zone
+e15bf573b8b67aa080023ca5b176b4fa  bug056_axfr.zone
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug056_axfr.zone'`"
-    test 1245 -eq "$shar_count" ||
-    $echo 'bug056_axfr.zone:' 'original size' '1245,' 'current size' "$shar_count!"
+    test 1497 -eq "$shar_count" ||
+    $echo 'bug056_axfr.zone:' 'original size' '1497,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh02509
+rm -fr _sh20192
 exit 0

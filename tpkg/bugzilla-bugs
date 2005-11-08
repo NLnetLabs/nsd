@@ -19,7 +19,9 @@ T 25   "SRV RR (RFC2782) is not supported"
 T 27   "Incorrect NXDomain Answer in case of Wildcard" --- test in #095
 T 32   "nsd answers contain * on wildcards", see 
 T 33   "missing NXDomain error code", see #27 and test for #95
+T 34   "nsd returns authority info in answers to class=any queries"
 T 46   "proper wildcard matching", see screwy wildcard #095
+T 49   "No glue records in AXFR"        see bug 056
 T 53   "Over-pruning additional section if size(response)>512", truncate see #013
 T 54   "NSD does not copy RD bit from query"
 T 56   "axfr doesn't transfer cnames"
@@ -44,12 +46,6 @@ T 103   "NXDOMAIN SOA TTL"
 T 107   "segfault when encountering bad hex data in rfc3597 rdata"
 
 # moet nog
-M 29   "NSD sends answer on notify"
-M 34   "nsd returns authority info in answers to class=any queries"
-M 35   "sending wrong name errors (NXDOMAIN)"
-M 37   "invalid packet echoed on FormErr"
-# axfr
-M 49   "No glue records in AXFR"        
 M 52   "dont answer NXDOMAIN for empty nodes"
 M 96   "nsd-xfer cannot handle 8bit domainname correctly"
 
@@ -58,6 +54,7 @@ M 96   "nsd-xfer cannot handle 8bit domainname correctly"
 ! 20   "256 questions per-se should generate form err"
 ! 22   "trailing byte in queries (see also bug4)" ALLOW TESTING WITH TRACES
 ! 31   "query section not included in 'NotImp' answers to updates"
+! 37   "invalid packet echoed on FormErr" - how to send stuff with tcp replay
 ! 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
 ===================================
 - 4   "Correctly handle queries with too much data"  to little info
@@ -73,4 +70,6 @@ M 96   "nsd-xfer cannot handle 8bit domainname correctly"
 * 23   "no answer section returned in answer to glue query"
 * 26   "zone compiler thrashes on big zone files", bug see 213_large
 - 28   "Wrong additional section RRcount in case of EDNS."
+! 29   "NSD sends answer on notify"  - cannot send notify with DIG
+- 35   "sending wrong name errors (NXDOMAIN)"
 - 36   "we should not bounce on RR Type when doing a referral"
