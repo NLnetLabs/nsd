@@ -179,11 +179,14 @@ C.1. Zone file format and RR records.
    zone is marked to be secure. A zone is marked secure if the SOA
    record is signed. The zone data is not cryptographically checked at
    the time the zone db is generated; 
+        XXX - can test
 
    NSD always clears the AD flag on answering data from a secure zone
    in the database.
+        XXX - can test
  
    NSD always copies the CD bit from the query to the response.
+        XXX - copy_cd.tpkg
 
    NSD does not include the DNSKEY RRset in the additional section on
    queries for the SOA or NS records at the zone apex.  It is not

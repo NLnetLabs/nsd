@@ -1,0 +1,353 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-11-09 09:18 CET by <miekg@elektron>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/copy_cd.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     32 -rw------- copy_cd.conf
+#    382 -rw------- copy_cd.dsc
+#     72 -rw------- copy_cd.known_good_respons1
+#     69 -rw------- copy_cd.known_good_respons2
+#    579 -rw------- copy_cd.post
+#    604 -rw------- copy_cd.pre
+#    650 -rw------- copy_cd.test
+#    939 -rw------- copy_cd.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh04691; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= copy_cd.conf ==============
+if test -f 'copy_cd.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'copy_cd.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'copy_cd.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'copy_cd.conf' &&
+zone    dnssec.    copy_cd.zone
+SHAR_EOF
+  (set 20 05 11 09 09 10 25 'copy_cd.conf'; eval "$shar_touch") &&
+  chmod 0600 'copy_cd.conf' ||
+  $echo 'restore of' 'copy_cd.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'copy_cd.conf:' 'MD5 check failed'
+9b050ecff362af33126632679b22118b  copy_cd.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.conf'`"
+    test 32 -eq "$shar_count" ||
+    $echo 'copy_cd.conf:' 'original size' '32,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= copy_cd.dsc ==============
+if test -f 'copy_cd.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'copy_cd.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'copy_cd.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'copy_cd.dsc' &&
+BaseName: copy_cd
+Version: 1.0
+Description: NSD must always copy the CD bit from a query
+CreationDate: Wed Nov  9 09:06:07 CET 2005
+Maintainer: Miek Gieben
+Category: 
+Component: zonec
+Depends: 0000_nsd-compile.tpkg
+Pre: copy_cd.pre
+Post: copy_cd.post
+Test: copy_cd.test
+AuxFiles: copy_cd.conf, copy_cd.zone, copy_cd.known_good_respons1, copy_cd.known_good_respons2
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 11 09 09 09 27 'copy_cd.dsc'; eval "$shar_touch") &&
+  chmod 0600 'copy_cd.dsc' ||
+  $echo 'restore of' 'copy_cd.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'copy_cd.dsc:' 'MD5 check failed'
+ca4e8aa7d27990832e2ddafedc500117  copy_cd.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.dsc'`"
+    test 382 -eq "$shar_count" ||
+    $echo 'copy_cd.dsc:' 'original size' '382,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= copy_cd.known_good_respons1 ==============
+if test -f 'copy_cd.known_good_respons1' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'copy_cd.known_good_respons1' '(file already exists)'
+else
+  $echo 'x -' extracting 'copy_cd.known_good_respons1' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'copy_cd.known_good_respons1' &&
+;; flags: qr aa rd cd; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 0
+SHAR_EOF
+  (set 20 05 11 09 09 17 32 'copy_cd.known_good_respons1'; eval "$shar_touch") &&
+  chmod 0600 'copy_cd.known_good_respons1' ||
+  $echo 'restore of' 'copy_cd.known_good_respons1' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'copy_cd.known_good_respons1:' 'MD5 check failed'
+f36884766619e8f1dba416234caa2d3d  copy_cd.known_good_respons1
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.known_good_respons1'`"
+    test 72 -eq "$shar_count" ||
+    $echo 'copy_cd.known_good_respons1:' 'original size' '72,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= copy_cd.known_good_respons2 ==============
+if test -f 'copy_cd.known_good_respons2' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'copy_cd.known_good_respons2' '(file already exists)'
+else
+  $echo 'x -' extracting 'copy_cd.known_good_respons2' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'copy_cd.known_good_respons2' &&
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 0
+SHAR_EOF
+  (set 20 05 11 09 09 17 32 'copy_cd.known_good_respons2'; eval "$shar_touch") &&
+  chmod 0600 'copy_cd.known_good_respons2' ||
+  $echo 'restore of' 'copy_cd.known_good_respons2' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'copy_cd.known_good_respons2:' 'MD5 check failed'
+ccd833f7c79254883f34117310f6df03  copy_cd.known_good_respons2
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.known_good_respons2'`"
+    test 69 -eq "$shar_count" ||
+    $echo 'copy_cd.known_good_respons2:' 'original size' '69,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= copy_cd.post ==============
+if test -f 'copy_cd.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'copy_cd.post' '(file already exists)'
+else
+  $echo 'x -' extracting 'copy_cd.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'copy_cd.post' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+rm -f copy_cd.db
+rm -f copy_cd.current_respons1
+rm -f copy_cd.current_respons2
+X
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
+X
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill $NSD_PID 2>/dev/null
+sleep 1 # should be really dead now - just to be sure kill it again
+kill $NSD_PID 2>/dev/null
+X
+Xexit 0
+SHAR_EOF
+  (set 20 05 11 09 09 18 09 'copy_cd.post'; eval "$shar_touch") &&
+  chmod 0600 'copy_cd.post' ||
+  $echo 'restore of' 'copy_cd.post' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'copy_cd.post:' 'MD5 check failed'
+de6446a687782d0c2defde0ffc3de0c2  copy_cd.post
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.post'`"
+    test 579 -eq "$shar_count" ||
+    $echo 'copy_cd.post:' 'original size' '579,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= copy_cd.pre ==============
+if test -f 'copy_cd.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'copy_cd.pre' '(file already exists)'
+else
+  $echo 'x -' extracting 'copy_cd.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'copy_cd.pre' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+# start NSD
+((TPKG_PORT=5353+$RANDOM))
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_ZONEC="$PRE/zonec"
+TPKG_NSD="$PRE/nsd"
+X
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+X
+$TPKG_ZONEC -f copy_cd.db copy_cd.conf && \
+$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f copy_cd.db
+SHAR_EOF
+  (set 20 05 11 09 09 08 14 'copy_cd.pre'; eval "$shar_touch") &&
+  chmod 0600 'copy_cd.pre' ||
+  $echo 'restore of' 'copy_cd.pre' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'copy_cd.pre:' 'MD5 check failed'
+e3105f8e13eb8651cf79e9efbe801c02  copy_cd.pre
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.pre'`"
+    test 604 -eq "$shar_count" ||
+    $echo 'copy_cd.pre:' 'original size' '604,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= copy_cd.test ==============
+if test -f 'copy_cd.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'copy_cd.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'copy_cd.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'copy_cd.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path
+# you may need to adjust it
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+X
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+# query with cd set, should also have it in the answer
+dig +cd soa dnssec. @localhost -p $TPKG_PORT |grep flags > copy_cd.current_respons1
+X
+# query without the cd bit
+dig +nocd soa dnssec. @localhost -p $TPKG_PORT |grep flags > copy_cd.current_respons2
+X
+wdiff copy_cd.current_respons1 copy_cd.known_good_respons1 && \
+wdiff copy_cd.current_respons2 copy_cd.known_good_respons2
+SHAR_EOF
+  (set 20 05 11 09 09 16 04 'copy_cd.test'; eval "$shar_touch") &&
+  chmod 0600 'copy_cd.test' ||
+  $echo 'restore of' 'copy_cd.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'copy_cd.test:' 'MD5 check failed'
+7fbf1cfca975633952c476cfa4badcea  copy_cd.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.test'`"
+    test 650 -eq "$shar_count" ||
+    $echo 'copy_cd.test:' 'original size' '650,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= copy_cd.zone ==============
+if test -f 'copy_cd.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'copy_cd.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'copy_cd.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'copy_cd.zone' &&
+; File written on Thu Dec  9 16:22:56 2004
+; dnssec_signzone version 9.3.0
+; both mnemonics as numbers as alg in RRSIGs
+dnssec.			3600	IN SOA	dnssec. admin.dnssec. (
+X					2004120901 ; serial
+X					21600      ; refresh (6 hours)
+X					7200       ; retry (2 hours)
+X					604800     ; expire (1 week)
+X					3600       ; minimum (1 hour)
+X					)
+X			3600	RRSIG	SOA RSAMD5 1 3600 20050108142256 (
+X					20041209142256 25294 dnssec.
+X					OhPPWZeqtcNBznhkpn2YO7cncHF0PhxhTcrZ
+X					hG3ZrIsX/PFOYHkA3lJPZX9lzTLlrxqeFVFb
+X					60641NNKUiq4Aw== )
+X			3600	NS	ns.dnssec.
+X			3600	RRSIG	NS 1 1 3600 20050108142256 (
+X					20041209142256 25294 dnssec.
+X					tuikgzRDd8xEdmr1W0k0eo6sAlSqhhlNIn/f
+X					ksld4w9C9SC/B/WR1RP1m/c4pZ1fXEimi0Io
+X					rllFZpptJU6vRQ== )
+X			3600	A	127.0.0.1
+X			3600	RRSIG	A 1 1 3600 20050108142256 (
+X					20041209142256 25294 dnssec.
+X					dukS7Rw05gRu67NswMTOhUT1xSi5YkxmC1Yx
+X					26JKdO7CWRIWjvANW9dy3h7I4MGUWkb3MIST
+X					vecTgPcktpdVuQ== )
+SHAR_EOF
+  (set 20 05 10 25 14 33 10 'copy_cd.zone'; eval "$shar_touch") &&
+  chmod 0600 'copy_cd.zone' ||
+  $echo 'restore of' 'copy_cd.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'copy_cd.zone:' 'MD5 check failed'
+b281d39aa9fcd4006d53b99533f9efcb  copy_cd.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.zone'`"
+    test 939 -eq "$shar_count" ||
+    $echo 'copy_cd.zone:' 'original size' '939,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh04691
+exit 0
