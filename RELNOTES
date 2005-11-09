@@ -2,21 +2,23 @@ NSD RELEASE NOTES
 
 2.3.2
 =============
+FEATURES:
+        - Bug #101: add support for the SPF record.
+
 BUG FIXES:
         - Bug #100: replaced non-portable use of timegm(3) with
           portable implementation (mktime_from_utc).
-        - Bug #103: trim the SOA's TTL when returning a negative
-          answer.
-        - Bug #104: add a time_t timestamp to the log when logging to
+        - Bug #103: nsd: trim the SOA's TTL to the MINIMUM value when returning a 
+          negative answer.
+        - Bug #104: nsd: add a time_t timestamp to the log when logging to
           a file.
         - Bug #105: nsdc: use a lock file when rebuilding the database (patch by
           Jakob Schlyter/Ted Lindgreen).
-        - Bug #106: don't walk all 256 NSEC windows when that is not
+        - Bug #106: zonec: don't walk all 256 NSEC windows when that is not
           needed.
-	- Bug #107: fixed crash when encountering bad unknown rdata.
-
-FEATURES:
-        - Bug #101: add support for the SPF record.
+        - Bug #107: zonec: fixed a crash when encountering bad unknown rdata.
+        - nsd: Don't print: "error: nsd is already running as <pid>, stopping"
+          when in fact NSD continues to run.
 
 2.3.1
 =============

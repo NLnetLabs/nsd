@@ -653,8 +653,8 @@ main (int argc, char *argv[])
 		}
 	} else {
 		if (kill(oldpid, 0) == 0 || errno == EPERM) {
-			log_msg(LOG_ERR,
-				"nsd is already running as %u, stopping",
+			log_msg(LOG_WARNING,
+				"nsd is already running as %u, continuing",
 				(unsigned) oldpid);
 			/* XXX: Stop or continue to bind port anyway? */
 /* 			exit(0); */
