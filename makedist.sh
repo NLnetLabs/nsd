@@ -166,4 +166,16 @@ tar czf ../nsd-$version.tar.gz nsd-$version || error_cleanup "Failed to create t
 
 cleanup
 
+case $OSTYPE in
+        linux*)
+                md5=`md5sum nsd-$version.tar.gz |  awk '{ print $1 }'`
+                ;;
+        freebsd*)
+                md5=` md5  nsd-$version.tar.gz |  awk '{ print $5 }'`
+                ;;
+esac
+cat $md5 > nsd-$version.tar.gz.md5
+
 info "NSD distribution created successfully."
+info "MD5sum: $md5"
+
