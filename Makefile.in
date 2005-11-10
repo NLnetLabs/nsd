@@ -172,7 +172,7 @@ nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 clean:
-	rm -f dname rbtree *.o *.so y.* *.core *.gmon
+	rm -f dname rbtree *.o *.so y.* *.core *.gmon tags TAGS
 	rm -f $(TARGETS)
 
 devclean: clean

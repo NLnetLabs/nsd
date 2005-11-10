@@ -25,12 +25,8 @@ PURITY
 - some data is in network order some in host order, make it clear with prefixes
 - brush up the fuction and identifiers names
 
-TESTS
-- add a test for every bugzilla bug, this is on its way
-
 CLEANUP
 + proper error/fatal/warning interfaces
-- separate parse for nsd.zones
 
 DOCUMENTATION
 
