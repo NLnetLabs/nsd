@@ -174,7 +174,7 @@ case $OSTYPE in
                 md5=` md5  nsd-$version.tar.gz |  awk '{ print $5 }'`
                 ;;
 esac
-cat $md5 > nsd-$version.tar.gz.md5
+echo $md5 > nsd-$version.tar.gz.md5
 
 info "NSD distribution created successfully."
 info "MD5sum: $md5"

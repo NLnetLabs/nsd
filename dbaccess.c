@@ -198,6 +198,9 @@ read_rrset(namedb_type *db,
 		memcpy(rrset->zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
 		rrset->zone->soa_nx_rrset->rr_count = 1;
 
+		/* also add a link to the zone */
+		rrset->zone->soa_nx_rrset->zone = rrset->zone;
+
 		/* check the ttl and MINIMUM value and set accordinly */
 		memcpy(&soa_minimum, rdata_atom_data(rrset->rrs->rdatas[6]),
 				rdata_atom_size(rrset->rrs->rdatas[6]));
@@ -328,6 +331,7 @@ namedb_open (const char *filename)
 		db->zones = zones[i];
 		zones[i]->apex = domain_table_insert(db->domains, dname);
 		zones[i]->soa_rrset = NULL;
+		zones[i]->soa_nx_rrset = NULL;
 		zones[i]->ns_rrset = NULL;
 		zones[i]->number = i + 1;
 		zones[i]->is_secure = 0;
