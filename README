@@ -205,11 +205,11 @@ addition to standard configure options, one may use the following:
   --with-zonesdir=dir
 
         NSD default location for master zone files, default /etc/nsd/
-        
+
   --with-user=username
 
         User name or ID to answer the queries with, default is nsd
-        
+
   --with-libwrap=pathname
 
         Compile in libwrap (tcp_wrappers) support.

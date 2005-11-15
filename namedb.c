@@ -308,6 +308,7 @@ domain_wildcard_child(domain_type *domain)
 int
 zone_is_secure(zone_type *zone)
 {
+	assert(zone);
 	return zone->is_secure;
 }
 
