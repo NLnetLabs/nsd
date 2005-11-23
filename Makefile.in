@@ -229,6 +229,9 @@ config.h.in:	configure.ac
 configure:	configure.ac
 	autoconf
 
+tags: 	
+	ctags *.[ch]
+
 # Dependencies
 answer.o: answer.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h packet.h query.h nsd.h edns.h
