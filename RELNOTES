@@ -19,6 +19,7 @@ BUG FIXES:
         - Bug #107: zonec: fixed a crash when encountering bad unknown rdata.
         - nsd: Don't print: "error: nsd is already running as <pid>, stopping"
           when in fact NSD continues to run.
+        - nsd: Minimize a race window in sig_handler().
 
 2.3.1
 =============
