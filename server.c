@@ -460,6 +460,8 @@ server_main(struct nsd *nsd)
 				break;
 			}
 
+			log_msg(LOG_WARNING, "signal received, reloading...");
+
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:
@@ -520,6 +522,7 @@ server_main(struct nsd *nsd)
 			server_shutdown(nsd);
 			break;
 		case NSD_SHUTDOWN:
+			log_msg(LOG_WARNING, "signal received, shutting down...");
 			break;
 		default:
 			log_msg(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);

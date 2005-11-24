@@ -167,6 +167,7 @@ void
 sig_handler (int sig)
 {
 	size_t i;
+	/* To avoid race cond. We really don't want to use log_msg() in this handler */
 	
 	/* Are we a child server? */
 	if (nsd.server_kind != NSD_SERVER_MAIN) {
@@ -197,7 +198,7 @@ sig_handler (int sig)
 	case SIGCHLD:
 		return;
 	case SIGHUP:
-		log_msg(LOG_WARNING, "signal %d received, reloading...", sig);
+		/* log_msg(LOG_WARNING, "signal %d received, reloading...", sig); */
 		nsd.mode = NSD_RELOAD;
 		return;
 	case SIGALRM:
@@ -223,7 +224,7 @@ sig_handler (int sig)
 	case SIGTERM:
 	default:
 		nsd.mode = NSD_SHUTDOWN;
-		log_msg(LOG_WARNING, "signal %d received, shutting down...", sig);
+		/* log_msg(LOG_WARNING, "signal %d received, shutting down...", sig); */
 		sig = SIGTERM;
 		break;
 	}
