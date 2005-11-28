@@ -102,7 +102,7 @@ fi
 info "SVNROOT  is $SVNROOT"
 info "SNAPSHOT is $SNAPSHOT"
 
-question "Do you wish to continue with these settings?" || error "User abort."
+#question "Do you wish to continue with these settings?" || error "User abort."
 
 
 # Creating temp directory
@@ -161,6 +161,9 @@ if [ -f $tarfile ]; then
         && rm -f $tarfile) || error_cleanup "User abort."
 fi
 
+info "Deleting the tpkg directory"
+rm -rf nsd-$version/tpkg/
+
 info "Creating tar nsd-$version.tar.gz"
 tar czf ../nsd-$version.tar.gz nsd-$version || error_cleanup "Failed to create tar file."
 
@@ -168,14 +171,14 @@ cleanup
 
 case $OSTYPE in
         linux*)
-                md5=`md5sum nsd-$version.tar.gz |  awk '{ print $1 }'`
+                sha=`sha1sum nsd-$version.tar.gz |  awk '{ print $1 }'`
                 ;;
         freebsd*)
-                md5=` md5  nsd-$version.tar.gz |  awk '{ print $5 }'`
+                sha=`sha1  nsd-$version.tar.gz |  awk '{ print $5 }'`
                 ;;
 esac
-echo $md5 > nsd-$version.tar.gz.md5
+echo $sha > nsd-$version.tar.gz.sha1
 
 info "NSD distribution created successfully."
-info "MD5sum: $md5"
+info "SHA1sum: $sha"
 
