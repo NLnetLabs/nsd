@@ -1,0 +1,176 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-12-05 12:27 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/nsdc-run.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#    287 -rw------- nsdc-run.dsc
+#     30 -rw------- nsdc-run.help
+#    514 -rw------- nsdc-run.test
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh30867; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= nsdc-run.dsc ==============
+if test -f 'nsdc-run.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'nsdc-run.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'nsdc-run.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'nsdc-run.dsc' &&
+BaseName: nsdc-run
+Version: 1.0
+Description: Make and run nsdc to see if there are any errors
+CreationDate: Mon Dec  5 12:24:32 CET 2005
+Maintainer: Miek Gieben
+Category: 
+Component:
+CmdDepends: 
+Depends: 
+Help: nsdc-run.help
+Pre: 
+Post: 
+Test: nsdc-run.test
+AuxFiles: 
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 12 05 12 25 00 'nsdc-run.dsc'; eval "$shar_touch") &&
+  chmod 0600 'nsdc-run.dsc' ||
+  $echo 'restore of' 'nsdc-run.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'nsdc-run.dsc:' 'MD5 check failed'
+0ef1a8718ce94d3b2dd4288537a6bb09  nsdc-run.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nsdc-run.dsc'`"
+    test 287 -eq "$shar_count" ||
+    $echo 'nsdc-run.dsc:' 'original size' '287,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= nsdc-run.help ==============
+if test -f 'nsdc-run.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'nsdc-run.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'nsdc-run.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'nsdc-run.help' &&
+No args are used in this test
+SHAR_EOF
+  (set 20 05 12 05 12 25 15 'nsdc-run.help'; eval "$shar_touch") &&
+  chmod 0600 'nsdc-run.help' ||
+  $echo 'restore of' 'nsdc-run.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'nsdc-run.help:' 'MD5 check failed'
+24e999e3a6a6b976b4a1b64ae97ffb02  nsdc-run.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nsdc-run.help'`"
+    test 30 -eq "$shar_count" ||
+    $echo 'nsdc-run.help:' 'original size' '30,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= nsdc-run.test ==============
+if test -f 'nsdc-run.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'nsdc-run.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'nsdc-run.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'nsdc-run.test' &&
+# #-- nsdc-run.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+cd ../../
+case $OSTYPE in
+X        linux*)
+X                make nsdc
+X        ;;
+X        freebsd*)
+X                gmake nsdc
+X        ;;
+esac
+X
+X./nsdc && ./nsdc help
+X
+SHAR_EOF
+  (set 20 05 12 05 12 26 52 'nsdc-run.test'; eval "$shar_touch") &&
+  chmod 0600 'nsdc-run.test' ||
+  $echo 'restore of' 'nsdc-run.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'nsdc-run.test:' 'MD5 check failed'
+35f92dc3a951e3bf1a77b968cec8fab4  nsdc-run.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nsdc-run.test'`"
+    test 514 -eq "$shar_count" ||
+    $echo 'nsdc-run.test:' 'original size' '514,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh30867
+exit 0
