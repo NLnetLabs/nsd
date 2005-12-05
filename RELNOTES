@@ -13,7 +13,7 @@ BUG FIXES:
         - Bug #104: nsd: add a time_t timestamp to the log when logging to
           a file.
         - Bug #105: nsdc: use a lock file when rebuilding the database (patch by
-          Jakob Schlyter/Ted Lindgreen).
+          Jakob Schlyter/Ted Lindgreen/Sebastian/Ondrej Sury).
         - Bug #106: zonec: don't walk all 256 NSEC windows when that is not
           needed.
         - Bug #107: zonec: fixed a crash when encountering bad unknown rdata.
