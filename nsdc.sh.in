@@ -53,7 +53,7 @@ signal() {
 }
 
 lock() {
-        ((umask 222; echo "database locked bij PID: $$") >${lockfile}) ||
+        ((umask 222; echo "database locked by PID: $$") >${lockfile}) ||
                 (cat ${lockfile} ; "echo aborting..." ; exit 1)
 }
 
