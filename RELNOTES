@@ -1,5 +1,10 @@
 NSD RELEASE NOTES
 
+2.3.3
+=============
+BUG FIXES:
+        - Apply the correct patch to nsdc.sh.in. 
+
 2.3.2
 =============
 FEATURES:
