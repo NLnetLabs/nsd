@@ -1,0 +1,156 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-12-12 21:58 CET by <miekg@elektron>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/0001_nsd-debug-comp.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#    273 -rw------- 0001_nsd-debug-comp.dsc
+#    675 -rw------- 0001_nsd-debug-comp.test
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh30914; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= 0001_nsd-debug-comp.dsc ==============
+if test -f '0001_nsd-debug-comp.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING '0001_nsd-debug-comp.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting '0001_nsd-debug-comp.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > '0001_nsd-debug-comp.dsc' &&
+BaseName: 0001_nsd-debug-comp
+Version: 1.0
+Description: Compile NSD with NDEBUG undefined
+CreationDate: Mon Dec 12 21:21:46 CET 2005
+Maintainer: Miek Gieben
+Category: building
+Component: nsd
+Depends: 
+Pre: 
+Post: 
+Test: 0001_nsd-debug-comp.test
+AuxFiles: 
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 12 12 21 23 08 '0001_nsd-debug-comp.dsc'; eval "$shar_touch") &&
+  chmod 0600 '0001_nsd-debug-comp.dsc' ||
+  $echo 'restore of' '0001_nsd-debug-comp.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo '0001_nsd-debug-comp.dsc:' 'MD5 check failed'
+932ab8ceafae4363de6afd695e03da34  0001_nsd-debug-comp.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < '0001_nsd-debug-comp.dsc'`"
+    test 273 -eq "$shar_count" ||
+    $echo '0001_nsd-debug-comp.dsc:' 'original size' '273,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= 0001_nsd-debug-comp.test ==============
+if test -f '0001_nsd-debug-comp.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING '0001_nsd-debug-comp.test' '(file already exists)'
+else
+  $echo 'x -' extracting '0001_nsd-debug-comp.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > '0001_nsd-debug-comp.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path you may need to adjust it
+X
+export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+# first arg is the build dir, only if no arg is given in .tpkg.var
+if [ -z $TPKG_BUILD ]; then
+X        TPKG_BUILD=$1
+fi
+X
+echo $TPKG_BUILD
+cd $TPKG_BUILD
+X
+case $OSTYPE in
+X        linux*)
+X                autoreconf && \
+X                ./configure --enable-checking && \
+X                make
+X        ;;
+X        freebsd*)
+X                autoconf259 && autoheader259 && \
+X                ./configure --enable-checking && \
+X                gmake
+X        ;;
+esac
+SHAR_EOF
+  (set 20 05 12 12 21 57 29 '0001_nsd-debug-comp.test'; eval "$shar_touch") &&
+  chmod 0600 '0001_nsd-debug-comp.test' ||
+  $echo 'restore of' '0001_nsd-debug-comp.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo '0001_nsd-debug-comp.test:' 'MD5 check failed'
+4de7986e9f0ece68db08f6f51946d9dd  0001_nsd-debug-comp.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < '0001_nsd-debug-comp.test'`"
+    test 675 -eq "$shar_count" ||
+    $echo '0001_nsd-debug-comp.test:' 'original size' '675,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh30914
+exit 0
