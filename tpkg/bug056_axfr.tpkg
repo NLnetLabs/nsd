@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-11-08 13:29 CET by <miekg@floep>.
+# Made on 2005-12-15 10:48 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug056_axfr.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -17,7 +17,7 @@
 #    834 -rw------- bug056_axfr.known_good_respons1
 #    604 -rw------- bug056_axfr.post
 #    738 -rw------- bug056_axfr.pre
-#    669 -rw------- bug056_axfr.test
+#    692 -rw------- bug056_axfr.test
 #   1497 -rw------- bug056_axfr.zone
 #
 save_IFS="${IFS}"
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh20192; then
+if mkdir _sh21674; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -300,7 +300,8 @@ X        linux*)
 X        DIG=/usr/bin/dig
 X        ;;
 X        freebsd*)
-X        DIG=/usr/local/bin/dig
+#Freebsd 6 has sane location
+X        DIG=/usr/bin/dig
 X        ;;
 esac
 X
@@ -309,19 +310,19 @@ X
 # must be ok
 wdiff bug056_axfr.known_good_respons1 bug056_axfr.current_respons1
 SHAR_EOF
-  (set 20 05 10 31 15 00 02 'bug056_axfr.test'; eval "$shar_touch") &&
+  (set 20 05 12 15 10 48 19 'bug056_axfr.test'; eval "$shar_touch") &&
   chmod 0600 'bug056_axfr.test' ||
   $echo 'restore of' 'bug056_axfr.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug056_axfr.test:' 'MD5 check failed'
-9953010fb434fcbf57fcab094f1f3395  bug056_axfr.test
+cf3a758734ebd071e1f8026653058b9f  bug056_axfr.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug056_axfr.test'`"
-    test 669 -eq "$shar_count" ||
-    $echo 'bug056_axfr.test:' 'original size' '669,' 'current size' "$shar_count!"
+    test 692 -eq "$shar_count" ||
+    $echo 'bug056_axfr.test:' 'original size' '692,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug056_axfr.zone ==============
@@ -378,5 +379,5 @@ SHAR_EOF
     $echo 'bug056_axfr.zone:' 'original size' '1497,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh20192
+rm -fr _sh21674
 exit 0
