@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-11-01 11:19 CET by <miekg@floep>.
+# Made on 2005-12-15 11:04 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug095_screwy_wc.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -18,7 +18,7 @@
 #    135 -rw------- bug095_screwy_wc.known_good_respons1
 #    592 -rw------- bug095_screwy_wc.post
 #    758 -rw------- bug095_screwy_wc.pre
-#    690 -rw------- bug095_screwy_wc.test
+#    684 -rw------- bug095_screwy_wc.test
 #    420 -rw------- bug095_screwy_wc.zone1
 #    461 -rw------- bug095_screwy_wc.zone2
 #
@@ -70,7 +70,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh09234; then
+if mkdir _sh22655; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -318,7 +318,7 @@ X        linux*)
 X        DIG=/usr/bin/dig
 X        ;;
 X        freebsd*)
-X        DIG=/usr/local/bin/dig
+X        DIG=/usr/bin/dig
 X        ;;
 esac
 X
@@ -326,19 +326,19 @@ $DIG +noall +comments @localhost -p $TPKG_PORT www2.\*.example. txt| sed 's/id.*
 X
 wdiff bug095_screwy_wc.known_good_respons1 bug095_screwy_wc.current_respons1
 SHAR_EOF
-  (set 20 05 10 31 14 32 06 'bug095_screwy_wc.test'; eval "$shar_touch") &&
+  (set 20 05 12 15 11 04 51 'bug095_screwy_wc.test'; eval "$shar_touch") &&
   chmod 0600 'bug095_screwy_wc.test' ||
   $echo 'restore of' 'bug095_screwy_wc.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug095_screwy_wc.test:' 'MD5 check failed'
-8741afc14dbd91d01cbd628875b507de  bug095_screwy_wc.test
+802a9cc64a359fbdff296ffb0d0b8b54  bug095_screwy_wc.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug095_screwy_wc.test'`"
-    test 690 -eq "$shar_count" ||
-    $echo 'bug095_screwy_wc.test:' 'original size' '690,' 'current size' "$shar_count!"
+    test 684 -eq "$shar_count" ||
+    $echo 'bug095_screwy_wc.test:' 'original size' '684,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug095_screwy_wc.zone1 ==============
@@ -406,5 +406,5 @@ SHAR_EOF
     $echo 'bug095_screwy_wc.zone2:' 'original size' '461,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh09234
+rm -fr _sh22655
 exit 0
