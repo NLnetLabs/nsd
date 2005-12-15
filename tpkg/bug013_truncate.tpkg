@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-11-01 11:12 CET by <miekg@floep>.
+# Made on 2005-12-15 10:44 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug013_truncate.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -15,7 +15,6 @@
 #   2068 -rw------- bug013_truncate.current_respons_a_before_aaaa
 #    966 -rw------- bug013_truncate.current_respons_full_answer
 #     72 -rw------- bug013_truncate.current_respons_truncated
-#   2757 -rw------- bug013_truncate.db
 #    522 -rw------- bug013_truncate.dsc
 #     91 -rw------- bug013_truncate.help
 #   3111 -rw------- bug013_truncate.known_good_respons_a_before_aaaa
@@ -23,7 +22,7 @@
 #     72 -rw------- bug013_truncate.known_good_respons_truncated
 #    590 -rw------- bug013_truncate.post
 #    754 -rw------- bug013_truncate.pre
-#   1211 -rw------- bug013_truncate.test
+#   1224 -rw------- bug013_truncate.test
 #   4124 -rw------- bug013_truncate.zone
 #
 save_IFS="${IFS}"
@@ -74,7 +73,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh08838; then
+if mkdir _sh21269; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -244,93 +243,6 @@ SHAR_EOF
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.current_respons_truncated'`"
     test 72 -eq "$shar_count" ||
     $echo 'bug013_truncate.current_respons_truncated:' 'original size' '72,' 'current size' "$shar_count!"
-  fi
-fi
-# ============= bug013_truncate.db ==============
-if test -f 'bug013_truncate.db' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'bug013_truncate.db' '(file already exists)'
-else
-  $echo 'x -' extracting 'bug013_truncate.db' '(binary)'
-  sed 's/^X//' << 'SHAR_EOF' | uudecode &&
-begin 600 bug013_truncate.db
-M3E-$9&)6,#8````!"01M:65K`FYL`````"<!``4#;F5T``L%871O;VT#;F5T
-M`!0(96QE:W1R;VX%871O;VT#;F5T`!$%;6EE:V<%871O;VT#;F5T``0";FP`
-M"01M:65K`FYL``L!801M:65K`FYL`!,);&]C86QH;W-T!&UI96L";FP`#0-M
-M>#$$;6EE:P)N;``.!&UX,3`$;6EE:P)N;``.!&UX,3$$;6EE:P)N;``.!&UX
-M,3($;6EE:P)N;``.!&UX,3,$;6EE:P)N;``.!&UX,30$;6EE:P)N;``.!&UX
-M,34$;6EE:P)N;``.!&UX,38$;6EE:P)N;``.!&UX,3<$;6EE:P)N;``.!&UX
-M,3@$;6EE:P)N;``.!&UX,3D$;6EE:P)N;``-`VUX,@1M:65K`FYL``X$;7@R
-M,`1M:65K`FYL``X$;7@R,01M:65K`FYL``X$;7@R,@1M:65K`FYL``X$;7@R
-M,P1M:65K`FYL``X$;7@R-`1M:65K`FYL``X$;7@R-01M:65K`FYL``T#;7@S
-M!&UI96L";FP`#0-M>#0$;6EE:P)N;``-`VUX-01M:65K`FYL``T#;7@V!&UI
-M96L";FP`#0-M>#<$;6EE:P)N;``-`VUX.`1M:65K`FYL``T#;7@Y!&UI96L"
-M;FP`#0-W=W<$;6EE:P)N;``."6YL;F5T;&%B<P)N;``3!&]P96X);FQN971L
-M86)S`FYL``L&=&5D;F5T`FYL`!$%;VUV86P&=&5D;F5T`FYL``````<````!
-M``$``0`!``$``#A```10?Q%^````!P````$`#P`!`!D``@``.$```@`4````
-M"@`"```X0``"`!0````5``(``#A```(`%````!P``@``.$```@`4````'0`"
-M```X0``"`!0````>``(``#A```(`%````!\``@``.$```@`4````(``"```X
-M0``"`!0````A``(``#A```(`%````"(``@``.$```@`4````"P`"```X0``"
-M`!0````,``(``#A```(`%`````T``@``.$```@`4````#@`"```X0``"`!0`
-M```/``(``#A```(`%````!```@``.$```@`4````$0`"```X0``"`!0````2
-M``(``#A```(`%````!,``@``.$```@`4````%``"```X0``"`!0````6``(`
-M`#A```(`%````!<``@``.$```@`4````&``"```X0``"`!0````9``(``#A`
-M``(`%````!H``@``.$```@`4````&P````<````!``(``0`#``$``#A`````
-M)0`!```X0````"<``0``.$`````$````!P````$`!@`!``$`!P``.$`````E
-M````!0`$=X+.M``$```X0``$```.$``$``DZ@``$``%1@`````@````!``$`
-M`0`!``$``#A```10?Q%^````"0````$``0`!``$``0``.$``!'\```$````*
-M`````0`<``$``0`!```X0``0`````````````/__?P```0````H````!``$`
-M`0`!``$``#A```1_```!````"P````$`'``!``$``0``.$``$```````````
-M``#__W\```$````+`````0`!``$``0`!```X0``$?P```0````P````!`!P`
-M`0`!``$``#A``!``````````````__]_```!````#`````$``0`!``$``0``
-M.$``!'\```$````-`````0`<``$``0`!```X0``0`````````````/__?P``
-M`0````T````!``$``0`!``$``#A```1_```!````#@````$`'``!``$``0``
-M.$``$`````````````#__W\```$````.`````0`!``$``0`!```X0``$?P``
-M`0````\````!`!P``0`!``$``#A``!``````````````__]_```!````#P``
-M``$``0`!``$``0``.$``!'\```$````0`````0`<``$``0`!```X0``0````
-M`````````/__?P```0```!`````!``$``0`!``$``#A```1_```!````$0``
-M``$`'``!``$``0``.$``$`````````````#__W\```$````1`````0`!``$`
-M`0`!```X0``$?P```0```!(````!`!P``0`!``$``#A``!``````````````
-M__]_```!````$@````$``0`!``$``0``.$``!'\```$````3`````0`<``$`
-M`0`!```X0``0`````````````/__?P```0```!,````!``$``0`!``$``#A`
-M``1_```!````%`````$`'``!``$``0``.$``$`````````````#__W\```$`
-M```4`````0`!``$``0`!```X0``$?P```0```!4````!`!P``0`!``$``#A`
-M`!``````````````__]_```!````%0````$``0`!``$``0``.$``!'\```$`
-M```6`````0`<``$``0`!```X0``0`````````````/__?P```0```!8````!
-M``$``0`!``$``#A```1_```!````%P````$`'``!``$``0``.$``$```````
-M``````#__W\```$````7`````0`!``$``0`!```X0``$?P```0```!@````!
-M`!P``0`!``$``#A``!``````````````__]_```!````&`````$``0`!``$`
-M`0``.$``!'\```$````9`````0`<``$``0`!```X0``0`````````````/__
-M?P```0```!D````!``$``0`!``$``#A```1_```!````&@````$`'``!``$`
-M`0``.$``$`````````````#__W\```$````:`````0`!``$``0`!```X0``$
-M?P```0```!L````!`!P``0`!``$``#A``!``````````````__]_```!````
-M&P````$``0`!``$``0``.$``!'\```$````<`````0`<``$``0`!```X0``0
-M`````````````/__?P```0```!P````!``$``0`!``$``#A```1_```!````
-M'0````$`'``!``$``0``.$``$`````````````#__W\```$````=`````0`!
-M``$``0`!```X0``$?P```0```!X````!`!P``0`!``$``#A``!``````````
-M````__]_```!````'@````$``0`!``$``0``.$``!'\```$````?`````0`<
-M``$``0`!```X0``0`````````````/__?P```0```!\````!``$``0`!``$`
-M`#A```1_```!````(`````$`'``!``$``0``.$``$`````````````#__W\`
-M``$````@`````0`!``$``0`!```X0``$?P```0```"$````!`!P``0`!``$`
-M`#A``!``````````````__]_```!````(0````$``0`!``$``0``.$``!'\`
-M``$````B`````0`<``$``0`!```X0``0`````````````/__?P```0```"(`
-M```!``$``0`!``$``#A```1_```!````(P````$`!0`!``$``0``.$`````(
-,`````$Y31&1B5C`V
-`
-end
-SHAR_EOF
-  (set 20 05 11 01 11 12 34 'bug013_truncate.db'; eval "$shar_touch") &&
-  chmod 0600 'bug013_truncate.db' ||
-  $echo 'restore of' 'bug013_truncate.db' 'failed'
-  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
-  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
-    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'bug013_truncate.db:' 'MD5 check failed'
-2f6250519114074b143c077cde3a42d2  bug013_truncate.db
-SHAR_EOF
-  else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.db'`"
-    test 2757 -eq "$shar_count" ||
-    $echo 'bug013_truncate.db:' 'original size' '2757,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug013_truncate.dsc ==============
@@ -636,12 +548,13 @@ else
 # svnserve resets the path, you may need to adjust it, like this:
 PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
 X
+# freebsd 7 update
 case $OSTYPE in
 X        linux*)
 X        DIG=/usr/bin/dig
 X        ;;
 X        freebsd*)
-X        DIG=/usr/local/bin/dig
+X        DIG=/usr/bin/dig
 X        ;;
 esac
 # truncated
@@ -660,19 +573,19 @@ wdiff bug013_truncate.known_good_respons_truncated bug013_truncate.current_respo
 wdiff bug013_truncate.known_good_respons_full_answer bug013_truncate.current_respons_full_answer && \
 wdiff bug013_truncate.known_good_respons_a_before_aaaa bug013_truncate.current_respons_a_before_aaaa
 SHAR_EOF
-  (set 20 05 11 01 11 12 29 'bug013_truncate.test'; eval "$shar_touch") &&
+  (set 20 05 12 15 10 44 06 'bug013_truncate.test'; eval "$shar_touch") &&
   chmod 0600 'bug013_truncate.test' ||
   $echo 'restore of' 'bug013_truncate.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug013_truncate.test:' 'MD5 check failed'
-07053056b2c2c948fd67678fd201ad8e  bug013_truncate.test
+db346edeb93b5d5c5a4ac1ee796e2880  bug013_truncate.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.test'`"
-    test 1211 -eq "$shar_count" ||
-    $echo 'bug013_truncate.test:' 'original size' '1211,' 'current size' "$shar_count!"
+    test 1224 -eq "$shar_count" ||
+    $echo 'bug013_truncate.test:' 'original size' '1224,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug013_truncate.zone ==============
@@ -801,5 +714,5 @@ SHAR_EOF
     $echo 'bug013_truncate.zone:' 'original size' '4124,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh08838
+rm -fr _sh21269
 exit 0

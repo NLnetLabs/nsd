@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-11-08 13:40 CET by <miekg@floep>.
+# Made on 2005-12-15 10:43 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug052_ent.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -17,7 +17,7 @@
 #     94 -rw------- bug052_ent.known_good_respons1
 #    552 -rw------- bug052_ent.post
 #    613 -rw------- bug052_ent.pre
-#    459 -rw------- bug052_ent.test
+#    468 -rw------- bug052_ent.test
 #    490 -rw------- bug052_ent.zone
 #
 save_IFS="${IFS}"
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh21249; then
+if mkdir _sh21058; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -275,24 +275,24 @@ export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
 [ -f .tpkg.var.test ] && source .tpkg.var.test
 X
 # the query
-dig -p $TPKG_PORT +noall +auth @localhost a b.miek.nl > bug052_ent.current_respons1
+/usr/bin/dig -p $TPKG_PORT +noall +auth @localhost a b.miek.nl > bug052_ent.current_respons1
 X
 # must match
 wdiff bug052_ent.known_good_respons1 bug052_ent.current_respons1 
 SHAR_EOF
-  (set 20 05 11 08 13 39 12 'bug052_ent.test'; eval "$shar_touch") &&
+  (set 20 05 12 15 10 43 43 'bug052_ent.test'; eval "$shar_touch") &&
   chmod 0600 'bug052_ent.test' ||
   $echo 'restore of' 'bug052_ent.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug052_ent.test:' 'MD5 check failed'
-56e385b36695d839da70d02b5ea2e0d6  bug052_ent.test
+b14647a0ceb772933df174071faf26f0  bug052_ent.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug052_ent.test'`"
-    test 459 -eq "$shar_count" ||
-    $echo 'bug052_ent.test:' 'original size' '459,' 'current size' "$shar_count!"
+    test 468 -eq "$shar_count" ||
+    $echo 'bug052_ent.test:' 'original size' '468,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug052_ent.zone ==============
@@ -329,5 +329,5 @@ SHAR_EOF
     $echo 'bug052_ent.zone:' 'original size' '490,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh21249
+rm -fr _sh21058
 exit 0
