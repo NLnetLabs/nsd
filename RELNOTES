@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 =============
 REGRESSIONS:
         - unknown type codes for 49 < x < 98 work again.       
+        - blaat blaat
 
 2.3.3
 =============
