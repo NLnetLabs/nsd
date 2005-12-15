@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 =============
 REGRESSIONS:
         - Unknown type codes for type code numbers > 48 and < 97 work again.       
+          (this implies --enable-checking can be enabled again)
 
 2.3.3
 =============
