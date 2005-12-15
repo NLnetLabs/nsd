@@ -1231,19 +1231,14 @@ main (int argc, char **argv)
 	/* Check consistency of rrtype descriptor table.  */
 	{
 		int i;
-		for (i = 0; i < TYPE_DNSKEY; ++i) {
+		for (i = 0; i < RRTYPE_DESCRIPTORS_LENGTH; ++i) {
 			if (i != rrtype_descriptors[i].type) {
 				fprintf(stderr, "error: type descriptor entry '%d' does not match type '%d', fix the definition in dns.c\n", i, rrtype_descriptors[i].type);
 				abort();
 			}
 		}
-		/* and then we have a bunch of zeros and the SPF record */
-		if (rrtype_descriptors[TYPE_SPF].type != TYPE_SPF) {
-				fprintf(stderr, "error: type descriptor entry '%d' does not match type '%d', fix the definition in dns.c\n", i, rrtype_descriptors[i].type);
-				abort();
-		}
 	}
-#endif
+#endif /* NDEBUG */
 	
 	global_region = region_create(xalloc, free);
 	rr_region = region_create(xalloc, free);

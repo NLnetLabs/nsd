@@ -3,8 +3,7 @@ NSD RELEASE NOTES
 2.3.4
 =============
 REGRESSIONS:
-        - unknown type codes for 49 < x < 98 work again.       
-        - blaat blaat
+        - Unknown type codes for type code numbers > 48 and < 97 work again.       
 
 2.3.3
 =============

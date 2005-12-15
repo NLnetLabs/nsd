@@ -277,105 +277,105 @@ rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	  { RDATA_ZF_SHORT, RDATA_ZF_BYTE, RDATA_ZF_ALGORITHM,
 	    RDATA_ZF_BASE64 } },
 	/* 49 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 49, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 50 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 50, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 51 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 51, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 52 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 52, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 53 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 53, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 54 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 54, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 55 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 55, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 56 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 56, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 57 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 57, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 58 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 58, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 59 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 59, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 60 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 60, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 61 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 61, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 62 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 62, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 63 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 63, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 64 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 64, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 65 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 65, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 66 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 66, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 67 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 67, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 68 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 68, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 69 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 69, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 70 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 70, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 71 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 71, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 72 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 72, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 73 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 73, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 74 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 74, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 75 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 75, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 76 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 76, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 77 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 77, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 78 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 78, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 79 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 79, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 80 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 80, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 81 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 81, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 82 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 82, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 83 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 83, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 84 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 84, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 85 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 85, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 86 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 86, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 87 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 87, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 88 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 88, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 89 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 89, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 90 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 90, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 91 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 91, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 92 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 92, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 93 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 93, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 94 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 94, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 95 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 95, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 96 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 96, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 97 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 97, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 98 */
-	{ 0, NULL, 0, 0, 0, {  }, {  } },
+	{ 98, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 99 */
 	{ TYPE_SPF, "SPF", T_SPF, 1, MAXRDATALEN,
 	  { RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT, RDATA_WF_TEXT,
