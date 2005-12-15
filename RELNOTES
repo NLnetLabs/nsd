@@ -1,5 +1,10 @@
 NSD RELEASE NOTES
 
+2.3.4
+=============
+REGRESSIONS:
+        - unknown type codes for 49 < x < 98 work again.       
+
 2.3.3
 =============
 BUG FIXES:
