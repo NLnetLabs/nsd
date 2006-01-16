@@ -25,21 +25,123 @@
 
 #include "query.h"
 
+extern char *optarg;
+extern int optind;
+
 static void 
 usage (void)
 {
-	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-p port] -z zone servers\n");
+	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-p port] "
+		"-z zone servers\n");
 	exit(1);
 }
 
-extern char *optarg;
-extern int optind;
+static const char* rcode2string(int rc)
+{
+	switch(rc)
+	{
+	case RCODE_OK: 		return "No error";
+	case RCODE_FORMAT: 	return "Format error";
+	case RCODE_SERVFAIL: 	return "Server failure";
+	case RCODE_NXDOMAIN: 	return "Name Error";
+	case RCODE_IMPL: 	return "Not implemented";
+	case RCODE_REFUSE: 	return "Refused";
+	case RCODE_NOTAUTH: 	return "Not authorized";
+	default: 		return "unknown error";	
+	}
+	return "Impossible return value";
+}
+
+/*
+	Send NOTIFY messages to the host, as in struct q, 
+	waiting for ack packet (received in buffer answer).
+	Will retry transmission after a timeout.
+	addrstr is the string describing the address of the host.
+*/
+static void notify_host(int udp_s, struct query* q, struct query *answer,
+	struct addrinfo* res, const char* addrstr)
+{
+	int timeout_retry = 5; /* seconds */
+	fd_set rfds;
+	struct timeval tv;
+	int retval = 0;
+	ssize_t received = 0;
+	int got_ack = 0;
+
+	while(!got_ack)
+	{
+		/* WE ARE READY SEND IT OUT */
+		if (sendto(udp_s,
+		   	buffer_current(q->packet),
+		   	buffer_remaining(q->packet), 0,
+		   	res->ai_addr, res->ai_addrlen) == -1)
+		{
+			fprintf(stderr,
+				"send to %s failed: %s\n", addrstr,
+				strerror(errno));
+			close(udp_s);
+			return;
+		}
+
+		/* wait for ACK packet */
+		FD_ZERO(&rfds);
+		FD_SET(udp_s, &rfds);
+		tv.tv_sec = timeout_retry; /* seconds */
+		tv.tv_usec = 0; /* microseconds */
+		retval = select(udp_s+1, &rfds, NULL, NULL, &tv);
+		if(retval == -1)
+		{
+			fprintf(stderr, "Error waiting for reply from %s: %s\n",
+				addrstr, strerror(errno));
+			close(udp_s);
+			return;
+		}
+		if(retval == 0)
+		{
+			fprintf(stderr, 
+				"Timeout (%d s) expired, retry notify to %s.\n",
+				timeout_retry, addrstr);
+		}
+		if(retval == 1) got_ack = 1;
+	}
+
+	/* receive reply */
+	received = recvfrom(udp_s,
+		buffer_begin(answer->packet),
+		buffer_remaining(answer->packet),
+		0,
+		res->ai_addr, &res->ai_addrlen);
+	if(received == -1)
+	{
+		fprintf(stderr, "recv %s failed: %s\n",
+			addrstr, strerror(errno));
+	} else {
+		/* check the answer */
+		if((ID(q->packet) == ID(answer->packet)) &&
+			(OPCODE(answer->packet) == OPCODE_NOTIFY) &&
+			AA(answer->packet) && 
+			QR(answer->packet) &&
+			(RCODE(answer->packet) == RCODE_OK)
+			) 
+		{
+			fprintf(stderr, "%s acknowledges notify.\n", addrstr);
+		} else {
+			fprintf(stderr, 
+				"Bad reply from %s, return code: %s(%d).\n", 
+				addrstr, rcode2string(RCODE(answer->packet)), 
+				RCODE(answer->packet));
+		}
+	}
+			
+	close(udp_s);
+}
 
 int 
 main (int argc, char *argv[])
 {
 	int c, udp_s;
 	struct query q;
+	struct query answer;
 	const dname_type *zone = NULL;
 	struct addrinfo hints, *res0, *res;
 	int error;
@@ -103,6 +205,13 @@ main (int argc, char *argv[])
 	buffer_write_u16(q.packet, CLASS_IN);
 	buffer_flip(q.packet);
 
+	/* initialize buffer for ack */
+	memset(&answer, 0, sizeof(struct query));
+	answer.addrlen = sizeof(answer.addr);
+	answer.maxlen = 512;
+	answer.packet = buffer_create(region, QIOBUFSZ);
+	memset(buffer_begin(answer.packet), 0, buffer_remaining(answer.packet));
+
 	for (/*empty*/; *argv; argv++) {
 		/* Set up UDP */
 		memset(&hints, 0, sizeof(hints));
@@ -127,18 +236,7 @@ main (int argc, char *argv[])
 
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 
-			/* WE ARE READY SEND IT OUT */
-			if (sendto(udp_s,
-				   buffer_current(q.packet),
-				   buffer_remaining(q.packet), 0,
-				   res->ai_addr, res->ai_addrlen) == -1)
-			{
-				fprintf(stderr,
-					"send to %s failed: %s\n", *argv,
-					strerror(errno));
-			}
-
-			close(udp_s);
+			notify_host(udp_s, &q, &answer, res, *argv);
 		}
 
 		freeaddrinfo(res0);

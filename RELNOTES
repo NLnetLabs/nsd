@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+next release
+============
+BUG FIXES:
+	- Bug #118: nsd_notify waits for a response. Will retry the notify
+	  after a timeout.
+
 2.3.4
 =============
 BUG FIXES:
