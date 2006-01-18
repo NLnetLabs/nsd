@@ -439,7 +439,7 @@ main (int argc, char *argv[])
 				nodes[nsd.ifs] = optarg;
 				++nsd.ifs;
 			} else {
-				error("too many interfaces ('-a') specified");
+				error("too many interfaces ('-a') specified.");
 			}
 			break;
 		case 'd':
@@ -460,7 +460,7 @@ main (int argc, char *argv[])
 		case 'N':
 			i = atoi(optarg);
 			if (i <= 0) {
-				error("number of child servers must be greather than zero");
+				error("number of child servers must be greather than zero.");
 			} else {
 				nsd.child_count = i;
 			}
@@ -468,7 +468,7 @@ main (int argc, char *argv[])
 		case 'n':
 			i = atoi(optarg);
 			if (i <= 0) {
-				error("number of concurrent TCP connections must greater than zero");
+				error("number of concurrent TCP connections must greater than zero.");
 			} else {
 				nsd.maximum_tcp_count = i;
 			}
@@ -477,6 +477,9 @@ main (int argc, char *argv[])
 			nsd.pidfile = optarg;
 			break;
 		case 'p':
+			if (atoi(optarg) == 0) {
+				error("port argument must be numeric.");
+			}
 			tcp_port = optarg;
 			udp_port = optarg;
 			break;
