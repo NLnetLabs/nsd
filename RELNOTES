@@ -1,10 +1,11 @@
 NSD RELEASE NOTES
 
-next release
+2.3.5 (TO BE RELEASED)
 ============
 BUG FIXES:
 	- Bug #118: nsd_notify waits for a response. Will retry the notify
 	  after a timeout.
+        - Bug #124: $(DESTDIR) was added to Makefile.in. 
 
 2.3.4
 =============
