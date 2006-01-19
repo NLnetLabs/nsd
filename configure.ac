@@ -164,8 +164,8 @@ void testing (void) { time_t clock; char current_time[40]; ctime_r(&clock, curre
 ])
 
 AC_MSG_RESULT($ac_cv_c_ctime_c)
-if test $ac_cv_c_ctime_c = yes; then
-        AC_DEFINE(HAVE_CTIME_R, 1, [Whether the OS accecpt ctime_r with 2 arguments])
+if test $ac_cv_c_ctime_c = no; then
+        CPPFLAGS="$CPPFLAGS -D_POSIX_PTHREAD_SEMANTICS"
 fi
 ])dnl
 
