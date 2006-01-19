@@ -163,7 +163,7 @@ addition to standard configure options, one may use the following:
         to modify NSD or develop plugins.  This option enables the
         standard C "assert" macro.
 
-  --diable-dnssec
+  --disable-dnssec
 
         Disable support for DNSSEC (RFC 4033, 4034, and 4035).
 
