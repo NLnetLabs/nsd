@@ -148,8 +148,31 @@ if test $ac_cv_c_unused_attribute = yes; then
 fi
 ])dnl
 
+AC_DEFUN([AC_CHECK_CTIME_R],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether ctime_r works with two arguments)
+AC_CACHE_VAL(ac_cv_c_ctime_c,
+[ac_cv_c_ctime_c=no
+AC_TRY_COMPILE(
+[#include <time.h>
+void testing (void) { time_t clock; char current_time[40]; ctime_r(&clock, current_time); }],
+[
+        testing();
+],
+[ac_cv_c_ctime_c="yes"],
+[ac_cv_c_ctime_c="no"])
+])
+
+AC_MSG_RESULT($ac_cv_c_ctime_c)
+if test $ac_cv_c_ctime_c = yes; then
+        AC_DEFINE(HAVE_CTIME_R, 1, [Whether the OS accecpt ctime_r with 2 arguments])
+fi
+])dnl
+
+
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
+AC_CHECK_CTIME_R
 
 # Checks for libraries.
 
