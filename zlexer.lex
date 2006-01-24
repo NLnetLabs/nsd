@@ -78,7 +78,7 @@ DOLLAR  \$
 COMMENT ;
 DOT     \.
 BIT	[^\]\n]|\\.
-ANY     [^\"\n]|\\.
+ANY     [^\"\n\\]|\\.
 
 %x	incl bitlabel quotedstring
 
