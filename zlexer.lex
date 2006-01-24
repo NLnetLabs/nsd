@@ -243,14 +243,15 @@ ANY     [^\"\n\\]|\\.
 }
 
 	/* Quoted strings.  Strip leading and ending quotes.  */
-\"			{ BEGIN(quotedstring); }
+\"			{ BEGIN(quotedstring); LEXOUT(("\" ")); }
 <quotedstring><<EOF>> 	{
 	zc_error("EOF inside quoted string");
 	BEGIN(INITIAL);
 }
-<quotedstring>{ANY}*	{ yymore(); }
+<quotedstring>{ANY}*	{ LEXOUT(("STR ")); yymore(); }
 <quotedstring>\n 	{ ++parser->line; yymore(); }
 <quotedstring>\" {
+	LEXOUT(("\" "));
 	BEGIN(INITIAL);
 	yytext[yyleng - 1] = '\0';
 	return parse_token(STR, yytext, &lexer_state);
