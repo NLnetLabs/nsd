@@ -6,6 +6,7 @@ BUG FIXES:
 	- Bug #118: nsd_notify waits for a response. Will retry the notify
 	  after a timeout.
         - Bug #124: $(DESTDIR) was added to Makefile.in. 
+	- Bug #128: parser can handle \\ at the end of a string.
 
 2.3.4
 =============
