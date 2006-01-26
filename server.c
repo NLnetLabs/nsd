@@ -911,15 +911,11 @@ handle_tcp_reading(netio_type *netio,
 	assert(buffer_position(data->query->packet) == data->query->tcplen);
 
 	/* Account... */
-#ifndef INET6
-	STATUP(data->nsd, ctcp);
-#else
 	if (data->query->addr.ss_family == AF_INET) {
 		STATUP(data->nsd, ctcp);
 	} else if (data->query->addr.ss_family == AF_INET6) {
 		STATUP(data->nsd, ctcp6);
 	}
-#endif
 
 	/* We have a complete query, process it.  */
 
