@@ -270,7 +270,7 @@ process_query_section(query_type *query)
  * unsupported EDNS record, and to 1 otherwise.  Updates QUERY->MAXLEN
  * if the EDNS record specifies a maximum supported response length.
  *
- * Return 0 on failure, 1 on success.
+ * Return NSD_RC_FORMAT on failure, NSD_RC_OK on success.
  */
 static nsd_rc_type
 process_edns(struct query *q)
