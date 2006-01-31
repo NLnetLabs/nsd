@@ -31,6 +31,7 @@ LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
 LIBWRAP		= @LIBWRAP@
 LIBOBJS		= @LIBOBJS@
+LIBCUNIT	= -L/usr/local/lib -lcunit
 INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
 INSTALL_DATA	= $(INSTALL) -m 644
@@ -120,10 +121,33 @@ NSD_XFER_OBJECTS	=			\
 	tsig-openssl.o				\
 	util.o
 
+UNITEST_OBJECTS		=			\
+	answer.o				\
+	axfr.o					\
+	buffer.o				\
+	dbaccess.o				\
+	dbcreate.o				\
+	dname.o					\
+	dns.o					\
+	edns.o					\
+	namedb.o				\
+	netio.o					\
+	packet.o				\
+	plugins.o				\
+	query.o					\
+	rbtree.o				\
+	rdata.o					\
+	region-allocator.o			\
+	server.o				\
+	tsig.o					\
+	tsig-openssl.o				\
+	util.o					\
+	$(addsuffix .o,$(basename $(wildcard tpkg/unitest/*.c)))
+
 all:	$(TARGETS)
 
 .c.o:
-	$(COMPILE) -c $<
+	$(COMPILE) -c $< -o $@
 
 nsdc.sh:	nsdc.sh.in
 	rm -f nsdc.sh
@@ -170,6 +194,9 @@ nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 
 nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
+
+unitest:	$(UNITEST_OBJECTS)
+	$(LINK) -o $@ $(UNITEST_OBJECTS) $(LIBOBJS) $(LIBCUNIT) $(LIBWRAP) $(LIBS)
 
 clean:
 	rm -f dname rbtree *.o *.so y.* *.core *.gmon tags TAGS
