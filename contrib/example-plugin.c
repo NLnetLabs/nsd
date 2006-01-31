@@ -3,7 +3,7 @@
  *
  * Compile with something like:
  *
- *   gcc -shared -Insd-src-dir example-plugin.c -o example-plugin.so
+ *   gcc -DHAVE_CONFIG_H -shared -Insd-src-dir example-plugin.c -o example-plugin.so
  *
  */
 
@@ -24,7 +24,7 @@ static nsd_plugin_callback_type query_processed;
 
 static
 void finalize(const nsd_plugin_interface_type *nsd,
-	      nsd_plugin_id_type               id ATTR_UNUSED)
+	      nsd_plugin_id_type               ATTR_UNUSED(id))
 {
 	nsd->log_msg(LOG_NOTICE, "finalizing plugin");
 }
@@ -61,9 +61,7 @@ reload(const nsd_plugin_interface_type *nsd,
 {
 	nsd->log_msg(LOG_NOTICE, "registering data");
 	if (!nsd->register_data(nsd, id,
-				nsd->dname_parse(nsd->nsd->db->region,
-						 "nl",
-						 nsd->root_dname),
+				nsd->root_dname,
 				"hello, world!"))
 	{
 		nsd->log_msg(LOG_ERR, "Failed to register data");
@@ -77,8 +75,8 @@ reload(const nsd_plugin_interface_type *nsd,
 static nsd_plugin_callback_result_type
 query_received(
 	const nsd_plugin_interface_type *nsd,
-	nsd_plugin_id_type               id ATTR_UNUSED,
-	nsd_plugin_callback_args_type   *args ATTR_UNUSED)
+	nsd_plugin_id_type               ATTR_UNUSED(id),
+	nsd_plugin_callback_args_type   *ATTR_UNUSED(args) )
 {
 	switch (fork()) {
 	case -1:
@@ -98,10 +96,10 @@ query_received(
 static nsd_plugin_callback_result_type
 query_processed(
 	const nsd_plugin_interface_type *nsd,
-	nsd_plugin_id_type               id ATTR_UNUSED,
+	nsd_plugin_id_type               ATTR_UNUSED(id),
 	nsd_plugin_callback_args_type   *args)
 {
-	nsd->log_msg(LOG_NOTICE, "domain name: %s", nsd->dname_to_string(args->query->name));
+	nsd->log_msg(LOG_NOTICE, "domain name: %s", nsd->dname_to_string(args->query->qname, NULL));
 	
 	if (args->data) {
 		nsd->log_msg(LOG_NOTICE, "Received query with plugin data %s",
