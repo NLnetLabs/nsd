@@ -890,8 +890,13 @@ query_process(query_type *q, nsd_type *nsd)
 	nsd_rc_type rc;
 	query_state_type query_state;
 	uint16_t arcount;
-	
+
 	/* Sanity checks */
+	if (buffer_limit(q->packet) < QHEADERSZ) {
+		/* packet too small to contain DNS header. 
+		Now packet investigation macros will work without problems. */
+		return QUERY_DISCARDED;
+	}
 	if (QR(q->packet)) {
 		/* Not a query? Drop it on the floor. */
 		return QUERY_DISCARDED;
