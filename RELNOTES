@@ -3,10 +3,11 @@ NSD RELEASE NOTES
 2.3.5 (TO BE RELEASED)
 ============
 BUG FIXES:
-	- Bug #118: nsd_notify waits for a response. Will retry the notify
+	- Bug #118: nsd: nsd_notify waits for a response. Will retry the notify
 	  after a timeout.
         - Bug #124: $(DESTDIR) was added to Makefile.in. 
-	- Bug #128: parser can handle \\ at the end of a string.
+	- Bug #128: zonec: parser can handle \\ at the end of a string.
+        - nsd: silently discard udp packets with source port 0
 
 2.3.4
 =============

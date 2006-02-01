@@ -741,6 +741,23 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 
 			buffer_flip(q->packet);
 
+			/* check for dst port 0 */
+#ifdef INET6
+			if (((struct sockaddr_storage *) &q->addr)->ss_family == AF_INET6) {
+				if (((struct sockaddr_in6 *) &q->addr)->sin6_port == 0) {
+					goto drop;
+				}
+			} else {
+				if (((struct sockaddr_in *) &q->addr)->sin_port == 0) {
+					goto drop;
+				}
+			}
+#else
+			if (((struct sockaddr_in *) &q->addr)->sin_port == 0) {
+				goto drop;
+			}
+#endif /* INET6 */
+			
 			sent = sendto(handler->fd,
 				      buffer_begin(q->packet),
 				      buffer_remaining(q->packet),
@@ -761,6 +778,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 #endif /* BIND8_STATS */
 			}
 		} else {
+drop:
 			STATUP(data->nsd, dropped);
 		}
 	}
