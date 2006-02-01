@@ -298,12 +298,14 @@ namedb_open (const char *filename)
 
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		region_destroy(db_region);
 		namedb_close(db);
 		return NULL;
 	}
 
 	if (!read_size(db, &zone_count)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		region_destroy(db_region);
 		namedb_close(db);
 		return NULL;
 	}
@@ -322,6 +324,7 @@ namedb_open (const char *filename)
 			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
+			region_destroy(db_region);
 			namedb_close(db);
 			return NULL;
 		}
@@ -343,6 +346,7 @@ namedb_open (const char *filename)
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		region_destroy(dname_region);
 		region_destroy(temp_region);
+		region_destroy(db_region);
 		namedb_close(db);
 		return NULL;
 	}
@@ -358,6 +362,7 @@ namedb_open (const char *filename)
 			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
+			region_destroy(db_region);
 			namedb_close(db);
 			return NULL;
 		}
@@ -387,6 +392,7 @@ namedb_open (const char *filename)
 	
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		region_destroy(db_region);
 		namedb_close(db);
 		return NULL;
 	}
