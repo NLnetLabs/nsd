@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-02-01 13:14 CET by <miekg@elektron>.
+# Made on 2006-02-02 13:40 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/manual/source_port_0.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -15,7 +15,7 @@
 #    343 -rw------- source_port_0.dsc
 #    499 -rw------- source_port_0.post
 #    369 -rw------- source_port_0.pre
-#    578 -rw------- source_port_0.test
+#    671 -rw------- source_port_0.test
 #    691 -rw------- source_port_0.zone
 #
 save_IFS="${IFS}"
@@ -66,7 +66,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh04874; then
+if mkdir _sh09249; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -223,27 +223,27 @@ X../../../nsd -d -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID \
 sleep 1
 X
 sudo hping --keep -c 1 -s 0 -p $TPKG_PORT --udp localhost
-fail=$?         
 X
-if [[ $fail -eq 1 ]]; then
-X        exit 0
-else
-X        exit 1
-fi
+# $TPKG_NSD_PID should still be alive
+NSD_PID=`cat $TPKG_NSD_PID`
+X
+# are we alive, this will also be the exit code
+# for the test
+ps aux| awk ' { print $2 } ' | grep $NSD_PID
 SHAR_EOF
-  (set 20 06 02 01 13 14 41 'source_port_0.test'; eval "$shar_touch") &&
+  (set 20 06 02 02 13 40 27 'source_port_0.test'; eval "$shar_touch") &&
   chmod 0600 'source_port_0.test' ||
   $echo 'restore of' 'source_port_0.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'source_port_0.test:' 'MD5 check failed'
-0c2d481b692c9b156b59181ed18a01a9  source_port_0.test
+a9267cb0de97b00c62bcc6b6b68813d5  source_port_0.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'source_port_0.test'`"
-    test 578 -eq "$shar_count" ||
-    $echo 'source_port_0.test:' 'original size' '578,' 'current size' "$shar_count!"
+    test 671 -eq "$shar_count" ||
+    $echo 'source_port_0.test:' 'original size' '671,' 'current size' "$shar_count!"
   fi
 fi
 # ============= source_port_0.zone ==============
@@ -284,5 +284,5 @@ SHAR_EOF
     $echo 'source_port_0.zone:' 'original size' '691,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh04874
+rm -fr _sh09249
 exit 0
