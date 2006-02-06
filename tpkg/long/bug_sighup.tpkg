@@ -1,0 +1,297 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2005-12-05 12:22 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug_sighup.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     37 -rw------- bug_sighup.conf
+#    340 -rw------- bug_sighup.dsc
+#    498 -rw------- bug_sighup.post
+#    613 -rw------- bug_sighup.pre
+#    481 -rw------- bug_sighup.test
+#    711 -rw------- bug_sighup.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh30633; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug_sighup.conf ==============
+if test -f 'bug_sighup.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug_sighup.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug_sighup.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug_sighup.conf' &&
+zone	miek.nl         bug_sighup.zone
+SHAR_EOF
+  (set 20 05 11 22 13 52 43 'bug_sighup.conf'; eval "$shar_touch") &&
+  chmod 0600 'bug_sighup.conf' ||
+  $echo 'restore of' 'bug_sighup.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug_sighup.conf:' 'MD5 check failed'
+2562c6e4f5480ec9ea76a3f2349884ea  bug_sighup.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug_sighup.conf'`"
+    test 37 -eq "$shar_count" ||
+    $echo 'bug_sighup.conf:' 'original size' '37,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug_sighup.dsc ==============
+if test -f 'bug_sighup.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug_sighup.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug_sighup.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug_sighup.dsc' &&
+BaseName: bug_sighup
+Version: 1.0
+Description: Check if the SOA min value is used on NX queries
+CreationDate: Tue Nov 22 13:48:51 CET 2005
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 0000_nsd-compile.tpkg
+Pre: bug_sighup.pre
+Post: bug_sighup.post
+Test: bug_sighup.test
+AuxFiles: bug_sighup.zone, bug_sighup.conf
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 05 12 05 12 21 49 'bug_sighup.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug_sighup.dsc' ||
+  $echo 'restore of' 'bug_sighup.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug_sighup.dsc:' 'MD5 check failed'
+e69282363c58c1ca3f3eb19fe32b5500  bug_sighup.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug_sighup.dsc'`"
+    test 340 -eq "$shar_count" ||
+    $echo 'bug_sighup.dsc:' 'original size' '340,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug_sighup.post ==============
+if test -f 'bug_sighup.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug_sighup.post' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug_sighup.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug_sighup.post' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
+X
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill $NSD_PID 2>/dev/null
+sleep 1 # should be really dead now - just to be sure kill it again
+kill $NSD_PID 2>/dev/null
+Xexit 0
+SHAR_EOF
+  (set 20 05 12 05 12 22 17 'bug_sighup.post'; eval "$shar_touch") &&
+  chmod 0600 'bug_sighup.post' ||
+  $echo 'restore of' 'bug_sighup.post' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug_sighup.post:' 'MD5 check failed'
+14443050b0d91a849613534442473146  bug_sighup.post
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug_sighup.post'`"
+    test 498 -eq "$shar_count" ||
+    $echo 'bug_sighup.post:' 'original size' '498,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug_sighup.pre ==============
+if test -f 'bug_sighup.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug_sighup.pre' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug_sighup.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug_sighup.pre' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+# start NSD
+((TPKG_PORT=5353+$RANDOM))
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_ZONEC="$PRE/zonec"
+TPKG_NSD="$PRE/nsd"
+X
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+X
+$TPKG_ZONEC -f bug_sighup.db bug_sighup.conf && \
+$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug_sighup.db
+SHAR_EOF
+  (set 20 05 11 22 13 52 04 'bug_sighup.pre'; eval "$shar_touch") &&
+  chmod 0600 'bug_sighup.pre' ||
+  $echo 'restore of' 'bug_sighup.pre' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug_sighup.pre:' 'MD5 check failed'
+ef22b6c6b1887b6813fbacc0e6b620fe  bug_sighup.pre
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug_sighup.pre'`"
+    test 613 -eq "$shar_count" ||
+    $echo 'bug_sighup.pre:' 'original size' '613,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug_sighup.test ==============
+if test -f 'bug_sighup.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug_sighup.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug_sighup.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug_sighup.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
+X
+while true; do
+X        NSD_PID=`cat $TPKG_NSD_PID`
+X        kill -HUP $NSD_PID & kill -HUP $NSD_PID
+X        echo "KILL $NSD_PID"
+X        sleep 1
+done
+SHAR_EOF
+  (set 20 05 12 05 12 21 34 'bug_sighup.test'; eval "$shar_touch") &&
+  chmod 0600 'bug_sighup.test' ||
+  $echo 'restore of' 'bug_sighup.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug_sighup.test:' 'MD5 check failed'
+e4ed7dbba6f2f87951b87393a9f3b2b4  bug_sighup.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug_sighup.test'`"
+    test 481 -eq "$shar_count" ||
+    $echo 'bug_sighup.test:' 'original size' '481,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug_sighup.zone ==============
+if test -f 'bug_sighup.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug_sighup.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug_sighup.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug_sighup.zone' &&
+;
+; BIND data file for miek.nl for public use
+;
+X
+$TTL    4D
+$ORIGIN miek.nl.
+@       IN      SOA     open.nlnetlabs.nl. miekg.atoom.net. (
+X                         2005061300         ; Serial
+X                             4H         ; Refresh
+X                             1H         ; Retry
+X                             7D         ; Expire
+X                             1D )       ; Negative Cache TTL
+X		IN	NS	open.nlnetlabs.nl.
+X		IN	NS	omval.tednet.nl.
+X		IN	NS	elektron.atoom.net.
+X
+X		IN	MX	20 mail.atoom.net.
+X		IN	MX	20 sol.nlnetlabs.nl.
+X
+miek.nl.	IN	A	80.127.17.126
+localhost	IN	A	127.0.0.1
+a	    	IN	A	80.127.17.126
+www     	IN 	CNAME 	a
+text            IN      TXT     "Hallo, ik ben Miek, wie gets mit dir?"
+SHAR_EOF
+  (set 20 05 11 22 13 49 07 'bug_sighup.zone'; eval "$shar_touch") &&
+  chmod 0600 'bug_sighup.zone' ||
+  $echo 'restore of' 'bug_sighup.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug_sighup.zone:' 'MD5 check failed'
+7b93765587236dcddb81d3f5efe00841  bug_sighup.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug_sighup.zone'`"
+    test 711 -eq "$shar_count" ||
+    $echo 'bug_sighup.zone:' 'original size' '711,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh30633
+exit 0

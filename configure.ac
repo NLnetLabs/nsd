@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,2.3-devel,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,2.3.4,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 dnl
@@ -66,7 +66,7 @@ AC_SUBST(dbfile)
 #
 # Determine location of nsd config file
 #
-configfile=$configdir/nsd.conf
+configfile=$configdir/nsdc.conf
 AC_ARG_WITH([configfile],
 	AC_HELP_STRING([--with-configfile=path], [Pathname to the NSD configuration file]),
 	[configfile=$withval])
@@ -97,14 +97,6 @@ AC_PROG_LN_S
 AC_PROG_INSTALL
 AC_PROG_LEX
 AC_PROG_YACC
-
-AC_PATH_PROG(LIBXML2_CONFIG, xml2-config, [no])
-if test $LIBXML2_CONFIG = no; then
-   AC_MSG_ERROR([libxml2 is required, please ensure it is installed and xml2-config is in the PATH])
-fi
-
-AC_SUBST(LIBXML2_CFLAGS, [`$LIBXML2_CONFIG --cflags`])
-AC_SUBST(LIBXML2_LIBS, [`$LIBXML2_CONFIG --libs`])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -156,30 +148,31 @@ if test $ac_cv_c_unused_attribute = yes; then
 fi
 ])dnl
 
-AC_DEFUN([AC_CHECK_NORETURN_ATTRIBUTE],
+AC_DEFUN([AC_CHECK_CTIME_R],
 [AC_REQUIRE([AC_PROG_CC])
-AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "noreturn" attribute)
-AC_CACHE_VAL(ac_cv_c_noreturn_attribute,
-[ac_cv_c_noreturn_attribute=no
+AC_MSG_CHECKING(whether ctime_r works with two arguments)
+AC_CACHE_VAL(ac_cv_c_ctime_c,
+[ac_cv_c_ctime_c=no
 AC_TRY_COMPILE(
-[#include <stdio.h>
-void f (void) __attribute__ ((noreturn));
-], [
-   f ();
+[#include <time.h>
+void testing (void) { time_t clock; char current_time[40]; ctime_r(&clock, current_time); }],
+[
+        testing();
 ],
-[ac_cv_c_noreturn_attribute="yes"],
-[ac_cv_c_noreturn_attribute="no"])
+[ac_cv_c_ctime_c="yes"],
+[ac_cv_c_ctime_c="no"])
 ])
 
-AC_MSG_RESULT($ac_cv_c_noreturn_attribute)
-if test $ac_cv_c_noreturn_attribute = yes; then
-  AC_DEFINE(HAVE_ATTR_NORETURN, 1, [Whether the C compiler accepts the "noreturn" attribute])
+AC_MSG_RESULT($ac_cv_c_ctime_c)
+if test $ac_cv_c_ctime_c = no; then
+        CPPFLAGS="$CPPFLAGS -D_POSIX_PTHREAD_SEMANTICS"
 fi
 ])dnl
 
+
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
-AC_CHECK_NORETURN_ATTRIBUTE
+AC_CHECK_CTIME_R
 
 # Checks for libraries.
 
@@ -313,7 +306,6 @@ AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
-AC_REPLACE_FUNCS(timegm)
 AC_REPLACE_FUNCS(pselect)
 
 dnl dnl Check for libwrap.  Note that libwrap requires 
@@ -354,12 +346,13 @@ dnl
 AC_DEFINE_UNQUOTED([IDENTITY], ["unindentified server"], [Define to the default nsd identity.])
 AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the NSD version to answer version.server query.])
 AC_DEFINE_UNQUOTED([TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
-AC_DEFINE_UNQUOTED([DEFAULT_DNS_PORT], ["53"], [Define to the default port to listen on for DNS data.])
-AC_DEFINE_UNQUOTED([DEFAULT_CONTROL_PORT], ["853"], [Define to the default port to listen on for control data.])
+AC_DEFINE_UNQUOTED([TCP_PORT], ["53"], [Define to the default tcp port.])
 AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximum message length.])
 AC_DEFINE_UNQUOTED([TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
+AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
+AC_DEFINE_UNQUOTED([MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
 dnl AC_DEFINE_UNQUOTED([FACILITY], [LOG_DAEMON], [Define to the default facility for syslog.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
 AC_DEFINE_UNQUOTED([AXFR_DAEMON], ["axfr"], [Define to the default daemon name to check for axfr.])
@@ -395,13 +388,13 @@ case "$enable_ipv6" in
 		;;
 esac
 
-AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--enable-dnssec], [Enable experimental DNSSEC support according to the latest drafts.]))
+AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--disable-dnssec], [Disable DNSSEC support.]))
 case "$enable_dnssec" in
-        yes)
-		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable experimental DNSSEC support.])
-		;;
-        no|*)
+        no)
                 ;;
+        yes|*)
+		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable DNSSEC (RFCs 4033, 4034, and 4035) support.])
+		;;
 esac
 
 AC_ARG_ENABLE(axfr, AC_HELP_STRING([--disable-axfr], [Disables AXFR]))
@@ -502,7 +495,6 @@ AH_BOTTOM([
 #else /* !HAVE_ATTR_FORMAT */
 #define ATTR_FORMAT(archetype, string_index, first_to_check) /* empty */
 #endif /* !HAVE_ATTR_FORMAT */
-
 #if defined(__cplusplus)
 #define ATTR_UNUSED(x)
 #elif defined(HAVE_ATTR_UNUSED)
@@ -510,13 +502,6 @@ AH_BOTTOM([
 #else /* !HAVE_ATTR_UNUSED */
 #define ATTR_UNUSED(x)  x
 #endif /* !HAVE_ATTR_UNUSED */
-
-#ifdef HAVE_ATTR_NORETURN
-#define ATTR_NORETURN \
-    __attribute__ ((noreturn))
-#else /* !HAVE_ATTR_NORETURN */
-#define ATTR_NORETURN /* empty */
-#endif /* !HAVE_ATTR_NORETURN */
 ])
 
 AH_BOTTOM([

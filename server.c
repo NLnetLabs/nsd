@@ -33,7 +33,6 @@
 #include "axfr.h"
 #include "namedb.h"
 #include "netio.h"
-#include "packet.h"
 #include "plugins.h"
 
 
@@ -42,9 +41,9 @@
  */
 struct udp_handler_data
 {
-	nsd_type        *nsd;
-	nsd_socket_type *socket;
-	query_type      *query;
+	struct nsd        *nsd;
+	struct nsd_socket *socket;
+	query_type        *query;
 };
 
 /*
@@ -52,8 +51,8 @@ struct udp_handler_data
  * to the TCP connection handler.
  */
 struct tcp_accept_handler_data {
-	nsd_type           *nsd;
-	nsd_socket_type    *socket;
+	struct nsd         *nsd;
+	struct nsd_socket  *socket;
 	size_t              tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
 };
@@ -83,13 +82,7 @@ struct tcp_handler_data
 	/*
 	 * The global nsd structure.
 	 */
-	nsd_type        *nsd;
-
-	/*
-	 * The socket used to accept the connection, _NOT_ the actual
-	 * TCP socket.
-	 */
-	nsd_socket_type *socket;
+	struct nsd      *nsd;
 
 	/*
 	 * The current query data for this TCP connection.
@@ -103,7 +96,7 @@ struct tcp_handler_data
 	 */
 	size_t              tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
-
+	
 	/*
 	 * The query_state is used to remember if we are performing an
 	 * AXFR, if we're done processing, or if we should discard the
@@ -159,13 +152,6 @@ static void handle_tcp_writing(netio_type *netio,
 			       netio_event_types_type event_types);
 
 /*
- * Handle a command received from the parent process.
- */
-static void handle_parent_command(netio_type *netio,
-				  netio_handler_type *handler,
-				  netio_event_types_type event_types);
-
-/*
  * Change the event types the HANDLERS are interested in to
  * EVENT_TYPES.
  */
@@ -181,10 +167,10 @@ static uint16_t *compressed_dname_offsets;
  * the pid is not in the list, 1 otherwise.  The field is set to 0.
  */
 static int
-delete_child_pid(nsd_type *nsd, pid_t pid)
+delete_child_pid(struct nsd *nsd, pid_t pid)
 {
 	size_t i;
-	for (i = 0; i < nsd->options->server_count; ++i) {
+	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid == pid) {
 			nsd->children[i].pid = 0;
 			return 1;
@@ -197,34 +183,19 @@ delete_child_pid(nsd_type *nsd, pid_t pid)
  * Restart child servers if necessary.
  */
 static int
-restart_child_servers(nsd_type *nsd)
+restart_child_servers(struct nsd *nsd)
 {
 	size_t i;
-	int sv[2];
 
 	/* Fork the child processes... */
-	for (i = 0; i < nsd->options->server_count; ++i) {
+	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid <= 0) {
-			if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
-				log_msg(LOG_ERR, "socketpair: %s",
-					strerror(errno));
-				return -1;
-			}
-			nsd->children[i].child_fd = sv[0];
-			nsd->children[i].parent_fd = sv[1];
 			nsd->children[i].pid = fork();
 			switch (nsd->children[i].pid) {
-			default: /* MASTER */
-				close(nsd->children[i].parent_fd);
-				nsd->children[i].parent_fd = -1;
-				break;
 			case 0: /* CHILD */
 				nsd->pid = 0;
-				nsd->options->server_count = 0;
-				nsd->server_kind = NSD_SERVER_KIND_CHILD;
-				nsd->this_child = &nsd->children[i];
-				close(nsd->this_child->child_fd);
-				nsd->this_child->child_fd = -1;
+				nsd->child_count = 0;
+				nsd->server_kind = nsd->children[i].kind;
 				server_child(nsd);
 				/* NOTREACH */
 				exit(0);
@@ -239,135 +210,126 @@ restart_child_servers(nsd_type *nsd)
 }
 
 static void
-initialize_dname_compression_tables(nsd_type *nsd)
+initialize_dname_compression_tables(struct nsd *nsd)
 {
-	uint32_t max_domains = 0;
-	const dname_type *key;
-	zone_type *zone;
-
-	HEAP_WALK(nsd->db->zones, key, zone) {
-		if (max_domains < domain_table_count(zone->domains)) {
-			max_domains = domain_table_count(zone->domains);
-		}
-	}
-
-	/* Reserve space for the query name offset.  */
-	++max_domains;
-
-	compressed_dname_offsets
-		= (uint16_t *) xalloc(max_domains * sizeof(uint16_t));
-	memset(compressed_dname_offsets, 0, max_domains * sizeof(uint16_t));
+	compressed_dname_offsets = (uint16_t *) xalloc(
+		(domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	memset(compressed_dname_offsets, 0,
+	       (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 	region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
 }
 
-static int
-create_socket(nsd_socket_type *nsd_socket)
+/*
+ * Initialize the server, create and bind the sockets.
+ * Drop the priviledges and chroot if requested.
+ *
+ */
+int
+server_init(struct nsd *nsd)
 {
+	size_t i;
 #if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU)))
 	int on = 1;
 #endif
 
-	nsd_socket->s = socket(nsd_socket->addr->ai_family,
-			       nsd_socket->addr->ai_socktype,
-			       0);
-	if (nsd_socket->s == -1) {
-		log_msg(LOG_ERR, "can't create a socket: %s",
-			strerror(errno));
-		return 0;
+	/* UDP */
+
+	/* Make a socket... */
+	for (i = 0; i < nsd->ifs; i++) {
+		if ((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
+			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+			return -1;
+		}
+
+#if defined(INET6)
+		if (nsd->udp[i].addr->ai_family == AF_INET6) {
+# if defined(IPV6_V6ONLY)
+			if (setsockopt(nsd->udp[i].s,
+				       IPPROTO_IPV6, IPV6_V6ONLY,
+				       &on, sizeof(on)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+# endif
+# if defined(IPV6_USE_MIN_MTU)
+			/*
+			 * There is no fragmentation of IPv6 datagrams
+			 * during forwarding in the network. Therefore
+			 * we do not send UDP datagrams larger than
+			 * the minimum IPv6 MTU of 1280 octets. The
+			 * EDNS0 message length can be larger if the
+			 * network stack supports IPV6_USE_MIN_MTU.
+			 */
+			if (setsockopt(nsd->udp[i].s,
+				       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
+				       &on, sizeof(on)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+# endif
+		}
+#endif
+
+		/* Bind it... */
+		if (bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
+			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
+			return -1;
+		}
 	}
 
-#ifdef SO_REUSEADDR
-	if (nsd_socket->kind != NSD_SOCKET_KIND_UDP
-	    && setsockopt(nsd_socket->s, SOL_SOCKET, SO_REUSEADDR,
-			  &on, sizeof(on)) < 0)
-	{
-		log_msg(LOG_ERR, "setsockopt (SO_REUSEADDR) failed: %s",
-			strerror(errno));
-		return 0;
-	}
+	/* TCP */
+
+	/* Make a socket... */
+	for (i = 0; i < nsd->ifs; i++) {
+		if ((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
+			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+			return -1;
+		}
+
+#ifdef	SO_REUSEADDR
+		if (setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
+			return -1;
+		}
 #endif /* SO_REUSEADDR */
 
-#ifdef INET6
-	if (nsd_socket->addr->ai_family == AF_INET6) {
-# ifdef IPV6_V6ONLY
-		if (setsockopt(nsd_socket->s, IPPROTO_IPV6, IPV6_V6ONLY,
-			       &on, sizeof(on)) < 0)
+#if defined(INET6) && defined(IPV6_V6ONLY)
+		if (nsd->tcp[i].addr->ai_family == AF_INET6 &&
+		    setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
 		{
-			log_msg(LOG_ERR, "setsockopt (IPV6_V6ONLY) failed: %s",
-				strerror(errno));
-			return 0;
+			log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
+			return -1;
 		}
-# endif	/* IPV6_V6ONLY */
+#endif
 
-# ifdef IPV6_USE_MIN_MTU
-		/*
-		 * There is no fragmentation of IPv6 datagrams during
-		 * forwarding in the network. Therefore we do not send
-		 * UDP datagrams larger than the minimum IPv6 MTU of
-		 * 1280 octets. The EDNS0 message length can be larger
-		 * if the network stack supports IPV6_USE_MIN_MTU.
-		 */
-		if (nsd_socket->kind == NSD_SOCKET_KIND_UDP
-		    && setsockopt(nsd_socket->s, IPPROTO_IPV6, IPV6_USE_MIN_MTU,
-				  &on, sizeof(on)) < 0)
-		{
-			log_msg(LOG_ERR,
-				"setsockopt (IPV6_USE_MIN_MTU) failed: %s",
-				strerror(errno));
-			return 0;
+		/* Bind it... */
+		if (bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
+			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
+			return -1;
 		}
-# endif	/* IPV6_USE_MIN_MTU */
-	}
-#endif /* INET6 */
 
-	/* Bind it... */
-	if (bind(nsd_socket->s,
-		 (struct sockaddr *) nsd_socket->addr->ai_addr,
-		 nsd_socket->addr->ai_addrlen) != 0)
-	{
-		log_msg(LOG_ERR, "bind failed: %s", strerror(errno));
-		return 0;
-	}
-
-	/* Listen on non-UDP sockets... */
-	if (nsd_socket->kind != NSD_SOCKET_KIND_UDP
-	    && listen(nsd_socket->s, TCP_BACKLOG) == -1)
-	{
-		log_msg(LOG_ERR, "listen failed: %s", strerror(errno));
-		return 0;
-	}
-
-	return 1;
-}
-
-/*
- * Initialize the server, create and bind the sockets.  Drop the
- * privileges and chroot if requested.
- */
-int
-server_init(nsd_type *nsd)
-{
-	size_t i;
-
-	/* Initialize the communication sockets. */
-	for (i = 0; i < nsd->socket_count; ++i) {
-		if (!create_socket(&nsd->sockets[i])) {
+		/* Listen to it... */
+		if (listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
+			log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
 			return -1;
 		}
 	}
 
 #ifdef HAVE_CHROOT
 	/* Chroot */
-	if (nsd->options->chroot_directory) {
-		size_t length = strlen(nsd->options->chroot_directory);
+	if (nsd->chrootdir) {
+		int l = strlen(nsd->chrootdir);
 
-		nsd->options->database += length;
-		nsd->options->pid_file += length;
+		nsd->dbfile += l;
+		nsd->pidfile += l;
 
-		if (chroot(nsd->options->chroot_directory)) {
-			log_msg(LOG_ERR, "unable to chroot: %s",
-				strerror(errno));
+		if (chroot(nsd->chrootdir)) {
+			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
 			return -1;
 		}
 	}
@@ -380,20 +342,16 @@ server_init(nsd_type *nsd)
 	}
 
 	/* Open the database... */
-	if ((nsd->db = namedb_open(nsd->options->database)) == NULL) {
+	if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
 		return -1;
 	}
 
-	namedb_set_zone_options(nsd->db,
-				nsd->options->zone_count,
-				nsd->options->zones);
-
 	initialize_dname_compression_tables(nsd);
-
+	
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st.boot);
-	alarm(nsd->options->statistics_period);
+	alarm(nsd->st.period);
 #endif /* BIND8_STATS */
 
 	return 0;
@@ -403,12 +361,12 @@ server_init(nsd_type *nsd)
  * Fork the required number of servers.
  */
 static int
-server_start_children(nsd_type *nsd)
+server_start_children(struct nsd *nsd)
 {
 	size_t i;
 
 	/* Start all child servers initially.  */
-	for (i = 0; i < nsd->options->server_count; ++i) {
+	for (i = 0; i < nsd->child_count; ++i) {
 		nsd->children[i].pid = 0;
 	}
 
@@ -416,7 +374,7 @@ server_start_children(nsd_type *nsd)
 }
 
 static void
-close_all_sockets(nsd_socket_type sockets[], size_t n)
+close_all_sockets(struct nsd_socket sockets[], size_t n)
 {
 	size_t i;
 
@@ -435,9 +393,10 @@ close_all_sockets(nsd_socket_type sockets[], size_t n)
  *
  */
 static void
-server_shutdown(nsd_type *nsd)
+server_shutdown(struct nsd *nsd)
 {
-	close_all_sockets(nsd->sockets, nsd->socket_count);
+	close_all_sockets(nsd->udp, nsd->ifs);
+	close_all_sockets(nsd->tcp, nsd->ifs);
 
 	exit(0);
 }
@@ -447,15 +406,16 @@ server_shutdown(nsd_type *nsd)
  * terminate.  Child processes are restarted as necessary.
  */
 void
-server_main(nsd_type *nsd)
+server_main(struct nsd *nsd)
 {
 	int fd;
 	int status;
 	pid_t child_pid;
 	pid_t reload_pid = -1;
+	pid_t old_pid;
 	sig_atomic_t mode;
-
-	assert(nsd->server_kind == NSD_SERVER_KIND_MAIN);
+	
+	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
 	if (server_start_children(nsd) != 0) {
 		kill(nsd->pid, SIGTERM);
@@ -466,7 +426,7 @@ server_main(nsd_type *nsd)
 		switch (mode) {
 		case NSD_RUN:
 			child_pid = waitpid(0, &status, 0);
-
+		
 			if (child_pid == -1) {
 				if (errno == EINTR) {
 					continue;
@@ -500,6 +460,8 @@ server_main(nsd_type *nsd)
 				break;
 			}
 
+			log_msg(LOG_WARNING, "signal received, reloading...");
+
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:
@@ -509,18 +471,13 @@ server_main(nsd_type *nsd)
 				/* CHILD */
 
 				namedb_close(nsd->db);
-				if ((nsd->db = namedb_open(nsd->options->database)) == NULL) {
+				if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
 					log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 					exit(1);
 				}
 
-				namedb_set_zone_options(
-					nsd->db,
-					nsd->options->zone_count,
-					nsd->options->zones);
-
 				initialize_dname_compression_tables(nsd);
-
+	
 #ifdef PLUGINS
 				if (plugin_database_reloaded() != NSD_PLUGIN_CONTINUE) {
 					log_msg(LOG_ERR, "plugin reload failed");
@@ -528,28 +485,32 @@ server_main(nsd_type *nsd)
 				}
 #endif /* PLUGINS */
 
-				/* Send SIGINT to terminate the parent quitely... */
-				if (kill(nsd->pid, SIGINT) != 0) {
-					log_msg(LOG_ERR, "cannot kill %d: %s",
-						(int) nsd->pid, strerror(errno));
-					exit(1);
-				}
-
+				old_pid = nsd->pid;
 				nsd->pid = getpid();
 				reload_pid = -1;
 
-				/* Refork the servers... */
-				server_start_children(nsd);
+#ifdef BIND8_STATS
+				/* Restart dumping stats if required.  */
+				time(&nsd->st.boot);
+				alarm(nsd->st.period);
+#endif
+
+				if (server_start_children(nsd) != 0) {
+					kill(nsd->pid, SIGTERM);
+					exit(1);
+				}
+
+				/* Send SIGINT to terminate the parent quitely... */
+				if (kill(old_pid, SIGINT) != 0) {
+					log_msg(LOG_ERR, "cannot kill %d: %s",
+						(int) old_pid, strerror(errno));
+					exit(1);
+				}
 
 				/* Overwrite pid... */
 				if (writepid(nsd) == -1) {
-					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->options->pid_file, strerror(errno));
+					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 				}
-
-#ifdef BIND8_STATS
-				/* Restart dumping stats if required.  */
-				alarm(nsd->options->statistics_period);
-#endif
 
 				break;
 			default:
@@ -561,6 +522,7 @@ server_main(nsd_type *nsd)
 			server_shutdown(nsd);
 			break;
 		case NSD_SHUTDOWN:
+			log_msg(LOG_WARNING, "signal received, shutting down...");
 			break;
 		default:
 			log_msg(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);
@@ -572,27 +534,27 @@ server_main(nsd_type *nsd)
 #ifdef PLUGINS
 	plugin_finalize_all();
 #endif /* PLUGINS */
-
+	
 	/* Truncate the pid file.  */
-	if ((fd = open(nsd->options->pid_file, O_WRONLY | O_TRUNC, 0644)) == -1) {
-		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->options->pid_file, strerror(errno));
+	if ((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
+		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->pidfile, strerror(errno));
 	}
 	close(fd);
 
 	/* Unlink it if possible... */
-	unlink(nsd->options->pid_file);
+	unlink(nsd->pidfile);
 
 	server_shutdown(nsd);
 }
 
 static query_state_type
-process_query(nsd_type *nsd, query_type *query)
+process_query(struct nsd *nsd, struct query *query)
 {
 #ifdef PLUGINS
 	query_state_type rc;
 	nsd_plugin_callback_args_type callback_args;
 	nsd_plugin_callback_result_type callback_result;
-
+	
 	callback_args.query = query;
 	callback_args.data = NULL;
 	callback_args.result_code = NSD_RC_OK;
@@ -625,49 +587,25 @@ process_query(nsd_type *nsd, query_type *query)
  * Serve DNS requests.
  */
 void
-server_child(nsd_type *nsd)
+server_child(struct nsd *nsd)
 {
 	size_t i;
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
-	size_t tcp_accept_count;
-	size_t tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
 	sig_atomic_t mode;
-
-	assert(nsd->server_kind == NSD_SERVER_KIND_CHILD);
-
-	tcp_accept_count = 0;
-	for (i = 0; i < nsd->socket_count; ++i) {
-		if (nsd->sockets[i].kind != NSD_SOCKET_KIND_UDP) {
-			++tcp_accept_count;
-		}
+	
+	assert(nsd->server_kind != NSD_SERVER_MAIN);
+	
+	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
+		close_all_sockets(nsd->tcp, nsd->ifs);
 	}
-
-	/*
-	 * Keep track of all the TCP accept handlers so we can enable
-	 * and disable them based on the current number of active TCP
-	 * connections.
-	 */
-	tcp_accept_handler_count = 0;
-	tcp_accept_handlers = (netio_handler_type *) region_alloc(
-		server_region, tcp_accept_count * sizeof(netio_handler_type));
-
-	if (nsd->this_child && nsd->this_child->parent_fd != -1) {
-		netio_handler_type *handler;
-
-		handler = (netio_handler_type *) region_alloc(
-			server_region, sizeof(netio_handler_type));
-		handler->fd = nsd->this_child->parent_fd;
-		handler->timeout = NULL;
-		handler->user_data = nsd;
-		handler->event_types = NETIO_EVENT_READ;
-		handler->event_handler = handle_parent_command;
-		netio_add_handler(netio, handler);
+	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
+		close_all_sockets(nsd->udp, nsd->ifs);
 	}
-
-	for (i = 0; i < nsd->socket_count; ++i) {
-		if (nsd->sockets[i].kind == NSD_SOCKET_KIND_UDP) {
+	
+	if (nsd->server_kind & NSD_SERVER_UDP) {
+		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
 			netio_handler_type *handler;
 
@@ -677,42 +615,50 @@ server_child(nsd_type *nsd)
 			data->query = query_create(
 				server_region, compressed_dname_offsets);
 			data->nsd = nsd;
-			data->socket = &nsd->sockets[i];
+			data->socket = &nsd->udp[i];
 
 			handler = (netio_handler_type *) region_alloc(
 				server_region, sizeof(netio_handler_type));
-			handler->fd = nsd->sockets[i].s;
+			handler->fd = nsd->udp[i].s;
 			handler->timeout = NULL;
 			handler->user_data = data;
 			handler->event_types = NETIO_EVENT_READ;
 			handler->event_handler = handle_udp;
 			netio_add_handler(netio, handler);
-		} else {
+		}
+	}
+
+	/*
+	 * Keep track of all the TCP accept handlers so we can enable
+	 * and disable them based on the current number of active TCP
+	 * connections.
+	 */
+	tcp_accept_handlers = (netio_handler_type *) region_alloc(
+		server_region, nsd->ifs * sizeof(netio_handler_type));
+	if (nsd->server_kind & NSD_SERVER_TCP) {
+		for (i = 0; i < nsd->ifs; ++i) {
 			struct tcp_accept_handler_data *data;
 			netio_handler_type *handler;
-
+			
 			data = (struct tcp_accept_handler_data *) region_alloc(
 				server_region,
 				sizeof(struct tcp_accept_handler_data));
 			data->nsd = nsd;
-			data->socket = &nsd->sockets[i];
-			data->tcp_accept_handler_count = tcp_accept_count;
+			data->socket = &nsd->tcp[i];
+			data->tcp_accept_handler_count = nsd->ifs;
 			data->tcp_accept_handlers = tcp_accept_handlers;
-
-			handler = &tcp_accept_handlers[tcp_accept_handler_count];
-			handler->fd = nsd->sockets[i].s;
+			
+			handler = &tcp_accept_handlers[i];
+			handler->fd = nsd->tcp[i].s;
 			handler->timeout = NULL;
 			handler->user_data = data;
 			handler->event_types = NETIO_EVENT_READ;
 			handler->event_handler = handle_tcp_accept;
 			netio_add_handler(netio, handler);
-			++tcp_accept_handler_count;
 		}
 	}
-
-	assert(tcp_accept_count == tcp_accept_handler_count);
-
-	/* The main loop... */
+	
+	/* The main loop... */	
 	while ((mode = nsd->mode) != NSD_QUIT) {
 
 		/* Do we need to do the statistics... */
@@ -741,7 +687,7 @@ server_child(nsd_type *nsd)
 #endif /* BIND8_STATS */
 
 	region_destroy(server_region);
-
+	
 	server_shutdown(nsd);
 }
 
@@ -754,12 +700,12 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 	struct udp_handler_data *data
 		= (struct udp_handler_data *) handler->user_data;
 	int received, sent;
-	query_type *q = data->query;
-
+	struct query *q = data->query;
+	
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
-
+	
 	/* Account... */
 	if (data->socket->addr->ai_family == AF_INET) {
 		STATUP(data->nsd, qudp);
@@ -768,10 +714,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 	}
 
 	/* Initialize the query... */
-	query_reset(q, UDP_MAX_MESSAGE_LEN, data->socket);
-#ifdef TSIG
-	tsig_init_record(&q->tsig, q->region, NULL, NULL);
-#endif /* TSIG */
+	query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
 
 	received = recvfrom(handler->fd,
 			    buffer_begin(q->packet),
@@ -798,6 +741,23 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 
 			buffer_flip(q->packet);
 
+			/* check for dst port 0 */
+#ifdef INET6
+			if (((struct sockaddr_storage *) &q->addr)->ss_family == AF_INET6) {
+				if (((struct sockaddr_in6 *) &q->addr)->sin6_port == 0) {
+					goto drop;
+				}
+			} else {
+				if (((struct sockaddr_in *) &q->addr)->sin_port == 0) {
+					goto drop;
+				}
+			}
+#else
+			if (((struct sockaddr_in *) &q->addr)->sin_port == 0) {
+				goto drop;
+			}
+#endif /* INET6 */
+			
 			sent = sendto(handler->fd,
 				      buffer_begin(q->packet),
 				      buffer_remaining(q->packet),
@@ -818,6 +778,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 #endif /* BIND8_STATS */
 			}
 		} else {
+drop:
 			STATUP(data->nsd, dropped);
 		}
 	}
@@ -837,14 +798,13 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 	 * TCP connections is about to drop below the maximum number
 	 * of TCP connections.
 	 */
-	if (data->nsd->current_tcp_connection_count
-	    == data->nsd->options->maximum_tcp_connection_count)
-	{
+	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
 		configure_handler_event_types(data->tcp_accept_handler_count,
 					      data->tcp_accept_handlers,
 					      NETIO_EVENT_READ);
 	}
-	--data->nsd->current_tcp_connection_count;
+	--data->nsd->current_tcp_count;
+	assert(data->nsd->current_tcp_count >= 0);
 
 	region_destroy(data->region);
 }
@@ -867,7 +827,7 @@ handle_tcp_reading(netio_type *netio,
 	assert(event_types & NETIO_EVENT_READ);
 
 	if (data->bytes_transmitted == 0) {
-		query_reset(data->query, TCP_MAX_MESSAGE_LEN, data->socket);
+		query_reset(data->query, TCP_MAX_MESSAGE_LEN, 1);
 	}
 
 	/*
@@ -908,7 +868,7 @@ handle_tcp_reading(netio_type *netio,
 		assert(data->bytes_transmitted == sizeof(uint16_t));
 
 		data->query->tcplen = ntohs(data->query->tcplen);
-
+		
 		/*
 		 * Minimum query size is:
 		 *
@@ -969,15 +929,11 @@ handle_tcp_reading(netio_type *netio,
 	assert(buffer_position(data->query->packet) == data->query->tcplen);
 
 	/* Account... */
-#ifndef INET6
-	STATUP(data->nsd, ctcp);
-#else
 	if (data->query->addr.ss_family == AF_INET) {
 		STATUP(data->nsd, ctcp);
 	} else if (data->query->addr.ss_family == AF_INET6) {
 		STATUP(data->nsd, ctcp6);
 	}
-#endif
 
 	/* We have a complete query, process it.  */
 
@@ -995,18 +951,18 @@ handle_tcp_reading(netio_type *netio,
 	{
 		STATUP(data->nsd, nona);
 	}
-
+		
 	query_add_optional(data->query, data->nsd);
 
 	/* Switch to the tcp write handler.  */
 	buffer_flip(data->query->packet);
 	data->query->tcplen = buffer_remaining(data->query->packet);
 	data->bytes_transmitted = 0;
-
+	
 	handler->timeout->tv_sec = TCP_TIMEOUT;
 	handler->timeout->tv_nsec = 0L;
 	timespec_add(handler->timeout, netio_current_time(netio));
-
+	
 	handler->event_types = NETIO_EVENT_WRITE | NETIO_EVENT_TIMEOUT;
 	handler->event_handler = handle_tcp_writing;
 }
@@ -1019,7 +975,7 @@ handle_tcp_writing(netio_type *netio,
 	struct tcp_handler_data *data
 		= (struct tcp_handler_data *) handler->user_data;
 	ssize_t sent;
-	query_type *q = data->query;
+	struct query *q = data->query;
 
 	if (event_types & NETIO_EVENT_TIMEOUT) {
 		/* Connection timed out.  */
@@ -1098,7 +1054,7 @@ handle_tcp_writing(netio_type *netio,
 		data->query_state = query_axfr(data->nsd, q);
 		if (data->query_state != QUERY_PROCESSED) {
 			query_add_optional(data->query, data->nsd);
-
+			
 			/* Reset data. */
 			buffer_flip(q->packet);
 			q->tcplen = buffer_remaining(q->packet);
@@ -1121,7 +1077,7 @@ handle_tcp_writing(netio_type *netio,
 	 * TCP socket by installing the TCP read handler.
 	 */
 	data->bytes_transmitted = 0;
-
+	
 	handler->timeout->tv_sec = TCP_TIMEOUT;
 	handler->timeout->tv_nsec = 0;
 	timespec_add(handler->timeout, netio_current_time(netio));
@@ -1147,19 +1103,21 @@ handle_tcp_accept(netio_type *netio,
 	struct tcp_handler_data *tcp_data;
 	region_type *tcp_region;
 	netio_handler_type *tcp_handler;
+#ifdef INET6
 	struct sockaddr_storage addr;
+#else
+	struct sockaddr_in addr;
+#endif
 	socklen_t addrlen;
-
+	
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
 
-	if (data->nsd->current_tcp_connection_count
-	    >= data->nsd->options->maximum_tcp_connection_count)
-	{
+	if (data->nsd->current_tcp_count >= data->nsd->maximum_tcp_count) {
 		return;
 	}
-
+	
 	/* Accept it... */
 	addrlen = sizeof(addr);
 	s = accept(handler->fd, (struct sockaddr *) &addr, &addrlen);
@@ -1175,7 +1133,7 @@ handle_tcp_accept(netio_type *netio,
 		close(s);
 		return;
 	}
-
+	
 	/*
 	 * This region is deallocated when the TCP connection is
 	 * closed by the TCP handler.
@@ -1184,13 +1142,9 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data = (struct tcp_handler_data *) region_alloc(
 		tcp_region, sizeof(struct tcp_handler_data));
 	tcp_data->region = tcp_region;
-	tcp_data->socket = data->socket;
 	tcp_data->query = query_create(tcp_region, compressed_dname_offsets);
-#ifdef TSIG
-	tsig_init_record(&tcp_data->query->tsig, tcp_data->region, NULL, NULL);
-#endif /* TSIG */
 	tcp_data->nsd = data->nsd;
-
+	
 	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;
 	tcp_data->tcp_accept_handlers = data->tcp_accept_handlers;
 
@@ -1198,7 +1152,7 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data->bytes_transmitted = 0;
 	memcpy(&tcp_data->query->addr, &addr, addrlen);
 	tcp_data->query->addrlen = addrlen;
-
+	
 	tcp_handler = (netio_handler_type *) region_alloc(
 		tcp_region, sizeof(netio_handler_type));
 	tcp_handler->fd = s;
@@ -1219,41 +1173,11 @@ handle_tcp_accept(netio_type *netio,
 	 * we can stop accepting connections when the maximum number
 	 * of simultaneous TCP connections is reached.
 	 */
-	++data->nsd->current_tcp_connection_count;
-	if (data->nsd->current_tcp_connection_count
-	    == data->nsd->options->maximum_tcp_connection_count)
-	{
+	++data->nsd->current_tcp_count;
+	if (data->nsd->current_tcp_count == data->nsd->maximum_tcp_count) {
 		configure_handler_event_types(data->tcp_accept_handler_count,
 					      data->tcp_accept_handlers,
 					      NETIO_EVENT_NONE);
-	}
-}
-
-static void
-handle_parent_command(netio_type *netio,
-		      netio_handler_type *handler,
-		      netio_event_types_type event_types)
-{
-	sig_atomic_t mode;
-	nsd_type *nsd = (nsd_type *) handler->user_data;
-	if (!(event_types & NETIO_EVENT_READ)) {
-		return;
-	}
-
-	if (read(handler->fd, &mode, sizeof(mode)) == -1) {
-		log_msg(LOG_ERR, "handle_parent_command: read: %s",
-			strerror(errno));
-		return;
-	}
-
-	switch (mode) {
-	case NSD_STATS: case NSD_QUIT:
-		nsd->mode = mode;
-		break;
-	default:
-		log_msg(LOG_ERR, "handle_parent_command: bad mode %d",
-			(int) mode);
-		break;
 	}
 }
 
@@ -1265,7 +1189,7 @@ configure_handler_event_types(size_t count,
 	size_t i;
 
 	assert(handlers);
-
+	
 	for (i = 0; i < count; ++i) {
 		handlers[i].event_types = event_types;
 	}

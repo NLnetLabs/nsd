@@ -33,27 +33,20 @@ static uint8_t nxtbits[16];
 /* still need to reset the bastard somewhere */
 static uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
 
+/* hold the highest rcode seen in a NSEC rdata , BUG #106 */
+uint16_t nsec_highest_rcode;
+
 void yyerror(const char *message);
-
-static void
-set_origin(zparser_type *parser, const dname_type *dname) {
-	region_free_all(parser->origin_region);
-	parser->origin = dname_copy(parser->origin_region, dname);
-}
-
-static void
-set_prev_dname(zparser_type *parser, const dname_type *dname) {
-	region_free_all(parser->prev_dname_region);
-	parser->prev_dname = dname_copy(parser->prev_dname_region, dname);
-}
 
 %}
 %union {
+	domain_type	 *domain;
 	const dname_type *dname;
 	struct lex_data	  data;
 	uint32_t	  ttl;
 	uint16_t	  klass;
 	uint16_t	  type;
+	uint16_t	 *unknown;
 }
 
 /*
@@ -65,6 +58,7 @@ set_prev_dname(zparser_type *parser, const dname_type *dname) {
 %token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
+%token <type> T_SPF
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -77,9 +71,11 @@ set_prev_dname(zparser_type *parser, const dname_type *dname) {
 %token <type>  T_UTYPE
 
 %type <type>	type_and_rdata
-%type <dname>	owner dname abs_dname rel_dname label
+%type <domain>	owner dname abs_dname
+%type <dname>	rel_dname label
 %type <data>	concatenated_str_seq str_sp_seq str_dot_seq dotted_str
 %type <data>	nxt_seq nsec_seq
+%type <unknown> rdata_unknown
 
 %%
 lines:	/* empty file */
@@ -94,17 +90,27 @@ line:	NL
     |	rr
     {	/* rr should be fully parsed */
 	    if (!parser->error_occurred) {
-		    process_rr();
+		    if (!parser->current_zone
+			&& parser->current_rr.type != TYPE_SOA)
+		    {
+			    zc_error("RR before SOA skipped");
+		    } else {
+			    parser->current_rr.rdatas
+				    = (rdata_atom_type *) region_alloc_init(
+					    parser->region,
+					    parser->current_rr.rdatas,
+					    (parser->current_rr.rdata_count
+					     * sizeof(rdata_atom_type)));
+
+			    process_rr();
+		    }
 	    }
 
 	    region_free_all(parser->rr_region);
 
-	    parser->rr.owner = NULL;
-	    parser->rr.ttl = 0;
-	    parser->rr.type = 0;
-	    parser->rr.klass = 0;
-	    parser->rr.rdata_count = 0;
-	    parser->rr.unknown_rdata = NULL;
+	    parser->current_rr.type = 0;
+	    parser->current_rr.rdata_count = 0;
+	    parser->current_rr.rdatas = parser->temporary_rdatas;
 	    parser->error_occurred = 0;
     }
     |	error NL
@@ -130,7 +136,7 @@ ttl_directive:	DOLLAR_TTL sp STR trail
 
 origin_directive:	DOLLAR_ORIGIN sp abs_dname trail
     {
-	    set_origin(parser, $3);
+	    parser->origin = $3;
     }
     |	DOLLAR_ORIGIN sp rel_dname trail
     {
@@ -140,46 +146,46 @@ origin_directive:	DOLLAR_ORIGIN sp abs_dname trail
 
 rr:	owner classttl type_and_rdata
     {
-	    parser->rr.owner = $1;
-	    parser->rr.type = $3;
+	    parser->current_rr.owner = $1;
+	    parser->current_rr.type = $3;
     }
     ;
 
 owner:	dname sp
     {
-	    set_prev_dname(parser, $1);
+	    parser->prev_dname = $1;
 	    $$ = $1;
     }
     |	PREV
     {
-	    $$ = dname_copy(parser->rr_region, parser->prev_dname);
+	    $$ = parser->prev_dname;
     }
     ;
 
 classttl:	/* empty - fill in the default, def. ttl and IN class */
     {
-	    parser->rr.ttl = parser->default_ttl;
-	    parser->rr.klass = parser->default_class;
+	    parser->current_rr.ttl = parser->default_ttl;
+	    parser->current_rr.klass = parser->default_class;
     }
     |	T_RRCLASS sp		/* no ttl */
     {
-	    parser->rr.ttl = parser->default_ttl;
-	    parser->rr.klass = $1;
+	    parser->current_rr.ttl = parser->default_ttl;
+	    parser->current_rr.klass = $1;
     }
     |	T_TTL sp		/* no class */
     {
-	    parser->rr.ttl = $1;
-	    parser->rr.klass = parser->default_class;
+	    parser->current_rr.ttl = $1;
+	    parser->current_rr.klass = parser->default_class;
     }
     |	T_TTL sp T_RRCLASS sp	/* the lot */
     {
-	    parser->rr.ttl = $1;
-	    parser->rr.klass = $3;
+	    parser->current_rr.ttl = $1;
+	    parser->current_rr.klass = $3;
     }
     |	T_RRCLASS sp T_TTL sp	/* the lot - reversed */
     {
-	    parser->rr.ttl = $3;
-	    parser->rr.klass = $1;
+	    parser->current_rr.ttl = $3;
+	    parser->current_rr.klass = $1;
     }
     ;
 
@@ -187,30 +193,37 @@ dname:	abs_dname
     |	rel_dname
     {
 	    if ($1 == error_dname) {
-		    $$ = $1;
-	    } else if ((dname_length($1) + dname_length(parser->origin) - 1)
-		       > MAXDOMAINLEN)
-	    {
-		    zc_error("domain name exceeds %d character limit",
-			     MAXDOMAINLEN);
-		    $$ = error_dname;
+		    $$ = error_domain;
+	    } else if ($1->name_size + domain_dname(parser->origin)->name_size - 1 > MAXDOMAINLEN) {
+		    zc_error("domain name exceeds %d character limit", MAXDOMAINLEN);
+		    $$ = error_domain;
 	    } else {
-		    $$ = dname_concatenate(parser->rr_region,
-					   $1,
-					   parser->origin);
+		    $$ = domain_table_insert(
+			    parser->db->domains,
+			    dname_concatenate(
+				    parser->rr_region,
+				    $1,
+				    domain_dname(parser->origin)));
 	    }
     }
     ;
 
 abs_dname:	'.'
     {
-	    $$ = dname_make(parser->rr_region, (const uint8_t *) "");
+	    $$ = parser->db->domains->root;
     }
     |	'@'
     {
-	    $$ = dname_copy(parser->rr_region, parser->origin);
+	    $$ = parser->origin;
     }
     |	rel_dname '.'
+    {
+	    if ($1 != error_dname) {
+		    $$ = domain_table_insert(parser->db->domains, $1);
+	    } else {
+		    $$ = error_domain;
+	    }
+    }
     ;
 
 label:	STR
@@ -236,7 +249,7 @@ rel_dname:	label
     {
 	    if ($1 == error_dname || $3 == error_dname) {
 		    $$ = error_dname;
-	    } else if (dname_length($1) + dname_length($3) - 1 > MAXDOMAINLEN) {
+	    } else if ($1->name_size + $3->name_size - 1 > MAXDOMAINLEN) {
 		    zc_error("domain name exceeds %d character limit",
 			     MAXDOMAINLEN);
 		    $$ = error_dname;
@@ -311,6 +324,9 @@ nsec_seq:	STR
     {
 	    uint16_t type = rrtype_from_string($1.str);
 	    if (type != 0) {
+                    if (type > nsec_highest_rcode) {
+                            nsec_highest_rcode = type;
+                    }
 		    set_bitnsec(nsecbits, type);
 	    } else {
 		    zc_error("bad type %d in NSEC record", (int) type);
@@ -320,6 +336,9 @@ nsec_seq:	STR
     {
 	    uint16_t type = rrtype_from_string($3.str);
 	    if (type != 0) {
+                    if (type > nsec_highest_rcode) {
+                            nsec_highest_rcode = type;
+                    }
 		    set_bitnsec(nsecbits, type);
 	    } else {
 		    zc_error("bad type %d in NSEC record", (int) type);
@@ -381,88 +400,103 @@ dotted_str:	STR
 /* define what we can parse */
 type_and_rdata:
     /*
-     * All supported RR types.	We don't support NULL and types marked
-     * obsolete.
+     * All supported RR types.	We don't support NULL and types marked obsolete.
      */
     	T_A sp rdata_a
-    |	T_A sp rdata_unknown
+    |	T_A sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NS sp rdata_domain_name
-    |	T_NS sp rdata_unknown
-    |	T_MD sp rdata_domain_name
+    |	T_NS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_MD sp rdata_domain_name { zc_warning_prev_line("MD is obsolete"); }
     |	T_MD sp rdata_unknown
-    |	T_MF sp rdata_domain_name
+    {
+	    zc_warning_prev_line("MD is obsolete");
+	    $$ = $1; parse_unknown_rdata($1, $3);
+    }
+    |	T_MF sp rdata_domain_name { zc_warning_prev_line("MF is obsolete"); }
     |	T_MF sp rdata_unknown
+    {
+	    zc_warning_prev_line("MF is obsolete");
+	    $$ = $1;
+	    parse_unknown_rdata($1, $3);
+    }
     |	T_CNAME sp rdata_domain_name
-    |	T_CNAME sp rdata_unknown
+    |	T_CNAME sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SOA sp rdata_soa
-    |	T_SOA sp rdata_unknown
-    |	T_MB sp rdata_domain_name
+    |	T_SOA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_MB sp rdata_domain_name { zc_warning_prev_line("MB is obsolete"); }
     |	T_MB sp rdata_unknown
+    {
+	    zc_warning_prev_line("MB is obsolete");
+	    $$ = $1;
+	    parse_unknown_rdata($1, $3);
+    }
     |	T_MG sp rdata_domain_name
-    |	T_MG sp rdata_unknown
+    |	T_MG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_MR sp rdata_domain_name
-    |	T_MR sp rdata_unknown
+    |	T_MR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
       /* NULL */
     |	T_WKS sp rdata_wks
-    |	T_WKS sp rdata_unknown
+    |	T_WKS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_PTR sp rdata_domain_name
-    |	T_PTR sp rdata_unknown
+    |	T_PTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_HINFO sp rdata_hinfo
-    |	T_HINFO sp rdata_unknown
-    |	T_MINFO sp rdata_minfo	/* Experimental */
-    |	T_MINFO sp rdata_unknown
+    |	T_HINFO sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_MINFO sp rdata_minfo /* Experimental */
+    |	T_MINFO sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_MX sp rdata_mx
-    |	T_MX sp rdata_unknown
+    |	T_MX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_TXT sp rdata_txt
-    |	T_TXT sp rdata_unknown
-    |	T_RP sp rdata_rp	/* RFC 1183 */
-    |	T_RP sp rdata_unknown
+    |	T_TXT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_SPF sp rdata_txt
+    |	T_SPF sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_RP sp rdata_rp		/* RFC 1183 */
+    |	T_RP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_AFSDB sp rdata_afsdb	/* RFC 1183 */
-    |	T_AFSDB sp rdata_unknown
+    |	T_AFSDB sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_X25 sp rdata_x25	/* RFC 1183 */
-    |	T_X25 sp rdata_unknown
+    |	T_X25 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_ISDN sp rdata_isdn	/* RFC 1183 */
-    |	T_ISDN sp rdata_unknown
-    |	T_RT sp rdata_rt	/* RFC 1183 */
-    |	T_RT sp rdata_unknown
+    |	T_ISDN sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_RT sp rdata_rt		/* RFC 1183 */
+    |	T_RT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NSAP sp rdata_nsap	/* RFC 1706 */
-    |	T_NSAP sp rdata_unknown
+    |	T_NSAP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SIG sp rdata_rrsig	/* XXX: Compatible format? */
-    |	T_SIG sp rdata_unknown
+    |	T_SIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_KEY sp rdata_dnskey	/* XXX: Compatible format? */
-    |	T_KEY sp rdata_unknown
-    |	T_PX sp rdata_px	/* RFC 2163 */
-    |	T_PX sp rdata_unknown
+    |	T_KEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_PX sp rdata_px		/* RFC 2163 */
+    |	T_PX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_AAAA sp rdata_aaaa
-    |	T_AAAA sp rdata_unknown
+    |	T_AAAA sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_LOC sp rdata_loc
-    |	T_LOC sp rdata_unknown
+    |	T_LOC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NXT sp rdata_nxt
-    |	T_NXT sp rdata_unknown
+    |	T_NXT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SRV sp rdata_srv
-    |	T_SRV sp rdata_unknown
+    |	T_SRV sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NAPTR sp rdata_naptr	/* RFC 2915 */
-    |	T_NAPTR sp rdata_unknown
-    |	T_KX sp rdata_kx	/* RFC 2230 */
-    |	T_KX sp rdata_unknown
+    |	T_NAPTR sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_KX sp rdata_kx		/* RFC 2230 */
+    |	T_KX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_CERT sp rdata_cert	/* RFC 2538 */
-    |	T_CERT sp rdata_unknown
+    |	T_CERT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_DNAME sp rdata_domain_name /* RFC 2672 */
-    |	T_DNAME sp rdata_unknown
+    |	T_DNAME sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_APL trail		/* RFC 3123 */
     |	T_APL sp rdata_apl	/* RFC 3123 */
-    |	T_APL sp rdata_unknown
+    |	T_APL sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_DS sp rdata_ds
-    |	T_DS sp rdata_unknown
+    |	T_DS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SSHFP sp rdata_sshfp
-    |	T_SSHFP sp rdata_unknown
+    |	T_SSHFP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_RRSIG sp rdata_rrsig
-    |	T_RRSIG sp rdata_unknown
+    |	T_RRSIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NSEC sp rdata_nsec
-    |	T_NSEC sp rdata_unknown
+    |	T_NSEC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_DNSKEY sp rdata_dnskey
-    |	T_DNSKEY sp rdata_unknown
-    |	T_UTYPE sp rdata_unknown
+    |	T_DNSKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_UTYPE sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	STR error NL
     {
 	    zc_error_prev_line("unrecognized RR type '%s'", $1.str);
@@ -498,7 +532,7 @@ rdata_soa:	dname sp dname sp STR sp STR sp STR sp STR sp STR trail
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $9.str)); /* retry */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $11.str)); /* expire */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $13.str)); /* minimum */
-	    
+
 	    /* [XXX] also store the minium in case of no TTL? */
 	    if ((parser->default_minimum = zparser_ttl2int($11.str)) == -1)
 		    parser->default_minimum = DEFAULT_TTL;
@@ -677,7 +711,7 @@ rdata_apl_seq:	dotted_str
 rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
-	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $3.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
 	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str, $7.len)); /* hash */
     }
@@ -694,7 +728,7 @@ rdata_sshfp:	STR sp STR sp str_sp_seq trail
 rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
     {
 	    zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
-	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $3.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $7.str)); /* # orig TTL */
 	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
@@ -710,9 +744,9 @@ rdata_nsec:	dname sp nsec_seq trail
 	    zadd_rdata_domain($1); /* nsec name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
 	    memset(nsecbits, 0, sizeof(nsecbits));
+            nsec_highest_rcode = 0;
     }
     ;
-
 
 rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
     {
@@ -726,19 +760,16 @@ rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
 rdata_unknown:	URR sp STR sp str_sp_seq trail
     {
 	    /* $2 is the number of octects, currently ignored */
-	    parser->rr.unknown_rdata
-		    = zparser_conv_hex(parser->rr_region, $5.str, $5.len);
+	    $$ = zparser_conv_hex(parser->region, $5.str, $5.len);
 
     }
     |	URR sp STR trail
     {
-	    parser->rr.unknown_rdata
-		    = zparser_conv_hex(parser->rr_region, "", 0);
+	    $$ = zparser_conv_hex(parser->region, "", 0);
     }
     |	URR error NL
     {
-	    parser->rr.unknown_rdata
-		    = zparser_conv_hex(parser->rr_region, "", 0);
+	    $$ = zparser_conv_hex(parser->region, "", 0);
     }
     ;
 %%
@@ -762,6 +793,14 @@ zparser_create(region_type *region, region_type *rr_region, namedb_type *db)
 	result->rr_region = rr_region;
 	result->db = db;
 
+	result->filename = NULL;
+	result->current_zone = NULL;
+	result->origin = NULL;
+	result->prev_dname = NULL;
+
+	result->temporary_rdatas = (rdata_atom_type *) region_alloc(
+		result->region, MAXRDATALEN * sizeof(rdata_atom_type));
+
 	return result;
 }
 
@@ -774,21 +813,20 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 {
 	memset(nxtbits, 0, sizeof(nxtbits));
 	memset(nsecbits, 0, sizeof(nsecbits));
+        nsec_highest_rcode = 0;
 
 	parser->default_ttl = ttl;
 	parser->default_minimum = 0;
 	parser->default_class = klass;
 	parser->current_zone = NULL;
-	parser->origin_region = region_create(xalloc, free);
-	parser->origin = dname_copy(parser->origin_region, origin);
-	parser->prev_dname_region = region_create(xalloc, free);
-	parser->prev_dname = dname_copy(parser->prev_dname_region, origin);
+	parser->origin = domain_table_insert(parser->db->domains, origin);
+	parser->prev_dname = parser->origin;
 	parser->error_occurred = 0;
 	parser->errors = 0;
 	parser->line = 1;
 	parser->filename = filename;
-	parser->rr.rdata_count = 0;
-	parser->rr.unknown_rdata = NULL;
+	parser->current_rr.rdata_count = 0;
+	parser->current_rr.rdatas = parser->temporary_rdatas;
 }
 
 void
@@ -800,9 +838,13 @@ yyerror(const char *message)
 static void
 error_va_list(unsigned line, const char *fmt, va_list args)
 {
-	fprintf(stderr, "%s:%u: error: ", parser->filename, line);
+	if (parser->filename) {
+		fprintf(stderr, "%s:%u: ", parser->filename, line);
+	}
+	fprintf(stderr, "error: ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
+
 	++parser->errors;
 	parser->error_occurred = 1;
 }
@@ -832,7 +874,10 @@ zc_error(const char *fmt, ...)
 static void
 warning_va_list(unsigned line, const char *fmt, va_list args)
 {
-	fprintf(stderr, "%s:%u: warning: ", parser->filename, line);
+	if (parser->filename) {
+		fprintf(stderr, "%s:%u: ", parser->filename, line);
+	}
+	fprintf(stderr, "warning: ");
 	vfprintf(stderr, fmt, args);
 	fprintf(stderr, "\n");
 }

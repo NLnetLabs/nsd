@@ -13,17 +13,11 @@
 #include <assert.h>
 #include <string.h>
 
-#include "edns.h"
 #include "namedb.h"
 #include "nsd.h"
-#ifdef TSIG
-#include "tsig.h"
-#endif /* TSIG */
+#include "packet.h"
 
-#define	MAXRRSPP		10240    /* Maximum number of rr's per packet */
-#define MAX_COMPRESSED_DNAMES	MAXRRSPP /* Maximum number of compressed domains. */
-enum query_state
-{
+enum query_state {
 	QUERY_PROCESSED,
 	QUERY_DISCARDED,
 	QUERY_IN_AXFR
@@ -32,22 +26,20 @@ typedef enum query_state query_state_type;
 
 /* Query as we pass it around */
 typedef struct query query_type;
-struct query
-{
+struct query {
 	/*
 	 * Memory region freed whenever the query is reset.
 	 */
 	region_type *region;
 
 	/*
-	 * The socket the query was received from.
-	 */
-	nsd_socket_type *socket;
-
-	/*
 	 * The address the query was received from.
 	 */
+#ifdef INET6
 	struct sockaddr_storage addr;
+#else
+	struct sockaddr_in addr;
+#endif
 	socklen_t addrlen;
 
 	/*
@@ -60,13 +52,8 @@ struct query
 	 */
 	size_t reserved_space;
 
-	/* EDNS information.  */
+	/* EDNS information provided by the client.  */
 	edns_record_type edns;
-
-#ifdef TSIG
-	/* TSIG information.  */
-	tsig_record_type tsig;
-#endif /* TSIG */
 
 	int tcp;
 	uint16_t tcplen;
@@ -82,7 +69,7 @@ struct query
 
 	/* The zone used to answer the query.  */
 	zone_type *zone;
-
+	
 	/* The domain used to answer the query.  */
 	domain_type *domain;
 
@@ -94,7 +81,7 @@ struct query
 
 	/* Original opcode.  */
 	uint8_t opcode;
-
+	
 	/*
 	 * The number of CNAMES followed.  After a CNAME is followed
 	 * we no longer change the RCODE to NXDOMAIN and no longer add
@@ -102,7 +89,7 @@ struct query
 	 * and NODATA.
 	 */
 	int cname_count;
-
+	
 	/* Used for dname compression.  */
 	uint16_t     compressed_dname_count;
 	domain_type *compressed_dnames[MAXRRSPP];
@@ -125,22 +112,22 @@ struct query
 
 
 /* Check if the last write resulted in an overflow.  */
-static inline int query_overflow(query_type *q);
+static inline int query_overflow(struct query *q);
 
 /*
  * Store the offset of the specified domain in the dname compression
  * table.
  */
-void query_put_dname_offset(query_type  *query,
-			    domain_type *domain,
-			    uint16_t     offset);
+void query_put_dname_offset(struct query *query,
+			    domain_type  *domain,
+			    uint16_t      offset);
 /*
  * Lookup the offset of the specified domain in the dname compression
  * table.  Offset 0 is used to indicate the domain is not yet in the
  * compression table.
  */
 static inline
-uint16_t query_get_dname_offset(query_type *query, domain_type *domain)
+uint16_t query_get_dname_offset(struct query *query, domain_type *domain)
 {
 	return query->compressed_dname_offsets[domain->number];
 }
@@ -151,20 +138,20 @@ uint16_t query_get_dname_offset(query_type *query, domain_type *domain)
  * are truncated and before adding new RRs.  Otherwise dnames may be
  * compressed using truncated data!
  */
-void query_clear_dname_offsets(query_type *query, size_t max_offset);
+void query_clear_dname_offsets(struct query *query, size_t max_offset);
 
 /*
  * Clear the compression tables.
  */
-void query_clear_compression_tables(query_type *query);
-
+void query_clear_compression_tables(struct query *query);
+	
 /*
  * Enter the specified domain into the compression table starting at
  * the specified offset.
  */
-void query_add_compression_domain(query_type  *query,
-				  domain_type *domain,
-				  uint16_t     offset);
+void query_add_compression_domain(struct query *query,
+				  domain_type  *domain,
+				  uint16_t      offset);
 
 
 /*
@@ -177,7 +164,7 @@ query_type *query_create(region_type *region,
  * Reset a query structure so it is ready for receiving and processing
  * a new query.
  */
-void query_reset(query_type *query, size_t maxlen, nsd_socket_type *socket);
+void query_reset(query_type *query, size_t maxlen, int is_tcp);
 
 /*
  * Process a query and write the response in the query I/O buffer.
@@ -208,12 +195,5 @@ query_overflow(query_type *q)
 {
 	return buffer_position(q->packet) > (q->maxlen - q->reserved_space);
 }
-
-/*
- * Check the ACL for the client for the specified action.
- */
-int check_zone_acl(query_type *query,
-		   zone_type *zone,
-		   nsd_options_acl_action_type action);
 
 #endif /* _QUERY_H_ */

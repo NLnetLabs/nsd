@@ -1,4 +1,4 @@
-$Id: REQUIREMENTS,v 1.20 2004/08/18 11:45:34 erik Exp $
+$Id$
 
 
 NSD Requirements and Specifications
@@ -6,7 +6,7 @@ ______________________________________________________________________
 
 A. Scope.
 
-nsd is a complete implementation of an authoritative DNS
+NSD is a complete implementation of an authoritative DNS
 nameserver. This document describes the basic requirements and
 specifications for this implementation.
 
@@ -29,7 +29,7 @@ These requirements are in order of importance:
 
 3. Authoritative server only
 
-   nsd is designed to provide authoritative answers only.  There are
+   NSD is designed to provide authoritative answers only.  There are
    no facilities for caching or recursion.
 
 4. Open source
@@ -66,7 +66,7 @@ These requirements are in order of importance:
 
 9. Simplicity
 
-   nsd will not do things that are not strictly necessary for its
+   NSD will not do things that are not strictly necessary for its
    task: authoritative name serving. If in doubt a feature is more
    likely not to be included.
 
@@ -89,28 +89,26 @@ B.2. Explicit NON-Requirements
 
 1. No caching
 
-   nsd will not provide cached or recursive answers.
+   NSD will not provide cached or recursive answers.
 
 2. No slavish responsiveness
 
-   nsd may decide to limit answers to queries it considers malicious
+   NSD may decide to limit answers to queries it considers malicious
    or useless if this enables it to provide better service to queries
    it considers valid. Conserving output bandwidth is a consideration.
 
 3. No end-user friendliness
 
-   nsd operators are considered to have basic Unix and networking
+   NSD operators are considered to have basic Unix and networking
    knowledge and are also considered to be able to read and understand
    reasonably written user documentation.
 
 4. No creeping featurism
 
-   nsd will not implement any functionality that is not strictly
+   NSD will not implement any functionality that is not strictly
    necessary for the task of authoritative name serving.  Examples:
    round robin sequence of RRset members in consecutive answers,
 
-
-     
 
 C. Technical Specification.
 
@@ -151,8 +149,6 @@ C.1. Zone file format and RR records.
 
    Zones that are parsed by the zonecompiler will be served by the nsd
    daemon.
-
-
 
    Only zone files of CLASS "IN" are supported.
 
@@ -359,7 +355,7 @@ C 4.1 Actions based on QTYPE of incoming Query.
   above.  We have also included DNSSEC considerations (rfc2535 and
   rfc3225)
 
-  The first versions of nsd will not have DNSSEC processing
+  The first versions of NSD will not have DNSSEC processing
   implemented. (Read this as the DO bit is not set). 
 
   [OK*** this version of the REQUIREMENTS includes DNSSEC specs
@@ -932,6 +928,6 @@ RFC Standards
   zone control is not implemented in NSD itself.
 
 ______________________________________________________________________
-$Id: REQUIREMENTS,v 1.20 2004/08/18 11:45:34 erik Exp $
+$Id$
 
 

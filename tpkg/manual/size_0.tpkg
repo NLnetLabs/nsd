@@ -1,0 +1,122 @@
+# This is a shell archive.  Save it in a file, remove anything before
+# this line, and then unpack it by entering "sh file".  Note, it may
+# create directories; files and directories will be owned by you and
+# have default permissions.
+#
+# This archive contains:
+#
+#	size_0.conf
+#	size_0.dsc
+#	size_0.post
+#	size_0.pre
+#	size_0.test
+#	size_0.zone
+#
+echo x - size_0.conf
+sed 's/^X//' >size_0.conf << 'END-of-size_0.conf'
+Xzone    test.nl.    size_0.zone
+END-of-size_0.conf
+echo x - size_0.dsc
+sed 's/^X//' >size_0.dsc << 'END-of-size_0.dsc'
+XBaseName: size_0
+XVersion: 1.0
+XDescription: send a pkt to NSD with a size smaller than 12 bytes
+XCreationDate: Thu Feb  2 13:25:14 CET 2006
+XMaintainer: Miek Gieben
+XCategory: 
+XComponent:
+XDepends: 0001_nsd-debug-comp.tpkg
+XPre: size_0.pre
+XPost: size_0.post
+XTest: size_0.test
+XAuxFiles: size_0.zone, size_0.conf
+XPassed:
+XFailure:
+END-of-size_0.dsc
+echo x - size_0.post
+sed 's/^X//' >size_0.post << 'END-of-size_0.post'
+X# source the var file when it's there
+X[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+X[ -f .tpkg.var.test ] && source .tpkg.var.test
+X# svnserve resets the path, you may need to adjust it, like this:
+Xexport PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+Xif [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+Xfi
+X
+X# kill NSD
+XNSD_PID=`echo x | cat $TPKG_NSD_PID`
+Xkill $NSD_PID 2>/dev/null
+Xsleep 1 # should be really dead now - just to be sure kill it again
+Xkill $NSD_PID 2>/dev/null
+X
+Xexit 0
+END-of-size_0.post
+echo x - size_0.pre
+sed 's/^X//' >size_0.pre << 'END-of-size_0.pre'
+X# source the var file when it's there
+X[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+X# svnserve resets the path
+X# you may need to adjust it
+Xexport PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+X# start NSD
+XPRE="../../.." 
+XTPKG_ZONEC="$PRE/zonec"
+X
+X# create .db file
+X$TPKG_ZONEC -f size_0.db size_0.conf 
+END-of-size_0.pre
+echo x - size_0.test
+sed 's/^X//' >size_0.test << 'END-of-size_0.test'
+X# source the var file when it's there
+X[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+X[ -f .tpkg.var.test ] && source .tpkg.var.test
+X# svnserve resets the path, you may need to adjust it, like this:
+Xexport PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
+X
+X((TPKG_PORT=5353+$RANDOM))
+XTPKG_NSD_PID="../../../nsd.pid.$$"
+X../../../nsd -d -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID \
+X-f size_0.db &
+Xsleep 1
+X
+Xcase $OSTYPE in
+X        linux*)
+X        HPING=/usr/sbin/hping
+X        ;;
+X        freebsd*)
+X        HPING=/usr/local/sbin/hping
+X        ;;
+Xesac
+X
+X$HPING -c 1 -p $TPKG_PORT --udp localhost
+X
+X# $TPKG_NSD_PID should still be alive
+XNSD_PID=`echo x | cat $TPKG_NSD_PID`
+X# are we alive, this will also be the exit code
+X# for the test
+Xps aux| awk ' { print $2 } ' | grep $NSD_PID
+END-of-size_0.test
+echo x - size_0.zone
+sed 's/^X//' >size_0.zone << 'END-of-size_0.zone'
+X$TTL    4D
+X$ORIGIN test.nl.
+X@       IN      SOA     open.nlnetlabs.nl. miekg.atoom.net. (
+X                         2005061300         ; Serial
+X                             4H         ; Refresh
+X                             1H         ; Retry
+X                             7D         ; Expire
+X                             1D )       ; Negative Cache TTL
+X                IN      NS      open.nlnetlabs.nl.
+X                IN      MX      20 mail.atoom.net.
+X                IN      MX      20 sol.nlnetlabs.nl.
+X
+Xa               IN      A       80.127.17.126
+Xwww             IN      CNAME   a
+X_foobar._tcp    SRV 0 1 9 old-slow-box.example.com.
+X                SRV 0 3 9 new-fast-box.example.com.
+END-of-size_0.zone
+exit
+

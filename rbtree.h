@@ -56,12 +56,9 @@ rbnode_t *rbtree_last(rbtree_t *rbtree);
 rbnode_t *rbtree_next(rbnode_t *rbtree);
 rbnode_t *rbtree_previous(rbnode_t *rbtree);
 
-#define	RBTREE_WALK(rbtree, k, d)				\
-	for ((rbtree)->_node = rbtree_first(rbtree);		\
-	     (rbtree)->_node != RBTREE_NULL			\
-	     && ((k) = (rbtree)->_node->key,			\
-		 (d) = (void *) (rbtree)->_node,		\
-		 1);						\
-	     (rbtree)->_node = rbtree_next((rbtree)->_node))
+#define	RBTREE_WALK(rbtree, k, d) \
+	for((rbtree)->_node = rbtree_first(rbtree);\
+		(rbtree)->_node != RBTREE_NULL && ((k) = (rbtree)->_node->key) && \
+		((d) = (void *) (rbtree)->_node); (rbtree)->_node = rbtree_next((rbtree)->_node))
 
 #endif /* _RBTREE_H_ */

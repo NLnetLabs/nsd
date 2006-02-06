@@ -24,3 +24,4 @@ Ondrej Sury                                     - nsd-notify.8 man page
 Stephane Bortzmeyer                             - Tru64 portability.
 Paul Wouters                                    - zone compiler testing
 Markus Heimhilcher                              - .AT zones for testing 
+Mans Nilsson                                    - (Solaris) Testing

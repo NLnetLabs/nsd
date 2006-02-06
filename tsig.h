@@ -16,7 +16,6 @@
 
 #include "buffer.h"
 #include "dname.h"
-#include "options.h"
 
 #define TSIG_ERROR_NOERROR  0
 #define TSIG_ERROR_BADSIG   16
@@ -91,6 +90,7 @@ struct tsig_algorithm
  */
 struct tsig_key
 {
+	struct addrinfo  *server;
 	const dname_type *name;
 	size_t            size;
 	const uint8_t    *data;
@@ -134,16 +134,6 @@ int tsig_init(region_type *region);
  * Add the specified key to the TSIG key table.
  */
 void tsig_add_key(tsig_key_type *key);
-
-/*
- * Load all the keys from OPTIONS.
- */
-int tsig_load_keys(nsd_options_type *options);
-
-/*
- * Find a key based on its name.
- */
-tsig_key_type *tsig_get_key_by_name(const dname_type *name);
 
 /*
  * Add the specified algorithm to the TSIG algorithm table.
@@ -230,7 +220,7 @@ int tsig_verify(tsig_record_type *tsig);
  * field to find out if the TSIG record was present.
  */
 int tsig_find_rr(tsig_record_type *tsig, buffer_type *packet);
-
+	
 /*
  * Call this to analyze the TSIG RR starting at the current location
  * of PACKET. On success true is returned and the results are stored

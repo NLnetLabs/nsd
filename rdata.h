@@ -20,7 +20,7 @@
 extern lookup_table_type dns_certificate_types[];
 extern lookup_table_type dns_algorithms[];
 
-int rdata_atom_to_string(buffer_type *output, rdata_kind_type kind,
+int rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
 			 rdata_atom_type rdata);
 
 /*

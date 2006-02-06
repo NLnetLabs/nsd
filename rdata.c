@@ -35,11 +35,11 @@ lookup_table_type dns_certificate_types[] = {
 
 /* Taken from RFC 2535, section 7.  */
 lookup_table_type dns_algorithms[] = {
-	{ 1, "RSAMD5" },
-	{ 2, "DS" },
-	{ 3, "DSA" },
+	{ 1, "RSAMD5" },	/* RFC 2537 */
+	{ 2, "DH" },		/* RFC 2539 */
+	{ 3, "DSA" },		/* RFC 2536 */
 	{ 4, "ECC" },
-	{ 5, "RSASHA1" },	/* XXX: Where is this specified? */
+	{ 5, "RSASHA1" },	/* RFC 3110 */
 	{ 252, "INDIRECT" },
 	{ 253, "PRIVATEDNS" },
 	{ 254, "PRIVATEOID" },
@@ -385,7 +385,7 @@ rdata_unknown_to_string(buffer_type *output, rdata_atom_type rdata)
 	return 1;
 }
 
-static rdata_to_string_type rdata_to_string_table[RDATA_KIND_UNKNOWN + 1] = {
+static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_dname_to_string,
 	rdata_text_to_string,
 	rdata_byte_to_string,
@@ -410,10 +410,10 @@ static rdata_to_string_type rdata_to_string_table[RDATA_KIND_UNKNOWN + 1] = {
 };
 
 int
-rdata_atom_to_string(buffer_type *output, rdata_kind_type kind,
+rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
 		     rdata_atom_type rdata)
 {
-	return rdata_to_string_table[kind](output, rdata);
+	return rdata_to_string_table[type](output, rdata);
 }
 
 ssize_t
@@ -443,49 +443,38 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		size_t length = 0;
 		int required = i < descriptor->minimum;
 		
-		switch (rdata_atom_kind(rrtype, i)) {
-		case RDATA_KIND_DNAME:
+		switch (rdata_atom_wireformat_type(rrtype, i)) {
+		case RDATA_WF_COMPRESSED_DNAME:
+		case RDATA_WF_UNCOMPRESSED_DNAME:
 			is_domain = 1;
 			break;
-		case RDATA_KIND_TEXT:
+		case RDATA_WF_BYTE:
+			length = sizeof(uint8_t);
+			break;
+		case RDATA_WF_SHORT:
+			length = sizeof(uint16_t);
+			break;
+		case RDATA_WF_LONG:
+			length = sizeof(uint32_t);
+			break;
+		case RDATA_WF_TEXT:
 			/* Length is stored in the first byte.  */
 			length = 1;
 			if (buffer_position(packet) + length <= end) {
 				length += buffer_current(packet)[length - 1];
 			}
 			break;
-		case RDATA_KIND_BYTE:
-		case RDATA_KIND_ALGORITHM:
-			length = sizeof(uint8_t);
-			break;
-		case RDATA_KIND_SHORT:
-		case RDATA_KIND_RRTYPE:
-		case RDATA_KIND_CERTIFICATE_TYPE:
-			length = sizeof(uint16_t);
-			break;
-		case RDATA_KIND_LONG:
-		case RDATA_KIND_PERIOD:
-		case RDATA_KIND_TIME:
-			length = sizeof(uint32_t);
-			break;
-		case RDATA_KIND_A:
+		case RDATA_WF_A:
 			length = sizeof(in_addr_t);
 			break;
-		case RDATA_KIND_AAAA:
+		case RDATA_WF_AAAA:
 			length = IP6ADDRLEN;
 			break;
-		case RDATA_KIND_BASE64:
-		case RDATA_KIND_HEX:
-		case RDATA_KIND_NSAP:
-		case RDATA_KIND_SERVICES:
-		case RDATA_KIND_NXT:
-		case RDATA_KIND_NSEC:
-		case RDATA_KIND_LOC:
-		case RDATA_KIND_UNKNOWN:
-			/* All remaining RDATA.  */
+		case RDATA_WF_BINARY:
+			/* Remaining RDATA is binary.  */
 			length = end - buffer_position(packet);
 			break;
-		case RDATA_KIND_APL:
+		case RDATA_WF_APL:
 			length = (sizeof(uint16_t)    /* address family */
 				  + sizeof(uint8_t)   /* prefix */
 				  + sizeof(uint8_t)); /* length */
@@ -505,7 +494,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			}
 			
 			dname = dname_make_from_packet(
-				temp_region, packet, 1);
+				temp_region, packet, 1, 1);
 			if (!dname || buffer_position(packet) > end) {
 				/* Error in domain name.  */
 				region_destroy(temp_region);
@@ -552,8 +541,7 @@ rdata_maximum_wireformat_size(rrtype_descriptor_type *descriptor,
 	size_t i;
 	for (i = 0; i < rdata_count; ++i) {
 		if (rdata_atom_is_domain(descriptor->type, i)) {
-			result += dname_length(
-				domain_dname(rdata_atom_domain(rdatas[i])));
+			result += domain_dname(rdata_atom_domain(rdatas[i]))->name_size;
 		} else {
 			result += rdata_atom_size(rdatas[i]);
 		}
@@ -576,7 +564,7 @@ rdata_atoms_to_unknown_string(buffer_type *output,
 			const dname_type *dname =
 				domain_dname(rdata_atom_domain(rdatas[i]));
 			hex_to_string(
-				output, dname_name(dname), dname_length(dname));
+				output, dname_name(dname), dname->name_size);
 		} else {
 			rdata_hex_to_string(output, rdatas[i]);
 		}

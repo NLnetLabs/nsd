@@ -1,0 +1,181 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2006-01-17 12:01 CET by <wouter@diva.nlnetlabs.nl>.
+# Source directory was `/home/wouter/src/nsd/nsd/branches/NSD_2_2/tpkg/bug118.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#    270 -rw------- bug118.dsc
+#    159 -rw------- bug118.help
+#    616 -rw------- bug118.test
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh19110; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= bug118.dsc ==============
+if test -f 'bug118.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug118.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug118.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug118.dsc' &&
+BaseName: bug118
+Version: 1.0
+Description: Test for retries by nsd-notify.
+CreationDate: Tue Jan 17 11:22:07 CET 2006
+Maintainer: Wouter Wijngaards
+Category: 
+Component: nsd-notify
+Depends: 0000_nsd-compile.tpkg
+Pre: 
+Post: 
+Test: bug118.test
+AuxFiles:
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 06 01 17 12 00 02 'bug118.dsc'; eval "$shar_touch") &&
+  chmod 0600 'bug118.dsc' ||
+  $echo 'restore of' 'bug118.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug118.dsc:' 'MD5 check failed'
+4bbd9eb8af7333fb074ca94f2b4f92b7  bug118.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug118.dsc'`"
+    test 270 -eq "$shar_count" ||
+    $echo 'bug118.dsc:' 'original size' '270,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug118.help ==============
+if test -f 'bug118.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug118.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug118.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug118.help' &&
+Tests if nsd-notify prints retry on stderr if confronted with non-answering
+address. It should terminate if an ack message is replied, but this is
+not tested.
+SHAR_EOF
+  (set 20 06 01 17 12 01 10 'bug118.help'; eval "$shar_touch") &&
+  chmod 0600 'bug118.help' ||
+  $echo 'restore of' 'bug118.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug118.help:' 'MD5 check failed'
+ed0f4e9856a7feab3f2d80533963a7e2  bug118.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug118.help'`"
+    test 159 -eq "$shar_count" ||
+    $echo 'bug118.help:' 'original size' '159,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug118.test ==============
+if test -f 'bug118.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug118.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug118.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'bug118.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path
+# you may need to adjust it
+X
+# we execute in a subdir, so everything in NSD is in ../../
+X
+# start nsd-notify and let it run for a couple of seconds.
+X
+X../../nsd-notify -p 12345 -z bla.bla 127.0.0.1 >test118.bug 2>&1 &
+sleep 10
+kill $!
+X
+# see if any retries have happened.
+cat test118.bug
+countretry=`fgrep retry test118.bug | wc -l`
+rm test118.bug
+echo count $countretry
+if test $countretry -ge 1 ; then
+X	echo Test passed.
+X	exit 0;
+else
+X	echo No retries on the output of nsd-notify.
+X	exit 1;
+fi
+SHAR_EOF
+  (set 20 06 01 17 11 59 11 'bug118.test'; eval "$shar_touch") &&
+  chmod 0600 'bug118.test' ||
+  $echo 'restore of' 'bug118.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug118.test:' 'MD5 check failed'
+224e13ad9659d477ab8e60ec67f6ea33  bug118.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug118.test'`"
+    test 616 -eq "$shar_count" ||
+    $echo 'bug118.test:' 'original size' '616,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh19110
+exit 0

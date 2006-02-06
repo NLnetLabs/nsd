@@ -1,6 +1,0 @@
-need a way to convert to nsd specific type from ldns specific types
-
-After that it is not much work - as we do not fiddle with the database
-
-NSD's canonical order := reversed label order (speed up comparisons)
-dname_dname := same order as ldns. But maybe the lenght is 1 too large...

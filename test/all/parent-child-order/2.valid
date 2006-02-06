@@ -1,5 +1,0 @@
-bac.			3600	IN	SOA	abc. abc. 2004010704 3600 28800 2419200 3600
-a.bac.			3600	IN	A	127.0.0.1
-b.a.bac.		3600	IN	A	127.0.0.2
-c.bac.			3600	IN	CNAME	a.bac.
-bac.			3600	IN	SOA	abc. abc. 2004010704 3600 28800 2419200 3600

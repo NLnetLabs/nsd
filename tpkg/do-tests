@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# run the tests
+tpkg -a ../../ exe 0000_nsd-compile.tpkg
+tpkg -a ../../ fake 0001_nsd-debug-comp.tpkg
+for i in *.tpkg; do
+        tpkg -a ../../ exe $i
+done
+tpkg report
+tpkg clean

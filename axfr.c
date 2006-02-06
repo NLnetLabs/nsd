@@ -21,8 +21,11 @@ int deny_severity = LOG_NOTICE;
 #endif /* LIBWRAP */
 
 query_state_type
-query_axfr (nsd_type *nsd, query_type *query)
+query_axfr (struct nsd *nsd, struct query *query)
 {
+	domain_type *closest_match;
+	domain_type *closest_encloser;
+	int exact;
 	int added;
 	uint16_t total_added = 0;
 
@@ -31,25 +34,30 @@ query_axfr (nsd_type *nsd, query_type *query)
 
 	if (query->maxlen > AXFR_MAX_MESSAGE_LEN)
 		query->maxlen = AXFR_MAX_MESSAGE_LEN;
-
+	
 	assert(!query_overflow(query));
 
-	if (!query->axfr_zone) {
+	if (query->axfr_zone == NULL) {
 		/* Start AXFR.  */
-		query->axfr_zone = namedb_find_zone(nsd->db, query->qname);
-		if (!query->axfr_zone
-		    || !check_zone_acl(query,
-				       query->axfr_zone,
-				       NSD_OPTIONS_ACL_ACTION_TRANSFER))
+		exact = namedb_lookup(nsd->db,
+				      query->qname,
+				      &closest_match,
+				      &closest_encloser);
+		
+		query->domain = closest_encloser;
+		query->axfr_zone = domain_find_zone(closest_encloser);
+		
+		if (!exact
+		    || query->axfr_zone == NULL
+		    || query->axfr_zone->apex != query->domain)
 		{
-			/* Zone not found or access denied.  */
+			/* No SOA no transfer */
 			RCODE_SET(query->packet, RCODE_REFUSE);
 			return QUERY_PROCESSED;
 		}
 
-		query->domain
-			= query->axfr_current_domain
-			= query->axfr_zone->apex;
+		query->axfr_current_domain
+			= (domain_type *) heap_first(nsd->db->domains->names_to_domains);
 		query->axfr_current_rrset = NULL;
 		query->axfr_current_rr = 0;
 
@@ -60,9 +68,8 @@ query_axfr (nsd_type *nsd, query_type *query)
 					 query->axfr_zone->apex,
 					 &query->axfr_zone->soa_rrset->rrs[0]);
 		if (!added) {
-			internal_error(
-				__FILE__, __LINE__,
-				"cannot add initial SOA to empty packet");
+			/* XXX: This should never happen... generate error code? */
+			abort();
 		}
 		++total_added;
 	} else {
@@ -78,20 +85,19 @@ query_axfr (nsd_type *nsd, query_type *query)
 
 	/* Add zone RRs until answer is full.  */
 	assert(query->axfr_current_domain);
-
+	
 	while ((rbnode_t *) query->axfr_current_domain != HEAP_NULL) {
 		if (!query->axfr_current_rrset) {
-			query->axfr_current_rrset
-				= query->axfr_current_domain->rrsets;
+			query->axfr_current_rrset = domain_find_any_rrset(
+				query->axfr_current_domain,
+				query->axfr_zone);
 			query->axfr_current_rr = 0;
 		}
 		while (query->axfr_current_rrset) {
-			if (query->axfr_current_rrset
-			    != query->axfr_zone->soa_rrset)
+			if (query->axfr_current_rrset != query->axfr_zone->soa_rrset
+			    && query->axfr_current_rrset->zone == query->axfr_zone)
 			{
-				while (query->axfr_current_rr
-				       < query->axfr_current_rrset->rr_count)
-				{
+				while (query->axfr_current_rr < query->axfr_current_rrset->rr_count) {
 					added = packet_encode_rr(
 						query,
 						query->axfr_current_domain,
@@ -103,8 +109,7 @@ query_axfr (nsd_type *nsd, query_type *query)
 				}
 			}
 
-			query->axfr_current_rrset
-				= query->axfr_current_rrset->next;
+			query->axfr_current_rrset = query->axfr_current_rrset->next;
 			query->axfr_current_rr = 0;
 		}
 		assert(query->axfr_current_domain);
@@ -134,7 +139,7 @@ return_answer:
  * Answer if this is an AXFR or IXFR query.
  */
 query_state_type
-answer_axfr_ixfr(nsd_type *nsd, query_type *q)
+answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 {
 	/* Is it AXFR? */
 	switch (q->qtype) {
@@ -159,7 +164,7 @@ answer_axfr_ixfr(nsd_type *nsd, query_type *q)
 				qptr += *qptr + 1;
 			}
 			*t = 0;
-
+			
 #endif /* AXFR_DAEMON_PREFIX */
 			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
 			sock_methods(&request);	/* This is to work around the bug in libwrap */

@@ -1,18 +1,76 @@
 NSD RELEASE NOTES
 
+2.3.5 (TO BE RELEASED)
+============
+BUG FIXES:
+	- Bug #118: nsd: nsd_notify waits for a response. Will retry the notify
+	  after a timeout.
+        - Bug #124: $(DESTDIR) was added to Makefile.in. 
+	- Bug #128: zonec: parser can handle \\ at the end of a string.
+        - nsd: silently discard udp packets with source port 0
+
+2.3.4
+=============
+BUG FIXES:
+        - Unknown type codes for type code numbers > 48 and < 97 work again.       
+          (this implies --enable-checking can be enabled again)
+        - sighandler() fixes - TODO
+
+2.3.3
+=============
+BUG FIXES:
+        - Apply the correct patch to nsdc.sh.in. 
+
+2.3.2
+=============
+FEATURES:
+        - Bug #101: add support for the SPF record.
+
+BUG FIXES:
+        - Bug #100: replaced non-portable use of timegm(3) with
+          portable implementation (mktime_from_utc).
+        - Bug #103: nsd: trim the SOA's TTL to the MINIMUM value when returning a 
+          negative answer.
+        - Bug #104: nsd: add a time_t timestamp to the log when logging to
+          a file.
+        - Bug #105: nsdc: use a lock file when rebuilding the database (patch by
+          Jakob Schlyter/Ted Lindgreen/Sebastian/Ondrej Sury).
+        - Bug #106: zonec: don't walk all 256 NSEC windows when that is not
+          needed.
+        - Bug #107: zonec: fixed a crash when encountering bad unknown rdata.
+        - nsd: Don't print: "error: nsd is already running as <pid>, stopping"
+          when in fact NSD continues to run.
+        - nsd: Minimize the race window in sig_handler().
+
+2.3.1
+=============
+BUG FIXES:
+        - zonec: Don't crash when generating error messages outside of zone
+          files.
+        - nsd: when logging to a file the pid is now printed.
+        - nsd: Reset 'boot' time in statistics when reloading the database,
+          since the statistics are reset to 0 on a reload.
+        - nsd-xfer.c: Added '-a' option to specify local address to connect
+          from.  Original patch supplied by Walter Hop <nsd@walter.transip.nl>.
+        - Bug #98: Allow mnemonics for DS and RRSIG algorithm field.
+
 2.3.0
 =============
 FEATURES:
-        - NSD now preserves the case of domain names instead of
-          converting them all to lower case.  If a domain name is
-          spelled with differing case in the same zone file the first
-          spelling is used.
+        - DNSSEC is now enabled by default. NSD should be fully
+          compliant with RFC4033, RFC4034, and RFC4035.
 
-CODE CHANGES:
-        - Each zone is now stored separately instead of combining all
-          domain names into a single searchable tree.  This eliminates
-          some correctness (wildcard matches) and performance (AXFR,
-          NSEC lookup) corner cases.
+BUG FIXES:
+        - nsd: Ensure that the number of -a flags does not exceed the
+          maximum specified by MAX_INTERFACES in config.h.
+        - nsd-xfer: Use serial number arithmetic (RFC1982) for the
+          zone serial check
+        - nsdc: Don't pass (fake) serial number to nsd-xfer if the
+          zone file does not exist.
+        - zonec: Loading many zones would cause namedb_find_zone to
+          slow down, performance patch by Kazunori Fujiwara.
+        - Bug #96: nsd-xfer did not handle 8-bit domain names
+          correctly.
 
 2.2.1
 =============

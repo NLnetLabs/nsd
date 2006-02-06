@@ -14,7 +14,6 @@
 
 #include "dns.h"
 #include "edns.h"
-#include "options.h"
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
@@ -22,26 +21,16 @@
 #define	NSD_STATS 3
 #define	NSD_QUIT 4
 
-enum nsd_server_kind
-{
-	NSD_SERVER_KIND_MAIN,
-	NSD_SERVER_KIND_CHILD
-};
-typedef enum nsd_server_kind nsd_server_kind_type;
+#define NSD_SERVER_MAIN 0x0U
+#define NSD_SERVER_UDP  0x1U
+#define NSD_SERVER_TCP  0x2U
+#define NSD_SERVER_BOTH (NSD_SERVER_UDP | NSD_SERVER_TCP)
 
 #ifdef INET6
 #define DEFAULT_AI_FAMILY AF_UNSPEC
 #else
 #define DEFAULT_AI_FAMILY AF_INET
 #endif
-
-enum nsd_socket_kind
-{
-	NSD_SOCKET_KIND_UDP,
-	NSD_SOCKET_KIND_TCP,
-	NSD_SOCKET_KIND_NSDC
-};
-typedef enum nsd_socket_kind nsd_socket_kind_type;
 
 #ifdef BIND8_STATS
 
@@ -64,82 +53,71 @@ typedef	unsigned long stc_t;
 
 struct nsd_socket
 {
-	nsd_socket_kind_type    kind;
 	struct addrinfo	*	addr;
 	int			s;
 };
-typedef struct nsd_socket nsd_socket_type;
 
 struct nsd_child
 {
+	 /* The type of child process (UDP or TCP handler). */
+	int   kind;
+
 	/* The child's process id.  */
 	pid_t pid;
-
-	/*
-	 * Socket used by the parent process to send commands and
-	 * receive responses to/from this child process.
-	 */
-	int child_fd;
-
-	/*
-	 * Socket used by the child process to receive commands and
-	 * send responses from/to the parent process.
-	 */
-	int parent_fd;
 };
-typedef struct nsd_child nsd_child_type;
-
 
 /* NSD configuration and run-time variables */
 typedef struct nsd nsd_type;
-struct nsd
+struct	nsd
 {
 	/*
 	 * Global region that is not deallocated until NSD shuts down.
 	 */
 	region_type    *region;
-
+	
 	/* Run-time variables */
 	pid_t		pid;
 	volatile sig_atomic_t mode;
-	nsd_server_kind_type server_kind;
+	unsigned        server_kind;
 	struct namedb	*db;
 	int		debug;
 
-	/*
-	 * Number of servers is specified in the 'options'
-	 * structure.
-	 */
-	nsd_child_type  *children;
-
-	/* NULL if this is the parent process.  */
-	nsd_child_type  *this_child;
-
+	size_t            child_count;
+	struct nsd_child *children;
+	
 	/* Configuration */
-	const char       *options_file;
-	nsd_options_type *options;
-
+	const char	*dbfile;
+	const char	*pidfile;
+	const char	*username;
 	uid_t	uid;
 	gid_t	gid;
+	const char	*chrootdir;
+	const char	*version;
+	const char	*identity;
 
-	/* All sockets that NSD is using for incoming data.  */
-	size_t           socket_count;
-	nsd_socket_type *sockets;
+	size_t	ifs;
 
-	edns_data_type edns_ipv4;
+	/* TCP specific configuration */
+	struct nsd_socket tcp[MAX_INTERFACES];
+
+	/* UDP specific configuration */
+	struct nsd_socket udp[MAX_INTERFACES];
+
+	edns_data_type edns_ipv4;	
 #if defined(INET6)
 	edns_data_type edns_ipv6;
 #endif
 
-	/* Maximum is specified in the 'options' structure.  */
-	size_t current_tcp_connection_count;
-
+	int maximum_tcp_count;
+	int current_tcp_count;
+	
 #ifdef	BIND8_STATS
 
 	char	*named8_stats;
 
 	struct nsdst {
 		time_t	boot;
+		int	period;		/* Produce statistics dump every st_period seconds */
 		stc_t	qtype[257];	/* Counters per qtype */
 		stc_t	qclass[4];	/* Class IN or Class CH or other */
 		stc_t	qudp, qudp6;	/* Number of queries udp and udp6 */
@@ -154,13 +132,13 @@ struct nsd
 
 /* nsd.c */
 pid_t readpid(const char *file);
-int writepid(nsd_type *nsd);
+int writepid(struct nsd *nsd);
 void sig_handler(int sig);
-void bind8_stats(nsd_type *nsd);
+void bind8_stats(struct nsd *nsd);
 
 /* server.c */
-int server_init(nsd_type *nsd);
-void server_main(nsd_type *nsd);
-void server_child(nsd_type *nsd);
-
+int server_init(struct nsd *nsd);
+void server_main(struct nsd *nsd);
+void server_child(struct nsd *nsd);
+  
 #endif	/* _NSD_H_ */

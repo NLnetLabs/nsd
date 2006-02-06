@@ -78,7 +78,7 @@ DOLLAR  \$
 COMMENT ;
 DOT     \.
 BIT	[^\]\n]|\\.
-ANY     [^\"\n]|\\.
+ANY     [^\"\n\\]|\\.
 
 %x	incl bitlabel quotedstring
 
@@ -107,7 +107,7 @@ ANY     [^\"\n]|\\.
 }
 <incl>.+ 		{ 	
 	char *tmp;
-	const dname_type *origin = parser->origin;
+	domain_type *origin = parser->origin;
 	int error_occurred = parser->error_occurred;
 	
 	BEGIN(INITIAL);
@@ -115,6 +115,8 @@ ANY     [^\"\n]|\\.
 		zc_error("includes nested too deeply, skipped (>%d)",
 			 MAXINCLUDES);
 	} else {
+		FILE *input;
+
 		/* Remove trailing comment.  */
 		tmp = strrchr(yytext, ';');
 		if (tmp) {
@@ -139,19 +141,20 @@ ANY     [^\"\n]|\\.
 				zc_error("incorrect include origin '%s'",
 					 tmp + 1);
 			} else {
-				origin = dname;
+				origin = domain_table_insert(
+					parser->db->domains, dname);
 			}
 		}
 		
 		if (strlen(yytext) == 0) {
 			zc_error("missing file name in $INCLUDE directive");
-		} else if (!(yyin = fopen(yytext, "r"))) {
+		} else if (!(input = fopen(yytext, "r"))) {
 			zc_error("cannot open include file '%s': %s",
 				 yytext, strerror(errno));
 		} else {
 			/* Initialize parser for include file.  */
 			char *filename = region_strdup(parser->region, yytext);
-			push_parser_state(yyin); /* Destroys yytext.  */
+			push_parser_state(input); /* Destroys yytext.  */
 			parser->filename = filename;
 			parser->line = 1;
 			parser->origin = origin;
@@ -240,14 +243,15 @@ ANY     [^\"\n]|\\.
 }
 
 	/* Quoted strings.  Strip leading and ending quotes.  */
-\"			{ BEGIN(quotedstring); }
+\"			{ BEGIN(quotedstring); LEXOUT(("\" ")); }
 <quotedstring><<EOF>> 	{
 	zc_error("EOF inside quoted string");
 	BEGIN(INITIAL);
 }
-<quotedstring>{ANY}*	{ yymore(); }
+<quotedstring>{ANY}*	{ LEXOUT(("STR ")); yymore(); }
 <quotedstring>\n 	{ ++parser->line; yymore(); }
 <quotedstring>\" {
+	LEXOUT(("\" "));
 	BEGIN(INITIAL);
 	yytext[yyleng - 1] = '\0';
 	return parse_token(STR, yytext, &lexer_state);

@@ -20,83 +20,78 @@
 
 #include "dns.h"
 #include "dname.h"
-#include "packet.h"
-
-inline int
-label_compare(const uint8_t *left, const uint8_t *right)
-{
-	int left_length;
-	int right_length;
-	int size;
-	int result;
-
-	assert(left);
-	assert(right);
-
-	assert(label_is_normal(left));
-	assert(label_is_normal(right));
-
-	left_length = label_length(left);
-	right_length = label_length(right);
-	size = left_length < right_length ? left_length : right_length;
-
-	result = memcmp(label_data(left), label_data(right), size);
-	if (result) {
-		return result;
-	} else {
-		return left_length - right_length;
-	}
-}
-
+#include "query.h"
 
 const dname_type *
-dname_make(region_type *region, const uint8_t *name)
+dname_make(region_type *region, const uint8_t *name, int normalize)
 {
-	size_t name_length;
-	uint8_t canonical_dname[MAXDOMAINLEN];
-	const uint8_t *label;
-	uint8_t *p;
+	size_t name_size = 0;
+	uint8_t label_offsets[MAXDOMAINLEN];
+	uint8_t label_count = 0;
+	const uint8_t *label = name;
 	dname_type *result;
-	size_t i;
-
+	ssize_t i;
+	
 	assert(name);
-
-	/* Generate canonical representation.  */
-	name_length = 1;	/* Always include root label. */
-	canonical_dname[MAXDOMAINLEN - 1] = 0; /* Terminating root label.  */
-	p = &canonical_dname[MAXDOMAINLEN - 1];
-	label = name;
-	for (label = name; !label_is_root(label); label = label_next(label)) {
-		size_t length;
-
+	
+	while (1) {
 		if (label_is_pointer(label))
 			return NULL;
+		
+		label_offsets[label_count] = (uint8_t) (label - name);
+		++label_count;
+		name_size += label_length(label) + 1;
 
-		length = label_length(label);
+		if (label_is_root(label))
+			break;
+		
+		label = label_next(label);
+	}
 
-		name_length += length + 1;
-		if (name_length > MAXDOMAINLEN)
-			return NULL;
+	if (name_size > MAXDOMAINLEN)
+		return NULL;
 
-		p -= length + 1;
-		p[0] = length;
-		for (i = 0; i < length; ++i) {
-			p[i + 1] = DNAME_NORMALIZE(label[i + 1]);
-		}
+	assert(label_count <= MAXDOMAINLEN / 2 + 1);
+
+	/* Reverse label offsets.  */
+	for (i = 0; i < label_count / 2; ++i) {
+		uint8_t tmp = label_offsets[i];
+		label_offsets[i] = label_offsets[label_count - i - 1];
+		label_offsets[label_count - i - 1] = tmp;
 	}
 
 	result = (dname_type *) region_alloc(
-		region,	sizeof(dname_type) + 2 * name_length);
-	result->_data[0] = name_length;
-	memcpy(&result->_data[1], p, name_length);
-	memcpy(&result->_data[1 + name_length], name, name_length);
+		region,
+		(sizeof(dname_type)
+		 + (label_count + name_size) * sizeof(uint8_t)));
+	result->name_size = name_size;
+	result->label_count = label_count;
+	memcpy((uint8_t *) dname_label_offsets(result),
+	       label_offsets,
+	       label_count * sizeof(uint8_t));
+	if (normalize) {
+		uint8_t *dst = (uint8_t *) dname_name(result);
+		const uint8_t *src = name;
+		while (!label_is_root(src)) {
+			ssize_t len = label_length(src);
+			*dst++ = *src++;
+			for (i = 0; i < len; ++i) {
+				*dst++ = DNAME_NORMALIZE(*src++);
+			}
+		}
+		*dst = *src;
+	} else {
+		memcpy((uint8_t *) dname_name(result),
+		       name,
+		       name_size * sizeof(uint8_t));
+	}
 	return result;
 }
 
 
 const dname_type *
 dname_make_from_packet(region_type *region, buffer_type *packet,
-		       int allow_pointers)
+		       int allow_pointers, int normalize)
 {
 	uint8_t buf[MAXDOMAINLEN + 1];
 	int done = 0;
@@ -104,9 +99,9 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 	size_t dname_length = 0;
 	const uint8_t *label;
 	ssize_t mark = -1;
-
+	
 	memset(visited, 0, (buffer_limit(packet)+7)/8);
-
+	
 	while (!done) {
 		if (!buffer_available(packet, 1)) {
 /* 			error("dname out of bounds"); */
@@ -162,7 +157,7 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 		buffer_set_position(packet, mark);
 	}
 
-	return dname_make(region, buf);
+	return dname_make(region, buf, normalize);
 }
 
 const dname_type *
@@ -179,14 +174,14 @@ dname_parse(region_type *region, const char *name)
 	if (strcmp(name, ".") == 0) {
 		/* Root domain.  */
 		dname[0] = 0;
-		return dname_make(region, dname);
+		return dname_make(region, dname, 1);
 	}
-
+	
 	for (h = d, p = h + 1; *s; ++s, ++p) {
 		if (p - dname >= MAXDOMAINLEN) {
 			return NULL;
 		}
-
+		
 		switch (*s) {
 		case '.':
 			if (p == h + 1) {
@@ -235,8 +230,8 @@ dname_parse(region_type *region, const char *name)
 
 	/* Add root label.  */
 	*h = 0;
-
-	return dname_make(region, dname);
+	
+	return dname_make(region, dname, 1);
 }
 
 
@@ -248,86 +243,45 @@ dname_copy(region_type *region, const dname_type *dname)
 }
 
 
-size_t
-dname_label_count(const dname_type *dname)
-{
-	const uint8_t *label;
-	size_t result;
-
-	assert(dname);
-
-	result = 1;
-	for (label = dname_canonical_name(dname);
-	     !label_is_root(label);
-	     label = label_next(label))
-	{
-		++result;
-	}
-
-	return result;
-}
-
-
 const dname_type *
-dname_partial_copy(region_type *region, const dname_type *dname, uint8_t count)
+dname_partial_copy(region_type *region, const dname_type *dname, uint8_t label_count)
 {
 	if (!dname)
 		return NULL;
 
-	if (count == 0) {
+	if (label_count == 0) {
 		/* Always copy the root label.  */
-		count = 1;
+		label_count = 1;
 	}
+	
+	assert(label_count <= dname->label_count);
 
-	assert(count <= dname_label_count(dname));
-
-	return dname_make(region, dname_label(dname, count - 1));
+	return dname_make(region, dname_label(dname, label_count - 1), 0);
 }
 
 
 const dname_type *
 dname_origin(region_type *region, const dname_type *dname)
 {
-	return dname_partial_copy(region, dname, dname_label_count(dname) - 1);
+	return dname_partial_copy(region, dname, dname->label_count - 1);
 }
 
 
 int
 dname_is_subdomain(const dname_type *left, const dname_type *right)
 {
-	const uint8_t *left_label = dname_canonical_name(left);
-	const uint8_t *right_label = dname_canonical_name(right);
+	uint8_t i;
+	
+	if (left->label_count < right->label_count)
+		return 0;
 
-	while (1) {
-		if (label_is_root(right_label)) {
-			return 1;
-		}
-
-		if (label_compare(left_label, right_label) != 0) {
+	for (i = 1; i < right->label_count; ++i) {
+		if (label_compare(dname_label(left, i),
+				  dname_label(right, i)) != 0)
 			return 0;
-		}
-
-		left_label = label_next(left_label);
-		right_label = label_next(right_label);
-	}
-}
-
-
-const uint8_t *
-dname_label(const dname_type *dname, size_t index)
-{
-	const uint8_t *result;
-	size_t label_count = dname_label_count(dname);
-
-	assert(index < label_count);
-
-	result = dname_name(dname);
-	while (label_count - 1 > index) {
-		result = label_next(result);
-		--label_count;
 	}
 
-	return result;
+	return 1;
 }
 
 
@@ -335,9 +289,9 @@ int
 dname_compare(const dname_type *left, const dname_type *right)
 {
 	int result;
-	const uint8_t *left_label;
-	const uint8_t *right_label;
-
+	uint8_t label_count;
+	uint8_t i;
+	
 	assert(left);
 	assert(right);
 
@@ -345,57 +299,68 @@ dname_compare(const dname_type *left, const dname_type *right)
 		return 0;
 	}
 
-	left_label = dname_canonical_name(left);
-	right_label = dname_canonical_name(right);
-	while (1) {
-		result = label_compare(left_label, right_label);
+	label_count = (left->label_count <= right->label_count
+		       ? left->label_count
+		       : right->label_count);
+
+	/* Skip the root label by starting at label 1.  */
+	for (i = 1; i < label_count; ++i) {
+		result = label_compare(dname_label(left, i),
+				       dname_label(right, i));
 		if (result) {
 			return result;
-		} else if (label_is_root(left_label)) {
-			assert(label_is_root(right_label));
-			return 0;
 		}
+	}
 
-		left_label = label_next(left_label);
-		right_label = label_next(right_label);
+	/* Dname with the fewest labels is "first".  */
+	return (int) left->label_count - (int) right->label_count;
+}
+
+
+int
+label_compare(const uint8_t *left, const uint8_t *right)
+{
+	int left_length;
+	int right_length;
+	size_t size;
+	int result;
+	
+	assert(left);
+	assert(right);
+
+	assert(label_is_normal(left));
+	assert(label_is_normal(right));
+	
+	left_length = label_length(left);
+	right_length = label_length(right);
+	size = left_length < right_length ? left_length : right_length;
+	
+	result = memcmp(label_data(left), label_data(right), size);
+	if (result) {
+		return result;
+	} else {
+		return (int) left_length - (int) right_length;
 	}
 }
 
-int
-dname_compare_void(const void *left, const void *right)
-{
-	return dname_compare((const dname_type *) left,
-			     (const dname_type *) right);
-}
 
 uint8_t
 dname_label_match_count(const dname_type *left, const dname_type *right)
 {
 	uint8_t i;
-	const uint8_t *left_label;
-	const uint8_t *right_label;
-
+	
 	assert(left);
 	assert(right);
 
-	left_label = dname_canonical_name(left);
-	right_label = dname_canonical_name(right);
-
-	i = 1;
-	while (1) {
-		if (label_compare(left_label, right_label) != 0) {
+	for (i = 1; i < left->label_count && i < right->label_count; ++i) {
+		if (label_compare(dname_label(left, i),
+				  dname_label(right, i)) != 0)
+		{
 			return i;
 		}
-
-		if (label_is_root(left_label)) {
-			assert(label_is_root(right_label));
-			return i;
-		}
-
-		++i;
-		left_label = label_next(left_label);
-		right_label = label_next(right_label);
 	}
+
+	return i;
 }
 
 const char *
@@ -403,23 +368,20 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 {
 	static char buf[MAXDOMAINLEN * 5];
 	size_t i;
-	size_t labels_to_convert = dname_label_count(dname);
-	int absolute;
+	size_t labels_to_convert = dname->label_count - 1;
+	int absolute = 1;
 	char *dst;
 	const uint8_t *src;
 
-	if (dname_is_root(dname) == 1) {
+	if (dname->label_count == 1) {
 		strcpy(buf, ".");
 		return buf;
 	}
-
+	
 	if (origin && dname_is_subdomain(dname, origin)) {
 		int common_labels = dname_label_match_count(dname, origin);
-		labels_to_convert = labels_to_convert - common_labels;
+		labels_to_convert = dname->label_count - common_labels;
 		absolute = 0;
-	} else {
-		--labels_to_convert;
-		absolute = 1;
 	}
 
 	dst = buf;
@@ -429,14 +391,14 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 		size_t j;
 		++src;
 		for (j = 0; j < len; ++j) {
-			char ch = (char) *src++;
+			uint8_t ch = *src++;
 			if (isalnum(ch) || ch == '-' || ch == '_') {
 				*dst++ = ch;
 			} else if (ch == '.' || ch == '\\') {
 				*dst++ = '\\';
 				*dst++ = ch;
 			} else {
-				snprintf(dst, 5, "\\%03u", (unsigned) ch);
+				snprintf(dst, 5, "\\%03u", ch);
 				dst += 4;
 			}
 		}
@@ -463,9 +425,9 @@ dname_make_from_label(region_type *region,
 	memcpy(temp + 1, label, length * sizeof(uint8_t));
 	temp[length + 1] = '\000';
 
-	return dname_make(region, temp);
+	return dname_make(region, temp, 1);
 }
-
+         
 
 const dname_type *
 dname_concatenate(region_type *region,
@@ -474,11 +436,10 @@ dname_concatenate(region_type *region,
 {
 	uint8_t temp[MAXDOMAINLEN];
 
-	assert(dname_length(left) + dname_length(right) - 1 <= MAXDOMAINLEN);
+	assert(left->name_size + right->name_size - 1 <= MAXDOMAINLEN);
+	
+	memcpy(temp, dname_name(left), left->name_size - 1);
+	memcpy(temp + left->name_size - 1, dname_name(right), right->name_size);
 
-	memcpy(temp, dname_name(left), dname_length(left) - 1);
-	memcpy(temp + dname_length(left) - 1, dname_name(right),
-	       dname_length(right));
-
-	return dname_make(region, temp);
+	return dname_make(region, temp, 0);
 }

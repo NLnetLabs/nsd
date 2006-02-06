@@ -30,7 +30,10 @@ keysdir="@configdir@/keys"
 notify="@sbindir@/nsd-notify"
 
 # Pathname of nsd-xfer binary
-namedxfer="@sbindir@/nsd-xfer"
+nsdxfer="@sbindir@/nsd-xfer"
+
+# Flags to nsd-xfer. To set the socket's source address, use: "-a hostname" or "-a ip"
+nsdxfer_flags=""
 
 # Verbosity of "nsdc update". Set ZONEC_VERBOSE to -v, -vv or to a
 # null string ZONEC_VERBOSE=-v

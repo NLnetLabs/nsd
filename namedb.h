@@ -15,9 +15,8 @@
 #include "dname.h"
 #include "dns.h"
 #include "heap.h"
-#include "options.h"
 
-#define	NAMEDB_MAGIC		"NSDdbV07"
+#define	NAMEDB_MAGIC		"NSDdbV06"
 #define	NAMEDB_MAGIC_SIZE	8
 
 typedef union rdata_atom rdata_atom_type;
@@ -48,37 +47,23 @@ struct domain
 	void       **plugin_data;
 #endif
 	uint32_t     number; /* Unique domain name number.  */
-
+	
 	/*
 	 * This domain name exists (see wildcard clarification draft).
 	 */
 	unsigned     is_existing : 1;
+	unsigned     is_apex : 1;
 };
 
 struct zone
 {
-	rbnode_t           node;
-	domain_table_type *domains;
-	domain_type       *apex;
-	rrset_type        *soa_rrset;
-	rrset_type        *ns_rrset;
-
-	/*
-	 * The closest ancestor zone stored in the database.
-	 */
-	zone_type         *closest_ancestor;
-
-	/*
-	 * The direct parent zone if stored in the database.
-	 */
-	zone_type         *parent;
-
-	/*
-	 * Configuration options for this zone (including ACLs).
-	 */
-	nsd_options_zone_type *options;
-
-	unsigned           is_secure : 1;
+	zone_type   *next;
+	domain_type *apex;
+	rrset_type  *soa_rrset;
+	rrset_type  *soa_nx_rrset; /* see bug #103 */
+	rrset_type  *ns_rrset;
+	uint32_t     number;
+	unsigned     is_secure : 1;
 };
 
 /* a RR in DNS */
@@ -92,11 +77,13 @@ struct rr {
 };
 
 /*
- * An RRset consists of at least one RR.
+ * An RRset consists of at least one RR.  All RRs are from the same
+ * zone.
  */
 struct rrset
 {
 	rrset_type *next;
+	zone_type  *zone;
 	rr_type    *rrs;
 	uint16_t    rr_count;
 };
@@ -132,7 +119,7 @@ int domain_table_search(domain_table_type *table,
  * The number of domains stored in the table (minimum is one for the
  * root domain).
  */
-static inline size_t
+static inline uint32_t
 domain_table_count(domain_table_type *table)
 {
 	return table->names_to_domains->count;
@@ -172,33 +159,18 @@ void domain_table_iterate(domain_table_type *table,
  */
 void domain_add_rrset(domain_type *domain, rrset_type *rrset);
 
-/*
- * Find a specific RRset for DOMAIN with the indicated TYPE.
- */
-rrset_type *domain_find_rrset(domain_type *domain, uint16_t type);
+rrset_type *domain_find_rrset(domain_type *domain, zone_type *zone, uint16_t type);
+rrset_type *domain_find_any_rrset(domain_type *domain, zone_type *zone);
 
-/*
- * Find the RRset of TYPE in DOMAIN or one of its ancestor domains.
- */
-domain_type *domain_find_enclosing_rrset(domain_type *domain,
-					 uint16_t type,
-					 rrset_type **rrset);
+zone_type *domain_find_zone(domain_type *domain);
+zone_type *domain_find_parent_zone(zone_type *zone);
 
-/*
- * True if DOMAIN is at or below a zone cut.
- */
-int domain_is_glue(domain_type *domain);
+domain_type *domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns);
 
-/*
- * Returns the wildcard child of DOMAIN or NULL if there is no such
- * domain.
- */
+int domain_is_glue(domain_type *domain, zone_type *zone);
+
 domain_type *domain_wildcard_child(domain_type *domain);
 
-/*
- * Returns true if ZONE is secure (there is an RRSIG RR for the zone's
- * SOA RRset).
- */
 int zone_is_secure(zone_type *zone);
 
 static inline const dname_type *
@@ -230,7 +202,8 @@ typedef struct namedb namedb_type;
 struct namedb
 {
 	region_type       *region;
-	heap_t            *zones;
+	domain_table_type *domains;
+	zone_type         *zones;
 	char              *filename;
 	FILE              *fd;
 };
@@ -257,38 +230,23 @@ rdata_atom_data(rdata_atom_type atom)
 
 
 /*
- * Find the zone for the specified domain name in DB.
+ * Find the zone for the specified DOMAIN in DB.
  */
-zone_type *namedb_find_zone(namedb_type *db, const dname_type *apex);
+zone_type *namedb_find_zone(namedb_type *db, domain_type *domain);
 
-/*
- * Find the zone authoritative for DNAME (not taking into account zone
- * cuts).
- */
-zone_type *namedb_find_authoritative_zone(namedb_type *db,
-					  const dname_type *dname);
-
-/*
- * Find or insert a zone in DB.
- */
-zone_type *namedb_insert_zone(namedb_type *db, const dname_type *apex);
-
-int zone_lookup (zone_type        *zone,
-		 const dname_type *dname,
-		 domain_type     **closest_match,
-		 domain_type     **closest_encloser);
 /* dbcreate.c */
-namedb_type *namedb_new(const char *filename);
-int namedb_save(namedb_type *db);
-void namedb_discard(namedb_type *db);
+struct namedb *namedb_new(const char *filename);
+int namedb_save(struct namedb *db);
+void namedb_discard(struct namedb *db);
 
 
 /* dbaccess.c */
-namedb_type *namedb_open(const char *filename);
-void namedb_close(namedb_type *db);
-void namedb_set_zone_options(namedb_type *db,
-			     size_t zone_count,
-			     nsd_options_zone_type **zones);
+int namedb_lookup (struct namedb    *db,
+		   const dname_type *dname,
+		   domain_type     **closest_match,
+		   domain_type     **closest_encloser);
+struct namedb *namedb_open(const char *filename);
+void namedb_close(struct namedb *db);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)
@@ -296,16 +254,17 @@ rdata_atom_is_domain(uint16_t type, size_t index)
 	const rrtype_descriptor_type *descriptor
 		= rrtype_descriptor_by_type(type);
 	return (index < descriptor->maximum
-		&& descriptor->rdata_kinds[index] == RDATA_KIND_DNAME);
+		&& (descriptor->wireformat[index] == RDATA_WF_COMPRESSED_DNAME
+		    || descriptor->wireformat[index] == RDATA_WF_UNCOMPRESSED_DNAME));
 }
 
-static inline rdata_kind_type
-rdata_atom_kind(uint16_t type, size_t index)
+static inline rdata_wireformat_type
+rdata_atom_wireformat_type(uint16_t type, size_t index)
 {
 	const rrtype_descriptor_type *descriptor
 		= rrtype_descriptor_by_type(type);
 	assert(index < descriptor->maximum);
-	return (rdata_kind_type) descriptor->rdata_kinds[index];
+	return (rdata_wireformat_type) descriptor->wireformat[index];
 }
 
 static inline uint16_t

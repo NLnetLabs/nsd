@@ -1,23 +1,15 @@
-$Id: TODO,v 1.47 2004/02/11 11:12:36 erik Exp $
+$Id$
 
 NOTE: Some of these are probably out of date.
 
-
 AUTOCONF
-
 + check whether the --with-nsd-user exists in the system
 
-
 ZONE COMPILER
-? memory allocation optimization is needed
-- error diagnostic has to be improved a lot
-- improve the strdname() routine
 + empty node should not cause NXDOMAIN
-- need to add unknown RR handling in grammar
 - unify dns type table (name, dns type, yacc token, rdata types)
 - unify dns class table (name, dns type, yacc token)
 - detect cname loops
-
 
 SERVER
 - in tcp the timeout should be handled different than with alarm()?
@@ -27,25 +19,14 @@ SERVER
 - query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
 - change default of --enable-ipv6 to yes.
 
-
 SECURITY
-
 
 PURITY
 - some data is in network order some in host order, make it clear with prefixes
 - brush up the fuction and identifiers names
 
-
-TESTS
-
-
-MISC
-
-
 CLEANUP
-- proper error/fatal/warning interfaces
-- separate parse for nsd.zones
-
++ proper error/fatal/warning interfaces
 
 DOCUMENTATION
 

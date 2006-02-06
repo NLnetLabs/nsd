@@ -50,8 +50,6 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 	uint16_t rdlength = 0;
 	size_t rdlength_pos;
 	uint16_t j;
-	rrtype_descriptor_type *descriptor
-		= rrtype_descriptor_by_type(rr->type);
 	
 	assert(q);
 	assert(owner);
@@ -73,19 +71,18 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 	buffer_skip(q->packet, sizeof(rdlength));
 
 	for (j = 0; j < rr->rdata_count; ++j) {
-		switch (rdata_atom_kind(rr->type, j)) {
-		case RDATA_KIND_DNAME:
-			if (descriptor->allow_compression) {
-				encode_dname(q,
-					     rdata_atom_domain(rr->rdatas[j]));
-			} else {
-				const dname_type *dname = domain_dname(
-					rdata_atom_domain(rr->rdatas[j]));
-				buffer_write(q->packet,
-					     dname_name(dname),
-					     dname_length(dname));
-			}
+		switch (rdata_atom_wireformat_type(rr->type, j)) {
+		case RDATA_WF_COMPRESSED_DNAME:
+			encode_dname(q, rdata_atom_domain(rr->rdatas[j]));
 			break;
+		case RDATA_WF_UNCOMPRESSED_DNAME:
+		{
+			const dname_type *dname = domain_dname(
+				rdata_atom_domain(rr->rdatas[j]));
+			buffer_write(q->packet,
+				     dname_name(dname), dname->name_size);
+			break;
+		}
 		default:
 			buffer_write(q->packet,
 				     rdata_atom_data(rr->rdatas[j]),
@@ -134,9 +131,9 @@ packet_encode_rrset(query_type *query,
 
 	if (all_added &&
 	    query->edns.dnssec_ok &&
-	    zone_is_secure(query->zone) &&
+	    zone_is_secure(rrset->zone) &&
 	    rrset_rrtype(rrset) != TYPE_RRSIG &&
-	    (rrsig = domain_find_rrset(owner, TYPE_RRSIG)))
+	    (rrsig = domain_find_rrset(owner, rrset->zone, TYPE_RRSIG)))
 	{
 		for (i = 0; i < rrsig->rr_count; ++i) {
 			if (rr_rrsig_type_covered(&rrsig->rrs[i])
@@ -223,7 +220,7 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	rdata_atom_type *rdatas;
 	rr_type *result = (rr_type *) region_alloc(region, sizeof(rr_type));
 	
-	owner = dname_make_from_packet(region, packet, 1);
+	owner = dname_make_from_packet(region, packet, 1, 1);
 	if (!owner || !buffer_available(packet, 2*sizeof(uint16_t))) {
 		return NULL;
 	}

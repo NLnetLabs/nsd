@@ -23,60 +23,160 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include "client.h"
-#include "options.h"
-#include "packet.h"
 #include "query.h"
-
-static void
-usage (void)
-{
-	fprintf(stderr, "usage: nsd-notify [-h] [-c config-file] -z zone\n");
-	fprintf(stderr, "NSD notify utility\n\nSupported options:\n");
-	fprintf(stderr, "  -c config-file  Specify the configuration file.\n");
-	fprintf(stderr, "  -z zone         The zone.\n");
-	fprintf(stderr, "  -h              Print this help information.\n");
-	fprintf(stderr, "\nReport bugs to <%s>.\n", PACKAGE_BUGREPORT);
-
-	exit(EXIT_FAILURE);
-}
 
 extern char *optarg;
 extern int optind;
 
-int
-main(int argc, char *argv[])
+static void 
+usage (void)
+{
+	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-p port] "
+		"-z zone servers\n");
+	exit(1);
+}
+
+static const char* rcode2string(int rc)
+{
+	switch(rc)
+	{
+	case RCODE_OK: 		return "No error";
+	case RCODE_FORMAT: 	return "Format error";
+	case RCODE_SERVFAIL: 	return "Server failure";
+	case RCODE_NXDOMAIN: 	return "Name Error";
+	case RCODE_IMPL: 	return "Not implemented";
+	case RCODE_REFUSE: 	return "Refused";
+	case RCODE_NOTAUTH: 	return "Not authorized";
+	default: 		return "unknown error";	
+	}
+	return "Impossible return value";
+}
+
+/*
+	Send NOTIFY messages to the host, as in struct q, 
+	waiting for ack packet (received in buffer answer).
+	Will retry transmission after a timeout.
+	addrstr is the string describing the address of the host.
+*/
+static void notify_host(int udp_s, struct query* q, struct query *answer,
+	struct addrinfo* res, const char* addrstr)
+{
+	int timeout_retry = 5; /* seconds */
+	fd_set rfds;
+	struct timeval tv;
+	int retval = 0;
+	ssize_t received = 0;
+	int got_ack = 0;
+
+	while(!got_ack)
+	{
+		/* WE ARE READY SEND IT OUT */
+		if (sendto(udp_s,
+		   	buffer_current(q->packet),
+		   	buffer_remaining(q->packet), 0,
+		   	res->ai_addr, res->ai_addrlen) == -1)
+		{
+			fprintf(stderr,
+				"send to %s failed: %s\n", addrstr,
+				strerror(errno));
+			close(udp_s);
+			return;
+		}
+
+		/* wait for ACK packet */
+		FD_ZERO(&rfds);
+		FD_SET(udp_s, &rfds);
+		tv.tv_sec = timeout_retry; /* seconds */
+		tv.tv_usec = 0; /* microseconds */
+		retval = select(udp_s+1, &rfds, NULL, NULL, &tv);
+		if(retval == -1)
+		{
+			fprintf(stderr, "Error waiting for reply from %s: %s\n",
+				addrstr, strerror(errno));
+			close(udp_s);
+			return;
+		}
+		if(retval == 0)
+		{
+			fprintf(stderr, 
+				"Timeout (%d s) expired, retry notify to %s.\n",
+				timeout_retry, addrstr);
+		}
+		if(retval == 1) got_ack = 1;
+	}
+
+	/* receive reply */
+	received = recvfrom(udp_s,
+		buffer_begin(answer->packet),
+		buffer_remaining(answer->packet),
+		0,
+		res->ai_addr, &res->ai_addrlen);
+	if(received == -1)
+	{
+		fprintf(stderr, "recv %s failed: %s\n",
+			addrstr, strerror(errno));
+	} else {
+		/* check the answer */
+		if((ID(q->packet) == ID(answer->packet)) &&
+			(OPCODE(answer->packet) == OPCODE_NOTIFY) &&
+			AA(answer->packet) && 
+			QR(answer->packet) &&
+			(RCODE(answer->packet) == RCODE_OK)
+			) 
+		{
+			fprintf(stderr, "%s acknowledges notify.\n", addrstr);
+		} else {
+			fprintf(stderr, 
+				"Bad reply from %s, return code: %s(%d).\n", 
+				addrstr, rcode2string(RCODE(answer->packet)), 
+				RCODE(answer->packet));
+		}
+	}
+			
+	close(udp_s);
+}
+
+int 
+main (int argc, char *argv[])
 {
 	int c, udp_s;
-	query_type q;
-	const dname_type *zone_name = NULL;
+	struct query q;
+	struct query answer;
+	const dname_type *zone = NULL;
 	struct addrinfo hints, *res0, *res;
-	int gai_error;
+	int error;
+	int default_family = DEFAULT_AI_FAMILY;
+	const char *port = UDP_PORT;
 	region_type *region = region_create(xalloc, free);
-	const char *options_file = CONFIGFILE;
-	nsd_options_type *options;
-	nsd_options_zone_type *zone_info;
-	size_t i, j;
-
+	
 	log_init("nsd-notify");
-
+	
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:hz:")) != -1) {
+	while ((c = getopt(argc, argv, "46p:z:")) != -1) {
 		switch (c) {
-		case 'c':
-			options_file = optarg;
+		case '4':
+			default_family = AF_INET;
+			break;
+		case '6':
+#ifdef INET6
+			default_family = AF_INET6;
+			break;
+#else /* !INET6 */
+			log_msg(LOG_ERR, "IPv6 support not enabled\n");
+			exit(1);
+#endif /* !INET6 */
+		case 'p':
+			port = optarg;
 			break;
 		case 'z':
-			zone_name = dname_parse(region, optarg);
-			if (!zone_name) {
+			zone = dname_parse(region, optarg);
+			if (!zone) {
 				log_msg(LOG_ERR,
 					"incorrect domain name '%s'",
 					optarg);
 				exit(1);
 			}
 			break;
-		case 'h':
-		case '?':
 		default:
 			usage();
 		}
@@ -84,25 +184,11 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 0 || zone_name == NULL) {
+	if (argc == 0 || zone == NULL)
 		usage();
-	}
-
-	options = nsd_load_config(region, options_file);
-	if (!options) {
-		error(EXIT_FAILURE, "failed to load configuration file '%s'",
-		      options_file);
-	}
-
-	zone_info = nsd_options_find_zone(options, zone_name);
-	if (!zone_info) {
-		error(EXIT_FAILURE,
-		      "zone '%s' not found in the configuration file",
-		      dname_to_string(zone_name, NULL));
-	}
 
 	/* Initialize the query */
-	memset(&q, 0, sizeof(query_type));
+	memset(&q, 0, sizeof(struct query));
 	q.addrlen = sizeof(q.addr);
 	q.maxlen = 512;
 	q.packet = buffer_create(region, QIOBUFSZ);
@@ -114,66 +200,46 @@ main(int argc, char *argv[])
 	AA_SET(q.packet);
 	QDCOUNT_SET(q.packet, 1);
 	buffer_skip(q.packet, QHEADERSZ);
-	buffer_write(q.packet,
-		     dname_name(zone_info->name),
-		     dname_length(zone_info->name));
+	buffer_write(q.packet, dname_name(zone), zone->name_size);
 	buffer_write_u16(q.packet, TYPE_SOA);
 	buffer_write_u16(q.packet, CLASS_IN);
 	buffer_flip(q.packet);
 
-	for (i = 0; i < zone_info->notify_count; ++i) {
-		for (j = 0; j < zone_info->notify[i]->addresses->count; ++j) {
-			nsd_options_address_type *address
-				= zone_info->notify[i]->addresses->addresses[j];
+	/* initialize buffer for ack */
+	memset(&answer, 0, sizeof(struct query));
+	answer.addrlen = sizeof(answer.addr);
+	answer.maxlen = 512;
+	answer.packet = buffer_create(region, QIOBUFSZ);
+	memset(buffer_begin(answer.packet), 0, buffer_remaining(answer.packet));
 
-			/* Set up UDP */
-			memset(&hints, 0, sizeof(hints));
-			hints.ai_family = address->family;
-			hints.ai_socktype = SOCK_DGRAM;
-			hints.ai_protocol = IPPROTO_UDP;
-			gai_error = getaddrinfo(
-				address->address,
-				address->port ? address->port : DEFAULT_DNS_PORT,
-				&hints,
-				&res0);
-			if (gai_error) {
-				fprintf(stderr, "skipping bad address %s: %s\n",
-					address->address, gai_strerror(gai_error));
-				continue;
-			}
-
-			for (res = res0; res; res = res->ai_next) {
-				if (res->ai_addrlen > sizeof(q.addr))
-					continue;
-
-				udp_s = socket(res->ai_family, res->ai_socktype,
-					       res->ai_protocol);
-				if (udp_s == -1)
-					continue;
-
-				memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
-
-				fprintf(stderr, "notifying %s (%s)\n",
-					address->address,
-					sockaddr_to_string(res->ai_addr,
-							   res->ai_addrlen));
-
-				/* WE ARE READY SEND IT OUT */
-				if (sendto(udp_s,
-					   buffer_current(q.packet),
-					   buffer_remaining(q.packet), 0,
-					   res->ai_addr, res->ai_addrlen) == -1)
-				{
-					fprintf(stderr,
-						"send to %s failed: %s\n", *argv,
-						strerror(errno));
-				}
-
-				close(udp_s);
-			}
-
-			freeaddrinfo(res0);
+	for (/*empty*/; *argv; argv++) {
+		/* Set up UDP */
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = default_family;
+		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_protocol = IPPROTO_UDP;
+		error = getaddrinfo(*argv, port, &hints, &res0);
+		if (error) {
+			fprintf(stderr, "skipping bad address %s: %s\n", *argv,
+			    gai_strerror(error));
+			continue;
 		}
+
+		for (res = res0; res; res = res->ai_next) {
+			if (res->ai_addrlen > sizeof(q.addr))
+				continue;
+
+			udp_s = socket(res->ai_family, res->ai_socktype,
+				       res->ai_protocol);
+			if (udp_s == -1)
+				continue;
+
+			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
+
+			notify_host(udp_s, &q, &answer, res, *argv);
+		}
+
+		freeaddrinfo(res0);
 	}
 
 	exit(0);

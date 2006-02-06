@@ -20,38 +20,6 @@
 #include "namedb.h"
 
 
-int
-zone_lookup(zone_type        *zone,
-	    const dname_type *dname,
-	    domain_type     **closest_match,
-	    domain_type     **closest_encloser)
-{
-	return domain_table_search(
-		zone->domains, dname, closest_match, closest_encloser);
-}
-
-zone_type *
-namedb_insert_zone(namedb_type *db, const dname_type *apex)
-{
-	zone_type *zone = namedb_find_zone(db, apex);
-	if (!zone) {
-		zone = (zone_type *) region_alloc(db->region,
-						  sizeof(zone_type));
-		memset(&zone->node, 0, sizeof(zone->node));
-		zone->domains = domain_table_create(db->region);
-		zone->apex = domain_table_insert(zone->domains, apex);
-		zone->soa_rrset = NULL;
-		zone->ns_rrset = NULL;
-		zone->closest_ancestor = NULL;
-		zone->parent = NULL;
-		zone->options = NULL;
-		zone->is_secure = 0;
-		zone->node.key = domain_dname(zone->apex);
-		heap_insert(db->zones, (rbnode_t *) zone);
-	}
-	return zone;
-}
-
 static domain_type *
 allocate_domain_info(domain_table_type *table,
 		     const dname_type *dname,
@@ -62,13 +30,11 @@ allocate_domain_info(domain_table_type *table,
 	assert(table);
 	assert(dname);
 	assert(parent);
-
+	
 	result = (domain_type *) region_alloc(table->region,
 					      sizeof(domain_type));
 	result->node.key = dname_partial_copy(
-		table->region,
-		dname,
-		dname_label_count(domain_dname(parent)) + 1);
+		table->region, dname, domain_dname(parent)->label_count + 1);
 	result->parent = parent;
 	result->wildcard_child_closest_match = result;
 	result->rrsets = NULL;
@@ -77,6 +43,7 @@ allocate_domain_info(domain_table_type *table,
 	result->plugin_data = NULL;
 #endif
 	result->is_existing = 0;
+	result->is_apex = 0;
 
 	return result;
 }
@@ -89,8 +56,8 @@ domain_table_create(region_type *region)
 	domain_type *root;
 
 	assert(region);
-
-	origin = dname_make(region, (uint8_t *) "");
+	
+	origin = dname_make(region, (uint8_t *) "", 0);
 
 	root = (domain_type *) region_alloc(region, sizeof(domain_type));
 	root->node.key = origin;
@@ -102,11 +69,12 @@ domain_table_create(region_type *region)
 	root->plugin_data = NULL;
 #endif
 	root->is_existing = 0;
-
+	
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));
 	result->region = region;
-	result->names_to_domains = heap_create(region, dname_compare_void);
+	result->names_to_domains = heap_create(
+		region, (int (*)(const void *, const void *)) dname_compare);
 	heap_insert(result->names_to_domains, (rbnode_t *) root);
 
 	result->root = root;
@@ -116,41 +84,34 @@ domain_table_create(region_type *region)
 
 int
 domain_table_search(domain_table_type *table,
-		    const dname_type   *dname,
-		    domain_type       **closest_match,
-		    domain_type       **closest_encloser)
+		   const dname_type   *dname,
+		   domain_type       **closest_match,
+		   domain_type       **closest_encloser)
 {
 	int exact;
 	uint8_t label_match_count;
-
+	
 	assert(table);
 	assert(dname);
 	assert(closest_match);
 	assert(closest_encloser);
 
-	exact = rbtree_find_less_equal(table->names_to_domains,
-				       dname,
-				       (rbnode_t **) closest_match);
+	exact = rbtree_find_less_equal(table->names_to_domains, dname, (rbnode_t **) closest_match);
 	assert(*closest_match);
 
 	*closest_encloser = *closest_match;
-
+	
 	if (!exact) {
-		size_t label_count
-			= dname_label_count(domain_dname(*closest_encloser));
-
 		label_match_count = dname_label_match_count(
 			domain_dname(*closest_encloser),
 			dname);
-		while (label_match_count < label_count) {
-			--label_count;
+		assert(label_match_count < dname->label_count);
+		while (label_match_count < domain_dname(*closest_encloser)->label_count) {
 			(*closest_encloser) = (*closest_encloser)->parent;
 			assert(*closest_encloser);
-			assert(label_count == dname_label_count(
-				       domain_dname(*closest_encloser)));
 		}
 	}
-
+	
 	return exact;
 }
 
@@ -179,15 +140,14 @@ domain_table_insert(domain_table_type *table,
 
 	assert(table);
 	assert(dname);
-
+	
 	exact = domain_table_search(
 		table, dname, &closest_match, &closest_encloser);
 	if (exact) {
 		result = closest_encloser;
 	} else {
-		assert(dname_label_count(domain_dname(closest_encloser))
-		       < dname_label_count(dname));
-
+		assert(domain_dname(closest_encloser)->label_count < dname->label_count);
+	
 		/* Insert new node(s).  */
 		do {
 			result = allocate_domain_info(table,
@@ -212,8 +172,7 @@ domain_table_insert(domain_table_type *table,
 					= result;
 			}
 			closest_encloser = result;
-		} while (dname_label_count(domain_dname(closest_encloser))
-			 < dname_label_count(dname));
+		} while (domain_dname(closest_encloser)->label_count < dname->label_count);
 	}
 
 	return result;
@@ -248,12 +207,12 @@ domain_add_rrset(domain_type *domain, rrset_type *rrset)
 
 
 rrset_type *
-domain_find_rrset(domain_type *domain, uint16_t type)
+domain_find_rrset(domain_type *domain, zone_type *zone, uint16_t type)
 {
 	rrset_type *result = domain->rrsets;
 
 	while (result) {
-		if (rrset_rrtype(result) == type) {
+		if (result->zone == zone && rrset_rrtype(result) == type) {
 			return result;
 		}
 		result = result->next;
@@ -261,36 +220,78 @@ domain_find_rrset(domain_type *domain, uint16_t type)
 	return NULL;
 }
 
-domain_type *
-domain_find_enclosing_rrset(domain_type *domain,
-			    uint16_t type,
-			    rrset_type **rrset)
+rrset_type *
+domain_find_any_rrset(domain_type *domain, zone_type *zone)
 {
+	rrset_type *result = domain->rrsets;
+
+	while (result) {
+		if (result->zone == zone) {
+			return result;
+		}
+		result = result->next;
+	}
+	return NULL;
+}
+
+zone_type *
+domain_find_zone(domain_type *domain)
+{
+	rrset_type *rrset;
 	while (domain) {
-		*rrset = domain_find_rrset(domain, type);
-		if (*rrset)
+		for (rrset = domain->rrsets; rrset; rrset = rrset->next) {
+			if (rrset_rrtype(rrset) == TYPE_SOA) {
+				return rrset->zone;
+			}
+		}
+		domain = domain->parent;
+	}
+	return NULL;
+}
+
+zone_type *
+domain_find_parent_zone(zone_type *zone)
+{
+	rrset_type *rrset;
+
+	assert(zone);
+
+	for (rrset = zone->apex->rrsets; rrset; rrset = rrset->next) {
+		if (rrset->zone != zone && rrset_rrtype(rrset) == TYPE_NS) {
+			return rrset->zone;
+		}
+	}
+	return NULL;
+}
+
+domain_type *
+domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns)
+{
+	while (domain && domain != zone->apex) {
+		*ns = domain_find_rrset(domain, zone, TYPE_NS);
+		if (*ns)
 			return domain;
 		domain = domain->parent;
 	}
 
-	*rrset = NULL;
+	*ns = NULL;
 	return NULL;
 }
 
 int
-domain_is_glue(domain_type *domain)
+domain_is_glue(domain_type *domain, zone_type *zone)
 {
 	rrset_type *unused;
-	domain_type *ns_domain
-		= domain_find_enclosing_rrset(domain, TYPE_NS, &unused);
-	return ns_domain && !domain_find_rrset(ns_domain, TYPE_SOA);
+	domain_type *ns_domain = domain_find_ns_rrsets(domain, zone, &unused);
+	return (ns_domain != NULL &&
+		domain_find_rrset(ns_domain, zone, TYPE_SOA) == NULL);
 }
 
 domain_type *
 domain_wildcard_child(domain_type *domain)
 {
 	domain_type *wildcard_child;
-
+	
 	assert(domain);
 	assert(domain->wildcard_child_closest_match);
 
@@ -307,6 +308,7 @@ domain_wildcard_child(domain_type *domain)
 int
 zone_is_secure(zone_type *zone)
 {
+	assert(zone);
 	return zone->is_secure;
 }
 
@@ -316,28 +318,19 @@ rr_rrsig_type_covered(rr_type *rr)
 	assert(rr->type == TYPE_RRSIG);
 	assert(rr->rdata_count > 0);
 	assert(rdata_atom_size(rr->rdatas[0]) == sizeof(uint16_t));
-
+	
 	return ntohs(* (uint16_t *) rdata_atom_data(rr->rdatas[0]));
 }
 
 zone_type *
-namedb_find_zone(namedb_type *db, const dname_type *apex)
+namedb_find_zone(namedb_type *db, domain_type *domain)
 {
-	return (zone_type *) heap_search(db->zones, apex);
-}
+	zone_type *zone;
 
-zone_type *
-namedb_find_authoritative_zone(namedb_type *db, const dname_type *dname)
-{
-	rbnode_t *node;
+	for (zone = db->zones; zone; zone = zone->next) {
+		if (zone->apex == domain)
+			break;
+	}
 
-	rbtree_find_less_equal(db->zones, dname, &node);
-	while (node && !dname_is_subdomain(dname, node->key)) {
-		node = (rbnode_t * ) ((zone_type *) node)->closest_ancestor;
-	}
-	if (node) {
-		return (zone_type *) node;
-	} else {
-		return NULL;
-	}
+	return zone;
 }

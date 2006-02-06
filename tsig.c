@@ -44,11 +44,11 @@ tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 	uint16_t signed_time_fudge = htons(tsig->signed_time_fudge);
 	uint16_t error_code = htons(tsig->error_code);
 	uint16_t other_size = htons(tsig->other_size);
-
+	
 	if (!tsig_timers_only) {
 		tsig->algorithm->hmac_update(tsig->context,
 					     dname_name(tsig->key_name),
-					     dname_length(tsig->key_name));
+					     tsig->key_name->name_size);
 		tsig->algorithm->hmac_update(tsig->context,
 					     &klass,
 					     sizeof(klass));
@@ -57,7 +57,7 @@ tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 					     sizeof(ttl));
 		tsig->algorithm->hmac_update(tsig->context,
 					     dname_name(tsig->algorithm_name),
-					     dname_length(tsig->algorithm_name));
+					     tsig->algorithm_name->name_size);
 	}
 	tsig->algorithm->hmac_update(tsig->context,
 				     &signed_time_high,
@@ -91,7 +91,7 @@ tsig_init(region_type *region)
 #if defined(TSIG) && defined(HAVE_SSL)
 	tsig_openssl_init(region);
 #endif
-
+	
 	return 1;
 }
 
@@ -105,63 +105,6 @@ tsig_add_key(tsig_key_type *key)
 	tsig_key_table = entry;
 }
 
-int
-tsig_load_keys(nsd_options_type *options)
-{
-	size_t i;
-
-	for (i = 0; i < options->key_count; ++i) {
-		nsd_options_key_type *key_option;
-		tsig_key_type *key;
-		size_t secret_size;
-		int size;
-		uint8_t *data;
-
-		key_option = options->keys[i];
-		if (!key_option)
-			continue;
-
-		key = region_alloc(tsig_region, sizeof(tsig_key_type));
-		key->name = dname_copy(tsig_region, key_option->name);
-
-		secret_size = strlen(key_option->secret);
-		data = region_alloc(tsig_region, secret_size);
-		size = b64_pton(key_option->secret, data, secret_size);
-		if (size == -1) {
-			log_msg(LOG_ERR,
-				"bad key secret '%s'", key_option->secret);
-			return 0;
-		}
-		key->data = data;
-		key->size = size;
-
-		tsig_add_key(key);
-
-		log_msg(LOG_INFO, "key '%s' added",
-			dname_to_string(key->name, NULL));
-	}
-
-	return 1;
-}
-
-tsig_key_type *
-tsig_get_key_by_name(const dname_type *name)
-{
-	tsig_key_table_type *entry;
-
-	for (entry = tsig_key_table;
-	     entry;
-	     entry = entry->next)
-	{
-		if (dname_compare(name, entry->key->name) == 0) {
-			return entry->key;
-		}
-	}
-
-	return NULL;
-}
-
-
 void
 tsig_add_algorithm(tsig_algorithm_type *algorithm)
 {
@@ -173,11 +116,14 @@ tsig_add_algorithm(tsig_algorithm_type *algorithm)
 	tsig_algorithm_table = entry;
 }
 
+/*
+ * Find an HMAC algorithm based on its short name.
+ */
 tsig_algorithm_type *
 tsig_get_algorithm_by_name(const char *name)
 {
 	tsig_algorithm_table_type *algorithm_entry;
-
+	
 	for (algorithm_entry = tsig_algorithm_table;
 	     algorithm_entry;
 	     algorithm_entry = algorithm_entry->next)
@@ -187,7 +133,7 @@ tsig_get_algorithm_by_name(const char *name)
 			return algorithm_entry->algorithm;
 		}
 	}
-
+	
 	return NULL;
 }
 
@@ -240,7 +186,9 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->key = key;
 	tsig->prior_mac_size = 0;
 	tsig->prior_mac_data = NULL;
-	tsig->rr_region = NULL;	/* Lazily initialized.  */
+	/* XXX: allocate rr_region lazily instead! */
+	tsig->rr_region = region_create(xalloc, free);
+	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
 }
 
 int
@@ -252,10 +200,11 @@ tsig_from_query(tsig_record_type *tsig)
 	tsig_algorithm_type *algorithm = NULL;
 	uint64_t current_time;
 	uint64_t signed_time;
-
+	
 	assert(tsig->status == TSIG_OK);
-	assert(tsig->rr_region);
-
+	assert(!tsig->algorithm);
+	assert(!tsig->key);
+	
 	/* XXX: Todo */
 	for (key_entry = tsig_key_table;
 	     key_entry;
@@ -266,7 +215,7 @@ tsig_from_query(tsig_record_type *tsig)
 			break;
 		}
 	}
-
+	
 	for (algorithm_entry = tsig_algorithm_table;
 	     algorithm_entry;
 	     algorithm_entry = algorithm_entry->next)
@@ -286,21 +235,6 @@ tsig_from_query(tsig_record_type *tsig)
 		return 0;
 	}
 
-	if ((tsig->algorithm && algorithm != tsig->algorithm)
-	    || (tsig->key && key != tsig->key))
-	{
-		/*
-		 * TODO: Is this correct? The other option would be to
-		 * change signing context etc.
-		 */
-		/*
-		 * Algorithm or key changed during a single connection,
-		 *return error.
-		 */
-		tsig->error_code = TSIG_ERROR_BADKEY;
-		return 0;
-	}
-
 	signed_time = ((((uint64_t) tsig->signed_time_high) << 32) |
 		       ((uint64_t) tsig->signed_time_low));
 
@@ -308,12 +242,10 @@ tsig_from_query(tsig_record_type *tsig)
 	if ((current_time < signed_time - tsig->signed_time_fudge)
 	    || (current_time > signed_time + tsig->signed_time_fudge))
 	{
-		uint16_t current_time_high;
-		uint32_t current_time_low;
-
-#if 0				/* XXX */
 		char current_time_text[26];
 		char signed_time_text[26];
+		uint16_t current_time_high;
+		uint32_t current_time_low;
 		time_t clock;
 
 		clock = (time_t) current_time;
@@ -324,6 +256,7 @@ tsig_from_query(tsig_record_type *tsig)
 		ctime_r(&clock, signed_time_text);
 		signed_time_text[24] = '\0';
 
+#if 0				/* XXX */
 		log_msg(LOG_ERR,
 			"current server time %s is outside the range of TSIG"
 			" signed time %s with fudge %u",
@@ -342,12 +275,12 @@ tsig_from_query(tsig_record_type *tsig)
 		write_uint32(tsig->other_data + 2, current_time_low);
 		return 0;
 	}
-
+	
 	tsig->algorithm = algorithm;
 	tsig->key = key;
 	tsig->response_count = 0;
 	tsig->prior_mac_size = 0;
-
+	
 	return 1;
 }
 
@@ -357,7 +290,7 @@ tsig_init_query(tsig_record_type *tsig, uint16_t original_query_id)
 	assert(tsig);
 	assert(tsig->algorithm);
 	assert(tsig->key);
-
+	
 	tsig->response_count = 0;
 	tsig->prior_mac_size = 0;
 	tsig->algorithm_name = tsig->algorithm->wireformat_name;
@@ -386,10 +319,10 @@ tsig_prepare(tsig_record_type *tsig)
 
 	if (tsig->prior_mac_size > 0) {
 		uint16_t mac_size = htons(tsig->prior_mac_size);
-		tsig->algorithm->hmac_update(tsig->context,
+		tsig->algorithm->hmac_update(tsig->context, 
 					     &mac_size,
 					     sizeof(mac_size));
-		tsig->algorithm->hmac_update(tsig->context,
+		tsig->algorithm->hmac_update(tsig->context, 
 					     tsig->prior_mac_data,
 					     tsig->prior_mac_size);
 	}
@@ -403,12 +336,12 @@ tsig_update(tsig_record_type *tsig, buffer_type *packet, size_t length)
 	uint16_t original_query_id = htons(tsig->original_query_id);
 
 	assert(length <= buffer_limit(packet));
-
-	tsig->algorithm->hmac_update(tsig->context,
+	
+	tsig->algorithm->hmac_update(tsig->context, 
 				     &original_query_id,
 				     sizeof(original_query_id));
 	tsig->algorithm->hmac_update(
-		tsig->context,
+		tsig->context, 
 		buffer_at(packet, sizeof(original_query_id)),
 		length - sizeof(original_query_id));
 	if (QR(packet)) {
@@ -440,12 +373,12 @@ int
 tsig_verify(tsig_record_type *tsig)
 {
 	tsig_digest_variables(tsig, tsig->response_count > 1);
-
+	
 	tsig->algorithm->hmac_final(tsig->context,
 				    tsig->prior_mac_data,
 				    &tsig->prior_mac_size);
 
-	if (tsig->mac_size != tsig->prior_mac_size
+	if (tsig->mac_size != tsig->prior_mac_size 
 	    || memcmp(tsig->mac_data,
 		      tsig->prior_mac_data,
 		      tsig->mac_size) != 0)
@@ -473,7 +406,7 @@ tsig_find_rr(tsig_record_type *tsig, buffer_type *packet)
 		tsig->status = TSIG_NOT_PRESENT;
 		return 1;
 	}
-
+			  
 	buffer_set_position(packet, QHEADERSZ);
 
 	/* TSIG must be the last record, so skip all others.  */
@@ -503,14 +436,9 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->algorithm_name = NULL;
 	tsig->mac_data = NULL;
 	tsig->other_data = NULL;
-	if (tsig->rr_region) {
-		region_free_all(tsig->rr_region);
-	} else {
-		tsig->rr_region = region_create(xalloc, free);
-		region_add_cleanup(tsig->region, tsig_cleanup, tsig);
-	}
-
-	tsig->key_name = dname_make_from_packet(tsig->rr_region, packet, 1);
+	region_free_all(tsig->rr_region);
+	
+	tsig->key_name = dname_make_from_packet(tsig->rr_region, packet, 1, 1);
 	if (!tsig->key_name) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
@@ -527,7 +455,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 		buffer_set_position(packet, tsig->position);
 		return 1;
 	}
-
+	
 	ttl = buffer_read_u32(packet);
 	rdlen = buffer_read_u16(packet);
 
@@ -538,7 +466,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	}
 
 	tsig->algorithm_name = dname_make_from_packet(
-		tsig->rr_region, packet, 1);
+		tsig->rr_region, packet, 1, 1);
 	if (!tsig->algorithm_name || !buffer_available(packet, 10)) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
@@ -581,14 +509,14 @@ tsig_append_rr(tsig_record_type *tsig, buffer_type *packet)
 
 	/* XXX: key name compression? */
 	buffer_write(packet, dname_name(tsig->key_name),
-		     dname_length(tsig->key_name));
+		     tsig->key_name->name_size);
 	buffer_write_u16(packet, TYPE_TSIG);
 	buffer_write_u16(packet, CLASS_ANY);
 	buffer_write_u32(packet, 0); /* TTL */
 	rdlength_pos = buffer_position(packet);
 	buffer_skip(packet, sizeof(uint16_t));
 	buffer_write(packet, dname_name(tsig->algorithm_name),
-		     dname_length(tsig->algorithm_name));
+		     tsig->algorithm_name->name_size);
 	buffer_write_u16(packet, tsig->signed_time_high);
 	buffer_write_u32(packet, tsig->signed_time_low);
 	buffer_write_u16(packet, tsig->signed_time_fudge);
@@ -610,19 +538,19 @@ tsig_reserved_space(tsig_record_type *tsig)
 	if (tsig->status == TSIG_NOT_PRESENT)
 		return 0;
 
-	return (dname_length(tsig->key_name) /* Owner */
-		+ sizeof(uint16_t)	     /* Type */
-		+ sizeof(uint16_t)	     /* Class */
-		+ sizeof(uint32_t)	     /* TTL */
-		+ sizeof(uint16_t)	     /* RDATA length */
-		+ dname_length(tsig->algorithm_name)
-		+ sizeof(uint16_t)	     /* Signed time (high) */
-		+ sizeof(uint32_t)	     /* Signed time (low) */
-		+ sizeof(uint16_t)	     /* Signed time fudge */
-		+ sizeof(uint16_t)	     /* MAC size */
+	return (tsig->key_name->name_size   /* Owner */
+		+ sizeof(uint16_t)	    /* Type */
+		+ sizeof(uint16_t)	    /* Class */
+		+ sizeof(uint32_t)	    /* TTL */
+		+ sizeof(uint16_t)	    /* RDATA length */
+		+ tsig->algorithm_name->name_size
+		+ sizeof(uint16_t)	    /* Signed time (high) */
+		+ sizeof(uint32_t)	    /* Signed time (low) */
+		+ sizeof(uint16_t)	    /* Signed time fudge */
+		+ sizeof(uint16_t)	    /* MAC size */
 		+ tsig->algorithm->maximum_digest_size /* MAC data */
-		+ sizeof(uint16_t)	     /* Original query ID */
-		+ sizeof(uint16_t)	     /* Error code */
-		+ sizeof(uint16_t)	     /* Other size */
-		+ tsig->other_size);	     /* Other data */
+		+ sizeof(uint16_t)	    /* Original query ID */
+		+ sizeof(uint16_t)	    /* Error code */
+		+ sizeof(uint16_t)	    /* Other size */
+		+ tsig->other_size);	    /* Other data */
 }
