@@ -138,7 +138,7 @@ int
 writepid (struct nsd *nsd)
 {
 	FILE * fd;
-	char pidbuf[16];
+	char pidbuf[32];
 
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
