@@ -12,3 +12,4 @@
      this makes 64 bit numbers fit in the buffer.
    * Wouter: Socket connection between parent and child nsds added.
      But sighandler now in worse shape. Need to close them. Remove kills.
+   * Wouter: close the parent and child command channel sockets in shutdown().

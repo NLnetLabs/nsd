@@ -417,8 +417,26 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
 static void
 server_shutdown(struct nsd *nsd)
 {
+	int i;
+
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
+	/* CHILD: close command channel to parent */
+	if(nsd->this_child && nsd->this_child->parent_fd > 0)
+	{
+		close(nsd->this_child->parent_fd);
+		nsd->this_child->parent_fd = -1;
+	}
+	/* SERVER: close command channels to children */
+	if(!nsd->this_child)
+	{
+		for(i=0; i<nsd->child_count; ++i)
+			if(nsd->children[i].child_fd > 0)
+			{
+				close(nsd->children[i].child_fd);
+				nsd->children[i].child_fd = -1;
+			}
+	}
 
 	exit(0);
 }
