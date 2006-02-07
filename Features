@@ -1,0 +1,9 @@
+New in NSD3.0
+
+o name compression explicit in rdata enum, see dns.h
+o struct typedef'd as bla -> DROP
+o XML config              -> DROP
+o TSIG sorta acl support 
+o iets met zones
+o socket communication
+o nsdc.c as C or SH       -> ?

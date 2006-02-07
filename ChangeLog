@@ -1,7 +1,10 @@
-08 Feb 2006: xxx
+08 Feb 2006: nsd-team
    * ??
 
-07 Feb 2006: Miek
-   * configure.ac version to 3.0.0
+07 Feb 2006: nsd-team 
+   * Miek: configure.ac version to 3.0.0
+   * Miek: looked at: buffer.{ch}, answer.{ch}, dns.{ch}
+     those files don't have any changes, except for dns.{ch} for the
+     explicit compression.
    * Wouter: Changed buffer in write_pid from 16 bytes to 32 bytes, 
 		this makes 64 bit numbers fit in the buffer.
