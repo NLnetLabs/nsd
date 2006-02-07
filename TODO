@@ -2,33 +2,36 @@ $Id$
 
 NOTE: Some of these are probably out of date.
 
+GENERAL
+- Check old todo items in this list .
+
 AUTOCONF
-+ check whether the --with-nsd-user exists in the system
+(old)+ check whether the --with-nsd-user exists in the system
 
 ZONE COMPILER
-+ empty node should not cause NXDOMAIN
-- unify dns type table (name, dns type, yacc token, rdata types)
-- unify dns class table (name, dns type, yacc token)
-- detect cname loops
+(old)+ empty node should not cause NXDOMAIN
+(old)- unify dns type table (name, dns type, yacc token, rdata types)
+(old)- unify dns class table (name, dns type, yacc token)
+(old)- detect cname loops
 
 SERVER
-- in tcp the timeout should be handled different than with alarm()?
-- replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
-- make sure that we dont copy anything from the query we dont want to copy, like
-  funny headers etc
-- query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
-- change default of --enable-ipv6 to yes.
+(old)- in tcp the timeout should be handled different than with alarm()?
+(old)- replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
+(old)- make sure that we dont copy anything from the query we dont want to copy, like
+  (old)funny headers etc
+(old)- query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
+(old)- change default of --enable-ipv6 to yes.
+- check if close_all_sockets in server.c also needs to close the parent/child sockets.
 
 SECURITY
 
 PURITY
-- some data is in network order some in host order, make it clear with prefixes
-- brush up the fuction and identifiers names
+(old)- some data is in network order some in host order, make it clear with prefixes
+(old)- brush up the fuction and identifiers names
 
 CLEANUP
-+ proper error/fatal/warning interfaces
+(old)+ proper error/fatal/warning interfaces
 
 DOCUMENTATION
-
-- convert the manual pages into -man macros set for better compatibility?
-- update DESIGN document
+(old)- convert the manual pages into -man macros set for better compatibility?
+(old)- update DESIGN document
