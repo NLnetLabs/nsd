@@ -15,6 +15,7 @@
 #include "dns.h"
 #include "namedb.h"
 #include "packet.h"
+#include "query.h"
 
 /*
  * Structure used to keep track of RRsets that need to be stored in
@@ -29,7 +30,7 @@ struct answer {
 };
 
 
-void encode_answer(struct query *q, const answer_type *answer);
+void encode_answer(query_type *q, const answer_type *answer);
 
 
 void answer_init(answer_type *answer);
