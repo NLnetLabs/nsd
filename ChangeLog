@@ -7,4 +7,6 @@
      those files don't have any changes, except for dns.{ch} for the
      explicit compression.
    * Wouter: Changed buffer in write_pid from 16 bytes to 32 bytes, 
-		this makes 64 bit numbers fit in the buffer.
+     this makes 64 bit numbers fit in the buffer.
+   * Wouter: Socket connection between parent and child nsds added.
+     But sighandler now in worse shape. Need to close them. Remove kills.

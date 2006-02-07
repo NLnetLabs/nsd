@@ -64,6 +64,18 @@ struct nsd_child
 
 	/* The child's process id.  */
 	pid_t pid;
+
+	/*
+	 * Socket used by the parent process to send commands and
+	 * receive responses to/from this child process.
+	 */
+	int child_fd;
+
+	/*
+	 * Socket used by the child process to receive commands and
+	 * send responses from/to the parent process.
+	 */
+	int parent_fd;
 };
 
 /* NSD configuration and run-time variables */
@@ -84,6 +96,9 @@ struct	nsd
 
 	size_t            child_count;
 	struct nsd_child *children;
+
+	/* NULL if this is the parent process.  */
+	struct nsd_child *this_child;
 	
 	/* Configuration */
 	const char	*dbfile;

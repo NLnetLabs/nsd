@@ -167,6 +167,7 @@ void
 sig_handler (int sig)
 {
 	size_t i;
+	sig_atomic_t child_command = NSD_RUN;
 	/* To avoid race cond. We really don't want to use log_msg() in this handler */
 	
 	/* Are we a child server? */
@@ -205,35 +206,45 @@ sig_handler (int sig)
 #ifdef BIND8_STATS
 		alarm(nsd.st.period);
 #endif
-		sig = SIGUSR1;
+		child_command = NSD_STATS;
 		break;
 	case SIGILL:
 		/*
 		 * For backwards compatibility with BIND 8 and older
 		 * versions of NSD.
 		 */
-		sig = SIGUSR1;
+		child_command = NSD_STATS;
 		break;
 	case SIGUSR1:
 		/* Dump statistics.  */
+		child_command = NSD_STATS;
 		break;
 	case SIGINT:
 		/* Silent shutdown... */
 		nsd.mode = NSD_QUIT;
+		child_command = NSD_QUIT;
 		break;
 	case SIGTERM:
 	default:
 		nsd.mode = NSD_SHUTDOWN;
 		/* log_msg(LOG_WARNING, "signal %d received, shutting down...", sig); */
-		sig = SIGTERM;
+		child_command = NSD_QUIT;
 		break;
 	}
 
-	/* Distribute the signal to the servers... */
-	for (i = 0; i < nsd.child_count; ++i) {
-		if (nsd.children[i].pid > 0 && kill(nsd.children[i].pid, sig) == -1) {
-			log_msg(LOG_ERR, "problems killing %d: %s",
-				(int) nsd.children[i].pid, strerror(errno));
+	/* Send the command to the child servers if necessary.  */
+	if (child_command != NSD_RUN) {
+		for (i = 0; i < nsd.child_count; ++i) {
+			if (nsd.children[i].pid > 0) {
+				if (write(nsd.children[i].child_fd,
+					  &child_command,
+					  sizeof(child_command)) == -1)
+				{
+					log_msg(LOG_ERR, "problems sending command to child %d: %s",
+						(int) nsd.children[i].pid,
+						strerror(errno));
+				}
+			}
 		}
 	}
 }
@@ -546,7 +557,12 @@ main (int argc, char *argv[])
 		nsd.region, nsd.child_count * sizeof(struct nsd_child));
 	for (i = 0; i < nsd.child_count; ++i) {
 		nsd.children[i].kind = NSD_SERVER_BOTH;
+		nsd.children[i].pid = -1;
+		nsd.children[i].child_fd = -1;
+		nsd.children[i].parent_fd = -1;
 	}
+
+	nsd.this_child = NULL;
 	
 	/* We need at least one active interface */
 	if (nsd.ifs == 0) {

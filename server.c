@@ -152,6 +152,13 @@ static void handle_tcp_writing(netio_type *netio,
 			       netio_event_types_type event_types);
 
 /*
+ * Handle a command received from the parent process.
+ */
+static void handle_parent_command(netio_type *netio,
+				  netio_handler_type *handler,
+				  netio_event_types_type event_types);
+
+/*
  * Change the event types the HANDLERS are interested in to
  * EVENT_TYPES.
  */
@@ -186,16 +193,31 @@ static int
 restart_child_servers(struct nsd *nsd)
 {
 	size_t i;
+	int sv[2];
 
 	/* Fork the child processes... */
 	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid <= 0) {
+			if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
+				log_msg(LOG_ERR, "socketpair: %s",
+					strerror(errno));
+				return -1;
+			}
+			nsd->children[i].child_fd = sv[0];
+			nsd->children[i].parent_fd = sv[1];
 			nsd->children[i].pid = fork();
 			switch (nsd->children[i].pid) {
+			default: /* SERVER MAIN */
+				close(nsd->children[i].parent_fd);
+				nsd->children[i].parent_fd = -1;
+				break;
 			case 0: /* CHILD */
 				nsd->pid = 0;
 				nsd->child_count = 0;
 				nsd->server_kind = nsd->children[i].kind;
+				nsd->this_child = &nsd->children[i];
+				close(nsd->this_child->child_fd);
+				nsd->this_child->child_fd = -1;
 				server_child(nsd);
 				/* NOTREACH */
 				exit(0);
@@ -604,6 +626,19 @@ server_child(struct nsd *nsd)
 		close_all_sockets(nsd->udp, nsd->ifs);
 	}
 	
+	if (nsd->this_child && nsd->this_child->parent_fd != -1) {
+		netio_handler_type *handler;
+
+		handler = (netio_handler_type *) region_alloc(
+			server_region, sizeof(netio_handler_type));
+		handler->fd = nsd->this_child->parent_fd;
+		handler->timeout = NULL;
+		handler->user_data = nsd;
+		handler->event_types = NETIO_EVENT_READ;
+		handler->event_handler = handle_parent_command;
+		netio_add_handler(netio, handler);
+	}
+
 	if (nsd->server_kind & NSD_SERVER_UDP) {
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
@@ -1178,6 +1213,34 @@ handle_tcp_accept(netio_type *netio,
 		configure_handler_event_types(data->tcp_accept_handler_count,
 					      data->tcp_accept_handlers,
 					      NETIO_EVENT_NONE);
+	}
+}
+
+static void
+handle_parent_command(netio_type *netio,
+		      netio_handler_type *handler,
+		      netio_event_types_type event_types)
+{
+	sig_atomic_t mode;
+	nsd_type *nsd = (nsd_type *) handler->user_data;
+	if (!(event_types & NETIO_EVENT_READ)) {
+		return;
+	}
+
+	if (read(handler->fd, &mode, sizeof(mode)) == -1) {
+		log_msg(LOG_ERR, "handle_parent_command: read: %s",
+			strerror(errno));
+		return;
+	}
+
+	switch (mode) {
+	case NSD_STATS: case NSD_QUIT:
+		nsd->mode = mode;
+		break;
+	default:
+		log_msg(LOG_ERR, "handle_parent_command: bad mode %d",
+			(int) mode);
+		break;
 	}
 }
 
