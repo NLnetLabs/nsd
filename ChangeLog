@@ -2,4 +2,6 @@
    * ??
 
 07 Feb 2006: Miek
-   * conigure.ac version to 3.0.0
+   * configure.ac version to 3.0.0
+   * Wouter: Changed buffer in write_pid from 16 bytes to 32 bytes, 
+		this makes 64 bit numbers fit in the buffer.
