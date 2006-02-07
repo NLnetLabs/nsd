@@ -1,7 +1,7 @@
 /*
  * heap.h -- generic heap
  *
- * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
