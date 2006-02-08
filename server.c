@@ -164,6 +164,13 @@ static void handle_parent_command(netio_type *netio,
 static void send_children_command(struct nsd* nsd, sig_atomic_t command);
 
 /*
+ * Handle a command received from the children processes.
+ */
+static void handle_child_command(netio_type *netio,
+				  netio_handler_type *handler,
+				  netio_event_types_type event_types);
+
+/*
  * Change the event types the HANDLERS are interested in to
  * EVENT_TYPES.
  */
@@ -185,6 +192,9 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
 	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid == pid) {
 			nsd->children[i].pid = 0;
+			if(nsd->children[i].child_fd > 0) close(nsd->children[i].child_fd);
+			nsd->children[i].child_fd = -1;
+			if(nsd->children[i].handler) nsd->children[i].handler->fd = -1;
 			return 1;
 		}
 	}
@@ -195,7 +205,7 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
  * Restart child servers if necessary.
  */
 static int
-restart_child_servers(struct nsd *nsd)
+restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio)
 {
 	size_t i;
 	int sv[2];
@@ -217,6 +227,19 @@ restart_child_servers(struct nsd *nsd)
 			default: /* SERVER MAIN */
 				close(nsd->children[i].parent_fd);
 				nsd->children[i].parent_fd = -1;
+				if(!nsd->children[i].handler)
+				{
+					nsd->children[i].handler = (struct netio_handler*) region_alloc(
+						region, sizeof(struct netio_handler));
+					nsd->children[i].handler->fd = nsd->children[i].child_fd;
+					nsd->children[i].handler->timeout = NULL;
+					nsd->children[i].handler->user_data = nsd;
+					nsd->children[i].handler->event_types = NETIO_EVENT_READ;
+					nsd->children[i].handler->event_handler = handle_child_command;
+					netio_add_handler(netio, nsd->children[i].handler);
+				}
+				/* restart - update fd */
+				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;
 			case 0: /* CHILD */
 				nsd->pid = 0;
@@ -390,7 +413,7 @@ server_init(struct nsd *nsd)
  * Fork the required number of servers.
  */
 static int
-server_start_children(struct nsd *nsd)
+server_start_children(struct nsd *nsd, region_type* region, netio_type* netio)
 {
 	size_t i;
 
@@ -399,7 +422,7 @@ server_start_children(struct nsd *nsd)
 		nsd->children[i].pid = 0;
 	}
 
-	return restart_child_servers(nsd);
+	return restart_child_servers(nsd, region, netio);
 }
 
 static void
@@ -455,6 +478,9 @@ server_shutdown(struct nsd *nsd)
 void
 server_main(struct nsd *nsd)
 {
+        region_type *server_region = region_create(xalloc, free);
+	netio_type *netio = netio_create(server_region);
+	struct timespec timeout_spec;
 	int fd;
 	int status;
 	pid_t child_pid;
@@ -464,7 +490,7 @@ server_main(struct nsd *nsd)
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
-	if (server_start_children(nsd) != 0) {
+	if (server_start_children(nsd, server_region, netio) != 0) {
 		kill(nsd->pid, SIGTERM);
 		exit(1);
 	}
@@ -473,20 +499,26 @@ server_main(struct nsd *nsd)
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
 		switch (mode) {
 		case NSD_RUN:
-			child_pid = waitpid(0, &status, 0);
-		
-			if (child_pid == -1) {
-				if (errno == EINTR) {
-					continue;
+			/* timeout to collect processes. In case no sigchild happens. */
+			timeout_spec.tv_sec = 60; 
+			timeout_spec.tv_nsec = 0;
+			timespec_add(&timeout_spec, netio_current_time(netio));
+
+			/* listen on ports, timeout for collecting terminated children */
+			if(netio_dispatch(netio, &timeout_spec, 0) == -1) {
+				if (errno != EINTR) {
+					log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
 				}
-				log_msg(LOG_WARNING, "wait failed: %s", strerror(errno));
-			} else {
+			}
+
+			/* see if any child processes terminated */
+			while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
 				int is_child = delete_child_pid(nsd, child_pid);
 				if (is_child) {
 					log_msg(LOG_WARNING,
 					       "server %d died unexpectedly with status %d, restarting",
 					       (int) child_pid, status);
-					restart_child_servers(nsd);
+					restart_child_servers(nsd, server_region, netio);
 				} else if (child_pid == reload_pid) {
 					log_msg(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
@@ -497,6 +529,12 @@ server_main(struct nsd *nsd)
 					       "Unknown child %d terminated with status %d",
 					       (int) child_pid, status);
 				}
+			}
+			if (child_pid == -1) {
+				if (errno == EINTR) {
+					continue;
+				}
+				log_msg(LOG_WARNING, "wait failed: %s", strerror(errno));
 			}
 			break;
 		case NSD_RELOAD:
@@ -543,7 +581,7 @@ server_main(struct nsd *nsd)
 				alarm(nsd->st.period);
 #endif
 
-				if (server_start_children(nsd) != 0) {
+				if (server_start_children(nsd, server_region, netio) != 0) {
 					kill(nsd->pid, SIGTERM);
 					exit(1);
 				}
@@ -569,6 +607,7 @@ server_main(struct nsd *nsd)
 		case NSD_QUIT: 
 			/* silent shutdown during reload */
 			send_children_command(nsd, NSD_QUIT);
+			region_destroy(server_region);
 			server_shutdown(nsd);
 			/* ENOTREACH */
 			break;
@@ -612,6 +651,7 @@ server_main(struct nsd *nsd)
 	/* Unlink it if possible... */
 	unlink(nsd->pidfile);
 
+	region_destroy(server_region);
 	server_shutdown(nsd);
 }
 
@@ -761,7 +801,7 @@ server_child(struct nsd *nsd)
 				    &parent_notify, 
 				    sizeof(parent_notify)) == -1)
 				{
-					log_msg(LOG_ERR, "problems sending command from child %d to parent: %s",
+					log_msg(LOG_ERR, "problems sending command from %d to parent: %s",
 					(int) nsd->this_child->pid,
 					strerror(errno));
 				}
@@ -1283,7 +1323,7 @@ handle_parent_command(netio_type *netio,
 		      netio_event_types_type event_types)
 {
 	sig_atomic_t mode;
-	size_t len;
+	int len;
 	nsd_type *nsd = (nsd_type *) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
@@ -1297,7 +1337,6 @@ handle_parent_command(netio_type *netio,
 	if (len == 0)
 	{
 		/* parent closed the connection. Quit */
-		log_msg(LOG_ERR, "parent cmd channel closed: quit");
 		nsd->mode = NSD_QUIT;
 		return;
 	}
@@ -1320,17 +1359,61 @@ send_children_command(struct nsd* nsd, sig_atomic_t command)
 	size_t i;
 	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
 	for (i = 0; i < nsd->child_count; ++i) {
-		if (nsd->children[i].pid > 0) {
+		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd > 0) {
 			if (write(nsd->children[i].child_fd,
 				&command,
 				sizeof(command)) == -1)
 			{
-				log_msg(LOG_ERR, "problems sending command %d to child %d: %s",
+				log_msg(LOG_ERR, "problems sending command %d to server %d: %s",
 					(int) command,
 					(int) nsd->children[i].pid,
 					strerror(errno));
 			}
 		}
+	}
+}
+
+static void
+handle_child_command(netio_type *netio,
+		      netio_handler_type *handler,
+		      netio_event_types_type event_types)
+{
+	sig_atomic_t mode;
+	int len;
+	nsd_type *nsd = (nsd_type *) handler->user_data;
+	if (!(event_types & NETIO_EVENT_READ)) {
+		return;
+	}
+
+	if ((len = read(handler->fd, &mode, sizeof(mode))) == -1) {
+		log_msg(LOG_ERR, "handle_child_command: read: %s",
+			strerror(errno));
+		return;
+	}
+	if (len == 0)
+	{
+		int i;
+		if(handler->fd > 0) close(handler->fd);
+		for(i=0; i<nsd->child_count; ++i)
+			if(nsd->children[i].child_fd == handler->fd) {
+				nsd->children[i].child_fd = -1;
+				log_msg(LOG_ERR, "server %d closed cmd channel",
+					(int) nsd->children[i].pid);
+			}
+		handler->fd = -1;
+		return;
+	}
+
+	switch (mode) {
+	case NSD_STATS: 
+	case NSD_QUIT:
+	case NSD_REAP_CHILDREN:
+		nsd->mode = mode;
+		break;
+	default:
+		log_msg(LOG_ERR, "handle_child_command: bad mode %d",
+			(int) mode);
+		break;
 	}
 }
 

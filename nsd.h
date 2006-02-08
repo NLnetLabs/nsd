@@ -14,6 +14,7 @@
 
 #include "dns.h"
 #include "edns.h"
+struct netio_handler;
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
@@ -77,6 +78,11 @@ struct nsd_child
 	 * send responses from/to the parent process.
 	 */
 	int parent_fd;
+
+	/*
+	 * The handler for handling the commands from the child.
+	 */
+	struct netio_handler* handler;
 };
 
 /* NSD configuration and run-time variables */

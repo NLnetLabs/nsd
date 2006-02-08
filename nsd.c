@@ -193,6 +193,7 @@ sig_handler (int sig)
 
 	switch (sig) {
 	case SIGCHLD:
+		nsd.mode = NSD_REAP_CHILDREN;
 		return;
 	case SIGHUP:
 		nsd.mode = NSD_RELOAD;
@@ -533,6 +534,7 @@ main (int argc, char *argv[])
 		nsd.children[i].pid = -1;
 		nsd.children[i].child_fd = -1;
 		nsd.children[i].parent_fd = -1;
+		nsd.children[i].handler = NULL;
 	}
 
 	nsd.this_child = NULL;
