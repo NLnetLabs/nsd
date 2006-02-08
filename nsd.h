@@ -19,7 +19,8 @@
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
 #define	NSD_STATS 3
-#define	NSD_QUIT 4
+#define NSD_REAP_CHILDREN 4
+#define	NSD_QUIT 5
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U

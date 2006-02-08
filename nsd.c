@@ -166,17 +166,13 @@ writepid (struct nsd *nsd)
 void 
 sig_handler (int sig)
 {
-	size_t i;
-	sig_atomic_t child_command = NSD_RUN;
 	/* To avoid race cond. We really don't want to use log_msg() in this handler */
 	
 	/* Are we a child server? */
 	if (nsd.server_kind != NSD_SERVER_MAIN) {
 		switch (sig) {
 		case SIGCHLD:
-			/* Plugins may fork, reap all terminated children.  */
-			while (waitpid(0, NULL, WNOHANG) > 0)
-				;
+			nsd.mode = NSD_REAP_CHILDREN;
 			break;
 		case SIGALRM:
 			break;
@@ -199,53 +195,30 @@ sig_handler (int sig)
 	case SIGCHLD:
 		return;
 	case SIGHUP:
-		/* log_msg(LOG_WARNING, "signal %d received, reloading...", sig); */
 		nsd.mode = NSD_RELOAD;
 		return;
 	case SIGALRM:
-#ifdef BIND8_STATS
-		alarm(nsd.st.period);
-#endif
-		child_command = NSD_STATS;
+		nsd.mode = NSD_STATS;
 		break;
 	case SIGILL:
 		/*
 		 * For backwards compatibility with BIND 8 and older
 		 * versions of NSD.
 		 */
-		child_command = NSD_STATS;
+		nsd.mode = NSD_STATS;
 		break;
 	case SIGUSR1:
 		/* Dump statistics.  */
-		child_command = NSD_STATS;
+		nsd.mode = NSD_STATS;
 		break;
 	case SIGINT:
 		/* Silent shutdown... */
 		nsd.mode = NSD_QUIT;
-		child_command = NSD_QUIT;
 		break;
 	case SIGTERM:
 	default:
 		nsd.mode = NSD_SHUTDOWN;
-		/* log_msg(LOG_WARNING, "signal %d received, shutting down...", sig); */
-		child_command = NSD_QUIT;
 		break;
-	}
-
-	/* Send the command to the child servers if necessary.  */
-	if (child_command != NSD_RUN) {
-		for (i = 0; i < nsd.child_count; ++i) {
-			if (nsd.children[i].pid > 0) {
-				if (write(nsd.children[i].child_fd,
-					  &child_command,
-					  sizeof(child_command)) == -1)
-				{
-					log_msg(LOG_ERR, "problems sending command to child %d: %s",
-						(int) nsd.children[i].pid,
-						strerror(errno));
-				}
-			}
-		}
 	}
 }
 

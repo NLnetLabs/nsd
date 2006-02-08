@@ -159,6 +159,11 @@ static void handle_parent_command(netio_type *netio,
 				  netio_event_types_type event_types);
 
 /*
+ * Send all children the command.
+ */
+static void send_children_command(struct nsd* nsd, sig_atomic_t command);
+
+/*
  * Change the event types the HANDLERS are interested in to
  * EVENT_TYPES.
  */
@@ -198,6 +203,8 @@ restart_child_servers(struct nsd *nsd)
 	/* Fork the child processes... */
 	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid <= 0) {
+			if (nsd->children[i].child_fd > 0)
+				close(nsd->children[i].child_fd);
 			if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
 				log_msg(LOG_ERR, "socketpair: %s",
 					strerror(errno));
@@ -461,6 +468,7 @@ server_main(struct nsd *nsd)
 		kill(nsd->pid, SIGTERM);
 		exit(1);
 	}
+	assert(nsd->this_child == 0);
 
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
 		switch (mode) {
@@ -558,11 +566,31 @@ server_main(struct nsd *nsd)
 				break;
 			}
 			break;
-		case NSD_QUIT:
+		case NSD_QUIT: 
+			/* silent shutdown during reload */
+			send_children_command(nsd, NSD_QUIT);
 			server_shutdown(nsd);
+			/* ENOTREACH */
 			break;
 		case NSD_SHUTDOWN:
+			send_children_command(nsd, NSD_QUIT);
 			log_msg(LOG_WARNING, "signal received, shutting down...");
+			break;
+		case NSD_REAP_CHILDREN:
+			/* continue; wait for child in run loop */
+			nsd->mode = NSD_RUN;
+			break;
+		case NSD_STATS:
+#ifdef BIND8_STATS
+			{
+				/* restart timer if =0, or not running */
+				unsigned int old_timeout = alarm(nsd->st.period);
+				if(old_timeout > 0 && old_timeout <= nsd->st.period)
+					alarm(old_timeout);
+			}
+			send_children_command(nsd, NSD_STATS);
+#endif
+			nsd->mode = NSD_RUN;
 			break;
 		default:
 			log_msg(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);
@@ -723,6 +751,21 @@ server_child(struct nsd *nsd)
 			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
 #endif /* BIND8_STATS */
 
+			nsd->mode = NSD_RUN;
+		}
+		else if (mode == NSD_REAP_CHILDREN) {
+			/* got signal, notify parent. parent reaps terminated children. */
+			if (nsd->this_child->parent_fd > 0) {
+				sig_atomic_t parent_notify = NSD_REAP_CHILDREN;
+				if (write(nsd->this_child->parent_fd,
+				    &parent_notify, 
+				    sizeof(parent_notify)) == -1)
+				{
+					log_msg(LOG_ERR, "problems sending command from child %d to parent: %s",
+					(int) nsd->this_child->pid,
+					strerror(errno));
+				}
+			} else while (waitpid(0, NULL, WNOHANG) > 0) /* no parent, so reap 'em */;
 			nsd->mode = NSD_RUN;
 		}
 
@@ -1252,13 +1295,34 @@ handle_parent_command(netio_type *netio,
 	}
 
 	switch (mode) {
-	case NSD_STATS: case NSD_QUIT:
+	case NSD_STATS: 
+	case NSD_QUIT:
 		nsd->mode = mode;
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_parent_command: bad mode %d",
 			(int) mode);
 		break;
+	}
+}
+
+static void 
+send_children_command(struct nsd* nsd, sig_atomic_t command)
+{
+	size_t i;
+	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
+	for (i = 0; i < nsd->child_count; ++i) {
+		if (nsd->children[i].pid > 0) {
+			if (write(nsd->children[i].child_fd,
+				&command,
+				sizeof(command)) == -1)
+			{
+				log_msg(LOG_ERR, "problems sending command %d to child %d: %s",
+					(int) command,
+					(int) nsd->children[i].pid,
+					strerror(errno));
+			}
+		}
 	}
 }
 
