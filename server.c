@@ -1283,14 +1283,22 @@ handle_parent_command(netio_type *netio,
 		      netio_event_types_type event_types)
 {
 	sig_atomic_t mode;
+	size_t len;
 	nsd_type *nsd = (nsd_type *) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
 
-	if (read(handler->fd, &mode, sizeof(mode)) == -1) {
+	if ((len = read(handler->fd, &mode, sizeof(mode))) == -1) {
 		log_msg(LOG_ERR, "handle_parent_command: read: %s",
 			strerror(errno));
+		return;
+	}
+	if (len == 0)
+	{
+		/* parent closed the connection. Quit */
+		log_msg(LOG_ERR, "parent cmd channel closed: quit");
+		nsd->mode = NSD_QUIT;
 		return;
 	}
 

@@ -5,6 +5,8 @@
 	No more calls to alarm(), waitpid(), write(), log_msg().
 	Instead the work is done in the runloop in server.c and sent by socket.
 	Also the parent now waits for children. Parent restarts them.
+   * Wouter: Fixup, the children will quit if the parent closes the command
+	socket. If parent is killed, they will exit too.
 
 07 Feb 2006: nsd-team 
    * Miek: configure.ac version to 3.0.0
