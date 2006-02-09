@@ -10,13 +10,23 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 
 #include <sys/time.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <syslog.h>
 #include <time.h>
+
+#ifdef HAVE_SYSLOG_H
+#  include <syslog.h>
+#else
+#  define LOG_ERR 3
+#  define LOG_WARNING 4
+#  define LOG_NOTICE 5
+#  define LOG_INFO 6
+#endif
 
 #define ALIGN_UP(n, alignment)  \
 	(((n) + (alignment) - 1) & (~((alignment) - 1)))

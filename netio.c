@@ -6,7 +6,6 @@
  * See LICENSE for the license.
  *
  */
-
 #include <config.h>
 
 #include <assert.h>
@@ -22,6 +21,8 @@
 #ifndef HAVE_PSELECT
 int pselect(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	    const struct timespec *timeout, const sigset_t *sigmask);
+#else
+#include <sys/select.h>
 #endif
 
 

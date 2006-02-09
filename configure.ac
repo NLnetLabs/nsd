@@ -308,6 +308,35 @@ AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
 
+AC_DEFUN([AC_CHECK_PSELECT_PROVIDED],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(if sys/select.h provides pselect)
+AC_CACHE_VAL(ac_cv_c_pselect_provided,
+[ac_cv_c_pselect_provided=no
+AC_TRY_COMPILE(
+[#include <sys/select.h>
+], [
+	fd_set r;
+	struct timespec t;
+	sigset_t s;
+	int n=1;
+	int num;
+	FD_ZERO(&r);
+	FD_SET(0, &r);
+   	num = pselect(n, &r, NULL, NULL, &t, &s);
+],
+[ac_cv_c_pselect_provided="yes"],
+[ac_cv_c_pselect_provided="no"])
+])
+
+AC_MSG_RESULT($ac_cv_c_pselect_provided)
+if test $ac_cv_c_pselect_provided = yes; then
+  AC_DEFINE(PSELECT_PROVIDED, 1, [if sys/select.h provides pselect])
+fi
+])dnl
+AC_CHECK_PSELECT_PROVIDED
+
+
 dnl dnl Check for libwrap.  Note that libwrap requires 
 dnl yp_get_default_domain on Linux but that normally the required nsl 
 dnl library isn't linked in (and no error occurs when dynamically linking)
@@ -428,6 +457,7 @@ esac
 AC_ARG_ENABLE(checking, AC_HELP_STRING([--enable-checking], [Enable internal runtime checks]))
 case "$enable_checking" in
         yes)
+      		CFLAGS="$CFLAGS -Wall -Wextra"
 		;;
         no|*)
                 AC_DEFINE([NDEBUG], [], [Undefine this to enable internal runtime checks.])
@@ -458,6 +488,21 @@ case "$enable_mmap" in
         no|*)
                 ;;
 esac
+
+AH_BOTTOM([
+/* define before includes as it specifies what standard to use */
+#if defined(HAVE_PSELECT) && !defined (PSELECT_PROVIDED)
+#  ifndef _XOPEN_SOURCE
+#    define _XOPEN_SOURCE 600
+#  endif
+#  ifndef _POSIX_C_SOURCE
+#    define _POSIX_C_SOURCE 200112
+#  endif
+#  ifndef _BSD_SOURCE
+#    define _BSD_SOURCE 1
+#  endif
+#endif
+])
 
 AH_BOTTOM([
 #include <sys/types.h>

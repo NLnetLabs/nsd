@@ -398,7 +398,7 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 				*dst++ = '\\';
 				*dst++ = ch;
 			} else {
-				snprintf(dst, 5, "\\%03u", ch);
+				snprintf(dst, 5, "\\%03u", (unsigned int)ch);
 				dst += 4;
 			}
 		}

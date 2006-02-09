@@ -447,7 +447,7 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
 static void
 server_shutdown(struct nsd *nsd)
 {
-	int i;
+	size_t i;
 
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
@@ -623,7 +623,7 @@ server_main(struct nsd *nsd)
 #ifdef BIND8_STATS
 			{
 				/* restart timer if =0, or not running */
-				unsigned int old_timeout = alarm(nsd->st.period);
+				int old_timeout = alarm(nsd->st.period);
 				if(old_timeout > 0 && old_timeout <= nsd->st.period)
 					alarm(old_timeout);
 			}
@@ -1318,7 +1318,7 @@ handle_tcp_accept(netio_type *netio,
 }
 
 static void
-handle_parent_command(netio_type *netio,
+handle_parent_command(netio_type *ATTR_UNUSED(netio),
 		      netio_handler_type *handler,
 		      netio_event_types_type event_types)
 {
@@ -1374,7 +1374,7 @@ send_children_command(struct nsd* nsd, sig_atomic_t command)
 }
 
 static void
-handle_child_command(netio_type *netio,
+handle_child_command(netio_type *ATTR_UNUSED(netio),
 		      netio_handler_type *handler,
 		      netio_event_types_type event_types)
 {
@@ -1392,7 +1392,7 @@ handle_child_command(netio_type *netio,
 	}
 	if (len == 0)
 	{
-		int i;
+		size_t i;
 		if(handler->fd > 0) close(handler->fd);
 		for(i=0; i<nsd->child_count; ++i)
 			if(nsd->children[i].child_fd == handler->fd) {

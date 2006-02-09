@@ -1,5 +1,33 @@
 09 Feb 2006: nsd-team
    * Wouter: Updated dependencies in Makefile (regenerated them with gcc -MM).
+   * Wouter: Used splint on the source (with settings to reduce spam.)
+	And came to the following changes:
+	- In util.h, make it respect HAVE_CONFIG_H and HAVE_SYSLOG_H.
+	Also it now defines fallback values for #defines in syslog h.
+	- Added explicit cast to (unsigned int) in snprintf in dname.c,
+	dname_to_string routine.
+   * Wouter: Used extra warnings during gcc compile. -Wextra -Wall 
+	-pedantic -Wbad-function-cast -Wmissing-declarations 
+	-Wmissing-prototypes -Wnested-externs -Wold-style-definition 
+	-Wstrict-prototypes -Wdeclaration-after-statement.
+	Using -Wtraditional gives too many warnings.
+   * Wouter: Found a problem with pselect. sys/select.h does not by default
+	provide the pselect function definition. configure script is 
+	adjusted to test for this and enable _XOPEN_SOURCE=600 to get it.
+	Found this using the gcc warnings.
+   * Wouter: dname and rbtree test apps were in make clean target, but
+	do not exist anymore. Removed from make clean target.
+   * Wouter: in util log_file() the epoch time_t is passed to printf
+	without an int cast. Found using extra gcc warnings.
+   * Wouter: In server.c fixed some signed-unsigned comparisons
+	using the extra gcc warnings.
+	- in shutdown and int was used instead of size_t.
+	- in server_main timeout(signed) was compared with unsigned.
+	- unused variable in new handler functions.
+	- in handle_child_command int i instead of size_t was used.
+	- in zonec the process_rr routine was missing (void) as paramlist.
+   * Wouter: Added -Wall and -Wextra when --enable-checking is enabled.
+   * Miek: Ported over the big fat enable checking configure warning.
 
 08 Feb 2006: nsd-team
    * Wouter: In server.c also sockets from unexpectedly dead childs are closed.

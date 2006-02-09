@@ -199,7 +199,7 @@ unitest:	$(UNITEST_OBJECTS)
 	$(LINK) -o $@ $(UNITEST_OBJECTS) $(LIBOBJS) $(LIBCUNIT) $(LIBWRAP) $(LIBS)
 
 clean:
-	rm -f dname rbtree *.o *.so y.* *.core *.gmon tags TAGS
+	rm -f *.o *.so y.* *.core *.gmon tags TAGS
 	rm -f $(TARGETS)
 
 devclean: clean

@@ -1013,7 +1013,7 @@ cleanup_rrset(void *r)
 }
 
 int
-process_rr()
+process_rr(void)
 {
 	zone_type *zone = parser->current_zone;
 	rr_type *rr = &parser->current_rr;
