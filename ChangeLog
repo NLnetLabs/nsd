@@ -28,6 +28,7 @@
 	- in zonec the process_rr routine was missing (void) as paramlist.
    * Wouter: Added -Wall and -Wextra when --enable-checking is enabled.
    * Miek: Ported over the big fat enable checking configure warning.
+   * Wouter: fixed configure check for pselect on freebsd.
 
 08 Feb 2006: nsd-team
    * Wouter: In server.c also sockets from unexpectedly dead childs are closed.

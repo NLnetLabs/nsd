@@ -323,7 +323,7 @@ AC_TRY_COMPILE(
 	int num;
 	FD_ZERO(&r);
 	FD_SET(0, &r);
-   	num = pselect(n, &r, NULL, NULL, &t, &s);
+   	num = pselect(n, &r, 0, 0, &t, &s);
 ],
 [ac_cv_c_pselect_provided="yes"],
 [ac_cv_c_pselect_provided="no"])
