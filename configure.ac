@@ -524,5 +524,20 @@ int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif /* !B64_NTOP */
 ])
 
+# big fat warning
+if [[ "$enable_checking" == "yes" ]]; then
+        echo "************************************************"
+        echo "* You have activated \"--enable-checking\"       *"
+        echo "*                                              *"
+        echo "* This will instruct NSD to be stricter        *"
+        echo "* when validating its input. This could lead   *"
+        echo "* to a reduced service level.                  *"
+        echo "*                                              *"
+        echo "* NLnet Labs does not recommend this setting   *"
+        echo "* in a production environment.                 *"
+        echo "*                                              *"
+        echo "************************************************"
+fi
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
