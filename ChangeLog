@@ -4,6 +4,9 @@
 	I hope it also works on Solaris.
 	Also various other protoypes were implicit: chroot, strptime, ...
 	These are also solved.
+   * Wouter: Checked configure on sparc5(solaris). Added check for
+	ctime_r in time.h (for tsig.c). This conf also works on freebsd/linux.
+
 09 Feb 2006: nsd-team
    * Wouter: Updated dependencies in Makefile (regenerated them with gcc -MM).
    * Wouter: Used splint on the source (with settings to reduce spam.)

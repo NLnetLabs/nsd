@@ -310,7 +310,11 @@ AC_REPLACE_FUNCS(pselect)
 
 AC_MSG_CHECKING(for pselect prototype in sys/select.h)
 AC_EGREP_HEADER([[^a-zA-Z_]*pselect[^a-zA-Z_]], sys/select.h, AC_DEFINE(HAVE_PSELECT_PROTO, 1, 
-	[if sys/select.h has pselect prototype]) AC_MSG_RESULT(yes), AC_MSG_RESULT(no))
+	[if sys/select.h provides pselect prototype]) AC_MSG_RESULT(yes), AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING(for ctime_r prototype in time.h)
+AC_EGREP_HEADER([[^a-zA-Z_]*ctime_r[^a-zA-Z_]], time.h, AC_DEFINE(HAVE_CTIME_R_PROTO, 1, 
+	[if time.h provides ctime_r prototype]) AC_MSG_RESULT(yes), AC_MSG_RESULT(no))
 
 dnl dnl Check for libwrap.  Note that libwrap requires 
 dnl yp_get_default_domain on Linux but that normally the required nsl 
@@ -466,7 +470,8 @@ esac
 
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
-#if defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)
+#if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
+	|| !defined (HAVE_CTIME_R_PROTO)
 #  ifndef _XOPEN_SOURCE
 #    define _XOPEN_SOURCE 600
 #  endif
