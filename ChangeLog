@@ -6,6 +6,8 @@
 	These are also solved.
    * Wouter: Checked configure on sparc5(solaris). Added check for
 	ctime_r in time.h (for tsig.c). This conf also works on freebsd/linux.
+   * Wouter: Updated dependencies in makefile for plugin headers.
+	These are included only when --enable-plugins is present.
 
 09 Feb 2006: nsd-team
    * Wouter: Updated dependencies in Makefile (regenerated them with gcc -MM).

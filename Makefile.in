@@ -279,7 +279,7 @@ namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
   util.h dns.h heap.h rbtree.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
 nsd.o: nsd.c config.h nsd.h dns.h edns.h buffer.h region-allocator.h \
-  util.h plugins.h
+  util.h plugins.h nsd-plugin.h
 nsd-notify.o: nsd-notify.c config.h query.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h heap.h rbtree.h nsd.h edns.h packet.h
 nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
@@ -287,17 +287,17 @@ nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
   rdata.h tsig.h tsig-openssl.h zonec.h
 packet.o: packet.c config.h packet.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h query.h nsd.h edns.h rdata.h
-plugins.o: plugins.c config.h
+plugins.o: plugins.c config.h nsd-plugin.h nsd.h plugins.h
 query.o: query.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h packet.h query.h nsd.h edns.h \
-  axfr.h plugins.h
+  axfr.h plugins.h nsd-plugin.h
 rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h zonec.h
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h heap.h rbtree.h \
-  packet.h netio.h plugins.h
+  packet.h netio.h plugins.h nsd-plugin.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h heap.h rbtree.h query.h nsd.h \
   edns.h
