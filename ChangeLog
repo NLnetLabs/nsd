@@ -15,6 +15,14 @@
 	a socket to the old parent, and sends it a quit command. This works
 	and terminates the old nsd. Left in the kill as a double failsafe.
 	If the reload process dies, then the parent closes the socket.
+   * Wouter: Separated the signal mode from the socket-determined nsd->mode.
+	Every signal function has a variable, so that multiple signals can
+	arrive. Only the number of signals of the same type is lost, but not
+	important for nsd. The signals are handled in turn by the run loop.
+	This completes the coding to remove signal race conditions:
+	- nsd uses sockets to communicate with its subprocesses(server,reload).
+	- signal handler routine contains no lengthy system calls.
+	- signals cannot overwrite a previous signal.
 
 09 Feb 2006: nsd-team
    * Wouter: Updated dependencies in Makefile (regenerated them with gcc -MM).

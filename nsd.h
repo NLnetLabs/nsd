@@ -97,6 +97,12 @@ struct	nsd
 	/* Run-time variables */
 	pid_t		pid;
 	volatile sig_atomic_t mode;
+	volatile sig_atomic_t signal_hint_reload;
+	volatile sig_atomic_t signal_hint_child;
+	volatile sig_atomic_t signal_hint_quit;
+	volatile sig_atomic_t signal_hint_shutdown;
+	volatile sig_atomic_t signal_hint_stats;
+	volatile sig_atomic_t signal_hint_statsusr;
 	unsigned        server_kind;
 	struct namedb	*db;
 	int		debug;

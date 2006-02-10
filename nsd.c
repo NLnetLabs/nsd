@@ -172,18 +172,18 @@ sig_handler (int sig)
 	if (nsd.server_kind != NSD_SERVER_MAIN) {
 		switch (sig) {
 		case SIGCHLD:
-			nsd.mode = NSD_REAP_CHILDREN;
+			nsd.signal_hint_child = 1;
 			break;
 		case SIGALRM:
 			break;
 		case SIGHUP:
 		case SIGINT:
 		case SIGTERM:
-			nsd.mode = NSD_QUIT;
+			nsd.signal_hint_quit = 1;
 			break;
 		case SIGILL:
 		case SIGUSR1:	/* Dump stats on SIGUSR1.  */
-			nsd.mode = NSD_STATS;
+			nsd.signal_hint_statsusr = 1;
 			break;
 		default:
 			break;
@@ -193,32 +193,32 @@ sig_handler (int sig)
 
 	switch (sig) {
 	case SIGCHLD:
-		nsd.mode = NSD_REAP_CHILDREN;
+		nsd.signal_hint_child = 1;
 		return;
 	case SIGHUP:
-		nsd.mode = NSD_RELOAD;
+		nsd.signal_hint_reload = 1;
 		return;
 	case SIGALRM:
-		nsd.mode = NSD_STATS;
+		nsd.signal_hint_stats = 1;
 		break;
 	case SIGILL:
 		/*
 		 * For backwards compatibility with BIND 8 and older
 		 * versions of NSD.
 		 */
-		nsd.mode = NSD_STATS;
+		nsd.signal_hint_statsusr = 1;
 		break;
 	case SIGUSR1:
 		/* Dump statistics.  */
-		nsd.mode = NSD_STATS;
+		nsd.signal_hint_statsusr = 1;
 		break;
 	case SIGINT:
 		/* Silent shutdown... */
-		nsd.mode = NSD_QUIT;
+		nsd.signal_hint_quit = 1;
 		break;
 	case SIGTERM:
 	default:
-		nsd.mode = NSD_SHUTDOWN;
+		nsd.signal_hint_shutdown = 1;
 		break;
 	}
 }
@@ -717,6 +717,12 @@ main (int argc, char *argv[])
 
 	/* Initialize... */
 	nsd.mode = NSD_RUN;
+	nsd.signal_hint_child = 0;
+	nsd.signal_hint_reload = 0;
+	nsd.signal_hint_quit = 0;
+	nsd.signal_hint_shutdown = 0;
+	nsd.signal_hint_stats = 0;
+	nsd.signal_hint_statsusr = 0;
 
 	/* Run the server... */
 	if (server_init(&nsd) != 0) {

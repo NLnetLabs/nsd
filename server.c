@@ -534,6 +534,43 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, in
 }
 
 /*
+ * Get the mode depending on the signal hints that have been received.
+ * Multiple signal hints can be received and will be handled in turn.
+ */
+static sig_atomic_t
+server_signal_mode(struct nsd *nsd)
+{
+	if(nsd->signal_hint_quit) {
+		nsd->signal_hint_quit = 0;
+		return NSD_QUIT;
+	}
+	else if(nsd->signal_hint_shutdown) {
+		nsd->signal_hint_shutdown = 0;
+		return NSD_SHUTDOWN;
+	}
+	else if(nsd->signal_hint_child) {
+		nsd->signal_hint_child = 0;
+		return NSD_REAP_CHILDREN;
+	}
+	else if(nsd->signal_hint_reload) {
+		nsd->signal_hint_reload = 0;
+		return NSD_RELOAD;
+	}
+	else if(nsd->signal_hint_stats) {
+		nsd->signal_hint_stats = 0;
+#ifdef BIND8_STATS
+		alarm(nsd->st.period); /* restart timer */
+#endif
+		return NSD_STATS;
+	}
+	else if(nsd->signal_hint_statsusr) {
+		nsd->signal_hint_statsusr = 0;
+		return NSD_STATS;
+	}
+	return NSD_RUN;
+}
+
+/*
  * The main server simply waits for signals and child processes to
  * terminate.  Child processes are restarted as necessary.
  */
@@ -562,6 +599,11 @@ server_main(struct nsd *nsd)
 	assert(nsd->this_child == 0);
 
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
+
+		if(mode == NSD_RUN) {
+			mode = server_signal_mode(nsd);
+		}
+
 		switch (mode) {
 		case NSD_RUN:
 			/* timeout to collect processes. In case no sigchild happens. */
@@ -663,12 +705,6 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_STATS:
 #ifdef BIND8_STATS
-			{
-				/* restart timer if =0, or not running */
-				int old_timeout = alarm(nsd->st.period);
-				if(old_timeout > 0 && old_timeout <= nsd->st.period)
-					alarm(old_timeout);
-			}
 			send_children_command(nsd, NSD_STATS);
 #endif
 			nsd->mode = NSD_RUN;
@@ -824,6 +860,7 @@ server_child(struct nsd *nsd)
 	
 	/* The main loop... */	
 	while ((mode = nsd->mode) != NSD_QUIT) {
+		if(mode == NSD_RUN) mode = server_signal_mode(nsd);
 
 		/* Do we need to do the statistics... */
 		if (mode == NSD_STATS) {
