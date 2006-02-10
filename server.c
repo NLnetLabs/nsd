@@ -601,7 +601,7 @@ server_main(struct nsd *nsd)
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
 
 		if(mode == NSD_RUN) {
-			mode = server_signal_mode(nsd);
+			nsd->mode = mode = server_signal_mode(nsd);
 		}
 
 		switch (mode) {
@@ -633,6 +633,7 @@ server_main(struct nsd *nsd)
 					reload_pid = -1;
 					if(reload_listener.fd > 0) close(reload_listener.fd);
 					reload_listener.fd = -1;
+					reload_listener.event_types = NETIO_EVENT_NONE;
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",
@@ -674,6 +675,7 @@ server_main(struct nsd *nsd)
 				close(reload_sockets[1]);
 				reload_pid = -1;
 				reload_listener.fd = -1;
+				reload_listener.event_types = NETIO_EVENT_NONE;
 				break;
 			default:
 				/* PARENT */
@@ -860,7 +862,7 @@ server_child(struct nsd *nsd)
 	
 	/* The main loop... */	
 	while ((mode = nsd->mode) != NSD_QUIT) {
-		if(mode == NSD_RUN) mode = server_signal_mode(nsd);
+		if(mode == NSD_RUN) nsd->mode = mode = server_signal_mode(nsd);
 
 		/* Do we need to do the statistics... */
 		if (mode == NSD_STATS) {

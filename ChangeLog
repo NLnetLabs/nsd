@@ -23,6 +23,8 @@
 	- nsd uses sockets to communicate with its subprocesses(server,reload).
 	- signal handler routine contains no lengthy system calls.
 	- signals cannot overwrite a previous signal.
+   * Wouter: fixed problem where nsd->mode and mode are different in 
+	server_main. Nsd would kill the children, but then restart them again.
 
 09 Feb 2006: nsd-team
    * Wouter: Updated dependencies in Makefile (regenerated them with gcc -MM).
