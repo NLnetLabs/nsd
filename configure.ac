@@ -490,7 +490,7 @@ case "$enable_mmap" in
 esac
 
 AH_BOTTOM([
-/* define before includes as it specifies what standard to use */
+/* define before includes as it specifies what standard to use. */
 #if defined(HAVE_PSELECT) && !defined (PSELECT_PROVIDED)
 #  ifndef _XOPEN_SOURCE
 #    define _XOPEN_SOURCE 600
