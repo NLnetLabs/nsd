@@ -491,6 +491,7 @@ server_main(struct nsd *nsd)
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
 	if (server_start_children(nsd, server_region, netio) != 0) {
+		send_children_command(nsd, NSD_QUIT);
 		kill(nsd->pid, SIGTERM);
 		exit(1);
 	}
@@ -582,11 +583,12 @@ server_main(struct nsd *nsd)
 #endif
 
 				if (server_start_children(nsd, server_region, netio) != 0) {
+					send_children_command(nsd, NSD_QUIT);
 					kill(nsd->pid, SIGTERM);
 					exit(1);
 				}
 
-				/* Send SIGINT to terminate the parent quitely... */
+				/* Send SIGINT to terminate the parent quietly... */
 				if (kill(old_pid, SIGINT) != 0) {
 					log_msg(LOG_ERR, "cannot kill %d: %s",
 						(int) old_pid, strerror(errno));

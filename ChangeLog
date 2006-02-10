@@ -8,6 +8,9 @@
 	ctime_r in time.h (for tsig.c). This conf also works on freebsd/linux.
    * Wouter: Updated dependencies in makefile for plugin headers.
 	These are included only when --enable-plugins is present.
+   * Wouter: Added a send quit over socket to kill commands in server_main,
+	These act when the fork children fails. If the kill fails, the
+	socket command hopefully still works.
 
 09 Feb 2006: nsd-team
    * Wouter: Updated dependencies in Makefile (regenerated them with gcc -MM).
