@@ -1,3 +1,9 @@
+10 Feb 2006: nsd-team
+   * Wouter: Improved configure.ac to detect pselect in sys/select.
+	The check works on freebsd(yes) and fedoracore 3 and 4 (no).
+	I hope it also works on Solaris.
+	Also various other protoypes were implicit: chroot, strptime, ...
+	These are also solved.
 09 Feb 2006: nsd-team
    * Wouter: Updated dependencies in Makefile (regenerated them with gcc -MM).
    * Wouter: Used splint on the source (with settings to reduce spam.)
