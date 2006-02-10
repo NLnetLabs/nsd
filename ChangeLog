@@ -11,6 +11,10 @@
    * Wouter: Added a send quit over socket to kill commands in server_main,
 	These act when the fork children fails. If the kill fails, the
 	socket command hopefully still works.
+   * Wouter: Put reload code into a separate function. It communicates with
+	a socket to the old parent, and sends it a quit command. This works
+	and terminates the old nsd. Left in the kill as a double failsafe.
+	If the reload process dies, then the parent closes the socket.
 
 09 Feb 2006: nsd-team
    * Wouter: Updated dependencies in Makefile (regenerated them with gcc -MM).

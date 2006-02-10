@@ -472,6 +472,68 @@ server_shutdown(struct nsd *nsd)
 }
 
 /*
+ * Reload the database, stop parent, re-fork children and continue.
+ * as server_main.
+ */
+static void
+server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, int cmdsocket)
+{
+	pid_t old_pid;
+	sig_atomic_t cmd = NSD_QUIT;
+
+	namedb_close(nsd->db);
+	if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+		log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
+		exit(1);
+	}
+
+	initialize_dname_compression_tables(nsd);
+
+#ifdef PLUGINS
+	if (plugin_database_reloaded() != NSD_PLUGIN_CONTINUE) {
+		log_msg(LOG_ERR, "plugin reload failed");
+		exit(1);
+	}
+#endif /* PLUGINS */
+
+	old_pid = nsd->pid;
+	nsd->pid = getpid();
+
+#ifdef BIND8_STATS
+	/* Restart dumping stats if required.  */
+	time(&nsd->st.boot);
+	alarm(nsd->st.period);
+#endif
+
+	if (server_start_children(nsd, server_region, netio) != 0) {
+		send_children_command(nsd, NSD_QUIT);
+		kill(nsd->pid, SIGTERM);
+		exit(1);
+	}
+
+	/* Send quit command to parent */
+	if (write(cmdsocket, &cmd, sizeof(cmd)) == -1)
+	{
+		log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
+			(int)nsd->pid, (int)old_pid, strerror(errno));
+	}
+
+	/* Send SIGINT to terminate the parent to be sure... */
+	if (kill(old_pid, SIGINT) != 0) {
+		/* parent may have quit due to cmd */
+		if(errno != ESRCH)
+			log_msg(LOG_ERR, "cannot kill %d: %s", (int) old_pid, strerror(errno));
+	}
+
+	/* Overwrite pid... */
+	if (writepid(nsd) == -1) {
+		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
+	}
+
+	/* exit reload, continue as new server_main */
+}
+
+/*
  * The main server simply waits for signals and child processes to
  * terminate.  Child processes are restarted as necessary.
  */
@@ -480,12 +542,13 @@ server_main(struct nsd *nsd)
 {
         region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
+	netio_handler_type reload_listener;
+	int reload_sockets[2] = {-1, -1};
 	struct timespec timeout_spec;
 	int fd;
 	int status;
 	pid_t child_pid;
 	pid_t reload_pid = -1;
-	pid_t old_pid;
 	sig_atomic_t mode;
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
@@ -495,6 +558,7 @@ server_main(struct nsd *nsd)
 		kill(nsd->pid, SIGTERM);
 		exit(1);
 	}
+	reload_listener.fd = -1;
 	assert(nsd->this_child == 0);
 
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
@@ -525,6 +589,8 @@ server_main(struct nsd *nsd)
 					       "Reload process %d failed with status %d, continuing with old database",
 					       (int) child_pid, status);
 					reload_pid = -1;
+					if(reload_listener.fd > 0) close(reload_listener.fd);
+					reload_listener.fd = -1;
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",
@@ -549,6 +615,11 @@ server_main(struct nsd *nsd)
 
 			log_msg(LOG_WARNING, "signal received, reloading...");
 
+			if (socketpair(AF_UNIX, SOCK_STREAM, 0, reload_sockets) == -1) {
+				log_msg(LOG_ERR, "reload failed on socketpair: %s", strerror(errno));
+				reload_pid = -1;
+				break;
+			}
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:
@@ -556,58 +627,27 @@ server_main(struct nsd *nsd)
 				break;
 			case 0:
 				/* CHILD */
-
-				namedb_close(nsd->db);
-				if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
-					log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
-					exit(1);
-				}
-
-				initialize_dname_compression_tables(nsd);
-	
-#ifdef PLUGINS
-				if (plugin_database_reloaded() != NSD_PLUGIN_CONTINUE) {
-					log_msg(LOG_ERR, "plugin reload failed");
-					exit(1);
-				}
-#endif /* PLUGINS */
-
-				old_pid = nsd->pid;
-				nsd->pid = getpid();
+				close(reload_sockets[0]);
+				server_reload(nsd, server_region, netio, reload_sockets[1]);
+				close(reload_sockets[1]);
 				reload_pid = -1;
-
-#ifdef BIND8_STATS
-				/* Restart dumping stats if required.  */
-				time(&nsd->st.boot);
-				alarm(nsd->st.period);
-#endif
-
-				if (server_start_children(nsd, server_region, netio) != 0) {
-					send_children_command(nsd, NSD_QUIT);
-					kill(nsd->pid, SIGTERM);
-					exit(1);
-				}
-
-				/* Send SIGINT to terminate the parent quietly... */
-				if (kill(old_pid, SIGINT) != 0) {
-					log_msg(LOG_ERR, "cannot kill %d: %s",
-						(int) old_pid, strerror(errno));
-					exit(1);
-				}
-
-				/* Overwrite pid... */
-				if (writepid(nsd) == -1) {
-					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
-				}
-
+				reload_listener.fd = -1;
 				break;
 			default:
 				/* PARENT */
+				close(reload_sockets[1]);
+				reload_listener.fd = reload_sockets[0];
+				reload_listener.timeout = NULL;
+				reload_listener.user_data = nsd;
+				reload_listener.event_types = NETIO_EVENT_READ;
+				reload_listener.event_handler = handle_child_command; /* listens to Quit */
+				netio_add_handler(netio, &reload_listener);
 				break;
 			}
 			break;
 		case NSD_QUIT: 
 			/* silent shutdown during reload */
+			if(reload_listener.fd > 0) close(reload_listener.fd);
 			send_children_command(nsd, NSD_QUIT);
 			region_destroy(server_region);
 			server_shutdown(nsd);
@@ -653,6 +693,7 @@ server_main(struct nsd *nsd)
 	/* Unlink it if possible... */
 	unlink(nsd->pidfile);
 
+	if(reload_listener.fd > 0) close(reload_listener.fd);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }
