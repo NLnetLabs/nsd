@@ -275,11 +275,12 @@ dname.o: dname.c config.h dns.h dname.h buffer.h region-allocator.h \
 dns.o: dns.c config.h dns.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h zparser.h
 edns.o: edns.c config.h dns.h edns.h buffer.h region-allocator.h util.h
-namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
-  util.h dns.h heap.h rbtree.h
+namedb.o: namedb.c config.h namedb.h dname.h buffer.h \
+  region-allocator.h util.h dns.h heap.h rbtree.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
 nsd.o: nsd.c config.h nsd.h dns.h edns.h buffer.h region-allocator.h \
-  util.h plugins.h nsd-plugin.h
+  util.h plugins.h nsd-plugin.h query.h namedb.h dname.h heap.h rbtree.h \
+  packet.h
 nsd-notify.o: nsd-notify.c config.h query.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h heap.h rbtree.h nsd.h edns.h packet.h
 nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
@@ -287,7 +288,9 @@ nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
   rdata.h tsig.h tsig-openssl.h zonec.h
 packet.o: packet.c config.h packet.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h query.h nsd.h edns.h rdata.h
-plugins.o: plugins.c config.h nsd-plugin.h nsd.h plugins.h
+plugins.o: plugins.c config.h nsd.h dns.h edns.h buffer.h \
+  region-allocator.h util.h plugins.h nsd-plugin.h query.h namedb.h \
+  dname.h heap.h rbtree.h packet.h
 query.o: query.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h heap.h rbtree.h packet.h query.h nsd.h edns.h \
   axfr.h plugins.h nsd-plugin.h
@@ -298,18 +301,18 @@ region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h heap.h rbtree.h \
   packet.h netio.h plugins.h nsd-plugin.h
-tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
-  tsig-openssl.h dns.h packet.h namedb.h heap.h rbtree.h query.h nsd.h \
-  edns.h
-tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
-  tsig.h buffer.h util.h dname.h
+tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h \
+  dname.h tsig-openssl.h dns.h packet.h namedb.h heap.h rbtree.h query.h \
+  nsd.h edns.h
+tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h \
+  region-allocator.h tsig.h buffer.h util.h dname.h
 util.o: util.c config.h util.h
 zlexer.o: zlexer.c config.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h heap.h rbtree.h zparser.h
 zonec.o: zonec.c config.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h heap.h rbtree.h rdata.h zparser.h
-zparser.o: zparser.c config.h dname.h buffer.h region-allocator.h util.h \
-  namedb.h dns.h heap.h rbtree.h zonec.h
+zparser.o: zparser.c config.h dname.h buffer.h region-allocator.h \
+  util.h namedb.h dns.h heap.h rbtree.h zonec.h
 b64_ntop.o: compat/b64_ntop.c config.h
 b64_pton.o: compat/b64_pton.c config.h
 basename.o: compat/basename.c
