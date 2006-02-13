@@ -73,9 +73,9 @@ domain_table_create(region_type *region)
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));
 	result->region = region;
-	result->names_to_domains = heap_create(
+	result->names_to_domains = rbtree_create(
 		region, (int (*)(const void *, const void *)) dname_compare);
-	heap_insert(result->names_to_domains, (rbnode_t *) root);
+	rbtree_insert(result->names_to_domains, (rbnode_t *) root);
 
 	result->root = root;
 
@@ -153,7 +153,7 @@ domain_table_insert(domain_table_type *table,
 			result = allocate_domain_info(table,
 						      dname,
 						      closest_encloser);
-			heap_insert(table->names_to_domains, (rbnode_t *) result);
+			rbtree_insert(table->names_to_domains, (rbnode_t *) result);
 
 			/*
 			 * If the newly added domain name is larger
@@ -188,7 +188,7 @@ domain_table_iterate(domain_table_type *table,
 
 	assert(table);
 
-	HEAP_WALK(table->names_to_domains, dname, node) {
+	RBTREE_WALK(table->names_to_domains, dname, node) {
 		iterator((domain_type *) node, user_data);
 	}
 }

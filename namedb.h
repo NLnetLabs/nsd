@@ -14,7 +14,7 @@
 
 #include "dname.h"
 #include "dns.h"
-#include "heap.h"
+#include "rbtree.h"
 
 #define	NAMEDB_MAGIC		"NSDdbV06"
 #define	NAMEDB_MAGIC_SIZE	8
@@ -33,7 +33,7 @@ typedef struct zone zone_type;
 struct domain_table
 {
 	region_type *region;
-	heap_t      *names_to_domains;
+	rbtree_t      *names_to_domains;
 	domain_type *root;
 };
 
@@ -182,15 +182,15 @@ domain_dname(domain_type *domain)
 static inline domain_type *
 domain_previous(domain_type *domain)
 {
-	rbnode_t *prev = heap_previous((rbnode_t *) domain);
+	rbnode_t *prev = rbtree_previous((rbnode_t *) domain);
 	return prev == RBTREE_NULL ? NULL : (domain_type *) prev;
 }
 
 static inline domain_type *
 domain_next(domain_type *domain)
 {
-	rbnode_t *prev = heap_next((rbnode_t *) domain);
-	return prev == RBTREE_NULL ? NULL : (domain_type *) prev;
+	rbnode_t *next = rbtree_next((rbnode_t *) domain);
+	return next == RBTREE_NULL ? NULL : (domain_type *) next;
 }
 
 /*
