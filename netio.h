@@ -84,6 +84,12 @@ struct netio
 	 */
 	int have_current_time;
 	struct timespec cached_current_time;
+
+	/*
+	 * Next handler in the dispatch. Only valid during callbacks.
+	 * To make sure that deletes respect tha state of the iterator.
+	 */
+	netio_handler_list_type *dispatch_next;
 };
 
 typedef void (*netio_event_handler_type)(netio_type *netio,

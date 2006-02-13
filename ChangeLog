@@ -8,6 +8,11 @@
 	  in the current codebase.
 	- renamed local prev to next in domain_next() in namedb.h.
 	- Removed heap.h. It was not used. Heap and rbtree are mingled anyway.
+	- in netio.c, in dispatch, it would store the next pointer 'in case
+	  the handler removes itself'. But if the handler removes that next.
+	  Then it would fail. So stored the next in struct netio.
+	  This removes a potential bug. Netio_dispatch is not reentrant.
+	  Reentry would need a list of iterator* in struct netio.
 
 10 Feb 2006: nsd-team
    * Wouter: Improved configure.ac to detect pselect in sys/select.
