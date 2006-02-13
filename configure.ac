@@ -148,6 +148,32 @@ if test $ac_cv_c_unused_attribute = yes; then
 fi
 ])dnl
 
+AC_DEFUN([CHECK_COMPILER_FLAG],
+[
+AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether $CC supports -$1)
+cache=`echo $1 | sed 'y%.=/+-%___p_%'`
+AC_CACHE_VAL(cv_prog_cc_flag_$cache,
+[
+echo 'void f(){}' >conftest.c
+if test -z "`$CC -$1 -c conftest.c 2>&1`"; then
+eval "cv_prog_cc_flag_$cache=yes"
+else
+eval "cv_prog_cc_flag_$cache=no"
+fi
+rm -f conftest*
+])
+if eval "test \"`echo '$cv_prog_cc_flag_'$cache`\" = yes"; then
+AC_MSG_RESULT(yes)
+:
+$2
+else
+AC_MSG_RESULT(no)
+:
+$3
+fi
+])
+
 AC_DEFUN([AC_CHECK_CTIME_R],
 [AC_REQUIRE([AC_PROG_CC])
 AC_MSG_CHECKING(whether ctime_r works with two arguments)
@@ -218,6 +244,37 @@ AC_DEFUN([CHECK_SSL], [
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h])
+
+AC_DEFUN([CHECK_VALIST_DEF],
+[
+AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(for double definition of struct va_list)
+AC_CACHE_VAL(ac_cv_c_va_list_def,
+[
+cat >conftest.c <<EOF
+#include <stdio.h>
+#include <stdarg.h>
+int foo(void);
+EOF
+if test -z "`$CC -Werror -D_XOPEN_SOURCE=600 -c conftest.c 2>&1`"; then
+eval "ac_cv_c_va_list_def=no"
+else
+eval "ac_cv_c_va_list_def=yes"
+fi
+rm -f conftest*
+])
+if test $ac_cv_c_va_list_def = yes; then
+AC_MSG_RESULT(yes)
+:
+AC_DEFINE_UNQUOTED([HAVE_VA_LIST_DOUBLE_DEF], [], [Define this if you have double va_list definitions.])
+else
+AC_MSG_RESULT(no)
+:
+
+fi
+])
+
+CHECK_VALIST_DEF
 
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
@@ -436,7 +493,9 @@ esac
 AC_ARG_ENABLE(checking, AC_HELP_STRING([--enable-checking], [Enable internal runtime checks]))
 case "$enable_checking" in
         yes)
-      		CFLAGS="$CFLAGS -Wall -Wextra"
+		CHECK_COMPILER_FLAG(W, [ CFLAGS="$CFLAGS -W" ])
+		CHECK_COMPILER_FLAG(Wall, [ CFLAGS="$CFLAGS -Wall" ])
+		CHECK_COMPILER_FLAG(Wextra, [ CFLAGS="$CFLAGS -Wextra" ])
 		;;
         no|*)
                 AC_DEFINE([NDEBUG], [], [Undefine this to enable internal runtime checks.])
@@ -483,6 +542,15 @@ AH_BOTTOM([
 #  endif
 #  ifndef __EXTENSIONS__
 #    define __EXTENSIONS__ 1
+#  endif
+#endif
+])
+
+AH_BOTTOM([
+#ifdef HAVE_VA_LIST_DOUBLE_DEF
+/* workaround double va_list definition on some platforms */
+#  ifndef _VA_LIST_DEFINED
+#    define _VA_LIST_DEFINED
 #  endif
 #endif
 ])

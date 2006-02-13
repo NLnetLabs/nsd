@@ -1,6 +1,9 @@
 13 Feb 2005: Wouter
 	- Removed timespec_add(current_time) in server_main, the timeout was
 	  relative, not absolute. This fixes EINVAL on the timeout on freebsd.
+	- Added check in configure for compiler flags. Used for -Wextra.
+	- Added check in configure for va_list definition conflict between
+	  stdio and stdarg. This happens on DEC Alpha/Debian.
 
 10 Feb 2006: nsd-team
    * Wouter: Improved configure.ac to detect pselect in sys/select.
