@@ -609,7 +609,6 @@ server_main(struct nsd *nsd)
 			/* timeout to collect processes. In case no sigchild happens. */
 			timeout_spec.tv_sec = 60; 
 			timeout_spec.tv_nsec = 0;
-			timespec_add(&timeout_spec, netio_current_time(netio));
 
 			/* listen on ports, timeout for collecting terminated children */
 			if(netio_dispatch(netio, &timeout_spec, 0) == -1) {

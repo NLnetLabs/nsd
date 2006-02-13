@@ -1,3 +1,7 @@
+13 Feb 2005: Wouter
+	- Removed timespec_add(current_time) in server_main, the timeout was
+	  relative, not absolute. This fixes EINVAL on the timeout on freebsd.
+
 10 Feb 2006: nsd-team
    * Wouter: Improved configure.ac to detect pselect in sys/select.
 	The check works on freebsd(yes) and fedoracore 3 and 4 (no).
