@@ -736,7 +736,7 @@ server_main(struct nsd *nsd)
 }
 
 static query_state_type
-process_query(struct nsd *nsd, struct query *query)
+server_process_query(struct nsd *nsd, struct query *query)
 {
 #ifdef PLUGINS
 	query_state_type rc;
@@ -949,7 +949,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 		buffer_flip(q->packet);
 
 		/* Process and answer the query... */
-		if (process_query(data->nsd, q) != QUERY_DISCARDED) {
+		if (server_process_query(data->nsd, q) != QUERY_DISCARDED) {
 			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet))
 				STATUP(data->nsd, nona);
 
@@ -1155,7 +1155,7 @@ handle_tcp_reading(netio_type *netio,
 	/* We have a complete query, process it.  */
 
 	buffer_flip(data->query->packet);
-	data->query_state = process_query(data->nsd, data->query);
+	data->query_state = server_process_query(data->nsd, data->query);
 	if (data->query_state == QUERY_DISCARDED) {
 		/* Drop the packet and the entire connection... */
 		STATUP(data->nsd, dropped);

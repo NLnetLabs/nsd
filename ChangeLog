@@ -13,6 +13,8 @@
 	  Then it would fail. So stored the next in struct netio.
 	  This removes a potential bug. Netio_dispatch is not reentrant.
 	  Reentry would need a list of iterator* in struct netio.
+	- Changed process_query() to server_process_query(). It is too 
+	  similar to query_process().
 
 10 Feb 2006: nsd-team
    * Wouter: Improved configure.ac to detect pselect in sys/select.
