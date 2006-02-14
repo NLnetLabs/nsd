@@ -31,7 +31,8 @@ LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
 LIBWRAP		= @LIBWRAP@
 LIBOBJS		= @LIBOBJS@
-LIBCUNIT	= -L/usr/local/lib -lcunit
+LIBCUNIT	= @LIBCUNIT@
+CFLAGS_CUNIT	= @CFLAGS_CUNIT@
 INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
 INSTALL_DATA	= $(INSTALL) -m 644
@@ -142,7 +143,8 @@ UNITEST_OBJECTS		=			\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
-	$(addsuffix .o,$(basename $(wildcard tpkg/unitest/*.c)))
+	unitest_run.o				\
+	unitest_rbtree.o
 
 all:	$(TARGETS)
 
@@ -235,6 +237,12 @@ malloc.o:	compat/malloc.c
 
 pselect.o:	compat/pselect.c
 	$(COMPILE) -c compat/pselect.c -o pselect.o
+
+unitest_run.o:	tpkg/unitest/unitest_run.c
+	$(COMPILE) $(CFLAGS_CUNIT) -c $< -o $@
+
+unitest_rbtree.o:	tpkg/unitest/unitest_rbtree.c
+	$(COMPILE) $(CFLAGS_CUNIT) -c $< -o $@
 
 zlexer.c:	zlexer.lex
 	$(LEX) -i -o$@ zlexer.lex

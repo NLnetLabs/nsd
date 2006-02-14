@@ -281,6 +281,38 @@ AC_SEARCH_LIBS(socket, [socket])
 
 AC_SEARCH_LIBS(dlopen, [dl])
 
+AC_DEFUN([CHECK_LIB_CUNIT], [
+    AC_ARG_WITH(cunit, AC_HELP_STRING([--with-cunit=pathname],
+                                    [use cunit for unit tests(will check /usr/local
+				    /usr /usr/pkg)]),[
+        ],[
+            withval="yes"
+        ])
+    if test x_$withval != x_no; then
+        AC_MSG_CHECKING(for CUnit)
+        if test x_$withval = x_ -o x_$withval = x_yes; then
+            withval="/usr/local /usr /usr/pkg"
+        fi
+        for dir in $withval; do
+            thedir="$dir"
+            if test -f "$thedir/include/CUnit/Basic.h"; then
+                found_it="yes";
+                break;
+            fi
+        done 
+        if test x_$found_it != x_yes; then
+            AC_MSG_RESULT(no)
+        else
+            AC_MSG_RESULT(found in $thedir)
+            CFLAGS_CUNIT="-I$thedir/include";
+            LIBCUNIT="$LDFLAGS -L$thedir/lib -lcunit";
+        fi
+    fi
+])dnl
+CHECK_LIB_CUNIT
+AC_SUBST(LIBCUNIT)
+AC_SUBST(CFLAGS_CUNIT)
+
 dnl LIBGTOP_CHECK_TYPE
 dnl Stolen from Gnome's anjuta
 dnl Improved version of AC_CHECK_TYPE which takes into account
