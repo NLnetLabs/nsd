@@ -3,6 +3,9 @@
 	log
 	31 jan 06 (WW): created file.
 */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -12,11 +15,11 @@ void reg_unitest_rbtree(void);
 
 /* dummy functions to link */
 struct nsd;
-int writepid(struct nsd * nsd)
+int writepid(struct nsd * ATTR_UNUSED(nsd))
 {
 	return 0;
 }
-void bind8_stats(struct nsd * nsd)
+void bind8_stats(struct nsd * ATTR_UNUSED(nsd))
 {
 }
 
@@ -33,10 +36,10 @@ void ShowSummary(void)
 		return;
 	}
 	
-	printf("Unittest  Total     Ran  Passed  Failed\n"
-               "suites %8u%8u%8u%8u\n"
-               "tests  %8u%8u%8u%8u\n"
-               "asserts%8u%8u%8u%8u\n",
+	printf("Unittest         Total            Ran         Passed         Failed\n"
+               "suites %15u%15u%15u%15u\n"
+               "tests  %15u%15u%15u%15u\n"
+               "asserts%15u%15u%15u%15u\n",
 		pRegistry->uiNumberOfSuites,
 		pRunSummary->nSuitesRun,
 		pRegistry->uiNumberOfSuites-pRunSummary->nSuitesFailed,
@@ -77,10 +80,8 @@ void ShowErrors(void)
  * Returns a CUE_SUCCESS on successful running, another
  * CUnit error code on failure.
  */
-int main()
+int main(int argc, const char *argv[])
 {
-	CU_pSuite pSuite = NULL;
-
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
 	{
@@ -94,7 +95,10 @@ int main()
 	/* set to silent, so that CUnit does not show a big banner ad */
 	/* set to VERBOSE for more detailed output */
 	/* CU_BRM_VERBOSE or SILENT or NORMAL */
-	CU_basic_set_mode(CU_BRM_SILENT);
+	if(argc>=2 && strcmp(argv[1], "-q")==0)
+		CU_basic_set_mode(CU_BRM_SILENT);
+	else CU_basic_set_mode(CU_BRM_VERBOSE);
+
 	/* Run all tests using the CUnit Basic interface */
 	if(CU_basic_run_tests() != CUE_SUCCESS)
 	{
@@ -104,7 +108,8 @@ int main()
 		return 1;
 	}
 
-	ShowSummary();
+	if(CU_basic_get_mode() == CU_BRM_SILENT)
+		ShowSummary();
 
 	if(CU_get_number_of_failures() > 0)
 	{

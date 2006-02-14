@@ -42,7 +42,7 @@ struct rbtree_t {
 	/* Current node for walks... */
 	rbnode_t    *_node;
 
-	/* Key compare function */
+	/* Key compare function. <0,0,>0 like strcmp. Return 0 on two NULL ptrs. */
 	int (*cmp) (const void *, const void *);
 };
 
@@ -50,6 +50,8 @@ struct rbtree_t {
 rbtree_t *rbtree_create(region_type *region, int (*cmpf)(const void *, const void *));
 rbnode_t *rbtree_insert(rbtree_t *rbtree, rbnode_t *data);
 rbnode_t *rbtree_search(rbtree_t *rbtree, const void *key);
+/* returns true if exact match in result. Else result points to <= element,
+   or NULL if key is smaller than the smallest key. */
 int rbtree_find_less_equal(rbtree_t *rbtree, const void *key, rbnode_t **result);
 rbnode_t *rbtree_first(rbtree_t *rbtree);
 rbnode_t *rbtree_last(rbtree_t *rbtree);
