@@ -7,7 +7,6 @@ BUG FIXES:
 	  after a timeout.
         - Bug #124: $(DESTDIR) was added to Makefile.in. 
 	- Bug #128: zonec: parser can handle \\ at the end of a string.
-        - nsd: silently discard udp packets with source port 0
 
 2.3.4
 =============
