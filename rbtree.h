@@ -49,6 +49,9 @@ struct rbtree_t {
 /* rbtree.c */
 rbtree_t *rbtree_create(region_type *region, int (*cmpf)(const void *, const void *));
 rbnode_t *rbtree_insert(rbtree_t *rbtree, rbnode_t *data);
+/* returns node that is now unlinked from the tree. User to delete it. 
+ * returns 0 if node not present */
+rbnode_t *rbtree_delete(rbtree_t *rbtree, const void *key);
 rbnode_t *rbtree_search(rbtree_t *rbtree, const void *key);
 /* returns true if exact match in result. Else result points to <= element,
    or NULL if key is smaller than the smallest key. */

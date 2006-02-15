@@ -28,6 +28,8 @@ rbnode_t	rbtree_null_node = {
 static void rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node);
 static void rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node);
 static void rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node);
+static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* to_delete, rbnode_t* child, 
+	rbnode_t* child_parent);
 
 /*
  * Creates a new red black tree, intializes and returns a pointer to it.
@@ -240,6 +242,128 @@ rbtree_search (rbtree_t *rbtree, const void *key)
 		return node;
 	} else {
 		return NULL;
+	}
+}
+
+/* helpers for delete */
+static void swap_int8(uint8_t* x, uint8_t* y) { uint8_t t = *x; *x = *y; *y = t; }
+static void swap_np(rbnode_t** x, rbnode_t** y) { rbnode_t* t = *x; *x = *y; *y = t; }
+static void change_parent_ptr(rbtree_t* rbtree, rbnode_t* parent, rbnode_t* old, rbnode_t* new)
+{
+	if(parent == RBTREE_NULL)
+	{
+		assert(rbtree->root == old);
+		if(rbtree->root == old) rbtree->root = new;
+		return;
+	}
+	assert(parent->left == old || parent->right == old
+		|| parent->left == new || parent->right == new);
+	if(parent->left == old) parent->left = new;
+	if(parent->right == old) parent->right = new;
+}
+static void change_child_ptr(rbnode_t* child, rbnode_t* old, rbnode_t* new)
+{
+	if(child == RBTREE_NULL) return;
+	assert(child->parent == old || child->parent == new);
+	if(child->parent == old) child->parent = new;
+}
+
+rbnode_t* 
+rbtree_delete(rbtree_t *rbtree, const void *key)
+{
+	rbnode_t *to_delete;
+	rbnode_t *child;
+	if((to_delete = rbtree_search(rbtree, key)) == 0) return 0;
+	rbtree->count--;
+
+	/* make sure we have at most one non-leaf child */
+	if(to_delete->left != RBTREE_NULL && to_delete->right != RBTREE_NULL)
+	{
+		/* swap with smallest from right subtree (or largest from left) */
+		rbnode_t *smright = to_delete->right;
+		while(smright->left != RBTREE_NULL)
+			smright = smright->left;
+		/* swap the smright and to_delete elements in the tree,
+		 * but the rbnode_t is first part of user data struct
+		 * so cannot just swap the keys and data pointers. Instead
+		 * readjust the pointers left,right,parent */
+
+		/* swap colors - colors are tied to the position in the tree */
+		swap_int8(&to_delete->color, &smright->color);
+
+		/* swap child pointers in parents of smright/to_delete */
+		change_parent_ptr(rbtree, to_delete->parent, to_delete, smright);
+		if(to_delete->right != smright)
+			change_parent_ptr(rbtree, smright->parent, smright, to_delete);
+
+		/* swap parent pointers in children of smright/to_delete */
+		change_child_ptr(smright->left, smright, to_delete);
+		change_child_ptr(smright->left, smright, to_delete);
+		change_child_ptr(smright->right, smright, to_delete);
+		change_child_ptr(smright->right, smright, to_delete);
+		change_child_ptr(to_delete->left, to_delete, smright);
+		if(to_delete->right != smright)
+			change_child_ptr(to_delete->right, to_delete, smright);
+		if(to_delete->right == smright)
+		{
+			/* set up so after swap they work */
+			to_delete->right = to_delete;
+			smright->parent = smright;
+		}
+
+		/* swap pointers in to_delete/smright nodes */
+		swap_np(&to_delete->parent, &smright->parent);
+		swap_np(&to_delete->left, &smright->left);
+		swap_np(&to_delete->right, &smright->right);
+
+		/* now delete to_delete (which is at the location where the smright previously was) */
+	}
+	assert(to_delete->left == RBTREE_NULL || to_delete->right == RBTREE_NULL);
+
+	if(to_delete->left != RBTREE_NULL) child = to_delete->left;
+	else child = to_delete->right;
+
+	/* unlink to_delete from the tree, replace to_delete with child */
+	change_parent_ptr(rbtree, to_delete->parent, to_delete, child);
+	change_child_ptr(child, to_delete, to_delete->parent);
+
+	rbtree_delete_fixup(rbtree, to_delete, child, to_delete->parent);
+
+	/* unlink completely */
+	to_delete->parent = RBTREE_NULL;
+	to_delete->left = RBTREE_NULL;
+	to_delete->right = RBTREE_NULL;
+	to_delete->color = BLACK;
+	return to_delete;
+}
+
+static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* to_delete, rbnode_t* child,
+      rbnode_t* child_parent)
+{
+	rbnode_t* sibling;
+	if(to_delete->color == RED)
+	{
+		/* if node is red then the child (black) can be swapped in */
+		return;
+	}
+	else if(child->color == RED)
+	{
+		/* change child to BLACK, removing a RED node is no problem */
+		child->color = BLACK;
+		return;
+	}
+	else if(child_parent == RBTREE_NULL)
+	{
+		/* removed parent==black from root, every path, so ok */
+		return;
+	}
+
+	if(child_parent->right == child) sibling = child_parent->left;
+	else sibling = child_parent->left;
+
+	if(0)
+	{
+		/* TODO */
 	}
 }
 
