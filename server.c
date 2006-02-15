@@ -883,18 +883,18 @@ server_child(struct nsd *nsd)
 				    sizeof(parent_notify)) == -1)
 				{
 					log_msg(LOG_ERR, "problems sending command from %d to parent: %s",
-					(int) nsd->this_child->pid,
-					strerror(errno));
+						(int) nsd->this_child->pid, strerror(errno));
 				}
 			} else while (waitpid(0, NULL, WNOHANG) > 0) /* no parent, so reap 'em */;
 			nsd->mode = NSD_RUN;
 		}
-
-		/* Wait for a query... */
-		if (netio_dispatch(netio, NULL, NULL) == -1) {
-			if (errno != EINTR) {
-				log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
-				break;
+		else if(mode == NSD_RUN) {
+			/* Wait for a query... */
+			if (netio_dispatch(netio, NULL, NULL) == -1) {
+				if (errno != EINTR) {
+					log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
+					break;
+				}
 			}
 		}
 	}
