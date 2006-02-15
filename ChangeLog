@@ -2,6 +2,7 @@
    * Wouter: Fixed server_child would wait for two kill signals before quit.
    * Miek: don't check for port==0 pkt, just try to send them. 
 	Forward Port of 2.3.
+   * Wouter: Removed unused, not substituted, @nsdxfer@ from Makefile.in.
 
 14 Feb 2005: Wouter
 	- Added unit tests for rbtree. Extensive testing of all functions.
