@@ -348,38 +348,47 @@ rbtree_delete(rbtree_t *rbtree, const void *key)
 static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* child, rbnode_t* child_parent)
 {
 	rbnode_t* sibling;
-	if(child_parent == RBTREE_NULL)
-	{
-		/* removed parent==black from root, every path, so ok */
-		return;
-	}
+	int go_up = 1;
 
 	/* determine sibling to the node that is one-black short */
 	if(child_parent->right == child) sibling = child_parent->left;
 	else sibling = child_parent->right;
 
-	if(sibling->color == RED)
-	{	/* rotate to get a black sibling */
-		child_parent->color = RED;
-		sibling->color = BLACK;
-		if(child_parent->right == child)
-			rbtree_rotate_right(rbtree, child_parent);
-		else	rbtree_rotate_left(rbtree, child_parent);
-		/* new sibling after rotation */
-		if(child_parent->right == child) sibling = child_parent->left;
-		else sibling = child_parent->right;
-	}
+	while(go_up)
+	{
+		if(child_parent == RBTREE_NULL)
+		{
+			/* removed parent==black from root, every path, so ok */
+			return;
+		}
 
-	if(child_parent->color == BLACK 
-		&& sibling->color == BLACK
-		&& sibling->left->color == BLACK
-		&& sibling->right->color == BLACK) 
-	{	/* fixup local with recolor of sibling */
-		if(sibling != RBTREE_NULL)
-			sibling->color = RED;
-		/* recurse up for fixup others. */
-		rbtree_delete_fixup(rbtree, child_parent, child_parent->parent);
-		return;
+		if(sibling->color == RED)
+		{	/* rotate to get a black sibling */
+			child_parent->color = RED;
+			sibling->color = BLACK;
+			if(child_parent->right == child)
+				rbtree_rotate_right(rbtree, child_parent);
+			else	rbtree_rotate_left(rbtree, child_parent);
+			/* new sibling after rotation */
+			if(child_parent->right == child) sibling = child_parent->left;
+			else sibling = child_parent->right;
+		}
+
+		if(child_parent->color == BLACK 
+			&& sibling->color == BLACK
+			&& sibling->left->color == BLACK
+			&& sibling->right->color == BLACK)
+		{	/* fixup local with recolor of sibling */
+			if(sibling != RBTREE_NULL)
+				sibling->color = RED;
+
+			child = child_parent;
+			child_parent = child_parent->parent;
+			/* prepare to go up, new sibling */
+			if(child_parent->right == child) sibling = child_parent->left;
+			else sibling = child_parent->right;
+		}
+		else go_up = 0;
 	}
 
 	if(child_parent->color == RED

@@ -1,5 +1,6 @@
 17 Feb 2005: Wouter
 	- rbtree_delete is added and works. Unit tests are there too.
+	- Changed tail recursion in rbtree_delete to while loop.
 
 15 Feb 2005: nsd-team
    * Wouter: Fixed server_child would wait for two kill signals before quit.
