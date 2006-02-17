@@ -1,6 +1,9 @@
 17 Feb 2005: Wouter
 	- rbtree_delete is added and works. Unit tests are there too.
 	- Changed tail recursion in rbtree_delete to while loop.
+	- Tagged this version as NSD_3_signalsocket_solution.
+	  It is the stable 2_2 branch with cleanups, portable, and
+	  signalhandler solution by socket communication redesign.
 
 15 Feb 2005: nsd-team
    * Wouter: Fixed server_child would wait for two kill signals before quit.
