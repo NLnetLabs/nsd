@@ -136,9 +136,10 @@ static void tree_print_safe_sub(struct testnode* node)
 		return;
 	}
 	printf("Tree node (%x): ", (int)node);
-	printf("parent=%x. left=%x. right=%x. key=%x. Color=%x. x=%d\n",
+	printf("parent=%x. left=%x. right=%x. key=%x(%d). Color=%x. x=%d\n",
 		(int)node->node.parent, (int)node->node.left, (int)node->node.right, 
-		(int)node->node.key, node->node.color, node->x);
+		(int)node->node.key, node->node.key?*(int*)node->node.key:-1,
+		node->node.color, node->x);
 	tree_print_safe_sub((struct testnode*)node->node.left);
 	tree_print_safe_sub((struct testnode*)node->node.right);
 }
@@ -195,19 +196,6 @@ static int AddRandomElement(rbtree_t* tree, int maxval)
 	t = (struct testnode*) region_alloc(reg, sizeof(struct testnode));
 	t->node = *RBTREE_NULL;
 	t->x = GetTestValue(maxval);
-	t->node.key = &t->x;
-	rbtree_insert((rbtree_t*)tree, (rbnode_t*)t);
-	CU_ASSERT(rbtree_insert((rbtree_t*)tree, (rbnode_t*)t) == 0);
-	return t->x;
-}
-
-static int AddElement(rbtree_t* tree, int val)
-{	
-	struct testnode *t;
-
-	t = (struct testnode*) region_alloc(reg, sizeof(struct testnode));
-	t->node = *RBTREE_NULL;
-	t->x = val;
 	t->node.key = &t->x;
 	rbtree_insert((rbtree_t*)tree, (rbnode_t*)t);
 	CU_ASSERT(rbtree_insert((rbtree_t*)tree, (rbnode_t*)t) == 0);
@@ -313,7 +301,7 @@ static void test_tree_RBvalues_countB(rbnode_t *node, int Bcount, int *min, int 
 
 static void test_tree_RBvalues_sub1(rbnode_t* node)
 {
-	int min, max;
+	int min_black_nodes, max_black_nodes;
 	CU_ASSERT(node->color == 0 || node->color == 1);
 	if(node == RBTREE_NULL) return;
 
@@ -327,9 +315,9 @@ static void test_tree_RBvalues_sub1(rbnode_t* node)
 	/*All paths from any given node to its leaf nodes contain the same number of black nodes.*/
 	/* so count the min number of black nodes to leaf nodes and max number */
 	/* note this makes the test O(N^2) */
-	min = -1; max = -1;
-	test_tree_RBvalues_countB(node, 0, &min, &max);
-	CU_ASSERT(min == max);
+	min_black_nodes = -1; max_black_nodes = -1;
+	test_tree_RBvalues_countB(node, 0, &min_black_nodes, &max_black_nodes);
+	CU_ASSERT(min_black_nodes == max_black_nodes);
 
 	test_tree_RBvalues_sub1(node->left);
 	test_tree_RBvalues_sub1(node->right);
@@ -501,8 +489,10 @@ static void test_add_remove(rbtree_t* tree, const int* insert, const int* remove
 	size_t num_added = 0;
 	const int* p = insert;
 	size_t i;
+	int verbose = 0;
+	struct testnode nodes[20];
 
-	if(1)
+	if(verbose)
 	{
 		const int *p;
 		printf("AddRemoveTest in={");
@@ -514,25 +504,40 @@ static void test_add_remove(rbtree_t* tree, const int* insert, const int* remove
 
 	while(*p != -1)
 	{
-		AddElement(tree, *p);
+		struct testnode* t=&nodes[num_added];
+		t->node = *RBTREE_NULL;
+		t->x = *p;
+		t->node.key = &t->x;
+		rbtree_insert((rbtree_t*)tree, (rbnode_t*)t);
 		test_tree_integrity(tree);
 		num_added ++;
+		CU_ASSERT(num_added < 20);
+		if(num_added>=20) return;
 		p++;
 	}
 
 	CU_ASSERT(tree->count == num_added);
-	if(0) {printf("Added "); tree_print(tree);}
+	if(verbose) {printf("Added "); tree_print(tree);}
 
 	/* delete in order of (index) in remove array */
 	for(i=0; i<num_added; i++)
 	{
 		CU_ASSERT(remove[i] != -1);
-		if(1){ printf("i=%d/%d removing %d\n", i, num_added, insert[remove[i]]); tree_print(tree); }
+		if(verbose){ printf("i=%d/%d removing %d\n", i, num_added, insert[remove[i]]); tree_print(tree); }
 		rbtree_delete(tree, &insert[remove[i]]);
 		CU_ASSERT(tree->count == num_added - i - 1);
 		test_tree_integrity(tree);
 		CU_ASSERT(rbtree_search(tree, &insert[remove[i]]) == 0);
+
+		/* stop on any errors */
+		if(CU_get_number_of_failures() > 0) {
+			printf("Errors, stop \n");
+			tree_print(tree);
+			return;
+		}
 	}
+	/* all local elements must be gone now */
+	CU_ASSERT(tree->count == 0);
 }
 
 static void fillperm(int d, int **perm, size_t* curx, int cury)
@@ -643,15 +648,57 @@ static void rbtree_9(void)
 		int **perm;
 		size_t num;
 		size_t i, j;
-		int d = 4;
-		num = makepermutations(d, &perm);
-		printf("Trying d=%d num=%d\n", d, (int)num);
-		for(i=0; i<num; i++)
+		int d;
+
+		for(d=4; d<6; d++)
+		{
+		    num = makepermutations(d, &perm);
+		    if(0) printf("Trying d=%d num=%d\n", d, (int)num);
+		    for(i=0; i<num; i++)
 			for(j=0; j<num; j++)
+			{
 				test_add_remove(t, perm[i], perm[j]);
+				/* stop on any errors */
+				if(CU_get_number_of_failures() > 0) {
+					printf("Errors, stop \n");
+					return;
+				}
+			}
+		}
 	}
 }
 
 static void rbtree_10(void)
 {
+	/* start a random add/delete sequence to simulate usage */
+	size_t num_iter = 10000;
+	int maxnum = 100;
+	int p_add = 50;
+	size_t i;
+
+	/* empty old tree */
+	while(tree->count > 0)
+	{
+	      /* select an element */
+	      const void* key = tree->root->key;
+	      rbtree_delete(tree, key);
+	      if(tree->count%10000==0) 
+	      {
+		      test_tree_integrity(tree);
+	      }
+	}
+
+	for(i=0; i<num_iter; i++)
+	{
+	      if(GetTestValue(100) < p_add)
+	      {
+		      AddRandomElement(tree, maxnum);
+	      }
+	      else
+	      {
+		      int key = GetTestValue(maxnum);
+		      rbtree_delete(tree, &key);
+	      }
+	      test_tree_integrity(tree);
+	}
 }

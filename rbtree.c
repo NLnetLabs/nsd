@@ -28,8 +28,7 @@ rbnode_t	rbtree_null_node = {
 static void rbtree_rotate_left(rbtree_t *rbtree, rbnode_t *node);
 static void rbtree_rotate_right(rbtree_t *rbtree, rbnode_t *node);
 static void rbtree_insert_fixup(rbtree_t *rbtree, rbnode_t *node);
-static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* to_delete, rbnode_t* child, 
-	rbnode_t* child_parent);
+static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* child, rbnode_t* child_parent);
 
 /*
  * Creates a new red black tree, intializes and returns a pointer to it.
@@ -327,7 +326,16 @@ rbtree_delete(rbtree_t *rbtree, const void *key)
 	change_parent_ptr(rbtree, to_delete->parent, to_delete, child);
 	change_child_ptr(child, to_delete, to_delete->parent);
 
-	rbtree_delete_fixup(rbtree, to_delete, child, to_delete->parent);
+	if(to_delete->color == RED)
+	{
+		/* if node is red then the child (black) can be swapped in */
+	}
+	else if(child->color == RED)
+	{
+		/* change child to BLACK, removing a RED node is no problem */
+		if(child!=RBTREE_NULL) child->color = BLACK;
+	}
+	else rbtree_delete_fixup(rbtree, child, to_delete->parent);
 
 	/* unlink completely */
 	to_delete->parent = RBTREE_NULL;
@@ -337,33 +345,97 @@ rbtree_delete(rbtree_t *rbtree, const void *key)
 	return to_delete;
 }
 
-static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* to_delete, rbnode_t* child,
-      rbnode_t* child_parent)
+static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* child, rbnode_t* child_parent)
 {
 	rbnode_t* sibling;
-	if(to_delete->color == RED)
-	{
-		/* if node is red then the child (black) can be swapped in */
-		return;
-	}
-	else if(child->color == RED)
-	{
-		/* change child to BLACK, removing a RED node is no problem */
-		child->color = BLACK;
-		return;
-	}
-	else if(child_parent == RBTREE_NULL)
+	if(child_parent == RBTREE_NULL)
 	{
 		/* removed parent==black from root, every path, so ok */
 		return;
 	}
 
+	/* determine sibling to the node that is one-black short */
 	if(child_parent->right == child) sibling = child_parent->left;
-	else sibling = child_parent->left;
+	else sibling = child_parent->right;
 
-	if(0)
+	if(sibling->color == RED)
+	{	/* rotate to get a black sibling */
+		child_parent->color = RED;
+		sibling->color = BLACK;
+		if(child_parent->right == child)
+			rbtree_rotate_right(rbtree, child_parent);
+		else	rbtree_rotate_left(rbtree, child_parent);
+		/* new sibling after rotation */
+		if(child_parent->right == child) sibling = child_parent->left;
+		else sibling = child_parent->right;
+	}
+
+	if(child_parent->color == BLACK 
+		&& sibling->color == BLACK
+		&& sibling->left->color == BLACK
+		&& sibling->right->color == BLACK) 
+	{	/* fixup local with recolor of sibling */
+		if(sibling != RBTREE_NULL)
+			sibling->color = RED;
+		/* recurse up for fixup others. */
+		rbtree_delete_fixup(rbtree, child_parent, child_parent->parent);
+		return;
+	}
+
+	if(child_parent->color == RED
+		&& sibling->color == BLACK
+		&& sibling->left->color == BLACK
+		&& sibling->right->color == BLACK) 
 	{
-		/* TODO */
+		/* move red to sibling to rebalance */
+		if(sibling != RBTREE_NULL)
+			sibling->color = RED;
+		child_parent->color = BLACK;
+		return;
+	}
+	assert(sibling != RBTREE_NULL);
+
+	/* get a new sibling, by rotating at sibling. See which child
+	   of sibling is red */
+	if(child_parent->right == child
+		&& sibling->color == BLACK
+		&& sibling->right->color == RED
+		&& sibling->left->color == BLACK)
+	{
+		sibling->color = RED;
+		sibling->right->color = BLACK;
+		rbtree_rotate_left(rbtree, sibling);
+		/* new sibling after rotation */
+		if(child_parent->right == child) sibling = child_parent->left;
+		else sibling = child_parent->right;
+	}
+	else if(child_parent->left == child
+		&& sibling->color == BLACK
+		&& sibling->left->color == RED
+		&& sibling->right->color == BLACK)
+	{
+		sibling->color = RED;
+		sibling->left->color = BLACK;
+		rbtree_rotate_right(rbtree, sibling);
+		/* new sibling after rotation */
+		if(child_parent->right == child) sibling = child_parent->left;
+		else sibling = child_parent->right;
+	}
+
+	/* now we have a black sibling with a red child. rotate and exchange colors. */
+	sibling->color = child_parent->color;
+	child_parent->color = BLACK;
+	if(child_parent->right == child)
+	{
+		assert(sibling->left->color == RED);
+		sibling->left->color = BLACK;
+		rbtree_rotate_right(rbtree, child_parent);
+	}
+	else
+	{
+		assert(sibling->right->color == RED);
+		sibling->right->color = BLACK;
+		rbtree_rotate_left(rbtree, child_parent);
 	}
 }
 

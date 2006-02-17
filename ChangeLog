@@ -1,3 +1,6 @@
+17 Feb 2005: Wouter
+	- rbtree_delete is added and works. Unit tests are there too.
+
 15 Feb 2005: nsd-team
    * Wouter: Fixed server_child would wait for two kill signals before quit.
    * Miek: don't check for port==0 pkt, just try to send them. 
