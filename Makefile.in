@@ -30,8 +30,6 @@ LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
 LIBWRAP		= @LIBWRAP@
 LIBOBJS		= @LIBOBJS@
-LIBCUNIT	= @LIBCUNIT@
-CFLAGS_CUNIT	= @CFLAGS_CUNIT@
 INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
 INSTALL_DATA	= $(INSTALL) -m 644
@@ -121,7 +119,7 @@ NSD_XFER_OBJECTS	=			\
 	tsig-openssl.o				\
 	util.o
 
-UNITEST_OBJECTS		=			\
+CUTEST_OBJECTS		=			\
 	answer.o				\
 	axfr.o					\
 	buffer.o				\
@@ -142,8 +140,9 @@ UNITEST_OBJECTS		=			\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
-	unitest_run.o				\
-	unitest_rbtree.o
+	cutest_run.o				\
+	cutest_rbtree.o 			\
+	cutest.o
 
 all:	$(TARGETS)
 
@@ -196,8 +195,8 @@ nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
-unitest:	$(UNITEST_OBJECTS)
-	$(LINK) -o $@ $(UNITEST_OBJECTS) $(LIBOBJS) $(LIBCUNIT) $(LIBWRAP) $(LIBS)
+cutest:	$(CUTEST_OBJECTS)
+	$(LINK) -o $@ $(CUTEST_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
@@ -237,11 +236,14 @@ malloc.o:	compat/malloc.c
 pselect.o:	compat/pselect.c
 	$(COMPILE) -c compat/pselect.c -o pselect.o
 
-unitest_run.o:	tpkg/unitest/unitest_run.c
-	$(COMPILE) $(CFLAGS_CUNIT) -c $< -o $@
+cutest_run.o:	tpkg/cutest/cutest_run.c
+	$(COMPILE) -c $< -o $@
 
-unitest_rbtree.o:	tpkg/unitest/unitest_rbtree.c
-	$(COMPILE) $(CFLAGS_CUNIT) -c $< -o $@
+cutest_rbtree.o:	tpkg/cutest/cutest_rbtree.c
+	$(COMPILE) -c $< -o $@
+
+cutest.o:		tpkg/cutest/CuTest.c
+	$(COMPILE) -c $< -o $@
 
 zlexer.c:	zlexer.lex
 	$(LEX) -i -o$@ zlexer.lex
@@ -327,6 +329,3 @@ inet_pton.o: compat/inet_pton.c config.h zparser.h
 malloc.o: compat/malloc.c config.h
 pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h
-tpkg/unitest/unitest_rbtree.o: tpkg/unitest/unitest_rbtree.c config.h \
-  region-allocator.h rbtree.h region-allocator.h
-tpkg/unitest/unitest_run.o: tpkg/unitest/unitest_run.c
