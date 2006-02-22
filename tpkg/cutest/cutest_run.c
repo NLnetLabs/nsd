@@ -35,7 +35,8 @@ void runalltests(void)
         printf("%s\n", output->buffer);
 }
 
-int main(int argc, const char *argv[])
+int main(void)
 {
 	runalltests();
+	return 1;
 }
