@@ -30,6 +30,7 @@ void runalltests(void)
 	CuString *output = CuStringNew();
 
 	CuSuiteRun(suite);
+
         CuSuiteSummary(suite, output);
         CuSuiteDetails(suite, output);
         printf("%s\n", output->buffer);
