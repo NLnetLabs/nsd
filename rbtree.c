@@ -245,8 +245,16 @@ rbtree_search (rbtree_t *rbtree, const void *key)
 }
 
 /* helpers for delete */
-static void swap_int8(uint8_t* x, uint8_t* y) { uint8_t t = *x; *x = *y; *y = t; }
-static void swap_np(rbnode_t** x, rbnode_t** y) { rbnode_t* t = *x; *x = *y; *y = t; }
+static void swap_int8(uint8_t* x, uint8_t* y) 
+{ 
+	uint8_t t = *x; *x = *y; *y = t; 
+}
+
+static void swap_np(rbnode_t** x, rbnode_t** y) 
+{
+	rbnode_t* t = *x; *x = *y; *y = t; 
+}
+
 static void change_parent_ptr(rbtree_t* rbtree, rbnode_t* parent, rbnode_t* old, rbnode_t* new)
 {
 	if(parent == RBTREE_NULL)
