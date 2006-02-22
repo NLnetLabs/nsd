@@ -87,7 +87,7 @@ struct netio
 
 	/*
 	 * Next handler in the dispatch. Only valid during callbacks.
-	 * To make sure that deletes respect tha state of the iterator.
+	 * To make sure that deletes respect the state of the iterator.
 	 */
 	netio_handler_list_type *dispatch_next;
 };
