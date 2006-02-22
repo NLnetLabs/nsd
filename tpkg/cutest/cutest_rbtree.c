@@ -602,7 +602,7 @@ static size_t makepermutations(CuTest *tc, int d, int ***perm)
 	      (*perm)[i] = (int*)region_alloc(reg, sizeof(int)*(d+1));
 	      memset((*perm)[i], 23, sizeof(int)*(d+1));
 	}
-	perm[num+1] = 0;
+	(*perm)[num+1] = 0;
 	i=0;
 	fillperm(d, *perm, &i, 0);
 	CuAssert(tc, "num == i", (num == i));
