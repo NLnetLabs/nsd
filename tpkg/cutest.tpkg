@@ -3,17 +3,17 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-02-14 15:01 CET by <wouter@diva.nlnetlabs.nl>.
-# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/unitest.dir'.
+# Made on 2006-02-22 13:38 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/cutest.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#    254 -rw------- unitest.dsc
-#     31 -rw------- unitest.help
-#    453 -rw------- unitest.test
+#    251 -rw------- cutest.dsc
+#     53 -rw------- cutest.help
+#    631 -rw------- cutest.test
 #
 save_IFS="${IFS}"
 IFS="${IFS}:"
@@ -63,112 +63,120 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh10546; then
+if mkdir _sh09520; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
   exit 1
 fi
-# ============= unitest.dsc ==============
-if test -f 'unitest.dsc' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'unitest.dsc' '(file already exists)'
+# ============= cutest.dsc ==============
+if test -f 'cutest.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'cutest.dsc' '(file already exists)'
 else
-  $echo 'x -' extracting 'unitest.dsc' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'unitest.dsc' &&
-BaseName: unitest
+  $echo 'x -' extracting 'cutest.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'cutest.dsc' &&
+BaseName: cutest
 Version: 1.0
 Description: Unit tests
-CreationDate: Tue Feb 14 14:48:25 CET 2006
+CreationDate: Wed Feb 22 13:33:36 CET 2006
 Maintainer: Miek Gieben
 Category: 
 Component:
 Depends: 0000_nsd-compile.tpkg
-Help: unitest.help
+Help: cutest.help
 Pre: 
 Post: 
-Test: unitest.test
+Test: cutest.test
 AuxFiles: 
 Passed:
 Failure:
 SHAR_EOF
-  (set 20 06 02 14 14 50 33 'unitest.dsc'; eval "$shar_touch") &&
-  chmod 0600 'unitest.dsc' ||
-  $echo 'restore of' 'unitest.dsc' 'failed'
+  (set 20 06 02 22 13 34 10 'cutest.dsc'; eval "$shar_touch") &&
+  chmod 0600 'cutest.dsc' ||
+  $echo 'restore of' 'cutest.dsc' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'unitest.dsc:' 'MD5 check failed'
-ebbe2db6a85c3eeeba60397f7b33ef84  unitest.dsc
+    || $echo 'cutest.dsc:' 'MD5 check failed'
+f92205fb8ce843b6b45d10abaaf49fff  cutest.dsc
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'unitest.dsc'`"
-    test 254 -eq "$shar_count" ||
-    $echo 'unitest.dsc:' 'original size' '254,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'cutest.dsc'`"
+    test 251 -eq "$shar_count" ||
+    $echo 'cutest.dsc:' 'original size' '251,' 'current size' "$shar_count!"
   fi
 fi
-# ============= unitest.help ==============
-if test -f 'unitest.help' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'unitest.help' '(file already exists)'
+# ============= cutest.help ==============
+if test -f 'cutest.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'cutest.help' '(file already exists)'
 else
-  $echo 'x -' extracting 'unitest.help' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'unitest.help' &&
-This test runs the unit tests.
+  $echo 'x -' extracting 'cutest.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'cutest.help' &&
+This test runs the unit tests. No arguments required
 SHAR_EOF
-  (set 20 06 02 14 14 47 36 'unitest.help'; eval "$shar_touch") &&
-  chmod 0600 'unitest.help' ||
-  $echo 'restore of' 'unitest.help' 'failed'
+  (set 20 06 02 22 13 34 18 'cutest.help'; eval "$shar_touch") &&
+  chmod 0600 'cutest.help' ||
+  $echo 'restore of' 'cutest.help' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'unitest.help:' 'MD5 check failed'
-03de236e322d5e6d868bb08f31a57716  unitest.help
+    || $echo 'cutest.help:' 'MD5 check failed'
+f2dde204f52082a0a5bd533a86e73668  cutest.help
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'unitest.help'`"
-    test 31 -eq "$shar_count" ||
-    $echo 'unitest.help:' 'original size' '31,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'cutest.help'`"
+    test 53 -eq "$shar_count" ||
+    $echo 'cutest.help:' 'original size' '53,' 'current size' "$shar_count!"
   fi
 fi
-# ============= unitest.test ==============
-if test -f 'unitest.test' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'unitest.test' '(file already exists)'
+# ============= cutest.test ==============
+if test -f 'cutest.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'cutest.test' '(file already exists)'
 else
-  $echo 'x -' extracting 'unitest.test' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'unitest.test' &&
+  $echo 'x -' extracting 'cutest.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'cutest.test' &&
 # source the var file when it's there
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # svnserve resets the path, you may need to adjust it, like this:
 export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
 X
 # compile the unit tests.
-if (cd ../..; gmake unitest); then
-X	echo compiled unit test;
-else
-X	exit 1;
-fi
+X
+case $OSTYPE in
+X        linux*)
+X        if (cd ../..; make cutest); then
+X                echo compiled unit test;
+X        else
+X                exit 1;
+X        fi
+X
+X        ;;
+X        freebsd*)
+X        if (cd ../..; gmake cutest); then
+X                echo compiled unit test;
+X        else
+X                exit 1;
+X        fi
+X        ;;
+esac
 X
 # run the unit tests.
-X../../unitest | tee out_test
-if grep "All unittests OK" out_test; then
-X	exit 0;
-else
-X	exit 1;
-fi
+X../../cutest
 SHAR_EOF
-  (set 20 06 02 14 15 00 13 'unitest.test'; eval "$shar_touch") &&
-  chmod 0600 'unitest.test' ||
-  $echo 'restore of' 'unitest.test' 'failed'
+  (set 20 06 02 22 13 37 57 'cutest.test'; eval "$shar_touch") &&
+  chmod 0600 'cutest.test' ||
+  $echo 'restore of' 'cutest.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'unitest.test:' 'MD5 check failed'
-ed822d9b170582f0faef10ffb788fe9c  unitest.test
+    || $echo 'cutest.test:' 'MD5 check failed'
+8222dc3025f37a40eb94b739be456601  cutest.test
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'unitest.test'`"
-    test 453 -eq "$shar_count" ||
-    $echo 'unitest.test:' 'original size' '453,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'cutest.test'`"
+    test 631 -eq "$shar_count" ||
+    $echo 'cutest.test:' 'original size' '631,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh10546
+rm -fr _sh09520
 exit 0
