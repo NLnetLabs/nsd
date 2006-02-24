@@ -1,0 +1,27 @@
+DIFF support file format.
+
+This file contains changes to the main NSD-DATABASE file.
+
+Diff file:
+- Magic "NSDdfV01"
+- CRC32 of base database.
+
+Parts, each part has
+- 32 bits type field.
+- 32 bits length field.
+- length bytes of content.
+- 32 bits repeat of the length field. (wrong=error).
+
+TYPE="IXFR"
+contents is IXFR packet contents (the RRs). 
+(or contents is AXFR, since IXFR spec allows for that)
+without a SURE part, it is probably sent with bad tsig.
+
+TYPE="SURE"
+contents is:
+a) zone apex that is committed (OK). IXFR for zone must be before.
+b) new SOA serial that is OK.
+c) commit=1(IXFR is OK) or rollback=0(ignore that IXFR) (1byte). 
+
+Unknown types are an error.
+A part truncated by EOF must be ignored.

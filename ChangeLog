@@ -6,6 +6,8 @@
 	- Added crc at end of NSD-database format. Unique per db.
 	  upped db version to 7 because of this.
 	- Tested that crcs are big/little endian correct.
+	- Added DIFF file spec
+	- updated tpkg213 which compares md5 on a zonefile for new format.
 
 22 Feb 2005: nsd-team
    * Miek: Changed over to Cutest testing framework.
