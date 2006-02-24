@@ -131,6 +131,10 @@ void *xrealloc(void *ptr, size_t size);
  */
 int write_data(FILE *file, const void *data, size_t size);
 
+/*
+ * like write_data, but keeps track of crc
+ */
+int write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc);
 
 /*
  * Copy data allowing for unaligned accesses in network byte order

@@ -545,3 +545,10 @@ uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len)
 		COMPUTE(crc, data[i]);
 	return crc;
 }
+
+int write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc)
+{
+	int ret = write_data(file, data, size);
+	*crc = compute_crc(*crc, (uint8_t*)data, size);
+	return ret;
+}

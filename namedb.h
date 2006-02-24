@@ -16,7 +16,7 @@
 #include "dns.h"
 #include "rbtree.h"
 
-#define	NAMEDB_MAGIC		"NSDdbV06"
+#define	NAMEDB_MAGIC		"NSDdbV07"
 #define	NAMEDB_MAGIC_SIZE	8
 
 typedef union rdata_atom rdata_atom_type;
@@ -206,6 +206,7 @@ struct namedb
 	zone_type         *zones;
 	char              *filename;
 	FILE              *fd;
+	uint32_t	  crc;
 };
 
 static inline int rdata_atom_is_domain(uint16_t type, size_t index);

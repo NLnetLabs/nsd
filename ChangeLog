@@ -3,6 +3,9 @@
 	- in cutest.tpkg the number of unit tests was hardcoded
 	  in the tpkg package. Removed the dependency, cutest exit
 	  value indicates if any failures happened.
+	- Added crc at end of NSD-database format. Unique per db.
+	  upped db version to 7 because of this.
+	- Tested that crcs are big/little endian correct.
 
 22 Feb 2005: nsd-team
    * Miek: Changed over to Cutest testing framework.

@@ -286,6 +286,7 @@ namedb_open (const char *filename)
 	db->domains = domain_table_create(db->region);
 	db->zones = NULL;
 	db->filename = region_strdup(db->region, filename);
+	db->crc = 0xffffffff;
 	
 	/* Open it... */
 	db->fd = fopen(db->filename, "r");
@@ -385,6 +386,11 @@ namedb_open (const char *filename)
 	
 	region_destroy(temp_region);
 	
+	if (!read_size(db, &db->crc)) {
+		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		namedb_close(db);
+		return NULL;
+	}
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);
