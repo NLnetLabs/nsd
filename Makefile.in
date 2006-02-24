@@ -173,13 +173,14 @@ install: all
 	$(INSTALL_DATA) zonec.8 $(DESTDIR)$(mandir)/man8
 	$(INSTALL_DATA) nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8
 	$(INSTALL_DATA) nsd-xfer.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
+	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	$(INSTALL_DATA) nsdc.conf.sample $(DESTDIR)$(configfile).sample
 	$(INSTALL_DATA) nsd.zones.sample $(DESTDIR)$(zonesfile).sample
 
 uninstall:
 	@echo
 	rm -f -- $(DESTDIR)$(sbindir)/nsd $(DESTDIR)$(sbindir)/zonec $(DESTDIR)$(sbindir)/nsdc $(DESTDIR)$(sbindir)/nsd-notify $(DESTDIR)$(sbindir)/nsd-xfer
-	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man8/nsdc.8 $(DESTDIR)$(mandir)/man8/zonec.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
+	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man8/nsdc.8 $(DESTDIR)$(mandir)/man8/zonec.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	rm -f -- $(DESTDIR)$(pidfile) $(DESTDIR)$(dbfile)
 	@echo
 	@echo "You still need to remove $(DESTDIR)$(configdir) directory by hand."

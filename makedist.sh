@@ -149,6 +149,7 @@ replace_all nsd.8
 replace_all nsdc.8
 replace_all nsd-notify.8
 replace_all zonec.8
+replace_all nsd.conf.5
 
 info "Renaming NSD directory to nsd-$version."
 cd ..

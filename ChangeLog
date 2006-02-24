@@ -8,6 +8,7 @@
 	- Tested that crcs are big/little endian correct.
 	- Added DIFF file spec
 	- updated tpkg213 which compares md5 on a zonefile for new format.
+	- added nsd.conf.5 manual page with a draft contents.
 
 22 Feb 2005: nsd-team
    * Miek: Changed over to Cutest testing framework.

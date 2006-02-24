@@ -1,0 +1,316 @@
+.\"
+.\" nsd.conf.5 -- nsd.conf manual
+.\"
+.\" Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+.\"
+.\" See LICENSE for the license.
+.\"
+.\"
+.Dd @date@
+.Os FreeBSD
+.Dt nsd.conf 5 
+.Sh NAME
+.Nm nsd.conf
+.Nd NSD configuration file.
+.Sh SYNOPSIS
+.Nm nsd.conf
+.Sh DESCRIPTION
+.Ic nsd.conf
+is used to configure 
+.Xr nsd 8 .
+The file format has attributes and values. Some attributes have attributes inside them. 
+The notation is attribute: value. Comments start with # and last to the end of line.
+.Ic nsd.conf
+specifies options for the nsd server, zone files, primaries and secondaries.
+.El
+.Sh EXAMPLE
+An example of a short nsd.conf file is below.
+
+.nf
+# Example.com nsd.conf file
+# This is a comment.
+server:
+	database: "/etc/nsd/nsd.db"
+	username: nsd
+	logfile: "/var/log/nsdlogfile.log"
+	pidfile: "/var/pid/nsd.pid"
+
+zone:
+	name: example.com
+	# note that quotes are optional on the value
+	zonefile: /etc/nsd/example.com.zone 
+.fi
+
+.El
+.Sh FILE FORMAT
+There must be whitespace between keywords. Attribute keywords end with a colon ':'. An attribute
+is followed by its containing attributes, or a value. 
+.Pp
+At the top level only 
+.Ic server:
+or
+.Ic zone: 
+or 
+.Ic key: 
+are allowed. These are followed by their
+attributes or the start of a new 
+.Ic server:
+or
+.Ic zone: 
+or 
+.Ic key: 
+clause.
+The 
+.Ic zone:
+attribute is followed by zone options. The 
+.Ic server: 
+attribute is followed 
+by global options for the 
+.Ic NSD 
+server. A 
+.Ic key: 
+attribute is used to define keys for authentication.
+
+.Ss Server Options
+The global options (if not overridden from the NSD commandline) are taken 
+from the 
+.Ic server: 
+clause.  There may only be one 
+.Ic server: 
+clause.
+
+.Bl -tag -width indent
+.It \fBip-address:\fR <ip4 or ip6>
+NSD will bind to the listed ip-address. Can be give multiple times to bind multiple ip-addresses.
+If none are given NSD listens to all IP addresses. Same as commandline option -a.
+.It \fBdebug-mode:\fR <yes or no>
+Turns on debugging mode for nsd, does not fork a daemon process. Default is no. 
+Same as commandline option -d.
+.It \fBip4-only:\fR <yes or no>
+If yes, NSD only listens to IPv4 connections. Same as commandline option -4.
+.It \fBip6-only:\fR <yes or no>
+If yes, NSD only listens to IPv6 connections. Same as commandline option -6.
+.It \fBdatabase:\fR <filename>
+By default '/etc/nsd/nsd.db' is used. The specified file is used to store the compiled 
+zone information. Same as commandline option -f.
+.It \fBidentity:\fR <string>
+Returns the specified identity when asked for CH TXT ID.SERVER. Default is the name
+as returned by 
+.Xr gethostname 3 .
+Same as commandline option -i.
+.It \fBlogfile:\fR <filename>
+Log messages to the logfile. The default is to log to stderr and syslog. 
+Same as commandline option -l.
+.It \fBserver-count:\fR <number>
+Start this many NSD servers. Default is 1. Same as commandline option -N.
+.It \fBtcp-count:\fR <number>
+The maximum number of concurrent TCP connections by each server. Default is 10. 
+Same as commandline option -n.
+.It \fBpidfile:\fR <filename>
+Use the pid file instead of the platform specific default, usually /var/run/nsd.pid. 
+Same as commandline option -P.
+.It \fBport:\fR <number>
+Answer queries on the specified port. Default is 53. Same as commandline option -p.
+.It \fBstatistics:\fR <number>
+If not present no statistics are dumped. Statistics are produced every number seconds.
+Same as commandline option -s.
+.It \fBchroot:\fR <directory>
+NSD will chroot on startup to the specified directory. Same as commandline option -t.
+.It \fBusername:\fR <username>
+After binding the socket, drop user privileges and assume the username.
+Can be username, id or id.gid. Same as commandline option -u.
+.It \fBzonesdir:\fR <directory>
+Change the working directory to the specified directory before accessing zone files.
+Same as commandline option -d for 
+.Xr zonec 8 .
+.El
+.Ss Zone Options
+For every zone the options need to be specified in one 
+.Ic zone: 
+clause. The access control list elements can be given multiple times to 
+add multiple servers.
+.Bl -tag -width indent
+.It \fBname:\fR <string>
+The name of the zone. This is the domain name of the apex of the zone. 
+May end with a '.' (in FQDN notation).
+For example "example.com", "sub.example.net.".
+This attribute must be present in each zone.
+.It \fBzonefile:\fR <filename>
+The file containing the zone information. This file is used by 
+.Xr zonec 8 .
+This attribute must be present in each zone.
+.It \fBallow-notify:\fR <ip-spec> <key-name | NOKEY | BLOCKED>
+Access control list. The listed (primary) address is allowed to send notifies
+to this (secondary) server. Notifies from unlisted or specifically BLOCKED 
+addresses are discarded. If NOKEY is given no TSIG signature is required.
+.Pp
+The ip-spec is either a plain IP address (IPv4 or IPv6), or can be a subnet
+of the form 1.2.3.4/24, or masked like 1.2.3.4&255.255.255.0 or a range
+of the form 1.2.3.4-1.2.3.25. Note the ip-spec ranges do not use spaces
+around the /, & and - symbols.
+.It \fBrequest-xfr:\fR <ip-address> <key-name | NOKEY>
+Access control list. The listed address (the master) is queried for AXFR/IXFR 
+on update. The specified key is used during AXFR/IXFR.
+.It \fBnotify:\fR <ip-address> <key-name | NOKEY>
+Access control list. The listed address (a secondary) is notified of updates to
+this zone. The specified key is used to sign the notify. Only on secondary
+configurations will NSD be able to detect zone updates (as it gets
+notified itself, or refreshes after a time).
+.It \fBprovide-xfr:\fR <ip-spec> <key-name | NOKEY | BLOCKED>
+Access control list. The listed address (a secondary) is allowed to request
+AXFR from this server. Zone data will be provided to the address.
+The specified key is used during AXFR.
+For unlisted or BLOCKED addresses no data is provided, requests are discarded.
+.Pp
+The ip-spec is either a plain IP address (IPv4 or IPv6), or can be a subnet
+of the form 1.2.3.4/24, or masked like 1.2.3.4&255.255.255.0 or a range
+of the form 1.2.3.4-1.2.3.25. Note the ip-spec ranges do not use spaces
+around the /, & and - symbols.
+.El
+.Ss Key Declarations
+The 
+.Ic key: 
+clause establishes a key for use in access control lists. 
+It has the following attributes.
+.Bl -tag -width indent
+.It \fBname:\fR <string>
+The key name. Used to refer to this key in the access control list.
+.It \fBalgorithm:\fR <string>
+Authentication algorithm for this key.
+.It \fBsecret:\fR <base64 blob>
+The base64 encoded shared secret.
+.El
+.Sh NSD CONFIGURATION FOR BIND9 HACKERS
+BIND9 is a name server implementation with its own configuration file format,
+.Xr named.conf 5 .
+BIND9 types zones as 'Master' or 'Slave'. 
+
+.Ss Slave zones
+For a slave zone, the master servers are listed. The master servers are 
+queried for zone data, and are listened to for update notifications. 
+In NSD these two properties need to be configured seperately, by listing 
+the master address in allow-notify and request-xfr statements. 
+
+In BIND9 you only need to provide allow-notify elements for
+any extra sources of notifications (i.e. the operators), NSD needs to have
+allow-notify for both masters and operators. BIND9 allows 
+additional transfer sources, in NSD you list those as request-xfr.
+
+Here is an example of a slave zone in BIND9 syntax.
+
+.nf
+# Config file for example.org
+options {
+	dnssec-enable yes;
+};
+
+key tsig.example.org. {
+	algorithm hmac-md5;
+	secret "aaaaaabbbbbbccccccdddddd";
+};
+
+server 162.0.4.49 {
+	keys { tsig.example.org. ; };
+};
+
+zone "example.org" {
+        type slave;
+        file "secondary/example.org.signed";
+        masters { 162.0.4.49; };
+};
+.fi
+
+For NSD, DNSSEC is enabled automatically for zones that are signed. The 
+dnssec-enable statement in the options clause is not needed. In NSD keys 
+are associated with an IP address in the access control list statement,
+therefore the server{} statement is not needed. Below is the same 
+example in an NSD config file.
+
+.nf
+# Config file for example.org
+key:
+	name: tsig.example.org.
+	algorithm: hmac-md5
+	secret: "aaaaaabbbbbbccccccdddddd"
+
+zone:
+	name: "example.org"
+	zonefile: "secondary/example.org.signed"
+	# the master is allowed to notify and will provide zone data.
+	allow-notify: 162.0.4.49 NOKEY 
+	request-xfr: 162.0.4.49 tsig.example.org.
+.fi
+
+Notice that the master is listed twice, once to allow it to send notifies
+to this slave server and once to tell the slave server where to look for
+updates zone data. More allow-notify and request-xfr lines can be added
+to specify more masters.
+
+It is possible to specify extra allow-notify lines for addresses that
+are also allowed to send notifications to this slave server. 
+
+.Ss Master zones
+For a master zone in BIND9, the slave servers are listed. These slave
+servers are sent notifications of updated and are allowed to request
+transfer of the zone data. In NSD these two properties need to be configured
+seperately.
+
+Here is an example of a master zone in BIND9 syntax.
+
+.nf
+zone "example.nl" {
+	type master;
+	file "example.nl";
+};
+.fi
+
+In NSD syntax this becomes:
+
+.nf
+zone:
+	name: "example.nl"
+	file: "example.nl"
+	# allow anybody to request xfr.
+	allow-xfr: 0/0 NOKEY
+	# no notifies sent to anyone,
+	# unless the following line is uncommented.
+	# notify: 164.88.22.1 NOKEY
+
+	# to list a slave server you would in general give
+	# allow-xfr: 1.2.3.4 tsig-key.name.
+	# notify: 1.2.3.4 NOKEY
+.fi
+
+.Ss Other
+NSD is an authoritative only DNS server. This means that it is meant as a 
+primary or secondary server for zones, providing DNS data to DNS resolvers
+and caches. BIND9 can function as an authoritative DNS server, the configuration
+options for that are compared with those for NSD in this section. 
+However, BIND9 can also function as a resolver or cache. The configuration options that
+BIND9 has for the resolver or caching thus have no equivalent
+for NSD.
+
+.Sh FILES
+.Bl -tag -width indent
+.It Pa /etc/nsd/nsd.db
+default
+.Ic NSD
+database
+.It Pa /etc/nsd/nsd.conf
+default
+.Ic NSD
+configuration file
+.El
+.Sh SEE ALSO
+.Xr nsd 8 ,
+.Xr nsd-notify 8 ,
+.Xr nsd-xfer 8 ,
+.Xr nsdc 8 ,
+.Xr zonec 8
+.Sh AUTHORS
+.Ic NSD
+was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS file
+in the distribution for further details.
+.Sh BUGS
+.Ic nsd.conf
+is parsed by a primitive parser, error messages may not be to the point.
