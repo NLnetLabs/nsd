@@ -142,6 +142,7 @@ CUTEST_OBJECTS		=			\
 	util.o					\
 	cutest_run.o				\
 	cutest_rbtree.o 			\
+	cutest_util.o 				\
 	cutest.o
 
 all:	$(TARGETS)
@@ -240,6 +241,9 @@ cutest_run.o:	tpkg/cutest/cutest_run.c
 	$(COMPILE) -c $< -o $@
 
 cutest_rbtree.o:	tpkg/cutest/cutest_rbtree.c
+	$(COMPILE) -c $< -o $@
+
+cutest_util.o:	tpkg/cutest/cutest_util.c
 	$(COMPILE) -c $< -o $@
 
 cutest.o:		tpkg/cutest/CuTest.c

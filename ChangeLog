@@ -1,3 +1,13 @@
+24 Feb 2005: Wouter
+	- Added compute_crc in util.h and unit tests for it.
+
+22 Feb 2005: Miek
+	- Changed over to Cutest testing framework.
+	- fixed typo in netio.h
+	- fix syntax in rbtree.c put functions on multiple lines.
+	- unit test tpkg for cutest.
+	- Wouter: fixed ptr bug in rbtree unit test.
+
 17 Feb 2005: Wouter
 	- rbtree_delete is added and works. Unit tests are there too.
 	- Changed tail recursion in rbtree_delete to while loop.

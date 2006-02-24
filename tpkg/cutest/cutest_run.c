@@ -13,6 +13,7 @@
 #include "tpkg/cutest/CuTest.h"
 
 CuSuite * reg_cutest_rbtree(void);
+CuSuite * reg_cutest_util(void);
 
 /* dummy functions to link */
 struct nsd;
@@ -26,8 +27,11 @@ void bind8_stats(struct nsd * ATTR_UNUSED(nsd))
 
 void runalltests(void)
 {
-	CuSuite *suite = reg_cutest_rbtree();
+	CuSuite *suite = CuSuiteNew();
 	CuString *output = CuStringNew();
+
+	CuSuiteAddSuite(suite, reg_cutest_rbtree());
+	CuSuiteAddSuite(suite, reg_cutest_util());
 
 	CuSuiteRun(suite);
 

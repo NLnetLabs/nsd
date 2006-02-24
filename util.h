@@ -268,4 +268,11 @@ int hexdigit_to_int(char ch);
  */
 time_t mktime_from_utc(const struct tm *tm);
 
+/*
+ * Add bytes to given crc. Returns new CRC sum.
+ * Start crc val with 0xffffffff on first call. XOR crc with
+ * 0xffffffff at the end again to get final POSIX 1003.2 checksum.
+ */
+uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len);
+
 #endif /* _UTIL_H_ */
