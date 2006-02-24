@@ -25,7 +25,7 @@ void bind8_stats(struct nsd * ATTR_UNUSED(nsd))
 {
 }
 
-void runalltests(void)
+int runalltests(void)
 {
 	CuSuite *suite = CuSuiteNew();
 	CuString *output = CuStringNew();
@@ -38,10 +38,12 @@ void runalltests(void)
         CuSuiteSummary(suite, output);
         CuSuiteDetails(suite, output);
         printf("%s\n", output->buffer);
+	return suite->failCount;
 }
 
 int main(void)
 {
-	runalltests();
-	return 1;
+	if(runalltests() > 0)
+		return 1;
+	else return 0;
 }
