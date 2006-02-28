@@ -1,3 +1,10 @@
+28 Feb 2005: Wouter
+	- checked in options.h and config parser code.
+	- also nsd-checkconf that will test a config file 
+	  (and optionally show what was read).
+	- default identity has a spelling error.
+	- Small fix (typo in example) to config manual page.
+
 24 Feb 2005: Wouter
 	- Added compute_crc in util.h and unit tests for it.
 	- in cutest.tpkg the number of unit tests was hardcoded

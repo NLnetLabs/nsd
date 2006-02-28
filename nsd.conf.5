@@ -269,15 +269,12 @@ In NSD syntax this becomes:
 .nf
 zone:
 	name: "example.nl"
-	file: "example.nl"
+	zonefile: "example.nl"
 	# allow anybody to request xfr.
-	allow-xfr: 0/0 NOKEY
-	# no notifies sent to anyone,
-	# unless the following line is uncommented.
-	# notify: 164.88.22.1 NOKEY
+	provide-xfr: 0/0 NOKEY
 
 	# to list a slave server you would in general give
-	# allow-xfr: 1.2.3.4 tsig-key.name.
+	# provide-xfr: 1.2.3.4 tsig-key.name.
 	# notify: 1.2.3.4 NOKEY
 .fi
 
@@ -287,8 +284,7 @@ primary or secondary server for zones, providing DNS data to DNS resolvers
 and caches. BIND9 can function as an authoritative DNS server, the configuration
 options for that are compared with those for NSD in this section. 
 However, BIND9 can also function as a resolver or cache. The configuration options that
-BIND9 has for the resolver or caching thus have no equivalent
-for NSD.
+BIND9 has for the resolver or caching thus have no equivalents for NSD.
 
 .Sh FILES
 .Bl -tag -width indent

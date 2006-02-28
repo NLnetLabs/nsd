@@ -52,7 +52,7 @@ EDIT		= sed \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample
+TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample nsd-checkconf
 
 NSD_OBJECTS	=				\
 	answer.o				\
@@ -119,6 +119,14 @@ NSD_XFER_OBJECTS	=			\
 	tsig-openssl.o				\
 	util.o
 
+NSD_CHECKCONF_OBJECTS	=			\
+	nsd-checkconf.o				\
+	region-allocator.o			\
+	configlexer.o				\
+	configparser.o				\
+	options.o				\
+	util.o
+
 CUTEST_OBJECTS		=			\
 	answer.o				\
 	axfr.o					\
@@ -167,6 +175,7 @@ install: all
 	$(INSTALL) zonec $(DESTDIR)$(sbindir)/zonec
 	$(INSTALL) nsdc.sh $(DESTDIR)$(sbindir)/nsdc
 	$(INSTALL) nsd-notify $(DESTDIR)$(sbindir)/nsd-notify
+	$(INSTALL) nsd-checkconf $(DESTDIR)$(sbindir)/nsd-checkconf
 	$(INSTALL) nsd-xfer $(DESTDIR)$(sbindir)/nsd-xfer
 	$(INSTALL_DATA) nsd.8 $(DESTDIR)$(mandir)/man8
 	$(INSTALL_DATA) nsdc.8 $(DESTDIR)$(mandir)/man8
@@ -179,7 +188,7 @@ install: all
 
 uninstall:
 	@echo
-	rm -f -- $(DESTDIR)$(sbindir)/nsd $(DESTDIR)$(sbindir)/zonec $(DESTDIR)$(sbindir)/nsdc $(DESTDIR)$(sbindir)/nsd-notify $(DESTDIR)$(sbindir)/nsd-xfer
+	rm -f -- $(DESTDIR)$(sbindir)/nsd $(DESTDIR)$(sbindir)/zonec $(DESTDIR)$(sbindir)/nsdc $(DESTDIR)$(sbindir)/nsd-notify $(DESTDIR)$(sbindir)/nsd-xfer $(DESTDIR)$(sbindir)/nsd-checkconf
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man8/nsdc.8 $(DESTDIR)$(mandir)/man8/zonec.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	rm -f -- $(DESTDIR)$(pidfile) $(DESTDIR)$(dbfile)
 	@echo
@@ -194,6 +203,9 @@ zonec:	$(ZONEC_OBJECTS) $(LIBOBJS)
 nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJECTS) $(LIBOBJS) $(LIBS)
 
+nsd-checkconf:	$(NSD_CHECKCONF_OBJECTS) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_CHECKCONF_OBJECTS) $(LIBOBJS) $(LIBS)
+
 nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
@@ -206,6 +218,7 @@ clean:
 
 devclean: clean
 	rm -f zlexer.c zparser.h zparser.c zparser.stamp
+	rm -f configlexer.c configparser.h configparser.c configparser.stamp
 
 realclean: clean
 	rm -f Makefile config.h config.h.in config.log config.status configure
@@ -255,6 +268,14 @@ zlexer.c:	zlexer.lex
 
 zparser.c zparser.h: zparser.y
 	$(YACC) -d -o zparser.c zparser.y
+
+configlexer.c:	configlexer.lex
+	$(LEX) -i -oconfiglexer.c.tmp configlexer.lex
+	echo "#include \"configyyrename.h\"" > configlexer.c
+	cat configlexer.c.tmp >> configlexer.c ; rm -rf configlexer.c.tmp
+
+configparser.c configparser.h:	configparser.y
+	$(YACC) -d -o configparser.c configparser.y
 
 # Example plugin
 example-plugin.o: contrib/example-plugin.c
@@ -334,3 +355,7 @@ inet_pton.o: compat/inet_pton.c config.h zparser.h
 malloc.o: compat/malloc.c config.h
 pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h
+nsd-checkconf.o: configparser.h options.h configyyrename.h
+configparser.o: configparser.h options.h configyyrename.h
+configlexer.o: configlexer.c configparser.h options.h configyyrename.h
+options.o: options.h configyyrename.h
