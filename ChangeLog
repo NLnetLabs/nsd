@@ -4,6 +4,7 @@
 	  (and optionally show what was read).
 	- default identity has a spelling error.
 	- Small fix (typo in example) to config manual page.
+	- Added ; to configparser.y to please bison 1.75 on bsd.
 
 24 Feb 2005: Wouter
 	- Added compute_crc in util.h and unit tests for it.
