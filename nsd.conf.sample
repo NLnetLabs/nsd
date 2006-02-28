@@ -1,0 +1,114 @@
+#
+# nsd.conf -- the NSD(8) configuration file, nsd.conf(5).
+#
+# Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+#
+# See LICENSE for the license.
+#
+
+# This is a comment.
+# Sample configuration file
+
+# options for the nsd server
+server:
+	# uncomment to specify specific interfaces to bind (default all).
+	# ip-address: 1.2.3.4
+	# ip-address: 12fe::8ef0
+
+	# enable debug mode for nsd, does not fork daemon process.
+	# debug-mode: yes
+
+	# listen only on IPv4 connections
+	# ip4-only: yes
+
+	# listen only on IPv6 connections
+	# ip6-only: yes
+	
+	# the database to use
+	# database: "/etc/nsd/nsd.db"
+
+	# identify of the server (CH TXT ID.SERVER entry).
+	# identity: "unidentified server"
+
+	# log messages to file. Default to stderr and syslog.
+	# logfile: "/var/log/nsd.log"
+
+	# Number of NSD servers to fork.
+	# server-count: 1
+
+	# Maximum number of concurrent TCP connections per server.
+	# tcp-count: 10
+
+	# File to store pid for nsd in.
+	# pidfile: "/var/pid/nsd.pid"
+
+	# port to answer queries on. default is 53.
+	# port: 53
+
+	# statistics are produced every number of seconds.
+	# statistics: 3600
+
+	# Run NSD in a chroot-jail.
+	# make sure to have pidfile and database reachable from there.
+	# chroot: "/etc/nsd/"
+
+	# After binding socket, drop user privileges.
+	# can be a username, id or id.gid.
+	# username: nsd
+
+	# The directory for zonefile: files.
+	# zonesdir: /etc/nsd/zones/
+
+# key for zone 1
+key:
+	name: mskey
+	algorithm: hmac-md5
+	secret: "base64codesgohere"
+
+# Sample zone 1
+zone:
+	name: "example.com"
+	zonefile: "example.com.zone"
+
+	# This is a slave zone. Masters are listed below.
+
+	# master 1
+	allow-notify: 168.192.44.42 mskey
+	request-xfr: 168.192.44.42 mskey
+	# master 2
+	allow-notify: 10.0.0.10 NOKEY
+	request-xfr: 10.0.0.10 NOKEY
+
+	# uncomment to provide AXFR to all the world
+	# provide-xfr: 0.0.0.0/0 NOKEY
+
+# Sample zone 2
+zone:
+	name: "example.net"
+	zonefile: "example.net.signed.zone"
+
+	# This is a master zone. Slaves are listed below.
+
+	# secondary 1. Uses port 5300.
+	notify: 10.11.12.13@5300 sec1_key
+	provide-xfr: 10.11.12.13@5300 sec1_key
+
+	# secondary 2. 
+	notify: 10.110.0.1 sec2_key
+	provide-xfr: 10.110.0.1 sec2_key
+
+	# also provide xfr to operator's network.
+	provide-xfr: 169.192.85.0/24 NOKEY
+	# uncomment to disable xfr for the address.
+	# provide-xfr: 169.192.85.66 BLOCKED
+
+# keys for zone 2
+key:
+	name: "sec1_key"
+	algorithm: hmac-md5
+	secret: "base64codesgohere"
+
+key:
+	name: sec2_key
+	algorithm: hmac-md5
+	secret: "base64codesgohere"

@@ -66,7 +66,7 @@ serverstart: VAR_SERVER
 		server_settings_seen = 1;
 	}
 	;
-contents_server: contents_server content_server | content_server;
+contents_server: contents_server content_server | ;
 content_server: server_ip_address | server_debug_mode | server_ip4_only | 
 	server_ip6_only | server_database | server_identity | server_logfile | 
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
