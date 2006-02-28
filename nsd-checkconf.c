@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
 #include "options.h"
 #include "util.h"
 
