@@ -7,6 +7,8 @@
 	- Added ; to configparser.y to please bison 1.75 on bsd.
 	- Will check for blocked addresses in outgoing acls. Also ranges.
 	- Check configuration tpkg test added. Uses checkconf.
+	- checkconf does extra semantic tests. i.e. enable absent features.
+	- tcpcount and servercount cannot be negative.
 
 24 Feb 2005: Wouter
 	- Added compute_crc in util.h and unit tests for it.

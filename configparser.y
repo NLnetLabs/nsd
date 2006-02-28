@@ -138,16 +138,16 @@ server_logfile: VAR_LOGFILE STRING
 server_server_count: VAR_SERVER_COUNT STRING
 	{ 
 		OUTYY(("P(server_server_count:%s)\n", $2)); 
-		if(atoi($2) == 0)
-			yyerror("nonzero number expected");
+		if(atoi($2) <= 0)
+			yyerror("number greater than zero expected");
 		else cfg_parser->opt->server_count = atoi($2);
 	}
 	;
 server_tcp_count: VAR_TCP_COUNT STRING
 	{ 
 		OUTYY(("P(server_tcp_count:%s)\n", $2)); 
-		if(atoi($2) == 0 && strcmp($2, "0") != 0)
-			yyerror("number expected");
+		if(atoi($2) <= 0)
+			yyerror("number greater than zero expected");
 		else cfg_parser->opt->tcp_count = atoi($2);
 	}
 	;

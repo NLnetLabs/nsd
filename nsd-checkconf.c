@@ -8,6 +8,7 @@
  */
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include "options.h"
 #include "util.h"
 
@@ -113,6 +114,72 @@ void config_test_print_server(nsd_options_t* opt)
 	
 }
 
+static int additional_checks(nsd_options_t* opt, const char* filename)
+{
+	ip_address_option_t* ip = opt->ip_addresses;
+	int num = 0;
+	int errors = 0;
+	while(ip) {
+		num++;
+		ip = ip->next;
+	}
+	if(num >= MAX_INTERFACES) {
+		fprintf(stderr, "%s: too many interfaces (ip-address:) specified.\n", filename);
+		errors ++;
+	}
+#ifndef BIND8_STATS
+	if(opt->statistics > 0)
+	{
+		fprintf(stderr, "%s: 'statistics: %d' but BIND 8 statistics feature not enabled.\n", 
+			filename, opt->statistics);
+		errors ++;
+	}
+#endif
+#ifndef HAVE_CHROOT
+	if(opt->chroot != 0)
+	{
+		fprintf(stderr, "%s: chroot %s given. chroot not supported on this platform.\n", 
+			filename, opt->chroot);
+		errors ++;
+	}
+#endif
+#ifndef INET6
+	if(opt->ipv6_only)
+	{
+		fprintf(stderr, "%s: ipv6_only given but IPv6 support not enabled.\n", filename);
+		errors ++;
+	}
+#endif
+	if (strlen(opt->identity) > UCHAR_MAX) {
+                fprintf(stderr, "%s: server identity too long (%u characters)\n",
+                      filename, (unsigned) strlen(opt->identity));
+		errors ++;
+        }
+
+	/* not done here: parsing of ip-address. parsing of username. */
+
+        if (opt->chroot) {
+                int l = strlen(opt->chroot);
+
+                if (strncmp(opt->chroot, opt->pidfile, l) != 0) {
+			fprintf(stderr, "%s: pidfile %s is not relative to chroot %s.\n", 
+				filename, opt->pidfile, opt->chroot);
+			errors ++;
+                } 
+		if (strncmp(opt->chroot, opt->database, l) != 0) {
+			fprintf(stderr, "%s: databasefile %s is not relative to chroot %s.\n", 
+				filename, opt->database, opt->chroot);
+			errors ++;
+                }
+        }
+	if(errors != 0) {
+		fprintf(stderr, "%s: parse ok %d zones, %d keys, but %d semantic errors.\n",
+			filename, opt->numzones, opt->numkeys, errors);
+	}
+	
+	return (errors == 0);
+}
+
 int main(int argc, char* argv[])
 {
 	int c;
@@ -135,7 +202,8 @@ int main(int argc, char* argv[])
 
 	/* read config file */
 	nsd_options_create(region_create(xalloc, free));
-	if(!parse_options_file(nsd_options, configfile))
+	if(!parse_options_file(nsd_options, configfile) ||
+	   !additional_checks(nsd_options, configfile))
 		return 1;
 	printf("# Read file %s: %d zones, %d keys.\n", configfile, 
 		nsd_options->numzones, nsd_options->numkeys);
