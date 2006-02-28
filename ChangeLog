@@ -12,6 +12,9 @@
 	- updated nsd.conf.5 manpage for @port syntax.
 	- changed config parser: allows empty server: part (defaults).
 	- made nsd.conf.sample file.
+	- put option to configure for CONFIG_FILE nsd.conf location.
+	  Note. Already nsdc.conf exists. Both exist now.
+	- updated makefile dependencies (gcc -MM).
 
 24 Feb 2005: Wouter
 	- Added compute_crc in util.h and unit tests for it.

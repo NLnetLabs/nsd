@@ -32,6 +32,14 @@ AC_ARG_WITH([configdir],
 AC_SUBST(configdir)
 
 #
+# Determine configuration file
+nsd_conf_file=${configdir}/nsd.conf
+AC_ARG_WITH([nsd_conf_file],
+	AC_HELP_STRING([--with-nsd_conf_file=path], [Pathname to the NSD configuration file]),
+	[nsd_conf_file=$withval])
+AC_SUBST(nsd_conf_file)
+
+#
 # Determine the pidfile location. Check if /var/run exists, if so set pidfile
 # to /var/run/nsd.pid by default
 #
@@ -68,7 +76,7 @@ AC_SUBST(dbfile)
 #
 configfile=$configdir/nsdc.conf
 AC_ARG_WITH([configfile],
-	AC_HELP_STRING([--with-configfile=path], [Pathname to the NSD configuration file]),
+	AC_HELP_STRING([--with-configfile=path], [Pathname to the nsdc configuration file]),
 	[configfile=$withval])
 AC_SUBST(configfile)
 

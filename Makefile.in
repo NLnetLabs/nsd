@@ -20,11 +20,12 @@ pidfile = @pidfile@
 zonesfile = @zonesfile@
 dbfile = @dbfile@
 configfile = @configfile@
+nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
 user = @user@
 
 CC		= @CC@
-CPPFLAGS	= @CPPFLAGS@ @DEFS@ -I. -DDBFILE=\"$(dbfile)\" -DPIDFILE=\"$(pidfile)\" -DUSER=\"$(user)\"
+CPPFLAGS	= @CPPFLAGS@ @DEFS@ -I. -DDBFILE=\"$(dbfile)\" -DPIDFILE=\"$(pidfile)\" -DUSER=\"$(user)\" -DCONFIGFILE=\"$(nsdconfigfile)\"
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
@@ -49,6 +50,7 @@ EDIT		= sed \
 			-e 's,@zonesfile\@,$(zonesfile),g' \
 			-e 's,@dbfile\@,$(dbfile),g' \
 			-e 's,@configfile\@,$(configfile),g' \
+			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@user\@,$(user),g'
 
@@ -184,6 +186,7 @@ install: all
 	$(INSTALL_DATA) nsd-xfer.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
 	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	$(INSTALL_DATA) nsdc.conf.sample $(DESTDIR)$(configfile).sample
+	$(INSTALL_DATA) nsd.conf.sample $(DESTDIR)$(nsdconfigfile).sample
 	$(INSTALL_DATA) nsd.zones.sample $(DESTDIR)$(zonesfile).sample
 
 uninstall:
@@ -355,7 +358,11 @@ inet_pton.o: compat/inet_pton.c config.h zparser.h
 malloc.o: compat/malloc.c config.h
 pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h
-nsd-checkconf.o: configparser.h options.h configyyrename.h
-configparser.o: configparser.h options.h configyyrename.h
-configlexer.o: configlexer.c configparser.h options.h configyyrename.h
-options.o: options.h configyyrename.h
+nsd-checkconf.o: nsd-checkconf.c config.h options.h region-allocator.h \
+  util.h
+options.o: options.c config.h options.h region-allocator.h \
+  configyyrename.h configparser.h
+configlexer.o: configlexer.c configyyrename.h config.h options.h \
+  region-allocator.h configparser.h
+configparser.o: configparser.c config.h options.h region-allocator.h \
+  configyyrename.h
