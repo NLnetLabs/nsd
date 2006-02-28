@@ -1,0 +1,818 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2006-02-28 14:11 CET by <wouter@diva.nlnetlabs.nl>.
+# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/checkconf.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#   5598 -rw-rw-r-- checkconf.check
+#    421 -rw------- checkconf.dsc
+#     77 -rw------- checkconf.help
+#    905 -rw-rw-r-- checkconf.nsd1.conf
+#    275 -rw-rw-r-- checkconf.nsd2.conf
+#    381 -rw-rw-r-- checkconf.nsd3.conf
+#    291 -rw-rw-r-- checkconf.nsd4.conf
+#     79 -rw-rw-r-- checkconf.nsd5.conf
+#   2748 -rw-rw-r-- checkconf.nsd6.conf
+#   1410 -rw-rw-r-- checkconf.nsd7.conf
+#    496 -rw------- checkconf.test
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh05474; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= checkconf.check ==============
+if test -f 'checkconf.check' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.check' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.check' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.check' &&
+start of check
+# Read file nsd1.conf: 2 zones, 3 keys.
+# Config settings.
+server:
+X	debug-mode: yes
+X	ip4-only: no
+X	ip6-only: no
+X	database: "/etc/nsd.db"
+X	identity: "server number 23"
+X	logfile: "/var/log/nsdlogfile.log"
+X	server_count: 1
+X	tcp_count: 10
+X	pidfile: "/var/pid/nsd.pid"
+X	port: "53"
+X	statistics: 60
+X	#chroot:
+X	username: "nsd"
+X	#zonesdir:
+X	ip-address: "127.0.0.1"
+X	ip-address: "10.1.2.3"
+X
+key:
+X	name: "MYKEY"
+X	algorithm: "hmac-md5"
+X	secret: "X86F97G45"
+X
+key:
+X	name: "BKEY"
+X	algorithm: "hmac-md5"
+X	secret: "X86F97G45"
+X
+key:
+X	name: "DKEY"
+X	algorithm: "hmac-md5"
+X	secret: "X86F97G45"
+X
+zone:
+X	name: "example.com"
+X	zonefile: "/etc/nsd/example.com.signed.db"
+X	allow-notify: 10.0.0.100 DKEY
+X	# ip4 noport single addr=10.0.0.100
+X	allow-notify: b4d6:c587::0101 DKEY
+X	# ip6 noport single addr=b4d6:c587::101
+X	request-xfr: 10.0.0.100 DKEY
+X	# ip4 noport single addr=10.0.0.100
+X	request-xfr: b4d6:c587::0101 DKEY
+X	# ip6 noport single addr=b4d6:c587::101
+X	notify: 10.0.0.1 MYKEY
+X	# ip4 noport single addr=10.0.0.1
+X	notify: 10.0.0.2 BKEY
+X	# ip4 noport single addr=10.0.0.2
+X	provide-xfr: 10.0.0.1 MYKEY
+X	# ip4 noport single addr=10.0.0.1
+X	provide-xfr: 10.0.0.2 BKEY
+X	# ip4 noport single addr=10.0.0.2
+X	provide-xfr: 0.0.0.0/0 NOKEY
+X	# ip4 noport subnet addr=0.0.0.0 rangemask=0.0.0.0
+X
+zone:
+X	name: "example.net"
+X	zonefile: "/etc/nsd/example.net.db"
+# Read file nsd2.conf: 1 zones, 0 keys.
+# Config settings.
+server:
+X	debug-mode: no
+X	ip4-only: no
+X	ip6-only: no
+X	database: "/etc/nsd/nsd.db"
+X	identity: "unidentified server"
+X	logfile: "/var/log/nsdlogfile.log"
+X	server_count: 1
+X	tcp_count: 10
+X	pidfile: "/var/pid/nsd.pid"
+X	port: "53"
+X	statistics: 0
+X	#chroot:
+X	username: "nsd"
+X	#zonesdir:
+X
+zone:
+X	name: "example.com"
+X	zonefile: "/etc/nsd/example.com.zone"
+# Read file nsd3.conf: 1 zones, 1 keys.
+# Config settings.
+server:
+X	debug-mode: no
+X	ip4-only: no
+X	ip6-only: no
+X	database: "/etc/nsd/nsd.db"
+X	identity: "unidentified server"
+X	#logfile:
+X	server_count: 1
+X	tcp_count: 10
+X	pidfile: "/var/run/nsd.pid"
+X	port: "53"
+X	statistics: 0
+X	#chroot:
+X	username: "nsd"
+X	#zonesdir:
+X
+key:
+X	name: "tsig.example.org."
+X	algorithm: "hmac-md5"
+X	secret: "aaaaaabbbbbbccccccdddddd"
+X
+zone:
+X	name: "example.org"
+X	zonefile: "secondary/example.org.signed"
+X	allow-notify: 162.0.4.49 NOKEY
+X	# ip4 noport single addr=162.0.4.49
+X	request-xfr: 162.0.4.49 tsig.example.org.
+X	# ip4 noport single addr=162.0.4.49
+# Read file nsd4.conf: 1 zones, 0 keys.
+# Config settings.
+server:
+X	debug-mode: no
+X	ip4-only: no
+X	ip6-only: no
+X	database: "/etc/nsd/nsd.db"
+X	identity: "unidentified server"
+X	#logfile:
+X	server_count: 1
+X	tcp_count: 10
+X	pidfile: "/var/run/nsd.pid"
+X	port: "53"
+X	statistics: 0
+X	#chroot:
+X	username: "nsd"
+X	#zonesdir:
+X
+zone:
+X	name: "example.nl"
+X	zonefile: "example.nl"
+X	provide-xfr: 0::0/0 NOKEY
+X	# ip6 noport subnet addr=:: rangemask=::
+nsd5.conf:1: error: syntax error
+read nsd5.conf failed: 1 errors in configuration file
+nsd6.conf:13: error: address range used for notify
+nsd6.conf:14: error: address range used for notify
+nsd6.conf:15: error: address range used for notify
+nsd6.conf:16: error: address range used for notify
+nsd6.conf:17: error: address range used for notify
+nsd6.conf:18: error: address range used for notify
+nsd6.conf:19: error: address range used for notify
+nsd6.conf:20: error: address range used for notify
+nsd6.conf:21: error: address range used for notify
+nsd6.conf:22: error: address range used for notify
+nsd6.conf:23: error: address range used for notify
+nsd6.conf:24: error: address range used for notify
+nsd6.conf:40: error: address range used for request-xfr
+nsd6.conf:41: error: address range used for request-xfr
+nsd6.conf:42: error: address range used for request-xfr
+nsd6.conf:43: error: address range used for request-xfr
+nsd6.conf:44: error: address range used for request-xfr
+nsd6.conf:45: error: address range used for request-xfr
+nsd6.conf:46: error: address range used for request-xfr
+nsd6.conf:47: error: address range used for request-xfr
+nsd6.conf:48: error: address range used for request-xfr
+read nsd6.conf failed: 21 errors in configuration file
+nsd7.conf:3: error: expected yes or no.
+nsd7.conf:7: error: blocked address used for notify
+nsd7.conf:8: error: address range used for notify
+nsd7.conf:9: error: address range used for notify
+nsd7.conf:10: error: address range used for notify
+nsd7.conf:12: error: previous zone has no name
+nsd7.conf:15: error: Bad ip4 address '1.2.3.4.5'
+nsd7.conf:15: error: blocked address used for notify
+nsd7.conf:17: error: blocked address used for request-xfr
+nsd7.conf:19: error: Bad ip4 address '1.2.3'
+nsd7.conf:23: error: Bad ip4 address '1.2.3'
+nsd7.conf:27: error: Bad ip4 address '1.2.3'
+nsd7.conf:36: error: address range used for notify
+nsd7.conf:38: error: address range used for request-xfr
+nsd7.conf:47: error: duplicate server: element.
+nsd7.conf:48: error: expected yes or no.
+nsd7.conf:49: error: nonzero number expected
+nsd7.conf:50: error: nonzero number expected
+nsd7.conf:52: error: number expected
+nsd7.conf:55: error: last zone has no name
+nsd7.conf:55: error: last key has no algorithm
+nsd7.conf:55: error: last key has no secret blob
+nsd7.conf:55: error: key zlurp-key in zone key_block_nokey_check.zone could not be found
+nsd7.conf:55: error: key zlurp-key in zone key_block_nokey_check.zone could not be found
+nsd7.conf:55: error: key zlurp-key in zone key_block_nokey_check.zone could not be found
+nsd7.conf:55: error: key zlurp-key in zone key_block_nokey_check.zone could not be found
+read nsd7.conf failed: 26 errors in configuration file
+nsd8.conf:3: error: syntax error
+read nsd8.conf failed: 1 errors in configuration file
+SHAR_EOF
+  (set 20 06 02 28 14 00 31 'checkconf.check'; eval "$shar_touch") &&
+  chmod 0664 'checkconf.check' ||
+  $echo 'restore of' 'checkconf.check' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.check:' 'MD5 check failed'
+2ee83402eaef12945ee72f55e9db2dc1  checkconf.check
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.check'`"
+    test 5598 -eq "$shar_count" ||
+    $echo 'checkconf.check:' 'original size' '5598,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.dsc ==============
+if test -f 'checkconf.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.dsc' &&
+BaseName: checkconf
+Version: 1.0
+Description: Unit tests
+CreationDate: Tue Feb 28 13:45:26 CET 2006
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 0000_nsd-compile.tpkg
+Help: checkconf.help
+Pre: 
+Post: 
+Test: checkconf.test
+AuxFiles:checkconf.check, checkconf.nsd1.conf, checkconf.nsd2.conf, checkconf.nsd3.conf, checkconf.nsd4.conf, checkconf.nsd5.conf, checkconf.nsd6.conf, checkconf.nsd7.conf
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 06 02 28 14 11 14 'checkconf.dsc'; eval "$shar_touch") &&
+  chmod 0600 'checkconf.dsc' ||
+  $echo 'restore of' 'checkconf.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.dsc:' 'MD5 check failed'
+0ff1645241ed0699d51f79eb89104650  checkconf.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.dsc'`"
+    test 421 -eq "$shar_count" ||
+    $echo 'checkconf.dsc:' 'original size' '421,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.help ==============
+if test -f 'checkconf.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.help' &&
+Runs nsd-checkconf on a couple of configuration files and checks the output.
+SHAR_EOF
+  (set 20 06 02 28 13 46 26 'checkconf.help'; eval "$shar_touch") &&
+  chmod 0600 'checkconf.help' ||
+  $echo 'restore of' 'checkconf.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.help:' 'MD5 check failed'
+ffc17c523784f0df412dbe568bc449da  checkconf.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.help'`"
+    test 77 -eq "$shar_count" ||
+    $echo 'checkconf.help:' 'original size' '77,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.nsd1.conf ==============
+if test -f 'checkconf.nsd1.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.nsd1.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.nsd1.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.nsd1.conf' &&
+# mockup of data in config file. Structured lite format.
+# this is a comment.
+server:
+X	ip-address: 127.0.0.1
+X	ip-address: 10.1.2.3
+X	debug-mode: yes
+X	database: /etc/nsd.db
+X	identity: "server number 23"
+X	logfile: /var/log/nsdlogfile.log
+X	pidfile: /var/pid/nsd.pid
+X	port: 53
+X	statistics: 60
+X	username: nsd
+X
+key:	name: MYKEY
+X	algorithm: hmac-md5
+X	secret: X86F97G45
+X
+key:	name: BKEY
+X	algorithm: hmac-md5
+X	secret: X86F97G45
+X
+key:	name: DKEY
+X	algorithm: hmac-md5
+X	secret: X86F97G45
+X
+zone:
+X	name:	example.com
+X	zonefile:	"/etc/nsd/example.com.signed.db"
+X
+X	# secondaries
+X	provide-xfr: 10.0.0.1 MYKEY
+X	provide-xfr: 10.0.0.2 BKEY
+X	provide-xfr: 0.0.0.0/0 NOKEY
+X	notify: 10.0.0.1 MYKEY
+X	notify: 10.0.0.2 BKEY
+X	# primaries
+X	allow-notify: 10.0.0.100 DKEY
+X	allow-notify: b4d6:c587::0101 DKEY
+X	request-xfr: 10.0.0.100 DKEY
+X	request-xfr: b4d6:c587::0101 DKEY
+X
+zone:
+X	name: "example.net"
+X	zonefile: "/etc/nsd/example.net.db"
+SHAR_EOF
+  (set 20 06 02 28 13 47 32 'checkconf.nsd1.conf'; eval "$shar_touch") &&
+  chmod 0664 'checkconf.nsd1.conf' ||
+  $echo 'restore of' 'checkconf.nsd1.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.nsd1.conf:' 'MD5 check failed'
+5e9ecc200e7e11857219db990198c183  checkconf.nsd1.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.nsd1.conf'`"
+    test 905 -eq "$shar_count" ||
+    $echo 'checkconf.nsd1.conf:' 'original size' '905,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.nsd2.conf ==============
+if test -f 'checkconf.nsd2.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.nsd2.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.nsd2.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.nsd2.conf' &&
+# Example.com nsd.conf file
+# This is a comment.
+server:
+X	database: "/etc/nsd/nsd.db"
+X	username: nsd
+X	logfile: "/var/log/nsdlogfile.log"
+X	pidfile: "/var/pid/nsd.pid"
+X
+zone:
+X	name: example.com
+X	# note that quotes are optional on the value
+X	zonefile: /etc/nsd/example.com.zone
+SHAR_EOF
+  (set 20 06 02 24 15 35 32 'checkconf.nsd2.conf'; eval "$shar_touch") &&
+  chmod 0664 'checkconf.nsd2.conf' ||
+  $echo 'restore of' 'checkconf.nsd2.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.nsd2.conf:' 'MD5 check failed'
+fdeb6be772ed755e6d96191779127621  checkconf.nsd2.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.nsd2.conf'`"
+    test 275 -eq "$shar_count" ||
+    $echo 'checkconf.nsd2.conf:' 'original size' '275,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.nsd3.conf ==============
+if test -f 'checkconf.nsd3.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.nsd3.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.nsd3.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.nsd3.conf' &&
+# Config file for example.org
+key:
+X        name: tsig.example.org.
+X        algorithm: hmac-md5
+X        secret: "aaaaaabbbbbbccccccdddddd"
+X
+zone:
+X        name: "example.org"
+X        zonefile: "secondary/example.org.signed"
+X        # the master is allowed to notify and will provide zone data.
+X        allow-notify: 162.0.4.49 NOKEY
+X        request-xfr: 162.0.4.49 tsig.example.org.
+SHAR_EOF
+  (set 20 06 02 24 15 35 54 'checkconf.nsd3.conf'; eval "$shar_touch") &&
+  chmod 0664 'checkconf.nsd3.conf' ||
+  $echo 'restore of' 'checkconf.nsd3.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.nsd3.conf:' 'MD5 check failed'
+4841640828fb83fac0828cc94d24627c  checkconf.nsd3.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.nsd3.conf'`"
+    test 381 -eq "$shar_count" ||
+    $echo 'checkconf.nsd3.conf:' 'original size' '381,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.nsd4.conf ==============
+if test -f 'checkconf.nsd4.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.nsd4.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.nsd4.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.nsd4.conf' &&
+zone:
+X        name: "example.nl"
+X        zonefile: "example.nl"
+X        # allow anybody to request xfr.
+X        provide-xfr: 0::0/0 NOKEY
+X
+X        # to list a slave server you would in general give
+X        # provie-xfr: 1.2.3.4 tsig-key.name.
+X        # notify: 1.2.3.4 NOKEY
+X
+#empty lines
+X
+X
+SHAR_EOF
+  (set 20 06 02 28 14 02 38 'checkconf.nsd4.conf'; eval "$shar_touch") &&
+  chmod 0664 'checkconf.nsd4.conf' ||
+  $echo 'restore of' 'checkconf.nsd4.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.nsd4.conf:' 'MD5 check failed'
+65ac41d0f19ae3ab946821974d4bcd70  checkconf.nsd4.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.nsd4.conf'`"
+    test 291 -eq "$shar_count" ||
+    $echo 'checkconf.nsd4.conf:' 'original size' '291,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.nsd5.conf ==============
+if test -f 'checkconf.nsd5.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.nsd5.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.nsd5.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.nsd5.conf' &&
+dfd
+# bad file
+aaghsahsg
+ashsad # blabla
+ksdhkd: jshds jshds
+name: example bla
+SHAR_EOF
+  (set 20 06 02 24 15 37 00 'checkconf.nsd5.conf'; eval "$shar_touch") &&
+  chmod 0664 'checkconf.nsd5.conf' ||
+  $echo 'restore of' 'checkconf.nsd5.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.nsd5.conf:' 'MD5 check failed'
+44dbc81f9b0db8f7c7a81a1beb163709  checkconf.nsd5.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.nsd5.conf'`"
+    test 79 -eq "$shar_count" ||
+    $echo 'checkconf.nsd5.conf:' 'original size' '79,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.nsd6.conf ==============
+if test -f 'checkconf.nsd6.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.nsd6.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.nsd6.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.nsd6.conf' &&
+# conf with lots of ranges
+server:
+X	debug-mode: yes
+X	ip-address: 10.0.0.1
+X	ip-address: 10.0.0.2
+X	ip-address: 10.0.0.3
+X
+zone:
+X	name: example.com
+X	zonefile: "file.example.com"
+X
+X	notify: 10.20.30.40 NOKEY
+X	notify: 10.20.30.40&255.255.255.0 NOKEY
+X	notify: 10.20.30.40-255.255.255.0 NOKEY
+X	notify: 10.20.30.0-10.20.30.255 NOKEY
+X	notify: 10.20.30.40/28 NOKEY
+X	notify: 10.20.30.40/14 NOKEY
+X	notify: 10.20.30.40/16 NOKEY
+X	notify: 10.20.30.40/0 NOKEY
+X	notify: 10.20.30.40/1 NOKEY
+X	notify: 10.20.30.40/32 NOKEY
+X	notify: 10.20.30.40/31 NOKEY
+X	notify: 10.20.30.40/15 NOKEY
+X	notify: 10.20.30.40&255.12.255.10 NOKEY
+X	allow-notify: 10.20.30.40@1053 NOKEY
+X	allow-notify: 10.20.30.40&255.255.255.0@1053 NOKEY
+X	allow-notify: 10.20.30.40-255.255.255.0@1053 NOKEY
+X	allow-notify: 10.20.30.0-10.20.30.255@1053 NOKEY
+X	allow-notify: 10.20.30.40/28@1053 NOKEY
+X	allow-notify: 10.20.30.40/14@1053 NOKEY
+X	allow-notify: 10.20.30.40/16@1053 NOKEY
+X	allow-notify: 10.20.30.40/0@1053 NOKEY
+X	allow-notify: 10.20.30.40/1@1053 NOKEY
+X	allow-notify: 10.20.30.40/32@1053 NOKEY
+X	allow-notify: 10.20.30.40/31@1053 NOKEY
+X	allow-notify: 10.20.30.40/15@1053 NOKEY
+X	allow-notify: 10.20.30.40&255.12.255.10@1053 NOKEY
+X
+X	request-xfr: 10:20::30:40 NOKEY
+X	request-xfr: 10:20::30:40&ffff:ffff::ffff:0 NOKEY
+X	request-xfr: 10:20::30:40-255:255::255:0 NOKEY
+X	request-xfr: 10:20::30:0-10:20::30:ffff NOKEY
+X	request-xfr: 10:20::30:40/28 NOKEY
+X	request-xfr: 10:20::30:40/128 NOKEY
+X	request-xfr: 10:20::30:40/17 NOKEY
+X	request-xfr: 10:20::30:40/16 NOKEY
+X	request-xfr: 10:20::30:40/0 NOKEY
+X	request-xfr: 10:20::30:40&255:12::255:10 NOKEY
+X
+# test conf
+server: 
+X	debug-mode: "string123"
+X
+zone:
+X	zonefile: bla
+X	notify: 10.20.30.40 BLOCKED
+X	notify: 10.20.30.40&255.255.255.0 NOKEY
+X	notify: 10.20.30.40/28 NOKEY
+X	notify: 10.20.30.40-10.20.30.60 NOKEY
+X
+zone:
+X	name: key_block_nokey_check.zone
+X	zonefile: "1234"
+X	notify: 1.2.3.4.5 BLOCKED
+X	allow-notify: 10.20.30.40 BLOCKED
+X	request-xfr: 10.20.30.40 BLOCKED
+X	provide-xfr: 10.20.30.40 BLOCKED
+X	notify: 1.2.3 NOKEY
+X	allow-notify: 10.20.30.40 NOKEY
+X	request-xfr: 10.20.30.40 NOKEY
+X	provide-xfr: 10.20.30.40 NOKEY
+X	notify: 1.2.3 zlurp-key
+X	allow-notify: 10.20.30.40 zlurp-key
+X	request-xfr: 10.20.30.40 zlurp-key
+X	provide-xfr: 10.20.30.40 zlurp-key
+X	notify: 1.2.3 icky
+X	allow-notify: 10.20.30.40 icky
+X	request-xfr: 10.20.30.40 icky
+X	provide-xfr: 10.20.30.40 icky
+X
+zone:
+X	name: try_ranges.zone
+X	zonefile: "name:"
+X
+X	notify: 1.2.3.4/23 icky
+X	allow-notify: 10.20.30.40/18 icky
+X	request-xfr: 10.20.30.40/21 icky
+X	provide-xfr: 10.20.30.40/20 icky
+X
+zone:  #comment
+X	name: unquoted456
+X
+key:
+X	name: icky
+X
+server: 
+X	ip6-only: "quoted string with spaces	and -:bla server: name: "
+X	server-count: abc
+X	server-count: 0
+X	server-count: 10
+X	tcp-count: abc
+X	tcp-count: 0
+X	tcp-count: 10
+SHAR_EOF
+  (set 20 06 02 28 14 08 58 'checkconf.nsd6.conf'; eval "$shar_touch") &&
+  chmod 0664 'checkconf.nsd6.conf' ||
+  $echo 'restore of' 'checkconf.nsd6.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.nsd6.conf:' 'MD5 check failed'
+1d5499556b28f6983a11ba9a441360fb  checkconf.nsd6.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.nsd6.conf'`"
+    test 2748 -eq "$shar_count" ||
+    $echo 'checkconf.nsd6.conf:' 'original size' '2748,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.nsd7.conf ==============
+if test -f 'checkconf.nsd7.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.nsd7.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.nsd7.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.nsd7.conf' &&
+# a bind config file.
+X
+logging {
+X        channel named_log {
+X                syslog;
+X                print-time yes;
+X                print-category yes;
+X                print-severity yes;
+X                severity info;
+X        };
+X        channel security_log {
+X		syslog;
+X                print-time yes;
+X        };
+X	channel named_debug {
+X		file "named_debug";
+X		severity debug 2;
+X		print-time yes;
+X	};
+X        category default { named_log; };
+X        category security { security_log ;};
+X	};
+options {
+X	directory "/etc/namedb";
+X	// notify explicit;
+X	notify yes;
+X	dnssec-enable yes;
+};
+// BIND comment
+X
+key "rndc-key" {
+X    algorithm hmac-md5;
+};
+X
+key tsig.secret-wg.org. {
+X                algorithm hmac-md5;
+};
+X
+server 193.0.4.49 {
+X        keys { tsig.secret-wg.org. ; };
+};
+X
+X
+controls {
+X   inet 127.0.0.1 port 953
+X   allow { 127.0.0.1; } keys { "rndc-key"; };
+};
+# End of named.conf (rndc-confgen)
+X
+zone "." {
+X	type hint;
+X	file "named.root";
+};
+X
+zone "nlnetlabs.nl" {
+X	type master;
+X	file "nlnetlabs.nl.signed";
+#	file "nlnetlabs.nl";
+};
+X
+zone "tednet.nl" {
+X	type slave;
+X	file "secondary/tednet.nl";
+X	masters { 213.154.224.17; };
+};
+X
+zone "6.0.2.0.8.b.7.0.1.0.0.2.ip6.int" {
+X	type master;
+X	file "6.0.2.0.8.b.7.0.1.0.0.2.ip6";
+};
+X
+zone "6.0.2.0.8.b.7.0.1.0.0.2.ip6.arpa" {
+X	type master;
+X	file "6.0.2.0.8.b.7.0.1.0.0.2.ip6";
+};
+X
+// key to use when talking to ripe
+X	server 193.0.0.202 {
+X	keys { ripe-nlnl; };
+};
+SHAR_EOF
+  (set 20 06 02 28 13 50 55 'checkconf.nsd7.conf'; eval "$shar_touch") &&
+  chmod 0664 'checkconf.nsd7.conf' ||
+  $echo 'restore of' 'checkconf.nsd7.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.nsd7.conf:' 'MD5 check failed'
+c3a7b8395179496b46cff2c9fb785f2c  checkconf.nsd7.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.nsd7.conf'`"
+    test 1410 -eq "$shar_count" ||
+    $echo 'checkconf.nsd7.conf:' 'original size' '1410,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= checkconf.test ==============
+if test -f 'checkconf.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'checkconf.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'checkconf.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'checkconf.test' &&
+# source the var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+# run nsd-checkconf on all files
+checkcmd="../../nsd-checkconf -v"
+echo "start of check" > outfile.tmp
+X
+for x in *.conf; do
+X	$checkcmd $x >>outfile.tmp 2>&1
+done
+X
+if diff checkconf.check outfile.tmp; then
+X	rm -f outfile.tmp
+X	exit 1
+else
+X	rm -f outfile.tmp
+X	exit 0
+fi
+SHAR_EOF
+  (set 20 06 02 28 14 11 39 'checkconf.test'; eval "$shar_touch") &&
+  chmod 0600 'checkconf.test' ||
+  $echo 'restore of' 'checkconf.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'checkconf.test:' 'MD5 check failed'
+6e439052a9eef04cf34e52e7448a8f54  checkconf.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'checkconf.test'`"
+    test 496 -eq "$shar_count" ||
+    $echo 'checkconf.test:' 'original size' '496,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh05474
+exit 0

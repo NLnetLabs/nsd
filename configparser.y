@@ -246,6 +246,8 @@ zone_request_xfr: VAR_REQUEST_XFR STRING STRING
 	{ 
 		acl_options_t* acl = parse_acl_info($2, $3);
 		OUTYY(("P(zone_request_xfr:%s %s)\n", $2, $3)); 
+		if(acl->blocked) c_error("blocked address used for request-xfr");
+		if(acl->rangetype!=acl_range_single) c_error("address range used for request-xfr");
 		if(cfg_parser->current_request_xfr)
 			cfg_parser->current_request_xfr->next = acl;
 		else
@@ -257,6 +259,8 @@ zone_notify: VAR_NOTIFY STRING STRING
 	{ 
 		acl_options_t* acl = parse_acl_info($2, $3);
 		OUTYY(("P(zone_notify:%s %s)\n", $2, $3)); 
+		if(acl->blocked) c_error("blocked address used for notify");
+		if(acl->rangetype!=acl_range_single) c_error("address range used for notify");
 		if(cfg_parser->current_notify)
 			cfg_parser->current_notify->next = acl;
 		else
