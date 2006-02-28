@@ -9,6 +9,7 @@
 	- Check configuration tpkg test added. Uses checkconf.
 	- checkconf does extra semantic tests. i.e. enable absent features.
 	- tcpcount and servercount cannot be negative.
+	- updated nsd.conf.5 manpage for @port syntax.
 
 24 Feb 2005: Wouter
 	- Added compute_crc in util.h and unit tests for it.
