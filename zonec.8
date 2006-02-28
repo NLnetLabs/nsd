@@ -18,6 +18,7 @@
 .Op Fl h
 .Op Fl L
 .Op Fl F
+.Op Fl c Ar configfile
 .Op Fl d Ar directory
 .Op Fl o Ar origin
 .Op Fl f Ar database
@@ -53,6 +54,9 @@ possible.
 .Pp
 The available options are:
 .Bl -tag -width indent
+.It Fl c Ar configfile
+Read specified configfile instead of the default
+.Pa /etc/nsd/nsd.conf
 .It Fl d Ar directory
 Change the working directory to
 .Ar directory

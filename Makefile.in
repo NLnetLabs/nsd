@@ -60,6 +60,9 @@ NSD_OBJECTS	=				\
 	answer.o				\
 	axfr.o					\
 	buffer.o				\
+	configlexer.o				\
+	configparser.o				\
+	options.o				\
 	dbaccess.o				\
 	dname.o					\
 	dns.o					\
@@ -80,6 +83,9 @@ NSD_OBJECTS	=				\
 
 ZONEC_OBJECTS	=				\
 	buffer.o				\
+	configlexer.o				\
+	configparser.o				\
+	options.o				\
 	dbcreate.o				\
 	dname.o					\
 	dns.o					\

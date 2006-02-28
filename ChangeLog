@@ -15,6 +15,10 @@
 	- put option to configure for CONFIG_FILE nsd.conf location.
 	  Note. Already nsdc.conf exists. Both exist now.
 	- updated makefile dependencies (gcc -MM).
+	- getopt optstring in nsd-checkconf updated ("v" only option).
+	- Added config .o files to nsd and zonec. This compiles.
+	- Added commandline option -c configfile to zonec and nsd.
+	  configure defaults < configfile < commandline options in importance.
 
 24 Feb 2005: Wouter
 	- Added compute_crc in util.h and unit tests for it.

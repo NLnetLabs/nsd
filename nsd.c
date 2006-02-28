@@ -36,6 +36,7 @@
 
 #include "nsd.h"
 #include "plugins.h"
+#include "options.h"
 
 
 /* The server handler... */
@@ -55,10 +56,11 @@ usage (void)
 		"  -6              Only listen to IPv6 connections.\n"
 		"  -a ip-address   Listen to the specified incoming IP address (may be\n"
 		"                  specified multiple times).\n"
+		"  -c configfile   Read specified configfile instead of %s.\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
 		"  -f database     Specify the database to load.\n"
 		"  -h              Print this help information.\n"
-		);
+		, CONFIGFILE);
 	fprintf(stderr,
 		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
 		"  -l filename     Specify the log file.\n"
@@ -346,6 +348,7 @@ main (int argc, char *argv[])
 	const char *tcp_port;
 
 	const char *log_filename = NULL;
+	const char *configfile = CONFIGFILE;
 	
 #ifdef PLUGINS
 	nsd_plugin_id_type plugin_count = 0;
@@ -358,13 +361,13 @@ main (int argc, char *argv[])
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
 	nsd.region      = region_create(xalloc, free);
-	nsd.dbfile	= DBFILE;
-	nsd.pidfile	= PIDFILE;
+	nsd.dbfile	= 0;
+	nsd.pidfile	= 0;
 	nsd.server_kind = NSD_SERVER_MAIN;
 	
 	/* Initialise the ports */
-	udp_port = UDP_PORT;
-	tcp_port = TCP_PORT;
+	udp_port = 0;
+	tcp_port = 0;
 
 	for (i = 0; i < MAX_INTERFACES; i++) {
 		memset(&hints[i], 0, sizeof(hints[i]));
@@ -373,13 +376,13 @@ main (int argc, char *argv[])
 		nodes[i] = NULL;
 	}
 
-	nsd.identity	= IDENTITY;
+	nsd.identity	= 0;
 	nsd.version	= VERSION;
-	nsd.username	= USER;
+	nsd.username	= 0;
 	nsd.chrootdir	= NULL;
 
-	nsd.child_count = 1;
-	nsd.maximum_tcp_count = 10;
+	nsd.child_count = 0;
+	nsd.maximum_tcp_count = 0;
 	nsd.current_tcp_count = 0;
 	
 	/* EDNS0 */
@@ -403,7 +406,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:df:hi:l:N:n:P:p:s:u:t:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:c:df:hi:l:N:n:P:p:s:u:t:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -426,6 +429,9 @@ main (int argc, char *argv[])
 			} else {
 				error("too many interfaces ('-a') specified.");
 			}
+			break;
+		case 'c':
+			configfile = optarg;
 			break;
 		case 'd':
 			nsd.debug = 1;
@@ -524,6 +530,84 @@ main (int argc, char *argv[])
 	if (strlen(nsd.identity) > UCHAR_MAX) {
 		error("server identity too long (%u characters)",
 		      (unsigned) strlen(nsd.identity));
+	}
+
+        /* Read options */
+        nsd_options_create(region_create(xalloc, free));
+        if(!parse_options_file(nsd_options, configfile)) {
+                error("nsd: could not read config: %s\n", configfile);
+        }
+	if(nsd_options->ip4_only) {
+		for (i = 0; i < MAX_INTERFACES; ++i) {
+			hints[i].ai_family = AF_INET;
+		}
+	}
+#ifdef INET6
+	if(nsd_options->ip6_only) {
+		for (i = 0; i < MAX_INTERFACES; ++i) {
+			hints[i].ai_family = AF_INET6;
+		}
+	}
+#endif /* !INET6 */
+	if(nsd_options->ip_addresses)
+	{
+		ip_address_option_t* ip = nsd_options->ip_addresses;
+		while(ip) {
+			if (nsd.ifs < MAX_INTERFACES) {
+				nodes[nsd.ifs] = ip->address;
+				++nsd.ifs;
+			} else {
+				error("too many interfaces ('-a' + 'ip-address:') specified.");
+			}
+			ip = ip->next;
+		}
+	}
+	if(nsd_options->debug_mode) nsd.debug=1;
+	if(!nsd.dbfile)
+	{
+		if(nsd_options->database) nsd.dbfile = nsd_options->database;
+		else nsd.dbfile = DBFILE;
+	}
+	if(!nsd.pidfile)
+	{
+		if(nsd_options->pidfile) nsd.pidfile = nsd_options->pidfile;
+		else nsd.pidfile = PIDFILE;
+	}
+	if(!nsd.identity)
+	{
+		if(nsd_options->identity) nsd.identity = nsd_options->identity;
+		else nsd.identity = IDENTITY;
+	}
+	if (nsd_options->logfile && !log_filename) {
+		log_filename = nsd_options->logfile;
+	}
+	if(nsd.child_count == 0) {
+		nsd.child_count = nsd_options->server_count;
+	}
+	if(nsd.maximum_tcp_count == 0) {
+		nsd.maximum_tcp_count = nsd_options->tcp_count;
+	}
+	if(udp_port == 0)
+	{
+		if(nsd_options->port != 0) {
+			udp_port = nsd_options->port;
+			tcp_port = nsd_options->port;
+		} else {
+			udp_port = UDP_PORT;
+			tcp_port = TCP_PORT;
+		}
+	}
+#ifdef BIND8_STATS
+	if(nsd.st.period == 0) {
+		nsd.st.period = nsd_options->statistics;
+	}
+#endif /* !BIND8_STATS */
+#ifdef HAVE_CHROOT
+	if(nsd.chrootdir == 0) nsd.chrootdir = nsd_options->chroot;
+#endif
+	if(nsd.username == 0) {
+		if(nsd_options->username) nsd.username = nsd_options->username;
+		else nsd.username = USER;
 	}
 	
 	/* Number of child servers to fork.  */

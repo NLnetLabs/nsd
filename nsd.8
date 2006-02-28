@@ -17,6 +17,7 @@ nsd
 .Op Fl 4
 .Op Fl 6
 .Op Fl a Ar ip-address
+.Op Fl c Ar configfile
 .Op Fl d 
 .Op Fl f Ar database
 .Op Fl h
@@ -57,6 +58,10 @@ will bind its UDP and TCP sockets to all the specified ip-addresses
 separately.  If IPv6 is enabled when NSD is compiled an IPv6 address
 can also be specified.
 .Pp
+All the options can be specified in the configfile (-c argument).
+Except for the -v and -h options. If specified on the commandline, the
+commandline takes precedence over the configfile.
+.Pp
 Normally
 .Ic NSD
 should be started with
@@ -84,6 +89,12 @@ must be specified in numeric format (using the standard IPv4 or IPv6
 notation).  This flag can be specified multiple times to listen to
 multiple IP addresses.  If this flag is not specified NSD listens to
 all IP addresses.
+
+.It Fl c Ar configfile
+Read specified 
+.Ar configfile 
+instead of the default
+.Pa /etc/nsd/nsd.conf .
 
 .It Fl d
 Turn on debugging mode, do not fork, stay in the foreground.

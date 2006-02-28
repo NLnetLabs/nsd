@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
 	int verbose = 0;
 	const char* configfile;
         /* Parse the command line... */
-        while ((c = getopt(argc, argv, "v::")) != -1) {
+        while ((c = getopt(argc, argv, "v")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose = 1;

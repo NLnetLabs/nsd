@@ -37,12 +37,13 @@
 #include "region-allocator.h"
 #include "util.h"
 #include "zparser.h"
+#include "options.h"
 
 const dname_type *error_dname;
 domain_type *error_domain;
 
 /* The database file... */
-static const char *dbfile = DBFILE;
+static const char *dbfile = 0;
 
 /* Some global flags... */
 static int vflag = 0;
@@ -1195,9 +1196,9 @@ static void
 usage (void)
 {
 #ifndef NDEBUG
-	fprintf(stderr, "usage: zonec [-v|-h|-F|-L] [-o origin] [-d directory] -f database zone-list-file\n\n");
+	fprintf(stderr, "usage: zonec [-v|-h|-F|-L] [-c configfile] [-o origin] [-d directory] -f database zone-list-file\n\n");
 #else
-	fprintf(stderr, "usage: zonec [-v|-h] [-o origin] [-d directory] -f database zone-list-file\n\n");
+	fprintf(stderr, "usage: zonec [-v|-h] [-c configfile] [-o origin] [-d directory] -f database zone-list-file\n\n");
 #endif
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
@@ -1224,6 +1225,8 @@ main (int argc, char **argv)
 	int line = 0;
 	region_type *global_region;
 	region_type *rr_region;
+	const char* configfile= CONFIGFILE;
+	const char* zonesdir = NULL;
 	
 	log_init("zonec");
 
@@ -1245,8 +1248,11 @@ main (int argc, char **argv)
 	totalerrors = 0;
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "d:f:vhF:L:o:")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:vhF:L:o:c:")) != -1) {
 		switch (c) {
+		case 'c':
+			configfile= optarg;
+			break;
 		case 'v':
 			++vflag;
 			break;
@@ -1254,10 +1260,7 @@ main (int argc, char **argv)
 			dbfile = optarg;
 			break;
 		case 'd':
-			if (chdir(optarg)) {
-				fprintf(stderr, "zonec: cannot chdir to %s: %s\n", optarg, strerror(errno));
-				break;
-			}
+			zonesdir = optarg;
 			break;
 #ifndef NDEBUG
 		case 'F':
@@ -1282,6 +1285,23 @@ main (int argc, char **argv)
 
 	if (argc != 1) {
 		usage();
+	}
+
+	/* Read options */
+	nsd_options_create(region_create(xalloc, free));
+	if(!parse_options_file(nsd_options, configfile))
+	{
+		fprintf(stderr, "zonec: could not read config: %s\n", configfile);
+		exit(1);
+	}
+	if(zonesdir == 0) zonesdir = nsd_options->zonesdir;
+	if (chdir(zonesdir)) {
+		fprintf(stderr, "zonec: cannot chdir to %s: %s\n", zonesdir, strerror(errno));
+		exit(1);
+	}
+	if(dbfile == 0) {
+		if(nsd_options->database) dbfile = nsd_options->database;
+		else dbfile = DBFILE;
 	}
 
 	/* Create the database */
