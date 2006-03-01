@@ -123,6 +123,9 @@ Can be username, id or id.gid. Same as commandline option -u.
 Change the working directory to the specified directory before accessing zone files.
 Same as commandline option -d for 
 .Xr zonec 8 .
+Also 
+.Xr nsd 8
+will access files (pid file, database file, log file) relative to this directory.
 .El
 .Ss Zone Options
 For every zone the options need to be specified in one 

@@ -21,15 +21,15 @@
 .Op Fl c Ar configfile
 .Op Fl d Ar directory
 .Op Fl o Ar origin
+.Op Fl z Ar zonefile
 .Op Fl f Ar database
-.Ar nsd.zones
 .Sh DESCRIPTION
 .Ic Zonec
 is the
 .Xr nsd 8
 database compiler for creating name space databases from a set of
 input master zone files specified in
-.Ar nsd.zones
+.Xr nsd.conf 5
 file. 
 .Pp
 It is normally invoked via
@@ -37,40 +37,46 @@ It is normally invoked via
 rebuild command.
 .Ic Zonec
 will then parse every zone in
-.Ar nsd.zones
+.Xr nsd.conf 5
 file and add it to the name space database,
 .Pa /etc/nsd/nsd.db
 by default, that is used by
 .Xr nsd 8
 to answer incoming queries.
 .Pp
-If 
-.Ar nsd.zones 
-file equals `-` then all zone information is read from stdin. Making constructs like:
-
-.Ic cat zones* | ./zonec -f nsd.db -o example.net -
-
-possible.
-.Pp
 The available options are:
 .Bl -tag -width indent
 .It Fl c Ar configfile
 Read specified configfile instead of the default
-.Pa /etc/nsd/nsd.conf
+.Pa /etc/nsd/nsd.conf .
+If
+.Pa none
+is specified, no config file is read (for use with -o and -z).
 .It Fl d Ar directory
 Change the working directory to
 .Ar directory
-before doing any work.
+before doing any work. Overrides zonesdir: option in config file.
 .It Fl f Ar database
 Create the specified
 .Ar database
-instead of the default
-.Pa /etc/nsd/nsd.db
+instead of the file specified as database: in the config file.
+
 .It Fl o Ar origin
-When reading from stdin use this as the first origin. When reading zone
-from 
-.Pa nsd.zones
-this option is ignored.
+Use this as the first origin. Zone information is read from 
+zonefile specified with -z.
+When reading zones from config file this option is ignored.
+.It Fl z Ar zonefile
+Reads all zone information from
+.Ar zonefile .
+If 
+.Ar zonefile
+equals `-` then all zone information is read from stdin. Making constructs like:
+
+.Ic cat zones* | ./zonec -c none -f nsd.db -o example.net -z -
+
+possible.
+When reading zones from config file this option is ignored.
+
 .It Fl v
 Increase the verbosity of zonec.  This flag can be specified multiple
 times to increase the level of verbosity.  The first level of
@@ -81,55 +87,16 @@ Set debug facilities. (If compiled with --enable-checking.)
 .It Fl L
 Set debug level. (If compiled with --enable-checking.)
 .El
-.Sh FILE FORMAT
-The nsd.zones file is formatted as follows:
-.TS
-tab (@);
-l l.
-zone    <zonename>     <filename>       [masters <IP>|<IP>|...]
-zone    <zonename>     <filename>       [notify <IP>|<IP>|...]
-.TE
-
-The first word on a line must be ``zone''. It indicates that the zone
-should be loaded as authoritative data. 
-
-The second word is the name (origin) of the zone and the third word is the
-pathname to the master zone file. If you use zonec with the -d option
-the pathname may be relative to the NSD zones directory.
-
-Optionally masters list-of-ip-addresses can be present to update the respective
-zone with axfr from the given master servers. These servers will be tried in
-order.  This option is ignored by zonec and is only relevant for nsdc update.
-
-Optionally a list-of-ip-addresses of server that must be notified when can be
-present.  This option is ignored by zonec and is only relevant for nsdc notify.
-
-A typical example would be:
-.TS
-tab (@);
-l l.
-zone    example.com    primary/example.com    
-zone    example.net    secondary/example.net    masters 10.1.1.1
-.TE
-
-The second line indicates that nsdc update should try to axfr the zone
-example.net from the master server 10.1.1.1
-
-Since NSD is primarily written to be run on the root name servers,
-this file most likely to contain something like:
-.TS
-tab (@);
-l l.
-zone    .               root.zone
-.TE
-
-
 .Sh FILES
 .Bl -tag -width indent
 .It Pa /etc/nsd/nsd.db
 default
 .Ic NSD
 database
+.It Pa /etc/nsd/nsd.conf
+default
+.Ic NSD
+configuration file
 .El
 .Sh DIAGNOSTICS
 .Ic zonec
@@ -139,6 +106,7 @@ progress via stdout if
 option is specified.
 .Sh SEE ALSO
 .Xr nsd 8 ,
+.Xr nsd.conf 5 ,
 .Xr nsd-notify 8 ,
 .Xr nsd-xfer 8 ,
 .Xr nsdc 8

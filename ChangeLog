@@ -1,3 +1,14 @@
+1 Mar 2005: Wouter
+	- Nicer text in nsd.8.
+	- nsd.c prettier code in option handling.
+	- zonec.c code prettier in option handling, also chdir bug removed.
+	  zonec uses the zone definitions in the config file.
+	  updated zonec.8 and usage().
+	- nsd also chdirs to the zonedir, otherwise nsd and zonec would
+	  try to read the database: file from different directories.
+	  .(it does the chdir before the chroot call.)
+	- new calling syntax for zonec and nsd, because of new config file.
+
 28 Feb 2005: Wouter
 	- checked in options.h and config parser code.
 	- also nsd-checkconf that will test a config file 

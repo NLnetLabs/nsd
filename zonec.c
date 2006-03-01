@@ -1196,13 +1196,17 @@ static void
 usage (void)
 {
 #ifndef NDEBUG
-	fprintf(stderr, "usage: zonec [-v|-h|-F|-L] [-c configfile] [-o origin] [-d directory] -f database zone-list-file\n\n");
+	fprintf(stderr, "usage: zonec [-v|-h|-F|-L] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
 #else
-	fprintf(stderr, "usage: zonec [-v|-h] [-c configfile] [-o origin] [-d directory] -f database zone-list-file\n\n");
+	fprintf(stderr, "usage: zonec [-v|-h] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
 #endif
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
-	fprintf(stderr, "\t-o\tSpecify a zone's origin (only used if zone-list-file equals \'-\').\n");
+	fprintf(stderr, "\t-c\tSpecify config file to read instead of default nsd.conf,\n");
+	fprintf(stderr, "\t  \tor 'none' to read no config file.\n");
+	fprintf(stderr, "\t-d\tSet working directory to open files from.\n");
+	fprintf(stderr, "\t-o\tSpecify a zone's origin (only used with -z).\n");
+	fprintf(stderr, "\t-z\tSpecify a zonefile to read (read from stdin with \'-\').\n");
 #ifndef NDEBUG
 	fprintf(stderr, "\t-F\tSet debug facilities.\n");
 	fprintf(stderr, "\t-L\tSet debug level.\n");
@@ -1227,6 +1231,7 @@ main (int argc, char **argv)
 	region_type *rr_region;
 	const char* configfile= CONFIGFILE;
 	const char* zonesdir = NULL;
+	const char* singlefile = NULL;
 	
 	log_init("zonec");
 
@@ -1248,10 +1253,10 @@ main (int argc, char **argv)
 	totalerrors = 0;
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "d:f:vhF:L:o:c:")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:vhF:L:o:c:z:")) != -1) {
 		switch (c) {
 		case 'c':
-			configfile= optarg;
+			configfile = optarg;
 			break;
 		case 'v':
 			++vflag;
@@ -1273,6 +1278,9 @@ main (int argc, char **argv)
 		case 'o':
 			origin = optarg;
 			break;
+		case 'z':
+			singlefile = optarg;
+			break;
 		case 'h':
 		case '?':
 		default:
@@ -1283,21 +1291,25 @@ main (int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 1) {
+	if (argc != 0) {
 		usage();
 	}
 
 	/* Read options */
-	nsd_options_create(region_create(xalloc, free));
-	if(!parse_options_file(nsd_options, configfile))
-	{
-		fprintf(stderr, "zonec: could not read config: %s\n", configfile);
-		exit(1);
+	nsd_options_create(global_region);
+	if(strcmp(configfile, "none")!=0) {
+		if(!parse_options_file(nsd_options, configfile))
+		{
+			fprintf(stderr, "zonec: could not read config: %s\n", configfile);
+			exit(1);
+		}
 	}
 	if(zonesdir == 0) zonesdir = nsd_options->zonesdir;
-	if (chdir(zonesdir)) {
-		fprintf(stderr, "zonec: cannot chdir to %s: %s\n", zonesdir, strerror(errno));
-		exit(1);
+	if(zonesdir) {
+		if (chdir(zonesdir)) {
+			fprintf(stderr, "zonec: cannot chdir to %s: %s\n", zonesdir, strerror(errno));
+			exit(1);
+		}
 	}
 	if(dbfile == 0) {
 		if(nsd_options->database) dbfile = nsd_options->database;
@@ -1316,70 +1328,37 @@ main (int argc, char **argv)
 	error_dname = (dname_type *) region_alloc(global_region, 0);
 	error_domain = (domain_type *) region_alloc(global_region, 0);
 
-	if (origin) {
+	if (singlefile || origin) {
 		/*
 		 * Read a single zone file with the specified origin
-		 * instead of the zone master file.
 		 */
-		zone_read(origin, *argv);
-	} else {
-		FILE *f;
-		
-		/* Open the master file... */
-		if (strcmp(*argv, "-") == 0) {
-			f = stdin;
-		} else if (!(f = fopen(*argv, "r"))) {
-			fprintf(stderr, "zonec: cannot open %s: %s\n",
-				*argv, strerror(errno));
+		if(!singlefile || !origin) {
+			fprintf(stderr, "zonec: must have -z zonefile when reading single zone.\n");
 			exit(1);
 		}
-
-		/* Do the job */
-		while (fgets(buf, LINEBUFSZ - 1, f) != NULL) {
-			/* Count the lines... */
-			++line;
-
-			/* Skip empty lines and comments... */
-			if ((s = strtok(buf, sep)) == NULL || *s == ';')
-				continue;
-
-			if (strcasecmp(s, "zone") != 0) {
-				fprintf(stderr, "zonec: syntax error in %s line %d: expected token 'zone'\n", *argv, line);
-				break;
-			}
-
-			/* Zone name... */
-			if ((zonename = strtok(NULL, sep)) == NULL) {
-				fprintf(stderr, "zonec: syntax error in %s line %d: expected zone name\n", *argv, line);
-				break;
-			}
-
-			/* File name... */
-			if ((zonefile = strtok(NULL, sep)) == NULL) {
-				fprintf(stderr, "zonec: syntax error in %s line %d: expected file name\n", *argv, line);
-				break;
-			}
-
-			/* Trailing garbage? Ignore masters keyword that is used by nsdc.sh update */
-			if ((s = strtok(NULL, sep)) != NULL && *s != ';' && strcasecmp(s, "masters") != 0
-				&& strcasecmp(s, "notify") != 0) {
-				fprintf(stderr, "zonec: ignoring trailing garbage in %s line %d\n", *argv, line);
-			}
-
+		if(!origin) {
+			fprintf(stderr, "zonec: must have -o origin when reading single zone.\n");
+			exit(1);
+		}
+		if (vflag > 0)
+			fprintf(stderr, "zonec: reading zone \"%s\".\n", origin);
+		zone_read(origin, singlefile);
+		if (vflag > 0)
+			fprintf(stderr, "zonec: processed %ld RRs in \"%s\".\n", totalrrs, origin);
+	} else {
+		/* read all zones */
+		zone_options_t* zone;
+		for(zone = nsd_options->zone_options; zone; zone=zone->next)
+		{
 			if (vflag > 0)
 				fprintf(stderr, "zonec: reading zone \"%s\".\n",
-					zonename);
-			zone_read(zonename, zonefile);
+					zone->name);
+			zone_read(zone->name, zone->zonefile);
 			if (vflag > 0)
 				fprintf(stderr,
 					"zonec: processed %ld RRs in \"%s\".\n",
-					totalrrs, zonename);
+					totalrrs, zone->name);
 			totalrrs = 0;
-
-		}
-
-		if (f != stdin) {
-			fclose(f);
 		}
 	}
 

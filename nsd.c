@@ -344,8 +344,8 @@ main (int argc, char *argv[])
 	/* For initialising the address info structures */
 	struct addrinfo hints[MAX_INTERFACES];
 	const char *nodes[MAX_INTERFACES];
-	const char *udp_port;
-	const char *tcp_port;
+	const char *udp_port = 0;
+	const char *tcp_port = 0;
 
 	const char *log_filename = NULL;
 	const char *configfile = CONFIGFILE;
@@ -365,10 +365,6 @@ main (int argc, char *argv[])
 	nsd.pidfile	= 0;
 	nsd.server_kind = NSD_SERVER_MAIN;
 	
-	/* Initialise the ports */
-	udp_port = 0;
-	tcp_port = 0;
-
 	for (i = 0; i < MAX_INTERFACES; i++) {
 		memset(&hints[i], 0, sizeof(hints[i]));
 		hints[i].ai_family = DEFAULT_AI_FAMILY;
@@ -379,7 +375,7 @@ main (int argc, char *argv[])
 	nsd.identity	= 0;
 	nsd.version	= VERSION;
 	nsd.username	= 0;
-	nsd.chrootdir	= NULL;
+	nsd.chrootdir	= 0;
 
 	nsd.child_count = 0;
 	nsd.maximum_tcp_count = 0;
@@ -558,6 +554,7 @@ main (int argc, char *argv[])
 				++nsd.ifs;
 			} else {
 				error("too many interfaces ('-a' + 'ip-address:') specified.");
+				break;
 			}
 			ip = ip->next;
 		}
@@ -608,6 +605,12 @@ main (int argc, char *argv[])
 	if(nsd.username == 0) {
 		if(nsd_options->username) nsd.username = nsd_options->username;
 		else nsd.username = USER;
+	}
+	if(nsd_options->zonesdir) {
+		if(chdir(nsd_options->zonesdir)) {
+			error("cannot chdir to '%s': %s", 
+				nsd_options->zonesdir, strerror(errno));
+		}
 	}
 	
 	/* Number of child servers to fork.  */
