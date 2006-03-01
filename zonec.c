@@ -1220,13 +1220,9 @@ extern int optind;
 int 
 main (int argc, char **argv)
 {
-	char *zonename, *zonefile, *s;
-	char buf[LINEBUFSZ];
 	struct namedb *db;
-	const char *sep = " \t\n";
 	char *origin = NULL;
 	int c;
-	int line = 0;
 	region_type *global_region;
 	region_type *rr_region;
 	const char* configfile= CONFIGFILE;

@@ -8,6 +8,9 @@
 	  try to read the database: file from different directories.
 	  .(it does the chdir before the chroot call.)
 	- new calling syntax for zonec and nsd, because of new config file.
+	- options added acl acceptance tests (no tsig yet).
+	- added unit test for options.c - for acl tests.
+	- zonec removed unused vars, nsd-checkconf print arguments.
 
 28 Feb 2005: Wouter
 	- checked in options.h and config parser code.

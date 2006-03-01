@@ -174,6 +174,11 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 			errors ++;
                 }
         }
+	if (atoi(opt->port) <= 0) {
+		fprintf(stderr, "%s: port number '%s' is not a positive number.\n", 
+			filename, opt->port);
+		errors ++;
+	}
 	if(errors != 0) {
 		fprintf(stderr, "%s: parse ok %d zones, %d keys, but %d semantic errors.\n",
 			filename, opt->numzones, opt->numkeys, errors);

@@ -13,6 +13,7 @@
 #include <config.h>
 #include <stdarg.h>
 #include "region-allocator.h"
+struct query;
 
 typedef struct nsd_options nsd_options_t;
 typedef struct zone_options zone_options_t;
@@ -145,6 +146,13 @@ int parse_options_file(nsd_options_t* opt, const char* file);
 zone_options_t* zone_options_create(region_type* region);
 key_options_t* key_options_create(region_type* region);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
+
+/* check acl list, true if passed, false if dropped */
+int acl_check_incoming(acl_options_t* acl, struct query* q);
+int acl_addr_matches(acl_options_t* acl, struct query* q);
+int acl_key_matches(acl_options_t* acl, struct query* q);
+int acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz);
+int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz);
 
 /* parsing helpers */
 void c_error(const char* msg);

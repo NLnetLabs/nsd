@@ -139,6 +139,9 @@ CUTEST_OBJECTS		=			\
 	answer.o				\
 	axfr.o					\
 	buffer.o				\
+	configlexer.o				\
+	configparser.o				\
+	options.o				\
 	dbaccess.o				\
 	dbcreate.o				\
 	dname.o					\
@@ -158,6 +161,7 @@ CUTEST_OBJECTS		=			\
 	util.o					\
 	cutest_run.o				\
 	cutest_rbtree.o 			\
+	cutest_options.o 			\
 	cutest_util.o 				\
 	cutest.o
 
@@ -264,6 +268,9 @@ cutest_run.o:	tpkg/cutest/cutest_run.c
 	$(COMPILE) -c $< -o $@
 
 cutest_rbtree.o:	tpkg/cutest/cutest_rbtree.c
+	$(COMPILE) -c $< -o $@
+
+cutest_options.o:	tpkg/cutest/cutest_options.c
 	$(COMPILE) -c $< -o $@
 
 cutest_util.o:	tpkg/cutest/cutest_util.c

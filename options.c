@@ -10,6 +10,7 @@
 #include <string.h>
 #include <errno.h>
 #include "options.h"
+#include "query.h"
 
 #include "configyyrename.h"
 #include "configparser.h"
@@ -208,3 +209,136 @@ key_options_t* key_options_find(nsd_options_t* opt, const char* name)
 	}
 	return 0;
 }
+
+int acl_check_incoming(acl_options_t* acl, struct query* q)
+{
+	/* check each acl element.
+	   if 1 blocked element matches - return 0.
+	   if any element matches - return 1.
+	   else return 0. */
+	int found_match = 0;
+	while(acl)
+	{
+		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
+			if(acl->blocked) return 0;
+			found_match=1;
+		}
+		acl = acl->next;
+	}
+	return found_match;
+}
+
+int acl_addr_matches(acl_options_t* acl, struct query* q)
+{
+	if(acl->is_ipv6)
+	{
+#ifdef INET6
+		struct sockaddr_storage* addr_storage = (struct sockaddr_storage*)&q->addr;
+		struct sockaddr_in6* addr = (struct sockaddr_in6*)&q->addr;
+		if(addr_storage->ss_family != AF_INET6) return 0;
+		if(acl->port != 0 && acl->port != addr->sin6_port) return 0;
+		switch(acl->rangetype) {
+		case acl_range_mask:
+		case acl_range_subnet:
+			if(!acl_addr_match_mask((uint32_t*)&acl->addr.addr6, (uint32_t*)&addr->sin6_addr,
+				(uint32_t*)&acl->range_mask.addr6, sizeof(struct in6_addr)))
+				return 0;
+			break;
+		case acl_range_minmax:
+			if(!acl_addr_match_range((uint32_t*)&acl->addr.addr6, (uint32_t*)&addr->sin6_addr,
+				(uint32_t*)&acl->range_mask.addr6, sizeof(struct in6_addr)))
+				return 0;
+			break;
+		case acl_range_single:
+		default:
+			if(memcmp(&addr->sin6_addr, &acl->addr.addr6, 
+				sizeof(struct in6_addr)) != 0)
+				return 0;
+			break;
+		}
+		return 1;
+#else
+		return 0; /* no inet6, no match */
+#endif
+	}
+	else
+	{
+		struct sockaddr_in* addr = (struct sockaddr_in*)&q->addr;
+		if(addr->sin_family != AF_INET) return 0;
+		if(acl->port != 0 && acl->port != addr->sin_port) return 0;
+		switch(acl->rangetype) {
+		case acl_range_mask:
+		case acl_range_subnet:
+			if(!acl_addr_match_mask((uint32_t*)&acl->addr.addr, (uint32_t*)&addr->sin_addr,
+				(uint32_t*)&acl->range_mask.addr, sizeof(struct in_addr)))
+				return 0;
+			break;
+		case acl_range_minmax:
+			if(!acl_addr_match_range((uint32_t*)&acl->addr.addr, (uint32_t*)&addr->sin_addr,
+				(uint32_t*)&acl->range_mask.addr, sizeof(struct in_addr)))
+				return 0;
+			break;
+		case acl_range_single:
+		default:
+			if(memcmp(&addr->sin_addr, &acl->addr.addr, 
+				sizeof(struct in_addr)) != 0)
+				return 0;
+			break;
+		}
+		return 1;
+	}
+	/* ENOTREACH */
+	return 0;
+}
+
+int acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz)
+{
+	size_t i;
+#ifndef NDEBUG
+	assert(sz % 4 == 0);
+#endif
+	sz /= 4;
+	for(i=0; i<sz; ++i)
+	{
+		if(((*a++)&*mask) != ((*b++)&*mask))
+			return 0;
+		++mask;
+	}
+	return 1;
+}
+
+int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz)
+{
+	size_t i;
+	uint8_t checkmin = 1, checkmax = 1;
+#ifndef NDEBUG
+	assert(sz % 4 == 0);
+#endif
+	/* check treats x as one huge number */
+	sz /= 4;
+	for(i=0; i<sz; ++i)
+	{
+		/* if outside bounds, we are done */
+		if(checkmin)
+			if(minval[i] > x[i]) return 0;
+		if(checkmax)
+			if(maxval[i] < x[i]) return 0;
+		/* if x is equal to a bound, that bound needs further checks */
+		if(checkmin && minval[i]!=x[i])
+			checkmin = 0;
+		if(checkmax && maxval[i]!=x[i])
+			checkmax = 0;
+		if(!checkmin && !checkmax) 
+			return 1; /* will always match */
+	}
+	return 1;
+}
+
+int acl_key_matches(acl_options_t* acl, struct query* q)
+{
+	if(acl->nokey) return 1;
+	if(acl->blocked) return 1;
+	/* no tsig yet */
+	return 0;
+}
+
