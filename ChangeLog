@@ -11,6 +11,7 @@
 	- options added acl acceptance tests (no tsig yet).
 	- added unit test for options.c - for acl tests.
 	- zonec removed unused vars, nsd-checkconf print arguments.
+	- nsd-checkconf.8 manual page.
 
 28 Feb 2005: Wouter
 	- checked in options.h and config parser code.

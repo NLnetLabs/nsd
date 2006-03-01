@@ -1,0 +1,59 @@
+.ig
+nsd-checkconf.8 -- nsd configuration checker manual
+
+Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+
+See LICENSE for the license.
+
+
+..
+.Dd @date@
+.Dt nsd-checkconf 8 
+.Sh NAME
+nsd-checkconf
+.Nd NSD configuration file checker.
+.Sh SYNOPSIS
+.Nm nsd-checkconf
+.Op Fl v
+.Ar configfile
+
+.Sh DESCRIPTION
+.Ic nsd-checkconf
+reads a configuration file. It prints parse errors to stderr,
+and performs additional checks on the contents.
+The configfile format is described in
+.Xr nsd-conf 5 .
+.Pp
+The utility of this program is to check a config file for 
+errors before using it in
+.Xr nsd 8
+or
+.Xr zonec 8 .
+.Pp
+The available options are:
+.Bl -tag -width indent
+
+.It Fl v
+After reading print the options to stdout in configfile format.
+Without this option, only success or parse errors are reported.
+
+.El
+.Sh FILES
+.Bl -tag -width indent
+.It Pa /etc/nsd/nsd.conf
+default
+.Ic NSD
+configuration file
+.El
+
+.Sh SEE ALSO
+.Xr nsd 8 ,
+.Xr nsd.conf 5 ,
+.Xr nsd-notify 8 ,
+.Xr nsd-xfer 8 ,
+.Xr nsdc 8 ,
+.Xr zonec 8
+.Sh AUTHORS
+.Ic NSD
+was written by NLnet Labs and RIPE NCC joint team. Please see the
+CREDITS file in the distribution for further details.
