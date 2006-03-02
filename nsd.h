@@ -15,6 +15,7 @@
 #include "dns.h"
 #include "edns.h"
 struct netio_handler;
+struct nsd_options;
 
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
@@ -156,6 +157,8 @@ struct	nsd
 		stc_t 	edns, ednserr, raxfr, nona;
 	} st;
 #endif /* BIND8_STATS */
+
+	struct nsd_options* options;
 };
 
 /* nsd.c */

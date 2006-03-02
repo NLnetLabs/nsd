@@ -34,6 +34,7 @@
 #include "namedb.h"
 #include "netio.h"
 #include "plugins.h"
+#include "xfrd.h"
 
 
 /*
@@ -178,6 +179,18 @@ static void configure_handler_event_types(size_t count,
 					  netio_handler_type *handlers,
 					  netio_event_types_type event_types);
 
+/*
+ * start xfrdaemon (again).
+ */
+static pid_t
+server_start_xfrd(struct nsd *nsd, netio_handler_type* handler);
+
+/*
+ * Handle a command received from the xfrdaemon processes.
+ */
+static void handle_xfrd_command(netio_type *netio,
+				  netio_handler_type *handler,
+				  netio_event_types_type event_types);
 
 static uint16_t *compressed_dname_offsets;
 
@@ -471,6 +484,40 @@ server_shutdown(struct nsd *nsd)
 	exit(0);
 }
 
+static pid_t
+server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
+{
+	pid_t pid;
+	int sockets[2] = {0,0};
+	if(handler->fd != -1) close(handler->fd);
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == -1) {
+		log_msg(LOG_ERR, "startxfrd failed on socketpair: %s", strerror(errno));
+		return -1;
+	}
+	pid = fork();
+	switch (pid) {
+	case -1:
+		log_msg(LOG_ERR, "fork xfrd failed: %s", strerror(errno));
+		break;
+	case 0:
+		/* CHILD */
+		close(sockets[0]);
+		xfrd_init(sockets[1], nsd);
+		/* ENOTREACH */
+		break;
+	default:
+		/* PARENT */
+		close(sockets[1]);
+		handler->fd = sockets[0];
+		break;
+	}
+	handler->timeout = NULL;
+	handler->user_data = nsd;
+	handler->event_types = NETIO_EVENT_READ;
+	handler->event_handler = handle_xfrd_command;
+	return pid;
+}
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -580,12 +627,14 @@ server_main(struct nsd *nsd)
         region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type reload_listener;
+	netio_handler_type xfrd_listener;
 	int reload_sockets[2] = {-1, -1};
 	struct timespec timeout_spec;
 	int fd;
 	int status;
 	pid_t child_pid;
 	pid_t reload_pid = -1;
+	pid_t xfrd_pid = -1;
 	sig_atomic_t mode;
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
@@ -597,6 +646,8 @@ server_main(struct nsd *nsd)
 	}
 	reload_listener.fd = -1;
 	assert(nsd->this_child == 0);
+	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
+	netio_add_handler(netio, &xfrd_listener);
 
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
 
@@ -633,6 +684,11 @@ server_main(struct nsd *nsd)
 					if(reload_listener.fd > 0) close(reload_listener.fd);
 					reload_listener.fd = -1;
 					reload_listener.event_types = NETIO_EVENT_NONE;
+				} else if (child_pid == xfrd_pid) {
+					log_msg(LOG_WARNING,
+					       "xfrd process %d failed with status %d, restarting ",
+					       (int) child_pid, status);
+					xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",
@@ -1433,6 +1489,42 @@ send_children_command(struct nsd* nsd, sig_atomic_t command)
 					strerror(errno));
 			}
 		}
+	}
+}
+
+static void
+handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
+		      netio_handler_type *handler,
+		      netio_event_types_type event_types)
+{
+	sig_atomic_t mode;
+	int len;
+	nsd_type *nsd = (nsd_type *) handler->user_data;
+	if (!(event_types & NETIO_EVENT_READ)) {
+		return;
+	}
+
+	if ((len = read(handler->fd, &mode, sizeof(mode))) == -1) {
+		log_msg(LOG_ERR, "handle_xfrd_command: read: %s",
+			strerror(errno));
+		return;
+	}
+	if (len == 0)
+	{
+		log_msg(LOG_ERR, "handle_xfrd_command: xfrd closed channel");
+		handler->fd = -1;
+		return;
+	}
+
+	switch (mode) {
+	case NSD_RELOAD:
+	case NSD_REAP_CHILDREN:
+		nsd->mode = mode;
+		break;
+	default:
+		log_msg(LOG_ERR, "handle_xfrd_command: bad mode %d",
+			(int) mode);
+		break;
 	}
 }
 

@@ -135,7 +135,6 @@ struct config_parser_state {
 	acl_options_t* current_provide_xfr;
 };
 
-extern nsd_options_t* nsd_options;
 extern config_parser_state_t* cfg_parser;
 
 /* region will be put in nsd_options struct. Returns empty options struct. */

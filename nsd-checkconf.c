@@ -217,6 +217,8 @@ int main(int argc, char* argv[])
 	int c;
 	int verbose = 0;
 	const char* configfile;
+	nsd_options_t *options;
+
         /* Parse the command line... */
         while ((c = getopt(argc, argv, "v")) != -1) {
 		switch (c) {
@@ -233,14 +235,14 @@ int main(int argc, char* argv[])
 	configfile = argv[0];
 
 	/* read config file */
-	nsd_options_create(region_create(xalloc, free));
-	if(!parse_options_file(nsd_options, configfile) ||
-	   !additional_checks(nsd_options, configfile))
+	options = nsd_options_create(region_create(xalloc, free));
+	if(!parse_options_file(options, configfile) ||
+	   !additional_checks(options, configfile))
 		return 1;
 	printf("# Read file %s: %d zones, %d keys.\n", configfile, 
-		nsd_options->numzones, nsd_options->numkeys);
+		options->numzones, options->numkeys);
 	if(verbose) {
-		config_test_print_server(nsd_options);
+		config_test_print_server(options);
 	}
 	return 0;
 }

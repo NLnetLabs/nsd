@@ -1228,6 +1228,7 @@ main (int argc, char **argv)
 	const char* configfile= CONFIGFILE;
 	const char* zonesdir = NULL;
 	const char* singlefile = NULL;
+	nsd_options_t* nsd_options = NULL;
 	
 	log_init("zonec");
 
@@ -1292,7 +1293,7 @@ main (int argc, char **argv)
 	}
 
 	/* Read options */
-	nsd_options_create(global_region);
+	nsd_options = nsd_options_create(global_region);
 	if(strcmp(configfile, "none")!=0) {
 		if(!parse_options_file(nsd_options, configfile))
 		{

@@ -5,6 +5,11 @@
 	- new function to add config file keys to tsig.
 	- nsd-checkconf checks parsing of keys. 
 	- Updated sample key file with valid keys.
+	- added first xfrd files. xfrd is started from server_main.
+	  xfrd listens to server and server to xfrd. xfrd is restarted
+	  if it dies unexpectedly. xfrd quits when server signals it.
+	  xfrd survives nsd reloads.
+	- nsd_options no longer global variable.
 
 1 Mar 2005: Wouter
 	- Nicer text in nsd.8.

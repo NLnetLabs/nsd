@@ -529,25 +529,25 @@ main (int argc, char *argv[])
 	}
 
         /* Read options */
-        nsd_options_create(region_create(xalloc, free));
-        if(!parse_options_file(nsd_options, configfile)) {
+        nsd.options = nsd_options_create(region_create(xalloc, free));
+        if(!parse_options_file(nsd.options, configfile)) {
                 error("nsd: could not read config: %s\n", configfile);
         }
-	if(nsd_options->ip4_only) {
+	if(nsd.options->ip4_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET;
 		}
 	}
 #ifdef INET6
-	if(nsd_options->ip6_only) {
+	if(nsd.options->ip6_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET6;
 		}
 	}
 #endif /* !INET6 */
-	if(nsd_options->ip_addresses)
+	if(nsd.options->ip_addresses)
 	{
-		ip_address_option_t* ip = nsd_options->ip_addresses;
+		ip_address_option_t* ip = nsd.options->ip_addresses;
 		while(ip) {
 			if (nsd.ifs < MAX_INTERFACES) {
 				nodes[nsd.ifs] = ip->address;
@@ -559,36 +559,36 @@ main (int argc, char *argv[])
 			ip = ip->next;
 		}
 	}
-	if(nsd_options->debug_mode) nsd.debug=1;
+	if(nsd.options->debug_mode) nsd.debug=1;
 	if(!nsd.dbfile)
 	{
-		if(nsd_options->database) nsd.dbfile = nsd_options->database;
+		if(nsd.options->database) nsd.dbfile = nsd.options->database;
 		else nsd.dbfile = DBFILE;
 	}
 	if(!nsd.pidfile)
 	{
-		if(nsd_options->pidfile) nsd.pidfile = nsd_options->pidfile;
+		if(nsd.options->pidfile) nsd.pidfile = nsd.options->pidfile;
 		else nsd.pidfile = PIDFILE;
 	}
 	if(!nsd.identity)
 	{
-		if(nsd_options->identity) nsd.identity = nsd_options->identity;
+		if(nsd.options->identity) nsd.identity = nsd.options->identity;
 		else nsd.identity = IDENTITY;
 	}
-	if (nsd_options->logfile && !log_filename) {
-		log_filename = nsd_options->logfile;
+	if (nsd.options->logfile && !log_filename) {
+		log_filename = nsd.options->logfile;
 	}
 	if(nsd.child_count == 0) {
-		nsd.child_count = nsd_options->server_count;
+		nsd.child_count = nsd.options->server_count;
 	}
 	if(nsd.maximum_tcp_count == 0) {
-		nsd.maximum_tcp_count = nsd_options->tcp_count;
+		nsd.maximum_tcp_count = nsd.options->tcp_count;
 	}
 	if(udp_port == 0)
 	{
-		if(nsd_options->port != 0) {
-			udp_port = nsd_options->port;
-			tcp_port = nsd_options->port;
+		if(nsd.options->port != 0) {
+			udp_port = nsd.options->port;
+			tcp_port = nsd.options->port;
 		} else {
 			udp_port = UDP_PORT;
 			tcp_port = TCP_PORT;
@@ -596,20 +596,20 @@ main (int argc, char *argv[])
 	}
 #ifdef BIND8_STATS
 	if(nsd.st.period == 0) {
-		nsd.st.period = nsd_options->statistics;
+		nsd.st.period = nsd.options->statistics;
 	}
 #endif /* !BIND8_STATS */
 #ifdef HAVE_CHROOT
-	if(nsd.chrootdir == 0) nsd.chrootdir = nsd_options->chroot;
+	if(nsd.chrootdir == 0) nsd.chrootdir = nsd.options->chroot;
 #endif
 	if(nsd.username == 0) {
-		if(nsd_options->username) nsd.username = nsd_options->username;
+		if(nsd.options->username) nsd.username = nsd.options->username;
 		else nsd.username = USER;
 	}
-	if(nsd_options->zonesdir) {
-		if(chdir(nsd_options->zonesdir)) {
+	if(nsd.options->zonesdir) {
+		if(chdir(nsd.options->zonesdir)) {
 			error("cannot chdir to '%s': %s", 
-				nsd_options->zonesdir, strerror(errno));
+				nsd.options->zonesdir, strerror(errno));
 		}
 	}
 	

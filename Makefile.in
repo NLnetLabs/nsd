@@ -79,7 +79,8 @@ NSD_OBJECTS	=				\
 	server.o				\
 	tsig.o					\
 	tsig-openssl.o				\
-	util.o
+	util.o					\
+	xfrd.o
 
 ZONEC_OBJECTS	=				\
 	answer.o				\
