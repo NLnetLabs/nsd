@@ -10,7 +10,7 @@ Parts, each part has
 - 32 bits type field.
 - 32 bits length field.
 - length bytes of content.
-- 32 bits repeat of the length field. (wrong=error).
+- 32 bits repeat of the length field.
 
 TYPE="IXFR"
 contents is IXFR packet contents (the RRs). 
@@ -19,9 +19,17 @@ without a SURE part, it is probably sent with bad tsig.
 
 TYPE="SURE"
 contents is:
-a) zone apex that is committed (OK). IXFR for zone must be before.
-b) new SOA serial that is OK.
-c) commit=1(IXFR is OK) or rollback=0(ignore that IXFR) (1byte). 
+a) reference to the IXFR packet that is OKed.
+	- new SOA rr packet.
+	- this must be the IXFR immediately preceding the SURE.
+b) uint8: commit=1(IXFR is OK) or rollback=0(ignore that IXFR). 
+c) space for a text string message (0 terminated), i.e.
+	'at time <stamp> came from <addr>, tsig checked with key <key>'.
+	or rejected <reason for rejection>.
 
 Unknown types are an error.
 A part truncated by EOF must be ignored.
+A part that ends in a bad length field must be ignored.
+
+xfrd only appends the file or truncates trailing garbage.
+reload only reads the file.

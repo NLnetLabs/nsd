@@ -334,7 +334,7 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 	return 1;
 }
 
-int acl_key_matches(acl_options_t* acl, struct query* q)
+int acl_key_matches(acl_options_t* acl, struct query* ATTR_UNUSED(q))
 {
 	if(acl->nokey) return 1;
 	if(acl->blocked) return 1;

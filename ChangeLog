@@ -1,3 +1,7 @@
+2 Mar 2005: Wouter
+	- Added nsd-checkconf.8 to makedist.sh replace list.
+	- DIFF file format updated.
+
 1 Mar 2005: Wouter
 	- Nicer text in nsd.8.
 	- nsd.c prettier code in option handling.
