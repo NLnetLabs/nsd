@@ -82,17 +82,25 @@ NSD_OBJECTS	=				\
 	util.o
 
 ZONEC_OBJECTS	=				\
+	answer.o				\
+	axfr.o					\
 	buffer.o				\
 	configlexer.o				\
 	configparser.o				\
-	options.o				\
+	dbaccess.o				\
 	dbcreate.o				\
 	dname.o					\
 	dns.o					\
+	edns.o					\
 	namedb.o				\
+	options.o				\
+	packet.o				\
+	query.o					\
 	rbtree.o				\
 	rdata.o					\
 	region-allocator.o			\
+	tsig.o					\
+	tsig-openssl.o				\
 	util.o					\
 	zlexer.o				\
 	zonec.o					\
@@ -128,17 +136,25 @@ NSD_XFER_OBJECTS	=			\
 	util.o
 
 NSD_CHECKCONF_OBJECTS	=			\
+	answer.o				\
+	axfr.o					\
 	buffer.o                                \
 	configlexer.o                           \
 	configparser.o                          \
+	dbaccess.o				\
 	dname.o                                 \
 	dns.o                                   \
+	edns.o					\
 	namedb.o                                \
 	nsd-checkconf.o                         \
 	options.o                               \
+	packet.o				\
+	query.o					\
 	rbtree.o                                \
 	rdata.o                                 \
 	region-allocator.o                      \
+	tsig.o					\
+	tsig-openssl.o				\
 	util.o
 
 CUTEST_OBJECTS		=			\
@@ -217,13 +233,13 @@ nsd:	$(NSD_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 zonec:	$(ZONEC_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(ZONEC_OBJECTS) $(LIBOBJS) $(LIBS)
+	$(LINK) -o $@ $(ZONEC_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJECTS) $(LIBOBJS) $(LIBS)
 
 nsd-checkconf:	$(NSD_CHECKCONF_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_CHECKCONF_OBJECTS) $(LIBOBJS) $(LIBS)
+	$(LINK) -o $@ $(NSD_CHECKCONF_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
 nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
