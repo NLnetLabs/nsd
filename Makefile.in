@@ -182,6 +182,7 @@ CUTEST_OBJECTS		=			\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
+	xfrd.o					\
 	cutest_run.o				\
 	cutest_rbtree.o 			\
 	cutest_options.o 			\
