@@ -90,7 +90,6 @@ struct tsig_algorithm
  */
 struct tsig_key
 {
-	struct addrinfo  *server;
 	const dname_type *name;
 	size_t            size;
 	const uint8_t    *data;

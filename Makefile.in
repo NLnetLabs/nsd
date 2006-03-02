@@ -128,11 +128,17 @@ NSD_XFER_OBJECTS	=			\
 	util.o
 
 NSD_CHECKCONF_OBJECTS	=			\
-	nsd-checkconf.o				\
-	region-allocator.o			\
-	configlexer.o				\
-	configparser.o				\
-	options.o				\
+	buffer.o                                \
+	configlexer.o                           \
+	configparser.o                          \
+	dname.o                                 \
+	dns.o                                   \
+	namedb.o                                \
+	nsd-checkconf.o                         \
+	options.o                               \
+	rbtree.o                                \
+	rdata.o                                 \
+	region-allocator.o                      \
 	util.o
 
 CUTEST_OBJECTS		=			\
@@ -373,7 +379,8 @@ pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h
 nsd-checkconf.o: nsd-checkconf.c config.h options.h region-allocator.h \
   util.h
-options.o: options.c config.h options.h region-allocator.h \
+options.o: options.c options.h region-allocator.h query.h namedb.h \
+  dname.h buffer.h util.h dns.h rbtree.h nsd.h edns.h packet.h tsig.h \
   configyyrename.h configparser.h
 configlexer.o: configlexer.c configyyrename.h config.h options.h \
   region-allocator.h configparser.h

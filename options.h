@@ -146,6 +146,8 @@ int parse_options_file(nsd_options_t* opt, const char* file);
 zone_options_t* zone_options_create(region_type* region);
 key_options_t* key_options_create(region_type* region);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
+/* tsig must be inited, adds all keys in options to tsig. */
+void key_options_tsig_add(nsd_options_t* opt);
 
 /* check acl list, true if passed, false if dropped */
 int acl_check_incoming(acl_options_t* acl, struct query* q);

@@ -13,6 +13,7 @@
 #include <limits.h>
 #include "options.h"
 #include "util.h"
+#include "dname.h"
 
 static void
 usage(void)
@@ -119,6 +120,7 @@ void config_test_print_server(nsd_options_t* opt)
 static int additional_checks(nsd_options_t* opt, const char* filename)
 {
 	ip_address_option_t* ip = opt->ip_addresses;
+	key_options_t* key;
 	int num = 0;
 	int errors = 0;
 	while(ip) {
@@ -129,6 +131,29 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 		fprintf(stderr, "%s: too many interfaces (ip-address:) specified.\n", filename);
 		errors ++;
 	}
+
+	for(key = opt->keys; key; key=key->next)
+	{
+		const dname_type* dname = dname_parse(opt->region, key->name); /* memory leak. */
+	        uint8_t data[4000];
+		int size;
+
+		if(!dname) {
+		fprintf(stderr, "%s: cannot parse tsig name: for key %s.\n", filename, key->name);
+		errors ++;
+		}
+		size = b64_pton(key->secret, data, sizeof(data));
+		if(size == -1) {
+		fprintf(stderr, "%s: cannot parse tsig secret: for key %s.\n", filename, key->name);
+		errors ++;
+		}
+		if(strcmp(key->algorithm, "hmac-md5") != 0)
+		{
+		fprintf(stderr, "%s: bad tsig algorithm: for key %s.\n", filename, key->name);
+		errors ++;
+		}
+	}
+
 #ifndef BIND8_STATS
 	if(opt->statistics > 0)
 	{

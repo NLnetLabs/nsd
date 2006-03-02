@@ -63,7 +63,7 @@ server:
 key:
 	name: mskey
 	algorithm: hmac-md5
-	secret: "base64codesgohere"
+	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
 
 # Sample zone 1
 zone:
@@ -106,9 +106,10 @@ zone:
 key:
 	name: "sec1_key"
 	algorithm: hmac-md5
-	secret: "base64codesgohere"
+	secret: "6KM6qiKfwfEpamEq72HQdA=="
 
 key:
 	name: sec2_key
 	algorithm: hmac-md5
-	secret: "base64codesgohere"
+	secret: "m83H2x8R0zbDf3yRKhrqgw=="
+

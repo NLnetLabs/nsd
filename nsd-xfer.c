@@ -183,12 +183,6 @@ to_alarm(int ATTR_UNUSED(sig))
 	timeout_flag = 1;
 }
 
-static void
-cleanup_addrinfo(void *data)
-{
-	freeaddrinfo((struct addrinfo *) data);
-}
-
 /*
  * Read a line from IN.  If successful, the line is stripped of
  * leading and trailing whitespace and non-zero is returned.
@@ -205,13 +199,12 @@ read_line(FILE *in, char *line, size_t size)
 }
 
 static tsig_key_type *
-read_tsig_key_data(region_type *region, FILE *in, int default_family)
+read_tsig_key_data(region_type *region, FILE *in, 
+	int ATTR_UNUSED(default_family))
 {
 	char line[4000];
 	tsig_key_type *key = (tsig_key_type *) region_alloc(
 		region, sizeof(tsig_key_type));
-	struct addrinfo hints;
-	int gai_rc;
 	int size;
 	uint8_t data[4000];
 
@@ -220,21 +213,7 @@ read_tsig_key_data(region_type *region, FILE *in, int default_family)
 		      strerror(errno));
 		return NULL;
 	}
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags |= AI_NUMERICHOST;
-	hints.ai_family = default_family;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	gai_rc = getaddrinfo(line, NULL, &hints, &key->server);
-	if (gai_rc) {
-		error("cannot parse address '%s': %s",
-		      line,
-		      gai_strerror(gai_rc));
-		return NULL;
-	}
-
-	region_add_cleanup(region, cleanup_addrinfo, key->server);
+	/* server name unused */
 
 	if (!read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key name: '%s'", strerror(errno));

@@ -11,6 +11,7 @@
 #include <errno.h>
 #include "options.h"
 #include "query.h"
+#include "tsig.h"
 
 #include "configyyrename.h"
 #include "configparser.h"
@@ -342,3 +343,31 @@ int acl_key_matches(acl_options_t* acl, struct query* ATTR_UNUSED(q))
 	return 0;
 }
 
+void key_options_tsig_add(nsd_options_t* opt)
+{
+#if defined(TSIG) && defined(HAVE_SSL)
+	key_options_t* optkey;
+	uint8_t data[4000];
+	tsig_key_type* tsigkey;
+	const dname_type* dname;
+	int size;
+
+	for(optkey = opt->keys; optkey; optkey = optkey->next)
+	{
+		dname = dname_parse(opt->region, optkey->name);
+		if(!dname) {
+			log_msg(LOG_ERR, "Failed to parse tsig key name %s", optkey->name);
+			continue;
+		}
+		size = b64_pton(optkey->secret, data, sizeof(data));
+		if(size == -1) {
+			log_msg(LOG_ERR, "Failed to parse tsig key data %s", optkey->name);
+			continue;
+		}
+		tsigkey = (tsig_key_type *) region_alloc(opt->region, sizeof(tsig_key_type));
+		tsigkey->name = dname;
+		tsigkey->size = size;
+		tsigkey->data = (uint8_t *) region_alloc_init(opt->region, data, tsigkey->size);
+	}
+#endif
+}
