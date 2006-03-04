@@ -50,6 +50,8 @@ struct nsd_options {
 	const char* chroot;
 	const char* username;
 	const char* zonesdir;
+	const char* difffile;
+	const char* xfrdfile;
 	
 	region_type* region; 
 };
@@ -154,6 +156,9 @@ int acl_addr_matches(acl_options_t* acl, struct query* q);
 int acl_key_matches(acl_options_t* acl, struct query* q);
 int acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz);
 int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz);
+
+/* see if a zone is a slave or a master zone */
+int zone_is_slave(zone_options_t* opt);
 
 /* parsing helpers */
 void c_error(const char* msg);

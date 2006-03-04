@@ -1,3 +1,19 @@
+4 Mar 2005: Wouter
+	- xfrd zone and soa memory structure definitions.
+	- xfrd init zones.
+	- xfrd read and write state file code.
+	- option for difffile: and xfrdfile: config lines.
+
+3 Mar 2005: Wouter
+	- Removed double kill after reload. Only socket cmd send.
+	- Added code to handle race condition where xfrd is restarted
+	  during a succesfull reload. Afterwards, the new server_main
+	  only has the old xfrd pid, new xfrd is an orphan.
+	  Solution: when xfrd closes cmd channel (i.e. it quit)
+	  unexpectedly, send sighup to all processes in the group.
+	  This should quit the orphan & all children & reload the
+	  server_main, which will fork the children and xfrd again.
+
 2 Mar 2005: Wouter
 	- Added nsd-checkconf.8 to makedist.sh replace list.
 	- DIFF file format updated.

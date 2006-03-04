@@ -48,6 +48,8 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->chroot = 0;
 	opt->username = USER;
 	opt->zonesdir = 0;
+	opt->difffile = 0;
+	opt->xfrdfile = 0;
 	nsd_options = opt;
 	return opt;
 }
@@ -371,4 +373,9 @@ void key_options_tsig_add(nsd_options_t* opt)
 		tsig_add_key(tsigkey);
 	}
 #endif
+}
+
+int zone_is_slave(zone_options_t* opt)
+{
+	return opt->request_xfr != 0;
 }

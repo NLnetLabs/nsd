@@ -60,6 +60,8 @@ statistics{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_STATISTICS;}
 chroot{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_CHROOT;}
 username{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_USERNAME;}
 zonesdir{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONESDIR;}
+difffile{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DIFFFILE;}
+xfrdfile{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRDFILE;}
 zone{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONE;}
 zonefile{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONEFILE;}
 allow-notify{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ALLOW_NOTIFY;}

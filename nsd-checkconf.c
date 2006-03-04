@@ -92,6 +92,8 @@ void config_test_print_server(nsd_options_t* opt)
 	print_string_var("chroot:", opt->chroot);
 	print_string_var("username:", opt->username);
 	print_string_var("zonesdir:", opt->zonesdir);
+	print_string_var("difffile:", opt->xfrdfile);
+	print_string_var("xfrdfile:", opt->xfrdfile);
 
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
 	{
@@ -196,6 +198,16 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 		if (strncmp(opt->chroot, opt->database, l) != 0) {
 			fprintf(stderr, "%s: databasefile %s is not relative to chroot %s.\n", 
 				filename, opt->database, opt->chroot);
+			errors ++;
+                }
+		if (strncmp(opt->chroot, opt->difffile, l) != 0) {
+			fprintf(stderr, "%s: difffile %s is not relative to chroot %s.\n", 
+				filename, opt->difffile, opt->chroot);
+			errors ++;
+                }
+		if (strncmp(opt->chroot, opt->xfrdfile, l) != 0) {
+			fprintf(stderr, "%s: xfrdfile %s is not relative to chroot %s.\n", 
+				filename, opt->xfrdfile, opt->chroot);
 			errors ++;
                 }
         }

@@ -45,7 +45,7 @@ static acl_options_t* parse_acl_info(char* ip, const char* key);
 %token VAR_SERVER VAR_NAME VAR_IP_ADDRESS VAR_DEBUG_MODE
 %token VAR_IP4_ONLY VAR_IP6_ONLY VAR_DATABASE VAR_IDENTITY VAR_LOGFILE
 %token VAR_SERVER_COUNT VAR_TCP_COUNT VAR_PIDFILE VAR_PORT VAR_STATISTICS
-%token VAR_CHROOT VAR_USERNAME VAR_ZONESDIR
+%token VAR_CHROOT VAR_USERNAME VAR_ZONESDIR VAR_XFRDFILE VAR_DIFFFILE
 %token VAR_ZONEFILE 
 %token VAR_ZONE
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR
@@ -70,7 +70,8 @@ contents_server: contents_server content_server | ;
 content_server: server_ip_address | server_debug_mode | server_ip4_only | 
 	server_ip6_only | server_database | server_identity | server_logfile | 
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
-	server_statistics | server_chroot | server_username | server_zonesdir;
+	server_statistics | server_chroot | server_username | server_zonesdir |
+	server_xfrdfile ;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -187,6 +188,18 @@ server_zonesdir: VAR_ZONESDIR STRING
 	{ 
 		OUTYY(("P(server_zonesdir:%s)\n", $2)); 
 		cfg_parser->opt->zonesdir = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_difffile: VAR_DIFFFILE STRING
+	{ 
+		OUTYY(("P(server_difffile:%s)\n", $2)); 
+		cfg_parser->opt->difffile = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_xfrdfile: VAR_XFRDFILE STRING
+	{ 
+		OUTYY(("P(server_xfrdfile:%s)\n", $2)); 
+		cfg_parser->opt->xfrdfile = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;
 

@@ -554,7 +554,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, in
 
 	if (server_start_children(nsd, server_region, netio) != 0) {
 		send_children_command(nsd, NSD_QUIT);
-		kill(nsd->pid, SIGTERM);
 		exit(1);
 	}
 
@@ -563,13 +562,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, in
 	{
 		log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
 			(int)nsd->pid, (int)old_pid, strerror(errno));
-	}
-
-	/* Send SIGINT to terminate the parent to be sure... */
-	if (kill(old_pid, SIGINT) != 0) {
-		/* parent may have quit due to cmd */
-		if(errno != ESRCH)
-			log_msg(LOG_ERR, "cannot kill %d: %s", (int) old_pid, strerror(errno));
 	}
 
 	/* Overwrite pid... */
@@ -1511,7 +1503,14 @@ handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		log_msg(LOG_ERR, "handle_xfrd_command: xfrd closed channel");
+		log_msg(LOG_ERR, "handle_xfrd_command: xfrd closed channel. "
+			"This must be due to a race condition(please contact developers). ");
+		log_msg(LOG_ERR, "Attempting to recover, "
+			"killing off all server processes.");
+		/* sighup is reload for me, and quit for server_child and xfrd */
+		if(!kill(SIGHUP, -nsd->pid)) {
+			log_msg(LOG_ERR, "kill: failure %s", strerror(errno));
+		}
 		handler->fd = -1;
 		return;
 	}

@@ -383,14 +383,14 @@ rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  netio.h plugins.h nsd-plugin.h xfrd.h
+  netio.h plugins.h nsd-plugin.h xfrd.h options.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
   tsig.h buffer.h util.h dname.h
 util.o: util.c config.h util.h
-xfrd.o: xfrd.c config.h xfrd.h netio.h region-allocator.h options.h \
-  util.h nsd.h dns.h edns.h buffer.h
+xfrd.o: xfrd.c config.h xfrd.h netio.h region-allocator.h rbtree.h \
+  namedb.h dname.h buffer.h util.h dns.h options.h nsd.h edns.h
 zlexer.o: zlexer.c config.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h zparser.h
 zonec.o: zonec.c config.h zonec.h namedb.h dname.h buffer.h \
