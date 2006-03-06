@@ -552,3 +552,17 @@ int write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc)
 	*crc = compute_crc(*crc, (uint8_t*)data, size);
 	return ret;
 }
+
+#define SERIAL_BITS      32
+int compare_serial(uint32_t a, uint32_t b)
+{
+        const uint32_t cutoff = ((uint32_t) 1 << (SERIAL_BITS - 1));
+
+        if (a == b) {
+                return 0;
+        } else if ((a < b && b - a < cutoff) || (a > b && a - b > cutoff)) {
+                return -1;
+        } else {
+                return 1;
+        }
+}

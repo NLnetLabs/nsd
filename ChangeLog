@@ -6,6 +6,8 @@
    * Wouter: updated configyyrename.h for bison 1.875d on sparc.
    * Miek: zonec -h and nsd -h exit with exit code = 0.
    * Miek & Wouter: updated tpkgs to work again.
+   * Wouter: xfrd read handle soas, handle soa_incoming part.
+   * Wouter: moved compare_serial() from nsd-xfer to util.h.
 
 4 Mar 2005: Wouter
 	- xfrd zone and soa memory structure definitions.

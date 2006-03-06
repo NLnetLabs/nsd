@@ -41,8 +41,6 @@
  */
 #define MAX_WAITING_TIME TCP_TIMEOUT
 
-#define SERIAL_BITS      32
-
 /*
  * Exit codes are based on named-xfer for now.  See ns_defs.h in
  * bind8.
@@ -598,26 +596,6 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 	return 1;
 }
 
-
-/*
- * Compares two 32-bit serial numbers as defined in RFC1982.  Returns
- * <0 if a < b, 0 if a == b, and >0 if a > b.  The result is undefined
- * if a != b but neither is greater or smaller (see RFC1982 section
- * 3.2.).
- */
-static int
-compare_serial(uint32_t a, uint32_t b)
-{
-	const uint32_t cutoff = ((uint32_t) 1 << (SERIAL_BITS - 1));
-
-	if (a == b) {
-		return 0;
-	} else if ((a < b && b - a < cutoff) || (a > b && a - b > cutoff)) {
-		return -1;
-	} else {
-		return 1;
-	}
-}
 
 /*
  * Query the server for the zone serial. Return 1 if the zone serial

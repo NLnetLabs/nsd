@@ -27,6 +27,7 @@ static xfrd_state_t* xfrd = 0;
 /* manage interprocess communication with server_main process */
 static void xfrd_handle_ipc(netio_type *netio, 
 	netio_handler_type *handler, netio_event_types_type event_types);
+
 /* main xfrd loop */
 static void xfrd_main();
 /* shut down xfrd, close sockets. */
@@ -35,19 +36,28 @@ static void xfrd_shutdown();
 static void xfrd_init_zones();
 /* free up memory used by main database */
 static void xfrd_free_namedb();
+
 /* handle zone timeout, event */
 static void xfrd_handle_zone(netio_type *netio, 
 	netio_handler_type *handler, netio_event_types_type event_types);
+/* handle incoming soa information (NSD is running it, time acquired=guess) */
+static void xfrd_handle_incoming_soa(xfrd_zone_t* zone, 
+	xfrd_soa_t* soa, time_t acquired);
+
 /* copy SOA info from rr to soa struct. Memleak if prim.ns or email changes in soa. */
 static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);
 /* set refresh timer of zone to refresh at time now */
-static void xfrd_set_refresh_now(xfrd_zone_t* zone);
+static void xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state);
+/* set timer to specific value */
+static void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
 /* get the current time epoch. Cached for speed. */
 static time_t xfrd_time();
+
 /* read state from disk */
 static void xfrd_read_state();
 /* write state to disk */
 static void xfrd_write_state();
+
 
 void xfrd_init(int socket, struct nsd* nsd)
 {
@@ -210,7 +220,7 @@ static void xfrd_init_zones()
 			xfrd_copy_soa(&xzone->soa_disk, dbzone->soa_rrset->rrs);
 			/* set refreshing anyway, we have data but it may be old */
 		}
-		xfrd_set_refresh_now(xzone);
+		xfrd_set_refresh_now(xzone, xfrd_zone_refreshing);
 
 		xzone->node.key = dname;
 		rbtree_insert(xfrd->zones, (rbnode_t*)xzone);
@@ -272,12 +282,20 @@ static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	soa->minimum = *(uint32_t*)rdata_atom_data(rr->rdatas[6]);
 }
 
-static void xfrd_set_refresh_now(xfrd_zone_t* zone) 
+static void xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state) 
 {
-	zone->zone_state = xfrd_zone_refreshing;
+	zone->zone_state = zone_state;
 	zone->zone_handler.fd = -1;
 	zone->zone_handler.timeout = &zone->timeout;
 	zone->timeout.tv_sec = xfrd_time();
+	zone->timeout.tv_nsec = 0;
+}
+
+static void xfrd_set_timer(xfrd_zone_t* zone, time_t t)
+{
+	zone->zone_handler.fd = -1;
+	zone->zone_handler.timeout = &zone->timeout;
+	zone->timeout.tv_sec = t;
 	zone->timeout.tv_nsec = 0;
 }
 
@@ -412,6 +430,9 @@ static void xfrd_read_state()
 		xfrd_soa_t soa_nsd_read, soa_disk_read, soa_notified_read;
 		time_t soa_nsd_acquired_read, 
 			soa_disk_acquired_read, soa_notified_acquired_read;
+		xfrd_soa_t incoming_soa;
+		time_t incoming_acquired;
+
 		memset(&soa_nsd_read, 0, sizeof(soa_nsd_read));
 		memset(&soa_disk_read, 0, sizeof(soa_disk_read));
 		memset(&soa_notified_read, 0, sizeof(soa_notified_read));
@@ -453,13 +474,55 @@ static void xfrd_read_state()
 			log_msg(LOG_INFO, "xfrd: state file has info for not configured zone %s", p);
 			continue;
 		}
+
+		if(soa_nsd_acquired_read>xfrd_time()+15 ||
+			soa_disk_acquired_read>xfrd_time()+15 ||
+			soa_notified_acquired_read>xfrd_time()+15)
+		{
+			log_msg(LOG_ERR, "xfrd: statefile %s contains"
+				" times in the future for zone %s. Ignoring.",
+				statefile, zone->apex_str);
+			continue;
+		}
 		zone->zone_state = state;
 		zone->next_master_num = nextmas;
 		zone->timeout.tv_sec = timeout;
 		zone->timeout.tv_nsec = 0;
 
-		/* read the zone OK, now set the master and timeout properly */
-		/* copy nsdsoa disksoa notifiedsoa to memstruct, perhaps */
+		/* read the zone OK, now set the master properly */
+		zone->next_master = zone->zone_options->request_xfr;
+		while(zone->next_master && nextmas>0) {
+			nextmas --;
+			zone->next_master = zone->next_master->next;
+		}
+		if(nextmas!=0 || !zone->next_master) {
+			log_msg(LOG_INFO, "xfrd: masters changed for zone %s", p);
+			zone->next_master = zone->zone_options->request_xfr;
+		}
+
+		if(timeout == 0 ||
+			timeout - soa_disk_acquired_read > ntohl(soa_disk_read.refresh) 
+			|| soa_notified_acquired_read != 0) 
+			xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
+
+		if(soa_disk_acquired_read!=0 &&
+			(uint32_t)xfrd_time() - soa_disk_acquired_read > ntohl(soa_disk_read.expire))
+		{
+			xfrd_set_refresh_now(zone, xfrd_zone_expired);
+		}
+
+		/* handle as an incoming SOA. */
+		incoming_soa = zone->soa_nsd;
+		incoming_acquired = zone->soa_nsd_acquired;
+		zone->soa_nsd = soa_nsd_read;
+		zone->soa_disk = soa_disk_read;
+		zone->soa_notified = soa_notified_read;
+		zone->soa_nsd_acquired = soa_nsd_acquired_read;
+		zone->soa_disk_acquired = soa_disk_acquired_read;
+		zone->soa_notified_acquired = soa_notified_acquired_read;
+		if(incoming_acquired != 0)
+			xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
+		/* expiry notification TODO */
 	}
 
 	if(!xfrd_read_check_str(in, XFRD_FILE_MAGIC)) {
@@ -539,7 +602,7 @@ static void xfrd_write_state()
 	
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
 	fprintf(out, "filetime: %d\n", (int)xfrd_time());
-	fprintf(out, "numzones: %d\n", (int)xfrd->zones->count);
+	fprintf(out, "numzones: %zd\n", xfrd->zones->count);
 	fprintf(out, "\n");
 	for(p = rbtree_first(xfrd->zones); p && p!=RBTREE_NULL; p=rbtree_next(p))
 	{
@@ -566,5 +629,64 @@ static void xfrd_write_state()
 	}
 
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
+	log_msg(LOG_INFO, "xfrd: written %zd zones from state file", xfrd->zones->count);
 	fclose(out);
+}
+
+static void xfrd_handle_incoming_soa(xfrd_zone_t* zone, 
+	xfrd_soa_t* soa, time_t acquired)
+{
+	if(soa->serial == zone->soa_nsd.serial)
+	{
+		return;
+	}
+	if(soa->serial == zone->soa_disk.serial)
+	{
+		/* soa in disk has been loaded in memory */
+		log_msg(LOG_INFO, "Zone %s serial %d is updated to %d.",
+			zone->apex_str, ntohl(zone->soa_nsd.serial),
+			ntohl(soa->serial));
+		zone->soa_nsd = zone->soa_disk;
+		zone->soa_nsd_acquired = zone->soa_disk_acquired;
+		/* TODO send notify to list */
+		if((uint32_t)xfrd_time() - zone->soa_disk_acquired 
+			< ntohl(zone->soa_disk.refresh))
+		{
+			/* zone ok, wait for refresh time */
+			zone->zone_state = xfrd_zone_ok;
+			xfrd_set_timer(zone, 
+				zone->soa_disk_acquired + ntohl(zone->soa_disk.refresh));
+		}
+		else if((uint32_t)xfrd_time() - zone->soa_disk_acquired 
+			< ntohl(zone->soa_disk.expire))
+		{
+			/* zone refreshing */
+			xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
+		}
+		else 
+		{
+			/* zone expired */
+			xfrd_set_refresh_now(zone, xfrd_zone_expired);
+		}
+
+		/* expiry notification TODO */
+
+		if(zone->soa_notified_acquired != 0 &&
+		   compare_serial(ntohl(zone->soa_disk.serial),
+			ntohl(zone->soa_notified.serial)) > 1 )
+		{	/* read was in response to this notification */
+			zone->soa_notified_acquired = 0;
+		}
+		return;
+	}
+
+	/* user must have manually provided zone data */
+	log_msg(LOG_INFO, "xfrd: zone %s serial %d from unknown source. refreshing", 
+		zone->apex_str, ntohl(soa->serial));
+	zone->soa_nsd = *soa;
+	zone->soa_disk = *soa;
+	zone->soa_nsd_acquired = acquired;
+	zone->soa_disk_acquired = acquired;
+	zone->soa_notified_acquired = 0;
+	xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
 }

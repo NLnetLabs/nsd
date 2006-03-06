@@ -279,4 +279,12 @@ time_t mktime_from_utc(const struct tm *tm);
  */
 uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len);
 
+/*
+ * Compares two 32-bit serial numbers as defined in RFC1982.  Returns
+ * <0 if a < b, 0 if a == b, and >0 if a > b.  The result is undefined
+ * if a != b but neither is greater or smaller (see RFC1982 section
+ * 3.2.).
+ */
+int compare_serial(uint32_t a, uint32_t b);
+
 #endif /* _UTIL_H_ */
