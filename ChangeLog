@@ -1,6 +1,7 @@
 5 Mar 2005: Wouter
 	- xfrd read and write work. Statefile is "nsd.xfst".
 	- nsd-checkconf checks dname parse of zone name:.
+	- updated difffile in parser.y, production in server: clause.
 
 4 Mar 2005: Wouter
 	- xfrd zone and soa memory structure definitions.

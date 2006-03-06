@@ -71,7 +71,7 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_ip6_only | server_database | server_identity | server_logfile | 
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
 	server_statistics | server_chroot | server_username | server_zonesdir |
-	server_xfrdfile ;
+	server_difffile | server_xfrdfile ;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
