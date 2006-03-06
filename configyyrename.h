@@ -64,5 +64,25 @@
 #define yy_create_buffer c_create_buffer
 #define yyrestart c_restart
 #define yy_delete_buffer c_delete_buffer
+#define yypop_buffer_state c_pop_buffer_state
+#define yypush_buffer_state c_push_buffer_state
+#define yyunput c_unput
+#define yyset_in c_set_in
+#define yyget_in c_get_in
+#define yyset_out c_set_out
+#define yyget_out c_get_out
+#define yyget_lineno c_get_lineno
+#define yyset_lineno c_set_lineno
+#define yyset_debug c_set_debug
+#define yyget_debug c_get_debug
+#define yy_flex_debug c_flex_debug
+#define yylex_destroy c_lex_destroy
+#define yyfree c_free
+#define yyrealloc c_realloc
+#define yyalloc c_alloc
+#define yymalloc c_malloc
+#define yyget_leng c_get_leng
+#define yylineno c_lineno
+#define yyget_text c_get_text
 
 #endif /* CONFIGYYRENAME_H */

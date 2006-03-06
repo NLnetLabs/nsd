@@ -2,6 +2,7 @@
 	- xfrd read and write work. Statefile is "nsd.xfst".
 	- nsd-checkconf checks dname parse of zone name:.
 	- updated difffile in parser.y, production in server: clause.
+	- updated configyyrename.h for bison 1.875d on sparc.
 
 4 Mar 2005: Wouter
 	- xfrd zone and soa memory structure definitions.
