@@ -77,7 +77,6 @@ usage (void)
 		"  -X plugin       Load a plugin (may be specified multiple times).\n\n"
 		);
 	fprintf(stderr, "Report bugs to <%s>.\n", PACKAGE_BUGREPORT);
-	exit(1);
 }
 
 static void
@@ -437,7 +436,7 @@ main (int argc, char *argv[])
 			break;
 		case 'h':
 			usage();
-			break;
+			exit(0);
 		case 'i':
 			nsd.identity = optarg;
 			break;
@@ -503,7 +502,7 @@ main (int argc, char *argv[])
 			break;
 		case 'v':
 			version();
-			break;
+			/* version exits */
 #ifndef NDEBUG
 		case 'F':
 			sscanf(optarg, "%x", &nsd_debug_facilities);
@@ -515,13 +514,16 @@ main (int argc, char *argv[])
 		case '?':
 		default:
 			usage();
+			exit(1);
 		}
 	}
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 0)
+	if (argc != 0) {
 		usage();
+		exit(1);
+	}
 
 	if (strlen(nsd.identity) > UCHAR_MAX) {
 		error("server identity too long (%u characters)",

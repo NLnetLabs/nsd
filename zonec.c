@@ -1211,7 +1211,6 @@ usage (void)
 	fprintf(stderr, "\t-F\tSet debug facilities.\n");
 	fprintf(stderr, "\t-L\tSet debug level.\n");
 #endif
-	exit(1);
 }
 
 extern char *optarg;
@@ -1279,9 +1278,12 @@ main (int argc, char **argv)
 			singlefile = optarg;
 			break;
 		case 'h':
+			usage();
+			exit(0);
 		case '?':
 		default:
 			usage();
+			exit(1);
 		}
 	}
 
@@ -1290,6 +1292,7 @@ main (int argc, char **argv)
 
 	if (argc != 0) {
 		usage();
+		exit(1);
 	}
 
 	/* Read options */
