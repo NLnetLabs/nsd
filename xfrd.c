@@ -19,6 +19,8 @@
 #include "region-allocator.h"
 #include "nsd.h"
 
+#define XFRDFILE "nsd.xfst"
+
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
 
@@ -373,7 +375,7 @@ static void xfrd_read_state()
 	uint32_t filetime = 0;
 	uint32_t numzones, i;
 	region_type *tempregion;
-	if(!statefile) statefile = "nsd.xfrdstate";
+	if(!statefile) statefile = XFRDFILE;
 
 	tempregion = region_create(xalloc, free);
 	if(!tempregion) return;
@@ -426,18 +428,7 @@ static void xfrd_read_state()
 			return;
 		}
 		zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
-		if(!zone) {
-			log_msg(LOG_INFO, "xfrd: state file has info for not configured zone %s", p);
-			p="";
-			while(strcmp(p, "#endzone") != 0)
-				if(!(p=xfrd_read_token(in))) {
-					log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
-						statefile, (int)filetime, (int)xfrd_time());
-					fclose(in);
-					return;
-				}
-			continue;
-		}
+
 		if(!xfrd_read_check_str(in, "state:") ||
 		   !xfrd_read_i32(in, &state) || (state>2) ||
 		   !xfrd_read_check_str(in, "next_master:") ||
@@ -448,15 +439,19 @@ static void xfrd_read_state()
 			&soa_nsd_read, &soa_nsd_acquired_read, tempregion) ||
 		   !xfrd_read_state_soa(in, "soa_disk_acquired:", "soa_disk:",
 			&soa_disk_read, &soa_disk_acquired_read, tempregion) ||
-		   !xfrd_read_state_soa(in, "soa_notified_acquired:", "soa_notified:",
-			&soa_notified_read, &soa_notified_acquired_read, tempregion) ||
-		   !xfrd_read_check_str(in, "#endzone")
+		   !xfrd_read_state_soa(in, "soa_notify_acquired:", "soa_notify:",
+			&soa_notified_read, &soa_notified_acquired_read, tempregion)
 		)
 		{
 			log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
 				statefile, (int)filetime, (int)xfrd_time());
 			fclose(in);
 			return;
+		}
+
+		if(!zone) {
+			log_msg(LOG_INFO, "xfrd: state file has info for not configured zone %s", p);
+			continue;
 		}
 		zone->zone_state = state;
 		zone->next_master_num = nextmas;
@@ -532,7 +527,7 @@ static void xfrd_write_state()
 	rbnode_t* p;
 	const char* statefile = xfrd->nsd->options->xfrdfile;
 	FILE *out;
-	if(!statefile) statefile = "nsd.xfrdstate";
+	if(!statefile) statefile = XFRDFILE;
 
 	log_msg(LOG_INFO, "xfrd: write file %s", statefile);
 	out = fopen(statefile, "w");
@@ -567,7 +562,7 @@ static void xfrd_write_state()
 			zone->soa_disk_acquired, zone->apex);
 		xfrd_write_state_soa(out, "soa_notify", &zone->soa_notified, 
 			zone->soa_notified_acquired, zone->apex);
-		fprintf(out, "#endzone\n\n");
+		fprintf(out, "\n");
 	}
 
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
