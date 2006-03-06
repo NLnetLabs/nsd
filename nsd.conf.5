@@ -19,7 +19,11 @@
 is used to configure 
 .Xr nsd 8 .
 The file format has attributes and values. Some attributes have attributes inside them. 
-The notation is attribute: value. Comments start with # and last to the end of line.
+The notation is: attribute: value. 
+
+Comments start with # and last to the end of line. Empty lines are
+ignored as is whitespace at the beginning of a line.
+
 .Ic nsd.conf
 specifies options for the nsd server, zone files, primaries and secondaries.
 .El
