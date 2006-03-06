@@ -3,20 +3,20 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-31 14:34 CET by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug054_rd.dir'.
+# Made on 2006-03-06 12:45 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug054_rd.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     36 -rw------- bug054_rd.conf
+#     54 -rw------- bug054_rd.conf
 #    298 -rw------- bug054_rd.dsc
 #     99 -rw------- bug054_rd.help
 #     69 -rw------- bug054_rd.known_good_respons1
 #    510 -rw------- bug054_rd.post
-#    610 -rw------- bug054_rd.pre
+#    631 -rw------- bug054_rd.pre
 #    471 -rw------- bug054_rd.test
 #    683 -rw------- bug054_rd.zone
 #
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh32585; then
+if mkdir _sh20346; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -80,21 +80,23 @@ if test -f 'bug054_rd.conf' && test "$first_param" != -c; then
 else
   $echo 'x -' extracting 'bug054_rd.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug054_rd.conf' &&
-zone	miek.nl         bug054_rd.zone
+zone:
+name: miek.nl         
+zonefile: bug054_rd.zone
 SHAR_EOF
-  (set 20 05 10 27 14 09 09 'bug054_rd.conf'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 44 52 'bug054_rd.conf'; eval "$shar_touch") &&
   chmod 0600 'bug054_rd.conf' ||
   $echo 'restore of' 'bug054_rd.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug054_rd.conf:' 'MD5 check failed'
-7a3b35a5c6c0096f3b565b6bd697c5ce  bug054_rd.conf
+5a8647763d48ec1b5b6a16231acf5268  bug054_rd.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug054_rd.conf'`"
-    test 36 -eq "$shar_count" ||
-    $echo 'bug054_rd.conf:' 'original size' '36,' 'current size' "$shar_count!"
+    test 54 -eq "$shar_count" ||
+    $echo 'bug054_rd.conf:' 'original size' '54,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug054_rd.dsc ==============
@@ -243,22 +245,22 @@ X
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 X
-$TPKG_ZONEC -f bug054_rd.db bug054_rd.conf && \
-$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug054_rd.db
+$TPKG_ZONEC -f bug054_rd.db -c bug054_rd.conf && \
+$TPKG_NSD -c bug054_rd.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug054_rd.db
 SHAR_EOF
-  (set 20 05 10 31 14 34 48 'bug054_rd.pre'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 45 05 'bug054_rd.pre'; eval "$shar_touch") &&
   chmod 0600 'bug054_rd.pre' ||
   $echo 'restore of' 'bug054_rd.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug054_rd.pre:' 'MD5 check failed'
-2b60e21aa6d58b1d6a3013cad7fd88bc  bug054_rd.pre
+56cb8000bb7a345253ebb90752af782b  bug054_rd.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug054_rd.pre'`"
-    test 610 -eq "$shar_count" ||
-    $echo 'bug054_rd.pre:' 'original size' '610,' 'current size' "$shar_count!"
+    test 631 -eq "$shar_count" ||
+    $echo 'bug054_rd.pre:' 'original size' '631,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug054_rd.test ==============
@@ -337,5 +339,5 @@ SHAR_EOF
     $echo 'bug054_rd.zone:' 'original size' '683,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh32585
+rm -fr _sh20346
 exit 0

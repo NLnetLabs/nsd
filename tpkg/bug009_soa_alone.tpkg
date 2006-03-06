@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-03-06 12:25 CET by <miekg@floep>.
+# Made on 2006-03-06 12:36 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug009_soa_alone.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -12,12 +12,13 @@
 # length mode       name
 # ------ ---------- ------------------------------------------
 #     61 -rw------- bug009_soa_alone.conf
+#    188 -rw------- bug009_soa_alone.db
 #    365 -rw------- bug009_soa_alone.dsc
 #     37 -rw------- bug009_soa_alone.help
 #     95 -rw------- bug009_soa_alone.known_good_respons1
 #     94 -rw------- bug009_soa_alone.known_good_respons2
 #    592 -rw------- bug009_soa_alone.post
-#    929 -rw------- bug009_soa_alone.pre
+#    983 -rw------- bug009_soa_alone.pre
 #    896 -rw------- bug009_soa_alone.test
 #    351 -rw------- bug009_soa_alone.zone
 #
@@ -69,7 +70,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh16350; then
+if mkdir _sh17091; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -98,6 +99,36 @@ SHAR_EOF
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.conf'`"
     test 61 -eq "$shar_count" ||
     $echo 'bug009_soa_alone.conf:' 'original size' '61,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= bug009_soa_alone.db ==============
+if test -f 'bug009_soa_alone.db' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'bug009_soa_alone.db' '(file already exists)'
+else
+  $echo 'x -' extracting 'bug009_soa_alone.db' '(binary)'
+  sed 's/^X//' << 'SHAR_EOF' | uudecode &&
+begin 600 bug009_soa_alone.db
+M3E-$9&)6,#<````!"01M:65K`FYL``````@!``4#;F5T``L%871O;VT#;F5T
+M`!$%;6EE:V<%871O;VT#;F5T``0";FP`"01M:65K`FYL``X);FQN971L86)S
+M`FYL`!,$;W!E;@EN;&YE=&QA8G,";FP`````!@````$`!@`!``$`!P`%1@``
+M```(````!``$=X+.M``$```X0``$```.$``$``DZ@``$``%1@``````OO%_*
+(3E-$9&)6,#<$
+`
+end
+SHAR_EOF
+  (set 20 06 03 06 12 34 54 'bug009_soa_alone.db'; eval "$shar_touch") &&
+  chmod 0600 'bug009_soa_alone.db' ||
+  $echo 'restore of' 'bug009_soa_alone.db' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'bug009_soa_alone.db:' 'MD5 check failed'
+cb1be22f629888a43f5ab9b54466e8b2  bug009_soa_alone.db
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.db'`"
+    test 188 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.db:' 'original size' '188,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug009_soa_alone.dsc ==============
@@ -273,25 +304,25 @@ echo "export TPKG_PORT=$TPKG_PORT" > .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 X
 # debug echo of command.
-echo $TPKG_ZONEC -f bug009_soa_alone.db bug009_soa_alone.conf && \
-$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug009_soa_alone.db
+echo $TPKG_ZONEC -c bug009_soa_alone.conf -f bug009_soa_alone.db 
+echo $TPKG_NSD -c bug009_soa_alone.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug009_soa_alone.db
 X
-$TPKG_ZONEC -C -f bug009_soa_alone.db bug009_soa_alone.conf && \
-$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug009_soa_alone.db
+$TPKG_ZONEC -c bug009_soa_alone.conf -f bug009_soa_alone.db && \
+$TPKG_NSD -c bug009_soa_alone.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug009_soa_alone.db
 SHAR_EOF
-  (set 20 06 03 06 12 25 45 'bug009_soa_alone.pre'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 35 49 'bug009_soa_alone.pre'; eval "$shar_touch") &&
   chmod 0600 'bug009_soa_alone.pre' ||
   $echo 'restore of' 'bug009_soa_alone.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug009_soa_alone.pre:' 'MD5 check failed'
-b3b7f655759eda92d77b9c4faaecb9ad  bug009_soa_alone.pre
+1d3784a2f7d83853181dbc51e8d00067  bug009_soa_alone.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.pre'`"
-    test 929 -eq "$shar_count" ||
-    $echo 'bug009_soa_alone.pre:' 'original size' '929,' 'current size' "$shar_count!"
+    test 983 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.pre:' 'original size' '983,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug009_soa_alone.test ==============
@@ -372,5 +403,5 @@ SHAR_EOF
     $echo 'bug009_soa_alone.zone:' 'original size' '351,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh16350
+rm -fr _sh17091
 exit 0

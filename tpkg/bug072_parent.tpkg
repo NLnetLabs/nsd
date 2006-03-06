@@ -3,15 +3,15 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-12-15 11:04 CET by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug072_parent.dir'.
+# Made on 2006-03-06 12:48 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug072_parent.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     78 -rw------- bug072_parent.conf
+#    115 -rw------- bug072_parent.conf
 #    491 -rw------- bug072_parent.dsc
 #     38 -rw------- bug072_parent.help
 #     29 -rw------- bug072_parent.known_good_respons1
@@ -19,7 +19,7 @@
 #    499 -rw------- bug072_parent.order-abc_zone
 #    499 -rw------- bug072_parent.order-bac_zone
 #    589 -rw------- bug072_parent.post
-#    746 -rw------- bug072_parent.pre
+#    771 -rw------- bug072_parent.pre
 #    857 -rw------- bug072_parent.test
 #
 save_IFS="${IFS}"
@@ -70,7 +70,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh22471; then
+if mkdir _sh21446; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -82,22 +82,27 @@ if test -f 'bug072_parent.conf' && test "$first_param" != -c; then
 else
   $echo 'x -' extracting 'bug072_parent.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug072_parent.conf' &&
-zone abc. bug072_parent.order-abc_zone
-zone bac. bug072_parent.order-bac_zone
+zone:
+name: abc. 
+zonefile: bug072_parent.order-abc_zone
+X
+zone:
+name: bac. 
+zonefile: bug072_parent.order-bac_zone
 SHAR_EOF
-  (set 20 05 11 01 11 54 47 'bug072_parent.conf'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 48 18 'bug072_parent.conf'; eval "$shar_touch") &&
   chmod 0600 'bug072_parent.conf' ||
   $echo 'restore of' 'bug072_parent.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug072_parent.conf:' 'MD5 check failed'
-d0ab9dab5ee7648eb87e18cf1094cc4c  bug072_parent.conf
+8d3eb4050373911a55e7d61a7bced9e0  bug072_parent.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.conf'`"
-    test 78 -eq "$shar_count" ||
-    $echo 'bug072_parent.conf:' 'original size' '78,' 'current size' "$shar_count!"
+    test 115 -eq "$shar_count" ||
+    $echo 'bug072_parent.conf:' 'original size' '115,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug072_parent.dsc ==============
@@ -339,22 +344,22 @@ X
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 X
-$TPKG_ZONEC -f bug072_parent.db bug072_parent.conf && \
-$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug072_parent.db
+$TPKG_ZONEC -f bug072_parent.db -c bug072_parent.conf && \
+$TPKG_NSD -c bug072_parent.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug072_parent.db
 SHAR_EOF
-  (set 20 05 11 01 11 55 40 'bug072_parent.pre'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 48 30 'bug072_parent.pre'; eval "$shar_touch") &&
   chmod 0600 'bug072_parent.pre' ||
   $echo 'restore of' 'bug072_parent.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug072_parent.pre:' 'MD5 check failed'
-627aee2833f684b19121c448d6473247  bug072_parent.pre
+ff7778fb5b5741b80ae52b41b8e76e29  bug072_parent.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug072_parent.pre'`"
-    test 746 -eq "$shar_count" ||
-    $echo 'bug072_parent.pre:' 'original size' '746,' 'current size' "$shar_count!"
+    test 771 -eq "$shar_count" ||
+    $echo 'bug072_parent.pre:' 'original size' '771,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug072_parent.test ==============
@@ -402,5 +407,5 @@ SHAR_EOF
     $echo 'bug072_parent.test:' 'original size' '857,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh22471
+rm -fr _sh21446
 exit 0

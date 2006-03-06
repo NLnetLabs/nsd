@@ -3,17 +3,17 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-28 16:34 CEST by <miekg@elektron>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug088_ff_ip4.dir'.
+# Made on 2006-03-06 12:51 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug088_ff_ip4.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     40 -rw------- bug088_ff_ip4.conf
+#     58 -rw------- bug088_ff_ip4.conf
 #    316 -rw------- bug088_ff_ip4.dsc
-#    386 -rw------- bug088_ff_ip4.test
+#    389 -rw------- bug088_ff_ip4.test
 #    574 -rw------- bug088_ff_ip4.zone
 #
 save_IFS="${IFS}"
@@ -64,7 +64,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh16540; then
+if mkdir _sh22562; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -76,21 +76,23 @@ if test -f 'bug088_ff_ip4.conf' && test "$first_param" != -c; then
 else
   $echo 'x -' extracting 'bug088_ff_ip4.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug088_ff_ip4.conf' &&
-zone	miek.nl         bug088_ff_ip4.zone
+zone:
+name: miek.nl         
+zonefile: bug088_ff_ip4.zone
 SHAR_EOF
-  (set 20 05 10 25 15 38 55 'bug088_ff_ip4.conf'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 51 29 'bug088_ff_ip4.conf'; eval "$shar_touch") &&
   chmod 0600 'bug088_ff_ip4.conf' ||
   $echo 'restore of' 'bug088_ff_ip4.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug088_ff_ip4.conf:' 'MD5 check failed'
-59370a891020395a6d784ce40e3d52dc  bug088_ff_ip4.conf
+ca38729ac8cdc92186e904d9b491cb64  bug088_ff_ip4.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug088_ff_ip4.conf'`"
-    test 40 -eq "$shar_count" ||
-    $echo 'bug088_ff_ip4.conf:' 'original size' '40,' 'current size' "$shar_count!"
+    test 58 -eq "$shar_count" ||
+    $echo 'bug088_ff_ip4.conf:' 'original size' '58,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug088_ff_ip4.dsc ==============
@@ -141,24 +143,24 @@ else
 export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
 X
 # create .db file
-X../../zonec -v -f bug088_ff_ip4.db bug088_ff_ip4.conf
+X../../zonec -v -f bug088_ff_ip4.db -c bug088_ff_ip4.conf
 fail=$?         # should be zero (=success)
 rm -f bug088_ff_ip4.db
 exit $fail
 SHAR_EOF
-  (set 20 05 10 28 16 33 58 'bug088_ff_ip4.test'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 51 36 'bug088_ff_ip4.test'; eval "$shar_touch") &&
   chmod 0600 'bug088_ff_ip4.test' ||
   $echo 'restore of' 'bug088_ff_ip4.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug088_ff_ip4.test:' 'MD5 check failed'
-ce4c8671ffa50487e537ab9031df1a5f  bug088_ff_ip4.test
+4f839d3c7a0cf524050806b45bcadb65  bug088_ff_ip4.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug088_ff_ip4.test'`"
-    test 386 -eq "$shar_count" ||
-    $echo 'bug088_ff_ip4.test:' 'original size' '386,' 'current size' "$shar_count!"
+    test 389 -eq "$shar_count" ||
+    $echo 'bug088_ff_ip4.test:' 'original size' '389,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug088_ff_ip4.zone ==============
@@ -202,5 +204,5 @@ SHAR_EOF
     $echo 'bug088_ff_ip4.zone:' 'original size' '574,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh16540
+rm -fr _sh22562
 exit 0

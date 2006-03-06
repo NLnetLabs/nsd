@@ -3,15 +3,15 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-12-15 10:44 CET by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug013_truncate.dir'.
+# Made on 2006-03-06 12:39 CET by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug013_truncate.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     34 -rw------- bug013_truncate.conf
+#     52 -rw------- bug013_truncate.conf
 #   2068 -rw------- bug013_truncate.current_respons_a_before_aaaa
 #    966 -rw------- bug013_truncate.current_respons_full_answer
 #     72 -rw------- bug013_truncate.current_respons_truncated
@@ -21,7 +21,7 @@
 #   1616 -rw------- bug013_truncate.known_good_respons_full_answer
 #     72 -rw------- bug013_truncate.known_good_respons_truncated
 #    590 -rw------- bug013_truncate.post
-#    754 -rw------- bug013_truncate.pre
+#    781 -rw------- bug013_truncate.pre
 #   1224 -rw------- bug013_truncate.test
 #   4124 -rw------- bug013_truncate.zone
 #
@@ -73,7 +73,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh21269; then
+if mkdir _sh18102; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -85,21 +85,23 @@ if test -f 'bug013_truncate.conf' && test "$first_param" != -c; then
 else
   $echo 'x -' extracting 'bug013_truncate.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug013_truncate.conf' &&
-zone miek.nl bug013_truncate.zone
+zone:
+name: miek.nl 
+zonefile: bug013_truncate.zone
 SHAR_EOF
-  (set 20 05 11 01 10 18 12 'bug013_truncate.conf'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 38 30 'bug013_truncate.conf'; eval "$shar_touch") &&
   chmod 0600 'bug013_truncate.conf' ||
   $echo 'restore of' 'bug013_truncate.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug013_truncate.conf:' 'MD5 check failed'
-5d1d7b78e72b36b47920cb7068ee9a0d  bug013_truncate.conf
+b3bdf434ddfaed72bf9ce390ee2a5387  bug013_truncate.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.conf'`"
-    test 34 -eq "$shar_count" ||
-    $echo 'bug013_truncate.conf:' 'original size' '34,' 'current size' "$shar_count!"
+    test 52 -eq "$shar_count" ||
+    $echo 'bug013_truncate.conf:' 'original size' '52,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug013_truncate.current_respons_a_before_aaaa ==============
@@ -516,22 +518,22 @@ X
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 X
-$TPKG_ZONEC -f bug013_truncate.db bug013_truncate.conf && \
-$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug013_truncate.db
+$TPKG_ZONEC -c bug013_truncate.conf -f bug013_truncate.db && \
+$TPKG_NSD -c bug013_truncate.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug013_truncate.db
 SHAR_EOF
-  (set 20 05 11 01 10 47 48 'bug013_truncate.pre'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 39 00 'bug013_truncate.pre'; eval "$shar_touch") &&
   chmod 0600 'bug013_truncate.pre' ||
   $echo 'restore of' 'bug013_truncate.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug013_truncate.pre:' 'MD5 check failed'
-b6aaf5179d3efcbe74a477c9f49e7f86  bug013_truncate.pre
+658fde318da02bb56c79aa899d862918  bug013_truncate.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug013_truncate.pre'`"
-    test 754 -eq "$shar_count" ||
-    $echo 'bug013_truncate.pre:' 'original size' '754,' 'current size' "$shar_count!"
+    test 781 -eq "$shar_count" ||
+    $echo 'bug013_truncate.pre:' 'original size' '781,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug013_truncate.test ==============
@@ -714,5 +716,5 @@ SHAR_EOF
     $echo 'bug013_truncate.zone:' 'original size' '4124,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh21269
+rm -fr _sh18102
 exit 0
