@@ -3,19 +3,19 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-12-15 10:16 CET by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/unknown_rr.dir'.
+# Made on 2006-03-06 12:31 CET by <wouter@diva.nlnetlabs.nl>.
+# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/unknown_rr.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     40 -rw------- unknown_rr.conf
+#     49 -rw------- unknown_rr.conf
 #    290 -rw------- unknown_rr.dsc
 #     35 -rw------- unknown_rr.help
 #     51 -rw------- unknown_rr.include_zone
-#    447 -rw------- unknown_rr.test
+#    450 -rw------- unknown_rr.test
 #    817 -rw------- unknown_rr.zone
 #
 save_IFS="${IFS}"
@@ -66,7 +66,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh19125; then
+if mkdir _sh19340; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -78,21 +78,22 @@ if test -f 'unknown_rr.conf' && test "$first_param" != -c; then
 else
   $echo 'x -' extracting 'unknown_rr.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'unknown_rr.conf' &&
-zone    miek.nl         unknown_rr.zone
+zone:	name: "miek.nl"
+X	zonefile: unknown_rr.zone
 SHAR_EOF
-  (set 20 05 12 15 10 14 29 'unknown_rr.conf'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 31 42 'unknown_rr.conf'; eval "$shar_touch") &&
   chmod 0600 'unknown_rr.conf' ||
   $echo 'restore of' 'unknown_rr.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'unknown_rr.conf:' 'MD5 check failed'
-0b806d141d994d51be4158ca30b5477a  unknown_rr.conf
+e516fe9c72d118b687c7e3e882d53708  unknown_rr.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'unknown_rr.conf'`"
-    test 40 -eq "$shar_count" ||
-    $echo 'unknown_rr.conf:' 'original size' '40,' 'current size' "$shar_count!"
+    test 49 -eq "$shar_count" ||
+    $echo 'unknown_rr.conf:' 'original size' '49,' 'current size' "$shar_count!"
   fi
 fi
 # ============= unknown_rr.dsc ==============
@@ -197,21 +198,21 @@ X
 PRE="../.."
 TPKG_ZONEC="$PRE/zonec"
 X
-$TPKG_ZONEC -f unknown_rr.db unknown_rr.conf
+$TPKG_ZONEC -f unknown_rr.db -c unknown_rr.conf
 SHAR_EOF
-  (set 20 05 12 15 10 15 29 'unknown_rr.test'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 31 10 'unknown_rr.test'; eval "$shar_touch") &&
   chmod 0600 'unknown_rr.test' ||
   $echo 'restore of' 'unknown_rr.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'unknown_rr.test:' 'MD5 check failed'
-7ac0a79538273142ecbb85b10b260f1e  unknown_rr.test
+092b521327fbbdee668c711af573803d  unknown_rr.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'unknown_rr.test'`"
-    test 447 -eq "$shar_count" ||
-    $echo 'unknown_rr.test:' 'original size' '447,' 'current size' "$shar_count!"
+    test 450 -eq "$shar_count" ||
+    $echo 'unknown_rr.test:' 'original size' '450,' 'current size' "$shar_count!"
   fi
 fi
 # ============= unknown_rr.zone ==============
@@ -257,5 +258,5 @@ SHAR_EOF
     $echo 'unknown_rr.zone:' 'original size' '817,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh19125
+rm -fr _sh19340
 exit 0

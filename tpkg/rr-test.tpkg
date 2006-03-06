@@ -3,18 +3,18 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-10-28 16:44 CEST by <miekg@elektron>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/rr-test.dir'.
+# Made on 2006-03-06 12:34 CET by <wouter@diva.nlnetlabs.nl>.
+# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/rr-test.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     37 -rw------- rr-test.conf
+#     56 -rw------- rr-test.conf
 #    263 -rw------- rr-test.dsc
 #     71 -rw------- rr-test.help
-#    309 -rw------- rr-test.test
+#    312 -rw------- rr-test.test
 #   3489 -rw------- rr-test.zone
 #
 save_IFS="${IFS}"
@@ -65,7 +65,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh17654; then
+if mkdir _sh19918; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -77,21 +77,23 @@ if test -f 'rr-test.conf' && test "$first_param" != -c; then
 else
   $echo 'x -' extracting 'rr-test.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'rr-test.conf' &&
-zone    blaat.nl        rr-test.zone
+zone:
+X	name:    blaat.nl    
+X	zonefile:    rr-test.zone
 SHAR_EOF
-  (set 20 05 10 27 16 16 09 'rr-test.conf'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 34 10 'rr-test.conf'; eval "$shar_touch") &&
   chmod 0600 'rr-test.conf' ||
   $echo 'restore of' 'rr-test.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'rr-test.conf:' 'MD5 check failed'
-184df956646bf11be28a9b9873e88d50  rr-test.conf
+8f911087cd0e54f080868f14c78801b0  rr-test.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'rr-test.conf'`"
-    test 37 -eq "$shar_count" ||
-    $echo 'rr-test.conf:' 'original size' '37,' 'current size' "$shar_count!"
+    test 56 -eq "$shar_count" ||
+    $echo 'rr-test.conf:' 'original size' '56,' 'current size' "$shar_count!"
   fi
 fi
 # ============= rr-test.dsc ==============
@@ -167,21 +169,21 @@ else
 export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
 X
 # create .db file
-X../../zonec -v -f rr-test.db rr-test.conf && rm -f rr-test.db
+X../../zonec -v -f rr-test.db -c rr-test.conf && rm -f rr-test.db
 SHAR_EOF
-  (set 20 05 10 28 16 44 43 'rr-test.test'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 33 55 'rr-test.test'; eval "$shar_touch") &&
   chmod 0600 'rr-test.test' ||
   $echo 'restore of' 'rr-test.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'rr-test.test:' 'MD5 check failed'
-33cc77b12b68ac2bdd4ab8b83ea253fd  rr-test.test
+ab5a06f5a7128e7d78d1aeff6db7704c  rr-test.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'rr-test.test'`"
-    test 309 -eq "$shar_count" ||
-    $echo 'rr-test.test:' 'original size' '309,' 'current size' "$shar_count!"
+    test 312 -eq "$shar_count" ||
+    $echo 'rr-test.test:' 'original size' '312,' 'current size' "$shar_count!"
   fi
 fi
 # ============= rr-test.zone ==============
@@ -290,5 +292,5 @@ SHAR_EOF
     $echo 'rr-test.zone:' 'original size' '3489,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh17654
+rm -fr _sh19918
 exit 0

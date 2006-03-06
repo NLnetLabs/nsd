@@ -3,8 +3,8 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-12-08 11:34 CET by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/nsdc-run.dir'.
+# Made on 2006-03-06 12:41 CET by <wouter@diva.nlnetlabs.nl>.
+# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/nsdc-run.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
@@ -13,7 +13,7 @@
 # ------ ---------- ------------------------------------------
 #    279 -rw------- nsdc-run.dsc
 #     44 -rw------- nsdc-run.help
-#    703 -rw------- nsdc-run.test
+#    752 -rw------- nsdc-run.test
 #
 save_IFS="${IFS}"
 IFS="${IFS}:"
@@ -63,7 +63,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh04877; then
+if mkdir _sh21268; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -157,8 +157,10 @@ esac
 X
 X./nsdc && ./nsdc help
 X./nsd -u `whoami`
-if [ $? -ne 0 ]; then exit 1; fi
+if [ $? -ne 1 ]; then exit 1; fi
 X./nsd-notify
+if [ $? -ne 1 ]; then exit 1; fi
+X./nsd-checkconf
 if [ $? -ne 1 ]; then exit 1; fi
 X./nsd-xfer
 if [ $? -ne 3 ]; then exit 1; fi
@@ -167,20 +169,20 @@ if [ $? -ne 1 ]; then exit 1; fi
 X
 Xexit 0
 SHAR_EOF
-  (set 20 05 12 08 11 33 52 'nsdc-run.test'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 41 21 'nsdc-run.test'; eval "$shar_touch") &&
   chmod 0600 'nsdc-run.test' ||
   $echo 'restore of' 'nsdc-run.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'nsdc-run.test:' 'MD5 check failed'
-adf8c8fdde748bb20f855b6969c8eba9  nsdc-run.test
+e8e9d3e72f20c1b9145abc98a4598968  nsdc-run.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nsdc-run.test'`"
-    test 703 -eq "$shar_count" ||
-    $echo 'nsdc-run.test:' 'original size' '703,' 'current size' "$shar_count!"
+    test 752 -eq "$shar_count" ||
+    $echo 'nsdc-run.test:' 'original size' '752,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh04877
+rm -fr _sh21268
 exit 0

@@ -3,21 +3,21 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2005-12-15 11:04 CET by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/branches/NSD_2_2/tpkg/bug095_screwy_wc.dir'.
+# Made on 2006-03-06 12:52 CET by <wouter@diva.nlnetlabs.nl>.
+# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/bug095_screwy_wc.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#    172 -rw------- bug095_screwy_wc.conf
+#    135 -rw------- bug095_screwy_wc.conf
 #    135 -rw------- bug095_screwy_wc.current_respons1
 #    395 -rw------- bug095_screwy_wc.dsc
 #     75 -rw------- bug095_screwy_wc.help
 #    135 -rw------- bug095_screwy_wc.known_good_respons1
 #    592 -rw------- bug095_screwy_wc.post
-#    758 -rw------- bug095_screwy_wc.pre
+#    786 -rw------- bug095_screwy_wc.pre
 #    684 -rw------- bug095_screwy_wc.test
 #    420 -rw------- bug095_screwy_wc.zone1
 #    461 -rw------- bug095_screwy_wc.zone2
@@ -70,7 +70,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh22655; then
+if mkdir _sh23753; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -82,23 +82,26 @@ if test -f 'bug095_screwy_wc.conf' && test "$first_param" != -c; then
 else
   $echo 'x -' extracting 'bug095_screwy_wc.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug095_screwy_wc.conf' &&
-; zone  name            filename                [ masters/notify ip-address ]
-zone    example.        bug095_screwy_wc.zone1
-zone    *.example.      bug095_screwy_wc.zone2
+X
+zone:
+X	name:     example.       
+X	zonefile: bug095_screwy_wc.zone1
+zone:   name:   *.example.      
+X	zonefile: bug095_screwy_wc.zone2
 SHAR_EOF
-  (set 20 05 10 31 14 23 13 'bug095_screwy_wc.conf'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 52 00 'bug095_screwy_wc.conf'; eval "$shar_touch") &&
   chmod 0600 'bug095_screwy_wc.conf' ||
   $echo 'restore of' 'bug095_screwy_wc.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug095_screwy_wc.conf:' 'MD5 check failed'
-ea1cf93be1561ed217098a57e3b3d5b9  bug095_screwy_wc.conf
+919f70cb8523f7ff5f1a3c33cc73a267  bug095_screwy_wc.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug095_screwy_wc.conf'`"
-    test 172 -eq "$shar_count" ||
-    $echo 'bug095_screwy_wc.conf:' 'original size' '172,' 'current size' "$shar_count!"
+    test 135 -eq "$shar_count" ||
+    $echo 'bug095_screwy_wc.conf:' 'original size' '135,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug095_screwy_wc.current_respons1 ==============
@@ -281,22 +284,22 @@ X
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 X
-$TPKG_ZONEC -f bug095_screwy_wc.db bug095_screwy_wc.conf && \
-$TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug095_screwy_wc.db
+$TPKG_ZONEC -f bug095_screwy_wc.db -c bug095_screwy_wc.conf && \
+$TPKG_NSD -c bug095_screwy_wc.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug095_screwy_wc.db
 SHAR_EOF
-  (set 20 05 10 31 14 25 31 'bug095_screwy_wc.pre'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 51 17 'bug095_screwy_wc.pre'; eval "$shar_touch") &&
   chmod 0600 'bug095_screwy_wc.pre' ||
   $echo 'restore of' 'bug095_screwy_wc.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug095_screwy_wc.pre:' 'MD5 check failed'
-242325d0df7755fd6218134bbf49a1a0  bug095_screwy_wc.pre
+cd8cfb4dc4c4388459a9db8a7fdaf877  bug095_screwy_wc.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug095_screwy_wc.pre'`"
-    test 758 -eq "$shar_count" ||
-    $echo 'bug095_screwy_wc.pre:' 'original size' '758,' 'current size' "$shar_count!"
+    test 786 -eq "$shar_count" ||
+    $echo 'bug095_screwy_wc.pre:' 'original size' '786,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug095_screwy_wc.test ==============
@@ -406,5 +409,5 @@ SHAR_EOF
     $echo 'bug095_screwy_wc.zone2:' 'original size' '461,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh22655
+rm -fr _sh23753
 exit 0

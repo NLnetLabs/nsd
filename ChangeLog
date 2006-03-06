@@ -5,6 +5,7 @@
    * Wouter: zonec now takes -C for 'no config file' option.
    * Wouter: updated configyyrename.h for bison 1.875d on sparc.
    * Miek: zonec -h and nsd -h exit with exit code = 0.
+   * Miek & Wouter: updated tpkgs to work again.
 
 4 Mar 2005: Wouter
 	- xfrd zone and soa memory structure definitions.

@@ -3,8 +3,8 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-01-25 00:19 CET by <wouter@localhost.localdomain>.
-# Source directory was `/home/wouter/nlnetlabs/nsd/svn/branches/NSD_2_2/tpkg/bug128.dir'.
+# Made on 2006-03-06 12:45 CET by <wouter@diva.nlnetlabs.nl>.
+# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/bug128.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
@@ -13,7 +13,7 @@
 # ------ ---------- ------------------------------------------
 #    287 -rw------- bug128.dsc
 #    110 -rw------- bug128.help
-#    284 -rwx--x--x bug128.test
+#    290 -rwx--x--x bug128.test
 #    336 -rw-rw-r-- bug128.zone
 #
 save_IFS="${IFS}"
@@ -64,7 +64,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh08026; then
+if mkdir _sh22067; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -143,21 +143,21 @@ X
 # we execute in a subdir, so everything in NSD is in ../../
 X
 ZONEC=../../zonec
-exec $ZONEC -o example.com. -f example.db bug128.zone
+exec $ZONEC -C -o example.com. -f example.db -z bug128.zone
 SHAR_EOF
-  (set 20 06 01 24 17 15 44 'bug128.test'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 44 53 'bug128.test'; eval "$shar_touch") &&
   chmod 0711 'bug128.test' ||
   $echo 'restore of' 'bug128.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug128.test:' 'MD5 check failed'
-4276f198496233b93cfc06c597e662d3  bug128.test
+a0effb31fffc0928bd361750e01add31  bug128.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug128.test'`"
-    test 284 -eq "$shar_count" ||
-    $echo 'bug128.test:' 'original size' '284,' 'current size' "$shar_count!"
+    test 290 -eq "$shar_count" ||
+    $echo 'bug128.test:' 'original size' '290,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug128.zone ==============
@@ -188,5 +188,5 @@ SHAR_EOF
     $echo 'bug128.zone:' 'original size' '336,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh08026
+rm -fr _sh22067
 exit 0
