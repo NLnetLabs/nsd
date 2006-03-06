@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-02-15 09:59 CET by <miekg@elektron>.
+# Made on 2006-03-06 12:25 CET by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug009_soa_alone.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -11,13 +11,13 @@
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     43 -rw------- bug009_soa_alone.conf
+#     61 -rw------- bug009_soa_alone.conf
 #    365 -rw------- bug009_soa_alone.dsc
 #     37 -rw------- bug009_soa_alone.help
 #     95 -rw------- bug009_soa_alone.known_good_respons1
 #     94 -rw------- bug009_soa_alone.known_good_respons2
 #    592 -rw------- bug009_soa_alone.post
-#    926 -rw------- bug009_soa_alone.pre
+#    929 -rw------- bug009_soa_alone.pre
 #    896 -rw------- bug009_soa_alone.test
 #    351 -rw------- bug009_soa_alone.zone
 #
@@ -69,7 +69,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh05924; then
+if mkdir _sh16350; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -81,21 +81,23 @@ if test -f 'bug009_soa_alone.conf' && test "$first_param" != -c; then
 else
   $echo 'x -' extracting 'bug009_soa_alone.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug009_soa_alone.conf' &&
-zone	miek.nl         bug009_soa_alone.zone
+zone:
+name: miek.nl         
+zonefile: bug009_soa_alone.zone
 SHAR_EOF
-  (set 20 05 10 31 11 19 22 'bug009_soa_alone.conf'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 19 05 'bug009_soa_alone.conf'; eval "$shar_touch") &&
   chmod 0600 'bug009_soa_alone.conf' ||
   $echo 'restore of' 'bug009_soa_alone.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug009_soa_alone.conf:' 'MD5 check failed'
-353198ae291a439a807bcb244e31a055  bug009_soa_alone.conf
+4d926e4c5e4ff66f180fb2d154bc49db  bug009_soa_alone.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.conf'`"
-    test 43 -eq "$shar_count" ||
-    $echo 'bug009_soa_alone.conf:' 'original size' '43,' 'current size' "$shar_count!"
+    test 61 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.conf:' 'original size' '61,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug009_soa_alone.dsc ==============
@@ -274,22 +276,22 @@ X
 echo $TPKG_ZONEC -f bug009_soa_alone.db bug009_soa_alone.conf && \
 $TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug009_soa_alone.db
 X
-$TPKG_ZONEC -f bug009_soa_alone.db bug009_soa_alone.conf && \
+$TPKG_ZONEC -C -f bug009_soa_alone.db bug009_soa_alone.conf && \
 $TPKG_NSD -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug009_soa_alone.db
 SHAR_EOF
-  (set 20 06 02 15 09 58 52 'bug009_soa_alone.pre'; eval "$shar_touch") &&
+  (set 20 06 03 06 12 25 45 'bug009_soa_alone.pre'; eval "$shar_touch") &&
   chmod 0600 'bug009_soa_alone.pre' ||
   $echo 'restore of' 'bug009_soa_alone.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug009_soa_alone.pre:' 'MD5 check failed'
-72aa76e2e4564e1c0ef541a977733494  bug009_soa_alone.pre
+b3b7f655759eda92d77b9c4faaecb9ad  bug009_soa_alone.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug009_soa_alone.pre'`"
-    test 926 -eq "$shar_count" ||
-    $echo 'bug009_soa_alone.pre:' 'original size' '926,' 'current size' "$shar_count!"
+    test 929 -eq "$shar_count" ||
+    $echo 'bug009_soa_alone.pre:' 'original size' '929,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug009_soa_alone.test ==============
@@ -370,5 +372,5 @@ SHAR_EOF
     $echo 'bug009_soa_alone.zone:' 'original size' '351,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh05924
+rm -fr _sh16350
 exit 0

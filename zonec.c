@@ -1300,7 +1300,7 @@ main (int argc, char **argv)
 	}
 
 	/* Read options */
-	if(configfile!=0) {
+	if(configfile != 0) {
 		nsd_options = nsd_options_create(global_region);
 		if(!parse_options_file(nsd_options, configfile))
 		{
