@@ -16,6 +16,7 @@
 .Nm zonec
 .Op Fl v
 .Op Fl h
+.Op Fl C
 .Op Fl L
 .Op Fl F
 .Op Fl c Ar configfile
@@ -49,9 +50,8 @@ The available options are:
 .It Fl c Ar configfile
 Read specified configfile instead of the default
 .Pa /etc/nsd/nsd.conf .
-If
-.Pa none
-is specified, no config file is read (for use with -o and -z).
+.It Fl C
+No config file is read (use with -f, -o and -z).
 .It Fl d Ar directory
 Change the working directory to
 .Ar directory
@@ -72,7 +72,7 @@ If
 .Ar zonefile
 equals `-` then all zone information is read from stdin. Making constructs like:
 
-.Ic cat zones* | ./zonec -c none -f nsd.db -o example.net -z -
+.Ic cat zones* | ./zonec -C -f nsd.db -o example.net -z -
 
 possible.
 When reading zones from config file this option is ignored.

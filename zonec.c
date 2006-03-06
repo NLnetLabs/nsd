@@ -1196,14 +1196,15 @@ static void
 usage (void)
 {
 #ifndef NDEBUG
-	fprintf(stderr, "usage: zonec [-v|-h|-F|-L] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
+	fprintf(stderr, "usage: zonec [-v|-h|-C|-F|-L] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
 #else
-	fprintf(stderr, "usage: zonec [-v|-h] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
+	fprintf(stderr, "usage: zonec [-v|-h|-C] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
 #endif
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
 	fprintf(stderr, "\t-c\tSpecify config file to read instead of default nsd.conf,\n");
 	fprintf(stderr, "\t  \tor 'none' to read no config file.\n");
+	fprintf(stderr, "\t-C\tNo config file is read.\n");
 	fprintf(stderr, "\t-d\tSet working directory to open files from.\n");
 	fprintf(stderr, "\t-o\tSpecify a zone's origin (only used with -z).\n");
 	fprintf(stderr, "\t-z\tSpecify a zonefile to read (read from stdin with \'-\').\n");
@@ -1249,7 +1250,7 @@ main (int argc, char **argv)
 	totalerrors = 0;
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "d:f:vhF:L:o:c:z:")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:vhCF:L:o:c:z:")) != -1) {
 		switch (c) {
 		case 'c':
 			configfile = optarg;
@@ -1262,6 +1263,9 @@ main (int argc, char **argv)
 			break;
 		case 'd':
 			zonesdir = optarg;
+			break;
+		case 'C':
+			configfile = 0;
 			break;
 #ifndef NDEBUG
 		case 'F':
@@ -1296,15 +1300,15 @@ main (int argc, char **argv)
 	}
 
 	/* Read options */
-	nsd_options = nsd_options_create(global_region);
-	if(strcmp(configfile, "none")!=0) {
+	if(configfile!=0) {
+		nsd_options = nsd_options_create(global_region);
 		if(!parse_options_file(nsd_options, configfile))
 		{
 			fprintf(stderr, "zonec: could not read config: %s\n", configfile);
 			exit(1);
 		}
 	}
-	if(zonesdir == 0) zonesdir = nsd_options->zonesdir;
+	if(nsd_options && zonesdir == 0) zonesdir = nsd_options->zonesdir;
 	if(zonesdir) {
 		if (chdir(zonesdir)) {
 			fprintf(stderr, "zonec: cannot chdir to %s: %s\n", zonesdir, strerror(errno));
@@ -1312,7 +1316,7 @@ main (int argc, char **argv)
 		}
 	}
 	if(dbfile == 0) {
-		if(nsd_options->database) dbfile = nsd_options->database;
+		if(nsd_options && nsd_options->database) dbfile = nsd_options->database;
 		else dbfile = DBFILE;
 	}
 
@@ -1346,6 +1350,10 @@ main (int argc, char **argv)
 		if (vflag > 0)
 			fprintf(stderr, "zonec: processed %ld RRs in \"%s\".\n", totalrrs, origin);
 	} else {
+		if(!nsd_options) {
+			fprintf(stderr, "zonec: no zones specified.\n");
+			exit(1);
+		}
 		/* read all zones */
 		zone_options_t* zone;
 		for(zone = nsd_options->zone_options; zone; zone=zone->next)
