@@ -122,6 +122,7 @@ void config_test_print_server(nsd_options_t* opt)
 static int additional_checks(nsd_options_t* opt, const char* filename)
 {
 	ip_address_option_t* ip = opt->ip_addresses;
+	zone_options_t* zone;
 	key_options_t* key;
 	int num = 0;
 	int errors = 0;
@@ -134,6 +135,15 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 		errors ++;
 	}
 
+	for(zone = opt->zone_options; zone; zone=zone->next)
+	{
+		const dname_type* dname = dname_parse(opt->region, zone->name); /* memory leak. */
+		if(!dname) {
+		fprintf(stderr, "%s: cannot parse zone name syntax for zone %s.\n", filename, zone->name);
+		errors ++;
+		}
+	}
+
 	for(key = opt->keys; key; key=key->next)
 	{
 		const dname_type* dname = dname_parse(opt->region, key->name); /* memory leak. */
@@ -141,12 +151,12 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 		int size;
 
 		if(!dname) {
-		fprintf(stderr, "%s: cannot parse tsig name: for key %s.\n", filename, key->name);
+		fprintf(stderr, "%s: cannot parse tsig name syntax for key %s.\n", filename, key->name);
 		errors ++;
 		}
 		size = b64_pton(key->secret, data, sizeof(data));
 		if(size == -1) {
-		fprintf(stderr, "%s: cannot parse tsig secret: for key %s.\n", filename, key->name);
+		fprintf(stderr, "%s: cannot base64 decode tsig secret: for key %s.\n", filename, key->name);
 		errors ++;
 		}
 		if(strcmp(key->algorithm, "hmac-md5") != 0)
