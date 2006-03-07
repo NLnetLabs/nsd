@@ -1,4 +1,7 @@
-6 Mar 2005: nsd-team
+7 Mar 2006: Wouter
+	- Fixed printfs for size_t warnings on Mac OsX.
+
+6 Mar 2006: nsd-team
    * Wouter: xfrd read and write work. Statefile is "nsd.xfst".
    * Wouter: nsd-checkconf checks dname parse of zone name:.
    * Wouter: updated difffile in parser.y, production in server: clause.
@@ -9,13 +12,13 @@
    * Wouter: xfrd read handle soas, handle soa_incoming part.
    * Wouter: moved compare_serial() from nsd-xfer to util.h.
 
-4 Mar 2005: Wouter
+4 Mar 2006: Wouter
 	- xfrd zone and soa memory structure definitions.
 	- xfrd init zones.
 	- xfrd read and write state file code.
 	- option for difffile: and xfrdfile: config lines.
 
-3 Mar 2005: Wouter
+3 Mar 2006: Wouter
 	- Removed double kill after reload. Only socket cmd send.
 	- Added code to handle race condition where xfrd is restarted
 	  during a succesfull reload. Afterwards, the new server_main
@@ -25,7 +28,7 @@
 	  This should quit the orphan & all children & reload the
 	  server_main, which will fork the children and xfrd again.
 
-2 Mar 2005: Wouter
+2 Mar 2006: Wouter
 	- Added nsd-checkconf.8 to makedist.sh replace list.
 	- DIFF file format updated.
 	- removed tsigkey->server value, it was read in, but unused.
@@ -38,7 +41,7 @@
 	  xfrd survives nsd reloads.
 	- nsd_options no longer global variable.
 
-1 Mar 2005: Wouter
+1 Mar 2006: Wouter
 	- Nicer text in nsd.8.
 	- nsd.c prettier code in option handling.
 	- zonec.c code prettier in option handling, also chdir bug removed.
@@ -53,7 +56,7 @@
 	- zonec removed unused vars, nsd-checkconf print arguments.
 	- nsd-checkconf.8 manual page.
 
-28 Feb 2005: Wouter
+28 Feb 2006: Wouter
 	- checked in options.h and config parser code.
 	- also nsd-checkconf that will test a config file 
 	  .(and optionally show what was read).
@@ -75,7 +78,7 @@
 	- Added commandline option -c configfile to zonec and nsd.
 	  configure defaults < configfile < commandline options in importance.
 
-24 Feb 2005: Wouter
+24 Feb 2006: Wouter
 	- Added compute_crc in util.h and unit tests for it.
 	- in cutest.tpkg the number of unit tests was hardcoded
 	  in the tpkg package. Removed the dependency, cutest exit
@@ -87,33 +90,33 @@
 	- updated tpkg213 which compares md5 on a zonefile for new format.
 	- added nsd.conf.5 manual page with a draft contents.
 
-22 Feb 2005: nsd-team
+22 Feb 2006: nsd-team
    * Miek: Changed over to Cutest testing framework.
    * Miek: fixed typo in netio.h
    * Miek: fix syntax in rbtree.c put functions on multiple lines.
    * Miek: unit test tpkg for cutest.
    * Wouter: fixed ptr bug in rbtree unit test.
 
-17 Feb 2005: Wouter
+17 Feb 2006: Wouter
 	- rbtree_delete is added and works. Unit tests are there too.
 	- Changed tail recursion in rbtree_delete to while loop.
 	- Tagged this version as NSD_3_signalsocket_solution.
 	  It is the stable 2_2 branch with cleanups, portable, and
 	  signalhandler solution by socket communication redesign.
 
-15 Feb 2005: nsd-team
+15 Feb 2006: nsd-team
    * Wouter: Fixed server_child would wait for two kill signals before quit.
    * Miek: don't check for port==0 pkt, just try to send them. 
 	Forward Port of 2.3.
    * Wouter: Removed unused, not substituted, @nsdxfer@ from Makefile.in.
 
-14 Feb 2005: Wouter
+14 Feb 2006: Wouter
 	- Added unit tests for rbtree. Extensive testing of all functions.
 	- Added tpkg unit test.
 	- configure tests for CUnit(optional lib for unit tests). Makefile
 	  cleanup so it works on non-gmake on freebsd.
 
-13 Feb 2005: Wouter
+13 Feb 2006: Wouter
 	- Removed timespec_add(current_time) in server_main, the timeout was
 	  relative, not absolute. This fixes EINVAL on the timeout on freebsd.
 	- Added check in configure for compiler flags. Used for -Wextra.
