@@ -12,14 +12,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include "xfrd.h"
 #include "options.h"
 #include "util.h"
 #include "netio.h"
 #include "region-allocator.h"
 #include "nsd.h"
+#include "packet.h"
 
 #define XFRDFILE "nsd.xfst"
+#define DIFFFILE "nsd.diff"
+#define XFRD_TRANSFER_TIMEOUT 120 /* seconds */
 
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
@@ -53,10 +57,25 @@ static void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
 /* get the current time epoch. Cached for speed. */
 static time_t xfrd_time();
 
+/* send notifications to all in the notify list */
+static void xfrd_send_notify(xfrd_zone_t* zone);
+/* send expiry notifications to nsd */
+static void xfrd_send_expiry_notification(xfrd_zone_t* zone);
+/* send ixfr request, returns fd of connection to read on */
+static int xfrd_send_ixfr_request(xfrd_zone_t* zone);
+/* send axfr request, returns fd of connection to read on */
+static int xfrd_send_axfr_request(xfrd_zone_t* zone);
+
 /* read state from disk */
 static void xfrd_read_state();
 /* write state to disk */
 static void xfrd_write_state();
+
+/* setup DNS packet for a query of this type */
+static void xfrd_setup_packet(uint16_t type, uint16_t klass, 
+	const dname_type* dname);
+/* send packet via udp (using fd source socket) to acl addr. 0 on failure. */
+static int xfrd_send_udp(int fd, acl_options_t* acl);
 
 
 void xfrd_init(int socket, struct nsd* nsd)
@@ -74,6 +93,8 @@ void xfrd_init(int socket, struct nsd* nsd)
 	xfrd->xfrd_start_time = time(0);
 	xfrd->netio = netio_create(xfrd->region);
 	xfrd->nsd = nsd;
+	xfrd->nsd_db_crc = nsd->db->crc;
+	xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
 
 	xfrd->reload_time = 0;
 
@@ -234,12 +255,68 @@ static void xfrd_free_namedb()
 	xfrd->nsd->db = 0;
 }
 
-static void xfrd_handle_zone(netio_type *netio, 
+static void xfrd_handle_zone(netio_type* ATTR_UNUSED(netio), 
 	netio_handler_type *handler, netio_event_types_type event_types)
 {
 	xfrd_zone_t* zone = (xfrd_zone_t*)handler->user_data;
-	log_msg(LOG_INFO, "Got zone %s timeout handler", zone->apex_str);
 	handler->timeout = 0;
+	if(event_types & NETIO_EVENT_READ) {
+		ssize_t received;
+
+		/* received data */
+		log_msg(LOG_INFO, "Got zone %s handler - read data", zone->apex_str);
+		xfrd_set_timer(zone, xfrd_time() + XFRD_TRANSFER_TIMEOUT);
+		/* read and handle the data */
+		buffer_clear(xfrd->packet);
+		received = recvfrom(handler->fd, 
+			buffer_begin(xfrd->packet), buffer_remaining(xfrd->packet),
+			0, NULL, NULL);
+		if(received == -1) {
+			log_msg(LOG_ERR, "xfrd: recvfrom failed: %s",
+				strerror(errno));
+			close(handler->fd);
+			handler->fd = -1;
+			return;
+		}
+		buffer_set_limit(xfrd->packet, received);
+		if(TC(xfrd->packet)) {
+			log_msg(LOG_INFO, "xfrd: received TC flag for zone %s, tcp is TODO.",
+				zone->apex_str);
+			close(handler->fd);
+			handler->fd = -1;
+			return;
+		}
+		/* dump reply on disk to diff file */
+		diff_write_packet(buffer_begin(xfrd->packet), received, 
+			xfrd->nsd->options, xfrd->nsd_db_crc);
+		log_msg(LOG_INFO, "xfrd: written %zd received IXFR for zone %s to disk",
+			received, zone->apex_str);
+		return;
+	}
+	/* timeout */
+	log_msg(LOG_INFO, "Got zone %s timeout", zone->apex_str);
+	if(handler->fd != -1) {
+		close(handler->fd);
+		handler->fd = -1;
+	}
+	if(zone->soa_disk_acquired == 0) {
+		/* request axfr */
+		handler->fd = xfrd_send_axfr_request(zone);
+		xfrd_set_timer(zone, xfrd_time() + XFRD_TRANSFER_TIMEOUT);
+	} else {
+		/* request ixfr */
+		handler->fd = xfrd_send_ixfr_request(zone);
+		xfrd_set_timer(zone, xfrd_time() + ntohl(zone->soa_disk.serial));
+	}
+	
+	/* use different master next time */
+	if(zone->next_master && zone->next_master->next) {
+		zone->next_master = zone->next_master->next;
+		zone->next_master_num++;
+	} else {
+		zone->next_master = zone->zone_options->request_xfr;
+		zone->next_master_num = 0;
+	}
 }
 
 static time_t xfrd_time()
@@ -293,7 +370,6 @@ static void xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state)
 
 static void xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 {
-	zone->zone_handler.fd = -1;
 	zone->zone_handler.timeout = &zone->timeout;
 	zone->timeout.tv_sec = t;
 	zone->timeout.tv_nsec = 0;
@@ -522,7 +598,7 @@ static void xfrd_read_state()
 		zone->soa_notified_acquired = soa_notified_acquired_read;
 		if(incoming_acquired != 0)
 			xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
-		/* expiry notification TODO */
+		xfrd_send_expiry_notification(zone);
 	}
 
 	if(!xfrd_read_check_str(in, XFRD_FILE_MAGIC)) {
@@ -648,7 +724,7 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 			ntohl(soa->serial));
 		zone->soa_nsd = zone->soa_disk;
 		zone->soa_nsd_acquired = zone->soa_disk_acquired;
-		/* TODO send notify to list */
+		xfrd_send_notify(zone);
 		if((uint32_t)xfrd_time() - zone->soa_disk_acquired 
 			< ntohl(zone->soa_disk.refresh))
 		{
@@ -668,8 +744,7 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 			/* zone expired */
 			xfrd_set_refresh_now(zone, xfrd_zone_expired);
 		}
-
-		/* expiry notification TODO */
+		xfrd_send_expiry_notification(zone);
 
 		if(zone->soa_notified_acquired != 0 &&
 		   compare_serial(ntohl(zone->soa_disk.serial),
@@ -689,4 +764,192 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	zone->soa_disk_acquired = acquired;
 	zone->soa_notified_acquired = 0;
 	xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
+}
+
+static void xfrd_send_notify(xfrd_zone_t* zone)
+{
+	log_msg(LOG_INFO, "TODO: xfrd sending notifications for zone %s.",
+		zone->apex_str);
+}
+
+static void xfrd_send_expiry_notification(xfrd_zone_t* zone)
+{
+	log_msg(LOG_INFO, "TODO: xfrd sending expiry to nsd for zone %s.",
+		zone->apex_str);
+}
+
+static void xfrd_setup_packet(uint16_t type, uint16_t klass, 
+	const dname_type* dname)
+{	
+	/* Set up the header */
+	buffer_clear(xfrd->packet);
+	ID_SET(xfrd->packet, (uint16_t) random());
+        FLAGS_SET(xfrd->packet, 0);
+        OPCODE_SET(xfrd->packet, OPCODE_QUERY);
+        AA_SET(xfrd->packet);
+        QDCOUNT_SET(xfrd->packet, 1);
+        ANCOUNT_SET(xfrd->packet, 0);
+        NSCOUNT_SET(xfrd->packet, 0);
+        ARCOUNT_SET(xfrd->packet, 0);
+        buffer_skip(xfrd->packet, QHEADERSZ);
+
+	/* The question record. */
+        buffer_write(xfrd->packet, dname_name(dname), dname->name_size);
+        buffer_write_u16(xfrd->packet, type);
+        buffer_write_u16(xfrd->packet, klass);
+}
+
+static int xfrd_send_udp(int fd, acl_options_t* acl)
+{
+	unsigned int port = acl->port?acl->port:(unsigned)atoi(UDP_PORT);
+	struct sockaddr_storage to;
+
+	/* setup address structure */
+	memset(&to, 0, sizeof(struct sockaddr_storage));
+	if(acl->is_ipv6)
+	{
+#ifdef INET6
+		struct sockaddr_in6* sa = (struct sockaddr_in6*)&to;
+		sa->sin6_family = AF_INET6;
+		sa->sin6_port = port;
+		sa->sin6_addr = acl->addr.addr6;
+#else
+		return 0;
+#endif
+	} else
+	{
+		struct sockaddr_in* sa = (struct sockaddr_in*)&to;
+		sa->sin_family = AF_INET;
+		sa->sin_port = port;
+		sa->sin_addr = acl->addr.addr;
+	}
+	
+	/* send it (udp) */
+	if(sendto(fd,
+		buffer_current(xfrd->packet),
+		buffer_remaining(xfrd->packet), 0,
+		(struct sockaddr*)&to, sizeof(to)) == -1)
+	{
+		log_msg(LOG_ERR, "xfrd: sendto %s failed %s",
+			acl->ip_address_spec, strerror(errno));
+		return 0;
+	}
+	return 1;
+}
+
+static int xfrd_write_soa_buffer(xfrd_soa_t* soa)
+{
+	/* already in network order */
+	buffer_write(xfrd->packet, &soa->type, sizeof(soa->type));
+	buffer_write(xfrd->packet, &soa->klass, sizeof(soa->klass));
+	buffer_write(xfrd->packet, &soa->ttl, sizeof(soa->ttl));
+	buffer_write(xfrd->packet, &soa->rdata_count, sizeof(soa->rdata_count));
+
+	/* uncompressed dnames */
+#ifndef NDEBUG
+	assert(soa->prim_ns);
+	assert(soa->email);
+#endif
+	buffer_write(xfrd->packet, dname_name(soa->prim_ns), soa->prim_ns->name_size);
+	buffer_write(xfrd->packet, dname_name(soa->email), soa->email->name_size);
+
+	buffer_write(xfrd->packet, &soa->serial, sizeof(uint32_t));
+	buffer_write(xfrd->packet, &soa->refresh, sizeof(uint32_t));
+	buffer_write(xfrd->packet, &soa->retry, sizeof(uint32_t));
+	buffer_write(xfrd->packet, &soa->expire, sizeof(uint32_t));
+	buffer_write(xfrd->packet, &soa->minimum, sizeof(uint32_t));
+}
+
+static int xfrd_send_ixfr_request(xfrd_zone_t* zone)
+{
+	int fd;
+	int family;
+
+	if(!zone->next_master) return -1;
+	xfrd_setup_packet(TYPE_IXFR, CLASS_IN, zone->apex);
+        NSCOUNT_SET(xfrd->packet, 1);
+	xfrd_write_soa_buffer(&zone->soa_disk);
+	buffer_flip(xfrd->packet);
+
+	if(zone->next_master->is_ipv6) {
+#ifdef INET6
+		family = PF_INET6;
+#else
+		return -1;
+#endif
+	} else family = PF_INET;
+	fd = socket(family, SOCK_DGRAM, IPPROTO_UDP);
+	if(fd == -1) return -1;
+	if(!xfrd_send_udp(fd, zone->next_master)) return -1;
+	log_msg(LOG_INFO, "xfrd sent request for ixfr=%d for zone %s to %s", 
+		ntohl(zone->soa_disk.serial),
+		zone->apex_str, zone->next_master->ip_address_spec);
+	return fd;
+}
+
+static int xfrd_send_axfr_request(xfrd_zone_t* zone)
+{	
+	int fd;
+	int family;
+
+	if(!zone->next_master) return -1;
+	xfrd_setup_packet(TYPE_AXFR, CLASS_IN, zone->apex);
+	buffer_flip(xfrd->packet);
+
+	if(zone->next_master->is_ipv6) {
+#ifdef INET6
+		family = PF_INET6;
+#else
+		return -1;
+#endif
+	} else family = PF_INET;
+	fd = socket(family, SOCK_DGRAM, IPPROTO_UDP);
+	if(fd == -1) {
+		log_msg(LOG_ERR, "xfrd: socket failed %s", strerror(errno));
+		return -1;
+	}
+	if(!xfrd_send_udp(fd, zone->next_master)) return -1;
+	log_msg(LOG_INFO, "xfrd sent request for axfr for zone %s to %s", 
+		zone->apex_str, zone->next_master->ip_address_spec);
+	return fd;
+}
+
+void diff_write_packet(uint8_t* data, size_t len, 
+	nsd_options_t* opt, uint32_t db_crc)
+{
+	const char* filename = DIFFFILE;
+	FILE *df;
+	struct stat sb;
+	uint32_t val;
+	if(opt->difffile) filename = opt->difffile;
+
+	/* create if necessary */
+	if(stat(filename, &sb) == ENOENT)
+	{
+		FILE *cr = fopen(filename, "w");
+		if(!cr) {
+			log_msg(LOG_ERR, "could not create diff file %s: %s",
+				filename, strerror(errno));
+			return;
+		}
+		write_data(cr, DIFF_FILE_MAGIC, DIFF_FILE_MAGIC_LEN);
+		val = htonl(db_crc);
+		write_data(cr, &val, sizeof(val));
+		fclose(cr);
+	}
+
+	df = fopen(filename, "a");
+	if(!df) {
+		log_msg(LOG_ERR, "could not open file %s for append: %s",
+			filename, strerror(errno));
+		return;
+	}
+
+	write_data(df, "IXFR", sizeof(uint32_t));
+	val = htonl(len);
+	write_data(df, &val, sizeof(val));
+	write_data(df, data, len);
+	write_data(df, &val, sizeof(val));
+	
+	fclose(df);
 }

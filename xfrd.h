@@ -18,6 +18,7 @@
 
 struct nsd;
 struct region;
+struct buffer;
 typedef struct xfrd_state xfrd_state_t;
 typedef struct xfrd_zone_t xfrd_zone_t;
 typedef struct xfrd_soa xfrd_soa_t;
@@ -31,6 +32,8 @@ struct xfrd_state {
 	struct region* region;
 	netio_type* netio;
 	struct nsd* nsd;
+	uint32_t nsd_db_crc;
+	struct buffer* packet;
 
 	/* current time is cached */
 	uint8_t got_time;
@@ -113,8 +116,15 @@ struct xfrd_zone_t {
 };
 
 #define XFRD_FILE_MAGIC "NSDXFRD1"
+#define DIFF_FILE_MAGIC "NSDdfV01"
+#define DIFF_FILE_MAGIC_LEN 8
 
 /* start xfrd, new start. Pass socket to server_main. */
 void xfrd_init(int socket, struct nsd* nsd);
+
+/* write an xfr packet data to the diff file, type=IXFR.
+   The diff file is created if necessary. */
+void diff_write_packet(uint8_t* data, size_t len, 
+	nsd_options_t* opt, uint32_t db_crc);
 
 #endif /* XFRD_H */
