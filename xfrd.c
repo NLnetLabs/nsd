@@ -56,6 +56,8 @@ static void xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state);
 static void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
 /* get the current time epoch. Cached for speed. */
 static time_t xfrd_time();
+/* write soa in network format to the packet buffer */
+static void xfrd_write_soa_buffer(xfrd_soa_t* soa);
 
 /* send notifications to all in the notify list */
 static void xfrd_send_notify(xfrd_zone_t* zone);
@@ -837,7 +839,7 @@ static int xfrd_send_udp(int fd, acl_options_t* acl)
 	return 1;
 }
 
-static int xfrd_write_soa_buffer(xfrd_soa_t* soa)
+static void xfrd_write_soa_buffer(xfrd_soa_t* soa)
 {
 	/* already in network order */
 	buffer_write(xfrd->packet, &soa->type, sizeof(soa->type));

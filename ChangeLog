@@ -1,6 +1,7 @@
 8 Mar 2006: Wouter
 	- xfrd sends UDP xfr request to master(s) with timeouts, and stores
 	  returned data on disk.
+	- updated dependencies and declaration of write_soa_buffer.
 
 7 Mar 2006: Wouter
 	- Fixed printfs for size_t warnings on Mac OsX.
