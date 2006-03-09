@@ -18,7 +18,6 @@
 
 
 static int init_rbtree(void);
-static void clean_rbtree(void);
 static void rbtree_1(CuTest *tc);
 static void rbtree_2(CuTest *tc);
 static void rbtree_3(CuTest *tc);
@@ -29,7 +28,6 @@ static void rbtree_7(CuTest *tc);
 static void rbtree_8(CuTest *tc);
 static void rbtree_9(CuTest *tc);
 static void rbtree_10(CuTest *tc);
-static void always_fail(CuTest *tc);
 static int testcompare(const void *lhs, const void *rhs);
 
 CuSuite* reg_cutest_rbtree(void)
@@ -67,17 +65,12 @@ static rbtree_t* tree = 0; /* tree of struct testnode */
 /* init rbtree tests */
 static int init_rbtree(void)
 {
+	/* is leaked */
 	reg = region_create(malloc, free);
 	if(reg == 0) return 1;
 	tree = rbtree_create(reg, testcompare);
 	if(tree == 0) return 1;
 	return 0;
-}
-
-/* cleanup rbtree tests */
-static void clean_rbtree(void)
-{
-	region_destroy(reg);
 }
 
 /* NOTE! compare func can get two 0 ptrs. Return 0 then. */
@@ -721,9 +714,3 @@ static void rbtree_10(CuTest *tc)
 	      test_tree_integrity(tc, tree);
 	}
 }
-
-void always_fail(CuTest *tc) 
-{
-	CuAssert(tc, "1 == 0", (1 == 0));
-}
-

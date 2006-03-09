@@ -12,7 +12,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include "xfrd.h"
 #include "options.h"
 #include "util.h"
@@ -95,7 +94,6 @@ void xfrd_init(int socket, struct nsd* nsd)
 	xfrd->xfrd_start_time = time(0);
 	xfrd->netio = netio_create(xfrd->region);
 	xfrd->nsd = nsd;
-	xfrd->nsd_db_crc = nsd->db->crc;
 	xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
 
 	xfrd->reload_time = 0;
@@ -290,7 +288,7 @@ static void xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		}
 		/* dump reply on disk to diff file */
 		diff_write_packet(buffer_begin(xfrd->packet), received, 
-			xfrd->nsd->options, xfrd->nsd_db_crc);
+			xfrd->nsd->options);
 		log_msg(LOG_INFO, "xfrd: written %zd received IXFR for zone %s to disk",
 			received, zone->apex_str);
 		return;
@@ -916,29 +914,12 @@ static int xfrd_send_axfr_request(xfrd_zone_t* zone)
 	return fd;
 }
 
-void diff_write_packet(uint8_t* data, size_t len, 
-	nsd_options_t* opt, uint32_t db_crc)
+void diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt)
 {
 	const char* filename = DIFFFILE;
 	FILE *df;
-	struct stat sb;
 	uint32_t val;
 	if(opt->difffile) filename = opt->difffile;
-
-	/* create if necessary */
-	if(stat(filename, &sb) == ENOENT)
-	{
-		FILE *cr = fopen(filename, "w");
-		if(!cr) {
-			log_msg(LOG_ERR, "could not create diff file %s: %s",
-				filename, strerror(errno));
-			return;
-		}
-		write_data(cr, DIFF_FILE_MAGIC, DIFF_FILE_MAGIC_LEN);
-		val = htonl(db_crc);
-		write_data(cr, &val, sizeof(val));
-		fclose(cr);
-	}
 
 	df = fopen(filename, "a");
 	if(!df) {

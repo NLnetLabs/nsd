@@ -32,7 +32,6 @@ struct xfrd_state {
 	struct region* region;
 	netio_type* netio;
 	struct nsd* nsd;
-	uint32_t nsd_db_crc;
 	struct buffer* packet;
 
 	/* current time is cached */
@@ -124,7 +123,6 @@ void xfrd_init(int socket, struct nsd* nsd);
 
 /* write an xfr packet data to the diff file, type=IXFR.
    The diff file is created if necessary. */
-void diff_write_packet(uint8_t* data, size_t len, 
-	nsd_options_t* opt, uint32_t db_crc);
+void diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt);
 
 #endif /* XFRD_H */
