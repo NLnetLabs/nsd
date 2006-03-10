@@ -16,9 +16,12 @@
 #include "namedb.h"
 #include "options.h"
 
+#define XFRD_MAX_TCP 10 /* max number of tcp connections */
+
 struct nsd;
 struct region;
 struct buffer;
+typedef struct xfrd_tcp xfrd_tcp_t;
 typedef struct xfrd_state xfrd_state_t;
 typedef struct xfrd_zone_t xfrd_zone_t;
 typedef struct xfrd_soa xfrd_soa_t;
@@ -32,6 +35,14 @@ struct xfrd_state {
 	struct region* region;
 	netio_type* netio;
 	struct nsd* nsd;
+
+	/* tcp connections, each has packet and read/wr state */
+	xfrd_tcp_t *tcp_state[XFRD_MAX_TCP];
+	/* number of TCP connections in use. */
+	int tcp_count;
+	/* linked list of zones waiting for a TCP connection */
+	xfrd_zone_t *tcp_waiting_first, *tcp_waiting_last;
+	/* packet buffer for udp packets */
 	struct buffer* packet;
 
 	/* current time is cached */
@@ -104,14 +115,42 @@ struct xfrd_zone_t {
 		xfrd_zone_expired
 	} zone_state;
 
-	/* next master to try to transfer from, number for persistence */
-	acl_options_t* next_master;
-	int next_master_num;
+	/* master to try to transfer from, number for persistence */
+	acl_options_t* master;
+	int master_num;
 	zone_options_t* zone_options;
 
 	/* handler for timeouts */
 	struct timespec timeout;
 	netio_handler_type zone_handler;
+
+	/* tcp connection zone is using, or -1 */
+	int tcp_conn;
+	/* zone is waiting for a tcp connection */
+	uint8_t tcp_waiting;
+	/* next zone in waiting list */
+	xfrd_zone_t* tcp_waiting_next;
+	/* query id */
+	uint16_t query_id;
+};
+
+struct xfrd_tcp {
+	/* tcp connection state */
+	/* state: reading or writing */
+	uint8_t is_reading;
+
+	/* how many bytes have been read/written - total,
+	   incl. tcp length bytes */
+	uint32_t total_bytes;
+
+	/* msg len bytes */
+	uint16_t msglen;
+
+	/* fd of connection. -1 means unconnected */
+	int fd;
+
+	/* packet buffer of connection */
+	struct buffer* packet;
 };
 
 #define XFRD_FILE_MAGIC "NSDXFRD1"

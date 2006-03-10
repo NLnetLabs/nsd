@@ -164,6 +164,11 @@ int packet_encode_rrset(struct query *query,
 int packet_skip_rr(buffer_type *packet, int question_section);
 
 /*
+ * Skip the dname at the current position in PACKET.
+ */
+int packet_skip_dname(buffer_type *packet);
+
+/*
  * Read the RR at the current position in PACKET.
  */
 rr_type *packet_read_rr(region_type *region,

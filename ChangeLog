@@ -1,5 +1,9 @@
 10 Mar 2006: Wouter
 	- Cleanup of UDP/TCP code in XFRD.
+	- xfrd now has tcp max connections and managing. tcp read/write.
+	- response TC on UDP ixfr, starts TCP.
+	- sends correct ixfr and axfr queries, a bind server answers.
+	- made packet_skip_dname() public.
 
 9 Mar 2006: Wouter
 	- Removed header from DIFF file format. CRC not that imporant there,

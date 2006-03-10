@@ -162,8 +162,8 @@ packet_encode_rrset(query_type *query,
 	return added;
 }
 
-static int
-skip_dname(buffer_type *packet)
+int
+packet_skip_dname(buffer_type *packet)
 {
 	while (1) {
 		uint8_t label_size;
@@ -189,7 +189,7 @@ skip_dname(buffer_type *packet)
 int
 packet_skip_rr(buffer_type *packet, int question_section)
 {
-	if (!skip_dname(packet))
+	if (!packet_skip_dname(packet))
 		return 0;
 
 	if (question_section) {
