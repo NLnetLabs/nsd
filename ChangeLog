@@ -1,7 +1,11 @@
+10 Mar 2006: Wouter
+	- Cleanup of UDP/TCP code in XFRD.
+
 9 Mar 2006: Wouter
 	- Removed header from DIFF file format. CRC not that imporant there,
 	  you have to check the packets anyway.
 	- cutest rbtree removed unused clean_rbtree and always_fail routines.
+	- xfrd timeout handler, more work. Checks expire.
 
 8 Mar 2006: Wouter
 	- xfrd sends UDP xfr request to master(s) with timeouts, and stores
