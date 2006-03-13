@@ -287,6 +287,7 @@ namedb_open (const char *filename)
 	db->zones = NULL;
 	db->filename = region_strdup(db->region, filename);
 	db->crc = 0xffffffff;
+	db->diff_skip = 0;
 	
 	/* Open it... */
 	db->fd = fopen(db->filename, "r");
