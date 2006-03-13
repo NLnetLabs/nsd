@@ -538,7 +538,10 @@ AH_BOTTOM([
 #  endif
 #  ifndef __EXTENSIONS__
 #    define __EXTENSIONS__ 1
-#  endif
+#  endif 
+/* Get 64-bit file size support */
+#  undef FILE_OFFSET_BITS
+#  define FILE_OFFSET_BITS 64
 #endif
 ])
 

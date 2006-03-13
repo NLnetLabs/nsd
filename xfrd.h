@@ -154,14 +154,8 @@ struct xfrd_tcp {
 };
 
 #define XFRD_FILE_MAGIC "NSDXFRD1"
-#define DIFF_FILE_MAGIC "NSDdfV01"
-#define DIFF_FILE_MAGIC_LEN 8
 
 /* start xfrd, new start. Pass socket to server_main. */
 void xfrd_init(int socket, struct nsd* nsd);
-
-/* write an xfr packet data to the diff file, type=IXFR.
-   The diff file is created if necessary. */
-void diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt);
 
 #endif /* XFRD_H */

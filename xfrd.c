@@ -1,5 +1,5 @@
 /*
- * xfrd.h - XFR (transfer) Daemon header file. Coordinates SOA updates.
+ * xfrd.c - XFR (transfer) Daemon source file. Coordinates SOA updates.
  *
  * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
  *
@@ -20,9 +20,9 @@
 #include "region-allocator.h"
 #include "nsd.h"
 #include "packet.h"
+#include "difffile.h"
 
 #define XFRDFILE "nsd.xfst"
-#define DIFFFILE "nsd.diff"
 #define XFRD_TRANSFER_TIMEOUT 10 /* timeout is between x and 2*x seconds */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds */
 
@@ -98,6 +98,7 @@ static void xfrd_tcp_write(xfrd_zone_t* zone);
 /* write soa in network format to the packet buffer */
 static void xfrd_write_soa_buffer(buffer_type* packet,
 	xfrd_zone_t* zone, xfrd_soa_t* soa);
+
 /* handle final received packet from network */
 static void xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet);
 /* use acl address to setup sockaddr struct */
@@ -1022,29 +1023,6 @@ static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 		ntohl(zone->soa_disk.serial),
 		zone->apex_str, zone->master->ip_address_spec);
 	return fd;
-}
-
-void diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt)
-{
-	const char* filename = DIFFFILE;
-	FILE *df;
-	uint32_t val;
-	if(opt->difffile) filename = opt->difffile;
-
-	df = fopen(filename, "a");
-	if(!df) {
-		log_msg(LOG_ERR, "could not open file %s for append: %s",
-			filename, strerror(errno));
-		return;
-	}
-
-	write_data(df, "IXFR", sizeof(uint32_t));
-	val = htonl(len);
-	write_data(df, &val, sizeof(val));
-	write_data(df, data, len);
-	write_data(df, &val, sizeof(val));
-	
-	fclose(df);
 }
 
 static xfrd_tcp_t* xfrd_tcp_create(region_type* region)

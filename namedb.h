@@ -207,6 +207,7 @@ struct namedb
 	char              *filename;
 	FILE              *fd;
 	uint32_t	  crc;
+	fpos_t		  crc_pos;
 };
 
 static inline int rdata_atom_is_domain(uint16_t type, size_t index);

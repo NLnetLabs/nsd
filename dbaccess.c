@@ -386,6 +386,12 @@ namedb_open (const char *filename)
 	
 	region_destroy(temp_region);
 	
+	if (fgetpos(db->fd, &db->crc_pos) == -1) {
+		log_msg(LOG_ERR, "fgetpos %s failed: %s", 
+			db->filename, strerror(errno));
+		namedb_close(db);
+		return NULL;
+	}
 	if (!read_size(db, &db->crc)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		namedb_close(db);

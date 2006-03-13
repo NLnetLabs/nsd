@@ -64,6 +64,7 @@ NSD_OBJECTS	=				\
 	configparser.o				\
 	options.o				\
 	dbaccess.o				\
+	difffile.o				\
 	dname.o					\
 	dns.o					\
 	edns.o					\
@@ -89,6 +90,7 @@ ZONEC_OBJECTS	=				\
 	configlexer.o				\
 	configparser.o				\
 	dbaccess.o				\
+	difffile.o				\
 	dbcreate.o				\
 	dname.o					\
 	dns.o					\
@@ -167,6 +169,7 @@ CUTEST_OBJECTS		=			\
 	options.o				\
 	dbaccess.o				\
 	dbcreate.o				\
+	difffile.o				\
 	dname.o					\
 	dns.o					\
 	edns.o					\
@@ -348,6 +351,8 @@ dbaccess.o: dbaccess.c config.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h
 dbcreate.o: dbcreate.c config.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h
+difffile.o: difffile.c config.h difffile.h rbtree.h region-allocator.h \
+  namedb.h dname.h buffer.h util.h dns.h options.h
 dname.o: dname.c config.h dns.h dname.h buffer.h region-allocator.h \
   util.h query.h namedb.h rbtree.h nsd.h edns.h packet.h
 dns.o: dns.c config.h dns.h zonec.h namedb.h dname.h buffer.h \
@@ -390,7 +395,8 @@ tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
   tsig.h buffer.h util.h dname.h
 util.o: util.c config.h util.h
 xfrd.o: xfrd.c config.h xfrd.h netio.h region-allocator.h rbtree.h \
-  namedb.h dname.h buffer.h util.h dns.h options.h nsd.h edns.h packet.h
+  namedb.h dname.h buffer.h util.h dns.h options.h nsd.h edns.h packet.h \
+  difffile.h
 zlexer.o: zlexer.c config.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h zparser.h
 zonec.o: zonec.c config.h zonec.h namedb.h dname.h buffer.h \

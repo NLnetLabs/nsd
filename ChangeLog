@@ -1,3 +1,8 @@
+13 Mar 2006: Wouter
+	- configure sets fseek (fgetpos/fsetpos) to use 64 bit interface
+	  with _FILE_OFFSET_BITS=64.
+	- nsd will skip loading the .db if the DB checksum is the same.
+
 10 Mar 2006: Wouter
 	- Cleanup of UDP/TCP code in XFRD.
 	- xfrd now has tcp max connections and managing. tcp read/write.

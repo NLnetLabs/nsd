@@ -35,6 +35,7 @@
 #include "netio.h"
 #include "plugins.h"
 #include "xfrd.h"
+#include "difffile.h"
 
 
 /*
@@ -528,10 +529,15 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, in
 	pid_t old_pid;
 	sig_atomic_t cmd = NSD_QUIT;
 
-	namedb_close(nsd->db);
-	if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
-		log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
-		exit(1);
+	if(db_crc_different(nsd->db) == 0) {
+		log_msg(LOG_INFO, "CRC the same. skipping %s.", nsd->db->filename);
+	} else {
+		log_msg(LOG_INFO, "CRC different. reread of %s.", nsd->db->filename);
+		namedb_close(nsd->db);
+		if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
+			exit(1);
+		}
 	}
 
 	initialize_dname_compression_tables(nsd);
