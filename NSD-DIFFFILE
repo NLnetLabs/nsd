@@ -16,10 +16,10 @@ without a SURE part, it is probably sent with bad tsig.
 TYPE="SURE"
 contents is:
 a) reference to the IXFR packet that is OKed.
-	- new SOA rr packet.
+	- zone name, new serial number
 	- this must be the IXFR immediately preceding the SURE.
 b) uint8: commit=1(IXFR is OK) or rollback=0(ignore that IXFR). 
-c) space for a text string message (0 terminated), i.e.
+c) space for a text string message (preceded by 32bitcount), i.e.
 	'at time <stamp> came from <addr>, tsig checked with key <key>'.
 	or rejected <reason for rejection>.
 

@@ -411,6 +411,8 @@ server_init(struct nsd *nsd)
 	if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
 		return -1;
 	}
+	if(!diff_read_file(nsd->db, nsd->options))
+		return -1;
 
 	initialize_dname_compression_tables(nsd);
 	
@@ -538,6 +540,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, in
 			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 			exit(1);
 		}
+	}
+	if(!diff_read_file(nsd->db, nsd->options)) {
+			log_msg(LOG_ERR, "unable to load the diff file: %s", strerror(errno));
+			exit(1);
 	}
 
 	initialize_dname_compression_tables(nsd);

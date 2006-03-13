@@ -17,9 +17,18 @@
 #define DIFF_FILE_MAGIC "NSDdfV01"
 #define DIFF_FILE_MAGIC_LEN 8
 
+#define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
+#define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
+
 /* write an xfr packet data to the diff file, type=IXFR.
    The diff file is created if necessary. */
 void diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt);
+
+/* write a commit packet to the diff file, type=SURE.
+   The zone data (preceding ixfr packets) are committed */
+void diff_write_commit(const char* zone, uint32_t new_serial, 
+	uint8_t commit, const char* log_msg,
+	nsd_options_t* opt);
 
 /* check if the crc in the nsd.db is the same in memory as on disk.
    returns 1 if different. 0 if the same. returns -1 on error. */
