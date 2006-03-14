@@ -104,7 +104,8 @@ static void xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* pack
 /* use acl address to setup sockaddr struct */
 static void xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to);
 
-void xfrd_init(int socket, struct nsd* nsd)
+void 
+xfrd_init(int socket, struct nsd* nsd)
 {
 	int i;
 	assert(xfrd == 0);
@@ -165,7 +166,8 @@ xfrd_main()
 	xfrd_shutdown();
 }
 
-static void xfrd_shutdown()
+static void 
+xfrd_shutdown()
 {
 	log_msg(LOG_INFO, "xfrd shutdown");
 	xfrd_write_state();
@@ -183,23 +185,22 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 {
         sig_atomic_t cmd;
         int len;
-        if (!(event_types & NETIO_EVENT_READ)) {
+        if (!(event_types & NETIO_EVENT_READ))
                 return;
-        }
-
-        if ((len = read(handler->fd, &cmd, sizeof(cmd))) == -1) {
+        
+        if((len = read(handler->fd, &cmd, sizeof(cmd))) == -1) {
                 log_msg(LOG_ERR, "xfrd_handle_ipc: read: %s",
                         strerror(errno));
                 return;
         }
-        if (len == 0)
+        if(len == 0)
         {
 		/* parent closed the connection. Quit */
 		xfrd->shutdown = 1;
 		return;
         }
 
-        switch (cmd) {
+        switch(cmd) {
         case NSD_QUIT:
         case NSD_SHUTDOWN:
                 xfrd->shutdown = 1;
@@ -211,7 +212,8 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 
 }
 
-static void xfrd_init_zones()
+static void 
+xfrd_init_zones()
 {
 	zone_type *dbzone;
 	zone_options_t *zone_opt;
@@ -232,18 +234,19 @@ static void xfrd_init_zones()
 			log_msg(LOG_INFO, "skipping master zone %s\n", zone_opt->name);
 			continue;
 		}
+
 		dname = dname_parse(xfrd->region, zone_opt->name);
 		if(!dname) {
 			log_msg(LOG_ERR, "xfrd: Could not parse zone name %s.", zone_opt->name);
 			continue;
 		}
+
 		dbzone = domain_find_zone(domain_table_find(xfrd->nsd->db->domains, dname));
 		if(!dbzone)
 			log_msg(LOG_INFO, "xfrd: adding empty zone %s\n", zone_opt->name);
 		else log_msg(LOG_INFO, "xfrd: adding filled zone %s\n", zone_opt->name);
 		
-		xzone = (xfrd_zone_t*)region_alloc(xfrd->region,
-			sizeof(xfrd_zone_t));
+		xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
 		memset(xzone, 0, sizeof(xfrd_zone_t));
 		xzone->apex = dname;
 		xzone->apex_str = zone_opt->name;
@@ -281,17 +284,18 @@ static void xfrd_init_zones()
 	log_msg(LOG_INFO, "xfrd: started server %d secondary zones", (int)xfrd->zones->count);
 }
 
-static void xfrd_free_namedb()
+static void 
+xfrd_free_namedb()
 {
 	namedb_close(xfrd->nsd->db);
 	xfrd->nsd->db = 0;
 }
 
-static void xfrd_set_timer_retry(xfrd_zone_t* zone)
+static void 
+xfrd_set_timer_retry(xfrd_zone_t* zone)
 {
 	/* set timer for next retry */
-	if(zone->soa_disk_acquired == 0) 
-	{
+	if(zone->soa_disk_acquired == 0) {
 		xfrd_set_timer(zone, xfrd_time() + XFRD_TRANSFER_TIMEOUT
 			+ random()%XFRD_TRANSFER_TIMEOUT);
 	} else if(zone->zone_state == xfrd_zone_expired ||
@@ -299,15 +303,14 @@ static void xfrd_set_timer_retry(xfrd_zone_t* zone)
 		zone->soa_disk_acquired + ntohl(zone->soa_disk.expire)) 
 	{
 		xfrd_set_timer(zone, xfrd_time() + ntohl(zone->soa_disk.retry));
-	} 
-	else 	
-	{
+	} else {
 		xfrd_set_timer(zone, zone->soa_disk_acquired + 
 			ntohl(zone->soa_disk.expire));
 	}
 }
 
-static void xfrd_handle_zone(netio_type* ATTR_UNUSED(netio), 
+static void 
+xfrd_handle_zone(netio_type* ATTR_UNUSED(netio), 
 	netio_handler_type *handler, netio_event_types_type event_types)
 {
 	xfrd_zone_t* zone = (xfrd_zone_t*)handler->user_data;
@@ -320,8 +323,7 @@ static void xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		} else if(event_types & NETIO_EVENT_WRITE) { 
 			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
 			xfrd_tcp_write(zone); 
-		}
-		else if(event_types & NETIO_EVENT_TIMEOUT) {
+		} else if(event_types & NETIO_EVENT_TIMEOUT) {
 			/* tcp connection timed out. Stop it. wait retry timer. */
 			xfrd_set_timer_retry(zone);
 			xfrd_tcp_release(zone);
@@ -356,6 +358,7 @@ static void xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		zone->master = zone->zone_options->request_xfr;
 		zone->master_num = 0;
 	}
+
 	if(zone->soa_disk_acquired == 0) {
 		/* request axfr */
 		xfrd_tcp_obtain(zone);
@@ -364,7 +367,8 @@ static void xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		handler->fd = xfrd_send_ixfr_request_udp(zone);
 
 		if(zone->soa_disk_acquired + ntohl(zone->soa_disk.expire)
-			> (uint32_t)xfrd_time()) {
+			> (uint32_t)xfrd_time()) 
+		{
 			/* zone expired */
 			zone->zone_state = xfrd_zone_expired;
 			xfrd_send_expiry_notification(zone);
@@ -373,7 +377,8 @@ static void xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 	}
 }
 
-static time_t xfrd_time()
+static time_t 
+xfrd_time()
 {
 	if(!xfrd->got_time) {
 		xfrd->current_time = time(0);
@@ -382,7 +387,8 @@ static time_t xfrd_time()
 	return xfrd->current_time;
 }
 
-static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
+static void 
+xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 {
 	if(rr->type != TYPE_SOA || rr->rdata_count != 7) {
 		log_msg(LOG_ERR, "xfrd: copy_soa called with bad rr, type %d rrs %d.", 
@@ -395,13 +401,16 @@ static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	soa->klass = htons(rr->klass);
 	soa->ttl = htonl(rr->ttl);
 	soa->rdata_count = htons(rr->rdata_count);
+	
 	if(soa->prim_ns==0 || dname_compare(soa->prim_ns, 
-		domain_dname(rdata_atom_domain(rr->rdatas[0])))!=0) {
+		domain_dname(rdata_atom_domain(rr->rdatas[0])))!=0) 
+	{
 		soa->prim_ns = dname_copy(xfrd->region, 
 			domain_dname(rdata_atom_domain(rr->rdatas[0])));
 	}
 	if(soa->email==0 || dname_compare(soa->email, 
-		domain_dname(rdata_atom_domain(rr->rdatas[1])))!=0) {
+		domain_dname(rdata_atom_domain(rr->rdatas[1])))!=0) 
+	{
 		soa->email = dname_copy(xfrd->region, 
 			domain_dname(rdata_atom_domain(rr->rdatas[1])));
 	}
@@ -413,7 +422,8 @@ static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	soa->minimum = *(uint32_t*)rdata_atom_data(rr->rdatas[6]);
 }
 
-static void xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state) 
+static void 
+xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state) 
 {
 	zone->zone_state = zone_state;
 	zone->zone_handler.fd = -1;
@@ -422,7 +432,8 @@ static void xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state)
 	zone->timeout.tv_nsec = 0;
 }
 
-static void xfrd_set_timer(xfrd_zone_t* zone, time_t t)
+static void 
+xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 {
 	zone->zone_handler.timeout = &zone->timeout;
 	zone->timeout.tv_sec = t;
@@ -431,83 +442,120 @@ static void xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 
 /* quick tokenizer, reads words separated by whitespace.
    No quoted strings. Comments are skipped (#... eol). */
-static char* xfrd_read_token(FILE* in)
+static char* 
+xfrd_read_token(FILE* in)
 {
 	static char buf[4000];
 	while(1) {
-		if(fscanf(in, " %3990s", buf) != 1) return 0;
-		if(buf[0] != '#') return buf;
-		if(!fgets(buf, sizeof(buf), in)) return 0;
+		if(fscanf(in, " %3990s", buf) != 1) 
+			return 0;
+
+		if(buf[0] != '#') 
+			return buf;
+		
+		if(!fgets(buf, sizeof(buf), in)) 
+			return 0;
 	}
 }
 
-static int xfrd_read_i16(FILE *in, uint16_t* v)
+static int 
+xfrd_read_i16(FILE *in, uint16_t* v)
 {
 	char* p = xfrd_read_token(in);
-	if(!p) return 0;
+	if(!p) 
+		return 0;
+
 	*v=atoi(p);
 	return 1;
 }
 
-static int xfrd_read_i32(FILE *in, uint32_t* v)
+static int 
+xfrd_read_i32(FILE *in, uint32_t* v)
 {
 	char* p = xfrd_read_token(in);
-	if(!p) return 0;
+	if(!p) 
+		return 0;
+
 	*v=atoi(p);
 	return 1;
 }
 
-static int xfrd_read_time_t(FILE *in, time_t* v)
+static int 
+xfrd_read_time_t(FILE *in, time_t* v)
 {
 	char* p = xfrd_read_token(in);
-	if(!p) return 0;
+	if(!p) 
+		return 0;
+	
 	*v=atol(p);
 	return 1;
 }
 
-static int xfrd_read_check_str(FILE* in, const char* str)
+static int 
+xfrd_read_check_str(FILE* in, const char* str)
 {
 	char *p = xfrd_read_token(in);
-	if(!p) return 0;
-	if(strcmp(p, str) != 0) return 0;
+	if(!p)
+		return 0;
+
+	if(strcmp(p, str) != 0) 
+		return 0;
+
 	return 1;
 }
 
-static int xfrd_read_state_soa(FILE* in, const char* id_acquired,
+static int 
+xfrd_read_state_soa(FILE* in, const char* id_acquired,
 	const char* id, xfrd_soa_t* soa, time_t* soatime, 
 	region_type* region)
 {
 	char *p;
 
 	if(!xfrd_read_check_str(in, id_acquired) ||
-	   !xfrd_read_time_t(in, soatime) 
-	) return 0;
-	if(*soatime == 0) return 1;
+	   !xfrd_read_time_t(in, soatime)) {
+		return 0;
+	}
+
+	if(*soatime == 0) 
+		return 1;
+	
 	if(!xfrd_read_check_str(in, id) ||
 	   !xfrd_read_i16(in, &soa->type) ||
 	   !xfrd_read_i16(in, &soa->klass) ||
 	   !xfrd_read_i32(in, &soa->ttl) ||
-	   !xfrd_read_i16(in, &soa->rdata_count)
-	) return 0;
+	   !xfrd_read_i16(in, &soa->rdata_count)) 
+	{
+		return 0;
+	}
+
 	soa->type = htons(soa->type);
 	soa->klass = htons(soa->klass);
 	soa->ttl = htonl(soa->ttl);
 	soa->rdata_count = htons(soa->rdata_count);
 
-	if(!(p=xfrd_read_token(in))) return 0;
-	soa->prim_ns = dname_parse(region, p);
-	if(!soa->prim_ns) return 0;
+	if(!(p=xfrd_read_token(in))) 
+		return 0;
 
-	if(!(p=xfrd_read_token(in))) return 0;
+	soa->prim_ns = dname_parse(region, p);
+	if(!soa->prim_ns) 
+		return 0;
+
+	if(!(p=xfrd_read_token(in))) 
+		return 0;
+
 	soa->email = dname_parse(region, p);
-	if(!soa->email) return 0;
+	if(!soa->email) 
+		return 0;
 
 	if(!xfrd_read_i32(in, &soa->serial) ||
 	   !xfrd_read_i32(in, &soa->refresh) ||
 	   !xfrd_read_i32(in, &soa->retry) ||
 	   !xfrd_read_i32(in, &soa->expire) ||
-	   !xfrd_read_i32(in, &soa->minimum)
-	) return 0;
+	   !xfrd_read_i32(in, &soa->minimum)) 
+	{
+		return 0;
+	}
+
 	soa->serial = htonl(soa->serial);
 	soa->refresh = htonl(soa->refresh);
 	soa->retry = htonl(soa->retry);
@@ -516,7 +564,8 @@ static int xfrd_read_state_soa(FILE* in, const char* id_acquired,
 	return 1;
 }
 
-static void xfrd_read_state()
+static void 
+xfrd_read_state()
 {
 	const char* statefile = xfrd->nsd->options->xfrdfile;
 	FILE *in;
@@ -526,16 +575,18 @@ static void xfrd_read_state()
 	if(!statefile) statefile = XFRDFILE;
 
 	tempregion = region_create(xalloc, free);
-	if(!tempregion) return;
+	if(!tempregion) 
+		return;
 
 	in = fopen(statefile, "r");
 	if(!in) {
 		if(errno != ENOENT) {
 			log_msg(LOG_ERR, "xfrd: Could not open file %s for reading: %s",
 				statefile, strerror(errno));
-		}
-		else log_msg(LOG_INFO, "xfrd: no file %s. refreshing all zones.",
+		} else {
+			log_msg(LOG_INFO, "xfrd: no file %s. refreshing all zones.",
 			statefile);
+		}
 		return;
 	}
 	if(!xfrd_read_check_str(in, XFRD_FILE_MAGIC) ||
@@ -543,16 +594,15 @@ static void xfrd_read_state()
 	   !xfrd_read_i32(in, &filetime) ||
 	   (time_t)filetime > xfrd_time()+15 ||
 	   !xfrd_read_check_str(in, "numzones:") ||
-	   !xfrd_read_i32(in, &numzones)
-	  ) 
+	   !xfrd_read_i32(in, &numzones)) 
 	{
 		log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
 			statefile, (int)filetime, (int)xfrd_time());
 		fclose(in);
 		return;
 	}
-	for(i=0; i<numzones; i++)
-	{
+
+	for(i=0; i<numzones; i++) {
 		char *p;
 		xfrd_zone_t* zone;
 		const dname_type* dname;
@@ -570,8 +620,7 @@ static void xfrd_read_state()
 		if(!xfrd_read_check_str(in, "zone:") ||
 		   !xfrd_read_check_str(in, "name:")  ||
 		   !(p=xfrd_read_token(in)) ||
-		   !(dname = dname_parse(tempregion, p))
-		)
+		   !(dname = dname_parse(tempregion, p)))
 		{
 			log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
 				statefile, (int)filetime, (int)xfrd_time());
@@ -591,8 +640,7 @@ static void xfrd_read_state()
 		   !xfrd_read_state_soa(in, "soa_disk_acquired:", "soa_disk:",
 			&soa_disk_read, &soa_disk_acquired_read, tempregion) ||
 		   !xfrd_read_state_soa(in, "soa_notify_acquired:", "soa_notify:",
-			&soa_notified_read, &soa_notified_acquired_read, tempregion)
-		)
+			&soa_notified_read, &soa_notified_acquired_read, tempregion))
 		{
 			log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
 				statefile, (int)filetime, (int)xfrd_time());
@@ -621,11 +669,11 @@ static void xfrd_read_state()
 
 		/* read the zone OK, now set the master properly */
 		zone->master = zone->zone_options->request_xfr;
-		while(zone->master && masnum>0) {
-			masnum --;
+		while(zone->master && masnum > 0) {
+			masnum--;
 			zone->master = zone->master->next;
 		}
-		if(masnum!=0 || !zone->master) {
+		if(masnum != 0 || !zone->master) {
 			log_msg(LOG_INFO, "xfrd: masters changed for zone %s", p);
 			zone->master = zone->zone_options->request_xfr;
 		}
@@ -633,7 +681,9 @@ static void xfrd_read_state()
 		if(timeout == 0 ||
 			timeout - soa_disk_acquired_read > ntohl(soa_disk_read.refresh) 
 			|| soa_notified_acquired_read != 0) 
+		{
 			xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
+		}
 
 		if(soa_disk_acquired_read!=0 &&
 			(uint32_t)xfrd_time() - soa_disk_acquired_read > ntohl(soa_disk_read.expire))
@@ -649,21 +699,27 @@ static void xfrd_read_state()
 		zone->soa_notified = soa_notified_read;
 		if(soa_nsd_read.prim_ns)
 			zone->soa_nsd.prim_ns = dname_copy(xfrd->region, soa_nsd_read.prim_ns);
+		
 		if(soa_nsd_read.email)
 			zone->soa_nsd.email = dname_copy(xfrd->region, soa_nsd_read.email);
+
 		if(soa_disk_read.prim_ns)
 			zone->soa_disk.prim_ns = dname_copy(xfrd->region, soa_disk_read.prim_ns);
+		
 		if(soa_disk_read.email)
 			zone->soa_disk.email = dname_copy(xfrd->region, soa_disk_read.email);
 		if(soa_notified_read.prim_ns)
 			zone->soa_notified.prim_ns = dname_copy(xfrd->region, soa_notified_read.prim_ns);
+		
 		if(soa_notified_read.email)
 			zone->soa_notified.email = dname_copy(xfrd->region, soa_notified_read.email);
+
 		zone->soa_nsd_acquired = soa_nsd_acquired_read;
 		zone->soa_disk_acquired = soa_disk_acquired_read;
 		zone->soa_notified_acquired = soa_notified_acquired_read;
 		if(incoming_acquired != 0)
 			xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
+
 		xfrd_send_expiry_notification(zone);
 	}
 
@@ -680,7 +736,8 @@ static void xfrd_read_state()
 }
 
 /* prints neato days hours and minutes. */
-static void neato_timeout(FILE* out, const char* str, uint32_t secs)
+static void 
+neato_timeout(FILE* out, const char* str, uint32_t secs)
 {
 	fprintf(out, "%s", str);
 	if(secs <= 0) {
@@ -704,11 +761,14 @@ static void neato_timeout(FILE* out, const char* str, uint32_t secs)
 	}
 }
 
-static void xfrd_write_state_soa(FILE* out, const char* id,
+static void 
+xfrd_write_state_soa(FILE* out, const char* id,
 	xfrd_soa_t* soa, time_t soatime, const dname_type* apex)
 {
 	fprintf(out, "\t%s_acquired: %d\n", id, (int)soatime);
-	if(!soatime) return;
+	if(!soatime) 
+		return;
+
 	fprintf(out, "\t%s: %d %d %d %d", id, 
 		ntohs(soa->type), ntohs(soa->klass), 
 		ntohl(soa->ttl), ntohs(soa->rdata_count));
@@ -732,7 +792,8 @@ static void xfrd_write_state()
 	rbnode_t* p;
 	const char* statefile = xfrd->nsd->options->xfrdfile;
 	FILE *out;
-	if(!statefile) statefile = XFRDFILE;
+	if(!statefile) 
+		statefile = XFRDFILE;
 
 	log_msg(LOG_INFO, "xfrd: write file %s", statefile);
 	out = fopen(statefile, "w");
@@ -779,9 +840,8 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	xfrd_soa_t* soa, time_t acquired)
 {
 	if(soa->serial == zone->soa_nsd.serial)
-	{
 		return;
-	}
+
 	if(soa->serial == zone->soa_disk.serial)
 	{
 		/* soa in disk has been loaded in memory */
@@ -798,15 +858,12 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 			zone->zone_state = xfrd_zone_ok;
 			xfrd_set_timer(zone, 
 				zone->soa_disk_acquired + ntohl(zone->soa_disk.refresh));
-		}
-		else if((uint32_t)xfrd_time() - zone->soa_disk_acquired 
+		} else if((uint32_t)xfrd_time() - zone->soa_disk_acquired 
 			< ntohl(zone->soa_disk.expire))
 		{
 			/* zone refreshing */
 			xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
-		}
-		else 
-		{
+		} else {
 			/* zone expired */
 			xfrd_set_refresh_now(zone, xfrd_zone_expired);
 		}
@@ -814,7 +871,7 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 
 		if(zone->soa_notified_acquired != 0 &&
 		   compare_serial(ntohl(zone->soa_disk.serial),
-			ntohl(zone->soa_notified.serial)) > 1 )
+			ntohl(zone->soa_notified.serial)) > 1)
 		{	/* read was in response to this notification */
 			zone->soa_notified_acquired = 0;
 		}
@@ -832,19 +889,22 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
 }
 
-static void xfrd_send_notify(xfrd_zone_t* zone)
+static void 
+xfrd_send_notify(xfrd_zone_t* zone)
 {
 	log_msg(LOG_INFO, "TODO: xfrd sending notifications for zone %s.",
 		zone->apex_str);
 }
 
-static void xfrd_send_expiry_notification(xfrd_zone_t* zone)
+static void 
+xfrd_send_expiry_notification(xfrd_zone_t* zone)
 {
 	log_msg(LOG_INFO, "TODO: xfrd sending expiry to nsd for zone %s.",
 		zone->apex_str);
 }
 
-static void xfrd_setup_packet(buffer_type* packet,
+static void 
+xfrd_setup_packet(buffer_type* packet,
 	uint16_t type, uint16_t klass, const dname_type* dname)
 {	
 	/* Set up the header */
@@ -864,7 +924,8 @@ static void xfrd_setup_packet(buffer_type* packet,
         buffer_write_u16(packet, klass);
 }
 
-static void xfrd_udp_read(xfrd_zone_t* zone)
+static void 
+xfrd_udp_read(xfrd_zone_t* zone)
 {
 	ssize_t received;
 
@@ -887,14 +948,14 @@ static void xfrd_udp_read(xfrd_zone_t* zone)
 	xfrd_handle_received_xfr_packet(zone, xfrd->packet);
 }
 
-static void xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
+static void 
+xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
 {
 	unsigned int port = acl->port?acl->port:(unsigned)atoi(TCP_PORT);
 
 	/* setup address structure */
 	memset(to, 0, sizeof(struct sockaddr_storage));
-	if(acl->is_ipv6)
-	{
+	if(acl->is_ipv6) {
 #ifdef INET6
 		struct sockaddr_in6* sa = (struct sockaddr_in6*)to;
 		sa->sin6_family = AF_INET6;
@@ -905,8 +966,7 @@ static void xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
 			acl->ip_address_spec);
 		return;
 #endif
-	} else
-	{
+	} else {
 		struct sockaddr_in* sa = (struct sockaddr_in*)to;
 		sa->sin_family = AF_INET;
 		sa->sin_port = htons(port);
@@ -914,7 +974,8 @@ static void xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
 	}
 }
 
-static int xfrd_send_udp(int fd, acl_options_t* acl)
+static int 
+xfrd_send_udp(int fd, acl_options_t* acl)
 {
 	struct sockaddr_storage to;
 	xfrd_acl_sockaddr(acl, &to);
@@ -974,12 +1035,17 @@ static void xfrd_write_soa_buffer(buffer_type* packet,
 	buffer_skip(packet, sizeof(rdlength));
 
 	/* uncompressed dnames */
-	if(soa->prim_ns)
+	if(soa->prim_ns) {
 		buffer_write(packet, dname_name(soa->prim_ns), soa->prim_ns->name_size);
-	else buffer_write_u8(packet, 0);
-	if(soa->email)
+	} else { 
+		buffer_write_u8(packet, 0);
+	}
+
+	if(soa->email) {
 		buffer_write(packet, dname_name(soa->email), soa->email->name_size);
-	else buffer_write_u8(packet, 0);
+	} else {
+		buffer_write_u8(packet, 0);
+	}
 
 	buffer_write(packet, &soa->serial, sizeof(uint32_t));
 	buffer_write(packet, &soa->refresh, sizeof(uint32_t));
@@ -992,12 +1058,15 @@ static void xfrd_write_soa_buffer(buffer_type* packet,
 	buffer_write_u16_at(packet, rdlength_pos, rdlength);
 }
 
-static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
+static int 
+xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 {
 	int fd;
 	int family;
 
-	if(!zone->master) return -1;
+	if(!zone->master) 
+		return -1;
+
 	if(zone->tcp_conn != -1) {
 		log_msg(LOG_ERR, "xfrd: %s tried to send udp whilst tcp engaged",
 			zone->apex_str);
@@ -1015,38 +1084,46 @@ static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 #else
 		return -1;
 #endif
-	} else family = PF_INET;
+	} else {
+		family = PF_INET;
+	}
+
 	fd = socket(family, SOCK_DGRAM, IPPROTO_UDP);
-	if(fd == -1) return -1;
-	if(!xfrd_send_udp(fd, zone->master)) return -1;
+	if(fd == -1) 
+		return -1;
+
+	if(!xfrd_send_udp(fd, zone->master)) 
+		return -1;
+
 	log_msg(LOG_INFO, "xfrd sent udp request for ixfr=%d for zone %s to %s", 
 		ntohl(zone->soa_disk.serial),
 		zone->apex_str, zone->master->ip_address_spec);
 	return fd;
 }
 
-static xfrd_tcp_t* xfrd_tcp_create(region_type* region)
+static xfrd_tcp_t* 
+xfrd_tcp_create(region_type* region)
 {
 	xfrd_tcp_t* tcp_state = (xfrd_tcp_t*)region_alloc(
 		region, sizeof(xfrd_tcp_t));
 	memset(tcp_state, 0, sizeof(xfrd_tcp_t));
 	tcp_state->packet = buffer_create(xfrd->region, QIOBUFSZ);
 	tcp_state->fd = -1;
+
 	return tcp_state;
 }
 
-static void xfrd_tcp_obtain(xfrd_zone_t* zone)
+static void 
+xfrd_tcp_obtain(xfrd_zone_t* zone)
 {
 	assert(zone->tcp_conn == -1);
 	assert(zone->tcp_waiting == 0);
 
-	if(xfrd->tcp_count < XFRD_MAX_TCP)
-	{
+	if(xfrd->tcp_count < XFRD_MAX_TCP) {
 		int i;
 		xfrd->tcp_count ++;
 		/* find a free tcp_buffer */
-		for(i=0; i<XFRD_MAX_TCP; i++)
-		{
+		for(i=0; i<XFRD_MAX_TCP; i++) {
 			if(xfrd->tcp_state[i]->fd == -1) {
 				zone->tcp_conn = i;
 				break;
@@ -1056,7 +1133,10 @@ static void xfrd_tcp_obtain(xfrd_zone_t* zone)
 		assert(zone->tcp_conn != -1);
 
 		zone->tcp_waiting = 0;
-		if(!xfrd_tcp_open(zone)) return;
+
+		if(!xfrd_tcp_open(zone)) 
+			return;
+
 		xfrd_tcp_xfr(zone);
 		return;
 	}
@@ -1066,8 +1146,7 @@ static void xfrd_tcp_obtain(xfrd_zone_t* zone)
 	if(!xfrd->tcp_waiting_last) {
 		xfrd->tcp_waiting_first = zone;
 		xfrd->tcp_waiting_last = zone;
-	}
-	else {
+	} else {
 		xfrd->tcp_waiting_last->tcp_waiting_next = zone;
 		xfrd->tcp_waiting_last = zone;
 	}
@@ -1093,7 +1172,9 @@ static int xfrd_tcp_open(xfrd_zone_t* zone)
 #else
 		return -1;
 #endif
-	} else family = PF_INET;
+	} else { 
+		family = PF_INET;
+	}
 	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if(fd == -1) {
 		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s", 
@@ -1110,7 +1191,7 @@ static int xfrd_tcp_open(xfrd_zone_t* zone)
 		xfrd_tcp_release(zone);
 		return 0;
 	}
-	if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
+	if(fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
 		log_msg(LOG_ERR, "xfrd: fcntl failed: %s", strerror(errno));
 		xfrd_tcp_release(zone);
 		return 0;
@@ -1123,18 +1204,17 @@ static int xfrd_tcp_open(xfrd_zone_t* zone)
 	return 1;
 }
 
-static void xfrd_tcp_xfr(xfrd_zone_t* zone)
+static void 
+xfrd_tcp_xfr(xfrd_zone_t* zone)
 {
 	xfrd_tcp_t* tcp = xfrd->tcp_state[zone->tcp_conn];
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
 	/* start AXFR or IXFR for the zone */
-	if(zone->soa_disk_acquired == 0)
-	{
+	if(zone->soa_disk_acquired == 0) {
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex);
 		buffer_flip(tcp->packet);
-	}
-	else {
+	} else {
 		xfrd_setup_packet(tcp->packet, TYPE_IXFR, CLASS_IN, zone->apex);
         	NSCOUNT_SET(tcp->packet, 1);
 		xfrd_write_soa_buffer(tcp->packet, zone, &zone->soa_disk);
@@ -1145,18 +1225,19 @@ static void xfrd_tcp_xfr(xfrd_zone_t* zone)
 	xfrd_tcp_write(zone);
 }
 
-static void xfrd_tcp_write(xfrd_zone_t* zone)
+static void 
+xfrd_tcp_write(xfrd_zone_t* zone)
 {
 	xfrd_tcp_t* tcp = xfrd->tcp_state[zone->tcp_conn];
 	ssize_t sent;
 
 	assert(zone->tcp_conn != -1);
-	if(tcp->total_bytes < sizeof(tcp->msglen))
-	{
+	if(tcp->total_bytes < sizeof(tcp->msglen)) {
 		uint16_t sendlen = htons(tcp->msglen);
 		sent = write(tcp->fd, 
 			(const char*)&sendlen + tcp->total_bytes,
 			sizeof(tcp->msglen) - tcp->total_bytes);
+
 		if(sent == -1) {
 			if(errno == EAGAIN || errno == EINTR) {
 				/* write would block, try later */
@@ -1168,10 +1249,12 @@ static void xfrd_tcp_write(xfrd_zone_t* zone)
 				return;
 			}
 		}
+
 		tcp->total_bytes += sent;
-		if(tcp->total_bytes < sizeof(tcp->msglen))
+		if(tcp->total_bytes < sizeof(tcp->msglen)) {
 			/* incomplete write, resume later */
 			return;
+		}
 		assert(tcp->total_bytes == sizeof(tcp->msglen));
 	}
 
@@ -1195,9 +1278,10 @@ static void xfrd_tcp_write(xfrd_zone_t* zone)
 	buffer_skip(tcp->packet, sent);
 	tcp->total_bytes += sent;
 
-	if(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen))
+	if(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen)) {
 		/* more to write when socket becomes writable again */
-		return;
+		return; 
+	}
 	
 	assert(tcp->total_bytes == tcp->msglen + sizeof(tcp->msglen));
 	/* done writing, get ready for reading */
@@ -1209,15 +1293,15 @@ static void xfrd_tcp_write(xfrd_zone_t* zone)
 	xfrd_tcp_read(zone);
 }
 
-static void xfrd_tcp_read(xfrd_zone_t* zone)
+static void 
+xfrd_tcp_read(xfrd_zone_t* zone)
 {
 	xfrd_tcp_t* tcp = xfrd->tcp_state[zone->tcp_conn];
 	ssize_t received;
 	
 	assert(zone->tcp_conn != -1);
 	/* receive leading packet length bytes */
-	if(tcp->total_bytes < sizeof(tcp->msglen))
-	{
+	if(tcp->total_bytes < sizeof(tcp->msglen)) {
 		received = read(tcp->fd,
 			(char*) &tcp->msglen + tcp->total_bytes,
 			sizeof(tcp->msglen) - tcp->total_bytes);
@@ -1231,16 +1315,17 @@ static void xfrd_tcp_read(xfrd_zone_t* zone)
 				xfrd_tcp_release(zone);
 				return;
 			}
-		}
-		else if(received == 0) {
+		} else if(received == 0) {
 			/* EOF */
 			xfrd_tcp_release(zone);
 			return;
 		}
 		tcp->total_bytes += received;
-		if(tcp->total_bytes < sizeof(tcp->msglen))
+		if(tcp->total_bytes < sizeof(tcp->msglen)) {
 			/* not complete yet, try later */
 			return;
+		}
+
 		assert(tcp->total_bytes == sizeof(tcp->msglen));
 		tcp->msglen = ntohs(tcp->msglen);
 
@@ -1266,18 +1351,19 @@ static void xfrd_tcp_read(xfrd_zone_t* zone)
 			xfrd_tcp_release(zone);
 			return;
 		}
-	}
-	else if(received == 0) {
+	} else if(received == 0) {
 		/* EOF */
 		xfrd_tcp_release(zone);
 		return;
 	}
+
 	tcp->total_bytes += received;
 	buffer_skip(tcp->packet, received);
 
-	if(buffer_remaining(tcp->packet) > 0)
+	if(buffer_remaining(tcp->packet) > 0) {
 		/* not complete yet, wait for more */
 		return;
+	}
 	
 	assert(buffer_position(tcp->packet) == tcp->msglen);
 	/* completed msg */
@@ -1288,7 +1374,8 @@ static void xfrd_tcp_read(xfrd_zone_t* zone)
 	xfrd_tcp_release(zone);
 }
 
-static void xfrd_tcp_release(xfrd_zone_t* zone)
+static void 
+xfrd_tcp_release(xfrd_zone_t* zone)
 {
 	int conn = zone->tcp_conn;
 	log_msg(LOG_INFO, "xfrd: zone %s released tcp conn to %s",
@@ -1302,19 +1389,24 @@ static void xfrd_tcp_release(xfrd_zone_t* zone)
 
 	if(xfrd->tcp_state[conn]->fd != -1)
 		close(xfrd->tcp_state[conn]->fd);
+
 	xfrd->tcp_state[conn]->fd = -1;
 
-	if(xfrd->tcp_count == XFRD_MAX_TCP && xfrd->tcp_waiting_first)
-	{
+	if(xfrd->tcp_count == XFRD_MAX_TCP && xfrd->tcp_waiting_first) {
 		/* pop first waiting process */
 		zone = xfrd->tcp_waiting_first;
-		if(xfrd->tcp_waiting_last == zone) xfrd->tcp_waiting_last = 0;
+		if(xfrd->tcp_waiting_last == zone) 
+			xfrd->tcp_waiting_last = 0;
+
 		xfrd->tcp_waiting_first = zone->tcp_waiting_next;
 		zone->tcp_waiting_next = 0;
 		/* start it */
 		zone->tcp_conn = conn;
 		zone->tcp_waiting = 0;
-		if(!xfrd_tcp_open(zone)) return;
+
+		if(!xfrd_tcp_open(zone)) 
+			return;
+
 		xfrd_tcp_xfr(zone);
 	}
 	else {
@@ -1323,7 +1415,8 @@ static void xfrd_tcp_release(xfrd_zone_t* zone)
 	}
 }
 
-static void xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
+static void 
+xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 {
 	size_t rr_count;
 	size_t qdcount = QDCOUNT(packet);
@@ -1343,7 +1436,7 @@ static void xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* pack
 	}
 
 	/* skip question section */
-	for (rr_count = 0; rr_count < qdcount; ++rr_count) {
+	for(rr_count = 0; rr_count < qdcount; ++rr_count) {
 		if (!packet_skip_rr(packet, 1)) {
 			log_msg(LOG_ERR, "xfrd: zone %s, from %s: bad RR in question section",
 				zone->apex_str, zone->master->ip_address_spec);
@@ -1373,6 +1466,7 @@ static void xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* pack
 			zone->apex_str, zone->master->ip_address_spec);
 		if(zone->tcp_conn == -1)
 			xfrd_tcp_obtain(zone);
+
 		return;
 	}
 
