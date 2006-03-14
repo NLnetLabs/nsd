@@ -35,3 +35,15 @@ CLEANUP
 DOCUMENTATION
 (old)- convert the manual pages into -man macros set for better compatibility?
 (old)- update DESIGN document
+
+OPTIMISATIONS
+- delete entire zone for AFXR during reload read in,
+  now walks the tree, but could use a double linked list to speed up.
+- less memory churn in deleting RRs/adding RRs: keep rrset->capacity num.
+  initial read in capacity==limit, if you want to add RRs, alloc capacity*2.
+- less memory churn in deleting rrsets : keep a linked list of deleted rrsets
+  for reuse.
+- is_existing = 0 used to remove a domain. Check and test carefully.
+	- test delete middle zone
+	- test delete/add a domain and NXdomain/exist replies.
+	- test delet domain and wildcard replies.
