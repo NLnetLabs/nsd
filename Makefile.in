@@ -352,7 +352,7 @@ dbaccess.o: dbaccess.c config.h dns.h namedb.h dname.h buffer.h \
 dbcreate.o: dbcreate.c config.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h
 difffile.o: difffile.c config.h difffile.h rbtree.h region-allocator.h \
-  namedb.h dname.h buffer.h util.h dns.h options.h
+  namedb.h dname.h buffer.h util.h dns.h options.h packet.h rdata.h
 dname.o: dname.c config.h dns.h dname.h buffer.h region-allocator.h \
   util.h query.h namedb.h rbtree.h nsd.h edns.h packet.h
 dns.o: dns.c config.h dns.h zonec.h namedb.h dname.h buffer.h \
@@ -388,7 +388,7 @@ rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  netio.h plugins.h nsd-plugin.h xfrd.h options.h
+  netio.h plugins.h nsd-plugin.h xfrd.h options.h difffile.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
