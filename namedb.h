@@ -206,8 +206,10 @@ struct namedb
 	zone_type         *zones;
 	char              *filename;
 	FILE              *fd;
+	/* the CRC on the nsd.db file and position of CRC in the db file */
 	uint32_t	  crc;
 	fpos_t		  crc_pos;
+	/* if diff_skip=1, diff_pos contains the nsd.diff place to continue */
 	uint8_t		  diff_skip;
 	fpos_t		  diff_pos;
 };

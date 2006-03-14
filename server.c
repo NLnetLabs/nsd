@@ -193,7 +193,8 @@ static void handle_xfrd_command(netio_type *netio,
 				  netio_handler_type *handler,
 				  netio_event_types_type event_types);
 
-static uint16_t *compressed_dname_offsets;
+static uint16_t *compressed_dname_offsets = 0;
+static uint32_t compression_table_capacity = 0;
 
 /*
  * Remove the specified pid from the list of child pids.  Returns 0 if
@@ -278,12 +279,15 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio)
 static void
 initialize_dname_compression_tables(struct nsd *nsd)
 {
-	compressed_dname_offsets = (uint16_t *) xalloc(
-		(domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
-	memset(compressed_dname_offsets, 0,
-	       (domain_table_count(nsd->db->domains) + 1) * sizeof(uint16_t));
+	size_t needed = domain_table_count(nsd->db->domains) + 1;
+	if(compression_table_capacity < needed) {
+		compressed_dname_offsets = (uint16_t *) xalloc(
+			needed * sizeof(uint16_t));
+		region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
+		compression_table_capacity = needed;
+	}
+	memset(compressed_dname_offsets, 0, needed * sizeof(uint16_t));
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
-	region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
 }
 
 /*
@@ -414,6 +418,7 @@ server_init(struct nsd *nsd)
 	if(!diff_read_file(nsd->db, nsd->options))
 		return -1;
 
+	compression_table_capacity = 0;
 	initialize_dname_compression_tables(nsd);
 	
 #ifdef	BIND8_STATS

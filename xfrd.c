@@ -765,15 +765,25 @@ static void
 xfrd_write_state_soa(FILE* out, const char* id,
 	xfrd_soa_t* soa, time_t soatime, const dname_type* apex)
 {
-	fprintf(out, "\t%s_acquired: %d\n", id, (int)soatime);
-	if(!soatime) 
+	fprintf(out, "\t%s_acquired: %d", id, (int)soatime);
+	if(!soatime) {
+		fprintf(out, "\n");
 		return;
+	}
+	neato_timeout(out, "\t# was", xfrd_time()-soatime);
+	fprintf(out, " ago\n");
 
 	fprintf(out, "\t%s: %d %d %d %d", id, 
 		ntohs(soa->type), ntohs(soa->klass), 
 		ntohl(soa->ttl), ntohs(soa->rdata_count));
-	fprintf(out, " %s", dname_to_string(soa->prim_ns, apex));
-	fprintf(out, " %s", dname_to_string(soa->email, apex));
+	if(soa->prim_ns == 0) 
+		fprintf(out, " .");
+	else 
+		fprintf(out, " %s", dname_to_string(soa->prim_ns, apex));
+	if(soa->email == 0)
+		fprintf(out, " .");
+	else
+		fprintf(out, " %s", dname_to_string(soa->email, apex));
 	fprintf(out, " %d", ntohl(soa->serial));
 	fprintf(out, " %d", ntohl(soa->refresh));
 	fprintf(out, " %d", ntohl(soa->retry));
@@ -792,6 +802,7 @@ static void xfrd_write_state()
 	rbnode_t* p;
 	const char* statefile = xfrd->nsd->options->xfrdfile;
 	FILE *out;
+	time_t now = xfrd_time();
 	if(!statefile) 
 		statefile = XFRDFILE;
 
@@ -804,7 +815,7 @@ static void xfrd_write_state()
 	}
 	
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
-	fprintf(out, "filetime: %d\n", (int)xfrd_time());
+	fprintf(out, "filetime: %d\t# %s\n", (int)now, ctime(&now));
 	fprintf(out, "numzones: %zd\n", xfrd->zones->count);
 	fprintf(out, "\n");
 	for(p = rbtree_first(xfrd->zones); p && p!=RBTREE_NULL; p=rbtree_next(p))
@@ -1220,7 +1231,7 @@ xfrd_tcp_xfr(xfrd_zone_t* zone)
 		xfrd_write_soa_buffer(tcp->packet, zone, &zone->soa_disk);
 		buffer_flip(tcp->packet);
 	}
-	zone->query_id = ID(xfrd->packet);
+	zone->query_id = ID(tcp->packet);
 	tcp->msglen = buffer_limit(tcp->packet);
 	xfrd_tcp_write(zone);
 }
@@ -1421,6 +1432,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	size_t rr_count;
 	size_t qdcount = QDCOUNT(packet);
 	size_t ancount = ANCOUNT(packet);
+	uint32_t new_serial;
 
 	/* TODO sanity checks on packet */
 	/* has to be axfr / ixfr reply */
@@ -1434,6 +1446,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			zone->apex_str, RCODE(packet), zone->master->ip_address_spec);
 		return;
 	}
+	buffer_skip(packet, QHEADERSZ);
 
 	/* skip question section */
 	for(rr_count = 0; rr_count < qdcount; ++rr_count) {
@@ -1444,21 +1457,55 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		}
 	}
 
-	/* single record means it is like a notify */
+	if(ancount == 0) {
+		log_msg(LOG_INFO, "xfrd: too short xfr packet: no answer");
+		return;
+	}
+
+	/* parse the first RR, see if it is a SOA */
+	if(!packet_skip_dname(packet) ||
+		!buffer_available(packet, 10)  ||
+		buffer_read_u16(packet) != TYPE_SOA ||
+		buffer_read_u16(packet) != CLASS_IN)
+	{
+		log_msg(LOG_ERR, "xfrd: zone %s, from %s: no SOA begins answer section",
+			zone->apex_str, zone->master->ip_address_spec);
+		return;
+	}
+	buffer_skip(packet, sizeof(uint32_t)); /* skip ttl */
+	if(!buffer_available(packet, buffer_read_u16(packet)) ||
+		!packet_skip_dname(packet) /* skip prim_ns */ ||
+		!packet_skip_dname(packet) /* skip email */)
+	{
+		log_msg(LOG_ERR, "xfrd: zone %s, from %s: bad RR in answer section",
+			zone->apex_str, zone->master->ip_address_spec);
+		return;
+	}
+	new_serial = buffer_read_u32(packet);
+	if(zone->soa_disk_acquired != 0 &&
+		compare_serial(ntohl(zone->soa_disk.serial), new_serial) > 0) {
+		log_msg(LOG_INFO, "xfrd: zone %s ignoring old serial transfer",
+			zone->apex_str);
+		return;
+	}
+	if(zone->soa_disk_acquired != 0 &&
+		ntohl(zone->soa_disk.serial) == new_serial) {
+		log_msg(LOG_INFO, "xfrd: zone %s got xfr indicating current serial",
+			zone->apex_str);
+		if(zone->soa_notified_acquired == 0) {
+			/* we got a new lease on the SOA */
+			zone->soa_disk_acquired = xfrd_time();
+			if(ntohl(zone->soa_nsd.serial) == new_serial)
+				zone->soa_nsd_acquired = xfrd_time();
+			zone->zone_state = xfrd_zone_ok;
+			xfrd_set_timer(zone, 
+				zone->soa_disk_acquired + ntohl(zone->soa_disk.refresh));
+		}
+		return;
+	}
 	if(ancount == 1) {
-		uint16_t type, klass;
-		if(!packet_skip_dname(packet) ||
-			!buffer_available(packet, 10)) 
-		{
-			log_msg(LOG_ERR, "xfrd: zone %s, from %s: bad RR in answer section",
-				zone->apex_str, zone->master->ip_address_spec);
-			return;
-		}
-		type = buffer_read_u16(packet);
-		klass = buffer_read_u16(packet);
-		if(type == TYPE_SOA && klass == CLASS_IN) {
-			/* call TODO notified with serial no x. routine */
-		}
+		/* single record means it is like a notify */
+		/* call TODO notified with serial no x. routine */
 	}
 
 	if(TC(packet)) {
@@ -1466,18 +1513,35 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			zone->apex_str, zone->master->ip_address_spec);
 		if(zone->tcp_conn == -1)
 			xfrd_tcp_obtain(zone);
-
 		return;
 	}
 
 	if(ancount < 2) {
 		/* too short to be a real ixfr/axfr data transfer */
+		log_msg(LOG_INFO, "xfrd: too short xfr packet");
 		return;
 	}
 
 	/* dump reply on disk to diff file */
 	diff_write_packet(buffer_begin(packet), buffer_limit(packet), 
 		xfrd->nsd->options);
-	log_msg(LOG_INFO, "xfrd: zone %s written %zd received XFR from %s to disk",
-		zone->apex_str, buffer_limit(packet), zone->master->ip_address_spec);
+	log_msg(LOG_INFO, "xfrd: zone %s written %zd received XFR to serial %d from %s to disk",
+		zone->apex_str, buffer_limit(packet), (int)new_serial, 
+		zone->master->ip_address_spec);
+	/* we are completely sure of this */
+	buffer_clear(packet);
+	buffer_printf(packet, "xfrd: zone %s received update to serial %d at time %d from %s",
+		zone->apex_str, (int)new_serial, (int)xfrd_time(), zone->master->ip_address_spec);
+	buffer_flip(packet);
+	diff_write_commit(zone->apex_str, new_serial, 1, (char*)buffer_begin(packet),
+		xfrd->nsd->options);
+	log_msg(LOG_INFO, "xfrd: zone %s committed \"%s\"", zone->apex_str,
+		(char*)buffer_begin(packet));
+	/* update the disk serial no. */
+	/* TODO read all of the soa */
+	/* TODO trigger a reload */
+	zone->soa_disk_acquired = xfrd_time();
+	zone->soa_disk.serial = htonl(new_serial);
+	zone->zone_state = xfrd_zone_ok;
+	xfrd_set_timer(zone, zone->soa_disk_acquired + ntohl(zone->soa_disk.refresh));
 }
