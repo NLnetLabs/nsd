@@ -204,6 +204,7 @@ struct namedb
 	region_type       *region;
 	domain_table_type *domains;
 	zone_type         *zones;
+	size_t	  	  zone_count;
 	char              *filename;
 	FILE              *fd;
 	/* the CRC on the nsd.db file and position of CRC in the db file */

@@ -285,6 +285,7 @@ namedb_open (const char *filename)
 	db->region = db_region;
 	db->domains = domain_table_create(db->region);
 	db->zones = NULL;
+	db->zone_count = 0;
 	db->filename = region_strdup(db->region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
@@ -316,6 +317,7 @@ namedb_open (const char *filename)
 	temp_region = region_create(xalloc, free);
 	dname_region = region_create(xalloc, free);
 	
+	db->zone_count = zone_count;
 	zones = (zone_type **) region_alloc(temp_region,
 					    zone_count * sizeof(zone_type *));
 	for (i = 0; i < zone_count; ++i) {

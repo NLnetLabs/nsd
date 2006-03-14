@@ -4,6 +4,9 @@
 	- xfrd receive parse of xfr messages improved. writes commit.
 	- server compressed_dname_offsets table is increased if reload
 	  creates extra names.
+	- difffile will create zone and apex if not there (i.e. the zone
+	  is configured but no data file provided).
+	- bit more verbose in error message for bad diff file.
 
 13 Mar 2006: Wouter
 	- configure sets fseek (fgetpos/fsetpos) to use 64 bit interface

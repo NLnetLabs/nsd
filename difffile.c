@@ -309,8 +309,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 }
 
 static void 
-add_RR(namedb_type* db, const dname_type* dname_zone, 
-	const dname_type* dname, 
+add_RR(namedb_type* db, const dname_type* dname, 
 	uint16_t type, uint16_t klass, uint32_t ttl, 
 	buffer_type* packet, size_t rdatalen, zone_type *zone)
 {
@@ -403,14 +402,26 @@ find_zone(namedb_type* db, const dname_type* zone_name)
 	zone_type* zone;
 	domain = domain_table_find(db->domains, zone_name);
 	if(!domain) {
-		log_msg(LOG_ERR, "axfr: domain %s does not exist",
+		log_msg(LOG_INFO, "xfr: creating domain %s",
 			dname_to_string(zone_name,0));
-		/* TODO create the zone and domain of apex (zone is has config options) */
-		return 0;
+		/* create the zone and domain of apex (zone is has config options) */
+		domain = domain_table_insert(db->domains, zone_name);
+		domain->number = domain_table_count(db->domains);
+		zone = (zone_type *) region_alloc(db->region, sizeof(zone_type));
+		zone->next = db->zones;
+		db->zones = zone;
+		db->zone_count++;
+		zone->apex = domain;
+		zone->soa_rrset = 0;
+		zone->soa_nx_rrset = 0;
+		zone->ns_rrset = 0;
+		zone->number = db->zone_count;
+		zone->is_secure = 0;
+		return zone;
 	}
 	zone = namedb_find_zone(db, domain);
 	if(!zone) {
-		log_msg(LOG_ERR, "axfr: zone %s does not exist",
+		log_msg(LOG_ERR, "xfr: zone %s does not exist",
 			dname_to_string(zone_name,0));
 		return 0;
 	}
@@ -462,28 +473,40 @@ apply_ixfr(namedb_type* db, FILE *in,
 	/* read ixfr packet RRs and apply to in memory db */
 
 	if(!read_32(in, &type) ||
-		!read_32(in, &msglen)) 
+		!read_32(in, &msglen)) {
+		log_msg(LOG_ERR, "could not read type and len");
 		return 0;
+	}
 	assert(type == DIFF_PART_IXFR);
 
 	/* read header */
-	if(msglen < QHEADERSZ) 
+	if(msglen < QHEADERSZ) {
+		log_msg(LOG_ERR, "msg too short");
 		return 0;
+	}
 
 	region = region_create(xalloc, free);
-	if(!region) 
+	if(!region) {
+		log_msg(LOG_ERR, "out of memory");
 		return 0;
+	}
 	packet = buffer_create(region, QIOBUFSZ);
 	dname_zone = dname_parse(region, zone);
 	zone_db = find_zone(db, dname_zone);
-	if(!zone_db) 
+	if(!zone_db) {
+		log_msg(LOG_ERR, "no zone exists");
 		return 0;
+	}
 	
-	if(msglen > QIOBUFSZ) 
+	if(msglen > QIOBUFSZ) {
+		log_msg(LOG_ERR, "msg too long");
 		return 0;
+	}
 	buffer_clear(packet);
-	if(fread(buffer_begin(packet), msglen, 1, in) != 1) 
+	if(fread(buffer_begin(packet), msglen, 1, in) != 1) {
+		log_msg(LOG_ERR, "short fread: %s", strerror(errno));
 		return 0;
+	}
 	buffer_set_limit(packet, msglen);
 
 	qcount = QDCOUNT(packet);
@@ -492,26 +515,46 @@ apply_ixfr(namedb_type* db, FILE *in,
 
 	/* skip queries */
 	for(i=0; i<qcount; ++i)
-		if(!packet_skip_dname(packet)) 
+		if(!packet_skip_rr(packet, 1)) {
+			log_msg(LOG_ERR, "bad RR in question section");
 			return 0;
+		}
 
 	/* first RR: check if SOA and correct zone & serialno */
 	dname = dname_make_from_packet(region, packet, 1, 1);
-	if(!dname) 
+	if(!dname) {
+		log_msg(LOG_ERR, "could not parse dname");
 		return 0;
-	if(dname_compare(dname_zone, dname) != 0) 
+	}
+	if(dname_compare(dname_zone, dname) != 0) {
+		log_msg(LOG_ERR, "SOA dname %s not equal to zone",
+			dname_to_string(dname,0));
+		log_msg(LOG_ERR, "zone dname is %s",
+			dname_to_string(dname_zone,0));
 		return 0;
-	if(!buffer_available(packet, 10)) 
+	}
+	if(!buffer_available(packet, 10)) {
+		log_msg(LOG_ERR, "bad SOA RR");
 		return 0;
+	}
 	if(buffer_read_u16(packet) != TYPE_SOA ||
-		buffer_read_u16(packet) != CLASS_IN) 
+		buffer_read_u16(packet) != CLASS_IN) {
+		log_msg(LOG_ERR, "first RR not SOA IN");
 		return 0;
+	}
 	buffer_skip(packet, sizeof(uint32_t)); /* ttl */
-	rrlen = buffer_read_u16(packet);
-	if(!buffer_available(packet, rrlen)) 
+	if(!buffer_available(packet, buffer_read_u16(packet)) ||
+		!packet_skip_dname(packet) /* skip prim_ns */ ||
+		!packet_skip_dname(packet) /* skip email */) {
+		log_msg(LOG_ERR, "bad SOA RR");
 		return 0;
-	if(buffer_read_u32(packet) != serialno) 
+	}
+	if(buffer_read_u32(packet) != serialno) {
+		buffer_skip(packet, -4);
+		log_msg(LOG_ERR, "SOA serial %d different from commit %d",
+			buffer_read_u32(packet), serialno);
 		return 0;
+	}
 	buffer_skip(packet, sizeof(uint32_t)*4);
 
 	delete_mode = 0;
@@ -521,16 +564,25 @@ apply_ixfr(namedb_type* db, FILE *in,
 		uint16_t type, klass;
 		uint32_t ttl;
 
-		if(!(dname=dname_make_from_packet(region, packet, 1,1))) 
+		if(!(dname=dname_make_from_packet(region, packet, 1,1))) {
+			log_msg(LOG_ERR, "bad xfr RR dname %d", rrcount);
 			return 0;
-		if(!buffer_available(packet, 10)) 
+		}
+		if(!buffer_available(packet, 10)) {
+			log_msg(LOG_ERR, "bad xfr RR format %d", rrcount);
 			return 0;
+		}
 		type = buffer_read_u16(packet);
 		klass = buffer_read_u16(packet);
 		ttl = buffer_read_u32(packet);
 		rrlen = buffer_read_u16(packet);
-		if(!buffer_available(packet, rrlen)) 
+		log_msg(LOG_INFO, "xfr RR dname is %s type %d", 
+			dname_to_string(dname,0), type);
+		if(!buffer_available(packet, rrlen)) {
+			log_msg(LOG_ERR, "bad xfr RR rdata %d, len %d have %d", 
+				rrcount, rrlen, buffer_remaining(packet));
 			return 0;
+		}
 
 		if(rrcount == 1 && type != TYPE_SOA) {
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
@@ -546,16 +598,13 @@ apply_ixfr(namedb_type* db, FILE *in,
 		}
 		if(delete_mode) {
 			/* delete this rr */
-			delete_RR(db, dname, type, klass, ttl,
-				packet, rrlen, zone_db);
+			delete_RR(db, dname, type, klass, ttl, packet, rrlen, zone_db);
 		}
 		else
 		{
 			/* add this rr */
-			add_RR(db, dname_zone, dname, type, klass, ttl, 
-				packet, rrlen, zone_db);
+			add_RR(db, dname, type, klass, ttl, packet, rrlen, zone_db);
 		}
-		buffer_skip(packet, rrlen);
 	}
 	region_destroy(region);
 	return 1;
@@ -620,17 +669,19 @@ read_process_part(namedb_type* db, FILE *in)
 	}
 
 	if(!read_32(in, &type) || !read_32(in, &len)) return 0;
-	log_msg(LOG_INFO, "Part %x len %d", type, len);
 
 	if(type == DIFF_PART_IXFR) {
+		log_msg(LOG_INFO, "part IXFR len %d", len);
 		saw_ixfr = 1;
 		last_ixfr_pos = startpos;
 		fseek(in, len, SEEK_CUR);
 	}
 	else if(type == DIFF_PART_SURE) {
+		log_msg(LOG_INFO, "part SURE len %d", len);
 		if(!read_sure_part(db, in)) 
 			return 0;
 	}
+	else log_msg(LOG_INFO, "unknown part %x len %d", type, len);
 
 	if(!read_32(in, &len2) || len != len2) 
 		return 0;
