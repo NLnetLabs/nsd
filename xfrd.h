@@ -44,7 +44,7 @@ struct xfrd_state {
 	time_t current_time;
 
 	/* timer for NSD reload */
-	time_t reload_time;
+	struct timespec reload_timeout;
 	netio_handler_type reload_handler;
 
 	/* communication channel with server_main */

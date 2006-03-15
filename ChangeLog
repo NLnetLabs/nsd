@@ -6,6 +6,10 @@
 	- difffile processing works so that NSD can read an axfr saved
 	  into the nsd.diff file. (xfrd already request and save it there).
 	- split off xfrd tcp handling into xfrd-tcp.c.
+	- cleaned up send_udp in xfrd, and read_state.
+	- removed xfrd tcp_send_blocking.
+	- xfrd sets state from ok to refresh to expired based on timeout.
+	- xfrd sets reload timeout.
 
 14 Mar 2006: Wouter
 	- TODO updated
