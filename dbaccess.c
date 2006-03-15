@@ -366,7 +366,6 @@ namedb_open (const char *filename)
 			return NULL;
 		}
 		domains[i] = domain_table_insert(db->domains, dname);
-		domains[i]->number = i + 1;
 		region_free_all(dname_region);
 	}
 	

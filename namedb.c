@@ -64,7 +64,7 @@ domain_table_create(region_type *region)
 	root->parent = NULL;
 	root->wildcard_child_closest_match = root;
 	root->rrsets = NULL;
-	root->number = 0;
+	root->number = 1; /* 0 is used for after header */
 #ifdef PLUGINS
 	root->plugin_data = NULL;
 #endif
@@ -154,6 +154,7 @@ domain_table_insert(domain_table_type *table,
 						      dname,
 						      closest_encloser);
 			rbtree_insert(table->names_to_domains, (rbnode_t *) result);
+			result->number = table->names_to_domains->count;
 
 			/*
 			 * If the newly added domain name is larger

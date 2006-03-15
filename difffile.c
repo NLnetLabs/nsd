@@ -191,6 +191,10 @@ rrset_delete(domain_type* domain, rrset_type* rrset)
 	}
 	*pp = rrset->next;
 
+	log_msg(LOG_INFO, "delete rrset of %s type %s", 
+		dname_to_string(domain_dname(domain),0),
+		rrtype_to_string(rrset_rrtype(rrset)));
+
 	/* is this a SOA rrset ? */
 	if(rrset->zone->soa_rrset == rrset) {
 		rrset->zone->soa_rrset = 0;
@@ -291,6 +295,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		if(rdata_num == -1) {
 			log_msg(LOG_ERR, "diff: bad rdata for %s", 
 				dname_to_string(dname,0));
+			region_destroy(region);
 			return;
 		}
 		rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
@@ -323,9 +328,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	if(!domain) {
 		/* create the domain */
 		domain = domain_table_insert(db->domains, dname);
-		domain->number = domain_table_count(db->domains);
 	}
-	assert(domain->number != 0);
 	rrset = domain_find_rrset(domain, zone, type);
 	if(!rrset) {
 		/* create the rrset */
@@ -406,7 +409,6 @@ find_zone(namedb_type* db, const dname_type* zone_name)
 			dname_to_string(zone_name,0));
 		/* create the zone and domain of apex (zone is has config options) */
 		domain = domain_table_insert(db->domains, zone_name);
-		domain->number = domain_table_count(db->domains);
 		zone = (zone_type *) region_alloc(db->region, sizeof(zone_type));
 		zone->next = db->zones;
 		db->zones = zone;
@@ -437,6 +439,8 @@ delete_zone_rrs(zone_type* zone)
 	while(domain && dname_is_subdomain(
 		domain_dname(domain), domain_dname(zone->apex)))
 	{
+		log_msg(LOG_INFO, "delete zone visit %s",
+			dname_to_string(domain_dname(domain),0));
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
 			rrset_delete(domain, rrset);
@@ -444,11 +448,10 @@ delete_zone_rrs(zone_type* zone)
 		domain = domain_next(domain);
 	}
 
-	/* some way to list all RRs in a zone */
-	zone->apex = 0;
-	zone->soa_rrset = 0;
+	assert(zone->soa_rrset == 0);
 	/* keep zone->soa_nx_rrset alloced */
-	zone->ns_rrset = 0;
+	assert(zone->ns_rrset == 0);
+	assert(zone->is_secure == 0);
 }
 
 static int 
@@ -576,8 +579,6 @@ apply_ixfr(namedb_type* db, FILE *in,
 		klass = buffer_read_u16(packet);
 		ttl = buffer_read_u32(packet);
 		rrlen = buffer_read_u16(packet);
-		log_msg(LOG_INFO, "xfr RR dname is %s type %d", 
-			dname_to_string(dname,0), type);
 		if(!buffer_available(packet, rrlen)) {
 			log_msg(LOG_ERR, "bad xfr RR rdata %d, len %d have %d", 
 				rrcount, rrlen, buffer_remaining(packet));
@@ -596,6 +597,9 @@ apply_ixfr(namedb_type* db, FILE *in,
 			   just before soa - so it gets deleted and added too */
 			delete_mode = !delete_mode;
 		}
+		log_msg(LOG_INFO, "xfr %s RR dname is %s type %s", 
+			delete_mode?"del":"add",
+			dname_to_string(dname,0), rrtype_to_string(type));
 		if(delete_mode) {
 			/* delete this rr */
 			delete_RR(db, dname, type, klass, ttl, packet, rrlen, zone_db);

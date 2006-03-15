@@ -27,7 +27,7 @@ server:
 	# the database to use
 	# database: "/etc/nsd/nsd.db"
 
-	# identify of the server (CH TXT ID.SERVER entry).
+	# identify the server (CH TXT ID.SERVER entry).
 	# identity: "unidentified server"
 
 	# log messages to file. Default to stderr and syslog.

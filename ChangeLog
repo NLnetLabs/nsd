@@ -1,3 +1,11 @@
+15 Mar 2006: Wouter
+	- Fixed up domain table insert, it was being used in routines
+	  that originate from nsd-xfer that do not set compression numbers
+	  correctly.
+	- memleak fix in diffile in case of error.
+	- difffile processing works so that NSD can read an axfr saved
+	  into the nsd.diff file. (xfrd already request and save it there).
+
 14 Mar 2006: Wouter
 	- TODO updated
 	- worked on reload ixfr. It will add/delete RRs and zones.
@@ -7,6 +15,7 @@
 	- difffile will create zone and apex if not there (i.e. the zone
 	  is configured but no data file provided).
 	- bit more verbose in error message for bad diff file.
+	- Typo fix in sample config file.
 
 13 Mar 2006: Wouter
 	- configure sets fseek (fgetpos/fsetpos) to use 64 bit interface
