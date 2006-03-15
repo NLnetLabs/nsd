@@ -397,8 +397,11 @@ tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
   tsig.h buffer.h util.h dname.h
 util.o: util.c config.h util.h
 xfrd.o: xfrd.c config.h xfrd.h netio.h region-allocator.h rbtree.h \
-  namedb.h dname.h buffer.h util.h dns.h options.h nsd.h edns.h packet.h \
-  difffile.h
+  namedb.h dname.h buffer.h util.h dns.h options.h xfrd-tcp.h nsd.h \
+  edns.h packet.h difffile.h
+xfrd-tcp.o: xfrd-tcp.c config.h xfrd-tcp.h buffer.h region-allocator.h \
+  util.h packet.h dns.h namedb.h dname.h rbtree.h options.h xfrd.h \
+  netio.h
 zlexer.o: zlexer.c config.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h zparser.h
 zonec.o: zonec.c config.h zonec.h namedb.h dname.h buffer.h \
