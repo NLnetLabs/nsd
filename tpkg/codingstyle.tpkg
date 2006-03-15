@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-03-14 13:13 CET by <miekg@floep>.
+# Made on 2006-03-15 10:42 CET by <miekg@elektron>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/codingstyle.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -13,7 +13,7 @@
 # ------ ---------- ------------------------------------------
 #    321 -rw------- codingstyle.dsc
 #     36 -rw------- codingstyle.help
-#    955 -rw------- codingstyle.test
+#    848 -rw------- codingstyle.test
 #
 save_IFS="${IFS}"
 IFS="${IFS}:"
@@ -63,7 +63,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh12113; then
+if mkdir _sh10585; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -149,11 +149,11 @@ for i in ../../*.c; do
 X        case $OSTYPE in
 X        linux-gnu*)
 X                diff -w -u $i <(cat $i | indent -l90 -nut -ce -nfca -nlp -ncdb \
-X                -nsai -br -ts08 -i8)  > /dev/null
+X                -nsai -br -ts08 -i8)  | grep ^---
 X                ;;
 X        freebsd*) 
 X                diff -w -u $i <(cat $i | gindent -l90 -nut -ce -nfca -nlp -ncdb \
-X                -nsai -br -ts08 -i8)  > /dev/null
+X                -nsai -br -ts08 -i8) | grep ^---
 X                ;;
 X        esac
 X              
@@ -161,26 +161,22 @@ X        if [[ $? -eq 1 ]]; then
 X                st=1
 X        fi
 done
-if [[ $st -eq 1 ]]; then
-X        echo "There are coding style improvements possible..."
-X        exit 1
-fi
 Xexit 0
 SHAR_EOF
-  (set 20 06 03 14 13 13 35 'codingstyle.test'; eval "$shar_touch") &&
+  (set 20 06 03 15 10 42 32 'codingstyle.test'; eval "$shar_touch") &&
   chmod 0600 'codingstyle.test' ||
   $echo 'restore of' 'codingstyle.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'codingstyle.test:' 'MD5 check failed'
-9f67bbdf94e70594dd4632ad8f651f54  codingstyle.test
+175f540fc5044fe9303c0444704872a8  codingstyle.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'codingstyle.test'`"
-    test 955 -eq "$shar_count" ||
-    $echo 'codingstyle.test:' 'original size' '955,' 'current size' "$shar_count!"
+    test 848 -eq "$shar_count" ||
+    $echo 'codingstyle.test:' 'original size' '848,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh12113
+rm -fr _sh10585
 exit 0
