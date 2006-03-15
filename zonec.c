@@ -1057,8 +1057,10 @@ process_rr(void)
 							  sizeof(zone_type));
 			zone->apex = rr->owner;
 			zone->soa_rrset = NULL;
+			zone->soa_nx_rrset = NULL;
 			zone->ns_rrset = NULL;
 			zone->is_secure = 0;
+			zone->updated = 1;
 
 			/* insert in front of zone list */
 			zone->next = parser->db->zones;

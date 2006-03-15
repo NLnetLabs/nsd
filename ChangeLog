@@ -10,6 +10,11 @@
 	- removed xfrd tcp_send_blocking.
 	- xfrd sets state from ok to refresh to expired based on timeout.
 	- xfrd sets reload timeout.
+	- Added zone updated to keep track of zones that are changed
+	  after a reload. These zones get their information notifified
+	  to xfrd.
+	- removed unused zprintrr declaration from zonec.h
+	- nsd sends soa information to xfrd.
 
 14 Mar 2006: Wouter
 	- TODO updated

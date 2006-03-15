@@ -497,6 +497,12 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 {
 	pid_t pid;
 	int sockets[2] = {0,0};
+	zone_type* zone;
+	/* no need to send updates for zones, because xfrd will read from fork-memory */
+	for(zone = nsd->db->zones; zone; zone=zone->next) {
+		zone->updated = 0;
+	}
+
 	if(handler->fd != -1) close(handler->fd);
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == -1) {
 		log_msg(LOG_ERR, "startxfrd failed on socketpair: %s", strerror(errno));
@@ -531,10 +537,12 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
  * as server_main.
  */
 static void
-server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, int cmdsocket)
+server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, 
+	int cmdsocket, int xfrd_sock)
 {
 	pid_t old_pid;
 	sig_atomic_t cmd = NSD_QUIT;
+	zone_type* zone;
 
 	if(db_crc_different(nsd->db) == 0) {
 		log_msg(LOG_INFO, "CRC the same. skipping %s.", nsd->db->filename);
@@ -586,6 +594,48 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, in
 		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 	}
 
+	/* inform xfrd of new SOAs */
+	for(zone= nsd->db->zones; zone; zone = zone->next) {
+		uint32_t sz;
+		if(zone->updated == 0)
+			continue;
+		log_msg(LOG_INFO, "nsd: sending soa info for zone %s",
+			dname_to_string(domain_dname(zone->apex),0));
+		cmd = NSD_SOA_INFO;
+		sz = domain_dname(zone->apex)->name_size;
+		if(zone->soa_rrset) 
+			sz += sizeof(uint32_t)*4;
+		if(write(xfrd_sock, &cmd,  sizeof(cmd)) == -1 ||
+			write(xfrd_sock, &sz, sizeof(sz)) == -1 ||
+			write(xfrd_sock, dname_name(domain_dname(zone->apex)), 
+				domain_dname(zone->apex)->name_size) == -1)
+		{
+			log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
+				(int)nsd->pid, strerror(errno));
+		}
+		if(zone->soa_rrset) {
+			assert(zone->soa_rrset->rr_count > 0);
+			assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
+			assert(zone->soa_rrset->rrs[0].rdata_count == 6);
+			if(write(xfrd_sock, rdata_atom_data(
+				zone->soa_rrset->rrs[0].rdatas[2]), 
+				sizeof(uint32_t)) == -1
+			   || write(xfrd_sock, rdata_atom_data(
+				zone->soa_rrset->rrs[0].rdatas[3]), 
+				sizeof(uint32_t)) == -1
+			   || write(xfrd_sock, rdata_atom_data(
+				zone->soa_rrset->rrs[0].rdatas[4]), 
+				sizeof(uint32_t)) == -1
+			   || write(xfrd_sock, rdata_atom_data(
+				zone->soa_rrset->rrs[0].rdatas[5]), 
+				sizeof(uint32_t)) == -1)
+			{
+				log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
+				(int)nsd->pid, strerror(errno));
+			}
+		}
+		zone->updated = 0;
+	}
 	/* exit reload, continue as new server_main */
 }
 
@@ -648,6 +698,8 @@ server_main(struct nsd *nsd)
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
+	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
+	netio_add_handler(netio, &xfrd_listener);
 	if (server_start_children(nsd, server_region, netio) != 0) {
 		send_children_command(nsd, NSD_QUIT);
 		kill(nsd->pid, SIGTERM);
@@ -655,8 +707,6 @@ server_main(struct nsd *nsd)
 	}
 	reload_listener.fd = -1;
 	assert(nsd->this_child == 0);
-	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
-	netio_add_handler(netio, &xfrd_listener);
 
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
 
@@ -735,7 +785,8 @@ server_main(struct nsd *nsd)
 			case 0:
 				/* CHILD */
 				close(reload_sockets[0]);
-				server_reload(nsd, server_region, netio, reload_sockets[1]);
+				server_reload(nsd, server_region, netio, 
+					reload_sockets[1], xfrd_listener.fd);
 				close(reload_sockets[1]);
 				reload_pid = -1;
 				reload_listener.fd = -1;

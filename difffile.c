@@ -198,6 +198,7 @@ rrset_delete(domain_type* domain, rrset_type* rrset)
 	/* is this a SOA rrset ? */
 	if(rrset->zone->soa_rrset == rrset) {
 		rrset->zone->soa_rrset = 0;
+		rrset->zone->updated = 1;
 	}
 	if(rrset->zone->ns_rrset == rrset) {
 		rrset->zone->ns_rrset = 0;
@@ -373,6 +374,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		if(type == TYPE_SOA) {
 			uint32_t soa_minimum;
 			zone->soa_rrset = rrset;
+			zone->updated = 1;
 			/* BUG #103 tweaked SOA ttl value */
 			memcpy(zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
 			memcpy(&soa_minimum, rdata_atom_data(rrset->rrs->rdatas[6]),
@@ -419,6 +421,7 @@ find_zone(namedb_type* db, const dname_type* zone_name)
 		zone->ns_rrset = 0;
 		zone->number = db->zone_count;
 		zone->is_secure = 0;
+		zone->updated = 1;
 		return zone;
 	}
 	zone = namedb_find_zone(db, domain);
@@ -452,6 +455,7 @@ delete_zone_rrs(zone_type* zone)
 	/* keep zone->soa_nx_rrset alloced */
 	assert(zone->ns_rrset == 0);
 	assert(zone->is_secure == 0);
+	assert(zone->updated == 1);
 }
 
 static int 

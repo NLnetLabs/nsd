@@ -164,6 +164,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 {
         sig_atomic_t cmd;
         int len;
+	uint32_t pklen;
         if (!(event_types & NETIO_EVENT_READ))
                 return;
         
@@ -184,6 +185,20 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
         case NSD_SHUTDOWN:
                 xfrd->shutdown = 1;
                 break;
+	case NSD_SOA_INFO:
+		/* TODO read SOA info */
+		buffer_clear(xfrd->packet);
+		if(read(handler->fd, &pklen, sizeof(pklen)) == -1 ||
+			pklen > buffer_capacity(xfrd->packet) ||
+			read(handler->fd, buffer_begin(xfrd->packet), pklen) == -1) 
+		{
+               		log_msg(LOG_ERR, "xfrd_handle_ipc: soainfo read: %s",
+                       		strerror(errno));
+		}
+		/* find zone (use rbtree) and call soa_incoming */
+		/* @@@ TODO */
+
+		break;
         default:
                 log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d", (int)cmd);
                 break;

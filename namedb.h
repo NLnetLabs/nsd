@@ -63,7 +63,8 @@ struct zone
 	rrset_type  *soa_nx_rrset; /* see bug #103 */
 	rrset_type  *ns_rrset;
 	uint32_t     number;
-	unsigned     is_secure : 1;
+	unsigned     is_secure : 1; /* zone uses DNSSEC */
+	unsigned     updated : 1; /* zone SOA was updated */
 };
 
 /* a RR in DNS */

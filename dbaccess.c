@@ -339,6 +339,7 @@ namedb_open (const char *filename)
 		zones[i]->ns_rrset = NULL;
 		zones[i]->number = i + 1;
 		zones[i]->is_secure = 0;
+		zones[i]->updated = 1;
 
 		region_free_all(dname_region);
 	}

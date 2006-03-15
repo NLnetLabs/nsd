@@ -23,6 +23,11 @@ struct nsd_options;
 #define	NSD_STATS 3
 #define	NSD_REAP_CHILDREN 4
 #define	NSD_QUIT 5
+#define NSD_SOA_INFO 6 
+/*
+ * NSD_SOA_INFO is followed by u32(len), dname, 
+ * and then nothing (no info) or the serial, refresh, retry, expire.
+ */
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U

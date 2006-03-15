@@ -102,7 +102,6 @@ void parse_unknown_rdata(uint16_t type, uint16_t *wireformat);
 int32_t zparser_ttl2int(const char *ttlstr);
 void zadd_rdata_wireformat(uint16_t *data);
 void zadd_rdata_domain(domain_type *domain);
-void zprintrr(FILE *f, rr_type *rr);
 
 void set_bitnsec(uint8_t  bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
 		 uint16_t index);
