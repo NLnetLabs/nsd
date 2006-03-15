@@ -5,6 +5,7 @@
 	- memleak fix in diffile in case of error.
 	- difffile processing works so that NSD can read an axfr saved
 	  into the nsd.diff file. (xfrd already request and save it there).
+	- split off xfrd tcp handling into xfrd-tcp.c.
 
 14 Mar 2006: Wouter
 	- TODO updated

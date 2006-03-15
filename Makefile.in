@@ -81,6 +81,7 @@ NSD_OBJECTS	=				\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
+	xfrd-tcp.o				\
 	xfrd.o
 
 ZONEC_OBJECTS	=				\
@@ -185,6 +186,7 @@ CUTEST_OBJECTS		=			\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
+	xfrd-tcp.o				\
 	xfrd.o					\
 	cutest_run.o				\
 	cutest_rbtree.o 			\

@@ -16,14 +16,13 @@
 #include "namedb.h"
 #include "options.h"
 
-#define XFRD_MAX_TCP 10 /* max number of tcp connections */
-
 struct nsd;
 struct region;
 struct buffer;
-typedef struct xfrd_tcp xfrd_tcp_t;
+struct xfrd_tcp;
+struct xfrd_tcp_set;
 typedef struct xfrd_state xfrd_state_t;
-typedef struct xfrd_zone_t xfrd_zone_t;
+typedef struct xfrd_zone xfrd_zone_t;
 typedef struct xfrd_soa xfrd_soa_t;
 /*
  * The global state for the xfrd daemon process.
@@ -36,12 +35,7 @@ struct xfrd_state {
 	netio_type* netio;
 	struct nsd* nsd;
 
-	/* tcp connections, each has packet and read/wr state */
-	xfrd_tcp_t *tcp_state[XFRD_MAX_TCP];
-	/* number of TCP connections in use. */
-	int tcp_count;
-	/* linked list of zones waiting for a TCP connection */
-	xfrd_zone_t *tcp_waiting_first, *tcp_waiting_last;
+	struct xfrd_tcp_set* tcp_set;
 	/* packet buffer for udp packets */
 	struct buffer* packet;
 
@@ -88,7 +82,7 @@ struct xfrd_soa {
 /*
  * XFRD state for a single zone
  */
-struct xfrd_zone_t {
+struct xfrd_zone {
 	rbnode_t node;
 
 	/* name of the zone */
@@ -134,28 +128,15 @@ struct xfrd_zone_t {
 	uint16_t query_id;
 };
 
-struct xfrd_tcp {
-	/* tcp connection state */
-	/* state: reading or writing */
-	uint8_t is_reading;
-
-	/* how many bytes have been read/written - total,
-	   incl. tcp length bytes */
-	uint32_t total_bytes;
-
-	/* msg len bytes */
-	uint16_t msglen;
-
-	/* fd of connection. -1 means unconnected */
-	int fd;
-
-	/* packet buffer of connection */
-	struct buffer* packet;
-};
-
 #define XFRD_FILE_MAGIC "NSDXFRD1"
 
 /* start xfrd, new start. Pass socket to server_main. */
 void xfrd_init(int socket, struct nsd* nsd);
+/* get the current time epoch. Cached for speed. */
+time_t xfrd_time();
+/* handle final received packet from network */
+void xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet);
+/* set timer to specific value */
+void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
 
 #endif /* XFRD_H */
