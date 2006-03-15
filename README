@@ -473,6 +473,10 @@ database with the master servers:
 It is as well possible to update the master zone files (in bound AXFR)
 with nsdc(8) update using TSIG.
 
+PLEASE NOTE: nsd-xfer(8) can use TSIG to update its zone file(s) from
+*dns servers that support TSIG*, such as BIND, but NOT nsd(8), which
+does not yet support TSIG.
+
 This is done by passing the tsig key to nsd-xfer(8).
 
 nsd-xfer(8) uses the same cryptic file format as named-xfer(8) (to
@@ -500,7 +504,6 @@ Y87923jksdXlsdv+LeXpUA==
 Cryptic? Yes. The first line tells this key is to be used for
 213.53.69.1 Second one is the name of the key. 157 stands for hmac-md5
 algorithm and the last line is the secret.
-
 
 3.4 Sending notify to the secondaries on reload or restart
 
