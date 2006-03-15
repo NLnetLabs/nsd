@@ -31,6 +31,7 @@ PURITY
 
 CLEANUP
 (old)+ proper error/fatal/warning interfaces
+- check LOG_INFO log message and see if they are usefull
 
 DOCUMENTATION
 (old)- convert the manual pages into -man macros set for better compatibility?
