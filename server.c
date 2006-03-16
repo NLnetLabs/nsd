@@ -597,18 +597,20 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* inform xfrd of new SOAs */
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		uint32_t sz;
-		if(zone->updated == 0)
+		if(0&&zone->updated == 0) /* DEBUG turned off for testing */
 			continue;
 		log_msg(LOG_INFO, "nsd: sending soa info for zone %s",
 			dname_to_string(domain_dname(zone->apex),0));
 		cmd = NSD_SOA_INFO;
-		sz = domain_dname(zone->apex)->name_size;
+		sz = dname_total_size(domain_dname(zone->apex));
 		if(zone->soa_rrset) 
 			sz += sizeof(uint32_t)*4;
+		/* use blocking writes */
+		log_msg(LOG_INFO, "sending cmd + %d bytes", sz);
 		if(write(xfrd_sock, &cmd,  sizeof(cmd)) == -1 ||
 			write(xfrd_sock, &sz, sizeof(sz)) == -1 ||
-			write(xfrd_sock, dname_name(domain_dname(zone->apex)), 
-				domain_dname(zone->apex)->name_size) == -1)
+			write(xfrd_sock, domain_dname(zone->apex), 
+				dname_total_size(domain_dname(zone->apex))) == -1)
 		{
 			log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
 				(int)nsd->pid, strerror(errno));
@@ -616,7 +618,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		if(zone->soa_rrset) {
 			assert(zone->soa_rrset->rr_count > 0);
 			assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
-			assert(zone->soa_rrset->rrs[0].rdata_count == 6);
+			assert(zone->soa_rrset->rrs[0].rdata_count == 7);
 			if(write(xfrd_sock, rdata_atom_data(
 				zone->soa_rrset->rrs[0].rdatas[2]), 
 				sizeof(uint32_t)) == -1

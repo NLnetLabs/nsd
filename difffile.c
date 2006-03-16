@@ -376,6 +376,15 @@ add_RR(namedb_type* db, const dname_type* dname,
 			zone->soa_rrset = rrset;
 			zone->updated = 1;
 			/* BUG #103 tweaked SOA ttl value */
+			if(zone->soa_nx_rrset == 0) {
+				zone->soa_nx_rrset = region_alloc(db->region, 
+					sizeof(rrset_type));
+				zone->soa_nx_rrset->rr_count = 1;
+				zone->soa_nx_rrset->next = 0;
+				zone->soa_nx_rrset->zone = zone;
+				zone->soa_nx_rrset->rrs = region_alloc(db->region, 
+					sizeof(rr_type));
+			}
 			memcpy(zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
 			memcpy(&soa_minimum, rdata_atom_data(rrset->rrs->rdatas[6]),
 				rdata_atom_size(rrset->rrs->rdatas[6]));
@@ -464,7 +473,7 @@ apply_ixfr(namedb_type* db, FILE *in,
 {
 	int delete_mode;
 	int is_axfr;
-	uint32_t type, msglen;
+	uint32_t msglen;
 	int qcount, ancount, rrcount;
 	buffer_type* packet;
 	region_type* region;
@@ -479,12 +488,10 @@ apply_ixfr(namedb_type* db, FILE *in,
 	}
 	/* read ixfr packet RRs and apply to in memory db */
 
-	if(!read_32(in, &type) ||
-		!read_32(in, &msglen)) {
-		log_msg(LOG_ERR, "could not read type and len");
+	if(!read_32(in, &msglen)) {
+		log_msg(LOG_ERR, "could not read len");
 		return 0;
 	}
-	assert(type == DIFF_PART_IXFR);
 
 	/* read header */
 	if(msglen < QHEADERSZ) {
@@ -631,7 +638,7 @@ read_sure_part(namedb_type* db, FILE *in)
 	fpos_t resume_pos;
 	if(!saw_ixfr) {
 		log_msg(LOG_ERR, "diff file commit without IXFR");
-		return 0;
+		return 1;
 	}
 	/* read zone name and serial */
 	if(!read_str(in, zone_buf, sizeof(zone_buf)) ||
@@ -666,9 +673,9 @@ read_sure_part(namedb_type* db, FILE *in)
 }
 
 static int 
-read_process_part(namedb_type* db, FILE *in)
+read_process_part(namedb_type* db, FILE *in, uint32_t type)
 {
-	uint32_t type, len, len2;
+	uint32_t len, len2;
 	fpos_t startpos;
 
 	if(fgetpos(in, &startpos) == -1) {
@@ -676,7 +683,7 @@ read_process_part(namedb_type* db, FILE *in)
 		return 0;
 	}
 
-	if(!read_32(in, &type) || !read_32(in, &len)) return 0;
+	if(!read_32(in, &len)) return 0;
 
 	if(type == DIFF_PART_IXFR) {
 		log_msg(LOG_INFO, "part IXFR len %d", len);
@@ -690,7 +697,6 @@ read_process_part(namedb_type* db, FILE *in)
 			return 0;
 	}
 	else log_msg(LOG_INFO, "unknown part %x len %d", type, len);
-
 	if(!read_32(in, &len2) || len != len2) 
 		return 0;
 	return 1;
@@ -701,6 +707,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 {
 	const char* filename = DIFFFILE;
 	FILE *df;
+	uint32_t type;
 
 	if(opt->difffile) 
 		filename = opt->difffile;
@@ -713,21 +720,23 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 		return 1;
 	}
 	if(db->diff_skip) {
+		log_msg(LOG_INFO, "skip diff file");
 		if(fsetpos(df, &db->diff_pos)==-1) {
 			log_msg(LOG_INFO, "could not fsetpos file %s: %s. Reread from start.",
 				filename, strerror(errno));
 		}
 	}
 
-	while(!feof(df)) {
-		if(!read_process_part(db, df))
+	while(read_32(df, &type)) 
+	{
+		log_msg(LOG_INFO, "iter loop");
+		if(!read_process_part(db, df, type))
 		{
-			if(feof(df)) 
-				return 1;
-			else 
-				return 0;
+			log_msg(LOG_INFO, "error processing diff file");
+			return 0;
 		}
 	}
+	log_msg(LOG_INFO, "end of diff file read");
 	
 	if(fgetpos(df, &db->diff_pos) == -1) {
 		log_msg(LOG_INFO, "could not fgetpos file %s: %s.",

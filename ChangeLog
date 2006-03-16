@@ -1,3 +1,9 @@
+16 Mar 2006: Wouter
+	- Fixed up SOA INFO Send routines. Send from server works.
+	- niced up xfrd state file.
+	- Fixed up so that after a reload it will continue in diff file
+	  where it left off.
+
 15 Mar 2006: Wouter
 	- Fixed up domain table insert, it was being used in routines
 	  that originate from nsd-xfer that do not set compression numbers

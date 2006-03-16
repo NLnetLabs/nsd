@@ -165,6 +165,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
         sig_atomic_t cmd;
         int len;
 	uint32_t pklen;
+	const dname_type *dname;
         if (!(event_types & NETIO_EVENT_READ))
                 return;
         
@@ -190,17 +191,22 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 		buffer_clear(xfrd->packet);
 		if(read(handler->fd, &pklen, sizeof(pklen)) == -1 ||
 			pklen > buffer_capacity(xfrd->packet) ||
-			read(handler->fd, buffer_begin(xfrd->packet), pklen) == -1) 
+			(len=read(handler->fd, buffer_begin(xfrd->packet), pklen)) == -1) 
 		{
                		log_msg(LOG_ERR, "xfrd_handle_ipc: soainfo read: %s",
                        		strerror(errno));
 		}
+		dname = (const dname_type*)buffer_begin(xfrd->packet);
+		log_msg(LOG_INFO, "got cmd + %d bytes (dname %d) read %d", pklen,
+			dname_total_size(dname), len);
+		log_msg(LOG_INFO, "xfrd: zone %s got SOA_INFO", dname_to_string(dname,0));
 		/* find zone (use rbtree) and call soa_incoming */
 		/* @@@ TODO */
 
 		break;
         default:
-                log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d", (int)cmd);
+                log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d (%d)", (int)cmd,
+			ntohl(cmd));
                 break;
         }
 
@@ -382,8 +388,8 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		handler->fd = xfrd_send_ixfr_request_udp(zone);
 
 		if(	zone->zone_state != xfrd_zone_expired &&
-			zone->soa_disk_acquired + ntohl(zone->soa_disk.expire)
-			> (uint32_t)xfrd_time()) 
+			(uint32_t)xfrd_time() >
+			zone->soa_disk_acquired + ntohl(zone->soa_disk.expire))
 		{
 			/* zone expired */
 			log_msg(LOG_ERR, "xfrd: zone %s has expired", zone->apex_str);
@@ -392,8 +398,8 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 			xfrd_set_timer_retry(zone);
 		}
 		else if(zone->zone_state == xfrd_zone_ok &&
-			zone->soa_disk_acquired + ntohl(zone->soa_disk.refresh)
-			>= (uint32_t)xfrd_time()) 
+			(uint32_t)xfrd_time() >=
+			zone->soa_disk_acquired + ntohl(zone->soa_disk.refresh))
 		{
 			/* zone goes to refreshing state. */
 			log_msg(LOG_INFO, "xfrd: zone %s is refreshing", zone->apex_str);
@@ -447,6 +453,9 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	soa->retry = *(uint32_t*)rdata_atom_data(rr->rdatas[4]);
 	soa->expire = *(uint32_t*)rdata_atom_data(rr->rdatas[5]);
 	soa->minimum = *(uint32_t*)rdata_atom_data(rr->rdatas[6]);
+	log_msg(LOG_INFO, "xfrd: copy_soa rr, serial %d refresh %d retry %d expire %d", 
+			ntohl(soa->serial), ntohl(soa->refresh), ntohl(soa->retry),
+			ntohl(soa->expire));
 }
 
 static void 
@@ -864,7 +873,7 @@ static void xfrd_write_state()
 	}
 
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
-	log_msg(LOG_INFO, "xfrd: written %zd zones from state file", xfrd->zones->count);
+	log_msg(LOG_INFO, "xfrd: written %zd zones to state file", xfrd->zones->count);
 	fclose(out);
 }
 

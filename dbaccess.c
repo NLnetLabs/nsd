@@ -197,6 +197,7 @@ read_rrset(namedb_type *db,
 
 		memcpy(rrset->zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
 		rrset->zone->soa_nx_rrset->rr_count = 1;
+		rrset->zone->soa_nx_rrset->next = 0;
 
 		/* also add a link to the zone */
 		rrset->zone->soa_nx_rrset->zone = rrset->zone;
