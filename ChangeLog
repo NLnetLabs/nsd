@@ -3,6 +3,10 @@
 	- niced up xfrd state file.
 	- Fixed up so that after a reload it will continue in diff file
 	  where it left off.
+	- made send of SOA info use write_socket, in case of short writes.
+	- redesigned xfrd_tcp_read to use the same code for ipc read.
+	- no free()s before xfrd exit.
+	- xfrd handles incoming SOA INFO ipc packets.
 
 15 Mar 2006: Wouter
 	- Fixed up domain table insert, it was being used in routines

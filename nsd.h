@@ -25,7 +25,7 @@ struct nsd_options;
 #define	NSD_QUIT 5
 #define NSD_SOA_INFO 6 
 /*
- * NSD_SOA_INFO is followed by u32(len), dname, 
+ * NSD_SOA_INFO is followed by u16(len in network byte order), dname, 
  * and then nothing (no info) or the serial, refresh, retry, expire.
  */
 

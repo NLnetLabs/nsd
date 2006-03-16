@@ -49,6 +49,8 @@ static void xfrd_handle_zone(netio_type *netio,
 /* handle incoming soa information (NSD is running it, time acquired=guess) */
 static void xfrd_handle_incoming_soa(xfrd_zone_t* zone, 
 	xfrd_soa_t* soa, time_t acquired);
+/* get SOA INFO out of IPC packet buffer */
+static void xfrd_handle_ipc_SOAINFO(buffer_type* packet);
 
 /* copy SOA info from rr to soa struct. Memleak if prim.ns or email changes in soa. */
 static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);
@@ -106,6 +108,8 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->reload_handler.event_handler = xfrd_handle_reload;
 	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
 
+	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region);
+	xfrd->ipc_conn->is_reading = 0; /* not reading using ipc_conn yet */
 	xfrd->ipc_handler.fd = socket;
 	xfrd->ipc_handler.timeout = NULL;
 	xfrd->ipc_handler.user_data = xfrd;
@@ -151,9 +155,6 @@ xfrd_shutdown()
 	log_msg(LOG_INFO, "xfrd shutdown");
 	xfrd_write_state();
 	close(xfrd->ipc_handler.fd);
-	region_destroy(xfrd->region);
-	region_destroy(xfrd->nsd->options->region);
-	region_destroy(xfrd->nsd->region);
 	exit(0);
 }
 
@@ -164,10 +165,24 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 {
         sig_atomic_t cmd;
         int len;
-	uint32_t pklen;
-	const dname_type *dname;
         if (!(event_types & NETIO_EVENT_READ))
                 return;
+	
+	if(xfrd->ipc_conn->is_reading) {
+		/* reading an IPC message */
+		int ret = conn_read(xfrd->ipc_conn);
+		if(ret == -1) {
+			log_msg(LOG_ERR, "xfrd: error in read ipc");
+			xfrd->ipc_conn->is_reading = 0;
+			return;
+		}
+		if(ret == 0)
+			return;
+		buffer_flip(xfrd->ipc_conn->packet);
+		xfrd->ipc_conn->is_reading = 0;
+		xfrd_handle_ipc_SOAINFO(xfrd->ipc_conn->packet);
+		return;
+	}
         
         if((len = read(handler->fd, &cmd, sizeof(cmd))) == -1) {
                 log_msg(LOG_ERR, "xfrd_handle_ipc: read: %s",
@@ -187,29 +202,51 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
                 xfrd->shutdown = 1;
                 break;
 	case NSD_SOA_INFO:
-		/* TODO read SOA info */
-		buffer_clear(xfrd->packet);
-		if(read(handler->fd, &pklen, sizeof(pklen)) == -1 ||
-			pklen > buffer_capacity(xfrd->packet) ||
-			(len=read(handler->fd, buffer_begin(xfrd->packet), pklen)) == -1) 
-		{
-               		log_msg(LOG_ERR, "xfrd_handle_ipc: soainfo read: %s",
-                       		strerror(errno));
-		}
-		dname = (const dname_type*)buffer_begin(xfrd->packet);
-		log_msg(LOG_INFO, "got cmd + %d bytes (dname %d) read %d", pklen,
-			dname_total_size(dname), len);
-		log_msg(LOG_INFO, "xfrd: zone %s got SOA_INFO", dname_to_string(dname,0));
-		/* find zone (use rbtree) and call soa_incoming */
-		/* @@@ TODO */
-
+		/* setup read of SOA info */
+		xfrd->ipc_conn->is_reading = 1;
+		xfrd->ipc_conn->total_bytes = 0;
+		xfrd->ipc_conn->msglen = 0;
+		xfrd->ipc_conn->fd = handler->fd;
+		buffer_clear(xfrd->ipc_conn->packet);
 		break;
         default:
                 log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d (%d)", (int)cmd,
 			ntohl(cmd));
                 break;
         }
+}
 
+static void xfrd_handle_ipc_SOAINFO(buffer_type* packet)
+{
+	xfrd_soa_t soa;
+	xfrd_zone_t* zone;
+	/* dname is sent in memory format */
+	const dname_type* dname = (const dname_type*)buffer_begin(packet);
+
+	/* find zone and decode SOA */
+	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
+	if(!zone) {
+		log_msg(LOG_ERR, "xfrd: zone %s not configured, but ipc of SOA INFO",
+			dname_to_string(dname,0));
+		return;
+	}
+	buffer_skip(packet, dname_total_size(dname));
+	if(!buffer_available(packet, sizeof(uint32_t)*4)) {
+		/* NSD has zone without any info */
+		log_msg(LOG_INFO, "SOAINFO for %s lost zone", dname_to_string(dname,0));
+
+		xfrd_handle_incoming_soa(zone, NULL, xfrd_time());
+		return;
+	}
+	/* read soa info */
+	memset(&soa, 0, sizeof(soa));
+	soa.serial = htonl(buffer_read_u32(packet));
+	soa.refresh = htonl(buffer_read_u32(packet));
+	soa.retry = htonl(buffer_read_u32(packet));
+	soa.expire = htonl(buffer_read_u32(packet));
+	log_msg(LOG_INFO, "SOAINFO for %s %d", dname_to_string(dname,0),
+		ntohl(soa.serial));
+	xfrd_handle_incoming_soa(zone, &soa, xfrd_time());
 }
 
 static void 
@@ -880,6 +917,12 @@ static void xfrd_write_state()
 static void xfrd_handle_incoming_soa(xfrd_zone_t* zone, 
 	xfrd_soa_t* soa, time_t acquired)
 {
+	if(soa == NULL) {
+		/* nsd no longer has a zone in memory */
+		zone->soa_nsd_acquired = 0;
+		xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
+		return;
+	}
 	if(soa->serial == zone->soa_nsd.serial)
 		return;
 

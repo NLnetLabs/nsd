@@ -236,6 +236,26 @@ write_data(FILE *file, const void *data, size_t size)
 	}
 }
 
+int write_socket(int s, const void *buf, size_t size)
+{
+	const char* data = (const char*)buf;
+	size_t total_count = 0;
+
+	while (total_count < size) {
+		ssize_t count
+			= write(s, data + total_count, size - total_count);
+		if (count == -1) {
+			if (errno != EAGAIN) {
+				return 0;
+			} else {
+				continue;
+			}
+		}
+		total_count += count;
+	}
+	return 1;
+}
+
 int
 timespec_compare(const struct timespec *left,
 		 const struct timespec *right)

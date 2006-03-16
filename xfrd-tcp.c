@@ -313,13 +313,9 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	xfrd_tcp_read(set, zone);
 }
 
-void 
-xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
+int conn_read(xfrd_tcp_t* tcp)
 {
-	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
 	ssize_t received;
-	
-	assert(zone->tcp_conn != -1);
 	/* receive leading packet length bytes */
 	if(tcp->total_bytes < sizeof(tcp->msglen)) {
 		received = read(tcp->fd,
@@ -328,31 +324,27 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		if(received == -1) {
 			if(errno == EAGAIN || errno == EINTR) {
 				/* read would block, try later */
-				return;
+				return 0;
 			} else {
-				log_msg(LOG_ERR, "xfrd: failed read tcp %s",
-					strerror(errno));
-				xfrd_tcp_release(set, zone);
-				return;
+				log_msg(LOG_ERR, "read %s", strerror(errno));
+				return -1;
 			}
 		} else if(received == 0) {
 			/* EOF */
-			xfrd_tcp_release(set, zone);
-			return;
+			return -1;
 		}
 		tcp->total_bytes += received;
 		if(tcp->total_bytes < sizeof(tcp->msglen)) {
 			/* not complete yet, try later */
-			return;
+			return 0;
 		}
 
 		assert(tcp->total_bytes == sizeof(tcp->msglen));
 		tcp->msglen = ntohs(tcp->msglen);
 
 		if(tcp->msglen > buffer_capacity(tcp->packet)) {
-			log_msg(LOG_ERR, "xfrd: tcp buffer too small, dropping connection");
-			xfrd_tcp_release(set, zone);
-			return;
+			log_msg(LOG_ERR, "buffer too small, dropping connection");
+			return 0;
 		}
 		buffer_set_limit(tcp->packet, tcp->msglen);
 	}
@@ -364,17 +356,15 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	if(received == -1) {
 		if(errno == EAGAIN || errno == EINTR) {
 			/* read would block, try later */
-			return;
+			return 0;
 		} else {
-			log_msg(LOG_ERR, "xfrd: failed read tcp %s",
+			log_msg(LOG_ERR, "read %s",
 				strerror(errno));
-			xfrd_tcp_release(set, zone);
-			return;
+			return -1;
 		}
 	} else if(received == 0) {
 		/* EOF */
-		xfrd_tcp_release(set, zone);
-		return;
+		return -1;
 	}
 
 	tcp->total_bytes += received;
@@ -382,10 +372,29 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	if(buffer_remaining(tcp->packet) > 0) {
 		/* not complete yet, wait for more */
+		return 0;
+	}
+
+	/* completed */
+	assert(buffer_position(tcp->packet) == tcp->msglen);
+	return 1;
+}
+
+void 
+xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
+{
+	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
+	int ret;
+	
+	assert(zone->tcp_conn != -1);
+	ret = conn_read(tcp);
+	if(ret == -1) {
+		xfrd_tcp_release(set, zone);
 		return;
 	}
-	
-	assert(buffer_position(tcp->packet) == tcp->msglen);
+	if(ret == 0) 
+		return;
+
 	/* completed msg */
 	buffer_flip(tcp->packet);
 	xfrd_handle_received_xfr_packet(zone, tcp->packet);

@@ -137,6 +137,13 @@ int write_data(FILE *file, const void *data, size_t size);
 int write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc);
 
 /*
+ * Write the complete buffer to the socket, irrespective of short
+ * writes or interrupts. This function blocks to write the data.
+ * Returns 0 on error, 1 on success.
+ */
+int write_socket(int s, const void *data, size_t size);
+
+/*
  * Copy data allowing for unaligned accesses in network byte order
  * (big endian).
  */

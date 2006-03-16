@@ -279,34 +279,6 @@ read_tsig_key(region_type *region,
 }
 
 /*
- * Write the complete buffer to the socket, irrespective of short
- * writes or interrupts.
- */
-static int
-write_socket(int s, const void *buf, size_t size)
-{
-	const char *data = (const char *) buf;
-	size_t total_count = 0;
-
-	while (total_count < size) {
-		ssize_t count
-			= write(s, data + total_count, size - total_count);
-		if (count == -1) {
-			if (errno != EAGAIN) {
-				error("network write failed: %s",
-				      strerror(errno));
-				return 0;
-			} else {
-				continue;
-			}
-		}
-		total_count += count;
-	}
-
-	return 1;
-}
-
-/*
  * Read SIZE bytes from the socket into BUF.  Keep reading unless an
  * error occurs (except for EAGAIN) or EOF is reached.
  */
@@ -500,10 +472,12 @@ send_query(int s, query_type *q)
 	uint16_t size = htons(buffer_remaining(q->packet));
 
 	if (!write_socket(s, &size, sizeof(size))) {
+		error("network write failed: %s", strerror(errno));
 		return 0;
 	}
 	if (!write_socket(s, buffer_begin(q->packet), buffer_limit(q->packet)))
 	{
+		error("network write failed: %s", strerror(errno));
 		return 0;
 	}
 	return 1;
