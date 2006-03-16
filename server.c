@@ -597,7 +597,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* inform xfrd of new SOAs */
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		uint16_t sz;
-		if(0&&zone->updated == 0) /* DEBUG turned off for testing */
+		if(zone->updated == 0)
 			continue;
 		log_msg(LOG_INFO, "nsd: sending soa info for zone %s",
 			dname_to_string(domain_dname(zone->apex),0));

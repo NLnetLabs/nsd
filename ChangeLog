@@ -7,6 +7,7 @@
 	- redesigned xfrd_tcp_read to use the same code for ipc read.
 	- no free()s before xfrd exit.
 	- xfrd handles incoming SOA INFO ipc packets.
+	- removed debug, updated zones get SOA INFO sent.
 
 15 Mar 2006: Wouter
 	- Fixed up domain table insert, it was being used in routines
