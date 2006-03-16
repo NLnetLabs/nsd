@@ -1079,8 +1079,9 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	size_t ancount = ANCOUNT(packet);
 	uint32_t new_serial, new_refresh, new_retry, new_expire, new_minimum;
 
-	/* TODO sanity checks on packet */
 	/* has to be axfr / ixfr reply */
+	if(!buffer_available(packet, QHEADERSZ))
+		return;
 	if(ID(packet) != zone->query_id) {
 		log_msg(LOG_ERR, "xfrd: zone %s received bad query id from %s, dropped",
 			zone->apex_str, zone->master->ip_address_spec);
@@ -1101,7 +1102,6 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			return;
 		}
 	}
-
 	if(ancount == 0) {
 		log_msg(LOG_INFO, "xfrd: too short xfr packet: no answer");
 		return;
