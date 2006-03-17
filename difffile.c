@@ -351,6 +351,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	if(rrnum != -1) {
 		log_msg(LOG_ERR, "diff: RR %s already exists", 
 			dname_to_string(dname,0));
+		/* ignore already existing RR: lenient accepting of messages */
 		return;
 	}
 	
@@ -523,6 +524,8 @@ apply_ixfr(namedb_type* db, FILE *in,
 	}
 	buffer_set_limit(packet, msglen);
 
+	/* only answer section is really used, question, additional and 
+	   authority section RRs are skipped */
 	qcount = QDCOUNT(packet);
 	ancount = ANCOUNT(packet);
 	buffer_skip(packet, QHEADERSZ);

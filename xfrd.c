@@ -1082,11 +1082,16 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* has to be axfr / ixfr reply */
 	if(!buffer_available(packet, QHEADERSZ))
 		return;
+
+	/* only check ID in first response message. Could also check that
+	 * AA bit and QR bit are set, but not needed.
+	 */
 	if(ID(packet) != zone->query_id) {
 		log_msg(LOG_ERR, "xfrd: zone %s received bad query id from %s, dropped",
 			zone->apex_str, zone->master->ip_address_spec);
 		return;
 	}
+	/* check RCODE in all response messages */
 	if(RCODE(packet) != RCODE_OK) {
 		log_msg(LOG_ERR, "xfrd: zone %s received error code %d from %s",
 			zone->apex_str, RCODE(packet), zone->master->ip_address_spec);

@@ -1,3 +1,7 @@
+17 Mar 2006: Wouter
+	- according to axfr-clarify, added comments that we check
+	  more leniently on further responses on a TCP stream.
+
 16 Mar 2006: Wouter
 	- Fixed up SOA INFO Send routines. Send from server works.
 	- niced up xfrd state file.
