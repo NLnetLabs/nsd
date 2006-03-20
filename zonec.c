@@ -1331,12 +1331,14 @@ main (int argc, char **argv)
 			/* Zone name... */
 			if ((zonename = strtok(NULL, sep)) == NULL) {
 				fprintf(stderr, "zonec: syntax error in %s line %d: expected zone name\n", *argv, line);
+				++totalerrors;
 				break;
 			}
 
 			/* File name... */
 			if ((zonefile = strtok(NULL, sep)) == NULL) {
 				fprintf(stderr, "zonec: syntax error in %s line %d: expected file name\n", *argv, line);
+				++totalerrors;
 				break;
 			}
 
