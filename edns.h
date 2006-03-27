@@ -12,7 +12,8 @@
 
 #include "buffer.h"
 
-#define	OPT_LEN	11U	 /* Length of the NSD EDNS response record. */
+#define	OPT_LEN	11U	                /* Length of the NSD EDNS response record. */
+#define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
 
 struct edns_data
 {
