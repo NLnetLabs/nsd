@@ -416,6 +416,15 @@ case "$enable_bind8_stats" in
 		;;
 esac
 
+AC_ARG_ENABLE(nsid, AC_HELP_STRING([--enable-nsid], [Enable NSID support]))
+case "$enable_nsid" in
+        yes)
+               AC_DEFINE([NSID], [], [Define this to enable NSID support.])
+               ;;
+        no|*)
+                ;;
+esac
+
 AC_ARG_ENABLE(plugins, AC_HELP_STRING([--enable-plugins], [Enable plugin support]))
 case "$enable_plugins" in
         yes)
