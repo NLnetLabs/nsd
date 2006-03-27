@@ -14,11 +14,15 @@
 
 #define	OPT_LEN	11U	                /* Length of the NSD EDNS response record. */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
+#define NSID_DATA       "DEADBEAF"      /* bogus nsid, to showcase */
+#define NSID_CODE       1               /* nsid option code */
+#define NSID_LEN        8               /* lenght of the nsid data */
 
 struct edns_data
 {
 	char ok[OPT_LEN];
 	char error[OPT_LEN];
+        char nsid[4 + NSID_LEN]; 
 };
 typedef struct edns_data edns_data_type;
 

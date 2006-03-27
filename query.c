@@ -989,6 +989,8 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	case EDNS_OK:
 		buffer_write(q->packet, edns->ok, OPT_LEN);
+		/* add nsid data */
+		buffer_write(q->packet, edns->nsid, (4 + NSID_LEN));
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, edns);

@@ -19,15 +19,31 @@ void
 edns_init_data(edns_data_type *data, uint16_t max_length)
 {
 	memset(data, 0, sizeof(edns_data_type));
+	/* record type: OPT */
 	data->ok[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
 	data->ok[2] = TYPE_OPT & 0x00ff;	/* type_lo */
+	/* udp payload size */
 	data->ok[3] = (max_length & 0xff00) >> 8; /* size_hi */
 	data->ok[4] = max_length & 0x00ff;	  /* size_lo */
+	/* add more so that nsid fits */
+	/* EXTENDED RCODE AND FLAGS, bytes 5-8 */
+	/* RDATA LENGTH */
+	data->ok[9] = ((4 + NSID_LEN) & 0xff00) >> 8; /* length_hi */
+	data->ok[10] = ((4 + NSID_LEN) & 0x00ff);     /* length_lo */
+
+	data->nsid[0] = (NSID_CODE & 0xff00) >> 8;
+	data->nsid[1] = (NSID_CODE & 0x00ff);
+	data->nsid[2] = (NSID_LEN & 0xff00) >> 8;
+	data->nsid[3] = (NSID_LEN & 0x00ff);
+	memcpy(data->nsid + 4, NSID_DATA, 8);
+	
 	data->error[1] = (TYPE_OPT & 0xff00) >> 8;	/* type_hi */
 	data->error[2] = TYPE_OPT & 0x00ff;		/* type_lo */
 	data->error[3] = (max_length & 0xff00) >> 8;	/* size_hi */
 	data->error[4] = max_length & 0x00ff;		/* size_lo */
 	data->error[5] = 1;	/* XXX Extended RCODE=BAD VERS */
+
+	
 }
 
 void
