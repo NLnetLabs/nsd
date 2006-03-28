@@ -72,7 +72,7 @@ pop_parser_state(void)
 
 SPACE   [ \t]
 LETTER  [a-zA-Z]
-NEWLINE \n
+NEWLINE \n|\r
 ZONESTR [^ \t\n();.\"\$]
 DOLLAR  \$
 COMMENT ;
