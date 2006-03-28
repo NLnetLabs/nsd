@@ -41,7 +41,6 @@ struct edns_record
 	size_t           position;
 	size_t           maxlen;
 	int              dnssec_ok;
-        int              ns_id;
 };
 typedef struct edns_record edns_record_type;
 
