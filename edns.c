@@ -31,6 +31,7 @@ edns_init_data(edns_data_type *data, uint16_t max_length)
 	data->ok[9] = ((4 + NSID_LEN) & 0xff00) >> 8; /* length_hi */
 	data->ok[10] = ((4 + NSID_LEN) & 0x00ff);     /* length_lo */
 
+	/* Miek, NSID stuff needs to be put here */
 	data->nsid[0] = (NSID_CODE & 0xff00) >> 8;
 	data->nsid[1] = (NSID_CODE & 0x00ff);
 	data->nsid[2] = (NSID_LEN & 0xff00) >> 8;
@@ -42,8 +43,6 @@ edns_init_data(edns_data_type *data, uint16_t max_length)
 	data->error[3] = (max_length & 0xff00) >> 8;	/* size_hi */
 	data->error[4] = max_length & 0x00ff;		/* size_lo */
 	data->error[5] = 1;	/* XXX Extended RCODE=BAD VERS */
-
-	
 }
 
 void
@@ -85,6 +84,10 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet)
 	opt_version = buffer_read_u8(packet);
 	opt_flags = buffer_read_u16(packet);
 	opt_rdlen = buffer_read_u16(packet);
+
+	/* nsid: here we should read more and check
+	 * for the nsid option
+	 */
 	
 	if (opt_rdlen != 0 || opt_version != 0) {
 		edns->status = EDNS_ERROR;

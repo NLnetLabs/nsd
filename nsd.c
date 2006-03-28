@@ -61,6 +61,7 @@ usage (void)
 		);
 	fprintf(stderr,
 		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
+		"  -I nsid         Specify the NSID. This must be a hex string.\n"
 		"  -l filename     Specify the log file.\n"
 		"  -N server-count The number of servers to start.\n"
 		"  -n tcp-count    The maximum number of TCP connections per server.\n"
@@ -418,7 +419,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:df:hi:l:N:n:P:p:s:u:t:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:df:hi:I:l:N:n:P:p:s:u:t:X:vF:L:")) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -453,6 +454,23 @@ main (int argc, char *argv[])
 			break;
 		case 'i':
 			nsd.identity = optarg;
+			break;
+		case 'I':
+			if (strlen(optarg) % 2 != 0) {
+				error("the NSID must be a hex string of an even length.");
+			}
+			while(*optarg) {
+				int j;
+				for (j = 16; j >= 1; j -= 15) {
+					if (isxdigit(*optarg)) {
+						fprintf(stderr, "%d\n", hexdigit_to_int(*optarg) * j);
+					} else {
+						error("illegal hex charactor '%c' in NSID", (int)*optarg);
+					}
+					++optarg;
+				}
+			}
+
 			break;
 		case 'l':
 			log_filename = optarg;
