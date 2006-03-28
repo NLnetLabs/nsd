@@ -1,3 +1,7 @@
+28 Mar 2006: Miek
+	- forward port fixes for zone compiler and \r. svn:1926-1927
+	- add DO bit MASK and remove the !! construct
+
 17 Mar 2006: Wouter
 	- according to axfr-clarify, added comments that we check
 	  more leniently on further responses on a TCP stream.

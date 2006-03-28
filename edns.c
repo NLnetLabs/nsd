@@ -77,7 +77,7 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet)
 
 	edns->status = EDNS_OK;
 	edns->maxlen = opt_class;
-	edns->dnssec_ok = !!(opt_flags & 0xa000U);
+	edns->dnssec_ok = opt_flags & DNSSEC_OK_MASK;
 	return 1;
 }
 
