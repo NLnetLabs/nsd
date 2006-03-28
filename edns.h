@@ -17,6 +17,7 @@
 #define NSID_DATA       "DEADBEAF"      /* bogus nsid, to showcase */
 #define NSID_CODE       1               /* nsid option code */
 #define NSID_LEN        8               /* lenght of the nsid data */
+#define DNSSEC_OK_MASK 0x8000U  /* bitmask to get to the dnssec_ok bit */
 
 struct edns_data
 {
@@ -40,6 +41,7 @@ struct edns_record
 	size_t           position;
 	size_t           maxlen;
 	int              dnssec_ok;
+        int              ns_id;
 };
 typedef struct edns_record edns_record_type;
 
