@@ -150,7 +150,7 @@ dname_make_wire_from_packet(uint8_t *buf, buffer_type *packet,
 /* 				error("dname label out of bounds"); */
 				return 0;
 			}
-			if (dname_length + length >= sizeof(buf)) {
+			if (dname_length + length >= MAXDOMAINLEN+1) {
 /* 				error("dname too large"); */
 				return 0;
 			}
