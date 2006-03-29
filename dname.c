@@ -164,7 +164,13 @@ const dname_type *
 dname_parse(region_type *region, const char *name)
 {
 	uint8_t dname[MAXDOMAINLEN];
+	if(!dname_parse_wire(dname, name))
+		return 0;
+	return dname_make(region, dname, 1);
+}
 
+int dname_parse_wire(uint8_t* dname, const char* name)
+{
 	const uint8_t *s = (const uint8_t *) name;
 	uint8_t *h;
 	uint8_t *p;
@@ -174,23 +180,23 @@ dname_parse(region_type *region, const char *name)
 	if (strcmp(name, ".") == 0) {
 		/* Root domain.  */
 		dname[0] = 0;
-		return dname_make(region, dname, 1);
+		return 1;
 	}
 	
 	for (h = d, p = h + 1; *s; ++s, ++p) {
 		if (p - dname >= MAXDOMAINLEN) {
-			return NULL;
+			return 0;
 		}
 		
 		switch (*s) {
 		case '.':
 			if (p == h + 1) {
 				/* Empty label.  */
-				return NULL;
+				return 0;
 			} else {
 				label_length = p - h - 1;
 				if (label_length > MAXLABELLEN) {
-					return NULL;
+					return 0;
 				}
 				*h = label_length;
 				h = p;
@@ -222,7 +228,7 @@ dname_parse(region_type *region, const char *name)
 		/* Terminate last label.  */
 		label_length = p - h - 1;
 		if (label_length > MAXLABELLEN) {
-			return NULL;
+			return 0;
 		}
 		*h = label_length;
 		h = p;
@@ -231,7 +237,7 @@ dname_parse(region_type *region, const char *name)
 	/* Add root label.  */
 	*h = 0;
 	
-	return dname_make(region, dname, 1);
+	return p-dname;
 }
 
 

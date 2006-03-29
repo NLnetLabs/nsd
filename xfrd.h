@@ -15,6 +15,7 @@
 #include "rbtree.h"
 #include "namedb.h"
 #include "options.h"
+#include "dns.h"
 
 struct nsd;
 struct region;
@@ -66,12 +67,14 @@ struct xfrd_state {
  */
 struct xfrd_soa {
 	/* name of RR is zone apex dname */
-	uint16_t type;
-	uint16_t klass;
+	uint16_t type; /* = TYPE_SOA */
+	uint16_t klass; /* = CLASS_IN */
 	uint32_t ttl;
-	uint16_t rdata_count;
-	const dname_type* prim_ns;
-	const dname_type* email;
+	uint16_t rdata_count; /* = 7 */
+	/* format is 1 octet length, + wireformat dname.
+	   maximum size is allocated to avoid memory alloc/free. */
+	uint8_t prim_ns[1 + MAXDOMAINLEN];
+	uint8_t email[1 + MAXDOMAINLEN];
 	uint32_t serial;
 	uint32_t refresh;
 	uint32_t retry;

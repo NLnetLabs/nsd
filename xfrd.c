@@ -10,6 +10,7 @@
 #include <config.h>
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
 #include "xfrd.h"
@@ -295,6 +296,12 @@ xfrd_init_zones()
 		xzone->soa_nsd_acquired = 0;
 		xzone->soa_disk_acquired = 0;
 		xzone->soa_notified_acquired = 0;
+		xzone->soa_nsd.prim_ns[0] = 1; /* [0]=1, [1]=0; "." domain name */
+		xzone->soa_nsd.email[0] = 1;
+		xzone->soa_disk.prim_ns[0]=1;
+		xzone->soa_disk.email[0]=1;
+		xzone->soa_notified.prim_ns[0]=1;
+		xzone->soa_notified.email[0]=1;
 
 		xzone->zone_handler.fd = -1;
 		xzone->zone_handler.timeout = 0;
@@ -460,6 +467,11 @@ xfrd_time()
 static void 
 xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 {
+	const uint8_t* rr_ns_wire = dname_name(domain_dname(rdata_atom_domain(rr->rdatas[0])));
+	uint8_t rr_ns_len = domain_dname(rdata_atom_domain(rr->rdatas[0]))->name_size;
+	const uint8_t* rr_em_wire = dname_name(domain_dname(rdata_atom_domain(rr->rdatas[1])));
+	uint8_t rr_em_len = domain_dname(rdata_atom_domain(rr->rdatas[1]))->name_size;
+
 	if(rr->type != TYPE_SOA || rr->rdata_count != 7) {
 		log_msg(LOG_ERR, "xfrd: copy_soa called with bad rr, type %d rrs %d.", 
 			rr->type, rr->rdata_count);
@@ -472,18 +484,12 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	soa->ttl = htonl(rr->ttl);
 	soa->rdata_count = htons(rr->rdata_count);
 	
-	if(soa->prim_ns==0 || dname_compare(soa->prim_ns, 
-		domain_dname(rdata_atom_domain(rr->rdatas[0])))!=0) 
-	{
-		soa->prim_ns = dname_copy(xfrd->region, 
-			domain_dname(rdata_atom_domain(rr->rdatas[0])));
-	}
-	if(soa->email==0 || dname_compare(soa->email, 
-		domain_dname(rdata_atom_domain(rr->rdatas[1])))!=0) 
-	{
-		soa->email = dname_copy(xfrd->region, 
-			domain_dname(rdata_atom_domain(rr->rdatas[1])));
-	}
+	/* copy dnames */
+	soa->prim_ns[0] = rr_ns_len;
+	memcpy(soa->prim_ns+1, rr_ns_wire, rr_ns_len);
+	soa->email[0] = rr_em_len;
+	memcpy(soa->email+1, rr_em_wire, rr_em_len);
+
 	/* already in network format */
 	soa->serial = *(uint32_t*)rdata_atom_data(rr->rdatas[2]);
 	soa->refresh = *(uint32_t*)rdata_atom_data(rr->rdatas[3]);
@@ -579,8 +585,7 @@ xfrd_read_check_str(FILE* in, const char* str)
 
 static int 
 xfrd_read_state_soa(FILE* in, const char* id_acquired,
-	const char* id, xfrd_soa_t* soa, time_t* soatime, 
-	region_type* region)
+	const char* id, xfrd_soa_t* soa, time_t* soatime)
 {
 	char *p;
 
@@ -606,18 +611,12 @@ xfrd_read_state_soa(FILE* in, const char* id_acquired,
 	soa->ttl = htonl(soa->ttl);
 	soa->rdata_count = htons(soa->rdata_count);
 
-	if(!(p=xfrd_read_token(in))) 
+	if(!(p=xfrd_read_token(in)) ||
+	   !(soa->prim_ns[0] = dname_parse_wire(soa->prim_ns+1, p)))
 		return 0;
 
-	soa->prim_ns = dname_parse(region, p);
-	if(!soa->prim_ns) 
-		return 0;
-
-	if(!(p=xfrd_read_token(in))) 
-		return 0;
-
-	soa->email = dname_parse(region, p);
-	if(!soa->email) 
+	if(!(p=xfrd_read_token(in)) ||
+	   !(soa->email[0] = dname_parse_wire(soa->email+1, p)))
 		return 0;
 
 	if(!xfrd_read_i32(in, &soa->serial) ||
@@ -702,11 +701,11 @@ xfrd_read_state()
 		   !xfrd_read_check_str(in, "next_timeout:") ||
 		   !xfrd_read_i32(in, &timeout) ||
 		   !xfrd_read_state_soa(in, "soa_nsd_acquired:", "soa_nsd:",
-			&soa_nsd_read, &soa_nsd_acquired_read, tempregion) ||
+			&soa_nsd_read, &soa_nsd_acquired_read) ||
 		   !xfrd_read_state_soa(in, "soa_disk_acquired:", "soa_disk:",
-			&soa_disk_read, &soa_disk_acquired_read, tempregion) ||
+			&soa_disk_read, &soa_disk_acquired_read) ||
 		   !xfrd_read_state_soa(in, "soa_notify_acquired:", "soa_notify:",
-			&soa_notified_read, &soa_notified_acquired_read, tempregion))
+			&soa_notified_read, &soa_notified_acquired_read))
 		{
 			log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
 				statefile, (int)filetime, (int)xfrd_time());
@@ -764,23 +763,6 @@ xfrd_read_state()
 		zone->soa_nsd = soa_nsd_read;
 		zone->soa_disk = soa_disk_read;
 		zone->soa_notified = soa_notified_read;
-		if(soa_nsd_read.prim_ns)
-			zone->soa_nsd.prim_ns = dname_copy(xfrd->region, soa_nsd_read.prim_ns);
-		
-		if(soa_nsd_read.email)
-			zone->soa_nsd.email = dname_copy(xfrd->region, soa_nsd_read.email);
-
-		if(soa_disk_read.prim_ns)
-			zone->soa_disk.prim_ns = dname_copy(xfrd->region, soa_disk_read.prim_ns);
-		
-		if(soa_disk_read.email)
-			zone->soa_disk.email = dname_copy(xfrd->region, soa_disk_read.email);
-		if(soa_notified_read.prim_ns)
-			zone->soa_notified.prim_ns = dname_copy(xfrd->region, soa_notified_read.prim_ns);
-		
-		if(soa_notified_read.email)
-			zone->soa_notified.email = dname_copy(xfrd->region, soa_notified_read.email);
-
 		zone->soa_nsd_acquired = soa_nsd_acquired_read;
 		zone->soa_disk_acquired = soa_disk_acquired_read;
 		zone->soa_notified_acquired = soa_notified_acquired_read;
@@ -828,9 +810,39 @@ neato_timeout(FILE* out, const char* str, uint32_t secs)
 	}
 }
 
+static void xfrd_write_dname(FILE* out, uint8_t* dname)
+{
+	uint8_t* d= dname+1;
+	uint8_t len = *d++;
+	uint8_t i;
+
+	if(dname[0]<=1) {
+		fprintf(out, ".");
+		return;
+	}
+
+	while(len)
+	{
+		assert(d - (dname+1) <= dname[0]);
+		for(i=0; i<len; i++)
+		{
+			uint8_t ch = *d++;
+			if (isalnum(ch) || ch == '-' || ch == '_') {
+				fprintf(out, "%c", ch);
+			} else if (ch == '.' || ch == '\\') {
+				fprintf(out, "\\%c", ch);
+			} else {
+				fprintf(out, "\\%03u", (unsigned int)ch);
+			}
+		}
+		fprintf(out, ".");
+		len = *d++;
+	}
+}
+
 static void 
 xfrd_write_state_soa(FILE* out, const char* id,
-	xfrd_soa_t* soa, time_t soatime, const dname_type* apex)
+	xfrd_soa_t* soa, time_t soatime, const dname_type* ATTR_UNUSED(apex))
 {
 	fprintf(out, "\t%s_acquired: %d", id, (int)soatime);
 	if(!soatime) {
@@ -843,14 +855,10 @@ xfrd_write_state_soa(FILE* out, const char* id,
 	fprintf(out, "\t%s: %d %d %d %d", id, 
 		ntohs(soa->type), ntohs(soa->klass), 
 		ntohl(soa->ttl), ntohs(soa->rdata_count));
-	if(soa->prim_ns == 0) 
-		fprintf(out, " .");
-	else 
-		fprintf(out, " %s", dname_to_string(soa->prim_ns, apex));
-	if(soa->email == 0)
-		fprintf(out, " .");
-	else
-		fprintf(out, " %s", dname_to_string(soa->email, apex));
+	fprintf(out, " ");
+	xfrd_write_dname(out, soa->prim_ns);
+	fprintf(out, " ");
+	xfrd_write_dname(out, soa->email);
 	fprintf(out, " %d", ntohl(soa->serial));
 	fprintf(out, " %d", ntohl(soa->refresh));
 	fprintf(out, " %d", ntohl(soa->retry));

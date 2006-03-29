@@ -83,6 +83,13 @@ const dname_type *dname_make_from_packet(region_type *region,
  */
 const dname_type *dname_parse(region_type *region, const char *name);
 
+/*
+ * parse ascii string to wireformat domain name (without compression ptrs)
+ * returns 0 on failure, the length of the wireformat on success. 
+ * the result is stored in the wirefmt which must be at least MAXDOMAINLEN 
+ * in size. On failure, the wirefmt can be altered.
+ */
+int dname_parse_wire(uint8_t* wirefmt, const char* name);
 
 /*
  * Return NULL if DNAME is NULL or a copy of DNAME otherwise.
