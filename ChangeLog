@@ -12,6 +12,7 @@
 	- xfrd reads all soa info from incoming xfr packets.
 	- xfrd will ignore TC bit on tcp channels.
 	- nsd sends xfrd all soa info, including ttl and dnames.
+	- config file now has an include: filename directive.
 
 28 Mar 2006: Miek
 	- forward port fixes for zone compiler and \r. svn:1926-1927

@@ -28,6 +28,53 @@ void c_error(const char *message);
 #define LEXOUT(s)
 #endif
 
+/* maximum nested include: config files */
+#define MAXINCLUDES 10
+
+struct inc_state {
+	const char* filename;
+	int line;
+};
+static struct inc_state parse_stack[MAXINCLUDES];
+static YY_BUFFER_STATE include_stack[MAXINCLUDES];
+static int config_include_stack_ptr = 0;
+
+static void config_start_include(const char* filename)
+{
+	FILE *input;
+	if(strlen(filename) == 0) {
+		c_error_msg("empty include file name");
+		return;
+	}
+	if(config_include_stack_ptr >= MAXINCLUDES) {
+		c_error_msg("includes nested too deeply, skipped (>%d)", MAXINCLUDES);
+		return;
+	}
+	input = fopen(filename, "r");
+	if(!input) {
+		c_error_msg("cannot open include file '%s': %s",
+			filename, strerror(errno));
+		return;
+	}
+	LEXOUT(("switch_to_include_file(%s) ", filename));
+	parse_stack[config_include_stack_ptr].filename = cfg_parser->filename;
+	parse_stack[config_include_stack_ptr].line = cfg_parser->line;
+	include_stack[config_include_stack_ptr] = YY_CURRENT_BUFFER;
+	cfg_parser->filename = strdup(filename);
+	cfg_parser->line = 1;
+	yy_switch_to_buffer(yy_create_buffer(input, YY_BUF_SIZE));
+	++config_include_stack_ptr;
+}
+
+static void config_end_include(void)
+{
+	--config_include_stack_ptr;
+	cfg_parser->filename = parse_stack[config_include_stack_ptr].filename;
+	cfg_parser->line = parse_stack[config_include_stack_ptr].line;
+	yy_delete_buffer(YY_CURRENT_BUFFER);
+	yy_switch_to_buffer(include_stack[config_include_stack_ptr]);
+}
+
 %}
 
 SPACE   [ \t]
@@ -38,7 +85,7 @@ COMMENT \#
 COLON 	\:
 ANY     [^\"\n\r\\]|\\.
 
-%x	quotedstring
+%x	quotedstring include include_quoted
 
 %%
 {SPACE}* 		{ LEXOUT(("SP ")); /* ignore */ }
@@ -87,6 +134,42 @@ secret{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_SECRET;}
         yytext[yyleng - 1] = '\0';
 	yylval.str = strdup(yytext);
         return STRING;
+}
+
+	/* include: directive */
+include{COLON}		{ LEXOUT(("v(%s) ", yytext)); BEGIN(include); }
+<include><<EOF>>	{
+        yyerror("EOF inside include directive");
+        BEGIN(INITIAL);
+}
+<include>{SPACE}*	{ LEXOUT(("ISP ")); /* ignore */ }
+<include>{NEWLINE}	{ LEXOUT(("NL\n")); cfg_parser->line++;}
+<include>\"		{ LEXOUT(("IQS ")); BEGIN(include_quoted); }
+<include>{UNQUOTEDLETTER}*	{
+	LEXOUT(("Iunquotedstr(%s) ", yytext));
+	config_start_include(yytext);
+	BEGIN(INITIAL);
+}
+<include_quoted><<EOF>>	{
+        yyerror("EOF inside quoted string");
+        BEGIN(INITIAL);
+}
+<include_quoted>{ANY}*	{ LEXOUT(("ISTR(%s) ", yytext)); yymore(); }
+<include_quoted>{NEWLINE}	{ cfg_parser->line++; yymore(); }
+<include_quoted>\"	{
+	LEXOUT(("IQE "));
+	yytext[yyleng - 1] = '\0';
+	config_start_include(yytext);
+	BEGIN(INITIAL);
+}
+<INITIAL><<EOF>>	{
+	yy_set_bol(1); /* Set beginning of line, so "^" rules match.  */
+	if (config_include_stack_ptr == 0) {
+		yyterminate();
+	} else {
+		fclose(yyin);
+		config_end_include();
+	}
 }
 
 {UNQUOTEDLETTER}*	{ LEXOUT(("unquotedstr(%s) ", yytext)); 
