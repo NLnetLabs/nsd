@@ -32,11 +32,11 @@ void c_error(const char *message);
 
 SPACE   [ \t]
 LETTER  [a-zA-Z]
-UNQUOTEDLETTER [^\"\n \t\\]|\\.
-NEWLINE \n
+UNQUOTEDLETTER [^\"\n\r \t\\]|\\.
+NEWLINE [\r\n]
 COMMENT \#
 COLON 	\:
-ANY     [^\"\n\\]|\\.
+ANY     [^\"\n\r\\]|\\.
 
 %x	quotedstring
 

@@ -1,3 +1,6 @@
+29 Mar 2006: Wouter
+	- \r for config lexer. (similar changes to zonelexer).
+
 28 Mar 2006: Miek
 	- forward port fixes for zone compiler and \r. svn:1926-1927
 	- add DO bit MASK and remove the !! construct
