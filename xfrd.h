@@ -72,9 +72,10 @@ struct xfrd_soa {
 	uint32_t ttl;
 	uint16_t rdata_count; /* = 7 */
 	/* format is 1 octet length, + wireformat dname.
+	   one more octet since parse_dname_wire_from_packet needs it.
 	   maximum size is allocated to avoid memory alloc/free. */
-	uint8_t prim_ns[1 + MAXDOMAINLEN];
-	uint8_t email[1 + MAXDOMAINLEN];
+	uint8_t prim_ns[MAXDOMAINLEN + 2];
+	uint8_t email[MAXDOMAINLEN + 2];
 	uint32_t serial;
 	uint32_t refresh;
 	uint32_t retry;

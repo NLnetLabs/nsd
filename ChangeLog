@@ -7,6 +7,10 @@
 	  size buffer.
 	- split up dname_parse into parse from string to wireformat
 	  and parse from wireformat to memoryformat, so both can be called.
+	- split up dname_make_from_packet into reading the wireformat
+	  from the packet and the dname_make, so both can be called.
+	- xfrd reads all soa info from incoming xfr packets.
+	- xfrd will ignore TC bit on tcp channels.
 
 28 Mar 2006: Miek
 	- forward port fixes for zone compiler and \r. svn:1926-1927

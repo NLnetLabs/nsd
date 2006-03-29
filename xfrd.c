@@ -1079,13 +1079,39 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	return fd;
 }
 
+/* call with buffer just after the soa dname. returns 0 on error. */
+static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa)
+{
+	if(!buffer_available(packet, 10))
+		return 0;
+	soa->type = htons(buffer_read_u16(packet));
+	soa->klass = htons(buffer_read_u16(packet));
+	soa->ttl = htonl(buffer_read_u32(packet));
+	if(soa->type != TYPE_SOA || soa->klass != CLASS_IN)
+		return 0;
+
+	if(!buffer_available(packet, buffer_read_u16(packet)) /* rdata length */ ||
+		!(soa->prim_ns[0] = dname_make_wire_from_packet(soa->prim_ns+1, packet, 1)) ||
+		!(soa->email[0] = dname_make_wire_from_packet(soa->email, packet, 1)))
+	{
+		return 0;
+	}
+	soa->serial = htonl(buffer_read_u32(packet));
+	soa->refresh = htonl(buffer_read_u32(packet));
+	soa->retry = htonl(buffer_read_u32(packet));
+	soa->expire = htonl(buffer_read_u32(packet));
+	soa->minimum = htonl(buffer_read_u32(packet));
+
+	return 1;
+}
+
 void 
 xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 {
 	size_t rr_count;
 	size_t qdcount = QDCOUNT(packet);
 	size_t ancount = ANCOUNT(packet);
-	uint32_t new_serial, new_refresh, new_retry, new_expire, new_minimum;
+	xfrd_soa_t soa;
 
 	/* has to be axfr / ixfr reply */
 	if(!buffer_available(packet, QHEADERSZ))
@@ -1122,43 +1148,26 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 
 	/* parse the first RR, see if it is a SOA */
 	if(!packet_skip_dname(packet) ||
-		!buffer_available(packet, 10)  ||
-		buffer_read_u16(packet) != TYPE_SOA ||
-		buffer_read_u16(packet) != CLASS_IN)
+		!xfrd_parse_soa_info(packet, &soa))
 	{
 		log_msg(LOG_ERR, "xfrd: zone %s, from %s: no SOA begins answer section",
 			zone->apex_str, zone->master->ip_address_spec);
 		return;
 	}
-	buffer_skip(packet, sizeof(uint32_t)); /* skip ttl */
-	if(!buffer_available(packet, buffer_read_u16(packet)) ||
-		!packet_skip_dname(packet) /* skip prim_ns */ ||
-		!packet_skip_dname(packet) /* skip email */)
-	{
-		log_msg(LOG_ERR, "xfrd: zone %s, from %s: bad RR in answer section",
-			zone->apex_str, zone->master->ip_address_spec);
-		return;
-	}
-	new_serial = buffer_read_u32(packet);
-	new_refresh = buffer_read_u32(packet);
-	new_retry = buffer_read_u32(packet);
-	new_expire = buffer_read_u32(packet);
-	new_minimum = buffer_read_u32(packet);
 	if(zone->soa_disk_acquired != 0 &&
 		zone->zone_state != xfrd_zone_expired /* if expired - accept anything */ &&
-		compare_serial(ntohl(zone->soa_disk.serial), new_serial) > 0) {
+		compare_serial(ntohl(zone->soa_disk.serial), ntohl(soa.serial)) > 0) {
 		log_msg(LOG_INFO, "xfrd: zone %s ignoring old serial from %s",
 			zone->apex_str, zone->master->ip_address_spec);
 		return;
 	}
-	if(zone->soa_disk_acquired != 0 &&
-		ntohl(zone->soa_disk.serial) == new_serial) {
+	if(zone->soa_disk_acquired != 0 && zone->soa_disk.serial == soa.serial) {
 		log_msg(LOG_INFO, "xfrd: zone %s got update indicating current serial",
 			zone->apex_str);
 		if(zone->soa_notified_acquired == 0) {
 			/* we got a new lease on the SOA */
 			zone->soa_disk_acquired = xfrd_time();
-			if(ntohl(zone->soa_nsd.serial) == new_serial)
+			if(zone->soa_nsd.serial == soa.serial)
 				zone->soa_nsd_acquired = xfrd_time();
 			zone->zone_state = xfrd_zone_ok;
 			log_msg(LOG_INFO, "xfrd: zone %s is ok", zone->apex_str);
@@ -1173,11 +1182,10 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		return;
 	}
 
-	if(TC(packet)) {
+	if(zone->tcp_conn == -1 && TC(packet)) {
 		log_msg(LOG_INFO, "xfrd: zone %s received TC from %s. retry tcp.",
 			zone->apex_str, zone->master->ip_address_spec);
-		if(zone->tcp_conn == -1)
-			xfrd_tcp_obtain(xfrd->tcp_set, zone);
+		xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		return;
 	}
 
@@ -1191,24 +1199,20 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	diff_write_packet(buffer_begin(packet), buffer_limit(packet), 
 		xfrd->nsd->options);
 	log_msg(LOG_INFO, "xfrd: zone %s written %zd received XFR to serial %d from %s to disk",
-		zone->apex_str, buffer_limit(packet), (int)new_serial, 
+		zone->apex_str, buffer_limit(packet), (int)ntohl(soa.serial), 
 		zone->master->ip_address_spec);
 	/* we are completely sure of this */
 	buffer_clear(packet);
 	buffer_printf(packet, "xfrd: zone %s received update to serial %d at time %d from %s",
-		zone->apex_str, (int)new_serial, (int)xfrd_time(), zone->master->ip_address_spec);
+		zone->apex_str, (int)ntohl(soa.serial), (int)xfrd_time(), zone->master->ip_address_spec);
 	buffer_flip(packet);
-	diff_write_commit(zone->apex_str, new_serial, 1, (char*)buffer_begin(packet),
+	diff_write_commit(zone->apex_str, ntohl(soa.serial), 1, (char*)buffer_begin(packet),
 		xfrd->nsd->options);
 	log_msg(LOG_INFO, "xfrd: zone %s committed \"%s\"", zone->apex_str,
 		(char*)buffer_begin(packet));
 	/* update the disk serial no. */
 	zone->soa_disk_acquired = xfrd_time();
-	zone->soa_disk.serial = htonl(new_serial);
-	zone->soa_disk.refresh = htonl(new_refresh);
-	zone->soa_disk.retry = htonl(new_retry);
-	zone->soa_disk.expire = htonl(new_expire);
-	zone->soa_disk.minimum = htonl(new_minimum);
+	zone->soa_disk = soa;
 	zone->zone_state = xfrd_zone_ok;
 	log_msg(LOG_INFO, "xfrd: zone %s is ok", zone->apex_str);
 	xfrd_set_timer_refresh(zone);

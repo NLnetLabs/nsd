@@ -94,6 +94,15 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 		       int allow_pointers, int normalize)
 {
 	uint8_t buf[MAXDOMAINLEN + 1];
+	if(!dname_make_wire_from_packet(buf, packet, allow_pointers))
+		return 0;
+	return dname_make(region, buf, normalize);
+}
+
+int
+dname_make_wire_from_packet(uint8_t *buf, buffer_type *packet,
+                       int allow_pointers)
+{
 	int done = 0;
 	uint8_t visited[(MAX_PACKET_SIZE+7)/8];
 	size_t dname_length = 0;
@@ -105,12 +114,12 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 	while (!done) {
 		if (!buffer_available(packet, 1)) {
 /* 			error("dname out of bounds"); */
-			return NULL;
+			return 0;
 		}
 
 		if (get_bit(visited, buffer_position(packet))) {
 /* 			error("dname loops"); */
-			return NULL;
+			return 0;
 		}
 		set_bit(visited, buffer_position(packet));
 
@@ -118,16 +127,16 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 		if (label_is_pointer(label)) {
 			size_t pointer;
 			if (!allow_pointers) {
-				return NULL;
+				return 0;
 			}
 			if (!buffer_available(packet, 2)) {
 /* 				error("dname pointer out of bounds"); */
-				return NULL;
+				return 0;
 			}
 			pointer = label_pointer_location(label);
 			if (pointer >= buffer_limit(packet)) {
 /* 				error("dname pointer points outside packet"); */
-				return NULL;
+				return 0;
 			}
 			buffer_skip(packet, 2);
 			if (mark == -1) {
@@ -139,17 +148,17 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 			done = label_is_root(label);
 			if (!buffer_available(packet, length)) {
 /* 				error("dname label out of bounds"); */
-				return NULL;
+				return 0;
 			}
 			if (dname_length + length >= sizeof(buf)) {
 /* 				error("dname too large"); */
-				return NULL;
+				return 0;
 			}
 			buffer_read(packet, buf + dname_length, length);
 			dname_length += length;
 		} else {
 /* 			error("bad label type"); */
-			return NULL;
+			return 0;
 		}
 	}
 
@@ -157,7 +166,7 @@ dname_make_from_packet(region_type *region, buffer_type *packet,
 		buffer_set_position(packet, mark);
 	}
 
-	return dname_make(region, buf, normalize);
+	return dname_length;
 }
 
 const dname_type *
