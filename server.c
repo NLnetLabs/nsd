@@ -616,17 +616,29 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 				(int)nsd->pid, strerror(errno));
 		}
 		if(zone->soa_rrset) {
+			const dname_type* dname_ns = domain_dname(
+				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[0]));
+			const dname_type* dname_em = domain_dname(
+				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[1]));
+			uint32_t ttl = htonl(zone->soa_rrset->rrs[0].ttl);
 			assert(zone->soa_rrset->rr_count > 0);
 			assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
 			assert(zone->soa_rrset->rrs[0].rdata_count == 7);
-			if(!write_socket(xfrd_sock, rdata_atom_data(
+			if(!write_socket(xfrd_sock, &ttl, sizeof(uint32_t))
+			   || !write_socket(xfrd_sock, &dname_ns->name_size, sizeof(uint8_t))
+			   || !write_socket(xfrd_sock, dname_name(dname_ns), dname_ns->name_size)
+			   || !write_socket(xfrd_sock, &dname_em->name_size, sizeof(uint8_t))
+			   || !write_socket(xfrd_sock, dname_name(dname_em), dname_em->name_size)
+			   || !write_socket(xfrd_sock, rdata_atom_data(
 				zone->soa_rrset->rrs[0].rdatas[2]), sizeof(uint32_t))
 			   || !write_socket(xfrd_sock, rdata_atom_data(
 				zone->soa_rrset->rrs[0].rdatas[3]), sizeof(uint32_t))
 			   || !write_socket(xfrd_sock, rdata_atom_data(
 				zone->soa_rrset->rrs[0].rdatas[4]), sizeof(uint32_t))
 			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[5]), sizeof(uint32_t)))
+				zone->soa_rrset->rrs[0].rdatas[5]), sizeof(uint32_t))
+			   || !write_socket(xfrd_sock, rdata_atom_data(
+				zone->soa_rrset->rrs[0].rdatas[6]), sizeof(uint32_t)))
 			{
 				log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
 				(int)nsd->pid, strerror(errno));

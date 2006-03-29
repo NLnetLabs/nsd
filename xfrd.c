@@ -232,19 +232,35 @@ static void xfrd_handle_ipc_SOAINFO(buffer_type* packet)
 		return;
 	}
 	buffer_skip(packet, dname_total_size(dname));
-	if(!buffer_available(packet, sizeof(uint32_t)*4)) {
+	if(!buffer_available(packet, sizeof(uint32_t)*6 + sizeof(uint8_t)*2)) {
 		/* NSD has zone without any info */
 		log_msg(LOG_INFO, "SOAINFO for %s lost zone", dname_to_string(dname,0));
 
 		xfrd_handle_incoming_soa(zone, NULL, xfrd_time());
 		return;
 	}
+
 	/* read soa info */
 	memset(&soa, 0, sizeof(soa));
+	/* left out type, klass, count for speed */
+	soa.type = htons(TYPE_SOA);
+	soa.klass = htons(CLASS_IN);
+	soa.ttl = htonl(buffer_read_u32(packet));
+	soa.rdata_count = htons(7);
+	soa.prim_ns[0] = buffer_read_u8(packet);
+	if(!buffer_available(packet, soa.prim_ns[0]))
+		return;
+	buffer_read(packet, soa.prim_ns+1, soa.prim_ns[0]);
+	soa.email[0] = buffer_read_u8(packet);
+	if(!buffer_available(packet, soa.email[0]))
+		return;
+	buffer_read(packet, soa.email+1, soa.email[0]);
+
 	soa.serial = htonl(buffer_read_u32(packet));
 	soa.refresh = htonl(buffer_read_u32(packet));
 	soa.retry = htonl(buffer_read_u32(packet));
 	soa.expire = htonl(buffer_read_u32(packet));
+	soa.minimum = htonl(buffer_read_u32(packet));
 	log_msg(LOG_INFO, "SOAINFO for %s %d", dname_to_string(dname,0),
 		ntohl(soa.serial));
 	xfrd_handle_incoming_soa(zone, &soa, xfrd_time());

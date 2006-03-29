@@ -26,7 +26,7 @@ struct nsd_options;
 #define NSD_SOA_INFO 6 
 /*
  * NSD_SOA_INFO is followed by u16(len in network byte order), dname, 
- * and then nothing (no info) or the serial, refresh, retry, expire.
+ * and then nothing (no info) or soa info.
  */
 
 #define NSD_SERVER_MAIN 0x0U
