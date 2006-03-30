@@ -75,6 +75,13 @@ server. A
 .Ic key: 
 attribute is used to define keys for authentication.
 
+.Pp
+Files can be included using the 
+.Ic include:
+directive. It can appear anywhere, and takes a single filename as an argument.
+Processing continues as if the text from the included file was copied into
+the config file at that point.
+
 .Ss Server Options
 The global options (if not overridden from the NSD commandline) are taken 
 from the 
@@ -198,7 +205,12 @@ The key name. Used to refer to this key in the access control list.
 .It \fBalgorithm:\fR <string>
 Authentication algorithm for this key.
 .It \fBsecret:\fR <base64 blob>
-The base64 encoded shared secret.
+The base64 encoded shared secret. It is possible to put the 
+.Ic secret:
+declaration (and base64 blob) into a different file, and then to
+.Ic include:
+that file. In this way the key secret and the rest of the configuration
+file, which may have different security policies, can be split apart.
 .El
 .Sh NSD CONFIGURATION FOR BIND9 HACKERS
 BIND9 is a name server implementation with its own configuration file format,
