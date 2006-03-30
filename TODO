@@ -22,6 +22,8 @@ SERVER
 (old)- query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
 (old)- change default of --enable-ipv6 to yes.
 - check if close_all_sockets in server.c also needs to close the parent/child sockets.
+- check if after forks you need to close sockets, i.e. if after a loop of reloads/...
+  you start running out of fds.
 
 SECURITY
 
