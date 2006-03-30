@@ -4,6 +4,8 @@
 	- configure checks for strptime in include files.
 	- use %d instead of %zd (sparc5 machine does not get zd).
 	- use region_strdup in configlexer.
+	- added a check for EINVAL in dispatch - will abort
+	  on the error instead of busy hang.
 
 29 Mar 2006: Wouter
 	- \r for config lexer. (similar changes to zonelexer).
