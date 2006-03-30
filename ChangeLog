@@ -1,6 +1,7 @@
 30 Mar 2006: Wouter
 	- include: documented in manual page.
 	- MAXINCLUDES define in one place (config.h).
+	- configure checks for strptime in include files.
 
 29 Mar 2006: Wouter
 	- \r for config lexer. (similar changes to zonelexer).

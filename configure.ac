@@ -203,7 +203,6 @@ if test $ac_cv_c_ctime_c = no; then
 fi
 ])dnl
 
-
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
 AC_CHECK_CTIME_R
@@ -284,6 +283,31 @@ fi
 
 CHECK_VALIST_DEF
 
+AC_DEFUN([AC_CHECK_STRPTIME],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether strptime needs defines)
+AC_CACHE_VAL(ac_cv_c_strptime_needs_defs,
+[
+cat >conftest.c <<EOF
+#include <time.h>
+void testing (void) { struct tm t; char *timestr; strptime(timestr, "%Y%m", &t); }
+EOF
+if test -z "`$CC -Wall -Werror -c conftest.c 2>&1`"; then
+eval "ac_cv_c_strptime_needs_defs=no"
+else
+eval "ac_cv_c_strptime_needs_defs=yes"
+fi
+rm -f conftest*
+])
+
+AC_MSG_RESULT($ac_cv_c_strptime_needs_defs)
+if test $ac_cv_c_strptime_needs_defs = yes; then
+AC_DEFINE_UNQUOTED([STRPTIME_NEEDS_DEFINES], 1, [strptime is available from time.h with some defines.])
+fi
+])dnl
+
+AC_CHECK_STRPTIME
+
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
 
@@ -361,7 +385,7 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose])
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose strptime])
 
 #
 # Checking for missing functions we can replace
@@ -526,7 +550,8 @@ esac
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
-	|| !defined (HAVE_CTIME_R_PROTO)
+	|| !defined (HAVE_CTIME_R_PROTO) \
+	|| defined (STRPTIME_NEEDS_DEFINES)
 #  ifndef _XOPEN_SOURCE
 #    define _XOPEN_SOURCE 600
 #  endif
