@@ -15,7 +15,6 @@
 #define	MAXTOKENSLEN	512		/* Maximum number of tokens per entry */
 #define	B64BUFSIZE	65535		/* Buffer size for b64 conversion */
 #define	ROOT		(const uint8_t *)"\001"
-#define	MAXINCLUDES	10
 
 #define NSEC_WINDOW_COUNT     256
 #define NSEC_WINDOW_BITS_COUNT 256
@@ -29,7 +28,6 @@ struct lex_data {
 };
 
 #define DEFAULT_TTL 3600
-#define MAXINCLUDES 10
 
 /* administration struct */
 typedef struct zparser zparser_type;

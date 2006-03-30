@@ -28,9 +28,6 @@ void c_error(const char *message);
 #define LEXOUT(s)
 #endif
 
-/* maximum nested include: config files */
-#define MAXINCLUDES 10
-
 struct inc_state {
 	const char* filename;
 	int line;

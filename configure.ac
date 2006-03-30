@@ -610,6 +610,11 @@ AH_BOTTOM([
 ])
 
 AH_BOTTOM([
+/* maximum nesting of included files */
+#define MAXINCLUDES 10
+])
+
+AH_BOTTOM([
 #ifndef B64_PTON
 int b64_ntop(uint8_t const *src, size_t srclength,
 	     char *target, size_t targsize);
