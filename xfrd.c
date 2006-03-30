@@ -907,7 +907,7 @@ static void xfrd_write_state()
 	
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
 	fprintf(out, "filetime: %d\t# %s\n", (int)now, ctime(&now));
-	fprintf(out, "numzones: %zd\n", xfrd->zones->count);
+	fprintf(out, "numzones: %d\n", (int)xfrd->zones->count);
 	fprintf(out, "\n");
 	for(p = rbtree_first(xfrd->zones); p && p!=RBTREE_NULL; p=rbtree_next(p))
 	{
@@ -934,7 +934,7 @@ static void xfrd_write_state()
 	}
 
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
-	log_msg(LOG_INFO, "xfrd: written %zd zones to state file", xfrd->zones->count);
+	log_msg(LOG_INFO, "xfrd: written %d zones to state file", (int)xfrd->zones->count);
 	fclose(out);
 }
 
@@ -1214,8 +1214,8 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* dump reply on disk to diff file */
 	diff_write_packet(buffer_begin(packet), buffer_limit(packet), 
 		xfrd->nsd->options);
-	log_msg(LOG_INFO, "xfrd: zone %s written %zd received XFR to serial %d from %s to disk",
-		zone->apex_str, buffer_limit(packet), (int)ntohl(soa.serial), 
+	log_msg(LOG_INFO, "xfrd: zone %s written %d received XFR to serial %d from %s to disk",
+		zone->apex_str, (int)buffer_limit(packet), (int)ntohl(soa.serial), 
 		zone->master->ip_address_spec);
 	/* we are completely sure of this */
 	buffer_clear(packet);

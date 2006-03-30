@@ -2,6 +2,7 @@
 	- include: documented in manual page.
 	- MAXINCLUDES define in one place (config.h).
 	- configure checks for strptime in include files.
+	- use %d instead of %zd (sparc5 machine does not get zd).
 
 29 Mar 2006: Wouter
 	- \r for config lexer. (similar changes to zonelexer).

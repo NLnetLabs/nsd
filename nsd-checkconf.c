@@ -227,8 +227,8 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 		errors ++;
 	}
 	if(errors != 0) {
-		fprintf(stderr, "%s: parse ok %zd zones, %zd keys, but %d semantic errors.\n",
-			filename, opt->numzones, opt->numkeys, errors);
+		fprintf(stderr, "%s: parse ok %d zones, %d keys, but %d semantic errors.\n",
+			filename, (int)opt->numzones, (int)opt->numkeys, errors);
 	}
 	
 	return (errors == 0);
@@ -261,8 +261,8 @@ int main(int argc, char* argv[])
 	if(!parse_options_file(options, configfile) ||
 	   !additional_checks(options, configfile))
 		return 1;
-	printf("# Read file %s: %zd zones, %zd keys.\n", configfile, 
-		options->numzones, options->numkeys);
+	printf("# Read file %s: %d zones, %d keys.\n", configfile, 
+		(int)options->numzones, (int)options->numkeys);
 	if(verbose) {
 		config_test_print_server(options);
 	}
