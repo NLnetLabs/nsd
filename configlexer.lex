@@ -57,7 +57,7 @@ static void config_start_include(const char* filename)
 	parse_stack[config_include_stack_ptr].filename = cfg_parser->filename;
 	parse_stack[config_include_stack_ptr].line = cfg_parser->line;
 	include_stack[config_include_stack_ptr] = YY_CURRENT_BUFFER;
-	cfg_parser->filename = strdup(filename);
+	cfg_parser->filename = region_strdup(cfg_parser->opt->region, filename);
 	cfg_parser->line = 1;
 	yy_switch_to_buffer(yy_create_buffer(input, YY_BUF_SIZE));
 	++config_include_stack_ptr;
@@ -129,7 +129,7 @@ secret{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_SECRET;}
         LEXOUT(("QE "));
         BEGIN(INITIAL);
         yytext[yyleng - 1] = '\0';
-	yylval.str = strdup(yytext);
+	yylval.str = region_strdup(cfg_parser->opt->region, yytext);
         return STRING;
 }
 
@@ -170,6 +170,6 @@ include{COLON}		{ LEXOUT(("v(%s) ", yytext)); BEGIN(include); }
 }
 
 {UNQUOTEDLETTER}*	{ LEXOUT(("unquotedstr(%s) ", yytext)); 
-			yylval.str = strdup(yytext); return STRING; }
+			yylval.str = region_strdup(cfg_parser->opt->region, yytext); return STRING; }
 
 %%
