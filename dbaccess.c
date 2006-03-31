@@ -22,6 +22,7 @@
 #include "dns.h"
 #include "namedb.h"
 #include "util.h"
+#include "options.h"
 
 int
 namedb_lookup(struct namedb    *db,
@@ -230,7 +231,7 @@ read_rrset(namedb_type *db,
 }
 
 struct namedb *
-namedb_open (const char *filename)
+namedb_open (const char *filename, nsd_options_t* opt)
 {
 	namedb_type *db;
 
@@ -338,9 +339,17 @@ namedb_open (const char *filename)
 		zones[i]->soa_rrset = NULL;
 		zones[i]->soa_nx_rrset = NULL;
 		zones[i]->ns_rrset = NULL;
+		zones[i]->opts = zone_options_find(opt, domain_dname(zones[i]->apex));
 		zones[i]->number = i + 1;
 		zones[i]->is_secure = 0;
 		zones[i]->updated = 1;
+		if(!zones[i]->opts) {
+			log_msg(LOG_ERR, "corrupted database/bad config: %s", db->filename);
+			region_destroy(dname_region);
+			region_destroy(temp_region);
+			namedb_close(db);
+			return NULL;
+		}
 
 		region_free_all(dname_region);
 	}

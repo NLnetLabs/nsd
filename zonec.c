@@ -1059,6 +1059,7 @@ process_rr(void)
 			zone->soa_rrset = NULL;
 			zone->soa_nx_rrset = NULL;
 			zone->ns_rrset = NULL;
+			zone->opts = NULL;
 			zone->is_secure = 0;
 			zone->updated = 1;
 
@@ -1352,13 +1353,13 @@ main (int argc, char **argv)
 		if (vflag > 0)
 			fprintf(stderr, "zonec: processed %ld RRs in \"%s\".\n", totalrrs, origin);
 	} else {
+		zone_options_t* zone;
 		if(!nsd_options) {
 			fprintf(stderr, "zonec: no zones specified.\n");
 			exit(1);
 		}
 		/* read all zones */
-		zone_options_t* zone;
-		for(zone = nsd_options->zone_options; zone; zone=zone->next)
+		RBTREE_FOR(zone, zone_options_t*, nsd_options->zone_options)
 		{
 			if (vflag > 0)
 				fprintf(stderr, "zonec: reading zone \"%s\".\n",

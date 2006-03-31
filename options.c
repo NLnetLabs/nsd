@@ -28,8 +28,8 @@ nsd_options_t* nsd_options_create(region_type* region)
 	nsd_options_t* opt;
 	opt = (nsd_options_t*)region_alloc(region, sizeof(nsd_options_t));
 	opt->region = region;
-	opt->zone_options = NULL;
-	opt->numzones = 0;
+	opt->zone_options = rbtree_create(region, 
+		(int (*)(const void *, const void *)) dname_compare);
 	opt->keys = NULL;
 	opt->numkeys = 0;
 	opt->ip_addresses = NULL;
@@ -54,6 +54,18 @@ nsd_options_t* nsd_options_create(region_type* region)
 	return opt;
 }
 
+int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone)
+{
+	/* create dname for lookup */
+	const dname_type* dname = dname_parse(opt->region, zone->name);
+	if(!dname) 
+		return 0;
+	zone->node.key = dname;
+	if(!rbtree_insert(opt->zone_options, (rbnode_t*)zone))
+		return 0;
+	return 1;
+}
+
 int parse_options_file(nsd_options_t* opt, const char* file)
 {
 	FILE *in = 0;
@@ -67,9 +79,7 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	cfg_parser->line = 1;
 	cfg_parser->errors = 0;
 	cfg_parser->opt = opt;
-	cfg_parser->current_zone = opt->zone_options;
-	while(cfg_parser->current_zone && cfg_parser->current_zone->next)
-		cfg_parser->current_zone = cfg_parser->current_zone->next;
+	cfg_parser->current_zone = 0;
 	cfg_parser->current_key = opt->keys;
 	while(cfg_parser->current_key && cfg_parser->current_key->next)
 		cfg_parser->current_key = cfg_parser->current_key->next;
@@ -90,24 +100,37 @@ int parse_options_file(nsd_options_t* opt, const char* file)
         c_parse();
 	fclose(in);
 
-	if(opt->zone_options) {
-		if(!opt->zone_options->name) c_error("last zone has no name");
-		if(!opt->zone_options->zonefile) c_error("last zone has no zonefile");
+	if(cfg_parser->current_zone) {
+		if(!cfg_parser->current_zone->name) 
+			c_error("last zone has no name");
+		else {
+			if(!nsd_options_insert_zone(opt, 
+				cfg_parser->current_zone))
+				c_error("duplicate zone");
+		}
+		if(!cfg_parser->current_zone->zonefile) 
+			c_error("last zone has no zonefile");
 	}
 	if(opt->keys)
 	{
-		if(!opt->keys->name) c_error("last key has no name");
-		if(!opt->keys->algorithm) c_error("last key has no algorithm");
-		if(!opt->keys->secret) c_error("last key has no secret blob");
+		if(!opt->keys->name) 
+			c_error("last key has no name");
+		if(!opt->keys->algorithm) 
+			c_error("last key has no algorithm");
+		if(!opt->keys->secret) 
+			c_error("last key has no secret blob");
 	}
-	for(zone=opt->zone_options; zone; zone=zone->next)
+	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 	{
-		if(!zone->name) continue;
-		if(!zone->zonefile) continue;
+		if(!zone->name) 
+			continue;
+		if(!zone->zonefile) 
+			continue;
 		/* lookup keys for acls */
 		for(acl=zone->allow_notify; acl; acl=acl->next)
 		{
-			if(acl->nokey || acl->blocked) continue;
+			if(acl->nokey || acl->blocked) 
+				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
 			if(!acl->key_options) 
 				c_error_msg("key %s in zone %s could not be found",
@@ -115,7 +138,8 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 		}
 		for(acl=zone->notify; acl; acl=acl->next)
 		{
-			if(acl->nokey || acl->blocked) continue;
+			if(acl->nokey || acl->blocked) 
+				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
 			if(!acl->key_options) 
 				c_error_msg("key %s in zone %s could not be found",
@@ -123,7 +147,8 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 		}
 		for(acl=zone->request_xfr; acl; acl=acl->next)
 		{
-			if(acl->nokey || acl->blocked) continue;
+			if(acl->nokey || acl->blocked) 
+				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
 			if(!acl->key_options) 
 				c_error_msg("key %s in zone %s could not be found",
@@ -131,7 +156,8 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 		}
 		for(acl=zone->provide_xfr; acl; acl=acl->next)
 		{
-			if(acl->nokey || acl->blocked) continue;
+			if(acl->nokey || acl->blocked) 
+				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
 			if(!acl->key_options) 
 				c_error_msg("key %s in zone %s could not be found",
@@ -182,7 +208,7 @@ zone_options_t* zone_options_create(region_type* region)
 {
 	zone_options_t* zone;
 	zone = (zone_options_t*)region_alloc(region, sizeof(zone_options_t));
-	zone->next = 0;
+	zone->node = *RBTREE_NULL;
 	zone->name = 0;
 	zone->zonefile = 0;
 	zone->allow_notify = 0;
@@ -207,7 +233,8 @@ key_options_t* key_options_find(nsd_options_t* opt, const char* name)
 {
 	key_options_t* key = opt->keys;
 	while(key) {
-		if(strcmp(key->name, name)==0) return key;
+		if(strcmp(key->name, name)==0) 
+			return key;
 		key = key->next;
 	}
 	return 0;
@@ -223,7 +250,8 @@ int acl_check_incoming(acl_options_t* acl, struct query* q)
 	while(acl)
 	{
 		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
-			if(acl->blocked) return 0;
+			if(acl->blocked) 
+				return 0;
 			found_match=1;
 		}
 		acl = acl->next;
@@ -238,8 +266,10 @@ int acl_addr_matches(acl_options_t* acl, struct query* q)
 #ifdef INET6
 		struct sockaddr_storage* addr_storage = (struct sockaddr_storage*)&q->addr;
 		struct sockaddr_in6* addr = (struct sockaddr_in6*)&q->addr;
-		if(addr_storage->ss_family != AF_INET6) return 0;
-		if(acl->port != 0 && acl->port != addr->sin6_port) return 0;
+		if(addr_storage->ss_family != AF_INET6) 
+			return 0;
+		if(acl->port != 0 && acl->port != addr->sin6_port) 
+			return 0;
 		switch(acl->rangetype) {
 		case acl_range_mask:
 		case acl_range_subnet:
@@ -267,8 +297,10 @@ int acl_addr_matches(acl_options_t* acl, struct query* q)
 	else
 	{
 		struct sockaddr_in* addr = (struct sockaddr_in*)&q->addr;
-		if(addr->sin_family != AF_INET) return 0;
-		if(acl->port != 0 && acl->port != addr->sin_port) return 0;
+		if(addr->sin_family != AF_INET) 
+			return 0;
+		if(acl->port != 0 && acl->port != addr->sin_port) 
+			return 0;
 		switch(acl->rangetype) {
 		case acl_range_mask:
 		case acl_range_subnet:
@@ -323,9 +355,11 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 	{
 		/* if outside bounds, we are done */
 		if(checkmin)
-			if(minval[i] > x[i]) return 0;
+			if(minval[i] > x[i]) 
+				return 0;
 		if(checkmax)
-			if(maxval[i] < x[i]) return 0;
+			if(maxval[i] < x[i]) 
+				return 0;
 		/* if x is equal to a bound, that bound needs further checks */
 		if(checkmin && minval[i]!=x[i])
 			checkmin = 0;
@@ -339,9 +373,11 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 
 int acl_key_matches(acl_options_t* acl, struct query* ATTR_UNUSED(q))
 {
-	if(acl->nokey) return 1;
-	if(acl->blocked) return 1;
-	/* no tsig yet */
+	if(acl->nokey) 
+		return 1;
+	if(acl->blocked) 
+		return 1;
+	/* no tsig yet TODO */
 	return 0;
 }
 
@@ -378,4 +414,9 @@ void key_options_tsig_add(nsd_options_t* opt)
 int zone_is_slave(zone_options_t* opt)
 {
 	return opt->request_xfr != 0;
+}
+
+zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex)
+{
+	return (zone_options_t*) rbtree_search(opt->zone_options, apex);
 }

@@ -124,12 +124,15 @@ NSD_XFER_OBJECTS	=			\
 	answer.o				\
 	axfr.o					\
 	buffer.o				\
+	configlexer.o                           \
+	configparser.o                          \
 	dbaccess.o				\
 	dname.o					\
 	dns.o					\
 	edns.o					\
 	namedb.o				\
 	nsd-xfer.o				\
+	options.o				\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
@@ -346,11 +349,11 @@ axfr.o: axfr.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h
 buffer.o: buffer.c config.h buffer.h region-allocator.h util.h
 configlexer.o: configlexer.c configyyrename.h config.h options.h \
-  region-allocator.h configparser.h
+  region-allocator.h rbtree.h configparser.h
 configparser.o: configparser.c config.h options.h region-allocator.h \
-  configyyrename.h
+  rbtree.h configyyrename.h
 dbaccess.o: dbaccess.c config.h dns.h namedb.h dname.h buffer.h \
-  region-allocator.h util.h rbtree.h
+  region-allocator.h util.h rbtree.h options.h
 dbcreate.o: dbcreate.c config.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h
 difffile.o: difffile.c config.h difffile.h rbtree.h region-allocator.h \
@@ -367,14 +370,14 @@ nsd.o: nsd.c config.h nsd.h dns.h edns.h buffer.h region-allocator.h \
   util.h plugins.h nsd-plugin.h query.h namedb.h dname.h rbtree.h \
   packet.h options.h
 nsd-checkconf.o: nsd-checkconf.c config.h options.h region-allocator.h \
-  util.h dname.h buffer.h
+  rbtree.h util.h dname.h buffer.h
 nsd-notify.o: nsd-notify.c config.h query.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h nsd.h edns.h packet.h
 nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
   util.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h rdata.h \
   tsig.h tsig-openssl.h zonec.h
-options.o: options.c config.h options.h region-allocator.h query.h \
-  namedb.h dname.h buffer.h util.h dns.h rbtree.h nsd.h edns.h packet.h \
+options.o: options.c config.h options.h region-allocator.h rbtree.h \
+  query.h namedb.h dname.h buffer.h util.h dns.h nsd.h edns.h packet.h \
   tsig.h configyyrename.h configparser.h
 packet.o: packet.c config.h packet.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h query.h nsd.h edns.h rdata.h
@@ -383,7 +386,7 @@ plugins.o: plugins.c config.h nsd.h dns.h edns.h buffer.h \
   dname.h rbtree.h packet.h
 query.o: query.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h axfr.h \
-  plugins.h nsd-plugin.h
+  plugins.h nsd-plugin.h options.h
 rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h zonec.h
@@ -418,7 +421,7 @@ snprintf.o: compat/snprintf.c config.h
 CuTest.o: tpkg/cutest/CuTest.c tpkg/cutest/CuTest.h
 cutest_options.o: tpkg/cutest/cutest_options.c config.h \
   tpkg/cutest/CuTest.h region-allocator.h options.h config.h \
-  region-allocator.h
+  region-allocator.h rbtree.h
 cutest_rbtree.o: tpkg/cutest/cutest_rbtree.c config.h \
   tpkg/cutest/CuTest.h region-allocator.h rbtree.h region-allocator.h
 cutest_run.o: tpkg/cutest/cutest_run.c config.h tpkg/cutest/CuTest.h

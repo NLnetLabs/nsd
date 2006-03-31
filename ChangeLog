@@ -1,3 +1,11 @@
+31 Mar 2006: Wouter
+	- zone type has a pointer to zone options.
+	- nsd options has an rbtree to find zone options in.
+	- nsd checks acl for incoming notifies and replies
+	  error or confirmation.
+	- nicer layout in options.c.
+	- updated makefile dependencies.
+
 30 Mar 2006: Wouter
 	- include: documented in manual page.
 	- MAXINCLUDES define in one place (config.h).

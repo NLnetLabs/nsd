@@ -411,7 +411,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 }
 
 static zone_type* 
-find_zone(namedb_type* db, const dname_type* zone_name)
+find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
 {
 	domain_type *domain;
 	zone_type* zone;
@@ -429,6 +429,12 @@ find_zone(namedb_type* db, const dname_type* zone_name)
 		zone->soa_rrset = 0;
 		zone->soa_nx_rrset = 0;
 		zone->ns_rrset = 0;
+		zone->opts = zone_options_find(opt, domain_dname(zone->apex)); 
+		if(!zone->opts) {
+			log_msg(LOG_ERR, "xfr: zone %s not in config.",
+				dname_to_string(zone_name,0));
+			return 0;
+		}
 		zone->number = db->zone_count;
 		zone->is_secure = 0;
 		zone->updated = 1;
@@ -470,7 +476,8 @@ delete_zone_rrs(zone_type* zone)
 
 static int 
 apply_ixfr(namedb_type* db, FILE *in,
-	const fpos_t* startpos, const char* zone, uint32_t serialno)
+	const fpos_t* startpos, const char* zone, uint32_t serialno,
+	nsd_options_t* opt)
 {
 	int delete_mode;
 	int is_axfr;
@@ -507,7 +514,7 @@ apply_ixfr(namedb_type* db, FILE *in,
 	}
 	packet = buffer_create(region, QIOBUFSZ);
 	dname_zone = dname_parse(region, zone);
-	zone_db = find_zone(db, dname_zone);
+	zone_db = find_zone(db, dname_zone, opt);
 	if(!zone_db) {
 		log_msg(LOG_ERR, "no zone exists");
 		return 0;
@@ -632,7 +639,7 @@ static fpos_t last_ixfr_pos;
 static int saw_ixfr = 0;
 
 static int 
-read_sure_part(namedb_type* db, FILE *in)
+read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
 {
 	char zone_buf[512];
 	char log_buf[5120];
@@ -661,7 +668,7 @@ read_sure_part(namedb_type* db, FILE *in)
 	if(committed)
 	{
 		log_msg(LOG_INFO, "processing xfr: %s", log_buf);
-		if(!apply_ixfr(db, in, &last_ixfr_pos, zone_buf, serial)) {
+		if(!apply_ixfr(db, in, &last_ixfr_pos, zone_buf, serial, opt)) {
 			log_msg(LOG_ERR, "bad ixfr packet");
 		}
 	}
@@ -676,7 +683,8 @@ read_sure_part(namedb_type* db, FILE *in)
 }
 
 static int 
-read_process_part(namedb_type* db, FILE *in, uint32_t type)
+read_process_part(namedb_type* db, FILE *in, uint32_t type,
+	nsd_options_t* opt)
 {
 	uint32_t len, len2;
 	fpos_t startpos;
@@ -696,7 +704,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type)
 	}
 	else if(type == DIFF_PART_SURE) {
 		log_msg(LOG_INFO, "part SURE len %d", len);
-		if(!read_sure_part(db, in)) 
+		if(!read_sure_part(db, in, opt)) 
 			return 0;
 	}
 	else log_msg(LOG_INFO, "unknown part %x len %d", type, len);
@@ -733,7 +741,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 	while(read_32(df, &type)) 
 	{
 		log_msg(LOG_INFO, "iter loop");
-		if(!read_process_part(db, df, type))
+		if(!read_process_part(db, df, type, opt))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
 			return 0;

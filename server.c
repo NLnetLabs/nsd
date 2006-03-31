@@ -412,7 +412,7 @@ server_init(struct nsd *nsd)
 	}
 
 	/* Open the database... */
-	if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
 		return -1;
 	}
 	if(!diff_read_file(nsd->db, nsd->options))
@@ -549,7 +549,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	} else {
 		log_msg(LOG_INFO, "CRC different. reread of %s.", nsd->db->filename);
 		namedb_close(nsd->db);
-		if ((nsd->db = namedb_open(nsd->dbfile)) == NULL) {
+		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
 			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 			exit(1);
 		}

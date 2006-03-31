@@ -208,15 +208,17 @@ zonestart: VAR_ZONE
 	{ 
 		OUTYY(("\nP(zone:)\n")); 
 		if(cfg_parser->current_zone) {
-			if(!cfg_parser->current_zone->name) c_error("previous zone has no name");
-			if(!cfg_parser->current_zone->zonefile) c_error("previous zone has no zonefile");
-			cfg_parser->current_zone->next = zone_options_create(cfg_parser->opt->region);
-			cfg_parser->current_zone = cfg_parser->current_zone->next;
-		} else {
-			cfg_parser->current_zone = zone_options_create(cfg_parser->opt->region);
-			cfg_parser->opt->zone_options = cfg_parser->current_zone;
+			if(!cfg_parser->current_zone->name) 
+				c_error("previous zone has no name");
+			else {
+				if(!nsd_options_insert_zone(cfg_parser->opt, 
+					cfg_parser->current_zone))
+					c_error("duplicate zone");
+			}
+			if(!cfg_parser->current_zone->zonefile) 
+				c_error("previous zone has no zonefile");
 		}
-		cfg_parser->opt->numzones++;
+		cfg_parser->current_zone = zone_options_create(cfg_parser->opt->region);
 		cfg_parser->current_allow_notify = 0;
 		cfg_parser->current_request_xfr = 0;
 		cfg_parser->current_notify = 0;

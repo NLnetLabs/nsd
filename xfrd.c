@@ -280,8 +280,7 @@ xfrd_init_zones()
 	xfrd->zones = rbtree_create(xfrd->region, 
 		(int (*)(const void *, const void *)) dname_compare);
 	
-	for(zone_opt = xfrd->nsd->options->zone_options; 
-		zone_opt; zone_opt=zone_opt->next)
+	RBTREE_FOR(zone_opt, zone_options_t*, xfrd->nsd->options->zone_options)
 	{
 		log_msg(LOG_INFO, "Zone %s\n", zone_opt->name);
 		if(!zone_is_slave(zone_opt)) {

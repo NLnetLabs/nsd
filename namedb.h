@@ -15,6 +15,8 @@
 #include "dname.h"
 #include "dns.h"
 #include "rbtree.h"
+struct zone_options;
+struct nsd_options;
 
 #define	NAMEDB_MAGIC		"NSDdbV07"
 #define	NAMEDB_MAGIC_SIZE	8
@@ -62,6 +64,7 @@ struct zone
 	rrset_type  *soa_rrset;
 	rrset_type  *soa_nx_rrset; /* see bug #103 */
 	rrset_type  *ns_rrset;
+	struct zone_options *opts;
 	uint32_t     number;
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     updated : 1; /* zone SOA was updated */
@@ -253,7 +256,7 @@ int namedb_lookup (struct namedb    *db,
 		   const dname_type *dname,
 		   domain_type     **closest_match,
 		   domain_type     **closest_encloser);
-struct namedb *namedb_open(const char *filename);
+struct namedb *namedb_open(const char *filename, struct nsd_options* opt);
 void namedb_close(struct namedb *db);
 
 static inline int

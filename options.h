@@ -13,7 +13,9 @@
 #include <config.h>
 #include <stdarg.h>
 #include "region-allocator.h"
+#include "rbtree.h"
 struct query;
+struct dname;
 
 typedef struct nsd_options nsd_options_t;
 typedef struct zone_options zone_options_t;
@@ -25,9 +27,8 @@ typedef struct config_parser_state config_parser_state_t;
  * Options global for nsd.
  */
 struct nsd_options {
-	/* options for zones, linked list of zones*/
-	zone_options_t* zone_options;
-	size_t numzones;
+	/* options for zones, by apex, contains zone_options_t */
+	rbtree_t* zone_options;
 
 	/* list of keys defined */
 	key_options_t* keys;
@@ -65,7 +66,9 @@ struct ipaddress_option {
  * Options for a zone
  */
 struct zone_options {
-	zone_options_t* next;
+	/* key is dname of apex */
+	rbnode_t node;
+
 	/* is apex of the zone */
 	const char* name;
 	const char* zonefile;
@@ -141,10 +144,17 @@ extern config_parser_state_t* cfg_parser;
 
 /* region will be put in nsd_options struct. Returns empty options struct. */
 nsd_options_t* nsd_options_create(region_type* region);
+/* the number of zones that are configured */
+static inline size_t nsd_options_num_zones(nsd_options_t* opt)
+{ return opt->zone_options->count; }
+/* insert a zone into the main options tree, returns 0 on error */
+int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone);
 
 /* parses options file. Returns false on failure */
 int parse_options_file(nsd_options_t* opt, const char* file);
 zone_options_t* zone_options_create(region_type* region);
+/* find a zone by apex domain name, or NULL if not found. */
+zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex);
 key_options_t* key_options_create(region_type* region);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
 /* tsig must be inited, adds all keys in options to tsig. */

@@ -66,4 +66,11 @@ rbnode_t *rbtree_previous(rbnode_t *rbtree);
 		(rbtree)->_node != RBTREE_NULL && ((k) = (rbtree)->_node->key) && \
 		((d) = (void *) (rbtree)->_node); (rbtree)->_node = rbtree_next((rbtree)->_node))
 
+/* call with node=variable of struct* with rbnode_t as first element.
+   with type is the type of a pointer to that struct. */
+#define RBTREE_FOR(node, type, rbtree) \
+	for(node=(type)rbtree_first(rbtree); \
+		(rbnode_t*)node != RBTREE_NULL; \
+		node = (type)rbtree_next((rbnode_t*)node))
+
 #endif /* _RBTREE_H_ */

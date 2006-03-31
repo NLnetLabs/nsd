@@ -35,6 +35,7 @@
 #include "plugins.h"
 #include "query.h"
 #include "util.h"
+#include "options.h"
 
 static int add_rrset(struct query  *query,
 		     answer_type    *answer,
@@ -311,28 +312,35 @@ process_edns(struct query *q)
 }
 
 /*
- * Log notifies and return an RCODE_IMPL error to the client.
- *
- * XXX: erik: Is this the right way to handle notifies?
+ * Check notify acl and forward to xfrd (or return an error).
  */
 static query_state_type
-answer_notify (struct query *query)
+answer_notify (struct nsd* nsd, struct query *query)
 {
-	char namebuf[BUFSIZ];
+	zone_options_t* zone_opt;
+	log_msg(LOG_INFO, "got notify %s, processing acl",
+		dname_to_string(query->qname, NULL));
 
-	if (getnameinfo((struct sockaddr *) &(query->addr),
-			query->addrlen, namebuf, sizeof(namebuf), 
-			NULL, 0, NI_NUMERICHOST)
-	    != 0)
+	zone_opt = zone_options_find(nsd->options, query->qname);
+	if(!zone_opt) 
+		return query_error(query, NSD_RC_NXDOMAIN);
+	
+	/* check if it passes acl */
+	if(acl_check_incoming(zone_opt->allow_notify, query))
 	{
-		log_msg(LOG_INFO, "notify for %s from unknown remote address",
+		log_msg(LOG_INFO, "got notify %s, passed acl",
 			dname_to_string(query->qname, NULL));
-	} else {
-		log_msg(LOG_INFO, "notify for %s from %s",
-			dname_to_string(query->qname, NULL), namebuf);
-	}
+		/* TODO forward to xfrd */
 
-	return query_error(query, NSD_RC_IMPL);
+		/* create notify reply - keep same query contents */
+		QR_SET(query->packet);         /* This is an answer.  */
+		AA_SET(query->packet);	   /* we are authoritative. */
+		RCODE_SET(query->packet, RCODE_OK); /* Error code.  */
+		return QUERY_PROCESSED;
+	}
+	log_msg(LOG_INFO, "got notify %s, refused acl",
+		dname_to_string(query->qname, NULL));
+	return query_error(query, NSD_RC_NOTAUTH);
 }
 
 
@@ -914,7 +922,7 @@ query_process(query_type *q, nsd_type *nsd)
 
 	if (q->opcode != OPCODE_QUERY) {
 		if (q->opcode == OPCODE_NOTIFY) {
-			return answer_notify(q);
+			return answer_notify(nsd, q);
 		} else {
 			return query_error(q, NSD_RC_IMPL);
 		}

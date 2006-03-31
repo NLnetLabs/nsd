@@ -106,7 +106,7 @@ void config_test_print_server(nsd_options_t* opt)
 		print_string_var("algorithm:", key->algorithm);
 		print_string_var("secret:", key->secret);
 	}
-	for(zone = opt->zone_options; zone; zone=zone->next)
+	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 	{
 		printf("\nzone:\n");
 		print_string_var("name:", zone->name);
@@ -135,7 +135,7 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 		errors ++;
 	}
 
-	for(zone = opt->zone_options; zone; zone=zone->next)
+	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 	{
 		const dname_type* dname = dname_parse(opt->region, zone->name); /* memory leak. */
 		if(!dname) {
@@ -228,7 +228,8 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 	}
 	if(errors != 0) {
 		fprintf(stderr, "%s: parse ok %d zones, %d keys, but %d semantic errors.\n",
-			filename, (int)opt->numzones, (int)opt->numkeys, errors);
+			filename, (int)nsd_options_num_zones(opt), 
+			(int)opt->numkeys, errors);
 	}
 	
 	return (errors == 0);
@@ -262,7 +263,8 @@ int main(int argc, char* argv[])
 	   !additional_checks(options, configfile))
 		return 1;
 	printf("# Read file %s: %d zones, %d keys.\n", configfile, 
-		(int)options->numzones, (int)options->numkeys);
+		(int)nsd_options_num_zones(options), 
+		(int)options->numkeys);
 	if(verbose) {
 		config_test_print_server(options);
 	}
