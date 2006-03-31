@@ -116,6 +116,20 @@ struct tcp_handler_data
 };
 
 /*
+ * Data for the server_main IPC handler.
+ */
+struct main_ipc_handler_data
+{
+	struct nsd	*nsd;
+	/* pointer to the socket, as it may change if restarted */
+	int		*xfrd_sock;
+	buffer_type	*packet;
+	int		forward_mode;
+	size_t		got_bytes;
+	uint32_t	total_bytes;
+};
+
+/*
  * Handle incoming queries on the UDP server sockets.
  */
 static void handle_udp(netio_type *netio,
@@ -597,14 +611,21 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* inform xfrd of new SOAs */
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		uint16_t sz;
+		const dname_type *dname_ns=0, *dname_em=0;
 		if(zone->updated == 0)
 			continue;
 		log_msg(LOG_INFO, "nsd: sending soa info for zone %s",
 			dname_to_string(domain_dname(zone->apex),0));
 		cmd = NSD_SOA_INFO;
 		sz = dname_total_size(domain_dname(zone->apex));
-		if(zone->soa_rrset) 
-			sz += sizeof(uint32_t)*4;
+		if(zone->soa_rrset) {
+			dname_ns = domain_dname(
+				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[0]));
+			dname_em = domain_dname(
+				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[1]));
+			sz += sizeof(uint32_t)*6 + sizeof(uint8_t)*2
+				+ dname_ns->name_size + dname_em->name_size;
+		}
 		sz = htons(sz);
 		/* use blocking writes */
 		if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd)) ||
@@ -616,10 +637,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 				(int)nsd->pid, strerror(errno));
 		}
 		if(zone->soa_rrset) {
-			const dname_type* dname_ns = domain_dname(
-				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[0]));
-			const dname_type* dname_em = domain_dname(
-				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[1]));
+			assert(dname_ns && dname_em);
 			uint32_t ttl = htonl(zone->soa_rrset->rrs[0].ttl);
 			assert(zone->soa_rrset->rr_count > 0);
 			assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
@@ -705,6 +723,7 @@ server_main(struct nsd *nsd)
 	pid_t reload_pid = -1;
 	pid_t xfrd_pid = -1;
 	sig_atomic_t mode;
+	struct main_ipc_handler_data ipc_data = {nsd, &xfrd_listener.fd, 0, 0, 0, 0};
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
@@ -717,6 +736,7 @@ server_main(struct nsd *nsd)
 	}
 	reload_listener.fd = -1;
 	assert(nsd->this_child == 0);
+	ipc_data.packet = buffer_create(server_region, QIOBUFSZ);
 
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
 
@@ -1612,11 +1632,59 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 {
 	sig_atomic_t mode;
 	int len;
-	nsd_type *nsd = (nsd_type *) handler->user_data;
+	struct main_ipc_handler_data *data = 
+		(struct main_ipc_handler_data*)handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
 
+	if (data->forward_mode) {
+		/* forward the data to xfrd */
+		if(data->got_bytes < sizeof(uint32_t))
+		{
+			if ((len = read(handler->fd, 
+				(char*)&data->total_bytes+data->got_bytes, 
+				sizeof(uint32_t)-data->got_bytes)) == -1) {
+				log_msg(LOG_ERR, "handle_child_command: read: %s",
+					strerror(errno));
+				return;
+			}
+			if(len == 0) {
+				/* EOF */
+				data->forward_mode = 0;
+				return;
+			}
+			data->got_bytes += len;
+			if(data->got_bytes < sizeof(uint32_t))
+				return;
+			data->total_bytes = ntohl(data->total_bytes);
+			buffer_clear(data->packet);
+			return;
+		}
+		/* read the rest */
+		if((len = read(handler->fd, buffer_begin(data->packet),
+			data->total_bytes - (data->got_bytes-sizeof(uint32_t))
+			)) == -1 ) {
+			log_msg(LOG_ERR, "handle_child_command: read: %s",
+				strerror(errno));
+			return;
+		}
+		if(len == 0) {
+			/* EOF */
+			data->forward_mode = 0;
+			return;
+		}
+		if(!write_socket(*data->xfrd_sock, buffer_begin(data->packet), len)) {
+			log_msg(LOG_ERR, "error in ipc fwd main2xfrd: %s",
+				strerror(errno));
+		}
+		data->got_bytes += len;
+		if(data->got_bytes-sizeof(uint32_t) >= data->total_bytes)
+			data->forward_mode = 0;
+		return;
+	}
+
+	/* read command from ipc */
 	if ((len = read(handler->fd, &mode, sizeof(mode))) == -1) {
 		log_msg(LOG_ERR, "handle_child_command: read: %s",
 			strerror(errno));
@@ -1626,11 +1694,11 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 	{
 		size_t i;
 		if(handler->fd > 0) close(handler->fd);
-		for(i=0; i<nsd->child_count; ++i)
-			if(nsd->children[i].child_fd == handler->fd) {
-				nsd->children[i].child_fd = -1;
+		for(i=0; i<data->nsd->child_count; ++i)
+			if(data->nsd->children[i].child_fd == handler->fd) {
+				data->nsd->children[i].child_fd = -1;
 				log_msg(LOG_ERR, "server %d closed cmd channel",
-					(int) nsd->children[i].pid);
+					(int) data->nsd->children[i].pid);
 			}
 		handler->fd = -1;
 		return;
@@ -1640,7 +1708,17 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_STATS: 
 	case NSD_QUIT:
 	case NSD_REAP_CHILDREN:
-		nsd->mode = mode;
+		data->nsd->mode = mode;
+		break;
+	case NSD_PASS_TO_XFRD:
+		/* set mode for handle_child_command; echo to xfrd. */
+		data->forward_mode = 1;
+		data->got_bytes = 0;
+		data->total_bytes = 0;
+		if(!write_socket(*data->xfrd_sock, &mode, sizeof(mode))) {
+			log_msg(LOG_ERR, "IPC error parent->xfrd: %s",
+				strerror(errno));
+		}
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_child_command: bad mode %d",

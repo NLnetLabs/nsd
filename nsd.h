@@ -17,17 +17,24 @@
 struct netio_handler;
 struct nsd_options;
 
+/* The NSD runtime states and NSD ipc command values */
 #define	NSD_RUN	0
 #define	NSD_RELOAD 1
 #define	NSD_SHUTDOWN 2
 #define	NSD_STATS 3
 #define	NSD_REAP_CHILDREN 4
 #define	NSD_QUIT 5
-#define NSD_SOA_INFO 6 
 /*
  * NSD_SOA_INFO is followed by u16(len in network byte order), dname, 
  * and then nothing (no info) or soa info.
  */
+#define NSD_SOA_INFO 6 
+/* 
+ * PASS_TO_XFRD is followed by the u32(len in network order) and 
+ * then network packet contents.  packet is a notify(acl checked), or 
+ * xfr reply from a master(acl checked).
+ */
+#define NSD_PASS_TO_XFRD 7
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U

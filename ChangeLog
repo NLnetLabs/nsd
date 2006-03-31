@@ -5,6 +5,8 @@
 	  error or confirmation.
 	- nicer layout in options.c.
 	- updated makefile dependencies.
+	- fixed sz for SOA_INFO ipc, which was too small.
+	- notify is sent to server_main, server_main sends it to xfrd.
 
 30 Mar 2006: Wouter
 	- include: documented in manual page.

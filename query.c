@@ -325,12 +325,26 @@ answer_notify (struct nsd* nsd, struct query *query)
 	if(!zone_opt) 
 		return query_error(query, NSD_RC_NXDOMAIN);
 	
+	if(!nsd->this_child) /* we are in debug more or something */
+		return query_error(query, NSD_RC_SERVFAIL);
+	
 	/* check if it passes acl */
 	if(acl_check_incoming(zone_opt->allow_notify, query))
 	{
+		int s = nsd->this_child->parent_fd;
+		uint32_t sz = buffer_limit(query->packet);
 		log_msg(LOG_INFO, "got notify %s, passed acl",
 			dname_to_string(query->qname, NULL));
-		/* TODO forward to xfrd */
+		/* forward to xfrd for processing
+		   Note. Blocking IPC I/O, but acl is OK. */
+		sz = htonl(sz);
+		if(!write_socket(s, &sz, sizeof(sz)) ||
+			!write_socket(s, buffer_begin(query->packet),
+				buffer_limit(query->packet))) {
+			log_msg(LOG_ERR, "error in IPC notify server2main, %s",
+				strerror(errno));
+			return query_error(query, NSD_RC_SERVFAIL);
+		}
 
 		/* create notify reply - keep same query contents */
 		QR_SET(query->packet);         /* This is an answer.  */
