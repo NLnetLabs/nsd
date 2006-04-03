@@ -405,6 +405,13 @@ A sample output of a slightly modified version:
 
 The access list for AXFR should be set with provide-xfr:
 in the nsd config file. This is per zone. See nsd.conf(5).
+For example to grant zone 'example.com' AXFR right to localhost for
+IPv4 and IPv6, use the below config options.
+
+zone:
+	name: "example.com"
+	provide-xfr: 127.0.0.1 NOKEY
+	provide-xfr: ::1 NOKEY
 
 3.3 Keeping in sync the secondary zones with ``nsdc update''
 
