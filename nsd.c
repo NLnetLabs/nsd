@@ -236,43 +236,6 @@ bind8_stats (struct nsd *nsd)
 	char *msg, *t;
 	int i, len;
 
-	/* XXX A bit ugly but efficient. Should be somewhere else. */
-	static const char *types[] = {
-		NULL, "A", "NS", "MD", "MF", "CNAME", "SOA", "MB", "MG",		/* 8 */
-		"MR", "NULL", "WKS", "PTR", "HINFO", "MINFO", "MX", "TXT",		/* 16 */
-		"RP", "AFSDB", "X25", "ISDN", "RT", "NSAP", "NSAP_PTR", "SIG",		/* 24 */
-		"KEY", "PX", "GPOS", "AAAA", "LOC", "NXT", "EID", "NIMLOC",		/* 32 */
-		"SRV", "ATMA", "NAPTR", "KX", "CERT", "A6", "DNAME", "SINK",		/* 40 */
-		"OPT", NULL, "DS", NULL, NULL, "RRSIG", "NSEC", "DNSKEY",		/* 48 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 56 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 64 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 72 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 80 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 88 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 96 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 104 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 112 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 120 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 128 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 136 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 144 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 152 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 160 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 168 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 176 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 184 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 192 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 200 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 208 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 216 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 224 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 232 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 240 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 248 */
-		"TKEY", "TSIG", "IXFR", "AXFR", "MAILB", "MAILA", "ANY"			/* 255 */
-	};
-
-
 	/* Current time... */
 	time_t now;
 	time(&now);
@@ -289,11 +252,7 @@ bind8_stats (struct nsd *nsd)
 		}
 
 		if (nsd->st.qtype[i] != 0) {
-			if (types[i] == NULL) {
-				t += snprintf(t, len, " TYPE%d=%lu", i, nsd->st.qtype[i]);
-			} else {
-				t += snprintf(t, len, " %s=%lu", types[i], nsd->st.qtype[i]);
-			}
+			t += snprintf(t, len, " %s=%lu", rrtype_to_string(i), nsd->st.qtype[i]);
 		}
 	}
 	if (t > msg)
