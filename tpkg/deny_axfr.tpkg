@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-03 15:54 CEST by <miekg@floep>.
+# Made on 2006-04-03 16:06 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/deny_axfr.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -67,7 +67,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh27113; then
+if mkdir _sh27929; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -270,7 +270,7 @@ else
 X        exit 1
 fi
 SHAR_EOF
-  (set 20 06 04 03 15 54 47 'deny_axfr.test'; eval "$shar_touch") &&
+  (set 20 06 04 03 16 02 46 'deny_axfr.test'; eval "$shar_touch") &&
   chmod 0600 'deny_axfr.test' ||
   $echo 'restore of' 'deny_axfr.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
@@ -323,5 +323,5 @@ SHAR_EOF
     $echo 'deny_axfr.zone:' 'original size' '709,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh27113
+rm -fr _sh27929
 exit 0
