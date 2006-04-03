@@ -233,8 +233,9 @@ sig_handler (int sig)
 	/* Distribute the signal to the servers... */
 	for (i = 0; i < nsd.child_count; ++i) {
 		if (nsd.children[i].pid > 0 && kill(nsd.children[i].pid, sig) == -1) {
-			log_msg(LOG_ERR, "problems killing %d: %s",
+			/* log_msg(LOG_ERR, "problems killing %d: %s",
 				(int) nsd.children[i].pid, strerror(errno));
+			*/
 		}
 	}
 }
@@ -258,14 +259,14 @@ bind8_stats (struct nsd *nsd)
 		"RP", "AFSDB", "X25", "ISDN", "RT", "NSAP", "NSAP_PTR", "SIG",		/* 24 */
 		"KEY", "PX", "GPOS", "AAAA", "LOC", "NXT", "EID", "NIMLOC",		/* 32 */
 		"SRV", "ATMA", "NAPTR", "KX", "CERT", "A6", "DNAME", "SINK",		/* 40 */
-		"OPT", NULL, "DS", NULL, NULL, "RRSIG", "NSEC", "DNSKEY",		/* 48 */
+		"OPT", "APL", "DS", "SSHFP", NULL, "RRSIG", "NSEC", "DNSKEY",		/* 48 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 56 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 64 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 72 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 80 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 88 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 96 */
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 104 */
+		NULL, NULL, "SPF", NULL, NULL, NULL, NULL, NULL,			/* 104 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 112 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 120 */
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,				/* 128 */
