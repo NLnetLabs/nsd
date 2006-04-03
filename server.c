@@ -1659,6 +1659,10 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 				return;
 			data->total_bytes = ntohl(data->total_bytes);
 			buffer_clear(data->packet);
+			if(data->total_bytes > buffer_capacity(data->packet)) {
+				log_msg(LOG_ERR, "internal error: ipc too large");
+				exit(1);
+			}
 			return;
 		}
 		/* read the rest */

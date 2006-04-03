@@ -1,3 +1,6 @@
+3 Apr 2006: Wouter
+	- Added buffer length check to internal ipc.
+
 31 Mar 2006: Wouter
 	- zone type has a pointer to zone options.
 	- nsd options has an rbtree to find zone options in.

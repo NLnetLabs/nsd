@@ -50,3 +50,8 @@ OPTIMISATIONS
 	- test delete middle zone
 	- test delete/add a domain and NXdomain/exist replies.
 	- test delet domain and wildcard replies.
+
+- in query_process, for every query incoming and answered, NSD mallocs
+  the query name (in dname_make from process_query_section) and
+  then frees it (in query reset). This could be a fixed buffer
+  (2 + max_labels + maxdomainlen) = 255 + 128 + 2 bytes.
