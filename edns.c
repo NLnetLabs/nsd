@@ -36,10 +36,7 @@ edns_init_data(edns_data_type *data, uint16_t max_length)
 void
 edns_init_nsid(edns_data_type *data, uint16_t nsid_len)
 {
-	/* add nsid bytes *
-	 * don't touch bytes 5-8,
-	 * add lenght for opt-record: bytes 9 and 10
-	 */
+	/* add nsid length bytes */
 	data->rdata_nsid[0] = ((OPT_HDR + nsid_len) & 0xff00) >> 8; /* length_hi */
 	data->rdata_nsid[1] = ((OPT_HDR + nsid_len) & 0x00ff);      /* length_lo */
 
@@ -92,9 +89,6 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet)
 	opt_flags = buffer_read_u16(packet);
 	opt_rdlen = buffer_read_u16(packet);
 
-	/* nsid: here we should read more and check
-	 * for the nsid option
-	 */
 	if (opt_rdlen != 0 || opt_version != 0) {
 		edns->status = EDNS_ERROR;
 		return 1;
