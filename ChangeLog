@@ -10,6 +10,7 @@
 	- removed libwrap stuff - superseded by acls.
 	  use provide-xfr: statements for your zone in the config file.
 	  updated README for this.
+	- updated tpkg tests for axfr to use provide-xfr: 127.0.0.1 NOKEY
 
 31 Mar 2006: Wouter
 	- zone type has a pointer to zone options.

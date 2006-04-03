@@ -3,15 +3,15 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-03-06 12:46 CET by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug056_axfr.dir'.
+# Made on 2006-04-03 15:42 CEST by <wouter@diva.nlnetlabs.nl>.
+# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/bug056_axfr.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     64 -rw------- bug056_axfr.conf
+#     96 -rw------- bug056_axfr.conf
 #    388 -rw------- bug056_axfr.dsc
 #     36 -rw------- bug056_axfr.help
 #    834 -rw------- bug056_axfr.known_good_respons1
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh20711; then
+if mkdir _sh18224; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -81,22 +81,23 @@ else
   $echo 'x -' extracting 'bug056_axfr.conf' '(text)'
   sed 's/^X//' << 'SHAR_EOF' > 'bug056_axfr.conf' &&
 zone:
-name: edmundrichardson.com.   
-zonefile: bug056_axfr.zone
+X	name: edmundrichardson.com.   
+X	zonefile: bug056_axfr.zone
+X	provide-xfr: 127.0.0.1 NOKEY
 SHAR_EOF
-  (set 20 06 03 06 12 46 15 'bug056_axfr.conf'; eval "$shar_touch") &&
+  (set 20 06 04 03 15 42 35 'bug056_axfr.conf'; eval "$shar_touch") &&
   chmod 0600 'bug056_axfr.conf' ||
   $echo 'restore of' 'bug056_axfr.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug056_axfr.conf:' 'MD5 check failed'
-ac389fdb92e5b038ae7df7b7e5f8e0f4  bug056_axfr.conf
+62e22d79fde5a7242239803301c60e06  bug056_axfr.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug056_axfr.conf'`"
-    test 64 -eq "$shar_count" ||
-    $echo 'bug056_axfr.conf:' 'original size' '64,' 'current size' "$shar_count!"
+    test 96 -eq "$shar_count" ||
+    $echo 'bug056_axfr.conf:' 'original size' '96,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug056_axfr.dsc ==============
@@ -381,5 +382,5 @@ SHAR_EOF
     $echo 'bug056_axfr.zone:' 'original size' '1497,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh20711
+rm -fr _sh18224
 exit 0

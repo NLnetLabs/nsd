@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-03-06 12:50 CET by <wouter@diva.nlnetlabs.nl>.
+# Made on 2006-04-03 15:43 CEST by <wouter@diva.nlnetlabs.nl>.
 # Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/bug096_nsd_xfer.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -11,7 +11,7 @@
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#     57 -rw------- bug096_nsd_xfer.conf
+#     87 -rw------- bug096_nsd_xfer.conf
 #    403 -rw------- bug096_nsd_xfer.dsc
 #     86 -rw------- bug096_nsd_xfer.help
 #    308 -rw------- bug096_nsd_xfer.known_good_respons1
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh23412; then
+if mkdir _sh18541; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -83,20 +83,21 @@ else
 zone:
 X	name: example.nl.
 X	zonefile: bug096_nsd_xfer.zone
+X	provide-xfr: 127.0.0.1 NOKEY
 SHAR_EOF
-  (set 20 06 03 06 12 50 30 'bug096_nsd_xfer.conf'; eval "$shar_touch") &&
+  (set 20 06 04 03 15 43 17 'bug096_nsd_xfer.conf'; eval "$shar_touch") &&
   chmod 0600 'bug096_nsd_xfer.conf' ||
   $echo 'restore of' 'bug096_nsd_xfer.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug096_nsd_xfer.conf:' 'MD5 check failed'
-7c38ae2aad8b64686f0c0cf145f374bd  bug096_nsd_xfer.conf
+5e674eb03e5c95144b8caa8596eabca5  bug096_nsd_xfer.conf
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.conf'`"
-    test 57 -eq "$shar_count" ||
-    $echo 'bug096_nsd_xfer.conf:' 'original size' '57,' 'current size' "$shar_count!"
+    test 87 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.conf:' 'original size' '87,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug096_nsd_xfer.dsc ==============
@@ -356,5 +357,5 @@ SHAR_EOF
     $echo 'bug096_nsd_xfer.zone:' 'original size' '709,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh23412
+rm -fr _sh18541
 exit 0
