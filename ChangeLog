@@ -5,6 +5,8 @@
 	- xfrd reads passed packet via ipc.
 	- ported over fix to 2_2 on missing rr types by removing the 
 	  duplicate RRtype array, and using rrtype_to_string.
+	- xfrd handles notifies. immediately starts updating.
+	- xfrd state file format fix.
 
 31 Mar 2006: Wouter
 	- zone type has a pointer to zone options.

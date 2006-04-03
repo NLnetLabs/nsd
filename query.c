@@ -287,7 +287,7 @@ static query_state_type
 answer_notify (struct nsd* nsd, struct query *query)
 {
 	zone_options_t* zone_opt;
-	log_msg(LOG_INFO, "got notify %s, processing acl",
+	log_msg(LOG_INFO, "got notify %s processing acl",
 		dname_to_string(query->qname, NULL));
 
 	zone_opt = zone_options_find(nsd->options, query->qname);
@@ -303,7 +303,7 @@ answer_notify (struct nsd* nsd, struct query *query)
 		sig_atomic_t mode = NSD_PASS_TO_XFRD;
 		int s = nsd->this_child->parent_fd;
 		uint16_t sz = buffer_limit(query->packet);
-		log_msg(LOG_INFO, "got notify %s, passed acl",
+		log_msg(LOG_INFO, "got notify %s passed acl",
 			dname_to_string(query->qname, NULL));
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
 			return query_error(query, NSD_RC_SERVFAIL);
@@ -325,7 +325,7 @@ answer_notify (struct nsd* nsd, struct query *query)
 		RCODE_SET(query->packet, RCODE_OK); /* Error code.  */
 		return QUERY_PROCESSED;
 	}
-	log_msg(LOG_INFO, "got notify %s, refused acl",
+	log_msg(LOG_INFO, "got notify %s refused acl",
 		dname_to_string(query->qname, NULL));
 	return query_error(query, NSD_RC_NOTAUTH);
 }

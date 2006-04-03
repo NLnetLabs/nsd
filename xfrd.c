@@ -54,8 +54,12 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 static void xfrd_handle_ipc_SOAINFO(buffer_type* packet);
 /* handle network packet passed to xfrd */
 static void xfrd_handle_passed_packet(buffer_type* packet);
+/* handle incoming notification message. soa can be NULL */
+static void xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
 
-/* copy SOA info from rr to soa struct. Memleak if prim.ns or email changes in soa. */
+/* call with buffer just after the soa dname. returns 0 on error. */
+static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa);
+/* copy SOA info from rr to soa struct. */
 static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);
 /* set refresh timer of zone to refresh at time now */
 static void xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state);
@@ -818,7 +822,7 @@ neato_timeout(FILE* out, const char* str, uint32_t secs)
 {
 	fprintf(out, "%s", str);
 	if(secs <= 0) {
-		fprintf(out, " %ds\n", secs);
+		fprintf(out, " %ds", secs);
 		return;
 	}
 	if(secs >= 3600*24) {
@@ -990,8 +994,9 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		xfrd_send_expiry_notification(zone);
 
 		if(zone->soa_notified_acquired != 0 &&
-		   compare_serial(ntohl(zone->soa_disk.serial),
-			ntohl(zone->soa_notified.serial)) > 1)
+			(zone->soa_notified.serial == 0 ||
+		   	compare_serial(ntohl(zone->soa_disk.serial),
+				ntohl(zone->soa_notified.serial)) >= 0))
 		{	/* read was in response to this notification */
 			zone->soa_notified_acquired = 0;
 		}
@@ -1107,7 +1112,6 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	return fd;
 }
 
-/* call with buffer just after the soa dname. returns 0 on error. */
 static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa)
 {
 	if(!buffer_available(packet, 10))
@@ -1206,8 +1210,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* serial is newer than soa_disk */
 	if(ancount == 1) {
 		/* single record means it is like a notify */
-		/* call TODO notified with serial no x. routine */
-		return;
+		xfrd_handle_incoming_notify(zone, &soa);
 	}
 
 	if(zone->tcp_conn == -1 && TC(packet)) {
@@ -1219,7 +1222,6 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 
 	if(ancount < 2) {
 		/* too short to be a real ixfr/axfr data transfer */
-		log_msg(LOG_INFO, "xfrd: too short xfr packet");
 		return;
 	}
 
@@ -1243,6 +1245,13 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	zone->soa_disk = soa;
 	zone->zone_state = xfrd_zone_ok;
 	log_msg(LOG_INFO, "xfrd: zone %s is ok", zone->apex_str);
+	if(zone->soa_notified_acquired && (
+		zone->soa_notified.serial == 0 ||
+		compare_serial(htonl(zone->soa_disk.serial), 
+		htonl(zone->soa_notified.serial)) >= 0))
+	{
+		zone->soa_notified_acquired = 0;
+	}
 	xfrd_set_timer_refresh(zone);
 	xfrd_set_reload_timeout();
 }
@@ -1282,10 +1291,10 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 static void 
 xfrd_handle_passed_packet(buffer_type* packet)
 {
-	/* find the zone */
 	uint8_t qnamebuf[MAXDOMAINLEN];
 	uint16_t qtype, qclass;
 	const dname_type* dname;
+	xfrd_zone_t* zone;
 	buffer_skip(packet, QHEADERSZ);
 	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass))
 		return; /* drop bad packet */
@@ -1295,11 +1304,48 @@ xfrd_handle_passed_packet(buffer_type* packet)
 	log_msg(LOG_INFO, "xfrd: got passed packet for %s", 
 		dname_to_string(dname,0));
 
+	/* find the zone */
+	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
+	if(!zone) {
+		log_msg(LOG_INFO, "xfrd: incoming packet for unknown zone %s", 
+			dname_to_string(dname,0));
+		return; /* drop packet for unknown zone */
+	}
+
 	/* handle */
 	if(OPCODE(packet) == OPCODE_NOTIFY) {
-
+		xfrd_soa_t soa;
+		int have_soa = 0;
+		/* get serial from a SOA */
+		if(ANCOUNT(packet) == 1 && packet_skip_dname(packet) &&
+			xfrd_parse_soa_info(packet, &soa))
+			have_soa = 1;
+		xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL);
 	}
 	else {
-		/* IXFR reply */
+		/* TODO IXFR udp reply via port 53 */
 	}
+}
+
+static void 
+xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
+{
+	if(soa && zone->soa_disk_acquired && zone->zone_state != xfrd_zone_expired
+		&& compare_serial(ntohl(soa->serial), ntohl(zone->soa_disk.serial)) <= 0)
+		return; /* ignore notify with old serial, we have a valid zone */
+	if(soa == 0) {
+		zone->soa_notified.serial = 0;
+	}
+	else if(zone->soa_notified_acquired == 0 || 
+		zone->soa_notified.serial == 0 ||
+		compare_serial(ntohl(soa->serial), ntohl(zone->soa_notified.serial)) > 0)
+	{
+		zone->soa_notified = *soa;
+	}
+	zone->soa_notified_acquired = xfrd_time();
+	if(zone->zone_state == xfrd_zone_ok) {
+		zone->zone_state = xfrd_zone_refreshing;
+	}
+	/* transfer right away */
+	xfrd_set_refresh_now(zone, zone->zone_state);
 }
