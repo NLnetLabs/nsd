@@ -94,6 +94,8 @@ struct	nsd
 	const char	*chrootdir;
 	const char	*version;
 	const char	*identity;
+        uint16_t        nsid_len;
+        unsigned char   *nsid;
 
 	size_t	ifs;
 

@@ -541,10 +541,6 @@ if [[ "$enable_checking" == "yes" ]]; then
         echo "* This will instruct NSD to be stricter        *"
         echo "* when validating its input. This could lead   *"
         echo "* to a reduced service level.                  *"
-        echo "*                                              *"
-        echo "* NLnet Labs does not recommend this setting   *"
-        echo "* in a production environment.                 *"
-        echo "*                                              *"
         echo "************************************************"
 fi
 

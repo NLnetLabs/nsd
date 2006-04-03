@@ -12,6 +12,7 @@ BUG FIXES:
 	- Bug #128: zonec: parser can handle \\ at the end of a string.
         - zonec: lexer: add \r to the newline delimeter
         - nsd: add NSID support (optional, disabled by default)
+          check: packet->reserved space for ENDS + NSID
 
 2.3.3
 =============

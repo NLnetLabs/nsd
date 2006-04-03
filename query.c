@@ -989,14 +989,28 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	case EDNS_OK:
 		buffer_write(q->packet, edns->ok, OPT_LEN);
-		/* add nsid data */
-		buffer_write(q->packet, edns->nsid, (4 + NSID_LEN));
+		/* if nsid data should be written */
+		if (nsd->nsid_len > 0)
+		/*		&& q->edns.nsid == 1) */
+		{ 
+			/* rdata length */
+			buffer_write(q->packet, edns->rdata_nsid, OPT_RDATA);
+			/* nsid opt header */
+			buffer_write(q->packet, edns->nsid, OPT_HDR);
+			/* nsid payload */
+			buffer_write(q->packet, nsd->nsid, nsd->nsid_len);
+		}  else {
+			/* fill with NULLs */
+			buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
+		}
+
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, edns);
 		break;
 	case EDNS_ERROR:
 		buffer_write(q->packet, edns->error, OPT_LEN);
+		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, ednserr);

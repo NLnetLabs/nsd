@@ -391,6 +391,8 @@ main (int argc, char *argv[])
 	}
 
 	nsd.identity	= IDENTITY;
+	nsd.nsid        = NULL;
+	nsd.nsid_len  	= 0;
 	nsd.version	= VERSION;
 	nsd.username	= USER;
 	nsd.chrootdir	= NULL;
@@ -457,21 +459,29 @@ main (int argc, char *argv[])
 			nsd.identity = optarg;
 			break;
 		case 'I':
+			if (nsd.nsid_len != 0) {
+				/* can only be given once */
+				break;
+			}
 			if (strlen(optarg) % 2 != 0) {
 				error("the NSID must be a hex string of an even length.");
 			}
+			nsd.nsid = xalloc(strlen(optarg) / 2);
+			nsd.nsid_len = strlen(optarg) / 2;
+			unsigned char *t = nsd.nsid;
 			while(*optarg) {
 				int j;
 				for (j = 16; j >= 1; j -= 15) {
 					if (isxdigit(*optarg)) {
-						fprintf(stderr, "%d\n", hexdigit_to_int(*optarg) * j);
+						*t += hexdigit_to_int(*optarg) * j;
 					} else {
-						error("illegal hex charactor '%c' in NSID", (int)*optarg);
+						error("illegal hex charactor '%c' in NSID.", (int)*optarg);
 					}
 					++optarg;
 				}
+				/* fprintf(stderr, "%u\n", *t); MIEK */
+				++t;
 			}
-
 			break;
 		case 'l':
 			log_filename = optarg;
@@ -559,6 +569,14 @@ main (int argc, char *argv[])
 		error("server identity too long (%u characters)",
 		      (unsigned) strlen(nsd.identity));
 	}
+	if (nsd.nsid_len > UCHAR_MAX) {
+		error("NSID to long (%u characters)", nsd.nsid_len);
+	}
+
+	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);
+#if defined(INET6)
+	edns_init_nsid(&nsd.edns_ipv6, nsd.nsid_len);
+#endif
 	
 	/* Number of child servers to fork.  */
 	nsd.children = (struct nsd_child *) region_alloc(
