@@ -223,44 +223,13 @@ process_query_section(query_type *query)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
 
-	uint8_t *dst = qnamebuf;
-	uint8_t *query_name = buffer_at(query->packet, QHEADERSZ);
-	uint8_t *src = query_name;
-	size_t len;
-	
+	buffer_set_position(query->packet, QHEADERSZ);
 	/* Lets parse the query name and convert it to lower case.  */
-	while (*src) {
-		/*
-		 * If we are out of buffer limits or we have a pointer
-		 * in question dname or the domain name is longer than
-		 * MAXDOMAINLEN ...
-		 */
-		if ((*src & 0xc0) ||
-		    (src + *src + 1 > buffer_end(query->packet)) || 
-		    (src + *src + 1 > query_name + MAXDOMAINLEN))
-		{
-			return NSD_RC_FORMAT;
-		}
-		memcpy(dst, src, *src + 1);
-		dst += *src + 1;
-		src += *src + 1;
-	}
-	*dst++ = *src++;
-
-	/* Make sure name is not too long or we have stripped packet... */
-	len = src - query_name;
-	if (len > MAXDOMAINLEN ||
-	    (src + 2*sizeof(uint16_t) > buffer_end(query->packet)))
-	{
+	if(!packet_read_query_section(query->packet, qnamebuf,
+		&query->qtype, &query->qclass))
 		return NSD_RC_FORMAT;
-	}
-	buffer_set_position(query->packet, src - buffer_begin(query->packet));
-
 	query->qname = dname_make(query->region, qnamebuf, 1);
-	query->qtype = buffer_read_u16(query->packet);
-	query->qclass = buffer_read_u16(query->packet);
 	query->opcode = OPCODE(query->packet);
-
 	return NSD_RC_OK;
 }
 
@@ -331,14 +300,18 @@ answer_notify (struct nsd* nsd, struct query *query)
 	/* check if it passes acl */
 	if(acl_check_incoming(zone_opt->allow_notify, query))
 	{
+		sig_atomic_t mode = NSD_PASS_TO_XFRD;
 		int s = nsd->this_child->parent_fd;
-		uint32_t sz = buffer_limit(query->packet);
+		uint16_t sz = buffer_limit(query->packet);
 		log_msg(LOG_INFO, "got notify %s, passed acl",
 			dname_to_string(query->qname, NULL));
+		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
+			return query_error(query, NSD_RC_SERVFAIL);
 		/* forward to xfrd for processing
 		   Note. Blocking IPC I/O, but acl is OK. */
-		sz = htonl(sz);
-		if(!write_socket(s, &sz, sizeof(sz)) ||
+		sz = htons(sz);
+		if(!write_socket(s, &mode, sizeof(mode)) || 
+			!write_socket(s, &sz, sizeof(sz)) ||
 			!write_socket(s, buffer_begin(query->packet),
 				buffer_limit(query->packet))) {
 			log_msg(LOG_ERR, "error in IPC notify server2main, %s",

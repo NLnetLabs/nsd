@@ -50,6 +50,7 @@ struct xfrd_state {
 
 	/* communication channel with server_main */
 	netio_handler_type ipc_handler;
+	uint8_t ipc_is_soa;
 	struct xfrd_tcp *ipc_conn;
 	/* xfrd shutdown flag */
 	uint8_t shutdown;

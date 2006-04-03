@@ -176,4 +176,14 @@ rr_type *packet_read_rr(region_type *region,
 			buffer_type *packet,
 			int question_section);
 
+/*
+ * read a query entry from network packet given in buffer.
+ * does not follow compression ptrs, checks for errors (returns 0).
+ * Dest must be at least MAXDOMAINLEN long.
+ */
+int packet_read_query_section(buffer_type *packet,
+			uint8_t* dest,
+			uint16_t* qtype,
+			uint16_t* qclass);
+
 #endif /* _PACKET_H_ */

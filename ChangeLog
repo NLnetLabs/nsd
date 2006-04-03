@@ -1,5 +1,8 @@
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.
+	- split out packet_read_query_section from the process_query_section
+	  routine (and moved to packet.c/h).
+	- xfrd reads passed packet via ipc.
 
 31 Mar 2006: Wouter
 	- zone type has a pointer to zone options.

@@ -255,3 +255,44 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	
 	return result;
 }
+
+int packet_read_query_section(buffer_type *packet,
+                	uint8_t* dst,
+			uint16_t* qtype,
+			uint16_t* qclass)
+{
+	uint8_t *query_name = buffer_current(packet);
+	uint8_t *src = query_name;
+	size_t len;
+	
+	while (*src) {
+		/*
+		 * If we are out of buffer limits or we have a pointer
+		 * in question dname or the domain name is longer than
+		 * MAXDOMAINLEN ...
+		 */
+		if ((*src & 0xc0) ||
+		    (src + *src + 1 > buffer_end(packet)) || 
+		    (src + *src + 1 > query_name + MAXDOMAINLEN))
+		{
+			return 0;
+		}
+		memcpy(dst, src, *src + 1);
+		dst += *src + 1;
+		src += *src + 1;
+	}
+	*dst++ = *src++;
+
+	/* Make sure name is not too long or we have stripped packet... */
+	len = src - query_name;
+	if (len > MAXDOMAINLEN ||
+	    (src + 2*sizeof(uint16_t) > buffer_end(packet)))
+	{
+		return 0;
+	}
+	buffer_set_position(packet, src - buffer_begin(packet));
+
+	*qtype = buffer_read_u16(packet);
+	*qclass = buffer_read_u16(packet);
+	return 1;
+}

@@ -126,7 +126,7 @@ struct main_ipc_handler_data
 	buffer_type	*packet;
 	int		forward_mode;
 	size_t		got_bytes;
-	uint32_t	total_bytes;
+	uint16_t	total_bytes;
 };
 
 /*
@@ -234,7 +234,8 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
  * Restart child servers if necessary.
  */
 static int
-restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio)
+restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
+	int* xfrd_sock_p)
 {
 	size_t i;
 	int sv[2];
@@ -258,11 +259,20 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio)
 				nsd->children[i].parent_fd = -1;
 				if(!nsd->children[i].handler)
 				{
+					struct main_ipc_handler_data *ipc_data;
+					ipc_data = (struct main_ipc_handler_data*) region_alloc(
+						region, sizeof(struct main_ipc_handler_data));
+					ipc_data->nsd = nsd;
+					ipc_data->xfrd_sock = xfrd_sock_p;
+					ipc_data->packet = buffer_create(region, QIOBUFSZ);
+					ipc_data->forward_mode = 0;
+					ipc_data->got_bytes = 0;
+					ipc_data->total_bytes = 0;
 					nsd->children[i].handler = (struct netio_handler*) region_alloc(
 						region, sizeof(struct netio_handler));
 					nsd->children[i].handler->fd = nsd->children[i].child_fd;
 					nsd->children[i].handler->timeout = NULL;
-					nsd->children[i].handler->user_data = nsd;
+					nsd->children[i].handler->user_data = ipc_data;
 					nsd->children[i].handler->event_types = NETIO_EVENT_READ;
 					nsd->children[i].handler->event_handler = handle_child_command;
 					netio_add_handler(netio, nsd->children[i].handler);
@@ -448,7 +458,8 @@ server_init(struct nsd *nsd)
  * Fork the required number of servers.
  */
 static int
-server_start_children(struct nsd *nsd, region_type* region, netio_type* netio)
+server_start_children(struct nsd *nsd, region_type* region, netio_type* netio,
+	int* xfrd_sock_p)
 {
 	size_t i;
 
@@ -457,7 +468,7 @@ server_start_children(struct nsd *nsd, region_type* region, netio_type* netio)
 		nsd->children[i].pid = 0;
 	}
 
-	return restart_child_servers(nsd, region, netio);
+	return restart_child_servers(nsd, region, netio, xfrd_sock_p);
 }
 
 static void
@@ -552,11 +563,12 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
  */
 static void
 server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, 
-	int cmdsocket, int xfrd_sock)
+	int cmdsocket, int* xfrd_sock_p)
 {
 	pid_t old_pid;
 	sig_atomic_t cmd = NSD_QUIT;
 	zone_type* zone;
+	int xfrd_sock = *xfrd_sock_p;
 
 	if(db_crc_different(nsd->db) == 0) {
 		log_msg(LOG_INFO, "CRC the same. skipping %s.", nsd->db->filename);
@@ -591,7 +603,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	alarm(nsd->st.period);
 #endif
 
-	if (server_start_children(nsd, server_region, netio) != 0) {
+	if (server_start_children(nsd, server_region, netio, xfrd_sock_p) != 0) {
 		send_children_command(nsd, NSD_QUIT);
 		exit(1);
 	}
@@ -729,7 +741,7 @@ server_main(struct nsd *nsd)
 
 	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
 	netio_add_handler(netio, &xfrd_listener);
-	if (server_start_children(nsd, server_region, netio) != 0) {
+	if (server_start_children(nsd, server_region, netio, &xfrd_listener.fd) != 0) {
 		send_children_command(nsd, NSD_QUIT);
 		kill(nsd->pid, SIGTERM);
 		exit(1);
@@ -764,7 +776,8 @@ server_main(struct nsd *nsd)
 					log_msg(LOG_WARNING,
 					       "server %d died unexpectedly with status %d, restarting",
 					       (int) child_pid, status);
-					restart_child_servers(nsd, server_region, netio);
+					restart_child_servers(nsd, server_region, netio, 
+						&xfrd_listener.fd);
 				} else if (child_pid == reload_pid) {
 					log_msg(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
@@ -816,7 +829,7 @@ server_main(struct nsd *nsd)
 				/* CHILD */
 				close(reload_sockets[0]);
 				server_reload(nsd, server_region, netio, 
-					reload_sockets[1], xfrd_listener.fd);
+					reload_sockets[1], &xfrd_listener.fd);
 				close(reload_sockets[1]);
 				reload_pid = -1;
 				reload_listener.fd = -1;
@@ -827,7 +840,7 @@ server_main(struct nsd *nsd)
 				close(reload_sockets[1]);
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
-				reload_listener.user_data = nsd;
+				reload_listener.user_data = &ipc_data;
 				reload_listener.event_types = NETIO_EVENT_READ;
 				reload_listener.event_handler = handle_child_command; /* listens to Quit */
 				netio_add_handler(netio, &reload_listener);
@@ -1640,11 +1653,11 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 
 	if (data->forward_mode) {
 		/* forward the data to xfrd */
-		if(data->got_bytes < sizeof(uint32_t))
+		if(data->got_bytes < sizeof(data->total_bytes))
 		{
 			if ((len = read(handler->fd, 
 				(char*)&data->total_bytes+data->got_bytes, 
-				sizeof(uint32_t)-data->got_bytes)) == -1) {
+				sizeof(data->total_bytes)-data->got_bytes)) == -1) {
 				log_msg(LOG_ERR, "handle_child_command: read: %s",
 					strerror(errno));
 				return;
@@ -1655,9 +1668,9 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 				return;
 			}
 			data->got_bytes += len;
-			if(data->got_bytes < sizeof(uint32_t))
+			if(data->got_bytes < sizeof(data->total_bytes))
 				return;
-			data->total_bytes = ntohl(data->total_bytes);
+			data->total_bytes = ntohs(data->total_bytes);
 			buffer_clear(data->packet);
 			if(data->total_bytes > buffer_capacity(data->packet)) {
 				log_msg(LOG_ERR, "internal error: ipc too large");
@@ -1666,8 +1679,8 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 			return;
 		}
 		/* read the rest */
-		if((len = read(handler->fd, buffer_begin(data->packet),
-			data->total_bytes - (data->got_bytes-sizeof(uint32_t))
+		if((len = read(handler->fd, buffer_current(data->packet),
+			data->total_bytes - (data->got_bytes-sizeof(data->total_bytes))
 			)) == -1 ) {
 			log_msg(LOG_ERR, "handle_child_command: read: %s",
 				strerror(errno));
@@ -1678,13 +1691,20 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 			data->forward_mode = 0;
 			return;
 		}
-		if(!write_socket(*data->xfrd_sock, buffer_begin(data->packet), len)) {
-			log_msg(LOG_ERR, "error in ipc fwd main2xfrd: %s",
-				strerror(errno));
-		}
 		data->got_bytes += len;
-		if(data->got_bytes-sizeof(uint32_t) >= data->total_bytes)
+		buffer_skip(data->packet, len);
+		if(data->got_bytes-sizeof(data->total_bytes) >= data->total_bytes) {
+			uint16_t len = htons(data->total_bytes);
 			data->forward_mode = 0;
+			mode = NSD_PASS_TO_XFRD;
+			if(!write_socket(*data->xfrd_sock, &mode, sizeof(mode)) ||
+			   !write_socket(*data->xfrd_sock, &len, sizeof(len)) ||
+			   !write_socket(*data->xfrd_sock, buffer_begin(data->packet), 
+				data->total_bytes)) {
+				log_msg(LOG_ERR, "error in ipc fwd main2xfrd: %s",
+					strerror(errno));
+			}
+		}
 		return;
 	}
 
@@ -1719,10 +1739,6 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 		data->forward_mode = 1;
 		data->got_bytes = 0;
 		data->total_bytes = 0;
-		if(!write_socket(*data->xfrd_sock, &mode, sizeof(mode))) {
-			log_msg(LOG_ERR, "IPC error parent->xfrd: %s",
-				strerror(errno));
-		}
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_child_command: bad mode %d",

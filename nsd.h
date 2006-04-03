@@ -30,7 +30,7 @@ struct nsd_options;
  */
 #define NSD_SOA_INFO 6 
 /* 
- * PASS_TO_XFRD is followed by the u32(len in network order) and 
+ * PASS_TO_XFRD is followed by the u16(len in network order) and 
  * then network packet contents.  packet is a notify(acl checked), or 
  * xfr reply from a master(acl checked).
  */

@@ -52,6 +52,8 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	xfrd_soa_t* soa, time_t acquired);
 /* get SOA INFO out of IPC packet buffer */
 static void xfrd_handle_ipc_SOAINFO(buffer_type* packet);
+/* handle network packet passed to xfrd */
+static void xfrd_handle_passed_packet(buffer_type* packet);
 
 /* copy SOA info from rr to soa struct. Memleak if prim.ns or email changes in soa. */
 static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);
@@ -173,7 +175,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 		/* reading an IPC message */
 		int ret = conn_read(xfrd->ipc_conn);
 		if(ret == -1) {
-			log_msg(LOG_ERR, "xfrd: error in read ipc");
+			log_msg(LOG_ERR, "xfrd: error in read ipc: %s", strerror(errno));
 			xfrd->ipc_conn->is_reading = 0;
 			return;
 		}
@@ -181,7 +183,10 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 			return;
 		buffer_flip(xfrd->ipc_conn->packet);
 		xfrd->ipc_conn->is_reading = 0;
-		xfrd_handle_ipc_SOAINFO(xfrd->ipc_conn->packet);
+		if(xfrd->ipc_is_soa)
+			xfrd_handle_ipc_SOAINFO(xfrd->ipc_conn->packet);
+		else 	
+			xfrd_handle_passed_packet(xfrd->ipc_conn->packet);
 		return;
 	}
         
@@ -203,18 +208,26 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
                 xfrd->shutdown = 1;
                 break;
 	case NSD_SOA_INFO:
-		/* setup read of SOA info */
+		xfrd->ipc_is_soa = 1;
 		xfrd->ipc_conn->is_reading = 1;
-		xfrd->ipc_conn->total_bytes = 0;
-		xfrd->ipc_conn->msglen = 0;
-		xfrd->ipc_conn->fd = handler->fd;
-		buffer_clear(xfrd->ipc_conn->packet);
+                break;
+	case NSD_PASS_TO_XFRD:
+		xfrd->ipc_is_soa = 0;
+		xfrd->ipc_conn->is_reading = 1;
 		break;
         default:
                 log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d (%d)", (int)cmd,
 			ntohl(cmd));
                 break;
         }
+
+	if(xfrd->ipc_conn->is_reading) {
+		/* setup read of info */
+		xfrd->ipc_conn->total_bytes = 0;
+		xfrd->ipc_conn->msglen = 0;
+		xfrd->ipc_conn->fd = handler->fd;
+		buffer_clear(xfrd->ipc_conn->packet);
+	}
 }
 
 static void xfrd_handle_ipc_SOAINFO(buffer_type* packet)
@@ -1264,4 +1277,29 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 		return;
 	}
 	log_msg(LOG_ERR, "xfrd: asked nsd to reload new updates");
+}
+
+static void 
+xfrd_handle_passed_packet(buffer_type* packet)
+{
+	/* find the zone */
+	uint8_t qnamebuf[MAXDOMAINLEN];
+	uint16_t qtype, qclass;
+	const dname_type* dname;
+	buffer_skip(packet, QHEADERSZ);
+	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass))
+		return; /* drop bad packet */
+
+	/* TODO memory leak */
+	dname = dname_make(xfrd->region, qnamebuf, 1);
+	log_msg(LOG_INFO, "xfrd: got passed packet for %s", 
+		dname_to_string(dname,0));
+
+	/* handle */
+	if(OPCODE(packet) == OPCODE_NOTIFY) {
+
+	}
+	else {
+		/* IXFR reply */
+	}
 }
