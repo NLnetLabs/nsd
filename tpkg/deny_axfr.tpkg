@@ -1,0 +1,327 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.2.1).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the `!/bin/sh' line above, then type `sh FILE'.
+#
+# Made on 2006-04-03 15:54 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/deny_axfr.dir'.
+#
+# Existing files will *not* be overwritten unless `-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#     86 -rw------- deny_axfr.conf
+#    309 -rw------- deny_axfr.dsc
+#     35 -rw------- deny_axfr.help
+#    638 -rw------- deny_axfr.post
+#    754 -rw------- deny_axfr.pre
+#    511 -rw------- deny_axfr.test
+#    709 -rw------- deny_axfr.zone
+#
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=FAILED
+locale_dir=FAILED
+first_param="$1"
+for dir in $PATH
+do
+  if test "$gettext_dir" = FAILED && test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    set `$dir/gettext --version 2>&1`
+    if test "$3" = GNU
+    then
+      gettext_dir=$dir
+    fi
+  fi
+  if test "$locale_dir" = FAILED && test -f $dir/shar \
+     && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+  then
+    locale_dir=`$dir/shar --print-text-domain-dir`
+  fi
+done
+IFS="$save_IFS"
+if test "$locale_dir" = FAILED || test "$gettext_dir" = FAILED
+then
+  echo=echo
+else
+  TEXTDOMAINDIR=$locale_dir
+  export TEXTDOMAINDIR
+  TEXTDOMAIN=sharutils
+  export TEXTDOMAIN
+  echo="$gettext_dir/gettext -s"
+fi
+if touch -am -t 200112312359.59 $$.touch >/dev/null 2>&1 && test ! -f 200112312359.59 -a -f $$.touch; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+elif touch -am 123123592001.59 $$.touch >/dev/null 2>&1 && test ! -f 123123592001.59 -a ! -f 123123592001.5 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+elif touch -am 1231235901 $$.touch >/dev/null 2>&1 && test ! -f 1231235901 -a -f $$.touch; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+else
+  shar_touch=:
+  echo
+  $echo 'WARNING: not restoring timestamps.  Consider getting and'
+  $echo "installing GNU \`touch', distributed in GNU File Utilities..."
+  echo
+fi
+rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
+#
+if mkdir _sh27113; then
+  $echo 'x -' 'creating lock directory'
+else
+  $echo 'failed to create lock directory'
+  exit 1
+fi
+# ============= deny_axfr.conf ==============
+if test -f 'deny_axfr.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'deny_axfr.conf' '(file already exists)'
+else
+  $echo 'x -' extracting 'deny_axfr.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'deny_axfr.conf' &&
+zone:
+X	name: example.nl.
+X	zonefile: deny_axfr.zone
+X	provide-xfr: 192.16.240.240 NOKEY
+SHAR_EOF
+  (set 20 06 04 03 15 51 22 'deny_axfr.conf'; eval "$shar_touch") &&
+  chmod 0600 'deny_axfr.conf' ||
+  $echo 'restore of' 'deny_axfr.conf' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'deny_axfr.conf:' 'MD5 check failed'
+d47e4c78ac29d4e5d90c83e028e52792  deny_axfr.conf
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'deny_axfr.conf'`"
+    test 86 -eq "$shar_count" ||
+    $echo 'deny_axfr.conf:' 'original size' '86,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= deny_axfr.dsc ==============
+if test -f 'deny_axfr.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'deny_axfr.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'deny_axfr.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'deny_axfr.dsc' &&
+BaseName: deny_axfr
+Version: 1.0
+Description: deny a axfr due to acl
+CreationDate: Mon Apr  3 15:47:01 CEST 2006
+Maintainer: Miek Gieben
+Category: 
+Component:
+Depends: 
+Help: deny_axfr.help
+Pre: deny_axfr.pre
+Post: deny_axfr.post
+Test: deny_axfr.test
+AuxFiles: deny_axfr.conf, deny_axfr.zone
+Passed:
+Failure:
+SHAR_EOF
+  (set 20 06 04 03 15 47 35 'deny_axfr.dsc'; eval "$shar_touch") &&
+  chmod 0600 'deny_axfr.dsc' ||
+  $echo 'restore of' 'deny_axfr.dsc' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'deny_axfr.dsc:' 'MD5 check failed'
+0ac5b7fe6e41bd0b15b9a9ff9fad00dc  deny_axfr.dsc
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'deny_axfr.dsc'`"
+    test 309 -eq "$shar_count" ||
+    $echo 'deny_axfr.dsc:' 'original size' '309,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= deny_axfr.help ==============
+if test -f 'deny_axfr.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'deny_axfr.help' '(file already exists)'
+else
+  $echo 'x -' extracting 'deny_axfr.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'deny_axfr.help' &&
+no arguments are used in this test
+SHAR_EOF
+  (set 20 06 04 03 15 47 45 'deny_axfr.help'; eval "$shar_touch") &&
+  chmod 0600 'deny_axfr.help' ||
+  $echo 'restore of' 'deny_axfr.help' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'deny_axfr.help:' 'MD5 check failed'
+084367c46abe7a5ee847f3940da42728  deny_axfr.help
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'deny_axfr.help'`"
+    test 35 -eq "$shar_count" ||
+    $echo 'deny_axfr.help:' 'original size' '35,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= deny_axfr.post ==============
+if test -f 'deny_axfr.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'deny_axfr.post' '(file already exists)'
+else
+  $echo 'x -' extracting 'deny_axfr.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'deny_axfr.post' &&
+# #-- bug056_axfr.post --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# source the test var file when it's there
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+rm -f deny_axfr.db
+rm -f deny_axfr.current_respons1
+X
+# do your teardown here
+if [ -z $TPKG_NSD_PID ]; then
+X        exit 0
+fi
+X
+# kill NSD
+NSD_PID=`cat $TPKG_NSD_PID`
+kill $NSD_PID 2>/dev/null
+sleep 1 # should be really dead now - just to be sure kill it again
+kill $NSD_PID 2>/dev/null
+Xexit 0
+SHAR_EOF
+  (set 20 06 04 03 15 51 31 'deny_axfr.post'; eval "$shar_touch") &&
+  chmod 0600 'deny_axfr.post' ||
+  $echo 'restore of' 'deny_axfr.post' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'deny_axfr.post:' 'MD5 check failed'
+10ff42afc263b14d52f063b05cd57c43  deny_axfr.post
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'deny_axfr.post'`"
+    test 638 -eq "$shar_count" ||
+    $echo 'deny_axfr.post:' 'original size' '638,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= deny_axfr.pre ==============
+if test -f 'deny_axfr.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'deny_axfr.pre' '(file already exists)'
+else
+  $echo 'x -' extracting 'deny_axfr.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'deny_axfr.pre' &&
+X # #-- bug056_axfr.pre--#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+# start NSD
+((TPKG_PORT=5353+$RANDOM))
+PRE="../.."
+TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_ZONEC="$PRE/zonec"
+TPKG_NSD="$PRE/nsd"
+X
+# share the vars
+echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
+echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
+X
+$TPKG_ZONEC -f deny_axfr.db -c deny_axfr.conf && \
+$TPKG_NSD -c deny_axfr.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f deny_axfr.db
+SHAR_EOF
+  (set 20 06 04 03 15 51 28 'deny_axfr.pre'; eval "$shar_touch") &&
+  chmod 0600 'deny_axfr.pre' ||
+  $echo 'restore of' 'deny_axfr.pre' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'deny_axfr.pre:' 'MD5 check failed'
+6b71c98e9440b131b1e3d3f349e28361  deny_axfr.pre
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'deny_axfr.pre'`"
+    test 754 -eq "$shar_count" ||
+    $echo 'deny_axfr.pre:' 'original size' '754,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= deny_axfr.test ==============
+if test -f 'deny_axfr.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'deny_axfr.test' '(file already exists)'
+else
+  $echo 'x -' extracting 'deny_axfr.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'deny_axfr.test' &&
+# #-- bug056_axfr.test --#
+# source the master var file when it's there
+[ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
+# use .tpkg.var.test for in test variable passing
+[ -f .tpkg.var.test ] && source .tpkg.var.test
+# svnserve resets the path, you may need to adjust it, like this:
+PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
+X
+PRE="../../"
+X
+# should fail
+$PRE/nsd-xfer -z example.nl. -s 10 -p $TPKG_PORT -f bogus localhost
+if [[ $? -eq 1 ]]; then
+X        exit 0
+else
+X        exit 1
+fi
+SHAR_EOF
+  (set 20 06 04 03 15 54 47 'deny_axfr.test'; eval "$shar_touch") &&
+  chmod 0600 'deny_axfr.test' ||
+  $echo 'restore of' 'deny_axfr.test' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'deny_axfr.test:' 'MD5 check failed'
+a49b2e392f41952731748b91b4e8e4ce  deny_axfr.test
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'deny_axfr.test'`"
+    test 511 -eq "$shar_count" ||
+    $echo 'deny_axfr.test:' 'original size' '511,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= deny_axfr.zone ==============
+if test -f 'deny_axfr.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'deny_axfr.zone' '(file already exists)'
+else
+  $echo 'x -' extracting 'deny_axfr.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'deny_axfr.zone' &&
+$ORIGIN example.nl.
+@       IN      SOA     bla  root (
+X                        2003070707              ; serial, todays date + todays serial #
+X                        1H                      ; refresh, seconds
+X                        8H                      ; retry, seconds
+X                        4W                      ; expire, seconds
+X                        1H                      ; minimum ttl, seconds
+X                )
+;
+@   NS      ns0.xname.org.          ; Thanks to xname.org
+@   NS      ns1.xname.org.          ; Thanks to xname.org
+localhost               IN  A  127.0.0.1
+X
+; some 8bit voodoo here
+\200\201\202\203\204\205\206\207\208\209\210    IN A 127.0.0.2
+\128\129\130    IN A 127.0.0.2
+SHAR_EOF
+  (set 20 06 04 03 15 47 01 'deny_axfr.zone'; eval "$shar_touch") &&
+  chmod 0600 'deny_axfr.zone' ||
+  $echo 'restore of' 'deny_axfr.zone' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'deny_axfr.zone:' 'MD5 check failed'
+eaa8e54a37025c46ef7025ade07bf020  deny_axfr.zone
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'deny_axfr.zone'`"
+    test 709 -eq "$shar_count" ||
+    $echo 'deny_axfr.zone:' 'original size' '709,' 'current size' "$shar_count!"
+  fi
+fi
+rm -fr _sh27113
+exit 0
