@@ -61,7 +61,9 @@ usage (void)
 		);
 	fprintf(stderr,
 		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
+#ifdef NSID
 		"  -I nsid         Specify the NSID. This must be a hex string.\n"
+#endif /* NSID */
 		"  -l filename     Specify the log file.\n"
 		"  -N server-count The number of servers to start.\n"
 		"  -n tcp-count    The maximum number of TCP connections per server.\n"
@@ -459,6 +461,7 @@ main (int argc, char *argv[])
 			nsd.identity = optarg;
 			break;
 		case 'I':
+#ifdef NSID
 			if (nsd.nsid_len != 0) {
 				/* can only be given once */
 				break;
@@ -479,9 +482,9 @@ main (int argc, char *argv[])
 					}
 					++optarg;
 				}
-				/* fprintf(stderr, "%u\n", *t); MIEK */
 				++t;
 			}
+#endif /* NSID */
 			break;
 		case 'l':
 			log_filename = optarg;
@@ -573,9 +576,11 @@ main (int argc, char *argv[])
 		error("NSID to long (%u characters)", nsd.nsid_len);
 	}
 
+#ifdef NSID
 	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);
-#if defined(INET6)
+ #if defined(INET6)
 	edns_init_nsid(&nsd.edns_ipv6, nsd.nsid_len);
+ #endif
 #endif
 	
 	/* Number of child servers to fork.  */
