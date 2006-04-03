@@ -990,7 +990,9 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case EDNS_OK:
 		buffer_write(q->packet, edns->ok, OPT_LEN);
 		/* if nsid data should be written */
-		if (nsd->nsid_len > 0 && q->edns.nsid == 1) { 
+		if (nsd->nsid_len > 0 && q->edns.nsid == 0 &&
+				!query_overflow_nsid(q, nsd->nsid_len)) { 
+
 			/* rdata length */
 			buffer_write(q->packet, edns->rdata_nsid, OPT_RDATA);
 			/* nsid opt header */
