@@ -12,13 +12,7 @@
 #include "axfr.h"
 #include "dns.h"
 #include "packet.h"
-
-#ifdef LIBWRAP
-#include <tcpd.h>
-
-int allow_severity = LOG_INFO;
-int deny_severity = LOG_NOTICE;
-#endif /* LIBWRAP */
+#include "options.h"
 
 query_state_type
 query_axfr (struct nsd *nsd, struct query *query)
@@ -146,42 +140,14 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 	case TYPE_AXFR:
 #ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
 		if (q->tcp) {
-#ifdef LIBWRAP
-			struct request_info request;
-#ifdef AXFR_DAEMON_PREFIX
-			const uint8_t *qptr = dname_name(q->qname);
-			char axfr_daemon[MAXDOMAINLEN + sizeof(AXFR_DAEMON_PREFIX)];
-			char *t = axfr_daemon + sizeof(AXFR_DAEMON_PREFIX) - 1;
-
-			memcpy(axfr_daemon, AXFR_DAEMON_PREFIX, sizeof(AXFR_DAEMON_PREFIX));
-
-			/* Copy the qname as a string */
-			while (*qptr)
+			zone_options_t* zone_opt;
+			zone_opt = zone_options_find(nsd->options, q->qname);
+			if(!zone_opt ||
+			   !acl_check_incoming(zone_opt->provide_xfr, q)) 
 			{
-				memcpy(t, qptr + 1, *qptr);
-				t += *qptr;
-				*t++ = '.';
-				qptr += *qptr + 1;
+				RCODE_SET(q->packet, RCODE_REFUSE);
+				return QUERY_PROCESSED;
 			}
-			*t = 0;
-			
-#endif /* AXFR_DAEMON_PREFIX */
-			request_init(&request, RQ_DAEMON, AXFR_DAEMON, RQ_CLIENT_SIN, &q->addr, 0);
-			sock_methods(&request);	/* This is to work around the bug in libwrap */
-			if (!hosts_access(&request)) {
-#ifdef AXFR_DAEMON_PREFIX
-				request_init(&request, RQ_DAEMON, axfr_daemon, RQ_CLIENT_SIN, &q->addr, 0);
-				sock_methods(&request);	/* This is to work around the bug in libwrap */
-				log_msg(LOG_ERR, "checking %s", axfr_daemon);
-				if (!hosts_access(&request)) {
-#endif /* AXFR_DAEMON_PREFIX */
-					RCODE_SET(q->packet, RCODE_REFUSE);
-					return QUERY_PROCESSED;
-#ifdef AXFR_DAEMON_PREFIX
-				}
-#endif /* AXFR_DAEMON_PREFIX */
-			}
-#endif /* LIBWRAP */
 			return query_axfr(nsd, q);
 		}
 #endif	/* DISABLE_AXFR */

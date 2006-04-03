@@ -7,6 +7,9 @@
 	  duplicate RRtype array, and using rrtype_to_string.
 	- xfrd handles notifies. immediately starts updating.
 	- xfrd state file format fix.
+	- removed libwrap stuff - superseded by acls.
+	  use provide-xfr: statements for your zone in the config file.
+	  updated README for this.
 
 31 Mar 2006: Wouter
 	- zone type has a pointer to zone options.

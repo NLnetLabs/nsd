@@ -405,38 +405,6 @@ AC_MSG_CHECKING(for ctime_r prototype in time.h)
 AC_EGREP_HEADER([[^a-zA-Z_]*ctime_r[^a-zA-Z_]], time.h, AC_DEFINE(HAVE_CTIME_R_PROTO, 1, 
 	[if time.h provides ctime_r prototype]) AC_MSG_RESULT(yes), AC_MSG_RESULT(no))
 
-dnl dnl Check for libwrap.  Note that libwrap requires 
-dnl yp_get_default_domain on Linux but that normally the required nsl 
-dnl library isn't linked in (and no error occurs when dynamically linking)
-AC_ARG_WITH(libwrap,
-	AC_HELP_STRING([--with-libwrap=[pathname]],
-		[Compile in libwrap (tcp_wrappers) support.]), [], [withval="yes"])
-
-case "$withval" in
-	no|'')
-		;;
-	yes)
-		AC_CHECK_LIB(wrap, request_init, [
-			AC_DEFINE_UNQUOTED([LIBWRAP], [], [Define to use hosts_access() from -lwrap.])
-			LIBWRAP="-lwrap"
-                        AC_SEARCH_LIBS(yp_get_default_domain, [nsl])
-                        ])
-		;;
-	*)
-		LIBWRAP="-L$withval -lwrap"
-		OLDLIBS="$LIBS"
-		LIBS="$LIBWRAP $LIBS"
-		AC_TRY_LINK([ int allow_severity; int deny_severity; ],
-			[ hosts_access(); ],
-			[AC_DEFINE_UNQUOTED([LIBWRAP], [], [Define to use hosts_access() from -lwrap.])
-                         AC_SEARCH_LIBS(yp_get_default_domain, [nsl])
-                        ],
-			[ AC_MSG_ERROR(Could not find the $withval library.  You must first install tcp_wrappers.) ])
-		LIBS="$OLDLIBS"
-		;;
-esac
-AC_SUBST(LIBWRAP)
-
 dnl
 dnl Some random defines's
 dnl
@@ -452,8 +420,6 @@ AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximu
 AC_DEFINE_UNQUOTED([MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
 dnl AC_DEFINE_UNQUOTED([FACILITY], [LOG_DAEMON], [Define to the default facility for syslog.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
-AC_DEFINE_UNQUOTED([AXFR_DAEMON], ["axfr"], [Define to the default daemon name to check for axfr.])
-AC_DEFINE_UNQUOTED([AXFR_DAEMON_PREFIX], ["axfr-"], [Define to the default daemon prefix to check for axfr.])
 
 dnl
 dnl Determine the syslog facility to use

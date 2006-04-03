@@ -29,7 +29,6 @@ CPPFLAGS	= @CPPFLAGS@ @DEFS@ -I. -DDBFILE=\"$(dbfile)\" -DPIDFILE=\"$(pidfile)\"
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
-LIBWRAP		= @LIBWRAP@
 LIBOBJS		= @LIBOBJS@
 INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
@@ -240,22 +239,22 @@ uninstall:
 	@echo "You still need to remove $(DESTDIR)$(configdir) directory by hand."
 
 nsd:	$(NSD_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
+	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBS)
 
 zonec:	$(ZONEC_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(ZONEC_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
+	$(LINK) -o $@ $(ZONEC_OBJECTS) $(LIBOBJS) $(LIBS)
 
 nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJECTS) $(LIBOBJS) $(LIBS)
 
 nsd-checkconf:	$(NSD_CHECKCONF_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_CHECKCONF_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
+	$(LINK) -o $@ $(NSD_CHECKCONF_OBJECTS) $(LIBOBJS) $(LIBS)
 
 nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
+	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBS)
 
 cutest:	$(CUTEST_OBJECTS)
-	$(LINK) -o $@ $(CUTEST_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
+	$(LINK) -o $@ $(CUTEST_OBJECTS) $(LIBOBJS) $(LIBS)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
