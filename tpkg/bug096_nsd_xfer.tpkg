@@ -3,8 +3,8 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-03 15:54 CEST by <wouter@diva.nlnetlabs.nl>.
-# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/bug096_nsd_xfer.dir'.
+# Made on 2006-04-04 11:10 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug096_nsd_xfer.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
@@ -16,7 +16,7 @@
 #     86 -rw------- bug096_nsd_xfer.help
 #    308 -rw------- bug096_nsd_xfer.known_good_respons1
 #    650 -rw------- bug096_nsd_xfer.post
-#    777 -rw------- bug096_nsd_xfer.pre
+#    803 -rw------- bug096_nsd_xfer.pre
 #    687 -rw------- bug096_nsd_xfer.test
 #    709 -rw------- bug096_nsd_xfer.zone
 #
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh19228; then
+if mkdir _sh32431; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -254,7 +254,9 @@ else
 export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
 X
 # start NSD
-((TPKG_PORT=5353+$RANDOM))
+RAND=$(($RANDOM % 300))
+TPKG_PORT=$((5353 + $RAND))
+X
 PRE="../.."
 TPKG_NSD_PID="$PRE/nsd.pid.$$"
 TPKG_ZONEC="$PRE/zonec"
@@ -267,19 +269,19 @@ X
 $TPKG_ZONEC -f bug096_nsd_xfer.db -c bug096_nsd_xfer.conf && \
 $TPKG_NSD -c bug096_nsd_xfer.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug096_nsd_xfer.db
 SHAR_EOF
-  (set 20 06 03 06 12 50 18 'bug096_nsd_xfer.pre'; eval "$shar_touch") &&
+  (set 20 06 04 04 11 10 47 'bug096_nsd_xfer.pre'; eval "$shar_touch") &&
   chmod 0600 'bug096_nsd_xfer.pre' ||
   $echo 'restore of' 'bug096_nsd_xfer.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug096_nsd_xfer.pre:' 'MD5 check failed'
-f229bf481096477f81a11a8441dd58a6  bug096_nsd_xfer.pre
+0ae13f38af73f7735a18bb6f95c13a3b  bug096_nsd_xfer.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug096_nsd_xfer.pre'`"
-    test 777 -eq "$shar_count" ||
-    $echo 'bug096_nsd_xfer.pre:' 'original size' '777,' 'current size' "$shar_count!"
+    test 803 -eq "$shar_count" ||
+    $echo 'bug096_nsd_xfer.pre:' 'original size' '803,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug096_nsd_xfer.test ==============
@@ -358,5 +360,5 @@ SHAR_EOF
     $echo 'bug096_nsd_xfer.zone:' 'original size' '709,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh19228
+rm -fr _sh32431
 exit 0
