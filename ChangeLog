@@ -1,3 +1,6 @@
+4 Apr 2006: Wouter
+	- Addes EACCES to the netio dispatch error bailout.
+
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.
 	- split out packet_read_query_section from the process_query_section
@@ -11,6 +14,7 @@
 	  use provide-xfr: statements for your zone in the config file.
 	  updated README for this.
 	- updated tpkg tests for axfr to use provide-xfr: 127.0.0.1 NOKEY
+	- review: move var create to start of function (xfrd_init()).
 
 31 Mar 2006: Wouter
 	- zone type has a pointer to zone options.

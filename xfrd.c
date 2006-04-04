@@ -94,11 +94,13 @@ static void xfrd_udp_read(xfrd_zone_t* zone);
 void 
 xfrd_init(int socket, struct nsd* nsd)
 {
+	region_type* region;
+
 	assert(xfrd == 0);
 	/* to setup signalhandling */
 	nsd->server_kind = NSD_SERVER_BOTH;
 
-	region_type* region = region_create(xalloc, free);
+	region = region_create(xalloc, free);
 	xfrd = (xfrd_state_t*)region_alloc(region, sizeof(xfrd_state_t));
 	memset(xfrd, 0, sizeof(xfrd_state_t));
 	xfrd->region = region;
