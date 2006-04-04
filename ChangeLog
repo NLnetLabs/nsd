@@ -25,6 +25,11 @@
 	  the children.
 	- destroy tempregion xfrd read on error.
 	- check for serial existance in xfrd_handle_incoming_soa.
+	- handle_incoming_soa uses set_timer_refresh routine.
+	  and can handle expire times < refresh times.
+	- log msg for udp socket() error.
+	- review: xfrd_parse_soa_info email parse uses correct buffer spot.
+	- added a lowerbound to refresh interval (=1 second now).
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.

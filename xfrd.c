@@ -27,6 +27,7 @@
 #define XFRD_TRANSFER_TIMEOUT 10 /* empty zone timeout is between x and 2*x seconds */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connectin is stopped */
 #define XFRD_RELOAD_TIMEOUT 10 /* seconds, allowed to elapse between a zone transfer and reload */
+#define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
 
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
@@ -374,6 +375,7 @@ xfrd_set_timer_refresh(xfrd_zone_t* zone)
 {
 	time_t set_refresh;
 	time_t set_expire;
+	time_t set_min;
 	time_t set;
 	if(zone->soa_disk_acquired == 0 || zone->zone_state != xfrd_zone_ok) {
 		xfrd_set_timer_retry(zone);
@@ -385,6 +387,9 @@ xfrd_set_timer_refresh(xfrd_zone_t* zone)
 	if(set_refresh < set_expire)
 		set = set_refresh;
 	else set = set_expire;
+	set_min = zone->soa_disk_acquired + XFRD_LOWERBOUND_REFRESH;
+	if(set < set_min)
+		set = set_min;
 	xfrd_set_timer(zone, set);
 }
 
@@ -993,14 +998,15 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		{
 			/* zone ok, wait for refresh time */
 			zone->zone_state = xfrd_zone_ok;
-			xfrd_set_timer(zone, 
-				zone->soa_disk_acquired + ntohl(zone->soa_disk.refresh));
+			xfrd_set_timer_refresh(zone);
 		} else if((uint32_t)xfrd_time() - zone->soa_disk_acquired 
 			< ntohl(zone->soa_disk.expire))
 		{
 			/* zone refreshing */
 			xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
-		} else {
+		} 
+		if((uint32_t)xfrd_time() - zone->soa_disk_acquired
+			>= ntohl(zone->soa_disk.expire)) {
 			/* zone expired */
 			xfrd_set_refresh_now(zone, xfrd_zone_expired);
 		}
@@ -1013,6 +1019,11 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		{	/* read was in response to this notification */
 			zone->soa_notified_acquired = 0;
 		}
+		if(zone->soa_notified_acquired && zone->zone_state == xfrd_zone_ok)
+		{
+			/* refresh because of notification */
+			xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
+		}
 		return;
 	}
 
@@ -1023,8 +1034,15 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	zone->soa_disk = *soa;
 	zone->soa_nsd_acquired = acquired;
 	zone->soa_disk_acquired = acquired;
-	zone->soa_notified_acquired = 0;
+	if(zone->soa_notified_acquired != 0 &&
+		(zone->soa_notified.serial == 0 ||
+	   	compare_serial(ntohl(zone->soa_disk.serial),
+			ntohl(zone->soa_notified.serial)) >= 0))
+	{	/* user provided in response to this notification */
+		zone->soa_notified_acquired = 0;
+	}
 	xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
+	xfrd_send_expiry_notification(zone);
 }
 
 static void 
@@ -1037,7 +1055,7 @@ xfrd_send_notify(xfrd_zone_t* zone)
 static void 
 xfrd_send_expiry_notification(xfrd_zone_t* zone)
 {
-	log_msg(LOG_INFO, "TODO: xfrd sending expiry to nsd for zone %s.",
+	log_msg(LOG_INFO, "TODO: xfrd sending expy to nsd for zone %s.",
 		zone->apex_str);
 }
 
@@ -1083,8 +1101,11 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 	}
 
 	fd = socket(family, SOCK_DGRAM, IPPROTO_UDP);
-	if(fd == -1) 
+	if(fd == -1) {
+		log_msg(LOG_ERR, "xfrd: cannot create udp socket to %s: %s",
+			acl->ip_address_spec, strerror(errno));
 		return -1;
+	}
 
 	/* send it (udp) */
 	if(sendto(fd,
@@ -1137,7 +1158,7 @@ static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa)
 
 	if(!buffer_available(packet, buffer_read_u16(packet)) /* rdata length */ ||
 		!(soa->prim_ns[0] = dname_make_wire_from_packet(soa->prim_ns+1, packet, 1)) ||
-		!(soa->email[0] = dname_make_wire_from_packet(soa->email, packet, 1)))
+		!(soa->email[0] = dname_make_wire_from_packet(soa->email+1, packet, 1)))
 	{
 		return 0;
 	}
