@@ -19,6 +19,10 @@
 	  and makes sure not to check soa contents if none provided.
 	  added explanatory comments.
 	- EACCES back in check.
+	- server_main first checks for terminated children, then select().
+	  So when select is interrupted, by kill or quitting children,
+	  it will first see if it has to quit itself, before restarting
+	  the children.
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.

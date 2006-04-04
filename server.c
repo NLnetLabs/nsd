@@ -758,17 +758,6 @@ server_main(struct nsd *nsd)
 
 		switch (mode) {
 		case NSD_RUN:
-			/* timeout to collect processes. In case no sigchild happens. */
-			timeout_spec.tv_sec = 60; 
-			timeout_spec.tv_nsec = 0;
-
-			/* listen on ports, timeout for collecting terminated children */
-			if(netio_dispatch(netio, &timeout_spec, 0) == -1) {
-				if (errno != EINTR) {
-					log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
-				}
-			}
-
 			/* see if any child processes terminated */
 			while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
 				int is_child = delete_child_pid(nsd, child_pid);
@@ -803,6 +792,18 @@ server_main(struct nsd *nsd)
 				}
 				log_msg(LOG_WARNING, "wait failed: %s", strerror(errno));
 			}
+
+			/* timeout to collect processes. In case no sigchild happens. */
+			timeout_spec.tv_sec = 60; 
+			timeout_spec.tv_nsec = 0;
+
+			/* listen on ports, timeout for collecting terminated children */
+			if(netio_dispatch(netio, &timeout_spec, 0) == -1) {
+				if (errno != EINTR) {
+					log_msg(LOG_ERR, "netio_dispatch failed: %s", strerror(errno));
+				}
+			}
+
 			break;
 		case NSD_RELOAD:
 			nsd->mode = NSD_RUN;
