@@ -1259,6 +1259,9 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		return;
 	}
 
+	/* TODO some packet format checks to drop really lame packets */
+	/* TODO check TSIG on it; drop if bad. */
+
 	/* dump reply on disk to diff file */
 	diff_write_packet(buffer_begin(packet), buffer_limit(packet), 
 		xfrd->nsd->options);
@@ -1277,8 +1280,6 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* update the disk serial no. */
 	zone->soa_disk_acquired = xfrd_time();
 	zone->soa_disk = soa;
-	zone->zone_state = xfrd_zone_ok;
-	log_msg(LOG_INFO, "xfrd: zone %s is ok", zone->apex_str);
 	if(zone->soa_notified_acquired && (
 		zone->soa_notified.serial == 0 ||
 		compare_serial(htonl(zone->soa_disk.serial), 
@@ -1286,7 +1287,14 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	{
 		zone->soa_notified_acquired = 0;
 	}
-	xfrd_set_timer_refresh(zone);
+	if(!zone->soa_notified_acquired) {
+		zone->zone_state = xfrd_zone_ok;
+		log_msg(LOG_INFO, "xfrd: zone %s is ok", zone->apex_str);
+		xfrd_set_timer_refresh(zone);
+	} else {
+		/* try to get an even newer serial */
+		xfrd_set_timer_retry(zone);
+	}
 	xfrd_set_reload_timeout();
 }
 

@@ -30,6 +30,8 @@
 	- log msg for udp socket() error.
 	- review: xfrd_parse_soa_info email parse uses correct buffer spot.
 	- added a lowerbound to refresh interval (=1 second now).
+	- upon receipt of a IXFR, if the serial is older than the notified
+	  serial, the zone stays refreshing (but the ixfr is saved).
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.
