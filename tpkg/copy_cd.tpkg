@@ -3,8 +3,8 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-03-06 12:43 CET by <wouter@diva.nlnetlabs.nl>.
-# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/copy_cd.dir'.
+# Made on 2006-04-04 11:04 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/copy_cd.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
@@ -16,7 +16,7 @@
 #     72 -rw------- copy_cd.known_good_respons1
 #     69 -rw------- copy_cd.known_good_respons2
 #    579 -rw------- copy_cd.post
-#    623 -rw------- copy_cd.pre
+#    649 -rw------- copy_cd.pre
 #    650 -rw------- copy_cd.test
 #    939 -rw------- copy_cd.zone
 #
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh21732; then
+if mkdir _sh31967; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -236,7 +236,9 @@ else
 export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
 X
 # start NSD
-((TPKG_PORT=5353+$RANDOM))
+RAND=$(($RANDOM % 300))
+TPKG_PORT=$((5353 + $RAND))
+X
 PRE="../.."
 TPKG_NSD_PID="$PRE/nsd.pid.$$"
 TPKG_ZONEC="$PRE/zonec"
@@ -249,19 +251,19 @@ X
 $TPKG_ZONEC -f copy_cd.db -c copy_cd.conf && \
 $TPKG_NSD -c copy_cd.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f copy_cd.db
 SHAR_EOF
-  (set 20 06 03 06 12 43 26 'copy_cd.pre'; eval "$shar_touch") &&
+  (set 20 06 04 04 11 04 46 'copy_cd.pre'; eval "$shar_touch") &&
   chmod 0600 'copy_cd.pre' ||
   $echo 'restore of' 'copy_cd.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'copy_cd.pre:' 'MD5 check failed'
-4404267b0fa34e69835ea639e338ffbe  copy_cd.pre
+77e60422ca775473faf67a9197ccb8b0  copy_cd.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'copy_cd.pre'`"
-    test 623 -eq "$shar_count" ||
-    $echo 'copy_cd.pre:' 'original size' '623,' 'current size' "$shar_count!"
+    test 649 -eq "$shar_count" ||
+    $echo 'copy_cd.pre:' 'original size' '649,' 'current size' "$shar_count!"
   fi
 fi
 # ============= copy_cd.test ==============
@@ -351,5 +353,5 @@ SHAR_EOF
     $echo 'copy_cd.zone:' 'original size' '939,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh21732
+rm -fr _sh31967
 exit 0

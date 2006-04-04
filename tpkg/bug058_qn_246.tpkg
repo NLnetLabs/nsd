@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-03-06 12:47 CET by <miekg@floep>.
+# Made on 2006-04-04 11:01 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug058_qn_246.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -16,7 +16,7 @@
 #    143 -rw------- bug058_qn_246.help
 #    120 -rw------- bug058_qn_246.known_good_respons1
 #    499 -rw------- bug058_qn_246.post
-#    646 -rw------- bug058_qn_246.pre
+#    672 -rw------- bug058_qn_246.pre
 #    746 -rw------- bug058_qn_246.test
 #    683 -rw------- bug058_qn_246.zone
 #
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh21070; then
+if mkdir _sh31088; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -236,7 +236,9 @@ else
 export PATH=/usr/local/bin:/usr/local/sbin:/sbin:/usr/sbin:/bin:/usr/bin:
 X
 # start NSD
-((TPKG_PORT=5353+$RANDOM))
+RAND=$(($RANDOM % 300))
+TPKG_PORT=$((5353 + $RAND))
+X
 PRE="../.."
 TPKG_NSD_PID="$PRE/nsd.pid.$$"
 TPKG_ZONEC="$PRE/zonec"
@@ -249,19 +251,19 @@ X
 $TPKG_ZONEC -f bug058_qn_246.db -c bug058_qn_246.conf && \
 $TPKG_NSD -c bug058_qn_246.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug058_qn_246.db
 SHAR_EOF
-  (set 20 06 03 06 12 47 27 'bug058_qn_246.pre'; eval "$shar_touch") &&
+  (set 20 06 04 04 11 01 25 'bug058_qn_246.pre'; eval "$shar_touch") &&
   chmod 0600 'bug058_qn_246.pre' ||
   $echo 'restore of' 'bug058_qn_246.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug058_qn_246.pre:' 'MD5 check failed'
-91e85df20e52ad421e693d7c3be6f553  bug058_qn_246.pre
+ef186bfec5c384548fd8cfbc78e3c99f  bug058_qn_246.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug058_qn_246.pre'`"
-    test 646 -eq "$shar_count" ||
-    $echo 'bug058_qn_246.pre:' 'original size' '646,' 'current size' "$shar_count!"
+    test 672 -eq "$shar_count" ||
+    $echo 'bug058_qn_246.pre:' 'original size' '672,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug058_qn_246.test ==============
@@ -349,5 +351,5 @@ SHAR_EOF
     $echo 'bug058_qn_246.zone:' 'original size' '683,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh21070
+rm -fr _sh31088
 exit 0

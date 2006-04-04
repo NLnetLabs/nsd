@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-03 16:11 CEST by <miekg@floep>.
+# Made on 2006-04-04 11:05 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/deny_axfr.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -15,7 +15,7 @@
 #    309 -rw------- deny_axfr.dsc
 #     35 -rw------- deny_axfr.help
 #    638 -rw------- deny_axfr.post
-#    754 -rw------- deny_axfr.pre
+#    780 -rw------- deny_axfr.pre
 #    511 -rw------- deny_axfr.test
 #    709 -rw------- deny_axfr.zone
 #
@@ -67,7 +67,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh28377; then
+if mkdir _sh32120; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -218,7 +218,9 @@ X # #-- bug056_axfr.pre--#
 export PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
 X
 # start NSD
-((TPKG_PORT=5353+$RANDOM))
+RAND=$(($RANDOM % 300))
+TPKG_PORT=$((5353 + $RAND))
+X
 PRE="../.."
 TPKG_NSD_PID="$PRE/nsd.pid.$$"
 TPKG_ZONEC="$PRE/zonec"
@@ -231,19 +233,19 @@ X
 $TPKG_ZONEC -f deny_axfr.db -c deny_axfr.conf && \
 $TPKG_NSD -c deny_axfr.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f deny_axfr.db
 SHAR_EOF
-  (set 20 06 04 03 15 51 28 'deny_axfr.pre'; eval "$shar_touch") &&
+  (set 20 06 04 04 11 05 19 'deny_axfr.pre'; eval "$shar_touch") &&
   chmod 0600 'deny_axfr.pre' ||
   $echo 'restore of' 'deny_axfr.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'deny_axfr.pre:' 'MD5 check failed'
-6b71c98e9440b131b1e3d3f349e28361  deny_axfr.pre
+cdb9801df0e833c8339b324a2d7d897a  deny_axfr.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'deny_axfr.pre'`"
-    test 754 -eq "$shar_count" ||
-    $echo 'deny_axfr.pre:' 'original size' '754,' 'current size' "$shar_count!"
+    test 780 -eq "$shar_count" ||
+    $echo 'deny_axfr.pre:' 'original size' '780,' 'current size' "$shar_count!"
   fi
 fi
 # ============= deny_axfr.test ==============
@@ -323,5 +325,5 @@ SHAR_EOF
     $echo 'deny_axfr.zone:' 'original size' '709,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh28377
+rm -fr _sh32120
 exit 0
