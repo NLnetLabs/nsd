@@ -202,7 +202,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 		     have_timeout ? &minimum_timeout : NULL,
 		     sigmask);
 	if (rc == -1) {
-		if(errno == EINVAL) {
+		if(errno == EINVAL || errno == EACCES) {
 			log_msg(LOG_ERR, "fatal error pselect: %s.", 
 				strerror(errno));
 			exit(1);

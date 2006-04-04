@@ -18,6 +18,7 @@
 	- read entry sets refresh depending on current time,
 	  and makes sure not to check soa contents if none provided.
 	  added explanatory comments.
+	- EACCES back in check.
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.
