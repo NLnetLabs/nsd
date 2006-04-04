@@ -4,6 +4,9 @@
 	  xfrd pipe is small, main process closes its end, and hopes for 
 	  the best).
 	- review: return on error condition in xfrd_tcp_open fixed.
+	- review: expired when time >= expire_time, so it will not wait
+	  for the retry after expire until it will detect the expiredness.
+	- removed duplicate lines from xfrd_handle_zone_timeout.
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.

@@ -466,14 +466,13 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		handler->fd = xfrd_send_ixfr_request_udp(zone);
 
 		if(	zone->zone_state != xfrd_zone_expired &&
-			(uint32_t)xfrd_time() >
+			(uint32_t)xfrd_time() >=
 			zone->soa_disk_acquired + ntohl(zone->soa_disk.expire))
 		{
 			/* zone expired */
 			log_msg(LOG_ERR, "xfrd: zone %s has expired", zone->apex_str);
 			zone->zone_state = xfrd_zone_expired;
 			xfrd_send_expiry_notification(zone);
-			xfrd_set_timer_retry(zone);
 		}
 		else if(zone->zone_state == xfrd_zone_ok &&
 			(uint32_t)xfrd_time() >=
@@ -481,9 +480,7 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		{
 			/* zone goes to refreshing state. */
 			log_msg(LOG_INFO, "xfrd: zone %s is refreshing", zone->apex_str);
-			zone->zone_state = xfrd_zone_expired;
 			zone->zone_state = xfrd_zone_refreshing;
-			xfrd_set_timer_retry(zone);
 		}
 	}
 }
