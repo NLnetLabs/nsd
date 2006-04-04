@@ -522,11 +522,11 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	memcpy(soa->email+1, rr_em_wire, rr_em_len);
 
 	/* already in network format */
-	soa->serial = *(uint32_t*)rdata_atom_data(rr->rdatas[2]);
-	soa->refresh = *(uint32_t*)rdata_atom_data(rr->rdatas[3]);
-	soa->retry = *(uint32_t*)rdata_atom_data(rr->rdatas[4]);
-	soa->expire = *(uint32_t*)rdata_atom_data(rr->rdatas[5]);
-	soa->minimum = *(uint32_t*)rdata_atom_data(rr->rdatas[6]);
+	memcpy(&soa->serial, rdata_atom_data(rr->rdatas[2]), sizeof(uint32_t));
+	memcpy(&soa->refresh, rdata_atom_data(rr->rdatas[3]), sizeof(uint32_t));
+	memcpy(&soa->retry, rdata_atom_data(rr->rdatas[4]), sizeof(uint32_t));
+	memcpy(&soa->expire, rdata_atom_data(rr->rdatas[5]), sizeof(uint32_t));
+	memcpy(&soa->minimum, rdata_atom_data(rr->rdatas[6]), sizeof(uint32_t));
 	log_msg(LOG_INFO, "xfrd: copy_soa rr, serial %d refresh %d retry %d expire %d", 
 			ntohl(soa->serial), ntohl(soa->refresh), ntohl(soa->retry),
 			ntohl(soa->expire));
@@ -536,10 +536,7 @@ static void
 xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state) 
 {
 	zone->zone_state = zone_state;
-	zone->zone_handler.fd = -1;
-	zone->zone_handler.timeout = &zone->timeout;
-	zone->timeout.tv_sec = xfrd_time();
-	zone->timeout.tv_nsec = 0;
+	xfrd_set_timer(zone, xfrd_time());
 }
 
 void 

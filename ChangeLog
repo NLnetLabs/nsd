@@ -7,6 +7,9 @@
 	- review: expired when time >= expire_time, so it will not wait
 	  for the retry after expire until it will detect the expiredness.
 	- removed duplicate lines from xfrd_handle_zone_timeout.
+	- review: copy of uint32_t using memcpy to avoid unaligned memory
+	  accesses.
+	- review: fd=-1 removed from set_refresh_now; only does timer.
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.
