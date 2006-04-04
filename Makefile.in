@@ -345,7 +345,8 @@ tags:
 answer.o: answer.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h
 axfr.o: axfr.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
-  region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h
+  region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
+  options.h
 buffer.o: buffer.c config.h buffer.h region-allocator.h util.h
 configlexer.o: configlexer.c configyyrename.h config.h options.h \
   region-allocator.h rbtree.h configparser.h
