@@ -691,6 +691,7 @@ xfrd_read_state()
 			log_msg(LOG_INFO, "xfrd: no file %s. refreshing all zones.",
 				statefile);
 		}
+		region_destroy(tempregion);
 		return;
 	}
 	if(!xfrd_read_check_str(in, XFRD_FILE_MAGIC) ||
@@ -703,6 +704,7 @@ xfrd_read_state()
 		log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
 			statefile, (int)filetime, (int)xfrd_time());
 		fclose(in);
+		region_destroy(tempregion);
 		return;
 	}
 
@@ -741,6 +743,7 @@ xfrd_read_state()
 			log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
 				statefile, (int)filetime, (int)xfrd_time());
 			fclose(in);
+			region_destroy(tempregion);
 			return;
 		}
 
@@ -816,6 +819,7 @@ xfrd_read_state()
 	if(!xfrd_read_check_str(in, XFRD_FILE_MAGIC)) {
 		log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
 			statefile, (int)filetime, (int)xfrd_time());
+		region_destroy(tempregion);
 		fclose(in);
 		return;
 	}
@@ -972,10 +976,10 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
 		return;
 	}
-	if(soa->serial == zone->soa_nsd.serial)
+	if(zone->soa_nsd_acquired && soa->serial == zone->soa_nsd.serial)
 		return;
 
-	if(soa->serial == zone->soa_disk.serial)
+	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
 	{
 		/* soa in disk has been loaded in memory */
 		log_msg(LOG_INFO, "Zone %s serial %d is updated to %d.",

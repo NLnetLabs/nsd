@@ -23,6 +23,8 @@
 	  So when select is interrupted, by kill or quitting children,
 	  it will first see if it has to quit itself, before restarting
 	  the children.
+	- destroy tempregion xfrd read on error.
+	- check for serial existance in xfrd_handle_incoming_soa.
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.
