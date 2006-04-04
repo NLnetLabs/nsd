@@ -418,16 +418,18 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 			event_types & NETIO_EVENT_READ) { 
 			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
 			xfrd_tcp_read(xfrd->tcp_set, zone); 
+			return;
 		} else if(!xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) &&
 			event_types & NETIO_EVENT_WRITE) { 
 			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
 			xfrd_tcp_write(xfrd->tcp_set, zone); 
+			return;
 		} else if(event_types & NETIO_EVENT_TIMEOUT) {
-			/* tcp connection timed out. Stop it. wait retry timer. */
-			xfrd_set_timer_retry(zone);
+			/* tcp connection timed out. Stop it. */
 			xfrd_tcp_release(xfrd->tcp_set, zone);
+			/* continue to retry; as if a timeout happened */
+			event_types = NETIO_EVENT_TIMEOUT;
 		}
-		return;
 	}
 
 	if(event_types & NETIO_EVENT_READ) {
