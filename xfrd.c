@@ -555,6 +555,7 @@ static char*
 xfrd_read_token(FILE* in)
 {
 	static char buf[4000];
+	buf[sizeof(buf)-1]=0;
 	while(1) {
 		if(fscanf(in, " %3990s", buf) != 1) 
 			return 0;
@@ -770,19 +771,29 @@ xfrd_read_state()
 			zone->master = zone->master->next;
 		}
 		if(masnum != 0 || !zone->master) {
-			log_msg(LOG_INFO, "xfrd: masters changed for zone %s", p);
+			log_msg(LOG_INFO, "xfrd: masters changed for zone %s", 
+				zone->apex_str);
 			zone->master = zone->zone_options->request_xfr;
+			zone->master_num = 0;
 		}
 
-		if(timeout == 0 ||
-			timeout - soa_disk_acquired_read > ntohl(soa_disk_read.refresh) 
-			|| soa_notified_acquired_read != 0) 
+		/* 
+		 * There is no timeout,
+		 * or there is a notification,
+		 * or there is a soa && current time is past refresh point
+		 */
+		if(timeout == 0 || soa_notified_acquired_read != 0 ||
+			(soa_disk_acquired_read != 0 &&
+			(uint32_t)xfrd_time() - soa_disk_acquired_read 
+				> ntohl(soa_disk_read.refresh)))
 		{
 			xfrd_set_refresh_now(zone, xfrd_zone_refreshing);
 		}
 
+		/* There is a soa && current time is past expiry point */
 		if(soa_disk_acquired_read!=0 &&
-			(uint32_t)xfrd_time() - soa_disk_acquired_read > ntohl(soa_disk_read.expire))
+			(uint32_t)xfrd_time() - soa_disk_acquired_read 
+				> ntohl(soa_disk_read.expire))
 		{
 			xfrd_set_refresh_now(zone, xfrd_zone_expired);
 		}

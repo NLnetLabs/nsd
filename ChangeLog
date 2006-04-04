@@ -13,6 +13,11 @@
 	- on a tcp timeout it will retry immediately (instead of waiting
 	  another retry timeout). This means if you set refresh_now, it will
 	  interrupt a tcp-timer for a fresh retry with the next master.
+	- put null in buffer for xfrd read state.
+	- log msg uses string that exists instead of overwritten buffer.
+	- read entry sets refresh depending on current time,
+	  and makes sure not to check soa contents if none provided.
+	  added explanatory comments.
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.
