@@ -1614,14 +1614,8 @@ handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		log_msg(LOG_ERR, "handle_xfrd_command: xfrd closed channel. "
-			"This must be due to a race condition(please contact developers). ");
-		log_msg(LOG_ERR, "Attempting to recover, "
-			"killing off all server processes.");
-		/* sighup is reload for me, and quit for server_child and xfrd */
-		if(!kill(SIGHUP, -nsd->pid)) {
-			log_msg(LOG_ERR, "kill: failure %s", strerror(errno));
-		}
+		log_msg(LOG_ERR, "handle_xfrd_command: xfrd closed channel.");
+		close(handler->fd);
 		handler->fd = -1;
 		return;
 	}

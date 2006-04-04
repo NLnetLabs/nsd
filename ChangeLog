@@ -1,5 +1,8 @@
 4 Apr 2006: Wouter
 	- Addes EACCES to the netio dispatch error bailout.
+	- Removed EACCESS (probably due to log_msg), error on close
+	  xfrd pipe is small, main process closes its end, and hopes for 
+	  the best).
 
 3 Apr 2006: Wouter
 	- Added buffer length check to internal ipc.
