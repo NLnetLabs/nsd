@@ -182,7 +182,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 #ifdef INET6
 		family = PF_INET6;
 #else
-		return -1;
+		xfrd_tcp_release(set, zone);
+		return 0;
 #endif
 	} else { 
 		family = PF_INET;
