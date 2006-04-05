@@ -5,6 +5,15 @@
 	- setup so that the first master tried is the first in acl list.
 	- diff file skips OPT and TSIG RRs if they are put into the answer
 	  section.
+	- if IXFR contains an RR to delete that does not exist, nothing
+	  happens.
+	- update zone for NS, RRSIG also if multiple RRs in the rrset.
+	- difffile: create zone struct also if domain exists already.
+	- difffile: destroy temp region on error.
+	- difffile: in delete_RR, create temp region outside of the routine,
+	  so no alloc region, destroy region for every deleted RR.
+	- difffile: for IXFR: do not delete final SOA RR.
+	- difffile: unknown parts in file is an error.
 
 4 Apr 2006: Wouter
 	- Addes EACCES to the netio dispatch error bailout.
