@@ -2,6 +2,9 @@
 	- added lowerbound for retry timeout.
 	- added extra assertions to xfrd-tcp.c, saying that the waiting line
 	  for tcp connections must be empty if the counter is below max.
+	- setup so that the first master tried is the first in acl list.
+	- diff file skips OPT and TSIG RRs if they are put into the answer
+	  section.
 
 4 Apr 2006: Wouter
 	- Addes EACCES to the netio dispatch error bailout.

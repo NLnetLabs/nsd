@@ -618,6 +618,10 @@ apply_ixfr(namedb_type* db, FILE *in,
 			   just before soa - so it gets deleted and added too */
 			delete_mode = !delete_mode;
 		}
+		if(type == TYPE_TSIG || type == TYPE_OPT) {
+			/* ignore pseudo RRs */
+			continue;
+		}
 		log_msg(LOG_INFO, "xfr %s RR dname is %s type %s", 
 			delete_mode?"del":"add",
 			dname_to_string(dname,0), rrtype_to_string(type));

@@ -326,7 +326,7 @@ xfrd_init_zones()
 		xzone->apex_str = zone_opt->name;
 		xzone->zone_state = xfrd_zone_refreshing;
 		xzone->zone_options = zone_opt;
-		xzone->master = xzone->zone_options->request_xfr;
+		xzone->master = 0; /* first retry will use first master */
 		xzone->master_num = 0;
 
 		xzone->soa_nsd_acquired = 0;
