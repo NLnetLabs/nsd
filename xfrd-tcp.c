@@ -132,6 +132,7 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	if(set->tcp_count < XFRD_MAX_TCP) {
 		int i;
+		assert(!set->tcp_waiting_first);
 		set->tcp_count ++;
 		/* find a free tcp_buffer */
 		for(i=0; i<XFRD_MAX_TCP; i++) {
@@ -432,6 +433,7 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		xfrd_tcp_xfr(set, zone);
 	}
 	else {
+		assert(!set->tcp_waiting_first);
 		set->tcp_count --;
 		assert(set->tcp_count >= 0);
 	}

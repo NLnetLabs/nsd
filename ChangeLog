@@ -1,3 +1,8 @@
+5 Apr 2006: Wouter
+	- added lowerbound for retry timeout.
+	- added extra assertions to xfrd-tcp.c, saying that the waiting line
+	  for tcp connections must be empty if the counter is below max.
+
 4 Apr 2006: Wouter
 	- Addes EACCES to the netio dispatch error bailout.
 	- Removed EACCESS (probably due to log_msg), error on close

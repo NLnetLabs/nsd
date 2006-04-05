@@ -28,6 +28,7 @@
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connectin is stopped */
 #define XFRD_RELOAD_TIMEOUT 10 /* seconds, allowed to elapse between a zone transfer and reload */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
+#define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
 
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
@@ -405,7 +406,10 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 		xfrd_time() + ntohl(zone->soa_disk.retry) <
 		zone->soa_disk_acquired + ntohl(zone->soa_disk.expire)) 
 	{
-		xfrd_set_timer(zone, xfrd_time() + ntohl(zone->soa_disk.retry));
+		if(ntohl(zone->soa_disk.retry) < XFRD_LOWERBOUND_RETRY)
+			xfrd_set_timer(zone, xfrd_time() + XFRD_LOWERBOUND_RETRY);
+		else 	
+			xfrd_set_timer(zone, xfrd_time() + ntohl(zone->soa_disk.retry));
 	} else {
 		xfrd_set_timer(zone, zone->soa_disk_acquired + 
 			ntohl(zone->soa_disk.expire));
