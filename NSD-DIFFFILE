@@ -1,6 +1,7 @@
 DIFF support file format.
 
 This file contains changes to the main NSD-DATABASE file.
+The file contents is in network format.
 
 Diff file parts, each part has
 - 32 bits type field.
@@ -9,15 +10,27 @@ Diff file parts, each part has
 - 32 bits repeat of the length field.
 
 TYPE="IXFR"
-contents is IXFR packet contents (the RRs). 
+- zone name
+- 32 bit new serial number.
+- 16 bit ID number (the query ID from the query,
+  could be different from the ID in this packet)
+- 32 bit sequence number of the packet (starting from 0).
+- remaining contents is IXFR packet contents, max 64K (the RRs). 
 (or contents is AXFR, since IXFR spec allows for that)
 without a SURE part, it is probably sent with bad tsig.
 
 TYPE="SURE"
 contents is:
 a) reference to the IXFR packet that is OKed.
-	- zone name, new serial number
-	- this must be the IXFR immediately preceding the SURE.
+	- str: zone name, 
+	- 32 bit new serial number, 
+	- 16 bit ID number (query_id)
+	( note that due to having one TCP per zone, and checking
+	that the queryID on incoming packets, one transfer,commit
+	for a zone; no interleaved IXFR packets for different commits. )
+	( so the serial, ID are for checking only )
+	- 32 bit number of IXFR packets that are to be applied.
+	- these IXFR packets must precede the SURE packet.
 b) uint8: commit=1(IXFR is OK) or rollback=0(ignore that IXFR). 
 c) space for a text string message (preceded by 32bitcount), i.e.
 	'at time <stamp> came from <addr>, tsig checked with key <key>'.

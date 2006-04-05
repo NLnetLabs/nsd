@@ -655,6 +655,14 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 	return 1;
 }
 
+/* for multiple tcp packets use a data structure that has
+ * a rbtree (zone_names) with for each zone:
+ * 	has a rbtree by sequence number
+ *		with inside a serial_number and ID (for checking only)
+ *		and contains a fpos_t to the IXFR packet in the file.
+ * so when you get a commit for a zone, get zone obj, find sequence,
+ * then check if you have all sequence numbers available. Apply all packets.
+ */
 static fpos_t last_ixfr_pos;
 static int saw_ixfr = 0;
 
@@ -677,7 +685,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
 		!read_str(in, log_buf, sizeof(log_buf)) )
 	{
 		log_msg(LOG_ERR, "diff file bad commit part");
-		return 0;
+		return 1;
 	}
 
 	/* read in completely */
@@ -714,13 +722,14 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 		return 0;
 	}
 
-	if(!read_32(in, &len)) return 0;
+	if(!read_32(in, &len)) return 1;
 
 	if(type == DIFF_PART_IXFR) {
 		log_msg(LOG_INFO, "part IXFR len %d", len);
 		saw_ixfr = 1;
 		last_ixfr_pos = startpos;
-		fseek(in, len, SEEK_CUR);
+		if(fseek(in, len, SEEK_CUR) == -1)
+			log_msg(LOG_INFO, "fseek failed: %s", strerror(errno));
 	}
 	else if(type == DIFF_PART_SURE) {
 		log_msg(LOG_INFO, "part SURE len %d", len);
@@ -731,7 +740,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 		return 0;
 	}
 	if(!read_32(in, &len2) || len != len2) 
-		return 0;
+		return 1;
 	return 1;
 }
 

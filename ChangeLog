@@ -14,6 +14,7 @@
 	  so no alloc region, destroy region for every deleted RR.
 	- difffile: for IXFR: do not delete final SOA RR.
 	- difffile: unknown parts in file is an error.
+	- difffile: EOF on last packet is ignored w/o giving an error.
 
 4 Apr 2006: Wouter
 	- Addes EACCES to the netio dispatch error bailout.
