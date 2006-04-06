@@ -287,6 +287,14 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->child_count = 0;
 				nsd->server_kind = nsd->children[i].kind;
 				nsd->this_child = &nsd->children[i];
+				/* remove signal flags inherited from parent
+				   the parent will handle them. */
+				nsd->signal_hint_reload = 0;
+				nsd->signal_hint_child = 0;
+				nsd->signal_hint_quit = 0;
+				nsd->signal_hint_shutdown = 0;
+				nsd->signal_hint_stats = 0;
+				nsd->signal_hint_statsusr = 0;
 				close(nsd->this_child->child_fd);
 				nsd->this_child->child_fd = -1;
 				server_child(nsd);
@@ -1058,6 +1066,10 @@ server_child(struct nsd *nsd)
 					break;
 				}
 			}
+		} else {
+			log_msg(LOG_ERR, "mode bad value %d, back to service.", 
+				mode);
+			nsd->mode = NSD_RUN;
 		}
 	}
 

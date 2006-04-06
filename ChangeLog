@@ -7,6 +7,11 @@
 	- xfrd closes its tcp and udp sockets on exit.
 	- default names for diff file and xfrd state nicer.
 	- fixed up kill nsd grep on ps.
+	- fixed up race conditions in test script for kill nsd
+	  wait for pid file creation by nsd, and grep -v grep in check.
+	- in nsd signal-flags inherited from the parent are zeroed 
+	  when a server_child starts. Also the server_child switches back
+	  to NSD_RUN mode when a bad mode happens.
 
 5 Apr 2006: Wouter
 	- added lowerbound for retry timeout.
