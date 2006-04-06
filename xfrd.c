@@ -1354,6 +1354,11 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		/* single record means it is like a notify */
 		xfrd_handle_incoming_notify(zone, &soa);
 	}
+	else if(zone->soa_notified_acquired && zone->soa_notified.serial &&
+		compare_serial(ntohl(zone->soa_notified.serial), ntohl(soa.serial)) < 0) {
+		/* this AXFR/IXFR notifies me that an even newer serial exists */
+		zone->soa_notified.serial = soa.serial;
+	}
 
 	if(zone->tcp_conn == -1 && TC(packet)) {
 		log_msg(LOG_INFO, "xfrd: zone %s received TC from %s. retry tcp.",
