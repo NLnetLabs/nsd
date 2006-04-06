@@ -143,7 +143,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			zone_options_t* zone_opt;
 			zone_opt = zone_options_find(nsd->options, q->qname);
 			if(!zone_opt ||
-			   !acl_check_incoming(zone_opt->provide_xfr, q)) 
+			   acl_check_incoming(zone_opt->provide_xfr, q)==-1) 
 			{
 				RCODE_SET(q->packet, RCODE_REFUSE);
 				return QUERY_PROCESSED;
