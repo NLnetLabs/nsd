@@ -1241,6 +1241,44 @@ static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa)
 	return 1;
 }
 
+
+static int
+xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count, int firstpacket)
+{
+	/* first RR has already been checked */
+	uint16_t type, klass, rrlen;
+	uint32_t ttl;
+	size_t i;
+	for(i=0; i<count; ++i)
+	{
+		if(!packet_skip_dname(packet))
+			return 0;
+		if(!buffer_available(packet, 10))
+			return 0;
+		type = buffer_read_u16(packet);
+		klass = buffer_read_u16(packet);
+		ttl = buffer_read_u32(packet);
+		rrlen = buffer_read_u16(packet);
+		if(!buffer_available(packet, rrlen))
+			return 0;
+		if(i==0 && i!=count-1 && type == TYPE_SOA && firstpacket) {
+			size_t bufpos = buffer_position(packet);
+			/* 2nd(but not last) RR=SOA, this is an IXFR */
+			if(!zone->soa_disk_acquired)
+				return 0; /* got IXFR but need AXFR */
+			if(!packet_skip_dname(packet) ||
+				!packet_skip_dname(packet))
+				return 0; /* bad dnames in SOA */
+			if(buffer_read_u32(packet) != ntohl(zone->soa_disk.serial))
+				return 0; /* bad start serial in IXFR */
+			buffer_set_position(packet, bufpos);
+		}
+		buffer_skip(packet, rrlen);
+	}
+	/* packet seems to have a valid DNS RR structure */
+	return 1;
+}
+
 void 
 xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 {
@@ -1329,7 +1367,12 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		return;
 	}
 
-	/* TODO some packet format checks to drop really lame packets */
+	if(!xfrd_xfr_check_rrs(zone, packet, ancount-1, 1))
+	{
+		log_msg(LOG_INFO, "xfrd: zone %s sent bad xfr reply.",
+			zone->apex_str);
+		return;
+	}
 	/* TODO check TSIG on it; drop if bad. */
 
 	/* dump reply on disk to diff file */
