@@ -194,6 +194,7 @@ restart_child_servers(struct nsd *nsd)
 			switch (nsd->children[i].pid) {
 			case 0: /* CHILD */
 				nsd->pid = 0;
+				nsd->mode = NSD_RUN;
 				nsd->child_count = 0;
 				nsd->server_kind = nsd->children[i].kind;
 				server_child(nsd);
