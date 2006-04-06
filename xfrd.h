@@ -52,6 +52,7 @@ struct xfrd_state {
 	netio_handler_type ipc_handler;
 	uint8_t ipc_is_soa;
 	struct xfrd_tcp *ipc_conn;
+	struct buffer* ipc_pass;
 	/* xfrd shutdown flag */
 	uint8_t shutdown;
 
@@ -118,6 +119,7 @@ struct xfrd_zone {
 	/* master to try to transfer from, number for persistence */
 	acl_options_t* master;
 	int master_num;
+	int next_master;
 	zone_options_t* zone_options;
 
 	/* handler for timeouts */

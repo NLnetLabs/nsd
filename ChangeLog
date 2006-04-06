@@ -1,3 +1,10 @@
+6 Apr 2006: Wouter
+	- notify handler passes acl number that matches to xfrd.
+	- xfrd keeps a next_master for a zone, and sets it after notify.
+	  when notified nsd will try to contact the master that sent
+	  the notify, if send from an address that is both in acl
+	  allow-notify and request-xfr.
+
 5 Apr 2006: Wouter
 	- added lowerbound for retry timeout.
 	- added extra assertions to xfrd-tcp.c, saying that the waiting line

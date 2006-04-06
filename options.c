@@ -243,17 +243,19 @@ key_options_t* key_options_find(nsd_options_t* opt, const char* name)
 int acl_check_incoming(acl_options_t* acl, struct query* q)
 {
 	/* check each acl element.
-	   if 1 blocked element matches - return 0.
-	   if any element matches - return 1.
-	   else return 0. */
-	int found_match = 0;
+	   if 1 blocked element matches - return -1.
+	   if any element matches - return number.
+	   else return -1. */
+	int found_match = -1;
+	int number = 0;
 	while(acl)
 	{
 		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
 			if(acl->blocked) 
-				return 0;
-			found_match=1;
+				return -1;
+			found_match=number;
 		}
+		number++;
 		acl = acl->next;
 	}
 	return found_match;
@@ -379,6 +381,41 @@ int acl_key_matches(acl_options_t* acl, struct query* ATTR_UNUSED(q))
 		return 1;
 	/* no tsig yet TODO */
 	return 0;
+}
+
+int 
+acl_same_host(acl_options_t* a, acl_options_t* b)
+{
+	if(a->is_ipv6 && !b->is_ipv6)
+		return 0;
+	if(!a->is_ipv6 && b->is_ipv6)
+		return 0;
+	if(a->port != b->port)
+		return 0;
+	if(a->rangetype != b->rangetype)
+		return 0;
+	if(!a->is_ipv6) {
+		if(memcmp(&a->addr.addr, &b->addr.addr, 
+		   sizeof(struct in_addr)) != 0)
+			return 0;
+		if(a->rangetype != acl_range_single &&
+		   memcmp(&a->range_mask.addr, &b->range_mask.addr, 
+		   sizeof(struct in_addr)) != 0)
+			return 0;
+	} else {
+#ifdef INET6
+		if(memcmp(&a->addr.addr6, &b->addr.addr6, 
+		   sizeof(struct in6_addr)) != 0)
+			return 0;
+		if(a->rangetype != acl_range_single &&
+		   memcmp(&a->range_mask.addr6, &b->range_mask.addr6, 
+		   sizeof(struct in6_addr)) != 0)
+			return 0;
+#else
+		return 0;
+#endif
+	}
+	return 1;
 }
 
 void key_options_tsig_add(nsd_options_t* opt)

@@ -286,6 +286,8 @@ process_edns(struct query *q)
 static query_state_type
 answer_notify (struct nsd* nsd, struct query *query)
 {
+	int acl_num;
+
 	zone_options_t* zone_opt;
 	log_msg(LOG_INFO, "got notify %s processing acl",
 		dname_to_string(query->qname, NULL));
@@ -298,11 +300,12 @@ answer_notify (struct nsd* nsd, struct query *query)
 		return query_error(query, NSD_RC_SERVFAIL);
 	
 	/* check if it passes acl */
-	if(acl_check_incoming(zone_opt->allow_notify, query))
+	if((acl_num = acl_check_incoming(zone_opt->allow_notify, query)) != -1)
 	{
 		sig_atomic_t mode = NSD_PASS_TO_XFRD;
 		int s = nsd->this_child->parent_fd;
 		uint16_t sz = buffer_limit(query->packet);
+		uint32_t acl_send = htonl(acl_num);
 		log_msg(LOG_INFO, "got notify %s passed acl",
 			dname_to_string(query->qname, NULL));
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
@@ -313,7 +316,8 @@ answer_notify (struct nsd* nsd, struct query *query)
 		if(!write_socket(s, &mode, sizeof(mode)) || 
 			!write_socket(s, &sz, sizeof(sz)) ||
 			!write_socket(s, buffer_begin(query->packet),
-				buffer_limit(query->packet))) {
+				buffer_limit(query->packet)) ||
+			!write_socket(s, &acl_send, sizeof(acl_send))) {
 			log_msg(LOG_ERR, "error in IPC notify server2main, %s",
 				strerror(errno));
 			return query_error(query, NSD_RC_SERVFAIL);

@@ -55,7 +55,7 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 /* get SOA INFO out of IPC packet buffer */
 static void xfrd_handle_ipc_SOAINFO(buffer_type* packet);
 /* handle network packet passed to xfrd */
-static void xfrd_handle_passed_packet(buffer_type* packet);
+static void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 /* handle incoming notification message. soa can be NULL */
 static void xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
 
@@ -93,6 +93,11 @@ static int xfrd_send_udp(acl_options_t* acl, buffer_type* packet);
 /* read data via udp */
 static void xfrd_udp_read(xfrd_zone_t* zone);
 
+/* find acl by number */
+static acl_options_t* acl_find_num(acl_options_t* acl, int num);
+/* find master by notify number */
+static int find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy);
+
 void 
 xfrd_init(int socket, struct nsd* nsd)
 {
@@ -110,6 +115,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->netio = netio_create(xfrd->region);
 	xfrd->nsd = nsd;
 	xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
+	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 
 	/* add the handlers already, because this involves allocs */
 	xfrd->reload_handler.fd = -1;
@@ -179,6 +185,26 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
         if (!(event_types & NETIO_EVENT_READ))
                 return;
 	
+	if(xfrd->ipc_conn->is_reading==2) {
+		buffer_type* tmp = xfrd->ipc_pass;
+		uint32_t acl_num;
+		/* read acl_num */
+		int ret = conn_read(xfrd->ipc_conn);
+		if(ret == -1) {
+			log_msg(LOG_ERR, "xfrd: error in read ipc: %s", strerror(errno));
+			xfrd->ipc_conn->is_reading = 0;
+			return;
+		}
+		if(ret == 0)
+			return;
+		buffer_flip(xfrd->ipc_conn->packet);
+		xfrd->ipc_pass = xfrd->ipc_conn->packet;
+		xfrd->ipc_conn->packet = tmp;
+		xfrd->ipc_conn->is_reading = 0;
+		acl_num = buffer_read_u32(xfrd->ipc_pass);
+		xfrd_handle_passed_packet(xfrd->ipc_conn->packet, acl_num);
+		return;
+	}
 	if(xfrd->ipc_conn->is_reading) {
 		/* reading an IPC message */
 		int ret = conn_read(xfrd->ipc_conn);
@@ -190,11 +216,19 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 		if(ret == 0)
 			return;
 		buffer_flip(xfrd->ipc_conn->packet);
-		xfrd->ipc_conn->is_reading = 0;
-		if(xfrd->ipc_is_soa)
+		if(xfrd->ipc_is_soa) {
+			xfrd->ipc_conn->is_reading = 0;
 			xfrd_handle_ipc_SOAINFO(xfrd->ipc_conn->packet);
-		else 	
-			xfrd_handle_passed_packet(xfrd->ipc_conn->packet);
+		} else 	{
+			/* use ipc_conn to read remaining data as well */
+			buffer_type* tmp = xfrd->ipc_pass;
+			xfrd->ipc_conn->is_reading=2;
+			xfrd->ipc_pass = xfrd->ipc_conn->packet;
+			xfrd->ipc_conn->packet = tmp;
+			xfrd->ipc_conn->total_bytes = sizeof(xfrd->ipc_conn->msglen);
+			xfrd->ipc_conn->msglen = sizeof(uint32_t);
+			buffer_set_limit(xfrd->ipc_conn->packet, xfrd->ipc_conn->msglen);
+		}
 		return;
 	}
         
@@ -328,6 +362,7 @@ xfrd_init_zones()
 		xzone->zone_options = zone_opt;
 		xzone->master = 0; /* first retry will use first master */
 		xzone->master_num = 0;
+		xzone->next_master = 0;
 
 		xzone->soa_nsd_acquired = 0;
 		xzone->soa_disk_acquired = 0;
@@ -461,12 +496,23 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 	}
 	
 	/* use different master */
-	if(zone->master && zone->master->next) {
-		zone->master = zone->master->next;
-		zone->master_num++;
+	if(zone->next_master != -1) {
+		zone->master_num = zone->next_master;
+		zone->master = acl_find_num(
+			zone->zone_options->request_xfr, zone->master_num);
+		if(!zone->master) {
+			zone->master = zone->zone_options->request_xfr;
+			zone->master_num = 0;
+		}
+		zone->next_master = -1;
 	} else {
-		zone->master = zone->zone_options->request_xfr;
-		zone->master_num = 0;
+		if(zone->master && zone->master->next) {
+			zone->master = zone->master->next;
+			zone->master_num++;
+		} else {
+			zone->master = zone->zone_options->request_xfr;
+			zone->master_num = 0;
+		}
 	}
 
 	if(zone->soa_disk_acquired == 0) {
@@ -721,7 +767,7 @@ xfrd_read_state()
 		char *p;
 		xfrd_zone_t* zone;
 		const dname_type* dname;
-		uint32_t state, masnum, timeout;
+		uint32_t state, masnum, nextmas, timeout;
 		xfrd_soa_t soa_nsd_read, soa_disk_read, soa_notified_read;
 		time_t soa_nsd_acquired_read, 
 			soa_disk_acquired_read, soa_notified_acquired_read;
@@ -740,6 +786,8 @@ xfrd_read_state()
 		   !xfrd_read_i32(in, &state) || (state>2) ||
 		   !xfrd_read_check_str(in, "master:") ||
 		   !xfrd_read_i32(in, &masnum) ||
+		   !xfrd_read_check_str(in, "next_master:") ||
+		   !xfrd_read_i32(in, &nextmas) ||
 		   !xfrd_read_check_str(in, "next_timeout:") ||
 		   !xfrd_read_i32(in, &timeout) ||
 		   !xfrd_read_state_soa(in, "soa_nsd_acquired:", "soa_nsd:",
@@ -773,16 +821,14 @@ xfrd_read_state()
 		}
 		zone->zone_state = state;
 		zone->master_num = masnum;
+		zone->next_master = nextmas;
 		zone->timeout.tv_sec = timeout;
 		zone->timeout.tv_nsec = 0;
 
 		/* read the zone OK, now set the master properly */
-		zone->master = zone->zone_options->request_xfr;
-		while(zone->master && masnum > 0) {
-			masnum--;
-			zone->master = zone->master->next;
-		}
-		if(masnum != 0 || !zone->master) {
+		zone->master = acl_find_num(
+			zone->zone_options->request_xfr, zone->master_num);
+		if(!zone->master) {
 			log_msg(LOG_INFO, "xfrd: masters changed for zone %s", 
 				zone->apex_str);
 			zone->master = zone->zone_options->request_xfr;
@@ -956,6 +1002,7 @@ static void xfrd_write_state()
 			zone->zone_state==xfrd_zone_refreshing?"refreshing":"expired"));
 		fprintf(out, "\n");
 		fprintf(out, "\tmaster: %d\n", zone->master_num);
+		fprintf(out, "\tnext_master: %d\n", zone->next_master);
 		fprintf(out, "\tnext_timeout: %d", 
 			zone->zone_handler.timeout?(int)zone->timeout.tv_sec:0);
 		if(zone->zone_handler.timeout) {
@@ -1335,7 +1382,7 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 }
 
 static void 
-xfrd_handle_passed_packet(buffer_type* packet)
+xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
 	uint16_t qtype, qclass;
@@ -1347,8 +1394,8 @@ xfrd_handle_passed_packet(buffer_type* packet)
 
 	/* TODO memory leak */
 	dname = dname_make(xfrd->region, qnamebuf, 1);
-	log_msg(LOG_INFO, "xfrd: got passed packet for %s", 
-		dname_to_string(dname,0));
+	log_msg(LOG_INFO, "xfrd: got passed packet for %s, acl %d", 
+		dname_to_string(dname,0), acl_num);
 
 	/* find the zone */
 	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
@@ -1362,11 +1409,17 @@ xfrd_handle_passed_packet(buffer_type* packet)
 	if(OPCODE(packet) == OPCODE_NOTIFY) {
 		xfrd_soa_t soa;
 		int have_soa = 0;
+		int next;
 		/* get serial from a SOA */
 		if(ANCOUNT(packet) == 1 && packet_skip_dname(packet) &&
 			xfrd_parse_soa_info(packet, &soa))
 			have_soa = 1;
 		xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL);
+		next = find_same_master_notify(zone, acl_num);
+		if(next != -1) {
+			zone->next_master = next;
+			log_msg(LOG_INFO, "xfrd: notify set next master to query %d", next);
+		}
 	}
 	else {
 		/* TODO IXFR udp reply via port 53 */
@@ -1394,4 +1447,38 @@ xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 	}
 	/* transfer right away */
 	xfrd_set_refresh_now(zone, zone->zone_state);
+}
+
+static acl_options_t* 
+acl_find_num(acl_options_t* acl, int num)
+{
+	int count = num;
+	if(num < 0) 
+		return 0;
+	while(acl && count > 0) {
+		acl = acl->next;
+		count--;
+	}
+	if(count == 0) 
+		return acl;
+	return 0;
+}
+
+static int
+find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy)
+{
+	acl_options_t* nfy_acl = acl_find_num(
+		zone->zone_options->allow_notify, acl_num_nfy);
+	int num = 0;
+	acl_options_t* master = zone->zone_options->request_xfr;
+	if(!nfy_acl) 
+		return -1;
+	while(master)
+	{
+		if(acl_same_host(nfy_acl, master))
+			return num;
+		master = master->next;
+		num++;
+	}
+	return -1;
 }

@@ -127,6 +127,7 @@ struct main_ipc_handler_data
 	int		forward_mode;
 	size_t		got_bytes;
 	uint16_t	total_bytes;
+	uint32_t	acl_num;
 };
 
 /*
@@ -268,6 +269,7 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 					ipc_data->forward_mode = 0;
 					ipc_data->got_bytes = 0;
 					ipc_data->total_bytes = 0;
+					ipc_data->acl_num = 0;
 					nsd->children[i].handler = (struct netio_handler*) region_alloc(
 						region, sizeof(struct netio_handler));
 					nsd->children[i].handler->fd = nsd->children[i].child_fd;
@@ -735,7 +737,7 @@ server_main(struct nsd *nsd)
 	pid_t reload_pid = -1;
 	pid_t xfrd_pid = -1;
 	sig_atomic_t mode;
-	struct main_ipc_handler_data ipc_data = {nsd, &xfrd_listener.fd, 0, 0, 0, 0};
+	struct main_ipc_handler_data ipc_data = {nsd, &xfrd_listener.fd, 0, 0, 0, 0, 0};
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
@@ -1647,6 +1649,7 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 	}
 
 	if (data->forward_mode) {
+		int got_acl;
 		/* forward the data to xfrd */
 		if(data->got_bytes < sizeof(data->total_bytes))
 		{
@@ -1673,10 +1676,29 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 			}
 			return;
 		}
-		/* read the rest */
-		if((len = read(handler->fd, buffer_current(data->packet),
-			data->total_bytes - (data->got_bytes-sizeof(data->total_bytes))
-			)) == -1 ) {
+		/* read the packet */
+		if(data->got_bytes-sizeof(data->total_bytes) < data->total_bytes) {
+			if((len = read(handler->fd, buffer_current(data->packet),
+				data->total_bytes - (data->got_bytes-sizeof(data->total_bytes))
+				)) == -1 ) {
+				log_msg(LOG_ERR, "handle_child_command: read: %s",
+					strerror(errno));
+				return;
+			}
+			if(len == 0) {
+				/* EOF */
+				data->forward_mode = 0;
+				return;
+			}
+			data->got_bytes += len;
+			buffer_skip(data->packet, len);
+			/* read rest later */
+			return;
+		}
+		/* read the acl number */
+		got_acl = data->got_bytes - sizeof(data->total_bytes) - data->total_bytes;
+		if((len = read(handler->fd, (char*)&data->acl_num+got_acl,
+			sizeof(data->acl_num)-got_acl)) == -1 ) {
 			log_msg(LOG_ERR, "handle_child_command: read: %s",
 				strerror(errno));
 			return;
@@ -1686,16 +1708,19 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 			data->forward_mode = 0;
 			return;
 		}
+		got_acl += len;
 		data->got_bytes += len;
-		buffer_skip(data->packet, len);
-		if(data->got_bytes-sizeof(data->total_bytes) >= data->total_bytes) {
+		if(got_acl >= (int)sizeof(data->acl_num)) {
 			uint16_t len = htons(data->total_bytes);
+			log_msg(LOG_INFO, "fwd passed packet write %d", data->got_bytes);
 			data->forward_mode = 0;
 			mode = NSD_PASS_TO_XFRD;
 			if(!write_socket(*data->xfrd_sock, &mode, sizeof(mode)) ||
 			   !write_socket(*data->xfrd_sock, &len, sizeof(len)) ||
 			   !write_socket(*data->xfrd_sock, buffer_begin(data->packet), 
-				data->total_bytes)) {
+				data->total_bytes) ||
+			   !write_socket(*data->xfrd_sock, &data->acl_num, 
+			   	sizeof(data->acl_num))) {
 				log_msg(LOG_ERR, "error in ipc fwd main2xfrd: %s",
 					strerror(errno));
 			}

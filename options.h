@@ -160,12 +160,16 @@ key_options_t* key_options_find(nsd_options_t* opt, const char* name);
 /* tsig must be inited, adds all keys in options to tsig. */
 void key_options_tsig_add(nsd_options_t* opt);
 
-/* check acl list, true if passed, false if dropped */
+/* check acl list, acl number that matches if passed(0..), 
+ * or failure (-1) if dropped */
 int acl_check_incoming(acl_options_t* acl, struct query* q);
 int acl_addr_matches(acl_options_t* acl, struct query* q);
 int acl_key_matches(acl_options_t* acl, struct query* q);
 int acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz);
 int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t sz);
+
+/* returns true if acls are both from the same host */
+int acl_same_host(acl_options_t* a, acl_options_t* b);
 
 /* see if a zone is a slave or a master zone */
 int zone_is_slave(zone_options_t* opt);
