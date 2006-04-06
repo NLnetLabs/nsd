@@ -169,9 +169,28 @@ xfrd_main()
 static void 
 xfrd_shutdown()
 {
+	xfrd_zone_t* zone;
+	int i;
+
 	log_msg(LOG_INFO, "xfrd shutdown");
 	xfrd_write_state();
 	close(xfrd->ipc_handler.fd);
+	/* close tcp sockets */
+	for(i=0; i<XFRD_MAX_TCP; i++)
+	{
+		if(xfrd->tcp_set->tcp_state[i]->fd != -1) {
+			close(xfrd->tcp_set->tcp_state[i]->fd);
+			xfrd->tcp_set->tcp_state[i]->fd = -1;
+		}
+	}
+	/* close udp sockets */
+	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones)
+	{
+		if(zone->tcp_conn==-1 && zone->zone_handler.fd != -1) {
+			close(zone->zone_handler.fd);
+			zone->zone_handler.fd = -1;
+		}
+	}
 	exit(0);
 }
 
