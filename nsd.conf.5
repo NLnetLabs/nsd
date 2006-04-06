@@ -140,11 +140,15 @@ will access files (pid file, database file, log file) relative to this directory
 .It \fBdifffile:\fR <filename>
 When NSD receives IXFR updates it will store them in this file. This file
 contains the differences between the database file and the latest zone version.
+Default is 
+.Ic ixfr.db .
 .It \fBxfrdfile:\fR <filename>
 The soa timeout and zone transfer daemon in NSD will save its state to this
 file. State is read back after a restart. The state file can be deleted without
 too much harm, but timestamps of zones will be gone. For more details 
 see the section on zone expiry behavior of NSD.
+Default is
+.Ic xfrd.state .
 
 .El
 .Ss Zone Options

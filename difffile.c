@@ -17,7 +17,7 @@
 #include "packet.h"
 #include "rdata.h"
 
-#define DIFFFILE "nsd.diff"
+#define DIFFFILE "ixfr.db"
 
 static int 
 write_32(FILE *out, uint32_t val)

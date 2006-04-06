@@ -23,7 +23,7 @@
 #include "packet.h"
 #include "difffile.h"
 
-#define XFRDFILE "nsd.xfst"
+#define XFRDFILE "xfrd.state"
 #define XFRD_TRANSFER_TIMEOUT 10 /* empty zone timeout is between x and 2*x seconds */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connectin is stopped */
 #define XFRD_RELOAD_TIMEOUT 10 /* seconds, allowed to elapse between a zone transfer and reload */

@@ -5,6 +5,8 @@
 	  the notify, if send from an address that is both in acl
 	  allow-notify and request-xfr.
 	- xfrd closes its tcp and udp sockets on exit.
+	- default names for diff file and xfrd state nicer.
+	- fixed up kill nsd grep on ps.
 
 5 Apr 2006: Wouter
 	- added lowerbound for retry timeout.
