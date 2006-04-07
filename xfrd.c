@@ -137,6 +137,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
 
 	log_msg(LOG_INFO, "xfrd pre-startup");
+	diff_snip_garbage(nsd->db, nsd->options);
 	xfrd_init_zones();
 	xfrd_free_namedb();
 	xfrd_read_state();

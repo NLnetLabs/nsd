@@ -807,10 +807,6 @@ main (int argc, char *argv[])
 	
 	log_msg(LOG_NOTICE, "nsd started, pid %d", (int) nsd.pid);
 
-	/* DEBUG xfrd */
-	void xfrd_init(int, struct nsd*);
-	if(0) xfrd_init(-1, &nsd);
-
 	if (nsd.server_kind == NSD_SERVER_MAIN) {
 		server_main(&nsd);
 	} else {

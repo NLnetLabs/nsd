@@ -2,6 +2,10 @@
 	- modified the kill_nsd tpkg so that it waits up to 10x5 secs
 	  for nsd to make the pid file, and it wait up to 10x5 secs for
 	  nsd to exit after the kill signal is given.
+	- xfrd checks on startup if there is trailing garbage in the
+	  diff file, left there by a previous xfrd killed in action.
+	  It then snips off any partial parts, so service can resume.
+	  Also the difffile_skip pos is set before any partial record there.
 
 6 Apr 2006: Wouter
 	- notify handler passes acl number that matches to xfrd.

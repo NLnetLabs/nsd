@@ -728,7 +728,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 		log_msg(LOG_INFO, "part IXFR len %d", len);
 		saw_ixfr = 1;
 		last_ixfr_pos = startpos;
-		if(fseek(in, len, SEEK_CUR) == -1)
+		if(fseeko(in, len, SEEK_CUR) == -1)
 			log_msg(LOG_INFO, "fseek failed: %s", strerror(errno));
 	}
 	else if(type == DIFF_PART_SURE) {
@@ -741,6 +741,15 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	}
 	if(!read_32(in, &len2) || len != len2) 
 		return 1;
+
+	/* part was OK, we can skip to here next time. */
+	if(fgetpos(in, &db->diff_pos) == -1) {
+		log_msg(LOG_INFO, "could not fgetpos: %s.",
+			strerror(errno));
+		db->diff_skip = 0;
+	}
+	else 
+		db->diff_skip = 1;
 	return 1;
 }
 
@@ -780,14 +789,77 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 	}
 	log_msg(LOG_INFO, "end of diff file read");
 	
-	if(fgetpos(df, &db->diff_pos) == -1) {
-		log_msg(LOG_INFO, "could not fgetpos file %s: %s.",
-			filename, strerror(errno));
-		db->diff_skip = 0;
-	}
-	else 
-		db->diff_skip = 1;
-	
 	fclose(df);
 	return 1;
 }
+
+static int diff_broken(FILE *df, off_t* break_pos)
+{
+	uint32_t type, len, len2;
+	*break_pos = ftello(df);
+
+	/* try to read and validate parts of the file */
+	while(read_32(df, &type)) /* cannot read type is no error, normal EOF */
+	{
+		log_msg(LOG_INFO, "garb part");
+		/* check type */
+		if(type != DIFF_PART_IXFR && type != DIFF_PART_SURE)
+			return 1;
+		/* check length */
+		if(!read_32(df, &len))
+			return 1; /* EOF inside the part is error */
+		if(fseeko(df, len, SEEK_CUR) == -1)
+		{
+			log_msg(LOG_INFO, "fseeko failed: %s", strerror(errno));
+			return 1;
+		}
+		/* fseek clears EOF flag, but try reading length value,
+		   if EOF, the part is truncated */
+		if(!read_32(df, &len2))
+			return 1;
+		if(len != len2)
+			return 1; /* bad part, lengths must agree */
+		/* this part is ok */
+		*break_pos = ftello(df);
+	}
+	return 0;
+}
+
+void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
+{
+	off_t break_pos;
+	const char* filename = DIFFFILE;
+	FILE *df;
+
+	/* open file here and keep open, so it cannot change under our nose */
+	if(opt->difffile)
+		filename = opt->difffile;
+	df = fopen(filename, "r+");
+	if(!df) {
+		log_msg(LOG_INFO, "could not open file %s for garbage collecting: %s",
+			filename, strerror(errno));
+		return;
+	}
+	/* and skip into file, since nsd does not read anything before the pos */
+	if(db->diff_skip) {
+		log_msg(LOG_INFO, "garbage collect skip diff file");
+		if(fsetpos(df, &db->diff_pos)==-1) {
+			log_msg(LOG_INFO, "could not fsetpos file %s: %s.", 
+				filename, strerror(errno));
+			fclose(df);
+			return;
+		}
+	}
+
+	/* detect break point */
+	if(diff_broken(df, &break_pos))
+	{
+		/* snip off at break_pos */
+		log_msg(LOG_INFO, "snipping off trailing partial part of %s", 
+			filename);
+		ftruncate(fileno(df), break_pos);
+	}
+
+	fclose(df);
+}
+

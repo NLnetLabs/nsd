@@ -39,4 +39,9 @@ int db_crc_different(namedb_type* db);
    returns 0 on an unrecoverable error. */
 int diff_read_file(namedb_type* db, nsd_options_t* opt);
 
+/* check the diff file for garbage at the end (bad type, partial write)
+ * and snip it off.
+ */
+void diff_snip_garbage(namedb_type* db, nsd_options_t* opt);
+
 #endif /* DIFFFILE_H */
