@@ -1,3 +1,8 @@
+7 Apr 2006: Wouter
+	- modified the kill_nsd tpkg so that it waits up to 10x5 secs
+	  for nsd to make the pid file, and it wait up to 10x5 secs for
+	  nsd to exit after the kill signal is given.
+
 6 Apr 2006: Wouter
 	- notify handler passes acl number that matches to xfrd.
 	- xfrd keeps a next_master for a zone, and sets it after notify.

@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-06 16:05 CEST by <wouter@diva.nlnetlabs.nl>.
+# Made on 2006-04-07 09:47 CEST by <wouter@diva.nlnetlabs.nl>.
 # Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/kill_nsd.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -16,7 +16,7 @@
 #    298 -rw------- kill_nsd.dsc
 #     37 -rw------- kill_nsd.help
 #    936 -rw------- kill_nsd.pre
-#    860 -rw------- kill_nsd.test
+#   1156 -rw------- kill_nsd.test
 #    351 -rw------- kill_nsd.zone
 #
 save_IFS="${IFS}"
@@ -67,7 +67,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh24020; then
+if mkdir _sh31656; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -253,19 +253,35 @@ X
 echo "NSD PORT: $TPKG_PORT"
 X
 # check if the pid file is already created (i.e. NSD has started)
-if [[ ! -f $TPKG_NSD_PID ]]; then
+MAX_SLEEP=10
+i=0
+while [[ ! -f $TPKG_NSD_PID ]]; do
+X	echo no $TPKG_NSD_PID yet, waiting $i...
 X	sleep 5
-X	if [[ ! -f $TPKG_NSD_PID ]]; then
-X		echo error no pid file in 5 seconds.
+X	i=$(($i+1));
+X	if [[ $i -ge $MAX_SLEEP ]]; then
+X		echo Error no $TPKG_NSD_PID after this wait.
 X		exit 1
 X	fi
-fi
+done
 X
 # kill NSD
 NSD_PID=`cat $TPKG_NSD_PID`
 echo kill $NSD_PID
 kill $NSD_PID 2>/dev/null
-sleep 1 # should be really dead now - just to be sure kill it again
+X
+# wait for NSD to exit.
+MAX_WAIT=10
+i=0
+while ps waux | awk ' { print $2 } ' | grep -v grep | grep "^$NSD_PID$"; do
+X	echo NSD did not exit yet, waiting $i...
+X	sleep 5
+X	i=$(($i+1));
+X	if [[ $i -ge $MAX_SLEEP ]]; then
+X		echo Error NSD did not exit after this wait.
+X		exit 1
+X	fi
+done
 X
 ps waux | awk ' { print $2 } ' | grep -v grep | grep "^$NSD_PID$"
 if [[ $? -eq 0 ]]; then
@@ -274,19 +290,19 @@ else
 X        exit 0
 fi
 SHAR_EOF
-  (set 20 06 04 06 16 05 09 'kill_nsd.test'; eval "$shar_touch") &&
+  (set 20 06 04 07 09 47 35 'kill_nsd.test'; eval "$shar_touch") &&
   chmod 0600 'kill_nsd.test' ||
   $echo 'restore of' 'kill_nsd.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'kill_nsd.test:' 'MD5 check failed'
-d69cb18fd5b35f1d4835e0c04a690031  kill_nsd.test
+ae946dbe9b25fe27b9c0c33286d749d3  kill_nsd.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'kill_nsd.test'`"
-    test 860 -eq "$shar_count" ||
-    $echo 'kill_nsd.test:' 'original size' '860,' 'current size' "$shar_count!"
+    test 1156 -eq "$shar_count" ||
+    $echo 'kill_nsd.test:' 'original size' '1156,' 'current size' "$shar_count!"
   fi
 fi
 # ============= kill_nsd.zone ==============
@@ -319,5 +335,5 @@ SHAR_EOF
     $echo 'kill_nsd.zone:' 'original size' '351,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh24020
+rm -fr _sh31656
 exit 0
