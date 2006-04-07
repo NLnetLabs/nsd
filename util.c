@@ -626,7 +626,7 @@ print_rr(FILE *out,
          rr_type *record)
 {
 	region_type *region = region_create(xalloc, free);
-        buffer_type *output = buffer_create(region, 1000);
+        buffer_type *output = buffer_create(region, MAX_RDLENGTH);
         rrtype_descriptor_type *descriptor
                 = rrtype_descriptor_by_type(record->type);
         int result;

@@ -60,7 +60,11 @@ print_rrs(FILE* out, struct zone* zone)
 			if(rrset->zone != zone)
 				continue;
 			for(i=0; i<rrset->rr_count; i++) {
-				print_rr(out, state, &rrset->rrs[i]);
+				if(!print_rr(out, state, &rrset->rrs[i])){
+					fprintf(stderr, "There was an error "
+					   "printing RR to zone %s\n",
+					   zone->opts->name);
+				}
 			}
 		}
 		domain = domain_next(domain);
