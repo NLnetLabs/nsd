@@ -80,9 +80,7 @@ struct axfr_state
 	 * Region used to store owner and origin of previous RR (used
 	 * for pretty printing of zone data).
 	 */
-	region_type *previous_owner_region;
-	const dname_type *previous_owner;
-	const dname_type *previous_owner_origin;
+	struct state_pretty_rr *pretty_rr;
 };
 typedef struct axfr_state axfr_state_type;
 
@@ -311,110 +309,6 @@ read_socket(int s, void *buf, size_t size)
 }
 
 static int
-print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
-	    rr_type *record)
-{
-	size_t i;
-	size_t saved_position = buffer_position(output);
-
-	for (i = 0; i < record->rdata_count; ++i) {
-		if (i == 0) {
-			buffer_printf(output, "\t");
-		} else if (descriptor->type == TYPE_SOA && i == 2) {
-			buffer_printf(output, " (\n\t\t");
-		} else {
-			buffer_printf(output, " ");
-		}
-		if (!rdata_atom_to_string(
-			    output,
-			    (rdata_zoneformat_type) descriptor->zoneformat[i],
-			    record->rdatas[i]))
-		{
-			buffer_set_position(output, saved_position);
-			return 0;
-		}
-	}
-	if (descriptor->type == TYPE_SOA) {
-		buffer_printf(output, " )");
-	}
-
-	return 1;
-}
-
-static void
-set_previous_owner(axfr_state_type *state, const dname_type *dname)
-{
-	region_free_all(state->previous_owner_region);
-	state->previous_owner = dname_copy(state->previous_owner_region, dname);
-	state->previous_owner_origin = dname_origin(
-		state->previous_owner_region, state->previous_owner);
-}
-
-static int
-print_rr(FILE *out,
-	 axfr_state_type *state,
-	 rr_type *record)
-{
-	buffer_type *output = buffer_create(state->rr_region, 1000);
-	rrtype_descriptor_type *descriptor
-		= rrtype_descriptor_by_type(record->type);
-	int result;
-	const dname_type *owner = domain_dname(record->owner);
-	const dname_type *owner_origin
-		= dname_origin(state->rr_region, owner);
-	int owner_changed
-		= (!state->previous_owner
-		   || dname_compare(state->previous_owner, owner) != 0);
-	if (owner_changed) {
-		int origin_changed = (!state->previous_owner_origin
-				      || dname_compare(
-					      state->previous_owner_origin,
-					      owner_origin) != 0);
-		if (origin_changed) {
-			buffer_printf(
-				output,
-				"$ORIGIN %s\n",
-				dname_to_string(owner_origin, NULL));
-		}
-
-		set_previous_owner(state, owner);
-		buffer_printf(output,
-			      "%s",
-			      dname_to_string(owner,
-					      state->previous_owner_origin));
-	}
-
-	buffer_printf(output,
-		      "\t%lu\t%s\t%s",
-		      (unsigned long) record->ttl,
-		      rrclass_to_string(record->klass),
-		      rrtype_to_string(record->type));
-
-	result = print_rdata(output, descriptor, record);
-	if (!result) {
-		/*
-		 * Some RDATA failed to print, so print the record's
-		 * RDATA in unknown format.
-		 */
-		result = rdata_atoms_to_unknown_string(output,
-						       descriptor,
-						       record->rdata_count,
-						       record->rdatas);
-	}
-
-	if (result) {
-		buffer_printf(output, "\n");
-		buffer_flip(output);
-		fwrite(buffer_current(output), buffer_remaining(output), 1,
-		       out);
-/* 		fflush(out); */
-	}
-
-	return result;
-}
-
-
-static int
 parse_response(FILE *out, axfr_state_type *state)
 {
 	size_t rr_count;
@@ -456,7 +350,7 @@ parse_response(FILE *out, axfr_state_type *state)
 
 		++state->rr_count;
 
-		if (!print_rr(out, state, record)) {
+		if (!print_rr(out, state->pretty_rr, record)) {
 			return 0;
 		}
 
@@ -900,11 +794,8 @@ main(int argc, char *argv[])
 	state.done = 0;
 	state.rr_count = 0;
 	state.rr_region = region_create(xalloc, free);
-	state.previous_owner_region = region_create(xalloc, free);
-	state.previous_owner = NULL;
-	state.previous_owner_origin = NULL;
+	state.pretty_rr = create_pretty_rr(region);
 
-	region_add_cleanup(region, cleanup_region, state.previous_owner_region);
 	region_add_cleanup(region, cleanup_region, state.rr_region);
 
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));

@@ -6,6 +6,9 @@
 	  diff file, left there by a previous xfrd killed in action.
 	  It then snips off any partial parts, so service can resume.
 	  Also the difffile_skip pos is set before any partial record there.
+	- first version of nsd-patch; reads db and ixfrs and updates zones.
+	- moved print_rdata from nsd-xfer to rdata.h to share code.
+	- moved print_rr from nsd-xfer to util.h to share code.
 
 6 Apr 2006: Wouter
 	- notify handler passes acl number that matches to xfrd.

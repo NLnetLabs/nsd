@@ -18,6 +18,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
+struct rr;
 
 #ifdef HAVE_SYSLOG_H
 #  include <syslog.h>
@@ -32,7 +33,6 @@
 	(((n) + (alignment) - 1) & (~((alignment) - 1)))
 #define PADDING(n, alignment)   \
 	(ALIGN_UP((n), (alignment)) - (n))
-
 
 /*
  * Initialize the logging system.  All messages are logged to stderr
@@ -293,5 +293,19 @@ uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len);
  * 3.2.).
  */
 int compare_serial(uint32_t a, uint32_t b);
+
+/* 
+ * Region used to store owner and origin of previous RR (used
+ * for pretty printing of zone data).
+ * Keep the same between calls to print_rr.
+ */
+struct state_pretty_rr {
+	struct region *previous_owner_region;
+	const struct dname *previous_owner;
+	const struct dname *previous_owner_origin;
+};
+struct state_pretty_rr* create_pretty_rr(struct region* region);
+/* print rr to file, returns 0 on failure(nothing is written) */
+int print_rr(FILE *out, struct state_pretty_rr* state, struct rr *record);
 
 #endif /* _UTIL_H_ */

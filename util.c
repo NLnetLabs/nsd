@@ -21,6 +21,10 @@
 #include <unistd.h>
 
 #include "util.h"
+#include "region-allocator.h"
+#include "dname.h"
+#include "namedb.h"
+#include "rdata.h"
 
 #ifndef NDEBUG
 unsigned nsd_debug_facilities = 0xffff;
@@ -586,3 +590,98 @@ int compare_serial(uint32_t a, uint32_t b)
                 return 1;
         }
 }
+
+static void
+cleanup_region(void *data)
+{
+	region_type *region = (region_type *) data;
+	region_destroy(region);
+}
+
+struct state_pretty_rr* 
+create_pretty_rr(struct region* region)
+{
+	struct state_pretty_rr* state = (struct state_pretty_rr*)
+		region_alloc(region, sizeof(struct state_pretty_rr));
+	state->previous_owner_region = region_create(xalloc, free);
+	state->previous_owner = NULL;
+	state->previous_owner_origin = NULL;
+        region_add_cleanup(region, cleanup_region, 
+		state->previous_owner_region);
+	return state;
+}
+
+static void
+set_previous_owner(struct state_pretty_rr *state, const dname_type *dname)
+{
+	region_free_all(state->previous_owner_region);
+	state->previous_owner = dname_copy(state->previous_owner_region, dname);
+	state->previous_owner_origin = dname_origin(
+		state->previous_owner_region, state->previous_owner);
+}
+
+int
+print_rr(FILE *out,
+         struct state_pretty_rr *state,
+         rr_type *record)
+{
+	region_type *region = region_create(xalloc, free);
+        buffer_type *output = buffer_create(region, 1000);
+        rrtype_descriptor_type *descriptor
+                = rrtype_descriptor_by_type(record->type);
+        int result;
+        const dname_type *owner = domain_dname(record->owner);
+        const dname_type *owner_origin
+                = dname_origin(region, owner);
+        int owner_changed
+                = (!state->previous_owner
+                   || dname_compare(state->previous_owner, owner) != 0);
+        if (owner_changed) {
+                int origin_changed = (!state->previous_owner_origin
+                                      || dname_compare(
+                                              state->previous_owner_origin,
+                                              owner_origin) != 0);
+                if (origin_changed) {
+                        buffer_printf(
+                                output,
+                                "$ORIGIN %s\n",
+                                dname_to_string(owner_origin, NULL));
+                }
+
+                set_previous_owner(state, owner);
+                buffer_printf(output,
+                              "%s",
+                              dname_to_string(owner,
+                                              state->previous_owner_origin));
+        }
+
+        buffer_printf(output,
+                      "\t%lu\t%s\t%s",
+                      (unsigned long) record->ttl,
+                      rrclass_to_string(record->klass),
+                      rrtype_to_string(record->type));
+
+        result = print_rdata(output, descriptor, record);
+        if (!result) {
+                /*
+                 * Some RDATA failed to print, so print the record's
+                 * RDATA in unknown format.
+                 */
+                result = rdata_atoms_to_unknown_string(output,
+                                                       descriptor,
+                                                       record->rdata_count,
+                                                       record->rdatas);
+        }
+
+        if (result) {
+                buffer_printf(output, "\n");
+                buffer_flip(output);
+                fwrite(buffer_current(output), buffer_remaining(output), 1,
+                       out);
+/*              fflush(out); */
+        }
+
+	region_destroy(region);
+        return result;
+}
+

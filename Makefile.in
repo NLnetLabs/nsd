@@ -53,7 +53,7 @@ EDIT		= sed \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample nsd-checkconf
+TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample nsd-checkconf nsd-patch
 
 NSD_OBJECTS	=				\
 	answer.o				\
@@ -116,6 +116,7 @@ NSD_NOTIFY_OBJECTS	=			\
 	namedb.o				\
 	nsd-notify.o				\
 	rbtree.o				\
+	rdata.o                                 \
 	region-allocator.o			\
 	util.o
 
@@ -153,6 +154,29 @@ NSD_CHECKCONF_OBJECTS	=			\
 	edns.o					\
 	namedb.o                                \
 	nsd-checkconf.o                         \
+	options.o                               \
+	packet.o				\
+	query.o					\
+	rbtree.o                                \
+	rdata.o                                 \
+	region-allocator.o                      \
+	tsig.o					\
+	tsig-openssl.o				\
+	util.o
+
+NSD_PATCH_OBJECTS	=			\
+	answer.o				\
+	axfr.o					\
+	buffer.o                                \
+	configlexer.o                           \
+	configparser.o                          \
+	dbaccess.o				\
+	difffile.o				\
+	dname.o                                 \
+	dns.o                                   \
+	edns.o					\
+	namedb.o				\
+	nsd-patch.o				\
 	options.o                               \
 	packet.o				\
 	query.o					\
@@ -252,6 +276,9 @@ nsd-checkconf:	$(NSD_CHECKCONF_OBJECTS) $(LIBOBJS)
 
 nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBS)
+
+nsd-patch:	$(NSD_PATCH_OBJECTS) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_PATCH_OBJECTS) $(LIBOBJS) $(LIBS)
 
 cutest:	$(CUTEST_OBJECTS)
 	$(LINK) -o $@ $(CUTEST_OBJECTS) $(LIBOBJS) $(LIBS)
@@ -373,6 +400,8 @@ nsd-checkconf.o: nsd-checkconf.c config.h options.h region-allocator.h \
   rbtree.h util.h dname.h buffer.h
 nsd-notify.o: nsd-notify.c config.h query.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h nsd.h edns.h packet.h
+nsd-patch.o: nsd-patch.c config.h options.h region-allocator.h rbtree.h \
+  difffile.h namedb.h dname.h buffer.h util.h dns.h
 nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
   util.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h rdata.h \
   tsig.h tsig-openssl.h zonec.h
@@ -398,7 +427,8 @@ tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
   tsig.h buffer.h util.h dname.h
-util.o: util.c config.h util.h
+util.o: util.c config.h util.h region-allocator.h dname.h buffer.h \
+  namedb.h dns.h rbtree.h rdata.h
 xfrd.o: xfrd.c config.h xfrd.h netio.h region-allocator.h rbtree.h \
   namedb.h dname.h buffer.h util.h dns.h options.h xfrd-tcp.h nsd.h \
   edns.h packet.h difffile.h

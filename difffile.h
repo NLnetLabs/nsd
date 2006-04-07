@@ -20,6 +20,8 @@
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
 
+#define DIFFFILE "ixfr.db"
+
 /* write an xfr packet data to the diff file, type=IXFR.
    The diff file is created if necessary. */
 void diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt);

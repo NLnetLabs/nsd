@@ -571,3 +571,36 @@ rdata_atoms_to_unknown_string(buffer_type *output,
 	}
 	return 1;
 }
+
+int
+print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
+	    rr_type *record)
+{
+	size_t i;
+	size_t saved_position = buffer_position(output);
+
+	for (i = 0; i < record->rdata_count; ++i) {
+		if (i == 0) {
+			buffer_printf(output, "\t");
+		} else if (descriptor->type == TYPE_SOA && i == 2) {
+			buffer_printf(output, " (\n\t\t");
+		} else {
+			buffer_printf(output, " ");
+		}
+		if (!rdata_atom_to_string(
+			    output,
+			    (rdata_zoneformat_type) descriptor->zoneformat[i],
+			    record->rdatas[i]))
+		{
+			buffer_set_position(output, saved_position);
+			return 0;
+		}
+	}
+	if (descriptor->type == TYPE_SOA) {
+		buffer_printf(output, " )");
+	}
+
+	return 1;
+}
+
+

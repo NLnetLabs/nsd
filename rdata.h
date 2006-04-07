@@ -51,4 +51,10 @@ int rdata_atoms_to_unknown_string(buffer_type *out,
 				  size_t rdata_count,
 				  rdata_atom_type *rdatas);
 
+/* print rdata to a text string (as for a zone file) returns 0
+  on a failure (bufpos is reset to original position).
+  returns 1 on success, bufpos is moved. */
+int print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
+            rr_type *record);
+
 #endif /* _DNS_H_ */
