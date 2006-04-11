@@ -201,7 +201,6 @@ sig_handler (int sig)
 	case SIGCHLD:
 		return;
 	case SIGHUP:
-		/* log_msg(LOG_WARNING, "signal %d received, reloading...", sig); */
 		nsd.mode = NSD_RELOAD;
 		return;
 	case SIGALRM:
@@ -227,7 +226,6 @@ sig_handler (int sig)
 	case SIGTERM:
 	default:
 		nsd.mode = NSD_SHUTDOWN;
-		/* log_msg(LOG_WARNING, "signal %d received, shutting down...", sig); */
 		sig = SIGTERM;
 		break;
 	}
@@ -235,9 +233,9 @@ sig_handler (int sig)
 	/* Distribute the signal to the servers... */
 	for (i = 0; i < nsd.child_count; ++i) {
 		if (nsd.children[i].pid > 0 && kill(nsd.children[i].pid, sig) == -1) {
-			/* log_msg(LOG_ERR, "problems killing %d: %s",
+			/* we're so in trouble here, so do log this! */
+			log_msg(LOG_ERR, "problems killing %d: %s",
 				(int) nsd.children[i].pid, strerror(errno));
-			*/
 		}
 	}
 }

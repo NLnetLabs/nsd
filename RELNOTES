@@ -5,13 +5,12 @@ NSD RELEASE NOTES
 BUG FIXES:
         - Unknown type codes for type code numbers > 48 and < 97 work again.       
           (this implies --enable-checking can be enabled again)
-        - sighandler() fixes - TODO
+        - nsd: sighandler() fixes
 	- Bug #118: nsd: nsd_notify waits for a response. Will retry the notify
 	  after a timeout.
         - Bug #124: $(DESTDIR) was added to Makefile.in. 
 	- Bug #128: zonec: parser can handle \\ at the end of a string.
         - zonec: lexer: add \r to the newline delimeter
-        - nsd: add NSID support (optional, disabled by default)
 
 2.3.3
 =============
