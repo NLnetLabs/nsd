@@ -1225,32 +1225,20 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 
 static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa)
 {
-	log_msg(LOG_INFO, "parse_soa_info_start");
 	if(!buffer_available(packet, 10))
 		return 0;
-	log_msg(LOG_INFO, "parse_soa_info buffer available");
 	soa->type = htons(buffer_read_u16(packet));
 	soa->klass = htons(buffer_read_u16(packet));
 	soa->ttl = htonl(buffer_read_u32(packet));
 	if(ntohs(soa->type) != TYPE_SOA || ntohs(soa->klass) != CLASS_IN)
 	{
-		log_msg(LOG_INFO, "parse_soa_info not SOA IN");
 		return 0;
 	}
 
-	if(!buffer_available(packet, buffer_read_u16(packet)) /* rdata length */ )
+	if(!buffer_available(packet, buffer_read_u16(packet)) /* rdata length */ ||
+		!(soa->prim_ns[0] = dname_make_wire_from_packet(soa->prim_ns+1, packet, 1)) ||
+		!(soa->email[0] = dname_make_wire_from_packet(soa->email+1, packet, 1)))
 	{
-		log_msg(LOG_INFO, "parse_soa_info not rdata.");
-		return 0;
-	}
-	if(!(soa->prim_ns[0] = dname_make_wire_from_packet(soa->prim_ns+1, packet, 1)) )
-	{
-		log_msg(LOG_INFO, "parse_soa_info bad prim_dname.");
-		return 0;
-	}
-	if(!(soa->email[0] = dname_make_wire_from_packet(soa->email+1, packet, 1)))
-	{
-		log_msg(LOG_INFO, "parse_soa_info bad em_dname.");
 		return 0;
 	}
 	soa->serial = htonl(buffer_read_u32(packet));
@@ -1258,7 +1246,6 @@ static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa)
 	soa->retry = htonl(buffer_read_u32(packet));
 	soa->expire = htonl(buffer_read_u32(packet));
 	soa->minimum = htonl(buffer_read_u32(packet));
-	log_msg(LOG_INFO, "parse_soa_info_end");
 
 	return 1;
 }
