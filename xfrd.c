@@ -1226,7 +1226,7 @@ static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa)
 	soa->type = htons(buffer_read_u16(packet));
 	soa->klass = htons(buffer_read_u16(packet));
 	soa->ttl = htonl(buffer_read_u32(packet));
-	if(soa->type != TYPE_SOA || soa->klass != CLASS_IN)
+	if(ntohs(soa->type) != TYPE_SOA || ntohs(soa->klass) != CLASS_IN)
 	{
 		log_msg(LOG_INFO, "parse_soa_info not SOA IN");
 		return 0;

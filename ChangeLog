@@ -1,3 +1,6 @@
+18 Apr 2006: Wouter
+	- Fixed check for SOA IN, bad ntohs in the check.
+
 7 Apr 2006: Wouter
 	- modified the kill_nsd tpkg so that it waits up to 10x5 secs
 	  for nsd to make the pid file, and it wait up to 10x5 secs for
