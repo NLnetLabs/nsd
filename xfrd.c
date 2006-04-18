@@ -1207,7 +1207,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	}
 	xfrd_setup_packet(xfrd->packet, TYPE_IXFR, CLASS_IN, zone->apex);
 	zone->query_id = ID(xfrd->packet);
-	log_msg(LOG_INFO, "sent query with ID %x", zone->query_id);
+	log_msg(LOG_INFO, "sent query with ID %d", zone->query_id);
         NSCOUNT_SET(xfrd->packet, 1);
 	xfrd_write_soa_buffer(xfrd->packet, zone, &zone->soa_disk);
 	buffer_flip(xfrd->packet);
@@ -1314,7 +1314,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* only check ID in first response message. Could also check that
 	 * AA bit and QR bit are set, but not needed.
 	 */
-	log_msg(LOG_INFO, "got query with ID %x and %x needed", ID(packet), zone->query_id);
+	log_msg(LOG_INFO, "got query with ID %d and %d needed", ID(packet), zone->query_id);
 	if(ID(packet) != zone->query_id) {
 		log_msg(LOG_ERR, "xfrd: zone %s received bad query id from %s, dropped",
 			zone->apex_str, zone->master->ip_address_spec);
