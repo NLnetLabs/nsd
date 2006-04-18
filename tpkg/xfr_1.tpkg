@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-18 15:55 CEST by <miekg@floep>.
+# Made on 2006-04-18 16:20 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/xfr_1.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -12,10 +12,11 @@
 # length mode       name
 # ------ ---------- ------------------------------------------
 #    155 -rw------- xfr_1.conf
-#    317 -rw------- xfr_1.dsc
+#    336 -rw------- xfr_1.dsc
 #    138 -rw------- xfr_1.help
 #     50 -rw------- xfr_1.known_good
 # 310588 -rw------- xfr_1.nsd-ldnsd
+#   5084 -rw------- xfr_1.nsd-ldnsd.c
 #    673 -rw------- xfr_1.post
 #    687 -rw------- xfr_1.pre
 #   1069 -rw------- xfr_1.test
@@ -69,7 +70,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh12035; then
+if mkdir _sh12940; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -121,23 +122,23 @@ Help: xfr_1.help
 Pre: xfr_1.pre
 Post: xfr_1.post
 Test: xfr_1.test
-AuxFiles: xfr_1.known_good
+AuxFiles: xfr_1.known_good, xfr_1.nsd-ldnsd.c
 Passed:
 Failure:
 SHAR_EOF
-  (set 20 06 04 18 15 49 29 'xfr_1.dsc'; eval "$shar_touch") &&
+  (set 20 06 04 18 16 20 47 'xfr_1.dsc'; eval "$shar_touch") &&
   chmod 0600 'xfr_1.dsc' ||
   $echo 'restore of' 'xfr_1.dsc' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'xfr_1.dsc:' 'MD5 check failed'
-69136d6b0d7f2ab2bcf8404ab5bc5d9f  xfr_1.dsc
+fdd1617b084e251065767a3d05fcc25d  xfr_1.dsc
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.dsc'`"
-    test 317 -eq "$shar_count" ||
-    $echo 'xfr_1.dsc:' 'original size' '317,' 'current size' "$shar_count!"
+    test 336 -eq "$shar_count" ||
+    $echo 'xfr_1.dsc:' 'original size' '336,' 'current size' "$shar_count!"
   fi
 fi
 # ============= xfr_1.help ==============
@@ -7118,6 +7119,224 @@ SHAR_EOF
     $echo 'xfr_1.nsd-ldnsd:' 'original size' '310588,' 'current size' "$shar_count!"
   fi
 fi
+# ============= xfr_1.nsd-ldnsd.c ==============
+if test -f 'xfr_1.nsd-ldnsd.c' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_1.nsd-ldnsd.c' '(file already exists)'
+else
+  $echo 'x -' extracting 'xfr_1.nsd-ldnsd.c' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.nsd-ldnsd.c' &&
+/*
+X * nsd-ldnsd. Light-weight DNS daemon, which sends IXFRs
+X *
+X * Tiny dns server to show how a real one could be built.
+X * This version is used for NSD test, send out IXFR's only.
+X *
+X * (c) NLnet Labs, 2005, 2006
+X * See the file LICENSE for the license
+X */
+X
+#include "config.h"
+#include <ldns/dns.h>
+X
+#include <sys/types.h>
+#include <sys/socket.h>
+X
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/udp.h>
+#include <netinet/igmp.h>
+#include <errno.h>
+X
+#define INBUF_SIZE 4096
+#define MAX_LEN    1024
+X
+void usage(FILE *output)
+{
+X	fprintf(output, "Usage: nsd-ldnsd -# <port> <ixfr-zone-file>\n");
+X	fprintf(output, "Listens on the specified port and answer every query with an IXFR\n");
+X	fprintf(output, "This is NOT a full-fledged authoritative nameserver! It is NOTHING.\n");
+X	fprintf(output, "-# quit after this many queries.\n");
+}
+X
+static int udp_bind(int sock, int port, const char *my_address)
+{
+X    struct sockaddr_in addr;
+X
+X    addr.sin_family = AF_INET;
+X    addr.sin_port = (in_port_t)htons((uint16_t)port);
+X		addr.sin_addr.s_addr = INADDR_ANY;
+X    return bind(sock, (struct sockaddr *)&addr, (socklen_t) sizeof(addr));
+}
+X
+int
+main(int argc, char **argv)
+{
+X	/* arguments */
+X	int port;
+X	int soa;
+X	ldns_rdf *zone_name;
+X	size_t count;
+X	size_t maxcount;
+X
+X	/* network */
+X	int sock;
+X	size_t nb;
+X	struct sockaddr addr_me;
+X	struct sockaddr addr_him;
+X	socklen_t hislen;
+X	const char *my_address;
+X	uint8_t inbuf[INBUF_SIZE];
+X	uint8_t *outbuf;
+X
+X	/* dns */
+X	ldns_status status;
+X	ldns_pkt *query_pkt;
+X	ldns_pkt *answer_pkt;
+X	size_t answer_size;
+X	ldns_rr *query_rr;
+X	ldns_rr *rr;
+X	char rr_string[MAX_LEN + 1];
+X	ldns_rr *soa_rr;
+X	char soa_string[MAX_LEN + 1];
+X	
+X	/* use this to listen on specified interfaces later? */
+X	my_address = NULL;
+X
+X	if(argc == 5) {
+X		/* -# num given */
+X		if (argv[1][0] == '-') {
+X			maxcount = atoi(argv[1] + 1);
+X			if (maxcount == 0) {
+X				usage(stdout);
+X				exit(EXIT_FAILURE);
+X			} else {
+X				fprintf(stderr, "quiting after %d qs\n", maxcount);
+X			}
+X		} else {
+X			fprintf(stderr, "Use -Number for max count\n");
+X			exit(EXIT_FAILURE);
+X		}
+X		argc--;
+X		argv++;
+X	} else {
+X		maxcount = 0;
+X	}
+X	
+X	if (argc != 4) {
+X		usage(stdout);
+X		exit(EXIT_FAILURE);
+X	} else {
+X		port = atoi(argv[1]);
+X		if (port < 1) {
+X			fprintf(stderr, "Use a number for the port\n");
+X			usage(stdout);
+X			exit(EXIT_FAILURE);
+X		}
+X		
+X		zone_name = ldns_dname_new_frm_str(argv[2]);
+X		if (!zone_name) {
+X			fprintf(stderr, "Illegal domain name: %s\n", argv[2]);
+X			usage(stdout);
+X			exit(EXIT_FAILURE);
+X		}
+X		soa =  atoi(argv[3]);
+X		if (soa < 1) {
+X			fprintf(stderr, "Illegal soa number\n");
+X			usage(stdout);
+X			exit(EXIT_FAILURE);
+X		}
+X			
+X	}
+X	
+X	printf("Listening on port %d\n", port);
+X	sock =  socket(AF_INET, SOCK_DGRAM, 0);
+X	if (sock < 0) {
+X		fprintf(stderr, "%s: socket(): %s\n", argv[0], strerror(errno));
+X		exit(EXIT_FAILURE);
+X	}
+X
+X	memset(&addr_me, 0, sizeof(addr_me));
+X
+X	/* bind: try all ports in that range */
+X	if (udp_bind(sock, port, my_address)) {
+X		fprintf(stderr, "%s: cannot bind(): %s\n", argv[0], strerror(errno));
+X	}
+X
+X	/* create our ixfr answer */
+X	answer_pkt = ldns_pkt_new();
+X
+X	snprintf(rr_string, MAX_LEN, "%s IN IXFR", argv[2]);
+X	(void)ldns_rr_new_frm_str(&rr, rr_string , 0, NULL, NULL);
+X	(void)ldns_pkt_push_rr(answer_pkt, LDNS_SECTION_QUESTION, rr);
+X
+X	 /* next add some rrs, with SOA stuff so that we mimic or ixfr reply */
+X	snprintf(soa_string, MAX_LEN, "%s IN SOA miek.miek.nl elektron.atoom.net %d 1 2 3 4",
+X			argv[2], soa);
+X
+X        (void)ldns_rr_new_frm_str(&soa_rr, soa_string, 0, NULL, NULL);
+X	snprintf(rr_string, MAX_LEN, "%s IN A 127.0.0.1", argv[2]);
+X        (void)ldns_rr_new_frm_str(&rr, rr_string , 0, NULL, NULL);
+X
+X        /* compose the ixfr pkt */
+X        (void)ldns_pkt_push_rr(answer_pkt, LDNS_SECTION_ANSWER, soa_rr);
+X        (void)ldns_pkt_push_rr(answer_pkt, LDNS_SECTION_ANSWER, rr);
+X        (void)ldns_pkt_push_rr(answer_pkt, LDNS_SECTION_ANSWER, soa_rr);
+X
+X	/* Done. Now receive */
+X	count = 0;
+X	while (1) {
+X		nb = (size_t) recvfrom(sock, inbuf, INBUF_SIZE, 0, &addr_him, &hislen);
+X		if (nb < 1) {
+X			fprintf(stderr, "%s: recvfrom(): %s\n",
+X			argv[0], strerror(errno));
+X			exit(EXIT_FAILURE);
+X		}
+X		
+X		printf("Got query of %u bytes\n", (unsigned int) nb);
+X		status = ldns_wire2pkt(&query_pkt, inbuf, nb);
+X		if (status != LDNS_STATUS_OK) {
+X			printf("Got bad packet: %s\n", ldns_get_errorstr_by_id(status));
+X			continue;
+X		}
+X		
+X		query_rr = ldns_rr_list_rr(ldns_pkt_question(query_pkt), 0);
+X		printf("%d QUERY RR +%d: \n", ++count, ldns_pkt_id(query_pkt));
+X		ldns_rr_print(stdout, query_rr);
+X		
+X		ldns_pkt_set_id(answer_pkt, ldns_pkt_id(query_pkt));
+X
+X		status = ldns_pkt2wire(&outbuf, answer_pkt, &answer_size);
+X		
+X		printf("Answer packet size: %u bytes.\n", (unsigned int) answer_size);
+X		if (status != LDNS_STATUS_OK) {
+X			printf("Error creating answer: %s\n", ldns_get_errorstr_by_id(status));
+X		} else {
+X			nb = (size_t) sendto(sock, outbuf, answer_size, 0, &addr_him, hislen);
+X		}
+X
+X		if (maxcount > 0  && count >= maxcount) {
+X			fprintf(stderr, "%d queries seen... goodbye\n", count);
+X			exit(EXIT_SUCCESS);
+X		}
+X	}
+X        return 0;
+}
+SHAR_EOF
+  (set 20 06 04 18 16 20 31 'xfr_1.nsd-ldnsd.c'; eval "$shar_touch") &&
+  chmod 0600 'xfr_1.nsd-ldnsd.c' ||
+  $echo 'restore of' 'xfr_1.nsd-ldnsd.c' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'xfr_1.nsd-ldnsd.c:' 'MD5 check failed'
+fb5a5ab1a223f80164c0432bca22ac36  xfr_1.nsd-ldnsd.c
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.nsd-ldnsd.c'`"
+    test 5084 -eq "$shar_count" ||
+    $echo 'xfr_1.nsd-ldnsd.c:' 'original size' '5084,' 'current size' "$shar_count!"
+  fi
+fi
 # ============= xfr_1.post ==============
 if test -f 'xfr_1.post' && test "$first_param" != -c; then
   $echo 'x -' SKIPPING 'xfr_1.post' '(file already exists)'
@@ -7295,5 +7514,5 @@ SHAR_EOF
     $echo 'xfr_1.zone:' 'original size' '120,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh12035
+rm -fr _sh12940
 exit 0
