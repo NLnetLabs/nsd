@@ -3,8 +3,8 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-18 15:00 CEST by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/trunk/XFR/xfr_1.dir'.
+# Made on 2006-04-18 15:22 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/xfr_1.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
@@ -16,7 +16,7 @@
 #    138 -rw------- xfr_1.help
 #     50 -rw------- xfr_1.known_good
 # 310588 -rwx------ xfr_1.nsd-ldnsd
-#    580 -rw------- xfr_1.post
+#    624 -rw------- xfr_1.post
 #    660 -rw------- xfr_1.pre
 #   1069 -rw------- xfr_1.test
 #    120 -rw------- xfr_1.zone
@@ -69,7 +69,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh10152; then
+if mkdir _sh10895; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -7134,6 +7134,8 @@ PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
 #
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then
+X        # pretty dratic
+X        killall nsd
 X        exit 0
 fi
 X
@@ -7144,19 +7146,19 @@ sleep 1 # should be really dead now - just to be sure kill it again
 kill $NSD_PID 2>/dev/null
 Xexit 0
 SHAR_EOF
-  (set 20 06 04 18 14 15 48 'xfr_1.post'; eval "$shar_touch") &&
+  (set 20 06 04 18 15 02 24 'xfr_1.post'; eval "$shar_touch") &&
   chmod 0600 'xfr_1.post' ||
   $echo 'restore of' 'xfr_1.post' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'xfr_1.post:' 'MD5 check failed'
-c3ad3d59f25b72823d40c3252dff41c4  xfr_1.post
+9aaa49aeebd9fcb6bf07d53546ca8391  xfr_1.post
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.post'`"
-    test 580 -eq "$shar_count" ||
-    $echo 'xfr_1.post:' 'original size' '580,' 'current size' "$shar_count!"
+    test 624 -eq "$shar_count" ||
+    $echo 'xfr_1.post:' 'original size' '624,' 'current size' "$shar_count!"
   fi
 fi
 # ============= xfr_1.pre ==============
@@ -7189,7 +7191,7 @@ if [[ $? -ne 0 ]]; then
 X        exit 1
 fi
 SHAR_EOF
-  (set 20 06 04 18 14 23 25 'xfr_1.pre'; eval "$shar_touch") &&
+  (set 20 06 04 18 15 21 40 'xfr_1.pre'; eval "$shar_touch") &&
   chmod 0600 'xfr_1.pre' ||
   $echo 'restore of' 'xfr_1.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
@@ -7233,7 +7235,7 @@ X
 $TPKG_ZONEC -f xfr_1.db -c nsd_1.conf && \
 $TPKG_NSD -c nsd_1.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f xfr_1.db
 X
-sleep 11
+sleep 13
 X
 # now query for the update I sent and compare that with a known good one
 echo $TPKG_PORT
@@ -7247,14 +7249,14 @@ else
 X        exit 0
 fi
 SHAR_EOF
-  (set 20 06 04 18 15 00 39 'xfr_1.test'; eval "$shar_touch") &&
+  (set 20 06 04 18 15 22 08 'xfr_1.test'; eval "$shar_touch") &&
   chmod 0600 'xfr_1.test' ||
   $echo 'restore of' 'xfr_1.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'xfr_1.test:' 'MD5 check failed'
-07aa4d438f18a50125fc853cc9646ab4  xfr_1.test
+7a418b21c251ad0a17987c40276f701b  xfr_1.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.test'`"
@@ -7288,5 +7290,5 @@ SHAR_EOF
     $echo 'xfr_1.zone:' 'original size' '120,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh10152
+rm -fr _sh10895
 exit 0
