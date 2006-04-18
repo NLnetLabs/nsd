@@ -617,6 +617,8 @@ xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state)
 {
 	zone->zone_state = zone_state;
 	xfrd_set_timer(zone, xfrd_time());
+	log_msg(LOG_INFO, "xfrd zone %s sets timeout right now, state %d",
+		zone->apex_str, zone_state);
 }
 
 void 
