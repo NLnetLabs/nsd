@@ -55,7 +55,7 @@ xfrd_setup_packet(buffer_type* packet,
         buffer_write_u16(packet, klass);
 }
 
-void 
+socklen_t 
 xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
 {
 	unsigned int port = acl->port?acl->port:(unsigned)atoi(TCP_PORT);
@@ -68,16 +68,18 @@ xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
 		sa->sin6_family = AF_INET6;
 		sa->sin6_port = htons(port);
 		sa->sin6_addr = acl->addr.addr6;
+		return sizeof(struct sockaddr_in6);
 #else
 		log_msg(LOG_ERR, "xfrd: IPv6 connection to %s attempted but no INET6.",
 			acl->ip_address_spec);
-		return;
+		return 0;
 #endif
 	} else {
 		struct sockaddr_in* sa = (struct sockaddr_in*)to;
 		sa->sin_family = AF_INET;
 		sa->sin_port = htons(port);
 		sa->sin_addr = acl->addr.addr;
+		return sizeof(struct sockaddr_in);
 	}
 }
 
@@ -171,6 +173,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	int fd;
 	int family;
 	struct sockaddr_storage to;
+	socklen_t to_len;
 
 	assert(zone->tcp_conn != -1);
 	log_msg(LOG_INFO, "xfrd: zone %s open tcp conn to %s",
@@ -197,8 +200,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		return 0;
 	}
 
-	xfrd_acl_sockaddr(zone->master, &to);
-	if(connect(fd, (struct sockaddr*)&to, sizeof(struct sockaddr_storage)) == -1)
+	to_len = xfrd_acl_sockaddr(zone->master, &to);
+	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)
 	{
 		log_msg(LOG_ERR, "xfrd: connect %s failed %s",
 			zone->master->ip_address_spec, strerror(errno));

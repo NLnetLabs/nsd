@@ -1164,7 +1164,7 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 {
 	struct sockaddr_storage to;
 	int fd, family;
-	xfrd_acl_sockaddr(acl, &to);
+	socklen_t to_len = xfrd_acl_sockaddr(acl, &to);
 
 	if(acl->is_ipv6) {
 #ifdef INET6
@@ -1187,7 +1187,7 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 	if(sendto(fd,
 		buffer_current(packet),
 		buffer_remaining(packet), 0,
-		(struct sockaddr*)&to, sizeof(to)) == -1)
+		(struct sockaddr*)&to, to_len) == -1)
 	{
 		log_msg(LOG_ERR, "xfrd: sendto %s failed %s",
 			acl->ip_address_spec, strerror(errno));

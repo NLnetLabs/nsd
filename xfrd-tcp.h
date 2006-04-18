@@ -99,7 +99,8 @@ void xfrd_setup_packet(struct buffer* packet,
 /* write soa in network format to the packet buffer */
 void xfrd_write_soa_buffer(struct buffer* packet,
         struct xfrd_zone* zone, struct xfrd_soa* soa);
-/* use acl address to setup sockaddr struct */
-void xfrd_acl_sockaddr(struct acl_options* acl, struct sockaddr_storage *to);
+/* use acl address to setup sockaddr struct, returns length of addr. */
+socklen_t xfrd_acl_sockaddr(struct acl_options* acl, 
+	struct sockaddr_storage *to);
 
 #endif /* XFRD_TCP_H */
