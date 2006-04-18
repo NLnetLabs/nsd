@@ -235,6 +235,7 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		buffer_flip(tcp->packet);
 	}
 	zone->query_id = ID(tcp->packet);
+	log_msg(LOG_INFO, "sent tcp query with ID %x", zone->query_id);
 	tcp->msglen = buffer_limit(tcp->packet);
 	xfrd_tcp_write(set, zone);
 }
