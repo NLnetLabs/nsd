@@ -226,7 +226,7 @@ zparser_conv_short(region_type *region, const char *text)
 	uint16_t value;
 	char *end;
    
-	value = htons((uint16_t) strtol(text, &end, 0));
+	value = htons((uint16_t) strtol(text, &end, 10));
 	if (*end != 0) {
 		zc_error_prev_line("integer value is expected");
 	} else {
