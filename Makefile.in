@@ -395,6 +395,8 @@ dname.o: dname.c config.h dns.h dname.h buffer.h region-allocator.h \
 dns.o: dns.c config.h dns.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h zparser.h
 edns.o: edns.c config.h dns.h edns.h buffer.h region-allocator.h util.h
+iterated_hash.o: iterated_hash.c config.h iterated_hash.h namedb.h \
+  dname.h buffer.h region-allocator.h util.h dns.h rbtree.h nsd.h edns.h
 namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
   util.h dns.h rbtree.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
@@ -454,6 +456,8 @@ malloc.o: compat/malloc.c config.h
 pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h
 CuTest.o: tpkg/cutest/CuTest.c tpkg/cutest/CuTest.h
+cutest_dns.o: tpkg/cutest/cutest_dns.c config.h tpkg/cutest/CuTest.h \
+  region-allocator.h dns.h
 cutest_options.o: tpkg/cutest/cutest_options.c config.h \
   tpkg/cutest/CuTest.h region-allocator.h options.h config.h \
   region-allocator.h rbtree.h
