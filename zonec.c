@@ -242,7 +242,7 @@ zparser_conv_long(region_type *region, const char *text)
 	uint32_t value;
 	char *end;
    
-	value = htonl((uint32_t) strtol(text, &end, 0));
+	value = htonl((uint32_t) strtol(text, &end, 10));
 	if (*end != 0) {
 		zc_error_prev_line("integer value is expected");
 	} else {
@@ -258,7 +258,7 @@ zparser_conv_byte(region_type *region, const char *text)
 	uint8_t value;
 	char *end;
    
-	value = (uint8_t) strtol(text, &end, 0);
+	value = (uint8_t) strtol(text, &end, 10);
 	if (*end != '\0') {
 		zc_error_prev_line("integer value is expected");
 	} else {
@@ -278,7 +278,7 @@ zparser_conv_algorithm(region_type *region, const char *text)
 		id = (uint8_t) alg->id;
 	} else {
 		char *end;
-		id = (uint8_t) strtol(text, &end, 0);
+		id = (uint8_t) strtol(text, &end, 10);
 		if (*end != '\0') {
 			zc_error_prev_line("algorithm is expected");
 			return NULL;
@@ -300,7 +300,7 @@ zparser_conv_certificate_type(region_type *region, const char *text)
 		id = htons((uint16_t) type->id);
 	} else {
 		char *end;
-		id = htons((uint16_t) strtol(text, &end, 0));
+		id = htons((uint16_t) strtol(text, &end, 10));
 		if (end != 0) {
 			zc_error_prev_line("certificate type is expected");
 			return NULL;
