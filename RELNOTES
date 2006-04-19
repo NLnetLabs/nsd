@@ -11,6 +11,8 @@ BUG FIXES:
         - Bug #124: $(DESTDIR) was added to Makefile.in. 
 	- Bug #128: zonec: parser can handle \\ at the end of a string.
         - zonec: lexer: add \r to the newline delimeter
+        - zonec: use strtol with an explicit base 10 as parameter.
+          (Scott Rose, Roy Arends)
 
 2.3.3
 =============
