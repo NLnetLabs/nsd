@@ -234,6 +234,8 @@ zparser_conv_short(region_type *region, const char *text)
 	return r;
 }
 
+/* currently not used, keep it for future rr types */
+#if 0
 uint16_t *
 zparser_conv_long(region_type *region, const char *text)
 {
@@ -249,6 +251,7 @@ zparser_conv_long(region_type *region, const char *text)
 	}
 	return r;
 }
+#endif
 
 uint16_t *
 zparser_conv_byte(region_type *region, const char *text)
