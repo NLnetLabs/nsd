@@ -67,6 +67,7 @@ NSD_OBJECTS	=				\
 	dname.o					\
 	dns.o					\
 	edns.o					\
+	iterated_hash.o				\
 	namedb.o				\
 	netio.o					\
 	nsd.o					\
@@ -214,6 +215,7 @@ CUTEST_OBJECTS		=			\
 	util.o					\
 	xfrd-tcp.o				\
 	xfrd.o					\
+	cutest_dns.o 				\
 	cutest_run.o				\
 	cutest_rbtree.o 			\
 	cutest_options.o 			\
@@ -321,6 +323,9 @@ malloc.o:	compat/malloc.c
 
 pselect.o:	compat/pselect.c
 	$(COMPILE) -c compat/pselect.c -o pselect.o
+
+cutest_dns.o:	tpkg/cutest/cutest_dns.c
+	$(COMPILE) -c $< -o $@
 
 cutest_run.o:	tpkg/cutest/cutest_run.c
 	$(COMPILE) -c $< -o $@

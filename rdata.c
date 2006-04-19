@@ -454,10 +454,14 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		case RDATA_WF_SHORT:
 			length = sizeof(uint16_t);
 			break;
+		case RDATA_WF_24BIT:
+			length = 3;
+			break;
 		case RDATA_WF_LONG:
 			length = sizeof(uint32_t);
 			break;
 		case RDATA_WF_TEXT:
+		case RDATA_WF_BINARYWITHLENGTH:
 			/* Length is stored in the first byte.  */
 			length = 1;
 			if (buffer_position(packet) + length <= end) {
@@ -473,6 +477,9 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		case RDATA_WF_BINARY:
 			/* Remaining RDATA is binary.  */
 			length = end - buffer_position(packet);
+			break;
+		case RDATA_WF_BINARY20:
+			length = 20;
 			break;
 		case RDATA_WF_APL:
 			length = (sizeof(uint16_t)    /* address family */

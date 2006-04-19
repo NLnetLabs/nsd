@@ -76,6 +76,7 @@ void zc_error_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 
 int process_rr(void);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex, size_t len);
+uint16_t *zparser_conv_hex_length(region_type *region, const char *hex, size_t len);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
 uint16_t *zparser_conv_services(region_type *region, const char *protostr, char *servicestr);
 uint16_t *zparser_conv_period(region_type *region, const char *periodstr);
@@ -85,6 +86,7 @@ uint16_t *zparser_conv_byte(region_type *region, const char *text);
 uint16_t *zparser_conv_a(region_type *region, const char *text);
 uint16_t *zparser_conv_aaaa(region_type *region, const char *text);
 uint16_t *zparser_conv_text(region_type *region, const char *text, size_t len);
+uint16_t *zparser_conv_b32(region_type *region, const char *b32);
 uint16_t *zparser_conv_b64(region_type *region, const char *b64);
 uint16_t *zparser_conv_rrtype(region_type *region, const char *rr);
 uint16_t *zparser_conv_nxt(region_type *region, uint8_t nxtbits[]);
@@ -103,6 +105,7 @@ void zadd_rdata_domain(domain_type *domain);
 
 void set_bitnsec(uint8_t  bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
 		 uint16_t index);
+uint16_t *alloc_rdata_init(region_type *region, const void *data, size_t size);
 
 /* zparser.y */
 zparser_type *zparser_create(region_type *region, region_type *rr_region,

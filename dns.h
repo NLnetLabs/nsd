@@ -122,6 +122,8 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define TYPE_SPF        99      /* draft-schlitt-spf-classic-02.txt */
 
+#define TYPE_NSEC3	65324	/* NSEC3, dns secure denial, prevents zonewalking */
+
 #define TYPE_TSIG	250
 #define TYPE_IXFR	251
 #define TYPE_AXFR	252
@@ -151,11 +153,14 @@ enum rdata_wireformat
 	RDATA_WF_UNCOMPRESSED_DNAME, /* Uncompressed domain name.  */
 	RDATA_WF_BYTE,		     /* 8-bit integer.  */
 	RDATA_WF_SHORT,		     /* 16-bit integer.  */
+	RDATA_WF_24BIT,              /* 24-bit integer. */
 	RDATA_WF_LONG,		     /* 32-bit integer.  */
 	RDATA_WF_TEXT,		     /* Text string.  */
 	RDATA_WF_A,		     /* 32-bit IPv4 address.  */
 	RDATA_WF_AAAA,		     /* 128-bit IPv6 address.  */
 	RDATA_WF_BINARY, 	     /* Binary data (unknown length).  */
+	RDATA_WF_BINARYWITHLENGTH,   /* Binary data preceded by 1 byte length */
+	RDATA_WF_BINARY20,           /* 20 bytes of binary (i.e. SHA-1 hash) */
 	RDATA_WF_APL		     /* APL data.  */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
@@ -205,18 +210,10 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  * Indexed by type.  The special type "0" can be used to get a
  * descriptor for unknown types (with one binary rdata).
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_SPF + 1)
-extern rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH];
-
-static inline rrtype_descriptor_type *
-rrtype_descriptor_by_type(uint16_t type)
-{
-	return (type < RRTYPE_DESCRIPTORS_LENGTH
-		? &rrtype_descriptors[type]
-		: &rrtype_descriptors[0]);
-}
-
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_SPF + 2)
+#define RRTYPE_DESCRIPTORS_IDX_LEN (TYPE_SPF + 1)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
+rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
 
 const char *rrtype_to_string(uint16_t rrtype);
 

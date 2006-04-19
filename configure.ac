@@ -513,6 +513,15 @@ case "$enable_tsig" in
                 ;;
 esac
 
+AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--enable-nsec3], [Enable NSEC3 support.]))
+case "$enable_nsec3" in
+        yes)
+		AC_DEFINE_UNQUOTED([NSEC3], [], [Define this to enable NSEC3 support.])
+                ;;
+        no|*)
+		;;
+esac
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \

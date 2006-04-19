@@ -1,6 +1,16 @@
 19 Apr 2006: Wouter
 	- port fix base10 in zonec conv short from 2_2 branch to trunk.
 	  and conv byte, algo, certificate, long.
+	- configure option to enable NSEC3 (--enable-nsec3) support.
+	- from Ben Laurie's NSEC3 patch, loaned the parse code,
+	  base32 conversion code and iterated_hash. 
+	  With some small modifications. The type rrdescriptors are 
+	  indexed by value below SPF, and in 
+	  rdata_wireformat_to_rdata_atoms BINARYWITHLENGTH checks
+	  for end of buffer. Also parser checks for '-' salt.
+	  Some layout (spaces after ,s). And NSEC3 define is used.
+	  strtol used for iterations is base 10.
+	- moved rrtype descriptor table sanity check to unittest.
 
 18 Apr 2006: Wouter
 	- Fixed check for SOA IN, bad ntohs in the check.

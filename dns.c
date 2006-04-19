@@ -33,7 +33,7 @@ static lookup_table_type dns_rrclasses[] = {
 	{ 0, NULL }
 };
 
-rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
+static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	/* 0 */
 	{ 0, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 1 */
@@ -409,8 +409,29 @@ rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
 	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
 	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
-	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT } }
+	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT } },
+	/* larger type numbers */
+	{ TYPE_NSEC3, "NSEC3", T_NSEC3, 5, 5,
+	  { RDATA_WF_BYTE, /* hash type */
+	    RDATA_WF_24BIT, /* iterations and opt-out */
+	    RDATA_WF_BINARYWITHLENGTH, /* salt */
+	    RDATA_WF_BINARY20, /* next hashed name */
+	    RDATA_WF_BINARY /* type bitmap */ },
+	  { RDATA_ZF_DNAME, RDATA_ZF_NSEC } },
 };
+
+rrtype_descriptor_type *
+rrtype_descriptor_by_type(uint16_t type)
+{
+	int i;
+
+	if (type < RRTYPE_DESCRIPTORS_IDX_LEN)
+		return &rrtype_descriptors[type];
+	for (i=RRTYPE_DESCRIPTORS_IDX_LEN; i<RRTYPE_DESCRIPTORS_LENGTH; ++i)
+		if (rrtype_descriptors[i].type == type)
+			return &rrtype_descriptors[i];
+	return &rrtype_descriptors[0];
+}
 
 rrtype_descriptor_type *
 rrtype_descriptor_by_name(const char *name)

@@ -17,6 +17,7 @@ Ted Lindgreen, NLnet Labs       - design, code review, testing
 
 Contributors (in alphabetical order):
 
+Ben Laurie					- NSEC3 patch.
 Colm MacCárthaigh,                              - IPv6 binding and cleanups.
 Jakob Schlyter, Carlstedt Research & Technology - chroot patch
 Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport

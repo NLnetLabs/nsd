@@ -264,6 +264,14 @@ ssize_t hex_ntop(uint8_t const *src, size_t srclength, char *target,
 		 size_t targsize);
 
 /*
+ * convert base32 data from and to string. Returns length.
+ * -1 on error.
+ */
+int b32_pton(char const *src, uint8_t *target, size_t targsize);
+int b32_ntop(uint8_t const *src, size_t srclength, char *target,
+	size_t targsize);
+
+/*
  * Strip trailing and leading whitespace from str.
  */
 void strip_string(char *str);

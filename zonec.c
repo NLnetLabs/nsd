@@ -70,7 +70,7 @@ alloc_rdata(region_type *region, size_t size)
 	return result;
 }
 
-static uint16_t *
+uint16_t *
 alloc_rdata_init(region_type *region, const void *data, size_t size)
 {
 	uint16_t *result = region_alloc(region, sizeof(uint16_t) + size);
@@ -115,6 +115,48 @@ zparser_conv_hex(region_type *region, const char *hex, size_t len)
 				++hex;
 			}
 			++t;
+		}
+	}
+	return r;
+}
+
+/* convert hex, precede by a 1-byte length */
+uint16_t *
+zparser_conv_hex_length(region_type *region, const char *hex, size_t len)
+{
+	uint16_t *r = NULL;
+	uint8_t *t;
+	int i;
+	if (len % 2 != 0) {
+		zc_error_prev_line("number of hex digits must be a multiple of 2");
+	} else if (len > 255 * 2) {
+		zc_error_prev_line("hex data exceeds 255 bytes");
+	} else {
+		uint8_t *l;
+		
+		/* the length part */
+		r = alloc_rdata(region, len/2+1);
+		t = (uint8_t *)(r + 1);
+		
+		l = t++;
+		*l = '\0';
+		
+		/* Now process octet by octet... */
+		while (*hex) {
+			*t = 0;
+			for (i = 16; i >= 1; i -= 15) {
+				if (isxdigit(*hex)) {
+					*t += hexdigit_to_int(*hex) * i;
+				} else {
+					zc_error_prev_line(
+						"illegal hex character '%c'",
+						(int) *hex);
+					return NULL;
+				}
+				++hex;
+			}
+			++t;
+			++*l;
 		}
 	}
 	return r;
@@ -352,6 +394,22 @@ zparser_conv_text(region_type *region, const char *text, size_t len)
 		p = (uint8_t *) (r + 1);
 		*p = len;
 		memcpy(p + 1, text, len);
+	}
+	return r;
+}
+
+uint16_t *
+zparser_conv_b32(region_type *region, const char *b32)
+{
+	uint8_t buffer[B64BUFSIZE];
+	uint16_t *r = NULL;
+	int i;
+
+	i = b32_pton(b32, buffer, B64BUFSIZE);
+	if (i == -1 || i > 255) {
+		zc_error_prev_line("invalid base32 data");
+	} else {
+		r = alloc_rdata_init(region, buffer, i);
 	}
 	return r;
 }
@@ -1235,19 +1293,6 @@ main (int argc, char **argv)
 	
 	log_init("zonec");
 
-#ifndef NDEBUG
-	/* Check consistency of rrtype descriptor table.  */
-	{
-		int i;
-		for (i = 0; i < RRTYPE_DESCRIPTORS_LENGTH; ++i) {
-			if (i != rrtype_descriptors[i].type) {
-				fprintf(stderr, "error: type descriptor entry '%d' does not match type '%d', fix the definition in dns.c\n", i, rrtype_descriptors[i].type);
-				abort();
-			}
-		}
-	}
-#endif /* NDEBUG */
-	
 	global_region = region_create(xalloc, free);
 	rr_region = region_create(xalloc, free);
 	totalerrors = 0;

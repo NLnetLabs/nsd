@@ -58,7 +58,7 @@ void yyerror(const char *message);
 %token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
-%token <type> T_SPF
+%token <type> T_SPF T_NSEC3
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -494,6 +494,7 @@ type_and_rdata:
     |	T_RRSIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NSEC sp rdata_nsec
     |	T_NSEC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_NSEC3 sp rdata_nsec3
     |	T_DNSKEY sp rdata_dnskey
     |	T_DNSKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_UTYPE sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
@@ -745,6 +746,49 @@ rdata_nsec:	dname sp nsec_seq trail
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
 	    memset(nsecbits, 0, sizeof(nsecbits));
             nsec_highest_rcode = 0;
+    }
+    ;
+
+rdata_nsec3:   STR sp STR sp STR sp STR sp STR sp nsec_seq trail
+    {
+#ifdef NSEC3
+	    uint8_t optout;
+	    uint32_t iterations;
+	    char *end;
+	    uint8_t buf[3];
+
+	    optout = (uint8_t) strtol($1.str, &end, 10);
+	    if (*end != '\0' || (optout != 0 && optout != 1)) {
+		    zc_error_prev_line("optout value must be 0 or 1");
+	    }
+
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* hash algorithm */
+	
+	    iterations = strtol($5.str, &end, 10);
+	    if (*end != 0 || iterations >= (1 << 23)) {
+		    zc_error_prev_line("iterations integer value < 2^23 is expected");
+	    }
+
+	    /* iterations and opt-out bit */
+	    iterations |= optout << 23;
+	    buf[0] = (iterations >> 16) & 0xff;
+	    buf[1] = (iterations >> 8) & 0xff;
+	    buf[2] = (iterations) & 0xff;
+	    zadd_rdata_wireformat(alloc_rdata_init(parser->region, buf, 3));
+
+	    /* salt */
+	    if(strcmp($7.str, "-") != 0) 
+	    	zadd_rdata_wireformat(zparser_conv_hex_length(parser->region, $7.str, $7.len)); 
+	    else 
+		zadd_rdata_wireformat(alloc_rdata_init(parser->region, "", 1));
+
+	    zadd_rdata_wireformat(zparser_conv_b32(parser->region, $9.str)); /* next hashed name */
+	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
+	    memset(nsecbits, 0, sizeof(nsecbits));
+	    nsec_highest_rcode = 0;
+#else
+	    zc_error_prev_line("nsec3 not supported");
+#endif /* NSEC3 */
     }
     ;
 
