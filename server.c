@@ -1066,6 +1066,8 @@ server_child(struct nsd *nsd)
 					break;
 				}
 			}
+		} else if(mode == NSD_QUIT) {
+			/* ignore here, quit */
 		} else {
 			log_msg(LOG_ERR, "mode bad value %d, back to service.", 
 				mode);
