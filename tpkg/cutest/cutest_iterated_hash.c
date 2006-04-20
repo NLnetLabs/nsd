@@ -30,6 +30,7 @@ CuSuite* reg_cutest_iterated_hash(void)
 
 static void hash_1(CuTest *tc)
 {
+#ifdef NSEC3
 	/* test the iterated_hash function */
 	unsigned char out[SHA_DIGEST_LENGTH];
 	unsigned char salt[36];
@@ -48,4 +49,5 @@ static void hash_1(CuTest *tc)
 			sizeof(out)== iterated_hash(out, salt, saltlen, 
 			(unsigned char*)buf, strlen(buf), iterations));
 	}
+#endif /* NSEC3 */
 }
