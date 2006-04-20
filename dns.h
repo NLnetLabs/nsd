@@ -174,6 +174,7 @@ enum rdata_zoneformat
 	RDATA_ZF_TEXT,		/* Text string.  */
 	RDATA_ZF_BYTE,		/* 8-bit integer.  */
 	RDATA_ZF_SHORT,		/* 16-bit integer.  */
+	RDATA_ZF_24BIT,		/* 24-bit integer.  */
 	RDATA_ZF_LONG,		/* 32-bit integer.  */
 	RDATA_ZF_A,		/* 32-bit IPv4 address.  */
 	RDATA_ZF_AAAA,		/* 128-bit IPv6 address.  */
@@ -183,7 +184,9 @@ enum rdata_zoneformat
 	RDATA_ZF_PERIOD,	/* Time period.  */
 	RDATA_ZF_TIME,
 	RDATA_ZF_BASE64,	/* Base-64 binary data.  */
+	RDATA_ZF_BASE32,	/* Base-32 binary data.  */
 	RDATA_ZF_HEX,		/* Hexadecimal binary data.  */
+	RDATA_ZF_HEX_LEN,	/* Hexadecimal binary data. Skip initial length byte. */
 	RDATA_ZF_NSAP,		/* NSAP.  */
 	RDATA_ZF_APL,		/* APL.  */
 	RDATA_ZF_SERVICES,	/* Protocol and port number bitmap.  */

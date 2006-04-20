@@ -1247,8 +1247,7 @@ usage (void)
 #endif
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
-	fprintf(stderr, "\t-c\tSpecify config file to read instead of default nsd.conf,\n");
-	fprintf(stderr, "\t  \tor 'none' to read no config file.\n");
+	fprintf(stderr, "\t-c\tSpecify config file to read instead of default nsd.conf.\n");
 	fprintf(stderr, "\t-C\tNo config file is read.\n");
 	fprintf(stderr, "\t-d\tSet working directory to open files from.\n");
 	fprintf(stderr, "\t-o\tSpecify a zone's origin (only used with -z).\n");

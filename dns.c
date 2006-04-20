@@ -417,7 +417,8 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	    RDATA_WF_BINARYWITHLENGTH, /* salt */
 	    RDATA_WF_BINARY20, /* next hashed name */
 	    RDATA_WF_BINARY /* type bitmap */ },
-	  { RDATA_ZF_DNAME, RDATA_ZF_NSEC } },
+	  { RDATA_ZF_BYTE, RDATA_ZF_24BIT, RDATA_ZF_HEX_LEN, RDATA_ZF_BASE32, 
+	    RDATA_ZF_NSEC } },
 };
 
 rrtype_descriptor_type *

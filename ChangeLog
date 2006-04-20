@@ -1,7 +1,10 @@
 20 Apr 2006: Wouter
 	- Unittest of base 32 encoding. 
 	- unittest start for iterated hash.
+	- fixed for ctrlc in debug mode.
 	- delete zparser_conv_long, not used, not needed
+	- nsd-xfer will display NSEC3 correctly. zonec parses.
+	- improved usage() line from zonec, about -c none, must be -C.
 
 19 Apr 2006: Wouter
 	- port fix base10 in zonec conv short from 2_2 branch to trunk.

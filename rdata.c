@@ -99,6 +99,19 @@ rdata_short_to_string(buffer_type *output, rdata_atom_type rdata)
 }
 
 static int
+rdata_24bit_to_string(buffer_type *output, rdata_atom_type rdata)
+{
+	uint32_t data =	
+		(rdata_atom_data(rdata)[0]<<16)
+		| (rdata_atom_data(rdata)[1]<<8)
+		| (rdata_atom_data(rdata)[2]);
+	/* nsec3 remove optout bit */
+	data &= 0x7fffff;
+	buffer_printf(output, "%lu", (unsigned long) data);
+	return 1;
+}
+
+static int
 rdata_long_to_string(buffer_type *output, rdata_atom_type rdata)
 {
 	uint32_t data = read_uint32(rdata_atom_data(rdata));
@@ -189,6 +202,20 @@ rdata_time_to_string(buffer_type *output, rdata_atom_type rdata)
 }
 
 static int
+rdata_base32_to_string(buffer_type *output, rdata_atom_type rdata)
+{
+	int length;
+	size_t size = rdata_atom_size(rdata);
+	buffer_reserve(output, size * 2 + 1);
+	length = b32_ntop(rdata_atom_data(rdata), size,
+			  (char *) buffer_current(output), size * 2);
+	if (length > 0) {
+		buffer_skip(output, length);
+	}
+	return length != -1;
+}
+
+static int
 rdata_base64_to_string(buffer_type *output, rdata_atom_type rdata)
 {
 	int length;
@@ -223,6 +250,18 @@ static int
 rdata_hex_to_string(buffer_type *output, rdata_atom_type rdata)
 {
 	hex_to_string(output, rdata_atom_data(rdata), rdata_atom_size(rdata));
+	return 1;
+}
+
+static int
+rdata_hexlen_to_string(buffer_type *output, rdata_atom_type rdata)
+{
+	if(rdata_atom_size(rdata) <= 1) {
+		/* NSEC3 salt hex can be empty */
+		buffer_printf(output, "-");
+		return 1;
+	}
+	hex_to_string(output, rdata_atom_data(rdata)+1, rdata_atom_size(rdata)-1);
 	return 1;
 }
 
@@ -390,6 +429,7 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_text_to_string,
 	rdata_byte_to_string,
 	rdata_short_to_string,
+	rdata_24bit_to_string,
 	rdata_long_to_string,
 	rdata_a_to_string,
 	rdata_aaaa_to_string,
@@ -399,7 +439,9 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_period_to_string,
 	rdata_time_to_string,
 	rdata_base64_to_string,
+	rdata_base32_to_string,
 	rdata_hex_to_string,
+	rdata_hexlen_to_string,
 	rdata_nsap_to_string,
 	rdata_apl_to_string,
 	rdata_services_to_string,
@@ -593,6 +635,12 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 			buffer_printf(output, " (\n\t\t");
 		} else {
 			buffer_printf(output, " ");
+		}
+		if (descriptor->type == TYPE_NSEC3 && i == 0)
+		{
+			/* print nsec3 optout bit */
+			buffer_printf(output, "%u ", (unsigned)
+				rdata_atom_data(record->rdatas[1])[0]&0x80>>7);
 		}
 		if (!rdata_atom_to_string(
 			    output,
