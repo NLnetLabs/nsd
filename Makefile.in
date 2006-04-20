@@ -463,6 +463,9 @@ snprintf.o: compat/snprintf.c config.h
 CuTest.o: tpkg/cutest/CuTest.c tpkg/cutest/CuTest.h
 cutest_dns.o: tpkg/cutest/cutest_dns.c config.h tpkg/cutest/CuTest.h \
   region-allocator.h dns.h
+cutest_iterated_hash.o: tpkg/cutest/cutest_iterated_hash.c config.h \
+  tpkg/cutest/CuTest.h region-allocator.h util.h config.h iterated_hash.h \
+  dname.h buffer.h region-allocator.h util.h
 cutest_options.o: tpkg/cutest/cutest_options.c config.h \
   tpkg/cutest/CuTest.h region-allocator.h options.h config.h \
   region-allocator.h rbtree.h
