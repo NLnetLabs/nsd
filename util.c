@@ -410,7 +410,7 @@ hex_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 ssize_t
 b32_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 {
-	static char b32[]="0123456789ABCDEFGHIJKLMNOPQRSTUV";
+	static char b32[]="0123456789abcdefghijklmnopqrstuv";
 	char buf[9];
 	ssize_t len=0;
 
