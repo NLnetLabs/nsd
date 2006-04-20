@@ -265,7 +265,7 @@ ssize_t hex_ntop(uint8_t const *src, size_t srclength, char *target,
 
 /*
  * convert base32 data from and to string. Returns length.
- * -1 on error.
+ * -1 on error. Use (byte count*8)%5==0.
  */
 int b32_pton(char const *src, uint8_t *target, size_t targsize);
 int b32_ntop(uint8_t const *src, size_t srclength, char *target,

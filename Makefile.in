@@ -201,6 +201,7 @@ CUTEST_OBJECTS		=			\
 	dname.o					\
 	dns.o					\
 	edns.o					\
+	iterated_hash.o				\
 	namedb.o				\
 	netio.o					\
 	packet.o				\
@@ -216,6 +217,7 @@ CUTEST_OBJECTS		=			\
 	xfrd-tcp.o				\
 	xfrd.o					\
 	cutest_dns.o 				\
+	cutest_iterated_hash.o 			\
 	cutest_run.o				\
 	cutest_rbtree.o 			\
 	cutest_options.o 			\
@@ -325,6 +327,9 @@ pselect.o:	compat/pselect.c
 	$(COMPILE) -c compat/pselect.c -o pselect.o
 
 cutest_dns.o:	tpkg/cutest/cutest_dns.c
+	$(COMPILE) -c $< -o $@
+
+cutest_iterated_hash.o:	tpkg/cutest/cutest_iterated_hash.c
 	$(COMPILE) -c $< -o $@
 
 cutest_run.o:	tpkg/cutest/cutest_run.c

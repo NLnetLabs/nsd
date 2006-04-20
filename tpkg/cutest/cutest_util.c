@@ -18,6 +18,7 @@
 
 static void util_1(CuTest *tc);
 static void util_2(CuTest *tc);
+static void util_3(CuTest *tc);
 
 CuSuite* reg_cutest_util(void)
 {
@@ -25,6 +26,7 @@ CuSuite* reg_cutest_util(void)
 
 	SUITE_ADD_TEST(suite, util_1);
 	SUITE_ADD_TEST(suite, util_2);
+	SUITE_ADD_TEST(suite, util_3);
 	return suite;
 }
 
@@ -116,4 +118,27 @@ static void util_2(CuTest *tc)
 	crc = ~crc;
 	CuAssert(tc, "crc test 4 correct", crc == crc_4);
 	
+}
+
+static void util_3(CuTest *tc)
+{
+	/* test base32 encoding */
+	int i;
+	uint8_t bin[32];
+	uint8_t bin2[32];
+	char str[32*5+1];
+	
+	for(i=0; i<10000; ++i)
+	{
+		int k;
+		int len=20;
+		for(k=0; k<len; k++)
+			bin[k] = random();
+		CuAssert(tc, "b32 test ntop",
+			-1!=b32_ntop(bin, len, str, sizeof(str)));
+		CuAssert(tc, "b32 test pton",
+			len==b32_pton(str, bin2, sizeof(bin2)));
+		CuAssert(tc, "b32 test cmp",
+			memcmp(bin, bin2, len)==0);
+	}
 }
