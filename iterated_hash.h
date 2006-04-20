@@ -32,5 +32,10 @@ const struct dname *nsec3_hash_dname(struct region *region,
   or all zones if zone == NULL */
 void prehash(struct namedb* db, struct zone* zone);
 
+/* finds nsec3 that covers the given domain dname. 
+   returns true if the find is exact. */
+int nsec3_find_cover(struct region *region, struct namedb* db, 
+	struct zone* zone, const struct dname* dname, struct domain** result);
+
 #endif /* NSEC3 */
 #endif /* ITERATED_HASH_H */

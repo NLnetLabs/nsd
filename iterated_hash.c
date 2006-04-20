@@ -98,9 +98,81 @@ nsec3_hash_dname(region_type *region, zone_type *zone,
 	return dname;
 }
 
+int nsec3_find_cover(struct region *region, namedb_type* db, 
+	zone_type* zone, const dname_type* dname, domain_type** result)
+{
+	assert(result);
+	const dname_type* hashname = nsec3_hash_dname(region, zone, dname);
+	rrset_type *rrset;
+	domain_type *walk;
+
+	domain_type *closest_match;
+	domain_type *closest_encloser;
+	int exact;
+	exact = domain_table_search(
+		db->domains, hashname, &closest_match, &closest_encloser);
+	if(exact) {
+		*result = closest_encloser;
+		return 1;
+	}
+
+	/* find cover */
+	walk = closest_match;
+	rrset = 0;
+	while(walk && dname_is_subdomain(domain_dname(walk), domain_dname(zone->apex))
+		&& !(rrset = domain_find_rrset(walk, zone, TYPE_NSEC3)))
+	{
+		walk = domain_previous(walk);
+	}
+	if(rrset)
+		*result = walk;
+	else 	{
+		*result = 0; 
+		/* find last NSEC3, which covers the wraparound in hash space */
+	}
+	return 0;
+}
+
+static void prehash_domain(namedb_type* db, zone_type* zone, 
+	domain_type* domain, region_type* region)
+{
+	/* find it */
+	domain_type* result = 0;
+	const dname_type *wcard, *wcard_child;
+	int exact = nsec3_find_cover(region, db, zone, 
+		domain_dname(domain), &result);
+	domain->nsec3_cover = result;
+	if(exact)
+		domain->nsec3_exact = result;
+	else	domain->nsec3_exact = 0;
+
+	wcard = dname_parse(region, "*");
+	wcard_child = dname_concatenate(region, wcard, domain_dname(domain));
+	printf("For %s", dname_to_string(domain_dname(domain),0));
+	printf(" wcard %s", dname_to_string(wcard,0));
+	printf(" wcardch %s\n", dname_to_string(wcard_child,0));
+	exact = nsec3_find_cover(region, db, zone, wcard_child, &result);
+	if(exact)
+		domain->nsec3_wcard_child_cover = result;
+	else 	domain->nsec3_wcard_child_cover = 0;
+}
+
+static void prehash_ds(namedb_type* db, zone_type* zone, 
+	domain_type* domain, region_type* region)
+{
+	/* hash again, other zone could have different hash parameters */
+	domain_type* result = 0;
+	int exact = nsec3_find_cover(region, db, zone, 
+		domain_dname(domain), &result);
+	if(exact)
+		domain->nsec3_ds_parent_exact = result;
+	else 	domain->nsec3_ds_parent_exact = 0;
+}
+
 void prehash(struct namedb* db, struct zone* zone)
 {
 	domain_type *domain, *top;
+	region_type *region = region_create(xalloc, free);
 
 	/* detect NSEC3 settings for zone(s) */
 	if(zone) {
@@ -122,11 +194,21 @@ void prehash(struct namedb* db, struct zone* zone)
 		if(z && z->nsec3_rrset &&
 			((zone && z==zone) || (!zone)))
 		{
-			/* prehash */
-			
+			prehash_domain(db, z, domain, region);
 		}
+		/* prehash the DS (parent zone) */
+		/* only if there is a DS */
+		domain->nsec3_ds_parent_exact = NULL;
+		if(z && (z = domain_find_parent_zone(z)) &&
+			z->nsec3_rrset &&
+			domain_find_rrset(domain, z, TYPE_DS)) 
+		{
+			prehash_ds(db, z, domain, region);	
+		}
+		region_free_all(region);
 		domain = domain_next(domain);
 	}
+	region_destroy(region);
 }
 
 #endif /* NSEC3 */
