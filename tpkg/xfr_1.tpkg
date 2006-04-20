@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-18 16:20 CEST by <miekg@floep>.
+# Made on 2006-04-20 11:34 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/xfr_1.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -19,7 +19,7 @@
 #   5084 -rw------- xfr_1.nsd-ldnsd.c
 #    673 -rw------- xfr_1.post
 #    687 -rw------- xfr_1.pre
-#   1069 -rw------- xfr_1.test
+#   1064 -rw------- xfr_1.test
 #    120 -rw------- xfr_1.zone
 #
 save_IFS="${IFS}"
@@ -70,7 +70,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh12940; then
+if mkdir _sh04647; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -7415,7 +7415,7 @@ if [[ $? -ne 0 ]]; then
 X        exit 1
 fi
 SHAR_EOF
-  (set 20 06 04 18 15 54 59 'xfr_1.pre'; eval "$shar_touch") &&
+  (set 20 06 04 20 11 33 54 'xfr_1.pre'; eval "$shar_touch") &&
   chmod 0600 'xfr_1.pre' ||
   $echo 'restore of' 'xfr_1.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
@@ -7449,7 +7449,7 @@ RAND=$(($RANDOM % 300))
 TPKG_PORT=$((5353 + $RAND))
 X
 PRE="../.."
-TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_NSD_PID="nsd.pid.$$"
 TPKG_ZONEC="$PRE/zonec"
 TPKG_NSD="$PRE/nsd"
 # share the vars
@@ -7473,19 +7473,19 @@ else
 X        exit 0
 fi
 SHAR_EOF
-  (set 20 06 04 18 15 49 30 'xfr_1.test'; eval "$shar_touch") &&
+  (set 20 06 04 20 11 34 01 'xfr_1.test'; eval "$shar_touch") &&
   chmod 0600 'xfr_1.test' ||
   $echo 'restore of' 'xfr_1.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'xfr_1.test:' 'MD5 check failed'
-7a418b21c251ad0a17987c40276f701b  xfr_1.test
+86f30cc8d75f4dbf4c7c955ae0db3361  xfr_1.test
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.test'`"
-    test 1069 -eq "$shar_count" ||
-    $echo 'xfr_1.test:' 'original size' '1069,' 'current size' "$shar_count!"
+    test 1064 -eq "$shar_count" ||
+    $echo 'xfr_1.test:' 'original size' '1064,' 'current size' "$shar_count!"
   fi
 fi
 # ============= xfr_1.zone ==============
@@ -7514,5 +7514,5 @@ SHAR_EOF
     $echo 'xfr_1.zone:' 'original size' '120,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh12940
+rm -fr _sh04647
 exit 0

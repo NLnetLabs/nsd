@@ -3,8 +3,8 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-07 09:47 CEST by <wouter@diva.nlnetlabs.nl>.
-# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/kill_nsd.dir'.
+# Made on 2006-04-20 11:35 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/kill_nsd.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
@@ -15,7 +15,7 @@
 #    188 -rw------- kill_nsd.db
 #    298 -rw------- kill_nsd.dsc
 #     37 -rw------- kill_nsd.help
-#    936 -rw------- kill_nsd.pre
+#    931 -rw------- kill_nsd.pre
 #   1156 -rw------- kill_nsd.test
 #    351 -rw------- kill_nsd.zone
 #
@@ -67,7 +67,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh31656; then
+if mkdir _sh05069; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -206,7 +206,7 @@ X
 RAND=$(($RANDOM % 300))
 TPKG_PORT=$((5353 + $RAND))
 PRE="../.."
-TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_NSD_PID="nsd.pid.$$"
 TPKG_ZONEC="$PRE/zonec"
 TPKG_NSD="$PRE/nsd"
 X
@@ -221,19 +221,19 @@ X
 $TPKG_ZONEC -c kill_nsd.conf -f kill_nsd.db && \
 $TPKG_NSD -c kill_nsd.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f kill_nsd.db
 SHAR_EOF
-  (set 20 06 04 06 14 14 53 'kill_nsd.pre'; eval "$shar_touch") &&
+  (set 20 06 04 20 11 35 41 'kill_nsd.pre'; eval "$shar_touch") &&
   chmod 0600 'kill_nsd.pre' ||
   $echo 'restore of' 'kill_nsd.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'kill_nsd.pre:' 'MD5 check failed'
-f0eb2b545e749a05ff25b3ccc2104c64  kill_nsd.pre
+392a65dea971b39b9d46c7bb626160c6  kill_nsd.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'kill_nsd.pre'`"
-    test 936 -eq "$shar_count" ||
-    $echo 'kill_nsd.pre:' 'original size' '936,' 'current size' "$shar_count!"
+    test 931 -eq "$shar_count" ||
+    $echo 'kill_nsd.pre:' 'original size' '931,' 'current size' "$shar_count!"
   fi
 fi
 # ============= kill_nsd.test ==============
@@ -335,5 +335,5 @@ SHAR_EOF
     $echo 'kill_nsd.zone:' 'original size' '351,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh31656
+rm -fr _sh05069
 exit 0

@@ -3,7 +3,7 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-03-06 12:45 CET by <miekg@floep>.
+# Made on 2006-04-20 11:30 CEST by <miekg@floep>.
 # Source directory was `/home/miekg/svn/nsd/trunk/tpkg/bug054_rd.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
@@ -16,7 +16,7 @@
 #     99 -rw------- bug054_rd.help
 #     69 -rw------- bug054_rd.known_good_respons1
 #    510 -rw------- bug054_rd.post
-#    631 -rw------- bug054_rd.pre
+#    626 -rw------- bug054_rd.pre
 #    471 -rw------- bug054_rd.test
 #    683 -rw------- bug054_rd.zone
 #
@@ -68,7 +68,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh20346; then
+if mkdir _sh03591; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -237,7 +237,7 @@ X
 # start NSD
 ((TPKG_PORT=5353+$RANDOM))
 PRE="../.."
-TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_NSD_PID="nsd.pid.$$"
 TPKG_ZONEC="$PRE/zonec"
 TPKG_NSD="$PRE/nsd"
 X
@@ -248,19 +248,19 @@ X
 $TPKG_ZONEC -f bug054_rd.db -c bug054_rd.conf && \
 $TPKG_NSD -c bug054_rd.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f bug054_rd.db
 SHAR_EOF
-  (set 20 06 03 06 12 45 05 'bug054_rd.pre'; eval "$shar_touch") &&
+  (set 20 06 04 20 11 30 34 'bug054_rd.pre'; eval "$shar_touch") &&
   chmod 0600 'bug054_rd.pre' ||
   $echo 'restore of' 'bug054_rd.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'bug054_rd.pre:' 'MD5 check failed'
-56cb8000bb7a345253ebb90752af782b  bug054_rd.pre
+0ec402c568f0163cac0bd8ccb2b863a1  bug054_rd.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'bug054_rd.pre'`"
-    test 631 -eq "$shar_count" ||
-    $echo 'bug054_rd.pre:' 'original size' '631,' 'current size' "$shar_count!"
+    test 626 -eq "$shar_count" ||
+    $echo 'bug054_rd.pre:' 'original size' '626,' 'current size' "$shar_count!"
   fi
 fi
 # ============= bug054_rd.test ==============
@@ -339,5 +339,5 @@ SHAR_EOF
     $echo 'bug054_rd.zone:' 'original size' '683,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh20346
+rm -fr _sh03591
 exit 0

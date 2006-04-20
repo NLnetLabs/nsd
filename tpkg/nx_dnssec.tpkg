@@ -3,8 +3,8 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-03-06 12:37 CET by <wouter@diva.nlnetlabs.nl>.
-# Source directory was `/home/wouter/src/nsd/nsd/trunk/tpkg/nx_dnssec.dir'.
+# Made on 2006-04-20 11:35 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/nx_dnssec.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
@@ -19,7 +19,7 @@
 #     94 -rw------- nx_dnssec.known_good_respons1
 #     94 -rw------- nx_dnssec.known_good_respons2
 #    518 -rw------- nx_dnssec.post
-#    631 -rw------- nx_dnssec.pre
+#    626 -rw------- nx_dnssec.pre
 #    669 -rw------- nx_dnssec.test
 #    711 -rw------- nx_dnssec.zone
 #
@@ -71,7 +71,7 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh20654; then
+if mkdir _sh04920; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
@@ -313,7 +313,7 @@ X
 # start NSD
 ((TPKG_PORT=5353+$RANDOM))
 PRE="../.."
-TPKG_NSD_PID="$PRE/nsd.pid.$$"
+TPKG_NSD_PID="nsd.pid.$$"
 TPKG_ZONEC="$PRE/zonec"
 TPKG_NSD="$PRE/nsd"
 X
@@ -324,19 +324,19 @@ X
 $TPKG_ZONEC -f nx_dnssec.db -c nx_dnssec.conf && \
 $TPKG_NSD -c nx_dnssec.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f nx_dnssec.db
 SHAR_EOF
-  (set 20 06 03 06 12 37 13 'nx_dnssec.pre'; eval "$shar_touch") &&
+  (set 20 06 04 20 11 35 20 'nx_dnssec.pre'; eval "$shar_touch") &&
   chmod 0600 'nx_dnssec.pre' ||
   $echo 'restore of' 'nx_dnssec.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
     || $echo 'nx_dnssec.pre:' 'MD5 check failed'
-4cbd4fcc811aa98df67144b89bd63bc7  nx_dnssec.pre
+8dd9bf6d117d11022d5aed2bde27f547  nx_dnssec.pre
 SHAR_EOF
   else
     shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'nx_dnssec.pre'`"
-    test 631 -eq "$shar_count" ||
-    $echo 'nx_dnssec.pre:' 'original size' '631,' 'current size' "$shar_count!"
+    test 626 -eq "$shar_count" ||
+    $echo 'nx_dnssec.pre:' 'original size' '626,' 'current size' "$shar_count!"
   fi
 fi
 # ============= nx_dnssec.test ==============
@@ -420,5 +420,5 @@ SHAR_EOF
     $echo 'nx_dnssec.zone:' 'original size' '711,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh20654
+rm -fr _sh04920
 exit 0
