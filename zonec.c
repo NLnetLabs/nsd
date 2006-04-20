@@ -278,22 +278,6 @@ zparser_conv_short(region_type *region, const char *text)
 }
 
 uint16_t *
-zparser_conv_long(region_type *region, const char *text)
-{
-	uint16_t *r = NULL;
-	uint32_t value;
-	char *end;
-   
-	value = htonl((uint32_t) strtol(text, &end, 10));
-	if (*end != 0) {
-		zc_error_prev_line("integer value is expected");
-	} else {
-		r = alloc_rdata_init(region, &value, sizeof(value));
-	}
-	return r;
-}
-
-uint16_t *
 zparser_conv_byte(region_type *region, const char *text)
 {
 	uint16_t *r = NULL;
