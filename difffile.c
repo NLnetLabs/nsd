@@ -435,6 +435,9 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
 	zone->soa_rrset = 0;
 	zone->soa_nx_rrset = 0;
 	zone->ns_rrset = 0;
+#ifdef NSEC3
+	zone->nsec3_rrset = NULL;
+#endif
 	zone->opts = zone_options_find(opt, domain_dname(zone->apex)); 
 	if(!zone->opts) {
 		log_msg(LOG_ERR, "xfr: zone %s not in config.",

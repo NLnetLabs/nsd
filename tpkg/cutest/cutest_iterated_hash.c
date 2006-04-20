@@ -49,5 +49,7 @@ static void hash_1(CuTest *tc)
 			sizeof(out)== iterated_hash(out, salt, saltlen, 
 			(unsigned char*)buf, strlen(buf), iterations));
 	}
+#else
+	(void)tc;
 #endif /* NSEC3 */
 }

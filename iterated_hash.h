@@ -19,12 +19,18 @@
 struct domain;
 struct dname;
 struct region;
+struct zone;
+struct namedb;
 
 int iterated_hash(unsigned char out[SHA_DIGEST_LENGTH],
 	const unsigned char *salt,int saltlength,
 	const unsigned char *in,int inlength,int iterations);
 const struct dname *nsec3_hash_dname(struct region *region, 
-	struct domain *apex, const struct dname *dname);
+	struct zone *zone, const struct dname *dname);
+
+/* calculate prehash information for the given zone,
+  or all zones if zone == NULL */
+void prehash(struct namedb* db, struct zone* zone);
 
 #endif /* NSEC3 */
 #endif /* ITERATED_HASH_H */

@@ -48,6 +48,16 @@ struct domain
 #ifdef PLUGINS
 	void       **plugin_data;
 #endif
+#ifdef NSEC3
+	/* if the domain has an NSEC3 for it, or NULL */
+	domain_type *nsec3_exact;
+	/* (if nsec3 chain complete) always the covering nsec3 record */ 
+	domain_type *nsec3_cover;
+	/* the nsec3 that covers the wildcard child of this domain. */
+	domain_type *nsec3_wcard_child_cover;
+	/* for the DS case, the exact nsec3 on the parent side of zone cut */
+	domain_type *nsec3_ds_parent_exact;
+#endif
 	uint32_t     number; /* Unique domain name number.  */
 	
 	/*
@@ -64,6 +74,9 @@ struct zone
 	rrset_type  *soa_rrset;
 	rrset_type  *soa_nx_rrset; /* see bug #103 */
 	rrset_type  *ns_rrset;
+#ifdef NSEC3
+	rrset_type  *nsec3_rrset;
+#endif
 	struct zone_options *opts;
 	uint32_t     number;
 	unsigned     is_secure : 1; /* zone uses DNSSEC */

@@ -6,6 +6,8 @@
 	- nsd-xfer will display NSEC3 correctly. zonec parses.
 	- improved usage() line from zonec, about -c none, must be -C.
 	- base32 printed in lowercase (canonical format for DNS).
+	- NSEC3 added prehash pointers to the namedb.
+	- NSEC3 autodetects presence of NSEC3 in zone and parameters.
 
 19 Apr 2006: Wouter
 	- port fix base10 in zonec conv short from 2_2 branch to trunk.

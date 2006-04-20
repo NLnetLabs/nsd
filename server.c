@@ -36,7 +36,7 @@
 #include "plugins.h"
 #include "xfrd.h"
 #include "difffile.h"
-
+#include "iterated_hash.h"
 
 /*
  * Data for the UDP handlers.
@@ -451,6 +451,9 @@ server_init(struct nsd *nsd)
 	}
 	if(!diff_read_file(nsd->db, nsd->options))
 		return -1;
+#ifdef NSEC3
+	prehash(nsd->db, NULL);
+#endif
 
 	compression_table_capacity = 0;
 	initialize_dname_compression_tables(nsd);
@@ -594,6 +597,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			log_msg(LOG_ERR, "unable to load the diff file: %s", strerror(errno));
 			exit(1);
 	}
+#ifdef NSEC3
+	for(zone= nsd->db->zones; zone; zone = zone->next) {
+		if(zone->updated)
+			prehash(nsd->db, zone);
+	}
+#endif
 
 	initialize_dname_compression_tables(nsd);
 
