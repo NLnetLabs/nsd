@@ -97,7 +97,9 @@ ZONEC_OBJECTS	=				\
 	dname.o					\
 	dns.o					\
 	edns.o					\
+	iterated_hash.o				\
 	namedb.o				\
+	nsec3.o					\
 	options.o				\
 	packet.o				\
 	query.o					\
@@ -132,8 +134,10 @@ NSD_XFER_OBJECTS	=			\
 	dname.o					\
 	dns.o					\
 	edns.o					\
+	iterated_hash.o				\
 	namedb.o				\
 	nsd-xfer.o				\
+	nsec3.o					\
 	options.o				\
 	packet.o				\
 	query.o					\
@@ -154,8 +158,10 @@ NSD_CHECKCONF_OBJECTS	=			\
 	dname.o                                 \
 	dns.o                                   \
 	edns.o					\
+	iterated_hash.o				\
 	namedb.o                                \
 	nsd-checkconf.o                         \
+	nsec3.o					\
 	options.o                               \
 	packet.o				\
 	query.o					\
@@ -177,8 +183,10 @@ NSD_PATCH_OBJECTS	=			\
 	dname.o                                 \
 	dns.o                                   \
 	edns.o					\
+	iterated_hash.o				\
 	namedb.o				\
 	nsd-patch.o				\
+	nsec3.o					\
 	options.o                               \
 	packet.o				\
 	query.o					\
@@ -419,7 +427,8 @@ nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
   util.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h rdata.h \
   tsig.h tsig-openssl.h zonec.h
 nsec3.o: nsec3.c config.h nsec3.h iterated_hash.h namedb.h dname.h \
-  buffer.h region-allocator.h util.h dns.h rbtree.h nsd.h edns.h
+  buffer.h region-allocator.h util.h dns.h rbtree.h nsd.h edns.h answer.h \
+  packet.h query.h
 options.o: options.c config.h options.h region-allocator.h rbtree.h \
   query.h namedb.h dname.h buffer.h util.h dns.h nsd.h edns.h packet.h \
   tsig.h configyyrename.h configparser.h
@@ -430,7 +439,7 @@ plugins.o: plugins.c config.h nsd.h dns.h edns.h buffer.h \
   dname.h rbtree.h packet.h
 query.o: query.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h axfr.h \
-  plugins.h nsd-plugin.h options.h
+  plugins.h nsd-plugin.h options.h nsec3.h
 rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h zonec.h

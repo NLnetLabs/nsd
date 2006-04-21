@@ -55,8 +55,8 @@ struct domain
 	domain_type *nsec3_cover;
 	/* the nsec3 that covers the wildcard child of this domain. */
 	domain_type *nsec3_wcard_child_cover;
-	/* for the DS case, the exact nsec3 on the parent side of zone cut */
-	domain_type *nsec3_ds_parent_exact;
+	/* for the DS case we must answer on the parent side of zone cut */
+	domain_type *nsec3_ds_parent_exact, *nsec3_ds_parent_cover;
 #endif
 	uint32_t     number; /* Unique domain name number.  */
 	

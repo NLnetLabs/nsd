@@ -14,6 +14,7 @@
 #include "iterated_hash.h"
 #include "namedb.h"
 #include "nsd.h"
+#include "answer.h"
 
 static void detect_nsec3_params(rrset_type* nsec3_apex,
 	const unsigned char** salt, int* salt_len, int* iter)
@@ -179,10 +180,14 @@ static void prehash_domain(namedb_type* db, zone_type* zone,
 	wcard_child = dname_concatenate(region, wcard, domain_dname(domain));
 	hashname = nsec3_hash_dname(region, zone, wcard_child);
 	exact = nsec3_find_cover(db, zone, hashname, &result);
-	if(exact)
-		domain->nsec3_wcard_child_cover = result;
-	else 	domain->nsec3_wcard_child_cover = 0;
+	domain->nsec3_wcard_child_cover = result;
 
+	if(exact && !domain_wildcard_child(domain))
+	{
+		log_msg(LOG_ERR, "prehash: collision of wildcard denial for %s."
+			" Sign zone with different salt to remove collision.",
+			dname_to_string(domain_dname(domain),0));
+	}
 	/*
 	printf(" wcard denial %s %s\n", exact?"exact":"cover",
 		dname_to_string(domain_dname(result),0));
@@ -207,6 +212,7 @@ static void prehash_ds(namedb_type* db, zone_type* zone,
 	if(exact)
 		domain->nsec3_ds_parent_exact = result;
 	else 	domain->nsec3_ds_parent_exact = 0;
+	domain->nsec3_ds_parent_cover = result;
 
 	/*
 	printf("prehash_ds for %s ", dname_to_string(domain_dname(domain),0));
@@ -279,6 +285,185 @@ void prehash(struct namedb* db, struct zone* zone)
 	}
 	end = time(0);
 	log_msg(LOG_INFO, "prehash took %d seconds", (int)(end-start));
+}
+
+/* add the NSEC3 rrset at the given domain */
+static void nsec3_add_rrset(struct query *query, struct answer *answer, 
+	rr_section_type section, struct domain* domain)
+{
+	if(domain) {
+		rrset_type* rrset = domain_find_rrset(domain, query->zone, TYPE_NSEC3);
+		if(rrset)
+			answer_add_rrset(answer, section, domain, rrset);
+	}
+}
+
+/* this routine does hashing at query-time. slow. */
+static void nsec3_add_nonexist_proof(struct query *query, struct answer *answer,
+        struct domain *encloser, struct namedb* db)
+{
+	const dname_type *to_prove, *hashed; 
+	domain_type *cover=0;
+	assert(encloser);
+	to_prove = dname_partial_copy(query->region, query->qname,
+		dname_label_match_count(query->qname, domain_dname(encloser))+1);
+	/* generate proof that one label below closest encloser does not exist */
+	hashed = nsec3_hash_dname(query->region, query->zone, to_prove);
+	if(nsec3_find_cover(db, query->zone, hashed, &cover))
+	{
+		/* exact match, hash collision */
+		/* the hashed name of the query corresponds to an existing name. */
+		RCODE_SET(query->packet, RCODE_SERVFAIL);
+		return;
+	}
+	else
+	{
+		/* cover proves the qname does not exist */
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, cover);
+	}
+}
+
+static void nsec3_add_closest_encloser_proof(
+	struct query *query, struct answer *answer,
+	struct domain *closest_encloser, struct namedb* db)
+{
+	if(!closest_encloser) return;
+	/* prove that below closest encloser nothing exists */
+	nsec3_add_nonexist_proof(query, answer, closest_encloser, db);
+	/* proof that closest encloser exists */
+	nsec3_add_rrset(query, answer, AUTHORITY_SECTION, closest_encloser->nsec3_exact);
+}
+
+void nsec3_answer_wildcard(struct query *query, struct answer *answer,
+        struct domain *wildcard, struct namedb* db)
+{
+	if(!wildcard) return;
+	nsec3_add_nonexist_proof(query, answer, wildcard, db);
+}
+
+void nsec3_add_ds_proof(struct query *query, struct answer *answer,
+	struct domain *domain)
+{
+	assert(domain != query->zone->apex);
+	if(domain->nsec3_ds_parent_exact) {
+		/* use NSEC3 record from above the zone cut. */
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			domain->nsec3_ds_parent_exact);
+	} else {
+		/* prove closest provable encloser */
+		domain_type* par = domain->parent;
+		domain_type* prev_par = 0;
+		while(par && !par->nsec3_exact)
+		{
+			prev_par = par;
+			par = par->parent;
+		}
+		assert(par); /* parent zone apex must be provable, thus this ends */	
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
+			par->nsec3_exact);
+		/* we took several steps to go to the provable parent, so
+		   the one below it has no exact nsec3, disprove it */
+		if(prev_par) {
+			assert(prev_par != domain && !prev_par->nsec3_exact);
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
+				prev_par->nsec3_cover);
+		}
+		/* add optout range from parent zone */
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			domain->nsec3_ds_parent_cover);
+	}
+}
+
+void nsec3_answer_nodata(struct query *query, struct answer *answer,
+	struct domain *original)
+{
+	if(query->qtype == TYPE_DS)
+	{
+		if(original == query->zone->apex) {
+			/* DS at zone apex, but server not authoritative for parent zone */
+			/* so answer at the child zone level */
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+				original->nsec3_exact);
+			return;
+		}
+		/* query->zone must be the parent zone */
+		nsec3_add_ds_proof(query, answer, original);
+	}
+	else if (original==original->wildcard_child_closest_match
+		&& label_is_wildcard(dname_name(domain_dname(original)))) {
+		/* denial for wildcard is already there */
+		/* add parent proof to have a closest encloser proof for wildcard parent */
+		if(original->parent)
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+				original->parent->nsec3_exact);
+		/* proof for wildcard itself */
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			original->nsec3_cover);
+	}
+	else	/* add nsec3 to prove rrset does not exist */
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			original->nsec3_exact);
+}
+
+void nsec3_answer_delegation(struct query *query, struct answer *answer)
+{
+	nsec3_add_ds_proof(query, answer, query->delegation_domain);
+}
+
+static int domain_has_only_NSEC3(struct domain* domain, struct zone* zone)
+{
+	rrset_type* rrset = domain->rrsets;
+	int nsec3_seen = 0;
+	while(rrset)
+	{
+		if(rrset->zone == zone)
+		{
+			if(rrset->rrs[0].type != TYPE_NSEC3)
+				return 0;
+			nsec3_seen = 1;
+		}
+		rrset = rrset->next;
+	}
+	return nsec3_seen;
+}
+
+void nsec3_answer_authoritative(struct domain** match, struct query *query,
+	struct answer *answer, struct domain* closest_encloser, 
+	struct namedb* db)
+{
+	assert(match);
+	/* there is a match, this has 1 RRset, which is NSEC3, but qtype is not. */
+	if(query->qtype != TYPE_NSEC3 && *match && 
+		domain_has_only_NSEC3(*match, query->zone))
+	{
+		/* act as if the NSEC3 domain did not exist, name error */
+		*match = 0;
+	}
+	if(!*match) {
+		/* name error */
+		if(query->qtype == TYPE_NSEC3) {
+			/* query for NSEC3, but that domain did not exist */
+			/* include covering nsec3 found *without hashing* */
+			domain_type* cover=0;
+			if(nsec3_find_cover(db, query->zone, query->qname, &cover))
+			{
+				/* impossible, this is an NXDomain, but there is an NSEC3... */
+				assert(0);
+			} 
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, cover);
+		}
+		else {
+			/* name error, domain does not exist */
+			if(closest_encloser->nsec3_wcard_child_cover ==
+				closest_encloser->nsec3_exact) {
+				/* collision of wcard denial and cover */
+				RCODE_SET(query->packet, RCODE_SERVFAIL);
+			}
+			nsec3_add_closest_encloser_proof(query, answer, closest_encloser, db);	
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+				closest_encloser->nsec3_wcard_child_cover);
+		}
+	}
 }
 
 #endif /* NSEC3 */

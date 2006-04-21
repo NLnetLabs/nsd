@@ -47,6 +47,7 @@ allocate_domain_info(domain_table_type *table,
 	result->nsec3_cover = NULL;
 	result->nsec3_wcard_child_cover = NULL;
 	result->nsec3_ds_parent_exact = NULL;
+	result->nsec3_ds_parent_cover = NULL;
 #endif
 	result->is_existing = 0;
 	result->is_apex = 0;

@@ -36,6 +36,7 @@
 #include "query.h"
 #include "util.h"
 #include "options.h"
+#include "nsec3.h"
 
 static int add_rrset(struct query  *query,
 		     answer_type    *answer,
@@ -43,7 +44,8 @@ static int add_rrset(struct query  *query,
 		     domain_type    *owner,
 		     rrset_type     *rrset);
 
-static void answer_authoritative(struct query     *q,
+static void answer_authoritative(struct nsd	  *nsd,
+				 struct query     *q,
 				 answer_type      *answer,
 				 uint32_t          domain_number,
 				 int               exact,
@@ -551,6 +553,10 @@ answer_delegation(query_type *query, answer_type *answer)
 		if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_DS))) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
+#ifdef NSEC3
+		} else if (query->zone->nsec3_rrset) {
+			nsec3_answer_delegation(query, answer);
+#endif
 		} else if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_NSEC))) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
@@ -593,6 +599,11 @@ answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 		answer_soa(query, answer);
 	}
 	
+#ifdef NSEC3
+	if (query->edns.dnssec_ok && query->zone->nsec3_rrset) {
+		nsec3_answer_nodata(query, answer, original);
+	} else 
+#endif
 	if (query->edns.dnssec_ok && zone_is_secure(query->zone)) {
 		domain_type *nsec_domain;
 		rrset_type *nsec_rrset;
@@ -619,7 +630,7 @@ answer_nxdomain(query_type *query, answer_type *answer)
  * the type specified by the query).
  */
 static void
-answer_domain(struct query *q, answer_type *answer,
+answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 	      domain_type *domain, domain_type *original)
 {
 	rrset_type *rrset;
@@ -666,7 +677,7 @@ answer_domain(struct query *q, answer_type *answer,
 				while (!closest_encloser->is_existing)
 					closest_encloser = closest_encloser->parent;
 				
-				answer_authoritative(q, answer, closest_match->number,
+				answer_authoritative(nsd, q, answer, closest_match->number,
 						     closest_match == closest_encloser,
 						     closest_match, closest_encloser);
 			}
@@ -695,7 +706,8 @@ answer_domain(struct query *q, answer_type *answer,
  * domain name does not exist and/or a wildcard match does not exist.
  */
 static void
-answer_authoritative(struct query *q,
+answer_authoritative(struct nsd   *nsd,
+		     struct query *q,
 		     answer_type  *answer,
 		     uint32_t      domain_number,
 		     int           exact,
@@ -722,6 +734,14 @@ answer_authoritative(struct query *q,
 		match->plugin_data = wildcard_child->plugin_data;
 #endif
 		match->is_existing = wildcard_child->is_existing;
+#ifdef NSEC3
+		match->nsec3_exact = wildcard_child->nsec3_exact;
+		match->nsec3_cover = wildcard_child->nsec3_cover;
+		match->nsec3_wcard_child_cover = wildcard_child->nsec3_wcard_child_cover;
+		match->nsec3_ds_parent_exact = wildcard_child->nsec3_ds_parent_exact;
+		match->nsec3_ds_parent_cover = wildcard_child->nsec3_ds_parent_cover;
+		nsec3_answer_wildcard(q, answer, wildcard_child, nsd->db);
+#endif
 
 		/*
 		 * Remember the original domain in case a Wildcard No
@@ -735,6 +755,12 @@ answer_authoritative(struct query *q,
 	}
 
 	/* Authorative zone.  */
+#ifdef NSEC3
+	if (q->edns.dnssec_ok && q->zone->nsec3_rrset) {
+		nsec3_answer_authoritative(&match, q, answer, 
+			closest_encloser, nsd->db);
+	} else 
+#endif
 	if (q->edns.dnssec_ok && zone_is_secure(q->zone)) {
 		if (match != closest_encloser) {
 			domain_type *nsec_domain;
@@ -764,8 +790,13 @@ answer_authoritative(struct query *q,
 		}
 	}
 	
+#ifdef NSEC3
+	if (RCODE(q->packet)!=RCODE_OK) {
+		return; /* nsec3 collision failure */
+	}
+#endif
 	if (match) {
-		answer_domain(q, answer, match, original);
+		answer_domain(nsd, q, answer, match, original);
 	} else {
 		answer_nxdomain(q, answer);
 	}
@@ -835,7 +866,7 @@ answer_query(struct nsd *nsd, struct query *q)
 			} else {
 				AA_SET(q->packet);
 			}
-			answer_authoritative(q, &answer, 0, exact,
+			answer_authoritative(nsd, q, &answer, 0, exact,
 					     closest_match, closest_encloser);
 		}
 		else {
