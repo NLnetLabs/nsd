@@ -9,6 +9,9 @@
 	  NSEC3 responses only happen for nsd compiled with --enable-nsec3
 	  and for zones where an NSEC3 with the SOA bit set exists.
 	- added prehash pointer to ds parent side cover for opt out.
+	- removed dynamic plugins. Dynamic plugin support is an explicit 
+	  non-requirement (under creeping featurism).
+	- in domain table create root nsec3 ptrs are NULL.
 
 20 Apr 2006: Wouter
 	- Unittest of base 32 encoding. 

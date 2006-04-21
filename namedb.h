@@ -45,9 +45,6 @@ struct domain
 	domain_type *parent;
 	domain_type *wildcard_child_closest_match;
 	rrset_type  *rrsets;
-#ifdef PLUGINS
-	void       **plugin_data;
-#endif
 #ifdef NSEC3
 	/* if the domain has an NSEC3 for it, or NULL */
 	domain_type *nsec3_exact;

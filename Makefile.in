@@ -73,7 +73,6 @@ NSD_OBJECTS	=				\
 	nsd.o					\
 	nsec3.o					\
 	packet.o				\
-	plugins.o				\
 	query.o					\
 	rbtree.o				\
 	rdata.o					\
@@ -215,7 +214,6 @@ CUTEST_OBJECTS		=			\
 	netio.o					\
 	nsec3.o					\
 	packet.o				\
-	plugins.o				\
 	query.o					\
 	rbtree.o				\
 	rdata.o					\
@@ -371,13 +369,6 @@ configlexer.c:	configlexer.lex
 configparser.c configparser.h:	configparser.y
 	$(YACC) -d -o configparser.c configparser.y
 
-# Example plugin
-example-plugin.o: contrib/example-plugin.c
-	$(COMPILE) -c contrib/example-plugin.c -o $@
-
-example-plugin.so: example-plugin.o
-	$(LINK) -shared example-plugin.o -o $@
-
 # autoconf rules
 config.h.in:	configure.ac
 	autoheader
@@ -415,8 +406,7 @@ namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
   util.h dns.h rbtree.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
 nsd.o: nsd.c config.h nsd.h dns.h edns.h buffer.h region-allocator.h \
-  util.h plugins.h nsd-plugin.h query.h namedb.h dname.h rbtree.h \
-  packet.h options.h
+  util.h options.h rbtree.h
 nsd-checkconf.o: nsd-checkconf.c config.h options.h region-allocator.h \
   rbtree.h util.h dname.h buffer.h
 nsd-notify.o: nsd-notify.c config.h query.h namedb.h dname.h buffer.h \
@@ -434,19 +424,16 @@ options.o: options.c config.h options.h region-allocator.h rbtree.h \
   tsig.h configyyrename.h configparser.h
 packet.o: packet.c config.h packet.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h query.h nsd.h edns.h rdata.h
-plugins.o: plugins.c config.h nsd.h dns.h edns.h buffer.h \
-  region-allocator.h util.h plugins.h nsd-plugin.h query.h namedb.h \
-  dname.h rbtree.h packet.h
 query.o: query.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h axfr.h \
-  plugins.h nsd-plugin.h options.h nsec3.h
+  options.h nsec3.h
 rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h zonec.h
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  netio.h plugins.h nsd-plugin.h xfrd.h options.h difffile.h nsec3.h
+  netio.h xfrd.h options.h difffile.h nsec3.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \

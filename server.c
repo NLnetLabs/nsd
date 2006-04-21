@@ -33,7 +33,6 @@
 #include "axfr.h"
 #include "namedb.h"
 #include "netio.h"
-#include "plugins.h"
 #include "xfrd.h"
 #include "difffile.h"
 #include "nsec3.h"
@@ -606,13 +605,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	initialize_dname_compression_tables(nsd);
 
-#ifdef PLUGINS
-	if (plugin_database_reloaded() != NSD_PLUGIN_CONTINUE) {
-		log_msg(LOG_ERR, "plugin reload failed");
-		exit(1);
-	}
-#endif /* PLUGINS */
-
 	old_pid = nsd->pid;
 	nsd->pid = getpid();
 
@@ -896,10 +888,6 @@ server_main(struct nsd *nsd)
 		}
 	}
 
-#ifdef PLUGINS
-	plugin_finalize_all();
-#endif /* PLUGINS */
-	
 	/* Truncate the pid file.  */
 	if ((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
 		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->pidfile, strerror(errno));
@@ -917,36 +905,7 @@ server_main(struct nsd *nsd)
 static query_state_type
 server_process_query(struct nsd *nsd, struct query *query)
 {
-#ifdef PLUGINS
-	query_state_type rc;
-	nsd_plugin_callback_args_type callback_args;
-	nsd_plugin_callback_result_type callback_result;
-	
-	callback_args.query = query;
-	callback_args.data = NULL;
-	callback_args.result_code = NSD_RC_OK;
-
-	callback_result = query_received_callbacks(&callback_args, NULL);
-	if (callback_result != NSD_PLUGIN_CONTINUE) {
-		return handle_callback_result(callback_result, &callback_args);
-	}
-
-	rc = query_process(query, nsd);
-	if (rc == QUERY_PROCESSED) {
-		callback_args.data = NULL;
-		callback_args.result_code = NSD_RC_OK;
-
-		callback_result = query_processed_callbacks(
-			&callback_args,
-			query->domain ? query->domain->plugin_data : NULL);
-		if (callback_result != NSD_PLUGIN_CONTINUE) {
-			return handle_callback_result(callback_result, &callback_args);
-		}
-	}
-	return rc;
-#else /* !PLUGINS */
 	return query_process(query, nsd);
-#endif /* !PLUGINS */
 }
 
 

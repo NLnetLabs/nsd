@@ -31,7 +31,6 @@ nsd
 .Op Fl t Ar chrootdir
 .Op Fl u Ar username
 .Op Fl v
-.Op Fl X Ar plugin
 
 .Sh DESCRIPTION
 .Ic NSD
@@ -183,22 +182,6 @@ must one of: username, id, or id.gid.  For example: nsd, 80, or 80.80.
 
 .It Fl v
 Print the version number of NSD to standard error and exit.
-
-.It Fl X Ar plugin
-Load a
-.Ar plugin .
-The
-.Ar plugin
-argument must be of the form 
-.Ar filename ,
-or 
-.Ar filename=argument .
-The filename must specify an NSD plugin compiled as a shared object
-(.so) file.  If the filename is not absolute the shared object is
-searched for in the standard locations using
-.Xr dlopen 3 .
-If an argument is specified it is passed directly to the
-initialization function of the plugin.
 
 .El
 

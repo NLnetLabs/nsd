@@ -149,12 +149,6 @@ addition to standard configure options, one may use the following:
 
         Disables IPv6 support in NSD.
 
-  --enable-plugins
-
-        Enable plugin support (experimental).  See nsd-plugin.h for
-        the plugin API defined by NSD.  See contrib/example-plugin.c
-        for an example plugin.
-
   --enable-checking
 
         Enable some internal development checks.  Useful if you want

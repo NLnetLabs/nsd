@@ -32,7 +32,6 @@
 #include "dname.h"
 #include "nsd.h"
 #include "namedb.h"
-#include "plugins.h"
 #include "query.h"
 #include "util.h"
 #include "options.h"
@@ -469,9 +468,6 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 			temp->parent = match;
 			temp->wildcard_child_closest_match = temp;
 			temp->rrsets = wildcard_child->rrsets;
-#ifdef PLUGINS
-			temp->plugin_data = wildcard_child->plugin_data;
-#endif
 			temp->is_existing = wildcard_child->is_existing;
 			additional = temp;
 		}
@@ -730,9 +726,6 @@ answer_authoritative(struct nsd   *nsd,
 		match->wildcard_child_closest_match = match;
 		match->number = domain_number;
 		match->rrsets = wildcard_child->rrsets;
-#ifdef PLUGINS
-		match->plugin_data = wildcard_child->plugin_data;
-#endif
 		match->is_existing = wildcard_child->is_existing;
 #ifdef NSEC3
 		match->nsec3_exact = wildcard_child->nsec3_exact;

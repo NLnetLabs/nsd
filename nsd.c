@@ -35,7 +35,6 @@
 #include <unistd.h>
 
 #include "nsd.h"
-#include "plugins.h"
 #include "options.h"
 
 
@@ -74,7 +73,6 @@ usage (void)
 	fprintf(stderr,
 		"  -u user         Change effective uid to the specified user.\n"
 		"  -v              Print version information.\n"
-		"  -X plugin       Load a plugin (may be specified multiple times).\n\n"
 		);
 	fprintf(stderr, "Report bugs to <%s>.\n", PACKAGE_BUGREPORT);
 }
@@ -308,12 +306,6 @@ main (int argc, char *argv[])
 	const char *log_filename = NULL;
 	const char *configfile = CONFIGFILE;
 	
-#ifdef PLUGINS
-	nsd_plugin_id_type plugin_count = 0;
-	char **plugins = (char **) xalloc(sizeof(char *));
-	maximum_plugin_count = 1;
-#endif /* PLUGINS */
-
 	log_init("nsd");
 
 	/* Initialize the server handler... */
@@ -444,20 +436,6 @@ main (int argc, char *argv[])
 			break;
 		case 'u':
 			nsd.username = optarg;
-			break;
-		case 'X':
-#ifdef PLUGINS
-			if (plugin_count == maximum_plugin_count) {
-				maximum_plugin_count *= 2;
-				plugins = (char **) xrealloc(
-					plugins,
-					maximum_plugin_count * sizeof(char *));
-			}
-			plugins[plugin_count] = optarg;
-			++plugin_count;
-#else /* !PLUGINS */
-			error("plugin support not enabled.");
-#endif /* !PLUGINS */
 			break;
 		case 'v':
 			version();
@@ -786,25 +764,6 @@ main (int argc, char *argv[])
 		exit(1);
 	}
 
-#ifdef PLUGINS
-	maximum_plugin_count = plugin_count;
-	plugin_init(&nsd);
-	for (i = 0; i < plugin_count; ++i) {
-		const char *arg = "";
-		char *eq = strchr(plugins[i], '=');
-		if (eq) {
-			*eq = '\0';
-			arg = eq + 1;
-		}
-		if (!plugin_load(&nsd, plugins[i], arg)) {
-			plugin_finalize_all();
-			unlink(nsd.pidfile);
-			exit(1);
-		}
-	}
-	free(plugins);
-#endif /* PLUGINS */
-	
 	log_msg(LOG_NOTICE, "nsd started, pid %d", (int) nsd.pid);
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {

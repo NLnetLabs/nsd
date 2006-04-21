@@ -39,9 +39,6 @@ allocate_domain_info(domain_table_type *table,
 	result->wildcard_child_closest_match = result;
 	result->rrsets = NULL;
 	result->number = 0;
-#ifdef PLUGINS
-	result->plugin_data = NULL;
-#endif
 #ifdef NSEC3
 	result->nsec3_exact = NULL;
 	result->nsec3_cover = NULL;
@@ -72,10 +69,14 @@ domain_table_create(region_type *region)
 	root->wildcard_child_closest_match = root;
 	root->rrsets = NULL;
 	root->number = 1; /* 0 is used for after header */
-#ifdef PLUGINS
-	root->plugin_data = NULL;
-#endif
 	root->is_existing = 0;
+#ifdef NSEC3
+	root->nsec3_exact = NULL;
+	root->nsec3_cover = NULL;
+	root->nsec3_wcard_child_cover = NULL;
+	root->nsec3_ds_parent_exact = NULL;
+	root->nsec3_ds_parent_cover = NULL;
+#endif
 	
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));

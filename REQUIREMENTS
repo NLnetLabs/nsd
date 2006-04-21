@@ -108,7 +108,7 @@ B.2. Explicit NON-Requirements
    NSD will not implement any functionality that is not strictly
    necessary for the task of authoritative name serving.  Examples:
    round robin sequence of RRset members in consecutive answers,
-
+   Also no dynamic plugins.
 
 C. Technical Specification.
 
