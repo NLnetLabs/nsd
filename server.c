@@ -36,7 +36,7 @@
 #include "plugins.h"
 #include "xfrd.h"
 #include "difffile.h"
-#include "iterated_hash.h"
+#include "nsec3.h"
 
 /*
  * Data for the UDP handlers.

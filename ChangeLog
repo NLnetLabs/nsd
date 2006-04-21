@@ -1,3 +1,10 @@
+21 Apr 2006: Wouter
+	- put NSEC3 code in nsec3.c and nsec3.h.
+	- iterated_hash only adds the salt if salt_len > 0.
+	- added some assertions and cleanups to nsec3 code.
+	- prehash also calcs the nsec3_last domain*.
+	- dbaccess when reading in will set the rr_type.owner value.
+
 20 Apr 2006: Wouter
 	- Unittest of base 32 encoding. 
 	- unittest start for iterated hash.

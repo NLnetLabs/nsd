@@ -166,6 +166,7 @@ read_rrset(namedb_type *db,
 	for (i = 0; i < rrset->rr_count; ++i) {
 		rr_type *rr = &rrset->rrs[i];
 
+		rr->owner = owner;
 		rr->type = type;
 		rr->klass = klass;
 		
@@ -341,6 +342,7 @@ namedb_open (const char *filename, nsd_options_t* opt)
 		zones[i]->ns_rrset = NULL;
 #ifdef NSEC3
 		zones[i]->nsec3_rrset = NULL;
+		zones[i]->nsec3_last = NULL;
 #endif
 		zones[i]->opts = zone_options_find(opt, domain_dname(zones[i]->apex));
 		zones[i]->number = i + 1;

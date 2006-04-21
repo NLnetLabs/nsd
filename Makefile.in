@@ -71,6 +71,7 @@ NSD_OBJECTS	=				\
 	namedb.o				\
 	netio.o					\
 	nsd.o					\
+	nsec3.o					\
 	packet.o				\
 	plugins.o				\
 	query.o					\
@@ -204,6 +205,7 @@ CUTEST_OBJECTS		=			\
 	iterated_hash.o				\
 	namedb.o				\
 	netio.o					\
+	nsec3.o					\
 	packet.o				\
 	plugins.o				\
 	query.o					\
@@ -400,8 +402,7 @@ dname.o: dname.c config.h dns.h dname.h buffer.h region-allocator.h \
 dns.o: dns.c config.h dns.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h zparser.h
 edns.o: edns.c config.h dns.h edns.h buffer.h region-allocator.h util.h
-iterated_hash.o: iterated_hash.c config.h iterated_hash.h namedb.h \
-  dname.h buffer.h region-allocator.h util.h dns.h rbtree.h nsd.h edns.h
+iterated_hash.o: iterated_hash.c config.h iterated_hash.h
 namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
   util.h dns.h rbtree.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
@@ -417,6 +418,8 @@ nsd-patch.o: nsd-patch.c config.h options.h region-allocator.h rbtree.h \
 nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
   util.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h rdata.h \
   tsig.h tsig-openssl.h zonec.h
+nsec3.o: nsec3.c config.h nsec3.h iterated_hash.h namedb.h dname.h \
+  buffer.h region-allocator.h util.h dns.h rbtree.h nsd.h edns.h
 options.o: options.c config.h options.h region-allocator.h rbtree.h \
   query.h namedb.h dname.h buffer.h util.h dns.h nsd.h edns.h packet.h \
   tsig.h configyyrename.h configparser.h
@@ -434,8 +437,7 @@ rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  netio.h plugins.h nsd-plugin.h xfrd.h options.h difffile.h \
-  iterated_hash.h
+  netio.h plugins.h nsd-plugin.h xfrd.h options.h difffile.h nsec3.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \

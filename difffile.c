@@ -437,6 +437,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
 	zone->ns_rrset = 0;
 #ifdef NSEC3
 	zone->nsec3_rrset = NULL;
+	zone->nsec3_last = NULL;
 #endif
 	zone->opts = zone_options_find(opt, domain_dname(zone->apex)); 
 	if(!zone->opts) {
