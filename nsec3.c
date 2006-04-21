@@ -168,6 +168,12 @@ static void prehash_domain(namedb_type* db, zone_type* zone,
 		domain->nsec3_exact = result;
 	else	domain->nsec3_exact = 0;
 
+	/*
+	printf("prehash for %s ", dname_to_string(domain_dname(domain),0));
+	printf("found prehash %s %s", exact?"exact":"cover",
+		dname_to_string(domain_dname(result),0));
+	*/
+
 	/* find cover for *.domain for wildcard denial */
 	wcard = dname_parse(region, "*");
 	wcard_child = dname_concatenate(region, wcard, domain_dname(domain));
@@ -176,6 +182,11 @@ static void prehash_domain(namedb_type* db, zone_type* zone,
 	if(exact)
 		domain->nsec3_wcard_child_cover = result;
 	else 	domain->nsec3_wcard_child_cover = 0;
+
+	/*
+	printf(" wcard denial %s %s\n", exact?"exact":"cover",
+		dname_to_string(domain_dname(result),0));
+	*/
 }
 
 static void prehash_ds(namedb_type* db, zone_type* zone, 
@@ -196,6 +207,11 @@ static void prehash_ds(namedb_type* db, zone_type* zone,
 	if(exact)
 		domain->nsec3_ds_parent_exact = result;
 	else 	domain->nsec3_ds_parent_exact = 0;
+
+	/*
+	printf("prehash_ds for %s ", dname_to_string(domain_dname(domain),0));
+	printf("found prehash %s\n", dname_to_string(domain_dname(result),0));
+	*/
 }
 
 static void prehash_zone(struct namedb* db, struct zone* zone)
@@ -230,7 +246,7 @@ static void prehash_zone(struct namedb* db, struct zone* zone)
 	while(walk && dname_is_subdomain(
 		domain_dname(walk), domain_dname(zone->apex)))
 	{
-		zone_type* z = namedb_find_zone(db, walk);
+		zone_type* z = domain_find_zone(walk);
 		if(z && z==zone)
 		{
 			prehash_domain(db, zone, walk, temp_region);
@@ -251,9 +267,9 @@ static void prehash_zone(struct namedb* db, struct zone* zone)
 
 void prehash(struct namedb* db, struct zone* zone)
 {
+	time_t start = time(0), end;
 	if(zone) {
 		prehash_zone(db, zone);
-		return;
 	} else {
 		zone_type *z;
 		for(z = db->zones; z; z = z->next)
@@ -261,6 +277,8 @@ void prehash(struct namedb* db, struct zone* zone)
 			prehash_zone(db, z);
 		}
 	}
+	end = time(0);
+	log_msg(LOG_INFO, "prehash took %d seconds", (int)(end-start));
 }
 
 #endif /* NSEC3 */

@@ -4,6 +4,7 @@
 	- added some assertions and cleanups to nsec3 code.
 	- prehash also calcs the nsec3_last domain*.
 	- dbaccess when reading in will set the rr_type.owner value.
+	- changed namedb_find_zone to domain_find_zone, log msgs.
 
 20 Apr 2006: Wouter
 	- Unittest of base 32 encoding. 
