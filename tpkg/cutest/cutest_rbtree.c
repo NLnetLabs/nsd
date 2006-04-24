@@ -118,7 +118,7 @@ void tree_print(CuTest *tc, rbtree_t* tree)
 	char buf[1024000];
 	char prefixbuf[10240];
 	char *sink = buf;
-	sink += sprintf(sink, "Rbtree count=%d\n", tree->count);
+	sink += sprintf(sink, "Rbtree count=%d\n", (int)tree->count);
 	prefixbuf[0]=0;
 	sink += tree_print_sub((struct testnode*)tree->root, 0, sink, prefixbuf);
 	
@@ -534,7 +534,7 @@ static void test_add_remove(CuTest *tc, rbtree_t* tree, const int* insert, const
 	for(i=0; i<num_added; i++)
 	{
 		CuAssert(tc, "remove[i] != -1", (remove[i] != -1));
-		if(verbose){ printf("i=%d/%d removing %d\n", i, num_added, insert[remove[i]]); tree_print(tc, tree); }
+		if(verbose){ printf("i=%d/%d removing %d\n", (int)i, (int)num_added, insert[remove[i]]); tree_print(tc, tree); }
 		rbtree_delete(tree, &insert[remove[i]]);
 		CuAssert(tc, "tree->count == num_added - i - 1", (tree->count == num_added - i - 1));
 		test_tree_integrity(tc, tree);

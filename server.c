@@ -1694,7 +1694,7 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 		data->got_bytes += len;
 		if(got_acl >= (int)sizeof(data->acl_num)) {
 			uint16_t len = htons(data->total_bytes);
-			log_msg(LOG_INFO, "fwd passed packet write %d", data->got_bytes);
+			log_msg(LOG_INFO, "fwd passed packet write %d", (int)data->got_bytes);
 			data->forward_mode = 0;
 			mode = NSD_PASS_TO_XFRD;
 			if(!write_socket(*data->xfrd_sock, &mode, sizeof(mode)) ||

@@ -614,7 +614,7 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 		ttl = buffer_read_u32(packet);
 		rrlen = buffer_read_u16(packet);
 		if(!buffer_available(packet, rrlen)) {
-			log_msg(LOG_ERR, "bad xfr RR rdata %d, len %d have %d", 
+			log_msg(LOG_ERR, "bad xfr RR rdata %d, len %d have %zd", 
 				rrcount, rrlen, buffer_remaining(packet));
 			region_destroy(region);
 			return 0;
