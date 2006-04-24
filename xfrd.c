@@ -624,6 +624,15 @@ xfrd_set_refresh_now(xfrd_zone_t* zone, int zone_state)
 void 
 xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 {
+	/* randomize the time, within 90%-100% of original */
+	/* not later so zones cannot expire too late */
+	/* only for times far in the future */
+	if(t > xfrd_time() + 10) {
+		time_t extra = t - xfrd_time();
+		time_t base = extra*9/10;
+		t = xfrd_time() + base + random()%(extra-base);
+	}
+
 	zone->zone_handler.timeout = &zone->timeout;
 	zone->timeout.tv_sec = t;
 	zone->timeout.tv_nsec = 0;

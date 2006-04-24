@@ -1,9 +1,7 @@
 24 Apr 2006: Miek
+   Miek:
 	- forward port nsid (disabled by default)
-
-
-
-22 Apr 2006: Wouter
+   Wouter:
 	- nsd-patch manual page.
 	- minor MacOSX port fixes.
 	- xfrd-reload-timeout: config option.
@@ -14,6 +12,9 @@
 	  Invalid acls are only logged in debug mode, level >= 1.
 	- log message when xfrd tcp connections max out.
 	- if unknown NSEC3 hash type (not SHA-1), disable NSEC3.
+	- xfrd randomizes the timeouts, within 10% of original,
+	  to spread out activity. Short timeouts < 10 seconds are not
+	  affected, and will give activity bursts (on startup for example).
 
 21 Apr 2006: Wouter
 	- put NSEC3 code in nsec3.c and nsec3.h.
