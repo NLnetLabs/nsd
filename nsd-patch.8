@@ -1,0 +1,52 @@
+.\"
+.\" nsd-patch.8 -- nsd-patch manual
+.\"
+.\" Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+.\"
+.\" See LICENSE for the license.
+.\"
+.\"
+.Dd @date@
+.Os FreeBSD
+.Dt nsd-patch 8
+.Sh NAME
+.Nm nsd-patch
+.Nd NSD zone patcher version @version@.
+.Sh SYNOPSIS
+.Nm nsd-patch
+.Op Fl c Ar configfile
+.Sh DESCRIPTION
+.Ic Nsd-patch
+is the zone patcher for
+.Xr nsd 8 .
+It reads in the nsd database (nsd.db) and difffile (ixfr.db), and overwrites
+the zone text files if they have been updated.
+.Pp
+The available options are:
+.Bl -tag -width indent
+.It Fl c Ar configfile
+Read specified configfile instead of the default
+.Pa /etc/nsd/nsd.conf .
+.El
+.Sh FILES
+.Bl -tag -width indent
+.It Pa /etc/nsd/nsd.db
+default
+.Ic NSD
+database
+.It Pa /etc/nsd/nsd.conf
+default
+.Ic NSD
+configuration file
+.El
+.Sh SEE ALSO
+.Xr nsd 8 ,
+.Xr nsd.conf 5 ,
+.Xr nsd-checkconf 8 ,
+.Xr nsd-notify 8 ,
+.Xr nsd-xfer 8 ,
+.Xr nsdc 8
+.Sh AUTHORS
+.Ic NSD
+was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS file
+in the distribution for further details.
