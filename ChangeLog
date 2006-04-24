@@ -8,6 +8,7 @@
 	- more verbose acl logging. Validated acls are logged in detail.
 	  Invalid acls are only logged in debug mode, level >= 1.
 	- log message when xfrd tcp connections max out.
+	- if unknown NSEC3 hash type (not SHA-1), disable NSEC3.
 
 21 Apr 2006: Wouter
 	- put NSEC3 code in nsec3.c and nsec3.h.

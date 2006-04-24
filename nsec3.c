@@ -16,6 +16,8 @@
 #include "nsd.h"
 #include "answer.h"
 
+#define NSEC3_SHA1_HASH 1 /* same type code as DS hash */
+
 static void detect_nsec3_params(rrset_type* nsec3_apex,
 	const unsigned char** salt, int* salt_len, int* iter)
 {
@@ -74,6 +76,13 @@ static rrset_type* find_zone_nsec3(zone_type *zone)
 			detect_nsec3_params(rrset, &salt, &slen, &iter);
 			log_msg(LOG_INFO, "detected NSEC3 for zone %s saltlen=%d iter=%d",
 				dname_to_string(domain_dname(zone->apex),0), slen, iter);
+			if(rdata_atom_data(rrset->rrs->rdatas[0])[0] != NSEC3_SHA1_HASH)
+			{
+				log_msg(LOG_INFO, "NSEC3 for zone %s uses unknown hash type %d",
+					dname_to_string(domain_dname(zone->apex),0), 
+						rdata_atom_data(rrset->rrs->rdatas[0])[0]);
+				return 0;
+			}
 			return rrset;
 		}
 		domain = domain_next(domain);
@@ -228,7 +237,9 @@ static void prehash_zone(struct namedb* db, struct zone* zone)
 
 	/* find zone settings */
 	zone->nsec3_rrset = find_zone_nsec3(zone);
-	zone->nsec3_last = nsec3_find_last(zone); 
+	if(!zone->nsec3_rrset) 
+		zone->nsec3_last = 0;
+	else	zone->nsec3_last = nsec3_find_last(zone); 
 	assert((zone->nsec3_rrset&&zone->nsec3_last) ||
 		(!zone->nsec3_rrset&&!zone->nsec3_last));
 	if(zone->nsec3_rrset) {
