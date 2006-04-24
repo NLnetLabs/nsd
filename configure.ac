@@ -504,13 +504,22 @@ case "$enable_tsig" in
                 ;;
 esac
 
-AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--enable-nsec3], [Enable NSEC3 support.]))
+AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--enable-nsec3], [Enable NSEC3 support]))
 case "$enable_nsec3" in
         yes)
 		AC_DEFINE_UNQUOTED([NSEC3], [], [Define this to enable NSEC3 support.])
                 ;;
         no|*)
 		;;
+esac
+
+AC_ARG_ENABLE(nsid, AC_HELP_STRING([--enable-nsid], [Enable NSID support]))
+case "$enable_nsid" in
+        yes)
+               AC_DEFINE([NSID], [], [Define this to enable NSID support.])
+               ;;
+        no|*)
+                ;;
 esac
 
 AH_BOTTOM([
@@ -623,9 +632,6 @@ if [[ "$enable_checking" == "yes" ]]; then
         echo "* This will instruct NSD to be stricter        *"
         echo "* when validating its input. This could lead   *"
         echo "* to a reduced service level.                  *"
-        echo "*                                              *"
-        echo "* NLnet Labs does not recommend this setting   *"
-        echo "* in a production environment.                 *"
         echo "*                                              *"
         echo "************************************************"
 fi

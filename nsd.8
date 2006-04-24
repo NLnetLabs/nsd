@@ -22,6 +22,7 @@ nsd
 .Op Fl f Ar database
 .Op Fl h
 .Op Fl i Ar identity
+.Op Fl I Ar nsid
 .Op Fl l Ar logfile
 .Op Fl N Ar server-count
 .Op Fl n Ar concurrent-tcp-count
@@ -121,6 +122,13 @@ when asked for
 when they are multicast)
 The default is the name returned by
 .Xr gethostname 3 .
+
+.It Fl I Ar nsid
+Add the specified
+.Ar nsid
+to the EDNS section of the answer when queried 
+with an NSID EDNS enabled packet.
+This is disabled until IANA has given the NSID option an OPCODE.
 
 .It Fl l Ar logfile
 Log messages to the specified 
