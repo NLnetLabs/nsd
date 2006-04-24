@@ -50,6 +50,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->zonesdir = 0;
 	opt->difffile = 0;
 	opt->xfrdfile = 0;
+	opt->xfrd_reload_timeout = 10;
 	nsd_options = opt;
 	return opt;
 }
@@ -240,7 +241,8 @@ key_options_t* key_options_find(nsd_options_t* opt, const char* name)
 	return 0;
 }
 
-int acl_check_incoming(acl_options_t* acl, struct query* q)
+int acl_check_incoming(acl_options_t* acl, struct query* q, 
+	acl_options_t** reason)
 {
 	/* check each acl element.
 	   if 1 blocked element matches - return -1.
@@ -248,11 +250,16 @@ int acl_check_incoming(acl_options_t* acl, struct query* q)
 	   else return -1. */
 	int found_match = -1;
 	int number = 0;
+	if(reason)
+		*reason = NULL;
 	while(acl)
 	{
 		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
-			if(acl->blocked) 
+			if(reason && !*reason)
+				*reason = acl; /* remember first match */
+			if(acl->blocked) {
 				return -1;
+			}
 			found_match=number;
 		}
 		number++;

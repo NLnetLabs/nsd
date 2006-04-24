@@ -288,6 +288,7 @@ static query_state_type
 answer_notify (struct nsd* nsd, struct query *query)
 {
 	int acl_num;
+	acl_options_t *why;
 
 	zone_options_t* zone_opt;
 	log_msg(LOG_INFO, "got notify %s processing acl",
@@ -301,14 +302,16 @@ answer_notify (struct nsd* nsd, struct query *query)
 		return query_error(query, NSD_RC_SERVFAIL);
 	
 	/* check if it passes acl */
-	if((acl_num = acl_check_incoming(zone_opt->allow_notify, query)) != -1)
+	if((acl_num = acl_check_incoming(zone_opt->allow_notify, query,
+		&why)) != -1)
 	{
 		sig_atomic_t mode = NSD_PASS_TO_XFRD;
 		int s = nsd->this_child->parent_fd;
 		uint16_t sz = buffer_limit(query->packet);
 		uint32_t acl_send = htonl(acl_num);
-		log_msg(LOG_INFO, "got notify %s passed acl",
-			dname_to_string(query->qname, NULL));
+		log_msg(LOG_INFO, "got notify %s passed acl %s %s",
+			dname_to_string(query->qname, NULL),
+			why->ip_address_spec, why->key_name);
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
 			return query_error(query, NSD_RC_SERVFAIL);
 		/* forward to xfrd for processing
@@ -330,8 +333,13 @@ answer_notify (struct nsd* nsd, struct query *query)
 		RCODE_SET(query->packet, RCODE_OK); /* Error code.  */
 		return QUERY_PROCESSED;
 	}
-	log_msg(LOG_INFO, "got notify %s refused acl",
-		dname_to_string(query->qname, NULL));
+#ifndef NDEBUG
+	if(nsd_debug_level>=1)
+		log_msg(LOG_INFO, "got notify %s refused acl: %s %s",
+			dname_to_string(query->qname, NULL),
+			why?why->key_name:"no acl matches", 
+			why?why->ip_address_spec:".");
+#endif
 	return query_error(query, NSD_RC_NOTAUTH);
 }
 

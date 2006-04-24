@@ -46,6 +46,7 @@ static acl_options_t* parse_acl_info(char* ip, const char* key);
 %token VAR_IP4_ONLY VAR_IP6_ONLY VAR_DATABASE VAR_IDENTITY VAR_LOGFILE
 %token VAR_SERVER_COUNT VAR_TCP_COUNT VAR_PIDFILE VAR_PORT VAR_STATISTICS
 %token VAR_CHROOT VAR_USERNAME VAR_ZONESDIR VAR_XFRDFILE VAR_DIFFFILE
+%token VAR_XFRD_RELOAD_TIMEOUT
 %token VAR_ZONEFILE 
 %token VAR_ZONE
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR
@@ -71,7 +72,7 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_ip6_only | server_database | server_identity | server_logfile | 
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
 	server_statistics | server_chroot | server_username | server_zonesdir |
-	server_difffile | server_xfrdfile ;
+	server_difffile | server_xfrdfile | server_xfrd_reload_timeout;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -200,6 +201,14 @@ server_xfrdfile: VAR_XFRDFILE STRING
 	{ 
 		OUTYY(("P(server_xfrdfile:%s)\n", $2)); 
 		cfg_parser->opt->xfrdfile = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_xfrd_reload_timeout: VAR_XFRD_RELOAD_TIMEOUT STRING
+	{ 
+		OUTYY(("P(server_xfrd_reload_timeout:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		cfg_parser->opt->xfrd_reload_timeout = atoi($2);
 	}
 	;
 

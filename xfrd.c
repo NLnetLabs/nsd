@@ -26,7 +26,6 @@
 #define XFRDFILE "xfrd.state"
 #define XFRD_TRANSFER_TIMEOUT 10 /* empty zone timeout is between x and 2*x seconds */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connectin is stopped */
-#define XFRD_RELOAD_TIMEOUT 10 /* seconds, allowed to elapse between a zone transfer and reload */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
 #define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
 
@@ -124,6 +123,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->reload_handler.event_types = NETIO_EVENT_TIMEOUT;
 	xfrd->reload_handler.event_handler = xfrd_handle_reload;
 	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
+	xfrd->reload_timeout.tv_sec = 0;
 
 	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region);
 	xfrd->ipc_conn->is_reading = 0; /* not reading using ipc_conn yet */
@@ -1426,29 +1426,10 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	xfrd_set_reload_timeout();
 }
 
-static void 
-xfrd_set_reload_timeout()
-{
-	time_t new_timeout = xfrd_time() + XFRD_RELOAD_TIMEOUT;
-	if(xfrd->reload_handler.timeout &&
-		xfrd->reload_timeout.tv_sec < new_timeout) {
-		/* keep existing timeout which is earlier. */
-		return;
-	}
-	xfrd->reload_timeout.tv_sec = new_timeout;
-	xfrd->reload_timeout.tv_nsec = 0;
-	xfrd->reload_handler.timeout = &xfrd->reload_timeout;
-}
-
-static void 
-xfrd_handle_reload(netio_type *ATTR_UNUSED(netio), 
-	netio_handler_type *handler, netio_event_types_type event_types)
+static void
+xfrd_send_reload_req()
 {
 	sig_atomic_t req = NSD_RELOAD;
-	/* reload timeout */
-	assert(event_types & NETIO_EVENT_TIMEOUT);
-	/* disable timeout */
-	handler->timeout = NULL;
 	/* ask server_main for a reload */
 	if(write(xfrd->ipc_handler.fd, &req, sizeof(req)) == -1) {
 		log_msg(LOG_ERR, "xfrd: problems sending reload command: %s",
@@ -1456,6 +1437,38 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 		return;
 	}
 	log_msg(LOG_ERR, "xfrd: asked nsd to reload new updates");
+}
+
+static void 
+xfrd_set_reload_timeout()
+{
+	if(xfrd->nsd->options->xfrd_reload_timeout == -1)
+		return; /* automatic reload disabled. */
+	if(xfrd->reload_timeout.tv_sec == 0 ||
+		xfrd_time() >= xfrd->reload_timeout.tv_sec ) {
+		/* no reload wait period (or it passed), do it right away */
+		xfrd_send_reload_req();
+		/* start reload wait period */
+		xfrd->reload_timeout.tv_sec = xfrd_time() +
+			xfrd->nsd->options->xfrd_reload_timeout;
+		xfrd->reload_timeout.tv_nsec = 0;
+		return;
+	}
+	/* cannot reload now, set that after the timeout a reload has to happen */
+	xfrd->reload_handler.timeout = &xfrd->reload_timeout;
+}
+
+static void 
+xfrd_handle_reload(netio_type *ATTR_UNUSED(netio), 
+	netio_handler_type *handler, netio_event_types_type event_types)
+{
+	/* reload timeout */
+	assert(event_types & NETIO_EVENT_TIMEOUT);
+	/* timeout wait period after this request is sent */
+	handler->timeout = NULL;
+	xfrd->reload_timeout.tv_sec = xfrd_time() +
+		xfrd->nsd->options->xfrd_reload_timeout;
+	xfrd_send_reload_req();
 }
 
 static void 

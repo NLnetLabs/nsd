@@ -1,6 +1,12 @@
 22 Apr 2006: Wouter
 	- nsd-patch manual page.
 	- minor MacOSX port fixes.
+	- xfrd-reload-timeout: config option.
+	- if you set the xfrd reload timeout to -1 it will not
+	  automatically reload after a transfer. User can reload.
+	- reload timeout is a wait period after the reload is triggered.
+	- more verbose acl logging. Validated acls are logged in detail.
+	  Invalid acls are only logged in debug mode, level >= 1.
 
 21 Apr 2006: Wouter
 	- put NSEC3 code in nsec3.c and nsec3.h.

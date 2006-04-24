@@ -149,6 +149,12 @@ too much harm, but timestamps of zones will be gone. For more details
 see the section on zone expiry behavior of NSD.
 Default is
 .Ic xfrd.state .
+.It \fBxfrd-reload-timeout:\fR <number>
+If this value is -1 xfrd will not trigger a reload after a zone transfer.
+If positive xfrd will trigger a reload after a zone transfer, and then
+wait for the number of seconds before it will trigger a new reload.
+Setting this value throttles the reloads to once per the number of seconds.
+The default is 10 seconds.
 
 .El
 .Ss Zone Options

@@ -135,6 +135,7 @@ return_answer:
 query_state_type
 answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 {
+	acl_options_t *acl;
 	/* Is it AXFR? */
 	switch (q->qtype) {
 	case TYPE_AXFR:
@@ -143,11 +144,17 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			zone_options_t* zone_opt;
 			zone_opt = zone_options_find(nsd->options, q->qname);
 			if(!zone_opt ||
-			   acl_check_incoming(zone_opt->provide_xfr, q)==-1) 
+			   acl_check_incoming(zone_opt->provide_xfr, q, &acl)==-1) 
 			{
+#ifndef NDEBUG
+				if(nsd_debug_level>=1)
+					log_msg(LOG_INFO, "axfr refused, %s", 
+						acl?"blocked":"no acl matches");
+#endif
 				RCODE_SET(q->packet, RCODE_REFUSE);
 				return QUERY_PROCESSED;
 			}
+			log_msg(LOG_INFO, "axfr admitted acl %s %s", acl->ip_address_spec, acl->key_name);
 			return query_axfr(nsd, q);
 		}
 #endif	/* DISABLE_AXFR */

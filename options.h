@@ -53,6 +53,7 @@ struct nsd_options {
 	const char* zonesdir;
 	const char* difffile;
 	const char* xfrdfile;
+	int xfrd_reload_timeout;
 	
 	region_type* region; 
 };
@@ -162,7 +163,9 @@ void key_options_tsig_add(nsd_options_t* opt);
 
 /* check acl list, acl number that matches if passed(0..), 
  * or failure (-1) if dropped */
-int acl_check_incoming(acl_options_t* acl, struct query* q);
+/* the reason why (the acl) is returned too (or NULL) */
+int acl_check_incoming(acl_options_t* acl, struct query* q, 
+	acl_options_t** reason);
 int acl_addr_matches(acl_options_t* acl, struct query* q);
 int acl_key_matches(acl_options_t* acl, struct query* q);
 int acl_addr_match_mask(uint32_t* a, uint32_t* b, uint32_t* mask, size_t sz);
