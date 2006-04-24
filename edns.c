@@ -72,7 +72,7 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet)
 
 	edns->position = buffer_position(packet);
 	
-	if (!buffer_available(packet, OPT_LEN + OPT_RDATA))
+	if (!buffer_available(packet, (OPT_LEN + OPT_RDATA)))
 		return 0;
 
 	opt_owner = buffer_read_u8(packet);
