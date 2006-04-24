@@ -635,7 +635,15 @@ C 4.5 NSEC processing.
   [OK**** This is not yet complete. We need to work out the algorithm for
   NSEC processing]
 
+C 4.6 Timeout management.
 
+  NSD manages timeouts on the SOAs for secondary zones according to RFC.
+  Timeouts are randomized, to avoid network bursts. The randomization
+  used is 90-100% of the original value - meaning that it can never be
+  delayed. This means zones cannot expire later than they should.
+  It does mean the average timeout becomes 95% of the original.
+  The random number calculation is primitive but fast. It is about spreading
+  load not about randomness per se (in the crypto sense).
 
 -------------------------------------------------------------------------------
 
