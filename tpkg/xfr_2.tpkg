@@ -3,24 +3,25 @@
 # To extract the files from this archive, save it to some FILE, remove
 # everything before the `!/bin/sh' line above, then type `sh FILE'.
 #
-# Made on 2006-04-24 15:32 CEST by <miekg@floep>.
-# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/xfr_1.dir'.
+# Made on 2006-04-24 15:30 CEST by <miekg@floep>.
+# Source directory was `/home/miekg/svn/nsd/trunk/tpkg/xfr_2.dir'.
 #
 # Existing files will *not* be overwritten unless `-c' is specified.
 #
 # This shar contains:
 # length mode       name
 # ------ ---------- ------------------------------------------
-#    155 -rw------- xfr_1.conf
-#    347 -rw------- xfr_1.dsc
-#    138 -rw------- xfr_1.help
-#     50 -rw------- xfr_1.known_good
-# 310588 -rw------- xfr_1.nsd-ldnsd
-#   5084 -rw------- xfr_1.nsd-ldnsd.c
-#    673 -rw------- xfr_1.post
-#    687 -rw------- xfr_1.pre
-#   1064 -rw------- xfr_1.test
-#    120 -rw------- xfr_1.zone
+#    155 -rw------- xfr_2.conf
+#     49 -rw------- xfr_2.db
+#    336 -rw------- xfr_2.dsc
+#    138 -rw------- xfr_2.help
+#      0 -rw------- xfr_2.known_good
+# 310588 -rwx------ xfr_2.nsd-ldnsd
+#   5084 -rw------- xfr_2.nsd-ldnsd.c
+#    673 -rw------- xfr_2.post
+#    687 -rw------- xfr_2.pre
+#   1061 -rw------- xfr_2.test
+#     49 -rw------- xfr_2.zone
 #
 save_IFS="${IFS}"
 IFS="${IFS}:"
@@ -70,135 +71,158 @@ else
 fi
 rm -f 200112312359.59 123123592001.59 123123592001.5 1231235901 $$.touch
 #
-if mkdir _sh15600; then
+if mkdir _sh15125; then
   $echo 'x -' 'creating lock directory'
 else
   $echo 'failed to create lock directory'
   exit 1
 fi
-# ============= xfr_1.conf ==============
-if test -f 'xfr_1.conf' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.conf' '(file already exists)'
+# ============= xfr_2.conf ==============
+if test -f 'xfr_2.conf' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.conf' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.conf' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.conf' &&
+  $echo 'x -' extracting 'xfr_2.conf' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_2.conf' &&
 zone:
 X        name: miek.nl         
-X        zonefile: xfr_1.zone
+X        zonefile: xfr_2.zone
 X        request-xfr: 127.0.0.1@RANDOM NOKEY
 X        allow-notify: 127.0.0.1@RANDOM NOKEY
 SHAR_EOF
-  (set 20 06 04 18 15 49 29 'xfr_1.conf'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.conf' ||
-  $echo 'restore of' 'xfr_1.conf' 'failed'
+  (set 20 06 04 24 15 23 33 'xfr_2.conf'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.conf' ||
+  $echo 'restore of' 'xfr_2.conf' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.conf:' 'MD5 check failed'
-6090ea7c448464aa24f95c006dc6de86  xfr_1.conf
+    || $echo 'xfr_2.conf:' 'MD5 check failed'
+9c843b2f1707e659fed904f973575dc4  xfr_2.conf
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.conf'`"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.conf'`"
     test 155 -eq "$shar_count" ||
-    $echo 'xfr_1.conf:' 'original size' '155,' 'current size' "$shar_count!"
+    $echo 'xfr_2.conf:' 'original size' '155,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.dsc ==============
-if test -f 'xfr_1.dsc' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.dsc' '(file already exists)'
+# ============= xfr_2.db ==============
+if test -f 'xfr_2.db' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.db' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.dsc' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.dsc' &&
-BaseName: xfr_1
+  $echo 'x -' extracting 'xfr_2.db' '(binary)'
+  sed 's/^X//' << 'SHAR_EOF' | uudecode &&
+begin 600 xfr_2.db
+M3E-$9&)6,#<``````````P$`!`)N;``)!&UI96L";FP``````!)>]U1.4T1D
+$8E8P-V)6
+`
+end
+SHAR_EOF
+  (set 20 06 04 24 15 25 51 'xfr_2.db'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.db' ||
+  $echo 'restore of' 'xfr_2.db' 'failed'
+  if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
+  && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
+    md5sum -c << SHAR_EOF >/dev/null 2>&1 \
+    || $echo 'xfr_2.db:' 'MD5 check failed'
+bf696570fe4f14fb2a10edaedced61f3  xfr_2.db
+SHAR_EOF
+  else
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.db'`"
+    test 49 -eq "$shar_count" ||
+    $echo 'xfr_2.db:' 'original size' '49,' 'current size' "$shar_count!"
+  fi
+fi
+# ============= xfr_2.dsc ==============
+if test -f 'xfr_2.dsc' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.dsc' '(file already exists)'
+else
+  $echo 'x -' extracting 'xfr_2.dsc' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_2.dsc' &&
+BaseName: xfr_2
 Version: 1.0
-Description: Test ixfr for NSD. Test 1, only SOA in the zone, 1 xfr message
-CreationDate: Tue Apr 18 14:01:04 CEST 2006
+Description: Test ixfr for NSD. Test 1, empty zone 1 xfr message
+CreationDate: Mon Apr 24 15:23:33 CEST 2006
 Maintainer: Miek Gieben
 Category: 
 Component:
 CmdDepends: 
 Depends: 
-Help: xfr_1.help
-Pre: xfr_1.pre
-Post: xfr_1.post
-Test: xfr_1.test
-AuxFiles: xfr_1.known_good, xfr_1.nsd-ldnsd.c
+Help: xfr_2.help
+Pre: xfr_2.pre
+Post: xfr_2.post
+Test: xfr_2.test
+AuxFiles: xfr_2.known_good, xfr_2.nsd-ldnsd.c
 Passed:
 Failure:
 SHAR_EOF
-  (set 20 06 04 24 15 24 22 'xfr_1.dsc'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.dsc' ||
-  $echo 'restore of' 'xfr_1.dsc' 'failed'
+  (set 20 06 04 24 15 23 58 'xfr_2.dsc'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.dsc' ||
+  $echo 'restore of' 'xfr_2.dsc' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.dsc:' 'MD5 check failed'
-a46327e24b59722782b5216c1ac37972  xfr_1.dsc
+    || $echo 'xfr_2.dsc:' 'MD5 check failed'
+fd747d4a3fbf5d3c2cb92851d2a6e317  xfr_2.dsc
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.dsc'`"
-    test 347 -eq "$shar_count" ||
-    $echo 'xfr_1.dsc:' 'original size' '347,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.dsc'`"
+    test 336 -eq "$shar_count" ||
+    $echo 'xfr_2.dsc:' 'original size' '336,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.help ==============
-if test -f 'xfr_1.help' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.help' '(file already exists)'
+# ============= xfr_2.help ==============
+if test -f 'xfr_2.help' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.help' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.help' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.help' &&
+  $echo 'x -' extracting 'xfr_2.help' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_2.help' &&
 No arguments are used.
 The test is slightly complicated, because we need
 to patch the config file for NSD to insert the port
 we listen on
 SHAR_EOF
-  (set 20 06 04 18 15 49 29 'xfr_1.help'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.help' ||
-  $echo 'restore of' 'xfr_1.help' 'failed'
+  (set 20 06 04 24 15 23 33 'xfr_2.help'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.help' ||
+  $echo 'restore of' 'xfr_2.help' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.help:' 'MD5 check failed'
-e31618dfc776e8fc66910aff71e4f34b  xfr_1.help
+    || $echo 'xfr_2.help:' 'MD5 check failed'
+e31618dfc776e8fc66910aff71e4f34b  xfr_2.help
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.help'`"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.help'`"
     test 138 -eq "$shar_count" ||
-    $echo 'xfr_1.help:' 'original size' '138,' 'current size' "$shar_count!"
+    $echo 'xfr_2.help:' 'original size' '138,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.known_good ==============
-if test -f 'xfr_1.known_good' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.known_good' '(file already exists)'
+# ============= xfr_2.known_good ==============
+if test -f 'xfr_2.known_good' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.known_good' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.known_good' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.known_good' &&
-X
-;; ANSWER SECTION:
-miek.nl.		3600	IN	A	127.0.0.1
-SHAR_EOF
-  (set 20 06 04 18 15 49 29 'xfr_1.known_good'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.known_good' ||
-  $echo 'restore of' 'xfr_1.known_good' 'failed'
+  $echo 'x -' extracting 'xfr_2.known_good' '(empty)'
+  > 'xfr_2.known_good' &&
+  (set 20 06 04 24 15 27 52 'xfr_2.known_good'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.known_good' ||
+  $echo 'restore of' 'xfr_2.known_good' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.known_good:' 'MD5 check failed'
-4608e4045335e417a49adb326711f818  xfr_1.known_good
+    || $echo 'xfr_2.known_good:' 'MD5 check failed'
+d41d8cd98f00b204e9800998ecf8427e  xfr_2.known_good
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.known_good'`"
-    test 50 -eq "$shar_count" ||
-    $echo 'xfr_1.known_good:' 'original size' '50,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.known_good'`"
+    test 0 -eq "$shar_count" ||
+    $echo 'xfr_2.known_good:' 'original size' '0,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.nsd-ldnsd ==============
-if test -f 'xfr_1.nsd-ldnsd' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.nsd-ldnsd' '(file already exists)'
+# ============= xfr_2.nsd-ldnsd ==============
+if test -f 'xfr_2.nsd-ldnsd' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.nsd-ldnsd' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.nsd-ldnsd' '(binary)'
+  $echo 'x -' extracting 'xfr_2.nsd-ldnsd' '(binary)'
   sed 's/^X//' << 'SHAR_EOF' | uudecode &&
-begin 600 xfr_1.nsd-ldnsd
+begin 600 xfr_2.nsd-ldnsd
 M?T5,1@$!`0````````````(``P`!````0)$$"#0```#(6`0``````#0`(``'
 M`"@`)0`B``8````T````-(`$"#2`!`C@````X`````4````$`````P```!0!
 M```4@00(%($$"!,````3````!`````$````!``````````"`!`@`@`0(<"D!
@@ -7104,27 +7128,27 @@ K<&4`;&1N<U]R9&9?<VEZ90!L9&YS7W!K=&AE861E<C)B=69F97)?<W1R`'1Y
 `
 end
 SHAR_EOF
-  (set 20 06 04 18 15 49 49 'xfr_1.nsd-ldnsd'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.nsd-ldnsd' ||
-  $echo 'restore of' 'xfr_1.nsd-ldnsd' 'failed'
+  (set 20 06 04 24 15 23 33 'xfr_2.nsd-ldnsd'; eval "$shar_touch") &&
+  chmod 0700 'xfr_2.nsd-ldnsd' ||
+  $echo 'restore of' 'xfr_2.nsd-ldnsd' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.nsd-ldnsd:' 'MD5 check failed'
-95818efcf8691ef4d2a65fbf18eafb06  xfr_1.nsd-ldnsd
+    || $echo 'xfr_2.nsd-ldnsd:' 'MD5 check failed'
+95818efcf8691ef4d2a65fbf18eafb06  xfr_2.nsd-ldnsd
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.nsd-ldnsd'`"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.nsd-ldnsd'`"
     test 310588 -eq "$shar_count" ||
-    $echo 'xfr_1.nsd-ldnsd:' 'original size' '310588,' 'current size' "$shar_count!"
+    $echo 'xfr_2.nsd-ldnsd:' 'original size' '310588,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.nsd-ldnsd.c ==============
-if test -f 'xfr_1.nsd-ldnsd.c' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.nsd-ldnsd.c' '(file already exists)'
+# ============= xfr_2.nsd-ldnsd.c ==============
+if test -f 'xfr_2.nsd-ldnsd.c' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.nsd-ldnsd.c' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.nsd-ldnsd.c' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.nsd-ldnsd.c' &&
+  $echo 'x -' extracting 'xfr_2.nsd-ldnsd.c' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_2.nsd-ldnsd.c' &&
 /*
 X * nsd-ldnsd. Light-weight DNS daemon, which sends IXFRs
 X *
@@ -7322,28 +7346,28 @@ X	}
 X        return 0;
 }
 SHAR_EOF
-  (set 20 06 04 18 16 20 31 'xfr_1.nsd-ldnsd.c'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.nsd-ldnsd.c' ||
-  $echo 'restore of' 'xfr_1.nsd-ldnsd.c' 'failed'
+  (set 20 06 04 24 15 23 33 'xfr_2.nsd-ldnsd.c'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.nsd-ldnsd.c' ||
+  $echo 'restore of' 'xfr_2.nsd-ldnsd.c' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.nsd-ldnsd.c:' 'MD5 check failed'
-fb5a5ab1a223f80164c0432bca22ac36  xfr_1.nsd-ldnsd.c
+    || $echo 'xfr_2.nsd-ldnsd.c:' 'MD5 check failed'
+fb5a5ab1a223f80164c0432bca22ac36  xfr_2.nsd-ldnsd.c
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.nsd-ldnsd.c'`"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.nsd-ldnsd.c'`"
     test 5084 -eq "$shar_count" ||
-    $echo 'xfr_1.nsd-ldnsd.c:' 'original size' '5084,' 'current size' "$shar_count!"
+    $echo 'xfr_2.nsd-ldnsd.c:' 'original size' '5084,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.post ==============
-if test -f 'xfr_1.post' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.post' '(file already exists)'
+# ============= xfr_2.post ==============
+if test -f 'xfr_2.post' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.post' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.post' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.post' &&
-# #-- xfr_1.post --#
+  $echo 'x -' extracting 'xfr_2.post' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_2.post' &&
+# #-- xfr_2.post --#
 # source the master var file when it's there
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # source the test var file when it's there
@@ -7353,7 +7377,7 @@ PATH=$PATH:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:.
 #
 X
 # again pretty drastic
-killall xfr_1.nsd-ldnsd
+killall xfr_2.nsd-ldnsd
 X
 # do your teardown here
 if [ -z $TPKG_NSD_PID ]; then
@@ -7369,28 +7393,28 @@ sleep 1 # should be really dead now - just to be sure kill it again
 kill $NSD_PID 2>/dev/null
 Xexit 0
 SHAR_EOF
-  (set 20 06 04 18 15 49 30 'xfr_1.post'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.post' ||
-  $echo 'restore of' 'xfr_1.post' 'failed'
+  (set 20 06 04 24 15 23 33 'xfr_2.post'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.post' ||
+  $echo 'restore of' 'xfr_2.post' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.post:' 'MD5 check failed'
-6ff422796bf4d2852a89c16f0abe232e  xfr_1.post
+    || $echo 'xfr_2.post:' 'MD5 check failed'
+bf7744d241728e0e8932dccbbbaca040  xfr_2.post
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.post'`"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.post'`"
     test 673 -eq "$shar_count" ||
-    $echo 'xfr_1.post:' 'original size' '673,' 'current size' "$shar_count!"
+    $echo 'xfr_2.post:' 'original size' '673,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.pre ==============
-if test -f 'xfr_1.pre' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.pre' '(file already exists)'
+# ============= xfr_2.pre ==============
+if test -f 'xfr_2.pre' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.pre' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.pre' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.pre' &&
-# #-- xfr_1.pre--#
+  $echo 'x -' extracting 'xfr_2.pre' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_2.pre' &&
+# #-- xfr_2.pre--#
 # source the master var file when it's there
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # use .tpkg.var.test for in test variable passing
@@ -7403,40 +7427,40 @@ RAND=$(($RANDOM % 300))
 LDNS_PORT=$((5353 + $RAND))
 X
 # start nsd-ldnsd
-chmod +x ./xfr_1.nsd-ldnsd
-X./xfr_1.nsd-ldnsd -1 $LDNS_PORT miek.nl 12 &
+chmod +x ./xfr_2.nsd-ldnsd
+X./xfr_2.nsd-ldnsd -1 $LDNS_PORT miek.nl 12 &
 sleep 1
 X
 # share the vars
 echo "export LDNS_PORT=$LDNS_PORT" >> .tpkg.var.test
 X
-cat xfr_1.conf | sed "s/RANDOM/$LDNS_PORT/g" > nsd_1.conf
+cat xfr_2.conf | sed "s/RANDOM/$LDNS_PORT/g" > nsd_1.conf
 if [[ $? -ne 0 ]]; then
 X        exit 1
 fi
 SHAR_EOF
-  (set 20 06 04 20 11 33 54 'xfr_1.pre'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.pre' ||
-  $echo 'restore of' 'xfr_1.pre' 'failed'
+  (set 20 06 04 24 15 23 33 'xfr_2.pre'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.pre' ||
+  $echo 'restore of' 'xfr_2.pre' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.pre:' 'MD5 check failed'
-79146c2686128dc0f4a5d2ade59eeb6e  xfr_1.pre
+    || $echo 'xfr_2.pre:' 'MD5 check failed'
+3670391c225eff8d23ede626555b35fa  xfr_2.pre
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.pre'`"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.pre'`"
     test 687 -eq "$shar_count" ||
-    $echo 'xfr_1.pre:' 'original size' '687,' 'current size' "$shar_count!"
+    $echo 'xfr_2.pre:' 'original size' '687,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.test ==============
-if test -f 'xfr_1.test' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.test' '(file already exists)'
+# ============= xfr_2.test ==============
+if test -f 'xfr_2.test' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.test' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.test' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.test' &&
-# #-- xfr_1.test --#
+  $echo 'x -' extracting 'xfr_2.test' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_2.test' &&
+# #-- xfr_2.test --#
 # source the master var file when it's there
 [ -f ../.tpkg.var.master ] && source ../.tpkg.var.master
 # use .tpkg.var.test for in test variable passing
@@ -7456,63 +7480,62 @@ TPKG_NSD="$PRE/nsd"
 echo "export TPKG_PORT=$TPKG_PORT" >> .tpkg.var.test
 echo "export TPKG_NSD_PID=$TPKG_NSD_PID" >> .tpkg.var.test
 X
-$TPKG_ZONEC -f xfr_1.db -c nsd_1.conf && \
-$TPKG_NSD -c nsd_1.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f xfr_1.db
+$TPKG_ZONEC -f xfr_2.db -c nsd_1.conf && \
+$TPKG_NSD -c nsd_1.conf -u $LOGNAME -p $TPKG_PORT -P $TPKG_NSD_PID -f xfr_2.db
 X
 sleep 13
 X
 # now query for the update I sent and compare that with a known good one
 echo $TPKG_PORT
 dig @127.0.0.1 -p $TPKG_PORT a miek.nl 
-dig @127.0.0.1 -p $TPKG_PORT a miek.nl |grep -1 ";; ANSWER" > xfr_1.current
+dig @127.0.0.1 -p $TPKG_PORT a miek.nl |grep ";; ANSWER" > xfr_2.current
 X
-diff -u xfr_1.current xfr_1.known_good
+diff -u xfr_2.current xfr_2.known_good
 if [[ $? -ne 0 ]]; then
 X        exit 1
 else
 X        exit 0
 fi
 SHAR_EOF
-  (set 20 06 04 24 15 32 00 'xfr_1.test'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.test' ||
-  $echo 'restore of' 'xfr_1.test' 'failed'
+  (set 20 06 04 24 15 28 07 'xfr_2.test'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.test' ||
+  $echo 'restore of' 'xfr_2.test' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.test:' 'MD5 check failed'
-86f30cc8d75f4dbf4c7c955ae0db3361  xfr_1.test
+    || $echo 'xfr_2.test:' 'MD5 check failed'
+396c06c6c301c64b9159edbedffc241e  xfr_2.test
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.test'`"
-    test 1064 -eq "$shar_count" ||
-    $echo 'xfr_1.test:' 'original size' '1064,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.test'`"
+    test 1061 -eq "$shar_count" ||
+    $echo 'xfr_2.test:' 'original size' '1061,' 'current size' "$shar_count!"
   fi
 fi
-# ============= xfr_1.zone ==============
-if test -f 'xfr_1.zone' && test "$first_param" != -c; then
-  $echo 'x -' SKIPPING 'xfr_1.zone' '(file already exists)'
+# ============= xfr_2.zone ==============
+if test -f 'xfr_2.zone' && test "$first_param" != -c; then
+  $echo 'x -' SKIPPING 'xfr_2.zone' '(file already exists)'
 else
-  $echo 'x -' extracting 'xfr_1.zone' '(text)'
-  sed 's/^X//' << 'SHAR_EOF' > 'xfr_1.zone' &&
+  $echo 'x -' extracting 'xfr_2.zone' '(text)'
+  sed 's/^X//' << 'SHAR_EOF' > 'xfr_2.zone' &&
 ; nothing fancy here
 $TTL    4D
 $ORIGIN miek.nl.
-@       IN SOA miekg.elektron.atoom.net elektron.atoom.net 10 0 0 0 0 
 SHAR_EOF
-  (set 20 06 04 18 15 49 30 'xfr_1.zone'; eval "$shar_touch") &&
-  chmod 0600 'xfr_1.zone' ||
-  $echo 'restore of' 'xfr_1.zone' 'failed'
+  (set 20 06 04 24 15 24 45 'xfr_2.zone'; eval "$shar_touch") &&
+  chmod 0600 'xfr_2.zone' ||
+  $echo 'restore of' 'xfr_2.zone' 'failed'
   if ( md5sum --help 2>&1 | grep 'sage: md5sum \[' ) >/dev/null 2>&1 \
   && ( md5sum --version 2>&1 | grep -v 'textutils 1.12' ) >/dev/null; then
     md5sum -c << SHAR_EOF >/dev/null 2>&1 \
-    || $echo 'xfr_1.zone:' 'MD5 check failed'
-924baeaca20e2229d57f6e1158cbdf87  xfr_1.zone
+    || $echo 'xfr_2.zone:' 'MD5 check failed'
+1fcba24d28a6127461c3ba6f170546c7  xfr_2.zone
 SHAR_EOF
   else
-    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_1.zone'`"
-    test 120 -eq "$shar_count" ||
-    $echo 'xfr_1.zone:' 'original size' '120,' 'current size' "$shar_count!"
+    shar_count="`LC_ALL= LC_CTYPE= LANG= wc -c < 'xfr_2.zone'`"
+    test 49 -eq "$shar_count" ||
+    $echo 'xfr_2.zone:' 'original size' '49,' 'current size' "$shar_count!"
   fi
 fi
-rm -fr _sh15600
+rm -fr _sh15125
 exit 0
