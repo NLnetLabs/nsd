@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-2.3.4 (TO BE RELEASED)
+2.3.4
 =============
 BUG FIXES:
         - Unknown type codes for type code numbers > 48 and < 97 work again.       
