@@ -225,7 +225,7 @@ static void prehash_ds(namedb_type* db, zone_type* zone,
 
 	/*
 	printf("prehash_ds for %s ", dname_to_string(domain_dname(domain),0));
-	printf("found prehash %s\n", dname_to_string(domain_dname(result),0));
+	printf("found prehash %s %d\n", dname_to_string(domain_dname(result),0), exact);
 	*/
 }
 
@@ -270,8 +270,10 @@ static void prehash_zone(struct namedb* db, struct zone* zone)
 			region_free_all(temp_region);
 		}
 		/* prehash the DS (parent zone) */
-		/* only if there is a DS (so z==parent side of zone cut) */
-		if(domain_find_rrset(walk, zone, TYPE_DS))
+		/* if there is DS or NS (so z==parent side of zone cut) */
+		if(domain_find_rrset(walk, zone, TYPE_DS) ||
+			(domain_find_rrset(walk, zone, TYPE_NS) &&
+			 walk != zone->apex))
 		{
 			assert(walk != zone->apex /* DS must be above zone cut */);
 			prehash_ds(db, zone, walk, temp_region);	
@@ -356,6 +358,9 @@ void nsec3_add_ds_proof(struct query *query, struct answer *answer,
 	struct domain *domain)
 {
 	assert(domain != query->zone->apex);
+	/*
+	printf("Add ds proof for %s\n", dname_to_string(domain_dname(domain),0));
+	*/
 	if(domain->nsec3_ds_parent_exact) {
 		/* use NSEC3 record from above the zone cut. */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
@@ -423,15 +428,19 @@ void nsec3_answer_delegation(struct query *query, struct answer *answer)
 
 static int domain_has_only_NSEC3(struct domain* domain, struct zone* zone)
 {
+	/* check for only NSEC3/RRSIG */
 	rrset_type* rrset = domain->rrsets;
-	int nsec3_seen = 0;
+	int nsec3_seen = 0, rrsig_seen = 0;
 	while(rrset)
 	{
 		if(rrset->zone == zone)
 		{
-			if(rrset->rrs[0].type != TYPE_NSEC3)
+			if(rrset->rrs[0].type == TYPE_NSEC3)
+				nsec3_seen = 1;
+			else if(rrset->rrs[0].type == TYPE_RRSIG)
+				rrsig_seen = 1;
+			else
 				return 0;
-			nsec3_seen = 1;
 		}
 		rrset = rrset->next;
 	}
@@ -447,8 +456,23 @@ void nsec3_answer_authoritative(struct domain** match, struct query *query,
 	if(query->qtype != TYPE_NSEC3 && *match && 
 		domain_has_only_NSEC3(*match, query->zone))
 	{
+		domain_type* apex_wcard;
 		/* act as if the NSEC3 domain did not exist, name error */
 		*match = 0;
+		/* all nsec3s are directly below the apex, that is closest encloser */
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, query->zone->apex->nsec3_exact);
+		/* disprove the nsec3 record. */
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, closest_encloser->nsec3_cover);
+		/* disprove a wildcard */
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, query->zone->apex->
+			nsec3_wcard_child_cover);
+		apex_wcard = query->zone->apex->wildcard_child_closest_match;
+		if (apex_wcard==apex_wcard->wildcard_child_closest_match
+			&& label_is_wildcard(dname_name(domain_dname(apex_wcard)))) {
+			/* oops, wildcard exists below the domain, cannot disprove it */
+			RCODE_SET(query->packet, RCODE_SERVFAIL);
+		}
+		return;
 	}
 	if(!*match) {
 		/* name error */

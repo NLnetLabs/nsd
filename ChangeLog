@@ -1,3 +1,14 @@
+25 Apr 2006: Wouter
+	- Tests on NSEC3 code. Fixed that the unsecure delegations also
+	  have _ds_ parent nsec3 prehashes, so that they get proper NSEC3s.
+	  NSD will serve NSEC3s to prove 'opt-out' also if the opt-out bit
+	  is (erroneously) not set.
+	- For the 05pre2 draft section 5.4.8.1. QTYPE is NSEC3, only NSEC3
+	  RRsets at name. Fixed that RRSIGs present do not matter.
+	  And also the closest encloser proof in that case fixed.
+	  If wildcard exists below zone apex servfails (cannot disprove
+	  it and NSD cannot instantiate the wildcard at that point).
+
 24 Apr 2006: Miek
    Miek:
 	- forward port nsid (disabled by default)
