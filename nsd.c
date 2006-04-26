@@ -570,16 +570,15 @@ main (int argc, char *argv[])
 		error("server identity too long (%u characters)",
 		      (unsigned) strlen(nsd.identity));
 	}
+#ifdef NSID
 	if (nsd.nsid_len > UCHAR_MAX) {
 		error("NSID to long (%u characters)", nsd.nsid_len);
 	}
-
-#ifdef NSID
 	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);
  #if defined(INET6)
 	edns_init_nsid(&nsd.edns_ipv6, nsd.nsid_len);
- #endif
-#endif
+ #endif /* INET6 */
+#endif /* NSID */
 	
 	/* Number of child servers to fork.  */
 	nsd.children = (struct nsd_child *) region_alloc(
