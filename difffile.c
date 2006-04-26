@@ -665,6 +665,26 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
  * so when you get a commit for a zone, get zone obj, find sequence,
  * then check if you have all sequence numbers available. Apply all packets.
  */
+struct diff_read_data {
+	/* rbtree of struct diff_zone*/
+	rbtree_t* zones;
+	/* region for allocation */
+	region_type* region;
+};
+struct diff_zone {
+	/* key is dname of zone */
+	rbnode_t node;
+	/* rbtree of struct diff_xfrpart */
+	rbtree_t* parts;
+};
+struct diff_xfrpart {
+	/* key is sequence number */
+	rbnode_t node;
+	uint32_t seq_nr;
+	uint32_t new_serial;
+	uint16_t id;
+	fpos_t file_pos;
+};
 static fpos_t last_ixfr_pos;
 static int saw_ixfr = 0;
 
