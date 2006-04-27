@@ -144,8 +144,10 @@ print_acl(const char* varname, acl_options_t* acl)
 void
 config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 {
+#if 0
 	ip_address_option_t* ip;
 	key_options_t* key;
+#endif
 	zone_options_t* zone;
 
 	if (!o) {
