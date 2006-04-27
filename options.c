@@ -43,7 +43,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->tcp_count = 10;
 	opt->pidfile = PIDFILE;
 	opt->port = UDP_PORT;
-	opt->port = TCP_PORT;
+/* depricated?	opt->port = TCP_PORT; */
 	opt->statistics = 0;
 	opt->chroot = 0;
 	opt->username = USER;

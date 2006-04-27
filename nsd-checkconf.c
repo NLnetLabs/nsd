@@ -15,6 +15,52 @@
 #include "util.h"
 #include "dname.h"
 
+#define ZONE_GET_ACL(NAME, VAR) 		\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+		quote_acl((zone->NAME)); 		\
+		fputs("", stdout); 		\
+		return; 			\
+	}
+
+#define ZONE_GET_STR(NAME, VAR) 		\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+		quote(zone->NAME); 		\
+		fputs("", stdout); 		\
+		return; 			\
+	}
+
+#define ZONE_GET_BINARY(NAME, VAR) 			\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
+		printf("%s\n", zone->NAME?"yes":"no"); 	\
+	}
+
+#define SERV_GET_BINARY(NAME, VAR) 			\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
+		printf("%s\n", opt->NAME?"yes":"no"); 	\
+	}
+
+static char buf[BUFSIZ];
+
+static char *
+underscore(const char *s) {
+	char *j = (char*)s;
+	size_t i = 0;
+
+	while(j) {
+		if (*j == '-') {
+			buf[i++] = '_';
+		} else {
+			buf[i++] = *j;
+		}
+		j++;
+		if (i > BUFSIZ) {
+			return NULL;
+		}
+	}
+	buf[i] = '\0';
+	return buf;
+}
+
 static void
 usage(void)
 {
@@ -112,36 +158,17 @@ config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 		RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 		{
 			if (strcasecmp(z, zone->name) == 0) {
-				/* -z matches */
-
-				if (strcasecmp("zonefile", o) == 0) {
-					quote(zone->zonefile);
-					fputs("" ,stdout);
-					return;
-				}
-				if (strcasecmp("request_xfr", o) == 0) {
-					quote_acl(zone->request_xfr);
-					fputs("" ,stdout);
-					return;
-				}
-				if (strcasecmp("allow-notify", o) == 0) {
-					quote_acl(zone->request_xfr);
-					fputs("" ,stdout);
-					return;
-				}
-
+				/* -z matches, return are in the defines */
+				ZONE_GET_STR(zonefile, o);
+				ZONE_GET_ACL(request_xfr, o);
+				ZONE_GET_ACL(allow_notify, o);
 			}
 		}
 	} else {
 		/* look in the server section */
-		if (strcasecmp("ip4-only", o) == 0) {
-			printf("%s\n", opt->ip4_only?"yes":"no");
-			return;
-		}
+		SERV_GET_BINARY(ip4_only, o);
 		/* and more */	
-
 		/* ... */
-
 	}
 }
 
@@ -351,10 +378,10 @@ main(int argc, char* argv[])
 	options = nsd_options_create(region_create(xalloc, free));
 	if (!parse_options_file(options, configfile) ||
 	   !additional_checks(options, configfile)) {
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	if (conf_opt) {
-		config_print_zone(options, conf_opt, conf_zone);
+		config_print_zone(options, underscore(conf_opt), conf_zone);
 	} else {
 		printf("# Read file %s: %d zones, %d keys.\n", configfile, 
 				(int)nsd_options_num_zones(options), 
