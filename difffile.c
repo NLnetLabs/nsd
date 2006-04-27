@@ -25,6 +25,13 @@ write_32(FILE *out, uint32_t val)
 }
 
 static int 
+write_16(FILE *out, uint16_t val)
+{
+	val = htons(val);
+	return write_data(out, &val, sizeof(val));
+}
+
+static int 
 write_8(FILE *out, uint8_t val)
 {
 	return write_data(out, &val, sizeof(val));
@@ -40,10 +47,14 @@ write_str(FILE *out, const char* str)
 }
 
 void 
-diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt)
+diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id, 
+	uint32_t seq_nr, uint8_t* data, size_t len, nsd_options_t* opt)
 {
 	const char* filename = DIFFFILE;
 	FILE *df;
+	uint32_t file_len = sizeof(uint32_t) + strlen(zone) + 
+		sizeof(new_serial) + sizeof(id) + sizeof(seq_nr) + len;
+
 	if(opt->difffile) 
 		filename = opt->difffile;
 
@@ -55,9 +66,13 @@ diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt)
 	}
 
 	if(!write_32(df, DIFF_PART_IXFR) ||
-		!write_32(df, len) ||
+		!write_32(df, file_len) ||
+		!write_str(df, zone) ||
+		!write_32(df, new_serial) ||
+		!write_16(df, id) ||
+		!write_32(df, seq_nr) ||
 		!write_data(df, data, len) ||
-		!write_32(df, len)) 
+		!write_32(df, file_len)) 
 	{
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
@@ -66,8 +81,10 @@ diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt)
 }
 
 void 
-diff_write_commit(const char* zone, uint32_t new_serial,
-        uint8_t commit, const char* log_str, nsd_options_t* opt)
+diff_write_commit(const char* zone, uint32_t old_serial,
+	uint32_t new_serial, uint16_t id, uint32_t num_parts,
+	uint8_t commit, const char* log_str, 
+	nsd_options_t* opt)
 {
 	const char* filename = DIFFFILE;
 	FILE *df;
@@ -88,7 +105,10 @@ diff_write_commit(const char* zone, uint32_t new_serial,
 	if(!write_32(df, DIFF_PART_SURE) ||
 		!write_32(df, len) ||
 		!write_str(df, zone) ||
+		!write_32(df, old_serial) ||
 		!write_32(df, new_serial) ||
+		!write_16(df, id) ||
+		!write_32(df, num_parts) ||
 		!write_8(df, commit) ||
 		!write_str(df, log_str) ||
 		!write_32(df, len)) 
@@ -145,6 +165,17 @@ read_32(FILE *in, uint32_t* result)
 {
         if (fread(result, sizeof(*result), 1, in) == 1) {
                 *result = ntohl(*result);
+                return 1;
+        } else {
+                return 0;
+        }
+}
+
+static int 
+read_16(FILE *in, uint16_t* result)
+{
+        if (fread(result, sizeof(*result), 1, in) == 1) {
+                *result = ntohs(*result);
                 return 1;
         } else {
                 return 0;
@@ -419,7 +450,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
 		/* create the zone and domain of apex (zone has config options) */
 		domain = domain_table_insert(db->domains, zone_name);
 	} else {
-		zone = namedb_find_zone(db, domain);
+		zone = domain_find_zone(domain);
 		/* check apex to make sure we don't find a parent zone */
 		if(zone && zone->apex == domain)
 			return zone;
@@ -478,11 +509,12 @@ delete_zone_rrs(zone_type* zone)
 
 static int 
 apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos, 
-	const char* zone, uint32_t serialno, nsd_options_t* opt)
+	const char* zone, uint32_t serialno, nsd_options_t* opt,
+	uint16_t id, uint32_t seq_nr)
 {
 	int delete_mode;
 	int is_axfr;
-	uint32_t msglen;
+	uint32_t filelen, msglen;
 	int qcount, ancount, rrcount;
 	buffer_type* packet;
 	region_type* region;
@@ -490,6 +522,9 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 	uint16_t rrlen;
 	const dname_type *dname_zone, *dname;
 	zone_type* zone_db;
+	char file_zone_name[2560];
+	uint32_t file_serial, file_seq_nr;
+	uint16_t file_id;
 
 	if(fsetpos(in, startpos) == -1) {
 		log_msg(LOG_INFO, "could not fsetpos: %s.", strerror(errno));
@@ -497,13 +532,13 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 	}
 	/* read ixfr packet RRs and apply to in memory db */
 
-	if(!read_32(in, &msglen)) {
+	if(!read_32(in, &filelen)) {
 		log_msg(LOG_ERR, "could not read len");
 		return 0;
 	}
 
 	/* read header */
-	if(msglen < QHEADERSZ) {
+	if(filelen < QHEADERSZ + sizeof(uint32_t)*3 + sizeof(uint16_t)) {
 		log_msg(LOG_ERR, "msg too short");
 		return 0;
 	}
@@ -513,6 +548,23 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 		log_msg(LOG_ERR, "out of memory");
 		return 0;
 	}
+
+	if(!read_str(in, file_zone_name, sizeof(file_zone_name)) ||
+		!read_32(in, &file_serial) ||
+		!read_16(in, &file_id) ||
+		!read_32(in, &file_seq_nr))
+	{
+		log_msg(LOG_ERR, "could not part data");
+		return 0;
+	}
+	
+	if(strcmp(file_zone_name, zone) != 0 || serialno != file_serial ||
+		id != file_id || seq_nr != file_seq_nr) {
+		log_msg(LOG_ERR, "internal error: reading part with changed id");
+		return 0;
+	}
+	msglen = filelen - sizeof(uint32_t)*3 - sizeof(uint16_t)
+		- strlen(file_zone_name);
 	packet = buffer_create(region, QIOBUFSZ);
 	dname_zone = dname_parse(region, zone);
 	zone_db = find_zone(db, dname_zone, opt);
@@ -657,6 +709,31 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 	return 1;
 }
 
+static int 
+check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
+{
+	/* see if serial OK with in-memory serial */
+	domain_type* domain;
+	region_type* region = region_create(xalloc, free);
+	const dname_type* zone_name = dname_parse(region, zone_str);
+	zone_type* zone = 0;
+	domain = domain_table_find(db->domains, zone_name);
+	if(domain)
+		zone = domain_find_zone(domain);
+	if(zone && zone->apex == domain && zone->soa_rrset && old_serial)
+	{
+		uint32_t memserial;
+		memcpy(&memserial, rdata_atom_data(zone->soa_rrset->rrs[0].rdatas[2]), 
+			sizeof(uint32_t));
+		if(old_serial != ntohl(memserial)) {
+			region_destroy(region);
+			return 1;
+		}
+	}
+	region_destroy(region);
+	return 0;
+}
+
 /* for multiple tcp packets use a data structure that has
  * a rbtree (zone_names) with for each zone:
  * 	has a rbtree by sequence number
@@ -693,7 +770,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
 {
 	char zone_buf[512];
 	char log_buf[5120];
-	uint32_t serial;
+	uint32_t old_serial, new_serial, num_parts;
+	uint16_t id;
 	uint8_t committed;
 	fpos_t resume_pos;
 	if(!saw_ixfr) {
@@ -702,7 +780,10 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
 	}
 	/* read zone name and serial */
 	if(!read_str(in, zone_buf, sizeof(zone_buf)) ||
-		!read_32(in, &serial) ||
+		!read_32(in, &old_serial) ||
+		!read_32(in, &new_serial) ||
+		!read_16(in, &id) ||
+		!read_32(in, &num_parts) ||
 		!read_8(in, &committed) ||
 		!read_str(in, log_buf, sizeof(log_buf)) )
 	{
@@ -711,14 +792,21 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
 	}
 
 	/* read in completely */
+	if(committed && check_for_bad_serial(db, zone_buf, old_serial)) {
+		log_msg(LOG_ERR, "diff file commit with bad serial");
+		return 1;
+	}
+
 	if(fgetpos(in, &resume_pos) == -1) {
 		log_msg(LOG_INFO, "could not fgetpos: %s.", strerror(errno));
 		return 0;
 	}
 	if(committed)
 	{
+		uint32_t seq_nr = 0;
 		log_msg(LOG_INFO, "processing xfr: %s", log_buf);
-		if(!apply_ixfr(db, in, &last_ixfr_pos, zone_buf, serial, opt)) {
+		if(!apply_ixfr(db, in, &last_ixfr_pos, zone_buf, new_serial, opt,
+			id, seq_nr)) {
 			log_msg(LOG_ERR, "bad ixfr packet");
 		}
 	}

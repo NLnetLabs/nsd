@@ -1,9 +1,11 @@
 27 Apr 2006: 
    Wouter:
 	- nsec3 review fixes.
+	- diff file format expanded for >64kb transfer support.
    Jelte:
-   	- small non-null options check in nsd.c.
-
+	- small non-null options check in nsd.c.
+   Miek:
+	- updated nsd-checkconf for zone parse shell script support.
 
 25 Apr 2006: Wouter
 	- Tests on NSEC3 code. Fixed that the unsecure delegations also

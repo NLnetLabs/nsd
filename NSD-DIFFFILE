@@ -23,6 +23,8 @@ TYPE="SURE"
 contents is:
 a) reference to the IXFR packet that is OKed.
 	- str: zone name, 
+	- 32 bit old serial number. (to check that db-serial is unchanged).
+	  or 0 if no serial available yet.
 	- 32 bit new serial number, 
 	- 16 bit ID number (query_id)
 	( note that due to having one TCP per zone, and checking

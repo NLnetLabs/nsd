@@ -1304,6 +1304,8 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	size_t qdcount = QDCOUNT(packet);
 	size_t ancount = ANCOUNT(packet);
 	xfrd_soa_t soa;
+	uint32_t num_parts = 1;
+	uint32_t seq_nr = 0;
 
 	/* has to be axfr / ixfr reply */
 	if(!buffer_available(packet, QHEADERSZ))
@@ -1400,8 +1402,8 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* TODO check TSIG on it; drop if bad. */
 
 	/* dump reply on disk to diff file */
-	diff_write_packet(buffer_begin(packet), buffer_limit(packet), 
-		xfrd->nsd->options);
+	diff_write_packet(zone->apex_str, ntohl(soa.serial), zone->query_id, seq_nr,
+		buffer_begin(packet), buffer_limit(packet), xfrd->nsd->options);
 	log_msg(LOG_INFO, "xfrd: zone %s written %d received XFR to serial %d from %s to disk",
 		zone->apex_str, (int)buffer_limit(packet), (int)ntohl(soa.serial), 
 		zone->master->ip_address_spec);
@@ -1410,7 +1412,9 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	buffer_printf(packet, "xfrd: zone %s received update to serial %d at time %d from %s",
 		zone->apex_str, (int)ntohl(soa.serial), (int)xfrd_time(), zone->master->ip_address_spec);
 	buffer_flip(packet);
-	diff_write_commit(zone->apex_str, ntohl(soa.serial), 1, (char*)buffer_begin(packet),
+	diff_write_commit(zone->apex_str, ntohl(zone->soa_disk.serial), 
+		ntohl(soa.serial), zone->query_id, num_parts,
+		1, (char*)buffer_begin(packet),
 		xfrd->nsd->options);
 	log_msg(LOG_INFO, "xfrd: zone %s committed \"%s\"", zone->apex_str,
 		(char*)buffer_begin(packet));

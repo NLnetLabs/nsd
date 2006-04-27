@@ -24,11 +24,16 @@
 
 /* write an xfr packet data to the diff file, type=IXFR.
    The diff file is created if necessary. */
-void diff_write_packet(uint8_t* data, size_t len, nsd_options_t* opt);
+void diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id, 
+	uint32_t seq_nr, uint8_t* data, size_t len, nsd_options_t* opt);
 
-/* write a commit packet to the diff file, type=SURE.
-   The zone data (preceding ixfr packets) are committed */
-void diff_write_commit(const char* zone, uint32_t new_serial, 
+/* 
+ * Write a commit packet to the diff file, type=SURE.
+ * The zone data (preceding ixfr packets) are committed.
+ * See NSD-DIFFFILE for meaning of the arguments.
+ */
+void diff_write_commit(const char* zone, uint32_t old_serial,
+	uint32_t new_serial, uint16_t id, uint32_t num_parts,
 	uint8_t commit, const char* log_msg,
 	nsd_options_t* opt);
 
