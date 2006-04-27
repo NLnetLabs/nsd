@@ -81,7 +81,7 @@ print_string_var(const char* varname, const char* value)
 static void
 quote(const char *v)
 {
-	printf("%s\t", v);
+	printf("%s\n", v);
 }
 
 static void 
@@ -89,7 +89,7 @@ quote_acl(acl_options_t* acl)
 {
 	while(acl)
 	{
-		printf("%s %s\t", acl->ip_address_spec,
+		printf("%s %s\n", acl->ip_address_spec,
 			acl->nokey?"NOKEY":(acl->blocked?"BLOCKED":
 			(acl->key_name?acl->key_name:"(null)")));
 		acl=acl->next;
