@@ -18,7 +18,7 @@
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: checkconf [-v] <configfilename>\n");
+	fprintf(stderr, "usage: checkconf [-v] [-o option] [-z zonename] <configfilename>\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -35,7 +35,7 @@ print_string_var(const char* varname, const char* value)
 static void
 quote(const char *v)
 {
-	printf("\"%s\" ", v);
+	printf("%s\t", v);
 }
 
 static void 
@@ -43,7 +43,7 @@ quote_acl(acl_options_t* acl)
 {
 	while(acl)
 	{
-		printf("\"%s %s\" ", acl->ip_address_spec,
+		printf("%s %s\t", acl->ip_address_spec,
 			acl->nokey?"NOKEY":(acl->blocked?"BLOCKED":
 			(acl->key_name?acl->key_name:"(null)")));
 		acl=acl->next;
