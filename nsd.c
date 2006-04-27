@@ -700,11 +700,11 @@ main (int argc, char *argv[])
 			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
 				nsd.dbfile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
-		} else if (strncmp(nsd.chrootdir, nsd.options->xfrdfile, l) != 0) {
+		} else if (nsd.options->xfrdfile && strncmp(nsd.chrootdir, nsd.options->xfrdfile, l) != 0) {
 			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
 				nsd.options->xfrdfile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
-		} else if (strncmp(nsd.chrootdir, nsd.options->difffile, l) != 0) {
+		} else if (nsd.options->difffile && strncmp(nsd.chrootdir, nsd.options->difffile, l) != 0) {
 			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
 				nsd.options->difffile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
