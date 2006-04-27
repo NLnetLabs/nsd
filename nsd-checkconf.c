@@ -19,16 +19,40 @@ static void
 usage(void)
 {
 	fprintf(stderr, "usage: checkconf [-v] <configfilename>\n");
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
-static void print_string_var(const char* varname, const char* value)
+static void 
+print_string_var(const char* varname, const char* value)
 {
-	if(!value) printf("\t#%s\n", varname);
-	else printf("\t%s \"%s\"\n", varname, value);
+	if (!value) {
+		printf("\t#%s\n", varname);
+	} else { 
+		printf("\t%s \"%s\"\n", varname, value);
+	}
 }
 
-static void print_acl(const char* varname, acl_options_t* acl)
+static void
+quote(const char *v)
+{
+	printf("\"%s\" ", v);
+}
+
+static void 
+quote_acl(acl_options_t* acl)
+{
+	while(acl)
+	{
+		printf("\"%s %s\" ", acl->ip_address_spec,
+			acl->nokey?"NOKEY":(acl->blocked?"BLOCKED":
+			(acl->key_name?acl->key_name:"(null)")));
+		acl=acl->next;
+	}
+	fputs("", stdout);
+}
+
+static void 
+print_acl(const char* varname, acl_options_t* acl)
 {
 	while(acl)
 	{
@@ -70,7 +94,45 @@ static void print_acl(const char* varname, acl_options_t* acl)
 	}
 }
 
-void config_test_print_server(nsd_options_t* opt)
+
+void
+config_print_zone(nsd_options_t* opt, const char *o, const char *z)
+{
+	ip_address_option_t* ip;
+	key_options_t* key;
+	zone_options_t* zone;
+
+	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
+	{
+		if (strcasecmp(z, zone->name) == 0) {
+			/* -z matches */
+
+			if (!o) {
+				/* need something to work with */
+				return;
+			}
+			if (strcasecmp("zonefile", o) == 0) {
+				quote(zone->zonefile);
+				fputs("" ,stdout);
+				return;
+			}
+			if (strcasecmp("request_xfr", o) == 0) {
+				quote_acl(zone->request_xfr);
+				fputs("" ,stdout);
+				return;
+			}
+			if (strcasecmp("allow-notify", o) == 0) {
+				quote_acl(zone->request_xfr);
+				fputs("" ,stdout);
+				return;
+			}
+
+		}
+	}
+}
+
+void 
+config_test_print_server(nsd_options_t* opt)
 {
 	ip_address_option_t* ip;
 	key_options_t* key;
@@ -120,7 +182,8 @@ void config_test_print_server(nsd_options_t* opt)
 	
 }
 
-static int additional_checks(nsd_options_t* opt, const char* filename)
+static int 
+additional_checks(nsd_options_t* opt, const char* filename)
 {
 	ip_address_option_t* ip = opt->ip_addresses;
 	zone_options_t* zone;
@@ -140,30 +203,30 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 	{
 		const dname_type* dname = dname_parse(opt->region, zone->name); /* memory leak. */
 		if(!dname) {
-		fprintf(stderr, "%s: cannot parse zone name syntax for zone %s.\n", filename, zone->name);
-		errors ++;
+			fprintf(stderr, "%s: cannot parse zone name syntax for zone %s.\n", filename, zone->name);
+			errors ++;
 		}
 	}
 
 	for(key = opt->keys; key; key=key->next)
 	{
 		const dname_type* dname = dname_parse(opt->region, key->name); /* memory leak. */
-	        uint8_t data[4000];
+		uint8_t data[4000];
 		int size;
 
 		if(!dname) {
-		fprintf(stderr, "%s: cannot parse tsig name syntax for key %s.\n", filename, key->name);
-		errors ++;
+			fprintf(stderr, "%s: cannot parse tsig name syntax for key %s.\n", filename, key->name);
+			errors ++;
 		}
 		size = b64_pton(key->secret, data, sizeof(data));
 		if(size == -1) {
-		fprintf(stderr, "%s: cannot base64 decode tsig secret: for key %s.\n", filename, key->name);
-		errors ++;
+			fprintf(stderr, "%s: cannot base64 decode tsig secret: for key %s.\n", filename, key->name);
+			errors ++;
 		}
 		if(strcmp(key->algorithm, "hmac-md5") != 0)
 		{
-		fprintf(stderr, "%s: bad tsig algorithm: for key %s.\n", filename, key->name);
-		errors ++;
+			fprintf(stderr, "%s: bad tsig algorithm: for key %s.\n", filename, key->name);
+			errors ++;
 		}
 	}
 
@@ -236,18 +299,27 @@ static int additional_checks(nsd_options_t* opt, const char* filename)
 	return (errors == 0);
 }
 
-int main(int argc, char* argv[])
+int 
+main(int argc, char* argv[])
 {
 	int c;
-	int verbose = 0;
+	int verbose = 0; 
+	const char * conf_opt = NULL; /* what option do you want? Can be NULL -> print all */
+	const char * conf_zone = NULL; /* what zone are we talking about */
 	const char* configfile;
 	nsd_options_t *options;
 
         /* Parse the command line... */
-        while ((c = getopt(argc, argv, "v")) != -1) {
+        while ((c = getopt(argc, argv, "vo:z:")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose = 1;
+			break;
+		case 'o':
+			conf_opt = optarg;
+			break;
+		case 'z':
+			conf_zone = optarg;
 			break;
 		default:
 			usage();
@@ -255,19 +327,29 @@ int main(int argc, char* argv[])
 	}
         argc -= optind;
         argv += optind;
-        if (argc == 0 || argc>=2) usage();
+        if (argc == 0 || argc>=2) {
+		usage();
+	}
+
 	configfile = argv[0];
 
 	/* read config file */
 	options = nsd_options_create(region_create(xalloc, free));
-	if(!parse_options_file(options, configfile) ||
-	   !additional_checks(options, configfile))
+	if (!parse_options_file(options, configfile) ||
+	   !additional_checks(options, configfile)) {
 		return 1;
-	printf("# Read file %s: %d zones, %d keys.\n", configfile, 
-		(int)nsd_options_num_zones(options), 
-		(int)options->numkeys);
-	if(verbose) {
-		config_test_print_server(options);
 	}
-	return 0;
+	if (conf_zone) {
+		config_print_zone(options, conf_opt, conf_zone);
+	} else {
+		printf("# Read file %s: %d zones, %d keys.\n", configfile, 
+				(int)nsd_options_num_zones(options), 
+				(int)options->numkeys);
+
+		if (verbose) {
+			config_test_print_server(options);
+		}
+	}
+
+	exit(EXIT_SUCCESS);
 }
