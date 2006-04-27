@@ -43,10 +43,10 @@ static char buf[BUFSIZ];
 
 static char *
 underscore(const char *s) {
-	char *j = (char*)s;
+	const char *j = s;
 	size_t i = 0;
 
-	while(j) {
+	while(*j) {
 		if (*j == '-') {
 			buf[i++] = '_';
 		} else {
