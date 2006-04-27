@@ -36,31 +36,6 @@ usage (void)
 	exit(1);
 }
 
-static const char* 
-rcode2string(int rc)
-{
-	switch(rc)
-	{
-	case RCODE_OK: 		
-		return "No error";
-	case RCODE_FORMAT: 	
-		return "Format error";
-	case RCODE_SERVFAIL: 	
-		return "Server failure";
-	case RCODE_NXDOMAIN: 	
-		return "Name Error";
-	case RCODE_IMPL: 	
-		return "Not implemented";
-	case RCODE_REFUSE: 	
-		return "Refused";
-	case RCODE_NOTAUTH: 	
-		return "Not authorized";
-	default: 		
-		return "Unknown error";	
-	}
-	return NULL; /* ENOREACH */
-}
-
 /*
  * Send NOTIFY messages to the host, as in struct q, 
  * waiting for ack packet (received in buffer answer).
@@ -132,8 +107,8 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 		{
 			fprintf(stderr, "%s acknowledges notify.\n", addrstr);
 		} else {
-			fprintf(stderr, "Bad reply from %s, return code: %s(%d).\n", 
-				addrstr, rcode2string(RCODE(answer->packet)), 
+			fprintf(stderr, "Bad reply from %s, error respons %s (%d).\n", 
+				addrstr, rcode2str(RCODE(answer->packet)), 
 				RCODE(answer->packet));
 		}
 	}
