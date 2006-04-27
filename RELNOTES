@@ -13,6 +13,7 @@ BUG FIXES:
         - zonec: lexer: add \r to the newline delimeter
         - zonec: use strtol with an explicit base 10 as parameter.
           (Scott Rose, Roy Arends)
+        - nsd-xfer: print human readable error codes
 
 2.3.3
 =============

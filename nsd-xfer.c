@@ -695,7 +695,8 @@ check_serial(axfr_state_type *state)
 	}
 
 	if (RCODE(state->q->packet) != RCODE_OK) {
-		error("error response %d", (int) RCODE(state->q->packet));
+		error("error response %d (%s)", (int) RCODE(state->q->packet),
+				rcode2str((int) RCODE(state->q->packet)));
 		return -1;
 	}
 
