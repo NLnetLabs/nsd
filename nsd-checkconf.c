@@ -1,5 +1,5 @@
 /*
- * printconf - Read and repeat configuration file to output.
+ * checkconf - Read and repeat configuration file to output.
  *
  * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
  *
@@ -102,32 +102,46 @@ config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 	key_options_t* key;
 	zone_options_t* zone;
 
-	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
-	{
-		if (strcasecmp(z, zone->name) == 0) {
-			/* -z matches */
+	if (!o) {
+		/* need something to work with */
+		return;
+	}
 
-			if (!o) {
-				/* need something to work with */
-				return;
-			}
-			if (strcasecmp("zonefile", o) == 0) {
-				quote(zone->zonefile);
-				fputs("" ,stdout);
-				return;
-			}
-			if (strcasecmp("request_xfr", o) == 0) {
-				quote_acl(zone->request_xfr);
-				fputs("" ,stdout);
-				return;
-			}
-			if (strcasecmp("allow-notify", o) == 0) {
-				quote_acl(zone->request_xfr);
-				fputs("" ,stdout);
-				return;
-			}
+	if (z) {
+		/* look per zone */
+		RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
+		{
+			if (strcasecmp(z, zone->name) == 0) {
+				/* -z matches */
 
+				if (strcasecmp("zonefile", o) == 0) {
+					quote(zone->zonefile);
+					fputs("" ,stdout);
+					return;
+				}
+				if (strcasecmp("request_xfr", o) == 0) {
+					quote_acl(zone->request_xfr);
+					fputs("" ,stdout);
+					return;
+				}
+				if (strcasecmp("allow-notify", o) == 0) {
+					quote_acl(zone->request_xfr);
+					fputs("" ,stdout);
+					return;
+				}
+
+			}
 		}
+	} else {
+		/* look in the server section */
+		if (strcasecmp("ip4-only", o) == 0) {
+			printf("%s\n", opt->ip4_only?"yes":"no");
+			return;
+		}
+		/* and more */	
+
+		/* ... */
+
 	}
 }
 
@@ -339,7 +353,7 @@ main(int argc, char* argv[])
 	   !additional_checks(options, configfile)) {
 		return 1;
 	}
-	if (conf_zone) {
+	if (conf_opt) {
 		config_print_zone(options, conf_opt, conf_zone);
 	} else {
 		printf("# Read file %s: %d zones, %d keys.\n", configfile, 
