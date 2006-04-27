@@ -1,5 +1,5 @@
 /*
- * difffile.x - DIFF file handling source code. Read and write diff files.
+ * difffile.c - DIFF file handling source code. Read and write diff files.
  *
  * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
  *
@@ -510,12 +510,11 @@ delete_zone_rrs(zone_type* zone)
 static int 
 apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos, 
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
-	uint16_t id, uint32_t seq_nr)
+	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
+	int* is_axfr, int* delete_mode, int* rr_count)
 {
-	int delete_mode;
-	int is_axfr;
 	uint32_t filelen, msglen;
-	int qcount, ancount, rrcount;
+	int qcount, ancount, counter;
 	buffer_type* packet;
 	region_type* region;
 	int i;
@@ -602,62 +601,67 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 		}
 
 	/* first RR: check if SOA and correct zone & serialno */
-	dname = dname_make_from_packet(region, packet, 1, 1);
-	if(!dname) {
-		log_msg(LOG_ERR, "could not parse dname");
-		region_destroy(region);
-		return 0;
+	if(*rr_count == 0) {
+		dname = dname_make_from_packet(region, packet, 1, 1);
+		if(!dname) {
+			log_msg(LOG_ERR, "could not parse dname");
+			region_destroy(region);
+			return 0;
+		}
+		if(dname_compare(dname_zone, dname) != 0) {
+			log_msg(LOG_ERR, "SOA dname %s not equal to zone",
+				dname_to_string(dname,0));
+			log_msg(LOG_ERR, "zone dname is %s",
+				dname_to_string(dname_zone,0));
+			region_destroy(region);
+			return 0;
+		}
+		if(!buffer_available(packet, 10)) {
+			log_msg(LOG_ERR, "bad SOA RR");
+			region_destroy(region);
+			return 0;
+		}
+		if(buffer_read_u16(packet) != TYPE_SOA ||
+			buffer_read_u16(packet) != CLASS_IN) {
+			log_msg(LOG_ERR, "first RR not SOA IN");
+			region_destroy(region);
+			return 0;
+		}
+		buffer_skip(packet, sizeof(uint32_t)); /* ttl */
+		if(!buffer_available(packet, buffer_read_u16(packet)) ||
+			!packet_skip_dname(packet) /* skip prim_ns */ ||
+			!packet_skip_dname(packet) /* skip email */) {
+			log_msg(LOG_ERR, "bad SOA RR");
+			region_destroy(region);
+			return 0;
+		}
+		if(buffer_read_u32(packet) != serialno) {
+			buffer_skip(packet, -4);
+			log_msg(LOG_ERR, "SOA serial %d different from commit %d",
+				buffer_read_u32(packet), serialno);
+			region_destroy(region);
+			return 0;
+		}
+		buffer_skip(packet, sizeof(uint32_t)*4);
+		counter = 1;
+		*rr_count = 1;
+		*is_axfr = 0;
+		*delete_mode = 0;
 	}
-	if(dname_compare(dname_zone, dname) != 0) {
-		log_msg(LOG_ERR, "SOA dname %s not equal to zone",
-			dname_to_string(dname,0));
-		log_msg(LOG_ERR, "zone dname is %s",
-			dname_to_string(dname_zone,0));
-		region_destroy(region);
-		return 0;
-	}
-	if(!buffer_available(packet, 10)) {
-		log_msg(LOG_ERR, "bad SOA RR");
-		region_destroy(region);
-		return 0;
-	}
-	if(buffer_read_u16(packet) != TYPE_SOA ||
-		buffer_read_u16(packet) != CLASS_IN) {
-		log_msg(LOG_ERR, "first RR not SOA IN");
-		region_destroy(region);
-		return 0;
-	}
-	buffer_skip(packet, sizeof(uint32_t)); /* ttl */
-	if(!buffer_available(packet, buffer_read_u16(packet)) ||
-		!packet_skip_dname(packet) /* skip prim_ns */ ||
-		!packet_skip_dname(packet) /* skip email */) {
-		log_msg(LOG_ERR, "bad SOA RR");
-		region_destroy(region);
-		return 0;
-	}
-	if(buffer_read_u32(packet) != serialno) {
-		buffer_skip(packet, -4);
-		log_msg(LOG_ERR, "SOA serial %d different from commit %d",
-			buffer_read_u32(packet), serialno);
-		region_destroy(region);
-		return 0;
-	}
-	buffer_skip(packet, sizeof(uint32_t)*4);
+	else  counter = 0;
 
-	delete_mode = 0;
-	is_axfr = 0;
-	for(rrcount = 1; rrcount < ancount; ++rrcount)
+	for(; counter < ancount; ++counter,++(*rr_count))
 	{
 		uint16_t type, klass;
 		uint32_t ttl;
 
 		if(!(dname=dname_make_from_packet(region, packet, 1,1))) {
-			log_msg(LOG_ERR, "bad xfr RR dname %d", rrcount);
+			log_msg(LOG_ERR, "bad xfr RR dname %d", *rr_count);
 			region_destroy(region);
 			return 0;
 		}
 		if(!buffer_available(packet, 10)) {
-			log_msg(LOG_ERR, "bad xfr RR format %d", rrcount);
+			log_msg(LOG_ERR, "bad xfr RR format %d", *rr_count);
 			region_destroy(region);
 			return 0;
 		}
@@ -667,34 +671,35 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 		rrlen = buffer_read_u16(packet);
 		if(!buffer_available(packet, rrlen)) {
 			log_msg(LOG_ERR, "bad xfr RR rdata %d, len %d have %zd", 
-				rrcount, rrlen, buffer_remaining(packet));
+				*rr_count, rrlen, buffer_remaining(packet));
 			region_destroy(region);
 			return 0;
 		}
 
-		if(rrcount == 1 && type != TYPE_SOA) {
+		if(*rr_count == 1 && type != TYPE_SOA) {
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
 			delete_zone_rrs(zone_db);
 			/* add everything else (incl end SOA) */
-			delete_mode = 0;
-			is_axfr = 1;
+			*delete_mode = 0;
+			*is_axfr = 1;
 		}
-		if(type == TYPE_SOA && !is_axfr) {
+		if(type == TYPE_SOA && !*is_axfr) {
 			/* switch from delete-part to add-part and back again,
 			   just before soa - so it gets deleted and added too */
 			/* this means we switch to delete mode for the final SOA */
-			delete_mode = !delete_mode;
+			*delete_mode = !*delete_mode;
 		}
 		if(type == TYPE_TSIG || type == TYPE_OPT) {
 			/* ignore pseudo RRs */
 			continue;
 		}
 		log_msg(LOG_INFO, "xfr %s RR dname is %s type %s", 
-			delete_mode?"del":"add",
+			*delete_mode?"del":"add",
 			dname_to_string(dname,0), rrtype_to_string(type));
-		if(delete_mode) {
+		if(*delete_mode) {
 			/* delete this rr */
-			if(!is_axfr && type == TYPE_SOA && rrcount==ancount-1)
+			if(!is_axfr && type == TYPE_SOA && counter==ancount-1
+				&& seq_nr == seq_total-1)
 				continue; /* do not delete final SOA RR for IXFR */
 			delete_RR(db, dname, type, klass, ttl, packet, rrlen, zone_db,
 				region);
@@ -762,11 +767,74 @@ struct diff_xfrpart {
 	uint16_t id;
 	fpos_t file_pos;
 };
-static fpos_t last_ixfr_pos;
-static int saw_ixfr = 0;
+
+static struct diff_read_data* 
+diff_read_data_create()
+{
+	region_type* region = region_create(xalloc, free);
+	struct diff_read_data* data = (struct diff_read_data*)
+		region_alloc(region, sizeof(struct diff_read_data));
+	data->region = region;
+	data->zones = rbtree_create(region, 
+		(int (*)(const void *, const void *)) dname_compare);
+	return data;
+}
+
+static struct diff_zone*
+diff_read_find_zone(struct diff_read_data* data, const char* name)
+{
+	const dname_type* dname = dname_parse(data->region, name);
+	struct diff_zone* zp = (struct diff_zone*)
+		rbtree_search(data->zones, dname);
+	return zp;
+}
+
+static int intcompf(const void* a, const void* b)
+{
+	if(*(uint32_t*)a < *(uint32_t*)b) 
+		return -1;
+	if(*(uint32_t*)a > *(uint32_t*)b) 
+		return +1;
+	return 0;
+}
+
+static struct diff_zone*
+diff_read_insert_zone(struct diff_read_data* data, const char* name)
+{
+	const dname_type* dname = dname_parse(data->region, name);
+	struct diff_zone* zp = region_alloc(data->region,
+		sizeof(struct diff_zone));
+	zp->node = *RBTREE_NULL;
+	zp->node.key = dname;
+	zp->parts = rbtree_create(data->region, intcompf);
+	rbtree_insert(data->zones, (rbnode_t*)zp);
+	return zp;
+}
+
+static struct diff_xfrpart*
+diff_read_find_part(struct diff_zone* zp, uint32_t seq_nr)
+{
+	struct diff_xfrpart* xp = (struct diff_xfrpart*)
+		rbtree_search(zp->parts, &seq_nr);
+	return xp;
+}
+
+static struct diff_xfrpart*
+diff_read_insert_part(struct diff_read_data* data,
+	struct diff_zone* zp, uint32_t seq_nr)
+{
+	struct diff_xfrpart* xp = region_alloc(data->region,
+		sizeof(struct diff_xfrpart));
+	xp->node = *RBTREE_NULL;
+	xp->node.key = &xp->seq_nr;
+	xp->seq_nr = seq_nr;
+	rbtree_insert(zp->parts, (rbnode_t*)xp);
+	return xp;
+}
 
 static int 
-read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
+read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt, 
+	struct diff_read_data* data)
 {
 	char zone_buf[512];
 	char log_buf[5120];
@@ -774,10 +842,10 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
 	uint16_t id;
 	uint8_t committed;
 	fpos_t resume_pos;
-	if(!saw_ixfr) {
-		log_msg(LOG_ERR, "diff file commit without IXFR");
-		return 1;
-	}
+	struct diff_zone *zp;
+	uint32_t i;
+	int have_all_parts = 1;
+
 	/* read zone name and serial */
 	if(!read_str(in, zone_buf, sizeof(zone_buf)) ||
 		!read_32(in, &old_serial) ||
@@ -791,23 +859,44 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
 		return 1;
 	}
 
-	/* read in completely */
+	/* has been read in completely */
+	zp = diff_read_find_zone(data, zone_buf);
+	if(!zp) {
+		log_msg(LOG_ERR, "diff file commit without IXFR");
+		return 1;
+	}
 	if(committed && check_for_bad_serial(db, zone_buf, old_serial)) {
 		log_msg(LOG_ERR, "diff file commit with bad serial");
+		zp->parts->root = RBTREE_NULL;
+		zp->parts->count = 0;
 		return 1;
+	}
+	for(i=0; i<num_parts; i++) {
+		struct diff_xfrpart *xp = diff_read_find_part(zp, i);
+		if(!xp || xp->id != id || xp->new_serial != new_serial) {
+			have_all_parts = 0;
+		}
+	}
+	if(!have_all_parts) {
+		log_msg(LOG_ERR, "diff file commit without all parts");
 	}
 
 	if(fgetpos(in, &resume_pos) == -1) {
 		log_msg(LOG_INFO, "could not fgetpos: %s.", strerror(errno));
 		return 0;
 	}
-	if(committed)
+	if(committed && have_all_parts)
 	{
-		uint32_t seq_nr = 0;
+		int is_axfr=0, delete_mode=0, rr_count=0;
 		log_msg(LOG_INFO, "processing xfr: %s", log_buf);
-		if(!apply_ixfr(db, in, &last_ixfr_pos, zone_buf, new_serial, opt,
-			id, seq_nr)) {
-			log_msg(LOG_ERR, "bad ixfr packet");
+		for(i=0; i<num_parts; i++) {
+			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
+			log_msg(LOG_INFO, "processing xfr: apply part %d", (int)i);
+			if(!apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
+				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
+				&rr_count)) {
+				log_msg(LOG_ERR, "bad ixfr packet part %d", (int)i);
+			}
 		}
 	}
 	else 	log_msg(LOG_INFO, "skipping xfr: %s", log_buf);
@@ -816,13 +905,51 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt)
 		log_msg(LOG_INFO, "could not fsetpos: %s.", strerror(errno));
 		return 0;
 	}
-	
+	/* clean out the zone tree after the commit/rollback */
+	zp->parts->root = RBTREE_NULL;
+	zp->parts->count = 0;
+	return 1;
+}
+
+static int
+store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, fpos_t* startpos)
+{
+	char zone_name[2560];
+	struct diff_zone* zp;
+	struct diff_xfrpart* xp;
+	uint32_t new_serial, seq;
+	uint16_t id;
+	if(!read_str(in, zone_name, sizeof(zone_name)) ||
+		!read_32(in, &new_serial) ||
+		!read_16(in, &id) ||
+		!read_32(in, &seq)) {
+		log_msg(LOG_INFO, "could not read ixfr store info: %s", strerror(errno));
+		return 0;
+	}
+	len -= sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name);
+	if(fseeko(in, len, SEEK_CUR) == -1)
+		log_msg(LOG_INFO, "fseek failed: %s", strerror(errno));
+	/* store the info */
+	zp = diff_read_find_zone(data, zone_name);
+	if(!zp)
+		zp = diff_read_insert_zone(data, zone_name);
+	xp = diff_read_find_part(zp, seq);
+	if(xp) {
+		log_msg(LOG_INFO, "duplicate xfr part: %s %d", zone_name, seq);
+		/* overwrite with newer value (which probably relates to next commit) */
+	}
+	else {
+		xp = diff_read_insert_part(data, zp, seq);
+	}
+	xp->new_serial = new_serial;
+	xp->id = id;
+	xp->file_pos = *startpos;
 	return 1;
 }
 
 static int 
 read_process_part(namedb_type* db, FILE *in, uint32_t type,
-	nsd_options_t* opt)
+	nsd_options_t* opt, struct diff_read_data* data)
 {
 	uint32_t len, len2;
 	fpos_t startpos;
@@ -836,14 +963,12 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 
 	if(type == DIFF_PART_IXFR) {
 		log_msg(LOG_INFO, "part IXFR len %d", len);
-		saw_ixfr = 1;
-		last_ixfr_pos = startpos;
-		if(fseeko(in, len, SEEK_CUR) == -1)
-			log_msg(LOG_INFO, "fseek failed: %s", strerror(errno));
+		if(!store_ixfr_data(in, len, data, &startpos))
+			return 0;
 	}
 	else if(type == DIFF_PART_SURE) {
 		log_msg(LOG_INFO, "part SURE len %d", len);
-		if(!read_sure_part(db, in, opt)) 
+		if(!read_sure_part(db, in, opt, data)) 
 			return 0;
 	} else {
 		log_msg(LOG_INFO, "unknown part %x len %d", type, len);
@@ -869,15 +994,16 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 	const char* filename = DIFFFILE;
 	FILE *df;
 	uint32_t type;
+	struct diff_read_data* data = diff_read_data_create();
 
 	if(opt->difffile) 
 		filename = opt->difffile;
 
-	saw_ixfr = 0;
 	df = fopen(filename, "r");
 	if(!df) {
 		log_msg(LOG_INFO, "could not open file %s for reading: %s",
 			filename, strerror(errno));
+		region_destroy(data->region);
 		return 1;
 	}
 	if(db->diff_skip) {
@@ -891,14 +1017,16 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 	while(read_32(df, &type)) 
 	{
 		log_msg(LOG_INFO, "iter loop");
-		if(!read_process_part(db, df, type, opt))
+		if(!read_process_part(db, df, type, opt, data))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
+			region_destroy(data->region);
 			return 0;
 		}
 	}
 	log_msg(LOG_INFO, "end of diff file read");
 	
+	region_destroy(data->region);
 	fclose(df);
 	return 1;
 }

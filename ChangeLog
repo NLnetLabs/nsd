@@ -2,6 +2,7 @@
    Wouter:
 	- nsec3 review fixes.
 	- diff file format expanded for >64kb transfer support.
+	- diff reader adjusted for >64kb.
    Jelte:
 	- small non-null options check in nsd.c.
    Miek:
