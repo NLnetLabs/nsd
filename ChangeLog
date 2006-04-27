@@ -1,3 +1,10 @@
+27 Apr 2006: 
+   Wouter:
+	- nsec3 review fixes.
+   Jelte:
+   	- small non-null options check in nsd.c.
+
+
 25 Apr 2006: Wouter
 	- Tests on NSEC3 code. Fixed that the unsecure delegations also
 	  have _ds_ parent nsec3 prehashes, so that they get proper NSEC3s.
