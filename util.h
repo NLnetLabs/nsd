@@ -316,4 +316,9 @@ struct state_pretty_rr* create_pretty_rr(struct region* region);
 /* print rr to file, returns 0 on failure(nothing is written) */
 int print_rr(FILE *out, struct state_pretty_rr* state, struct rr *record);
 
+/*
+ * Convert a numeric rcode value to a human readable string
+ */
+const char* rcode2str(int rc);
+
 #endif /* _UTIL_H_ */

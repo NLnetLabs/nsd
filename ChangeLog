@@ -1,5 +1,7 @@
 28 Apr 2006: Wouter
 	- ixfr >64k in xfrd.
+   Miek:
+	- Forward port fixes for nsd-xfer and nsd-notify
 
 27 Apr 2006: 
    Wouter:

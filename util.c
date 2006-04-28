@@ -806,3 +806,27 @@ print_rr(FILE *out,
         return result;
 }
 
+const char*
+rcode2str(int rc)
+{
+        switch(rc)
+        {
+        case RCODE_OK:
+                return "NO ERROR";
+        case RCODE_FORMAT:
+                return "FORMAT ERROR";
+        case RCODE_SERVFAIL:
+                return "SERV FAIL";
+        case RCODE_NXDOMAIN:
+                return "NAME ERROR";
+        case RCODE_IMPL:
+                return "NOT IMPL";
+        case RCODE_REFUSE:
+                return "REFUSED";
+        case RCODE_NOTAUTH:
+                return "NOT AUTHORIZED";
+        default:
+                return "UNKNOWN ERROR";
+        }
+        return NULL; /* ENOREACH */
+}
