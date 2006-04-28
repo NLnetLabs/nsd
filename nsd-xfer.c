@@ -801,8 +801,8 @@ handle_axfr_response(FILE *out, axfr_state_type *axfr)
 		}
 
 		if (RCODE(axfr->q->packet) != RCODE_OK) {
-			error("error response %d",
-			      (int) RCODE(axfr->q->packet));
+			error("error response %d (%s)", (int) RCODE(axfr->q->packet),
+					rcode2str((int) RCODE(axfr->q->packet)));
 			return 0;
 		}
 
