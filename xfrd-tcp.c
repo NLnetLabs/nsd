@@ -247,6 +247,14 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	xfrd_tcp_write(set, zone);
 }
 
+static void
+tcp_conn_ready_for_reading(xfrd_tcp_t* tcp)
+{
+	tcp->total_bytes = 0;
+	tcp->msglen = 0;
+	buffer_clear(tcp->packet);
+}
+
 void 
 xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
@@ -308,9 +316,7 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	assert(tcp->total_bytes == tcp->msglen + sizeof(tcp->msglen));
 	/* done writing, get ready for reading */
 	tcp->is_reading = 1;
-	tcp->total_bytes = 0;
-	tcp->msglen = 0;
-	buffer_clear(tcp->packet);
+	tcp_conn_ready_for_reading(tcp);
 	zone->zone_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
 	xfrd_tcp_read(set, zone);
 }
@@ -399,7 +405,9 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	/* completed msg */
 	buffer_flip(tcp->packet);
-	if(xfrd_handle_received_xfr_packet(zone, tcp->packet) == 0) {
+	if(xfrd_handle_received_xfr_packet(zone, tcp->packet)) {
+		tcp_conn_ready_for_reading(tcp);
+	} else {
 		xfrd_tcp_release(set, zone);
 	}
 }

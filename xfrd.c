@@ -55,8 +55,8 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 static void xfrd_handle_ipc_SOAINFO(buffer_type* packet);
 /* handle network packet passed to xfrd */
 static void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
-/* handle incoming notification message. soa can be NULL */
-static void xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
+/* handle incoming notification message. soa can be NULL. true if transfer needed. */
+static int xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
 
 /* call with buffer just after the soa dname. returns 0 on error. */
 static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa);
@@ -247,6 +247,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 			xfrd->ipc_conn->packet = tmp;
 			xfrd->ipc_conn->total_bytes = sizeof(xfrd->ipc_conn->msglen);
 			xfrd->ipc_conn->msglen = sizeof(uint32_t);
+			buffer_clear(xfrd->ipc_conn->packet);
 			buffer_set_limit(xfrd->ipc_conn->packet, xfrd->ipc_conn->msglen);
 		}
 		return;
@@ -1325,7 +1326,7 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	return 1;
 }
 
-/* parse the received packet. Returns 0 on error. 
+/* parse the received packet. Returns 0 on error (done=2 means try tcp). 
    1=ok, if done=1 then it is the final packet. */
 static int 
 xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet, 
@@ -1336,8 +1337,10 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	size_t ancount = ANCOUNT(packet), ancount_todo;
 
 	/* has to be axfr / ixfr reply */
-	if(!buffer_available(packet, QHEADERSZ))
+	if(!buffer_available(packet, QHEADERSZ)) {
+		log_msg(LOG_INFO, "packet too small");
 		return 0;
+	}
 
 	/* only check ID in first response message. Could also check that
 	 * AA bit and QR bit are set, but not needed.
@@ -1350,8 +1353,9 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	}
 	/* check RCODE in all response messages */
 	if(RCODE(packet) != RCODE_OK) {
-		log_msg(LOG_ERR, "xfrd: zone %s received error code %d from %s",
-			zone->apex_str, RCODE(packet), zone->master->ip_address_spec);
+		log_msg(LOG_ERR, "xfrd: zone %s received error code %s from %s",
+			zone->apex_str, rcode2str(RCODE(packet)), 
+			zone->master->ip_address_spec);
 		return 0;
 	}
 	buffer_skip(packet, QHEADERSZ);
@@ -1400,10 +1404,12 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			}
 			return 0;
 		}
+		log_msg(LOG_INFO, "IXFR reply has newer serial (have %d, reply %d)",
+			ntohl(zone->soa_disk.serial), ntohl(soa->serial));
 		/* serial is newer than soa_disk */
 		if(ancount == 1) {
 			/* single record means it is like a notify */
-			xfrd_handle_incoming_notify(zone, soa);
+			(void)xfrd_handle_incoming_notify(zone, soa);
 		}
 		else if(zone->soa_notified_acquired && zone->soa_notified.serial &&
 			compare_serial(ntohl(zone->soa_notified.serial), ntohl(soa->serial)) < 0) {
@@ -1413,20 +1419,23 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		zone->msg_new_serial = ntohl(soa->serial);
 		zone->msg_rr_count = 1;
 		zone->msg_is_ixfr = 0;
-		zone->msg_old_serial = 0;
+		if(zone->soa_disk_acquired)
+			zone->msg_old_serial = ntohl(zone->soa_disk.serial);
+		else zone->msg_old_serial = 0;
 		ancount_todo = ancount - 1;
 	}
 
 	if(zone->tcp_conn == -1 && TC(packet)) {
 		log_msg(LOG_INFO, "xfrd: zone %s received TC from %s. retry tcp.",
 			zone->apex_str, zone->master->ip_address_spec);
-		xfrd_tcp_obtain(xfrd->tcp_set, zone);
+		*done = 2;
 		return 0;
 	}
 
 	if(zone->tcp_conn == -1 && ancount < 2) {
 		/* too short to be a real ixfr/axfr data transfer */
-		log_msg(LOG_INFO, "xfrd: udp reply is short");
+		log_msg(LOG_INFO, "xfrd: udp reply is short. Try tcp anyway.");
+		*done = 2;
 		return 0;
 	}
 
@@ -1453,8 +1462,10 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* parse and check the packet - see if it ends the xfr */
 	if(!xfrd_parse_received_xfr_packet(zone, packet, &done, &soa))
 	{
-		/* do not process xfr - if only one part simply ignore it. */
-		if(zone->msg_seq_nr > 0) {
+		if(done == 2) {
+			xfrd_tcp_obtain(xfrd->tcp_set, zone);
+		} else if(zone->msg_seq_nr > 0) {
+			/* do not process xfr - if only one part simply ignore it. */
 			/* rollback previous parts of commit */
 			buffer_clear(packet);
 			buffer_printf(packet, "xfrd: zone %s xfr rollback serial %d at time %d "
@@ -1594,7 +1605,8 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 		if(ANCOUNT(packet) == 1 && packet_skip_dname(packet) &&
 			xfrd_parse_soa_info(packet, &soa))
 			have_soa = 1;
-		xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL);
+		if(xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL))
+			xfrd_set_refresh_now(zone, zone->zone_state);
 		next = find_same_master_notify(zone, acl_num);
 		if(next != -1) {
 			zone->next_master = next;
@@ -1606,12 +1618,12 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 	}
 }
 
-static void 
+static int 
 xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 {
 	if(soa && zone->soa_disk_acquired && zone->zone_state != xfrd_zone_expired
 		&& compare_serial(ntohl(soa->serial), ntohl(zone->soa_disk.serial)) <= 0)
-		return; /* ignore notify with old serial, we have a valid zone */
+		return 0; /* ignore notify with old serial, we have a valid zone */
 	if(soa == 0) {
 		zone->soa_notified.serial = 0;
 	}
@@ -1626,7 +1638,7 @@ xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 		zone->zone_state = xfrd_zone_refreshing;
 	}
 	/* transfer right away */
-	xfrd_set_refresh_now(zone, zone->zone_state);
+	return 1;
 }
 
 static acl_options_t* 

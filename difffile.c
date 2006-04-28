@@ -77,6 +77,7 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
 	}
+	fflush(df);
 	fclose(df);
 }
 
@@ -99,7 +100,8 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		return;
 	}
 
-	len = strlen(zone)+sizeof(len) + sizeof(new_serial) + 
+	len = strlen(zone)+sizeof(len) + sizeof(old_serial) + 
+		sizeof(new_serial) + sizeof(id) + sizeof(num_parts) +
 		sizeof(commit) + strlen(log_str)+sizeof(len);
 
 	if(!write_32(df, DIFF_PART_SURE) ||
@@ -116,6 +118,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
 	}
+	fflush(df);
 	fclose(df);
 }
 
@@ -450,7 +453,8 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
 		/* create the zone and domain of apex (zone has config options) */
 		domain = domain_table_insert(db->domains, zone_name);
 	} else {
-		zone = domain_find_zone(domain);
+		/* TODO find this zone faster than linear search */
+		zone = namedb_find_zone(db, domain);
 		/* check apex to make sure we don't find a parent zone */
 		if(zone && zone->apex == domain)
 			return zone;
@@ -975,17 +979,10 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 		log_msg(LOG_INFO, "unknown part %x len %d", type, len);
 		return 0;
 	}
-	if(!read_32(in, &len2) || len != len2) 
-		return 1;
-
-	/* part was OK, we can skip to here next time. */
-	if(fgetpos(in, &db->diff_pos) == -1) {
-		log_msg(LOG_INFO, "could not fgetpos: %s.",
-			strerror(errno));
-		db->diff_skip = 0;
-	}
-	else 
-		db->diff_skip = 1;
+	if(!read_32(in, &len2))
+		return 1; /* short read is OK */
+	if(len != len2) 
+		return 0; /* bad data is wrong */
 	return 1;
 }
 
@@ -1026,6 +1023,18 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 		}
 	}
 	log_msg(LOG_INFO, "end of diff file read");
+
+	/* can skip to the first unused element */
+	/* part was OK, we can skip to here next time. */
+	/*
+	if(fgetpos(in, &db->diff_pos) == -1) {
+		log_msg(LOG_INFO, "could not fgetpos: %s.",
+			strerror(errno));
+		db->diff_skip = 0;
+	}
+	else 
+		db->diff_skip = 1;
+	*/
 	
 	region_destroy(data->region);
 	fclose(df);
@@ -1040,7 +1049,6 @@ static int diff_broken(FILE *df, off_t* break_pos)
 	/* try to read and validate parts of the file */
 	while(read_32(df, &type)) /* cannot read type is no error, normal EOF */
 	{
-		log_msg(LOG_INFO, "garb part");
 		/* check type */
 		if(type != DIFF_PART_IXFR && type != DIFF_PART_SURE)
 			return 1;

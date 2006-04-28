@@ -1,5 +1,8 @@
 28 Apr 2006: Wouter
 	- ixfr >64k in xfrd.
+	- fixed length of new commit parts.
+	- fixed multiple ipc reads in xfrd.
+	- fixed multiple packet ixfr read in diff file.
    Miek:
 	- Forward port fixes for nsd-xfer and nsd-notify
 
