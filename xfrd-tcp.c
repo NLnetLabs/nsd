@@ -240,6 +240,8 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		buffer_flip(tcp->packet);
 	}
 	zone->query_id = ID(tcp->packet);
+	zone->msg_seq_nr = 0;
+	zone->msg_rr_count = 0;
 	log_msg(LOG_INFO, "sent tcp query with ID %d", zone->query_id);
 	tcp->msglen = buffer_limit(tcp->packet);
 	xfrd_tcp_write(set, zone);
@@ -397,10 +399,9 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	/* completed msg */
 	buffer_flip(tcp->packet);
-	xfrd_handle_received_xfr_packet(zone, tcp->packet);
-	/* TODO read multiple packet XFRs */
-	/* and done */
-	xfrd_tcp_release(set, zone);
+	if(xfrd_handle_received_xfr_packet(zone, tcp->packet) == 0) {
+		xfrd_tcp_release(set, zone);
+	}
 }
 
 void 

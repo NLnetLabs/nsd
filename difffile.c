@@ -841,7 +841,6 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	uint32_t old_serial, new_serial, num_parts;
 	uint16_t id;
 	uint8_t committed;
-	fpos_t resume_pos;
 	struct diff_zone *zp;
 	uint32_t i;
 	int have_all_parts = 1;
@@ -881,14 +880,16 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		log_msg(LOG_ERR, "diff file commit without all parts");
 	}
 
-	if(fgetpos(in, &resume_pos) == -1) {
-		log_msg(LOG_INFO, "could not fgetpos: %s.", strerror(errno));
-		return 0;
-	}
 	if(committed && have_all_parts)
 	{
 		int is_axfr=0, delete_mode=0, rr_count=0;
+		fpos_t resume_pos;
+
 		log_msg(LOG_INFO, "processing xfr: %s", log_buf);
+		if(fgetpos(in, &resume_pos) == -1) {
+			log_msg(LOG_INFO, "could not fgetpos: %s.", strerror(errno));
+			return 0;
+		}
 		for(i=0; i<num_parts; i++) {
 			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
 			log_msg(LOG_INFO, "processing xfr: apply part %d", (int)i);
@@ -898,14 +899,14 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 				log_msg(LOG_ERR, "bad ixfr packet part %d", (int)i);
 			}
 		}
+		if(fsetpos(in, &resume_pos) == -1) {
+			log_msg(LOG_INFO, "could not fsetpos: %s.", strerror(errno));
+			return 0;
+		}
 	}
 	else 	log_msg(LOG_INFO, "skipping xfr: %s", log_buf);
 	
-	if(fsetpos(in, &resume_pos) == -1) {
-		log_msg(LOG_INFO, "could not fsetpos: %s.", strerror(errno));
-		return 0;
-	}
-	/* clean out the zone tree after the commit/rollback */
+	/* clean out the parts for the zone after the commit/rollback */
 	zp->parts->root = RBTREE_NULL;
 	zp->parts->count = 0;
 	return 1;

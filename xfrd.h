@@ -132,8 +132,14 @@ struct xfrd_zone {
 	uint8_t tcp_waiting;
 	/* next zone in waiting list */
 	xfrd_zone_t* tcp_waiting_next;
+
+	/* xfr message handling data */
 	/* query id */
 	uint16_t query_id;
+	uint32_t msg_seq_nr; /* number of messages already handled */
+	uint32_t msg_old_serial, msg_new_serial; /* host byte order */
+	size_t msg_rr_count;
+	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
 };
 
 #define XFRD_FILE_MAGIC "NSDXFRD1"
@@ -142,8 +148,9 @@ struct xfrd_zone {
 void xfrd_init(int socket, struct nsd* nsd);
 /* get the current time epoch. Cached for speed. */
 time_t xfrd_time();
-/* handle final received packet from network */
-void xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet);
+/* handle final received packet from network.
+   returns 1 if more packets are expected. 0 if ended. */
+int xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet);
 /* set timer to specific value */
 void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
 
