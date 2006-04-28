@@ -28,6 +28,19 @@
 extern char *optarg;
 extern int optind;
 
+/*
+ * Log a warning message.
+ */
+static void warning(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+static void
+warning(const char *format, ...)
+{
+        va_list args;
+        va_start(args, format);
+        log_vmsg(LOG_WARNING, format, args);
+        va_end(args);
+}
+
 static void 
 usage (void)
 {
@@ -61,8 +74,7 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 		   	buffer_remaining(q->packet), 0,
 		   	res->ai_addr, res->ai_addrlen) == -1)
 		{
-			fprintf(stderr,
-				"send to %s failed: %s\n", addrstr,
+			warning("send to %s failed: %s\n", addrstr,
 				strerror(errno));
 			close(udp_s);
 			return;
@@ -75,14 +87,13 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 		tv.tv_usec = 0; /* microseconds */
 		retval = select(udp_s + 1, &rfds, NULL, NULL, &tv);
 		if (retval == -1) {
-			fprintf(stderr, "Error waiting for reply from %s: %s\n",
+			warning("error waiting for reply from %s: %s\n",
 				addrstr, strerror(errno));
 			close(udp_s);
 			return;
 		}
 		if (retval == 0) {
-			fprintf(stderr, 
-				"Timeout (%d s) expired, retry notify to %s.\n",
+			warning("timeout (%d s) expired, retry notify to %s.\n",
 				timeout_retry, addrstr);
 		}
 		if (retval == 1) {
@@ -96,8 +107,7 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 		res->ai_addr, &res->ai_addrlen);
 	
 	if (received == -1) {
-		fprintf(stderr, "recv %s failed: %s\n",
-			addrstr, strerror(errno));
+		warning("recv %s failed: %s\n", addrstr, strerror(errno));
 	} else {
 		/* check the answer */
 		if ((ID(q->packet) == ID(answer->packet)) &&
@@ -105,9 +115,9 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 			AA(answer->packet) && 
 			QR(answer->packet) && (RCODE(answer->packet) == RCODE_OK)) 
 		{
-			fprintf(stderr, "%s acknowledges notify.\n", addrstr);
+			warning("reply from: %s, acknowledges notify.\n", addrstr);
 		} else {
-			fprintf(stderr, "Bad reply from %s, error respons %s (%d).\n", 
+			warning("bad reply from %s, error respons %s (%d).\n", 
 				addrstr, rcode2str(RCODE(answer->packet)), 
 				RCODE(answer->packet));
 		}
@@ -199,7 +209,7 @@ main (int argc, char *argv[])
 		hints.ai_protocol = IPPROTO_UDP;
 		error = getaddrinfo(*argv, port, &hints, &res0);
 		if (error) {
-			fprintf(stderr, "skipping bad address %s: %s\n", *argv,
+			warning("skipping bad address %s: %s\n", *argv,
 			    gai_strerror(error));
 			continue;
 		}
