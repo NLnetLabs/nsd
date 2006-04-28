@@ -66,14 +66,12 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 	ssize_t received = 0;
 	int got_ack = 0;
 
-	while(!got_ack)
-	{
+	while(!got_ack) {
 		/* WE ARE READY SEND IT OUT */
 		if (sendto(udp_s,
 		   	buffer_current(q->packet),
 		   	buffer_remaining(q->packet), 0,
-		   	res->ai_addr, res->ai_addrlen) == -1)
-		{
+		   	res->ai_addr, res->ai_addrlen) == -1) {
 			warning("send to %s failed: %s\n", addrstr,
 				strerror(errno));
 			close(udp_s);
@@ -113,8 +111,7 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 		if ((ID(q->packet) == ID(answer->packet)) &&
 			(OPCODE(answer->packet) == OPCODE_NOTIFY) &&
 			AA(answer->packet) && 
-			QR(answer->packet) && (RCODE(answer->packet) == RCODE_OK)) 
-		{
+			QR(answer->packet) && (RCODE(answer->packet) == RCODE_OK)) {
 			/* no news is good news */
 			/* warning("reply from: %s, acknowledges notify.\n", addrstr); */
 		} else {
@@ -174,8 +171,9 @@ main (int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (argc == 0 || zone == NULL)
+	if (argc == 0 || zone == NULL) {
 		usage();
+	}
 
 	/* Initialize the query */
 	memset(&q, 0, sizeof(struct query));
