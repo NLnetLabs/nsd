@@ -115,7 +115,8 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 			AA(answer->packet) && 
 			QR(answer->packet) && (RCODE(answer->packet) == RCODE_OK)) 
 		{
-			warning("reply from: %s, acknowledges notify.\n", addrstr);
+			/* no news is good news */
+			/* warning("reply from: %s, acknowledges notify.\n", addrstr); */
 		} else {
 			warning("bad reply from %s, error respons %s (%d).\n", 
 				addrstr, rcode2str(RCODE(answer->packet)), 
