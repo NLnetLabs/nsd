@@ -53,31 +53,24 @@ Step 4: make all
 
 Step 5: make install
 
-Step 6: Add "axfr" and/or "axfr-zone.name.tld" entries to your
-        hosts.allow and/or hosts deny
+Step 6: Create and edit /etc/nsd/nsd.conf file possibly from
+        nsd.conf.sample template that comes with the distribution.
 
-        Example:
-
-                axfr: ALL : allow
-
-Step 7: Create and edit /etc/nsd/nsd.zones file possibly from
-        nsd.zones.sample template that comes with the distribution.
-
-Step 8: Copy necessary master zone files into appropriate directories
+Step 7: Copy necessary master zone files into appropriate directories
         under /etc/nsd/primary & /etc/nsd/secondary You might consider
-        using contrib/build-nsdzones.pl script to automate task 7 & 8.
+        using contrib/build-nsdzones.pl script to automate task 6 & 7.
 
-Step 9: Run nsdc update if necessary
+Step 8: Run nsdc update if necessary
 
-Step 10: Run nsdc rebuild
+Step 9: Run nsdc rebuild
 
-Step 11: Run nsdc start
+Step 10: Run nsdc start
 
-Step 12: Test the NSD with dig or host.
+Step 11: Test the NSD with dig or host.
 
-Step 13: If you're happy add nsdc start into your OS boot up sequence.
+Step 12: If you're happy add nsdc start into your OS boot up sequence.
 
-Step 14: If desired add nsdc update to your superuser crontab to
+Step 13: If desired add nsdc update to your superuser crontab to
          update the zones from master servers periodically.
 
          Got any problems or questions with the steps above? Read the
@@ -176,6 +169,10 @@ addition to standard configure options, one may use the following:
 
         Specified, NSD configuration directory, default /etc/nsd
 
+  --with-nsd_conf_file=path
+
+	Pathname to the NSD configuration file, default /ect/nsd/nsd.conf
+
   --with-pidfile=path
 
         Pathname to the NSD pidfile, default is platform specific,
@@ -233,10 +230,11 @@ nsdc            - a shell script to control the daemon
 zonec           - zone compiler
 nsd-notify      - a simple C program to send outbound notifies
 nsd-xfer        - a program to receive zones from a master server
-                  using AXFR.
+                  using AXFR from the command line.
+nsd-checkconf	- simple C program to check nsd.conf before use.
+nsd-patch	- simple program that cleans IXFR changes back to zone files.
 
 Plus the manual pages.
-
 
 
 3.0 Running NSD
@@ -404,6 +402,9 @@ zone:
 	name: "example.com"
 	provide-xfr: 127.0.0.1 NOKEY
 	provide-xfr: ::1 NOKEY
+
+You can use dig @localhost example.com axfr to test this.
+
 
 3.3 Keeping in sync the secondary zones with ``nsdc update''
 

@@ -7,6 +7,8 @@
 	- made nsd.conf.sample.in so the sample gets prefix-corrected.
 	- removed nsd.zones.sample.
 	- makedist.sh added manual pages for nsd-xfer nsd-patch.
+	- install/uninstall nsd-patch, nsd-checkconf and manpage. 
+	  small update readme.
 
 28 Apr 2006: Wouter
 	- ixfr >64k in xfrd.
