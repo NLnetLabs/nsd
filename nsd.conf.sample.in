@@ -25,7 +25,7 @@ server:
 	# ip6-only: yes
 	
 	# the database to use
-	# database: "/etc/nsd/nsd.db"
+	# database: "@dbfile@"
 
 	# identify the server (CH TXT ID.SERVER entry).
 	# identity: "unidentified server"
@@ -40,7 +40,7 @@ server:
 	# tcp-count: 10
 
 	# File to store pid for nsd in.
-	# pidfile: "/var/pid/nsd.pid"
+	# pidfile: "@pidfile@"
 
 	# port to answer queries on. default is 53.
 	# port: 53
@@ -50,14 +50,14 @@ server:
 
 	# Run NSD in a chroot-jail.
 	# make sure to have pidfile and database reachable from there.
-	# chroot: "/etc/nsd/"
+	# chroot: "@configdir@"
 
 	# After binding socket, drop user privileges.
 	# can be a username, id or id.gid.
-	# username: nsd
+	# username: @user@
 
 	# The directory for zonefile: files.
-	# zonesdir: /etc/nsd/zones/
+	# zonesdir: @zonesdir@
 
 	# The file where incoming zone transfers are stored.
 	# run nsd-patch to update zone files, then you can safely delete it.

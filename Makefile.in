@@ -53,7 +53,7 @@ EDIT		= sed \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample nsd-checkconf nsd-patch
+TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample nsd-checkconf nsd-patch nsd.conf.sample
 
 NSD_OBJECTS	=				\
 	answer.o				\
@@ -244,6 +244,10 @@ nsdc.sh:	nsdc.sh.in
 nsdc.conf.sample:	nsdc.conf.sample.in
 	rm -f nsdc.conf.sample
 	$(EDIT) nsdc.conf.sample.in > nsdc.conf.sample
+
+nsd.conf.sample:	nsd.conf.sample.in
+	rm -f nsd.conf.sample
+	$(EDIT) nsd.conf.sample.in > nsd.conf.sample
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(sbindir)

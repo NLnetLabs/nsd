@@ -4,6 +4,8 @@
 	- doc comment near the region_free_all for every query about 
 	  malloc speed.
 	- null ptr in strcmp does not work on bsd, fixed nsd-checkconf.
+	- made nsd.conf.sample.in so the sample gets prefix-corrected.
+	- removed nsd.zones.sample.
 
 28 Apr 2006: Wouter
 	- ixfr >64k in xfrd.
