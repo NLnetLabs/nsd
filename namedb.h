@@ -227,7 +227,7 @@ struct namedb
 	fpos_t		  crc_pos;
 	/* if diff_skip=1, diff_pos contains the nsd.diff place to continue */
 	uint8_t		  diff_skip;
-	fpos_t		  diff_pos;
+	off_t		  diff_pos;
 };
 
 static inline int rdata_atom_is_domain(uint16_t type, size_t index);

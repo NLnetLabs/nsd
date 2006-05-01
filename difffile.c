@@ -512,7 +512,7 @@ delete_zone_rrs(zone_type* zone)
 }
 
 static int 
-apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos, 
+apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos, 
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
 	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count)
@@ -529,8 +529,8 @@ apply_ixfr(namedb_type* db, FILE *in, const fpos_t* startpos,
 	uint32_t file_serial, file_seq_nr;
 	uint16_t file_id;
 
-	if(fsetpos(in, startpos) == -1) {
-		log_msg(LOG_INFO, "could not fsetpos: %s.", strerror(errno));
+	if(fseeko(in, *startpos, SEEK_SET) == -1) {
+		log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
 		return 0;
 	}
 	/* read ixfr packet RRs and apply to in memory db */
@@ -747,7 +747,7 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
  * a rbtree (zone_names) with for each zone:
  * 	has a rbtree by sequence number
  *		with inside a serial_number and ID (for checking only)
- *		and contains a fpos_t to the IXFR packet in the file.
+ *		and contains a off_t to the IXFR packet in the file.
  * so when you get a commit for a zone, get zone obj, find sequence,
  * then check if you have all sequence numbers available. Apply all packets.
  */
@@ -769,7 +769,7 @@ struct diff_xfrpart {
 	uint32_t seq_nr;
 	uint32_t new_serial;
 	uint16_t id;
-	fpos_t file_pos;
+	off_t file_pos;
 };
 
 static struct diff_read_data* 
@@ -887,11 +887,12 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	if(committed && have_all_parts)
 	{
 		int is_axfr=0, delete_mode=0, rr_count=0;
-		fpos_t resume_pos;
+		off_t resume_pos;
 
 		log_msg(LOG_INFO, "processing xfr: %s", log_buf);
-		if(fgetpos(in, &resume_pos) == -1) {
-			log_msg(LOG_INFO, "could not fgetpos: %s.", strerror(errno));
+		resume_pos = ftello(in);
+		if(resume_pos == -1) {
+			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
 			return 0;
 		}
 		for(i=0; i<num_parts; i++) {
@@ -903,8 +904,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 				log_msg(LOG_ERR, "bad ixfr packet part %d", (int)i);
 			}
 		}
-		if(fsetpos(in, &resume_pos) == -1) {
-			log_msg(LOG_INFO, "could not fsetpos: %s.", strerror(errno));
+		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
+			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
 			return 0;
 		}
 	}
@@ -917,7 +918,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 }
 
 static int
-store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, fpos_t* startpos)
+store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* startpos)
 {
 	char zone_name[2560];
 	struct diff_zone* zp;
@@ -957,10 +958,11 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	nsd_options_t* opt, struct diff_read_data* data)
 {
 	uint32_t len, len2;
-	fpos_t startpos;
+	off_t startpos;
 
-	if(fgetpos(in, &startpos) == -1) {
-		log_msg(LOG_INFO, "could not fgetpos: %s.", strerror(errno));
+	startpos = ftello(in);
+	if(startpos == -1) {
+		log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
 		return 0;
 	}
 
@@ -981,9 +983,40 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	}
 	if(!read_32(in, &len2))
 		return 1; /* short read is OK */
-	if(len != len2) 
+	if(len != len2)
 		return 0; /* bad data is wrong */
 	return 1;
+}
+
+/*
+ * Finds smallest offset in data structs
+ * returns 0 if no offsets in the data structs.
+ */
+static int
+find_smallest_offset(struct diff_read_data* data, off_t* offset)
+{
+	int found_any = 0;
+	struct diff_zone* dz;
+	struct diff_xfrpart* dx;
+	if(!data || !data->zones)
+		return 0;
+	RBTREE_FOR(dz, struct diff_zone*, data->zones)
+	{
+		if(!dz->parts)
+			continue;
+		RBTREE_FOR(dx, struct diff_xfrpart*, dz->parts)
+		{
+			if(found_any) {
+				if(dx->file_pos < *offset)
+					*offset = dx->file_pos;
+			} else {
+				found_any = 1;
+				*offset = dx->file_pos;
+			}
+		}
+	}
+
+	return found_any;
 }
 
 int 
@@ -1006,8 +1039,8 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 	}
 	if(db->diff_skip) {
 		log_msg(LOG_INFO, "skip diff file");
-		if(fsetpos(df, &db->diff_pos)==-1) {
-			log_msg(LOG_INFO, "could not fsetpos file %s: %s. Reread from start.",
+		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
+			log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread from start.",
 				filename, strerror(errno));
 		}
 	}
@@ -1024,17 +1057,19 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 	}
 	log_msg(LOG_INFO, "end of diff file read");
 
-	/* can skip to the first unused element */
-	/* part was OK, we can skip to here next time. */
-	/*
-	if(fgetpos(in, &db->diff_pos) == -1) {
-		log_msg(LOG_INFO, "could not fgetpos: %s.",
-			strerror(errno));
-		db->diff_skip = 0;
-	}
-	else 
+	if(find_smallest_offset(data, &db->diff_pos)) {
+		/* can skip to the first unused element */
 		db->diff_skip = 1;
-	*/
+	} else {
+		/* all processed, can skip to here next time */
+		db->diff_skip = 1;
+		db->diff_pos = ftello(df);
+		if(db->diff_pos == -1) {
+			log_msg(LOG_INFO, "could not ftello: %s.",
+				strerror(errno));
+			db->diff_skip = 0;
+		}
+	}
 	
 	region_destroy(data->region);
 	fclose(df);
@@ -1090,8 +1125,8 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 	/* and skip into file, since nsd does not read anything before the pos */
 	if(db->diff_skip) {
 		log_msg(LOG_INFO, "garbage collect skip diff file");
-		if(fsetpos(df, &db->diff_pos)==-1) {
-			log_msg(LOG_INFO, "could not fsetpos file %s: %s.", 
+		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
+			log_msg(LOG_INFO, "could not fseeko file %s: %s.", 
 				filename, strerror(errno));
 			fclose(df);
 			return;

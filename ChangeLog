@@ -1,3 +1,9 @@
+1 May 2006: Wouter
+	- off_t used for 64bit fileio. 
+	- searches for smallest unused part and sets diff_skip to that.
+	- doc comment near the region_free_all for every query about 
+	  malloc speed.
+
 28 Apr 2006: Wouter
 	- ixfr >64k in xfrd.
 	- fixed length of new commit parts.
