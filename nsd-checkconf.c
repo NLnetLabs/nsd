@@ -307,22 +307,22 @@ additional_checks(nsd_options_t* opt, const char* filename)
         if (opt->chroot) {
                 int l = strlen(opt->chroot);
 
-                if (strncmp(opt->chroot, opt->pidfile, l) != 0) {
+                if (opt->pidfile && strncmp(opt->chroot, opt->pidfile, l) != 0) {
 			fprintf(stderr, "%s: pidfile %s is not relative to chroot %s.\n", 
 				filename, opt->pidfile, opt->chroot);
 			errors ++;
                 } 
-		if (strncmp(opt->chroot, opt->database, l) != 0) {
+		if (opt->database && strncmp(opt->chroot, opt->database, l) != 0) {
 			fprintf(stderr, "%s: databasefile %s is not relative to chroot %s.\n", 
 				filename, opt->database, opt->chroot);
 			errors ++;
                 }
-		if (strncmp(opt->chroot, opt->difffile, l) != 0) {
+		if (opt->difffile && strncmp(opt->chroot, opt->difffile, l) != 0) {
 			fprintf(stderr, "%s: difffile %s is not relative to chroot %s.\n", 
 				filename, opt->difffile, opt->chroot);
 			errors ++;
                 }
-		if (strncmp(opt->chroot, opt->xfrdfile, l) != 0) {
+		if (opt->xfrdfile && strncmp(opt->chroot, opt->xfrdfile, l) != 0) {
 			fprintf(stderr, "%s: xfrdfile %s is not relative to chroot %s.\n", 
 				filename, opt->xfrdfile, opt->chroot);
 			errors ++;

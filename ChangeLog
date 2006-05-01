@@ -3,6 +3,7 @@
 	- searches for smallest unused part and sets diff_skip to that.
 	- doc comment near the region_free_all for every query about 
 	  malloc speed.
+	- null ptr in strcmp does not work on bsd, fixed nsd-checkconf.
 
 28 Apr 2006: Wouter
 	- ixfr >64k in xfrd.
