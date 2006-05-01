@@ -149,6 +149,8 @@ replace_all nsd.8
 replace_all nsdc.8
 replace_all nsd-notify.8
 replace_all nsd-checkconf.8
+replace_all nsd-patch.8
+replace_all nsd-xfer.8
 replace_all zonec.8
 replace_all nsd.conf.5
 
