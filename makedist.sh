@@ -148,6 +148,7 @@ replace_all README
 replace_all nsd.8
 replace_all nsdc.8
 replace_all nsd-notify.8
+replace_all nsd-xfer.8
 replace_all zonec.8
 
 info "Renaming NSD directory to nsd-$version."
