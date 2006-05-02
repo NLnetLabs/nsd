@@ -127,10 +127,10 @@ print_acl(const char* varname, acl_options_t* acl)
 #endif
 			} else {
 				char dest[INET_ADDRSTRLEN+100];
-				inet_ntop(AF_INET, &acl->addr.addr6, dest, sizeof(dest));
+				inet_ntop(AF_INET, &acl->addr.addr, dest, sizeof(dest));
 				printf(" addr=%s", dest);
 				if(acl->rangetype != acl_range_single) {
-					inet_ntop(AF_INET, &acl->range_mask.addr6, dest, sizeof(dest));
+					inet_ntop(AF_INET, &acl->range_mask.addr, dest, sizeof(dest));
 					printf(" rangemask=%s", dest);
 				}
 			}
@@ -286,13 +286,6 @@ additional_checks(nsd_options_t* opt, const char* filename)
 	{
 		fprintf(stderr, "%s: chroot %s given. chroot not supported on this platform.\n", 
 			filename, opt->chroot);
-		errors ++;
-	}
-#endif
-#ifndef INET6
-	if(opt->ipv6_only)
-	{
-		fprintf(stderr, "%s: ipv6_only given but IPv6 support not enabled.\n", filename);
 		errors ++;
 	}
 #endif

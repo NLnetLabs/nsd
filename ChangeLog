@@ -1,5 +1,6 @@
 2 May 2006: Wouter
 	- ifdef inet6 back on ss_family usage in server.c.
+	- nsd-checkconf ip6 ifdefs improved.
 
 1 May 2006: Wouter
 	- off_t used for 64bit fileio. 
