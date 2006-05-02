@@ -195,5 +195,9 @@ query_overflow(query_type *q)
 {
 	return buffer_position(q->packet) > (q->maxlen - q->reserved_space);
 }
-
+static inline int
+query_overflow_nsid(query_type *q, uint16_t nsid_len)
+{
+        return buffer_position(q->packet) > (q->maxlen - q->reserved_space - nsid_len);
+}
 #endif /* _QUERY_H_ */
