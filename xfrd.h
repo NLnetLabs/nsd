@@ -119,7 +119,9 @@ struct xfrd_zone {
 	/* master to try to transfer from, number for persistence */
 	acl_options_t* master;
 	int master_num;
-	int next_master;
+	int next_master; /* -1 or set by notify where to try next */
+	/* round of xfrattempts, -1 is waiting for timeout */
+	int round_num; 
 	zone_options_t* zone_options;
 
 	/* handler for timeouts */
@@ -144,14 +146,30 @@ struct xfrd_zone {
 
 #define XFRD_FILE_MAGIC "NSDXFRD1"
 
+enum xfrd_packet_result {
+	xfrd_packet_bad, /* drop the packet/connection */
+	xfrd_packet_more, /* more packets to follow on tcp */
+	xfrd_packet_tcp, /* try tcp connection */
+	xfrd_packet_success /* server responded */
+};
+
 /* start xfrd, new start. Pass socket to server_main. */
 void xfrd_init(int socket, struct nsd* nsd);
 /* get the current time epoch. Cached for speed. */
 time_t xfrd_time();
 /* handle final received packet from network.
-   returns 1 if more packets are expected. 0 if ended. */
-int xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet);
+   returns enum of packet discovery results */
+enum xfrd_packet_result xfrd_handle_received_xfr_packet(
+	xfrd_zone_t* zone, buffer_type* packet);
 /* set timer to specific value */
 void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
+/* 
+ * Make a new request to next master server. 
+ * uses next_master if set (and a fresh set of rounds).
+ * otherwised, starts new round of requests if none started already. 
+ * starts next round of requests if at last master.
+ * if too many rounds of requests, sets timer for next retry.
+ */
+void xfrd_make_request(xfrd_zone_t* zone);
 
 #endif /* XFRD_H */

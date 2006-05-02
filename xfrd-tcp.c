@@ -405,10 +405,21 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	/* completed msg */
 	buffer_flip(tcp->packet);
-	if(xfrd_handle_received_xfr_packet(zone, tcp->packet)) {
-		tcp_conn_ready_for_reading(tcp);
-	} else {
-		xfrd_tcp_release(set, zone);
+	switch(xfrd_handle_received_xfr_packet(zone, tcp->packet)) {
+		case xfrd_packet_more:
+			tcp_conn_ready_for_reading(tcp);
+			break;
+		case xfrd_packet_success:
+			xfrd_tcp_release(set, zone);
+			assert(zone->round_num == -1);
+			break;
+		case xfrd_packet_bad:
+		case xfrd_packet_tcp:
+		default:
+			xfrd_tcp_release(set, zone);
+			/* query next server */
+			xfrd_make_request(zone);
+			break;
 	}
 }
 

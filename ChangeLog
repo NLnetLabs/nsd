@@ -1,6 +1,7 @@
 2 May 2006: Wouter
 	- ifdef inet6 back on ss_family usage in server.c.
 	- nsd-checkconf ip6 ifdefs improved.
+	- xfrd tries servers 3 rounds, then waits for next retry.
 
 1 May 2006: Wouter
 	- off_t used for 64bit fileio. 
