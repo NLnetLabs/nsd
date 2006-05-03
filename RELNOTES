@@ -1,19 +1,24 @@
 NSD RELEASE NOTES
 
-2.3.5 (TO BE RELEASED)
-============
-BUG FIXES:
-	- Bug #118: nsd: nsd_notify waits for a response. Will retry the notify
-	  after a timeout.
-        - Bug #124: $(DESTDIR) was added to Makefile.in. 
-	- Bug #128: zonec: parser can handle \\ at the end of a string.
+2.3.5
+=============
+TO BE RELEASED
 
 2.3.4
 =============
 BUG FIXES:
         - Unknown type codes for type code numbers > 48 and < 97 work again.       
           (this implies --enable-checking can be enabled again)
-        - sighandler() fixes - TODO
+        - nsd: sighandler() fixes
+	- Bug #118: nsd: nsd_notify waits for a response. Will retry the notify
+	  after a timeout.
+        - Bug #124: $(DESTDIR) was added to Makefile.in. 
+	- Bug #128: zonec: parser can handle \\ at the end of a string.
+        - zonec: lexer: add \r to the newline delimeter
+        - zonec: use strtol with an explicit base 10 as parameter.
+          (Scott Rose, Roy Arends)
+        - nsd-xfer: print human readable error codes. Change logging to 
+          be more in line with the rest
 
 2.3.3
 =============
