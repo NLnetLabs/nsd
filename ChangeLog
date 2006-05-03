@@ -4,6 +4,10 @@
 	- removed memleak from handle_passed_packet in xfrd.
 	- faster find_zone in difffile.c.
 	- nsd-patch writes commit log entries into zone file.
+	- took some tsig.c enhancements from 3 branch,
+	  -> if key or algo changes during connection, return bad_key,
+	  -> debug statement neater.
+	- nsd adds tsig keys to tsig keyring at startup.
 
 2 May 2006: Wouter
 	- ifdef inet6 back on ss_family usage in server.c.

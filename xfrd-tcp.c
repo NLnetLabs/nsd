@@ -99,7 +99,6 @@ xfrd_write_soa_buffer(struct buffer* packet,
 	buffer_skip(packet, sizeof(rdlength));
 
 	/* uncompressed dnames */
-	/* TODO: compress the dnames here */
 	buffer_write(packet, soa->prim_ns+1, soa->prim_ns[0]);
 	buffer_write(packet, soa->email+1, soa->email[0]);
 

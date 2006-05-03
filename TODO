@@ -55,3 +55,5 @@ OPTIMISATIONS
   the query name (in dname_make from process_query_section) and
   then frees it (in query reset). This could be a fixed buffer
   (2 + max_labels + maxdomainlen) = 255 + 128 + 2 bytes.
+- compress dnames in ixfr queries (write_soa_buffer) (zone 2x, mname, rname).
+  small gain, nasty code.
