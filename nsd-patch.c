@@ -19,8 +19,8 @@
 static void
 usage(void)
 {
-	/* TODO manpage */
         fprintf(stderr, "usage: nsd-patch [-c <configfilename>]\n");
+        fprintf(stderr, "	reads database and ixfrs and patches up zone files.\n");
         exit(1);
 }
 
@@ -73,7 +73,24 @@ print_rrs(FILE* out, struct zone* zone)
 }
 
 static void
-write_to_zonefile(struct zone* zone)
+print_commit_log(FILE* out, const char* zone, struct diff_log* commit_log)
+{
+	struct diff_log* p = commit_log;
+	while(p)
+	{
+		if(strcmp(p->zone_name, zone) == 0)
+		{
+			fprintf(out, "; commit");
+			if(p->error)
+				fprintf(out, "(%s)", p->error);
+			fprintf(out, ": %s\n", p->comment);
+		}
+		p = p->next;
+	}
+}
+
+static void
+write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 {
 	const char* filename = zone->opts->zonefile;
 	time_t now = time(0);
@@ -97,7 +114,8 @@ write_to_zonefile(struct zone* zone)
 	fprintf(out, "; NSD version %s\n", PACKAGE_VERSION);
 	fprintf(out, "; nsd-patch zone %s run at time %s", 
 		zone->opts->name, ctime(&now));
-	/* TODO ; as comments commit strings from diff file */
+	print_commit_log(out, dname_to_string(domain_dname(zone->apex), NULL), 
+		commit_log);
 
 	print_rrs(out, zone);
 
@@ -111,6 +129,7 @@ int main(int argc, char* argv[])
 	nsd_options_t *options;
 	struct namedb* db;
 	struct zone* zone;
+	struct diff_log* commit_log = 0;
 
         /* Parse the command line... */
 	while ((c = getopt(argc, argv, "c:")) != -1) {
@@ -137,7 +156,7 @@ int main(int argc, char* argv[])
 
 	/* see if necessary */
 	if(!exist_difffile(options)) {
-		printf("No diff file, nothing to do\n");
+		printf("No diff file, nothing to do.\n");
 		exit(0);
 	}
 
@@ -158,7 +177,7 @@ int main(int argc, char* argv[])
 
 	/* read ixfr diff file */
 	printf("reading updates to database\n");
-	if(!diff_read_file(db, options)) {
+	if(!diff_read_file(db, options, &commit_log)) {
 		fprintf(stderr, "unable to load the diff file: %s", 
 			strerror(errno));
 		exit(1);
@@ -173,7 +192,7 @@ int main(int argc, char* argv[])
 			continue;
 		}
 		/* write zone to its zone file */
-		write_to_zonefile(zone);
+		write_to_zonefile(zone, commit_log);
 	}
 	printf("done\n");
 

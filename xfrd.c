@@ -577,10 +577,14 @@ xfrd_make_request(xfrd_zone_t* zone)
 			/* tried all servers that many times, wait */
 			zone->round_num = -1;
 			xfrd_set_timer_retry(zone);
+			log_msg(LOG_INFO, "xfrd zone %s makereq wait_retry, rd %d mr %d nx %d", 
+				zone->apex_str, zone->round_num, zone->master_num, zone->next_master);
 			return;
 		}
 	}
 
+	log_msg(LOG_INFO, "xfrd zone %s make request round %d mr %d nx %d", 
+		zone->apex_str, zone->round_num, zone->master_num, zone->next_master);
 	/* perform xfr request */
 	if(zone->soa_disk_acquired == 0) {
 		/* request axfr */
@@ -1636,13 +1640,13 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 	uint8_t qnamebuf[MAXDOMAINLEN];
 	uint16_t qtype, qclass;
 	const dname_type* dname;
+	region_type* tempregion = region_create(xalloc, free);
 	xfrd_zone_t* zone;
 	buffer_skip(packet, QHEADERSZ);
 	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass))
 		return; /* drop bad packet */
 
-	/* TODO memory leak */
-	dname = dname_make(xfrd->region, qnamebuf, 1);
+	dname = dname_make(tempregion, qnamebuf, 1);
 	log_msg(LOG_INFO, "xfrd: got passed packet for %s, acl %d", 
 		dname_to_string(dname,0), acl_num);
 
@@ -1651,8 +1655,10 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 	if(!zone) {
 		log_msg(LOG_INFO, "xfrd: incoming packet for unknown zone %s", 
 			dname_to_string(dname,0));
+		region_destroy(tempregion);
 		return; /* drop packet for unknown zone */
 	}
+	region_destroy(tempregion);
 
 	/* handle */
 	if(OPCODE(packet) == OPCODE_NOTIFY) {
@@ -1672,7 +1678,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 		}
 	}
 	else {
-		/* TODO IXFR udp reply via port 53 */
+		/* TODO handle incoming IXFR udp reply via port 53 */
 	}
 }
 

@@ -1,5 +1,9 @@
 3 May 2006: Wouter
 	- forward of 2.3.4 RELNOTES into trunk.
+	- debug log statements to track xfrd request rounds.
+	- removed memleak from handle_passed_packet in xfrd.
+	- faster find_zone in difffile.c.
+	- nsd-patch writes commit log entries into zone file.
 
 2 May 2006: Wouter
 	- ifdef inet6 back on ss_family usage in server.c.

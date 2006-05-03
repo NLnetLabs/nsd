@@ -448,7 +448,7 @@ server_init(struct nsd *nsd)
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
 		return -1;
 	}
-	if(!diff_read_file(nsd->db, nsd->options))
+	if(!diff_read_file(nsd->db, nsd->options, NULL))
 		return -1;
 #ifdef NSEC3
 	prehash(nsd->db, NULL);
@@ -592,7 +592,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			exit(1);
 		}
 	}
-	if(!diff_read_file(nsd->db, nsd->options)) {
+	if(!diff_read_file(nsd->db, nsd->options, NULL)) {
 			log_msg(LOG_ERR, "unable to load the diff file: %s", strerror(errno));
 			exit(1);
 	}

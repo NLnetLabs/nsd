@@ -453,11 +453,16 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
 		/* create the zone and domain of apex (zone has config options) */
 		domain = domain_table_insert(db->domains, zone_name);
 	} else {
-		/* TODO find this zone faster than linear search */
-		zone = namedb_find_zone(db, domain);
+		/* O(1) if SOA exists */
+		zone = domain_find_zone(domain);
+		/* if domain was empty (no rrsets, empty zone) search in zonelist */
 		/* check apex to make sure we don't find a parent zone */
-		if(zone && zone->apex == domain)
+		if(!zone || zone->apex != domain)
+			zone = namedb_find_zone(db, domain);
+		if(zone) {
+			assert(zone->apex == domain);
 			return zone;
+		}
 	}
 	/* create the zone */
 	log_msg(LOG_INFO, "xfr: creating zone_type %s",
@@ -838,7 +843,7 @@ diff_read_insert_part(struct diff_read_data* data,
 
 static int 
 read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt, 
-	struct diff_read_data* data)
+	struct diff_read_data* data, struct diff_log** log)
 {
 	char zone_buf[512];
 	char log_buf[5120];
@@ -848,6 +853,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	struct diff_zone *zp;
 	uint32_t i;
 	int have_all_parts = 1;
+	struct diff_log* thislog = 0;
 
 	/* read zone name and serial */
 	if(!read_str(in, zone_buf, sizeof(zone_buf)) ||
@@ -862,16 +868,29 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		return 1;
 	}
 
+	if(log) {
+		thislog = (struct diff_log*)region_alloc(db->region, sizeof(struct diff_log));
+		thislog->zone_name = region_strdup(db->region, zone_buf);
+		thislog->comment = region_strdup(db->region, log_buf);
+		thislog->error = 0;
+		thislog->next = *log;
+		*log = thislog;
+	}
+
 	/* has been read in completely */
 	zp = diff_read_find_zone(data, zone_buf);
 	if(!zp) {
 		log_msg(LOG_ERR, "diff file commit without IXFR");
+		if(thislog)
+			thislog->error = "error no IXFR parts";
 		return 1;
 	}
 	if(committed && check_for_bad_serial(db, zone_buf, old_serial)) {
 		log_msg(LOG_ERR, "diff file commit with bad serial");
 		zp->parts->root = RBTREE_NULL;
 		zp->parts->count = 0;
+		if(thislog)
+			thislog->error = "error bad serial";
 		return 1;
 	}
 	for(i=0; i<num_parts; i++) {
@@ -882,6 +901,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	}
 	if(!have_all_parts) {
 		log_msg(LOG_ERR, "diff file commit without all parts");
+		if(thislog)
+			thislog->error = "error missing parts";
 	}
 
 	if(committed && have_all_parts)
@@ -955,7 +976,8 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 
 static int 
 read_process_part(namedb_type* db, FILE *in, uint32_t type,
-	nsd_options_t* opt, struct diff_read_data* data)
+	nsd_options_t* opt, struct diff_read_data* data,
+	struct diff_log** log)
 {
 	uint32_t len, len2;
 	off_t startpos;
@@ -975,7 +997,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	}
 	else if(type == DIFF_PART_SURE) {
 		log_msg(LOG_INFO, "part SURE len %d", len);
-		if(!read_sure_part(db, in, opt, data)) 
+		if(!read_sure_part(db, in, opt, data, log)) 
 			return 0;
 	} else {
 		log_msg(LOG_INFO, "unknown part %x len %d", type, len);
@@ -1020,7 +1042,7 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 }
 
 int 
-diff_read_file(namedb_type* db, nsd_options_t* opt)
+diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log)
 {
 	const char* filename = DIFFFILE;
 	FILE *df;
@@ -1048,7 +1070,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt)
 	while(read_32(df, &type)) 
 	{
 		log_msg(LOG_INFO, "iter loop");
-		if(!read_process_part(db, df, type, opt, data))
+		if(!read_process_part(db, df, type, opt, data, log))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
 			region_destroy(data->region);

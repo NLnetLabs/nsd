@@ -22,6 +22,16 @@
 
 #define DIFFFILE "ixfr.db"
 
+/*
+ * Used to pass commit logs
+ */
+struct diff_log {
+	char* zone_name;
+	char* error;
+	char* comment;
+	struct diff_log* next;
+};
+
 /* write an xfr packet data to the diff file, type=IXFR.
    The diff file is created if necessary. */
 void diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id, 
@@ -43,8 +53,10 @@ int db_crc_different(namedb_type* db);
 
 /* read the diff file and apply to the database in memory.
    It will attempt to skip bad data. 
+   If you pass a non-null value log, log comments are alloced in namedb.region
+   then, *log must be 0 on start of call (entries are prepended).
    returns 0 on an unrecoverable error. */
-int diff_read_file(namedb_type* db, nsd_options_t* opt);
+int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log);
 
 /* check the diff file for garbage at the end (bad type, partial write)
  * and snip it off.
