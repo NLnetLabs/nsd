@@ -271,7 +271,6 @@ install: all
 	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	$(INSTALL_DATA) nsdc.conf.sample $(DESTDIR)$(configfile).sample
 	$(INSTALL_DATA) nsd.conf.sample $(DESTDIR)$(nsdconfigfile).sample
-	$(INSTALL_DATA) nsd.zones.sample $(DESTDIR)$(zonesfile).sample
 
 uninstall:
 	@echo
