@@ -935,8 +935,7 @@ xfrd_read_state()
 		zone->soa_nsd_acquired = soa_nsd_acquired_read;
 		zone->soa_disk_acquired = soa_disk_acquired_read;
 		zone->soa_notified_acquired = soa_notified_acquired_read;
-		if(incoming_acquired != 0)
-			xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
+		xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
 
 		xfrd_send_expiry_notification(zone);
 	}
@@ -1208,7 +1207,8 @@ xfrd_udp_read(xfrd_zone_t* zone)
 			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 			break;
-		case xfrd_packet_success:
+		case xfrd_packet_transfer:
+		case xfrd_packet_newlease:
 			/* nothing more to do */
 			assert(zone->round_num == -1);
 			break;
@@ -1453,8 +1453,10 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 				log_msg(LOG_INFO, "xfrd: zone %s is ok", zone->apex_str);
 				zone->round_num = -1; /* next try start anew */
 				xfrd_set_timer_refresh(zone);
+				return xfrd_packet_newlease;
 			}
-			return xfrd_packet_success;
+			/* try next master */
+			return xfrd_packet_bad;
 		}
 		log_msg(LOG_INFO, "IXFR reply has newer serial (have %d, reply %d)",
 			ntohl(zone->soa_disk.serial), ntohl(soa->serial));
@@ -1502,7 +1504,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	}
 	if(done == 0)
 		return xfrd_packet_more;
-	return xfrd_packet_success;
+	return xfrd_packet_transfer;
 }
 
 enum xfrd_packet_result 
@@ -1515,9 +1517,11 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	switch((res=xfrd_parse_received_xfr_packet(zone, packet, &soa)))
 	{
 		case xfrd_packet_more:
-		case xfrd_packet_success:
+		case xfrd_packet_transfer:
 			/* continue with commit */
 			break;
+		case xfrd_packet_newlease:
+			return xfrd_packet_newlease;
 		case xfrd_packet_tcp:
 			return xfrd_packet_tcp;
 		case xfrd_packet_bad:
@@ -1580,7 +1584,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		zone->round_num = -1; /* next try start anew */
 		xfrd_set_timer_refresh(zone);
 		xfrd_set_reload_timeout();
-		return xfrd_packet_success;
+		return xfrd_packet_transfer;
 	} else {
 		/* try to get an even newer serial */
 		/* pretend it was bad to continue queries */

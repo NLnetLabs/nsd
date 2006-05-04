@@ -441,7 +441,7 @@ rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  netio.h xfrd.h options.h difffile.h nsec3.h
+  netio.h xfrd.h options.h tsig.h difffile.h nsec3.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
@@ -449,11 +449,11 @@ tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
 util.o: util.c config.h util.h region-allocator.h dname.h buffer.h \
   namedb.h dns.h rbtree.h rdata.h
 xfrd.o: xfrd.c config.h xfrd.h netio.h region-allocator.h rbtree.h \
-  namedb.h dname.h buffer.h util.h dns.h options.h xfrd-tcp.h nsd.h \
-  edns.h packet.h difffile.h
+  namedb.h dname.h buffer.h util.h dns.h options.h tsig.h xfrd-tcp.h \
+  nsd.h edns.h packet.h difffile.h
 xfrd-tcp.o: xfrd-tcp.c config.h xfrd-tcp.h buffer.h region-allocator.h \
   util.h packet.h dns.h namedb.h dname.h rbtree.h options.h xfrd.h \
-  netio.h
+  netio.h tsig.h
 zlexer.o: zlexer.c config.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h dns.h rbtree.h zparser.h
 zonec.o: zonec.c config.h zonec.h namedb.h dname.h buffer.h \

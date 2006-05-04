@@ -408,7 +408,8 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		case xfrd_packet_more:
 			tcp_conn_ready_for_reading(tcp);
 			break;
-		case xfrd_packet_success:
+		case xfrd_packet_transfer:
+		case xfrd_packet_newlease:
 			xfrd_tcp_release(set, zone);
 			assert(zone->round_num == -1);
 			break;

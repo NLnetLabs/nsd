@@ -16,6 +16,7 @@
 #include "namedb.h"
 #include "options.h"
 #include "dns.h"
+#include "tsig.h"
 
 struct nsd;
 struct region;
@@ -142,6 +143,9 @@ struct xfrd_zone {
 	uint32_t msg_old_serial, msg_new_serial; /* host byte order */
 	size_t msg_rr_count;
 	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
+#ifdef TSIG
+	tsig_record_type tsig;
+#endif
 };
 
 #define XFRD_FILE_MAGIC "NSDXFRD1"
@@ -150,7 +154,8 @@ enum xfrd_packet_result {
 	xfrd_packet_bad, /* drop the packet/connection */
 	xfrd_packet_more, /* more packets to follow on tcp */
 	xfrd_packet_tcp, /* try tcp connection */
-	xfrd_packet_success /* server responded */
+	xfrd_packet_transfer, /* server responded with transfer*/
+	xfrd_packet_newlease /* no changes, soa OK */
 };
 
 /* start xfrd, new start. Pass socket to server_main. */
