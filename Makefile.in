@@ -414,7 +414,7 @@ namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
   util.h dns.h rbtree.h
 netio.o: netio.c config.h netio.h region-allocator.h util.h
 nsd.o: nsd.c config.h nsd.h dns.h edns.h buffer.h region-allocator.h \
-  util.h options.h rbtree.h
+  util.h options.h rbtree.h tsig.h dname.h
 nsd-checkconf.o: nsd-checkconf.c config.h options.h region-allocator.h \
   rbtree.h util.h dname.h buffer.h
 nsd-notify.o: nsd-notify.c config.h query.h namedb.h dname.h buffer.h \
