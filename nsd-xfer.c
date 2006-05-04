@@ -750,13 +750,6 @@ print_stats(axfr_state_type *state)
 		(unsigned long) state->packets_received);
 }
 
-static void
-cleanup_region(void *data)
-{
-	region_type *region = (region_type *) data;
-	region_destroy(region);
-}
-
 int
 main(int argc, char *argv[])
 {

@@ -143,6 +143,7 @@ struct xfrd_zone {
 	uint32_t msg_old_serial, msg_new_serial; /* host byte order */
 	size_t msg_rr_count;
 	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
+	struct region* query_region;
 #ifdef TSIG
 	tsig_record_type tsig;
 #endif

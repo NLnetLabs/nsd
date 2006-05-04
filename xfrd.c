@@ -407,6 +407,8 @@ xfrd_init_zones()
 		netio_add_handler(xfrd->netio, &xzone->zone_handler);
 		xzone->tcp_waiting = 0;
 		xzone->tcp_conn = -1;
+		xzone->query_region = region_create(xalloc, free);
+		region_add_cleanup(xfrd->region, cleanup_region, xzone->query_region);
 		
 		if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
 			xzone->soa_nsd_acquired = xfrd_time();
@@ -1275,7 +1277,8 @@ xfrd_tsig_sign_request(buffer_type* packet, xfrd_zone_t* zone,
 		return;
 	}
 	assert(algo);
-	tsig_init_record(&zone->tsig, xfrd->region, algo, acl->key_options->tsig_key);
+	region_free_all(zone->query_region);
+	tsig_init_record(&zone->tsig, zone->query_region, algo, acl->key_options->tsig_key);
 	tsig_init_query(&zone->tsig, ID(packet));
 	tsig_prepare(&zone->tsig);
 	tsig_update(&zone->tsig, packet, buffer_position(packet));

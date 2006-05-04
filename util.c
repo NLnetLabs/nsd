@@ -712,7 +712,7 @@ int compare_serial(uint32_t a, uint32_t b)
         }
 }
 
-static void
+void
 cleanup_region(void *data)
 {
 	region_type *region = (region_type *) data;
