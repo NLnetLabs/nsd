@@ -16,6 +16,7 @@
 #include "rbtree.h"
 struct query;
 struct dname;
+struct tsig_key;
 
 typedef struct nsd_options nsd_options_t;
 typedef struct zone_options zone_options_t;
@@ -122,6 +123,9 @@ struct key_options {
 	const char* name;
 	const char* algorithm;
 	const char* secret;
+#ifdef TSIG
+	struct tsig_key* tsig_key;
+#endif
 };
 
 /*

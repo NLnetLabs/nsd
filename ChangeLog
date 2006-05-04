@@ -1,6 +1,7 @@
 4 May 2006: Wouter
 	- when a new lease is acquired xfrd_packet_newlease result is used.
 	- if a zone is lost in nsd db, xfrd will update state to match.
+	- IXFR can use TSIG in queries and verify responses.
 
 3 May 2006: Wouter
 	- forward of 2.3.4 RELNOTES into trunk.

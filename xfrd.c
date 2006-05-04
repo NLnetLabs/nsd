@@ -30,6 +30,8 @@
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
 #define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
 #define XFRD_MAX_ROUNDS 3 /* number of rounds along the masters */
+#define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
+			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
 
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
@@ -1259,6 +1261,33 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 	return fd;
 }
 
+void
+xfrd_tsig_sign_request(buffer_type* packet, xfrd_zone_t* zone, 
+	acl_options_t* acl)
+{
+#ifdef TSIG
+	tsig_algorithm_type* algo;
+	assert(acl->key_options && acl->key_options->tsig_key);
+	algo = tsig_get_algorithm_by_name(acl->key_options->algorithm);
+	if(!algo) {
+		log_msg(LOG_ERR, "tsig unknown algorithm %s", 
+			acl->key_options->algorithm);
+		return;
+	}
+	assert(algo);
+	tsig_init_record(&zone->tsig, xfrd->region, algo, acl->key_options->tsig_key);
+	tsig_init_query(&zone->tsig, ID(packet));
+	tsig_prepare(&zone->tsig);
+	tsig_update(&zone->tsig, packet, buffer_position(packet));
+	tsig_sign(&zone->tsig);
+	tsig_append_rr(&zone->tsig, packet);
+	ARCOUNT_SET(packet, ARCOUNT(packet) + 1);
+	log_msg(LOG_INFO, "appending tsig to packet");
+	/* prepare for validating tsigs */
+	tsig_prepare(&zone->tsig);
+#endif
+}
+
 static int 
 xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 {
@@ -1277,6 +1306,9 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	log_msg(LOG_INFO, "sent query with ID %d", zone->query_id);
         NSCOUNT_SET(xfrd->packet, 1);
 	xfrd_write_soa_buffer(xfrd->packet, zone, &zone->soa_disk);
+	if(zone->master->key_options) {
+		xfrd_tsig_sign_request(xfrd->packet, zone, zone->master);
+	}
 	buffer_flip(xfrd->packet);
 
 	if((fd = xfrd_send_udp(zone->master, xfrd->packet)) == -1) 
@@ -1377,6 +1409,57 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	return 1;
 }
 
+static int
+xfrd_xfr_process_tsig(xfrd_zone_t* zone, buffer_type* packet)
+{
+#ifdef TSIG
+	int have_tsig = 0;
+	assert(zone && zone->master && zone->master->key_options 
+		&& zone->master->key_options->tsig_key && packet);
+	if(!tsig_find_rr(&zone->tsig, packet)) {
+		log_msg(LOG_ERR, "xfrd: zone %s, from %s: malformed tsig RR",
+			zone->apex_str, zone->master->ip_address_spec);
+		return 0;
+	} 
+	if(zone->tsig.status == TSIG_OK) {
+		have_tsig = 1;
+	}
+	if(have_tsig) {
+		/* strip the TSIG resource record off... */
+		buffer_set_limit(packet, zone->tsig.position);
+		ARCOUNT_SET(packet, ARCOUNT(packet) - 1);
+	}
+
+	/* keep running the TSIG hash */
+	tsig_update(&zone->tsig, packet, buffer_limit(packet));
+	if(have_tsig) {
+		if (!tsig_verify(&zone->tsig)) {
+			log_msg(LOG_ERR, "xfrd: zone %s, from %s: bad tsig signature",
+				zone->apex_str, zone->master->ip_address_spec);
+			return 0;
+		}
+		log_msg(LOG_INFO, "xfrd: zone %s, from %s: good tsig signature",
+			zone->apex_str, zone->master->ip_address_spec);
+		/* prepare for next tsigs */
+		tsig_prepare(&zone->tsig);
+	}
+	else if(zone->tsig.updates_since_last_prepare > XFRD_TSIG_MAX_UNSIGNED) {
+		/* we allow a number of non-tsig signed packets */
+		log_msg(LOG_INFO, "xfrd: zone %s, from %s: too many consecutive "
+			"packets without TSIG", zone->apex_str, 
+			zone->master->ip_address_spec);
+		return 0;
+	}
+
+	if(!have_tsig && zone->msg_seq_nr == 0) {
+		log_msg(LOG_ERR, "xfrd: zone %s, from %s: no tsig in first packet of reply",
+			zone->apex_str, zone->master->ip_address_spec);
+		return 0;
+	}
+#endif
+	return 1;
+}
+
 /* parse the received packet. returns xfrd packet result code. */
 static enum xfrd_packet_result 
 xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet, 
@@ -1409,6 +1492,15 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			zone->master->ip_address_spec);
 		return xfrd_packet_bad;
 	}
+#ifdef TSIG
+	/* check TSIG */
+	if(zone->master->key_options) {
+		if(!xfrd_xfr_process_tsig(zone, packet)) {
+			log_msg(LOG_ERR, "dropping xfr reply due to bad TSIG");
+			return xfrd_packet_bad;
+		}
+	}
+#endif
 	buffer_skip(packet, QHEADERSZ);
 
 	/* skip question section */
@@ -1491,7 +1583,6 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		return xfrd_packet_tcp;
 	}
 
-	/* TODO check TSIG on it; drop if bad. */
 	if(!xfrd_xfr_check_rrs(zone, packet, ancount_todo, &done, soa))
 	{
 		log_msg(LOG_INFO, "xfrd: zone %s sent bad xfr reply.",
@@ -1504,6 +1595,14 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	}
 	if(done == 0)
 		return xfrd_packet_more;
+#ifdef TSIG
+	if(zone->master->key_options) {
+		if(zone->tsig.updates_since_last_prepare != 0) {
+			log_msg(LOG_INFO, "xfrd: last packet of reply has no TSIG");
+			return xfrd_packet_bad;
+		}
+	}
+#endif
 	return xfrd_packet_transfer;
 }
 

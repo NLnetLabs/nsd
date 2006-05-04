@@ -227,6 +227,9 @@ key_options_t* key_options_create(region_type* region)
 	key->next = 0;
 	key->algorithm = 0;
 	key->secret = 0;
+#ifdef TSIG
+	key->tsig_key = 0;
+#endif
 	return key;
 }
 
@@ -451,6 +454,7 @@ void key_options_tsig_add(nsd_options_t* opt)
 		tsigkey->size = size;
 		tsigkey->data = (uint8_t *) region_alloc_init(opt->region, data, tsigkey->size);
 		tsig_add_key(tsigkey);
+		optkey->tsig_key = tsigkey;
 		log_msg(LOG_INFO, "tsig key '%s' added.", 
 			dname_to_string(tsigkey->name, NULL));
 	}

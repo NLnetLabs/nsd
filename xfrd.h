@@ -160,14 +160,20 @@ enum xfrd_packet_result {
 
 /* start xfrd, new start. Pass socket to server_main. */
 void xfrd_init(int socket, struct nsd* nsd);
+
 /* get the current time epoch. Cached for speed. */
 time_t xfrd_time();
-/* handle final received packet from network.
-   returns enum of packet discovery results */
+
+/*
+ * Handle final received packet from network.
+ * returns enum of packet discovery results 
+ */
 enum xfrd_packet_result xfrd_handle_received_xfr_packet(
 	xfrd_zone_t* zone, buffer_type* packet);
+
 /* set timer to specific value */
 void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
+
 /* 
  * Make a new request to next master server. 
  * uses next_master if set (and a fresh set of rounds).
@@ -176,5 +182,11 @@ void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
  * if too many rounds of requests, sets timer for next retry.
  */
 void xfrd_make_request(xfrd_zone_t* zone);
+
+/*
+ * TSIG sign outgoing request. Call if acl has a key.
+ */
+void xfrd_tsig_sign_request(buffer_type* packet, xfrd_zone_t* zone,
+        acl_options_t* acl);
 
 #endif /* XFRD_H */
