@@ -4,7 +4,7 @@
 nsd\-notify \- program to send NOTIFY's to remote nameservers
 .SH "SYNTAX"
 .LP 
-\fBnsd\-notify\fR [\fB-4\fR] [\fB-6\fR] [\fB-p\fR \fIport\fR] \fB\-z\fR \fIzone\fR \fIservers\fR
+\fBnsd\-notify\fR [\fB-4\fR] [\fB-6\fR] [\fB-p\fR \fIport\fR] [\fB-y\fR \fIkey:secret\fR] \fB\-z\fR \fIzone\fR \fIservers\fR
 .SH "DESCRIPTION"
 .LP 
 nsd\-notify is simple program to send NOTIFY's to remoter nameservers.
@@ -21,6 +21,9 @@ Only send to IPv6 addresses.
 .TP 
 \fB\-p\fR \fIport\fR
 Specify the port to send to.
+.TP 
+\fB\-y\fR \fIkey:secret\fR
+Specify a TSIG key and base64 encoded secret to sign the notification with.
 .TP 
 \fB\-z\fR \fIzone\fR
 Specify the zone to notify about.

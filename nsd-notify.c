@@ -44,7 +44,7 @@ warning(const char *format, ...)
 static void 
 usage (void)
 {
-	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-p port] "
+	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-p port] [-y key:secret] "
 		"-z zone servers\n");
 	exit(1);
 }
@@ -123,6 +123,44 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 	close(udp_s);
 }
 
+static tsig_key_type*
+add_key(region_type* region, const char* opt)
+{
+	/* parse -y key:secret_base64 format option */
+#ifdef TSIG
+	char* delim = strchr(opt, ':');
+	tsig_key_type *key = (tsig_key_type*)region_alloc(
+		region, sizeof(tsig_key_type));
+	size_t len;
+	int sz;
+	if(!delim) {
+		log_msg(LOG_ERR, "bad key syntax %s", opt);
+		return 0;
+	}
+	*delim = '\0';
+	key->name = dname_parse(region, opt);
+	if(!key->name) {
+		log_msg(LOG_ERR, "bad key syntax %s", opt);
+		return 0;
+	}
+	*delim = ':';
+	len = strlen(delim+1);
+	key->data = region_alloc(region, len+1);
+	sz= b64_pton(delim+1, (uint8_t*)key->data, len);
+	if(sz == -1) {
+		log_msg(LOG_ERR, "bad key syntax %s", opt);
+		return 0;
+	}
+	key->size = sz;
+	tsig_add_key(key);
+	log_msg(LOG_INFO, "added key %s", dname_to_string(key->name, NULL));
+	return key;
+#else
+	log_msg(LOG_ERR, "option -y given but TSIG not enabled: %s", opt);
+	return 0;
+#endif /* TSIG */
+}
+
 int 
 main (int argc, char *argv[])
 {
@@ -135,11 +173,21 @@ main (int argc, char *argv[])
 	int default_family = DEFAULT_AI_FAMILY;
 	const char *port = UDP_PORT;
 	region_type *region = region_create(xalloc, free);
+#ifdef TSIG
+	tsig_key_type *tsig_key = 0;
+	tsig_record_type tsig;
+#endif /* TSIG */
 	
 	log_init("nsd-notify");
+#ifdef TSIG
+	if(!tsig_init(region)) {
+		log_msg(LOG_ERR, "could not init tsig\n");
+		exit(1);
+	}
+#endif /* TSIG */
 	
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46p:z:")) != -1) {
+	while ((c = getopt(argc, argv, "46p:y:z:")) != -1) {
 		switch (c) {
 		case '4':
 			default_family = AF_INET;
@@ -154,6 +202,11 @@ main (int argc, char *argv[])
 #endif /* !INET6 */
 		case 'p':
 			port = optarg;
+			break;
+		case 'y':
+#ifdef TSIG
+			tsig_key = add_key(region, optarg);
+#endif /* TSIG */
 			break;
 		case 'z':
 			zone = dname_parse(region, optarg);
@@ -191,6 +244,21 @@ main (int argc, char *argv[])
 	buffer_write(q.packet, dname_name(zone), zone->name_size);
 	buffer_write_u16(q.packet, TYPE_SOA);
 	buffer_write_u16(q.packet, CLASS_IN);
+#ifdef TSIG
+	if(tsig_key) {
+		tsig_algorithm_type* algo = tsig_get_algorithm_by_name("hmac-md5");
+		assert(algo);
+		tsig_init_record(&tsig, region, algo, tsig_key);
+		tsig_init_query(&tsig, ID(q.packet));
+		tsig_prepare(&tsig);
+		tsig_update(&tsig, q.packet, buffer_position(q.packet));
+		tsig_sign(&tsig);
+		tsig_append_rr(&tsig, q.packet);
+		ARCOUNT_SET(q.packet, ARCOUNT(q.packet) + 1);
+		log_msg(LOG_INFO, "TSIG signed query with key %s", 
+			dname_to_string(tsig_key->name, NULL));
+	}
+#endif
 	buffer_flip(q.packet);
 
 	/* initialize buffer for ack */

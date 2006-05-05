@@ -253,14 +253,29 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 	   else return -1. */
 	int found_match = -1;
 	int number = 0;
+	acl_options_t* match = 0;
+
 	if(reason)
 		*reason = NULL;
+
+#ifdef TSIG
+	tsig_init_record(&q->tsig, q->region, NULL, NULL);
+	if(!tsig_find_rr(&q->tsig, q->packet)) {
+		log_msg(LOG_ERR, "bad tsig RR format");
+		return -1;
+	}
+#endif /* TSIG */
+
 	while(acl)
 	{
+		log_msg(LOG_INFO, "testing acl %s %s",
+			acl->ip_address_spec, acl->key_name);
 		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
-			if(reason && !*reason)
-				*reason = acl; /* remember first match */
+			if(!match)
+				match = acl; /* remember first match */
 			if(acl->blocked) {
+				if(reason)
+					*reason = acl;
 				return -1;
 			}
 			found_match=number;
@@ -268,6 +283,42 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 		number++;
 		acl = acl->next;
 	}
+
+#ifdef TSIG
+	if(match && !match->nokey) {
+		/* check TSIG */
+		log_msg(LOG_INFO, "TSIG check for match %s %s",
+			match->ip_address_spec, match->key_name);
+		if(q->tsig.status != TSIG_OK) {
+			log_msg(LOG_ERR, "query has no tsig");
+			return -1;
+		}
+		if(!tsig_from_query(&q->tsig)) {
+			log_msg(LOG_ERR, "query tsig unknown key/algorithm");
+			return -1;
+		}
+		if(q->tsig.key != match->key_options->tsig_key) {
+			log_msg(LOG_ERR, "query tsig wrong key");
+			return -1;
+		}
+		if(strcmp(q->tsig.algorithm->short_name,
+			match->key_options->algorithm) != 0) {
+			return -1;
+		}
+		buffer_set_limit(q->packet, q->tsig.position);
+		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
+		tsig_prepare(&q->tsig);
+		tsig_update(&q->tsig, q->packet, buffer_limit(q->packet));
+		if(!tsig_verify(&q->tsig)) {
+			log_msg(LOG_ERR, "query bad tsig signature");
+			return -1;
+		}
+		log_msg(LOG_INFO, "query good tsig signature");
+	}
+#endif /* TSIG */
+
+	if(reason)
+		*reason = match;
 	return found_match;
 }
 
@@ -383,14 +434,32 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 	return 1;
 }
 
-int acl_key_matches(acl_options_t* acl, struct query* ATTR_UNUSED(q))
+int acl_key_matches(acl_options_t* acl, struct query* q)
 {
 	if(acl->nokey) 
 		return 1;
 	if(acl->blocked) 
 		return 1;
-	/* no tsig yet TODO */
+	/* check name of tsig key */
+#ifdef TSIG
+	if(q->tsig.status != TSIG_OK) {
+		log_msg(LOG_INFO, "keymatch fail query has no TSIG");
+		return 0; /* query has no TSIG */
+	}
+	if(!acl->key_options->tsig_key) {
+		log_msg(LOG_INFO, "keymatch fail no config");
+		return 0; /* key not properly configged */
+	}
+	if(dname_compare(q->tsig.key_name, 
+		acl->key_options->tsig_key->name) != 0) {
+		log_msg(LOG_INFO, "keymatch fail wrong key name");
+		return 0; /* wrong key name */
+	}
+	/* algorithm is checked in tsig_from_query() call later */
+	return 1;
+#else
 	return 0;
+#endif
 }
 
 int 

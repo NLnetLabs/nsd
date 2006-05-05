@@ -20,6 +20,7 @@ iterated_hash(unsigned char out[SHA_DIGEST_LENGTH],
 	const unsigned char *salt, int saltlength,
 	const unsigned char *in, int inlength, int iterations)
 {
+#if defined(NSEC3) && defined(HAVE_SSL)
 	SHA_CTX ctx;
 	int n;
 	assert(in && inlength > 0 && iterations >= 0);
@@ -34,6 +35,9 @@ iterated_hash(unsigned char out[SHA_DIGEST_LENGTH],
 		inlength=SHA_DIGEST_LENGTH;
 	}
 	return SHA_DIGEST_LENGTH;
+#else
+	return 0;
+#endif
 }
 
 #endif /* NSEC3 */

@@ -61,7 +61,7 @@ struct xfrd_state {
 	rbtree_t *zones;
 	
 	/* notify retry state (not saved on disk) */
-	/* TODO */
+	/* TODO notify send */
 };
 
 /*

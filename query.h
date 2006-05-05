@@ -16,6 +16,7 @@
 #include "namedb.h"
 #include "nsd.h"
 #include "packet.h"
+#include "tsig.h"
 
 enum query_state {
 	QUERY_PROCESSED,
@@ -54,6 +55,11 @@ struct query {
 
 	/* EDNS information provided by the client.  */
 	edns_record_type edns;
+
+#ifdef TSIG
+	/* TSIG record information and running hash for query-response */
+	tsig_record_type tsig;
+#endif /* TSIG */
 
 	int tcp;
 	uint16_t tcplen;

@@ -36,6 +36,7 @@
 #include "util.h"
 #include "options.h"
 #include "nsec3.h"
+#include "tsig.h"
 
 static int add_rrset(struct query  *query,
 		     answer_type    *answer,
@@ -318,11 +319,13 @@ answer_notify (struct nsd* nsd, struct query *query)
 	{
 		sig_atomic_t mode = NSD_PASS_TO_XFRD;
 		int s = nsd->this_child->parent_fd;
-		uint16_t sz = buffer_limit(query->packet);
+		uint16_t sz;
 		uint32_t acl_send = htonl(acl_num);
+		assert(why);
 		log_msg(LOG_INFO, "got notify %s passed acl %s %s",
 			dname_to_string(query->qname, NULL),
 			why->ip_address_spec, why->key_name);
+		sz = buffer_limit(query->packet);
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
 			return query_error(query, NSD_RC_SERVFAIL);
 		/* forward to xfrd for processing
@@ -342,6 +345,19 @@ answer_notify (struct nsd* nsd, struct query *query)
 		QR_SET(query->packet);         /* This is an answer.  */
 		AA_SET(query->packet);	   /* we are authoritative. */
 		RCODE_SET(query->packet, RCODE_OK); /* Error code.  */
+#ifdef TSIG
+		if(why && why->key_options) { /* sign reply */
+			log_msg(LOG_INFO, "tsig sign");
+			buffer_clear(query->packet);
+			buffer_set_position(query->packet, query->tsig.position);
+			tsig_prepare(&query->tsig);
+			tsig_update(&query->tsig, query->packet,
+				buffer_limit(query->packet));
+			tsig_sign(&query->tsig);
+			tsig_append_rr(&query->tsig, query->packet);
+			ARCOUNT_SET(query->packet, ARCOUNT(query->packet) + 1);
+		}
+#endif /* TSIG */
 		return QUERY_PROCESSED;
 	}
 #ifndef NDEBUG

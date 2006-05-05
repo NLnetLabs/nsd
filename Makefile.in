@@ -113,14 +113,27 @@ ZONEC_OBJECTS	=				\
 	zparser.o
 
 NSD_NOTIFY_OBJECTS	=			\
+	answer.o				\
+	axfr.o					\
 	buffer.o				\
+	configlexer.o                           \
+	configparser.o                          \
+	dbaccess.o				\
 	dname.o					\
 	dns.o					\
+	edns.o					\
+	iterated_hash.o				\
 	namedb.o				\
 	nsd-notify.o				\
+	nsec3.o					\
+	options.o				\
+	packet.o				\
+	query.o					\
 	rbtree.o				\
 	rdata.o                                 \
 	region-allocator.o			\
+	tsig.o					\
+	tsig-openssl.o				\
 	util.o
 
 NSD_XFER_OBJECTS	=			\
@@ -388,10 +401,10 @@ tags:
 
 # Dependencies
 answer.o: answer.c config.h answer.h dns.h namedb.h dname.h buffer.h \
-  region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h
+  region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h tsig.h
 axfr.o: axfr.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  options.h
+  tsig.h options.h
 buffer.o: buffer.c config.h buffer.h region-allocator.h util.h
 configlexer.o: configlexer.c configyyrename.h config.h options.h \
   region-allocator.h rbtree.h configparser.h
@@ -404,7 +417,7 @@ dbcreate.o: dbcreate.c config.h namedb.h dname.h buffer.h \
 difffile.o: difffile.c config.h difffile.h rbtree.h region-allocator.h \
   namedb.h dname.h buffer.h util.h dns.h options.h packet.h rdata.h
 dname.o: dname.c config.h dns.h dname.h buffer.h region-allocator.h \
-  util.h query.h namedb.h rbtree.h nsd.h edns.h packet.h
+  util.h query.h namedb.h rbtree.h nsd.h edns.h packet.h tsig.h
 dns.o: dns.c config.h dns.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h zparser.h
 edns.o: edns.c config.h dns.h edns.h buffer.h region-allocator.h util.h
@@ -417,30 +430,30 @@ nsd.o: nsd.c config.h nsd.h dns.h edns.h buffer.h region-allocator.h \
 nsd-checkconf.o: nsd-checkconf.c config.h options.h region-allocator.h \
   rbtree.h util.h dname.h buffer.h
 nsd-notify.o: nsd-notify.c config.h query.h namedb.h dname.h buffer.h \
-  region-allocator.h util.h dns.h rbtree.h nsd.h edns.h packet.h
+  region-allocator.h util.h dns.h rbtree.h nsd.h edns.h packet.h tsig.h
 nsd-patch.o: nsd-patch.c config.h options.h region-allocator.h rbtree.h \
   difffile.h namedb.h dname.h buffer.h util.h dns.h
 nsd-xfer.o: nsd-xfer.c config.h dname.h buffer.h region-allocator.h \
-  util.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h rdata.h \
-  tsig.h tsig-openssl.h zonec.h
+  util.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h tsig.h \
+  rdata.h tsig-openssl.h zonec.h
 nsec3.o: nsec3.c config.h nsec3.h iterated_hash.h namedb.h dname.h \
   buffer.h region-allocator.h util.h dns.h rbtree.h nsd.h edns.h answer.h \
-  packet.h query.h
+  packet.h query.h tsig.h
 options.o: options.c config.h options.h region-allocator.h rbtree.h \
   query.h namedb.h dname.h buffer.h util.h dns.h nsd.h edns.h packet.h \
   tsig.h configyyrename.h configparser.h
 packet.o: packet.c config.h packet.h dns.h namedb.h dname.h buffer.h \
-  region-allocator.h util.h rbtree.h query.h nsd.h edns.h rdata.h
+  region-allocator.h util.h rbtree.h query.h nsd.h edns.h tsig.h rdata.h
 query.o: query.c config.h answer.h dns.h namedb.h dname.h buffer.h \
-  region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h axfr.h \
-  options.h nsec3.h
+  region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h tsig.h \
+  axfr.h options.h nsec3.h
 rbtree.o: rbtree.c config.h rbtree.h region-allocator.h
 rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h zonec.h
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  netio.h xfrd.h options.h tsig.h difffile.h nsec3.h
+  tsig.h netio.h xfrd.h options.h difffile.h nsec3.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \

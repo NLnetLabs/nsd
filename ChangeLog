@@ -1,3 +1,9 @@
+5 May 2006: Wouter
+	- nsd-notify handles option -y key:secret to TSIG sign outgoing
+	  queries.
+	- the acl checks now verify TSIG signatures on the query.
+	- iterated_hash compiles with ssl disabled.
+
 4 May 2006: Wouter
 	- when a new lease is acquired xfrd_packet_newlease result is used.
 	- if a zone is lost in nsd db, xfrd will update state to match.
