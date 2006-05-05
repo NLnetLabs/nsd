@@ -20,6 +20,9 @@
 	- if expired zones are updated, then NSD gets the go ahead from
 	  xfrd after reload sends SOAINFO/SOAEND msg, so it is really
 	  updated in nsd memory.
+	- fixed tpkg xfr_1 to have longer expiry times (from 0 and 3
+	  seconds to 2000 and 3000 seconds), so the zone does not expire
+	  during the test anymore.
 
 4 May 2006: Wouter
 	- when a new lease is acquired xfrd_packet_newlease result is used.
