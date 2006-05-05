@@ -453,7 +453,7 @@ rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  tsig.h netio.h xfrd.h options.h difffile.h nsec3.h
+  tsig.h netio.h xfrd.h options.h xfrd-tcp.h difffile.h nsec3.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
