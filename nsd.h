@@ -39,6 +39,16 @@ struct nsd_options;
  * followed by u32(acl number that matched from notify/xfr acl).
  */
 #define NSD_PASS_TO_XFRD 7
+/*
+ * NSD_ZONE_STATE is followed by u16(len in network byte order),
+ * octet 0: zone is expired, 1: zone ok. and dname of zone.
+ */
+#define NSD_ZONE_STATE 8
+/* 
+ * SOA END is sent at the end of a reload SOA_INFO pass.
+ * xfrd then knows that reload phase is over.
+ */
+#define NSD_SOA_END 9
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U

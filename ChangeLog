@@ -3,6 +3,23 @@
 	  queries.
 	- the acl checks now verify TSIG signatures on the query.
 	- iterated_hash compiles with ssl disabled.
+	- new ipc NSD_ZONE_STATE sent by xfrd to nsd process. notifies
+	  nsd of the state (ok or expired) of a zone.
+	- reload process waits for the old server_main to exit to make
+	  sure there is no race condition listening to the NSD_ZONE_STATE
+	  messages generated when reload sends SOA_INFO to xfrd.
+	- server_main and children all set zone_ok state in config options.
+	  also server_main so that newly forked children get the right state.
+	- if a secondary zone is expired, NSD returns SERVFAIL.
+	  a transient error, so resolvers try again later.
+	- SOA_END ipc message, sent by reload to xfrd, so it can repeat
+	  all zone states (which can have changed during reload).
+	- zone_is_ok kept in config section so that state for zones
+	  without data is not lost. Those have no zone_type*.
+	- secondary zones start in the expired state.
+	- if expired zones are updated, then NSD gets the go ahead from
+	  xfrd after reload sends SOAINFO/SOAEND msg, so it is really
+	  updated in nsd memory.
 
 4 May 2006: Wouter
 	- when a new lease is acquired xfrd_packet_newlease result is used.

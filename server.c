@@ -34,6 +34,7 @@
 #include "namedb.h"
 #include "netio.h"
 #include "xfrd.h"
+#include "xfrd-tcp.h"
 #include "difffile.h"
 #include "nsec3.h"
 
@@ -127,6 +128,15 @@ struct main_ipc_handler_data
 	size_t		got_bytes;
 	uint16_t	total_bytes;
 	uint32_t	acl_num;
+};
+
+/*
+ * data for ipc handler, nsd and a conn for reading ipc msgs.
+ */
+struct ipc_handler_conn_data
+{
+	struct nsd	*nsd;
+	xfrd_tcp_t	*conn;
 };
 
 /*
@@ -563,7 +573,6 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 		break;
 	}
 	handler->timeout = NULL;
-	handler->user_data = nsd;
 	handler->event_types = NETIO_EVENT_READ;
 	handler->event_handler = handle_xfrd_command;
 	return pid;
@@ -581,6 +590,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	sig_atomic_t cmd = NSD_QUIT;
 	zone_type* zone;
 	int xfrd_sock = *xfrd_sock_p;
+	int ret;
 
 	if(db_crc_different(nsd->db) == 0) {
 		log_msg(LOG_INFO, "CRC the same. skipping %s.", nsd->db->filename);
@@ -625,6 +635,13 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
 			(int)nsd->pid, (int)old_pid, strerror(errno));
 	}
+	/* blocking: wait for parent to really quit. (it sends RELOAD as ack) */
+	ret = read(cmdsocket, &cmd, sizeof(cmd));
+	if(ret == -1) {
+		log_msg(LOG_ERR, "reload: could not wait for parent to quit: %s",
+			strerror(errno));
+	}
+	assert(ret != 0 || cmd == NSD_RELOAD);
 
 	/* Overwrite pid... */
 	if (writepid(nsd) == -1) {
@@ -686,6 +703,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			}
 		}
 		zone->updated = 0;
+	}
+	cmd = NSD_SOA_END;
+	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
+		log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
+			(int)nsd->pid, strerror(errno));
 	}
 	/* exit reload, continue as new server_main */
 }
@@ -750,6 +772,11 @@ server_main(struct nsd *nsd)
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
+	xfrd_listener.user_data = (struct ipc_handler_conn_data*)region_alloc(
+		server_region, sizeof(struct ipc_handler_conn_data));
+	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->nsd = nsd;
+	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->conn = 
+		xfrd_tcp_create(server_region);
 	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
 	netio_add_handler(netio, &xfrd_listener);
 	if (server_start_children(nsd, server_region, netio, &xfrd_listener.fd) != 0) {
@@ -861,8 +888,16 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_QUIT: 
 			/* silent shutdown during reload */
-			if(reload_listener.fd > 0) close(reload_listener.fd);
 			send_children_command(nsd, NSD_QUIT);
+			if(reload_listener.fd > 0) {
+				/* acknowledge the quit, to sync reload that we will really quit now */
+				sig_atomic_t cmd = NSD_RELOAD;
+				if(!write_socket(reload_listener.fd, &cmd, sizeof(cmd))) {
+					log_msg(LOG_ERR, "handle_child_command: "
+						"could not ack quit: %s", strerror(errno));
+				}
+				close(reload_listener.fd);
+			}
 			region_destroy(server_region);
 			server_shutdown(nsd);
 			/* ENOTREACH */
@@ -937,7 +972,11 @@ server_child(struct nsd *nsd)
 			server_region, sizeof(netio_handler_type));
 		handler->fd = nsd->this_child->parent_fd;
 		handler->timeout = NULL;
-		handler->user_data = nsd;
+		handler->user_data = (struct ipc_handler_conn_data*)region_alloc(
+			server_region, sizeof(struct ipc_handler_conn_data));
+		((struct ipc_handler_conn_data*)handler->user_data)->nsd = nsd;
+		((struct ipc_handler_conn_data*)handler->user_data)->conn =
+			xfrd_tcp_create(server_region);
 		handler->event_types = NETIO_EVENT_READ;
 		handler->event_handler = handle_parent_command;
 		netio_add_handler(netio, handler);
@@ -1528,6 +1567,22 @@ handle_tcp_accept(netio_type *netio,
 	}
 }
 
+static void handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
+{
+	uint8_t ok;
+	const dname_type *dname;
+	zone_options_t *zone;
+
+	ok = buffer_read_u8(packet);
+	dname = (dname_type*)buffer_current(packet);
+	log_msg(LOG_INFO, "handler zone state %s is %s",
+		dname_to_string(dname, NULL), ok?"ok":"expired");
+	/* find zone in config, since that one always exists */
+	zone = (zone_options_t*)rbtree_search(nsd->options->zone_options, dname);
+	assert(zone);
+	zone->zone_is_ok = ok;
+}
+
 static void
 handle_parent_command(netio_type *ATTR_UNUSED(netio),
 		      netio_handler_type *handler,
@@ -1535,8 +1590,27 @@ handle_parent_command(netio_type *ATTR_UNUSED(netio),
 {
 	sig_atomic_t mode;
 	int len;
-	nsd_type *nsd = (nsd_type *) handler->user_data;
+	struct ipc_handler_conn_data *data = 
+		(struct ipc_handler_conn_data *) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
+		return;
+	}
+
+	if(data->conn->is_reading) {
+		int ret = conn_read(data->conn);
+		if(ret == -1) {
+			log_msg(LOG_ERR, "handle_parent_command: error in conn_read: %s",
+				strerror(errno));
+			data->conn->is_reading = 0;
+			return;
+		}
+		if(ret == 0) {
+			return; /* continue later */
+		}
+		/* completed */
+		data->conn->is_reading = 0;
+		buffer_flip(data->conn->packet);
+		handle_xfrd_zone_state(data->nsd, data->conn->packet);
 		return;
 	}
 
@@ -1548,14 +1622,21 @@ handle_parent_command(netio_type *ATTR_UNUSED(netio),
 	if (len == 0)
 	{
 		/* parent closed the connection. Quit */
-		nsd->mode = NSD_QUIT;
+		data->nsd->mode = NSD_QUIT;
 		return;
 	}
 
 	switch (mode) {
 	case NSD_STATS: 
 	case NSD_QUIT:
-		nsd->mode = mode;
+		data->nsd->mode = mode;
+		break;
+	case NSD_ZONE_STATE:
+		data->conn->is_reading = 1;
+		data->conn->total_bytes = 0;
+		data->conn->msglen = 0;
+		data->conn->fd = handler->fd;
+		buffer_clear(data->conn->packet);
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_parent_command: bad mode %d",
@@ -1591,8 +1672,48 @@ handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 {
 	sig_atomic_t mode;
 	int len;
-	nsd_type *nsd = (nsd_type *) handler->user_data;
+	struct ipc_handler_conn_data *data = 
+		(struct ipc_handler_conn_data *) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
+		return;
+	}
+
+	if(data->conn->is_reading) {
+		/* handle ZONE_STATE forward to children */
+		int ret = conn_read(data->conn);
+		size_t i;
+		sig_atomic_t cmd = NSD_ZONE_STATE;
+		if(ret == -1) {
+			log_msg(LOG_ERR, "main xfrd listener: error in conn_read: %s",
+				strerror(errno));
+			data->conn->is_reading = 0;
+			return;
+		}
+		if(ret == 0) {
+			return; /* continue later */
+		}
+		/* completed */
+		data->conn->is_reading = 0;
+		buffer_flip(data->conn->packet);
+		handle_xfrd_zone_state(data->nsd, data->conn->packet);
+		/* forward to all children */
+		for (i = 0; i < data->nsd->child_count; ++i) {
+			uint16_t sz = htons(buffer_limit(data->conn->packet));
+			if (data->nsd->children[i].pid > 0 && 
+				data->nsd->children[i].child_fd > 0) {
+				if(!write_socket(data->nsd->children[i].child_fd, 
+					&cmd, sizeof(cmd)) ||
+					!write_socket(data->nsd->children[i].child_fd, 
+					&sz, sizeof(sz)) ||
+					!write_socket(data->nsd->children[i].child_fd,
+					buffer_begin(data->conn->packet),
+					buffer_limit(data->conn->packet))) {
+					log_msg(LOG_ERR, "problems forwarding zone state"
+						" to child %d: %s", 
+						data->nsd->children[i].pid, strerror(errno));
+				}
+			}
+		}
 		return;
 	}
 
@@ -1612,7 +1733,14 @@ handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	switch (mode) {
 	case NSD_RELOAD:
 	case NSD_REAP_CHILDREN:
-		nsd->mode = mode;
+		data->nsd->mode = mode;
+		break;
+	case NSD_ZONE_STATE:
+		data->conn->is_reading = 1;
+		data->conn->total_bytes = 0;
+		data->conn->msglen = 0;
+		data->conn->fd = handler->fd;
+		buffer_clear(data->conn->packet);
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_xfrd_command: bad mode %d",
@@ -1735,8 +1863,10 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 	}
 
 	switch (mode) {
-	case NSD_STATS: 
 	case NSD_QUIT:
+		data->nsd->mode = mode;
+		break;
+	case NSD_STATS: 
 	case NSD_REAP_CHILDREN:
 		data->nsd->mode = mode;
 		break;

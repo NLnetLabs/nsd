@@ -216,6 +216,7 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->request_xfr = 0;
 	zone->notify = 0;
 	zone->provide_xfr = 0;
+	zone->zone_is_ok = 0;
 	return zone;
 }
 

@@ -871,6 +871,13 @@ answer_query(struct nsd *nsd, struct query *q)
 			q->zone = zone;
 	}
 
+	/* see if the zone has expired (for secondary zones) */
+	if(q->zone && q->zone->opts && zone_is_slave(q->zone->opts)
+		&& !q->zone->opts->zone_is_ok) {
+		RCODE_SET(q->packet, RCODE_SERVFAIL);
+		return;
+	}
+
 	if (exact && q->qtype == TYPE_DS && closest_encloser == q->zone->apex) {
 		/*
 		 * Type DS query at the zone apex (and the server is

@@ -115,7 +115,7 @@ struct xfrd_zone {
 		xfrd_zone_ok,
 		xfrd_zone_refreshing,
 		xfrd_zone_expired
-	} zone_state;
+	} state;
 
 	/* master to try to transfer from, number for persistence */
 	acl_options_t* master;
