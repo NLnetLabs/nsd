@@ -1,3 +1,7 @@
+8 May 2006: Wouter
+	- updated zparser.y to handle empty nsec_seq lists.
+	  for empty nonterminals in NSEC3.
+
 5 May 2006: Wouter
 	- nsd-notify handles option -y key:secret to TSIG sign outgoing
 	  queries.

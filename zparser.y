@@ -320,7 +320,10 @@ nxt_seq:	STR
     }
     ;
 
-nsec_seq:	STR
+nsec_seq:	trail
+    {
+    }
+    |	STR sp nsec_seq
     {
 	    uint16_t type = rrtype_from_string($1.str);
 	    if (type != 0) {
@@ -332,9 +335,9 @@ nsec_seq:	STR
 		    zc_error("bad type %d in NSEC record", (int) type);
 	    }
     }
-    |	nsec_seq sp STR
+    |	STR
     {
-	    uint16_t type = rrtype_from_string($3.str);
+	    uint16_t type = rrtype_from_string($1.str);
 	    if (type != 0) {
                     if (type > nsec_highest_rcode) {
                             nsec_highest_rcode = type;
@@ -740,7 +743,7 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_se
     }
     ;
 
-rdata_nsec:	dname sp nsec_seq trail
+rdata_nsec:	dname sp nsec_seq
     {
 	    zadd_rdata_domain($1); /* nsec name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
@@ -749,7 +752,7 @@ rdata_nsec:	dname sp nsec_seq trail
     }
     ;
 
-rdata_nsec3:   STR sp STR sp STR sp STR sp STR sp nsec_seq trail
+rdata_nsec3:   STR sp STR sp STR sp STR sp STR sp nsec_seq
     {
 #ifdef NSEC3
 	    uint8_t optout;
