@@ -142,8 +142,8 @@ UNITEST_OBJECTS		=			\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
-	unitest_rbtree.o   			\
-	unitest_run.o
+	tpkg/unitest/unitest_rbtree.o   	\
+	tpkg/unitest/unitest_run.o
 
 all:	$(TARGETS)
 
