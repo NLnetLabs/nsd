@@ -142,7 +142,8 @@ UNITEST_OBJECTS		=			\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
-	$(addsuffix .o,$(basename $(wildcard tpkg/unitest/*.c)))
+	unitest_rbtree.o   			\
+	unitest_run.o
 
 all:	$(TARGETS)
 
