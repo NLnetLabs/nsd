@@ -384,6 +384,8 @@ xfrd_init_zones()
 		}
 
 		dbzone = domain_find_zone(domain_table_find(xfrd->nsd->db->domains, dname));
+		if(dbzone && dname_compare(dname, domain_dname(dbzone->apex)) != 0)
+			dbzone = 0; /* we found a parent zone */
 		if(!dbzone)
 			log_msg(LOG_INFO, "xfrd: adding empty zone %s\n", zone_opt->name);
 		else log_msg(LOG_INFO, "xfrd: adding filled zone %s\n", zone_opt->name);

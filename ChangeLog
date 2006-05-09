@@ -1,3 +1,8 @@
+9 May 2006: Wouter
+	- Fix for finding bad zone when populating SOA info on start.
+	 it would find a parent zone instead of the zone in question (
+	 which is empty).
+
 8 May 2006: Wouter
 	- updated zparser.y to handle empty nsec_seq lists.
 	  for empty nonterminals in NSEC3.
