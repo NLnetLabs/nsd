@@ -52,6 +52,7 @@ static acl_options_t* parse_acl_info(char* ip, const char* key);
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
+%token VAR_AXFR
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -266,9 +267,27 @@ zone_allow_notify: VAR_ALLOW_NOTIFY STRING STRING
 		cfg_parser->current_allow_notify = acl;
 	}
 	;
-zone_request_xfr: VAR_REQUEST_XFR STRING STRING
+zone_request_xfr: VAR_REQUEST_XFR zone_request_xfr_data
+	{
+	}
+	;
+zone_request_xfr_data: STRING STRING
+	{ 
+		acl_options_t* acl = parse_acl_info($1, $2);
+		OUTYY(("P(zone_request_xfr:%s %s)\n", $1, $2)); 
+		if(acl->blocked) c_error("blocked address used for request-xfr");
+		if(acl->rangetype!=acl_range_single) c_error("address range used for request-xfr");
+		if(cfg_parser->current_request_xfr)
+			cfg_parser->current_request_xfr->next = acl;
+		else
+			cfg_parser->current_zone->request_xfr = acl;
+		cfg_parser->current_request_xfr = acl;
+	}
+	| VAR_AXFR STRING STRING
 	{ 
 		acl_options_t* acl = parse_acl_info($2, $3);
+		acl->use_axfr_only = 1;
+		printf("read acl with axfr opt\n");
 		OUTYY(("P(zone_request_xfr:%s %s)\n", $2, $3)); 
 		if(acl->blocked) c_error("blocked address used for request-xfr");
 		if(acl->rangetype!=acl_range_single) c_error("address range used for request-xfr");
@@ -420,6 +439,7 @@ static acl_options_t* parse_acl_info(char* ip, const char* key)
 	acl->next = 0;
 	/* ip */
 	acl->ip_address_spec = region_strdup(cfg_parser->opt->region, ip);
+	acl->use_axfr_only = 0;
 	acl->key_options = 0;
 	acl->is_ipv6 = 0;
 	acl->port = 0;

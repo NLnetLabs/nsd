@@ -2,6 +2,8 @@
 	- Fix for finding bad zone when populating SOA info on start.
 	 it would find a parent zone instead of the zone in question (
 	 which is empty).
+	- request-xfr: AXFR 10.0.0.153 keytouse syntax to interoperate
+	  with NSD machines. Will only send AXFR queries to the machine.
 
 8 May 2006: Wouter
 	- updated zparser.y to handle empty nsec_seq lists.

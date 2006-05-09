@@ -98,6 +98,9 @@ union acl_addr_storage {
 struct acl_options {
 	acl_options_t* next;
 
+	/* options */
+	uint8_t use_axfr_only;
+
 	/* ip address range */
 	const char* ip_address_spec;
 	uint8_t is_ipv6;

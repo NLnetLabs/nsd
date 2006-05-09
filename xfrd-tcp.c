@@ -229,7 +229,7 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
 	/* start AXFR or IXFR for the zone */
-	if(zone->soa_disk_acquired == 0) {
+	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only) {
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex);
 		buffer_flip(tcp->packet);
 	} else {

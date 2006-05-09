@@ -610,7 +610,7 @@ xfrd_make_request(xfrd_zone_t* zone)
 	log_msg(LOG_INFO, "xfrd zone %s make request round %d mr %d nx %d", 
 		zone->apex_str, zone->round_num, zone->master_num, zone->next_master);
 	/* perform xfr request */
-	if(zone->soa_disk_acquired == 0) {
+	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only) {
 		/* request axfr */
 		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
 		xfrd_tcp_obtain(xfrd->tcp_set, zone);
