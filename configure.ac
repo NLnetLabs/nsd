@@ -625,7 +625,7 @@ int b64_pton(char const *src, uint8_t *target, size_t targsize);
 ])
 
 # big fat warning
-if [[ "$enable_checking" = "yes" ]]; then
+if test "$enable_checking" = "yes"; then
         echo "************************************************"
         echo "* You have activated \"--enable-checking\"       *"
         echo "*                                              *"
