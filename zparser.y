@@ -74,7 +74,7 @@ void yyerror(const char *message);
 %type <domain>	owner dname abs_dname
 %type <dname>	rel_dname label
 %type <data>	concatenated_str_seq str_sp_seq str_dot_seq dotted_str
-%type <data>	nxt_seq nsec_seq
+%type <data>	nxt_seq nsec_more
 %type <unknown> rdata_unknown
 
 %%
@@ -320,22 +320,13 @@ nxt_seq:	STR
     }
     ;
 
-nsec_seq:	trail
+nsec_more:	SP nsec_more
     {
     }
-    |	STR sp nsec_seq
+    |	NL
     {
-	    uint16_t type = rrtype_from_string($1.str);
-	    if (type != 0) {
-                    if (type > nsec_highest_rcode) {
-                            nsec_highest_rcode = type;
-                    }
-		    set_bitnsec(nsecbits, type);
-	    } else {
-		    zc_error("bad type %d in NSEC record", (int) type);
-	    }
     }
-    |	STR
+    |	STR nsec_seq
     {
 	    uint16_t type = rrtype_from_string($1.str);
 	    if (type != 0) {
@@ -348,6 +339,10 @@ nsec_seq:	trail
 	    }
     }
     ;
+
+nsec_seq:	NL
+	|	SP nsec_more
+	;
 
 /*
  * Sequence of STR tokens separated by spaces.	The spaces are not
@@ -743,7 +738,7 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_se
     }
     ;
 
-rdata_nsec:	dname sp nsec_seq
+rdata_nsec:	dname nsec_seq
     {
 	    zadd_rdata_domain($1); /* nsec name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
@@ -752,7 +747,7 @@ rdata_nsec:	dname sp nsec_seq
     }
     ;
 
-rdata_nsec3:   STR sp STR sp STR sp STR sp STR sp nsec_seq
+rdata_nsec3:   STR sp STR sp STR sp STR sp STR nsec_seq
     {
 #ifdef NSEC3
 	    uint8_t optout;
