@@ -1,3 +1,6 @@
+10 May 2006: Wouter
+	- nsdc.sh is set +x after creation.
+
 9 May 2006: Wouter
 	- Fix for finding bad zone when populating SOA info on start.
 	 it would find a parent zone instead of the zone in question (

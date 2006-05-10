@@ -253,6 +253,7 @@ all:	$(TARGETS)
 nsdc.sh:	nsdc.sh.in
 	rm -f nsdc.sh
 	$(EDIT) nsdc.sh.in > nsdc.sh
+	chmod +x nsdc.sh
 
 nsdc.conf.sample:	nsdc.conf.sample.in
 	rm -f nsdc.conf.sample
