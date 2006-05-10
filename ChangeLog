@@ -1,5 +1,9 @@
 10 May 2006: Wouter
 	- nsdc.sh is set +x after creation.
+	- improved error message when zone in db has no config info.
+	- support for broken nsec3 chains (if the one with the SOA bit
+	  is complete, it is OK for there to be other nsec3 chains 
+	  with different parameters in the zone).
 
 9 May 2006: Wouter
 	- Fix for finding bad zone when populating SOA info on start.

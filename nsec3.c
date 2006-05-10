@@ -93,6 +93,44 @@ find_zone_nsec3(zone_type *zone)
 	return 0;
 }
 
+/* check that the rrset has an NSEC3 that uses the same parameters as the
+   zone is using. Pass NSEC3 rrset, and zone must have nsec3_rrset set. 
+   if you pass NULL then 0 is returned. */
+int nsec3_rrset_params_ok(rrset_type* rrset)
+{
+	rdata_atom_type* prd;
+	rdata_atom_type* rd;
+	size_t i;
+	if(!rrset)
+		return 0; /* without rrset, no matching params either */
+	assert(rrset && rrset->zone && rrset->zone->nsec3_rrset &&
+		rrset->zone->nsec3_rrset->rrs);
+	prd = rrset->zone->nsec3_rrset->rrs->rdatas;
+	for(i=0; i<rrset->rr_count; ++i)
+	{
+		rd = rrset->rrs[i].rdatas;
+		assert(rrset->rrs[i].type == TYPE_NSEC3);
+		if(rdata_atom_data(rd[0])[0] == 
+			rdata_atom_data(prd[0])[0] && /* hash algo */
+		   (rdata_atom_data(rd[1])[0]&0x7f) == 
+			(rdata_atom_data(prd[1])[0]&0x7f) && /* iterations 0 */
+		   rdata_atom_data(rd[1])[1] == 
+			rdata_atom_data(prd[1])[1] && /* iterations 1 */
+		   rdata_atom_data(rd[1])[2] == 
+			rdata_atom_data(prd[1])[2] && /* iterations 2 */
+		   rdata_atom_data(rd[2])[0] == 
+			rdata_atom_data(prd[2])[0] && /* salt length */
+		   memcmp(rdata_atom_data(rd[2])+1, 
+			rdata_atom_data(prd[2])+1, rdata_atom_data(rd[2])[0]) 
+			== 0 ) 
+		{
+			/* this NSEC3 matches nsec3 parameters from zone */
+			return 1;
+		}
+	}
+	return 0;
+}
+
 static domain_type* 
 nsec3_find_last(zone_type* zone)
 {
@@ -103,8 +141,9 @@ nsec3_find_last(zone_type* zone)
 	while(walk && 
 		dname_is_subdomain(domain_dname(walk), domain_dname(zone->apex)))
 	{
-		/* remember last domain with an NSEC3 rrset */
-		if(domain_find_rrset(walk, zone, TYPE_NSEC3)) {
+		/* remember last domain with an OK NSEC3 rrset */
+		if(nsec3_rrset_params_ok(
+			domain_find_rrset(walk, zone, TYPE_NSEC3))) {
 			result = walk;
 		}
 		walk = domain_next(walk);
@@ -128,7 +167,9 @@ nsec3_find_cover(namedb_type* db, zone_type* zone,
 	exact = domain_table_search(
 		db->domains, hashname, &closest_match, &closest_encloser);
 	/* exact match of hashed domain name + it has an NSEC3? */
-	if(exact && (rrset = domain_find_rrset(closest_encloser, zone, TYPE_NSEC3))) {
+	if(exact && 
+	   nsec3_rrset_params_ok(
+	   	domain_find_rrset(closest_encloser, zone, TYPE_NSEC3))) {
 		*result = closest_encloser;
 		assert(*result != 0);
 		return 1;
@@ -137,9 +178,14 @@ nsec3_find_cover(namedb_type* db, zone_type* zone,
 	/* find covering NSEC3 record, lexicographically before the closest match */
 	walk = closest_match;
 	rrset = 0;
-	while(walk && dname_is_subdomain(domain_dname(walk), domain_dname(zone->apex))
-		&& !(rrset = domain_find_rrset(walk, zone, TYPE_NSEC3)))
+	while(walk && dname_is_subdomain(domain_dname(walk), domain_dname(zone->apex)))
 	{
+		if(nsec3_rrset_params_ok(
+			domain_find_rrset(walk, zone, TYPE_NSEC3))) {
+			/* this rrset is OK NSEC3, exit while */
+			rrset = domain_find_rrset(walk, zone, TYPE_NSEC3);
+			break;
+		}
 		walk = domain_previous(walk);
 	}
 	if(rrset)
