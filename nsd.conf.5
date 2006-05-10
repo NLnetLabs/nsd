@@ -183,9 +183,14 @@ of the form 1.2.3.4-1.2.3.25.
 A port number can be added using a suffix of @number, 
 for example 1.2.3.4@5300 or 1.2.3.4/24@5300 for port 5300.
 Note the ip-spec ranges do not use spaces around the /, &, @ and - symbols.
-.It \fBrequest-xfr:\fR <ip-address> <key-name | NOKEY>
+.It \fBrequest-xfr:\fR [AXFR] <ip-address> <key-name | NOKEY>
 Access control list. The listed address (the master) is queried for AXFR/IXFR 
 on update. The specified key is used during AXFR/IXFR.
+.Pp
+If the AXFR option is given, the server will not be contacted with IXFR queries
+but only AXFR requests will be made to the server. This allows an NSD secondary
+to have a master server that runs NSD. If the AXFR option is left out then
+both IXFR and AXFR requests are made to the master server.
 .It \fBnotify:\fR <ip-address> <key-name | NOKEY>
 Access control list. The listed address (a secondary) is notified of updates to
 this zone. The specified key is used to sign the notify. Only on secondary

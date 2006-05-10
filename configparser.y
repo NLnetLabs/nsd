@@ -287,7 +287,6 @@ zone_request_xfr_data: STRING STRING
 	{ 
 		acl_options_t* acl = parse_acl_info($2, $3);
 		acl->use_axfr_only = 1;
-		printf("read acl with axfr opt\n");
 		OUTYY(("P(zone_request_xfr:%s %s)\n", $2, $3)); 
 		if(acl->blocked) c_error("blocked address used for request-xfr");
 		if(acl->rangetype!=acl_range_single) c_error("address range used for request-xfr");

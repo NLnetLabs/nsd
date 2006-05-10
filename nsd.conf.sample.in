@@ -90,6 +90,9 @@ zone:
 	# master 2
 	allow-notify: 10.0.0.10 NOKEY
 	request-xfr: 10.0.0.10 NOKEY
+	# for a master that only speaks AXFR (like NSD) use
+	allow-notify: 10.0.0.11 NOKEY
+	request-xfr: AXFR 10.0.0.11 NOKEY
 
 	# uncomment to provide AXFR to all the world
 	# provide-xfr: 0.0.0.0/0 NOKEY

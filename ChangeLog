@@ -4,6 +4,9 @@
 	 which is empty).
 	- request-xfr: AXFR 10.0.0.153 keytouse syntax to interoperate
 	  with NSD machines. Will only send AXFR queries to the machine.
+	- documented AXFR option in nsd.conf.5 manual page,
+	  and updated nsd-checkconf, nsd.conf.sample.
+	- made 'skipping zone' log entry clearer (Sam Weiler asked).
 
 8 May 2006: Wouter
 	- updated zparser.y to handle empty nsec_seq lists.

@@ -373,7 +373,7 @@ xfrd_init_zones()
 	{
 		log_msg(LOG_INFO, "Zone %s\n", zone_opt->name);
 		if(!zone_is_slave(zone_opt)) {
-			log_msg(LOG_INFO, "skipping master zone %s\n", zone_opt->name);
+			log_msg(LOG_INFO, "xfrd: zone %s, master zone has no outgoing xfr requests", zone_opt->name);
 			continue;
 		}
 

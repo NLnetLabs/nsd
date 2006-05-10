@@ -102,7 +102,10 @@ print_acl(const char* varname, acl_options_t* acl)
 {
 	while(acl)
 	{
-		printf("\t%s %s %s\n", varname, acl->ip_address_spec,
+		printf("\t%s ", varname);
+		if(acl->use_axfr_only)
+			printf("AXFR ");
+		printf("%s %s\n", acl->ip_address_spec,
 			acl->nokey?"NOKEY":(acl->blocked?"BLOCKED":
 			(acl->key_name?acl->key_name:"(null)")));
 		if(1) {
