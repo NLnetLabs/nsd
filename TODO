@@ -15,6 +15,10 @@ ZONE COMPILER
 (old)- detect cname loops
 - one db file per zone (as an option?) (featurecreep)?
   req by Alex (Bit). So that after rsync, zonec is fast with many zones.
+- if a zone is dropped from the config file, but not removed from the
+  nsd.db. NSD refuses to start. Should skip/drop the zone.
+  Redesign file format, so that you can skip a zone more easily, this
+  also makes multiply db files easier.
 
 SERVER
 (old)- in tcp the timeout should be handled different than with alarm()?
