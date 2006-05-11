@@ -45,10 +45,15 @@ struct nsd_options;
  */
 #define NSD_ZONE_STATE 8
 /* 
+ * SOA BEGIN is sent at the start of a reload SOA_INFO pass
+ * xfrd will not send to the parent (deadlock prevention).
+ */
+#define NSD_SOA_BEGIN 9
+/*
  * SOA END is sent at the end of a reload SOA_INFO pass.
  * xfrd then knows that reload phase is over.
  */
-#define NSD_SOA_END 9
+#define NSD_SOA_END 10
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U

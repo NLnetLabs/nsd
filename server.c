@@ -649,6 +649,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	}
 
 	/* inform xfrd of new SOAs */
+	cmd = NSD_SOA_BEGIN;
+	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
+		log_msg(LOG_ERR, "problems sending soa begin from reload %d to xfrd: %s",
+			(int)nsd->pid, strerror(errno));
+	}
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		uint16_t sz;
 		const dname_type *dname_ns=0, *dname_em=0;
@@ -706,7 +711,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	}
 	cmd = NSD_SOA_END;
 	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
-		log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
+		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
 	/* exit reload, continue as new server_main */

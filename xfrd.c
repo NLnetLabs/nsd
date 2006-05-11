@@ -123,6 +123,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->nsd = nsd;
 	xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
+	xfrd->parent_soa_info_pass = 0;
 
 	/* add the handlers already, because this involves allocs */
 	xfrd->reload_handler.fd = -1;
@@ -279,12 +280,18 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
         case NSD_SHUTDOWN:
                 xfrd->shutdown = 1;
                 break;
+	case NSD_SOA_BEGIN:
+		/* reload starts sending SOA INFOs; don't block */
+		xfrd->parent_soa_info_pass = 1;
+		break;
 	case NSD_SOA_INFO:
+		assert(xfrd->parent_soa_info_pass);
 		xfrd->ipc_is_soa = 1;
 		xfrd->ipc_conn->is_reading = 1;
                 break;
 	case NSD_SOA_END:
 		/* reload has finished */
+		xfrd->parent_soa_info_pass = 0;
 		xfrd_send_expy_all_zones();
 		break;
 	case NSD_PASS_TO_XFRD:
@@ -1220,6 +1227,11 @@ xfrd_send_expire_notification(xfrd_zone_t* zone)
 	uint8_t ok = 1;
 	uint16_t sz = dname_total_size(zone->apex) + 1;
 	int fd = xfrd->ipc_handler.fd;
+	if(xfrd->parent_soa_info_pass) {
+		log_msg(LOG_INFO, "xfrd skip expire notify during soainfo pass, %s= %d.",
+			zone->apex_str, (int)zone->state);
+		return;
+	}
 	log_msg(LOG_INFO, "xfrd sending zone state to nsd for zone %s state %d.",
 		zone->apex_str, (int)zone->state);
 	sz = htons(sz);
