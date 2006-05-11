@@ -16,13 +16,13 @@ server:
 	# ip-address: 12fe::8ef0
 
 	# enable debug mode for nsd, does not fork daemon process.
-	# debug-mode: yes
+	# debug-mode: no
 
 	# listen only on IPv4 connections
-	# ip4-only: yes
+	# ip4-only: no
 
 	# listen only on IPv6 connections
-	# ip6-only: yes
+	# ip6-only: no
 	
 	# the database to use
 	# database: "@dbfile@"
