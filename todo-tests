@@ -1,0 +1,12 @@
+
+run tests with different shells, aka ==-bug
+run tests with different configure options and combinations
+    of them.
+
+implement this in a xen-like environment so that different OSs can
+be checked.
+
+run this daily or only when subversion changes
+
+for each test, run our "test-suite"
+
