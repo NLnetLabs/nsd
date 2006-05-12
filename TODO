@@ -52,6 +52,8 @@ DOCUMENTATION
 - doc that churn host memory on ixfr/axfr, cannot free, it is in same region
   ixfr is with trusted parties, so not a problem.
 - log entry on max tcp count in xfrd, let us know, we can make it a config.
+- nsd_for_bind_users: without notify: statements nsd will not send NOTIFY.
+  (Bind sends to the NS).
 
 OPTIMISATIONS
 - delete entire zone for AFXR during reload read in,

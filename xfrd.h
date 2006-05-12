@@ -60,9 +60,6 @@ struct xfrd_state {
 
 	/* tree of zones, by apex name, contains xfrd_zone_t* */
 	rbtree_t *zones;
-	
-	/* notify retry state (not saved on disk) */
-	/* TODO notify send */
 };
 
 /*
@@ -145,9 +142,19 @@ struct xfrd_zone {
 	size_t msg_rr_count;
 	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
 	struct region* query_region;
+	struct region* notify_query_region;
 #ifdef TSIG
-	tsig_record_type tsig;
+	tsig_record_type tsig; /* tsig state for IXFR/AXFR */
+	tsig_record_type notify_tsig; /* tsig state for notify */
 #endif
+
+	/* notify sending handler */
+	/* Not saved on disk (i.e. kill of daemon stops notifies) */
+	netio_handler_type notify_send_handler;
+	struct timespec notify_timeout;
+	acl_options_t* notify_current; /* current slave to notify */
+	uint8_t notify_retry; /* how manieth retry in sending to current */
+	uint16_t notify_query_id;
 };
 
 #define XFRD_FILE_MAGIC "NSDXFRD1"
@@ -187,8 +194,9 @@ void xfrd_make_request(xfrd_zone_t* zone);
 
 /*
  * TSIG sign outgoing request. Call if acl has a key.
+ * region is freed here and used during tsig.
  */
-void xfrd_tsig_sign_request(buffer_type* packet, xfrd_zone_t* zone,
-        acl_options_t* acl);
+void xfrd_tsig_sign_request(buffer_type* packet, struct tsig_record* tsig,
+        acl_options_t* acl, struct region* tsig_region);
 
 #endif /* XFRD_H */

@@ -659,6 +659,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		const dname_type *dname_ns=0, *dname_em=0;
 		if(zone->updated == 0)
 			continue;
+		if(!zone_is_slave(zone->opts)) {
+			zone->updated = 0; /* skip master zones */
+			continue;
+		}
 		log_msg(LOG_INFO, "nsd: sending soa info for zone %s",
 			dname_to_string(domain_dname(zone->apex),0));
 		cmd = NSD_SOA_INFO;

@@ -270,7 +270,8 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 	while(acl)
 	{
 		log_msg(LOG_INFO, "testing acl %s %s",
-			acl->ip_address_spec, acl->key_name);
+			acl->ip_address_spec, acl->nokey?"NOKEY":
+			(acl->blocked?"BLOCKED":acl->key_name));
 		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
 			if(!match)
 				match = acl; /* remember first match */
@@ -286,7 +287,7 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 	}
 
 #ifdef TSIG
-	if(match && !match->nokey) {
+	if(match && !match->nokey && !match->blocked) {
 		/* check TSIG */
 		log_msg(LOG_INFO, "TSIG check for match %s %s",
 			match->ip_address_spec, match->key_name);

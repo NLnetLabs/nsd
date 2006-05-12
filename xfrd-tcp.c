@@ -242,7 +242,8 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	zone->msg_seq_nr = 0;
 	zone->msg_rr_count = 0;
 	if(zone->master->key_options) {
-		xfrd_tsig_sign_request(tcp->packet, zone, zone->master);
+		xfrd_tsig_sign_request(tcp->packet, &zone->tsig, zone->master,
+			zone->query_region);
 	}
 	log_msg(LOG_INFO, "sent tcp query with ID %d", zone->query_id);
 	tcp->msglen = buffer_limit(tcp->packet);

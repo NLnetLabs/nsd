@@ -1,5 +1,8 @@
 12 May 2006: Wouter
 	- fixed up usage print for zonec to include -f option.
+	- xfrd send notifies.
+	- server no longer sends SOA INFO for master zones.
+	- removed possible debug log print of a null string.
 
 11 May 2006: Wouter
 	- nsd.conf.sample shows defaults for ip4-only, ip6-only and debug-mode.

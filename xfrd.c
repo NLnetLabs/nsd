@@ -32,6 +32,8 @@
 #define XFRD_MAX_ROUNDS 3 /* number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
+#define XFRD_NOTIFY_RETRY_TIMOUT 15 /* seconds between retries sending NOTIFY */
+#define XFRD_NOTIFY_MAX_NUM 5 /* number of attempts to send NOTIFY */
 
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
@@ -63,6 +65,9 @@ static void xfrd_handle_ipc_SOAINFO(buffer_type* packet);
 static void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 /* handle incoming notification message. soa can be NULL. true if transfer needed. */
 static int xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
+/* handle zone notify send */
+static void xfrd_handle_notify_send(netio_type *netio, 
+	netio_handler_type *handler, netio_event_types_type event_types);
 
 /* call with buffer just after the soa dname. returns 0 on error. */
 static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa);
@@ -95,10 +100,12 @@ static void xfrd_read_state();
 /* write state to disk */
 static void xfrd_write_state();
 
-/* send packet via udp (returns UDP fd source socket) to acl addr. 0 on failure. */
+/* send packet via udp (returns UDP fd source socket) to acl addr. -1 on failure. */
 static int xfrd_send_udp(acl_options_t* acl, buffer_type* packet);
 /* read data via udp */
 static void xfrd_udp_read(xfrd_zone_t* zone);
+/* read from udp port packet into buffer, 0 on failure */
+static int xfrd_udp_read_packet(buffer_type* packet, int fd);
 
 /* find acl by number */
 static acl_options_t* acl_find_num(acl_options_t* acl, int num);
@@ -200,6 +207,10 @@ xfrd_shutdown()
 		if(zone->tcp_conn==-1 && zone->zone_handler.fd != -1) {
 			close(zone->zone_handler.fd);
 			zone->zone_handler.fd = -1;
+		}
+		if(zone->notify_send_handler.fd != -1) {
+			close(zone->notify_send_handler.fd);
+			zone->notify_send_handler.fd = -1;
 		}
 	}
 	exit(0);
@@ -323,7 +334,7 @@ static void xfrd_handle_ipc_SOAINFO(buffer_type* packet)
 	/* find zone and decode SOA */
 	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
 	if(!zone) {
-		log_msg(LOG_ERR, "xfrd: zone %s not configured, but ipc of SOA INFO",
+		log_msg(LOG_ERR, "xfrd: zone %s not configured or not secondary, but ipc of SOA INFO",
 			dname_to_string(dname,0));
 		return;
 	}
@@ -427,6 +438,15 @@ xfrd_init_zones()
 		xzone->tcp_conn = -1;
 		xzone->query_region = region_create(xalloc, free);
 		region_add_cleanup(xfrd->region, cleanup_region, xzone->query_region);
+
+		xzone->notify_send_handler.fd = -1;
+		xzone->notify_send_handler.timeout = 0;
+		xzone->notify_send_handler.user_data = xzone;
+		xzone->notify_send_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+		xzone->notify_send_handler.event_handler = xfrd_handle_notify_send;
+		xzone->notify_query_region = region_create(xalloc, free);
+		region_add_cleanup(xfrd->region, cleanup_region, xzone->notify_query_region);
+		netio_add_handler(xfrd->netio, &xzone->notify_send_handler);
 		
 		if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
 			xzone->soa_nsd_acquired = xfrd_time();
@@ -636,6 +656,128 @@ xfrd_time()
 		xfrd->got_time = 1;
 	}
 	return xfrd->current_time;
+}
+
+/* stop sending notifies */
+static void 
+xfrd_notify_disable(xfrd_zone_t* zone)
+{
+	if(zone->notify_send_handler.fd != -1) {
+		close(zone->notify_send_handler.fd);
+	}
+	zone->notify_current = 0;
+	zone->notify_send_handler.fd = -1;
+	zone->notify_send_handler.timeout = 0;
+}
+
+/* returns if the notify send is done for the notify_current acl */
+static int 
+xfrd_handle_notify_reply(xfrd_zone_t* zone, buffer_type* packet) 
+{
+	if((OPCODE(packet) != OPCODE_NOTIFY) ||
+		(QR(packet) == 0)) {
+		log_msg(LOG_ERR, "xfrd: zone %s: received bad notify reply opcode/flags",
+			zone->apex_str);
+		return 0;
+	}
+	/* we know it is OPCODE NOTIFY, QUERY_REPLY and for this zone */
+	if(ID(packet) != zone->notify_query_id) {
+		log_msg(LOG_ERR, "xfrd: zone %s: received notify-ack with bad ID",
+			zone->apex_str);
+		return 0;
+	}
+	/* could check tsig, but why. The reply does not cause processing. */
+	if(RCODE(packet) != RCODE_OK) {
+		log_msg(LOG_ERR, "xfrd: zone %s: received notify response error %s from %s",
+			zone->apex_str, rcode2str(RCODE(packet)),
+			zone->notify_current->ip_address_spec);
+		if(RCODE(packet) == RCODE_IMPL)
+			return 1; /* rfc1996: notimpl notify reply: consider retries done */
+		return 0;
+	}
+	log_msg(LOG_INFO, "xfrd: zone %s: host %s acknowledges notify",
+		zone->apex_str, zone->notify_current->ip_address_spec);
+	return 1;
+}
+
+static void
+xfrd_notify_next(xfrd_zone_t* zone)
+{
+	/* advance to next in acl */
+	zone->notify_current = zone->notify_current->next;
+	zone->notify_retry = 0;
+	if(zone->notify_current == 0) {
+		log_msg(LOG_INFO, "xfrd: zone %s: no more notify-send acls. stop notify.", 
+			zone->apex_str);
+		xfrd_notify_disable(zone);
+		return;
+	}
+}
+
+static void 
+xfrd_notify_send_udp(xfrd_zone_t* zone)
+{
+	if(zone->notify_send_handler.fd != -1)
+		close(zone->notify_send_handler.fd);
+	zone->notify_send_handler.fd = -1;
+	/* Set timeout for next reply */
+	zone->notify_timeout.tv_sec = xfrd_time() + XFRD_NOTIFY_RETRY_TIMOUT;
+	/* send NOTIFY to secondary. */
+	xfrd_setup_packet(xfrd->packet, TYPE_SOA, CLASS_IN, zone->apex);
+	zone->notify_query_id = ID(xfrd->packet);
+	OPCODE_SET(xfrd->packet, OPCODE_NOTIFY);
+	AA_SET(xfrd->packet);
+	if(zone->soa_nsd_acquired != 0) {
+		/* add current SOA to answer section */
+		ANCOUNT_SET(xfrd->packet, 1);
+		xfrd_write_soa_buffer(xfrd->packet, zone, &zone->soa_nsd);
+	}
+#ifdef TSIG
+	if(zone->notify_current->key_options) {
+		xfrd_tsig_sign_request(xfrd->packet, &zone->notify_tsig, 
+			zone->notify_current, zone->notify_query_region);
+	}
+#endif /* TSIG */
+	buffer_flip(xfrd->packet);
+	zone->notify_send_handler.fd = xfrd_send_udp(zone->notify_current, xfrd->packet);
+	if(zone->notify_send_handler.fd == -1) {
+		log_msg(LOG_ERR, "xfrd: zone %s: could not send notify #%d to %s",
+			zone->apex_str, zone->notify_retry,
+			zone->notify_current->ip_address_spec);
+		return;
+	}
+	log_msg(LOG_INFO, "xfrd: zone %s: sent notify #%d to %s",
+		zone->apex_str, zone->notify_retry,
+		zone->notify_current->ip_address_spec);
+}
+
+static void 
+xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio), 
+	netio_handler_type *handler, netio_event_types_type event_types)
+{
+	xfrd_zone_t* zone = (xfrd_zone_t*)handler->user_data;
+	assert(zone->notify_current);
+	if(event_types & NETIO_EVENT_READ) {
+		log_msg(LOG_INFO, "xfrd: zone %s: read notify ACK", zone->apex_str);
+		assert(handler->fd != -1);
+		if(xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.fd)) {
+			if(xfrd_handle_notify_reply(zone, xfrd->packet))
+				xfrd_notify_next(zone);
+		}
+	} else if(event_types & NETIO_EVENT_TIMEOUT) {
+		log_msg(LOG_INFO, "xfrd: zone %s: notify timeout", zone->apex_str);
+		zone->notify_retry++; /* timeout, try again */
+		if(zone->notify_retry > XFRD_NOTIFY_MAX_NUM) {
+			log_msg(LOG_ERR, "xfrd: zone %s: max notify send count reached, %s unreachable", 
+				zone->apex_str, zone->notify_current->ip_address_spec);
+			xfrd_notify_next(zone);
+		}
+	}
+	/* see if notify is still enabled */
+	if(zone->notify_current) {
+		/* try again */
+		xfrd_notify_send_udp(zone);
+	}
 }
 
 static void 
@@ -1216,8 +1358,14 @@ static void xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 static void 
 xfrd_send_notify(xfrd_zone_t* zone)
 {
-	log_msg(LOG_INFO, "TODO: xfrd sending notifications for zone %s.",
-		zone->apex_str);
+	if(!zone->zone_options->notify) {
+		return; /* no notify acl, nothing to do */
+	}
+	zone->notify_retry = 0;
+	zone->notify_current = zone->zone_options->notify;
+	zone->notify_send_handler.timeout = &zone->notify_timeout;
+	zone->notify_timeout.tv_sec = xfrd_time();
+	zone->notify_timeout.tv_nsec = 0;
 }
 
 static void 
@@ -1248,25 +1396,33 @@ xfrd_send_expire_notification(xfrd_zone_t* zone)
 	}
 }
 
-static void 
-xfrd_udp_read(xfrd_zone_t* zone)
+static int 
+xfrd_udp_read_packet(buffer_type* packet, int fd)
 {
 	ssize_t received;
 
-	log_msg(LOG_INFO, "xfrd: zone %s read udp data", zone->apex_str);
-	/* read and handle the data */
-	buffer_clear(xfrd->packet);
-	received = recvfrom(zone->zone_handler.fd, 
-		buffer_begin(xfrd->packet), buffer_remaining(xfrd->packet),
+	/* read the data */
+	buffer_clear(packet);
+	received = recvfrom(fd, buffer_begin(packet), buffer_remaining(packet),
 		0, NULL, NULL);
 	if(received == -1) {
 		log_msg(LOG_ERR, "xfrd: recvfrom failed: %s",
 			strerror(errno));
+		return 0;
+	}
+	buffer_set_limit(packet, received);
+	return 1;
+}
+
+static void 
+xfrd_udp_read(xfrd_zone_t* zone)
+{
+	log_msg(LOG_INFO, "xfrd: zone %s read udp data", zone->apex_str);
+	if(!xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.fd)) {
 		close(zone->zone_handler.fd);
 		zone->zone_handler.fd = -1;
 		return;
 	}
-	buffer_set_limit(xfrd->packet, received);
 	close(zone->zone_handler.fd);
 	zone->zone_handler.fd = -1;
 	switch(xfrd_handle_received_xfr_packet(zone, xfrd->packet)) {
@@ -1327,8 +1483,8 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 }
 
 void
-xfrd_tsig_sign_request(buffer_type* packet, xfrd_zone_t* zone, 
-	acl_options_t* acl)
+xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig, 
+	acl_options_t* acl, struct region* tsig_region)
 {
 #ifdef TSIG
 	tsig_algorithm_type* algo;
@@ -1340,17 +1496,17 @@ xfrd_tsig_sign_request(buffer_type* packet, xfrd_zone_t* zone,
 		return;
 	}
 	assert(algo);
-	region_free_all(zone->query_region);
-	tsig_init_record(&zone->tsig, zone->query_region, algo, acl->key_options->tsig_key);
-	tsig_init_query(&zone->tsig, ID(packet));
-	tsig_prepare(&zone->tsig);
-	tsig_update(&zone->tsig, packet, buffer_position(packet));
-	tsig_sign(&zone->tsig);
-	tsig_append_rr(&zone->tsig, packet);
+	region_free_all(tsig_region);
+	tsig_init_record(tsig, tsig_region, algo, acl->key_options->tsig_key);
+	tsig_init_query(tsig, ID(packet));
+	tsig_prepare(tsig);
+	tsig_update(tsig, packet, buffer_position(packet));
+	tsig_sign(tsig);
+	tsig_append_rr(tsig, packet);
 	ARCOUNT_SET(packet, ARCOUNT(packet) + 1);
 	log_msg(LOG_INFO, "appending tsig to packet");
 	/* prepare for validating tsigs */
-	tsig_prepare(&zone->tsig);
+	tsig_prepare(tsig);
 #endif
 }
 
@@ -1373,7 +1529,8 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
         NSCOUNT_SET(xfrd->packet, 1);
 	xfrd_write_soa_buffer(xfrd->packet, zone, &zone->soa_disk);
 	if(zone->master->key_options) {
-		xfrd_tsig_sign_request(xfrd->packet, zone, zone->master);
+		xfrd_tsig_sign_request(xfrd->packet, &zone->tsig, zone->master,
+			zone->query_region);
 	}
 	buffer_flip(xfrd->packet);
 
