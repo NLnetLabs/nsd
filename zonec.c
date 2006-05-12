@@ -1251,6 +1251,7 @@ usage (void)
 	fprintf(stderr, "\t-C\tNo config file is read.\n");
 	fprintf(stderr, "\t-d\tSet working directory to open files from.\n");
 	fprintf(stderr, "\t-o\tSpecify a zone's origin (only used with -z).\n");
+	fprintf(stderr, "\t-f\tSpecify database file to use.\n");
 	fprintf(stderr, "\t-z\tSpecify a zonefile to read (read from stdin with \'-\').\n");
 #ifndef NDEBUG
 	fprintf(stderr, "\t-F\tSet debug facilities.\n");

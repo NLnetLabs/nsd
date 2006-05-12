@@ -1,3 +1,6 @@
+12 May 2006: Wouter
+	- fixed up usage print for zonec to include -f option.
+
 11 May 2006: Wouter
 	- nsd.conf.sample shows defaults for ip4-only, ip6-only and debug-mode.
 	- SOA_BEGIN message on start of reload sending soa info so that
