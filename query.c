@@ -873,7 +873,7 @@ answer_query(struct nsd *nsd, struct query *q)
 
 	/* see if the zone has expired (for secondary zones) */
 	if(q->zone && q->zone->opts && zone_is_slave(q->zone->opts)
-		&& !q->zone->opts->zone_is_ok) {
+		&& !q->zone->is_ok) {
 		RCODE_SET(q->packet, RCODE_SERVFAIL);
 		return;
 	}

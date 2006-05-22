@@ -1579,16 +1579,31 @@ static void handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
 {
 	uint8_t ok;
 	const dname_type *dname;
-	zone_options_t *zone;
+	domain_type *domain;
+	zone_type *zone;
 
 	ok = buffer_read_u8(packet);
 	dname = (dname_type*)buffer_current(packet);
 	log_msg(LOG_INFO, "handler zone state %s is %s",
 		dname_to_string(dname, NULL), ok?"ok":"expired");
+	/* find in zone_types, if does not exist, we cannot serve anyway */
 	/* find zone in config, since that one always exists */
-	zone = (zone_options_t*)rbtree_search(nsd->options->zone_options, dname);
+	domain = domain_table_find(nsd->db->domains, dname);
+	if(!domain) {
+		log_msg(LOG_INFO, "zone state msg, empty zone (domain %s)",
+			dname_to_string(dname, NULL));
+		return;
+	}
+	zone = domain_find_zone(domain);
+	if(!zone || dname_compare(domain_dname(zone->apex), dname) != 0) {
+		log_msg(LOG_INFO, "zone state msg, empty zone (zone %s)",
+			dname_to_string(dname, NULL));
+		return;
+	}
 	assert(zone);
-	zone->zone_is_ok = ok;
+	if(ok)
+		zone->is_ok = 1;
+	else 	zone->is_ok = 0;
 }
 
 static void

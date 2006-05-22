@@ -78,9 +78,6 @@ struct zone_options {
 	acl_options_t* request_xfr;
 	acl_options_t* notify;
 	acl_options_t* provide_xfr;
-
-	/* state of the zone */
-	int zone_is_ok;
 };
 
 union acl_addr_storage {

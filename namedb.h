@@ -79,6 +79,7 @@ struct zone
 	uint32_t     number;
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     updated : 1; /* zone SOA was updated */
+	unsigned     is_ok : 1; /* zone has not expired. */
 };
 
 /* a RR in DNS */

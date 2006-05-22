@@ -348,6 +348,7 @@ namedb_open (const char *filename, nsd_options_t* opt)
 		zones[i]->number = i + 1;
 		zones[i]->is_secure = 0;
 		zones[i]->updated = 1;
+		zones[i]->is_ok = 0;
 		if(!zones[i]->opts) {
 			log_msg(LOG_ERR, "corrupted database/bad config, zone %s in db %s, but not in config file", 
 				dname_to_string(dname, NULL), db->filename);

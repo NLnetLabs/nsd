@@ -488,6 +488,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
 	zone->number = db->zone_count;
 	zone->is_secure = 0;
 	zone->updated = 1;
+	zone->is_ok = 0;
 	return zone;
 }
 
