@@ -790,7 +790,6 @@ server_main(struct nsd *nsd)
 	netio_add_handler(netio, &xfrd_listener);
 	if (server_start_children(nsd, server_region, netio, &xfrd_listener.fd) != 0) {
 		send_children_command(nsd, NSD_QUIT);
-		kill(nsd->pid, SIGTERM);
 		exit(1);
 	}
 	reload_listener.fd = -1;
