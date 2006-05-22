@@ -712,7 +712,7 @@ zparser_conv_loc(region_type *region, char *str)
 	}
 
 	/* Meters of altitude... */
-	(void) strtol(str, &str, 10);
+	(void)strtol(str, &str, 10);
 	switch(*str) {
 	case ' ':
 	case '\0':

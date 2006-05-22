@@ -797,7 +797,7 @@ print_rr(FILE *out,
         if (result) {
                 buffer_printf(output, "\n");
                 buffer_flip(output);
-                fwrite(buffer_current(output), buffer_remaining(output), 1,
+                (void)fwrite(buffer_current(output), buffer_remaining(output), 1,
                        out);
 /*              fflush(out); */
         }
