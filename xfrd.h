@@ -55,6 +55,12 @@ struct xfrd_state {
 	uint8_t parent_soa_info_pass;
 	struct xfrd_tcp *ipc_conn;
 	struct buffer* ipc_pass;
+	/* sending ipc to server_main */
+	struct xfrd_tcp *ipc_conn_write;
+	uint8_t need_to_send_reload;
+	uint8_t sending_zone_state;
+	stack_type* dirty_zones; /* stack of xfrd_zone* */
+
 	/* xfrd shutdown flag */
 	uint8_t shutdown;
 
@@ -114,6 +120,10 @@ struct xfrd_zone {
 		xfrd_zone_refreshing,
 		xfrd_zone_expired
 	} state;
+
+	/* if state is dirty it needs to be sent to server_main.
+	 * it is also on the dirty_stack. Not saved on disk. */
+	uint8_t dirty;
 
 	/* master to try to transfer from, number for persistence */
 	acl_options_t* master;

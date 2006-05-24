@@ -4,6 +4,7 @@
 	- stack type (for the IPC buffer of zone update dirty). And unit test.
 	- only update zone-is_ok if needed to reduce memory copy on write.
 	- split off conn_write() from xfrd tcp nonblocking write routines.
+	- nonblocking writes for xfrd.
 
 22 May 2006: Wouter
 	- ported over minor nits from 2.3.5 NSD fixups. Cast to (void) 

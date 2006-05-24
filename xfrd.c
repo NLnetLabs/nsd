@@ -52,6 +52,8 @@ static void xfrd_init_zones();
 static void xfrd_free_namedb();
 /* send expiry notify for all zones to nsd */
 static void xfrd_send_expy_all_zones();
+/* send reload request over the IPC channel */
+static void xfrd_send_reload_req();
 
 /* handle zone timeout, event */
 static void xfrd_handle_zone(netio_type *netio, 
@@ -92,6 +94,8 @@ static void xfrd_handle_reload(netio_type *netio,
 static void xfrd_send_notify(xfrd_zone_t* zone);
 /* send expiry notifications to nsd */
 static void xfrd_send_expire_notification(xfrd_zone_t* zone);
+/* write IPC expire notification msg to a buffer */
+static void xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone);
 /* send ixfr request, returns fd of connection to read on */
 static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone);
 
@@ -141,13 +145,20 @@ xfrd_init(int socket, struct nsd* nsd)
 	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
 	xfrd->reload_timeout.tv_sec = 0;
 
-	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region);
-	xfrd->ipc_conn->is_reading = 0; /* not reading using ipc_conn yet */
 	xfrd->ipc_handler.fd = socket;
 	xfrd->ipc_handler.timeout = NULL;
 	xfrd->ipc_handler.user_data = xfrd;
 	xfrd->ipc_handler.event_types = NETIO_EVENT_READ;
 	xfrd->ipc_handler.event_handler = xfrd_handle_ipc;
+	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region);
+	xfrd->ipc_conn->is_reading = 0; /* not reading using ipc_conn yet */
+	xfrd->ipc_conn->fd = xfrd->ipc_handler.fd;
+	xfrd->ipc_conn_write = xfrd_tcp_create(xfrd->region);
+	xfrd->ipc_conn_write->fd = xfrd->ipc_handler.fd;
+	xfrd->need_to_send_reload = 0;
+	xfrd->sending_zone_state = 0;
+	xfrd->dirty_zones = stack_create(xfrd->region, 
+		nsd_options_num_zones(nsd->options));
 	netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
@@ -223,6 +234,46 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 {
         sig_atomic_t cmd;
         int len;
+
+        if (event_types & NETIO_EVENT_WRITE)
+	{
+		/* if necessary prepare a packet */
+		if(!xfrd->need_to_send_reload &&
+			!xfrd->sending_zone_state &&
+			xfrd->dirty_zones->num > 0) {
+			xfrd_zone_t* zone = (xfrd_zone_t*)stack_pop(xfrd->dirty_zones);
+			assert(zone);
+			zone->dirty = 0;
+			xfrd->sending_zone_state = 1;
+			xfrd_write_expire_notification(xfrd->ipc_conn_write->packet, zone);
+			xfrd->ipc_conn_write->msglen = buffer_limit(xfrd->ipc_conn_write->packet);
+			/* skip length bytes; they are encoded in the packet, after cmd */
+			xfrd->ipc_conn_write->total_bytes = sizeof(uint16_t);
+		}
+		/* write a bit */
+		if(xfrd->sending_zone_state) {
+			/* call conn_write */
+			int ret = conn_write(xfrd->ipc_conn_write);
+			if(ret == -1) {
+				log_msg(LOG_ERR, "xfrd: error in write ipc: %s", strerror(errno));
+				xfrd->sending_zone_state = 0;
+			}
+			else if(ret == 1) { /* done */
+				xfrd->sending_zone_state = 0;
+				if(!xfrd->need_to_send_reload && xfrd->dirty_zones->num == 0)
+					handler->event_types = NETIO_EVENT_READ;
+			}
+		} else if(xfrd->need_to_send_reload) {
+			xfrd_send_reload_req();
+			xfrd->need_to_send_reload = 0;
+			if(xfrd->dirty_zones->num == 0)
+				handler->event_types = NETIO_EVENT_READ;
+		} else {
+			log_msg(LOG_ERR, "xfrd ipc write event, but nothing to send. ignored.");
+			handler->event_types = NETIO_EVENT_READ;
+		}
+	}
+
         if (!(event_types & NETIO_EVENT_READ))
                 return;
 	
@@ -319,7 +370,6 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 		/* setup read of info */
 		xfrd->ipc_conn->total_bytes = 0;
 		xfrd->ipc_conn->msglen = 0;
-		xfrd->ipc_conn->fd = handler->fd;
 		buffer_clear(xfrd->ipc_conn->packet);
 	}
 }
@@ -413,6 +463,7 @@ xfrd_init_zones()
 		xzone->apex = dname;
 		xzone->apex_str = zone_opt->name;
 		xzone->state = xfrd_zone_expired;
+		xzone->dirty = 0;
 		xzone->zone_options = zone_opt;
 		xzone->master = 0; /* first retry will use first master */
 		xzone->master_num = 0;
@@ -1371,29 +1422,34 @@ xfrd_send_notify(xfrd_zone_t* zone)
 static void 
 xfrd_send_expire_notification(xfrd_zone_t* zone)
 {
+	if(zone->dirty)
+		return; /* already queued */
+	/* enqueue */
+	assert(xfrd->dirty_zones->num < xfrd->dirty_zones->capacity);
+	zone->dirty = 1;
+	stack_push(xfrd->dirty_zones, (void*)zone);
+	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
+}
+
+static void 
+xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone)
+{
 	sig_atomic_t cmd = NSD_ZONE_STATE;
 	uint8_t ok = 1;
 	uint16_t sz = dname_total_size(zone->apex) + 1;
-	int fd = xfrd->ipc_handler.fd;
-	if(xfrd->parent_soa_info_pass) {
-		log_msg(LOG_INFO, "xfrd skip expire notify during soainfo pass, %s= %d.",
-			zone->apex_str, (int)zone->state);
-		return;
-	}
-	log_msg(LOG_INFO, "xfrd sending zone state to nsd for zone %s state %d.",
-		zone->apex_str, (int)zone->state);
 	sz = htons(sz);
 	if(zone->state == xfrd_zone_expired)
 		ok = 0;
-	/* note blocking IO */
-	xfrd->got_time = 0;
-	if(!write_socket(fd, &cmd, sizeof(cmd)) ||
-		!write_socket(fd, &sz, sizeof(sz)) ||
-		!write_socket(fd, &ok, sizeof(ok)) ||
-		!write_socket(fd, zone->apex, dname_total_size(zone->apex))) {
-		log_msg(LOG_ERR, "problems sending zone state from xfrd to nsd: %s",
-			strerror(errno));
-	}
+
+	log_msg(LOG_INFO, "xfrd encoding ipc zone state msg for zone %s state %d.",
+		zone->apex_str, (int)zone->state);
+
+	buffer_clear(buffer);
+	buffer_write(buffer, &cmd, sizeof(cmd));
+	buffer_write(buffer, &sz, sizeof(sz));
+	buffer_write(buffer, &ok, sizeof(ok));
+	buffer_write(buffer, zone->apex, dname_total_size(zone->apex));
+	buffer_flip(buffer);
 }
 
 static int 
@@ -1943,7 +1999,8 @@ xfrd_set_reload_timeout()
 	if(xfrd->reload_timeout.tv_sec == 0 ||
 		xfrd_time() >= xfrd->reload_timeout.tv_sec ) {
 		/* no reload wait period (or it passed), do it right away */
-		xfrd_send_reload_req();
+		xfrd->need_to_send_reload = 1;
+		xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
 		/* start reload wait period */
 		xfrd->reload_timeout.tv_sec = xfrd_time() +
 			xfrd->nsd->options->xfrd_reload_timeout;
@@ -1964,7 +2021,8 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 	handler->timeout = NULL;
 	xfrd->reload_timeout.tv_sec = xfrd_time() +
 		xfrd->nsd->options->xfrd_reload_timeout;
-	xfrd_send_reload_req();
+	xfrd->need_to_send_reload = 1;
+	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
 }
 
 static void 
