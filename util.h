@@ -326,4 +326,17 @@ int print_rr(FILE *out, struct state_pretty_rr* state, struct rr *record);
  */
 const char* rcode2str(int rc);
 
+/* 
+ * Stack of pointers.
+ * Stack is fixed size on start. More elems fall off stack.
+ */
+struct stack {
+	void** data;
+	size_t num, capacity;
+};
+typedef struct stack stack_type;
+stack_type* stack_create(struct region* region, size_t size);
+void stack_push(stack_type* stack, void* elem);
+void* stack_pop(stack_type* stack);
+
 #endif /* _UTIL_H_ */
