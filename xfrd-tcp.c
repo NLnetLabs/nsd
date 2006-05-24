@@ -258,13 +258,10 @@ tcp_conn_ready_for_reading(xfrd_tcp_t* tcp)
 	buffer_clear(tcp->packet);
 }
 
-void 
-xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
+int conn_write(xfrd_tcp_t* tcp)
 {
-	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
 	ssize_t sent;
 
-	assert(zone->tcp_conn != -1);
 	if(tcp->total_bytes < sizeof(tcp->msglen)) {
 		uint16_t sendlen = htons(tcp->msglen);
 		sent = write(tcp->fd, 
@@ -274,19 +271,16 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		if(sent == -1) {
 			if(errno == EAGAIN || errno == EINTR) {
 				/* write would block, try later */
-				return;
+				return 0;
 			} else {
-				log_msg(LOG_ERR, "xfrd: failed writing tcp %s",
-					strerror(errno));
-				xfrd_tcp_release(set, zone);
-				return;
+				return -1;
 			}
 		}
 
 		tcp->total_bytes += sent;
 		if(tcp->total_bytes < sizeof(tcp->msglen)) {
 			/* incomplete write, resume later */
-			return;
+			return 0;
 		}
 		assert(tcp->total_bytes == sizeof(tcp->msglen));
 	}
@@ -299,12 +293,9 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	if(sent == -1) {
 		if(errno == EAGAIN || errno == EINTR) {
 			/* write would block, try later */
-			return;
+			return 0;
 		} else {
-			log_msg(LOG_ERR, "xfrd: failed writing tcp %s",
-				strerror(errno));
-			xfrd_tcp_release(set, zone);
-			return;
+			return -1;
 		}
 	}
 	
@@ -313,10 +304,28 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	if(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen)) {
 		/* more to write when socket becomes writable again */
-		return; 
+		return 0;
 	}
 	
 	assert(tcp->total_bytes == tcp->msglen + sizeof(tcp->msglen));
+	return 1;
+}
+
+void 
+xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
+{
+	int ret;
+	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
+	assert(zone->tcp_conn != -1);
+	ret = conn_write(tcp);
+	if(ret == -1) {
+		log_msg(LOG_ERR, "xfrd: failed writing tcp %s", strerror(errno));
+		xfrd_tcp_release(set, zone);
+		return;
+	}
+	if(ret == 0) {
+		return; /* write again later */
+	}
 	/* done writing, get ready for reading */
 	tcp->is_reading = 1;
 	tcp_conn_ready_for_reading(tcp);

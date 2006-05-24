@@ -1601,9 +1601,12 @@ static void handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
 		return;
 	}
 	assert(zone);
-	if(ok)
+	/* only update zone->is_ok if needed to minimize copy-on-write
+	   of memory pages shared after fork() */
+	if(ok && !zone->is_ok)
 		zone->is_ok = 1;
-	else 	zone->is_ok = 0;
+	if(!ok && zone->is_ok)
+		zone->is_ok = 0;
 }
 
 static void

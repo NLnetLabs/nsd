@@ -92,6 +92,14 @@ static inline int xfrd_tcp_is_reading(xfrd_tcp_set_t* set, int conn)
  * and the packet and fd need to be set.
  */
 int conn_read(xfrd_tcp_t* conn);
+/*
+ * Write to a stream connection (size16)+packet.
+ * return value is
+ * -1 on error. 0 on short write, call back later. 1 completed write.
+ * On first call, make sure total_bytes=0, msglen=buffer_limit(), 
+ * buffer_flipped(). packet and fd need to be set.
+ */
+int conn_write(xfrd_tcp_t* conn);
 
 /* setup DNS packet for a query of this type */
 void xfrd_setup_packet(struct buffer* packet,
