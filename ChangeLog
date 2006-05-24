@@ -1,3 +1,7 @@
+24 May 2006: Wouter
+	- unit tests print progress while running to stderr. Included license
+	  of cutest with its source in svn repository.
+
 22 May 2006: Wouter
 	- ported over minor nits from 2.3.5 NSD fixups. Cast to (void) 
 	  unused function return values.

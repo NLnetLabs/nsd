@@ -1,0 +1,11 @@
+Cutest is the framework used for unit testing.
+Thanks to asimjalis@peakprogramming.com (main author)
+and Dave Glowacki(contributor) for cutest.
+
+CuTest.c and CuTest.h fall under the license of CuTest.license.txt.
+
+The source is altered from its original distribution:
+- Original was cutest-1.4.tar.gz tarball.
+- files AllTests.c, CuTestTest.c, make-tests.sh and README are left out.
+- Wouter Wijngaards tried to fixup so that summary output is written 
+  immediately (so you can see the .s printed), using CuSuiteRunDisplay().

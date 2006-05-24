@@ -105,6 +105,9 @@ CuSuite* CuSuiteNew(void);
 void CuSuiteAdd(CuSuite* testSuite, CuTest *testCase);
 void CuSuiteAddSuite(CuSuite* testSuite, CuSuite* testSuite2);
 void CuSuiteRun(CuSuite* testSuite);
+/* Added Wouter Wijngaards may 2006: same as CuSuiteRun, but
+   callback is called for every test with as argument if testcase failed. */
+void CuSuiteRunDisplay(CuSuite* testSuite, void (*callback)(int));
 void CuSuiteSummary(CuSuite* testSuite, CuString* summary);
 void CuSuiteDetails(CuSuite* testSuite, CuString* details);
 

@@ -28,6 +28,13 @@ void bind8_stats(struct nsd * ATTR_UNUSED(nsd))
 {
 }
 
+void disp_callback(int failed)
+{
+	if(failed)
+		fprintf(stderr, "F");
+	else	fprintf(stderr, ".");
+}
+
 int runalltests(void)
 {
 	CuSuite *suite = CuSuiteNew();
@@ -39,9 +46,10 @@ int runalltests(void)
 	CuSuiteAddSuite(suite, reg_cutest_util());
 	CuSuiteAddSuite(suite, reg_cutest_iterated_hash());
 
-	CuSuiteRun(suite);
+	CuSuiteRunDisplay(suite, disp_callback);
+	fprintf(stderr, "\n");
 
-        CuSuiteSummary(suite, output);
+ 	/* CuSuiteSummary(suite, output); */
         CuSuiteDetails(suite, output);
         printf("%s\n", output->buffer);
 	return suite->failCount;

@@ -252,12 +252,18 @@ void CuSuiteAddSuite(CuSuite* testSuite, CuSuite* testSuite2)
 
 void CuSuiteRun(CuSuite* testSuite)
 {
+	CuSuiteRunDisplay(testSuite, NULL);
+}
+
+void CuSuiteRunDisplay(CuSuite* testSuite, void (*callback)(int)) 
+{
 	int i;
 	for (i = 0 ; i < testSuite->count ; ++i)
 	{
 		CuTest* testCase = testSuite->list[i];
 		CuTestRun(testCase);
 		if (testCase->failed) { testSuite->failCount += 1; }
+		if (callback) { callback(testCase->failed); }
 	}
 }
 
