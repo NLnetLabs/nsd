@@ -1,3 +1,6 @@
+25 May 2006: Wouter
+	- fixed reload sending; it checks for EAGAIN and EINTR.
+
 24 May 2006: Wouter
 	- unit tests print progress while running to stderr. Included license
 	  of cutest with its source in svn repository.

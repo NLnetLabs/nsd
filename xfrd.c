@@ -260,17 +260,16 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 			}
 			else if(ret == 1) { /* done */
 				xfrd->sending_zone_state = 0;
-				if(!xfrd->need_to_send_reload && xfrd->dirty_zones->num == 0)
-					handler->event_types = NETIO_EVENT_READ;
 			}
 		} else if(xfrd->need_to_send_reload) {
 			xfrd_send_reload_req();
-			xfrd->need_to_send_reload = 0;
-			if(xfrd->dirty_zones->num == 0)
-				handler->event_types = NETIO_EVENT_READ;
 		} else {
 			log_msg(LOG_ERR, "xfrd ipc write event, but nothing to send. ignored.");
-			handler->event_types = NETIO_EVENT_READ;
+		}
+		if(!xfrd->need_to_send_reload &&
+			!xfrd->sending_zone_state &&
+			xfrd->dirty_zones->num == 0) {
+			handler->event_types = NETIO_EVENT_READ; /* disable writing for now */
 		}
 	}
 
@@ -1984,11 +1983,14 @@ xfrd_send_reload_req()
 	sig_atomic_t req = NSD_RELOAD;
 	/* ask server_main for a reload */
 	if(write(xfrd->ipc_handler.fd, &req, sizeof(req)) == -1) {
+		if(errno == EAGAIN || errno == EINTR)
+			return; /* try again later */
 		log_msg(LOG_ERR, "xfrd: problems sending reload command: %s",
 			strerror(errno));
 		return;
 	}
 	log_msg(LOG_ERR, "xfrd: asked nsd to reload new updates");
+	xfrd->need_to_send_reload = 0;
 }
 
 static void 
