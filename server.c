@@ -1865,6 +1865,7 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 			write_zone_state_packet(data->write_conn->packet, zone);
 			data->write_conn->msglen = buffer_limit(data->write_conn->packet);
 			data->write_conn->total_bytes = sizeof(uint16_t); /* len bytes already in packet */
+			data->write_conn->fd = handler->fd;
 		}
 		if(data->busy_writing_zone_state) {
 			/* write more of packet */
