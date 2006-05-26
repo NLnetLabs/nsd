@@ -7,6 +7,16 @@
 	- need_to_send_STATS flag in parent. 
 	- reload has its own ipc-listening handler in server_main.
 	- nonblocking writes for server_main; this solved write-blocking race.
+	- another race condition solved, if a process dies, half a read or
+	  write buffer could be left behind on another process. These are
+	  dropped. Now:
+	  	* The server_main drops ipc from dead children.
+		* The server_main drops ipc if xfrd dies.
+		* The server_main drops xfrd(old) and all children ipc 
+			on reload.
+		* The xfrd drops ipc to parent on a SOA_BEGIN from reload.
+		  So after reload, but parent and xfrd start with 
+		  clean ipc buffers.
 
 24 May 2006: Wouter
 	- unit tests print progress while running to stderr. Included license

@@ -344,6 +344,9 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 	case NSD_SOA_BEGIN:
 		/* reload starts sending SOA INFOs; don't block */
 		xfrd->parent_soa_info_pass = 1;
+		/* reset the nonblocking ipc write; 
+		   the new parent does not want half a packet */
+		xfrd->sending_zone_state = 0;
 		break;
 	case NSD_SOA_INFO:
 		assert(xfrd->parent_soa_info_pass);

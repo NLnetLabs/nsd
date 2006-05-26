@@ -266,6 +266,7 @@ static int
 restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 	int* xfrd_sock_p)
 {
+	struct main_ipc_handler_data *ipc_data;
 	size_t i;
 	int sv[2];
 
@@ -288,7 +289,6 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->children[i].parent_fd = -1;
 				if(!nsd->children[i].handler)
 				{
-					struct main_ipc_handler_data *ipc_data;
 					ipc_data = (struct main_ipc_handler_data*) region_alloc(
 						region, sizeof(struct main_ipc_handler_data));
 					ipc_data->nsd = nsd;
@@ -311,6 +311,11 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 					nsd->children[i].handler->event_handler = handle_child_command;
 					netio_add_handler(netio, nsd->children[i].handler);
 				}
+				/* clear any ongoing ipc */
+				ipc_data = (struct main_ipc_handler_data*)
+					nsd->children[i].handler->user_data;
+				ipc_data->forward_mode = 0;
+				ipc_data->busy_writing_zone_state = 0;
 				/* restart - update fd */
 				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;
@@ -568,6 +573,7 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 	pid_t pid;
 	int sockets[2] = {0,0};
 	zone_type* zone;
+	struct ipc_handler_conn_data *data;
 	/* no need to send updates for zones, because xfrd will read from fork-memory */
 	for(zone = nsd->db->zones; zone; zone=zone->next) {
 		zone->updated = 0;
@@ -598,6 +604,9 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 	handler->timeout = NULL;
 	handler->event_types = NETIO_EVENT_READ;
 	handler->event_handler = handle_xfrd_command;
+	/* clear ongoing ipc reads */
+	data = (struct ipc_handler_conn_data *) handler->user_data;
+	data->conn->is_reading = 0;
 	return pid;
 }
 
@@ -900,6 +909,9 @@ server_main(struct nsd *nsd)
 				server_reload(nsd, server_region, netio, 
 					reload_sockets[1], &xfrd_listener.fd);
 				close(reload_sockets[1]);
+				/* drop stale xfrd ipc data */
+				((struct ipc_handler_conn_data*)xfrd_listener.user_data)
+					->conn->is_reading = 0;
 				reload_pid = -1;
 				reload_listener.fd = -1;
 				reload_listener.event_types = NETIO_EVENT_NONE;
