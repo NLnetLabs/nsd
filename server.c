@@ -1950,7 +1950,10 @@ handle_reload_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		if(handler->fd > 0) close(handler->fd);
+		if(handler->fd > 0) {
+			close(handler->fd);
+			handler->fd = -1;
+		}
 		log_msg(LOG_ERR, "handle_reload_cmd: reload closed cmd channel");
 		return;
 	}
