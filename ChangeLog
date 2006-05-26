@@ -1,5 +1,10 @@
 25 May 2006: Wouter
 	- fixed reload sending; it checks for EAGAIN and EINTR.
+	- reload sends parent quit command blocking to make sure of arrival.
+	- send_children_quit in parent uses nonblocking writes and closes
+	  the pipe to signal the child to quit (even if the write does not
+	  come through, the closed pipe will cause the child to quit).
+	- need_to_send_STATS flag in parent. 
 
 24 May 2006: Wouter
 	- unit tests print progress while running to stderr. Included license

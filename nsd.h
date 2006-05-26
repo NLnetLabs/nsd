@@ -112,6 +112,11 @@ struct nsd_child
 	int parent_fd;
 
 	/*
+	 * IPC info, buffered for nonblocking writes to the child
+	 */
+	uint8_t need_to_send_STATS;
+
+	/*
 	 * The handler for handling the commands from the child.
 	 */
 	struct netio_handler* handler;

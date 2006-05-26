@@ -185,9 +185,12 @@ static void handle_parent_command(netio_type *netio,
 				  netio_event_types_type event_types);
 
 /*
- * Send all children the command.
+ * Send all children the quit nonblocking, then close pipe.
  */
-static void send_children_command(struct nsd* nsd, sig_atomic_t command);
+static void send_children_quit(struct nsd* nsd);
+
+/* set childrens flags to send NSD_STATS to them */
+static void set_children_stats(struct nsd* nsd);
 
 /*
  * Handle a command received from the children processes.
@@ -625,12 +628,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #endif
 
 	if (server_start_children(nsd, server_region, netio, xfrd_sock_p) != 0) {
-		send_children_command(nsd, NSD_QUIT);
+		send_children_quit(nsd);
 		exit(1);
 	}
 
-	/* Send quit command to parent */
-	if (write(cmdsocket, &cmd, sizeof(cmd)) == -1)
+	/* Send quit command to parent: blocking, wait for receipt. */
+	if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1)
 	{
 		log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
 			(int)nsd->pid, (int)old_pid, strerror(errno));
@@ -789,7 +792,7 @@ server_main(struct nsd *nsd)
 	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
 	netio_add_handler(netio, &xfrd_listener);
 	if (server_start_children(nsd, server_region, netio, &xfrd_listener.fd) != 0) {
-		send_children_command(nsd, NSD_QUIT);
+		send_children_quit(nsd);
 		exit(1);
 	}
 	reload_listener.fd = -1;
@@ -896,7 +899,7 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_QUIT: 
 			/* silent shutdown during reload */
-			send_children_command(nsd, NSD_QUIT);
+			send_children_quit(nsd);
 			if(reload_listener.fd > 0) {
 				/* acknowledge the quit, to sync reload that we will really quit now */
 				sig_atomic_t cmd = NSD_RELOAD;
@@ -911,7 +914,7 @@ server_main(struct nsd *nsd)
 			/* ENOTREACH */
 			break;
 		case NSD_SHUTDOWN:
-			send_children_command(nsd, NSD_QUIT);
+			send_children_quit(nsd);
 			log_msg(LOG_WARNING, "signal received, shutting down...");
 			break;
 		case NSD_REAP_CHILDREN:
@@ -920,7 +923,7 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_STATS:
 #ifdef BIND8_STATS
-			send_children_command(nsd, NSD_STATS);
+			set_children_stats(nsd);
 #endif
 			nsd->mode = NSD_RUN;
 			break;
@@ -1672,8 +1675,9 @@ handle_parent_command(netio_type *ATTR_UNUSED(netio),
 }
 
 static void 
-send_children_command(struct nsd* nsd, sig_atomic_t command)
+send_children_quit(struct nsd* nsd)
 {
+	sig_atomic_t command = NSD_QUIT;
 	size_t i;
 	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
 	for (i = 0; i < nsd->child_count; ++i) {
@@ -1682,12 +1686,25 @@ send_children_command(struct nsd* nsd, sig_atomic_t command)
 				&command,
 				sizeof(command)) == -1)
 			{
-				log_msg(LOG_ERR, "problems sending command %d to server %d: %s",
+				if(errno != EAGAIN && errno != EINTR)
+					log_msg(LOG_ERR, "problems sending command %d to server %d: %s",
 					(int) command,
 					(int) nsd->children[i].pid,
 					strerror(errno));
 			}
+			close(nsd->children[i].child_fd);
+			nsd->children[i].child_fd = -1;
 		}
+	}
+}
+
+static void 
+set_children_stats(struct nsd* nsd)
+{
+	size_t i;
+	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
+	for (i = 0; i < nsd->child_count; ++i) {
+		nsd->children[i].need_to_send_STATS = 1;
 	}
 }
 

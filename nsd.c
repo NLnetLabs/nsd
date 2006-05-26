@@ -600,6 +600,7 @@ main (int argc, char *argv[])
 		nsd.children[i].child_fd = -1;
 		nsd.children[i].parent_fd = -1;
 		nsd.children[i].handler = NULL;
+		nsd.children[i].need_to_send_STATS = 0;
 	}
 
 	nsd.this_child = NULL;
