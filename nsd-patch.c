@@ -130,6 +130,7 @@ int main(int argc, char* argv[])
 	struct namedb* db;
 	struct zone* zone;
 	struct diff_log* commit_log = 0;
+	size_t fake_child_count = 1;
 
         /* Parse the command line... */
 	while ((c = getopt(argc, argv, "c:")) != -1) {
@@ -162,7 +163,7 @@ int main(int argc, char* argv[])
 
 	/* read database and diff file */
 	printf("reading database\n");
-	db = namedb_open(options->database, options);
+	db = namedb_open(options->database, options, fake_child_count);
 	if(!db) {
 		fprintf(stderr, "Could not read database: %s\n", 
 			options->database);
@@ -177,7 +178,7 @@ int main(int argc, char* argv[])
 
 	/* read ixfr diff file */
 	printf("reading updates to database\n");
-	if(!diff_read_file(db, options, &commit_log)) {
+	if(!diff_read_file(db, options, &commit_log, fake_child_count)) {
 		fprintf(stderr, "unable to load the diff file: %s", 
 			strerror(errno));
 		exit(1);

@@ -77,6 +77,7 @@ struct zone
 #endif
 	struct zone_options *opts;
 	uint32_t     number;
+	uint8_t*     dirty; /* array of dirty-flags, per child */
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     updated : 1; /* zone SOA was updated */
 	unsigned     is_ok : 1; /* zone has not expired. */
@@ -268,7 +269,9 @@ int namedb_lookup (struct namedb    *db,
 		   const dname_type *dname,
 		   domain_type     **closest_match,
 		   domain_type     **closest_encloser);
-struct namedb *namedb_open(const char *filename, struct nsd_options* opt);
+/* pass number of children (to alloc in dirty array */
+struct namedb *namedb_open(const char *filename, struct nsd_options* opt,
+	size_t num_children);
 void namedb_close(struct namedb *db);
 
 static inline int

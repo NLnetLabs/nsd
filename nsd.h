@@ -115,6 +115,7 @@ struct nsd_child
 	 * IPC info, buffered for nonblocking writes to the child
 	 */
 	uint8_t need_to_send_STATS;
+	stack_type* dirty_zones; /* stack of type zone_type* */
 
 	/*
 	 * The handler for handling the commands from the child.

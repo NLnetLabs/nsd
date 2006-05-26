@@ -601,6 +601,8 @@ main (int argc, char *argv[])
 		nsd.children[i].parent_fd = -1;
 		nsd.children[i].handler = NULL;
 		nsd.children[i].need_to_send_STATS = 0;
+		nsd.children[i].dirty_zones = stack_create(nsd.region, 
+			nsd_options_num_zones(nsd.options));
 	}
 
 	nsd.this_child = NULL;

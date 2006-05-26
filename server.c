@@ -116,11 +116,15 @@ struct tcp_handler_data
 };
 
 /*
- * Data for the server_main IPC handler.
+ * Data for the server_main IPC handler 
+ * Used by parent side to listen to children, and write to children.
  */
 struct main_ipc_handler_data
 {
 	struct nsd	*nsd;
+	struct nsd_child *child;
+	int		child_num;
+
 	/* pointer to the socket, as it may change if restarted */
 	int		*xfrd_sock;
 	buffer_type	*packet;
@@ -128,10 +132,15 @@ struct main_ipc_handler_data
 	size_t		got_bytes;
 	uint16_t	total_bytes;
 	uint32_t	acl_num;
+	
+	/* writing data, connection and state */
+	uint8_t		busy_writing_zone_state;
+	xfrd_tcp_t	*write_conn;
 };
 
 /*
  * data for ipc handler, nsd and a conn for reading ipc msgs.
+ * Used by children to listen to parent. And by parent to listen to xfrd.
  */
 struct ipc_handler_conn_data
 {
@@ -283,12 +292,16 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 					ipc_data = (struct main_ipc_handler_data*) region_alloc(
 						region, sizeof(struct main_ipc_handler_data));
 					ipc_data->nsd = nsd;
+					ipc_data->child = &nsd->children[i];
+					ipc_data->child_num = i;
 					ipc_data->xfrd_sock = xfrd_sock_p;
 					ipc_data->packet = buffer_create(region, QIOBUFSZ);
 					ipc_data->forward_mode = 0;
 					ipc_data->got_bytes = 0;
 					ipc_data->total_bytes = 0;
 					ipc_data->acl_num = 0;
+					ipc_data->busy_writing_zone_state = 0;
+					ipc_data->write_conn = xfrd_tcp_create(region);
 					nsd->children[i].handler = (struct netio_handler*) region_alloc(
 						region, sizeof(struct netio_handler));
 					nsd->children[i].handler->fd = nsd->children[i].child_fd;
@@ -465,10 +478,10 @@ server_init(struct nsd *nsd)
 	}
 
 	/* Open the database... */
-	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
+	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
 		return -1;
 	}
-	if(!diff_read_file(nsd->db, nsd->options, NULL))
+	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count))
 		return -1;
 #ifdef NSEC3
 	prehash(nsd->db, NULL);
@@ -607,12 +620,13 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	} else {
 		log_msg(LOG_INFO, "CRC different. reread of %s.", nsd->db->filename);
 		namedb_close(nsd->db);
-		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
+		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, 
+			nsd->child_count)) == NULL) {
 			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 			exit(1);
 		}
 	}
-	if(!diff_read_file(nsd->db, nsd->options, NULL)) {
+	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 			log_msg(LOG_ERR, "unable to load the diff file: %s", strerror(errno));
 			exit(1);
 	}
@@ -1583,7 +1597,8 @@ handle_tcp_accept(netio_type *netio,
 	}
 }
 
-static void handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
+static zone_type*
+handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
 {
 	uint8_t ok;
 	const dname_type *dname;
@@ -1600,13 +1615,13 @@ static void handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
 	if(!domain) {
 		log_msg(LOG_INFO, "zone state msg, empty zone (domain %s)",
 			dname_to_string(dname, NULL));
-		return;
+		return NULL;
 	}
 	zone = domain_find_zone(domain);
 	if(!zone || dname_compare(domain_dname(zone->apex), dname) != 0) {
 		log_msg(LOG_INFO, "zone state msg, empty zone (zone %s)",
 			dname_to_string(dname, NULL));
-		return;
+		return NULL;
 	}
 	assert(zone);
 	/* only update zone->is_ok if needed to minimize copy-on-write
@@ -1615,6 +1630,7 @@ static void handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
 		zone->is_ok = 1;
 	if(!ok && zone->is_ok)
 		zone->is_ok = 0;
+	return zone;
 }
 
 static void
@@ -1644,7 +1660,7 @@ handle_parent_command(netio_type *ATTR_UNUSED(netio),
 		/* completed */
 		data->conn->is_reading = 0;
 		buffer_flip(data->conn->packet);
-		handle_xfrd_zone_state(data->nsd, data->conn->packet);
+		(void)handle_xfrd_zone_state(data->nsd, data->conn->packet);
 		return;
 	}
 
@@ -1710,6 +1726,7 @@ set_children_stats(struct nsd* nsd)
 	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
 	for (i = 0; i < nsd->child_count; ++i) {
 		nsd->children[i].need_to_send_STATS = 1;
+		nsd->children[i].handler->event_types |= NETIO_EVENT_WRITE;
 	}
 }
 
@@ -1730,7 +1747,7 @@ handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 		/* handle ZONE_STATE forward to children */
 		int ret = conn_read(data->conn);
 		size_t i;
-		sig_atomic_t cmd = NSD_ZONE_STATE;
+		zone_type* zone;
 		if(ret == -1) {
 			log_msg(LOG_ERR, "main xfrd listener: error in conn_read: %s",
 				strerror(errno));
@@ -1743,23 +1760,16 @@ handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 		/* completed */
 		data->conn->is_reading = 0;
 		buffer_flip(data->conn->packet);
-		handle_xfrd_zone_state(data->nsd, data->conn->packet);
+		zone = handle_xfrd_zone_state(data->nsd, data->conn->packet);
+		if(!zone) 
+			return;
 		/* forward to all children */
 		for (i = 0; i < data->nsd->child_count; ++i) {
-			uint16_t sz = htons(buffer_limit(data->conn->packet));
-			if (data->nsd->children[i].pid > 0 && 
-				data->nsd->children[i].child_fd > 0) {
-				if(!write_socket(data->nsd->children[i].child_fd, 
-					&cmd, sizeof(cmd)) ||
-					!write_socket(data->nsd->children[i].child_fd, 
-					&sz, sizeof(sz)) ||
-					!write_socket(data->nsd->children[i].child_fd,
-					buffer_begin(data->conn->packet),
-					buffer_limit(data->conn->packet))) {
-					log_msg(LOG_ERR, "problems forwarding zone state"
-						" to child %d: %s", 
-						data->nsd->children[i].pid, strerror(errno));
-				}
+			if(!zone->dirty[i]) {
+				zone->dirty[i] = 1;
+				stack_push(data->nsd->children[i].dirty_zones, zone);
+				data->nsd->children[i].handler->event_types |= 
+					NETIO_EVENT_WRITE;
 			}
 		}
 		return;
@@ -1798,6 +1808,41 @@ handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 }
 
 static void
+write_zone_state_packet(buffer_type* packet, zone_type* zone)
+{
+	sig_atomic_t cmd = NSD_ZONE_STATE;
+	uint8_t ok = zone->is_ok;
+	uint16_t sz;
+	if(!zone->apex) {
+		return;
+	}
+	sz = dname_total_size(domain_dname(zone->apex)) + 1;
+	sz = htons(sz);
+
+	buffer_clear(packet);
+	buffer_write(packet, &cmd, sizeof(cmd));
+	buffer_write(packet, &sz, sizeof(sz));
+	buffer_write(packet, &ok, sizeof(ok));
+	buffer_write(packet, domain_dname(zone->apex), 
+		dname_total_size(domain_dname(zone->apex)));
+	buffer_flip(packet);
+}
+
+static void
+send_stat_to_child(struct main_ipc_handler_data* data, int fd)
+{
+	sig_atomic_t cmd = NSD_STATS;
+	if(write(fd, &cmd, sizeof(cmd)) == -1) {
+		if(errno == EAGAIN || errno == EINTR)
+			return; /* try again later */
+		log_msg(LOG_ERR, "svrmain: problems sending stats to child %d command: %s",
+			(int)data->child->pid, strerror(errno));
+		return;
+	}
+	data->child->need_to_send_STATS = 0;
+}
+
+static void
 handle_child_command(netio_type *ATTR_UNUSED(netio),
 		      netio_handler_type *handler,
 		      netio_event_types_type event_types)
@@ -1806,6 +1851,43 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 	int len;
 	struct main_ipc_handler_data *data = 
 		(struct main_ipc_handler_data*)handler->user_data;
+	
+	/* do a nonblocking write to the child if it is ready. */
+	if (event_types & NETIO_EVENT_WRITE) {
+		if(!data->busy_writing_zone_state &&
+			!data->child->need_to_send_STATS &&
+			data->child->dirty_zones->num > 0) {
+			/* create packet from next dirty zone */
+			zone_type* zone = (zone_type*)stack_pop(data->child->dirty_zones);
+			assert(zone);
+			zone->dirty[data->child_num] = 0;
+			data->busy_writing_zone_state = 1;
+			write_zone_state_packet(data->write_conn->packet, zone);
+			data->write_conn->msglen = buffer_limit(data->write_conn->packet);
+			data->write_conn->total_bytes = sizeof(uint16_t); /* len bytes already in packet */
+		}
+		if(data->busy_writing_zone_state) {
+			/* write more of packet */
+			int ret = conn_write(data->write_conn);
+			if(ret == -1) {
+				log_msg(LOG_ERR, "handle_child_cmd %d: could not write: %s",
+					(int)data->child->pid, strerror(errno));
+				data->busy_writing_zone_state = 0;
+			} else if(ret == 1) {
+				data->busy_writing_zone_state = 0; /* completed */
+			}
+		} else if(data->child->need_to_send_STATS) {
+			send_stat_to_child(data, handler->fd);
+		} else {
+			log_msg(LOG_ERR, "handle_child_command: write event but nothing to do");
+		}
+		if(!data->busy_writing_zone_state &&
+			!data->child->need_to_send_STATS &&
+			data->child->dirty_zones->num == 0) {
+			handler->event_types = NETIO_EVENT_READ;
+		}
+	}
+
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}

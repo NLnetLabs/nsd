@@ -442,7 +442,8 @@ add_RR(namedb_type* db, const dname_type* dname,
 }
 
 static zone_type* 
-find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
+find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
+	size_t child_count)
 {
 	domain_type *domain;
 	zone_type* zone;
@@ -479,6 +480,8 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt)
 	zone->nsec3_rrset = NULL;
 	zone->nsec3_last = NULL;
 #endif
+	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*child_count);
+	memset(zone->dirty, 0, sizeof(uint8_t)*child_count);
 	zone->opts = zone_options_find(opt, domain_dname(zone->apex)); 
 	if(!zone->opts) {
 		log_msg(LOG_ERR, "xfr: zone %s not in config.",
@@ -521,7 +524,8 @@ static int
 apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos, 
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
 	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
-	int* is_axfr, int* delete_mode, int* rr_count)
+	int* is_axfr, int* delete_mode, int* rr_count,
+	size_t child_count)
 {
 	uint32_t filelen, msglen;
 	int qcount, ancount, counter;
@@ -576,7 +580,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		- strlen(file_zone_name);
 	packet = buffer_create(region, QIOBUFSZ);
 	dname_zone = dname_parse(region, zone);
-	zone_db = find_zone(db, dname_zone, opt);
+	zone_db = find_zone(db, dname_zone, opt, child_count);
 	if(!zone_db) {
 		log_msg(LOG_ERR, "no zone exists");
 		region_destroy(region);
@@ -844,7 +848,8 @@ diff_read_insert_part(struct diff_read_data* data,
 
 static int 
 read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt, 
-	struct diff_read_data* data, struct diff_log** log)
+	struct diff_read_data* data, struct diff_log** log,
+	size_t child_count)
 {
 	char zone_buf[512];
 	char log_buf[5120];
@@ -922,7 +927,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			log_msg(LOG_INFO, "processing xfr: apply part %d", (int)i);
 			if(!apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
-				&rr_count)) {
+				&rr_count, child_count)) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d", (int)i);
 			}
 		}
@@ -978,7 +983,7 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 static int 
 read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	nsd_options_t* opt, struct diff_read_data* data,
-	struct diff_log** log)
+	struct diff_log** log, size_t child_count)
 {
 	uint32_t len, len2;
 	off_t startpos;
@@ -998,7 +1003,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	}
 	else if(type == DIFF_PART_SURE) {
 		log_msg(LOG_INFO, "part SURE len %d", len);
-		if(!read_sure_part(db, in, opt, data, log)) 
+		if(!read_sure_part(db, in, opt, data, log, child_count)) 
 			return 0;
 	} else {
 		log_msg(LOG_INFO, "unknown part %x len %d", type, len);
@@ -1043,7 +1048,8 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 }
 
 int 
-diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log)
+diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
+	size_t child_count)
 {
 	const char* filename = DIFFFILE;
 	FILE *df;
@@ -1071,7 +1077,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log)
 	while(read_32(df, &type)) 
 	{
 		log_msg(LOG_INFO, "iter loop");
-		if(!read_process_part(db, df, type, opt, data, log))
+		if(!read_process_part(db, df, type, opt, data, log, child_count))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
 			region_destroy(data->region);

@@ -232,7 +232,7 @@ read_rrset(namedb_type *db,
 }
 
 struct namedb *
-namedb_open (const char *filename, nsd_options_t* opt)
+namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 {
 	namedb_type *db;
 
@@ -349,6 +349,8 @@ namedb_open (const char *filename, nsd_options_t* opt)
 		zones[i]->is_secure = 0;
 		zones[i]->updated = 1;
 		zones[i]->is_ok = 0;
+		zones[i]->dirty = region_alloc(db->region, sizeof(uint8_t)*num_children);
+		memset(zones[i]->dirty, 0, sizeof(uint8_t)*num_children);
 		if(!zones[i]->opts) {
 			log_msg(LOG_ERR, "corrupted database/bad config, zone %s in db %s, but not in config file", 
 				dname_to_string(dname, NULL), db->filename);

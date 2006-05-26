@@ -56,7 +56,8 @@ int db_crc_different(namedb_type* db);
    If you pass a non-null value log, log comments are alloced in namedb.region
    then, *log must be 0 on start of call (entries are prepended).
    returns 0 on an unrecoverable error. */
-int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log);
+int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
+	size_t child_count);
 
 /* check the diff file for garbage at the end (bad type, partial write)
  * and snip it off.
