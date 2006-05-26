@@ -193,9 +193,16 @@ static void send_children_quit(struct nsd* nsd);
 static void set_children_stats(struct nsd* nsd);
 
 /*
- * Handle a command received from the children processes.
+ * Handle a command received from the children processes. And send.
  */
 static void handle_child_command(netio_type *netio,
+				  netio_handler_type *handler,
+				  netio_event_types_type event_types);
+
+/*
+ * Handle a command received from the reload process. 
+ */
+static void handle_reload_command(netio_type *netio,
 				  netio_handler_type *handler,
 				  netio_event_types_type event_types);
 
@@ -780,7 +787,6 @@ server_main(struct nsd *nsd)
 	pid_t reload_pid = -1;
 	pid_t xfrd_pid = -1;
 	sig_atomic_t mode;
-	struct main_ipc_handler_data ipc_data = {nsd, &xfrd_listener.fd, 0, 0, 0, 0, 0};
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
@@ -797,7 +803,6 @@ server_main(struct nsd *nsd)
 	}
 	reload_listener.fd = -1;
 	assert(nsd->this_child == 0);
-	ipc_data.packet = buffer_create(server_region, QIOBUFSZ);
 
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
 
@@ -890,9 +895,9 @@ server_main(struct nsd *nsd)
 				close(reload_sockets[1]);
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
-				reload_listener.user_data = &ipc_data;
+				reload_listener.user_data = nsd;
 				reload_listener.event_types = NETIO_EVENT_READ;
-				reload_listener.event_handler = handle_child_command; /* listens to Quit */
+				reload_listener.event_handler = handle_reload_command; /* listens to Quit */
 				netio_add_handler(netio, &reload_listener);
 				break;
 			}
@@ -904,7 +909,7 @@ server_main(struct nsd *nsd)
 				/* acknowledge the quit, to sync reload that we will really quit now */
 				sig_atomic_t cmd = NSD_RELOAD;
 				if(!write_socket(reload_listener.fd, &cmd, sizeof(cmd))) {
-					log_msg(LOG_ERR, "handle_child_command: "
+					log_msg(LOG_ERR, "server_main: "
 						"could not ack quit: %s", strerror(errno));
 				}
 				close(reload_listener.fd);
@@ -1921,6 +1926,40 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_child_command: bad mode %d",
+			(int) mode);
+		break;
+	}
+}
+
+static void
+handle_reload_command(netio_type *ATTR_UNUSED(netio),
+		      netio_handler_type *handler,
+		      netio_event_types_type event_types)
+{
+	sig_atomic_t mode;
+	int len;
+	struct nsd *nsd = (struct nsd*) handler->user_data;
+	if (!(event_types & NETIO_EVENT_READ)) {
+		return;
+	}
+	/* read command from ipc */
+	if ((len = read(handler->fd, &mode, sizeof(mode))) == -1) {
+		log_msg(LOG_ERR, "handle_reload_command: read: %s",
+			strerror(errno));
+		return;
+	}
+	if (len == 0)
+	{
+		if(handler->fd > 0) close(handler->fd);
+		log_msg(LOG_ERR, "handle_reload_cmd: reload closed cmd channel");
+		return;
+	}
+	switch (mode) {
+	case NSD_QUIT:
+		nsd->mode = mode;
+		break;
+	default:
+		log_msg(LOG_ERR, "handle_reload_command: bad mode %d",
 			(int) mode);
 		break;
 	}
