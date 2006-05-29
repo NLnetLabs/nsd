@@ -5,6 +5,8 @@
 	  into xfrd-disk.c file.
 	- little readme blurb on xfrd state file for the operator.
 	- put ipc code in its own file for ease of reading.
+	- removed --disable-axfr, you can control this via acls.
+	  With no provide-xfr: statements, a zone will not do axfr.
 
 25 May 2006: Wouter
 	- fixed reload sending; it checks for EAGAIN and EINTR.

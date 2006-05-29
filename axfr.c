@@ -139,7 +139,6 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 	/* Is it AXFR? */
 	switch (q->qtype) {
 	case TYPE_AXFR:
-#ifndef DISABLE_AXFR		/* XXX Should be a run-time flag */
 		if (q->tcp) {
 			zone_options_t* zone_opt;
 			zone_opt = zone_options_find(nsd->options, q->qname);
@@ -157,7 +156,6 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			log_msg(LOG_INFO, "axfr admitted acl %s %s", acl->ip_address_spec, acl->key_name);
 			return query_axfr(nsd, q);
 		}
-#endif	/* DISABLE_AXFR */
 	case TYPE_IXFR:
 		RCODE_SET(q->packet, RCODE_REFUSE);
 		return QUERY_PROCESSED;

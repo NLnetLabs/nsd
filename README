@@ -152,10 +152,6 @@ addition to standard configure options, one may use the following:
 
         Disable support for DNSSEC (RFC 4033, 4034, and 4035).
 
-  --disable-axfr
-
-        Disables outbound AXFR functionalities altogether.
-
   --disable-tsig
 
         Disable TSIG support in the nsd-xfer(8) AXFR client program.

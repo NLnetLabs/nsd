@@ -460,15 +460,6 @@ case "$enable_dnssec" in
 		;;
 esac
 
-AC_ARG_ENABLE(axfr, AC_HELP_STRING([--disable-axfr], [Disables AXFR]))
-case "$enable_axfr" in
-	no)
-		AC_DEFINE_UNQUOTED([DISABLE_AXFR], [], [Define this to disable axfr.])
-		;;
-	yes|*)
-		;;
-esac
-
 AC_ARG_ENABLE(bind8-stats, AC_HELP_STRING([--enable-bind8-stats], [Enables BIND8 like NSTATS & XSTATS]))
 
 case "$enable_bind8_stats" in
