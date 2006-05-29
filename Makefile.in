@@ -67,6 +67,7 @@ NSD_OBJECTS	=				\
 	dname.o					\
 	dns.o					\
 	edns.o					\
+	ipc.o					\
 	iterated_hash.o				\
 	namedb.o				\
 	netio.o					\
@@ -223,6 +224,7 @@ CUTEST_OBJECTS		=			\
 	dname.o					\
 	dns.o					\
 	edns.o					\
+	ipc.o					\
 	iterated_hash.o				\
 	namedb.o				\
 	netio.o					\
@@ -424,6 +426,9 @@ dname.o: dname.c config.h dns.h dname.h buffer.h region-allocator.h \
 dns.o: dns.c config.h dns.h zonec.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h zparser.h
 edns.o: edns.c config.h dns.h edns.h buffer.h region-allocator.h util.h
+ipc.o: ipc.c config.h ipc.h netio.h region-allocator.h buffer.h util.h \
+  xfrd-tcp.h nsd.h dns.h edns.h namedb.h dname.h rbtree.h xfrd.h \
+  options.h tsig.h
 iterated_hash.o: iterated_hash.c config.h iterated_hash.h
 namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
   util.h dns.h rbtree.h
@@ -456,7 +461,7 @@ rdata.o: rdata.c config.h rdata.h dns.h namedb.h dname.h buffer.h \
 region-allocator.o: region-allocator.c config.h region-allocator.h
 server.o: server.c config.h axfr.h nsd.h dns.h edns.h buffer.h \
   region-allocator.h util.h query.h namedb.h dname.h rbtree.h packet.h \
-  tsig.h netio.h xfrd.h options.h xfrd-tcp.h difffile.h nsec3.h
+  tsig.h netio.h xfrd.h options.h xfrd-tcp.h difffile.h nsec3.h ipc.h
 tsig.o: tsig.c config.h tsig.h buffer.h region-allocator.h util.h dname.h \
   tsig-openssl.h dns.h packet.h namedb.h rbtree.h query.h nsd.h edns.h
 tsig-openssl.o: tsig-openssl.c config.h tsig-openssl.h region-allocator.h \
@@ -465,7 +470,7 @@ util.o: util.c config.h util.h region-allocator.h dname.h buffer.h \
   namedb.h dns.h rbtree.h rdata.h
 xfrd.o: xfrd.c config.h xfrd.h netio.h region-allocator.h rbtree.h \
   namedb.h dname.h buffer.h util.h dns.h options.h tsig.h xfrd-tcp.h \
-  xfrd-disk.h nsd.h edns.h packet.h difffile.h
+  xfrd-disk.h nsd.h edns.h packet.h difffile.h ipc.h
 xfrd-disk.o: xfrd-disk.c config.h xfrd-disk.h xfrd.h netio.h \
   region-allocator.h rbtree.h namedb.h dname.h buffer.h util.h dns.h \
   options.h tsig.h nsd.h edns.h

@@ -22,6 +22,7 @@
 #include "nsd.h"
 #include "packet.h"
 #include "difffile.h"
+#include "ipc.h"
 
 #define XFRD_TRANSFER_TIMEOUT 10 /* empty zone timeout is between x and 2*x seconds */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connectin is stopped */
@@ -37,10 +38,6 @@
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
 
-/* manage interprocess communication with server_main process */
-static void xfrd_handle_ipc(netio_type *netio, 
-	netio_handler_type *handler, netio_event_types_type event_types);
-
 /* main xfrd loop */
 static void xfrd_main();
 /* shut down xfrd, close sockets. */
@@ -49,18 +46,10 @@ static void xfrd_shutdown();
 static void xfrd_init_zones();
 /* free up memory used by main database */
 static void xfrd_free_namedb();
-/* send expiry notify for all zones to nsd */
-static void xfrd_send_expy_all_zones();
-/* send reload request over the IPC channel */
-static void xfrd_send_reload_req();
 
 /* handle zone timeout, event */
 static void xfrd_handle_zone(netio_type *netio, 
 	netio_handler_type *handler, netio_event_types_type event_types);
-/* get SOA INFO out of IPC packet buffer */
-static void xfrd_handle_ipc_SOAINFO(buffer_type* packet);
-/* handle network packet passed to xfrd */
-static void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 /* handle incoming notification message. soa can be NULL. true if transfer needed. */
 static int xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
 /* handle zone notify send */
@@ -88,8 +77,6 @@ static void xfrd_handle_reload(netio_type *netio,
 static void xfrd_send_notify(xfrd_zone_t* zone);
 /* send expiry notifications to nsd */
 static void xfrd_send_expire_notification(xfrd_zone_t* zone);
-/* write IPC expire notification msg to a buffer */
-static void xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone);
 /* send ixfr request, returns fd of connection to read on */
 static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone);
 
@@ -214,202 +201,6 @@ xfrd_shutdown()
 	exit(0);
 }
 
-static void
-xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio), 
-	netio_handler_type *handler, 
-	netio_event_types_type event_types)
-{
-        sig_atomic_t cmd;
-        int len;
-
-        if (event_types & NETIO_EVENT_WRITE)
-	{
-		/* if necessary prepare a packet */
-		if(!xfrd->need_to_send_reload &&
-			!xfrd->sending_zone_state &&
-			xfrd->dirty_zones->num > 0) {
-			xfrd_zone_t* zone = (xfrd_zone_t*)stack_pop(xfrd->dirty_zones);
-			assert(zone);
-			zone->dirty = 0;
-			xfrd->sending_zone_state = 1;
-			xfrd_write_expire_notification(xfrd->ipc_conn_write->packet, zone);
-			xfrd->ipc_conn_write->msglen = buffer_limit(xfrd->ipc_conn_write->packet);
-			/* skip length bytes; they are encoded in the packet, after cmd */
-			xfrd->ipc_conn_write->total_bytes = sizeof(uint16_t);
-		}
-		/* write a bit */
-		if(xfrd->sending_zone_state) {
-			/* call conn_write */
-			int ret = conn_write(xfrd->ipc_conn_write);
-			if(ret == -1) {
-				log_msg(LOG_ERR, "xfrd: error in write ipc: %s", strerror(errno));
-				xfrd->sending_zone_state = 0;
-			}
-			else if(ret == 1) { /* done */
-				xfrd->sending_zone_state = 0;
-			}
-		} else if(xfrd->need_to_send_reload) {
-			xfrd_send_reload_req();
-		}
-		if(!xfrd->need_to_send_reload &&
-			!xfrd->sending_zone_state &&
-			xfrd->dirty_zones->num == 0) {
-			handler->event_types = NETIO_EVENT_READ; /* disable writing for now */
-		}
-	}
-
-        if (!(event_types & NETIO_EVENT_READ))
-                return;
-	
-	if(xfrd->ipc_conn->is_reading==2) {
-		buffer_type* tmp = xfrd->ipc_pass;
-		uint32_t acl_num;
-		/* read acl_num */
-		int ret = conn_read(xfrd->ipc_conn);
-		if(ret == -1) {
-			log_msg(LOG_ERR, "xfrd: error in read ipc: %s", strerror(errno));
-			xfrd->ipc_conn->is_reading = 0;
-			return;
-		}
-		if(ret == 0)
-			return;
-		buffer_flip(xfrd->ipc_conn->packet);
-		xfrd->ipc_pass = xfrd->ipc_conn->packet;
-		xfrd->ipc_conn->packet = tmp;
-		xfrd->ipc_conn->is_reading = 0;
-		acl_num = buffer_read_u32(xfrd->ipc_pass);
-		xfrd_handle_passed_packet(xfrd->ipc_conn->packet, acl_num);
-		return;
-	}
-	if(xfrd->ipc_conn->is_reading) {
-		/* reading an IPC message */
-		int ret = conn_read(xfrd->ipc_conn);
-		if(ret == -1) {
-			log_msg(LOG_ERR, "xfrd: error in read ipc: %s", strerror(errno));
-			xfrd->ipc_conn->is_reading = 0;
-			return;
-		}
-		if(ret == 0)
-			return;
-		buffer_flip(xfrd->ipc_conn->packet);
-		if(xfrd->ipc_is_soa) {
-			xfrd->ipc_conn->is_reading = 0;
-			xfrd_handle_ipc_SOAINFO(xfrd->ipc_conn->packet);
-		} else 	{
-			/* use ipc_conn to read remaining data as well */
-			buffer_type* tmp = xfrd->ipc_pass;
-			xfrd->ipc_conn->is_reading=2;
-			xfrd->ipc_pass = xfrd->ipc_conn->packet;
-			xfrd->ipc_conn->packet = tmp;
-			xfrd->ipc_conn->total_bytes = sizeof(xfrd->ipc_conn->msglen);
-			xfrd->ipc_conn->msglen = sizeof(uint32_t);
-			buffer_clear(xfrd->ipc_conn->packet);
-			buffer_set_limit(xfrd->ipc_conn->packet, xfrd->ipc_conn->msglen);
-		}
-		return;
-	}
-        
-        if((len = read(handler->fd, &cmd, sizeof(cmd))) == -1) {
-                log_msg(LOG_ERR, "xfrd_handle_ipc: read: %s",
-                        strerror(errno));
-                return;
-        }
-        if(len == 0)
-        {
-		/* parent closed the connection. Quit */
-		xfrd->shutdown = 1;
-		return;
-        }
-
-        switch(cmd) {
-        case NSD_QUIT:
-        case NSD_SHUTDOWN:
-                xfrd->shutdown = 1;
-                break;
-	case NSD_SOA_BEGIN:
-		/* reload starts sending SOA INFOs; don't block */
-		xfrd->parent_soa_info_pass = 1;
-		/* reset the nonblocking ipc write; 
-		   the new parent does not want half a packet */
-		xfrd->sending_zone_state = 0;
-		break;
-	case NSD_SOA_INFO:
-		assert(xfrd->parent_soa_info_pass);
-		xfrd->ipc_is_soa = 1;
-		xfrd->ipc_conn->is_reading = 1;
-                break;
-	case NSD_SOA_END:
-		/* reload has finished */
-		xfrd->parent_soa_info_pass = 0;
-		xfrd_send_expy_all_zones();
-		break;
-	case NSD_PASS_TO_XFRD:
-		xfrd->ipc_is_soa = 0;
-		xfrd->ipc_conn->is_reading = 1;
-		break;
-        default:
-                log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d (%d)", (int)cmd,
-			ntohl(cmd));
-                break;
-        }
-
-	if(xfrd->ipc_conn->is_reading) {
-		/* setup read of info */
-		xfrd->ipc_conn->total_bytes = 0;
-		xfrd->ipc_conn->msglen = 0;
-		buffer_clear(xfrd->ipc_conn->packet);
-	}
-}
-
-static void xfrd_handle_ipc_SOAINFO(buffer_type* packet)
-{
-	xfrd_soa_t soa;
-	xfrd_zone_t* zone;
-	/* dname is sent in memory format */
-	const dname_type* dname = (const dname_type*)buffer_begin(packet);
-
-	/* find zone and decode SOA */
-	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
-	if(!zone) {
-		log_msg(LOG_ERR, "xfrd: zone %s not configured or not secondary, but ipc of SOA INFO",
-			dname_to_string(dname,0));
-		return;
-	}
-	buffer_skip(packet, dname_total_size(dname));
-	if(!buffer_available(packet, sizeof(uint32_t)*6 + sizeof(uint8_t)*2)) {
-		/* NSD has zone without any info */
-		log_msg(LOG_INFO, "SOAINFO for %s lost zone", dname_to_string(dname,0));
-
-		xfrd_handle_incoming_soa(zone, NULL, xfrd_time());
-		return;
-	}
-
-	/* read soa info */
-	memset(&soa, 0, sizeof(soa));
-	/* left out type, klass, count for speed */
-	soa.type = htons(TYPE_SOA);
-	soa.klass = htons(CLASS_IN);
-	soa.ttl = htonl(buffer_read_u32(packet));
-	soa.rdata_count = htons(7);
-	soa.prim_ns[0] = buffer_read_u8(packet);
-	if(!buffer_available(packet, soa.prim_ns[0]))
-		return;
-	buffer_read(packet, soa.prim_ns+1, soa.prim_ns[0]);
-	soa.email[0] = buffer_read_u8(packet);
-	if(!buffer_available(packet, soa.email[0]))
-		return;
-	buffer_read(packet, soa.email+1, soa.email[0]);
-
-	soa.serial = htonl(buffer_read_u32(packet));
-	soa.refresh = htonl(buffer_read_u32(packet));
-	soa.retry = htonl(buffer_read_u32(packet));
-	soa.expire = htonl(buffer_read_u32(packet));
-	soa.minimum = htonl(buffer_read_u32(packet));
-	log_msg(LOG_INFO, "SOAINFO for %s %d", dname_to_string(dname,0),
-		ntohl(soa.serial));
-	xfrd_handle_incoming_soa(zone, &soa, xfrd_time());
-}
-
 static void 
 xfrd_init_zones()
 {
@@ -502,7 +293,7 @@ xfrd_init_zones()
 	log_msg(LOG_INFO, "xfrd: started server %d secondary zones", (int)xfrd->zones->count);
 }
 
-static void
+void
 xfrd_send_expy_all_zones()
 {
 	xfrd_zone_t* zone;
@@ -994,27 +785,6 @@ xfrd_send_expire_notification(xfrd_zone_t* zone)
 	zone->dirty = 1;
 	stack_push(xfrd->dirty_zones, (void*)zone);
 	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
-}
-
-static void 
-xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone)
-{
-	sig_atomic_t cmd = NSD_ZONE_STATE;
-	uint8_t ok = 1;
-	uint16_t sz = dname_total_size(zone->apex) + 1;
-	sz = htons(sz);
-	if(zone->state == xfrd_zone_expired)
-		ok = 0;
-
-	log_msg(LOG_INFO, "xfrd encoding ipc zone state msg for zone %s state %d.",
-		zone->apex_str, (int)zone->state);
-
-	buffer_clear(buffer);
-	buffer_write(buffer, &cmd, sizeof(cmd));
-	buffer_write(buffer, &sz, sizeof(sz));
-	buffer_write(buffer, &ok, sizeof(ok));
-	buffer_write(buffer, zone->apex, dname_total_size(zone->apex));
-	buffer_flip(buffer);
 }
 
 static int 
@@ -1543,22 +1313,6 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	}
 }
 
-static void
-xfrd_send_reload_req()
-{
-	sig_atomic_t req = NSD_RELOAD;
-	/* ask server_main for a reload */
-	if(write(xfrd->ipc_handler.fd, &req, sizeof(req)) == -1) {
-		if(errno == EAGAIN || errno == EINTR)
-			return; /* try again later */
-		log_msg(LOG_ERR, "xfrd: problems sending reload command: %s",
-			strerror(errno));
-		return;
-	}
-	log_msg(LOG_ERR, "xfrd: asked nsd to reload new updates");
-	xfrd->need_to_send_reload = 0;
-}
-
 static void 
 xfrd_set_reload_timeout()
 {
@@ -1593,7 +1347,7 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
 }
 
-static void 
+void 
 xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
