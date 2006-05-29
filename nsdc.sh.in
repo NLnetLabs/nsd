@@ -90,7 +90,6 @@ rebuild)
 	result=$?
 	[ $result != 0 ] && echo "${dbfile} is unmodified"
 	rm -f ${dbfile}.$$
-        # nsd patch for 3
 	exit ${result}
 	;;
 notify)

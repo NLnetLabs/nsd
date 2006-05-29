@@ -29,14 +29,27 @@
 		return; 			\
 	}
 
-#define ZONE_GET_BINARY(NAME, VAR) 			\
+#define ZONE_GET_BIN(NAME, VAR) 			\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
 		printf("%s\n", zone->NAME?"yes":"no"); 	\
 	}
 
-#define SERV_GET_BINARY(NAME, VAR) 			\
+#define SERV_GET_BIN(NAME, VAR) 			\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
 		printf("%s\n", opt->NAME?"yes":"no"); 	\
+	}
+
+#define SERV_GET_STR(NAME, VAR) 		\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+		quote(opt->NAME); 		\
+		fputs("", stdout); 		\
+		return; 			\
+	}
+
+#define SERV_GET_INT(NAME, VAR) 		\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+		printf("%d\n", opt->NAME); 	\
+		return; 			\
 	}
 
 static char buf[BUFSIZ];
@@ -164,16 +177,37 @@ config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 		{
 			if (strcasecmp(z, zone->name) == 0) {
 				/* -z matches, return are in the defines */
+				ZONE_GET_STR(name, o);
 				ZONE_GET_STR(zonefile, o);
 				ZONE_GET_ACL(request_xfr, o);
+				ZONE_GET_ACL(provide_xfr, o);
 				ZONE_GET_ACL(allow_notify, o);
+				ZONE_GET_ACL(notify, o);
 			}
 		}
 	} else {
 		/* look in the server section */
-		SERV_GET_BINARY(ip4_only, o);
-		/* and more */	
-		/* ... */
+/*		SERV_GET_STR(ip_address, o);*/
+		/* bin */
+		SERV_GET_BIN(debug_mode, o);
+		SERV_GET_BIN(ip4_only, o);
+		SERV_GET_BIN(ip6_only, o);
+		/* str */
+		SERV_GET_STR(database, o);
+		SERV_GET_STR(identity, o);
+		SERV_GET_STR(logfile, o);
+		SERV_GET_STR(pidfile, o);
+		SERV_GET_STR(chroot, o);
+		SERV_GET_STR(username, o);
+		SERV_GET_STR(zonesdir, o);
+		SERV_GET_STR(difffile, o);
+		SERV_GET_STR(xfrdfile, o);
+		/* int */
+		SERV_GET_INT(server_count, o);
+		SERV_GET_INT(tcp_count, o);
+		SERV_GET_INT(port, o);
+		SERV_GET_INT(statistics, o);
+		SERV_GET_INT(xfrd_reload_timeout, o);
 	}
 }
 
@@ -369,7 +403,6 @@ main(int argc, char* argv[])
         if (argc == 0 || argc>=2) {
 		usage();
 	}
-
 	configfile = argv[0];
 
 	/* read config file */
@@ -389,6 +422,5 @@ main(int argc, char* argv[])
 			config_test_print_server(options);
 		}
 	}
-
 	exit(EXIT_SUCCESS);
 }
