@@ -81,6 +81,7 @@ NSD_OBJECTS	=				\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
+	xfrd-disk.o				\
 	xfrd-tcp.o				\
 	xfrd.o
 
@@ -235,6 +236,7 @@ CUTEST_OBJECTS		=			\
 	tsig.o					\
 	tsig-openssl.o				\
 	util.o					\
+	xfrd-disk.o				\
 	xfrd-tcp.o				\
 	xfrd.o					\
 	cutest_dns.o 				\
@@ -463,7 +465,10 @@ util.o: util.c config.h util.h region-allocator.h dname.h buffer.h \
   namedb.h dns.h rbtree.h rdata.h
 xfrd.o: xfrd.c config.h xfrd.h netio.h region-allocator.h rbtree.h \
   namedb.h dname.h buffer.h util.h dns.h options.h tsig.h xfrd-tcp.h \
-  nsd.h edns.h packet.h difffile.h
+  xfrd-disk.h nsd.h edns.h packet.h difffile.h
+xfrd-disk.o: xfrd-disk.c config.h xfrd-disk.h xfrd.h netio.h \
+  region-allocator.h rbtree.h namedb.h dname.h buffer.h util.h dns.h \
+  options.h tsig.h nsd.h edns.h
 xfrd-tcp.o: xfrd-tcp.c config.h xfrd-tcp.h buffer.h region-allocator.h \
   util.h packet.h dns.h namedb.h dname.h rbtree.h options.h xfrd.h \
   netio.h tsig.h

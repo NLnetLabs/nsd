@@ -540,3 +540,18 @@ zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex)
 {
 	return (zone_options_t*) rbtree_search(opt->zone_options, apex);
 }
+
+acl_options_t*
+acl_find_num(acl_options_t* acl, int num)
+{
+	int count = num;
+	if(num < 0)
+		return 0;
+	while(acl && count > 0) {
+		acl = acl->next;
+		count--;
+	}
+	if(count == 0)
+		return acl;
+	return 0;
+}

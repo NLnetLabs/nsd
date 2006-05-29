@@ -180,6 +180,8 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 
 /* returns true if acls are both from the same host */
 int acl_same_host(acl_options_t* a, acl_options_t* b);
+/* find acl by number in the list */
+acl_options_t* acl_find_num(acl_options_t* acl, int num);
 
 /* see if a zone is a slave or a master zone */
 int zone_is_slave(zone_options_t* opt);

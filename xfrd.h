@@ -192,6 +192,8 @@ enum xfrd_packet_result xfrd_handle_received_xfr_packet(
 
 /* set timer to specific value */
 void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
+/* set refresh timer of zone to refresh at time now */
+void xfrd_set_refresh_now(xfrd_zone_t* zone);
 
 /* 
  * Make a new request to next master server. 
@@ -208,5 +210,9 @@ void xfrd_make_request(xfrd_zone_t* zone);
  */
 void xfrd_tsig_sign_request(buffer_type* packet, struct tsig_record* tsig,
         acl_options_t* acl, struct region* tsig_region);
+
+/* handle incoming soa information (NSD is running it, time acquired=guess) */
+void xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, 
+	time_t acquired);
 
 #endif /* XFRD_H */
