@@ -1891,8 +1891,6 @@ handle_child_command(netio_type *ATTR_UNUSED(netio),
 			}
 		} else if(data->child->need_to_send_STATS) {
 			send_stat_to_child(data, handler->fd);
-		} else {
-			log_msg(LOG_ERR, "handle_child_command: write event but nothing to do");
 		}
 		if(!data->busy_writing_zone_state &&
 			!data->child->need_to_send_STATS &&

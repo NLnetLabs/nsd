@@ -263,8 +263,6 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 			}
 		} else if(xfrd->need_to_send_reload) {
 			xfrd_send_reload_req();
-		} else {
-			log_msg(LOG_ERR, "xfrd ipc write event, but nothing to send. ignored.");
 		}
 		if(!xfrd->need_to_send_reload &&
 			!xfrd->sending_zone_state &&
