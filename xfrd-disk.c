@@ -17,8 +17,6 @@
 #include "nsd.h"
 #include "options.h"
 
-#define XFRDFILE "xfrd.state"
-
 /* quick tokenizer, reads words separated by whitespace.
    No quoted strings. Comments are skipped (#... eol). */
 static char* 

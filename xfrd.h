@@ -167,8 +167,6 @@ struct xfrd_zone {
 	uint16_t notify_query_id;
 };
 
-#define XFRD_FILE_MAGIC "NSDXFRD1"
-
 enum xfrd_packet_result {
 	xfrd_packet_bad, /* drop the packet/connection */
 	xfrd_packet_more, /* more packets to follow on tcp */
