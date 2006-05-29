@@ -64,7 +64,6 @@ unlock() {
 case "$1" in
 start)
 	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -f ${dbfile} -P ${pidfile} ${flags}
-	$0 notify
 	;;
 stop)
 	signal "TERM"
@@ -74,106 +73,28 @@ stats)
 	;;
 reload)
 	signal "HUP"
-	$0 notify
 	;;
 running)
 	signal "0"
 	;;
+patch)
+        # patch queue clearen
+           # mv the file
+           # apply
+           # remove file
+        # nsdc rebuild
+        # nsdc reload
+        ;;
 rebuild)
 	${sbindir}/zonec ${ZONEC_VERBOSE} -d ${zonesdir} -f ${dbfile}.$$ ${zonesfile} && mv ${dbfile}.$$ ${dbfile}
 	result=$?
 	[ $result != 0 ] && echo "${dbfile} is unmodified"
 	rm -f ${dbfile}.$$
+        # nsd patch for 3
 	exit ${result}
 	;;
-update)
-	#
-	if [ ! -x "${nsdxfer}" ]
-	then
-		echo "named-xfer program is not available, aborting..."
-		exit 1
-	fi
-
-	lock
-
-	# read the nsd.zones file
-	while read zonekw zone file masterskw masters
-	do	
-		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
-		then
-			# now get the serial number
-			serial_opt=''
-			if [ -e ${zonesdir}/$file ]; then
-				serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1; exit }' ${zonesdir}/$file`
-				serial_opt="-s $serial"
-			fi
-
-			# take care of tsig info file if any
-			# See bug #91 - move to ${zone} but be backward
-			# compatible
-			unset tsiginfoarg
-			if [ -f "${keysdir}/${masters}.tsiginfo" ]
-			then
-				ln "${keysdir}/${masters}.tsiginfo" "${keysdir}/${masters}.tsiginfo.$$"
-				tsiginfoarg="-T ${keysdir}/${masters}.tsiginfo.$$"
-			else 
-				if [ -f "${keysdir}/${zone}.tsiginfo" ]
-				then
-					# the new way of doing things
-					ln "${keysdir}/${zone}.tsiginfo" "${keysdir}/${zone}.tsiginfo.$$"
-					tsiginfoarg="-T ${keysdir}/${zone}.tsiginfo.$$"
-				fi
-			fi
-
-			# AXFR to a temp file $file.axfr
-			$nsdxfer $nsdxfer_flags -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} $serial_opt $masters
-			if [ $? -eq 1 ]
-			then
-				if [ -f ${zonesdir}/$file.axfr ]
-				then
-					# axfr succeeded
-					# test compile the zone to see what happens
-					${sbindir}/zonec -o ${zone} -f ${zonesdir}/$file.axfr.db - < ${zonesdir}/$file.axfr 2>/dev/null
-					if [ $? -eq 1 ]
-					then
-						echo "Warning: AXFR of $zone did not compile"
-						rm -f ${zonesdir}/$file.axfr
-					else
-						# we succeed
-						mv -f ${zonesdir}/$file.axfr ${zonesdir}/$file
-					fi
-					rm -f ${zonesdir}/$file.axfr.db
-				else
-					echo "Warning: AXFR for $zone failed"
-				fi
-			fi
-
-			# Do we need to rebuild the database?
-			if [ ${zonesdir}/$file -nt ${dbfile} ]
-			then
-				echo "zone $zone needs rebuilding..."
-				rebuild="yes"
-				export $rebuild
-			fi
-
-			# clean up
-			rm -f -- "${keysdir}"/*.tsiginfo.*
-		fi
-	done < $zonesfile
-
-	# Wait for everybody to terminate
-	wait
-
-	# Rebuild and reload?
-	if [ ! -f ${dbfile} -o "x$rebuild" = "xyes" ]
-	then
-		echo "rebuilding the database...."
-		sh $0 rebuild && sh $0 reload
-	fi
-
-	unlock
-	;;
 notify)
+        # send notifies to localhost
 	if [ ! -x "${notify}" ]
 	then
 		echo "nsd-notify was not installed on this system"

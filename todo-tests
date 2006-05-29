@@ -10,3 +10,6 @@ run this daily or only when subversion changes
 
 for each test, run our "test-suite"
 
+
+test:
+rm patch file, check xfrd's behavoir. Refetches zones
