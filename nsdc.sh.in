@@ -20,13 +20,10 @@ exec_prefix="@exec_prefix@"
 sbindir="@sbindir@"
 zonesdir="@zonesdir@"
 flags=""
-dbfile="@dbfile@"
+dbfile=`${sbindir}/nsd-checkonf -o pidfile ${configfile}`
 zonesfile="@zonesfile@"
-keysdir="@configdir@/keys"
-notify="@sbindir@/nsd-notify"
-nsdxfer="@sbindir@/nsd-xfer"
-nsdxfer_flags=""
 pidfile="@pidfile@"
+
 lockfile="@dbfile@.lock"
 
 ZONEC_VERBOSE=-v

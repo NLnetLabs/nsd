@@ -18,14 +18,12 @@
 #define ZONE_GET_ACL(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
 		quote_acl((zone->NAME)); 		\
-		fputs("", stdout); 		\
 		return; 			\
 	}
 
 #define ZONE_GET_STR(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
 		quote(zone->NAME); 		\
-		fputs("", stdout); 		\
 		return; 			\
 	}
 
@@ -42,7 +40,6 @@
 #define SERV_GET_STR(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
 		quote(opt->NAME); 		\
-		fputs("", stdout); 		\
 		return; 			\
 	}
 
@@ -50,6 +47,14 @@
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
 		printf("%d\n", opt->NAME); 	\
 		return; 			\
+	}
+
+#define SERV_GET_IP(NAME, VAR) 				\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+		for(ip = opt->ip_addresses; ip; ip=ip->next)	\
+		{						\
+			quote(ip->address);			\
+		}						\
 	}
 
 static char buf[BUFSIZ];
@@ -161,10 +166,10 @@ void
 config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 {
 #if 0
-	ip_address_option_t* ip;
 	key_options_t* key;
 #endif
 	zone_options_t* zone;
+	ip_address_option_t* ip;
 
 	if (!o) {
 		/* need something to work with */
@@ -187,7 +192,7 @@ config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 		}
 	} else {
 		/* look in the server section */
-/*		SERV_GET_STR(ip_address, o);*/
+		SERV_GET_IP(ip_address, o);
 		/* bin */
 		SERV_GET_BIN(debug_mode, o);
 		SERV_GET_BIN(ip4_only, o);
