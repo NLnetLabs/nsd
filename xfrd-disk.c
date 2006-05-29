@@ -407,7 +407,25 @@ xfrd_write_state(struct xfrd_state* xfrd)
 	}
 	
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
+	fprintf(out, "# This file is written on exit by nsd xfr daemon.\n");
+	fprintf(out, "# This file contains slave zone information:\n");
+	fprintf(out, "# 	* timeouts (when was zone data acquired)\n");
+	fprintf(out, "# 	* state (OK, refreshing, expired)\n");
+	fprintf(out, "# 	* which master transfer to attempt next\n");
+	fprintf(out, "# The file is read on start (but not on reload) by nsd xfr daemon.\n");
+	fprintf(out, "# You can edit; but do not change statement order\n");
+	fprintf(out, "# and no fancy stuff (like quoted \"strings\").\n");
+	fprintf(out, "#\n");
+	fprintf(out, "# If you remove a zone entry, it will be refreshed.\n");
+	fprintf(out, "# This can be useful for an expired zone; it revives\n");
+	fprintf(out, "# the zone temporarily, from refresh-expiry time.\n");
+	fprintf(out, "# If you delete the file all slave zones are updated.\n");
+	fprintf(out, "#\n");
+	fprintf(out, "# Note: if you edit this file while nsd is running,\n");
+	fprintf(out, "#       it will be overwritten on exit by nsd.\n");
+	fprintf(out, "\n");
 	fprintf(out, "filetime: %d\t# %s\n", (int)now, ctime(&now));
+	fprintf(out, "# The number of zone entries in this file\n");
 	fprintf(out, "numzones: %d\n", (int)xfrd->zones->count);
 	fprintf(out, "\n");
 	for(p = rbtree_first(xfrd->zones); p && p!=RBTREE_NULL; p=rbtree_next(p))
