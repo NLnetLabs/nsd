@@ -1193,6 +1193,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 
 	if(zone->tcp_conn == -1 && ancount < 2) {
 		/* too short to be a real ixfr/axfr data transfer */
+		/* The serial is newer, so try tcp to this master. */
 		log_msg(LOG_INFO, "xfrd: udp reply is short. Try tcp anyway.");
 		return xfrd_packet_tcp;
 	}
