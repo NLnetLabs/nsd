@@ -209,7 +209,9 @@ void xfrd_make_request(xfrd_zone_t* zone);
 void xfrd_tsig_sign_request(buffer_type* packet, struct tsig_record* tsig,
         acl_options_t* acl, struct region* tsig_region);
 
-/* handle incoming soa information (NSD is running it, time acquired=guess) */
+/* handle incoming soa information (NSD is running it, time acquired=guess).
+   Pass soa=NULL,acquired=now if NSD has nothing loaded for the zone
+   (i.e. zonefile was deleted). */
 void xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, 
 	time_t acquired);
 
