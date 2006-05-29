@@ -17,24 +17,14 @@ configfile="@configfile@"
 prefix="@prefix@"
 exec_prefix="@exec_prefix@"
 
+flags=""
 sbindir="@sbindir@"
 zonesdir="@zonesdir@"
-flags=""
-dbfile=`${sbindir}/nsd-checkonf -o pidfile ${configfile}`
-zonesfile="@zonesfile@"
-pidfile="@pidfile@"
-
-lockfile="@dbfile@.lock"
+dbfile=`${sbindir}/nsd-checkonf -o dbfile ${configfile}`
+pidfile=`${sbindir}/nsd-checkconf -o pidfile ${configfile}`
+lockfile="@dbfile@.lock"  # still needed
 
 ZONEC_VERBOSE=-v
-
-#
-# Read in configuration file if any
-#
-if [ -f ${configfile} ]
-then
-	. ${configfile}
-fi
 
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
@@ -60,7 +50,7 @@ unlock() {
 
 case "$1" in
 start)
-	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -f ${dbfile} -P ${pidfile} ${flags}
+	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -c ${configfile} 
 	;;
 stop)
 	signal "TERM"
@@ -83,7 +73,7 @@ patch)
         # nsdc reload
         ;;
 rebuild)
-	${sbindir}/zonec ${ZONEC_VERBOSE} -d ${zonesdir} -f ${dbfile}.$$ ${zonesfile} && mv ${dbfile}.$$ ${dbfile}
+	${sbindir}/zonec ${ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && mv ${dbfile}.$$ ${dbfile}
 	result=$?
 	[ $result != 0 ] && echo "${dbfile} is unmodified"
 	rm -f ${dbfile}.$$

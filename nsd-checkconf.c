@@ -112,7 +112,6 @@ quote_acl(acl_options_t* acl)
 			(acl->key_name?acl->key_name:"(null)")));
 		acl=acl->next;
 	}
-	fputs("", stdout);
 }
 
 static void 
@@ -165,14 +164,10 @@ print_acl(const char* varname, acl_options_t* acl)
 void
 config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 {
-#if 0
-	key_options_t* key;
-#endif
 	zone_options_t* zone;
 	ip_address_option_t* ip;
 
 	if (!o) {
-		/* need something to work with */
 		return;
 	}
 
