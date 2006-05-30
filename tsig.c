@@ -33,6 +33,7 @@ struct tsig_algorithm_table
 };
 typedef struct tsig_algorithm_table tsig_algorithm_table_type;
 static tsig_algorithm_table_type *tsig_algorithm_table;
+static size_t max_algo_digest_size = 0;
 
 static void
 tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
@@ -114,6 +115,8 @@ tsig_add_algorithm(tsig_algorithm_type *algorithm)
 	entry->algorithm = algorithm;
 	entry->next = tsig_algorithm_table;
 	tsig_algorithm_table = entry;
+	if(algorithm->maximum_digest_size > max_algo_digest_size)
+		max_algo_digest_size = algorithm->maximum_digest_size;
 }
 
 /*
@@ -169,15 +172,24 @@ tsig_cleanup(void *data)
 {
 	tsig_record_type *tsig = (tsig_record_type *) data;
 	region_destroy(tsig->rr_region);
+	region_destroy(tsig->context_region);
+}
+
+void
+tsig_create_record(tsig_record_type *tsig, region_type *region)
+{
+	tsig->region = region;
+	tsig->rr_region = region_create(xalloc, free);
+	tsig->context_region = region_create(xalloc, free);
+	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
+	tsig_init_record(tsig, NULL, NULL);
 }
 
 void
 tsig_init_record(tsig_record_type *tsig,
-		 region_type *region,
 		 tsig_algorithm_type *algorithm,
 		 tsig_key_type *key)
 {
-	tsig->region = region;
 	tsig->status = TSIG_NOT_PRESENT;
 	tsig->position = 0;
 	tsig->response_count = 0;
@@ -186,9 +198,7 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->key = key;
 	tsig->prior_mac_size = 0;
 	tsig->prior_mac_data = NULL;
-	/* XXX: allocate rr_region lazily instead! */
-	tsig->rr_region = region_create(xalloc, free);
-	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
+	region_free_all(tsig->context_region);
 }
 
 int
@@ -321,9 +331,10 @@ tsig_prepare(tsig_record_type *tsig)
 	if (!tsig->context) {
 		assert(tsig->algorithm);
 		tsig->context = tsig->algorithm->hmac_create_context(
-			tsig->region);
+			tsig->context_region);
 		tsig->prior_mac_data = (uint8_t *) region_alloc(
-			tsig->region, tsig->algorithm->maximum_digest_size);
+			tsig->context_region, 
+			tsig->algorithm->maximum_digest_size);
 	}
 	tsig->algorithm->hmac_init_context(tsig->context,
 					   tsig->algorithm,
@@ -560,7 +571,7 @@ tsig_reserved_space(tsig_record_type *tsig)
 		+ sizeof(uint32_t)	    /* Signed time (low) */
 		+ sizeof(uint16_t)	    /* Signed time fudge */
 		+ sizeof(uint16_t)	    /* MAC size */
-		+ tsig->algorithm->maximum_digest_size /* MAC data */
+		+ max_algo_digest_size 	    /* MAC data */
 		+ sizeof(uint16_t)	    /* Original query ID */
 		+ sizeof(uint16_t)	    /* Error code */
 		+ sizeof(uint16_t)	    /* Other size */

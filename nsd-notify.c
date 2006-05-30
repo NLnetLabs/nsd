@@ -123,11 +123,11 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 	close(udp_s);
 }
 
+#ifdef TSIG
 static tsig_key_type*
 add_key(region_type* region, const char* opt)
 {
 	/* parse -y key:secret_base64 format option */
-#ifdef TSIG
 	char* delim = strchr(opt, ':');
 	tsig_key_type *key = (tsig_key_type*)region_alloc(
 		region, sizeof(tsig_key_type));
@@ -155,11 +155,8 @@ add_key(region_type* region, const char* opt)
 	tsig_add_key(key);
 	log_msg(LOG_INFO, "added key %s", dname_to_string(key->name, NULL));
 	return key;
-#else
-	log_msg(LOG_ERR, "option -y given but TSIG not enabled: %s", opt);
-	return 0;
-#endif /* TSIG */
 }
+#endif /* TSIG */
 
 int 
 main (int argc, char *argv[])
@@ -206,6 +203,8 @@ main (int argc, char *argv[])
 		case 'y':
 #ifdef TSIG
 			tsig_key = add_key(region, optarg);
+#else
+			log_msg(LOG_ERR, "option -y given but TSIG not enabled");
 #endif /* TSIG */
 			break;
 		case 'z':
@@ -248,7 +247,8 @@ main (int argc, char *argv[])
 	if(tsig_key) {
 		tsig_algorithm_type* algo = tsig_get_algorithm_by_name("hmac-md5");
 		assert(algo);
-		tsig_init_record(&tsig, region, algo, tsig_key);
+		tsig_create_record(&tsig, region);
+		tsig_init_record(&tsig, algo, tsig_key);
 		tsig_init_query(&tsig, ID(q.packet));
 		tsig_prepare(&tsig);
 		tsig_update(&tsig, q.packet, buffer_position(q.packet));

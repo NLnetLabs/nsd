@@ -265,17 +265,18 @@ xfrd_init_zones()
 		netio_add_handler(xfrd->netio, &xzone->zone_handler);
 		xzone->tcp_waiting = 0;
 		xzone->tcp_conn = -1;
-		xzone->query_region = region_create(xalloc, free);
-		region_add_cleanup(xfrd->region, cleanup_region, xzone->query_region);
 
 		xzone->notify_send_handler.fd = -1;
 		xzone->notify_send_handler.timeout = 0;
 		xzone->notify_send_handler.user_data = xzone;
 		xzone->notify_send_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
 		xzone->notify_send_handler.event_handler = xfrd_handle_notify_send;
-		xzone->notify_query_region = region_create(xalloc, free);
-		region_add_cleanup(xfrd->region, cleanup_region, xzone->notify_query_region);
 		netio_add_handler(xfrd->netio, &xzone->notify_send_handler);
+
+#ifdef TSIG
+		tsig_create_record(&xzone->tsig, xfrd->region);
+		tsig_create_record(&xzone->notify_tsig, xfrd->region);
+#endif /* TSIG */
 		
 		if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
 			xzone->soa_nsd_acquired = xfrd_time();
@@ -563,8 +564,7 @@ xfrd_notify_send_udp(xfrd_zone_t* zone)
 	}
 #ifdef TSIG
 	if(zone->notify_current->key_options) {
-		xfrd_tsig_sign_request(xfrd->packet, &zone->notify_tsig, 
-			zone->notify_current, zone->notify_query_region);
+		xfrd_tsig_sign_request(xfrd->packet, &zone->notify_tsig, zone->notify_current);
 	}
 #endif /* TSIG */
 	buffer_flip(xfrd->packet);
@@ -695,6 +695,8 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		return;
 	}
 	if(zone->soa_nsd_acquired && soa->serial == zone->soa_nsd.serial)
+	/* TODO: update situation if disk newer, the update has failed,
+	   pretend notified with old disk serial */
 		return;
 
 	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
@@ -875,7 +877,7 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 
 void
 xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig, 
-	acl_options_t* acl, struct region* tsig_region)
+	acl_options_t* acl)
 {
 #ifdef TSIG
 	tsig_algorithm_type* algo;
@@ -887,8 +889,7 @@ xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig,
 		return;
 	}
 	assert(algo);
-	region_free_all(tsig_region);
-	tsig_init_record(tsig, tsig_region, algo, acl->key_options->tsig_key);
+	tsig_init_record(tsig, algo, acl->key_options->tsig_key);
 	tsig_init_query(tsig, ID(packet));
 	tsig_prepare(tsig);
 	tsig_update(tsig, packet, buffer_position(packet));
@@ -920,8 +921,9 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
         NSCOUNT_SET(xfrd->packet, 1);
 	xfrd_write_soa_buffer(xfrd->packet, zone, &zone->soa_disk);
 	if(zone->master->key_options) {
-		xfrd_tsig_sign_request(xfrd->packet, &zone->tsig, zone->master,
-			zone->query_region);
+#ifdef TSIG
+		xfrd_tsig_sign_request(xfrd->packet, &zone->tsig, zone->master);
+#endif /* TSIG */
 	}
 	buffer_flip(xfrd->packet);
 
@@ -1023,10 +1025,10 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	return 1;
 }
 
+#ifdef TSIG
 static int
 xfrd_xfr_process_tsig(xfrd_zone_t* zone, buffer_type* packet)
 {
-#ifdef TSIG
 	int have_tsig = 0;
 	assert(zone && zone->master && zone->master->key_options 
 		&& zone->master->key_options->tsig_key && packet);
@@ -1070,9 +1072,9 @@ xfrd_xfr_process_tsig(xfrd_zone_t* zone, buffer_type* packet)
 			zone->apex_str, zone->master->ip_address_spec);
 		return 0;
 	}
-#endif
 	return 1;
 }
+#endif
 
 /* parse the received packet. returns xfrd packet result code. */
 static enum xfrd_packet_result 

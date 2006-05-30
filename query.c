@@ -154,6 +154,12 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets)
 	query->compressed_dname_offsets = compressed_dname_offsets;
 	query->packet = buffer_create(region, QIOBUFSZ);
 	region_add_cleanup(region, query_cleanup, query);
+#ifdef TSIG
+	tsig_create_record(&query->tsig, region);
+	query->tsig_prepare_it = 1;
+	query->tsig_update_it = 1;
+	query->tsig_sign_it = 1;
+#endif /* TSIG */
 	return query;
 }
 
@@ -177,6 +183,12 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->reserved_space = 0;
 	buffer_clear(q->packet);
 	edns_init_record(&q->edns);
+#ifdef TSIG
+	tsig_init_record(&q->tsig, NULL, NULL);
+	q->tsig_prepare_it = 1;
+	q->tsig_update_it = 1;
+	q->tsig_sign_it = 1;
+#endif /* TSIG */
 	q->tcp = is_tcp;
 	q->qname = NULL;
 	q->qtype = 0;
@@ -294,6 +306,37 @@ process_edns(struct query *q)
 }
 
 /*
+ * Processes TSIG.
+ * Sets error when tsig does not verify on the query.
+ */
+#ifdef TSIG
+static nsd_rc_type
+process_tsig(struct query* q)
+{
+	if(q->tsig.status == TSIG_ERROR)
+		return NSD_RC_FORMAT;
+	if(q->tsig.status == TSIG_OK) {
+		if(!tsig_from_query(&q->tsig)) {
+			log_msg(LOG_ERR, "query tsig unknown key/algorithm");
+			return NSD_RC_REFUSE;
+		}
+		buffer_set_limit(q->packet, q->tsig.position);
+		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
+		tsig_prepare(&q->tsig);
+		tsig_update(&q->tsig, q->packet, buffer_limit(q->packet));
+		if(!tsig_verify(&q->tsig)) {
+			log_msg(LOG_ERR, "query: bad tsig signature for key %s",
+				dname_to_string(q->tsig.key->name, NULL));
+			return NSD_RC_REFUSE;
+		}
+		log_msg(LOG_INFO, "query good tsig signature for %s",
+			dname_to_string(q->tsig.key->name, NULL));
+	}
+	return NSD_RC_OK;
+}
+#endif /* TSIG */
+
+/*
  * Check notify acl and forward to xfrd (or return an error).
  */
 static query_state_type
@@ -301,6 +344,7 @@ answer_notify (struct nsd* nsd, struct query *query)
 {
 	int acl_num;
 	acl_options_t *why;
+	nsd_rc_type rc;
 
 	zone_options_t* zone_opt;
 	log_msg(LOG_INFO, "got notify %s processing acl",
@@ -310,9 +354,19 @@ answer_notify (struct nsd* nsd, struct query *query)
 	if(!zone_opt) 
 		return query_error(query, NSD_RC_NXDOMAIN);
 	
-	if(!nsd->this_child) /* we are in debug more or something */
+	if(!nsd->this_child) /* we are in debug mode or something */
 		return query_error(query, NSD_RC_SERVFAIL);
 	
+#ifdef TSIG
+	if(!tsig_find_rr(&query->tsig, query->packet)) {
+		log_msg(LOG_ERR, "bad tsig RR format");
+		return query_error(query, NSD_RC_FORMAT);
+	}
+	rc = process_tsig(query);
+	if(rc != NSD_RC_OK)
+		return query_error(query, rc);
+#endif /* TSIG */
+
 	/* check if it passes acl */
 	if((acl_num = acl_check_incoming(zone_opt->allow_notify, query,
 		&why)) != -1)
@@ -932,6 +986,9 @@ query_prepare_response(query_type *q)
 	 * Reserve space for the EDNS records if required.
 	 */
 	q->reserved_space = edns_reserved_space(&q->edns);
+#ifdef TSIG
+	q->reserved_space += tsig_reserved_space(&q->tsig);
+#endif /* TSIG */
 	
 	/* Update the flags.  */
 	flags = FLAGS(q->packet);
@@ -997,10 +1054,28 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 
 	arcount = ARCOUNT(q->packet);
+#ifdef TSIG
+	if (arcount > 0) {
+		/* see if tsig is before edns record */
+		if (!tsig_parse_rr(&q->tsig, q->packet))
+			return query_formerr(q);
+		if(q->tsig.status != TSIG_NOT_PRESENT)
+			--arcount;
+	}
+#endif /* TSIG */
 	if (arcount > 0) {
 		if (edns_parse_record(&q->edns, q->packet))
 			--arcount;
 	}
+#ifdef TSIG
+	if (arcount > 0 && q->tsig.status == TSIG_NOT_PRESENT) {
+		/* see if tsig is after the edns record */
+		if (!tsig_parse_rr(&q->tsig, q->packet))
+			return query_formerr(q);
+		if(q->tsig.status != TSIG_NOT_PRESENT)
+			--arcount;
+	}
+#endif /* TSIG */
 	if (arcount > 0) {
 		return query_formerr(q);
 	}
@@ -1015,6 +1090,12 @@ query_process(query_type *q, nsd_type *nsd)
 	/* Remove trailing garbage.  */
 	buffer_set_limit(q->packet, buffer_position(q->packet));
 	
+#ifdef TSIG
+	rc = process_tsig(q);
+	if (rc != NSD_RC_OK) {
+		return query_error(q, rc);
+	}
+#endif /* TSIG */
 	rc = process_edns(q);
 	if (rc != NSD_RC_OK) {
 		return query_error(q, rc);
@@ -1083,4 +1164,26 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		STATUP(nsd, ednserr);
 		break;
 	}
+
+#ifdef TSIG
+	switch (q->tsig.status) {
+		case TSIG_NOT_PRESENT:
+			break;
+		case TSIG_OK:
+			if(q->tsig_prepare_it)
+				tsig_prepare(&q->tsig);
+			if(q->tsig_update_it)
+				tsig_update(&q->tsig, q->packet, buffer_position(q->packet));
+			if(q->tsig_sign_it) {
+				tsig_sign(&q->tsig);
+				tsig_append_rr(&q->tsig, q->packet);
+				ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
+			}
+			break;
+		case TSIG_ERROR:
+			tsig_append_rr(&q->tsig, q->packet);
+			ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
+			break;
+	}
+#endif /* TSIG */
 }

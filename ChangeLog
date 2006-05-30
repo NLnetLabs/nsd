@@ -1,5 +1,22 @@
+30 May 2006: Wouter
+	- tsig pre-allocs the rr_region, not at runtime, tsig_create_record().
+	- redid some region work for tsig. Now has another temporary region
+	  for the context data. User is only aware of the region passed at 
+	  start that exists for the lifetime of the struct.
+	  During TSIG checks no more mallocs are done, only region_free_all
+	  and region allocs (of small size).
+	- checkconf, port is stored as a string.
+	- tsig now keeps a max_digest_size for giving reserved space.
+	- AXFR does tsig every 96 packets (and first and last packet).
+	- tsig signing works for all queries. SOA queries, ...
+	  If you configured the key in the config file, you can use
+	  that key for any query for any zone.
+	  Except for NOTIFY and AXFR queries; those are only allowed for
+	  the zone (and source ip address) which are configured in the config.
+	- cleaner compile with tsig disabled.
+
 29 May 2006: Wouter
-	- The nonnblocking write routines disable silently if they have
+	- The nonblocking write routines disable silently if they have
 	  nothing to do.
 	- put xfrd read/write state routines (almost 500 lines of code)
 	  into xfrd-disk.c file.

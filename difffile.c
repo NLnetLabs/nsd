@@ -846,6 +846,15 @@ diff_read_insert_part(struct diff_read_data* data,
 	return xp;
 }
 
+static void
+set_zone_updated(namedb_type* db, const char* zone_buf)
+{
+	/* TODO set it to be updated. */
+	/* so that SOA is sent, whether failure or not */
+
+	/* TODO move updated bit to config files because they exist for empty zones. */
+}
+
 static int 
 read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt, 
 	struct diff_read_data* data, struct diff_log** log,
@@ -873,6 +882,10 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		log_msg(LOG_ERR, "diff file bad commit part");
 		return 1;
 	}
+
+	/* whether the update succeeds or not, the zone has been touched 
+	   and xfrd has to be informed. */
+	set_zone_updated(db, zone_buf);
 
 	if(log) {
 		thislog = (struct diff_log*)region_alloc(db->region, sizeof(struct diff_log));

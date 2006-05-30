@@ -202,10 +202,10 @@ config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 		SERV_GET_STR(zonesdir, o);
 		SERV_GET_STR(difffile, o);
 		SERV_GET_STR(xfrdfile, o);
+		SERV_GET_STR(port, o);
 		/* int */
 		SERV_GET_INT(server_count, o);
 		SERV_GET_INT(tcp_count, o);
-		SERV_GET_INT(port, o);
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 	}

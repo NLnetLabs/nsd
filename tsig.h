@@ -110,6 +110,7 @@ struct tsig_record
 
 	/* TSIG RR data is allocated in the rr_region.  */
 	region_type      *rr_region;
+	region_type	 *context_region;
 	const dname_type *key_name;
 	const dname_type *algorithm_name;
 	uint16_t          signed_time_high;
@@ -150,9 +151,15 @@ tsig_algorithm_type *tsig_get_algorithm_by_name(const char *name);
 const char *tsig_error(int error_code);
 
 /*
+ * Create the tsig record internal structure. Allocs it.
+ * Call init_record afterwards before doing more with it.
+ */
+void tsig_create_record(tsig_record_type* tsig, 
+			region_type* region);
+
+/*
  * Call this before starting to analyze or signing a sequence of
- * packets. If the region is free'd than tsig_init_record must be
- * called again.
+ * packets. 
  *
  * ALGORITHM and KEY are optional and are only needed if you want to
  * sign the initial query.  Otherwise the key and algorithm are looked
@@ -160,7 +167,6 @@ const char *tsig_error(int error_code);
  * processed.
  */
 void tsig_init_record(tsig_record_type *data,
-		      region_type *region,
 		      tsig_algorithm_type *algorithm,
 		      tsig_key_type *key);
 

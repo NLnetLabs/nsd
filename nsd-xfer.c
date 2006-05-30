@@ -875,7 +875,8 @@ main(int argc, char *argv[])
 
 		state.tsig = (tsig_record_type *) region_alloc(
 			region, sizeof(tsig_record_type));
-		tsig_init_record(state.tsig, region, md5, tsig_key);
+		tsig_create_record(state.tsig, region);
+		tsig_init_record(state.tsig, md5, tsig_key);
 	}
 
 	mysigaction.sa_handler = to_alarm;

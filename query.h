@@ -59,6 +59,8 @@ struct query {
 #ifdef TSIG
 	/* TSIG record information and running hash for query-response */
 	tsig_record_type tsig;
+	/* tsig actions can be overridden, for axfr transfer. */
+	int tsig_prepare_it, tsig_update_it, tsig_sign_it;
 #endif /* TSIG */
 
 	int tcp;

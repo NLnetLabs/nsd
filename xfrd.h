@@ -151,8 +151,6 @@ struct xfrd_zone {
 	uint32_t msg_old_serial, msg_new_serial; /* host byte order */
 	size_t msg_rr_count;
 	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
-	struct region* query_region;
-	struct region* notify_query_region;
 #ifdef TSIG
 	tsig_record_type tsig; /* tsig state for IXFR/AXFR */
 	tsig_record_type notify_tsig; /* tsig state for notify */
@@ -204,10 +202,9 @@ void xfrd_make_request(xfrd_zone_t* zone);
 
 /*
  * TSIG sign outgoing request. Call if acl has a key.
- * region is freed here and used during tsig.
  */
 void xfrd_tsig_sign_request(buffer_type* packet, struct tsig_record* tsig,
-        acl_options_t* acl, struct region* tsig_region);
+        acl_options_t* acl);
 
 /* handle incoming soa information (NSD is running it, time acquired=guess).
    Pass soa=NULL,acquired=now if NSD has nothing loaded for the zone

@@ -258,14 +258,6 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 	if(reason)
 		*reason = NULL;
 
-#ifdef TSIG
-	tsig_init_record(&q->tsig, q->region, NULL, NULL);
-	if(!tsig_find_rr(&q->tsig, q->packet)) {
-		log_msg(LOG_ERR, "bad tsig RR format");
-		return -1;
-	}
-#endif /* TSIG */
-
 	while(acl)
 	{
 		log_msg(LOG_INFO, "testing acl %s %s",
@@ -294,27 +286,15 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 			log_msg(LOG_ERR, "query has no tsig");
 			return -1;
 		}
-		if(!tsig_from_query(&q->tsig)) {
-			log_msg(LOG_ERR, "query tsig unknown key/algorithm");
-			return -1;
-		}
 		if(q->tsig.key != match->key_options->tsig_key) {
 			log_msg(LOG_ERR, "query tsig wrong key");
 			return -1;
 		}
 		if(strcmp(q->tsig.algorithm->short_name,
 			match->key_options->algorithm) != 0) {
+			log_msg(LOG_ERR, "query tsig wrong algorithm");
 			return -1;
 		}
-		buffer_set_limit(q->packet, q->tsig.position);
-		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
-		tsig_prepare(&q->tsig);
-		tsig_update(&q->tsig, q->packet, buffer_limit(q->packet));
-		if(!tsig_verify(&q->tsig)) {
-			log_msg(LOG_ERR, "query bad tsig signature");
-			return -1;
-		}
-		log_msg(LOG_INFO, "query good tsig signature");
 	}
 #endif /* TSIG */
 
