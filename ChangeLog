@@ -14,6 +14,7 @@
 	  Except for NOTIFY and AXFR queries; those are only allowed for
 	  the zone (and source ip address) which are configured in the config.
 	- cleaner compile with tsig disabled.
+	- fixed unknown key error reply in tsig.
 
 29 May 2006: Wouter
 	- The nonblocking write routines disable silently if they have

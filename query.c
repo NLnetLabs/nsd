@@ -1166,10 +1166,14 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	}
 
 #ifdef TSIG
-	switch (q->tsig.status) {
-		case TSIG_NOT_PRESENT:
-			break;
-		case TSIG_OK:
+	if (q->tsig.status != TSIG_NOT_PRESENT) {
+		if (q->tsig.status == TSIG_ERROR || 
+			q->tsig.error_code != TSIG_ERROR_NOERROR) {
+			tsig_append_rr(&q->tsig, q->packet);
+			ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
+		} else if(q->tsig.status == TSIG_OK && 
+			q->tsig.error_code == TSIG_ERROR_NOERROR)
+		{
 			if(q->tsig_prepare_it)
 				tsig_prepare(&q->tsig);
 			if(q->tsig_update_it)
@@ -1179,11 +1183,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 				tsig_append_rr(&q->tsig, q->packet);
 				ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 			}
-			break;
-		case TSIG_ERROR:
-			tsig_append_rr(&q->tsig, q->packet);
-			ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
-			break;
+		}
 	}
 #endif /* TSIG */
 }
