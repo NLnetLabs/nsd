@@ -481,6 +481,8 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 		return;
 	}
 	log_msg(LOG_ERR, "xfrd: asked nsd to reload new updates");
+	xfrd_prepare_zones_for_reload();
+	xfrd->reload_cmd_last_sent = xfrd_time();
 	xfrd->need_to_send_reload = 0;
 }
 
@@ -662,6 +664,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 	case NSD_SOA_END:
 		/* reload has finished */
 		xfrd->parent_soa_info_pass = 0;
+		xfrd_check_failed_updates();
 		xfrd_send_expy_all_zones();
 		break;
 	case NSD_PASS_TO_XFRD:

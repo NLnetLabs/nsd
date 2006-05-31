@@ -48,6 +48,8 @@ struct xfrd_state {
 	/* timer for NSD reload */
 	struct timespec reload_timeout;
 	netio_handler_type reload_handler;
+	/* last reload must have caught all zone updates before this time */
+	time_t reload_cmd_last_sent; 
 
 	/* communication channel with server_main */
 	netio_handler_type ipc_handler;
@@ -217,5 +219,15 @@ void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 
 /* send expiry notify for all zones to nsd (sets all dirty). */
 void xfrd_send_expy_all_zones();
+
+/* check for failed updates - it is assumed that now the reload has
+   finished, and all zone SOAs have been sent. */
+void xfrd_check_failed_updates();
+
+/*
+ * Prepare zones for a reload, this sets the times on the zones to be
+ * before the current time, so the reload happens after.
+*/
+void xfrd_prepare_zones_for_reload();
 
 #endif /* XFRD_H */

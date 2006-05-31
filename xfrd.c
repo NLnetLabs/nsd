@@ -118,6 +118,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->reload_handler.event_handler = xfrd_handle_reload;
 	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
 	xfrd->reload_timeout.tv_sec = 0;
+	xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
 
 	xfrd->ipc_handler.fd = socket;
 	xfrd->ipc_handler.timeout = NULL;
@@ -695,8 +696,6 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		return;
 	}
 	if(zone->soa_nsd_acquired && soa->serial == zone->soa_nsd.serial)
-	/* TODO: update situation if disk newer, the update has failed,
-	   pretend notified with old disk serial */
 		return;
 
 	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
@@ -1438,4 +1437,64 @@ find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy)
 		num++;
 	}
 	return -1;
+}
+
+void
+xfrd_check_failed_updates()
+{
+	/* see if updates have not come through */
+	xfrd_zone_t* zone;
+	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones)
+	{
+		/* zone has a disk soa, and no nsd soa or a different nsd soa */
+		if(zone->soa_disk_acquired != 0 &&
+			(zone->soa_nsd_acquired == 0 ||
+			zone->soa_disk.serial != zone->soa_nsd.serial)) 
+		{
+			if(zone->soa_disk_acquired < xfrd->reload_cmd_last_sent) {
+				/* this zone should have been loaded, since its disk
+				   soa time is before the time of the reload cmd. */
+				xfrd_soa_t dumped_soa = zone->soa_disk;
+				log_msg(LOG_ERR, "xfrd: zone %s: soa serial %d update failed"
+					" restarting transfer (notified zone)",
+					zone->apex_str, ntohl(zone->soa_disk.serial));
+				/* revert the soa; it has not been acquired properly */
+				zone->soa_disk_acquired = zone->soa_nsd_acquired;
+				zone->soa_disk = zone->soa_nsd;
+				/* pretend we are notified with disk soa.
+				   This will cause a refetch of the data, and reload. */
+				xfrd_handle_incoming_notify(zone, &dumped_soa);
+			} else if(zone->soa_disk_acquired >= xfrd->reload_cmd_last_sent) {
+				/* this zone still has to be loaded,
+				   make sure reload is set to be sent. */
+				if(xfrd->need_to_send_reload == 0 &&
+					xfrd->reload_handler.timeout == NULL) {
+					log_msg(LOG_ERR, "xfrd: zone %s: needs to be loaded."
+						" reload lost? try again", zone->apex_str);
+					xfrd_set_reload_timeout();
+				}
+			}
+		}
+	}
+}
+
+void
+xfrd_prepare_zones_for_reload()
+{
+	xfrd_zone_t* zone;
+	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones)
+	{
+		/* zone has a disk soa, and no nsd soa or a different nsd soa */
+		if(zone->soa_disk_acquired != 0 &&
+			(zone->soa_nsd_acquired == 0 ||
+			zone->soa_disk.serial != zone->soa_nsd.serial)) 
+		{
+			if(zone->soa_disk_acquired == xfrd_time()) {
+				/* antedate by one second. */
+				/* this makes sure that the zone time is before reload,
+				   so that check_failed_zones() is certain of the result */
+				zone->soa_disk_acquired--;
+			}
+		}
+	}
 }

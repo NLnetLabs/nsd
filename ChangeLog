@@ -1,3 +1,15 @@
+31 May 2006: Wouter
+	- xfrd check for failed updates. It compares the time it wrote the
+	  commit to disk with the time of the last reload command.
+	  Failed updates are restarted like the zone is notified of the soa.
+	  It also catches reloads that have been lost (reload cmd while reload
+	  is running, or a crashed reload process, for example).
+	- when reload is issued, times at that second are put back one second,
+	  so that after a reload all the zones that should have been loaded
+	  have a time from before the reload. 
+	- if a reload crashes, NSD will continue with the old database,
+	  xfrd is not informed, since it cannot fix that. 
+
 30 May 2006: Wouter
 	- tsig pre-allocs the rr_region, not at runtime, tsig_create_record().
 	- redid some region work for tsig. Now has another temporary region
