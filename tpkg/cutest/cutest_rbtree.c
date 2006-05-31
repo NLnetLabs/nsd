@@ -48,7 +48,6 @@ CuSuite* reg_cutest_rbtree(void)
 	SUITE_ADD_TEST(suite, rbtree_8);
 	SUITE_ADD_TEST(suite, rbtree_9);
 	SUITE_ADD_TEST(suite, rbtree_10);
-/*	SUITE_ADD_TEST(suite, always_fail); */
         
 	return suite;
 }
