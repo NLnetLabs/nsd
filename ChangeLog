@@ -14,6 +14,7 @@
 	  also crashproof, badly formatted tsigs get a format error.
 	- tsig error print knows about DNS rcodes in tsig error field.
 	- added tpkg tests for tsig.
+	- tpkg test for nsd-xfer with TSIG from nsd.
 
 30 May 2006: Wouter
 	- tsig pre-allocs the rr_region, not at runtime, tsig_create_record().
