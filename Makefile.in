@@ -272,6 +272,7 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(configdir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
+	$(INSTALL) -d $(DESTDIR)$(mandir)/man5
 	$(INSTALL) nsd $(DESTDIR)$(sbindir)/nsd
 	$(INSTALL) zonec $(DESTDIR)$(sbindir)/zonec
 	$(INSTALL) nsdc.sh $(DESTDIR)$(sbindir)/nsdc
@@ -287,7 +288,6 @@ install: all
 	$(INSTALL_DATA) nsd-patch.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8
 	$(INSTALL_DATA) nsd-xfer.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
 	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
-	$(INSTALL_DATA) nsdc.conf.sample $(DESTDIR)$(configfile).sample
 	$(INSTALL_DATA) nsd.conf.sample $(DESTDIR)$(nsdconfigfile).sample
 
 uninstall:
@@ -298,6 +298,10 @@ uninstall:
 	rm -f -- $(DESTDIR)$(pidfile) $(DESTDIR)$(dbfile)
 	@echo
 	@echo "You still need to remove $(DESTDIR)$(configdir) directory by hand."
+
+test	: cutest
+	./cutest
+	(cd tpkg; ./do-tests)
 
 nsd:	$(NSD_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBS)

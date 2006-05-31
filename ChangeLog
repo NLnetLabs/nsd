@@ -15,6 +15,7 @@
 	- tsig error print knows about DNS rcodes in tsig error field.
 	- added tpkg tests for tsig.
 	- tpkg test for nsd-xfer with TSIG from nsd.
+	- small stuff with makedist.sh, CREDITS, Features, make test.
 
 30 May 2006: Wouter
 	- tsig pre-allocs the rr_region, not at runtime, tsig_create_record().
