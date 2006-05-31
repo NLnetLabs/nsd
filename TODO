@@ -74,3 +74,4 @@ OPTIMISATIONS
   (2 + max_labels + maxdomainlen) = 255 + 128 + 2 bytes.
 - compress dnames in ixfr queries (write_soa_buffer) (zone 2x, mname, rname).
   small gain, nasty code.
+- compress dnames in tsig records, keyname, algorithname.

@@ -11,6 +11,8 @@
 	  xfrd is not informed, since it cannot fix that. 
 	- nsd-checkconf strdups arg strings before writing to it.
 	- tsig error replies contain error data, but no signature.
+	  also crashproof, badly formatted tsigs get a format error.
+	- tsig error print knows about DNS rcodes in tsig error field.
 
 30 May 2006: Wouter
 	- tsig pre-allocs the rr_region, not at runtime, tsig_create_record().

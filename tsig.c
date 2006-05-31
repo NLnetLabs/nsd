@@ -160,6 +160,9 @@ tsig_error(int error_code)
 		return "Bad Time";
 		break;
 	default:
+		if(error_code < 16) /* DNS rcodes */
+			return rcode2str(error_code);
+
 		snprintf(message, sizeof(message),
 			 "Unknown Error %d", error_code);
 		break;
@@ -191,6 +194,7 @@ tsig_init_record(tsig_record_type *tsig,
 		 tsig_key_type *key)
 {
 	tsig->status = TSIG_NOT_PRESENT;
+	tsig->error_code = TSIG_ERROR_NOERROR;
 	tsig->position = 0;
 	tsig->response_count = 0;
 	tsig->context = NULL;
@@ -483,6 +487,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	rdlen = buffer_read_u16(packet);
 
 	tsig->status = TSIG_ERROR;
+	tsig->error_code = RCODE_FORMAT;
 	if (ttl != 0 || !buffer_available(packet, rdlen)) {
 		buffer_set_position(packet, tsig->position);
 		return 0;
@@ -521,6 +526,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 		tsig->rr_region, buffer_current(packet), tsig->other_size);
 	buffer_skip(packet, tsig->other_size);
 	tsig->status = TSIG_OK;
+	tsig->error_code = TSIG_ERROR_NOERROR;
 
 	return 1;
 }
@@ -531,15 +537,19 @@ tsig_append_rr(tsig_record_type *tsig, buffer_type *packet)
 	size_t rdlength_pos;
 
 	/* XXX: TODO key name compression? */
-	buffer_write(packet, dname_name(tsig->key_name),
+	if(tsig->key_name)
+		buffer_write(packet, dname_name(tsig->key_name),
 		     tsig->key_name->name_size);
+	else	buffer_write_u8(packet, 0);
 	buffer_write_u16(packet, TYPE_TSIG);
 	buffer_write_u16(packet, CLASS_ANY);
 	buffer_write_u32(packet, 0); /* TTL */
 	rdlength_pos = buffer_position(packet);
 	buffer_skip(packet, sizeof(uint16_t));
-	buffer_write(packet, dname_name(tsig->algorithm_name),
+	if(tsig->algorithm_name)
+		buffer_write(packet, dname_name(tsig->algorithm_name),
 		     tsig->algorithm_name->name_size);
+	else 	buffer_write_u8(packet, 0);
 	buffer_write_u16(packet, tsig->signed_time_high);
 	buffer_write_u32(packet, tsig->signed_time_low);
 	buffer_write_u16(packet, tsig->signed_time_fudge);
@@ -561,12 +571,13 @@ tsig_reserved_space(tsig_record_type *tsig)
 	if (tsig->status == TSIG_NOT_PRESENT)
 		return 0;
 
-	return (tsig->key_name->name_size   /* Owner */
+	return (
+		(tsig->key_name?tsig->key_name->name_size:1)   /* Owner */
 		+ sizeof(uint16_t)	    /* Type */
 		+ sizeof(uint16_t)	    /* Class */
 		+ sizeof(uint32_t)	    /* TTL */
 		+ sizeof(uint16_t)	    /* RDATA length */
-		+ tsig->algorithm_name->name_size
+		+ (tsig->algorithm_name?tsig->algorithm_name->name_size:1)
 		+ sizeof(uint16_t)	    /* Signed time (high) */
 		+ sizeof(uint32_t)	    /* Signed time (low) */
 		+ sizeof(uint16_t)	    /* Signed time fudge */
@@ -581,5 +592,7 @@ tsig_reserved_space(tsig_record_type *tsig)
 void
 tsig_error_reply(tsig_record_type *tsig)
 {
-	memset(tsig->mac_data, 0, tsig->mac_size);
+	if(tsig->mac_data)
+		memset(tsig->mac_data, 0, tsig->mac_size);
+	tsig->mac_size = 0;
 }
