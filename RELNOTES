@@ -2,7 +2,9 @@ NSD RELEASE NOTES
 
 2.3.5
 =============
-TO BE RELEASED
+BUG FIXES:
+        - Bug #132: regression, nsd: fix compile with --disable-ipv6
+        - Makefile: remove gnuisms
 
 2.3.4
 =============
