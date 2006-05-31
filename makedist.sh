@@ -127,6 +127,11 @@ rm -r autom4te* || error_cleanup "Failed to remove autoconf cache directory."
 info "Building lexer and parser."
 flex -i -ozlexer.c zlexer.lex || error_cleanup "Failed to create lexer."
 bison -y -d -o zparser.c zparser.y || error_cleanup "Failed to create parser."
+# "Building config lexer and parser."
+flex -i -oconfiglexer.c.tmp configlexer.lex
+echo "#include \"configyyrename.h\"" > configlexer.c
+cat configlexer.c.tmp >> configlexer.c ; rm -rf configlexer.c.tmp
+bison -y -d -o configparser.c configparser.y
 
 find . -name .c-mode-rc.el -exec rm {} \;
 find . -name .cvsignore -exec rm {} \;
