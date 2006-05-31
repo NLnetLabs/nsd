@@ -17,7 +17,7 @@
 
 #define ZONE_GET_ACL(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
-		quote_acl((zone->NAME)); 		\
+		quote_acl((zone->NAME)); 	\
 		return; 			\
 	}
 
@@ -50,7 +50,7 @@
 	}
 
 #define SERV_GET_IP(NAME, VAR) 				\
-	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
 		for(ip = opt->ip_addresses; ip; ip=ip->next)	\
 		{						\
 			quote(ip->address);			\
@@ -412,7 +412,8 @@ main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 	if (conf_opt) {
-		config_print_zone(options, underscore(conf_opt), conf_zone);
+		config_print_zone(options, 
+			underscore(region_strdup(options->region, conf_opt)), conf_zone);
 	} else {
 		printf("# Read file %s: %d zones, %d keys.\n", configfile, 
 				(int)nsd_options_num_zones(options), 

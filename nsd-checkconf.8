@@ -14,6 +14,8 @@ nsd-checkconf
 .Sh SYNOPSIS
 .Nm nsd-checkconf
 .Op Fl v
+.Op Fl o Ar option
+.Op Fl z Ar zonename
 .Ar configfile
 
 .Sh DESCRIPTION
@@ -28,6 +30,9 @@ errors before using it in
 .Xr nsd 8
 or
 .Xr zonec 8 .
+This program can also be used for shell scripts to access the nsd
+config file, using the -o and -z options.
+
 .Pp
 The available options are:
 .Bl -tag -width indent
@@ -38,10 +43,11 @@ Without this option, only success or parse errors are reported.
 
 .It Fl o Ar option
 Return only this option from the config file. This option needs
-to be used in conjunction with the \fI\-z\fR  option.
+to be used in conjunction with the \fI\-z\fR option.
 .Pp
-If this option is not given, nothing is printed. This option
+This option
 is primarily used by nsdc to parse the config file from the shell.
+If \fI\-z\fR is given, but this option is not given, nothing is printed. 
 
 .It Fl z Ar zonename
 Return the option specified with \fI\-o\fR for zone 'zonename'.
@@ -51,8 +57,7 @@ is used.  This option is primarily used by nsdc to parse the config file
 from the shell.
 
 .Pp
-The \-o and \-z option print configfile options to standard output. In 
-Each option is seperated by a tab character.
+The \-o and \-z option print configfile options to standard output. 
 
 .El
 .Sh FILES

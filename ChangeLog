@@ -9,6 +9,7 @@
 	  have a time from before the reload. 
 	- if a reload crashes, NSD will continue with the old database,
 	  xfrd is not informed, since it cannot fix that. 
+	- nsd-checkconf strdups arg strings before writing to it.
 
 30 May 2006: Wouter
 	- tsig pre-allocs the rr_region, not at runtime, tsig_create_record().
