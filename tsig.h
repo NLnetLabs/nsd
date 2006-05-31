@@ -247,4 +247,10 @@ void tsig_append_rr(tsig_record_type *tsig, buffer_type *packet);
  */
 size_t tsig_reserved_space(tsig_record_type *tsig);
 
+/*
+ * status or error_code must already be in error.
+ * prepares content for error packet.
+ */
+void tsig_error_reply(tsig_record_type *tsig);
+
 #endif /* _TSIG_H_ */

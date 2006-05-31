@@ -215,7 +215,7 @@ tsig_from_query(tsig_record_type *tsig)
 	assert(!tsig->algorithm);
 	assert(!tsig->key);
 	
-	/* XXX: Todo */
+	/* XXX: TODO: slow linear check for keyname */
 	for (key_entry = tsig_key_table;
 	     key_entry;
 	     key_entry = key_entry->next)
@@ -380,7 +380,7 @@ tsig_sign(tsig_record_type *tsig)
 	uint64_t current_time = (uint64_t) time(NULL);
 	tsig->signed_time_high = (uint16_t) (current_time >> 32);
 	tsig->signed_time_low = (uint32_t) current_time;
-	tsig->signed_time_fudge = 300; /* XXX */
+	tsig->signed_time_fudge = 300; /* XXX; hardcoded value */
 
 	tsig_digest_variables(tsig, tsig->response_count > 1);
 
@@ -530,7 +530,7 @@ tsig_append_rr(tsig_record_type *tsig, buffer_type *packet)
 {
 	size_t rdlength_pos;
 
-	/* XXX: key name compression? */
+	/* XXX: TODO key name compression? */
 	buffer_write(packet, dname_name(tsig->key_name),
 		     tsig->key_name->name_size);
 	buffer_write_u16(packet, TYPE_TSIG);
@@ -576,4 +576,10 @@ tsig_reserved_space(tsig_record_type *tsig)
 		+ sizeof(uint16_t)	    /* Error code */
 		+ sizeof(uint16_t)	    /* Other size */
 		+ tsig->other_size);	    /* Other data */
+}
+
+void
+tsig_error_reply(tsig_record_type *tsig)
+{
+	memset(tsig->mac_data, 0, tsig->mac_size);
 }

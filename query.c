@@ -1169,6 +1169,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	if (q->tsig.status != TSIG_NOT_PRESENT) {
 		if (q->tsig.status == TSIG_ERROR || 
 			q->tsig.error_code != TSIG_ERROR_NOERROR) {
+			tsig_error_reply(&q->tsig);
 			tsig_append_rr(&q->tsig, q->packet);
 			ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 		} else if(q->tsig.status == TSIG_OK && 
