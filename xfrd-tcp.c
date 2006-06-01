@@ -231,12 +231,10 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	/* start AXFR or IXFR for the zone */
 	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only) {
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex);
-		buffer_flip(tcp->packet);
 	} else {
 		xfrd_setup_packet(tcp->packet, TYPE_IXFR, CLASS_IN, zone->apex);
         	NSCOUNT_SET(tcp->packet, 1);
 		xfrd_write_soa_buffer(tcp->packet, zone, &zone->soa_disk);
-		buffer_flip(tcp->packet);
 	}
 	zone->query_id = ID(tcp->packet);
 	zone->msg_seq_nr = 0;
@@ -246,6 +244,7 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		xfrd_tsig_sign_request(tcp->packet, &zone->tsig, zone->master);
 #endif /* TSIG */
 	}
+	buffer_flip(tcp->packet);
 	log_msg(LOG_INFO, "sent tcp query with ID %d", zone->query_id);
 	tcp->msglen = buffer_limit(tcp->packet);
 	xfrd_tcp_write(set, zone);
