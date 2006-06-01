@@ -707,9 +707,13 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			/* ignore pseudo RRs */
 			continue;
 		}
-		log_msg(LOG_INFO, "xfr %s RR dname is %s type %s", 
+#ifndef NDEBUG
+		if(nsd_debug_level >= 1) {
+			log_msg(LOG_INFO, "xfr %s RR dname is %s type %s", 
 			*delete_mode?"del":"add",
 			dname_to_string(dname,0), rrtype_to_string(type));
+		}
+#endif
 		if(*delete_mode) {
 			/* delete this rr */
 			if(!is_axfr && type == TYPE_SOA && counter==ancount-1
