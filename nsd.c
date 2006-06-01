@@ -812,7 +812,8 @@ main (int argc, char *argv[])
 		exit(1);
 	}
 
-	log_msg(LOG_NOTICE, "nsd started, pid %d", (int) nsd.pid);
+	log_msg(LOG_NOTICE, "nsd started (%s), pid %d", PACKAGE_STRING, 
+		(int) nsd.pid);
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {
 		server_main(&nsd);

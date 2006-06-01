@@ -2,6 +2,9 @@
 	- tsig test with NSD master and NSD slave server. Tsig AXFR transfer.
 	  nsd-xfer used to test slave zone contents.
 	- fixed bug where buffer_flip() is done before appending tsig rr.
+	- version printed at start of nsd in logfile.
+	- xfrd prints name of tsig key used during transfer in commit comments
+	  so it appears in the log file and in zonefile after nsd-patch.
 
 31 May 2006: Wouter
 	- xfrd check for failed updates. It compares the time it wrote the

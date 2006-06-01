@@ -1277,6 +1277,12 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	buffer_printf(packet, "xfrd: zone %s received update to serial %d at time %d from %s in %d parts",
 		zone->apex_str, (int)zone->msg_new_serial, (int)xfrd_time(), 
 		zone->master->ip_address_spec, zone->msg_seq_nr);
+#ifdef TSIG
+	if(zone->master->key_options) {
+		buffer_printf(packet, " TSIG verified with key %s",
+			zone->master->key_options->name);
+	}
+#endif /* TSIG */
 	buffer_flip(packet);
 	diff_write_commit(zone->apex_str, zone->msg_old_serial, zone->msg_new_serial,
 		zone->query_id, zone->msg_seq_nr, 1, (char*)buffer_begin(packet),
