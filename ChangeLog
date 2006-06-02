@@ -1,5 +1,8 @@
 2 June 2006: Wouter
 	- dname_replace function that does DNAME replace and unit tests.
+	- added error codes from DNSUPD rfc2136 to constants in dns.h.
+	- in query.c added DNAME following code.
+	- fixed bug 134: hints[i] in nsd.c to hints[0].
 
 1 June 2006: Wouter
 	- tsig test with NSD master and NSD slave server. Tsig AXFR transfer.

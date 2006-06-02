@@ -823,8 +823,16 @@ rcode2str(int rc)
                 return "NOT IMPL";
         case RCODE_REFUSE:
                 return "REFUSED";
+	case RCODE_YXDOMAIN:
+		return "YXDOMAIN";
+	case RCODE_YXRRSET:
+		return "YXRRSET";
+	case RCODE_NXRRSET:
+		return "NXRRSET";
         case RCODE_NOTAUTH:
                 return "NOT AUTHORIZED";
+	case RCODE_NOTZONE:
+		return "NOTZONE";
         default:
                 return "UNKNOWN ERROR";
         }

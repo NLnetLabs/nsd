@@ -801,9 +801,44 @@ answer_authoritative(struct nsd   *nsd,
 {
 	domain_type *match;
 	domain_type *original = closest_match;
+	rrset_type *rrset;
 	
 	if (exact) {
 		match = closest_match;
+	} else if ((rrset=domain_find_rrset(closest_encloser, q->zone, TYPE_DNAME))) {
+		/* process DNAME */
+		const dname_type* name = q->qname;
+		domain_type *dest = rdata_atom_domain(rrset->rrs[0].rdatas[0]);
+		int added;
+		assert(rrset->rr_count > 0);
+		if(domain_number != 0) /* we followed CNAMEs */
+			name = domain_dname(closest_match);
+		log_msg(LOG_INFO, "expanding DNAME for q=%s", dname_to_string(name, NULL));
+		log_msg(LOG_INFO, "->src is %s", 
+			dname_to_string(domain_dname(closest_encloser), NULL));
+		log_msg(LOG_INFO, "->dest is %s", 
+			dname_to_string(domain_dname(dest), NULL));
+		/* if the DNAME set is not added we have a loop, do not follow */
+		added = add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset);
+		if(added) {
+			const dname_type* newname = dname_replace(q->region, name, 
+				domain_dname(closest_encloser), domain_dname(dest));
+			if(!newname) { /* newname too long */
+				RCODE_SET(q->packet, RCODE_YXDOMAIN);
+				return;
+			}
+			log_msg(LOG_INFO, "->result is %s", dname_to_string(newname, NULL));
+			/* follow the DNAME */
+			exact = namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
+			/* TODO synthesize CNAME record */
+			while (!closest_encloser->is_existing)
+				closest_encloser = closest_encloser->parent;
+			/* TODO should be domain_number for newname (for later wildcards) */
+			answer_authoritative(nsd, q, answer, closest_match->number,
+				closest_match == closest_encloser, 
+				closest_match, closest_encloser);
+			return;
+		}
 	} else if (domain_wildcard_child(closest_encloser)) {
 		/* Generate the domain from the wildcard.  */
 		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);

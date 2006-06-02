@@ -624,7 +624,7 @@ main (int argc, char *argv[])
 		 * automatically mapped to our IPv6 socket.
 		 */
 #ifdef INET6
-		if (hints[i].ai_family == AF_UNSPEC) {
+		if (hints[0].ai_family == AF_UNSPEC) {
 # ifdef IPV6_V6ONLY
 			hints[0].ai_family = AF_INET6;
 			hints[1].ai_family = AF_INET;

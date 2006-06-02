@@ -46,7 +46,11 @@ typedef enum rr_section rr_section_type;
 #define RCODE_NXDOMAIN		3 	/* Name Error */
 #define RCODE_IMPL		4 	/* Not implemented */
 #define RCODE_REFUSE		5 	/* Refused */
+#define RCODE_YXDOMAIN		6	/* name should not exist */
+#define RCODE_YXRRSET		7	/* rrset should not exist */
+#define RCODE_NXRRSET		8	/* rrset does not exist */
 #define RCODE_NOTAUTH		9	/* Not authorized */
+#define RCODE_NOTZONE		10	/* name not inside zone */
 
 /* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
 enum nsd_rc
@@ -70,6 +74,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define CLASS_CS	2	/* Class CS */
 #define CLASS_CH	3	/* Class CHAOS */
 #define CLASS_HS	4	/* Class HS */
+#define CLASS_NONE	254	/* Class NONE rfc2136 */
 #define CLASS_ANY	255	/* Class ANY */
 
 #define TYPE_A		1	/* a host address */
