@@ -499,6 +499,8 @@ malloc.o: compat/malloc.c config.h
 pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h
 CuTest.o: tpkg/cutest/CuTest.c tpkg/cutest/CuTest.h
+cutest_dname.o: tpkg/cutest/cutest_dname.c config.h tpkg/cutest/CuTest.h \
+  region-allocator.h dname.h buffer.h region-allocator.h util.h config.h
 cutest_dns.o: tpkg/cutest/cutest_dns.c config.h tpkg/cutest/CuTest.h \
   region-allocator.h dns.h
 cutest_iterated_hash.o: tpkg/cutest/cutest_iterated_hash.c config.h \
