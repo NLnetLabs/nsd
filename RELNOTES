@@ -6,6 +6,7 @@ FEATURES:
         - Aaron?? TODO
 
 BUG FIXES:
+        - Bug #134: nsd: make -N <large number> work again
         - bind8 stats??
 
 2.3.5
