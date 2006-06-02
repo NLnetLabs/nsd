@@ -363,4 +363,15 @@ const dname_type *dname_concatenate(region_type *region,
 				    const dname_type *left,
 				    const dname_type *right);
 
+
+/*
+ * Perform DNAME substitution on a name, replace src with dest.
+ * Name must be a subdomain of src. The returned name is a subdomain of dest.
+ * Returns NULL if the result domain name is too long.
+ */
+const dname_type *dname_replace(region_type* region,
+				const dname_type* name,
+				const dname_type* src,
+				const dname_type* dest);
+
 #endif /* _DNAME_H_ */

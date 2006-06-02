@@ -458,3 +458,40 @@ dname_concatenate(region_type *region,
 
 	return dname_make(region, temp, 0);
 }
+
+
+const dname_type *
+dname_replace(region_type* region,
+		const dname_type* name,
+		const dname_type* src,
+		const dname_type* dest)
+{
+	/* nomenclature: name is said to be <x>.<src>. x can be null. */
+	dname_type* res;
+	int x_labels = name->label_count - src->label_count;
+	int x_len = name->name_size - src->name_size;
+	int i;
+	assert(dname_is_subdomain(name, src));
+
+	/* check if final size is acceptable */
+	if(x_len+dest->name_size > MAXDOMAINLEN)
+		return NULL;
+
+	res = (dname_type*)region_alloc(region, sizeof(dname_type) + 
+		(x_labels+dest->label_count + x_len+dest->name_size)
+		*sizeof(uint8_t));
+	res->name_size = x_len+dest->name_size;
+	res->label_count = x_labels+dest->label_count;
+	for(i=0; i<dest->label_count; i++)
+		((uint8_t*)dname_label_offsets(res))[i] = 
+			dname_label_offsets(dest)[i] + x_len;
+	for(i=dest->label_count; i<res->label_count; i++)
+		((uint8_t*)dname_label_offsets(res))[i] = 
+			dname_label_offsets(name)[i - dest->label_count + 
+				src->label_count];
+	memcpy((uint8_t*)dname_name(res), dname_name(name), x_len);
+	memcpy((uint8_t*)dname_name(res)+x_len, dname_name(dest), dest->name_size);
+	assert(dname_is_subdomain(res, dest));
+	return res;
+}
+
