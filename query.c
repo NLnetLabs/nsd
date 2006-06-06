@@ -933,8 +933,8 @@ answer_authoritative(struct nsd   *nsd,
 			newnum = query_synthesize_cname(q, answer, name, newname, 
 				src, closest_encloser);
 			if(!newnum) {
-				/* could not synthesize the CNAME */
-				RCODE_SET(q->packet, RCODE_SERVFAIL);
+				/* could not synthesize the CNAME. */
+				/* return previous CNAMEs to make resolver recurse for us */
 				return;
 			}
 
