@@ -219,6 +219,7 @@ query_get_tempdomain(struct query *q)
 	if(q->number_temporary_domains >= EXTRA_DOMAIN_NUMBERS)
 		return 0;
 	q->number_temporary_domains ++;
+	memset(&d[q->number_temporary_domains-1], 0, sizeof(domain_type));
 	d[q->number_temporary_domains-1].number = q->compressed_dname_offsets_size + 
 		q->number_temporary_domains - 1;
 	return &d[q->number_temporary_domains-1];
@@ -654,7 +655,6 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 		domain_type* newdom = query_get_tempdomain(q);
 		if(!newdom) 
 			return 0;
-		memset(newdom, 0, sizeof(domain_type));
 		newdom->is_existing = 1;
 		newdom->parent = lastparent;
 		newdom->node.key = dname_partial_copy(q->region,
@@ -663,8 +663,9 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			/* 0 good for query name, otherwise new number */
 			newdom->number = 0;
 		}
-		log_msg(LOG_INFO, "created temp domain src %d. %s", i,
-			dname_to_string(domain_dname(newdom), NULL));
+		log_msg(LOG_INFO, "created temp domain src %d. %s nr %d", i,
+			dname_to_string(domain_dname(newdom), NULL),
+			newdom->number);
 		lastparent = newdom;
 	}
 	cname_domain = lastparent;
@@ -677,13 +678,13 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 		domain_type* newdom = query_get_tempdomain(q);
 		if(!newdom) 
 			return 0;
-		memset(newdom, 0, sizeof(domain_type));
 		newdom->is_existing = 0;
 		newdom->parent = lastparent;
 		newdom->node.key = dname_partial_copy(q->region,
 			to_name, domain_dname(to_closest_encloser)->label_count + i + 1);
-		log_msg(LOG_INFO, "created temp domain dest %d. %s", i,
-			dname_to_string(domain_dname(newdom), NULL));
+		log_msg(LOG_INFO, "created temp domain dest %d. %s nr %d", i,
+			dname_to_string(domain_dname(newdom), NULL),
+			newdom->number);
 		lastparent = newdom;
 	}
 	cname_dest = lastparent;
