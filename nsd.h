@@ -210,5 +210,7 @@ void bind8_stats(struct nsd *nsd);
 int server_init(struct nsd *nsd);
 void server_main(struct nsd *nsd);
 void server_child(struct nsd *nsd);
-  
+/* extra domain numbers for temporary domains */
+#define EXTRA_DOMAIN_NUMBERS 1024
+
 #endif	/* _NSD_H_ */

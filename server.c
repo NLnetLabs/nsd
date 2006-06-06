@@ -178,6 +178,7 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler);
 
 static uint16_t *compressed_dname_offsets = 0;
 static uint32_t compression_table_capacity = 0;
+static uint32_t compression_table_size = 0;
 
 /*
  * Remove the specified pid from the list of child pids.  Returns 0 if
@@ -291,11 +292,13 @@ static void
 initialize_dname_compression_tables(struct nsd *nsd)
 {
 	size_t needed = domain_table_count(nsd->db->domains) + 1;
+	needed += EXTRA_DOMAIN_NUMBERS;
 	if(compression_table_capacity < needed) {
 		compressed_dname_offsets = (uint16_t *) xalloc(
 			needed * sizeof(uint16_t));
 		region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
 		compression_table_capacity = needed;
+		compression_table_size=domain_table_count(nsd->db->domains)+1;
 	}
 	memset(compressed_dname_offsets, 0, needed * sizeof(uint16_t));
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
@@ -973,7 +976,8 @@ server_child(struct nsd *nsd)
 				server_region,
 				sizeof(struct udp_handler_data));
 			data->query = query_create(
-				server_region, compressed_dname_offsets);
+				server_region, compressed_dname_offsets, 
+				compression_table_size);
 			data->nsd = nsd;
 			data->socket = &nsd->udp[i];
 
@@ -1510,7 +1514,8 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data = (struct tcp_handler_data *) region_alloc(
 		tcp_region, sizeof(struct tcp_handler_data));
 	tcp_data->region = tcp_region;
-	tcp_data->query = query_create(tcp_region, compressed_dname_offsets);
+	tcp_data->query = query_create(tcp_region, compressed_dname_offsets,
+		compression_table_size);
 	tcp_data->nsd = data->nsd;
 	
 	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;

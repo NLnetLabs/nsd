@@ -146,7 +146,8 @@ query_cleanup(void *data)
 }
 
 query_type *
-query_create(region_type *region, uint16_t *compressed_dname_offsets)
+query_create(region_type *region, uint16_t *compressed_dname_offsets,
+	uint32_t compressed_dname_size)
 {
 	query_type *query
 		= (query_type *) region_alloc_zero(region, sizeof(query_type));
@@ -154,6 +155,7 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets)
 	query->compressed_dname_offsets = compressed_dname_offsets;
 	query->packet = buffer_create(region, QIOBUFSZ);
 	region_add_cleanup(region, query_cleanup, query);
+	query->compressed_dname_offsets_size = compressed_dname_size;
 #ifdef TSIG
 	tsig_create_record(&query->tsig, region);
 	query->tsig_prepare_it = 1;
@@ -200,12 +202,24 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->delegation_domain = NULL;
 	q->delegation_rrset = NULL;
 	q->compressed_dname_count = 0;
+	q->number_temporary_domains = 0;
 
 	q->axfr_is_done = 0;
 	q->axfr_zone = NULL;
 	q->axfr_current_domain = NULL;
 	q->axfr_current_rrset = NULL;
 	q->axfr_current_rr = 0;
+}
+
+/* get a temporary domain number (or 0=failure) */
+static uint32_t
+query_get_tempdomain(struct query *q)
+{
+	if(q->number_temporary_domains >= EXTRA_DOMAIN_NUMBERS)
+		return 0;
+	q->number_temporary_domains ++;
+	return q->compressed_dname_offsets_size + 
+		q->number_temporary_domains - 1;
 }
 
 static void 
@@ -614,6 +628,92 @@ add_rrset(struct query   *query,
 }
 
 
+/* returns 0 on error, or the domain number for to_name.
+   from_name is changes to to_name by the DNAME rr.
+   DNAME rr is from src to dest.
+   closest encloser encloses the to_name. */
+static uint32_t
+query_synthesize_cname(struct query* q, struct answer* answer, const dname_type* from_name, 
+	const dname_type* to_name, domain_type* src, domain_type* to_closest_encloser)
+{
+	/* add temporary domains for from_name and to_name and all
+	   their (not allocated yet) parents */
+	/* any domains below src are not_existing (because of DNAME at src) */
+	int i;
+	domain_type* cname_domain;
+	domain_type* cname_dest;
+	rrset_type* rrset;
+
+	/* allocate source part */
+	domain_type* lastparent = src;
+	assert(q && answer && from_name && to_name && src && to_closest_encloser);
+	for(i=0; i < from_name->label_count - domain_dname(src)->label_count; i++)
+	{
+		domain_type* newdom = (domain_type*) region_alloc(
+			q->region, sizeof(domain_type));
+		memset(newdom, 0, sizeof(domain_type));
+		newdom->is_existing = 1;
+		newdom->parent = lastparent;
+		newdom->node.key = dname_partial_copy(q->region,
+			from_name, domain_dname(src)->label_count + i + 1);
+		if(dname_compare(domain_dname(newdom), q->qname) != 0) {
+			/* 0 good for query name, otherwise new number */
+			newdom->number = query_get_tempdomain(q);
+			if(newdom->number == 0) 
+				return 0;
+		}
+		log_msg(LOG_INFO, "created temp domain src %d. %s size %d", i,
+			dname_to_string(domain_dname(newdom), NULL),
+			sizeof(domain_type) + dname_total_size(domain_dname(newdom)));
+		lastparent = newdom;
+	}
+	cname_domain = lastparent;
+
+	/* allocate dest part */
+	lastparent = to_closest_encloser;
+	for(i=0; i < to_name->label_count - domain_dname(to_closest_encloser)->label_count; 
+		i++)
+	{
+		domain_type* newdom = (domain_type*) region_alloc(
+			q->region, sizeof(domain_type));
+		memset(newdom, 0, sizeof(domain_type));
+		newdom->is_existing = 1;
+		newdom->parent = lastparent;
+		newdom->node.key = dname_partial_copy(q->region,
+			to_name, domain_dname(to_closest_encloser)->label_count + i + 1);
+		newdom->number = query_get_tempdomain(q);
+		if(newdom->number == 0) 
+			return 0;
+		log_msg(LOG_INFO, "created temp domain dest %d. %s size %d", i,
+			dname_to_string(domain_dname(newdom), NULL),
+			sizeof(domain_type) + dname_total_size(domain_dname(newdom)));
+		lastparent = newdom;
+	}
+	cname_dest = lastparent;
+
+	/* allocate the CNAME RR */
+	rrset = (rrset_type*) region_alloc(q->region, sizeof(rrset_type));
+	memset(rrset, 0, sizeof(rrset_type));
+	rrset->zone = q->zone;
+	rrset->rr_count = 1;
+	rrset->rrs = (rr_type*) region_alloc(q->region, sizeof(rr_type));
+	memset(rrset->rrs, 0, sizeof(rr_type));
+	rrset->rrs->owner = cname_domain;
+	rrset->rrs->ttl = 0;
+	rrset->rrs->type = TYPE_CNAME;
+	rrset->rrs->klass = CLASS_IN;
+	rrset->rrs->rdata_count = 1;
+	rrset->rrs->rdatas = (rdata_atom_type*)region_alloc(q->region,
+		sizeof(rdata_atom_type));
+	rrset->rrs->rdatas->domain = cname_dest;
+
+	if(!add_rrset(q, answer, ANSWER_SECTION, cname_domain, rrset)) {
+		log_msg(LOG_ERR, "could not add synthesized CNAME rrset to packet");
+	}
+
+	return cname_dest->number;
+}
+
 /*
  * Answer delegation information.
  *
@@ -821,8 +921,10 @@ answer_authoritative(struct nsd   *nsd,
 		/* if the DNAME set is not added we have a loop, do not follow */
 		added = add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset);
 		if(added) {
+			domain_type* src = closest_encloser;
 			const dname_type* newname = dname_replace(q->region, name, 
-				domain_dname(closest_encloser), domain_dname(dest));
+				domain_dname(src), domain_dname(dest));
+			uint32_t newnum = 0;
 			if(!newname) { /* newname too long */
 				RCODE_SET(q->packet, RCODE_YXDOMAIN);
 				return;
@@ -830,11 +932,18 @@ answer_authoritative(struct nsd   *nsd,
 			log_msg(LOG_INFO, "->result is %s", dname_to_string(newname, NULL));
 			/* follow the DNAME */
 			exact = namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
-			/* TODO synthesize CNAME record */
-			while (!closest_encloser->is_existing)
+			/* synthesize CNAME record */
+			newnum = query_synthesize_cname(q, answer, name, newname, 
+				src, closest_encloser);
+			if(!newnum) {
+				/* could not synthesize the CNAME */
+				RCODE_SET(q->packet, RCODE_SERVFAIL);
+				return;
+			}
+
+			while (closest_encloser && !closest_encloser->is_existing)
 				closest_encloser = closest_encloser->parent;
-			/* TODO should be domain_number for newname (for later wildcards) */
-			answer_authoritative(nsd, q, answer, closest_match->number,
+			answer_authoritative(nsd, q, answer, newnum,
 				closest_match == closest_encloser, 
 				closest_match, closest_encloser);
 			return;

@@ -2,6 +2,7 @@
 	- zonec checks for data below a DNAME, and will not create the db,
 	  as per rfc 2672. Tpkg test to make sure such a zone is not loaded.
 	- updated rr-test tpkg so it has no data below a DNAME.
+	- DNAME synthesis of CNAME records, including compression for cname.
 
 2 June 2006: Wouter
 	- dname_replace function that does DNAME replace and unit tests.
