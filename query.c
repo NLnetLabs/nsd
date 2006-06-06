@@ -678,7 +678,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 		if(!newdom) 
 			return 0;
 		memset(newdom, 0, sizeof(domain_type));
-		newdom->is_existing = 1;
+		newdom->is_existing = 0;
 		newdom->parent = lastparent;
 		newdom->node.key = dname_partial_copy(q->region,
 			to_name, domain_dname(to_closest_encloser)->label_count + i + 1);
