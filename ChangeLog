@@ -4,6 +4,7 @@
 	- updated rr-test tpkg so it has no data below a DNAME.
 	- DNAME synthesis of CNAME records, including compression for cname.
 	- included cname creation in dname test.
+	- preallocate the extra temporary domain_type structures.
 
 2 June 2006: Wouter
 	- dname_replace function that does DNAME replace and unit tests.

@@ -75,3 +75,6 @@ OPTIMISATIONS
 - compress dnames in ixfr queries (write_soa_buffer) (zone 2x, mname, rname).
   small gain, nasty code.
 - compress dnames in tsig records, keyname, algorithname.
+- compress names in packets by pointing to uncompressed_dname entries.
+  After each DNAME(with uncompressed target) follows a CNAME that can be
+  compressed in this way.
