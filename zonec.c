@@ -1198,6 +1198,49 @@ process_rr(void)
 }
 
 /*
+ * Find rrset type for any zone
+ */
+static rrset_type*
+domain_find_rrset_any(domain_type *domain, uint16_t type)
+{
+	rrset_type *result = domain->rrsets;
+	while (result) {
+		if (rrset_rrtype(result) == type) {
+			return result;
+                }
+		result = result->next;
+        }
+        return NULL;
+}
+
+/*
+ * Check for DNAME type. Nothing is allowed below it
+ */
+static void 
+check_dname(namedb_type* db)
+{
+	domain_type* domain;
+	RBTREE_FOR(domain, domain_type*, db->domains->names_to_domains)
+	{
+		if(domain->is_existing) {
+			/* there may not be DNAMEs above it */
+			domain_type* parent = domain->parent;
+			while(parent) {
+				if(domain_find_rrset_any(parent, TYPE_DNAME)) {
+					zc_error("While checking node %s,",
+						dname_to_string(domain_dname(domain), NULL));
+					zc_error("DNAME at %s has data below it. "
+						"This is not allowed (rfc 2672).",
+						dname_to_string(domain_dname(parent), NULL));
+					exit(1);
+				}
+				parent = parent->parent;
+			}
+		}
+	}
+}
+
+/*
  * Reads the specified zone into the memory
  *
  */
@@ -1401,6 +1444,7 @@ main (int argc, char **argv)
 			totalrrs = 0;
 		}
 	}
+	check_dname(db);
 
 #ifndef NDEBUG
 	fprintf(stderr, "global_region: ");

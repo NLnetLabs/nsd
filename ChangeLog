@@ -1,3 +1,7 @@
+6 June 2066: Wouter
+	- zonec checks for data below a DNAME, and will not create the db,
+	  as per rfc 2672. Tpkg test to make sure such a zone is not loaded.
+
 2 June 2006: Wouter
 	- dname_replace function that does DNAME replace and unit tests.
 	- added error codes from DNSUPD rfc2136 to constants in dns.h.
