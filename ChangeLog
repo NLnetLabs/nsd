@@ -2,6 +2,10 @@
 	- after DNAME the closest_match is set correctly for another DNAME.
 	- in case of a loop returns gracefully instead of crash.
 	- nsec3 checks if it is enabled for the zone for wildcards.
+	- NSD will give referrals for zone cuts encountered after a CNAME
+	  or a DNAME. This also fixed various subtle stuff with CNAME/DNAME
+	  and TYPE_DS at zone cuts. It basically re-determines the zone
+	  to use after the CNAME/DNAME.
 
 6 June 2066: Wouter
 	- zonec checks for data below a DNAME, and will not create the db,

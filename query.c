@@ -52,6 +52,11 @@ static void answer_authoritative(struct nsd	  *nsd,
 				 domain_type      *closest_match,
 				 domain_type      *closest_encloser);
 
+static void answer_lookup_zone(struct nsd *nsd, struct query *q, 
+			       answer_type *answer, uint32_t domain_number, 
+			       int exact, domain_type *closest_match, 
+			       domain_type *closest_encloser);
+
 void
 query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 {
@@ -863,7 +868,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 				while (!closest_encloser->is_existing)
 					closest_encloser = closest_encloser->parent;
 				
-				answer_authoritative(nsd, q, answer, closest_match->number,
+				answer_lookup_zone(nsd, q, answer, closest_match->number,
 						     closest_match == closest_encloser,
 						     closest_match, closest_encloser);
 			}
@@ -944,7 +949,7 @@ answer_authoritative(struct nsd   *nsd,
 
 			while (closest_encloser && !closest_encloser->is_existing)
 				closest_encloser = closest_encloser->parent;
-			answer_authoritative(nsd, q, answer, newnum,
+			answer_lookup_zone(nsd, q, answer, newnum,
 				closest_match == closest_encloser, 
 				closest_match, closest_encloser);
 		}
@@ -1036,30 +1041,15 @@ answer_authoritative(struct nsd   *nsd,
 }
 
 static void
-answer_query(struct nsd *nsd, struct query *q)
-{
-	domain_type *closest_match;
-	domain_type *closest_encloser;
-	uint16_t offset;
-	int exact;
-	answer_type answer;
-
-	exact = namedb_lookup(nsd->db, q->qname, &closest_match, &closest_encloser);
-	if (!closest_encloser->is_existing) {
-		exact = 0;
-		while (closest_encloser != NULL && !closest_encloser->is_existing)
-			closest_encloser = closest_encloser->parent;
-	}
-
-	q->domain = closest_encloser;
-	
+answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
+	uint32_t domain_number, int exact, domain_type *closest_match, 
+	domain_type *closest_encloser)
+{	
 	q->zone = domain_find_zone(closest_encloser);
 	if (!q->zone) {
 		RCODE_SET(q->packet, RCODE_SERVFAIL);
 		return;
 	}
-
-	answer_init(&answer);
 
 	/*
 	 * See RFC 4035 (DNSSEC protocol) section 3.1.4.1 Responding
@@ -1093,7 +1083,7 @@ answer_query(struct nsd *nsd, struct query *q)
 		} else {
 			AA_SET(q->packet);
 		}
-		answer_nodata(q, &answer, closest_encloser);
+		answer_nodata(q, answer, closest_encloser);
 	} else {
 		q->delegation_domain = domain_find_ns_rrsets(
 			closest_encloser, q->zone, &q->delegation_rrset);
@@ -1106,13 +1096,39 @@ answer_query(struct nsd *nsd, struct query *q)
 			} else {
 				AA_SET(q->packet);
 			}
-			answer_authoritative(nsd, q, &answer, 0, exact,
+			answer_authoritative(nsd, q, answer, domain_number, exact,
 					     closest_match, closest_encloser);
 		}
 		else {
-			answer_delegation(q, &answer);
+			answer_delegation(q, answer);
 		}
 	}
+}
+
+static void
+answer_query(struct nsd *nsd, struct query *q)
+{
+	domain_type *closest_match;
+	domain_type *closest_encloser;
+	int exact;
+	uint16_t offset;
+	answer_type answer;
+
+	answer_init(&answer);
+
+	exact = namedb_lookup(nsd->db, q->qname, &closest_match, &closest_encloser);
+	if (!closest_encloser->is_existing) {
+		exact = 0;
+		while (closest_encloser != NULL && !closest_encloser->is_existing)
+			closest_encloser = closest_encloser->parent;
+	}
+	if(!closest_encloser) {
+		RCODE_SET(q->packet, RCODE_SERVFAIL);
+		return;
+	}
+
+	q->domain = closest_encloser;
+	answer_lookup_zone(nsd, q, &answer, 0, exact, closest_match, closest_encloser);
 
 	offset = dname_label_offsets(q->qname)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
