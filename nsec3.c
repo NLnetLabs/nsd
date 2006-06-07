@@ -420,10 +420,13 @@ nsec3_answer_wildcard(struct query *query, struct answer *answer,
 {
 	if(!wildcard) 
 		return;
+	if(!query->zone->nsec3_rrset)
+		return;
 	nsec3_add_nonexist_proof(query, answer, wildcard, db);
 }
 
-void nsec3_add_ds_proof(struct query *query, struct answer *answer,
+static void 
+nsec3_add_ds_proof(struct query *query, struct answer *answer,
 	struct domain *domain)
 {
 	/* assert we are above the zone cut */
@@ -466,6 +469,8 @@ void
 nsec3_answer_nodata(struct query *query, struct answer *answer,
 	struct domain *original)
 {
+	if(!query->zone->nsec3_rrset)
+		return;
 	/* nodata when asking for secure delegation */
 	if(query->qtype == TYPE_DS)
 	{
@@ -499,6 +504,8 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 void 
 nsec3_answer_delegation(struct query *query, struct answer *answer)
 {
+	if(!query->zone->nsec3_rrset)
+		return;
 	nsec3_add_ds_proof(query, answer, query->delegation_domain);
 }
 
@@ -529,6 +536,8 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 	struct answer *answer, struct domain* closest_encloser, 
 	struct namedb* db)
 {
+	if(!query->zone->nsec3_rrset)
+		return;
 	assert(match);
 	/* there is a match, this has 1 RRset, which is NSEC3, but qtype is not. */
 	if(query->qtype != TYPE_NSEC3 && *match && 

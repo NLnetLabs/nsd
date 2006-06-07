@@ -954,6 +954,8 @@ answer_authoritative(struct nsd   *nsd,
 	} else if (domain_wildcard_child(closest_encloser)) {
 		/* Generate the domain from the wildcard.  */
 		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
+		log_msg(LOG_INFO, "instantiating wildcard %s", dname_to_string(
+			domain_dname(wildcard_child), NULL));
 
 		match = (domain_type *) region_alloc(q->region,
 						     sizeof(domain_type));
@@ -1024,6 +1026,8 @@ answer_authoritative(struct nsd   *nsd,
 		return; /* nsec3 collision failure */
 	}
 #endif
+	log_msg(LOG_INFO, "to the answer match=%s", match?dname_to_string(domain_dname(match),
+		NULL):"none");
 	if (match) {
 		answer_domain(nsd, q, answer, match, original);
 	} else {
