@@ -637,7 +637,8 @@ add_rrset(struct query   *query,
    closest encloser encloses the to_name. */
 static uint32_t
 query_synthesize_cname(struct query* q, struct answer* answer, const dname_type* from_name, 
-	const dname_type* to_name, domain_type* src, domain_type* to_closest_encloser)
+	const dname_type* to_name, domain_type* src, domain_type* to_closest_encloser,
+	domain_type** to_closest_match)
 {
 	/* add temporary domains for from_name and to_name and all
 	   their (not allocated yet) parents */
@@ -650,6 +651,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 	/* allocate source part */
 	domain_type* lastparent = src;
 	assert(q && answer && from_name && to_name && src && to_closest_encloser);
+	assert(to_closest_match);
 	for(i=0; i < from_name->label_count - domain_dname(src)->label_count; i++)
 	{
 		domain_type* newdom = query_get_tempdomain(q);
@@ -688,6 +690,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 		lastparent = newdom;
 	}
 	cname_dest = lastparent;
+	*to_closest_match = cname_dest;
 
 	/* allocate the CNAME RR */
 	rrset = (rrset_type*) region_alloc(q->region, sizeof(rrset_type));
@@ -909,7 +912,7 @@ answer_authoritative(struct nsd   *nsd,
 		domain_type *dest = rdata_atom_domain(rrset->rrs[0].rdatas[0]);
 		int added;
 		assert(rrset->rr_count > 0);
-		if(domain_number != 0) /* we followed CNAMEs */
+		if(domain_number != 0) /* we followed CNAMEs or DNAMEs */
 			name = domain_dname(closest_match);
 		log_msg(LOG_INFO, "expanding DNAME for q=%s", dname_to_string(name, NULL));
 		log_msg(LOG_INFO, "->src is %s", 
@@ -932,7 +935,7 @@ answer_authoritative(struct nsd   *nsd,
 			exact = namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
 			/* synthesize CNAME record */
 			newnum = query_synthesize_cname(q, answer, name, newname, 
-				src, closest_encloser);
+				src, closest_encloser, &closest_match);
 			if(!newnum) {
 				/* could not synthesize the CNAME. */
 				/* return previous CNAMEs to make resolver recurse for us */
@@ -944,8 +947,10 @@ answer_authoritative(struct nsd   *nsd,
 			answer_authoritative(nsd, q, answer, newnum,
 				closest_match == closest_encloser, 
 				closest_match, closest_encloser);
-			return;
 		}
+		if(!added) 
+			log_msg(LOG_INFO, "DNAME processing stopped due to loop");
+		return;
 	} else if (domain_wildcard_child(closest_encloser)) {
 		/* Generate the domain from the wildcard.  */
 		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
