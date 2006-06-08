@@ -954,8 +954,9 @@ answer_authoritative(struct nsd   *nsd,
 				closest_match == closest_encloser, 
 				closest_match, closest_encloser);
 		}
-		if(!added) 
-			log_msg(LOG_INFO, "DNAME processing stopped due to loop");
+		if(!added)  /* log the error so operator can find loopig recursors */
+			log_msg(LOG_INFO, "DNAME processing stopped due to loop, qname %s",
+				dname_to_string(q->qname, NULL));
 		return;
 	} else if (domain_wildcard_child(closest_encloser)) {
 		/* Generate the domain from the wildcard.  */

@@ -3,6 +3,7 @@
 	  noerror is returned instead.
 	- zonec will error on multiple DNAMEs for the same name.
 	- zonec will error on DNAME and CNAME together.
+	- improved loop log message.
 
 7 June 2006: Wouter
 	- after DNAME the closest_match is set correctly for another DNAME.
