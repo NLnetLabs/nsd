@@ -1,6 +1,8 @@
 8 June 2006: Wouter
 	- When zone is re-chosen after a CNAME/DNAME no SERVFAIL is set,
 	  noerror is returned instead.
+	- zonec will error on multiple DNAMEs for the same name.
+	- zonec will error on DNAME and CNAME together.
 
 7 June 2006: Wouter
 	- after DNAME the closest_match is set correctly for another DNAME.
