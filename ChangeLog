@@ -1,3 +1,7 @@
+8 June 2006: Wouter
+	- When zone is re-chosen after a CNAME/DNAME no SERVFAIL is set,
+	  noerror is returned instead.
+
 7 June 2006: Wouter
 	- after DNAME the closest_match is set correctly for another DNAME.
 	- in case of a loop returns gracefully instead of crash.

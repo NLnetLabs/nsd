@@ -95,6 +95,7 @@ struct query {
 	 * we no longer change the RCODE to NXDOMAIN and no longer add
 	 * SOA records to the authority section in case of NXDOMAIN
 	 * and NODATA.
+	 * Also includes number of DNAMES followed.
 	 */
 	int cname_count;
 	
