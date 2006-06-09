@@ -1,5 +1,44 @@
 NSD RELEASE NOTES
 
+3.0.0.pre
+=============
+FEATURES:
+	- AXFR/IXFR zone transfer supported.
+		- NSD requests but does not provide IXFR transfers.
+		- NSD keeps track of SOA timeouts for secondary zones.
+	- TSIG authentication supported.
+		- For queries, for notifies, for zone transfers.
+	- NOTIFY messages of zone updates, incoming and outgoing.
+	- DNAME type is supported, including CNAME synthesis.
+	- config file, nsd.conf(5), place to put TSIG keys, server settings,
+	  and lists of ip-addresses/ranges for AXFR/IXFR and NOTIFY.
+	- NSEC3 support can be enabled for experiments (--enable-nsec3).
+	- NSID support can be enabled for experiments (--enable-nsid).
+
+OPERATIONAL NOTES:
+	- config file needed, nsd.conf(5) supersedes nsd.zones and nsdc.conf.
+	- AXFR transfers are denied by default. Allow in config file.
+	- Zones only become secondary with "request-xfr:" items in config file.
+	- NSD produces "ixfr.db" file with a journal of zone transfers.
+	  Use nsdc patch to merge changes back to zone files and remake db.
+	- NSD produces "xfrd.state" file with zone timeout information.
+	  The file is text formatted.
+	- NSD sends notifies automatically,
+	  nsd-notify will be moved out of the nsd package at a later time.
+	  If you use it a lot, please let us know.
+	- NSD requests AXFR/IXFR and reloads the updates automatically, 
+	  nsd-xfer will be moved out of the nsd package at a later time.
+	  If you use it a lot, please let us know.
+	- Check your config file with nsd-checkconf.
+
+BUG FIXES: 
+	- contains all bug fixes from 2.3.5 and before.
+	- The sighandler() bug is fixed more thoroughly,
+	  by using pipes for interprocess communication.
+	- CNAMEs are followed by the server to different zones and
+	  information from that zone is returned. This saves a followup
+	  query.
+
 2.3.5
 =============
 BUG FIXES:

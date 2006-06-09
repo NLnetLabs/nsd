@@ -1,16 +1,16 @@
 1.0 Introduction
-1.1 Basic theory of operation
-1.2 Quick build & install
+1.1 ... Basic theory of operation
+1.2 ... Quick build & install
 2.0 Building nsd
-2.1 Unpacking the source
-2.2 Configuring NSD
-2.3 Building
-2.4 Installing
+2.1 ... Unpacking the source
+2.2 ... Configuring NSD
+2.3 ... Building
+2.4 ... Installing
 3.0 Running NSD
-3.1 Logging
-3.2 AXFR access
-3.3 Keeping in sync the secondary zones with ``nsdc update''
-3.4 Sending notify to the secondaries on reload or restart
+3.1 ... Logging
+3.2 ... AXFR access
+3.3 ... Keeping in sync the secondary zones with ``nsdc update''
+3.4 ... Sending notify to the secondaries on reload or restart
 
 1.0 Introduction
 
@@ -18,8 +18,7 @@ This is NSD Name Server Daemon (NSD) version @version@.
 
 NSD is a complete implementation of an authoritative DNS name server.
 For further information about what NSD is and what NSD is not please
-consult the REQUIREMENTS document which is a part of this distribution
-(thanks to Olaf).
+consult the REQUIREMENTS document which is a part of this distribution.
 
 The source code is available for download from:
 
@@ -36,7 +35,7 @@ For NSD operation this means that zones have to be compiled by zonec
 before NSD can use them.
 
 All this can be controlled by a simple control script called 'nsdc'
-which uses a simple configuration file.
+and uses a simple configuration file 'nsd.conf'.
 
 
 1.2 Quick build and install
@@ -46,6 +45,7 @@ Step 1: Unpack the source with gtar -xzvf nsd-@version@.tar.gz
 Step 2: Create user nsd or any other unprivileged user of your
         choice. In case of later make sure to use
         --with-user=<username> while running configure.
+	You can also set the username in the nsd.conf file later.
 
 Step 3: ./configure
 
@@ -57,21 +57,20 @@ Step 6: Create and edit /etc/nsd/nsd.conf file possibly from
         nsd.conf.sample template that comes with the distribution.
 
 Step 7: Copy necessary master zone files into appropriate directories
-        under /etc/nsd/primary & /etc/nsd/secondary You might consider
+        under /etc/nsd/primary & /etc/nsd/secondary. You might consider
         using contrib/build-nsdzones.pl script to automate task 6 & 7.
 
-Step 8: Run nsdc update if necessary
+Step 8: Run nsdc rebuild
 
-Step 9: Run nsdc rebuild
+Step 9: Run nsdc start
 
-Step 10: Run nsdc start
+Step 10: Test the NSD with dig or host.
 
-Step 11: Test the NSD with dig or host.
+Step 11: If you're happy add nsdc start into your OS boot up sequence.
 
-Step 12: If you're happy add nsdc start into your OS boot up sequence.
-
-Step 13: If desired add nsdc update to your superuser crontab to
-         update the zones from master servers periodically.
+Step 12: If desired add nsdc patch to your superuser crontab to
+         update the zone files with the content transferred from master
+	 zones periodically.
 
          Got any problems or questions with the steps above? Read the
          rest of this file.
@@ -135,7 +134,7 @@ addition to standard configure options, one may use the following:
   --enable-root-server
 
         Configure NSD as a root server. Unless this option is
-        specified, NSD will refuse to server ``.'' zone as a
+        specified, NSD will refuse to serve the ``.'' zone as a
         misconfiguration safeguard.
 
   --disable-ipv6
@@ -145,8 +144,8 @@ addition to standard configure options, one may use the following:
   --enable-checking
 
         Enable some internal development checks.  Useful if you want
-        to modify NSD or develop plugins.  This option enables the
-        standard C "assert" macro.
+        to modify NSD.  This option enables the standard C "assert" macro
+	and compiler warnings.
 
   --disable-dnssec
 
@@ -154,8 +153,7 @@ addition to standard configure options, one may use the following:
 
   --disable-tsig
 
-        Disable TSIG support in the nsd-xfer(8) AXFR client program.
-        The nsd(8) server does not yet support TSIG.
+        Disable TSIG support in NSD and the support tools.
 
   --enable-bind8-stats
 
@@ -181,11 +179,6 @@ addition to standard configure options, one may use the following:
   --with-dbfile=path
 
         Pathname to the NSD database, default is /etc/nsd/nsd.db
-
-  --with-configfile=path  
-
-        Pathname to the NSD configuration file Pathname to the NSD
-        configuration file, default /etc/nsd/nsdc.conf
 
   --with-zonesdir=dir
 
