@@ -230,6 +230,7 @@ struct namedb
 	/* if diff_skip=1, diff_pos contains the nsd.diff place to continue */
 	uint8_t		  diff_skip;
 	off_t		  diff_pos;
+	size_t		  memchurn; /* memory wasted in region */
 };
 
 static inline int rdata_atom_is_domain(uint16_t type, size_t index);

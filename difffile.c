@@ -209,9 +209,23 @@ read_str(FILE* in, char* buf, size_t len)
 	return 1;
 }
 
-static void 
-rrset_delete(domain_type* domain, rrset_type* rrset)
+static void
+add_rdata_memchurn(namedb_type* db, rr_type* rr)
 {
+	//add sizeof rdatas to memchurn.
+size_t i;
+	db->memchurn += sizeof(rdata_atom_type)*rr->rdata_count;
+	for(i=0; i<rr->rdata_count; i++)
+	{
+		if(!rdata_atom_is_domain(rr->type, i))
+			db->memchurn += rdata_atom_size(rr->rdatas[i]);
+	}
+}
+
+static void 
+rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
+{
+	int i;
 	/* find previous */
 	rrset_type** pp = &domain->rrsets;
 	while(*pp && *pp != rrset) {
@@ -227,6 +241,11 @@ rrset_delete(domain_type* domain, rrset_type* rrset)
 		dname_to_string(domain_dname(domain),0),
 		rrtype_to_string(rrset_rrtype(rrset)));
 
+	db->memchurn += sizeof(rrset_type);
+	db->memchurn += sizeof(rr_type) * rrset->rr_count;
+	for (i = 0; i < rrset->rr_count; ++i)
+		add_rdata_memchurn(db, &rrset->rrs[i]);
+
 	/* is this a SOA rrset ? */
 	if(rrset->zone->soa_rrset == rrset) {
 		rrset->zone->soa_rrset = 0;
@@ -237,7 +256,6 @@ rrset_delete(domain_type* domain, rrset_type* rrset)
 	}
 #ifdef DNSSEC
 	if(domain == rrset->zone->apex && rrset_rrtype(rrset) == TYPE_RRSIG) {
-		int i;
 		for (i = 0; i < rrset->rr_count; ++i) {
 			if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_SOA) {
 				rrset->zone->is_secure = 0;
@@ -334,9 +352,11 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		}
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
-			rrset_delete(domain, rrset);
+			rrset_delete(db, domain, rrset);
 		} else {
 			/* swap out the bad RR and decrease the count */
+			add_rdata_memchurn(db, &rrset->rrs[rrnum]);
+			db->memchurn += sizeof(rr_type);
 			if(rrnum < rrset->rr_count-1)
 				rrset->rrs[rrnum] = rrset->rrs[rrset->rr_count-1];
 			memset(&rrset->rrs[rrset->rr_count-1], 0, sizeof(rr_type));
@@ -387,6 +407,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 	
 	/* re-alloc the rrs and add the new */
+	db->memchurn += sizeof(rr_type) * rrset->rr_count;
 	rrs_old = rrset->rrs;
 	rrset->rrs = region_alloc(db->region, 
 		(rrset->rr_count+1) * sizeof(rr_type));
@@ -496,7 +517,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 }
 
 static void 
-delete_zone_rrs(zone_type* zone)
+delete_zone_rrs(namedb_type* db, zone_type* zone)
 {
 	rrset_type *rrset;
 	domain_type *domain = zone->apex;
@@ -508,7 +529,7 @@ delete_zone_rrs(zone_type* zone)
 			dname_to_string(domain_dname(domain),0));
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
-			rrset_delete(domain, rrset);
+			rrset_delete(db, domain, rrset);
 		}
 		domain = domain_next(domain);
 	}
@@ -692,7 +713,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 
 		if(*rr_count == 1 && type != TYPE_SOA) {
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
-			delete_zone_rrs(zone_db);
+			delete_zone_rrs(db, zone_db);
 			/* add everything else (incl end SOA) */
 			*delete_mode = 0;
 			*is_axfr = 1;

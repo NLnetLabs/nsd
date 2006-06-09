@@ -32,8 +32,12 @@ namedb_new (const char *filename)
 	db->region = region;
 	db->domains = domain_table_create(region);
 	db->zones = NULL;
+	db->zone_count = 0;
 	db->filename = region_strdup(region, filename);
 	db->crc = 0xffffffff;
+	db->diff_skip = 0;
+	db->memchurn = 0;
+	db->fd = NULL;
 
 	/*
 	 * Unlink the old database, if it exists.  This is useful to
