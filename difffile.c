@@ -163,8 +163,8 @@ db_crc_different(namedb_type* db)
 	return 1;
 }
 
-static int 
-read_32(FILE *in, uint32_t* result)
+int 
+diff_read_32(FILE *in, uint32_t* result)
 {
         if (fread(result, sizeof(*result), 1, in) == 1) {
                 *result = ntohl(*result);
@@ -174,8 +174,8 @@ read_32(FILE *in, uint32_t* result)
         }
 }
 
-static int 
-read_16(FILE *in, uint16_t* result)
+int 
+diff_read_16(FILE *in, uint16_t* result)
 {
         if (fread(result, sizeof(*result), 1, in) == 1) {
                 *result = ntohs(*result);
@@ -185,8 +185,8 @@ read_16(FILE *in, uint16_t* result)
         }
 }
 
-static int 
-read_8(FILE *in, uint8_t* result)
+int 
+diff_read_8(FILE *in, uint8_t* result)
 {
         if (fread(result, sizeof(*result), 1, in) == 1) {
                 return 1;
@@ -195,11 +195,11 @@ read_8(FILE *in, uint8_t* result)
         }
 }
 
-static int 
-read_str(FILE* in, char* buf, size_t len)
+int 
+diff_read_str(FILE* in, char* buf, size_t len)
 {
 	uint32_t disklen;
-	if(!read_32(in, &disklen)) 
+	if(!diff_read_32(in, &disklen)) 
 		return 0;
 	if(disklen >= len) 
 		return 0;
@@ -212,8 +212,8 @@ read_str(FILE* in, char* buf, size_t len)
 static void
 add_rdata_memchurn(namedb_type* db, rr_type* rr)
 {
-	//add sizeof rdatas to memchurn.
-size_t i;
+	/* add sizeof rdatas to memchurn. */
+	size_t i;
 	db->memchurn += sizeof(rdata_atom_type)*rr->rdata_count;
 	for(i=0; i<rr->rdata_count; i++)
 	{
@@ -556,7 +556,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	uint16_t rrlen;
 	const dname_type *dname_zone, *dname;
 	zone_type* zone_db;
-	char file_zone_name[2560];
+	char file_zone_name[3072];
 	uint32_t file_serial, file_seq_nr;
 	uint16_t file_id;
 
@@ -566,7 +566,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	}
 	/* read ixfr packet RRs and apply to in memory db */
 
-	if(!read_32(in, &filelen)) {
+	if(!diff_read_32(in, &filelen)) {
 		log_msg(LOG_ERR, "could not read len");
 		return 0;
 	}
@@ -583,10 +583,10 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		return 0;
 	}
 
-	if(!read_str(in, file_zone_name, sizeof(file_zone_name)) ||
-		!read_32(in, &file_serial) ||
-		!read_16(in, &file_id) ||
-		!read_32(in, &file_seq_nr))
+	if(!diff_read_str(in, file_zone_name, sizeof(file_zone_name)) ||
+		!diff_read_32(in, &file_serial) ||
+		!diff_read_16(in, &file_id) ||
+		!diff_read_32(in, &file_seq_nr))
 	{
 		log_msg(LOG_ERR, "could not part data");
 		return 0;
@@ -876,7 +876,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	struct diff_read_data* data, struct diff_log** log,
 	size_t child_count)
 {
-	char zone_buf[512];
+	char zone_buf[3072];
 	char log_buf[5120];
 	uint32_t old_serial, new_serial, num_parts;
 	uint16_t id;
@@ -887,13 +887,13 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	struct diff_log* thislog = 0;
 
 	/* read zone name and serial */
-	if(!read_str(in, zone_buf, sizeof(zone_buf)) ||
-		!read_32(in, &old_serial) ||
-		!read_32(in, &new_serial) ||
-		!read_16(in, &id) ||
-		!read_32(in, &num_parts) ||
-		!read_8(in, &committed) ||
-		!read_str(in, log_buf, sizeof(log_buf)) )
+	if(!diff_read_str(in, zone_buf, sizeof(zone_buf)) ||
+		!diff_read_32(in, &old_serial) ||
+		!diff_read_32(in, &new_serial) ||
+		!diff_read_16(in, &id) ||
+		!diff_read_32(in, &num_parts) ||
+		!diff_read_8(in, &committed) ||
+		!diff_read_str(in, log_buf, sizeof(log_buf)) )
 	{
 		log_msg(LOG_ERR, "diff file bad commit part");
 		return 1;
@@ -972,15 +972,15 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 static int
 store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* startpos)
 {
-	char zone_name[2560];
+	char zone_name[3072];
 	struct diff_zone* zp;
 	struct diff_xfrpart* xp;
 	uint32_t new_serial, seq;
 	uint16_t id;
-	if(!read_str(in, zone_name, sizeof(zone_name)) ||
-		!read_32(in, &new_serial) ||
-		!read_16(in, &id) ||
-		!read_32(in, &seq)) {
+	if(!diff_read_str(in, zone_name, sizeof(zone_name)) ||
+		!diff_read_32(in, &new_serial) ||
+		!diff_read_16(in, &id) ||
+		!diff_read_32(in, &seq)) {
 		log_msg(LOG_INFO, "could not read ixfr store info: %s", strerror(errno));
 		return 0;
 	}
@@ -1019,7 +1019,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 		return 0;
 	}
 
-	if(!read_32(in, &len)) return 1;
+	if(!diff_read_32(in, &len)) return 1;
 
 	if(type == DIFF_PART_IXFR) {
 		log_msg(LOG_INFO, "part IXFR len %d", len);
@@ -1034,7 +1034,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 		log_msg(LOG_INFO, "unknown part %x len %d", type, len);
 		return 0;
 	}
-	if(!read_32(in, &len2))
+	if(!diff_read_32(in, &len2))
 		return 1; /* short read is OK */
 	if(len != len2)
 		return 0; /* bad data is wrong */
@@ -1099,7 +1099,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		}
 	}
 
-	while(read_32(df, &type)) 
+	while(diff_read_32(df, &type)) 
 	{
 		log_msg(LOG_INFO, "iter loop");
 		if(!read_process_part(db, df, type, opt, data, log, child_count))
@@ -1136,13 +1136,13 @@ static int diff_broken(FILE *df, off_t* break_pos)
 	*break_pos = ftello(df);
 
 	/* try to read and validate parts of the file */
-	while(read_32(df, &type)) /* cannot read type is no error, normal EOF */
+	while(diff_read_32(df, &type)) /* cannot read type is no error, normal EOF */
 	{
 		/* check type */
 		if(type != DIFF_PART_IXFR && type != DIFF_PART_SURE)
 			return 1;
 		/* check length */
-		if(!read_32(df, &len))
+		if(!diff_read_32(df, &len))
 			return 1; /* EOF inside the part is error */
 		if(fseeko(df, len, SEEK_CUR) == -1)
 		{
@@ -1151,7 +1151,7 @@ static int diff_broken(FILE *df, off_t* break_pos)
 		}
 		/* fseek clears EOF flag, but try reading length value,
 		   if EOF, the part is truncated */
-		if(!read_32(df, &len2))
+		if(!diff_read_32(df, &len2))
 			return 1;
 		if(len != len2)
 			return 1; /* bad part, lengths must agree */

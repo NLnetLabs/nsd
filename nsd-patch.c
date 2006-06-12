@@ -19,9 +19,123 @@
 static void
 usage(void)
 {
-        fprintf(stderr, "usage: nsd-patch [-c <configfilename>]\n");
+        fprintf(stderr, "usage: nsd-patch [-c <configfilename>] [-l]\n");
         fprintf(stderr, "	reads database and ixfrs and patches up zone files.\n");
+        fprintf(stderr, "-c	specify config file to use, instead of %s\n", CONFIGFILE);
+        fprintf(stderr, "-l	list contents of transfer journal difffile, %s\n",
+		DIFFFILE);
         exit(1);
+}
+
+static void
+list_xfr(FILE *in)
+{
+	uint32_t skiplen, len, new_serial;
+	char zone_name[3072];
+	uint16_t id;
+	uint32_t seq_nr, len2;
+
+	if(!diff_read_32(in, &len) ||
+		!diff_read_str(in, zone_name, sizeof(zone_name)) ||
+		!diff_read_32(in, &new_serial) ||
+		!diff_read_16(in, &id) ||
+		!diff_read_32(in, &seq_nr)) {
+		printf("incomplete zone transfer content packet\n");
+		return;
+	}
+	skiplen = len - (sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name));
+	printf("zone %s transfer id %x serial %d: seq_nr %d of %d bytes\n",
+		zone_name, id, new_serial, seq_nr, skiplen);
+	
+	if(fseeko(in, skiplen, SEEK_CUR) == -1)
+		fprintf(stderr, "fseek failed: %s\n", strerror(errno));
+	if(!diff_read_32(in, &len2)) {
+		printf("incomplete zone transfer content packet\n");
+		return;
+	}
+	if(len != len2) {
+		printf("Packet seq %d had bad length check bytes!\n", seq_nr);
+	}
+}
+
+static const char*
+get_date(const char* log)
+{
+	const char *entry = strstr(log, " time ");
+	long int t = 0;
+	static char timep[30];
+	if(!entry) return "<notime>";
+	t = strtol(entry + 6, NULL, 10);
+	if(t == 0) return "0";
+	timep[0]=0;
+	ctime_r(&t, timep);
+	/* remove newline at end */
+	if(strlen(timep) > 0)
+		timep[strlen(timep)-1] = 0;
+	return timep;
+}
+
+static void
+list_commit(FILE *in)
+{
+	uint32_t len;
+	char zone_name[3072];
+	uint32_t old_serial, new_serial;
+	uint16_t id;
+	uint32_t num;
+	uint8_t commit;
+	char log_msg[10240];
+	uint32_t len2;
+
+	if(!diff_read_32(in, &len) ||
+		!diff_read_str(in, zone_name, sizeof(zone_name)) ||
+		!diff_read_32(in, &old_serial) ||
+		!diff_read_32(in, &new_serial) ||
+		!diff_read_16(in, &id) ||
+		!diff_read_32(in, &num) ||
+		!diff_read_8(in, &commit) ||
+		!diff_read_str(in, log_msg, sizeof(log_msg)) ||
+		!diff_read_32(in, &len2)) {
+		printf("incomplete commit/rollback packet\n");
+		return;
+	}
+	printf("zone %s transfer id %x serial %d: %s of %d packets\n",
+		zone_name, id, new_serial, commit?"commit":"rollback", num);
+	printf("   time %s, from serial %d, log message: %s\n", 
+		get_date(log_msg), old_serial, log_msg);
+	if(len != len2) {
+		printf("  commit packet with bad length check bytes!\n");
+	}
+}
+
+static void
+debug_list(struct nsd_options* opt)
+{
+	const char* file = DIFFFILE;
+	FILE *f;
+	uint32_t type;
+	if(opt->difffile) file = opt->difffile;
+	printf("Debug listing of the contents of %s\n", file);
+	f = fopen(file, "r");
+	if(!f) {
+		printf("Error opening %s: %s\n", file, strerror(errno));
+		return;
+	}
+	while(diff_read_32(f, &type)) {
+		switch(type) {
+		case DIFF_PART_IXFR:
+			list_xfr(f);
+			break;
+		case DIFF_PART_SURE:
+			list_commit(f);
+			break;
+		default:
+			printf("bad part of type %x\n", type);
+			break;
+		}
+	}
+
+	fclose(f);
 }
 
 static int
@@ -131,12 +245,16 @@ int main(int argc, char* argv[])
 	struct zone* zone;
 	struct diff_log* commit_log = 0;
 	size_t fake_child_count = 1;
+	int debug_list_diff = 0;
 
         /* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:")) != -1) {
+	while ((c = getopt(argc, argv, "c:l")) != -1) {
 	switch (c) {
 		case 'c':
 			configfile = optarg;
+			break;
+		case 'l':
+			debug_list_diff = 1;
 			break;
 		default:
 			usage();
@@ -158,6 +276,11 @@ int main(int argc, char* argv[])
 	/* see if necessary */
 	if(!exist_difffile(options)) {
 		printf("No diff file, nothing to do.\n");
+		exit(0);
+	}
+
+	if(debug_list_diff) {
+		debug_list(options);
 		exit(0);
 	}
 

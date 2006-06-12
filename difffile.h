@@ -64,4 +64,12 @@ int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
  */
 void diff_snip_garbage(namedb_type* db, nsd_options_t* opt);
 
+/*
+ * These functions read parts of the diff file.
+ */
+int diff_read_32(FILE *in, uint32_t* result);
+int diff_read_16(FILE *in, uint16_t* result);
+int diff_read_8(FILE *in, uint8_t* result);
+int diff_read_str(FILE* in, char* buf, size_t len);
+
 #endif /* DIFFFILE_H */

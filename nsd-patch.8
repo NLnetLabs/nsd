@@ -15,6 +15,7 @@
 .Sh SYNOPSIS
 .Nm nsd-patch
 .Op Fl c Ar configfile
+.Op Fl l
 .Sh DESCRIPTION
 .Ic Nsd-patch
 is the zone patcher for
@@ -27,6 +28,8 @@ The available options are:
 .It Fl c Ar configfile
 Read specified configfile instead of the default
 .Pa /etc/nsd/nsd.conf .
+.It Fl l
+List the journal entries from the difffile. Does not write to zone files.
 .El
 .Sh FILES
 .Bl -tag -width indent

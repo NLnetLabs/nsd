@@ -1,5 +1,9 @@
 12 June 2006: Wouter
 	- dname_test tpkg with very extensive DNAME testing.
+	- moved sizes of zone_name buffers to 3072 - for escaped names.
+	- nsd-patch has a debug option to list the contents of the 
+	  difffile/ixfr.db/transfer patch log in a journal fashion. You can
+	  then manually inspect the contents.
 
 9 June 2006: Wouter
 	- after a reload NSD will report the memory churn: number of bytes
