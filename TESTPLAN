@@ -1,0 +1,152 @@
+TEST PLAN for NSD.
+
+By W.C.A. Wijngaards, June 2006, NLnetLabs.
+
+
+1. Introduction
+---------------
+NSD 3 contains far more features than a typical point release. These
+features need to be tested and checked to make sure they work well.
+This document describes a plan to test all the features that have
+been added to NSD.
+
+2. Minor Features
+-----------------
+Some minor featured for the test:
+- DNAME support - there is already extensive DNAME tests.
+- NSEC3 support - use the perl automated nsec3 test
+	- port to tpkg perhaps.
+
+- NSID support - run NSD with different NSIDs
+	- zero length
+	- very long length
+	- 012345678 and query for different things.
+		- query OK things.
+		- query error 
+			- nxdomain, 
+			- loop, 
+			- nodata.
+		- query error (bad queries)
+			- is NSID present, should there be.
+	- NSID and TSIG.
+		- OK TSIG
+		- BAD TSIG
+		- nxdomain
+		- bad query
+	- configure NSID from config file?
+
+	- test if NSID in NOTIFY responses. (should there?)
+	- test if NSID in AXFR responses. (should there?)
+
+3. Transfers
+------------
+For the transfers the test are to be done using
+- NSD as a master(AXFR), or a ldns-ixfr miniserver(IXFR)
+
+3.1. AXFR
+---------
+3.1.1. setup is a secondary zone which requests to a master.
+the master zone is updated. Then, the secondary should be 
+informed with the notify: statements.
+Or be notified manually (?).
+And test if secondary got the same zone as master.
+By doing a 
+
+- secondary starts with a zone filled with garbage (soa=1)
+- axfr an empty zone - only the SOA 	(soa=2)
+- axfr a zone with only little data. 	(soa=3)
+- old zone unsigned, new zone signed. 	(soa=4)
+- old zone signed, new zone unsigned. 	(soa=5)
+- new zone used nsec3.			(soa=6)
+- new parameters for nsec3.		(soa=7)
+- new zone no longer uses nsec3.	(soa=8)
+- axfr an empty zone (only the SOA)	(soa=9 + a lot)
+- axfr wraparound zone, couple txts.	(soa=2)
+These can be done in order.
+
+3.1.2. Huge xfr - see test tpkg for this.
+
+3.2. IXFR
+---------
+3.2.1. setup is a secondary with ldns-mini-ixfr server as a master.
+The mini ixfr server responds with canned replies to a IXFR query.
+
+- secondary loaded with only the soa = 1. notified with 10.
+  ixfr server responds with soa=1. (i.e. no update available).
+- same, ixfr server responds with soa=2, and TC (udp).
+  on tcp connection, it responds with a simple difference package.
+  SOA2 SOA1 SOA1 SOA2 newTXTA newTXTB SOA2
+  adds a couple records.
+- to soa is 3, and this one removes the TXT records,
+  makes a new TXTB record and a TXTC record.  test that TXTA domain does not exist NXDOMAIN.
+  test that TXTB is updated.
+  test that TXTC exists.
+- from 3 to 5, with 4 in between.
+  make a ixfr packet that is  3 .. 4 and 4 .. 5 concatenated without
+  compression, so it means more work for processing.
+  So, in the ixfr packet TXTB is removed from 3, added in 4, removed from 4,
+  added in 5.
+- from 5 to 7, but this time the redundant work is removed from ixfr packet.
+- 7 to 8, have one domain name where two RR types exist, A and DNAME.
+  remove one RR type in IXFR then make sure the other type still exists.
+
+3.2.2. a huge ixfr.
+create test for it. Should be several MBs worth or data removed, MBs of
+data that stays the same, and MBs that are added.
+
+3.3. Timouts
+------------
+Get zone to expire. Check it does not answer.
+Provide an update. Check it does answer again.
+
+Get zone to expire. Check it does not answer.
+Provide no update, but master replies 'zone still at version x',
+by axfr or ixfr. Check it answers again.
+
+3.4. TSIG zone transfers
+------------------------
+Already TSIG tpkg tests, with transfers TSIG protected.
+TSIG notifies - test it, create test for it.
+	- notify accepted
+	- notify refused.
+
+3.5. IPC
+--------
+Dunno how to test the IPC .
+
+4. Random mess test
+-------------------
+Setup N servers. In  master->intermed->slave,
+with multiple master, intermed and slave servers.
+TSIGs for everyone.
+Perhaps also include never respond entries (fake address).
+
+- Load random SOA + random data in servers.
+  Backup the setup so it is repeatable.
+  Let them work out what version to run.
+- Provide updated zone for a master.
+  See what happens.
+- Send random notifies to random servers.
+- Kill some server. Start it again.
+- Kill some server & delete some file (ixfr.db or xfrd.status).
+- run nsdc patch on a server.
+
+- the intermediaries need to send outgoing notifies
+  automatically when a zone is updated.
+  i.e. update master , and go :)
+- pretend an intemediary was offline for a long time
+  with old zone files and old ixfr.db and xfrd.state(!!) files.
+  and see what happens :-)
+  It should refresh/expire and so based on timers in xfrd.state.
+
+5. Portability test
+-------------------
+Port NSD to as many platforms as possible
+- local: sparc5, alpha, amd64(jelte thuis), open=BSD, linuxes.
+- sf compilefarm for more.
+- minix3 if we can get it working.
+
+6. CODE REVIEW
+--------------
+Code has already had 1x review by Wouter, some review by Miek.
+More review (again), Jelte, Wouter. 33000 lines...

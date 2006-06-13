@@ -19,6 +19,7 @@ ZONE COMPILER
   nsd.db. NSD refuses to start. Should skip/drop the zone.
   Redesign file format, so that you can skip a zone more easily, this
   also makes multiply db files easier.
+- profile the zonec compiling speed. Speed it up.
 
 SERVER
 (old)- in tcp the timeout should be handled different than with alarm()?
