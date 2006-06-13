@@ -10,6 +10,10 @@ features need to be tested and checked to make sure they work well.
 This document describes a plan to test all the features that have
 been added to NSD.
 
+Regression testing is also very important. The old features must
+remain working. We have a set of tpkg packages to help with it.
+Any more old features?
+
 2. Minor Features
 -----------------
 Some minor featured for the test:
