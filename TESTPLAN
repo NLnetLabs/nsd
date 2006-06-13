@@ -118,7 +118,14 @@ TSIG notifies - test it, create test for it.
 
 3.5. IPC
 --------
-Dunno how to test the IPC .
+Have 100.000 zones, all with short SOA timeouts, expire=1 sec. refresh=10.
+Expire very quickly. This gives many messages from xfrd to server.
+Send notifies to the server in a loop from a shell script. Lots of
+messages the other way around.
+Provide a master server that will serve all the zones (and say they are ok).
+
+then proceed to send queries for the zones to the server and see if you 
+get answers. Wait and hour and try again.
 
 4. Random mess test
 -------------------
@@ -148,7 +155,7 @@ Perhaps also include never respond entries (fake address).
 5. Portability test
 -------------------
 Port NSD to as many platforms as possible
-- local: sparc5, alpha, amd64(jelte thuis), open=BSD, linuxes.
+- local: sparc5, alpha, amd64, OpenBsd(jelte thuis), open=FreeBSD, linuxes.
 - sf compilefarm for more.
 - minix3 if we can get it working.
 
