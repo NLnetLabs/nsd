@@ -123,8 +123,11 @@ TSIG notifies - test it, create test for it.
 	- notify accepted
 	- notify refused.
 
-3.5. IPC
+4. IPC
 --------
+
+4.1. deadlocks
+--------------
 Have 100.000 zones, all with short SOA timeouts, expire=1 sec. refresh=10.
 Expire very quickly. This gives many messages from xfrd to server.
 Send notifies to the server in a loop from a shell script. Lots of
@@ -137,12 +140,12 @@ get answers. Wait and hour and try again.
 Perhaps do also with 1000 child servers for the NSD. see if it can keep
 up and the result if it cannot keep up sending to child servers.
 
-3.6. IPC FORKS
+4.2. IPC FORKS
 --------------
 Infinite loop of reloads on a server. Has 10 child servers. wait.
 See if it runs out of sockets, file descriptors, etc.
 
-4. Random mess test
+5. Random mess test
 -------------------
 Setup N servers. In  master->intermed->slave,
 with multiple master, intermed and slave servers.
@@ -169,21 +172,21 @@ Perhaps also include never respond entries (fake address).
   and see what happens :-)
   It should refresh/expire and so based on timers in xfrd.state.
 
-5. Portability test
+6. Portability test
 -------------------
 Port NSD to as many platforms as possible
 - local: sparc5, alpha, amd64, OpenBsd(jelte thuis), open=FreeBSD, linuxes.
 - sf compilefarm for more.
 - minix3 if we can get it working.
 
-6. CODE REVIEW
+7. CODE REVIEW
 --------------
 Code has already had 1x review by Wouter, some review by Miek.
 More review (again), Jelte, Wouter. 33000 lines...
 
-7. todo-tests ideas
+8. todo-tests ideas
 -------------------
-7.1. test combinations of configure options and shells.
+8.1. test combinations of configure options and shells.
 "
 run tests with different shells, aka ==-bug
 run tests with different configure options and combinations
@@ -194,5 +197,5 @@ run this daily or only when subversion changes
 for each test, run our "test-suite"
 "
 
-7.2.
+8.2.
 rm patch file, check xfrd's behavoir. Refetches zones
