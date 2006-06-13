@@ -1,0 +1,29 @@
+The NSD was primarily developed by NLnet Labs on request from and close
+cooperation with RIPE NCC, as an alternative name server software to be
+run on the root name server RIPE NCC operates.
+
+Below is the NSD team (nsd-team@nlnetlabs.nl) in alphabetical order:
+
+Alexis Yushin, NLnet Labs       - design and implementation for NSD 1.0.x 
+                                  and 1.1.x.
+Erik Rozendaal, NLnet Labs      - design and implementation for NSD 1.2.x
+                                  and later.
+Daniel Karrenberg, RIPE NCC     - design, major testing and bug reports
+Jaap Akkerhuis, SIDN NL         - consultancy, advice and company :)
+Miek Gieben, NLnet Labs         - testing, patches, zone compiler, NSD2
+Olaf Kolkman, RIPE NCC          - protocol purist, design, perl test implementation
+Ronald van der Pol, NLnet Labs  - code review, MacOS X portability, IPv6.
+Ted Lindgreen, NLnet Labs       - design, code review, testing
+Wouter Wijngaards, NLnet Labs   - design and implementation for NSD 3.
+
+Contributors (in alphabetical order):
+
+Ben Laurie					- NSEC3 patch.
+Colm MacCárthaigh,                              - IPv6 binding and cleanups.
+Jakob Schlyter, Carlstedt Research & Technology - chroot patch
+Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport
+Ondrej Sury                                     - nsd-notify.8 man page
+Stephane Bortzmeyer                             - Tru64 portability.
+Paul Wouters                                    - zone compiler testing
+Markus Heimhilcher                              - .AT zones for testing 
+Mans Nilsson                                    - (Solaris) Testing

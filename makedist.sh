@@ -149,7 +149,7 @@ if [ "$SNAPSHOT" = "yes" ]; then
     info "Snapshot version number: $version"
 fi
 
-replace_all README
+replace_all doc/README
 replace_all nsd.8
 replace_all nsdc.8
 replace_all nsd-notify.8

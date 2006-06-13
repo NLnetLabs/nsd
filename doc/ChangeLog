@@ -1,3 +1,7 @@
+13 June 2006: Wouter
+	- created doc subdirectory for documentation.
+	- removed unused DIFF FILE MAGIC string.
+
 12 June 2006: Wouter
 	- dname_test tpkg with very extensive DNAME testing.
 	- moved sizes of zone_name buffers to 3072 - for escaped names.

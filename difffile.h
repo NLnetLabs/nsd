@@ -14,9 +14,6 @@
 #include "namedb.h"
 #include "options.h"
 
-#define DIFF_FILE_MAGIC "NSDdfV01"
-#define DIFF_FILE_MAGIC_LEN 8
-
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
 
