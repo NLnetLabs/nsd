@@ -64,6 +64,11 @@ OPTIMISATIONS
   initial read in capacity==limit, if you want to add RRs, alloc capacity*2.
 - less memory churn in deleting rrsets : keep a linked list of deleted rrsets
   for reuse.
+  Keep a list (based on buckets of size of the malloc) of rr arrays.
+  Keep a list (based on buckets of size of malloc) of rdata arrays.
+  Keep a list (buckets on size) of rdata_data allocs.
+  For reuse, buckets on char size, because we know most are small anyway
+  large ones can be discarded/churned.
 - is_existing = 0 used to remove a domain. Check and test carefully.
 	- test delete middle zone
 	- test delete/add a domain and NXdomain/exist replies.

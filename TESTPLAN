@@ -99,6 +99,13 @@ The mini ixfr server responds with canned replies to a IXFR query.
 create test for it. Should be several MBs worth or data removed, MBs of
 data that stays the same, and MBs that are added.
 
+3.2.3. Test remove domain
+From TODO.
+- is_existing = 0 used to remove a domain. Check and test carefully.
+        - test delete middle zone
+	- test delete/add a domain and NXdomain/exist replies.
+	- test delet domain and wildcard replies.
+
 3.3. Timouts
 ------------
 Get zone to expire. Check it does not answer.
@@ -127,6 +134,14 @@ Provide a master server that will serve all the zones (and say they are ok).
 then proceed to send queries for the zones to the server and see if you 
 get answers. Wait and hour and try again.
 
+Perhaps do also with 1000 child servers for the NSD. see if it can keep
+up and the result if it cannot keep up sending to child servers.
+
+3.6. IPC FORKS
+--------------
+Infinite loop of reloads on a server. Has 10 child servers. wait.
+See if it runs out of sockets, file descriptors, etc.
+
 4. Random mess test
 -------------------
 Setup N servers. In  master->intermed->slave,
@@ -139,7 +154,9 @@ Perhaps also include never respond entries (fake address).
   Let them work out what version to run.
 - Provide updated zone for a master.
   See what happens.
-- Send random notifies to random servers.
+- Send notifies to the slave servers.
+- Send notifies to the intermed servers.
+- Send notifies to the master servers.
 - Kill some server. Start it again.
 - Kill some server & delete some file (ixfr.db or xfrd.status).
 - run nsdc patch on a server.
@@ -163,3 +180,19 @@ Port NSD to as many platforms as possible
 --------------
 Code has already had 1x review by Wouter, some review by Miek.
 More review (again), Jelte, Wouter. 33000 lines...
+
+7. todo-tests ideas
+-------------------
+7.1. test combinations of configure options and shells.
+"
+run tests with different shells, aka ==-bug
+run tests with different configure options and combinations
+    of them.
+implement this in a xen-like environment so that different OSs can
+be checked.
+run this daily or only when subversion changes
+for each test, run our "test-suite"
+"
+
+7.2.
+rm patch file, check xfrd's behavoir. Refetches zones
