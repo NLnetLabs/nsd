@@ -56,6 +56,7 @@ Or be notified manually (?).
 And test if secondary got the same zone as master.
 By doing a 
 
+(with serial numbers for SOA, to perform serial rollover).
 - secondary starts with a zone filled with garbage (soa=1)
 - axfr an empty zone - only the SOA 	(soa=2)
 - axfr a zone with only little data. 	(soa=3)
@@ -104,6 +105,7 @@ Get zone to expire. Check it does not answer.
 Provide an update. Check it does answer again.
 
 Get zone to expire. Check it does not answer.
+Keep master down so that the zone stays expired.
 Provide no update, but master replies 'zone still at version x',
 by axfr or ixfr. Check it answers again.
 
