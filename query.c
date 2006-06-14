@@ -506,6 +506,9 @@ find_covering_nsec(domain_type *closest_match,
 	assert(closest_match);
 	assert(nsec_rrset);
 
+	/* loop away temporary created domains. For real ones it is &RBTREE_NULL */
+	while (closest_match->node.parent == NULL)
+		closest_match = closest_match->parent; 
 	while (closest_match) {
 		*nsec_rrset = domain_find_rrset(closest_match, zone, TYPE_NSEC);
 		if (*nsec_rrset) {
@@ -950,9 +953,11 @@ answer_authoritative(struct nsd   *nsd,
 
 			while (closest_encloser && !closest_encloser->is_existing)
 				closest_encloser = closest_encloser->parent;
+			log_msg(LOG_INFO, "before recurse into lookupzone");
 			answer_lookup_zone(nsd, q, answer, newnum,
 				closest_match == closest_encloser, 
 				closest_match, closest_encloser);
+			log_msg(LOG_INFO, "after recurse into lookupzone");
 		}
 		if(!added)  /* log the error so operator can find loopig recursors */
 			log_msg(LOG_INFO, "DNAME processing stopped due to loop, qname %s",
