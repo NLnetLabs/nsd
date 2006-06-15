@@ -15,6 +15,7 @@
 #include "xfrd.h"
 #include "xfrd-tcp.h"
 #include "xfrd-disk.h"
+#include "xfrd-notify.h"
 #include "options.h"
 #include "util.h"
 #include "netio.h"
@@ -32,8 +33,6 @@
 #define XFRD_MAX_ROUNDS 3 /* number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
-#define XFRD_NOTIFY_RETRY_TIMOUT 15 /* seconds between retries sending NOTIFY */
-#define XFRD_NOTIFY_MAX_NUM 5 /* number of attempts to send NOTIFY */
 
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
@@ -52,9 +51,6 @@ static void xfrd_handle_zone(netio_type *netio,
 	netio_handler_type *handler, netio_event_types_type event_types);
 /* handle incoming notification message. soa can be NULL. true if transfer needed. */
 static int xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
-/* handle zone notify send */
-static void xfrd_handle_notify_send(netio_type *netio, 
-	netio_handler_type *handler, netio_event_types_type event_types);
 
 /* call with buffer just after the soa dname. returns 0 on error. */
 static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa);
@@ -73,19 +69,13 @@ static void xfrd_set_reload_timeout();
 static void xfrd_handle_reload(netio_type *netio, 
 	netio_handler_type *handler, netio_event_types_type event_types);
 
-/* send notifications to all in the notify list */
-static void xfrd_send_notify(xfrd_zone_t* zone);
 /* send expiry notifications to nsd */
 static void xfrd_send_expire_notification(xfrd_zone_t* zone);
 /* send ixfr request, returns fd of connection to read on */
 static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone);
 
-/* send packet via udp (returns UDP fd source socket) to acl addr. -1 on failure. */
-static int xfrd_send_udp(acl_options_t* acl, buffer_type* packet);
 /* read data via udp */
 static void xfrd_udp_read(xfrd_zone_t* zone);
-/* read from udp port packet into buffer, 0 on failure */
-static int xfrd_udp_read_packet(buffer_type* packet, int fd);
 
 /* find master by notify number */
 static int find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy);
@@ -489,127 +479,6 @@ xfrd_time()
 	return xfrd->current_time;
 }
 
-/* stop sending notifies */
-static void 
-xfrd_notify_disable(xfrd_zone_t* zone)
-{
-	if(zone->notify_send_handler.fd != -1) {
-		close(zone->notify_send_handler.fd);
-	}
-	zone->notify_current = 0;
-	zone->notify_send_handler.fd = -1;
-	zone->notify_send_handler.timeout = 0;
-}
-
-/* returns if the notify send is done for the notify_current acl */
-static int 
-xfrd_handle_notify_reply(xfrd_zone_t* zone, buffer_type* packet) 
-{
-	if((OPCODE(packet) != OPCODE_NOTIFY) ||
-		(QR(packet) == 0)) {
-		log_msg(LOG_ERR, "xfrd: zone %s: received bad notify reply opcode/flags",
-			zone->apex_str);
-		return 0;
-	}
-	/* we know it is OPCODE NOTIFY, QUERY_REPLY and for this zone */
-	if(ID(packet) != zone->notify_query_id) {
-		log_msg(LOG_ERR, "xfrd: zone %s: received notify-ack with bad ID",
-			zone->apex_str);
-		return 0;
-	}
-	/* could check tsig, but why. The reply does not cause processing. */
-	if(RCODE(packet) != RCODE_OK) {
-		log_msg(LOG_ERR, "xfrd: zone %s: received notify response error %s from %s",
-			zone->apex_str, rcode2str(RCODE(packet)),
-			zone->notify_current->ip_address_spec);
-		if(RCODE(packet) == RCODE_IMPL)
-			return 1; /* rfc1996: notimpl notify reply: consider retries done */
-		return 0;
-	}
-	log_msg(LOG_INFO, "xfrd: zone %s: host %s acknowledges notify",
-		zone->apex_str, zone->notify_current->ip_address_spec);
-	return 1;
-}
-
-static void
-xfrd_notify_next(xfrd_zone_t* zone)
-{
-	/* advance to next in acl */
-	zone->notify_current = zone->notify_current->next;
-	zone->notify_retry = 0;
-	if(zone->notify_current == 0) {
-		log_msg(LOG_INFO, "xfrd: zone %s: no more notify-send acls. stop notify.", 
-			zone->apex_str);
-		xfrd_notify_disable(zone);
-		return;
-	}
-}
-
-static void 
-xfrd_notify_send_udp(xfrd_zone_t* zone)
-{
-	if(zone->notify_send_handler.fd != -1)
-		close(zone->notify_send_handler.fd);
-	zone->notify_send_handler.fd = -1;
-	/* Set timeout for next reply */
-	zone->notify_timeout.tv_sec = xfrd_time() + XFRD_NOTIFY_RETRY_TIMOUT;
-	/* send NOTIFY to secondary. */
-	xfrd_setup_packet(xfrd->packet, TYPE_SOA, CLASS_IN, zone->apex);
-	zone->notify_query_id = ID(xfrd->packet);
-	OPCODE_SET(xfrd->packet, OPCODE_NOTIFY);
-	AA_SET(xfrd->packet);
-	if(zone->soa_nsd_acquired != 0) {
-		/* add current SOA to answer section */
-		ANCOUNT_SET(xfrd->packet, 1);
-		xfrd_write_soa_buffer(xfrd->packet, zone, &zone->soa_nsd);
-	}
-#ifdef TSIG
-	if(zone->notify_current->key_options) {
-		xfrd_tsig_sign_request(xfrd->packet, &zone->notify_tsig, zone->notify_current);
-	}
-#endif /* TSIG */
-	buffer_flip(xfrd->packet);
-	zone->notify_send_handler.fd = xfrd_send_udp(zone->notify_current, xfrd->packet);
-	if(zone->notify_send_handler.fd == -1) {
-		log_msg(LOG_ERR, "xfrd: zone %s: could not send notify #%d to %s",
-			zone->apex_str, zone->notify_retry,
-			zone->notify_current->ip_address_spec);
-		return;
-	}
-	log_msg(LOG_INFO, "xfrd: zone %s: sent notify #%d to %s",
-		zone->apex_str, zone->notify_retry,
-		zone->notify_current->ip_address_spec);
-}
-
-static void 
-xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio), 
-	netio_handler_type *handler, netio_event_types_type event_types)
-{
-	xfrd_zone_t* zone = (xfrd_zone_t*)handler->user_data;
-	assert(zone->notify_current);
-	if(event_types & NETIO_EVENT_READ) {
-		log_msg(LOG_INFO, "xfrd: zone %s: read notify ACK", zone->apex_str);
-		assert(handler->fd != -1);
-		if(xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.fd)) {
-			if(xfrd_handle_notify_reply(zone, xfrd->packet))
-				xfrd_notify_next(zone);
-		}
-	} else if(event_types & NETIO_EVENT_TIMEOUT) {
-		log_msg(LOG_INFO, "xfrd: zone %s: notify timeout", zone->apex_str);
-		zone->notify_retry++; /* timeout, try again */
-		if(zone->notify_retry > XFRD_NOTIFY_MAX_NUM) {
-			log_msg(LOG_ERR, "xfrd: zone %s: max notify send count reached, %s unreachable", 
-				zone->apex_str, zone->notify_current->ip_address_spec);
-			xfrd_notify_next(zone);
-		}
-	}
-	/* see if notify is still enabled */
-	if(zone->notify_current) {
-		/* try again */
-		xfrd_notify_send_udp(zone);
-	}
-}
-
 static void 
 xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 {
@@ -764,19 +633,6 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 }
 
 static void 
-xfrd_send_notify(xfrd_zone_t* zone)
-{
-	if(!zone->zone_options->notify) {
-		return; /* no notify acl, nothing to do */
-	}
-	zone->notify_retry = 0;
-	zone->notify_current = zone->zone_options->notify;
-	zone->notify_send_handler.timeout = &zone->notify_timeout;
-	zone->notify_timeout.tv_sec = xfrd_time();
-	zone->notify_timeout.tv_nsec = 0;
-}
-
-static void 
 xfrd_send_expire_notification(xfrd_zone_t* zone)
 {
 	if(zone->dirty)
@@ -788,7 +644,7 @@ xfrd_send_expire_notification(xfrd_zone_t* zone)
 	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
 }
 
-static int 
+int 
 xfrd_udp_read_packet(buffer_type* packet, int fd)
 {
 	ssize_t received;
@@ -837,7 +693,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 	}
 }
 
-static int 
+int 
 xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 {
 	struct sockaddr_storage to;
@@ -1503,4 +1359,10 @@ xfrd_prepare_zones_for_reload()
 			}
 		}
 	}
+}
+
+struct buffer* 
+xfrd_get_temp_buffer()
+{
+	return xfrd->packet;
 }

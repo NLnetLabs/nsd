@@ -66,8 +66,11 @@ struct xfrd_state {
 	/* xfrd shutdown flag */
 	uint8_t shutdown;
 
-	/* tree of zones, by apex name, contains xfrd_zone_t* */
+	/* tree of zones, by apex name, contains xfrd_zone_t*. Only secondary zones. */
 	rbtree_t *zones;
+	
+	/* tree of zones, by apex name, contains notify_zone_t*. All zones. */
+	rbtree_t *notify_zones;
 };
 
 /*
@@ -201,6 +204,22 @@ void xfrd_set_refresh_now(xfrd_zone_t* zone);
  * if too many rounds of requests, sets timer for next retry.
  */
 void xfrd_make_request(xfrd_zone_t* zone);
+
+/* 
+ * send packet via udp (returns UDP fd source socket) to acl addr. 
+ * returns -1 on failure. 
+ */
+int xfrd_send_udp(acl_options_t* acl, buffer_type* packet);
+
+/* 
+ * read from udp port packet into buffer, returns 0 on failure 
+ */
+int xfrd_udp_read_packet(buffer_type* packet, int fd);
+
+/*
+ * Get a static buffer for temporary use (to build a packet).
+ */
+struct buffer* xfrd_get_temp_buffer();
 
 /*
  * TSIG sign outgoing request. Call if acl has a key.
