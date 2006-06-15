@@ -4,6 +4,8 @@
 	- created cleaner split of notify send and xfr code.
 	  Still in the xfr process, because it is a convenient location.
 	- fixed bug where notify sending would read from wrong fd.
+	- send master zone notifies.
+	  Does not skips master zone SOA INFO updates.
 
 14 June 2006: Wouter
 	- fixed crash bug when dnssec/NSEC enabled and query DNAME

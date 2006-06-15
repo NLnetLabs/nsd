@@ -190,6 +190,25 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	}
 }
 
+static void
+notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
+{
+	if(!zone->options->notify) {
+		return; /* no notify acl, nothing to do */
+	}
+
+	if(new_soa == NULL)
+		memset(zone->current_soa, 0, sizeof(xfrd_soa_t));
+	else
+		memcpy(zone->current_soa, new_soa, sizeof(xfrd_soa_t));
+	
+	zone->notify_retry = 0;
+	zone->notify_current = zone->options->notify;
+	zone->notify_send_handler.timeout = &zone->notify_timeout;
+	zone->notify_timeout.tv_sec = xfrd_time();
+	zone->notify_timeout.tv_nsec = 0;
+}
+
 void 
 xfrd_send_notify(rbtree_t* tree, const dname_type* apex, struct xfrd_soa* new_soa)
 {
@@ -198,16 +217,24 @@ xfrd_send_notify(rbtree_t* tree, const dname_type* apex, struct xfrd_soa* new_so
 		rbtree_search(tree, apex);
 	assert(zone);
 
-	if(!zone->options->notify) {
-		return; /* no notify acl, nothing to do */
-	}
-	memcpy(zone->current_soa, new_soa, sizeof(struct xfrd_soa));
+	notify_enable(zone, new_soa);
+}
 
-	zone->notify_retry = 0;
-	zone->notify_current = zone->options->notify;
-	zone->notify_send_handler.timeout = &zone->notify_timeout;
-	zone->notify_timeout.tv_sec = xfrd_time();
-	zone->notify_timeout.tv_nsec = 0;
+void 
+notify_handle_master_zone_soainfo(rbtree_t* tree,
+	const dname_type* apex, struct xfrd_soa* new_soa)
+{
+	/* lookup the zone */
+	struct notify_zone_t* zone = (struct notify_zone_t*)
+		rbtree_search(tree, apex);
+	assert(zone);
+
+	/* check if SOA changed */
+	if( (new_soa == NULL && zone->current_soa->serial == 0) ||
+		(new_soa && new_soa->serial == zone->current_soa->serial))
+		return;
+
+	notify_enable(zone, new_soa);
 }
 
 void close_notify_fds(rbtree_t* tree)

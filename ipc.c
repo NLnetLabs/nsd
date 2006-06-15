@@ -16,6 +16,7 @@
 #include "nsd.h"
 #include "namedb.h"
 #include "xfrd.h"
+#include "xfrd-notify.h"
 
 /* set is_ok for the zone according to the zone message */
 static zone_type* handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet);
@@ -490,50 +491,54 @@ static void
 xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 {
 	xfrd_soa_t soa;
+	xfrd_soa_t* soa_ptr = &soa;
 	xfrd_zone_t* zone;
 	/* dname is sent in memory format */
 	const dname_type* dname = (const dname_type*)buffer_begin(packet);
 
 	/* find zone and decode SOA */
 	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
-	if(!zone) {
-		log_msg(LOG_ERR, "xfrd: zone %s not configured or not secondary, but ipc of SOA INFO",
-			dname_to_string(dname,0));
-		return;
-	}
 	buffer_skip(packet, dname_total_size(dname));
+
 	if(!buffer_available(packet, sizeof(uint32_t)*6 + sizeof(uint8_t)*2)) {
 		/* NSD has zone without any info */
-		log_msg(LOG_INFO, "SOAINFO for %s lost zone", dname_to_string(dname,0));
-
-		xfrd_handle_incoming_soa(zone, NULL, xfrd_time());
-		return;
+		log_msg(LOG_INFO, "SOAINFO for %s lost zone", 
+			dname_to_string(dname,0));
+		soa_ptr = NULL;
+	} else {
+		/* read soa info */
+		memset(&soa, 0, sizeof(soa));
+		/* left out type, klass, count for speed */
+		soa.type = htons(TYPE_SOA);
+		soa.klass = htons(CLASS_IN);
+		soa.ttl = htonl(buffer_read_u32(packet));
+		soa.rdata_count = htons(7);
+		soa.prim_ns[0] = buffer_read_u8(packet);
+		if(!buffer_available(packet, soa.prim_ns[0]))
+			return;
+		buffer_read(packet, soa.prim_ns+1, soa.prim_ns[0]);
+		soa.email[0] = buffer_read_u8(packet);
+		if(!buffer_available(packet, soa.email[0]))
+			return;
+		buffer_read(packet, soa.email+1, soa.email[0]);
+	
+		soa.serial = htonl(buffer_read_u32(packet));
+		soa.refresh = htonl(buffer_read_u32(packet));
+		soa.retry = htonl(buffer_read_u32(packet));
+		soa.expire = htonl(buffer_read_u32(packet));
+		soa.minimum = htonl(buffer_read_u32(packet));
+		log_msg(LOG_INFO, "SOAINFO for %s %d", 
+			dname_to_string(dname,0), ntohl(soa.serial));
 	}
 
-	/* read soa info */
-	memset(&soa, 0, sizeof(soa));
-	/* left out type, klass, count for speed */
-	soa.type = htons(TYPE_SOA);
-	soa.klass = htons(CLASS_IN);
-	soa.ttl = htonl(buffer_read_u32(packet));
-	soa.rdata_count = htons(7);
-	soa.prim_ns[0] = buffer_read_u8(packet);
-	if(!buffer_available(packet, soa.prim_ns[0]))
+	if(!zone) {
+		log_msg(LOG_ERR, "xfrd: zone %s master zone updated",
+			dname_to_string(dname,0));
+		notify_handle_master_zone_soainfo(xfrd->notify_zones, 
+			dname, soa_ptr);
 		return;
-	buffer_read(packet, soa.prim_ns+1, soa.prim_ns[0]);
-	soa.email[0] = buffer_read_u8(packet);
-	if(!buffer_available(packet, soa.email[0]))
-		return;
-	buffer_read(packet, soa.email+1, soa.email[0]);
-
-	soa.serial = htonl(buffer_read_u32(packet));
-	soa.refresh = htonl(buffer_read_u32(packet));
-	soa.retry = htonl(buffer_read_u32(packet));
-	soa.expire = htonl(buffer_read_u32(packet));
-	soa.minimum = htonl(buffer_read_u32(packet));
-	log_msg(LOG_INFO, "SOAINFO for %s %d", dname_to_string(dname,0),
-		ntohl(soa.serial));
-	xfrd_handle_incoming_soa(zone, &soa, xfrd_time());
+	}
+	xfrd_handle_incoming_soa(zone, soa_ptr, xfrd_time());
 }
 
 void

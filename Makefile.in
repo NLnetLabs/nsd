@@ -438,7 +438,7 @@ dns.o: dns.c config.h dns.h zonec.h namedb.h dname.h buffer.h \
 edns.o: edns.c config.h dns.h edns.h buffer.h region-allocator.h util.h
 ipc.o: ipc.c config.h ipc.h netio.h region-allocator.h buffer.h util.h \
   xfrd-tcp.h nsd.h dns.h edns.h namedb.h dname.h rbtree.h xfrd.h \
-  options.h tsig.h
+  options.h tsig.h xfrd-notify.h
 iterated_hash.o: iterated_hash.c config.h iterated_hash.h
 namedb.o: namedb.c config.h namedb.h dname.h buffer.h region-allocator.h \
   util.h dns.h rbtree.h
