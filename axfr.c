@@ -182,7 +182,8 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 				RCODE_SET(q->packet, RCODE_REFUSE);
 				return QUERY_PROCESSED;
 			}
-			log_msg(LOG_INFO, "axfr admitted acl %s %s", acl->ip_address_spec, acl->key_name);
+			log_msg(LOG_INFO, "axfr admitted acl %s %s", acl->ip_address_spec, 
+				acl->key_name?acl->key_name:"NOKEY");
 			return query_axfr(nsd, q);
 		}
 	case TYPE_IXFR:

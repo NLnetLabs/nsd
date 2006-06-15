@@ -532,7 +532,7 @@ xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 	}
 
 	if(!zone) {
-		log_msg(LOG_ERR, "xfrd: zone %s master zone updated",
+		log_msg(LOG_INFO, "xfrd: zone %s master zone updated",
 			dname_to_string(dname,0));
 		notify_handle_master_zone_soainfo(xfrd->notify_zones, 
 			dname, soa_ptr);

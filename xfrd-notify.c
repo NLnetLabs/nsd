@@ -42,7 +42,7 @@ notify_disable(struct notify_zone_t* zone)
 	}
 	zone->notify_current = 0;
 	zone->notify_send_handler.fd = -1;
-	zone->notify_send_handler.timeout = 0;
+	zone->notify_send_handler.timeout = NULL;
 }
 
 void 
@@ -176,14 +176,17 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 		}
 	} else if(event_types & NETIO_EVENT_TIMEOUT) {
 		log_msg(LOG_INFO, "xfrd: zone %s: notify timeout", zone->apex_str);
-		zone->notify_retry++; /* timeout, try again */
+		/* timeout, try again */
+	}
+	/* see if notify is still enabled */
+	if(zone->notify_current) {
+		zone->notify_retry++; 
 		if(zone->notify_retry > XFRD_NOTIFY_MAX_NUM) {
 			log_msg(LOG_ERR, "xfrd: zone %s: max notify send count reached, %s unreachable", 
 				zone->apex_str, zone->notify_current->ip_address_spec);
 			xfrd_notify_next(zone);
 		}
 	}
-	/* see if notify is still enabled */
 	if(zone->notify_current) {
 		/* try again */
 		xfrd_notify_send_udp(zone, packet);

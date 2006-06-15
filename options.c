@@ -265,38 +265,19 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 			(acl->blocked?"BLOCKED":acl->key_name));
 		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
 			if(!match)
+			{
 				match = acl; /* remember first match */
+				found_match=number;
+			}
 			if(acl->blocked) {
 				if(reason)
 					*reason = acl;
 				return -1;
 			}
-			found_match=number;
 		}
 		number++;
 		acl = acl->next;
 	}
-
-#ifdef TSIG
-	if(match && !match->nokey && !match->blocked) {
-		/* check TSIG */
-		log_msg(LOG_INFO, "TSIG check for match %s %s",
-			match->ip_address_spec, match->key_name);
-		if(q->tsig.status != TSIG_OK) {
-			log_msg(LOG_ERR, "query has no tsig");
-			return -1;
-		}
-		if(q->tsig.key != match->key_options->tsig_key) {
-			log_msg(LOG_ERR, "query tsig wrong key");
-			return -1;
-		}
-		if(strcmp(q->tsig.algorithm->short_name,
-			match->key_options->algorithm) != 0) {
-			log_msg(LOG_ERR, "query tsig wrong algorithm");
-			return -1;
-		}
-	}
-#endif /* TSIG */
 
 	if(reason)
 		*reason = match;
@@ -312,7 +293,7 @@ int acl_addr_matches(acl_options_t* acl, struct query* q)
 		struct sockaddr_in6* addr = (struct sockaddr_in6*)&q->addr;
 		if(addr_storage->ss_family != AF_INET6) 
 			return 0;
-		if(acl->port != 0 && acl->port != addr->sin6_port) 
+		if(acl->port != 0 && acl->port != ntohs(addr->sin6_port)) 
 			return 0;
 		switch(acl->rangetype) {
 		case acl_range_mask:
@@ -343,7 +324,7 @@ int acl_addr_matches(acl_options_t* acl, struct query* q)
 		struct sockaddr_in* addr = (struct sockaddr_in*)&q->addr;
 		if(addr->sin_family != AF_INET) 
 			return 0;
-		if(acl->port != 0 && acl->port != addr->sin_port) 
+		if(acl->port != 0 && acl->port != ntohs(addr->sin_port)) 
 			return 0;
 		switch(acl->rangetype) {
 		case acl_range_mask:
@@ -427,6 +408,10 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 		log_msg(LOG_INFO, "keymatch fail query has no TSIG");
 		return 0; /* query has no TSIG */
 	}
+	if(q->tsig.error_code != TSIG_ERROR_NOERROR) {
+		log_msg(LOG_INFO, "keymatch fail, tsig has error");
+		return 0; /* some tsig error */
+	}
 	if(!acl->key_options->tsig_key) {
 		log_msg(LOG_INFO, "keymatch fail no config");
 		return 0; /* key not properly configged */
@@ -436,7 +421,11 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 		log_msg(LOG_INFO, "keymatch fail wrong key name");
 		return 0; /* wrong key name */
 	}
-	/* algorithm is checked in tsig_from_query() call later */
+	if(strcmp(q->tsig.algorithm->short_name,
+		acl->key_options->algorithm) != 0) {
+		log_msg(LOG_ERR, "query tsig wrong algorithm");
+		return 0; /* no such algo */
+	}
 	return 1;
 #else
 	return 0;
