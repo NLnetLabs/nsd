@@ -10,6 +10,7 @@
 	- fixed bug where tsig keys are checked for twice, but not error_code.
 	- fixed notify send retry counting.
 	- added test tpkg for notifies from nsd master to nsd slave.
+	- nsd-checkconf flags if you set allow-notify without request-xfr.
 
 14 June 2006: Wouter
 	- fixed crash bug when dnssec/NSEC enabled and query DNAME

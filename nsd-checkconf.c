@@ -286,6 +286,12 @@ additional_checks(nsd_options_t* opt, const char* filename)
 			fprintf(stderr, "%s: cannot parse zone name syntax for zone %s.\n", filename, zone->name);
 			errors ++;
 		}
+		if(zone->allow_notify && !zone->request_xfr) {
+			fprintf(stderr, "%s: zone %s has allow-notify but no request-xfr"
+				" items. Where can it get a zone transfer when a notify "
+				"is received?\n", filename, zone->name);
+			errors ++;
+		}
 	}
 
 	for(key = opt->keys; key; key=key->next)
@@ -364,7 +370,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 		errors ++;
 	}
 	if(errors != 0) {
-		fprintf(stderr, "%s: parse ok %d zones, %d keys, but %d semantic errors.\n",
+		fprintf(stderr, "%s: parsed %d zones, %d keys, with %d semantic errors.\n",
 			filename, (int)nsd_options_num_zones(opt), 
 			(int)opt->numkeys, errors);
 	}
