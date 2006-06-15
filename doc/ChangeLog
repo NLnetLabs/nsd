@@ -1,6 +1,9 @@
 15 June 2006: Wouter
 	- In preparation of notify send overhaul, moved the notify
 	  send code to xfrd-notify.c and h files.
+	- created cleaner split of notify send and xfr code.
+	  Still in the xfr process, because it is a convenient location.
+	- fixed bug where notify sending would read from wrong fd.
 
 14 June 2006: Wouter
 	- fixed crash bug when dnssec/NSEC enabled and query DNAME

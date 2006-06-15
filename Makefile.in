@@ -485,7 +485,7 @@ xfrd-disk.o: xfrd-disk.c config.h xfrd-disk.h xfrd.h netio.h \
   region-allocator.h rbtree.h namedb.h dname.h buffer.h util.h dns.h \
   options.h tsig.h nsd.h edns.h
 xfrd-notify.o: xfrd-notify.c config.h xfrd-notify.h tsig.h buffer.h \
-  region-allocator.h util.h dname.h netio.h xfrd.h rbtree.h namedb.h \
+  region-allocator.h util.h dname.h netio.h rbtree.h xfrd.h namedb.h \
   dns.h options.h xfrd-tcp.h packet.h
 xfrd-tcp.o: xfrd-tcp.c config.h xfrd-tcp.h buffer.h region-allocator.h \
   util.h packet.h dns.h namedb.h dname.h rbtree.h options.h xfrd.h \

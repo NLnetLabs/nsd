@@ -158,16 +158,7 @@ struct xfrd_zone {
 	uint8_t msg_is_ixfr; /* 1:IXFR detected. 2:middle IXFR SOA seen. */
 #ifdef TSIG
 	tsig_record_type tsig; /* tsig state for IXFR/AXFR */
-	tsig_record_type notify_tsig; /* tsig state for notify */
 #endif
-
-	/* notify sending handler */
-	/* Not saved on disk (i.e. kill of daemon stops notifies) */
-	netio_handler_type notify_send_handler;
-	struct timespec notify_timeout;
-	acl_options_t* notify_current; /* current slave to notify */
-	uint8_t notify_retry; /* how manieth retry in sending to current */
-	uint16_t notify_query_id;
 };
 
 enum xfrd_packet_result {
@@ -238,6 +229,9 @@ void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 
 /* send expiry notify for all zones to nsd (sets all dirty). */
 void xfrd_send_expy_all_zones();
+
+/* copy SOA info from rr to soa struct. */
+void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);
 
 /* check for failed updates - it is assumed that now the reload has
    finished, and all zone SOAs have been sent. */

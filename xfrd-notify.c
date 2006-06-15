@@ -21,17 +21,21 @@
 #define XFRD_NOTIFY_MAX_NUM 5 /* number of attempts to send NOTIFY */
 
 /* stop sending notifies */
-static void xfrd_notify_disable(xfrd_zone_t* zone);
+static void notify_disable(struct notify_zone_t* zone);
 
 /* returns if the notify send is done for the notify_current acl */
-static int xfrd_handle_notify_reply(xfrd_zone_t* zone, buffer_type* packet);
+static int xfrd_handle_notify_reply(struct notify_zone_t* zone, buffer_type* packet);
 
-static void xfrd_notify_next(xfrd_zone_t* zone);
+/* handle zone notify send */
+static void xfrd_handle_notify_send(netio_type *netio,
+        netio_handler_type *handler, netio_event_types_type event_types);
 
-static void xfrd_notify_send_udp(xfrd_zone_t* zone, buffer_type* packet);
+static void xfrd_notify_next(struct notify_zone_t* zone);
+
+static void xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet);
 
 static void 
-xfrd_notify_disable(xfrd_zone_t* zone)
+notify_disable(struct notify_zone_t* zone)
 {
 	if(zone->notify_send_handler.fd != -1) {
 		close(zone->notify_send_handler.fd);
@@ -41,8 +45,44 @@ xfrd_notify_disable(xfrd_zone_t* zone)
 	zone->notify_send_handler.timeout = 0;
 }
 
+void 
+init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
+	const dname_type* apex, zone_options_t* options, zone_type* dbzone)
+{
+	struct notify_zone_t* not = (struct notify_zone_t*)
+		region_alloc(region, sizeof(struct notify_zone_t));
+	memset(not, 0, sizeof(struct notify_zone_t));
+	not->apex = apex;
+	not->apex_str = options->name;
+	not->node.key = not->apex;
+	not->options = options;
+
+	/* if master zone and have a SOA */
+	not->current_soa = (struct xfrd_soa*)region_alloc(region,
+		sizeof(struct xfrd_soa));
+	memset(not->current_soa, 0, sizeof(struct xfrd_soa));
+	if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
+		xfrd_copy_soa(not->current_soa, dbzone->soa_rrset->rrs);
+	}
+
+	not->notify_send_handler.fd = -1;
+	not->notify_send_handler.fd = -1;
+	not->notify_send_handler.timeout = 0;
+	not->notify_send_handler.user_data = not;
+	not->notify_send_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+	not->notify_send_handler.event_handler = xfrd_handle_notify_send;
+	netio_add_handler(netio, &not->notify_send_handler);
+
+#ifdef TSIG
+	tsig_create_record(&not->notify_tsig, region);
+#endif /* TSIG */
+	notify_disable(not);
+	
+	rbtree_insert(tree, (rbnode_t*)not);
+}
+
 static int 
-xfrd_handle_notify_reply(xfrd_zone_t* zone, buffer_type* packet) 
+xfrd_handle_notify_reply(struct notify_zone_t* zone, buffer_type* packet) 
 {
 	if((OPCODE(packet) != OPCODE_NOTIFY) ||
 		(QR(packet) == 0)) {
@@ -71,7 +111,7 @@ xfrd_handle_notify_reply(xfrd_zone_t* zone, buffer_type* packet)
 }
 
 static void
-xfrd_notify_next(xfrd_zone_t* zone)
+xfrd_notify_next(struct notify_zone_t* zone)
 {
 	/* advance to next in acl */
 	zone->notify_current = zone->notify_current->next;
@@ -79,13 +119,13 @@ xfrd_notify_next(xfrd_zone_t* zone)
 	if(zone->notify_current == 0) {
 		log_msg(LOG_INFO, "xfrd: zone %s: no more notify-send acls. stop notify.", 
 			zone->apex_str);
-		xfrd_notify_disable(zone);
+		notify_disable(zone);
 		return;
 	}
 }
 
 static void 
-xfrd_notify_send_udp(xfrd_zone_t* zone, buffer_type* packet)
+xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 {
 	if(zone->notify_send_handler.fd != -1)
 		close(zone->notify_send_handler.fd);
@@ -97,10 +137,10 @@ xfrd_notify_send_udp(xfrd_zone_t* zone, buffer_type* packet)
 	zone->notify_query_id = ID(packet);
 	OPCODE_SET(packet, OPCODE_NOTIFY);
 	AA_SET(packet);
-	if(zone->soa_nsd_acquired != 0) {
+	if(zone->current_soa->serial != 0) {
 		/* add current SOA to answer section */
 		ANCOUNT_SET(packet, 1);
-		xfrd_write_soa_buffer(packet, zone, &zone->soa_nsd);
+		xfrd_write_soa_buffer(packet, zone->apex, zone->current_soa);
 	}
 #ifdef TSIG
 	if(zone->notify_current->key_options) {
@@ -120,17 +160,17 @@ xfrd_notify_send_udp(xfrd_zone_t* zone, buffer_type* packet)
 		zone->notify_current->ip_address_spec);
 }
 
-void 
+static void 
 xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio), 
 	netio_handler_type *handler, netio_event_types_type event_types)
 {
-	xfrd_zone_t* zone = (xfrd_zone_t*)handler->user_data;
+	struct notify_zone_t* zone = (struct notify_zone_t*)handler->user_data;
 	buffer_type* packet = xfrd_get_temp_buffer();
 	assert(zone->notify_current);
 	if(event_types & NETIO_EVENT_READ) {
 		log_msg(LOG_INFO, "xfrd: zone %s: read notify ACK", zone->apex_str);
 		assert(handler->fd != -1);
-		if(xfrd_udp_read_packet(packet, zone->zone_handler.fd)) {
+		if(xfrd_udp_read_packet(packet, zone->notify_send_handler.fd)) {
 			if(xfrd_handle_notify_reply(zone, packet))
 				xfrd_notify_next(zone);
 		}
@@ -151,14 +191,33 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 }
 
 void 
-xfrd_send_notify(xfrd_zone_t* zone)
+xfrd_send_notify(rbtree_t* tree, const dname_type* apex, struct xfrd_soa* new_soa)
 {
-	if(!zone->zone_options->notify) {
+	/* lookup the zone */
+	struct notify_zone_t* zone = (struct notify_zone_t*)
+		rbtree_search(tree, apex);
+	assert(zone);
+
+	if(!zone->options->notify) {
 		return; /* no notify acl, nothing to do */
 	}
+	memcpy(zone->current_soa, new_soa, sizeof(struct xfrd_soa));
+
 	zone->notify_retry = 0;
-	zone->notify_current = zone->zone_options->notify;
+	zone->notify_current = zone->options->notify;
 	zone->notify_send_handler.timeout = &zone->notify_timeout;
 	zone->notify_timeout.tv_sec = xfrd_time();
 	zone->notify_timeout.tv_nsec = 0;
+}
+
+void close_notify_fds(rbtree_t* tree)
+{
+	struct notify_zone_t* zone;
+	RBTREE_FOR(zone, struct notify_zone_t*, tree) 
+	{
+		if(zone->notify_send_handler.fd != -1) {
+			close(zone->notify_send_handler.fd);
+			zone->notify_send_handler.fd = -1;
+		}
+	}
 }

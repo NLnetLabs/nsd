@@ -85,11 +85,11 @@ xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
 
 void 
 xfrd_write_soa_buffer(struct buffer* packet,
-	struct xfrd_zone* zone, struct xfrd_soa* soa)
+	const dname_type* apex, struct xfrd_soa* soa)
 {
 	size_t rdlength_pos;
 	uint16_t rdlength;
-	buffer_write(packet, dname_name(zone->apex), zone->apex->name_size);
+	buffer_write(packet, dname_name(apex), apex->name_size);
 
 	/* already in network order */
 	buffer_write(packet, &soa->type, sizeof(soa->type));
@@ -234,7 +234,7 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	} else {
 		xfrd_setup_packet(tcp->packet, TYPE_IXFR, CLASS_IN, zone->apex);
         	NSCOUNT_SET(tcp->packet, 1);
-		xfrd_write_soa_buffer(tcp->packet, zone, &zone->soa_disk);
+		xfrd_write_soa_buffer(tcp->packet, zone->apex, &zone->soa_disk);
 	}
 	zone->query_id = ID(tcp->packet);
 	zone->msg_seq_nr = 0;

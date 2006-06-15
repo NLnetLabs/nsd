@@ -54,8 +54,6 @@ static int xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
 
 /* call with buffer just after the soa dname. returns 0 on error. */
 static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa);
-/* copy SOA info from rr to soa struct. */
-static void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);
 /* set the zone state to a new state (takes care of expiry messages) */
 static void xfrd_set_zone_state(xfrd_zone_t* zone, enum xfrd_zone_state new_zone_state);
 /* set timer for retry amount (depends on zone_state) */
@@ -184,10 +182,7 @@ xfrd_shutdown()
 			close(zone->zone_handler.fd);
 			zone->zone_handler.fd = -1;
 		}
-		if(zone->notify_send_handler.fd != -1) {
-			close(zone->notify_send_handler.fd);
-			zone->notify_send_handler.fd = -1;
-		}
+		close_notify_fds(xfrd->notify_zones);
 	}
 	exit(0);
 }
@@ -205,15 +200,12 @@ xfrd_init_zones()
 
 	xfrd->zones = rbtree_create(xfrd->region, 
 		(int (*)(const void *, const void *)) dname_compare);
+	xfrd->notify_zones = rbtree_create(xfrd->region,
+		(int (*)(const void *, const void *)) dname_compare);
 	
 	RBTREE_FOR(zone_opt, zone_options_t*, xfrd->nsd->options->zone_options)
 	{
 		log_msg(LOG_INFO, "Zone %s\n", zone_opt->name);
-		if(!zone_is_slave(zone_opt)) {
-			log_msg(LOG_INFO, "xfrd: zone %s, master zone has no outgoing xfr requests", zone_opt->name);
-			continue;
-		}
-
 		dname = dname_parse(xfrd->region, zone_opt->name);
 		if(!dname) {
 			log_msg(LOG_ERR, "xfrd: Could not parse zone name %s.", zone_opt->name);
@@ -226,6 +218,14 @@ xfrd_init_zones()
 		if(!dbzone)
 			log_msg(LOG_INFO, "xfrd: adding empty zone %s\n", zone_opt->name);
 		else log_msg(LOG_INFO, "xfrd: adding filled zone %s\n", zone_opt->name);
+
+		init_notify_send(xfrd->notify_zones, xfrd->netio, 
+			xfrd->region, dname, zone_opt, dbzone);
+		if(!zone_is_slave(zone_opt)) {
+			log_msg(LOG_INFO, "xfrd: zone %s, master zone has no outgoing xfr requests", zone_opt->name);
+			continue;
+		}
+
 		
 		xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
 		memset(xzone, 0, sizeof(xfrd_zone_t));
@@ -257,16 +257,8 @@ xfrd_init_zones()
 		xzone->tcp_waiting = 0;
 		xzone->tcp_conn = -1;
 
-		xzone->notify_send_handler.fd = -1;
-		xzone->notify_send_handler.timeout = 0;
-		xzone->notify_send_handler.user_data = xzone;
-		xzone->notify_send_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
-		xzone->notify_send_handler.event_handler = xfrd_handle_notify_send;
-		netio_add_handler(xfrd->netio, &xzone->notify_send_handler);
-
 #ifdef TSIG
 		tsig_create_record(&xzone->tsig, xfrd->region);
-		tsig_create_record(&xzone->notify_tsig, xfrd->region);
 #endif /* TSIG */
 		
 		if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
@@ -479,7 +471,7 @@ xfrd_time()
 	return xfrd->current_time;
 }
 
-static void 
+void 
 xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 {
 	const uint8_t* rr_ns_wire = dname_name(domain_dname(rdata_atom_domain(rr->rdatas[0])));
@@ -609,7 +601,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
 			xfrd_set_refresh_now(zone);
 		}
-		xfrd_send_notify(zone);
+		xfrd_send_notify(xfrd->notify_zones, zone->apex, &zone->soa_nsd);
 		return;
 	}
 
@@ -629,7 +621,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	}
 	xfrd_set_zone_state(zone, xfrd_zone_refreshing);
 	xfrd_set_refresh_now(zone);
-	xfrd_send_notify(zone);
+	xfrd_send_notify(xfrd->notify_zones, zone->apex, &zone->soa_nsd);
 }
 
 static void 
@@ -774,7 +766,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	zone->msg_rr_count = 0;
 	log_msg(LOG_INFO, "sent query with ID %d", zone->query_id);
         NSCOUNT_SET(xfrd->packet, 1);
-	xfrd_write_soa_buffer(xfrd->packet, zone, &zone->soa_disk);
+	xfrd_write_soa_buffer(xfrd->packet, zone->apex, &zone->soa_disk);
 	if(zone->master->key_options) {
 #ifdef TSIG
 		xfrd_tsig_sign_request(xfrd->packet, &zone->tsig, zone->master);
