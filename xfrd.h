@@ -61,6 +61,7 @@ struct xfrd_state {
 	struct xfrd_tcp *ipc_conn_write;
 	uint8_t need_to_send_reload;
 	uint8_t sending_zone_state;
+	uint8_t	ipc_send_blocked;
 	stack_type* dirty_zones; /* stack of xfrd_zone* */
 
 	/* xfrd shutdown flag */

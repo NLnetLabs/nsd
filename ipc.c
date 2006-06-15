@@ -550,7 +550,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
         int len;
 
 	xfrd_state_t* xfrd = (xfrd_state_t*)handler->user_data;
-        if (event_types & NETIO_EVENT_WRITE)
+        if ((event_types & NETIO_EVENT_WRITE) && !xfrd->ipc_send_blocked)
 	{
 		/* if necessary prepare a packet */
 		if(!xfrd->need_to_send_reload &&
@@ -655,6 +655,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
                 xfrd->shutdown = 1;
                 break;
 	case NSD_SOA_BEGIN:
+		log_msg(LOG_INFO, "xfrd: ipc recv SOA_BEGIN");
 		/* reload starts sending SOA INFOs; don't block */
 		xfrd->parent_soa_info_pass = 1;
 		/* reset the nonblocking ipc write; 
@@ -662,19 +663,37 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 		xfrd->sending_zone_state = 0;
 		break;
 	case NSD_SOA_INFO:
+		log_msg(LOG_INFO, "xfrd: ipc recv SOA_INFO");
 		assert(xfrd->parent_soa_info_pass);
 		xfrd->ipc_is_soa = 1;
 		xfrd->ipc_conn->is_reading = 1;
                 break;
 	case NSD_SOA_END:
 		/* reload has finished */
+		log_msg(LOG_INFO, "xfrd: ipc recv SOA_END");
 		xfrd->parent_soa_info_pass = 0;
+		xfrd->ipc_send_blocked = 0;
+		handler->event_types |= NETIO_EVENT_WRITE;
 		xfrd_check_failed_updates();
 		xfrd_send_expy_all_zones();
 		break;
 	case NSD_PASS_TO_XFRD:
+		log_msg(LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD");
 		xfrd->ipc_is_soa = 0;
 		xfrd->ipc_conn->is_reading = 1;
+		break;
+	case NSD_RELOAD:
+		/* main tells us that reload is done, stop ipc send to main */
+		log_msg(LOG_INFO, "xfrd: ipc recv RELOAD");
+		xfrd->ipc_send_blocked = 1;
+		handler->event_types &= (~NETIO_EVENT_WRITE);
+		xfrd->sending_zone_state = 0;
+		cmd = NSD_QUIT;
+		if(write_socket(handler->fd, &cmd, sizeof(cmd)) == -1) {
+			log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
+				strerror(errno));
+		}
+		log_msg(LOG_INFO, "xfrd: ipc send ackreload");
 		break;
         default:
                 log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d (%d)", (int)cmd,
