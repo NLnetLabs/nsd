@@ -28,8 +28,12 @@ static void send_stat_to_child(struct main_ipc_handler_data* data, int fd);
 static void xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone);
 /* send reload request over the IPC channel */
 static void xfrd_send_reload_req(xfrd_state_t* xfrd);
+/* send quit request over the IPC channel */
+static void xfrd_send_quit_req(xfrd_state_t* xfrd);
 /* get SOA INFO out of IPC packet buffer */
 static void xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet);
+/* perform read part of handle ipc for xfrd */
+static void xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd);
 
 static zone_type*
 handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
@@ -189,6 +193,7 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 
 	switch (mode) {
 	case NSD_RELOAD:
+	case NSD_QUIT:
 	case NSD_REAP_CHILDREN:
 		data->nsd->mode = mode;
 		break;
@@ -438,7 +443,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 		return;
 	}
 	switch (mode) {
-	case NSD_QUIT:
+	case NSD_QUIT_SYNC:
 		nsd->mode = mode;
 		break;
 	default:
@@ -485,6 +490,21 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 	xfrd_prepare_zones_for_reload();
 	xfrd->reload_cmd_last_sent = xfrd_time();
 	xfrd->need_to_send_reload = 0;
+}
+
+static void
+xfrd_send_quit_req(xfrd_state_t* xfrd)
+{
+	sig_atomic_t cmd = NSD_QUIT;
+	xfrd->ipc_send_blocked = 1;
+	xfrd->ipc_handler.event_types &= (~NETIO_EVENT_WRITE);
+	xfrd->sending_zone_state = 0;
+	log_msg(LOG_INFO, "xfrd: ipc send ackreload(quit)");
+	if(write_socket(xfrd->ipc_handler.fd, &cmd, sizeof(cmd)) == -1) {
+		log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
+			strerror(errno));
+	}
+	xfrd->need_to_send_quit = 0;
 }
 
 static void 
@@ -546,14 +566,18 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 	netio_handler_type *handler, 
 	netio_event_types_type event_types)
 {
-        sig_atomic_t cmd;
-        int len;
-
 	xfrd_state_t* xfrd = (xfrd_state_t*)handler->user_data;
+        if ((event_types & NETIO_EVENT_READ))
+	{
+		/* first attempt to read as a signal from main
+		 * could block further send operations */
+		xfrd_handle_ipc_read(handler, xfrd);
+	}
         if ((event_types & NETIO_EVENT_WRITE) && !xfrd->ipc_send_blocked)
 	{
 		/* if necessary prepare a packet */
 		if(!xfrd->need_to_send_reload &&
+			!xfrd->need_to_send_quit &&
 			!xfrd->sending_zone_state &&
 			xfrd->dirty_zones->num > 0) {
 			xfrd_zone_t* zone = (xfrd_zone_t*)stack_pop(xfrd->dirty_zones);
@@ -576,19 +600,27 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 			else if(ret == 1) { /* done */
 				xfrd->sending_zone_state = 0;
 			}
+		} else if(xfrd->need_to_send_quit) {
+			xfrd_send_quit_req(xfrd);
 		} else if(xfrd->need_to_send_reload) {
 			xfrd_send_reload_req(xfrd);
 		}
 		if(!xfrd->need_to_send_reload &&
+			!xfrd->need_to_send_quit &&
 			!xfrd->sending_zone_state &&
 			xfrd->dirty_zones->num == 0) {
 			handler->event_types = NETIO_EVENT_READ; /* disable writing for now */
 		}
 	}
 
-        if (!(event_types & NETIO_EVENT_READ))
-                return;
+}
 	
+static void
+xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
+{
+        sig_atomic_t cmd;
+        int len;
+
 	if(xfrd->ipc_conn->is_reading==2) {
 		buffer_type* tmp = xfrd->ipc_pass;
 		uint32_t acl_num;
@@ -685,15 +717,8 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 	case NSD_RELOAD:
 		/* main tells us that reload is done, stop ipc send to main */
 		log_msg(LOG_INFO, "xfrd: ipc recv RELOAD");
-		xfrd->ipc_send_blocked = 1;
-		handler->event_types &= (~NETIO_EVENT_WRITE);
-		xfrd->sending_zone_state = 0;
-		cmd = NSD_QUIT;
-		if(write_socket(handler->fd, &cmd, sizeof(cmd)) == -1) {
-			log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
-				strerror(errno));
-		}
-		log_msg(LOG_INFO, "xfrd: ipc send ackreload");
+		handler->event_types |= NETIO_EVENT_WRITE;
+		xfrd->need_to_send_quit = 1;
 		break;
         default:
                 log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d (%d)", (int)cmd,

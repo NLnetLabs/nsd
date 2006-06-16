@@ -1,3 +1,11 @@
+16 June 2006: Wouter
+	- Swapped read and write ops in xfrd_handle_ipc, so that a read
+	  of a signal from main can stop further writes.
+	- xfrd will complete its last message before shutting down
+	  the ipc writes and then acknowledge the reload-sync.
+	  This resolves the race where half of ipc messages caused bad
+	  modes from the main.
+
 15 June 2006: Wouter
 	- In preparation of notify send overhaul, moved the notify
 	  send code to xfrd-notify.c and h files.

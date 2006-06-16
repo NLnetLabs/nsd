@@ -562,7 +562,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int cmdsocket, int* xfrd_sock_p)
 {
 	pid_t old_pid;
-	sig_atomic_t cmd = NSD_QUIT;
+	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	zone_type* zone;
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
@@ -871,12 +871,10 @@ server_main(struct nsd *nsd)
 				break;
 			}
 			break;
-		case NSD_QUIT: 
-			/* silent shutdown during reload */
-
+		case NSD_QUIT_SYNC: 
+			/* synchronisation of xfrd, parent and reload */
 			if(reload_listener.fd > 0) {
 				sig_atomic_t cmd = NSD_RELOAD;
-				int ret;
 				/* stop xfrd ipc writes in progress */
 				log_msg(LOG_INFO, "main: ipc send indication reload");
 				if(!write_socket(xfrd_listener.fd, &cmd, sizeof(cmd))) {
@@ -884,17 +882,15 @@ server_main(struct nsd *nsd)
 					"indication to xfrd: %s", strerror(errno));
 				}
 				/* wait for ACK from xfrd */
-				cmd = NSD_QUIT;
 				log_msg(LOG_INFO, "main: wait ipc reply xfrd");
-				ret = read(xfrd_listener.fd, &cmd, sizeof(cmd));
-				if(ret == -1) {
-					log_msg(LOG_ERR, "server_main: "
-					"could not read xfrd ack: %s", strerror(errno));
-				}
-				log_msg(LOG_INFO, "main: ipc reply xfrd %d %d", ret, cmd);
-				assert(ret==0 || cmd == NSD_QUIT);
+			}
+			nsd->mode = NSD_RUN;
+			break;
+		case NSD_QUIT: 
+			/* silent shutdown during reload */
+			if(reload_listener.fd > 0) {
 				/* acknowledge the quit, to sync reload that we will really quit now */
-				cmd = NSD_RELOAD;
+				sig_atomic_t cmd = NSD_RELOAD;
 				log_msg(LOG_INFO, "main: ipc ack reload");
 				if(!write_socket(reload_listener.fd, &cmd, sizeof(cmd))) {
 					log_msg(LOG_ERR, "server_main: "

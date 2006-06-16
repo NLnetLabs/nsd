@@ -54,6 +54,11 @@ struct nsd_options;
  * xfrd then knows that reload phase is over.
  */
 #define NSD_SOA_END 10
+/*
+ * QUIT_SYNC is sent to signify a synchronisation of ipc
+ * channel content during reload
+ */
+#define NSD_QUIT_SYNC 11
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U
