@@ -31,6 +31,8 @@ SERVER
 - check if close_all_sockets in server.c also needs to close the parent/child sockets.
 - check if after forks you need to close sockets, i.e. if after a loop of reloads/...
   you start running out of fds.
+- NSEC3: byte length of hashname. Remove BINARY20 type. 
+  Fix so that it works with DNAME redirection to something that is NXdomain.
 
 SECURITY
 
