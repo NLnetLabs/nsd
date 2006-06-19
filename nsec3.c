@@ -546,7 +546,6 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 	struct answer *answer, struct domain* closest_encloser, 
 	struct namedb* db, const dname_type* qname)
 {
-	log_msg(LOG_INFO, "nsec answer auth, rcode %d", RCODE(query->packet));
 	if(!query->zone->nsec3_rrset)
 		return;
 	assert(match);

@@ -957,22 +957,17 @@ answer_authoritative(struct nsd   *nsd,
 
 			while (closest_encloser && !closest_encloser->is_existing)
 				closest_encloser = closest_encloser->parent;
-			log_msg(LOG_INFO, "before recurse into lookupzone, eco %d",
-				RCODE(q->packet));
 			answer_lookup_zone(nsd, q, answer, newnum,
 				closest_match == closest_encloser, 
 				closest_match, closest_encloser, newname);
-			log_msg(LOG_INFO, "after recurse into lookupzone");
 		}
-		if(!added)  /* log the error so operator can find loopig recursors */
+		if(!added)  /* log the error so operator can find looping recursors */
 			log_msg(LOG_INFO, "DNAME processing stopped due to loop, qname %s",
 				dname_to_string(q->qname, NULL));
 		return;
 	} else if (domain_wildcard_child(closest_encloser)) {
 		/* Generate the domain from the wildcard.  */
 		domain_type *wildcard_child = domain_wildcard_child(closest_encloser);
-		log_msg(LOG_INFO, "instantiating wildcard %s", dname_to_string(
-			domain_dname(wildcard_child), NULL));
 
 		match = (domain_type *) region_alloc(q->region,
 						     sizeof(domain_type));
@@ -1043,8 +1038,6 @@ answer_authoritative(struct nsd   *nsd,
 		return; /* nsec3 collision failure */
 	}
 #endif
-	log_msg(LOG_INFO, "to the answer match=%s", match?dname_to_string(domain_dname(match),
-		NULL):"none");
 	if (match) {
 		answer_domain(nsd, q, answer, match, original);
 	} else {
