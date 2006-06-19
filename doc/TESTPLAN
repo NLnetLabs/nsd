@@ -16,60 +16,82 @@ Any more old features?
 
 2. Minor Features
 -----------------
-Some minor featured for the test:
-- DNAME support - there is already extensive DNAME tests.
-- NSEC3 support - use the perl automated nsec3 test
-	- port to tpkg perhaps.
+Some minor features for the test:
 
-- NSID support - run NSD with different NSIDs
-	- zero length
-	- very long length
-	- 012345678 and query for different things.
-		- query OK things.
+2.1. DNAME
+----------
+DNAME support - there are already extensive DNAME tests.
+
+2.2. NSEC3
+----------
+NSEC3 support 
+	- use the perl automated nsec3 test
+		- port to tpkg perhaps.
+
+Note NSEC3 hash length byte to be implemented, test against others.
+Test interoperability of that. A simple zone transfer with Bind.
+
+2.3. NSID
+NSID support - run NSD with different NSIDs and queries.
+	a- test NSID with zero length, query with NSID.
+	b- very long length, query with NSID
+	c- 012345678 and query for different things.
+		1- query OK things.
 		- query error 
-			- nxdomain, 
-			- loop, 
-			- nodata.
-		- query error (bad queries)
-			- is NSID present, should there be.
-	- NSID and TSIG.
-		- OK TSIG
-		- BAD TSIG
-		- nxdomain
-		- bad query
-	- configure NSID from config file?
+			2- nxdomain, 
+			3- loop, 
+			4- nodata.
+		5- query error (bad queries, wrong zone)
+			- is NSID present.
+	d- NSID and TSIG.
+		1- query has OK TSIG
+		2- query has BAD TSIG
+		3- query for nxdomain
+		4- bad query, wrong zone
+	e- configure NSID from config file?
+		- is this possible
 
-	- test if NSID in NOTIFY responses. (should there?)
-	- test if NSID in AXFR responses. (should there?)
+	f- test if NSID in NOTIFY responses. (should there?)
+		ldns-notify and parse result packet for nsid.
+	g- test if NSID in AXFR responses. (should there?)
+		drill axfr <zone> and see if nsid in result packets.
 
 3. Transfers
 ------------
 For the transfers the test are to be done using
-- NSD as a master(AXFR), or a ldns-ixfr miniserver(IXFR)
+- NSD as a master(AXFR) in 3.1, or a ldns-ixfr miniserver(IXFR)
+  as a master in 3.2 that serves pre-made ixfr answers.
 
 3.1. AXFR
 ---------
 3.1.1. setup is a secondary zone which requests to a master.
 the master zone is updated. Then, the secondary should be 
 informed with the notify: statements.
-Or be notified manually (?).
 And test if secondary got the same zone as master.
-By doing a 
+By doing axfr from both servers and check if the same, and serial nr. 
 
 (with serial numbers for SOA, to perform serial rollover).
-- secondary starts with a zone filled with garbage (soa=1)
+- secondary starts with a zone without content (soa=1)
+  so the zone is only mentioned in the config, the zonefile is empty/nonexist
+  on the slave. Master has a soa and three text records.
 - axfr an empty zone - only the SOA 	(soa=2)
 - axfr a zone with only little data. 	(soa=3)
+  some NS, MX, A, AAAA records.
 - old zone unsigned, new zone signed. 	(soa=4)
+  sign with two KSKs and one ZSK. And a prepublished ZSK in the zone.
 - old zone signed, new zone unsigned. 	(soa=5)
-- new zone used nsec3.			(soa=6)
+  different zone contents, some names are still there, 
+  unchanged, some names are there RRs changed, some names
+  there different RRtypes, and some names removed, some names added.
+- new zone with nsec3.			(soa=6)
 - new parameters for nsec3.		(soa=7)
 - new zone no longer uses nsec3.	(soa=8)
-- axfr an empty zone (only the SOA)	(soa=9 + a lot)
+- axfr an empty zone (only the SOA)	(soa=9 + a lot for serial wraparound)
 - axfr wraparound zone, couple txts.	(soa=2)
 These can be done in order.
 
 3.1.2. Huge xfr - see test tpkg for this.
+It works already.
 
 3.2. IXFR
 ---------
@@ -94,10 +116,14 @@ The mini ixfr server responds with canned replies to a IXFR query.
 - from 5 to 7, but this time the redundant work is removed from ixfr packet.
 - 7 to 8, have one domain name where two RR types exist, A and DNAME.
   remove one RR type in IXFR then make sure the other type still exists.
+- 8 to 9, have a name with many different A records. Remove one A record
+  from it. Add another A record to it. Test if the rest is there.
 
 3.2.2. a huge ixfr.
 create test for it. Should be several MBs worth or data removed, MBs of
 data that stays the same, and MBs that are added.
+To make sure that the code can handle multiple packet IXFRs, and the
+state memory between IXFR packets.
 
 3.2.3. Test remove domain
 From TODO.
@@ -109,19 +135,27 @@ From TODO.
 3.3. Timouts
 ------------
 Get zone to expire. Check it does not answer.
+	Start only a secondary server, no master. Set expire timeout short.
 Provide an update. Check it does answer again.
+	Startup the master server after a while. Transfer should happen
+	within the retry interval.
 
 Get zone to expire. Check it does not answer.
 Keep master down so that the zone stays expired.
 Provide no update, but master replies 'zone still at version x',
 by axfr or ixfr. Check it answers again.
+-- same but the master that goes up is the ldns-ixfr canned 
+   response that will, this time say that the serial is OK.
 
 3.4. TSIG zone transfers
 ------------------------
-Already TSIG tpkg tests, with transfers TSIG protected.
+Already TSIG tpkg tests, with transfers TSIG protected, so that is ok.
 TSIG notifies - test it, create test for it.
-	- notify accepted
-	- notify refused.
+	- notify accepted, nsd->nsd notify
+	  by starting master and slave server with tsig keys
+	  for a zone, update zone at master.
+	- notify refused. nsd->nsd notify
+	  same but use different secret at one server.
 
 4. IPC
 --------
@@ -135,10 +169,12 @@ messages the other way around.
 Provide a master server that will serve all the zones (and say they are ok).
 
 then proceed to send queries for the zones to the server and see if you 
-get answers. Wait and hour and try again.
+get answers. Wait for an hour and try again.
 
 Perhaps do also with 1000 child servers for the NSD. see if it can keep
 up and the result if it cannot keep up sending to child servers.
+Since it has to send for each zone to each child a message, this will
+take more resources.
 
 4.2. IPC FORKS
 --------------
@@ -148,9 +184,9 @@ See if it runs out of sockets, file descriptors, etc.
 5. Random mess test
 -------------------
 Setup N servers. In  master->intermed->slave,
-with multiple master, intermed and slave servers.
+with multiple master(2), intermed(3) and slave(2) servers.
 TSIGs for everyone.
-Perhaps also include never respond entries (fake address).
+Perhaps also include never respond entries (fake address) in acls.
 
 - Load random SOA + random data in servers.
   Backup the setup so it is repeatable.
@@ -164,9 +200,6 @@ Perhaps also include never respond entries (fake address).
 - Kill some server & delete some file (ixfr.db or xfrd.status).
 - run nsdc patch on a server.
 
-- the intermediaries need to send outgoing notifies
-  automatically when a zone is updated.
-  i.e. update master , and go :)
 - pretend an intemediary was offline for a long time
   with old zone files and old ixfr.db and xfrd.state(!!) files.
   and see what happens :-)
@@ -175,14 +208,20 @@ Perhaps also include never respond entries (fake address).
 6. Portability test
 -------------------
 Port NSD to as many platforms as possible
-- local: sparc5, alpha, amd64, OpenBsd(jelte thuis), open=FreeBSD, linuxes.
+- local: sparc5(ok), alpha, amd64, OpenBsd(jelte thuis), open=FreeBSD, linuxes,
+  MacOsX(ok).
 - sf compilefarm for more.
-- minix3 if we can get it working.
+- minix3 if we can get it working (our minix3 copy).
+
+- would be good to have a test set of tpkg (and tools required) to
+  run after a port-test. A very portable set of tpkgs.
 
 7. CODE REVIEW
 --------------
 Code has already had 1x review by Wouter, some review by Miek.
-More review (again), Jelte, Wouter. 33000 lines...
+More review (again), Jelte, Wouter. 
+- Do some spots of interest.
+- perhaps a full review as well.
 
 8. todo-tests ideas
 -------------------
