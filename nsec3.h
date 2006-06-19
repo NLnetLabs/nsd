@@ -49,7 +49,8 @@ int nsec3_find_cover(struct namedb* db, struct zone* zone,
  * does not exist 
  */
 void nsec3_answer_wildcard(struct query *query, struct answer *answer,
-        struct domain *wildcard, struct namedb* db);
+        struct domain *wildcard, struct namedb* db,
+	const struct dname *qname);
 /* add NSEC3 to provide domain name but not rrset exists,
  * this could be a query for a DS or NSEC3 type
  */
@@ -62,6 +63,6 @@ void nsec3_answer_delegation(struct query *query, struct answer *answer);
   *match==0 is an nxdomain. */
 void nsec3_answer_authoritative(struct domain** match, struct query *query, 
 	struct answer *answer, struct domain* closest_encloser, 
-	struct namedb* db);
+	struct namedb* db, const struct dname* qname);
 #endif /* NSEC3 */
 #endif /* NSEC3_H*/

@@ -18,6 +18,9 @@
 
 #define NSEC3_SHA1_HASH 1 /* same type code as DS hash */
 
+/* true of domain is a NSEC3 (+RRSIG) data only variety */
+static int domain_has_only_NSEC3(struct domain* domain, struct zone* zone);
+
 static void 
 detect_nsec3_params(rrset_type* nsec3_apex,
 	const unsigned char** salt, int* salt_len, int* iter)
@@ -230,6 +233,10 @@ prehash_domain(namedb_type* db, zone_type* zone,
 		domain->nsec3_exact = result;
 	else	domain->nsec3_exact = 0;
 
+	if(!exact && domain->is_existing && !domain_has_only_NSEC3(domain, zone)) {
+		log_msg(LOG_ERR, "domain %s has no NSEC3 for it but zone is nsec3 signed "
+			"and domain exists", dname_to_string(domain_dname(domain), NULL));
+	}
 	/*
 	printf("prehash for %s ", dname_to_string(domain_dname(domain),0));
 	printf("found prehash %s %s", exact?"exact":"cover",
@@ -376,21 +383,23 @@ nsec3_add_rrset(struct query *query, struct answer *answer,
 /* this routine does hashing at query-time. slow. */
 static void 
 nsec3_add_nonexist_proof(struct query *query, struct answer *answer,
-        struct domain *encloser, struct namedb* db)
+        struct domain *encloser, struct namedb* db, const dname_type* qname)
 {
 	const dname_type *to_prove, *hashed; 
 	domain_type *cover=0;
 	assert(encloser);
 	/* if query=a.b.c.d encloser=c.d. then proof needed for b.c.d. */
 	/* if query=a.b.c.d encloser=*.c.d. then proof needed for b.c.d. */
-	to_prove = dname_partial_copy(query->region, query->qname,
-		dname_label_match_count(query->qname, domain_dname(encloser))+1);
+	to_prove = dname_partial_copy(query->region, qname,
+		dname_label_match_count(qname, domain_dname(encloser))+1);
 	/* generate proof that one label below closest encloser does not exist */
 	hashed = nsec3_hash_dname(query->region, query->zone, to_prove);
 	if(nsec3_find_cover(db, query->zone, hashed, &cover))
 	{
 		/* exact match, hash collision */
 		/* the hashed name of the query corresponds to an existing name. */
+		log_msg(LOG_ERR, "nsec3 hash collision for name=%s", 
+			dname_to_string(to_prove, NULL));
 		RCODE_SET(query->packet, RCODE_SERVFAIL);
 		return;
 	}
@@ -404,25 +413,26 @@ nsec3_add_nonexist_proof(struct query *query, struct answer *answer,
 static void 
 nsec3_add_closest_encloser_proof(
 	struct query *query, struct answer *answer,
-	struct domain *closest_encloser, struct namedb* db)
+	struct domain *closest_encloser, struct namedb* db,
+	const dname_type* qname)
 {
 	if(!closest_encloser) 
 		return;
 	/* prove that below closest encloser nothing exists */
-	nsec3_add_nonexist_proof(query, answer, closest_encloser, db);
+	nsec3_add_nonexist_proof(query, answer, closest_encloser, db, qname);
 	/* proof that closest encloser exists */
 	nsec3_add_rrset(query, answer, AUTHORITY_SECTION, closest_encloser->nsec3_exact);
 }
 
 void 
 nsec3_answer_wildcard(struct query *query, struct answer *answer,
-        struct domain *wildcard, struct namedb* db)
+        struct domain *wildcard, struct namedb* db, const dname_type* qname)
 {
 	if(!wildcard) 
 		return;
 	if(!query->zone->nsec3_rrset)
 		return;
-	nsec3_add_nonexist_proof(query, answer, wildcard, db);
+	nsec3_add_nonexist_proof(query, answer, wildcard, db, qname);
 }
 
 static void 
@@ -534,8 +544,9 @@ domain_has_only_NSEC3(struct domain* domain, struct zone* zone)
 void 
 nsec3_answer_authoritative(struct domain** match, struct query *query,
 	struct answer *answer, struct domain* closest_encloser, 
-	struct namedb* db)
+	struct namedb* db, const dname_type* qname)
 {
+	log_msg(LOG_INFO, "nsec answer auth, rcode %d", RCODE(query->packet));
 	if(!query->zone->nsec3_rrset)
 		return;
 	assert(match);
@@ -565,7 +576,7 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 			/* query for NSEC3, but that domain did not exist */
 			/* include covering nsec3 found *without hashing* */
 			domain_type* cover=0;
-			if(nsec3_find_cover(db, query->zone, query->qname, &cover))
+			if(nsec3_find_cover(db, query->zone, qname, &cover))
 			{
 				/* impossible, this is an NXDomain, but there is an NSEC3... */
 				assert(0);
@@ -574,7 +585,8 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 		}
 		else {
 			/* name error, domain does not exist */
-			nsec3_add_closest_encloser_proof(query, answer, closest_encloser, db);	
+			nsec3_add_closest_encloser_proof(query, answer, closest_encloser, 
+				db, qname);	
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
 				closest_encloser->nsec3_wcard_child_cover);
 		}

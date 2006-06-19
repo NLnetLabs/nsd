@@ -2,6 +2,9 @@
 	- updated the tpkg/manual tests for NSD 3 config files.
 	  Some need root privileges to run (using hping), they all pass.
 	- also the tpkg/long test bug_sighup.
+	- nsec3 code will warn at prehash time for missing exact nsec3
+	  records. So faulty signed zones are more easily spotted.
+	- fixed NSEC3 and CNAME/DNAME chains, it will disprove the new qname.
 
 16 June 2006: Wouter
 	- Swapped read and write ops in xfrd_handle_ipc, so that a read

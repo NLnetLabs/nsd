@@ -50,12 +50,14 @@ static void answer_authoritative(struct nsd	  *nsd,
 				 uint32_t          domain_number,
 				 int               exact,
 				 domain_type      *closest_match,
-				 domain_type      *closest_encloser);
+				 domain_type      *closest_encloser,
+				 const dname_type *qname);
 
 static void answer_lookup_zone(struct nsd *nsd, struct query *q, 
 			       answer_type *answer, uint32_t domain_number, 
 			       int exact, domain_type *closest_match, 
-			       domain_type *closest_encloser);
+			       domain_type *closest_encloser,
+			       const dname_type *qname);
 
 void
 query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
@@ -873,7 +875,8 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 				
 				answer_lookup_zone(nsd, q, answer, closest_match->number,
 						     closest_match == closest_encloser,
-						     closest_match, closest_encloser);
+						     closest_match, closest_encloser,
+						     domain_dname(closest_match));
 			}
 		}
 	} else {
@@ -906,7 +909,8 @@ answer_authoritative(struct nsd   *nsd,
 		     uint32_t      domain_number,
 		     int           exact,
 		     domain_type  *closest_match,
-		     domain_type  *closest_encloser)
+		     domain_type  *closest_encloser,
+		     const dname_type *qname)
 {
 	domain_type *match;
 	domain_type *original = closest_match;
@@ -953,10 +957,11 @@ answer_authoritative(struct nsd   *nsd,
 
 			while (closest_encloser && !closest_encloser->is_existing)
 				closest_encloser = closest_encloser->parent;
-			log_msg(LOG_INFO, "before recurse into lookupzone");
+			log_msg(LOG_INFO, "before recurse into lookupzone, eco %d",
+				RCODE(q->packet));
 			answer_lookup_zone(nsd, q, answer, newnum,
 				closest_match == closest_encloser, 
-				closest_match, closest_encloser);
+				closest_match, closest_encloser, newname);
 			log_msg(LOG_INFO, "after recurse into lookupzone");
 		}
 		if(!added)  /* log the error so operator can find loopig recursors */
@@ -983,7 +988,7 @@ answer_authoritative(struct nsd   *nsd,
 		match->nsec3_wcard_child_cover = wildcard_child->nsec3_wcard_child_cover;
 		match->nsec3_ds_parent_exact = wildcard_child->nsec3_ds_parent_exact;
 		match->nsec3_ds_parent_cover = wildcard_child->nsec3_ds_parent_cover;
-		nsec3_answer_wildcard(q, answer, wildcard_child, nsd->db);
+		nsec3_answer_wildcard(q, answer, wildcard_child, nsd->db, qname);
 #endif
 
 		/*
@@ -1001,7 +1006,7 @@ answer_authoritative(struct nsd   *nsd,
 #ifdef NSEC3
 	if (q->edns.dnssec_ok && q->zone->nsec3_rrset) {
 		nsec3_answer_authoritative(&match, q, answer, 
-			closest_encloser, nsd->db);
+			closest_encloser, nsd->db, qname);
 	} else 
 #endif
 	if (q->edns.dnssec_ok && zone_is_secure(q->zone)) {
@@ -1047,10 +1052,13 @@ answer_authoritative(struct nsd   *nsd,
 	}
 }
 
+/*
+ * qname may be different after CNAMEs have been followed from query->qname.
+ */
 static void
 answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	uint32_t domain_number, int exact, domain_type *closest_match, 
-	domain_type *closest_encloser)
+	domain_type *closest_encloser, const dname_type *qname)
 {	
 	q->zone = domain_find_zone(closest_encloser);
 	if (!q->zone) {
@@ -1106,7 +1114,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 				AA_SET(q->packet);
 			}
 			answer_authoritative(nsd, q, answer, domain_number, exact,
-					     closest_match, closest_encloser);
+					     closest_match, closest_encloser, qname);
 		}
 		else {
 			answer_delegation(q, answer);
@@ -1137,7 +1145,8 @@ answer_query(struct nsd *nsd, struct query *q)
 	}
 
 	q->domain = closest_encloser;
-	answer_lookup_zone(nsd, q, &answer, 0, exact, closest_match, closest_encloser);
+	answer_lookup_zone(nsd, q, &answer, 0, exact, closest_match, 
+		closest_encloser, q->qname);
 
 	offset = dname_label_offsets(q->qname)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
