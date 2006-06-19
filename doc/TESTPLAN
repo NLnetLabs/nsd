@@ -32,6 +32,7 @@ Note NSEC3 hash length byte to be implemented, test against others.
 Test interoperability of that. A simple zone transfer with Bind.
 
 2.3. NSID
+---------
 NSID support - run NSD with different NSIDs and queries.
 	a- test NSID with zero length, query with NSID.
 	b- very long length, query with NSID
@@ -64,11 +65,15 @@ For the transfers the test are to be done using
 
 3.1. AXFR
 ---------
-3.1.1. setup is a secondary zone which requests to a master.
+3.1.1. AXFR features
+--------------------
+Setup is a secondary zone which requests to a master.
 the master zone is updated. Then, the secondary should be 
 informed with the notify: statements.
 And test if secondary got the same zone as master.
 By doing axfr from both servers and check if the same, and serial nr. 
+
+Tests 3.1.1 can be one tpkg.
 
 (with serial numbers for SOA, to perform serial rollover).
 - secondary starts with a zone without content (soa=1)
@@ -93,9 +98,11 @@ These can be done in order.
 3.1.2. Huge xfr - see test tpkg for this.
 It works already.
 
-3.2. IXFR
+3.2. IXFR 
 ---------
-3.2.1. setup is a secondary with ldns-mini-ixfr server as a master.
+3.2.1. IXFR Features
+--------------------
+Setup is a secondary with ldns-mini-ixfr server as a master.
 The mini ixfr server responds with canned replies to a IXFR query.
 
 - secondary loaded with only the soa = 1. notified with 10.
@@ -120,12 +127,14 @@ The mini ixfr server responds with canned replies to a IXFR query.
   from it. Add another A record to it. Test if the rest is there.
 
 3.2.2. a huge ixfr.
+-------------------
 create test for it. Should be several MBs worth or data removed, MBs of
 data that stays the same, and MBs that are added.
 To make sure that the code can handle multiple packet IXFRs, and the
 state memory between IXFR packets.
 
 3.2.3. Test remove domain
+-------------------------
 From TODO.
 - is_existing = 0 used to remove a domain. Check and test carefully.
         - test delete middle zone
@@ -225,7 +234,8 @@ More review (again), Jelte, Wouter.
 
 8. todo-tests ideas
 -------------------
-8.1. test combinations of configure options and shells.
+8.1. test combinations of configure options and shells
+------------------------------------------------------
 "
 run tests with different shells, aka ==-bug
 run tests with different configure options and combinations
@@ -236,5 +246,18 @@ run this daily or only when subversion changes
 for each test, run our "test-suite"
 "
 
-8.2.
+8.2. patch file remove
+----------------------
 rm patch file, check xfrd's behavoir. Refetches zones
+
+8.3. 64 bit
+-----------
+GB 64 bit file size transfers. One alpha so nastiest
+alignment on 64bit machine. Do transfer of > 4 Gb zone.
+Needs lots of memory(swap space) and disk space.
+
+8.4. Valgrind
+-------------
+run with valgrind - on two nsds.
+then do the nsd-nsd, and notify the master to get axfr
+to happen test, with tsig as well enabled.
