@@ -5,6 +5,9 @@
 	- nsec3 code will warn at prehash time for missing exact nsec3
 	  records. So faulty signed zones are more easily spotted.
 	- fixed NSEC3 and CNAME/DNAME chains, it will disprove the new qname.
+	- removed for() look in CNAME processing, only first CNAME is
+	  processed now.
+	- zonec will error on a zone with multiple CNAMEs for one name.
 
 16 June 2006: Wouter
 	- Swapped read and write ops in xfrd_handle_ipc, so that a read

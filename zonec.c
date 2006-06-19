@@ -1166,6 +1166,9 @@ process_rr(void)
 	if(rr->type == TYPE_DNAME && rrset->rr_count > 1) {
 		zc_error_prev_line("multiple DNAMEs at the same name");
 	}
+	if(rr->type == TYPE_CNAME && rrset->rr_count > 1) {
+		zc_error_prev_line("multiple CNAMEs at the same name");
+	}
 	if((rr->type == TYPE_DNAME && domain_find_rrset(rr->owner, zone, TYPE_CNAME))
 	 ||(rr->type == TYPE_CNAME && domain_find_rrset(rr->owner, zone, TYPE_DNAME))) {
 		zc_error_prev_line("DNAME and CNAME at the same name");

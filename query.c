@@ -855,7 +855,6 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 	} else if ((rrset = domain_find_rrset(domain, q->zone, q->qtype))) {
 		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 	} else if ((rrset = domain_find_rrset(domain, q->zone, TYPE_CNAME))) {
-		size_t i;
 		int added;
 
 		/*
@@ -864,20 +863,20 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 		 * CNAME target in this case.
 		 */
 		added = add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
+		assert(rrset->rr_count > 0);
 		if (added) {
+			/* only process first CNAME record */
+			domain_type *closest_match = rdata_atom_domain(rrset->rrs[0].rdatas[0]);
+			domain_type *closest_encloser = closest_match;
 			++q->cname_count;
-			for (i = 0; i < rrset->rr_count; ++i) {
-				domain_type *closest_match = rdata_atom_domain(rrset->rrs[i].rdatas[0]);
-				domain_type *closest_encloser = closest_match;
 				
-				while (!closest_encloser->is_existing)
-					closest_encloser = closest_encloser->parent;
+			while (!closest_encloser->is_existing)
+				closest_encloser = closest_encloser->parent;
 				
-				answer_lookup_zone(nsd, q, answer, closest_match->number,
-						     closest_match == closest_encloser,
-						     closest_match, closest_encloser,
-						     domain_dname(closest_match));
-			}
+			answer_lookup_zone(nsd, q, answer, closest_match->number,
+					     closest_match == closest_encloser,
+					     closest_match, closest_encloser,
+					     domain_dname(closest_match));
 		}
 	} else {
 		answer_nodata(q, answer, original);
