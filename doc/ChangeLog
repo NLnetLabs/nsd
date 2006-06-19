@@ -1,3 +1,7 @@
+19 June 2006: Wouter
+	- updated the tpkg/manual tests for NSD 3 config files.
+	  Some need root privileges to run (using hping), they all pass.
+
 16 June 2006: Wouter
 	- Swapped read and write ops in xfrd_handle_ipc, so that a read
 	  of a signal from main can stop further writes.
