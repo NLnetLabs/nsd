@@ -371,6 +371,8 @@ AC_LIBGTOP_CHECK_TYPE(uint32_t, unsigned int)
 AC_LIBGTOP_CHECK_TYPE(uint64_t, unsigned long long)
 AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
 AC_LIBGTOP_CHECK_TYPE(sig_atomic_t, int)
+AC_LIBGTOP_CHECK_TYPE(size_t, int)
+AC_LIBGTOP_CHECK_TYPE(ssize_t, int)
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
@@ -614,6 +616,17 @@ int b64_ntop(uint8_t const *src, size_t srclength,
 #ifndef B64_NTOP
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif /* !B64_NTOP */
+
+/* provide timespec def if not available */
+#ifndef CONFIG_DEFINES
+#define CONFIG_DEFINES
+#ifndef HAVE_PSELECT_PROTO
+	struct timespec {
+		long    tv_sec;         /* seconds */
+		long    tv_nsec;        /* nanoseconds */
+	};
+#endif
+#endif /* CONFIG_DEFINES */
 ])
 
 # big fat warning

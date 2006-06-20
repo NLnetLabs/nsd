@@ -409,8 +409,8 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	
 	region_destroy(temp_region);
 	
-	if (fgetpos(db->fd, &db->crc_pos) == -1) {
-		log_msg(LOG_ERR, "fgetpos %s failed: %s", 
+	if ((db->crc_pos = ftello(db->fd)) == -1) {
+		log_msg(LOG_ERR, "ftello %s failed: %s", 
 			db->filename, strerror(errno));
 		namedb_close(db);
 		return NULL;

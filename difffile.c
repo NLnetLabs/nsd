@@ -135,8 +135,8 @@ db_crc_different(namedb_type* db)
 	}
 	
 	/* seek to position of CRC, check it and magic no */
-	if(fsetpos(fd, &db->crc_pos)==-1) {
-		log_msg(LOG_ERR, "unable to fsetpos %s: %s. db changed?",
+	if(fseeko(fd, db->crc_pos, SEEK_SET)==-1) {
+		log_msg(LOG_ERR, "unable to fseeko %s: %s. db changed?",
 			db->filename, strerror(errno));
 		fclose(fd);
 		return -1;

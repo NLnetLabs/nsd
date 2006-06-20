@@ -12,6 +12,8 @@
 	  definitions. Fixed code for some mixups on this.
 	- Fixup cutest for dec alpha. Code, lowercase filename, %lf->%f.
 	- cutest fixup uses (size_t) cast and %zx to print ptrs (for debug).
+	- for SunOS4 configure detects ssize_t and struct timespec.
+	- removed usage of fpos_t, instead using fseeko/ftello for 64bit.
 
 19 June 2006: Wouter
 	- updated the tpkg/manual tests for NSD 3 config files.
