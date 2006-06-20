@@ -11,6 +11,7 @@
 	- dec alpha complains if statements are in front of variable
 	  definitions. Fixed code for some mixups on this.
 	- Fixup cutest for dec alpha. Code, lowercase filename, %lf->%f.
+	- cutest fixup uses (size_t) cast and %zx to print ptrs (for debug).
 
 19 June 2006: Wouter
 	- updated the tpkg/manual tests for NSD 3 config files.
