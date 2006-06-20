@@ -1,6 +1,16 @@
 20 June 2006: Wouter
 	- updated configure to disable -O2 on platforms where gcc 
 	  does not like it (such as dec-alpha).
+	- nsd-notify used recvfrom and passed addrinfo.ai_addrlen
+	  which is a size_t, but recfrom needs a socklen_t*. On dec
+	  alpha these types differ in size (size_t is 64bit, 
+	  socklen_t is 32bit). Therefore, used a wrapper variable
+	  to pass to recvfrom.
+	- changed long int to time_t in nsd-patch.c to please compiler
+	  on dec alpha.
+	- dec alpha complains if statements are in front of variable
+	  definitions. Fixed code for some mixups on this.
+	- Fixup cutest for dec alpha. Code, lowercase filename, %lf->%f.
 
 19 June 2006: Wouter
 	- updated the tpkg/manual tests for NSD 3 config files.

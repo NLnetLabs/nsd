@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "tpkg/cutest/CuTest.h"
+#include "tpkg/cutest/cutest.h"
 
 CuSuite * reg_cutest_rbtree(void);
 CuSuite * reg_cutest_util(void);

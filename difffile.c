@@ -372,11 +372,11 @@ add_RR(namedb_type* db, const dname_type* dname,
 {
 	domain_type* domain;
 	rrset_type* rrset;
-	domain = domain_table_find(db->domains, dname);
 	rdata_atom_type *rdatas;
 	rr_type *rrs_old;
 	ssize_t rdata_num;
 	int rrnum;
+	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
 		/* create the domain */
 		domain = domain_table_insert(db->domains, dname);

@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "tpkg/cutest/CuTest.h"
+#include "tpkg/cutest/cutest.h"
 #include "region-allocator.h"
 #include "options.h"
 

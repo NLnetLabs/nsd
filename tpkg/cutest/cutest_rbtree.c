@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "tpkg/cutest/CuTest.h"
+#include "tpkg/cutest/cutest.h"
 #include "region-allocator.h"
 #include "rbtree.h"
 
@@ -130,10 +130,10 @@ static void tree_print_safe_sub(struct testnode* node)
 	if((rbnode_t*)node == RBTREE_NULL) {
 		return;
 	}
-	printf("Tree node (%x): ", (int)node);
-	printf("parent=%x. left=%x. right=%x. key=%x(%d). Color=%x. x=%d\n",
-		(int)node->node.parent, (int)node->node.left, (int)node->node.right, 
-		(int)node->node.key, node->node.key?*(int*)node->node.key:-1,
+	printf("Tree node (%Lx): ", (long long)node);
+	printf("parent=%Lx. left=%Lx. right=%Lx. key=%Lx(%d). Color=%x. x=%d\n",
+		(long long)node->node.parent, (long long)node->node.left, (long long)node->node.right, 
+		(long long)node->node.key, node->node.key?*(int*)node->node.key:-1,
 		node->node.color, node->x);
 	tree_print_safe_sub((struct testnode*)node->node.left);
 	tree_print_safe_sub((struct testnode*)node->node.right);
@@ -273,10 +273,10 @@ static void test_tree_integrity(CuTest *tc, rbtree_t* tree)
 /* very very safe version of tree print */
 void tree_print_safe(rbtree_t* tree)
 {
-	printf("Rbtree (at %x)", (int) tree);
-	printf(" region=%x root=%x count=%d current=%x cmp=%x\n",
-		(int)tree->region, (int)tree->root, (int)tree->count,
-		(int)tree->_node, (int)tree->cmp);
+	printf("Rbtree (at %Lx)", (long long) tree);
+	printf(" region=%Lx root=%Lx count=%Ld current=%Lx cmp=%Lx\n",
+		(long long)tree->region, (long long)tree->root, (long long)tree->count,
+		(long long)tree->_node, (long long)tree->cmp);
 	if(tree->root) 
 		tree_print_safe_sub((struct testnode*)tree->root);
 }

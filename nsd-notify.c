@@ -65,6 +65,7 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 	int retval = 0;
 	ssize_t received = 0;
 	int got_ack = 0;
+	socklen_t addrlen = 0;
 
 	while(!got_ack) {
 		/* WE ARE READY SEND IT OUT */
@@ -100,9 +101,11 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 	}
 
 	/* receive reply */
+	addrlen = res->ai_addrlen;
 	received = recvfrom(udp_s, buffer_begin(answer->packet),
 		buffer_remaining(answer->packet), 0,
-		res->ai_addr, &res->ai_addrlen);
+		res->ai_addr, &addrlen);
+	res->ai_addrlen = addrlen;
 	
 	if (received == -1) {
 		warning("recv %s failed: %s\n", addrstr, strerror(errno));

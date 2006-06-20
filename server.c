@@ -662,8 +662,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 				(int)nsd->pid, strerror(errno));
 		}
 		if(zone->soa_rrset) {
-			assert(dname_ns && dname_em);
 			uint32_t ttl = htonl(zone->soa_rrset->rrs[0].ttl);
+			assert(dname_ns && dname_em);
 			assert(zone->soa_rrset->rr_count > 0);
 			assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
 			assert(zone->soa_rrset->rrs[0].rdata_count == 7);

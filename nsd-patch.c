@@ -62,7 +62,7 @@ static const char*
 get_date(const char* log)
 {
 	const char *entry = strstr(log, " time ");
-	long int t = 0;
+	time_t t = 0;
 	static char timep[30];
 	if(!entry) return "<notime>";
 	t = strtol(entry + 6, NULL, 10);
