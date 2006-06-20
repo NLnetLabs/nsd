@@ -473,6 +473,7 @@ esac
 AC_ARG_ENABLE(checking, AC_HELP_STRING([--enable-checking], [Enable internal runtime checks]))
 case "$enable_checking" in
         yes)
+		CHECK_COMPILER_FLAG(O2, [], [ CFLAGS="-g" ])
 		CHECK_COMPILER_FLAG(W, [ CFLAGS="$CFLAGS -W" ])
 		CHECK_COMPILER_FLAG(Wall, [ CFLAGS="$CFLAGS -Wall" ])
 		CHECK_COMPILER_FLAG(Wextra, [ CFLAGS="$CFLAGS -Wextra" ])

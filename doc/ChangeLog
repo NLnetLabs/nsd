@@ -1,3 +1,7 @@
+20 June 2006: Wouter
+	- updated configure to disable -O2 on platforms where gcc 
+	  does not like it (such as dec-alpha).
+
 19 June 2006: Wouter
 	- updated the tpkg/manual tests for NSD 3 config files.
 	  Some need root privileges to run (using hping), they all pass.
