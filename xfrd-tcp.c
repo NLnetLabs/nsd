@@ -56,7 +56,11 @@ xfrd_setup_packet(buffer_type* packet,
 }
 
 socklen_t 
+#ifdef INET6
 xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
+#else
+xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_in *to)
+#endif /* INET6 */
 {
 	unsigned int port = acl->port?acl->port:(unsigned)atoi(TCP_PORT);
 

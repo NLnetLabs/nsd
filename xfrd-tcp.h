@@ -109,6 +109,10 @@ void xfrd_write_soa_buffer(struct buffer* packet,
         const struct dname* apex, struct xfrd_soa* soa);
 /* use acl address to setup sockaddr struct, returns length of addr. */
 socklen_t xfrd_acl_sockaddr(struct acl_options* acl, 
+#ifdef INET6
 	struct sockaddr_storage *to);
+#else
+	struct sockaddr_in *to);
+#endif /* INET6 */
 
 #endif /* XFRD_TCP_H */

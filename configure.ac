@@ -373,6 +373,7 @@ AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
 AC_LIBGTOP_CHECK_TYPE(sig_atomic_t, int)
 AC_LIBGTOP_CHECK_TYPE(size_t, int)
 AC_LIBGTOP_CHECK_TYPE(ssize_t, int)
+AC_LIBGTOP_CHECK_TYPE(off_t, long)
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
@@ -387,8 +388,8 @@ AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose strptime])
-
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose strptime fseeko])
+ 
 #
 # Checking for missing functions we can replace
 #
@@ -603,6 +604,10 @@ AH_BOTTOM([
 #endif /* AF_INET6 */
 ])
 
+if test $ac_cv_func_getaddrinfo = no; then
+AC_LIBOBJ([fake-rfc2553])
+fi
+
 AH_BOTTOM([
 /* maximum nesting of included files */
 #define MAXINCLUDES 10
@@ -616,6 +621,21 @@ int b64_ntop(uint8_t const *src, size_t srclength,
 #ifndef B64_NTOP
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif /* !B64_NTOP */
+#ifndef HAVE_FSEEKO
+#define fseeko fseek
+#define ftello ftell
+#endif /* HAVE_FSEEKO */
+#ifndef HAVE_SNPRINTF
+#include <stdarg.h>
+int snprintf (char *str, size_t count, const char *fmt, ...);
+int vsnprintf (char *str, size_t count, const char *fmt, va_list arg);
+#endif /* HAVE_SNPRINTF */
+#ifndef HAVE_INET_PTON
+int inet_pton(int af, const char* src, void* dst);
+#endif /* HAVE_INET_PTON */
+#ifndef HAVE_GETADDRINFO
+#include "compat/fake-rfc2553.h"
+#endif
 
 /* provide timespec def if not available */
 #ifndef CONFIG_DEFINES

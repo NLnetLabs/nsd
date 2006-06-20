@@ -57,4 +57,6 @@ int edns_parse_record(edns_record_type *data, buffer_type *packet);
  */
 size_t edns_reserved_space(edns_record_type *data);
 
+void edns_init_nsid(edns_data_type *data, uint16_t nsid_len);
+
 #endif /* _EDNS_H_ */

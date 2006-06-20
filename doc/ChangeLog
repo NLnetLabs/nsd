@@ -14,6 +14,18 @@
 	- cutest fixup uses (size_t) cast and %zx to print ptrs (for debug).
 	- for SunOS4 configure detects ssize_t and struct timespec.
 	- removed usage of fpos_t, instead using fseeko/ftello for 64bit.
+	- configure will define fseeko/ftello with fseek/ftell if unavailable.
+	- added missing include from buffer.c (stdlib for free()).
+	- defines for snprintf and vsnprintf in config.h if needed.
+	- configlexer flex is called more cleanly with -t to write stdout.
+	- missing include from configparser, stdlib for atoi.
+	- config.h provide inet_pton define if it is not available.
+	- fixup of INET6 defines, where sockaddr_storage is used
+	  outside of INET6 defines, in xfrd-tcp.
+	- edns_init_nsid was not defined in edns.h.
+	- added compat/fake-rfc2553.c and h from openssh 4.3p2. That has
+	  a BSD license as well. They replace getaddrinfo() (and friends)
+	  when those are missing.
 
 19 June 2006: Wouter
 	- updated the tpkg/manual tests for NSD 3 config files.

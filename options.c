@@ -8,6 +8,7 @@
  */
 #include <config.h>
 #include <string.h>
+#include <stdio.h>
 #include <errno.h>
 #include "options.h"
 #include "query.h"

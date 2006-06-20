@@ -9,6 +9,7 @@
 #include <config.h>
 #ifdef NSEC3
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "nsec3.h"
 #include "iterated_hash.h"
