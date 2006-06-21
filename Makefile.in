@@ -514,11 +514,14 @@ b64_ntop.o: compat/b64_ntop.c config.h
 b64_pton.o: compat/b64_pton.c config.h
 basename.o: compat/basename.c
 fake-rfc2553.o: compat/fake-rfc2553.c compat/fake-rfc2553.h config.h
+inet_aton.o: compat/inet_aton.c config.h
+inet_ntop.o: compat/inet_ntop.c config.h
 inet_pton.o: compat/inet_pton.c config.h
 malloc.o: compat/malloc.c config.h
-memmove.o: compat/memmove.c
+memmove.o: compat/memmove.c config.h
 pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h
+strlcpy.o: compat/strlcpy.c config.h
 cutest.o: tpkg/cutest/cutest.c tpkg/cutest/cutest.h
 cutest_dname.o: tpkg/cutest/cutest_dname.c config.h tpkg/cutest/cutest.h \
   region-allocator.h dname.h buffer.h region-allocator.h util.h config.h

@@ -118,7 +118,7 @@ lookup_table_type *lookup_by_id(lookup_table_type table[], int id);
 /*
  * (Re-)allocate SIZE bytes of memory.  Report an error if the memory
  * could not be allocated and exit the program.  These functions never
- * returns NULL.
+ * return NULL.
  */
 void *xalloc(size_t size);
 void *xalloc_zero(size_t size);
