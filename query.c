@@ -105,7 +105,7 @@ query_add_compression_domain(struct query *q, domain_type *domain, uint16_t offs
 {
 	while (domain->parent) {
 		DEBUG(DEBUG_NAME_COMPRESSION, 1,
-		      (stderr, "query dname: %s, number: %lu, offset: %u\n",
+		      (LOG_INFO, "query dname: %s, number: %lu, offset: %u\n",
 		       dname_to_string(domain_dname(domain), NULL),
 		       (unsigned long) domain->number,
 		       offset));

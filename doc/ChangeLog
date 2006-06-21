@@ -9,6 +9,11 @@
 	  strlcpy, inet_aton, and inet_ntop routines.
 	- changed ctime_r usage to ctime() call, nsd is not threaded.
 	- compiles on SunOS4/gcc-2.95.
+	- debug statements go to the log_msg route instead of the
+	  fprintf route, so they will get to a nice logfile even if
+	  we forked away, with xfrd. logfile=/dev/stderr gives old way.
+	- minor changes to cutest to make unit test compile
+	  on SunOS4/gcc-2.95, it checks out fine there.
 
 20 June 2006: Wouter
 	- updated configure to disable -O2 on platforms where gcc 

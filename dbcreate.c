@@ -257,7 +257,7 @@ write_db(namedb_type *db)
 		return -1;
 
 	DEBUG(DEBUG_ZONEC, 1,
-	      (stderr, "Storing %lu domain names\n", (unsigned long) dname_count));
+	      (LOG_INFO, "Storing %lu domain names\n", (unsigned long) dname_count));
 	
 	domain_table_iterate(db->domains, write_dname_iterator, db);
 		   

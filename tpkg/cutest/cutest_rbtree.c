@@ -88,16 +88,28 @@ static int tree_print_sub(struct testnode* tree, int depth, char* sink, char* pr
 {
 	char *oldsink = sink;
 	int preflen = strlen(prefix);
-	sink += sprintf(sink, "%s", prefix);
-	if(depth > 0) sink += sprintf(sink, "-");
+	int len;
+	sprintf(sink, "%s%n", prefix, &len);
+	sink += len;
+	if(depth > 0) {
+		sprintf(sink, "-%n", &len);
+		sink += len;
+	}
 	if((rbnode_t*)tree == RBTREE_NULL) {
-		sink += sprintf(sink, "**\n");
+		sprintf(sink, "**\n%n", &len);
+		sink += len;
 		return sink-oldsink;
 	}
 	/* print this node */
-	sink += sprintf(sink, "%d", tree->x);
-	if(tree->node.color) sink += sprintf(sink, "R\n");
-	else sink += sprintf(sink, "B\n");
+	sprintf(sink, "%d%n", tree->x, &len);
+	sink += len;
+	if(tree->node.color) {
+		sprintf(sink, "R\n%n", &len);
+		sink += len;
+	} else {
+		sprintf(sink, "B\n%n", &len);
+		sink += len;
+	}
 
 	if(tree->node.left != RBTREE_NULL || tree->node.right != RBTREE_NULL)
 	{
@@ -117,7 +129,9 @@ void tree_print(CuTest *tc, rbtree_t* tree)
 	char buf[1024000];
 	char prefixbuf[10240];
 	char *sink = buf;
-	sink += sprintf(sink, "Rbtree count=%d\n", (int)tree->count);
+	int len;
+	sprintf(sink, "Rbtree count=%d\n%n", (int)tree->count, &len);
+	sink += len;
 	prefixbuf[0]=0;
 	sink += tree_print_sub((struct testnode*)tree->root, 0, sink, prefixbuf);
 	
@@ -130,10 +144,10 @@ static void tree_print_safe_sub(struct testnode* node)
 	if((rbnode_t*)node == RBTREE_NULL) {
 		return;
 	}
-	printf("Tree node (%zx): ", (size_t)node);
-	printf("parent=%zx. left=%zx. right=%zx. key=%zx(%d). Color=%x. x=%d\n",
-		(size_t)node->node.parent, (size_t)node->node.left, (size_t)node->node.right, 
-		(size_t)node->node.key, node->node.key?*(int*)node->node.key:-1,
+	printf("Tree node (%p): ", node);
+	printf("parent=%p. left=%p. right=%p. key=%p(%d). Color=%x. x=%d\n",
+		node->node.parent, node->node.left, node->node.right, 
+		node->node.key, node->node.key?*(int*)node->node.key:-1,
 		node->node.color, node->x);
 	tree_print_safe_sub((struct testnode*)node->node.left);
 	tree_print_safe_sub((struct testnode*)node->node.right);
@@ -273,14 +287,17 @@ static void test_tree_integrity(CuTest *tc, rbtree_t* tree)
 /* very very safe version of tree print */
 void tree_print_safe(rbtree_t* tree)
 {
-	printf("Rbtree (at %zx)", (size_t) tree);
-	printf(" region=%zx root=%zx count=%zd current=%zx cmp=%zx\n",
-		(size_t)tree->region, (size_t)tree->root, (size_t)tree->count,
-		(size_t)tree->_node, (size_t)tree->cmp);
+	printf("Rbtree (at %p)", tree);
+	printf(" region=%p root=%p count=%d current=%p cmp=%p\n",
+		tree->region, tree->root, (int)tree->count,
+		tree->_node, tree->cmp);
 	if(tree->root) 
 		tree_print_safe_sub((struct testnode*)tree->root);
 }
 
+#ifndef RAND_MAX
+#define RAND_MAX INT_MAX
+#endif
 static int GetTestValue(double max)
 {
 	return (int)(max*rand() / (RAND_MAX+1.0));

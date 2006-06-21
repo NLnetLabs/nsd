@@ -269,19 +269,19 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	rrset_type *rrset;
 	
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(namedb_type) = %lu\n", (unsigned long) sizeof(namedb_type)));
+	      (LOG_INFO, "sizeof(namedb_type) = %lu\n", (unsigned long) sizeof(namedb_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(zone_type) = %lu\n", (unsigned long) sizeof(zone_type)));
+	      (LOG_INFO, "sizeof(zone_type) = %lu\n", (unsigned long) sizeof(zone_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(domain_type) = %lu\n", (unsigned long) sizeof(domain_type)));
+	      (LOG_INFO, "sizeof(domain_type) = %lu\n", (unsigned long) sizeof(domain_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(rrset_type) = %lu\n", (unsigned long) sizeof(rrset_type)));
+	      (LOG_INFO, "sizeof(rrset_type) = %lu\n", (unsigned long) sizeof(rrset_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(rr_type) = %lu\n", (unsigned long) sizeof(rr_type)));
+	      (LOG_INFO, "sizeof(rr_type) = %lu\n", (unsigned long) sizeof(rr_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(rdata_atom_type) = %lu\n", (unsigned long) sizeof(rdata_atom_type)));
+	      (LOG_INFO, "sizeof(rdata_atom_type) = %lu\n", (unsigned long) sizeof(rdata_atom_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
-	      (stderr, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
+	      (LOG_INFO, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
 
 	db_region = region_create(xalloc, free);
 	db = (namedb_type *) region_alloc(db_region, sizeof(struct namedb));
@@ -316,7 +316,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	}
 
 	DEBUG(DEBUG_DBACCESS, 1,
-	      (stderr, "Retrieving %lu zones\n", (unsigned long) zone_count));
+	      (LOG_INFO, "Retrieving %lu zones\n", (unsigned long) zone_count));
 
 	temp_region = region_create(xalloc, free);
 	dname_region = region_create(xalloc, free);
@@ -373,7 +373,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	}
 
 	DEBUG(DEBUG_DBACCESS, 1,
-	      (stderr, "Retrieving %lu domain names\n", (unsigned long) dname_count));
+	      (LOG_INFO, "Retrieving %lu domain names\n", (unsigned long) dname_count));
 	
 	domains = (domain_type **) region_alloc(
 		temp_region, dname_count * sizeof(domain_type *));
@@ -404,7 +404,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	}
 
 	DEBUG(DEBUG_DBACCESS, 1,
-	      (stderr, "Retrieved %lu RRs in %lu RRsets\n",
+	      (LOG_INFO, "Retrieved %lu RRs in %lu RRsets\n",
 	       (unsigned long) rr_count, (unsigned long) rrset_count));
 	
 	region_destroy(temp_region);
