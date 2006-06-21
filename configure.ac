@@ -399,6 +399,7 @@ AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
+AC_REPLACE_FUNCS(memmove)
 
 AC_MSG_CHECKING(for pselect prototype in sys/select.h)
 AC_EGREP_HEADER([[^a-zA-Z_]*pselect[^a-zA-Z_]], sys/select.h, AC_DEFINE(HAVE_PSELECT_PROTO, 1, 

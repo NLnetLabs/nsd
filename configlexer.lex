@@ -72,6 +72,15 @@ static void config_end_include(void)
 	yy_switch_to_buffer(include_stack[config_include_stack_ptr]);
 }
 
+#ifndef yy_set_bol /* compat definition, for flex 2.4.6 */
+#define yy_set_bol(at_bol) \
+        { \
+	        if ( ! yy_current_buffer ) \
+	                yy_current_buffer = yy_create_buffer( yyin, YY_BUF_SIZE ); \
+	        yy_current_buffer->yy_ch_buf[0] = ((at_bol)?'\n':' '); \
+        }
+#endif
+
 %}
 
 SPACE   [ \t]

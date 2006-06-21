@@ -43,6 +43,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <limits.h>
 
 /*
  * First, socket and INET6 related definitions 

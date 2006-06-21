@@ -351,6 +351,9 @@ b64_pton.o:	compat/b64_pton.c
 b64_ntop.o:	compat/b64_ntop.c
 	$(COMPILE) -c $< -o $@
 
+memmove.o:	compat/memmove.c
+	$(COMPILE) -c $< -o $@
+
 snprintf.o:	compat/snprintf.c
 	$(COMPILE) -c $< -o $@
 
@@ -501,8 +504,10 @@ zparser.o: zparser.c config.h dname.h buffer.h region-allocator.h util.h \
 b64_ntop.o: compat/b64_ntop.c config.h
 b64_pton.o: compat/b64_pton.c config.h
 basename.o: compat/basename.c
-inet_pton.o: compat/inet_pton.c config.h zparser.h
+fake-rfc2553.o: compat/fake-rfc2553.c compat/fake-rfc2553.h config.h
+inet_pton.o: compat/inet_pton.c config.h
 malloc.o: compat/malloc.c config.h
+memmove.o: compat/memmove.c
 pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h
 cutest.o: tpkg/cutest/cutest.c tpkg/cutest/cutest.h
