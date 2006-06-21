@@ -262,6 +262,7 @@ long strtottl(const char *nptr, const char **endptr);
  */
 ssize_t hex_ntop(uint8_t const *src, size_t srclength, char *target,
 		 size_t targsize);
+ssize_t hex_pton(const char* src, uint8_t* target, size_t targsize);
 
 /*
  * convert base32 data from and to string. Returns length.

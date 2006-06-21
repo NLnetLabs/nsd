@@ -407,6 +407,23 @@ hex_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 	return 2 * srclength;
 }
 
+ssize_t 
+hex_pton(const char* src, uint8_t* target, size_t targsize)
+{
+	uint8_t *t = target;
+	if(strlen(src) % 2 != 0 || strlen(src)/2 > targsize) {
+		return -1;
+	}
+	while(*src) {
+		if(!isxdigit(src[0]) || !isxdigit(src[1]))
+			return -1;
+		*t++ = hexdigit_to_int(src[0]) * 16 +
+			hexdigit_to_int(src[1]) ;
+		src += 2;
+	}
+	return t-target;
+}
+
 int
 b32_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 {

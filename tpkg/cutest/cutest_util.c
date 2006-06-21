@@ -20,6 +20,7 @@ static void util_1(CuTest *tc);
 static void util_2(CuTest *tc);
 static void util_3(CuTest *tc);
 static void util_4(CuTest *tc);
+static void util_5(CuTest *tc);
 
 CuSuite* reg_cutest_util(void)
 {
@@ -29,6 +30,7 @@ CuSuite* reg_cutest_util(void)
 	SUITE_ADD_TEST(suite, util_2);
 	SUITE_ADD_TEST(suite, util_3);
 	SUITE_ADD_TEST(suite, util_4);
+	SUITE_ADD_TEST(suite, util_5);
 	return suite;
 }
 
@@ -182,4 +184,20 @@ static void util_4(CuTest *tc)
 	CuAssert(tc, "stack test empty", stack_pop(stack) == NULL);
 
 	region_destroy(region);
+}
+
+static void util_5(CuTest *tc)
+{
+	/* test hex_pton */
+	uint8_t dest[100];
+	char buf[200];
+	const char* teststr = "0102034567890ABCDEFF";
+
+	CuAssert(tc, "test uneven hex pton", hex_pton("123", dest, 10)==-1);
+	CuAssert(tc, "test too long hex pton", hex_pton("12345678", dest, 2)==-1);
+
+	CuAssert(tc, "test hex pton", hex_pton(teststr, dest, 20)==10);
+	CuAssert(tc, "test if pton is correct with ntop", hex_ntop(dest, 10, buf, 100) == 20);
+	/* strings differ only in case */
+	CuAssert(tc, "test results of pton ntop", strcasecmp(buf, teststr)==0);
 }

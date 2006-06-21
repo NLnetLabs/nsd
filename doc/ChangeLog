@@ -1,3 +1,7 @@
+21 June 2006: Wouter
+	- nsid commandline parsed using hex_pton routine.
+	- unit test for hex_pton.
+
 20 June 2006: Wouter
 	- updated configure to disable -O2 on platforms where gcc 
 	  does not like it (such as dec-alpha).

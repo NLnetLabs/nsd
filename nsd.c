@@ -409,18 +409,8 @@ main (int argc, char *argv[])
 			}
 			nsd.nsid = xalloc(strlen(optarg) / 2);
 			nsd.nsid_len = strlen(optarg) / 2;
-			unsigned char *t = nsd.nsid;
-			while(*optarg) {
-				int j;
-				for (j = 16; j >= 1; j -= 15) {
-					if (isxdigit(*optarg)) {
-						*t += hexdigit_to_int(*optarg) * j;
-					} else {
-						error("illegal hex charactor '%c' in NSID.", (int)*optarg);
-					}
-					++optarg;
-				}
-				++t;
+			if (hex_pton(optarg, nsd.nsid, nsd.nsid_len) == -1) {
+				error("hex string cannot be parsed '%s' in NSID.", optarg);
 			}
 #endif /* NSID */
                        break;
