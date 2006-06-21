@@ -39,8 +39,10 @@
 #ifndef _FAKE_RFC2553_H
 #define _FAKE_RFC2553_H
 
-/*#include "includes.h"*/
+#include <config.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 /*
  * First, socket and INET6 related definitions 
@@ -111,6 +113,10 @@ struct sockaddr_in6 {
 #ifndef NI_MAXHOST
 # define NI_MAXHOST 1025
 #endif /* !NI_MAXHOST */
+
+#ifndef INT_MAX
+#define INT_MAX		0xffffffff
+#endif
 
 #ifndef EAI_NODATA
 # define EAI_NODATA	(INT_MAX - 1)

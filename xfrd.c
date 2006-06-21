@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <errno.h>
 #include "xfrd.h"
 #include "xfrd-tcp.h"
@@ -689,7 +690,11 @@ xfrd_udp_read(xfrd_zone_t* zone)
 int 
 xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 {
+#ifdef INET6
 	struct sockaddr_storage to;
+#else
+	struct sockaddr_in to;
+#endif /* INET6 */
 	int fd, family;
 	socklen_t to_len = xfrd_acl_sockaddr(acl, &to);
 

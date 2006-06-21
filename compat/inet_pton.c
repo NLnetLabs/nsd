@@ -18,17 +18,9 @@
 
 #include <config.h>
 
-#include <sys/param.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <arpa/nameser.h>
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-
-#include <zparser.h>
 
 /*
  * WARNING: Don't even consider trying to compile this on a system where

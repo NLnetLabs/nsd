@@ -36,10 +36,11 @@
  * that ai_family is AF_INET. Don't use it for another purpose.
  */
 
-/*#include "includes.h"*/
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "compat/fake-rfc2553.h"
-
-RCSID("$Id: fake-rfc2553.c,v 1.5 2003/09/22 02:08:23 dtucker Exp $");
 
 #ifndef HAVE_GETNAMEINFO
 int getnameinfo(const struct sockaddr *sa, size_t salen, char *host, 

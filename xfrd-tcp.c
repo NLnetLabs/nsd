@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "xfrd-tcp.h"
 #include "buffer.h"
 #include "packet.h"
@@ -177,7 +178,12 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	/* TODO use port 53 */
 	int fd;
 	int family;
+
+#ifdef INET6
 	struct sockaddr_storage to;
+#else
+	struct sockaddr_in to;
+#endif /* INET6 */
 	socklen_t to_len;
 
 	assert(zone->tcp_conn != -1);
