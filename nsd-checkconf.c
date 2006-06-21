@@ -8,12 +8,16 @@
  */
 #include <config.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <limits.h>
 #include "options.h"
 #include "util.h"
 #include "dname.h"
+
+extern char *optarg;
+extern int optind;
 
 #define ZONE_GET_ACL(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
@@ -83,7 +87,7 @@ static void
 usage(void)
 {
 	fprintf(stderr, "usage: checkconf [-v] [-o option] [-z zonename] <configfilename>\n");
-	exit(EXIT_FAILURE);
+	exit(1);
 }
 
 static void 
@@ -135,7 +139,7 @@ print_acl(const char* varname, acl_options_t* acl)
 			if(acl->rangetype == acl_range_minmax) printf(" minmax");
 			if(acl->is_ipv6) {
 #ifdef INET6
-				char dest[INET6_ADDRSTRLEN+100];
+				char dest[128];
 				inet_ntop(AF_INET6, &acl->addr.addr6, dest, sizeof(dest));
 				printf(" addr=%s", dest);
 				if(acl->rangetype != acl_range_single) {
@@ -146,7 +150,7 @@ print_acl(const char* varname, acl_options_t* acl)
 				printf(" ip6addr-noip6defined");
 #endif
 			} else {
-				char dest[INET_ADDRSTRLEN+100];
+				char dest[128];
 				inet_ntop(AF_INET, &acl->addr.addr, dest, sizeof(dest));
 				printf(" addr=%s", dest);
 				if(acl->rangetype != acl_range_single) {
@@ -415,7 +419,7 @@ main(int argc, char* argv[])
 	options = nsd_options_create(region_create(xalloc, free));
 	if (!parse_options_file(options, configfile) ||
 	   !additional_checks(options, configfile)) {
-		exit(EXIT_FAILURE);
+		exit(2);
 	}
 	if (conf_opt) {
 		config_print_zone(options, 
@@ -429,5 +433,5 @@ main(int argc, char* argv[])
 			config_test_print_server(options);
 		}
 	}
-	exit(EXIT_SUCCESS);
+	return 0;
 }

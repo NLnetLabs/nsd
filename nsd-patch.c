@@ -8,6 +8,7 @@
  */
 #include <config.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -15,6 +16,9 @@
 #include "difffile.h"
 #include "namedb.h"
 #include "util.h"
+
+extern char *optarg;
+extern int optind;
 
 static void
 usage(void)
@@ -68,9 +72,9 @@ get_date(const char* log)
 	t = strtol(entry + 6, NULL, 10);
 	if(t == 0) return "0";
 	timep[0]=0;
-	ctime_r(&t, timep);
+	strlcpy(timep, ctime(&t), sizeof(timep));
 	/* remove newline at end */
-	if(strlen(timep) > 0)
+	if(strlen(timep) > 0 && timep[strlen(timep)-1]=='\n')
 		timep[strlen(timep)-1] = 0;
 	return timep;
 }

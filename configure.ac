@@ -394,8 +394,11 @@ AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strc
 # Checking for missing functions we can replace
 #
 AC_REPLACE_FUNCS(basename)
+AC_REPLACE_FUNCS(inet_aton)
 AC_REPLACE_FUNCS(inet_pton)
+AC_REPLACE_FUNCS(inet_ntop)
 AC_REPLACE_FUNCS(snprintf)
+AC_REPLACE_FUNCS(strlcpy)
 AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
@@ -634,6 +637,18 @@ int vsnprintf (char *str, size_t count, const char *fmt, va_list arg);
 #ifndef HAVE_INET_PTON
 int inet_pton(int af, const char* src, void* dst);
 #endif /* HAVE_INET_PTON */
+#ifndef HAVE_INET_NTOP
+const char *inet_ntop(int af, const void *src, char *dst, size_t size);
+#endif
+#ifndef HAVE_INET_ATON
+int inet_aton(const char *cp, struct in_addr *addr);
+#endif
+#ifndef HAVE_MEMMOVE
+void *memmove(void *dest, const void *src, size_t n);
+#endif
+#ifndef HAVE_STRLCPY
+size_t strlcpy(char *dst, const char *src, size_t siz);
+#endif
 #ifndef HAVE_GETADDRINFO
 #include "compat/fake-rfc2553.h"
 #endif

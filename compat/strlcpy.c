@@ -1,5 +1,4 @@
-/*	$OpenBSD: strlcpy.c,v 1.10 2005/08/08 08:05:37 espie Exp $	*/
-
+/* from openssh 4.3p2 compat/strlcpy.c */
 /*
  * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
  *
@@ -18,7 +17,7 @@
 
 /* OPENBSD ORIGINAL: lib/libc/string/strlcpy.c */
 
-#include "includes.h"
+#include <config.h>
 #ifndef HAVE_STRLCPY
 
 #include <sys/types.h>

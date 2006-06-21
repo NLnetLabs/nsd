@@ -345,6 +345,12 @@ basename.o:	compat/basename.c
 inet_pton.o:	compat/inet_pton.c
 	$(COMPILE) -c $< -o $@
 
+inet_ntop.o:	compat/inet_ntop.c
+	$(COMPILE) -c $< -o $@
+
+inet_aton.o:	compat/inet_aton.c
+	$(COMPILE) -c $< -o $@
+
 b64_pton.o:	compat/b64_pton.c
 	$(COMPILE) -c $< -o $@
 
@@ -355,6 +361,9 @@ memmove.o:	compat/memmove.c
 	$(COMPILE) -c $< -o $@
 
 snprintf.o:	compat/snprintf.c
+	$(COMPILE) -c $< -o $@
+
+strlcpy.o:	compat/strlcpy.c
 	$(COMPILE) -c $< -o $@
 
 vsnprintf.o:	compat/vsnprintf.c
@@ -397,14 +406,14 @@ cutest.o:	tpkg/cutest/cutest.c
 	$(COMPILE) -c $< -o $@
 
 zlexer.c:	zlexer.lex
-	$(LEX) -i -o$@ zlexer.lex
+	$(LEX) -i -t $< > $@
 
 zparser.c zparser.h: zparser.y
 	$(YACC) -d -o zparser.c zparser.y
 
 configlexer.c:	configlexer.lex
-	echo "#include \"configyyrename.h\"" > configlexer.c
-	$(LEX) -i -t configlexer.lex >> configlexer.c
+	echo "#include \"configyyrename.h\"" > $@
+	$(LEX) -i -t $< >> $@
 
 configparser.c configparser.h:	configparser.y
 	$(YACC) -d -o configparser.c configparser.y

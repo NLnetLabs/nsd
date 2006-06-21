@@ -1,5 +1,4 @@
-/*	$OpenBSD: inet_addr.c,v 1.9 2005/08/06 20:30:03 espie Exp $	*/
-
+/* From openssh4.3p2 compat/inet_aton.c */
 /*
  * Copyright (c) 1983, 1990, 1993
  *    The Regents of the University of California.  All rights reserved.
@@ -51,7 +50,7 @@
 
 /* OPENBSD ORIGINAL: lib/libc/net/inet_addr.c */
 
-#include "includes.h"
+#include <config.h>
 
 #if !defined(HAVE_INET_ATON)
 
@@ -87,11 +86,11 @@ inet_addr(const char *cp)
 int
 inet_aton(const char *cp, struct in_addr *addr)
 {
-	u_int32_t val;
+	uint32_t val;
 	int base, n;
 	char c;
-	u_int parts[4];
-	u_int *pp = parts;
+	unsigned int parts[4];
+	unsigned int *pp = parts;
 
 	c = *cp;
 	for (;;) {

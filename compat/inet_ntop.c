@@ -1,5 +1,4 @@
-/*	$OpenBSD: inet_ntop.c,v 1.7 2005/08/06 20:30:03 espie Exp $	*/
-
+/* From openssh 4.3p2 compat/inet_ntop.c */
 /* Copyright (c) 1996 by Internet Software Consortium.
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -18,7 +17,7 @@
 
 /* OPENBSD ORIGINAL: lib/libc/net/inet_ntop.c */
 
-#include "includes.h"
+#include <config.h>
 
 #ifndef HAVE_INET_NTOP
 
@@ -26,8 +25,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <arpa/nameser.h>
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>

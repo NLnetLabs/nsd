@@ -3,8 +3,12 @@
 	- unit test for hex_pton.
 	- added include stdlib, needed for free() on sunos4.
 	- fixup of disable-ipv6 compilation.
-	- memmove compat implementation.
+	- memmove compat implementation (created fresh).
 	- yy_set_bol() for old flex compat define.
+	- compat implementation from openssh4.3p2 for
+	  strlcpy, inet_aton, and inet_ntop routines.
+	- changed ctime_r usage to ctime() call, nsd is not threaded.
+	- compiles on SunOS4/gcc-2.95.
 
 20 June 2006: Wouter
 	- updated configure to disable -O2 on platforms where gcc 
