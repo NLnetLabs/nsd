@@ -330,12 +330,12 @@ cutest:	$(CUTEST_OBJECTS)
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
 	rm -f $(TARGETS)
-	rm -f zlexer.c zparser.h zparser.c zparser.stamp
-	rm -f configlexer.c configparser.h configparser.c configparser.stamp
 
 realclean: clean
 	rm -f Makefile config.h config.h.in config.log config.status configure
 	rm -rf autom4te*
+	rm -f zlexer.c zparser.h zparser.c zparser.stamp
+	rm -f configlexer.c configparser.h configparser.c configparser.stamp
 
 basename.o:	compat/basename.c
 	$(COMPILE) -c $< -o $@
