@@ -390,11 +390,15 @@ zparser_conv_b32(region_type *region, const char *b32)
 	uint16_t *r = NULL;
 	int i;
 
-	i = b32_pton(b32, buffer, B64BUFSIZE);
+	if(strcmp(b32, "-") == 0) {
+		return alloc_rdata_init(region, "", 1);
+	}
+	i = b32_pton(b32, buffer+1, B64BUFSIZE-1);
 	if (i == -1 || i > 255) {
 		zc_error_prev_line("invalid base32 data");
 	} else {
-		r = alloc_rdata_init(region, buffer, i);
+		buffer[0] = i; /* store length byte */
+		r = alloc_rdata_init(region, buffer, i+1);
 	}
 	return r;
 }

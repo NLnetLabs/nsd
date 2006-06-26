@@ -14,6 +14,9 @@ Regression testing is also very important. The old features must
 remain working. We have a set of tpkg packages to help with it.
 Any more old features?
 
+The feature tests are to be automated, using tpkg packages where
+possible.
+
 2. Minor Features
 -----------------
 Some minor features for the test:
@@ -33,6 +36,8 @@ Test interoperability of that. A simple zone transfer with Bind.
 
 2.3. NSID
 ---------
+Would make a nice nsid.tpkg package.
+
 NSID support - run NSD with different NSIDs and queries.
 	a- test NSID with zero length, query with NSID.
 	b- very long length, query with NSID
@@ -62,6 +67,14 @@ NSID support - run NSD with different NSIDs and queries.
 For the transfers the test are to be done using
 - NSD as a master(AXFR) in 3.1, or a ldns-ixfr miniserver(IXFR)
   as a master in 3.2 that serves pre-made ixfr answers.
+
+The zone transfer tests can be put in one tpkg by using servers
+at different ports. The allow- lines are then for localhost, all 
+ports (since the sending process uses ephemeral ports, all must
+be allowed). The request- lines contain the correct port numbers
+to send to. Since servers do not know what ports other servers
+are on, even though they are allowed, they will not contact the
+other servers directly.
 
 3.1. AXFR
 ---------

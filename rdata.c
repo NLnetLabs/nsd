@@ -207,8 +207,13 @@ rdata_base32_to_string(buffer_type *output, rdata_atom_type rdata)
 {
 	int length;
 	size_t size = rdata_atom_size(rdata);
+	if(size == 0) {
+		buffer_write(output, "-", 1);
+		return 1;
+	}
+	size -= 1; /* remove length byte from count */
 	buffer_reserve(output, size * 2 + 1);
-	length = b32_ntop(rdata_atom_data(rdata), size,
+	length = b32_ntop(rdata_atom_data(rdata)+1, size,
 			  (char *) buffer_current(output), size * 2);
 	if (length > 0) {
 		buffer_skip(output, length);
@@ -520,9 +525,6 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		case RDATA_WF_BINARY:
 			/* Remaining RDATA is binary.  */
 			length = end - buffer_position(packet);
-			break;
-		case RDATA_WF_BINARY20:
-			length = 20;
 			break;
 		case RDATA_WF_APL:
 			length = (sizeof(uint16_t)    /* address family */

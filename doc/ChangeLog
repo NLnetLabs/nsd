@@ -1,3 +1,7 @@
+26 June 2006: Wouter
+	- Nicer check in autoconf for struct timespec type.
+	- NSEC3 next hashed ownername is a length byte followed by data.
+
 21 June 2006: Wouter
 	- nsid commandline parsed using hex_pton routine.
 	- unit test for hex_pton.

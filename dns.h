@@ -165,7 +165,6 @@ enum rdata_wireformat
 	RDATA_WF_AAAA,		     /* 128-bit IPv6 address.  */
 	RDATA_WF_BINARY, 	     /* Binary data (unknown length).  */
 	RDATA_WF_BINARYWITHLENGTH,   /* Binary data preceded by 1 byte length */
-	RDATA_WF_BINARY20,           /* 20 bytes of binary (i.e. SHA-1 hash) */
 	RDATA_WF_APL		     /* APL data.  */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
