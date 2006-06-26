@@ -59,6 +59,7 @@ extern int optind;
 		{						\
 			quote(ip->address);			\
 		}						\
+		return;						\
 	}
 
 static char buf[BUFSIZ];
@@ -103,7 +104,10 @@ print_string_var(const char* varname, const char* value)
 static void
 quote(const char *v)
 {
-	printf("%s\n", v);
+	if(v==NULL)
+		printf("\n");
+	else
+		printf("%s\n", v);
 }
 
 static void 
@@ -176,10 +180,15 @@ config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 	}
 
 	if (z) {
+		const dname_type *dname = dname_parse(opt->region, z);
+		if(!dname) {
+			printf("Could not parse zone name %s\n", z);
+			exit(1);
+		}
 		/* look per zone */
 		RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 		{
-			if (strcasecmp(z, zone->name) == 0) {
+			if (dname_compare(dname, zone->node.key) == 0) {
 				/* -z matches, return are in the defines */
 				ZONE_GET_STR(name, o);
 				ZONE_GET_STR(zonefile, o);
@@ -187,8 +196,12 @@ config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 				ZONE_GET_ACL(provide_xfr, o);
 				ZONE_GET_ACL(allow_notify, o);
 				ZONE_GET_ACL(notify, o);
+				printf("Zone option not handled: %s %s\n", z, o);
+				exit(1);
 			}
 		}
+		printf("Zone does not exist: %s\n", z);
+		exit(1);
 	} else {
 		/* look in the server section */
 		SERV_GET_IP(ip_address, o);
@@ -212,6 +225,14 @@ config_print_zone(nsd_options_t* opt, const char *o, const char *z)
 		SERV_GET_INT(tcp_count, o);
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
+
+		if(strcasecmp(o, "zones") == 0) {
+			RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
+				quote(zone->name);
+			return;
+		}
+		printf("Server option not handled: %s\n", o);
+		exit(1);
 	}
 }
 
@@ -374,9 +395,9 @@ additional_checks(nsd_options_t* opt, const char* filename)
 		errors ++;
 	}
 	if(errors != 0) {
-		fprintf(stderr, "%s: parsed %d zones, %d keys, with %d semantic errors.\n",
-			filename, (int)nsd_options_num_zones(opt), 
-			(int)opt->numkeys, errors);
+		fprintf(stderr, "%s: %d semantic errors in %d zones, %d keys.\n",
+			filename, errors, (int)nsd_options_num_zones(opt), 
+			(int)opt->numkeys);
 	}
 	
 	return (errors == 0);
@@ -425,11 +446,11 @@ main(int argc, char* argv[])
 		config_print_zone(options, 
 			underscore(region_strdup(options->region, conf_opt)), conf_zone);
 	} else {
-		printf("# Read file %s: %d zones, %d keys.\n", configfile, 
+		if (verbose) {
+			printf("# Read file %s: %d zones, %d keys.\n", 
+				configfile, 
 				(int)nsd_options_num_zones(options), 
 				(int)options->numkeys);
-
-		if (verbose) {
 			config_test_print_server(options);
 		}
 	}

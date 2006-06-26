@@ -235,8 +235,20 @@ prehash_domain(namedb_type* db, zone_type* zone,
 	else	domain->nsec3_exact = 0;
 
 	if(!exact && domain->is_existing && !domain_has_only_NSEC3(domain, zone)) {
-		log_msg(LOG_ERR, "domain %s has no NSEC3 for it but zone is nsec3 signed "
-			"and domain exists", dname_to_string(domain_dname(domain), NULL));
+		/* make sure it is not glue */
+		int is_glue = 0;
+		domain_type* parent = domain;
+		while(parent && parent!=zone->apex) {
+			if(domain_find_rrset(parent, zone, TYPE_NS)) {
+				is_glue = 1;
+				break;
+			}
+			parent = parent->parent;
+		}
+		if(!is_glue)
+			log_msg(LOG_ERR, "domain %s has no NSEC3 for it but "
+			"zone is nsec3 signed, domain exists and is not glue", 
+			dname_to_string(domain_dname(domain), NULL));
 	}
 	/*
 	printf("prehash for %s ", dname_to_string(domain_dname(domain),0));

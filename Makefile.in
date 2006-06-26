@@ -19,7 +19,6 @@ configdir = @configdir@
 pidfile = @pidfile@
 zonesfile = @zonesfile@
 dbfile = @dbfile@
-configfile = @configfile@
 nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
 user = @user@
@@ -48,12 +47,11 @@ EDIT		= sed \
 			-e 's,@pidfile\@,$(pidfile),g' \
 			-e 's,@zonesfile\@,$(zonesfile),g' \
 			-e 's,@dbfile\@,$(dbfile),g' \
-			-e 's,@configfile\@,$(configfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@user\@,$(user),g'
 
-TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsdc.conf.sample nsd-checkconf nsd-patch nsd.conf.sample
+TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
 
 NSD_OBJECTS	=				\
 	answer.o				\
@@ -261,10 +259,6 @@ nsdc.sh:	nsdc.sh.in
 	rm -f nsdc.sh
 	$(EDIT) nsdc.sh.in > nsdc.sh
 	chmod +x nsdc.sh
-
-nsdc.conf.sample:	nsdc.conf.sample.in
-	rm -f nsdc.conf.sample
-	$(EDIT) nsdc.conf.sample.in > nsdc.conf.sample
 
 nsd.conf.sample:	nsd.conf.sample.in
 	rm -f nsd.conf.sample

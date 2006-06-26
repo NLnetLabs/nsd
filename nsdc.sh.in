@@ -8,26 +8,69 @@
 #
 #
 
-# Optional configuration file for nsdc
-configfile="@configfile@"
+# configuration file default
+configfile="@nsdconfigfile@"
 
-#
-# Default values in absense of ${configfile} (Usually ``/etc/nsd/nsdc.conf'')
-#
-prefix="@prefix@"
-exec_prefix="@exec_prefix@"
-
-flags=""
+# The directory where NSD binaries reside
 sbindir="@sbindir@"
-zonesdir="@zonesdir@"
-dbfile=`${sbindir}/nsd-checkonf -o dbfile ${configfile}`
-pidfile=`${sbindir}/nsd-checkconf -o pidfile ${configfile}`
-lockfile="@dbfile@.lock"  # still needed
 
+# how verbose is zonec run. Specificy Nothing (empty string), -v or -vv.
 ZONEC_VERBOSE=-v
 
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
+#
+
+# see if user selects a different config file, with -c <filename>
+if test "x$1" = "x-c"; then
+	shift
+	if [ -e $1 ]; then
+		configfile=$1
+		shift
+	else
+		echo "`basename $0`: Config file "$1" does not exist."
+		exit 1
+	fi
+fi
+
+# locate nsd-checkconf : in sbindir, PATH or .
+if [ -e ${sbindir}/nsd-checkconf ]; then
+	nsd_checkconf=${sbindir}/nsd-checkconf
+else
+	if which nsd-checkconf >/dev/null 2>&1 ; then
+		nsd_checkconf=`which nsd-checkconf`
+	else
+		if [ -e ./nsd-checkconf ]; then
+			nsd_checkconf=./nsd-checkconf
+		else
+			echo "`basename $0`: Could not find nsd-checkconf"
+				"in $sbindir, in PATH=$PATH, or in cwd=`pwd`"
+			exit 1
+		fi
+	fi
+fi
+
+# check the config syntax before using it
+${nsd_checkconf} ${configfile}
+if test $? -ne 0 ; then
+	exit 1
+fi
+
+# Read some settings from the config file.
+dbfile=`${nsd_checkconf} -o database ${configfile}`
+pidfile=`${nsd_checkconf} -o pidfile ${configfile}`
+lockfile="${dbfile}.lock"  # still needed
+sbindir=`dirname ${nsd_checkconf}`
+
+# debug echo
+echo settings:
+echo dbfile=${dbfile}
+echo pidfile=${pidfile}
+echo lockfile=${lockfile}
+echo sbindir=${sbindir}
+
+#
+# useful routines
 #
 signal() {
 	if [ -s ${pidfile} ]
@@ -48,12 +91,20 @@ unlock() {
 	rm -f ${lockfile}
 }
 
+do_start() {
+[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -c ${configfile} 
+}
+
+do_stop() {
+	signal "TERM"
+}
+
 case "$1" in
 start)
-	[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -c ${configfile} 
+	do_start
 	;;
 stop)
-	signal "TERM"
+	do_stop
 	;;
 stats)
 	signal "USR1"
@@ -79,13 +130,15 @@ rebuild)
 	rm -f ${dbfile}.$$
 	exit ${result}
 	;;
-notify)
-        # send notifies to localhost
-	if [ ! -x "${notify}" ]
-	then
-		echo "nsd-notify was not installed on this system"
-		exit 1
-	fi
+update)
+        # send notifies to localhost for all zones that allow it
+	# get a list of all zones
+	zoneslist=`${nsd_checkconf} -o zones ${configfile}`
+	echo zones: ${zoneslist}   #debug
+	# see if zone has 127.0.0.1 or ::1 as allowed.
+	# extract port number (if any) and tsig key(if any).
+	# notify it.
+	${sbindir}/nsd-notify
 
 	# read the nsd.zones file
 	while read zonekw zone file notifykw slaves
@@ -96,11 +149,14 @@ notify)
 		fi
 	done < $zonesfile
 	;;
+update)
+	# send notifies to slaves
+	;;
 restart)
-	sh $0 stop && sleep 1 && sh $0 start
+	do_stop && sleep 1 && do_start
 	;;
 *)
-	echo "Usage: `basename $0` {start|stop|reload|rebuild|restart|running|update|notify}" >&2
+	echo "Usage: `basename $0` [-c configfile] {start|stop|reload|rebuild|restart|running|update|notify}" >&2
 	;;
 esac
 
