@@ -112,6 +112,7 @@ AC_C_INLINE
 AC_TYPE_UID_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
+AC_TYPE_OFF_T
 
 AC_DEFUN([AC_CHECK_FORMAT_ATTRIBUTE],
 [AC_REQUIRE([AC_PROG_CC])
@@ -371,9 +372,7 @@ AC_LIBGTOP_CHECK_TYPE(uint32_t, unsigned int)
 AC_LIBGTOP_CHECK_TYPE(uint64_t, unsigned long long)
 AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
 AC_LIBGTOP_CHECK_TYPE(sig_atomic_t, int)
-AC_LIBGTOP_CHECK_TYPE(size_t, int)
 AC_LIBGTOP_CHECK_TYPE(ssize_t, int)
-AC_LIBGTOP_CHECK_TYPE(off_t, long)
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
@@ -382,6 +381,8 @@ AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], 
 #if HAVE_NETINET_IN_H
 # include <netinet/in.h>
 #endif])
+
+AC_CHECK_TYPE([struct timespec], AC_DEFINE(HAVE_STRUCT_TIMESPEC, 1, [If time.h has a struct timespec (for pselect).]), [])
 
 # Checks for library functions.
 AC_FUNC_CHOWN
@@ -656,7 +657,7 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 /* provide timespec def if not available */
 #ifndef CONFIG_DEFINES
 #define CONFIG_DEFINES
-#ifndef HAVE_PSELECT_PROTO
+#ifndef HAVE_STRUCT_TIMESPEC
 	struct timespec {
 		long    tv_sec;         /* seconds */
 		long    tv_nsec;        /* nanoseconds */
