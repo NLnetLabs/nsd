@@ -553,6 +553,35 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 	return pid;
 }
 
+static ssize_t 
+block_read(struct nsd* nsd, int s, void* p, ssize_t sz)
+{
+	uint8_t* buf = (uint8_t*) p;
+	ssize_t total = 0;
+	while( total < sz) {
+		ssize_t ret = read(s, buf+total, sz-total);
+		if(ret == -1) {
+			if(errno == EAGAIN)
+				/* blocking read */
+				continue;
+			if(errno == EINTR) {
+				if(nsd->signal_hint_quit || nsd->signal_hint_shutdown)
+					return -1;
+				/* other signals can be handled later */
+				continue;
+			}
+			/* some error */
+			return -1;
+		}
+		if(ret == 0) {
+			/* closed connection! */
+			return 0;
+		}
+		total += ret;
+	}
+	return total;
+}
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -615,7 +644,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	}
 	/* blocking: wait for parent to really quit. (it sends RELOAD as ack) */
 	log_msg(LOG_INFO, "reload: ipc wait for ack main");
-	ret = read(cmdsocket, &cmd, sizeof(cmd));
+	ret = block_read(nsd, cmdsocket, &cmd, sizeof(cmd));
 	if(ret == -1) {
 		log_msg(LOG_ERR, "reload: could not wait for parent to quit: %s",
 			strerror(errno));
