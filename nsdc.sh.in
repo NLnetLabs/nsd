@@ -65,10 +65,10 @@ usage() {
 	echo "	stop:		stop nsd server" >&2
 	echo "	reload:		nsd server reloads database file" >&2
 	echo "	rebuild:	compile database file from zone files" >&2
-	echo "	restart:	stop and start the nsd server" >&2
+	echo "	restart:	stop the nsd server and start it again" >&2
 	echo "	running:	prints message and exit nonzero if server not running" >&2
 	echo "	update:		try to update all slave zones hosted on this server" >&2
-	echo "	notify:		notify all slaves for which this server is primary" >&2
+	echo "	notify:		send notify messages to all secondary servers" >&2
 	echo "	patch:		merge zone transfer changes back to zone files" >&2
 }
 
@@ -100,7 +100,7 @@ signal() {
 
 lock() {
         (umask 222; echo "database locked by PID: $$" >${lockfile}) ||
-                (cat ${lockfile} ; "echo aborting..." ; exit 1)
+                (cat ${lockfile} ; echo "aborting..." ; exit 1)
 }
 
 unlock() {
@@ -184,8 +184,9 @@ send_notify() {
 }
 
 do_rebuild() {
-	lock
-	${sbindir}/zonec ${ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && mv ${dbfile}.$$ ${dbfile}
+	lock && \
+	  ${sbindir}/zonec ${ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && \
+	  mv ${dbfile}.$$ ${dbfile}
 	result=$?
 	unlock
 	[ $result != 0 ] && echo "${dbfile} is unmodified"
@@ -213,11 +214,11 @@ patch)
         # patch queue clearen
 	file=`${nsd_checkconf} -o difffile ${configfile}`
 	if test -s $file; then
-		lock
-		mv $file $file.$$
-		#${sbindir}/nsd-patch -c ${configfile} -x $file.$$ -l #debug
-		#echo ${sbindir}/nsd-patch -c ${configfile} -x $file.$$
-		if ${sbindir}/nsd-patch -c ${configfile} -x $file.$$  \
+		if lock && \
+		  mv $file $file.$$ && \
+	#${sbindir}/nsd-patch -c ${configfile} -x $file.$$ -l #debug && \
+	#echo ${sbindir}/nsd-patch -c ${configfile} -x $file.$$ && \
+		  ${sbindir}/nsd-patch -c ${configfile} -x $file.$$  \
 		  && rm -f $file.$$ && unlock && do_rebuild; then
 			do_reload
 		else
