@@ -465,7 +465,7 @@ nsec3.o: nsec3.c config.h nsec3.h iterated_hash.h namedb.h dname.h \
   packet.h query.h tsig.h
 options.o: options.c config.h options.h region-allocator.h rbtree.h \
   query.h namedb.h dname.h buffer.h util.h dns.h nsd.h edns.h packet.h \
-  tsig.h configyyrename.h configparser.h
+  tsig.h difffile.h configyyrename.h configparser.h
 packet.o: packet.c config.h packet.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h query.h nsd.h edns.h tsig.h rdata.h
 query.o: query.c config.h answer.h dns.h namedb.h dname.h buffer.h \

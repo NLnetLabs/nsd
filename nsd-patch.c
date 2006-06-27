@@ -115,10 +115,9 @@ list_commit(FILE *in)
 static void
 debug_list(struct nsd_options* opt)
 {
-	const char* file = DIFFFILE;
+	const char* file = opt->difffile;
 	FILE *f;
 	uint32_t type;
-	if(opt->difffile) file = opt->difffile;
 	printf("Debug listing of the contents of %s\n", file);
 	f = fopen(file, "r");
 	if(!f) {
@@ -146,15 +145,14 @@ static int
 exist_difffile(struct nsd_options* opt)
 {
 	/* see if diff file exists */
-	const char* file = DIFFFILE;
+	const char* file = opt->difffile;
 	FILE *f;
-	if(opt->difffile) file = opt->difffile;
 
 	f = fopen(file, "r");
 	if(!f) {
 		if(errno == ENOENT)
 			return 0;
-		fprintf(stderr, "could not open file %s: %s",
+		fprintf(stderr, "could not open file %s: %s\n",
 			file, strerror(errno));
 		return 0;
 	}
@@ -191,12 +189,14 @@ print_rrs(FILE* out, struct zone* zone)
 }
 
 static void
-print_commit_log(FILE* out, const char* zone, struct diff_log* commit_log)
+print_commit_log(FILE* out, const dname_type* zone, struct diff_log* commit_log)
 {
 	struct diff_log* p = commit_log;
+	region_type* region = region_create(xalloc, free);
 	while(p)
 	{
-		if(strcmp(p->zone_name, zone) == 0)
+		const dname_type* dname = dname_parse(region, p->zone_name);
+		if(dname_compare(dname, zone) == 0)
 		{
 			fprintf(out, "; commit");
 			if(p->error)
@@ -205,6 +205,7 @@ print_commit_log(FILE* out, const char* zone, struct diff_log* commit_log)
 		}
 		p = p->next;
 	}
+	region_destroy(region);
 }
 
 static void
@@ -217,13 +218,13 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 	printf("writing zone %s to file %s\n", zone->opts->name, filename);
 
 	if(!zone->apex) {
-		fprintf(stderr, "zone %s has no apex, no data.", filename);
+		fprintf(stderr, "zone %s has no apex, no data.\n", filename);
 		return;
 	}
 
 	out = fopen(filename, "w");
 	if(!out) {
-		fprintf(stderr, "cannot open or create file %s for writing: %s",
+		fprintf(stderr, "cannot open or create file %s for writing: %s\n",
 			filename, strerror(errno));
 		return;
 	}
@@ -232,8 +233,7 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 	fprintf(out, "; NSD version %s\n", PACKAGE_VERSION);
 	fprintf(out, "; nsd-patch zone %s run at time %s", 
 		zone->opts->name, ctime(&now));
-	print_commit_log(out, dname_to_string(domain_dname(zone->apex), NULL), 
-		commit_log);
+	print_commit_log(out, domain_dname(zone->apex), commit_log);
 
 	print_rrs(out, zone);
 
@@ -244,6 +244,7 @@ int main(int argc, char* argv[])
 {
 	int c;
 	const char* configfile = CONFIGFILE;
+	const char* difffile = NULL;
 	nsd_options_t *options;
 	struct namedb* db;
 	struct zone* zone;
@@ -252,13 +253,16 @@ int main(int argc, char* argv[])
 	int debug_list_diff = 0;
 
         /* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:l")) != -1) {
+	while ((c = getopt(argc, argv, "c:lx:")) != -1) {
 	switch (c) {
 		case 'c':
 			configfile = optarg;
 			break;
 		case 'l':
 			debug_list_diff = 1;
+			break;
+		case 'x':
+			difffile = optarg;
 			break;
 		default:
 			usage();
@@ -276,6 +280,10 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "Could not read config: %s\n", configfile);
 		exit(1);
 	}
+
+	/* override difffile if commandline option given */
+	if(difffile) 
+		options->difffile = difffile; 
 
 	/* see if necessary */
 	if(!exist_difffile(options)) {
@@ -306,7 +314,7 @@ int main(int argc, char* argv[])
 	/* read ixfr diff file */
 	printf("reading updates to database\n");
 	if(!diff_read_file(db, options, &commit_log, fake_child_count)) {
-		fprintf(stderr, "unable to load the diff file: %s", 
+		fprintf(stderr, "unable to load the diff file: %s\n", 
 			strerror(errno));
 		exit(1);
 	}

@@ -13,7 +13,8 @@
 .Nd Name Server Daemon (NSD) Control Script
 .Sh SYNOPSIS
 .Nm nsdc
-.Ar start|stop|reload|rebuild|restart|running|update|notify
+.Op Fl c Ar configfile
+.Ar start | stop | reload | rebuild | restart | running | update | notify | patch
 .Sh DESCRIPTION
 .Ic Nsdc
 is the shell script that used to control
@@ -34,14 +35,21 @@ at the boot time.
 .Pp
 At every invokation
 .Ic nsdc
-will try to source
-.Pa /etc/nsd/nsdc.conf
-configuration file (shell script) where default configuration settings 
-can be overwritten. An example of such configuration file is distributed
+will try to read the
+.Xr nsd.conf 5
+configuration file. An example of such configuration file is distributed
 with the
 .Ic NSD
 package as
-.Pa nsdc.conf.sample
+.Pa nsd.conf.sample .
+The config file is checked for errors before it is used, see
+.Xr nsd-checkconf 8 .
+.Pp
+.Bl -tag -width indent
+.It Fl c Ar configfile
+Specify configfile to use instead of the default
+.Pa /etc/nsd/nsd.conf .
+.El
 .Pp
 Possible
 .Ic nsdc
@@ -78,44 +86,47 @@ is running. Returns error message and error code if it is not
 running, and no message and zero error code otherwise.
 .It Ar update
 Updates all the slave zones which have
-.Em masters
-keyword in
-.Pa nsd.zones
-file from its masters and invokes
-.Em nsdc rebuild
-and
-.Em nsdc reload
-if necessary.
-.It Ar notify
-Sends
-.Em notify
-message to all the slaves for all the zones that have
-.Em notify
-keyword in
-.Pa nsd.zones
-file.
-.El
+.Pa allow-notify:
+from localhost (127.0.0.1 or ::1) allowed.
+If a TSIG key is specified for the allow-notify statement
+in the config file, it will be used to secure the notify.
+Note that NSD keeps track of zone timeouts automatically,
+this is only needed if you want to manuall force updates
+by sending notify messages to the localhost. 
 .Pp
-See the
-.Pa README
-file for detailed description of
-.Pa nsd.zones
-file format.
+Another method you can use is to stop nsd, delete the xfrd.state
+file and then start nsd again. It will try to update all zones.
+This method does not require allow-notify: statements.
+.It Ar notify
+Sends notify messages to all the slaves for all the zones that have the
+.Em notify:
+keyword in the
+.Pa nsd.conf
+file. If a TSIG key is specified for a notify statement, it
+will be used to secure the notification message to that 
+slave server.
+.El
 .Sh FILES
 .Bl -tag -width indent
-.It Pa /etc/nsd.zones
-Default location of configuration file.
+.It Pa /etc/nsd/nsd.conf
+Configuration file for nsd to change default pathnames
+and
+.Ic NSD
+flags. The zone names, pathnames to zone files and access 
+control lists are also in 
+.Xr nsd.conf 5 .
 .It Pa /etc/nsd/nsd.db
 default
 .Ic NSD
 database
+.It Pa /etc/nsd/ixfr.db
+Journal of zone transfers, the diff file containing the 
+new zone contents transferred.
+.It Pa /etc/nsd/xfrd.state
+State for the zone transfer process of NSD. Contains
+timeouts for the zones and whether zones are expired.
 .It Pa /var/run/nsd.pid
 the process id of the name server.
-.It Pa /etc/nsd/nsdc.conf
-Optional configuration file for nsdc to overwrite default pathnames
-and
-.Ic NSD
-flags.
 .El
 .Sh DIAGNOSTICS
 .Ic Nsdc
@@ -124,6 +135,8 @@ an error message to standard output plus a non-zero return code
 otherwise.
 .Sh SEE ALSO
 .Xr nsd 8 ,
+.Xr nsd.conf 5 ,
+.Xr nsd-checkconf 8 ,
 .Xr nsd-notify 8 ,
 .Xr nsd-patch 8 ,
 .Xr nsd-xfer 8 ,
@@ -133,18 +146,5 @@ otherwise.
 was written by NLnet LABS and RIPE NCC joint team. Please see CREDITS file
 in the distribution for further details.
 .Sh BUGS
-.Pa nsd.zones
-syntax checking is almost nonexistent in
-.Ic nsdc
-erroneous lines are most likely to be ignored or will produce unexpected
-results. There is no locking for
-.Em nsdc rebuild
-and
-.Em nsdc update
-operations so those should be used with caution.
-.Pp
-.Em nsdc
-update with more than one master will give error messages and wont work
-with tsig. To fix the problem one can comment out checking for tsig
-file presence in
-.Em nsdc.sh.in
+Syntax checking of the config file is rudimentary and error messages may be
+wrong.

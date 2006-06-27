@@ -16,6 +16,7 @@ nsd-checkconf
 .Op Fl v
 .Op Fl o Ar option
 .Op Fl z Ar zonename
+.Op Fl s Ar keyname
 .Ar configfile
 
 .Sh DESCRIPTION
@@ -50,6 +51,10 @@ This option
 is primarily used by nsdc to parse the config file from the shell.
 If \fI\-z\fR is given, but this option is not given, nothing is printed. 
 
+.It Fl s Ar keyname
+Prints the key secret (base64 blob) configured for this key in the 
+config file. Used to help shell scripts parse the config file.
+
 .It Fl z Ar zonename
 Return the option specified with \fI\-o\fR for zone 'zonename'.
 .Pp
@@ -58,7 +63,7 @@ is used.  This option is primarily used by nsdc to parse the config file
 from the shell.
 
 .Pp
-The \-o and \-z option print configfile options to standard output. 
+The \-o, \-s and \-z option print configfile options to standard output. 
 
 .El
 .Sh FILES

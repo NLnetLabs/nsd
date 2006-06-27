@@ -51,13 +51,10 @@ void
 diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id, 
 	uint32_t seq_nr, uint8_t* data, size_t len, nsd_options_t* opt)
 {
-	const char* filename = DIFFFILE;
+	const char* filename = opt->difffile;
 	FILE *df;
 	uint32_t file_len = sizeof(uint32_t) + strlen(zone) + 
 		sizeof(new_serial) + sizeof(id) + sizeof(seq_nr) + len;
-
-	if(opt->difffile) 
-		filename = opt->difffile;
 
 	df = fopen(filename, "a");
 	if(!df) {
@@ -88,11 +85,9 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 	uint8_t commit, const char* log_str, 
 	nsd_options_t* opt)
 {
-	const char* filename = DIFFFILE;
+	const char* filename = opt->difffile;
 	FILE *df;
 	uint32_t len;
-	if(opt->difffile) 
-		filename = opt->difffile;
 
 	df = fopen(filename, "a");
 	if(!df) {
@@ -1077,13 +1072,10 @@ int
 diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	size_t child_count)
 {
-	const char* filename = DIFFFILE;
+	const char* filename = opt->difffile;
 	FILE *df;
 	uint32_t type;
 	struct diff_read_data* data = diff_read_data_create();
-
-	if(opt->difffile) 
-		filename = opt->difffile;
 
 	df = fopen(filename, "r");
 	if(!df) {
@@ -1165,12 +1157,10 @@ static int diff_broken(FILE *df, off_t* break_pos)
 void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 {
 	off_t break_pos;
-	const char* filename = DIFFFILE;
+	const char* filename = opt->difffile;
 	FILE *df;
 
 	/* open file here and keep open, so it cannot change under our nose */
-	if(opt->difffile)
-		filename = opt->difffile;
 	df = fopen(filename, "r+");
 	if(!df) {
 		log_msg(LOG_INFO, "could not open file %s for garbage collecting: %s",

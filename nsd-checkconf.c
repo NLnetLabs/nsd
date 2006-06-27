@@ -69,7 +69,7 @@ underscore(const char *s) {
 	const char *j = s;
 	size_t i = 0;
 
-	while(*j) {
+	while(j && *j) {
 		if (*j == '-') {
 			buf[i++] = '_';
 		} else {
@@ -87,7 +87,7 @@ underscore(const char *s) {
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: checkconf [-v] [-o option] [-z zonename] <configfilename>\n");
+	fprintf(stderr, "usage: checkconf [-v] [-o option] [-z zonename] [-s keyname] <configfilename>\n");
 	exit(1);
 }
 
@@ -170,10 +170,23 @@ print_acl(const char* varname, acl_options_t* acl)
 
 
 void
-config_print_zone(nsd_options_t* opt, const char *o, const char *z)
+config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *z)
 {
 	zone_options_t* zone;
 	ip_address_option_t* ip;
+
+	if (k) {
+		/* find key */
+		key_options_t* key = opt->keys;
+		for( ; key ; key=key->next) {
+			if(strcmp(key->name, k) == 0) {
+				quote(key->secret);
+				return;
+			}
+		}
+		printf("Could not find key %s\n", k);
+		return;
+	}
 
 	if (!o) {
 		return;
@@ -410,17 +423,21 @@ main(int argc, char* argv[])
 	int verbose = 0; 
 	const char * conf_opt = NULL; /* what option do you want? Can be NULL -> print all */
 	const char * conf_zone = NULL; /* what zone are we talking about */
+	const char * conf_key = NULL; /* what key is needed */
 	const char* configfile;
 	nsd_options_t *options;
 
         /* Parse the command line... */
-        while ((c = getopt(argc, argv, "vo:z:")) != -1) {
+        while ((c = getopt(argc, argv, "vo:s:z:")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose = 1;
 			break;
 		case 'o':
 			conf_opt = optarg;
+			break;
+		case 's':
+			conf_key = optarg;
 			break;
 		case 'z':
 			conf_zone = optarg;
@@ -442,9 +459,8 @@ main(int argc, char* argv[])
 	   !additional_checks(options, configfile)) {
 		exit(2);
 	}
-	if (conf_opt) {
-		config_print_zone(options, 
-			underscore(region_strdup(options->region, conf_opt)), conf_zone);
+	if (conf_opt || conf_key) {
+		config_print_zone(options, conf_key, underscore(conf_opt), conf_zone);
 	} else {
 		if (verbose) {
 			printf("# Read file %s: %d zones, %d keys.\n", 

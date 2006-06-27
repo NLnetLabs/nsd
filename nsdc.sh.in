@@ -33,26 +33,49 @@ if test "x$1" = "x-c"; then
 	fi
 fi
 
-# locate nsd-checkconf : in sbindir, PATH or .
+# locate nsd-checkconf : in sbindir, PATH, nsdc_dir or .
+nsd_checkconf=""
 if [ -e ${sbindir}/nsd-checkconf ]; then
 	nsd_checkconf=${sbindir}/nsd-checkconf
 else
 	if which nsd-checkconf >/dev/null 2>&1 ; then
 		nsd_checkconf=`which nsd-checkconf`
-	else
-		if [ -e ./nsd-checkconf ]; then
-			nsd_checkconf=./nsd-checkconf
-		else
-			echo "`basename $0`: Could not find nsd-checkconf"
-				"in $sbindir, in PATH=$PATH, or in cwd=`pwd`"
-			exit 1
-		fi
+	fi
+	if [ -z "${nsd_checkconf}" -a -e `dirname $0`/nsd-checkconf ]; then
+		nsd_checkconf=`dirname $0`/nsd-checkconf
+	fi
+	if [ -z "${nsd_checkconf}" -a -e ./nsd-checkconf ]; then
+		nsd_checkconf=./nsd-checkconf
+	fi
+	if [ -z "${nsd_checkconf}" ]; then
+		echo "`basename $0`: Could not find nsd programs" \
+			"in $sbindir, in PATH=$PATH, in cwd=`pwd`," \
+			"or in dir of nsdc=`dirname $0`"
+		exit 1
 	fi
 fi
+
+usage() {
+	echo "Usage: `basename $0` [-c configfile] {start|stop|reload|rebuild|restart|" >&2
+	echo "				running|update|notify|patch}" >&2
+	echo "options:" >&2
+	echo "	-c configfile	use specified configfile (default: @nsdconfigfile@)". >&2
+	echo "commands:" >&2
+	echo "	start:		start nsd server" >&2
+	echo "	stop:		stop nsd server" >&2
+	echo "	reload:		nsd server reloads database file" >&2
+	echo "	rebuild:	compile database file from zone files" >&2
+	echo "	restart:	stop and start the nsd server" >&2
+	echo "	running:	prints message and exit nonzero if server not running" >&2
+	echo "	update:		try to update all slave zones hosted on this server" >&2
+	echo "	notify:		notify all slaves for which this server is primary" >&2
+	echo "	patch:		merge zone transfer changes back to zone files" >&2
+}
 
 # check the config syntax before using it
 ${nsd_checkconf} ${configfile}
 if test $? -ne 0 ; then
+	usage
 	exit 1
 fi
 
@@ -61,13 +84,6 @@ dbfile=`${nsd_checkconf} -o database ${configfile}`
 pidfile=`${nsd_checkconf} -o pidfile ${configfile}`
 lockfile="${dbfile}.lock"  # still needed
 sbindir=`dirname ${nsd_checkconf}`
-
-# debug echo
-echo settings:
-echo dbfile=${dbfile}
-echo pidfile=${pidfile}
-echo lockfile=${lockfile}
-echo sbindir=${sbindir}
 
 #
 # useful routines
@@ -99,6 +115,84 @@ do_stop() {
 	signal "TERM"
 }
 
+do_reload() {
+	signal "HUP"
+}
+
+# send_updates zone_name {ip_spec key_spec}
+send_updates() {
+	local zonename=$1
+	shift
+	# extract port number (if any) 
+	port=`${nsd_checkconf} -o port ${configfile}`
+	if test -n "${port}"; then
+		port="-p ${port}"
+	fi
+	update_sent="no"
+
+	while (($# > 0)); do
+		ip_spec=$1
+		key_spec=$2
+		shift 2
+		# only if localhost is allowed.
+		# see if zone has 127.0.0.1 or ::1 as allowed.
+		if test Z${ip_spec} = "Z127.0.0.1" -o Z${ip_spec} = "Z::1"; then
+			secret=""
+			if test K$key_spec != KNOKEY; then
+				secret=`${nsd_checkconf} -s ${key_spec} ${configfile}`
+				secret="-y ${key_spec}:${secret}"
+			fi
+			if test K${key_spec} != KBLOCKED; then
+				#echo "${sbindir}/nsd-notify ${port} " \
+				#"-z ${zonename} ${ip_spec} # with ${key_spec}"
+				${sbindir}/nsd-notify ${port} ${secret} \
+				-z ${zonename} ${ip_spec} && update_sent="yes"
+			fi
+		fi
+	done
+	if test ${update_sent} = no; then
+		req_xfr=`${nsd_checkconf} -z "${zonename}" -o request-xfr ${configfile}`
+		if test -n "${req_xfr}"; then
+			# must be a slave zone (has request-xfr).
+			echo "`basename $0`: Could not update slave zone ${zonename}: not configured (with allow-notify: 127.0.0.1 or ::1)"
+		fi
+	fi
+}
+
+# send_notify zone_name {ip_spec key_spec}
+send_notify() {
+	local zonename=$1
+	shift
+	while (($# > 0)); do
+		ip_spec=$1
+		key_spec=$2
+		shift 2
+		secret=""
+		if test K$key_spec != KNOKEY; then
+			secret="-y ${key_spec}:`${nsd_checkconf} -s ${key_spec} ${configfile}`"
+		fi
+		if test K$key_spec != KBLOCKED; then
+			port=""
+			ipaddr=${ip_spec}
+			if echo ${ip_spec} | grep @ >/dev/null; then
+				port="-p "`echo ${ip_spec} | sed -e 's/[^@]*@\([0-9]*\)/\1/'`
+				ipaddr=`echo ${ip_spec} | sed -e 's/\([^@]*\)@[0-9]*/\1/'`
+			fi
+			${sbindir}/nsd-notify ${port} ${secret} -z ${zonename} ${ipaddr}
+		fi
+	done
+}
+
+do_rebuild() {
+	lock
+	${sbindir}/zonec ${ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && mv ${dbfile}.$$ ${dbfile}
+	result=$?
+	unlock
+	[ $result != 0 ] && echo "${dbfile} is unmodified"
+	rm -f ${dbfile}.$$
+	return ${result}
+}
+
 case "$1" in
 start)
 	do_start
@@ -110,53 +204,62 @@ stats)
 	signal "USR1"
 	;;
 reload)
-	signal "HUP"
+	do_reload
 	;;
 running)
 	signal "0"
 	;;
 patch)
         # patch queue clearen
-           # mv the file
-           # apply
-           # remove file
-        # nsdc rebuild
-        # nsdc reload
+	file=`${nsd_checkconf} -o difffile ${configfile}`
+	if test -s $file; then
+		lock
+		mv $file $file.$$
+		#${sbindir}/nsd-patch -c ${configfile} -x $file.$$ -l #debug
+		#echo ${sbindir}/nsd-patch -c ${configfile} -x $file.$$
+		if ${sbindir}/nsd-patch -c ${configfile} -x $file.$$  \
+		  && rm -f $file.$$ && unlock && do_rebuild; then
+			do_reload
+		else
+			unlock
+			# try to move back the transfer data
+			if [ -e $file.$$ -a ! -e $file ]; then
+				mv $file.$$ $file
+			fi
+			echo "`basename $0`: patch failed."
+		fi
+	else
+		echo "`basename $0`: no patch necessary."
+	fi
         ;;
 rebuild)
-	${sbindir}/zonec ${ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && mv ${dbfile}.$$ ${dbfile}
-	result=$?
-	[ $result != 0 ] && echo "${dbfile} is unmodified"
-	rm -f ${dbfile}.$$
-	exit ${result}
+	do_rebuild
 	;;
 update)
         # send notifies to localhost for all zones that allow it
-	# get a list of all zones
-	zoneslist=`${nsd_checkconf} -o zones ${configfile}`
-	echo zones: ${zoneslist}   #debug
-	# see if zone has 127.0.0.1 or ::1 as allowed.
-	# extract port number (if any) and tsig key(if any).
-	# notify it.
-	${sbindir}/nsd-notify
-
-	# read the nsd.zones file
-	while read zonekw zone file notifykw slaves
-	do	
-		if [ "X$zonekw" = "Xzone" -a "X$notifykw" = "Xnotify" ]
-		then
-			$notify -z "$zone" $slaves
-		fi
-	done < $zonesfile
+	if [ -s ${pidfile} ]; then
+		zoneslist=`${nsd_checkconf} -o zones ${configfile}`
+		for zonename in ${zoneslist}; do
+			notify_allow=`${nsd_checkconf} -z "${zonename}" -o allow-notify ${configfile}`
+			send_updates ${zonename} ${notify_allow}
+		done
+	else
+		echo "nsd is not running"
+	fi
 	;;
-update)
-	# send notifies to slaves
+notify)
+	# send notifies to all slaves
+	zoneslist=`${nsd_checkconf} -o zones ${configfile}`
+	for zonename in ${zoneslist}; do
+		notify=`${nsd_checkconf} -z "${zonename}" -o notify ${configfile}`
+		send_notify ${zonename} $notify
+	done
 	;;
 restart)
 	do_stop && sleep 1 && do_start
 	;;
 *)
-	echo "Usage: `basename $0` [-c configfile] {start|stop|reload|rebuild|restart|running|update|notify}" >&2
+	usage
 	;;
 esac
 

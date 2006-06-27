@@ -13,6 +13,7 @@
 #include "options.h"
 #include "query.h"
 #include "tsig.h"
+#include "difffile.h"
 
 #include "configyyrename.h"
 #include "configparser.h"
@@ -49,7 +50,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->chroot = 0;
 	opt->username = USER;
 	opt->zonesdir = 0;
-	opt->difffile = 0;
+	opt->difffile = DIFFFILE;
 	opt->xfrdfile = 0;
 	opt->xfrd_reload_timeout = 10;
 	nsd_options = opt;
