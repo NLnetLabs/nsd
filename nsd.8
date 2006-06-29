@@ -101,6 +101,8 @@ For format description see
 
 .It Fl d
 Turn on debugging mode, do not fork, stay in the foreground.
+This has the side effect of disabling slave zone functionality.
+Database reloads are also not possible. Master zones are served.
 
 .It Fl f Ar database
 Use the specified

@@ -16,6 +16,7 @@ server:
 	# ip-address: 12fe::8ef0
 
 	# enable debug mode for nsd, does not fork daemon process.
+	# (debug mode disables slave zone functionalities)
 	# debug-mode: no
 
 	# listen only on IPv4 connections
@@ -96,6 +97,7 @@ zone:
 
 	# uncomment to provide AXFR to all the world
 	# provide-xfr: 0.0.0.0/0 NOKEY
+	# provide-xfr: ::0/0 NOKEY
 
 # Sample zone 2
 zone:
