@@ -12,7 +12,6 @@ ZONE COMPILER
 (old)+ empty node should not cause NXDOMAIN
 (old)- unify dns type table (name, dns type, yacc token, rdata types)
 (old)- unify dns class table (name, dns type, yacc token)
-(old)- detect cname loops
 - one db file per zone (as an option?) (featurecreep)?
   req by Alex (Bit). So that after rsync, zonec is fast with many zones.
 - if a zone is dropped from the config file, but not removed from the
@@ -22,17 +21,13 @@ ZONE COMPILER
 - profile the zonec compiling speed. Speed it up.
 
 SERVER
-(old)- in tcp the timeout should be handled different than with alarm()?
 (old)- replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand
 (old)- make sure that we dont copy anything from the query we dont want to copy, like
   (old)funny headers etc
 (old)- query buffer is now 64k, perhaps we want it smaller? (used to be 1k)
-(old)- change default of --enable-ipv6 to yes.
 - check if close_all_sockets in server.c also needs to close the parent/child sockets.
 - check if after forks you need to close sockets, i.e. if after a loop of reloads/...
   you start running out of fds.
-- NSEC3: byte length of hashname. Remove BINARY20 type. 
-  Fix so that it works with DNAME redirection to something that is NXdomain.
 
 SECURITY
 
@@ -42,11 +37,10 @@ PURITY
 
 CLEANUP
 (old)+ proper error/fatal/warning interfaces
-- check LOG_INFO log message and see if they are usefull
-- make so that startup sends SOA_INFO to xfrd just like reload does.
+- check LOG_INFO log message and see if they are useful.
+- make so that startup sends SOA_INFO to xfrd just like reload does, prettier?
 
 DOCUMENTATION
-(old)- convert the manual pages into -man macros set for better compatibility?
 (old)- update DESIGN document
 - doc state diagram reloads and xfrd interaction (expire messages and so on).
 - doc AXFR not spec compliant (for axfr-only option).
