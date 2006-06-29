@@ -138,7 +138,7 @@ send_updates() {
 		# see if zone has 127.0.0.1 or ::1 as allowed.
 		if test Z${ip_spec} = "Z127.0.0.1" -o Z${ip_spec} = "Z::1"; then
 			secret=""
-			if test K$key_spec != KNOKEY; then
+			if test K${key_spec} != KNOKEY -a K${key_spec} != KBLOCKED; then
 				secret=`${nsd_checkconf} -s ${key_spec} ${configfile}`
 				secret="-y ${key_spec}:${secret}"
 			fi
@@ -168,10 +168,11 @@ send_notify() {
 		key_spec=$2
 		shift 2
 		secret=""
-		if test K$key_spec != KNOKEY; then
-			secret="-y ${key_spec}:`${nsd_checkconf} -s ${key_spec} ${configfile}`"
+		if test K${key_spec} != KNOKEY -a K${key_spec} != KBLOCKED; then
+			secret=`${nsd_checkconf} -s ${key_spec} ${configfile}`
+			secret="-y ${key_spec}:${secret}"
 		fi
-		if test K$key_spec != KBLOCKED; then
+		if test K${key_spec} != KBLOCKED; then
 			port=""
 			ipaddr=${ip_spec}
 			if echo ${ip_spec} | grep @ >/dev/null; then
@@ -213,19 +214,19 @@ running)
 patch)
         # patch queue clearen
 	file=`${nsd_checkconf} -o difffile ${configfile}`
-	if test -s $file; then
+	if test -s ${file}; then
+		#${sbindir}/nsd-patch -c ${configfile} -x ${file} -l #debug
+		#echo ${sbindir}/nsd-patch -c ${configfile} -x ${file}
 		if lock && \
-		  mv $file $file.$$ && \
-	#${sbindir}/nsd-patch -c ${configfile} -x $file.$$ -l #debug && \
-	#echo ${sbindir}/nsd-patch -c ${configfile} -x $file.$$ && \
-		  ${sbindir}/nsd-patch -c ${configfile} -x $file.$$  \
-		  && rm -f $file.$$ && unlock && do_rebuild; then
+		  mv ${file} ${file}.$$ && \
+		  ${sbindir}/nsd-patch -c ${configfile} -x ${file}.$$ \
+		  && rm -f ${file}.$$ && unlock && do_rebuild; then
 			do_reload
 		else
 			unlock
 			# try to move back the transfer data
-			if [ -e $file.$$ -a ! -e $file ]; then
-				mv $file.$$ $file
+			if [ -e ${file}.$$ -a ! -e ${file} ]; then
+				mv ${file}.$$ ${file}
 			fi
 			echo "`basename $0`: patch failed."
 		fi

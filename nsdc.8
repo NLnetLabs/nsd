@@ -91,7 +91,7 @@ from localhost (127.0.0.1 or ::1) allowed.
 If a TSIG key is specified for the allow-notify statement
 in the config file, it will be used to secure the notify.
 Note that NSD keeps track of zone timeouts automatically,
-this is only needed if you want to manuall force updates
+this is only needed if you want to manually force updates
 by sending notify messages to the localhost. 
 .Pp
 Another method you can use is to stop nsd, delete the xfrd.state
@@ -148,3 +148,8 @@ in the distribution for further details.
 .Sh BUGS
 Syntax checking of the config file is rudimentary and error messages may be
 wrong.
+If you do a nsdc patch, whilst a (long) zone transfer is busy, the zone 
+transfer contents will be partially lost. After a reload, this will be 
+detected and the zone transfer should be restarted. The reload that happens
+at the end of nsdc patch also frees up memory churn in NSD caused by zone 
+transfers.
