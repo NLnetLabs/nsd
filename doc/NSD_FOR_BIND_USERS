@@ -1,0 +1,77 @@
+NSD for Bind users
+------------------
+
+Please see the README for general information. This document
+assumes the reader is familiar with Bind9 tools and explains
+the differences between Bind and NSD.
+
+1. Zone compiler.
+
+NSD has a zone compiler that translates the text format zone files
+into a binary format database file that the server reads.
+
+2. Authoritative only.
+
+NSD only serves authoritatively. So, NSD does not provide caching, and
+does not provide recursion, or resolver functionality. NSD serves master
+and slave zones.
+
+This also means no root zone '.' type hint is used; leave out the root
+zone entirely from your configuration. NSD does not cache the root.
+Also leave out localhost zones from NSD config.
+
+3. Config file format.
+
+The config file for NSD nsd.conf(5) is different from Bind named.conf(5).
+See the manual pages for differences in syntax. The zone files with 
+resource records have the same format however.
+
+4. Keys not per IP address.
+
+Bind associates TSIG keys with an IP address. When communicating from/to
+that address Bind will TSIG sign.  NSD associates TSIG keys with the
+acl entries, when performing these functions NSD will sign with TSIG.
+It is thus possible to configure NSD to use a different key for
+notifications then for zone transfers, and a different key in one
+direction from the other.
+Additionally, NSD will reply TSIG signed queries with TSIG signed responses.
+
+5. NOTIFY of NS-entries.
+
+Bind sends notification messages automatically to the servers named
+in the SOA and NS entries of a zone. NSD does not. It sends only to
+the 'notify:' entries in the config file. If you want NSD to send 
+notifications to these servers, include notify: statements in the config
+file for them.
+
+6. Less options.
+
+NSD has less options than bind has. It is designed to be small.
+
+7. Master-Slave meshes.
+
+NSD can be configure as both a slave of a (hidden) master and as
+a master to further slaves as well.  This way meshes of name servers
+can be created, like with Bind.
+
+8. AXFR behaviour.
+
+To do a manual AXFR, nsd-xfer will perform like the Bind tools. But,
+the initial query for the SOA is done by TCP, where the Bind tools
+use UDP for that SOA query.
+
+9. Ports.
+
+Nsd can be configured to run on another port than port 53. See the 
+'port:' statement in the nsd.conf file.  Access control list elements
+can be appended with @port_number to refer to a specific port only,
+such as 10.11.12.100@8853. NSD will not set its source port for 
+outgoing connections to be equal to the configured port. Ephemeral 
+ports are used.
+
+10. nsdc needs no secret.
+
+The rndc tool for Bind named needs a secret to communicate securely with
+the server. The NSD nsdc tool does not need that. It sends signals instead
+of opening a socket.
+

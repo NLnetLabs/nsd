@@ -42,8 +42,6 @@ CLEANUP
 
 DOCUMENTATION
 (old)- update DESIGN document
-- nsd_for_bind_users: without notify: statements nsd will not send NOTIFY.
-  (Bind sends to the NS).
 
 OPTIMISATIONS
 - delete entire zone for AFXR during reload read in,

@@ -21,6 +21,8 @@ NSD is a complete implementation of an authoritative DNS name server.
 For further information about what NSD is and what NSD is not please
 consult the REQUIREMENTS document which is a part of this distribution.
 
+If you are a BIND user (the named daemon) consult NSD_FOR_BIND_USERS.
+
 The source code is available for download from:
 
          http://www.nlnetlabs.nl/downloads

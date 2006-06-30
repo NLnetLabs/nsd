@@ -1,6 +1,7 @@
 29 June 2006: Wouter
 	- removed --zonesfile nsd.zones configure option.
 	- doc/README updated for 3.0.
+	- doc update. NSD_FOR_BIND_USERS document.
 
 28 June 2006: Wouter
 	- nsdc neater, checks for BLOCKED ips more strictly.
