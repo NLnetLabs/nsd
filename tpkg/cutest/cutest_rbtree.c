@@ -2,9 +2,7 @@
 	test rbtree
 */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #ifdef HAVE_STRING_H 
 #include <string.h>
@@ -385,7 +383,7 @@ static void rbtree_1(CuTest *tc)
 
 static void rbtree_2(CuTest *tc)
 {
-	// add same element twice.
+	/* add same element twice. */
 	struct testnode *t;
 
 	t = (struct testnode*) region_alloc(reg, sizeof(struct testnode));

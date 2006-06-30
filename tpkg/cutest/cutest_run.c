@@ -4,9 +4,7 @@
 	31 jan 06 (WW): created file.
 	21 feb 06 (MG): reworked for cutest
 */
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
