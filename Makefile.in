@@ -23,7 +23,7 @@ zonesdir = @zonesdir@
 user = @user@
 
 CC		= @CC@
-CPPFLAGS	= @CPPFLAGS@ @DEFS@ -I. -DDBFILE=\"$(dbfile)\" -DPIDFILE=\"$(pidfile)\" -DUSER=\"$(user)\" -DCONFIGFILE=\"$(nsdconfigfile)\"
+CPPFLAGS	= @CPPFLAGS@ -I.# @DEFS@ contains -DHAVE_CONFIG_H
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
@@ -251,7 +251,7 @@ CUTEST_OBJECTS		=			\
 all:	$(TARGETS)
 
 .c.o:
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c $<
 
 nsdc.sh:	nsdc.sh.in
 	rm -f nsdc.sh

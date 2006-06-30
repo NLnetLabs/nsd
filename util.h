@@ -10,10 +10,7 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
-
 #include <sys/time.h>
 #include <stdarg.h>
 #include <stdio.h>

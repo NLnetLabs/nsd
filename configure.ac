@@ -38,6 +38,7 @@ AC_ARG_WITH([nsd_conf_file],
 	AC_HELP_STRING([--with-nsd_conf_file=path], [Pathname to the NSD configuration file]),
 	[nsd_conf_file=$withval])
 AC_SUBST(nsd_conf_file)
+AC_DEFINE_UNQUOTED(CONFIGFILE, ["$nsd_conf_file"], [Pathname to the NSD configuration file])
 
 #
 # Determine the pidfile location. Check if /var/run exists, if so set pidfile
@@ -52,6 +53,7 @@ AC_ARG_WITH([pidfile],
 	AC_HELP_STRING([--with-pidfile=path], [Pathname to the NSD pidfile]),
 	[pidfile=$withval])
 AC_SUBST(pidfile)
+AC_DEFINE_UNQUOTED(PIDFILE, ["$pidfile"], [Pathname to the NSD pidfile])
 
 #
 # Determine location of nsd.db
@@ -61,15 +63,7 @@ AC_ARG_WITH([dbfile],
 	AC_HELP_STRING([--with-dbfile=path], [Pathname to the NSD database]),
 	[dbfile=$withval])
 AC_SUBST(dbfile)
-
-#
-# Determine location of nsd config file
-#
-configfile=$configdir/nsdc.conf
-AC_ARG_WITH([configfile],
-	AC_HELP_STRING([--with-configfile=path], [Pathname to the nsdc configuration file]),
-	[configfile=$withval])
-AC_SUBST(configfile)
+AC_DEFINE_UNQUOTED(DBFILE, ["$dbfile"], [Pathname to the NSD database])
 
 #
 # Determine the default directory for the master zone files
@@ -81,13 +75,14 @@ AC_ARG_WITH([zonesdir],
 AC_SUBST(zonesdir)
 
 #
-# Determine the user name to drop privilidges to
+# Determine the user name to drop priviledges to
 #
 user=nsd
 AC_ARG_WITH([user],
 	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
 	[user=$withval])
 AC_SUBST(user)
+AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop priviledges to])
 
 # Checks for programs.
 AC_PROG_AWK
@@ -373,14 +368,14 @@ AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], 
 # include <netinet/in.h>
 #endif])
 
-AC_CHECK_TYPE([struct timespec], AC_DEFINE(HAVE_STRUCT_TIMESPEC, 1, [If time.h has a struct timespec (for pselect).]), [])
-
 # Checks for library functions.
 AC_FUNC_CHOWN
 AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose strptime fseeko])
+AC_FUNC_FSEEKO
+AC_SYS_LARGEFILE
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose strptime])
  
 #
 # Checking for missing functions we can replace
@@ -403,6 +398,8 @@ AC_EGREP_HEADER([[^a-zA-Z_]*pselect[^a-zA-Z_]], sys/select.h, AC_DEFINE(HAVE_PSE
 AC_MSG_CHECKING(for ctime_r prototype in time.h)
 AC_EGREP_HEADER([[^a-zA-Z_]*ctime_r[^a-zA-Z_]], time.h, AC_DEFINE(HAVE_CTIME_R_PROTO, 1, 
 	[if time.h provides ctime_r prototype]) AC_MSG_RESULT(yes), AC_MSG_RESULT(no))
+
+AC_CHECK_TYPE([struct timespec], AC_DEFINE(HAVE_STRUCT_TIMESPEC, 1, [If time.h has a struct timespec (for pselect).]), [])
 
 dnl
 dnl Some random defines's
@@ -530,9 +527,6 @@ AH_BOTTOM([
 #  ifndef __EXTENSIONS__
 #    define __EXTENSIONS__ 1
 #  endif 
-/* Get 64-bit file size support */
-#  undef FILE_OFFSET_BITS
-#  define FILE_OFFSET_BITS 64
 #endif
 ])
 

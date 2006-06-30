@@ -2,6 +2,8 @@
 	- removed --zonesfile nsd.zones configure option.
 	- doc/README updated for 3.0.
 	- doc update. NSD_FOR_BIND_USERS document.
+	- moved from -Ds to the config.h header, cleaner compilation output.
+	- use autoconfs built in large file support enabler.
 
 28 June 2006: Wouter
 	- nsdc neater, checks for BLOCKED ips more strictly.
