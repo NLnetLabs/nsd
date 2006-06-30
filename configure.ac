@@ -643,12 +643,15 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 #ifndef CONFIG_DEFINES
 #define CONFIG_DEFINES
 #ifndef HAVE_STRUCT_TIMESPEC
+#ifndef __timespec_defined
+#define __timespec_defined 1
 	struct timespec {
 		long    tv_sec;         /* seconds */
 		long    tv_nsec;        /* nanoseconds */
 	};
-#endif
-#endif /* CONFIG_DEFINES */
+#endif /* !__timespec_defined */
+#endif /* !HAVE_STRUCT_TIMESPEC */
+#endif /* !CONFIG_DEFINES */
 ])
 
 # big fat warning
