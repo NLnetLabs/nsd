@@ -935,7 +935,28 @@ RFC Standards
   (Dynamic update) are not implemented and will not be implemented as
   zone control is not implemented in NSD itself.
 
+
+  3.0 supports.
+  AXFR: 	- NSD serves AXFR, with TSIG if needed.
+  		- NSD requests AXFR from xfrd. This is noncompliant with RFC.
+		  It does not ask for the SOA serial number using a query
+		  beforehand (nsd-xfer does). It terminates the AXFR after
+		  the first packet if it determines the AXFR is not needed.
+
+  IXFR:		- Only supported, with TSIG, to request IXFR.
+  		- IXFR is not served.
+
+  TSIG:		- TSIG is supported for notify, axfr, ixfr, regular queries.
+
+  Secondary zones: - follows SOA timers. (NSD 2 and before did not).
+
+  NOTIFY:	- will ignore extraneous data in notify (instead of checking
+  		  if they differ from content in zone). Only checks SOA serial.
+		  This is too hard, since other information is not available in
+		  xfrd, the process that handles the notify.
+		- Will not send notify to NS-servers of a zone. Only notify
+		  sent to 'notify:' entries in config file.
+
 ______________________________________________________________________
 $Id$
-
 

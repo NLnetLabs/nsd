@@ -42,14 +42,6 @@ CLEANUP
 
 DOCUMENTATION
 (old)- update DESIGN document
-- doc state diagram reloads and xfrd interaction (expire messages and so on).
-- doc AXFR not spec compliant (for axfr-only option).
-- if reload dies what log entry, if happens often let us know, we can
-  catch the error and do some stuff.
-- log entry garbage snip off ixfr file, how often does it happen.
-- doc that churn host memory on ixfr/axfr, cannot free, it is in same region
-  ixfr is with trusted parties, so not a problem.
-- log entry on max tcp count in xfrd, let us know, we can make it a config.
 - nsd_for_bind_users: without notify: statements nsd will not send NOTIFY.
   (Bind sends to the NS).
 

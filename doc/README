@@ -11,6 +11,7 @@
 3.2 ... AXFR access
 3.3 ... Using TSIG
 3.4 ... Zone expiry of secondary zones
+3.5 ... Diagnosing NSD log entries
 
 1.0 Introduction
 
@@ -287,7 +288,7 @@ Below is an example of a master zone with two slave servers.
 		provide-xfr: 168.192.5.44 NOKEY
 
 Zone transfers can be secured with TSIG keys, replace NOKEY with
-the name of the tsig key to use. See section 3.3.1.
+the name of the tsig key to use. See section 3.3.
 
 Since NSD is written to be run on the root name servers, the config file 
 can to contain something like:
@@ -546,4 +547,45 @@ zonefile contents into the name database. Upon the next reload or start,
 your zone will be served. For master zones, NSD will issue notifications
 to all configured 'notify:' targets.  For slave zones the above happens;
 NSD attempts to validate the zone from the master.
+
+3.5 Diagnosing NSD log entries
+
+NSD will print log messages to the system log (or 'logfile:' configuration
+entry). Some of these messages are discussed below. These messages can
+get extra support if errors happen.
+
+- "Reload process <pid> failed with status <s>, continuing with old database"
+
+This log message indicates the reload process of NSD has failed for
+some reason.  The reason can be anything from a missing database file
+to internal errors.  If this happens often, please let us know, this
+error message can be caught in the code, and appropriate action could
+be taken.
+
+- "snipping off trailing partial part of <ixfr.db>"
+
+Please let us know if, and how often, this happens.
+
+What happens is the file ixfr.db contains only part of expected data.
+The corruption is removed by snipping off the trailing part.
+
+- "memory churn is <num> bytes wasted"
+
+This is printed for every reload.  NSD churns through some memory due to
+zone transfers.  This is because the removed Resource Record data is not
+freed from memory, but kept allocated.  Note that IXFR (with TSIG) is with
+a trusted party, so memory denial attacks are unlikely.
+
+Please let us know if this value grows too large for you.  If it does,
+code support could be added to minimize it.  As a workaround, nsdc patch
+will reset it to zero.
+
+- "xfrd: max number of tcp connections (10) reached."
+
+This line is printed when more than 10 zones need a zone transfer at
+the same time.  The value is a compile constant (xfrd-tcp.h), but if
+this happens often for you, we could make this a config option.
+
+If this happens, more zones have to wait until a zone transfer completes
+(or is aborted) before they can have a zone transfer too.
 
