@@ -17,7 +17,6 @@ mandir = @mandir@
 # NSD specific pathnames
 configdir = @configdir@
 pidfile = @pidfile@
-zonesfile = @zonesfile@
 dbfile = @dbfile@
 nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
@@ -45,7 +44,6 @@ EDIT		= sed \
 			-e 's,@configdir\@,$(configdir),g' \
 			-e 's,@zonesdir\@,$(zonesdir),g' \
 			-e 's,@pidfile\@,$(pidfile),g' \
-			-e 's,@zonesfile\@,$(zonesfile),g' \
 			-e 's,@dbfile\@,$(dbfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \

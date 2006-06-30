@@ -1,3 +1,7 @@
+29 June 2006: Wouter
+	- removed --zonesfile nsd.zones configure option.
+	- doc/README updated for 3.0.
+
 28 June 2006: Wouter
 	- nsdc neater, checks for BLOCKED ips more strictly.
 	- nsd -d also disables xfrd forking, and thus all reloads

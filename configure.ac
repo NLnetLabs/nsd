@@ -54,15 +54,6 @@ AC_ARG_WITH([pidfile],
 AC_SUBST(pidfile)
 
 #
-# Determine location of nsd.zones
-#
-zonesfile=$configdir/nsd.zones
-AC_ARG_WITH([zonesfile],
-	AC_HELP_STRING([--with-zonesfile=path], [Pathname to the NSD list of zones]),
-	[zonesfile=$withval])
-AC_SUBST(zonesfile)
-
-#
 # Determine location of nsd.db
 #
 dbfile=$configdir/nsd.db
