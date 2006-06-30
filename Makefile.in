@@ -396,7 +396,8 @@ cutest.o:	tpkg/cutest/cutest.c
 	$(COMPILE) -c $< -o $@
 
 zlexer.c:	zlexer.lex
-	$(LEX) -i -t $< > $@
+	echo "#include <config.h>" > $@
+	$(LEX) -i -t $< >> $@
 
 zparser.c zparser.h: zparser.y
 	$(YACC) -d -o zparser.c zparser.y
