@@ -210,7 +210,8 @@ addition to standard configure options, one may use the following:
 
 2.3 Building
 
-Use ``make'' to create NSD and support tools.
+Use ``make'' to create NSD and support tools.  If you get errors, try to
+use ``gmake'' (gnu version of make), especially on old systems.
 
 
 2.4 Installing
