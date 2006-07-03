@@ -12,10 +12,20 @@
 3.3 ... Using TSIG
 3.4 ... Zone expiry of secondary zones
 3.5 ... Diagnosing NSD log entries
+4.0 Support and Feedback
+
 
 1.0 Introduction
 
 This is NSD Name Server Daemon (NSD) version @version@.
+
+The NLnet Labs Name Server Daemon (NSD) is an authoritative RFC compliant 
+DNS nameserver. It was first conceived to allow for more genetic 
+diversity for DNS server implementations used by the root-server system 
+and it has been developed for operations in environments where speed, 
+reliability, stability, and security are of high importance. NSD is 
+currently used on root servers such as k.root-servers.net and is also in 
+use by several top-level domain registries.
 
 NSD is a complete implementation of an authoritative DNS name server.
 For further information about what NSD is and what NSD is not please
@@ -58,6 +68,7 @@ Step 5: make install
 
 Step 6: Create and edit /etc/nsd/nsd.conf file possibly from
         nsd.conf.sample template that comes with the distribution.
+	(installed by default at /etc/nsd/nsd.conf.sample)
 	Here you need to configure the zones you want to serve.
 	TSIG keys used for secure zone transfers must be included.
 	Also server parameters can be set, see nsd.conf(5) man page.
@@ -363,7 +374,8 @@ for the zones). If any zone have been changed the nsd database is rebuild
 with the updates zone contents and NSD is issued a reload command.
 
 The patch process will break a zone transfer in progress, which will be
-reattempted later.
+reattempted later.  The patch process does this to avoid certain race
+conditions, which could otherwise happen.
 
 NSD will send notifications to slave zones if a master zone is updated.
 NSD will check for updates at master servers periodically and transfer
@@ -384,12 +396,6 @@ database with zone updates received:
 NSD doesn't do any logging. We believe that logging is a separate task
 and has to be done independently from the core operation.
 
-The CAIDA dnsstat tool referenced below is recommended to nsd
-operators as a mean of keeping statistics and check on abnormal query
-loads.
-
-        http://www.caida.org/tools/utilities/dnsstat/dnsstat-3.5.1a.tar.gz
-
 This consciously is not part of nsd itself in order to keep nsd
 focused and minimize its complexity. It is better to leave logging and
 tracing to separate dedicated tools. dnsstat can also easily be
@@ -399,6 +405,15 @@ dnsstat on the same machine as nsd, we would recommend using a
 multiprocessor if performance is an issue. Of course it can also run
 on a separate machine that has MAC layer access to the network of the
 server.
+
+The CAIDA dnsstat tool referenced is recommended to nsd operators as a 
+means of keeping statistics and check on abnormal query loads.
+
+    http://www.caida.org/tools/utilities/dnsstat/dnsstat-3.5.1a.tar.gz
+
+Another tool is the dnstop, that displays DNS statistics on your network.
+
+    http://dns.measurement-factory.com/tools/dnstop/src/dnstop-20060517.tar.gz
 
 A sample invocation of dnsstat:
 
@@ -491,7 +506,8 @@ the key name on the access control line.
 If the TSIG key name is used in notify or request-xfr lines,
 the key is used to sign the request/notification messages.
 
-nsd-notify uses the -y keyname:secret format that dig uses too.
+nsd-notify uses the -y keyname:secret format that dig uses too. For example
+  nsd-notify -y sec1_key:6KM6qiKfwfEpamEq72HQdA== -z example.com 127.0.0.1
 
 If you want to perform manual zone transfers you can use nsd-xfer.
 nsd-xfer(8) uses the same cryptic file format as named-xfer(8) (to
@@ -532,7 +548,7 @@ and will attempt to perform a zone transfer from any of the masters.
 After a zone transfer succeeds, or if the master indicates that the SOA 
 serial number is still the same, the zone will be OK again.
 
-In contrast with e.g. Bind, the inception time for a slave zone is stored
+In contrast with e.g. BIND, the inception time for a slave zone is stored
 on disk (in the xfrdfile: "xfrd.state"), together with timeouts.  If a
 slave zone acquisition time is recent enough, this means that NSD can start
 serving a zone immediately on loading, without querying the master server.
@@ -568,7 +584,7 @@ This log message indicates the reload process of NSD has failed for
 some reason.  The reason can be anything from a missing database file
 to internal errors.  If this happens often, please let us know, this
 error message can be caught in the code, and appropriate action could
-be taken.
+be taken.  We are as of yet not sure what action is appropriate, if any.
 
 - "snipping off trailing partial part of <ixfr.db>"
 
@@ -582,11 +598,14 @@ The corruption is removed by snipping off the trailing part.
 This is printed for every reload.  NSD churns through some memory due to
 zone transfers.  This is because the removed Resource Record data is not
 freed from memory, but kept allocated.  Note that IXFR (with TSIG) is with
-a trusted party, so memory denial attacks are unlikely.
+a trusted party, so memory denial attacks are unlikely.  'nsdc patch' will 
+cause a complete refresh of the memory it can be used to reset the amount 
+of 'churned' memory.
 
-Please let us know if this value grows too large for you.  If it does,
-code support could be added to minimize it.  As a workaround, nsdc patch
-will reset it to zero.
+NLnet Labs is interested in the operational impact of the memory churn 
+caused by the reloads. We would appreciate some feedback on how large 
+these values get in practice and if a regular run of 'nsdc patch' is a 
+sufficient workaround.
 
 - "xfrd: max number of tcp connections (10) reached."
 
@@ -596,5 +615,42 @@ this happens often for you, we could make this a config option.
 
 If this happens, more zones have to wait until a zone transfer completes
 (or is aborted) before they can have a zone transfer too.
+
+4.0 Support and Feedback
+
+NLnet Labs is committed to support NSD and its other software products on 
+a best effort basis, free of charge. This form of community support is 
+offered through a mailing lists and the 'bugzilla' web interface. 
+
+	http://www.nlnetlabs.nl/bugs/
+
+If for any reason NLnet Labs would stop community support of NSD such 
+would be announced on our web pages at least two years in advance.
+
+The community mailing list nsd-users@nlnetlabs.nl can be used to discuss 
+issues with other users of NSD. Subscribe here
+
+	http://open.nlnetlabs.nl/mailman/listinfo/nsd-users	
+
+NLnet Labs recognizes that in some corporate environments this commitment to
+community support is not sufficient and that support needs to be codified. 
+We therefore offer paid support contracts that come in 3 varieties. 
+
+More information about these support varieties can be found at 
+	<url on support varieties on www.nlnetlabs.nl>
+
+Alternatively you can contact mailto:nsd-support@nlnetlabs.nl .
+
+Support goes two ways.  By acquiring one of the support contracts you
+also support NLnet Labs to continue to participate in the development
+of the Internet architecture. We do this through our participation in
+the (IETF) standards process and by developing and maintaining
+reference implementations of standards and tools to support operation
+and deployment of new and existing Internet technology. 
+
+We are interested in our users and in the environment you use NSD. Please 
+drop us a mail when you use NSD. Indicate in what kind of operation you 
+deploy NSD and let us know what your positive and negative experiences are.
+http://www.nlnetlabs.nl/nsd  and  mailto:nsd-team@nlnetlabs.nl
 
 $Id$

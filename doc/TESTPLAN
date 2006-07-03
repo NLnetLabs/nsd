@@ -274,3 +274,15 @@ Needs lots of memory(swap space) and disk space.
 run with valgrind - on two nsds.
 then do the nsd-nsd, and notify the master to get axfr
 to happen test, with tsig as well enabled.
+
+8.5. Chroot
+-----------
+test chroot and the new files/directories.
+(And the file/dir not in chroot problem, and if all is OK that it works).
+
+8.6. nsdc
+---------
+In temporary test setup above, test nsdc tool.
+
+Make sure that if nsdc patch breaks a zone transfer in progress it is
+reattempted later on.
