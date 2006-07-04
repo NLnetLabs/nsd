@@ -217,8 +217,8 @@ Nsd can be configured to run on another port than port 53. See the
 'port:' statement in the nsd.conf file.  Access control list elements
 can be appended with @port_number to refer to a specific port only,
 such as 10.11.12.100@8853. NSD will not set its source port for 
-outgoing connections to be equal to the configured port. Ephemeral 
-ports are used.
+outgoing connections to be equal to the configured port, ephemeral 
+ports are used for notify, ixfr and axfr requests to other servers.
 
 10. nsdc needs no secret to talk to the server.
 

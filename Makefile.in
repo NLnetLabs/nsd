@@ -419,6 +419,22 @@ configure:	configure.ac
 tags: 	
 	ctags *.[ch]
 
+# dependency generation
+DEPEND_TMP=depend1073.tmp
+DEPEND_TMP2=depend1074.tmp
+DEPEND_TARGET=Makefile
+DEPEND_TARGET2=Makefile.in
+depend:
+	$(CC) -MM $(CPPFLAGS) *.c compat/*.c tpkg/cutest/*.c > $(DEPEND_TMP)
+	cp $(DEPEND_TARGET) $(DEPEND_TMP2)
+	head -`egrep -n "# Dependencies" $(DEPEND_TARGET) | tail -1 | sed -e 's/:.*$$//'` $(DEPEND_TMP2) > $(DEPEND_TARGET)
+	cat $(DEPEND_TMP) >> $(DEPEND_TARGET)
+	cp $(DEPEND_TARGET2) $(DEPEND_TMP2)
+	head -`egrep -n "# Dependencies" $(DEPEND_TARGET2) | tail -1 | sed -e 's/:.*$$//'` $(DEPEND_TMP2) > $(DEPEND_TARGET2)
+	cat $(DEPEND_TMP) >> $(DEPEND_TARGET2)
+	@if diff $(DEPEND_TARGET2) $(DEPEND_TMP2); then echo "$(DEPEND_TARGET2) unchanged"; else echo "Updated $(DEPEND_TARGET2))"; fi
+	rm -f $(DEPEND_TMP) $(DEPEND_TMP2)
+
 # Dependencies
 answer.o: answer.c config.h answer.h dns.h namedb.h dname.h buffer.h \
   region-allocator.h util.h rbtree.h packet.h query.h nsd.h edns.h tsig.h
@@ -508,7 +524,7 @@ fake-rfc2553.o: compat/fake-rfc2553.c compat/fake-rfc2553.h config.h
 inet_aton.o: compat/inet_aton.c config.h
 inet_ntop.o: compat/inet_ntop.c config.h
 inet_pton.o: compat/inet_pton.c config.h
-malloc.o: compat/malloc.c config.h
+malloc.o: compat/malloc.c
 memmove.o: compat/memmove.c config.h
 pselect.o: compat/pselect.c config.h
 snprintf.o: compat/snprintf.c config.h

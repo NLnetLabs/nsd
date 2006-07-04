@@ -1,3 +1,8 @@
+3 July 2006: Wouter
+	- 'make depend' target in makefile. (updates both Makefile.in
+	  and Makefile, so it works for users and for svn).
+	- doc minor update.
+
 2 July 2006: Wouter
 	- TESTPLAN, README, bugzilla-bugs docs updated.
 	- NSD for BIND users update.
