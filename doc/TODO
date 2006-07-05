@@ -28,6 +28,8 @@ SERVER
 - check if close_all_sockets in server.c also needs to close the parent/child sockets.
 - check if after forks you need to close sockets, i.e. if after a loop of reloads/...
   you start running out of fds.
+- check that on a multihomed server the source address is the same as the
+  sender to-address. ip-address: config lines, see what works. Need setup.
 
 SECURITY
 
