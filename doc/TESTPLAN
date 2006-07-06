@@ -1,6 +1,6 @@
 TEST PLAN for NSD.
 
-By W.C.A. Wijngaards, June 2006, NLnetLabs.
+By W.C.A. Wijngaards, July 2006, NLnetLabs.
 
 
 1. Introduction
@@ -12,7 +12,7 @@ been added to NSD.
 
 Regression testing is also very important. The old features must
 remain working. We have a set of tpkg packages to help with it.
-Any more old features?
+And also root-trace speed tests to regression test NSD.
 
 The feature tests are to be automated, using tpkg packages where
 possible.
@@ -24,6 +24,7 @@ Some minor features for the test:
 2.1. DNAME
 ----------
 DNAME support - there are already extensive DNAME tests.
+(closed).
 
 2.2. NSEC3
 ----------
@@ -33,6 +34,7 @@ NSEC3 support
 
 Note NSEC3 hash length byte to be implemented, test against others.
 Test interoperability of that. A simple zone transfer with Bind.
+(experimental, no need to test any more).
 
 2.3. NSID
 ---------
@@ -61,6 +63,8 @@ NSID support - run NSD with different NSIDs and queries.
 		ldns-notify and parse result packet for nsid.
 	g- test if NSID in AXFR responses. (should there?)
 		drill axfr <zone> and see if nsid in result packets.
+(experimental, so low priority).
+(need a way to send NSID enabled queries - no test).
 
 3. Transfers
 ------------
@@ -72,9 +76,7 @@ The zone transfer tests can be put in one tpkg by using servers
 at different ports. The allow- lines are then for localhost, all 
 ports (since the sending process uses ephemeral ports, all must
 be allowed). The request- lines contain the correct port numbers
-to send to. Since servers do not know what ports other servers
-are on, even though they are allowed, they will not contact the
-other servers directly.
+to send to. 
 
 3.1. AXFR
 ---------
@@ -148,7 +150,6 @@ state memory between IXFR packets.
 
 3.2.3. Test remove domain
 -------------------------
-From TODO.
 - is_existing = 0 used to remove a domain. Check and test carefully.
         - test delete middle zone
 	- test delete/add a domain and NXdomain/exist replies.
@@ -198,10 +199,13 @@ up and the result if it cannot keep up sending to child servers.
 Since it has to send for each zone to each child a message, this will
 take more resources.
 
+Due to the length and size, more an incidental test, but can be tpkg-ed.
+
 4.2. IPC FORKS
 --------------
 Infinite loop of reloads on a server. Has 10 child servers. wait.
 See if it runs out of sockets, file descriptors, etc.
+incidental test.
 
 5. Random mess test
 -------------------
@@ -230,10 +234,10 @@ Perhaps also include never respond entries (fake address) in acls.
 6. Portability test
 -------------------
 Port NSD to as many platforms as possible
-- local: sparc5(ok), alpha, amd64, OpenBsd(jelte thuis), open=FreeBSD, linuxes,
-  MacOsX(ok).
+- local: sparc5(ok), alpha(ok), amd64/OpenBsd(jelte thuis), 
+	open=FreeBSD(ok), linuxes(ok), MacOsX(ok), Sunos4(ok).
 - sf compilefarm for more.
-- minix3 if we can get it working (our minix3 copy).
+- minix3 if we can get it working (the minix3 setup fails somehow).
 
 - would be good to have a test set of tpkg (and tools required) to
   run after a port-test. A very portable set of tpkgs.
@@ -247,6 +251,8 @@ More review (again), Jelte, Wouter.
 
 8. todo-tests ideas
 -------------------
+These would be nice as tpkgs, but perhaps manual tests are needed.
+
 8.1. test combinations of configure options and shells
 ------------------------------------------------------
 "
@@ -265,7 +271,7 @@ rm patch file, check xfrd's behavoir. Refetches zones
 
 8.3. 64 bit
 -----------
-GB 64 bit file size transfers. One alpha so nastiest
+GB 64 bit file size transfers. On alpha so nastiest
 alignment on 64bit machine. Do transfer of > 4 Gb zone.
 Needs lots of memory(swap space) and disk space.
 
