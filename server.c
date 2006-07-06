@@ -611,7 +611,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			log_msg(LOG_ERR, "unable to load the diff file: %s", strerror(errno));
 			exit(1);
 	}
-	log_msg(LOG_INFO, "memory churn is %zd bytes wasted", nsd->db->memchurn);
+	log_msg(LOG_INFO, "memory churn is %d bytes wasted", (int)nsd->db->memchurn);
 #ifdef NSEC3
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		if(zone->updated)

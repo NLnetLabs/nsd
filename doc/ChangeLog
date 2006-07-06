@@ -1,3 +1,9 @@
+5 July 2006: Wouter
+	- helped in README with gnu make; need to make clean
+	  so that botched attempts by make to create the lexer files
+	  do not stay around.
+	- removed %zd, replaced by casts to int.
+
 3 July 2006: Wouter
 	- 'make depend' target in makefile. (updates both Makefile.in
 	  and Makefile, so it works for users and for svn).
