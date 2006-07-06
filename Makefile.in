@@ -330,81 +330,81 @@ realclean: clean
 	rm -f configlexer.c configparser.h configparser.c configparser.stamp
 
 basename.o:	compat/basename.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/basename.c -o $@
 
 inet_pton.o:	compat/inet_pton.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/inet_pton.c -o $@
 
 inet_ntop.o:	compat/inet_ntop.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/inet_ntop.c -o $@
 
 inet_aton.o:	compat/inet_aton.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/inet_aton.c -o $@
 
 b64_pton.o:	compat/b64_pton.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/b64_pton.c -o $@
 
 b64_ntop.o:	compat/b64_ntop.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/b64_ntop.c -o $@
 
 memmove.o:	compat/memmove.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/memmove.c -o $@
 
 snprintf.o:	compat/snprintf.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/snprintf.c -o $@
 
 strlcpy.o:	compat/strlcpy.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/strlcpy.c -o $@
 
 vsnprintf.o:	compat/vsnprintf.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/vsnprintf.c -o $@
 
 timegm.o:	compat/timegm.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/timegm.c -o $@
 
 malloc.o:	compat/malloc.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/malloc.c -o $@
 
 pselect.o:	compat/pselect.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/pselect.c -o $@
 
 fake-rfc2553.o:	compat/fake-rfc2553.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c compat/fake-rfc2553.c -o $@
 
 cutest_dname.o:	tpkg/cutest/cutest_dname.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c tpkg/cutest/cutest_dname.c -o $@
 
 cutest_dns.o:	tpkg/cutest/cutest_dns.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c tpkg/cutest/cutest_dns.c -o $@
 
 cutest_iterated_hash.o:	tpkg/cutest/cutest_iterated_hash.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c tpkg/cutest/cutest_iterated_hash.c -o $@
 
 cutest_run.o:	tpkg/cutest/cutest_run.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c tpkg/cutest/cutest_run.c -o $@
 
 cutest_rbtree.o:	tpkg/cutest/cutest_rbtree.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c tpkg/cutest/cutest_rbtree.c -o $@
 
 cutest_options.o:	tpkg/cutest/cutest_options.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c tpkg/cutest/cutest_options.c -o $@
 
 cutest_util.o:	tpkg/cutest/cutest_util.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c tpkg/cutest/cutest_util.c -o $@
 
 cutest.o:	tpkg/cutest/cutest.c
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c tpkg/cutest/cutest.c -o $@
 
 zlexer.c:	zlexer.lex
 	echo "#include <config.h>" > $@
-	$(LEX) -i -t $< >> $@
+	$(LEX) -i -t zlexer.lex >> $@
 
 zparser.c zparser.h: zparser.y
 	$(YACC) -d -o zparser.c zparser.y
 
 configlexer.c:	configlexer.lex
 	echo "#include \"configyyrename.h\"" > $@
-	$(LEX) -i -t $< >> $@
+	$(LEX) -i -t configlexer.lex >> $@
 
 configparser.c configparser.h:	configparser.y
 	$(YACC) -d -o configparser.c configparser.y
