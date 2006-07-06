@@ -36,6 +36,8 @@ SECURITY
 PURITY
 (old)- some data is in network order some in host order, make it clear with prefixes
 (old)- brush up the fuction and identifiers names
+- The XFRD zone state can be split up in expired/service-possible and 
+  in idle/zone-transfer-busy state flags. Is this more beautiful?
 
 CLEANUP
 (old)+ proper error/fatal/warning interfaces
