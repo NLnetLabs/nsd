@@ -3,6 +3,8 @@
 	  so that botched attempts by make to create the lexer files
 	  do not stay around.
 	- removed %zd, replaced by casts to int.
+	- updated REQUIREMENTS file, the sections on RR types, on what
+	  algorithm NSD follows and on which RFCs are supported are updated.
 
 3 July 2006: Wouter
 	- 'make depend' target in makefile. (updates both Makefile.in

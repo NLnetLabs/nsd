@@ -254,7 +254,8 @@ C.3 Incoming DNS Message processing.
        OPCODE 1 (IQUERY)   results in  RCODE=4 NOTIMPL  (rfc1035)
        OPCODE 2 (STATUS)   results in  RCODE=4 NOTIMPL  (rfc1035)
        OPCODE 3 (RESERVED) results in  RCODE=4 NOTIMPL 
-       OPCODE 4 (NOTIFY)   results in  RCODE=4 NOTIMPL  (rfc1035)
+       OPCODE 4 (NOTIFY)   results in  RCODE=4 access control list
+		processing and then handling of the notify. (rfc1995)
        OPCODE 5 (UPDATE)   results in  RCODE=4 NOTIMPL  (rfc2136 sect 3)
 
      + AA bit in query packet is ignored.
@@ -267,13 +268,9 @@ C.3 Incoming DNS Message processing.
 
      + RCODES are ignored.
 
-
-
      + QDCOUNT=1 results in further processing.
        QDCOUNT!=1 results in RCODE=1 FORMERR
  
-     + Other sections should be empty otherwise FORMERR. 
-
      + QCLASS=IN results in further processing.
 
      + QCLASS=ANY results in further processing with the AA bit in the
@@ -298,6 +295,10 @@ C.3 Incoming DNS Message processing.
 
 	      BIND9 generates a status RCODE=5 REFUSED.
       ]
+
+     + Other sections should be empty otherwise FORMERR. 
+     		+ except, EDNS and TSIG opt records are allowed.
+		+ TSIG signature is checked, otherwise a TSIG error.
 
     + Presence of OPT RR indicates support of EDNS (rfc2671).  If the
       VERSION > 0 then the server will respond with an OPT with
@@ -338,7 +339,7 @@ C 4.1 Actions based on QTYPE of incoming Query.
 
    case QTYPE=IXFR respond with RCODE=5 (REFUSED)
 
-   case QTYPE=AXFR respond with AXFR (TSIG is not supported)
+   case QTYPE=AXFR respond with AXFR (TSIG is supported)
 
      
    case QTYPE=MAILB proceed with processing.
@@ -432,10 +433,9 @@ C 4.1 Actions based on QTYPE of incoming Query.
          corresponding label does not exist), look to see whether the
          last label matched has a DNAME record.
 	      
-		  BEGIN DNAME
-	          [DNAME processing is deferred.
-	 
-	          If a DNAME record exists at that point, copy that record into
+		  BEGIN DNAME (supported by NSD 3.0)
+
+	 	  If a DNAME record exists at that point, copy that record into
 		  the answer section, if the DO bit is set also copy the SIG.
 
 		  If substitution of its <target> for its <owner> in
@@ -450,8 +450,11 @@ C 4.1 Actions based on QTYPE of incoming Query.
 		  be no descendants of a DNAME in the same zone
 		  (rfc2672 3). So if a DNAME has been found only go to
 		  step 1 if another zone can be found.
+
+		  NSD will refuse to zonecompile a zone that has descendants
+		  of a DNAME. It always synthesizes CNAME records.
 		  
-		  ] END DNAME
+		  END DNAME
 		  
          If there was no DNAME record, look to see if the "*" label
          exists.
@@ -557,6 +560,10 @@ C 4.2 Additional Data processing.
   are 'constructed' zone by zone. It is an optimisation of speed versus
   network optimisation.
 
+  In NSD2 and later this behaviour still exists, even though the packets
+  are constructed at run time, only information from the current zone 
+  is added to a response.
+
 C 4.3 Label compression in RDATA
 
   In the spirit of RFC 1035 section 3.3. and 4.4.1 ("Pointers can
@@ -582,14 +589,6 @@ C 4.3 Label compression in RDATA
     dname of the 'hostname' field for AFSDB
     dname of the 'mbox-dname' and 'txt-dname' for RP
     dname of the 'intermediate-host' for RT.
-        
-
-   [** This is incorrect.  I don't think compression is allowed and NSD2
-    doesn't perform compression. -Erik]    
-    SIG signers name field MAY be compressed.  (2535 4.1.7)
-    NSEC dname field MAY be compressed.  (2535 4.2)
-
-
 
 
   For RRs not mentioned here no label compression in the rdata is
@@ -627,13 +626,6 @@ C 4.5 NSEC processing.
   then the answer section should remain empty and the Authority
   section should have either the NSEC RR that matches QNAME or the NSEC
   RR (opt-in) that indicates QNAME is in an insecure part of the zone.
-
-  If QNAME does not match a name from the zone then the negative
-  response is to be constructed so that all possible wildcard matches
-  are denied existence.   
-
-  [OK**** This is not yet complete. We need to work out the algorithm for
-  NSEC processing]
 
 C 4.6 Timeout management.
 
@@ -821,7 +813,27 @@ RR records details.
   "APL"      42	    # RFC 3123   
 		    An APL RR with empty RDATA is valid and implements an empty list.
 
-  "DS"       43,    # Not ASSIGNED YET...!!! draft
+  "DS"       43,    # RFC 4033, 4034, 4035. 
+  		    Included with referrals.
+
+  "SSHFP"    44,    # SSH Key Fingerprint
+
+  Unknown    45,
+
+  "RRSIG"    46,    # RFC 4033, 4034, 4035. 
+  		    Signature, uncompressed dnames.
+
+  "NSEC"     47,    # RFC 4033, 4034, 4035. 
+  		    Signed next ownername, to disprove rrset types and 
+		    domain name existance. Uncompressed dnames.
+
+  "DNSKEY"   48,    # RFC 4033, 4034, 4035.
+  		    Key for zone signing or key signing. Public key part.
+
+  Unknown    49 - 98,
+
+  "SPF"      99,    # draft-schlitt-spf-classic-02.txt
+
   "UINFO"    100,   # [IANA-Reserved]
   "UID"      101,   # [IANA-Reserved]
   "GID"      102,   # [IANA-Reserved]
@@ -832,8 +844,10 @@ RR records details.
   "AXFR"     252,   # RFC 1035
   "MAILB"    253,   # RFC 1035 (MB, MG, MR)
   "MAILA"    254,   # RFC 1035 (obsolete - see MX)
-  "ANY"     255,    # RFC 1035
+  "ANY"      255,   # RFC 1035
 
+  "NSEC3"    65324, # Experimental number for NSEC3 dns secure denial
+  		      that prevents zone walking.
 
 
 ______________________________________________________________________
@@ -870,8 +884,7 @@ ______________________________________________________________________
 
 Appendix C (Planned) Features
 
-
-RFC Standards
+NSD Version 1.0.0. and above
 
   The first release ( 1.0.0 ) contains an implementation of the
   standard RFC 1034 and RFC 1035, of proposed standards RFC2181
@@ -893,69 +906,65 @@ RFC Standards
    - RFC 2915 (NAPTR RR)
    - RFC 2915 (SRV RR)
 
-    
-   Planned implementation
-
-
-   - AXFR will be implemented in 1.0.1 with simple IP based ACLs.  In
-     1.1.0. AXFR will also supported with RFC 2845 (TSIG)
-
-   - RFC 1996 (Notifies) will be available in 1.1.0 or later.
-
-
-
    - Version 1.0.1 will also support features from 
      draft-ietf-dnsop-serverid-00.txt: The following names have associated
      TXT RRs in the CHAOS class: ID.SERVER. and VERSION.SERVER.
-      
 
-   - RFC2535 (DNSSEC) will be implemented in (1.1.0) once the current
+    - RFC2535 (DNSSEC) will be implemented in (1.1.0) once the current
      drafts DS and OPT-IN have made it to the standards track.
      (DNSSEC also includes RFC2536 (DSA), RFC2537 (RSA), RFC3225 (DO
      bit)
 
      Version 1.1.0 will not allow wildcards in DNSEC signed zones.
+     
+NSD Version 2.0. and above
+    
+   - AXFR will be implemented in 1.0.1 with simple IP based ACLs.  In
+     1.1.0. AXFR will also supported with RFC 2845 (TSIG)
+     Using external tool nsd-xfer, that supports TSIG to download
+     a zone from a server.
+   
+   - DNSSEC supported RRSIG/NSEC/DNSKEY, RFC 4033, 4034, 4035.
+ 
+   - wildcards allowed in dnssec secured zones.
 
-   - RFC 3123 (APL RR) will be implemented in 1.0.1 or later and not
-		      later than 1.1.0
-      
-   Deferred implementation
-
-   The following proposed standards will not be implemented in NSD
-   1.0.0, Release of these features will probably not happen before NSD
-   1.1.1.
-
-   - RFC 2672 (DNAME)
    - RFC 2673 (Binary labels)
    - RFC 2874 (A6)
 
-  Not implemented:
-
-  Proposed standards RFC1995 (IXFR), RFC2136
-  (Dynamic update) are not implemented and will not be implemented as
-  zone control is not implemented in NSD itself.
-
-
-  3.0 supports.
-  AXFR: 	- NSD serves AXFR, with TSIG if needed.
+NSD Version 3.0. and above
+  
+   AXFR: 	- NSD serves AXFR, with TSIG if needed.
   		- NSD requests AXFR from xfrd. This is noncompliant with RFC.
 		  It does not ask for the SOA serial number using a query
 		  beforehand (nsd-xfer does). It terminates the AXFR after
 		  the first packet if it determines the AXFR is not needed.
 
-  IXFR:		- Only supported, with TSIG, to request IXFR.
-  		- IXFR is not served.
-
-  TSIG:		- TSIG is supported for notify, axfr, ixfr, regular queries.
-
-  Secondary zones: - follows SOA timers. (NSD 2 and before did not).
-
-  NOTIFY:	- will ignore extraneous data in notify (instead of checking
+   RFC 1996 (NOTIFY):	
+   		- will ignore extraneous data in notify (instead of checking
   		  if they differ from content in zone). Only checks SOA serial.
 		  This is too hard, since other information is not available in
 		  xfrd, the process that handles the notify.
 		- Will not send notify to NS-servers of a zone. Only notify
 		  sent to 'notify:' entries in config file.
+   		- Incoming has an ip-based and key-based access control list.
+		- can be with TSIG.
+
+   RFC 2845 (TSIG):	
+   		- TSIG is supported for notify, axfr, ixfr, regular queries.
+
+   RFC 2672 (DNAME) support.
+
+   RFC 1995 (IXFR) support only for making requests to other servers.
+  		- IXFR is not served.
+
+  Secondary zones: - follows SOA timers. (NSD 2 and before did not) 
+  		(RFC 1034, 1035).
+
+Not implemented:
+
+  RFC2136 (Dynamic update) are not implemented and will not be implemented as
+  zone control is not implemented in NSD itself.
+
 
 ______________________________________________________________________
 $Id$
