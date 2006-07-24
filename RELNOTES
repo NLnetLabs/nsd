@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 2.3.6
 =============
 FEATURES:
+	- nsd-notify will retry max 15 times 5 second retries.
         - Aaron?? TODO
 
 BUG FIXES:

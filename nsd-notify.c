@@ -60,6 +60,7 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 	struct addrinfo* res, const char* addrstr)
 {
 	int timeout_retry = 5; /* seconds */
+	int num_retry = 15; /* times to try */
 	fd_set rfds;
 	struct timeval tv;
 	int retval = 0;
@@ -91,6 +92,12 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 			return;
 		}
 		if (retval == 0) {
+			num_retry--;
+			if(num_retry == 0) {
+				warning("error: failed to send notify to %s.\n",
+					addrstr);
+				exit(1);
+			}
 			warning("timeout (%d s) expired, retry notify to %s.\n",
 				timeout_retry, addrstr);
 		}
