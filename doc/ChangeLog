@@ -3,6 +3,8 @@
 	  total time for sending is about 75 seconds.
 	- forward port of fixes for bug 105 and 135 in nsdc.
 	  forward port of test for bug 105.
+	- fixed nasty bug with configure --prefix=<...> where config.h
+	  was wrong. Now double evaluate the shell expansion on the defines.
 
 5 July 2006: Wouter
 	- helped in README with gnu make; need to make clean

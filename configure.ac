@@ -38,7 +38,9 @@ AC_ARG_WITH([nsd_conf_file],
 	AC_HELP_STRING([--with-nsd_conf_file=path], [Pathname to the NSD configuration file]),
 	[nsd_conf_file=$withval])
 AC_SUBST(nsd_conf_file)
-AC_DEFINE_UNQUOTED(CONFIGFILE, ["$nsd_conf_file"], [Pathname to the NSD configuration file])
+# the eval is to evaluate shell expansion twice, once
+# for $nsd_conf_file and once for the ${prefix} within it.
+AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $nsd_conf_file`"], [Pathname to the NSD configuration file])
 
 #
 # Determine the pidfile location. Check if /var/run exists, if so set pidfile
@@ -53,7 +55,7 @@ AC_ARG_WITH([pidfile],
 	AC_HELP_STRING([--with-pidfile=path], [Pathname to the NSD pidfile]),
 	[pidfile=$withval])
 AC_SUBST(pidfile)
-AC_DEFINE_UNQUOTED(PIDFILE, ["$pidfile"], [Pathname to the NSD pidfile])
+AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the NSD pidfile])
 
 #
 # Determine location of nsd.db
@@ -63,7 +65,7 @@ AC_ARG_WITH([dbfile],
 	AC_HELP_STRING([--with-dbfile=path], [Pathname to the NSD database]),
 	[dbfile=$withval])
 AC_SUBST(dbfile)
-AC_DEFINE_UNQUOTED(DBFILE, ["$dbfile"], [Pathname to the NSD database])
+AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the NSD database])
 
 #
 # Determine the default directory for the master zone files
