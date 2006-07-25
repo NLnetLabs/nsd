@@ -28,6 +28,12 @@ nsdxfer="@sbindir@/nsd-xfer"
 nsdxfer_flags=""
 pidfile="@pidfile@"
 lockfile="@dbfile@.lock"
+# for bash: -C or noclobber. For tcsh: noclobber. For bourne: -C.
+noclobber_set="set -C"
+# ugly check for tcsh
+if echo @shell@ | grep tcsh >/dev/null; then
+	noclobber_set="set noclobber"
+fi
 
 ZONEC_VERBOSE=-v
 
@@ -53,8 +59,9 @@ signal() {
 }
 
 lock() {
-        (umask 222; echo "database locked by PID: $$" >${lockfile}) ||
-                (cat ${lockfile} ; "echo aborting..." ; exit 1)
+        (umask 222; $noclobber_set; echo "database locked by PID: $$" >${lockfile}) ||
+                (cat ${lockfile} ; echo "aborting..." ; exit 1)
+	[ $? = 0 ] || exit 1
 }
 
 unlock() {

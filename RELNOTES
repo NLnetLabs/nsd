@@ -7,8 +7,10 @@ FEATURES:
         - Aaron?? TODO
 
 BUG FIXES:
+	- Bug #105: nsdc lacks locking, fixed locking for root user.
         - Bug #134: nsd: make -N <large number> work again
-        - bind8 stats??
+        - Bug #135: Typo in locking code for nsdc, fixed.
+        - bind8 stats?? 
 
 2.3.5
 =============

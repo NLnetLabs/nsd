@@ -68,5 +68,7 @@ T 98   "parsing error in zonec for RRSIGs"
 T 101   "SPF RR is not supported"       
 T 102   "direct NSEC query response"   
 T 103   "NXDOMAIN SOA TTL"       
+T 105   "nsdc lacks locking"
 T 107   "segfault when encountering bad hex data in rfc3597 rdata"
+T 135	"Typo in locking code nsdc" in bug105 test.
 
