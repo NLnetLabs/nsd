@@ -1,14 +1,14 @@
 Contributed by Stephane Bortzmeyer on 2006-07-11 for NSD 2.3.5.
 
-Running "nsdc update" takes a long time with many zones, partly because it 
-runs sequentially. Also, some domains are more important than others and we
-would like to process them first.
+Running "nsdc update" takes a long time with many zones, partly because the
+axfr updates run sequentially over the zones. Also, some domains are more 
+important than others and we would like to process them first. 
 
 This patch provides a solution:
 
 1) from nsd.zones, produce a Makefile
-2) run this Makefile, either with "make fr" to update only one domain,
-or with "make -j N" if you want to run N axfr in parallel (yes, it
+2) run this Makefile, either with "make <domain>" to update only one domain,
+or with "make -j N" if you want to run N axfr processes in parallel (yes, it
 requires GNU make).
 
 nsdc is adapted with options to call the makefile.
