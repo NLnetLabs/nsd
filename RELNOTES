@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 =============
 FEATURES:
 	- nsd-notify will retry max 15 times 5 second retries.
+	- patch from Stephane to allow xfer in parallel added to contrib.
         - Aaron?? TODO
 
 BUG FIXES:
