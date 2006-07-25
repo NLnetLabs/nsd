@@ -84,6 +84,12 @@ dbfile=`${nsd_checkconf} -o database ${configfile}`
 pidfile=`${nsd_checkconf} -o pidfile ${configfile}`
 lockfile="${dbfile}.lock"  # still needed
 sbindir=`dirname ${nsd_checkconf}`
+# for bash: -C or noclobber. For tcsh: noclobber. For bourne: -C.
+noclobber_set="set -C"
+# ugly check for tcsh
+if echo @shell@ | grep tcsh >/dev/null; then
+	noclobber_set="set noclobber"
+fi
 
 #
 # useful routines
@@ -99,8 +105,9 @@ signal() {
 }
 
 lock() {
-        (umask 222; echo "database locked by PID: $$" >${lockfile}) ||
+        (umask 222; ${noclobber_set}; echo "database locked by PID: $$" >${lockfile}) ||
                 (cat ${lockfile} ; echo "aborting..." ; exit 1)
+	[ $? = 0 ] || exit 1
 }
 
 unlock() {

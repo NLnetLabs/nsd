@@ -1,3 +1,9 @@
+25 July 2006: Wouter
+	- max number of tries for nsd-notify is 15, so that the
+	  total time for sending is about 75 seconds.
+	- forward port of fixes for bug 105 and 135 in nsdc.
+	  forward port of test for bug 105.
+
 5 July 2006: Wouter
 	- helped in README with gnu make; need to make clean
 	  so that botched attempts by make to create the lexer files
