@@ -4,6 +4,7 @@
 	- typo in DNAME code, used original qname instead of CNAME
 	  adapted qname variable.
 	- added IPSECKEY RR type, RFC 4025.
+	- tpkg test with sample ipseckey rrs.
 
 25 July 2006: Wouter
 	- max number of tries for nsd-notify is 15, so that the

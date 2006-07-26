@@ -382,6 +382,21 @@ str_dot_seq:	STR
  * A string that can contain dots.
  */
 dotted_str:	STR
+    |	'.'
+    {
+	$$.str = ".";
+	$$.len = 1;
+    }
+    |	dotted_str '.'
+    {
+	    char *result = (char *) region_alloc(parser->rr_region,
+						 $1.len + 2);
+	    memcpy(result, $1.str, $1.len);
+	    result[$1.len] = '.';
+	    $$.str = result;
+	    $$.len = $1.len + 1;
+	    $$.str[$$.len] = '\0';
+    }
     |	dotted_str '.' STR
     {
 	    char *result = (char *) region_alloc(parser->rr_region,
@@ -802,7 +817,7 @@ rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
     }
     ;
 
-rdata_ipsec_base: STR sp STR sp STR sp STR
+rdata_ipsec_base: STR sp STR sp STR sp dotted_str
     {
 	    const dname_type* name = 0;
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* precedence */

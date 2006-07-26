@@ -355,6 +355,7 @@ parse_token(int token, char *yytext, enum lexer_state *lexer_state)
 		token = rrtype_to_token(str, &yylval.type);
 		if (token != 0) {
 			*lexer_state = PARSING_RDATA;
+			LEXOUT(("%d[%s] ", token, yytext));
 			return token;
 		}
 
@@ -377,6 +378,6 @@ parse_token(int token, char *yytext, enum lexer_state *lexer_state)
 	yylval.data.str = str;
 	yylval.data.len = len;
 	
-	LEXOUT(("%d ", token));
+	LEXOUT(("%d[%s] ", token, yytext));
 	return token;
 }
