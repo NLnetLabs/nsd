@@ -919,7 +919,7 @@ answer_authoritative(struct nsd   *nsd,
 		match = closest_match;
 	} else if ((rrset=domain_find_rrset(closest_encloser, q->zone, TYPE_DNAME))) {
 		/* process DNAME */
-		const dname_type* name = q->qname;
+		const dname_type* name = qname;
 		domain_type *dest = rdata_atom_domain(rrset->rrs[0].rdatas[0]);
 		int added;
 		assert(rrset->rr_count > 0);

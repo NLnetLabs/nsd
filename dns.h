@@ -120,6 +120,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_APL	42	/* RFC3123 */
 #define TYPE_DS		43	/* RFC 4033, 4034, and 4035 */
 #define TYPE_SSHFP	44	/* SSH Key Fingerprint */
+#define TYPE_IPSECKEY	45	/* public key for ipsec use. RFC 4025 */
 
 #define TYPE_RRSIG	46	/* RFC 4033, 4034, and 4035 */
 #define TYPE_NSEC	47	/* RFC 4033, 4034, and 4035 */
@@ -193,6 +194,7 @@ enum rdata_zoneformat
 	RDATA_ZF_HEX_LEN,	/* Hexadecimal binary data. Skip initial length byte. */
 	RDATA_ZF_NSAP,		/* NSAP.  */
 	RDATA_ZF_APL,		/* APL.  */
+	RDATA_ZF_IPSECGATEWAY,	/* IPSECKEY gateway ip4, ip6 or dname. */
 	RDATA_ZF_SERVICES,	/* Protocol and port number bitmap.  */
 	RDATA_ZF_NXT,		/* NXT type bitmap.  */
 	RDATA_ZF_NSEC,		/* NSEC type bitmap.  */

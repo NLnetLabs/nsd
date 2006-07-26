@@ -58,7 +58,7 @@ void yyerror(const char *message);
 %token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
-%token <type> T_SPF T_NSEC3
+%token <type> T_SPF T_NSEC3 T_IPSECKEY
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -455,6 +455,8 @@ type_and_rdata:
     |	T_X25 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_ISDN sp rdata_isdn	/* RFC 1183 */
     |	T_ISDN sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_IPSECKEY sp rdata_ipseckey	/* RFC 4025 */
+    |	T_IPSECKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_RT sp rdata_rt		/* RFC 1183 */
     |	T_RT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NSAP sp rdata_nsap	/* RFC 1706 */
@@ -493,6 +495,7 @@ type_and_rdata:
     |	T_NSEC sp rdata_nsec
     |	T_NSEC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NSEC3 sp rdata_nsec3
+    |	T_NSEC3 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_DNSKEY sp rdata_dnskey
     |	T_DNSKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_UTYPE sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
@@ -797,6 +800,47 @@ rdata_dnskey:	STR sp STR sp STR sp str_sp_seq trail
 	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $5.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_b64(parser->region, $7.str)); /* hash */
     }
+    ;
+
+rdata_ipsec_base: STR sp STR sp STR sp STR
+    {
+	    const dname_type* name = 0;
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* precedence */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* gateway type */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* algorithm */
+	    switch(atoi($3.str)) {
+		case IPSECKEY_NOGATEWAY: 
+			zadd_rdata_wireformat(alloc_rdata_init(parser->region, "", 0));
+			break;
+		case IPSECKEY_IP4:
+			zadd_rdata_wireformat(zparser_conv_a(parser->region, $7.str));
+			break;
+		case IPSECKEY_IP6:
+			zadd_rdata_wireformat(zparser_conv_aaaa(parser->region, $7.str));
+			break;
+		case IPSECKEY_DNAME:
+			/* convert and insert the dname */
+			if(strlen($7.str) == 0)
+				zc_error_prev_line("IPSECKEY must specify gateway name");
+			if(!(name = dname_parse(parser->region, $7.str)))
+				zc_error_prev_line("IPSECKEY bad gateway dname %s", $7.str);
+			if($7.str[strlen($7.str)-1] != '.')
+				name = dname_concatenate(parser->rr_region, name, 
+					domain_dname(parser->origin));
+			zadd_rdata_wireformat(alloc_rdata_init(parser->region,
+				dname_name(name), name->name_size));
+			break;
+		default:
+			zc_error_prev_line("unknown IPSECKEY gateway type");
+	    }
+    }
+    ;
+
+rdata_ipseckey:	rdata_ipsec_base sp str_sp_seq trail
+    {
+	   zadd_rdata_wireformat(zparser_conv_b64(parser->region, $3.str)); /* public key */
+    }
+    | rdata_ipsec_base trail
     ;
 
 rdata_unknown:	URR sp STR sp str_sp_seq trail

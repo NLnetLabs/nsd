@@ -21,7 +21,7 @@ extern lookup_table_type dns_certificate_types[];
 extern lookup_table_type dns_algorithms[];
 
 int rdata_atom_to_string(buffer_type *output, rdata_zoneformat_type type,
-			 rdata_atom_type rdata);
+			 rdata_atom_type rdata, rr_type *rr);
 
 /*
  * Split the wireformat RDATA into an array of rdata atoms. Domain

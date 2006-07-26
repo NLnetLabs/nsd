@@ -1,6 +1,9 @@
 26 July 2006: Wouter
 	- Updated the requirements with comments from Olaf.
 	- README discourages use of experimental nsec3 rr a bit more.
+	- typo in DNAME code, used original qname instead of CNAME
+	  adapted qname variable.
+	- added IPSECKEY RR type, RFC 4025.
 
 25 July 2006: Wouter
 	- max number of tries for nsd-notify is 15, so that the
