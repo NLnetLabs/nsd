@@ -19,6 +19,10 @@ ZONE COMPILER
   Redesign file format, so that you can skip a zone more easily, this
   also makes multiply db files easier.
 - profile the zonec compiling speed. Speed it up.
+- Add new RR Types, to dns.c, tpkg test zonec, and to list in REQ. file:
+IPSECKEY        45 IPSECKEY    [RFC4025] 
+DHCID           49 DHCID       [RFC-ietf-dnsext-dhcid-rr-13.txt]
+SPF             99             [RFC4408]
 
 SERVER
 (old)- replace all ntohs(..) with #define .... something[i] and ntohs() it beforehand

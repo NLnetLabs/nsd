@@ -286,7 +286,7 @@ C.3 Incoming DNS Message processing.
 
      + QCLASS!=IN && QCLASS!=ANY && QCLASS!=CHAOS results in RCODE=REFUSED
 
-      [OK***: BIND8 generates a SERVFAIL but I would say that a A
+      [Background: BIND8 generates a SERVFAIL but I would say that a A
               NOERROR message with empty Answer, Authority and
               Additional section is also a good answer and more in the
               spirit of RFC 1034 section 4.3.1.
@@ -359,9 +359,6 @@ C 4.1 Actions based on QTYPE of incoming Query.
   The first versions of NSD will not have DNSSEC processing
   implemented. (Read this as the DO bit is not set). 
 
-  [OK*** this version of the REQUIREMENTS includes DNSSEC specs
-   assuming DS and OPT-IN style NSEC records.]
-
    1. Search the available zones for the zone which is the nearest
       ancestor to QNAME.  If such a zone is found, go to step 2,
       otherwise step 3.
@@ -376,12 +373,12 @@ C 4.1 Actions based on QTYPE of incoming Query.
          CNAME, copy the CNAME RR into the answer section of the
          response, change QNAME to the canonical name in the CNAME RR,
          and go back to step 1. If the DO bit is set in the query the
-         SIG(CNAME) needs to be copied in the answer section as well.
+         RRSIG(CNAME) needs to be copied in the answer section as well.
 
 
          Otherwise, copy all RRs which match QTYPE into the answer
          section. 
-         Also copy corresponding SIGs into the answer section
+         Also copy corresponding RRSIGs into the answer section
          if the DO bit was set, goto step 4.
 
 	 If QTYPE is 'ANY' copy all RRs including the security related
@@ -405,17 +402,17 @@ C 4.1 Actions based on QTYPE of incoming Query.
 
 	      if there is a NSEC record or DS record then
 	   
-	        include the DS bit and associated SIG(DS) into the
+	        include the DS bit and associated RRSIG(DS) into the
 	        authority section if the DS record is present for this
 	        delegation. If there is no DS record present for this
 	        delegation then include the NSEC record with the
-	        corresponding SIG(NSEC) in the authority section.
+	        corresponding RRSIG(NSEC) in the authority section.
 	   
 	      else 
 
 	        we are in an opt-in part of the zone and we should
 	        include the the NSEC RR of the last secured RR in the
-	        zone and the corresponding SIG(NSEC) into the authority
+	        zone and the corresponding RRSIG(NSEC) into the authority
 	        section of the answer.
 
 	      fi
@@ -424,7 +421,7 @@ C 4.1 Actions based on QTYPE of incoming Query.
 	 Put whatever addresses are available into the
          additional section, using glue RRs if the addresses are not
          available from authoritative data. If the DO bit was set then
-         also copy the SIGs for the addresses for which the server is
+         also copy the RRSIGs for the addresses for which the server is
          authoritative.  
 
 	 Go to step 4.
@@ -433,10 +430,10 @@ C 4.1 Actions based on QTYPE of incoming Query.
          corresponding label does not exist), look to see whether the
          last label matched has a DNAME record.
 	      
-		  BEGIN DNAME (supported by NSD 3.0)
+		  BEGIN DNAME (supported as of NSD 3.0)
 
 	 	  If a DNAME record exists at that point, copy that record into
-		  the answer section, if the DO bit is set also copy the SIG.
+		  the answer section, if the DO bit is set also copy the RRSIG.
 
 		  If substitution of its <target> for its <owner> in
 		  QNAME would overflow the legal size for a
@@ -470,8 +467,8 @@ C 4.1 Actions based on QTYPE of incoming Query.
          If the "*" label does exist, match RRs at that node against
          QTYPE.  If any match, copy them into the answer section, but
          set the owner of the RR to be QNAME, and not the node with
-         the "*" label.  If the DO bit is set copy the SIG for the *
-         label and matching QTYPE also set the owner of the SIG RR to
+         the "*" label.  If the DO bit is set copy the RRSIG for the *
+         label and matching QTYPE also set the owner of the RRSIG RR to
          be QNAME). In addition a NSEC record indicating that no
          specific matches are possible should be returned in the
          additional section.
@@ -488,9 +485,9 @@ C 4.1 Actions based on QTYPE of incoming Query.
 
    4. Using local data only, attempt to add other RRs which may be
       useful to the additional section of the query if the DO bit was
-      set in the query then for retrieval of SOA or NS a KEY of the
+      set in the query then for retrieval of SOA or NS a DNSKEY of the
       same name should be added. For retrieval of type A, AAAA or A6 RRs 
-      the KEY should also be included.
+      the DNSKEY should also be included.
       See section 4.2 as well.
 
 
@@ -514,23 +511,23 @@ C 4.2 Additional Data processing.
       + A 
       + A6 
       + AAAA 
-      + KEY
+      + DNSKEY
 
   For truncation see section C.4.4
 
-  If the DO bit is set SIGs will be included with the additional data.
+  If the DO bit is set RRSIGs will be included with the additional data.
   
   Although not specified in the RFCs we will assume the following priority:
   Note that A glue is always added before any AAAA glue.
 
       + A 
-      + SIG A
+      + RRSIG A
       + A6 
-      + SIG A6
+      + RRSIG A6
       + AAAA 
-      + SIG AAAA
-      + KEY
-      + SIG KEY
+      + RRSIG AAAA
+      + DNSKEY
+      + RRSIG DNSKEY
 
   NSD will act as being authoritative for one zone without having the 
   other zones in cache. In other words:
@@ -582,6 +579,9 @@ C 4.3 Label compression in RDATA
     (Note that other RFCs do refer to e.g. MX dname in rdata being
     compressed (e.g. rfc2974 4.).
 
+   -MB, MG, MR, MINFO, MX also have compressed dnames.
+    These RRs and their compression are described in RFC 883.
+
    -AFSDB, RP, RT   (rfc1183, Section 1,2 & 3.3.3)
 
     The format of these RR does is not CLASS specific so compression
@@ -590,6 +590,7 @@ C 4.3 Label compression in RDATA
     dname of the 'mbox-dname' and 'txt-dname' for RP
     dname of the 'intermediate-host' for RT.
 
+   -NSEC, RRSIG and DNSKEY MUST NOT have dname compression (rfc 4034).
 
   For RRs not mentioned here no label compression in the rdata is
   performed.
@@ -600,7 +601,7 @@ C 4.4 Truncation handling. (as rfc2181 9)
 
   If inclusion of a RR set that is REQUIRED in either the answer or
   authority section leads to message truncation. The section is left
-  empty and the truncation (TC) bit is set. If the DO bit is set SIG
+  empty and the truncation (TC) bit is set. If the DO bit is set RRSIG
   RRs are required in the answer and authority section.
 
 
@@ -816,18 +817,18 @@ RR records details.
   "DS"       43,    # RFC 4033, 4034, 4035. 
   		    Included with referrals.
 
-  "SSHFP"    44,    # SSH Key Fingerprint
+  "SSHFP"    44,    # SSH Key Fingerprint, RFC 4255
 
   Unknown    45,
 
-  "RRSIG"    46,    # RFC 4033, 4034, 4035. 
+  "RRSIG"    46,    # RFC 4033, 4034, 4035.  RFC 3755.
   		    Signature, uncompressed dnames.
 
-  "NSEC"     47,    # RFC 4033, 4034, 4035. 
+  "NSEC"     47,    # RFC 4033, 4034, 4035.  RFC 3755.
   		    Signed next ownername, to disprove rrset types and 
 		    domain name existance. Uncompressed dnames.
 
-  "DNSKEY"   48,    # RFC 4033, 4034, 4035.
+  "DNSKEY"   48,    # RFC 4033, 4034, 4035.  RFC 3755.
   		    Key for zone signing or key signing. Public key part.
 
   Unknown    49 - 98,
@@ -965,6 +966,12 @@ Not implemented:
   RFC2136 (Dynamic update) are not implemented and will not be implemented as
   zone control is not implemented in NSD itself.
 
+
+Appendix D. Changes to this file.
+
+26 july 2006 (Wouter Wijngaards).
+- Comments changed to background items.
+- KEY->DNSKEY, SIG->RRSIG in the text, dnssec-bis style.
 
 ______________________________________________________________________
 $Id$
