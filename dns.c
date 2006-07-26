@@ -281,7 +281,7 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	  { RDATA_ZF_SHORT, RDATA_ZF_BYTE, RDATA_ZF_ALGORITHM,
 	    RDATA_ZF_BASE64 } },
 	/* 49 */
-	{ 49, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	{ TYPE_DHCID, "DHCID", T_DHCID, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_BASE64 } },
 	/* 50 */
 	{ 50, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 51 */

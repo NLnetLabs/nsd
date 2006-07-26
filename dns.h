@@ -125,8 +125,9 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_RRSIG	46	/* RFC 4033, 4034, and 4035 */
 #define TYPE_NSEC	47	/* RFC 4033, 4034, and 4035 */
 #define TYPE_DNSKEY	48	/* RFC 4033, 4034, and 4035 */
+#define TYPE_DHCID	49	/* draft-ietf-dnsext-dhcid-rr-13.txt */
 
-#define TYPE_SPF        99      /* draft-schlitt-spf-classic-02.txt */
+#define TYPE_SPF        99      /* RFC 4408 */
 
 #define TYPE_NSEC3	65324	/* NSEC3, dns secure denial, prevents zonewalking */
 

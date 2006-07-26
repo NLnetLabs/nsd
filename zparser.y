@@ -58,7 +58,7 @@ void yyerror(const char *message);
 %token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
-%token <type> T_SPF T_NSEC3 T_IPSECKEY
+%token <type> T_SPF T_NSEC3 T_IPSECKEY T_DHCID
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -472,13 +472,15 @@ type_and_rdata:
     |	T_ISDN sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_IPSECKEY sp rdata_ipseckey	/* RFC 4025 */
     |	T_IPSECKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_DHCID sp rdata_dhcid
+    |	T_DHCID sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_RT sp rdata_rt		/* RFC 1183 */
     |	T_RT sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NSAP sp rdata_nsap	/* RFC 1706 */
     |	T_NSAP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    |	T_SIG sp rdata_rrsig	/* XXX: Compatible format? */
+    |	T_SIG sp rdata_rrsig
     |	T_SIG sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    |	T_KEY sp rdata_dnskey	/* XXX: Compatible format? */
+    |	T_KEY sp rdata_dnskey
     |	T_KEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_PX sp rdata_px		/* RFC 2163 */
     |	T_PX sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
@@ -739,6 +741,12 @@ rdata_sshfp:	STR sp STR sp str_sp_seq trail
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $1.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $3.str)); /* fp type */
 	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $5.str, $5.len)); /* hash */
+    }
+    ;
+
+rdata_dhcid:	str_sp_seq trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_b64(parser->region, $1.str)); /* data blob */
     }
     ;
 

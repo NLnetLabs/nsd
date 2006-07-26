@@ -819,7 +819,8 @@ RR records details.
 
   "SSHFP"    44,    # SSH Key Fingerprint, RFC 4255
 
-  Unknown    45,
+  "IPSECKEY" 45,    # RFC 4025
+		    Public key RSA/DSA for use in IPSEC.
 
   "RRSIG"    46,    # RFC 4033, 4034, 4035.  RFC 3755.
   		    Signature, uncompressed dnames.
@@ -831,9 +832,11 @@ RR records details.
   "DNSKEY"   48,    # RFC 4033, 4034, 4035.  RFC 3755.
   		    Key for zone signing or key signing. Public key part.
 
-  Unknown    49 - 98,
+  "DHCID"    49,    # draft-ietf-dnsext-dhcid-rr-13.txt
 
-  "SPF"      99,    # draft-schlitt-spf-classic-02.txt
+  Unknown    50 - 98,
+
+  "SPF"      99,    # RFC 4408 (Experimental).
 
   "UINFO"    100,   # [IANA-Reserved]
   "UID"      101,   # [IANA-Reserved]
