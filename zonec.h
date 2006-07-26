@@ -20,10 +20,10 @@
 #define NSEC_WINDOW_BITS_COUNT 256
 #define NSEC_WINDOW_BITS_SIZE  (NSEC_WINDOW_BITS_COUNT / 8)
 
-#define IPSECKEY_NOGATEWAY	0
-#define IPSECKEY_IP4	1
-#define IPSECKEY_IP6	2
-#define IPSECKEY_DNAME	3
+#define IPSECKEY_NOGATEWAY      0       /* RFC 4025 */
+#define IPSECKEY_IP4            1
+#define IPSECKEY_IP6            2
+#define IPSECKEY_DNAME          3
 
 #define LINEBUFSZ 1024
 

@@ -5,6 +5,8 @@
 	  adapted qname variable.
 	- added IPSECKEY RR type, RFC 4025.
 	- tpkg test with sample ipseckey rrs.
+	- wireformat for IPSECKEY depends on the value of a rdata atom, added
+	  WF_IPSECGATEWAY to handle that.
 
 25 July 2006: Wouter
 	- max number of tries for nsd-notify is 15, so that the

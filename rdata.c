@@ -537,6 +537,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 	
 	for (i = 0; i < descriptor->maximum; ++i) {
 		int is_domain = 0;
+		int is_wirestore = 0;
 		size_t length = 0;
 		int required = i < descriptor->minimum;
 		
@@ -585,6 +586,24 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 					   & APL_LENGTH_MASK);
 			}
 			break;
+		case RDATA_WF_IPSECGATEWAY:
+			switch(rdata_atom_data(temp_rdatas[1])[0]) /* gateway type */ {
+			default:
+			case IPSECKEY_NOGATEWAY:
+				length = 0;
+				break;
+			case IPSECKEY_IP4:
+				length = IP4ADDRLEN;
+				break;
+			case IPSECKEY_IP6:
+				length = IP6ADDRLEN;
+				break;
+			case IPSECKEY_DNAME:
+				is_domain = 1;
+				is_wirestore = 1;
+				break;
+			}
+			break;
 		}
 
 		if (is_domain) {
@@ -601,8 +620,15 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				region_destroy(temp_region);
 				return -1;
 			}
-			temp_rdatas[i].domain
-				= domain_table_insert(owners, dname);
+			if(is_wirestore) {
+				temp_rdatas[i].data = (uint16_t *) region_alloc(
+                                	region, sizeof(uint16_t) + dname->name_size);
+				temp_rdatas[i].data[0] = dname->name_size;
+				memcpy(temp_rdatas[i].data+1, dname_name(dname), 
+					dname->name_size);
+			} else 
+				temp_rdatas[i].domain
+					= domain_table_insert(owners, dname);
 		} else {
 			if (buffer_position(packet) + length > end) {
 				if (required) {
