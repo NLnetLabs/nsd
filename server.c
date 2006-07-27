@@ -796,6 +796,7 @@ server_main(struct nsd *nsd)
 
 	xfrd_listener.user_data = (struct ipc_handler_conn_data*)region_alloc(
 		server_region, sizeof(struct ipc_handler_conn_data));
+	xfrd_listener.fd = -1;
 	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->nsd = nsd;
 	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->conn = 
 		xfrd_tcp_create(server_region);
