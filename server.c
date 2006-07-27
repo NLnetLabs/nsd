@@ -289,6 +289,14 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 }
 
 static void
+cleanup_dname_compression_tables(void *ptr) 
+{
+	free(ptr);
+	compressed_dname_offsets = NULL;
+	compression_table_capacity = 0;
+}
+
+static void
 initialize_dname_compression_tables(struct nsd *nsd)
 {
 	size_t needed = domain_table_count(nsd->db->domains) + 1;
@@ -296,7 +304,8 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	if(compression_table_capacity < needed) {
 		compressed_dname_offsets = (uint16_t *) xalloc(
 			needed * sizeof(uint16_t));
-		region_add_cleanup(nsd->db->region, free, compressed_dname_offsets);
+		region_add_cleanup(nsd->db->region, cleanup_dname_compression_tables, 
+			compressed_dname_offsets);
 		compression_table_capacity = needed;
 		compression_table_size=domain_table_count(nsd->db->domains)+1;
 	}
@@ -652,20 +661,17 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	log_msg(LOG_INFO, "reload: ipc reply main %d %d", ret, cmd);
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
 
-	log_msg(LOG_INFO, "nsd: reload(debug) beep0.");
 	/* Overwrite pid... */
 	if (writepid(nsd) == -1) {
 		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 	}
 
 	/* inform xfrd of new SOAs */
-	log_msg(LOG_INFO, "nsd: reload(debug) beep1.");
 	cmd = NSD_SOA_BEGIN;
 	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
 		log_msg(LOG_ERR, "problems sending soa begin from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
-	log_msg(LOG_INFO, "nsd: reload(debug) beep.");
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		uint16_t sz;
 		const dname_type *dname_ns=0, *dname_em=0;
