@@ -143,19 +143,27 @@ writepid (struct nsd *nsd)
 {
 	FILE * fd;
 	char pidbuf[32];
+	const char* w = "w";
 
+	log_msg(LOG_INFO, "writepid %p", nsd);
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
+	log_msg(LOG_INFO, "writepid %d", (int)nsd->pid);
 
-	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
+	log_msg(LOG_INFO, "writepid opening '%s' '%s'", nsd->pidfile, w);
+	if ((fd = fopen(nsd->pidfile, w)) ==  NULL ) {
+		log_msg(LOG_INFO, "writepid err '%s'", strerror(errno));
 		return -1;
 	}
+	log_msg(LOG_INFO, "writepid opened %s", nsd->pidfile);
 
 	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
 		fclose(fd);
 		return -1;
 	}
+	log_msg(LOG_INFO, "writepid written %s", pidbuf);
 	fclose(fd);
 
+	log_msg(LOG_INFO, "writepid closed");
 	if (chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
 		log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",
 			(unsigned) nsd->uid, (unsigned) nsd->gid,

@@ -650,19 +650,22 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			strerror(errno));
 	}
 	log_msg(LOG_INFO, "reload: ipc reply main %d %d", ret, cmd);
-	assert(ret != 0 || cmd == NSD_RELOAD);
+	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
 
+	log_msg(LOG_INFO, "nsd: reload(debug) beep0.");
 	/* Overwrite pid... */
 	if (writepid(nsd) == -1) {
 		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 	}
 
 	/* inform xfrd of new SOAs */
+	log_msg(LOG_INFO, "nsd: reload(debug) beep1.");
 	cmd = NSD_SOA_BEGIN;
 	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
 		log_msg(LOG_ERR, "problems sending soa begin from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
+	log_msg(LOG_INFO, "nsd: reload(debug) beep.");
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		uint16_t sz;
 		const dname_type *dname_ns=0, *dname_em=0;

@@ -677,6 +677,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
         if(len == 0)
         {
 		/* parent closed the connection. Quit */
+		log_msg(LOG_INFO, "xfrd: (debug) main closed connection.");
 		xfrd->shutdown = 1;
 		return;
         }
@@ -684,6 +685,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
         switch(cmd) {
         case NSD_QUIT:
         case NSD_SHUTDOWN:
+		log_msg(LOG_INFO, "xfrd: (debug) main send shutdown cmd.");
                 xfrd->shutdown = 1;
                 break;
 	case NSD_SOA_BEGIN:
