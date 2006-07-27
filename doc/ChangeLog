@@ -2,6 +2,7 @@
 	- fixup desc of tsig xfer test, remove debug from xfr_huge.
 	- fixed compressed dname tables cleanup, to set ptr to NULL.
 	- initialised xfrd_listener.fd to -1.
+	- fixed difffile handling of very short AXFRs, with no data.
 
 26 July 2006: Wouter
 	- Updated the requirements with comments from Olaf.

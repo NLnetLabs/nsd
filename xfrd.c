@@ -1324,6 +1324,7 @@ xfrd_check_failed_updates()
 				/* pretend we are notified with disk soa.
 				   This will cause a refetch of the data, and reload. */
 				xfrd_handle_incoming_notify(zone, &dumped_soa);
+				xfrd_set_timer_refresh(zone);
 			} else if(zone->soa_disk_acquired >= xfrd->reload_cmd_last_sent) {
 				/* this zone still has to be loaded,
 				   make sure reload is set to be sent. */

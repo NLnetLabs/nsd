@@ -631,8 +631,20 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			return 0;
 		}
 
+#ifndef NDEBUG
+	if(nsd_debug_level >= 1) {
+		log_msg(LOG_INFO, "diff: started packet for zone %s",
+			dname_to_string(dname_zone, 0));
+	}
+#endif
 	/* first RR: check if SOA and correct zone & serialno */
 	if(*rr_count == 0) {
+#ifndef NDEBUG
+		if(nsd_debug_level >= 1) {
+			log_msg(LOG_INFO, "diff: %s parse first RR",
+				dname_to_string(dname_zone, 0));
+		}
+#endif
 		dname = dname_make_from_packet(region, packet, 1, 1);
 		if(!dname) {
 			log_msg(LOG_ERR, "could not parse dname");
@@ -678,6 +690,12 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		*rr_count = 1;
 		*is_axfr = 0;
 		*delete_mode = 0;
+#ifndef NDEBUG
+		if(nsd_debug_level >= 1) {
+			log_msg(LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
+				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode);
+		}
+#endif
 	}
 	else  counter = 0;
 
@@ -706,6 +724,12 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			region_destroy(region);
 			return 0;
 		}
+#ifndef NDEBUG
+		if(nsd_debug_level >= 2) {
+			log_msg(LOG_INFO, "diff: %s parsed count %d, ax %d, delmode %d",
+				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode);
+		}
+#endif
 
 		if(*rr_count == 1 && type != TYPE_SOA) {
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
@@ -713,12 +737,45 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			/* add everything else (incl end SOA) */
 			*delete_mode = 0;
 			*is_axfr = 1;
+#ifndef NDEBUG
+			if(nsd_debug_level >= 2) {
+				log_msg(LOG_INFO, "diff: %s sawAXFR count %d, ax %d, delmode %d",
+					dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode);
+			}
+#endif
+		}
+		if(*rr_count == 1 && type == TYPE_SOA) {
+			/* if the serial no of the SOA equals the serialno, then AXFR */
+			size_t bufpos = buffer_position(packet);
+			uint32_t thisserial;
+			if(!packet_skip_dname(packet) ||
+				!packet_skip_dname(packet) ||
+				buffer_remaining(packet) < sizeof(uint32_t)*5)
+			{
+				log_msg(LOG_ERR, "bad xfr SOA RR formerr.");
+				region_destroy(region);
+				return 0;
+			}
+			thisserial = buffer_read_u32(packet);
+			if(thisserial == serialno) {
+				/* AXFR */
+				delete_zone_rrs(db, zone_db);
+				*delete_mode = 0;
+				*is_axfr = 1;
+			}
+			buffer_set_position(packet, bufpos);
 		}
 		if(type == TYPE_SOA && !*is_axfr) {
 			/* switch from delete-part to add-part and back again,
 			   just before soa - so it gets deleted and added too */
 			/* this means we switch to delete mode for the final SOA */
 			*delete_mode = !*delete_mode;
+#ifndef NDEBUG
+			if(nsd_debug_level >= 2) {
+				log_msg(LOG_INFO, "diff: %s IXFRswapdel count %d, ax %d, delmode %d",
+					dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode);
+			}
+#endif
 		}
 		if(type == TYPE_TSIG || type == TYPE_OPT) {
 			/* ignore pseudo RRs */
