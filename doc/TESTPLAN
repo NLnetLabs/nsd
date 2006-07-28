@@ -127,8 +127,21 @@ Tests 3.1.1 can be one tpkg.
 - new zone no longer uses nsec3.	(soa=8)
 	uses nsec.
 - axfr an empty zone (only the SOA)	(soa=9 + a lot for serial wraparound)
+	2**31 = 2147483648
+	9 + 2**31 : 2147483657
+  also tested
+	9 + 2**31-3	-- works. notify and transfer, zone updated.
+	9 + 2**31-2	-- works. notify and transfer, zone updated.
+	9 + 2**31-1	-- notify works, but at transfer time 'serial old'.
+				fixed: works, zone updated.
+	9 + 2**31 	-- notify is ignored, 'serial old'.
+	9 + 2**31+1	-- notify is ignored, 'serial old'.
 - axfr wraparound zone, couple txts.	(soa=2)
+	serial=2 works after serial=9 + 2**31-2 before.
 These can be done in order.
+
+TODO: - serials %u not %d.
+	- transfer serial old fixup (same as notify).
 
 3.1.2. Huge xfr - see test tpkg for this.
 It works already.

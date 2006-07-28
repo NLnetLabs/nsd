@@ -997,7 +997,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		}
 		if(zone->soa_disk_acquired != 0 &&
 			zone->state != xfrd_zone_expired /* if expired - accept anything */ &&
-			compare_serial(ntohl(zone->soa_disk.serial), ntohl(soa->serial)) > 0) {
+			compare_serial(ntohl(soa->serial), ntohl(zone->soa_disk.serial)) < 0) {
 			log_msg(LOG_INFO, "xfrd: zone %s ignoring old serial from %s",
 				zone->apex_str, zone->master->ip_address_spec);
 			return xfrd_packet_bad;
