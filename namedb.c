@@ -205,8 +205,17 @@ domain_table_iterate(domain_table_type *table,
 void
 domain_add_rrset(domain_type *domain, rrset_type *rrset)
 {
+#if 0 	/* fast */
 	rrset->next = domain->rrsets;
 	domain->rrsets = rrset;
+#else
+	/* preserve ordering, add at end */
+	rrset_type** p = &domain->rrsets;
+	while(*p) 
+		p = &((*p)->next);
+	*p = rrset;
+	rrset->next = 0;
+#endif
 
 	while (domain && !domain->is_existing) {
 		domain->is_existing = 1;

@@ -97,6 +97,9 @@ Tests 3.1.1 can be one tpkg.
 - axfr an empty zone - only the SOA 	(soa=2)
 - axfr a zone with only little data. 	(soa=3)
   some NS, MX, A, AAAA records.
+[NOTE: apparantly, due to the linked list mgt in domains (of rrset*)
+ the ordering of rrtypes for a domain is reversed after a zone transfer
+ for NSD, i.e. for query type=any. Ordering within an rrset is preserved.]
 - old zone unsigned, new zone signed. 	(soa=4)
   sign with two KSKs and one ZSK. And a prepublished ZSK in the zone.
 - old zone signed, new zone unsigned. 	(soa=5)

@@ -1,3 +1,6 @@
+28 July 2006: Wouter
+	- tentative change, that preserves ordering of rrtypes for a domain.
+
 27 July 2006: Wouter
 	- fixup desc of tsig xfer test, remove debug from xfr_huge.
 	- fixed compressed dname tables cleanup, to set ptr to NULL.
