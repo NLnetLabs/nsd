@@ -99,13 +99,25 @@ Tests 3.1.1 can be one tpkg.
   some NS, MX, A, AAAA records.
 [NOTE: apparantly, due to the linked list mgt in domains (of rrset*)
  the ordering of rrtypes for a domain is reversed after a zone transfer
- for NSD, i.e. for query type=any. Ordering within an rrset is preserved.]
+ for NSD, i.e. for query type=any. Ordering within an rrset is preserved.
+ Created fix to ordering, but is slow for many rr types... ]
 - old zone unsigned, new zone signed. 	(soa=4)
   sign with two KSKs and one ZSK. And a prepublished ZSK in the zone.
+	ZSK1: Kexample.com.+005+44537
+	ZSK2: Kexample.com.+005+03824 (prepublish)
+	KSK1: Kexample.com.+005+53988
+	KSK2: Kexample.com.+005+25320 (presign)
 - old zone signed, new zone unsigned. 	(soa=5)
   different zone contents, some names are still there, 
   unchanged, some names are there RRs changed, some names
   there different RRtypes, and some names removed, some names added.
+	www: unchanged (including nsec,rrsig).
+	webmail: mail prio changed.
+	printer: name removed.
+	terms: different RR types, now A type.
+	mail: type TXT added.
+	apex: type DNSKEY, nsec, rrsig removed.
+	newservice, ooo: new names
 - new zone with nsec3.			(soa=6)
 - new parameters for nsec3.		(soa=7)
 - new zone no longer uses nsec3.	(soa=8)
