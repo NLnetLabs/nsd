@@ -369,18 +369,18 @@ xfrd_write_state_soa(FILE* out, const char* id,
 	neato_timeout(out, "\t# was", xfrd_time()-soatime);
 	fprintf(out, " ago\n");
 
-	fprintf(out, "\t%s: %d %d %d %d", id, 
+	fprintf(out, "\t%s: %u %u %u %u", id, 
 		ntohs(soa->type), ntohs(soa->klass), 
 		ntohl(soa->ttl), ntohs(soa->rdata_count));
 	fprintf(out, " ");
 	xfrd_write_dname(out, soa->prim_ns);
 	fprintf(out, " ");
 	xfrd_write_dname(out, soa->email);
-	fprintf(out, " %d", ntohl(soa->serial));
-	fprintf(out, " %d", ntohl(soa->refresh));
-	fprintf(out, " %d", ntohl(soa->retry));
-	fprintf(out, " %d", ntohl(soa->expire));
-	fprintf(out, " %d\n", ntohl(soa->minimum));
+	fprintf(out, " %u", ntohl(soa->serial));
+	fprintf(out, " %u", ntohl(soa->refresh));
+	fprintf(out, " %u", ntohl(soa->retry));
+	fprintf(out, " %u", ntohl(soa->expire));
+	fprintf(out, " %u\n", ntohl(soa->minimum));
 	fprintf(out, "\t#");
 	neato_timeout(out, " refresh =", ntohl(soa->refresh));
 	neato_timeout(out, " retry =", ntohl(soa->retry));

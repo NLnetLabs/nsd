@@ -482,11 +482,11 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	uint8_t rr_em_len = domain_dname(rdata_atom_domain(rr->rdatas[1]))->name_size;
 
 	if(rr->type != TYPE_SOA || rr->rdata_count != 7) {
-		log_msg(LOG_ERR, "xfrd: copy_soa called with bad rr, type %d rrs %d.", 
+		log_msg(LOG_ERR, "xfrd: copy_soa called with bad rr, type %d rrs %u.", 
 			rr->type, rr->rdata_count);
 		return;
 	}
-	log_msg(LOG_INFO, "xfrd: copy_soa rr, type %d rrs %d, ttl %d.", 
+	log_msg(LOG_INFO, "xfrd: copy_soa rr, type %d rrs %u, ttl %u.", 
 			rr->type, rr->rdata_count, rr->ttl);
 	soa->type = htons(rr->type);
 	soa->klass = htons(rr->klass);
@@ -505,7 +505,7 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	memcpy(&soa->retry, rdata_atom_data(rr->rdatas[4]), sizeof(uint32_t));
 	memcpy(&soa->expire, rdata_atom_data(rr->rdatas[5]), sizeof(uint32_t));
 	memcpy(&soa->minimum, rdata_atom_data(rr->rdatas[6]), sizeof(uint32_t));
-	log_msg(LOG_INFO, "xfrd: copy_soa rr, serial %d refresh %d retry %d expire %d", 
+	log_msg(LOG_INFO, "xfrd: copy_soa rr, serial %u refresh %u retry %u expire %u", 
 			ntohl(soa->serial), ntohl(soa->refresh), ntohl(soa->retry),
 			ntohl(soa->expire));
 }
@@ -564,7 +564,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
 	{
 		/* soa in disk has been loaded in memory */
-		log_msg(LOG_INFO, "Zone %s serial %d is updated to %d.",
+		log_msg(LOG_INFO, "Zone %s serial %u is updated to %u.",
 			zone->apex_str, ntohl(zone->soa_nsd.serial),
 			ntohl(soa->serial));
 		zone->soa_nsd = zone->soa_disk;
@@ -608,7 +608,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	}
 
 	/* user must have manually provided zone data */
-	log_msg(LOG_INFO, "xfrd: zone %s serial %d from unknown source. refreshing", 
+	log_msg(LOG_INFO, "xfrd: zone %s serial %u from unknown source. refreshing", 
 		zone->apex_str, ntohl(soa->serial));
 	zone->soa_nsd = *soa;
 	zone->soa_disk = *soa;
@@ -783,7 +783,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	if((fd = xfrd_send_udp(zone->master, xfrd->packet)) == -1) 
 		return -1;
 
-	log_msg(LOG_INFO, "xfrd sent udp request for ixfr=%d for zone %s to %s", 
+	log_msg(LOG_INFO, "xfrd sent udp request for ixfr=%u for zone %s to %s", 
 		ntohl(zone->soa_disk.serial),
 		zone->apex_str, zone->master->ip_address_spec);
 	return fd;
@@ -1019,7 +1019,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			/* try next master */
 			return xfrd_packet_bad;
 		}
-		log_msg(LOG_INFO, "IXFR reply has newer serial (have %d, reply %d)",
+		log_msg(LOG_INFO, "IXFR reply has newer serial (have %u, reply %u)",
 			ntohl(zone->soa_disk.serial), ntohl(soa->serial));
 		/* serial is newer than soa_disk */
 		if(ancount == 1) {
@@ -1100,8 +1100,8 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 				/* do not process xfr - if only one part simply ignore it. */
 				/* rollback previous parts of commit */
 				buffer_clear(packet);
-				buffer_printf(packet, "xfrd: zone %s xfr rollback serial %d at time %d "
-					"from %s of %d parts",
+				buffer_printf(packet, "xfrd: zone %s xfr rollback serial %u at time %u "
+					"from %s of %u parts",
 					zone->apex_str, (int)zone->msg_new_serial, (int)xfrd_time(), 
 					zone->master->ip_address_spec, zone->msg_seq_nr);
 				buffer_flip(packet);
@@ -1117,7 +1117,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* dump reply on disk to diff file */
 	diff_write_packet(zone->apex_str, zone->msg_new_serial, zone->query_id, zone->msg_seq_nr,
 		buffer_begin(packet), buffer_limit(packet), xfrd->nsd->options);
-	log_msg(LOG_INFO, "xfrd: zone %s written %d received XFR to serial %d from %s to disk (part %d)",
+	log_msg(LOG_INFO, "xfrd: zone %s written %u received XFR to serial %u from %s to disk (part %u)",
 		zone->apex_str, (int)buffer_limit(packet), (int)zone->msg_new_serial, 
 		zone->master->ip_address_spec, zone->msg_seq_nr);
 	zone->msg_seq_nr++;
@@ -1128,7 +1128,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 
 	/* done. we are completely sure of this */
 	buffer_clear(packet);
-	buffer_printf(packet, "xfrd: zone %s received update to serial %d at time %d from %s in %d parts",
+	buffer_printf(packet, "xfrd: zone %s received update to serial %u at time %u from %s in %u parts",
 		zone->apex_str, (int)zone->msg_new_serial, (int)xfrd_time(), 
 		zone->master->ip_address_spec, zone->msg_seq_nr);
 #ifdef TSIG
@@ -1319,7 +1319,7 @@ xfrd_check_failed_updates()
 				/* this zone should have been loaded, since its disk
 				   soa time is before the time of the reload cmd. */
 				xfrd_soa_t dumped_soa = zone->soa_disk;
-				log_msg(LOG_ERR, "xfrd: zone %s: soa serial %d update failed"
+				log_msg(LOG_ERR, "xfrd: zone %s: soa serial %u update failed"
 					" restarting transfer (notified zone)",
 					zone->apex_str, ntohl(zone->soa_disk.serial));
 				/* revert the soa; it has not been acquired properly */

@@ -547,7 +547,7 @@ xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 		soa.retry = htonl(buffer_read_u32(packet));
 		soa.expire = htonl(buffer_read_u32(packet));
 		soa.minimum = htonl(buffer_read_u32(packet));
-		log_msg(LOG_INFO, "SOAINFO for %s %d", 
+		log_msg(LOG_INFO, "SOAINFO for %s %u", 
 			dname_to_string(dname,0), ntohl(soa.serial));
 	}
 
