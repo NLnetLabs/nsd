@@ -790,7 +790,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 #endif
 		if(*delete_mode) {
 			/* delete this rr */
-			if(!is_axfr && type == TYPE_SOA && counter==ancount-1
+			if(!*is_axfr && type == TYPE_SOA && counter==ancount-1
 				&& seq_nr == seq_total-1)
 				continue; /* do not delete final SOA RR for IXFR */
 			delete_RR(db, dname, type, klass, ttl, packet, rrlen, zone_db,

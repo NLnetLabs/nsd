@@ -233,7 +233,7 @@ xfrd_init_zones()
 		memset(xzone, 0, sizeof(xfrd_zone_t));
 		xzone->apex = dname;
 		xzone->apex_str = zone_opt->name;
-		xzone->state = xfrd_zone_expired;
+		xzone->state = xfrd_zone_refreshing;
 		xzone->dirty = 0;
 		xzone->zone_options = zone_opt;
 		xzone->master = 0; /* first retry will use first master */

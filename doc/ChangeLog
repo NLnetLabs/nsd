@@ -3,6 +3,10 @@
 	- fix for serial rollover (old_serial + 2**31), now works, is seen
 	  as new serial and rolled over to new.
 	- serial numbers, and time values, printed as unsigned to logfile.
+	- set so that if info is provided by operator, refreshing state
+	  not expired is used.
+	- forgot to * a pointer to boolean, is_ixfr in the difffile reader.
+	  This fixes the testplan_ixfr test 1.
 
 27 July 2006: Wouter
 	- fixup desc of tsig xfer test, remove debug from xfr_huge.
