@@ -119,8 +119,13 @@ Tests 3.1.1 can be one tpkg.
 	apex: type DNSKEY, nsec, rrsig removed.
 	newservice, ooo: new names
 - new zone with nsec3.			(soa=6)
+	iter=33 salt=AA44FF11
+  	slave detects NSEC3 settings.
 - new parameters for nsec3.		(soa=7)
+	iter=1078 salt=00998877665544332211AADDCCFF
+  	slave detects NSEC3 settings.
 - new zone no longer uses nsec3.	(soa=8)
+	uses nsec.
 - axfr an empty zone (only the SOA)	(soa=9 + a lot for serial wraparound)
 - axfr wraparound zone, couple txts.	(soa=2)
 These can be done in order.
