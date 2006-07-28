@@ -1262,7 +1262,11 @@ xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 {
 	if(soa && zone->soa_disk_acquired && zone->state != xfrd_zone_expired
 		&& compare_serial(ntohl(soa->serial), ntohl(zone->soa_disk.serial)) <= 0)
+	{
+		log_msg(LOG_INFO, "xfrd: (debug) ignored notify %s %u old serial, zone valid",
+			zone->apex_str, ntohl(soa->serial));
 		return 0; /* ignore notify with old serial, we have a valid zone */
+	}
 	if(soa == 0) {
 		zone->soa_notified.serial = 0;
 	}
