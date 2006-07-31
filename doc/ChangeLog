@@ -1,5 +1,6 @@
 31 July 2006: Wouter
 	- Test plan ixfr test in tpkg/long directory.
+	- IXFR with many packets tested (one RR per packet).
 
 28 July 2006: Wouter
 	- tentative change, that preserves ordering of rrtypes for a domain.

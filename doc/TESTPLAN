@@ -188,6 +188,10 @@ create test for it. Should be several MBs worth or data removed, MBs of
 data that stays the same, and MBs that are added.
 To make sure that the code can handle multiple packet IXFRs, and the
 state memory between IXFR packets.
+- created testns version for multiple packet reply. Small, multiple packets.
+Test from 3.1. but using multiple packets: one RR per packet.
+This test also falls over from udp to tcp for ixfr.
+- This works. The Mbs in size is tested in huge axfr test already.
 
 3.2.3. Test remove domain
 -------------------------
@@ -203,6 +207,7 @@ Get zone to expire. Check it does not answer.
 Provide an update. Check it does answer again.
 	Startup the master server after a while. Transfer should happen
 	within the retry interval.
+Provide old zone on the master, after expire the slave must transfer it.
 
 Get zone to expire. Check it does not answer.
 Keep master down so that the zone stays expired.
