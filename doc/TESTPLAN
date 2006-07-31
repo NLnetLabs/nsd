@@ -173,11 +173,14 @@ The mini ixfr server responds with canned replies to a IXFR query.
   compression, so it means more work for processing.
   So, in the ixfr packet TXTB is removed from 3, added in 4, removed from 4,
   added in 5.
+  Also in vs4 a txt5 record is added, which stays around.
 - from 5 to 7, but this time the redundant work is removed from ixfr packet.
 - 7 to 8, have one domain name where two RR types exist, A and DNAME.
   remove one RR type in IXFR then make sure the other type still exists.
 - 8 to 9, have a name with many different A records. Remove one A record
   from it. Add another A record to it. Test if the rest is there.
+[Note: when you delete on RR from an RRset, the ordering of the RRset
+changes, the contents of the rrset get shuffled (last put in empty slot).]
 
 3.2.2. a huge ixfr.
 -------------------

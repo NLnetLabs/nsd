@@ -1,3 +1,6 @@
+31 July 2006: Wouter
+	- Test plan ixfr test in tpkg/long directory.
+
 28 July 2006: Wouter
 	- tentative change, that preserves ordering of rrtypes for a domain.
 	- fix for serial rollover (old_serial + 2**31), now works, is seen
