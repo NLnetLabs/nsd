@@ -218,6 +218,24 @@ add_rdata_memchurn(namedb_type* db, rr_type* rr)
 	}
 }
 
+/* this routine determines if below a domain there exist names with
+ * data (is_existing) or no names below the domain have data. 
+ */
+static int
+has_data_below(domain_type* top)
+{
+	domain_type* d = top;
+	assert(d != NULL);
+	/* in the canonical ordering subdomains are after this name */
+	d = domain_next(d);
+	while(d != NULL && dname_is_subdomain(domain_dname(d), domain_dname(top))) {
+		if(d->is_existing)
+			return 1;
+		d = domain_next(d);
+	}
+	return 0;
+}
+
 static void 
 rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 {
@@ -262,7 +280,17 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 #endif
 	/* is the node now an empty node (completely deleted) */
 	if(domain->rrsets == 0) {
-		domain->is_existing = 0;
+		/* if there is no data below it, it becomes non existing.
+		   also empty nonterminals above it become nonexisting */
+		/* check for data below this node. */
+		if(!has_data_below(domain)) {
+			/* nonexist this domain and all parent empty nonterminals */
+			domain_type* p = domain;
+			while(p != NULL && p->rrsets == 0) {
+				p->is_existing = 0;
+				p = p->parent;
+			}
+		}
 	}
 	rrset->rr_count = 0;
 }

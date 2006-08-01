@@ -1,3 +1,7 @@
+1 August 2006: Wouter
+	- Test for remove domains with IXFR.
+	- Fix for empty nonterminals and IXFR deletes.
+
 31 July 2006: Wouter
 	- Test plan ixfr test in tpkg/long directory.
 	- IXFR with many packets tested (one RR per packet).

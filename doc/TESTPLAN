@@ -196,9 +196,19 @@ This test also falls over from udp to tcp for ixfr.
 3.2.3. Test remove domain
 -------------------------
 - is_existing = 0 used to remove a domain. Check and test carefully.
-        - test delete middle zone
+        - test delete middle name
+		i.e. you have a zone with:
+			c.example.com TXT "x"
+			b.c.example.com TXT "x"
+			a.b.c.example.com TXT "x"
+		and you delete the b.c. record. The b.c becomes empty 
+		nonterminal. If you then delete a.b.c. TXT, the b.c becomes
+		NXdomain.
+		[- fixed delete with IXFR for empty nonterminals.]
 	- test delete/add a domain and NXdomain/exist replies.
+		- tested in 3.2.1 already, works.
 	- test delet domain and wildcard replies.
+- Tested, it works, fix for IXFR that makes empty nonterminals.
 
 3.3. Timouts
 ------------
