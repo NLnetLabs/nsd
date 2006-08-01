@@ -1019,7 +1019,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			/* try next master */
 			return xfrd_packet_bad;
 		}
-		log_msg(LOG_INFO, "IXFR reply has newer serial (have %u, reply %u)",
+		log_msg(LOG_INFO, "IXFR reply has ok serial (have %u, reply %u).",
 			ntohl(zone->soa_disk.serial), ntohl(soa->serial));
 		/* serial is newer than soa_disk */
 		if(ancount == 1) {

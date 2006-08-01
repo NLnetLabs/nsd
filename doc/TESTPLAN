@@ -214,17 +214,16 @@ This test also falls over from udp to tcp for ixfr.
 ------------
 Get zone to expire. Check it does not answer.
 	Start only a secondary server, no master. Set expire timeout short.
+	Timers set as refresh=1 retry=1 expire=10 minimum=10
 Provide an update. Check it does answer again.
 	Startup the master server after a while. Transfer should happen
 	within the retry interval.
+Wait for zone to expire again. Check that.
 Provide old zone on the master, after expire the slave must transfer it.
+The above works, old zone is transferred and served.
 
-Get zone to expire. Check it does not answer.
-Keep master down so that the zone stays expired.
-Provide no update, but master replies 'zone still at version x',
-by axfr or ixfr. Check it answers again.
--- same but the master that goes up is the ldns-ixfr canned 
-   response that will, this time say that the serial is OK.
+Test that the master says that serial number is OK, in 3.2.1 tests.
+This test also includes IXFR reply from the master that contains AXFR contents.
 
 3.4. TSIG zone transfers
 ------------------------
