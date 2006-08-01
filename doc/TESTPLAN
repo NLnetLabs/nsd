@@ -232,8 +232,10 @@ TSIG notifies - test it, create test for it.
 	- notify accepted, nsd->nsd notify
 	  by starting master and slave server with tsig keys
 	  for a zone, update zone at master.
+	  Done in 3.1.3.
 	- notify refused. nsd->nsd notify
 	  same but use different secret at one server.
+	  Test done.
 
 4. IPC
 --------
