@@ -11,6 +11,9 @@
 	- new custom region for query region - to make chunksize larger
 	  there. The chunksize for the query region is important, if
 	  all allocations for a query fit in it, no mallocs are needed.
+	- TSIG other_data field size according to RFC 2845 is 0 or 6.
+	  In tsig implementation put a maximum to the field of 16,
+	  otherwise a formerror results.
 
 1 August 2006: Wouter
 	- Test for remove domains with IXFR.

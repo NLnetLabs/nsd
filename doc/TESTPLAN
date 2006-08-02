@@ -260,10 +260,12 @@ a small footprint. During use this may grow; about 1 K per zone perhaps.
 About 2.5Kb per secondary zone in xfrd, below 1 Kb for a master zone,
 that works out for 100.000 secondary zones as 250 Mb for xfrd.
 
-Perhaps do also with 1000 child servers for the NSD. see if it can keep
+Perhaps do also with 100 child servers for the NSD. see if it can keep
 up and the result if it cannot keep up sending to child servers.
 Since it has to send for each zone to each child a message, this will
 take more resources.
+Tested, it cannot keep up. Child servers operate using old zone status
+of expired/ok, also the machine load is 100%.
 
 Due to the length and size, more an incidental test, but can be tpkg-ed.
 
@@ -272,6 +274,8 @@ Due to the length and size, more an incidental test, but can be tpkg-ed.
 Infinite loop of reloads on a server. Has 10 child servers. wait.
 See if it runs out of sockets, file descriptors, etc.
 incidental test.
+Tested, with adjusted source that repeats reloads. This puts strain on the 
+reload ipc handshake code. And ipc socket code. It works fine.
 
 5. Random mess test
 -------------------
