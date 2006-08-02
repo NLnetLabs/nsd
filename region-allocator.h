@@ -23,6 +23,21 @@ region_type *region_create(void *(*allocator)(size_t),
 
 
 /*
+ * Create a new region, with chunk size and large object size.
+ * Note that large_object_size must be <= chunk_size.
+ * Anything larger than the large object size is individually alloced.
+ * large_object_size = chunk_size/8 is reasonable;
+ * initial_cleanup_size is the number of prealloced ptrs for cleanups.
+ * The cleanups are in a growing array, and it must start larger than zero.
+ */
+region_type *region_create_custom(void *(*allocator)(size_t),
+				  void (*deallocator)(void *),
+				  size_t chunk_size,
+				  size_t large_object_size,
+				  size_t initial_cleanup_size);
+
+
+/*
  * Destroy REGION.  All memory associated with REGION is freed as if
  * region_free_all was called.
  */

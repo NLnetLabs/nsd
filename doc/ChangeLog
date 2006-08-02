@@ -1,3 +1,10 @@
+2 August 2006: Wouter
+	- Region can be customised for detailed memory handling.
+	  Especially if you set large_object_size=0, chunk_size=0,
+	  the region will perform individual allocs, and 'save memory'.
+	  The region still keeps tracks of allocations so that at
+	  region_free time all memory is released.
+
 1 August 2006: Wouter
 	- Test for remove domains with IXFR.
 	- Fix for empty nonterminals and IXFR deletes.

@@ -17,8 +17,8 @@
 
 #define ALIGN_UP(x, s)     (((x) + s - 1) & (~(s - 1)))
 
-#define CHUNK_SIZE         4096
-#define LARGE_OBJECT_SIZE  (CHUNK_SIZE / 8)
+#define DEFAULT_CHUNK_SIZE         4096
+#define DEFAULT_LARGE_OBJECT_SIZE  (DEFAULT_CHUNK_SIZE / 8)
 #define ALIGNMENT          (sizeof(void *))
 
 typedef struct cleanup cleanup_type;
@@ -46,13 +46,18 @@ struct region
 	size_t        maximum_cleanup_count;
 	size_t        cleanup_count;
 	cleanup_type *cleanups;
+
+	size_t        chunk_size;
+	size_t        large_object_size;
 };
 
 static region_type *current_region = NULL;
 
-region_type *
-region_create(void *(*allocator)(size_t size),
-	      void (*deallocator)(void *))
+
+static region_type *
+alloc_region_base(void *(*allocator)(size_t size),
+		  void (*deallocator)(void *),
+		  size_t initial_cleanup_count)
 {
 	region_type *result = (region_type *) allocator(sizeof(region_type));
 	if (!result) return NULL;
@@ -64,28 +69,71 @@ region_create(void *(*allocator)(size_t size),
 	result->unused_space = 0;
 	
 	result->allocated = 0;
-	result->data = (char *) allocator(CHUNK_SIZE);
-	if (!result->data) {
-		deallocator(result);
-		return NULL;
-	}
-	result->initial_data = result->data;
-	
+	result->data = NULL;
+	result->initial_data = NULL;
+
 	result->allocator = allocator;
 	result->deallocator = deallocator;
 
-	result->maximum_cleanup_count = 16;
+	assert(initial_cleanup_count > 0);
+	result->maximum_cleanup_count = initial_cleanup_count;
 	result->cleanup_count = 0;
 	result->cleanups = (cleanup_type *) allocator(
 		result->maximum_cleanup_count * sizeof(cleanup_type));
 	if (!result->cleanups) {
-		deallocator(result->data);
 		deallocator(result);
 		return NULL;
 	}
+
+	result->chunk_size = DEFAULT_CHUNK_SIZE;
+	result->large_object_size = DEFAULT_LARGE_OBJECT_SIZE;
+	return result;
+}
+
+region_type *
+region_create(void *(*allocator)(size_t size),
+	      void (*deallocator)(void *))
+{
+	region_type* result = alloc_region_base(allocator, deallocator, 16);
+	if(!result)
+		return NULL;
+	result->data = (char *) allocator(result->chunk_size);
+	if (!result->data) {
+		deallocator(result->cleanups);
+		deallocator(result);
+		return NULL;
+	}
+	result->initial_data = result->data;
     
 	return result;
 }
+
+
+region_type *region_create_custom(void *(*allocator)(size_t),
+				  void (*deallocator)(void *),
+				  size_t chunk_size,
+				  size_t large_object_size,
+				  size_t initial_cleanup_size)
+{
+	region_type* result = alloc_region_base(allocator, deallocator, 
+		initial_cleanup_size);
+	if(!result)
+		return NULL;
+	assert(large_object_size <= chunk_size);
+	result->chunk_size = chunk_size;
+	result->large_object_size = large_object_size;
+	if(result->chunk_size > 0) {
+		result->data = (char *) allocator(result->chunk_size);
+		if (!result->data) {
+			deallocator(result->cleanups);
+			deallocator(result);
+			return NULL;
+		}
+		result->initial_data = result->data;
+	}
+	return result;
+}
+
 
 void
 region_destroy(region_type *region)
@@ -150,7 +198,7 @@ region_alloc(region_type *region, size_t size)
 	}
 	aligned_size = ALIGN_UP(size, ALIGNMENT);
 
-	if (aligned_size >= LARGE_OBJECT_SIZE) {
+	if (aligned_size >= region->large_object_size) {
 		result = region->allocator(size);
 		if (!result) return NULL;
         
@@ -165,12 +213,12 @@ region_alloc(region_type *region, size_t size)
 		return result;
 	}
     
-	if (region->allocated + aligned_size > CHUNK_SIZE) {
-		void *chunk = region->allocator(CHUNK_SIZE);
+	if (region->allocated + aligned_size > region->chunk_size) {
+		void *chunk = region->allocator(region->chunk_size);
 		if (!chunk) return NULL;
 
 		++region->chunk_count;
-		region->unused_space += CHUNK_SIZE - region->allocated;
+		region->unused_space += region->chunk_size - region->allocated;
 		
 		region_add_cleanup(region, region->deallocator, chunk);
 		region->allocated = 0;
