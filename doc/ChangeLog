@@ -14,6 +14,11 @@
 	- TSIG other_data field size according to RFC 2845 is 0 or 6.
 	  In tsig implementation put a maximum to the field of 16,
 	  otherwise a formerror results.
+	- query with IXFR appended SOA not formerror.
+	  IXFR queries not reach the handler in axfr.c for IXFR queries.
+	- removed annoying debug message of added tsig key.
+	- added test that starts 7 servers in a mesh and lets them fight out
+	  what zones to transfer and serve.
 
 1 August 2006: Wouter
 	- Test for remove domains with IXFR.

@@ -266,6 +266,7 @@ Since it has to send for each zone to each child a message, this will
 take more resources.
 Tested, it cannot keep up. Child servers operate using old zone status
 of expired/ok, also the machine load is 100%.
+Also fixed tsig.other_size to be checked when reading TSIG from network.
 
 Due to the length and size, more an incidental test, but can be tpkg-ed.
 
@@ -279,9 +280,9 @@ reload ipc handshake code. And ipc socket code. It works fine.
 
 5. Random mess test
 -------------------
-Setup N servers. In  master->intermed->slave,
+Setup 7 servers. In  master->intermed->slave,
 with multiple master(2), intermed(3) and slave(2) servers.
-TSIGs for everyone.
+TSIGs (different) for everyone.
 Perhaps also include never respond entries (fake address) in acls.
 
 - Load random SOA + random data in servers.
@@ -300,6 +301,11 @@ Perhaps also include never respond entries (fake address) in acls.
   with old zone files and old ixfr.db and xfrd.state(!!) files.
   and see what happens :-)
   It should refresh/expire and so based on timers in xfrd.state.
+
+Tested:
+- nsd returns formerr on IXFR queries because of data in NS section.
+  But this is correct, fixed NSD, so it is no longer formerr, but 
+  refused / not authorised instead. (or whatever we put in axfr.c).
 
 6. Portability test
 -------------------

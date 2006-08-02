@@ -1227,9 +1227,17 @@ query_process(query_type *q, nsd_type *nsd)
 		return query_formerr(q);
 	}
 
-	/* Dont allow any records in the answer or authority section... */
-	if (ANCOUNT(q->packet) != 0 || NSCOUNT(q->packet) != 0) {
+	/* Dont allow any records in the answer or authority section... 
+	   except for IXFR queries. */
+	if (ANCOUNT(q->packet) != 0 || 
+		(q->qtype!=TYPE_IXFR && NSCOUNT(q->packet) != 0)) {
 		return query_formerr(q);
+	}
+	if(q->qtype==TYPE_IXFR && NSCOUNT(q->packet) > 0) {
+		int i; /* skip ixfr soa information data here */
+		for(i=0; i<NSCOUNT(q->packet); i++)
+			if(!packet_skip_rr(q->packet, 0))
+				return query_formerr(q);
 	}
 
 	arcount = ARCOUNT(q->packet);
