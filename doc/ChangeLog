@@ -4,6 +4,10 @@
 	  the region will perform individual allocs, and 'save memory'.
 	  The region still keeps tracks of allocations so that at
 	  region_free time all memory is released.
+	- tsig.region removed, it was not used after attaching a cleanup
+	  at creation. tsig creation uses custom region settings.
+	- xfrd inits the tsig records with memory saving settings,
+	  so the regions alloced for tsig take up about 60 + 4*8 bytes.
 
 1 August 2006: Wouter
 	- Test for remove domains with IXFR.

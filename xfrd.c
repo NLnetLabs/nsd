@@ -260,7 +260,7 @@ xfrd_init_zones()
 		xzone->tcp_conn = -1;
 
 #ifdef TSIG
-		tsig_create_record(&xzone->tsig, xfrd->region);
+		tsig_create_record_custom(&xzone->tsig, xfrd->region, 0, 0, 4);
 #endif /* TSIG */
 		
 		if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {

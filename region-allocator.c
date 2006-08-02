@@ -16,9 +16,6 @@
 #include "region-allocator.h"
 
 #define ALIGN_UP(x, s)     (((x) + s - 1) & (~(s - 1)))
-
-#define DEFAULT_CHUNK_SIZE         4096
-#define DEFAULT_LARGE_OBJECT_SIZE  (DEFAULT_CHUNK_SIZE / 8)
 #define ALIGNMENT          (sizeof(void *))
 
 typedef struct cleanup cleanup_type;
@@ -94,7 +91,8 @@ region_type *
 region_create(void *(*allocator)(size_t size),
 	      void (*deallocator)(void *))
 {
-	region_type* result = alloc_region_base(allocator, deallocator, 16);
+	region_type* result = alloc_region_base(allocator, deallocator, 
+		DEFAULT_INITIAL_CLEANUP_SIZE);
 	if(!result)
 		return NULL;
 	result->data = (char *) allocator(result->chunk_size);

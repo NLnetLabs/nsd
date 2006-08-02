@@ -97,7 +97,6 @@ struct tsig_key
 
 struct tsig_record
 {
-	region_type         *region;
 	tsig_status_type     status;
 	size_t               position;
 	size_t               response_count;
@@ -153,9 +152,21 @@ const char *tsig_error(int error_code);
 /*
  * Create the tsig record internal structure. Allocs it.
  * Call init_record afterwards before doing more with it.
+ *
+ * The region is used to attach a cleanup function that destroys the tsig.
  */
 void tsig_create_record(tsig_record_type* tsig, 
 			region_type* region);
+
+/*
+ * Like tsig_create_record, with custom region settings.
+ * The size params are used to customise the rr_region and context_region.
+ */
+void tsig_create_record_custom(tsig_record_type* tsig, 
+			region_type* region,
+			size_t chunk_size, 
+			size_t large_object_size, 
+			size_t initial_cleanup_size);
 
 /*
  * Call this before starting to analyze or signing a sequence of

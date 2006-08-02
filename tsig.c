@@ -182,10 +182,19 @@ tsig_cleanup(void *data)
 void
 tsig_create_record(tsig_record_type *tsig, region_type *region)
 {
-	tsig->region = region;
-	tsig->rr_region = region_create(xalloc, free);
-	tsig->context_region = region_create(xalloc, free);
-	region_add_cleanup(tsig->region, tsig_cleanup, tsig);
+	tsig_create_record_custom(tsig, region, DEFAULT_CHUNK_SIZE, 
+		DEFAULT_LARGE_OBJECT_SIZE, DEFAULT_INITIAL_CLEANUP_SIZE);
+}
+
+void
+tsig_create_record_custom(tsig_record_type *tsig, region_type *region,
+	size_t chunk_size, size_t large_object_size, size_t initial_cleanup_size)
+{
+	tsig->rr_region = region_create_custom(xalloc, free, chunk_size, 
+		large_object_size, initial_cleanup_size);
+	tsig->context_region = region_create_custom(xalloc, free, chunk_size,
+		large_object_size, initial_cleanup_size);
+	region_add_cleanup(region, tsig_cleanup, tsig);
 	tsig_init_record(tsig, NULL, NULL);
 }
 

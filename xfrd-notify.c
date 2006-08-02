@@ -74,7 +74,7 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 	netio_add_handler(netio, &not->notify_send_handler);
 
 #ifdef TSIG
-	tsig_create_record(&not->notify_tsig, region);
+	tsig_create_record_custom(&not->notify_tsig, region, 0, 0, 4);
 #endif /* TSIG */
 	notify_disable(not);
 	

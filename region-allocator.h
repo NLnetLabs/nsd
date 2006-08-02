@@ -14,6 +14,9 @@
 
 typedef struct region region_type;
 
+#define DEFAULT_CHUNK_SIZE         4096
+#define DEFAULT_LARGE_OBJECT_SIZE  (DEFAULT_CHUNK_SIZE / 8)
+#define DEFAULT_INITIAL_CLEANUP_SIZE 16
 
 /*
  * Create a new region.

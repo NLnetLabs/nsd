@@ -254,6 +254,8 @@ get answers. Wait for an hour and try again.
 Result, the IPC works okay, but xfrd uses much memory, 16Kb for TSIG regions,
 per zone. With the 2.5 kb in xfrd almost 20 Kb per zone. For 2G for 100.000.
 A bit much memory, for the largely unused tsig regions.
+Fixed, tsig for xfrd uses no preallocated worst case memory use, but only 
+a small footprint. During use this may grow; about 1 K per zone perhaps.
 
 About 2.5Kb per secondary zone in xfrd, below 1 Kb for a master zone,
 that works out for 100.000 secondary zones as 250 Mb for xfrd.
