@@ -19,6 +19,8 @@
 	- removed annoying debug message of added tsig key.
 	- added test that starts 7 servers in a mesh and lets them fight out
 	  what zones to transfer and serve.
+	- xfrd logic bug: if notified a slave would not see the renewal
+	  of its current zone.
 
 1 August 2006: Wouter
 	- Test for remove domains with IXFR.

@@ -1005,13 +1005,14 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		if(zone->soa_disk_acquired != 0 && zone->soa_disk.serial == soa->serial) {
 			log_msg(LOG_INFO, "xfrd: zone %s got update indicating current serial",
 				zone->apex_str);
+			/* (even if notified) the lease on the current soa is renewed */
+			zone->soa_disk_acquired = xfrd_time();
+			if(zone->soa_nsd.serial == soa->serial)
+				zone->soa_nsd_acquired = xfrd_time();
+			xfrd_set_zone_state(zone, xfrd_zone_ok);
+			log_msg(LOG_INFO, "xfrd: zone %s is ok", zone->apex_str);
 			if(zone->soa_notified_acquired == 0) {
-				/* we got a new lease on the SOA */
-				zone->soa_disk_acquired = xfrd_time();
-				if(zone->soa_nsd.serial == soa->serial)
-					zone->soa_nsd_acquired = xfrd_time();
-				xfrd_set_zone_state(zone, xfrd_zone_ok);
-				log_msg(LOG_INFO, "xfrd: zone %s is ok", zone->apex_str);
+				/* not notified or anything, so stop asking around */
 				zone->round_num = -1; /* next try start anew */
 				xfrd_set_timer_refresh(zone);
 				return xfrd_packet_newlease;

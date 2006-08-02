@@ -306,6 +306,9 @@ Tested:
 - nsd returns formerr on IXFR queries because of data in NS section.
   But this is correct, fixed NSD, so it is no longer formerr, but 
   refused / not authorised instead. (or whatever we put in axfr.c).
+- depending on which server they are asking, servers will use one of
+  the master zones (after expiry time exceeded). If master updated,
+  intermediaries, then slaves update themselves too.
 
 6. Portability test
 -------------------
