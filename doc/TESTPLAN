@@ -298,8 +298,8 @@ Perhaps also include never respond entries (fake address) in acls.
 	- delete ixfr.db
 	- delete xfrd.status
 	- delete ixfr and xfrd files.
-
 - run nsdc patch on a server.
+
 - pretend an intemediary was offline for a long time
   with old zone files and old ixfr.db and xfrd.state(!!) files.
   and see what happens :-)
