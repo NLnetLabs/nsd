@@ -1,6 +1,8 @@
 3 August 2006: Wouter
 	- more tests in mesh test.
 	- changed test packages to put nsd log to test result "/dev/stdout".
+	- test packages more portable - use default 'dig' location.
+	  also, path is appended to, instead of replaced.
 
 2 August 2006: Wouter
 	- Region can be customised for detailed memory handling.
