@@ -295,8 +295,11 @@ Perhaps also include never respond entries (fake address) in acls.
 - Send notifies to the master servers.
 - Kill some server. Start it again.
 - Kill some server & delete some file (ixfr.db or xfrd.status).
-- run nsdc patch on a server.
+	- delete ixfr.db
+	- delete xfrd.status
+	- delete ixfr and xfrd files.
 
+- run nsdc patch on a server.
 - pretend an intemediary was offline for a long time
   with old zone files and old ixfr.db and xfrd.state(!!) files.
   and see what happens :-)
