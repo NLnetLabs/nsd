@@ -4,6 +4,7 @@
 tpkg -a ../../ exe 0000_nsd-compile.tpkg
 tpkg -a ../../ fake 0001_nsd-debug-comp.tpkg
 for i in *.tpkg; do
+	echo ">>> next test $i at "`date`
         tpkg -a ../../ exe $i
 done
 tpkg report
