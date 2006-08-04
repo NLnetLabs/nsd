@@ -5,6 +5,8 @@
 	  set path to utilities on the system to run the tests.
 	- running testset on DecAlpha discovered uninitialised variable
 	  in NSD. Fixed.
+	- Jakob Schlyter asked for building nsd3 in an obj dir, i.e.
+	  mkdir obj; cd obj; ../configure && make. Fixed up makefile for that.
 
 3 August 2006: Wouter
 	- more tests in mesh test.
