@@ -1,3 +1,7 @@
+4 August 2006: Wouter
+	- nsd will start if diff file is corrupt, with a log message.
+	  It ignores the bad data.
+
 3 August 2006: Wouter
 	- more tests in mesh test.
 	- changed test packages to put nsd log to test result "/dev/stdout".

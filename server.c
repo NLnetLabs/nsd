@@ -439,7 +439,9 @@ server_init(struct nsd *nsd)
 		return -1;
 	}
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count))
-		return -1;
+	{
+		log_msg(LOG_ERR, "The diff file contains errors. Will continue without it");
+	}
 #ifdef NSEC3
 	prehash(nsd->db, NULL);
 #endif
