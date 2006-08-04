@@ -7,6 +7,7 @@
 	  in NSD. Fixed.
 	- Jakob Schlyter asked for building nsd3 in an obj dir, i.e.
 	  mkdir obj; cd obj; ../configure && make. Fixed up makefile for that.
+	- and bug137.tpkg for separate obj dir building.
 
 3 August 2006: Wouter
 	- more tests in mesh test.
