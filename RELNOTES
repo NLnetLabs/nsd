@@ -12,6 +12,7 @@ BUG FIXES:
         - Bug #134: nsd: make -N <large number> work again
         - Bug #135: Typo in locking code for nsdc, fixed.
         - bind8 stats?? 
+	- uninitialised variable (found in nsd3 debugging) fixed.
 
 2.3.5
 =============

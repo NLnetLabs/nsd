@@ -69,6 +69,7 @@ domain_table_create(region_type *region)
 	root->plugin_data = NULL;
 #endif
 	root->is_existing = 0;
+	root->is_apex = 0;
 	
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));
