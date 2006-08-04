@@ -315,14 +315,14 @@ install: all
 	$(INSTALL) nsd-checkconf $(DESTDIR)$(sbindir)/nsd-checkconf
 	$(INSTALL) nsd-patch $(DESTDIR)$(sbindir)/nsd-patch
 	$(INSTALL) nsd-xfer $(DESTDIR)$(sbindir)/nsd-xfer
-	$(INSTALL_DATA) nsd.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) nsdc.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) zonec.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8
-	$(INSTALL_DATA) nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkconf.8
-	$(INSTALL_DATA) nsd-patch.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8
-	$(INSTALL_DATA) nsd-xfer.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
-	$(INSTALL_DATA) nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
+	$(INSTALL_DATA) $(srcdir)/nsd.8 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_DATA) $(srcdir)/nsdc.8 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_DATA) $(srcdir)/zonec.8 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_DATA) $(srcdir)/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8
+	$(INSTALL_DATA) $(srcdir)/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkconf.8
+	$(INSTALL_DATA) $(srcdir)/nsd-patch.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8
+	$(INSTALL_DATA) $(srcdir)/nsd-xfer.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
+	$(INSTALL_DATA) $(srcdir)/nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	$(INSTALL_DATA) nsd.conf.sample $(DESTDIR)$(nsdconfigfile).sample
 
 uninstall:
