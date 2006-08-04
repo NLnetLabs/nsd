@@ -325,7 +325,10 @@ Port NSD to as many platforms as possible
 - would be good to have a test set of tpkg (and tools required) to
   run after a port-test. A very portable set of tpkgs.
 	OSTYPE: (g)make. autoreconf. (g)indent. 
+		-> defaults for * systems.
+	dig 8.3 too old (format of output). Need 9+.
 	ldns: pcat, pcat-diff, pcat-print.  xfr1,2:nsd-ldnsd ixfr svr.
+		pcat-grep.pl
 	manual: md5sum/md5. hping(sudo). 
 	long: ldns-testns.
 

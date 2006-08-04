@@ -6,6 +6,7 @@
 # dig   - version 9 or later.
 # wdiff
 # tpkg
+# pcat, pcat-diff, pcat-print, ldns-testns
 
 # run the tests
 tpkg -a ../../ fake 0000_nsd-compile.tpkg
