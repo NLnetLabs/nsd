@@ -1,6 +1,8 @@
 4 August 2006: Wouter
 	- nsd will start if diff file is corrupt, with a log message.
 	  It ignores the bad data.
+	- tpkg files do not override PATH, svnhook sets it. So user can
+	  set path to utilities on the system to run the tests.
 
 3 August 2006: Wouter
 	- more tests in mesh test.

@@ -1,11 +1,18 @@
 #!/bin/sh
 
+# you need to have the following tools in your $PATH:
+# export PATH=$PATH:/usr/local/bin
+# basic: grep, grep, tail, head, cp, rm, kill ...
+# dig   - version 9 or later.
+# wdiff
+# tpkg
+
 # run the tests
-tpkg -a ../../ exe 0000_nsd-compile.tpkg
+tpkg -a ../../ fake 0000_nsd-compile.tpkg
 tpkg -a ../../ fake 0001_nsd-debug-comp.tpkg
 for i in *.tpkg; do
 	echo ">>> next test $i at "`date`
         tpkg -a ../../ exe $i
 done
 tpkg report
-tpkg clean
+#tpkg clean
