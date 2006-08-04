@@ -327,8 +327,8 @@ Port NSD to as many platforms as possible
 	OSTYPE: (g)make. autoreconf. (g)indent. 
 		-> defaults for * systems.
 	dig 8.3 too old (format of output). Need 9+.
-	ldns: pcat, pcat-diff, pcat-print.  xfr1,2:nsd-ldnsd ixfr svr.
-		pcat-grep.pl
+		however dig/bind is not portable enough.
+	ldns: pcat, pcat-diff, pcat-print.  xfr1,2:nsd-ldnsd. pcat-grep.pl
 	manual: md5sum/md5. hping(sudo). 
 	long: ldns-testns.
 

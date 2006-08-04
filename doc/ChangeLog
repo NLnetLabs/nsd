@@ -3,6 +3,8 @@
 	  It ignores the bad data.
 	- tpkg files do not override PATH, svnhook sets it. So user can
 	  set path to utilities on the system to run the tests.
+	- running testset on DecAlpha discovered uninitialised variable
+	  in NSD. Fixed.
 
 3 August 2006: Wouter
 	- more tests in mesh test.

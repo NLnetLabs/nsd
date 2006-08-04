@@ -70,6 +70,7 @@ domain_table_create(region_type *region)
 	root->rrsets = NULL;
 	root->number = 1; /* 0 is used for after header */
 	root->is_existing = 0;
+	root->is_apex = 0;
 #ifdef NSEC3
 	root->nsec3_exact = NULL;
 	root->nsec3_cover = NULL;

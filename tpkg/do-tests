@@ -8,12 +8,30 @@
 # tpkg
 # pcat, pcat-diff, pcat-print, ldns-testns
 
+NEED_DIG9="bug009_soa_alone bug013_truncate bug034_any bug052_ent bug056_axfr  bug058_qn_246 bug072_parent bug090_000_txt bug095_screwy_wc bug103 copy_cd nx_dnssec tsig_badkey tsig_badsig tsig_query"
+NEED_i386="xfr_1 xfr2"
+
+# do we have dig9?
+DIG9=no
+if dig -v 2>&1 | grep "DiG 9"; then DIG9=yes; fi
+
 # run the tests
 tpkg -a ../../ fake 0000_nsd-compile.tpkg
 tpkg -a ../../ fake 0001_nsd-debug-comp.tpkg
 for i in *.tpkg; do
-	echo ">>> next test $i at "`date`
-        tpkg -a ../../ exe $i
+	skip=no
+	if [ $DIG9 = no ] && echo $NEED_DIG9 | grep `basename $i .tpkg` >/dev/null; then
+		echo ">>> skipped $i: test needs dig 9 or later"
+		skip=yes
+	fi
+	if [ $HOSTTYPE != i386 ] && echo $NEED_i386 | grep `basename $i .tpkg` >/dev/null; then
+		echo ">>> skipped $i: test needs i386 (precompiled help prog)"
+		skip=yes
+	fi
+	if [ $skip = no ]; then
+		echo ">>> next test $i at "`date`
+        	#tpkg -a ../../ exe $i
+	fi
 done
 tpkg report
 #tpkg clean
