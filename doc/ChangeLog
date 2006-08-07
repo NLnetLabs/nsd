@@ -1,3 +1,19 @@
+7 August 2006: Wouter
+	- Made the tests a little more portable.
+
+		- Made the tests a little more portable.
+
+
+	- Made the tests a little more portable.
+
+		- Made the tests a little more portable.
+
+
+	- Made the tests a little more portable.
+
+		- Made the tests a little more portable.
+
+
 4 August 2006: Wouter
 	- nsd will start if diff file is corrupt, with a log message.
 	  It ignores the bad data.
