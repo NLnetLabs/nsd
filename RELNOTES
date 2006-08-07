@@ -13,6 +13,8 @@ BUG FIXES:
         - Bug #135: Typo in locking code for nsdc, fixed.
         - bind8 stats?? 
 	- uninitialised variable (found in nsd3 debugging) fixed.
+	- unaligned memory access (on Solaris SPARC, from nsd3 debugging),
+	  in zonec LOC parsing, fixed.
 
 2.3.5
 =============
