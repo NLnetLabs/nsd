@@ -331,6 +331,9 @@ Port NSD to as many platforms as possible
 	ldns: pcat, pcat-diff, pcat-print.  xfr1,2:nsd-ldnsd. pcat-grep.pl
 	manual: md5sum/md5. hping(sudo). 
 	long: ldns-testns.
+Made tests more portable, ran tests on linux, freebsd, Solaris. 
+Full testset run on SPARC/SunOS2.5, and fixed two unaligned memory accesses, 
+all tests succeed now.
 
 7. CODE REVIEW
 --------------
@@ -386,3 +389,7 @@ reattempted later on.
 8.7. nsd-patch
 --------------
 nsd-patch - run nsd patch and compare zone files, like AXFR/IXFR tests.
+
+8.8. gcov
+---------
+gcov to look at code coverage of the tests.
