@@ -764,7 +764,7 @@ zparser_conv_loc(region_type *region, char *str)
 	r = alloc_rdata(region, 16);
 	p = (uint32_t *) (r + 1);
 
-	memcpy(p, vszhpvp, 4);
+	memmove(p, vszhpvp, 4);
 	write_uint32(p + 1, lat);
 	write_uint32(p + 2, lon);
 	write_uint32(p + 3, alt);

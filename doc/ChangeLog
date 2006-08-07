@@ -1,18 +1,9 @@
 7 August 2006: Wouter
 	- Made the tests a little more portable.
-
-		- Made the tests a little more portable.
-
-
-	- Made the tests a little more portable.
-
-		- Made the tests a little more portable.
-
-
-	- Made the tests a little more portable.
-
-		- Made the tests a little more portable.
-
+	- fixed mempcy unable to handle unaligned memory addresses on Solaris,
+	  used memmove istead of memcpy in zonec LOC conversion code.
+	- another unaligned memory access, when storing off_t pointer in 
+	  difffile.c, used memmove.
 
 4 August 2006: Wouter
 	- nsd will start if diff file is corrupt, with a log message.

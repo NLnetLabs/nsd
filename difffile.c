@@ -1082,7 +1082,7 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 	}
 	xp->new_serial = new_serial;
 	xp->id = id;
-	xp->file_pos = *startpos;
+	memmove(&xp->file_pos, startpos, sizeof(off_t));
 	return 1;
 }
 
