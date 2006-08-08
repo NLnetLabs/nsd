@@ -12,8 +12,10 @@ FEATURES:
 	- DNAME type is supported, including CNAME synthesis.
 	- config file, nsd.conf(5), place to put TSIG keys, server settings,
 	  and lists of ip-addresses/ranges for AXFR/IXFR and NOTIFY.
-	- prepared for NSEC3 (--enable-nsec3).
-	- prepared for NSID (--enable-nsid).
+	- prepared for NSEC3 (--enable-nsec3), experimental code for testing
+		in workshops.
+	- prepared for NSID (--enable-nsid), experimental code for testing
+		in workshops.
 
 OPERATIONAL NOTES:
 	- config file needed, nsd.conf(5) supersedes nsd.zones and nsdc.conf.
