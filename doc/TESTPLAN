@@ -320,6 +320,7 @@ Port NSD to as many platforms as possible
 - local: sparc5(ok), alpha(ok), amd64/OpenBsd(jelte thuis), 
 	open=FreeBSD(ok), linuxes(ok), MacOsX(ok), Sunos4(ok).
 - sf compilefarm for more.
+	- x86-linux2 has ip6 disabled. tests dont work with that.
 - minix3 if we can get it working (the minix3 setup fails somehow).
 
 - would be good to have a test set of tpkg (and tools required) to

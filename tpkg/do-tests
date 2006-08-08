@@ -13,7 +13,7 @@ NEED_i386="xfr_1 xfr_2"
 
 # do we have dig9?
 DIG9=no
-if dig -v 2>&1 | grep "DiG 9"; then DIG9=yes; fi
+if dig 2>&1 | grep "DiG 9"; then DIG9=yes; fi
 
 # run the tests
 tpkg -a ../../ fake 0000_nsd-compile.tpkg
@@ -30,7 +30,7 @@ for i in *.tpkg; do
 	fi
 	if [ $skip = no ]; then
 		echo ">>> next test $i at "`date`
-        	#tpkg -a ../../ exe $i
+        	tpkg -a ../../ exe $i
 	fi
 done
 tpkg report
