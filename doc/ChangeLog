@@ -1,3 +1,17 @@
+8 August 2006: Wouter
+	- fixes for checkconf test, more portable.
+	- removed items from TODO that have been tested.
+	  for multihomed servers you have to bind to each interface
+	  explicitly to get outgoing ip-address the same as query
+	  destination ip-address.
+	  Forks and if-existing are tested and ok in testplan tests.
+	  close_all_sockets is called by child, if tcponly, so leave it. 
+	- user name check is hard portably with shell scripts, and 
+	  packaging could set a default user that does not exist on a machine.
+	- empty nodes (nonterminals) give no nxdomain any more (todo item done).
+	- removed (old) from TODO.
+	- removed contrib/buildzones.pl, it is outdated.
+
 7 August 2006: Wouter
 	- Made the tests a little more portable.
 	- fixed mempcy unable to handle unaligned memory addresses on Solaris,

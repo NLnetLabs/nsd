@@ -334,7 +334,7 @@ Port NSD to as many platforms as possible
 	long: ldns-testns.
 Made tests more portable, ran tests on linux, freebsd, Solaris. 
 Full testset run on SPARC/SunOS2.5, and fixed two unaligned memory accesses, 
-all tests succeed now.
+all tests succeed now. Full testset runs on Powerpc/MacOSX.
 
 7. CODE REVIEW
 --------------
@@ -351,8 +351,12 @@ These would be nice as tpkgs, but perhaps manual tests are needed.
 ------------------------------------------------------
 "
 run tests with different shells, aka ==-bug
+	bash 1.1. is too old for [[ in tpkg and tests.
+	Some hosts have awk that puts a space before .pre files in tpkg.
+	Some hosts have bash in /usr/local/bin so tpkg fails on that.
 run tests with different configure options and combinations
     of them.
+    	Many tests fail with disable-ipv6.
 implement this in a xen-like environment so that different OSs can
 be checked.
 run this daily or only when subversion changes
@@ -362,18 +366,21 @@ for each test, run our "test-suite"
 8.2. patch file remove
 ----------------------
 rm patch file, check xfrd's behavoir. Refetches zones
+Checked in section transfer_axfr.
 
 8.3. 64 bit
 -----------
 GB 64 bit file size transfers. On alpha so nastiest
 alignment on 64bit machine. Do transfer of > 4 Gb zone.
 Needs lots of memory(swap space) and disk space.
+Not done; no host for test.
 
 8.4. Valgrind
 -------------
 run with valgrind - on two nsds.
 then do the nsd-nsd, and notify the master to get axfr
 to happen test, with tsig as well enabled.
+Done, found one uninit variable.
 
 8.5. Chroot
 -----------
@@ -390,6 +397,7 @@ reattempted later on.
 8.7. nsd-patch
 --------------
 nsd-patch - run nsd patch and compare zone files, like AXFR/IXFR tests.
+Done test axfr run, or test-mess.
 
 8.8. gcov
 ---------
