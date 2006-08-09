@@ -210,19 +210,21 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		xfrd_tcp_release(set, zone);
 		return 0;
 	}
-
-	to_len = xfrd_acl_sockaddr(zone->master, &to);
-	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)
-	{
-		log_msg(LOG_ERR, "xfrd: connect %s failed %s",
-			zone->master->ip_address_spec, strerror(errno));
-		xfrd_tcp_release(set, zone);
-		return 0;
-	}
 	if(fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
 		log_msg(LOG_ERR, "xfrd: fcntl failed: %s", strerror(errno));
 		xfrd_tcp_release(set, zone);
 		return 0;
+	}
+
+	to_len = xfrd_acl_sockaddr(zone->master, &to);
+	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)
+	{
+		if(errno != EINPROGRESS) {
+			log_msg(LOG_ERR, "xfrd: connect %s failed %s",
+				zone->master->ip_address_spec, strerror(errno));
+			xfrd_tcp_release(set, zone);
+			return 0;
+		}
 	}
 
 	zone->zone_handler.fd = fd;
