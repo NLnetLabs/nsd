@@ -76,6 +76,20 @@ AC_ARG_WITH([zonesdir],
 	[zonesdir=$withval])
 AC_SUBST(zonesdir)
 
+# default diff file location.
+difffile=${configdir}/ixfr.db
+AC_ARG_WITH([difffile], AC_HELP_STRING([--with-difffile=path], 
+	[Pathname to the NSD diff transfer journal file]), [difffile=$withval])
+AC_DEFINE_UNQUOTED(DIFFFILE, ["`eval echo $difffile`"], [Pathname to the NSD diff transfer journal file.])
+AC_SUBST(difffile)
+
+# default xfrd file location.
+xfrdfile=${configdir}/xfrd.state
+AC_ARG_WITH([xfrdfile], AC_HELP_STRING([--with-xfrdfile=path], 
+	[Pathname to the NSD xfrd zone timer state file]), [xfrdfile=$withval])
+AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfrd zone timer state file.])
+AC_SUBST(xfrdfile)
+
 #
 # Determine the user name to drop priviledges to
 #
@@ -454,7 +468,7 @@ case "$enable_dnssec" in
         no)
                 ;;
         yes|*)
-		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable DNSSEC (RFCs 4033, 4034, and 4035) support.])
+		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this to enable DNSSEC (RFCs 4033, 4034, and 4035) support.])
 		;;
 esac
 

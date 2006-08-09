@@ -17,8 +17,6 @@
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
 
-#define DIFFFILE "ixfr.db"
-
 /*
  * Used to pass commit logs
  */

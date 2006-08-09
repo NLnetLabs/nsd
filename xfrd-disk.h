@@ -13,8 +13,6 @@
 #include <config.h>
 struct xfrd_state;
 
-/* default filename for state, see option in config file */
-#define XFRDFILE "xfrd.state"
 /* magic string to identify xfrd state file */
 #define XFRD_FILE_MAGIC "NSDXFRD1"
 

@@ -2,6 +2,8 @@
 	- tested nsdc functionality, make install and make uninstall.
 	- set O_NONBLOCKING on xfrd tcp sockets before the connect call,
 	  because the handshaking can take very long too.
+	- difffile and xfrdfile set via configure, to absolute pathnames,
+	  so that chroot checks work for them.
 
 8 August 2006: Wouter
 	- fixes for checkconf test, more portable.

@@ -18,6 +18,8 @@ mandir = @mandir@
 configdir = @configdir@
 pidfile = @pidfile@
 dbfile = @dbfile@
+difffile = @difffile@
+xfrdfile = @xfrdfile@
 nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
 user = @user@
@@ -45,6 +47,8 @@ EDIT		= sed \
 			-e 's,@zonesdir\@,$(zonesdir),g' \
 			-e 's,@pidfile\@,$(pidfile),g' \
 			-e 's,@dbfile\@,$(dbfile),g' \
+			-e 's,@difffile\@,$(difffile),g' \
+			-e 's,@xfrdfile\@,$(xfrdfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@user\@,$(user),g'
