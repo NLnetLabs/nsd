@@ -105,8 +105,8 @@ xfrd_handle_notify_reply(struct notify_zone_t* zone, buffer_type* packet)
 			return 1; /* rfc1996: notimpl notify reply: consider retries done */
 		return 0;
 	}
-	log_msg(LOG_INFO, "xfrd: zone %s: host %s acknowledges notify",
-		zone->apex_str, zone->notify_current->ip_address_spec);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: host %s acknowledges notify",
+		zone->apex_str, zone->notify_current->ip_address_spec));
 	return 1;
 }
 
@@ -117,8 +117,9 @@ xfrd_notify_next(struct notify_zone_t* zone)
 	zone->notify_current = zone->notify_current->next;
 	zone->notify_retry = 0;
 	if(zone->notify_current == 0) {
-		log_msg(LOG_INFO, "xfrd: zone %s: no more notify-send acls. stop notify.", 
-			zone->apex_str);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+			"xfrd: zone %s: no more notify-send acls. stop notify.", 
+			zone->apex_str));
 		notify_disable(zone);
 		return;
 	}
@@ -155,9 +156,9 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 			zone->notify_current->ip_address_spec);
 		return;
 	}
-	log_msg(LOG_INFO, "xfrd: zone %s: sent notify #%d to %s",
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: sent notify #%d to %s",
 		zone->apex_str, zone->notify_retry,
-		zone->notify_current->ip_address_spec);
+		zone->notify_current->ip_address_spec));
 }
 
 static void 
@@ -168,14 +169,16 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	buffer_type* packet = xfrd_get_temp_buffer();
 	assert(zone->notify_current);
 	if(event_types & NETIO_EVENT_READ) {
-		log_msg(LOG_INFO, "xfrd: zone %s: read notify ACK", zone->apex_str);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+			"xfrd: zone %s: read notify ACK", zone->apex_str));
 		assert(handler->fd != -1);
 		if(xfrd_udp_read_packet(packet, zone->notify_send_handler.fd)) {
 			if(xfrd_handle_notify_reply(zone, packet))
 				xfrd_notify_next(zone);
 		}
 	} else if(event_types & NETIO_EVENT_TIMEOUT) {
-		log_msg(LOG_INFO, "xfrd: zone %s: notify timeout", zone->apex_str);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: notify timeout", 
+			zone->apex_str));
 		/* timeout, try again */
 	}
 	/* see if notify is still enabled */

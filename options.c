@@ -262,9 +262,9 @@ int acl_check_incoming(acl_options_t* acl, struct query* q,
 
 	while(acl)
 	{
-		log_msg(LOG_INFO, "testing acl %s %s",
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "testing acl %s %s",
 			acl->ip_address_spec, acl->nokey?"NOKEY":
-			(acl->blocked?"BLOCKED":acl->key_name));
+			(acl->blocked?"BLOCKED":acl->key_name)));
 		if(acl_addr_matches(acl, q) && acl_key_matches(acl, q)) {
 			if(!match)
 			{
@@ -407,25 +407,25 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 	/* check name of tsig key */
 #ifdef TSIG
 	if(q->tsig.status != TSIG_OK) {
-		log_msg(LOG_INFO, "keymatch fail query has no TSIG");
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail query has no TSIG"));
 		return 0; /* query has no TSIG */
 	}
 	if(q->tsig.error_code != TSIG_ERROR_NOERROR) {
-		log_msg(LOG_INFO, "keymatch fail, tsig has error");
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail, tsig has error"));
 		return 0; /* some tsig error */
 	}
 	if(!acl->key_options->tsig_key) {
-		log_msg(LOG_INFO, "keymatch fail no config");
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail no config"));
 		return 0; /* key not properly configged */
 	}
 	if(dname_compare(q->tsig.key_name, 
 		acl->key_options->tsig_key->name) != 0) {
-		log_msg(LOG_INFO, "keymatch fail wrong key name");
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail wrong key name"));
 		return 0; /* wrong key name */
 	}
 	if(strcmp(q->tsig.algorithm->short_name,
 		acl->key_options->algorithm) != 0) {
-		log_msg(LOG_ERR, "query tsig wrong algorithm");
+		DEBUG(DEBUG_XFRD,2, (LOG_ERR, "query tsig wrong algorithm"));
 		return 0; /* no such algo */
 	}
 	return 1;

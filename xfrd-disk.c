@@ -157,8 +157,8 @@ xfrd_read_state(struct xfrd_state* xfrd)
 			log_msg(LOG_ERR, "xfrd: Could not open file %s for reading: %s",
 				statefile, strerror(errno));
 		} else {
-			log_msg(LOG_INFO, "xfrd: no file %s. refreshing all zones.",
-				statefile);
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: no file %s. refreshing all zones.",
+				statefile));
 		}
 		region_destroy(tempregion);
 		return;
@@ -222,7 +222,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 
 		zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
 		if(!zone) {
-			log_msg(LOG_INFO, "xfrd: state file has info for not configured zone %s", p);
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: state file has info for not configured zone %s", p));
 			continue;
 		}
 
@@ -246,8 +246,8 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		zone->master = acl_find_num(
 			zone->zone_options->request_xfr, zone->master_num);
 		if(!zone->master) {
-			log_msg(LOG_INFO, "xfrd: masters changed for zone %s", 
-				zone->apex_str);
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: masters changed for zone %s", 
+				zone->apex_str));
 			zone->master = zone->zone_options->request_xfr;
 			zone->master_num = 0;
 			zone->round_num = 0;
@@ -296,7 +296,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		return;
 	}
 
-	log_msg(LOG_INFO, "xfrd: read %d zones from state file", numzones);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: read %d zones from state file", numzones));
 	fclose(in);
 	region_destroy(tempregion);
 }
@@ -399,7 +399,7 @@ xfrd_write_state(struct xfrd_state* xfrd)
 	if(!statefile) 
 		statefile = XFRDFILE;
 
-	log_msg(LOG_INFO, "xfrd: write file %s", statefile);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: write file %s", statefile));
 	out = fopen(statefile, "w");
 	if(!out) {
 		log_msg(LOG_ERR, "xfrd: Could not open file %s for writing: %s",
@@ -456,6 +456,7 @@ xfrd_write_state(struct xfrd_state* xfrd)
 	}
 
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
-	log_msg(LOG_INFO, "xfrd: written %d zones to state file", (int)xfrd->zones->count);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: written %d zones to state file", 
+		(int)xfrd->zones->count));
 	fclose(out);
 }

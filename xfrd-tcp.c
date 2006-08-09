@@ -187,8 +187,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	socklen_t to_len;
 
 	assert(zone->tcp_conn != -1);
-	log_msg(LOG_INFO, "xfrd: zone %s open tcp conn to %s",
-		zone->apex_str, zone->master->ip_address_spec);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s open tcp conn to %s",
+		zone->apex_str, zone->master->ip_address_spec));
 	set->tcp_state[zone->tcp_conn]->is_reading = 0;
 	set->tcp_state[zone->tcp_conn]->total_bytes = 0;
 	set->tcp_state[zone->tcp_conn]->msglen = 0;
@@ -257,7 +257,7 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 #endif /* TSIG */
 	}
 	buffer_flip(tcp->packet);
-	log_msg(LOG_INFO, "sent tcp query with ID %d", zone->query_id);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "sent tcp query with ID %d", zone->query_id));
 	tcp->msglen = buffer_limit(tcp->packet);
 	xfrd_tcp_write(set, zone);
 }
@@ -358,7 +358,7 @@ int conn_read(xfrd_tcp_t* tcp)
 				/* read would block, try later */
 				return 0;
 			} else {
-				log_msg(LOG_ERR, "read %s", strerror(errno));
+				log_msg(LOG_ERR, "tcp read sz: %s", strerror(errno));
 				return -1;
 			}
 		} else if(received == 0) {
@@ -390,7 +390,7 @@ int conn_read(xfrd_tcp_t* tcp)
 			/* read would block, try later */
 			return 0;
 		} else {
-			log_msg(LOG_ERR, "read %s",
+			log_msg(LOG_ERR, "tcp read %s",
 				strerror(errno));
 			return -1;
 		}
@@ -452,8 +452,8 @@ void
 xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	int conn = zone->tcp_conn;
-	log_msg(LOG_INFO, "xfrd: zone %s released tcp conn to %s",
-		zone->apex_str, zone->master->ip_address_spec);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s released tcp conn to %s",
+		zone->apex_str, zone->master->ip_address_spec));
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
 	zone->tcp_conn = -1;

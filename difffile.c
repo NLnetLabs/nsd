@@ -251,9 +251,9 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	}
 	*pp = rrset->next;
 
-	log_msg(LOG_INFO, "delete rrset of %s type %s", 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "delete rrset of %s type %s", 
 		dname_to_string(domain_dname(domain),0),
-		rrtype_to_string(rrset_rrtype(rrset)));
+		rrtype_to_string(rrset_rrtype(rrset))));
 
 	db->memchurn += sizeof(rrset_type);
 	db->memchurn += sizeof(rr_type) * rrset->rr_count;
@@ -494,8 +494,8 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	zone_type* zone;
 	domain = domain_table_find(db->domains, zone_name);
 	if(!domain) {
-		log_msg(LOG_INFO, "xfr: creating domain %s",
-			dname_to_string(zone_name,0));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr: creating domain %s",
+			dname_to_string(zone_name,0)));
 		/* create the zone and domain of apex (zone has config options) */
 		domain = domain_table_insert(db->domains, zone_name);
 	} else {
@@ -511,8 +511,8 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 		}
 	}
 	/* create the zone */
-	log_msg(LOG_INFO, "xfr: creating zone_type %s",
-		dname_to_string(zone_name,0));
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr: creating zone_type %s",
+		dname_to_string(zone_name,0)));
 	zone = (zone_type *) region_alloc(db->region, sizeof(zone_type));
 	zone->next = db->zones;
 	db->zones = zone;
@@ -549,8 +549,8 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 	while(domain && dname_is_subdomain(
 		domain_dname(domain), domain_dname(zone->apex)))
 	{
-		log_msg(LOG_INFO, "delete zone visit %s",
-			dname_to_string(domain_dname(domain),0));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "delete zone visit %s",
+			dname_to_string(domain_dname(domain),0)));
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
 			rrset_delete(db, domain, rrset);
@@ -659,20 +659,12 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			return 0;
 		}
 
-#ifndef NDEBUG
-	if(nsd_debug_level >= 1) {
-		log_msg(LOG_INFO, "diff: started packet for zone %s",
-			dname_to_string(dname_zone, 0));
-	}
-#endif
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "diff: started packet for zone %s",
+			dname_to_string(dname_zone, 0)));
 	/* first RR: check if SOA and correct zone & serialno */
 	if(*rr_count == 0) {
-#ifndef NDEBUG
-		if(nsd_debug_level >= 1) {
-			log_msg(LOG_INFO, "diff: %s parse first RR",
-				dname_to_string(dname_zone, 0));
-		}
-#endif
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "diff: %s parse first RR",
+			dname_to_string(dname_zone, 0)));
 		dname = dname_make_from_packet(region, packet, 1, 1);
 		if(!dname) {
 			log_msg(LOG_ERR, "could not parse dname");
@@ -718,12 +710,8 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		*rr_count = 1;
 		*is_axfr = 0;
 		*delete_mode = 0;
-#ifndef NDEBUG
-		if(nsd_debug_level >= 1) {
-			log_msg(LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
-				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode);
-		}
-#endif
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
+			dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 	}
 	else  counter = 0;
 
@@ -752,12 +740,8 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			region_destroy(region);
 			return 0;
 		}
-#ifndef NDEBUG
-		if(nsd_debug_level >= 2) {
-			log_msg(LOG_INFO, "diff: %s parsed count %d, ax %d, delmode %d",
-				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode);
-		}
-#endif
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s parsed count %d, ax %d, delmode %d",
+			dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 
 		if(*rr_count == 1 && type != TYPE_SOA) {
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
@@ -765,12 +749,8 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			/* add everything else (incl end SOA) */
 			*delete_mode = 0;
 			*is_axfr = 1;
-#ifndef NDEBUG
-			if(nsd_debug_level >= 2) {
-				log_msg(LOG_INFO, "diff: %s sawAXFR count %d, ax %d, delmode %d",
-					dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode);
-			}
-#endif
+			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s sawAXFR count %d, ax %d, delmode %d",
+				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 		}
 		if(*rr_count == 1 && type == TYPE_SOA) {
 			/* if the serial no of the SOA equals the serialno, then AXFR */
@@ -798,24 +778,16 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			   just before soa - so it gets deleted and added too */
 			/* this means we switch to delete mode for the final SOA */
 			*delete_mode = !*delete_mode;
-#ifndef NDEBUG
-			if(nsd_debug_level >= 2) {
-				log_msg(LOG_INFO, "diff: %s IXFRswapdel count %d, ax %d, delmode %d",
-					dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode);
-			}
-#endif
+			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s IXFRswapdel count %d, ax %d, delmode %d",
+				dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 		}
 		if(type == TYPE_TSIG || type == TYPE_OPT) {
 			/* ignore pseudo RRs */
 			continue;
 		}
-#ifndef NDEBUG
-		if(nsd_debug_level >= 1) {
-			log_msg(LOG_INFO, "xfr %s RR dname is %s type %s", 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr %s RR dname is %s type %s", 
 			*delete_mode?"del":"add",
-			dname_to_string(dname,0), rrtype_to_string(type));
-		}
-#endif
+			dname_to_string(dname,0), rrtype_to_string(type)));
 		if(*delete_mode) {
 			/* delete this rr */
 			if(!*is_axfr && type == TYPE_SOA && counter==ancount-1
@@ -1022,7 +994,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		int is_axfr=0, delete_mode=0, rr_count=0;
 		off_t resume_pos;
 
-		log_msg(LOG_INFO, "processing xfr: %s", log_buf);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", log_buf));
 		resume_pos = ftello(in);
 		if(resume_pos == -1) {
 			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
@@ -1030,7 +1002,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		}
 		for(i=0; i<num_parts; i++) {
 			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
-			log_msg(LOG_INFO, "processing xfr: apply part %d", (int)i);
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: apply part %d", (int)i));
 			if(!apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
 				&rr_count, child_count)) {
@@ -1042,7 +1014,9 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			return 0;
 		}
 	}
-	else 	log_msg(LOG_INFO, "skipping xfr: %s", log_buf);
+	else {
+	 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skipping xfr: %s", log_buf));
+	}
 	
 	/* clean out the parts for the zone after the commit/rollback */
 	zp->parts->root = RBTREE_NULL;
@@ -1103,16 +1077,16 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	if(!diff_read_32(in, &len)) return 1;
 
 	if(type == DIFF_PART_IXFR) {
-		log_msg(LOG_INFO, "part IXFR len %d", len);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "part IXFR len %d", len));
 		if(!store_ixfr_data(in, len, data, &startpos))
 			return 0;
 	}
 	else if(type == DIFF_PART_SURE) {
-		log_msg(LOG_INFO, "part SURE len %d", len);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "part SURE len %d", len));
 		if(!read_sure_part(db, in, opt, data, log, child_count)) 
 			return 0;
 	} else {
-		log_msg(LOG_INFO, "unknown part %x len %d", type, len);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", type, len));
 		return 0;
 	}
 	if(!diff_read_32(in, &len2))
@@ -1164,13 +1138,13 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 
 	df = fopen(filename, "r");
 	if(!df) {
-		log_msg(LOG_INFO, "could not open file %s for reading: %s",
-			filename, strerror(errno));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "could not open file %s for reading: %s",
+			filename, strerror(errno)));
 		region_destroy(data->region);
 		return 1;
 	}
 	if(db->diff_skip) {
-		log_msg(LOG_INFO, "skip diff file");
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
 		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
 			log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread from start.",
 				filename, strerror(errno));
@@ -1179,7 +1153,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 
 	while(diff_read_32(df, &type)) 
 	{
-		log_msg(LOG_INFO, "iter loop");
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "iter loop"));
 		if(!read_process_part(db, df, type, opt, data, log, child_count))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
@@ -1187,7 +1161,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 			return 0;
 		}
 	}
-	log_msg(LOG_INFO, "end of diff file read");
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "end of diff file read"));
 
 	if(find_smallest_offset(data, &db->diff_pos)) {
 		/* can skip to the first unused element */
@@ -1248,13 +1222,13 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 	/* open file here and keep open, so it cannot change under our nose */
 	df = fopen(filename, "r+");
 	if(!df) {
-		log_msg(LOG_INFO, "could not open file %s for garbage collecting: %s",
-			filename, strerror(errno));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "could not open file %s for garbage collecting: %s",
+			filename, strerror(errno)));
 		return;
 	}
 	/* and skip into file, since nsd does not read anything before the pos */
 	if(db->diff_skip) {
-		log_msg(LOG_INFO, "garbage collect skip diff file");
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "garbage collect skip diff file"));
 		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
 			log_msg(LOG_INFO, "could not fseeko file %s: %s.", 
 				filename, strerror(errno));
@@ -1267,8 +1241,8 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 	if(diff_broken(df, &break_pos))
 	{
 		/* snip off at break_pos */
-		log_msg(LOG_INFO, "snipping off trailing partial part of %s", 
-			filename);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "snipping off trailing partial part of %s", 
+			filename));
 		ftruncate(fileno(df), break_pos);
 	}
 

@@ -174,16 +174,13 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			if(!zone_opt ||
 			   acl_check_incoming(zone_opt->provide_xfr, q, &acl)==-1) 
 			{
-#ifndef NDEBUG
-				if(nsd_debug_level>=1)
-					log_msg(LOG_INFO, "axfr refused, %s", 
-						acl?"blocked":"no acl matches");
-#endif
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr refused, %s", 
+						acl?"blocked":"no acl matches"));
 				RCODE_SET(q->packet, RCODE_REFUSE);
 				return QUERY_PROCESSED;
 			}
-			log_msg(LOG_INFO, "axfr admitted acl %s %s", acl->ip_address_spec, 
-				acl->key_name?acl->key_name:"NOKEY");
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr admitted acl %s %s", 
+				acl->ip_address_spec, acl->key_name?acl->key_name:"NOKEY"));
 			return query_axfr(nsd, q);
 		}
 	case TYPE_IXFR:

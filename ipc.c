@@ -45,20 +45,20 @@ handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
 
 	ok = buffer_read_u8(packet);
 	dname = (dname_type*)buffer_current(packet);
-	log_msg(LOG_INFO, "handler zone state %s is %s",
-		dname_to_string(dname, NULL), ok?"ok":"expired");
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "handler zone state %s is %s",
+		dname_to_string(dname, NULL), ok?"ok":"expired"));
 	/* find in zone_types, if does not exist, we cannot serve anyway */
 	/* find zone in config, since that one always exists */
 	domain = domain_table_find(nsd->db->domains, dname);
 	if(!domain) {
-		log_msg(LOG_INFO, "zone state msg, empty zone (domain %s)",
-			dname_to_string(dname, NULL));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "zone state msg, empty zone (domain %s)",
+			dname_to_string(dname, NULL)));
 		return NULL;
 	}
 	zone = domain_find_zone(domain);
 	if(!zone || dname_compare(domain_dname(zone->apex), dname) != 0) {
-		log_msg(LOG_INFO, "zone state msg, empty zone (zone %s)",
-			dname_to_string(dname, NULL));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "zone state msg, empty zone (zone %s)",
+			dname_to_string(dname, NULL)));
 		return NULL;
 	}
 	assert(zone);
@@ -185,7 +185,7 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		log_msg(LOG_ERR, "handle_xfrd_command: xfrd closed channel.");
+		DEBUG(DEBUG_IPC,1, (LOG_ERR, "handle_xfrd_command: xfrd closed channel."));
 		close(handler->fd);
 		handler->fd = -1;
 		return;
@@ -359,7 +359,8 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		data->got_bytes += len;
 		if(got_acl >= (int)sizeof(data->acl_num)) {
 			uint16_t len = htons(data->total_bytes);
-			log_msg(LOG_INFO, "fwd passed packet write %d", (int)data->got_bytes);
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, 
+				"fwd passed packet write %d", (int)data->got_bytes));
 			data->forward_mode = 0;
 			mode = NSD_PASS_TO_XFRD;
 			if(!write_socket(*data->xfrd_sock, &mode, sizeof(mode)) ||
@@ -388,8 +389,9 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		for(i=0; i<data->nsd->child_count; ++i)
 			if(data->nsd->children[i].child_fd == handler->fd) {
 				data->nsd->children[i].child_fd = -1;
-				log_msg(LOG_ERR, "server %d closed cmd channel",
-					(int) data->nsd->children[i].pid);
+				DEBUG(DEBUG_IPC,1,
+					(LOG_ERR, "server %d closed cmd channel",
+					(int) data->nsd->children[i].pid));
 			}
 		handler->fd = -1;
 		return;
@@ -463,8 +465,9 @@ xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone)
 	if(zone->state == xfrd_zone_expired)
 		ok = 0;
 
-	log_msg(LOG_INFO, "xfrd encoding ipc zone state msg for zone %s state %d.",
-		zone->apex_str, (int)zone->state);
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, 
+		"xfrd encoding ipc zone state msg for zone %s state %d.",
+		zone->apex_str, (int)zone->state));
 
 	buffer_clear(buffer);
 	buffer_write(buffer, &cmd, sizeof(cmd));
@@ -486,7 +489,7 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 			strerror(errno));
 		return;
 	}
-	log_msg(LOG_ERR, "xfrd: asked nsd to reload new updates");
+	DEBUG(DEBUG_IPC,1, (LOG_ERR, "xfrd: asked nsd to reload new updates"));
 	xfrd_prepare_zones_for_reload();
 	xfrd->reload_cmd_last_sent = xfrd_time();
 	xfrd->need_to_send_reload = 0;
@@ -499,7 +502,7 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 	xfrd->ipc_send_blocked = 1;
 	xfrd->ipc_handler.event_types &= (~NETIO_EVENT_WRITE);
 	xfrd->sending_zone_state = 0;
-	log_msg(LOG_INFO, "xfrd: ipc send ackreload(quit)");
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send ackreload(quit)"));
 	if(write_socket(xfrd->ipc_handler.fd, &cmd, sizeof(cmd)) == -1) {
 		log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
 			strerror(errno));
@@ -522,8 +525,8 @@ xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 
 	if(!buffer_available(packet, sizeof(uint32_t)*6 + sizeof(uint8_t)*2)) {
 		/* NSD has zone without any info */
-		log_msg(LOG_INFO, "SOAINFO for %s lost zone", 
-			dname_to_string(dname,0));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s lost zone", 
+			dname_to_string(dname,0)));
 		soa_ptr = NULL;
 	} else {
 		/* read soa info */
@@ -547,13 +550,13 @@ xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 		soa.retry = htonl(buffer_read_u32(packet));
 		soa.expire = htonl(buffer_read_u32(packet));
 		soa.minimum = htonl(buffer_read_u32(packet));
-		log_msg(LOG_INFO, "SOAINFO for %s %u", 
-			dname_to_string(dname,0), ntohl(soa.serial));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s %u", 
+			dname_to_string(dname,0), ntohl(soa.serial)));
 	}
 
 	if(!zone) {
-		log_msg(LOG_INFO, "xfrd: zone %s master zone updated",
-			dname_to_string(dname,0));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: zone %s master zone updated",
+			dname_to_string(dname,0)));
 		notify_handle_master_zone_soainfo(xfrd->notify_zones, 
 			dname, soa_ptr);
 		return;
@@ -677,7 +680,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
         if(len == 0)
         {
 		/* parent closed the connection. Quit */
-		log_msg(LOG_INFO, "xfrd: (debug) main closed connection.");
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: main closed connection."));
 		xfrd->shutdown = 1;
 		return;
         }
@@ -685,11 +688,11 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
         switch(cmd) {
         case NSD_QUIT:
         case NSD_SHUTDOWN:
-		log_msg(LOG_INFO, "xfrd: (debug) main send shutdown cmd.");
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: main send shutdown cmd."));
                 xfrd->shutdown = 1;
                 break;
 	case NSD_SOA_BEGIN:
-		log_msg(LOG_INFO, "xfrd: ipc recv SOA_BEGIN");
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_BEGIN"));
 		/* reload starts sending SOA INFOs; don't block */
 		xfrd->parent_soa_info_pass = 1;
 		/* reset the nonblocking ipc write; 
@@ -697,14 +700,14 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd->sending_zone_state = 0;
 		break;
 	case NSD_SOA_INFO:
-		log_msg(LOG_INFO, "xfrd: ipc recv SOA_INFO");
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_INFO"));
 		assert(xfrd->parent_soa_info_pass);
 		xfrd->ipc_is_soa = 1;
 		xfrd->ipc_conn->is_reading = 1;
                 break;
 	case NSD_SOA_END:
 		/* reload has finished */
-		log_msg(LOG_INFO, "xfrd: ipc recv SOA_END");
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_END"));
 		xfrd->parent_soa_info_pass = 0;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;
@@ -712,13 +715,13 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd_send_expy_all_zones();
 		break;
 	case NSD_PASS_TO_XFRD:
-		log_msg(LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD");
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD"));
 		xfrd->ipc_is_soa = 0;
 		xfrd->ipc_conn->is_reading = 1;
 		break;
 	case NSD_RELOAD:
 		/* main tells us that reload is done, stop ipc send to main */
-		log_msg(LOG_INFO, "xfrd: ipc recv RELOAD");
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD"));
 		handler->event_types |= NETIO_EVENT_WRITE;
 		xfrd->need_to_send_quit = 1;
 		break;

@@ -608,9 +608,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int ret;
 
 	if(db_crc_different(nsd->db) == 0) {
-		log_msg(LOG_INFO, "CRC the same. skipping %s.", nsd->db->filename);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+			"CRC the same. skipping %s.", nsd->db->filename));
 	} else {
-		log_msg(LOG_INFO, "CRC different. reread of %s.", nsd->db->filename);
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+			"CRC different. reread of %s.", nsd->db->filename));
 		namedb_close(nsd->db);
 		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, 
 			nsd->child_count)) == NULL) {
@@ -647,20 +649,20 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	}
 
 	/* Send quit command to parent: blocking, wait for receipt. */
-	log_msg(LOG_INFO, "reload: ipc send quit to main");
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
 	if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1)
 	{
 		log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
 			(int)nsd->pid, (int)old_pid, strerror(errno));
 	}
 	/* blocking: wait for parent to really quit. (it sends RELOAD as ack) */
-	log_msg(LOG_INFO, "reload: ipc wait for ack main");
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc wait for ack main"));
 	ret = block_read(nsd, cmdsocket, &cmd, sizeof(cmd));
 	if(ret == -1) {
 		log_msg(LOG_ERR, "reload: could not wait for parent to quit: %s",
 			strerror(errno));
 	}
-	log_msg(LOG_INFO, "reload: ipc reply main %d %d", ret, cmd);
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc reply main %d %d", ret, cmd));
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
 
 	/* Overwrite pid... */
@@ -679,8 +681,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		const dname_type *dname_ns=0, *dname_em=0;
 		if(zone->updated == 0)
 			continue;
-		log_msg(LOG_INFO, "nsd: sending soa info for zone %s",
-			dname_to_string(domain_dname(zone->apex),0));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "nsd: sending soa info for zone %s",
+			dname_to_string(domain_dname(zone->apex),0)));
 		cmd = NSD_SOA_INFO;
 		sz = dname_total_size(domain_dname(zone->apex));
 		if(zone->soa_rrset) {
@@ -917,13 +919,14 @@ server_main(struct nsd *nsd)
 			if(reload_listener.fd > 0) {
 				sig_atomic_t cmd = NSD_RELOAD;
 				/* stop xfrd ipc writes in progress */
-				log_msg(LOG_INFO, "main: ipc send indication reload");
+				DEBUG(DEBUG_IPC,1, (LOG_INFO, 
+					"main: ipc send indication reload"));
 				if(!write_socket(xfrd_listener.fd, &cmd, sizeof(cmd))) {
 					log_msg(LOG_ERR, "server_main: could not send reload "
 					"indication to xfrd: %s", strerror(errno));
 				}
 				/* wait for ACK from xfrd */
-				log_msg(LOG_INFO, "main: wait ipc reply xfrd");
+				DEBUG(DEBUG_IPC,1, (LOG_INFO, "main: wait ipc reply xfrd"));
 			}
 			nsd->mode = NSD_RUN;
 			break;
@@ -932,7 +935,7 @@ server_main(struct nsd *nsd)
 			if(reload_listener.fd > 0) {
 				/* acknowledge the quit, to sync reload that we will really quit now */
 				sig_atomic_t cmd = NSD_RELOAD;
-				log_msg(LOG_INFO, "main: ipc ack reload");
+				DEBUG(DEBUG_IPC,1, (LOG_INFO, "main: ipc ack reload"));
 				if(!write_socket(reload_listener.fd, &cmd, sizeof(cmd))) {
 					log_msg(LOG_ERR, "server_main: "
 						"could not ack quit: %s", strerror(errno));

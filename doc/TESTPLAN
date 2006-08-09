@@ -386,6 +386,7 @@ Done, found one uninit variable.
 -----------
 test chroot and the new files/directories.
 (And the file/dir not in chroot problem, and if all is OK that it works).
+Done, default locations for ixfr.db and xfrd.state have full pathnames.
 
 8.6. nsdc
 ---------

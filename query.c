@@ -355,8 +355,8 @@ process_tsig(struct query* q)
 				dname_to_string(q->tsig.key->name, NULL));
 			return NSD_RC_REFUSE;
 		}
-		log_msg(LOG_INFO, "query good tsig signature for %s",
-			dname_to_string(q->tsig.key->name, NULL));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "query good tsig signature for %s",
+			dname_to_string(q->tsig.key->name, NULL)));
 	}
 	return NSD_RC_OK;
 }
@@ -373,8 +373,8 @@ answer_notify (struct nsd* nsd, struct query *query)
 	nsd_rc_type rc;
 
 	zone_options_t* zone_opt;
-	log_msg(LOG_INFO, "got notify %s processing acl",
-		dname_to_string(query->qname, NULL));
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s processing acl",
+		dname_to_string(query->qname, NULL)));
 
 	zone_opt = zone_options_find(nsd->options, query->qname);
 	if(!zone_opt) 
@@ -402,9 +402,9 @@ answer_notify (struct nsd* nsd, struct query *query)
 		uint16_t sz;
 		uint32_t acl_send = htonl(acl_num);
 		assert(why);
-		log_msg(LOG_INFO, "got notify %s passed acl %s %s",
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s passed acl %s %s",
 			dname_to_string(query->qname, NULL),
-			why->ip_address_spec, why->key_name);
+			why->ip_address_spec, why->key_name));
 		sz = buffer_limit(query->packet);
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
 			return query_error(query, NSD_RC_SERVFAIL);
@@ -427,7 +427,7 @@ answer_notify (struct nsd* nsd, struct query *query)
 		RCODE_SET(query->packet, RCODE_OK); /* Error code.  */
 #ifdef TSIG
 		if(why && why->key_options) { /* sign reply */
-			log_msg(LOG_INFO, "tsig sign");
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "tsig sign"));
 			buffer_clear(query->packet);
 			buffer_set_position(query->packet, query->tsig.position);
 			tsig_prepare(&query->tsig);
@@ -440,13 +440,10 @@ answer_notify (struct nsd* nsd, struct query *query)
 #endif /* TSIG */
 		return QUERY_PROCESSED;
 	}
-#ifndef NDEBUG
-	if(nsd_debug_level>=1)
-		log_msg(LOG_INFO, "got notify %s refused acl: %s %s",
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s refused acl: %s %s",
 			dname_to_string(query->qname, NULL),
 			why?why->key_name:"no acl matches", 
-			why?why->ip_address_spec:".");
-#endif
+			why?why->ip_address_spec:"."));
 	return query_error(query, NSD_RC_NOTAUTH);
 }
 
@@ -677,9 +674,9 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			/* 0 good for query name, otherwise new number */
 			newdom->number = 0;
 		}
-		log_msg(LOG_INFO, "created temp domain src %d. %s nr %d", i,
+		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "created temp domain src %d. %s nr %d", i,
 			dname_to_string(domain_dname(newdom), NULL),
-			newdom->number);
+			newdom->number));
 		lastparent = newdom;
 	}
 	cname_domain = lastparent;
@@ -696,9 +693,9 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 		newdom->parent = lastparent;
 		newdom->node.key = dname_partial_copy(q->region,
 			to_name, domain_dname(to_closest_encloser)->label_count + i + 1);
-		log_msg(LOG_INFO, "created temp domain dest %d. %s nr %d", i,
+		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "created temp domain dest %d. %s nr %d", i,
 			dname_to_string(domain_dname(newdom), NULL),
-			newdom->number);
+			newdom->number));
 		lastparent = newdom;
 	}
 	cname_dest = lastparent;
@@ -927,11 +924,11 @@ answer_authoritative(struct nsd   *nsd,
 		assert(rrset->rr_count > 0);
 		if(domain_number != 0) /* we followed CNAMEs or DNAMEs */
 			name = domain_dname(closest_match);
-		log_msg(LOG_INFO, "expanding DNAME for q=%s", dname_to_string(name, NULL));
-		log_msg(LOG_INFO, "->src is %s", 
-			dname_to_string(domain_dname(closest_encloser), NULL));
-		log_msg(LOG_INFO, "->dest is %s", 
-			dname_to_string(domain_dname(dest), NULL));
+		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "expanding DNAME for q=%s", dname_to_string(name, NULL)));
+		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "->src is %s", 
+			dname_to_string(domain_dname(closest_encloser), NULL)));
+		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "->dest is %s", 
+			dname_to_string(domain_dname(dest), NULL)));
 		/* if the DNAME set is not added we have a loop, do not follow */
 		added = add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset);
 		if(added) {
@@ -944,7 +941,7 @@ answer_authoritative(struct nsd   *nsd,
 				RCODE_SET(q->packet, RCODE_YXDOMAIN);
 				return;
 			}
-			log_msg(LOG_INFO, "->result is %s", dname_to_string(newname, NULL));
+			DEBUG(DEBUG_QUERY,1, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
 			/* follow the DNAME */
 			exact = namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
 			/* synthesize CNAME record */

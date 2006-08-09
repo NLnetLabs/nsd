@@ -4,6 +4,15 @@
 	  because the handshaking can take very long too.
 	- difffile and xfrdfile set via configure, to absolute pathnames,
 	  so that chroot checks work for them.
+	- updated tpkgs, they need to set relative paths now for diffile.
+	- gcov says 2821 of 10617 total code lines are not covered.
+	  compiled with --coverage, not -O2, ran tpkg/* and long/testplan*.
+	  counted grep '#####:' *.gcov | wc and grep '^ *[0-9]*:' *.gcov | wc.
+	- cleaned up the log functions, NSD no longer spams the syslog with
+	  debug messages. The standard NSD debug util is used, -F -1 -L 2 for
+	  a compile configured with --enable-checking will enable them again.
+	  Errors are logged, as is the automated reload of a new serial.
+	- tpkgs for bug077 and bug107 were silently failing to test properly.
 
 8 August 2006: Wouter
 	- fixes for checkconf test, more portable.
