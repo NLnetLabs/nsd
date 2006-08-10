@@ -524,3 +524,122 @@ acl_find_num(acl_options_t* acl, int num)
 		return acl;
 	return 0;
 }
+
+/* true if ipv6 address, false if ipv4 */
+int parse_acl_is_ipv6(const char* p)
+{
+	/* see if addr is ipv6 or ipv4 -- by : and . */
+	while(*p) {
+		if(*p == '.') return 0;
+		if(*p == ':') return 1;
+		++p;
+	}
+	return 0;
+}
+
+/* returns range type. mask is the 2nd part of the range */
+int parse_acl_range_type(char* ip, char** mask)
+{
+	char *p;
+	if((p=strchr(ip, '&'))!=0) {
+		*p = 0;
+		*mask = p+1;
+		return acl_range_mask;
+	}
+	if((p=strchr(ip, '/'))!=0) {
+		*p = 0;
+		*mask = p+1;
+		return acl_range_subnet;
+	}
+	if((p=strchr(ip, '-'))!=0) {
+		*p = 0;
+		*mask = p+1;
+		return acl_range_minmax;
+	}
+	*mask = 0;
+	return acl_range_single;
+}
+
+/* parses subnet mask, fills 0 mask as well */
+void parse_acl_range_subnet(char* p, void* addr, int maxbits)
+{
+	int subnet_bits = atoi(p);
+	uint8_t* addr_bytes = (uint8_t*)addr;
+	if(subnet_bits == 0 && strcmp(p, "0")!=0) {
+		c_error_msg("bad subnet range '%s'", p);
+		return;
+	}
+	if(subnet_bits < 0 || subnet_bits > maxbits) {
+		c_error_msg("subnet of %d bits out of range [0..%d]", subnet_bits, maxbits);
+		return;
+	}
+	/* fill addr with n bits of 1s (struct has been zeroed) */
+	while(subnet_bits >= 8) {
+		*addr_bytes++ = 0xff;
+		subnet_bits -= 8;
+	}
+	if(subnet_bits > 0) {
+		uint8_t shifts[] = {0x0, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff};
+		*addr_bytes = shifts[subnet_bits];
+	}
+}
+
+acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
+{
+	char* p;
+	acl_options_t* acl = (acl_options_t*)region_alloc(region, sizeof(acl_options_t));
+	acl->next = 0;
+	/* ip */
+	acl->ip_address_spec = region_strdup(region, ip);
+	acl->use_axfr_only = 0;
+	acl->key_options = 0;
+	acl->is_ipv6 = 0;
+	acl->port = 0;
+	memset(&acl->addr, 0, sizeof(union acl_addr_storage));
+	memset(&acl->range_mask, 0, sizeof(union acl_addr_storage));
+	if((p=strrchr(ip, '@'))!=0) {
+		if(atoi(p+1) == 0) c_error("expected port number after '@'");
+		else acl->port = atoi(p+1);
+		*p=0;
+	}
+	acl->rangetype = parse_acl_range_type(ip, &p);
+	if(parse_acl_is_ipv6(ip)) {
+		acl->is_ipv6 = 1;
+#ifdef INET6
+		if(inet_pton(AF_INET6, ip, &acl->addr.addr6) != 1) 
+			c_error_msg("Bad ip6 address '%s'", ip);
+		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax) 
+			if(inet_pton(AF_INET6, p, &acl->range_mask.addr6) != 1) 
+				c_error_msg("Bad ip6 address mask '%s'", p);
+		if(acl->rangetype==acl_range_subnet)
+			parse_acl_range_subnet(p, &acl->range_mask.addr6, 128);
+#else
+		c_error_msg("encountered IPv6 address '%s'.", ip);
+#endif /* INET6 */
+	} else {
+		acl->is_ipv6 = 0;
+		if(inet_pton(AF_INET, ip, &acl->addr.addr) != 1) 
+			c_error_msg("Bad ip4 address '%s'", ip);
+		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax) 
+			if(inet_pton(AF_INET, p, &acl->range_mask.addr) != 1) 
+				c_error_msg("Bad ip4 address mask '%s'", p);
+		if(acl->rangetype==acl_range_subnet)
+			parse_acl_range_subnet(p, &acl->range_mask.addr, 32);
+	}
+
+	/* key */
+	if(strcmp(key, "NOKEY")==0) {
+		acl->nokey = 1;
+		acl->blocked = 0;
+		acl->key_name = 0;
+	} else if(strcmp(key, "BLOCKED")==0) {
+		acl->nokey = 0;
+		acl->blocked = 1;
+		acl->key_name = 0;
+	} else {
+		acl->nokey = 0;
+		acl->blocked = 0;
+		acl->key_name = region_strdup(region, key);
+	}
+	return acl;
+}

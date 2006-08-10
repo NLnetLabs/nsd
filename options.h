@@ -189,5 +189,12 @@ int zone_is_slave(zone_options_t* opt);
 /* parsing helpers */
 void c_error(const char* msg);
 void c_error_msg(const char* fmt, ...) ATTR_FORMAT(printf, 1, 2);
+acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key);
+/* true if ipv6 address, false if ipv4 */
+int parse_acl_is_ipv6(const char* p);
+/* returns range type. mask is the 2nd part of the range */
+int parse_acl_range_type(char* ip, char** mask);
+/* parses subnet mask, fills 0 mask as well */
+void parse_acl_range_subnet(char* p, void* addr, int maxbits);
 
 #endif /* OPTIONS_H */

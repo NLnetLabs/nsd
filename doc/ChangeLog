@@ -1,5 +1,7 @@
 10 August 2006: Wouter
 	- added more tests to increase code coverage of testset.
+	- moved acl parsing code from configparser.c to options.c to help
+	  unit testing.
 
 9 August 2006: Wouter
 	- tested nsdc functionality, make install and make uninstall.
