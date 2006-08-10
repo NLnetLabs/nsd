@@ -2,6 +2,17 @@
 	- added more tests to increase code coverage of testset.
 	- moved acl parsing code from configparser.c to options.c to help
 	  unit testing.
+	- nsd-checkconf echod wrong difffile filename with -v.
+	- nsd-patch can now be used with -f to force printing of all RRs.
+	- TYPE_NULL crashed NSD when it printed it, arg was ZF_DNAME,
+	  now ZF_UNKNOWN.
+	- unknown rr test was faulty on input, the length was in nibbles
+	  not in octets, but rfc specifies octets for unknown rrs.
+	  NSD does not look at the length, and prints the length correctly.
+	- added type NXT to the rr-test for weird RRs.
+	- added printing test to rr-test, ipseckey and unknown-rr tests.
+	  checks if NSD prints the same RR on output as it read in.
+	- put -x option for nsd-patch in usage().
 
 9 August 2006: Wouter
 	- tested nsdc functionality, make install and make uninstall.

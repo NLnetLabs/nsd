@@ -23,11 +23,13 @@ extern int optind;
 static void
 usage(void)
 {
-        fprintf(stderr, "usage: nsd-patch [-c <configfilename>] [-l]\n");
+        fprintf(stderr, "usage: nsd-patch [options]\n");
         fprintf(stderr, "	reads database and ixfrs and patches up zone files.\n");
-        fprintf(stderr, "-c	specify config file to use, instead of %s\n", CONFIGFILE);
-        fprintf(stderr, "-l	list contents of transfer journal difffile, %s\n",
+        fprintf(stderr, "-c configfile	specify config file to use, instead of %s\n", CONFIGFILE);
+        fprintf(stderr, "-f		force writing of zone files.\n");
+        fprintf(stderr, "-l		list contents of transfer journal difffile, %s\n",
 		DIFFFILE);
+        fprintf(stderr, "-x difffile	specify diff file to use, instead of diff file from config.\n");
         exit(1);
 }
 
@@ -251,15 +253,19 @@ int main(int argc, char* argv[])
 	struct diff_log* commit_log = 0;
 	size_t fake_child_count = 1;
 	int debug_list_diff = 0;
+	int force_write = 0;
 
         /* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:lx:")) != -1) {
+	while ((c = getopt(argc, argv, "c:flx:")) != -1) {
 	switch (c) {
 		case 'c':
 			configfile = optarg;
 			break;
 		case 'l':
 			debug_list_diff = 1;
+			break;
+		case 'f':
+			force_write = 1;
 			break;
 		case 'x':
 			difffile = optarg;
@@ -322,7 +328,7 @@ int main(int argc, char* argv[])
 	printf("writing changed zones\n");
 	for(zone = db->zones; zone; zone = zone->next)
 	{
-		if(!zone->updated) {
+		if(!force_write && !zone->updated) {
 			printf("zone %s had not changed.\n",
 				zone->opts->name);
 			continue;

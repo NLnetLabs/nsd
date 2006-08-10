@@ -68,7 +68,7 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	  { RDATA_WF_COMPRESSED_DNAME }, { RDATA_ZF_DNAME } },
 	/* 10 */
 	{ TYPE_NULL, "NULL", T_UTYPE, 1, 1,
-	  { RDATA_WF_BINARY }, { RDATA_ZF_DNAME } },
+	  { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 11 */
 	{ TYPE_WKS, "WKS", T_WKS, 2, 2,
 	  { RDATA_WF_A, RDATA_WF_BINARY },

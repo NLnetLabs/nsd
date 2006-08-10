@@ -272,7 +272,7 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("chroot:", opt->chroot);
 	print_string_var("username:", opt->username);
 	print_string_var("zonesdir:", opt->zonesdir);
-	print_string_var("difffile:", opt->xfrdfile);
+	print_string_var("difffile:", opt->difffile);
 	print_string_var("xfrdfile:", opt->xfrdfile);
 	printf("\txfrd_reload_timeout: %d\n", opt->xfrd_reload_timeout);
 
