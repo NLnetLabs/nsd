@@ -13,6 +13,8 @@
 	- added printing test to rr-test, ipseckey and unknown-rr tests.
 	  checks if NSD prints the same RR on output as it read in.
 	- put -x option for nsd-patch in usage().
+	- test that kills an nsd child server and checks that it is
+	  restarted.
 
 9 August 2006: Wouter
 	- tested nsdc functionality, make install and make uninstall.
