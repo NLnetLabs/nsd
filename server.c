@@ -1644,6 +1644,7 @@ set_children_stats(struct nsd* nsd)
 {
 	size_t i;
 	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
+	DEBUG(DEBUG_IPC, 1, (LOG_INFO, "parent set stats to send to children"));
 	for (i = 0; i < nsd->child_count; ++i) {
 		nsd->children[i].need_to_send_STATS = 1;
 		nsd->children[i].handler->event_types |= NETIO_EVENT_WRITE;

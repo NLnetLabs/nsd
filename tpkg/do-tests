@@ -35,3 +35,16 @@ for i in *.tpkg; do
 done
 tpkg report
 #tpkg clean
+
+do_testplan=no
+if [ $do_testplan = yes ]; then
+	TESTPLAN3="testplan_axfr.tpkg testplan_ixfr_pkts.tpkg testplan_mess.tpkg testplan_axfr_tsig.tpkg testplan_ixfr_remove.tpkg testplan_timeout.tpkg testplan_deadlock.tpkg testplan_ixfr.tpkg testplan_tsig_34.tpkg bug_sighup.tpkg"
+	cd long
+	for i in $TESTPLAN3; do
+		echo ">>> next test $i at "`date`
+		tpkg -a ../../ exe $i
+	done
+	tpkg report
+	#tpkg clean
+	cd ..
+fi

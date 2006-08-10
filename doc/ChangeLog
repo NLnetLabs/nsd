@@ -1,3 +1,6 @@
+10 August 2006: Wouter
+	- added more tests to increase code coverage of testset.
+
 9 August 2006: Wouter
 	- tested nsdc functionality, make install and make uninstall.
 	- set O_NONBLOCKING on xfrd tcp sockets before the connect call,
