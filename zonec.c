@@ -1304,6 +1304,9 @@ usage (void)
 #else
 	fprintf(stderr, "usage: zonec [-v|-h|-C] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
 #endif
+	fprintf(stderr, "\tNSD zone compiler, creates database from zone files.\n");
+	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n", 
+		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
 	fprintf(stderr, "\t-c\tSpecify config file to read instead of default nsd.conf.\n");

@@ -24,12 +24,15 @@ static void
 usage(void)
 {
         fprintf(stderr, "usage: nsd-patch [options]\n");
-        fprintf(stderr, "	reads database and ixfrs and patches up zone files.\n");
-        fprintf(stderr, "-c configfile	specify config file to use, instead of %s\n", CONFIGFILE);
-        fprintf(stderr, "-f		force writing of zone files.\n");
-        fprintf(stderr, "-l		list contents of transfer journal difffile, %s\n",
+        fprintf(stderr, "       Reads database and ixfrs and patches up zone files.\n");
+	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", 
+		PACKAGE_VERSION, PACKAGE_BUGREPORT);
+        fprintf(stderr, "-c configfile	Specify config file to use, instead of %s\n", CONFIGFILE);
+        fprintf(stderr, "-f		Force writing of zone files.\n");
+        fprintf(stderr, "-h		Print this help information.\n");
+        fprintf(stderr, "-l		List contents of transfer journal difffile, %s\n",
 		DIFFFILE);
-        fprintf(stderr, "-x difffile	specify diff file to use, instead of diff file from config.\n");
+        fprintf(stderr, "-x difffile	Specify diff file to use, instead of diff file from config.\n");
         exit(1);
 }
 
@@ -256,7 +259,7 @@ int main(int argc, char* argv[])
 	int force_write = 0;
 
         /* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:flx:")) != -1) {
+	while ((c = getopt(argc, argv, "c:fhlx:")) != -1) {
 	switch (c) {
 		case 'c':
 			configfile = optarg;
@@ -270,6 +273,7 @@ int main(int argc, char* argv[])
 		case 'x':
 			difffile = optarg;
 			break;
+		case 'h':
 		default:
 			usage();
 		};

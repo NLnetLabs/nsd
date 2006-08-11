@@ -87,7 +87,17 @@ underscore(const char *s) {
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: checkconf [-v] [-o option] [-z zonename] [-s keyname] <configfilename>\n");
+	fprintf(stderr, "usage: checkconf [-v|-h] [-o option] [-z zonename] [-s keyname] <configfilename>\n");
+	fprintf(stderr, "       Checks NSD configuration file for errors.\n");
+	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", 
+		PACKAGE_VERSION, PACKAGE_BUGREPORT);
+	fprintf(stderr, "Use with a configfile as argument to check syntax.\n");
+	fprintf(stderr, "Use with -o, -z or -s options to query the configuration.\n\n");
+	fprintf(stderr, "-v		Verbose, echo settings that take effect to std output.\n");
+	fprintf(stderr, "-h		Print this help information.\n");
+	fprintf(stderr, "-o option	Print value of the option specified to stdout.\n");
+	fprintf(stderr, "-z zonename	Print option value for the zone given.\n");
+	fprintf(stderr, "-s keyname	Print base64 secret blob for the TSIG key.\n");
 	exit(1);
 }
 

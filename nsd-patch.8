@@ -16,6 +16,7 @@
 .Nm nsd-patch
 .Op Fl c Ar configfile
 .Op Fl f
+.Op Fl h
 .Op Fl l
 .Op Fl x Ar difffile
 .Sh DESCRIPTION
@@ -33,6 +34,8 @@ Read specified configfile instead of the default
 .It Fl f
 Forces writing zone files. Also zones that have not changed are written
 back to their zone files.
+.It Fl h
+Print usage help information and exit.
 .It Fl l
 List the journal entries from the difffile. Does not write to zone files.
 .It Fl x Ar difffile

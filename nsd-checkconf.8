@@ -14,6 +14,7 @@ nsd-checkconf
 .Sh SYNOPSIS
 .Nm nsd-checkconf
 .Op Fl v
+.Op Fl h
 .Op Fl o Ar option
 .Op Fl z Ar zonename
 .Op Fl s Ar keyname
@@ -41,6 +42,9 @@ The available options are:
 .It Fl v
 After reading print the options to standard output in configfile format.
 Without this option, only success or parse errors are reported.
+
+.It Fl h
+Print usage help information and exit.
 
 .It Fl o Ar option
 Return only this option from the config file. This option can

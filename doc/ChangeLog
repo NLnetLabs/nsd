@@ -1,5 +1,6 @@
 11 August 2006: Wouter
 	- srandom to init random() in xfrd based on PID and time.
+	- improved usage() information to be more helpful, and with version.
 
 10 August 2006: Wouter
 	- added more tests to increase code coverage of testset.

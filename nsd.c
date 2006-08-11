@@ -79,7 +79,8 @@ usage (void)
 		"  -u user         Change effective uid to the specified user.\n"
 		"  -v              Print version information.\n"
 		);
-	fprintf(stderr, "Report bugs to <%s>.\n", PACKAGE_BUGREPORT);
+	fprintf(stderr, "Version %s. Report bugs to <%s>.\n", 
+		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }
 
 static void

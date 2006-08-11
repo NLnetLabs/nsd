@@ -44,8 +44,18 @@ warning(const char *format, ...)
 static void 
 usage (void)
 {
-	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-p port] [-y key:secret] "
-		"-z zone servers\n");
+	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-h] [-p port] [-y key:secret] "
+		"-z zone servers\n\n");
+	fprintf(stderr, "\tSend NOTIFY to secondary servers to force a zone update.\n");
+	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n", 
+		PACKAGE_VERSION, PACKAGE_BUGREPORT);
+	fprintf(stderr, "\t-4\t\tSend using IPv4.\n");
+	fprintf(stderr, "\t-6\t\tSend using IPv6.\n");
+	fprintf(stderr, "\t-h\t\tPrint this help information.\n");
+	fprintf(stderr, "\t-p port\t\tPort number of secondary server.\n");
+	fprintf(stderr, "\t-y key:secret\tTSIG keyname and base64 secret blob.\n");
+	fprintf(stderr, "\t-z zone\t\tName of zone to be updated.\n");
+	fprintf(stderr, "\tservers\t\tIP addresses of the secondary server(s).\n");
 	exit(1);
 }
 
@@ -193,7 +203,7 @@ main (int argc, char *argv[])
 #endif /* TSIG */
 	
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46p:y:z:")) != -1) {
+	while ((c = getopt(argc, argv, "46hp:y:z:")) != -1) {
 		switch (c) {
 		case '4':
 			default_family = AF_INET;
@@ -225,6 +235,7 @@ main (int argc, char *argv[])
 				exit(1);
 			}
 			break;
+		case 'h':
 		default:
 			usage();
 		}

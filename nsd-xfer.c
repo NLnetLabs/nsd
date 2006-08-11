@@ -159,7 +159,7 @@ usage (void)
 	fprintf(stderr,
 		"  -z zone      Specify the name of the zone to transfer.\n"
 		"  server       The name or IP address of the master server.\n"
-		"\nReport bugs to <%s>.\n", PACKAGE_BUGREPORT);
+		"\nVersion %s. Report bugs to <%s>.\n", PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	exit(XFER_FAIL);
 }
 
