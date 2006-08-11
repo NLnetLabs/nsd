@@ -87,7 +87,8 @@ underscore(const char *s) {
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: checkconf [-v|-h] [-o option] [-z zonename] [-s keyname] <configfilename>\n");
+	fprintf(stderr, "usage: nsd-checkconf [-v|-h] [-o option] [-z zonename]\n");
+	fprintf(stderr, "                     [-s keyname] <configfilename>\n");
 	fprintf(stderr, "       Checks NSD configuration file for errors.\n");
 	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", 
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
