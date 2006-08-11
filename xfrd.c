@@ -127,6 +127,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
+	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
 	diff_snip_garbage(nsd->db, nsd->options);

@@ -391,9 +391,11 @@ Done, default locations for ixfr.db and xfrd.state have full pathnames.
 8.6. nsdc
 ---------
 In temporary test setup above, test nsdc tool.
+works.
 
 Make sure that if nsdc patch breaks a zone transfer in progress it is
 reattempted later on.
+hard to test.
 
 8.7. nsd-patch
 --------------
@@ -402,4 +404,4 @@ Done test axfr run, or test-mess.
 
 8.8. gcov
 ---------
-gcov to look at code coverage of the tests.
+gcov to look at code coverage of the tests. Tests added to improve coverage.

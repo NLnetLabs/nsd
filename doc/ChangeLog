@@ -1,3 +1,6 @@
+11 August 2006: Wouter
+	- srandom to init random() in xfrd based on PID and time.
+
 10 August 2006: Wouter
 	- added more tests to increase code coverage of testset.
 	- moved acl parsing code from configparser.c to options.c to help

@@ -595,7 +595,7 @@ cutest_iterated_hash.o: $(srcdir)/tpkg/cutest/cutest_iterated_hash.c config.h \
  $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 cutest_options.o: $(srcdir)/tpkg/cutest/cutest_options.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h config.h \
- $(srcdir)/region-allocator.h $(srcdir)/rbtree.h
+ $(srcdir)/region-allocator.h $(srcdir)/rbtree.h $(srcdir)/util.h
 cutest_rbtree.o: $(srcdir)/tpkg/cutest/cutest_rbtree.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h
 cutest_run.o: $(srcdir)/tpkg/cutest/cutest_run.c config.h $(srcdir)/tpkg/cutest/cutest.h
