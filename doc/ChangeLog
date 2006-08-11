@@ -2,6 +2,7 @@
 	- srandom to init random() in xfrd based on PID and time.
 	- improved usage() information to be more helpful, and with version.
 	- in makedist.sh, flex and bison called like in Makefile.
+	- test for tcp underrun and overrun of the buffer.
 
 10 August 2006: Wouter
 	- added more tests to increase code coverage of testset.
