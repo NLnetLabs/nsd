@@ -1,3 +1,6 @@
+14 August 2006: Wouter
+	- Added test for rollback of an IXFR transfer by xfrd.
+
 11 August 2006: Wouter
 	- srandom to init random() in xfrd based on PID and time.
 	- improved usage() information to be more helpful, and with version.
