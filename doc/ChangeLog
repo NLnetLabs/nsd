@@ -2,6 +2,7 @@
 	- Added test for rollback of an IXFR transfer by xfrd.
 	- Added test for reload timeout in xfrd, the reload does happen after
 	  a while, but not immediately.
+	- Test that makes xfrd connect to ip6 address.
 
 11 August 2006: Wouter
 	- srandom to init random() in xfrd based on PID and time.
