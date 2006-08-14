@@ -184,7 +184,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			return query_axfr(nsd, q);
 		}
 	case TYPE_IXFR:
-		RCODE_SET(q->packet, RCODE_REFUSE);
+		RCODE_SET(q->packet, RCODE_IMPL);
 		return QUERY_PROCESSED;
 	default:
 		return QUERY_DISCARDED;

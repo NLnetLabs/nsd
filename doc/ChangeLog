@@ -6,6 +6,7 @@
 	- Test that overloads the number of tcp connections in xfrd,
 	  simulating a slow master, so that zones have to queue up to get it.
 	- code coverage is now 2514 of 10636 uncovered. Still a lot uncovered.
+	- ixfr queries return NOT_IMPL errors.
 
 11 August 2006: Wouter
 	- srandom to init random() in xfrd based on PID and time.
