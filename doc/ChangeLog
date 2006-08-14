@@ -3,6 +3,8 @@
 	- Added test for reload timeout in xfrd, the reload does happen after
 	  a while, but not immediately.
 	- Test that makes xfrd connect to ip6 address.
+	- Test that overloads the number of tcp connections in xfrd,
+	  simulating a slow master, so that zones have to queue up to get it.
 
 11 August 2006: Wouter
 	- srandom to init random() in xfrd based on PID and time.
