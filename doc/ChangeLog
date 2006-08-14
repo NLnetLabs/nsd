@@ -1,5 +1,7 @@
 14 August 2006: Wouter
 	- Added test for rollback of an IXFR transfer by xfrd.
+	- Added test for reload timeout in xfrd, the reload does happen after
+	  a while, but not immediately.
 
 11 August 2006: Wouter
 	- srandom to init random() in xfrd based on PID and time.
