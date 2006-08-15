@@ -19,6 +19,15 @@ ZONE COMPILER
 SERVER
 - make sure that we dont copy anything from the query we dont want to copy, like
   funny headers etc
+- From Aaron Hopkins: set O_NONBLOCK on all sockets. Now a udp raging herd of
+  server can get woken up when a message arrives. One server handles the packet,
+  the rest blocks on that socket and does not serve other sockets.
+- From Aaron Hopkins: write tcp length and tcp data in one write operation,
+  instead of multiple calls to write. Avoids Nagle algo delay in this case.
+  preallocate 2 bytes in front of buffer to put them into.
+- From Aaron Hopkins: after you do select calls, do multiple read calls
+  per select. This polling improves performance in high-load situations.
+  Speed test to prove that it does so.
 
 SECURITY
 
