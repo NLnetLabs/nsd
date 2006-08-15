@@ -169,6 +169,7 @@ struct	nsd
         unsigned char   *nsid;
 
 	size_t	ifs;
+	uint8_t grab_ip6_optional;
 
 	/* TCP specific configuration */
 	struct nsd_socket tcp[MAX_INTERFACES];
@@ -185,8 +186,6 @@ struct	nsd
 	int current_tcp_count;
 	
 #ifdef	BIND8_STATS
-
-	char	*named8_stats;
 
 	struct nsdst {
 		time_t	boot;

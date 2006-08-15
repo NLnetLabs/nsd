@@ -1,3 +1,8 @@
+15 August 2006: Wouter
+	- removed unused struct nsd.named8_stats variable.
+	- Bug #138: nsd aborts trying to bind all interfaces if ip6 is not
+	  enabled, instead it will fallback to ip4.
+
 14 August 2006: Wouter
 	- Added test for rollback of an IXFR transfer by xfrd.
 	- Added test for reload timeout in xfrd, the reload does happen after

@@ -48,6 +48,8 @@ BUG FIXES:
 		- uninitialised variable fixed.
 		- unaligned memory access (on Solaris SPARC), in zonec 
 		  LOC parsing, fixed.
+		- Bug #138: nsd aborts trying to bind all interfaces if ip6 
+		  is not enabled, instead it will fallback to ip4.
 
 2.3.5
 =============

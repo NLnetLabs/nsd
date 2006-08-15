@@ -338,6 +338,7 @@ main (int argc, char *argv[])
 	nsd.child_count = 0;
 	nsd.maximum_tcp_count = 0;
 	nsd.current_tcp_count = 0;
+	nsd.grab_ip6_optional = 0;
 	
 	/* EDNS0 */
 	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
@@ -620,6 +621,7 @@ main (int argc, char *argv[])
 			hints[0].ai_family = AF_INET6;
 			hints[1].ai_family = AF_INET;
 			nsd.ifs = 2;
+			nsd.grab_ip6_optional = 1;
 # else /* !IPV6_V6ONLY */
 			hints[0].ai_family = AF_INET6;
 # endif	/* !IPV6_V6ONLY */
