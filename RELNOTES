@@ -15,6 +15,9 @@ BUG FIXES:
 	- uninitialised variable (found in nsd3 debugging) fixed.
 	- unaligned memory access (on Solaris SPARC, from nsd3 debugging),
 	  in zonec LOC parsing, fixed.
+	- removed unused named8_stats ptr.
+	- Bug #138: nsd aborts trying to bind all interfaces if ip6 is not 
+	  enabled, instead it will fallback to ip4.
 
 2.3.5
 =============
