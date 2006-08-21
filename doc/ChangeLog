@@ -1,3 +1,8 @@
+21 August 2006: Wouter
+	- check for error in ftruncate call.
+	- replaced fwrite call with write_data call from util that does
+	  error checking.
+
 15 August 2006: Wouter
 	- removed unused struct nsd.named8_stats variable.
 	- Bug #138: nsd aborts trying to bind all interfaces if ip6 is not

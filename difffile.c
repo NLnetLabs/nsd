@@ -1243,7 +1243,9 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 		/* snip off at break_pos */
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "snipping off trailing partial part of %s", 
 			filename));
-		ftruncate(fileno(df), break_pos);
+		if(ftruncate(fileno(df), break_pos) == -1)
+			log_msg(LOG_ERR, "ftruncate %s failed: %s", 
+				filename, strerror(errno));
 	}
 
 	fclose(df);

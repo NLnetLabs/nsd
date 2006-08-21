@@ -815,8 +815,7 @@ print_rr(FILE *out,
         if (result) {
                 buffer_printf(output, "\n");
                 buffer_flip(output);
-                (void)fwrite(buffer_current(output), buffer_remaining(output), 1,
-                       out);
+		(void)write_data(out, buffer_current(output), buffer_remaining(output));
 /*              fflush(out); */
         }
 
