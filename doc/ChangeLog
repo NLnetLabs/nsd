@@ -1,3 +1,7 @@
+22 August 2006: Wouter
+	- version number to 3.0.0 in preparation for release.
+	- Bug #139: resync stats to whole period. Fixed.
+
 21 August 2006: Wouter
 	- check for error in ftruncate call.
 	- replaced fwrite call with write_data call from util that does

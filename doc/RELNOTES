@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-3.0.0.pre
+3.0.0
 =============
 FEATURES:
 	- AXFR/IXFR zone transfer supported.
@@ -50,6 +50,7 @@ BUG FIXES:
 		  LOC parsing, fixed.
 		- Bug #138: nsd aborts trying to bind all interfaces if ip6 
 		  is not enabled, instead it will fallback to ip4.
+		- Bug #139: resync timer for stats to whole minute.
 
 2.3.5
 =============

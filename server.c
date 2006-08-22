@@ -288,6 +288,14 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 	return 0;
 }
 
+#ifdef BIND8_STATS
+static void set_bind8_alarm(struct nsd* nsd)
+{
+	/* resync so that the next alarm is on the next whole minute */
+	alarm(nsd->st.period - (time(NULL) % nsd->st.period));
+}
+#endif
+
 static void
 cleanup_dname_compression_tables(void *ptr) 
 {
@@ -466,7 +474,7 @@ server_init(struct nsd *nsd)
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st.boot);
-	alarm(nsd->st.period);
+	set_bind8_alarm(nsd);
 #endif /* BIND8_STATS */
 
 	return 0;
@@ -654,7 +662,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #ifdef BIND8_STATS
 	/* Restart dumping stats if required.  */
 	time(&nsd->st.boot);
-	alarm(nsd->st.period);
+	set_bind8_alarm(nsd);
 #endif
 
 	if (server_start_children(nsd, server_region, netio, xfrd_sock_p) != 0) {
@@ -779,7 +787,7 @@ server_signal_mode(struct nsd *nsd)
 	else if(nsd->signal_hint_stats) {
 		nsd->signal_hint_stats = 0;
 #ifdef BIND8_STATS
-		alarm(nsd->st.period); /* restart timer */
+		set_bind8_alarm(nsd);
 #endif
 		return NSD_STATS;
 	}
