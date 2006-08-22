@@ -366,7 +366,7 @@ server_init(struct nsd *nsd)
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st.boot);
-	alarm(nsd->st.period);
+	alarm(nsd->st.period - (time(NULL) % nsd->st.period));
 #endif /* BIND8_STATS */
 
 	return 0;
@@ -507,7 +507,7 @@ server_main(struct nsd *nsd)
 #ifdef BIND8_STATS
 				/* Restart dumping stats if required.  */
 				time(&nsd->st.boot);
-				alarm(nsd->st.period);
+				alarm(nsd->st.period - (time(NULL) % nsd->st.period));
 #endif
 
 				if (server_start_children(nsd) != 0) {

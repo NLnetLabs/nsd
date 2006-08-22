@@ -205,7 +205,8 @@ sig_handler (int sig)
 		return;
 	case SIGALRM:
 #ifdef BIND8_STATS
-		alarm(nsd.st.period);
+		/* resync to the next whole minute */
+		alarm(nsd.st.period - (time(NULL) % nsd.st.period));
 #endif
 		sig = SIGUSR1;
 		break;
