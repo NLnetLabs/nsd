@@ -1,5 +1,7 @@
 23 August 2006: Wouter
 	- Fixed % by 0 exception in the bugfix #139.
+	- Fixed RFC 4035 says CD flag SHOULD be cleared on authoritative
+	  reponses, now NSD clears the CD flag.
 
 22 August 2006: Wouter
 	- version number to 3.0.0 in preparation for release.

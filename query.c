@@ -1168,11 +1168,8 @@ query_prepare_response(query_type *q)
 	
 	/* Update the flags.  */
 	flags = FLAGS(q->packet);
-#ifdef DNSSEC
-	flags &= 0x0110U;	/* Preserve the RD and CD flags.  */
-#else
 	flags &= 0x0100U;	/* Preserve the RD flag.  */
-#endif
+				/* CD flag must be cleared for auth answers */
 	flags |= 0x8000U;	/* Set the QR flag.  */
 	FLAGS_SET(q->packet, flags);
 }
