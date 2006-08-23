@@ -1,10 +1,9 @@
 Response Differences Between
-Bind 8.4.4 and NSD 2.0.0.
+Bind 9.3.2 and NSD 3.0.0.
 
-Daniel Karrenberg <daniel.karrenberg@ripe.net>
-Erik Rozendaal <erik@nlnetlabs.nl>
+Jelte Jansen <jelte@nlnetlabs.nl>
+Wouter Wijngaards <wouter@nlnetlabs.nl>
 
-Version: 1.2
 
 
 Abstract
@@ -16,25 +15,30 @@ server implementations.
 Contents
 
 0. Introduction
-  0.1 Changes
-1. Authoritative Only Differences
-  1.1 d-bcacheglu - Out-of-Zone Glue
-  1.2 d-nnocachns - Non Authoritative Answers 
-2. Bind Bugs
-  2.1 b-multrrset - Multiple RRSets in Response
-  2.2 b-rootdot - bind does not return NXDOMAIN on 'root.'
-  2.3 b-nonxdom - bind misses NXDOMAIN when no zone cut
-  2.4 n-clrcdbit - NSD clears CD bit in response
-3. Functionality Differences
-  3.1 d-nnotimpny - NSD returns Refused on notify requests
-  3.2 d-nrefclass - NSD returns Refused on unknown class/type
-  3.3 d-nonrefut - NSD returns no data on refused update
-  3.4 d-bindchaos - NSD does not implement the bind. TLD in class CHAOS
-4. Design Dependent Differences
-  4.1 Different Name Encoding
+1. Bugs
+1.1 b-rootdot - BIND does not return NXDOMAIN on 'root.'
+1.2 n-clrcdbit - NSD clears CD bit in response
+1.3 n-clrdobit - NSD clears DO bit in response
+1.4 b-class0 - CLASS0 formerr in BIND
+1.5 n-tcinquery - TC bit in query is formerr for NSD
+1.6 b-soattl - BIND sets SOA TTL in authority section to 0 for SOA queries
+1.7 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
+2. Functionality Differences
+2.1 d-notify - different NOTIFY errors
+2.2 n-update - NSD does not implement dynamic update 
+2.3 b-mailb - BIND does not implement MAILB
+2.4 b-version - BIND returns servfail on version.server queries
+2.5 d-additional - Different additional section on truncated answers
+2.6 d-badqueryflags - Different flags on response to bad queries
+2.7 d-refusedquery - BIND includes query section in REFUSED answers
+2.8 d-formerrquery - BIND includes query section in FORMERR answers
+2.9 b-hostname - Bind adds a NS record for hostname.bind
+
+3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
+4. Reponse differences between BIND 8 and NSD 3.0.0
+
 A. Comparison of responses to root queries.
 B. Comparison of responses to NL TLD queries.
-
 
 
 0. Introduction
@@ -44,133 +48,17 @@ refer to the statistics in Appendix A, which describe observations of
 the differences in responses to real queries to a root name server and
 a TLD name server.
 
-
-0.1 Changes
-
-Bind 8.3.4 to 8.3.6: The d-bcacheglu, d-nnocachns, and b-multrrset
-differences are fixed in bind.
-
-NSD 1.2.2 to 1.4.0-alpha1: NSD now does dynamic name encoding, so the
-d-nameencod and d-nameencom differences no longer occur.
+A previous document DIFFERENCES between BIND 8.4.4 and NSD 2.0.0 exists
+in the NSD 2 package.
 
 
-1. Authoritative Only Differences
+1. Bugs
 
-The most frequently occurring differences are due to the fact that NSD
-is a true 'authoritative only' server.  As such it does not return as
-much non-authoritative data as bind8 does.  We do not expect these
-differences to cause problems in resolvers.
+Some differences are due to bugs and/or answers not conforming to 
+the Internet standards.
 
 
-1.1 d-bcacheglu - Out-of-Zone Glue
-
-NOTE: This no longer applies to bind 8.3.6-REL.
-
-Bind8 answers queries for out-of-zone (glue) A RRs
-non-authoritatively; NSD does not and provides a referral.
-
-Analysis:
-
-Authoritative only service should not provide non authoritative data.
-
-Example:
-
-bind8: 115 21412 -   1/2/2 
-A? NS1.FASTSERVER.NL.;
-ns1.fastserver.nl. a 80.84.226.95;
-fastserver.nl. ns ns1.fastserver.nl.
-fastserver.nl. ns ns2.fastserver.nl.;
-ns1.fastserver.nl. a 80.84.226.95
-ns2.fastserver.nl. a 80.84.226.98;
-
-NSD:  99 21412 -   0/2/2 
-A? NS1.FASTSERVER.NL.;
-fastserver.nl. ns ns1.fastserver.nl.
-fastserver.nl. ns ns2.fastserver.nl.;
-ns1.fastserver.nl. a 80.84.226.95
-ns2.fastserver.nl. a 80.84.226.98;
-
-
-1.2 d-nnocachns - Non Authoritative Answers 
-
-Bind8 answers queries with non-authoritative data; NSD does not and
-provides a referral.  This also happens on type=ANY queries.  In
-essence it is the same difference as d-bcacheglue, just differentiated
-from glue information for analysis purposes.
-
-Analysis:
-
-Authoritative only service should not provide non authoritative data.
-
-Example:
-
-bind8: 139 25304 -   3/0/3 
-NS? flightcam.de.;
-flightcam.de. ns ns.kdt.de.
-flightcam.de. ns ns2.kdt.de.
-flightcam.de. ns ns.wtal.de.;
-ns.kdt.de. a 195.8.224.1
-ns2.kdt.de. a 195.8.224.2
-ns.wtal.de. a 212.17.226.130;
-
-NSD:139 25304 -   0/3/3 
-NS? flightcam.de.;
-flightcam.de. ns ns.kdt.de.
-flightcam.de. ns ns2.kdt.de.
-flightcam.de. ns ns.wtal.de.;
-ns.kdt.de. a 195.8.224.1
-ns2.kdt.de. a 195.8.224.2
-ns.wtal.de. a 212.17.226.130;
-
-
-
-2. Bind Bugs
-
-Some differences are due to bind bugs and/or bind answers not
-conforming to the Internet standards.
-
-
-2.1 b-multrrset - Multiple RRSets in Response
-
-NOTE: This no longer applies to bind 8.3.6-REL (and later).
-
-NSD does not send an RRset more than once in a response as per RFC2181
-section 5.5.
-
-Bind8 is observed to send the same RRset in both the answer and
-Additional sections.  This is not conforming to the standard.
-
-Analysis:
-
-NSD answers correctly as per the standard.  Some incorrect and
-particularly naive resolver implementations could be affected.  No
-such implementation is known.
-
-Example: 
-
-bind8: 24531*- q: A? A.ROOT-SERVERS.NET. 1/4/4 
-A.ROOT-SERVERS.NET. A 198.41.0.4 
-ns: ROOT-SERVERS.NET. NS A.ROOT-SERVERS.NET., 
-ROOT-SERVERS.NET. NS f.ROOT-SERVERS.NET., 
-ROOT-SERVERS.NET. NS j.ROOT-SERVERS.NET., 
-ROOT-SERVERS.NET. NS k.ROOT-SERVERS.NET. 
-ar: A.ROOT-SERVERS.NET. A 198.41.0.4, 
-f.ROOT-SERVERS.NET. A 192.5.5.241, 
-j.ROOT-SERVERS.NET. A 198.41.0.10, 
-k.ROOT-SERVERS.NET. A 193.0.14.129 (178) 
-
-NSD:   24531*- q: A? A.ROOT-SERVERS.NET. 1/4/3 
-A.ROOT-SERVERS.NET. A 198.41.0.4 
-ns: ROOT-SERVERS.NET. NS A.ROOT-SERVERS.NET., 
-ROOT-SERVERS.NET. NS F.ROOT-SERVERS.NET., 
-ROOT-SERVERS.NET. NS J.ROOT-SERVERS.NET., 
-ROOT-SERVERS.NET. NS K.ROOT-SERVERS.NET. 
-ar: F.ROOT-SERVERS.NET. A 192.5.5.241, 
-J.ROOT-SERVERS.NET. A 198.41.0.10, 
-K.ROOT-SERVERS.NET. A 193.0.14.129 (162) 
-
-
-2.2 b-rootdot - bind does not return NXDOMAIN on 'root.'
+1.1 b-rootdot - bind does not return NXDOMAIN on 'root.'
 
 Bind does not answer NXDOMAIN on queries for 'root.' while this domain
 does not exist in class IN.
@@ -180,218 +68,292 @@ Analysis:
 Bind has a pseudo domain root. somewhere.  NSD does not.
 
 
-2.3 b-nonxdom - bind misses NXDOMAIN when no zone cut
+1.2 n-clrcdbit - NSD clears CD bit in response
 
-Bind8 refers to itself if it is asked for an authoritative answer in
-cases where there is no zone cut but other data.
-
-Analysis:
-
-A bind bug.
-
-Example:
-
-zone file:
-www.pool-effekt 86400 IN A              194.246.96.72
-
-bind8: 82   889 *-  0/1/0 
-A? pool-effekt.de.;
-de. soa dns.denic.de. ops.denic.de. 2002031701 10800 7200 3600000 3600;
-
-NSD:   82   889 *-  0/1/0 NXDOMAIN
-A? pool-effekt.de.;
-de. soa dns.denic.de. ops.denic.de. 2002031701 10800 7200 3600000 3600;
+Fixed.
 
 
-2.4 n-clrcdbit - NSD clears CD bit in response
+1.3 n-clrdobit - NSD clears DO bit in response
 
-NSD clears the CD header-bit in responses, bind copies it from the
-query.  Security unaware servers should clear this bit as per RFC1035
-4.1.1.
-
-This difference no longer occurs with bind 8.4.4 (and maybe earlier
-versions).
-
+NSD clears the DO bit in answers to queries with the DO bit. BIND copies the
+DO bit to the answer.
 
 Analysis:
 
-A bind bug.
+In RFC4035 the DO bit is not specified for answers. In the examples section
+of that RFC the DO bit is shown for signed dig responses, although this could 
+refer to the query or the answer. NSD clears the DO bit for all answers, a 
+decision based on speed: the EDNS record sent back by NSD is fixed.
 
 
-3. Functionality Differences
+1.4 b-class0 - CLASS0 formerr in BIND
+
+For CLASS0, you can get either FORMERR(bind9) or REFUSED(nsd3).
+
+Analysis:
+
+Difference in interpretation of the RFCs, a CLASS value of 0 is interpreted
+as a syntax error by BIND but as another valid class (that is not served)
+by NSD. Resolvers are unaffected for CLASS IN.
+
+
+1.5 n-tcinquery - TC bit in query is formerr for NSD
+
+NSD returns FORMERR if tc bit is set in query.
+
+Analysis:
+
+Queries cannot be longer than 512 octets, since the DNS header is 20 octets
+and the query DNS name can be 255 octets maximum. Thus TC (TrunCation) cannot
+happen. Only one question per query packet is answered by NSD, this is a
+design decision.
+
+Some update, ixfr request, notify, gss-tsig TKEY sequence queries could 
+theoretically carry longer data in the query from the client. In practice
+this does not happen, as 255 octet uncompressed names are not used.
+If this were to happen, the client could attempt a TCP connection
+immediately instead of sending a TC bit, or use EDNS0 to send longer packets.
+
+In this NSD is more strict in validation than BIND.
+
+
+1.6 b-soattl - Bind sets SOA TTL in authority section to 0 for SOA queries
+
+This happens when asking for the SOA for a domain that is not served.
+
+Query:
+;; ->>HEADER<<- opcode: QUERY, rcode: NOERROR, id: 0
+;; flags: rd ; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+;; QUESTION SECTION:
+;; foo.bar.     IN      SOA
+
+
+Answer from Bind 9.3.2:
+
+;; ->>HEADER<<- opcode: QUERY, rcode: NXDOMAIN, id: 6097
+;; flags: qr aa rd ; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;; foo.bar.     IN      SOA
+
+;; ANSWER SECTION:
+
+;; AUTHORITY SECTION:
+.       0       IN      SOA     A.ROOT-SERVERS.NET. NSTLD.VERISIGN-GRS.COM. 2006072801 1800 900 604800 86400
+
+;; ADDITIONAL SECTION:
+
+;; Query time: 10 msec
+;; SERVER: 127.0.0.1
+;; WHEN: Wed Aug 23 13:52:36 2006
+;; MSG SIZE  rcvd: 100
+
+
+Answer from NSD 3:
+
+;; ->>HEADER<<- opcode: QUERY, rcode: NXDOMAIN, id: 26095
+;; flags: qr aa rd ; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;; foo.bar.     IN      SOA
+
+;; ANSWER SECTION:
+
+;; AUTHORITY SECTION:
+.       86400   IN      SOA     a.root-servers.net. nstld.verisign-grs.com. 2006072801 1800 900 604800 86400
+
+;; ADDITIONAL SECTION:
+
+;; Query time: 60 msec
+;; SERVER: 127.0.0.1
+;; WHEN: Wed Aug 23 13:53:30 2006
+;; MSG SIZE  rcvd: 100
+
+Analysis:
+
+BIND conforms to internet-draft draft-andrews-dnsext-soa-discovery which has 
+not (yet) been published as RFC. NSD conforms to the RFCs.
+
+
+1.7 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
+
+A difference in behaviour for CLASS=ANY queries. For existing domains both
+BIND and NSD reply with AA bit cleared. For not existing domains (nxdomain)
+NSD replies with AA bit cleared. BIND replies with AA bit on and includes a
+SOA (CLASS=IN) for the zone, as for an authoritative nxdomain.
+
+Query:
+
+;; ->>HEADER<<- opcode: QUERY, rcode: NOERROR, id: 13328
+;; flags: ; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+;; QUESTION SECTION:
+;; nslabs.ruO.  ANY     MX
+
+Answer from BIND 9.3.2:
+
+;; ->>HEADER<<- opcode: QUERY, rcode: NXDOMAIN, id: 13328
+;; flags: qr aa ; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 0
+;; QUESTION SECTION:
+;; nslabs.ruo.  ANY     MX
+
+;; ANSWER SECTION:
+
+;; AUTHORITY SECTION:
+.       86400   IN      SOA     a.root-servers.net. nstld.verisign-grs.com. 2006072801 1800 900 604800 86400
+
+;; ADDITIONAL SECTION:
+
+;; Query time: 0 msec
+;; WHEN: Wed Aug 23 13:58:51 2006
+;; MSG SIZE  rcvd: 103
+
+Answer from NSD 3:
+
+;; ->>HEADER<<- opcode: QUERY, rcode: NXDOMAIN, id: 13328
+;; flags: qr ; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 0
+;; QUESTION SECTION:
+;; nslabs.ruo.  ANY     MX
+
+;; ANSWER SECTION:
+
+;; AUTHORITY SECTION:
+
+;; ADDITIONAL SECTION:
+
+;; Query time: 0 msec
+;; WHEN: Wed Aug 23 13:58:51 2006
+;; MSG SIZE  rcvd: 28
+
+Analysis:
+
+Bug in bind where it answers authoritatively for CLASS ANY nxdomain queries.
+
+
+2. Functionality Differences
 
 The next group of differences are due to the fact that NSD does not
 implement some functionality that is requested.  This is a design
 choice and should not cause resolver problems at all.
 
 
-3.1 d-nnotimpny - NSD returns Refused on notify requests
+2.1 d-notify - different NOTIFY errors
 
-NSD returns NOTIMP to notify operations and does not return the
-original query.
-
-Example:
-
-bind8: 29     0 -   0/0/0 notify ServFail
-SOA? smgcinc.com.;
-
-NSD:  12     0 *-  0/0/0 notify NotImp;
+for NOTIFY, you can get either NOTAUTH/NOERROR(bind9) or
+NXDOMAIN/NOTAUTH(nsd3):  18 (0.00%)
 
 Analysis:
 
-NSD does not implement Notify and answers accordingly.
+Look at queries.
 
 
+2.2 n-update - NSD does not implement dynamic update 
 
-3.2 d-nrefclass - NSD returns Refused on unknown class/type
-
-NSD returns the error code REFUSED to queries with an unknown class or
-RR type. bind returns SERVFAIL.
+For UPDATE, you can get either REFUSED/NXRRSET(bind9) or NOTIMPL(nsd3).
 
 Analysis:
 
-This is a permanent error.  Interpretation of the protocol standard
-differs.
-
-Example:
-
-bind8: 32  1388 -   0/0/0 ServFail
-Type0 (Class 256)? 10.225.125.182.;
-
-NSD:   32  1388 -   0/0/0 Refused
-Type0 (Class 256)? 10.225.125.182.;
+NSD does not implement dynamic update. 
 
 
+2.3 b-mailb - BIND does not implement MAILB
 
-3.3 d-nonrefut - NSD returns no data on refused update
-
-NSD does not return the original message data on refused updates.
+For MAILB, you can get either NOTIMPL(bind9) or NOERROR/NXDOMAIN(nsd3).
 
 Analysis:
 
-Interpretation of the RFCs differs.  Original data is not necessary,
-dropping it increases DoS resilience.
-
-Example:
-
-bind8: 63  7610 -   1/1/0 update Refused
-SOA? .;
-doydoy.res.hmc.edu. (class 254) a 192.17.0.1;
-doydoy.res.hmc.edu. a 134.173.62.172;
-
-NSD:   12  7610 -   0/0/0 update Refused;
+BIND does not implement the MAILB type in queries. NSD treats it as a 
+data type. MAILB is obsoleted by RFCs, the MX type is used to 
+transfer mail information now.
 
 
-3.4 d-bindchaos - NSD does not implement the bind. TLD in class CHAOS
+2.4 b-version - BIND returns servfail on version.server queries.
 
-NSD does not implement the pseudo TLD 'bind' in class CHAOS to make
-server characteristics available via the query interface. NSD does
-implement the (proposed) 'server' pseudo TLS in class CHAOS instead.
+NSD returns version.server query, BIND returns servfail.
 
-NOTE: This no longer applies to NSD 1.2.3 and later.
+Analysis:
 
-
-4. Design Dependent Differences
-
-This group of differences contains minor variations of responses due
-to different design choices.  Starting with NSD-1.4.0 there are no
-differences due to design choices anymore.
+Both NSD and BIND return version.bind queries of the chaos class.
+BIND does not return version.server queries. This is a design decision
+on the part of NSD to return version.server queries with the same answer.
 
 
-4.1 Different Name Encoding
+2.5 d-additional - Different additional section on truncated answers
 
-NOTE: This no longer applies to NSD 1.4.0.
+NSD and BIND return different additional sections on truncated answers
+to queries from the root. 
 
-Since NSD pre-computes its answers for efficiency, in a very few cases
-its name encoding differs from that generated by bind8.  These cases
-occur when the parts of the answer can be encoded using parts of the
-question.
+Analysis:
 
-The different encoding can affect the answer in three different,
-increasingly severe ways.
-
-- same response (d-nameencod)
-
-  The content of the response is exactly the same, just encoded
-  differently. The only effect of this is a slightly increased length
-  of the response. In our observations the total output bandwidth
-  increase caused by this is negligible. It is shown as "Added Bytes:"
-  in the comparisons.
-
-- same answer (d-nameencom)
-
-  The answer is the same; the additional section is shortened by one
-  or more RRsets. This may cause some loss of optimization in
-  resolvers that may need additional queries to obtain some of the
-  omitted information.  Note again that the answer is fully
-  transmitted and thus the 'truncated answer' bit is not set.  The
-  total number of omitted RRs is noted in the comparisons. We have
-  only observed this when responding to queries for unusually long
-  names.  The maximum omission observed was 1 RR.
-
-  Note that beginning with NSD 1.1.0 this difference has not occurred
-  in the traces we've used to compare BIND and NSD.
-
-- truncated answer
-
-  This is when the answer would be truncated and the 'truncated
-  answer' bit set.  We have not observed this at all.
+Not all the A and AAAA data fits into the additional section of the answer.
+BIND includes different names than NSD does, and BIND is observed to sometimes
+include one more AAAA record, one less A record in the additional section.
+Resolvers should be unaffected.
 
 
-Analysis: 
+2.6 d-badqueryflags - Different flags on response to bad queries
 
-This is an expected differences caused by design choices.
+On reply to a query that cannot be parsed, BIND and NSD give different flags.
 
+Analysis:
 
-
-Appendix A
-
-Comparison of responses to root queries:
-
---------------------------------------------------------------------------
-                                            Total Answers: 899262
-                                Skipped ambiguous changes:     34 /  0.00%
-
---------------------------------------------------------------------------
-
-                                               d-nrefclass    254 /  0.03%
-                                               d-nnotimpup     55 /  0.01%
-                                                parseerror     28 /  0.00%
-                                               d-nnotimpny      4 /  0.00%
-                                                     other      2 /  0.00%
---------------------------------------------------------------------------
-                                 Total Different Responses    343 /  0.04%
-==========================================================================
-
-d-nnotimpny -       nsd returns NotImp on notify requests:      4 /  1.17%
-d-nnotimpup -       nsd returns NotImp on update requests:     55 / 16.03%
-d-nrefclass -   nsd returns Refused on unknown class/type:    254 / 74.05%
-other       -                         Unknown Differences:      2 /  0.58%
-parseerror  -    Could not parse tcpdump output correctly:     28 /  8.16%
---------------------------------------------------------------------------
-                                         Total Differences    343 /100.00%
-==========================================================================
+The query is a form error, flags on the return are not mandated by RFCs, and
+not needed for the resolver.
 
 
+2.7 d-refusedquery - BIND includes query section in REFUSED answers
 
-Appendix B
+BIND includes the query sent for REFUSED answers. NSD replies with only
+the DNS header section.
 
-Comparison of responses to NL TLD queries:
+Analysis:
 
---------------------------------------------------------------------------
-                                            Total Answers:  71178
-                                Skipped ambiguous changes:   1901 /  2.67%
+The resolver must inspect the query ID. The error code provides sufficient
+information. Sending the header makes NSD replies smaller and thus more 
+resilient to DoS attacks.
 
---------------------------------------------------------------------------
 
-                                               d-nnotimpup   1925 /  2.70%
-                                               d-nnotimpny    270 /  0.38%
---------------------------------------------------------------------------
-                                 Total Different Responses   2195 /  3.08%
-==========================================================================
+2.8 d-formerrquery - BIND includes query section in FORMERR answers
 
-d-nnotimpny -       nsd returns NotImp on notify requests:    270 / 12.30%
-d-nnotimpup -       nsd returns NotImp on update requests:   1925 / 87.70%
---------------------------------------------------------------------------
-                                         Total Differences   2195 /100.00%
-==========================================================================
+BIND includes the query sent for FORMERR answers. NSD replies with only
+the DNS header section.
+
+Analysis:
+
+The resolver must inspect the query ID. The error code provides sufficient
+information. Sending the header makes NSD replies smaller and thus more 
+resilient to DoS attacks.
+
+
+2.9 b-hostname - Bind adds a NS record for hostname.bind
+
+BIND includes an additional RR in the authority section of the reply:
+hostname.bind. 0 CH NS hostname.bind.
+
+Analysis:
+
+The RR seems useless. NSD does not include it.
+
+
+3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
+
+
+4. Reponse differences between BIND 8 and NSD 3.0.0
+
+
+A. Comparison of responses to root queries.
+
+Comparison between NSD 3.0.0 and BIND 9.3.2.
+
+d-additional:                                    22336  (56.14%)
+n-clrdobit:                                      11912  (29.94%)
+b-soattl:                                        5309   (13.34%)
+d-badqueryflags:                                 11     (0.03%)
+n-update:                                        101    (0.25%)
+d-formerrquery:                                  60     (0.15%)
+d-hostname:                                      46     (0.12%)
+d-refusedquery:                                  3      (0.01%)
+b-class0:                                        10     (0.03%)
+Total number of differences: 39788 (100%)
+Number of packets exactly the same: 60212
+Total number of packets inspected: 100000
+
+
+B. Comparison of responses to NL TLD queries.

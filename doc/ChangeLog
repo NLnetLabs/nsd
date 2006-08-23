@@ -5,6 +5,7 @@
 	  RFC 4035 could be confusing on this, as it states 'all servers
 	  MUST copy the CD bit' more than once, but then makes clear only 
 	  recursive servers are meant with that statement.
+	- Differences document updates for bind 9.3.2 and nsd 3.
 
 22 August 2006: Wouter
 	- version number to 3.0.0 in preparation for release.
