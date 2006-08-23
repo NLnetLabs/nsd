@@ -1,7 +1,10 @@
 23 August 2006: Wouter
 	- Fixed % by 0 exception in the bugfix #139.
 	- Fixed RFC 4035 says CD flag SHOULD be cleared on authoritative
-	  reponses, now NSD clears the CD flag.
+	  reponses, now NSD clears the CD flag. This is bug #140.
+	  RFC 4035 could be confusing on this, as it states 'all servers
+	  MUST copy the CD bit' more than once, but then makes clear only 
+	  recursive servers are meant with that statement.
 
 22 August 2006: Wouter
 	- version number to 3.0.0 in preparation for release.
