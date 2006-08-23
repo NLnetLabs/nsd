@@ -76,3 +76,4 @@ T 128	"Test for backslash at the end of a string"
 T 134	"no reply from nsd with many servers"
 T 135   "Typo in locking code nsdc" in bug105 test.
 T 137   "Build in separate obj-dir" in long dir.
+T 140   "NSD does not clear CD bit" in copy_cd test.
