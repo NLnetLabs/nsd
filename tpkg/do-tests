@@ -7,6 +7,7 @@
 # wdiff
 # tpkg
 # pcat, pcat-diff, pcat-print, ldns-testns
+# nc and printf for tcp_* tests.
 
 NEED_DIG9="bug009_soa_alone bug013_truncate bug034_any bug052_ent bug054_rd bug056_axfr  bug058_qn_246 bug072_parent bug090_000_txt bug095_screwy_wc bug103 copy_cd nx_dnssec tsig_badkey tsig_badsig tsig_query"
 NEED_i386="xfr_1 xfr_2"

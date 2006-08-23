@@ -1,3 +1,6 @@
+23 August 2006: Wouter
+	- Fixed % by 0 exception in the bugfix #139.
+
 22 August 2006: Wouter
 	- version number to 3.0.0 in preparation for release.
 	- Bug #139: resync stats to whole period. Fixed.

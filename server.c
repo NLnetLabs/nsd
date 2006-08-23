@@ -292,7 +292,8 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 static void set_bind8_alarm(struct nsd* nsd)
 {
 	/* resync so that the next alarm is on the next whole minute */
-	alarm(nsd->st.period - (time(NULL) % nsd->st.period));
+	if(nsd->st.period > 0) /* % by 0 gives divbyzero error */
+		alarm(nsd->st.period - (time(NULL) % nsd->st.period));
 }
 #endif
 
