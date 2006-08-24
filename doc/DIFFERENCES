@@ -28,10 +28,9 @@ Contents
 2.3 b-mailb - BIND does not implement MAILB
 2.4 b-version - BIND returns servfail on version.server queries
 2.5 d-additional - Different additional section on truncated answers
-2.6 d-badqueryflags - Different flags on response to bad queries
-2.7 d-refusedquery - BIND includes query section in REFUSED answers
-2.8 d-formerrquery - BIND includes query section in FORMERR answers
-2.9 b-hostname - Bind adds a NS record for hostname.bind
+2.6 d-refusedquery - BIND includes query section in REFUSED answers
+2.7 d-formerrquery - BIND includes query section in FORMERR answers
+2.8 b-hostname - Bind adds a NS record for hostname.bind
 
 3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
 4. Reponse differences between BIND 8 and NSD 3.0.0
@@ -286,19 +285,7 @@ include one more AAAA record, one less A record in the additional section.
 Resolvers should be unaffected.
 
 
-2.6 d-badqueryflags - Different flags on response to bad queries
-
-On reply to a query that cannot be parsed, BIND and NSD give different flags.
-BIND clears out all flags so only qr is set. NSD does not always clear the
-other flags.
-
-Analysis:
-
-The query is a form error, flags on the return are not mandated by RFCs, and
-not needed for the resolver.
-
-
-2.7 d-refusedquery - BIND includes query section in REFUSED answers
+2.6 d-refusedquery - BIND includes query section in REFUSED answers
 
 BIND includes the query sent for REFUSED answers. NSD replies with only
 the DNS header section.
@@ -310,7 +297,7 @@ information. Sending the header makes NSD replies smaller and thus more
 resilient to DoS attacks.
 
 
-2.8 d-formerrquery - BIND includes query section in FORMERR answers
+2.7 d-formerrquery - BIND includes query section in FORMERR answers
 
 BIND includes the query sent for FORMERR answers. NSD replies with only
 the DNS header section.
@@ -322,7 +309,7 @@ information. Sending the header makes NSD replies smaller and thus more
 resilient to DoS attacks.
 
 
-2.9 b-hostname - Bind adds a NS record for hostname.bind
+2.8 b-hostname - Bind adds a NS record for hostname.bind
 
 BIND includes an additional RR in the authority section of the reply:
 hostname.bind. 0 CH NS hostname.bind.
@@ -353,18 +340,6 @@ A. Comparison of responses to root queries.
 
 Comparison between NSD 3.0.0 and BIND 9.3.2.
 
-d-additional:                                    22336  (56.14%)
-n-clrdobit:                                      11912  (29.94%)
-b-soattl:                                        5309   (13.34%)
-d-badqueryflags:                                 11     (0.03%)
-n-update:                                        101    (0.25%)
-d-formerrquery:                                  60     (0.15%)
-d-hostname:                                      46     (0.12%)
-d-refusedquery:                                  3      (0.01%)
-b-class0:                                        10     (0.03%)
-Total number of differences: 39788 (100%)
-Number of packets exactly the same: 60212
-Total number of packets inspected: 100000
 
 
 B. Comparison of responses to NL TLD queries.
