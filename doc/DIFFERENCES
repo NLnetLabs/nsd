@@ -243,7 +243,8 @@ Error codes are different, the tools that send notifies are not affected.
 
 2.2 n-update - NSD does not implement dynamic update 
 
-For UPDATE, you can get either REFUSED/NXRRSET(bind9) or NOTIMPL(nsd3).
+For UPDATE, you can get either REFUSED/NXRRSET/other RCODE from bind9 or 
+NOTIMPL frmo nsd3.
 
 Analysis:
 
@@ -275,13 +276,13 @@ on the part of NSD to return version.server queries with the same answer.
 2.5 d-additional - Different additional section on truncated answers
 
 NSD and BIND return different additional sections on truncated answers
-to queries from the root. 
+to queries from the root. These answers are 480+ bytes long.
 
 Analysis:
 
 Not all the A and AAAA data fits into the additional section of the answer.
 BIND includes different names than NSD does, and BIND is observed to sometimes
-include one more AAAA record, one less A record in the additional section.
+include one more AAAA record, less A records in the additional section.
 Resolvers should be unaffected.
 
 
