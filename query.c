@@ -270,7 +270,7 @@ query_addtxt(struct query  *q,
  * is stored in QUERY->name, the class in QUERY->klass, and the type
  * in QUERY->type.
  */
-static nsd_rc_type
+static int
 process_query_section(query_type *query)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
@@ -279,10 +279,10 @@ process_query_section(query_type *query)
 	/* Lets parse the query name and convert it to lower case.  */
 	if(!packet_read_query_section(query->packet, qnamebuf,
 		&query->qtype, &query->qclass))
-		return NSD_RC_FORMAT;
+		return 0;
 	query->qname = dname_make(query->region, qnamebuf, 1);
 	query->opcode = OPCODE(query->packet);
-	return NSD_RC_OK;
+	return 1;
 }
 
 
@@ -1198,9 +1198,8 @@ query_process(query_type *q, nsd_type *nsd)
 		return QUERY_DISCARDED;
 	}
 
-	rc = process_query_section(q);
-	if (rc != NSD_RC_OK) {
-		return query_error(q, rc);
+	if(!process_query_section(q)) {
+		return query_formerr(q);
 	}
 
 	/* Update statistics.  */
