@@ -218,7 +218,7 @@ query_addtxt(struct query  *q,
  * is stored in QUERY->name, the class in QUERY->klass, and the type
  * in QUERY->type.
  */
-static nsd_rc_type
+static int
 process_query_section(query_type *query)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
@@ -239,7 +239,7 @@ process_query_section(query_type *query)
 		    (src + *src + 1 > buffer_end(query->packet)) || 
 		    (src + *src + 1 > query_name + MAXDOMAINLEN))
 		{
-			return NSD_RC_FORMAT;
+			return 0;
 		}
 		memcpy(dst, src, *src + 1);
 		dst += *src + 1;
@@ -252,7 +252,7 @@ process_query_section(query_type *query)
 	if (len > MAXDOMAINLEN ||
 	    (src + 2*sizeof(uint16_t) > buffer_end(query->packet)))
 	{
-		return NSD_RC_FORMAT;
+		return 0;
 	}
 	buffer_set_position(query->packet, src - buffer_begin(query->packet));
 
@@ -261,7 +261,7 @@ process_query_section(query_type *query)
 	query->qclass = buffer_read_u16(query->packet);
 	query->opcode = OPCODE(query->packet);
 
-	return NSD_RC_OK;
+	return 1;
 }
 
 
@@ -900,9 +900,8 @@ query_process(query_type *q, nsd_type *nsd)
 		return QUERY_DISCARDED;
 	}
 
-	rc = process_query_section(q);
-	if (rc != NSD_RC_OK) {
-		return query_error(q, rc);
+	if(!process_query_section(q)) {
+		return query_formerr(q);
 	}
 
 	/* Update statistics.  */

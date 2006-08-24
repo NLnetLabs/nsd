@@ -72,3 +72,4 @@ T 105   "nsdc lacks locking"
 T 107   "segfault when encountering bad hex data in rfc3597 rdata"
 T 135	"Typo in locking code nsdc" in bug105 test.
 T 140   "NSD does not clear CD bit" in copy_cd test.
+T 141   "NSD does not clear flags on formerr"
