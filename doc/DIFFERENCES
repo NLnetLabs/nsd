@@ -103,7 +103,7 @@ NSD returns FORMERR if tc bit is set in query.
 
 Analysis:
 
-Queries cannot be longer than 512 octets, since the DNS header is 20 octets
+Queries cannot be longer than 512 octets, since the DNS header short:w
 and the query DNS name can be 255 octets maximum. Thus TC (TrunCation) cannot
 happen. Only one question per query packet is answered by NSD, this is a
 design decision.
@@ -237,11 +237,10 @@ choice and should not cause resolver problems at all.
 2.1 d-notify - different NOTIFY errors
 
 BIND and NSD give different errors for notify queries. The servers are started 
-without any configuration for access control on notify. 
-For notify messages aimed at a zone that is served, BIND 9.3.2 returns
-a NOERROR answer, and NSD 3 returns NOTAUTH. 
-For notify messages on a zone that is not served (in-addr.arpa.) BIND 9.3.2
-returns NOTAUTH and NSD 3 returns NXDOMAIN.
+without any configuration for access control on notify. For notify messages 
+aimed at a zone that is served, BIND 9.3.2 returns a NOERROR answer, and 
+NSD 3 returns NOTAUTH. For notify messages on a zone that is not served 
+(in-addr.arpa.) BIND 9.3.2 returns NOTAUTH and NSD 3 returns NXDOMAIN.
 
 Analysis:
 
@@ -296,6 +295,8 @@ Resolvers should be unaffected.
 2.6 d-badqueryflags - Different flags on response to bad queries
 
 On reply to a query that cannot be parsed, BIND and NSD give different flags.
+BIND clears out all flags so only qr is set. NSD does not always clear the
+other flags.
 
 Analysis:
 
@@ -341,6 +342,17 @@ The RR seems useless. NSD does not include it.
 
 
 4. Reponse differences between BIND 8 and NSD 3.0.0
+
+4.1 b-ttlminup Bind 8 uses minimum TTL from SOA also if bigger
+
+For NXDOMAIN queries in root-servers.net BIND 8 uses the minimum TTL from
+the SOA as the TTL of the included SOA RR. However, this minimum TTL is 
+larger than the original TTL of the SOA, both NSD 2.3.6, NSD 3 and BIND 9
+use the smaller of those two values as the TTL of the included SOA.
+
+Analysis:
+
+Bug in BIND 8 solved in BIND 9.
 
 
 A. Comparison of responses to root queries.

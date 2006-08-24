@@ -52,6 +52,7 @@ BUG FIXES:
 		  is not enabled, instead it will fallback to ip4.
 		- Bug #139: resync timer for stats to whole minute.
 		- Bug #140: NSD did not clear CD bit on authoritative answers.
+		- Bug #141: NSD did not clear flags on a formerror reply.
 
 2.3.5
 =============

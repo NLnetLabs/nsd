@@ -1,3 +1,6 @@
+24 August 2006: Wouter
+	- Fix bug 141 port from 2.3.6, copies behaviour from bind 9.3.2.
+
 23 August 2006: Wouter
 	- Fixed % by 0 exception in the bugfix #139.
 	- Fixed RFC 4035 says CD flag SHOULD be cleared on authoritative
