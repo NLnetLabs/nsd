@@ -142,7 +142,9 @@ query_error (struct query *q, nsd_rc_type rcode)
 static query_state_type
 query_formerr (struct query *query)
 {
+	int opcode = OPCODE(query->packet);
 	FLAGS_SET(query->packet, 0);
+	OPCODE_SET(query->packet, opcode);
 	return query_error(query, NSD_RC_FORMAT);
 }
 

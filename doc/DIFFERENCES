@@ -17,12 +17,11 @@ Contents
 0. Introduction
 1. Bugs
 1.1 b-rootdot - BIND does not return NXDOMAIN on 'root.'
-1.2 n-clrcdbit - NSD clears CD bit in response
-1.3 n-clrdobit - NSD clears DO bit in response
-1.4 b-class0 - CLASS0 formerr in BIND
-1.5 n-tcinquery - TC bit in query is formerr for NSD
-1.6 b-soattl - BIND sets SOA TTL in authority section to 0 for SOA queries
-1.7 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
+1.2 n-clrdobit - NSD clears DO bit in response
+1.3 b-class0 - CLASS0 formerr in BIND
+1.4 n-tcinquery - TC bit in query is formerr for NSD
+1.5 b-soattl - BIND sets SOA TTL in authority section to 0 for SOA queries
+1.6 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
 2. Functionality Differences
 2.1 d-notify - different NOTIFY errors
 2.2 n-update - NSD does not implement dynamic update 
@@ -68,12 +67,7 @@ Analysis:
 Bind has a pseudo domain root. somewhere.  NSD does not.
 
 
-1.2 n-clrcdbit - NSD clears CD bit in response
-
-Fixed.
-
-
-1.3 n-clrdobit - NSD clears DO bit in response
+1.2 n-clrdobit - NSD clears DO bit in response
 
 NSD clears the DO bit in answers to queries with the DO bit. BIND copies the
 DO bit to the answer.
@@ -86,7 +80,7 @@ refer to the query or the answer. NSD clears the DO bit for all answers, a
 decision based on speed: the EDNS record sent back by NSD is fixed.
 
 
-1.4 b-class0 - CLASS0 formerr in BIND
+1.3 b-class0 - CLASS0 formerr in BIND
 
 For CLASS0, you can get either FORMERR(bind9) or REFUSED(nsd3).
 
@@ -97,7 +91,7 @@ as a syntax error by BIND but as another valid class (that is not served)
 by NSD. Resolvers are unaffected for CLASS IN.
 
 
-1.5 n-tcinquery - TC bit in query is formerr for NSD
+1.4 n-tcinquery - TC bit in query is formerr for NSD
 
 NSD returns FORMERR if tc bit is set in query.
 
@@ -117,7 +111,7 @@ immediately instead of sending a TC bit, or use EDNS0 to send longer packets.
 In this NSD is more strict in validation than BIND.
 
 
-1.6 b-soattl - Bind sets SOA TTL in authority section to 0 for SOA queries
+1.5 b-soattl - Bind sets SOA TTL in authority section to 0 for SOA queries
 
 This happens when asking for the SOA for a domain that is not served.
 
@@ -173,7 +167,7 @@ BIND conforms to internet-draft draft-andrews-dnsext-soa-discovery which has
 not (yet) been published as RFC. NSD conforms to the RFCs.
 
 
-1.7 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
+1.6 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
 
 A difference in behaviour for CLASS=ANY queries. For existing domains both
 BIND and NSD reply with AA bit cleared. For not existing domains (nxdomain)
