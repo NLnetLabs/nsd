@@ -143,7 +143,8 @@ static query_state_type
 query_formerr (struct query *query)
 {
 	int opcode = OPCODE(query->packet);
-	FLAGS_SET(query->packet, 0);
+	FLAGS_SET(query->packet, FLAGS(query->packet) & 0x0100U);
+			/* Preserve the RD flag. Clear the rest. */
 	OPCODE_SET(query->packet, opcode);
 	return query_error(query, NSD_RC_FORMAT);
 }

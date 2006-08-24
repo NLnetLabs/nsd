@@ -300,7 +300,8 @@ resilient to DoS attacks.
 2.7 d-formerrquery - BIND includes query section in FORMERR answers
 
 BIND includes the query sent for FORMERR answers. NSD replies with only
-the DNS header section.
+the DNS header section. For some queries, NSD includes an EDNS record in 
+the reply if there was a recognizable EDNS record in the query.
 
 Analysis:
 
