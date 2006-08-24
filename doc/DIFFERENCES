@@ -236,12 +236,17 @@ choice and should not cause resolver problems at all.
 
 2.1 d-notify - different NOTIFY errors
 
-for NOTIFY, you can get either NOTAUTH/NOERROR(bind9) or
-NXDOMAIN/NOTAUTH(nsd3):  18 (0.00%)
+BIND and NSD give different errors for notify queries. The servers are started 
+without any configuration for access control on notify. 
+For notify messages aimed at a zone that is served, BIND 9.3.2 returns
+a NOERROR answer, and NSD 3 returns NOTAUTH. 
+For notify messages on a zone that is not served (in-addr.arpa.) BIND 9.3.2
+returns NOTAUTH and NSD 3 returns NXDOMAIN.
 
 Analysis:
 
-Look at queries.
+Default configuration differs between the two packages. NSD is more strict.
+Error codes are different, the tools that send notifies are not affected.
 
 
 2.2 n-update - NSD does not implement dynamic update 
