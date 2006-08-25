@@ -30,11 +30,16 @@ Contents
 2.5 d-additional - Different additional section on truncated answers
 2.6 d-refusedquery - BIND includes query section in REFUSED answers
 2.7 d-formerrquery - BIND includes query section in FORMERR answers
-2.8 b-hostname - Bind adds a NS record for hostname.bind
-
+2.8 d-hostname - BIND adds a NS record for hostname.bind
+2.9 n-ixfr-notimpl - NSD does not implement IXFR
+2.10 d-badqueryflags - BIND includes query section in FORMERR answers
 3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
+3.1. Version number: version.bind and version.server.
+3.2. n-notify: notify not implemented in NSD 2
+3.3. n-ixfr: IXFR error FORMERR in NSD 2
+3.4. Comparison of responses in root trace.
 4. Reponse differences between BIND 8 and NSD 3.0.0
-4.1 b-ttlminup Bind 8 uses minimum TTL from SOA also if bigger
+4.1 b-ttlminup BIND 8 uses minimum TTL from SOA also if bigger
 
 A. Comparison of responses to root queries.
 B. Comparison of responses to NL TLD queries.
@@ -57,7 +62,7 @@ Some differences are due to bugs and/or answers not conforming to
 the Internet standards.
 
 
-1.1 b-rootdot - bind does not return NXDOMAIN on 'root.'
+1.1 b-rootdot - BIND does not return NXDOMAIN on 'root.'
 
 Bind does not answer NXDOMAIN on queries for 'root.' while this domain
 does not exist in class IN.
@@ -111,7 +116,7 @@ immediately instead of sending a TC bit, or use EDNS0 to send longer packets.
 In this NSD is more strict in validation than BIND.
 
 
-1.5 b-soattl - Bind sets SOA TTL in authority section to 0 for SOA queries
+1.5 b-soattl - BIND sets SOA TTL in authority section to 0 for SOA queries
 
 This happens when asking for the SOA for a domain that is not served.
 
@@ -312,7 +317,7 @@ information. Sending the header makes NSD replies smaller and thus more
 resilient to DoS attacks.
 
 
-2.8 b-hostname - Bind adds a NS record for hostname.bind
+2.8 d-hostname - BIND adds a NS record for hostname.bind
 
 BIND includes an additional RR in the authority section of the reply:
 hostname.bind. 0 CH NS hostname.bind.
@@ -322,12 +327,84 @@ Analysis:
 The RR seems useless. NSD does not include it.
 
 
+2.9 n-ixfr-notimpl - NSD does not implement IXFR
+
+To queries for IXFR bind responds with a valid answer (the latest SOA)
+and NSD responds with NOTIMPL error.
+
+Analysis:
+
+NSD 3.0.0 does not implement IXFR. It returns NOTIMPL by design.
+
+
+2.10 d-badqueryflags - BIND includes query section in FORMERR answers
+
+Bind includes the query section in reply to unparseable queries. NSD does not.
+
+Analysis:
+
+Same as d-formerrquery, but the implementation of the comparison software could
+not parse the query either, thus a separate label.
+
+
 3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
+
+The differences between NSD 2.3.6 and NSD 3.0.0 are listed below. All are due
+to version number changes and new features in NSD 3.
+
+
+3.1. Version number: version.bind and version.server.
+
+To queries for version.bind and version.server the different implementations
+return a different version number, as they should.
+
+Analysis:
+
+Expected. Correct version numbers are returned.
+
+
+3.2. n-notify: notify not implemented in NSD 2
+
+Notifications are handled differently. NSD 2 returns NOTIMPL error code,
+while NSD 3 returns NOTAUTH or NXDOMAIN error codes.
+
+Analysis:
+
+Default config denies all notify queries for NSD 3. These answers are correct
+for non-existing and not authorized domains.
+
+
+3.3. n-ixfr: IXFR error FORMERR in NSD 2
+
+To IXFR query questions different error codes are given. The NSD 2
+gives FORMERR (due to the RR in the authority section). NSD 3 returns
+NOTIMPL. 
+
+Analysis:
+
+Neither version of NSD implements IXFR. It is more appropriate to
+return the NOTIMPL error code in that case. Bugfix in NSD.
+
+
+3.4. Comparison of responses in root trace.
+
+Differences between NSD 2.3.6 and NSD 3.0.0 for a root trace.
+Note that apart from the 26 packets that are different, all responses are
+binary the same on the wire between the two versions of NSD.
+-difference-				     -packets-  -%diff-
+n-notify:                                        19     (73.08%)
+n-ixfr:                                          3      (11.54%)
+version.bind:                                    3      (11.54%)
+version.server:                                  1      (3.85%)
+Total number of differences:                     26     (100%)
+Number of packets the same after normalization: 2244590
+Number of packets exactly the same on the wire: 2244590
+Total number of packets inspected:              2244616
 
 
 4. Reponse differences between BIND 8 and NSD 3.0.0
 
-4.1 b-ttlminup Bind 8 uses minimum TTL from SOA also if bigger
+4.1 b-ttlminup BIND 8 uses minimum TTL from SOA also if bigger
 
 For NXDOMAIN queries in root-servers.net BIND 8 uses the minimum TTL from
 the SOA as the TTL of the included SOA RR. However, this minimum TTL is 
@@ -343,6 +420,26 @@ A. Comparison of responses to root queries.
 
 Comparison between NSD 3.0.0 and BIND 9.3.2.
 
+-difference-				       -packets- -%diff-
+d-additional:                                    455607 (59.19%)
+n-clrdobit:                                      208389 (27.07%)
+b-soattl:                                        101707 (13.21%)
+n-update:                                        1858   (0.24%)
+d-formerrquery:                                  773    (0.10%)
+d-hostname:                                      1032   (0.13%)
+d-badqueryflags:                                 4      (0.00%)
+d-refusedquery:                                  79     (0.01%)
+b-class0:                                        264    (0.03%)
+b-mailb:                                         7      (0.00%)
+b-classany-nxdomain:                             5      (0.00%)
+d-notify:                                        18     (0.00%)
+n-ixfr-notimpl:                                  3      (0.00%)
+n-tcinquery:                                     6      (0.00%)
+b-version:                                       1      (0.00%)
+Total number of differences:                    769753  (100%)
+Number of packets the same after normalization: 1474863
+Number of packets exactly the same on the wire: 59161
+Total number of packets inspected:              2244616
 
 
 B. Comparison of responses to NL TLD queries.
