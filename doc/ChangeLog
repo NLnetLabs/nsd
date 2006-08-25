@@ -1,5 +1,7 @@
 25 August 2006: Wouter
 	- disabled make test target as tests are not shipped.
+	- performed prerelease static snapshot.
+	- updates to the DIFFERENCES document.
 
 24 August 2006: Wouter
 	- Fix bug 141 port from 2.3.6, copies behaviour from bind 9.3.2.
