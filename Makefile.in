@@ -338,9 +338,7 @@ uninstall:
 	@echo
 	@echo "You still need to remove $(DESTDIR)$(configdir) directory by hand."
 
-test	: cutest
-	./cutest
-	(cd tpkg; ./do-tests)
+test: 
 
 nsd:	$(NSD_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBS)

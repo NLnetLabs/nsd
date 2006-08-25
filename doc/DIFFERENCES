@@ -34,6 +34,7 @@ Contents
 
 3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
 4. Reponse differences between BIND 8 and NSD 3.0.0
+4.1 b-ttlminup Bind 8 uses minimum TTL from SOA also if bigger
 
 A. Comparison of responses to root queries.
 B. Comparison of responses to NL TLD queries.
