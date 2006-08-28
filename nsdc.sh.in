@@ -161,7 +161,7 @@ send_updates() {
 		req_xfr=`${nsd_checkconf} -z "${zonename}" -o request-xfr ${configfile}`
 		if test -n "${req_xfr}"; then
 			# must be a slave zone (has request-xfr).
-			echo "`basename $0`: Could not update slave zone ${zonename}: not configured (with allow-notify: 127.0.0.1 or ::1)"
+			echo "`basename $0`: Could not send notify for slave zone ${zonename}: not configured (with allow-notify: 127.0.0.1 or ::1)"
 		fi
 	fi
 }
@@ -246,6 +246,7 @@ rebuild)
 	;;
 update)
         # send notifies to localhost for all zones that allow it
+	echo "Sending notify to localhost to update secondary zones..."
 	if [ -s ${pidfile} ]; then
 		zoneslist=`${nsd_checkconf} -o zones ${configfile}`
 		for zonename in ${zoneslist}; do
@@ -258,6 +259,7 @@ update)
 	;;
 notify)
 	# send notifies to all slaves
+	echo "Sending notify to slave servers..."
 	zoneslist=`${nsd_checkconf} -o zones ${configfile}`
 	for zonename in ${zoneslist}; do
 		notify=`${nsd_checkconf} -z "${zonename}" -o notify ${configfile}`
