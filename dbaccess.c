@@ -342,7 +342,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 		zones[i]->soa_nx_rrset = NULL;
 		zones[i]->ns_rrset = NULL;
 #ifdef NSEC3
-		zones[i]->nsec3_rrset = NULL;
+		zones[i]->nsec3_soa_rr = NULL;
 		zones[i]->nsec3_last = NULL;
 #endif
 		zones[i]->opts = zone_options_find(opt, domain_dname(zones[i]->apex));

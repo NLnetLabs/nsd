@@ -72,7 +72,7 @@ struct zone
 	rrset_type  *soa_nx_rrset; /* see bug #103 */
 	rrset_type  *ns_rrset;
 #ifdef NSEC3
-	rrset_type  *nsec3_rrset; /* rrset with SOA bit set */
+	rr_type	    *nsec3_soa_rr; /* rrset with SOA bit set */
 	domain_type *nsec3_last; /* last domain with nsec3, wraps */
 #endif
 	struct zone_options *opts;

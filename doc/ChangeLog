@@ -1,3 +1,11 @@
+29 August 2006: Wouter
+	- NSEC3 made it so it can handle the case where the NSEC3 RRSET
+	  with the SOA bit on does not have the RR with the soa bit set
+	  as the first RR.
+	- Handle NSEC3-PARAM type. Checks to see if any of them work:
+	  zone apex hashed exists, with NSEC3 type, and RR that has
+	  the same parameters and the SOA bit set.
+
 28 August 2006: Wouter
 	- echo messages in nsdc made clearer. nsdc notify and nsdc update
 	  only send notify messages to slaves / localhost to force transfers.
