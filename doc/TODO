@@ -41,6 +41,8 @@ PURITY
 CLEANUP
 - make so that startup sends SOA_INFO to xfrd just like reload does, prettier? 
 - dlopen and dynlib checks can be removed from autoconf scripts.
+- If presentation format NSEC3 stays, put optout-iterations into one 4byte
+  datatype, easier reading and printing, avoids ugly special cases.
 
 DOCUMENTATION
 
