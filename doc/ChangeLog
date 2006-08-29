@@ -5,6 +5,9 @@
 	- Handle NSEC3-PARAM type. Checks to see if any of them work:
 	  zone apex hashed exists, with NSEC3 type, and RR that has
 	  the same parameters and the SOA bit set.
+	- in presentation format of NSEC3, NSEC3-PARAM reversed hash, optout.
+	- update to the DIFFERENCES file, bind 9.3.2 vs NSD 3 and 
+	  NSD 2 and 3 comparisons are completed.
 
 28 August 2006: Wouter
 	- echo messages in nsdc made clearer. nsdc notify and nsdc update

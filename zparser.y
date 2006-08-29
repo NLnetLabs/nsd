@@ -785,7 +785,7 @@ rdata_nsec:	dname nsec_seq
 rdata_nsec3:   STR sp STR sp STR sp STR sp STR nsec_seq
     {
 #ifdef NSEC3
-	    nsec3_add_params($1.str, $3.str, $5.str, $7.str, $7.len);
+	    nsec3_add_params($3.str, $1.str, $5.str, $7.str, $7.len);
 
 	    zadd_rdata_wireformat(zparser_conv_b32(parser->region, $9.str)); /* next hashed name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
@@ -800,7 +800,7 @@ rdata_nsec3:   STR sp STR sp STR sp STR sp STR nsec_seq
 rdata_nsec3_param:   STR sp STR sp STR sp STR trail
     {
 #ifdef NSEC3
-	    nsec3_add_params($1.str, $3.str, $5.str, $7.str, $7.len);
+	    nsec3_add_params($3.str, $1.str, $5.str, $7.str, $7.len);
 #else
 	    zc_error_prev_line("nsec3 not supported");
 #endif /* NSEC3 */
