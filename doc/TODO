@@ -39,7 +39,8 @@ PURITY
   in idle/zone-transfer-busy state flags. Is this more beautiful?
 
 CLEANUP
-- make so that startup sends SOA_INFO to xfrd just like reload does, prettier?
+- make so that startup sends SOA_INFO to xfrd just like reload does, prettier? 
+- dlopen and dynlib checks can be removed from autoconf scripts.
 
 DOCUMENTATION
 

@@ -1,6 +1,7 @@
 28 August 2006: Wouter
 	- echo messages in nsdc made clearer. nsdc notify and nsdc update
 	  only send notify messages to slaves / localhost to force transfers.
+	- initial NSEC3-PARAM type code entry. parsed, ignored.
 
 25 August 2006: Wouter
 	- disabled make test target as tests are not shipped.

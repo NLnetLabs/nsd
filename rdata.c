@@ -715,7 +715,8 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 		} else {
 			buffer_printf(output, " ");
 		}
-		if (descriptor->type == TYPE_NSEC3 && i == 0)
+		if ((descriptor->type == TYPE_NSEC3 || descriptor->type == TYPE_NSEC3_PARAM)
+			&& i == 0)
 		{
 			/* print nsec3 optout bit */
 			buffer_printf(output, "%u ", (unsigned)
