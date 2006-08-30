@@ -1,6 +1,7 @@
 30 August 2006: Wouter
 	- Print error nicely when nonblocking connect fails on systems
 	  in a portable way.
+	- doc/UPGRADING document to assist NSD 2 to 3 upgrades.
 
 29 August 2006: Wouter
 	- NSEC3 made it so it can handle the case where the NSEC3 RRSET

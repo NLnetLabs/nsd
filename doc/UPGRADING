@@ -1,0 +1,38 @@
+Upgrading from NSD 2.x to NSD 3
+
+by Wouter C.A. Wijngaards, NLnetLabs, Aug 2006
+
+This document lists the changes in the upgrade from NSD 2 to NSD 3 systems.
+
+* The nsdc.conf file is gone. 
+	* specify the config file to nsdc by using the -c <file> option.
+	* binaries are searched for in the installation bin directory,
+	  in the PATH and in the directory of nsdc.sh itself. 
+	* other options go into the new nsd.conf file.
+
+* The nsd.masters file is gone, replaced by nsd.conf.
+	* Look at nsd.conf.5 manual page to see format.
+	* you can list nsd-commandline-options, zones, masters, slaves, keys.
+	* TSIG support: please list the TSIG keys in nsd.conf, or do this with
+	  include: "keys.conf" and provide additional security for that file.
+	* For every zone include lines:
+		zone:
+			name: "example.com"
+			zonefile: "example.com.txt"
+	* For secondary zones include in the zone entry:
+			request-xfr: <ip of master> <tsig keyname or NOKEY>
+			allow-notify: <same as above>
+	* For master zones include in the zone entry:
+			provide-xfr: <ip of slave> <tsig keyname or NOKEY>
+			notify: <same as above>
+	* NSD does not provide IXFR, so for secondaries that connect to NSD use
+	  request-xfr: AXFR <ip> <key>   that will only use AXFR, not IXFR to
+	  request zone transfers.
+
+* No more need for a cron job to do a nsdc update.
+	* nsd will update automatically all secondary zones from master.
+	* You should never need to do nsdc update or nsdc notify by hand.
+	* You can still use a cronjob to do nsdc patch.
+	  nsdc patch moves the zone transfer content from temporary storage
+	  to the zone files, recompiles the database and reloads nsd.
+
