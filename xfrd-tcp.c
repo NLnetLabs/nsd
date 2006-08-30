@@ -329,6 +329,21 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	int ret;
 	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
 	assert(zone->tcp_conn != -1);
+	if(tcp->total_bytes == 0) {
+		/* check for pending error from nonblocking connect */
+		/* from Stevens, unix network programming, vol1, 3rd ed, p450 */
+		int error = 0;
+		socklen_t len = sizeof(error);
+		if(getsockopt(tcp->fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0){
+			error = errno; /* on solaris errno is error */
+		}
+		if(error != 0) {
+			log_msg(LOG_ERR, "Could not tcp connect to %s: %s",
+				zone->master->ip_address_spec, strerror(error));
+			xfrd_tcp_release(set, zone);
+			return;
+		}
+	}
 	ret = conn_write(tcp);
 	if(ret == -1) {
 		log_msg(LOG_ERR, "xfrd: failed writing tcp %s", strerror(errno));

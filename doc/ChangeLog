@@ -1,3 +1,7 @@
+30 August 2006: Wouter
+	- Print error nicely when nonblocking connect fails on systems
+	  in a portable way.
+
 29 August 2006: Wouter
 	- NSEC3 made it so it can handle the case where the NSEC3 RRSET
 	  with the SOA bit on does not have the RR with the soa bit set
