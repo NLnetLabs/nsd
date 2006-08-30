@@ -6,6 +6,10 @@
 	- wait for select writable before testing for connect error.
 	- echo "" >&2 is not as portable as we would like, removed from nsdc.
 	- fixed debug print of a null ptr.
+	- fixed bug where query for CNAME that points to unserved zone caused
+	  nullptr exception on empty zone ptr. Now original zone is restored
+	  after CNAME-pointed data is added to the packet.
+	  Test in dname.tpkg.
 
 29 August 2006: Wouter
 	- NSEC3 made it so it can handle the case where the NSEC3 RRSET

@@ -873,6 +873,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 			/* only process first CNAME record */
 			domain_type *closest_match = rdata_atom_domain(rrset->rrs[0].rdatas[0]);
 			domain_type *closest_encloser = closest_match;
+			zone_type* origzone = q->zone;
 			++q->cname_count;
 				
 			while (!closest_encloser->is_existing)
@@ -882,6 +883,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 					     closest_match == closest_encloser,
 					     closest_match, closest_encloser,
 					     domain_dname(closest_match));
+			q->zone = origzone;
 		}
 	} else {
 		answer_nodata(q, answer, original);
@@ -942,6 +944,7 @@ answer_authoritative(struct nsd   *nsd,
 			const dname_type* newname = dname_replace(q->region, name, 
 				domain_dname(src), domain_dname(dest));
 			uint32_t newnum = 0;
+			zone_type* origzone = q->zone;
 			++q->cname_count;
 			if(!newname) { /* newname too long */
 				RCODE_SET(q->packet, RCODE_YXDOMAIN);
@@ -964,6 +967,7 @@ answer_authoritative(struct nsd   *nsd,
 			answer_lookup_zone(nsd, q, answer, newnum,
 				closest_match == closest_encloser, 
 				closest_match, closest_encloser, newname);
+			q->zone = origzone;
 		}
 		if(!added)  /* log the error so operator can find looping recursors */
 			log_msg(LOG_INFO, "DNAME processing stopped due to loop, qname %s",
