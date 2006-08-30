@@ -56,20 +56,20 @@ else
 fi
 
 usage() {
-	echo "Usage: `basename $0` [-c configfile] {start|stop|reload|rebuild|restart|" >&2
-	echo "				running|update|notify|patch}" >&2
-	echo "options:" >&2
-	echo "	-c configfile	Use specified configfile (default: @nsdconfigfile@)". >&2
-	echo "commands:" >&2
-	echo "	start		Start nsd server." >&2
-	echo "	stop		Stop nsd server." >&2
-	echo "	reload		Nsd server reloads database file." >&2
-	echo "	rebuild		Compile database file from zone files." >&2
-	echo "	restart		Stop the nsd server and start it again." >&2
-	echo "	running		Prints message and exit nonzero if server not running." >&2
-	echo "	update		Try to update all slave zones hosted on this server." >&2
-	echo "	notify		Send notify messages to all secondary servers." >&2
-	echo "	patch		Merge zone transfer changes back to zone files." >&2
+	echo "Usage: `basename $0` [-c configfile] {start|stop|reload|rebuild|restart|"
+	echo "				running|update|notify|patch}"
+	echo "options:"
+	echo "	-c configfile	Use specified configfile (default: @nsdconfigfile@)."
+	echo "commands:"
+	echo "	start		Start nsd server."
+	echo "	stop		Stop nsd server."
+	echo "	reload		Nsd server reloads database file."
+	echo "	rebuild		Compile database file from zone files."
+	echo "	restart		Stop the nsd server and start it again."
+	echo "	running		Prints message and exit nonzero if server not running."
+	echo "	update		Try to update all slave zones hosted on this server."
+	echo "	notify		Send notify messages to all secondary servers."
+	echo "	patch		Merge zone transfer changes back to zone files."
 }
 
 # check the config syntax before using it

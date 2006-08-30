@@ -220,7 +220,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)
 	{
 		if(errno != EINPROGRESS) {
-			log_msg(LOG_ERR, "xfrd: connect %s failed %s",
+			log_msg(LOG_ERR, "xfrd: connect %s failed: %s",
 				zone->master->ip_address_spec, strerror(errno));
 			xfrd_tcp_release(set, zone);
 			return 0;

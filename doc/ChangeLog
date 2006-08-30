@@ -4,6 +4,8 @@
 	- doc/UPGRADING document to assist NSD 2 to 3 upgrades.
 	- updates of error print - ignore EINPROGRESS if we check too early.
 	- wait for select writable before testing for connect error.
+	- echo "" >&2 is not as portable as we would like, removed from nsdc.
+	- fixed debug print of a null ptr.
 
 29 August 2006: Wouter
 	- NSEC3 made it so it can handle the case where the NSEC3 RRSET

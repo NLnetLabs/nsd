@@ -408,7 +408,9 @@ answer_notify (struct nsd* nsd, struct query *query)
 		assert(why);
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s passed acl %s %s",
 			dname_to_string(query->qname, NULL),
-			why->ip_address_spec, why->key_name));
+			why->ip_address_spec, 
+			why->nokey?"NOKEY":
+			(why->blocked?"BLOCKED":why->key_name)));
 		sz = buffer_limit(query->packet);
 		if(buffer_limit(query->packet) > MAX_PACKET_SIZE)
 			return query_error(query, NSD_RC_SERVFAIL);
