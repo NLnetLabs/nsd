@@ -1,6 +1,8 @@
 $Id$
 
 GENERAL
+- return value of region_alloc, region_create is not checked for NULL,
+  which is returned when out of memory, in many places.
 
 AUTOCONF
 
