@@ -9,7 +9,8 @@
 	- fixed bug where query for CNAME that points to unserved zone caused
 	  nullptr exception on empty zone ptr. Now original zone is restored
 	  after CNAME-pointed data is added to the packet.
-	  Test in dname.tpkg.
+	  Test in dname.tpkg. Reported by Kai.
+	- fixed stack corruption when ipv6 disabled.
 
 29 August 2006: Wouter
 	- NSEC3 made it so it can handle the case where the NSEC3 RRSET

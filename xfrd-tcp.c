@@ -66,7 +66,11 @@ xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_in *to)
 	unsigned int port = acl->port?acl->port:(unsigned)atoi(TCP_PORT);
 
 	/* setup address structure */
+#ifdef INET6
 	memset(to, 0, sizeof(struct sockaddr_storage));
+#else
+	memset(to, 0, sizeof(struct sockaddr_in));
+#endif
 	if(acl->is_ipv6) {
 #ifdef INET6
 		struct sockaddr_in6* sa = (struct sockaddr_in6*)to;
