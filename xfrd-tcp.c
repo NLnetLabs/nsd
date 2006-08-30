@@ -337,6 +337,8 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		if(getsockopt(tcp->fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0){
 			error = errno; /* on solaris errno is error */
 		}
+		if(error == EINPROGRESS)
+			return; /* try again later */
 		if(error != 0) {
 			log_msg(LOG_ERR, "Could not tcp connect to %s: %s",
 				zone->master->ip_address_spec, strerror(error));
