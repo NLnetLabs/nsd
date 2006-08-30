@@ -3,6 +3,7 @@
 	  in a portable way.
 	- doc/UPGRADING document to assist NSD 2 to 3 upgrades.
 	- updates of error print - ignore EINPROGRESS if we check too early.
+	- wait for select writable before testing for connect error.
 
 29 August 2006: Wouter
 	- NSEC3 made it so it can handle the case where the NSEC3 RRSET

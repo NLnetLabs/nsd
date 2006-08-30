@@ -259,7 +259,7 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	buffer_flip(tcp->packet);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "sent tcp query with ID %d", zone->query_id));
 	tcp->msglen = buffer_limit(tcp->packet);
-	xfrd_tcp_write(set, zone);
+	/* wait for select to complete connect before write */
 }
 
 static void
@@ -337,7 +337,7 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		if(getsockopt(tcp->fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0){
 			error = errno; /* on solaris errno is error */
 		}
-		if(error == EINPROGRESS)
+		if(error == EINPROGRESS || error == EWOULDBLOCK)
 			return; /* try again later */
 		if(error != 0) {
 			log_msg(LOG_ERR, "Could not tcp connect to %s: %s",
