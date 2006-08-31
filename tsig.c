@@ -516,6 +516,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->mac_size = buffer_read_u16(packet);
 	if (!buffer_available(packet, tsig->mac_size)) {
 		buffer_set_position(packet, tsig->position);
+		tsig->mac_size = 0;
 		return 0;
 	}
 	tsig->mac_data = (uint8_t *) region_alloc_init(
@@ -529,6 +530,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->error_code = buffer_read_u16(packet);
 	tsig->other_size = buffer_read_u16(packet);
 	if (!buffer_available(packet, tsig->other_size) || tsig->other_size > 16) {
+		tsig->other_size = 0;
 		buffer_set_position(packet, tsig->position);
 		return 0;
 	}

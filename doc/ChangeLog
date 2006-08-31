@@ -1,3 +1,6 @@
+31 August 2006: Wouter
+	- Fix for tsig size still set when data is null ptr.
+
 30 August 2006: Wouter
 	- Print error nicely when nonblocking connect fails on systems
 	  in a portable way.
