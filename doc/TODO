@@ -39,6 +39,7 @@ PURITY
 - brush up the fuction and identifiers names
 - The XFRD zone state can be split up in expired/service-possible and 
   in idle/zone-transfer-busy state flags. Is this more beautiful?
+- no more #ifdefs, remove them all, but keep configure options.
 
 CLEANUP
 - make so that startup sends SOA_INFO to xfrd just like reload does, prettier? 
