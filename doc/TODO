@@ -32,6 +32,7 @@ SERVER
   Speed test to prove that it does so.
 
 SECURITY
+- TSIG add rfc 4635 algorithms.
 
 PURITY
 - some data is in network order some in host order, make it clear with prefixes
