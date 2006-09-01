@@ -28,20 +28,21 @@ from the name server are recorded. For every query, the different answers
 provided by the server implementations are compared.
 
 Unparseable answers and no answers from the servers are handled 
-identically by the comparison software. This is not a problem because the
-servers send out parseable answer almost all the time. Very few cases
-have no answer to them. This is because both BIND and NSD are mature 
-and stable DNS implementations.
+identically by the comparison software. This is not a problem because 
+both BIND and NSD are mature and stable DNS implementations, all answers 
+they send are parseable. Only in a very few cases, where the query is 
+very badly formed, no answers are sent back.
 
-The differences are found by replaying captured traces from NL TLD and 
-from the root zone against different name servers. The differences in the
-answers are then analyzed, by first performing a byte-compare on the packets.
-If the packets are binary different, the contents are parsed, thus removing
-differences in domain name compression, and normalized (sorted, lowercase)
-in presentation. If the results do not match after normalization, then a
-list of difference categories is consulted. The difference is counted towards
-the first category that matches. If a difference in answers does not match
-any category, then the process stops and the user is notified. All the
+The differences are found by replaying captured DNS query traces from 
+the NL TLD and from the root zone against different name servers. The 
+differences in the answers are then analyzed, by first performing a
+byte-comparison on the packets. If the packets are binary different, 
+the contents are parsed, thus removing differences in domain name 
+compression, and normalized (sorted, lowercase) in presentation. If the
+results do not match after normalization, then a list of difference 
+categories is consulted. The difference is classified as the first
+category that matches. If a difference in answers does not match any 
+category, then the process stops and the user is notified. All the
 differences are categorized for the traces we present.
 
 We gratefully made use of the PROTOS DNS tool developed at the 
@@ -49,7 +50,7 @@ University of Oulu which they made publicly available at
 http://www.ee.oulu.fi/research/ouspg/protos/testing/c09/dns
 and played the queries against the authoritative name servers.
 We fixed a packet parsing error in NSD3-prerelease and both NSD3 and
-BIND 9.3.2 remained up and responsive.
+BIND 9.3.2 remained running and responsive.
 
 Additionally we used the faulty DNS query traces in the wiki-ethereal
 repository. These can be found in http://wiki.ethereal.com/SampleCaptures
