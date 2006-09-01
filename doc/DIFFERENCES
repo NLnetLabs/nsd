@@ -22,10 +22,11 @@ provide. These differences are categorized and counted.
 We used BIND 8 and BIND 9 versions to compare against. Also regression
 tests have been run on our testlab, comparing NSD 2 versus NSD 3.
 
-The method is to obtain a set of queries. These queries are sent over UDP
-to a name server set up to serve a particular zone. Then the responses
-from the name server are recorded. For every query, the different answers
-provided by the server implementations are compared.
+Our method uses a set of queries captured from production name servers. 
+These queries are sent over UDP to a name server set up to serve a 
+particular zone. Then the responses from the name server are recorded. 
+For every query, the different answers provided by the server 
+implementations are compared.
 
 Unparseable answers and no answers from the servers are handled 
 identically by the comparison software. This is not a problem because 
@@ -45,8 +46,8 @@ category that matches. If a difference in answers does not match any
 category, then the process stops and the user is notified. All the
 differences are categorized for the traces we present.
 
-We gratefully made use of the PROTOS DNS tool developed at the 
-University of Oulu which they made publicly available at 
+Besides, we gratefully made use of the PROTOS DNS tool developed 
+at the University of Oulu which they made publicly available at 
 http://www.ee.oulu.fi/research/ouspg/protos/testing/c09/dns
 and played the queries against the authoritative name servers.
 We fixed a packet parsing error in NSD3-prerelease and both NSD3 and
@@ -119,10 +120,11 @@ Total number of packets inspected: 		100000
 
 1.3. Features
 
-In this section we enumerate a numebr of differences between 
+In this section we enumerate a number of differences between 
 BIND 9.3.2 and NSD 3.0.0 that cannot be immediately explained
 as design choices. These features could be seen as bugs in software
-or protocol specs. They do not lead to interoperability problems.
+or protocol specs, except that they do not lead to interoperability 
+problems.
 
 
 1.3.1 b-rootdot - BIND does not return NXDOMAIN on 'root.'
