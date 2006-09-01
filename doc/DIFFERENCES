@@ -1,5 +1,5 @@
 Response Differences Between
-Bind 9.3.2 and NSD 3.0.0.
+NSD and other DNS servers
 
 Jelte Jansen <jelte@nlnetlabs.nl>
 Wouter Wijngaards <wouter@nlnetlabs.nl>
@@ -8,59 +8,41 @@ Wouter Wijngaards <wouter@nlnetlabs.nl>
 
 Abstract
 
-This note describes observed differences in responses between the DNS
-server implementations.
+This note describes observed differences in responses between NSD and
+some other DNS server implementations.
 
-
-Contents
-
-0. Introduction
-1. Bugs
-.. 1.1 b-rootdot - BIND does not return NXDOMAIN on 'root.'
-.. 1.2 n-clrdobit - NSD clears DO bit in response
-.. 1.3 b-class0 - CLASS0 formerr in BIND
-.. 1.4 n-tcinquery - TC bit in query is formerr for NSD
-.. 1.5 b-soattl - BIND sets SOA TTL in authority section to 0 for SOA queries
-.. 1.6 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
-.. 1.7 d-badquerynoanswer - BIND does not answer some malformed queries
-2. Functionality Differences
-.. 2.1 d-notify - different NOTIFY errors
-.. 2.2 n-update - NSD does not implement dynamic update 
-.. 2.3 b-mailb - BIND does not implement MAILB
-.. 2.4 b-version - BIND returns servfail on version.server queries
-.. 2.5 d-additional - Different additional section on truncated answers
-.. 2.6 d-refusedquery - BIND includes query section in REFUSED answers
-.. 2.7 d-formerrquery - BIND includes query section in FORMERR answers
-.. 2.8 d-hostname - BIND adds a NS record for hostname.bind
-.. 2.9 n-ixfr-notimpl - NSD does not implement IXFR
-.. 2.10 d-badqueryflags - BIND includes query section in FORMERR answers
-.. 2.11 d-unknown-opcode - NSD returns NOTIMPL for unknown opcode
-.. 2.12 b-upwards-ref - BIND returns root delegation
-.. 2.13 b-noglue-nsquery - BIND returns no glue for NS queries.
-.. 2.14 d-noquestion - different error on no question
-.. 2.15 b-uchar - BIND returns FORMERR on strange characters
-3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
-.. 3.1. Version number: version.bind and version.server.
-.. 3.2. n-notify: notify not implemented in NSD 2
-.. 3.3. n-ixfr: IXFR error FORMERR in NSD 2
-.. 3.4. Comparison of responses in root trace.
-.. 3.5. Comparison of responses in NL TLD trace.
-4. Reponse differences between BIND 8 and NSD 3.0.0
-.. 4.1 b-ttlminup BIND 8 uses minimum TTL from SOA also if bigger
-A. Comparison of responses to root queries.
-B. Comparison of responses to NL TLD queries.
 
 
 0. Introduction
 
-The observed differences are described.  The names of the differences
-refer to the statistics in Appendix A, which describe observations of
-the differences in responses to real queries to a root name server and
-a TLD name server.
+The NSD name server is compared to other DNS server implementations.
+The goal is to observe differences in the answers that the name servers
+provide. These differences are categorized and counted. 
 
-For these differences captures traces from NL TLD and from the root
-are replayed against different name servers. We then analyzed the differences
-in the answers by the name servers.
+We used BIND 8 and BIND 9 versions to compare against. Also regression
+tests have been run on our testlab, comparing NSD 2 versus NSD 3.
+
+The method is to obtain a set of queries. These queries are sent over UDP
+to a name server set up to serve a particular zone. Then the responses
+from the name server are recorded. For every query, the different answers
+provided by the server implementations are compared.
+
+Unparseable answers and no answers from the servers are handled 
+identically by the comparison software. This is not a problem because the
+servers send out parseable answer almost all the time. Very few cases
+have no answer to them. This is because both BIND and NSD are mature 
+and stable DNS implementations.
+
+The differences are found by replaying captured traces from NL TLD and 
+from the root zone against different name servers. The differences in the
+answers are then analyzed, by first performing a byte-compare on the packets.
+If the packets are binary different, the contents are parsed, thus removing
+differences in domain name compression, and normalized (sorted, lowercase)
+in presentation. If the results do not match after normalization, then a
+list of difference categories is consulted. The difference is counted towards
+the first category that matches. If a difference in answers does not match
+any category, then the process stops and the user is notified. All the
+differences are categorized for the traces we present.
 
 We gratefully made use of the PROTOS DNS tool developed at the 
 University of Oulu which they made publicly available at 
@@ -69,17 +51,80 @@ and played the queries against the authoritative name servers.
 We fixed a packet parsing error in NSD3-prerelease and both NSD3 and
 BIND 9.3.2 remained up and responsive.
 
+Additionally we used the faulty DNS query traces in the wiki-ethereal
+repository. These can be found in http://wiki.ethereal.com/SampleCaptures
+These traces posed no problem for BIND and NSD, mostly FORMERR answers.
+
 A previous document DIFFERENCES between BIND 8.4.4 and NSD 2.0.0 exists
 in the NSD 2 package.
 
-
-1. Bugs
-
-Some differences are due to bugs and/or answers not conforming to 
-the Internet standards.
+In the places where differences have been found between BIND and NSD,
+in the authors' opinion, no interoperability problems result for resolvers.
 
 
-1.1 b-rootdot - BIND does not return NXDOMAIN on 'root.'
+1. Reponse differences between BIND 9.3.2 and NSD 3.0.0
+
+In this section the response differences between BIND 9.3.2 and NSD 3.0.0
+are presented and analyzed. We start in Section 1.1 and 1.2 with presenting
+the difference statistics for two test traces. Then in sections 1.3 and 1.4
+the difference categories are explained in more detail.
+
+
+1.1. Comparison of responses to root queries.
+
+Comparison between NSD 3.0.0 and BIND 9.3.2 for a root trace.
+
+-difference-				       -packets- -%diff-
+d-additional:                                    455607 (59.19%)
+n-clrdobit:                                      208389 (27.07%)
+b-soattl:                                        101707 (13.21%)
+n-update:                                        1858   (0.24%)
+d-hostname:                                      1032   (0.13%)
+d-formerrquery:                                  773    (0.10%)
+b-class0:                                        264    (0.03%)
+d-refusedquery:                                  79     (0.01%)
+d-notify:                                        18     (0.00%)
+b-mailb:                                         7      (0.00%)
+n-tcinquery:                                     6      (0.00%)
+b-classany-nxdomain:                             5      (0.00%)
+d-badqueryflags:                                 4      (0.00%)
+n-ixfr-notimpl:                                  3      (0.00%)
+b-version:                                       1      (0.00%)
+Total number of differences:                    769753  (100%)
+Number of packets the same after normalization: 1474863
+Number of packets exactly the same on the wire: 59161
+Total number of packets inspected:              2244616
+
+
+1.2. Comparison of responses to NL TLD queries.
+
+Comparison between NSD 3.0.0 and BIND 9.3.2, for a trace for .nl.
+
+-difference-				       -packets- -%diff-
+d-unknown-opcode:                                3412   (35.50%)
+d-badquerynoanswer:                              1817   (18.91%)
+n-clrdobit:                                      1495   (15.56%)
+b-soattl:                                        1120   (11.65%)
+n-update:                                        932    (9.70%)
+d-hostname:                                      553    (5.75%)
+d-notify:                                        195    (2.03%)
+b-upwards-ref:                                   78     (0.81%)
+b-noglue-nsquery:                                8      (0.08%)
+d-formerrquery:                                  1      (0.01%)
+Total number of differences: 			9611	(100%)
+Number of packets the same after normalization: 90389
+Number of packets exactly the same on the wire: 52336
+Total number of packets inspected: 		100000
+
+1.3. Features
+
+In this section we enumerate a numebr of differences between 
+BIND 9.3.2 and NSD 3.0.0 that cannot be immediately explained
+as design choices. These features could be seen as bugs in software
+or protocol specs. They do not lead to interoperability problems.
+
+
+1.3.1 b-rootdot - BIND does not return NXDOMAIN on 'root.'
 
 Bind does not answer NXDOMAIN on queries for 'root.' while this domain
 does not exist in class IN.
@@ -89,7 +134,7 @@ Analysis:
 Bind has a pseudo domain root. somewhere.  NSD does not.
 
 
-1.2 n-clrdobit - NSD clears DO bit in response
+1.3.2 n-clrdobit - NSD clears DO bit in response
 
 NSD clears the DO bit in answers to queries with the DO bit. BIND copies the
 DO bit to the answer.
@@ -99,12 +144,13 @@ Analysis:
 In RFC4035 the DO bit is not specified for answers. In the examples section
 of that RFC the DO bit is shown for signed dig responses, although this could 
 refer to the query or the answer. NSD clears the DO bit for all answers, a 
-decision based on speed: the EDNS record sent back by NSD is fixed.
+decision based on speed: the EDNS record sent back by NSD is precompiled and
+not modified during answer processing.
 
 
-1.3 b-class0 - CLASS0 formerr in BIND
+1.3.3 b-class0 - CLASS0 formerr in BIND
 
-For CLASS0, you can get either FORMERR(bind9) or REFUSED(nsd3).
+For CLASS0, you can get either FORMERR, from BIND or REFUSED, from NSD.
 
 Analysis:
 
@@ -113,27 +159,27 @@ as a syntax error by BIND but as another valid class (that is not served)
 by NSD. Resolvers are unaffected for CLASS IN.
 
 
-1.4 n-tcinquery - TC bit in query is formerr for NSD
+1.3.4 n-tcinquery - TC bit in query is formerr for NSD
 
 NSD returns FORMERR if tc bit is set in query.
 
 Analysis:
 
-Queries cannot be longer than 512 octets, since the DNS header short:w
-and the query DNS name can be 255 octets maximum. Thus TC (TrunCation) cannot
-happen. Only one question per query packet is answered by NSD, this is a
-design decision.
+Queries cannot be longer than 512 octets, since the DNS header short
+and the query DNS name has a maximum length of 255 octets. Thus 
+TC (TrunCation) cannot happen. Only one question per query packet is 
+answered by NSD, this is a design decision.
 
 Some update, ixfr request, notify, gss-tsig TKEY sequence queries could 
 theoretically carry longer data in the query from the client. In practice
 this does not happen, as 255 octet uncompressed names are not used.
 If this were to happen, the client could attempt a TCP connection
-immediately instead of sending a TC bit, or use EDNS0 to send longer packets.
+immediately instead of setting a TC bit, or use EDNS0 to send longer packets.
 
 In this NSD is more strict in validation than BIND.
 
 
-1.5 b-soattl - BIND sets SOA TTL in authority section to 0 for SOA queries
+1.3.5 b-soattl - BIND sets SOA TTL in authority section to 0 for SOA queries
 
 This happens when asking for the SOA for a domain that is not served.
 
@@ -185,11 +231,12 @@ Answer from NSD 3:
 
 Analysis:
 
-BIND conforms to internet-draft draft-andrews-dnsext-soa-discovery which has 
-not (yet) been published as RFC. NSD conforms to the RFCs.
+BIND conforms to internet-draft draft-andrews-dnsext-soa-discovery which 
+has at the moment of code development not (yet) been published as RFC. 
+NSD conforms to the RFCs.
 
 
-1.6 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
+1.3.6 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
 
 A difference in behaviour for CLASS=ANY queries. For existing domains both
 BIND and NSD reply with AA bit cleared. For not existing domains (nxdomain)
@@ -240,28 +287,33 @@ Answer from NSD 3:
 
 Analysis:
 
-Bug in bind where it answers authoritatively for CLASS ANY nxdomain queries.
+Feature of bind where it answers authoritatively for CLASS ANY 
+nxdomain queries.
 
 
-1.7 d-badquerynoanswer - BIND does not answer some malformed queries
+1.3.7 d-badquerynoanswer - BIND does not answer some malformed queries
 
 For some queries BIND does not generate an answer. NSD always generates
-an answer. All these queries are malformed in some way.
+an answer, with the appropriate RCODE (mostly NOTIMPL and FORMERR, but
+also NXDOMAIN to NOTIFY queries). All these queries are malformed in 
+some way. A (very simple) example is a query packet of 18 zero bytes.
 
 Analysis:
 
 NSD manages to answer the malformed query. Note that NSD does not answer 
-queries that are too short, or that have the QR bit set.
+queries that are too short, or that have the QR bit set. NSD tries to be
+as liberal in what it accepts as possible.
 
 
-2. Functionality Differences
+1.4. Functionality Differences
 
 The next group of differences are due to the fact that NSD does not
-implement some functionality that is requested.  This is a design
-choice and should not cause resolver problems at all.
+implement some functionality that is requested by resolvers.  This 
+is a design choice and should not cause resolver problems at all,
+since responses to those requests are within protocol specs.
 
 
-2.1 d-notify - different NOTIFY errors
+1.4.1 d-notify - different NOTIFY errors
 
 BIND and NSD give different errors for notify queries. The servers are started 
 without any configuration for access control on notify. For notify messages 
@@ -275,28 +327,28 @@ Default configuration differs between the two packages. NSD is more strict.
 Error codes are different, the tools that send notifies are not affected.
 
 
-2.2 n-update - NSD does not implement dynamic update 
+1.4.2 n-update - NSD does not implement dynamic update 
 
 For UPDATE, you can get either REFUSED/NXRRSET/other RCODE from bind9 or 
-NOTIMPL frmo nsd3.
+NOTIMPL from nsd3.
 
 Analysis:
 
 NSD does not implement dynamic update. 
 
 
-2.3 b-mailb - BIND does not implement MAILB
+1.4.3 b-mailb - BIND does not implement MAILB
 
 For MAILB, you can get either NOTIMPL(bind9) or NOERROR/NXDOMAIN(nsd3).
 
 Analysis:
 
-BIND does not implement the MAILB type in queries. NSD treats it as a 
-data type. MAILB is obsoleted by RFCs, the MX type is used to 
-transfer mail information now.
+BIND does not implement the MAILB type in queries. NSD treats it as 
+one of the RRTYPEs. MAILB is obsoleted by RFCs, the MX type is 
+used to transfer mail information now.
 
 
-2.4 b-version - BIND returns servfail on version.server queries.
+1.4.4 b-version - BIND returns servfail on version.server queries.
 
 NSD returns version.server query, BIND returns servfail.
 
@@ -307,7 +359,7 @@ BIND does not return version.server queries. This is a design decision
 on the part of NSD to return version.server queries with the same answer.
 
 
-2.5 d-additional - Different additional section on truncated answers
+1.4.5 d-additional - Different additional section on truncated answers
 
 NSD and BIND return different additional sections on truncated answers
 to queries from the root. These answers are 480+ bytes long.
@@ -320,7 +372,7 @@ include one more AAAA record, less A records in the additional section.
 Resolvers should be unaffected.
 
 
-2.6 d-refusedquery - BIND includes query section in REFUSED answers
+1.4.6 d-refusedquery - BIND includes query section in REFUSED answers
 
 BIND includes the query sent for REFUSED answers. NSD replies with only
 the DNS header section.
@@ -332,7 +384,27 @@ information. Sending the header makes NSD replies smaller and thus more
 resilient to DoS attacks.
 
 
-2.7 d-formerrquery - BIND includes query section in FORMERR answers
+1.4.7 d-hostname - BIND adds a NS record for hostname.bind
+
+BIND includes an additional RR in the authority section of the reply:
+hostname.bind. 0 CH NS hostname.bind.
+
+Analysis:
+
+The RR seems useless. NSD does not include it.
+
+
+1.4.8 n-ixfr-notimpl - NSD does not implement IXFR
+
+To queries for IXFR bind responds with a valid answer (the latest SOA)
+and NSD responds with NOTIMPL error.
+
+Analysis:
+
+NSD 3.0.0 does not implement IXFR. It returns NOTIMPL by design.
+
+
+1.4.9 d-formerrquery - BIND includes query section in FORMERR answers
 
 BIND includes the query sent for FORMERR answers. NSD replies with only
 the DNS header section. For some queries, NSD includes an EDNS record in 
@@ -345,37 +417,17 @@ information. Sending the header makes NSD replies smaller and thus more
 resilient to DoS attacks.
 
 
-2.8 d-hostname - BIND adds a NS record for hostname.bind
-
-BIND includes an additional RR in the authority section of the reply:
-hostname.bind. 0 CH NS hostname.bind.
-
-Analysis:
-
-The RR seems useless. NSD does not include it.
-
-
-2.9 n-ixfr-notimpl - NSD does not implement IXFR
-
-To queries for IXFR bind responds with a valid answer (the latest SOA)
-and NSD responds with NOTIMPL error.
-
-Analysis:
-
-NSD 3.0.0 does not implement IXFR. It returns NOTIMPL by design.
-
-
-2.10 d-badqueryflags - BIND includes query section in FORMERR answers
+1.4.10 d-badqueryflags - BIND includes query section in FORMERR answers
 
 Bind includes the query section in reply to unparseable queries. NSD does not.
 
 Analysis:
 
-Same as d-formerrquery, but the implementation of the comparison software could
-not parse the query either, thus a separate label.
+Same as d-formerrquery (1.4.9), but the implementation of the comparison 
+software could not parse the query either, thus a separate label.
 
 
-2.11 d-unknown-opcode - NSD returns NOTIMPL for unknown opcode
+1.4.11 d-unknown-opcode - NSD returns NOTIMPL for unknown opcode
 
 For queries that are bad packets, with malformed RRs, with an unknown opcode,
 BIND returns a FORMERR, but NSD gives up after checking the opcode and
@@ -388,7 +440,7 @@ NOTIMPL is appropriate since NSD does not implement whatever functionality
 is being looked for. 
 
 
-2.12 b-upwards-ref - BIND returns root delegation
+1.4.12 b-upwards-ref - BIND returns root delegation
 
 For queries to a domain that is not served, which can only have arrived at
 this server due to a lame delegation, Bind returns a root delegation. NSD
@@ -397,10 +449,11 @@ returns SERVFAIL.
 Analysis:
 
 By design, NSD does not know the root-servers.  NSD is unable to reply as
-the zone is not configured, hence the SERVFAIL.
+the zone is not configured, hence the SERVFAIL. This is also discussed in
+the REQUIREMENTS document for NSD.
 
 
-2.13 b-noglue-nsquery - BIND returns no glue for NS queries
+1.4.13 b-noglue-nsquery - BIND returns no glue for NS queries
 
 For queries for the NS records of the zone, BIND does not include glue
 for the NS records. NSD includes glue for the NS servers that lie within
@@ -411,7 +464,7 @@ Analysis:
 The glue saves a followup query.
 
 
-2.14 d-noquestion - different error on no question
+1.4.14 d-noquestion - different error on no question
 
 For queries without a question section the error code differs.
 NSD considers it a FORMERROR. BIND returns REFUSED.
@@ -421,10 +474,10 @@ Analysis:
 Error code not specified for this corner case. No problems for resolvers.
 
 
-2.15 b-uchar - BIND returns FORMERR on strange characters
+1.4.15 b-uchar - BIND returns FORMERR on strange characters
 
 BIND retuns FORMERR on strange characters in the query, such as
-decimal 0, 255, 228, space, atsign and so on.
+0x00, 0xff, 0xe4, 0x20, 0x40 and so on.
 
 Analysis:
 
@@ -434,13 +487,13 @@ BIND preserves case in answers. Choice made in REQUIREMENTS for NSD,
 also see RFC1035 2.3.3.
 
 
-3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
+2. Reponse differences between NSD 2.3.6 and NSD 3.0.0
 
 The differences between NSD 2.3.6 and NSD 3.0.0 are listed below. All are due
 to version number changes and new features in NSD 3.
 
 
-3.1. Version number: version.bind and version.server.
+2.1. Version number: version.bind and version.server.
 
 To queries for version.bind and version.server the different implementations
 return a different version number, as they should.
@@ -450,7 +503,7 @@ Analysis:
 Expected. Correct version numbers are returned.
 
 
-3.2. n-notify: notify not implemented in NSD 2
+2.2. n-notify: notify not implemented in NSD 2
 
 Notifications are handled differently. NSD 2 returns NOTIMPL error code,
 while NSD 3 returns NOTAUTH or NXDOMAIN error codes.
@@ -461,7 +514,7 @@ Default config denies all notify queries for NSD 3. These answers are correct
 for non-existing and not authorized domains.
 
 
-3.3. n-ixfr: IXFR error FORMERR in NSD 2
+2.3. n-ixfr: IXFR error FORMERR in NSD 2
 
 To IXFR query questions different error codes are given. The NSD 2
 gives FORMERR (due to the RR in the authority section). NSD 3 returns
@@ -473,7 +526,7 @@ Neither version of NSD implements IXFR. It is more appropriate to
 return the NOTIMPL error code in that case. Bugfix in NSD.
 
 
-3.4. Comparison of responses in root trace.
+2.4. Comparison of responses in root trace.
 
 Differences between NSD 2.3.6 and NSD 3.0.0 for a root trace.
 Note that apart from the 26 packets that are different, all responses are
@@ -489,7 +542,7 @@ Number of packets exactly the same on the wire: 2244590
 Total number of packets inspected:              2244616
 
 
-3.5. Comparison of responses in NL TLD trace.
+2.5. Comparison of responses in NL TLD trace.
 
 Differences between NSD 2.3.6 and NSD 3.0.0 for a nl. trace.
 Note that apart from the 311 packets that are different, all responses are
@@ -504,9 +557,13 @@ Number of packets exactly the same on the wire: 99689
 Total number of packets inspected: 		100000
 
 
-4. Reponse differences between BIND 8 and NSD 3.0.0
+3. Reponse differences between BIND 8 and NSD 3.0.0
 
-4.1 b-ttlminup BIND 8 uses minimum TTL from SOA also if bigger
+In this section the response differences between BIND 8.4.7 and NSD 3.0.0
+are categorized and analyzed.
+
+
+3.1 b-ttlminup BIND 8 uses minimum TTL from SOA also if bigger
 
 For NXDOMAIN queries in root-servers.net BIND 8 uses the minimum TTL from
 the SOA as the TTL of the included SOA RR. However, this minimum TTL is 
@@ -518,49 +575,43 @@ Analysis:
 Bug in BIND 8 solved in BIND 9.
 
 
-A. Comparison of responses to root queries.
 
-Comparison between NSD 3.0.0 and BIND 9.3.2 for a root trace.
+Contents
 
--difference-				       -packets- -%diff-
-d-additional:                                    455607 (59.19%)
-n-clrdobit:                                      208389 (27.07%)
-b-soattl:                                        101707 (13.21%)
-n-update:                                        1858   (0.24%)
-d-hostname:                                      1032   (0.13%)
-d-formerrquery:                                  773    (0.10%)
-b-class0:                                        264    (0.03%)
-d-refusedquery:                                  79     (0.01%)
-d-notify:                                        18     (0.00%)
-b-mailb:                                         7      (0.00%)
-n-tcinquery:                                     6      (0.00%)
-b-classany-nxdomain:                             5      (0.00%)
-d-badqueryflags:                                 4      (0.00%)
-n-ixfr-notimpl:                                  3      (0.00%)
-b-version:                                       1      (0.00%)
-Total number of differences:                    769753  (100%)
-Number of packets the same after normalization: 1474863
-Number of packets exactly the same on the wire: 59161
-Total number of packets inspected:              2244616
-
-
-B. Comparison of responses to NL TLD queries.
-
-Comparison between NSD 3.0.0 and BIND 9.3.2, for a trace for .nl.
-
--difference-				       -packets- -%diff-
-d-unknown-opcode:                                3412   (35.50%)
-d-badquerynoanswer:                              1817   (18.91%)
-n-clrdobit:                                      1495   (15.56%)
-b-soattl:                                        1120   (11.65%)
-n-update:                                        932    (9.70%)
-d-hostname:                                      553    (5.75%)
-d-notify:                                        195    (2.03%)
-b-upwards-ref:                                   78     (0.81%)
-b-noglue-nsquery:                                8      (0.08%)
-d-formerrquery:                                  1      (0.01%)
-Total number of differences: 			9611	(100%)
-Number of packets the same after normalization: 90389
-Number of packets exactly the same on the wire: 52336
-Total number of packets inspected: 		100000
+0. Introduction
+1. Reponse differences between BIND 9.3.2 and NSD 3.0.0
+.. 1.1. Comparison of responses to root queries.
+.. 1.2. Comparison of responses to NL TLD queries.
+.. 1.3. Features
+.... 1.3.1 b-rootdot - BIND does not return NXDOMAIN on 'root.'
+.... 1.3.2 n-clrdobit - NSD clears DO bit in response
+.... 1.3.3 b-class0 - CLASS0 formerr in BIND
+.... 1.3.4 n-tcinquery - TC bit in query is formerr for NSD
+.... 1.3.5 b-soattl - BIND sets SOA TTL in authority section to 0 for SOA queries
+.... 1.3.6 b-classany-nxdomain - BIND gives an auth answer for class ANY nxdomain
+.... 1.3.7 d-badquerynoanswer - BIND does not answer some malformed queries
+.. 1.4. Functionality Differences
+.... 1.4.1 d-notify - different NOTIFY errors
+.... 1.4.2 n-update - NSD does not implement dynamic update 
+.... 1.4.3 b-mailb - BIND does not implement MAILB
+.... 1.4.4 b-version - BIND returns servfail on version.server queries
+.... 1.4.5 d-additional - Different additional section on truncated answers
+.... 1.4.6 d-refusedquery - BIND includes query section in REFUSED answers
+.... 1.4.7 d-hostname - BIND adds a NS record for hostname.bind
+.... 1.4.8 n-ixfr-notimpl - NSD does not implement IXFR
+.... 1.4.9 d-formerrquery - BIND includes query section in FORMERR answers
+.... 1.4.10 d-badqueryflags - BIND includes query section in FORMERR answers
+.... 1.4.11 d-unknown-opcode - NSD returns NOTIMPL for unknown opcode
+.... 1.4.12 b-upwards-ref - BIND returns root delegation
+.... 1.4.13 b-noglue-nsquery - BIND returns no glue for NS queries.
+.... 1.4.14 d-noquestion - different error on no question
+.... 1.4.15 b-uchar - BIND returns FORMERR on strange characters
+2. Reponse differences between NSD 2.3.6 and NSD 3.0.0
+.. 2.1. Version number: version.bind and version.server.
+.. 2.2. n-notify: notify not implemented in NSD 2
+.. 2.3. n-ixfr: IXFR error FORMERR in NSD 2
+.. 2.4. Comparison of responses in root trace.
+.. 2.5. Comparison of responses in NL TLD trace.
+3. Reponse differences between BIND 8 and NSD 3.0.0
+.. 3.1 b-ttlminup BIND 8 uses minimum TTL from SOA also if bigger
 
