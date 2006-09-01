@@ -37,6 +37,8 @@ Contents
 .. 2.11 d-unknown-opcode - NSD returns NOTIMPL for unknown opcode
 .. 2.12 b-upwards-ref - BIND returns root delegation
 .. 2.13 b-noglue-nsquery - BIND returns no glue for NS queries.
+.. 2.14 d-noquestion - different error on no question
+.. 2.15 b-uchar - BIND returns FORMERR on strange characters
 3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
 .. 3.1. Version number: version.bind and version.server.
 .. 3.2. n-notify: notify not implemented in NSD 2
@@ -55,6 +57,17 @@ The observed differences are described.  The names of the differences
 refer to the statistics in Appendix A, which describe observations of
 the differences in responses to real queries to a root name server and
 a TLD name server.
+
+For these differences captures traces from NL TLD and from the root
+are replayed against different name servers. We then analyzed the differences
+in the answers by the name servers.
+
+We gratefully made use of the PROTOS DNS tool developed at the 
+University of Oulu which they made publicly available at 
+http://www.ee.oulu.fi/research/ouspg/protos/testing/c09/dns
+and played the queries against the authoritative name servers.
+We fixed a packet parsing error in NSD3-prerelease and both NSD3 and
+BIND 9.3.2 remained up and responsive.
 
 A previous document DIFFERENCES between BIND 8.4.4 and NSD 2.0.0 exists
 in the NSD 2 package.
@@ -396,6 +409,29 @@ the zone.
 Analysis:
 
 The glue saves a followup query.
+
+
+2.14 d-noquestion - different error on no question
+
+For queries without a question section the error code differs.
+NSD considers it a FORMERROR. BIND returns REFUSED.
+
+Analysis:
+
+Error code not specified for this corner case. No problems for resolvers.
+
+
+2.15 b-uchar - BIND returns FORMERR on strange characters
+
+BIND retuns FORMERR on strange characters in the query, such as
+decimal 0, 255, 228, space, atsign and so on.
+
+Analysis:
+
+NSD does not give a formerr on these queries, it processes them.
+NSD normalizes names to lower case. Otherwise leaves them untouched.
+BIND preserves case in answers. Choice made in REQUIREMENTS for NSD,
+also see RFC1035 2.3.3.
 
 
 3. Reponse differences between NSD 2.3.6 and NSD 3.0.0
