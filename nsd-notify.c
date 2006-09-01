@@ -135,7 +135,7 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 			/* no news is good news */
 			/* warning("reply from: %s, acknowledges notify.\n", addrstr); */
 		} else {
-			warning("bad reply from %s, error respons %s (%d).\n", 
+			warning("bad reply from %s, error response %s (%d).\n", 
 				addrstr, rcode2str(RCODE(answer->packet)), 
 				RCODE(answer->packet));
 		}
