@@ -102,21 +102,25 @@ Total number of packets inspected:              2244616
 
 Comparison between NSD 3.0.0 and BIND 9.3.2, for a trace for .nl.
 
--difference-				       -packets- -%diff-
-d-unknown-opcode:                                 3412   (35.50%)
-d-badquerynoanswer:                               1817   (18.91%)
-n-clrdobit:                                       1495   (15.56%)
-b-soattl:                                         1120   (11.65%)
-n-update:                                          932    (9.70%)
-d-hostname:                                        553    (5.75%)
-d-notify:                                          195    (2.03%)
-b-upwards-ref:                                      78    (0.81%)
-b-noglue-nsquery:                                    8    (0.08%)
-d-formerrquery:                                      1    (0.01%)
-Total number of differences: 			  9611   (100%)
-Number of packets the same after normalization:  90389
-Number of packets exactly the same on the wire:  52336
-Total number of packets inspected: 		100000
+-difference-				          -packets- -%diff-
+d-unknown-opcode                                    2270    (26.05%)
+b-badquery-badanswer                                1650    (18.94%)
+n-clrdobit                                          1367    (15.69%)
+b-soattl                                            1011    (11.60%)
+n-update                                             899    (10.32%)
+d-badqueryflags                                      779     (8.94%)
+d-hostname                                           480     (5.51%)
+d-notify                                              97     (1.11%)
+b-upwards-ref                                         75     (0.86%)
+n-clrcdbit                                            56     (0.64%)
+d-version                                             21     (0.24%)
+b-noglue-nsquery                                       8     (0.09%)
+d-unknown-class                                        1     (0.01%)
+Total number of differences: 8714 (100%)
+Number of packets the same after normalization: 81286
+Number of packets exactly the same on the wire: 47350
+Total number of packets inspected: 90000
+
 
 1.3. Features
 
@@ -568,10 +572,10 @@ d-additional:                                     32526  (5.32%)
 b8-nodata-ttlminup:                                4611  (0.75%)
 n-update:                                          1856  (0.30%)
 b-version:                                         1033  (0.17%)
+b8-auth-any:                                        519  (0.08%)
 b8-badedns0:                                        492  (0.08%)
 d-unknown-class:                                    482  (0.08%)
 b8-badquery-badanswer:                              451  (0.07%)
-b8-auth-any:                                        519  (0.08%)
 b-class0:                                            97  (0.02%)
 d-notify:                                            18  (0.00%)
 b8-ignore-tc-query:                                   6  (0.00%)
@@ -588,6 +592,20 @@ Total number of packets inspected: 	        2244616
 
 The differences between BIND 8.4.7 and NSD 3.0.0 when presented
 with queries for the .nl zone are below.
+
+n-clrcdbit                                          2857        (33.53%)
+d-unknown-opcode                                    2692        (31.59%)
+n-update                                            1283        (15.06%)
+d-badqueryflags                                      841        (9.87%)
+d-hostname                                           531        (6.23%)
+d-notify                                             293        (3.44%)
+d-version                                             22        (0.26%)
+b-badquery-badanswer                                   1        (0.01%)
+b8-badedns0                                            1        (0.01%)
+Total number of differences: 8521 (100%)
+Number of packets the same after normalization: 91479
+Number of packets exactly the same on the wire: 90837
+Total number of packets inspected: 100000
 
 
 3.3 b8-nodata-ttlminup BIND 8 uses minimum TTL from SOA also if bigger
