@@ -4,6 +4,7 @@
 		- fixes to man pages, wrong locations for files.
 	- NSEC3-PARAM has no optout bit in presentation format.
 	- NSEC3PARAM spelling.
+	- differences in latex format (needs nlnetlabs housestyle).
 
 31 August 2006: Wouter
 	- Fix for tsig size still set when data is null ptr.
