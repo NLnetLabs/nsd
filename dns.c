@@ -423,7 +423,7 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	    RDATA_WF_BINARY /* type bitmap */ },
 	  { RDATA_ZF_BYTE, RDATA_ZF_24BIT, RDATA_ZF_HEX_LEN, RDATA_ZF_BASE32, 
 	    RDATA_ZF_NSEC } },
-	{ TYPE_NSEC3_PARAM, "NSEC3-PARAM", T_NSEC3_PARAM, 3, 3,
+	{ TYPE_NSEC3PARAM, "NSEC3PARAM", T_NSEC3PARAM, 3, 3,
 	  { RDATA_WF_BYTE, /* hash type */
 	    RDATA_WF_24BIT, /* iterations and opt-out */
 	    RDATA_WF_BINARYWITHLENGTH /* salt */ },

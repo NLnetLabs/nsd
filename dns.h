@@ -131,7 +131,7 @@ typedef enum nsd_rc nsd_rc_type;
 
 /* high type range RRTYPES */
 #define TYPE_NSEC3	65324	/* NSEC3, dns secure denial, prevents zonewalking */
-#define TYPE_NSEC3_PARAM 65325	/* NSEC3-PARAM at zone apex nsec3 parameters */
+#define TYPE_NSEC3PARAM 65325	/* NSEC3PARAM at zone apex nsec3 parameters */
 
 #define TYPE_TSIG	250
 #define TYPE_IXFR	251

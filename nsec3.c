@@ -87,10 +87,10 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 	size_t i;
 	domain_type* domain;
 	region_type* tmpregion;
-	/* Check settings in NSEC3-PARAM. 
+	/* Check settings in NSEC3PARAM. 
 	   Hash algorithm must be OK. And a NSEC3 with soa bit
 	   must map to the zone apex.  */
-	rrset_type* paramset = domain_find_rrset(zone->apex, zone, TYPE_NSEC3_PARAM);
+	rrset_type* paramset = domain_find_rrset(zone->apex, zone, TYPE_NSEC3PARAM);
 	if(!paramset || !paramset->rrs || !paramset->rr_count)
 		return 0;
 	tmpregion = region_create(xalloc, free);
@@ -102,7 +102,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 		size_t j;
 
 		if(rdata_atom_data(rr->rdatas[0])[0] != NSEC3_SHA1_HASH) {
-			log_msg(LOG_ERR, "%s NSEC3-PARAM entry %d has unknown hash algo %d", 
+			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has unknown hash algo %d", 
 				dname_to_string(domain_dname(zone->apex), NULL), i,
 				rdata_atom_data(rr->rdatas[0])[0]);
 			continue;
@@ -112,7 +112,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 			zone, domain_dname(zone->apex), paramset->rrs);
 		domain = domain_table_find(namedb->domains, hashed_apex);
 		if(!domain) {
-			log_msg(LOG_ERR, "%s NSEC3-PARAM entry %d has no hash(apex).", 
+			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has no hash(apex).", 
 				dname_to_string(domain_dname(zone->apex), NULL), i);
 			log_msg(LOG_ERR, "hash(apex)= %s", 
 				dname_to_string(hashed_apex, NULL));
@@ -120,7 +120,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 		}
 		nsec3_rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
 		if(!nsec3_rrset) {
-			log_msg(LOG_ERR, "%s NSEC3-PARAM entry %d: hash(apex) has no NSEC3 RRset", 
+			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) has no NSEC3 RRset", 
 				dname_to_string(domain_dname(zone->apex), NULL), i);
 			continue;
 		}
@@ -148,7 +148,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 				return &nsec3_rrset->rrs[j];
 			}
 		}
-		log_msg(LOG_ERR, "%s NSEC3-PARAM entry %d: hash(apex) no NSEC3 with SOAbit", 
+		log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) no NSEC3 with SOAbit", 
 			dname_to_string(domain_dname(zone->apex), NULL), i);
 	}
 	region_destroy(tmpregion);

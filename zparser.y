@@ -65,7 +65,7 @@ nsec3_add_params(const char* optout_str, const char* hash_algo_str,
 %token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
 %token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
-%token <type> T_SPF T_NSEC3 T_IPSECKEY T_DHCID T_NSEC3_PARAM
+%token <type> T_SPF T_NSEC3 T_IPSECKEY T_DHCID T_NSEC3PARAM
 
 /* other tokens */
 %token	       DOLLAR_TTL DOLLAR_ORIGIN NL SP
@@ -520,8 +520,8 @@ type_and_rdata:
     |	T_NSEC sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_NSEC3 sp rdata_nsec3
     |	T_NSEC3 sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    |	T_NSEC3_PARAM sp rdata_nsec3_param
-    |	T_NSEC3_PARAM sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_NSEC3PARAM sp rdata_nsec3_param
+    |	T_NSEC3PARAM sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_DNSKEY sp rdata_dnskey
     |	T_DNSKEY sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_UTYPE sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
@@ -797,10 +797,11 @@ rdata_nsec3:   STR sp STR sp STR sp STR sp STR nsec_seq
     }
     ;
 
-rdata_nsec3_param:   STR sp STR sp STR sp STR trail
+rdata_nsec3_param:   STR sp STR sp STR trail
     {
 #ifdef NSEC3
-	    nsec3_add_params($3.str, $1.str, $5.str, $7.str, $7.len);
+	    /* optout mustbezero */
+	    nsec3_add_params("0", $1.str, $3.str, $5.str, $5.len);
 #else
 	    zc_error_prev_line("nsec3 not supported");
 #endif /* NSEC3 */
