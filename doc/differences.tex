@@ -70,7 +70,7 @@ category that matches. If a difference in answers does not match any
 category, then the process stops and the user is notified. All the
 differences are categorized for the traces we present.
 
-Besides, we gratefully made use of the PROTOS DNS tool developed 
+In addition, we gratefully made use of the PROTOS DNS tool developed 
 at the University of Oulu which they made publicly available at 
 \href{http://www.ee.oulu.fi/research/ouspg/protos/testing/c09/dns}
 {the protos webpage}\footnote{http://www.ee.oulu.fi/research/ouspg/protos/testing/c09/dns}
@@ -802,7 +802,7 @@ BIND responds to queries that have the TC bit set. NSD gives FORMERR.
 
 \vspace{-8pt}\subparagraph{Analysis:}
 
-This is like the 1.3.3 n-tcinquery, except where BIND9 returns NXDOMAIN,
+This is like the n-tcinquery (\ref{n-tcinquery}), except where BIND9 returns NXDOMAIN,
 BIND8 returns the query with qr bit set. This is fixed in BIND9.
 NSD is less liberal in accepting queries, it returns error on queries with
 the TC bit set.
