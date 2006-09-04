@@ -36,8 +36,10 @@ An example of a short nsd.conf file is below.
 server:
 	database: "/etc/nsd/nsd.db"
 	username: nsd
-	logfile: "/var/log/nsdlogfile.log"
-	pidfile: "/var/pid/nsd.pid"
+	logfile: "/var/log/nsd.log"
+	pidfile: "/var/run/nsd.pid"
+	difffile: "/var/nsd/ixfr.db"
+	xfrdfile: "/var/nsd/xfrd.state"
 
 zone:
 	name: example.com

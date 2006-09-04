@@ -267,7 +267,8 @@ notify)
 	done
 	;;
 restart)
-	do_stop && sleep 1 && do_start
+	do_stop && sleep 1
+	do_start
 	;;
 *)
 	usage

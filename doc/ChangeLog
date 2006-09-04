@@ -1,3 +1,8 @@
+4 September 2006: Wouter
+	- From suggestions by Bin Zhang:
+		- nsdc restart does not fail if nsd was not running.
+		- fixes to man pages, wrong locations for files.
+
 31 August 2006: Wouter
 	- Fix for tsig size still set when data is null ptr.
 	- Fix configure for NetBSD (1.6 - 2.0) to find struct timespec.
