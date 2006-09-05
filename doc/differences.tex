@@ -7,7 +7,7 @@
 \rcsdetails{$Id$}   
 % Prints RCS details at the bottom of the page.
 
-\title{Response Differences between NSD and other DNS Servers}
+\title{Response Differences between\\ NSD and other DNS Servers}
 \author{
 	%This escape is needed. Because of wrapping by hyperref
 	\texorpdfstring{
@@ -39,7 +39,8 @@ resolvers are tallied and analyzed. No interoperability problems are found.
 
 \section{Introduction}
 
-The NSD name server is compared to other DNS server implementations.
+The NSD name server is compared to other DNS server implementations
+in order to assess server interoperability.
 The goal is to observe differences in the answers that the name servers
 provide. These differences are categorized and counted. 
 
@@ -83,7 +84,7 @@ repository. These can be found in \href{http://wiki.ethereal.com/SampleCaptures}
 {the ethereal wiki}\footnote{http://wiki.ethereal.com/SampleCaptures}.
 These traces posed no problem for BIND and NSD, mostly FORMERR answers.
 
-A previous document DIFFERENCES between BIND 8.4.4 and NSD 2.0.0 exists
+A previous document DIFFERENCES between BIND 8.4.4 and NSD 2.0.0 can be found
 in the NSD 2.x package.
 
 In the places where differences have been found between BIND and NSD,
@@ -130,15 +131,15 @@ Total number of packets inspected:             &2244616	\\
 
 For each type of difference the number of packets in the trace that
 match that difference are shown. The section where that difference
-is discussed is shown in parenthesis after the difference name.
+is analyzed is shown in parenthesis after the difference name.
 The percentage of differences
 explained by the difference category is listed.  Adding up the packets
 that are different gives the total number of differences, or 100\%
 of the differences.
-The number of packets after normalization includes the packets 
-that are the same on the wire.  Adding up the number of packets the same
-after normalization with the total number of differences derives 
-the total number of packets in the captured trace.
+
+The number of packets after normalization includes the number of
+packets that are the same on the wire.  
+The total number of query packets is displayed at the bottom of the table.
 
 
 \subsection{Comparison of responses to NL TLD queries}
@@ -147,21 +148,21 @@ the total number of packets in the captured trace.
 Comparison between NSD 3.0.0 and BIND 9.3.2, for a trace for .nl.
 
 \begin{tabular}{lrr}
-{\em difference}                        & {\em packets} & {\em %diff} \\
-d-unknown-opcode (\ref{d-unknown-opcode})               &     2541 & 26.44% \\
-b-badquery-badanswer (\ref{b-badquery-badanswer})               &     1817 & 18.91% \\
-n-clrdobit (\ref{n-clrdobit})           &     1495 & 15.56% \\
-b-soattl (\ref{b-soattl})               &     1120 & 11.65% \\
-n-update (\ref{n-update})               &      990 & 10.30% \\
-d-badqueryflags (\ref{d-badqueryflags})         &      847 & 8.81% \\
-d-hostname (\ref{d-hostname})           &      531 & 5.52% \\
-d-notify (\ref{d-notify})               &       98 & 1.02% \\
-b-upwards-ref (\ref{b-upwards-ref})             &       78 & 0.81% \\
-n-clrcdbit (\ref{n-clrcdbit})           &       63 & 0.66% \\
-d-version (\ref{d-version})             &       22 & 0.23% \\
-b-noglue-nsquery (\ref{b-noglue-nsquery})               &        8 & 0.08% \\
-b8-badedns0 (\ref{b8-badedns0})         &        1 & 0.01% \\
-Total number of differences: & 9611 & 100% \
+{\em difference}                        & {\em packets} & {\em \%diff} \\
+d-unknown-opcode (\ref{d-unknown-opcode})               &     2541 & 26.44\% \\
+b-badquery-badanswer (\ref{b-badquery-badanswer})               &     1817 & 18.91\% \\
+n-clrdobit (\ref{n-clrdobit})           &     1495 & 15.56\% \\
+b-soattl (\ref{b-soattl})               &     1120 & 11.65\% \\
+n-update (\ref{n-update})               &      990 & 10.30\% \\
+d-badqueryflags (\ref{d-badqueryflags})         &      847 & 8.81\% \\
+d-hostname (\ref{d-hostname})           &      531 & 5.52\% \\
+d-notify (\ref{d-notify})               &       98 & 1.02\% \\
+b-upwards-ref (\ref{b-upwards-ref})             &       78 & 0.81\% \\
+n-clrcdbit (\ref{n-clrcdbit})           &       63 & 0.66\% \\
+d-version (\ref{d-version})             &       22 & 0.23\% \\
+b-noglue-nsquery (\ref{b-noglue-nsquery})               &        8 & 0.08\% \\
+b8-badedns0 (\ref{b8-badedns0})         &        1 & 0.01\% \\
+Total number of differences: & 9611 & 100\% \\
 Number of packets the same after normalization: & 90389 \\
 Number of packets exactly the same on the wire: & 52336 \\
 Total number of packets inspected: & 100000 \\
@@ -201,7 +202,8 @@ CD bit to the answer.
 \vspace{-8pt}\subparagraph{Analysis:}
 
 RFC 4035\cite{rfc4035} asserts that the CD bit must be cleared for 
-authoritative answers. Bind copies the CD bit in formerr queries.
+authoritative answers. The CD bit should be copied into the answer
+by recursive servers. BIND copies the CD bit for some formerr queries.
 
 
 \subsubsection{b-class0 - CLASS0 formerr in BIND}
@@ -223,7 +225,7 @@ NSD returns FORMERR if tc bit is set in query.
 
 \vspace{-8pt}\subparagraph{Analysis:}
 
-Queries cannot be longer than 512 octets, since the DNS header short
+Queries cannot be longer than 512 octets, since the DNS header is short
 and the query DNS name has a maximum length of 255 octets. Thus 
 TC (TrunCation) cannot happen. Only one question per query packet is 
 answered by NSD, this is a design decision.
@@ -253,7 +255,7 @@ Query:
 \normalsize
 
 
-Answer from Bind 9.3.2:
+Answer from BIND 9.3.2:
 
 \footnotesize
 \begin{verbatim}
@@ -373,7 +375,7 @@ Answer from NSD 3:
 
 \vspace{-8pt}\subparagraph{Analysis:}
 
-Feature of bind where it answers authoritatively for CLASS ANY 
+Feature of BIND where it answers authoritatively for CLASS ANY 
 nxdomain queries.
 
 
@@ -389,7 +391,7 @@ some way.
 
 A (very simple) example of a query without an answer
 is a query packet of 18 zero bytes. For some queries no answer
-only happens when Bind is presented with a trace of queries, not for 
+only happens when BIND is presented with a trace of queries, not for 
 a single query.
 
 \vspace{-8pt}\subparagraph{Analysis:}
@@ -429,7 +431,7 @@ Error codes are different, the tools that send notifies are not affected.
 \subsubsection{n-update - NSD does not implement dynamic update}
 \label{n-update}
 
-For UPDATE, you can get either REFUSED/NXRRSET/other RCODE from bind9 or 
+For UPDATE, you can get either REFUSED/NXRRSET/other RCODE from BIND 9.3.2 or 
 NOTIMPL from nsd3.
 
 \vspace{-8pt}\subparagraph{Analysis:}
@@ -440,11 +442,11 @@ NSD does not implement dynamic update.
 \subsubsection{b-mailb - BIND does not implement MAILB}
 \label{b-mailb}
 
-For MAILB, you can get either NOTIMPL(bind9) or NOERROR/NXDOMAIN(nsd3).
+For MAILB, you can get either NOTIMPL(BIND 9) or NOERROR/NXDOMAIN(NSD 3).
 
 \vspace{-8pt}\subparagraph{Analysis:}
 
-BIND does not implement the MAILB type in queries. NSD treats it as 
+BIND does not implement queries for the MAILB type. NSD treats it as 
 one of the RRTYPEs. MAILB is obsoleted by RFCs, the MX type is 
 used to transfer mail information now.
 
@@ -493,7 +495,11 @@ resilient to DoS attacks.
 \label{d-hostname}
 
 BIND includes an additional RR in the authority section of the reply:
+\footnotesize
+\begin{verbatim}
 hostname.bind. 0 CH NS hostname.bind.
+\end{verbatim}
+\normalsize
 
 \vspace{-8pt}\subparagraph{Analysis:}
 
@@ -503,7 +509,7 @@ The RR seems useless. NSD does not include it.
 \subsubsection{n-ixfr-notimpl - NSD does not implement IXFR}
 \label{n-ixfr-notimpl}
 
-To queries for IXFR bind responds with a valid answer (the latest SOA)
+To queries for IXFR BIND responds with a valid answer (the latest SOA)
 and NSD responds with NOTIMPL error.
 
 \vspace{-8pt}\subparagraph{Analysis:}
@@ -528,7 +534,7 @@ resilient to DoS attacks.
 \subsubsection{d-badqueryflags - BIND includes query section in FORMERR answers}
 \label{d-badqueryflags}
 
-Bind includes the query section in reply to unparseable queries. NSD does not.
+BIND includes the query section in reply to unparseable queries. NSD does not.
 
 \vspace{-8pt}\subparagraph{Analysis:}
 
@@ -565,7 +571,7 @@ is being looked for.
 \label{b-upwards-ref}
 
 For queries to a domain that is not served, which can only have arrived at
-this server due to a lame delegation, Bind returns a root delegation. NSD
+this server due to a lame delegation, BIND returns a root delegation. NSD
 returns SERVFAIL.
 
 \vspace{-8pt}\subparagraph{Analysis:}
@@ -591,7 +597,7 @@ The glue saves a followup query.
 \label{d-noquestion}
 
 For queries without a question section the error code differs.
-NSD considers it a FORMERROR. BIND returns REFUSED.
+NSD considers it a FORMERR. BIND returns REFUSED.
 
 \vspace{-8pt}\subparagraph{Analysis:}
 
@@ -601,7 +607,7 @@ Error code not specified for this corner case. No problems for resolvers.
 \subsubsection{b-uchar - BIND returns FORMERR on strange characters}
 \label{b-uchar}
 
-BIND retuns FORMERR on strange characters in the query, such as
+BIND returns FORMERR on strange characters in the query, such as
 0x00, 0xff, 0xe4, 0x20, 0x40 and so on.
 
 \vspace{-8pt}\subparagraph{Analysis:}
@@ -693,7 +699,7 @@ return the NOTIMPL error code in that case. Bugfix in NSD.
 \section{Response differences between BIND 8 and NSD 3.0.0}
 
 In this section the response differences between BIND 8.4.7 and NSD 3.0.0
-are categorized and analyzed.
+are categorized and analyzed. 
 
 
 \subsection{Comparison of responses in root trace}
@@ -804,7 +810,7 @@ BIND responds to queries that have the TC bit set. NSD gives FORMERR.
 
 This is like the n-tcinquery (\ref{n-tcinquery}), except where BIND9 returns NXDOMAIN,
 BIND8 returns the query with qr bit set. This is fixed in BIND9.
-NSD is less liberal in accepting queries, it returns error on queries with
+NSD is less liberal in accepting queries, it returns form error on queries with
 the TC bit set.
 
 \bibliographystyle{nlnetlabs}

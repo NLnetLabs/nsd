@@ -3,6 +3,7 @@ $Id$
 GENERAL
 - return value of region_alloc, region_create is not checked for NULL,
   which is returned when out of memory, in many places.
+- Feature request by Kai: choose outgoing interface for nsd-xfer.
 
 AUTOCONF
 
@@ -30,6 +31,7 @@ SERVER
 - From Aaron Hopkins: after you do select calls, do multiple read calls
   per select. This polling improves performance in high-load situations.
   Speed test to prove that it does so.
+- Turn off TC bit on all error replies.
 
 SECURITY
 - TSIG add rfc 4635 algorithms.
