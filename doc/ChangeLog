@@ -1,3 +1,6 @@
+5 September 2006: Wouter
+	- differences file improvements.
+
 4 September 2006: Wouter
 	- From suggestions by Bin Zhang:
 		- nsdc restart does not fail if nsd was not running.
