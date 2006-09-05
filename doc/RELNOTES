@@ -26,11 +26,9 @@ OPERATIONAL NOTES:
 	- NSD produces "xfrd.state" file with zone timeout information.
 	  The file is text formatted.
 	- NSD sends notifies automatically,
-	  nsd-notify will be moved out of the nsd package at a later time.
-	  If you use it a lot, please let us know.
+	  nsd-notify is deprecated and will be removed from the package. 
 	- NSD requests AXFR/IXFR and reloads the updates automatically, 
-	  nsd-xfer will be moved out of the nsd package at a later time.
-	  If you use it a lot, please let us know.
+	  nsd-xfer is deprecated and will be removed from the package.
 	- Check your config file with nsd-checkconf.
 
 BUG FIXES: 
