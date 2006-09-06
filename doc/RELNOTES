@@ -1,5 +1,10 @@
 NSD RELEASE NOTES
 
+3.0.1
+=============
+BUG FIXES:
+	- nsd-patch prints SOA record at start of zone files.
+
 3.0.0
 =============
 FEATURES:
