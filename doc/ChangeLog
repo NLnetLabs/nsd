@@ -1,6 +1,9 @@
 6 September 2006: Wouter
 	- Fixed nsd-patch so that it writes the SOA at the start of the file.
-	- test tpkg that tests for the bug.
+	- test tpkg that tests for the bug, has multiple rrsets at zone apex
+	  and does nsd-patch followed by zonec.
+	  Previous tests did not catch this: they used nsd-xfer to test zone
+	  contents, or only checked the zone-file after nsd-patch.
 	- version number bumped to 3.0.1.
 
 5 September 2006: Wouter
