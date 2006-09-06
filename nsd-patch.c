@@ -171,6 +171,17 @@ print_rrs(FILE* out, struct zone* zone)
 	domain_type *domain = zone->apex;
 	region_type* region = region_create(xalloc, free);
 	struct state_pretty_rr* state = create_pretty_rr(region);
+	/* first print the SOA record for the zone */
+	if(zone->soa_rrset) {
+		size_t i;
+		for(i=0; i<zone->soa_rrset->rr_count; i++) {
+			if(!print_rr(out, state, &zone->soa_rrset->rrs[i])){
+				fprintf(stderr, "There was an error "
+				   "printing SOARR to zone %s\n",
+				   zone->opts->name);
+			}
+		}
+	}
         /* go through entire tree below the zone apex (incl subzones) */
 	while(domain && dname_is_subdomain(
 		domain_dname(domain), domain_dname(zone->apex)))
@@ -178,7 +189,7 @@ print_rrs(FILE* out, struct zone* zone)
 		for(rrset = domain->rrsets; rrset; rrset=rrset->next)
 		{
 			size_t i;
-			if(rrset->zone != zone)
+			if(rrset->zone != zone || rrset == zone->soa_rrset)
 				continue;
 			for(i=0; i<rrset->rr_count; i++) {
 				if(!print_rr(out, state, &rrset->rrs[i])){

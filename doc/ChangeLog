@@ -1,3 +1,8 @@
+6 September 2006: Wouter
+	- Fixed nsd-patch so that it writes the SOA at the start of the file.
+	- test tpkg that tests for the bug.
+	- version number bumped to 3.0.1.
+
 5 September 2006: Wouter
 	- differences file improvements.
 	- created 3.0.0 release in svn tags.
