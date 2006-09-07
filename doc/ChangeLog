@@ -1,3 +1,10 @@
+7 September 2006: Wouter
+	- bumped version to 3.0.2.
+	- Nice configuration error when you had the wrong zone name in the
+	  nsd.conf file. Zonec will give an error already.
+	- When you start a secondary zone without a zone file, you get
+	  a much nicer error message, warning you of the zone transfer.
+
 6 September 2006: Wouter
 	- Fixed nsd-patch so that it writes the SOA at the start of the file.
 	- test tpkg that tests for the bug, has multiple rrsets at zone apex

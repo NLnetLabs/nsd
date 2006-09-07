@@ -1258,10 +1258,11 @@ check_dname(namedb_type* db)
 
 /*
  * Reads the specified zone into the memory
+ * nsd_options can be NULL if no config file is passed.
  *
  */
 static void
-zone_read(const char *name, const char *zonefile)
+zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 {
 	const dname_type *dname;
 
@@ -1281,6 +1282,16 @@ zone_read(const char *name, const char *zonefile)
 
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, dname)) {
+		if(nsd_options) {
+			/* check for secondary zone, they can start with no zone info */
+			zone_options_t* zopt = zone_options_find(nsd_options, dname);
+			if(zopt && zone_is_slave(zopt)) {
+				zc_warning("slave zone %s with no zonefile '%s'(%s) will "
+					"force zone transfer.\n", 
+					name, zonefile, strerror(errno));
+				return;
+			}
+		}
 		/* cannot happen with stdin - so no fix needed for zonefile */
 		zc_error("cannot open '%s': %s\n", zonefile, strerror(errno));
 		return;
@@ -1288,6 +1299,20 @@ zone_read(const char *name, const char *zonefile)
 
 	/* Parse and process all RRs.  */
 	yyparse();
+
+	/* check if zone file contained a correct SOA record */
+	if (parser->current_zone && parser->current_zone->soa_rrset 
+		&& parser->current_zone->soa_rrset->rr_count!=0)
+	{
+		if(dname_compare(domain_dname(
+			parser->current_zone->soa_rrset->rrs[0].owner),
+			dname) != 0) {
+			zc_error("zone configured as '%s', but SOA has owner '%s'.",
+				name, dname_to_string(
+				domain_dname(parser->current_zone->
+				soa_rrset->rrs[0].owner), NULL));
+		}
+	}
 
 	fclose(yyin);
 	
@@ -1440,7 +1465,7 @@ main (int argc, char **argv)
 		}
 		if (vflag > 0)
 			fprintf(stderr, "zonec: reading zone \"%s\".\n", origin);
-		zone_read(origin, singlefile);
+		zone_read(origin, singlefile, nsd_options);
 		if (vflag > 0)
 			fprintf(stderr, "zonec: processed %ld RRs in \"%s\".\n", totalrrs, origin);
 	} else {
@@ -1455,7 +1480,7 @@ main (int argc, char **argv)
 			if (vflag > 0)
 				fprintf(stderr, "zonec: reading zone \"%s\".\n",
 					zone->name);
-			zone_read(zone->name, zone->zonefile);
+			zone_read(zone->name, zone->zonefile, nsd_options);
 			if (vflag > 0)
 				fprintf(stderr,
 					"zonec: processed %ld RRs in \"%s\".\n",

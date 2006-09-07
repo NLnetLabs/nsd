@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+3.0.2
+=============
+BUG FIXES:
+	- Nice error from zonec on a wrong configuration zone name.
+	- Nicer warning from zonec when starting secondary zone with
+	  no zone file for the first time.
+
 3.0.1
 =============
 BUG FIXES:
