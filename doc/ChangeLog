@@ -4,6 +4,7 @@
 	  nsd.conf file. Zonec will give an error already.
 	- When you start a secondary zone without a zone file, you get
 	  a much nicer error message, warning you of the zone transfer.
+	- Credits for prerelease testers; Thanks guys!
 
 6 September 2006: Wouter
 	- Fixed nsd-patch so that it writes the SOA at the start of the file.

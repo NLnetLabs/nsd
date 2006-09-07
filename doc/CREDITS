@@ -27,3 +27,8 @@ Stephane Bortzmeyer                             - Tru64 portability.
 Paul Wouters                                    - zone compiler testing
 Markus Heimhilcher                              - .AT zones for testing 
 Mans Nilsson                                    - (Solaris) Testing
+Bin Zhang					- NSD 3 prerelease testing.
+Kai						- NSD 3 prerelease testing.
+Matthew Smith					- NetBSD testing.
+Peter Hessler					- OpenBSD, amd64 testing.
+Aaron Glenn					- DragonflyBSD, BSD/sparc64 testing.
