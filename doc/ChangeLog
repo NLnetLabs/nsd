@@ -13,6 +13,7 @@
 	  Previous tests did not catch this: they used nsd-xfer to test zone
 	  contents, or only checked the zone-file after nsd-patch.
 	- version number bumped to 3.0.1.
+	- svn tag 3_0_1 made.
 
 5 September 2006: Wouter
 	- differences file improvements.
