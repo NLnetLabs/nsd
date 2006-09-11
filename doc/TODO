@@ -28,13 +28,16 @@ SERVER
 - From Aaron Hopkins: write tcp length and tcp data in one write operation,
   instead of multiple calls to write. Avoids Nagle algo delay in this case.
   preallocate 2 bytes in front of buffer to put them into.
+- Test TCP performance (do a lot of AXFRs, different zone sizes, and compare
+  time averages).
 - From Aaron Hopkins: after you do select calls, do multiple read calls
   per select. This polling improves performance in high-load situations.
   Speed test to prove that it does so.
 - Turn off TC bit on all error replies.
+- Bug #133: print empty statistic blocks. Not sure if the feature is wanted.
 
 SECURITY
-- TSIG add rfc 4635 algorithms.
+- TSIG add rfc 4635 algorithms. Bug #120 asks for SHA1 feature.
 
 PURITY
 - some data is in network order some in host order, make it clear with prefixes
@@ -43,6 +46,8 @@ PURITY
 - The XFRD zone state can be split up in expired/service-possible and 
   in idle/zone-transfer-busy state flags. Is this more beautiful?
 - no more #ifdefs, remove them all, but keep configure options.
+- getflags on socket before setflags nonblocking.
+- exponential backoff for retries xfrd and notify.
 
 CLEANUP
 - make so that startup sends SOA_INFO to xfrd just like reload does, prettier? 
