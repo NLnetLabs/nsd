@@ -301,6 +301,13 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "Could not read config: %s\n", configfile);
 		exit(1);
 	}
+	if(options->zonesdir) {
+		if (chdir(options->zonesdir)) {
+			fprintf(stderr, "nsd-patch: cannot chdir to %s: %s\n", 
+				options->zonesdir, strerror(errno));
+			exit(1);
+		}
+	}
 
 	/* override difffile if commandline option given */
 	if(difffile) 

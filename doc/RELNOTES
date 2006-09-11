@@ -6,6 +6,9 @@ BUG FIXES:
 	- Nice error from zonec on a wrong configuration zone name.
 	- Nicer warning from zonec when starting secondary zone with
 	  no zone file for the first time.
+	- nsdc makes more portable use of 'which' (for SunOS5.9/bash2.05).
+	- Improved handling of zonesdir: directive and relative pidfile,
+	  database, diff file, xfrdfile paths in nsdc.sh and nsd-patch.
 
 3.0.1
 =============

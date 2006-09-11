@@ -39,7 +39,11 @@ if [ -e ${sbindir}/nsd-checkconf ]; then
 	nsd_checkconf=${sbindir}/nsd-checkconf
 else
 	if which nsd-checkconf >/dev/null 2>&1 ; then
-		nsd_checkconf=`which nsd-checkconf`
+		if which nsd-checkconf 2>&1 | grep "^[Nn]o " >/dev/null; then
+			nsd_checkconf=""
+		else
+			nsd_checkconf=`which nsd-checkconf`
+		fi
 	fi
 	if [ -z "${nsd_checkconf}" -a -e `dirname $0`/nsd-checkconf ]; then
 		nsd_checkconf=`dirname $0`/nsd-checkconf
@@ -82,8 +86,31 @@ fi
 # Read some settings from the config file.
 dbfile=`${nsd_checkconf} -o database ${configfile}`
 pidfile=`${nsd_checkconf} -o pidfile ${configfile}`
+difffile=`${nsd_checkconf} -o difffile ${configfile}`
+zonesdir=`${nsd_checkconf} -o zonesdir ${configfile}`
 lockfile="${dbfile}.lock"  # still needed
 sbindir=`dirname ${nsd_checkconf}`
+
+# move to zonesdir (if specified), and make absolute pathnames.
+if test -n "${zonesdir}"; then
+       zonesdir=`dirname ${zonesdir}/.`
+       if echo "${zonesdir}" | grep "^[^/]" >/dev/null; then
+               zonesdir=`pwd`/${zonesdir}
+       fi
+       if echo "${dbfile}" | grep "^[^/]" >/dev/null; then
+               dbfile=${zonesdir}/${dbfile}
+       fi
+       if echo "${pidfile}" | grep "^[^/]" >/dev/null; then
+               pidfile=${zonesdir}/${pidfile}
+       fi
+       if echo "${lockfile}" | grep "^[^/]" >/dev/null; then
+               lockfile=${zonesdir}/${lockfile}
+       fi
+       if echo "${difffile}" | grep "^[^/]" >/dev/null; then
+               difffile=${zonesdir}/${difffile}
+       fi
+fi
+
 # for bash: -C or noclobber. For tcsh: noclobber. For bourne: -C.
 noclobber_set="set -C"
 # ugly check for tcsh
@@ -220,20 +247,19 @@ running)
 	;;
 patch)
         # patch queue clearen
-	file=`${nsd_checkconf} -o difffile ${configfile}`
-	if test -s ${file}; then
-		#${sbindir}/nsd-patch -c ${configfile} -x ${file} -l #debug
-		#echo ${sbindir}/nsd-patch -c ${configfile} -x ${file}
+	if test -s ${difffile}; then
+		#${sbindir}/nsd-patch -c ${configfile} -x ${difffile} -l #debug
+		#echo ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}
 		if lock && \
-		  mv ${file} ${file}.$$ && \
-		  ${sbindir}/nsd-patch -c ${configfile} -x ${file}.$$ \
-		  && rm -f ${file}.$$ && unlock && do_rebuild; then
+		  mv ${difffile} ${difffile}.$$ && \
+		  ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}.$$ \
+		  && rm -f ${difffile}.$$ && unlock && do_rebuild; then
 			do_reload
 		else
 			unlock
 			# try to move back the transfer data
-			if [ -e ${file}.$$ -a ! -e ${file} ]; then
-				mv ${file}.$$ ${file}
+			if [ -e ${difffile}.$$ -a ! -e ${difffile} ]; then
+				mv ${difffile}.$$ ${difffile}
 			fi
 			echo "`basename $0`: patch failed."
 		fi
