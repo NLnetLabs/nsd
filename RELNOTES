@@ -20,6 +20,7 @@ BUG FIXES:
 	- Bug #140: NSD did not clear CD bit on authoritative answers.
 	- Bug #141: NSD did not clear flags on a formerror reply.
 	- tsig null ptr when size set, fixed.
+	- Bug #144: LOC RRtype defaults not according to RFC1876.
 
 2.3.5
 =============
