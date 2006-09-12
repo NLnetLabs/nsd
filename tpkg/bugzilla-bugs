@@ -78,3 +78,4 @@ T 135   "Typo in locking code nsdc" in bug105 test.
 T 137   "Build in separate obj-dir" in long dir.
 T 140   "NSD does not clear CD bit" in copy_cd test.
 T 141   "NSD does not clear flags on formerr"
+T 144	"Defaults in LOC records not RFC 1876 compliant"

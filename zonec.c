@@ -603,7 +603,8 @@ zparser_conv_loc(region_type *region, char *str)
 	int i;
 	int deg, min, secs;	/* Secs is stored times 1000.  */
 	uint32_t lat = 0, lon = 0, alt = 0;
-	uint8_t vszhpvp[4] = {0, 0, 0, 0};
+	/* encoded defaults: version=0 sz=1m hp=10000m vp=10m */
+	uint8_t vszhpvp[4] = {0, 0x12, 0x16, 0x13}; 
 	char *start;
 	double d;
 			
@@ -633,8 +634,8 @@ zparser_conv_loc(region_type *region, char *str)
 				zc_error_prev_line("space expected after minutes");
 				return NULL;
 			}
+			++str;
 		}
-		++str;
 		
 		/* Seconds? */
 		if (isdigit(*str)) {
@@ -657,12 +658,12 @@ zparser_conv_loc(region_type *region, char *str)
 			}
 
 			if (d < 0.0 || d > 60.0) {
-				zc_error_prev_line("seconds not in range 0.0 .. 6.0");
+				zc_error_prev_line("seconds not in range 0.0 .. 60.0");
 			}
 
-			secs = (int) (d * 1000.0);
+			secs = (int) (d * 1000.0 + 0.5);
+			++str;
 		}
-		++str;
 		
 		switch(*str) {
 		case 'N':
@@ -682,7 +683,7 @@ zparser_conv_loc(region_type *region, char *str)
 			lon = ((uint32_t)1<<31) - (deg * 3600000 + min * 60000 + secs);
 			break;
 		default:
-			zc_error_prev_line("invalid latitude/longtitude");
+			zc_error_prev_line("invalid latitude/longtitude: '%c'", *str);
 			return NULL;
 		}
 		++str;

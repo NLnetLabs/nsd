@@ -1,3 +1,9 @@
+12 September 2006: Wouter
+	- Bug #144: LOC defaults for unspecified values wrong. Error in zonec.
+	  Set defaults. Also fixed parser if LOC has no minutes or seconds.
+	- Also fixed rounding error in seconds 0.001 decimal. 
+	- Test tpkg for bug 144.
+
 11 September 2006: Wouter
 	- nsdc now more portable in use of 'which'.
 	  Does not only look at exit code but also checks for '^no ' string.
