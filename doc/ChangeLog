@@ -1,3 +1,8 @@
+13 September 2006: Wouter
+	- added fsync to AF_UNIX sockets to write last command (QUIT) before
+	  closing them.
+	- sent explicit QUIT command to xfrd on final shutdown of the server.
+
 12 September 2006: Wouter
 	- Bug #144: LOC defaults for unspecified values wrong. Error in zonec.
 	  Set defaults. Also fixed parser if LOC has no minutes or seconds.

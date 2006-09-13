@@ -1002,6 +1002,18 @@ server_main(struct nsd *nsd)
 	unlink(nsd->pidfile);
 
 	if(reload_listener.fd > 0) close(reload_listener.fd);
+	if(xfrd_listener.fd > 0) {
+		/* complete quit, stop xfrd */
+		sig_atomic_t cmd = NSD_QUIT;
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, 
+			"main: ipc send quit to xfrd"));
+		if(!write_socket(xfrd_listener.fd, &cmd, sizeof(cmd))) {
+			log_msg(LOG_ERR, "server_main: could not quit to xfrd: %s", 
+				strerror(errno));
+		}
+		fsync(xfrd_listener.fd);
+		close(xfrd_listener.fd);
+	}
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }
@@ -1656,6 +1668,7 @@ send_children_quit(struct nsd* nsd)
 					(int) nsd->children[i].pid,
 					strerror(errno));
 			}
+			fsync(nsd->children[i].child_fd);
 			close(nsd->children[i].child_fd);
 			nsd->children[i].child_fd = -1;
 		}
