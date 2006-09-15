@@ -503,13 +503,20 @@ precsize_aton (char *cp, char **endptr)
 		}
 	}
 
-	cmval = (mval * 100) + cmval;
+	if(mval >= poweroften[7]) {
+		/* integer overflow possible for *100 */
+		mantissa = mval / poweroften[7];
+		exponent = 9; /* max */
+	}
+	else {
+		cmval = (mval * 100) + cmval;
 	
-	for (exponent = 0; exponent < 9; exponent++)
-		if (cmval < poweroften[exponent+1])
-			break;
+		for (exponent = 0; exponent < 9; exponent++)
+			if (cmval < poweroften[exponent+1])
+				break;
 
-	mantissa = cmval / poweroften[exponent];
+		mantissa = cmval / poweroften[exponent];
+	}
 	if (mantissa > 9)
 		mantissa = 9;
 
@@ -680,7 +687,7 @@ zparser_conv_loc(region_type *region, char *str)
 		zc_error_prev_line("error parsing altitude");
 	}
 	
-	alt = 10000000 + (int32_t) (d * 100);
+	alt = 10000000 + (uint32_t) (d * 100 + (d>=0.0?0.5:-0.5));
 
 	if (!isspace(*str) && *str != '\0') {
 		zc_error_prev_line("unexpected character after altitude");
