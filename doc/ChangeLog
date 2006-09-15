@@ -3,6 +3,7 @@
 	  Added to test and backported fix to 2.3.6.
 	- NSEC3 qtype queries get noerror/nodata or nxdomain answers.
 	  You can query for NSEC3PARAM.
+	- warnings for printf format on maxOS (sizet needs cast to int).
 
 13 September 2006: Wouter
 	- added fsync to AF_UNIX sockets to write last command (QUIT) before

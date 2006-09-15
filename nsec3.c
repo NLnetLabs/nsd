@@ -100,7 +100,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 
 		if(rdata_atom_data(rr->rdatas[0])[0] != NSEC3_SHA1_HASH) {
 			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has unknown hash algo %d", 
-				dname_to_string(domain_dname(zone->apex), NULL), i,
+				dname_to_string(domain_dname(zone->apex), NULL), (int)i,
 				rdata_atom_data(rr->rdatas[0])[0]);
 			continue;
 		}
@@ -110,7 +110,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 		domain = domain_table_find(namedb->domains, hashed_apex);
 		if(!domain) {
 			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has no hash(apex).", 
-				dname_to_string(domain_dname(zone->apex), NULL), i);
+				dname_to_string(domain_dname(zone->apex), NULL), (int)i);
 			log_msg(LOG_ERR, "hash(apex)= %s", 
 				dname_to_string(hashed_apex, NULL));
 			continue;
@@ -118,7 +118,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 		nsec3_rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
 		if(!nsec3_rrset) {
 			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) has no NSEC3 RRset", 
-				dname_to_string(domain_dname(zone->apex), NULL), i);
+				dname_to_string(domain_dname(zone->apex), NULL), (int)i);
 			continue;
 		}
 		/* find SOA bit enabled nsec3, with the same settings */
@@ -146,7 +146,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 			}
 		}
 		log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) no NSEC3 with SOAbit", 
-			dname_to_string(domain_dname(zone->apex), NULL), i);
+			dname_to_string(domain_dname(zone->apex), NULL), (int)i);
 	}
 	region_destroy(tmpregion);
 
