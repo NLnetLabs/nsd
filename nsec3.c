@@ -19,9 +19,6 @@
 
 #define NSEC3_SHA1_HASH 1 /* same type code as DS hash */
 
-/* true of domain is a NSEC3 (+RRSIG) data only variety */
-static int domain_has_only_NSEC3(struct domain* domain, struct zone* zone);
-
 /* detect is the latter rrset has the same hashalgo, iterations and salt
    as the base. Does not compare optout bit, or other rdata.
    base=NULL uses the zone soa_rr. */
@@ -632,7 +629,7 @@ nsec3_answer_delegation(struct query *query, struct answer *answer)
 	nsec3_add_ds_proof(query, answer, query->delegation_domain);
 }
 
-static int 
+int 
 domain_has_only_NSEC3(struct domain* domain, struct zone* zone)
 {
 	/* check for only NSEC3/RRSIG */
@@ -663,7 +660,10 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 		return;
 	assert(match);
 	/* there is a match, this has 1 RRset, which is NSEC3, but qtype is not. */
-	if(query->qtype != TYPE_NSEC3 && *match && 
+	if(*match && 
+#if 0
+		query->qtype != TYPE_NSEC3 && 
+#endif
 		domain_has_only_NSEC3(*match, query->zone))
 	{
 		/* act as if the NSEC3 domain did not exist, name error */
@@ -684,6 +684,7 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 	}
 	if(!*match) {
 		/* name error */
+#if 0
 		if(query->qtype == TYPE_NSEC3) {
 			/* query for NSEC3, but that domain did not exist */
 			/* include covering nsec3 found *without hashing* */
@@ -695,7 +696,9 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 			} 
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, cover);
 		}
-		else {
+		else 
+#endif
+		{
 			/* name error, domain does not exist */
 			nsec3_add_closest_encloser_proof(query, answer, closest_encloser, 
 				db, qname);	

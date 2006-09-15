@@ -1,6 +1,8 @@
 15 September 2006: Wouter
 	- Fixed LOC parsing of integer overflow causing maximum values.
 	  Added to test and backported fix to 2.3.6.
+	- NSEC3 qtype queries get noerror/nodata or nxdomain answers.
+	  You can query for NSEC3PARAM.
 
 13 September 2006: Wouter
 	- added fsync to AF_UNIX sockets to write last command (QUIT) before

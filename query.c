@@ -840,6 +840,9 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 		int added = 0;
 		for (rrset = domain_find_any_rrset(domain, q->zone); rrset; rrset = rrset->next) {
 			if (rrset->zone == q->zone
+#ifdef NSEC3
+				&& rrset_rrtype(rrset) != TYPE_NSEC3
+#endif
 			    /*
 			     * Don't include the RRSIG RRset when
 			     * DNSSEC is used, because it is added
@@ -857,6 +860,11 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 			answer_nodata(q, answer, original);
 			return;
 		}
+#ifdef NSEC3
+	} else if (q->qtype == TYPE_NSEC3) {
+		answer_nodata(q, answer, original);
+		return;
+#endif
 	} else if ((rrset = domain_find_rrset(domain, q->zone, q->qtype))) {
 		add_rrset(q, answer, ANSWER_SECTION, domain, rrset);
 	} else if ((rrset = domain_find_rrset(domain, q->zone, TYPE_CNAME))) {
@@ -1007,6 +1015,10 @@ answer_authoritative(struct nsd   *nsd,
 
 	/* Authorative zone.  */
 #ifdef NSEC3
+	if (q->qtype == TYPE_NSEC3 && match && 
+		domain_has_only_NSEC3(match, q->zone)) {
+		match = 0; /* pretend it does not exist */
+	}
 	if (q->edns.dnssec_ok && q->zone->nsec3_soa_rr) {
 		nsec3_answer_authoritative(&match, q, answer, 
 			closest_encloser, nsd->db, qname);
