@@ -751,7 +751,7 @@ zparser_conv_loc(region_type *region, char *str)
 		zc_error_prev_line("error parsing altitude");
 	}
 	
-	alt = 10000000 + (uint32_t) (d * 100 + (d>=0.0?0.5:-0.5));
+	alt = (uint32_t) (10000000.0 + d * 100 + 0.5);
 
 	if (!isspace(*str) && *str != '\0') {
 		zc_error_prev_line("unexpected character after altitude");
