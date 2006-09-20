@@ -1015,7 +1015,8 @@ answer_authoritative(struct nsd   *nsd,
 
 	/* Authorative zone.  */
 #ifdef NSEC3
-	if (q->qtype == TYPE_NSEC3 && match && 
+	if((q->qtype==TYPE_NSEC3 || q->qtype==TYPE_RRSIG || q->qtype==TYPE_ANY)
+		&& match && 
 		domain_has_only_NSEC3(match, q->zone)) {
 		match = 0; /* pretend it does not exist */
 	}
