@@ -543,6 +543,9 @@ AH_BOTTOM([
 #  ifndef __EXTENSIONS__
 #    define __EXTENSIONS__ 1
 #  endif 
+#  ifndef _STDC_C99
+#    define _STDC_C99 1
+#  endif
 #endif
 ])
 
