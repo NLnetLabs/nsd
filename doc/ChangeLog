@@ -2,6 +2,8 @@
 	- NSD compiles on Solaris 10 with the sun cc compiler.
 	  Added a define for _STDC_C99 for that.
 	- Checked that the patch for solaris for bug 143 indeed fixes the bug.
+	- Fixed bug #146 reported by Koh-ichi Ito: when chrooted nsd failed
+	  to write xfrdfile/difffile.
 	
 18 September 2006: Wouter
 	- no queries for NSEC3, RRSIG, ANY succeed for nsec3 only domains.

@@ -443,6 +443,10 @@ server_init(struct nsd *nsd)
 
 		nsd->dbfile += l;
 		nsd->pidfile += l;
+		if(nsd->options->xfrdfile)
+			nsd->options->xfrdfile += l;
+		if(nsd->options->difffile)
+			nsd->options->difffile += l;
 
 		if (chroot(nsd->chrootdir)) {
 			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
