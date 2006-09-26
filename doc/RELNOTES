@@ -10,7 +10,9 @@ BUG FIXES:
 	- Bug #143: Improved handling of zonesdir: directive and relative 
 	  pidfile, database, diff file, xfrdfile paths in nsdc.sh and 
 	  nsd-patch. They would not find the files.
-	- Bug #144: LOC RRtype default values for precision wrong.
+	- Bug #144: LOC RRtype default values for precision wrong. Fixed.
+	- Bug #146: NSD fails to write to xfrdfile when chrooted. Fixed.
+		Also fix for difffile when chrooted.
 
 3.0.1
 =============
