@@ -343,7 +343,7 @@ int main(int argc, char* argv[])
 	printf("reading updates to database\n");
 	if(!diff_read_file(db, options, &commit_log, fake_child_count)) {
 		fprintf(stderr, "unable to load the diff file: %s\n", 
-			strerror(errno));
+			options->difffile);
 		exit(1);
 	}
 

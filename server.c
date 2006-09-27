@@ -646,7 +646,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		}
 	}
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
-			log_msg(LOG_ERR, "unable to load the diff file: %s", strerror(errno));
+			log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 			exit(1);
 	}
 	log_msg(LOG_INFO, "memory churn is %d bytes wasted", (int)nsd->db->memchurn);
