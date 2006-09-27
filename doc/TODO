@@ -4,6 +4,7 @@ GENERAL
 - return value of region_alloc, region_create is not checked for NULL,
   which is returned when out of memory, in many places.
 - Feature request by Kai: choose outgoing interface for nsd-xfer.
+- Feature request by Thoman Huehn: choose outgoing interface for nsd-notify. -a
 
 AUTOCONF
 
