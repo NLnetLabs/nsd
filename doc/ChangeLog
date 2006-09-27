@@ -3,6 +3,14 @@
 	  to XFRDFILE in options_create. So opt->xfrdfile and opt->difffile
 	  are never NULL. This simplifies code elsewhere.
 	  And also handles chroot case (+=l) for default values.
+	- Fix for bug #145. The skip file position in the diff file was used
+	  inconsistently - one part of the code skipped to before the 'IXFR'
+	  type code and another part skipped to after that. Now all skip to
+	  before the type code. This bug only happens if your diff file 
+	  is like: zone1_part1, zone2_part_1, zone1_part2, zone1_commit,
+	    zone2_part2, zone2_commit. The skip over zone1_part1 failed.
+	- tpkg test in long dir that tests for the bugfix. Takes a long time
+	  and uses ldns-testns feature to wait partway through an AXFR.
 
 26 September 2006: Wouter
 	- NSD compiles on Solaris 10 with the sun cc compiler.

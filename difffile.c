@@ -572,7 +572,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	int* is_axfr, int* delete_mode, int* rr_count,
 	size_t child_count)
 {
-	uint32_t filelen, msglen;
+	uint32_t filelen, msglen, pkttype;
 	int qcount, ancount, counter;
 	buffer_type* packet;
 	region_type* region;
@@ -590,6 +590,10 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	}
 	/* read ixfr packet RRs and apply to in memory db */
 
+	if(!diff_read_32(in, &pkttype) || pkttype != DIFF_PART_IXFR) {
+		log_msg(LOG_ERR, "could not read type or wrong type");
+		return 0;
+	}
 	if(!diff_read_32(in, &filelen)) {
 		log_msg(LOG_ERR, "could not read len");
 		return 0;
@@ -970,7 +974,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		return 1;
 	}
 	if(committed && check_for_bad_serial(db, zone_buf, old_serial)) {
-		log_msg(LOG_ERR, "diff file commit with bad serial");
+		DEBUG(DEBUG_XFRD,1, (LOG_ERR, 
+			"skipping diff file commit with bad serial"));
 		zp->parts->root = RBTREE_NULL;
 		zp->parts->count = 0;
 		if(thislog)
@@ -984,7 +989,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		}
 	}
 	if(!have_all_parts) {
-		log_msg(LOG_ERR, "diff file commit without all parts");
+		DEBUG(DEBUG_XFRD,1, (LOG_ERR, 
+			"skipping diff file commit without all parts"));
 		if(thislog)
 			thislog->error = "error missing parts";
 	}
@@ -1063,22 +1069,15 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 static int 
 read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	nsd_options_t* opt, struct diff_read_data* data,
-	struct diff_log** log, size_t child_count)
+	struct diff_log** log, size_t child_count, off_t* startpos)
 {
 	uint32_t len, len2;
-	off_t startpos;
-
-	startpos = ftello(in);
-	if(startpos == -1) {
-		log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
-		return 0;
-	}
 
 	if(!diff_read_32(in, &len)) return 1;
 
 	if(type == DIFF_PART_IXFR) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "part IXFR len %d", len));
-		if(!store_ixfr_data(in, len, data, &startpos))
+		if(!store_ixfr_data(in, len, data, startpos))
 			return 0;
 	}
 	else if(type == DIFF_PART_SURE) {
@@ -1135,6 +1134,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	FILE *df;
 	uint32_t type;
 	struct diff_read_data* data = diff_read_data_create();
+	off_t startpos;
 
 	df = fopen(filename, "r");
 	if(!df) {
@@ -1151,13 +1151,25 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		}
 	}
 
+	startpos = ftello(df);
+	if(startpos == -1) {
+		log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
+		return 0;
+	}
+
 	while(diff_read_32(df, &type)) 
 	{
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "iter loop"));
-		if(!read_process_part(db, df, type, opt, data, log, child_count))
+		if(!read_process_part(db, df, type, opt, data, log, 
+			child_count, &startpos))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
 			region_destroy(data->region);
+			return 0;
+		}
+		startpos = ftello(df);
+		if(startpos == -1) {
+			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
 			return 0;
 		}
 	}
