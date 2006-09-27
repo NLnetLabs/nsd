@@ -1,3 +1,9 @@
+27 September 2006: Wouter
+	- Further suggestion from Koh-ichi Ito, I've set opt->xfrdfile
+	  to XFRDFILE in options_create. So opt->xfrdfile and opt->difffile
+	  are never NULL. This simplifies code elsewhere.
+	  And also handles chroot case (+=l) for default values.
+
 26 September 2006: Wouter
 	- NSD compiles on Solaris 10 with the sun cc compiler.
 	  Added a define for _STDC_C99 for that.

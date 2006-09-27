@@ -144,8 +144,6 @@ xfrd_read_state(struct xfrd_state* xfrd)
 	uint32_t filetime = 0;
 	uint32_t numzones, i;
 	region_type *tempregion;
-	if(!statefile) 
-		statefile = XFRDFILE;
 
 	tempregion = region_create(xalloc, free);
 	if(!tempregion) 
@@ -396,8 +394,6 @@ xfrd_write_state(struct xfrd_state* xfrd)
 	const char* statefile = xfrd->nsd->options->xfrdfile;
 	FILE *out;
 	time_t now = xfrd_time();
-	if(!statefile) 
-		statefile = XFRDFILE;
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: write file %s", statefile));
 	out = fopen(statefile, "w");
