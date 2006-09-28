@@ -191,9 +191,9 @@ tsig_create_record_custom(tsig_record_type *tsig, region_type *region,
 	size_t chunk_size, size_t large_object_size, size_t initial_cleanup_size)
 {
 	tsig->rr_region = region_create_custom(xalloc, free, chunk_size, 
-		large_object_size, initial_cleanup_size);
+		large_object_size, initial_cleanup_size, 0);
 	tsig->context_region = region_create_custom(xalloc, free, chunk_size,
-		large_object_size, initial_cleanup_size);
+		large_object_size, initial_cleanup_size, 0);
 	region_add_cleanup(region, tsig_cleanup, tsig);
 	tsig_init_record(tsig, NULL, NULL);
 }

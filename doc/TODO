@@ -72,6 +72,7 @@ OPTIMISATIONS
   Keep a list (buckets on size) of rdata_data allocs.
   For reuse, buckets on char size, because we know most are small anyway
   large ones can be discarded/churned.
+- Look for special purpose memory allocators for NSD.
 - compress dnames in ixfr queries (write_soa_buffer) (zone 2x, mname, rname).
   small gain, nasty code.
 - compress dnames in tsig records, keyname, algorithname.

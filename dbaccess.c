@@ -283,7 +283,8 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (LOG_INFO, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
 
-	db_region = region_create(xalloc, free);
+	db_region = region_create_custom(xalloc, free, DEFAULT_CHUNK_SIZE, 
+		DEFAULT_LARGE_OBJECT_SIZE, DEFAULT_INITIAL_CLEANUP_SIZE, 1);
 	db = (namedb_type *) region_alloc(db_region, sizeof(struct namedb));
 	db->region = db_region;
 	db->domains = domain_table_create(db->region);

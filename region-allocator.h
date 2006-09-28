@@ -32,12 +32,14 @@ region_type *region_create(void *(*allocator)(size_t),
  * large_object_size = chunk_size/8 is reasonable;
  * initial_cleanup_size is the number of prealloced ptrs for cleanups.
  * The cleanups are in a growing array, and it must start larger than zero.
+ * If recycle is true, environmentally friendly memory recycling is be enabled.
  */
 region_type *region_create_custom(void *(*allocator)(size_t),
 				  void (*deallocator)(void *),
 				  size_t chunk_size,
 				  size_t large_object_size,
-				  size_t initial_cleanup_size);
+				  size_t initial_cleanup_size,
+				  int recycle);
 
 
 /*
@@ -92,6 +94,11 @@ void region_free_all(region_type *region);
  */
 char *region_strdup(region_type *region, const char *string);
 
+/*
+ * Recycle an allocated memory block. Pass size used to alloc it.
+ * Does nothing if recycling is not enabled for the region.
+ */
+void region_recycle(region_type *region, void *block, size_t size);
 
 /*
  * Print some REGION statistics to OUT.

@@ -164,7 +164,7 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets,
 		= (query_type *) region_alloc_zero(region, sizeof(query_type));
 	/* create region with large block size, because the initial chunk
 	   saves many mallocs in the server */
-	query->region = region_create_custom(xalloc, free, 16384, 16384/8, 32);
+	query->region = region_create_custom(xalloc, free, 16384, 16384/8, 32, 0);
 	query->compressed_dname_offsets = compressed_dname_offsets;
 	query->packet = buffer_create(region, QIOBUFSZ);
 	region_add_cleanup(region, query_cleanup, query);

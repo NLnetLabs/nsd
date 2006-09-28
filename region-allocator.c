@@ -25,6 +25,10 @@ struct cleanup
 	void *data;
 };
 
+struct recycle_elem {
+	struct recycle_elem* next;
+};
+
 struct region
 {
 	size_t        total_allocated;
@@ -46,6 +50,14 @@ struct region
 
 	size_t        chunk_size;
 	size_t        large_object_size;
+
+	/* if not NULL recycling is enabled.
+	 * It is an array of linked lists of parts held for recycle.
+	 * The parts are all pointers to within the allocated chunks.
+	 * Array [i] points to elements of size i. */
+	struct recycle_elem** recycle_bin;
+	/* amount of memory in recycle storage */
+	size_t		recycle_size;
 };
 
 
@@ -62,6 +74,8 @@ alloc_region_base(void *(*allocator)(size_t size),
 	result->large_objects = 0;
 	result->chunk_count = 1;
 	result->unused_space = 0;
+	result->recycle_bin = NULL;
+	result->recycle_size = 0;
 	
 	result->allocated = 0;
 	result->data = NULL;
@@ -109,7 +123,8 @@ region_type *region_create_custom(void *(*allocator)(size_t),
 				  void (*deallocator)(void *),
 				  size_t chunk_size,
 				  size_t large_object_size,
-				  size_t initial_cleanup_size)
+				  size_t initial_cleanup_size,
+				  int recycle)
 {
 	region_type* result = alloc_region_base(allocator, deallocator, 
 		initial_cleanup_size);
@@ -127,6 +142,16 @@ region_type *region_create_custom(void *(*allocator)(size_t),
 		}
 		result->initial_data = result->data;
 	}
+	if(recycle) {
+		result->recycle_bin = allocator(sizeof(struct recycle_elem*)
+			* result->large_object_size);
+		if(!result->recycle_bin) {
+			region_destroy(result);
+			return NULL;
+		}
+		memset(result->recycle_bin, 0, sizeof(struct recycle_elem*)
+			* result->large_object_size);
+	}
 	return result;
 }
 
@@ -143,6 +168,8 @@ region_destroy(region_type *region)
 	region_free_all(region);
 	deallocator(region->cleanups);
 	deallocator(region->initial_data);
+	if(region->recycle_bin)
+		deallocator(region->recycle_bin);
 	deallocator(region);
 }
 
@@ -195,6 +222,14 @@ region_alloc(region_type *region, size_t size)
 		region->total_allocated += size;
 		++region->large_objects;
 		
+		return result;
+	}
+
+	if (region->recycle_bin && region->recycle_bin[aligned_size]) {
+		result = (void*)region->recycle_bin[aligned_size];
+		region->recycle_bin[aligned_size] = region->recycle_bin[aligned_size]->next; 
+		region->recycle_size -= aligned_size;
+		region->unused_space += aligned_size - size;
 		return result;
 	}
     
@@ -252,6 +287,12 @@ region_free_all(region_type *region)
 		region->cleanups[i].action(region->cleanups[i].data);
 	}
 
+	if(region->recycle_bin) {
+		memset(region->recycle_bin, 0, sizeof(struct recycle_elem*)
+			* region->large_object_size);
+		region->recycle_size = 0;
+	}
+
 	region->data = region->initial_data;
 	region->cleanup_count = 0;
 	region->allocated = 0;
@@ -270,15 +311,59 @@ region_strdup(region_type *region, const char *string)
 	return (char *) region_alloc_init(region, string, strlen(string) + 1);
 }
 
+void 
+region_recycle(region_type *region, void *block, size_t size)
+{
+	size_t aligned_size;
+	size_t i;
+
+	if(!block || !region->recycle_bin)
+		return;
+
+	if (size == 0) {
+		size = 1;
+	}
+	aligned_size = ALIGN_UP(size, ALIGNMENT);
+
+	if(aligned_size < region->large_object_size) {
+		struct recycle_elem* elem = (struct recycle_elem*)block;
+		/* we rely on the fact that ALIGNMENT is void* so the next will fit */
+		assert(aligned_size >= sizeof(struct recycle_elem));
+		elem->next = region->recycle_bin[aligned_size];
+		region->recycle_bin[aligned_size] = elem;
+		region->recycle_size += aligned_size;
+		region->unused_space -= aligned_size - size;
+		return;
+	}
+
+	/* a large allocation */
+	region->total_allocated -= size;
+	--region->large_objects;
+	for(i=0; i<region->cleanup_count; i++) {
+		while(region->cleanups[i].data == block) {
+			/* perform action (deallocator) on block */
+			region->cleanups[i].action(block);
+			region->cleanups[i].data = NULL;
+			/* remove cleanup - move last entry here, check this one again */
+			--region->cleanup_count;
+			region->cleanups[i].action = 
+				region->cleanups[region->cleanup_count].action;
+			region->cleanups[i].data = 
+				region->cleanups[region->cleanup_count].data;
+		}
+	}
+}
+
 void
 region_dump_stats(region_type *region, FILE *out)
 {
-	fprintf(out, "%lu objects (%lu small/%lu large), %lu bytes allocated (%lu wasted) in %lu chunks, %lu cleanups",
+	fprintf(out, "%lu objects (%lu small/%lu large), %lu bytes allocated (%lu wasted) in %lu chunks, %lu cleanups, %lu in recyclebin",
 		(unsigned long) (region->small_objects + region->large_objects),
 		(unsigned long) region->small_objects,
 		(unsigned long) region->large_objects,
 		(unsigned long) region->total_allocated,
 		(unsigned long) region->unused_space,
 		(unsigned long) region->chunk_count,
-		(unsigned long) region->cleanup_count);
+		(unsigned long) region->cleanup_count,
+		(unsigned long) region->recycle_size);
 }

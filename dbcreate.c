@@ -25,7 +25,9 @@ struct namedb *
 namedb_new (const char *filename)
 {
 	namedb_type *db;
-	region_type *region = region_create(xalloc, free);
+	region_type *region = region_create_custom(xalloc, free, 
+		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE, 
+		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
 	
 	/* Make a new structure... */
 	db = (namedb_type *) region_alloc(region, sizeof(namedb_type));

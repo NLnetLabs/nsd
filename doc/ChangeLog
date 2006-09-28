@@ -1,6 +1,9 @@
 28 September 2006: Wouter
 	- Removed unused global variable current_region,
 	  and routines for it in region-allocator.c and .h.
+	- Added recycle option to regions. It will keep track of small
+	  objects in a recycle bin. Large objects are deallocated.
+	  No calls to recycle yet, unit test it first.
 
 27 September 2006: Wouter
 	- Further suggestion from Koh-ichi Ito, I've set opt->xfrdfile
