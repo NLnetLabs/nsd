@@ -558,6 +558,9 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 		domain = domain_next(domain);
 	}
 
+	DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "axfrdel: recyclebin holds %lu bytes", 
+		(unsigned long) region_get_recycle_size(db->region)));
+
 	assert(zone->soa_rrset == 0);
 	/* keep zone->soa_nx_rrset alloced */
 	assert(zone->ns_rrset == 0);
