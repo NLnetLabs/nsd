@@ -17,6 +17,7 @@
 
 #define ALIGN_UP(x, s)     (((x) + s - 1) & (~(s - 1)))
 #define ALIGNMENT          (sizeof(void *))
+#define CHECK_DOUBLE_FREE 0 /* set to 1 to perform expensive check for double recycle() */
 
 typedef struct cleanup cleanup_type;
 struct cleanup
@@ -329,6 +330,16 @@ region_recycle(region_type *region, void *block, size_t size)
 		struct recycle_elem* elem = (struct recycle_elem*)block;
 		/* we rely on the fact that ALIGNMENT is void* so the next will fit */
 		assert(aligned_size >= sizeof(struct recycle_elem));
+
+		if(CHECK_DOUBLE_FREE) {
+			/* make sure the same ptr is not freed twice. */
+			struct recycle_elem *p = region->recycle_bin[aligned_size];
+			while(p) {
+				assert(p != elem); 
+				p = p->next;
+			}
+		}
+
 		elem->next = region->recycle_bin[aligned_size];
 		region->recycle_bin[aligned_size] = elem;
 		region->recycle_size += aligned_size;
@@ -366,4 +377,18 @@ region_dump_stats(region_type *region, FILE *out)
 		(unsigned long) region->chunk_count,
 		(unsigned long) region->cleanup_count,
 		(unsigned long) region->recycle_size);
+	if(0 && region->recycle_bin) {
+		/* print details of the recycle bin */
+		size_t i;
+		for(i=0; i<region->large_object_size; i++) {
+			size_t count = 0;
+			struct recycle_elem* el = region->recycle_bin[i];
+			while(el) {
+				count++;
+				el = el->next;
+			}
+			if(i%ALIGNMENT == 0 && i!=0)
+				fprintf(out, " %lu", (unsigned long)count);
+		}
+	}
 }

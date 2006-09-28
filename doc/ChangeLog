@@ -4,6 +4,7 @@
 	- Added recycle option to regions. It will keep track of small
 	  objects in a recycle bin. Large objects are deallocated.
 	  No calls to recycle yet, unit test it first.
+	- added unit test for region recycle.
 
 27 September 2006: Wouter
 	- Further suggestion from Koh-ichi Ito, I've set opt->xfrdfile

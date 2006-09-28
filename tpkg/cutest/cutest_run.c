@@ -16,6 +16,7 @@ CuSuite * reg_cutest_options(void);
 CuSuite * reg_cutest_dns(void);
 CuSuite * reg_cutest_iterated_hash(void);
 CuSuite * reg_cutest_dname(void);
+CuSuite * reg_cutest_region(void);
 
 /* dummy functions to link */
 struct nsd;
@@ -39,6 +40,7 @@ int runalltests(void)
 	CuSuite *suite = CuSuiteNew();
 	CuString *output = CuStringNew();
 
+	CuSuiteAddSuite(suite, reg_cutest_region());
 	CuSuiteAddSuite(suite, reg_cutest_dname());
 	CuSuiteAddSuite(suite, reg_cutest_dns());
 	CuSuiteAddSuite(suite, reg_cutest_options());
