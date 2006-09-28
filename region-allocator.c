@@ -392,3 +392,8 @@ region_dump_stats(region_type *region, FILE *out)
 		}
 	}
 }
+
+size_t region_get_recycle_size(region_type* region)
+{
+	return region->recycle_size;
+}

@@ -105,4 +105,7 @@ void region_recycle(region_type *region, void *block, size_t size);
  */
 void region_dump_stats(region_type *region, FILE *out);
 
+/* get size of recyclebin */
+size_t region_get_recycle_size(region_type* region);
+
 #endif /* _REGION_ALLOCATOR_H_ */
