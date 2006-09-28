@@ -94,25 +94,6 @@ char *region_strdup(region_type *region, const char *string);
 
 
 /*
- * Set the current active region to REGION.
- */
-void region_set_current(region_type *region);
-
-
-/*
- * Return the current active region.
- */
-region_type *region_get_current(void);
-
-
-/*
- * Allocate SIZE bytes of memory inside the currently active region.
- * The memory is deallocated when region_free_all is called for the
- * active region.  This is provided as an easy replacement of malloc.
- */
-void *region_alloc_current(size_t size);
-
-/*
  * Print some REGION statistics to OUT.
  */
 void region_dump_stats(region_type *region, FILE *out);

@@ -48,8 +48,6 @@ struct region
 	size_t        large_object_size;
 };
 
-static region_type *current_region = NULL;
-
 
 static region_type *
 alloc_region_base(void *(*allocator)(size_t size),
@@ -148,17 +146,6 @@ region_destroy(region_type *region)
 	deallocator(region);
 }
 
-void
-region_set_current(region_type *region)
-{
-	current_region = region;
-}
-
-region_type *
-region_get_current(void)
-{
-	return current_region;
-}
 
 size_t
 region_add_cleanup(region_type *region, void (*action)(void *), void *data)
@@ -249,12 +236,6 @@ region_alloc_zero(region_type *region, size_t size)
 	if (!result) return NULL;
 	memset(result, 0, size);
 	return result;
-}
-
-void *
-region_alloc_current(size_t size)
-{
-	return region_alloc(current_region, size);
 }
 
 void
