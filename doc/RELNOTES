@@ -14,6 +14,9 @@ BUG FIXES:
 	- Bug #145: NSD failed to reload cases of simulaneous zone transfer.
 	- Bug #146: NSD fails to write to xfrdfile when chrooted. Fixed.
 		Also fix for difffile when chrooted.
+	- Bug #147: NSD runs out of memory. Fixed, memory is reused.
+	- nsd -L 1 logging is smaller, -L 2 contains all debug information.
+	  (only available for debug compiles).
 
 3.0.1
 =============
