@@ -1,6 +1,7 @@
 29 September 2006: Wouter
 	- recyclebin works, added a test that uses it (about 3 Mb goes
 	  through the recyclebin). This resolves bug #147.
+	- Made -L 1 logging is little less verbose (-L 2 gets it all).
 
 28 September 2006: Wouter
 	- Removed unused global variable current_region,

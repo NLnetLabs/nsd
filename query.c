@@ -104,7 +104,7 @@ void
 query_add_compression_domain(struct query *q, domain_type *domain, uint16_t offset)
 {
 	while (domain->parent) {
-		DEBUG(DEBUG_NAME_COMPRESSION, 1,
+		DEBUG(DEBUG_NAME_COMPRESSION, 2,
 		      (LOG_INFO, "query dname: %s, number: %lu, offset: %u\n",
 		       dname_to_string(domain_dname(domain), NULL),
 		       (unsigned long) domain->number,
@@ -680,7 +680,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			/* 0 good for query name, otherwise new number */
 			newdom->number = 0;
 		}
-		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "created temp domain src %d. %s nr %d", i,
+		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "created temp domain src %d. %s nr %d", i,
 			dname_to_string(domain_dname(newdom), NULL),
 			newdom->number));
 		lastparent = newdom;
@@ -699,7 +699,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 		newdom->parent = lastparent;
 		newdom->node.key = dname_partial_copy(q->region,
 			to_name, domain_dname(to_closest_encloser)->label_count + i + 1);
-		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "created temp domain dest %d. %s nr %d", i,
+		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "created temp domain dest %d. %s nr %d", i,
 			dname_to_string(domain_dname(newdom), NULL),
 			newdom->number));
 		lastparent = newdom;
@@ -940,10 +940,10 @@ answer_authoritative(struct nsd   *nsd,
 		assert(rrset->rr_count > 0);
 		if(domain_number != 0) /* we followed CNAMEs or DNAMEs */
 			name = domain_dname(closest_match);
-		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "expanding DNAME for q=%s", dname_to_string(name, NULL)));
-		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "->src is %s", 
+		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "expanding DNAME for q=%s", dname_to_string(name, NULL)));
+		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->src is %s", 
 			dname_to_string(domain_dname(closest_encloser), NULL)));
-		DEBUG(DEBUG_QUERY,1, (LOG_INFO, "->dest is %s", 
+		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->dest is %s", 
 			dname_to_string(domain_dname(dest), NULL)));
 		/* if the DNAME set is not added we have a loop, do not follow */
 		added = add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset);
@@ -958,7 +958,7 @@ answer_authoritative(struct nsd   *nsd,
 				RCODE_SET(q->packet, RCODE_YXDOMAIN);
 				return;
 			}
-			DEBUG(DEBUG_QUERY,1, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
+			DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->result is %s", dname_to_string(newname, NULL)));
 			/* follow the DNAME */
 			exact = namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
 			/* synthesize CNAME record */

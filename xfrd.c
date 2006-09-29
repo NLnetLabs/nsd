@@ -954,7 +954,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	/* only check ID in first response message. Could also check that
 	 * AA bit and QR bit are set, but not needed.
 	 */
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+	DEBUG(DEBUG_XFRD,2, (LOG_INFO, 
 		"got query with ID %d and %d needed", ID(packet), zone->query_id));
 	if(ID(packet) != zone->query_id) {
 		log_msg(LOG_ERR, "xfrd: zone %s received bad query id from %s, dropped",

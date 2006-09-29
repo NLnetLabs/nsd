@@ -254,7 +254,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	}
 	*pp = rrset->next;
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "delete rrset of %s type %s", 
+	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "delete rrset of %s type %s", 
 		dname_to_string(domain_dname(domain),0),
 		rrtype_to_string(rrset_rrtype(rrset))));
 
@@ -558,7 +558,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 	while(domain && dname_is_subdomain(
 		domain_dname(domain), domain_dname(zone->apex)))
 	{
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "delete zone visit %s",
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "delete zone visit %s",
 			dname_to_string(domain_dname(domain),0)));
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
@@ -679,11 +679,11 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			return 0;
 		}
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "diff: started packet for zone %s",
+	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: started packet for zone %s",
 			dname_to_string(dname_zone, 0)));
 	/* first RR: check if SOA and correct zone & serialno */
 	if(*rr_count == 0) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "diff: %s parse first RR",
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s parse first RR",
 			dname_to_string(dname_zone, 0)));
 		dname = dname_make_from_packet(region, packet, 1, 1);
 		if(!dname) {
@@ -730,7 +730,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		*rr_count = 1;
 		*is_axfr = 0;
 		*delete_mode = 0;
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
 			dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 	}
 	else  counter = 0;
@@ -805,7 +805,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			/* ignore pseudo RRs */
 			continue;
 		}
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr %s RR dname is %s type %s", 
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfr %s RR dname is %s type %s", 
 			*delete_mode?"del":"add",
 			dname_to_string(dname,0), rrtype_to_string(type)));
 		if(*delete_mode) {
@@ -1024,7 +1024,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		}
 		for(i=0; i<num_parts; i++) {
 			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: apply part %d", (int)i));
+			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
 			if(!apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
 				&rr_count, child_count)) {
@@ -1092,12 +1092,12 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	if(!diff_read_32(in, &len)) return 1;
 
 	if(type == DIFF_PART_IXFR) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "part IXFR len %d", len));
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part IXFR len %d", len));
 		if(!store_ixfr_data(in, len, data, startpos))
 			return 0;
 	}
 	else if(type == DIFF_PART_SURE) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "part SURE len %d", len));
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", len));
 		if(!read_sure_part(db, in, opt, data, log, child_count)) 
 			return 0;
 	} else {
@@ -1175,7 +1175,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 
 	while(diff_read_32(df, &type)) 
 	{
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "iter loop"));
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "iter loop"));
 		if(!read_process_part(db, df, type, opt, data, log, 
 			child_count, &startpos))
 		{

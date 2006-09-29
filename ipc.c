@@ -359,7 +359,7 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		data->got_bytes += len;
 		if(got_acl >= (int)sizeof(data->acl_num)) {
 			uint16_t len = htons(data->total_bytes);
-			DEBUG(DEBUG_IPC,1, (LOG_INFO, 
+			DEBUG(DEBUG_IPC,2, (LOG_INFO, 
 				"fwd passed packet write %d", (int)data->got_bytes));
 			data->forward_mode = 0;
 			mode = NSD_PASS_TO_XFRD;
