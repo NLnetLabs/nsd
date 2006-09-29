@@ -30,7 +30,7 @@ The database is constructed as follows.
                 dname
                 ...
 
-        DNAME (index to [*]) ZONE (index to [**]) TYPE CLASS TTL
+        DNAME (index to [**]) ZONE (index to [*]) TYPE CLASS TTL
                         #rr in rrset
                         foreach rr
                                 #rdata
