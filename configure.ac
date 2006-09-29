@@ -217,15 +217,15 @@ AC_CHECK_CTIME_R
 # modified for NSD.
 AC_DEFUN([CHECK_SSL], [
     AC_ARG_WITH(ssl, AC_HELP_STRING([--with-ssl=pathname],
-                                    [enable SSL (will check /usr/local/ssl
-                            /usr/lib/ssl /usr/ssl /usr/pkg /usr/local /usr)]),[
+                [enable SSL (will check /usr/local/ssl
+                /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr)]),[
         ],[
             withval="yes"
         ])
     if test x_$withval != x_no; then
         AC_MSG_CHECKING(for SSL)
         if test x_$withval = x_ -o x_$withval = x_yes; then
-            withval="/usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/local /usr"
+            withval="/usr/local/ssl /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr"
         fi
         for dir in $withval; do
             ssldir="$dir"
@@ -242,6 +242,9 @@ AC_DEFUN([CHECK_SSL], [
             AC_MSG_RESULT(found in $ssldir)
             HAVE_SSL=yes 
             LDFLAGS="$LDFLAGS -L$ssldir/lib";
+	    if test x_$ssldir = x_/usr/sfw; then
+		LDFLAGS="$LDFLAGS -R$ssldir/lib";
+	    fi
             AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
                     AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
                 ])
