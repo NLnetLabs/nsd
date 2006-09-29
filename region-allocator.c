@@ -377,7 +377,7 @@ region_dump_stats(region_type *region, FILE *out)
 		(unsigned long) region->chunk_count,
 		(unsigned long) region->cleanup_count,
 		(unsigned long) region->recycle_size);
-	if(0 && region->recycle_bin) {
+	if(1 && region->recycle_bin) {
 		/* print details of the recycle bin */
 		size_t i;
 		for(i=0; i<region->large_object_size; i++) {
@@ -396,4 +396,43 @@ region_dump_stats(region_type *region, FILE *out)
 size_t region_get_recycle_size(region_type* region)
 {
 	return region->recycle_size;
+}
+
+/* debug routine, includes here to keep base region-allocator independent */
+#undef ALIGN_UP
+#include "util.h"
+void
+region_log_stats(region_type *region)
+{
+	char buf[10240], *str=buf;
+	int len=0;
+	sprintf(str, "%lu objects (%lu small/%lu large), %lu bytes allocated (%lu wasted) in %lu chunks, %lu cleanups, %lu in recyclebin%n",
+		(unsigned long) (region->small_objects + region->large_objects),
+		(unsigned long) region->small_objects,
+		(unsigned long) region->large_objects,
+		(unsigned long) region->total_allocated,
+		(unsigned long) region->unused_space,
+		(unsigned long) region->chunk_count,
+		(unsigned long) region->cleanup_count,
+		(unsigned long) region->recycle_size,
+		&len);
+	str+=len;
+	if(1 && region->recycle_bin) {
+		/* print details of the recycle bin */
+		size_t i;
+		for(i=0; i<region->large_object_size; i++) {
+			size_t count = 0;
+			struct recycle_elem* el = region->recycle_bin[i];
+			while(el) {
+				count++;
+				el = el->next;
+			}
+			if(i%ALIGNMENT == 0 && i!=0) {
+				sprintf(str, " %lu%n", (unsigned long)count, 
+					&len);
+				str+=len;
+			}
+		}
+	}
+	log_msg(LOG_INFO, "memory: %s", buf);
 }

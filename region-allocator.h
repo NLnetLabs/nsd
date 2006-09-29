@@ -108,4 +108,7 @@ void region_dump_stats(region_type *region, FILE *out);
 /* get size of recyclebin */
 size_t region_get_recycle_size(region_type* region);
 
+/* Debug print REGION statistics to LOG. */
+void region_log_stats(region_type *region);
+
 #endif /* _REGION_ALLOCATOR_H_ */

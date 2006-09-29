@@ -38,7 +38,6 @@ namedb_new (const char *filename)
 	db->filename = region_strdup(region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
-	db->memchurn = 0;
 	db->fd = NULL;
 
 	/*

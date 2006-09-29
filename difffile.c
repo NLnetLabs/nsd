@@ -206,16 +206,19 @@ diff_read_str(FILE* in, char* buf, size_t len)
 }
 
 static void
-add_rdata_memchurn(namedb_type* db, rr_type* rr)
+add_rdata_to_recyclebin(namedb_type* db, rr_type* rr)
 {
-	/* add sizeof rdatas to memchurn. */
+	/* add rdatas to recycle bin. */
 	size_t i;
-	db->memchurn += sizeof(rdata_atom_type)*rr->rdata_count;
 	for(i=0; i<rr->rdata_count; i++)
 	{
 		if(!rdata_atom_is_domain(rr->type, i))
-			db->memchurn += rdata_atom_size(rr->rdatas[i]);
+			region_recycle(db->region, rr->rdatas[i].data,
+				rdata_atom_size(rr->rdatas[i]) 
+				+ sizeof(uint16_t));
 	}
+	region_recycle(db->region, rr->rdatas, 
+		sizeof(rdata_atom_type)*rr->rdata_count);
 }
 
 /* this routine determines if below a domain there exist names with
@@ -255,10 +258,11 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 		dname_to_string(domain_dname(domain),0),
 		rrtype_to_string(rrset_rrtype(rrset))));
 
-	db->memchurn += sizeof(rrset_type);
-	db->memchurn += sizeof(rr_type) * rrset->rr_count;
 	for (i = 0; i < rrset->rr_count; ++i)
-		add_rdata_memchurn(db, &rrset->rrs[i]);
+		add_rdata_to_recyclebin(db, &rrset->rrs[i]);
+	region_recycle(db->region, rrset->rrs, 
+		sizeof(rr_type) * rrset->rr_count);
+	region_recycle(db->region, rrset, sizeof(rrset_type));
 
 	/* is this a SOA rrset ? */
 	if(rrset->zone->soa_rrset == rrset) {
@@ -379,11 +383,16 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			rrset_delete(db, domain, rrset);
 		} else {
 			/* swap out the bad RR and decrease the count */
-			add_rdata_memchurn(db, &rrset->rrs[rrnum]);
-			db->memchurn += sizeof(rr_type);
+			rr_type* rrs_orig = rrset->rrs;
+			add_rdata_to_recyclebin(db, &rrset->rrs[rrnum]);
 			if(rrnum < rrset->rr_count-1)
 				rrset->rrs[rrnum] = rrset->rrs[rrset->rr_count-1];
 			memset(&rrset->rrs[rrset->rr_count-1], 0, sizeof(rr_type));
+			/* realloc the rrs array one smaller */
+			rrset->rrs = region_alloc_init(db->region, rrs_orig,
+				sizeof(rr_type) * (rrset->rr_count-1));
+			region_recycle(db->region, rrs_orig,
+				sizeof(rr_type) * rrset->rr_count);
 			rrset->rr_count --;
 		}
 	}
@@ -431,12 +440,12 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 	
 	/* re-alloc the rrs and add the new */
-	db->memchurn += sizeof(rr_type) * rrset->rr_count;
 	rrs_old = rrset->rrs;
 	rrset->rrs = region_alloc(db->region, 
 		(rrset->rr_count+1) * sizeof(rr_type));
 	if(rrs_old)
 		memcpy(rrset->rrs, rrs_old, rrset->rr_count * sizeof(rr_type));
+	region_recycle(db->region, rrs_old, sizeof(rr_type) * rrset->rr_count);
 	rrset->rr_count ++;
 
 	rrset->rrs[rrset->rr_count - 1].owner = domain;
@@ -560,6 +569,10 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 
 	DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "axfrdel: recyclebin holds %lu bytes", 
 		(unsigned long) region_get_recycle_size(db->region)));
+#ifndef NDEBUG
+	if(nsd_debug_level >= 1)
+		region_log_stats(db->region);
+#endif
 
 	assert(zone->soa_rrset == 0);
 	/* keep zone->soa_nx_rrset alloced */
