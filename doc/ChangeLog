@@ -1,3 +1,7 @@
+4 October 2006: Wouter
+	- More fixes from Koh-ichi Ito (kohi@iri.co.jp now), for bug #146,
+	  his bash does not do $(( )), so nsdc.sh has to use test of course.
+
 29 September 2006: Wouter
 	- recyclebin works, added a test that uses it (about 3 Mb goes
 	  through the recyclebin). This resolves bug #147.

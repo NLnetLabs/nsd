@@ -164,7 +164,7 @@ send_updates() {
 	fi
 	update_sent="no"
 
-	while (($# > 0)); do
+	while test $# -gt 0; do
 		ip_spec=$1
 		key_spec=$2
 		shift 2
@@ -197,7 +197,7 @@ send_updates() {
 send_notify() {
 	local zonename=$1
 	shift
-	while (($# > 0)); do
+	while test $# -gt 0; do
 		ip_spec=$1
 		key_spec=$2
 		shift 2
