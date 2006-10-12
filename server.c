@@ -1015,7 +1015,7 @@ server_main(struct nsd *nsd)
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, 
 			"main: ipc send quit to xfrd"));
 		if(!write_socket(xfrd_listener.fd, &cmd, sizeof(cmd))) {
-			log_msg(LOG_ERR, "server_main: could not quit to xfrd: %s", 
+			log_msg(LOG_ERR, "server_main: could not send quit to xfrd: %s", 
 				strerror(errno));
 		}
 		fsync(xfrd_listener.fd);

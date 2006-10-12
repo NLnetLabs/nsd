@@ -19,7 +19,8 @@ ZONE COMPILER
   nsd.db. NSD refuses to start. Should skip/drop the zone.
   Redesign file format, so that you can skip a zone more easily, this
   also makes multiply db files easier.
-- profile the zonec compiling speed. Speed it up. Many people complain about.
+- profile the zonec compiling speed. Speed it up. Many people complain about
+  this.
 - wireformat interop. testing for IPSECKEY type.
 
 SERVER
