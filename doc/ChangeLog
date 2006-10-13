@@ -1,3 +1,7 @@
+13 October 2006: Wouter
+	- Bug #149: Wrong text for NOTAUTH error code. When notify is not
+	  authorised REFUSED error code returned instead.
+
 4 October 2006: Wouter
 	- More fixes from Koh-ichi Ito (kohi@iri.co.jp now), for bug #146,
 	  his bash does not do $(( )), so nsdc.sh has to use test of course.

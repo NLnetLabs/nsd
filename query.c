@@ -450,7 +450,7 @@ answer_notify (struct nsd* nsd, struct query *query)
 			dname_to_string(query->qname, NULL),
 			why?why->key_name:"no acl matches", 
 			why?why->ip_address_spec:"."));
-	return query_error(query, NSD_RC_NOTAUTH);
+	return query_error(query, NSD_RC_REFUSE);
 }
 
 
