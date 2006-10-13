@@ -17,7 +17,7 @@ BUG FIXES:
 	- Bug #147: NSD runs out of memory. Fixed, memory is reused.
 	- nsd -L 1 logging is smaller, -L 2 contains all debug information.
 	  (only available for debug compiles).
-	- Bug #149: Wrong text for NOTAUTH error code. When notify is not
+	- Bug #149: Fixed text for NOTAUTH error code. When notify is not
 	  authorised REFUSED error code returned instead.
 
 3.0.1
