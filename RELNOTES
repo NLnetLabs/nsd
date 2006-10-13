@@ -1,5 +1,10 @@
 NSD RELEASE NOTES
 
+2.3.7
+=============
+BUG FIXES:
+	- Bug #149: Fixed text for NOTAUTH error code.
+
 2.3.6
 =============
 FEATURES:

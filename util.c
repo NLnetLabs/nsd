@@ -495,7 +495,7 @@ rcode2str(int rc)
         case RCODE_REFUSE:
                 return "REFUSED";
         case RCODE_NOTAUTH:
-                return "NOT AUTHORIZED";
+                return "SERVER NOT AUTHORITATIVE FOR ZONE";
         default:
                 return "UNKNOWN ERROR";
         }

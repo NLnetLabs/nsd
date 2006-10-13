@@ -46,7 +46,7 @@ typedef enum rr_section rr_section_type;
 #define RCODE_NXDOMAIN		3 	/* Name Error */
 #define RCODE_IMPL		4 	/* Not implemented */
 #define RCODE_REFUSE		5 	/* Refused */
-#define RCODE_NOTAUTH		9	/* Not authorized */
+#define RCODE_NOTAUTH		9	/* Server not authoritative for zone */
 
 /* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
 enum nsd_rc
