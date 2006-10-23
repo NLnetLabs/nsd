@@ -391,6 +391,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			/* realloc the rrs array one smaller */
 			rrset->rrs = region_alloc_init(db->region, rrs_orig,
 				sizeof(rr_type) * (rrset->rr_count-1));
+			if(!rrset->rrs) {
+				log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+				exit(1);
+			}
 			region_recycle(db->region, rrs_orig,
 				sizeof(rr_type) * rrset->rr_count);
 			rrset->rr_count --;
@@ -418,6 +422,10 @@ add_RR(namedb_type* db, const dname_type* dname,
 	if(!rrset) {
 		/* create the rrset */
 		rrset = region_alloc(db->region, sizeof(rrset_type));
+		if(!rrset) {
+			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+			exit(1);
+		}
 		rrset->zone = zone;
 		rrset->rrs = 0;
 		rrset->rr_count = 0;
@@ -443,6 +451,10 @@ add_RR(namedb_type* db, const dname_type* dname,
 	rrs_old = rrset->rrs;
 	rrset->rrs = region_alloc(db->region, 
 		(rrset->rr_count+1) * sizeof(rr_type));
+	if(!rrset->rrs) {
+		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+		exit(1);
+	}
 	if(rrs_old)
 		memcpy(rrset->rrs, rrs_old, rrset->rr_count * sizeof(rr_type));
 	region_recycle(db->region, rrs_old, sizeof(rr_type) * rrset->rr_count);
@@ -465,11 +477,21 @@ add_RR(namedb_type* db, const dname_type* dname,
 			if(zone->soa_nx_rrset == 0) {
 				zone->soa_nx_rrset = region_alloc(db->region, 
 					sizeof(rrset_type));
+				if(!zone->soa_nx_rrset) {
+					log_msg(LOG_ERR, "out of memory, %s:%d", 
+						__FILE__, __LINE__);
+					exit(1);
+				}
 				zone->soa_nx_rrset->rr_count = 1;
 				zone->soa_nx_rrset->next = 0;
 				zone->soa_nx_rrset->zone = zone;
 				zone->soa_nx_rrset->rrs = region_alloc(db->region, 
 					sizeof(rr_type));
+				if(!zone->soa_nx_rrset->rrs) {
+					log_msg(LOG_ERR, "out of memory, %s:%d", 
+						__FILE__, __LINE__);
+					exit(1);
+				}
 			}
 			memcpy(zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
 			memcpy(&soa_minimum, rdata_atom_data(rrset->rrs->rdatas[6]),
@@ -523,6 +545,10 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr: creating zone_type %s",
 		dname_to_string(zone_name,0)));
 	zone = (zone_type *) region_alloc(db->region, sizeof(zone_type));
+	if(!zone) {
+		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+		exit(1);
+	}
 	zone->next = db->zones;
 	db->zones = zone;
 	db->zone_count++;
@@ -535,6 +561,10 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	zone->nsec3_last = NULL;
 #endif
 	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*child_count);
+	if(!zone->dirty) {
+		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+		exit(1);
+	}
 	memset(zone->dirty, 0, sizeof(uint8_t)*child_count);
 	zone->opts = zone_options_find(opt, domain_dname(zone->apex)); 
 	if(!zone->opts) {
@@ -886,6 +916,10 @@ diff_read_data_create()
 	region_type* region = region_create(xalloc, free);
 	struct diff_read_data* data = (struct diff_read_data*)
 		region_alloc(region, sizeof(struct diff_read_data));
+	if(!data) {
+		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+		exit(1);
+	}
 	data->region = region;
 	data->zones = rbtree_create(region, 
 		(int (*)(const void *, const void *)) dname_compare);
@@ -916,6 +950,10 @@ diff_read_insert_zone(struct diff_read_data* data, const char* name)
 	const dname_type* dname = dname_parse(data->region, name);
 	struct diff_zone* zp = region_alloc(data->region,
 		sizeof(struct diff_zone));
+	if(!zp) {
+		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+		exit(1);
+	}
 	zp->node = *RBTREE_NULL;
 	zp->node.key = dname;
 	zp->parts = rbtree_create(data->region, intcompf);
@@ -937,6 +975,10 @@ diff_read_insert_part(struct diff_read_data* data,
 {
 	struct diff_xfrpart* xp = region_alloc(data->region,
 		sizeof(struct diff_xfrpart));
+	if(!xp) {
+		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+		exit(1);
+	}
 	xp->node = *RBTREE_NULL;
 	xp->node.key = &xp->seq_nr;
 	xp->seq_nr = seq_nr;
@@ -974,6 +1016,10 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 
 	if(log) {
 		thislog = (struct diff_log*)region_alloc(db->region, sizeof(struct diff_log));
+		if(!thislog) {
+			log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+			exit(1);
+		}
 		thislog->zone_name = region_strdup(db->region, zone_buf);
 		thislog->comment = region_strdup(db->region, log_buf);
 		thislog->error = 0;

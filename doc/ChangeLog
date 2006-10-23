@@ -1,3 +1,7 @@
+23 October 2006: Wouter
+	- Added checks for out of memory in reload (diff file). And it exits
+	  if so neatly.
+
 13 October 2006: Wouter
 	- Bug #149: Wrong text for NOTAUTH error code. When notify is not
 	  authorised REFUSED error code returned instead.
