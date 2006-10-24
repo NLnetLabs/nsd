@@ -162,8 +162,13 @@ test_alloc(CuTest *tc, rbtree_t* tree, region_type* region)
 		/* make sure none of the size are in recyclebin */
 		bl = p->list;
 		while(bl) {
+			/* Test does not work anymore, because region-allocator
+			   sometimes has wasted space that it keeps in recycle bin
+			   And this test program cannot detect that it does so */
+			/*
 			CuAssert(tc, "region_alloc skips available blocks",
 				bl->alloced != 0);
+			*/
 			bl = bl->next;
 		}
 		bl = region_alloc(tree->region, sizeof(*bl));
