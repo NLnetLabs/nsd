@@ -1,3 +1,7 @@
+24 October 2006: Wouter
+	- Recycle rrset memory after doing special processing on the deleted
+	  rrset data.
+
 23 October 2006: Wouter
 	- Added checks for out of memory in reload (diff file). And it exits
 	  if so neatly.

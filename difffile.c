@@ -258,12 +258,6 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 		dname_to_string(domain_dname(domain),0),
 		rrtype_to_string(rrset_rrtype(rrset))));
 
-	for (i = 0; i < rrset->rr_count; ++i)
-		add_rdata_to_recyclebin(db, &rrset->rrs[i]);
-	region_recycle(db->region, rrset->rrs, 
-		sizeof(rr_type) * rrset->rr_count);
-	region_recycle(db->region, rrset, sizeof(rrset_type));
-
 	/* is this a SOA rrset ? */
 	if(rrset->zone->soa_rrset == rrset) {
 		rrset->zone->soa_rrset = 0;
@@ -282,6 +276,13 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 		}
 	}
 #endif
+	/* recycle the memory space of the rrset */
+	for (i = 0; i < rrset->rr_count; ++i)
+		add_rdata_to_recyclebin(db, &rrset->rrs[i]);
+	region_recycle(db->region, rrset->rrs, 
+		sizeof(rr_type) * rrset->rr_count);
+	region_recycle(db->region, rrset, sizeof(rrset_type));
+
 	/* is the node now an empty node (completely deleted) */
 	if(domain->rrsets == 0) {
 		/* if there is no data below it, it becomes non existing.
