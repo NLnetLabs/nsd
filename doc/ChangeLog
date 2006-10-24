@@ -4,7 +4,10 @@
 	- log message clearer for 'duplicate xfr part' to 'discarding partial
 	  xfr part'.
 	- if you have a server that has IXFR turned off but sends a TC flag
-	  for IXFR queries, xfrd will retry to TCP. 
+	  for IXFR queries, xfrd will retry to TCP. This makes the use of
+	  'AXFR' flag in nsd.conf file not needed in certain cases.
+	- Be thrifty and save up the memory that was lost at end of chunks
+	  in the recycle bin. Saved 1.3Mb on 170(rrs)/220(total) Mb dataset.
 
 23 October 2006: Wouter
 	- Added checks for out of memory in reload (diff file). And it exits

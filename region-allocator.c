@@ -236,8 +236,17 @@ region_alloc(region_type *region, size_t size)
     
 	if (region->allocated + aligned_size > region->chunk_size) {
 		void *chunk = region->allocator(region->chunk_size);
+		size_t wasted;
 		if (!chunk) return NULL;
 
+		wasted = (region->chunk_size - region->allocated) & (~(ALIGNMENT-1));
+		if(wasted >= ALIGNMENT) {
+			/* put wasted part in recycle bin for later use */
+			region->total_allocated += wasted;
+			++region->small_objects;
+			region_recycle(region, region->data+region->allocated, wasted);
+			region->allocated += wasted;
+		}
 		++region->chunk_count;
 		region->unused_space += region->chunk_size - region->allocated;
 		
