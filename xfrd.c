@@ -987,7 +987,11 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			return xfrd_packet_bad;
 		}
 	}
-	if(ancount == 0) {
+	if(zone->msg_rr_count == 0 && ancount == 0) {
+		if(zone->tcp_conn == -1 && TC(packet)) {
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: TC flagged"));
+			return xfrd_packet_tcp;
+		}
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: too short xfr packet: no answer"));
 		return xfrd_packet_bad;
 	}

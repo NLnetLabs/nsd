@@ -1,6 +1,10 @@
 24 October 2006: Wouter
 	- Recycle rrset memory after doing special processing on the deleted
 	  rrset data.
+	- log message clearer for 'duplicate xfr part' to 'discarding partial
+	  xfr part'.
+	- if you have a server that has IXFR turned off but sends a TC flag
+	  for IXFR queries, xfrd will retry to TCP. 
 
 23 October 2006: Wouter
 	- Added checks for out of memory in reload (diff file). And it exits

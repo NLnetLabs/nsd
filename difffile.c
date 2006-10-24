@@ -1117,7 +1117,7 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 		zp = diff_read_insert_zone(data, zone_name);
 	xp = diff_read_find_part(zp, seq);
 	if(xp) {
-		log_msg(LOG_INFO, "duplicate xfr part: %s %d", zone_name, seq);
+		log_msg(LOG_INFO, "discarding partial xfr part: %s %d", zone_name, seq);
 		/* overwrite with newer value (which probably relates to next commit) */
 	}
 	else {
