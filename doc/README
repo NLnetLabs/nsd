@@ -595,19 +595,11 @@ Please let us know if, and how often, this happens.
 What happens is the file ixfr.db contains only part of expected data.
 The corruption is removed by snipping off the trailing part.
 
-- "memory churn is <num> bytes wasted"
+- "memory recyclebin holds <num> bytes"
 
-This is printed for every reload.  NSD churns through some memory due to
-zone transfers.  This is because the removed Resource Record data is not
-freed from memory, but kept allocated.  Note that IXFR (with TSIG) is with
-a trusted party, so memory denial attacks are unlikely.  'nsdc patch' will 
-cause a complete refresh of the memory it can be used to reset the amount 
-of 'churned' memory.
-
-NLnet Labs is interested in the operational impact of the memory churn 
-caused by the reloads. We would appreciate some feedback on how large 
-these values get in practice and if a regular run of 'nsdc patch' is a 
-sufficient workaround.
+This is printed for every reload. NSD allocates and deallocates memory
+to service IXFR updates. The recyclebin holds deallocated memory ready
+for future use. If the number grows too large, nsdc patch will reset it.
 
 - "xfrd: max number of tcp connections (10) reached."
 

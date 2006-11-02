@@ -15,6 +15,7 @@ BUG FIXES:
 	- Bug #146: NSD fails to write to xfrdfile when chrooted. Fixed.
 		Also fix for difffile when chrooted.
 	- Bug #147: NSD runs out of memory. Fixed, memory is reused.
+	  Occurred when running NSD with very big zones and large updates.
 	- nsd -L 1 logging is smaller, -L 2 contains all debug information.
 	  (only available for debug compiles).
 	- Bug #149: Fixed text for NOTAUTH error code. When notify is not

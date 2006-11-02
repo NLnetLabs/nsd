@@ -1,3 +1,7 @@
+2 November 2006: Wouter
+	- Added pdf for differences.tex for ease of use.
+	- Updated text in readme on memory usage.
+
 24 October 2006: Wouter
 	- Recycle rrset memory after doing special processing on the deleted
 	  rrset data.
