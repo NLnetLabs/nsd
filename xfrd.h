@@ -40,6 +40,10 @@ struct xfrd_state {
 	struct xfrd_tcp_set* tcp_set;
 	/* packet buffer for udp packets */
 	struct buffer* packet;
+	/* udp waiting list */
+	struct xfrd_zone *udp_waiting_first, *udp_waiting_last;
+	/* number of udp sockets (for sending queries) in use */
+	size_t udp_use_num;
 
 	/* current time is cached */
 	uint8_t got_time;
@@ -150,6 +154,10 @@ struct xfrd_zone {
 	uint8_t tcp_waiting;
 	/* next zone in waiting list */
 	xfrd_zone_t* tcp_waiting_next;
+	/* zone is waiting for a ucp connection (tcp is preferred) */
+	uint8_t udp_waiting;
+	/* next zone in waiting list for UDP */
+	xfrd_zone_t* udp_waiting_next;
 
 	/* xfr message handling data */
 	/* query id */
@@ -208,6 +216,11 @@ int xfrd_send_udp(acl_options_t* acl, buffer_type* packet);
  * read from udp port packet into buffer, returns 0 on failure 
  */
 int xfrd_udp_read_packet(buffer_type* packet, int fd);
+
+/*
+ * Release udp socket that a zone is using
+ */
+void xfrd_udp_release(xfrd_zone_t* zone);
 
 /*
  * Get a static buffer for temporary use (to build a packet).

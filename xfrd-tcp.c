@@ -156,6 +156,10 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 		zone->tcp_waiting = 0;
 
+		/* stop udp use (if any) */
+		if(zone->zone_handler.fd != -1)
+			xfrd_udp_release(zone);
+
 		if(!xfrd_tcp_open(set, zone)) 
 			return;
 
@@ -498,6 +502,9 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		/* start it */
 		zone->tcp_conn = conn;
 		zone->tcp_waiting = 0;
+		/* stop udp (if any) */
+		if(zone->zone_handler.fd != -1)
+			xfrd_udp_release(zone);
 
 		if(!xfrd_tcp_open(set, zone)) 
 			return;

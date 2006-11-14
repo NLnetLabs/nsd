@@ -66,7 +66,6 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 	}
 
 	not->notify_send_handler.fd = -1;
-	not->notify_send_handler.fd = -1;
 	not->notify_send_handler.timeout = 0;
 	not->notify_send_handler.user_data = not;
 	not->notify_send_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;

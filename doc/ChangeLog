@@ -1,3 +1,8 @@
+14 November 2006: Wouter
+	- Fixed bug where NSD tries to create 10000 udp sockets,
+	  when starting with 10000 secondary zones. Limited to 50
+	  at a time. The XFRD_MAX_UDP constant controls this.
+
 3 November 2006: Wouter
 	- Created tags/NSD_3_0_2_REL.
 

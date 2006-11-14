@@ -34,6 +34,7 @@
 #define XFRD_MAX_ROUNDS 3 /* number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
+#define XFRD_MAX_UDP 50 /* max number of UDP sockets at a time */
 
 /* the daemon state */
 static xfrd_state_t* xfrd = 0;
@@ -72,6 +73,8 @@ static void xfrd_handle_reload(netio_type *netio,
 static void xfrd_send_expire_notification(xfrd_zone_t* zone);
 /* send ixfr request, returns fd of connection to read on */
 static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone);
+/* obtain udp socket slot */
+static void xfrd_udp_obtain(xfrd_zone_t* zone);
 
 /* read data via udp */
 static void xfrd_udp_read(xfrd_zone_t* zone);
@@ -96,6 +99,9 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->netio = netio_create(xfrd->region);
 	xfrd->nsd = nsd;
 	xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
+	xfrd->udp_waiting_first = NULL;
+	xfrd->udp_waiting_last = NULL;
+	xfrd->udp_use_num = 0;
 	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->parent_soa_info_pass = 0;
 
@@ -256,8 +262,9 @@ xfrd_init_zones()
 		xzone->zone_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
 		xzone->zone_handler.event_handler = xfrd_handle_zone;
 		netio_add_handler(xfrd->netio, &xzone->zone_handler);
-		xzone->tcp_waiting = 0;
 		xzone->tcp_conn = -1;
+		xzone->tcp_waiting = 0;
+		xzone->udp_waiting = 0;
 
 #ifdef TSIG
 		tsig_create_record_custom(&xzone->tsig, xfrd->region, 0, 0, 4);
@@ -382,12 +389,18 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 	/* timeout */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s timeout", zone->apex_str));
 	if(handler->fd != -1) {
-		close(handler->fd);
-		handler->fd = -1;
+		assert(zone->tcp_conn == -1);
+		xfrd_udp_release(zone);
 	}
 
 	if(zone->tcp_waiting) {
 		DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s skips retry, TCP connections full",
+			zone->apex_str));
+		xfrd_set_timer_retry(zone);
+		return;
+	}
+	if(zone->udp_waiting) {
+		DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s skips retry, UDP connections full",
 			zone->apex_str));
 		xfrd_set_timer_retry(zone);
 		return;
@@ -462,8 +475,33 @@ xfrd_make_request(xfrd_zone_t* zone)
 	} else {
 		/* request ixfr ; start by udp */
 		xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
-		zone->zone_handler.fd = xfrd_send_ixfr_request_udp(zone);
+		xfrd_udp_obtain(zone);
 	}
+}
+
+static void
+xfrd_udp_obtain(xfrd_zone_t* zone)
+{
+	assert(zone->udp_waiting == 0);
+	if(zone->tcp_conn != -1) {
+		/* no tcp and udp at the same time */
+		xfrd_tcp_release(xfrd->tcp_set, zone);
+	}
+	if(xfrd->udp_use_num < XFRD_MAX_UDP) {
+		xfrd->udp_use_num++;
+		zone->zone_handler.fd = xfrd_send_ixfr_request_udp(zone);
+		if(zone->zone_handler.fd == -1)
+			xfrd->udp_use_num--;
+		return;
+	}
+	/* queue the zone as last */
+	zone->udp_waiting = 1;
+	zone->udp_waiting_next = NULL;
+	if(!xfrd->udp_waiting_first)
+		xfrd->udp_waiting_first = zone;
+	if(xfrd->udp_waiting_last)
+		xfrd->udp_waiting_last->udp_waiting_next = zone;
+	xfrd->udp_waiting_last = zone;
 }
 
 time_t 
@@ -661,31 +699,60 @@ xfrd_udp_read_packet(buffer_type* packet, int fd)
 	return 1;
 }
 
+void 
+xfrd_udp_release(xfrd_zone_t* zone)
+{
+	if(zone->zone_handler.fd != -1)
+		close(zone->zone_handler.fd);
+	zone->zone_handler.fd = -1;
+	/* see if there are waiting zones */
+	if(xfrd->udp_use_num == XFRD_MAX_UDP)
+	{
+		while(xfrd->udp_waiting_first) {
+			/* snip off waiting list */
+			xfrd_zone_t* wz = xfrd->udp_waiting_first;
+			xfrd->udp_waiting_first = wz->udp_waiting_next;
+			if(xfrd->udp_waiting_last == wz)
+				xfrd->udp_waiting_last = NULL;
+			/* see if this zone needs udp connection */
+			if(wz->tcp_conn == -1) {
+				wz->zone_handler.fd = 
+					xfrd_send_ixfr_request_udp(wz);
+				if(wz->zone_handler.fd != -1)
+					return;
+			}
+		}
+	}
+	/* no waiting zones */
+	if(xfrd->udp_use_num > 0)
+		xfrd->udp_use_num--;
+}
+
 static void 
 xfrd_udp_read(xfrd_zone_t* zone)
 {
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s read udp data", zone->apex_str));
 	if(!xfrd_udp_read_packet(xfrd->packet, zone->zone_handler.fd)) {
-		close(zone->zone_handler.fd);
-		zone->zone_handler.fd = -1;
+		xfrd_udp_release(zone);
 		return;
 	}
-	close(zone->zone_handler.fd);
-	zone->zone_handler.fd = -1;
 	switch(xfrd_handle_received_xfr_packet(zone, xfrd->packet)) {
 		case xfrd_packet_tcp:
 			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_udp_release(zone);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 			break;
 		case xfrd_packet_transfer:
 		case xfrd_packet_newlease:
 			/* nothing more to do */
 			assert(zone->round_num == -1);
+			xfrd_udp_release(zone);
 			break;
 		case xfrd_packet_more:
 		case xfrd_packet_bad:
 		default:
 			/* drop packet */
+			xfrd_udp_release(zone);
 			/* query next server */
 			xfrd_make_request(zone);
 			break;
@@ -784,6 +851,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 #endif /* TSIG */
 	}
 	buffer_flip(xfrd->packet);
+	xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
 
 	if((fd = xfrd_send_udp(zone->master, xfrd->packet)) == -1) 
 		return -1;
