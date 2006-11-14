@@ -1,5 +1,12 @@
 NSD RELEASE NOTES
 
+3.0.3
+=============
+BUG FIXES:
+	- When running with thousands of secondary zones, NSD would
+	  run out of UDP sockets. FreeBSD crashes the process instead
+	  of returning an error. Fixed.
+
 3.0.2
 =============
 BUG FIXES:

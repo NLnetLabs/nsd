@@ -702,6 +702,7 @@ xfrd_udp_read_packet(buffer_type* packet, int fd)
 void 
 xfrd_udp_release(xfrd_zone_t* zone)
 {
+	assert(zone->udp_waiting == 0);
 	if(zone->zone_handler.fd != -1)
 		close(zone->zone_handler.fd);
 	zone->zone_handler.fd = -1;
