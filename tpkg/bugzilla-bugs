@@ -80,3 +80,4 @@ T 140   "NSD does not clear CD bit" in copy_cd test.
 T 141   "NSD does not clear flags on formerr"
 T 144	"Defaults in LOC records not RFC 1876 compliant"
 T 145	"NSD doesn't support multiple AXFR simultaneously" in long dir.
+T 152	"identity keyword in nsd.conf does not function properly"

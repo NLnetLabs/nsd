@@ -381,7 +381,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 		errors ++;
 	}
 #endif
-	if (strlen(opt->identity) > UCHAR_MAX) {
+	if (opt->identity && strlen(opt->identity) > UCHAR_MAX) {
                 fprintf(stderr, "%s: server identity too long (%u characters)\n",
                       filename, (unsigned) strlen(opt->identity));
 		errors ++;

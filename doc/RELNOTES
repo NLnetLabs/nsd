@@ -6,6 +6,7 @@ BUG FIXES:
 	- When running with thousands of secondary zones, NSD would
 	  run out of UDP sockets. FreeBSD crashes the process instead
 	  of returning an error. Fixed.
+	- Bug #152: NSD would not use the identity from nsd.conf, fixed.
 
 3.0.2
 =============

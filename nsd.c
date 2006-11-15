@@ -357,6 +357,7 @@ main (int argc, char *argv[])
 		log_msg(LOG_ERR,
 			"failed to get the host name: %s - using default identity",
 			strerror(errno));
+		nsd.identity = IDENTITY;
 	}
 
 
@@ -534,10 +535,9 @@ main (int argc, char *argv[])
 		if(nsd.options->pidfile) nsd.pidfile = nsd.options->pidfile;
 		else nsd.pidfile = PIDFILE;
 	}
-	if(!nsd.identity)
+	if(nsd.identity == hostname || nsd.identity == IDENTITY)
 	{
 		if(nsd.options->identity) nsd.identity = nsd.options->identity;
-		else nsd.identity = IDENTITY;
 	}
 	if (nsd.options->logfile && !log_filename) {
 		log_filename = nsd.options->logfile;

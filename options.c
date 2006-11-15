@@ -39,7 +39,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->ip4_only = 0;
 	opt->ip6_only = 0;
 	opt->database = DBFILE;
-	opt->identity = IDENTITY;
+	opt->identity = 0;
 	opt->logfile = 0;
 	opt->server_count = 1;
 	opt->tcp_count = 10;
