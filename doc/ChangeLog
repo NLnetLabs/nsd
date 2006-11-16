@@ -1,3 +1,6 @@
+16 November 2006: Wouter
+	- Bug #153: now checks for FD_SETSIZE when adding fd to select fdset.
+
 15 November 2006: Wouter
 	- Fixed bug #152: identity keyword in nsd.conf did not work.
 	  What happened was that the hostname() from the computer 

@@ -81,3 +81,4 @@ T 141   "NSD does not clear flags on formerr"
 T 144	"Defaults in LOC records not RFC 1876 compliant"
 T 145	"NSD doesn't support multiple AXFR simultaneously" in long dir.
 T 152	"identity keyword in nsd.conf does not function properly"
+T 153	"Crash when using 10000 secondary zones"

@@ -153,7 +153,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 
 	for (elt = netio->handlers; elt; elt = elt->next) {
 		netio_handler_type *handler = elt->handler;
-		if (handler->fd >= 0) {
+		if (handler->fd >= 0 && handler->fd < FD_SETSIZE) {
 			if (handler->fd > max_fd) {
 				max_fd = handler->fd;
 			}
