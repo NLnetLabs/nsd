@@ -167,8 +167,8 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		return;
 	}
 	/* wait, at end of line */
-	log_msg(LOG_INFO, "xfrd: max number of tcp connections (%d) reached.",
-		XFRD_MAX_TCP);
+	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: max number of tcp "
+		"connections (%d) reached.", XFRD_MAX_TCP));
 	zone->tcp_waiting_next = 0;
 	zone->tcp_waiting = 1;
 	if(!set->tcp_waiting_last) {

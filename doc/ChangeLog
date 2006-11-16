@@ -1,5 +1,14 @@
 16 November 2006: Wouter
 	- Bug #153: now checks for FD_SETSIZE when adding fd to select fdset.
+	- Easy overview of socket allocation for xfrd in xfrd.h
+	- Upped the default xfrd socket limits a bit.
+	- Log message that the TCP connection limit is reach is now only
+	  in -L 2 logging. It is spammy.
+	- updated dependencies.
+	- Added test for notify-socketcount, and removed unused files from
+	  bug153 test package.
+	- Notify udp sockets are also capped at a max number. The rest
+	  has to wait in a queue.
 
 15 November 2006: Wouter
 	- Fixed bug #152: identity keyword in nsd.conf did not work.

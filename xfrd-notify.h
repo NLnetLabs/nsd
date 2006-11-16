@@ -45,6 +45,11 @@ struct notify_zone_t {
 	struct acl_options* notify_current; /* current slave to notify */
 	uint8_t notify_retry; /* how manieth retry in sending to current */
 	uint16_t notify_query_id;
+
+	/* is this notify waiting for a socket? */
+	uint8_t is_waiting;
+	/* next in the waiting list for the udp sockets */
+	struct notify_zone_t* waiting_next;
 };
 
 /* initialise outgoing notifies */

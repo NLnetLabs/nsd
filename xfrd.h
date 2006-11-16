@@ -23,6 +23,7 @@ struct region;
 struct buffer;
 struct xfrd_tcp;
 struct xfrd_tcp_set;
+struct notify_zone_t;
 typedef struct xfrd_state xfrd_state_t;
 typedef struct xfrd_zone xfrd_zone_t;
 typedef struct xfrd_soa xfrd_soa_t;
@@ -77,6 +78,10 @@ struct xfrd_state {
 	
 	/* tree of zones, by apex name, contains notify_zone_t*. All zones. */
 	rbtree_t *notify_zones;
+	/* number of notify_zone_t active using UDP socket */
+	int notify_udp_num;
+	/* first and last notify_zone_t* entries waiting for a UDP socket */
+	struct notify_zone_t *notify_waiting_first, *notify_waiting_last;
 };
 
 /*
@@ -178,6 +183,21 @@ enum xfrd_packet_result {
 	xfrd_packet_transfer, /* server responded with transfer*/
 	xfrd_packet_newlease /* no changes, soa OK */
 };
+
+/* 
+   Division of the (portably: 1024) max number of sockets that can be open.
+   The sum of the below numbers should be below the user limit for sockets
+   open, or you see errors in your logfile.
+   And it should be below FD_SETSIZE, to be able to select() on replies.
+   Note that also some sockets are used for writing the ixfr.db, xfrd.state
+   files and for the pipes to the main parent process.
+*/
+#define XFRD_MAX_TCP 50 /* max number of TCP AXFR/IXFR concurrent connections.*/
+			/* Each entry has 64Kb buffer preallocated.*/
+#define XFRD_MAX_UDP 300 /* max number of UDP sockets at a time for IXFR */
+#define XFRD_MAX_UDP_NOTIFY 50 /* max concurrent UDP sockets for NOTIFY */
+
+extern xfrd_state_t* xfrd;
 
 /* start xfrd, new start. Pass socket to server_main. */
 void xfrd_init(int socket, struct nsd* nsd);

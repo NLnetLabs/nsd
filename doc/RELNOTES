@@ -7,6 +7,8 @@ BUG FIXES:
 	  run out of UDP sockets. FreeBSD crashes the process instead
 	  of returning an error. Fixed.
 	- Bug #152: NSD would not use the identity from nsd.conf, fixed.
+	- Bug #153: Using thousands of zones, xfrd could run out of file
+	  descriptors. Fixed.
 
 3.0.2
 =============

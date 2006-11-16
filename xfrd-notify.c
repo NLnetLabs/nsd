@@ -20,8 +20,13 @@
 #define XFRD_NOTIFY_RETRY_TIMOUT 15 /* seconds between retries sending NOTIFY */
 #define XFRD_NOTIFY_MAX_NUM 5 /* number of attempts to send NOTIFY */
 
+/* start sending notifies */
+static void notify_enable(struct notify_zone_t* zone, 
+	struct xfrd_soa* new_soa);
 /* stop sending notifies */
 static void notify_disable(struct notify_zone_t* zone);
+/* setup the notify active state */
+static void setup_notify_active(struct notify_zone_t* zone);
 
 /* returns if the notify send is done for the notify_current acl */
 static int xfrd_handle_notify_reply(struct notify_zone_t* zone, buffer_type* packet);
@@ -37,12 +42,31 @@ static void xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet
 static void 
 notify_disable(struct notify_zone_t* zone)
 {
+	zone->notify_current = 0;
+	zone->notify_send_handler.timeout = NULL;
 	if(zone->notify_send_handler.fd != -1) {
 		close(zone->notify_send_handler.fd);
+		zone->notify_send_handler.fd = -1;
 	}
-	zone->notify_current = 0;
-	zone->notify_send_handler.fd = -1;
-	zone->notify_send_handler.timeout = NULL;
+
+	if(xfrd->notify_udp_num == XFRD_MAX_UDP_NOTIFY) {
+		/* find next waiting and needy zone */
+		while(xfrd->notify_waiting_first) {
+			/* snip off */
+			struct notify_zone_t* wz = xfrd->notify_waiting_first;	
+			assert(wz->is_waiting);
+			wz->is_waiting = 0;
+			xfrd->notify_waiting_first = wz->waiting_next;
+			if(xfrd->notify_waiting_last == wz)
+				xfrd->notify_waiting_last = NULL;
+			/* see if this zone needs notify sending */
+			if(wz->notify_current) {
+				setup_notify_active(wz);
+				return;
+			}
+		}
+	}
+	xfrd->notify_udp_num--;
 }
 
 void 
@@ -65,6 +89,7 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 		xfrd_copy_soa(not->current_soa, dbzone->soa_rrset->rrs);
 	}
 
+	not->is_waiting = 0;
 	not->notify_send_handler.fd = -1;
 	not->notify_send_handler.timeout = 0;
 	not->notify_send_handler.user_data = not;
@@ -75,7 +100,7 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 #ifdef TSIG
 	tsig_create_record_custom(&not->notify_tsig, region, 0, 0, 4);
 #endif /* TSIG */
-	notify_disable(not);
+	not->notify_current = 0;
 	
 	rbtree_insert(tree, (rbnode_t*)not);
 }
@@ -167,6 +192,12 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	struct notify_zone_t* zone = (struct notify_zone_t*)handler->user_data;
 	buffer_type* packet = xfrd_get_temp_buffer();
 	assert(zone->notify_current);
+	if(zone->is_waiting) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+			"xfrd: notify waiting, skipped, %s", zone->apex_str));
+		assert(zone->notify_send_handler.fd == -1);
+		return;
+	}
 	if(event_types & NETIO_EVENT_READ) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
 			"xfrd: zone %s: read notify ACK", zone->apex_str));
@@ -195,6 +226,16 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	}
 }
 
+static void 
+setup_notify_active(struct notify_zone_t* zone)
+{
+	zone->notify_retry = 0;
+	zone->notify_current = zone->options->notify;
+	zone->notify_send_handler.timeout = &zone->notify_timeout;
+	zone->notify_timeout.tv_sec = xfrd_time();
+	zone->notify_timeout.tv_nsec = 0;
+}
+
 static void
 notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 {
@@ -206,12 +247,23 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 		memset(zone->current_soa, 0, sizeof(xfrd_soa_t));
 	else
 		memcpy(zone->current_soa, new_soa, sizeof(xfrd_soa_t));
+	if(zone->is_waiting)
+		return;
 	
-	zone->notify_retry = 0;
-	zone->notify_current = zone->options->notify;
-	zone->notify_send_handler.timeout = &zone->notify_timeout;
-	zone->notify_timeout.tv_sec = xfrd_time();
-	zone->notify_timeout.tv_nsec = 0;
+	if(xfrd->notify_udp_num < XFRD_MAX_UDP_NOTIFY) {
+		setup_notify_active(zone);
+		xfrd->notify_udp_num++;
+		return;
+	}
+	/* put it in waiting list */
+	zone->is_waiting = 1;
+	zone->waiting_next = NULL;
+	if(xfrd->notify_waiting_last) {
+		xfrd->notify_waiting_last->waiting_next = zone;
+	} else {
+		xfrd->notify_waiting_first = zone;
+	}
+	xfrd->notify_waiting_last = zone;
 }
 
 void 

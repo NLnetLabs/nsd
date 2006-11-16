@@ -11,6 +11,7 @@
 #define XFRD_TCP_H
 
 #include <config.h>
+#include "xfrd.h"
 
 struct buffer;
 struct xfrd_zone;
@@ -20,7 +21,6 @@ struct region;
 struct dname;
 struct acl_options;
 
-#define XFRD_MAX_TCP 10 /* max number of tcp connections */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds */
 
 typedef struct xfrd_tcp xfrd_tcp_t;

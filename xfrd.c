@@ -34,10 +34,9 @@
 #define XFRD_MAX_ROUNDS 3 /* number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
-#define XFRD_MAX_UDP 50 /* max number of UDP sockets at a time */
 
 /* the daemon state */
-static xfrd_state_t* xfrd = 0;
+xfrd_state_t* xfrd = 0;
 
 /* main xfrd loop */
 static void xfrd_main();
@@ -131,6 +130,10 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->dirty_zones = stack_create(xfrd->region, 
 		nsd_options_num_zones(nsd->options));
 	netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
+
+	xfrd->notify_waiting_first = NULL;
+	xfrd->notify_waiting_last = NULL;
+	xfrd->notify_udp_num = 0;
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
@@ -712,6 +715,8 @@ xfrd_udp_release(xfrd_zone_t* zone)
 		while(xfrd->udp_waiting_first) {
 			/* snip off waiting list */
 			xfrd_zone_t* wz = xfrd->udp_waiting_first;
+			assert(wz->udp_waiting);
+			wz->udp_waiting = 0;
 			xfrd->udp_waiting_first = wz->udp_waiting_next;
 			if(xfrd->udp_waiting_last == wz)
 				xfrd->udp_waiting_last = NULL;
