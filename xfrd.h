@@ -216,6 +216,8 @@ enum xfrd_packet_result xfrd_handle_received_xfr_packet(
 void xfrd_set_timer(xfrd_zone_t* zone, time_t t);
 /* set refresh timer of zone to refresh at time now */
 void xfrd_set_refresh_now(xfrd_zone_t* zone);
+/* unset the timer - no more timeouts, for when zone is queued */
+void xfrd_unset_timer(xfrd_zone_t* zone);
 
 /* 
  * Make a new request to next master server. 

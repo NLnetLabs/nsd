@@ -1,3 +1,21 @@
+28 November 2006: Wouter
+	- Debugging 10k zones transfer, set so that zones waiting for a
+	  socket do not get timeouts.
+	- Debug change so that an event is only returned to one handler
+	  by netio.
+	  Reversed this. Netio will not deliver events you do not listen
+	  to, and since xfrd first listens to write then read, it will
+	  not have problems with stale events (for the fd from the previous
+	  select) because these are always read, while it needs a write.
+	  Re-Reversed it: netio will deliver events only once.
+	  This is easier to understand for the poor hapless developer.
+	- Need to set notify_current for notify on waiting list. Fixed.
+
+27 November 2006: Wouter
+	- Debugging 10k zones transfer, noticed that it is possible for 
+	  netio to give a callback for an event that you were not listening
+	  to. Now no longer does that.
+
 16 November 2006: Wouter
 	- Bug #153: now checks for FD_SETSIZE when adding fd to select fdset.
 	- Easy overview of socket allocation for xfrd in xfrd.h

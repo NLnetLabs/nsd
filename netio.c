@@ -235,21 +235,24 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 		for (elt = netio->handlers; elt; ) {
 			netio_handler_type *handler = elt->handler;
 			netio->dispatch_next = elt->next;
-			if (handler->fd >= 0) {
+			if (handler->fd >= 0 && handler->fd < FD_SETSIZE) {
 				netio_event_types_type event_types
 					= NETIO_EVENT_NONE;
 				if (FD_ISSET(handler->fd, &readfds)) {
 					event_types |= NETIO_EVENT_READ;
+					FD_CLR(handler->fd, &readfds);
 				}
 				if (FD_ISSET(handler->fd, &writefds)) {
 					event_types |= NETIO_EVENT_WRITE;
+					FD_CLR(handler->fd, &writefds);
 				}
 				if (FD_ISSET(handler->fd, &exceptfds)) {
 					event_types |= NETIO_EVENT_EXCEPT;
+					FD_CLR(handler->fd, &exceptfds);
 				}
 
-				if (event_types) {
-					handler->event_handler(netio, handler, event_types);
+				if (event_types & handler->event_types) {
+					handler->event_handler(netio, handler, event_types & handler->event_types);
 					++result;
 				}
 			}

@@ -61,6 +61,9 @@ notify_disable(struct notify_zone_t* zone)
 				xfrd->notify_waiting_last = NULL;
 			/* see if this zone needs notify sending */
 			if(wz->notify_current) {
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+					"xfrd: zone %s: notify off waiting list.",
+					zone->apex_str)	);
 				setup_notify_active(wz);
 				return;
 			}
@@ -249,13 +252,14 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 		memcpy(zone->current_soa, new_soa, sizeof(xfrd_soa_t));
 	if(zone->is_waiting)
 		return;
-	
+
 	if(xfrd->notify_udp_num < XFRD_MAX_UDP_NOTIFY) {
 		setup_notify_active(zone);
 		xfrd->notify_udp_num++;
 		return;
 	}
 	/* put it in waiting list */
+	zone->notify_current = zone->options->notify;
 	zone->is_waiting = 1;
 	zone->waiting_next = NULL;
 	if(xfrd->notify_waiting_last) {
@@ -264,6 +268,9 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 		xfrd->notify_waiting_first = zone;
 	}
 	xfrd->notify_waiting_last = zone;
+	zone->notify_send_handler.timeout = NULL;
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: notify on waiting list.",
+		zone->apex_str));
 }
 
 void 

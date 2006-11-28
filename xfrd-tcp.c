@@ -178,6 +178,7 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		set->tcp_waiting_last->tcp_waiting_next = zone;
 		set->tcp_waiting_last = zone;
 	}
+	xfrd_unset_timer(zone);
 }
 
 int 
@@ -500,6 +501,7 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		set->tcp_waiting_first = zone->tcp_waiting_next;
 		zone->tcp_waiting_next = 0;
 		/* start it */
+		assert(zone->tcp_conn == -1);
 		zone->tcp_conn = conn;
 		zone->tcp_waiting = 0;
 		/* stop udp (if any) */

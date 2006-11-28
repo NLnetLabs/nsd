@@ -399,13 +399,13 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 	if(zone->tcp_waiting) {
 		DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s skips retry, TCP connections full",
 			zone->apex_str));
-		xfrd_set_timer_retry(zone);
+		xfrd_unset_timer(zone);
 		return;
 	}
 	if(zone->udp_waiting) {
 		DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s skips retry, UDP connections full",
 			zone->apex_str));
-		xfrd_set_timer_retry(zone);
+		xfrd_unset_timer(zone);
 		return;
 	}
 
@@ -505,6 +505,7 @@ xfrd_udp_obtain(xfrd_zone_t* zone)
 	if(xfrd->udp_waiting_last)
 		xfrd->udp_waiting_last->udp_waiting_next = zone;
 	xfrd->udp_waiting_last = zone;
+	xfrd_unset_timer(zone);
 }
 
 time_t 
@@ -573,6 +574,12 @@ xfrd_set_refresh_now(xfrd_zone_t* zone)
 	xfrd_set_timer(zone, xfrd_time());
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s sets timeout right now, state %d",
 		zone->apex_str, zone->state));
+}
+
+void 
+xfrd_unset_timer(xfrd_zone_t* zone)
+{
+	zone->zone_handler.timeout = NULL;
 }
 
 void 
