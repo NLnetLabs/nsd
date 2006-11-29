@@ -631,18 +631,26 @@ main (int argc, char *argv[])
 
 	/* Set up the address info structures with real interface/port data */
 	for (i = 0; i < nsd.ifs; ++i) {
+		int r;
+
 		/* We don't perform name-lookups */
 		if (nodes[i] != NULL)
 			hints[i].ai_flags |= AI_NUMERICHOST;
 		
 		hints[i].ai_socktype = SOCK_DGRAM;
-		if (getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr) != 0) {
-			error("cannot parse address '%s'", nodes[i]);
+		if ((r=getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr)) != 0) {
+			error("cannot parse address '%s': getaddrinfo: %s %s",
+				nodes[i]?nodes[i]:"(null)",
+				gai_strerror(r),
+				r==EAI_SYSTEM?strerror(errno):"");
 		}
 		
 		hints[i].ai_socktype = SOCK_STREAM;
-		if (getaddrinfo(nodes[i], tcp_port, &hints[i], &nsd.tcp[i].addr) != 0) {
-			error("cannot parse address '%s'", nodes[i]);
+		if ((r=getaddrinfo(nodes[i], tcp_port, &hints[i], &nsd.tcp[i].addr)) != 0) {
+			error("cannot parse address '%s': getaddrinfo: %s %s",
+				nodes[i]?nodes[i]:"(null)",
+				gai_strerror(r),
+				r==EAI_SYSTEM?strerror(errno):"");
 		}
 	}
 

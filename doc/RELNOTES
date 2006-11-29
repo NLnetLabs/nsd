@@ -9,6 +9,7 @@ BUG FIXES:
 	- Bug #152: NSD would not use the identity from nsd.conf, fixed.
 	- Bug #153: Using thousands of zones, xfrd could run out of file
 	  descriptors. Fixed.
+	- Fixed getaddrinfo error message to be more descriptive.
 
 3.0.2
 =============
