@@ -512,3 +512,4 @@ nsd database is (re)loaded. You have to directly specify the
 ip-addresses of the secondaries in the nsd.zones file, for example:
 
 zone    .               root.zone               notify 128.9.0.107 192.33.4.12 128.8.10.90
+
