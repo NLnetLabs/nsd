@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 =============
 BUG FIXES:
 	- Bug #149: Fixed text for NOTAUTH error code.
+	- Fixed getaddrinfo error message to be more descriptive.
 
 2.3.6
 =============
