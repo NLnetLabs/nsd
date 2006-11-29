@@ -119,7 +119,8 @@ struct nsd_child
 	/*
 	 * IPC info, buffered for nonblocking writes to the child
 	 */
-	uint8_t need_to_send_STATS;
+	uint8_t need_to_send_STATS, need_to_send_QUIT;
+	uint8_t need_to_exit, has_exited;
 	stack_type* dirty_zones; /* stack of type zone_type* */
 
 	/*
@@ -146,6 +147,7 @@ struct	nsd
 	volatile sig_atomic_t signal_hint_shutdown;
 	volatile sig_atomic_t signal_hint_stats;
 	volatile sig_atomic_t signal_hint_statsusr;
+	volatile sig_atomic_t quit_sync_done;
 	unsigned        server_kind;
 	struct namedb	*db;
 	int		debug;

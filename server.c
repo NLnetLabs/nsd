@@ -181,8 +181,8 @@ static uint32_t compression_table_capacity = 0;
 static uint32_t compression_table_size = 0;
 
 /*
- * Remove the specified pid from the list of child pids.  Returns 0 if
- * the pid is not in the list, 1 otherwise.  The field is set to 0.
+ * Remove the specified pid from the list of child pids.  Returns -1 if
+ * the pid is not in the list, child_num otherwise.  The field is set to 0.
  */
 static int
 delete_child_pid(struct nsd *nsd, pid_t pid)
@@ -194,10 +194,10 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
 			if(nsd->children[i].child_fd > 0) close(nsd->children[i].child_fd);
 			nsd->children[i].child_fd = -1;
 			if(nsd->children[i].handler) nsd->children[i].handler->fd = -1;
-			return 1;
+			return i;
 		}
 	}
-	return 0;
+	return -1;
 }
 
 /*
@@ -766,6 +766,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
+	DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload exiting to become new main"));
 	/* exit reload, continue as new server_main */
 }
 
@@ -854,7 +855,10 @@ server_main(struct nsd *nsd)
 			/* see if any child processes terminated */
 			while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
 				int is_child = delete_child_pid(nsd, child_pid);
-				if (is_child) {
+				if (is_child != -1 && nsd->children[is_child].need_to_exit) {
+					nsd->children[is_child].has_exited = 1;
+					parent_check_all_children_exited(nsd);
+				} else if(is_child != -1) {
 					log_msg(LOG_WARNING,
 					       "server %d died unexpectedly with status %d, restarting",
 					       (int) child_pid, status);
@@ -924,13 +928,16 @@ server_main(struct nsd *nsd)
 				close(reload_sockets[0]);
 				server_reload(nsd, server_region, netio, 
 					reload_sockets[1], &xfrd_listener.fd);
+				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload exited to become new main"));
 				close(reload_sockets[1]);
+				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload closed"));
 				/* drop stale xfrd ipc data */
 				((struct ipc_handler_conn_data*)xfrd_listener.user_data)
 					->conn->is_reading = 0;
 				reload_pid = -1;
 				reload_listener.fd = -1;
 				reload_listener.event_types = NETIO_EVENT_NONE;
+				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload resetup; run"));
 				break;
 			default:
 				/* PARENT */
@@ -946,7 +953,7 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_QUIT_SYNC: 
 			/* synchronisation of xfrd, parent and reload */
-			if(reload_listener.fd > 0) {
+			if(!nsd->quit_sync_done && reload_listener.fd > 0) {
 				sig_atomic_t cmd = NSD_RELOAD;
 				/* stop xfrd ipc writes in progress */
 				DEBUG(DEBUG_IPC,1, (LOG_INFO, 
@@ -957,6 +964,7 @@ server_main(struct nsd *nsd)
 				}
 				/* wait for ACK from xfrd */
 				DEBUG(DEBUG_IPC,1, (LOG_INFO, "main: wait ipc reply xfrd"));
+				nsd->quit_sync_done = 1;
 			}
 			nsd->mode = NSD_RUN;
 			break;

@@ -193,9 +193,13 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 
 	switch (mode) {
 	case NSD_RELOAD:
+		data->nsd->signal_hint_reload = 1;
+		break;
 	case NSD_QUIT:
-	case NSD_REAP_CHILDREN:
 		data->nsd->mode = mode;
+		break;
+	case NSD_REAP_CHILDREN:
+		data->nsd->signal_hint_child = 1;
 		break;
 	case NSD_ZONE_STATE:
 		data->conn->is_reading = 1;
@@ -246,6 +250,43 @@ send_stat_to_child(struct main_ipc_handler_data* data, int fd)
 	data->child->need_to_send_STATS = 0;
 }
 
+static void
+debug_print_fwd_name(int ATTR_UNUSED(len), buffer_type* packet, int acl_num)
+{
+	uint8_t qnamebuf[MAXDOMAINLEN];
+	uint16_t qtype, qclass;
+	const dname_type* dname;
+	region_type* tempregion = region_create(xalloc, free);
+
+	size_t bufpos = buffer_position(packet);
+	buffer_skip(packet, 12);
+	if(packet_read_query_section(packet, qnamebuf, &qtype, &qclass)) {
+		dname = dname_make(tempregion, qnamebuf, 1);
+		log_msg(LOG_INFO, "main: fwd packet for %s, acl %d", 
+			dname_to_string(dname,0), acl_num);
+	} else {
+		log_msg(LOG_INFO, "main: fwd packet badqname, acl %d", acl_num);
+	}
+	buffer_set_position(packet, bufpos);
+	region_destroy(tempregion);
+}
+
+static void
+send_quit_to_child(struct main_ipc_handler_data* data, int fd)
+{
+	sig_atomic_t cmd = NSD_QUIT;
+	if(write(fd, &cmd, sizeof(cmd)) == -1) {
+		if(errno == EAGAIN || errno == EINTR)
+			return; /* try again later */
+		log_msg(LOG_ERR, "svrmain: problems sending quit to child %d command: %s",
+			(int)data->child->pid, strerror(errno));
+		return;
+	}
+	data->child->need_to_send_QUIT = 0;
+	DEBUG(DEBUG_IPC,2, (LOG_INFO, "main: sent quit to child %d", 
+		data->child->pid));
+}
+
 void
 parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		      netio_handler_type *handler,
@@ -260,6 +301,8 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 	if (event_types & NETIO_EVENT_WRITE) {
 		if(!data->busy_writing_zone_state &&
 			!data->child->need_to_send_STATS &&
+			!data->child->need_to_send_QUIT &&
+			!data->child->need_to_exit &&
 			data->child->dirty_zones->num > 0) {
 			/* create packet from next dirty zone */
 			zone_type* zone = (zone_type*)stack_pop(data->child->dirty_zones);
@@ -281,11 +324,17 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 			} else if(ret == 1) {
 				data->busy_writing_zone_state = 0; /* completed */
 			}
-		} else if(data->child->need_to_send_STATS) {
+		} else if(data->child->need_to_send_STATS &&
+			  !data->child->need_to_exit) {
 			send_stat_to_child(data, handler->fd);
+		} else if(data->child->need_to_send_QUIT) {
+			send_quit_to_child(data, handler->fd);
+			if(!data->child->need_to_send_QUIT)
+				handler->event_types = NETIO_EVENT_READ;
 		}
 		if(!data->busy_writing_zone_state &&
 			!data->child->need_to_send_STATS &&
+			!data->child->need_to_send_QUIT &&
 			data->child->dirty_zones->num == 0) {
 			handler->event_types = NETIO_EVENT_READ;
 		}
@@ -298,6 +347,8 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 	if (data->forward_mode) {
 		int got_acl;
 		/* forward the data to xfrd */
+		DEBUG(DEBUG_IPC,2, (LOG_INFO, 
+			"main passed packet readup %d", (int)data->got_bytes));
 		if(data->got_bytes < sizeof(data->total_bytes))
 		{
 			if ((len = read(handler->fd, 
@@ -360,7 +411,10 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		if(got_acl >= (int)sizeof(data->acl_num)) {
 			uint16_t len = htons(data->total_bytes);
 			DEBUG(DEBUG_IPC,2, (LOG_INFO, 
-				"fwd passed packet write %d", (int)data->got_bytes));
+				"main fwd passed packet write %d", (int)data->got_bytes));
+#ifndef NDEBUG
+			debug_print_fwd_name(len, data->packet, data->acl_num);
+#endif
 			data->forward_mode = 0;
 			mode = NSD_PASS_TO_XFRD;
 			if(!write_socket(*data->xfrd_sock, &mode, sizeof(mode)) ||
@@ -389,11 +443,13 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		for(i=0; i<data->nsd->child_count; ++i)
 			if(data->nsd->children[i].child_fd == handler->fd) {
 				data->nsd->children[i].child_fd = -1;
+				data->nsd->children[i].has_exited = 1;
 				DEBUG(DEBUG_IPC,1,
 					(LOG_ERR, "server %d closed cmd channel",
 					(int) data->nsd->children[i].pid));
 			}
 		handler->fd = -1;
+		parent_check_all_children_exited(data->nsd);
 		return;
 	}
 
@@ -402,8 +458,10 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		data->nsd->mode = mode;
 		break;
 	case NSD_STATS: 
+		data->nsd->signal_hint_stats = 1;
+		break;
 	case NSD_REAP_CHILDREN:
-		data->nsd->mode = mode;
+		data->nsd->signal_hint_child = 1;
 		break;
 	case NSD_PASS_TO_XFRD:
 		/* set mode for handle_child_command; echo to xfrd. */
@@ -419,12 +477,27 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 }
 
 void
+parent_check_all_children_exited(struct nsd* nsd)
+{
+	size_t i;
+	for(i=0; i<nsd->child_count; i++) {
+		if(!nsd->children[i].need_to_exit)
+		      return;
+		if(!nsd->children[i].has_exited)
+		      return;
+	}
+	nsd->mode = NSD_QUIT_SYNC;
+	DEBUG(DEBUG_IPC,2, (LOG_INFO, "main: all children exited. quit sync."));
+}
+
+void
 parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 		      netio_handler_type *handler,
 		      netio_event_types_type event_types)
 {
 	sig_atomic_t mode;
 	int len;
+	size_t i;
 	struct nsd *nsd = (struct nsd*) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
@@ -446,7 +519,20 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 	}
 	switch (mode) {
 	case NSD_QUIT_SYNC:
-		nsd->mode = mode;
+		/* set all children to exit, only then notify xfrd. */
+		/* so that buffered packets to pass to xfrd can arrive. */
+		for(i=0; i<nsd->child_count; i++) {
+			nsd->children[i].need_to_exit = 1;
+			if(nsd->children[i].pid > 0 &&
+			   nsd->children[i].child_fd > 0) {
+				nsd->children[i].need_to_send_QUIT = 1;
+				nsd->children[i].handler->event_types 
+					|= NETIO_EVENT_WRITE;
+			} else {
+				nsd->children[i].has_exited = 1;
+			}
+		}
+		parent_check_all_children_exited(nsd);
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_reload_command: bad mode %d",

@@ -87,4 +87,7 @@ void child_handle_parent_command(netio_type *netio,
 void xfrd_handle_ipc(netio_type *netio, 
 	netio_handler_type *handler, netio_event_types_type event_types);
 
+/* check if all children have exited in an orderly fashion and set mode */
+void parent_check_all_children_exited(struct nsd* nsd);
+
 #endif /* NSD_IPC_H */

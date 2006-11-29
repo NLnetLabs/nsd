@@ -593,6 +593,9 @@ main (int argc, char *argv[])
 		nsd.children[i].parent_fd = -1;
 		nsd.children[i].handler = NULL;
 		nsd.children[i].need_to_send_STATS = 0;
+		nsd.children[i].need_to_send_QUIT = 0;
+		nsd.children[i].need_to_exit = 0;
+		nsd.children[i].has_exited = 0;
 		nsd.children[i].dirty_zones = stack_create(nsd.region, 
 			nsd_options_num_zones(nsd.options));
 	}
@@ -811,6 +814,7 @@ main (int argc, char *argv[])
 	nsd.signal_hint_shutdown = 0;
 	nsd.signal_hint_stats = 0;
 	nsd.signal_hint_statsusr = 0;
+	nsd.quit_sync_done = 0;
 
 	/* Run the server... */
 	if (server_init(&nsd) != 0) {

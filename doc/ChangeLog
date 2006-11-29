@@ -4,6 +4,8 @@
 	- instead of EAI_ADDRFAMILY uses EAI_FAMILY which is portable
 	  to FreeBSD.
 	- signed/unsigned warning fix for FD_SETSIZE comparison.
+	- Lots of debug statements and new quit sync feature, where
+	  the server children are synced with. So as not to lose buffers.
 
 28 November 2006: Wouter
 	- Debugging 10k zones transfer, set so that zones waiting for a

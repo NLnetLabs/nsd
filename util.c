@@ -250,7 +250,7 @@ int write_socket(int s, const void *buf, size_t size)
 		ssize_t count
 			= write(s, data + total_count, size - total_count);
 		if (count == -1) {
-			if (errno != EAGAIN) {
+			if (errno != EAGAIN && errno != EINTR) {
 				return 0;
 			} else {
 				continue;
