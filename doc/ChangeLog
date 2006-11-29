@@ -1,6 +1,9 @@
 29 November 2006: Wouter
 	- Fixed getaddrinfo error message to be more descriptive.
 	- Fallback to ip4 also if getaddrinfo fails for ip6.
+	- instead of EAI_ADDRFAMILY uses EAI_FAMILY which is portable
+	  to FreeBSD.
+	- signed/unsigned warning fix for FD_SETSIZE comparison.
 
 28 November 2006: Wouter
 	- Debugging 10k zones transfer, set so that zones waiting for a

@@ -10,6 +10,7 @@ BUG FIXES:
 	- Bug #153: Using thousands of zones, xfrd could run out of file
 	  descriptors. Fixed.
 	- Fixed getaddrinfo error message to be more descriptive.
+	- Fallback to ip4 if getaddrinfo fails for ip6.
 
 3.0.2
 =============

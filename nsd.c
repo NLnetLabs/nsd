@@ -641,7 +641,7 @@ main (int argc, char *argv[])
 		if ((r=getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr)) != 0) {
 #ifdef INET6
 			if(nsd.grab_ip6_optional && hints[0].ai_family == AF_INET6
-				&& r == EAI_ADDRFAMILY)
+				&& r == EAI_FAMILY)
 				continue;
 #endif
 			error("cannot parse address '%s': getaddrinfo: %s %s",
