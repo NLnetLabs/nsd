@@ -639,6 +639,11 @@ main (int argc, char *argv[])
 		
 		hints[i].ai_socktype = SOCK_DGRAM;
 		if ((r=getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr)) != 0) {
+#ifdef INET6
+			if(nsd.grab_ip6_optional && hints[0].ai_family == AF_INET6
+				&& r == EAI_ADDRFAMILY)
+				continue;
+#endif
 			error("cannot parse address '%s': getaddrinfo: %s %s",
 				nodes[i]?nodes[i]:"(null)",
 				gai_strerror(r),

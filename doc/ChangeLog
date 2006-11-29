@@ -1,5 +1,6 @@
 29 November 2006: Wouter
 	- Fixed getaddrinfo error message to be more descriptive.
+	- Fallback to ip4 also if getaddrinfo fails for ip6.
 
 28 November 2006: Wouter
 	- Debugging 10k zones transfer, set so that zones waiting for a
