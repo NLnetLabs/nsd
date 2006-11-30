@@ -250,6 +250,7 @@ send_stat_to_child(struct main_ipc_handler_data* data, int fd)
 	data->child->need_to_send_STATS = 0;
 }
 
+int packet_read_query_section(buffer_type *packet, uint8_t* dest, uint16_t* qtype, uint16_t* qclass);
 static void
 debug_print_fwd_name(int ATTR_UNUSED(len), buffer_type* packet, int acl_num)
 {
@@ -259,6 +260,7 @@ debug_print_fwd_name(int ATTR_UNUSED(len), buffer_type* packet, int acl_num)
 	region_type* tempregion = region_create(xalloc, free);
 
 	size_t bufpos = buffer_position(packet);
+	buffer_rewind(packet);
 	buffer_skip(packet, 12);
 	if(packet_read_query_section(packet, qnamebuf, &qtype, &qclass)) {
 		dname = dname_make(tempregion, qnamebuf, 1);
@@ -413,7 +415,8 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 			DEBUG(DEBUG_IPC,2, (LOG_INFO, 
 				"main fwd passed packet write %d", (int)data->got_bytes));
 #ifndef NDEBUG
-			debug_print_fwd_name(len, data->packet, data->acl_num);
+			if(nsd_debug_level >= 2)
+				debug_print_fwd_name(len, data->packet, data->acl_num);
 #endif
 			data->forward_mode = 0;
 			mode = NSD_PASS_TO_XFRD;
@@ -529,7 +532,8 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 				nsd->children[i].handler->event_types 
 					|= NETIO_EVENT_WRITE;
 			} else {
-				nsd->children[i].has_exited = 1;
+				if(nsd->children[i].child_fd == -1)
+					nsd->children[i].has_exited = 1;
 			}
 		}
 		parent_check_all_children_exited(nsd);
@@ -579,6 +583,7 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 	xfrd_prepare_zones_for_reload();
 	xfrd->reload_cmd_last_sent = xfrd_time();
 	xfrd->need_to_send_reload = 0;
+	xfrd->can_send_reload = 0;
 }
 
 static void
@@ -665,7 +670,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
         if ((event_types & NETIO_EVENT_WRITE) && !xfrd->ipc_send_blocked)
 	{
 		/* if necessary prepare a packet */
-		if(!xfrd->need_to_send_reload &&
+		if(!(xfrd->can_send_reload && xfrd->need_to_send_reload) &&
 			!xfrd->need_to_send_quit &&
 			!xfrd->sending_zone_state &&
 			xfrd->dirty_zones->num > 0) {
@@ -691,10 +696,10 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 			}
 		} else if(xfrd->need_to_send_quit) {
 			xfrd_send_quit_req(xfrd);
-		} else if(xfrd->need_to_send_reload) {
+		} else if(xfrd->can_send_reload && xfrd->need_to_send_reload) {
 			xfrd_send_reload_req(xfrd);
 		}
-		if(!xfrd->need_to_send_reload &&
+		if(!(xfrd->can_send_reload && xfrd->need_to_send_reload) &&
 			!xfrd->need_to_send_quit &&
 			!xfrd->sending_zone_state &&
 			xfrd->dirty_zones->num == 0) {
@@ -794,6 +799,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 	case NSD_SOA_END:
 		/* reload has finished */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_END"));
+		xfrd->can_send_reload = 1;
 		xfrd->parent_soa_info_pass = 0;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;

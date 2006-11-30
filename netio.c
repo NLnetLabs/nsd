@@ -232,7 +232,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 		 * calling the current handler!
 		 */
 		assert(netio->dispatch_next == NULL);
-		for (elt = netio->handlers; elt; ) {
+		for (elt = netio->handlers; elt && rc; ) {
 			netio_handler_type *handler = elt->handler;
 			netio->dispatch_next = elt->next;
 			if (handler->fd >= 0 && handler->fd < (int)FD_SETSIZE) {
@@ -241,14 +241,17 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 				if (FD_ISSET(handler->fd, &readfds)) {
 					event_types |= NETIO_EVENT_READ;
 					FD_CLR(handler->fd, &readfds);
+					rc--;
 				}
 				if (FD_ISSET(handler->fd, &writefds)) {
 					event_types |= NETIO_EVENT_WRITE;
 					FD_CLR(handler->fd, &writefds);
+					rc--;
 				}
 				if (FD_ISSET(handler->fd, &exceptfds)) {
 					event_types |= NETIO_EVENT_EXCEPT;
 					FD_CLR(handler->fd, &exceptfds);
+					rc--;
 				}
 
 				if (event_types & handler->event_types) {

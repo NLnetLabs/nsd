@@ -55,6 +55,7 @@ struct xfrd_state {
 	netio_handler_type reload_handler;
 	/* last reload must have caught all zone updates before this time */
 	time_t reload_cmd_last_sent; 
+	uint8_t can_send_reload;
 
 	/* communication channel with server_main */
 	netio_handler_type ipc_handler;

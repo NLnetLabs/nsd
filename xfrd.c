@@ -113,6 +113,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
 	xfrd->reload_timeout.tv_sec = 0;
 	xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
+	xfrd->can_send_reload = 1;
 
 	xfrd->ipc_send_blocked = 0;
 	xfrd->ipc_handler.fd = socket;

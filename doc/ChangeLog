@@ -2,6 +2,11 @@
 	- Test for fallback in getaddrinfo more portable.
 	  Ported to FreeBSD 6.1 without inet6.
 	- New quit sync had a problem with blocking in dispatch. Fixed.
+	- reload will retry quit_sync if nothing happens.
+	- parent tries to empty the pipes before closing them on quitsync.
+	- xfrd does not send reload when previous reload request busy.
+	- netio will only deliver the number of bits from select
+	  and then stop. Optimisation.
 
 29 November 2006: Wouter
 	- Fixed getaddrinfo error message to be more descriptive.

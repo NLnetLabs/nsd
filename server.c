@@ -191,9 +191,11 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
 	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid == pid) {
 			nsd->children[i].pid = 0;
-			if(nsd->children[i].child_fd > 0) close(nsd->children[i].child_fd);
-			nsd->children[i].child_fd = -1;
-			if(nsd->children[i].handler) nsd->children[i].handler->fd = -1;
+			if(!nsd->children[i].need_to_exit) {
+				if(nsd->children[i].child_fd > 0) close(nsd->children[i].child_fd);
+				nsd->children[i].child_fd = -1;
+				if(nsd->children[i].handler) nsd->children[i].handler->fd = -1;
+			}
 			return i;
 		}
 	}
@@ -597,13 +599,40 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 	return pid;
 }
 
+/* pass timeout=-1 for blocking. Returns size, 0, -1(err), or -2(timeout) */
 static ssize_t 
-block_read(struct nsd* nsd, int s, void* p, ssize_t sz)
+block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 {
 	uint8_t* buf = (uint8_t*) p;
 	ssize_t total = 0;
+	fd_set rfds;
+	struct timeval tv;
+	FD_ZERO(&rfds);
+
 	while( total < sz) {
-		ssize_t ret = read(s, buf+total, sz-total);
+		ssize_t ret;
+		FD_SET(s, &rfds);
+		tv.tv_sec = timeout;
+		tv.tv_usec = 0;
+		ret = select(s+1, &rfds, NULL, NULL, timeout==-1?NULL:&tv);
+		if(ret == -1) {
+			if(errno == EAGAIN)
+				/* blocking read */
+				continue;
+			if(errno == EINTR) {
+				if(nsd->signal_hint_quit || nsd->signal_hint_shutdown)
+					return -1;
+				/* other signals can be handled later */
+				continue;
+			}
+			/* some error */
+			return -1;
+		}
+		if(ret == 0) {
+			/* operation timed out */
+			return -2;
+		}
+		ret = read(s, buf+total, sz-total);
 		if(ret == -1) {
 			if(errno == EAGAIN)
 				/* blocking read */
@@ -686,16 +715,23 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 
+#define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 	/* Send quit command to parent: blocking, wait for receipt. */
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
-	if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1)
-	{
-		log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
-			(int)nsd->pid, (int)old_pid, strerror(errno));
-	}
-	/* blocking: wait for parent to really quit. (it sends RELOAD as ack) */
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc wait for ack main"));
-	ret = block_read(nsd, cmdsocket, &cmd, sizeof(cmd));
+	do {
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
+		if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1)
+		{
+			log_msg(LOG_ERR, "problems sending command from reload %d to oldnsd %d: %s",
+				(int)nsd->pid, (int)old_pid, strerror(errno));
+		}
+		/* blocking: wait for parent to really quit. (it sends RELOAD as ack) */
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc wait for ack main"));
+		ret = block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 
+			RELOAD_SYNC_TIMEOUT);
+		if(ret == -2) {
+			DEBUG(DEBUG_IPC, 1, (LOG_ERR, "reload timeout QUITSYNC. retry"));
+		}
+	} while (ret == -2);
 	if(ret == -1) {
 		log_msg(LOG_ERR, "reload: could not wait for parent to quit: %s",
 			strerror(errno));
@@ -864,7 +900,8 @@ server_main(struct nsd *nsd)
 			while((child_pid = waitpid(0, &status, WNOHANG)) != -1 && child_pid != 0) {
 				int is_child = delete_child_pid(nsd, child_pid);
 				if (is_child != -1 && nsd->children[is_child].need_to_exit) {
-					nsd->children[is_child].has_exited = 1;
+					if(nsd->children[is_child].child_fd == -1)
+						nsd->children[is_child].has_exited = 1;
 					parent_check_all_children_exited(nsd);
 				} else if(is_child != -1) {
 					log_msg(LOG_WARNING,
