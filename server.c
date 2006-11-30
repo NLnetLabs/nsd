@@ -339,6 +339,10 @@ server_init(struct nsd *nsd)
 
 	/* Make a socket... */
 	for (i = 0; i < nsd->ifs; i++) {
+		if (!nsd->udp[i].addr) {
+			nsd->udp[i].s = -1;
+			continue;
+		}
 		if ((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
 #if defined(INET6)
 			if (nsd->udp[i].addr->ai_family == AF_INET6 &&
@@ -395,6 +399,10 @@ server_init(struct nsd *nsd)
 
 	/* Make a socket... */
 	for (i = 0; i < nsd->ifs; i++) {
+		if (!nsd->tcp[i].addr) {
+			nsd->tcp[i].s = -1;
+			continue;
+		}
 		if ((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
 #if defined(INET6)
 			if (nsd->tcp[i].addr->ai_family == AF_INET6 &&
