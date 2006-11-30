@@ -1,6 +1,7 @@
 30 November 2006: Wouter
 	- Test for fallback in getaddrinfo more portable.
 	  Ported to FreeBSD 6.1 without inet6.
+	- New quit sync had a problem with blocking in dispatch. Fixed.
 
 29 November 2006: Wouter
 	- Fixed getaddrinfo error message to be more descriptive.

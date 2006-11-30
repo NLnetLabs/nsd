@@ -897,6 +897,8 @@ server_main(struct nsd *nsd)
 				}
 				log_msg(LOG_WARNING, "wait failed: %s", strerror(errno));
 			}
+			if (nsd->mode != NSD_RUN)
+				break;
 
 			/* timeout to collect processes. In case no sigchild happens. */
 			timeout_spec.tv_sec = 60; 
