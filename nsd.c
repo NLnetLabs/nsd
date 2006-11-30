@@ -643,9 +643,11 @@ main (int argc, char *argv[])
 		hints[i].ai_socktype = SOCK_DGRAM;
 		if ((r=getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr)) != 0) {
 #ifdef INET6
-			if(nsd.grab_ip6_optional && hints[0].ai_family == AF_INET6
-				&& r == EAI_FAMILY)
+			if(nsd.grab_ip6_optional && hints[0].ai_family == AF_INET6) {
+				log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s", 
+				r==EAI_SYSTEM?strerror(errno):gai_strerror(r));
 				continue;
+			}
 #endif
 			error("cannot parse address '%s': getaddrinfo: %s %s",
 				nodes[i]?nodes[i]:"(null)",
