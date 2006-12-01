@@ -1345,8 +1345,12 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 		if(ANCOUNT(packet) == 1 && packet_skip_dname(packet) &&
 			xfrd_parse_soa_info(packet, &soa))
 			have_soa = 1;
-		if(xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL))
-			xfrd_set_refresh_now(zone);
+		if(xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL)) {
+			if(zone->zone_handler.fd == -1 
+				&& zone->tcp_conn == -1 &&
+				!zone->tcp_waiting && !zone->udp_waiting)
+				xfrd_set_refresh_now(zone);
+		}
 		next = find_same_master_notify(zone, acl_num);
 		if(next != -1) {
 			zone->next_master = next;

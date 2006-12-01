@@ -1,6 +1,8 @@
 1 December 2006: Wouter
 	- Moved xfrd ipc and reload handlers to front of event handler
 	  lists for a 10% speedup in xfrd.
+	- Fixed so that NSD no longer interrupts zone transfers when
+	  a notify comes in for that zone. Added package to test it.
 
 30 November 2006: Wouter
 	- Test for fallback in getaddrinfo more portable.

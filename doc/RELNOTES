@@ -11,6 +11,8 @@ BUG FIXES:
 	  descriptors. Fixed.
 	- Fixed getaddrinfo error message to be more descriptive.
 	- Fallback to ip4 if getaddrinfo fails for ip6.
+	- Will no longer lose a notify message during reloads.
+	- Will no longer lose transfer in progress when notify comes in.
 
 3.0.2
 =============

@@ -39,7 +39,6 @@ SERVER
   Speed test to prove that it does so.
 - Turn off TC bit on all error replies.
 - Bug #133: print empty statistic blocks. Not sure if the feature is wanted.
-- Xfrd should not interrupt [AI]XFR when a notify arrives for that zone.
 - XFRD should throttle the number of notifys going out for a zone to
   x/minute. (even if updates are very often).
 - Option to only notify a batch of slaves (from loads) at a time, with
