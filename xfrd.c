@@ -110,7 +110,6 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->reload_handler.user_data = xfrd;
 	xfrd->reload_handler.event_types = NETIO_EVENT_TIMEOUT;
 	xfrd->reload_handler.event_handler = xfrd_handle_reload;
-	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
 	xfrd->reload_timeout.tv_sec = 0;
 	xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
 	xfrd->can_send_reload = 1;
@@ -130,7 +129,6 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->sending_zone_state = 0;
 	xfrd->dirty_zones = stack_create(xfrd->region, 
 		nsd_options_num_zones(nsd->options));
-	netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
 
 	xfrd->notify_waiting_first = NULL;
 	xfrd->notify_waiting_last = NULL;
@@ -145,6 +143,10 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd_free_namedb();
 	xfrd_read_state(xfrd);
 	xfrd_send_expy_all_zones();
+
+	/* add handlers after zone handlers so they are before them in list */
+	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
+	netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd startup"));
 	xfrd_main();
