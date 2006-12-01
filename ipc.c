@@ -286,7 +286,7 @@ send_quit_to_child(struct main_ipc_handler_data* data, int fd)
 	}
 	data->child->need_to_send_QUIT = 0;
 	DEBUG(DEBUG_IPC,2, (LOG_INFO, "main: sent quit to child %d", 
-		data->child->pid));
+		(int)data->child->pid));
 }
 
 void
