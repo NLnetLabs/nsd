@@ -1,3 +1,7 @@
+4 December 2006: Wouter
+	- updated test packages. Moved 213_large from manual to long.
+	  size_0, source_port_0 made more working (needs root permission).
+
 1 December 2006: Wouter
 	- Moved xfrd ipc and reload handlers to front of event handler
 	  lists for a 10% speedup in xfrd.

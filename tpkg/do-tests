@@ -37,11 +37,11 @@ done
 tpkg report
 #tpkg clean
 
-do_testplan=no
+do_long=no
 if [ $do_testplan = yes ]; then
-	TESTPLAN3="testplan_axfr.tpkg testplan_ixfr_pkts.tpkg testplan_mess.tpkg testplan_axfr_tsig.tpkg testplan_ixfr_remove.tpkg testplan_timeout.tpkg testplan_deadlock.tpkg testplan_ixfr.tpkg testplan_tsig_34.tpkg bug_sighup.tpkg ixfr_rollback.tpkg reload_timeout.tpkg xfrd_connect_ip6.tpkg xfrd_tcp_overload.tpkg"
+	LONGTESTS="testplan_axfr.tpkg testplan_ixfr_pkts.tpkg testplan_mess.tpkg testplan_axfr_tsig.tpkg testplan_ixfr_remove.tpkg testplan_timeout.tpkg testplan_deadlock.tpkg testplan_ixfr.tpkg testplan_tsig_34.tpkg bug_sighup.tpkg ixfr_rollback.tpkg reload_timeout.tpkg xfrd_connect_ip6.tpkg xfrd_tcp_overload.tpkg notify_interrupts_axfr.tpkg reload_timeout.tpkg bug137.tpkg bug145_multiple_zone_xfr.tpkg 213_large.tpkg"
 	cd long
-	for i in $TESTPLAN3; do
+	for i in $LONGTESTS; do
 		echo ">>> next test $i at "`date`
 		tpkg -a ../../ exe $i
 	done

@@ -3,12 +3,10 @@ NSD RELEASE NOTES
 3.0.3
 =============
 BUG FIXES:
-	- When running with thousands of secondary zones, NSD would
-	  run out of UDP sockets. FreeBSD crashes the process instead
-	  of returning an error. Fixed.
 	- Bug #152: NSD would not use the identity from nsd.conf, fixed.
-	- Bug #153: Using thousands of zones, xfrd could run out of file
-	  descriptors. Fixed.
+	- Bug #153: When running with thousands of secondary zones, NSD would
+	  run out of UDP sockets. Caused crash on FreeBSD, errors on Linux
+	  ('out of file descriptors'), depending on ulimits. Fixed.
 	- Fixed getaddrinfo error message to be more descriptive.
 	- Fallback to ip4 if getaddrinfo fails for ip6.
 	- Will no longer lose a notify message during reloads (IPC).
