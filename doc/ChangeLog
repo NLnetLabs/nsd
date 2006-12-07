@@ -1,3 +1,6 @@
+7 December 2006: Wouter
+	- created 3.0.3 svn tag.
+
 4 December 2006: Wouter
 	- updated test packages. Moved 213_large from manual to long.
 	  size_0, source_port_0 made more working (needs root permission).
