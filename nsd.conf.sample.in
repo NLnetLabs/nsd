@@ -58,7 +58,7 @@ server:
 	# username: @user@
 
 	# The directory for zonefile: files.
-	# zonesdir: @zonesdir@
+	# zonesdir: "/directory/to/files"
 
 	# The file where incoming zone transfers are stored.
 	# run nsd-patch to update zone files, then you can safely delete it.
