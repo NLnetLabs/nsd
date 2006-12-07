@@ -1,5 +1,6 @@
 7 December 2006: Wouter
 	- created 3.0.3 svn tag.
+	- Improved error message to help operator.
 
 4 December 2006: Wouter
 	- updated test packages. Moved 213_large from manual to long.

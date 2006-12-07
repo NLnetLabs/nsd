@@ -11,6 +11,8 @@ BUG FIXES:
 	- Fallback to ip4 if getaddrinfo fails for ip6.
 	- Will no longer lose a notify message during reloads (IPC).
 	- Will no longer lose transfer in progress when notified for that zone.
+	- Nicer error when operator forgets to rebuild after deleting a zone.
+
 
 3.0.2
 =============
