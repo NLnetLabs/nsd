@@ -11,10 +11,18 @@
 
 NEED_DIG9="bug009_soa_alone bug013_truncate bug034_any bug052_ent bug054_rd bug056_axfr  bug058_qn_246 bug072_parent bug090_000_txt bug095_screwy_wc bug103 copy_cd nx_dnssec tsig_badkey tsig_badsig tsig_query"
 NEED_i386="xfr_1 xfr_2"
+NEED_NC="bug141_clear_formerr_flags tcp_underrun"
+NEED_PCAT="query_diff_root"
 
 # do we have dig9?
 DIG9=no
 if dig 2>&1 | grep "DiG 9"; then DIG9=yes; fi
+# do we have nc?
+HAVE_NC=no
+if test -f "`which nc`"; then HAVE_NC=yes; fi
+# do we have ldns pcat, pcat-print, pcat-diff?
+HAVE_PCAT=no
+if test -f "`which pcat-diff`"; then HAVE_PCAT=yes; fi
 
 # run the tests
 tpkg -a ../../ fake 0000_nsd-compile.tpkg
@@ -27,6 +35,14 @@ for i in *.tpkg; do
 	fi
 	if [ $HOSTTYPE != i386 ] && echo $NEED_i386 | grep `basename $i .tpkg` >/dev/null; then
 		echo ">>> skipped $i: test needs i386 (precompiled help prog)"
+		skip=yes
+	fi
+	if [ $HAVE_NC = no ] && echo $NEED_NC | grep `basename $i .tpkg` >/dev/null; then
+		echo ">>> skipped $i: test needs nc (netcat)"
+		skip=yes
+	fi
+	if [ $HAVE_PCAT = no ] && echo $NEED_PCAT | grep `basename $i .tpkg` >/dev/null; then
+		echo ">>> skipped $i: test needs pcat, pcat-print, pcat-diff."
 		skip=yes
 	fi
 	if [ $skip = no ]; then
