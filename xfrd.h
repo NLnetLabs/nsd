@@ -195,7 +195,7 @@ enum xfrd_packet_result {
 */
 #define XFRD_MAX_TCP 50 /* max number of TCP AXFR/IXFR concurrent connections.*/
 			/* Each entry has 64Kb buffer preallocated.*/
-#define XFRD_MAX_UDP 300 /* max number of UDP sockets at a time for IXFR */
+#define XFRD_MAX_UDP 100 /* max number of UDP sockets at a time for IXFR */
 #define XFRD_MAX_UDP_NOTIFY 50 /* max concurrent UDP sockets for NOTIFY */
 
 extern xfrd_state_t* xfrd;

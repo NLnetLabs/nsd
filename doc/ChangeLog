@@ -1,3 +1,8 @@
+8 December 2006: Wouter
+	- Moved down max XFRD UDP sockets for zone transfer queries to 100
+	  down from 300. This makes the total socket max at 200, so it fits
+	  easily under 256 ulimit (a common default).
+
 7 December 2006: Wouter
 	- Improved error message to help operator.
 	- created 3.0.3 svn tag.
