@@ -361,7 +361,7 @@ rdata_services_to_string(buffer_type *output, rdata_atom_type rdata,
 
 			for (i = 0; i < bitmap_size * 8; ++i) {
 				if (get_bit(bitmap, i)) {
-					struct servent *service = getservbyport(i, proto->p_name);
+					struct servent *service = getservbyport((int)htons(i), proto->p_name);
 					if (service) {
 						buffer_printf(output, " %s", service->s_name);
 					} else {

@@ -6,6 +6,7 @@ BUG FIXES:
 	- zonec will print an error when other data is put next to a CNAME.
 	- Fixup unaligned memory access that could occur when reading ixfr.db
 	  with a partial transfer inside.
+	- Fixup for the WKS RR type printout by nsd-patch and nsd-xfer.
 
 3.0.3
 =============
