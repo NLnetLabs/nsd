@@ -6,6 +6,7 @@ BUG FIXES:
 	- Bug #149: Fixed text for NOTAUTH error code.
 	- Fixed getaddrinfo error message to be more descriptive.
 	- Fallback to ip4 if getaddrinfo fails for ip6.
+	- Type WKS printed wrong from nsd-xfer. Fixup in call to getservbyport.
 
 2.3.6
 =============
