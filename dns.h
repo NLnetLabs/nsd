@@ -111,7 +111,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_SRV	33	/* SRV record RFC2782 */
 
 #define TYPE_NAPTR	35	/* RFC2915 */
-#define TYPE_KX		36	/* RFC2230 */
+#define TYPE_KX		36	/* RFC2230 Key Exchange Delegation Record */
 #define TYPE_CERT	37	/* RFC2538 */
 
 #define TYPE_DNAME	39	/* RFC2672 */
@@ -125,7 +125,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_RRSIG	46	/* RFC 4033, 4034, and 4035 */
 #define TYPE_NSEC	47	/* RFC 4033, 4034, and 4035 */
 #define TYPE_DNSKEY	48	/* RFC 4033, 4034, and 4035 */
-#define TYPE_DHCID	49	/* draft-ietf-dnsext-dhcid-rr-13.txt */
+#define TYPE_DHCID	49	/* RFC4701 DHCP information */
 
 #define TYPE_SPF        99      /* RFC 4408 */
 

@@ -1,3 +1,7 @@
+11 December 2006: Wouter
+	- Added test to check for CNAME and other data error by zonec.
+	  Currently NSEC, NSEC3, RRSIG, SIG, NXT are allowed next to CNAME.
+
 8 December 2006: Wouter
 	- Moved down max XFRD UDP sockets for zone transfer queries to 100
 	  down from 300. This makes the total socket max at 200, so it fits

@@ -1186,6 +1186,10 @@ process_rr(void)
 	 ||(rr->type == TYPE_CNAME && domain_find_rrset(rr->owner, zone, TYPE_DNAME))) {
 		zc_error_prev_line("DNAME and CNAME at the same name");
 	}
+	if(domain_find_rrset(rr->owner, zone, TYPE_CNAME) &&
+		domain_find_non_cname_rrset(rr->owner, zone)) {
+		zc_error_prev_line("CNAME and other data at the same name");
+	}
 
 #ifdef DNSSEC
 	if (rr->type == TYPE_RRSIG && rr_rrsig_type_covered(rr) == TYPE_SOA) {

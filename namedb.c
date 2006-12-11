@@ -353,3 +353,25 @@ namedb_find_zone(namedb_type *db, domain_type *domain)
 
 	return zone;
 }
+
+rrset_type *
+domain_find_non_cname_rrset(domain_type *domain, zone_type *zone)
+{
+	/* find any rrset type that is not allowed next to a CNAME */
+	/* nothing is allowed next to a CNAME, except RRSIG, NSEC, NSEC3 */
+	rrset_type *result = domain->rrsets;
+
+	while (result) {
+		if (result->zone == zone && /* here is the list of exceptions*/
+			rrset_rrtype(result) != TYPE_CNAME &&
+			rrset_rrtype(result) != TYPE_RRSIG &&
+			rrset_rrtype(result) != TYPE_NXT &&
+			rrset_rrtype(result) != TYPE_SIG &&
+			rrset_rrtype(result) != TYPE_NSEC &&
+			rrset_rrtype(result) != TYPE_NSEC3 ) {
+			return result;
+		}
+		result = result->next;
+	}
+	return NULL;
+}

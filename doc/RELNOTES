@@ -1,5 +1,10 @@
 NSD RELEASE NOTES
 
+3.0.4
+=============
+BUG FIXES:
+	- zonec will print an error when other data is put next to a CNAME.
+
 3.0.3
 =============
 BUG FIXES:
@@ -12,7 +17,6 @@ BUG FIXES:
 	- Will no longer lose a notify message during reloads (IPC).
 	- Will no longer lose transfer in progress when notified for that zone.
 	- Nicer error when operator forgets to rebuild after deleting a zone.
-
 
 3.0.2
 =============
