@@ -5,6 +5,8 @@
 	  with a partial transfer inside.
 	- RR type WKS (well known service) was not printed correctly,
 	  htons() was forgotten when calling getservbyport.
+	- NSD does not complain about not being able to read the db CRC
+	  when all that happens is the file became longer or shorter.
 
 8 December 2006: Wouter
 	- Moved down max XFRD UDP sockets for zone transfer queries to 100

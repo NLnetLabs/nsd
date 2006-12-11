@@ -139,15 +139,22 @@ db_crc_different(namedb_type* db)
 	}
 
 	if(fread(&crc_file, sizeof(crc_file), 1, fd) != 1) {
-		log_msg(LOG_ERR, "could not read %s CRC. db changed?", db->filename);
+		if(!feof(fd))
+			log_msg(LOG_ERR, "could not read %s CRC: %s. "
+				"db changed?", db->filename, strerror(errno));
 		fclose(fd);
 		return -1;
 	}
 	crc_file = ntohl(crc_file);
 
-	if(fread(buf, sizeof(char), sizeof(buf), fd) != sizeof(buf)
-	   || memcmp(buf, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) != 0) {
-		log_msg(LOG_ERR, "could not read %s magic. db changed?", db->filename);
+	if(fread(buf, sizeof(char), sizeof(buf), fd) != sizeof(buf)) {
+		if(!feof(fd))
+			log_msg(LOG_ERR, "could not read %s magic: %s. "
+				"db changed?", db->filename, strerror(errno));
+		fclose(fd);
+		return -1;
+	}
+	if(memcmp(buf, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) != 0) {
 		fclose(fd);
 		return -1;
 	}
