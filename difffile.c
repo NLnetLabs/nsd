@@ -1178,10 +1178,10 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 		{
 			if(found_any) {
 				if(dx->file_pos < *offset)
-					*offset = dx->file_pos;
+					memmove(offset, &dx->file_pos, sizeof(off_t));
 			} else {
 				found_any = 1;
-				*offset = dx->file_pos;
+				memmove(offset, &dx->file_pos, sizeof(off_t));
 			}
 		}
 	}

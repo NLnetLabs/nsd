@@ -4,6 +4,8 @@ NSD RELEASE NOTES
 =============
 BUG FIXES:
 	- zonec will print an error when other data is put next to a CNAME.
+	- Fixup unaligned memory access that could occur when reading ixfr.db
+	  with a partial transfer inside.
 
 3.0.3
 =============
