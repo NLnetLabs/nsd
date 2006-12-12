@@ -87,7 +87,7 @@ inet_ntop4(const u_char *src, char *dst, size_t size)
 	int l;
 
 	l = snprintf(tmp, size, fmt, src[0], src[1], src[2], src[3]);
-	if (l <= 0 || l >= size) {
+	if (l <= 0 || l >= (int)size) {
 		errno = ENOSPC;
 		return (NULL);
 	}

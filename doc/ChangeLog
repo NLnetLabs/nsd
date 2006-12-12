@@ -1,5 +1,6 @@
 12 December 2006: Wouter
 	- Added missing include to ipc.c to compile on SunOS.
+	- Cast to avoid signed/unsigned comparison in compat/inet_ntop.c.
 
 11 December 2006: Wouter
 	- Added test to check for CNAME and other data error by zonec.
