@@ -10,6 +10,7 @@
 #include <config.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "ipc.h"
 #include "buffer.h"
 #include "xfrd-tcp.h"
