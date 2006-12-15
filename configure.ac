@@ -256,7 +256,7 @@ AC_DEFUN([CHECK_SSL], [
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([time.h arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h dlfcn.h tcpd.h])
+AC_CHECK_HEADERS([time.h arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h])
 
 AC_DEFUN([CHECK_VALIST_DEF],
 [
@@ -316,8 +316,6 @@ AC_CHECK_STRPTIME
 
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
-
-AC_SEARCH_LIBS(dlopen, [dl])
 
 dnl LIBGTOP_CHECK_TYPE
 dnl Stolen from Gnome's anjuta
@@ -394,7 +392,7 @@ AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
 AC_FUNC_FSEEKO
 AC_SYS_LARGEFILE
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask dlopen dlerror dlsym dlclose strptime])
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime])
  
 #
 # Checking for missing functions we can replace

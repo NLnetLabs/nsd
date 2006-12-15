@@ -1,3 +1,7 @@
+15 December 2006: Wouter
+	- Removed dlopen() checks from configure.ac, NSD3 no longer has
+	  dynamic plugin support (since 3.0.0).
+
 12 December 2006: Wouter
 	- Added missing include to ipc.c to compile on SunOS.
 	- Cast to avoid signed/unsigned comparison in compat/inet_ntop.c.
