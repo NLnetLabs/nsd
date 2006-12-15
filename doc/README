@@ -74,8 +74,7 @@ Step 6: Create and edit /etc/nsd/nsd.conf file possibly from
 	Also server parameters can be set, see nsd.conf(5) man page.
 
 Step 7: Copy necessary master zone files into appropriate directories
-        under /etc/nsd/primary & /etc/nsd/secondary. You might consider
-        using contrib/build-nsdzones.pl script to automate task 6 & 7.
+        under /etc/nsd/primary & /etc/nsd/secondary. 
 
 Step 8: Run nsdc rebuild
 
@@ -84,7 +83,7 @@ Step 9: Run nsdc start
 Step 10: Test the NSD with dig, drill or host.
 
 Step 11: If you're happy add nsdc start into your OS boot up sequence.
-	nsdc stop can be used in the shutdown sequence.
+	 nsdc stop can be used in the shutdown sequence.
 
 Step 12: If desired add nsdc patch to your superuser crontab to
          update the zone files with the content transferred from master

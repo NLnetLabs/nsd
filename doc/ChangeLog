@@ -2,6 +2,7 @@
 	- Removed dlopen() checks from configure.ac, NSD3 no longer has
 	  dynamic plugin support (since 3.0.0).
 	- added .rpm spec file to contrib.
+	- Updated README to remove reference to buildzones script.
 
 12 December 2006: Wouter
 	- Added missing include to ipc.c to compile on SunOS.
