@@ -7,6 +7,7 @@ BUG FIXES:
 	- Fixed getaddrinfo error message to be more descriptive.
 	- Fallback to ip4 if getaddrinfo fails for ip6.
 	- Type WKS printed wrong from nsd-xfer. Fixup in call to getservbyport.
+	- No warning on time_t to int conversion in log_file().
 
 2.3.6
 =============
