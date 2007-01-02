@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-3.0.4
+3.0.4 (UPCOMING RELEASE)
 =============
 BUG FIXES:
 	- zonec will print an error when other data is put next to a CNAME.
@@ -8,6 +8,8 @@ BUG FIXES:
 	  with a partial transfer inside.
 	- Fixup for the WKS RR type printout by nsd-patch and nsd-xfer.
 	- Error message 'could not read database CRC' now only given on error.
+	- Added contrib/nsd.zones2nsd.conf python script to convert NSD 2 to
+	  NSD 3 config files, contributed by Stephane Bortzmeyer.
 
 3.0.3
 =============

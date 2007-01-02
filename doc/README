@@ -73,6 +73,10 @@ Step 6: Create and edit /etc/nsd/nsd.conf file possibly from
 	TSIG keys used for secure zone transfers must be included.
 	Also server parameters can be set, see nsd.conf(5) man page.
 
+	If you have a NSD 2 nsd.zones config file take a look at the
+	python script contrib/nsd.zones2nsd.conf, it will convert the
+	zones and TSIG key settings.
+
 Step 7: Copy necessary master zone files into appropriate directories
         under /etc/nsd/primary & /etc/nsd/secondary. 
 
