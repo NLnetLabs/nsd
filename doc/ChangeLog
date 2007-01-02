@@ -3,6 +3,8 @@
 	  NSD 3 config files. Converts secondary zones and TSIG keys.
 	- Made config conversion script skip empty lines.
 	- Made config conversion script convert primary zones (and notify).
+	- Nsdc control script will exit with 'nsd startup failed.' if nsd
+	  fails to start (due to bad config file for example).
 
 15 December 2006: Wouter
 	- Removed dlopen() checks from configure.ac, NSD3 no longer has

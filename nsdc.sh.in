@@ -142,7 +142,12 @@ unlock() {
 }
 
 do_start() {
-[ -x ${sbindir}/nsd ] && ${sbindir}/nsd -c ${configfile} 
+	if test -x ${sbindir}/nsd; then
+		${sbindir}/nsd -c ${configfile}
+		test $? = 0 || (echo "nsd startup failed."; exit 1)
+	else
+		echo "${sbindir}/nsd not an executable file, nsd startup failed."; exit 1
+	fi
 }
 
 do_stop() {

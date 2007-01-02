@@ -8,8 +8,11 @@ BUG FIXES:
 	  with a partial transfer inside.
 	- Fixup for the WKS RR type printout by nsd-patch and nsd-xfer.
 	- Error message 'could not read database CRC' now only given on error.
+FEATURES:
 	- Added contrib/nsd.zones2nsd.conf python script to convert NSD 2 to
 	  NSD 3 config files, contributed by Stephane Bortzmeyer.
+	- The nsdc control script will print 'nsd startup failed' if the nsd
+	  executable does not start (due to bad permissions, bad config, ...).
 
 3.0.3
 =============
