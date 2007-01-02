@@ -2,6 +2,7 @@
 	- Added contrib script from Stephane Bortzmeyer to convert NSD 2 to 
 	  NSD 3 config files. Converts secondary zones and TSIG keys.
 	- Made config conversion script skip empty lines.
+	- Made config conversion script convert primary zones (and notify).
 
 15 December 2006: Wouter
 	- Removed dlopen() checks from configure.ac, NSD3 no longer has
