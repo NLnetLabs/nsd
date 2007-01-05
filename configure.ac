@@ -68,13 +68,14 @@ AC_SUBST(dbfile)
 AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the NSD database])
 
 #
-# Determine the default directory for the master zone files
+# Determine the default directory for the zone files
 #
-zonesdir=$configdir
+zonesdir=""
 AC_ARG_WITH([zonesdir],
-	AC_HELP_STRING([--with-zonesdir=dir], [NSD default location for master zone files]),
+	AC_HELP_STRING([--with-zonesdir=dir], [NSD default location for zone files]),
 	[zonesdir=$withval])
 AC_SUBST(zonesdir)
+AC_DEFINE_UNQUOTED(ZONESDIR, ["`eval echo $zonesdir`"], [NSD default location for zone files. Empty string or NULL to disable.])
 
 # default diff file location.
 difffile=${configdir}/ixfr.db

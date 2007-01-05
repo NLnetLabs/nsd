@@ -1440,7 +1440,7 @@ main (int argc, char **argv)
 		}
 	}
 	if(nsd_options && zonesdir == 0) zonesdir = nsd_options->zonesdir;
-	if(zonesdir) {
+	if(zonesdir && zonesdir[0]) {
 		if (chdir(zonesdir)) {
 			fprintf(stderr, "zonec: cannot chdir to %s: %s\n", zonesdir, strerror(errno));
 			exit(1);

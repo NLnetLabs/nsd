@@ -8,6 +8,9 @@ BUG FIXES:
 	  with a partial transfer inside.
 	- Fixup for the WKS RR type printout by nsd-patch and nsd-xfer.
 	- Error message 'could not read database CRC' now only given on error.
+	- ./configure --zonesdir=<directory for zone files> now works to
+	  set a default value for the zonesdir: <dir> nsd.conf directive.
+	  Set zonesdir: "" to disable the change of directory.
 FEATURES:
 	- Added contrib/nsd.zones2nsd.conf python script to convert NSD 2 to
 	  NSD 3 config files, contributed by Stephane Bortzmeyer.

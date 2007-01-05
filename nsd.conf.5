@@ -138,7 +138,9 @@ Same as commandline option -d for
 .Xr zonec 8 .
 Also 
 .Xr nsd 8
-will access files (pid file, database file, log file) relative to this directory.
+will access files (pid file, database file, log file) relative to this 
+directory.  Set the value to "" (the empty string) to disable the change
+of working directory.
 .It \fBdifffile:\fR <filename>
 When NSD receives IXFR updates it will store them in this file. This file
 contains the differences between the database file and the latest zone version.

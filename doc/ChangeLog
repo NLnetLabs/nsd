@@ -1,3 +1,11 @@
+5 Januari 2007: Wouter
+	- Fixed --zonesdir=<path> for configure. The value did not get used
+	  as a default value. Now it is used as a default value. If a 
+	  default value is set for zonesdir, you can go to a 'no value 
+	  specified' by giving the empty string, zonesdir: "" in nsd.config.
+	- Fixed checkconf.tpkg for this change. nsd-checkconf will 
+	  output zonesdir: "" as this is the default for --zonesdir.
+
 2 Januari 2007: Wouter
 	- Added contrib script from Stephane Bortzmeyer to convert NSD 2 to 
 	  NSD 3 config files. Converts secondary zones and TSIG keys.

@@ -570,7 +570,7 @@ main (int argc, char *argv[])
 		if(nsd.options->username) nsd.username = nsd.options->username;
 		else nsd.username = USER;
 	}
-	if(nsd.options->zonesdir) {
+	if(nsd.options->zonesdir && nsd.options->zonesdir[0]) {
 		if(chdir(nsd.options->zonesdir)) {
 			error("cannot chdir to '%s': %s", 
 				nsd.options->zonesdir, strerror(errno));
