@@ -11,6 +11,15 @@ BUG FIXES:
 	- ./configure --zonesdir=<directory for zone files> now works to
 	  set a default value for the zonesdir: <dir> nsd.conf directive.
 	  Set zonesdir: "" to disable the change of directory.
+	- Bug: reload crashes with log message 'continuing with old database',
+	  and after that no more zone updates. Manual fix is to kill -HUP,
+	  but now fixed in software to try to reload again (and again).
+	- Small speedup where xfrd could briefly be busy-waiting.
+	- If master sends IXFR with glue that is already present in the zone
+	  this is silently accepted. Printed in debug mode -L 2. To make
+	  the log file smaller.
+	- Exponential backoff for zones that never worked to max of 4 hours.
+	  For expired zones the SOA retry values are used.
 FEATURES:
 	- Added contrib/nsd.zones2nsd.conf python script to convert NSD 2 to
 	  NSD 3 config files, contributed by Stephane Bortzmeyer.
