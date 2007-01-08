@@ -149,6 +149,7 @@ struct xfrd_zone {
 	/* round of xfrattempts, -1 is waiting for timeout */
 	int round_num; 
 	zone_options_t* zone_options;
+	int fresh_xfr_timeout;
 
 	/* handler for timeouts */
 	struct timespec timeout;

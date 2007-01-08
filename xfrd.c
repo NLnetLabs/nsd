@@ -26,7 +26,8 @@
 #include "difffile.h"
 #include "ipc.h"
 
-#define XFRD_TRANSFER_TIMEOUT 10 /* empty zone timeout is between x and 2*x seconds */
+#define XFRD_TRANSFER_TIMEOUT_START 10 /* empty zone timeout is between x and 2*x seconds */
+#define XFRD_TRANSFER_TIMEOUT_MAX 14400 /* empty zone timeout max expbackoff */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connectin is stopped */
 #define XFRD_UDP_TIMEOUT 10 /* seconds, before a udp request times out */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
@@ -251,6 +252,7 @@ xfrd_init_zones()
 		xzone->master = 0; /* first retry will use first master */
 		xzone->master_num = 0;
 		xzone->next_master = 0;
+		xzone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
 
 		xzone->soa_nsd_acquired = 0;
 		xzone->soa_disk_acquired = 0;
@@ -338,8 +340,13 @@ xfrd_set_timer_retry(xfrd_zone_t* zone)
 	/* set timer for next retry or expire timeout if earlier. */
 	if(zone->soa_disk_acquired == 0) {
 		/* if no information, use reasonable timeout */
-		xfrd_set_timer(zone, xfrd_time() + XFRD_TRANSFER_TIMEOUT
-			+ random()%XFRD_TRANSFER_TIMEOUT);
+		xfrd_set_timer(zone, xfrd_time() + zone->fresh_xfr_timeout
+			+ random()%zone->fresh_xfr_timeout);
+		/* exponential backoff - some master data in zones is paid-for
+		   but non-working, and will not get fixed. */
+		zone->fresh_xfr_timeout *= 2;
+		if(zone->fresh_xfr_timeout > XFRD_TRANSFER_TIMEOUT_MAX)
+			zone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_MAX;
 	} else if(zone->state == xfrd_zone_expired ||
 		xfrd_time() + ntohl(zone->soa_disk.retry) <
 		zone->soa_disk_acquired + ntohl(zone->soa_disk.expire)) 

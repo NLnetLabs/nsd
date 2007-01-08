@@ -910,6 +910,7 @@ server_main(struct nsd *nsd)
 					restart_child_servers(nsd, server_region, netio, 
 						&xfrd_listener.fd);
 				} else if (child_pid == reload_pid) {
+					sig_atomic_t cmd = NSD_SOA_END;
 					log_msg(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
 					       (int) child_pid, status);
@@ -917,6 +918,13 @@ server_main(struct nsd *nsd)
 					if(reload_listener.fd > 0) close(reload_listener.fd);
 					reload_listener.fd = -1;
 					reload_listener.event_types = NETIO_EVENT_NONE;
+					/* inform xfrd reload attempt ended */
+					if(!write_socket(xfrd_listener.fd, 
+						&cmd, sizeof(cmd)) == -1) { 
+						log_msg(LOG_ERR, "problems "
+						  "sending SOAEND to xfrd: %s", 
+						  strerror(errno)); 
+					}
 				} else if (child_pid == xfrd_pid) {
 					log_msg(LOG_WARNING,
 					       "xfrd process %d failed with status %d, restarting ",

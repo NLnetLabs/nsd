@@ -668,8 +668,12 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 		 * could block further send operations */
 		xfrd_handle_ipc_read(handler, xfrd);
 	}
-        if ((event_types & NETIO_EVENT_WRITE) && !xfrd->ipc_send_blocked)
+        if ((event_types & NETIO_EVENT_WRITE))
 	{
+		if(xfrd->ipc_send_blocked) { /* wait for SOA_END */
+			handler->event_types = NETIO_EVENT_READ;
+			return;
+		}
 		/* if necessary prepare a packet */
 		if(!(xfrd->can_send_reload && xfrd->need_to_send_reload) &&
 			!xfrd->need_to_send_quit &&

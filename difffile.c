@@ -449,8 +449,8 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 	rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
 	if(rrnum != -1) {
-		log_msg(LOG_ERR, "diff: RR %s already exists", 
-			dname_to_string(dname,0));
+		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR %s already exists", 
+			dname_to_string(dname,0)));
 		/* ignore already existing RR: lenient accepting of messages */
 		return;
 	}

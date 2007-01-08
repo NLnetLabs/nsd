@@ -1,3 +1,19 @@
+8 Januari 2007: Wouter
+	- ipc_send_blocked will not lead to busy waiting on it, but will block
+	  in select, until SOA_END comes by.
+	- server_main sends SOA_END if reload crashes, to xfrd. So that xfrd
+	  can set ipc_blocked=0 and can_send_reload=1; and thus resume service,
+	  assuming that the crash was a temporary condition. 
+	  This will lead to trying every reload-timeout seconds to reload
+	  if it is a permanent condition. Which is more obvious to the 
+	  operator.
+	- put the error "error: diff: RR ns.kiev.ua. already exists" in
+	  debug mode only. Zone transfers with this error are liberally
+	  accepted, and we should not spam the logfile.
+	- empty zones will not be retried forever every 10 seconds,
+	  but exponential backoff to a max of every 4 hours.
+	  The exact value is randomised to spread out attempts.
+
 5 Januari 2007: Wouter
 	- Fixed --zonesdir=<path> for configure. The value did not get used
 	  as a default value. Now it is used as a default value. If a 
