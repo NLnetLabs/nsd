@@ -389,7 +389,7 @@ answer_notify (struct nsd* nsd, struct query *query)
 	
 #ifdef TSIG
 	if(!tsig_find_rr(&query->tsig, query->packet)) {
-		log_msg(LOG_ERR, "bad tsig RR format");
+		DEBUG(DEBUG_XFRD,2, (LOG_ERR, "bad tsig RR format"));
 		return query_error(query, NSD_RC_FORMAT);
 	}
 	rc = process_tsig(query);
@@ -405,6 +405,7 @@ answer_notify (struct nsd* nsd, struct query *query)
 		int s = nsd->this_child->parent_fd;
 		uint16_t sz;
 		uint32_t acl_send = htonl(acl_num);
+		size_t pos;
 		assert(why);
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s passed acl %s %s",
 			dname_to_string(query->qname, NULL),
@@ -430,20 +431,15 @@ answer_notify (struct nsd* nsd, struct query *query)
 		/* create notify reply - keep same query contents */
 		QR_SET(query->packet);         /* This is an answer.  */
 		AA_SET(query->packet);	   /* we are authoritative. */
+		ANCOUNT_SET(query->packet, 0);
+		NSCOUNT_SET(query->packet, 0);
+		ARCOUNT_SET(query->packet, 0);
 		RCODE_SET(query->packet, RCODE_OK); /* Error code.  */
-#ifdef TSIG
-		if(why && why->key_options) { /* sign reply */
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "tsig sign"));
-			buffer_clear(query->packet);
-			buffer_set_position(query->packet, query->tsig.position);
-			tsig_prepare(&query->tsig);
-			tsig_update(&query->tsig, query->packet,
-				buffer_limit(query->packet));
-			tsig_sign(&query->tsig);
-			tsig_append_rr(&query->tsig, query->packet);
-			ARCOUNT_SET(query->packet, ARCOUNT(query->packet) + 1);
-		}
-#endif /* TSIG */
+		/* position is right after the query */
+		pos = buffer_position(query->packet);
+		buffer_clear(query->packet);
+		buffer_set_position(query->packet, pos);
+		/* tsig is added in add_additional later (if needed) */
 		return QUERY_PROCESSED;
 	}
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s refused acl: %s %s",

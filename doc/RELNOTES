@@ -20,7 +20,10 @@ BUG FIXES:
 	  the log file smaller.
 	- Exponential backoff for zones that never worked to max of 4 hours.
 	  For expired zones the SOA retry values are used.
-	- An allow-notify acl entry of NOKEY matches only queries without TSIG.
+	- allow-notify acl entries 'NOKEY' match only queries without TSIG.
+	- Answers to valid notifies contained wrong RR counts in the header.
+	  The notifies were processed correctly, but now the acknowledgement
+	  reply is in correct DNS format.
 FEATURES:
 	- Added contrib/nsd.zones2nsd.conf python script to convert NSD 2 to
 	  NSD 3 config files, contributed by Stephane Bortzmeyer.
