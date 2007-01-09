@@ -400,12 +400,15 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 
 int acl_key_matches(acl_options_t* acl, struct query* q)
 {
-	if(acl->nokey) 
-		return 1;
 	if(acl->blocked) 
 		return 1;
-	/* check name of tsig key */
 #ifdef TSIG
+	if(acl->nokey) {
+		if(q->tsig.status == TSIG_NOT_PRESENT)
+			return 1;
+		return 0;
+	}
+	/* check name of tsig key */
 	if(q->tsig.status != TSIG_OK) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail query has no TSIG"));
 		return 0; /* query has no TSIG */
@@ -430,6 +433,8 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 	}
 	return 1;
 #else
+	if(acl->nokey) 
+		return 1;
 	return 0;
 #endif
 }

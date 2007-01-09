@@ -1,3 +1,10 @@
+9 Januari 2007: Wouter
+	- TSIG acl matching changed so that NOKEY allow-notify entries match 
+	  only queries without a tsig. Otherwise NSD would crash.
+	  This only affects servers that have allow-notify: ip NOKEY and
+	  someone sends a TSIG signed notify from that ip.
+	- test package for that.
+
 8 Januari 2007: Wouter
 	- ipc_send_blocked will not lead to busy waiting on it, but will block
 	  in select, until SOA_END comes by.

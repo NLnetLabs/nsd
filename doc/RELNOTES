@@ -20,6 +20,7 @@ BUG FIXES:
 	  the log file smaller.
 	- Exponential backoff for zones that never worked to max of 4 hours.
 	  For expired zones the SOA retry values are used.
+	- An allow-notify acl entry of NOKEY matches only queries without TSIG.
 FEATURES:
 	- Added contrib/nsd.zones2nsd.conf python script to convert NSD 2 to
 	  NSD 3 config files, contributed by Stephane Bortzmeyer.
