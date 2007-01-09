@@ -7,6 +7,7 @@
 	- Fix for reply to notify messages with ANCOUNT wrong. The ack
 	  to notify messages that passed the ACL, and had a SOA in the answer
 	  section of the query, included wrong RR counts in the header.
+	- test package for notify reply wireformat.
 
 8 Januari 2007: Wouter
 	- ipc_send_blocked will not lead to busy waiting on it, but will block
