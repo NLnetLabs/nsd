@@ -1,6 +1,8 @@
 11 Januari 2007: Wouter
 	- The message 'server .. closed cmd channel' is now priority INFO.
 	  This to reduce the 'error' amount in the logs.
+	- On error in a tcp request, set to retry next instead of waiting
+	  for the tcp timeout.
 
 9 Januari 2007: Wouter
 	- TSIG acl matching changed so that NOKEY allow-notify entries match 

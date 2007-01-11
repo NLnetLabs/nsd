@@ -206,6 +206,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 #ifdef INET6
 		family = PF_INET6;
 #else
+		xfrd_set_refresh_now(zone);
 		xfrd_tcp_release(set, zone);
 		return 0;
 #endif
@@ -216,11 +217,13 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	if(fd == -1) {
 		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s", 
 			zone->master->ip_address_spec, strerror(errno));
+		xfrd_set_refresh_now(zone);
 		xfrd_tcp_release(set, zone);
 		return 0;
 	}
 	if(fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
 		log_msg(LOG_ERR, "xfrd: fcntl failed: %s", strerror(errno));
+		xfrd_set_refresh_now(zone);
 		xfrd_tcp_release(set, zone);
 		return 0;
 	}
@@ -231,6 +234,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		if(errno != EINPROGRESS) {
 			log_msg(LOG_ERR, "xfrd: connect %s failed: %s",
 				zone->master->ip_address_spec, strerror(errno));
+			xfrd_set_refresh_now(zone);
 			xfrd_tcp_release(set, zone);
 			return 0;
 		}
@@ -351,6 +355,7 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		if(error != 0) {
 			log_msg(LOG_ERR, "Could not tcp connect to %s: %s",
 				zone->master->ip_address_spec, strerror(error));
+			xfrd_set_refresh_now(zone);
 			xfrd_tcp_release(set, zone);
 			return;
 		}
@@ -358,6 +363,7 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	ret = conn_write(tcp);
 	if(ret == -1) {
 		log_msg(LOG_ERR, "xfrd: failed writing tcp %s", strerror(errno));
+		xfrd_set_refresh_now(zone);
 		xfrd_tcp_release(set, zone);
 		return;
 	}
@@ -447,6 +453,7 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	assert(zone->tcp_conn != -1);
 	ret = conn_read(tcp);
 	if(ret == -1) {
+		xfrd_set_refresh_now(zone);
 		xfrd_tcp_release(set, zone);
 		return;
 	}
