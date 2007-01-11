@@ -1,3 +1,7 @@
+11 Januari 2007: Wouter
+	- The message 'server .. closed cmd channel' is now priority INFO.
+	  This to reduce the 'error' amount in the logs.
+
 9 Januari 2007: Wouter
 	- TSIG acl matching changed so that NOKEY allow-notify entries match 
 	  only queries without a tsig. Otherwise NSD would crash.

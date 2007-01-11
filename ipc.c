@@ -448,8 +448,8 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 			if(data->nsd->children[i].child_fd == handler->fd) {
 				data->nsd->children[i].child_fd = -1;
 				data->nsd->children[i].has_exited = 1;
-				DEBUG(DEBUG_IPC,1,
-					(LOG_ERR, "server %d closed cmd channel",
+				DEBUG(DEBUG_IPC,1, (LOG_INFO, 
+					"server %d closed cmd channel",
 					(int) data->nsd->children[i].pid));
 			}
 		handler->fd = -1;
