@@ -199,7 +199,7 @@ read_uint32(const void *src)
 /*
  * Print debugging information using log_msg, 
  * set the logfile as /dev/stdout or /dev/stderr if you like.
- * nsd -F 0xFFFF -L 3 gives max debug output.
+ * nsd -F 0xFFFF enables all debug facilities.
  */
 #define DEBUG_PARSER           0x0001U
 #define DEBUG_ZONEC            0x0002U

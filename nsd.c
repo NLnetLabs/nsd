@@ -59,6 +59,9 @@ usage (void)
 		"                  specified multiple times).\n"
 		"  -c configfile   Read specified configfile instead of %s.\n"
 		"  -d              Enable debug mode (do not fork as a daemon process).\n"
+#ifndef NDEBUG
+		"  -F facilities   Specify the debug facilities.\n"
+#endif /* NDEBUG */
 		"  -f database     Specify the database to load.\n"
 		"  -h              Print this help information.\n"
 		, CONFIGFILE);
@@ -67,6 +70,9 @@ usage (void)
 #ifdef NSID
                 "  -I nsid         Specify the NSID. This must be a hex string.\n"
 #endif /* NSID */
+#ifndef NDEBUG
+		"  -L level        Specify the debug level.\n"
+#endif /* NDEBUG */
 		"  -l filename     Specify the log file.\n"
 		"  -N server-count The number of servers to start.\n"
 		"  -n tcp-count    The maximum number of TCP connections per server.\n"
@@ -362,7 +368,11 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:vF:L:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:v"
+#ifndef NDEBUG	
+		"F:L:"
+#endif /* NDEBUG */
+		)) != -1) {
 		switch (c) {
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
