@@ -1,6 +1,10 @@
 NSD RELEASE NOTES
 
-3.0.4 (UPCOMING RELEASE)
+3.0.5 (UPCOMING RELEASE)
+=============
+BUG FIXES:
+
+3.0.4
 =============
 BUG FIXES:
 	- zonec will print an error when other data is put next to a CNAME.

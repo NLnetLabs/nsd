@@ -45,13 +45,13 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %files 
 %defattr(-,root,root,-)
-%doc doc/README doc/LICENSE doc/DIFFERENCES doc/TODO doc/RELNOTES doc/REQUIREMENTS
+%doc doc/README doc/LICENSE doc/differences.pdf doc/TODO doc/RELNOTES doc/REQUIREMENTS
 %doc doc/NSD-FOR-BIND-USERS doc/NSD-DATABASE doc/NSD-DIFFFILE doc/README.icc
 %doc doc/CREDITS
 %dir %{_sysconfdir}/nsd/
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/nsd/nsd.conf
 %attr(0755,root,root) %{_initrddir}/%{name}
-%attr(0755,${name},${name}) %{_sysconfdir}/nsd
+%attr(0755,%{name},%{name}) %{_sysconfdir}/nsd
 %attr(0700,%{name},%{name}) %dir %{_localstatedir}/run/%{name}
 %attr(0700,%{name},%{name}) %dir %{_localstatedir}/cache/%{name}
 %{_sbindir}/*
