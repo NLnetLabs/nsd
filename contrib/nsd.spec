@@ -59,9 +59,6 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %pre
 if getent passwd nsd >/dev/null 2>&1 ; then : ; else /usr/sbin/useradd -d /etc/nsd -r -s /sbin/nologin nsd >/dev/null 2>&1 || exit 1 ; fi
-if [ $1 = 2 -a -f /%{_localstatedir}/run/%{name}/%{name}.pid ]; then
-	/sbin/service %{name} stop
-fi
 # "Everyone is doing it, so why can't we?" 
 exit 0
 
