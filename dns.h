@@ -162,7 +162,6 @@ enum rdata_wireformat
 	RDATA_WF_UNCOMPRESSED_DNAME, /* Uncompressed domain name.  */
 	RDATA_WF_BYTE,		     /* 8-bit integer.  */
 	RDATA_WF_SHORT,		     /* 16-bit integer.  */
-	RDATA_WF_24BIT,              /* 24-bit integer. */
 	RDATA_WF_LONG,		     /* 32-bit integer.  */
 	RDATA_WF_TEXT,		     /* Text string.  */
 	RDATA_WF_A,		     /* 32-bit IPv4 address.  */
@@ -183,7 +182,6 @@ enum rdata_zoneformat
 	RDATA_ZF_TEXT,		/* Text string.  */
 	RDATA_ZF_BYTE,		/* 8-bit integer.  */
 	RDATA_ZF_SHORT,		/* 16-bit integer.  */
-	RDATA_ZF_24BIT,		/* 24-bit integer.  */
 	RDATA_ZF_LONG,		/* 32-bit integer.  */
 	RDATA_ZF_A,		/* 32-bit IPv4 address.  */
 	RDATA_ZF_AAAA,		/* 128-bit IPv6 address.  */

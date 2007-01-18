@@ -41,7 +41,7 @@ void yyerror(const char *message);
 #ifdef NSEC3
 /* parse nsec3 parameters and add the (first) rdata elements */
 static void
-nsec3_add_params(const char* optout_str, const char* hash_algo_str, 
+nsec3_add_params(const char* hash_algo_str, const char* flag_str,
 	const char* iter_str, const char* salt_str, int salt_len);
 #endif /* NSEC3 */
 
@@ -785,7 +785,7 @@ rdata_nsec:	dname nsec_seq
 rdata_nsec3:   STR sp STR sp STR sp STR sp STR nsec_seq
     {
 #ifdef NSEC3
-	    nsec3_add_params($3.str, $1.str, $5.str, $7.str, $7.len);
+	    nsec3_add_params($1.str, $3.str, $5.str, $7.str, $7.len);
 
 	    zadd_rdata_wireformat(zparser_conv_b32(parser->region, $9.str)); /* next hashed name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
@@ -797,11 +797,10 @@ rdata_nsec3:   STR sp STR sp STR sp STR sp STR nsec_seq
     }
     ;
 
-rdata_nsec3_param:   STR sp STR sp STR trail
+rdata_nsec3_param:   STR sp STR sp STR sp STR trail
     {
 #ifdef NSEC3
-	    /* optout mustbezero */
-	    nsec3_add_params("0", $1.str, $3.str, $5.str, $5.len);
+	    nsec3_add_params($1.str, $3.str, $5.str, $7.str, $7.len);
 #else
 	    zc_error_prev_line("nsec3 not supported");
 #endif /* NSEC3 */
@@ -1003,33 +1002,12 @@ zc_warning(const char *fmt, ... )
 
 #ifdef NSEC3
 static void
-nsec3_add_params(const char* optout_str, const char* hash_algo_str, 
+nsec3_add_params(const char* hashalgo_str, const char* flag_str,
 	const char* iter_str, const char* salt_str, int salt_len)
 {
-	uint8_t optout;
-	uint32_t iterations;
-	char *end;
-	uint8_t buf[3];
-
-	optout = (uint8_t) strtol(optout_str, &end, 10);
-	if (*end != '\0' || (optout != 0 && optout != 1)) {
-		zc_error_prev_line("optout value must be 0 or 1");
-	}
-
-	/* hash algorithm */
-	zadd_rdata_wireformat(zparser_conv_byte(parser->region, hash_algo_str)); 
-
-	iterations = strtol(iter_str, &end, 10);
-	if (*end != 0 || iterations >= (1 << 23)) {
-		zc_error_prev_line("iterations integer value < 2^23 is expected");
-	}
-
-	/* iterations and opt-out bit */
-	iterations |= optout << 23;
-	buf[0] = (iterations >> 16) & 0xff;
-	buf[1] = (iterations >> 8) & 0xff;
-	buf[2] = (iterations) & 0xff;
-	zadd_rdata_wireformat(alloc_rdata_init(parser->region, buf, 3));
+	zadd_rdata_wireformat(zparser_conv_byte(parser->region, hashalgo_str));
+	zadd_rdata_wireformat(zparser_conv_byte(parser->region, flag_str));
+	zadd_rdata_wireformat(zparser_conv_short(parser->region, iter_str));
 
 	/* salt */
 	if(strcmp(salt_str, "-") != 0) 

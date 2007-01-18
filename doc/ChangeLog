@@ -2,6 +2,7 @@
 	- Created 3.0.4 release tag.
 	- 3.0.5 number in trunk.
 	- add nsd.spec patch from Farkas Levente to contrib.
+	- NSEC3 new wireformat and presentation format from draft-09.
 
 11 Januari 2007: Wouter
 	- The message 'server .. closed cmd channel' is now priority INFO.

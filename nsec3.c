@@ -31,12 +31,9 @@ detect_nsec3_params(rr_type* nsec3_apex,
 	/* always uses first NSEC3 record with SOA bit set */
 	assert(salt && salt_len && iter);
 	assert(nsec3_apex);
-	*salt_len = rdata_atom_data(nsec3_apex->rdatas[2])[0];
-	*salt = (unsigned char*)(rdata_atom_data(nsec3_apex->rdatas[2])+1);
-	*iter = (rdata_atom_data(nsec3_apex->rdatas[1])[0]<<16) |
-		(rdata_atom_data(nsec3_apex->rdatas[1])[1]<<8) |
-		(rdata_atom_data(nsec3_apex->rdatas[1])[2]);
-	*iter &= 0x7fffff;
+	*salt_len = rdata_atom_data(nsec3_apex->rdatas[3])[0];
+	*salt = (unsigned char*)(rdata_atom_data(nsec3_apex->rdatas[3])+1);
+	*iter = read_uint16(rdata_atom_data(nsec3_apex->rdatas[2]));
 }
 
 static const dname_type *
@@ -70,10 +67,10 @@ nsec3_hash_dname(region_type *region, zone_type *zone,
 static int 
 nsec3_has_soa(rr_type* rr)
 {
-	if(rdata_atom_size(rr->rdatas[4]) > 0 && /* has types in bitmap */
-		rdata_atom_data(rr->rdatas[4])[0] == 0 && /* first window = 0, */
+	if(rdata_atom_size(rr->rdatas[5]) > 0 && /* has types in bitmap */
+		rdata_atom_data(rr->rdatas[5])[0] == 0 && /* first window = 0, */
 						/* [1]: windowlen must be >= 1 */
-		rdata_atom_data(rr->rdatas[4])[2]&0x02)  /* SOA bit set */
+		rdata_atom_data(rr->rdatas[5])[2]&0x02)  /* SOA bit set */
 		return 1;
 	return 0;
 }
@@ -213,16 +210,14 @@ nsec3_rrset_params_ok(rr_type* base, rrset_type* rrset)
 		assert(rrset->rrs[i].type == TYPE_NSEC3);
 		if(rdata_atom_data(rd[0])[0] == 
 			rdata_atom_data(prd[0])[0] && /* hash algo */
-		   (rdata_atom_data(rd[1])[0]&0x7f) == 
-			(rdata_atom_data(prd[1])[0]&0x7f) && /* iterations 0 */
-		   rdata_atom_data(rd[1])[1] == 
-			rdata_atom_data(prd[1])[1] && /* iterations 1 */
-		   rdata_atom_data(rd[1])[2] == 
-			rdata_atom_data(prd[1])[2] && /* iterations 2 */
 		   rdata_atom_data(rd[2])[0] == 
-			rdata_atom_data(prd[2])[0] && /* salt length */
-		   memcmp(rdata_atom_data(rd[2])+1, 
-			rdata_atom_data(prd[2])+1, rdata_atom_data(rd[2])[0]) 
+			rdata_atom_data(prd[2])[0] && /* iterations 0 */
+		   rdata_atom_data(rd[2])[1] == 
+			rdata_atom_data(prd[2])[1] && /* iterations 1 */
+		   rdata_atom_data(rd[3])[0] == 
+			rdata_atom_data(prd[3])[0] && /* salt length */
+		   memcmp(rdata_atom_data(rd[3])+1, 
+			rdata_atom_data(prd[3])+1, rdata_atom_data(rd[3])[0]) 
 			== 0 ) 
 		{
 			/* this NSEC3 matches nsec3 parameters from zone */

@@ -105,20 +105,6 @@ rdata_short_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
-rdata_24bit_to_string(buffer_type *output, rdata_atom_type rdata,
-	rr_type* ATTR_UNUSED(rr))
-{
-	uint32_t data =	
-		(rdata_atom_data(rdata)[0]<<16)
-		| (rdata_atom_data(rdata)[1]<<8)
-		| (rdata_atom_data(rdata)[2]);
-	/* nsec3 remove optout bit */
-	data &= 0x7fffff;
-	buffer_printf(output, "%lu", (unsigned long) data);
-	return 1;
-}
-
-static int
 rdata_long_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -483,7 +469,6 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_text_to_string,
 	rdata_byte_to_string,
 	rdata_short_to_string,
-	rdata_24bit_to_string,
 	rdata_long_to_string,
 	rdata_a_to_string,
 	rdata_aaaa_to_string,
@@ -551,9 +536,6 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_WF_SHORT:
 			length = sizeof(uint16_t);
-			break;
-		case RDATA_WF_24BIT:
-			length = 3;
 			break;
 		case RDATA_WF_LONG:
 			length = sizeof(uint32_t);
@@ -714,13 +696,6 @@ print_rdata(buffer_type *output, rrtype_descriptor_type *descriptor,
 			buffer_printf(output, " (\n\t\t");
 		} else {
 			buffer_printf(output, " ");
-		}
-		if ((descriptor->type == TYPE_NSEC3)
-			&& i == 1)
-		{
-			/* print nsec3 optout bit */
-			buffer_printf(output, "%u ", (unsigned)
-				rdata_atom_data(record->rdatas[1])[0]&0x80>>7);
 		}
 		if (!rdata_atom_to_string(
 			    output,
