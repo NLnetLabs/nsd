@@ -1,3 +1,6 @@
+18 Januari 2007: Wouter
+	- Created 3.0.4 release tag.
+
 11 Januari 2007: Wouter
 	- The message 'server .. closed cmd channel' is now priority INFO.
 	  This to reduce the 'error' amount in the logs.
