@@ -52,6 +52,9 @@ struct domain
 	domain_type *nsec3_wcard_child_cover;
 	/* for the DS case we must answer on the parent side of zone cut */
 	domain_type *nsec3_ds_parent_cover;
+	/* the NSEC3 domain that has a hash-base32 <= than this dname. */
+	/* or NULL (no smaller on within this zone) */
+	domain_type *nsec3_lookup;
 #endif
 	uint32_t     number; /* Unique domain name number.  */
 	

@@ -43,6 +43,7 @@ allocate_domain_info(domain_table_type *table,
 	result->nsec3_cover = NULL;
 	result->nsec3_wcard_child_cover = NULL;
 	result->nsec3_ds_parent_cover = NULL;
+	result->nsec3_lookup = NULL;
 	result->nsec3_is_exact = 0;
 	result->nsec3_ds_parent_is_exact = 0;
 #endif
@@ -77,6 +78,7 @@ domain_table_create(region_type *region)
 	root->nsec3_cover = NULL;
 	root->nsec3_wcard_child_cover = NULL;
 	root->nsec3_ds_parent_cover = NULL;
+	root->nsec3_lookup = NULL;
 #endif
 	
 	result = (domain_table_type *) region_alloc(region,

@@ -232,26 +232,6 @@ nsec3_rrset_params_ok(rr_type* base, rrset_type* rrset)
 	return 0;
 }
 
-static domain_type* 
-nsec3_find_last(zone_type* zone)
-{
-	/* this is the longest possible walk to get to the end, but is precomputed */
-	/* could also tree-find the <max_val>.domain name */
-	domain_type* walk = zone->apex;
-	domain_type* result = 0;
-	while(walk && 
-		dname_is_subdomain(domain_dname(walk), domain_dname(zone->apex)))
-	{
-		/* remember last domain with an OK NSEC3 rrset */
-		if(nsec3_rrset_params_ok(NULL,
-			domain_find_rrset(walk, zone, TYPE_NSEC3))) {
-			result = walk;
-		}
-		walk = domain_next(walk);
-	}
-	return result;
-}
-
 int 
 nsec3_find_cover(namedb_type* db, zone_type* zone, 
 	const dname_type* hashname, domain_type** result)
@@ -277,7 +257,8 @@ nsec3_find_cover(namedb_type* db, zone_type* zone,
 	}
 
 	/* find covering NSEC3 record, lexicographically before the closest match */
-	walk = closest_match;
+	/* use nsec3_lookup to jumpstart the search */
+	walk = closest_match->nsec3_lookup;
 	rrset = 0;
 	while(walk && dname_is_subdomain(domain_dname(walk), domain_dname(zone->apex)))
 	{
@@ -409,6 +390,7 @@ static void
 prehash_zone(struct namedb* db, struct zone* zone)
 {
 	domain_type *walk;
+	domain_type *last_nsec3_node;
 	region_type *temp_region = region_create(xalloc, free);
 	assert(db && zone);
 
@@ -416,9 +398,6 @@ prehash_zone(struct namedb* db, struct zone* zone)
 	zone->nsec3_soa_rr = find_zone_nsec3(db, zone);
 	if(!zone->nsec3_soa_rr) 
 		zone->nsec3_last = 0;
-	else	zone->nsec3_last = nsec3_find_last(zone); 
-	assert((zone->nsec3_soa_rr&&zone->nsec3_last) ||
-		(!zone->nsec3_soa_rr&&!zone->nsec3_last));
 	if(zone->nsec3_soa_rr) {
 		/* check that hashed, the apex name equals the found nsec3 domain */
 		const dname_type* checkname = nsec3_hash_dname(temp_region, 
@@ -434,6 +413,27 @@ prehash_zone(struct namedb* db, struct zone* zone)
 			zone->nsec3_last = 0;
 		}
 	}
+	if(!zone->nsec3_soa_rr)
+		return;
+
+	/* go through entire zone and setup nsec3_lookup speedup */
+	walk = zone->apex;
+	last_nsec3_node = NULL;
+	/* since we walk in sorted order, we pass all NSEC3s in sorted
+	   order and we can set the lookup ptrs */
+	while(walk && dname_is_subdomain(
+		domain_dname(walk), domain_dname(zone->apex)))
+	{
+		zone_type* z = domain_find_zone(walk);
+		if(z && z==zone)
+		{
+			if(domain_find_rrset(walk, zone, TYPE_NSEC3))
+				last_nsec3_node = walk;
+			walk->nsec3_lookup = last_nsec3_node;
+		}
+		walk = domain_next(walk);
+	}
+	zone->nsec3_last = last_nsec3_node;
 
 	/* go through entire zone */
 	walk = zone->apex;
