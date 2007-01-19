@@ -998,10 +998,10 @@ answer_authoritative(struct nsd   *nsd,
 		match->rrsets = wildcard_child->rrsets;
 		match->is_existing = wildcard_child->is_existing;
 #ifdef NSEC3
-		match->nsec3_exact = wildcard_child->nsec3_exact;
+		match->nsec3_is_exact = wildcard_child->nsec3_is_exact;
 		match->nsec3_cover = wildcard_child->nsec3_cover;
 		match->nsec3_wcard_child_cover = wildcard_child->nsec3_wcard_child_cover;
-		match->nsec3_ds_parent_exact = wildcard_child->nsec3_ds_parent_exact;
+		match->nsec3_ds_parent_is_exact = wildcard_child->nsec3_ds_parent_is_exact;
 		match->nsec3_ds_parent_cover = wildcard_child->nsec3_ds_parent_cover;
 		nsec3_answer_wildcard(q, answer, wildcard_child, nsd->db, qname);
 #endif

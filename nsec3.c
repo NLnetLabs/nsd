@@ -318,9 +318,9 @@ prehash_domain(namedb_type* db, zone_type* zone,
 	if(!zone->nsec3_soa_rr)
 	{
 		/* set to 0 (in case NSEC3 removed after an update) */
-		domain->nsec3_exact = 0;
-		domain->nsec3_cover = 0;
-		domain->nsec3_wcard_child_cover = 0;
+		domain->nsec3_is_exact = 0;
+		domain->nsec3_cover = NULL;
+		domain->nsec3_wcard_child_cover = NULL;
 		return;
 	}
 
@@ -328,8 +328,8 @@ prehash_domain(namedb_type* db, zone_type* zone,
 	exact = nsec3_find_cover(db, zone, hashname, &result);
 	domain->nsec3_cover = result;
 	if(exact)
-		domain->nsec3_exact = result;
-	else	domain->nsec3_exact = 0;
+		domain->nsec3_is_exact = 1;
+	else	domain->nsec3_is_exact = 0;
 
 	if(!exact && domain->is_existing && !domain_has_only_NSEC3(domain, zone)) {
 		/* make sure it is not glue */
@@ -386,7 +386,7 @@ prehash_ds(namedb_type* db, zone_type* zone,
 	int exact;
 
 	if(!zone->nsec3_soa_rr) {
-		domain->nsec3_ds_parent_exact = NULL;
+		domain->nsec3_ds_parent_is_exact = 0;
 		domain->nsec3_ds_parent_cover = NULL;
 		return;
 	}
@@ -395,8 +395,8 @@ prehash_ds(namedb_type* db, zone_type* zone,
 	hashname = nsec3_hash_dname(region, zone, domain_dname(domain));
 	exact = nsec3_find_cover(db, zone, hashname, &result);
 	if(exact)
-		domain->nsec3_ds_parent_exact = result;
-	else 	domain->nsec3_ds_parent_exact = 0;
+		domain->nsec3_ds_parent_is_exact = 1;
+	else 	domain->nsec3_ds_parent_is_exact = 0;
 	domain->nsec3_ds_parent_cover = result;
 
 	/*
@@ -534,7 +534,9 @@ nsec3_add_closest_encloser_proof(
 	/* prove that below closest encloser nothing exists */
 	nsec3_add_nonexist_proof(query, answer, closest_encloser, db, qname);
 	/* proof that closest encloser exists */
-	nsec3_add_rrset(query, answer, AUTHORITY_SECTION, closest_encloser->nsec3_exact);
+	if(closest_encloser->nsec3_is_exact)
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			closest_encloser->nsec3_cover);
 }
 
 void 
@@ -557,27 +559,27 @@ nsec3_add_ds_proof(struct query *query, struct answer *answer,
 	/*
 	printf("Add ds proof for %s\n", dname_to_string(domain_dname(domain),0));
 	*/
-	if(domain->nsec3_ds_parent_exact) {
+	if(domain->nsec3_ds_parent_is_exact) {
 		/* use NSEC3 record from above the zone cut. */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
-			domain->nsec3_ds_parent_exact);
+			domain->nsec3_ds_parent_cover);
 	} else {
 		/* prove closest provable encloser */
 		domain_type* par = domain->parent;
 		domain_type* prev_par = 0;
-		while(par && !par->nsec3_exact)
+		while(par && !par->nsec3_is_exact)
 		{
 			prev_par = par;
 			par = par->parent;
 		}
 		assert(par); /* parent zone apex must be provable, thus this ends */	
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
-			par->nsec3_exact);
+			par->nsec3_cover);
 		/* we took several steps to go to the provable parent, so
 		   the one below it has no exact nsec3, disprove it.
 		   disprove is easy, it has a prehashed cover ptr. */
 		if(prev_par) {
-			assert(prev_par != domain && !prev_par->nsec3_exact);
+			assert(prev_par != domain && !prev_par->nsec3_is_exact);
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				prev_par->nsec3_cover);
 		}
@@ -600,8 +602,9 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 		if(original == query->zone->apex) {
 			/* DS at zone apex, but server not authoritative for parent zone */
 			/* so answer at the child zone level */
-			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
-				original->nsec3_exact);
+			if(original->nsec3_is_exact)
+				nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+					original->nsec3_cover);
 			return;
 		}
 		/* query->zone must be the parent zone */
@@ -612,16 +615,18 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 		&& label_is_wildcard(dname_name(domain_dname(original)))) {
 		/* denial for wildcard is already there */
 		/* add parent proof to have a closest encloser proof for wildcard parent */
-		if(original->parent)
+		if(original->parent && original->parent->nsec3_is_exact)
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
-				original->parent->nsec3_exact);
+				original->parent->nsec3_cover);
 		/* proof for wildcard itself */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
 			original->nsec3_cover);
 	}
-	else	/* add nsec3 to prove rrset does not exist */
-		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
-			original->nsec3_exact);
+	else {	/* add nsec3 to prove rrset does not exist */
+		if(original->nsec3_is_exact)
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+				original->nsec3_cover);
+	}
 }
 
 void 
@@ -672,7 +677,9 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 		/* act as if the NSEC3 domain did not exist, name error */
 		*match = 0;
 		/* all nsec3s are directly below the apex, that is closest encloser */
-		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, query->zone->apex->nsec3_exact);
+		if(query->zone->apex->nsec3_is_exact)
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+				query->zone->apex->nsec3_cover);
 		/* disprove the nsec3 record. */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, closest_encloser->nsec3_cover);
 		/* disprove a wildcard */

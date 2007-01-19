@@ -46,14 +46,12 @@ struct domain
 	domain_type *wildcard_child_closest_match;
 	rrset_type  *rrsets;
 #ifdef NSEC3
-	/* if the domain has an NSEC3 for it, or NULL */
-	domain_type *nsec3_exact;
 	/* (if nsec3 chain complete) always the covering nsec3 record */ 
 	domain_type *nsec3_cover;
 	/* the nsec3 that covers the wildcard child of this domain. */
 	domain_type *nsec3_wcard_child_cover;
 	/* for the DS case we must answer on the parent side of zone cut */
-	domain_type *nsec3_ds_parent_exact, *nsec3_ds_parent_cover;
+	domain_type *nsec3_ds_parent_cover;
 #endif
 	uint32_t     number; /* Unique domain name number.  */
 	
@@ -62,6 +60,12 @@ struct domain
 	 */
 	unsigned     is_existing : 1;
 	unsigned     is_apex : 1;
+#ifdef NSEC3
+	/* if the domain has an NSEC3 for it, use cover ptr to get it. */
+	unsigned     nsec3_is_exact : 1;
+	/* same but on parent side */
+	unsigned     nsec3_ds_parent_is_exact : 1;
+#endif
 };
 
 struct zone

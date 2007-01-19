@@ -18,6 +18,8 @@
 	- A query for an NSEC3 ownername will lead to DNAME redirection
 	  as if the NSEC3 did not exist.
 	- Test package in manual that tests NSEC3 and DNAME in the apex.
+	- Changed NSEC3 memory requirements from 5 pointers per domain name
+	  to 3 pointers and 2 bits.
 
 18 Januari 2007: Wouter
 	- Created 3.0.4 release tag.

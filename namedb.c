@@ -40,11 +40,11 @@ allocate_domain_info(domain_table_type *table,
 	result->rrsets = NULL;
 	result->number = 0;
 #ifdef NSEC3
-	result->nsec3_exact = NULL;
 	result->nsec3_cover = NULL;
 	result->nsec3_wcard_child_cover = NULL;
-	result->nsec3_ds_parent_exact = NULL;
 	result->nsec3_ds_parent_cover = NULL;
+	result->nsec3_is_exact = 0;
+	result->nsec3_ds_parent_is_exact = 0;
 #endif
 	result->is_existing = 0;
 	result->is_apex = 0;
@@ -72,10 +72,10 @@ domain_table_create(region_type *region)
 	root->is_existing = 0;
 	root->is_apex = 0;
 #ifdef NSEC3
-	root->nsec3_exact = NULL;
+	root->nsec3_is_exact = 0;
+	root->nsec3_ds_parent_is_exact = 0;
 	root->nsec3_cover = NULL;
 	root->nsec3_wcard_child_cover = NULL;
-	root->nsec3_ds_parent_exact = NULL;
 	root->nsec3_ds_parent_cover = NULL;
 #endif
 	
