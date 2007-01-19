@@ -478,7 +478,7 @@ server_init(struct nsd *nsd)
 		log_msg(LOG_ERR, "The diff file contains errors. Will continue without it");
 	}
 #ifdef NSEC3
-	prehash(nsd->db, NULL);
+	prehash(nsd->db, 0);
 #endif
 
 	compression_table_capacity = 0;
@@ -693,10 +693,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		region_log_stats(nsd->db->region);
 #endif
 #ifdef NSEC3
-	for(zone= nsd->db->zones; zone; zone = zone->next) {
-		if(zone->updated)
-			prehash(nsd->db, zone);
-	}
+	prehash(nsd->db, 1);
 #endif
 
 	initialize_dname_compression_tables(nsd);

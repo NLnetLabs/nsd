@@ -101,9 +101,14 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 				rdata_atom_data(rr->rdatas[0])[0]);
 			continue;
 		}
+		if(rdata_atom_data(rr->rdatas[1])[0] != 0) {
+			/* draft-nsec3-09: NSEC3PARAM records with flags
+			   field value other than zero MUST be ignored. */
+			continue;
+		}
 		/* check hash of apex -> NSEC3 with soa bit on */
 		hashed_apex = nsec3_hash_dname_param(tmpregion,
-			zone, domain_dname(zone->apex), paramset->rrs);
+			zone, domain_dname(zone->apex), &paramset->rrs[i]);
 		domain = domain_table_find(namedb->domains, hashed_apex);
 		if(!domain) {
 			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has no hash(apex).", 
@@ -134,10 +139,10 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 					rdata_atom_data(nsec3_rrset->rrs[j].rdatas[0])[0]
 				&& memcmp(salt1, salt2, saltlen1) == 0) {
 				/* found it */
-				log_msg(LOG_INFO, 
+				DEBUG(DEBUG_QUERY, 1, (LOG_INFO, 
 					"detected NSEC3 for zone %s saltlen=%d iter=%d",
-						dname_to_string(domain_dname(
-						zone->apex),0), saltlen2, iter2);
+					dname_to_string(domain_dname(
+					zone->apex),0), saltlen2, iter2));
 				region_destroy(tmpregion);
 				return &nsec3_rrset->rrs[j];
 			}
@@ -457,20 +462,23 @@ prehash_zone(struct namedb* db, struct zone* zone)
 }
 
 void 
-prehash(struct namedb* db, struct zone* zone)
+prehash(struct namedb* db, int updated_only)
 {
-	time_t start = time(0), end;
-	if(zone) {
-		prehash_zone(db, zone);
-	} else {
-		zone_type *z;
-		for(z = db->zones; z; z = z->next)
-		{
+	zone_type *z;
+	time_t end, start = time(NULL);
+	int count = 0;
+	for(z = db->zones; z; z = z->next)
+	{
+		if(!updated_only || z->updated) {
 			prehash_zone(db, z);
+			if(z->nsec3_soa_rr)
+				count++;
 		}
 	}
-	end = time(0);
-	log_msg(LOG_INFO, "prehash took %d seconds", (int)(end-start));
+	end = time(NULL);
+	if(count > 0)
+		DEBUG(DEBUG_QUERY, 1, (LOG_INFO, "nsec3-prepare took %d "
+		"seconds for %d zones.", (int)(end-start), count));
 }
 
 /* add the NSEC3 rrset to the query answer at the given domain */

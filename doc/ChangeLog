@@ -1,3 +1,18 @@
+19 Januari 2007: Wouter
+	- NSEC3 work. prehash printed only once with time taken to prepare.
+	- prints are now only in DEBUG mode (except errors).
+	- rr descriptor counts for NSEC3 updated, has an extra field flags.
+	- now NSEC3PARAMs with flags!=0 are ignored, as per draft-09.
+	- Fixed where only first NSEC3PARAM was properly detected.
+	- Added tpkg in manual (because you need to compile with nsec3)
+	  that performs the test queries from draft-09 and checks them.
+	- Made tpkg to test NSEC3 parameter detection. NSD will skip any
+	  NSEC3PARAMs that don't work until the first working one is found.
+	  Also, this means unknown hash algorithms are simply ignored.
+	  A zone that uses exclusively unknown hash algorithms for NSEC3
+	  will give errors on loading (or after zone transfer) but NSD
+	  will load and serve the zone (but no NSEC3s are returned).
+
 18 Januari 2007: Wouter
 	- Created 3.0.4 release tag.
 	- 3.0.5 number in trunk.

@@ -28,10 +28,10 @@ const struct dname *nsec3_hash_dname(struct region *region,
 	struct zone *zone, const struct dname *dname);
 
 /* 
- * calculate prehash information for the given zone,
- * or all zones if zone == NULL 
+ * calculate prehash information for all zones,
+ * selects only updated=1 zones if bool set.
  */
-void prehash(struct namedb* db, struct zone* zone);
+void prehash(struct namedb* db, int updated_only);
 
 /* 
  * finds nsec3 that covers the given domain dname. 

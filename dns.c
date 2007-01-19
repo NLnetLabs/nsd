@@ -415,7 +415,7 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
 	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT } },
 	/* larger type numbers */
-	{ TYPE_NSEC3, "NSEC3", T_NSEC3, 5, 5,
+	{ TYPE_NSEC3, "NSEC3", T_NSEC3, 6, 6,
 	  { RDATA_WF_BYTE, /* hash type */
 	    RDATA_WF_BYTE, /* flags */
 	    RDATA_WF_SHORT, /* iterations */
@@ -424,7 +424,7 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	    RDATA_WF_BINARY /* type bitmap */ },
 	  { RDATA_ZF_BYTE, RDATA_ZF_BYTE, RDATA_ZF_SHORT, RDATA_ZF_HEX_LEN, 
 	    RDATA_ZF_BASE32, RDATA_ZF_NSEC } },
-	{ TYPE_NSEC3PARAM, "NSEC3PARAM", T_NSEC3PARAM, 3, 3,
+	{ TYPE_NSEC3PARAM, "NSEC3PARAM", T_NSEC3PARAM, 4, 4,
 	  { RDATA_WF_BYTE, /* hash type */
 	    RDATA_WF_BYTE, /* flags */
 	    RDATA_WF_SHORT, /* iterations */
