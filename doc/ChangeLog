@@ -12,6 +12,12 @@
 	  A zone that uses exclusively unknown hash algorithms for NSEC3
 	  will give errors on loading (or after zone transfer) but NSD
 	  will load and serve the zone (but no NSEC3s are returned).
+	- added tpkg in manual to test parent side DS answers.
+	  These follow a different code path than child side DS.
+	- Will allow NSEC3s(and signatures) below a DNAME.
+	- A query for an NSEC3 ownername will lead to DNAME redirection
+	  as if the NSEC3 did not exist.
+	- Test package in manual that tests NSEC3 and DNAME in the apex.
 
 18 Januari 2007: Wouter
 	- Created 3.0.4 release tag.

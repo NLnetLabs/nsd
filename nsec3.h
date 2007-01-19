@@ -65,7 +65,8 @@ void nsec3_answer_authoritative(struct domain** match, struct query *query,
 	struct answer *answer, struct domain* closest_encloser, 
 	struct namedb* db, const struct dname* qname);
 
-/* true of domain is a NSEC3 (+RRSIG) data only variety */
+/* true of domain is a NSEC3 (+RRSIG) data only variety.
+   pass nonNULL zone to filter for particular zone. */
 int domain_has_only_NSEC3(struct domain* domain, struct zone* zone);
 
 #endif /* NSEC3 */

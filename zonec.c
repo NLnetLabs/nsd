@@ -39,6 +39,7 @@
 #include "util.h"
 #include "zparser.h"
 #include "options.h"
+#include "nsec3.h"
 
 const dname_type *error_dname;
 domain_type *error_domain;
@@ -1253,6 +1254,10 @@ check_dname(namedb_type* db)
 		if(domain->is_existing) {
 			/* there may not be DNAMEs above it */
 			domain_type* parent = domain->parent;
+#ifdef NSEC3
+			if(domain_has_only_NSEC3(domain, NULL))
+				continue;
+#endif
 			while(parent) {
 				if(domain_find_rrset_any(parent, TYPE_DNAME)) {
 					zc_error("While checking node %s,",

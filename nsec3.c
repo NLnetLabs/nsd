@@ -640,7 +640,7 @@ domain_has_only_NSEC3(struct domain* domain, struct zone* zone)
 	int nsec3_seen = 0, rrsig_seen = 0;
 	while(rrset)
 	{
-		if(rrset->zone == zone)
+		if(!zone || rrset->zone == zone)
 		{
 			if(rrset->rrs[0].type == TYPE_NSEC3)
 				nsec3_seen = 1;

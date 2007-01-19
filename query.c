@@ -926,6 +926,14 @@ answer_authoritative(struct nsd   *nsd,
 	domain_type *original = closest_match;
 	rrset_type *rrset;
 	
+#ifdef NSEC3
+	if(exact && domain_has_only_NSEC3(closest_match, q->zone)) {
+		exact = 0; /* pretend it does not exist */
+		if(closest_encloser->parent)
+			closest_encloser = closest_encloser->parent;
+	}
+#endif /* NSEC3 */
+
 	if (exact) {
 		match = closest_match;
 	} else if ((rrset=domain_find_rrset(closest_encloser, q->zone, TYPE_DNAME))) {
@@ -1011,11 +1019,6 @@ answer_authoritative(struct nsd   *nsd,
 
 	/* Authorative zone.  */
 #ifdef NSEC3
-	if((q->qtype==TYPE_NSEC3 || q->qtype==TYPE_RRSIG || q->qtype==TYPE_ANY)
-		&& match && 
-		domain_has_only_NSEC3(match, q->zone)) {
-		match = 0; /* pretend it does not exist */
-	}
 	if (q->edns.dnssec_ok && q->zone->nsec3_soa_rr) {
 		nsec3_answer_authoritative(&match, q, answer, 
 			closest_encloser, nsd->db, qname);
