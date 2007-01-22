@@ -613,6 +613,14 @@ this happens often for you, we could make this a config option.
 If this happens, more zones have to wait until a zone transfer completes
 (or is aborted) before they can have a zone transfer too.
 
+- "error: <zone> NSEC3PARAM entry <num> has unknown hash algo <number>"
+
+This error means that the zone has NSEC3 chain(s) with hash algorithms
+that are not supported by this version of NSD, and thus cannot be served
+by NSD.  If there are also no NSECs or NSEC3 chain(s) with known hash
+algorithms, NSD will not be able to serve DNSSEC authenticated denials
+for the zone.
+
 4.0 Support and Feedback
 
 NLnet Labs is committed to support NSD and its other software products on 
