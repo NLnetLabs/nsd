@@ -395,6 +395,11 @@ server_init(struct nsd *nsd)
 			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
 			return -1;
 		}
+
+		/* set it nonblocking */
+		if (fcntl(nsd->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "cannot fcntl udp: %s", strerror(errno));
+		}
 	}
 
 	/* TCP */

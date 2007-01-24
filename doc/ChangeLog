@@ -1,3 +1,7 @@
+24 Januari 2007: Wouter
+	- Tentative change to set UDP sockets nonblocking. Perhaps it 
+	  helps Howard.
+
 19 Januari 2007: Wouter
 	- NSEC3 work. prehash printed only once with time taken to prepare.
 	- prints are now only in DEBUG mode (except errors).
