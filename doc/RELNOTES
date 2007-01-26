@@ -3,6 +3,10 @@ NSD RELEASE NOTES
 3.0.5 (UPCOMING RELEASE)
 =============
 BUG FIXES:
+	- Fixed problem with reload waiting very long. If the OS has a 
+	  raging herd problem, NSD could block in a UDP operation and
+	  that process would stop reload from finishing. Made UDP sockets
+	  nonblocking.
 
 3.0.4
 =============
