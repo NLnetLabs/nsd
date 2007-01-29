@@ -1,6 +1,8 @@
 29 January 2007: Mark
 	- Handle the new CERT RDATA types defined in RFC 4398 (submitted
 	  by Mans Nilsson).
+	- Change nsd-notify retry timer from linear into exponential backoff
+	  (submitted by Mans Nilsson).
 	
 24 January 2007: Wouter
 	- Tentative change to set UDP sockets nonblocking. Perhaps it 

@@ -9,7 +9,8 @@ BUG FIXES:
 	  nonblocking.
 	- Handle the new CERT RDATA types defined in RFC 4398 (submitted by 
 	  Mans Nilsson).
-
+	- Change nsd-notify retry timer from linear into exponential
+	  backoff (submitted by Mans Nilsson).
 
 3.0.4
 =============

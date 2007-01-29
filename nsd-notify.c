@@ -69,8 +69,8 @@ static void
 notify_host(int udp_s, struct query* q, struct query *answer,
 	struct addrinfo* res, const char* addrstr)
 {
-	int timeout_retry = 5; /* seconds */
-	int num_retry = 15; /* times to try */
+	int timeout_retry = 1; /* seconds */
+	int num_retry = 6; /* times to try */
 	fd_set rfds;
 	struct timeval tv;
 	int retval = 0;
@@ -115,6 +115,8 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 		if (retval == 1) {
 			got_ack = 1;
 		}
+		/* Exponential backoff */
+		timeout_retry *= 2;
 	}
 
 	/* receive reply */
