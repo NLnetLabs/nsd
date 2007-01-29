@@ -87,3 +87,7 @@ OPTIMISATIONS
 - compress names in packets by pointing to uncompressed_dname entries.
   After each DNAME(with uncompressed target) follows a CNAME that can be
   compressed in this way.
+- Do not give servfail during reload quit sync process. Only stop old
+  server processes once the new ones are forked and answering for secondary
+  zones (so when xfrd is done with sending zone state to all children).
+  The brief double answers are preferable to brief SERVFAIL.
