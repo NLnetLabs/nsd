@@ -3,6 +3,11 @@
 	  by Mans Nilsson).
 	- Change nsd-notify retry timer from linear into exponential backoff
 	  (submitted by Mans Nilsson).
+	- Due to a small bug in a comparison statement, zonec would fail
+	  on the parsing of unknown CERT types. This got triggered by the
+	  first bugfix today, as that one shouldn't have been discovered in
+	  the first place. Took the opportunity to sanitize two other
+	  comparison statements related to strtol().
 	
 24 January 2007: Wouter
 	- Tentative change to set UDP sockets nonblocking. Perhaps it 

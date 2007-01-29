@@ -9,6 +9,7 @@ BUG FIXES:
 	  nonblocking.
 	- Handle the new CERT RDATA types defined in RFC 4398 (submitted by 
 	  Mans Nilsson).
+	- Fixed a bug where zonec would choke on unknown CERT RDATA types.
 	- Change nsd-notify retry timer from linear into exponential
 	  backoff (submitted by Mans Nilsson).
 

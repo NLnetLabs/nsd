@@ -254,7 +254,7 @@ zparser_conv_period(region_type *region, const char *periodstr)
 
 	/* Allocate required space... */
 	period = (uint32_t) strtottl(periodstr, &end);
-	if (*end != 0) {
+	if (*end != '\0') {
 		zc_error_prev_line("time period is expected");
 	} else {
 		period = htonl(period);
@@ -271,7 +271,7 @@ zparser_conv_short(region_type *region, const char *text)
 	char *end;
    
 	value = htons((uint16_t) strtol(text, &end, 10));
-	if (*end != 0) {
+	if (*end != '\0') {
 		zc_error_prev_line("integer value is expected");
 	} else {
 		r = alloc_rdata_init(region, &value, sizeof(value));
@@ -329,7 +329,7 @@ zparser_conv_certificate_type(region_type *region, const char *text)
 	} else {
 		char *end;
 		id = htons((uint16_t) strtol(text, &end, 10));
-		if (end != 0) {
+		if (*end != '\0') {
 			zc_error_prev_line("certificate type is expected");
 			return NULL;
 		}
