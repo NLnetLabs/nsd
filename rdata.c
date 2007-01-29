@@ -24,13 +24,23 @@
 #include "rdata.h"
 #include "zonec.h"
 
-/* Taken from RFC 2538, section 2.1.  */
+/* Taken from RFC 4398, section 2.1.  */
 lookup_table_type dns_certificate_types[] = {
+/*	0		Reserved */
 	{ 1, "PKIX" },	/* X.509 as per PKIX */
 	{ 2, "SPKI" },	/* SPKI cert */
-        { 3, "PGP" },	/* PGP cert */
-        { 253, "URI" },	/* URI private */
+	{ 3, "PGP" },	/* OpenPGP packet */
+	{ 4, "IPKIX" },	/* The URL of an X.509 data object */
+	{ 5, "ISPKI" },	/* The URL of an SPKI certificate */
+	{ 6, "IPGP" },	/* The fingerprint and URL of an OpenPGP packet */
+	{ 7, "ACPKIX" },	/* Attribute Certificate */
+	{ 8, "IACPKIX" },	/* The URL of an Attribute Certificate */
+	{ 253, "URI" },	/* URI private */
 	{ 254, "OID" },	/* OID private */
+/*	255 		Reserved */
+/* 	256-65279	Available for IANA assignment */
+/*	65280-65534	Experimental */
+/*	65535		Reserved */
 	{ 0, NULL }
 };
 

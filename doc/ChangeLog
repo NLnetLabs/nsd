@@ -1,8 +1,12 @@
-24 Januari 2007: Wouter
+29 January 2007: Mark
+	- Handle the new CERT RDATA types defined in RFC 4398 (submitted
+	  by Mans Nilsson).
+	
+24 January 2007: Wouter
 	- Tentative change to set UDP sockets nonblocking. Perhaps it 
 	  helps Howard.
 
-19 Januari 2007: Wouter
+19 January 2007: Wouter
 	- NSEC3 work. prehash printed only once with time taken to prepare.
 	- prints are now only in DEBUG mode (except errors).
 	- rr descriptor counts for NSEC3 updated, has an extra field flags.
@@ -28,19 +32,19 @@
 	  zone nxdomains. At the cost of one ptr per domain name.
 	  The speedup also speeds up the nsec3 prepare stage.
 
-18 Januari 2007: Wouter
+18 January 2007: Wouter
 	- Created 3.0.4 release tag.
 	- 3.0.5 number in trunk.
 	- add nsd.spec patch from Farkas Levente to contrib.
 	- NSEC3 new wireformat and presentation format from draft-09.
 
-11 Januari 2007: Wouter
+11 January 2007: Wouter
 	- The message 'server .. closed cmd channel' is now priority INFO.
 	  This to reduce the 'error' amount in the logs.
 	- On error in a tcp request, set to retry next instead of waiting
 	  for the tcp timeout.
 
-9 Januari 2007: Wouter
+9 January 2007: Wouter
 	- TSIG acl matching changed so that NOKEY allow-notify entries match 
 	  only queries without a tsig. Otherwise NSD would crash.
 	  This only affects servers that have allow-notify: ip NOKEY and
@@ -51,7 +55,7 @@
 	  section of the query, included wrong RR counts in the header.
 	- test package for notify reply wireformat.
 
-8 Januari 2007: Wouter
+8 January 2007: Wouter
 	- ipc_send_blocked will not lead to busy waiting on it, but will block
 	  in select, until SOA_END comes by.
 	- server_main sends SOA_END if reload crashes, to xfrd. So that xfrd
@@ -67,7 +71,7 @@
 	  but exponential backoff to a max of every 4 hours.
 	  The exact value is randomised to spread out attempts.
 
-5 Januari 2007: Wouter
+5 January 2007: Wouter
 	- Fixed --zonesdir=<path> for configure. The value did not get used
 	  as a default value. Now it is used as a default value. If a 
 	  default value is set for zonesdir, you can go to a 'no value 
@@ -75,7 +79,7 @@
 	- Fixed checkconf.tpkg for this change. nsd-checkconf will 
 	  output zonesdir: "" as this is the default for --zonesdir.
 
-2 Januari 2007: Wouter
+2 January 2007: Wouter
 	- Added contrib script from Stephane Bortzmeyer to convert NSD 2 to 
 	  NSD 3 config files. Converts secondary zones and TSIG keys.
 	- Made config conversion script skip empty lines.

@@ -7,6 +7,9 @@ BUG FIXES:
 	  raging herd problem, NSD could block in a UDP operation and
 	  that process would stop reload from finishing. Made UDP sockets
 	  nonblocking.
+	- Handle the new CERT RDATA types defined in RFC 4398 (submitted by 
+	  Mans Nilsson).
+
 
 3.0.4
 =============
