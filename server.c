@@ -389,16 +389,15 @@ server_init(struct nsd *nsd)
 # endif
 		}
 #endif
+		/* set it nonblocking */
+		if (fcntl(nsd->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "cannot fcntl udp: %s", strerror(errno));
+		}
 
 		/* Bind it... */
 		if (bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
 			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
 			return -1;
-		}
-
-		/* set it nonblocking */
-		if (fcntl(nsd->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-			log_msg(LOG_ERR, "cannot fcntl udp: %s", strerror(errno));
 		}
 	}
 
@@ -437,6 +436,12 @@ server_init(struct nsd *nsd)
 			return -1;
 		}
 #endif
+		/* set it nonblocking */
+		/* (StevensUNP p463), if tcp listening socket is blocking, then
+		   it may block in accept, even if select() says readable. */
+		if (fcntl(nsd->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
+			log_msg(LOG_ERR, "cannot fcntl tcp: %s", strerror(errno));
+		}
 
 		/* Bind it... */
 		if (bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
@@ -1662,7 +1667,10 @@ handle_tcp_accept(netio_type *netio,
 	addrlen = sizeof(addr);
 	s = accept(handler->fd, (struct sockaddr *) &addr, &addrlen);
 	if (s == -1) {
-		if (errno != EINTR) {
+		/* EINTR is a signal interrupt. The others are various OS ways
+		   of saying that the client has closed the connection. */
+		if (errno != EINTR && errno != EWOULDBLOCK && 
+			errno != ECONNABORTED && errno != EPROTO) {
 			log_msg(LOG_ERR, "accept failed: %s", strerror(errno));
 		}
 		return;
