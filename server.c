@@ -390,6 +390,8 @@ server_init(struct nsd *nsd)
 		}
 #endif
 		/* set it nonblocking */
+		/* otherwise, on OSes with thundering herd problems, the
+		   UDP recv could block NSD after select returns readable. */
 		if (fcntl(nsd->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
 			log_msg(LOG_ERR, "cannot fcntl udp: %s", strerror(errno));
 		}
