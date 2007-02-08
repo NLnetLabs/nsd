@@ -1,3 +1,6 @@
+8 January 2007: Wouter
+	- README text on interface configuration added.
+
 2 January 2007: Wouter
 	- Fixup accept() that could block due to already closed connection.
 	  Made listen() nonblocking, ignores errcodes that indicate closed tcp.
