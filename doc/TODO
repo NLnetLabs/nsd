@@ -48,6 +48,7 @@ SERVER
 - xfrd NOTIFY timeouts exponential backoff.
 - query SOA before getting AXFR and then cutting it off, it causes an errlog
   on the master. 
+- when verbose, print the ip adresses that cause network errors to the log.
 
 SECURITY
 - TSIG add rfc 4635 algorithms. Bug #120 asks for SHA1 feature.
