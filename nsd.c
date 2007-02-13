@@ -538,7 +538,8 @@ main (int argc, char *argv[])
 			ip = ip->next;
 		}
 	}
-	if (nsd.options->verbosity) verbosity = nsd.options->verbosity;
+	if (verbosity == 0)
+		verbosity = nsd.options->verbosity;
 #ifndef NDEBUG
 	if (nsd_debug_level > 0 && verbosity == 0)
 		verbosity = nsd_debug_level;
