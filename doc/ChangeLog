@@ -1,3 +1,8 @@
+13 February 2007: Mark
+	- Debug flag (-d) behavior changed. Nsd now also forks children when
+	  run in debug mode.
+	- Added verbosity mode (-V <level>) for extra operational logging.
+
 8 January 2007: Wouter
 	- README text on interface configuration added.
 

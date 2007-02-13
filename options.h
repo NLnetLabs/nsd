@@ -39,6 +39,7 @@ struct nsd_options {
 	ip_address_option_t* ip_addresses;
 
 	int debug_mode;
+	int verbosity;
 	int ip4_only;
 	int ip6_only;
 	const char* database;

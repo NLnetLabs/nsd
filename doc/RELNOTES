@@ -13,6 +13,9 @@ BUG FIXES:
 	- Fixed a bug where zonec would choke on unknown CERT RDATA types.
 	- Change nsd-notify retry timer from linear into exponential
 	  backoff (submitted by Mans Nilsson).
+	- Debug flag (-d) behavior changed. Nsd now also forks children when 
+	  run in debug mode.
+	- Added verbosity mode (-V <level>) for extra operational logging.
 
 3.0.4
 =============

@@ -53,6 +53,7 @@ static int server_settings_seen = 0;
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR
+%token VAR_VERBOSITY
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -73,7 +74,8 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_ip6_only | server_database | server_identity | server_logfile | 
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
 	server_statistics | server_chroot | server_username | server_zonesdir |
-	server_difffile | server_xfrdfile | server_xfrd_reload_timeout;
+	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
+	server_verbosity;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -102,6 +104,14 @@ server_debug_mode: VAR_DEBUG_MODE STRING
 		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
 			yyerror("expected yes or no.");
 		else cfg_parser->opt->debug_mode = (strcmp($2, "yes")==0);
+	}
+	;
+server_verbosity: VAR_VERBOSITY STRING 
+	{ 
+		OUTYY(("P(server_verbosity:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		else cfg_parser->opt->verbosity = atoi($2);
 	}
 	;
 server_ip4_only: VAR_IP4_ONLY STRING 

@@ -83,6 +83,7 @@ usage (void)
 		);
 	fprintf(stderr,
 		"  -u user         Change effective uid to the specified user.\n"
+		"  -V level        Specify verbosity level.\n"
 		"  -v              Print version information.\n"
 		);
 	fprintf(stderr, "Version %s. Report bugs to <%s>.\n", 
@@ -368,7 +369,7 @@ main (int argc, char *argv[])
 
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:v"
+	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:V:v"
 #ifndef NDEBUG	
 		"F:L:"
 #endif /* NDEBUG */
@@ -473,6 +474,9 @@ main (int argc, char *argv[])
 		case 'u':
 			nsd.username = optarg;
 			break;
+		case 'V':
+			verbosity = atoi(optarg);
+			break;
 		case 'v':
 			version();
 			/* version exits */
@@ -534,6 +538,11 @@ main (int argc, char *argv[])
 			ip = ip->next;
 		}
 	}
+	if (nsd.options->verbosity) verbosity = nsd.options->verbosity;
+#ifndef NDEBUG
+	if (nsd_debug_level > 0 && verbosity == 0)
+		verbosity = nsd_debug_level;
+#endif /* NDEBUG */
 	if(nsd.options->debug_mode) nsd.debug=1;
 	if(!nsd.dbfile)
 	{
@@ -762,9 +771,7 @@ main (int argc, char *argv[])
 	}
 
 	/* Unless we're debugging, fork... */
-	if (nsd.debug) {
-		nsd.server_kind = NSD_SERVER_BOTH;
-	} else {
+	if (!nsd.debug) {
 		int fd;
 		
 		/* Take off... */

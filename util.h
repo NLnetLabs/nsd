@@ -81,6 +81,17 @@ void log_msg(int priority, const char *format, ...)
 void log_vmsg(int priority, const char *format, va_list args);
 
 /*
+ * Verbose output switch
+ */
+extern int verbosity;
+#define VERBOSITY(level, args)					\
+	do {							\
+		if ((level) <= verbosity) {			\
+			log_msg args ;				\
+		}						\
+	} while (0)
+
+/*
  * Set the INDEXth bit of BITS to 1.
  */
 void set_bit(uint8_t bits[], size_t index);

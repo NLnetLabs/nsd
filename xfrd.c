@@ -1395,6 +1395,7 @@ xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 		xfrd_set_zone_state(zone, xfrd_zone_refreshing);
 	}
 	/* transfer right away */
+	VERBOSITY(1, (LOG_INFO, "Handle incoming notify"));
 	return 1;
 }
 

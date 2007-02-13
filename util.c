@@ -32,6 +32,8 @@ unsigned nsd_debug_facilities = 0xffff;
 int nsd_debug_level = 0;
 #endif
 
+int verbosity = 0;
+
 static const char *global_ident = NULL;
 static log_function_type *current_log_function = log_file;
 static FILE *current_log_file = NULL;
