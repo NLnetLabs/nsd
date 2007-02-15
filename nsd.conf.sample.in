@@ -72,6 +72,9 @@ server:
 	# Number of seconds between reloads triggered by xfrd.
 	# xfrd-reload-timeout: 10
 
+	# Verbosity level.
+	# verbosity: 0
+
 # key for zone 1
 key:
 	name: mskey
