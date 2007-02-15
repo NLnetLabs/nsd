@@ -1671,8 +1671,13 @@ handle_tcp_accept(netio_type *netio,
 	if (s == -1) {
 		/* EINTR is a signal interrupt. The others are various OS ways
 		   of saying that the client has closed the connection. */
-		if (errno != EINTR && errno != EWOULDBLOCK && 
-			errno != ECONNABORTED && errno != EPROTO) {
+		if (	errno != EINTR 
+			&& errno != EWOULDBLOCK 
+			&& errno != ECONNABORTED 
+#ifdef EPROTO
+			&& errno != EPROTO
+#endif /* EPROTO */
+			) {
 			log_msg(LOG_ERR, "accept failed: %s", strerror(errno));
 		}
 		return;

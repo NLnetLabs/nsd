@@ -1,3 +1,6 @@
+15 February 2007: Mark
+	- Check for EPROTO definition to compile on FreeBSD4/Alpha.
+
 13 February 2007: Mark
 	- Debug flag (-d) behavior changed. Nsd now also forks children when
 	  run in debug mode.
