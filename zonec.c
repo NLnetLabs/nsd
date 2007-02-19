@@ -1310,7 +1310,7 @@ zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 			}
 		}
 		/* cannot happen with stdin - so no fix needed for zonefile */
-		zc_error("cannot open '%s': %s\n", zonefile, strerror(errno));
+		zc_error("cannot open '%s': %s", zonefile, strerror(errno));
 		return;
 	}
 
