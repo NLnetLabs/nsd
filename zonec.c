@@ -1304,7 +1304,7 @@ zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 			zone_options_t* zopt = zone_options_find(nsd_options, dname);
 			if(zopt && zone_is_slave(zopt)) {
 				zc_warning("slave zone %s with no zonefile '%s'(%s) will "
-					"force zone transfer.\n", 
+					"force zone transfer.", 
 					name, zonefile, strerror(errno));
 				return;
 			}

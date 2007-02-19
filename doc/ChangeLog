@@ -1,3 +1,6 @@
+19 February 2007: Wouter
+	- Fix empty line printed with warning on 'force zone transfer'.
+
 15 February 2007: Wouter
 	- Check for EPROTO definition to compile on FreeBSD4/Alpha.
 
