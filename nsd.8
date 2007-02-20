@@ -31,6 +31,7 @@ nsd
 .Op Fl s Ar seconds
 .Op Fl t Ar chrootdir
 .Op Fl u Ar username
+.Op Fl V Ar level
 .Op Fl v
 
 .Sh DESCRIPTION
@@ -187,6 +188,10 @@ after binding the socket.
 The
 .Ar username
 must one of: username, id, or id.gid.  For example: nsd, 80, or 80.80.
+
+.It Fl V Ar level
+This value specifies the verbosity level for (non-debug) logging. Default
+is 0.
 
 .It Fl v
 Print the version number of NSD to standard error and exit.
