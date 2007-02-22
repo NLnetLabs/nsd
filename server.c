@@ -1421,13 +1421,13 @@ handle_tcp_reading(netio_type *netio,
 		 *   + Query type         (2)
 		 */
 		if (data->query->tcplen < QHEADERSZ + 1 + sizeof(uint16_t) + sizeof(uint16_t)) {
-			log_msg(LOG_WARNING, "dropping bogus tcp connection");
+			VERBOSITY(2, (LOG_WARNING, "packet too small, dropping tcp connection"));
 			cleanup_tcp_handler(netio, handler);
 			return;
 		}
 
 		if (data->query->tcplen > data->query->maxlen) {
-			log_msg(LOG_ERR, "insufficient tcp buffer, dropping connection");
+			VERBOSITY(2, (LOG_WARNING, "insufficient tcp buffer, dropping connection"));
 			cleanup_tcp_handler(netio, handler);
 			return;
 		}
@@ -1546,6 +1546,9 @@ handle_tcp_writing(netio_type *netio,
 				 */
 				return;
 			} else {
+#ifdef ECONNRESET
+				if(verbosity>=2 || errno != ECONNRESET)
+#endif
 				log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
 				cleanup_tcp_handler(netio, handler);
 				return;
@@ -1577,6 +1580,9 @@ handle_tcp_writing(netio_type *netio,
 			 */
 			return;
 		} else {
+#ifdef ECONNRESET
+			if(verbosity>=2 || errno != ECONNRESET)
+#endif
 			log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
 			cleanup_tcp_handler(netio, handler);
 			return;

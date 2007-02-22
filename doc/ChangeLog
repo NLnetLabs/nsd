@@ -4,6 +4,8 @@
 	  The user can change the zonesdir by editing the config file.
 	  The directory is created by install, if not an error is printed.
 	- updated tpkg tests to use current dir for testing.
+	- tcp connections that drop do not spam the log file.
+	  Unless verbosity is set high.
 
 19 February 2007: Wouter
 	- Fix empty line printed with warning on 'force zone transfer'.

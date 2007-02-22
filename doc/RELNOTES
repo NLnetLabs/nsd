@@ -17,6 +17,8 @@ BUG FIXES:
 	  run in debug mode.
 	- Added verbosity mode (-V <level>) for extra operational logging.
 	- zonesdir default is /etc/nsd.  This can be overridden in nsd.conf.
+	- if clients drop the tcp connection this does not result in a logfile
+	  entry, unless verbosity is set 2 or more.
 
 3.0.4
 =============
