@@ -70,7 +70,7 @@ AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the NSD databas
 #
 # Determine the default directory for the zone files
 #
-zonesdir=""
+zonesdir=$configdir
 AC_ARG_WITH([zonesdir],
 	AC_HELP_STRING([--with-zonesdir=dir], [NSD default location for zone files]),
 	[zonesdir=$withval])

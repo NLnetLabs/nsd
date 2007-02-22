@@ -16,6 +16,7 @@ BUG FIXES:
 	- Debug flag (-d) behavior changed. Nsd now also forks children when 
 	  run in debug mode.
 	- Added verbosity mode (-V <level>) for extra operational logging.
+	- zonesdir default is /etc/nsd.  This can be overridden in nsd.conf.
 
 3.0.4
 =============

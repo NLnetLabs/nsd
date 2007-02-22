@@ -1,3 +1,9 @@
+22 February 2007: Wouter
+	- Zonesdir default is now /etc/nsd.
+	  So that the invocation directory is not used to dump files into.
+	  The user can change the zonesdir by editing the config file.
+	  The directory is created by install, if not an error is printed.
+
 19 February 2007: Wouter
 	- Fix empty line printed with warning on 'force zone transfer'.
 
