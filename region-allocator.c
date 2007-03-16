@@ -15,6 +15,9 @@
 
 #include "region-allocator.h"
 
+#ifdef ALIGNMENT
+#  undef ALIGNMENT
+#endif
 #define ALIGN_UP(x, s)     (((x) + s - 1) & (~(s - 1)))
 #define ALIGNMENT          (sizeof(void *))
 #define CHECK_DOUBLE_FREE 0 /* set to 1 to perform expensive check for double recycle() */

@@ -417,7 +417,15 @@ AC_MSG_CHECKING(for ctime_r prototype in time.h)
 AC_EGREP_HEADER([[^a-zA-Z_]*ctime_r[^a-zA-Z_]], time.h, AC_DEFINE(HAVE_CTIME_R_PROTO, 1, 
 	[if time.h provides ctime_r prototype]) AC_MSG_RESULT(yes), AC_MSG_RESULT(no))
 
-AC_CHECK_TYPE([struct timespec], AC_DEFINE(HAVE_STRUCT_TIMESPEC, 1, [If time.h has a struct timespec (for pselect).]), [])
+AC_CHECK_TYPE([struct timespec], AC_DEFINE(HAVE_STRUCT_TIMESPEC, 1, [If time.h has a struct timespec (for pselect).]), [], [
+AC_INCLUDES_DEFAULT
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
+#ifdef HAVE_TIME_H
+#include <time.h>
+#endif
+])
 
 dnl
 dnl Some random defines's
@@ -547,6 +555,9 @@ AH_BOTTOM([
 #  endif 
 #  ifndef _STDC_C99
 #    define _STDC_C99 1
+#  endif
+#  ifndef _ALL_SOURCE
+#    define _ALL_SOURCE 1
 #  endif
 #endif
 ])

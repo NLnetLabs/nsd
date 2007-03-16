@@ -1,3 +1,7 @@
+16 March 2007: Wouter
+	- port configure to AIX, removed warning on ALIGNMENT in region code. 
+	  defined _ALL_SOURCE to get recent C definitions on AIX.
+
 22 February 2007: Wouter
 	- Zonesdir default is now /etc/nsd.
 	  So that the invocation directory is not used to dump files into.
