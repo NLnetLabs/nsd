@@ -1,6 +1,10 @@
 NSD RELEASE NOTES
 
-3.0.5 (UPCOMING RELEASE)
+3.0.6 (UPCOMING RELEASE)
+=============
+BUG FIXES:
+
+3.0.5
 =============
 BUG FIXES:
 	- Fixed problem with reload waiting very long. If the OS has a 

@@ -1,3 +1,6 @@
+20 March 2007: Wouter
+	- Released 3.0.5.
+
 16 March 2007: Wouter
 	- port configure to AIX, removed warning on ALIGNMENT in region code. 
 	  defined _ALL_SOURCE to get recent C definitions on AIX.
