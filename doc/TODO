@@ -66,6 +66,10 @@ PURITY
 - getflags on socket before setflags nonblocking.
 - exponential backoff for retries xfrd and notify.
 
+NSD PATCH
+- -q(?) option: no output when no patch necessary
+- cleaner output on normal operation (don't mention memory)
+
 CLEANUP
 - make so that startup sends SOA_INFO to xfrd just like reload does, prettier? 
 - dlopen and dynlib checks can be removed from autoconf scripts.
