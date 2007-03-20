@@ -109,14 +109,6 @@ AC_PROG_INSTALL
 AC_PROG_LEX
 AC_PROG_YACC
 
-# Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_C_INLINE
-AC_TYPE_UID_T
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_OFF_T
-
 AC_DEFUN([AC_CHECK_FORMAT_ATTRIBUTE],
 [AC_REQUIRE([AC_PROG_CC])
 AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)
@@ -206,6 +198,15 @@ if test $ac_cv_c_ctime_c = no; then
         CPPFLAGS="$CPPFLAGS -D_POSIX_PTHREAD_SEMANTICS"
 fi
 ])dnl
+
+# Checks for typedefs, structures, and compiler characteristics.
+CHECK_COMPILER_FLAG(O2, [], [ CFLAGS="-g" ])
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_UID_T
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+AC_TYPE_OFF_T
 
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
@@ -495,7 +496,6 @@ esac
 AC_ARG_ENABLE(checking, AC_HELP_STRING([--enable-checking], [Enable internal runtime checks]))
 case "$enable_checking" in
         yes)
-		CHECK_COMPILER_FLAG(O2, [], [ CFLAGS="-g" ])
 		CHECK_COMPILER_FLAG(W, [ CFLAGS="$CFLAGS -W" ])
 		CHECK_COMPILER_FLAG(Wall, [ CFLAGS="$CFLAGS -Wall" ])
 		CHECK_COMPILER_FLAG(Wextra, [ CFLAGS="$CFLAGS -Wextra" ])
