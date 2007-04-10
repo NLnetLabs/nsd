@@ -253,7 +253,13 @@ region_alloc(region_type *region, size_t size)
 		++region->chunk_count;
 		region->unused_space += region->chunk_size - region->allocated;
 		
-		region_add_cleanup(region, region->deallocator, chunk);
+		if(!region_add_cleanup(region, region->deallocator, chunk)) {
+			region->deallocator(chunk);
+			region->chunk_count--;
+			region->unused_space -=
+                                region->chunk_size - region->allocated;
+			return NULL;
+		}
 		region->allocated = 0;
 		region->data = (char *) chunk;
 	}

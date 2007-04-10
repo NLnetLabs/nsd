@@ -1,3 +1,7 @@
+10 April 2007: Wouter
+	- Fixup ignored return value in region-allocator. Now returns a NULL
+	  memory allocation failure and leaves region in a consistent state.
+
 20 March 2007: Wouter
 	- Released 3.0.5.
 	- (for 3.0.6) -O2 test for Alpha moved to saner position.
