@@ -1,3 +1,7 @@
+13 April 2007: Wouter
+	- Minor tweak to nsec3.c, more elegant handling of malformed nsec3 
+	  records from a zone transfer.
+
 10 April 2007: Wouter
 	- Fixup ignored return value in region-allocator. Now returns a NULL
 	  memory allocation failure and leaves region in a consistent state.

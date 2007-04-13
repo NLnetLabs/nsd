@@ -67,7 +67,7 @@ nsec3_hash_dname(region_type *region, zone_type *zone,
 static int 
 nsec3_has_soa(rr_type* rr)
 {
-	if(rdata_atom_size(rr->rdatas[5]) > 0 && /* has types in bitmap */
+	if(rdata_atom_size(rr->rdatas[5]) >= 3 && /* has types in bitmap */
 		rdata_atom_data(rr->rdatas[5])[0] == 0 && /* first window = 0, */
 						/* [1]: windowlen must be >= 1 */
 		rdata_atom_data(rr->rdatas[5])[2]&0x02)  /* SOA bit set */
