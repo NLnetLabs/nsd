@@ -1,7 +1,7 @@
 /*
  * query.c -- nsd(8) the resolver.
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -132,10 +132,6 @@ query_error (struct query *q, nsd_rc_type rcode)
 static query_state_type
 query_formerr (struct query *query)
 {
-	int opcode = OPCODE(query->packet);
-	FLAGS_SET(query->packet, FLAGS(query->packet) & 0x0100U);
-		/* Preserve the RD flag. Clear the rest. */
-	OPCODE_SET(query->packet, opcode);
 	return query_error(query, NSD_RC_FORMAT);
 }
 
@@ -221,7 +217,7 @@ query_addtxt(struct query  *q,
  * is stored in QUERY->name, the class in QUERY->klass, and the type
  * in QUERY->type.
  */
-static int
+static nsd_rc_type
 process_query_section(query_type *query)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
@@ -242,7 +238,7 @@ process_query_section(query_type *query)
 		    (src + *src + 1 > buffer_end(query->packet)) || 
 		    (src + *src + 1 > query_name + MAXDOMAINLEN))
 		{
-			return 0;
+			return NSD_RC_FORMAT;
 		}
 		memcpy(dst, src, *src + 1);
 		dst += *src + 1;
@@ -255,7 +251,7 @@ process_query_section(query_type *query)
 	if (len > MAXDOMAINLEN ||
 	    (src + 2*sizeof(uint16_t) > buffer_end(query->packet)))
 	{
-		return 0;
+		return NSD_RC_FORMAT;
 	}
 	buffer_set_position(query->packet, src - buffer_begin(query->packet));
 
@@ -264,7 +260,7 @@ process_query_section(query_type *query)
 	query->qclass = buffer_read_u16(query->packet);
 	query->opcode = OPCODE(query->packet);
 
-	return 1;
+	return NSD_RC_OK;
 }
 
 
@@ -274,7 +270,7 @@ process_query_section(query_type *query)
  * unsupported EDNS record, and to 1 otherwise.  Updates QUERY->MAXLEN
  * if the EDNS record specifies a maximum supported response length.
  *
- * Return NSD_RC_FORMAT on failure, NSD_RC_OK on success.
+ * Return 0 on failure, 1 on success.
  */
 static nsd_rc_type
 process_edns(struct query *q)
@@ -577,7 +573,7 @@ answer_soa(struct query *query, answer_type *answer)
 		add_rrset(query, answer,
 			  AUTHORITY_SECTION,
 			  query->zone->apex,
-			  query->zone->soa_nx_rrset);
+			  query->zone->soa_rrset);
 	}
 }
 
@@ -803,8 +799,8 @@ answer_query(struct nsd *nsd, struct query *q)
 	answer_init(&answer);
 
 	/*
-	 * See RFC 4035 (DNSSEC protocol) section 3.1.4.1 Responding
-	 * to Queries for DS RRs.
+	 * See 3.1.4.1 Responding to Queries for DS RRs in DNSSEC
+	 * protocol.
 	 */
 	if (exact && q->qtype == TYPE_DS && closest_encloser == q->zone->apex) {
 		/*
@@ -874,8 +870,11 @@ query_prepare_response(query_type *q)
 	
 	/* Update the flags.  */
 	flags = FLAGS(q->packet);
+#ifdef DNSSEC
+	flags &= 0x0110U;	/* Preserve the RD and CD flags.  */
+#else
 	flags &= 0x0100U;	/* Preserve the RD flag.  */
-				/* CD flag must be cleared for auth answers */
+#endif
 	flags |= 0x8000U;	/* Set the QR flag.  */
 	FLAGS_SET(q->packet, flags);
 }
@@ -891,20 +890,16 @@ query_process(query_type *q, nsd_type *nsd)
 	nsd_rc_type rc;
 	query_state_type query_state;
 	uint16_t arcount;
-
+	
 	/* Sanity checks */
-	if (buffer_limit(q->packet) < QHEADERSZ) {
-		/* packet too small to contain DNS header. 
-		Now packet investigation macros will work without problems. */
-		return QUERY_DISCARDED;
-	}
 	if (QR(q->packet)) {
 		/* Not a query? Drop it on the floor. */
 		return QUERY_DISCARDED;
 	}
 
-	if(!process_query_section(q)) {
-		return query_formerr(q);
+	rc = process_query_section(q);
+	if (rc != NSD_RC_OK) {
+		return query_error(q, rc);
 	}
 
 	/* Update statistics.  */
@@ -989,32 +984,12 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	case EDNS_OK:
 		buffer_write(q->packet, edns->ok, OPT_LEN);
-		/* if nsid data should be written */
-#ifdef NSID
-		if (nsd->nsid_len > 0 && q->edns.nsid == 1 &&
-				!query_overflow_nsid(q, nsd->nsid_len)) { 
-
-			/* rdata length */
-			buffer_write(q->packet, edns->rdata_nsid, OPT_RDATA);
-			/* nsid opt header */
-			buffer_write(q->packet, edns->nsid, OPT_HDR);
-			/* nsid payload */
-			buffer_write(q->packet, nsd->nsid, nsd->nsid_len);
-		}  else {
-			/* fill with NULLs */
-			buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
-		}
-#else
-		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
-#endif /* NSID */
-
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, edns);
 		break;
 	case EDNS_ERROR:
 		buffer_write(q->packet, edns->error, OPT_LEN);
-		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, ednserr);

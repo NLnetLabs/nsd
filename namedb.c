@@ -1,7 +1,7 @@
 /*
  * namedb.c -- common namedb operations.
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -43,8 +43,7 @@ allocate_domain_info(domain_table_type *table,
 	result->plugin_data = NULL;
 #endif
 	result->is_existing = 0;
-	result->is_apex = 0;
-
+	
 	return result;
 }
 
@@ -69,7 +68,6 @@ domain_table_create(region_type *region)
 	root->plugin_data = NULL;
 #endif
 	root->is_existing = 0;
-	root->is_apex = 0;
 	
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));
@@ -309,7 +307,6 @@ domain_wildcard_child(domain_type *domain)
 int
 zone_is_secure(zone_type *zone)
 {
-	assert(zone);
 	return zone->is_secure;
 }
 

@@ -1,7 +1,7 @@
 /*
  * server.c -- nsd(8) network input/output
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -193,10 +193,9 @@ restart_child_servers(struct nsd *nsd)
 			nsd->children[i].pid = fork();
 			switch (nsd->children[i].pid) {
 			case 0: /* CHILD */
-				nsd->server_kind = nsd->children[i].kind;
-				nsd->mode = NSD_RUN;
 				nsd->pid = 0;
 				nsd->child_count = 0;
+				nsd->server_kind = nsd->children[i].kind;
 				server_child(nsd);
 				/* NOTREACH */
 				exit(0);
@@ -239,13 +238,6 @@ server_init(struct nsd *nsd)
 	/* Make a socket... */
 	for (i = 0; i < nsd->ifs; i++) {
 		if ((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
-#if defined(INET6)
-			if (nsd->udp[i].addr->ai_family == AF_INET6 && 
-				errno == EAFNOSUPPORT && nsd->grab_ip6_optional) {
-				log_msg(LOG_WARNING, "fallback to UDP4, no IPv6: not supported");
-				continue;
-			}
-#endif /* INET6 */
 			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
@@ -295,13 +287,6 @@ server_init(struct nsd *nsd)
 	/* Make a socket... */
 	for (i = 0; i < nsd->ifs; i++) {
 		if ((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
-#if defined(INET6)
-			if (nsd->tcp[i].addr->ai_family == AF_INET6 && 
-				errno == EAFNOSUPPORT && nsd->grab_ip6_optional) {
-				log_msg(LOG_WARNING, "fallback to TCP4, no IPv6: not supported");
-				continue;
-			}
-#endif /* INET6 */
 			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
 			return -1;
 		}
@@ -366,8 +351,7 @@ server_init(struct nsd *nsd)
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st.boot);
-	if(nsd->st.period > 0)
-		alarm(nsd->st.period - (time(NULL) % nsd->st.period));
+	alarm(nsd->st.period);
 #endif /* BIND8_STATS */
 
 	return 0;
@@ -428,7 +412,6 @@ server_main(struct nsd *nsd)
 	int status;
 	pid_t child_pid;
 	pid_t reload_pid = -1;
-	pid_t old_pid;
 	sig_atomic_t mode;
 	
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
@@ -476,8 +459,6 @@ server_main(struct nsd *nsd)
 				break;
 			}
 
-			log_msg(LOG_WARNING, "signal received, reloading...");
-
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:
@@ -501,34 +482,29 @@ server_main(struct nsd *nsd)
 				}
 #endif /* PLUGINS */
 
-				old_pid = nsd->pid;
+				/* Send SIGINT to terminate the parent quitely... */
+				if (kill(nsd->pid, SIGINT) != 0) {
+					log_msg(LOG_ERR, "cannot kill %d: %s",
+						(int) nsd->pid, strerror(errno));
+					exit(1);
+				}
+
 				nsd->pid = getpid();
 				reload_pid = -1;
 
-#ifdef BIND8_STATS
-				/* Restart dumping stats if required.  */
-				time(&nsd->st.boot);
-				if(nsd->st.period > 0)
-					alarm(nsd->st.period - (time(NULL) % nsd->st.period));
-#endif
-
-				if (server_start_children(nsd) != 0) {
-					kill(nsd->pid, SIGTERM);
-					exit(1);
-				}
-
-				/* Send SIGINT to terminate the parent quitely... */
-				if (kill(old_pid, SIGINT) != 0) {
-					log_msg(LOG_ERR, "cannot kill %d: %s",
-						(int) old_pid, strerror(errno));
-					exit(1);
-				}
+				/* Refork the servers... */
+				server_start_children(nsd);
 
 				/* Overwrite pid... */
 				if (writepid(nsd) == -1) {
 					log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 				}
 
+#ifdef BIND8_STATS
+				/* Restart dumping stats if required.  */
+				alarm(nsd->st.period);
+#endif
+				
 				break;
 			default:
 				/* PARENT */
@@ -539,7 +515,6 @@ server_main(struct nsd *nsd)
 			server_shutdown(nsd);
 			break;
 		case NSD_SHUTDOWN:
-			log_msg(LOG_WARNING, "signal received, shutting down...");
 			break;
 		default:
 			log_msg(LOG_WARNING, "NSD main server mode invalid: %d", nsd->mode);
@@ -929,13 +904,13 @@ handle_tcp_reading(netio_type *netio,
 
 	/* Account... */
 #ifndef INET6
-       STATUP(data->nsd, ctcp);
+	STATUP(data->nsd, ctcp);
 #else
-        if (data->query->addr.ss_family == AF_INET) {
-                STATUP(data->nsd, ctcp);
-        } else if (data->query->addr.ss_family == AF_INET6) {
-                STATUP(data->nsd, ctcp6);
-        }
+	if (data->query->addr.ss_family == AF_INET) {
+		STATUP(data->nsd, ctcp);
+	} else if (data->query->addr.ss_family == AF_INET6) {
+		STATUP(data->nsd, ctcp6);
+	}
 #endif
 
 	/* We have a complete query, process it.  */

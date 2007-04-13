@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Build a NSD distribution tar from the SVN repository.
+# Build a NSD distribution tar from the CVS repository.
 
 # Abort script on unexpected errors.
 set -e
@@ -11,13 +11,17 @@ cwd=`pwd`
 # Utility functions.
 usage () {
     cat >&2 <<EOF
-Usage $0: [-h] [-s] [-d SVN_root]
+Usage $0: [-h] [-s] [-d CVS_root] [-r revision]
 Generate a distribution tar file for NSD.
 
     -h           This usage information.
     -s           Build a snapshot distribution file.  The current date is
                  automatically appended to the current NSD version number.
-    -d SVN_root  Retrieve the NSD source from the specified repository.
+    -d CVS_root  Retrieve the NSD source from the specified repository.
+                 If this option is not specified the current value of the
+                 CVSROOT environment variable is used.
+    -r revision  Specify the NSD revision to retrieve.  If not specified
+                 the HEAD revision is retrieved.
 EOF
     exit 1
 }
@@ -71,6 +75,7 @@ replace_all () {
 }
     
 
+REVISION="HEAD"
 SNAPSHOT="no"
 
 # Parse the command line arguments.
@@ -80,7 +85,11 @@ while [ "$1" ]; do
             usage
             ;;
         "-d")
-            SVNROOT="$2"
+            CVSROOT="$2"
+            shift
+            ;;
+        "-r")
+            REVISION="$2"
             shift
             ;;
         "-s")
@@ -93,16 +102,22 @@ while [ "$1" ]; do
     shift
 done
 
-# Check if SVNROOT is specified.
-if [ -z "$SVNROOT" ]; then
-    error "SVNROOT must be specified (using -d)"
+# Check if CVSROOT is specified.
+if [ -z "$CVSROOT" ]; then
+    error "CVSROOT must be specified (using -d)"
+fi
+
+# Check if the NSD CVS revision is specified.
+if [ -z "$REVISION" ]; then
+    error "REVISION must be specified (using -r)"
 fi
 
 # Start the packaging process.
-info "SVNROOT  is $SVNROOT"
+info "CVSROOT  is $CVSROOT"
+info "REVISION is $REVISION"
 info "SNAPSHOT is $SNAPSHOT"
 
-#question "Do you wish to continue with these settings?" || error "User abort."
+question "Do you wish to continue with these settings?" || error "User abort."
 
 
 # Creating temp directory
@@ -111,10 +126,10 @@ temp_dir=`mktemp -d nsd-dist-XXXXXX`
 info "Directory '$temp_dir' created."
 cd $temp_dir
 
-info "Exporting source from SVN."
-svn export "$SVNROOT" nsd || error_cleanup "SVN command failed"
+info "Exporting source from CVS."
+cvs -d "$CVSROOT" -Q export -r "$REVISION" nsd || error_cleanup "CVS command failed"
 
-cd nsd || error_cleanup "NSD not exported correctly from SVN"
+cd nsd || error_cleanup "NSD not exported correctly from CVS"
 
 info "Building configure script (autoconf)."
 autoconf || error_cleanup "Autoconf failed."
@@ -148,7 +163,6 @@ replace_all README
 replace_all nsd.8
 replace_all nsdc.8
 replace_all nsd-notify.8
-replace_all nsd-xfer.8
 replace_all zonec.8
 
 info "Renaming NSD directory to nsd-$version."
@@ -162,24 +176,9 @@ if [ -f $tarfile ]; then
         && rm -f $tarfile) || error_cleanup "User abort."
 fi
 
-info "Deleting the tpkg directory"
-rm -rf nsd-$version/tpkg/
-
 info "Creating tar nsd-$version.tar.gz"
 tar czf ../nsd-$version.tar.gz nsd-$version || error_cleanup "Failed to create tar file."
 
 cleanup
 
-case $OSTYPE in
-        linux*)
-                sha=`sha1sum nsd-$version.tar.gz |  awk '{ print $1 }'`
-                ;;
-        freebsd*)
-                sha=`sha1  nsd-$version.tar.gz |  awk '{ print $5 }'`
-                ;;
-esac
-echo $sha > nsd-$version.tar.gz.sha1
-
 info "NSD distribution created successfully."
-info "SHA1sum: $sha"
-

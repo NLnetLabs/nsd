@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,2.3.7,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,2.2.1,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 dnl
@@ -148,31 +148,8 @@ if test $ac_cv_c_unused_attribute = yes; then
 fi
 ])dnl
 
-AC_DEFUN([AC_CHECK_CTIME_R],
-[AC_REQUIRE([AC_PROG_CC])
-AC_MSG_CHECKING(whether ctime_r works with two arguments)
-AC_CACHE_VAL(ac_cv_c_ctime_c,
-[ac_cv_c_ctime_c=no
-AC_TRY_COMPILE(
-[#include <time.h>
-void testing (void) { time_t clock; char current_time[40]; ctime_r(&clock, current_time); }],
-[
-        testing();
-],
-[ac_cv_c_ctime_c="yes"],
-[ac_cv_c_ctime_c="no"])
-])
-
-AC_MSG_RESULT($ac_cv_c_ctime_c)
-if test $ac_cv_c_ctime_c = no; then
-        CPPFLAGS="$CPPFLAGS -D_POSIX_PTHREAD_SEMANTICS"
-fi
-])dnl
-
-
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
-AC_CHECK_CTIME_R
 
 # Checks for libraries.
 
@@ -306,6 +283,7 @@ AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
+AC_REPLACE_FUNCS(timegm)
 AC_REPLACE_FUNCS(pselect)
 
 dnl dnl Check for libwrap.  Note that libwrap requires 
@@ -388,13 +366,13 @@ case "$enable_ipv6" in
 		;;
 esac
 
-AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--disable-dnssec], [Disable DNSSEC support.]))
+AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--enable-dnssec], [Enable experimental DNSSEC support according to the latest drafts.]))
 case "$enable_dnssec" in
-        no)
-                ;;
-        yes|*)
-		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable DNSSEC (RFCs 4033, 4034, and 4035) support.])
+        yes)
+		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this enable experimental DNSSEC support.])
 		;;
+        no|*)
+                ;;
 esac
 
 AC_ARG_ENABLE(axfr, AC_HELP_STRING([--disable-axfr], [Disables AXFR]))
@@ -414,15 +392,6 @@ case "$enable_bind8_stats" in
 		;;
 	no|*)
 		;;
-esac
-
-AC_ARG_ENABLE(nsid, AC_HELP_STRING([--enable-nsid], [Enable NSID support]))
-case "$enable_nsid" in
-        yes)
-               AC_DEFINE([NSID], [], [Define this to enable NSID support.])
-               ;;
-        no|*)
-                ;;
 esac
 
 AC_ARG_ENABLE(plugins, AC_HELP_STRING([--enable-plugins], [Enable plugin support]))
@@ -532,17 +501,6 @@ int b64_ntop(uint8_t const *src, size_t srclength,
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif /* !B64_NTOP */
 ])
-
-# big fat warning
-if test "$enable_checking" = "yes"; then
-        echo "************************************************"
-        echo "* You have activated \"--enable-checking\"       *"
-        echo "*                                              *"
-        echo "* This will instruct NSD to be stricter        *"
-        echo "* when validating its input. This could lead   *"
-        echo "* to a reduced service level.                  *"
-        echo "************************************************"
-fi
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

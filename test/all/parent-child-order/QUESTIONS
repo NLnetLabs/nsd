@@ -1,0 +1,16 @@
+# see bug 72 for why this is added
+# first do axfr to see what we get
+# we have to zone with a differently ordered
+# parent child relation. Both the zone should
+# answer the same (not looking at the names)
+1:axfr abc.
+2:axfr bac.
+#
+3:b.a.abc A
+4:b.a.bac A
+# following should both resolve. NSD 1.2.3 should barf on #6
+5:a.abc A
+6:a.bac A
+# add some any queries (with AA bit off)
+7:-c any abc
+8:-c any bac

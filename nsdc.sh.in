@@ -2,7 +2,7 @@
 #
 # nsdc.sh -- a shell script to manage the beast
 #
-# Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+# Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
 #
 # See LICENSE for the license.
 #
@@ -25,15 +25,7 @@ zonesfile="@zonesfile@"
 keysdir="@configdir@/keys"
 notify="@sbindir@/nsd-notify"
 nsdxfer="@sbindir@/nsd-xfer"
-nsdxfer_flags=""
 pidfile="@pidfile@"
-lockfile="@dbfile@.lock"
-# for bash: -C or noclobber. For tcsh: noclobber. For bourne: -C.
-noclobber_set="set -C"
-# ugly check for tcsh
-if echo @shell@ | grep tcsh >/dev/null; then
-	noclobber_set="set noclobber"
-fi
 
 ZONEC_VERBOSE=-v
 
@@ -56,16 +48,6 @@ signal() {
 		echo "nsd is not running"
 	fi
 	return 1
-}
-
-lock() {
-        (umask 222; $noclobber_set; echo "database locked by PID: $$" >${lockfile}) ||
-                (cat ${lockfile} ; echo "aborting..." ; exit 1)
-	[ $? = 0 ] || exit 1
-}
-
-unlock() {
-	rm -f ${lockfile}
 }
 
 case "$1" in
@@ -101,28 +83,26 @@ update)
 		exit 1
 	fi
 
-	lock
-
 	# read the nsd.zones file
 	while read zonekw zone file masterskw masters
 	do	
 		if [ "X$zonekw" = "Xzone" -a "X$masterskw" = "Xmasters" ]
 		then
 			# now get the serial number
-			serial_opt=''
+			serial=''
 			if [ -e ${zonesdir}/$file ]; then
 				serial=`awk '/.*IN[ \t]+SOA.*\($/ { getline; print $1; exit }' ${zonesdir}/$file`
-				serial_opt="-s $serial"
 			fi
+			serial=${serial:-0}
 
-			# take care of tsig info file if any
+ 			# take care of tsig info file if any
 			# See bug #91 - move to ${zone} but be backward
 			# compatible
-			unset tsiginfoarg
-			if [ -f "${keysdir}/${masters}.tsiginfo" ]
-			then
-				ln "${keysdir}/${masters}.tsiginfo" "${keysdir}/${masters}.tsiginfo.$$"
-				tsiginfoarg="-T ${keysdir}/${masters}.tsiginfo.$$"
+ 			unset tsiginfoarg
+ 			if [ -f "${keysdir}/${masters}.tsiginfo" ]
+ 			then
+ 				ln "${keysdir}/${masters}.tsiginfo" "${keysdir}/${masters}.tsiginfo.$$"
+ 				tsiginfoarg="-T ${keysdir}/${masters}.tsiginfo.$$"
 			else 
 				if [ -f "${keysdir}/${zone}.tsiginfo" ]
 				then
@@ -133,7 +113,7 @@ update)
 			fi
 
 			# AXFR to a temp file $file.axfr
-			$nsdxfer $nsdxfer_flags -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} $serial_opt $masters
+			$nsdxfer -z $zone -f ${zonesdir}/$file.axfr ${tsiginfoarg} -s $serial $masters
 			if [ $? -eq 1 ]
 			then
 				if [ -f ${zonesdir}/$file.axfr ]
@@ -150,7 +130,7 @@ update)
 						mv -f ${zonesdir}/$file.axfr ${zonesdir}/$file
 					fi
 					rm -f ${zonesdir}/$file.axfr.db
-				else
+			        else
 					echo "Warning: AXFR for $zone failed"
 				fi
 			fi
@@ -177,8 +157,6 @@ update)
 		echo "rebuilding the database...."
 		sh $0 rebuild && sh $0 reload
 	fi
-
-	unlock
 	;;
 notify)
 	if [ ! -x "${notify}" ]

@@ -1,7 +1,7 @@
 /*
  * dns.h -- DNS definitions.
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -46,7 +46,7 @@ typedef enum rr_section rr_section_type;
 #define RCODE_NXDOMAIN		3 	/* Name Error */
 #define RCODE_IMPL		4 	/* Not implemented */
 #define RCODE_REFUSE		5 	/* Refused */
-#define RCODE_NOTAUTH		9	/* Server not authoritative for zone */
+#define RCODE_NOTAUTH		9	/* Not authorized */
 
 /* Standardized NSD return code.  Partially maps to DNS RCODE values.  */
 enum nsd_rc
@@ -113,14 +113,12 @@ typedef enum nsd_rc nsd_rc_type;
 
 #define TYPE_OPT	41	/* Pseudo OPT record... */
 #define TYPE_APL	42	/* RFC3123 */
-#define TYPE_DS		43	/* RFC 4033, 4034, and 4035 */
+#define TYPE_DS		43	/* draft-ietf-dnsext-delegation */
 #define TYPE_SSHFP	44	/* SSH Key Fingerprint */
 
-#define TYPE_RRSIG	46	/* RFC 4033, 4034, and 4035 */
-#define TYPE_NSEC	47	/* RFC 4033, 4034, and 4035 */
-#define TYPE_DNSKEY	48	/* RFC 4033, 4034, and 4035 */
-
-#define TYPE_SPF        99      /* draft-schlitt-spf-classic-02.txt */
+#define TYPE_RRSIG	46	/* draft-ietf-dnsext-dnssec-25 */
+#define TYPE_NSEC	47
+#define TYPE_DNSKEY	48
 
 #define TYPE_TSIG	250
 #define TYPE_IXFR	251
@@ -132,7 +130,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
 
-#define MAXRDATALEN	64      /* This is more than enough, think multiple TXT.  */
+#define MAXRDATALEN	64 /* This is more than enough, think multiple TXT.  */
 #define MAX_RDLENGTH	65535
 
 /* Maximum size of a single RR.  */
@@ -205,7 +203,7 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  * Indexed by type.  The special type "0" can be used to get a
  * descriptor for unknown types (with one binary rdata).
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_SPF + 1)
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_DNSKEY+1)
 extern rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH];
 
 static inline rrtype_descriptor_type *

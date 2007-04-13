@@ -1,7 +1,7 @@
 /*
  * util.h -- set of various support routines.
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -17,8 +17,6 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <time.h>
-
-#include <dns.h>
 
 #define ALIGN_UP(n, alignment)  \
 	(((n) + (alignment) - 1) & (~((alignment) - 1)))
@@ -253,16 +251,5 @@ void strip_string(char *str);
  * Convert a single (hexidecimal) digit to its integer value.
  */
 int hexdigit_to_int(char ch);
-
-/*
- * Convert TM to seconds since epoch (midnight, January 1st, 1970).
- * Like timegm(3), which is not always available.
- */
-time_t mktime_from_utc(const struct tm *tm);
-
-/*
- * Convert a numeric rcode value to a human readable string 
- */
-const char* rcode2str(int rc);
 
 #endif /* _UTIL_H_ */

@@ -1,7 +1,7 @@
 /*
  * nsd.h -- nsd(8) definitions and prototypes
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -9,9 +9,6 @@
 
 #ifndef	_NSD_H_
 #define	_NSD_H_
-
-/* disable NSID no matter what */
-#undef NSID
 
 #include <signal.h>
 
@@ -97,11 +94,8 @@ struct	nsd
 	const char	*chrootdir;
 	const char	*version;
 	const char	*identity;
-        uint16_t        nsid_len;
-        unsigned char   *nsid;
 
 	size_t	ifs;
-	uint8_t grab_ip6_optional;
 
 	/* TCP specific configuration */
 	struct nsd_socket tcp[MAX_INTERFACES];
@@ -118,6 +112,8 @@ struct	nsd
 	int current_tcp_count;
 	
 #ifdef	BIND8_STATS
+
+	char	*named8_stats;
 
 	struct nsdst {
 		time_t	boot;

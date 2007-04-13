@@ -1,7 +1,7 @@
 /*
  * zonec.c -- zone compiler.
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -38,6 +38,10 @@
 #include "util.h"
 #include "zparser.h"
 
+#ifndef TIMEGM
+time_t timegm(struct tm *tm);
+#endif /* !TIMEGM */
+
 const dname_type *error_dname;
 domain_type *error_domain;
 
@@ -54,7 +58,6 @@ static long int totalerrors = 0;
 static long int totalrrs = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
-extern uint16_t nsec_highest_rcode;
 
 
 /*
@@ -130,7 +133,7 @@ zparser_conv_time(region_type *region, const char *time)
 	if (!strptime(time, "%Y%m%d%H%M%S", &tm)) {
 		zc_error_prev_line("date and time is expected");
 	} else {
-		uint32_t l = htonl(mktime_from_utc(&tm));
+		uint32_t l = htonl(timegm(&tm));
 		r = alloc_rdata_init(region, &l, sizeof(l));
 	}
 	return r;
@@ -225,7 +228,23 @@ zparser_conv_short(region_type *region, const char *text)
 	uint16_t value;
 	char *end;
    
-	value = htons((uint16_t) strtol(text, &end, 10));
+	value = htons((uint16_t) strtol(text, &end, 0));
+	if (*end != 0) {
+		zc_error_prev_line("integer value is expected");
+	} else {
+		r = alloc_rdata_init(region, &value, sizeof(value));
+	}
+	return r;
+}
+
+uint16_t *
+zparser_conv_long(region_type *region, const char *text)
+{
+	uint16_t *r = NULL;
+	uint32_t value;
+	char *end;
+   
+	value = htonl((uint32_t) strtol(text, &end, 0));
 	if (*end != 0) {
 		zc_error_prev_line("integer value is expected");
 	} else {
@@ -241,7 +260,7 @@ zparser_conv_byte(region_type *region, const char *text)
 	uint8_t value;
 	char *end;
    
-	value = (uint8_t) strtol(text, &end, 10);
+	value = (uint8_t) strtol(text, &end, 0);
 	if (*end != '\0') {
 		zc_error_prev_line("integer value is expected");
 	} else {
@@ -261,7 +280,7 @@ zparser_conv_algorithm(region_type *region, const char *text)
 		id = (uint8_t) alg->id;
 	} else {
 		char *end;
-		id = (uint8_t) strtol(text, &end, 10);
+		id = (uint8_t) strtol(text, &end, 0);
 		if (*end != '\0') {
 			zc_error_prev_line("algorithm is expected");
 			return NULL;
@@ -283,7 +302,7 @@ zparser_conv_certificate_type(region_type *region, const char *text)
 		id = htons((uint16_t) type->id);
 	} else {
 		char *end;
-		id = htons((uint16_t) strtol(text, &end, 10));
+		id = htons((uint16_t) strtol(text, &end, 0));
 		if (end != 0) {
 			zc_error_prev_line("certificate type is expected");
 			return NULL;
@@ -405,21 +424,18 @@ zparser_conv_nsec(region_type *region,
 	size_t i,j;
 	uint16_t window_count = 0;
 	uint16_t total_size = 0;
-	uint16_t window_max = 0;
 
 	/* The used windows.  */
 	int used[NSEC_WINDOW_COUNT];
 	/* The last byte used in each the window.  */
 	int size[NSEC_WINDOW_COUNT];
 
-	window_max = 1 + (nsec_highest_rcode / 256);
-
 	/* used[i] is the i-th window included in the nsec 
 	 * size[used[0]] is the size of window 0
 	 */
 
 	/* walk through the 256 windows */
-	for (i = 0; i < window_max; ++i) {
+	for (i = 0; i < NSEC_WINDOW_COUNT; ++i) {
 		int empty_window = 1;
 		/* check each of the 32 bytes */
 		for (j = 0; j < NSEC_WINDOW_BITS_SIZE; ++j) {
@@ -503,20 +519,13 @@ precsize_aton (char *cp, char **endptr)
 		}
 	}
 
-	if(mval >= poweroften[7]) {
-		/* integer overflow possible for *100 */
-		mantissa = mval / poweroften[7];
-		exponent = 9; /* max */
-	}
-	else {
-		cmval = (mval * 100) + cmval;
+	cmval = (mval * 100) + cmval;
 	
-		for (exponent = 0; exponent < 9; exponent++)
-			if (cmval < poweroften[exponent+1])
-				break;
+	for (exponent = 0; exponent < 9; exponent++)
+		if (cmval < poweroften[exponent+1])
+			break;
 
-		mantissa = cmval / poweroften[exponent];
-	}
+	mantissa = cmval / poweroften[exponent];
 	if (mantissa > 9)
 		mantissa = 9;
 
@@ -546,8 +555,7 @@ zparser_conv_loc(region_type *region, char *str)
 	int i;
 	int deg, min, secs;	/* Secs is stored times 1000.  */
 	uint32_t lat = 0, lon = 0, alt = 0;
-	/* encoded defaults: version=0 sz=1m hp=10000m vp=10m */
-	uint8_t vszhpvp[4] = {0, 0x12, 0x16, 0x13};
+	uint8_t vszhpvp[4] = {0, 0, 0, 0};
 	char *start;
 	double d;
 			
@@ -577,8 +585,8 @@ zparser_conv_loc(region_type *region, char *str)
 				zc_error_prev_line("space expected after minutes");
 				return NULL;
 			}
-			++str;
 		}
+		++str;
 		
 		/* Seconds? */
 		if (isdigit(*str)) {
@@ -601,12 +609,12 @@ zparser_conv_loc(region_type *region, char *str)
 			}
 
 			if (d < 0.0 || d > 60.0) {
-				zc_error_prev_line("seconds not in range 0.0 .. 60.0");
+				zc_error_prev_line("seconds not in range 0.0 .. 6.0");
 			}
 
-			secs = (int) (d * 1000.0 + 0.5);
-			++str;
+			secs = (int) (d * 1000.0);
 		}
+		++str;
 		
 		switch(*str) {
 		case 'N':
@@ -661,7 +669,7 @@ zparser_conv_loc(region_type *region, char *str)
 	}
 
 	/* Meters of altitude... */
-	(void)strtol(str, &str, 10);
+	(void) strtol(str, &str, 10);
 	switch(*str) {
 	case ' ':
 	case '\0':
@@ -687,7 +695,7 @@ zparser_conv_loc(region_type *region, char *str)
 		zc_error_prev_line("error parsing altitude");
 	}
 	
-	alt = (uint32_t) (10000000.0 + d * 100 + 0.5);
+	alt = 10000000 + (int32_t) (d * 100);
 
 	if (!isspace(*str) && *str != '\0') {
 		zc_error_prev_line("unexpected character after altitude");
@@ -708,7 +716,7 @@ zparser_conv_loc(region_type *region, char *str)
 	r = alloc_rdata(region, 16);
 	p = (uint32_t *) (r + 1);
 
-	memmove(p, vszhpvp, 4);
+	memcpy(p, vszhpvp, 4);
 	write_uint32(p + 1, lat);
 	write_uint32(p + 2, lon);
 	write_uint32(p + 3, alt);
@@ -867,16 +875,10 @@ void
 parse_unknown_rdata(uint16_t type, uint16_t *wireformat)
 {
 	buffer_type packet;
-	uint16_t size;
+	uint16_t size = *wireformat;
 	ssize_t rdata_count;
 	ssize_t i;
 	rdata_atom_type *rdatas;
-
-	if (wireformat) {
-		size = *wireformat;
-	} else {
-		return;
-	}
 
 	buffer_create_from(&packet, wireformat + 1, *wireformat);
 	rdata_count = rdata_wireformat_to_rdata_atoms(parser->region,
@@ -1035,14 +1037,8 @@ process_rr()
 		 * This is a SOA record, start a new zone or continue
 		 * an existing one.
 		 */
-		if (rr->owner->is_apex) {
-			/*
-			   should be error!
-			   every zone should be passed to zonec only once.
-			*/
-			zone = namedb_find_zone(parser->db, rr->owner);
-			assert(zone);
-		} else {
+		zone = namedb_find_zone(parser->db, rr->owner);
+		if (!zone) {
 			/* new zone part */
 			zone = (zone_type *) region_alloc(parser->region,
 							  sizeof(zone_type));
@@ -1050,12 +1046,10 @@ process_rr()
 			zone->soa_rrset = NULL;
 			zone->ns_rrset = NULL;
 			zone->is_secure = 0;
-
+			
 			/* insert in front of zone list */
 			zone->next = parser->db->zones;
 			parser->db->zones = zone;
-
-			rr->owner->is_apex = 1;
 		}
 		
 		/* parser part */
@@ -1154,7 +1148,7 @@ zone_read(const char *name, const char *zonefile)
 
 	dname = dname_parse(parser->region, name);
 	if (!dname) {
-		zc_error("incorrect zone name '%s'", name);
+		zc_error_prev_line("incorrect zone name '%s'", name);
 		return;
 	}
 	
@@ -1169,7 +1163,7 @@ zone_read(const char *name, const char *zonefile)
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, dname)) {
 		/* cannot happen with stdin - so no fix needed for zonefile */
-		zc_error("cannot open '%s': %s\n", zonefile, strerror(errno));
+		fprintf(stderr, " ERR: Cannot open \'%s\': %s\n", zonefile, strerror(errno));
 		return;
 	}
 
@@ -1180,7 +1174,6 @@ zone_read(const char *name, const char *zonefile)
 	
 	fflush(stdout);
 	totalerrors += parser->errors;
-	parser->filename = NULL;
 }
 
 static void 
@@ -1230,7 +1223,7 @@ main (int argc, char **argv)
 			}
 		}
 	}
-#endif /* NDEBUG */
+#endif
 	
 	global_region = region_create(xalloc, free);
 	rr_region = region_create(xalloc, free);
@@ -1323,14 +1316,12 @@ main (int argc, char **argv)
 			/* Zone name... */
 			if ((zonename = strtok(NULL, sep)) == NULL) {
 				fprintf(stderr, "zonec: syntax error in %s line %d: expected zone name\n", *argv, line);
-				++totalerrors;
 				break;
 			}
 
 			/* File name... */
 			if ((zonefile = strtok(NULL, sep)) == NULL) {
 				fprintf(stderr, "zonec: syntax error in %s line %d: expected file name\n", *argv, line);
-				++totalerrors;
 				break;
 			}
 

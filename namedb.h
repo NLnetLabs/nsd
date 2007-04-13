@@ -1,7 +1,7 @@
 /*
  * namedb.h -- nsd(8) internal namespace database definitions
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -52,7 +52,6 @@ struct domain
 	 * This domain name exists (see wildcard clarification draft).
 	 */
 	unsigned     is_existing : 1;
-	unsigned     is_apex : 1;
 };
 
 struct zone
@@ -60,7 +59,6 @@ struct zone
 	zone_type   *next;
 	domain_type *apex;
 	rrset_type  *soa_rrset;
-	rrset_type  *soa_nx_rrset; /* see bug #103 */
 	rrset_type  *ns_rrset;
 	uint32_t     number;
 	unsigned     is_secure : 1;

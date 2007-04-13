@@ -1,7 +1,7 @@
 #
 # Makefile -- one file to make them all, nsd(8)
 #
-# Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+# Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
 #
 # See LICENSE for the license.
 #
@@ -21,7 +21,7 @@ zonesfile = @zonesfile@
 dbfile = @dbfile@
 configfile = @configfile@
 zonesdir = @zonesdir@
-nsdxfer = @nsdxfer@
+namedxfer = @namedxfer@
 user = @user@
 
 CC		= @CC@
@@ -31,7 +31,6 @@ LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
 LIBWRAP		= @LIBWRAP@
 LIBOBJS		= @LIBOBJS@
-LIBCUNIT	= -L/usr/local/lib -lcunit
 INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
 INSTALL_DATA	= $(INSTALL) -m 644
@@ -121,34 +120,10 @@ NSD_XFER_OBJECTS	=			\
 	tsig-openssl.o				\
 	util.o
 
-UNITEST_OBJECTS		=			\
-	answer.o				\
-	axfr.o					\
-	buffer.o				\
-	dbaccess.o				\
-	dbcreate.o				\
-	dname.o					\
-	dns.o					\
-	edns.o					\
-	namedb.o				\
-	netio.o					\
-	packet.o				\
-	plugins.o				\
-	query.o					\
-	rbtree.o				\
-	rdata.o					\
-	region-allocator.o			\
-	server.o				\
-	tsig.o					\
-	tsig-openssl.o				\
-	util.o					\
-	tpkg/unitest/unitest_rbtree.o   	\
-	tpkg/unitest/unitest_run.o
-
 all:	$(TARGETS)
 
 .c.o:
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c $<
 
 nsdc.sh:	nsdc.sh.in
 	rm -f nsdc.sh
@@ -159,30 +134,30 @@ nsdc.conf.sample:	nsdc.conf.sample.in
 	$(EDIT) nsdc.conf.sample.in > nsdc.conf.sample
 
 install: all
-	$(INSTALL) -d $(DESTDIR)$(sbindir)
-	$(INSTALL) -d $(DESTDIR)$(configdir)
-	$(INSTALL) -d $(DESTDIR)$(mandir)
-	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
-	$(INSTALL) nsd $(DESTDIR)$(sbindir)/nsd
-	$(INSTALL) zonec $(DESTDIR)$(sbindir)/zonec
-	$(INSTALL) nsdc.sh $(DESTDIR)$(sbindir)/nsdc
-	$(INSTALL) nsd-notify $(DESTDIR)$(sbindir)/nsd-notify
-	$(INSTALL) nsd-xfer $(DESTDIR)$(sbindir)/nsd-xfer
-	$(INSTALL_DATA) nsd.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) nsdc.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) zonec.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8
-	$(INSTALL_DATA) nsd-xfer.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
-	$(INSTALL_DATA) nsdc.conf.sample $(DESTDIR)$(configfile).sample
-	$(INSTALL_DATA) nsd.zones.sample $(DESTDIR)$(zonesfile).sample
+	$(INSTALL) -d $(sbindir)
+	$(INSTALL) -d $(configdir)
+	$(INSTALL) -d $(mandir)
+	$(INSTALL) -d $(mandir)/man8
+	$(INSTALL) nsd $(sbindir)/nsd
+	$(INSTALL) zonec $(sbindir)/zonec
+	$(INSTALL) nsdc.sh $(sbindir)/nsdc
+	$(INSTALL) nsd-notify $(sbindir)/nsd-notify
+	$(INSTALL) nsd-xfer $(sbindir)/nsd-xfer
+	$(INSTALL_DATA) nsd.8 $(mandir)/man8
+	$(INSTALL_DATA) nsdc.8 $(mandir)/man8
+	$(INSTALL_DATA) zonec.8 $(mandir)/man8
+	$(INSTALL_DATA) nsd-notify.8 $(mandir)/man8/nsd-notify.8
+	$(INSTALL_DATA) nsd-xfer.8 $(mandir)/man8/nsd-xfer.8
+	$(INSTALL_DATA) nsdc.conf.sample $(configfile).sample
+	$(INSTALL_DATA) nsd.zones.sample $(zonesfile).sample
 
 uninstall:
 	@echo
-	rm -f -- $(DESTDIR)$(sbindir)/nsd $(DESTDIR)$(sbindir)/zonec $(DESTDIR)$(sbindir)/nsdc $(DESTDIR)$(sbindir)/nsd-notify $(DESTDIR)$(sbindir)/nsd-xfer
-	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man8/nsdc.8 $(DESTDIR)$(mandir)/man8/zonec.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
-	rm -f -- $(DESTDIR)$(pidfile) $(DESTDIR)$(dbfile)
+	rm -f -- $(sbindir)/nsd $(sbindir)/zonec $(sbindir)/nsdc $(sbindir)/nsd-notify $(sbindir)/nsd-xfer
+	rm -f -- $(mandir)/man8/nsd.8 $(mandir)/man8/nsdc.8 $(mandir)/man8/zonec.8 $(mandir)/man8/nsd-notify.8 $(mandir)/man8/nsd-xfer.8
+	rm -f -- $(pidfile) $(dbfile)
 	@echo
-	@echo "You still need to remove $(DESTDIR)$(configdir) directory by hand."
+	@echo "You still need to remove $(configdir) directory by hand."
 
 nsd:	$(NSD_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
@@ -196,11 +171,8 @@ nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBWRAP) $(LIBS)
 
-unitest:	$(UNITEST_OBJECTS)
-	$(LINK) -o $@ $(UNITEST_OBJECTS) $(LIBOBJS) $(LIBCUNIT) $(LIBWRAP) $(LIBS)
-
 clean:
-	rm -f dname rbtree *.o *.so y.* *.core *.gmon tags TAGS
+	rm -f dname rbtree *.o *.so y.* *.core *.gmon
 	rm -f $(TARGETS)
 
 devclean: clean
@@ -256,9 +228,6 @@ config.h.in:	configure.ac
 
 configure:	configure.ac
 	autoconf
-
-tags: 	
-	ctags *.[ch]
 
 # Dependencies
 answer.o: answer.c config.h answer.h dns.h namedb.h dname.h buffer.h \

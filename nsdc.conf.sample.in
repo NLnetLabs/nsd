@@ -2,7 +2,7 @@
 #
 # nsdc.conf.sample -- configuration for nsdc.sh
 #
-# Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+# Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
 #
 # See LICENSE for the license.
 #
@@ -30,10 +30,7 @@ keysdir="@configdir@/keys"
 notify="@sbindir@/nsd-notify"
 
 # Pathname of nsd-xfer binary
-nsdxfer="@sbindir@/nsd-xfer"
-
-# Flags to nsd-xfer. To set the socket's source address, use: "-a hostname" or "-a ip"
-nsdxfer_flags=""
+namedxfer="@sbindir@/nsd-xfer"
 
 # Verbosity of "nsdc update". Set ZONEC_VERBOSE to -v, -vv or to a
 # null string ZONEC_VERBOSE=-v

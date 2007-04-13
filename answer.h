@@ -1,7 +1,7 @@
 /*
  * answer.h -- manipulating query answers and encoding them.
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -15,7 +15,6 @@
 #include "dns.h"
 #include "namedb.h"
 #include "packet.h"
-#include "query.h"
 
 /*
  * Structure used to keep track of RRsets that need to be stored in
@@ -30,7 +29,7 @@ struct answer {
 };
 
 
-void encode_answer(query_type *q, const answer_type *answer);
+void encode_answer(struct query *q, const answer_type *answer);
 
 
 void answer_init(answer_type *answer);

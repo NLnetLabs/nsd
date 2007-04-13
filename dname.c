@@ -1,7 +1,7 @@
 /*
  * dname.c -- Domain name handling.
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2004, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -391,14 +391,14 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 		size_t j;
 		++src;
 		for (j = 0; j < len; ++j) {
-			uint8_t ch = *src++;
+			char ch = (char) *src++;
 			if (isalnum(ch) || ch == '-' || ch == '_') {
 				*dst++ = ch;
 			} else if (ch == '.' || ch == '\\') {
 				*dst++ = '\\';
 				*dst++ = ch;
 			} else {
-				snprintf(dst, 5, "\\%03u", ch);
+				snprintf(dst, 5, "\\%03u", (unsigned) ch);
 				dst += 4;
 			}
 		}
