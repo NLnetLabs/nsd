@@ -249,6 +249,7 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 		SERV_GET_INT(tcp_count, o);
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
+		SERV_GET_INT(verbosity, o);
 
 		if(strcasecmp(o, "zones") == 0) {
 			RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
