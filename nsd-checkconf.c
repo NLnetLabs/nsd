@@ -233,6 +233,7 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 		SERV_GET_BIN(debug_mode, o);
 		SERV_GET_BIN(ip4_only, o);
 		SERV_GET_BIN(ip6_only, o);
+		SERV_GET_BIN(hide_version, o);
 		/* str */
 		SERV_GET_STR(database, o);
 		SERV_GET_STR(identity, o);
@@ -273,6 +274,7 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\tdebug-mode: %s\n", opt->debug_mode?"yes":"no");
 	printf("\tip4-only: %s\n", opt->ip4_only?"yes":"no");
 	printf("\tip6-only: %s\n", opt->ip6_only?"yes":"no");
+	printf("\thide-version: %s\n", opt->hide_version?"yes":"no");
 	print_string_var("database:", opt->database);
 	print_string_var("identity:", opt->identity);
 	print_string_var("logfile:", opt->logfile);

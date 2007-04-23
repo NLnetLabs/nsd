@@ -15,6 +15,9 @@ server:
 	# ip-address: 1.2.3.4
 	# ip-address: 12fe::8ef0
 
+        # Answer VERSION.BIND and VERSION.SERVER CHAOS class queries
+	# hide-version: no
+
 	# enable debug mode for nsd, does not fork daemon process.
 	# (debug mode disables slave zone functionalities)
 	# debug-mode: no

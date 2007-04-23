@@ -478,13 +478,17 @@ answer_chaos(struct nsd *nsd, query_type *q)
 			   (q->qname->name_size == 14
 			    && memcmp(dname_name(q->qname), "\007version\004bind", 14) == 0))
 		{
-			/* Add version */
-			query_addtxt(q,
+			if(!nsd->options->hide_version) {
+				/* Add version */
+				query_addtxt(q,
 				     buffer_begin(q->packet) + QHEADERSZ,
 				     CLASS_CH,
 				     0,
 				     nsd->version);
-			ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
+				ANCOUNT_SET(q->packet, ANCOUNT(q->packet) + 1);
+			} else {
+				RCODE_SET(q->packet, RCODE_REFUSE);
+			}
 		}
 		break;
 	default:

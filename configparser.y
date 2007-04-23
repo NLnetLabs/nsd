@@ -53,7 +53,7 @@ static int server_settings_seen = 0;
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR
-%token VAR_VERBOSITY
+%token VAR_VERBOSITY VAR_HIDE_VERSION
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -75,7 +75,7 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
 	server_statistics | server_chroot | server_username | server_zonesdir |
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
-	server_verbosity;
+	server_verbosity | server_hide_version;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -112,6 +112,14 @@ server_verbosity: VAR_VERBOSITY STRING
 		if(atoi($2) == 0 && strcmp($2, "0") != 0)
 			yyerror("number expected");
 		else cfg_parser->opt->verbosity = atoi($2);
+	}
+	;
+server_hide_version: VAR_HIDE_VERSION STRING 
+	{ 
+		OUTYY(("P(server_hide_version:%s)\n", $2)); 
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->hide_version = (strcmp($2, "yes")==0);
 	}
 	;
 server_ip4_only: VAR_IP4_ONLY STRING 
