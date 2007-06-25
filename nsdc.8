@@ -106,7 +106,10 @@ file. If a TSIG key is specified for a notify statement, it
 will be used to secure the notification message to that 
 slave server.
 .It Ar patch
-Merge zone transfer changes back to zone files. This invokes nsd-patch.
+Merge zone transfer changes back to zone files. It reads in the nsd database 
+(nsd.db) and difffile (ixfr.db), and overwrites the zone text files if they 
+have been updated. Running this regularly ensures that the difffile does not 
+grow infinitely.
 .El
 .Sh FILES
 .Bl -tag -width indent

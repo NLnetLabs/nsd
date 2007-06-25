@@ -24,7 +24,8 @@
 is the zone patcher for
 .Xr nsd 8 .
 It reads in the nsd database (nsd.db) and difffile (ixfr.db), and overwrites
-the zone text files if they have been updated.
+the zone text files if they have been updated. Running this regularly
+ensures that the difffile does not grow infinitely.
 .Pp
 The available options are:
 .Bl -tag -width indent
