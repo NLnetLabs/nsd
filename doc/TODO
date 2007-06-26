@@ -9,6 +9,7 @@ GENERAL
 	in a zone in the config file, lets xfrd zonexfr and notify.
 
 AUTOCONF
+- check/translate arguments to --with-facility
 
 ZONE COMPILER
 - unify dns type table (name, dns type, yacc token, rdata types) prettier?
