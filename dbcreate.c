@@ -42,7 +42,7 @@ namedb_new (const char *filename)
 
 	/*
 	 * Unlink the old database, if it exists.  This is useful to
-	 * ensure that NSD (when using mmap) doesn't see the changes
+	 * ensure that NSD doesn't see the changes
 	 * until a reload is done.
 	 */
 	if (unlink(db->filename) == -1 && errno != ENOENT) {
