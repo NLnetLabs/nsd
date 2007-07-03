@@ -1518,7 +1518,7 @@ main (int argc, char **argv)
 	
 	/* Close the database */
 	if (namedb_save(db) != 0) {
-		fprintf(stderr, "zonec: error saving the database: %s\n", strerror(errno));
+		fprintf(stderr, "zonec: error writing the database (%s): %s\n", db->filename, strerror(errno));
 		namedb_discard(db);
 		exit(1);
 	}
