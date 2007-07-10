@@ -326,7 +326,7 @@ initialize_dname_compression_tables(struct nsd *nsd)
 
 /*
  * Initialize the server, create and bind the sockets.
- * Drop the priviledges and chroot if requested.
+ * Drop the privileges and chroot if requested.
  *
  */
 int
@@ -476,7 +476,7 @@ server_init(struct nsd *nsd)
 
 	/* Drop the permissions */
 	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
-		log_msg(LOG_ERR, "unable to drop user priviledges: %s", strerror(errno));
+		log_msg(LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
 		return -1;
 	}
 

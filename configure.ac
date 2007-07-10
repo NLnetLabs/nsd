@@ -92,14 +92,14 @@ AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfr
 AC_SUBST(xfrdfile)
 
 #
-# Determine the user name to drop priviledges to
+# Determine the user name to drop privileges to
 #
 user=nsd
 AC_ARG_WITH([user],
 	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
 	[user=$withval])
 AC_SUBST(user)
-AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop priviledges to])
+AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
 
 # Checks for programs.
 AC_PROG_AWK
