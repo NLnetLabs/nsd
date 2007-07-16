@@ -11,3 +11,9 @@ USE AT YOUR OWN RISK.
 * nsd.zones2nsd.conf: a python script to convert NSD 2 nsd.zones config files
   to NSD 3 nsd.conf config files. Do not forget to set nsd_zones_name and
   key_dir variables at the top of the script. 
+
+* bind2nsd: not included, find it at http://bind2nsd.sourceforge.net
+  The project builds scripts that translate DNS information in BIND format 
+  to NSD format, and then copy that translation to an NSD server. The goal 
+  is to make it simple to run redundant BIND and NSD servers and keep them 
+  in sync, using only the BIND configuration files
