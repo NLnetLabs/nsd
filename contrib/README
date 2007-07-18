@@ -12,8 +12,9 @@ USE AT YOUR OWN RISK.
   to NSD 3 nsd.conf config files. Do not forget to set nsd_zones_name and
   key_dir variables at the top of the script. 
 
-* bind2nsd: not included, find it at http://bind2nsd.sourceforge.net
-  The project builds scripts that translate DNS information in BIND format 
-  to NSD format, and then copy that translation to an NSD server. The goal 
-  is to make it simple to run redundant BIND and NSD servers and keep them 
-  in sync, using only the BIND configuration files
+* bind2nsd: a slightly abridged form is included; find the full source
+  at http://bind2nsd.sourceforge.net.  The bind2nsd scripts translate 
+  DNS information in BIND format to NSD format, and then copy that 
+  translation to an NSD server. The goal is to make it simple to run
+  redundant BIND and NSD servers and keep them in sync, using only the
+  BIND configuration files
