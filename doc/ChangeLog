@@ -1,3 +1,6 @@
+19 July 2007: Wouter
+	- bind2nsd to 0.4.8, fixup of include bug.
+
 18 July 2007: Wouter
 	- added contrib for bind2nsd, Al Stone provided an abridged version
 	  that neatly fits for contrib.

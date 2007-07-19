@@ -83,7 +83,7 @@ class Config:
 	   'syspw'               : 'iforgot',
 	   'tmpdir'              : '/tmp/secure64/',   # must have trailing '/'
 	   'username'            : 'nsd',
-           'version'             : '0.4.7',
+           'version'             : '0.4.8',
 	   'xfrd-reload-timeout' : '10',
 	   'zonec_cmd'           : '/etc/init.d/zonec',
          }
@@ -111,7 +111,7 @@ class Config:
 
       #-- override the defaults
       if self.fname != '':
-         fd = open(self.fname, 'r+')
+         fd = open(self.fname, 'r')
 	 line = fd.readline()
 	 while line:
 	    if len(line) > 0:

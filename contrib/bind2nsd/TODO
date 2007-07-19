@@ -4,9 +4,6 @@ to be done:
 
 -- zone allow-transfer xlates to what in NSD?
 
--- create an 'nsd-sync' that works with any old NSD server on a remote
-   machine (permutation of 's64-sync')
-
 -- install process needs cleanup
 
 -- document install/update process
@@ -75,4 +72,7 @@ recently done:
 -- handle allow-notify {}
 
 -- handle also-notify {} in options {} and in server {} or per zone
+
+-- create an 'nsd-sync' that works with any old NSD server on a remote
+   machine (permutation of 's64-sync')
 

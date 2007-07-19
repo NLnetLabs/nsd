@@ -26,3 +26,7 @@
 
 python setup.py install
 
+(cd pexpect-2.1; python setup.py install)
+
+(cd pyDes-1.2; python setup.py install)
+

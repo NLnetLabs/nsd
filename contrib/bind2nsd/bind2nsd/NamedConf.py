@@ -32,7 +32,8 @@ import imp
 
 try:
    mfile, mpath, mdesc = imp.find_module('Parser', ['../bind2nsd'])
-   imp.load_module('Parser', mfile, mpath, mdesc)
+   if 'NamedConf' not in sys.modules:
+      imp.load_module('Parser', mfile, mpath, mdesc)
    from Parser import *
 except ImportError, ie:
    from bind2nsd.Parser import *

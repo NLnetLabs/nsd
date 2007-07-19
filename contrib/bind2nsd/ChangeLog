@@ -1,3 +1,9 @@
+2007-07-18	Al Stone	<ahs3@secure64.com>
+
+	* bind2nsd/Config.py: do not open config file with r+
+	* bind2nsd/NamedConf.py: remove recursive module import when
+	  running in ways I hadn't tried.
+
 2007-07-13	Al Stone	<ahs3@secure64.com>
 
 	* etc/: added in some files forgotten when convertion to FOSS....

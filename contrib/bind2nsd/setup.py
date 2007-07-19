@@ -27,7 +27,7 @@
 from distutils.core import setup
 
 setup(name = 'bind2nsd',
-      version = '0.4.7',
+      version = '0.4.8',
       author = 'Secure64 Software Corporation',
       author_email = 'support@secure64.com',
       maintainer = 'Al Stone',
