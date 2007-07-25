@@ -27,18 +27,21 @@
 #
 
 #-- imports
-import pyDes
+import os
+import os.path
+import sys
 import getpass
 import sys
 
-import imp
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Config', ['../bind2nsd'])
-   imp.load_module('Config', mfile, mpath, mdesc)
+if os.path.exists('../bind2nsd/Config.py'):
+   sys.path.append('../bind2nsd')
    from Config import *
-except ImportError, ie:
+else:
    from bind2nsd.Config import *
+
+if os.path.exists('../pyDes-1.2'):
+   sys.path.append('../pyDes-1.2')
+import pyDes
 
 #-- globals
 conf = Config()

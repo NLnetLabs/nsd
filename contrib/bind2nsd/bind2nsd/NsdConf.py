@@ -28,13 +28,10 @@
 import os.path
 import sys
 
-import imp
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Utils', ['../bind2nsd'])
-   imp.load_module('Utils', mfile, mpath, mdesc)
+if os.path.exists('../bind2nsd/Config.py'):
+   sys.path.append('../bind2nsd')
    from Utils import *
-except ImportError, ie:
+else:
    from bind2nsd.Utils import *
 
 
@@ -82,7 +79,7 @@ class NsdKey:
 
 class NsdZone:
 
-   def __init__(self, name, config):
+   def __init__(self, name, config, ipkeymap):
       self.name = name
       self.config = config
       self.include = ''
@@ -92,6 +89,7 @@ class NsdZone:
       self.also_notify = []		# empty unless we're a master zone
       self.provide_xfr = []
       self.oldrootdir = ''
+      self.ipkeymap = ipkeymap
       return
 
    def dump(self, ofile):
@@ -127,6 +125,14 @@ class NsdZone:
 	 else:
             print >> ofile, '   include:     "%s"' % (self.include)
             for ii in self.also_notify:
+	       print >> ofile, '   notify: %s NOKEY' % (ii)
+
+	 for ii in self.provide_xfr:
+	    if ii in self.ipkeymap:
+	       print >> ofile, '   provide-xfr: %s %s' % (ii, self.ipkeymap[ii])
+	       print >> ofile, '   notify: %s %s' % (ii, self.ipkeymap[ii])
+	    else:
+	       print >> ofile, '   provide-xfr: %s NOKEY' % (ii)
 	       print >> ofile, '   notify: %s NOKEY' % (ii)
 
       return
@@ -328,6 +334,7 @@ class NsdConf:
       self.includes = []
       self.zones = {}
       self.keys = {}
+      self.ipkeymap = {}
       return
 
    def populate(self, named):
@@ -343,10 +350,16 @@ class NsdConf:
          k.setSecret(oldk.getSecret())
 	 self.keys[k.getName()] = k
 
+	 #-- map each of the key ip addresses for faster lookup on dump()
+	 iplist = oldk.getIpAddrs()
+	 for jj in iplist:
+	    if jj not in self.ipkeymap:
+	       self.ipkeymap[jj] = k.getName()
+
       zlist = named.getZones()
       for ii in zlist:
          oldz = named.getZone(ii)
-         z = NsdZone(oldz.getName(), self.config)
+         z = NsdZone(oldz.getName(), self.config, self.ipkeymap)
 	 z.setZonefile(oldz.getFile())
 	 z.setInclude(self.acl_list)
 	 z.setOldRootDir(self.oldrootdir)

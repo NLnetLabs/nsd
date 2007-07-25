@@ -29,14 +29,10 @@ import os
 import os.path
 import sys
 
-import imp
-
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Utils', ['../bind2nsd'])
-   imp.load_module('Utils', mfile, mpath, mdesc)
+if os.path.exists('../bind2nsd/Config.py'):
+   sys.path.append('../bind2nsd')
    from Utils import *
-except ImportError, ie:
+else:
    from bind2nsd.Utils import *
 
 
@@ -49,6 +45,7 @@ class Zone:
       self.masters = []		# empty unless we're a slave zone
       self.allow_transfer = []
       self.also_notify = []
+      self.allow_notify = []
       return
 
    def dump(self):
@@ -57,6 +54,7 @@ class Zone:
       report_info('   file = %s' % (self.file))
       report_info('   type = %s' % (self.type))
       report_info('   masters = %s' % (str(self.masters)))
+      report_info('   allow_notify = %s' % (str(self.allow_notify)))
       report_info('   allow_transfer = %s' % (str(self.allow_transfer)))
       report_info('   also_notify = %s' % (str(self.also_notify)))
       return
@@ -114,4 +112,15 @@ class Zone:
 
    def getAlsoNotify(self):
       return self.also_notify
+
+   def addAllowNotify(self, quad):
+      self.allow_notify.append(quad)
+      return
+
+   def setAllowNotify(self, list):
+      self.allow_notify = list
+      return
+
+   def getAllowNotify(self):
+      return self.allow_notify
 

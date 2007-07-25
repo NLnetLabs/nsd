@@ -26,6 +26,9 @@
 import os
 import os.path
 import sys
+
+if os.path.exists('../pyDes-1.2'):
+   sys.path.append('../pyDes-1.2')
 import pyDes
 
 def mkcipher(val):
@@ -83,7 +86,7 @@ class Config:
 	   'syspw'               : 'iforgot',
 	   'tmpdir'              : '/tmp/secure64/',   # must have trailing '/'
 	   'username'            : 'nsd',
-           'version'             : '0.4.8',
+           'version'             : '0.5.0',
 	   'xfrd-reload-timeout' : '10',
 	   'zonec_cmd'           : '/etc/init.d/zonec',
          }

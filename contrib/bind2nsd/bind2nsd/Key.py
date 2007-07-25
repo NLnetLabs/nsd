@@ -29,15 +29,12 @@ import os
 import os.path
 import sys
 
-import imp
-
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Utils', ['../bind2nsd'])
-   imp.load_module('Utils', mfile, mpath, mdesc)
+if os.path.exists('../bind2nsd/Config.py'):
+   sys.path.append('../bind2nsd')
    from Utils import *
-except ImportError, ie:
+else:
    from bind2nsd.Utils import *
+
 
 class Key:
 

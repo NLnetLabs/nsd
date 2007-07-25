@@ -1,3 +1,11 @@
+2007-07-24	Al Stone	<ahs3@secure64.com>
+
+	* bind2nsd/*, scripts/*: cleaned up the way modules were being
+	  imported so that it's much simpler, hopefully more reliable.
+	* bind2nsd/Parser.py: added code to recognize but skip the view{},
+	  trusted-keys{}, and lwres{} clauses; added quad_list_with_keys().
+	* bind2nsd/Zone.py: store allow-notify statements.
+
 2007-07-18	Al Stone	<ahs3@secure64.com>
 
 	* bind2nsd/Config.py: do not open config file with r+

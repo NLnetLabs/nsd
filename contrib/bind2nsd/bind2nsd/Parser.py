@@ -29,46 +29,20 @@ import os
 import os.path
 import sys
 
-import imp
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Tokenizer', ['../bind2nsd'])
-   imp.load_module('Tokenizer', mfile, mpath, mdesc)
+if os.path.exists('../bind2nsd/Config.py'):
+   sys.path.append('../bind2nsd')
+   from NamedConf import *
+   from Zone import *
+   from Key import *
    from Tokenizer import *
-except ImportError, ie:
-   from bind2nsd.Tokenizer import *
-
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Utils', ['../bind2nsd'])
-   imp.load_module('Utils', mfile, mpath, mdesc)
    from Utils import *
-except ImportError, ie:
+else:
+   from bind2nsd.NamedConf import *
+   from bind2nsd.Zone import *
+   from bind2nsd.Key import *
+   from bind2nsd.Tokenizer import *
    from bind2nsd.Utils import *
 
-
-try:
-   mfile, mpath, mdesc = imp.find_module('NamedConf', ['../bind2nsd'])
-   imp.load_module('NamedConf', mfile, mpath, mdesc)
-   from NamedConf import *
-except ImportError, ie:
-   from bind2nsd.NamedConf import *
-
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Zone', ['../bind2nsd'])
-   imp.load_module('Zone', mfile, mpath, mdesc)
-   from Zone import *
-except ImportError, ie:
-   from bind2nsd.Zone import *
-
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Key', ['../bind2nsd'])
-   imp.load_module('Key', mfile, mpath, mdesc)
-   from Key import *
-except ImportError, ie:
-   from bind2nsd.Key import *
 
 #-- the following options {} clauses are currently currently ignored,
 #   typically because they are not implemented or not applicable to NSD
@@ -76,7 +50,7 @@ IGNORED_OPTIONS = [ 'cleaning-interval',
                     'datasize',
                     'interface-interval',
 		    'max-cache-size',
-                    'stacksize', 'statistics-file',
+                    'stacksize',
                   ]
 
 class Parser:
@@ -204,6 +178,34 @@ class Parser:
 
       return qlist
 
+   def quad_list_with_keys(self, name, tokens, named):
+      qlist = []
+      (ttype, val, curline) = tokens.get()
+      if ttype == T_LBRACE or ttype == T_LPAREN:
+         (ttype, val, curline) = tokens.get()
+         while ttype != T_RBRACE and ttype != T_RPAREN:
+            if ttype == T_QUAD:
+	       qlist.append(val)
+            elif ttype == T_SEMI or ttype == T_COMMENT:
+               pass
+	    elif ttype == T_KEYWORD and val == 'key':
+               (ttype, val, curline) = tokens.get()
+	       if ttype == T_NAME:
+	          if val in named.getKeys():
+		     qlist.append(val)
+	       else:
+                  bail('? was expecting a key name in "%s" (%d, %d: %s)' % \
+	               (name, ttype, curline, val.strip()))
+            else:
+               bail('? was expecting a quad in "%s" (%d, %d: %s)' % \
+	            (name, ttype, curline, val.strip()))
+            (ttype, val, curline) = tokens.get()
+         (ttype, val, curline) = tokens.get()
+         if ttype != T_SEMI:
+            bail('? junk after closing brace of "%s" section' % (name))
+
+      return qlist
+
    def skip_value(self, name, tokens):
       (ttype, val, curline) = tokens.get()
       if ttype == T_NAME or ttype == T_STRING:
@@ -277,7 +279,7 @@ class Parser:
   	       bail('? need string after "statistics-file" keyword')
 
 	 elif ttype == T_KEYWORD and val == 'allow-transfer':
-	    qlist = self.quad_list(val, tokens)
+	    qlist = self.quad_list_with_keys(val, tokens, self.named)
 	    self.named.options.setAllowTransfer(qlist)
 
 	 elif ttype == T_KEYWORD and val == 'allow-notify':
@@ -356,7 +358,7 @@ class Parser:
 	       zone.setMasters(qlist)
 
 	    elif ttype == T_KEYWORD and val == 'allow-transfer':
-	       qlist = self.quad_list(val, tokens)
+	       qlist = self.quad_list_with_keys(val, tokens, self.named)
 	       zone.setAllowTransfers(qlist)
 
 	    elif ttype == T_KEYWORD and val == 'also-notify':
@@ -415,12 +417,6 @@ class Parser:
          if ttype == T_COMMENT:
             pass
 
-         elif ttype == T_KEYWORD and val == 'options':
-	    self.handle_options(tokens)
-
-         elif ttype == T_KEYWORD and val == 'logging':
-	    self.ignore_section(val, tokens)
-   
          elif ttype == T_KEYWORD and val == 'controls':
 	    self.ignore_section(val, tokens)
    
@@ -430,11 +426,26 @@ class Parser:
          elif ttype == T_KEYWORD and val == 'include':
 	    self.handle_include(tokens)
 
-         elif ttype == T_KEYWORD and val == 'zone':
-	    self.handle_zone(tokens)
+         elif ttype == T_KEYWORD and val == 'logging':
+	    self.ignore_section(val, tokens)
+   
+         elif ttype == T_KEYWORD and val == 'lwres':
+	    self.ignore_section(val, tokens)
+   
+         elif ttype == T_KEYWORD and val == 'options':
+	    self.handle_options(tokens)
 
          elif ttype == T_KEYWORD and val == 'server':
 	    self.handle_server(tokens)
+
+         elif ttype == T_KEYWORD and val == 'trusted-keys':
+	    self.ignore_section(val, tokens)
+
+         elif ttype == T_KEYWORD and val == 'view':
+	    self.ignore_section(val, tokens)
+
+         elif ttype == T_KEYWORD and val == 'zone':
+	    self.handle_zone(tokens)
 
          else:
             bail('? ew.  what _is_ this? -> %2d: %s @ line %d' \

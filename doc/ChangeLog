@@ -1,3 +1,6 @@
+25 July 2007: Wouter
+	- bind2nsd to 0.5.0, fixup of includes, key{} handling.
+
 19 July 2007: Wouter
 	- bind2nsd to 0.4.8, fixup of include bug.
 

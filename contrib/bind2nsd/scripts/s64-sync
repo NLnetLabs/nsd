@@ -28,42 +28,28 @@
 #-- imports
 import getopt
 import os
+import os.path
 import popen2
 import re
 import sys
 import time
 
-import imp
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Config', ['../bind2nsd'])
-   imp.load_module('Config', mfile, mpath, mdesc)
+if os.path.exists('../bind2nsd/Config.py'):
+   sys.path.append('../bind2nsd')
    from Config import *
-except ImportError, ie:
-   from bind2nsd.Config import *
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Utils', ['../bind2nsd'])
-   imp.load_module('Utils', mfile, mpath, mdesc)
    from Utils import *
-except ImportError, ie:
-   from bind2nsd.Utils import *
-
-try:
-   mfile, mpath, mdesc = imp.find_module('NamedConf', ['../bind2nsd'])
-   imp.load_module('NamedConf', mfile, mpath, mdesc)
    from NamedConf import *
-except ImportError, ie:
+   from NsdConf import *
+else:
+   from bind2nsd.Config import *
+   from bind2nsd.Utils import *
    from bind2nsd.NamedConf import *
+   from bind2nsd.NsdConf import *
 
-try:
-   mfile, mpath, mdesc = imp.find_module('pexpect', ['../pexpect-2.1'])
-   imp.load_module('pexpect', mfile, mpath, mdesc)
-   import pexpect
-   import pxssh
-except ImportError, ie:
-   import pexpect
-   import pxssh
+if os.path.exists('../pexpect-2.1'):
+   sys.path.append('../pexpect-2.1')
+import pexpect
+import pxssh
 
 #-- globals
 conf = Config()

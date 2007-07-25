@@ -28,30 +28,16 @@ import os
 import os.path
 import sys
 
-import imp
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Parser', ['../bind2nsd'])
-   if 'NamedConf' not in sys.modules:
-      imp.load_module('Parser', mfile, mpath, mdesc)
+if os.path.exists('../bind2nsd/Config.py'):
+   sys.path.append('../bind2nsd')
+   from Config import *
    from Parser import *
-except ImportError, ie:
-   from bind2nsd.Parser import *
-
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Zone', ['../bind2nsd'])
-   imp.load_module('Zone', mfile, mpath, mdesc)
    from Zone import *
-except ImportError, ie:
-   from bind2nsd.Zone import *
-
-
-try:
-   mfile, mpath, mdesc = imp.find_module('Utils', ['../bind2nsd'])
-   imp.load_module('Utils', mfile, mpath, mdesc)
    from Utils import *
-except ImportError, ie:
+else:
+   from bind2nsd.Config import *
+   from bind2nsd.Parser import *
+   from bind2nsd.Zone import *
    from bind2nsd.Utils import *
 
 
