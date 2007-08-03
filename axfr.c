@@ -174,6 +174,18 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			if(!zone_opt ||
 			   acl_check_incoming(zone_opt->provide_xfr, q, &acl)==-1) 
 			{
+				char address[128];
+				if (q->addr.ss_family == AF_INET6) {
+					struct sockaddr_in6 * addr6;
+					addr6 = (struct sockaddr_in6 *)&q->addr;
+					inet_ntop(AF_INET6, &addr6->sin6_addr, address, sizeof(address));
+				} else {
+					struct sockaddr_in * addr4;
+					addr4 = (struct sockaddr_in *)&q->addr;
+					inet_ntop(AF_INET, &addr4->sin_addr, address, sizeof(address));
+				}
+
+				VERBOSITY(1, (LOG_INFO, "axfr for zone %s from client %s refused, %s", dname_to_string(q->qname, NULL), address, acl?"blocked":"no acl matches"));
 				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr refused, %s", 
 						acl?"blocked":"no acl matches"));
 				RCODE_SET(q->packet, RCODE_REFUSE);
