@@ -84,6 +84,13 @@ struct sockaddr_in6 {
 #define AF_INET6 AF_MAX
 #endif
 
+#ifndef PF_INET
+#define PF_INET AF_INET
+#endif
+#ifndef PF_INET6
+#define PF_INET6 AF_INET6
+#endif
+
 /*
  * Next, RFC2553 name / address resolution API
  */

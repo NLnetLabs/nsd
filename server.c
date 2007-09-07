@@ -426,7 +426,6 @@ server_init(struct nsd *nsd)
 #ifdef	SO_REUSEADDR
 		if (setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
 			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
-			return -1;
 		}
 #endif /* SO_REUSEADDR */
 
@@ -1679,7 +1678,9 @@ handle_tcp_accept(netio_type *netio,
 		   of saying that the client has closed the connection. */
 		if (	errno != EINTR 
 			&& errno != EWOULDBLOCK 
+#ifdef ECONNABORTED
 			&& errno != ECONNABORTED 
+#endif /* ECONNABORTED */
 #ifdef EPROTO
 			&& errno != EPROTO
 #endif /* EPROTO */
