@@ -1,5 +1,16 @@
 NSD RELEASE NOTES
 
+3.0.6
+=============
+FEATURES:
+	- Report source and zone for denied AXFR attempts.
+
+BUG FIXES:
+	- More elegant handling of malformed nsec3 records from a zone 
+	  transfer.
+	- Fixup ignored return value in region-allocator.
+
+
 3.0.5
 =============
 BUG FIXES:
