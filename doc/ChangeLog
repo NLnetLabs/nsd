@@ -1,3 +1,6 @@
+7 August 2007: Mark
+	- Report source and zone for denied AXFR attempts.
+
 13 April 2007: Wouter
 	- Minor tweak to nsec3.c, more elegant handling of malformed nsec3 
 	  records from a zone transfer.
