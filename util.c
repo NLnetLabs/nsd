@@ -902,13 +902,13 @@ addr2ip(
 #else
         struct sockaddr_in addr
 #endif   
-, char *address)
+, char *address, socklen_t size)
 {
 #ifdef INET6
 	if (addr.ss_family == AF_INET6) {
 		if (!inet_ntop(AF_INET6, 
 			&((struct sockaddr_in6 *)&addr)->sin6_addr, 
-			address, 128))
+			address, size))
 			return (1);
 #else
 	if (0) {
@@ -916,7 +916,7 @@ addr2ip(
 	} else {
 		if (!inet_ntop(AF_INET,
 			&((struct sockaddr_in *)&addr)->sin_addr,
-			address, 128))
+			address, size))
 			return (1);
 	}
 

@@ -357,6 +357,6 @@ int addr2ip(
 #else
 	struct sockaddr_in addr
 #endif
-, char address[]);
+, char address[], socklen_t size);
 
 #endif /* _UTIL_H_ */
