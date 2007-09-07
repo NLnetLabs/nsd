@@ -9,7 +9,7 @@ BUG FIXES:
 	- More elegant handling of malformed nsec3 records from a zone 
 	  transfer.
 	- Fixup ignored return value in region-allocator.
-
+        - Added bind2nsd 0.5.0 (http://bind2nsd.sourceforge.net) in contrib/.
 
 3.0.5
 =============

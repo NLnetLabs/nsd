@@ -1,5 +1,6 @@
 7 August 2007: Mark
 	- Report source and zone for denied AXFR attempts.
+	- Merged bind2nsd 0.5.0 in contrib from trunk.
 
 7 August 2007: Wouter
 	- Compiled on minix 3.1.3 and make some adjustments to ease porting.
