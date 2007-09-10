@@ -33,7 +33,6 @@ nsd
 .Op Fl u Ar username
 .Op Fl V Ar level
 .Op Fl v
-
 .Sh DESCRIPTION
 .Ic NSD
 is a complete implementation of an authoritative DNS nameserver. Upon
@@ -75,13 +74,10 @@ script or similar at the operating system startup.
 .Pp
 The available options are:
 .Bl -tag -width indent
-
 .It Fl 4
 Only listen to IPv4 connections.
-
 .It Fl 6
 Only listen to IPv6 connections.
-
 .It Fl a Ar ip-address
 Listen to the specified
 .Ar ip-address .
@@ -91,7 +87,6 @@ must be specified in numeric format (using the standard IPv4 or IPv6
 notation).  This flag can be specified multiple times to listen to
 multiple IP addresses.  If this flag is not specified NSD listens to
 all IP addresses.
-
 .It Fl c Ar configfile
 Read specified 
 .Ar configfile 
@@ -99,10 +94,8 @@ instead of the default
 .Pa /etc/nsd/nsd.conf .
 For format description see
 .Xr nsd.conf 5 .
-
 .It Fl d
 Turn on debugging mode, do not fork, stay in the foreground.
-
 .It Fl f Ar database
 Use the specified
 .Ar database
@@ -110,10 +103,8 @@ instead of the default of
 .Em /etc/nsd/nsd.db .
 If a zonesdir: is specified in the config file this path can be
 relative to that directory.
-
 .It Fl h
 Print help information and exit.
-
 .It Fl i Ar identity
 Return the specified
 .Ar identity
@@ -123,33 +114,28 @@ when asked for
 when they are multicast)
 The default is the name returned by
 .Xr gethostname 3 .
-
 .It Fl I Ar nsid
 Add the specified
 .Ar nsid
 to the EDNS section of the answer when queried 
 with an NSID EDNS enabled packet.
 This is disabled until IANA has given the NSID option an OPCODE.
-
 .It Fl l Ar logfile
 Log messages to the specified 
 .Ar logfile .
 The default is to log to stderr and syslog.
 If a zonesdir: is specified in the config file this path can be
 relative to that directory.
-
 .It Fl N Ar count
 Start
 .Ar count
 NSD servers.  Starting more than a single server is only useful on
 machines with multiple CPUs and/or network adapters.  The default is 1.
-
 .It Fl n Ar number
 The maximum
 .Ar number
 of concurrent TCP connection that can be handled by each server.  The
 default is 10.
-
 .It Fl P Ar pidfile
 Use the specified
 .Ar pidfile
@@ -157,12 +143,10 @@ instead of the platform specific default, which is mostly
 .Em /var/run/nsd.pid .
 If a zonesdir: is specified in the config file this path can be
 relative to that directory.
-
 .It Fl p Ar port
 Answer the queries on the specified
 .Ar port .
 Normally this is port 53.
-
 .It Fl s Ar seconds
 Produce statistics dump every 
 .Ar seconds
@@ -170,7 +154,6 @@ seconds.
 This is equal to sending
 .Em SIGUSR1
 to the daemon periodically.
-
 .It Fl t Ar chroot
 specifies a directory to chroot to upon startup. This option requires you to
 ensure that appropriate 
@@ -180,7 +163,6 @@ socket (e.g.
 /dev/log) is available otherwise
 .Ic NSD
 won't produce any log output.
-
 .It Fl u Ar username
 Drop user and group privileges to those of
 .Ar username
@@ -188,16 +170,12 @@ after binding the socket.
 The
 .Ar username
 must one of: username, id, or id.gid.  For example: nsd, 80, or 80.80.
-
 .It Fl V Ar level
 This value specifies the verbosity level for (non-debug) logging. Default
 is 0.
-
 .It Fl v
 Print the version number of NSD to standard error and exit.
-
 .El
-
 .Pp
 .Ic NSD
 reacts to the following signals:

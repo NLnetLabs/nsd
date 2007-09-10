@@ -19,7 +19,6 @@ nsd-checkconf
 .Op Fl z Ar zonename
 .Op Fl s Ar keyname
 .Ar configfile
-
 .Sh DESCRIPTION
 .Ic nsd-checkconf
 reads a configuration file. It prints parse errors to standard error,
@@ -34,18 +33,14 @@ or
 .Xr zonec 8 .
 This program can also be used for shell scripts to access the nsd
 config file, using the -o and -z options.
-
 .Pp
 The available options are:
 .Bl -tag -width indent
-
 .It Fl v
 After reading print the options to standard output in configfile format.
 Without this option, only success or parse errors are reported.
-
 .It Fl h
 Print usage help information and exit.
-
 .It Fl o Ar option
 Return only this option from the config file. This option can
 to be used in conjunction with the \fI\-z\fR option.
@@ -54,21 +49,17 @@ The special value \fIzones\fR prints out a list of configured zones.
 This option
 is primarily used by nsdc to parse the config file from the shell.
 If \fI\-z\fR is given, but this option is not given, nothing is printed. 
-
 .It Fl s Ar keyname
 Prints the key secret (base64 blob) configured for this key in the 
 config file. Used to help shell scripts parse the config file.
-
 .It Fl z Ar zonename
 Return the option specified with \fI\-o\fR for zone 'zonename'.
 .Pp
 If this option is not given, the server section of the config file
 is used.  This option is primarily used by nsdc to parse the config file
 from the shell.
-
 .Pp
 The \-o, \-s and \-z option print configfile options to standard output. 
-
 .El
 .Sh FILES
 .Bl -tag -width indent
@@ -77,7 +68,6 @@ default
 .Ic NSD
 configuration file
 .El
-
 .Sh SEE ALSO
 .Xr nsd 8 ,
 .Xr nsd.conf 5 ,

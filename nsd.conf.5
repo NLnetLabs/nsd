@@ -20,17 +20,16 @@ is used to configure
 .Xr nsd 8 .
 The file format has attributes and values. Some attributes have attributes inside them. 
 The notation is: attribute: value. 
-
+.Pp
 Comments start with # and last to the end of line. Empty lines are
 ignored as is whitespace at the beginning of a line.
-
+.Pp
 .Ic nsd.conf
 specifies options for the nsd server, zone files, primaries and secondaries.
-.El
 .Sh EXAMPLE
 An example of a short nsd.conf file is below.
-
-.nf
+.Pp
+.Bd -literal
 # Example.com nsd.conf file
 # This is a comment.
 server:
@@ -45,9 +44,7 @@ zone:
 	name: example.com
 	# note that quotes are optional on the value
 	zonefile: /etc/nsd/example.com.zone 
-.fi
-
-.El
+.Ed
 .Sh FILE FORMAT
 There must be whitespace between keywords. Attribute keywords end with a colon ':'. An attribute
 is followed by its containing attributes, or a value. 
@@ -76,14 +73,12 @@ by global options for the
 server. A 
 .Ic key: 
 attribute is used to define keys for authentication.
-
 .Pp
 Files can be included using the 
 .Ic include:
 directive. It can appear anywhere, and takes a single filename as an argument.
 Processing continues as if the text from the included file was copied into
 the config file at that point.
-
 .Ss Server Options
 The global options (if not overridden from the NSD commandline) are taken 
 from the 
@@ -91,7 +86,7 @@ from the
 clause.  There may only be one 
 .Ic server: 
 clause.
-
+.Pp
 .Bl -tag -width indent
 .It \fBip-address:\fR <ip4 or ip6>
 NSD will bind to the listed ip-address. Can be give multiple times to bind multiple ip-addresses.
@@ -164,7 +159,6 @@ This value specifies the verbosity level for (non-debug) logging. Default
 is 0.
 .It \fBhide-version:\fR <yes or no>
 Prevent NSD from replying with the version string on CHAOS class queries.
-
 .El
 .Ss Zone Options
 For every zone the options need to be specified in one 
@@ -240,21 +234,20 @@ file, which may have different security policies, can be split apart.
 BIND9 is a name server implementation with its own configuration file format,
 .Xr named.conf 5 .
 BIND9 types zones as 'Master' or 'Slave'. 
-
 .Ss Slave zones
 For a slave zone, the master servers are listed. The master servers are 
 queried for zone data, and are listened to for update notifications. 
 In NSD these two properties need to be configured seperately, by listing 
 the master address in allow-notify and request-xfr statements. 
-
+.Pp
 In BIND9 you only need to provide allow-notify elements for
 any extra sources of notifications (i.e. the operators), NSD needs to have
 allow-notify for both masters and operators. BIND9 allows 
 additional transfer sources, in NSD you list those as request-xfr.
-
+.Pp
 Here is an example of a slave zone in BIND9 syntax.
-
-.nf
+.Pp
+.Bd -literal
 # Config file for example.org
 options {
 	dnssec-enable yes;
@@ -274,15 +267,15 @@ zone "example.org" {
         file "secondary/example.org.signed";
         masters { 162.0.4.49; };
 };
-.fi
-
+.Ed
+.Pp
 For NSD, DNSSEC is enabled automatically for zones that are signed. The 
 dnssec-enable statement in the options clause is not needed. In NSD keys 
 are associated with an IP address in the access control list statement,
 therefore the server{} statement is not needed. Below is the same 
 example in an NSD config file.
-
-.nf
+.Pp
+.Bd -literal
 # Config file for example.org
 key:
 	name: tsig.example.org.
@@ -295,34 +288,33 @@ zone:
 	# the master is allowed to notify and will provide zone data.
 	allow-notify: 162.0.4.49 NOKEY 
 	request-xfr: 162.0.4.49 tsig.example.org.
-.fi
-
+.Ed
+.Pp
 Notice that the master is listed twice, once to allow it to send notifies
 to this slave server and once to tell the slave server where to look for
 updates zone data. More allow-notify and request-xfr lines can be added
 to specify more masters.
-
+.Pp
 It is possible to specify extra allow-notify lines for addresses that
-are also allowed to send notifications to this slave server. 
-
+are also allowed to send notifications to this slave server.
 .Ss Master zones
 For a master zone in BIND9, the slave servers are listed. These slave
 servers are sent notifications of updated and are allowed to request
 transfer of the zone data. In NSD these two properties need to be configured
 seperately.
-
+.Pp
 Here is an example of a master zone in BIND9 syntax.
-
-.nf
+.Pp
+.Bd -literal
 zone "example.nl" {
 	type master;
 	file "example.nl";
 };
-.fi
-
+.Ed
+.Pp
 In NSD syntax this becomes:
-
-.nf
+.Pp
+.Bd -literal
 zone:
 	name: "example.nl"
 	zonefile: "example.nl"
@@ -332,8 +324,7 @@ zone:
 	# to list a slave server you would in general give
 	# provide-xfr: 1.2.3.4 tsig-key.name.
 	# notify: 1.2.3.4 NOKEY
-.fi
-
+.Ed
 .Ss Other
 NSD is an authoritative only DNS server. This means that it is meant as a 
 primary or secondary server for zones, providing DNS data to DNS resolvers
@@ -341,7 +332,6 @@ and caches. BIND9 can function as an authoritative DNS server, the configuration
 options for that are compared with those for NSD in this section. 
 However, BIND9 can also function as a resolver or cache. The configuration options that
 BIND9 has for the resolver or caching thus have no equivalents for NSD.
-
 .Sh FILES
 .Bl -tag -width indent
 .It Pa /etc/nsd/nsd.db
