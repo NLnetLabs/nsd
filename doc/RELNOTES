@@ -3,11 +3,14 @@ NSD RELEASE NOTES
 3.1.0 (UPCOMING RELEASE)
 =============
 BUG FIXES:
+	- Zone compiler gives more sane error messages when out of
+	  diskspace.
 
 FEATURES:
         - Added "hide-version" configuration setting. Enabling this feature 
           stops NSD from answering to CHAOS class version requests.
 	- Added bind2nsd 0.5.0 (http://bind2nsd.sourceforge.net) in contrib/.
+	- Report source and zone for denied AXFR attempts.
 
 3.0.5
 =============

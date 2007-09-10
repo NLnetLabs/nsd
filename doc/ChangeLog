@@ -1,3 +1,6 @@
+3 August 2007: Mark
+	- Report source and zone for denied AXFR attempts.
+
 25 July 2007: Wouter
 	- bind2nsd to 0.5.0, fixup of includes, key{} handling.
 
@@ -14,6 +17,16 @@
 16 July 2007: Wouter
 	- Added reference to http://bind2nsd.sourceforge.net/ to
 	  contrib/README.
+
+3 July 2007: Mark
+	- Zone compiler now gives more sane error message when out of
+	  diskspace.
+	- Fixed a call to drill in tpkg that made a test check bind instead of
+	  nsd.
+
+2 July 2007: Mark
+	- Remove last traces of mmap usage.
+	- Some cleanups in tpkg.
 
 24 April 2007: Mark
 	- Added "hide-version" configuration setting. Enabling this feature
