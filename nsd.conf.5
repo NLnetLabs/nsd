@@ -319,7 +319,8 @@ zone:
 	name: "example.nl"
 	zonefile: "example.nl"
 	# allow anybody to request xfr.
-	provide-xfr: 0/0 NOKEY
+	provide-xfr: 0.0.0.0/0 NOKEY
+	provide-xfr: ::0/0 NOKEY
 
 	# to list a slave server you would in general give
 	# provide-xfr: 1.2.3.4 tsig-key.name.
