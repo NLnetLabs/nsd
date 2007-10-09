@@ -43,13 +43,18 @@ AC_SUBST(nsd_conf_file)
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $nsd_conf_file`"], [Pathname to the NSD configuration file])
 
 #
+# Database directory
+#
+dbdir=${localstatedir}/db/nsd
+
+#
 # Determine the pidfile location. Check if /var/run exists, if so set pidfile
 # to /var/run/nsd.pid by default
 #
 if test -d ${localstatedir}/run; then
 	pidfile=${localstatedir}/run/nsd.pid
 else
-	pidfile=${configdir}/nsd.pid
+	pidfile=${dbdir}/nsd.pid
 fi
 AC_ARG_WITH([pidfile],
 	AC_HELP_STRING([--with-pidfile=path], [Pathname to the NSD pidfile]),
@@ -60,7 +65,7 @@ AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the NSD pidfi
 #
 # Determine location of nsd.db
 #
-dbfile=$configdir/nsd.db
+dbfile=${dbdir}/nsd.db
 AC_ARG_WITH([dbfile],
 	AC_HELP_STRING([--with-dbfile=path], [Pathname to the NSD database]),
 	[dbfile=$withval])
@@ -78,14 +83,14 @@ AC_SUBST(zonesdir)
 AC_DEFINE_UNQUOTED(ZONESDIR, ["`eval echo $zonesdir`"], [NSD default location for zone files. Empty string or NULL to disable.])
 
 # default diff file location.
-difffile=${configdir}/ixfr.db
+difffile=${dbdir}/ixfr.db
 AC_ARG_WITH([difffile], AC_HELP_STRING([--with-difffile=path], 
 	[Pathname to the NSD diff transfer journal file]), [difffile=$withval])
 AC_DEFINE_UNQUOTED(DIFFFILE, ["`eval echo $difffile`"], [Pathname to the NSD diff transfer journal file.])
 AC_SUBST(difffile)
 
 # default xfrd file location.
-xfrdfile=${configdir}/xfrd.state
+xfrdfile=${dbdir}/xfrd.state
 AC_ARG_WITH([xfrdfile], AC_HELP_STRING([--with-xfrdfile=path], 
 	[Pathname to the NSD xfrd zone timer state file]), [xfrdfile=$withval])
 AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfrd zone timer state file.])

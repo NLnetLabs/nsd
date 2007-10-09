@@ -100,7 +100,7 @@ Turn on debugging mode, do not fork, stay in the foreground.
 Use the specified
 .Ar database
 instead of the default of
-.Em /etc/nsd/nsd.db .
+.Em /var/db/nsd/nsd.db .
 If a zonesdir: is specified in the config file this path can be
 relative to that directory.
 .It Fl h
@@ -190,7 +190,7 @@ Dump BIND8-style statistics into the log. Ignored otherwise.
 .\" .Sh IMPLEMENTATION NOTES
 .Sh FILES
 .Bl -tag -width indent
-.It Pa /etc/nsd/nsd.db
+.It Pa /var/db/nsd/nsd.db
 default
 .Ic NSD
 database

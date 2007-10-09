@@ -33,12 +33,12 @@ An example of a short nsd.conf file is below.
 # Example.com nsd.conf file
 # This is a comment.
 server:
-	database: "/etc/nsd/nsd.db"
+	database: "/var/db/nsd/nsd.db"
 	username: nsd
 	logfile: "/var/log/nsd.log"
 	pidfile: "/var/run/nsd.pid"
-	difffile: "/var/nsd/ixfr.db"
-	xfrdfile: "/var/nsd/xfrd.state"
+	difffile: "/var/db/nsd/ixfr.db"
+	xfrdfile: "/var/db/nsd/xfrd.state"
 
 zone:
 	name: example.com
@@ -99,7 +99,7 @@ If yes, NSD only listens to IPv4 connections. Same as commandline option -4.
 .It \fBip6-only:\fR <yes or no>
 If yes, NSD only listens to IPv6 connections. Same as commandline option -6.
 .It \fBdatabase:\fR <filename>
-By default '/etc/nsd/nsd.db' is used. The specified file is used to store the compiled 
+By default '/var/db/nsd/nsd.db' is used. The specified file is used to store the compiled 
 zone information. Same as commandline option -f.
 .It \fBidentity:\fR <string>
 Returns the specified identity when asked for CH TXT ID.SERVER. Default is the name
@@ -140,14 +140,14 @@ of working directory.
 When NSD receives IXFR updates it will store them in this file. This file
 contains the differences between the database file and the latest zone version.
 Default is 
-.Ic /etc/nsd/ixfr.db .
+.Ic /var/db/nsd/ixfr.db .
 .It \fBxfrdfile:\fR <filename>
 The soa timeout and zone transfer daemon in NSD will save its state to this
 file. State is read back after a restart. The state file can be deleted without
 too much harm, but timestamps of zones will be gone. For more details 
 see the section on zone expiry behavior of NSD.
 Default is
-.Ic /etc/nsd/xfrd.state .
+.Ic /var/db/nsd/xfrd.state .
 .It \fBxfrd-reload-timeout:\fR <number>
 If this value is -1 xfrd will not trigger a reload after a zone transfer.
 If positive xfrd will trigger a reload after a zone transfer, and then
@@ -335,7 +335,7 @@ However, BIND9 can also function as a resolver or cache. The configuration optio
 BIND9 has for the resolver or caching thus have no equivalents for NSD.
 .Sh FILES
 .Bl -tag -width indent
-.It Pa /etc/nsd/nsd.db
+.It Pa /var/db/nsd/nsd.db
 default
 .Ic NSD
 database

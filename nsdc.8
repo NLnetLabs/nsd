@@ -120,16 +120,16 @@ and
 flags. The zone names, pathnames to zone files and access 
 control lists are also in 
 .Xr nsd.conf 5 .
-.It Pa /etc/nsd/nsd.db
+.It Pa /var/db/nsd/nsd.db
 default
 .Ic NSD
 database
-.It Pa /etc/nsd/nsd.db.lock
+.It Pa /var/db/nsd/nsd.db.lock
 Lockfile for nsd database access by operator tools.
-.It Pa /etc/nsd/ixfr.db
+.It Pa /var/db/nsd/ixfr.db
 Journal of zone transfers, the diff file containing the 
 new zone contents transferred.
-.It Pa /etc/nsd/xfrd.state
+.It Pa /var/db/nsd/xfrd.state
 State for the zone transfer process of NSD. Contains
 timeouts for the zones and whether zones are expired.
 .It Pa /var/run/nsd.pid

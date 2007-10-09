@@ -40,7 +40,7 @@ rebuild command.
 will then parse every zone in
 .Xr nsd.conf 5
 file and add it to the name space database,
-.Pa /etc/nsd/nsd.db
+.Pa /var/db/nsd/nsd.db
 by default, that is used by
 .Xr nsd 8
 to answer incoming queries.
@@ -87,7 +87,7 @@ Set debug level. (If compiled with --enable-checking.)
 .El
 .Sh FILES
 .Bl -tag -width indent
-.It Pa /etc/nsd/nsd.db
+.It Pa /var/db/nsd/nsd.db
 default
 .Ic NSD
 database
