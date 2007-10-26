@@ -18,8 +18,7 @@ server:
         # don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
 	# hide-version: no
 
-	# enable debug mode for nsd, does not fork daemon process.
-	# (debug mode disables slave zone functionalities)
+	# enable debug mode, does not fork daemon process into the background.
 	# debug-mode: no
 
 	# listen only on IPv4 connections

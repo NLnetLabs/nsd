@@ -1,3 +1,6 @@
+26  October 2008: Wouter
+	- small fix in descriptive text in sample config for debug-mode.
+
 9 October 2007: Mark
 	- Change default location of: nsd.db, ixfr.db & xfrd.state to
           /var/db/nsd.
