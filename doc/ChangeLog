@@ -1,3 +1,9 @@
+29 October 2007: Wouter
+	- Fixup bug where malformed IXFR replies cause partial processing in
+	  reload (or nsd-patch or nsd-startup). One result is multiple SOA
+	  records in zone apex. Fixup rolls back the zone transfer, and waits
+	  for NSD to try to load again.
+
 7 August 2007: Mark
 	- Report source and zone for denied AXFR attempts.
 	- Merged bind2nsd 0.5.0 in contrib from trunk.

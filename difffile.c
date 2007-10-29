@@ -347,7 +347,7 @@ find_rr_num(rrset_type* rrset,
 	return -1;
 }
 
-static void 
+static int 
 delete_RR(namedb_type* db, const dname_type* dname, 
 	uint16_t type, uint16_t klass, uint32_t ttl, 
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
@@ -357,15 +357,15 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	rrset_type *rrset;
 	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
-		log_msg(LOG_ERR, "diff: domain %s does not exist", 
+		log_msg(LOG_WARNING, "diff: domain %s does not exist", 
 			dname_to_string(dname,0));
-		return;
+		return 1; /* not fatal error */
 	}
 	rrset = domain_find_rrset(domain, zone, type);
 	if(!rrset) {
-		log_msg(LOG_ERR, "diff: rrset %s does not exist", 
+		log_msg(LOG_WARNING, "diff: rrset %s does not exist", 
 			dname_to_string(dname,0));
-		return;
+		return 1; /* not fatal error */
 	} else {
 		/* find the RR in the rrset */
 		domain_table_type *temptable;
@@ -378,13 +378,13 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		if(rdata_num == -1) {
 			log_msg(LOG_ERR, "diff: bad rdata for %s", 
 				dname_to_string(dname,0));
-			return;
+			return 0;
 		}
 		rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
 		if(rrnum == -1) {
-			log_msg(LOG_ERR, "diff: RR %s does not exist", 
+			log_msg(LOG_WARNING, "diff: RR %s does not exist", 
 				dname_to_string(dname,0));
-			return;
+			return 1; /* not fatal error */
 		}
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
@@ -408,9 +408,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			rrset->rr_count --;
 		}
 	}
+	return 1;
 }
 
-static void 
+static int 
 add_RR(namedb_type* db, const dname_type* dname, 
 	uint16_t type, uint16_t klass, uint32_t ttl, 
 	buffer_type* packet, size_t rdatalen, zone_type *zone)
@@ -445,14 +446,14 @@ add_RR(namedb_type* db, const dname_type* dname,
 	if(rdata_num == -1) {
 		log_msg(LOG_ERR, "diff: bad rdata for %s", 
 			dname_to_string(dname,0));
-		return;
+		return 0;
 	}
 	rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
 	if(rrnum != -1) {
 		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR %s already exists", 
 			dname_to_string(dname,0)));
 		/* ignore already existing RR: lenient accepting of messages */
-		return;
+		return 1;
 	}
 	
 	/* re-alloc the rrs and add the new */
@@ -523,6 +524,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		}
 #endif
 	}
+	return 1;
 }
 
 static zone_type* 
@@ -851,13 +853,16 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			if(!*is_axfr && type == TYPE_SOA && counter==ancount-1
 				&& seq_nr == seq_total-1)
 				continue; /* do not delete final SOA RR for IXFR */
-			delete_RR(db, dname, type, klass, ttl, packet, rrlen, zone_db,
-				region);
+			if(!delete_RR(db, dname, type, klass, ttl, packet, 
+				rrlen, zone_db, region))
+				return 0;
 		}
 		else
 		{
 			/* add this rr */
-			add_RR(db, dname, type, klass, ttl, packet, rrlen, zone_db);
+			if(!add_RR(db, dname, type, klass, ttl, packet, 
+				rrlen, zone_db))
+				return 0;
 		}
 	}
 	region_destroy(region);
@@ -994,6 +999,28 @@ diff_read_insert_part(struct diff_read_data* data,
 	return xp;
 }
 
+/* mark commit as rollback and close inputfile, fatal exits */
+static void
+mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
+{
+	const char* filename = opt->difffile;
+	fclose(f);
+	if(!(f = fopen(filename, "a"))) {
+		log_msg(LOG_ERR, "mark xfr, failed to re-open difffile %s: %s",
+			filename, strerror(errno));
+	} else if(fseeko(f, commitpos, SEEK_SET) == -1) {
+		log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
+		fclose(f);
+	} else {
+		uint8_t c = 0;
+		fwrite(&c, sizeof(c), 1, f);
+		fclose(f);
+		log_msg(LOG_ERR, "marked xfr as failed: %s", desc);
+		log_msg(LOG_ERR, "marked xfr so that next reload can succeed");
+	}
+	exit(1);
+}
+
 static int 
 read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt, 
 	struct diff_read_data* data, struct diff_log** log,
@@ -1008,18 +1035,27 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	uint32_t i;
 	int have_all_parts = 1;
 	struct diff_log* thislog = 0;
+	off_t commitpos;
 
 	/* read zone name and serial */
 	if(!diff_read_str(in, zone_buf, sizeof(zone_buf)) ||
 		!diff_read_32(in, &old_serial) ||
 		!diff_read_32(in, &new_serial) ||
 		!diff_read_16(in, &id) ||
-		!diff_read_32(in, &num_parts) ||
-		!diff_read_8(in, &committed) ||
+		!diff_read_32(in, &num_parts)) {
+		log_msg(LOG_ERR, "diff file bad commit part");
+		return 0;
+	}
+	commitpos = ftello(in); /* position of commit byte */
+	if(commitpos == -1) {
+		log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
+		return 0;
+	}
+	if(!diff_read_8(in, &committed) ||
 		!diff_read_str(in, log_buf, sizeof(log_buf)) )
 	{
 		log_msg(LOG_ERR, "diff file bad commit part");
-		return 1;
+		return 0;
 	}
 
 	if(log) {
@@ -1083,6 +1119,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
 				&rr_count, child_count)) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d", (int)i);
+				mark_and_exit(opt, in, commitpos, log_buf);
 			}
 		}
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {

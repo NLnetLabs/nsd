@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 FEATURES:
 
 BUG FIXES:
+	- Error handling for malformed IXFRs improved.
 
 3.0.6
 =============
