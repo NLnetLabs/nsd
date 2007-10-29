@@ -1,9 +1,15 @@
+29 October 2007: Wouter
+	- Fixup bug where malformed IXFR replies cause partial processing in
+	  reload (or nsd-patch or nsd-startup). One result is multiple SOA
+	  records in zone apex. Fixup rolls back the zone
+	  transfer, and waits for NSD to try to load again.
+
 26  October 2008: Wouter
 	- small fix in descriptive text in sample config for debug-mode.
 
 9 October 2007: Mark
 	- Change default location of: nsd.db, ixfr.db & xfrd.state to
-          /var/db/nsd.
+	  /var/db/nsd.
 
 5 October 2007: Wouter
 	- Fixup manual page entry for allow AXFR to anyone.

@@ -9,6 +9,7 @@ OPERATIONAL NOTES:
 BUG FIXES:
 	- Zone compiler gives more sane error messages when out of
 	  diskspace.
+	- Error handling for malformed IXFRs improved.
 
 FEATURES:
         - Added "hide-version" configuration setting. Enabling this feature 
