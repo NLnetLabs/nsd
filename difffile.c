@@ -359,12 +359,14 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	if(!domain) {
 		log_msg(LOG_WARNING, "diff: domain %s does not exist", 
 			dname_to_string(dname,0));
+		buffer_skip(packet, rdatalen);
 		return 1; /* not fatal error */
 	}
 	rrset = domain_find_rrset(domain, zone, type);
 	if(!rrset) {
 		log_msg(LOG_WARNING, "diff: rrset %s does not exist", 
 			dname_to_string(dname,0));
+		buffer_skip(packet, rdatalen);
 		return 1; /* not fatal error */
 	} else {
 		/* find the RR in the rrset */
@@ -843,6 +845,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		}
 		if(type == TYPE_TSIG || type == TYPE_OPT) {
 			/* ignore pseudo RRs */
+			buffer_skip(packet, rrlen);
 			continue;
 		}
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfr %s RR dname is %s type %s", 
