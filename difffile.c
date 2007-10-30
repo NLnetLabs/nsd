@@ -1008,7 +1008,7 @@ mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
 {
 	const char* filename = opt->difffile;
 	fclose(f);
-	if(!(f = fopen(filename, "a"))) {
+	if(!(f = fopen(filename, "r+"))) {
 		log_msg(LOG_ERR, "mark xfr, failed to re-open difffile %s: %s",
 			filename, strerror(errno));
 	} else if(fseeko(f, commitpos, SEEK_SET) == -1) {

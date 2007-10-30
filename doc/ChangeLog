@@ -3,6 +3,9 @@
 	  would continue at the wrong spot in the packet and process the IXFR
 	  as if it were malformed.
 	- added unit test for this in long (needs ldns-testns, updated it).
+	- added unit test for rollback of malformed zone transfers.
+	  Fixup for it, and fixup in ldns-testns to be randomport and
+	  copy id for hex packets.
 
 29 October 2007: Wouter
 	- Fixup bug where malformed IXFR replies cause partial processing in
