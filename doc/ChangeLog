@@ -2,6 +2,7 @@
 	- Fixup for skip after unknown deleted IXFR RR, otherwise processing
 	  would continue at the wrong spot in the packet and process the IXFR
 	  as if it were malformed.
+	- added unit test for this in long (needs ldns-testns, updated it).
 
 29 October 2007: Wouter
 	- Fixup bug where malformed IXFR replies cause partial processing in
