@@ -1,16 +1,15 @@
-.ig
-nsd.8 -- nsd manual
-
-Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
-
-See LICENSE for the license.
-
-
-..
+.\"
+.\" nsd.8 -- nsd manual
+.\"
+.\" Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+.\"
+.\" See LICENSE for the license.
+.\"
+.\"
 .Dd @date@
 .Dt NSD 8 
 .Sh NAME
-nsd
+.Nm nsd
 .Nd Name Server Daemon (NSD) version @version@.
 .Sh SYNOPSIS
 .Nm nsd
@@ -33,55 +32,62 @@ nsd
 .Op Fl u Ar username
 .Op Fl V Ar level
 .Op Fl v
-
+.\"
 .Sh DESCRIPTION
 .Ic NSD
 is a complete implementation of an authoritative DNS nameserver. Upon
 startup
 .Ic NSD
-will read the database specified with -f
-.Ar database
+will read the database specified with the
+.Fl f Ar database
 argument and put itself into background and answers queries on port 53
-or a different port specified with -p
-.Ar port
+or a different port specified with the
+.Fl p Ar port
 option.
 The
 .Ar database
 must be generated beforehand with
-.Xr zonec
-(8).
-By default NSD will bind to all local interfaces available. Use the -a
-.Ar ip-address
+.Xr zonec 8 .
+By default NSD will bind to all local interfaces available. Use the
+.Fl a Ar ip-address
 option to specify a single particular interface address to be
 bound. If this option is given more than once,
 .Ic NSD
 will bind its UDP and TCP sockets to all the specified ip-addresses
-separately.  If IPv6 is enabled when NSD is compiled an IPv6 address
-can also be specified.
+separately.  If IPv6 is enabled when
+.Ic NSD
+is compiled an IPv6 address can also be specified.
 .Pp
-All the options can be specified in the configfile (-c argument).
-Except for the -v and -h options. If options are specified on the 
-commandline, the options on the
+All the options can be specified in the configfile
+.Po Fl c
+argument
+.Pc
+except for the
+.Fl v
+and
+.Fl h
+options. If options are specified on the commandline, the options on the
 commandline take precedence over the options in the configfile.
 .Pp
 Normally
 .Ic NSD
-should be started with
+should be started with the
 .Xr nsdc 8
 start
 command invoked from a
 .Em /etc/rc.d/nsd.sh
-script or similar at the operating system startup.
+script or similar at operating system startup.
 .Pp
-The available options are:
+.\"
+.Sh OPTIONS
 .Bl -tag -width indent
-
+.\"
 .It Fl 4
 Only listen to IPv4 connections.
-
+.\"
 .It Fl 6
 Only listen to IPv6 connections.
-
+.\"
 .It Fl a Ar ip-address
 Listen to the specified
 .Ar ip-address .
@@ -91,7 +97,7 @@ must be specified in numeric format (using the standard IPv4 or IPv6
 notation).  This flag can be specified multiple times to listen to
 multiple IP addresses.  If this flag is not specified NSD listens to
 all IP addresses.
-
+.\"
 .It Fl c Ar configfile
 Read specified 
 .Ar configfile 
@@ -99,21 +105,21 @@ instead of the default
 .Pa /etc/nsd/nsd.conf .
 For format description see
 .Xr nsd.conf 5 .
-
+.\"
 .It Fl d
 Turn on debugging mode, do not fork, stay in the foreground.
-
+.\"
 .It Fl f Ar database
 Use the specified
 .Ar database
 instead of the default of
-.Em /etc/nsd/nsd.db .
+.Em /var/db/nsd/nsd.db .
 If a zonesdir: is specified in the config file this path can be
 relative to that directory.
-
+.\"
 .It Fl h
 Print help information and exit.
-
+.\"
 .It Fl i Ar identity
 Return the specified
 .Ar identity
@@ -123,33 +129,33 @@ when asked for
 when they are multicast)
 The default is the name returned by
 .Xr gethostname 3 .
-
+.\"
 .It Fl I Ar nsid
 Add the specified
 .Ar nsid
 to the EDNS section of the answer when queried 
 with an NSID EDNS enabled packet.
 This is disabled until IANA has given the NSID option an OPCODE.
-
+.\"
 .It Fl l Ar logfile
 Log messages to the specified 
 .Ar logfile .
 The default is to log to stderr and syslog.
 If a zonesdir: is specified in the config file this path can be
 relative to that directory.
-
+.\"
 .It Fl N Ar count
 Start
 .Ar count
 NSD servers.  Starting more than a single server is only useful on
 machines with multiple CPUs and/or network adapters.  The default is 1.
-
+.\"
 .It Fl n Ar number
 The maximum
 .Ar number
 of concurrent TCP connection that can be handled by each server.  The
 default is 10.
-
+.\"
 .It Fl P Ar pidfile
 Use the specified
 .Ar pidfile
@@ -157,12 +163,12 @@ instead of the platform specific default, which is mostly
 .Em /var/run/nsd.pid .
 If a zonesdir: is specified in the config file this path can be
 relative to that directory.
-
+.\"
 .It Fl p Ar port
 Answer the queries on the specified
 .Ar port .
 Normally this is port 53.
-
+.\"
 .It Fl s Ar seconds
 Produce statistics dump every 
 .Ar seconds
@@ -170,7 +176,7 @@ seconds.
 This is equal to sending
 .Em SIGUSR1
 to the daemon periodically.
-
+.\"
 .It Fl t Ar chroot
 specifies a directory to chroot to upon startup. This option requires you to
 ensure that appropriate 
@@ -180,7 +186,7 @@ socket (e.g.
 /dev/log) is available otherwise
 .Ic NSD
 won't produce any log output.
-
+.\"
 .It Fl u Ar username
 Drop user and group privileges to those of
 .Ar username
@@ -188,16 +194,16 @@ after binding the socket.
 The
 .Ar username
 must one of: username, id, or id.gid.  For example: nsd, 80, or 80.80.
-
+.\"
 .It Fl V Ar level
 This value specifies the verbosity level for (non-debug) logging. Default
 is 0.
-
+.\"
 .It Fl v
 Print the version number of NSD to standard error and exit.
-
+.\"
 .El
-
+.\"
 .Pp
 .Ic NSD
 reacts to the following signals:
@@ -212,7 +218,7 @@ Dump BIND8-style statistics into the log. Ignored otherwise.
 .\" .Sh IMPLEMENTATION NOTES
 .Sh FILES
 .Bl -tag -width indent
-.It Pa /etc/nsd/nsd.db
+.It Pa /var/db/nsd/nsd.db
 default
 .Ic NSD
 database
@@ -229,8 +235,9 @@ will log all the problems via the standard
 .Xr syslog 8
 .Em daemon
 facility, unless the
-.Ar -d
+.Fl d
 option is specified.
+.\"
 .Sh SEE ALSO
 .Xr nsd.conf 5 ,
 .Xr nsd-notify 8 ,
@@ -238,6 +245,7 @@ option is specified.
 .Xr nsd-xfer 8 ,
 .Xr nsdc 8 ,
 .Xr zonec 8
+.\"
 .Sh AUTHORS
 .Ic NSD
 was written by NLnet Labs and RIPE NCC joint team. Please see the

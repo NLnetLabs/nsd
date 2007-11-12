@@ -1,47 +1,70 @@
-.TH "nsd-notify" "8" "@version@" "NLnet Labs" "nsd"
-.SH "NAME"
-.LP 
-nsd\-notify \- program to send NOTIFY's to remote nameservers
-.SH "SYNTAX"
-.LP 
-\fBnsd\-notify\fR [\fB-4\fR] [\fB-6\fR] [\fB-h\fR] [\fB-p\fR \fIport\fR] [\fB-y\fR \fIkey:secret\fR] \fB\-z\fR \fIzone\fR \fIservers\fR
-.SH "DESCRIPTION"
-.LP 
-nsd\-notify is simple program to send NOTIFY's to remoter nameservers.
-.br 
-NSD is a complete implementation of an authoritative DNS nameserver.
-.SH "OPTIONS"
-.LP 
-.TP
-\fB\-4\fR
+.\"
+.\" nsd-notify.8 -- nsd manual
+.\"
+.\" Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+.\"
+.\" See LICENSE for the license.
+.\"
+.\"
+.Dd @date@
+.Dt NSD-NOTIFY 8
+.Sh NAME
+.Nm nsd-notify
+.Nd send NOTIFYs to remote nameservers
+.Sh SYNOPSIS
+.Nm nsd-notify
+.Op Fl 4
+.Op Fl 6
+.Op Fl h
+.Op Fl p Ar port
+.Op Fl y Ar key:secret
+.Fl z Ar zone
+.Ar servers 
+.\"
+.Sh DESCRIPTION
+.Ic nsd-notify
+is a simple program to send NOTIFYs to remote nameservers;
+.Ic NSD 
+is a complete implementation of an authoritative DNS nameserver.
+.Pp
+.Sh OPTIONS
+.Bl -tag -width indent
+.\"
+.It Fl 4
 Only send to IPv4 addresses.
-.TP
-\fB\-6\fR
+.\"
+.It Fl 6
 Only send to IPv6 addresses.
-.TP
-\fB\-h\fR
+.\"
+.It Fl h
 Print help information and exit.
-.TP 
-\fB\-p\fR \fIport\fR
+.\"
+.It Fl p Ar port
 Specify the port to send to.
-.TP 
-\fB\-y\fR \fIkey:secret\fR
+.\"
+.It Fl y Ar key:secret
 Specify a TSIG key and base64 encoded secret to sign the notification with.
-.TP 
-\fB\-z\fR \fIzone\fR
+.\"
+.It Fl z Ar zone
 Specify the zone to notify about.
-.TP 
-\fIservers\fR
-List of nameservers to send to.
-.SH "EXAMPLES"
-.LP 
+.\"
+.It Ar servers
+List of nameservers to send to. 
+.El
+.\"
+.Sh EXAMPLES
 To run this program the standard way type:
-.LP 
-nsd\-notify \-z foobar.cz 1.2.3.4
-.SH "AUTHORS"
-\fBNSD\fR
+.Bd -literal -offset indent
+$ nsd-notify \-z foobar.cz 1.2.3.4
+.Ed
+.\"
+.Sh SEE ALSO
+.Xr nsd 8 ,
+.Xr nsd-xfer 8 ,
+.Xr nsdc 8 ,
+.Xr zonec 8
+.\"
+.Sh AUTHORS
+.Ic NSD
 was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS
 file in the distribution for further details.
-.SH "SEE ALSO"
-.LP 
-nsd(8), nsd-xfer(8), nsdc(8), zonec(8)

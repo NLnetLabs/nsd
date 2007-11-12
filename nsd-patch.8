@@ -8,10 +8,11 @@
 .\"
 .Dd @date@
 .Os FreeBSD
-.Dt nsd-patch 8
+.Dt NSD-PATCH 8
 .Sh NAME
 .Nm nsd-patch
 .Nd NSD zone patcher version @version@.
+.\"
 .Sh SYNOPSIS
 .Nm nsd-patch
 .Op Fl c Ar configfile
@@ -19,14 +20,17 @@
 .Op Fl h
 .Op Fl l
 .Op Fl x Ar difffile
+.\"
 .Sh DESCRIPTION
 .Ic Nsd-patch
 is the zone patcher for
 .Xr nsd 8 .
 It reads in the nsd database (nsd.db) and difffile (ixfr.db), and overwrites
-the zone text files if they have been updated.
+the zone text files if they have been updated. Running this regularly
+ensures that the difffile does not grow infinitely.
 .Pp
-The available options are:
+.\"
+.Sh OPTIONS
 .Bl -tag -width indent
 .It Fl c Ar configfile
 Read specified configfile instead of the default
@@ -41,9 +45,10 @@ List the journal entries from the difffile. Does not write to zone files.
 .It Fl x Ar difffile
 Read specified difffile. Overrides the config file setting.
 .El
+.\"
 .Sh FILES
 .Bl -tag -width indent
-.It Pa /etc/nsd/nsd.db
+.It Pa /var/db/nsd/nsd.db
 default
 .Ic NSD
 database
@@ -52,6 +57,7 @@ default
 .Ic NSD
 configuration file
 .El
+.\"
 .Sh SEE ALSO
 .Xr nsd 8 ,
 .Xr nsd.conf 5 ,
@@ -59,6 +65,7 @@ configuration file
 .Xr nsd-notify 8 ,
 .Xr nsd-xfer 8 ,
 .Xr nsdc 8
+.\"
 .Sh AUTHORS
 .Ic NSD
 was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS file
