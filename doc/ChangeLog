@@ -1,66 +1,23 @@
 12 November 2007: Matthijs
-	- Changed man pages according to bug 162. 
+	- Fixed man pages
 
 30 October 2007: Wouter
 	- Fixup for skip after unknown deleted IXFR RR, otherwise processing
-	  would continue at the wrong spot in the packet and process the IXFR
-	  as if it were malformed.
-	- added unit test for this in long (needs ldns-testns, updated it).
-	- added unit test for rollback of malformed zone transfers.
-	  Fixup for it, and fixup in ldns-testns to be randomport and
-	  copy id for hex packets.
+	  would continue at the wrong spot in the packet and process
+	  the IXFR as if it were malformed.
+	- fixup mark_and_exit for rollback of malformed zone transfers.
 
 29 October 2007: Wouter
 	- Fixup bug where malformed IXFR replies cause partial processing in
 	  reload (or nsd-patch or nsd-startup). One result is multiple SOA
-	  records in zone apex. Fixup rolls back the zone
-	  transfer, and waits for NSD to try to load again.
+	  records in zone apex. Fixup rolls back the zone transfer, and waits
+	  for NSD to try to load again.
 
-26  October 2008: Wouter
-	- small fix in descriptive text in sample config for debug-mode.
-
-9 October 2007: Mark
-	- Change default location of: nsd.db, ixfr.db & xfrd.state to
-	  /var/db/nsd.
-
-5 October 2007: Wouter
-	- Fixup manual page entry for allow AXFR to anyone.
-
-3 August 2007: Mark
+7 August 2007: Mark
 	- Report source and zone for denied AXFR attempts.
+	- Merged bind2nsd 0.5.0 in contrib from trunk.
 
-25 July 2007: Wouter
-	- bind2nsd to 0.5.0, fixup of includes, key{} handling.
-
-19 July 2007: Wouter
-	- bind2nsd to 0.4.8, fixup of include bug.
-
-18 July 2007: Wouter
-	- added contrib for bind2nsd, Al Stone provided an abridged version
-	  that neatly fits for contrib.
-
-17 July 2007: Wouter
-	- fixup commithooks.
-
-16 July 2007: Wouter
-	- Added reference to http://bind2nsd.sourceforge.net/ to
-	  contrib/README.
-
-3 July 2007: Mark
-	- Zone compiler now gives more sane error message when out of
-	  diskspace.
-	- Fixed a call to drill in tpkg that made a test check bind instead of
-	  nsd.
-
-2 July 2007: Mark
-	- Remove last traces of mmap usage.
-	- Some cleanups in tpkg.
-
-24 April 2007: Mark
-	- Added "hide-version" configuration setting. Enabling this feature
-	  stops NSD from answering to CHAOS class version requests.
-
-19 April 2007: Wouter
+7 August 2007: Wouter
 	- Compiled on minix 3.1.3 and make some adjustments to ease porting.
 	  ECONNABORTED is checked for. sys/select.h included in nsd-notify.
 	  SO_REUSEADDR failure is not fatal. PF_INET compat code added.
