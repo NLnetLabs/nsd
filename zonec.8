@@ -7,8 +7,7 @@
 .\"
 .\"
 .Dd @date@
-.Os FreeBSD
-.Dt zonec 8 
+.Dt ZONEC 8 
 .Sh NAME
 .Nm zonec
 .Nd NSD Zone Compiler version @version@.
@@ -44,14 +43,14 @@ file and add it to the name space database,
 by default, that is used by
 .Xr nsd 8
 to answer incoming queries.
-.Pp
-The available options are:
+.\"
+.Sh OPTIONS
 .Bl -tag -width indent
 .It Fl c Ar configfile
 Read specified configfile instead of the default
 .Pa /etc/nsd/nsd.conf .
 .It Fl C
-No config file is read (use with -f, -o and -z).
+No config file is read (use with \-f, \-o and \-z).
 .It Fl d Ar directory
 Change the working directory to
 .Ar directory
@@ -60,21 +59,23 @@ before doing any work. Overrides zonesdir: option in config file.
 Create the specified
 .Ar database
 instead of the file specified as database: in the config file.
+.\"
 .It Fl o Ar origin
 Use this as the first origin. Zone information is read from 
-zonefile specified with -z.
+zonefile specified with \-z.
 When reading zones from config file this option is ignored.
 .It Fl z Ar zonefile
 Reads all zone information from
 .Ar zonefile .
 If 
 .Ar zonefile
-equals `-` then all zone information is read from stdin. Making constructs like:
-.Pp
+equals `-`, then all zone information is read from stdin. Making constructs like:
+.\"
 .Ic cat zones* | ./zonec -C -f nsd.db -o example.net -z -
-.Pp
+.\"
 possible.
 When reading zones from config file this option is ignored.
+.\"
 .It Fl v
 Increase the verbosity of zonec.  This flag can be specified multiple
 times to increase the level of verbosity.  The first level of

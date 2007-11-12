@@ -8,7 +8,7 @@
 .\"
 .Dd @date@
 .Os FreeBSD
-.Dt nsd.conf 5 
+.Dt NSD.CONF 5 
 .Sh NAME
 .Nm nsd.conf
 .Nd NSD configuration file.
@@ -26,9 +26,9 @@ ignored as is whitespace at the beginning of a line.
 .Pp
 .Ic nsd.conf
 specifies options for the nsd server, zone files, primaries and secondaries.
+.\"
 .Sh EXAMPLE
 An example of a short nsd.conf file is below.
-.Pp
 .Bd -literal
 # Example.com nsd.conf file
 # This is a comment.
@@ -45,21 +45,19 @@ zone:
 	# note that quotes are optional on the value
 	zonefile: /etc/nsd/example.com.zone 
 .Ed
+.\"
 .Sh FILE FORMAT
 There must be whitespace between keywords. Attribute keywords end with a colon ':'. An attribute
 is followed by its containing attributes, or a value. 
 .Pp
 At the top level only 
-.Ic server:
-or
-.Ic zone: 
+.Ic server: ,
+.Ic zone: ,
 or 
 .Ic key: 
-are allowed. These are followed by their
-attributes or the start of a new 
-.Ic server:
-or
-.Ic zone: 
+are allowed. These are followed by their attributes or the start of a new 
+.Ic server: ,
+.Ic zone: ,
 or 
 .Ic key: 
 clause.
@@ -67,9 +65,8 @@ The
 .Ic zone:
 attribute is followed by zone options. The 
 .Ic server: 
-attribute is followed 
-by global options for the 
-.Ic NSD 
+attribute is followed by global options for the 
+.Nm NSD 
 server. A 
 .Ic key: 
 attribute is used to define keys for authentication.
@@ -79,6 +76,7 @@ Files can be included using the
 directive. It can appear anywhere, and takes a single filename as an argument.
 Processing continues as if the text from the included file was copied into
 the config file at that point.
+.\"
 .Ss Server Options
 The global options (if not overridden from the NSD commandline) are taken 
 from the 
@@ -88,48 +86,48 @@ clause.  There may only be one
 clause.
 .Pp
 .Bl -tag -width indent
-.It \fBip-address:\fR <ip4 or ip6>
+.It \fBip-address:\fR <ip4 or ip6 address>
 NSD will bind to the listed ip-address. Can be give multiple times to bind multiple ip-addresses.
-If none are given NSD listens to all IP addresses. Same as commandline option -a.
+If none are given NSD listens to all IP addresses. Same as commandline option Fl a.
 .It \fBdebug-mode:\fR <yes or no>
 Turns on debugging mode for nsd, does not fork a daemon process. Default is no. 
-Same as commandline option -d.
+Same as commandline option Fl d.
 .It \fBip4-only:\fR <yes or no>
-If yes, NSD only listens to IPv4 connections. Same as commandline option -4.
+If yes, NSD only listens to IPv4 connections. Same as commandline option Fl 4.
 .It \fBip6-only:\fR <yes or no>
-If yes, NSD only listens to IPv6 connections. Same as commandline option -6.
+If yes, NSD only listens to IPv6 connections. Same as commandline option Fl 6.
 .It \fBdatabase:\fR <filename>
 By default '/var/db/nsd/nsd.db' is used. The specified file is used to store the compiled 
-zone information. Same as commandline option -f.
+zone information. Same as commandline option Fl f.
 .It \fBidentity:\fR <string>
 Returns the specified identity when asked for CH TXT ID.SERVER. Default is the name
 as returned by 
 .Xr gethostname 3 .
-Same as commandline option -i.
+Same as commandline option Fl i.
 .It \fBlogfile:\fR <filename>
 Log messages to the logfile. The default is to log to stderr and syslog. 
-Same as commandline option -l.
+Same as commandline option Fl l.
 .It \fBserver-count:\fR <number>
-Start this many NSD servers. Default is 1. Same as commandline option -N.
+Start this many NSD servers. Default is 1. Same as commandline option Fl N.
 .It \fBtcp-count:\fR <number>
 The maximum number of concurrent TCP connections by each server. Default is 10. 
-Same as commandline option -n.
+Same as commandline option Fl n.
 .It \fBpidfile:\fR <filename>
 Use the pid file instead of the platform specific default, usually /var/run/nsd.pid. 
-Same as commandline option -P.
+Same as commandline option Fl P.
 .It \fBport:\fR <number>
-Answer queries on the specified port. Default is 53. Same as commandline option -p.
+Answer queries on the specified port. Default is 53. Same as commandline option Fl p.
 .It \fBstatistics:\fR <number>
 If not present no statistics are dumped. Statistics are produced every number seconds.
-Same as commandline option -s.
+Same as commandline option Fl s.
 .It \fBchroot:\fR <directory>
-NSD will chroot on startup to the specified directory. Same as commandline option -t.
+NSD will chroot on startup to the specified directory. Same as commandline option Fl t.
 .It \fBusername:\fR <username>
 After binding the socket, drop user privileges and assume the username.
-Can be username, id or id.gid. Same as commandline option -u.
+Can be username, id or id.gid. Same as commandline option Fl u.
 .It \fBzonesdir:\fR <directory>
 Change the working directory to the specified directory before accessing zone files.
-Same as commandline option -d for 
+Same as commandline option Fl d for 
 .Xr zonec 8 .
 Also 
 .Xr nsd 8
@@ -149,7 +147,7 @@ see the section on zone expiry behavior of NSD.
 Default is
 .Ic /var/db/nsd/xfrd.state .
 .It \fBxfrd-reload-timeout:\fR <number>
-If this value is -1 xfrd will not trigger a reload after a zone transfer.
+If this value is -1, xfrd will not trigger a reload after a zone transfer.
 If positive xfrd will trigger a reload after a zone transfer, and then
 wait for the number of seconds before it will trigger a new reload.
 Setting this value throttles the reloads to once per the number of seconds.
@@ -159,6 +157,7 @@ This value specifies the verbosity level for (non-debug) logging. Default
 is 0.
 .It \fBhide-version:\fR <yes or no>
 Prevent NSD from replying with the version string on CHAOS class queries.
+.\"
 .El
 .Ss Zone Options
 For every zone the options need to be specified in one 
@@ -234,6 +233,7 @@ file, which may have different security policies, can be split apart.
 BIND9 is a name server implementation with its own configuration file format,
 .Xr named.conf 5 .
 BIND9 types zones as 'Master' or 'Slave'. 
+.\"
 .Ss Slave zones
 For a slave zone, the master servers are listed. The master servers are 
 queried for zone data, and are listened to for update notifications. 
@@ -246,7 +246,6 @@ allow-notify for both masters and operators. BIND9 allows
 additional transfer sources, in NSD you list those as request-xfr.
 .Pp
 Here is an example of a slave zone in BIND9 syntax.
-.Pp
 .Bd -literal
 # Config file for example.org
 options {
@@ -274,7 +273,6 @@ dnssec-enable statement in the options clause is not needed. In NSD keys
 are associated with an IP address in the access control list statement,
 therefore the server{} statement is not needed. Below is the same 
 example in an NSD config file.
-.Pp
 .Bd -literal
 # Config file for example.org
 key:
@@ -297,14 +295,14 @@ to specify more masters.
 .Pp
 It is possible to specify extra allow-notify lines for addresses that
 are also allowed to send notifications to this slave server.
+.\"
 .Ss Master zones
 For a master zone in BIND9, the slave servers are listed. These slave
 servers are sent notifications of updated and are allowed to request
 transfer of the zone data. In NSD these two properties need to be configured
 seperately.
 .Pp
-Here is an example of a master zone in BIND9 syntax.
-.Pp
+Here is an example of a master zone in BIND9 syntax:
 .Bd -literal
 zone "example.nl" {
 	type master;
@@ -313,7 +311,6 @@ zone "example.nl" {
 .Ed
 .Pp
 In NSD syntax this becomes:
-.Pp
 .Bd -literal
 zone:
 	name: "example.nl"
@@ -326,6 +323,7 @@ zone:
 	# provide-xfr: 1.2.3.4 tsig-key.name.
 	# notify: 1.2.3.4 NOKEY
 .Ed
+.\"
 .Ss Other
 NSD is an authoritative only DNS server. This means that it is meant as a 
 primary or secondary server for zones, providing DNS data to DNS resolvers
@@ -333,6 +331,7 @@ and caches. BIND9 can function as an authoritative DNS server, the configuration
 options for that are compared with those for NSD in this section. 
 However, BIND9 can also function as a resolver or cache. The configuration options that
 BIND9 has for the resolver or caching thus have no equivalents for NSD.
+.\"
 .Sh FILES
 .Bl -tag -width indent
 .It Pa /var/db/nsd/nsd.db

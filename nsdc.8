@@ -6,15 +6,15 @@
 .\" See LICENSE for the license.
 .\"
 .Dd @date@
-.Os FreeBSD
-.Dt nsdc 8 
+.Dt NSDC 8 
 .Sh NAME
 .Nm nsdc
-.Nd Name Server Daemon (NSD) Control Script
+.Nd Name Server Daemon (NSD) control script
 .Sh SYNOPSIS
 .Nm nsdc
 .Op Fl c Ar configfile
 .Ar start | stop | reload | rebuild | restart | running | update | notify | patch
+.\"
 .Sh DESCRIPTION
 .Ic Nsdc
 is the shell script that used to control
@@ -46,11 +46,6 @@ The config file is checked for errors before it is used, see
 .Xr nsd-checkconf 8 .
 .Pp
 .Bl -tag -width indent
-.It Fl c Ar configfile
-Specify configfile to use instead of the default
-.Pa /etc/nsd/nsd.conf .
-.El
-.Pp
 Possible
 .Ic nsdc
 applications are:
@@ -111,6 +106,14 @@ Merge zone transfer changes back to zone files. It reads in the nsd database
 have been updated. Running this regularly ensures that the difffile does not 
 grow infinitely.
 .El
+.\"
+.Sh OPTIONS
+.Bl -tag -width indent
+.It Fl c Ar configfile
+Specify configfile to use instead of the default
+.Pa /etc/nsd/nsd.conf .
+.El
+.\"
 .Sh FILES
 .Bl -tag -width indent
 .It Pa /etc/nsd/nsd.conf
@@ -135,11 +138,13 @@ timeouts for the zones and whether zones are expired.
 .It Pa /var/run/nsd.pid
 the process id of the name server.
 .El
+.\"
 .Sh DIAGNOSTICS
 .Ic Nsdc
 will return zero return code if operation was successful and
 an error message to standard output plus a non-zero return code
 otherwise.
+.\"
 .Sh SEE ALSO
 .Xr nsd 8 ,
 .Xr nsd.conf 5 ,
