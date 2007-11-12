@@ -10,6 +10,7 @@ BUG FIXES:
 	- Zone compiler gives more sane error messages when out of
 	  diskspace.
 	- Error handling for malformed IXFRs improved.
+	- Fixed man pages
 
 FEATURES:
         - Added "hide-version" configuration setting. Enabling this feature 
