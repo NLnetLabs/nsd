@@ -2,11 +2,9 @@ NSD RELEASE NOTES
 
 3.0.7
 =============
-FEATURES:
-
 BUG FIXES:
 	- Error handling for malformed IXFRs improved.
-	- Fixed man pages
+	- Fixed man pages, consistent syntax.
 
 3.0.6
 =============
