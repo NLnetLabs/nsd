@@ -488,7 +488,7 @@ FEATURES:
           incompatible change to the database format.  Make sure you
           recompile your database.  Use --enable-plugins to enable.
         - Full IPv6 support (for multi-homing and for Linux, thanks to
-          Colm MacCárthaigh and Jun-ichiro itojun Hagino).  Use
+          Colm MacCÃ¡rthaigh and Jun-ichiro itojun Hagino).  Use
           --enable-ipv6 to enable.
         - Support for multi-homing with TCP connections.
         - Support for SunOS 4.x has been dropped.

@@ -20,7 +20,7 @@ Wouter Wijngaards, NLnet Labs   - design and implementation for NSD 3.
 Contributors (in alphabetical order):
 
 Ben Laurie					- NSEC3 patch.
-Colm MacCárthaigh,                              - IPv6 binding and cleanups.
+Colm MacCÃ¡rthaigh,                              - IPv6 binding and cleanups.
 Jakob Schlyter, Carlstedt Research & Technology - chroot patch
 Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport
 Ondrej Sury                                     - nsd-notify.8 man page
