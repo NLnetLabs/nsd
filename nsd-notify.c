@@ -70,7 +70,7 @@ usage (void)
  */
 static void 
 notify_host(int udp_s, struct query* q, struct query *answer,
-	struct addrinfo* res, const char* addrstr)
+	struct addrinfo* res, const dname_type *zone, const char* addrstr)
 {
 	int timeout_retry = 1; /* seconds */
 	int num_retry = 6; /* times to try */
@@ -140,8 +140,8 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 			/* no news is good news */
 			/* warning("reply from: %s, acknowledges notify.\n", addrstr); */
 		} else {
-			warning("bad reply from %s, error response %s (%d).\n", 
-				addrstr, rcode2str(RCODE(answer->packet)), 
+			warning("bad reply from %s for zone %s, error response %s (%d).\n", 
+				addrstr, dname_to_string(zone, NULL), rcode2str(RCODE(answer->packet)), 
 				RCODE(answer->packet));
 		}
 	}
@@ -316,7 +316,7 @@ main (int argc, char *argv[])
 			}
 
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
-			notify_host(udp_s, &q, &answer, res, *argv);
+			notify_host(udp_s, &q, &answer, res, zone, *argv);
 		}
 		freeaddrinfo(res0);
 	}
