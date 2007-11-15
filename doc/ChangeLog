@@ -1,4 +1,7 @@
-13 November 2007: Matthijs
+15 November 2007: Matthijs
+	- Changed man pages format from mdoc to mansun, to support the Solaris OS. 
+
+13 November 2007: Wouter
 	- CREDITS and RELNOTES now in utf-8.
 
 12 November 2007: Matthijs
