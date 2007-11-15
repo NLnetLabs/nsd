@@ -1,88 +1,79 @@
-.\"
-.\" nsd-xfer.8 -- nsd manual
-.\"
-.\" Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
-.\"
-.\" See LICENSE for the license.
-.\"
-.\"
-.Dd @date@
-.Dt NSD-XFER 8
-.Sh NAME
-.Nm nsd-xfer
-.Nd AXFR client to transfer zones from a name server
-.\"
-.Sh SYNOPSIS
-.Nm nsd-xfer 
-.Op Fl 4
-.Op Fl 6
-.Op Fl p Ar port
-.Op Fl s Ar serial
-.Op Fl T Ar siginfo
-.Op Fl v
-.Fl z Ar zone
-.Fl f Ar file
-.Ar servers
-.\"
-.Sh DESCRIPTION
-.Ic nsd-xfer
-is a program to transfer zones from a name server using AXFR;
-.Ic NSD
+.TH "nsd\-xfer" "8" "@version@" "NLnet Labs" "nsd"
+.P
+Copyright (c) 2001\-2008, NLnet Labs. All rights reserved.
+.P
+See LICENSE for the license.
+.SH "NAME"
+.LP
+.B nsd\-xfer
+\- AXFR client to transfer zones from a name server
+.SH "SYNOPSIS"
+.LP 
+.B nsd\-xfer
+.RB [ \-4 ] 
+.RB [ \-6 ] 
+.RB [ \-p
+.IR port ]
+.RB [ \-s
+.IR serial ]
+.RB [ \-T
+.IR tsiginfo ]
+.RB [ \-v ]
+.B \-z
+.I zone
+.B \-f
+.I file
+.I servers
+.SH "DESCRIPTION"
+.LP 
+.B nsd\-xfer 
+is program to transfer zones from a name server using AXFR.
+.B NSD 
 is a complete implementation of an authoritative DNS nameserver.
-.Pp
-\"
-.Sh OPTIONS
-.Bl -tag -width indent
-.\"
-.It Fl 4
+.SH "OPTIONS"
+.LP 
+.TP
+.B \-4
 Only send to IPv4 addresses.
-.\"
-.It Fl 6
+.TP
+.B \-6
 Only send to IPv6 addresses.
-.\"
-.It Fl f Ar file
+.TP
+.B \-f\fI file
 The file to store the zone in.
-.\"
-.It Fl p Ar port
+.TP
+.B \-p\fI port
 Specify the port to send to.
-.\"
-.It Fl s Ar serial
-Specify the 
-.Ar serial 
-of the current zone.  The zone is only transferred
+.TP
+.B \-s\fI serial
+Specify the serial of the current zone. The zone is only transferred
 if the master server has a zone with a greater serial number.
-.\"
-.It Fl T Ar tsiginfo
-Use TSIG to verify the zone transfer. The 
-.Ar tsiginfo
-file must contain the TSIG key information. 
-The file is removed up-on successful reading of the key.
-.\"
-.It Fl v
+.TP
+.B \-T\fI tsiginfo
+Use TSIG to verify the zone transfer. The
+.I tsiginfo
+file must contain the TSIG key information. The file is removed 
+upon successful reading of the key.
+.TP 
+.B \-v
 Be more verbose.
-.\"
-.It Fl z Ar zone
-Specify the 
-.Ar zone 
-to receive.
-.\"
-.It Ar servers
+.TP
+.B \-z\fI zone
+Specify the zone to receive.
+.TP 
+.I servers
 List of nameservers to try.
-.\"
-.Sh EXAMPLES
+.SH "EXAMPLES"
+.LP 
 To run this program the standard way type:
-.Bd -literal -offset indent
-$ nsd-xfer \-z foobar.cz \-f foobar.cz.zone 1.2.3.4
-.Ed
-.\"
-.Sh SEE ALSO
-.Xr nsd 8 ,
-.Xr nsd-notify 8 ,
-.Xr nsdc 8 ,
-.Xr zonec 8
-.\"
-.Sh AUTHORS
-.Ic NSD
-was written by NLnet Labs and RIPE NCC joint team. Please see the 
-CREDITS file in the distribution for further details.
-
+.LP 
+# nsd\-xfer \-z foobar.cz \-f foobar.cz.zone 1.2.3.4
+.SH "SEE ALSO"
+.LP
+nsd(8), nsdc(8), nsd.conf(5), nsd-checkconf(8),
+nsd-notify(8), nsd-patch(8), zonec(8)
+.SH "AUTHORS"
+.LP
+.B NSD
+was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS
+file in the distribution for further details.

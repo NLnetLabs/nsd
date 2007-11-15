@@ -1,263 +1,268 @@
-.\"
-.\" nsd.8 -- nsd manual
-.\"
-.\" Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
-.\"
-.\" See LICENSE for the license.
-.\"
-.\"
-.Dd @date@
-.Dt NSD 8 
-.Sh NAME
-.Nm nsd
-.Nd Name Server Daemon (NSD) version @version@.
-.Sh SYNOPSIS
-.Nm nsd
-.Op Fl 4
-.Op Fl 6
-.Op Fl a Ar ip-address
-.Op Fl c Ar configfile
-.Op Fl d 
-.Op Fl f Ar database
-.Op Fl h
-.Op Fl i Ar identity
-.Op Fl I Ar nsid
-.Op Fl l Ar logfile
-.Op Fl N Ar server-count
-.Op Fl n Ar concurrent-tcp-count
-.Op Fl P Ar pidfile
-.Op Fl p Ar port
-.Op Fl s Ar seconds
-.Op Fl t Ar chrootdir
-.Op Fl u Ar username
-.Op Fl V Ar level
-.Op Fl v
-.\"
-.Sh DESCRIPTION
-.Ic NSD
-is a complete implementation of an authoritative DNS nameserver. Upon
-startup
-.Ic NSD
-will read the database specified with the
-.Fl f Ar database
-argument and put itself into background and answers queries on port 53
-or a different port specified with the
-.Fl p Ar port
-option.
-The
-.Ar database
-must be generated beforehand with
-.Xr zonec 8 .
-By default NSD will bind to all local interfaces available. Use the
-.Fl a Ar ip-address
+.TH "nsd" "8" "@version@" "NLnet Labs" "nsd"
+.P
+Copyright (c) 2001\-2008, NLnet Labs. All rights reserved.
+.P
+See LICENSE for the license.
+.SH "NAME"
+.LP
+.B nsd
+\- Name Server Daemon (NSD) version @version@.
+.SH "SYNOPSIS"
+.LP
+.B nsd
+.RB [ \-4 ] 
+.RB [ \-6 ] 
+.RB [ \-a 
+.IR ip\-address ]
+.RB [ \-c
+.IR configfile ]
+.RB [ \-d ] 
+.RB [ \-f
+.IR database ]
+.RB [ \-h ] 
+.RB [ \-i
+.IR identity ]
+.RB [ \-I
+.IR nsid ]
+.RB [ \-l
+.IR logfile ]
+.RB [ \-N
+.IR server\-count ]
+.RB [ \-n
+.IR noncurrent\-tcp\-count ]
+.RB [ \-P
+.IR pidfile ]
+.RB [ \-p
+.IR port ]
+.RB [ \-s
+.IR seconds ]
+.RB [ \-t
+.IR chrootdir ]
+.RB [ \-u
+.IR username ]
+.RB [ \-V
+.IR level ]
+.RB [ \-v ]
+.SH "DESCRIPTION"
+.LP
+.B NSD
+is a complete implementation of an authoritative DNS nameserver. 
+Upon startup,
+.B NSD
+will read the database specified with 
+.B \-f
+.I database
+argument and put itself into background and answers queries on port 
+53 or a different port specified with 
+.B \-p
+.I port
+option. The
+.I database
+must be generated beforehand with zonec(8). By default, 
+.B NSD 
+will bind to all local interfaces available. Use the 
+.B \-a
+.I ip\-address
 option to specify a single particular interface address to be
 bound. If this option is given more than once,
-.Ic NSD
-will bind its UDP and TCP sockets to all the specified ip-addresses
-separately.  If IPv6 is enabled when
-.Ic NSD
+.B NSD
+will bind its UDP and TCP sockets to all the specified ip\-addresses
+separately. If IPv6 is enabled when 
+.B NSD 
 is compiled an IPv6 address can also be specified.
-.Pp
-All the options can be specified in the configfile
-.Po Fl c
-argument
-.Pc
-except for the
-.Fl v
-and
-.Fl h
-options. If options are specified on the commandline, the options on the
-commandline take precedence over the options in the configfile.
-.Pp
+.P
+.SH "OPTIONS"
+.LP
+All the options can be specified in the configfile (
+.B \-c 
+argument), except for the 
+.B \-v 
+and 
+.B \-h 
+options. If options are specified on the commandline, the options 
+on thecommandline take precedence over the options in the 
+configfile.
+.P
 Normally
-.Ic NSD
-should be started with the
-.Xr nsdc 8
-start
-command invoked from a
-.Em /etc/rc.d/nsd.sh
-script or similar at operating system startup.
-.Pp
-.\"
-.Sh OPTIONS
-.Bl -tag -width indent
-.\"
-.It Fl 4
+.B NSD
+should be started with the `nsdc(8) start` command invoked from a
+.I /etc/rc.d/nsd.sh
+script or similar at the operating system startup.
+.TP
+.B \-4
 Only listen to IPv4 connections.
-.\"
-.It Fl 6
+.TP
+.B \-6
 Only listen to IPv6 connections.
-.\"
-.It Fl a Ar ip-address
+.TP
+.B \-a\fI ip\-address
 Listen to the specified
-.Ar ip-address .
-The 
-.Ar ip-address
+.IR ip\-address .
+The
+.I ip\-address
 must be specified in numeric format (using the standard IPv4 or IPv6
-notation).  This flag can be specified multiple times to listen to
-multiple IP addresses.  If this flag is not specified NSD listens to
-all IP addresses.
-.\"
-.It Fl c Ar configfile
+notation). This flag can be specified multiple times to listen to
+multiple IP addresses. If this flag is not specified, 
+.B NSD
+listens to all IP addresses.
+.TP
+.B \-c\fI configfile
 Read specified 
-.Ar configfile 
-instead of the default
-.Pa /etc/nsd/nsd.conf .
-For format description see
-.Xr nsd.conf 5 .
-.\"
-.It Fl d
+.I configfile instead of the default
+.IR /etc/nsd/nsd.conf .
+For format description see nsd.conf(5).
+.TP
+.B \-d
 Turn on debugging mode, do not fork, stay in the foreground.
-.\"
-.It Fl f Ar database
+.TP
+.B \-f\fI database
 Use the specified
-.Ar database
+.I database
 instead of the default of
-.Em /var/db/nsd/nsd.db .
-If a zonesdir: is specified in the config file this path can be
-relative to that directory.
-.\"
-.It Fl h
+.IR /var/db/nsd/nsd.db .
+If a 
+.B zonesdir: 
+is specified in the config file this path can be relative to that 
+directory.
+.TP
+.B \-h
 Print help information and exit.
-.\"
-.It Fl i Ar identity
+.TP
+.B \-i\fI identity
 Return the specified
-.Ar identity
+.I identity
 when asked for
-.Em CH TXT ID.SERVER
+.I CH TXT ID.SERVER
 (This option is used to determine which server is answering the queries
-when they are multicast)
-The default is the name returned by
-.Xr gethostname 3 .
-.\"
-.It Fl I Ar nsid
+when they are multicast). The default is the name returned by
+gethostname(3).
+.TP
+.B \-I\fI nsid
 Add the specified
-.Ar nsid
-to the EDNS section of the answer when queried 
-with an NSID EDNS enabled packet.
-This is disabled until IANA has given the NSID option an OPCODE.
-.\"
-.It Fl l Ar logfile
+.I nsid
+to the EDNS section of the answer when queried with an NSID EDNS 
+enabled packet. This is disabled until IANA has given the NSID 
+option an OPCODE.
+.TP
+.B \-l\fI logfile
 Log messages to the specified 
-.Ar logfile .
-The default is to log to stderr and syslog.
-If a zonesdir: is specified in the config file this path can be
-relative to that directory.
-.\"
-.It Fl N Ar count
+.IR logfile .
+The default is to log to stderr and syslog. If a 
+.B zonesdir: 
+is specified in the config file this path can be relative to that 
+directory.
+.TP
+.B \-N\fI count
 Start
-.Ar count
-NSD servers.  Starting more than a single server is only useful on
-machines with multiple CPUs and/or network adapters.  The default is 1.
-.\"
-.It Fl n Ar number
+.I count
+.B NSD 
+servers. The default is 1. Starting more than a single server is 
+only useful on machines with multiple CPUs and/or network adapters. 
+.TP
+.B \-n\fI number
 The maximum
-.Ar number
-of concurrent TCP connection that can be handled by each server.  The
+.I number
+of concurrent TCP connection that can be handled by each server. The
 default is 10.
-.\"
-.It Fl P Ar pidfile
+.TP
+.B \-P\fI pidfile
 Use the specified
-.Ar pidfile
+.I pidfile
 instead of the platform specific default, which is mostly
-.Em /var/run/nsd.pid .
-If a zonesdir: is specified in the config file this path can be
-relative to that directory.
-.\"
-.It Fl p Ar port
+.IR /var/run/nsd.pid .
+If a 
+.B zonesdir: 
+is specified in the config file, this path can be relative to that 
+directory.
+.TP
+.B \-p\fI port
 Answer the queries on the specified
-.Ar port .
+.IR port .
 Normally this is port 53.
-.\"
+.TP
+.B \-s\fI seconds
 .It Fl s Ar seconds
 Produce statistics dump every 
-.Ar seconds
-seconds.
-This is equal to sending
-.Em SIGUSR1
+.I seconds
+seconds. This is equal to sending
+.I SIGUSR1
 to the daemon periodically.
-.\"
-.It Fl t Ar chroot
-specifies a directory to chroot to upon startup. This option requires you to
-ensure that appropriate 
-.Xr syslogd 8
-socket (e.g.
-.Ar chrootdir 
-/dev/log) is available otherwise
-.Ic NSD
+.TP
+.B \-t\fI chroot
+Specifies a directory to 
+.I chroot 
+to upon startup. This option requires you to ensure that appropriate 
+syslogd(8) socket (e.g.
+.I chrootdir 
+/dev/log) is available, otherwise
+.B NSD
 won't produce any log output.
-.\"
-.It Fl u Ar username
+.TP
+.B \-u\fI username
 Drop user and group privileges to those of
-.Ar username
+.I username
 after binding the socket.
 The
-.Ar username
-must one of: username, id, or id.gid.  For example: nsd, 80, or 80.80.
-.\"
-.It Fl V Ar level
-This value specifies the verbosity level for (non-debug) logging. Default
-is 0.
-.\"
-.It Fl v
-Print the version number of NSD to standard error and exit.
-.\"
-.El
-.\"
-.Pp
-.Ic NSD
+.I username
+must be one of: username, id, or id.gid. For example: nsd, 80, or 
+80.80.
+.TP
+.B \-V\fI level
+This value specifies the verbosity level for (non\-debug) logging. 
+Default is 0.
+.TP
+.B \-v
+Print the version number of 
+.B NSD 
+to standard error and exit.
+.LP
+.B NSD
 reacts to the following signals:
-.Bl -tag -width indent
-.It Dv SIGTERM
+.TP
+SIGTERM
 Stop answering queries, shutdown, and exit normally.
-.It Dv SIGHUP
+.TP 
+SIGHUP
 Reload the database.
-.It Dv SIGUSR1
-Dump BIND8-style statistics into the log. Ignored otherwise.
-.El
-.\" .Sh IMPLEMENTATION NOTES
-.Sh FILES
-.Bl -tag -width indent
-.It Pa /var/db/nsd/nsd.db
+.TP
+SIGUSR1
+Dump BIND8\-style statistics into the log. Ignored otherwise.
+.SH "FILES"
+.TP
+/var/db/nsd/nsd.db
 default
-.Ic NSD
+.B NSD
 database
-.It Pa /var/run/nsd.pid
+.TP
+/var/run/nsd.pid
 the process id of the name server.
-.It Pa /etc/nsd/nsd.conf
+.TP
+/etc/nsd/nsd.conf
 default
-.Ic NSD
+.B NSD
 configuration file
-.El
-.Sh DIAGNOSTICS
-.Ic NSD
-will log all the problems via the standard
-.Xr syslog 8
-.Em daemon
+.SH "DIAGNOSTICS"
+.LP
+will log all the problems via the standard syslog(8)
+.I daemon
 facility, unless the
-.Fl d
+.B \-d
 option is specified.
-.\"
-.Sh SEE ALSO
-.Xr nsd.conf 5 ,
-.Xr nsd-notify 8 ,
-.Xr nsd-patch 8 ,
-.Xr nsd-xfer 8 ,
-.Xr nsdc 8 ,
-.Xr zonec 8
-.\"
-.Sh AUTHORS
-.Ic NSD
-was written by NLnet Labs and RIPE NCC joint team. Please see the
+.SH "SEE ALSO"
+.LP
+nsdc(8), nsd.conf(5), nsd\-checkconf(8), nsd\-notify(8), 
+nsd\-patch(8), nsd\-xfer(8), zonec(8)
+.SH "AUTHORS"
+.LP
+.B NSD
+was written by NLnet Labs and RIPE NCC joint team. Please see
 CREDITS file in the distribution for further details.
-.Sh BUGS
-.Ic NSD
+.SH "BUGS"
+.LP
+.B NSD
 will answer the queries erroneously if the
-.Ar database
-was not properly compiled with
-.Xr zonec 8 .
-Therefore problems with misconfigured master zone files or 
-.Xr zonec 8
-bugs may not be visible until the queries are actually answered
-with
-.Ic NSD .
+.I database
+was not properly compiled with zonec(8). Therefore problems with 
+misconfigured master zone files or zonec(8) bugs may not be visible 
+until the queries are actually answered with
+.BR NSD .

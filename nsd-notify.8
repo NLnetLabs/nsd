@@ -1,70 +1,63 @@
-.\"
-.\" nsd-notify.8 -- nsd manual
-.\"
-.\" Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
-.\"
-.\" See LICENSE for the license.
-.\"
-.\"
-.Dd @date@
-.Dt NSD-NOTIFY 8
-.Sh NAME
-.Nm nsd-notify
-.Nd send NOTIFYs to remote nameservers
-.Sh SYNOPSIS
-.Nm nsd-notify
-.Op Fl 4
-.Op Fl 6
-.Op Fl h
-.Op Fl p Ar port
-.Op Fl y Ar key:secret
-.Fl z Ar zone
-.Ar servers 
-.\"
-.Sh DESCRIPTION
-.Ic nsd-notify
-is a simple program to send NOTIFYs to remote nameservers;
-.Ic NSD 
+.TH "nsd\-notify" "8" "@version@" "NLnet Labs" "nsd"
+.P
+Copyright (c) 2001\-2008, NLnet Labs. All rights reserved.
+.P
+See LICENSE for the license.
+.SH "NAME"
+.LP 
+.B nsd\-notify 
+\- program to send NOTIFY's to remote nameservers.
+.SH "SYNOPSIS"
+.LP
+.B nsd\-notify
+.RB [ \-4 ]
+.RB [ \-6 ]
+.RB [ \-h ]
+.RB [ \-p
+.IR port ]
+.RB [ \-y
+.IR key:secret ]
+.B \-z
+.I zone servers
+.SH "DESCRIPTION"
+.LP 
+.B Nsd\-notify 
+is simple program to send NOTIFY's to remoter nameservers.
+.B NSD 
 is a complete implementation of an authoritative DNS nameserver.
-.Pp
-.Sh OPTIONS
-.Bl -tag -width indent
-.\"
-.It Fl 4
+.SH "OPTIONS"
+.TP
+.B \-4
 Only send to IPv4 addresses.
-.\"
-.It Fl 6
+.TP
+.B \-6
 Only send to IPv6 addresses.
-.\"
-.It Fl h
+.TP
+.B \-h
 Print help information and exit.
-.\"
-.It Fl p Ar port
+.TP 
+.B \-p\fI port
 Specify the port to send to.
-.\"
-.It Fl y Ar key:secret
-Specify a TSIG key and base64 encoded secret to sign the notification with.
-.\"
-.It Fl z Ar zone
+.TP 
+.B \-y\fI key:secret
+Specify a TSIG key and base64 encoded secret to sign the 
+notification with.
+.TP 
+.B z\fI zone
 Specify the zone to notify about.
-.\"
-.It Ar servers
-List of nameservers to send to. 
-.El
-.\"
-.Sh EXAMPLES
+.TP 
+.I servers
+List of nameservers to send to.
+.SH "EXAMPLES"
+.LP 
 To run this program the standard way type:
-.Bd -literal -offset indent
-$ nsd-notify \-z foobar.cz 1.2.3.4
-.Ed
-.\"
-.Sh SEE ALSO
-.Xr nsd 8 ,
-.Xr nsd-xfer 8 ,
-.Xr nsdc 8 ,
-.Xr zonec 8
-.\"
-.Sh AUTHORS
-.Ic NSD
+.LP 
+.B # nsd\-notify \-z foobar.cz 1.2.3.4
+.SH "SEE ALSO"
+.LP 
+nsd(8), nsdc(8), nsd.conf(5), nsd\-checkconf(8),
+nsd\-patch(8), nsd\-xfer(8), zonec(8)
+.SH "AUTHORS"
+.B NSD
 was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS
 file in the distribution for further details.
