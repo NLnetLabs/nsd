@@ -508,10 +508,10 @@ main (int argc, char *argv[])
 	}
 
         /* Read options */
-        nsd.options = nsd_options_create(region_create(xalloc, free));
-        if(!parse_options_file(nsd.options, configfile)) {
-                error("nsd: could not read config: %s\n", configfile);
-        }
+	nsd.options = nsd_options_create(region_create(xalloc, free));
+	if(!parse_options_file(nsd.options, configfile)) {
+		error("nsd: could not read config: %s\n", configfile);
+	}
 	if(nsd.options->ip4_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET;
