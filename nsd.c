@@ -760,14 +760,18 @@ main (int argc, char *argv[])
 				nsd.pidfile, strerror(errno));
 		}
 	} else {
-		if (kill(oldpid, 0) == 0 || errno == EPERM) {
+		if (kill(oldpid, 0) == 0 || errno == EPERM) { 
 			log_msg(LOG_WARNING,
 				"nsd is already running as %u, continuing",
 				(unsigned) oldpid);
+			/* no need to continue set up server */
+			exit(1); 
 		} else {
 			log_msg(LOG_ERR,
 				"...stale pid file from process %u",
 				(unsigned) oldpid);
+			/* no need to continue set up server */
+			exit(1); 
 		}
 	}
 
@@ -815,7 +819,6 @@ main (int argc, char *argv[])
 	sigaction(SIGCHLD, &action, NULL);
 	action.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &action, NULL);
-
 
 	/* Get our process id */
 	nsd.pid = getpid();
