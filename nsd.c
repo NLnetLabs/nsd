@@ -764,15 +764,13 @@ main (int argc, char *argv[])
 			log_msg(LOG_WARNING,
 				"nsd is already running as %u, continuing",
 				(unsigned) oldpid);
-			/* no need to continue set up server */
-			exit(1); 
 		} else {
 			log_msg(LOG_ERR,
 				"...stale pid file from process %u",
 				(unsigned) oldpid);
-			/* no need to continue set up server */
-			exit(1); 
 		}
+		/* no need to continue set up server */
+		exit(1); 
 	}
 
 	/* Unless we're debugging, fork... */
