@@ -769,8 +769,6 @@ main (int argc, char *argv[])
 				"...stale pid file from process %u",
 				(unsigned) oldpid);
 		}
-		/* no need to continue set up server */
-		exit(1); 
 	}
 
 	/* Unless we're debugging, fork... */
