@@ -1,3 +1,7 @@
+3 December 2007: Matthijs
+	- Fixup bug where data related files are looked up in the wrong
+	  directory when chrooted with chrootdir ending with a slash.
+
 26 November 2007: Matthijs
 	- Fixup bug start nsd while already running: do not initialize server,
 	  since it is already running. 
