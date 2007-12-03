@@ -7,6 +7,7 @@ GENERAL
 - Feature request by Thoman Huehn: choose outgoing interface for nsd-notify. -a
 - Also Peter Hessler, Paul Wouters: choose outgoing ifc, "src: ip@port" 
 	in a zone in the config file, lets xfrd zonexfr and notify.
+- Make tpkg test for bug 163
 
 AUTOCONF
 - check/translate arguments to --with-facility
