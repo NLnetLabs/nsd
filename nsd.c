@@ -466,6 +466,9 @@ main (int argc, char *argv[])
 			break;
 		case 't':
 #ifdef HAVE_CHROOT
+			/* append trailing slash */
+			if (strncmp(optarg + (strlen(optarg)-1), "/", 1) != 0) 
+				strncat(optarg, "/", 1); 
 			nsd.chrootdir = optarg;
 #else /* !HAVE_CHROOT */
 			error("chroot not supported on this platform.");
@@ -750,6 +753,12 @@ main (int argc, char *argv[])
 			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
 				nsd.options->difffile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
+		}
+		else {
+			/* delete trailing slash */
+			char *chroot_noslash = (char *) nsd.chrootdir; 
+			chroot_noslash[l-1] = '\0'; 
+			nsd.chrootdir = chroot_noslash; 
 		}
 	}
 

@@ -1,5 +1,11 @@
 NSD RELEASE NOTES
 
+3.0.8
+=============
+BUG FIXES:
+	- Fixup bug where data related files are looked up in the wrong
+	  directory when chrooted with chrootdir ending with a slash. 
+
 3.0.7
 =============
 BUG FIXES:

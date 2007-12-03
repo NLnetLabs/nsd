@@ -187,6 +187,8 @@ server_statistics: VAR_STATISTICS STRING
 server_chroot: VAR_CHROOT STRING
 	{ 
 		OUTYY(("P(server_chroot:%s)\n", $2)); 
+		if (strncmp($2 + (strlen($2)-1), "/", 1) != 0) 
+			strncat($2, "/", 1);
 		cfg_parser->opt->chroot = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;
