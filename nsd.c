@@ -736,8 +736,9 @@ main (int argc, char *argv[])
 
 		/* existing chrootdir: append trailing slash for strncmp checking */
 		if (l>0 && strncmp(nsd.chrootdir + (l-1), "/", 1) != 0) {
-			char *chroot_slash = (char *) nsd.chrootdir; 
-			strncat(chroot_slash, "/", 1); 
+			char *chroot_slash = region_alloc(nsd.region, sizeof(char)*(l+2)); 
+			memcpy(chroot_slash, nsd.chrootdir, sizeof(char)*(l+1)); 
+			strncat(chroot_slash, "/", 1);
 			nsd.chrootdir = chroot_slash; 
 			++l;
 		}
@@ -762,7 +763,9 @@ main (int argc, char *argv[])
 		else if (l>0) {
 			/* existing chrootdir: delete trailing slash for correct reading */
 			char *chroot_noslash = (char *) nsd.chrootdir; 
-			chroot_noslash[l-1] = '\0'; 
+			while (l>0 && chroot_noslash[--l] == '/')
+				; 
+			chroot_noslash[l+1] = '\0';
 			nsd.chrootdir = chroot_noslash; 
 		}
 	}
