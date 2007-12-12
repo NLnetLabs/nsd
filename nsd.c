@@ -760,14 +760,6 @@ main (int argc, char *argv[])
 				nsd.options->difffile, nsd.chrootdir);
 			nsd.chrootdir = NULL;
 		}
-		else if (l>0) {
-			/* existing chrootdir: delete trailing slash for correct reading */
-			char *chroot_noslash = (char *) nsd.chrootdir; 
-			while (l>0 && chroot_noslash[--l] == '/')
-				; 
-			chroot_noslash[l+1] = '\0';
-			nsd.chrootdir = chroot_noslash; 
-		}
 	}
 
 	/* Do we have a running nsd? */
