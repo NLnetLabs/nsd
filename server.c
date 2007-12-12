@@ -462,6 +462,9 @@ server_init(struct nsd *nsd)
 	if (nsd->chrootdir) {
 		int l = strlen(nsd->chrootdir);
 
+		while (l>0 && nsd->chrootdir[l-1] == '/')
+			--l;
+
 		nsd->dbfile += l;
 		nsd->pidfile += l;
 		nsd->options->xfrdfile += l;
@@ -470,7 +473,7 @@ server_init(struct nsd *nsd)
 		if (chroot(nsd->chrootdir)) {
 			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
 			return -1;
-		}
+		} 
 	}
 #endif
 
