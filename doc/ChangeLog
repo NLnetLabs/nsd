@@ -1,3 +1,7 @@
+7 January 2008: Wouter
+	- Fixup nsec3 tests, they need zonesdir: "." in conf files.
+	  The tests pass.
+
 3 December 2007: Matthijs
 	- Fixup bug where data related files are looked up in the wrong
 	  directory when chrooted with chrootdir ending with a slash.
