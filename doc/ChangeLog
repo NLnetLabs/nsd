@@ -3,6 +3,10 @@
 	  The tests pass.
 	- configure default is --enable-nsec3. Noted that this takes 20% more
 	  memory (for very large zones). Moved tests to test on commit.
+	- set RRTYPE numbers for NSEC3=50, NSEC3PARAM=51.
+	- fixup checkconf test - updated parser lexer gives syntax error 
+	  on some garbage instead of parse error. Parselexer is updated for
+	  new options (hide-version, verbosity).
 
 3 December 2007: Matthijs
 	- Fixup bug where data related files are looked up in the wrong
