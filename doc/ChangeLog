@@ -7,7 +7,15 @@
 	- fixup checkconf test - updated parser lexer gives syntax error 
 	  on some garbage instead of parse error. Parselexer is updated for
 	  new options (hide-version, verbosity).
-	- removed highrange rrtype code.
+	- removed highrange rrtype code. fixup cutest for that.
+	- speedup of prehash code.
+		- skip nonexistent domains (operator.example.com).
+		- skip only-nsec3 domains (that could be 2x speedup)
+		- skip glue nameserver domains (for TLD with 2 glue per
+		  delegation this is a 3x speedup).
+		- skip the prehash_domain for delegation points, which saves
+		  another 2/3 hash operations, 3x speedup.
+	- printout how long nsec3 prepare took (verbosity >= 1).
 
 3 December 2007: Matthijs
 	- Fixup bug where data related files are looked up in the wrong

@@ -30,7 +30,7 @@ static void dns_1(CuTest *tc)
 	int i;
 	struct rrtype_descriptor* d;
 	struct rrtype_descriptor* start = rrtype_descriptor_by_type(0);
-	for (i = 0; i < RRTYPE_DESCRIPTORS_IDX_LEN; ++i) {
+	for (i = 0; i < RRTYPE_DESCRIPTORS_LENGTH; ++i) {
 		struct rrtype_descriptor* d = rrtype_descriptor_by_type(i);
 		CuAssert(tc, "dns rrtype descriptor: type", i == d->type);
 		CuAssert(tc, "dns rrtype descriptor: offset", i == d - start);

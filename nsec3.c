@@ -440,14 +440,20 @@ prehash_zone(struct namedb* db, struct zone* zone)
 	while(walk && dname_is_subdomain(
 		domain_dname(walk), domain_dname(zone->apex)))
 	{
-		zone_type* z = domain_find_zone(walk);
-		if(z && z==zone)
+		zone_type* z;
+		if(!walk->is_existing || domain_has_only_NSEC3(walk, zone)) {
+			walk->nsec3_cover = NULL;
+			walk->nsec3_wcard_child_cover = NULL;
+			walk = domain_next(walk);
+			continue;
+		}
+		z = domain_find_zone(walk);
+		if(z && z==zone && !domain_is_glue(walk, zone))
 		{
 			prehash_domain(db, zone, walk, temp_region);
 			region_free_all(temp_region);
 		}
 		/* prehash the DS (parent zone) */
-		/* if there is DS or NS (so z==parent side of zone cut) */
 		if(domain_find_rrset(walk, zone, TYPE_DS) ||
 			(domain_find_rrset(walk, zone, TYPE_NS) &&
 			 walk != zone->apex))
@@ -477,7 +483,7 @@ prehash(struct namedb* db, int updated_only)
 	}
 	end = time(NULL);
 	if(count > 0)
-		DEBUG(DEBUG_QUERY, 1, (LOG_INFO, "nsec3-prepare took %d "
+		VERBOSITY(1, (LOG_INFO, "nsec3-prepare took %d "
 		"seconds for %d zones.", (int)(end-start), count));
 }
 
