@@ -523,13 +523,13 @@ case "$enable_tsig" in
                 ;;
 esac
 
-AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--enable-nsec3], [Enable NSEC3 support]))
+AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in
-        yes)
+        no)
+		;;
+        yes|*)
 		AC_DEFINE_UNQUOTED([NSEC3], [], [Define this to enable NSEC3 support.])
                 ;;
-        no|*)
-		;;
 esac
 
 AC_ARG_ENABLE(nsid, AC_HELP_STRING([--enable-nsid], [Enable NSID support]))

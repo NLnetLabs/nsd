@@ -215,10 +215,10 @@ addition to standard configure options, one may use the following:
         or higher is required for TSIG support.  Use --disable-tsig if
         you do not have OpenSSL installed.
 
-  --enable-nsec3
+  --disable-nsec3
 
-  	Enable (experimental) NSEC3 support. This is meant to be used
-	only during workshops on the nsec3 protocol at this time.
+  	Disable NSEC3 support. With NSEC3 support enabled, very large zones,
+	also non-nsec3 zones, use about 20% more memory.
 
   --enable-nsid
 
