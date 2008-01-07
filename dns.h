@@ -219,11 +219,9 @@ typedef struct rrtype_descriptor rrtype_descriptor_type;
  * Indexed by type.  The special type "0" can be used to get a
  * descriptor for unknown types (with one binary rdata).
  *
- * spf + 1 + the number of high-type-range RRTYPES
+ * spf + 1
  */
-#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_SPF + 1 + 0)
-/* below this value the types are consecutive numbered */
-#define RRTYPE_DESCRIPTORS_IDX_LEN (TYPE_SPF + 1)
+#define RRTYPE_DESCRIPTORS_LENGTH  (TYPE_SPF + 1)
 rrtype_descriptor_type *rrtype_descriptor_by_name(const char *name);
 rrtype_descriptor_type *rrtype_descriptor_by_type(uint16_t type);
 

@@ -432,13 +432,8 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 rrtype_descriptor_type *
 rrtype_descriptor_by_type(uint16_t type)
 {
-	int i;
-
-	if (type < RRTYPE_DESCRIPTORS_IDX_LEN)
+	if (type < RRTYPE_DESCRIPTORS_LENGTH)
 		return &rrtype_descriptors[type];
-	for (i=RRTYPE_DESCRIPTORS_IDX_LEN; i<RRTYPE_DESCRIPTORS_LENGTH; ++i)
-		if (rrtype_descriptors[i].type == type)
-			return &rrtype_descriptors[i];
 	return &rrtype_descriptors[0];
 }
 

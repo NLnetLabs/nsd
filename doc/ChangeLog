@@ -7,6 +7,7 @@
 	- fixup checkconf test - updated parser lexer gives syntax error 
 	  on some garbage instead of parse error. Parselexer is updated for
 	  new options (hide-version, verbosity).
+	- removed highrange rrtype code.
 
 3 December 2007: Matthijs
 	- Fixup bug where data related files are looked up in the wrong
