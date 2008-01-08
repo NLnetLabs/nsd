@@ -6,6 +6,7 @@
 		- using SOA bit in NSEC3 typemap to detect parameters
 		- using nonhashed NSEC3 to prove qtype=NSEC3 nxdomains
 		- prints for debugging.
+	- nicer comment on nsec3_lookup.
 
 7 January 2008: Wouter
 	- Fixup nsec3 tests, they need zonesdir: "." in conf files.
