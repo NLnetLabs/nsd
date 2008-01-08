@@ -151,46 +151,6 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 			dname_to_string(domain_dname(zone->apex), NULL), (int)i);
 	}
 	region_destroy(tmpregion);
-
-#if 0
-	/* older scan for SOA bit NSEC3 records */
-	domain = zone->apex;
-
-	while(domain && dname_is_subdomain(
-		domain_dname(domain), domain_dname(zone->apex)))
-	{
-		rrset_type *rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
-		if(rrset) {
-			for(i=0; i<rrset->rr_count; i++)
-			{
-				if(nsec3_has_soa(&rrset->rrs[i]))
-				{
-					const unsigned char* salt;
-					int slen, iter;
-					detect_nsec3_params(&rrset->rrs[i], 
-						&salt, &slen, &iter);
-					log_msg(LOG_INFO, 
-					"detected NSEC3 for zone %s saltlen=%d iter=%d",
-						dname_to_string(domain_dname(
-						zone->apex),0), slen, iter);
-					if(rdata_atom_data(rrset->rrs[i].rdatas[0])[0] 
-						!= NSEC3_SHA1_HASH)
-					{
-						log_msg(LOG_INFO, 
-						"NSEC3 for zone %s uses unknown hash type %d",
-							dname_to_string(domain_dname(
-							zone->apex),0), 
-							rdata_atom_data(rrset->rrs[i].
-							rdatas[0])[0]);
-						return 0;
-					}
-					return &rrset->rrs[i];
-				}
-			}
-		}
-		domain = domain_next(domain);
-	}
-#endif
 	return 0;
 }
 
@@ -312,28 +272,6 @@ prehash_domain(namedb_type* db, zone_type* zone,
 		domain->nsec3_is_exact = 1;
 	else	domain->nsec3_is_exact = 0;
 
-	if(!exact && domain->is_existing && !domain_has_only_NSEC3(domain, zone)) {
-		/* make sure it is not glue */
-		int is_glue = 0;
-		domain_type* parent = domain;
-		while(parent && parent!=zone->apex) {
-			if(domain_find_rrset(parent, zone, TYPE_NS)) {
-				is_glue = 1;
-				break;
-			}
-			parent = parent->parent;
-		}
-		if(!is_glue)
-			log_msg(LOG_ERR, "domain %s has no NSEC3 for it but "
-			"zone is nsec3 signed, domain exists and is not glue", 
-			dname_to_string(domain_dname(domain), NULL));
-	}
-	/*
-	printf("prehash for %s ", dname_to_string(domain_dname(domain),0));
-	printf("found prehash %s %s", exact?"exact":"cover",
-		dname_to_string(domain_dname(result),0));
-	*/
-
 	/* find cover for *.domain for wildcard denial */
 	wcard = dname_parse(region, "*");
 	wcard_child = dname_concatenate(region, wcard, domain_dname(domain));
@@ -348,14 +286,11 @@ prehash_domain(namedb_type* db, zone_type* zone,
 		 * Thus there is a hash collision. It will cause servfail
 		 * for NXdomain queries below this domain.
 		 */
-		log_msg(LOG_ERR, "prehash: collision of wildcard denial for %s."
-			" Sign zone with different salt to remove collision.",
+		log_msg(LOG_WARNING, "prehash: collision of wildcard "
+			"denial for %s. Sign zone with different salt "
+			"to remove collision.",
 			dname_to_string(domain_dname(domain),0));
 	}
-	/*
-	printf(" wcard denial %s %s\n", exact?"exact":"cover",
-		dname_to_string(domain_dname(result),0));
-	*/
 }
 
 static void 
@@ -379,11 +314,6 @@ prehash_ds(namedb_type* db, zone_type* zone,
 		domain->nsec3_ds_parent_is_exact = 1;
 	else 	domain->nsec3_ds_parent_is_exact = 0;
 	domain->nsec3_ds_parent_cover = result;
-
-	/*
-	printf("prehash_ds for %s ", dname_to_string(domain_dname(domain),0));
-	printf("found prehash %s %d\n", dname_to_string(domain_dname(result),0), exact);
-	*/
 }
 
 static void 
@@ -396,25 +326,10 @@ prehash_zone(struct namedb* db, struct zone* zone)
 
 	/* find zone settings */
 	zone->nsec3_soa_rr = find_zone_nsec3(db, zone);
-	if(!zone->nsec3_soa_rr) 
+	if(!zone->nsec3_soa_rr) {
 		zone->nsec3_last = 0;
-	if(zone->nsec3_soa_rr) {
-		/* check that hashed, the apex name equals the found nsec3 domain */
-		const dname_type* checkname = nsec3_hash_dname(temp_region, 
-			zone, domain_dname(zone->apex));
-		assert(zone->nsec3_soa_rr->rdata_count > 0);
-		if(dname_compare(checkname, domain_dname(
-			zone->nsec3_soa_rr->owner)) != 0) {
-			log_msg(LOG_ERR, "NSEC3 record with SOA bit on %s is bad."
-				" name!=hash(zone). disabling NSEC3 for zone",
-				dname_to_string(domain_dname(
-				zone->nsec3_soa_rr->owner),0));
-			zone->nsec3_soa_rr = 0;
-			zone->nsec3_last = 0;
-		}
-	}
-	if(!zone->nsec3_soa_rr)
 		return;
+	}
 
 	/* go through entire zone and setup nsec3_lookup speedup */
 	walk = zone->apex;
@@ -562,9 +477,6 @@ nsec3_add_ds_proof(struct query *query, struct answer *answer,
 {
 	/* assert we are above the zone cut */
 	assert(domain != query->zone->apex);
-	/*
-	printf("Add ds proof for %s\n", dname_to_string(domain_dname(domain),0));
-	*/
 	if(domain->nsec3_ds_parent_is_exact) {
 		/* use NSEC3 record from above the zone cut. */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
@@ -699,28 +611,11 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 		return;
 	}
 	if(!*match) {
-		/* name error */
-#if 0
-		if(query->qtype == TYPE_NSEC3) {
-			/* query for NSEC3, but that domain did not exist */
-			/* include covering nsec3 found *without hashing* */
-			domain_type* cover=0;
-			if(nsec3_find_cover(db, query->zone, qname, &cover))
-			{
-				/* impossible, this is an NXDomain, but there is an NSEC3... */
-				assert(0);
-			} 
-			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, cover);
-		}
-		else 
-#endif
-		{
-			/* name error, domain does not exist */
-			nsec3_add_closest_encloser_proof(query, answer, closest_encloser, 
-				db, qname);	
-			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
-				closest_encloser->nsec3_wcard_child_cover);
-		}
+		/* name error, domain does not exist */
+		nsec3_add_closest_encloser_proof(query, answer, closest_encloser, 
+			db, qname);	
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			closest_encloser->nsec3_wcard_child_cover);
 	}
 }
 
