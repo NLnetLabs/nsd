@@ -54,6 +54,7 @@ SERVER
 - return literal (nonlowercased) dnames for rdata for RRtypes that do not
   have canonicalisation applied to their rdata (rfc4034, 6.2). So that
   the signature is not broken on the type.
+- the server reaps children every minute, this is bad for powersaving laptops.
 
 SECURITY
 - TSIG add rfc 4635 algorithms. Bug #120 asks for SHA1 feature.
