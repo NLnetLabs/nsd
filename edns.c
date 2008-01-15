@@ -89,7 +89,7 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet)
 	opt_flags = buffer_read_u16(packet);
 	opt_rdlen = buffer_read_u16(packet);
 	
-	if (opt_rdlen != 0 || opt_version != 0) {
+	if (opt_version != 0) {
 		edns->status = EDNS_ERROR;
 		return 1;
 	}
