@@ -16,6 +16,8 @@ BUG FIXES:
           since it is already running.
 	- Fixup bug where data related files are looked up in the wrong
 	  directory when chrooted with chrootdir ending with a slash.
+	- Fixup bug where nsd would return FORMERR if received an edns
+	  query with version set to zero and rdlen larger than zero.
 
 FEATURES:
         - Added "hide-version" configuration setting. Enabling this feature 

@@ -1,3 +1,7 @@
+15 January 2008: Matthijs
+	- Fixed bug 157 where nsd would return FORMERR if edns query is
+	  received with version set to zero and rdlen is larger than zero.
+
 8 January 2008: Wouter
 	- no warning about optout records. also no warning about missing
 	  nsec3 records.
