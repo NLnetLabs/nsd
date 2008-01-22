@@ -23,6 +23,8 @@ xfrdfile = @xfrdfile@
 nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
 user = @user@
+spriority = @start_priority@
+kpriority = @kill_priority@
 
 CC		= @CC@
 CPPFLAGS	= @CPPFLAGS@ -I. -I$(srcdir)# @DEFS@ contains -DHAVE_CONFIG_H
@@ -51,7 +53,9 @@ EDIT		= sed \
 			-e 's,@xfrdfile\@,$(xfrdfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
-			-e 's,@user\@,$(user),g'
+			-e 's,@user\@,$(user),g' \
+			-e 's,@spriority\@,$(spriority),g' \
+			-e 's,@kpriority\@,$(kpriority),g' 
 
 TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
 

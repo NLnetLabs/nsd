@@ -2,6 +2,9 @@ NSD RELEASE NOTES
 
 3.0.8
 =============
+FEATURES:
+	- Add configuration for chkconfig to control nsd service.
+
 BUG FIXES:
 	- Fixup bug where data related files are looked up in the wrong
 	  directory when chrooted with chrootdir ending with a slash. 
