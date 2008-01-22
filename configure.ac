@@ -43,6 +43,20 @@ AC_SUBST(nsd_conf_file)
 AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $nsd_conf_file`"], [Pathname to the NSD configuration file])
 
 #
+# Determine start and kill priorities
+start_priority=45
+AC_ARG_WITH([start_priority],
+	AC_HELP_STRING([--with-start_priority=number], [NSD startup priority]),
+	[start_priority=$withval])
+AC_SUBST(start_priority)
+
+kill_priority=74
+AC_ARG_WITH([kill_priority],
+	AC_HELP_STRING([--with-kill_priority=number], [NSD shutdown priority]),
+	[kill_priority=$withval])
+AC_SUBST(kill_priority)
+
+#
 # Database directory
 #
 dbdir=${localstatedir}/db/nsd

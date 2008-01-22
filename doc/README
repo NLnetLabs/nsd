@@ -215,6 +215,14 @@ addition to standard configure options, one may use the following:
         or higher is required for TSIG support.  Use --disable-tsig if
         you do not have OpenSSL installed.
 
+  --with-start_priority=number
+
+	Startup priority for NSD. 
+
+  --with-kill_priority=number
+
+	Shutdown priority for NSD. 
+
   --disable-nsec3
 
   	Disable NSEC3 support. With NSEC3 support enabled, very large zones,

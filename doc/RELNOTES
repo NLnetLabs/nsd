@@ -25,6 +25,7 @@ FEATURES:
 	- Added bind2nsd 0.5.0 (http://bind2nsd.sourceforge.net) in contrib/.
 	- Report source and zone for denied AXFR attempts.
 	- Better logging for nsd-notify (show 'broken' zone)
+	- Add configuration for chkconfig to control nsd service.
 
 3.0.5
 =============

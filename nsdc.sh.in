@@ -8,6 +8,9 @@
 #
 #
 
+# chkconfig: 2345 @spriority@ @kpriority@
+# description: NSD, authoritative only high performance name server.
+
 # configuration file default
 configfile="@nsdconfigfile@"
 
