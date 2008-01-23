@@ -68,6 +68,8 @@ PURITY
 - no more #ifdefs, remove them all, but keep configure options.
 - getflags on socket before setflags nonblocking.
 - exponential backoff for retries xfrd and notify.
+- conformance to RFC: NSD accepts TSIG before OPT in additional, but this
+  is not legal, only TSIG after OPT is allowed.
 
 NSD PATCH
 - -q(?) option: no output when no patch necessary
