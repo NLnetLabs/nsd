@@ -335,6 +335,26 @@ fi
 
 AC_CHECK_STRPTIME
 
+# check wether strptime also works
+AC_DEFUN([AC_CHECK_STRPTIME_WORKS],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether strptime works)
+AC_TRY_RUN([
+#define _XOPEN_SOURCE
+#include <time.h>
+int main(void) { struct tm tm; char *res; 
+res = strptime("20070207111842", "%Y%m%d%H%M%S", &tm);
+if (!res) return 1; return 0; }
+] , [eval "ac_cv_c_strptime_works=yes"], [eval "ac_cv_c_strptime_works=no"])
+
+AC_MSG_RESULT($ac_cv_c_strptime_works)
+if test $ac_cv_c_strptime_works = yes; then
+AC_DEFINE_UNQUOTED([STRPTIME_WORKS], 1, [strptime works under current system.])
+fi
+])dnl
+
+AC_CHECK_STRPTIME_WORKS
+
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
 
