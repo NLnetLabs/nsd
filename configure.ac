@@ -444,6 +444,7 @@ AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(inet_ntop)
 AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(strlcpy)
+AC_REPLACE_FUNCS(strptime)
 AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
@@ -713,6 +714,10 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 #ifndef HAVE_GETADDRINFO
 #include "compat/fake-rfc2553.h"
 #endif
+#ifndef HAVE_STRPTIME
+char *strptime(const char *s, const char *format, struct tm *tm); 
+#endif
+
 
 /* provide timespec def if not available */
 #ifndef CONFIG_DEFINES
