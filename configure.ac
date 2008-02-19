@@ -350,6 +350,8 @@ if (!res) return 1; return 0; }
 AC_MSG_RESULT($ac_cv_c_strptime_works)
 if test $ac_cv_c_strptime_works = yes; then
 AC_DEFINE_UNQUOTED([STRPTIME_WORKS], 1, [strptime works under current system.])
+else
+AC_LIBOBJ(strptime)
 fi
 ])dnl
 
@@ -717,7 +719,9 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 #ifndef HAVE_STRPTIME
 char *strptime(const char *s, const char *format, struct tm *tm); 
 #endif
-
+#ifndef STRPTIME_WORKS
+#define strptime(a,b,c) nsd_strptime((a),(b),(c))
+#endif
 
 /* provide timespec def if not available */
 #ifndef CONFIG_DEFINES

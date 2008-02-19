@@ -14,7 +14,6 @@
 #ifndef STRPTIME_WORKS
 
 #define TM_YEAR_BASE 1900
-#define strptime((a),(b),(c)) nsd_strptime((a),(b),(c))
 
 #include <ctype.h>
 #include <string.h>
