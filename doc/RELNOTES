@@ -18,6 +18,8 @@ BUG FIXES:
 	  directory when chrooted with chrootdir ending with a slash.
 	- Fixup bug where nsd would return FORMERR if received an edns
 	  query with version set to zero and rdlen larger than zero.
+	- Fixed strptime, so that zonec will also work on systems with broken 
+		strptime (like leopard :-))
 
 FEATURES:
         - Added "hide-version" configuration setting. Enabling this feature 

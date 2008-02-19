@@ -37,7 +37,14 @@
   * POSSIBILITY OF SUCH DAMAGE.
  **/
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
+#ifndef HAVE_CONFIG_H
+#include <time.h>
+#endif
+
 #ifndef STRPTIME_WORKS
 
 #define TM_YEAR_BASE 1900

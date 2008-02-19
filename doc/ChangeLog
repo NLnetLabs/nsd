@@ -1,3 +1,6 @@
+19 February 2008: Matthijs
+	- Fixed strptime bug (for MacOS Leopard)
+
 22 January 2008: Matthijs
 	- Add configuration for chkconfig to control nsd service (bug 164)
 
