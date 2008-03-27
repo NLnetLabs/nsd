@@ -20,6 +20,7 @@ BUG FIXES:
 	  query with version set to zero and rdlen larger than zero.
 	- Fixed strptime, so that zonec will also work on systems with broken 
 		strptime (like leopard :-))
+    - Do not answer nsec3 wildcard information when DO bit is not set
 
 FEATURES:
         - Added "hide-version" configuration setting. Enabling this feature 
