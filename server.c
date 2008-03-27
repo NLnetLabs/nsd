@@ -473,7 +473,7 @@ server_init(struct nsd *nsd)
 		if (chroot(nsd->chrootdir)) {
 			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
 			return -1;
-		} 
+		}
 	}
 #endif
 

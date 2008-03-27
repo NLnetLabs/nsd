@@ -15,7 +15,7 @@ server:
 	# ip-address: 1.2.3.4
 	# ip-address: 12fe::8ef0
 
-        # don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
+    # don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
 	# hide-version: no
 
 	# enable debug mode, does not fork daemon process into the background.

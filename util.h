@@ -351,5 +351,12 @@ typedef struct stack stack_type;
 stack_type* stack_create(struct region* region, size_t size);
 void stack_push(stack_type* stack, void* elem);
 void* stack_pop(stack_type* stack);
+int addr2ip(
+#ifdef INET6
+	struct sockaddr_storage addr
+#else
+	struct sockaddr_in addr
+#endif
+, char address[], socklen_t size);
 
 #endif /* _UTIL_H_ */

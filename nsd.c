@@ -507,7 +507,7 @@ main (int argc, char *argv[])
 		      (unsigned) strlen(nsd.identity));
 	}
 
-        /* Read options */
+    /* Read options */
 	nsd.options = nsd_options_create(region_create(xalloc, free));
 	if(!parse_options_file(nsd.options, configfile)) {
 		error("nsd: could not read config: %s\n", configfile);
@@ -769,7 +769,7 @@ main (int argc, char *argv[])
 				nsd.pidfile, strerror(errno));
 		}
 	} else {
-		if (kill(oldpid, 0) == 0 || errno == EPERM) { 
+		if (kill(oldpid, 0) == 0 || errno == EPERM) {
 			log_msg(LOG_WARNING,
 				"nsd is already running as %u, continuing",
 				(unsigned) oldpid);

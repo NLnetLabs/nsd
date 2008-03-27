@@ -100,7 +100,6 @@ namedb_discard (struct namedb *db)
 	region_destroy(db->region);
 }
 
-
 static int
 write_dname(struct namedb *db, domain_type *domain)
 {
@@ -254,7 +253,6 @@ write_db(namedb_type *db)
 	--zone_count;
 	if (!write_number(db, zone_count))
 		return -1;
-
 	for (zone = db->zones; zone; zone = zone->next) {
 		if (write_dname(db, zone->apex))
 			return -1;

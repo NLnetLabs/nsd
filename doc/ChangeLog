@@ -1,3 +1,6 @@
+27 March 2008: Matthijs
+	- Port some branch modifications to trunk
+
 28 February 2008: Matthijs
 	- Do not answer nsec3 wildcard information when DO bit is not set
 
@@ -70,8 +73,8 @@
 29 October 2007: Wouter
 	- Fixup bug where malformed IXFR replies cause partial processing in
 	  reload (or nsd-patch or nsd-startup). One result is multiple SOA
-	  records in zone apex. Fixup rolls back the zone
-	  transfer, and waits for NSD to try to load again.
+	  records in zone apex. Fixup rolls back the zone transfer, and waits
+	  for NSD to try to load again.
 
 26  October 2008: Wouter
 	- small fix in descriptive text in sample config for debug-mode.
