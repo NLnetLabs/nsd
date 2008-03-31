@@ -10,6 +10,9 @@ M  - Moet nog
 ! 31   "query section not included in 'NotImp' answers to updates"
 ! 37   "invalid packet echoed on FormErr" - how to send stuff with tcp replay
 ! 100   "zonec alters RRSIG inception/expiration" on sparc only --- hmmmm
+M 157   "return FORMERR if edns query is received with version=0 and rdlen>0"
+M 163   "..."
+M 164   "chkconfig"
 ====================================
 - 4   "Correctly handle queries with too much data"  to little info
 - 6   "different name encodiungs?"
