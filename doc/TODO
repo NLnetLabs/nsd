@@ -10,6 +10,7 @@ GENERAL
 - Make tpkg test for bug 157
 - Make tpkg test for bug 163
 - Make tpkg test for bug 164
+- Update tpkg long tests
 
 AUTOCONF
 - check/translate arguments to --with-facility

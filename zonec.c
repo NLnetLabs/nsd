@@ -1371,8 +1371,7 @@ main (int argc, char **argv)
 {
 	struct namedb *db;
 	char *origin = NULL;
-	int c;
-	int errn = 0;
+	int c, errn;
 	region_type *global_region;
 	region_type *rr_region;
 	const char* configfile= CONFIGFILE;
@@ -1458,9 +1457,9 @@ main (int argc, char **argv)
 	}
 
 	/* Create the database */
-
 	if ((db = namedb_new(dbfile, &errn)) == NULL) {
-		fprintf(stderr, "zonec: error creating the database (%s): %s\n", dbfile, strerror(errn));
+		fprintf(stderr, "zonec: error creating the database (%s): %s\n", 
+			dbfile, strerror(errn));
 		exit(1);
 	}
 
