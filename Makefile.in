@@ -403,6 +403,9 @@ snprintf.o:	$(srcdir)/compat/snprintf.c
 strlcpy.o:	$(srcdir)/compat/strlcpy.c
 	$(COMPILE) -c $(srcdir)/compat/strlcpy.c -o $@
 
+strptime.o:	$(srcdir)/compat/strptime.c
+	$(COMPILE) -c $(srcdir)/compat/strptime.c -o $@
+
 vsnprintf.o:	$(srcdir)/compat/vsnprintf.c
 	$(COMPILE) -c $(srcdir)/compat/vsnprintf.c -o $@
 
@@ -592,6 +595,7 @@ memmove.o: $(srcdir)/compat/memmove.c config.h
 pselect.o: $(srcdir)/compat/pselect.c config.h
 snprintf.o: $(srcdir)/compat/snprintf.c config.h
 strlcpy.o: $(srcdir)/compat/strlcpy.c config.h
+strptime.o: $(srcdir)/compat/strptime.c config.h
 cutest.o: $(srcdir)/tpkg/cutest/cutest.c $(srcdir)/tpkg/cutest/cutest.h
 cutest_dname.o: $(srcdir)/tpkg/cutest/cutest_dname.c config.h $(srcdir)/tpkg/cutest/cutest.h \
  $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h config.h

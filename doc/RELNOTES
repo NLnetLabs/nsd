@@ -3,13 +3,21 @@ NSD RELEASE NOTES
 3.0.8
 =============
 FEATURES:
+	- Better logging for nsd-notify (show 'broken' zone)
 	- Add configuration for chkconfig to control nsd service.
 
 BUG FIXES:
+    - Fixed nsdc start when nsd already running: do not initialize server, 
+      since it is already running.
 	- Fixup bug where data related files are looked up in the wrong
-	  directory when chrooted with chrootdir ending with a slash. 
+	  directory when chrooted with chrootdir ending with a slash.
 	- Fixup bug where nsd would return FORMERR if received an edns
-	  query with version set to zero and rdlen larger than zero. 
+	  query with version set to zero and rdlen larger than zero.
+	- Fixed strptime, so that zonec will also work on systems with broken 
+		strptime (like leopard :-))
+    - Do not answer nsec3 wildcard information when DO bit is not set
+	- Better logging when creating database failed.
+	- Various spelling errors
 
 3.0.7
 =============

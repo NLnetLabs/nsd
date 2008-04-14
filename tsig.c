@@ -91,7 +91,7 @@ tsig_init(region_type *region)
 	tsig_algorithm_table = NULL;
 
 #if defined(TSIG) && defined(HAVE_SSL)
-	tsig_openssl_init(region);
+	return tsig_openssl_init(region);
 #endif
 	
 	return 1;

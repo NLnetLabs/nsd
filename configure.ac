@@ -106,14 +106,14 @@ AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfr
 AC_SUBST(xfrdfile)
 
 #
-# Determine the user name to drop priviledges to
+# Determine the user name to drop privileges to
 #
 user=nsd
 AC_ARG_WITH([user],
 	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
 	[user=$withval])
 AC_SUBST(user)
-AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop priviledges to])
+AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
 
 # Checks for programs.
 AC_PROG_AWK
@@ -330,6 +330,28 @@ fi
 
 AC_CHECK_STRPTIME
 
+# check wether strptime also works
+AC_DEFUN([AC_CHECK_STRPTIME_WORKS],
+[AC_REQUIRE([AC_PROG_CC])
+AC_MSG_CHECKING(whether strptime works)
+AC_TRY_RUN([
+#define _XOPEN_SOURCE
+#include <time.h>
+int main(void) { struct tm tm; char *res; 
+res = strptime("20070207111842", "%Y%m%d%H%M%S", &tm);
+if (!res) return 1; return 0; }
+] , [eval "ac_cv_c_strptime_works=yes"], [eval "ac_cv_c_strptime_works=no"])
+
+AC_MSG_RESULT($ac_cv_c_strptime_works)
+if test $ac_cv_c_strptime_works = yes; then
+AC_DEFINE_UNQUOTED([STRPTIME_WORKS], 1, [strptime works under current system.])
+else
+AC_LIBOBJ(strptime)
+fi
+])dnl
+
+AC_CHECK_STRPTIME_WORKS
+
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
 
@@ -419,6 +441,7 @@ AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(inet_ntop)
 AC_REPLACE_FUNCS(snprintf)
 AC_REPLACE_FUNCS(strlcpy)
+AC_REPLACE_FUNCS(strptime)
 AC_REPLACE_FUNCS(b64_pton)
 AC_REPLACE_FUNCS(b64_ntop)
 AC_REPLACE_FUNCS(pselect)
@@ -687,6 +710,12 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif
 #ifndef HAVE_GETADDRINFO
 #include "compat/fake-rfc2553.h"
+#endif
+#ifndef HAVE_STRPTIME
+char *strptime(const char *s, const char *format, struct tm *tm); 
+#endif
+#ifndef STRPTIME_WORKS
+#define strptime(a,b,c) nsd_strptime((a),(b),(c))
 #endif
 
 /* provide timespec def if not available */

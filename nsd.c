@@ -507,11 +507,11 @@ main (int argc, char *argv[])
 		      (unsigned) strlen(nsd.identity));
 	}
 
-        /* Read options */
-        nsd.options = nsd_options_create(region_create(xalloc, free));
-        if(!parse_options_file(nsd.options, configfile)) {
-                error("nsd: could not read config: %s\n", configfile);
-        }
+    /* Read options */
+	nsd.options = nsd_options_create(region_create(xalloc, free));
+	if(!parse_options_file(nsd.options, configfile)) {
+		error("nsd: could not read config: %s\n", configfile);
+	}
 	if(nsd.options->ip4_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET;
@@ -591,6 +591,7 @@ main (int argc, char *argv[])
 		else nsd.username = USER;
 	}
 	if(nsd.options->zonesdir && nsd.options->zonesdir[0]) {
+		log_msg(LOG_NOTICE, "changed directory to %s", nsd.options->zonesdir); 
 		if(chdir(nsd.options->zonesdir)) {
 			error("cannot chdir to '%s': %s", 
 				nsd.options->zonesdir, strerror(errno));
@@ -824,7 +825,6 @@ main (int argc, char *argv[])
 	sigaction(SIGCHLD, &action, NULL);
 	action.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &action, NULL);
-
 
 	/* Get our process id */
 	nsd.pid = getpid();

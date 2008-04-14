@@ -1371,7 +1371,7 @@ main (int argc, char **argv)
 {
 	struct namedb *db;
 	char *origin = NULL;
-	int c;
+	int c, errn;
 	region_type *global_region;
 	region_type *rr_region;
 	const char* configfile= CONFIGFILE;
@@ -1450,6 +1450,8 @@ main (int argc, char **argv)
 			fprintf(stderr, "zonec: cannot chdir to %s: %s\n", zonesdir, strerror(errno));
 			exit(1);
 		}
+		else
+			log_msg(LOG_NOTICE, "changed directory to %s\n", zonesdir); 
 	}
 	if(dbfile == 0) {
 		if(nsd_options && nsd_options->database) dbfile = nsd_options->database;
@@ -1457,8 +1459,9 @@ main (int argc, char **argv)
 	}
 
 	/* Create the database */
-	if ((db = namedb_new(dbfile)) == NULL) {
-		fprintf(stderr, "zonec: error creating the database: %s\n", dbfile);
+	if ((db = namedb_new(dbfile, &errn)) == NULL) {
+		fprintf(stderr, "zonec: error creating the database (%s): %s\n", 
+			dbfile, strerror(errn));
 		exit(1);
 	}
 
@@ -1518,7 +1521,7 @@ main (int argc, char **argv)
 	
 	/* Close the database */
 	if (namedb_save(db) != 0) {
-		fprintf(stderr, "zonec: error saving the database: %s\n", strerror(errno));
+		fprintf(stderr, "zonec: error writing the database (%s): %s\n", db->filename, strerror(errno));
 		namedb_discard(db);
 		exit(1);
 	}

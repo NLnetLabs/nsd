@@ -1,3 +1,9 @@
+27 March 2008: Matthijs
+	  - Do not answer nsec3 wildcard information when DO bit is not set
+	  - Fixed strptime bug (for MacOS Leopard)
+	  - Fixup bug start nsd while already running: do not initialize server,
+	    since it is already running. 
+
 22 January 2008: Matthijs
 	- Add configuration for chkconfig to control nsd service (bug 164)
 
@@ -6,19 +12,19 @@
 	  received with version set to zero and rdlen is larger than zero.
 
 3 December 2007: Matthijs
-	- Fixup bug where data related files are looked up in the wrong 
-	  directory when chrooted with chrootdir ending with a slash. 
+	- Fixup bug where data related files are looked up in the wrong
+	  directory when chrooted with chrootdir ending with a slash.
 
 13 November 2007: Wouter
 	- Release 3.0.7, tagged, configure.ac moved to 3.0.8.
 
 12 November 2007: Matthijs
-	- Fixed man pages
+	- Changed man pages according to bug 162. 
 
 30 October 2007: Wouter
 	- Fixup for skip after unknown deleted IXFR RR, otherwise processing
-	  would continue at the wrong spot in the packet and process
-	  the IXFR as if it were malformed.
+	  would continue at the wrong spot in the packet and process the IXFR
+	  as if it were malformed.
 	- fixup mark_and_exit for rollback of malformed zone transfers.
 
 29 October 2007: Wouter

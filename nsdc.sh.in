@@ -239,7 +239,12 @@ do_rebuild() {
 
 case "$1" in
 start)
-	do_start
+	if test -s ${pidfile} && kill -"0" `cat ${pidfile}` 
+	then
+		(echo "process `cat ${pidfile}` exists, please use restart"; exit 1)
+	else
+		do_start
+	fi
 	;;
 stop)
 	do_stop

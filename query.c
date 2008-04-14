@@ -1004,7 +1004,11 @@ answer_authoritative(struct nsd   *nsd,
 		match->nsec3_wcard_child_cover = wildcard_child->nsec3_wcard_child_cover;
 		match->nsec3_ds_parent_is_exact = wildcard_child->nsec3_ds_parent_is_exact;
 		match->nsec3_ds_parent_cover = wildcard_child->nsec3_ds_parent_cover;
-		nsec3_answer_wildcard(q, answer, wildcard_child, nsd->db, qname);
+
+		if (q->edns.dnssec_ok && q->zone->nsec3_soa_rr) {
+			/* Only add nsec3 wildcard data when do bit is set */
+			nsec3_answer_wildcard(q, answer, wildcard_child, nsd->db, qname);
+		}
 #endif
 
 		/*

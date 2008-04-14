@@ -1,5 +1,5 @@
 /*
- * edns.h -- EDNS definitions (RFC 2671).
+ * edns.c -- EDNS definitions (RFC 2671).
  *
  * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
  *
