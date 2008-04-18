@@ -1,3 +1,6 @@
+18 April 2008: Matthijs
+	- Release 3.0.8, tagged, configure.ac moved to 3.0.9.
+
 27 March 2008: Matthijs
 	  - Do not answer nsec3 wildcard information when DO bit is not set
 	  - Fixed strptime bug (for MacOS Leopard)
