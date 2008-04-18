@@ -591,11 +591,12 @@ main (int argc, char *argv[])
 		else nsd.username = USER;
 	}
 	if(nsd.options->zonesdir && nsd.options->zonesdir[0]) {
-		log_msg(LOG_NOTICE, "changed directory to %s", nsd.options->zonesdir); 
 		if(chdir(nsd.options->zonesdir)) {
 			error("cannot chdir to '%s': %s", 
 				nsd.options->zonesdir, strerror(errno));
 		}
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s", 
+			nsd.options->zonesdir));
 	}
 	/* get it from the config file */
 #ifdef NSID

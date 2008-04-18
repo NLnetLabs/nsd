@@ -268,7 +268,7 @@ rdata_atom_data(rdata_atom_type atom)
 zone_type *namedb_find_zone(namedb_type *db, domain_type *domain);
 
 /* dbcreate.c */
-struct namedb *namedb_new(const char *filename, int* errn);
+struct namedb *namedb_new(const char *filename);
 int namedb_save(struct namedb *db);
 void namedb_discard(struct namedb *db);
 

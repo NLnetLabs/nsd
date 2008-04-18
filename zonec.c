@@ -1459,9 +1459,9 @@ main (int argc, char **argv)
 	}
 
 	/* Create the database */
-	if ((db = namedb_new(dbfile, &errn)) == NULL) {
+	if ((db = namedb_new(dbfile)) == NULL) {
 		fprintf(stderr, "zonec: error creating the database (%s): %s\n", 
-			dbfile, strerror(errn));
+			dbfile, strerror(errno));
 		exit(1);
 	}
 

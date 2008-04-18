@@ -474,8 +474,8 @@ server_init(struct nsd *nsd)
 			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
 			return -1;
 		}
-		else
-			log_msg(LOG_NOTICE, "changed root directory to %s", nsd->chrootdir);
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s", 
+			nsd->chrootdir));
 
 	}
 #endif
