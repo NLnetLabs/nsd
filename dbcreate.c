@@ -22,7 +22,7 @@ static int write_db (namedb_type *db);
 static int write_number(struct namedb *db, uint32_t number);
 
 struct namedb *
-namedb_new (const char *filename, int* errn)
+namedb_new (const char *filename)
 {
 	namedb_type *db;
 	region_type *region = region_create_custom(xalloc, free, 
@@ -45,20 +45,17 @@ namedb_new (const char *filename, int* errn)
 	 * ensure that NSD doesn't see the changes until a reload is done.
 	 */
 	if (unlink(db->filename) == -1 && errno != ENOENT) {
-		*errn = errno;
 		region_destroy(region);
 		return NULL;
 	}
 	
 	/* Create the database */
     if ((db->fd = fopen(db->filename, "w")) == NULL) {
-		*errn = errno;
 		region_destroy(region);
 		return NULL;
 	}
 
 	if (!write_data_crc(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE, &db->crc)) {
-		*errn = errno;
 		fclose(db->fd);
 		namedb_discard(db);
 		return NULL;
