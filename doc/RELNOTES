@@ -8,7 +8,7 @@ OPERATIONAL NOTES:
 
 BUG FIXES:
 	- Zone compiler gives more sane error messages when out of
-	  diskspace.
+	  diskspace and bug #172: when compiling single zone file.
 	- Changed man pages format from mdoc to mansun, to support the Solaris OS.
 
 FEATURES:

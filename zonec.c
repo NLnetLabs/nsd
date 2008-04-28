@@ -1473,7 +1473,7 @@ main (int argc, char **argv)
 		/*
 		 * Read a single zone file with the specified origin
 		 */
-		if(!singlefile || !origin) {
+		if(!singlefile) {
 			fprintf(stderr, "zonec: must have -z zonefile when reading single zone.\n");
 			exit(1);
 		}
