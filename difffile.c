@@ -1228,15 +1228,16 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 			continue;
 		RBTREE_FOR(dx, struct diff_xfrpart*, dz->parts)
 		{
+			memmove(&mem_fpos, &dx->file_pos, sizeof(off_t));
+
 			if(found_any) {
 				memmove(&mem_offset, offset, sizeof(off_t));
-				memmove(&mem_fpos, &dx->file_pos, sizeof(off_t));
 
 				if(mem_fpos < mem_offset)
-					memmove(offset, &dx->file_pos, sizeof(off_t));
+					memmove(offset, &mem_fpos, sizeof(off_t));
 			} else {
 				found_any = 1;
-				memmove(offset, &dx->file_pos, sizeof(off_t));
+				memmove(offset, &mem_fpos, sizeof(off_t));
 			}
 		}
 	}
