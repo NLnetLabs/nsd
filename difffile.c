@@ -307,7 +307,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	rrset->rr_count = 0;
 }
 
-static int 
+static int
 rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 {
 	int k;
@@ -320,7 +320,7 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 				return 0;
 		} else {
 			/* check length */
-			if(a[k].data[0] != b[k].data[0]) 
+			if(a[k].data[0] != b[k].data[0])
 				return 0;
 			/* check data */
 			if(memcmp(a[k].data+1, b[k].data+1, a[k].data[0])!=0)
@@ -336,7 +336,7 @@ find_rr_num(rrset_type* rrset,
 	rdata_atom_type *rdatas, ssize_t rdata_num)
 {
 	int i;
-	for(i=0; i<rrset->rr_count; ++i) {
+	for(i=0; i < rrset->rr_count; ++i) {
 		if(rrset->rrs[i].ttl == ttl &&
 		   rrset->rrs[i].type == type &&
 		   rrset->rrs[i].klass == klass &&
@@ -357,14 +357,14 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	rrset_type *rrset;
 	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
-		log_msg(LOG_WARNING, "diff: domain %s does not exist", 
+		log_msg(LOG_WARNING, "diff: domain %s does not exist",
 			dname_to_string(dname,0));
 		buffer_skip(packet, rdatalen);
 		return 1; /* not fatal error */
 	}
 	rrset = domain_find_rrset(domain, zone, type);
 	if(!rrset) {
-		log_msg(LOG_WARNING, "diff: rrset %s does not exist", 
+		log_msg(LOG_WARNING, "diff: rrset %s does not exist",
 			dname_to_string(dname,0));
 		buffer_skip(packet, rdatalen);
 		return 1; /* not fatal error */
@@ -378,13 +378,13 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		rdata_num = rdata_wireformat_to_rdata_atoms(
 			temp_region, temptable, type, rdatalen, packet, &rdatas);
 		if(rdata_num == -1) {
-			log_msg(LOG_ERR, "diff: bad rdata for %s", 
+			log_msg(LOG_ERR, "diff: bad rdata for %s",
 				dname_to_string(dname,0));
 			return 0;
 		}
 		rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
 		if(rrnum == -1) {
-			log_msg(LOG_WARNING, "diff: RR %s does not exist", 
+			log_msg(LOG_WARNING, "diff: RR %s does not exist",
 				dname_to_string(dname,0));
 			return 1; /* not fatal error */
 		}
@@ -641,8 +641,10 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	char file_zone_name[3072];
 	uint32_t file_serial, file_seq_nr;
 	uint16_t file_id;
+	off_t mempos;
 
-	if(fseeko(in, *startpos, SEEK_SET) == -1) {
+	memmove(&mempos, startpos, sizeof(off_t));
+	if(fseeko(in, mempos, SEEK_SET) == -1) {
 		log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
 		return 0;
 	}
@@ -677,7 +679,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		log_msg(LOG_ERR, "could not part data");
 		return 0;
 	}
-	
+
 	if(strcmp(file_zone_name, zone) != 0 || serialno != file_serial ||
 		id != file_id || seq_nr != file_seq_nr) {
 		log_msg(LOG_ERR, "internal error: reading part with changed id");
@@ -693,7 +695,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		region_destroy(region);
 		return 0;
 	}
-	
+
 	if(msglen > QIOBUFSZ) {
 		log_msg(LOG_ERR, "msg too long");
 		region_destroy(region);
@@ -707,7 +709,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	}
 	buffer_set_limit(packet, msglen);
 
-	/* only answer section is really used, question, additional and 
+	/* only answer section is really used, question, additional and
 	   authority section RRs are skipped */
 	qcount = QDCOUNT(packet);
 	ancount = ANCOUNT(packet);
@@ -926,7 +928,7 @@ struct diff_xfrpart {
 	off_t file_pos;
 };
 
-static struct diff_read_data* 
+static struct diff_read_data*
 diff_read_data_create()
 {
 	region_type* region = region_create(xalloc, free);
@@ -937,7 +939,7 @@ diff_read_data_create()
 		exit(1);
 	}
 	data->region = region;
-	data->zones = rbtree_create(region, 
+	data->zones = rbtree_create(region,
 		(int (*)(const void *, const void *)) dname_compare);
 	return data;
 }
@@ -953,9 +955,9 @@ diff_read_find_zone(struct diff_read_data* data, const char* name)
 
 static int intcompf(const void* a, const void* b)
 {
-	if(*(uint32_t*)a < *(uint32_t*)b) 
+	if(*(uint32_t*)a < *(uint32_t*)b)
 		return -1;
-	if(*(uint32_t*)a > *(uint32_t*)b) 
+	if(*(uint32_t*)a > *(uint32_t*)b)
 		return +1;
 	return 0;
 }
@@ -1121,7 +1123,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			if(!apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
 				&rr_count, child_count)) {
-				log_msg(LOG_ERR, "bad ixfr packet part %d", (int)i);
+				log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
+					opt->difffile);
 				mark_and_exit(opt, in, commitpos, log_buf);
 			}
 		}
@@ -1133,7 +1136,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	else {
 	 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skipping xfr: %s", log_buf));
 	}
-	
+
 	/* clean out the parts for the zone after the commit/rollback */
 	zp->parts->root = RBTREE_NULL;
 	zp->parts->count = 0;
@@ -1215,6 +1218,8 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 	int found_any = 0;
 	struct diff_zone* dz;
 	struct diff_xfrpart* dx;
+	off_t mem_offset, mem_fpos;
+
 	if(!data || !data->zones)
 		return 0;
 	RBTREE_FOR(dz, struct diff_zone*, data->zones)
@@ -1224,7 +1229,10 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 		RBTREE_FOR(dx, struct diff_xfrpart*, dz->parts)
 		{
 			if(found_any) {
-				if(dx->file_pos < *offset)
+				memmove(&mem_offset, offset, sizeof(off_t));
+				memmove(&mem_fpos, &dx->file_pos, sizeof(off_t));
+
+				if(mem_fpos < mem_offset)
 					memmove(offset, &dx->file_pos, sizeof(off_t));
 			} else {
 				found_any = 1;
