@@ -783,7 +783,7 @@ main (int argc, char *argv[])
 	/* Unless we're debugging, fork... */
 	if (!nsd.debug) {
 		int fd;
-		
+
 		/* Take off... */
 		switch ((nsd.pid = fork())) {
 		case 0:

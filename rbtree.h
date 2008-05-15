@@ -32,7 +32,7 @@ extern	rbnode_t	rbtree_null_node;
 typedef struct rbtree_t rbtree_t;
 struct rbtree_t {
 	region_type *region;
-	
+
 	/* The root of the red-black tree */
 	rbnode_t    *root;
 

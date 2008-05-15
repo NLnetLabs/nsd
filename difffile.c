@@ -18,42 +18,42 @@
 #include "packet.h"
 #include "rdata.h"
 
-static int 
+static int
 write_32(FILE *out, uint32_t val)
 {
 	val = htonl(val);
 	return write_data(out, &val, sizeof(val));
 }
 
-static int 
+static int
 write_16(FILE *out, uint16_t val)
 {
 	val = htons(val);
 	return write_data(out, &val, sizeof(val));
 }
 
-static int 
+static int
 write_8(FILE *out, uint8_t val)
 {
 	return write_data(out, &val, sizeof(val));
 }
 
-static int 
+static int
 write_str(FILE *out, const char* str)
 {
 	uint32_t len = strlen(str);
-	if(!write_32(out, len)) 
+	if(!write_32(out, len))
 		return 0;
 	return write_data(out, str, len);
 }
 
-void 
-diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id, 
+void
+diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 	uint32_t seq_nr, uint8_t* data, size_t len, nsd_options_t* opt)
 {
 	const char* filename = opt->difffile;
 	FILE *df;
-	uint32_t file_len = sizeof(uint32_t) + strlen(zone) + 
+	uint32_t file_len = sizeof(uint32_t) + strlen(zone) +
 		sizeof(new_serial) + sizeof(id) + sizeof(seq_nr) + len;
 
 	df = fopen(filename, "a");
@@ -70,7 +70,7 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 		!write_16(df, id) ||
 		!write_32(df, seq_nr) ||
 		!write_data(df, data, len) ||
-		!write_32(df, file_len)) 
+		!write_32(df, file_len))
 	{
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
@@ -79,10 +79,10 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 	fclose(df);
 }
 
-void 
+void
 diff_write_commit(const char* zone, uint32_t old_serial,
 	uint32_t new_serial, uint16_t id, uint32_t num_parts,
-	uint8_t commit, const char* log_str, 
+	uint8_t commit, const char* log_str,
 	nsd_options_t* opt)
 {
 	const char* filename = opt->difffile;
@@ -96,7 +96,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		return;
 	}
 
-	len = strlen(zone)+sizeof(len) + sizeof(old_serial) + 
+	len = strlen(zone)+sizeof(len) + sizeof(old_serial) +
 		sizeof(new_serial) + sizeof(id) + sizeof(num_parts) +
 		sizeof(commit) + strlen(log_str)+sizeof(len);
 
@@ -109,7 +109,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		!write_32(df, num_parts) ||
 		!write_8(df, commit) ||
 		!write_str(df, log_str) ||
-		!write_32(df, len)) 
+		!write_32(df, len))
 	{
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
@@ -118,7 +118,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 	fclose(df);
 }
 
-int 
+int
 db_crc_different(namedb_type* db)
 {
 	FILE *fd = fopen(db->filename, "r");
@@ -129,7 +129,7 @@ db_crc_different(namedb_type* db)
 			db->filename, strerror(errno));
 		return -1;
 	}
-	
+
 	/* seek to position of CRC, check it and magic no */
 	if(fseeko(fd, db->crc_pos, SEEK_SET)==-1) {
 		log_msg(LOG_ERR, "unable to fseeko %s: %s. db changed?",
@@ -166,7 +166,7 @@ db_crc_different(namedb_type* db)
 	return 1;
 }
 
-int 
+int
 diff_read_32(FILE *in, uint32_t* result)
 {
         if (fread(result, sizeof(*result), 1, in) == 1) {
@@ -177,7 +177,7 @@ diff_read_32(FILE *in, uint32_t* result)
         }
 }
 
-int 
+int
 diff_read_16(FILE *in, uint16_t* result)
 {
         if (fread(result, sizeof(*result), 1, in) == 1) {
@@ -188,7 +188,7 @@ diff_read_16(FILE *in, uint16_t* result)
         }
 }
 
-int 
+int
 diff_read_8(FILE *in, uint8_t* result)
 {
         if (fread(result, sizeof(*result), 1, in) == 1) {
@@ -198,15 +198,15 @@ diff_read_8(FILE *in, uint8_t* result)
         }
 }
 
-int 
+int
 diff_read_str(FILE* in, char* buf, size_t len)
 {
 	uint32_t disklen;
-	if(!diff_read_32(in, &disklen)) 
+	if(!diff_read_32(in, &disklen))
 		return 0;
-	if(disklen >= len) 
+	if(disklen >= len)
 		return 0;
-	if(fread(buf, disklen, 1, in) != 1) 
+	if(fread(buf, disklen, 1, in) != 1)
 		return 0;
 	buf[disklen] = 0;
 	return 1;
@@ -221,15 +221,15 @@ add_rdata_to_recyclebin(namedb_type* db, rr_type* rr)
 	{
 		if(!rdata_atom_is_domain(rr->type, i))
 			region_recycle(db->region, rr->rdatas[i].data,
-				rdata_atom_size(rr->rdatas[i]) 
+				rdata_atom_size(rr->rdatas[i])
 				+ sizeof(uint16_t));
 	}
-	region_recycle(db->region, rr->rdatas, 
+	region_recycle(db->region, rr->rdatas,
 		sizeof(rdata_atom_type)*rr->rdata_count);
 }
 
 /* this routine determines if below a domain there exist names with
- * data (is_existing) or no names below the domain have data. 
+ * data (is_existing) or no names below the domain have data.
  */
 static int
 has_data_below(domain_type* top)
@@ -246,7 +246,7 @@ has_data_below(domain_type* top)
 	return 0;
 }
 
-static void 
+static void
 rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 {
 	int i;
@@ -261,7 +261,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	}
 	*pp = rrset->next;
 
-	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "delete rrset of %s type %s", 
+	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "delete rrset of %s type %s",
 		dname_to_string(domain_dname(domain),0),
 		rrtype_to_string(rrset_rrtype(rrset))));
 
@@ -286,7 +286,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	/* recycle the memory space of the rrset */
 	for (i = 0; i < rrset->rr_count; ++i)
 		add_rdata_to_recyclebin(db, &rrset->rrs[i]);
-	region_recycle(db->region, rrset->rrs, 
+	region_recycle(db->region, rrset->rrs,
 		sizeof(rr_type) * rrset->rr_count);
 	region_recycle(db->region, rrset, sizeof(rrset_type));
 
@@ -330,9 +330,9 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	return 1;
 }
 
-static int 
+static int
 find_rr_num(rrset_type* rrset,
-	uint16_t type, uint16_t klass, uint32_t ttl, 
+	uint16_t type, uint16_t klass, uint32_t ttl,
 	rdata_atom_type *rdatas, ssize_t rdata_num)
 {
 	int i;
@@ -347,9 +347,9 @@ find_rr_num(rrset_type* rrset,
 	return -1;
 }
 
-static int 
-delete_RR(namedb_type* db, const dname_type* dname, 
-	uint16_t type, uint16_t klass, uint32_t ttl, 
+static int
+delete_RR(namedb_type* db, const dname_type* dname,
+	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
 	region_type* temp_region)
 {
@@ -623,8 +623,8 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 	assert(zone->updated == 1);
 }
 
-static int 
-apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos, 
+static int
+apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
 	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
@@ -1026,8 +1026,8 @@ mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
 	exit(1);
 }
 
-static int 
-read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt, 
+static int
+read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	struct diff_read_data* data, struct diff_log** log,
 	size_t child_count)
 {
@@ -1085,7 +1085,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		return 1;
 	}
 	if(committed && check_for_bad_serial(db, zone_buf, old_serial)) {
-		DEBUG(DEBUG_XFRD,1, (LOG_ERR, 
+		DEBUG(DEBUG_XFRD,1, (LOG_ERR,
 			"skipping diff file commit with bad serial"));
 		zp->parts->root = RBTREE_NULL;
 		zp->parts->count = 0;
@@ -1100,7 +1100,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		}
 	}
 	if(!have_all_parts) {
-		DEBUG(DEBUG_XFRD,1, (LOG_ERR, 
+		DEBUG(DEBUG_XFRD,1, (LOG_ERR,
 			"skipping diff file commit without all parts"));
 		if(thislog)
 			thislog->error = "error missing parts";
