@@ -1429,7 +1429,7 @@ xfrd_check_failed_updates()
 		/* zone has a disk soa, and no nsd soa or a different nsd soa */
 		if(zone->soa_disk_acquired != 0 &&
 			(zone->soa_nsd_acquired == 0 ||
-			zone->soa_disk.serial != zone->soa_nsd.serial)) 
+			zone->soa_disk.serial != zone->soa_nsd.serial))
 		{
 			if(zone->soa_disk_acquired < xfrd->reload_cmd_last_sent) {
 				/* this zone should have been loaded, since its disk

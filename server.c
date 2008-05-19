@@ -1394,7 +1394,16 @@ handle_tcp_reading(netio_type *netio,
 				 */
 				return;
 			} else {
-				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+#ifdef ECONNRESET
+				if (verbosity >= 2 || errno != ECONNRESET) {
+					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+				}
+#endif
+#ifndef ECONNRESET
+				if (verbosity >= 2) {
+					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+				}
+#endif
 				cleanup_tcp_handler(netio, handler);
 				return;
 			}
@@ -1416,7 +1425,7 @@ handle_tcp_reading(netio_type *netio,
 		assert(data->bytes_transmitted == sizeof(uint16_t));
 
 		data->query->tcplen = ntohs(data->query->tcplen);
-		
+
 		/*
 		 * Minimum query size is:
 		 *
@@ -1454,7 +1463,16 @@ handle_tcp_reading(netio_type *netio,
 			 */
 			return;
 		} else {
-			log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+#ifdef ECONNRESET
+			if (verbosity >= 2 || errno != ECONNRESET) {
+				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+			}
+#endif
+#ifndef ECONNRESET
+			if (verbosity >= 2) {
+				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
+			}
+#endif
 			cleanup_tcp_handler(netio, handler);
 			return;
 		}
