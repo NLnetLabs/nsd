@@ -37,14 +37,14 @@ dname_make(region_type *region, const uint8_t *name, int normalize)
 	while (1) {
 		if (label_is_pointer(label))
 			return NULL;
-		
+
 		label_offsets[label_count] = (uint8_t) (label - name);
 		++label_count;
 		name_size += label_length(label) + 1;
 
 		if (label_is_root(label))
 			break;
-		
+
 		label = label_next(label);
 	}
 
@@ -296,33 +296,6 @@ dname_is_subdomain(const dname_type *left, const dname_type *right)
 			return 0;
 	}
 
-	return 1;
-}
-
-
-int
-dname_equals(const dname_type *left, const dname_type *right)
-{
-	const char* left_str;
-	const char* right_str;
-
-	assert(left);
-	assert(right);
-
-	if (left == right) {
-		return 0;
-	}
-
-	left_str = dname_to_string(left, NULL);
-	right_str = dname_to_string(right, NULL);
-
-	while (tolower(*left_str) == tolower(*right_str) && *left_str != '\0') {
-		++left_str;
-		++right_str;
-	}
-
-	if (*left_str == *right_str) /* equals */
-		return 0;
 	return 1;
 }
 

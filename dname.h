@@ -170,15 +170,6 @@ dname_label(const dname_type *dname, uint8_t label)
 	return dname_name(dname) + label_index;
 }
 
-/*
- * Compare two domain names on equality. The compare is case insensitive.
- *
- * Return < 0 if LEFT < RIGHT, 0 if LEFT == RIGHT, and > 0 if LEFT >
- *
- * Pre: left != NULL && right != NULL
- */
-int dname_equals(const dname_type *left, const dname_type *right);
-
 
 /*
  * Compare two domain names.  The comparison defines a lexographical

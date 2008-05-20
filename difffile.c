@@ -315,8 +315,7 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	{
 		if(rdata_atom_is_domain(type, k)) {
 			/* check dname: should compare case insensitive */
-			if(dname_compare(domain_dname(a[k].domain),
-							 domain_dname(b[k].domain))!=0)
+			if(dname_compare(domain_dname(a[k].domain), domain_dname(b[k].domain))!=0)
 				return 0;
 		} else {
 			/* check length */
@@ -340,7 +339,7 @@ find_rr_num(rrset_type* rrset,
 
 	for(i=0; i < rrset->rr_count; ++i) {
 		if(rrset->rrs[i].type == type &&
-		   rrset->rrs[i].ttl == ttl &&
+//		   rrset->rrs[i].ttl == ttl &&
 		   rrset->rrs[i].klass == klass &&
 		   rrset->rrs[i].rdata_count == rdata_num &&
 		   rdatas_equal(rdatas, rrset->rrs[i].rdatas, rdata_num, type))
