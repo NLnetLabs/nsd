@@ -54,7 +54,7 @@ struct xfrd_state {
 	struct timespec reload_timeout;
 	netio_handler_type reload_handler;
 	/* last reload must have caught all zone updates before this time */
-	time_t reload_cmd_last_sent; 
+	time_t reload_cmd_last_sent;
 	uint8_t can_send_reload;
 
 	/* communication channel with server_main */
@@ -76,7 +76,7 @@ struct xfrd_state {
 
 	/* tree of zones, by apex name, contains xfrd_zone_t*. Only secondary zones. */
 	rbtree_t *zones;
-	
+
 	/* tree of zones, by apex name, contains notify_zone_t*. All zones. */
 	rbtree_t *notify_zones;
 	/* number of notify_zone_t active using UDP socket */
@@ -147,7 +147,7 @@ struct xfrd_zone {
 	int master_num;
 	int next_master; /* -1 or set by notify where to try next */
 	/* round of xfrattempts, -1 is waiting for timeout */
-	int round_num; 
+	int round_num;
 	zone_options_t* zone_options;
 	int fresh_xfr_timeout;
 
@@ -186,7 +186,7 @@ enum xfrd_packet_result {
 	xfrd_packet_newlease /* no changes, soa OK */
 };
 
-/* 
+/*
    Division of the (portably: 1024) max number of sockets that can be open.
    The sum of the below numbers should be below the user limit for sockets
    open, or you see errors in your logfile.
@@ -209,7 +209,7 @@ time_t xfrd_time();
 
 /*
  * Handle final received packet from network.
- * returns enum of packet discovery results 
+ * returns enum of packet discovery results
  */
 enum xfrd_packet_result xfrd_handle_received_xfr_packet(
 	xfrd_zone_t* zone, buffer_type* packet);
@@ -221,23 +221,23 @@ void xfrd_set_refresh_now(xfrd_zone_t* zone);
 /* unset the timer - no more timeouts, for when zone is queued */
 void xfrd_unset_timer(xfrd_zone_t* zone);
 
-/* 
- * Make a new request to next master server. 
+/*
+ * Make a new request to next master server.
  * uses next_master if set (and a fresh set of rounds).
- * otherwised, starts new round of requests if none started already. 
+ * otherwised, starts new round of requests if none started already.
  * starts next round of requests if at last master.
  * if too many rounds of requests, sets timer for next retry.
  */
 void xfrd_make_request(xfrd_zone_t* zone);
 
-/* 
- * send packet via udp (returns UDP fd source socket) to acl addr. 
- * returns -1 on failure. 
+/*
+ * send packet via udp (returns UDP fd source socket) to acl addr.
+ * returns -1 on failure.
  */
 int xfrd_send_udp(acl_options_t* acl, buffer_type* packet);
 
-/* 
- * read from udp port packet into buffer, returns 0 on failure 
+/*
+ * read from udp port packet into buffer, returns 0 on failure
  */
 int xfrd_udp_read_packet(buffer_type* packet, int fd);
 
@@ -260,9 +260,9 @@ void xfrd_tsig_sign_request(buffer_type* packet, struct tsig_record* tsig,
 /* handle incoming soa information (NSD is running it, time acquired=guess).
    Pass soa=NULL,acquired=now if NSD has nothing loaded for the zone
    (i.e. zonefile was deleted). */
-void xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, 
+void xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa,
 	time_t acquired);
-/* handle a packet passed along ipc route. acl is the one that accepted 
+/* handle a packet passed along ipc route. acl is the one that accepted
    the packet. The packet is the network blob received. */
 void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 

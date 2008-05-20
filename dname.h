@@ -34,7 +34,7 @@ struct dname
 	 * The size (in bytes) of the domain name in wire format.
 	 */
 	uint8_t name_size;
-	
+
 	/*
 	 * The number of labels in this domain name (including the
 	 * root label).
@@ -160,15 +160,24 @@ static inline const uint8_t *
 dname_label(const dname_type *dname, uint8_t label)
 {
 	uint8_t label_index;
-	
+
 	assert(dname != NULL);
 	assert(label < dname->label_count);
 
 	label_index = dname_label_offsets(dname)[label];
 	assert(label_index < dname->name_size);
-		
+
 	return dname_name(dname) + label_index;
 }
+
+/*
+ * Compare two domain names on equality. The compare is case insensitive.
+ *
+ * Return < 0 if LEFT < RIGHT, 0 if LEFT == RIGHT, and > 0 if LEFT >
+ *
+ * Pre: left != NULL && right != NULL
+ */
+int dname_equals(const dname_type *left, const dname_type *right);
 
 
 /*
@@ -177,7 +186,7 @@ dname_label(const dname_type *dname, uint8_t label)
  * significant label.
  *
  * Return < 0 if LEFT < RIGHT, 0 if LEFT == RIGHT, and > 0 if LEFT >
- * RIGHT.  The comparison is case insensitive.
+ * RIGHT.  The comparison is case sensitive.
  *
  * Pre: left != NULL && right != NULL
  */

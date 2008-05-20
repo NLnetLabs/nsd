@@ -49,7 +49,7 @@ static void xfrd_init_zones();
 static void xfrd_free_namedb();
 
 /* handle zone timeout, event */
-static void xfrd_handle_zone(netio_type *netio, 
+static void xfrd_handle_zone(netio_type *netio,
 	netio_handler_type *handler, netio_event_types_type event_types);
 /* handle incoming notification message. soa can be NULL. true if transfer needed. */
 static int xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa);
@@ -66,7 +66,7 @@ static void xfrd_set_timer_refresh(xfrd_zone_t* zone);
 /* set reload timeout */
 static void xfrd_set_reload_timeout();
 /* handle reload timeout */
-static void xfrd_handle_reload(netio_type *netio, 
+static void xfrd_handle_reload(netio_type *netio,
 	netio_handler_type *handler, netio_event_types_type event_types);
 
 /* send expiry notifications to nsd */
@@ -1361,7 +1361,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 		next = find_same_master_notify(zone, acl_num);
 		if(next != -1) {
 			zone->next_master = next;
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 				"xfrd: notify set next master to query %d", next));
 		}
 	}
@@ -1370,13 +1370,13 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 	}
 }
 
-static int 
+static int
 xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 {
 	if(soa && zone->soa_disk_acquired && zone->state != xfrd_zone_expired
 		&& compare_serial(ntohl(soa->serial), ntohl(zone->soa_disk.serial)) <= 0)
 	{
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"xfrd: ignored notify %s %u old serial, zone valid",
 			zone->apex_str, ntohl(soa->serial)));
 		return 0; /* ignore notify with old serial, we have a valid zone */
@@ -1384,7 +1384,7 @@ xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 	if(soa == 0) {
 		zone->soa_notified.serial = 0;
 	}
-	else if(zone->soa_notified_acquired == 0 || 
+	else if(zone->soa_notified_acquired == 0 ||
 		zone->soa_notified.serial == 0 ||
 		compare_serial(ntohl(soa->serial), ntohl(zone->soa_notified.serial)) > 0)
 	{
@@ -1407,7 +1407,7 @@ find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy)
 		zone->zone_options->allow_notify, acl_num_nfy);
 	int num = 0;
 	acl_options_t* master = zone->zone_options->request_xfr;
-	if(!nfy_acl) 
+	if(!nfy_acl)
 		return -1;
 	while(master)
 	{

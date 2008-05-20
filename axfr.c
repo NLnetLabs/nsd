@@ -30,7 +30,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 
 	if (query->maxlen > AXFR_MAX_MESSAGE_LEN)
 		query->maxlen = AXFR_MAX_MESSAGE_LEN;
-	
+
 	assert(!query_overflow(query));
 #ifdef TSIG
 	/* only keep running values for most packets */
@@ -49,10 +49,10 @@ query_axfr (struct nsd *nsd, struct query *query)
 				      query->qname,
 				      &closest_match,
 				      &closest_encloser);
-		
+
 		query->domain = closest_encloser;
 		query->axfr_zone = domain_find_zone(closest_encloser);
-		
+
 		if (!exact
 		    || query->axfr_zone == NULL
 		    || query->axfr_zone->apex != query->domain)
@@ -96,7 +96,7 @@ query_axfr (struct nsd *nsd, struct query *query)
 
 	/* Add zone RRs until answer is full.  */
 	assert(query->axfr_current_domain);
-	
+
 	while ((rbnode_t *) query->axfr_current_domain != RBTREE_NULL) {
 		if (!query->axfr_current_rrset) {
 			query->axfr_current_rrset = domain_find_any_rrset(
@@ -172,23 +172,23 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			zone_options_t* zone_opt;
 			zone_opt = zone_options_find(nsd->options, q->qname);
 			if(!zone_opt ||
-			   acl_check_incoming(zone_opt->provide_xfr, q, &acl)==-1) 
+			   acl_check_incoming(zone_opt->provide_xfr, q, &acl)==-1)
 			{
 				char address[128];
 
 				if (addr2ip(q->addr, address, 128)) {
-					DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+					DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 						"addr2ip failed"));
 					strcpy(address, "[unknown]");
 				}
 
 				VERBOSITY(1, (LOG_INFO, "axfr for zone %s from client %s refused, %s", dname_to_string(q->qname, NULL), address, acl?"blocked":"no acl matches"));
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr refused, %s", 
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr refused, %s",
 						acl?"blocked":"no acl matches"));
 				RCODE_SET(q->packet, RCODE_REFUSE);
 				return QUERY_PROCESSED;
 			}
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr admitted acl %s %s", 
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr admitted acl %s %s",
 				acl->ip_address_spec, acl->key_name?acl->key_name:"NOKEY"));
 			return query_axfr(nsd, q);
 		}

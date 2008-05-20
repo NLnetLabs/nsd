@@ -677,7 +677,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
  * as server_main.
  */
 static void
-server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio, 
+server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int cmdsocket, int* xfrd_sock_p)
 {
 	pid_t old_pid;
@@ -687,13 +687,13 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int ret;
 
 	if(db_crc_different(nsd->db) == 0) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"CRC the same. skipping %s.", nsd->db->filename));
 	} else {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"CRC different. reread of %s.", nsd->db->filename));
 		namedb_close(nsd->db);
-		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, 
+		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options,
 			nsd->child_count)) == NULL) {
 			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
 			exit(1);
@@ -960,7 +960,7 @@ server_main(struct nsd *nsd)
 				break;
 
 			/* timeout to collect processes. In case no sigchild happens. */
-			timeout_spec.tv_sec = 60; 
+			timeout_spec.tv_sec = 60;
 			timeout_spec.tv_nsec = 0;
 
 			/* listen on ports, timeout for collecting terminated children */
@@ -995,7 +995,7 @@ server_main(struct nsd *nsd)
 			case 0:
 				/* CHILD */
 				close(reload_sockets[0]);
-				server_reload(nsd, server_region, netio, 
+				server_reload(nsd, server_region, netio,
 					reload_sockets[1], &xfrd_listener.fd);
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload exited to become new main"));
 				close(reload_sockets[1]);

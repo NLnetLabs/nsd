@@ -46,7 +46,7 @@ struct domain
 	domain_type *wildcard_child_closest_match;
 	rrset_type  *rrsets;
 #ifdef NSEC3
-	/* (if nsec3 chain complete) always the covering nsec3 record */ 
+	/* (if nsec3 chain complete) always the covering nsec3 record */
 	domain_type *nsec3_cover;
 	/* the nsec3 that covers the wildcard child of this domain. */
 	domain_type *nsec3_wcard_child_cover;
@@ -55,15 +55,15 @@ struct domain
 	/* the NSEC3 domain that has a hash-base32 <= than this dname. */
 	/* or NULL (no smaller one within this zone)
 	 * this variable is used to look up the NSEC3 record that matches
-	 * or covers a given b64-encoded-hash-string domain name. 
-	 * The result of the lookup is stored in the *_cover variables. 
+	 * or covers a given b64-encoded-hash-string domain name.
+	 * The result of the lookup is stored in the *_cover variables.
 	 * The variable makes it possible to perform a rbtree lookup for
 	 * a name, then take this 'jump' to the previous element that contains
 	 * an NSEC3 record, with hopefully the correct parameters. */
 	domain_type *nsec3_lookup;
 #endif
 	uint32_t     number; /* Unique domain name number.  */
-	
+
 	/*
 	 * This domain name exists (see wildcard clarification draft).
 	 */

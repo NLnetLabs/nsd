@@ -320,7 +320,7 @@ int compare_serial(uint32_t a, uint32_t b);
  */
 void cleanup_region(void *data);
 
-/* 
+/*
  * Region used to store owner and origin of previous RR (used
  * for pretty printing of zone data).
  * Keep the same between calls to print_rr.
@@ -339,7 +339,7 @@ int print_rr(FILE *out, struct state_pretty_rr* state, struct rr *record);
  */
 const char* rcode2str(int rc);
 
-/* 
+/*
  * Stack of pointers.
  * Stack is fixed size on start. More elems fall off stack.
  */

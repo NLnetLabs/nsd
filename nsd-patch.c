@@ -23,17 +23,15 @@ extern int optind;
 static void
 usage(void)
 {
-        fprintf(stderr, "usage: nsd-patch [options]\n");
-        fprintf(stderr, "       Reads database and ixfrs and patches up zone files.\n");
-	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", 
-		PACKAGE_VERSION, PACKAGE_BUGREPORT);
-        fprintf(stderr, "-c configfile	Specify config file to use, instead of %s\n", CONFIGFILE);
-        fprintf(stderr, "-f		Force writing of zone files.\n");
-        fprintf(stderr, "-h		Print this help information.\n");
-        fprintf(stderr, "-l		List contents of transfer journal difffile, %s\n",
-		DIFFFILE);
-        fprintf(stderr, "-x difffile	Specify diff file to use, instead of diff file from config.\n");
-        exit(1);
+	fprintf(stderr, "usage: nsd-patch [options]\n");
+	fprintf(stderr, "       Reads database and ixfrs and patches up zone files.\n");
+	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", PACKAGE_VERSION, PACKAGE_BUGREPORT);
+	fprintf(stderr, "-c configfile	Specify config file to use, instead of %s\n", CONFIGFILE);
+	fprintf(stderr, "-f		Force writing of zone files.\n");
+	fprintf(stderr, "-h		Print this help information.\n");
+	fprintf(stderr, "-l		List contents of transfer journal difffile, %s\n", DIFFFILE);
+	fprintf(stderr, "-x difffile	Specify diff file to use, instead of diff file from config.\n");
+	exit(1);
 }
 
 static void
@@ -55,7 +53,7 @@ list_xfr(FILE *in)
 	skiplen = len - (sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name));
 	printf("zone %s transfer id %x serial %d: seq_nr %d of %d bytes\n",
 		zone_name, id, new_serial, seq_nr, skiplen);
-	
+
 	if(fseeko(in, skiplen, SEEK_CUR) == -1)
 		fprintf(stderr, "fseek failed: %s\n", strerror(errno));
 	if(!diff_read_32(in, &len2)) {
@@ -110,7 +108,7 @@ list_commit(FILE *in)
 	}
 	printf("zone %s transfer id %x serial %d: %s of %d packets\n",
 		zone_name, id, new_serial, commit?"commit":"rollback", num);
-	printf("   time %s, from serial %d, log message: %s\n", 
+	printf("   time %s, from serial %d, log message: %s\n",
 		get_date(log_msg), old_serial, log_msg);
 	if(len != len2) {
 		printf("  commit packet with bad length check bytes!\n");
@@ -244,10 +242,10 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 			filename, strerror(errno));
 		return;
 	}
-	
+
 	/* print zone header */
 	fprintf(out, "; NSD version %s\n", PACKAGE_VERSION);
-	fprintf(out, "; nsd-patch zone %s run at time %s", 
+	fprintf(out, "; nsd-patch zone %s run at time %s",
 		zone->opts->name, ctime(&now));
 	print_commit_log(out, domain_dname(zone->apex), commit_log);
 
@@ -291,7 +289,7 @@ int main(int argc, char* argv[])
 	}
 	argc -= optind;
 	argv += optind;
-	if (argc != 0) 
+	if (argc != 0)
 		usage();
 
 	/* read config file */
@@ -303,15 +301,15 @@ int main(int argc, char* argv[])
 	}
 	if(options->zonesdir && options->zonesdir[0]) {
 		if (chdir(options->zonesdir)) {
-			fprintf(stderr, "nsd-patch: cannot chdir to %s: %s\n", 
+			fprintf(stderr, "nsd-patch: cannot chdir to %s: %s\n",
 				options->zonesdir, strerror(errno));
 			exit(1);
 		}
 	}
 
 	/* override difffile if commandline option given */
-	if(difffile) 
-		options->difffile = difffile; 
+	if(difffile)
+		options->difffile = difffile;
 
 	/* see if necessary */
 	if(!exist_difffile(options)) {
@@ -328,7 +326,7 @@ int main(int argc, char* argv[])
 	printf("reading database\n");
 	db = namedb_open(options->database, options, fake_child_count);
 	if(!db) {
-		fprintf(stderr, "Could not read database: %s\n", 
+		fprintf(stderr, "Could not read database: %s\n",
 			options->database);
 		exit(1);
 	}
@@ -342,7 +340,7 @@ int main(int argc, char* argv[])
 	/* read ixfr diff file */
 	printf("reading updates to database\n");
 	if(!diff_read_file(db, options, &commit_log, fake_child_count)) {
-		fprintf(stderr, "unable to load the diff file: %s\n", 
+		fprintf(stderr, "unable to load the diff file: %s\n",
 			options->difffile);
 		exit(1);
 	}

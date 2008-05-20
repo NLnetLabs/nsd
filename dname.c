@@ -31,9 +31,9 @@ dname_make(region_type *region, const uint8_t *name, int normalize)
 	const uint8_t *label = name;
 	dname_type *result;
 	ssize_t i;
-	
+
 	assert(name);
-	
+
 	while (1) {
 		if (label_is_pointer(label))
 			return NULL;
@@ -245,7 +245,7 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 
 	/* Add root label.  */
 	*h = 0;
-	
+
 	return p-dname;
 }
 
@@ -268,7 +268,7 @@ dname_partial_copy(region_type *region, const dname_type *dname, uint8_t label_c
 		/* Always copy the root label.  */
 		label_count = 1;
 	}
-	
+
 	assert(label_count <= dname->label_count);
 
 	return dname_make(region, dname_label(dname, label_count - 1), 0);
@@ -286,7 +286,7 @@ int
 dname_is_subdomain(const dname_type *left, const dname_type *right)
 {
 	uint8_t i;
-	
+
 	if (left->label_count < right->label_count)
 		return 0;
 
@@ -301,12 +301,39 @@ dname_is_subdomain(const dname_type *left, const dname_type *right)
 
 
 int
+dname_equals(const dname_type *left, const dname_type *right)
+{
+	const char* left_str;
+	const char* right_str;
+
+	assert(left);
+	assert(right);
+
+	if (left == right) {
+		return 0;
+	}
+
+	left_str = dname_to_string(left, NULL);
+	right_str = dname_to_string(right, NULL);
+
+	while (tolower(*left_str) == tolower(*right_str) && *left_str != '\0') {
+		++left_str;
+		++right_str;
+	}
+
+	if (*left_str == *right_str) /* equals */
+		return 0;
+	return 1;
+}
+
+
+int
 dname_compare(const dname_type *left, const dname_type *right)
 {
 	int result;
 	uint8_t label_count;
 	uint8_t i;
-	
+
 	assert(left);
 	assert(right);
 
@@ -392,7 +419,7 @@ dname_to_string(const dname_type *dname, const dname_type *origin)
 		strcpy(buf, ".");
 		return buf;
 	}
-	
+
 	if (origin && dname_is_subdomain(dname, origin)) {
 		int common_labels = dname_label_match_count(dname, origin);
 		labels_to_convert = dname->label_count - common_labels;
@@ -442,7 +469,7 @@ dname_make_from_label(region_type *region,
 
 	return dname_make(region, temp, 1);
 }
-         
+
 
 const dname_type *
 dname_concatenate(region_type *region,
@@ -452,7 +479,7 @@ dname_concatenate(region_type *region,
 	uint8_t temp[MAXDOMAINLEN];
 
 	assert(left->name_size + right->name_size - 1 <= MAXDOMAINLEN);
-	
+
 	memcpy(temp, dname_name(left), left->name_size - 1);
 	memcpy(temp + left->name_size - 1, dname_name(right), right->name_size);
 
@@ -477,17 +504,17 @@ dname_replace(region_type* region,
 	if(x_len+dest->name_size > MAXDOMAINLEN)
 		return NULL;
 
-	res = (dname_type*)region_alloc(region, sizeof(dname_type) + 
+	res = (dname_type*)region_alloc(region, sizeof(dname_type) +
 		(x_labels+dest->label_count + x_len+dest->name_size)
 		*sizeof(uint8_t));
 	res->name_size = x_len+dest->name_size;
 	res->label_count = x_labels+dest->label_count;
 	for(i=0; i<dest->label_count; i++)
-		((uint8_t*)dname_label_offsets(res))[i] = 
+		((uint8_t*)dname_label_offsets(res))[i] =
 			dname_label_offsets(dest)[i] + x_len;
 	for(i=dest->label_count; i<res->label_count; i++)
-		((uint8_t*)dname_label_offsets(res))[i] = 
-			dname_label_offsets(name)[i - dest->label_count + 
+		((uint8_t*)dname_label_offsets(res))[i] =
+			dname_label_offsets(name)[i - dest->label_count +
 				src->label_count];
 	memcpy((uint8_t*)dname_name(res), dname_name(name), x_len);
 	memcpy((uint8_t*)dname_name(res)+x_len, dname_name(dest), dest->name_size);

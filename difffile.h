@@ -29,10 +29,10 @@ struct diff_log {
 
 /* write an xfr packet data to the diff file, type=IXFR.
    The diff file is created if necessary. */
-void diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id, 
+void diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 	uint32_t seq_nr, uint8_t* data, size_t len, nsd_options_t* opt);
 
-/* 
+/*
  * Write a commit packet to the diff file, type=SURE.
  * The zone data (preceding ixfr packets) are committed.
  * See NSD-DIFFFILE for meaning of the arguments.
@@ -47,7 +47,7 @@ void diff_write_commit(const char* zone, uint32_t old_serial,
 int db_crc_different(namedb_type* db);
 
 /* read the diff file and apply to the database in memory.
-   It will attempt to skip bad data. 
+   It will attempt to skip bad data.
    If you pass a non-null value log, log comments are alloced in namedb.region
    then, *log must be 0 on start of call (entries are prepended).
    returns 0 on an unrecoverable error. */

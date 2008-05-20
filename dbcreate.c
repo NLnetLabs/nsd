@@ -1,5 +1,5 @@
 /*
- * dbcreate.c -- routines to create an nsd(8) name database 
+ * dbcreate.c -- routines to create an nsd(8) name database
  *
  * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
  *
@@ -25,10 +25,10 @@ struct namedb *
 namedb_new (const char *filename)
 {
 	namedb_type *db;
-	region_type *region = region_create_custom(xalloc, free, 
-		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE, 
+	region_type *region = region_create_custom(xalloc, free,
+		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
 		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
-	
+
 	/* Make a new structure... */
 	db = (namedb_type *) region_alloc(region, sizeof(namedb_type));
 	db->region = region;
@@ -48,7 +48,7 @@ namedb_new (const char *filename)
 		region_destroy(region);
 		return NULL;
 	}
-	
+
 	/* Create the database */
     if ((db->fd = fopen(db->filename, "w")) == NULL) {
 		region_destroy(region);
@@ -65,19 +65,19 @@ namedb_new (const char *filename)
 }
 
 
-int 
+int
 namedb_save (struct namedb *db)
 {
 	if (write_db(db) != 0) {
 		return -1;
-	}		
+	}
 
 	/* Finish up and write the crc */
 	if (!write_number(db, ~db->crc)) {
 		fclose(db->fd);
 		return -1;
 	}
-	
+
 	/* Write the magic... */
 	if (!write_data_crc(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE, &db->crc)) {
 		fclose(db->fd);
@@ -92,7 +92,7 @@ namedb_save (struct namedb *db)
 }
 
 
-void 
+void
 namedb_discard (struct namedb *db)
 {
 	unlink(db->filename);
@@ -103,7 +103,7 @@ static int
 write_dname(struct namedb *db, domain_type *domain)
 {
 	const dname_type *dname = domain_dname(domain);
-	
+
 	if (!write_data_crc(db->fd, &dname->name_size, sizeof(dname->name_size), &db->crc))
 		return -1;
 
@@ -131,9 +131,9 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 	assert(db);
 	assert(domain);
 	assert(rrset);
-	
+
 	rr_count = htons(rrset->rr_count);
-	
+
 	if (!write_number(db, domain->number))
 		return 1;
 
@@ -155,11 +155,11 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 		rr_type *rr = &rrset->rrs[i];
 		uint32_t ttl;
 		uint16_t rdata_count;
-		
+
 		rdata_count = htons(rr->rdata_count);
 		if (!write_data_crc(db->fd, &rdata_count, sizeof(rdata_count), &db->crc))
 			return 1;
-	
+
 		ttl = htonl(rr->ttl);
 		if (!write_data_crc(db->fd, &ttl, sizeof(ttl), &db->crc))
 			return 1;
@@ -202,7 +202,7 @@ static int
 write_dname_iterator(domain_type *node, void *user_data)
 {
 	namedb_type *db = (namedb_type *) user_data;
-	
+
 	return write_dname(db, node);
 }
 
@@ -225,7 +225,7 @@ write_domain_iterator(domain_type *node, void *user_data)
  *
  * Returns zero if success.
  */
-static int 
+static int
 write_db(namedb_type *db)
 {
 	zone_type *zone;
@@ -233,11 +233,11 @@ write_db(namedb_type *db)
 	uint32_t dname_count = 1;
 	uint32_t zone_count = 1;
 	int errors = 0;
-	
+
 	for (zone = db->zones; zone; zone = zone->next) {
 		zone->number = zone_count;
 		++zone_count;
-		
+
 		if (!zone->soa_rrset) {
 			fprintf(stderr, "SOA record not present in %s\n",
 				dname_to_string(domain_dname(zone->apex),
@@ -256,7 +256,7 @@ write_db(namedb_type *db)
 		if (write_dname(db, zone->apex))
 			return -1;
 	}
-	
+
 	if (domain_table_iterate(db->domains, number_dnames_iterator, &dname_count))
 		return -1;
 
@@ -266,7 +266,7 @@ write_db(namedb_type *db)
 
 	DEBUG(DEBUG_ZONEC, 1,
 	      (LOG_INFO, "Storing %lu domain names\n", (unsigned long) dname_count));
-	
+
 	if (domain_table_iterate(db->domains, write_dname_iterator, db))
 		return -1;
 

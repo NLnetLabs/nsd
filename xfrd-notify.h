@@ -54,16 +54,16 @@ struct notify_zone_t {
 
 /* initialise outgoing notifies */
 void init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
-        const dname_type* apex, struct zone_options* options, 
+        const dname_type* apex, struct zone_options* options,
 	struct zone* dbzone);
 
 /* send notifications to all in the notify list */
 void xfrd_send_notify(rbtree_t* tree, const struct dname* apex,
 	struct xfrd_soa* new_soa);
 
-/* handle soa update notify for a master zone. newsoa can be NULL. 
+/* handle soa update notify for a master zone. newsoa can be NULL.
    Makes sure that the soa (serial) has changed. Or drops notify. */
-void notify_handle_master_zone_soainfo(rbtree_t* tree, 
+void notify_handle_master_zone_soainfo(rbtree_t* tree,
 	const dname_type* apex, struct xfrd_soa* new_soa);
 
 /* close fds in use for notification sending */

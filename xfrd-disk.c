@@ -20,70 +20,70 @@
 
 /* quick tokenizer, reads words separated by whitespace.
    No quoted strings. Comments are skipped (#... eol). */
-static char* 
+static char*
 xfrd_read_token(FILE* in)
 {
 	static char buf[4000];
 	buf[sizeof(buf)-1]=0;
 	while(1) {
-		if(fscanf(in, " %3990s", buf) != 1) 
+		if(fscanf(in, " %3990s", buf) != 1)
 			return 0;
 
-		if(buf[0] != '#') 
+		if(buf[0] != '#')
 			return buf;
-		
-		if(!fgets(buf, sizeof(buf), in)) 
+
+		if(!fgets(buf, sizeof(buf), in))
 			return 0;
 	}
 }
 
-static int 
+static int
 xfrd_read_i16(FILE *in, uint16_t* v)
 {
 	char* p = xfrd_read_token(in);
-	if(!p) 
+	if(!p)
 		return 0;
 
 	*v=atoi(p);
 	return 1;
 }
 
-static int 
+static int
 xfrd_read_i32(FILE *in, uint32_t* v)
 {
 	char* p = xfrd_read_token(in);
-	if(!p) 
+	if(!p)
 		return 0;
 
 	*v=atoi(p);
 	return 1;
 }
 
-static int 
+static int
 xfrd_read_time_t(FILE *in, time_t* v)
 {
 	char* p = xfrd_read_token(in);
-	if(!p) 
+	if(!p)
 		return 0;
-	
+
 	*v=atol(p);
 	return 1;
 }
 
-static int 
+static int
 xfrd_read_check_str(FILE* in, const char* str)
 {
 	char *p = xfrd_read_token(in);
 	if(!p)
 		return 0;
 
-	if(strcmp(p, str) != 0) 
+	if(strcmp(p, str) != 0)
 		return 0;
 
 	return 1;
 }
 
-static int 
+static int
 xfrd_read_state_soa(FILE* in, const char* id_acquired,
 	const char* id, xfrd_soa_t* soa, time_t* soatime)
 {
@@ -94,14 +94,14 @@ xfrd_read_state_soa(FILE* in, const char* id_acquired,
 		return 0;
 	}
 
-	if(*soatime == 0) 
+	if(*soatime == 0)
 		return 1;
-	
+
 	if(!xfrd_read_check_str(in, id) ||
 	   !xfrd_read_i16(in, &soa->type) ||
 	   !xfrd_read_i16(in, &soa->klass) ||
 	   !xfrd_read_i32(in, &soa->ttl) ||
-	   !xfrd_read_i16(in, &soa->rdata_count)) 
+	   !xfrd_read_i16(in, &soa->rdata_count))
 	{
 		return 0;
 	}
@@ -123,7 +123,7 @@ xfrd_read_state_soa(FILE* in, const char* id_acquired,
 	   !xfrd_read_i32(in, &soa->refresh) ||
 	   !xfrd_read_i32(in, &soa->retry) ||
 	   !xfrd_read_i32(in, &soa->expire) ||
-	   !xfrd_read_i32(in, &soa->minimum)) 
+	   !xfrd_read_i32(in, &soa->minimum))
 	{
 		return 0;
 	}
@@ -136,7 +136,7 @@ xfrd_read_state_soa(FILE* in, const char* id_acquired,
 	return 1;
 }
 
-void 
+void
 xfrd_read_state(struct xfrd_state* xfrd)
 {
 	const char* statefile = xfrd->nsd->options->xfrdfile;
@@ -146,7 +146,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 	region_type *tempregion;
 
 	tempregion = region_create(xalloc, free);
-	if(!tempregion) 
+	if(!tempregion)
 		return;
 
 	in = fopen(statefile, "r");
@@ -166,9 +166,9 @@ xfrd_read_state(struct xfrd_state* xfrd)
 	   !xfrd_read_i32(in, &filetime) ||
 	   (time_t)filetime > xfrd_time()+15 ||
 	   !xfrd_read_check_str(in, "numzones:") ||
-	   !xfrd_read_i32(in, &numzones)) 
+	   !xfrd_read_i32(in, &numzones))
 	{
-		log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
+		log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)",
 			statefile, (int)filetime, (int)xfrd_time());
 		fclose(in);
 		region_destroy(tempregion);
@@ -181,7 +181,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		const dname_type* dname;
 		uint32_t state, masnum, nextmas, round_num, timeout;
 		xfrd_soa_t soa_nsd_read, soa_disk_read, soa_notified_read;
-		time_t soa_nsd_acquired_read, 
+		time_t soa_nsd_acquired_read,
 			soa_disk_acquired_read, soa_notified_acquired_read;
 		xfrd_soa_t incoming_soa;
 		time_t incoming_acquired;
@@ -211,7 +211,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		   !xfrd_read_state_soa(in, "soa_notify_acquired:", "soa_notify:",
 			&soa_notified_read, &soa_notified_acquired_read))
 		{
-			log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
+			log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)",
 				statefile, (int)filetime, (int)xfrd_time());
 			fclose(in);
 			region_destroy(tempregion);
@@ -244,21 +244,21 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		zone->master = acl_find_num(
 			zone->zone_options->request_xfr, zone->master_num);
 		if(!zone->master) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: masters changed for zone %s", 
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: masters changed for zone %s",
 				zone->apex_str));
 			zone->master = zone->zone_options->request_xfr;
 			zone->master_num = 0;
 			zone->round_num = 0;
 		}
 
-		/* 
+		/*
 		 * There is no timeout,
 		 * or there is a notification,
 		 * or there is a soa && current time is past refresh point
 		 */
 		if(timeout == 0 || soa_notified_acquired_read != 0 ||
 			(soa_disk_acquired_read != 0 &&
-			(uint32_t)xfrd_time() - soa_disk_acquired_read 
+			(uint32_t)xfrd_time() - soa_disk_acquired_read
 				> ntohl(soa_disk_read.refresh)))
 		{
 			zone->state = xfrd_zone_refreshing;
@@ -267,7 +267,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 
 		/* There is a soa && current time is past expiry point */
 		if(soa_disk_acquired_read!=0 &&
-			(uint32_t)xfrd_time() - soa_disk_acquired_read 
+			(uint32_t)xfrd_time() - soa_disk_acquired_read
 				> ntohl(soa_disk_read.expire))
 		{
 			zone->state = xfrd_zone_expired;
@@ -287,7 +287,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 	}
 
 	if(!xfrd_read_check_str(in, XFRD_FILE_MAGIC)) {
-		log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)", 
+		log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)",
 			statefile, (int)filetime, (int)xfrd_time());
 		region_destroy(tempregion);
 		fclose(in);
@@ -300,7 +300,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 }
 
 /* prints neato days hours and minutes. */
-static void 
+static void
 neato_timeout(FILE* out, const char* str, uint32_t secs)
 {
 	fprintf(out, "%s", str);
@@ -355,7 +355,7 @@ static void xfrd_write_dname(FILE* out, uint8_t* dname)
 	}
 }
 
-static void 
+static void
 xfrd_write_state_soa(FILE* out, const char* id,
 	xfrd_soa_t* soa, time_t soatime, const dname_type* ATTR_UNUSED(apex))
 {
@@ -367,8 +367,8 @@ xfrd_write_state_soa(FILE* out, const char* id,
 	neato_timeout(out, "\t# was", xfrd_time()-soatime);
 	fprintf(out, " ago\n");
 
-	fprintf(out, "\t%s: %u %u %u %u", id, 
-		ntohs(soa->type), ntohs(soa->klass), 
+	fprintf(out, "\t%s: %u %u %u %u", id,
+		ntohs(soa->type), ntohs(soa->klass),
 		ntohl(soa->ttl), ntohs(soa->rdata_count));
 	fprintf(out, " ");
 	xfrd_write_dname(out, soa->prim_ns);
@@ -387,7 +387,7 @@ xfrd_write_state_soa(FILE* out, const char* id,
 	fprintf(out, "\n");
 }
 
-void 
+void
 xfrd_write_state(struct xfrd_state* xfrd)
 {
 	rbnode_t* p;
@@ -402,7 +402,7 @@ xfrd_write_state(struct xfrd_state* xfrd)
 				statefile, strerror(errno));
 		return;
 	}
-	
+
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
 	fprintf(out, "# This file is written on exit by nsd xfr daemon.\n");
 	fprintf(out, "# This file contains slave zone information:\n");
@@ -436,23 +436,23 @@ xfrd_write_state(struct xfrd_state* xfrd)
 		fprintf(out, "\tmaster: %d\n", zone->master_num);
 		fprintf(out, "\tnext_master: %d\n", zone->next_master);
 		fprintf(out, "\tround_num: %d\n", zone->round_num);
-		fprintf(out, "\tnext_timeout: %d", 
+		fprintf(out, "\tnext_timeout: %d",
 			zone->zone_handler.timeout?(int)zone->timeout.tv_sec:0);
 		if(zone->zone_handler.timeout) {
-			neato_timeout(out, "\t# =", zone->timeout.tv_sec - xfrd_time()); 
+			neato_timeout(out, "\t# =", zone->timeout.tv_sec - xfrd_time());
 		}
 		fprintf(out, "\n");
-		xfrd_write_state_soa(out, "soa_nsd", &zone->soa_nsd, 
+		xfrd_write_state_soa(out, "soa_nsd", &zone->soa_nsd,
 			zone->soa_nsd_acquired, zone->apex);
-		xfrd_write_state_soa(out, "soa_disk", &zone->soa_disk, 
+		xfrd_write_state_soa(out, "soa_disk", &zone->soa_disk,
 			zone->soa_disk_acquired, zone->apex);
-		xfrd_write_state_soa(out, "soa_notify", &zone->soa_notified, 
+		xfrd_write_state_soa(out, "soa_notify", &zone->soa_notified,
 			zone->soa_notified_acquired, zone->apex);
 		fprintf(out, "\n");
 	}
 
 	fprintf(out, "%s\n", XFRD_FILE_MAGIC);
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: written %d zones to state file", 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: written %d zones to state file",
 		(int)xfrd->zones->count));
 	fclose(out);
 }

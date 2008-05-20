@@ -314,14 +314,15 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	for(k = 0; k < num; k++)
 	{
 		if(rdata_atom_is_domain(type, k)) {
-			/* check dname */
-			if(dname_compare(domain_dname(a[k].domain),
-				domain_dname(b[k].domain))!=0)
+			/* check dname: should compare case insensitive */
+			if(dname_equals(domain_dname(a[k].domain),
+							 domain_dname(b[k].domain))!=0)
 				return 0;
 		} else {
 			/* check length */
 			if(a[k].data[0] != b[k].data[0])
 				return 0;
+
 			/* check data */
 			if(memcmp(a[k].data+1, b[k].data+1, a[k].data[0])!=0)
 				return 0;
@@ -332,18 +333,21 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 
 static int
 find_rr_num(rrset_type* rrset,
-	uint16_t type, uint16_t klass, uint32_t ttl,
+	uint16_t type, uint16_t klass,
 	rdata_atom_type *rdatas, ssize_t rdata_num)
 {
 	int i;
+
 	for(i=0; i < rrset->rr_count; ++i) {
-		if(rrset->rrs[i].ttl == ttl &&
-		   rrset->rrs[i].type == type &&
+		if(rrset->rrs[i].type == type &&
 		   rrset->rrs[i].klass == klass &&
 		   rrset->rrs[i].rdata_count == rdata_num &&
 		   rdatas_equal(rdatas, rrset->rrs[i].rdatas, rdata_num, type))
+		{
 			return i;
+		}
 	}
+
 	return -1;
 }
 
@@ -382,7 +386,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				dname_to_string(dname,0));
 			return 0;
 		}
-		rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
+		rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
 		if(rrnum == -1) {
 			log_msg(LOG_WARNING, "diff: RR %s does not exist",
 				dname_to_string(dname,0));
@@ -413,9 +417,9 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	return 1;
 }
 
-static int 
-add_RR(namedb_type* db, const dname_type* dname, 
-	uint16_t type, uint16_t klass, uint32_t ttl, 
+static int
+add_RR(namedb_type* db, const dname_type* dname,
+	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone)
 {
 	domain_type* domain;
@@ -446,21 +450,21 @@ add_RR(namedb_type* db, const dname_type* dname,
 	rdata_num = rdata_wireformat_to_rdata_atoms(
 		db->region, db->domains, type, rdatalen, packet, &rdatas);
 	if(rdata_num == -1) {
-		log_msg(LOG_ERR, "diff: bad rdata for %s", 
+		log_msg(LOG_ERR, "diff: bad rdata for %s",
 			dname_to_string(dname,0));
 		return 0;
 	}
-	rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
+	rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
 	if(rrnum != -1) {
-		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR %s already exists", 
+		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR %s already exists",
 			dname_to_string(dname,0)));
 		/* ignore already existing RR: lenient accepting of messages */
 		return 1;
 	}
-	
+
 	/* re-alloc the rrs and add the new */
 	rrs_old = rrset->rrs;
-	rrset->rrs = region_alloc(db->region, 
+	rrset->rrs = region_alloc(db->region,
 		(rrset->rr_count+1) * sizeof(rr_type));
 	if(!rrset->rrs) {
 		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
@@ -486,20 +490,20 @@ add_RR(namedb_type* db, const dname_type* dname,
 			zone->updated = 1;
 			/* BUG #103 tweaked SOA ttl value */
 			if(zone->soa_nx_rrset == 0) {
-				zone->soa_nx_rrset = region_alloc(db->region, 
+				zone->soa_nx_rrset = region_alloc(db->region,
 					sizeof(rrset_type));
 				if(!zone->soa_nx_rrset) {
-					log_msg(LOG_ERR, "out of memory, %s:%d", 
+					log_msg(LOG_ERR, "out of memory, %s:%d",
 						__FILE__, __LINE__);
 					exit(1);
 				}
 				zone->soa_nx_rrset->rr_count = 1;
 				zone->soa_nx_rrset->next = 0;
 				zone->soa_nx_rrset->zone = zone;
-				zone->soa_nx_rrset->rrs = region_alloc(db->region, 
+				zone->soa_nx_rrset->rrs = region_alloc(db->region,
 					sizeof(rr_type));
 				if(!zone->soa_nx_rrset->rrs) {
-					log_msg(LOG_ERR, "out of memory, %s:%d", 
+					log_msg(LOG_ERR, "out of memory, %s:%d",
 						__FILE__, __LINE__);
 					exit(1);
 				}
@@ -529,7 +533,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	return 1;
 }
 
-static zone_type* 
+static zone_type*
 find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	size_t child_count)
 {
@@ -578,7 +582,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 		exit(1);
 	}
 	memset(zone->dirty, 0, sizeof(uint8_t)*child_count);
-	zone->opts = zone_options_find(opt, domain_dname(zone->apex)); 
+	zone->opts = zone_options_find(opt, domain_dname(zone->apex));
 	if(!zone->opts) {
 		log_msg(LOG_ERR, "xfr: zone %s not in config.",
 			dname_to_string(zone_name,0));
@@ -591,7 +595,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	return zone;
 }
 
-static void 
+static void
 delete_zone_rrs(namedb_type* db, zone_type* zone)
 {
 	rrset_type *rrset;
@@ -609,7 +613,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 		domain = domain_next(domain);
 	}
 
-	DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "axfrdel: recyclebin holds %lu bytes", 
+	DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "axfrdel: recyclebin holds %lu bytes",
 		(unsigned long) region_get_recycle_size(db->region)));
 #ifndef NDEBUG
 	if(nsd_debug_level >= 1)
@@ -774,6 +778,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		*rr_count = 1;
 		*is_axfr = 0;
 		*delete_mode = 0;
+
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
 			dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 	}
@@ -799,7 +804,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		ttl = buffer_read_u32(packet);
 		rrlen = buffer_read_u16(packet);
 		if(!buffer_available(packet, rrlen)) {
-			log_msg(LOG_ERR, "bad xfr RR rdata %d, len %d have %d", 
+			log_msg(LOG_ERR, "bad xfr RR rdata %d, len %d have %d",
 				*rr_count, rrlen, (int)buffer_remaining(packet));
 			region_destroy(region);
 			return 0;
@@ -850,22 +855,24 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			buffer_skip(packet, rrlen);
 			continue;
 		}
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfr %s RR dname is %s type %s", 
+
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfr %s RR dname is %s type %s",
 			*delete_mode?"del":"add",
 			dname_to_string(dname,0), rrtype_to_string(type)));
 		if(*delete_mode) {
 			/* delete this rr */
 			if(!*is_axfr && type == TYPE_SOA && counter==ancount-1
-				&& seq_nr == seq_total-1)
+				&& seq_nr == seq_total-1) {
 				continue; /* do not delete final SOA RR for IXFR */
-			if(!delete_RR(db, dname, type, klass, ttl, packet, 
+			}
+			if(!delete_RR(db, dname, type, klass, ttl, packet,
 				rrlen, zone_db, region))
 				return 0;
 		}
 		else
 		{
 			/* add this rr */
-			if(!add_RR(db, dname, type, klass, ttl, packet, 
+			if(!add_RR(db, dname, type, klass, ttl, packet,
 				rrlen, zone_db))
 				return 0;
 		}
@@ -874,7 +881,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	return 1;
 }
 
-static int 
+static int
 check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 {
 	/* see if serial OK with in-memory serial */
@@ -888,7 +895,7 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 	if(zone && zone->apex == domain && zone->soa_rrset && old_serial)
 	{
 		uint32_t memserial;
-		memcpy(&memserial, rdata_atom_data(zone->soa_rrset->rrs[0].rdatas[2]), 
+		memcpy(&memserial, rdata_atom_data(zone->soa_rrset->rrs[0].rdatas[2]),
 			sizeof(uint32_t));
 		if(old_serial != ntohl(memserial)) {
 			region_destroy(region);
@@ -1179,7 +1186,7 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 	return 1;
 }
 
-static int 
+static int
 read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	nsd_options_t* opt, struct diff_read_data* data,
 	struct diff_log** log, size_t child_count, off_t* startpos)
@@ -1195,7 +1202,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	}
 	else if(type == DIFF_PART_SURE) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", len));
-		if(!read_sure_part(db, in, opt, data, log, child_count)) 
+		if(!read_sure_part(db, in, opt, data, log, child_count))
 			return 0;
 	} else {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", type, len));
@@ -1245,7 +1252,7 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 	return found_any;
 }
 
-int 
+int
 diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	size_t child_count)
 {
@@ -1276,10 +1283,10 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		return 0;
 	}
 
-	while(diff_read_32(df, &type)) 
+	while(diff_read_32(df, &type))
 	{
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "iter loop"));
-		if(!read_process_part(db, df, type, opt, data, log, 
+		if(!read_process_part(db, df, type, opt, data, log,
 			child_count, &startpos))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
@@ -1307,7 +1314,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 			db->diff_skip = 0;
 		}
 	}
-	
+
 	region_destroy(data->region);
 	fclose(df);
 	return 1;
