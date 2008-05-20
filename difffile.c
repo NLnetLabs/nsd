@@ -315,7 +315,7 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	{
 		if(rdata_atom_is_domain(type, k)) {
 			/* check dname: should compare case insensitive */
-			if(dname_equals(domain_dname(a[k].domain),
+			if(dname_compare(domain_dname(a[k].domain),
 							 domain_dname(b[k].domain))!=0)
 				return 0;
 		} else {
@@ -333,13 +333,14 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 
 static int
 find_rr_num(rrset_type* rrset,
-	uint16_t type, uint16_t klass,
+	uint16_t type, uint16_t klass, uint32_t ttl,
 	rdata_atom_type *rdatas, ssize_t rdata_num)
 {
 	int i;
 
 	for(i=0; i < rrset->rr_count; ++i) {
 		if(rrset->rrs[i].type == type &&
+		   rrset->rrs[i].ttl == ttl &&
 		   rrset->rrs[i].klass == klass &&
 		   rrset->rrs[i].rdata_count == rdata_num &&
 		   rdatas_equal(rdatas, rrset->rrs[i].rdatas, rdata_num, type))
@@ -386,7 +387,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				dname_to_string(dname,0));
 			return 0;
 		}
-		rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
+		rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
 		if(rrnum == -1) {
 			log_msg(LOG_WARNING, "diff: RR %s does not exist",
 				dname_to_string(dname,0));
@@ -454,7 +455,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 			dname_to_string(dname,0));
 		return 0;
 	}
-	rrnum = find_rr_num(rrset, type, klass, rdatas, rdata_num);
+	rrnum = find_rr_num(rrset, type, klass, ttl, rdatas, rdata_num);
 	if(rrnum != -1) {
 		DEBUG(DEBUG_XFRD, 2, (LOG_ERR, "diff: RR %s already exists",
 			dname_to_string(dname,0)));
