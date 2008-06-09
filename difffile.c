@@ -393,10 +393,15 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		}
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
+			log_msg(LOG_WARNING, "diff: delete whole rrset %s",
+				dname_to_string(dname,0));
 			rrset_delete(db, domain, rrset);
 		} else {
 			/* swap out the bad RR and decrease the count */
 			rr_type* rrs_orig = rrset->rrs;
+
+			log_msg(LOG_WARNING, "diff: delete bad RRs %s",
+				dname_to_string(dname,0));
 			add_rdata_to_recyclebin(db, &rrset->rrs[rrnum]);
 			if(rrnum < rrset->rr_count-1)
 				rrset->rrs[rrnum] = rrset->rrs[rrset->rr_count-1];

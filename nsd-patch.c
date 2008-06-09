@@ -38,7 +38,9 @@ static void
 list_xfr(FILE *in)
 {
 	uint32_t skiplen, len, new_serial;
+	int i;
 	char zone_name[3072];
+/*	uint8_t hex_data; */
 	uint16_t id;
 	uint32_t seq_nr, len2;
 
@@ -54,8 +56,17 @@ list_xfr(FILE *in)
 	printf("zone %s transfer id %x serial %d: seq_nr %d of %d bytes\n",
 		zone_name, id, new_serial, seq_nr, skiplen);
 
+/* Debug code, print the hexadecimal contents of the packet
+	for (i=0; i<skiplen; i++) {
+			fread(&hex_data, 1, 1, in);
+			printf(" %2.2x ", hex_data);
+	}
+	printf(" \n");
+*/
+
 	if(fseeko(in, skiplen, SEEK_CUR) == -1)
 		fprintf(stderr, "fseek failed: %s\n", strerror(errno));
+
 	if(!diff_read_32(in, &len2)) {
 		printf("incomplete zone transfer content packet\n");
 		return;
@@ -172,7 +183,7 @@ print_rrs(FILE* out, struct zone* zone)
 	/* first print the SOA record for the zone */
 	if(zone->soa_rrset) {
 		size_t i;
-		for(i=0; i<zone->soa_rrset->rr_count; i++) {
+		for(i=0; i < zone->soa_rrset->rr_count; i++) {
 			if(!print_rr(out, state, &zone->soa_rrset->rrs[i])){
 				fprintf(stderr, "There was an error "
 				   "printing SOARR to zone %s\n",
@@ -189,7 +200,7 @@ print_rrs(FILE* out, struct zone* zone)
 			size_t i;
 			if(rrset->zone != zone || rrset == zone->soa_rrset)
 				continue;
-			for(i=0; i<rrset->rr_count; i++) {
+			for(i=0; i < rrset->rr_count; i++) {
 				if(!print_rr(out, state, &rrset->rrs[i])){
 					fprintf(stderr, "There was an error "
 					   "printing RR to zone %s\n",
