@@ -370,7 +370,7 @@ main (int argc, char *argv[])
 
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:V:v"
-#ifndef NDEBUG	
+#ifndef NDEBUG
 		"F:L:"
 #endif /* NDEBUG */
 		)) != -1) {
@@ -555,7 +555,7 @@ main (int argc, char *argv[])
 		if(nsd.options->pidfile) nsd.pidfile = nsd.options->pidfile;
 		else nsd.pidfile = PIDFILE;
 	}
-	if(nsd.identity == hostname || nsd.identity == IDENTITY)
+	if(strcmp(nsd.identity, hostname)==0 || strcmp(nsd.identity,IDENTITY)==0)
 	{
 		if(nsd.options->identity) nsd.identity = nsd.options->identity;
 	}
@@ -595,6 +595,8 @@ main (int argc, char *argv[])
 			error("cannot chdir to '%s': %s", 
 				nsd.options->zonesdir, strerror(errno));
 		}
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s", 
+			nsd.options->zonesdir));
 	}
 	/* get it from the config file */
 #ifdef NSID

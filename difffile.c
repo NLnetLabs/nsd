@@ -315,13 +315,13 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	{
 		if(rdata_atom_is_domain(type, k)) {
 			/* check dname: should compare case insensitive */
-			if(dname_compare(domain_dname(a[k].domain), domain_dname(b[k].domain))!=0)
+			if(dname_compare(domain_dname(a[k].domain),
+				domain_dname(b[k].domain))!=0)
 				return 0;
 		} else {
 			/* check length */
 			if(a[k].data[0] != b[k].data[0])
 				return 0;
-
 			/* check data */
 			if(memcmp(a[k].data+1, b[k].data+1, a[k].data[0])!=0)
 				return 0;
@@ -352,7 +352,7 @@ find_rr_num(rrset_type* rrset,
 
 static int
 delete_RR(namedb_type* db, const dname_type* dname,
-	uint16_t type, uint16_t klass, uint32_t ttl,
+	uint16_t type, uint16_t klass,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
 	region_type* temp_region)
 {
@@ -393,15 +393,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		}
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
-			log_msg(LOG_WARNING, "diff: delete whole rrset %s",
-				dname_to_string(dname,0));
 			rrset_delete(db, domain, rrset);
 		} else {
 			/* swap out the bad RR and decrease the count */
 			rr_type* rrs_orig = rrset->rrs;
-
-			log_msg(LOG_WARNING, "diff: delete bad RRs %s",
-				dname_to_string(dname,0));
 			add_rdata_to_recyclebin(db, &rrset->rrs[rrnum]);
 			if(rrnum < rrset->rr_count-1)
 				rrset->rrs[rrnum] = rrset->rrs[rrset->rr_count-1];
@@ -869,7 +864,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 				&& seq_nr == seq_total-1) {
 				continue; /* do not delete final SOA RR for IXFR */
 			}
-			if(!delete_RR(db, dname, type, klass, ttl, packet,
+			if(!delete_RR(db, dname, type, klass, packet,
 				rrlen, zone_db, region))
 				return 0;
 		}

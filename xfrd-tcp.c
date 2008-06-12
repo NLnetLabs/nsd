@@ -311,7 +311,7 @@ int conn_write(xfrd_tcp_t* tcp)
 	}
 
 	assert(tcp->total_bytes < tcp->msglen + sizeof(tcp->msglen));
-	
+
 	sent = write(tcp->fd,
 		buffer_current(tcp->packet),
 		buffer_remaining(tcp->packet));
@@ -323,7 +323,7 @@ int conn_write(xfrd_tcp_t* tcp)
 			return -1;
 		}
 	}
-	
+
 	buffer_skip(tcp->packet, sent);
 	tcp->total_bytes += sent;
 
@@ -331,12 +331,12 @@ int conn_write(xfrd_tcp_t* tcp)
 		/* more to write when socket becomes writable again */
 		return 0;
 	}
-	
+
 	assert(tcp->total_bytes == tcp->msglen + sizeof(tcp->msglen));
 	return 1;
 }
 
-void 
+void
 xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	int ret;

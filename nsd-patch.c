@@ -38,7 +38,7 @@ static void
 list_xfr(FILE *in)
 {
 	uint32_t skiplen, len, new_serial;
-	int i;
+/*	int i; */
 	char zone_name[3072];
 /*	uint8_t hex_data; */
 	uint16_t id;
@@ -57,6 +57,7 @@ list_xfr(FILE *in)
 		zone_name, id, new_serial, seq_nr, skiplen);
 
 /* Debug code, print the hexadecimal contents of the packet
+	needed for version 3.1.1
 	for (i=0; i<skiplen; i++) {
 			fread(&hex_data, 1, 1, in);
 			printf(" %2.2x ", hex_data);

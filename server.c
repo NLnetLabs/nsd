@@ -474,8 +474,8 @@ server_init(struct nsd *nsd)
 			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
 			return -1;
 		}
-		else
-			log_msg(LOG_NOTICE, "changed root directory to %s", nsd->chrootdir);
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s", 
+			nsd->chrootdir));
 
 	}
 #endif
@@ -1398,8 +1398,7 @@ handle_tcp_reading(netio_type *netio,
 				if (verbosity >= 2 || errno != ECONNRESET) {
 					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 				}
-#endif
-#ifndef ECONNRESET
+#else /* ECONNRESET */
 				if (verbosity >= 2) {
 					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 				}
@@ -1467,8 +1466,7 @@ handle_tcp_reading(netio_type *netio,
 			if (verbosity >= 2 || errno != ECONNRESET) {
 				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 			}
-#endif
-#ifndef ECONNRESET
+#else /* ECONNRESET */
 			if (verbosity >= 2) {
 				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 			}

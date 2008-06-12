@@ -1332,13 +1332,13 @@ zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 	}
 
 	fclose(yyin);
-	
+
 	fflush(stdout);
 	totalerrors += parser->errors;
 	parser->filename = NULL;
 }
 
-static void 
+static void
 usage (void)
 {
 #ifndef NDEBUG
@@ -1347,7 +1347,7 @@ usage (void)
 	fprintf(stderr, "usage: zonec [-v|-h|-C] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
 #endif
 	fprintf(stderr, "\tNSD zone compiler, creates database from zone files.\n");
-	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n", 
+	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "\t-v\tBe more verbose.\n");
 	fprintf(stderr, "\t-h\tPrint this help information.\n");
@@ -1366,19 +1366,19 @@ usage (void)
 extern char *optarg;
 extern int optind;
 
-int 
+int
 main (int argc, char **argv)
 {
 	struct namedb *db;
 	char *origin = NULL;
-	int c, errn;
+	int c;
 	region_type *global_region;
 	region_type *rr_region;
 	const char* configfile= CONFIGFILE;
 	const char* zonesdir = NULL;
 	const char* singlefile = NULL;
 	nsd_options_t* nsd_options = NULL;
-	
+
 	log_init("zonec");
 
 	global_region = region_create(xalloc, free);

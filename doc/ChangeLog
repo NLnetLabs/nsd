@@ -1,8 +1,14 @@
+9 June 2008: Matthijs
+	- When comparing RRs, do not compare TTL values (since the same record
+	  with different TTL values are considered equal).
+	- Fixup some more unaligned memory access that could occur when 
+	  reading ixfr.db.
+
 19 May 2008: Matthijs
 	- Do not always log tcp read errors, only when real error or high verbosity
 
 28 April 2008: Matthijs
-	- Bugfix #172
+	- Bugfix #172 (misleading error from zonec)
 
 27 March 2008: Matthijs
 	- Port some branch modifications to trunk
@@ -33,7 +39,7 @@
 7 January 2008: Wouter
 	- Fixup nsec3 tests, they need zonesdir: "." in conf files.
 	  The tests pass.
-	- configure default is --enable-nsec3. Noted that this takes 20% more
+	- configure default is --enable-nsec3. Disabling this will save 20% more
 	  memory (for very large zones). Moved tests to test on commit.
 	- set RRTYPE numbers for NSEC3=50, NSEC3PARAM=51.
 	- fixup checkconf test - updated parser lexer gives syntax error 
