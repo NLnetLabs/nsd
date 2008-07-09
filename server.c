@@ -479,6 +479,11 @@ server_init(struct nsd *nsd)
 
 	}
 #endif
+	/* Write pidfile */
+    if (writepid(nsd) == -1) {
+		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
+			nsd->pidfile, strerror(errno));
+	}
 
 	/* Drop the permissions */
 	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {

@@ -155,10 +155,14 @@ writepid (struct nsd *nsd)
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
 	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
+		DEBUG(DEBUG_IPC,2, (LOG_INFO, "cannot open pidfile %s: %s",
+			nsd->pidfile, strerror(errno)));
 		return -1;
 	}
 
 	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
+		DEBUG(DEBUG_IPC,2, (LOG_INFO, "cannot write pidfile %s: %s",
+			nsd->pidfile, strerror(errno)));
 		fclose(fd);
 		return -1;
 	}
@@ -843,14 +847,7 @@ main (int argc, char *argv[])
 	/* Run the server... */
 	if (server_init(&nsd) != 0) {
 		DEBUG(DEBUG_IPC,2, (LOG_INFO, "server initialization failed"));
-		/* do not tamper with pidfile */
 		exit(1);
-	}
-
-	/* Overwrite pid after initialization succeeds */
-	if (writepid(&nsd) == -1) {
-		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
-			nsd.pidfile, strerror(errno));
 	}
 
 	log_msg(LOG_NOTICE, "nsd started (%s), pid %d", PACKAGE_STRING, 
