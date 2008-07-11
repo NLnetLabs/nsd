@@ -796,7 +796,6 @@ main (int argc, char *argv[])
 			break;
 		case -1:
 			log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
-			unlink(nsd.pidfile);
 			exit(1);
 		default:
 			exit(0);

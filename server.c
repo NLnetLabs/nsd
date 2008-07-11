@@ -701,7 +701,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options,
 			nsd->child_count)) == NULL) {
 			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
-			exit(1);
+  			exit(1);
 		}
 	}
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
