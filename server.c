@@ -488,11 +488,13 @@ server_init(struct nsd *nsd)
 	/* Drop the permissions */
 	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
 		log_msg(LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
+		unlink(nsd->pidfile);
 		return -1;
 	}
 
 	/* Open the database... */
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
+		unlink(nsd->pidfile);
 		return -1;
 	}
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count))
@@ -505,7 +507,7 @@ server_init(struct nsd *nsd)
 
 	compression_table_capacity = 0;
 	initialize_dname_compression_tables(nsd);
-	
+
 #ifdef	BIND8_STATS
 	/* Initialize times... */
 	time(&nsd->st.boot);
@@ -734,6 +736,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 
+	/* Overwrite pid before closing old parent. */
+	if (writepid(nsd) == -1) {
+		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
+	}
+
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 	/* Send quit command to parent: blocking, wait for receipt. */
 	do {
@@ -757,11 +764,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	}
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc reply main %d %d", ret, cmd));
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
-
-	/* Overwrite pid... */
-	if (writepid(nsd) == -1) {
-		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
-	}
 
 	/* inform xfrd of new SOAs */
 	cmd = NSD_SOA_BEGIN;

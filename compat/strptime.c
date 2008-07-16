@@ -152,7 +152,7 @@ nsd_strptime(const char *s, const char *format, struct tm *tm)
 					if (ret < 0) {
 						return NULL;
 					}
-					tm->tm_mon = ret; 
+					tm->tm_mon = ret;
 					break;
 				case 'c': /* date and time representation */
 					if (!(s = nsd_strptime(s, "%x %X", tm))) {
@@ -164,10 +164,10 @@ nsd_strptime(const char *s, const char *format, struct tm *tm)
 					if (ret < 0 || ret > 99) { /* must be in [00,99] */
 						return NULL;
 					}
-					
+
 					if (split_year)	{
 						tm->tm_year = ret*100 + (tm->tm_year%100);
-					}				
+					}
 					else {
 						tm->tm_year = ret*100 - TM_YEAR_BASE;
 						split_year = 1; 

@@ -1,6 +1,9 @@
 NSD RELEASE NOTES
 
-3.1.0 (UPCOMING RELEASE)
+3.1.1 (UPCOMING RELEASE)
+=============
+
+3.1.0
 =============
 OPERATIONAL NOTES:
 	- Default locations of nsd.db, ixfr.db & xfrd.state are changed to
