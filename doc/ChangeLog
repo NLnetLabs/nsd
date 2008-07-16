@@ -1,3 +1,16 @@
+16 July 2008: Matthijs
+	- Set upcomung release to 3.1.1
+
+11 July 2008: Matthijs
+	- Avoid race condition in nsdc: let nsd server update pidfile before 
+		closing old parent process. 
+
+8 July 2008: Jelte
+	- Fixed NSEC3 memory leak in the case NSEC3 is not needed.
+
+7 July 2008: Matthijs
+	- Bugfix #191
+
 9 June 2008: Matthijs
 	- When comparing RRs, do not compare TTL values (since the same record
 	  with different TTL values are considered equal).
