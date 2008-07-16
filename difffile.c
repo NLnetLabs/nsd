@@ -680,12 +680,14 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		!diff_read_32(in, &file_seq_nr))
 	{
 		log_msg(LOG_ERR, "could not part data");
+		region_destroy(region);
 		return 0;
 	}
 
 	if(strcmp(file_zone_name, zone) != 0 || serialno != file_serial ||
 		id != file_id || seq_nr != file_seq_nr) {
 		log_msg(LOG_ERR, "internal error: reading part with changed id");
+		region_destroy(region);
 		return 0;
 	}
 	msglen = filelen - sizeof(uint32_t)*3 - sizeof(uint16_t)
@@ -865,15 +867,19 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 				continue; /* do not delete final SOA RR for IXFR */
 			}
 			if(!delete_RR(db, dname, type, klass, packet,
-				rrlen, zone_db, region))
+				rrlen, zone_db, region)) {
+				region_destroy(region);
 				return 0;
+			}
 		}
 		else
 		{
 			/* add this rr */
 			if(!add_RR(db, dname, type, klass, ttl, packet,
-				rrlen, zone_db))
+				rrlen, zone_db)) {
+				region_destroy(region);
 				return 0;
+			}
 		}
 	}
 	region_destroy(region);
@@ -1279,6 +1285,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	startpos = ftello(df);
 	if(startpos == -1) {
 		log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
+		region_destroy(data->region);
 		return 0;
 	}
 
@@ -1295,6 +1302,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		startpos = ftello(df);
 		if(startpos == -1) {
 			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
+			region_destroy(data->region);
 			return 0;
 		}
 	}

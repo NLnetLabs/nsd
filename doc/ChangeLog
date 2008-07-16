@@ -1,5 +1,7 @@
 16 July 2008: Matthijs
 	- Set upcomung release to 3.1.1
+	- Wouter: fixed memory leaks that happened on error, mostly on
+	  zone transfer errors.
 
 11 July 2008: Matthijs
 	- Avoid race condition in nsdc: let nsd server update pidfile before 
