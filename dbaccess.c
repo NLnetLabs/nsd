@@ -293,7 +293,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	db->filename = region_strdup(db->region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
-	
+
 	/* Open it... */
 	db->fd = fopen(db->filename, "r");
 	if (db->fd == NULL) {
@@ -320,7 +320,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 
 	temp_region = region_create(xalloc, free);
 	dname_region = region_create(xalloc, free);
-	
+
 	db->zone_count = zone_count;
 	zones = (zone_type **) region_alloc(temp_region,
 					    zone_count * sizeof(zone_type *));
@@ -353,7 +353,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 		zones[i]->dirty = region_alloc(db->region, sizeof(uint8_t)*num_children);
 		memset(zones[i]->dirty, 0, sizeof(uint8_t)*num_children);
 		if(!zones[i]->opts) {
-			log_msg(LOG_ERR, "corrupted database/bad config, zone %s in db %s, but not in config file. Cannot load database. Please rebuild database and start again.", 
+			log_msg(LOG_ERR, "zone %s in db %s, but not in config file. Cannot load database. Please rebuild database and start again.", 
 				dname_to_string(dname, NULL), db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
