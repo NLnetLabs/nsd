@@ -353,8 +353,9 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 		zones[i]->dirty = region_alloc(db->region, sizeof(uint8_t)*num_children);
 		memset(zones[i]->dirty, 0, sizeof(uint8_t)*num_children);
 		if(!zones[i]->opts) {
-			log_msg(LOG_ERR, "zone %s in db %s, but not in config file. Cannot load database. Please rebuild database and start again.", 
-				dname_to_string(dname, NULL), db->filename);
+			log_msg(LOG_ERR, "cannot load database. Zone %s in db %s, but not \
+in config file (might happen if you edited the config file). Please \
+rebuild database and start again.", dname_to_string(dname, NULL), db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
 			namedb_close(db);
