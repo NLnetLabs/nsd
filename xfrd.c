@@ -1326,8 +1326,10 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 	region_type* tempregion = region_create(xalloc, free);
 	xfrd_zone_t* zone;
 	buffer_skip(packet, QHEADERSZ);
-	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass))
+	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass)) {
+		region_destroy(tempregion);
 		return; /* drop bad packet */
+	}
 
 	dname = dname_make(tempregion, qnamebuf, 1);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: got passed packet for %s, acl %d", 

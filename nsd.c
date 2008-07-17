@@ -155,10 +155,14 @@ writepid (struct nsd *nsd)
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
 	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
+		DEBUG(DEBUG_IPC,2, (LOG_INFO, "cannot open pidfile %s: %s",
+			nsd->pidfile, strerror(errno)));
 		return -1;
 	}
 
 	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
+		DEBUG(DEBUG_IPC,2, (LOG_INFO, "cannot write pidfile %s: %s",
+			nsd->pidfile, strerror(errno)));
 		fclose(fd);
 		return -1;
 	}
@@ -585,7 +589,7 @@ main (int argc, char *argv[])
 #endif /* !BIND8_STATS */
 #ifdef HAVE_CHROOT
 	if(nsd.chrootdir == 0) nsd.chrootdir = nsd.options->chroot;
-#endif
+#endif /* HAVE_CHROOT */
 	if(nsd.username == 0) {
 		if(nsd.options->username) nsd.username = nsd.options->username;
 		else nsd.username = USER;
@@ -603,8 +607,8 @@ main (int argc, char *argv[])
 	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);
 #if defined(INET6)
 	edns_init_nsid(&nsd.edns_ipv6, nsd.nsid_len);
-#endif
-#endif
+#endif /* defined(INET6) */
+#endif /* NSID */
 	/* Number of child servers to fork.  */
 	nsd.children = (struct nsd_child *) region_alloc(
 		nsd.region, nsd.child_count * sizeof(struct nsd_child));
@@ -792,7 +796,6 @@ main (int argc, char *argv[])
 			break;
 		case -1:
 			log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
-			unlink(nsd.pidfile);
 			exit(1);
 		default:
 			exit(0);
@@ -830,12 +833,6 @@ main (int argc, char *argv[])
 	/* Get our process id */
 	nsd.pid = getpid();
 
-	/* Overwrite pid... */
-	if (writepid(&nsd) == -1) {
-		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
-			nsd.pidfile, strerror(errno));
-	}
-
 	/* Initialize... */
 	nsd.mode = NSD_RUN;
 	nsd.signal_hint_child = 0;
@@ -848,7 +845,7 @@ main (int argc, char *argv[])
 
 	/* Run the server... */
 	if (server_init(&nsd) != 0) {
-		unlink(nsd.pidfile);
+		DEBUG(DEBUG_IPC,2, (LOG_INFO, "server initialization failed"));
 		exit(1);
 	}
 

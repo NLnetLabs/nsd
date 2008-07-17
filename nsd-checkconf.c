@@ -327,7 +327,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 		num++;
 		ip = ip->next;
 	}
-	if(num >= MAX_INTERFACES) {
+	if(num > MAX_INTERFACES) {
 		fprintf(stderr, "%s: too many interfaces (ip-address:) specified.\n", filename);
 		errors ++;
 	}

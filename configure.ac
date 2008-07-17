@@ -482,7 +482,7 @@ AC_DEFINE_UNQUOTED([TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
 AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
-AC_DEFINE_UNQUOTED([MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
+dnl AC_DEFINE_UNQUOTED([MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
 dnl AC_DEFINE_UNQUOTED([FACILITY], [LOG_DAEMON], [Define to the default facility for syslog.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
 
@@ -494,6 +494,15 @@ AC_ARG_WITH([facility],
         AC_HELP_STRING([--with-facility=name], [Syslog default facility (LOG_DAEMON)]),
         [facility=$withval])
 AC_DEFINE_UNQUOTED([FACILITY], $facility, [Define to the default facility for syslog.])
+
+dnl
+dnl Determine the maximum number of interfaces that are allowed
+dnl
+max_interfaces=8
+AC_ARG_WITH([max_interfaces],
+	AC_HELP_STRING([--with-max_interfaces=number], [Limit on the number of ip-addresses that may be specified]),
+	[max_interfaces=$withval])
+AC_DEFINE_UNQUOTED([MAX_INTERFACES], $max_interfaces, [Define to the maximum interfaces to serve.])
 
 dnl
 dnl Features

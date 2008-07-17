@@ -321,7 +321,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 {
 	domain_type *walk;
 	domain_type *last_nsec3_node;
-	region_type *temp_region = region_create(xalloc, free);
+	region_type *temp_region;
 	assert(db && zone);
 
 	/* find zone settings */
@@ -330,6 +330,8 @@ prehash_zone(struct namedb* db, struct zone* zone)
 		zone->nsec3_last = 0;
 		return;
 	}
+
+	temp_region = region_create(xalloc, free);
 
 	/* go through entire zone and setup nsec3_lookup speedup */
 	walk = zone->apex;
