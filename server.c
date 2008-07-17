@@ -485,6 +485,12 @@ server_init(struct nsd *nsd)
 			nsd->pidfile, strerror(errno));
 	}
 
+	/* Open the database... */
+	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
+		unlink(nsd->pidfile);
+		return -1;
+	}
+
 	/* Drop the permissions */
 	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
 		log_msg(LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
@@ -492,11 +498,6 @@ server_init(struct nsd *nsd)
 		return -1;
 	}
 
-	/* Open the database... */
-	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
-		unlink(nsd->pidfile);
-		return -1;
-	}
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count))
 	{
 		log_msg(LOG_ERR, "The diff file contains errors. Will continue without it");
