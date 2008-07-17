@@ -480,19 +480,18 @@ server_init(struct nsd *nsd)
 
 	}
 #endif
+	/* Check if nsd->dbfile exists */
+	if ((dbfd = fopen(nsd->dbfile, "r")) == NULL) {
+		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd->dbfile, strerror(errno));
+		return -1;
+	}
+	fclose(dbfd);
+
 	/* Write pidfile */
 	if (writepid(nsd) == -1) {
 		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
 			nsd->pidfile, strerror(errno));
 	}
-
-	/* Check if nsd->dbfile exists */
-	if ((dbfd = fopen(nsd->dbfile, "r")) == NULL) {
-		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd->dbfile, strerror(errno));
-		unlink(nsd->pidfile);
-		return -1;
-	}
-	fclose(dbfd);
 
 	/* Drop the permissions */
 	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
