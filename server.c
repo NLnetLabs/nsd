@@ -332,6 +332,7 @@ initialize_dname_compression_tables(struct nsd *nsd)
 int
 server_init(struct nsd *nsd)
 {
+	FILE* dbfd;
 	size_t i;
 #if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU)))
 	int on = 1;
@@ -480,9 +481,24 @@ server_init(struct nsd *nsd)
 	}
 #endif
 	/* Write pidfile */
-    if (writepid(nsd) == -1) {
+	if (writepid(nsd) == -1) {
 		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
 			nsd->pidfile, strerror(errno));
+	}
+
+	/* Check if nsd->dbfile exists */
+	if ((dbfd = fopen(nsd->dbfile, "r")) == NULL) {
+		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd->dbfile, strerror(errno));
+		unlink(nsd->pidfile);
+		return -1;
+	}
+	fclose(dbfd);
+
+	/* Drop the permissions */
+	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
+		log_msg(LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
+		unlink(nsd->pidfile);
+		return -1;
 	}
 
 	/* Open the database... */
@@ -491,12 +507,6 @@ server_init(struct nsd *nsd)
 		return -1;
 	}
 
-	/* Drop the permissions */
-	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
-		log_msg(LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
-		unlink(nsd->pidfile);
-		return -1;
-	}
 
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count))
 	{
@@ -704,7 +714,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options,
 			nsd->child_count)) == NULL) {
 			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
-  			exit(1);
+			exit(1);
 		}
 	}
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {

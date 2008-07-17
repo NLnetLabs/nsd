@@ -1,5 +1,10 @@
+17 July 2008: Matthijs
+	- Make the maximum number of interfaces configurable.
+	- Write pidfile *after* succesfull server initialization,
+		instead of writing, and unlink if fail.
+
 16 July 2008: Matthijs
-	- Set upcomung release to 3.1.1
+	- Set upcoming release to 3.1.1
 	- Wouter: fixed memory leaks that happened on error, mostly on
 	  zone transfer errors.
 

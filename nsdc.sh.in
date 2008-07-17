@@ -125,25 +125,13 @@ fi
 # useful routines
 #
 signal() {
-	if [ ! -s ${pidfile} ]
+	if [ -s ${pidfile} ]
 	then
-		echo "nsd is not running" && return 1
-	fi
-
-	if kill -"$1" `cat ${pidfile}`
-	then
-		return 0
-	fi 		
-
-	# pidfile could've been updated, try once more
-	sleep 1
-
-	if kill -"$1" `cat ${pidfile}`
-	then
-		return 0
+		kill -"$1" `cat ${pidfile}` && return 0
 	else
-		echo "nsd is not running" && return 1
+		echo "nsd is not running"
 	fi
+	return 1
 }
 
 lock() {
