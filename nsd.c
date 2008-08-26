@@ -305,7 +305,7 @@ bind8_stats (struct nsd *nsd)
 extern char *optarg;
 extern int optind;
 
-int 
+int
 main (int argc, char *argv[])
 {
 	/* Scratch variables... */
@@ -313,7 +313,7 @@ main (int argc, char *argv[])
 	pid_t	oldpid;
 	size_t i;
 	struct sigaction action;
-	
+
 	/* For initialising the address info structures */
 	struct addrinfo hints[MAX_INTERFACES];
 	const char *nodes[MAX_INTERFACES];
@@ -322,7 +322,7 @@ main (int argc, char *argv[])
 
 	const char *log_filename = NULL;
 	const char *configfile = CONFIGFILE;
-	
+
 	log_init("nsd");
 
 	/* Initialize the server handler... */
@@ -331,7 +331,7 @@ main (int argc, char *argv[])
 	nsd.dbfile	= 0;
 	nsd.pidfile	= 0;
 	nsd.server_kind = NSD_SERVER_MAIN;
-	
+
 	for (i = 0; i < MAX_INTERFACES; i++) {
 		memset(&hints[i], 0, sizeof(hints[i]));
 		hints[i].ai_family = DEFAULT_AI_FAMILY;
@@ -596,10 +596,10 @@ main (int argc, char *argv[])
 	}
 	if(nsd.options->zonesdir && nsd.options->zonesdir[0]) {
 		if(chdir(nsd.options->zonesdir)) {
-			error("cannot chdir to '%s': %s", 
+			error("cannot chdir to '%s': %s",
 				nsd.options->zonesdir, strerror(errno));
 		}
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s", 
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s",
 			nsd.options->zonesdir));
 	}
 	/* get it from the config file */
@@ -665,12 +665,12 @@ main (int argc, char *argv[])
 		/* We don't perform name-lookups */
 		if (nodes[i] != NULL)
 			hints[i].ai_flags |= AI_NUMERICHOST;
-		
+
 		hints[i].ai_socktype = SOCK_DGRAM;
 		if ((r=getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr)) != 0) {
 #ifdef INET6
 			if(nsd.grab_ip6_optional && hints[0].ai_family == AF_INET6) {
-				log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s", 
+				log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s",
 				r==EAI_SYSTEM?strerror(errno):gai_strerror(r));
 				continue;
 			}
@@ -680,7 +680,7 @@ main (int argc, char *argv[])
 				gai_strerror(r),
 				r==EAI_SYSTEM?strerror(errno):"");
 		}
-		
+
 		hints[i].ai_socktype = SOCK_STREAM;
 		if ((r=getaddrinfo(nodes[i], tcp_port, &hints[i], &nsd.tcp[i].addr)) != 0) {
 			error("cannot parse address '%s': getaddrinfo: %s %s",
