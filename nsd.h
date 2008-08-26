@@ -155,9 +155,9 @@ struct	nsd
 	size_t            child_count;
 	struct nsd_child *children;
 
-	/* NULL if this is the parent process.  */
+	/* NULL if this is the parent process. */
 	struct nsd_child *this_child;
-	
+
 	/* Configuration */
 	const char	*dbfile;
 	const char	*pidfile;
@@ -170,6 +170,7 @@ struct	nsd
         uint16_t        nsid_len;
         unsigned char   *nsid;
 
+	/* number of interfaces, ifs < MAX_INTERFACES */
 	size_t	ifs;
 	uint8_t grab_ip6_optional;
 

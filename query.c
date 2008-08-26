@@ -381,12 +381,12 @@ answer_notify (struct nsd* nsd, struct query *query)
 		dname_to_string(query->qname, NULL)));
 
 	zone_opt = zone_options_find(nsd->options, query->qname);
-	if(!zone_opt) 
+	if(!zone_opt)
 		return query_error(query, NSD_RC_NXDOMAIN);
-	
+
 	if(!nsd->this_child) /* we are in debug mode or something */
 		return query_error(query, NSD_RC_SERVFAIL);
-	
+
 #ifdef TSIG
 	if(!tsig_find_rr(&query->tsig, query->packet)) {
 		DEBUG(DEBUG_XFRD,2, (LOG_ERR, "bad tsig RR format"));
@@ -409,7 +409,7 @@ answer_notify (struct nsd* nsd, struct query *query)
 		assert(why);
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s passed acl %s %s",
 			dname_to_string(query->qname, NULL),
-			why->ip_address_spec, 
+			why->ip_address_spec,
 			why->nokey?"NOKEY":
 			(why->blocked?"BLOCKED":why->key_name)));
 		sz = buffer_limit(query->packet);

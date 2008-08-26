@@ -81,10 +81,10 @@ void child_handle_parent_command(netio_type *netio,
 	netio_handler_type *handler, netio_event_types_type event_types);
 
 /*
- * Routine used by xfrd 
- * Handle interprocess communication with parent process, read and write. 
+ * Routine used by xfrd
+ * Handle interprocess communication with parent process, read and write.
  */
-void xfrd_handle_ipc(netio_type *netio, 
+void xfrd_handle_ipc(netio_type *netio,
 	netio_handler_type *handler, netio_event_types_type event_types);
 
 /* check if all children have exited in an orderly fashion and set mode */

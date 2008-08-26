@@ -35,28 +35,28 @@ xfrd_tcp_set_t* xfrd_tcp_set_create(struct region* region)
 	return tcp_set;
 }
 
-void 
+void
 xfrd_setup_packet(buffer_type* packet,
 	uint16_t type, uint16_t klass, const dname_type* dname)
-{	
+{
 	/* Set up the header */
 	buffer_clear(packet);
 	ID_SET(packet, (uint16_t) random());
-        FLAGS_SET(packet, 0);
-        OPCODE_SET(packet, OPCODE_QUERY);
-        QDCOUNT_SET(packet, 1);
-        ANCOUNT_SET(packet, 0);
-        NSCOUNT_SET(packet, 0);
-        ARCOUNT_SET(packet, 0);
-        buffer_skip(packet, QHEADERSZ);
+	FLAGS_SET(packet, 0);
+	OPCODE_SET(packet, OPCODE_QUERY);
+	QDCOUNT_SET(packet, 1);
+	ANCOUNT_SET(packet, 0);
+	NSCOUNT_SET(packet, 0);
+	ARCOUNT_SET(packet, 0);
+	buffer_skip(packet, QHEADERSZ);
 
 	/* The question record. */
-        buffer_write(packet, dname_name(dname), dname->name_size);
-        buffer_write_u16(packet, type);
-        buffer_write_u16(packet, klass);
+	buffer_write(packet, dname_name(dname), dname->name_size);
+	buffer_write_u16(packet, type);
+	buffer_write_u16(packet, klass);
 }
 
-socklen_t 
+socklen_t
 #ifdef INET6
 xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
 #else
@@ -134,7 +134,7 @@ xfrd_tcp_create(region_type* region)
 	return tcp_state;
 }
 
-void 
+void
 xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	assert(zone->tcp_conn == -1);
@@ -160,12 +160,13 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		if(zone->zone_handler.fd != -1)
 			xfrd_udp_release(zone);
 
-		if(!xfrd_tcp_open(set, zone)) 
+		if(!xfrd_tcp_open(set, zone))
 			return;
 
 		xfrd_tcp_xfr(set, zone);
 		return;
 	}
+
 	/* wait, at end of line */
 	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: max number of tcp "
 		"connections (%d) reached.", XFRD_MAX_TCP));
@@ -247,12 +248,13 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	return 1;
 }
 
-void 
+void
 xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
+
 	/* start AXFR or IXFR for the zone */
 	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only) {
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex);
@@ -444,12 +446,12 @@ int conn_read(xfrd_tcp_t* tcp)
 	return 1;
 }
 
-void 
+void
 xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
 	int ret;
-	
+
 	assert(zone->tcp_conn != -1);
 	ret = conn_read(tcp);
 	if(ret == -1) {
@@ -457,7 +459,7 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		xfrd_tcp_release(set, zone);
 		return;
 	}
-	if(ret == 0) 
+	if(ret == 0)
 		return;
 
 	/* completed msg */
@@ -481,7 +483,7 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	}
 }
 
-void 
+void
 xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	int conn = zone->tcp_conn;

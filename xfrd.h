@@ -161,7 +161,7 @@ struct xfrd_zone {
 	uint8_t tcp_waiting;
 	/* next zone in waiting list */
 	xfrd_zone_t* tcp_waiting_next;
-	/* zone is waiting for a ucp connection (tcp is preferred) */
+	/* zone is waiting for a udp connection (tcp is preferred) */
 	uint8_t udp_waiting;
 	/* next zone in waiting list for UDP */
 	xfrd_zone_t* udp_waiting_next;
