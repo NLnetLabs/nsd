@@ -1,4 +1,4 @@
-R/*
+/*
  * xfrd.c - XFR (transfer) Daemon source file. Coordinates SOA updates.
  *
  * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
@@ -74,7 +74,9 @@ static void xfrd_send_expire_notification(xfrd_zone_t* zone);
 /* send ixfr request, returns fd of connection to read on */
 static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone);
 /* obtain udp socket slot */
+/*
 static void xfrd_udp_obtain(xfrd_zone_t* zone);
+*/
 
 /* read data via udp */
 static void xfrd_udp_read(xfrd_zone_t* zone);

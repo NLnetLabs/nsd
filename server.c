@@ -1256,7 +1256,7 @@ server_child(struct nsd *nsd)
 					log_msg(LOG_ERR, "problems sending command from %d to parent: %s",
 						(int) nsd->this_child->pid, strerror(errno));
 				}
-			} else /* no parent, so reap 'em */;
+			} else /* no parent, so reap 'em */
 				while (waitpid(0, NULL, WNOHANG) > 0) ;
 			nsd->mode = NSD_RUN;
 		}
