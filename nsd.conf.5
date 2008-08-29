@@ -246,7 +246,7 @@ Note the ip\-spec ranges do not use spaces around the /, &, @ and \-
 symbols.
 .RE
 .TP
-.B request\-xfr:\fR [AXFR] <ip\-address> <key\-name | NOKEY>
+.B request\-xfr:\fR [AXFR|UDP] <ip\-address> <key\-name | NOKEY>
 Access control list. The listed address (the master) is queried for 
 AXFR/IXFR on update. The specified key is used during AXFR/IXFR.
 .P
@@ -256,6 +256,13 @@ IXFR queries but only AXFR requests will be made to the server. This
 allows an NSD secondary to have a master server that runs NSD. If 
 the AXFR option is left out then both IXFR and AXFR requests are 
 made to the master server.
+.P
+.RS
+If the UDP option is given, the secondary will use UDP to transmit the IXFR 
+requests. You should deploy TSIG when allowing UDP transport, to authenticate
+notifies and zone transfers. Otherwise, NSD is more vulnerable for 
+Kaminsky-style attacks. If the UDP option is left out then IXFR will be 
+transmitted using TCP.
 .RE
 .TP
 .B notify:\fR <ip\-address> <key\-name | NOKEY>

@@ -299,7 +299,9 @@ Access control lists are needed for zone transfer and notifications.
 For a slave zone list the masters, by IP address. Below is an example
 of a slave zone with two master servers. If a master only supports AXFR
 transfers and not IXFR transfers (like NSD), specify the master as
-"request-xfr: AXFR <ip_address> <key>".
+"request-xfr: AXFR <ip_address> <key>". By default, all zone transfer requests 
+are made over TCP. If you want the IXFR request be transmitted over UDP, use
+"request-xfr: UDP <ip address> <key>".
 
 	zone:
 		name: "example.com"
