@@ -122,7 +122,7 @@ xfrd_write_soa_buffer(struct buffer* packet,
 	buffer_write_u16_at(packet, rdlength_pos, rdlength);
 }
 
-xfrd_tcp_t* 
+xfrd_tcp_t*
 xfrd_tcp_create(region_type* region)
 {
 	xfrd_tcp_t* tcp_state = (xfrd_tcp_t*)region_alloc(
@@ -182,7 +182,7 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	xfrd_unset_timer(zone);
 }
 
-int 
+int
 xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	/* TODO use port 53 */
@@ -211,12 +211,12 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		xfrd_tcp_release(set, zone);
 		return 0;
 #endif
-	} else { 
+	} else {
 		family = PF_INET;
 	}
 	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if(fd == -1) {
-		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s", 
+		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s",
 			zone->master->ip_address_spec, strerror(errno));
 		xfrd_set_refresh_now(zone);
 		xfrd_tcp_release(set, zone);

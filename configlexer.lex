@@ -128,6 +128,7 @@ key{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_KEY;}
 algorithm{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ALGORITHM;}
 secret{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_SECRET;}
 AXFR			{ LEXOUT(("v(%s) ", yytext)); return VAR_AXFR;}
+UDP			{ LEXOUT(("v(%s) ", yytext)); return VAR_UDP;}
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
 
 	/* Quoted strings. Strip leading and ending quotes */

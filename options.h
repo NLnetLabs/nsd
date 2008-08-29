@@ -34,7 +34,7 @@ struct nsd_options {
 	/* list of keys defined */
 	key_options_t* keys;
 	size_t numkeys;
-	
+
 	/* list of ip adresses to bind to (or NULL for all) */
 	ip_address_option_t* ip_addresses;
 
@@ -57,8 +57,8 @@ struct nsd_options {
 	const char* difffile;
 	const char* xfrdfile;
 	int xfrd_reload_timeout;
-	
-	region_type* region; 
+
+	region_type* region;
 };
 
 struct ipaddress_option {
@@ -99,6 +99,7 @@ struct acl_options {
 
 	/* options */
 	uint8_t use_axfr_only;
+	uint8_t allow_udp;
 
 	/* ip address range */
 	const char* ip_address_spec;

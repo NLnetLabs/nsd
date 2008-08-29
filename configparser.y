@@ -52,7 +52,7 @@ static int server_settings_seen = 0;
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
-%token VAR_AXFR
+%token VAR_AXFR VAR_UDP
 %token VAR_VERBOSITY VAR_HIDE_VERSION
 
 %%
@@ -305,6 +305,19 @@ zone_request_xfr_data: STRING STRING
 	{ 
 		acl_options_t* acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
 		acl->use_axfr_only = 1;
+		OUTYY(("P(zone_request_xfr:%s %s)\n", $2, $3)); 
+		if(acl->blocked) c_error("blocked address used for request-xfr");
+		if(acl->rangetype!=acl_range_single) c_error("address range used for request-xfr");
+		if(cfg_parser->current_request_xfr)
+			cfg_parser->current_request_xfr->next = acl;
+		else
+			cfg_parser->current_zone->request_xfr = acl;
+		cfg_parser->current_request_xfr = acl;
+	}
+	| VAR_UDP STRING STRING
+	{ 
+		acl_options_t* acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
+		acl->allow_udp = 1;
 		OUTYY(("P(zone_request_xfr:%s %s)\n", $2, $3)); 
 		if(acl->blocked) c_error("blocked address used for request-xfr");
 		if(acl->rangetype!=acl_range_single) c_error("address range used for request-xfr");

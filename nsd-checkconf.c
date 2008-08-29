@@ -107,7 +107,7 @@ print_string_var(const char* varname, const char* value)
 {
 	if (!value) {
 		printf("\t#%s\n", varname);
-	} else { 
+	} else {
 		printf("\t%s \"%s\"\n", varname, value);
 	}
 }
@@ -121,7 +121,7 @@ quote(const char *v)
 		printf("%s\n", v);
 }
 
-static void 
+static void
 quote_acl(acl_options_t* acl)
 {
 	while(acl)
@@ -133,7 +133,7 @@ quote_acl(acl_options_t* acl)
 	}
 }
 
-static void 
+static void
 print_acl(const char* varname, acl_options_t* acl)
 {
 	while(acl)
@@ -141,6 +141,8 @@ print_acl(const char* varname, acl_options_t* acl)
 		printf("\t%s ", varname);
 		if(acl->use_axfr_only)
 			printf("AXFR ");
+		if(acl->allow_udp)
+			printf("UDP ");
 		printf("%s %s\n", acl->ip_address_spec,
 			acl->nokey?"NOKEY":(acl->blocked?"BLOCKED":
 			(acl->key_name?acl->key_name:"(null)")));

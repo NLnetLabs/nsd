@@ -127,35 +127,35 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	}
 	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 	{
-		if(!zone->name) 
+		if(!zone->name)
 			continue;
-		if(!zone->zonefile) 
+		if(!zone->zonefile)
 			continue;
 		/* lookup keys for acls */
 		for(acl=zone->allow_notify; acl; acl=acl->next)
 		{
-			if(acl->nokey || acl->blocked) 
+			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
-			if(!acl->key_options) 
+			if(!acl->key_options)
 				c_error_msg("key %s in zone %s could not be found",
 					acl->key_name, zone->name);
 		}
 		for(acl=zone->notify; acl; acl=acl->next)
 		{
-			if(acl->nokey || acl->blocked) 
+			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
-			if(!acl->key_options) 
+			if(!acl->key_options)
 				c_error_msg("key %s in zone %s could not be found",
 					acl->key_name, zone->name);
 		}
 		for(acl=zone->request_xfr; acl; acl=acl->next)
 		{
-			if(acl->nokey || acl->blocked) 
+			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
-			if(!acl->key_options) 
+			if(!acl->key_options)
 				c_error_msg("key %s in zone %s could not be found",
 					acl->key_name, zone->name);
 		}
@@ -402,7 +402,7 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 
 int acl_key_matches(acl_options_t* acl, struct query* q)
 {
-	if(acl->blocked) 
+	if(acl->blocked)
 		return 1;
 #ifdef TSIG
 	if(acl->nokey) {
@@ -423,7 +423,7 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail no config"));
 		return 0; /* key not properly configged */
 	}
-	if(dname_compare(q->tsig.key_name, 
+	if(dname_compare(q->tsig.key_name,
 		acl->key_options->tsig_key->name) != 0) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail wrong key name"));
 		return 0; /* wrong key name */
@@ -435,7 +435,7 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 	}
 	return 1;
 #else
-	if(acl->nokey) 
+	if(acl->nokey)
 		return 1;
 	return 0;
 #endif
@@ -599,6 +599,7 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 	/* ip */
 	acl->ip_address_spec = region_strdup(region, ip);
 	acl->use_axfr_only = 0;
+	acl->allow_udp = 0;
 	acl->key_options = 0;
 	acl->is_ipv6 = 0;
 	acl->port = 0;
@@ -613,10 +614,10 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 	if(parse_acl_is_ipv6(ip)) {
 		acl->is_ipv6 = 1;
 #ifdef INET6
-		if(inet_pton(AF_INET6, ip, &acl->addr.addr6) != 1) 
+		if(inet_pton(AF_INET6, ip, &acl->addr.addr6) != 1)
 			c_error_msg("Bad ip6 address '%s'", ip);
-		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax) 
-			if(inet_pton(AF_INET6, p, &acl->range_mask.addr6) != 1) 
+		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax)
+			if(inet_pton(AF_INET6, p, &acl->range_mask.addr6) != 1)
 				c_error_msg("Bad ip6 address mask '%s'", p);
 		if(acl->rangetype==acl_range_subnet)
 			parse_acl_range_subnet(p, &acl->range_mask.addr6, 128);
@@ -625,10 +626,10 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 #endif /* INET6 */
 	} else {
 		acl->is_ipv6 = 0;
-		if(inet_pton(AF_INET, ip, &acl->addr.addr) != 1) 
+		if(inet_pton(AF_INET, ip, &acl->addr.addr) != 1)
 			c_error_msg("Bad ip4 address '%s'", ip);
-		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax) 
-			if(inet_pton(AF_INET, p, &acl->range_mask.addr) != 1) 
+		if(acl->rangetype==acl_range_mask || acl->rangetype==acl_range_minmax)
+			if(inet_pton(AF_INET, p, &acl->range_mask.addr) != 1)
 				c_error_msg("Bad ip4 address mask '%s'", p);
 		if(acl->rangetype==acl_range_subnet)
 			parse_acl_range_subnet(p, &acl->range_mask.addr, 32);
