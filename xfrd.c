@@ -486,18 +486,32 @@ xfrd_make_request(xfrd_zone_t* zone)
 
 	/* perform xfr request */
 
-	/* do tcp if: serial on disk is 0; do AXFR only; or udp not allowed */
+	/* do tcp if: serial on disk is 0; do AXFR only; or udp not allowed;
+		or we tried 2x udp, 1x axfr. */
 	if(zone->soa_disk_acquired == 0 ||
 		zone->master->use_axfr_only ||
-		!zone->master->allow_udp) {
+		!zone->master->allow_udp ||
+		zone->round_num > 2) {
 
 		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
 		xfrd_tcp_obtain(xfrd->tcp_set, zone);
 	}
 	else {
-		/* do udp */
-		xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
-		xfrd_udp_obtain(zone);
+		/* <matthijs> we first 2 rounds of ixfr/udp */
+		if (zone->round_num < 2) {
+			xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
+			xfrd_udp_obtain(zone);
+		}
+		/* <matthijs> otherwise fallback a round of axfr/tcp */
+		else {
+			/* round_num == 2 */
+			zone->master->use_axfr_only = 1;
+
+			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_tcp_obtain(xfrd->tcp_set, zone);
+
+			zone->master->use_axfr_only = 0;
+		}
 	}
 }
 
@@ -1318,8 +1332,8 @@ xfrd_set_reload_timeout()
 	xfrd->reload_handler.timeout = &xfrd->reload_timeout;
 }
 
-static void 
-xfrd_handle_reload(netio_type *ATTR_UNUSED(netio), 
+static void
+xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 	netio_handler_type *handler, netio_event_types_type event_types)
 {
 	/* reload timeout */
@@ -1332,7 +1346,7 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
 }
 
-void 
+void
 xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
@@ -1347,13 +1361,13 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 	}
 
 	dname = dname_make(tempregion, qnamebuf, 1);
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: got passed packet for %s, acl %d", 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: got passed packet for %s, acl %d",
 		dname_to_string(dname,0), acl_num));
 
 	/* find the zone */
 	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
 	if(!zone) {
-		log_msg(LOG_INFO, "xfrd: incoming packet for unknown zone %s", 
+		log_msg(LOG_INFO, "xfrd: incoming packet for unknown zone %s",
 			dname_to_string(dname,0));
 		region_destroy(tempregion);
 		return; /* drop packet for unknown zone */
