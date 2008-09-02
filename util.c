@@ -88,7 +88,7 @@ log_file(int priority, const char *message)
 	size_t length;
 	lookup_table_type *priority_info;
 	const char *priority_text = "unknown";
-	
+
 	assert(global_ident);
 	assert(current_log_file);
 
@@ -96,7 +96,7 @@ log_file(int priority, const char *message)
 	if (priority_info) {
 		priority_text = priority_info->name;
 	}
-	
+
 	/* Bug #104, add time_t timestamp */
 	fprintf(current_log_file, "[%d] %s[%d]: %s: %s",
 		(int)time(NULL), global_ident, (int) getpid(), priority_text, message);
@@ -139,7 +139,7 @@ log_vmsg(int priority, const char *format, va_list args)
 	current_log_function(priority, message);
 }
 
-void 
+void
 set_bit(uint8_t bits[], size_t index)
 {
 	/*
@@ -149,7 +149,7 @@ set_bit(uint8_t bits[], size_t index)
 	bits[index / 8] |= (1 << (7 - index % 8));
 }
 
-void 
+void
 clear_bit(uint8_t bits[], size_t index)
 {
 	/*
@@ -159,7 +159,7 @@ clear_bit(uint8_t bits[], size_t index)
 	bits[index / 8] &= ~(1 << (7 - index % 8));
 }
 
-int 
+int
 get_bit(uint8_t bits[], size_t index)
 {
 	/*
@@ -195,7 +195,7 @@ void *
 xalloc(size_t size)
 {
 	void *result = malloc(size);
-	
+
 	if (!result) {
 		log_msg(LOG_ERR, "malloc failed: %s", strerror(errno));
 		exit(1);
@@ -229,7 +229,7 @@ write_data(FILE *file, const void *data, size_t size)
 
 	if (size == 0)
 		return 1;
-	
+
 	result = fwrite(data, 1, size, file);
 
 	if (result == 0) {
@@ -397,7 +397,7 @@ hex_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
 	};
 	size_t i;
-	
+
 	if (targsize < srclength * 2 + 1) {
 		return -1;
 	}
@@ -410,7 +410,7 @@ hex_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 	return 2 * srclength;
 }
 
-ssize_t 
+ssize_t
 hex_pton(const char* src, uint8_t* target, size_t targsize)
 {
 	uint8_t *t = target;
@@ -564,7 +564,7 @@ strip_string(char *str)
 		while (isspace(*end))
 			--end;
 		*++end = '\0';
-		
+
 		if (str != start)
 			memmove(str, start, end - start + 1);
 	}
@@ -858,10 +858,10 @@ rcode2str(int rc)
         return NULL; /* ENOREACH */
 }
 
-stack_type* 
+stack_type*
 stack_create(struct region* region, size_t size)
 {
-	stack_type* stack = (stack_type*)region_alloc(region, 
+	stack_type* stack = (stack_type*)region_alloc(region,
 		sizeof(stack_type));
 	stack->capacity = size;
 	stack->num = 0;
@@ -870,7 +870,7 @@ stack_create(struct region* region, size_t size)
 	return stack;
 }
 
-void 
+void
 stack_push(stack_type* stack, void* elem)
 {
 	assert(stack);
@@ -882,7 +882,7 @@ stack_push(stack_type* stack, void* elem)
 	stack->num ++;
 }
 
-void* 
+void*
 stack_pop(stack_type* stack)
 {
 	void* elem;
@@ -901,18 +901,18 @@ addr2ip(
         struct sockaddr_storage addr
 #else
         struct sockaddr_in addr
-#endif   
+#endif
 , char *address, socklen_t size)
 {
 #ifdef INET6
 	if (addr.ss_family == AF_INET6) {
-		if (!inet_ntop(AF_INET6, 
-			&((struct sockaddr_in6 *)&addr)->sin6_addr, 
+		if (!inet_ntop(AF_INET6,
+			&((struct sockaddr_in6 *)&addr)->sin6_addr,
 			address, size))
 			return (1);
 #else
 	if (0) {
-#endif   
+#endif
 	} else {
 		if (!inet_ntop(AF_INET,
 			&((struct sockaddr_in *)&addr)->sin_addr,

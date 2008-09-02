@@ -1,6 +1,18 @@
 NSD RELEASE NOTES
 
-3.1.1 (UPCOMING RELEASE)
+3.1.2 (UPCOMING RELEASE)
+=============
+BUG FIXES:
+
+FEATURES:
+	- IXFR is transmitted over TCP by default, instead of UDP. If you want 
+	  to continue transmission IXFR over UDP, please modify your 
+	  configuration file:
+		request-xfr: UDP 1.2.3.4 tsigkey
+	  We strongly recommend to enable TSIG if you send IXFR over UDP.
+	- Additional debug and verbose log messages.
+
+3.1.1
 =============
 BUG FIXES:
 	- Try to avoid race conditions with NSD reloading and nsdc running, 

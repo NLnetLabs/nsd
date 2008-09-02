@@ -302,7 +302,7 @@ static void set_bind8_alarm(struct nsd* nsd)
 #endif
 
 static void
-cleanup_dname_compression_tables(void *ptr) 
+cleanup_dname_compression_tables(void *ptr)
 {
 	free(ptr);
 	compressed_dname_offsets = NULL;
@@ -317,7 +317,7 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	if(compression_table_capacity < needed) {
 		compressed_dname_offsets = (uint16_t *) xalloc(
 			needed * sizeof(uint16_t));
-		region_add_cleanup(nsd->db->region, cleanup_dname_compression_tables, 
+		region_add_cleanup(nsd->db->region, cleanup_dname_compression_tables,
 			compressed_dname_offsets);
 		compression_table_capacity = needed;
 		compression_table_size=domain_table_count(nsd->db->domains)+1;
@@ -468,6 +468,9 @@ server_init(struct nsd *nsd)
 		while (l>0 && nsd->chrootdir[l-1] == '/')
 			--l;
 
+		/* also skip leading / */
+		if (l>0) l++;
+
 		nsd->dbfile += l;
 		nsd->pidfile += l;
 		nsd->options->xfrdfile += l;
@@ -477,9 +480,8 @@ server_init(struct nsd *nsd)
 			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
 			return -1;
 		}
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s", 
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd->chrootdir));
-
 	}
 #endif
 	/* Check if nsd->dbfile exists */
@@ -497,20 +499,25 @@ server_init(struct nsd *nsd)
 
 	/* Drop the permissions */
 	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
-		log_msg(LOG_ERR, "unable to drop user privileges: %s", strerror(errno));
+		log_msg(LOG_ERR, "unable to drop user privileges: %s",
+			strerror(errno));
 		unlink(nsd->pidfile);
 		return -1;
 	}
 
 	/* Open the database... */
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
+		log_msg(LOG_ERR, "unable to open the database %s: %s",
+			nsd->dbfile, strerror(errno));
 		unlink(nsd->pidfile);
 		return -1;
 	}
 
+	/* Read diff file */
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count))
 	{
-		log_msg(LOG_ERR, "The diff file contains errors. Will continue without it");
+		log_msg(LOG_ERR, "The diff file contains errors. Will continue \
+			without it");
 	}
 #ifdef NSEC3
 	prehash(nsd->db, 0);
@@ -580,7 +587,7 @@ server_shutdown(struct nsd *nsd)
 	/* SERVER: close command channels to children */
 	if(!nsd->this_child)
 	{
-		for(i=0; i<nsd->child_count; ++i)
+		for(i=0; i < nsd->child_count; ++i)
 			if(nsd->children[i].child_fd > 0)
 			{
 				close(nsd->children[i].child_fd);
@@ -1150,6 +1157,7 @@ server_child(struct nsd *nsd)
 	sig_atomic_t mode;
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
+	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
 
 	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		close_all_sockets(nsd->tcp, nsd->ifs);

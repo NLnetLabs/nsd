@@ -1,3 +1,8 @@
+2 September 2008: Matthijs
+	- AXFR fallback when IXFR/UDP failed on all masters
+	- Bugfix: strip off chroot value in corner cases
+	- Additional debug and verbose log messages
+
 29 August 2008: Matthijs
 	- IXFR allow UDP option
 

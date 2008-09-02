@@ -86,7 +86,7 @@ usage (void)
 		"  -V level        Specify verbosity level.\n"
 		"  -v              Print version information.\n"
 		);
-	fprintf(stderr, "Version %s. Report bugs to <%s>.\n", 
+	fprintf(stderr, "Version %s. Report bugs to <%s>.\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }
 
@@ -112,7 +112,7 @@ error(const char *format, ...)
 	exit(1);
 }
 
-pid_t 
+pid_t
 readpid (const char *file)
 {
 	int fd;
@@ -146,7 +146,7 @@ readpid (const char *file)
 	return pid;
 }
 
-int 
+int
 writepid (struct nsd *nsd)
 {
 	FILE * fd;
@@ -155,13 +155,13 @@ writepid (struct nsd *nsd)
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
 	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
-		DEBUG(DEBUG_IPC,2, (LOG_INFO, "cannot open pidfile %s: %s",
+		DEBUG(DEBUG_IPC,2, (LOG_ERR, "cannot open pidfile %s: %s",
 			nsd->pidfile, strerror(errno)));
 		return -1;
 	}
 
 	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
-		DEBUG(DEBUG_IPC,2, (LOG_INFO, "cannot write pidfile %s: %s",
+		DEBUG(DEBUG_IPC,2, (LOG_ERR, "cannot write pidfile %s: %s",
 			nsd->pidfile, strerror(errno)));
 		fclose(fd);
 		return -1;
@@ -169,21 +169,20 @@ writepid (struct nsd *nsd)
 	fclose(fd);
 
 	if (chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
-		log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",
+		DEBUG(DEBUG_IPC,2, (LOG_ERR, "cannot chown %u.%u %s: %s",
 			(unsigned) nsd->uid, (unsigned) nsd->gid,
-			nsd->pidfile, strerror(errno));
+			nsd->pidfile, strerror(errno)));
 		return -1;
 	}
 
 	return 0;
 }
-	
 
-void 
+void
 sig_handler (int sig)
 {
 	/* To avoid race cond. We really don't want to use log_msg() in this handler */
-	
+
 	/* Are we a child server? */
 	if (nsd.server_kind != NSD_SERVER_MAIN) {
 		switch (sig) {
@@ -244,7 +243,7 @@ sig_handler (int sig)
  *
  */
 #ifdef BIND8_STATS
-void 
+void
 bind8_stats (struct nsd *nsd)
 {
 	char buf[MAXSYSLOGMSGLEN];
@@ -350,7 +349,7 @@ main (int argc, char *argv[])
 	nsd.maximum_tcp_count = 0;
 	nsd.current_tcp_count = 0;
 	nsd.grab_ip6_optional = 0;
-	
+
 	/* EDNS0 */
 	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
 #if defined(INET6)
@@ -511,7 +510,7 @@ main (int argc, char *argv[])
 		      (unsigned) strlen(nsd.identity));
 	}
 
-    /* Read options */
+	/* Read options */
 	nsd.options = nsd_options_create(region_create(xalloc, free));
 	if(!parse_options_file(nsd.options, configfile)) {
 		error("nsd: could not read config: %s\n", configfile);
@@ -622,12 +621,12 @@ main (int argc, char *argv[])
 		nsd.children[i].need_to_send_QUIT = 0;
 		nsd.children[i].need_to_exit = 0;
 		nsd.children[i].has_exited = 0;
-		nsd.children[i].dirty_zones = stack_create(nsd.region, 
+		nsd.children[i].dirty_zones = stack_create(nsd.region,
 			nsd_options_num_zones(nsd.options));
 	}
 
 	nsd.this_child = NULL;
-	
+
 	/* We need at least one active interface */
 	if (nsd.ifs == 0) {
 		nsd.ifs = 1;
@@ -646,14 +645,14 @@ main (int argc, char *argv[])
 		 */
 #ifdef INET6
 		if (hints[0].ai_family == AF_UNSPEC) {
-# ifdef IPV6_V6ONLY
+#ifdef IPV6_V6ONLY
 			hints[0].ai_family = AF_INET6;
 			hints[1].ai_family = AF_INET;
 			nsd.ifs = 2;
 			nsd.grab_ip6_optional = 1;
-# else /* !IPV6_V6ONLY */
+#else /* !IPV6_V6ONLY */
 			hints[0].ai_family = AF_INET6;
-# endif	/* !IPV6_V6ONLY */
+#endif	/* !IPV6_V6ONLY */
 		}
 #endif /* INET6 */
 	}
@@ -735,17 +734,17 @@ main (int argc, char *argv[])
 	if (!log_filename) {
 		log_set_log_function(log_syslog);
 	}
-	
+
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {
 		int l = strlen(nsd.chrootdir);
 
 		/* existing chrootdir: append trailing slash for strncmp checking */
 		if (l>0 && strncmp(nsd.chrootdir + (l-1), "/", 1) != 0) {
-			char *chroot_slash = region_alloc(nsd.region, sizeof(char)*(l+2)); 
-			memcpy(chroot_slash, nsd.chrootdir, sizeof(char)*(l+1)); 
+			char *chroot_slash = region_alloc(nsd.region, sizeof(char)*(l+2));
+			memcpy(chroot_slash, nsd.chrootdir, sizeof(char)*(l+1));
 			strncat(chroot_slash, "/", 1);
-			nsd.chrootdir = chroot_slash; 
+			nsd.chrootdir = chroot_slash;
 			++l;
 		}
 
@@ -845,11 +844,12 @@ main (int argc, char *argv[])
 
 	/* Run the server... */
 	if (server_init(&nsd) != 0) {
-		DEBUG(DEBUG_IPC,2, (LOG_INFO, "server initialization failed"));
+		log_msg(LOG_ERR, "server initialization failed, nsd could \
+not be started");
 		exit(1);
 	}
 
-	log_msg(LOG_NOTICE, "nsd started (%s), pid %d", PACKAGE_STRING, 
+	log_msg(LOG_NOTICE, "nsd started (%s), pid %d", PACKAGE_STRING,
 		(int) nsd.pid);
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {

@@ -176,7 +176,7 @@ send_updates() {
 		ip_spec=$1
 		key_spec=$2
 		shift 2
-		# only if localhost is allowed.
+		# only localhost is allowed.
 		# see if zone has 127.0.0.1 or ::1 as allowed.
 		if test Z${ip_spec} = "Z127.0.0.1" -o Z${ip_spec} = "Z::1"; then
 			secret=""

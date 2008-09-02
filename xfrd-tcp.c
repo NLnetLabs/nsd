@@ -257,8 +257,14 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	/* start AXFR or IXFR for the zone */
 	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request full zone transfer \
+(AXFR) for %s to %s", zone->apex_str, zone->master->ip_address_spec));
+
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex);
 	} else {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request incremental zone transfer \
+(IXFR) for %s to %s", zone->apex_str, zone->master->ip_address_spec));
+
 		xfrd_setup_packet(tcp->packet, TYPE_IXFR, CLASS_IN, zone->apex);
         	NSCOUNT_SET(tcp->packet, 1);
 		xfrd_write_soa_buffer(tcp->packet, zone->apex, &zone->soa_disk);

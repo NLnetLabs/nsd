@@ -44,13 +44,26 @@ warning(const char *format, ...)
         va_end(args);
 }
 
-static void 
+/*
+ * Log a info message.
+ */
+static void info(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
+static void
+info(const char *format, ...)
+{
+        va_list args;
+        va_start(args, format);
+        log_vmsg(LOG_INFO, format, args);
+        va_end(args);
+}
+
+static void
 usage (void)
 {
 	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-h] [-p port] [-y key:secret] "
 		"-z zone servers\n\n");
 	fprintf(stderr, "\tSend NOTIFY to secondary servers to force a zone update.\n");
-	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n", 
+	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "\t-4\t\tSend using IPv4.\n");
 	fprintf(stderr, "\t-6\t\tSend using IPv6.\n");
@@ -63,12 +76,12 @@ usage (void)
 }
 
 /*
- * Send NOTIFY messages to the host, as in struct q, 
+ * Send NOTIFY messages to the host, as in struct q,
  * waiting for ack packet (received in buffer answer).
  * Will retry transmission after a timeout.
  * addrstr is the string describing the address of the host.
  */
-static void 
+static void
 notify_host(int udp_s, struct query* q, struct query *answer,
 	struct addrinfo* res, const dname_type *zone, const char* addrstr)
 {
@@ -128,20 +141,21 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 		buffer_remaining(answer->packet), 0,
 		res->ai_addr, &addrlen);
 	res->ai_addrlen = addrlen;
-	
+
 	if (received == -1) {
 		warning("recv %s failed: %s\n", addrstr, strerror(errno));
 	} else {
 		/* check the answer */
 		if ((ID(q->packet) == ID(answer->packet)) &&
 			(OPCODE(answer->packet) == OPCODE_NOTIFY) &&
-			AA(answer->packet) && 
+			AA(answer->packet) &&
 			QR(answer->packet) && (RCODE(answer->packet) == RCODE_OK)) {
 			/* no news is good news */
-			/* warning("reply from: %s, acknowledges notify.\n", addrstr); */
+			/* info("reply from: %s, acknowledges notify.\n",
+				addrstr); */
 		} else {
-			warning("bad reply from %s for zone %s, error response %s (%d).\n", 
-				addrstr, dname_to_string(zone, NULL), rcode2str(RCODE(answer->packet)), 
+			warning("bad reply from %s for zone %s, error response %s (%d).\n",
+				addrstr, dname_to_string(zone, NULL), rcode2str(RCODE(answer->packet)),
 				RCODE(answer->packet));
 		}
 	}
@@ -182,7 +196,7 @@ add_key(region_type* region, const char* opt)
 }
 #endif /* TSIG */
 
-int 
+int
 main (int argc, char *argv[])
 {
 	int c, udp_s;
@@ -198,7 +212,6 @@ main (int argc, char *argv[])
 	tsig_key_type *tsig_key = 0;
 	tsig_record_type tsig;
 #endif /* TSIG */
-	
 	log_init("nsd-notify");
 #ifdef TSIG
 	if(!tsig_init(region)) {
@@ -206,7 +219,7 @@ main (int argc, char *argv[])
 		exit(1);
 	}
 #endif /* TSIG */
-	
+
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46hp:y:z:")) != -1) {
 		switch (c) {

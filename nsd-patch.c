@@ -49,31 +49,32 @@ list_xfr(FILE *in)
 		!diff_read_32(in, &new_serial) ||
 		!diff_read_16(in, &id) ||
 		!diff_read_32(in, &seq_nr)) {
-		printf("incomplete zone transfer content packet\n");
+		fprintf(stderr, "incomplete zone transfer content packet\n");
 		return;
 	}
 	skiplen = len - (sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name));
-	printf("zone %s transfer id %x serial %d: seq_nr %d of %d bytes\n",
+	fprintf(stderr, "zone %s transfer id %x serial %d: seq_nr %d of %d bytes\n",
 		zone_name, id, new_serial, seq_nr, skiplen);
 
 /* Debug code, print the hexadecimal contents of the packet
 	needed for version 3.1.1
 	for (i=0; i<skiplen; i++) {
 			fread(&hex_data, 1, 1, in);
-			printf(" %2.2x ", hex_data);
+			fprintf(stderr, " %2.2x ", hex_data);
 	}
-	printf(" \n");
+	fprintf(stderr, " \n");
 */
 
 	if(fseeko(in, skiplen, SEEK_CUR) == -1)
 		fprintf(stderr, "fseek failed: %s\n", strerror(errno));
 
 	if(!diff_read_32(in, &len2)) {
-		printf("incomplete zone transfer content packet\n");
+		fprintf(stderr, "incomplete zone transfer content packet\n");
 		return;
 	}
 	if(len != len2) {
-		printf("Packet seq %d had bad length check bytes!\n", seq_nr);
+		fprintf(stderr, "Packet seq %d had bad length check bytes!\n",
+			seq_nr);
 	}
 }
 
@@ -115,15 +116,16 @@ list_commit(FILE *in)
 		!diff_read_8(in, &commit) ||
 		!diff_read_str(in, log_msg, sizeof(log_msg)) ||
 		!diff_read_32(in, &len2)) {
-		printf("incomplete commit/rollback packet\n");
+		fprintf(stderr, "incomplete commit/rollback packet\n");
 		return;
 	}
-	printf("zone %s transfer id %x serial %d: %s of %d packets\n",
+	fprintf(stderr, "zone %s transfer id %x serial %d: %s of %d packets\n",
 		zone_name, id, new_serial, commit?"commit":"rollback", num);
-	printf("   time %s, from serial %d, log message: %s\n",
+	fprintf(stderr, "   time %s, from serial %d, log message: %s\n",
 		get_date(log_msg), old_serial, log_msg);
 	if(len != len2) {
-		printf("  commit packet with bad length check bytes!\n");
+		fprintf(stderr, "  commit packet with bad length check \
+			bytes!\n");
 	}
 }
 
@@ -133,10 +135,11 @@ debug_list(struct nsd_options* opt)
 	const char* file = opt->difffile;
 	FILE *f;
 	uint32_t type;
-	printf("Debug listing of the contents of %s\n", file);
+	fprintf(stderr, "Debug listing of the contents of %s\n", file);
 	f = fopen(file, "r");
 	if(!f) {
-		printf("Error opening %s: %s\n", file, strerror(errno));
+		fprintf(stderr, "Error opening %s: %s\n", file,
+			strerror(errno));
 		return;
 	}
 	while(diff_read_32(f, &type)) {
@@ -148,7 +151,7 @@ debug_list(struct nsd_options* opt)
 			list_commit(f);
 			break;
 		default:
-			printf("bad part of type %x\n", type);
+			fprintf(stderr, "bad part of type %x\n", type);
 			break;
 		}
 	}
@@ -241,7 +244,8 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 	time_t now = time(0);
 	FILE *out;
 
-	printf("writing zone %s to file %s\n", zone->opts->name, filename);
+	fprintf(stderr, "writing zone %s to file %s\n", zone->opts->name,
+		filename);
 
 	if(!zone->apex) {
 		fprintf(stderr, "zone %s has no apex, no data.\n", filename);
@@ -325,7 +329,7 @@ int main(int argc, char* argv[])
 
 	/* see if necessary */
 	if(!exist_difffile(options)) {
-		printf("No diff file, nothing to do.\n");
+		fprintf(stderr, "No diff file, nothing to do.\n");
 		exit(0);
 	}
 
@@ -350,25 +354,25 @@ int main(int argc, char* argv[])
 	}
 
 	/* read ixfr diff file */
-	printf("reading updates to database\n");
+	fprintf(stderr, "reading updates to database\n");
 	if(!diff_read_file(db, options, &commit_log, fake_child_count)) {
 		fprintf(stderr, "unable to load the diff file: %s\n",
 			options->difffile);
 		exit(1);
 	}
 
-	printf("writing changed zones\n");
+	fprintf(stderr, "writing changed zones\n");
 	for(zone = db->zones; zone; zone = zone->next)
 	{
 		if(!force_write && !zone->updated) {
-			printf("zone %s had not changed.\n",
+			fprintf(stderr, "zone %s had not changed.\n",
 				zone->opts->name);
 			continue;
 		}
 		/* write zone to its zone file */
 		write_to_zonefile(zone, commit_log);
 	}
-	printf("done\n");
+	fprintf(stderr, "done\n");
 
 	return 0;
 }
