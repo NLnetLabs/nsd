@@ -60,7 +60,8 @@ SERVER
 - the server reaps children every minute, this is bad for powersaving laptops.
 
 SECURITY
-- TSIG add rfc 4635 algorithms. Bug #120 asks for SHA1 feature.
+- TSIG add rfc 4635 algorithms. Bug #120 asks for SHA1 feature. (remember to 
+  update nsd-checkconf test, also add tests for 4635 algorithms support)
 
 PURITY
 - some data is in network order some in host order, make it clear with prefixes

@@ -141,6 +141,6 @@ key:
 
 key:
 	name: sec2_key
-	algorithm: hmac-md5
+	algorithm: hmac-sha1
 	secret: "m83H2x8R0zbDf3yRKhrqgw=="
 

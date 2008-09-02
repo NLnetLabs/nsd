@@ -171,10 +171,10 @@ key_options_t* key_options_find(nsd_options_t* opt, const char* name);
 /* tsig must be inited, adds all keys in options to tsig. */
 void key_options_tsig_add(nsd_options_t* opt);
 
-/* check acl list, acl number that matches if passed(0..), 
+/* check acl list, acl number that matches if passed(0..),
  * or failure (-1) if dropped */
 /* the reason why (the acl) is returned too (or NULL) */
-int acl_check_incoming(acl_options_t* acl, struct query* q, 
+int acl_check_incoming(acl_options_t* acl, struct query* q,
 	acl_options_t** reason);
 int acl_addr_matches(acl_options_t* acl, struct query* q);
 int acl_key_matches(acl_options_t* acl, struct query* q);

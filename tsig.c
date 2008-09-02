@@ -93,7 +93,7 @@ tsig_init(region_type *region)
 #if defined(TSIG) && defined(HAVE_SSL)
 	return tsig_openssl_init(region);
 #endif
-	
+
 	return 1;
 }
 
@@ -105,6 +105,15 @@ tsig_add_key(tsig_key_type *key)
 	entry->key = key;
 	entry->next = tsig_key_table;
 	tsig_key_table = entry;
+}
+
+uint8_t
+tsig_good_algorithm(const char* algorithm)
+{
+	return (
+		strcmp(algorithm, "hmac-md5") == 0 ||
+		strcmp(algorithm, "hmac-sha1") == 0
+	);
 }
 
 void
@@ -127,7 +136,7 @@ tsig_algorithm_type *
 tsig_get_algorithm_by_name(const char *name)
 {
 	tsig_algorithm_table_type *algorithm_entry;
-	
+
 	for (algorithm_entry = tsig_algorithm_table;
 	     algorithm_entry;
 	     algorithm_entry = algorithm_entry->next)
@@ -137,7 +146,7 @@ tsig_get_algorithm_by_name(const char *name)
 			return algorithm_entry->algorithm;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -410,12 +419,12 @@ int
 tsig_verify(tsig_record_type *tsig)
 {
 	tsig_digest_variables(tsig, tsig->response_count > 1);
-	
+
 	tsig->algorithm->hmac_final(tsig->context,
 				    tsig->prior_mac_data,
 				    &tsig->prior_mac_size);
 
-	if (tsig->mac_size != tsig->prior_mac_size 
+	if (tsig->mac_size != tsig->prior_mac_size
 	    || memcmp(tsig->mac_data,
 		      tsig->prior_mac_data,
 		      tsig->mac_size) != 0)
@@ -443,10 +452,10 @@ tsig_find_rr(tsig_record_type *tsig, buffer_type *packet)
 		tsig->status = TSIG_NOT_PRESENT;
 		return 1;
 	}
-			  
+
 	buffer_set_position(packet, QHEADERSZ);
 
-	/* TSIG must be the last record, so skip all others.  */
+	/* TSIG must be the last record, so skip all others. */
 	for (i = 0; i < rrcount - 1; ++i) {
 		if (!packet_skip_rr(packet, i < QDCOUNT(packet))) {
 			buffer_set_position(packet, saved_position);
@@ -474,7 +483,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->mac_data = NULL;
 	tsig->other_data = NULL;
 	region_free_all(tsig->rr_region);
-	
+
 	tsig->key_name = dname_make_from_packet(tsig->rr_region, packet, 1, 1);
 	if (!tsig->key_name) {
 		buffer_set_position(packet, tsig->position);
@@ -488,11 +497,12 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 
 	type = buffer_read_u16(packet);
 	klass = buffer_read_u16(packet);
+	/* <matthijs> why return 1 when rr is not (TSIG,ANY)? */
 	if (type != TYPE_TSIG || klass != CLASS_ANY) {
 		buffer_set_position(packet, tsig->position);
 		return 1;
 	}
-	
+
 	ttl = buffer_read_u32(packet);
 	rdlen = buffer_read_u16(packet);
 

@@ -158,7 +158,7 @@ packet_encode_rrset(query_type *query,
 		TC_SET(query->packet);
 		added = 0;
 	}
-	
+
 	return added;
 }
 
@@ -169,7 +169,7 @@ packet_skip_dname(buffer_type *packet)
 		uint8_t label_size;
 		if (!buffer_available(packet, 1))
 			return 0;
-		
+
 		label_size = buffer_read_u8(packet);
 		if (label_size == 0) {
 			return 1;
@@ -219,7 +219,7 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	ssize_t rdata_count;
 	rdata_atom_type *rdatas;
 	rr_type *result = (rr_type *) region_alloc(region, sizeof(rr_type));
-	
+
 	owner = dname_make_from_packet(region, packet, 1, 1);
 	if (!owner || !buffer_available(packet, 2*sizeof(uint16_t))) {
 		return NULL;

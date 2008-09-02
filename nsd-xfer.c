@@ -861,7 +861,7 @@ main(int argc, char *argv[])
 			= tsig_get_algorithm_by_name("hmac-md5");
 		if (!md5) {
 			error("cannot initialize hmac-md5: TSIG support not"
-			      " enabled");
+				" enabled");
 			exit(XFER_FAIL);
 		}
 

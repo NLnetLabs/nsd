@@ -52,7 +52,7 @@ tsig_openssl_init(region_type *region)
 	md5_algorithm->hmac_update = update;
 	md5_algorithm->hmac_final = final;
 	tsig_add_algorithm(md5_algorithm);
-	
+
 	return 1;
 }
 

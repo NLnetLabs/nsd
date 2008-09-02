@@ -178,18 +178,18 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets,
 	return query;
 }
 
-void 
+void
 query_reset(query_type *q, size_t maxlen, int is_tcp)
 {
-	/* 
+	/*
 	 * As long as less than 4Kb (region block size) has been used,
 	 * this call to free_all is free, the block is saved for re-use,
-	 * so no malloc() or free() calls are done. 
+	 * so no malloc() or free() calls are done.
 	 * at present use of the region is for:
 	 *   o query qname dname_type (255 max).
 	 *   o wildcard expansion domain_type (7*ptr+u32+2bytes)+(5*ptr nsec3)
 	 *   o wildcard expansion for additional section domain_type.
-	 *   o nsec3 hashed name(s) (3 dnames for a nonexist_proof, 
+	 *   o nsec3 hashed name(s) (3 dnames for a nonexist_proof,
 	 *     one proof per wildcard and for nx domain).
 	 */
 	region_free_all(q->region);
@@ -326,7 +326,7 @@ process_edns(struct query *q)
 			}
 #endif
 		}
-		
+
 		/* Strip the OPT resource record off... */
 		buffer_set_position(q->packet, q->edns.position);
 		buffer_set_limit(q->packet, q->edns.position);

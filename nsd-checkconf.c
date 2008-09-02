@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <limits.h>
+#include "tsig.h"
 #include "options.h"
 #include "util.h"
 #include "dname.h"
@@ -90,7 +91,7 @@ usage(void)
 	fprintf(stderr, "usage: nsd-checkconf [-v|-h] [-o option] [-z zonename]\n");
 	fprintf(stderr, "                     [-s keyname] <configfilename>\n");
 	fprintf(stderr, "       Checks NSD configuration file for errors.\n");
-	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", 
+	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "Use with a configfile as argument to check syntax.\n");
 	fprintf(stderr, "Use with -o, -z or -s options to query the configuration.\n\n");
@@ -102,7 +103,7 @@ usage(void)
 	exit(1);
 }
 
-static void 
+static void
 print_string_var(const char* varname, const char* value)
 {
 	if (!value) {
@@ -264,7 +265,7 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 	}
 }
 
-void 
+void
 config_test_print_server(nsd_options_t* opt)
 {
 	ip_address_option_t* ip;
@@ -314,10 +315,10 @@ config_test_print_server(nsd_options_t* opt)
 		print_acl("notify:", zone->notify);
 		print_acl("provide-xfr:", zone->provide_xfr);
 	}
-	
+
 }
 
-static int 
+static int
 additional_checks(nsd_options_t* opt, const char* filename)
 {
 	ip_address_option_t* ip = opt->ip_addresses;
@@ -364,9 +365,10 @@ additional_checks(nsd_options_t* opt, const char* filename)
 			fprintf(stderr, "%s: cannot base64 decode tsig secret: for key %s.\n", filename, key->name);
 			errors ++;
 		}
-		if(strcmp(key->algorithm, "hmac-md5") != 0)
+		if(!tsig_good_algorithm(key->algorithm))
 		{
-			fprintf(stderr, "%s: bad tsig algorithm: for key %s.\n", filename, key->name);
+			fprintf(stderr, "%s: bad tsig algorithm %s: for key \
+%s.\n", filename, key->algorithm, key->name);
 			errors ++;
 		}
 	}
@@ -374,7 +376,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 #ifndef BIND8_STATS
 	if(opt->statistics > 0)
 	{
-		fprintf(stderr, "%s: 'statistics: %d' but BIND 8 statistics feature not enabled.\n", 
+		fprintf(stderr, "%s: 'statistics: %d' but BIND 8 statistics feature not enabled.\n",
 			filename, opt->statistics);
 		errors ++;
 	}
@@ -382,7 +384,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 #ifndef HAVE_CHROOT
 	if(opt->chroot != 0)
 	{
-		fprintf(stderr, "%s: chroot %s given. chroot not supported on this platform.\n", 
+		fprintf(stderr, "%s: chroot %s given. chroot not supported on this platform.\n",
 			filename, opt->chroot);
 		errors ++;
 	}
@@ -399,45 +401,45 @@ additional_checks(nsd_options_t* opt, const char* filename)
                 int l = strlen(opt->chroot);
 
                 if (strncmp(opt->chroot, opt->pidfile, l) != 0) {
-			fprintf(stderr, "%s: pidfile %s is not relative to chroot %s.\n", 
+			fprintf(stderr, "%s: pidfile %s is not relative to chroot %s.\n",
 				filename, opt->pidfile, opt->chroot);
 			errors ++;
-                } 
+                }
 		if (strncmp(opt->chroot, opt->database, l) != 0) {
-			fprintf(stderr, "%s: databasefile %s is not relative to chroot %s.\n", 
+			fprintf(stderr, "%s: databasefile %s is not relative to chroot %s.\n",
 				filename, opt->database, opt->chroot);
 			errors ++;
                 }
 		if (strncmp(opt->chroot, opt->difffile, l) != 0) {
-			fprintf(stderr, "%s: difffile %s is not relative to chroot %s.\n", 
+			fprintf(stderr, "%s: difffile %s is not relative to chroot %s.\n",
 				filename, opt->difffile, opt->chroot);
 			errors ++;
                 }
 		if (strncmp(opt->chroot, opt->xfrdfile, l) != 0) {
-			fprintf(stderr, "%s: xfrdfile %s is not relative to chroot %s.\n", 
+			fprintf(stderr, "%s: xfrdfile %s is not relative to chroot %s.\n",
 				filename, opt->xfrdfile, opt->chroot);
 			errors ++;
                 }
         }
 	if (atoi(opt->port) <= 0) {
-		fprintf(stderr, "%s: port number '%s' is not a positive number.\n", 
+		fprintf(stderr, "%s: port number '%s' is not a positive number.\n",
 			filename, opt->port);
 		errors ++;
 	}
 	if(errors != 0) {
 		fprintf(stderr, "%s: %d semantic errors in %d zones, %d keys.\n",
-			filename, errors, (int)nsd_options_num_zones(opt), 
+			filename, errors, (int)nsd_options_num_zones(opt),
 			(int)opt->numkeys);
 	}
-	
+
 	return (errors == 0);
 }
 
-int 
+int
 main(int argc, char* argv[])
 {
 	int c;
-	int verbose = 0; 
+	int verbose = 0;
 	const char * conf_opt = NULL; /* what option do you want? Can be NULL -> print all */
 	const char * conf_zone = NULL; /* what zone are we talking about */
 	const char * conf_key = NULL; /* what key is needed */
@@ -480,9 +482,9 @@ main(int argc, char* argv[])
 		config_print_zone(options, conf_key, underscore(conf_opt), conf_zone);
 	} else {
 		if (verbose) {
-			printf("# Read file %s: %d zones, %d keys.\n", 
-				configfile, 
-				(int)nsd_options_num_zones(options), 
+			printf("# Read file %s: %d zones, %d keys.\n",
+				configfile,
+				(int)nsd_options_num_zones(options),
 				(int)options->numkeys);
 			config_test_print_server(options);
 		}

@@ -140,6 +140,11 @@ void tsig_add_key(tsig_key_type *key);
 void tsig_add_algorithm(tsig_algorithm_type *algorithm);
 
 /*
+ * Check if the algorithm can be used for tsig.
+ */
+uint8_t tsig_good_algorithm(const char* algorithm);
+
+/*
  * Find an HMAC algorithm based on its short name.
  */
 tsig_algorithm_type *tsig_get_algorithm_by_name(const char *name);
@@ -155,22 +160,22 @@ const char *tsig_error(int error_code);
  *
  * The region is used to attach a cleanup function that destroys the tsig.
  */
-void tsig_create_record(tsig_record_type* tsig, 
+void tsig_create_record(tsig_record_type* tsig,
 			region_type* region);
 
 /*
  * Like tsig_create_record, with custom region settings.
  * The size params are used to customise the rr_region and context_region.
  */
-void tsig_create_record_custom(tsig_record_type* tsig, 
+void tsig_create_record_custom(tsig_record_type* tsig,
 			region_type* region,
-			size_t chunk_size, 
-			size_t large_object_size, 
+			size_t chunk_size,
+			size_t large_object_size,
 			size_t initial_cleanup_size);
 
 /*
  * Call this before starting to analyze or signing a sequence of
- * packets. 
+ * packets.
  *
  * ALGORITHM and KEY are optional and are only needed if you want to
  * sign the initial query.  Otherwise the key and algorithm are looked
@@ -236,7 +241,7 @@ int tsig_verify(tsig_record_type *tsig);
  * field to find out if the TSIG record was present.
  */
 int tsig_find_rr(tsig_record_type *tsig, buffer_type *packet);
-	
+
 /*
  * Call this to analyze the TSIG RR starting at the current location
  * of PACKET. On success true is returned and the results are stored
