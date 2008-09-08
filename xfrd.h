@@ -254,8 +254,10 @@ struct buffer* xfrd_get_temp_buffer();
 /*
  * TSIG sign outgoing request. Call if acl has a key.
  */
+#ifdef TSIG
 void xfrd_tsig_sign_request(buffer_type* packet, struct tsig_record* tsig,
         acl_options_t* acl);
+#endif
 
 /* handle incoming soa information (NSD is running it, time acquired=guess).
    Pass soa=NULL,acquired=now if NSD has nothing loaded for the zone

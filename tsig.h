@@ -22,6 +22,9 @@
 #define TSIG_ERROR_BADKEY   17
 #define TSIG_ERROR_BADTIME  18
 
+#define TSIG_HMAC_MD5       157
+#define TSIG_HMAC_SHA1      158
+
 typedef struct tsig_algorithm tsig_algorithm_type;
 typedef struct tsig_key tsig_key_type;
 typedef struct tsig_record tsig_record_type;
@@ -33,6 +36,13 @@ enum tsig_status
 	TSIG_ERROR
 };
 typedef enum tsig_status tsig_status_type;
+
+struct tsig_lookup_struct_table
+{
+	uint8_t id;
+	const char* short_name;
+};
+typedef struct tsig_lookup_struct_table tsig_lookup_algorithm_table;
 
 /*
  * A TSIG HMAC algorithm, such as hmac-md5.
@@ -140,14 +150,14 @@ void tsig_add_key(tsig_key_type *key);
 void tsig_add_algorithm(tsig_algorithm_type *algorithm);
 
 /*
- * Check if the algorithm can be used for tsig.
- */
-uint8_t tsig_good_algorithm(const char* algorithm);
-
-/*
  * Find an HMAC algorithm based on its short name.
  */
 tsig_algorithm_type *tsig_get_algorithm_by_name(const char *name);
+
+/*
+ * Find an HMAC algorithm based on its identifier.
+ */
+tsig_algorithm_type *tsig_get_algorithm_by_id(uint8_t alg);
 
 /*
  * Return a descriptive error message based on the TSIG error code.

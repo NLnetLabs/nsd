@@ -36,6 +36,12 @@ typedef struct tsig_algorithm_table tsig_algorithm_table_type;
 static tsig_algorithm_table_type *tsig_algorithm_table;
 static size_t max_algo_digest_size = 0;
 
+tsig_lookup_algorithm_table tsig_supported_algorithms[] = {
+	{ TSIG_HMAC_MD5, "hmac-md5" },
+	{ TSIG_HMAC_SHA1, "hmac-sha1" },
+        { 0, NULL }
+};
+
 static void
 tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 {
@@ -46,7 +52,7 @@ tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 	uint16_t signed_time_fudge = htons(tsig->signed_time_fudge);
 	uint16_t error_code = htons(tsig->error_code);
 	uint16_t other_size = htons(tsig->other_size);
-	
+
 	if (!tsig_timers_only) {
 		tsig->algorithm->hmac_update(tsig->context,
 					     dname_name(tsig->key_name),
@@ -93,8 +99,6 @@ tsig_init(region_type *region)
 #if defined(TSIG) && defined(HAVE_SSL)
 	return tsig_openssl_init(region);
 #endif
-
-	return 1;
 }
 
 void
@@ -105,15 +109,6 @@ tsig_add_key(tsig_key_type *key)
 	entry->key = key;
 	entry->next = tsig_key_table;
 	tsig_key_table = entry;
-}
-
-uint8_t
-tsig_good_algorithm(const char* algorithm)
-{
-	return (
-		strcmp(algorithm, "hmac-md5") == 0 ||
-		strcmp(algorithm, "hmac-sha1") == 0
-	);
 }
 
 void
@@ -150,6 +145,19 @@ tsig_get_algorithm_by_name(const char *name)
 	return NULL;
 }
 
+/*
+ * Find an HMAC algorithm based on its id.
+ */
+tsig_algorithm_type *
+tsig_get_algorithm_by_id(uint8_t alg)
+{
+	int i=0;
+	for (/*empty*/; tsig_supported_algorithms[i].id > 0; i++) {
+		if (tsig_supported_algorithms[i].id == alg)
+			return tsig_get_algorithm_by_name(tsig_supported_algorithms[i].short_name);
+	}
+	return NULL;
+}
 
 const char *
 tsig_error(int error_code)
@@ -191,7 +199,7 @@ tsig_cleanup(void *data)
 void
 tsig_create_record(tsig_record_type *tsig, region_type *region)
 {
-	tsig_create_record_custom(tsig, region, DEFAULT_CHUNK_SIZE, 
+	tsig_create_record_custom(tsig, region, DEFAULT_CHUNK_SIZE,
 		DEFAULT_LARGE_OBJECT_SIZE, DEFAULT_INITIAL_CLEANUP_SIZE);
 }
 
@@ -199,7 +207,7 @@ void
 tsig_create_record_custom(tsig_record_type *tsig, region_type *region,
 	size_t chunk_size, size_t large_object_size, size_t initial_cleanup_size)
 {
-	tsig->rr_region = region_create_custom(xalloc, free, chunk_size, 
+	tsig->rr_region = region_create_custom(xalloc, free, chunk_size,
 		large_object_size, initial_cleanup_size, 0);
 	tsig->context_region = region_create_custom(xalloc, free, chunk_size,
 		large_object_size, initial_cleanup_size, 0);
@@ -233,11 +241,11 @@ tsig_from_query(tsig_record_type *tsig)
 	tsig_algorithm_type *algorithm = NULL;
 	uint64_t current_time;
 	uint64_t signed_time;
-	
+
 	assert(tsig->status == TSIG_OK);
 	assert(!tsig->algorithm);
 	assert(!tsig->key);
-	
+
 	/* XXX: TODO: slow linear check for keyname */
 	for (key_entry = tsig_key_table;
 	     key_entry;
@@ -248,7 +256,7 @@ tsig_from_query(tsig_record_type *tsig)
 			break;
 		}
 	}
-	
+
 	for (algorithm_entry = tsig_algorithm_table;
 	     algorithm_entry;
 	     algorithm_entry = algorithm_entry->next)
@@ -273,7 +281,7 @@ tsig_from_query(tsig_record_type *tsig)
 	{
 		/*
 		 * Algorithm or key changed during a single connection,
-		 *return error.
+		 * return error.
 		 */
 		tsig->error_code = TSIG_ERROR_BADKEY;
 		return 0;
@@ -289,7 +297,7 @@ tsig_from_query(tsig_record_type *tsig)
 		uint16_t current_time_high;
 		uint32_t current_time_low;
 
-#if 0				/* debug */
+#if 0 /* debug */
 		char current_time_text[26];
 		char signed_time_text[26];
 		time_t clock;
@@ -320,12 +328,12 @@ tsig_from_query(tsig_record_type *tsig)
 		write_uint32(tsig->other_data + 2, current_time_low);
 		return 0;
 	}
-	
+
 	tsig->algorithm = algorithm;
 	tsig->key = key;
 	tsig->response_count = 0;
 	tsig->prior_mac_size = 0;
-	
+
 	return 1;
 }
 
@@ -335,7 +343,7 @@ tsig_init_query(tsig_record_type *tsig, uint16_t original_query_id)
 	assert(tsig);
 	assert(tsig->algorithm);
 	assert(tsig->key);
-	
+
 	tsig->response_count = 0;
 	tsig->prior_mac_size = 0;
 	tsig->algorithm_name = tsig->algorithm->wireformat_name;
@@ -356,7 +364,7 @@ tsig_prepare(tsig_record_type *tsig)
 		tsig->context = tsig->algorithm->hmac_create_context(
 			tsig->context_region);
 		tsig->prior_mac_data = (uint8_t *) region_alloc(
-			tsig->context_region, 
+			tsig->context_region,
 			tsig->algorithm->maximum_digest_size);
 	}
 	tsig->algorithm->hmac_init_context(tsig->context,
@@ -365,10 +373,10 @@ tsig_prepare(tsig_record_type *tsig)
 
 	if (tsig->prior_mac_size > 0) {
 		uint16_t mac_size = htons(tsig->prior_mac_size);
-		tsig->algorithm->hmac_update(tsig->context, 
+		tsig->algorithm->hmac_update(tsig->context,
 					     &mac_size,
 					     sizeof(mac_size));
-		tsig->algorithm->hmac_update(tsig->context, 
+		tsig->algorithm->hmac_update(tsig->context,
 					     tsig->prior_mac_data,
 					     tsig->prior_mac_size);
 	}
@@ -382,12 +390,12 @@ tsig_update(tsig_record_type *tsig, buffer_type *packet, size_t length)
 	uint16_t original_query_id = htons(tsig->original_query_id);
 
 	assert(length <= buffer_limit(packet));
-	
-	tsig->algorithm->hmac_update(tsig->context, 
+
+	tsig->algorithm->hmac_update(tsig->context,
 				     &original_query_id,
 				     sizeof(original_query_id));
 	tsig->algorithm->hmac_update(
-		tsig->context, 
+		tsig->context,
 		buffer_at(packet, sizeof(original_query_id)),
 		length - sizeof(original_query_id));
 	if (QR(packet)) {
@@ -497,7 +505,8 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 
 	type = buffer_read_u16(packet);
 	klass = buffer_read_u16(packet);
-	/* <matthijs> why return 1 when rr is not (TSIG,ANY)? */
+
+	/* <matthijs> TSIG not present */
 	if (type != TYPE_TSIG || klass != CLASS_ANY) {
 		buffer_set_position(packet, tsig->position);
 		return 1;

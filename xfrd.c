@@ -847,11 +847,11 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 	return fd;
 }
 
+#ifdef TSIG
 void
 xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig,
 	acl_options_t* acl)
 {
-#ifdef TSIG
 	tsig_algorithm_type* algo;
 	assert(acl->key_options && acl->key_options->tsig_key);
 	algo = tsig_get_algorithm_by_name(acl->key_options->algorithm);
@@ -871,8 +871,8 @@ xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig,
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "appending tsig to packet"));
 	/* prepare for validating tsigs */
 	tsig_prepare(tsig);
-#endif
 }
+#endif
 
 static int
 xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
@@ -896,11 +896,11 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
         NSCOUNT_SET(xfrd->packet, 1);
 	xfrd_write_soa_buffer(xfrd->packet, zone->apex, &zone->soa_disk);
 	/* if we have tsig keys, sign the ixfr query */
-	if(zone->master->key_options && zone->master->key_options->tsig_key) {
 #ifdef TSIG
+	if(zone->master->key_options && zone->master->key_options->tsig_key) {
 		xfrd_tsig_sign_request(xfrd->packet, &zone->tsig, zone->master);
-#endif /* TSIG */
 	}
+#endif /* TSIG */
 	buffer_flip(xfrd->packet);
 	xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
 

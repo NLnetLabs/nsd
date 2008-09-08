@@ -144,15 +144,15 @@ xfrd_notify_next(struct notify_zone_t* zone)
 	zone->notify_current = zone->notify_current->next;
 	zone->notify_retry = 0;
 	if(zone->notify_current == 0) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
-			"xfrd: zone %s: no more notify-send acls. stop notify.", 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+			"xfrd: zone %s: no more notify-send acls. stop notify.",
 			zone->apex_str));
 		notify_disable(zone);
 		return;
 	}
 }
 
-static void 
+static void
 xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 {
 	if(zone->notify_send_handler.fd != -1)
@@ -188,21 +188,21 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 		zone->notify_current->ip_address_spec));
 }
 
-static void 
-xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio), 
+static void
+xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	netio_handler_type *handler, netio_event_types_type event_types)
 {
 	struct notify_zone_t* zone = (struct notify_zone_t*)handler->user_data;
 	buffer_type* packet = xfrd_get_temp_buffer();
 	assert(zone->notify_current);
 	if(zone->is_waiting) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"xfrd: notify waiting, skipped, %s", zone->apex_str));
 		assert(zone->notify_send_handler.fd == -1);
 		return;
 	}
 	if(event_types & NETIO_EVENT_READ) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"xfrd: zone %s: read notify ACK", zone->apex_str));
 		assert(handler->fd != -1);
 		if(xfrd_udp_read_packet(packet, zone->notify_send_handler.fd)) {

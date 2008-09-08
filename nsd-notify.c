@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <tsig.h>
 #include <unistd.h>
 #include <netdb.h>
 
@@ -44,19 +45,6 @@ warning(const char *format, ...)
         va_end(args);
 }
 
-/*
- * Log a info message.
- */
-static void info(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
-static void
-info(const char *format, ...)
-{
-        va_list args;
-        va_start(args, format);
-        log_vmsg(LOG_INFO, format, args);
-        va_end(args);
-}
-
 static void
 usage (void)
 {
@@ -69,7 +57,7 @@ usage (void)
 	fprintf(stderr, "\t-6\t\tSend using IPv6.\n");
 	fprintf(stderr, "\t-h\t\tPrint this help information.\n");
 	fprintf(stderr, "\t-p port\t\tPort number of secondary server.\n");
-	fprintf(stderr, "\t-y key:secret\tTSIG keyname and base64 secret blob.\n");
+	fprintf(stderr, "\t-y key:secret\t(MD5) TSIG keyname and base64 secret blob.\n");
 	fprintf(stderr, "\t-z zone\t\tName of zone to be updated.\n");
 	fprintf(stderr, "\tservers\t\tIP addresses of the secondary server(s).\n");
 	exit(1);

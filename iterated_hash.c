@@ -15,7 +15,7 @@
 
 #include "iterated_hash.h"
 
-int 
+int
 iterated_hash(unsigned char out[SHA_DIGEST_LENGTH],
 	const unsigned char *salt, int saltlength,
 	const unsigned char *in, int inlength, int iterations)

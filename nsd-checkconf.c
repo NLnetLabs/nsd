@@ -365,7 +365,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 			fprintf(stderr, "%s: cannot base64 decode tsig secret: for key %s.\n", filename, key->name);
 			errors ++;
 		}
-		if(!tsig_good_algorithm(key->algorithm))
+		if(tsig_get_algorithm_by_name(key->algorithm) != NULL)
 		{
 			fprintf(stderr, "%s: bad tsig algorithm %s: for key \
 %s.\n", filename, key->algorithm, key->name);

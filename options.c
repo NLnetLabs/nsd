@@ -106,23 +106,23 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	fclose(in);
 
 	if(cfg_parser->current_zone) {
-		if(!cfg_parser->current_zone->name) 
+		if(!cfg_parser->current_zone->name)
 			c_error("last zone has no name");
 		else {
-			if(!nsd_options_insert_zone(opt, 
+			if(!nsd_options_insert_zone(opt,
 				cfg_parser->current_zone))
 				c_error("duplicate zone");
 		}
-		if(!cfg_parser->current_zone->zonefile) 
+		if(!cfg_parser->current_zone->zonefile)
 			c_error("last zone has no zonefile");
 	}
 	if(opt->keys)
 	{
-		if(!opt->keys->name) 
+		if(!opt->keys->name)
 			c_error("last key has no name");
-		if(!opt->keys->algorithm) 
+		if(!opt->keys->algorithm)
 			c_error("last key has no algorithm");
-		if(!opt->keys->secret) 
+		if(!opt->keys->secret)
 			c_error("last key has no secret blob");
 	}
 	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
@@ -441,7 +441,7 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 #endif
 }
 
-int 
+int
 acl_same_host(acl_options_t* a, acl_options_t* b)
 {
 	if(a->is_ipv6 && !b->is_ipv6)

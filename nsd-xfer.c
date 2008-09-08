@@ -195,13 +195,14 @@ read_line(FILE *in, char *line, size_t size)
 }
 
 static tsig_key_type *
-read_tsig_key_data(region_type *region, FILE *in, 
-	int ATTR_UNUSED(default_family))
+read_tsig_key_data(region_type *region, FILE *in,
+	int ATTR_UNUSED(default_family), tsig_algorithm_type** tsig_algo)
 {
 	char line[4000];
 	tsig_key_type *key = (tsig_key_type *) region_alloc(
 		region, sizeof(tsig_key_type));
 	int size;
+	uint8_t algo = 0;
 	uint8_t data[4000];
 
 	if (!read_line(in, line, sizeof(line))) {
@@ -223,7 +224,14 @@ read_tsig_key_data(region_type *region, FILE *in,
 	}
 
 	if (!read_line(in, line, sizeof(line))) {
-		error("failed to read TSIG key type: '%s'", strerror(errno));
+		error("failed to read TSIG key algorithm: '%s'", strerror(errno));
+		return NULL;
+	}
+
+	algo = (uint8_t) atoi((const char*) line);
+	*tsig_algo = tsig_get_algorithm_by_id(algo);
+	if (*tsig_algo == NULL) {
+		error("failed to parse TSIG key algorithm: '%s'\n", strerror(errno));
 		return NULL;
 	}
 
@@ -250,7 +258,7 @@ read_tsig_key_data(region_type *region, FILE *in,
 static tsig_key_type *
 read_tsig_key(region_type *region,
 	      const char *tsiginfo_filename,
-	      int default_family)
+	      int default_family, tsig_algorithm_type** algo)
 {
 	FILE *in;
 	tsig_key_type *key;
@@ -263,7 +271,7 @@ read_tsig_key(region_type *region,
 		return NULL;
 	}
 
-	key = read_tsig_key_data(region, in, default_family);
+	key = read_tsig_key_data(region, in, default_family, algo);
 
 	fclose(in);
 
@@ -857,26 +865,18 @@ main(int argc, char *argv[])
 		usage();
 
 	if (tsig_key_filename) {
-		tsig_algorithm_type *md5
-			= tsig_get_algorithm_by_name("hmac-md5");
-		if (!md5) {
-			error("cannot initialize hmac-md5: TSIG support not"
-				" enabled");
-			exit(XFER_FAIL);
-		}
-
+		tsig_algorithm_type *tsig_algo = NULL;
 		tsig_key = read_tsig_key(
-			region, tsig_key_filename, default_family);
+			region, tsig_key_filename, default_family, &tsig_algo);
 		if (!tsig_key) {
+			error("cannot initialize TSIG: error in tsiginfo file");
 			exit(XFER_FAIL);
 		}
-
 		tsig_add_key(tsig_key);
-
 		state.tsig = (tsig_record_type *) region_alloc(
 			region, sizeof(tsig_record_type));
 		tsig_create_record(state.tsig, region);
-		tsig_init_record(state.tsig, md5, tsig_key);
+		tsig_init_record(state.tsig, tsig_algo, tsig_key);
 	}
 
 	mysigaction.sa_handler = to_alarm;
