@@ -551,6 +551,7 @@ algorithm and the last line is the secret.
 Here's a list of algorithms with their corresponding algorithm numbers.
 hmac-md5:	157
 hmac-sha1:	158
+hmac-sha256:	159
 
 3.4 Zone expiry of secondary zones
 

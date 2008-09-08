@@ -67,6 +67,10 @@ tsig_openssl_init(region_type *region)
 		return 0;
 	if (!tsig_openssl_init_algorithm(region, "sha1", "hmac-sha1", "hmac-sha1."))
 		return 0;
+#ifdef SHA256_DIGEST_LENGTH
+	if (!tsig_openssl_init_algorithm(region, "sha256", "hmac-sha256", "hmac-sha256."))
+		return 0;
+#endif
 	return 1;
 }
 

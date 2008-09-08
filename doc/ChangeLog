@@ -1,3 +1,8 @@
+8 September 2008: Matthijs
+	- RFC 4635, bugfix #130: support for hmac-sha1 and hmac-sha256 tsig 
+		algorithms.
+	- modify and add tpkg tests for hmac-sha1 algorithms.
+
 2 September 2008: Matthijs
 	- AXFR fallback when IXFR/UDP failed on all masters
 	- Bugfix: strip off chroot value in corner cases

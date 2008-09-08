@@ -144,3 +144,8 @@ key:
 	algorithm: hmac-sha1
 	secret: "m83H2x8R0zbDf3yRKhrqgw=="
 
+key:
+	name: sec3_key
+	algorithm: hmac-sha256
+	secret: "m83H2x8R0zbDf3yRKhrqgw=="
+

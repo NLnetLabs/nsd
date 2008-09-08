@@ -10,6 +10,8 @@ FEATURES:
 	  configuration file:
 		request-xfr: UDP 1.2.3.4 tsigkey
 	  We strongly recommend to enable TSIG if you send IXFR over UDP.
+	- RFC 4635: support for hmac-sha1 and hmac-sha256 TSIG algorithm 
+		identifiers.
 	- Additional debug and verbose log messages.
 
 3.1.1

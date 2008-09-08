@@ -24,6 +24,7 @@
 
 #define TSIG_HMAC_MD5       157
 #define TSIG_HMAC_SHA1      158
+#define TSIG_HMAC_SHA256    159
 
 typedef struct tsig_algorithm tsig_algorithm_type;
 typedef struct tsig_key tsig_key_type;

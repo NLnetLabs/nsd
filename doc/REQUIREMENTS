@@ -961,8 +961,11 @@ NSD Version 3.0. and above
    RFC 1995 (IXFR) support only for making requests to other servers.
   		- IXFR is not served.
 
-  Secondary zones: - follows SOA timers. (NSD 2 and before did not) 
+   Secondary zones: - follows SOA timers. (NSD 2 and before did not) 
   		(RFC 1034, 1035).
+
+   RFC 4635 (HMAC SHA TSIG) support for mandatory algorithms: hmac-md5, 
+		hmac-sha1, hmac-sha256.
 
 Not implemented:
 
