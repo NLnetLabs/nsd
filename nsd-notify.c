@@ -48,7 +48,7 @@ warning(const char *format, ...)
 static void
 usage (void)
 {
-	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-h] [-p port] [-y key:secret] "
+	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-h] [-p port] [-y key:secret[:algo]] "
 		"-z zone servers\n\n");
 	fprintf(stderr, "\tSend NOTIFY to secondary servers to force a zone update.\n");
 	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n",
@@ -57,7 +57,8 @@ usage (void)
 	fprintf(stderr, "\t-6\t\tSend using IPv6.\n");
 	fprintf(stderr, "\t-h\t\tPrint this help information.\n");
 	fprintf(stderr, "\t-p port\t\tPort number of secondary server.\n");
-	fprintf(stderr, "\t-y key:secret\t(MD5) TSIG keyname and base64 secret blob.\n");
+	fprintf(stderr, "\t-y key:secret[:algo]\tTSIG keyname, base64 secret \
+blob and HMAC algorithm. If algo is not provided, HMAC-MD5 is assumed.\n");
 	fprintf(stderr, "\t-z zone\t\tName of zone to be updated.\n");
 	fprintf(stderr, "\tservers\t\tIP addresses of the secondary server(s).\n");
 	exit(1);
@@ -152,10 +153,15 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 
 #ifdef TSIG
 static tsig_key_type*
-add_key(region_type* region, const char* opt)
+add_key(region_type* region, const char* opt, tsig_algorithm_type** algo)
 {
 	/* parse -y key:secret_base64 format option */
 	char* delim = strchr(opt, ':');
+	char* delim2 = NULL;
+
+	if (delim)
+		delim2 = strchr(delim+1, ':');
+
 	tsig_key_type *key = (tsig_key_type*)region_alloc(
 		region, sizeof(tsig_key_type));
 	size_t len;
@@ -167,10 +173,27 @@ add_key(region_type* region, const char* opt)
 	*delim = '\0';
 	key->name = dname_parse(region, opt);
 	if(!key->name) {
-		log_msg(LOG_ERR, "bad key syntax %s", opt);
+		log_msg(LOG_ERR, "bad key name %s", opt);
 		return 0;
 	}
 	*delim = ':';
+
+	if (!delim2)
+		*algo = tsig_get_algorithm_by_name("hmac-md5");
+	else {
+		char* by_name = (char*) malloc(sizeof(char)*(5+strlen(delim2)));
+		sprintf(by_name, "hmac-%s", delim2+1);
+		*algo = tsig_get_algorithm_by_name(by_name);
+		free(by_name);
+		*delim2 = '\0';
+	}
+
+	if (!(*algo)) {
+		*delim2 = ':';
+		log_msg(LOG_ERR, "bad tsig algorithm %s", opt);
+		return 0;
+	}
+
 	len = strlen(delim+1);
 	key->data = region_alloc(region, len+1);
 	sz= b64_pton(delim+1, (uint8_t*)key->data, len);
@@ -199,6 +222,7 @@ main (int argc, char *argv[])
 #ifdef TSIG
 	tsig_key_type *tsig_key = 0;
 	tsig_record_type tsig;
+	tsig_algorithm_type* algo = NULL;
 #endif /* TSIG */
 	log_init("nsd-notify");
 #ifdef TSIG
@@ -227,7 +251,8 @@ main (int argc, char *argv[])
 			break;
 		case 'y':
 #ifdef TSIG
-			tsig_key = add_key(region, optarg);
+			if (!(tsig_key = add_key(region, optarg, &algo)))
+				exit(1);
 #else
 			log_msg(LOG_ERR, "option -y given but TSIG not enabled");
 #endif /* TSIG */
@@ -271,7 +296,6 @@ main (int argc, char *argv[])
 	buffer_write_u16(q.packet, CLASS_IN);
 #ifdef TSIG
 	if(tsig_key) {
-		tsig_algorithm_type* algo = tsig_get_algorithm_by_name("hmac-md5");
 		assert(algo);
 		tsig_create_record(&tsig, region);
 		tsig_init_record(&tsig, algo, tsig_key);

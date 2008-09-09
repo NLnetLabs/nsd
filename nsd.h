@@ -180,7 +180,7 @@ struct	nsd
 	/* UDP specific configuration */
 	struct nsd_socket udp[MAX_INTERFACES];
 
-	edns_data_type edns_ipv4;	
+	edns_data_type edns_ipv4;
 #if defined(INET6)
 	edns_data_type edns_ipv6;
 #endif
