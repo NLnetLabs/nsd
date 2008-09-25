@@ -108,9 +108,9 @@ dname_make_wire_from_packet(uint8_t *buf, buffer_type *packet,
 	size_t dname_length = 0;
 	const uint8_t *label;
 	ssize_t mark = -1;
-	
+
 	memset(visited, 0, (buffer_limit(packet)+7)/8);
-	
+
 	while (!done) {
 		if (!buffer_available(packet, 1)) {
 /* 			error("dname out of bounds"); */
@@ -191,12 +191,12 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 		dname[0] = 0;
 		return 1;
 	}
-	
+
 	for (h = d, p = h + 1; *s; ++s, ++p) {
 		if (p - dname >= MAXDOMAINLEN) {
 			return 0;
 		}
-		
+
 		switch (*s) {
 		case '.':
 			if (p == h + 1) {
@@ -271,6 +271,7 @@ dname_partial_copy(region_type *region, const dname_type *dname, uint8_t label_c
 
 	assert(label_count <= dname->label_count);
 
+	/* <matthijs> copy, so don't normalize when making dname */
 	return dname_make(region, dname_label(dname, label_count - 1), 0);
 }
 
@@ -456,6 +457,7 @@ dname_concatenate(region_type *region,
 	memcpy(temp, dname_name(left), left->name_size - 1);
 	memcpy(temp + left->name_size - 1, dname_name(right), right->name_size);
 
+	/* <matthijs> why not normalize here? temp already normalized? */
 	return dname_make(region, temp, 0);
 }
 
@@ -494,4 +496,3 @@ dname_replace(region_type* region,
 	assert(dname_is_subdomain(res, dest));
 	return res;
 }
-

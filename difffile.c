@@ -314,7 +314,7 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	for(k = 0; k < num; k++)
 	{
 		if(rdata_atom_is_domain(type, k)) {
-			/* check dname: should compare case insensitive */
+			/* <matthijs> assert: domain_dnames are normalized */
 			if(dname_compare(domain_dname(a[k].domain),
 				domain_dname(b[k].domain))!=0)
 				return 0;
@@ -378,6 +378,9 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		ssize_t rdata_num;
 		int rrnum;
 		temptable = domain_table_create(temp_region);
+		/* <matthijs> this will ensure that the dnames in rdata are
+		 * normalized.
+		 */
 		rdata_num = rdata_wireformat_to_rdata_atoms(
 			temp_region, temptable, type, rdatalen, packet, &rdatas);
 		if(rdata_num == -1) {
@@ -446,6 +449,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		domain_add_rrset(domain, rrset);
 	}
 
+	/* <matthijs> dnames in rdata are normalized */
 	rdata_num = rdata_wireformat_to_rdata_atoms(
 		db->region, db->domains, type, rdatalen, packet, &rdatas);
 	if(rdata_num == -1) {

@@ -1318,7 +1318,7 @@ zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 	yyparse();
 
 	/* check if zone file contained a correct SOA record */
-	if (parser->current_zone && parser->current_zone->soa_rrset 
+	if (parser->current_zone && parser->current_zone->soa_rrset
 		&& parser->current_zone->soa_rrset->rr_count!=0)
 	{
 		if(dname_compare(domain_dname(

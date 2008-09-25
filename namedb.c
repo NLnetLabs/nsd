@@ -30,7 +30,7 @@ allocate_domain_info(domain_table_type *table,
 	assert(table);
 	assert(dname);
 	assert(parent);
-	
+
 	result = (domain_type *) region_alloc(table->region,
 					      sizeof(domain_type));
 	result->node.key = dname_partial_copy(
@@ -61,7 +61,8 @@ domain_table_create(region_type *region)
 	domain_type *root;
 
 	assert(region);
-	
+
+	/* <matthijs> make the root dname, no need to normalize */
 	origin = dname_make(region, (uint8_t *) "", 0);
 
 	root = (domain_type *) region_alloc(region, sizeof(domain_type));
@@ -80,7 +81,7 @@ domain_table_create(region_type *region)
 	root->nsec3_ds_parent_cover = NULL;
 	root->nsec3_lookup = NULL;
 #endif
-	
+
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));
 	result->region = region;
@@ -101,7 +102,7 @@ domain_table_search(domain_table_type *table,
 {
 	int exact;
 	uint8_t label_match_count;
-	
+
 	assert(table);
 	assert(dname);
 	assert(closest_match);
@@ -111,7 +112,7 @@ domain_table_search(domain_table_type *table,
 	assert(*closest_match);
 
 	*closest_encloser = *closest_match;
-	
+
 	if (!exact) {
 		label_match_count = dname_label_match_count(
 			domain_dname(*closest_encloser),
@@ -122,7 +123,7 @@ domain_table_search(domain_table_type *table,
 			assert(*closest_encloser);
 		}
 	}
-	
+
 	return exact;
 }
 
@@ -151,14 +152,14 @@ domain_table_insert(domain_table_type *table,
 
 	assert(table);
 	assert(dname);
-	
+
 	exact = domain_table_search(
 		table, dname, &closest_match, &closest_encloser);
 	if (exact) {
 		result = closest_encloser;
 	} else {
 		assert(domain_dname(closest_encloser)->label_count < dname->label_count);
-	
+
 		/* Insert new node(s).  */
 		do {
 			result = allocate_domain_info(table,
@@ -218,7 +219,7 @@ domain_add_rrset(domain_type *domain, rrset_type *rrset)
 #else
 	/* preserve ordering, add at end */
 	rrset_type** p = &domain->rrsets;
-	while(*p) 
+	while(*p)
 		p = &((*p)->next);
 	*p = rrset;
 	rrset->next = 0;
@@ -316,7 +317,7 @@ domain_type *
 domain_wildcard_child(domain_type *domain)
 {
 	domain_type *wildcard_child;
-	
+
 	assert(domain);
 	assert(domain->wildcard_child_closest_match);
 
@@ -343,7 +344,7 @@ rr_rrsig_type_covered(rr_type *rr)
 	assert(rr->type == TYPE_RRSIG);
 	assert(rr->rdata_count > 0);
 	assert(rdata_atom_size(rr->rdatas[0]) == sizeof(uint16_t));
-	
+
 	return ntohs(* (uint16_t *) rdata_atom_data(rr->rdatas[0]));
 }
 

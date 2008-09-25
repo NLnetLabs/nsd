@@ -303,14 +303,14 @@ rdata_apl_to_string(buffer_type *output, rdata_atom_type rdata,
 
 	buffer_create_from(
 		&packet, rdata_atom_data(rdata), rdata_atom_size(rdata));
-	
+
 	if (buffer_available(&packet, 4)) {
 		uint16_t address_family = buffer_read_u16(&packet);
 		uint8_t prefix = buffer_read_u8(&packet);
 		uint8_t length = buffer_read_u8(&packet);
 		int negated = length & APL_NEGATION_MASK;
 		int af = -1;
-		
+
 		length &= APL_LENGTH_MASK;
 		switch (address_family) {
 		case 1: af = AF_INET; break;
@@ -343,13 +343,13 @@ rdata_services_to_string(buffer_type *output, rdata_atom_type rdata,
 
 	buffer_create_from(
 		&packet, rdata_atom_data(rdata), rdata_atom_size(rdata));
-	
+
 	if (buffer_available(&packet, 1)) {
 		uint8_t protocol_number = buffer_read_u8(&packet);
 		ssize_t bitmap_size = buffer_remaining(&packet);
 		uint8_t *bitmap = buffer_current(&packet);
 		struct protoent *proto = getprotobynumber(protocol_number);
-		
+
 		if (proto) {
 			int i;
 
@@ -389,7 +389,7 @@ rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type
 	case IPSECKEY_DNAME:
 		rdata_dname_to_string(output, rdata, rr);
 		break;
-	default: 
+	default:
 		return 0;
 	}
 	return 1;
@@ -402,7 +402,7 @@ rdata_nxt_to_string(buffer_type *output, rdata_atom_type rdata,
 	size_t i;
 	uint8_t *bitmap = rdata_atom_data(rdata);
 	size_t bitmap_size = rdata_atom_size(rdata);
-	
+
 	for (i = 0; i < bitmap_size * 8; ++i) {
 		if (get_bit(bitmap, i)) {
 			buffer_printf(output, "%s ", rrtype_to_string(i));
@@ -421,7 +421,7 @@ rdata_nsec_to_string(buffer_type *output, rdata_atom_type rdata,
 	size_t saved_position = buffer_position(output);
 	buffer_type packet;
 	int insert_space = 0;
-	
+
 	buffer_create_from(
 		&packet, rdata_atom_data(rdata), rdata_atom_size(rdata));
 
@@ -430,7 +430,7 @@ rdata_nsec_to_string(buffer_type *output, rdata_atom_type rdata,
 		uint8_t bitmap_size = buffer_read_u8(&packet);
 		uint8_t *bitmap = buffer_current(&packet);
 		int i;
-		
+
 		if (!buffer_available(&packet, bitmap_size)) {
 			buffer_set_position(output, saved_position);
 			return 0;
@@ -521,21 +521,21 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 	rdata_atom_type temp_rdatas[MAXRDATALEN];
 	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(rrtype);
 	region_type *temp_region;
-	
+
 	assert(descriptor->maximum <= MAXRDATALEN);
 
 	if (!buffer_available(packet, data_size)) {
 		return -1;
 	}
-	
+
 	temp_region = region_create(xalloc, free);
-	
+
 	for (i = 0; i < descriptor->maximum; ++i) {
 		int is_domain = 0;
 		int is_wirestore = 0;
 		size_t length = 0;
 		int required = i < descriptor->minimum;
-		
+
 		switch (rdata_atom_wireformat_type(rrtype, i)) {
 		case RDATA_WF_COMPRESSED_DNAME:
 		case RDATA_WF_UNCOMPRESSED_DNAME:
@@ -600,11 +600,11 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 
 		if (is_domain) {
 			const dname_type *dname;
-			
+
 			if (!required && buffer_position(packet) == end) {
 				break;
 			}
-			
+
 			dname = dname_make_from_packet(
 				temp_region, packet, 1, 1);
 			if (!dname || buffer_position(packet) > end) {
@@ -616,9 +616,9 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				temp_rdatas[i].data = (uint16_t *) region_alloc(
                                 	region, sizeof(uint16_t) + dname->name_size);
 				temp_rdatas[i].data[0] = dname->name_size;
-				memcpy(temp_rdatas[i].data+1, dname_name(dname), 
+				memcpy(temp_rdatas[i].data+1, dname_name(dname),
 					dname->name_size);
-			} else 
+			} else
 				temp_rdatas[i].domain
 					= domain_table_insert(owners, dname);
 		} else {
@@ -631,7 +631,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 					break;
 				}
 			}
-			
+
 			temp_rdatas[i].data = (uint16_t *) region_alloc(
 				region, sizeof(uint16_t) + length);
 			temp_rdatas[i].data[0] = length;

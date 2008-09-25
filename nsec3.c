@@ -24,7 +24,7 @@
    base=NULL uses the zone soa_rr. */
 static int nsec3_rrset_params_ok(rr_type* base, rrset_type* rrset);
 
-static void 
+static void
 detect_nsec3_params(rr_type* nsec3_apex,
 	const unsigned char** salt, int* salt_len, int* iter)
 {
@@ -46,7 +46,7 @@ nsec3_hash_dname_param(region_type *region, zone_type *zone,
 	int nsec3_saltlength = 0;
 	int nsec3_iterations = 0;
 
-	detect_nsec3_params(param_rr, &nsec3_salt, 
+	detect_nsec3_params(param_rr, &nsec3_salt,
 		&nsec3_saltlength, &nsec3_iterations);
 	iterated_hash(hash, nsec3_salt, nsec3_saltlength, dname_name(dname),
 		dname->name_size, nsec3_iterations);
@@ -60,11 +60,11 @@ const dname_type *
 nsec3_hash_dname(region_type *region, zone_type *zone,
 	const dname_type *dname)
 {
-	return nsec3_hash_dname_param(region, zone, 
+	return nsec3_hash_dname_param(region, zone,
 		dname, zone->nsec3_soa_rr);
 }
 
-static int 
+static int
 nsec3_has_soa(rr_type* rr)
 {
 	if(rdata_atom_size(rr->rdatas[5]) >= 3 && /* has types in bitmap */
@@ -75,13 +75,13 @@ nsec3_has_soa(rr_type* rr)
 	return 0;
 }
 
-static rr_type* 
+static rr_type*
 find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 {
 	size_t i;
 	domain_type* domain;
 	region_type* tmpregion;
-	/* Check settings in NSEC3PARAM. 
+	/* Check settings in NSEC3PARAM.
 	   Hash algorithm must be OK. And a NSEC3 with soa bit
 	   must map to the zone apex.  */
 	rrset_type* paramset = domain_find_rrset(zone->apex, zone, TYPE_NSEC3PARAM);
@@ -111,15 +111,15 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 			zone, domain_dname(zone->apex), &paramset->rrs[i]);
 		domain = domain_table_find(namedb->domains, hashed_apex);
 		if(!domain) {
-			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has no hash(apex).", 
+			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has no hash(apex).",
 				dname_to_string(domain_dname(zone->apex), NULL), (int)i);
-			log_msg(LOG_ERR, "hash(apex)= %s", 
+			log_msg(LOG_ERR, "hash(apex)= %s",
 				dname_to_string(hashed_apex, NULL));
 			continue;
 		}
 		nsec3_rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
 		if(!nsec3_rrset) {
-			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) has no NSEC3 RRset", 
+			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) has no NSEC3 RRset",
 				dname_to_string(domain_dname(zone->apex), NULL), (int)i);
 			continue;
 		}
@@ -132,14 +132,14 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 				continue;
 			/* check params OK. Ignores the optout bit. */
 			detect_nsec3_params(rr, &salt1, &saltlen1, &iter1);
-			detect_nsec3_params(&nsec3_rrset->rrs[j], 
+			detect_nsec3_params(&nsec3_rrset->rrs[j],
 				&salt2, &saltlen2, &iter2);
 			if(saltlen1 == saltlen2 && iter1 == iter2 &&
 				rdata_atom_data(rr->rdatas[0])[0] == /* algo */
 					rdata_atom_data(nsec3_rrset->rrs[j].rdatas[0])[0]
 				&& memcmp(salt1, salt2, saltlen1) == 0) {
 				/* found it */
-				DEBUG(DEBUG_QUERY, 1, (LOG_INFO, 
+				DEBUG(DEBUG_QUERY, 1, (LOG_INFO,
 					"detected NSEC3 for zone %s saltlen=%d iter=%d",
 					dname_to_string(domain_dname(
 					zone->apex),0), saltlen2, iter2));
@@ -147,7 +147,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 				return &nsec3_rrset->rrs[j];
 			}
 		}
-		log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) no NSEC3 with SOAbit", 
+		log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) no NSEC3 with SOAbit",
 			dname_to_string(domain_dname(zone->apex), NULL), (int)i);
 	}
 	region_destroy(tmpregion);
@@ -155,9 +155,9 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 }
 
 /* check that the rrset has an NSEC3 that uses the same parameters as the
-   zone is using. Pass NSEC3 rrset, and zone must have nsec3_rrset set. 
+   zone is using. Pass NSEC3 rrset, and zone must have nsec3_rrset set.
    if you pass NULL then 0 is returned. */
-static int 
+static int
 nsec3_rrset_params_ok(rr_type* base, rrset_type* rrset)
 {
 	rdata_atom_type* prd;
@@ -173,17 +173,17 @@ nsec3_rrset_params_ok(rr_type* base, rrset_type* rrset)
 	{
 		rd = rrset->rrs[i].rdatas;
 		assert(rrset->rrs[i].type == TYPE_NSEC3);
-		if(rdata_atom_data(rd[0])[0] == 
+		if(rdata_atom_data(rd[0])[0] ==
 			rdata_atom_data(prd[0])[0] && /* hash algo */
-		   rdata_atom_data(rd[2])[0] == 
+		   rdata_atom_data(rd[2])[0] ==
 			rdata_atom_data(prd[2])[0] && /* iterations 0 */
-		   rdata_atom_data(rd[2])[1] == 
+		   rdata_atom_data(rd[2])[1] ==
 			rdata_atom_data(prd[2])[1] && /* iterations 1 */
-		   rdata_atom_data(rd[3])[0] == 
+		   rdata_atom_data(rd[3])[0] ==
 			rdata_atom_data(prd[3])[0] && /* salt length */
-		   memcmp(rdata_atom_data(rd[3])+1, 
-			rdata_atom_data(prd[3])+1, rdata_atom_data(rd[3])[0]) 
-			== 0 ) 
+		   memcmp(rdata_atom_data(rd[3])+1,
+			rdata_atom_data(prd[3])+1, rdata_atom_data(rd[3])[0])
+			== 0 )
 		{
 			/* this NSEC3 matches nsec3 parameters from zone */
 			return 1;
@@ -192,8 +192,8 @@ nsec3_rrset_params_ok(rr_type* base, rrset_type* rrset)
 	return 0;
 }
 
-int 
-nsec3_find_cover(namedb_type* db, zone_type* zone, 
+int
+nsec3_find_cover(namedb_type* db, zone_type* zone,
 	const dname_type* hashname, domain_type** result)
 {
 	rrset_type *rrset;
@@ -208,7 +208,7 @@ nsec3_find_cover(namedb_type* db, zone_type* zone,
 	exact = domain_table_search(
 		db->domains, hashname, &closest_match, &closest_encloser);
 	/* exact match of hashed domain name + it has an NSEC3? */
-	if(exact && 
+	if(exact &&
 	   nsec3_rrset_params_ok(NULL,
 	   	domain_find_rrset(closest_encloser, zone, TYPE_NSEC3))) {
 		*result = closest_encloser;
@@ -233,10 +233,10 @@ nsec3_find_cover(namedb_type* db, zone_type* zone,
 	if(rrset)
 		*result = walk;
 	else 	{
-		/* 
+		/*
 		 * There are no NSEC3s before the closest match.
 		 * so the hash name is before the first NSEC3 record in the zone.
-		 * use last NSEC3, which covers the wraparound in hash space 
+		 * use last NSEC3, which covers the wraparound in hash space
 		 *
 		 * Since the zone has an NSEC3 with the SOA bit set for NSEC3 to turn on,
 		 * there is also a last nsec3, so find_cover always assigns *result!=0.
@@ -247,8 +247,8 @@ nsec3_find_cover(namedb_type* db, zone_type* zone,
 	return 0;
 }
 
-static void 
-prehash_domain(namedb_type* db, zone_type* zone, 
+static void
+prehash_domain(namedb_type* db, zone_type* zone,
 	domain_type* domain, region_type* region)
 {
 	/* find it */
@@ -293,8 +293,8 @@ prehash_domain(namedb_type* db, zone_type* zone,
 	}
 }
 
-static void 
-prehash_ds(namedb_type* db, zone_type* zone, 
+static void
+prehash_ds(namedb_type* db, zone_type* zone,
 	domain_type* domain, region_type* region)
 {
 	domain_type* result = 0;
@@ -316,7 +316,7 @@ prehash_ds(namedb_type* db, zone_type* zone,
 	domain->nsec3_ds_parent_cover = result;
 }
 
-static void 
+static void
 prehash_zone(struct namedb* db, struct zone* zone)
 {
 	domain_type *walk;
@@ -376,7 +376,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 			 walk != zone->apex))
 		{
 			assert(walk != zone->apex /* DS must be above zone cut */);
-			prehash_ds(db, zone, walk, temp_region);	
+			prehash_ds(db, zone, walk, temp_region);
 			region_free_all(temp_region);
 		}
 		walk = domain_next(walk);
@@ -384,7 +384,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 	region_destroy(temp_region);
 }
 
-void 
+void
 prehash(struct namedb* db, int updated_only)
 {
 	zone_type *z;
@@ -405,8 +405,8 @@ prehash(struct namedb* db, int updated_only)
 }
 
 /* add the NSEC3 rrset to the query answer at the given domain */
-static void 
-nsec3_add_rrset(struct query *query, struct answer *answer, 
+static void
+nsec3_add_rrset(struct query *query, struct answer *answer,
 	rr_section_type section, struct domain* domain)
 {
 	if(domain) {
@@ -417,11 +417,11 @@ nsec3_add_rrset(struct query *query, struct answer *answer,
 }
 
 /* this routine does hashing at query-time. slow. */
-static void 
+static void
 nsec3_add_nonexist_proof(struct query *query, struct answer *answer,
         struct domain *encloser, struct namedb* db, const dname_type* qname)
 {
-	const dname_type *to_prove, *hashed; 
+	const dname_type *to_prove, *hashed;
 	domain_type *cover=0;
 	assert(encloser);
 	/* if query=a.b.c.d encloser=c.d. then proof needed for b.c.d. */
@@ -434,7 +434,7 @@ nsec3_add_nonexist_proof(struct query *query, struct answer *answer,
 	{
 		/* exact match, hash collision */
 		/* the hashed name of the query corresponds to an existing name. */
-		log_msg(LOG_ERR, "nsec3 hash collision for name=%s", 
+		log_msg(LOG_ERR, "nsec3 hash collision for name=%s",
 			dname_to_string(to_prove, NULL));
 		RCODE_SET(query->packet, RCODE_SERVFAIL);
 		return;
@@ -446,34 +446,34 @@ nsec3_add_nonexist_proof(struct query *query, struct answer *answer,
 	}
 }
 
-static void 
+static void
 nsec3_add_closest_encloser_proof(
 	struct query *query, struct answer *answer,
 	struct domain *closest_encloser, struct namedb* db,
 	const dname_type* qname)
 {
-	if(!closest_encloser) 
+	if(!closest_encloser)
 		return;
 	/* prove that below closest encloser nothing exists */
 	nsec3_add_nonexist_proof(query, answer, closest_encloser, db, qname);
 	/* proof that closest encloser exists */
 	if(closest_encloser->nsec3_is_exact)
-		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 			closest_encloser->nsec3_cover);
 }
 
-void 
+void
 nsec3_answer_wildcard(struct query *query, struct answer *answer,
         struct domain *wildcard, struct namedb* db, const dname_type* qname)
 {
-	if(!wildcard) 
+	if(!wildcard)
 		return;
 	if(!query->zone->nsec3_soa_rr)
 		return;
 	nsec3_add_nonexist_proof(query, answer, wildcard, db, qname);
 }
 
-static void 
+static void
 nsec3_add_ds_proof(struct query *query, struct answer *answer,
 	struct domain *domain)
 {
@@ -481,7 +481,7 @@ nsec3_add_ds_proof(struct query *query, struct answer *answer,
 	assert(domain != query->zone->apex);
 	if(domain->nsec3_ds_parent_is_exact) {
 		/* use NSEC3 record from above the zone cut. */
-		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 			domain->nsec3_ds_parent_cover);
 	} else {
 		/* prove closest provable encloser */
@@ -492,7 +492,7 @@ nsec3_add_ds_proof(struct query *query, struct answer *answer,
 			prev_par = par;
 			par = par->parent;
 		}
-		assert(par); /* parent zone apex must be provable, thus this ends */	
+		assert(par); /* parent zone apex must be provable, thus this ends */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 			par->nsec3_cover);
 		/* we took several steps to go to the provable parent, so
@@ -505,12 +505,12 @@ nsec3_add_ds_proof(struct query *query, struct answer *answer,
 		}
 		/* add optout range from parent zone */
 		/* note: no check of optout bit, resolver checks it */
-		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 			domain->nsec3_ds_parent_cover);
 	}
 }
 
-void 
+void
 nsec3_answer_nodata(struct query *query, struct answer *answer,
 	struct domain *original)
 {
@@ -523,7 +523,7 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 			/* DS at zone apex, but server not authoritative for parent zone */
 			/* so answer at the child zone level */
 			if(original->nsec3_is_exact)
-				nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+				nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 					original->nsec3_cover);
 			return;
 		}
@@ -536,20 +536,20 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 		/* denial for wildcard is already there */
 		/* add parent proof to have a closest encloser proof for wildcard parent */
 		if(original->parent && original->parent->nsec3_is_exact)
-			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				original->parent->nsec3_cover);
 		/* proof for wildcard itself */
-		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 			original->nsec3_cover);
 	}
 	else {	/* add nsec3 to prove rrset does not exist */
 		if(original->nsec3_is_exact)
-			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				original->nsec3_cover);
 	}
 }
 
-void 
+void
 nsec3_answer_delegation(struct query *query, struct answer *answer)
 {
 	if(!query->zone->nsec3_soa_rr)
@@ -557,7 +557,7 @@ nsec3_answer_delegation(struct query *query, struct answer *answer)
 	nsec3_add_ds_proof(query, answer, query->delegation_domain);
 }
 
-int 
+int
 domain_has_only_NSEC3(struct domain* domain, struct zone* zone)
 {
 	/* check for only NSEC3/RRSIG */
@@ -579,18 +579,18 @@ domain_has_only_NSEC3(struct domain* domain, struct zone* zone)
 	return nsec3_seen;
 }
 
-void 
+void
 nsec3_answer_authoritative(struct domain** match, struct query *query,
-	struct answer *answer, struct domain* closest_encloser, 
+	struct answer *answer, struct domain* closest_encloser,
 	struct namedb* db, const dname_type* qname)
 {
 	if(!query->zone->nsec3_soa_rr)
 		return;
 	assert(match);
 	/* there is a match, this has 1 RRset, which is NSEC3, but qtype is not. */
-	if(*match && 
+	if(*match &&
 #if 0
-		query->qtype != TYPE_NSEC3 && 
+		query->qtype != TYPE_NSEC3 &&
 #endif
 		domain_has_only_NSEC3(*match, query->zone))
 	{
@@ -598,7 +598,7 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 		*match = 0;
 		/* all nsec3s are directly below the apex, that is closest encloser */
 		if(query->zone->apex->nsec3_is_exact)
-			nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				query->zone->apex->nsec3_cover);
 		/* disprove the nsec3 record. */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, closest_encloser->nsec3_cover);
@@ -614,9 +614,9 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 	}
 	if(!*match) {
 		/* name error, domain does not exist */
-		nsec3_add_closest_encloser_proof(query, answer, closest_encloser, 
-			db, qname);	
-		nsec3_add_rrset(query, answer, AUTHORITY_SECTION, 
+		nsec3_add_closest_encloser_proof(query, answer, closest_encloser,
+			db, qname);
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 			closest_encloser->nsec3_wcard_child_cover);
 	}
 }
