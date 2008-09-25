@@ -96,7 +96,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 		size_t j;
 
 		if(rdata_atom_data(rr->rdatas[0])[0] != NSEC3_SHA1_HASH) {
-			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has unknown hash algo %d", 
+			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has unknown hash algo %d",
 				dname_to_string(domain_dname(zone->apex), NULL), (int)i,
 				rdata_atom_data(rr->rdatas[0])[0]);
 			continue;

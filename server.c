@@ -717,6 +717,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
 
+	/* <matthijs> checksum to detect bit errors */
 	if(db_crc_different(nsd->db) == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"CRC the same. skipping %s.", nsd->db->filename));
@@ -730,6 +731,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			exit(1);
 		}
 	}
+
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 			log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 			exit(1);
@@ -739,13 +741,14 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #ifndef NDEBUG
 	if(nsd_debug_level >= 1)
 		region_log_stats(nsd->db->region);
-#endif
+#endif /* NDEBUG */
 #ifdef NSEC3
 	prehash(nsd->db, 1);
-#endif
+#endif /* NSEC3 */
 
 	initialize_dname_compression_tables(nsd);
 
+	/* <matthijs> get our new process id */
 	old_pid = nsd->pid;
 	nsd->pid = getpid();
 
@@ -755,17 +758,23 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	set_bind8_alarm(nsd);
 #endif
 
+	/* <matthijs> Start new child processes */
 	if (server_start_children(nsd, server_region, netio, xfrd_sock_p) != 0) {
 		send_children_quit(nsd);
 		exit(1);
 	}
 
-	/* Overwrite pid before closing old parent. */
+	/* Overwrite pid before closing old parent, to avoid race condition:
+	 * - parent process already closed
+	 * - pidfile still contains old_pid
+	 * - control script contacts parent process, using contents of pidfile
+	 */
 	if (writepid(nsd) == -1) {
 		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 	}
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
+
 	/* Send quit command to parent: blocking, wait for receipt. */
 	do {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
@@ -776,7 +785,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		}
 		/* blocking: wait for parent to really quit. (it sends RELOAD as ack) */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc wait for ack main"));
-		ret = block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 
+		ret = block_read(nsd, cmdsocket, &cmd, sizeof(cmd),
 			RELOAD_SYNC_TIMEOUT);
 		if(ret == -2) {
 			DEBUG(DEBUG_IPC, 1, (LOG_ERR, "reload timeout QUITSYNC. retry"));
@@ -816,7 +825,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		/* use blocking writes */
 		if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd)) ||
 			!write_socket(xfrd_sock, &sz, sizeof(sz)) ||
-			!write_socket(xfrd_sock, domain_dname(zone->apex), 
+			!write_socket(xfrd_sock, domain_dname(zone->apex),
 				dname_total_size(domain_dname(zone->apex))))
 		{
 			log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
@@ -925,8 +934,12 @@ server_main(struct nsd *nsd)
 	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->nsd = nsd;
 	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->conn =
 		xfrd_tcp_create(server_region);
+
+	/* <matthijs> start the XFRD process */
 	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
 	netio_add_handler(netio, &xfrd_listener);
+
+	/* <matthijs> start the child processes that handle incoming queries */
 	if (server_start_children(nsd, server_region, netio, &xfrd_listener.fd) != 0) {
 		send_children_quit(nsd);
 		exit(1);
@@ -938,6 +951,7 @@ server_main(struct nsd *nsd)
 
 	/* <matthijs> run the server until we get a shutdown signal */
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
+		/* <matthijs> did we receive a signal that changes our mode? */
 		if(mode == NSD_RUN) {
 			nsd->mode = mode = server_signal_mode(nsd);
 		}
@@ -1006,6 +1020,7 @@ server_main(struct nsd *nsd)
 
 			break;
 		case NSD_RELOAD:
+			/* <matthijs> continue to run nsd after reload */
 			nsd->mode = NSD_RUN;
 
 			if (reload_pid != -1) {
@@ -1021,6 +1036,8 @@ server_main(struct nsd *nsd)
 				reload_pid = -1;
 				break;
 			}
+
+			/* <matthijs> do actual reload */
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:
@@ -1043,7 +1060,9 @@ server_main(struct nsd *nsd)
 				DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload resetup; run"));
 				break;
 			default:
-				/* PARENT */
+				/* PARENT, keep running until NSD_QUIT_SYNC
+				 * received from CHILD.
+				 */
 				close(reload_sockets[1]);
 				reload_listener.fd = reload_sockets[0];
 				reload_listener.timeout = NULL;
@@ -1247,7 +1266,7 @@ server_child(struct nsd *nsd)
 #ifdef BIND8_STATS
 			/* Dump the statistics */
 			bind8_stats(nsd);
-#else /* BIND8_STATS */
+#else /* !BIND8_STATS */
 			log_msg(LOG_NOTICE, "Statistics support not enabled at compile time.");
 #endif /* BIND8_STATS */
 
@@ -1434,11 +1453,11 @@ handle_tcp_reading(netio_type *netio,
 				if (verbosity >= 2 || errno != ECONNRESET) {
 					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 				}
-#else /* ECONNRESET */
+#else /* !ECONNRESET */
 				if (verbosity >= 2) {
 					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 				}
-#endif
+#endif /* ECONNRESET */
 				cleanup_tcp_handler(netio, handler);
 				return;
 			}

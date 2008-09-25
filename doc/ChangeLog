@@ -1,3 +1,10 @@
+25 September 2008: Matthijs
+	- Fix bug where hmac-sha256 was in algorithm table, but could not be 
+		retrieved by name or id.
+	- Additional arguments for nsd-notify and nsd-xfer: set outgoing 
+		hostname/ip-address and source port.
+	- Additional TODO entry: optimize code in nsd-* programs.
+
 8 September 2008: Matthijs
 	- RFC 4635, bugfix #130: support for hmac-sha1 and hmac-sha256 tsig 
 		algorithms.

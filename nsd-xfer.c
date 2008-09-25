@@ -110,6 +110,12 @@ int check_matching_address_family(struct addrinfo *a, struct addrinfo *b);
 struct addrinfo *find_by_address_family(struct addrinfo *addrs, int family);
 
 /*
+ * Assigns pointers to hostname and port and wipes out the optional delimiter.
+ */
+void get_hostname_port_frm_str(const char* arg, const char** hostname,
+	const char** port);
+
+/*
  * Log an error message and exit.
  */
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
@@ -122,7 +128,6 @@ error(const char *format, ...)
 	va_end(args);
 	exit(XFER_FAIL);
 }
-
 
 /*
  * Log a warning message.
@@ -147,13 +152,14 @@ usage (void)
 	fprintf(stderr,
 		"Usage: nsd-xfer [OPTION]... -z zone -f file server...\n"
 		"NSD AXFR client.\n\nSupported options:\n"
-		"  -4           Only use IPv4 connections.\n"
-		"  -6           Only use IPv6 connections.\n"
-		"  -a src       Local hostname/IP for the connection.\n"
-		"  -f file      Output zone file name.\n"
-		"  -p port      The port to connect to.\n"
-		"  -s serial    The current zone serial.\n"
-		"  -T tsiginfo  The TSIG key file name.  The file is removed "
+		"  -4            Only use IPv4 connections.\n"
+		"  -6            Only use IPv6 connections.\n"
+		"  -a src[:port] Local hostname/ip-address for the \
+connection, including optional source port.\n"
+		"  -f file       Output zone file name.\n"
+		"  -p port       The port to connect to.\n"
+		"  -s serial     The current zone serial.\n"
+		"  -T tsiginfo   The TSIG key file name.  The file is removed "
 		"after reading the\n               key.\n"
 		"  -v           Verbose output.\n");
 	fprintf(stderr,
@@ -194,6 +200,7 @@ read_line(FILE *in, char *line, size_t size)
 	}
 }
 
+#ifdef TSIG
 static tsig_key_type *
 read_tsig_key_data(region_type *region, FILE *in,
 	int ATTR_UNUSED(default_family), tsig_algorithm_type** tsig_algo)
@@ -205,47 +212,47 @@ read_tsig_key_data(region_type *region, FILE *in,
 	uint8_t algo = 0;
 	uint8_t data[4000];
 
+	/* server address */
 	if (!read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key server address: '%s'",
 		      strerror(errno));
 		return NULL;
 	}
-	/* server name unused */
+	/* server address unused */
 
+	/* tsig keyname */
 	if (!read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key name: '%s'", strerror(errno));
 		return NULL;
 	}
-
 	key->name = dname_parse(region, line);
 	if (!key->name) {
 		error("failed to parse TSIG key name '%s'", line);
 		return NULL;
 	}
 
+	/* tsig algorithm */
 	if (!read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key algorithm: '%s'", strerror(errno));
 		return NULL;
 	}
-
 	algo = (uint8_t) atoi((const char*) line);
 	*tsig_algo = tsig_get_algorithm_by_id(algo);
 	if (*tsig_algo == NULL) {
-		error("failed to parse TSIG key algorithm: '%s'\n", strerror(errno));
+		error("failed to parse TSIG key algorithm %i: '%s'\n", algo, strerror(errno));
 		return NULL;
 	}
 
+	/* tsig secret */
 	if (!read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key data: '%s'\n", strerror(errno));
 		return NULL;
 	}
-
 	size = b64_pton(line, data, sizeof(data));
 	if (size == -1) {
 		error("failed to parse TSIG key data");
 		return NULL;
 	}
-
 	key->size = size;
 	key->data = (uint8_t *) region_alloc_init(region, data, key->size);
 
@@ -283,6 +290,7 @@ read_tsig_key(region_type *region,
 
 	return key;
 }
+#endif /* TSIG */
 
 /*
  * Read SIZE bytes from the socket into BUF.  Keep reading unless an
@@ -471,7 +479,6 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 
 	return 1;
 }
-
 
 /*
  * Query the server for the zone serial. Return 1 if the zone serial
@@ -769,6 +776,7 @@ main(int argc, char *argv[])
 	const char *local_hostname = NULL;
 	struct addrinfo *local_address, *local_addresses = NULL;
 	const char *port = TCP_PORT;
+	const char *local_port = NULL;
 	int default_family = DEFAULT_AI_FAMILY;
 	struct sigaction mysigaction;
 	FILE *zone_file;
@@ -820,7 +828,8 @@ main(int argc, char *argv[])
 #endif /* !INET6 */
 			break;
 		case 'a':
-			local_hostname = optarg;
+			get_hostname_port_frm_str(optarg, &local_hostname,
+				&local_port);
 			break;
 		case 'f':
 			zone_filename = optarg;
@@ -842,8 +851,12 @@ main(int argc, char *argv[])
 			break;
 		}
 		case 'T':
+#ifdef TSIG
 			tsig_key_filename = optarg;
 			break;
+#else
+			log_msg(LOG_ERR, "option -T given but TSIG not enabled");
+#endif /* TSIG */
 		case 'v':
 			++state.verbose;
 			break;
@@ -864,6 +877,7 @@ main(int argc, char *argv[])
 	if (argc == 0 || !zone_filename || !state.zone)
 		usage();
 
+#ifdef TSIG
 	if (tsig_key_filename) {
 		tsig_algorithm_type *tsig_algo = NULL;
 		tsig_key = read_tsig_key(
@@ -878,6 +892,7 @@ main(int argc, char *argv[])
 		tsig_create_record(state.tsig, region);
 		tsig_init_record(state.tsig, tsig_algo, tsig_key);
 	}
+#endif /* TSIG */
 
 	mysigaction.sa_handler = to_alarm;
 	sigfillset(&mysigaction.sa_mask);
@@ -890,25 +905,24 @@ main(int argc, char *argv[])
 	hints.ai_family = default_family;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
+	hints.ai_flags |= AI_NUMERICSERV;
 
 	if (local_hostname) {
-		int rc = getaddrinfo(local_hostname, NULL,
+		int rc = getaddrinfo(local_hostname, local_port,
 				     &hints, &local_addresses);
 		if (rc) {
 			error("local hostname '%s' not found: %s",
-			      local_hostname,
-			      gai_strerror(rc));
+				local_hostname, gai_strerror(rc));
 		}
 	}
 
-	for (; *argv; ++argv) {
+	for (/*empty*/; *argv; ++argv) {
 		/* Try each server separately until one succeeds.  */
 		int rc;
 
 		rc = getaddrinfo(*argv, port, &hints, &res0);
 		if (rc) {
-			warning("skipping bad address %s: %s\n",
-				*argv,
+			warning("skipping bad address %s: %s\n", *argv,
 				gai_strerror(rc));
 			continue;
 		}
@@ -932,7 +946,7 @@ main(int argc, char *argv[])
 			 * address.
 			 */
 			local_address = find_by_address_family(local_addresses,
-							       res->ai_family);
+				res->ai_family);
 			if (local_addresses && !local_address) {
 				/* Continue with next remote address.  */
 				continue;
@@ -947,14 +961,12 @@ main(int argc, char *argv[])
 			}
 
 			/* Bind socket to local address, if required.  */
-			if (local_address
-			    && bind(state.s,
-				    local_address->ai_addr,
-				    local_address->ai_addrlen) < 0)
+			if (local_address && bind(state.s,
+				local_address->ai_addr,
+				local_address->ai_addrlen) < 0)
 			{
 				warning("cannot bind to %s: %s\n",
-					local_hostname,
-					strerror(errno));
+					local_hostname, strerror(errno));
 			}
 
 			if (connect(state.s, res->ai_addr, res->ai_addrlen) < 0)
@@ -1013,6 +1025,21 @@ main(int argc, char *argv[])
 		"cannot contact an authoritative server, zone NOT transferred");
 	exit(XFER_FAIL);
 }
+
+void
+get_hostname_port_frm_str(const char* arg, const char** hostname,
+	const char** port)
+{
+	/* parse -a src[:port] option */
+	char* delim = strchr(arg, ':');
+
+	if (delim) {
+		*delim = '\0';
+		*port = delim+1;
+	}
+	*hostname = arg;
+}
+
 
 int
 check_matching_address_family(struct addrinfo *a0, struct addrinfo *b0)

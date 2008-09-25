@@ -791,7 +791,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_BEGIN"));
 		/* reload starts sending SOA INFOs; don't block */
 		xfrd->parent_soa_info_pass = 1;
-		/* reset the nonblocking ipc write; 
+		/* reset the nonblocking ipc write;
 		   the new parent does not want half a packet */
 		xfrd->sending_zone_state = 0;
 		break;

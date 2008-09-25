@@ -10,6 +10,7 @@
 
 #include <config.h>
 #include <stdlib.h>
+#include <openssl/sha.h>
 
 #include "tsig.h"
 #include "tsig-openssl.h"

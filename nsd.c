@@ -46,6 +46,10 @@ static char hostname[MAXHOSTNAMELEN];
 
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
+/*
+ * <matthijs> Print the help text exit.
+ *
+ */
 static void
 usage (void)
 {
@@ -90,6 +94,10 @@ usage (void)
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }
 
+/*
+ * <matthijs> Print the version exit.
+ *
+ */
 static void
 version(void)
 {
@@ -102,6 +110,10 @@ version(void)
 	exit(0);
 }
 
+/*
+ * <matthijs> Something went wrong, give error messages and exit.
+ *
+ */
 static void
 error(const char *format, ...)
 {
@@ -112,8 +124,13 @@ error(const char *format, ...)
 	exit(1);
 }
 
+
+/*
+ * <matthijs> Fetch the nsd parent process id from the nsd pidfile
+ *
+ */
 pid_t
-readpid (const char *file)
+readpid(const char *file)
 {
 	int fd;
 	pid_t pid;
@@ -146,8 +163,12 @@ readpid (const char *file)
 	return pid;
 }
 
+/*
+ * <matthijs> Store the nsd parent process id in the nsd pidfile
+ *
+ */
 int
-writepid (struct nsd *nsd)
+writepid(struct nsd *nsd)
 {
 	FILE * fd;
 	char pidbuf[32];
@@ -178,8 +199,12 @@ writepid (struct nsd *nsd)
 	return 0;
 }
 
+/*
+ * <matthijs> incoming signals, set appropriate actions.
+ *
+ */
 void
-sig_handler (int sig)
+sig_handler(int sig)
 {
 	/* To avoid race cond. We really don't want to use log_msg() in this handler */
 
@@ -206,6 +231,7 @@ sig_handler (int sig)
 		return;
 	}
 
+	/* <matthijs> We are the main process */
 	switch (sig) {
 	case SIGCHLD:
 		nsd.signal_hint_child = 1;
@@ -305,7 +331,7 @@ extern char *optarg;
 extern int optind;
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	/* Scratch variables... */
 	int c;
@@ -353,12 +379,12 @@ main (int argc, char *argv[])
 	/* EDNS0 */
 	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
 #if defined(INET6)
-# if defined(IPV6_USE_MIN_MTU)
+#if defined(IPV6_USE_MIN_MTU)
 	edns_init_data(&nsd.edns_ipv6, EDNS_MAX_MESSAGE_LEN);
-# else /* !defined(IPV6_USE_MIN_MTU) */
+#else /* !defined(IPV6_USE_MIN_MTU) */
 	edns_init_data(&nsd.edns_ipv6, IPV6_MIN_MTU);
-# endif
-#endif
+#endif /* defined(IPV6_USE_MIN_MTU) */
+#endif /* defined(INET6) */
 
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
@@ -370,10 +396,9 @@ main (int argc, char *argv[])
 		nsd.identity = IDENTITY;
 	}
 
-
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:V:v"
-#ifndef NDEBUG
+#ifndef NDEBUG /* <mattthijs> only when configured with --enable-checking */
 		"F:L:"
 #endif /* NDEBUG */
 		)) != -1) {
@@ -390,7 +415,7 @@ main (int argc, char *argv[])
 			}
 #else /* !INET6 */
 			error("IPv6 support not enabled.");
-#endif /* !INET6 */
+#endif /* INET6 */
 			break;
 		case 'a':
 			if (nsd.ifs < MAX_INTERFACES) {
@@ -465,14 +490,14 @@ main (int argc, char *argv[])
 			nsd.st.period = atoi(optarg);
 #else /* !BIND8_STATS */
 			error("BIND 8 statistics not enabled.");
-#endif /* !BIND8_STATS */
+#endif /* BIND8_STATS */
 			break;
 		case 't':
 #ifdef HAVE_CHROOT
 			nsd.chrootdir = optarg;
 #else /* !HAVE_CHROOT */
 			error("chroot not supported on this platform.");
-#endif /* !HAVE_CHROOT */
+#endif /* HAVE_CHROOT */
 			break;
 		case 'u':
 			nsd.username = optarg;
@@ -500,6 +525,7 @@ main (int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
+	/* <matthijs> commandline parse error */
 	if (argc != 0) {
 		usage();
 		exit(1);
@@ -526,7 +552,7 @@ main (int argc, char *argv[])
 			hints[i].ai_family = AF_INET6;
 		}
 	}
-#endif /* !INET6 */
+#endif /* INET6 */
 	if(nsd.options->ip_addresses)
 	{
 		ip_address_option_t* ip = nsd.options->ip_addresses;
@@ -585,7 +611,7 @@ main (int argc, char *argv[])
 	if(nsd.st.period == 0) {
 		nsd.st.period = nsd.options->statistics;
 	}
-#endif /* !BIND8_STATS */
+#endif /* BIND8_STATS */
 #ifdef HAVE_CHROOT
 	if(nsd.chrootdir == 0) nsd.chrootdir = nsd.options->chroot;
 #endif /* HAVE_CHROOT */
@@ -601,7 +627,10 @@ main (int argc, char *argv[])
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s",
 			nsd.options->zonesdir));
 	}
+
 	/* get it from the config file */
+	/* <matthijs> get what from the config file? */
+
 #ifdef NSID
 	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);
 #if defined(INET6)
@@ -652,7 +681,7 @@ main (int argc, char *argv[])
 			nsd.grab_ip6_optional = 1;
 #else /* !IPV6_V6ONLY */
 			hints[0].ai_family = AF_INET6;
-#endif	/* !IPV6_V6ONLY */
+#endif	/* IPV6_V6ONLY */
 		}
 #endif /* INET6 */
 	}
@@ -792,11 +821,13 @@ main (int argc, char *argv[])
 		/* Take off... */
 		switch ((nsd.pid = fork())) {
 		case 0:
+			/* <matthijs> Child */
 			break;
 		case -1:
-			log_msg(LOG_ERR, "fork failed: %s", strerror(errno));
+			log_msg(LOG_ERR, "fork() failed: %s", strerror(errno));
 			exit(1);
 		default:
+			/* <matthijs> Parent is done */
 			exit(0);
 		}
 

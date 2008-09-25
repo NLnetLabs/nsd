@@ -118,6 +118,9 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 	fclose(df);
 }
 
+/*
+ * <matthijs> Checksum to signal no bit errors occured during transport/storage
+ */
 int
 db_crc_different(namedb_type* db)
 {
@@ -1379,7 +1382,7 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 	if(db->diff_skip) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "garbage collect skip diff file"));
 		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
-			log_msg(LOG_INFO, "could not fseeko file %s: %s.", 
+			log_msg(LOG_INFO, "could not fseeko file %s: %s.",
 				filename, strerror(errno));
 			fclose(df);
 			return;
@@ -1390,10 +1393,10 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 	if(diff_broken(df, &break_pos))
 	{
 		/* snip off at break_pos */
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "snipping off trailing partial part of %s", 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "snipping off trailing partial part of %s",
 			filename));
 		if(ftruncate(fileno(df), break_pos) == -1)
-			log_msg(LOG_ERR, "ftruncate %s failed: %s", 
+			log_msg(LOG_ERR, "ftruncate %s failed: %s",
 				filename, strerror(errno));
 	}
 

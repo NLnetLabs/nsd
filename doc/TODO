@@ -60,8 +60,6 @@ SERVER
 - the server reaps children every minute, this is bad for powersaving laptops.
 
 SECURITY
-- TSIG add rfc 4635 algorithms. Bug #120 asks for SHA1 feature. (remember to 
-  update nsd-checkconf test, also add tests for 4635 algorithms support)
 
 PURITY
 - some data is in network order some in host order, make it clear with prefixes
@@ -110,3 +108,5 @@ OPTIMISATIONS
   server processes once the new ones are forked and answering for secondary
   zones (so when xfrd is done with sending zone state to all children).
   The brief double answers are preferable to brief SERVFAIL.
+- nsd manual programs contain identical functions that are written down multiple 
+  times. Do we need to introduce a util_programs.c or something?

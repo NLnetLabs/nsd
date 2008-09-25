@@ -14,7 +14,7 @@
 .RB [ \-p
 .IR port ]
 .RB [ \-y
-.IR key:secret ]
+.IR key:secret[:algorithm] ]
 .B \-z
 .I zone servers
 .SH "DESCRIPTION"
@@ -37,9 +37,9 @@ Print help information and exit.
 .B \-p\fI port
 Specify the port to send to.
 .TP 
-.B \-y\fI key:secret
-Specify a (MD5) TSIG key and base64 encoded secret to sign the 
-notification with.
+.B \-y\fI key:secret[:algorithm]
+Specify a TSIG key and base64 encoded secret to sign the notification with. If 
+the TSIG algorithm is not defined, MD5 is used.
 .TP 
 .B z\fI zone
 Specify the zone to notify about.

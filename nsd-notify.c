@@ -33,6 +33,24 @@ extern char *optarg;
 extern int optind;
 
 /*
+ * Check if two getaddrinfo result lists have records with matching
+ * ai_family fields.
+ */
+int check_matching_address_family(struct addrinfo *a, struct addrinfo *b);
+
+/*
+ * Returns the first record with ai_family == FAMILY, or NULL if no
+ * such record is found.
+ */
+struct addrinfo *find_by_address_family(struct addrinfo *addrs, int family);
+
+/*
+ * Assigns pointers to hostname and port and wipes out the optional delimiter.
+ */
+void get_hostname_port_frm_str(const char* arg, const char** hostname,
+	const char** port);
+
+/*
  * Log a warning message.
  */
 static void warning(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
@@ -48,19 +66,27 @@ warning(const char *format, ...)
 static void
 usage (void)
 {
-	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-h] [-p port] [-y key:secret[:algo]] "
-		"-z zone servers\n\n");
-	fprintf(stderr, "\tSend NOTIFY to secondary servers to force a zone update.\n");
-	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n",
+	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-a src[:port] [-h] [-p \
+port] [-y key:secret[:algo]] -z zone servers\n\n");
+	fprintf(stderr, "Send NOTIFY to secondary servers to force a zone \
+update.\n");
+	fprintf(stderr, "Version %s. Report bugs to <%s>.\n\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
-	fprintf(stderr, "\t-4\t\tSend using IPv4.\n");
-	fprintf(stderr, "\t-6\t\tSend using IPv6.\n");
-	fprintf(stderr, "\t-h\t\tPrint this help information.\n");
-	fprintf(stderr, "\t-p port\t\tPort number of secondary server.\n");
-	fprintf(stderr, "\t-y key:secret[:algo]\tTSIG keyname, base64 secret \
-blob and HMAC algorithm. If algo is not provided, HMAC-MD5 is assumed.\n");
-	fprintf(stderr, "\t-z zone\t\tName of zone to be updated.\n");
-	fprintf(stderr, "\tservers\t\tIP addresses of the secondary server(s).\n");
+	fprintf(stderr, "  -4                   Send using IPv4.\n");
+	fprintf(stderr, "  -6                   Send using IPv6.\n");
+	fprintf(stderr, "  -a src[:port]        Local hostname/ip-address for \
+the connection, including optional source port.\n");
+	fprintf(stderr, "  -h                   Print this help \
+information.\n");
+	fprintf(stderr, "  -p port              Port number of secondary \
+server.\n");
+	fprintf(stderr, "  -y key:secret[:algo] TSIG keyname, base64 secret \
+blob and HMAC algorithm.\n"
+                        "                       If algo is not provided, \
+HMAC-MD5 is assumed.\n");
+	fprintf(stderr, "  -z zone              Name of zone to be updated.\n");
+	fprintf(stderr, "  servers              IP addresses of the secondary \
+server(s).\n");
 	exit(1);
 }
 
@@ -217,7 +243,10 @@ main (int argc, char *argv[])
 	struct addrinfo hints, *res0, *res;
 	int error;
 	int default_family = DEFAULT_AI_FAMILY;
+	const char *local_hostname = NULL;
+	struct addrinfo *local_address, *local_addresses = NULL;
 	const char *port = UDP_PORT;
+	const char *local_port = NULL;
 	region_type *region = region_create(xalloc, free);
 #ifdef TSIG
 	tsig_key_type *tsig_key = 0;
@@ -233,7 +262,7 @@ main (int argc, char *argv[])
 #endif /* TSIG */
 
 	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "46hp:y:z:")) != -1) {
+	while ((c = getopt(argc, argv, "46a:hp:y:z:")) != -1) {
 		switch (c) {
 		case '4':
 			default_family = AF_INET;
@@ -246,6 +275,10 @@ main (int argc, char *argv[])
 			log_msg(LOG_ERR, "IPv6 support not enabled\n");
 			exit(1);
 #endif /* !INET6 */
+		case 'a':
+			get_hostname_port_frm_str(optarg, &local_hostname,
+				&local_port);
+			break;
 		case 'p':
 			port = optarg;
 			break;
@@ -316,16 +349,35 @@ main (int argc, char *argv[])
 	answer.packet = buffer_create(region, QIOBUFSZ);
 	memset(buffer_begin(answer.packet), 0, buffer_remaining(answer.packet));
 
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = default_family;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_protocol = IPPROTO_UDP;
+	hints.ai_flags |= AI_NUMERICSERV;
+
+	if (local_hostname) {
+		int rc = getaddrinfo(local_hostname, local_port,
+                                     &hints, &local_addresses);
+		if (rc) {
+			warning("local hostname '%s' not found: %s",
+				local_hostname, gai_strerror(rc));
+                }
+        }
+
 	for (/*empty*/; *argv; argv++) {
-		/* Set up UDP */
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = default_family;
-		hints.ai_socktype = SOCK_DGRAM;
-		hints.ai_protocol = IPPROTO_UDP;
 		error = getaddrinfo(*argv, port, &hints, &res0);
 		if (error) {
 			warning("skipping bad address %s: %s\n", *argv,
-			    gai_strerror(error));
+				gai_strerror(error));
+			continue;
+		}
+
+		if (local_addresses
+			&& !check_matching_address_family(res0, local_addresses))
+		{
+			warning("no local address family matches remote "
+				"address family, skipping server '%s'",
+				*argv);
 			continue;
 		}
 
@@ -334,11 +386,34 @@ main (int argc, char *argv[])
 				continue;
 			}
 
+			/*
+			 * If a local address is specified, use an
+			 * address with the same family as the remote
+			 * address.
+			 */
+			local_address = find_by_address_family(local_addresses,
+				res->ai_family);
+			if (local_addresses && !local_address) {
+				/* Continue with next remote address.  */
+				continue;
+			}
+
 			udp_s = socket(res->ai_family, res->ai_socktype,
 				       res->ai_protocol);
 			if (udp_s == -1) {
+				warning("cannot create socket: %s\n",
+					strerror(errno));
 				continue;
 			}
+
+			/* Bind socket to local address, if required.  */
+			if (local_address && bind(udp_s,
+				local_address->ai_addr,
+				local_address->ai_addrlen) < 0)
+			{
+				warning("cannot bind to %s: %s\n",
+					local_hostname, strerror(errno));
+                        }
 
 			memcpy(&q.addr, res->ai_addr, res->ai_addrlen);
 			notify_host(udp_s, &q, &answer, res, zone, *argv);
@@ -347,3 +422,46 @@ main (int argc, char *argv[])
 	}
 	exit(0);
 }
+
+void
+get_hostname_port_frm_str(const char* arg, const char** hostname,
+        const char** port)
+{
+	/* parse -a src[:port] option */
+	char* delim = strchr(arg, ':');
+
+	if (delim) {
+		*delim = '\0';
+		*port = delim+1;
+	}
+	*hostname = arg;
+}
+
+
+int
+check_matching_address_family(struct addrinfo *a0, struct addrinfo *b0)
+{
+	struct addrinfo *a;
+	struct addrinfo *b;
+
+	for (a = a0; a; a = a->ai_next) {
+		for (b = b0; b; b = b->ai_next) {
+			if (a->ai_family == b->ai_family) {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+struct addrinfo *
+find_by_address_family(struct addrinfo *addrs, int family)
+{
+	for (; addrs; addrs = addrs->ai_next) {
+		if (addrs->ai_family == family) {
+			return addrs;
+		}
+	}
+	return NULL;
+}
+
