@@ -219,11 +219,11 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 				/* -z matches, return are in the defines */
 				ZONE_GET_STR(name, o);
 				ZONE_GET_STR(zonefile, o);
-				ZONE_GET_STR(outgoing_interface, o);
 				ZONE_GET_ACL(request_xfr, o);
 				ZONE_GET_ACL(provide_xfr, o);
 				ZONE_GET_ACL(allow_notify, o);
 				ZONE_GET_ACL(notify, o);
+				ZONE_GET_ACL(outgoing_interface, o);
 				printf("Zone option not handled: %s %s\n", z, o);
 				exit(1);
 			}
@@ -315,7 +315,7 @@ config_test_print_server(nsd_options_t* opt)
 		print_acl("request-xfr:", zone->request_xfr);
 		print_acl("notify:", zone->notify);
 		print_acl("provide-xfr:", zone->provide_xfr);
-		print_string_var("outgoing-interface:", zone->outgoing_interface);
+		print_acl("outgoing-interface:", zone->outgoing_interface);
 	}
 
 }

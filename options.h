@@ -76,11 +76,11 @@ struct zone_options {
 	/* is apex of the zone */
 	const char* name;
 	const char* zonefile;
-	const char* outgoing_interface;
 	acl_options_t* allow_notify;
 	acl_options_t* request_xfr;
 	acl_options_t* notify;
 	acl_options_t* provide_xfr;
+	acl_options_t* outgoing_interface;
 };
 
 union acl_addr_storage {
@@ -150,6 +150,7 @@ struct config_parser_state {
 	acl_options_t* current_request_xfr;
 	acl_options_t* current_notify;
 	acl_options_t* current_provide_xfr;
+	acl_options_t* current_outgoing_interface;
 };
 
 extern config_parser_state_t* cfg_parser;
@@ -200,5 +201,8 @@ int parse_acl_is_ipv6(const char* p);
 int parse_acl_range_type(char* ip, char** mask);
 /* parses subnet mask, fills 0 mask as well */
 void parse_acl_range_subnet(char* p, void* addr, int maxbits);
+/* parse a interface option into hostname and port number */
+void parse_ifc(const char* ifc, const char** hostname, const char** port);
+
 
 #endif /* OPTIONS_H */

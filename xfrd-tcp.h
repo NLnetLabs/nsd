@@ -96,7 +96,7 @@ int conn_read(xfrd_tcp_t* conn);
  * Write to a stream connection (size16)+packet.
  * return value is
  * -1 on error. 0 on short write, call back later. 1 completed write.
- * On first call, make sure total_bytes=0, msglen=buffer_limit(), 
+ * On first call, make sure total_bytes=0, msglen=buffer_limit(),
  * buffer_flipped(). packet and fd need to be set.
  */
 int conn_write(xfrd_tcp_t* conn);
@@ -108,7 +108,7 @@ void xfrd_setup_packet(struct buffer* packet,
 void xfrd_write_soa_buffer(struct buffer* packet,
         const struct dname* apex, struct xfrd_soa* soa);
 /* use acl address to setup sockaddr struct, returns length of addr. */
-socklen_t xfrd_acl_sockaddr(struct acl_options* acl, 
+socklen_t xfrd_acl_sockaddr_to(struct acl_options* acl,
 #ifdef INET6
 	struct sockaddr_storage *to);
 #else

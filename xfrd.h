@@ -234,7 +234,7 @@ void xfrd_make_request(xfrd_zone_t* zone);
  * send packet via udp (returns UDP fd source socket) to acl addr.
  * returns -1 on failure.
  */
-int xfrd_send_udp(acl_options_t* acl, buffer_type* packet);
+int xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc);
 
 /*
  * read from udp port packet into buffer, returns 0 on failure

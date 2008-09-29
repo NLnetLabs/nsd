@@ -805,7 +805,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 }
 
 int
-xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
+xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 {
 #ifdef INET6
 	struct sockaddr_storage to;
@@ -815,8 +815,9 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 	int fd, family;
 
 	/* <matthijs> this will set the remote port to acl->port or TCP_PORT */
-	socklen_t to_len = xfrd_acl_sockaddr(acl, &to);
+	socklen_t to_len = xfrd_acl_sockaddr_to(acl, &to);
 
+	/* <matthijs> get the address family of the remote host */
 	if(acl->is_ipv6) {
 #ifdef INET6
 		family = PF_INET6;
@@ -834,7 +835,8 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 		return -1;
 	}
 
-	/* [ACL] need to bind to local interface first, if necessary */
+	/* bind it */
+	xfrd_bind_outgoing_ifc(fd, ifc, (struct sockaddr*)&to);
 
 	/* send it (udp) */
 	if(sendto(fd,
@@ -847,6 +849,38 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 		return -1;
 	}
 	return fd;
+}
+
+int
+xfrd_bind_outgoing_ifc(int sockd, const char* ifc, struct sockaddr* to) {
+	const char* laddr = NULL, *lport = NULL;
+	struct addrinfo *local_address = NULL, *local_addresses = NULL;
+
+	if (!ifc)
+		return;
+
+	parse_ifc(ifc, laddr, lport);
+
+	/* set hints */
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = fam;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_protocol = IPPROTO_UDP;
+	hints.ai_flags |= AI_NUMERICSERV;
+
+	/* get local addresses */
+	if (laddr) {
+		int rc = getaddrinfo(laddr, lport, &hints, &local_addresses);
+		if (rc) {
+			log_msg(LOG_ERR, "xfrd: local hostname '%s' not found: \
+%s", laddr, gai_strerror(rc));
+			return 1;
+		}
+	}
+
+	
+	if (laddr && bind(sockd, 
+
 }
 
 #ifdef TSIG
@@ -906,7 +940,8 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	buffer_flip(xfrd->packet);
 	xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
 
-	if((fd = xfrd_send_udp(zone->master, xfrd->packet)) == -1)
+	if((fd = xfrd_send_udp(zone->master, xfrd->packet,
+		zone->zone_options->outgoing_interface)) == -1)
 		return -1;
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
@@ -1510,7 +1545,7 @@ xfrd_prepare_zones_for_reload()
 		/* zone has a disk soa, and no nsd soa or a different nsd soa */
 		if(zone->soa_disk_acquired != 0 &&
 			(zone->soa_nsd_acquired == 0 ||
-			zone->soa_disk.serial != zone->soa_nsd.serial)) 
+			zone->soa_disk.serial != zone->soa_nsd.serial))
 		{
 			if(zone->soa_disk_acquired == xfrd_time()) {
 				/* antedate by one second. */
@@ -1522,7 +1557,7 @@ xfrd_prepare_zones_for_reload()
 	}
 }
 
-struct buffer* 
+struct buffer*
 xfrd_get_temp_buffer()
 {
 	return xfrd->packet;

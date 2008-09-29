@@ -354,11 +354,14 @@ zone_provide_xfr: VAR_PROVIDE_XFR STRING STRING
 	;
 zone_outgoing_interface: VAR_OUTGOING_INTERFACE STRING
 	{ 
+		acl_options_t* acl = parse_acl_info(cfg_parser->opt->region, $2, "NOKEY");
 		OUTYY(("P(zone_outgoing_interface:%s)\n", $2)); 
-#ifndef NDEBUG
-		assert(cfg_parser->current_zone);
-#endif
-		cfg_parser->current_zone->outgoing_interface = region_strdup(cfg_parser->opt->region, $2);
+
+		if(cfg_parser->current_outgoing_interface)
+			cfg_parser->current_outgoing_interface->next = acl;
+		else
+			cfg_parser->current_zone->outgoing_interface = acl;
+		cfg_parser->current_outgoing_interface = acl;
 	}
 	;
 

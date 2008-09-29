@@ -58,9 +58,9 @@ xfrd_setup_packet(buffer_type* packet,
 
 socklen_t
 #ifdef INET6
-xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
+xfrd_acl_sockaddr_to(acl_options_t* acl, struct sockaddr_storage *to)
 #else
-xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_in *to)
+xfrd_acl_sockaddr_to(acl_options_t* acl, struct sockaddr_in *to)
 #endif /* INET6 */
 {
 	unsigned int port = acl->port?acl->port:(unsigned)atoi(TCP_PORT);
@@ -231,7 +231,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	/* [ACL] need to bind to local interface first, if necessary */
 
-	to_len = xfrd_acl_sockaddr(zone->master, &to);
+	to_len = xfrd_acl_sockaddr_to(zone->master, &to);
 	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)
 	{
 		if(errno != EINPROGRESS) {

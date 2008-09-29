@@ -176,7 +176,8 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 	}
 #endif /* TSIG */
 	buffer_flip(packet);
-	zone->notify_send_handler.fd = xfrd_send_udp(zone->notify_current, packet);
+	zone->notify_send_handler.fd = xfrd_send_udp(zone->notify_current,
+		packet, zone->options->outgoing_interface);
 	if(zone->notify_send_handler.fd == -1) {
 		log_msg(LOG_ERR, "xfrd: zone %s: could not send notify #%d to %s",
 			zone->apex_str, zone->notify_retry,

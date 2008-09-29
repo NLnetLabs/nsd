@@ -63,7 +63,7 @@ int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone)
 {
 	/* create dname for lookup */
 	const dname_type* dname = dname_parse(opt->region, zone->name);
-	if(!dname) 
+	if(!dname)
 		return 0;
 	zone->node.key = dname;
 	if(!rbtree_insert(opt->zone_options, (rbnode_t*)zone))
@@ -77,7 +77,7 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	zone_options_t* zone;
 	acl_options_t* acl;
 
-	if(!cfg_parser) 
+	if(!cfg_parser)
 		cfg_parser = (config_parser_state_t*)region_alloc(
 			opt->region, sizeof(config_parser_state_t));
 	cfg_parser->filename = file;
@@ -161,18 +161,18 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 		}
 		for(acl=zone->provide_xfr; acl; acl=acl->next)
 		{
-			if(acl->nokey || acl->blocked) 
+			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
-			if(!acl->key_options) 
+			if(!acl->key_options)
 				c_error_msg("key %s in zone %s could not be found",
 					acl->key_name, zone->name);
 		}
 	}
-	
+
 	if(cfg_parser->errors > 0)
 	{
-        	fprintf(stderr, "read %s failed: %d errors in configuration file\n", 
+        	fprintf(stderr, "read %s failed: %d errors in configuration file\n",
 			cfg_parser->filename,
 			cfg_parser->errors);
 		return 0;
@@ -220,6 +220,7 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->request_xfr = 0;
 	zone->notify = 0;
 	zone->provide_xfr = 0;
+	zone->outgoing_interface = 0;
 	return zone;
 }
 
@@ -384,17 +385,17 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 	{
 		/* if outside bounds, we are done */
 		if(checkmin)
-			if(minval[i] > x[i]) 
+			if(minval[i] > x[i])
 				return 0;
 		if(checkmax)
-			if(maxval[i] < x[i]) 
+			if(maxval[i] < x[i])
 				return 0;
 		/* if x is equal to a bound, that bound needs further checks */
 		if(checkmin && minval[i]!=x[i])
 			checkmin = 0;
 		if(checkmax && maxval[i]!=x[i])
 			checkmax = 0;
-		if(!checkmin && !checkmax) 
+		if(!checkmin && !checkmax)
 			return 1; /* will always match */
 	}
 	return 1;
@@ -453,20 +454,20 @@ acl_same_host(acl_options_t* a, acl_options_t* b)
 	if(a->rangetype != b->rangetype)
 		return 0;
 	if(!a->is_ipv6) {
-		if(memcmp(&a->addr.addr, &b->addr.addr, 
+		if(memcmp(&a->addr.addr, &b->addr.addr,
 		   sizeof(struct in_addr)) != 0)
 			return 0;
 		if(a->rangetype != acl_range_single &&
-		   memcmp(&a->range_mask.addr, &b->range_mask.addr, 
+		   memcmp(&a->range_mask.addr, &b->range_mask.addr,
 		   sizeof(struct in_addr)) != 0)
 			return 0;
 	} else {
 #ifdef INET6
-		if(memcmp(&a->addr.addr6, &b->addr.addr6, 
+		if(memcmp(&a->addr.addr6, &b->addr.addr6,
 		   sizeof(struct in6_addr)) != 0)
 			return 0;
 		if(a->rangetype != acl_range_single &&
-		   memcmp(&a->range_mask.addr6, &b->range_mask.addr6, 
+		   memcmp(&a->range_mask.addr6, &b->range_mask.addr6,
 		   sizeof(struct in6_addr)) != 0)
 			return 0;
 #else
@@ -651,3 +652,31 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 	}
 	return acl;
 }
+
+void
+parse_ifc(const char* ifc, const char** hostname, const char** port) {
+	/* parse src[@port] */
+	char* delim = strchr(ifc, '@');
+
+	if (delim) {
+		*delim = '\0';
+		*port = delim+1;
+	}
+	*hostname = ifc;
+}
+
+/*
+int
+check_matching_address_family(struct addrinfo *a0, struct addrinfo *b0) {
+	struct addrinfo *a;
+	struct addrinfo *b;
+
+	for (a = a0; a; a = a->ai_next) {
+		for (b = b0; b; b = b->ai_next) {
+			if (a->ai_family == b->ai_family)
+				return 1;
+		}
+	}
+	return 0;
+}
+*/
