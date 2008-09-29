@@ -1,3 +1,8 @@
+29 September 2008: Matthijs
+	- Bugfix: only normalize dnames in rdatas when rrtype is listed in RFC 
+		4034, section 6.2: Canonical RR Form.
+	- Update TODO list
+
 25 September 2008: Matthijs
 	- Fix bug where hmac-sha256 was in algorithm table, but could not be 
 		retrieved by name or id.

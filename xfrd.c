@@ -558,11 +558,11 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	uint8_t rr_em_len = domain_dname(rdata_atom_domain(rr->rdatas[1]))->name_size;
 
 	if(rr->type != TYPE_SOA || rr->rdata_count != 7) {
-		log_msg(LOG_ERR, "xfrd: copy_soa called with bad rr, type %d rrs %u.", 
+		log_msg(LOG_ERR, "xfrd: copy_soa called with bad rr, type %d rrs %u.",
 			rr->type, rr->rdata_count);
 		return;
 	}
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: copy_soa rr, type %d rrs %u, ttl %u.", 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: copy_soa rr, type %d rrs %u, ttl %u.",
 			rr->type, rr->rdata_count, rr->ttl));
 	soa->type = htons(rr->type);
 	soa->klass = htons(rr->klass);
@@ -813,6 +813,8 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 	struct sockaddr_in to;
 #endif /* INET6 */
 	int fd, family;
+
+	/* <matthijs> this will set the remote port to acl->port or TCP_PORT */
 	socklen_t to_len = xfrd_acl_sockaddr(acl, &to);
 
 	if(acl->is_ipv6) {
@@ -820,7 +822,7 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 		family = PF_INET6;
 #else
 		return -1;
-#endif
+#endif /* INET6 */
 	} else {
 		family = PF_INET;
 	}
@@ -831,6 +833,8 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet)
 			acl->ip_address_spec, strerror(errno));
 		return -1;
 	}
+
+	/* [ACL] need to bind to local interface first, if necessary */
 
 	/* send it (udp) */
 	if(sendto(fd,
@@ -1144,7 +1148,8 @@ no SOA begins answer section",
 			if(zone->soa_nsd.serial == soa->serial)
 				zone->soa_nsd_acquired = xfrd_time();
 			xfrd_set_zone_state(zone, xfrd_zone_ok);
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is ok", zone->apex_str));
+ 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s is ok",
+				zone->apex_str));
 			if(zone->soa_notified_acquired == 0) {
 				/* not notified or anything, so stop asking around */
 				zone->round_num = -1; /* next try start a new round */
@@ -1154,8 +1159,8 @@ no SOA begins answer section",
 			/* try next master */
 			return xfrd_packet_bad;
 		}
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "IXFR reply has ok serial (have %u, reply %u).",
-			ntohl(zone->soa_disk.serial), ntohl(soa->serial)));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "IXFR reply has ok serial (have \
+%u, reply %u).", ntohl(zone->soa_disk.serial), ntohl(soa->serial)));
 		/* serial is newer than soa_disk */
 		if(ancount == 1) {
 			/* single record means it is like a notify */

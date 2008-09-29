@@ -92,7 +92,7 @@ xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_in *to)
 	}
 }
 
-void 
+void
 xfrd_write_soa_buffer(struct buffer* packet,
 	const dname_type* apex, struct xfrd_soa* soa)
 {
@@ -229,6 +229,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		return 0;
 	}
 
+	/* [ACL] need to bind to local interface first, if necessary */
+
 	to_len = xfrd_acl_sockaddr(zone->master, &to);
 	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)
 	{
@@ -297,7 +299,7 @@ int conn_write(xfrd_tcp_t* tcp)
 
 	if(tcp->total_bytes < sizeof(tcp->msglen)) {
 		uint16_t sendlen = htons(tcp->msglen);
-		sent = write(tcp->fd, 
+		sent = write(tcp->fd,
 			(const char*)&sendlen + tcp->total_bytes,
 			sizeof(tcp->msglen) - tcp->total_bytes);
 
@@ -510,7 +512,7 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	if(set->tcp_count == XFRD_MAX_TCP && set->tcp_waiting_first) {
 		/* pop first waiting process */
 		zone = set->tcp_waiting_first;
-		if(set->tcp_waiting_last == zone) 
+		if(set->tcp_waiting_last == zone)
 			set->tcp_waiting_last = 0;
 
 		set->tcp_waiting_first = zone->tcp_waiting_next;
@@ -523,7 +525,7 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		if(zone->zone_handler.fd != -1)
 			xfrd_udp_release(zone);
 
-		if(!xfrd_tcp_open(set, zone)) 
+		if(!xfrd_tcp_open(set, zone))
 			return;
 
 		xfrd_tcp_xfr(set, zone);

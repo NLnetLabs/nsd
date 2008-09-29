@@ -3,6 +3,8 @@ NSD RELEASE NOTES
 3.1.2 (UPCOMING RELEASE)
 =============
 BUG FIXES:
+	- Only normalize dnames in rdatas when rrtype is listed in RFC 4034, 
+		section 6.2: Canonical RR Form.
 
 FEATURES:
 	- IXFR is transmitted over TCP by default, instead of UDP. If you want 
@@ -12,6 +14,8 @@ FEATURES:
 	  We strongly recommend to enable TSIG if you send IXFR over UDP.
 	- RFC 4635: support for hmac-sha1 and hmac-sha256 TSIG algorithm 
 		identifiers.
+	- nsd-notify and nsd-xfer allow you to configure the outgoing 
+		hostname/ip-address and source port.
 	- Additional debug and verbose log messages.
 
 3.1.1

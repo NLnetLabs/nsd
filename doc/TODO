@@ -3,14 +3,8 @@ $Id$
 GENERAL
 - return value of region_alloc, region_create is not checked for NULL,
   which is returned when out of memory, in many places.
-- Feature request by Kai: choose outgoing interface for nsd-xfer.
-- Feature request by Thoman Huehn: choose outgoing interface for nsd-notify. -a
 - Also Peter Hessler, Paul Wouters: choose outgoing ifc, "src: ip@port" 
 	in a zone in the config file, lets xfrd zonexfr and notify.
-- Make tpkg test for bug 157
-- Make tpkg test for bug 163
-- Make tpkg test for bug 164
-- Update tpkg long tests
 
 AUTOCONF
 - check/translate arguments to --with-facility
@@ -54,9 +48,6 @@ SERVER
 - query SOA before getting AXFR and then cutting it off, it causes an errlog
   on the master. 
 - when verbose, print the ip adresses that cause network errors to the log.
-- return literal (nonlowercased) dnames for rdata for RRtypes that do not
-  have canonicalisation applied to their rdata (rfc4034, 6.2). So that
-  the signature is not broken on the type.
 - the server reaps children every minute, this is bad for powersaving laptops.
 
 SECURITY
@@ -110,3 +101,11 @@ OPTIMISATIONS
   The brief double answers are preferable to brief SERVFAIL.
 - nsd manual programs contain identical functions that are written down multiple 
   times. Do we need to introduce a util_programs.c or something?
+
+TESTS
+- tpkg test for bug 157: a valid NSID EDNS0 option generates FORMERR on
+	nsd-3.0.5
+- tpkg test for bug 163: unable to read nsd.db when chroot'ed
+- tpkg test for bug 164: chkconfig
+- Update tpkg long tests
+

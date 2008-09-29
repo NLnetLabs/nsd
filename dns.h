@@ -114,6 +114,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_KX		36	/* RFC2230 Key Exchange Delegation Record */
 #define TYPE_CERT	37	/* RFC2538 */
 
+#define TYPE_A6		38	/* RFC2874 */
+
 #define TYPE_DNAME	39	/* RFC2672 */
 
 #define TYPE_OPT	41	/* Pseudo OPT record... */

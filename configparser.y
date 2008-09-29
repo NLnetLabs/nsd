@@ -49,7 +49,7 @@ static int server_settings_seen = 0;
 %token VAR_XFRD_RELOAD_TIMEOUT
 %token VAR_ZONEFILE 
 %token VAR_ZONE
-%token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR
+%token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR VAR_OUTGOING_INTERFACE
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
@@ -255,7 +255,7 @@ zonestart: VAR_ZONE
 	;
 contents_zone: contents_zone content_zone | content_zone;
 content_zone: zone_name | zone_zonefile | zone_allow_notify | 
-	zone_request_xfr | zone_notify | zone_provide_xfr;
+	zone_request_xfr | zone_notify | zone_provide_xfr | zone_outgoing_interface;
 zone_name: VAR_NAME STRING
 	{ 
 		OUTYY(("P(zone_name:%s)\n", $2)); 
@@ -350,6 +350,15 @@ zone_provide_xfr: VAR_PROVIDE_XFR STRING STRING
 		else
 			cfg_parser->current_zone->provide_xfr = acl;
 		cfg_parser->current_provide_xfr = acl;
+	}
+	;
+zone_outgoing_interface: VAR_OUTGOING_INTERFACE STRING
+	{ 
+		OUTYY(("P(zone_outgoing_interface:%s)\n", $2)); 
+#ifndef NDEBUG
+		assert(cfg_parser->current_zone);
+#endif
+		cfg_parser->current_zone->outgoing_interface = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;
 

@@ -17,7 +17,7 @@
 #define AXFR_TSIG_SIGN_EVERY_NTH	96	/* tsig sign every N packets. */
 
 query_state_type
-query_axfr (struct nsd *nsd, struct query *query)
+query_axfr(struct nsd *nsd, struct query *query)
 {
 	domain_type *closest_match;
 	domain_type *closest_encloser;

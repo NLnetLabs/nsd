@@ -124,6 +124,7 @@ allow-notify{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ALLOW_NOTIFY;}
 request-xfr{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_REQUEST_XFR;}
 notify{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_NOTIFY;}
 provide-xfr{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_PROVIDE_XFR;}
+outgoing-interface{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_OUTGOING_INTERFACE;}
 key{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_KEY;}
 algorithm{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ALGORITHM;}
 secret{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_SECRET;}

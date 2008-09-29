@@ -154,7 +154,7 @@ usage (void)
 		"NSD AXFR client.\n\nSupported options:\n"
 		"  -4            Only use IPv4 connections.\n"
 		"  -6            Only use IPv6 connections.\n"
-		"  -a src[:port] Local hostname/ip-address for the \
+		"  -a src[@port] Local hostname/ip-address for the \
 connection, including optional source port.\n"
 		"  -f file       Output zone file name.\n"
 		"  -p port       The port to connect to.\n"
@@ -1030,8 +1030,8 @@ void
 get_hostname_port_frm_str(const char* arg, const char** hostname,
 	const char** port)
 {
-	/* parse -a src[:port] option */
-	char* delim = strchr(arg, ':');
+	/* parse -a src[@port] option */
+	char* delim = strchr(arg, '@');
 
 	if (delim) {
 		*delim = '\0';

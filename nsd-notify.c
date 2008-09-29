@@ -66,7 +66,7 @@ warning(const char *format, ...)
 static void
 usage (void)
 {
-	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-a src[:port] [-h] [-p \
+	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-a src[@port] [-h] [-p \
 port] [-y key:secret[:algo]] -z zone servers\n\n");
 	fprintf(stderr, "Send NOTIFY to secondary servers to force a zone \
 update.\n");
@@ -74,7 +74,7 @@ update.\n");
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "  -4                   Send using IPv4.\n");
 	fprintf(stderr, "  -6                   Send using IPv6.\n");
-	fprintf(stderr, "  -a src[:port]        Local hostname/ip-address for \
+	fprintf(stderr, "  -a src[@port]        Local hostname/ip-address for \
 the connection, including optional source port.\n");
 	fprintf(stderr, "  -h                   Print this help \
 information.\n");
@@ -427,8 +427,8 @@ void
 get_hostname_port_frm_str(const char* arg, const char** hostname,
         const char** port)
 {
-	/* parse -a src[:port] option */
-	char* delim = strchr(arg, ':');
+	/* parse -a src[@port] option */
+	char* delim = strchr(arg, '@');
 
 	if (delim) {
 		*delim = '\0';

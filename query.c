@@ -672,7 +672,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 	for(i=0; i < from_name->label_count - domain_dname(src)->label_count; i++)
 	{
 		domain_type* newdom = query_get_tempdomain(q);
-		if(!newdom) 
+		if(!newdom)
 			return 0;
 		newdom->is_existing = 1;
 		newdom->parent = lastparent;

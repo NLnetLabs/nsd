@@ -76,6 +76,7 @@ struct zone_options {
 	/* is apex of the zone */
 	const char* name;
 	const char* zonefile;
+	const char* outgoing_interface;
 	acl_options_t* allow_notify;
 	acl_options_t* request_xfr;
 	acl_options_t* notify;

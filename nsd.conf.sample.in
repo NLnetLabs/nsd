@@ -15,7 +15,7 @@ server:
 	# ip-address: 1.2.3.4
 	# ip-address: 12fe::8ef0
 
-    # don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
+	# don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
 	# hide-version: no
 
 	# enable debug mode, does not fork daemon process into the background.
@@ -93,18 +93,25 @@ zone:
 	# master 1
 	allow-notify: 168.192.44.42 mskey
 	request-xfr: 168.192.44.42 mskey
+
+	# set local interface for zone transfer requests, use port 5200.
+	# in case of master 1, the xfr request will go:
+	#	from 10.0.0.10@5200
+	#	to 168.192.44.42@port (53 or configured port number)
+	outgoing-interface: 10.0.0.10@5200
+
 	# master 2
-	allow-notify: 10.0.0.10 NOKEY
-	request-xfr: 10.0.0.10 NOKEY
+	allow-notify: 10.0.0.11 NOKEY
+	request-xfr: 10.0.0.11 NOKEY
 
 	# By default, a slave will request a zone transfer with IXFR/TCP.
 	# If you want to make use of IXFR/UDP use
-	allow-notify: 10.0.0.11 NOKEY
-	request-xfr: UDP 10.0.0.11 NOKEY
+	allow-notify: 10.0.0.12 NOKEY
+	request-xfr: UDP 10.0.0.12 NOKEY
 
 	# for a master that only speaks AXFR (like NSD) use
-	allow-notify: 10.0.0.12 NOKEY
-	request-xfr: AXFR 10.0.0.12 NOKEY
+	allow-notify: 10.0.0.13 NOKEY
+	request-xfr: AXFR 10.0.0.13 NOKEY
 
 	# Attention: You cannot use UDP and AXFR together. AXFR is always over 
 	# TCP. If you use UDP, we higly recommend you to deploy TSIG.
@@ -121,12 +128,18 @@ zone:
 	# This is a master zone. Slaves are listed below.
 
 	# secondary 1. Uses port 5300.
-	notify: 10.11.12.13@5300 sec1_key
-	provide-xfr: 10.11.12.13@5300 sec1_key
+	notify: 10.0.0.14@5300 sec1_key
+	provide-xfr: 10.0.0.14@5300 sec1_key
+
+	# set local interface for notifies, use port 5200.
+	# in case of secondary 1, the notify will go:
+	#	from 10.0.0.15@5200 
+	#	to 10.0.0.14@5300
+	outgoing-interface: 10.0.0.15@5200
 
 	# secondary 2. 
-	notify: 10.110.0.1 sec2_key
-	provide-xfr: 10.110.0.1 sec2_key
+	notify: 10.11.12.14 sec2_key
+	provide-xfr: 10.11.12.14 sec2_key
 
 	# also provide xfr to operator's network.
 	provide-xfr: 169.192.85.0/24 NOKEY

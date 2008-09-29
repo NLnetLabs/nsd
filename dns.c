@@ -206,7 +206,7 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	  { RDATA_ZF_CERTIFICATE_TYPE, RDATA_ZF_SHORT, RDATA_ZF_ALGORITHM,
 	    RDATA_ZF_BASE64 } },
 	/* 38 */
-	{ 38, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
+	{ TYPE_A6, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 39 */
 	{ TYPE_DNAME, "DNAME", T_DNAME, 1, 1,
 	  { RDATA_WF_UNCOMPRESSED_DNAME }, { RDATA_ZF_DNAME } },
@@ -258,9 +258,9 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	  { RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BINARY },
 	  { RDATA_ZF_BYTE, RDATA_ZF_BYTE, RDATA_ZF_HEX } },
 	/* 45 */
-	{ TYPE_IPSECKEY, "IPSECKEY", T_IPSECKEY, 4, 5, 
+	{ TYPE_IPSECKEY, "IPSECKEY", T_IPSECKEY, 4, 5,
 	  { RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_IPSECGATEWAY,
-	    RDATA_WF_BINARY }, 
+	    RDATA_WF_BINARY },
 	  { RDATA_ZF_BYTE, RDATA_ZF_BYTE, RDATA_ZF_BYTE, RDATA_ZF_IPSECGATEWAY,
 	    RDATA_ZF_BASE64 } },
 	/* 46 */
@@ -486,20 +486,20 @@ rrtype_from_string(const char *name)
 
 	if (strlen(name) < 5)
 		return 0;
-	
+
 	if (strncasecmp(name, "TYPE", 4) != 0)
 		return 0;
 
 	if (!isdigit(name[4]))
 		return 0;
-	
+
 	/* The rest from the string must be a number.  */
 	rrtype = strtol(name + 4, &end, 10);
 	if (*end != '\0')
 		return 0;
 	if (rrtype < 0 || rrtype > 65535L)
 		return 0;
-	
+
         return (uint16_t) rrtype;
 }
 

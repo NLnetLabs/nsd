@@ -30,7 +30,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	nsd_options_t* opt;
 	opt = (nsd_options_t*)region_alloc(region, sizeof(nsd_options_t));
 	opt->region = region;
-	opt->zone_options = rbtree_create(region, 
+	opt->zone_options = rbtree_create(region,
 		(int (*)(const void *, const void *)) dname_compare);
 	opt->keys = NULL;
 	opt->numkeys = 0;
@@ -241,14 +241,14 @@ key_options_t* key_options_find(nsd_options_t* opt, const char* name)
 {
 	key_options_t* key = opt->keys;
 	while(key) {
-		if(strcmp(key->name, name)==0) 
+		if(strcmp(key->name, name)==0)
 			return key;
 		key = key->next;
 	}
 	return 0;
 }
 
-int acl_check_incoming(acl_options_t* acl, struct query* q, 
+int acl_check_incoming(acl_options_t* acl, struct query* q,
 	acl_options_t** reason)
 {
 	/* check each acl element.
@@ -295,9 +295,9 @@ int acl_addr_matches(acl_options_t* acl, struct query* q)
 #ifdef INET6
 		struct sockaddr_storage* addr_storage = (struct sockaddr_storage*)&q->addr;
 		struct sockaddr_in6* addr = (struct sockaddr_in6*)&q->addr;
-		if(addr_storage->ss_family != AF_INET6) 
+		if(addr_storage->ss_family != AF_INET6)
 			return 0;
-		if(acl->port != 0 && acl->port != ntohs(addr->sin6_port)) 
+		if(acl->port != 0 && acl->port != ntohs(addr->sin6_port))
 			return 0;
 		switch(acl->rangetype) {
 		case acl_range_mask:
@@ -313,7 +313,7 @@ int acl_addr_matches(acl_options_t* acl, struct query* q)
 			break;
 		case acl_range_single:
 		default:
-			if(memcmp(&addr->sin6_addr, &acl->addr.addr6, 
+			if(memcmp(&addr->sin6_addr, &acl->addr.addr6,
 				sizeof(struct in6_addr)) != 0)
 				return 0;
 			break;
@@ -326,9 +326,9 @@ int acl_addr_matches(acl_options_t* acl, struct query* q)
 	else
 	{
 		struct sockaddr_in* addr = (struct sockaddr_in*)&q->addr;
-		if(addr->sin_family != AF_INET) 
+		if(addr->sin_family != AF_INET)
 			return 0;
-		if(acl->port != 0 && acl->port != ntohs(addr->sin_port)) 
+		if(acl->port != 0 && acl->port != ntohs(addr->sin_port))
 			return 0;
 		switch(acl->rangetype) {
 		case acl_range_mask:
@@ -344,7 +344,7 @@ int acl_addr_matches(acl_options_t* acl, struct query* q)
 			break;
 		case acl_range_single:
 		default:
-			if(memcmp(&addr->sin_addr, &acl->addr.addr, 
+			if(memcmp(&addr->sin_addr, &acl->addr.addr,
 				sizeof(struct in_addr)) != 0)
 				return 0;
 			break;

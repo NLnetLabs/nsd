@@ -116,7 +116,7 @@ child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
 	}
 
 	switch (mode) {
-	case NSD_STATS: 
+	case NSD_STATS:
 	case NSD_QUIT:
 		data->nsd->mode = mode;
 		break;
@@ -141,7 +141,7 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 {
 	sig_atomic_t mode;
 	int len;
-	struct ipc_handler_conn_data *data = 
+	struct ipc_handler_conn_data *data =
 		(struct ipc_handler_conn_data *) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
@@ -165,14 +165,14 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 		data->conn->is_reading = 0;
 		buffer_flip(data->conn->packet);
 		zone = handle_xfrd_zone_state(data->nsd, data->conn->packet);
-		if(!zone) 
+		if(!zone)
 			return;
 		/* forward to all children */
 		for (i = 0; i < data->nsd->child_count; ++i) {
 			if(!zone->dirty[i]) {
 				zone->dirty[i] = 1;
 				stack_push(data->nsd->children[i].dirty_zones, zone);
-				data->nsd->children[i].handler->event_types |= 
+				data->nsd->children[i].handler->event_types |=
 					NETIO_EVENT_WRITE;
 			}
 		}
@@ -232,7 +232,7 @@ write_zone_state_packet(buffer_type* packet, zone_type* zone)
 	buffer_write(packet, &cmd, sizeof(cmd));
 	buffer_write(packet, &sz, sizeof(sz));
 	buffer_write(packet, &ok, sizeof(ok));
-	buffer_write(packet, domain_dname(zone->apex), 
+	buffer_write(packet, domain_dname(zone->apex),
 		dname_total_size(domain_dname(zone->apex)));
 	buffer_flip(packet);
 }
@@ -602,7 +602,7 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 	xfrd->need_to_send_quit = 0;
 }
 
-static void 
+static void
 xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 {
 	xfrd_soa_t soa;
@@ -617,7 +617,7 @@ xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 
 	if(!buffer_available(packet, sizeof(uint32_t)*6 + sizeof(uint8_t)*2)) {
 		/* NSD has zone without any info */
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s lost zone", 
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s lost zone",
 			dname_to_string(dname,0)));
 		soa_ptr = NULL;
 	} else {
@@ -636,20 +636,20 @@ xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 		if(!buffer_available(packet, soa.email[0]))
 			return;
 		buffer_read(packet, soa.email+1, soa.email[0]);
-	
+
 		soa.serial = htonl(buffer_read_u32(packet));
 		soa.refresh = htonl(buffer_read_u32(packet));
 		soa.retry = htonl(buffer_read_u32(packet));
 		soa.expire = htonl(buffer_read_u32(packet));
 		soa.minimum = htonl(buffer_read_u32(packet));
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s %u", 
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s %u",
 			dname_to_string(dname,0), ntohl(soa.serial)));
 	}
 
 	if(!zone) {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: zone %s master zone updated",
 			dname_to_string(dname,0)));
-		notify_handle_master_zone_soainfo(xfrd->notify_zones, 
+		notify_handle_master_zone_soainfo(xfrd->notify_zones,
 			dname, soa_ptr);
 		return;
 	}
@@ -657,8 +657,8 @@ xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 }
 
 void
-xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio), 
-	netio_handler_type *handler, 
+xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
+	netio_handler_type *handler,
 	netio_event_types_type event_types)
 {
 	xfrd_state_t* xfrd = (xfrd_state_t*)handler->user_data;
@@ -713,7 +713,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 	}
 
 }
-	
+
 static void
 xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 {
@@ -767,7 +767,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		}
 		return;
 	}
-        
+
         if((len = read(handler->fd, &cmd, sizeof(cmd))) == -1) {
                 log_msg(LOG_ERR, "xfrd_handle_ipc: read: %s",
                         strerror(errno));

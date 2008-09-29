@@ -317,7 +317,6 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	for(k = 0; k < num; k++)
 	{
 		if(rdata_atom_is_domain(type, k)) {
-			/* <matthijs> assert: domain_dnames are normalized */
 			if(dname_compare(domain_dname(a[k].domain),
 				domain_dname(b[k].domain))!=0)
 				return 0;

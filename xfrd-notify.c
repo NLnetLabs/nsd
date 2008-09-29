@@ -21,7 +21,7 @@
 #define XFRD_NOTIFY_MAX_NUM 5 /* number of attempts to send NOTIFY */
 
 /* start sending notifies */
-static void notify_enable(struct notify_zone_t* zone, 
+static void notify_enable(struct notify_zone_t* zone,
 	struct xfrd_soa* new_soa);
 /* stop sending notifies */
 static void notify_disable(struct notify_zone_t* zone);
@@ -39,7 +39,7 @@ static void xfrd_notify_next(struct notify_zone_t* zone);
 
 static void xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet);
 
-static void 
+static void
 notify_disable(struct notify_zone_t* zone)
 {
 	zone->notify_current = 0;
@@ -53,7 +53,7 @@ notify_disable(struct notify_zone_t* zone)
 		/* find next waiting and needy zone */
 		while(xfrd->notify_waiting_first) {
 			/* snip off */
-			struct notify_zone_t* wz = xfrd->notify_waiting_first;	
+			struct notify_zone_t* wz = xfrd->notify_waiting_first;
 			assert(wz->is_waiting);
 			wz->is_waiting = 0;
 			xfrd->notify_waiting_first = wz->waiting_next;
@@ -61,7 +61,7 @@ notify_disable(struct notify_zone_t* zone)
 				xfrd->notify_waiting_last = NULL;
 			/* see if this zone needs notify sending */
 			if(wz->notify_current) {
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO, 
+				DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 					"xfrd: zone %s: notify off waiting list.",
 					zone->apex_str)	);
 				setup_notify_active(wz);
@@ -72,7 +72,7 @@ notify_disable(struct notify_zone_t* zone)
 	xfrd->notify_udp_num--;
 }
 
-void 
+void
 init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 	const dname_type* apex, zone_options_t* options, zone_type* dbzone)
 {
@@ -104,12 +104,12 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 	tsig_create_record_custom(&not->notify_tsig, region, 0, 0, 4);
 #endif /* TSIG */
 	not->notify_current = 0;
-	
+
 	rbtree_insert(tree, (rbnode_t*)not);
 }
 
-static int 
-xfrd_handle_notify_reply(struct notify_zone_t* zone, buffer_type* packet) 
+static int
+xfrd_handle_notify_reply(struct notify_zone_t* zone, buffer_type* packet)
 {
 	if((OPCODE(packet) != OPCODE_NOTIFY) ||
 		(QR(packet) == 0)) {
@@ -210,15 +210,15 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 				xfrd_notify_next(zone);
 		}
 	} else if(event_types & NETIO_EVENT_TIMEOUT) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: notify timeout", 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s: notify timeout",
 			zone->apex_str));
 		/* timeout, try again */
 	}
 	/* see if notify is still enabled */
 	if(zone->notify_current) {
-		zone->notify_retry++; 
+		zone->notify_retry++;
 		if(zone->notify_retry > XFRD_NOTIFY_MAX_NUM) {
-			log_msg(LOG_ERR, "xfrd: zone %s: max notify send count reached, %s unreachable", 
+			log_msg(LOG_ERR, "xfrd: zone %s: max notify send count reached, %s unreachable",
 				zone->apex_str, zone->notify_current->ip_address_spec);
 			xfrd_notify_next(zone);
 		}
@@ -229,7 +229,7 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	}
 }
 
-static void 
+static void
 setup_notify_active(struct notify_zone_t* zone)
 {
 	zone->notify_retry = 0;
@@ -273,7 +273,7 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 		zone->apex_str));
 }
 
-void 
+void
 xfrd_send_notify(rbtree_t* tree, const dname_type* apex, struct xfrd_soa* new_soa)
 {
 	/* lookup the zone */
@@ -284,7 +284,7 @@ xfrd_send_notify(rbtree_t* tree, const dname_type* apex, struct xfrd_soa* new_so
 	notify_enable(zone, new_soa);
 }
 
-void 
+void
 notify_handle_master_zone_soainfo(rbtree_t* tree,
 	const dname_type* apex, struct xfrd_soa* new_soa)
 {
@@ -304,7 +304,7 @@ notify_handle_master_zone_soainfo(rbtree_t* tree,
 void close_notify_fds(rbtree_t* tree)
 {
 	struct notify_zone_t* zone;
-	RBTREE_FOR(zone, struct notify_zone_t*, tree) 
+	RBTREE_FOR(zone, struct notify_zone_t*, tree)
 	{
 		if(zone->notify_send_handler.fd != -1) {
 			close(zone->notify_send_handler.fd);

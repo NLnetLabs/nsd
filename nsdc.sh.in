@@ -161,10 +161,16 @@ do_reload() {
 	signal "HUP"
 }
 
-# send_updates zone_name {ip_spec key_spec}
+# send_updates zone_name ifc_spec {ip_spec key_spec}
 send_updates() {
 	local zonename=$1
-	shift
+	# <matthijs> set local interface
+	ifc_spec=""
+	if test I$2 != INOIFC; then
+		ifc_spec="-a $2"
+	fi
+	shift 2
+
 	# extract port number (if any) 
 	port=`${nsd_checkconf} -o port ${configfile}`
 	if test -n "${port}"; then
@@ -185,10 +191,9 @@ send_updates() {
 				secret="-y ${key_spec}:${secret}"
 			fi
 			if test K${key_spec} != KBLOCKED; then
-				#echo "${sbindir}/nsd-notify ${port} " \
-				#"-z ${zonename} ${ip_spec} # with ${key_spec}"
-				${sbindir}/nsd-notify ${port} ${secret} \
-				-z ${zonename} ${ip_spec} && update_sent="yes"
+				#echo "${sbindir}/nsd-notify ${ifc_spec} ${port} -z ${zonename} ${ip_spec} # with ${key_spec}"
+				${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} \
+				  -z ${zonename} ${ip_spec} && update_sent="yes"
 			fi
 		fi
 	done
@@ -201,15 +206,22 @@ send_updates() {
 	fi
 }
 
-# send_notify zone_name {ip_spec key_spec}
+# send_notify zone_name ifc_spec {ip_spec key_spec}
 send_notify() {
 	local zonename=$1
-	shift
+	# <matthijs> set local interface
+	ifc_spec=""
+	if test I$2 != INOIFC; then
+		ifc_spec="-a $2"
+	fi
+	shift 2
+
 	while test $# -gt 0; do
 		ip_spec=$1
 		key_spec=$2
 		shift 2
 		secret=""
+
 		if test K${key_spec} != KNOKEY -a K${key_spec} != KBLOCKED; then
 			secret=`${nsd_checkconf} -s ${key_spec} ${configfile}`
 			secret="-y ${key_spec}:${secret}"
@@ -221,7 +233,9 @@ send_notify() {
 				port="-p "`echo ${ip_spec} | sed -e 's/[^@]*@\([0-9]*\)/\1/'`
 				ipaddr=`echo ${ip_spec} | sed -e 's/\([^@]*\)@[0-9]*/\1/'`
 			fi
-			${sbindir}/nsd-notify ${port} ${secret} -z ${zonename} ${ipaddr}
+			#echo "${sbindir}/nsd-notify ${ifc_spec} ${port} -z ${zonename} ${ip_spec} # with ${key_spec}"
+			${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} \
+			  -z ${zonename} ${ipaddr}
 		fi
 	done
 }
@@ -290,7 +304,11 @@ update)
 		zoneslist=`${nsd_checkconf} -o zones ${configfile}`
 		for zonename in ${zoneslist}; do
 			notify_allow=`${nsd_checkconf} -z "${zonename}" -o allow-notify ${configfile}`
-			send_updates ${zonename} ${notify_allow}
+			local_ifc=`${nsd_checkconf} -z "${zonename}" -o outgoing-interface ${configfile}`
+			if test I$local_ifc == I; then
+				local_ifc="NOIFC";
+			fi
+			send_updates ${zonename} ${local_ifc} ${notify_allow}
 		done
 	else
 		echo "nsd is not running"
@@ -302,7 +320,11 @@ notify)
 	zoneslist=`${nsd_checkconf} -o zones ${configfile}`
 	for zonename in ${zoneslist}; do
 		notify=`${nsd_checkconf} -z "${zonename}" -o notify ${configfile}`
-		send_notify ${zonename} $notify
+		local_ifc=`${nsd_checkconf} -z "${zonename}" -o outgoing-interface ${configfile}`
+		if test I$local_ifc == I; then
+			local_ifc="NOIFC";
+		fi
+		send_notify ${zonename} ${local_ifc} ${notify}
 	done
 	;;
 restart)

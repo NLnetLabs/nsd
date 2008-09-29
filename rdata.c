@@ -57,6 +57,44 @@ lookup_table_type dns_algorithms[] = {
 	{ 0, NULL }
 };
 
+/* Taken from RFC 4034, section 6.2. */
+static int
+rdata_normalize_dnames(uint8_t rrtype) {
+	switch(rrtype) {
+		case TYPE_NS:
+		case TYPE_MD:
+		case TYPE_MF:
+		case TYPE_CNAME:
+		case TYPE_SOA:
+		case TYPE_MB:
+		case TYPE_MG:
+		case TYPE_MR:
+		case TYPE_PTR:
+		case TYPE_HINFO:
+		case TYPE_MINFO:
+		case TYPE_MX:
+		case TYPE_RP:
+		case TYPE_AFSDB:
+		case TYPE_RT:
+		case TYPE_SIG:
+		case TYPE_PX:
+		case TYPE_NXT:
+		case TYPE_NAPTR:
+		case TYPE_KX:
+		case TYPE_SRV:
+		case TYPE_DNAME:
+		case TYPE_A6:
+		case TYPE_RRSIG:
+		case TYPE_NSEC:
+			return 1;
+			break;
+		default:
+			return 0;
+			break;
+	}
+	return 0;
+}
+
 typedef int (*rdata_to_string_type)(buffer_type *output,
 				    rdata_atom_type rdata,
 				    rr_type *rr);
@@ -600,13 +638,14 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 
 		if (is_domain) {
 			const dname_type *dname;
+			int normalize = rdata_normalize_dnames(rrtype);
 
 			if (!required && buffer_position(packet) == end) {
 				break;
 			}
 
 			dname = dname_make_from_packet(
-				temp_region, packet, 1, 1);
+				temp_region, packet, 1, normalize);
 			if (!dname || buffer_position(packet) > end) {
 				/* Error in domain name.  */
 				region_destroy(temp_region);

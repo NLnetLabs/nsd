@@ -364,7 +364,7 @@ rebuild database and start again.", dname_to_string(dname, NULL), db->filename);
 
 		region_free_all(dname_region);
 	}
-	
+
 	if (!read_size(db, &dname_count)) {
 		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
 		region_destroy(dname_region);
@@ -375,7 +375,7 @@ rebuild database and start again.", dname_to_string(dname, NULL), db->filename);
 
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (LOG_INFO, "Retrieving %lu domain names\n", (unsigned long) dname_count));
-	
+
 	domains = (domain_type **) region_alloc(
 		temp_region, dname_count * sizeof(domain_type *));
 	for (i = 0; i < dname_count; ++i) {
@@ -390,7 +390,7 @@ rebuild database and start again.", dname_to_string(dname, NULL), db->filename);
 		domains[i] = domain_table_insert(db->domains, dname);
 		region_free_all(dname_region);
 	}
-	
+
 	region_destroy(dname_region);
 
 #ifndef NDEBUG
