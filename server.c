@@ -644,8 +644,6 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 	data = (struct ipc_handler_conn_data *) handler->user_data;
 	data->conn->is_reading = 0;
 
-	log_msg(LOG_INFO, "parent pid = %d", pid);
-
 	return pid;
 }
 

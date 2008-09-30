@@ -413,7 +413,7 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 		data->got_bytes += len;
 		if(got_acl >= (int)sizeof(data->acl_num)) {
 			uint16_t len = htons(data->total_bytes);
-			DEBUG(DEBUG_IPC,2, (LOG_INFO, 
+			DEBUG(DEBUG_IPC,2, (LOG_INFO,
 				"main fwd passed packet write %d", (int)data->got_bytes));
 #ifndef NDEBUG
 			if(nsd_debug_level >= 2)
@@ -423,9 +423,9 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 			mode = NSD_PASS_TO_XFRD;
 			if(!write_socket(*data->xfrd_sock, &mode, sizeof(mode)) ||
 			   !write_socket(*data->xfrd_sock, &len, sizeof(len)) ||
-			   !write_socket(*data->xfrd_sock, buffer_begin(data->packet), 
+			   !write_socket(*data->xfrd_sock, buffer_begin(data->packet),
 				data->total_bytes) ||
-			   !write_socket(*data->xfrd_sock, &data->acl_num, 
+			   !write_socket(*data->xfrd_sock, &data->acl_num,
 			   	sizeof(data->acl_num))) {
 				log_msg(LOG_ERR, "error in ipc fwd main2xfrd: %s",
 					strerror(errno));

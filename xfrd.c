@@ -840,6 +840,7 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 	if (!xfrd_bind_local_interface(fd, ifc, acl)) {
 		log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface '%s' to \
 udp socket: No matching ip addresses found", ifc->ip_address_spec);
+		return -1;
 	}
 
 	/* send it (udp) */
@@ -867,26 +868,42 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl) {
 	if (!ifc) /* no outgoing interface set */
 		return 1;
 
-	log_msg(LOG_INFO, "<matje> we have a ifc");
+	while (ifc) {
+		log_msg(LOG_INFO, "<matje> we have a ifc: %s", ifc->ip_address_spec);
 
-	while (!ifc) {
 		if (ifc->is_ipv6 != acl->is_ipv6) {
 			/* <matthijs> check if we have a matching address family */
+			log_msg(LOG_INFO, "<matje> no matching address family, outgoing is %s, incoming is %s",
+				ifc->is_ipv6?"IPv6":"IPv4", acl->is_ipv6?"IPv6":"IPv4");
+
 			ifc = ifc->next;
 			continue;
 		}
 
 		frm_len = xfrd_acl_sockaddr_frm(ifc, &frm);
 
+#ifdef SO_REUSEADDR
+		if (setsockopt(sockd, SOL_SOCKET, SO_REUSEADDR, &frm, frm_len) < 0)
+			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
+SO_REUSEADDR, ...) failed: %s", strerror(errno));
+#else
+			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
+SO_REUSEADDR, ...) failed: SO_REUSEADDR not defined");
+#endif /* SO_REUSEADDR */
+
 		/* <matthijs> found one */
-		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0)
+		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0) {
+			log_msg(LOG_INFO, "<matje> successfully binded %s", ifc->ip_address_spec);
 			return 1;
+		}
 
 		log_msg(LOG_WARNING, "xfrd: could not bind local interface \
 '%s' to socket: %s", ifc->ip_address_spec, strerror(errno));
 		/* <matthijs> try another */
 		ifc = ifc->next;
 	}
+
+	log_msg(LOG_INFO, "<matje> could not bind outgoing interface %s", ifc->ip_address_spec);
 
 	return 0;
 }
