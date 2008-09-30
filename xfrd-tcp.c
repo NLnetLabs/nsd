@@ -56,6 +56,42 @@ xfrd_setup_packet(buffer_type* packet,
 	buffer_write_u16(packet, klass);
 }
 
+static socklen_t
+#ifdef INET6
+xfrd_acl_sockaddr(acl_options_t* acl, unsigned int port,
+	struct sockaddr_storage *sck)
+#else
+xfrd_acl_sockaddr(acl_options_t* acl, unsigned int port,
+	struct sockaddr_in *sck, const char* fromto)
+#endif /* INET6 */
+{
+	/* setup address structure */
+#ifdef INET6
+	memset(sck, 0, sizeof(struct sockaddr_storage));
+#else
+	memset(sck, 0, sizeof(struct sockaddr_in));
+#endif
+	if(acl->is_ipv6) {
+#ifdef INET6
+		struct sockaddr_in6* sa = (struct sockaddr_in6*)sck;
+		sa->sin6_family = AF_INET6;
+		sa->sin6_port = htons(port);
+		sa->sin6_addr = acl->addr.addr6;
+		return sizeof(struct sockaddr_in6);
+#else
+		log_msg(LOG_ERR, "xfrd: IPv6 connection %s %s attempted but no \
+INET6.", fromto, acl->ip_address_spec);
+		return 0;
+#endif
+	} else {
+		struct sockaddr_in* sa = (struct sockaddr_in*)sck;
+		sa->sin_family = AF_INET;
+		sa->sin_port = htons(port);
+		sa->sin_addr = acl->addr.addr;
+		return sizeof(struct sockaddr_in);
+	}
+}
+
 socklen_t
 #ifdef INET6
 xfrd_acl_sockaddr_to(acl_options_t* acl, struct sockaddr_storage *to)
@@ -64,32 +100,26 @@ xfrd_acl_sockaddr_to(acl_options_t* acl, struct sockaddr_in *to)
 #endif /* INET6 */
 {
 	unsigned int port = acl->port?acl->port:(unsigned)atoi(TCP_PORT);
+#ifdef INET6
+	return xfrd_acl_sockaddr(acl, port, to);
+#else
+	return xfrd_acl_sockaddr(acl, port, to, "to");
+#endif /* INET6 */
+}
 
-	/* setup address structure */
+socklen_t
 #ifdef INET6
-	memset(to, 0, sizeof(struct sockaddr_storage));
+xfrd_acl_sockaddr_frm(acl_options_t* acl, struct sockaddr_storage *frm)
 #else
-	memset(to, 0, sizeof(struct sockaddr_in));
-#endif
-	if(acl->is_ipv6) {
+xfrd_acl_sockaddr_frm(acl_options_t* acl, struct sockaddr_in *frm)
+#endif /* INET6 */
+{
+	unsigned int port = acl->port?acl->port:0;
 #ifdef INET6
-		struct sockaddr_in6* sa = (struct sockaddr_in6*)to;
-		sa->sin6_family = AF_INET6;
-		sa->sin6_port = htons(port);
-		sa->sin6_addr = acl->addr.addr6;
-		return sizeof(struct sockaddr_in6);
+	return xfrd_acl_sockaddr(acl, port, frm);
 #else
-		log_msg(LOG_ERR, "xfrd: IPv6 connection to %s attempted but no INET6.",
-			acl->ip_address_spec);
-		return 0;
-#endif
-	} else {
-		struct sockaddr_in* sa = (struct sockaddr_in*)to;
-		sa->sin_family = AF_INET;
-		sa->sin_port = htons(port);
-		sa->sin_addr = acl->addr.addr;
-		return sizeof(struct sockaddr_in);
-	}
+	return xfrd_acl_sockaddr(acl, port, frm, "from");
+#endif /* INET6 */
 }
 
 void
@@ -229,9 +259,17 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		return 0;
 	}
 
-	/* [ACL] need to bind to local interface first, if necessary */
-
 	to_len = xfrd_acl_sockaddr_to(zone->master, &to);
+
+	/* bind it */
+
+	if (!xfrd_bind_local_interface(fd,
+		zone->zone_options->outgoing_interface, zone->master)) {
+                log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface '%s' to \
+tcp socket: No matching ip addresses found",
+		  zone->zone_options->outgoing_interface->ip_address_spec);
+        }
+
 	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)
 	{
 		if(errno != EINPROGRESS) {

@@ -281,7 +281,11 @@ void xfrd_check_failed_updates();
 /*
  * Prepare zones for a reload, this sets the times on the zones to be
  * before the current time, so the reload happens after.
-*/
+ */
 void xfrd_prepare_zones_for_reload();
+
+/* Bind a local interface to a socket descriptor, return 1 on success */
+int xfrd_bind_local_interface(int sockd, acl_options_t* ifc,
+	acl_options_t* acl);
 
 #endif /* XFRD_H */

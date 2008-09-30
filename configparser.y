@@ -251,6 +251,7 @@ zonestart: VAR_ZONE
 		cfg_parser->current_request_xfr = 0;
 		cfg_parser->current_notify = 0;
 		cfg_parser->current_provide_xfr = 0;
+		cfg_parser->current_outgoing_interface = 0;
 	}
 	;
 contents_zone: contents_zone content_zone | content_zone;

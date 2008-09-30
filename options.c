@@ -652,31 +652,3 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 	}
 	return acl;
 }
-
-void
-parse_ifc(const char* ifc, const char** hostname, const char** port) {
-	/* parse src[@port] */
-	char* delim = strchr(ifc, '@');
-
-	if (delim) {
-		*delim = '\0';
-		*port = delim+1;
-	}
-	*hostname = ifc;
-}
-
-/*
-int
-check_matching_address_family(struct addrinfo *a0, struct addrinfo *b0) {
-	struct addrinfo *a;
-	struct addrinfo *b;
-
-	for (a = a0; a; a = a->ai_next) {
-		for (b = b0; b; b = b->ai_next) {
-			if (a->ai_family == b->ai_family)
-				return 1;
-		}
-	}
-	return 0;
-}
-*/

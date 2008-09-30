@@ -308,7 +308,9 @@ update)
 			if test I$local_ifc == I; then
 				local_ifc="NOIFC";
 			fi
-			send_updates ${zonename} ${local_ifc} ${notify_allow}
+			for ifc in ${local_ifc}; do
+				send_updates ${zonename} ${local_ifc} ${notify_allow}
+			done
 		done
 	else
 		echo "nsd is not running"
@@ -324,7 +326,9 @@ notify)
 		if test I$local_ifc == I; then
 			local_ifc="NOIFC";
 		fi
-		send_notify ${zonename} ${local_ifc} ${notify}
+		for ifc in ${local_ifc}; do
+			send_notify ${zonename} ${local_ifc} ${notify}
+		done
 	done
 	;;
 restart)

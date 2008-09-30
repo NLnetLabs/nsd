@@ -201,8 +201,5 @@ int parse_acl_is_ipv6(const char* p);
 int parse_acl_range_type(char* ip, char** mask);
 /* parses subnet mask, fills 0 mask as well */
 void parse_acl_range_subnet(char* p, void* addr, int maxbits);
-/* parse a interface option into hostname and port number */
-void parse_ifc(const char* ifc, const char** hostname, const char** port);
-
 
 #endif /* OPTIONS_H */

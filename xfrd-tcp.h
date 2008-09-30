@@ -115,4 +115,11 @@ socklen_t xfrd_acl_sockaddr_to(struct acl_options* acl,
 	struct sockaddr_in *to);
 #endif /* INET6 */
 
+socklen_t xfrd_acl_sockaddr_frm(struct acl_options* acl,
+#ifdef INET6
+	struct sockaddr_storage *frm);
+#else
+	struct sockaddr_in *frm);
+#endif /* INET6 */
+
 #endif /* XFRD_TCP_H */

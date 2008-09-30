@@ -836,7 +836,11 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 	}
 
 	/* bind it */
-	xfrd_bind_outgoing_ifc(fd, ifc, (struct sockaddr*)&to);
+
+	if (!xfrd_bind_local_interface(fd, ifc, acl)) {
+		log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface '%s' to \
+udp socket: No matching ip addresses found", ifc->ip_address_spec);
+	}
 
 	/* send it (udp) */
 	if(sendto(fd,
@@ -852,35 +856,39 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 }
 
 int
-xfrd_bind_outgoing_ifc(int sockd, const char* ifc, struct sockaddr* to) {
-	const char* laddr = NULL, *lport = NULL;
-	struct addrinfo *local_address = NULL, *local_addresses = NULL;
+xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl) {
+	socklen_t frm_len;
+#ifdef INET6
+	struct sockaddr_storage frm;
+#else
+	struct sockaddr_in frm;
+#endif /* INET6 */
 
-	if (!ifc)
-		return;
+	if (!ifc) /* no outgoing interface set */
+		return 1;
 
-	parse_ifc(ifc, laddr, lport);
+	log_msg(LOG_INFO, "<matje> we have a ifc");
 
-	/* set hints */
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = fam;
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_protocol = IPPROTO_UDP;
-	hints.ai_flags |= AI_NUMERICSERV;
-
-	/* get local addresses */
-	if (laddr) {
-		int rc = getaddrinfo(laddr, lport, &hints, &local_addresses);
-		if (rc) {
-			log_msg(LOG_ERR, "xfrd: local hostname '%s' not found: \
-%s", laddr, gai_strerror(rc));
-			return 1;
+	while (!ifc) {
+		if (ifc->is_ipv6 != acl->is_ipv6) {
+			/* <matthijs> check if we have a matching address family */
+			ifc = ifc->next;
+			continue;
 		}
+
+		frm_len = xfrd_acl_sockaddr_frm(ifc, &frm);
+
+		/* <matthijs> found one */
+		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0)
+			return 1;
+
+		log_msg(LOG_WARNING, "xfrd: could not bind local interface \
+'%s' to socket: %s", ifc->ip_address_spec, strerror(errno));
+		/* <matthijs> try another */
+		ifc = ifc->next;
 	}
 
-	
-	if (laddr && bind(sockd, 
-
+	return 0;
 }
 
 #ifdef TSIG
