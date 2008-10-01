@@ -1,3 +1,10 @@
+1 October 2008: Matthijs
+	- Configure the source ip-address for notifies by the master and zone 
+		transfer requests by the slave in nsd.conf.
+	- Previously added source hostname/ip and port configuration for 
+		nsd-notify and nsd-xfer
+	- Finetuned nsdc for nsdc notify and nsdc update
+
 29 September 2008: Matthijs
 	- Bugfix: only normalize dnames in rdatas when rrtype is listed in RFC 
 		4034, section 6.2: Canonical RR Form.

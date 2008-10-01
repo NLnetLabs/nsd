@@ -401,7 +401,7 @@ server_init(struct nsd *nsd)
 
 		/* Bind it... */
 		if (bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
-			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
+			log_msg(LOG_ERR, "can't bind udp socket: %s", strerror(errno));
 			return -1;
 		}
 	}
@@ -449,7 +449,7 @@ server_init(struct nsd *nsd)
 
 		/* Bind it... */
 		if (bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
-			log_msg(LOG_ERR, "can't bind the socket: %s", strerror(errno));
+			log_msg(LOG_ERR, "can't bind tcp socket: %s", strerror(errno));
 			return -1;
 		}
 

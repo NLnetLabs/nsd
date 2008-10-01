@@ -285,6 +285,16 @@ A port number can be added using a suffix of @number, for example
 1.2.3.4@5300 or 1.2.3.4/24@5300 for port 5300. Note the ip\-spec 
 ranges do not use spaces around the /, &, @ and \- symbols.
 .RE
+.TP
+.B outgoing\-interface:\fR <ip\-address>
+Access control list. The listed address is used to request AXFR|IXFR (in case of 
+a secondary) or used to send notifies (in case of a primary). 
+.P
+.RS
+The ip\-address is either a plain IP address (IPv4 or IPv6), or can be 
+a subnet of the form 1.2.3.4/24, or masked like 
+1.2.3.4&255.255.255.0 or a range of the form 1.2.3.4\-1.2.3.25. 
+.RE
 .SS "Key Declarations"
 The 
 .B key: 

@@ -166,12 +166,11 @@ send_updates() {
 	local zonename=$1
 	# <matthijs> set local interface
 	ifc_spec=""
-	nokey=0
+	if test I$2 == INOKEY; then
+		return
+	fi
 	if test I$2 != INOKEY -a I$2 != INOIFC; then
 		ifc_spec="-a $2"
-	fi
-	if test I$2 != INOKEY; then
-		nokey=1
 	fi
 
 	shift 2
@@ -202,7 +201,7 @@ send_updates() {
 			fi
 		fi
 	done
-	if test ${update_sent} = no -a nokey = 0; then
+	if test ${update_sent} = no; then
 		req_xfr=`${nsd_checkconf} -z "${zonename}" -o request-xfr ${configfile}`
 		if test -n "${req_xfr}"; then
 			# must be a slave zone (has request-xfr).
@@ -216,6 +215,10 @@ send_notify() {
 	local zonename=$1
 	# <matthijs> set local interface
 	ifc_spec=""
+	if test I$2 == INOKEY; then
+		return
+	fi
+
 	if test I$2 != INOKEY -a I$2 != INOIFC; then
 		ifc_spec="-a $2"
 	fi

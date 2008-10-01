@@ -14,8 +14,10 @@ FEATURES:
 	  We strongly recommend to enable TSIG if you send IXFR over UDP.
 	- RFC 4635: support for hmac-sha1 and hmac-sha256 TSIG algorithm 
 		identifiers.
+	- Configure the source ip-address for notifies (master) and zone
+		requests (slave) in nsd.conf.
 	- nsd-notify and nsd-xfer allow you to configure the outgoing 
-		hostname/ip-address and source port.
+		hostname and source port, in addition to the source address.
 	- Additional debug and verbose log messages.
 
 3.1.1

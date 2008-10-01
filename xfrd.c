@@ -869,19 +869,15 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl) {
 		return 1;
 
 	while (ifc) {
-		log_msg(LOG_INFO, "<matje> we have a ifc: %s", ifc->ip_address_spec);
-
 		if (ifc->is_ipv6 != acl->is_ipv6) {
 			/* <matthijs> check if we have a matching address family */
-			log_msg(LOG_INFO, "<matje> no matching address family, outgoing is %s, incoming is %s",
-				ifc->is_ipv6?"IPv6":"IPv4", acl->is_ipv6?"IPv6":"IPv4");
-
 			ifc = ifc->next;
 			continue;
 		}
 
 		frm_len = xfrd_acl_sockaddr_frm(ifc, &frm);
 
+/* <matthijs> we do not use source port at the moment
 #ifdef SO_REUSEADDR
 		if (setsockopt(sockd, SOL_SOCKET, SO_REUSEADDR, &frm, frm_len) < 0)
 			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
@@ -889,11 +885,10 @@ SO_REUSEADDR, ...) failed: %s", strerror(errno));
 #else
 			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
 SO_REUSEADDR, ...) failed: SO_REUSEADDR not defined");
-#endif /* SO_REUSEADDR */
+#endif */ /* SO_REUSEADDR */
 
 		/* <matthijs> found one */
 		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0) {
-			log_msg(LOG_INFO, "<matje> successfully binded %s", ifc->ip_address_spec);
 			return 1;
 		}
 
@@ -902,8 +897,6 @@ SO_REUSEADDR, ...) failed: SO_REUSEADDR not defined");
 		/* <matthijs> try another */
 		ifc = ifc->next;
 	}
-
-	log_msg(LOG_INFO, "<matje> could not bind outgoing interface %s", ifc->ip_address_spec);
 
 	return 0;
 }

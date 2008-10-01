@@ -114,7 +114,7 @@ xfrd_acl_sockaddr_frm(acl_options_t* acl, struct sockaddr_storage *frm)
 xfrd_acl_sockaddr_frm(acl_options_t* acl, struct sockaddr_in *frm)
 #endif /* INET6 */
 {
-	unsigned int port = acl->port?acl->port:0;
+	unsigned int port = 0; /*acl->port?acl->port:0;*/
 #ifdef INET6
 	return xfrd_acl_sockaddr(acl, port, frm);
 #else
