@@ -906,6 +906,15 @@ SO_REUSEADDR, ...)"));
 			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
 SO_REUSEADDR, ...) failed: SO_REUSEADDR not defined");
 #endif /* SO_REUSEADDR */
+
+#ifdef SO_REUSEPORT
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: setsockopt(..., \
+SO_REUSEPORT, ...)"));
+			xfrd_setsockopt(sockd, SO_REUSEPORT, frm, frm_len);
+#else
+			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
+SO_REUSEPORT, ...) failed: SO_REUSEPORT not defined");
+#endif /* SO_REUSEADDR */
 		}
 
 		/* <matthijs> found one */

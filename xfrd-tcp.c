@@ -244,7 +244,10 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	} else {
 		family = PF_INET;
 	}
+
 	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
+	set->tcp_state[zone->tcp_conn]->fd = fd;
+
 	if(fd == -1) {
 		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s",
 			zone->master->ip_address_spec, strerror(errno));
@@ -287,7 +290,6 @@ established asynchronously: %s",
 	}
 
 	zone->zone_handler.fd = fd;
-	set->tcp_state[zone->tcp_conn]->fd = fd;
 	zone->zone_handler.event_types = NETIO_EVENT_TIMEOUT|NETIO_EVENT_WRITE;
 	xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
 	return 1;
