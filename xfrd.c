@@ -836,8 +836,7 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 	}
 
 	/* bind it */
-
-	if (!xfrd_bind_local_interface(fd, ifc, acl)) {
+	if (!xfrd_bind_local_interface(fd, ifc, acl, 0)) {
 		log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface '%s' to \
 udp socket: No matching ip addresses found", ifc->ip_address_spec);
 		return -1;
@@ -856,8 +855,26 @@ udp socket: No matching ip addresses found", ifc->ip_address_spec);
 	return fd;
 }
 
+static void
+xfrd_setsockopt(int fd, int type,
+#ifdef INET6
+struct sockaddr_storage frm,
+#else
+struct sockaddr_in frm,
+#endif /* INET6 */
+socklen_t frm_len)
+{
+	if (setsockopt(fd, SOL_SOCKET, type, &frm, frm_len) < 0)
+	{
+			log_msg(LOG_WARNING, "xfrd: setsockopt opt %d failed: \
+%s", type, strerror(errno));
+	}
+}
+
 int
-xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl) {
+xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
+	int tcp)
+{
 	socklen_t frm_len;
 #ifdef INET6
 	struct sockaddr_storage frm;
@@ -875,20 +892,27 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl) {
 			continue;
 		}
 
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: bind() %s to %s socket",
+			ifc->ip_address_spec, tcp? "tcp":"udp"));
+
 		frm_len = xfrd_acl_sockaddr_frm(ifc, &frm);
 
-/* <matthijs> we do not use source port at the moment
+		if (tcp) {
 #ifdef SO_REUSEADDR
-		if (setsockopt(sockd, SOL_SOCKET, SO_REUSEADDR, &frm, frm_len) < 0)
-			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
-SO_REUSEADDR, ...) failed: %s", strerror(errno));
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: setsockopt(..., \
+SO_REUSEADDR, ...)"));
+			xfrd_setsockopt(sockd, SO_REUSEADDR, frm, frm_len);
 #else
 			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
 SO_REUSEADDR, ...) failed: SO_REUSEADDR not defined");
-#endif */ /* SO_REUSEADDR */
+#endif /* SO_REUSEADDR */
+		}
 
 		/* <matthijs> found one */
 		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0) {
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: bind() %s to %s \
+socket was successful",
+			ifc->ip_address_spec, tcp? "tcp":"udp"));
 			return 1;
 		}
 
@@ -898,6 +922,8 @@ SO_REUSEADDR, ...) failed: SO_REUSEADDR not defined");
 		ifc = ifc->next;
 	}
 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: bind() to %s socket failed",
+		tcp? "tcp":"udp"));
 	return 0;
 }
 

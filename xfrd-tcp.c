@@ -114,7 +114,7 @@ xfrd_acl_sockaddr_frm(acl_options_t* acl, struct sockaddr_storage *frm)
 xfrd_acl_sockaddr_frm(acl_options_t* acl, struct sockaddr_in *frm)
 #endif /* INET6 */
 {
-	unsigned int port = 0; /*acl->port?acl->port:0;*/
+	unsigned int port = acl->port?acl->port:0;
 #ifdef INET6
 	return xfrd_acl_sockaddr(acl, port, frm);
 #else
@@ -264,10 +264,10 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	/* bind it */
 
 	if (!xfrd_bind_local_interface(fd,
-		zone->zone_options->outgoing_interface, zone->master)) {
-                log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface '%s' to \
-tcp socket: No matching ip addresses found",
-		  zone->zone_options->outgoing_interface->ip_address_spec);
+		zone->zone_options->outgoing_interface, zone->master, 1)) {
+                log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface to \
+tcp socket: No matching ip addresses found");
+		return 0;
         }
 
 	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)

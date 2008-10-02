@@ -286,6 +286,6 @@ void xfrd_prepare_zones_for_reload();
 
 /* Bind a local interface to a socket descriptor, return 1 on success */
 int xfrd_bind_local_interface(int sockd, acl_options_t* ifc,
-	acl_options_t* acl);
+	acl_options_t* acl, int tcp);
 
 #endif /* XFRD_H */
