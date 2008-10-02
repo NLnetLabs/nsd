@@ -267,6 +267,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		zone->zone_options->outgoing_interface, zone->master, 1)) {
                 log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface to \
 tcp socket: No matching ip addresses found");
+		xfrd_set_refresh_now(zone);
+		xfrd_tcp_release(set, zone);
 		return 0;
         }
 
@@ -279,6 +281,9 @@ tcp socket: No matching ip addresses found");
 			xfrd_tcp_release(set, zone);
 			return 0;
 		}
+		DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: connect %s shall be \
+established asynchronously: %s",
+			zone->master->ip_address_spec, strerror(errno)));
 	}
 
 	zone->zone_handler.fd = fd;

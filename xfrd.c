@@ -866,7 +866,7 @@ socklen_t frm_len)
 {
 	if (setsockopt(fd, SOL_SOCKET, type, &frm, frm_len) < 0)
 	{
-			log_msg(LOG_WARNING, "xfrd: setsockopt opt %d failed: \
+		log_msg(LOG_WARNING, "xfrd: setsockopt opt %d failed: \
 %s", type, strerror(errno));
 	}
 }
