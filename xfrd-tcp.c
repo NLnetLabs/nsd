@@ -215,7 +215,6 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 int
 xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
-	/* TODO use port 53 */
 	int fd, family, conn;
 
 #ifdef INET6
@@ -247,6 +246,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	set->tcp_state[zone->tcp_conn]->fd = fd;
 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: opened socket with fd %d", fd));
+
 	if(fd == -1) {
 		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s",
 			zone->master->ip_address_spec, strerror(errno));
@@ -273,6 +274,9 @@ tcp socket: No matching ip addresses found");
 		return 0;
         }
 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: fd %d has local interface %s",
+		fd, zone->zone_options->outgoing_interface->ip_address_spec));
+
 	conn = connect(fd, (struct sockaddr*)&to, to_len);
 	if(conn == -1)
 	{
@@ -289,46 +293,23 @@ established asynchronously: %s",
 	}
 
 	if (conn != 0) {
-		/* <matthijs> connection did not complete immediately */
-		fd_set rset, wset;
-		struct timeval tval;
-
-		DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: connect to %s \
-could not be established immediately",
-			zone->master->ip_address_spec));
-
-		FD_ZERO(&rset);
-		FD_SET(fd, &rset);
-		wset = rset;
-		/* <matthijs> do not wait at all */
-		tval.tv_sec = 0;
-		tval.tv_usec = 0;
-
-		if ((conn = select(fd+1, &rset, &wset, NULL, &tval)) == 0) {
-			/* timeout */
-			DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: connect to \
-%s timed out: %s", zone->master->ip_address_spec, strerror(errno)));
+		/* check for pending error from nonblocking connect */
+		/* from Stevens, unix network programming, vol1, 3rd ed, p450 */
+		int error = 0;
+		socklen_t len = sizeof(error);
+		if(getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0){
+			error = errno; /* on solaris errno is error */
+		}
+		if(error == EINPROGRESS || error == EWOULDBLOCK) {
+			log_msg(LOG_ERR, "Could not tcp connect to %s: %s, try again later ",
+				zone->master->ip_address_spec, strerror(error));
 			xfrd_set_refresh_now(zone);
 			xfrd_tcp_release(set, zone);
-			return 0;
+			return 0; /* try again later */
 		}
-
-		if (FD_ISSET(fd, &rset) || FD_ISSET(fd, &wset)) {
-			int error;
-			to_len = sizeof(error);
-			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &to_len) < 0) {
-				DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: \
-connect to %s failed: Solaris pending error", zone->master->ip_address_spec));
-				xfrd_set_refresh_now(zone);
-				xfrd_tcp_release(set, zone);
-				return 0;
-			}
-			/* <matthijs> ok */
-		}
-		else {
-			DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: \
-connect to %s failed: select error, bad file descriptor",
-				zone->master->ip_address_spec));
+		if(error != 0) {
+			log_msg(LOG_ERR, "Could not tcp connect to %s: %s",
+				zone->master->ip_address_spec, strerror(error));
 			xfrd_set_refresh_now(zone);
 			xfrd_tcp_release(set, zone);
 			return 0;
@@ -373,6 +354,7 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	buffer_flip(tcp->packet);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "sent tcp query with ID %d", zone->query_id));
 	tcp->msglen = buffer_limit(tcp->packet);
+
 	/* wait for select to complete connect before write */
 }
 
@@ -516,7 +498,7 @@ int conn_read(xfrd_tcp_t* tcp)
 
 	assert(buffer_remaining(tcp->packet) > 0);
 
-	received = read(tcp->fd, buffer_current(tcp->packet), 
+	received = read(tcp->fd, buffer_current(tcp->packet),
 		buffer_remaining(tcp->packet));
 	if(received == -1) {
 		if(errno == EAGAIN || errno == EINTR) {
@@ -597,7 +579,8 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	if(set->tcp_state[conn]->fd != -1)
 		close(set->tcp_state[conn]->fd);
-
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: closed socket with fd %d",
+		set->tcp_state[conn]->fd));
 	set->tcp_state[conn]->fd = -1;
 
 	if(set->tcp_count == XFRD_MAX_TCP && set->tcp_waiting_first) {
