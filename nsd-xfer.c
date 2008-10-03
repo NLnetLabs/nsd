@@ -905,7 +905,6 @@ main(int argc, char *argv[])
 	hints.ai_family = default_family;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags |= AI_NUMERICSERV;
 
 	if (local_hostname) {
 		int rc = getaddrinfo(local_hostname, local_port,
