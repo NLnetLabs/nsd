@@ -3,8 +3,6 @@ $Id$
 GENERAL
 - return value of region_alloc, region_create is not checked for NULL,
   which is returned when out of memory, in many places.
-- Also Peter Hessler, Paul Wouters: choose outgoing ifc, "src: ip@port" 
-	in a zone in the config file, lets xfrd zonexfr and notify.
 
 AUTOCONF
 - check/translate arguments to --with-facility

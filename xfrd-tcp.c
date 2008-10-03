@@ -246,8 +246,6 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	set->tcp_state[zone->tcp_conn]->fd = fd;
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: opened socket with fd %d", fd));
-
 	if(fd == -1) {
 		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s",
 			zone->master->ip_address_spec, strerror(errno));
@@ -267,49 +265,20 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	/* bind it */
 	if (!xfrd_bind_local_interface(fd,
 		zone->zone_options->outgoing_interface, zone->master, 1)) {
-                log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface to \
-tcp socket: No matching ip addresses found");
+
 		xfrd_set_refresh_now(zone);
 		xfrd_tcp_release(set, zone);
 		return 0;
         }
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: fd %d has local interface %s",
-		fd, zone->zone_options->outgoing_interface->ip_address_spec));
-
 	conn = connect(fd, (struct sockaddr*)&to, to_len);
-	if(conn == -1)
-	{
-		if(errno != EINPROGRESS) {
-			log_msg(LOG_ERR, "xfrd: connect %s failed: %s",
-				zone->master->ip_address_spec, strerror(errno));
-			xfrd_set_refresh_now(zone);
-			xfrd_tcp_release(set, zone);
-			return 0;
-		}
-		DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: connect %s shall be \
-established asynchronously: %s",
-			zone->master->ip_address_spec, strerror(errno)));
-	}
-
 	if (conn != 0) {
-		/* check for pending error from nonblocking connect */
-		/* from Stevens, unix network programming, vol1, 3rd ed, p450 */
 		int error = 0;
 		socklen_t len = sizeof(error);
-		if(getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0){
-			error = errno; /* on solaris errno is error */
-		}
-		if(error == EINPROGRESS || error == EWOULDBLOCK) {
-			log_msg(LOG_ERR, "Could not tcp connect to %s: %s, try again later ",
-				zone->master->ip_address_spec, strerror(error));
-			xfrd_set_refresh_now(zone);
-			xfrd_tcp_release(set, zone);
-			return 0; /* try again later */
-		}
-		if(error != 0) {
-			log_msg(LOG_ERR, "Could not tcp connect to %s: %s",
-				zone->master->ip_address_spec, strerror(error));
+
+		if (conn == -1 && errno != EINPROGRESS) {
+			log_msg(LOG_ERR, "xfrd: connect %s failed: %s",
+				zone->master->ip_address_spec, strerror(errno));
 			xfrd_set_refresh_now(zone);
 			xfrd_tcp_release(set, zone);
 			return 0;
@@ -579,8 +548,6 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	if(set->tcp_state[conn]->fd != -1)
 		close(set->tcp_state[conn]->fd);
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: closed socket with fd %d",
-		set->tcp_state[conn]->fd));
 	set->tcp_state[conn]->fd = -1;
 
 	if(set->tcp_count == XFRD_MAX_TCP && set->tcp_waiting_first) {

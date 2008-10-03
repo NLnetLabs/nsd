@@ -855,26 +855,11 @@ udp socket: No matching ip addresses found", ifc->ip_address_spec);
 	return fd;
 }
 
-static void
-xfrd_setsockopt(int fd, int type,
-#ifdef INET6
-struct sockaddr_storage frm,
-#else
-struct sockaddr_in frm,
-#endif /* INET6 */
-socklen_t frm_len)
-{
-	if (setsockopt(fd, SOL_SOCKET, type, &frm, frm_len) < 0)
-	{
-		log_msg(LOG_WARNING, "xfrd: setsockopt opt %d failed: \
-%s", type, strerror(errno));
-	}
-}
-
 int
 xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 	int tcp)
 {
+	struct linger linger = {1, 0};
 	socklen_t frm_len;
 #ifdef INET6
 	struct sockaddr_storage frm;
@@ -899,13 +884,27 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 
 		if (tcp) {
 #ifdef SO_REUSEADDR
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: setsockopt(..., \
-SO_REUSEADDR, ...)"));
-			xfrd_setsockopt(sockd, SO_REUSEADDR, frm, frm_len);
+			if (setsockopt(sockd, SOL_SOCKET, SO_REUSEADDR, &frm,
+				frm_len) < 0) {
+				log_msg(LOG_WARNING, "xfrd: setsockopt \
+SO_REUSEADDR failed: %s", strerror(errno));
+			}
 #else
-			log_msg(LOG_WARNING, "xfrd: setsockopt(..., \
-SO_REUSEADDR, ...) failed: SO_REUSEADDR not defined");
+			log_msg(LOG_WARNING, "xfrd: setsockopt \
+SO_REUSEADDR failed: %s", strerror(errno));
 #endif /* SO_REUSEADDR */
+
+#ifdef SO_LINGER
+			if (setsockopt(sockd, SOL_SOCKET, SO_LINGER, &linger,
+				sizeof(linger)) < 0) {
+				log_msg(LOG_WARNING, "xfrd: setsockopt \
+SO_LINGER failed: %s", strerror(errno));
+			}
+#else
+			log_msg(LOG_WARNING, "xfrd: setsockopt \
+SO_LINGER failed: SO_LINGER not defined", strerror(errno));
+#endif /* SO_LINGER */
+
 		}
 
 		/* <matthijs> found one */

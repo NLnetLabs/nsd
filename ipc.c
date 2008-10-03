@@ -79,7 +79,7 @@ child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
 {
 	sig_atomic_t mode;
 	int len;
-	struct ipc_handler_conn_data *data = 
+	struct ipc_handler_conn_data *data =
 		(struct ipc_handler_conn_data *) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
@@ -286,7 +286,7 @@ send_quit_to_child(struct main_ipc_handler_data* data, int fd)
 		return;
 	}
 	data->child->need_to_send_QUIT = 0;
-	DEBUG(DEBUG_IPC,2, (LOG_INFO, "main: sent quit to child %d", 
+	DEBUG(DEBUG_IPC,2, (LOG_INFO, "main: sent quit to child %d",
 		(int)data->child->pid));
 }
 
@@ -297,9 +297,9 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 {
 	sig_atomic_t mode;
 	int len;
-	struct main_ipc_handler_data *data = 
+	struct main_ipc_handler_data *data =
 		(struct main_ipc_handler_data*)handler->user_data;
-	
+
 	/* do a nonblocking write to the child if it is ready. */
 	if (event_types & NETIO_EVENT_WRITE) {
 		if(!data->busy_writing_zone_state &&
@@ -350,12 +350,12 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 	if (data->forward_mode) {
 		int got_acl;
 		/* forward the data to xfrd */
-		DEBUG(DEBUG_IPC,2, (LOG_INFO, 
+		DEBUG(DEBUG_IPC,2, (LOG_INFO,
 			"main passed packet readup %d", (int)data->got_bytes));
 		if(data->got_bytes < sizeof(data->total_bytes))
 		{
-			if ((len = read(handler->fd, 
-				(char*)&data->total_bytes+data->got_bytes, 
+			if ((len = read(handler->fd,
+				(char*)&data->total_bytes+data->got_bytes,
 				sizeof(data->total_bytes)-data->got_bytes)) == -1) {
 				log_msg(LOG_ERR, "handle_child_command: read: %s",
 					strerror(errno));
@@ -448,7 +448,7 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 			if(data->nsd->children[i].child_fd == handler->fd) {
 				data->nsd->children[i].child_fd = -1;
 				data->nsd->children[i].has_exited = 1;
-				DEBUG(DEBUG_IPC,1, (LOG_INFO, 
+				DEBUG(DEBUG_IPC,1, (LOG_INFO,
 					"server %d closed cmd channel",
 					(int) data->nsd->children[i].pid));
 			}
@@ -461,7 +461,7 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_QUIT:
 		data->nsd->mode = mode;
 		break;
-	case NSD_STATS: 
+	case NSD_STATS:
 		data->nsd->signal_hint_stats = 1;
 		break;
 	case NSD_REAP_CHILDREN:
@@ -530,7 +530,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 			if(nsd->children[i].pid > 0 &&
 			   nsd->children[i].child_fd > 0) {
 				nsd->children[i].need_to_send_QUIT = 1;
-				nsd->children[i].handler->event_types 
+				nsd->children[i].handler->event_types
 					|= NETIO_EVENT_WRITE;
 			} else {
 				if(nsd->children[i].child_fd == -1)
@@ -546,7 +546,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 	}
 }
 
-static void 
+static void
 xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone)
 {
 	sig_atomic_t cmd = NSD_ZONE_STATE;
@@ -556,7 +556,7 @@ xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone)
 	if(zone->state == xfrd_zone_expired)
 		ok = 0;
 
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, 
+	DEBUG(DEBUG_IPC,1, (LOG_INFO,
 		"xfrd encoding ipc zone state msg for zone %s state %d.",
 		zone->apex_str, (int)zone->state));
 

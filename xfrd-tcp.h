@@ -82,11 +82,11 @@ void xfrd_tcp_write(xfrd_tcp_set_t* set, struct xfrd_zone* zone);
 /* see if the tcp connection is in the reading stage (else writin) */
 static inline int xfrd_tcp_is_reading(xfrd_tcp_set_t* set, int conn)
 {return set->tcp_state[conn]->is_reading;}
-/* 
+/*
  * Read from a stream connection (size16)+packet into buffer.
  * returns value is
- *	-1 on error. 
- *	0 on short read, call back later. 
+ *	-1 on error.
+ *	0 on short read, call back later.
  *	1 on completed read.
  * On first call, make sure total_bytes = 0, msglen=0, buffer_clear().
  * and the packet and fd need to be set.

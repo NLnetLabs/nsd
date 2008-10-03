@@ -1,3 +1,6 @@
+3 October 2008: Matthijs
+	- setsockopt SO_LINGER, for portability outgoing-interface (BSD/Solaris)
+
 1 October 2008: Matthijs
 	- Configure the source ip-address for notifies by the master and zone 
 		transfer requests by the slave in nsd.conf.
