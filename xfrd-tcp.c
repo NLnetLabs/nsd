@@ -216,8 +216,7 @@ int
 xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {
 	/* TODO use port 53 */
-	int fd;
-	int family;
+	int fd, family, conn;
 
 #ifdef INET6
 	struct sockaddr_storage to;
@@ -265,7 +264,6 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	to_len = xfrd_acl_sockaddr_to(zone->master, &to);
 
 	/* bind it */
-
 	if (!xfrd_bind_local_interface(fd,
 		zone->zone_options->outgoing_interface, zone->master, 1)) {
                 log_msg(LOG_ERR, "xfrd: cannot bind outgoing interface to \
@@ -275,7 +273,8 @@ tcp socket: No matching ip addresses found");
 		return 0;
         }
 
-	if(connect(fd, (struct sockaddr*)&to, to_len) == -1)
+	conn = connect(fd, (struct sockaddr*)&to, to_len);
+	if(conn == -1)
 	{
 		if(errno != EINPROGRESS) {
 			log_msg(LOG_ERR, "xfrd: connect %s failed: %s",
@@ -287,6 +286,53 @@ tcp socket: No matching ip addresses found");
 		DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: connect %s shall be \
 established asynchronously: %s",
 			zone->master->ip_address_spec, strerror(errno)));
+	}
+
+	if (conn != 0) {
+		/* <matthijs> connection did not complete immediately */
+		fd_set rset, wset;
+		struct timeval tval;
+
+		DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: connect to %s \
+could not be established immediately",
+			zone->master->ip_address_spec));
+
+		FD_ZERO(&rset);
+		FD_SET(fd, &rset);
+		wset = rset;
+		/* <matthijs> do not wait at all */
+		tval.tv_sec = 0;
+		tval.tv_usec = 0;
+
+		if ((conn = select(fd+1, &rset, &wset, NULL, &tval)) == 0) {
+			/* timeout */
+			DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: connect to \
+%s timed out: %s", zone->master->ip_address_spec, strerror(errno)));
+			xfrd_set_refresh_now(zone);
+			xfrd_tcp_release(set, zone);
+			return 0;
+		}
+
+		if (FD_ISSET(fd, &rset) || FD_ISSET(fd, &wset)) {
+			int error;
+			to_len = sizeof(error);
+			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &to_len) < 0) {
+				DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: \
+connect to %s failed: Solaris pending error", zone->master->ip_address_spec));
+				xfrd_set_refresh_now(zone);
+				xfrd_tcp_release(set, zone);
+				return 0;
+			}
+			/* <matthijs> ok */
+		}
+		else {
+			DEBUG(DEBUG_XFRD,1, (LOG_WARNING, "xfrd: \
+connect to %s failed: select error, bad file descriptor",
+				zone->master->ip_address_spec));
+			xfrd_set_refresh_now(zone);
+			xfrd_tcp_release(set, zone);
+			return 0;
+		}
 	}
 
 	zone->zone_handler.fd = fd;
