@@ -38,6 +38,7 @@ namedb_new (const char *filename)
 	db->filename = region_strdup(region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
+	db->diff_timestamp = 0;
 	db->fd = NULL;
 
 	/*
@@ -50,7 +51,7 @@ namedb_new (const char *filename)
 	}
 
 	/* Create the database */
-    if ((db->fd = fopen(db->filename, "w")) == NULL) {
+	if ((db->fd = fopen(db->filename, "w")) == NULL) {
 		region_destroy(region);
 		return NULL;
 	}

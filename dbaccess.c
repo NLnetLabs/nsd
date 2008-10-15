@@ -255,19 +255,19 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	 * returning.
 	 */
 	region_type *temp_region;
-	
+
 	uint32_t dname_count;
 	domain_type **domains;	/* Indexed by domain number.  */
 
 	uint32_t zone_count;
 	zone_type **zones;	/* Indexed by zone number.  */
-	
+
 	uint32_t i;
 	uint32_t rrset_count = 0;
 	uint32_t rr_count = 0;
 
 	rrset_type *rrset;
-	
+
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (LOG_INFO, "sizeof(namedb_type) = %lu\n", (unsigned long) sizeof(namedb_type)));
 	DEBUG(DEBUG_DBACCESS, 2,
@@ -293,6 +293,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	db->filename = region_strdup(db->region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
+	db->diff_timestamp = 0;
 
 	/* Open it... */
 	db->fd = fopen(db->filename, "r");

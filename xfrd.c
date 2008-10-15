@@ -894,35 +894,38 @@ SO_REUSEADDR failed: %s", strerror(errno));
 SO_REUSEADDR failed: %s", strerror(errno));
 #endif /* SO_REUSEADDR */
 
+			if (ifc->port != 0) {
 #ifdef SO_LINGER
-			if (setsockopt(sockd, SOL_SOCKET, SO_LINGER, &linger,
-				sizeof(linger)) < 0) {
-				log_msg(LOG_WARNING, "xfrd: setsockopt \
+				if (setsockopt(sockd, SOL_SOCKET, SO_LINGER,
+					&linger, sizeof(linger)) < 0) {
+					log_msg(LOG_WARNING, "xfrd: setsockopt \
 SO_LINGER failed: %s", strerror(errno));
-			}
+				}
 #else
-			log_msg(LOG_WARNING, "xfrd: setsockopt \
+				log_msg(LOG_WARNING, "xfrd: setsockopt \
 SO_LINGER failed: SO_LINGER not defined", strerror(errno));
 #endif /* SO_LINGER */
+			}
 
 		}
 
 		/* <matthijs> found one */
 		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: bind() %s to %s \
+			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: bind() %s to %s \
 socket was successful",
 			ifc->ip_address_spec, tcp? "tcp":"udp"));
 			return 1;
 		}
 
-		log_msg(LOG_WARNING, "xfrd: could not bind local interface \
-'%s' to socket: %s", ifc->ip_address_spec, strerror(errno));
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: bind() %s to %s socket \
+failed: %s",
+		 ifc->ip_address_spec, tcp? "tcp":"udp", strerror(errno)));
 		/* <matthijs> try another */
 		ifc = ifc->next;
 	}
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: bind() to %s socket failed",
-		tcp? "tcp":"udp"));
+	log_msg(LOG_WARNING, "xfrd: could not bind source address:port to \
+socket: %s", strerror(errno));
 	return 0;
 }
 

@@ -50,17 +50,17 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 	uint16_t rdlength = 0;
 	size_t rdlength_pos;
 	uint16_t j;
-	
+
 	assert(q);
 	assert(owner);
 	assert(rr);
-	
+
 	/*
 	 * If the record does not in fit in the packet the packet size
 	 * will be restored to the mark.
 	 */
 	truncation_mark = buffer_position(q->packet);
-	
+
 	encode_dname(q, owner);
 	buffer_write_u16(q->packet, rr->type);
 	buffer_write_u16(q->packet, rr->klass);
@@ -76,6 +76,7 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 			encode_dname(q, rdata_atom_domain(rr->rdatas[j]));
 			break;
 		case RDATA_WF_UNCOMPRESSED_DNAME:
+		case RDATA_WF_LITERAL_DNAME:
 		{
 			const dname_type *dname = domain_dname(
 				rdata_atom_domain(rr->rdatas[j]));

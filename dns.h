@@ -160,6 +160,7 @@ enum rdata_wireformat
 {
 	RDATA_WF_COMPRESSED_DNAME,   /* Possibly compressed domain name.  */
 	RDATA_WF_UNCOMPRESSED_DNAME, /* Uncompressed domain name.  */
+	RDATA_WF_LITERAL_DNAME,      /* Literal (not downcased) dname.  */
 	RDATA_WF_BYTE,		     /* 8-bit integer.  */
 	RDATA_WF_SHORT,		     /* 16-bit integer.  */
 	RDATA_WF_LONG,		     /* 32-bit integer.  */

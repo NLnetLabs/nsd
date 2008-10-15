@@ -57,44 +57,6 @@ lookup_table_type dns_algorithms[] = {
 	{ 0, NULL }
 };
 
-/* Taken from RFC 4034, section 6.2. */
-static int
-rdata_normalize_dnames(uint8_t rrtype) {
-	switch(rrtype) {
-		case TYPE_NS:
-		case TYPE_MD:
-		case TYPE_MF:
-		case TYPE_CNAME:
-		case TYPE_SOA:
-		case TYPE_MB:
-		case TYPE_MG:
-		case TYPE_MR:
-		case TYPE_PTR:
-		case TYPE_HINFO:
-		case TYPE_MINFO:
-		case TYPE_MX:
-		case TYPE_RP:
-		case TYPE_AFSDB:
-		case TYPE_RT:
-		case TYPE_SIG:
-		case TYPE_PX:
-		case TYPE_NXT:
-		case TYPE_NAPTR:
-		case TYPE_KX:
-		case TYPE_SRV:
-		case TYPE_DNAME:
-		case TYPE_A6:
-		case TYPE_RRSIG:
-		case TYPE_NSEC:
-			return 1;
-			break;
-		default:
-			return 0;
-			break;
-	}
-	return 0;
-}
-
 typedef int (*rdata_to_string_type)(buffer_type *output,
 				    rdata_atom_type rdata,
 				    rr_type *rr);
@@ -570,6 +532,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 
 	for (i = 0; i < descriptor->maximum; ++i) {
 		int is_domain = 0;
+		int is_lowercase = 1;
 		int is_wirestore = 0;
 		size_t length = 0;
 		int required = i < descriptor->minimum;
@@ -578,6 +541,10 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		case RDATA_WF_COMPRESSED_DNAME:
 		case RDATA_WF_UNCOMPRESSED_DNAME:
 			is_domain = 1;
+			break;
+		case RDATA_WF_LITERAL_DNAME:
+			is_domain = 1;
+			is_lowercase = 0;
 			break;
 		case RDATA_WF_BYTE:
 			length = sizeof(uint8_t);
@@ -638,19 +605,19 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 
 		if (is_domain) {
 			const dname_type *dname;
-			int normalize = rdata_normalize_dnames(rrtype);
-
 			if (!required && buffer_position(packet) == end) {
 				break;
 			}
 
+			/* Currently, the is_lowercase affects NSEC and RRSIG */
 			dname = dname_make_from_packet(
-				temp_region, packet, 1, normalize);
+				temp_region, packet, 1, 1);
 			if (!dname || buffer_position(packet) > end) {
 				/* Error in domain name.  */
 				region_destroy(temp_region);
 				return -1;
 			}
+			/* NSEC and RRSIGs are now stored as data */
 			if(is_wirestore) {
 				temp_rdatas[i].data = (uint16_t *) region_alloc(
                                 	region, sizeof(uint16_t) + dname->name_size);
@@ -724,7 +691,7 @@ rdata_atoms_to_unknown_string(buffer_type *output,
 			hex_to_string(
 				output, dname_name(dname), dname->name_size);
 		} else {
-			hex_to_string(output, rdata_atom_data(rdatas[i]), 
+			hex_to_string(output, rdata_atom_data(rdatas[i]),
 				rdata_atom_size(rdatas[i]));
 		}
 	}

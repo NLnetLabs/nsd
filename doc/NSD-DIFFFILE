@@ -5,6 +5,7 @@ The file contents is in network format.
 
 Diff file parts, each part has
 - 32 bits type field.
+- 32 bits timestamp field.
 - 32 bits length field.
 - length bytes of content.
 - 32 bits repeat of the length field.

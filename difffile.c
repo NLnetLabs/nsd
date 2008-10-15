@@ -64,6 +64,7 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 	}
 
 	if(!write_32(df, DIFF_PART_IXFR) ||
+		!write_32(df, (uint32_t) time(NULL)) ||
 		!write_32(df, file_len) ||
 		!write_str(df, zone) ||
 		!write_32(df, new_serial) ||
@@ -82,8 +83,7 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 void
 diff_write_commit(const char* zone, uint32_t old_serial,
 	uint32_t new_serial, uint16_t id, uint32_t num_parts,
-	uint8_t commit, const char* log_str,
-	nsd_options_t* opt)
+	uint8_t commit, const char* log_str, nsd_options_t* opt)
 {
 	const char* filename = opt->difffile;
 	FILE *df;
@@ -96,11 +96,12 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		return;
 	}
 
-	len = strlen(zone)+sizeof(len) + sizeof(old_serial) +
+	len = strlen(zone) + sizeof(len) + sizeof(old_serial) +
 		sizeof(new_serial) + sizeof(id) + sizeof(num_parts) +
-		sizeof(commit) + strlen(log_str)+sizeof(len);
+		sizeof(commit) + strlen(log_str) + sizeof(len);
 
 	if(!write_32(df, DIFF_PART_SURE) ||
+		!write_32(df, (uint32_t) time(NULL)) ||
 		!write_32(df, len) ||
 		!write_str(df, zone) ||
 		!write_32(df, old_serial) ||
@@ -172,12 +173,12 @@ db_crc_different(namedb_type* db)
 int
 diff_read_32(FILE *in, uint32_t* result)
 {
-        if (fread(result, sizeof(*result), 1, in) == 1) {
-                *result = ntohl(*result);
-                return 1;
-        } else {
-                return 0;
-        }
+	if (fread(result, sizeof(*result), 1, in) == 1) {
+		*result = ntohl(*result);
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 int
@@ -639,7 +640,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	int* is_axfr, int* delete_mode, int* rr_count,
 	size_t child_count)
 {
-	uint32_t filelen, msglen, pkttype;
+	uint32_t filelen, msglen, pkttype, timestamp;
 	int qcount, ancount, counter;
 	buffer_type* packet;
 	region_type* region;
@@ -658,11 +659,15 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		return 0;
 	}
 	/* read ixfr packet RRs and apply to in memory db */
-
 	if(!diff_read_32(in, &pkttype) || pkttype != DIFF_PART_IXFR) {
 		log_msg(LOG_ERR, "could not read type or wrong type");
 		return 0;
 	}
+	if(!diff_read_32(in, &timestamp)) {
+		log_msg(LOG_ERR, "could not read timestamp");
+		return 0;
+	}
+
 	if(!diff_read_32(in, &filelen)) {
 		log_msg(LOG_ERR, "could not read len");
 		return 0;
@@ -1202,10 +1207,13 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	nsd_options_t* opt, struct diff_read_data* data,
 	struct diff_log** log, size_t child_count, off_t* startpos)
 {
-	uint32_t len, len2;
+	uint32_t len, len2, timestamp;
 
+	/* read timestamp */
+	if(!diff_read_32(in, &timestamp)) return 0;
+	/* read length */
 	if(!diff_read_32(in, &len)) return 1;
-
+	/* read content */
 	if(type == DIFF_PART_IXFR) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part IXFR len %d", len));
 		if(!store_ixfr_data(in, len, data, startpos))
@@ -1219,8 +1227,10 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", type, len));
 		return 0;
 	}
+	/* read length */
 	if(!diff_read_32(in, &len2))
 		return 1; /* short read is OK */
+	/* verify length */
 	if(len != len2)
 		return 0; /* bad data is wrong */
 	return 1;
@@ -1269,7 +1279,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 {
 	const char* filename = opt->difffile;
 	FILE *df;
-	uint32_t type;
+	uint32_t type, timestamp;
 	struct diff_read_data* data = diff_read_data_create();
 	off_t startpos;
 
@@ -1280,11 +1290,38 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		region_destroy(data->region);
 		return 1;
 	}
+
 	if(db->diff_skip) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
+		/* check timestamp */
+
+		if(!diff_read_32(df, &type))
+		{
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "difffile %s \
+is empty, restoring diff_skip and diff_pos", filename));
+			db->diff_skip = 0;
+			db->diff_pos = 0;
+		}
+		else if (!diff_read_32(df, &timestamp)) {
+			log_msg(LOG_ERR, "difffile %s bad first part: no \
+timestamp", filename);
+			region_destroy(data->region);
+			return 0;
+		}
+		else if ((uint32_t) db->diff_timestamp != timestamp) {
+			/* new timestamp, no skipping */
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "new timestamp on \
+difffile %s, restoring diff_skip and diff_pos", filename));
+			db->diff_timestamp = (time_t) timestamp;
+			db->diff_skip = 0;
+			db->diff_pos = 0;
+		}
+
+		if (db->diff_skip)
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
+		/* always seek, to diff_skip or to beginning of the file */
 		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
-			log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread from start.",
-				filename, strerror(errno));
+			log_msg(LOG_INFO, "could not fseeko file %s: \
+%s. Reread from start.", filename, strerror(errno));
 		}
 	}
 

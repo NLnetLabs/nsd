@@ -272,17 +272,12 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
         }
 
 	conn = connect(fd, (struct sockaddr*)&to, to_len);
-	if (conn != 0) {
-		int error = 0;
-		socklen_t len = sizeof(error);
-
-		if (conn == -1 && errno != EINPROGRESS) {
-			log_msg(LOG_ERR, "xfrd: connect %s failed: %s",
-				zone->master->ip_address_spec, strerror(errno));
-			xfrd_set_refresh_now(zone);
-			xfrd_tcp_release(set, zone);
-			return 0;
-		}
+	if (conn == -1 && errno != EINPROGRESS) {
+		log_msg(LOG_ERR, "xfrd: connect %s failed: %s",
+			zone->master->ip_address_spec, strerror(errno));
+		xfrd_set_refresh_now(zone);
+		xfrd_tcp_release(set, zone);
+		return 0;
 	}
 
 	zone->zone_handler.fd = fd;

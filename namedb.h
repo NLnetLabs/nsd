@@ -125,10 +125,11 @@ struct rrset
  */
 union rdata_atom
 {
-	/* RDATA_WF_COMPRESSED_DNAME, RDATA_WF_UNCOMPRESSED_DNAME.  */
+	/* RDATA_WF_COMPRESSED_DNAME, RDATA_WF_UNCOMPRESSED_DNAME,
+		RDATA_WF_LITERAL_DNAME */
 	domain_type *domain;
 
-	/* Default.  */
+	/* Default. */
 	uint16_t    *data;
 };
 
@@ -239,6 +240,8 @@ struct namedb
 	size_t	  	  zone_count;
 	char              *filename;
 	FILE              *fd;
+	/* the timestamp on the ixfr.db file */
+	time_t		  diff_timestamp;
 	/* the CRC on the nsd.db file and position of CRC in the db file */
 	uint32_t	  crc;
 	off_t		  crc_pos;
@@ -296,7 +299,8 @@ rdata_atom_is_domain(uint16_t type, size_t index)
 		= rrtype_descriptor_by_type(type);
 	return (index < descriptor->maximum
 		&& (descriptor->wireformat[index] == RDATA_WF_COMPRESSED_DNAME
-		    || descriptor->wireformat[index] == RDATA_WF_UNCOMPRESSED_DNAME));
+		    || descriptor->wireformat[index] == RDATA_WF_UNCOMPRESSED_DNAME
+		    || descriptor->wireformat[index] == RDATA_WF_LITERAL_DNAME));
 }
 
 static inline rdata_wireformat_type
