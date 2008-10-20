@@ -19,7 +19,7 @@
 #if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
 #define DNAME_NORMALIZE        toupper
 #else
-#define DNAME_NORMALIZE        toupper
+#define DNAME_NORMALIZE        tolower
 #endif
 
 
@@ -88,8 +88,15 @@ int dname_make_wire_from_packet(uint8_t *buf,
  *
  * Pre: name != NULL.
  */
-const dname_type *dname_parse(region_type *region, const char *name,
-	int normalize);
+const dname_type *dname_parse(region_type *region, const char *name);
+
+/*
+ * Construct a new domain name based on the ASCII representation NAME.
+ * Same as dname_parse, except domain name in not lowercased.
+ *
+ * Pre: name != NULL.
+ */
+const dname_type *dname_parse_literal(region_type *region, const char *name);
 
 /*
  * parse ascii string to wireformat domain name (without compression ptrs)

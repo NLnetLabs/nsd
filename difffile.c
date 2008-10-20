@@ -704,7 +704,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	msglen = filelen - sizeof(uint32_t)*3 - sizeof(uint16_t)
 		- strlen(file_zone_name);
 	packet = buffer_create(region, QIOBUFSZ);
-	dname_zone = dname_parse(region, zone, 1);
+	dname_zone = dname_parse(region, zone);
 	zone_db = find_zone(db, dname_zone, opt, child_count);
 	if(!zone_db) {
 		log_msg(LOG_ERR, "no zone exists");
@@ -903,7 +903,7 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 	/* see if serial OK with in-memory serial */
 	domain_type* domain;
 	region_type* region = region_create(xalloc, free);
-	const dname_type* zone_name = dname_parse(region, zone_str, 1);
+	const dname_type* zone_name = dname_parse(region, zone_str);
 	zone_type* zone = 0;
 	domain = domain_table_find(db->domains, zone_name);
 	if(domain)
@@ -970,7 +970,7 @@ diff_read_data_create()
 static struct diff_zone*
 diff_read_find_zone(struct diff_read_data* data, const char* name)
 {
-	const dname_type* dname = dname_parse(data->region, name, 1);
+	const dname_type* dname = dname_parse(data->region, name);
 	struct diff_zone* zp = (struct diff_zone*)
 		rbtree_search(data->zones, dname);
 	return zp;
@@ -988,7 +988,7 @@ static int intcompf(const void* a, const void* b)
 static struct diff_zone*
 diff_read_insert_zone(struct diff_read_data* data, const char* name)
 {
-	const dname_type* dname = dname_parse(data->region, name, 1);
+	const dname_type* dname = dname_parse(data->region, name);
 	struct diff_zone* zp = region_alloc(data->region,
 		sizeof(struct diff_zone));
 	if(!zp) {

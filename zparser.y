@@ -771,11 +771,8 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dotted_str sp str_
 	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
 
-	    if(!(name = dname_parse(parser->region, $15.str, 0)))
+	    if(!(name = dname_parse_literal(parser->region, $15.str)))
 		zc_error_prev_line("RRSIG bad dname %s", $15.str);
-	    if($15.str[strlen($15.str)-1] != '.')
-	    name = dname_concatenate(parser->rr_region, name, 
-		domain_dname(parser->origin));
 	    zadd_rdata_wireformat(alloc_rdata_init(parser->region,
 				dname_name(name), name->name_size)); /* signer name */
 
@@ -786,11 +783,8 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dotted_str sp str_
 rdata_nsec:	dotted_str nsec_seq
     {
 	    const dname_type* name = 0;
-	    if(!(name = dname_parse(parser->region, $1.str, 0)))
+	    if(!(name = dname_parse_literal(parser->region, $1.str)))
 		zc_error_prev_line("NSEC bad dname %s", $1.str);
-	    if($1.str[strlen($1.str)-1] != '.')
-		    name = dname_concatenate(parser->rr_region, name, 
-			domain_dname(parser->origin));
 	    zadd_rdata_wireformat(alloc_rdata_init(parser->region,
 				dname_name(name), name->name_size)); /* nsec name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
@@ -853,8 +847,9 @@ rdata_ipsec_base: STR sp STR sp STR sp dotted_str
 			/* convert and insert the dname */
 			if(strlen($7.str) == 0)
 				zc_error_prev_line("IPSECKEY must specify gateway name");
-			if(!(name = dname_parse(parser->region, $7.str, 0)))
+			if(!(name = dname_parse(parser->region, $7.str)))
 				zc_error_prev_line("IPSECKEY bad gateway dname %s", $7.str);
+			/* <matthijs> doesn't dname_parse already concatenates origin? */
 			if($7.str[strlen($7.str)-1] != '.')
 				name = dname_concatenate(parser->rr_region, name, 
 					domain_dname(parser->origin));

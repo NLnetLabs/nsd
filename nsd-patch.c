@@ -224,7 +224,7 @@ print_commit_log(FILE* out, const dname_type* zone, struct diff_log* commit_log)
 	region_type* region = region_create(xalloc, free);
 	while(p)
 	{
-		const dname_type* dname = dname_parse(region, p->zone_name, 1);
+		const dname_type* dname = dname_parse(region, p->zone_name);
 		if(dname_compare(dname, zone) == 0)
 		{
 			fprintf(out, "; commit");

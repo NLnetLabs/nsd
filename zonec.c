@@ -1281,7 +1281,7 @@ zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 {
 	const dname_type *dname;
 
-	dname = dname_parse(parser->region, name, 1);
+	dname = dname_parse(parser->region, name);
 	if (!dname) {
 		zc_error("incorrect zone name '%s'", name);
 		return;

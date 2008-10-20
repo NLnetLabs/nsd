@@ -145,7 +145,7 @@ ANY     [^\"\n\\]|\\.
 			*tmp = '\0';
 			strip_string(yytext);
 			
-			dname = dname_parse(parser->region, tmp + 1, 1);
+			dname = dname_parse(parser->region, tmp + 1);
 			if (!dname) {
 				zc_error("incorrect include origin '%s'",
 					 tmp + 1);

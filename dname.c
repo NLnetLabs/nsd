@@ -169,13 +169,25 @@ dname_make_wire_from_packet(uint8_t *buf, buffer_type *packet,
 	return dname_length;
 }
 
-const dname_type *
-dname_parse(region_type *region, const char *name, int normalize)
+static const dname_type *
+dname_parse_wire_make(region_type *region, const char *name, int normalize)
 {
 	uint8_t dname[MAXDOMAINLEN];
 	if(!dname_parse_wire(dname, name))
 		return 0;
 	return dname_make(region, dname, normalize);
+}
+
+const dname_type *
+dname_parse(region_type *region, const char *name)
+{
+	return dname_parse_wire_make(region, name, 1);
+}
+
+const dname_type *
+dname_parse_literal(region_type *region, const char *name)
+{
+	return dname_parse_wire_make(region, name, 0);
 }
 
 int dname_parse_wire(uint8_t* dname, const char* name)

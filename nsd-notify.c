@@ -197,7 +197,7 @@ add_key(region_type* region, const char* opt, tsig_algorithm_type** algo)
 		return 0;
 	}
 	*delim = '\0';
-	key->name = dname_parse(region, opt, 1);
+	key->name = dname_parse(region, opt);
 	if(!key->name) {
 		log_msg(LOG_ERR, "bad key name %s", opt);
 		return 0;
@@ -291,7 +291,7 @@ main (int argc, char *argv[])
 #endif /* TSIG */
 			break;
 		case 'z':
-			zone = dname_parse(region, optarg, 1);
+			zone = dname_parse(region, optarg);
 			if (!zone) {
 				log_msg(LOG_ERR,
 					"incorrect domain name '%s'",

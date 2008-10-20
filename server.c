@@ -465,7 +465,7 @@ server_init(struct nsd *nsd)
 	if (nsd->chrootdir) {
 		int l = strlen(nsd->chrootdir);
 
-		while (l>0 && nsd->chrootdir[l-1] == '/')
+		while (l>1 && nsd->chrootdir[l-1] == '/')
 			--l;
 
 		/* also skip leading / */
