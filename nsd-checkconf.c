@@ -207,7 +207,7 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 	}
 
 	if (z) {
-		const dname_type *dname = dname_parse(opt->region, z);
+		const dname_type *dname = dname_parse(opt->region, z, 1);
 		if(!dname) {
 			printf("Could not parse zone name %s\n", z);
 			exit(1);
@@ -339,7 +339,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 
 	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 	{
-		const dname_type* dname = dname_parse(opt->region, zone->name); /* memory leak. */
+		const dname_type* dname = dname_parse(opt->region, zone->name, 1); /* memory leak. */
 		if(!dname) {
 			fprintf(stderr, "%s: cannot parse zone name syntax for zone %s.\n", filename, zone->name);
 			errors ++;
@@ -354,7 +354,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 
 	for(key = opt->keys; key; key=key->next)
 	{
-		const dname_type* dname = dname_parse(opt->region, key->name); /* memory leak. */
+		const dname_type* dname = dname_parse(opt->region, key->name, 1); /* memory leak. */
 		uint8_t data[4000];
 		int size;
 

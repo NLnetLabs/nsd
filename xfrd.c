@@ -221,7 +221,7 @@ xfrd_init_zones()
 	RBTREE_FOR(zone_opt, zone_options_t*, xfrd->nsd->options->zone_options)
 	{
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "Zone %s\n", zone_opt->name));
-		dname = dname_parse(xfrd->region, zone_opt->name);
+		dname = dname_parse(xfrd->region, zone_opt->name, 1);
 		if(!dname) {
 			log_msg(LOG_ERR, "xfrd: Could not parse zone name %s.", zone_opt->name);
 			continue;

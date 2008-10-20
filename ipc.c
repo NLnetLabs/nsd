@@ -265,7 +265,7 @@ debug_print_fwd_name(int ATTR_UNUSED(len), buffer_type* packet, int acl_num)
 	buffer_skip(packet, 12);
 	if(packet_read_query_section(packet, qnamebuf, &qtype, &qclass)) {
 		dname = dname_make(tempregion, qnamebuf, 1);
-		log_msg(LOG_INFO, "main: fwd packet for %s, acl %d", 
+		log_msg(LOG_INFO, "main: fwd packet for %s, acl %d",
 			dname_to_string(dname,0), acl_num);
 	} else {
 		log_msg(LOG_INFO, "main: fwd packet badqname, acl %d", acl_num);

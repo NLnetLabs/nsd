@@ -62,7 +62,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone)
 {
 	/* create dname for lookup */
-	const dname_type* dname = dname_parse(opt->region, zone->name);
+	const dname_type* dname = dname_parse(opt->region, zone->name, 1);
 	if(!dname)
 		return 0;
 	zone->node.key = dname;
@@ -488,7 +488,7 @@ void key_options_tsig_add(nsd_options_t* opt)
 
 	for(optkey = opt->keys; optkey; optkey = optkey->next)
 	{
-		dname = dname_parse(opt->region, optkey->name);
+		dname = dname_parse(opt->region, optkey->name, 1);
 		if(!dname) {
 			log_msg(LOG_ERR, "Failed to parse tsig key name %s", optkey->name);
 			continue;

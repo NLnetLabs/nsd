@@ -81,7 +81,7 @@ alloc_rdata_init(region_type *region, const void *data, size_t size)
 	return result;
 }
 
-/* 
+/*
  * These are parser function for generic zone file stuff.
  */
 uint16_t *
@@ -91,7 +91,7 @@ zparser_conv_hex(region_type *region, const char *hex, size_t len)
 	uint16_t *r = NULL;
 	uint8_t *t;
 	int i;
-	
+
 	if (len % 2 != 0) {
 		zc_error_prev_line("number of hex digits must be a multiple of 2");
 	} else if (len > MAX_RDLENGTH * 2) {
@@ -877,7 +877,7 @@ zparser_conv_apl_rdata(region_type *region, char *str)
 	return r;
 }
 
-/* 
+/*
  * Below some function that also convert but not to wireformat
  * but to "normal" (int,long,char) types
  */
@@ -901,7 +901,6 @@ zparser_ttl2int(const char *ttlstr)
 
 	return ttl;
 }
-
 
 void
 zadd_rdata_wireformat(uint16_t *data)
@@ -1282,7 +1281,7 @@ zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 {
 	const dname_type *dname;
 
-	dname = dname_parse(parser->region, name);
+	dname = dname_parse(parser->region, name, 1);
 	if (!dname) {
 		zc_error("incorrect zone name '%s'", name);
 		return;
@@ -1303,7 +1302,7 @@ zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 			zone_options_t* zopt = zone_options_find(nsd_options, dname);
 			if(zopt && zone_is_slave(zopt)) {
 				zc_warning("slave zone %s with no zonefile '%s'(%s) will "
-					"force zone transfer.", 
+					"force zone transfer.",
 					name, zonefile, strerror(errno));
 				return;
 			}
@@ -1515,7 +1514,7 @@ main (int argc, char **argv)
 	region_dump_stats(db->region, stderr);
 	fprintf(stderr, "\n");
 #endif /* NDEBUG */
-	
+
 	/* Close the database */
 	if (namedb_save(db) != 0) {
 		fprintf(stderr, "zonec: error writing the database (%s): %s\n", db->filename, strerror(errno));

@@ -56,7 +56,7 @@ read_dname(FILE *fd, region_type *region)
 	if (fread(temp, sizeof(uint8_t), size, fd) != size)
 		return NULL;
 
-	return dname_make(region, temp, 1);
+	return dname_make(region, temp, 0);
 }
 
 static int
@@ -136,21 +136,21 @@ read_rrset(namedb_type *db,
 	uint16_t type;
 	uint16_t klass;
 	uint32_t soa_minimum;
-	
+
 	owner = read_domain(db, domain_count, domains);
 	if (!owner)
 		return NULL;
 
 	rrset = (rrset_type *) region_alloc(db->region, sizeof(rrset_type));
-			     
+
 	rrset->zone = read_zone(db, zone_count, zones);
 	if (!rrset->zone)
 		return NULL;
-	
+
 	if (fread(&type, sizeof(type), 1, db->fd) != 1)
 		return NULL;
 	type = ntohs(type);
-	
+
 	if (fread(&klass, sizeof(klass), 1, db->fd) != 1)
 		return NULL;
 	klass = ntohs(klass);
@@ -162,14 +162,14 @@ read_rrset(namedb_type *db,
 		db->region, rrset->rr_count * sizeof(rr_type));
 
 	assert(rrset->rr_count > 0);
-	
+
 	for (i = 0; i < rrset->rr_count; ++i) {
 		rr_type *rr = &rrset->rrs[i];
 
 		rr->owner = owner;
 		rr->type = type;
 		rr->klass = klass;
-		
+
 		if (fread(&rr->rdata_count, sizeof(rr->rdata_count), 1, db->fd) != 1)
 			return NULL;
 		rr->rdata_count = ntohs(rr->rdata_count);
@@ -191,10 +191,10 @@ read_rrset(namedb_type *db,
 	if (rrset_rrtype(rrset) == TYPE_SOA) {
 		assert(owner == rrset->zone->apex);
 		rrset->zone->soa_rrset = rrset;
-		
+
 		/* BUG #103 add another soa with a tweaked ttl */
 		rrset->zone->soa_nx_rrset = region_alloc(db->region, sizeof(rrset_type));
-		rrset->zone->soa_nx_rrset->rrs = 
+		rrset->zone->soa_nx_rrset->rrs =
 			region_alloc(db->region, rrset->rr_count * sizeof(rr_type));
 
 		memcpy(rrset->zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
@@ -208,8 +208,8 @@ read_rrset(namedb_type *db,
 		memcpy(&soa_minimum, rdata_atom_data(rrset->rrs->rdatas[6]),
 				rdata_atom_size(rrset->rrs->rdatas[6]));
 		if (rrset->rrs->ttl > ntohl(soa_minimum)) {
-			rrset->zone->soa_nx_rrset->rrs[0].ttl = ntohl(soa_minimum); 
-		} 
+			rrset->zone->soa_nx_rrset->rrs[0].ttl = ntohl(soa_minimum);
+		}
 
 	} else if (owner == rrset->zone->apex
 		   && rrset_rrtype(rrset) == TYPE_NS)
@@ -227,7 +227,6 @@ read_rrset(namedb_type *db,
 		}
 	}
 #endif
-	
 	return rrset;
 }
 

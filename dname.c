@@ -170,12 +170,12 @@ dname_make_wire_from_packet(uint8_t *buf, buffer_type *packet,
 }
 
 const dname_type *
-dname_parse(region_type *region, const char *name)
+dname_parse(region_type *region, const char *name, int normalize)
 {
 	uint8_t dname[MAXDOMAINLEN];
 	if(!dname_parse_wire(dname, name))
 		return 0;
-	return dname_make(region, dname, 1);
+	return dname_make(region, dname, normalize);
 }
 
 int dname_parse_wire(uint8_t* dname, const char* name)
@@ -271,7 +271,6 @@ dname_partial_copy(region_type *region, const dname_type *dname, uint8_t label_c
 
 	assert(label_count <= dname->label_count);
 
-	/* <matthijs> copy, so don't normalize when making dname */
 	return dname_make(region, dname_label(dname, label_count - 1), 0);
 }
 
@@ -457,7 +456,6 @@ dname_concatenate(region_type *region,
 	memcpy(temp, dname_name(left), left->name_size - 1);
 	memcpy(temp + left->name_size - 1, dname_name(right), right->name_size);
 
-	/* <matthijs> why not normalize here? temp already normalized? */
 	return dname_make(region, temp, 0);
 }
 

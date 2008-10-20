@@ -759,8 +759,10 @@ rdata_dhcid:	str_sp_seq trail
     }
     ;
 
-rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_seq trail
+rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dotted_str sp str_sp_seq trail
     {
+	    const dname_type* name = 0;
+
 	    zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
 	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $3.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
@@ -768,14 +770,29 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dname sp str_sp_se
 	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
 	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
-	    zadd_rdata_domain($15); /* signer name */
+
+	    if(!(name = dname_parse(parser->region, $15.str, 0)))
+		zc_error_prev_line("RRSIG bad dname %s", $15.str);
+	    if($15.str[strlen($15.str)-1] != '.')
+	    name = dname_concatenate(parser->rr_region, name, 
+		domain_dname(parser->origin));
+	    zadd_rdata_wireformat(alloc_rdata_init(parser->region,
+				dname_name(name), name->name_size)); /* signer name */
+
 	    zadd_rdata_wireformat(zparser_conv_b64(parser->region, $17.str)); /* sig data */
     }
     ;
 
-rdata_nsec:	dname nsec_seq
+rdata_nsec:	dotted_str nsec_seq
     {
-	    zadd_rdata_domain($1); /* nsec name */
+	    const dname_type* name = 0;
+	    if(!(name = dname_parse(parser->region, $1.str, 0)))
+		zc_error_prev_line("NSEC bad dname %s", $1.str);
+	    if($1.str[strlen($1.str)-1] != '.')
+		    name = dname_concatenate(parser->rr_region, name, 
+			domain_dname(parser->origin));
+	    zadd_rdata_wireformat(alloc_rdata_init(parser->region,
+				dname_name(name), name->name_size)); /* nsec name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
 	    memset(nsecbits, 0, sizeof(nsecbits));
             nsec_highest_rcode = 0;
@@ -836,7 +853,7 @@ rdata_ipsec_base: STR sp STR sp STR sp dotted_str
 			/* convert and insert the dname */
 			if(strlen($7.str) == 0)
 				zc_error_prev_line("IPSECKEY must specify gateway name");
-			if(!(name = dname_parse(parser->region, $7.str)))
+			if(!(name = dname_parse(parser->region, $7.str, 0)))
 				zc_error_prev_line("IPSECKEY bad gateway dname %s", $7.str);
 			if($7.str[strlen($7.str)-1] != '.')
 				name = dname_concatenate(parser->rr_region, name, 

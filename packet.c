@@ -76,7 +76,6 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 			encode_dname(q, rdata_atom_domain(rr->rdatas[j]));
 			break;
 		case RDATA_WF_UNCOMPRESSED_DNAME:
-		case RDATA_WF_LITERAL_DNAME:
 		{
 			const dname_type *dname = domain_dname(
 				rdata_atom_domain(rr->rdatas[j]));
@@ -84,6 +83,7 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 				     dname_name(dname), dname->name_size);
 			break;
 		}
+		case RDATA_WF_LITERAL_DNAME:
 		default:
 			buffer_write(q->packet,
 				     rdata_atom_data(rr->rdatas[j]),
@@ -116,11 +116,11 @@ packet_encode_rrset(query_type *query,
 	uint16_t added = 0;
 	int all_added = 1;
 	rrset_type *rrsig;
-	
+
 	assert(rrset->rr_count > 0);
 
 	truncation_mark = buffer_position(query->packet);
-	
+
 	for (i = 0; i < rrset->rr_count; ++i) {
 		if (packet_encode_rr(query, owner, &rrset->rrs[i])) {
 			++added;
@@ -151,7 +151,7 @@ packet_encode_rrset(query_type *query,
 			}
 		}
 	}
-	
+
 	if (!all_added && truncate_rrset) {
 		/* Truncate entire RRset and set truncate flag.  */
 		buffer_set_position(query->packet, truncation_mark);
@@ -238,10 +238,10 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	} else if (!buffer_available(packet, sizeof(uint32_t) + sizeof(uint16_t))) {
 		return NULL;
 	}
-	
+
 	result->ttl = buffer_read_u32(packet);
 	rdlength = buffer_read_u16(packet);
-	
+
 	if (!buffer_available(packet, rdlength)) {
 		return NULL;
 	}

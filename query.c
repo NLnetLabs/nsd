@@ -517,7 +517,7 @@ find_covering_nsec(domain_type *closest_match,
 
 	/* loop away temporary created domains. For real ones it is &RBTREE_NULL */
 	while (closest_match->node.parent == NULL)
-		closest_match = closest_match->parent; 
+		closest_match = closest_match->parent;
 	while (closest_match) {
 		*nsec_rrset = domain_find_rrset(closest_match, zone, TYPE_NSEC);
 		if (*nsec_rrset) {
@@ -1030,7 +1030,7 @@ answer_authoritative(struct nsd   *nsd,
 	/* Authorative zone.  */
 #ifdef NSEC3
 	if (q->edns.dnssec_ok && q->zone->nsec3_soa_rr) {
-		nsec3_answer_authoritative(&match, q, answer, 
+		nsec3_answer_authoritative(&match, q, answer,
 			closest_encloser, nsd->db, qname);
 	} else
 #endif

@@ -225,7 +225,7 @@ read_tsig_key_data(region_type *region, FILE *in,
 		error("failed to read TSIG key name: '%s'", strerror(errno));
 		return NULL;
 	}
-	key->name = dname_parse(region, line);
+	key->name = dname_parse(region, line, 1);
 	if (!key->name) {
 		error("failed to parse TSIG key name '%s'", line);
 		return NULL;
@@ -861,7 +861,7 @@ main(int argc, char *argv[])
 			++state.verbose;
 			break;
 		case 'z':
-			state.zone = dname_parse(region, optarg);
+			state.zone = dname_parse(region, optarg, 1);
 			if (!state.zone) {
 				error("incorrect domain name '%s'", optarg);
 			}

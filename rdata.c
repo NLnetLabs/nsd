@@ -532,7 +532,6 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 
 	for (i = 0; i < descriptor->maximum; ++i) {
 		int is_domain = 0;
-		int is_lowercase = 1;
 		int is_wirestore = 0;
 		size_t length = 0;
 		int required = i < descriptor->minimum;
@@ -544,7 +543,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			break;
 		case RDATA_WF_LITERAL_DNAME:
 			is_domain = 1;
-			is_lowercase = 0;
+			is_wirestore = 1;
 			break;
 		case RDATA_WF_BYTE:
 			length = sizeof(uint8_t);
@@ -608,16 +607,13 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			if (!required && buffer_position(packet) == end) {
 				break;
 			}
-
-			/* Currently, the is_lowercase affects NSEC and RRSIG */
 			dname = dname_make_from_packet(
-				temp_region, packet, 1, 1);
+				temp_region, packet, 1, 0);
 			if (!dname || buffer_position(packet) > end) {
 				/* Error in domain name.  */
 				region_destroy(temp_region);
 				return -1;
 			}
-			/* NSEC and RRSIGs are now stored as data */
 			if(is_wirestore) {
 				temp_rdatas[i].data = (uint16_t *) region_alloc(
                                 	region, sizeof(uint16_t) + dname->name_size);

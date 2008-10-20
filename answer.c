@@ -26,7 +26,7 @@ answer_add_rrset(answer_type *answer, rr_section_type section,
 		 domain_type *domain, rrset_type *rrset)
 {
 	size_t i;
-	
+
 	assert(section >= ANSWER_SECTION && section < RR_SECTION_COUNT);
 	assert(domain);
 	assert(rrset);
@@ -42,17 +42,17 @@ answer_add_rrset(answer_type *answer, rr_section_type section,
 			}
 		}
 	}
-	
+
 	if (answer->rrset_count >= MAXRRSPP) {
 		/* XXX: Generate warning/error? */
 		return 0;
 	}
-	
+
 	answer->section[answer->rrset_count] = section;
 	answer->domains[answer->rrset_count] = domain;
 	answer->rrsets[answer->rrset_count] = rrset;
 	++answer->rrset_count;
-	
+
 	return 1;
 }
 
@@ -66,7 +66,7 @@ encode_answer(query_type *q, const answer_type *answer)
 	for (section = ANSWER_SECTION; section < RR_SECTION_COUNT; ++section) {
 		counts[section] = 0;
 	}
-	
+
 	for (section = ANSWER_SECTION;
 	     !TC(q->packet) && section < RR_SECTION_COUNT;
 	     ++section)

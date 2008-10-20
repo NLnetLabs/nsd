@@ -19,7 +19,7 @@
 #if defined(NAMEDB_UPPERCASE) || defined(USE_NAMEDB_UPPERCASE)
 #define DNAME_NORMALIZE        toupper
 #else
-#define DNAME_NORMALIZE        tolower
+#define DNAME_NORMALIZE        toupper
 #endif
 
 
@@ -73,8 +73,8 @@ const dname_type *dname_make_from_packet(region_type *region,
  * given buffer. Returns length in buffer or 0 on error.
  * buffer must be MAXDOMAINLEN+1 long.
  */
-int dname_make_wire_from_packet(uint8_t *buf, 
-				buffer_type *packet, 
+int dname_make_wire_from_packet(uint8_t *buf,
+				buffer_type *packet,
 				int allow_pointers);
 
 /*
@@ -88,12 +88,13 @@ int dname_make_wire_from_packet(uint8_t *buf,
  *
  * Pre: name != NULL.
  */
-const dname_type *dname_parse(region_type *region, const char *name);
+const dname_type *dname_parse(region_type *region, const char *name,
+	int normalize);
 
 /*
  * parse ascii string to wireformat domain name (without compression ptrs)
- * returns 0 on failure, the length of the wireformat on success. 
- * the result is stored in the wirefmt which must be at least MAXDOMAINLEN 
+ * returns 0 on failure, the length of the wireformat on success.
+ * the result is stored in the wirefmt which must be at least MAXDOMAINLEN
  * in size. On failure, the wirefmt can be altered.
  */
 int dname_parse_wire(uint8_t* wirefmt, const char* name);

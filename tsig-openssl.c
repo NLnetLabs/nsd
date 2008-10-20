@@ -42,7 +42,7 @@ tsig_openssl_init_algorithm(region_type* region,
 		region, sizeof(tsig_algorithm_type));
 	algorithm->short_name = name;
 	algorithm->wireformat_name
-		= dname_parse(region, wireformat);
+		= dname_parse(region, wireformat, 1);
 	if (!algorithm->wireformat_name) {
 		log_msg(LOG_ERR, "cannot parse %s algorithm", wireformat);
 		return 0;

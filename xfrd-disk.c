@@ -193,7 +193,7 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		if(!xfrd_read_check_str(in, "zone:") ||
 		   !xfrd_read_check_str(in, "name:")  ||
 		   !(p=xfrd_read_token(in)) ||
-		   !(dname = dname_parse(tempregion, p)) ||
+		   !(dname = dname_parse(tempregion, p, 1)) ||
 		   !xfrd_read_check_str(in, "state:") ||
 		   !xfrd_read_i32(in, &state) || (state>2) ||
 		   !xfrd_read_check_str(in, "master:") ||

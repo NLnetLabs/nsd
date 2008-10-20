@@ -51,7 +51,7 @@ nsec3_hash_dname_param(region_type *region, zone_type *zone,
 	iterated_hash(hash, nsec3_salt, nsec3_saltlength, dname_name(dname),
 		dname->name_size, nsec3_iterations);
 	b32_ntop(hash, sizeof(hash), b32, sizeof(b32));
-	dname=dname_parse(region, b32);
+	dname=dname_parse(region, b32, 1);
 	dname=dname_concatenate(region, dname, domain_dname(zone->apex));
 	return dname;
 }
@@ -273,7 +273,7 @@ prehash_domain(namedb_type* db, zone_type* zone,
 	else	domain->nsec3_is_exact = 0;
 
 	/* find cover for *.domain for wildcard denial */
-	wcard = dname_parse(region, "*");
+	wcard = dname_parse(region, "*", 1);
 	wcard_child = dname_concatenate(region, wcard, domain_dname(domain));
 	hashname = nsec3_hash_dname(region, zone, wcard_child);
 	exact = nsec3_find_cover(db, zone, hashname, &result);
