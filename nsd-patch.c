@@ -134,7 +134,7 @@ debug_list(struct nsd_options* opt)
 {
 	const char* file = opt->difffile;
 	FILE *f;
-	uint32_t type;
+	uint32_t type, timestamp;
 	fprintf(stderr, "Debug listing of the contents of %s\n", file);
 	f = fopen(file, "r");
 	if(!f) {
@@ -145,10 +145,16 @@ debug_list(struct nsd_options* opt)
 	while(diff_read_32(f, &type)) {
 		switch(type) {
 		case DIFF_PART_IXFR:
-			list_xfr(f);
+			if(!diff_read_32(f, &timestamp))
+				fprintf(stderr, "bad timestamp\n");
+			else
+				list_xfr(f);
 			break;
 		case DIFF_PART_SURE:
-			list_commit(f);
+			if(!diff_read_32(f, &timestamp))
+				fprintf(stderr, "bad timestamp\n");
+			else
+				list_commit(f);
 			break;
 		default:
 			fprintf(stderr, "bad part of type %x\n", type);

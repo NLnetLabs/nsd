@@ -2,20 +2,30 @@ NSD RELEASE NOTES
 
 3.1.2 (UPCOMING RELEASE)
 =============
-BUG FIXES:
-	- Only normalize dnames in rdatas when rrtype is listed in RFC 4034, 
-		section 6.2: Canonical RR Form.
-
-FEATURES:
-	- IXFR is transmitted over TCP by default, instead of UDP. If you want 
-	  to continue transmission IXFR over UDP, please modify your 
-	  configuration file:
+OPERATIONAL NOTES:
+	- Format of ixfr.db has changed. When you are planning an upgrade to the 
+	  new NSD release, make sure to process the old ixfr.db before starting 
+	  the new release.
+	- IXFR is transmitted over TCP by default instead of UDP. If you want to 
+	  continue the use of IXFR/UDP, please modify your zone configuration 
+	  file to:
 		request-xfr: UDP 1.2.3.4 tsigkey
 	  We strongly recommend to enable TSIG if you send IXFR over UDP.
+	  When all masters fail to transmit IXFR/UDP, slave will fallback to 
+		AXFR/TCP, following RFC 1995.
+
+BUG FIXES:
+	- Only normalize dnames in rdatas when rrtype is listed in RFC 4034, 
+	  section 6.2: Canonical RR Form, following
+	  draft-ietf-dnsext-dnssec-bis-updates (affects RRSIG and NSEC records).
+
+FEATURES:
+	- AXFR/TCP fallback in case of failing IXFR/UDP zone transfers,
+		following RFC 1995.
 	- RFC 4635: support for hmac-sha1 and hmac-sha256 TSIG algorithm 
-		identifiers.
+		identifiers, "Bugfix #130".
 	- Configure the source ip-address for notifies (master) and zone
-		requests (slave) in nsd.conf.
+		requests (slave) in nsd.conf, "Bugfix #148".
 	- nsd-notify and nsd-xfer allow you to configure the outgoing 
 		hostname and source port, in addition to the source address.
 	- Additional debug and verbose log messages.

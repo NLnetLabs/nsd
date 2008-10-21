@@ -1,3 +1,8 @@
+20 October 2008: Matthijs
+	- Redo bugfix literal domain names in rdata (code adjustment)
+	- Added tests for case sensitive dns names and "Bug #162"
+	- Adjust nsd-patch to new ixfr.db format
+
 14 October 2008: Matthijs
 	- Only SO_LINGER when outgoing port is set
 	- Reset diff_skip when a new difffile is created (parts in the difffile 

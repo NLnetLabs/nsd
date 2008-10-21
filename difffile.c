@@ -1353,9 +1353,11 @@ difffile %s, restoring diff_skip and diff_pos", filename));
 
 	if(find_smallest_offset(data, &db->diff_pos)) {
 		/* can skip to the first unused element */
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "next time skip diff file"));
 		db->diff_skip = 1;
 	} else {
 		/* all processed, can skip to here next time */
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "next time skip diff file"));
 		db->diff_skip = 1;
 		db->diff_pos = ftello(df);
 		if(db->diff_pos == -1) {
