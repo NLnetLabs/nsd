@@ -282,7 +282,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	DEBUG(DEBUG_DBACCESS, 2,
 	      (LOG_INFO, "sizeof(rbnode_t) = %lu\n", (unsigned long) sizeof(rbnode_t)));
 
-	db_region = region_create_custom(xalloc, free, DEFAULT_CHUNK_SIZE, 
+	db_region = region_create_custom(xalloc, free, DEFAULT_CHUNK_SIZE,
 		DEFAULT_LARGE_OBJECT_SIZE, DEFAULT_INITIAL_CLEANUP_SIZE, 1);
 	db = (namedb_type *) region_alloc(db_region, sizeof(struct namedb));
 	db->region = db_region;
@@ -292,7 +292,13 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	db->filename = region_strdup(db->region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
-	db->diff_timestamp = 0;
+
+	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
+		log_msg(LOG_ERR, "unable to load %s: cannot initialize \
+timestamp", db->filename);
+		region_destroy(db_region);
+                return NULL;
+        }
 
 	/* Open it... */
 	db->fd = fopen(db->filename, "r");

@@ -38,8 +38,14 @@ namedb_new (const char *filename)
 	db->filename = region_strdup(region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
-	db->diff_timestamp = 0;
 	db->fd = NULL;
+
+	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
+		log_msg(LOG_ERR, "unable to load %s: cannot initialize \
+timestamp", db->filename);
+		region_destroy(region);
+		return NULL;
+	}
 
 	/*
 	 * Unlink the old database, if it exists.  This is useful to

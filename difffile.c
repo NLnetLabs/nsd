@@ -52,6 +52,7 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 	uint32_t seq_nr, uint8_t* data, size_t len, nsd_options_t* opt)
 {
 	const char* filename = opt->difffile;
+	struct timeval tv;
 	FILE *df;
 	uint32_t file_len = sizeof(uint32_t) + strlen(zone) +
 		sizeof(new_serial) + sizeof(id) + sizeof(seq_nr) + len;
@@ -63,8 +64,15 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 		return;
 	}
 
+	if (gettimeofday(&tv, NULL) != 0) {
+		log_msg(LOG_ERR, "could not set timestamp for %s: %s",
+			filename, strerror(errno));
+		return;
+	}
+
 	if(!write_32(df, DIFF_PART_IXFR) ||
-		!write_32(df, (uint32_t) time(NULL)) ||
+		!write_32(df, (uint32_t) tv.tv_sec) ||
+		!write_32(df, (uint32_t) tv.tv_usec) ||
 		!write_32(df, file_len) ||
 		!write_str(df, zone) ||
 		!write_32(df, new_serial) ||
@@ -76,6 +84,7 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
 	}
+
 	fflush(df);
 	fclose(df);
 }
@@ -86,6 +95,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 	uint8_t commit, const char* log_str, nsd_options_t* opt)
 {
 	const char* filename = opt->difffile;
+	struct timeval tv;
 	FILE *df;
 	uint32_t len;
 
@@ -96,12 +106,19 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		return;
 	}
 
+	if (gettimeofday(&tv, NULL) != 0) {
+		log_msg(LOG_ERR, "could not set timestamp for %s: %s",
+			filename, strerror(errno));
+		return;
+	}
+
 	len = strlen(zone) + sizeof(len) + sizeof(old_serial) +
 		sizeof(new_serial) + sizeof(id) + sizeof(num_parts) +
 		sizeof(commit) + strlen(log_str) + sizeof(len);
 
 	if(!write_32(df, DIFF_PART_SURE) ||
-		!write_32(df, (uint32_t) time(NULL)) ||
+		!write_32(df, (uint32_t) tv.tv_sec) ||
+		!write_32(df, (uint32_t) tv.tv_usec) ||
 		!write_32(df, len) ||
 		!write_str(df, zone) ||
 		!write_32(df, old_serial) ||
@@ -115,6 +132,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
 	}
+
 	fflush(df);
 	fclose(df);
 }
@@ -640,7 +658,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	int* is_axfr, int* delete_mode, int* rr_count,
 	size_t child_count)
 {
-	uint32_t filelen, msglen, pkttype, timestamp;
+	uint32_t filelen, msglen, pkttype, timestamp[2];
 	int qcount, ancount, counter;
 	buffer_type* packet;
 	region_type* region;
@@ -663,7 +681,8 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		log_msg(LOG_ERR, "could not read type or wrong type");
 		return 0;
 	}
-	if(!diff_read_32(in, &timestamp)) {
+	if(!diff_read_32(in, &timestamp[0]) ||
+	   !diff_read_32(in, &timestamp[1])) {
 		log_msg(LOG_ERR, "could not read timestamp");
 		return 0;
 	}
@@ -1207,12 +1226,11 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	nsd_options_t* opt, struct diff_read_data* data,
 	struct diff_log** log, size_t child_count, off_t* startpos)
 {
-	uint32_t len, len2, timestamp;
+	uint32_t len, len2;
 
-	/* read timestamp */
-	if(!diff_read_32(in, &timestamp)) return 0;
 	/* read length */
-	if(!diff_read_32(in, &len)) return 1;
+	if(!diff_read_32(in, &len))
+		return 1;
 	/* read content */
 	if(type == DIFF_PART_IXFR) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part IXFR len %d", len));
@@ -1279,7 +1297,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 {
 	const char* filename = opt->difffile;
 	FILE *df;
-	uint32_t type, timestamp;
+	uint32_t type, timestamp[2], curr_timestamp[2];
 	struct diff_read_data* data = diff_read_data_create();
 	off_t startpos;
 
@@ -1291,39 +1309,45 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		return 1;
 	}
 
-	if(db->diff_skip) {
-		/* check timestamp */
+	/* check timestamp */
+	curr_timestamp[0] = (uint32_t) db->diff_timestamp.tv_sec;
+	curr_timestamp[1] = (uint32_t) db->diff_timestamp.tv_usec;
 
-		if(!diff_read_32(df, &type))
-		{
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "difffile %s \
-is empty, restoring diff_skip and diff_pos", filename));
-			db->diff_skip = 0;
-			db->diff_pos = 0;
-		}
-		else if (!diff_read_32(df, &timestamp)) {
-			log_msg(LOG_ERR, "difffile %s bad first part: no \
+	if(!diff_read_32(df, &type)) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "difffile %s \
+is empty", filename));
+		db->diff_skip = 0;
+		db->diff_pos = 0;
+	}
+	else if (!diff_read_32(df, &timestamp[0]) ||
+		 !diff_read_32(df, &timestamp[1])) {
+		log_msg(LOG_ERR, "difffile %s bad first part: no \
 timestamp", filename);
-			region_destroy(data->region);
-			return 0;
-		}
-		else if ((uint32_t) db->diff_timestamp != timestamp) {
-			/* new timestamp, no skipping */
+		region_destroy(data->region);
+		return 0;
+	}
+	else if (curr_timestamp[0] != timestamp[0] ||
+		 curr_timestamp[1] != timestamp[1]) {
+		/* new timestamp, no skipping */
+		db->diff_timestamp.tv_sec = (time_t) timestamp[0];
+		db->diff_timestamp.tv_usec = (suseconds_t) timestamp[1];
+
+		if (db->diff_skip) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "new timestamp on \
-difffile %s, restoring diff_skip and diff_pos", filename));
-			db->diff_timestamp = (time_t) timestamp;
+difffile %s, restoring diff_skip and diff_pos [old timestamp: %u.%u; new \
+timestamp: %u.%u]", filename, curr_timestamp[0], curr_timestamp[1],
+			timestamp[0], timestamp[1]));
 			db->diff_skip = 0;
 			db->diff_pos = 0;
-		}
-
-		if (db->diff_skip)
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
-		/* always seek, to diff_skip or to beginning of the file */
-		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
-			log_msg(LOG_INFO, "could not fseeko file %s: \
-%s. Reread from start.", filename, strerror(errno));
 		}
 	}
+
+	/* <matthijs> always seek, to diff_skip or to beginning of the file. */
+	if(fseeko(df, db->diff_pos, SEEK_SET)==-1 && db->diff_skip)
+		log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread from \
+start.", filename, strerror(errno));
+	else if (db->diff_skip)
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
 
 	startpos = ftello(df);
 	if(startpos == -1) {
@@ -1335,6 +1359,25 @@ difffile %s, restoring diff_skip and diff_pos", filename));
 	while(diff_read_32(df, &type))
 	{
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "iter loop"));
+
+		/* read timestamp */
+		if(!diff_read_32(df, &timestamp[0]) ||
+			!diff_read_32(df, &timestamp[1])) {
+			log_msg(LOG_INFO, "could not read timestamp: %s.",
+				strerror(errno));
+			region_destroy(data->region);
+			return 0;
+		}
+
+/*	if (db->diff_skip == 0 && *startpos == 0)
+	{
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "set diff timestamp: %u.%u",
+			timestamp[0], timestamp[1]));
+		db->diff_timestamp.tv_sec = (time_t) timestamp[0];
+		db->diff_timestamp.tv_usec = (suseconds_t) timestamp[1];
+	}
+*/
+
 		if(!read_process_part(db, df, type, opt, data, log,
 			child_count, &startpos))
 		{
@@ -1355,6 +1398,7 @@ difffile %s, restoring diff_skip and diff_pos", filename));
 		/* can skip to the first unused element */
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "next time skip diff file"));
 		db->diff_skip = 1;
+
 	} else {
 		/* all processed, can skip to here next time */
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "next time skip diff file"));

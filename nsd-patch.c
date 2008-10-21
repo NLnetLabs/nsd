@@ -37,6 +37,7 @@ usage(void)
 static void
 list_xfr(FILE *in)
 {
+	uint32_t timestamp[2];
 	uint32_t skiplen, len, new_serial;
 /*	int i; */
 	char zone_name[3072];
@@ -44,7 +45,9 @@ list_xfr(FILE *in)
 	uint16_t id;
 	uint32_t seq_nr, len2;
 
-	if(!diff_read_32(in, &len) ||
+	if(!diff_read_32(in, &timestamp[0]) ||
+		!diff_read_32(in, &timestamp[1]) ||
+		!diff_read_32(in, &len) ||
 		!diff_read_str(in, zone_name, sizeof(zone_name)) ||
 		!diff_read_32(in, &new_serial) ||
 		!diff_read_16(in, &id) ||
@@ -98,6 +101,7 @@ get_date(const char* log)
 static void
 list_commit(FILE *in)
 {
+	uint32_t timestamp[2];
 	uint32_t len;
 	char zone_name[3072];
 	uint32_t old_serial, new_serial;
@@ -107,7 +111,9 @@ list_commit(FILE *in)
 	char log_msg[10240];
 	uint32_t len2;
 
-	if(!diff_read_32(in, &len) ||
+	if(!diff_read_32(in, &timestamp[0]) ||
+		!diff_read_32(in, &timestamp[1]) ||
+		!diff_read_32(in, &len) ||
 		!diff_read_str(in, zone_name, sizeof(zone_name)) ||
 		!diff_read_32(in, &old_serial) ||
 		!diff_read_32(in, &new_serial) ||
@@ -134,7 +140,7 @@ debug_list(struct nsd_options* opt)
 {
 	const char* file = opt->difffile;
 	FILE *f;
-	uint32_t type, timestamp;
+	uint32_t type;
 	fprintf(stderr, "Debug listing of the contents of %s\n", file);
 	f = fopen(file, "r");
 	if(!f) {
@@ -145,16 +151,10 @@ debug_list(struct nsd_options* opt)
 	while(diff_read_32(f, &type)) {
 		switch(type) {
 		case DIFF_PART_IXFR:
-			if(!diff_read_32(f, &timestamp))
-				fprintf(stderr, "bad timestamp\n");
-			else
-				list_xfr(f);
+			list_xfr(f);
 			break;
 		case DIFF_PART_SURE:
-			if(!diff_read_32(f, &timestamp))
-				fprintf(stderr, "bad timestamp\n");
-			else
-				list_commit(f);
+			list_commit(f);
 			break;
 		default:
 			fprintf(stderr, "bad part of type %x\n", type);

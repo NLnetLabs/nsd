@@ -240,7 +240,7 @@ struct namedb
 	char              *filename;
 	FILE              *fd;
 	/* the timestamp on the ixfr.db file */
-	uint32_t	  diff_timestamp;
+	struct timeval	  diff_timestamp;
 	/* the CRC on the nsd.db file and position of CRC in the db file */
 	uint32_t	  crc;
 	off_t		  crc_pos;

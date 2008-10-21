@@ -16,7 +16,7 @@
 #include "region-allocator.h"
 
 #ifdef ALIGNMENT
-#  undef ALIGNMENT
+#undef ALIGNMENT
 #endif
 #define ALIGN_UP(x, s)     (((x) + s - 1) & (~(s - 1)))
 #define ALIGNMENT          (sizeof(void *))
@@ -40,14 +40,14 @@ struct region
 	size_t        large_objects;
 	size_t        chunk_count;
 	size_t        unused_space; /* Unused space due to alignment, etc. */
-	
+
 	size_t        allocated;
 	char         *initial_data;
 	char         *data;
 
 	void         *(*allocator)(size_t);
 	void          (*deallocator)(void *);
-    
+
 	size_t        maximum_cleanup_count;
 	size_t        cleanup_count;
 	cleanup_type *cleanups;
@@ -80,7 +80,7 @@ alloc_region_base(void *(*allocator)(size_t size),
 	result->unused_space = 0;
 	result->recycle_bin = NULL;
 	result->recycle_size = 0;
-	
+
 	result->allocated = 0;
 	result->data = NULL;
 	result->initial_data = NULL;
@@ -107,7 +107,7 @@ region_type *
 region_create(void *(*allocator)(size_t size),
 	      void (*deallocator)(void *))
 {
-	region_type* result = alloc_region_base(allocator, deallocator, 
+	region_type* result = alloc_region_base(allocator, deallocator,
 		DEFAULT_INITIAL_CLEANUP_SIZE);
 	if(!result)
 		return NULL;
@@ -118,7 +118,7 @@ region_create(void *(*allocator)(size_t size),
 		return NULL;
 	}
 	result->initial_data = result->data;
-    
+
 	return result;
 }
 
@@ -130,7 +130,7 @@ region_type *region_create_custom(void *(*allocator)(size_t),
 				  size_t initial_cleanup_size,
 				  int recycle)
 {
-	region_type* result = alloc_region_base(allocator, deallocator, 
+	region_type* result = alloc_region_base(allocator, deallocator,
 		initial_cleanup_size);
 	if(!result)
 		return NULL;
@@ -182,11 +182,12 @@ size_t
 region_add_cleanup(region_type *region, void (*action)(void *), void *data)
 {
 	assert(action);
-    
+
 	if (region->cleanup_count >= region->maximum_cleanup_count) {
 		cleanup_type *cleanups = (cleanup_type *) region->allocator(
 			2 * region->maximum_cleanup_count * sizeof(cleanup_type));
-		if (!cleanups) return 0;
+		if (!cleanups)
+			return 0;
 
 		memcpy(cleanups, region->cleanups,
 		       region->cleanup_count * sizeof(cleanup_type));
@@ -216,31 +217,32 @@ region_alloc(region_type *region, size_t size)
 
 	if (aligned_size >= region->large_object_size) {
 		result = region->allocator(size);
-		if (!result) return NULL;
-        
+		if (!result)
+			return NULL;
+
 		if (!region_add_cleanup(region, region->deallocator, result)) {
 			region->deallocator(result);
 			return NULL;
 		}
-        
+
 		region->total_allocated += size;
 		++region->large_objects;
-		
 		return result;
 	}
 
 	if (region->recycle_bin && region->recycle_bin[aligned_size]) {
 		result = (void*)region->recycle_bin[aligned_size];
-		region->recycle_bin[aligned_size] = region->recycle_bin[aligned_size]->next; 
+		region->recycle_bin[aligned_size] = region->recycle_bin[aligned_size]->next;
 		region->recycle_size -= aligned_size;
 		region->unused_space += aligned_size - size;
 		return result;
 	}
-    
+
 	if (region->allocated + aligned_size > region->chunk_size) {
 		void *chunk = region->allocator(region->chunk_size);
 		size_t wasted;
-		if (!chunk) return NULL;
+		if (!chunk)
+			return NULL;
 
 		wasted = (region->chunk_size - region->allocated) & (~(ALIGNMENT-1));
 		if(wasted >= ALIGNMENT) {
@@ -252,7 +254,7 @@ region_alloc(region_type *region, size_t size)
 		}
 		++region->chunk_count;
 		region->unused_space += region->chunk_size - region->allocated;
-		
+
 		if(!region_add_cleanup(region, region->deallocator, chunk)) {
 			region->deallocator(chunk);
 			region->chunk_count--;
@@ -270,7 +272,7 @@ region_alloc(region_type *region, size_t size)
 	region->total_allocated += aligned_size;
 	region->unused_space += aligned_size - size;
 	++region->small_objects;
-	
+
 	return result;
 }
 
@@ -298,7 +300,7 @@ region_free_all(region_type *region)
 	size_t i;
 	assert(region);
 	assert(region->cleanups);
-    
+
 	i = region->cleanup_count;
 	while (i > 0) {
 		--i;
@@ -330,7 +332,7 @@ region_strdup(region_type *region, const char *string)
 	return (char *) region_alloc_init(region, string, strlen(string) + 1);
 }
 
-void 
+void
 region_recycle(region_type *region, void *block, size_t size)
 {
 	size_t aligned_size;
@@ -353,7 +355,7 @@ region_recycle(region_type *region, void *block, size_t size)
 			/* make sure the same ptr is not freed twice. */
 			struct recycle_elem *p = region->recycle_bin[aligned_size];
 			while(p) {
-				assert(p != elem); 
+				assert(p != elem);
 				p = p->next;
 			}
 		}
@@ -375,9 +377,9 @@ region_recycle(region_type *region, void *block, size_t size)
 			region->cleanups[i].data = NULL;
 			/* remove cleanup - move last entry here, check this one again */
 			--region->cleanup_count;
-			region->cleanups[i].action = 
+			region->cleanups[i].action =
 				region->cleanups[region->cleanup_count].action;
-			region->cleanups[i].data = 
+			region->cleanups[i].data =
 				region->cleanups[region->cleanup_count].data;
 		}
 	}
@@ -446,7 +448,7 @@ region_log_stats(region_type *region)
 				el = el->next;
 			}
 			if(i%ALIGNMENT == 0 && i!=0) {
-				sprintf(str, " %lu%n", (unsigned long)count, 
+				sprintf(str, " %lu%n", (unsigned long)count,
 					&len);
 				str+=len;
 			}
