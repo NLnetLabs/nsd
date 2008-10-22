@@ -1376,15 +1376,6 @@ start.", filename, strerror(errno));
 			return 0;
 		}
 
-/*	if (db->diff_skip == 0 && *startpos == 0)
-	{
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "set diff timestamp: %u.%u",
-			timestamp[0], timestamp[1]));
-		db->diff_timestamp.tv_sec = (time_t) timestamp[0];
-		db->diff_timestamp.tv_usec = (suseconds_t) timestamp[1];
-	}
-*/
-
 		if(!read_process_part(db, df, type, opt, data, log,
 			child_count, &startpos))
 		{
