@@ -1343,11 +1343,17 @@ timestamp: %u.%u]", filename, curr_timestamp[0], curr_timestamp[1],
 	}
 
 	/* <matthijs> always seek, to diff_skip or to beginning of the file. */
-	if(fseeko(df, db->diff_pos, SEEK_SET)==-1 && db->diff_skip)
-		log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread from \
-start.", filename, strerror(errno));
-	else if (db->diff_skip)
+	if(db->diff_skip) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
+ 		if (fseeko(df, db->diff_pos, SEEK_SET)==-1)
+			log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread from \
+start.", filename, strerror(errno));
+	}
+	else if (fseeko(df, 0, SEEK_SET)==-1) {
+		log_msg(LOG_INFO, "could not fseeko file %s: %s.", filename, strerror(errno));
+		region_destroy(data->region);
+		return 0;
+	}
 
 	startpos = ftello(df);
 	if(startpos == -1) {
@@ -1356,6 +1362,7 @@ start.", filename, strerror(errno));
 		return 0;
 	}
 
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "start of diff file read at pos %u", (uint32_t) db->diff_pos));
 	while(diff_read_32(df, &type))
 	{
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "iter loop"));
