@@ -345,6 +345,7 @@ label_next(const uint8_t *label)
 const char *dname_to_string(const dname_type *dname,
 			    const dname_type *origin);
 
+
 /*
  * Create a dname containing the single label specified by STR
  * followed by the root label.

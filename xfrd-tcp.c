@@ -196,7 +196,6 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		xfrd_tcp_xfr(set, zone);
 		return;
 	}
-
 	/* wait, at end of line */
 	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: max number of tcp "
 		"connections (%d) reached.", XFRD_MAX_TCP));
@@ -242,10 +241,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	} else {
 		family = PF_INET;
 	}
-
 	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	set->tcp_state[zone->tcp_conn]->fd = fd;
-
 	if(fd == -1) {
 		log_msg(LOG_ERR, "xfrd: %s cannot create tcp socket: %s",
 			zone->master->ip_address_spec, strerror(errno));
@@ -292,7 +289,6 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	xfrd_tcp_t* tcp = set->tcp_state[zone->tcp_conn];
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
-
 	/* start AXFR or IXFR for the zone */
 	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request full zone transfer \
@@ -318,7 +314,6 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	buffer_flip(tcp->packet);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "sent tcp query with ID %d", zone->query_id));
 	tcp->msglen = buffer_limit(tcp->packet);
-
 	/* wait for select to complete connect before write */
 }
 

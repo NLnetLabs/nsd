@@ -176,23 +176,23 @@ writepid(struct nsd *nsd)
 	snprintf(pidbuf, sizeof(pidbuf), "%lu\n", (unsigned long) nsd->pid);
 
 	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
-		DEBUG(DEBUG_IPC,2, (LOG_ERR, "cannot open pidfile %s: %s",
-			nsd->pidfile, strerror(errno)));
+		log_msg(LOG_ERR, "cannot open pidfile %s: %s",
+			nsd->pidfile, strerror(errno));
 		return -1;
 	}
 
 	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
-		DEBUG(DEBUG_IPC,2, (LOG_ERR, "cannot write pidfile %s: %s",
-			nsd->pidfile, strerror(errno)));
+		log_msg(LOG_ERR, "cannot write pidfile %s: %s",
+			nsd->pidfile, strerror(errno));
 		fclose(fd);
 		return -1;
 	}
 	fclose(fd);
 
 	if (chown(nsd->pidfile, nsd->uid, nsd->gid) == -1) {
-		DEBUG(DEBUG_IPC,2, (LOG_ERR, "cannot chown %u.%u %s: %s",
+		log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",
 			(unsigned) nsd->uid, (unsigned) nsd->gid,
-			nsd->pidfile, strerror(errno)));
+			nsd->pidfile, strerror(errno));
 		return -1;
 	}
 

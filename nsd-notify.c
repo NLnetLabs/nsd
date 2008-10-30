@@ -74,19 +74,19 @@ update.\n");
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "  -4                   Send using IPv4.\n");
 	fprintf(stderr, "  -6                   Send using IPv6.\n");
-	fprintf(stderr, "  -a src[@port]        Local hostname/ip-address for \
-the connection, including optional source port.\n");
-	fprintf(stderr, "  -h                   Print this help \
-information.\n");
-	fprintf(stderr, "  -p port              Port number of secondary \
-server.\n");
-	fprintf(stderr, "  -y key:secret[:algo] TSIG keyname, base64 secret \
-blob and HMAC algorithm.\n"
-                        "                       If algo is not provided, \
-HMAC-MD5 is assumed.\n");
+	fprintf(stderr, "  -a src[@port]        Local hostname/ip-address for "
+					"the connection, including optional source port.\n");
+	fprintf(stderr, "  -h                   Print this help "
+					"information.\n");
+	fprintf(stderr, "  -p port              Port number of secondary "
+					"server.\n");
+	fprintf(stderr, "  -y key:secret[:algo] TSIG keyname, base64 secret "
+					"blob and HMAC algorithm.\n"
+					"                       If algo is not provided, "
+					"HMAC-MD5 is assumed.\n");
 	fprintf(stderr, "  -z zone              Name of zone to be updated.\n");
-	fprintf(stderr, "  servers              IP addresses of the secondary \
-server(s).\n");
+	fprintf(stderr, "  servers              IP addresses of the secondary "
+					"server(s).\n");
 	exit(1);
 }
 

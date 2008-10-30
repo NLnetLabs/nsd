@@ -62,7 +62,6 @@ domain_table_create(region_type *region)
 
 	assert(region);
 
-	/* <matthijs> make the root dname, no need to normalize */
 	origin = dname_make(region, (uint8_t *) "", 0);
 
 	root = (domain_type *) region_alloc(region, sizeof(domain_type));

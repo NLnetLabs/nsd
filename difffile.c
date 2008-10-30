@@ -84,7 +84,6 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
 	}
-
 	fflush(df);
 	fclose(df);
 }
@@ -1355,10 +1354,11 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	}
 	if(db->diff_skip) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
- 		if (fseeko(df, db->diff_pos, SEEK_SET)==-1)
+		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
 			log_msg(LOG_INFO, "could not fseeko file %s: %s. "
 					  "Reread from start.", filename,
 				strerror(errno));
+		}
 	}
 
 	startpos = ftello(df);
@@ -1403,7 +1403,6 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		/* can skip to the first unused element */
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "next time skip diff file"));
 		db->diff_skip = 1;
-
 	} else {
 		/* all processed, can skip to here next time */
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "next time skip diff file"));
@@ -1489,4 +1488,3 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 
 	fclose(df);
 }
-

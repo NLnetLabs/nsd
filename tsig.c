@@ -103,6 +103,7 @@ tsig_init(region_type *region)
 #if defined(TSIG) && defined(HAVE_SSL)
 	return tsig_openssl_init(region);
 #endif
+	return 1;
 }
 
 void

@@ -285,7 +285,6 @@ xfrd_init_zones()
 			xfrd_copy_soa(&xzone->soa_nsd, dbzone->soa_rrset->rrs);
 			xfrd_copy_soa(&xzone->soa_disk, dbzone->soa_rrset->rrs);
 		}
-
 		/* set refreshing anyway, we have data but it may be old */
 		xfrd_set_refresh_now(xzone);
 
@@ -469,7 +468,6 @@ xfrd_make_request(xfrd_zone_t* zone)
 			zone->master_num = 0;
 			zone->round_num++;
 		}
-
 		if(zone->round_num >= XFRD_MAX_ROUNDS) {
 			/* tried all servers that many times, wait */
 			zone->round_num = -1;
@@ -483,9 +481,7 @@ xfrd_make_request(xfrd_zone_t* zone)
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s make request round %d mr %d nx %d",
 		zone->apex_str, zone->round_num, zone->master_num, zone->next_master));
-
 	/* perform xfr request */
-
 	if (!zone->master->use_axfr_only && zone->soa_disk_acquired > 0
 				&& zone->round_num < XFRD_IXFR_UDP_ROUNDS
 				&& zone->master->allow_udp)
@@ -765,7 +761,6 @@ xfrd_udp_release(xfrd_zone_t* zone)
 			}
 		}
 	}
-
 	/* no waiting zones */
 	if(xfrd->udp_use_num > 0)
 		xfrd->udp_use_num--;

@@ -83,7 +83,6 @@ packet_encode_rr(query_type *q, domain_type *owner, rr_type *rr)
 				     dname_name(dname), dname->name_size);
 			break;
 		}
-		case RDATA_WF_LITERAL_DNAME:
 		default:
 			buffer_write(q->packet,
 				     rdata_atom_data(rr->rdatas[j]),

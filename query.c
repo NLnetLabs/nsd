@@ -350,7 +350,6 @@ process_tsig(struct query* q)
 			log_msg(LOG_ERR, "query tsig unknown key/algorithm");
 			return NSD_RC_REFUSE;
 		}
-
 		buffer_set_limit(q->packet, q->tsig.position);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) - 1);
 		tsig_prepare(&q->tsig);

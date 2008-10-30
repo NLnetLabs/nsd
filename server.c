@@ -465,11 +465,8 @@ server_init(struct nsd *nsd)
 	if (nsd->chrootdir) {
 		int l = strlen(nsd->chrootdir);
 
-		while (l>1 && nsd->chrootdir[l-1] == '/')
+		while (l>0 && nsd->chrootdir[l-1] == '/')
 			--l;
-
-		/* also skip leading / */
-		if (l>0) l++;
 
 		nsd->dbfile += l;
 		nsd->pidfile += l;
@@ -516,8 +513,8 @@ server_init(struct nsd *nsd)
 	/* Read diff file */
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count))
 	{
-		log_msg(LOG_ERR, "The diff file contains errors. Will continue \
-			without it");
+		log_msg(LOG_ERR, "The diff file contains errors. Will continue "
+						 "without it");
 	}
 #ifdef NSEC3
 	prehash(nsd->db, 0);
@@ -639,11 +636,9 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 	handler->timeout = NULL;
 	handler->event_types = NETIO_EVENT_READ;
 	handler->event_handler = parent_handle_xfrd_command;
-
 	/* clear ongoing ipc reads */
 	data = (struct ipc_handler_conn_data *) handler->user_data;
 	data->conn->is_reading = 0;
-
 	return pid;
 }
 
@@ -717,7 +712,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
 
-	/* <matthijs> checksum to detect bit errors */
 	if(db_crc_different(nsd->db) == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"CRC the same. skipping %s.", nsd->db->filename));
@@ -731,7 +725,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			exit(1);
 		}
 	}
-
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);
@@ -774,7 +767,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	}
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
-
 	/* Send quit command to parent: blocking, wait for receipt. */
 	do {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
@@ -925,7 +917,7 @@ server_main(struct nsd *nsd)
 	pid_t xfrd_pid = -1;
 	sig_atomic_t mode;
 
-	/* <matthijs> MUST be main */
+	/* <matthijs> assure we are the main process */
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
 	xfrd_listener.user_data = (struct ipc_handler_conn_data*)region_alloc(

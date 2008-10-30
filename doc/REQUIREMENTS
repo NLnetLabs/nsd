@@ -975,6 +975,9 @@ Not implemented:
 
 Appendix D. Changes to this file.
 
+30 october 2008 (Matthijs Mekking).
+- Added support for RFC 4635 (HMAC SHA TSIG).
+
 26 july 2006 (Wouter Wijngaards).
 - Comments changed to background items.
 - KEY->DNSKEY, SIG->RRSIG in the text, dnssec-bis style.
