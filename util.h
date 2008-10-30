@@ -234,7 +234,6 @@ extern int nsd_debug_level;
 	} while (0)
 #endif
 
-
 /*
  * Timespec functions.
  */

@@ -1,18 +1,9 @@
 NSD RELEASE NOTES
 
-3.1.1 (UPCOMING RELEASE)
+3.1.2 (UPCOMING RELEASE)
 =============
 BUG FIXES:
-	- Try to avoid race conditions with NSD reloading and nsdc running, 
-		by writing pidfile before closing old parent process.
-	- Fixed NSEC3 memory leak in the case NSEC3 is not needed.
-	- Fixed some memory leaks that happened on error, mostly on
-		zone transfer errors.
-	- Bugfix #191: nsd-checkconf allowed only (max_interfaces-1) interfaces.
-
-FEATURES:
-	- The number of maximum interfaces allowed is configurable with
-		--with-max_interfaces=<number> (thanks John Lightsey).
+	- Typo in zonec manpage.
 
 3.1.0
 =============

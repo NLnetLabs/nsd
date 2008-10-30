@@ -477,7 +477,6 @@ server_init(struct nsd *nsd)
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s", 
 			nsd->chrootdir));
-
 	}
 #endif
 	/* Check if nsd->dbfile exists */
@@ -1412,14 +1411,9 @@ handle_tcp_reading(netio_type *netio,
 				return;
 			} else {
 #ifdef ECONNRESET
-				if (verbosity >= 2 || errno != ECONNRESET) {
-					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-				}
-#else /* ECONNRESET */
-				if (verbosity >= 2) {
-					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-				}
-#endif
+				if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 				cleanup_tcp_handler(netio, handler);
 				return;
 			}
@@ -1480,14 +1474,9 @@ handle_tcp_reading(netio_type *netio,
 			return;
 		} else {
 #ifdef ECONNRESET
-			if (verbosity >= 2 || errno != ECONNRESET) {
-				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-			}
-#else /* ECONNRESET */
-			if (verbosity >= 2) {
-				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-			}
-#endif
+			if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+			log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 			cleanup_tcp_handler(netio, handler);
 			return;
 		}
@@ -1586,7 +1575,7 @@ handle_tcp_writing(netio_type *netio,
 			} else {
 #ifdef ECONNRESET
 				if(verbosity>=2 || errno != ECONNRESET)
-#endif
+#endif /* ECONNRESET */
 				log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
 				cleanup_tcp_handler(netio, handler);
 				return;
@@ -1620,7 +1609,7 @@ handle_tcp_writing(netio_type *netio,
 		} else {
 #ifdef ECONNRESET
 			if(verbosity>=2 || errno != ECONNRESET)
-#endif
+#endif /* ECONNRESET */
 			log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
 			cleanup_tcp_handler(netio, handler);
 			return;
@@ -1828,7 +1817,6 @@ configure_handler_event_types(size_t count,
 	size_t i;
 
 	assert(handlers);
-	
 	for (i = 0; i < count; ++i) {
 		handlers[i].event_types = event_types;
 	}

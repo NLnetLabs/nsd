@@ -56,7 +56,7 @@ xfrd_setup_packet(buffer_type* packet,
         buffer_write_u16(packet, klass);
 }
 
-socklen_t 
+socklen_t
 #ifdef INET6
 xfrd_acl_sockaddr(acl_options_t* acl, struct sockaddr_storage *to)
 #else

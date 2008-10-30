@@ -314,7 +314,6 @@ rdatas_equal(rdata_atom_type *a, rdata_atom_type *b, int num, uint16_t type)
 	for(k = 0; k < num; k++)
 	{
 		if(rdata_atom_is_domain(type, k)) {
-			/* check dname: should compare case insensitive */
 			if(dname_compare(domain_dname(a[k].domain),
 				domain_dname(b[k].domain))!=0)
 				return 0;
@@ -652,7 +651,6 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		return 0;
 	}
 	/* read ixfr packet RRs and apply to in memory db */
-
 	if(!diff_read_32(in, &pkttype) || pkttype != DIFF_PART_IXFR) {
 		log_msg(LOG_ERR, "could not read type or wrong type");
 		return 0;
@@ -1395,4 +1393,3 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 
 	fclose(df);
 }
-

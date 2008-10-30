@@ -75,7 +75,6 @@ static void xfrd_send_expire_notification(xfrd_zone_t* zone);
 static int xfrd_send_ixfr_request_udp(xfrd_zone_t* zone);
 /* obtain udp socket slot */
 static void xfrd_udp_obtain(xfrd_zone_t* zone);
-
 /* read data via udp */
 static void xfrd_udp_read(xfrd_zone_t* zone);
 
@@ -241,7 +240,6 @@ xfrd_init_zones()
 			continue;
 		}
 
-		
 		xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
 		memset(xzone, 0, sizeof(xfrd_zone_t));
 		xzone->apex = dname;

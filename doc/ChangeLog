@@ -1,3 +1,7 @@
+30 October 2008: Matthijs
+	- Fix typo in zonec manpage
+	- Bugfix: strip off chroot value in corner cases
+
 17 July 2008: Matthijs
 	- Make the maximum number of interfaces configurable.
 	- Write pidfile *after* succesfull server initialization,
