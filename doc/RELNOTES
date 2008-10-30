@@ -12,7 +12,7 @@ OPERATIONAL NOTES:
 		request-xfr: UDP 1.2.3.4 tsigkey
 	  We strongly recommend to enable TSIG if you send IXFR over UDP.
 	  When all masters fail to transmit IXFR/UDP, slave will fallback to 
-		AXFR/TCP, following RFC 1995.
+		IXFR/TCP and eventually AXFR/TCP.
 
 BUG FIXES:
 	- Only normalize dnames in rdatas when rrtype is listed in RFC 4034, 
@@ -20,8 +20,7 @@ BUG FIXES:
 	  draft-ietf-dnsext-dnssec-bis-updates (affects RRSIG and NSEC records).
 
 FEATURES:
-	- AXFR/TCP fallback in case of failing IXFR/UDP zone transfers,
-		following RFC 1995.
+	- AXFR/TCP fallback in case of failing IXFR zone transfers.
 	- RFC 4635: support for hmac-sha1 and hmac-sha256 TSIG algorithm 
 		identifiers, "Bugfix #130".
 	- Configure the source ip-address for notifies (master) and zone

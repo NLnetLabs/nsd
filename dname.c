@@ -200,8 +200,6 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 		switch (*s) {
 		case '.':
 			if (p == h + 1) {
-				/* DEBUG */
-				log_msg(LOG_INFO, "empty label in %s", name);
 				/* Empty label.  */
 				return 0;
 			} else {
@@ -226,9 +224,6 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 					*p = *++s;
 				}
 			} else if (s[1] != '\0') {
-				/* DEBUG */
-				log_msg(LOG_INFO, "escape character %c", s[1]);
-
 				*p = *++s;
 			}
 			break;

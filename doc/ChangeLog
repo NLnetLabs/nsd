@@ -1,3 +1,8 @@
+30 October 2008: Matthijs
+	- Allow escape characters in literal dnames
+	- Fix typo in zonec manpage
+	- Some fixes from code review
+
 20 October 2008: Matthijs
 	- Redo bugfix literal domain names in rdata (code adjustment)
 	- Added tests for case sensitive dns names and "Bug #162"
