@@ -628,9 +628,6 @@ main(int argc, char *argv[])
 			nsd.options->zonesdir));
 	}
 
-	/* get it from the config file */
-	/* <matthijs> get what from the config file? */
-
 #ifdef NSID
 	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);
 #if defined(INET6)

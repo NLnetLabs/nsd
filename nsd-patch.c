@@ -56,8 +56,9 @@ list_xfr(FILE *in)
 		return;
 	}
 	skiplen = len - (sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name));
-	fprintf(stderr, "zone %s transfer id %x serial %d: seq_nr %d of %d bytes\n",
-		zone_name, id, new_serial, seq_nr, skiplen);
+	fprintf(stderr, "zone %s transfer id %x serial %d timestamp %u.%u: "
+			"seq_nr %d of %d bytes\n", zone_name, id, new_serial,
+		timestamp[0], timestamp[1], seq_nr, skiplen);
 
 /* Debug code, print the hexadecimal contents of the packet
 	needed for version 3.1.1

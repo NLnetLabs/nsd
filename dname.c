@@ -169,25 +169,13 @@ dname_make_wire_from_packet(uint8_t *buf, buffer_type *packet,
 	return dname_length;
 }
 
-static const dname_type *
-dname_parse_wire_make(region_type *region, const char *name, int normalize)
+const dname_type *
+dname_parse(region_type *region, const char *name)
 {
 	uint8_t dname[MAXDOMAINLEN];
 	if(!dname_parse_wire(dname, name))
 		return 0;
-	return dname_make(region, dname, normalize);
-}
-
-const dname_type *
-dname_parse(region_type *region, const char *name)
-{
-	return dname_parse_wire_make(region, name, 1);
-}
-
-const dname_type *
-dname_parse_literal(region_type *region, const char *name)
-{
-	return dname_parse_wire_make(region, name, 0);
+	return dname_make(region, dname, 1);
 }
 
 int dname_parse_wire(uint8_t* dname, const char* name)
@@ -212,6 +200,8 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 		switch (*s) {
 		case '.':
 			if (p == h + 1) {
+				/* DEBUG */
+				log_msg(LOG_INFO, "empty label in %s", name);
 				/* Empty label.  */
 				return 0;
 			} else {
@@ -236,6 +226,9 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 					*p = *++s;
 				}
 			} else if (s[1] != '\0') {
+				/* DEBUG */
+				log_msg(LOG_INFO, "escape character %c", s[1]);
+
 				*p = *++s;
 			}
 			break;
@@ -254,7 +247,6 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 		*h = label_length;
 		h = p;
 	}
-
 	/* Add root label.  */
 	*h = 0;
 

@@ -138,7 +138,8 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 }
 
 /*
- * <matthijs> Checksum to signal no bit errors occured during transport/storage
+ * <matthijs> Checksum to signal no data change occured (for example, by a
+ * zonec run.
  */
 int
 db_crc_different(namedb_type* db)
@@ -400,7 +401,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		int rrnum;
 		temptable = domain_table_create(temp_region);
 		/* <matthijs> this will ensure that the dnames in rdata are
-		 * normalized.
+		 * normalized, conform RFC 4035, section 6.2
 		 */
 		rdata_num = rdata_wireformat_to_rdata_atoms(
 			temp_region, temptable, type, rdatalen, packet, &rdatas);
@@ -470,7 +471,9 @@ add_RR(namedb_type* db, const dname_type* dname,
 		domain_add_rrset(domain, rrset);
 	}
 
-	/* <matthijs> dnames in rdata are normalized */
+	/* <matthijs> dnames in rdata are normalized, conform RFC 4035,
+	 * Section 6.2
+	 */
 	rdata_num = rdata_wireformat_to_rdata_atoms(
 		db->region, db->domains, type, rdatalen, packet, &rdatas);
 	if(rdata_num == -1) {
@@ -1314,15 +1317,15 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	curr_timestamp[1] = (uint32_t) db->diff_timestamp.tv_usec;
 
 	if(!diff_read_32(df, &type)) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "difffile %s \
-is empty", filename));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "difffile %s is empty",
+			filename));
 		db->diff_skip = 0;
 		db->diff_pos = 0;
 	}
 	else if (!diff_read_32(df, &timestamp[0]) ||
 		 !diff_read_32(df, &timestamp[1])) {
-		log_msg(LOG_ERR, "difffile %s bad first part: no \
-timestamp", filename);
+		log_msg(LOG_ERR, "difffile %s bad first part: no timestamp",
+			filename);
 		region_destroy(data->region);
 		return 0;
 	}
@@ -1333,26 +1336,29 @@ timestamp", filename);
 		db->diff_timestamp.tv_usec = (suseconds_t) timestamp[1];
 
 		if (db->diff_skip) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "new timestamp on \
-difffile %s, restoring diff_skip and diff_pos [old timestamp: %u.%u; new \
-timestamp: %u.%u]", filename, curr_timestamp[0], curr_timestamp[1],
-			timestamp[0], timestamp[1]));
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "new timestamp on "
+				"difffile %s, restoring diff_skip and diff_pos "
+				"[old timestamp: %u.%u; new timestamp: %u.%u]",
+				filename, curr_timestamp[0], curr_timestamp[1],
+				timestamp[0], timestamp[1]));
 			db->diff_skip = 0;
 			db->diff_pos = 0;
 		}
 	}
 
-	/* <matthijs> always seek, to diff_skip or to beginning of the file. */
+	/* <matthijs> always seek, to diff_pos or to beginning of the file. */
+	if (fseeko(df, 0, SEEK_SET)==-1) {
+		log_msg(LOG_INFO, "could not fseeko file %s: %s.", filename,
+				strerror(errno));
+		region_destroy(data->region);
+		return 0;
+	}
 	if(db->diff_skip) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skip diff file"));
  		if (fseeko(df, db->diff_pos, SEEK_SET)==-1)
-			log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread from \
-start.", filename, strerror(errno));
-	}
-	else if (fseeko(df, 0, SEEK_SET)==-1) {
-		log_msg(LOG_INFO, "could not fseeko file %s: %s.", filename, strerror(errno));
-		region_destroy(data->region);
-		return 0;
+			log_msg(LOG_INFO, "could not fseeko file %s: %s. "
+					  "Reread from start.", filename,
+				strerror(errno));
 	}
 
 	startpos = ftello(df);
@@ -1362,7 +1368,8 @@ start.", filename, strerror(errno));
 		return 0;
 	}
 
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "start of diff file read at pos %u", (uint32_t) db->diff_pos));
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "start of diff file read at pos %u",
+		(uint32_t) db->diff_pos));
 	while(diff_read_32(df, &type))
 	{
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "iter loop"));

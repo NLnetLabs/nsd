@@ -56,7 +56,7 @@ read_dname(FILE *fd, region_type *region)
 	if (fread(temp, sizeof(uint8_t), size, fd) != size)
 		return NULL;
 
-	return dname_make(region, temp, 0);
+	return dname_make(region, temp, 1);
 }
 
 static int
@@ -294,8 +294,8 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	db->diff_skip = 0;
 
 	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
-		log_msg(LOG_ERR, "unable to load %s: cannot initialize \
-timestamp", db->filename);
+		log_msg(LOG_ERR, "unable to load %s: cannot initialize"
+				 "timestamp", db->filename);
 		region_destroy(db_region);
                 return NULL;
         }
@@ -359,9 +359,12 @@ timestamp", db->filename);
 		zones[i]->dirty = region_alloc(db->region, sizeof(uint8_t)*num_children);
 		memset(zones[i]->dirty, 0, sizeof(uint8_t)*num_children);
 		if(!zones[i]->opts) {
-			log_msg(LOG_ERR, "cannot load database. Zone %s in db %s, but not \
-in config file (might happen if you edited the config file). Please \
-rebuild database and start again.", dname_to_string(dname, NULL), db->filename);
+			log_msg(LOG_ERR, "cannot load database. Zone %s in db "
+					 "%s, but not in config file (might "
+					 "happen if you edited the config "
+					 "file). Please rebuild database and "
+					 "start again.",
+				dname_to_string(dname, NULL), db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
 			namedb_close(db);
@@ -403,7 +406,7 @@ rebuild database and start again.", dname_to_string(dname, NULL), db->filename);
 	fprintf(stderr, "database region after loading domain names: ");
 	region_dump_stats(db->region, stderr);
 	fprintf(stderr, "\n");
-#endif	
+#endif
 
 	while ((rrset = read_rrset(db, dname_count, domains, zone_count, zones))) {
 		++rrset_count;
@@ -413,11 +416,11 @@ rebuild database and start again.", dname_to_string(dname, NULL), db->filename);
 	DEBUG(DEBUG_DBACCESS, 1,
 	      (LOG_INFO, "Retrieved %lu RRs in %lu RRsets\n",
 	       (unsigned long) rr_count, (unsigned long) rrset_count));
-	
+
 	region_destroy(temp_region);
-	
+
 	if ((db->crc_pos = ftello(db->fd)) == -1) {
-		log_msg(LOG_ERR, "ftello %s failed: %s", 
+		log_msg(LOG_ERR, "ftello %s failed: %s",
 			db->filename, strerror(errno));
 		namedb_close(db);
 		return NULL;
@@ -440,7 +443,7 @@ rebuild database and start again.", dname_to_string(dname, NULL), db->filename);
 	fprintf(stderr, "database region after loading database: ");
 	region_dump_stats(db->region, stderr);
 	fprintf(stderr, "\n");
-#endif	
+#endif
 
 	return db;
 }

@@ -385,6 +385,18 @@ zparser_conv_text(region_type *region, const char *text, size_t len)
 }
 
 uint16_t *
+zparser_conv_dns_name(region_type *region, const uint8_t* name, size_t len)
+{
+	uint16_t* r = NULL;
+	uint8_t* p = NULL;
+	r = alloc_rdata(region, len);
+	p = (uint8_t *) (r + 1);
+	memcpy(p, name, len);
+
+	return r;
+}
+
+uint16_t *
 zparser_conv_b32(region_type *region, const char *b32)
 {
 	uint8_t buffer[B64BUFSIZE];
@@ -1527,11 +1539,11 @@ main (int argc, char **argv)
 		fprintf(stderr, "\nzonec: done with %ld errors.\n",
 			totalerrors);
 	}
-	
+
 	/* Disable this to save some time.  */
 #if 0
 	region_destroy(global_region);
 #endif
-	
+
 	return totalerrors ? 1 : 0;
 }

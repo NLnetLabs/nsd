@@ -180,6 +180,7 @@ typedef enum rdata_wireformat rdata_wireformat_type;
 enum rdata_zoneformat
 {
 	RDATA_ZF_DNAME,		/* Domain name.  */
+	RDATA_ZF_LITERAL_DNAME,	/* DNS name (not lowercased domain name).  */
 	RDATA_ZF_TEXT,		/* Text string.  */
 	RDATA_ZF_BYTE,		/* 8-bit integer.  */
 	RDATA_ZF_SHORT,		/* 16-bit integer.  */

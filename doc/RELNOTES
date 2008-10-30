@@ -5,7 +5,7 @@ NSD RELEASE NOTES
 OPERATIONAL NOTES:
 	- Format of ixfr.db has changed. When you are planning an upgrade to the 
 	  new NSD release, make sure to process the old ixfr.db before starting 
-	  the new release.
+	  the new release (by running nsdc patch).
 	- IXFR is transmitted over TCP by default instead of UDP. If you want to 
 	  continue the use of IXFR/UDP, please modify your zone configuration 
 	  file to:

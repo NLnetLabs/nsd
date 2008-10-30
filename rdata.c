@@ -73,6 +73,37 @@ rdata_dname_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
+rdata_dns_name_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	const uint8_t *data = rdata_atom_data(rdata);
+	size_t offset = 0;
+	uint8_t length = data[offset];
+	size_t i;
+
+	while (length > 0)
+	{
+		if (offset) /* concat label */
+			buffer_printf(output, ".");
+
+		for (i = 1; i <= length; ++i) {
+			char ch = (char) data[i+offset];
+			if (isprint(ch))
+				buffer_printf(output, "%c", ch);
+			else
+				buffer_printf(output, "\\%03u", (unsigned) ch);
+		}
+		/* <matthijs> next label */
+		offset = offset+length+1;
+		length = data[offset];
+	}
+
+	/* root label */
+	buffer_printf(output, ".");
+	return 1;
+}
+
+static int
 rdata_text_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -476,6 +507,7 @@ rdata_unknown_to_string(buffer_type *output, rdata_atom_type rdata,
 
 static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_dname_to_string,
+	rdata_dns_name_to_string,
 	rdata_text_to_string,
 	rdata_byte_to_string,
 	rdata_short_to_string,
@@ -532,6 +564,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 
 	for (i = 0; i < descriptor->maximum; ++i) {
 		int is_domain = 0;
+		int is_normalized = 0;
 		int is_wirestore = 0;
 		size_t length = 0;
 		int required = i < descriptor->minimum;
@@ -540,6 +573,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		case RDATA_WF_COMPRESSED_DNAME:
 		case RDATA_WF_UNCOMPRESSED_DNAME:
 			is_domain = 1;
+			is_normalized = 1;
 			break;
 		case RDATA_WF_LITERAL_DNAME:
 			is_domain = 1;
@@ -596,6 +630,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				break;
 			case IPSECKEY_DNAME:
 				is_domain = 1;
+				is_normalized = 1;
 				is_wirestore = 1;
 				break;
 			}
@@ -608,7 +643,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				break;
 			}
 			dname = dname_make_from_packet(
-				temp_region, packet, 1, 0);
+				temp_region, packet, 1, is_normalized);
 			if (!dname || buffer_position(packet) > end) {
 				/* Error in domain name.  */
 				region_destroy(temp_region);

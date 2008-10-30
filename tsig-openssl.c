@@ -63,7 +63,7 @@ tsig_openssl_init(region_type *region)
 {
 	OpenSSL_add_all_digests();
 
-	/* XXX: walk lookup supported algorithms table */
+	/* TODO: walk lookup supported algorithms table */
 	if (!tsig_openssl_init_algorithm(region, "md5", "hmac-md5","hmac-md5.sig-alg.reg.int."))
 		return 0;
 	if (!tsig_openssl_init_algorithm(region, "sha1", "hmac-sha1", "hmac-sha1."))

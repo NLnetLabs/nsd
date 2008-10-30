@@ -91,14 +91,6 @@ int dname_make_wire_from_packet(uint8_t *buf,
 const dname_type *dname_parse(region_type *region, const char *name);
 
 /*
- * Construct a new domain name based on the ASCII representation NAME.
- * Same as dname_parse, except domain name in not lowercased.
- *
- * Pre: name != NULL.
- */
-const dname_type *dname_parse_literal(region_type *region, const char *name);
-
-/*
  * parse ascii string to wireformat domain name (without compression ptrs)
  * returns 0 on failure, the length of the wireformat on success.
  * the result is stored in the wirefmt which must be at least MAXDOMAINLEN
@@ -352,7 +344,6 @@ label_next(const uint8_t *label)
  */
 const char *dname_to_string(const dname_type *dname,
 			    const dname_type *origin);
-
 
 /*
  * Create a dname containing the single label specified by STR

@@ -53,9 +53,9 @@ static void answer_authoritative(struct nsd	  *nsd,
 				 domain_type      *closest_encloser,
 				 const dname_type *qname);
 
-static void answer_lookup_zone(struct nsd *nsd, struct query *q, 
-			       answer_type *answer, uint32_t domain_number, 
-			       int exact, domain_type *closest_match, 
+static void answer_lookup_zone(struct nsd *nsd, struct query *q,
+			       answer_type *answer, uint32_t domain_number,
+			       int exact, domain_type *closest_match,
 			       domain_type *closest_encloser,
 			       const dname_type *qname);
 
@@ -559,22 +559,22 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 		      int allow_glue, struct additional_rr_types types[])
 {
 	size_t i;
-	
+
 	assert(query);
 	assert(answer);
 	assert(master_rrset);
 	assert(rdata_atom_is_domain(rrset_rrtype(master_rrset), rdata_index));
-	
+
 	for (i = 0; i < master_rrset->rr_count; ++i) {
 		int j;
 		domain_type *additional = rdata_atom_domain(master_rrset->rrs[i].rdatas[rdata_index]);
 		domain_type *match = additional;
-		
+
 		assert(additional);
 
 		if (!allow_glue && domain_is_glue(match, query->zone))
 			continue;
-		
+
 		/*
 		 * Check to see if we need to generate the dependent
 		 * based on a wildcard domain.
@@ -614,13 +614,13 @@ add_rrset(struct query   *query,
 	  rrset_type     *rrset)
 {
 	int result;
-	
+
 	assert(query);
 	assert(answer);
 	assert(owner);
 	assert(rrset);
 	assert(rrset_rrclass(rrset) == CLASS_IN);
-	
+
 	result = answer_add_rrset(answer, section, owner, rrset);
 	switch (rrset_rrtype(rrset)) {
 	case TYPE_NS:
@@ -653,7 +653,7 @@ add_rrset(struct query   *query,
    DNAME rr is from src to dest.
    closest encloser encloses the to_name. */
 static uint32_t
-query_synthesize_cname(struct query* q, struct answer* answer, const dname_type* from_name, 
+query_synthesize_cname(struct query* q, struct answer* answer, const dname_type* from_name,
 	const dname_type* to_name, domain_type* src, domain_type* to_closest_encloser,
 	domain_type** to_closest_match)
 {
@@ -901,7 +901,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 	}
 
 	q->domain = domain;
-	
+
 	if (q->qclass != CLASS_ANY && q->zone->ns_rrset) {
 		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->apex,
 			  q->zone->ns_rrset);
@@ -972,7 +972,7 @@ answer_authoritative(struct nsd   *nsd,
 			/* follow the DNAME */
 			exact = namedb_lookup(nsd->db, newname, &closest_match, &closest_encloser);
 			/* synthesize CNAME record */
-			newnum = query_synthesize_cname(q, answer, name, newname, 
+			newnum = query_synthesize_cname(q, answer, name, newname,
 				src, closest_encloser, &closest_match);
 			if(!newnum) {
 				/* could not synthesize the CNAME. */
@@ -983,7 +983,7 @@ answer_authoritative(struct nsd   *nsd,
 			while (closest_encloser && !closest_encloser->is_existing)
 				closest_encloser = closest_encloser->parent;
 			answer_lookup_zone(nsd, q, answer, newnum,
-				closest_match == closest_encloser, 
+				closest_match == closest_encloser,
 				closest_match, closest_encloser, newname);
 			q->zone = origzone;
 		}

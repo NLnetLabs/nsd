@@ -21,7 +21,7 @@
 
 #define YY_NO_UNPUT
 
-#if 0
+#if 1
 #define LEXOUT(s)  printf s /* used ONLY when debugging */
 #else
 #define LEXOUT(s)
@@ -293,7 +293,6 @@ rrtype_to_token(const char *word, uint16_t *type)
 
 	return 0;
 }
-
 
 /*
  * Remove \DDD constructs from the input. See RFC 1035, section 5.1.

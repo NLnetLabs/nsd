@@ -1450,14 +1450,9 @@ handle_tcp_reading(netio_type *netio,
 				return;
 			} else {
 #ifdef ECONNRESET
-				if (verbosity >= 2 || errno != ECONNRESET) {
-					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-				}
-#else /* !ECONNRESET */
-				if (verbosity >= 2) {
-					log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-				}
+				if (verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
+				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 				cleanup_tcp_handler(netio, handler);
 				return;
 			}
@@ -1518,14 +1513,9 @@ handle_tcp_reading(netio_type *netio,
 			return;
 		} else {
 #ifdef ECONNRESET
-			if (verbosity >= 2 || errno != ECONNRESET) {
-				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-			}
-#else /* ECONNRESET */
-			if (verbosity >= 2) {
-				log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
-			}
-#endif
+			if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+			log_msg(LOG_ERR, "failed reading from tcp: %s", strerror(errno));
 			cleanup_tcp_handler(netio, handler);
 			return;
 		}
@@ -1623,8 +1613,8 @@ handle_tcp_writing(netio_type *netio,
 				return;
 			} else {
 #ifdef ECONNRESET
-				if(verbosity>=2 || errno != ECONNRESET)
-#endif
+				if(verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
 				log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
 				cleanup_tcp_handler(netio, handler);
 				return;
@@ -1657,8 +1647,8 @@ handle_tcp_writing(netio_type *netio,
 			return;
 		} else {
 #ifdef ECONNRESET
-			if(verbosity>=2 || errno != ECONNRESET)
-#endif
+			if(verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
 			log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
 			cleanup_tcp_handler(netio, handler);
 			return;

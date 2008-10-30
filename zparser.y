@@ -80,6 +80,7 @@ nsec3_add_params(const char* hash_algo_str, const char* flag_str,
 %type <type>	type_and_rdata
 %type <domain>	owner dname abs_dname
 %type <dname>	rel_dname label
+%type <data>	wire_dname wire_abs_dname wire_rel_dname wire_label
 %type <data>	concatenated_str_seq str_sp_seq str_dot_seq dotted_str
 %type <data>	nxt_seq nsec_more
 %type <unknown> rdata_unknown
@@ -265,6 +266,69 @@ rel_dname:	label
 	    }
     }
     ;
+
+/*
+ * Some dnames in rdata are handled as opaque blobs
+ */
+
+wire_dname:	wire_abs_dname
+    |	wire_rel_dname
+    ;
+
+wire_abs_dname:	'.'
+    {
+	    char *result = (char *) region_alloc(parser->rr_region, 2);
+	    result[0] = 0;
+	    result[1] = '\0';
+	    $$.str = result;
+	    $$.len = 1;
+    }
+    |	wire_rel_dname '.'
+    {
+	    char *result = (char *) region_alloc(parser->rr_region,
+						 $1.len + 2);
+	    memcpy(result, $1.str, $1.len);
+	    result[$1.len] = 0;
+	    result[$1.len+1] = '\0';
+	    $$.str = result;
+	    $$.len = $1.len + 1;
+    }
+    ;
+
+wire_label:	STR
+    {
+	    char *result = (char *) region_alloc(parser->rr_region,
+						 $1.len + 1);
+
+	    if ($1.len > MAXLABELLEN)
+		    zc_error("label exceeds %d character limit", MAXLABELLEN);
+
+	    /* make label anyway */
+	    result[0] = $1.len;
+	    memcpy(result+1, $1.str, $1.len);
+
+	    $$.str = result;
+	    $$.len = $1.len + 1;
+    }
+    ;
+
+wire_rel_dname:	wire_label
+    |	wire_rel_dname '.' wire_label
+    {
+	    if ($1.len + $3.len - 3 > MAXDOMAINLEN)
+		    zc_error("domain name exceeds %d character limit",
+			     MAXDOMAINLEN);
+
+	    /* make dname anyway */
+	    $$.len = $1.len + $3.len;
+	    $$.str = (char *) region_alloc(parser->rr_region, $$.len + 1);
+	    memcpy($$.str, $1.str, $1.len);
+	    memcpy($$.str + $1.len, $3.str, $3.len);
+	    $$.str[$$.len] = '\0';
+    }
+    ;
+
+
 
 str_seq:	STR
     {
@@ -759,10 +823,8 @@ rdata_dhcid:	str_sp_seq trail
     }
     ;
 
-rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dotted_str sp str_sp_seq trail
+rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp wire_dname sp str_sp_seq trail
     {
-	    const dname_type* name = 0;
-
 	    zadd_rdata_wireformat(zparser_conv_rrtype(parser->region, $1.str)); /* rr covered */
 	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $3.str)); /* alg */
 	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* # labels */
@@ -770,23 +832,16 @@ rdata_rrsig:	STR sp STR sp STR sp STR sp STR sp STR sp STR sp dotted_str sp str_
 	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $9.str)); /* sig exp */
 	    zadd_rdata_wireformat(zparser_conv_time(parser->region, $11.str)); /* sig inc */
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $13.str)); /* key id */
-
-	    if(!(name = dname_parse_literal(parser->region, $15.str)))
-		zc_error_prev_line("RRSIG bad dname %s", $15.str);
-	    zadd_rdata_wireformat(alloc_rdata_init(parser->region,
-				dname_name(name), name->name_size)); /* signer name */
-
+	    zadd_rdata_wireformat(zparser_conv_dns_name(parser->region, 
+				(const uint8_t*) $15.str,$15.len)); /* sig name */
 	    zadd_rdata_wireformat(zparser_conv_b64(parser->region, $17.str)); /* sig data */
     }
     ;
 
-rdata_nsec:	dotted_str nsec_seq
+rdata_nsec:	wire_dname nsec_seq
     {
-	    const dname_type* name = 0;
-	    if(!(name = dname_parse_literal(parser->region, $1.str)))
-		zc_error_prev_line("NSEC bad dname %s", $1.str);
-	    zadd_rdata_wireformat(alloc_rdata_init(parser->region,
-				dname_name(name), name->name_size)); /* nsec name */
+	    zadd_rdata_wireformat(zparser_conv_dns_name(parser->region, 
+				(const uint8_t*) $1.str, $1.len)); /* nsec name */
 	    zadd_rdata_wireformat(zparser_conv_nsec(parser->region, nsecbits)); /* nsec bitlist */
 	    memset(nsecbits, 0, sizeof(nsecbits));
             nsec_highest_rcode = 0;
