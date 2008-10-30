@@ -396,6 +396,7 @@ main(int argc, char *argv[])
 		nsd.identity = IDENTITY;
 	}
 
+
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:V:v"
 #ifndef NDEBUG /* <mattthijs> only when configured with --enable-checking */

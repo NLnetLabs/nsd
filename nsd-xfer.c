@@ -129,6 +129,7 @@ error(const char *format, ...)
 	exit(XFER_FAIL);
 }
 
+
 /*
  * Log a warning message.
  */
@@ -225,6 +226,7 @@ read_tsig_key_data(region_type *region, FILE *in,
 		error("failed to read TSIG key name: '%s'", strerror(errno));
 		return NULL;
 	}
+
 	key->name = dname_parse(region, line);
 	if (!key->name) {
 		error("failed to parse TSIG key name '%s'", line);
@@ -248,11 +250,13 @@ read_tsig_key_data(region_type *region, FILE *in,
 		error("failed to read TSIG key data: '%s'\n", strerror(errno));
 		return NULL;
 	}
+
 	size = b64_pton(line, data, sizeof(data));
 	if (size == -1) {
 		error("failed to parse TSIG key data");
 		return NULL;
 	}
+
 	key->size = size;
 	key->data = (uint8_t *) region_alloc_init(region, data, key->size);
 
@@ -479,6 +483,7 @@ check_response_tsig(query_type *q, tsig_record_type *tsig)
 
 	return 1;
 }
+
 
 /*
  * Query the server for the zone serial. Return 1 if the zone serial
@@ -886,7 +891,9 @@ main(int argc, char *argv[])
 			error("cannot initialize TSIG: error in tsiginfo file");
 			exit(XFER_FAIL);
 		}
+
 		tsig_add_key(tsig_key);
+
 		state.tsig = (tsig_record_type *) region_alloc(
 			region, sizeof(tsig_record_type));
 		tsig_create_record(state.tsig, region);

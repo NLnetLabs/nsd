@@ -148,6 +148,7 @@ dname_name(const dname_type *dname)
 				  + dname->label_count * sizeof(uint8_t));
 }
 
+
 /*
  * Return the label for DNAME specified by LABEL_INDEX.  The first
  * label (LABEL_INDEX == 0) is the root label, the next label is the

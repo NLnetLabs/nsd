@@ -253,6 +253,7 @@ main (int argc, char *argv[])
 	tsig_record_type tsig;
 	tsig_algorithm_type* algo = NULL;
 #endif /* TSIG */
+
 	log_init("nsd-notify");
 #ifdef TSIG
 	if(!tsig_init(region)) {

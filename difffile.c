@@ -131,7 +131,6 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		log_msg(LOG_ERR, "could not write to file %s: %s",
 			filename, strerror(errno));
 	}
-
 	fflush(df);
 	fclose(df);
 }
@@ -679,6 +678,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		return 0;
 	}
 	/* read ixfr packet RRs and apply to in memory db */
+
 	if(!diff_read_32(in, &pkttype) || pkttype != DIFF_PART_IXFR) {
 		log_msg(LOG_ERR, "could not read type or wrong type");
 		return 0;

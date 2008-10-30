@@ -1,6 +1,6 @@
 NSD RELEASE NOTES
 
-3.1.2 (UPCOMING RELEASE)
+3.2.0 (UPCOMING RELEASE)
 =============
 OPERATIONAL NOTES:
 	- Format of ixfr.db has changed. When you are planning an upgrade to the 
@@ -13,11 +13,13 @@ OPERATIONAL NOTES:
 	  We strongly recommend to enable TSIG if you send IXFR over UDP.
 	  When all masters fail to transmit IXFR/UDP, slave will fallback to 
 		IXFR/TCP and eventually AXFR/TCP.
+	- nsd-patch prints errors to stderr instead of stdout.
 
 BUG FIXES:
 	- Only normalize dnames in rdatas when rrtype is listed in RFC 4034, 
 	  section 6.2: Canonical RR Form, following
 	  draft-ietf-dnsext-dnssec-bis-updates (affects RRSIG and NSEC records).
+	- Typo in zonec manpage.
 
 FEATURES:
 	- AXFR/TCP fallback in case of failing IXFR zone transfers.

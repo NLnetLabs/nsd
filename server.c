@@ -479,6 +479,7 @@ server_init(struct nsd *nsd)
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd->chrootdir));
+
 	}
 #endif
 	/* Check if nsd->dbfile exists */
@@ -622,7 +623,6 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 		/* CHILD: close first socket, use second one */
 		close(sockets[0]);
 		xfrd_init(sockets[1], nsd);
-
 		/* ENOTREACH */
 		break;
 	default:
@@ -631,7 +631,6 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 		handler->fd = sockets[0];
 		break;
 	}
-
 	/* PARENT only */
 	handler->timeout = NULL;
 	handler->event_types = NETIO_EVENT_READ;
@@ -1301,6 +1300,7 @@ server_child(struct nsd *nsd)
 #endif /* BIND8_STATS */
 
 	region_destroy(server_region);
+
 	server_shutdown(nsd);
 }
 
@@ -1848,6 +1848,7 @@ configure_handler_event_types(size_t count,
 	size_t i;
 
 	assert(handlers);
+
 	for (i = 0; i < count; ++i) {
 		handlers[i].event_types = event_types;
 	}

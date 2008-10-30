@@ -538,6 +538,7 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	if(set->tcp_state[conn]->fd != -1)
 		close(set->tcp_state[conn]->fd);
+
 	set->tcp_state[conn]->fd = -1;
 
 	if(set->tcp_count == XFRD_MAX_TCP && set->tcp_waiting_first) {

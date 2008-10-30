@@ -639,9 +639,11 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 
 		if (is_domain) {
 			const dname_type *dname;
+
 			if (!required && buffer_position(packet) == end) {
 				break;
 			}
+
 			dname = dname_make_from_packet(
 				temp_region, packet, 1, is_normalized);
 			if (!dname || buffer_position(packet) > end) {

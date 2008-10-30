@@ -628,6 +628,7 @@ zparser_conv_loc(region_type *region, char *str)
 	char *start;
 	double d;
 
+
 	for(;;) {
 		deg = min = secs = 0;
 
@@ -913,6 +914,7 @@ zparser_ttl2int(const char *ttlstr)
 
 	return ttl;
 }
+
 
 void
 zadd_rdata_wireformat(uint16_t *data)

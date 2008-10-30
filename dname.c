@@ -242,6 +242,7 @@ int dname_parse_wire(uint8_t* dname, const char* name)
 		*h = label_length;
 		h = p;
 	}
+
 	/* Add root label.  */
 	*h = 0;
 
@@ -493,3 +494,4 @@ dname_replace(region_type* region,
 	assert(dname_is_subdomain(res, dest));
 	return res;
 }
+

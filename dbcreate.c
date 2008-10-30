@@ -41,8 +41,8 @@ namedb_new (const char *filename)
 	db->fd = NULL;
 
 	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
-		log_msg(LOG_ERR, "unable to load %s: cannot initialize \
-timestamp", db->filename);
+		log_msg(LOG_ERR, "unable to load %s: cannot initialize "
+						 "timestamp", db->filename);
 		region_destroy(region);
 		return NULL;
 	}

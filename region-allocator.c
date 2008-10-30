@@ -227,6 +227,7 @@ region_alloc(region_type *region, size_t size)
 
 		region->total_allocated += size;
 		++region->large_objects;
+
 		return result;
 	}
 
