@@ -47,7 +47,7 @@ static char hostname[MAXHOSTNAMELEN];
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 /*
- * <matthijs> Print the help text exit.
+ * <matthijs> Print the help text.
  *
  */
 static void

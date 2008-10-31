@@ -47,7 +47,7 @@ struct addrinfo *find_by_address_family(struct addrinfo *addrs, int family);
 /*
  * Assigns pointers to hostname and port and wipes out the optional delimiter.
  */
-void get_hostname_port_frm_str(const char* arg, const char** hostname,
+void get_hostname_port_frm_str(char* arg, const char** hostname,
 	const char** port);
 
 /*
@@ -277,8 +277,8 @@ main (int argc, char *argv[])
 			exit(1);
 #endif /* !INET6 */
 		case 'a':
-			get_hostname_port_frm_str(optarg, &local_hostname,
-				&local_port);
+			get_hostname_port_frm_str((char *) optarg,
+				&local_hostname, &local_port);
 			break;
 		case 'p':
 			port = optarg;
@@ -424,7 +424,7 @@ main (int argc, char *argv[])
 }
 
 void
-get_hostname_port_frm_str(const char* arg, const char** hostname,
+get_hostname_port_frm_str(char* arg, const char** hostname,
         const char** port)
 {
 	/* parse -a src[@port] option */
