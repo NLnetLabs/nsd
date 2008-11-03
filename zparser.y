@@ -904,7 +904,6 @@ rdata_ipsec_base: STR sp STR sp STR sp dotted_str
 				zc_error_prev_line("IPSECKEY must specify gateway name");
 			if(!(name = dname_parse(parser->region, $7.str)))
 				zc_error_prev_line("IPSECKEY bad gateway dname %s", $7.str);
-			/* <matthijs> doesn't dname_parse already concatenate origin? */
 			if($7.str[strlen($7.str)-1] != '.')
 				name = dname_concatenate(parser->rr_region, name, 
 					domain_dname(parser->origin));
