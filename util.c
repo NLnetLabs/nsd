@@ -68,7 +68,7 @@ log_finalize(void)
 #ifdef HAVE_SYSLOG_H
 	closelog();
 #endif /* HAVE_SYSLOG_H */
-	if (current_log_file != stderr) {
+	if (current_log_file && current_log_file != stderr) {
 		fclose(current_log_file);
 	}
 	current_log_file = NULL;

@@ -20,6 +20,7 @@ BUG FIXES:
 	  section 6.2: Canonical RR Form, following
 	  draft-ietf-dnsext-dnssec-bis-updates (affects RRSIG and NSEC records).
 	- Typo in zonec manpage.
+	- Bugfix in log_finalize.
 
 FEATURES:
 	- AXFR/TCP fallback in case of failing IXFR zone transfers.
