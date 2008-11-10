@@ -26,6 +26,7 @@ BUG FIXES:
 	  draft-ietf-dnsext-dnssec-bis-updates (affects RRSIG and NSEC records).
 	- Typo in zonec manpage.
 	- Bugfix in log_finalize.
+	- Fix race condition between nsdc patch and server reload.
 
 FEATURES:
 	- AXFR/TCP fallback in case of failing IXFR zone transfers.
