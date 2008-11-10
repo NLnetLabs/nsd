@@ -54,8 +54,9 @@ log_open(int option, int facility, const char *filename)
 	if (filename) {
 		FILE *file = fopen(filename, "a");
 		if (!file) {
-			log_msg(LOG_ERR, "Cannot open %s for appending, logging to stderr",
-				filename);
+			log_msg(LOG_ERR, "Cannot open %s for appending (%s), "
+					 "logging to stderr",
+				filename, strerror(errno));
 		} else {
 			current_log_file = file;
 		}
@@ -68,7 +69,7 @@ log_finalize(void)
 #ifdef HAVE_SYSLOG_H
 	closelog();
 #endif /* HAVE_SYSLOG_H */
-	if (current_log_file != stderr) {
+	if (current_log_file && current_log_file != stderr) {
 		fclose(current_log_file);
 	}
 	current_log_file = NULL;
@@ -739,7 +740,7 @@ cleanup_region(void *data)
 	region_destroy(region);
 }
 
-struct state_pretty_rr* 
+struct state_pretty_rr*
 create_pretty_rr(struct region* region)
 {
 	struct state_pretty_rr* state = (struct state_pretty_rr*)
@@ -747,7 +748,7 @@ create_pretty_rr(struct region* region)
 	state->previous_owner_region = region_create(xalloc, free);
 	state->previous_owner = NULL;
 	state->previous_owner_origin = NULL;
-        region_add_cleanup(region, cleanup_region, 
+        region_add_cleanup(region, cleanup_region,
 		state->previous_owner_region);
 	return state;
 }

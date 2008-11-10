@@ -855,7 +855,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
-	DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload exiting to become new main"));
 	/* exit reload, continue as new server_main */
 }
 

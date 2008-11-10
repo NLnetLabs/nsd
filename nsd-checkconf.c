@@ -476,6 +476,11 @@ main(int argc, char* argv[])
 
 	/* read config file */
 	options = nsd_options_create(region_create(xalloc, free));
+	if (!options) {
+		fprintf(stderr, "could not create options for checking\n");
+		exit(1);
+	}
+
 	if (!parse_options_file(options, configfile) ||
 	   !additional_checks(options, configfile)) {
 		exit(2);

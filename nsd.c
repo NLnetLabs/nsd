@@ -345,7 +345,6 @@ main(int argc, char *argv[])
 	const char *udp_port = 0;
 	const char *tcp_port = 0;
 
-	const char *log_filename = NULL;
 	const char *configfile = CONFIGFILE;
 
 	log_init("nsd");
@@ -458,7 +457,7 @@ main(int argc, char *argv[])
 #endif /* NSID */
                        break;
 		case 'l':
-			log_filename = optarg;
+			nsd.log_filename = optarg;
 			break;
 		case 'N':
 			i = atoi(optarg);
@@ -526,6 +525,8 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
+	nsd_debug_level = 10;
+
 	/* <matthijs> commandline parse error */
 	if (argc != 0) {
 		usage();
@@ -540,7 +541,7 @@ main(int argc, char *argv[])
 	/* Read options */
 	nsd.options = nsd_options_create(region_create(xalloc, free));
 	if(!parse_options_file(nsd.options, configfile)) {
-		error("nsd: could not read config: %s\n", configfile);
+		error("could not read config: %s\n", configfile);
 	}
 	if(nsd.options->ip4_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -562,7 +563,8 @@ main(int argc, char *argv[])
 				nodes[nsd.ifs] = ip->address;
 				++nsd.ifs;
 			} else {
-				error("too many interfaces ('-a' + 'ip-address:') specified.");
+				error("too many interfaces ('-a' + "
+				      "'ip-address:') specified.");
 				break;
 			}
 			ip = ip->next;
@@ -589,8 +591,8 @@ main(int argc, char *argv[])
 	{
 		if(nsd.options->identity) nsd.identity = nsd.options->identity;
 	}
-	if (nsd.options->logfile && !log_filename) {
-		log_filename = nsd.options->logfile;
+	if (nsd.options->logfile && !nsd.log_filename) {
+		nsd.log_filename = nsd.options->logfile;
 	}
 	if(nsd.child_count == 0) {
 		nsd.child_count = nsd.options->server_count;
@@ -638,18 +640,22 @@ main(int argc, char *argv[])
 	/* Number of child servers to fork.  */
 	nsd.children = (struct nsd_child *) region_alloc(
 		nsd.region, nsd.child_count * sizeof(struct nsd_child));
-	for (i = 0; i < nsd.child_count; ++i) {
-		nsd.children[i].kind = NSD_SERVER_BOTH;
-		nsd.children[i].pid = -1;
-		nsd.children[i].child_fd = -1;
-		nsd.children[i].parent_fd = -1;
-		nsd.children[i].handler = NULL;
-		nsd.children[i].need_to_send_STATS = 0;
-		nsd.children[i].need_to_send_QUIT = 0;
-		nsd.children[i].need_to_exit = 0;
-		nsd.children[i].has_exited = 0;
-		nsd.children[i].dirty_zones = stack_create(nsd.region,
-			nsd_options_num_zones(nsd.options));
+	if (!nsd.children)
+		error("cannot allocate child processes");
+	else {
+		for (i = 0; i < nsd.child_count; ++i) {
+			nsd.children[i].kind = NSD_SERVER_BOTH;
+			nsd.children[i].pid = -1;
+			nsd.children[i].child_fd = -1;
+			nsd.children[i].parent_fd = -1;
+			nsd.children[i].handler = NULL;
+			nsd.children[i].need_to_send_STATS = 0;
+			nsd.children[i].need_to_send_QUIT = 0;
+			nsd.children[i].need_to_exit = 0;
+			nsd.children[i].has_exited = 0;
+			nsd.children[i].dirty_zones = stack_create(nsd.region,
+				nsd_options_num_zones(nsd.options));
+		}
 	}
 
 	nsd.this_child = NULL;
@@ -756,9 +762,9 @@ main(int argc, char *argv[])
 	key_options_tsig_add(nsd.options);
 #endif /* TSIG */
 
-	/* Set up the logging... */
-	log_open(LOG_PID, FACILITY, log_filename);
-	if (!log_filename) {
+	/* Set up the logging */
+	log_open(LOG_PID, FACILITY, nsd.log_filename);
+	if (!nsd.log_filename) {
 		log_set_log_function(log_syslog);
 	}
 
@@ -877,6 +883,8 @@ main(int argc, char *argv[])
 not be started");
 		exit(1);
 	}
+
+	fprintf(stdout, "logfile %s opened\n", nsd.log_filename);
 
 	log_msg(LOG_NOTICE, "nsd started (%s), pid %d", PACKAGE_STRING,
 		(int) nsd.pid);

@@ -1,6 +1,11 @@
 NSD RELEASE NOTES
 
-3.2.0 (UPCOMING RELEASE)
+3.2.1 (UPCOMING RELEASE)
+=============
+BUG FIXES:
+	- Added checks after trying to allocate memory.
+
+3.2.0
 =============
 OPERATIONAL NOTES:
 	- Format of ixfr.db has changed. When you are planning an upgrade to the 
@@ -20,6 +25,7 @@ BUG FIXES:
 	  section 6.2: Canonical RR Form, following
 	  draft-ietf-dnsext-dnssec-bis-updates (affects RRSIG and NSEC records).
 	- Typo in zonec manpage.
+	- Bugfix in log_finalize.
 
 FEATURES:
 	- AXFR/TCP fallback in case of failing IXFR zone transfers.

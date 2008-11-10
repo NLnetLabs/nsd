@@ -78,34 +78,48 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 {
 	struct notify_zone_t* not = (struct notify_zone_t*)
 		region_alloc(region, sizeof(struct notify_zone_t));
-	memset(not, 0, sizeof(struct notify_zone_t));
-	not->apex = apex;
-	not->apex_str = options->name;
-	not->node.key = not->apex;
-	not->options = options;
+	if (!not)
+		log_msg(LOG_ERR, "xfrd: region_alloc failed "
+				 "(init_notify_send)");
+	else {
+		memset(not, 0, sizeof(struct notify_zone_t));
+		not->apex = apex;
+		not->apex_str = options->name;
+		not->node.key = not->apex;
+		not->options = options;
 
-	/* if master zone and have a SOA */
-	not->current_soa = (struct xfrd_soa*)region_alloc(region,
-		sizeof(struct xfrd_soa));
-	memset(not->current_soa, 0, sizeof(struct xfrd_soa));
-	if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
-		xfrd_copy_soa(not->current_soa, dbzone->soa_rrset->rrs);
-	}
+		/* if master zone and have a SOA */
+		not->current_soa = (struct xfrd_soa*)region_alloc(region,
+			sizeof(struct xfrd_soa));
+		if (!not->current_soa)
+			log_msg(LOG_ERR, "xfrd: region_alloc failed "
+				 "(init_notify_send, current_soa)");
+		else {
+			memset(not->current_soa, 0, sizeof(struct xfrd_soa));
+			if(dbzone && dbzone->soa_rrset &&
+						dbzone->soa_rrset->rrs) {
+				xfrd_copy_soa(not->current_soa,
+					dbzone->soa_rrset->rrs);
+			}
+		}
 
-	not->is_waiting = 0;
-	not->notify_send_handler.fd = -1;
-	not->notify_send_handler.timeout = 0;
-	not->notify_send_handler.user_data = not;
-	not->notify_send_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
-	not->notify_send_handler.event_handler = xfrd_handle_notify_send;
-	netio_add_handler(netio, &not->notify_send_handler);
+		not->is_waiting = 0;
+		not->notify_send_handler.fd = -1;
+		not->notify_send_handler.timeout = 0;
+		not->notify_send_handler.user_data = not;
+		not->notify_send_handler.event_types =
+				NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+		not->notify_send_handler.event_handler =
+				xfrd_handle_notify_send;
+		netio_add_handler(netio, &not->notify_send_handler);
 
 #ifdef TSIG
-	tsig_create_record_custom(&not->notify_tsig, region, 0, 0, 4);
+		tsig_create_record_custom(&not->notify_tsig, region, 0, 0, 4);
 #endif /* TSIG */
-	not->notify_current = 0;
+		not->notify_current = 0;
 
-	rbtree_insert(tree, (rbnode_t*)not);
+		rbtree_insert(tree, (rbnode_t*)not);
+	}
 }
 
 static int

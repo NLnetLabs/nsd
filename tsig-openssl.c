@@ -40,6 +40,12 @@ tsig_openssl_init_algorithm(region_type* region,
 
 	algorithm = (tsig_algorithm_type *) region_alloc(
 		region, sizeof(tsig_algorithm_type));
+	if (!algorithm) {
+		log_msg(LOG_ERR, "region_alloc failed "
+				 "(tsig_openssl_init_algorithm)");
+		return 0;
+	}
+
 	algorithm->short_name = name;
 	algorithm->wireformat_name
 		= dname_parse(region, wireformat);
@@ -87,8 +93,12 @@ create_context(region_type *region)
 {
 	HMAC_CTX *context
 		= (HMAC_CTX *) region_alloc(region, sizeof(HMAC_CTX));
-	region_add_cleanup(region, cleanup_context, context);
-	HMAC_CTX_init(context);
+	if (context) {
+		region_add_cleanup(region, cleanup_context, context);
+		HMAC_CTX_init(context);
+	}
+	else
+		log_msg(LOG_ERR, "region_alloc failed (create_context)");
 	return context;
 }
 
