@@ -260,7 +260,7 @@ xfrd_init_zones()
 		xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
 		if (!xzone)
 			log_msg(LOG_ERR, "xfrd: cannot allocate xfrd zone %s",
-				zone_opt->name)
+				zone_opt->name);
 		else {
 			memset(xzone, 0, sizeof(xfrd_zone_t));
 			xzone->apex = dname;
