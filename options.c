@@ -102,7 +102,7 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 		return 0;
 	}
 	c_in = in;
-        c_parse();
+	c_parse();
 	fclose(in);
 
 	if(cfg_parser->current_zone) {
@@ -601,6 +601,7 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 	acl->ip_address_spec = region_strdup(region, ip);
 	acl->use_axfr_only = 0;
 	acl->allow_udp = 0;
+	acl->ixfr_disabled = 0;
 	acl->key_options = 0;
 	acl->is_ipv6 = 0;
 	acl->port = 0;

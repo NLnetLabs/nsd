@@ -100,6 +100,7 @@ struct acl_options {
 
 	/* options */
 	uint8_t use_axfr_only;
+	uint8_t ixfr_disabled;
 	uint8_t allow_udp;
 
 	/* ip address range */

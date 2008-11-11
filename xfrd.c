@@ -32,9 +32,7 @@
 #define XFRD_UDP_TIMEOUT 10 /* seconds, before a udp request times out */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
 #define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
-#define XFRD_IXFR_UDP_ROUNDS 2 /* number of ixfr/udp rounds along the masters */
-#define XFRD_IXFR_TCP_ROUNDS 3 /* number of ixfr/tcp rounds along the masters */
-#define XFRD_MAX_ROUNDS 4 /* max number of rounds along the masters */
+#define XFRD_MAX_ROUNDS 3 /* max number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
 
@@ -116,7 +114,8 @@ xfrd_init(int socket, struct nsd* nsd)
 			xfrd->parent_soa_info_pass = 0;
 
 			/* add the handlers already, because this involves
-								allocs */
+			 * allocs.
+			 */
 			xfrd->reload_handler.fd = -1;
 			xfrd->reload_handler.timeout = NULL;
 			xfrd->reload_handler.user_data = xfrd;
@@ -470,6 +469,9 @@ xfrd_make_request(xfrd_zone_t* zone)
 {
 	if(zone->next_master != -1) {
 		/* we are told to use this next master */
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+			"xfrd zone %s use master %i",
+			zone->apex_str, zone->next_master));
 		zone->master_num = zone->next_master;
 		zone->master = acl_find_num(
 			zone->zone_options->request_xfr, zone->master_num);
@@ -509,28 +511,25 @@ xfrd_make_request(xfrd_zone_t* zone)
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s make request round %d mr %d nx %d",
 		zone->apex_str, zone->round_num, zone->master_num, zone->next_master));
 	/* perform xfr request */
-	if (!zone->master->use_axfr_only && zone->soa_disk_acquired > 0
-				&& zone->round_num < XFRD_IXFR_UDP_ROUNDS
-				&& zone->master->allow_udp)
-	{
-		xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
-		xfrd_udp_obtain(zone);
-	}
-	else if (!zone->master->use_axfr_only && zone->soa_disk_acquired > 0
-				&& zone->round_num < XFRD_IXFR_TCP_ROUNDS)
-	{
-		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
-		xfrd_tcp_obtain(xfrd->tcp_set, zone);
-	}
-	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0
-			|| zone->round_num >= XFRD_IXFR_TCP_ROUNDS)
-	{
-		uint8_t axfr = zone->master->use_axfr_only;
-		zone->master->use_axfr_only = 1;
-		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
-		xfrd_tcp_obtain(xfrd->tcp_set, zone);
+	if (!zone->master->use_axfr_only && !zone->master->ixfr_disabled &&
+		zone->soa_disk_acquired > 0) {
 
-		zone->master->use_axfr_only = axfr;
+		if (zone->master->allow_udp) {
+			xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
+			xfrd_udp_obtain(zone);
+		}
+		else { /* doing 3 rounds of IXFR/TCP might not be useful */
+			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_tcp_obtain(xfrd->tcp_set, zone);
+		}
+	}
+	else if (zone->master->use_axfr_only || zone->master->ixfr_disabled ||
+		zone->soa_disk_acquired <= 0) {
+
+		/* <matthijs> fallback to axfr because ixfr disabled */
+		/* ... or axfr only or no soa on disk */
+		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+		xfrd_tcp_obtain(xfrd->tcp_set, zone);
 	}
 }
 
@@ -812,6 +811,13 @@ xfrd_udp_read(xfrd_zone_t* zone)
 			/* nothing more to do */
 			assert(zone->round_num == -1);
 			xfrd_udp_release(zone);
+			break;
+		case xfrd_packet_notimpl:
+			zone->master->ixfr_disabled = 1;
+			/* drop packet */
+			xfrd_udp_release(zone);
+			/* query next server */
+			xfrd_make_request(zone);
 			break;
 		case xfrd_packet_more:
 		case xfrd_packet_bad:
@@ -1197,6 +1203,10 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 				 "%s",
 			zone->apex_str, rcode2str(RCODE(packet)),
 			zone->master->ip_address_spec);
+		if (RCODE(packet) == RCODE_IMPL ||
+			RCODE(packet) == RCODE_FORMAT) {
+			return xfrd_packet_notimpl;
+		}
 		return xfrd_packet_bad;
 	}
 #ifdef TSIG
@@ -1352,6 +1362,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			return xfrd_packet_newlease;
 		case xfrd_packet_tcp:
 			return xfrd_packet_tcp;
+		case xfrd_packet_notimpl:
 		case xfrd_packet_bad:
 		default:
 			/* rollback */
@@ -1382,7 +1393,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 					zone->apex_str,
 					(char*)buffer_begin(packet)));
 			}
-			return xfrd_packet_bad;
+			return res;
 	}
 
 	/* dump reply on disk to diff file */
