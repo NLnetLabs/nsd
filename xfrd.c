@@ -30,6 +30,7 @@
 #define XFRD_TRANSFER_TIMEOUT_MAX 14400 /* empty zone timeout max expbackoff */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connection is stopped */
 #define XFRD_UDP_TIMEOUT 10 /* seconds, before a udp request times out */
+#define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr's after notimpl */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
 #define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
 #define XFRD_MAX_ROUNDS 3 /* max number of rounds along the masters */
@@ -508,6 +509,16 @@ xfrd_make_request(xfrd_zone_t* zone)
 		}
 	}
 
+	/* <matthijs> cache ixfr_disabled only for XFRD_NO_IXFR_CACHE time */
+	if (zone->master->ixfr_disabled &&
+	   (zone->master->ixfr_disabled + XFRD_NO_IXFR_CACHE) <= time(NULL)) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "clear negative caching ixfr "
+						"disabled for master %s num "
+						"%d ",
+			zone->master->ip_address_spec, zone->master_num));
+		zone->master->ixfr_disabled = 0;
+	}
+
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s make request round %d mr %d nx %d",
 		zone->apex_str, zone->round_num, zone->master_num, zone->next_master));
 	/* perform xfr request */
@@ -813,7 +824,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 			xfrd_udp_release(zone);
 			break;
 		case xfrd_packet_notimpl:
-			zone->master->ixfr_disabled = 1;
+			zone->master->ixfr_disabled = time(NULL);
 			/* drop packet */
 			xfrd_udp_release(zone);
 			/* query next server */

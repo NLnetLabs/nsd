@@ -290,7 +290,8 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
 	/* start AXFR or IXFR for the zone */
-	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only || zone->master->ixfr_disabled) {
+	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only ||
+						zone->master->ixfr_disabled) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request full zone transfer "
 						"(AXFR) for %s to %s",
 			zone->apex_str, zone->master->ip_address_spec));
@@ -516,7 +517,7 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 			assert(zone->round_num == -1);
 			break;
 		case xfrd_packet_notimpl:
-			zone->master->ixfr_disabled = 1;
+			zone->master->ixfr_disabled = time(NULL);
 			xfrd_tcp_release(set, zone);
 			/* query next server */
 			xfrd_make_request(zone);
