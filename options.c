@@ -221,6 +221,7 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->notify = 0;
 	zone->provide_xfr = 0;
 	zone->outgoing_interface = 0;
+	zone->allow_axfr_fallback = 1;
 	return zone;
 }
 

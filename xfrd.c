@@ -522,8 +522,8 @@ xfrd_make_request(xfrd_zone_t* zone)
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s make request round %d mr %d nx %d",
 		zone->apex_str, zone->round_num, zone->master_num, zone->next_master));
 	/* perform xfr request */
-	if (!zone->master->use_axfr_only && !zone->master->ixfr_disabled &&
-		zone->soa_disk_acquired > 0) {
+	if (!zone->master->use_axfr_only && zone->soa_disk_acquired > 0 &&
+		!zone->master->ixfr_disabled) {
 
 		if (zone->master->allow_udp) {
 			xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
@@ -534,13 +534,19 @@ xfrd_make_request(xfrd_zone_t* zone)
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
 	}
-	else if (zone->master->use_axfr_only || zone->master->ixfr_disabled ||
-		zone->soa_disk_acquired <= 0) {
+	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0 ||
+		zone->master->ixfr_disabled) {
 
 		/* <matthijs> fallback to axfr because ixfr disabled */
 		/* ... or axfr only or no soa on disk */
-		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
-		xfrd_tcp_obtain(xfrd->tcp_set, zone);
+		if (zone->zone_options->allow_axfr_fallback) {
+			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_tcp_obtain(xfrd->tcp_set, zone);
+		}
+		else
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s axfr "
+				"fallback not allowed, skipping master %s.",
+				zone->apex_str, zone->master->ip_address_spec));
 	}
 }
 

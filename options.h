@@ -81,6 +81,8 @@ struct zone_options {
 	acl_options_t* notify;
 	acl_options_t* provide_xfr;
 	acl_options_t* outgoing_interface;
+
+	uint8_t allow_axfr_fallback;
 };
 
 union acl_addr_storage {
