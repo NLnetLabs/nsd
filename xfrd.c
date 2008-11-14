@@ -534,11 +534,11 @@ xfrd_make_request(xfrd_zone_t* zone)
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
 	}
-	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0 ||
-		zone->master->ixfr_disabled) {
-
-		/* <matthijs> fallback to axfr because ixfr disabled */
-		/* ... or axfr only or no soa on disk */
+	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0) {
+		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+		xfrd_tcp_obtain(xfrd->tcp_set, zone);
+	}
+	else if (zone->master->ixfr_disabled) {
 		if (zone->zone_options->allow_axfr_fallback) {
 			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
