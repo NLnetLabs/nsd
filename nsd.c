@@ -525,10 +525,6 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-#ifndef NDEBUG
-	nsd_debug_level = 10;
-#endif
-
 	/* <matthijs> commandline parse error */
 	if (argc != 0) {
 		usage();
