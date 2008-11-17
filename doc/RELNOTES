@@ -2,8 +2,18 @@ NSD RELEASE NOTES
 
 3.2.1 (UPCOMING RELEASE)
 =============
+OPERATIONAL NOTES:
+	- NSD will now fallback to AXFR  only if the master does not support IXFR.
+
 BUG FIXES:
-	- Added checks after trying to allocate memory.
+	- Added several checks after trying to allocate memory.
+
+FEATURES:
+	- New configuration option 'allow-afxr-fallback', "yes" by default. If
+		set to "no", NSD will never do AXFR fallback, even if the master 
+		does not support IXFR.
+	- You can perform file rotation on nsd.log, assuming you don't have root 
+		privileges on the logfile.
 
 3.2.0
 =============

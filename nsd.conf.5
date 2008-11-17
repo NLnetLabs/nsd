@@ -264,6 +264,10 @@ Kaminsky-style attacks. If the UDP option is left out then IXFR will be
 transmitted using TCP.
 .RE
 .TP
+.B allow\-axfr\-fallback:\fR <yes or no>
+This option should be accompanied by request-xfr. It (dis)allows the secondary 
+to fallback to AXFR if the primary does not support IXFR.
+.TP
 .B notify:\fR <ip\-address> <key\-name | NOKEY>
 Access control list. The listed address (a secondary) is notified 
 of updates to this zone. The specified key is used to sign the 
