@@ -855,6 +855,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
+
+	/* try to reopen file */
+	log_reopen(nsd->log_filename, 1);
+
 	/* exit reload, continue as new server_main */
 }
 

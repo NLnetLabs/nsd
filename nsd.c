@@ -882,8 +882,6 @@ not be started");
 		exit(1);
 	}
 
-	fprintf(stdout, "logfile %s opened\n", nsd.log_filename);
-
 	log_msg(LOG_NOTICE, "nsd started (%s), pid %d", PACKAGE_STRING,
 		(int) nsd.pid);
 

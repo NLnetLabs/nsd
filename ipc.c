@@ -808,6 +808,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd->parent_soa_info_pass = 0;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;
+		xfrd_reopen_logfile();
 		xfrd_check_failed_updates();
 		xfrd_send_expy_all_zones();
 		break;

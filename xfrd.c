@@ -331,6 +331,12 @@ xfrd_send_expy_all_zones()
 	}
 }
 
+void
+xfrd_reopen_logfile()
+{
+	log_reopen(xfrd->nsd->log_filename, 0);
+}
+
 static void
 xfrd_free_namedb()
 {
