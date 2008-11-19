@@ -1,3 +1,7 @@
+18 November 2008: Matthijs
+	- chown logfile, don't do file rotation if logfile is outside absolute 
+		and outside chroot.
+
 17 November 2008: Matthijs
 	- File rotation for nsd.log when owned by nsd (+ tpkg test).
 	- Only AXFR fallback if master responded NOTIMPL or FORMATERR on IXFR 

@@ -12,8 +12,7 @@ FEATURES:
 	- New configuration option 'allow-afxr-fallback', "yes" by default. If
 		set to "no", NSD will never do AXFR fallback, even if the master 
 		does not support IXFR.
-	- You can perform file rotation on nsd.log, assuming you don't have root 
-		privileges on the logfile.
+	- Allow file rotation on nsd.log.
 
 3.2.0
 =============

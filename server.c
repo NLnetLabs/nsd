@@ -326,6 +326,20 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 }
 
+static int
+file_inside_chroot(const char* fname, const char* chr)
+{
+#ifdef NDEBUG
+	assert(chr);
+#endif /* NDEBUG */
+	/* logfile and chroot the same? */
+	if (fname && fname[0] && chr[0] && !strncmp(fname, chr, strlen(chr)))
+		return 2; /* strip chroot, file rotation ok */
+	else if (fname[0] != '/')
+		return 1; /* don't strip, file rotation ok */
+	return 0; /* don't strip, don't try file rotation */
+}
+
 /*
  * Initialize the server, create and bind the sockets.
  * Drop the privileges and chroot if requested.
@@ -464,9 +478,19 @@ server_init(struct nsd *nsd)
 	/* Chroot */
 	if (nsd->chrootdir) {
 		int l = strlen(nsd->chrootdir);
+		int ret = 0;
 
 		while (l>0 && nsd->chrootdir[l-1] == '/')
 			--l;
+
+		/* logfile */
+		ret = file_inside_chroot(nsd->log_filename, nsd->chrootdir);
+		if (ret)
+		{
+			nsd->file_rotation_ok = 1;
+			if (ret == 2) /* also strip chroot */
+				nsd->log_filename += l;
+		}
 
 		nsd->dbfile += l;
 		nsd->pidfile += l;
@@ -479,9 +503,14 @@ server_init(struct nsd *nsd)
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd->chrootdir));
-
 	}
+	else
 #endif
+		nsd->file_rotation_ok = 1;
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "file rotation on %s %sabled",
+		nsd->log_filename, nsd->file_rotation_ok?"en":"dis"));
+
 	/* Check if nsd->dbfile exists */
 	if ((dbfd = fopen(nsd->dbfile, "r")) == NULL) {
 		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd->dbfile, strerror(errno));
@@ -857,8 +886,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	}
 
 	/* try to reopen file */
-	log_reopen(nsd->log_filename, 1);
-
+	if (nsd->file_rotation_ok)
+		log_reopen(nsd->log_filename, 1);
 	/* exit reload, continue as new server_main */
 }
 

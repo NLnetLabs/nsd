@@ -374,6 +374,7 @@ main(int argc, char *argv[])
 	nsd.maximum_tcp_count = 0;
 	nsd.current_tcp_count = 0;
 	nsd.grab_ip6_optional = 0;
+	nsd.file_rotation_ok = 0;
 
 	/* EDNS0 */
 	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
@@ -762,9 +763,10 @@ main(int argc, char *argv[])
 
 	/* Set up the logging */
 	log_open(LOG_PID, FACILITY, nsd.log_filename);
-	if (!nsd.log_filename) {
+	if (!nsd.log_filename)
 		log_set_log_function(log_syslog);
-	}
+	else if (nsd.uid && nsd.gid)
+		chown(nsd.log_filename, nsd.uid, nsd.gid);
 
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {

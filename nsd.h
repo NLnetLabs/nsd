@@ -171,6 +171,8 @@ struct	nsd
         uint16_t        nsid_len;
         unsigned char   *nsid;
 
+	uint8_t file_rotation_ok;
+
 	/* number of interfaces, ifs < MAX_INTERFACES */
 	size_t	ifs;
 	uint8_t grab_ip6_optional;
