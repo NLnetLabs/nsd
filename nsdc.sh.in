@@ -138,10 +138,6 @@ lock_file() {
 	(umask 222; ${noclobber_set}; echo "$$" >${lockfile})
 }
 
-unlock() {
-	rm -f ${lockfile}
-}
-	
 lock() {
 	lock_file
 	if [ $? = 1 ]
@@ -154,7 +150,7 @@ lock() {
 		fi
 
 		# locking process does not exist, consider lockfile stale
-		echo stale lockfile, removing... && unlock && lock_file
+		echo stale lockfile, removing... && rm -f ${lockfile} && lock_file
 	fi
 
 	if [ $? = 1 ]
@@ -165,6 +161,10 @@ lock() {
 	return 0
 }
 
+unlock() {
+	rm -f ${lockfile}
+}
+	
 do_start() {
 	if test -x ${sbindir}/nsd; then
 		${sbindir}/nsd -c ${configfile}
