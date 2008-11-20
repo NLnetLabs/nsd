@@ -134,14 +134,35 @@ signal() {
 	return 1
 }
 
-lock() {
-        (umask 222; ${noclobber_set}; echo "database locked by PID: $$" >${lockfile}) ||
-                (cat ${lockfile} ; echo "aborting..." ; exit 1)
-	[ $? = 0 ] || exit 1
+lock_file() {
+	(umask 222; ${noclobber_set}; echo "$$" >${lockfile})
 }
 
 unlock() {
 	rm -f ${lockfile}
+}
+	
+lock() {
+	lock_file
+	if [ $? = 1 ]
+	then
+		# check if the lockfile has not gone stale
+		LPID=`cat ${lockfile}`
+		echo database locked by PID: $LPID
+		if kill -0 $LPID 2>/dev/null; then
+			exit 1
+		fi
+
+		# locking process does not exist, consider lockfile stale
+		echo stale lockfile, removing... && unlock && lock_file
+	fi
+
+	if [ $? = 1 ]
+	then
+		echo lock failed
+		exit 1
+	fi
+	return 0
 }
 
 do_start() {
