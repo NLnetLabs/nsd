@@ -444,7 +444,6 @@ main(int argc, char *argv[])
 			break;
 		case 'h':
 			usage();
-			nsd_finalize();
 			exit(0);
 		case 'i':
 			nsd.identity = optarg;
@@ -515,7 +514,6 @@ main(int argc, char *argv[])
 			verbosity = atoi(optarg);
 			break;
 		case 'v':
-			nsd_finalize();
 			version();
 			/* version exits */
 #ifndef NDEBUG
@@ -539,7 +537,6 @@ main(int argc, char *argv[])
 	/* <matthijs> commandline parse error */
 	if (argc != 0) {
 		usage();
-		nsd_finalize();
 		exit(1);
 	}
 
@@ -914,6 +911,7 @@ not be started");
 	}
 
 	/* NOTREACH */
-	log_msg(LOG_NOTICE, "this should not be printed");
+	nsd_finalize();
+
 	exit(0);
 }
