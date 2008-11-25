@@ -588,6 +588,7 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
 	for (i = 0; i < n; ++i) {
 		if (sockets[i].s != -1) {
 			close(sockets[i].s);
+			free(sockets[i].addr);
 			sockets[i].s = -1;
 		}
 	}
@@ -603,7 +604,6 @@ server_shutdown(struct nsd *nsd)
 {
 	size_t i;
 
-	log_msg(LOG_INFO, "shutdown server");
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
 	/* CHILD: close command channel to parent */
@@ -623,7 +623,10 @@ server_shutdown(struct nsd *nsd)
 			}
 	}
 
+	log_finalize();
 	tsig_finalize();
+
+	nsd_options_destroy(nsd->options);
 	region_destroy(nsd->region);
 
 	exit(0);
@@ -1131,8 +1134,11 @@ server_main(struct nsd *nsd)
 			}
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
+
 			region_destroy(server_region);
+			namedb_close(nsd->db);
 			server_shutdown(nsd);
+
 			/* ENOTREACH */
 			break;
 		case NSD_SHUTDOWN:
@@ -1179,6 +1185,8 @@ server_main(struct nsd *nsd)
 		fsync(xfrd_listener.fd);
 		close(xfrd_listener.fd);
 	}
+
+	namedb_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }
@@ -1335,6 +1343,7 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
+	namedb_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }

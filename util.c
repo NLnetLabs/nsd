@@ -67,22 +67,18 @@ void
 log_reopen(const char *filename, uint8_t verbose)
 {
 	if (filename) {
-/*
 		FILE *file = fopen(filename, "a");
 		if (!file) {
-*/
 			if (verbose)
 				VERBOSITY(2, (LOG_WARNING,
                                 	"Cannot reopen %s for appending (%s), "
 					"keeping old logfile",
 					filename, strerror(errno)));
-/*
 		} else {
 			if (current_log_file && current_log_file != stderr)
 				fclose(current_log_file);
 			current_log_file = file;
 		}
-*/
 	}
 }
 

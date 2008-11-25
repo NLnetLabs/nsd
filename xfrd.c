@@ -216,6 +216,9 @@ xfrd_shutdown()
 		}
 		close_notify_fds(xfrd->notify_zones);
 	}
+
+	/* shouldn't we clean up memory used by xfrd process */
+
 	exit(0);
 }
 

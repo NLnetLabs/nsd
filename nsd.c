@@ -49,7 +49,6 @@ static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 static void
 nsd_finalize()
 {
-	nsd_options_destroy(nsd.options);
 	server_finalize(&nsd);
 }
 
@@ -550,7 +549,6 @@ main(int argc, char *argv[])
 	}
 
 	/* Read options */
-
 	nsd.options = nsd_options_create(region_create(xalloc, free));
 	if(!parse_options_file(nsd.options, configfile)) {
 		error("could not read config: %s\n", configfile);
