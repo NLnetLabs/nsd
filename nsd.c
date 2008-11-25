@@ -46,6 +46,14 @@ static char hostname[MAXHOSTNAMELEN];
 
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
+static void
+nsd_finalize()
+{
+	nsd_options_destroy(nsd.options);
+	server_finalize(&nsd);
+}
+
+
 /*
  * <matthijs> Print the help text.
  *
@@ -437,6 +445,7 @@ main(int argc, char *argv[])
 			break;
 		case 'h':
 			usage();
+			nsd_finalize();
 			exit(0);
 		case 'i':
 			nsd.identity = optarg;
@@ -507,6 +516,7 @@ main(int argc, char *argv[])
 			verbosity = atoi(optarg);
 			break;
 		case 'v':
+			nsd_finalize();
 			version();
 			/* version exits */
 #ifndef NDEBUG
@@ -520,6 +530,7 @@ main(int argc, char *argv[])
 		case '?':
 		default:
 			usage();
+			nsd_finalize();
 			exit(1);
 		}
 	}
@@ -529,6 +540,7 @@ main(int argc, char *argv[])
 	/* <matthijs> commandline parse error */
 	if (argc != 0) {
 		usage();
+		nsd_finalize();
 		exit(1);
 	}
 
@@ -538,6 +550,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Read options */
+
 	nsd.options = nsd_options_create(region_create(xalloc, free));
 	if(!parse_options_file(nsd.options, configfile)) {
 		error("could not read config: %s\n", configfile);
@@ -578,17 +591,22 @@ main(int argc, char *argv[])
 	if(nsd.options->debug_mode) nsd.debug=1;
 	if(!nsd.dbfile)
 	{
-		if(nsd.options->database) nsd.dbfile = nsd.options->database;
-		else nsd.dbfile = DBFILE;
+		if(nsd.options->database)
+			nsd.dbfile = nsd.options->database;
+		else
+			nsd.dbfile = DBFILE;
 	}
 	if(!nsd.pidfile)
 	{
-		if(nsd.options->pidfile) nsd.pidfile = nsd.options->pidfile;
-		else nsd.pidfile = PIDFILE;
+		if(nsd.options->pidfile)
+			nsd.pidfile = nsd.options->pidfile;
+		else
+			nsd.pidfile = PIDFILE;
 	}
 	if(strcmp(nsd.identity, hostname)==0 || strcmp(nsd.identity,IDENTITY)==0)
 	{
-		if(nsd.options->identity) nsd.identity = nsd.options->identity;
+		if(nsd.options->identity)
+			nsd.identity = nsd.options->identity;
 	}
 	if (nsd.options->logfile && !nsd.log_filename) {
 		nsd.log_filename = nsd.options->logfile;
@@ -829,15 +847,18 @@ main(int argc, char *argv[])
 			break;
 		case -1:
 			log_msg(LOG_ERR, "fork() failed: %s", strerror(errno));
+			nsd_finalize();
 			exit(1);
 		default:
 			/* <matthijs> Parent is done */
+			nsd_finalize();
 			exit(0);
 		}
 
 		/* Detach ourselves... */
 		if (setsid() == -1) {
 			log_msg(LOG_ERR, "setsid() failed: %s", strerror(errno));
+			nsd_finalize();
 			exit(1);
 		}
 
@@ -881,6 +902,7 @@ main(int argc, char *argv[])
 	if (server_init(&nsd) != 0) {
 		log_msg(LOG_ERR, "server initialization failed, nsd could \
 not be started");
+		nsd_finalize();
 		exit(1);
 	}
 
@@ -894,5 +916,6 @@ not be started");
 	}
 
 	/* NOTREACH */
+	log_msg(LOG_NOTICE, "this should not be printed");
 	exit(0);
 }

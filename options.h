@@ -204,5 +204,7 @@ int parse_acl_is_ipv6(const char* p);
 int parse_acl_range_type(char* ip, char** mask);
 /* parses subnet mask, fills 0 mask as well */
 void parse_acl_range_subnet(char* p, void* addr, int maxbits);
+/* clean up options */
+void nsd_options_destroy(nsd_options_t* opt);
 
 #endif /* OPTIONS_H */

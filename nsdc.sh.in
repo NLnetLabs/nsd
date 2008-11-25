@@ -167,7 +167,7 @@ unlock() {
 	
 do_start() {
 	if test -x ${sbindir}/nsd; then
-		${sbindir}/nsd -c ${configfile}
+		valgrind --leak-check=full --show-reachable=yes ${sbindir}/nsd -c ${configfile} &> /home/matje/valgrind.txt
 		test $? = 0 || (echo "nsd startup failed."; exit 1)
 	else
 		echo "${sbindir}/nsd not an executable file, nsd startup failed."; exit 1

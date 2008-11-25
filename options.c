@@ -654,3 +654,9 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 	}
 	return acl;
 }
+
+void nsd_options_destroy(nsd_options_t* opt)
+{
+	region_destroy(opt->region);
+}
+

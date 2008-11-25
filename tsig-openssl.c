@@ -11,9 +11,6 @@
 
 #if defined(TSIG) && defined(HAVE_SSL)
 
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
-
 #include "tsig-openssl.h"
 #include "tsig.h"
 #include "util.h"

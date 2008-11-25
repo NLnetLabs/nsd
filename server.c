@@ -603,6 +603,7 @@ server_shutdown(struct nsd *nsd)
 {
 	size_t i;
 
+	log_msg(LOG_INFO, "shutdown server");
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
 	/* CHILD: close command channel to parent */
@@ -621,6 +622,9 @@ server_shutdown(struct nsd *nsd)
 				nsd->children[i].child_fd = -1;
 			}
 	}
+
+	tsig_finalize();
+	region_destroy(nsd->region);
 
 	exit(0);
 }
@@ -935,7 +939,7 @@ server_signal_mode(struct nsd *nsd)
 void
 server_main(struct nsd *nsd)
 {
-        region_type *server_region = region_create(xalloc, free);
+	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type reload_listener;
 	netio_handler_type xfrd_listener;
@@ -1332,7 +1336,6 @@ server_child(struct nsd *nsd)
 #endif /* BIND8_STATS */
 
 	region_destroy(server_region);
-
 	server_shutdown(nsd);
 }
 
@@ -1884,4 +1887,9 @@ configure_handler_event_types(size_t count,
 	for (i = 0; i < count; ++i) {
 		handlers[i].event_types = event_types;
 	}
+}
+
+void server_finalize(struct nsd* nsd)
+{
+	server_shutdown(nsd);
 }

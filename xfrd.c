@@ -1365,7 +1365,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			return xfrd_packet_bad;
 		}
 	}
-#endif
+#endif /* TSIG */
 	return xfrd_packet_transfer;
 }
 

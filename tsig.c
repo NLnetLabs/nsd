@@ -10,7 +10,6 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <openssl/sha.h>
 
 #include "tsig.h"
 #include "tsig-openssl.h"
@@ -631,4 +630,12 @@ tsig_error_reply(tsig_record_type *tsig)
 	if(tsig->mac_data)
 		memset(tsig->mac_data, 0, tsig->mac_size);
 	tsig->mac_size = 0;
+}
+
+void
+tsig_finalize()
+{
+#if defined(TSIG) && defined(HAVE_SSL)
+	EVP_cleanup();
+#endif
 }
