@@ -57,15 +57,15 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 	uint32_t file_len = sizeof(uint32_t) + strlen(zone) +
 		sizeof(new_serial) + sizeof(id) + sizeof(seq_nr) + len;
 
-	df = fopen(filename, "a");
-	if(!df) {
-		log_msg(LOG_ERR, "could not open file %s for append: %s",
+	if (gettimeofday(&tv, NULL) != 0) {
+		log_msg(LOG_ERR, "could not set timestamp for %s: %s",
 			filename, strerror(errno));
 		return;
 	}
 
-	if (gettimeofday(&tv, NULL) != 0) {
-		log_msg(LOG_ERR, "could not set timestamp for %s: %s",
+	df = fopen(filename, "a");
+	if(!df) {
+		log_msg(LOG_ERR, "could not open file %s for append: %s",
 			filename, strerror(errno));
 		return;
 	}
@@ -98,15 +98,15 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 	FILE *df;
 	uint32_t len;
 
-	df = fopen(filename, "a");
-	if(!df) {
-		log_msg(LOG_ERR, "could not open file %s for append: %s",
+	if (gettimeofday(&tv, NULL) != 0) {
+		log_msg(LOG_ERR, "could not set timestamp for %s: %s",
 			filename, strerror(errno));
 		return;
 	}
 
-	if (gettimeofday(&tv, NULL) != 0) {
-		log_msg(LOG_ERR, "could not set timestamp for %s: %s",
+	df = fopen(filename, "a");
+	if(!df) {
+		log_msg(LOG_ERR, "could not open file %s for append: %s",
 			filename, strerror(errno));
 		return;
 	}

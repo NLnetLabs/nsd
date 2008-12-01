@@ -39,9 +39,7 @@ list_xfr(FILE *in)
 {
 	uint32_t timestamp[2];
 	uint32_t skiplen, len, new_serial;
-/*	int i; */
 	char zone_name[3072];
-/*	uint8_t hex_data; */
 	uint16_t id;
 	uint32_t seq_nr, len2;
 
@@ -59,15 +57,6 @@ list_xfr(FILE *in)
 	fprintf(stderr, "zone %s transfer id %x serial %d timestamp %u.%u: "
 			"seq_nr %d of %d bytes\n", zone_name, id, new_serial,
 		timestamp[0], timestamp[1], seq_nr, skiplen);
-
-/* Debug code, print the hexadecimal contents of the packet
-	needed for version 3.1.1
-	for (i=0; i<skiplen; i++) {
-			fread(&hex_data, 1, 1, in);
-			fprintf(stderr, " %2.2x ", hex_data);
-	}
-	fprintf(stderr, " \n");
-*/
 
 	if(fseeko(in, skiplen, SEEK_CUR) == -1)
 		fprintf(stderr, "fseek failed: %s\n", strerror(errno));
@@ -346,7 +335,7 @@ int main(int argc, char* argv[])
 	}
 
 	/* read database and diff file */
-	printf("reading database\n");
+	fprintf(stderr, "reading database\n");
 	db = namedb_open(options->database, options, fake_child_count);
 	if(!db) {
 		fprintf(stderr, "Could not read database: %s\n",
