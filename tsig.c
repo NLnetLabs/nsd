@@ -510,7 +510,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	type = buffer_read_u16(packet);
 	klass = buffer_read_u16(packet);
 
-	/* <matthijs> TSIG not present */
+	/* TSIG not present */
 	if (type != TYPE_TSIG || klass != CLASS_ANY) {
 		buffer_set_position(packet, tsig->position);
 		return 1;

@@ -136,7 +136,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 }
 
 /*
- * <matthijs> Checksum to signal no data change occured (for example, by a
+ * Checksum to signal no data change occured (for example, by a
  * zonec run.
  */
 int
@@ -398,7 +398,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		ssize_t rdata_num;
 		int rrnum;
 		temptable = domain_table_create(temp_region);
-		/* <matthijs> this will ensure that the dnames in rdata are
+		/* This will ensure that the dnames in rdata are
 		 * normalized, conform RFC 4035, section 6.2
 		 */
 		rdata_num = rdata_wireformat_to_rdata_atoms(
@@ -469,7 +469,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		domain_add_rrset(domain, rrset);
 	}
 
-	/* <matthijs> dnames in rdata are normalized, conform RFC 4035,
+	/* dnames in rdata are normalized, conform RFC 4035,
 	 * Section 6.2
 	 */
 	rdata_num = rdata_wireformat_to_rdata_atoms(
@@ -1345,7 +1345,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		}
 	}
 
-	/* <matthijs> always seek, to diff_pos or to beginning of the file. */
+	/* Always seek, to diff_pos or to beginning of the file. */
 	if (fseeko(df, 0, SEEK_SET)==-1) {
 		log_msg(LOG_INFO, "could not fseeko file %s: %s.", filename,
 				strerror(errno));

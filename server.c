@@ -776,7 +776,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	initialize_dname_compression_tables(nsd);
 
-	/* <matthijs> get our new process id */
+	/* Get our new process id */
 	old_pid = nsd->pid;
 	nsd->pid = getpid();
 
@@ -786,7 +786,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	set_bind8_alarm(nsd);
 #endif
 
-	/* <matthijs> Start new child processes */
+	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, xfrd_sock_p) != 0) {
 		send_children_quit(nsd);
 		exit(1);
@@ -955,7 +955,7 @@ server_main(struct nsd *nsd)
 	pid_t xfrd_pid = -1;
 	sig_atomic_t mode;
 
-	/* <matthijs> assure we are the main process */
+	/* Ensure we are the main process */
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
 	xfrd_listener.user_data = (struct ipc_handler_conn_data*)region_alloc(
@@ -965,23 +965,23 @@ server_main(struct nsd *nsd)
 	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->conn =
 		xfrd_tcp_create(server_region);
 
-	/* <matthijs> start the XFRD process */
+	/* Start the XFRD process */
 	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
 	netio_add_handler(netio, &xfrd_listener);
 
-	/* <matthijs> start the child processes that handle incoming queries */
+	/* Start the child processes that handle incoming queries */
 	if (server_start_children(nsd, server_region, netio, &xfrd_listener.fd) != 0) {
 		send_children_quit(nsd);
 		exit(1);
 	}
 	reload_listener.fd = -1;
 
-	/* <matthijs> this_child MUST be 0, because this is the parent process */
+	/* This_child MUST be 0, because this is the parent process */
 	assert(nsd->this_child == 0);
 
-	/* <matthijs> run the server until we get a shutdown signal */
+	/* Run the server until we get a shutdown signal */
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
-		/* <matthijs> did we receive a signal that changes our mode? */
+		/* Did we receive a signal that changes our mode? */
 		if(mode == NSD_RUN) {
 			nsd->mode = mode = server_signal_mode(nsd);
 		}
@@ -1050,7 +1050,7 @@ server_main(struct nsd *nsd)
 
 			break;
 		case NSD_RELOAD:
-			/* <matthijs> continue to run nsd after reload */
+			/* Continue to run nsd after reload */
 			nsd->mode = NSD_RUN;
 
 			if (reload_pid != -1) {
@@ -1067,7 +1067,7 @@ server_main(struct nsd *nsd)
 				break;
 			}
 
-			/* <matthijs> do actual reload */
+			/* Do actual reload */
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:

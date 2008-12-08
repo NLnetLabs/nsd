@@ -519,7 +519,7 @@ xfrd_make_request(xfrd_zone_t* zone)
 		}
 	}
 
-	/* <matthijs> cache ixfr_disabled only for XFRD_NO_IXFR_CACHE time */
+	/* cache ixfr_disabled only for XFRD_NO_IXFR_CACHE time */
 	if (zone->master->ixfr_disabled &&
 	   (zone->master->ixfr_disabled + XFRD_NO_IXFR_CACHE) <= time(NULL)) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "clear negative caching ixfr "
@@ -867,10 +867,10 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 #endif /* INET6 */
 	int fd, family;
 
-	/* <matthijs> this will set the remote port to acl->port or TCP_PORT */
+	/* this will set the remote port to acl->port or TCP_PORT */
 	socklen_t to_len = xfrd_acl_sockaddr_to(acl, &to);
 
-	/* <matthijs> get the address family of the remote host */
+	/* get the address family of the remote host */
 	if(acl->is_ipv6) {
 #ifdef INET6
 		family = PF_INET6;
@@ -926,7 +926,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 
 	while (ifc) {
 		if (ifc->is_ipv6 != acl->is_ipv6) {
-			/* <matthijs> check if we have a matching address family */
+			/* check if we have a matching address family */
 			ifc = ifc->next;
 			continue;
 		}
@@ -968,7 +968,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 
 		}
 
-		/* <matthijs> found one */
+		/* found one */
 		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0) {
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: bind() %s to %s "
 						       "socket was successful",
@@ -980,7 +980,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 					       "failed: %s",
 			ifc->ip_address_spec, tcp? "tcp":"udp",
 			strerror(errno)));
-		/* <matthijs> try another */
+		/* try another */
 		ifc = ifc->next;
 	}
 
@@ -1021,7 +1021,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 {
 	int fd;
 
-	/* <matthijs> make sure we have a master to query the ixfr request to */
+	/* make sure we have a master to query the ixfr request to */
 	assert(zone->master);
 
 	if(zone->tcp_conn != -1) {

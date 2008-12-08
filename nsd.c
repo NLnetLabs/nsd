@@ -54,7 +54,7 @@ nsd_finalize()
 
 
 /*
- * <matthijs> Print the help text.
+ * Print the help text.
  *
  */
 static void
@@ -102,7 +102,7 @@ usage (void)
 }
 
 /*
- * <matthijs> Print the version exit.
+ * Print the version exit.
  *
  */
 static void
@@ -118,7 +118,7 @@ version(void)
 }
 
 /*
- * <matthijs> Something went wrong, give error messages and exit.
+ * Something went wrong, give error messages and exit.
  *
  */
 static void
@@ -133,7 +133,7 @@ error(const char *format, ...)
 
 
 /*
- * <matthijs> Fetch the nsd parent process id from the nsd pidfile
+ * Fetch the nsd parent process id from the nsd pidfile
  *
  */
 pid_t
@@ -171,7 +171,7 @@ readpid(const char *file)
 }
 
 /*
- * <matthijs> Store the nsd parent process id in the nsd pidfile
+ * Store the nsd parent process id in the nsd pidfile
  *
  */
 int
@@ -207,7 +207,7 @@ writepid(struct nsd *nsd)
 }
 
 /*
- * <matthijs> incoming signals, set appropriate actions.
+ * Incoming signals, set appropriate actions.
  *
  */
 void
@@ -238,7 +238,7 @@ sig_handler(int sig)
 		return;
 	}
 
-	/* <matthijs> We are the main process */
+	/* We are the main process */
 	switch (sig) {
 	case SIGCHLD:
 		nsd.signal_hint_child = 1;
@@ -534,7 +534,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	/* <matthijs> commandline parse error */
+	/* Commandline parse error */
 	if (argc != 0) {
 		usage();
 		exit(1);
@@ -838,14 +838,14 @@ main(int argc, char *argv[])
 		/* Take off... */
 		switch ((nsd.pid = fork())) {
 		case 0:
-			/* <matthijs> Child */
+			/* Child */
 			break;
 		case -1:
 			log_msg(LOG_ERR, "fork() failed: %s", strerror(errno));
 			nsd_finalize();
 			exit(1);
 		default:
-			/* <matthijs> Parent is done */
+			/* Parent is done */
 			nsd_finalize();
 			exit(0);
 		}

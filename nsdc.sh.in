@@ -185,7 +185,7 @@ do_reload() {
 # send_updates zone_name ifc_spec {ip_spec key_spec}
 send_updates() {
 	local zonename=$1
-	# <matthijs> set local interface
+	# set local interface
 	ifc_spec=""
 	if test I$2 == INOKEY; then
 		return
@@ -234,7 +234,7 @@ send_updates() {
 # send_notify zone_name {ifc_spec} {ip_spec key_spec}
 send_notify() {
 	local zonename=$1
-	# <matthijs> set local interface
+	# set local interface
 	ifc_spec=""
 	if test I$2 == INOKEY; then
 		return
