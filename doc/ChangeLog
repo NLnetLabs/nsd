@@ -1,3 +1,6 @@
+10 December 2008: Matthijs
+	- Bugfix: better error message when ixfr.db cannot be read
+
 18 November 2008: Matthijs
 	- chown logfile, don't do file rotation if logfile is outside absolute 
 		and outside chroot.

@@ -7,6 +7,7 @@ OPERATIONAL NOTES:
 
 BUG FIXES:
 	- Added several checks after trying to allocate memory.
+	- Better error message when ixfr.db old file format is read.
 
 FEATURES:
 	- New configuration option 'allow-afxr-fallback', "yes" by default. If

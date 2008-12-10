@@ -1199,7 +1199,7 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 		!diff_read_32(in, &new_serial) ||
 		!diff_read_16(in, &id) ||
 		!diff_read_32(in, &seq)) {
-		log_msg(LOG_INFO, "could not read ixfr store info: %s", strerror(errno));
+		log_msg(LOG_INFO, "could not read ixfr store info: file format error");
 		return 0;
 	}
 	len -= sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name);
