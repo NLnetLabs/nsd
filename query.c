@@ -70,7 +70,7 @@ query_put_dname_offset(struct query *q, domain_type *domain, uint16_t offset)
 		return;
 	if (q->compressed_dname_count >= MAX_COMPRESSED_DNAMES)
 		return;
-	
+
 	q->compressed_dname_offsets[domain->number] = offset;
 	q->compressed_dnames[q->compressed_dname_count] = domain;
 	++q->compressed_dname_count;
@@ -92,7 +92,7 @@ void
 query_clear_compression_tables(struct query *q)
 {
 	uint16_t i;
-	
+
 	for (i = 0; i < q->compressed_dname_count; ++i) {
 		assert(q->compressed_dnames);
 		q->compressed_dname_offsets[q->compressed_dnames[i]->number] = 0;
@@ -233,12 +233,12 @@ query_get_tempdomain(struct query *q)
 		return 0;
 	q->number_temporary_domains ++;
 	memset(&d[q->number_temporary_domains-1], 0, sizeof(domain_type));
-	d[q->number_temporary_domains-1].number = q->compressed_dname_offsets_size + 
+	d[q->number_temporary_domains-1].number = q->compressed_dname_offsets_size +
 		q->number_temporary_domains - 1;
 	return &d[q->number_temporary_domains-1];
 }
 
-static void 
+static void
 query_addtxt(struct query  *q,
 	     const uint8_t *dname,
 	     uint16_t       klass,
@@ -249,7 +249,7 @@ query_addtxt(struct query  *q,
 	uint8_t len = (uint8_t) txt_length;
 
 	assert(txt_length <= UCHAR_MAX);
-	
+
 	/* Add the dname */
 	if (dname >= buffer_begin(q->packet)
 	    && dname <= buffer_current(q->packet))
@@ -311,7 +311,6 @@ process_edns(struct query *q)
 			} else {
 				q->maxlen = EDNS_MAX_MESSAGE_LEN;
 			}
-			
 #if defined(INET6) && !defined(IPV6_USE_MIN_MTU)
 			/*
 			 * Use IPv6 minimum MTU to avoid sending
@@ -418,7 +417,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 		/* forward to xfrd for processing
 		   Note. Blocking IPC I/O, but acl is OK. */
 		sz = htons(sz);
-		if(!write_socket(s, &mode, sizeof(mode)) || 
+		if(!write_socket(s, &mode, sizeof(mode)) ||
 			!write_socket(s, &sz, sizeof(sz)) ||
 			!write_socket(s, buffer_begin(query->packet),
 				buffer_limit(query->packet)) ||
@@ -462,7 +461,7 @@ answer_chaos(struct nsd *nsd, query_type *q)
 	case TYPE_ANY:
 	case TYPE_TXT:
 		if ((q->qname->name_size == 11
-		     && memcmp(dname_name(q->qname), "\002id\006server", 11) == 0) || 
+		     && memcmp(dname_name(q->qname), "\002id\006server", 11) == 0) ||
 		    (q->qname->name_size ==  15
 		     && memcmp(dname_name(q->qname), "\010hostname\004bind", 15) == 0))
 		{
@@ -1378,12 +1377,12 @@ query_add_optional(query_type *q, nsd_type *nsd)
 
 #ifdef TSIG
 	if (q->tsig.status != TSIG_NOT_PRESENT) {
-		if (q->tsig.status == TSIG_ERROR || 
+		if (q->tsig.status == TSIG_ERROR ||
 			q->tsig.error_code != TSIG_ERROR_NOERROR) {
 			tsig_error_reply(&q->tsig);
 			tsig_append_rr(&q->tsig, q->packet);
 			ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
-		} else if(q->tsig.status == TSIG_OK && 
+		} else if(q->tsig.status == TSIG_OK &&
 			q->tsig.error_code == TSIG_ERROR_NOERROR)
 		{
 			if(q->tsig_prepare_it)
