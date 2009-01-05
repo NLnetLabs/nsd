@@ -1,6 +1,7 @@
 5 January 2009: Matthijs
 	- Bug 218
 	- Bug 222
+	- Replace SHA256_DIGEST_LENGTH with nicer HAVE_EVP_SHA256
 
 10 December 2008: Matthijs
 	- Bugfix: better error message when ixfr.db cannot be read

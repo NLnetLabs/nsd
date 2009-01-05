@@ -10,6 +10,7 @@ BUG FIXES:
 	- Better error message when ixfr.db old file format is read.
 	- Bug #218: shared UDP query for all interfaces. 
 	- Bug #222: Remove bashism from nsdc script.
+	- Nicer check for SHA-256 functionality.
 
 FEATURES:
 	- New configuration option 'allow-afxr-fallback', "yes" by default. If
