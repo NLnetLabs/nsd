@@ -3,7 +3,7 @@ NSD RELEASE NOTES
 3.2.1 (UPCOMING RELEASE)
 =============
 OPERATIONAL NOTES:
-	- NSD will now fallback to AXFR  only if the master does not support IXFR.
+	- NSD will now fallback to AXFR, only if the master does not support IXFR.
 
 BUG FIXES:
 	- Added several checks after trying to allocate memory.

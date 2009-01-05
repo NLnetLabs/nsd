@@ -1897,8 +1897,3 @@ configure_handler_event_types(size_t count,
 		handlers[i].event_types = event_types;
 	}
 }
-
-void server_finalize(struct nsd* nsd)
-{
-	server_shutdown(nsd);
-}

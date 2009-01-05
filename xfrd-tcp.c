@@ -422,7 +422,8 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	xfrd_tcp_read(set, zone);
 }
 
-int conn_read(xfrd_tcp_t* tcp)
+int
+conn_read(xfrd_tcp_t* tcp)
 {
 	ssize_t received;
 	/* receive leading packet length bytes */

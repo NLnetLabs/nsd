@@ -46,13 +46,6 @@ static char hostname[MAXHOSTNAMELEN];
 
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
-static void
-nsd_finalize()
-{
-	server_finalize(&nsd);
-}
-
-
 /*
  * Print the help text.
  *
@@ -527,7 +520,6 @@ main(int argc, char *argv[])
 		case '?':
 		default:
 			usage();
-			nsd_finalize();
 			exit(1);
 		}
 	}
@@ -842,7 +834,6 @@ main(int argc, char *argv[])
 			break;
 		case -1:
 			log_msg(LOG_ERR, "fork() failed: %s", strerror(errno));
-			nsd_finalize();
 			exit(1);
 		default:
 			/* Parent is done */
@@ -853,7 +844,6 @@ main(int argc, char *argv[])
 		/* Detach ourselves... */
 		if (setsid() == -1) {
 			log_msg(LOG_ERR, "setsid() failed: %s", strerror(errno));
-			nsd_finalize();
 			exit(1);
 		}
 
@@ -895,9 +885,8 @@ main(int argc, char *argv[])
 
 	/* Run the server... */
 	if (server_init(&nsd) != 0) {
-		log_msg(LOG_ERR, "server initialization failed, nsd could \
-not be started");
-		nsd_finalize();
+		log_msg(LOG_ERR, "server initialization failed, nsd could "
+						 "not be started");
 		exit(1);
 	}
 
@@ -911,7 +900,5 @@ not be started");
 	}
 
 	/* NOTREACH */
-	nsd_finalize();
-
 	exit(0);
 }

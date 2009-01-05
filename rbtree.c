@@ -551,4 +551,3 @@ rbtree_previous(rbnode_t *node)
 	}
 	return node;
 }
-

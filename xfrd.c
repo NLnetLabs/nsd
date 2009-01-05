@@ -1392,6 +1392,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 		case xfrd_packet_notimpl:
 		case xfrd_packet_bad:
 		default:
+		{
 			/* rollback */
 			if(zone->msg_seq_nr > 0) {
 				/* do not process xfr - if only one part simply ignore it. */
@@ -1420,7 +1421,11 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 					zone->apex_str,
 					(char*)buffer_begin(packet)));
 			}
-			return res;
+			if (res == xfrd_packet_notimpl)
+				return res;
+			else
+				return xfrd_packet_bad;
+		}
 	}
 
 	/* dump reply on disk to diff file */
@@ -1568,6 +1573,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 				xfrd_parse_soa_info(packet, &soa)) {
 				have_soa = 1;
 			}
+
 			if(xfrd_handle_incoming_notify(zone,
 						have_soa?&soa:NULL)) {
 				if(zone->zone_handler.fd == -1
@@ -1578,6 +1584,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 					xfrd_set_refresh_now(zone);
 				}
 			}
+
 			next = find_same_master_notify(zone, acl_num);
 			if(next != -1) {
 				zone->next_master = next;
