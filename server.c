@@ -1208,6 +1208,7 @@ server_child(struct nsd *nsd)
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type *tcp_accept_handlers;
+	query_type *udp_query;
 	sig_atomic_t mode;
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
@@ -1238,6 +1239,9 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
+		udp_query = query_create(server_region,
+			compressed_dname_offsets, compression_table_size);
+
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
 			netio_handler_type *handler;
@@ -1245,9 +1249,7 @@ server_child(struct nsd *nsd)
 			data = (struct udp_handler_data *) region_alloc(
 				server_region,
 				sizeof(struct udp_handler_data));
-			data->query = query_create(
-				server_region, compressed_dname_offsets,
-				compression_table_size);
+			data->query = udp_query;
 			data->nsd = nsd;
 			data->socket = &nsd->udp[i];
 
