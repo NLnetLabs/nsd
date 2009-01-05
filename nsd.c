@@ -837,7 +837,6 @@ main(int argc, char *argv[])
 			exit(1);
 		default:
 			/* Parent is done */
-			nsd_finalize();
 			exit(0);
 		}
 
