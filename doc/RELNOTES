@@ -8,6 +8,8 @@ OPERATIONAL NOTES:
 BUG FIXES:
 	- Added several checks after trying to allocate memory.
 	- Better error message when ixfr.db old file format is read.
+	- Bug #218: shared UDP query for all interfaces. 
+	- Bug #222: Remove bashism from nsdc script.
 
 FEATURES:
 	- New configuration option 'allow-afxr-fallback', "yes" by default. If
