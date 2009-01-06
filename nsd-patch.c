@@ -28,6 +28,7 @@ usage(void)
 	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "-c configfile	Specify config file to use, instead of %s\n", CONFIGFILE);
 	fprintf(stderr, "-f		Force writing of zone files.\n");
+	fprintf(stderr, "-s		Skip writing of zone files.\n");
 	fprintf(stderr, "-h		Print this help information.\n");
 	fprintf(stderr, "-l		List contents of transfer journal difffile, %s\n", DIFFFILE);
 	fprintf(stderr, "-x difffile	Specify diff file to use, instead of diff file from config.\n");
@@ -278,9 +279,10 @@ int main(int argc, char* argv[])
 	size_t fake_child_count = 1;
 	int debug_list_diff = 0;
 	int force_write = 0;
+	int skip_write = 0;
 
         /* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:fhlx:")) != -1) {
+	while ((c = getopt(argc, argv, "c:fhlsx:")) != -1) {
 	switch (c) {
 		case 'c':
 			configfile = optarg;
@@ -289,7 +291,24 @@ int main(int argc, char* argv[])
 			debug_list_diff = 1;
 			break;
 		case 'f':
-			force_write = 1;
+			if (skip_write)
+			{
+				fprintf(stderr, "Cannot force and skip writing "
+						"zonefiles at the same time\n");
+				exit(1);
+			}
+			else
+				force_write = 1;
+			break;
+		case 's':
+			if (force_write)
+			{
+				fprintf(stderr, "Cannot skip and force writing "
+						"zonefiles at the same time\n");
+				exit(1);
+			}
+			else
+				skip_write = 1;
 			break;
 		case 'x':
 			difffile = optarg;
@@ -365,6 +384,13 @@ int main(int argc, char* argv[])
 				zone->opts->name);
 			continue;
 		}
+
+		if (skip_write)	{
+			fprintf(stderr, "skipping write zone %s to its "
+					"zonefile.\n", zone->opts->name);
+			continue;
+		}
+
 		/* write zone to its zone file */
 		write_to_zonefile(zone, commit_log);
 	}

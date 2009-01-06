@@ -8,7 +8,8 @@ OPERATIONAL NOTES:
 BUG FIXES:
 	- Added several checks after trying to allocate memory.
 	- Better error message when ixfr.db old file format is read.
-	- Bug #218: shared UDP query for all interfaces. 
+	- Don't try to close a (null) logfile.
+	- Bug #218: shared UDP query for all interfaces.
 	- Bug #222: Remove bashism from nsdc script.
 	- Nicer check for SHA-256 functionality.
 

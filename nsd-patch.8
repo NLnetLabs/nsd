@@ -12,6 +12,7 @@
 .RB [ \-f ]
 .RB [ \-h ]
 .RB [ \-l ]
+.RB [ \-s ]
 .RB [ \-x
 .IR difffile ]
 .SH "DESCRIPTION"
@@ -36,6 +37,9 @@ Print usage help information and exit.
 .TP
 .B \-l
 List the journal entries from the difffile. Does not write to zone files.
+.TP
+.B \-s
+Skip writing zone files. No zones are written back to their zone files.
 .TP
 .B \-x\fI difffile
 Read specified difffile. Overrides the config file setting.

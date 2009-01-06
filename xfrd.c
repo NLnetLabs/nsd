@@ -93,80 +93,66 @@ xfrd_init(int socket, struct nsd* nsd)
 	nsd->server_kind = NSD_SERVER_BOTH;
 
 	region = region_create(xalloc, free);
-	if (!region)
-		log_msg(LOG_ERR, "xfrd_init: error creating region");
-	else {
-		xfrd = (xfrd_state_t*)region_alloc(region,
-			sizeof(xfrd_state_t));
-		if (!xfrd)
-			log_msg(LOG_ERR, "xfrd_init: error allocating memory "
-					 "for xfrd");
-		else {
-			memset(xfrd, 0, sizeof(xfrd_state_t));
-			xfrd->region = region;
-			xfrd->xfrd_start_time = time(0);
-			xfrd->netio = netio_create(xfrd->region);
-			xfrd->nsd = nsd;
-			xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
-			xfrd->udp_waiting_first = NULL;
-			xfrd->udp_waiting_last = NULL;
-			xfrd->udp_use_num = 0;
-			xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
-			xfrd->parent_soa_info_pass = 0;
+	xfrd = (xfrd_state_t*)region_alloc(region, sizeof(xfrd_state_t));
+	memset(xfrd, 0, sizeof(xfrd_state_t));
+	xfrd->region = region;
+	xfrd->xfrd_start_time = time(0);
+	xfrd->netio = netio_create(xfrd->region);
+	xfrd->nsd = nsd;
+	xfrd->packet = buffer_create(xfrd->region, QIOBUFSZ);
+	xfrd->udp_waiting_first = NULL;
+	xfrd->udp_waiting_last = NULL;
+	xfrd->udp_use_num = 0;
+	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
+	xfrd->parent_soa_info_pass = 0;
 
-			/* add the handlers already, because this involves
-			 * allocs.
-			 */
-			xfrd->reload_handler.fd = -1;
-			xfrd->reload_handler.timeout = NULL;
-			xfrd->reload_handler.user_data = xfrd;
-			xfrd->reload_handler.event_types = NETIO_EVENT_TIMEOUT;
-			xfrd->reload_handler.event_handler = xfrd_handle_reload;
-			xfrd->reload_timeout.tv_sec = 0;
-			xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
-			xfrd->can_send_reload = 1;
+	/* add the handlers already, because this involves allocs */
+	xfrd->reload_handler.fd = -1;
+	xfrd->reload_handler.timeout = NULL;
+	xfrd->reload_handler.user_data = xfrd;
+	xfrd->reload_handler.event_types = NETIO_EVENT_TIMEOUT;
+	xfrd->reload_handler.event_handler = xfrd_handle_reload;
+	xfrd->reload_timeout.tv_sec = 0;
+	xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
+	xfrd->can_send_reload = 1;
 
-			xfrd->ipc_send_blocked = 0;
-			xfrd->ipc_handler.fd = socket;
-			xfrd->ipc_handler.timeout = NULL;
-			xfrd->ipc_handler.user_data = xfrd;
-			xfrd->ipc_handler.event_types = NETIO_EVENT_READ;
-			xfrd->ipc_handler.event_handler = xfrd_handle_ipc;
-			xfrd->ipc_conn = xfrd_tcp_create(xfrd->region);
-			/* not reading using ipc_conn yet */
-			xfrd->ipc_conn->is_reading = 0;
-			xfrd->ipc_conn->fd = xfrd->ipc_handler.fd;
-			xfrd->ipc_conn_write = xfrd_tcp_create(xfrd->region);
-			xfrd->ipc_conn_write->fd = xfrd->ipc_handler.fd;
-			xfrd->need_to_send_reload = 0;
-			xfrd->sending_zone_state = 0;
-			xfrd->dirty_zones = stack_create(xfrd->region,
-					nsd_options_num_zones(nsd->options));
+	xfrd->ipc_send_blocked = 0;
+	xfrd->ipc_handler.fd = socket;
+	xfrd->ipc_handler.timeout = NULL;
+	xfrd->ipc_handler.user_data = xfrd;
+	xfrd->ipc_handler.event_types = NETIO_EVENT_READ;
+	xfrd->ipc_handler.event_handler = xfrd_handle_ipc;
+	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region);
+	/* not reading using ipc_conn yet */
+	xfrd->ipc_conn->is_reading = 0;
+	xfrd->ipc_conn->fd = xfrd->ipc_handler.fd;
+	xfrd->ipc_conn_write = xfrd_tcp_create(xfrd->region);
+	xfrd->ipc_conn_write->fd = xfrd->ipc_handler.fd;
+	xfrd->need_to_send_reload = 0;
+	xfrd->sending_zone_state = 0;
+	xfrd->dirty_zones = stack_create(xfrd->region,
+			nsd_options_num_zones(nsd->options));
 
-			xfrd->notify_waiting_first = NULL;
-			xfrd->notify_waiting_last = NULL;
-			xfrd->notify_udp_num = 0;
+	xfrd->notify_waiting_first = NULL;
+	xfrd->notify_waiting_last = NULL;
+	xfrd->notify_udp_num = 0;
 
-			xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
-			srandom((unsigned long) getpid() * (unsigned long)
-								time(NULL));
+	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
+	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
-			diff_snip_garbage(nsd->db, nsd->options);
-			xfrd_init_zones();
-			xfrd_free_namedb();
-			xfrd_read_state(xfrd);
-			xfrd_send_expy_all_zones();
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
+	diff_snip_garbage(nsd->db, nsd->options);
+	xfrd_init_zones();
+	xfrd_free_namedb();
+	xfrd_read_state(xfrd);
+	xfrd_send_expy_all_zones();
 
-			/* add handlers after zone handlers so they are before
-								them in list */
-			netio_add_handler(xfrd->netio, &xfrd->reload_handler);
-			netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
+	/* add handlers after zone handlers so they are before them in list */
+	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
+	netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
 
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd startup"));
-			xfrd_main();
-		}
-	}
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd startup"));
+	xfrd_main();
 }
 
 static void
@@ -261,65 +247,56 @@ xfrd_init_zones()
 		}
 
 		xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
-		if (!xzone)
-			log_msg(LOG_ERR, "xfrd: cannot allocate xfrd zone %s",
-				zone_opt->name);
-		else {
-			memset(xzone, 0, sizeof(xfrd_zone_t));
-			xzone->apex = dname;
-			xzone->apex_str = zone_opt->name;
-			xzone->state = xfrd_zone_refreshing;
-			xzone->dirty = 0;
-			xzone->zone_options = zone_opt;
-			/* first retry will use first master */
-			xzone->master = 0;
-			xzone->master_num = 0;
-			xzone->next_master = 0;
-			xzone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
+		memset(xzone, 0, sizeof(xfrd_zone_t));
+		xzone->apex = dname;
+		xzone->apex_str = zone_opt->name;
+		xzone->state = xfrd_zone_refreshing;
+		xzone->dirty = 0;
+		xzone->zone_options = zone_opt;
+		/* first retry will use first master */
+		xzone->master = 0;
+		xzone->master_num = 0;
+		xzone->next_master = 0;
+		xzone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
 
-			xzone->soa_nsd_acquired = 0;
-			xzone->soa_disk_acquired = 0;
-			xzone->soa_notified_acquired = 0;
-			/* [0]=1, [1]=0; "." domain name */
-			xzone->soa_nsd.prim_ns[0] = 1;
-			xzone->soa_nsd.email[0] = 1;
-			xzone->soa_disk.prim_ns[0]=1;
-			xzone->soa_disk.email[0]=1;
-			xzone->soa_notified.prim_ns[0]=1;
-			xzone->soa_notified.email[0]=1;
+		xzone->soa_nsd_acquired = 0;
+		xzone->soa_disk_acquired = 0;
+		xzone->soa_notified_acquired = 0;
+		/* [0]=1, [1]=0; "." domain name */
+		xzone->soa_nsd.prim_ns[0] = 1;
+		xzone->soa_nsd.email[0] = 1;
+		xzone->soa_disk.prim_ns[0]=1;
+		xzone->soa_disk.email[0]=1;
+		xzone->soa_notified.prim_ns[0]=1;
+		xzone->soa_notified.email[0]=1;
 
-			xzone->zone_handler.fd = -1;
-			xzone->zone_handler.timeout = 0;
-			xzone->zone_handler.user_data = xzone;
-			xzone->zone_handler.event_types =
-				NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
-			xzone->zone_handler.event_handler = xfrd_handle_zone;
-			netio_add_handler(xfrd->netio, &xzone->zone_handler);
-			xzone->tcp_conn = -1;
-			xzone->tcp_waiting = 0;
-			xzone->udp_waiting = 0;
+		xzone->zone_handler.fd = -1;
+		xzone->zone_handler.timeout = 0;
+		xzone->zone_handler.user_data = xzone;
+		xzone->zone_handler.event_types =
+			NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+		xzone->zone_handler.event_handler = xfrd_handle_zone;
+		netio_add_handler(xfrd->netio, &xzone->zone_handler);
+		xzone->tcp_conn = -1;
+		xzone->tcp_waiting = 0;
+		xzone->udp_waiting = 0;
 
 #ifdef TSIG
-			tsig_create_record_custom(&xzone->tsig, xfrd->region, 0,
-				0, 4);
+		tsig_create_record_custom(&xzone->tsig, xfrd->region, 0, 0, 4);
 #endif /* TSIG */
 
-			if(dbzone && dbzone->soa_rrset &&
-						dbzone->soa_rrset->rrs) {
-				xzone->soa_nsd_acquired = xfrd_time();
-				xzone->soa_disk_acquired = xfrd_time();
-				/* we only use the first SOA in the rrset */
-				xfrd_copy_soa(&xzone->soa_nsd,
-						dbzone->soa_rrset->rrs);
-				xfrd_copy_soa(&xzone->soa_disk,
-						dbzone->soa_rrset->rrs);
-			}
-			/* set refreshing anyway, we have data but it may be old */
-			xfrd_set_refresh_now(xzone);
-
-			xzone->node.key = dname;
-			rbtree_insert(xfrd->zones, (rbnode_t*)xzone);
+		if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
+			xzone->soa_nsd_acquired = xfrd_time();
+			xzone->soa_disk_acquired = xfrd_time();
+			/* we only use the first SOA in the rrset */
+			xfrd_copy_soa(&xzone->soa_nsd, dbzone->soa_rrset->rrs);
+			xfrd_copy_soa(&xzone->soa_disk, dbzone->soa_rrset->rrs);
 		}
+		/* set refreshing anyway, we have data but it may be old */
+		xfrd_set_refresh_now(xzone);
+
+		xzone->node.key = dname;
+		rbtree_insert(xfrd->zones, (rbnode_t*)xzone);
 	}
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: started server %d secondary zones", (int)xfrd->zones->count));
 }
@@ -1537,60 +1514,49 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 	region_type* tempregion = region_create(xalloc, free);
 	xfrd_zone_t* zone;
 
-	if (!tempregion)
-		log_msg(LOG_ERR, "xfrd_init: error creating temporary region, "
-				 "while handling passed packet");
-	else {
-		buffer_skip(packet, QHEADERSZ);
-		if(!packet_read_query_section(packet, qnamebuf, &qtype,
-								&qclass)) {
-			region_destroy(tempregion);
-			return; /* drop bad packet */
-		}
-
-		dname = dname_make(tempregion, qnamebuf, 1);
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: got passed packet for "
-					       "%s, acl %d",
-			dname_to_string(dname,0), acl_num));
-
-		/* find the zone */
-		zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
-		if(!zone) {
-			log_msg(LOG_INFO, "xfrd: incoming packet for unknown "
-					  "zone %s", dname_to_string(dname,0));
-			region_destroy(tempregion);
-			return; /* drop packet for unknown zone */
-		}
+	buffer_skip(packet, QHEADERSZ);
+	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass)) {
 		region_destroy(tempregion);
+		return; /* drop bad packet */
+	}
 
-		/* handle */
-		if(OPCODE(packet) == OPCODE_NOTIFY) {
-			xfrd_soa_t soa;
-			int have_soa = 0;
-			int next;
-			/* get serial from a SOA */
-			if(ANCOUNT(packet) == 1 && packet_skip_dname(packet) &&
-				xfrd_parse_soa_info(packet, &soa)) {
+	dname = dname_make(tempregion, qnamebuf, 1);
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: got passed packet for %s, acl "
+					   "%d", dname_to_string(dname,0), acl_num));
+
+	/* find the zone */
+	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
+	if(!zone) {
+		log_msg(LOG_INFO, "xfrd: incoming packet for unknown zone %s",
+			dname_to_string(dname,0));
+		region_destroy(tempregion);
+		return; /* drop packet for unknown zone */
+	}
+	region_destroy(tempregion);
+
+	/* handle */
+	if(OPCODE(packet) == OPCODE_NOTIFY) {
+		xfrd_soa_t soa;
+		int have_soa = 0;
+		int next;
+		/* get serial from a SOA */
+		if(ANCOUNT(packet) == 1 && packet_skip_dname(packet) &&
+			xfrd_parse_soa_info(packet, &soa)) {
 				have_soa = 1;
-			}
-
-			if(xfrd_handle_incoming_notify(zone,
-						have_soa?&soa:NULL)) {
-				if(zone->zone_handler.fd == -1
-					&& zone->tcp_conn == -1 &&
-					!zone->tcp_waiting &&
-					!zone->udp_waiting)
-				{
+		}
+		if(xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL)) {
+			if(zone->zone_handler.fd == -1
+				&& zone->tcp_conn == -1 &&
+				!zone->tcp_waiting && !zone->udp_waiting) {
 					xfrd_set_refresh_now(zone);
-				}
 			}
-
-			next = find_same_master_notify(zone, acl_num);
-			if(next != -1) {
-				zone->next_master = next;
-				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: notify "
-					"set next master to query %d", next));
-			}
+		}
+		next = find_same_master_notify(zone, acl_num);
+		if(next != -1) {
+			zone->next_master = next;
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+				"xfrd: notify set next master to query %d",
+				next));
 		}
 		else {
 			/* TODO handle incoming IXFR udp reply via port 53 */
