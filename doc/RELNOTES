@@ -12,12 +12,14 @@ BUG FIXES:
 	- Bug #218: shared UDP query for all interfaces.
 	- Bug #222: Remove bashism from nsdc script.
 	- Nicer check for SHA-256 functionality.
+	- Fixed some minor memory leaks that occured on reload.
 
 FEATURES:
 	- New configuration option 'allow-afxr-fallback', "yes" by default. If
 		set to "no", NSD will never do AXFR fallback, even if the master 
 		does not support IXFR.
 	- Allow file rotation on nsd.log.
+	- The new nsd-patch option -s allows you to skip writing zonefiles.
 
 3.2.0
 =============
