@@ -17,8 +17,11 @@ configfile="@nsdconfigfile@"
 # The directory where NSD binaries reside
 sbindir="@sbindir@"
 
-# how verbose is zonec run. Specificy Nothing (empty string), -v or -vv.
+# how verbose is zonec run. Specify Nothing (empty string), -v or -vv.
 ZONEC_VERBOSE=-v
+
+# how patch is done. Specify 1 (with use of textfiles, default) or 0 (without) 
+PATCH_STYLE=1
 
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
@@ -269,6 +272,24 @@ send_notify() {
 	done
 }
 
+# do_patch {with-textfile}
+do_patch() {
+	if test I$1 = I1; then
+		lock && mv ${difffile} ${difffile}.$$ && \
+		  ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}.$$ && \
+		  rm -f ${difffile}.$$ && unlock && do_rebuild
+		result=$?
+	else # without textfile
+		lock && mv ${difffile} ${difffile}.$$ && \
+		  ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}.$$ -s -o ${dbfile}.$$ \
+		  && rm -f ${difffile}.$$ && unlock && \
+		  mv ${dbfile}.$$ ${dbfile}
+		result=$?
+	fi
+
+	return ${result}
+}
+
 do_rebuild() {
 	lock && \
 	  ${sbindir}/zonec ${ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && \
@@ -306,10 +327,7 @@ patch)
 	if test -s ${difffile}; then
 		#${sbindir}/nsd-patch -c ${configfile} -x ${difffile} -l #debug
 		#echo ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}
-		if lock && \
-		  mv ${difffile} ${difffile}.$$ && \
-		  ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}.$$ \
-		  && rm -f ${difffile}.$$ && unlock && do_rebuild; then
+		if do_patch ${PATCH_STYLE}; then
 			do_reload
 		else
 			unlock
