@@ -1,3 +1,6 @@
+8 January 2009: Matthijs
+	- New nsd-patch option -o dbfile (set output.db)
+
 6 January 2009: Matthijs
 	- New nsd-patch option -s (skip writing zonefiles)
 	- Removed some region_create memchecks (not needed)

@@ -19,7 +19,9 @@ FEATURES:
 		set to "no", NSD will never do AXFR fallback, even if the master 
 		does not support IXFR.
 	- Allow file rotation on nsd.log.
-	- The new nsd-patch option -s allows you to skip writing zonefiles.
+	- The new nsd-patch options -s and -o allows you to skip writing 
+		zonefiles and store the output directly to a database file, 
+		respectively.
 
 3.2.0
 =============
