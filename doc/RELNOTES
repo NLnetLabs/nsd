@@ -16,6 +16,7 @@ BUG FIXES:
 	- Bug #222: Remove bashism from nsdc script.
 	- Nicer check for SHA-256 functionality.
 	- Fixed some minor memory leaks that occured on reload.
+	- nsdc: check if a lockfile has not gone stale, when lock failed.
 
 FEATURES:
 	- New configuration option 'allow-afxr-fallback', "yes" by default. If

@@ -95,7 +95,6 @@ namedb_save (struct namedb *db)
 	fclose(db->fd);
 
 	region_destroy(db->region);
-
 	return 0;
 }
 
@@ -125,7 +124,6 @@ static int
 write_number(struct namedb *db, uint32_t number)
 {
 	number = htonl(number);
-
 	return write_data_crc(db->fd, &number, sizeof(number), &db->crc);
 }
 
@@ -261,7 +259,6 @@ write_db(namedb_type *db)
 	--zone_count;
 	if (!write_number(db, zone_count))
 		return -1;
-
 	for (zone = db->zones; zone; zone = zone->next) {
 		if (write_dname(db, zone->apex))
 			return -1;

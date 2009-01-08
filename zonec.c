@@ -1395,11 +1395,6 @@ main (int argc, char **argv)
 
 	global_region = region_create(xalloc, free);
 	rr_region = region_create(xalloc, free);
-	if (!global_region || ! rr_region) {
-		fprintf(stderr, "zonec: region_create failed\n");
-		exit(1);
-	}
-
 	totalerrors = 0;
 
 	/* Parse the command line... */
@@ -1489,12 +1484,6 @@ main (int argc, char **argv)
 	/* Unique pointers used to mark errors.	 */
 	error_dname = (dname_type *) region_alloc(global_region, 0);
 	error_domain = (domain_type *) region_alloc(global_region, 0);
-	if (!error_dname || !error_domain)
-	{
-		fprintf(stderr, "zonec: region_alloc failed while creating "
-				"domain markers\n");
-		exit(1);
-	}
 
 	if (singlefile || origin) {
 		/*

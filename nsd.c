@@ -644,22 +644,18 @@ main(int argc, char *argv[])
 	/* Number of child servers to fork.  */
 	nsd.children = (struct nsd_child *) region_alloc(
 		nsd.region, nsd.child_count * sizeof(struct nsd_child));
-	if (!nsd.children)
-		error("cannot allocate child processes");
-	else {
-		for (i = 0; i < nsd.child_count; ++i) {
-			nsd.children[i].kind = NSD_SERVER_BOTH;
-			nsd.children[i].pid = -1;
-			nsd.children[i].child_fd = -1;
-			nsd.children[i].parent_fd = -1;
-			nsd.children[i].handler = NULL;
-			nsd.children[i].need_to_send_STATS = 0;
-			nsd.children[i].need_to_send_QUIT = 0;
-			nsd.children[i].need_to_exit = 0;
-			nsd.children[i].has_exited = 0;
-			nsd.children[i].dirty_zones = stack_create(nsd.region,
-				nsd_options_num_zones(nsd.options));
-		}
+	for (i = 0; i < nsd.child_count; ++i) {
+		nsd.children[i].kind = NSD_SERVER_BOTH;
+		nsd.children[i].pid = -1;
+		nsd.children[i].child_fd = -1;
+		nsd.children[i].parent_fd = -1;
+		nsd.children[i].handler = NULL;
+		nsd.children[i].need_to_send_STATS = 0;
+		nsd.children[i].need_to_send_QUIT = 0;
+		nsd.children[i].need_to_exit = 0;
+		nsd.children[i].has_exited = 0;
+		nsd.children[i].dirty_zones = stack_create(nsd.region,
+			nsd_options_num_zones(nsd.options));
 	}
 
 	nsd.this_child = NULL;

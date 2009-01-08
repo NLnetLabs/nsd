@@ -1558,9 +1558,9 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 				"xfrd: notify set next master to query %d",
 				next));
 		}
-		else {
-			/* TODO handle incoming IXFR udp reply via port 53 */
-		}
+	}
+	else {
+		/* TODO handle incoming IXFR udp reply via port 53 */
 	}
 }
 

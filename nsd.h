@@ -148,9 +148,9 @@ struct	nsd
 	volatile sig_atomic_t signal_hint_stats;
 	volatile sig_atomic_t signal_hint_statsusr;
 	volatile sig_atomic_t quit_sync_done;
-	unsigned        server_kind;
+	unsigned		server_kind;
 	struct namedb	*db;
-	int		debug;
+	int				debug;
 
 	size_t            child_count;
 	struct nsd_child *children;
@@ -159,19 +159,18 @@ struct	nsd
 	struct nsd_child *this_child;
 
 	/* Configuration */
-	const char	*dbfile;
-	const char	*pidfile;
-	const char	*log_filename;
-	const char	*username;
-	uid_t	uid;
-	gid_t	gid;
-	const char	*chrootdir;
-	const char	*version;
-	const char	*identity;
-        uint16_t        nsid_len;
-        unsigned char   *nsid;
-
-	uint8_t file_rotation_ok;
+	const char		*dbfile;
+	const char		*pidfile;
+	const char		*log_filename;
+	const char		*username;
+	uid_t			uid;
+	gid_t			gid;
+	const char		*chrootdir;
+	const char		*version;
+	const char		*identity;
+	uint16_t		nsid_len;
+	unsigned char   *nsid;
+	uint8_t 		file_rotation_ok;
 
 	/* number of interfaces, ifs < MAX_INTERFACES */
 	size_t	ifs;

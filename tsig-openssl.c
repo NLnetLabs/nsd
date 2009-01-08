@@ -87,12 +87,8 @@ create_context(region_type *region)
 {
 	HMAC_CTX *context
 		= (HMAC_CTX *) region_alloc(region, sizeof(HMAC_CTX));
-	if (context) {
-		region_add_cleanup(region, cleanup_context, context);
-		HMAC_CTX_init(context);
-	}
-	else
-		log_msg(LOG_ERR, "region_alloc failed (create_context)");
+	region_add_cleanup(region, cleanup_context, context);
+	HMAC_CTX_init(context);
 	return context;
 }
 

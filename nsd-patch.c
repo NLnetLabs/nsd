@@ -352,7 +352,7 @@ int main(int argc, char* argv[])
 
 	/* see if necessary */
 	if(!exist_difffile(options)) {
-		fprintf(stderr, "No diff file, nothing to do.\n");
+		fprintf(stderr, "No diff file.\n");
 		if (!force_write)
 			exit(0);
 	}
@@ -408,7 +408,6 @@ int main(int argc, char* argv[])
 					zone->opts->name);
 				continue;
 			}
-
 			/* write zone to its zone file */
 			write_to_zonefile(zone, commit_log);
 		}
@@ -423,8 +422,8 @@ int main(int argc, char* argv[])
 				dbfile, strerror(errno));
 			exit(1);
 		}
-        }
-
+	}
 	fprintf(stderr, "done\n");
+
 	return 0;
 }

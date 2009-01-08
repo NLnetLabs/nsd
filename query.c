@@ -311,6 +311,7 @@ process_edns(struct query *q)
 			} else {
 				q->maxlen = EDNS_MAX_MESSAGE_LEN;
 			}
+
 #if defined(INET6) && !defined(IPV6_USE_MIN_MTU)
 			/*
 			 * Use IPv6 minimum MTU to avoid sending
