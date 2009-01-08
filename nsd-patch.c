@@ -30,8 +30,9 @@ usage(void)
 	fprintf(stderr, "-f		Force writing of zone files.\n");
 	fprintf(stderr, "-h		Print this help information.\n");
 	fprintf(stderr, "-l		List contents of transfer journal difffile, %s\n", DIFFFILE);
-	fprintf(stderr, "-s		Skip writing of zone files. This "
-			"will output the result directly to the db file\n");
+	fprintf(stderr, "-o dbfile	Specify dbfile to output the result "
+			"directly to dbfile, nsd.db.\n");
+	fprintf(stderr, "-s		Skip writing of zone files.\n");
 	fprintf(stderr, "-x difffile	Specify diff file to use, instead of diff file from config.\n");
 	exit(1);
 }
@@ -273,17 +274,20 @@ int main(int argc, char* argv[])
 	int c;
 	const char* configfile = CONFIGFILE;
 	const char* difffile = NULL;
+	const char* dbfile = NULL;
 	nsd_options_t *options;
-	struct namedb* db;
+	struct namedb* db = NULL;
+	struct namedb* dbout = NULL;
 	struct zone* zone;
 	struct diff_log* commit_log = 0;
 	size_t fake_child_count = 1;
 	int debug_list_diff = 0;
 	int force_write = 0;
 	int skip_write = 0;
+	int difffile_exists = 0;
 
         /* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:fhlsx:")) != -1) {
+	while ((c = getopt(argc, argv, "c:fhlo:sx:")) != -1) {
 	switch (c) {
 		case 'c':
 			configfile = optarg;
@@ -310,6 +314,9 @@ int main(int argc, char* argv[])
 			}
 			else
 				skip_write = 1;
+			break;
+		case 'o':
+			dbfile = optarg;
 			break;
 		case 'x':
 			difffile = optarg;
@@ -344,10 +351,11 @@ int main(int argc, char* argv[])
 		options->difffile = difffile;
 
 	/* see if necessary */
-	if(!exist_difffile(options)) {
+	if(!exist_difffile(options) && !force_write) {
 		fprintf(stderr, "No diff file, nothing to do.\n");
 		exit(0);
 	}
+	else	difffile_exists = 1;
 
 	if(debug_list_diff) {
 		debug_list(options);
@@ -363,49 +371,65 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 
+	fprintf(stderr, "database opened\n");
+
 	/* set all updated to 0 so we know what has changed */
 	for(zone = db->zones; zone; zone = zone->next)
 	{
 		zone->updated = 0;
 	}
 
-	/* read ixfr diff file */
-	fprintf(stderr, "reading updates to database\n");
-	if(!diff_read_file(db, options, &commit_log, fake_child_count)) {
-		fprintf(stderr, "unable to load the diff file: %s\n",
-			options->difffile);
-		exit(1);
+	fprintf(stderr, "zones zero'd\n");
+
+	if (dbfile)
+		dbout = namedb_new(dbfile);
+	if (dbout)
+	{
+		db->fd = dbout->fd;
+		db->filename = (char*) dbfile;
+
+		fprintf(stderr, "prepared db.out\n");
 	}
 
-	fprintf(stderr, "writing changed zones\n");
-	for(zone = db->zones; zone; zone = zone->next)
-	{
-		if (skip_write)	{
-			fprintf(stderr, "skip patching up zonefiles.\n");
-			break;
+	/* read ixfr diff file */
+	if (difffile_exists) {
+		fprintf(stderr, "reading updates to database\n");
+		if(!diff_read_file(db, options, &commit_log, fake_child_count))
+		{
+			fprintf(stderr, "unable to load the diff file: %s\n",
+				options->difffile);
+			exit(1);
 		}
+	}
 
-		if(!force_write && !zone->updated) {
-			fprintf(stderr, "zone %s had not changed.\n",
-				zone->opts->name);
-			continue;
+	if (skip_write)
+		fprintf(stderr, "skip patching up zonefiles.\n");
+	else {
+		fprintf(stderr, "writing changed zones\n");
+		for(zone = db->zones; zone; zone = zone->next)
+		{
+			if(!force_write && !zone->updated) {
+				fprintf(stderr, "zone %s had not changed.\n",
+					zone->opts->name);
+				continue;
+			}
+
+			/* write zone to its zone file */
+			write_to_zonefile(zone, commit_log);
 		}
-
-		/* write zone to its zone file */
-		write_to_zonefile(zone, commit_log);
 	}
 
 	/* output result directly to dbfile */
-	if(skip_write)
+	if (dbout)
 	{
-	        if (namedb_save(db) != 0) {
+		fprintf(stderr, "storing database to %s.\n", dbout->filename);
+	        if (namedb_save(dbout) != 0) {
 			fprintf(stderr, "error writing the database (%s): %s\n",
-				db->filename, strerror(errno));
+				dbfile, strerror(errno));
 			exit(1);
 		}
         }
 
 	fprintf(stderr, "done\n");
-
 	return 0;
 }

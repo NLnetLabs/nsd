@@ -310,13 +310,13 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	}
 
 	if (!read_magic(db)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database (read magic): %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
 
 	if (!read_size(db, &zone_count)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database (read size): %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
@@ -333,7 +333,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	for (i = 0; i < zone_count; ++i) {
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
-			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+			log_msg(LOG_ERR, "corrupted database (read dname): %s", db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
 			namedb_close(db);
@@ -375,7 +375,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	}
 
 	if (!read_size(db, &dname_count)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database (read size): %s", db->filename);
 		region_destroy(dname_region);
 		region_destroy(temp_region);
 		namedb_close(db);
@@ -390,7 +390,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	for (i = 0; i < dname_count; ++i) {
 		const dname_type *dname = read_dname(db->fd, dname_region);
 		if (!dname) {
-			log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+			log_msg(LOG_ERR, "corrupted database (read dname): %s", db->filename);
 			region_destroy(dname_region);
 			region_destroy(temp_region);
 			namedb_close(db);
@@ -426,12 +426,12 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 		return NULL;
 	}
 	if (!read_size(db, &db->crc)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database (read size): %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
 	if (!read_magic(db)) {
-		log_msg(LOG_ERR, "corrupted database: %s", db->filename);
+		log_msg(LOG_ERR, "corrupted database (read magic): %s", db->filename);
 		namedb_close(db);
 		return NULL;
 	}
