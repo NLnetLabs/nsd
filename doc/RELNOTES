@@ -4,6 +4,9 @@ NSD RELEASE NOTES
 =============
 OPERATIONAL NOTES:
 	- NSD will now fallback to AXFR, only if the master does not support IXFR.
+	- You can adjust nsdc patch to skip textfile patching. This will 
+	  increase the patching process, but will not output to zonefiles 
+	  anymore. By default, this is off.
 
 BUG FIXES:
 	- Added several checks after trying to allocate memory.

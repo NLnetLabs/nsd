@@ -1,5 +1,6 @@
 8 January 2009: Matthijs
 	- New nsd-patch option -o dbfile (set output.db)
+	- update nsdc to deal with the new nsd-patch options
 
 6 January 2009: Matthijs
 	- New nsd-patch option -s (skip writing zonefiles)
