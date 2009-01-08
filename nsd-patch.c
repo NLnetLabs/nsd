@@ -351,9 +351,10 @@ int main(int argc, char* argv[])
 		options->difffile = difffile;
 
 	/* see if necessary */
-	if(!exist_difffile(options) && !force_write) {
+	if(!exist_difffile(options)) {
 		fprintf(stderr, "No diff file, nothing to do.\n");
-		exit(0);
+		if (!force_write)
+			exit(0);
 	}
 	else	difffile_exists = 1;
 
@@ -371,15 +372,11 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 
-	fprintf(stderr, "database opened\n");
-
 	/* set all updated to 0 so we know what has changed */
 	for(zone = db->zones; zone; zone = zone->next)
 	{
 		zone->updated = 0;
 	}
-
-	fprintf(stderr, "zones zero'd\n");
 
 	if (dbfile)
 		dbout = namedb_new(dbfile);
@@ -387,8 +384,6 @@ int main(int argc, char* argv[])
 	{
 		db->fd = dbout->fd;
 		db->filename = (char*) dbfile;
-
-		fprintf(stderr, "prepared db.out\n");
 	}
 
 	/* read ixfr diff file */
@@ -423,7 +418,7 @@ int main(int argc, char* argv[])
 	if (dbout)
 	{
 		fprintf(stderr, "storing database to %s.\n", dbout->filename);
-	        if (namedb_save(dbout) != 0) {
+	        if (namedb_save(db) != 0) {
 			fprintf(stderr, "error writing the database (%s): %s\n",
 				dbfile, strerror(errno));
 			exit(1);
