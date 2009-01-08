@@ -237,6 +237,7 @@ NSD_PATCH_OBJECTS	=			\
 	buffer.o                                \
 	configlexer.o                           \
 	configparser.o                          \
+	dbcreate.o				\
 	dbaccess.o				\
 	difffile.o				\
 	dname.o                                 \

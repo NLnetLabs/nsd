@@ -28,9 +28,10 @@ usage(void)
 	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "-c configfile	Specify config file to use, instead of %s\n", CONFIGFILE);
 	fprintf(stderr, "-f		Force writing of zone files.\n");
-	fprintf(stderr, "-s		Skip writing of zone files.\n");
 	fprintf(stderr, "-h		Print this help information.\n");
 	fprintf(stderr, "-l		List contents of transfer journal difffile, %s\n", DIFFFILE);
+	fprintf(stderr, "-s		Skip writing of zone files. This "
+			"will output the result directly to the db file\n");
 	fprintf(stderr, "-x difffile	Specify diff file to use, instead of diff file from config.\n");
 	exit(1);
 }
@@ -379,21 +380,31 @@ int main(int argc, char* argv[])
 	fprintf(stderr, "writing changed zones\n");
 	for(zone = db->zones; zone; zone = zone->next)
 	{
+		if (skip_write)	{
+			fprintf(stderr, "skip patching up zonefiles.\n");
+			break;
+		}
+
 		if(!force_write && !zone->updated) {
 			fprintf(stderr, "zone %s had not changed.\n",
 				zone->opts->name);
 			continue;
 		}
 
-		if (skip_write)	{
-			fprintf(stderr, "skipping write zone %s to its "
-					"zonefile.\n", zone->opts->name);
-			continue;
-		}
-
 		/* write zone to its zone file */
 		write_to_zonefile(zone, commit_log);
 	}
+
+	/* output result directly to dbfile */
+	if(skip_write)
+	{
+	        if (namedb_save(db) != 0) {
+			fprintf(stderr, "error writing the database (%s): %s\n",
+				db->filename, strerror(errno));
+			exit(1);
+		}
+        }
+
 	fprintf(stderr, "done\n");
 
 	return 0;
