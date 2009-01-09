@@ -152,7 +152,7 @@ info "NSD version: $version"
 
 if [ "$RC" != "no" ]; then
     info "Building NSD release candidate."
-    version="$versionrc$RC"
+    version="${version}rc$RC"
     info "Release candidate version number: $version"
 fi
 
