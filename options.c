@@ -659,4 +659,3 @@ void nsd_options_destroy(nsd_options_t* opt)
 {
 	region_destroy(opt->region);
 }
-

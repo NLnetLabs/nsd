@@ -1,6 +1,6 @@
 Summary: NSD is a complete implementation of an authoritative DNS name server
 Name: nsd
-Version: 3.2.0
+Version: 3.2.1
 Release: 1%{?dist}
 License: BSD
 Url: http://www.nlnetlabs.nl/%{name}/
@@ -16,7 +16,7 @@ Requires(pre): shadow-utils
 NSD is a complete implementation of an authoritative DNS name server.
 It can function as a primary or secondary DNS server, with DNSSEC support.
 For further information about what NSD is and what NSD is not please
-consult the REQUIREMENTS document which is a part of this distribution
+consult the REQUIREMENTS document which is a part of this distribution.
 (thanks to Olaf).
 
 %prep

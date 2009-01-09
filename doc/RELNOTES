@@ -9,14 +9,13 @@ OPERATIONAL NOTES:
 	  anymore. By default, this is off.
 
 BUG FIXES:
-	- Added several checks after trying to allocate memory.
 	- Better error message when ixfr.db old file format is read.
-	- Don't try to close a (null) logfile.
 	- Bug #218: shared UDP query for all interfaces.
 	- Bug #222: Remove bashism from nsdc script.
 	- Nicer check for SHA-256 functionality.
 	- Fixed some minor memory leaks that occured on reload.
 	- nsdc: check if a lockfile has not gone stale, when lock failed.
+	- Bugfix strptime compatibility function
 
 FEATURES:
 	- New configuration option 'allow-afxr-fallback', "yes" by default. If
