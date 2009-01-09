@@ -17,6 +17,8 @@ Generate a distribution tar file for NSD.
     -h           This usage information.
     -s           Build a snapshot distribution file.  The current date is
                  automatically appended to the current NSD version number.
+    -rc <nr>     Build a release candidate, the given string will be added
+		 to the version number (nsd-<version>rc<number>).
     -d SVN_root  Retrieve the NSD source from the specified repository.
 EOF
     exit 1
@@ -69,9 +71,10 @@ replace_all () {
     info "Updating '$1' with today's date."
     replace_text "$1" "@date@" "`date +'%b %e, %Y'`"
 }
-    
+
 
 SNAPSHOT="no"
+RC="no"
 
 # Parse the command line arguments.
 while [ "$1" ]; do
@@ -82,6 +85,10 @@ while [ "$1" ]; do
         "-d")
             SVNROOT="$2"
             shift
+            ;;
+        "-rc")
+            RC="$2"
+	    shift
             ;;
         "-s")
             SNAPSHOT="yes"
@@ -101,6 +108,7 @@ fi
 # Start the packaging process.
 info "SVNROOT  is $SVNROOT"
 info "SNAPSHOT is $SNAPSHOT"
+info "RELEASE CANDIDATE is $RC"
 
 #question "Do you wish to continue with these settings?" || error "User abort."
 
@@ -142,11 +150,19 @@ version=`./configure --version | head -1 | awk '{ print $3 }'` || \
 
 info "NSD version: $version"
 
+if [ "$RC" != "no" ]; then
+    info "Building NSD release candidate."
+    version="${version}rc$RC"
+    info "Release candidate version number: $version"
+fi
+
 if [ "$SNAPSHOT" = "yes" ]; then
     info "Building NSD snapshot."
     version="$version-`date +%Y%m%d`"
     info "Snapshot version number: $version"
 fi
+
+
 
 replace_all doc/README
 replace_all nsd.8
