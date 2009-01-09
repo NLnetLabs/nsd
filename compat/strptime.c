@@ -110,7 +110,6 @@ nsd_strptime(const char *s, const char *format, struct tm *tm)
 {
 	int c, alt_format, ret; 
 	int split_year = 0; 
-	char *tmp;
 
 	while ((c = *format) != '\0') {
 		alt_format = 0; 
@@ -214,7 +213,8 @@ nsd_strptime(const char *s, const char *format, struct tm *tm)
 					if (ret < 1 || ret > 12) { /* must be in [01,12] */
 						return NULL; 
 					}
-					tm->tm_mon = ret; 
+					/* months go from 0-11 */
+					tm->tm_mon = (ret-1);
 					break;
 				case 'M': /* minute */
 					ret = str2int(&s, 2);

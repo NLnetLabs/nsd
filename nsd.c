@@ -47,7 +47,7 @@ static char hostname[MAXHOSTNAMELEN];
 static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 
 /*
- * <matthijs> Print the help text.
+ * Print the help text.
  *
  */
 static void
@@ -95,7 +95,7 @@ usage (void)
 }
 
 /*
- * <matthijs> Print the version exit.
+ * Print the version exit.
  *
  */
 static void
@@ -111,7 +111,7 @@ version(void)
 }
 
 /*
- * <matthijs> Something went wrong, give error messages and exit.
+ * Something went wrong, give error messages and exit.
  *
  */
 static void
@@ -126,7 +126,7 @@ error(const char *format, ...)
 
 
 /*
- * <matthijs> Fetch the nsd parent process id from the nsd pidfile
+ * Fetch the nsd parent process id from the nsd pidfile
  *
  */
 pid_t
@@ -164,7 +164,7 @@ readpid(const char *file)
 }
 
 /*
- * <matthijs> Store the nsd parent process id in the nsd pidfile
+ * Store the nsd parent process id in the nsd pidfile
  *
  */
 int
@@ -200,7 +200,7 @@ writepid(struct nsd *nsd)
 }
 
 /*
- * <matthijs> incoming signals, set appropriate actions.
+ * Incoming signals, set appropriate actions.
  *
  */
 void
@@ -231,7 +231,7 @@ sig_handler(int sig)
 		return;
 	}
 
-	/* <matthijs> We are the main process */
+	/* We are the main process */
 	switch (sig) {
 	case SIGCHLD:
 		nsd.signal_hint_child = 1;
@@ -345,7 +345,6 @@ main(int argc, char *argv[])
 	const char *udp_port = 0;
 	const char *tcp_port = 0;
 
-	const char *log_filename = NULL;
 	const char *configfile = CONFIGFILE;
 
 	log_init("nsd");
@@ -375,6 +374,7 @@ main(int argc, char *argv[])
 	nsd.maximum_tcp_count = 0;
 	nsd.current_tcp_count = 0;
 	nsd.grab_ip6_optional = 0;
+	nsd.file_rotation_ok = 0;
 
 	/* EDNS0 */
 	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
@@ -458,7 +458,7 @@ main(int argc, char *argv[])
 #endif /* NSID */
                        break;
 		case 'l':
-			log_filename = optarg;
+			nsd.log_filename = optarg;
 			break;
 		case 'N':
 			i = atoi(optarg);
@@ -526,7 +526,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	/* <matthijs> commandline parse error */
+	/* Commandline parse error */
 	if (argc != 0) {
 		usage();
 		exit(1);
@@ -540,7 +540,7 @@ main(int argc, char *argv[])
 	/* Read options */
 	nsd.options = nsd_options_create(region_create(xalloc, free));
 	if(!parse_options_file(nsd.options, configfile)) {
-		error("nsd: could not read config: %s\n", configfile);
+		error("could not read config: %s\n", configfile);
 	}
 	if(nsd.options->ip4_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
@@ -562,7 +562,8 @@ main(int argc, char *argv[])
 				nodes[nsd.ifs] = ip->address;
 				++nsd.ifs;
 			} else {
-				error("too many interfaces ('-a' + 'ip-address:') specified.");
+				error("too many interfaces ('-a' + "
+				      "'ip-address:') specified.");
 				break;
 			}
 			ip = ip->next;
@@ -577,20 +578,25 @@ main(int argc, char *argv[])
 	if(nsd.options->debug_mode) nsd.debug=1;
 	if(!nsd.dbfile)
 	{
-		if(nsd.options->database) nsd.dbfile = nsd.options->database;
-		else nsd.dbfile = DBFILE;
+		if(nsd.options->database)
+			nsd.dbfile = nsd.options->database;
+		else
+			nsd.dbfile = DBFILE;
 	}
 	if(!nsd.pidfile)
 	{
-		if(nsd.options->pidfile) nsd.pidfile = nsd.options->pidfile;
-		else nsd.pidfile = PIDFILE;
+		if(nsd.options->pidfile)
+			nsd.pidfile = nsd.options->pidfile;
+		else
+			nsd.pidfile = PIDFILE;
 	}
 	if(strcmp(nsd.identity, hostname)==0 || strcmp(nsd.identity,IDENTITY)==0)
 	{
-		if(nsd.options->identity) nsd.identity = nsd.options->identity;
+		if(nsd.options->identity)
+			nsd.identity = nsd.options->identity;
 	}
-	if (nsd.options->logfile && !log_filename) {
-		log_filename = nsd.options->logfile;
+	if (nsd.options->logfile && !nsd.log_filename) {
+		nsd.log_filename = nsd.options->logfile;
 	}
 	if(nsd.child_count == 0) {
 		nsd.child_count = nsd.options->server_count;
@@ -756,11 +762,12 @@ main(int argc, char *argv[])
 	key_options_tsig_add(nsd.options);
 #endif /* TSIG */
 
-	/* Set up the logging... */
-	log_open(LOG_PID, FACILITY, log_filename);
-	if (!log_filename) {
+	/* Set up the logging */
+	log_open(LOG_PID, FACILITY, nsd.log_filename);
+	if (!nsd.log_filename)
 		log_set_log_function(log_syslog);
-	}
+	else if (nsd.uid && nsd.gid)
+		chown(nsd.log_filename, nsd.uid, nsd.gid);
 
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {
@@ -819,13 +826,13 @@ main(int argc, char *argv[])
 		/* Take off... */
 		switch ((nsd.pid = fork())) {
 		case 0:
-			/* <matthijs> Child */
+			/* Child */
 			break;
 		case -1:
 			log_msg(LOG_ERR, "fork() failed: %s", strerror(errno));
 			exit(1);
 		default:
-			/* <matthijs> Parent is done */
+			/* Parent is done */
 			exit(0);
 		}
 
@@ -873,8 +880,8 @@ main(int argc, char *argv[])
 
 	/* Run the server... */
 	if (server_init(&nsd) != 0) {
-		log_msg(LOG_ERR, "server initialization failed, nsd could \
-not be started");
+		log_msg(LOG_ERR, "server initialization failed, nsd could "
+						 "not be started");
 		exit(1);
 	}
 

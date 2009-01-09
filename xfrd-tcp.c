@@ -290,14 +290,17 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	assert(zone->tcp_conn != -1);
 	assert(zone->tcp_waiting == 0);
 	/* start AXFR or IXFR for the zone */
-	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request full zone transfer \
-(AXFR) for %s to %s", zone->apex_str, zone->master->ip_address_spec));
+	if(zone->soa_disk_acquired == 0 || zone->master->use_axfr_only ||
+						zone->master->ixfr_disabled) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request full zone transfer "
+						"(AXFR) for %s to %s",
+			zone->apex_str, zone->master->ip_address_spec));
 
 		xfrd_setup_packet(tcp->packet, TYPE_AXFR, CLASS_IN, zone->apex);
 	} else {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request incremental zone transfer \
-(IXFR) for %s to %s", zone->apex_str, zone->master->ip_address_spec));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "request incremental zone "
+						"transfer (IXFR) for %s to %s",
+			zone->apex_str, zone->master->ip_address_spec));
 
 		xfrd_setup_packet(tcp->packet, TYPE_IXFR, CLASS_IN, zone->apex);
         	NSCOUNT_SET(tcp->packet, 1);
@@ -419,7 +422,8 @@ xfrd_tcp_write(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	xfrd_tcp_read(set, zone);
 }
 
-int conn_read(xfrd_tcp_t* tcp)
+int
+conn_read(xfrd_tcp_t* tcp)
 {
 	ssize_t received;
 	/* receive leading packet length bytes */
@@ -512,6 +516,12 @@ xfrd_tcp_read(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 		case xfrd_packet_newlease:
 			xfrd_tcp_release(set, zone);
 			assert(zone->round_num == -1);
+			break;
+		case xfrd_packet_notimpl:
+			zone->master->ixfr_disabled = time(NULL);
+			xfrd_tcp_release(set, zone);
+			/* query next server */
+			xfrd_make_request(zone);
 			break;
 		case xfrd_packet_bad:
 		case xfrd_packet_tcp:

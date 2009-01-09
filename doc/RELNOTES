@@ -1,6 +1,32 @@
 NSD RELEASE NOTES
 
-3.2.0 (UPCOMING RELEASE)
+3.2.1 (UPCOMING RELEASE)
+=============
+OPERATIONAL NOTES:
+	- NSD will now fallback to AXFR, only if the master does not support IXFR.
+	- You can adjust nsdc patch to skip textfile patching. This will 
+	  increase the patching process, but will not output to zonefiles 
+	  anymore. By default, this is off.
+
+BUG FIXES:
+	- Better error message when ixfr.db old file format is read.
+	- Bug #218: shared UDP query for all interfaces.
+	- Bug #222: Remove bashism from nsdc script.
+	- Nicer check for SHA-256 functionality.
+	- Fixed some minor memory leaks that occured on reload.
+	- nsdc: check if a lockfile has not gone stale, when lock failed.
+	- Bugfix strptime compatibility function
+
+FEATURES:
+	- New configuration option 'allow-afxr-fallback', "yes" by default. If
+		set to "no", NSD will never do AXFR fallback, even if the master 
+		does not support IXFR.
+	- Allow file rotation on nsd.log.
+	- The new nsd-patch options -s and -o allows you to skip writing 
+		zonefiles and store the output directly to a database file, 
+		respectively.
+
+3.2.0
 =============
 OPERATIONAL NOTES:
 	- Format of ixfr.db has changed. When you are planning an upgrade to the 

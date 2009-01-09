@@ -311,6 +311,11 @@ are made over TCP. If you want the IXFR request be transmitted over UDP, use
 		allow-notify: 168.192.199.2 NOKEY
 		request-xfr: 168.192.199.2 NOKEY
 
+By default, a slave will fallback to AXFR requests if the master told us it does 
+not support IXFR. You can configure the slave not to do AXFR fallback with:
+
+		allow-axfr-fallback: "no"
+
 For a master zone, list the slave servers, by IP address or subnet.
 Below is an example of a master zone with two slave servers.
 
@@ -321,6 +326,11 @@ Below is an example of a master zone with two slave servers.
 		provide-xfr: 168.192.133.75 NOKEY
 		notify: 168.192.5.44 NOKEY
 		provide-xfr: 168.192.5.44 NOKEY
+
+You also can set the outgoing interface for notifies and zone transfer requests 
+to satisfy access control lists at the other end:
+
+		outgoing-interface: 168.192.5.69
 
 Zone transfers can be secured with TSIG keys, replace NOKEY with
 the name of the tsig key to use. See section 3.3.

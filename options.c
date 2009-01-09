@@ -102,7 +102,7 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 		return 0;
 	}
 	c_in = in;
-        c_parse();
+	c_parse();
 	fclose(in);
 
 	if(cfg_parser->current_zone) {
@@ -221,6 +221,7 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->notify = 0;
 	zone->provide_xfr = 0;
 	zone->outgoing_interface = 0;
+	zone->allow_axfr_fallback = 1;
 	return zone;
 }
 
@@ -601,6 +602,7 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 	acl->ip_address_spec = region_strdup(region, ip);
 	acl->use_axfr_only = 0;
 	acl->allow_udp = 0;
+	acl->ixfr_disabled = 0;
 	acl->key_options = 0;
 	acl->is_ipv6 = 0;
 	acl->port = 0;
@@ -651,4 +653,9 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 		acl->key_name = region_strdup(region, key);
 	}
 	return acl;
+}
+
+void nsd_options_destroy(nsd_options_t* opt)
+{
+	region_destroy(opt->region);
 }

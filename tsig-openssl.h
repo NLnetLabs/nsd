@@ -14,6 +14,9 @@
 
 #include "region-allocator.h"
 
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
+
 /*
  * Initialize OpenSSL support for TSIG.
  */

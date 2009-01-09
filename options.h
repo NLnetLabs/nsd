@@ -81,6 +81,7 @@ struct zone_options {
 	acl_options_t* notify;
 	acl_options_t* provide_xfr;
 	acl_options_t* outgoing_interface;
+	uint8_t allow_axfr_fallback;
 };
 
 union acl_addr_storage {
@@ -101,6 +102,7 @@ struct acl_options {
 	/* options */
 	uint8_t use_axfr_only;
 	uint8_t allow_udp;
+	time_t ixfr_disabled;
 
 	/* ip address range */
 	const char* ip_address_spec;
@@ -201,5 +203,7 @@ int parse_acl_is_ipv6(const char* p);
 int parse_acl_range_type(char* ip, char** mask);
 /* parses subnet mask, fills 0 mask as well */
 void parse_acl_range_subnet(char* p, void* addr, int maxbits);
+/* clean up options */
+void nsd_options_destroy(nsd_options_t* opt);
 
 #endif /* OPTIONS_H */

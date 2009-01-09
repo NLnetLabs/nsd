@@ -93,7 +93,7 @@ rdata_dns_name_to_string(buffer_type *output, rdata_atom_type rdata,
 			else
 				buffer_printf(output, "\\%03u", (unsigned) ch);
 		}
-		/* <matthijs> next label */
+		/* next label */
 		offset = offset+length+1;
 		length = data[offset];
 	}

@@ -11,7 +11,7 @@
 #define	_NSD_H_
 
 /* disable NSID no matter what, there is no typecode yet */
-#undef NSID 
+#undef NSID
 
 #include <signal.h>
 
@@ -28,13 +28,13 @@ struct nsd_options;
 #define	NSD_REAP_CHILDREN 4
 #define	NSD_QUIT 5
 /*
- * NSD_SOA_INFO is followed by u16(len in network byte order), dname, 
+ * NSD_SOA_INFO is followed by u16(len in network byte order), dname,
  * and then nothing (no info) or soa info.
  */
-#define NSD_SOA_INFO 6 
-/* 
- * PASS_TO_XFRD is followed by the u16(len in network order) and 
- * then network packet contents.  packet is a notify(acl checked), or 
+#define NSD_SOA_INFO 6
+/*
+ * PASS_TO_XFRD is followed by the u16(len in network order) and
+ * then network packet contents.  packet is a notify(acl checked), or
  * xfr reply from a master(acl checked).
  * followed by u32(acl number that matched from notify/xfr acl).
  */
@@ -44,7 +44,7 @@ struct nsd_options;
  * octet 0: zone is expired, 1: zone ok. and dname of zone.
  */
 #define NSD_ZONE_STATE 8
-/* 
+/*
  * SOA BEGIN is sent at the start of a reload SOA_INFO pass
  * xfrd will not send to the parent (deadlock prevention).
  */
@@ -137,7 +137,7 @@ struct	nsd
 	 * Global region that is not deallocated until NSD shuts down.
 	 */
 	region_type    *region;
-	
+
 	/* Run-time variables */
 	pid_t		pid;
 	volatile sig_atomic_t mode;
@@ -148,9 +148,9 @@ struct	nsd
 	volatile sig_atomic_t signal_hint_stats;
 	volatile sig_atomic_t signal_hint_statsusr;
 	volatile sig_atomic_t quit_sync_done;
-	unsigned        server_kind;
+	unsigned		server_kind;
 	struct namedb	*db;
-	int		debug;
+	int				debug;
 
 	size_t            child_count;
 	struct nsd_child *children;
@@ -159,16 +159,18 @@ struct	nsd
 	struct nsd_child *this_child;
 
 	/* Configuration */
-	const char	*dbfile;
-	const char	*pidfile;
-	const char	*username;
-	uid_t	uid;
-	gid_t	gid;
-	const char	*chrootdir;
-	const char	*version;
-	const char	*identity;
-        uint16_t        nsid_len;
-        unsigned char   *nsid;
+	const char		*dbfile;
+	const char		*pidfile;
+	const char		*log_filename;
+	const char		*username;
+	uid_t			uid;
+	gid_t			gid;
+	const char		*chrootdir;
+	const char		*version;
+	const char		*identity;
+	uint16_t		nsid_len;
+	unsigned char   *nsid;
+	uint8_t 		file_rotation_ok;
 
 	/* number of interfaces, ifs < MAX_INTERFACES */
 	size_t	ifs;

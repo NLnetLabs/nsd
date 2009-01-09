@@ -484,7 +484,7 @@ void
 parent_check_all_children_exited(struct nsd* nsd)
 {
 	size_t i;
-	for(i=0; i<nsd->child_count; i++) {
+	for(i=0; i < nsd->child_count; i++) {
 		if(!nsd->children[i].need_to_exit)
 		      return;
 		if(!nsd->children[i].has_exited)
@@ -525,7 +525,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_QUIT_SYNC:
 		/* set all children to exit, only then notify xfrd. */
 		/* so that buffered packets to pass to xfrd can arrive. */
-		for(i=0; i<nsd->child_count; i++) {
+		for(i=0; i < nsd->child_count; i++) {
 			nsd->children[i].need_to_exit = 1;
 			if(nsd->children[i].pid > 0 &&
 			   nsd->children[i].child_fd > 0) {
@@ -808,6 +808,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd->parent_soa_info_pass = 0;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;
+		xfrd_reopen_logfile();
 		xfrd_check_failed_updates();
 		xfrd_send_expy_all_zones();
 		break;

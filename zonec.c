@@ -1476,6 +1476,10 @@ main (int argc, char **argv)
 	}
 
 	parser = zparser_create(global_region, rr_region, db);
+	if (!parser) {
+		fprintf(stderr, "zonec: error creating the parser\n");
+		exit(1);
+	}
 
 	/* Unique pointers used to mark errors.	 */
 	error_dname = (dname_type *) region_alloc(global_region, 0);

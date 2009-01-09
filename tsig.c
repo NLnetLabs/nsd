@@ -10,7 +10,6 @@
 
 #include <config.h>
 #include <stdlib.h>
-#include <openssl/sha.h>
 
 #include "tsig.h"
 #include "tsig-openssl.h"
@@ -511,7 +510,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	type = buffer_read_u16(packet);
 	klass = buffer_read_u16(packet);
 
-	/* <matthijs> TSIG not present */
+	/* TSIG not present */
 	if (type != TYPE_TSIG || klass != CLASS_ANY) {
 		buffer_set_position(packet, tsig->position);
 		return 1;
@@ -631,4 +630,12 @@ tsig_error_reply(tsig_record_type *tsig)
 	if(tsig->mac_data)
 		memset(tsig->mac_data, 0, tsig->mac_size);
 	tsig->mac_size = 0;
+}
+
+void
+tsig_finalize()
+{
+#if defined(TSIG) && defined(HAVE_SSL)
+	EVP_cleanup();
+#endif
 }

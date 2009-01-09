@@ -181,6 +181,7 @@ struct xfrd_zone {
 enum xfrd_packet_result {
 	xfrd_packet_bad, /* drop the packet/connection */
 	xfrd_packet_more, /* more packets to follow on tcp */
+	xfrd_packet_notimpl, /* server responded with NOTIMPL or FORMATERR */
 	xfrd_packet_tcp, /* try tcp connection */
 	xfrd_packet_transfer, /* server responded with transfer*/
 	xfrd_packet_newlease /* no changes, soa OK */
@@ -270,6 +271,9 @@ void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 
 /* send expiry notify for all zones to nsd (sets all dirty). */
 void xfrd_send_expy_all_zones();
+
+/* try to reopen the logfile. */
+void xfrd_reopen_logfile();
 
 /* copy SOA info from rr to soa struct. */
 void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);

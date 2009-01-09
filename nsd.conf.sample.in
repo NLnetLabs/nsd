@@ -113,6 +113,10 @@ zone:
 	# Attention: You cannot use UDP and AXFR together. AXFR is always over 
 	# TCP. If you use UDP, we higly recommend you to deploy TSIG.
 
+	# Allow AXFR fallback if the master does not support IXFR. Default
+	# is yes.
+	allow-axfr-fallback: "yes"
+
 	# uncomment to provide AXFR to all the world
 	# provide-xfr: 0.0.0.0/0 NOKEY
 	# provide-xfr: ::0/0 NOKEY

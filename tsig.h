@@ -280,4 +280,9 @@ size_t tsig_reserved_space(tsig_record_type *tsig);
  */
 void tsig_error_reply(tsig_record_type *tsig);
 
+/*
+ * cleanup tsig openssl stuff.
+ */
+void tsig_finalize(void);
+
 #endif /* _TSIG_H_ */

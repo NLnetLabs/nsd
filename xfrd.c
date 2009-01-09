@@ -30,11 +30,10 @@
 #define XFRD_TRANSFER_TIMEOUT_MAX 14400 /* empty zone timeout max expbackoff */
 #define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connection is stopped */
 #define XFRD_UDP_TIMEOUT 10 /* seconds, before a udp request times out */
+#define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr's after notimpl */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
 #define XFRD_LOWERBOUND_RETRY 1 /* seconds, smallest retry timeout */
-#define XFRD_IXFR_UDP_ROUNDS 2 /* number of ixfr/udp rounds along the masters */
-#define XFRD_IXFR_TCP_ROUNDS 3 /* number of ixfr/tcp rounds along the masters */
-#define XFRD_MAX_ROUNDS 4 /* max number of rounds along the masters */
+#define XFRD_MAX_ROUNDS 3 /* max number of rounds along the masters */
 #define XFRD_TSIG_MAX_UNSIGNED 103 /* max number of packets without tsig in a tcp stream. */
 			/* rfc recommends 100, +3 for offbyone errors/interoperability. */
 
@@ -124,14 +123,15 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->ipc_handler.event_types = NETIO_EVENT_READ;
 	xfrd->ipc_handler.event_handler = xfrd_handle_ipc;
 	xfrd->ipc_conn = xfrd_tcp_create(xfrd->region);
-	xfrd->ipc_conn->is_reading = 0; /* not reading using ipc_conn yet */
+	/* not reading using ipc_conn yet */
+	xfrd->ipc_conn->is_reading = 0;
 	xfrd->ipc_conn->fd = xfrd->ipc_handler.fd;
 	xfrd->ipc_conn_write = xfrd_tcp_create(xfrd->region);
 	xfrd->ipc_conn_write->fd = xfrd->ipc_handler.fd;
 	xfrd->need_to_send_reload = 0;
 	xfrd->sending_zone_state = 0;
 	xfrd->dirty_zones = stack_create(xfrd->region,
-		nsd_options_num_zones(nsd->options));
+			nsd_options_num_zones(nsd->options));
 
 	xfrd->notify_waiting_first = NULL;
 	xfrd->notify_waiting_last = NULL;
@@ -202,6 +202,9 @@ xfrd_shutdown()
 		}
 		close_notify_fds(xfrd->notify_zones);
 	}
+
+	/* shouldn't we clean up memory used by xfrd process */
+
 	exit(0);
 }
 
@@ -243,7 +246,6 @@ xfrd_init_zones()
 			continue;
 		}
 
-
 		xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
 		memset(xzone, 0, sizeof(xfrd_zone_t));
 		xzone->apex = dname;
@@ -251,7 +253,8 @@ xfrd_init_zones()
 		xzone->state = xfrd_zone_refreshing;
 		xzone->dirty = 0;
 		xzone->zone_options = zone_opt;
-		xzone->master = 0; /* first retry will use first master */
+		/* first retry will use first master */
+		xzone->master = 0;
 		xzone->master_num = 0;
 		xzone->next_master = 0;
 		xzone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
@@ -259,7 +262,8 @@ xfrd_init_zones()
 		xzone->soa_nsd_acquired = 0;
 		xzone->soa_disk_acquired = 0;
 		xzone->soa_notified_acquired = 0;
-		xzone->soa_nsd.prim_ns[0] = 1; /* [0]=1, [1]=0; "." domain name */
+		/* [0]=1, [1]=0; "." domain name */
+		xzone->soa_nsd.prim_ns[0] = 1;
 		xzone->soa_nsd.email[0] = 1;
 		xzone->soa_disk.prim_ns[0]=1;
 		xzone->soa_disk.email[0]=1;
@@ -269,7 +273,8 @@ xfrd_init_zones()
 		xzone->zone_handler.fd = -1;
 		xzone->zone_handler.timeout = 0;
 		xzone->zone_handler.user_data = xzone;
-		xzone->zone_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+		xzone->zone_handler.event_types =
+			NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
 		xzone->zone_handler.event_handler = xfrd_handle_zone;
 		netio_add_handler(xfrd->netio, &xzone->zone_handler);
 		xzone->tcp_conn = -1;
@@ -304,6 +309,13 @@ xfrd_send_expy_all_zones()
 	{
 		xfrd_send_expire_notification(zone);
 	}
+}
+
+void
+xfrd_reopen_logfile()
+{
+	if (xfrd->nsd->file_rotation_ok)
+		log_reopen(xfrd->nsd->log_filename, 0);
 }
 
 static void
@@ -445,6 +457,9 @@ xfrd_make_request(xfrd_zone_t* zone)
 {
 	if(zone->next_master != -1) {
 		/* we are told to use this next master */
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+			"xfrd zone %s use master %i",
+			zone->apex_str, zone->next_master));
 		zone->master_num = zone->next_master;
 		zone->master = acl_find_num(
 			zone->zone_options->request_xfr, zone->master_num);
@@ -481,31 +496,44 @@ xfrd_make_request(xfrd_zone_t* zone)
 		}
 	}
 
+	/* cache ixfr_disabled only for XFRD_NO_IXFR_CACHE time */
+	if (zone->master->ixfr_disabled &&
+	   (zone->master->ixfr_disabled + XFRD_NO_IXFR_CACHE) <= time(NULL)) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "clear negative caching ixfr "
+						"disabled for master %s num "
+						"%d ",
+			zone->master->ip_address_spec, zone->master_num));
+		zone->master->ixfr_disabled = 0;
+	}
+
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s make request round %d mr %d nx %d",
 		zone->apex_str, zone->round_num, zone->master_num, zone->next_master));
 	/* perform xfr request */
-	if (!zone->master->use_axfr_only && zone->soa_disk_acquired > 0
-				&& zone->round_num < XFRD_IXFR_UDP_ROUNDS
-				&& zone->master->allow_udp)
-	{
-		xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
-		xfrd_udp_obtain(zone);
-	}
-	else if (!zone->master->use_axfr_only && zone->soa_disk_acquired > 0
-				&& zone->round_num < XFRD_IXFR_TCP_ROUNDS)
-	{
-		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
-		xfrd_tcp_obtain(xfrd->tcp_set, zone);
-	}
-	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0
-			|| zone->round_num >= XFRD_IXFR_TCP_ROUNDS)
-	{
-		uint8_t axfr = zone->master->use_axfr_only;
-		zone->master->use_axfr_only = 1;
-		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
-		xfrd_tcp_obtain(xfrd->tcp_set, zone);
+	if (!zone->master->use_axfr_only && zone->soa_disk_acquired > 0 &&
+		!zone->master->ixfr_disabled) {
 
-		zone->master->use_axfr_only = axfr;
+		if (zone->master->allow_udp) {
+			xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
+			xfrd_udp_obtain(zone);
+		}
+		else { /* doing 3 rounds of IXFR/TCP might not be useful */
+			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_tcp_obtain(xfrd->tcp_set, zone);
+		}
+	}
+	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0) {
+		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+		xfrd_tcp_obtain(xfrd->tcp_set, zone);
+	}
+	else if (zone->master->ixfr_disabled) {
+		if (zone->zone_options->allow_axfr_fallback) {
+			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_tcp_obtain(xfrd->tcp_set, zone);
+		}
+		else
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s axfr "
+				"fallback not allowed, skipping master %s.",
+				zone->apex_str, zone->master->ip_address_spec));
 	}
 }
 
@@ -788,6 +816,13 @@ xfrd_udp_read(xfrd_zone_t* zone)
 			assert(zone->round_num == -1);
 			xfrd_udp_release(zone);
 			break;
+		case xfrd_packet_notimpl:
+			zone->master->ixfr_disabled = time(NULL);
+			/* drop packet */
+			xfrd_udp_release(zone);
+			/* query next server */
+			xfrd_make_request(zone);
+			break;
 		case xfrd_packet_more:
 		case xfrd_packet_bad:
 		default:
@@ -809,10 +844,10 @@ xfrd_send_udp(acl_options_t* acl, buffer_type* packet, acl_options_t* ifc)
 #endif /* INET6 */
 	int fd, family;
 
-	/* <matthijs> this will set the remote port to acl->port or TCP_PORT */
+	/* this will set the remote port to acl->port or TCP_PORT */
 	socklen_t to_len = xfrd_acl_sockaddr_to(acl, &to);
 
-	/* <matthijs> get the address family of the remote host */
+	/* get the address family of the remote host */
 	if(acl->is_ipv6) {
 #ifdef INET6
 		family = PF_INET6;
@@ -868,7 +903,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 
 	while (ifc) {
 		if (ifc->is_ipv6 != acl->is_ipv6) {
-			/* <matthijs> check if we have a matching address family */
+			/* check if we have a matching address family */
 			ifc = ifc->next;
 			continue;
 		}
@@ -910,7 +945,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 
 		}
 
-		/* <matthijs> found one */
+		/* found one */
 		if(bind(sockd, (struct sockaddr*)&frm, frm_len) >= 0) {
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: bind() %s to %s "
 						       "socket was successful",
@@ -922,7 +957,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 					       "failed: %s",
 			ifc->ip_address_spec, tcp? "tcp":"udp",
 			strerror(errno)));
-		/* <matthijs> try another */
+		/* try another */
 		ifc = ifc->next;
 	}
 
@@ -963,7 +998,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 {
 	int fd;
 
-	/* <matthijs> make sure we have a master to query the ixfr request to */
+	/* make sure we have a master to query the ixfr request to */
 	assert(zone->master);
 
 	if(zone->tcp_conn != -1) {
@@ -1172,6 +1207,10 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 				 "%s",
 			zone->apex_str, rcode2str(RCODE(packet)),
 			zone->master->ip_address_spec);
+		if (RCODE(packet) == RCODE_IMPL ||
+			RCODE(packet) == RCODE_FORMAT) {
+			return xfrd_packet_notimpl;
+		}
 		return xfrd_packet_bad;
 	}
 #ifdef TSIG
@@ -1306,7 +1345,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			return xfrd_packet_bad;
 		}
 	}
-#endif
+#endif /* TSIG */
 	return xfrd_packet_transfer;
 }
 
@@ -1327,8 +1366,10 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			return xfrd_packet_newlease;
 		case xfrd_packet_tcp:
 			return xfrd_packet_tcp;
+		case xfrd_packet_notimpl:
 		case xfrd_packet_bad:
 		default:
+		{
 			/* rollback */
 			if(zone->msg_seq_nr > 0) {
 				/* do not process xfr - if only one part simply ignore it. */
@@ -1357,7 +1398,11 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 					zone->apex_str,
 					(char*)buffer_begin(packet)));
 			}
-			return xfrd_packet_bad;
+			if (res == xfrd_packet_notimpl)
+				return res;
+			else
+				return xfrd_packet_bad;
+		}
 	}
 
 	/* dump reply on disk to diff file */
@@ -1468,6 +1513,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 	const dname_type* dname;
 	region_type* tempregion = region_create(xalloc, free);
 	xfrd_zone_t* zone;
+
 	buffer_skip(packet, QHEADERSZ);
 	if(!packet_read_query_section(packet, qnamebuf, &qtype, &qclass)) {
 		region_destroy(tempregion);
@@ -1476,8 +1522,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 
 	dname = dname_make(tempregion, qnamebuf, 1);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: got passed packet for %s, acl "
-								   "%d",
-		dname_to_string(dname,0), acl_num));
+					   "%d", dname_to_string(dname,0), acl_num));
 
 	/* find the zone */
 	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
@@ -1496,13 +1541,15 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 		int next;
 		/* get serial from a SOA */
 		if(ANCOUNT(packet) == 1 && packet_skip_dname(packet) &&
-			xfrd_parse_soa_info(packet, &soa))
-			have_soa = 1;
+			xfrd_parse_soa_info(packet, &soa)) {
+				have_soa = 1;
+		}
 		if(xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL)) {
 			if(zone->zone_handler.fd == -1
 				&& zone->tcp_conn == -1 &&
-				!zone->tcp_waiting && !zone->udp_waiting)
-				xfrd_set_refresh_now(zone);
+				!zone->tcp_waiting && !zone->udp_waiting) {
+					xfrd_set_refresh_now(zone);
+			}
 		}
 		next = find_same_master_notify(zone, acl_num);
 		if(next != -1) {

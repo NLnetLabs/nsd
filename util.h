@@ -44,6 +44,11 @@ void log_init(const char *ident);
 void log_open(int option, int facility, const char *filename);
 
 /*
+ * Reopen the logfile.
+ */
+void log_reopen(const char *filename, uint8_t verbose);
+
+/*
  * Finalize the logging system.
  */
 void log_finalize(void);

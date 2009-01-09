@@ -192,6 +192,11 @@ add_key(region_type* region, const char* opt, tsig_algorithm_type** algo)
 		region, sizeof(tsig_key_type));
 	size_t len;
 	int sz;
+	if(!key) {
+		log_msg(LOG_ERR, "region_alloc failed (add_key)");
+		return 0;
+	}
+
 	if(!delim) {
 		log_msg(LOG_ERR, "bad key syntax %s", opt);
 		return 0;
@@ -222,6 +227,10 @@ add_key(region_type* region, const char* opt, tsig_algorithm_type** algo)
 
 	len = strlen(delim+1);
 	key->data = region_alloc(region, len+1);
+	if(!key->data) {
+		log_msg(LOG_ERR, "region_alloc failed (add_key, key->data)");
+		return 0;
+	}
 	sz= b64_pton(delim+1, (uint8_t*)key->data, len);
 	if(sz == -1) {
 		log_msg(LOG_ERR, "bad key syntax %s", opt);

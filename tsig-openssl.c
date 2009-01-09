@@ -11,9 +11,6 @@
 
 #if defined(TSIG) && defined(HAVE_SSL)
 
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
-
 #include "tsig-openssl.h"
 #include "tsig.h"
 #include "util.h"
@@ -66,12 +63,15 @@ tsig_openssl_init(region_type *region)
 	/* TODO: walk lookup supported algorithms table */
 	if (!tsig_openssl_init_algorithm(region, "md5", "hmac-md5","hmac-md5.sig-alg.reg.int."))
 		return 0;
+#ifdef HAVE_EVP_SHA1
 	if (!tsig_openssl_init_algorithm(region, "sha1", "hmac-sha1", "hmac-sha1."))
 		return 0;
-#ifdef SHA256_DIGEST_LENGTH
+#endif /* HAVE_EVP_SHA1 */
+
+#ifdef HAVE_EVP_SHA256
 	if (!tsig_openssl_init_algorithm(region, "sha256", "hmac-sha256", "hmac-sha256."))
 		return 0;
-#endif
+#endif /* HAVE_EVP_SHA256 */
 	return 1;
 }
 

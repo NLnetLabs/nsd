@@ -326,6 +326,20 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 }
 
+static int
+file_inside_chroot(const char* fname, const char* chr)
+{
+#ifdef NDEBUG
+	assert(chr);
+#endif /* NDEBUG */
+	/* logfile and chroot the same? */
+	if (fname && fname[0] && chr[0] && !strncmp(fname, chr, strlen(chr)))
+		return 2; /* strip chroot, file rotation ok */
+	else if (fname[0] != '/')
+		return 1; /* don't strip, file rotation ok */
+	return 0; /* don't strip, don't try file rotation */
+}
+
 /*
  * Initialize the server, create and bind the sockets.
  * Drop the privileges and chroot if requested.
@@ -464,9 +478,19 @@ server_init(struct nsd *nsd)
 	/* Chroot */
 	if (nsd->chrootdir) {
 		int l = strlen(nsd->chrootdir);
+		int ret = 0;
 
 		while (l>0 && nsd->chrootdir[l-1] == '/')
 			--l;
+
+		/* logfile */
+		ret = file_inside_chroot(nsd->log_filename, nsd->chrootdir);
+		if (ret)
+		{
+			nsd->file_rotation_ok = 1;
+			if (ret == 2) /* also strip chroot */
+				nsd->log_filename += l;
+		}
 
 		nsd->dbfile += l;
 		nsd->pidfile += l;
@@ -479,9 +503,14 @@ server_init(struct nsd *nsd)
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd->chrootdir));
-
 	}
+	else
 #endif
+		nsd->file_rotation_ok = 1;
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "file rotation on %s %sabled",
+		nsd->log_filename, nsd->file_rotation_ok?"en":"dis"));
+
 	/* Check if nsd->dbfile exists */
 	if ((dbfd = fopen(nsd->dbfile, "r")) == NULL) {
 		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd->dbfile, strerror(errno));
@@ -559,6 +588,7 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
 	for (i = 0; i < n; ++i) {
 		if (sockets[i].s != -1) {
 			close(sockets[i].s);
+			free(sockets[i].addr);
 			sockets[i].s = -1;
 		}
 	}
@@ -592,6 +622,12 @@ server_shutdown(struct nsd *nsd)
 				nsd->children[i].child_fd = -1;
 			}
 	}
+
+	log_finalize();
+	tsig_finalize();
+
+	nsd_options_destroy(nsd->options);
+	region_destroy(nsd->region);
 
 	exit(0);
 }
@@ -740,7 +776,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	initialize_dname_compression_tables(nsd);
 
-	/* <matthijs> get our new process id */
+	/* Get our new process id */
 	old_pid = nsd->pid;
 	nsd->pid = getpid();
 
@@ -750,7 +786,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	set_bind8_alarm(nsd);
 #endif
 
-	/* <matthijs> Start new child processes */
+	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, xfrd_sock_p) != 0) {
 		send_children_quit(nsd);
 		exit(1);
@@ -855,7 +891,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
-	DEBUG(DEBUG_IPC,2, (LOG_INFO, "Reload exiting to become new main"));
+
+	/* try to reopen file */
+	if (nsd->file_rotation_ok)
+		log_reopen(nsd->log_filename, 1);
 	/* exit reload, continue as new server_main */
 }
 
@@ -903,7 +942,7 @@ server_signal_mode(struct nsd *nsd)
 void
 server_main(struct nsd *nsd)
 {
-        region_type *server_region = region_create(xalloc, free);
+	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type reload_listener;
 	netio_handler_type xfrd_listener;
@@ -916,7 +955,7 @@ server_main(struct nsd *nsd)
 	pid_t xfrd_pid = -1;
 	sig_atomic_t mode;
 
-	/* <matthijs> assure we are the main process */
+	/* Ensure we are the main process */
 	assert(nsd->server_kind == NSD_SERVER_MAIN);
 
 	xfrd_listener.user_data = (struct ipc_handler_conn_data*)region_alloc(
@@ -926,23 +965,23 @@ server_main(struct nsd *nsd)
 	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->conn =
 		xfrd_tcp_create(server_region);
 
-	/* <matthijs> start the XFRD process */
+	/* Start the XFRD process */
 	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
 	netio_add_handler(netio, &xfrd_listener);
 
-	/* <matthijs> start the child processes that handle incoming queries */
+	/* Start the child processes that handle incoming queries */
 	if (server_start_children(nsd, server_region, netio, &xfrd_listener.fd) != 0) {
 		send_children_quit(nsd);
 		exit(1);
 	}
 	reload_listener.fd = -1;
 
-	/* <matthijs> this_child MUST be 0, because this is the parent process */
+	/* This_child MUST be 0, because this is the parent process */
 	assert(nsd->this_child == 0);
 
-	/* <matthijs> run the server until we get a shutdown signal */
+	/* Run the server until we get a shutdown signal */
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
-		/* <matthijs> did we receive a signal that changes our mode? */
+		/* Did we receive a signal that changes our mode? */
 		if(mode == NSD_RUN) {
 			nsd->mode = mode = server_signal_mode(nsd);
 		}
@@ -1011,7 +1050,7 @@ server_main(struct nsd *nsd)
 
 			break;
 		case NSD_RELOAD:
-			/* <matthijs> continue to run nsd after reload */
+			/* Continue to run nsd after reload */
 			nsd->mode = NSD_RUN;
 
 			if (reload_pid != -1) {
@@ -1028,7 +1067,7 @@ server_main(struct nsd *nsd)
 				break;
 			}
 
-			/* <matthijs> do actual reload */
+			/* Do actual reload */
 			reload_pid = fork();
 			switch (reload_pid) {
 			case -1:
@@ -1095,8 +1134,11 @@ server_main(struct nsd *nsd)
 			}
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
+
 			region_destroy(server_region);
+			namedb_close(nsd->db);
 			server_shutdown(nsd);
+
 			/* ENOTREACH */
 			break;
 		case NSD_SHUTDOWN:
@@ -1143,6 +1185,8 @@ server_main(struct nsd *nsd)
 		fsync(xfrd_listener.fd);
 		close(xfrd_listener.fd);
 	}
+
+	namedb_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }
@@ -1164,6 +1208,7 @@ server_child(struct nsd *nsd)
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	netio_handler_type *tcp_accept_handlers;
+	query_type *udp_query;
 	sig_atomic_t mode;
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
@@ -1194,6 +1239,9 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
+		udp_query = query_create(server_region,
+			compressed_dname_offsets, compression_table_size);
+
 		for (i = 0; i < nsd->ifs; ++i) {
 			struct udp_handler_data *data;
 			netio_handler_type *handler;
@@ -1201,9 +1249,7 @@ server_child(struct nsd *nsd)
 			data = (struct udp_handler_data *) region_alloc(
 				server_region,
 				sizeof(struct udp_handler_data));
-			data->query = query_create(
-				server_region, compressed_dname_offsets,
-				compression_table_size);
+			data->query = udp_query;
 			data->nsd = nsd;
 			data->socket = &nsd->udp[i];
 
@@ -1299,8 +1345,8 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
+	namedb_close(nsd->db);
 	region_destroy(server_region);
-
 	server_shutdown(nsd);
 }
 
