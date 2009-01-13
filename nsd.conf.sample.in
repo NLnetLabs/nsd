@@ -53,6 +53,7 @@ server:
 
 	# Run NSD in a chroot-jail.
 	# make sure to have pidfile and database reachable from there.
+	# by default, no chroot-jail is used.
 	# chroot: "@configdir@"
 
 	# After binding socket, drop user privileges.
