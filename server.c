@@ -476,7 +476,7 @@ server_init(struct nsd *nsd)
 
 #ifdef HAVE_CHROOT
 	/* Chroot */
-	if (nsd->chrootdir) {
+	if (nsd->chrootdir && strlen(nsd->chrootdir)) {
 		int l = strlen(nsd->chrootdir);
 		int ret = 0;
 
