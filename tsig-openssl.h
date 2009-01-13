@@ -22,6 +22,8 @@
  */
 int tsig_openssl_init(region_type *region);
 
+void tsig_openssl_finalize();
+
 #endif /* defined(TSIG) && defined(HAVE_SSL) */
 
 #endif /* _TSIG_H_ */
