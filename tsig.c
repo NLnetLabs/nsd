@@ -38,10 +38,13 @@ static size_t max_algo_digest_size = 0;
 
 tsig_lookup_algorithm_table tsig_supported_algorithms[] = {
 	{ TSIG_HMAC_MD5, "hmac-md5" },
+#ifdef HAVE_EVP_SHA1
 	{ TSIG_HMAC_SHA1, "hmac-sha1" },
-#ifdef SHA256_DIGEST_LENGTH
+#endif /* HAVE_EVP_SHA1 */
+
+#ifdef HAVE_EVP_SHA256
 	{ TSIG_HMAC_SHA256, "hmac-sha256" },
-#endif
+#endif /* HAVE_EVP_SHA256 */
         { 0, NULL }
 };
 
@@ -636,6 +639,6 @@ void
 tsig_finalize()
 {
 #if defined(TSIG) && defined(HAVE_SSL)
-	EVP_cleanup();
+	tsig_openssl_finalize();
 #endif
 }

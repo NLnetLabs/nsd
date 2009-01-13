@@ -118,4 +118,10 @@ final(void *context, uint8_t *digest, size_t *size)
 	*size = (size_t) len;
 }
 
+void
+tsig_openssl_finalize()
+{
+	EVP_cleanup();
+}
+
 #endif /* defined(TSIG) && defined(HAVE_SSL) */
