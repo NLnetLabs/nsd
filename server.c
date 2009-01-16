@@ -335,7 +335,7 @@ file_inside_chroot(const char* fname, const char* chr)
 	/* logfile and chroot the same? */
 	if (fname && fname[0] && chr[0] && !strncmp(fname, chr, strlen(chr)))
 		return 2; /* strip chroot, file rotation ok */
-	else if (fname[0] != '/')
+	else if (fname && fname[0] != '/')
 		return 1; /* don't strip, file rotation ok */
 	return 0; /* don't strip, don't try file rotation */
 }
