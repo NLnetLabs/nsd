@@ -1232,7 +1232,7 @@ process_rr(void)
 		zone->ns_rrset = rrset;
 	}
 	if (vflag > 1 && totalrrs > 0 && (totalrrs % progress == 0)) {
-		printf("%ld\n", totalrrs);
+		fprintf(stdout, "%ld\n", totalrrs);
 	}
 	++totalrrs;
 	return 1;
@@ -1498,10 +1498,10 @@ main (int argc, char **argv)
 			exit(1);
 		}
 		if (vflag > 0)
-			fprintf(stderr, "zonec: reading zone \"%s\".\n", origin);
+			fprintf(stdout, "zonec: reading zone \"%s\".\n", origin);
 		zone_read(origin, singlefile, nsd_options);
 		if (vflag > 0)
-			fprintf(stderr, "zonec: processed %ld RRs in \"%s\".\n", totalrrs, origin);
+			fprintf(stdout, "zonec: processed %ld RRs in \"%s\".\n", totalrrs, origin);
 	} else {
 		zone_options_t* zone;
 		if(!nsd_options) {
@@ -1512,11 +1512,11 @@ main (int argc, char **argv)
 		RBTREE_FOR(zone, zone_options_t*, nsd_options->zone_options)
 		{
 			if (vflag > 0)
-				fprintf(stderr, "zonec: reading zone \"%s\".\n",
+				fprintf(stdout, "zonec: reading zone \"%s\".\n",
 					zone->name);
 			zone_read(zone->name, zone->zonefile, nsd_options);
 			if (vflag > 0)
-				fprintf(stderr,
+				fprintf(stdout,
 					"zonec: processed %ld RRs in \"%s\".\n",
 					totalrrs, zone->name);
 			totalrrs = 0;
@@ -1525,12 +1525,12 @@ main (int argc, char **argv)
 	check_dname(db);
 
 #ifndef NDEBUG
-	fprintf(stderr, "global_region: ");
+	fprintf(stdout, "global_region: ");
 	region_dump_stats(global_region, stderr);
-	fprintf(stderr, "\n");
-	fprintf(stderr, "db->region: ");
+	fprintf(stdout, "\n");
+	fprintf(stdout, "db->region: ");
 	region_dump_stats(db->region, stderr);
-	fprintf(stderr, "\n");
+	fprintf(stdout, "\n");
 #endif /* NDEBUG */
 
 	/* Close the database */
