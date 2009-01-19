@@ -1,5 +1,6 @@
 19 January 2009: Matthijs
 	- Bug 230: nsd-*: use stdout for non-error output (instead of stderr).
+	- Don't do strptime test when cross compiling.
 
 17 January 2009: Jelte
 	- Fix file rotation when no logfile but chroot.
