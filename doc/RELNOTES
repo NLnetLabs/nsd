@@ -9,6 +9,7 @@ OPERATIONAL NOTES:
 	  anymore. By default, this is off.
 
 BUG FIXES:
+	- Bug #230: Output non-error messages to stdout.
 	- Better error message when ixfr.db old file format is read.
 	- Bug #218: shared UDP query for all interfaces.
 	- Bug #222: Remove bashism from nsdc script.

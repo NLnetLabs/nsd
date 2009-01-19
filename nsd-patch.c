@@ -57,7 +57,7 @@ list_xfr(FILE *in)
 		return;
 	}
 	skiplen = len - (sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name));
-	fprintf(stderr, "zone %s transfer id %x serial %d timestamp %u.%u: "
+	fprintf(stdout, "zone %s transfer id %x serial %d timestamp %u.%u: "
 			"seq_nr %d of %d bytes\n", zone_name, id, new_serial,
 		timestamp[0], timestamp[1], seq_nr, skiplen);
 
@@ -69,7 +69,7 @@ list_xfr(FILE *in)
 		return;
 	}
 	if(len != len2) {
-		fprintf(stderr, "Packet seq %d had bad length check bytes!\n",
+		fprintf(stderr, "packet seq %d had bad length check bytes!\n",
 			seq_nr);
 	}
 }
@@ -118,9 +118,9 @@ list_commit(FILE *in)
 		fprintf(stderr, "incomplete commit/rollback packet\n");
 		return;
 	}
-	fprintf(stderr, "zone %s transfer id %x serial %d: %s of %d packets\n",
+	fprintf(stdout, "zone %s transfer id %x serial %d: %s of %d packets\n",
 		zone_name, id, new_serial, commit?"commit":"rollback", num);
-	fprintf(stderr, "   time %s, from serial %d, log message: %s\n",
+	fprintf(stdout, "   time %s, from serial %d, log message: %s\n",
 		get_date(log_msg), old_serial, log_msg);
 	if(len != len2) {
 		fprintf(stderr, "  commit packet with bad length check \
@@ -134,10 +134,10 @@ debug_list(struct nsd_options* opt)
 	const char* file = opt->difffile;
 	FILE *f;
 	uint32_t type;
-	fprintf(stderr, "Debug listing of the contents of %s\n", file);
+	fprintf(stdout, "debug listing of the contents of %s\n", file);
 	f = fopen(file, "r");
 	if(!f) {
-		fprintf(stderr, "Error opening %s: %s\n", file,
+		fprintf(stderr, "error opening %s: %s\n", file,
 			strerror(errno));
 		return;
 	}
@@ -364,10 +364,10 @@ int main(int argc, char* argv[])
 	}
 
 	/* read database and diff file */
-	fprintf(stderr, "reading database\n");
+	fprintf(stdout, "reading database\n");
 	db = namedb_open(options->database, options, fake_child_count);
 	if(!db) {
-		fprintf(stderr, "Could not read database: %s\n",
+		fprintf(stderr, "could not read database: %s\n",
 			options->database);
 		exit(1);
 	}
@@ -388,7 +388,7 @@ int main(int argc, char* argv[])
 
 	/* read ixfr diff file */
 	if (difffile_exists) {
-		fprintf(stderr, "reading updates to database\n");
+		fprintf(stdout, "reading updates to database\n");
 		if(!diff_read_file(db, options, &commit_log, fake_child_count))
 		{
 			fprintf(stderr, "unable to load the diff file: %s\n",
@@ -400,11 +400,11 @@ int main(int argc, char* argv[])
 	if (skip_write)
 		fprintf(stderr, "skip patching up zonefiles.\n");
 	else {
-		fprintf(stderr, "writing changed zones\n");
+		fprintf(stdout, "writing changed zones\n");
 		for(zone = db->zones; zone; zone = zone->next)
 		{
 			if(!force_write && !zone->updated) {
-				fprintf(stderr, "zone %s had not changed.\n",
+				fprintf(stdout, "zone %s had not changed.\n",
 					zone->opts->name);
 				continue;
 			}
@@ -416,14 +416,14 @@ int main(int argc, char* argv[])
 	/* output result directly to dbfile */
 	if (dbout)
 	{
-		fprintf(stderr, "storing database to %s.\n", dbout->filename);
+		fprintf(stdout, "storing database to %s.\n", dbout->filename);
 	        if (namedb_save(db) != 0) {
 			fprintf(stderr, "error writing the database (%s): %s\n",
 				dbfile, strerror(errno));
 			exit(1);
 		}
 	}
-	fprintf(stderr, "done\n");
+	fprintf(stdout, "done\n");
 
 	return 0;
 }

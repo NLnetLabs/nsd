@@ -64,7 +64,7 @@ warning(const char *format, ...)
 }
 
 static void
-usage (void)
+usage(void)
 {
 	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-a src[@port] [-h] [-p \
 port] [-y key:secret[:algo]] -z zone servers\n\n");
