@@ -303,6 +303,7 @@ process_edns(struct query *q)
 	if (q->edns.status == EDNS_ERROR) {
 		return NSD_RC_FORMAT;
 	}
+
 	if (q->edns.status == EDNS_OK) {
 		/* Only care about UDP size larger than normal... */
 		if (!q->tcp && q->edns.maxlen > UDP_MAX_MESSAGE_LEN) {
@@ -1370,6 +1371,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	case EDNS_ERROR:
 		buffer_write(q->packet, edns->error, OPT_LEN);
+		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, ednserr);

@@ -77,7 +77,7 @@ struct query {
 
 	/* The zone used to answer the query.  */
 	zone_type *zone;
-	
+
 	/* The domain used to answer the query.  */
 	domain_type *domain;
 
@@ -89,7 +89,7 @@ struct query {
 
 	/* Original opcode.  */
 	uint8_t opcode;
-	
+
 	/*
 	 * The number of CNAMES followed.  After a CNAME is followed
 	 * we no longer change the RCODE to NXDOMAIN and no longer add
@@ -98,7 +98,7 @@ struct query {
 	 * Also includes number of DNAMES followed.
 	 */
 	int cname_count;
-	
+
 	/* Used for dname compression.  */
 	uint16_t     compressed_dname_count;
 	domain_type *compressed_dnames[MAXRRSPP];

@@ -71,7 +71,7 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet)
 	uint16_t opt_nsid;
 
 	edns->position = buffer_position(packet);
-	
+
 	if (!buffer_available(packet, (OPT_LEN + OPT_RDATA)))
 		return 0;
 
@@ -82,13 +82,13 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet)
 		buffer_set_position(packet, edns->position);
 		return 0;
 	}
-	
+
 	opt_class = buffer_read_u16(packet);
 	opt_extended_rcode = buffer_read_u8(packet);
 	opt_version = buffer_read_u8(packet);
 	opt_flags = buffer_read_u16(packet);
 	opt_rdlen = buffer_read_u16(packet);
-	
+
 	if (opt_version != 0) {
 		edns->status = EDNS_ERROR;
 		return 1;

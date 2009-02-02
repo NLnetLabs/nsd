@@ -245,14 +245,14 @@ rbtree_search (rbtree_t *rbtree, const void *key)
 }
 
 /* helpers for delete */
-static void swap_int8(uint8_t* x, uint8_t* y) 
-{ 
-	uint8_t t = *x; *x = *y; *y = t; 
+static void swap_int8(uint8_t* x, uint8_t* y)
+{
+	uint8_t t = *x; *x = *y; *y = t;
 }
 
-static void swap_np(rbnode_t** x, rbnode_t** y) 
+static void swap_np(rbnode_t** x, rbnode_t** y)
 {
-	rbnode_t* t = *x; *x = *y; *y = t; 
+	rbnode_t* t = *x; *x = *y; *y = t;
 }
 
 static void change_parent_ptr(rbtree_t* rbtree, rbnode_t* parent, rbnode_t* old, rbnode_t* new)
@@ -275,7 +275,7 @@ static void change_child_ptr(rbnode_t* child, rbnode_t* old, rbnode_t* new)
 	if(child->parent == old) child->parent = new;
 }
 
-rbnode_t* 
+rbnode_t*
 rbtree_delete(rbtree_t *rbtree, const void *key)
 {
 	rbnode_t *to_delete;
@@ -382,7 +382,7 @@ static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* child, rbnode_t* chi
 			else sibling = child_parent->right;
 		}
 
-		if(child_parent->color == BLACK 
+		if(child_parent->color == BLACK
 			&& sibling->color == BLACK
 			&& sibling->left->color == BLACK
 			&& sibling->right->color == BLACK)
@@ -402,7 +402,7 @@ static void rbtree_delete_fixup(rbtree_t* rbtree, rbnode_t* child, rbnode_t* chi
 	if(child_parent->color == RED
 		&& sibling->color == BLACK
 		&& sibling->left->color == BLACK
-		&& sibling->right->color == BLACK) 
+		&& sibling->right->color == BLACK)
 	{
 		/* move red to sibling to rebalance */
 		if(sibling != RBTREE_NULL)
@@ -463,12 +463,12 @@ rbtree_find_less_equal(rbtree_t *rbtree, const void *key, rbnode_t **result)
 	rbnode_t *node;
 
 	assert(result);
-	
+
 	/* We start at root... */
 	node = rbtree->root;
 
 	*result = NULL;
-	
+
 	/* While there are children... */
 	while (node != RBTREE_NULL) {
 		r = rbtree->cmp(key, node->key);
@@ -476,7 +476,7 @@ rbtree_find_less_equal(rbtree_t *rbtree, const void *key, rbnode_t **result)
 			/* Exact match */
 			*result = node;
 			return 1;
-		} 
+		}
 		if (r < 0) {
 			node = node->left;
 		} else {
