@@ -1310,7 +1310,11 @@ query_process(query_type *q, nsd_type *nsd)
 #endif /* TSIG */
 	rc = process_edns(q);
 	if (rc != NSD_RC_OK) {
-		return query_error(q, rc);
+		/* We should not return FORMERR, but BADVERS (=16).
+		 * BADVERS is created with Ext. RCODE, followed by RCODE.
+		 * Ext. RCODE is set to 1, RCODE must be 0 (getting 0x10 = 16).
+		 * Thus RCODE = NOERROR = NSD_RC_OK. */
+		return query_error(q, NSD_RC_OK);
 	}
 
 	query_prepare_response(q);
@@ -1372,6 +1376,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case EDNS_ERROR:
 		buffer_write(q->packet, edns->error, OPT_LEN);
 		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
+
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 
 		STATUP(nsd, ednserr);
