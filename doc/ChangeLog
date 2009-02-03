@@ -1,3 +1,6 @@
+2 February 2009: Matthijs
+	- Bugfix: return BADVERS when EDNS version > 0, instead of 0x1<FORMERR>.
+
 19 January 2009: Matthijs
 	- Bug 230: nsd-*: use stdout for non-error output (instead of stderr).
 	- Don't do strptime test when cross compiling.

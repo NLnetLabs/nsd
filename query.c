@@ -691,11 +691,11 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 
 	/* allocate dest part */
 	lastparent = to_closest_encloser;
-	for(i=0; i < to_name->label_count - domain_dname(to_closest_encloser)->label_count; 
+	for(i=0; i < to_name->label_count - domain_dname(to_closest_encloser)->label_count;
 		i++)
 	{
 		domain_type* newdom = query_get_tempdomain(q);
-		if(!newdom) 
+		if(!newdom)
 			return 0;
 		newdom->is_existing = 0;
 		newdom->parent = lastparent;

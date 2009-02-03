@@ -1,6 +1,12 @@
 NSD RELEASE NOTES
 
-3.2.1 (UPCOMING RELEASE)
+3.2.2 (UPCOMING RELEASE)
+=============
+BUG FIXES:
+	- Return BADVERS when NSD does not implement the VERSION level of the 
+	  request, instead of 0x1<FORMERR>.
+
+3.2.1
 =============
 OPERATIONAL NOTES:
 	- NSD will now fallback to AXFR, only if the master does not support IXFR.
