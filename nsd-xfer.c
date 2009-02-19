@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <limits.h>
 #include <assert.h>
 #include <errno.h>
 #include <netdb.h>
