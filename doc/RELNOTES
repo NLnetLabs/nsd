@@ -6,6 +6,7 @@ BUG FIXES:
 	- Return BADVERS when NSD does not implement the VERSION level of the 
 	  request, instead of 0x1<FORMERR>.
 	- Bugfix #234.
+	- Bugfix #235.
 	- Reset 'error occurred' after notifying an error occurred at the $TTL or
 		$ORIGIN directive (Otherwise, the whole zone is skipped because the
 		error is reset after reading the SOA).
