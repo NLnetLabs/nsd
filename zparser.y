@@ -94,7 +94,13 @@ line:	NL
     |	sp NL
     |	PREV NL		{}    /* Lines containing only whitespace.  */
     |	ttl_directive
+	{
+	    parser->error_occurred = 0;
+    }
     |	origin_directive
+	{
+	    parser->error_occurred = 0;
+    }
     |	rr
     {	/* rr should be fully parsed */
 	    if (!parser->error_occurred) {
@@ -619,15 +625,11 @@ rdata_soa:	dname sp dname sp STR sp STR sp STR sp STR sp STR trail
 	    /* convert the soa data */
 	    zadd_rdata_domain($1);	/* prim. ns */
 	    zadd_rdata_domain($3);	/* email */
-	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $5.str)); /* serial */
+	    zadd_rdata_wireformat(zparser_conv_serial(parser->region, $5.str)); /* serial */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $7.str)); /* refresh */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $9.str)); /* retry */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $11.str)); /* expire */
 	    zadd_rdata_wireformat(zparser_conv_period(parser->region, $13.str)); /* minimum */
-
-	    /* [XXX] also store the minium in case of no TTL? */
-	    if ((parser->default_minimum = zparser_ttl2int($11.str)) == -1)
-		    parser->default_minimum = DEFAULT_TTL;
     }
     ;
 
@@ -982,7 +984,6 @@ zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
         nsec_highest_rcode = 0;
 
 	parser->default_ttl = ttl;
-	parser->default_minimum = 0;
 	parser->default_class = klass;
 	parser->current_zone = NULL;
 	parser->origin = domain_table_insert(parser->db->domains, origin);

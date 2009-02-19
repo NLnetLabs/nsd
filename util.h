@@ -272,7 +272,7 @@ timeval_to_timespec(struct timespec *left,
  * XXX This functions does not check the range.
  *
  */
-long strtottl(const char *nptr, const char **endptr);
+uint32_t strtottl(const char *nptr, const char **endptr);
 
 /*
  * Convert binary data to a string of hexadecimal characters.
