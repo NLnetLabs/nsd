@@ -13,6 +13,7 @@ prefix	= @prefix@
 exec_prefix = @exec_prefix@
 sbindir	= @sbindir@
 mandir = @mandir@
+datarootdir = @datarootdir@
 
 # NSD specific pathnames
 configdir = @configdir@
