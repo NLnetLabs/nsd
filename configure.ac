@@ -66,15 +66,20 @@ dbdir=${localstatedir}/db/nsd
 # to /var/run/nsd.pid by default
 #
 if test -d ${localstatedir}/run; then
-	pidfile=${localstatedir}/run/nsd.pid
+	piddir=${localstatedir}/run/
 else
-	pidfile=${dbdir}/nsd.pid
+	piddir=${dbdir}/
 fi
+pidfile=${piddir}nsd.pid
+
 AC_ARG_WITH([pidfile],
 	AC_HELP_STRING([--with-pidfile=path], [Pathname to the NSD pidfile]),
 	[pidfile=$withval])
 AC_SUBST(pidfile)
 AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the NSD pidfile])
+
+AC_SUBST(piddir)
+AC_SUBST(dbdir)
 
 #
 # Determine location of nsd.db

@@ -340,6 +340,14 @@ file_inside_chroot(const char* fname, const char* chr)
 	return 0; /* don't strip, don't try file rotation */
 }
 
+static void
+pid_unlink(const char* pidfile)
+{
+	if (pidfile && unlink(pidfile) == -1)
+		log_msg(LOG_ERR, "failed to unlink pidfile %s: %s",
+			pidfile, strerror(errno));
+}
+
 /*
  * Initialize the server, create and bind the sockets.
  * Drop the privileges and chroot if requested.
@@ -528,7 +536,7 @@ server_init(struct nsd *nsd)
 	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
 		log_msg(LOG_ERR, "unable to drop user privileges: %s",
 			strerror(errno));
-		unlink(nsd->pidfile);
+		pid_unlink(nsd->pidfile);
 		return -1;
 	}
 
@@ -536,7 +544,7 @@ server_init(struct nsd *nsd)
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
 		log_msg(LOG_ERR, "unable to open the database %s: %s",
 			nsd->dbfile, strerror(errno));
-		unlink(nsd->pidfile);
+		pid_unlink(nsd->pidfile);
 		return -1;
 	}
 
@@ -1169,7 +1177,7 @@ server_main(struct nsd *nsd)
 	close(fd);
 
 	/* Unlink it if possible... */
-	unlink(nsd->pidfile);
+	pid_unlink(nsd->pidfile);
 
 	if(reload_listener.fd > 0)
 		close(reload_listener.fd);
