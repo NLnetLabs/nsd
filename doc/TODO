@@ -61,6 +61,8 @@ PURITY
 NSD PATCH
 - -q(?) option: no output when no patch necessary
 - cleaner output on normal operation (don't mention memory)
+- patch on demand after a xfrd reload has occured (including checks for disk 
+  memory and a reload timeout (no more often than 15 minutes or so)?).
 
 CLEANUP
 - make so that startup sends SOA_INFO to xfrd just like reload does, prettier? 
