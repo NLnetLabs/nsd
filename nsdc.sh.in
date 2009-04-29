@@ -177,25 +177,43 @@ do_start() {
 	fi
 }
 
+controlled_sleep() {
+	if [ $1 -ge 25 ]; then
+		sleep 1
+	fi
+}
+
 controlled_stop() {
 	pid=$1
-	try=`expr $2 + 1`
-	if [ ${try} -gt 50 ]; then
-		echo "nsdc stop failed"
-	else
-		echo "try (${try}) stop nsd process ${pid}"
-		kill -TERM ${pid}
+	try=1
 
-		# really stopped?
-		echo "check if nsd has stopped, if not try again ${try}"
-		kill -0 ${pid} && sleep 1 && controlled_stop ${pid} ${try}
-	fi
+	while [ $try -ne 0 ]; do
+		if [ ${try} -gt 50 ]; then
+			echo "nsdc stop failed"
+			try=0
+		else
+			if [ $try -eq 1 ]; then
+				kill -TERM ${pid}
+			else
+				kill -TERM ${pid} &>/dev/null
+			fi
+
+			# really stopped?
+			kill -0 ${pid} &>/dev/null 
+			if [ $? -eq 0 ]; then
+				controlled_sleep ${try}
+				try=`expr ${try} + 1`;
+			else
+				try=0
+			fi
+		fi
+	done
 }
 
 do_controlled_stop() {
 	if [ -s ${pidfile} ]; then
 		pid=`cat ${pidfile}`
-		controlled_stop ${pid} 0
+		controlled_stop ${pid}
 	else
 		echo "nsd is not running"
 	fi
@@ -408,8 +426,7 @@ notify)
 	done
 	;;
 restart)
-	do_stop && sleep 2
-	do_start
+	do_controlled_stop && do_start
 	;;
 *)
 	usage
