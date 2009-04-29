@@ -1,3 +1,6 @@
+29 April 2009: Matthijs
+	- A more ensured do_stop (useful fo nsdc restart).
+
 2 February 2009: Matthijs
 	- Bugfix #234.
 	- Bugfix #235.

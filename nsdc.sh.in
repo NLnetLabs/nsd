@@ -178,7 +178,23 @@ do_start() {
 }
 
 do_stop() {
-	signal "TERM"
+	i=1
+	while test $i -ne 0; do
+		signal "TERM"
+		if test $? -eq 0; then
+			i=0
+		else
+			i=$i+1
+		fi
+
+		if test $i -ge 50; then
+			echo "nsdc stop failed."
+			i=0
+		fi		
+		if test $i -ge 25; then
+			sleep 1
+		fi
+	done
 }
 
 do_reload() {
