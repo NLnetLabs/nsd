@@ -10,6 +10,7 @@ BUG FIXES:
 	- Reset 'error occurred' after notifying an error occurred at the $TTL or
 		$ORIGIN directive (Otherwise, the whole zone is skipped because the
 		error is reset after reading the SOA).
+	- Minor bugfixes.
 
 3.2.1
 =============

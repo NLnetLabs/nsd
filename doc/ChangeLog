@@ -1,5 +1,6 @@
 6 May 2009: Matthijs
 	- Small fix in SO_REUSEADDR warning log message.
+	- Off-by-one bugfix (thanks Ilja van Sprundel)
 
 29 April 2009: Matthijs
 	- A more ensured do_stop (useful fo nsdc restart).
