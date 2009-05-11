@@ -3,6 +3,7 @@ NSD RELEASE NOTES
 3.2.2 (UPCOMING RELEASE)
 =============
 BUG FIXES:
+	- Off-by-one buffer overflow fix while processing the QUESTION section.
 	- Return BADVERS when NSD does not implement the VERSION level of the 
 	  request, instead of 0x1<FORMERR>.
 	- Bugfix #234.

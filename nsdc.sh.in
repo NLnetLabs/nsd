@@ -190,7 +190,7 @@ controlled_stop() {
 	while [ $try -ne 0 ]; do
 		if [ ${try} -gt 50 ]; then
 			echo "nsdc stop failed"
-			try=0
+			return 1
 		else
 			if [ $try -eq 1 ]; then
 				kill -TERM ${pid}
@@ -202,18 +202,20 @@ controlled_stop() {
 			kill -0 ${pid} &>/dev/null 
 			if [ $? -eq 0 ]; then
 				controlled_sleep ${try}
-				try=`expr ${try} + 1`;
+				try=`expr ${try} + 1`
 			else
 				try=0
 			fi
 		fi
 	done
+
+	return 0
 }
 
 do_controlled_stop() {
 	if [ -s ${pidfile} ]; then
 		pid=`cat ${pidfile}`
-		controlled_stop ${pid}
+		controlled_stop ${pid} && return 0
 	else
 		echo "nsd is not running"
 	fi

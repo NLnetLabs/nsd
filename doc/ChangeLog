@@ -1,6 +1,9 @@
+11 May 2009: Matthijs
+	- Add Off-by-one test
+
 6 May 2009: Matthijs
 	- Small fix in SO_REUSEADDR warning log message.
-	- Off-by-one bugfix (thanks Ilja van Sprundel)
+	- Off-by-one bugfix (thanks Ilja van Sprundel, IOActive)
 
 29 April 2009: Matthijs
 	- A more ensured do_stop (useful fo nsdc restart).
@@ -161,9 +164,9 @@
 	  nsec3 records.
 	- check for hash(apex)==nsec3 with SOA bit was done in duplicate.
 	- removed old commented out code
-		- using SOA bit in NSEC3 typemap to detect parameters
-		- using nonhashed NSEC3 to prove qtype=NSEC3 nxdomains
-		- prints for debugging.
+	- using SOA bit in NSEC3 typemap to detect parameters
+	- using nonhashed NSEC3 to prove qtype=NSEC3 nxdomains
+	- prints for debugging.
 	- nicer comment on nsec3_lookup.
 
 7 January 2008: Wouter

@@ -1177,7 +1177,6 @@ answer_query(struct nsd *nsd, struct query *q)
 		/* no answers, no need for compression */
 		return;
 	}
-
 	offset = dname_label_offsets(q->qname)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
 	query_clear_compression_tables(q);
@@ -1380,9 +1379,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case EDNS_ERROR:
 		buffer_write(q->packet, edns->error, OPT_LEN);
 		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
-
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
-
 		STATUP(nsd, ednserr);
 		break;
 	}
