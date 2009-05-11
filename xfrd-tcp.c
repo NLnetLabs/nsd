@@ -436,6 +436,9 @@ conn_read(xfrd_tcp_t* tcp)
 				/* read would block, try later */
 				return 0;
 			} else {
+#ifdef ECONNRESET
+				if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
 				log_msg(LOG_ERR, "tcp read sz: %s", strerror(errno));
 				return -1;
 			}
@@ -468,8 +471,10 @@ conn_read(xfrd_tcp_t* tcp)
 			/* read would block, try later */
 			return 0;
 		} else {
-			log_msg(LOG_ERR, "tcp read %s",
-				strerror(errno));
+#ifdef ECONNRESET
+			if (verbosity >= 2 || errno != ECONNRESET)
+#endif /* ECONNRESET */
+			log_msg(LOG_ERR, "tcp read %s", strerror(errno));
 			return -1;
 		}
 	} else if(received == 0) {

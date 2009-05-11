@@ -23,9 +23,9 @@ struct edns_data
 {
 	char ok[OPT_LEN];
 	char error[OPT_LEN];
-        char rdata_none[OPT_RDATA];
-        char rdata_nsid[OPT_RDATA];
-        char nsid[OPT_HDR];
+	char rdata_none[OPT_RDATA];
+	char rdata_nsid[OPT_RDATA];
+	char nsid[OPT_HDR];
 };
 typedef struct edns_data edns_data_type;
 
@@ -43,7 +43,7 @@ struct edns_record
 	size_t           position;
 	size_t           maxlen;
 	int              dnssec_ok;
-        int              nsid;
+	int              nsid;
 };
 typedef struct edns_record edns_record_type;
 

@@ -923,7 +923,7 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 			}
 #else
 			log_msg(LOG_WARNING, "xfrd: setsockopt SO_REUSEADDR "
-					     "failed: %s", strerror(errno));
+					     "failed: SO_REUSEADDR not defined");
 #endif /* SO_REUSEADDR */
 
 			if (ifc->port != 0) {
@@ -942,7 +942,6 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 						strerror(errno));
 #endif /* SO_LINGER */
 			}
-
 		}
 
 		/* found one */

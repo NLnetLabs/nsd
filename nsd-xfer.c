@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <limits.h>
 #include <assert.h>
 #include <errno.h>
 #include <netdb.h>
@@ -846,13 +847,17 @@ main(int argc, char *argv[])
 			port = optarg;
 			break;
 		case 's': {
-			const char *t;
-			state.first_transfer = 0;
-			state.last_serial = strtottl(optarg, &t);
-			if (*t != '\0') {
+			long long v;
+			char *t;
+ 			state.first_transfer = 0;
+			v = strtoll(optarg, &t, 10);
+			if (optarg[0] == '\0' || *t != '\0' || v < 0 || v > UINT_MAX
+				|| (errno == ERANGE && (v == LLONG_MIN || v == LLONG_MAX)))
+			{
 				error("bad serial '%s'", optarg);
 				exit(XFER_FAIL);
 			}
+			state.last_serial = (uint32_t) v;
 			break;
 		}
 		case 'T':

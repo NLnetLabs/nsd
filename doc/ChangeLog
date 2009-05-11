@@ -1,3 +1,23 @@
+11 May 2009: Matthijs
+	- Add Off-by-one test
+
+6 May 2009: Matthijs
+	- Small fix in SO_REUSEADDR warning log message.
+	- Off-by-one bugfix (thanks Ilja van Sprundel, IOActive)
+
+29 April 2009: Matthijs
+	- A more ensured do_stop (useful fo nsdc restart).
+
+2 February 2009: Matthijs
+	- Bugfix #234.
+	- Bugfix #235.
+	- Reset 'error occurred' after notifying an error occurred at the $TTL or   
+		$ORIGIN directive (Otherwise, the whole zone is skipped because the
+		error is reset after reading the SOA).
+
+2 February 2009: Matthijs
+	- Bugfix: return BADVERS when EDNS version > 0, instead of 0x1<FORMERR>.
+
 19 January 2009: Matthijs
 	- Bug 230: nsd-*: use stdout for non-error output (instead of stderr).
 	- Don't do strptime test when cross compiling.
@@ -144,9 +164,9 @@
 	  nsec3 records.
 	- check for hash(apex)==nsec3 with SOA bit was done in duplicate.
 	- removed old commented out code
-		- using SOA bit in NSEC3 typemap to detect parameters
-		- using nonhashed NSEC3 to prove qtype=NSEC3 nxdomains
-		- prints for debugging.
+	- using SOA bit in NSEC3 typemap to detect parameters
+	- using nonhashed NSEC3 to prove qtype=NSEC3 nxdomains
+	- prints for debugging.
 	- nicer comment on nsec3_lookup.
 
 7 January 2008: Wouter

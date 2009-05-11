@@ -335,31 +335,16 @@ timespec_subtract(struct timespec *left,
 }
 
 
-long
+uint32_t
 strtottl(const char *nptr, const char **endptr)
 {
-	int sign = 0;
-	long i = 0;
-	long seconds = 0;
+	uint32_t i = 0;
+	uint32_t seconds = 0;
 
 	for(*endptr = nptr; **endptr; (*endptr)++) {
 		switch (**endptr) {
 		case ' ':
 		case '\t':
-			break;
-		case '-':
-			if(sign == 0) {
-				sign = -1;
-			} else {
-				return (sign == -1) ? -seconds : seconds;
-			}
-			break;
-		case '+':
-			if(sign == 0) {
-				sign = 1;
-			} else {
-				return (sign == -1) ? -seconds : seconds;
-			}
 			break;
 		case 's':
 		case 'S':
@@ -401,11 +386,11 @@ strtottl(const char *nptr, const char **endptr)
 			break;
 		default:
 			seconds += i;
-			return (sign == -1) ? -seconds : seconds;
+			return seconds;
 		}
 	}
 	seconds += i;
-	return (sign == -1) ? -seconds : seconds;
+	return seconds;
 }
 
 

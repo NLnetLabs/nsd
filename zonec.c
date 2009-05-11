@@ -245,6 +245,26 @@ zparser_conv_services(region_type *region, const char *protostr,
 }
 
 uint16_t *
+zparser_conv_serial(region_type *region, const char *serialstr)
+{
+	uint16_t *r = NULL;
+	uint32_t serial;
+	long long v;
+	char *t;
+
+	v = strtoll(serialstr, &t, 10);
+	if (serialstr[0] == '\0' || *t != '\0' || v < 0 || v > UINT_MAX
+		|| (errno == ERANGE && (v == LLONG_MIN || v == LLONG_MAX)))
+	{
+		zc_error_prev_line("serial is expected");
+	} else {
+		serial = htonl((uint32_t) v);
+		r = alloc_rdata_init(region, &serial, sizeof(serial));
+	}
+	return r;
+}
+
+uint16_t *
 zparser_conv_period(region_type *region, const char *periodstr)
 {
 	/* convert a time period (think TTL's) to wireformat) */
@@ -253,7 +273,7 @@ zparser_conv_period(region_type *region, const char *periodstr)
 	const char *end;
 
 	/* Allocate required space... */
-	period = (uint32_t) strtottl(periodstr, &end);
+	period = strtottl(periodstr, &end);
 	if (*end != '\0') {
 		zc_error_prev_line("time period is expected");
 	} else {
@@ -895,7 +915,7 @@ zparser_conv_apl_rdata(region_type *region, char *str)
  * but to "normal" (int,long,char) types
  */
 
-int32_t
+int64_t
 zparser_ttl2int(const char *ttlstr)
 {
 	/* convert a ttl value to a integer
@@ -903,10 +923,10 @@ zparser_ttl2int(const char *ttlstr)
 	 * -1 on error
 	 */
 
-	int32_t ttl;
+	int64_t ttl;
 	const char *t;
 
-	ttl = strtottl(ttlstr, &t);
+	ttl = (int64_t) strtottl(ttlstr, &t);
 	if (*t != 0) {
 		zc_error_prev_line("invalid TTL value: %s",ttlstr);
 		ttl = -1;

@@ -189,7 +189,7 @@ struct	nsd
 
 	int maximum_tcp_count;
 	int current_tcp_count;
-	
+
 #ifdef	BIND8_STATS
 
 	struct nsdst {

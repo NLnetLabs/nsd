@@ -252,7 +252,7 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 	}
 	result->rdata_count = rdata_count;
 	result->rdatas = rdatas;
-	
+
 	return result;
 }
 
@@ -264,7 +264,7 @@ int packet_read_query_section(buffer_type *packet,
 	uint8_t *query_name = buffer_current(packet);
 	uint8_t *src = query_name;
 	size_t len;
-	
+
 	while (*src) {
 		/*
 		 * If we are out of buffer limits or we have a pointer
@@ -272,8 +272,8 @@ int packet_read_query_section(buffer_type *packet,
 		 * MAXDOMAINLEN ...
 		 */
 		if ((*src & 0xc0) ||
-		    (src + *src + 1 > buffer_end(packet)) || 
-		    (src + *src + 1 > query_name + MAXDOMAINLEN))
+		    (src + *src + 2 > buffer_end(packet)) ||
+		    (src + *src + 2 > query_name + MAXDOMAINLEN))
 		{
 			return 0;
 		}

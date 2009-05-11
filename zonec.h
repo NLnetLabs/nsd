@@ -42,8 +42,7 @@ struct zparser {
 	namedb_type *db;
 
 	const char *filename;
-	int32_t default_ttl;
-	int32_t default_minimum;
+	int64_t default_ttl;
 	uint16_t default_class;
 	zone_type *current_zone;
 	domain_type *origin;
@@ -84,6 +83,7 @@ uint16_t *zparser_conv_hex(region_type *region, const char *hex, size_t len);
 uint16_t *zparser_conv_hex_length(region_type *region, const char *hex, size_t len);
 uint16_t *zparser_conv_time(region_type *region, const char *time);
 uint16_t *zparser_conv_services(region_type *region, const char *protostr, char *servicestr);
+uint16_t *zparser_conv_serial(region_type *region, const char *periodstr);
 uint16_t *zparser_conv_period(region_type *region, const char *periodstr);
 uint16_t *zparser_conv_short(region_type *region, const char *text);
 uint16_t *zparser_conv_long(region_type *region, const char *text);
@@ -105,7 +105,7 @@ uint16_t *zparser_conv_apl_rdata(region_type *region, char *str);
 
 void parse_unknown_rdata(uint16_t type, uint16_t *wireformat);
 
-int32_t zparser_ttl2int(const char *ttlstr);
+int64_t zparser_ttl2int(const char *ttlstr);
 void zadd_rdata_wireformat(uint16_t *data);
 void zadd_rdata_domain(domain_type *domain);
 

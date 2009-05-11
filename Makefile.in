@@ -13,9 +13,12 @@ prefix	= @prefix@
 exec_prefix = @exec_prefix@
 sbindir	= @sbindir@
 mandir = @mandir@
+datarootdir = @datarootdir@
 
 # NSD specific pathnames
 configdir = @configdir@
+piddir = @piddir@
+dbdir = @dbdir@
 pidfile = @pidfile@
 dbfile = @dbfile@
 difffile = @difffile@
@@ -315,6 +318,8 @@ nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in
 install: all
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
 	$(INSTALL) -d $(DESTDIR)$(configdir)
+	$(INSTALL) -d $(DESTDIR)$(piddir)
+	$(INSTALL) -d $(DESTDIR)$(dbdir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man5
@@ -342,7 +347,7 @@ uninstall:
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8
 	rm -f -- $(DESTDIR)$(pidfile) $(DESTDIR)$(dbfile)
 	@echo
-	@echo "You still need to remove $(DESTDIR)$(configdir) directory by hand."
+	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(dbdir) directory by hand."
 
 test: 
 
