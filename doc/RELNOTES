@@ -1,6 +1,19 @@
 NSD RELEASE NOTES
 
-3.2.1 (UPCOMING RELEASE)
+3.2.2 (UPCOMING RELEASE)
+=============
+BUG FIXES:
+	- Off-by-one buffer overflow fix while processing the QUESTION section.
+	- Return BADVERS when NSD does not implement the VERSION level of the 
+	  request, instead of 0x1<FORMERR>.
+	- Bugfix #234.
+	- Bugfix #235.
+	- Reset 'error occurred' after notifying an error occurred at the $TTL or
+		$ORIGIN directive (Otherwise, the whole zone is skipped because the
+		error is reset after reading the SOA).
+	- Minor bugfixes.
+
+3.2.1
 =============
 OPERATIONAL NOTES:
 	- NSD will now fallback to AXFR, only if the master does not support IXFR.
@@ -92,8 +105,8 @@ BUG FIXES:
 FEATURES:
 	- NSD is now NSEC3 enabled by default. You can disable it by configuring 
 		NSD with --disable-nsec3.
-    - Added "hide-version" configuration setting. Enabling this feature 
-      stops NSD from answering to CHAOS class version requests.
+	- Added "hide-version" configuration setting. Enabling this feature 
+		stops NSD from answering to CHAOS class version requests.
 	- Added bind2nsd 0.5.0 (http://bind2nsd.sourceforge.net) in contrib/.
 	- Report source and zone for denied AXFR attempts.
 
@@ -104,15 +117,15 @@ FEATURES:
 	- Add configuration for chkconfig to control nsd service.
 
 BUG FIXES:
-    - Fixed nsdc start when nsd already running: do not initialize server, 
-      since it is already running.
+	- Fixed nsdc start when nsd already running: do not initialize server, 
+		since it is already running.
 	- Fixup bug where data related files are looked up in the wrong
 	  directory when chrooted with chrootdir ending with a slash.
 	- Fixup bug where nsd would return FORMERR if received an edns
 	  query with version set to zero and rdlen larger than zero.
 	- Fixed strptime, so that zonec will also work on systems with broken 
 		strptime (like leopard :-))
-    - Do not answer nsec3 wildcard information when DO bit is not set
+	- Do not answer nsec3 wildcard information when DO bit is not set
 	- Better logging when creating database failed.
 	- Various spelling errors
 
