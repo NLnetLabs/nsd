@@ -170,7 +170,7 @@ enum rdata_wireformat
 	RDATA_WF_BINARY, 	     /* Binary data (unknown length).  */
 	RDATA_WF_BINARYWITHLENGTH,   /* Binary data preceded by 1 byte length */
 	RDATA_WF_APL,		     /* APL data.  */
-	RDATA_WF_IPSECGATEWAY,	     /* IPSECKEY gateway ip4, ip6 or dname. */
+	RDATA_WF_IPSECGATEWAY	     /* IPSECKEY gateway ip4, ip6 or dname. */
 };
 typedef enum rdata_wireformat rdata_wireformat_type;
 

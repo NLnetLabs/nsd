@@ -334,7 +334,7 @@ int
 main(int argc, char *argv[])
 {
 	/* Scratch variables... */
-	int c;
+	int c, ret;
 	pid_t	oldpid;
 	size_t i;
 	struct sigaction action;
@@ -767,7 +767,7 @@ main(int argc, char *argv[])
 	if (!nsd.log_filename)
 		log_set_log_function(log_syslog);
 	else if (nsd.uid && nsd.gid)
-		chown(nsd.log_filename, nsd.uid, nsd.gid);
+		ret = chown(nsd.log_filename, nsd.uid, nsd.gid);
 
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {
