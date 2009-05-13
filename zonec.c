@@ -647,6 +647,7 @@ zparser_conv_loc(region_type *region, char *str)
 	uint8_t vszhpvp[4] = {0, 0x12, 0x16, 0x13};
 	char *start;
 	double d;
+	long int ret;
 
 
 	for(;;) {
@@ -758,7 +759,7 @@ zparser_conv_loc(region_type *region, char *str)
 	}
 
 	/* Meters of altitude... */
-	(void)strtol(str, &str, 10);
+	ret = strtol(str, &str, 10);
 	switch(*str) {
 	case ' ':
 	case '\0':
