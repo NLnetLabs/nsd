@@ -649,7 +649,6 @@ zparser_conv_loc(region_type *region, char *str)
 	double d;
 	long int ret;
 
-
 	for(;;) {
 		deg = min = secs = 0;
 
