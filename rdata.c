@@ -88,7 +88,7 @@ rdata_dns_name_to_string(buffer_type *output, rdata_atom_type rdata,
 
 		for (i = 1; i <= length; ++i) {
 			char ch = (char) data[i+offset];
-			if (isprint(ch))
+			if (isprint((int)ch))
 				buffer_printf(output, "%c", ch);
 			else
 				buffer_printf(output, "\\%03u", (unsigned) ch);
@@ -114,7 +114,7 @@ rdata_text_to_string(buffer_type *output, rdata_atom_type rdata,
 	buffer_printf(output, "\"");
 	for (i = 1; i <= length; ++i) {
 		char ch = (char) data[i];
-		if (isprint(ch)) {
+		if (isprint((int)ch)) {
 			if (ch == '"' || ch == '\\') {
 				buffer_printf(output, "\\");
 			}

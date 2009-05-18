@@ -313,7 +313,7 @@ zoctet(char *text)
 		if (s[0] != '\\') {
 			/* Ordinary character.  */
 			*p = *s;
-		} else if (isdigit(s[1]) && isdigit(s[2]) && isdigit(s[3])) {
+		} else if (isdigit((int)s[1]) && isdigit((int)s[2]) && isdigit((int)s[3])) {
 			/* \DDD escape.  */
 			int val = (hexdigit_to_int(s[1]) * 100 +
 				   hexdigit_to_int(s[2]) * 10 +

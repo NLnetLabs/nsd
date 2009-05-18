@@ -141,9 +141,10 @@ trail:	NL
 
 ttl_directive:	DOLLAR_TTL sp STR trail
     {
-	    parser->default_ttl = zparser_ttl2int($3.str);
-	    if (parser->default_ttl == -1) {
+	    parser->default_ttl = zparser_ttl2int($3.str, &(parser->error_occurred));
+	    if (parser->error_occurred == 1) {
 		    parser->default_ttl = DEFAULT_TTL;
+			parser->error_occurred = 0;
 	    }
     }
     ;

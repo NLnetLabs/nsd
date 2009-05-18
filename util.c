@@ -423,7 +423,7 @@ hex_pton(const char* src, uint8_t* target, size_t targsize)
 		return -1;
 	}
 	while(*src) {
-		if(!isxdigit(src[0]) || !isxdigit(src[1]))
+		if(!isxdigit((int)src[0]) || !isxdigit((int)src[1]))
 			return -1;
 		*t++ = hexdigit_to_int(src[0]) * 16 +
 			hexdigit_to_int(src[1]) ;
