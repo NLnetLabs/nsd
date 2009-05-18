@@ -490,7 +490,7 @@ rrtype_from_string(const char *name)
 	if (strncasecmp(name, "TYPE", 4) != 0)
 		return 0;
 
-	if (!isdigit(name[4]))
+	if (!isdigit((int)name[4]))
 		return 0;
 
 	/* The rest from the string must be a number.  */
@@ -531,20 +531,19 @@ rrclass_from_string(const char *name)
 
 	if (strlen(name) < 6)
 		return 0;
-	
+
 	if (strncasecmp(name, "CLASS", 5) != 0)
 		return 0;
 
-	if (!isdigit(name[5]))
+	if (!isdigit((int)name[5]))
 		return 0;
-	
+
 	/* The rest from the string must be a number.  */
 	rrclass = strtol(name + 5, &end, 10);
 	if (*end != '\0')
 		return 0;
 	if (rrclass < 0 || rrclass > 65535L)
 		return 0;
-	
-        return (uint16_t) rrclass;
-	
+
+	return (uint16_t) rrclass;
 }

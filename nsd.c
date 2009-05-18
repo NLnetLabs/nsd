@@ -334,7 +334,7 @@ int
 main(int argc, char *argv[])
 {
 	/* Scratch variables... */
-	int c, ret;
+	int c;
 	pid_t	oldpid;
 	size_t i;
 	struct sigaction action;
@@ -727,11 +727,11 @@ main(int argc, char *argv[])
 	nsd.uid = getuid();
 	if (*nsd.username) {
 		struct passwd *pwd;
-		if (isdigit(*nsd.username)) {
+		if (isdigit((int)*nsd.username)) {
 			char *t;
 			nsd.uid = strtol(nsd.username, &t, 10);
 			if (*t != 0) {
-				if (*t != '.' || !isdigit(*++t)) {
+				if (*t != '.' || !isdigit((int)*++t)) {
 					error("-u user or -u uid or -u uid.gid");
 				}
 				nsd.gid = strtol(t, &t, 10);
@@ -767,7 +767,7 @@ main(int argc, char *argv[])
 	if (!nsd.log_filename)
 		log_set_log_function(log_syslog);
 	else if (nsd.uid && nsd.gid)
-		ret = chown(nsd.log_filename, nsd.uid, nsd.gid);
+		(void) chown(nsd.log_filename, nsd.uid, nsd.gid);
 
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {
