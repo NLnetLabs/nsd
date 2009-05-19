@@ -249,16 +249,13 @@ zparser_conv_serial(region_type *region, const char *serialstr)
 {
 	uint16_t *r = NULL;
 	uint32_t serial;
-	long long v;
-	char *t;
+	const char *t;
 
-	v = strtoll(serialstr, &t, 10);
-	if (serialstr[0] == '\0' || *t != '\0' || v < 0 || v > UINT_MAX
-		|| (errno == ERANGE && (v == LLONG_MIN || v == LLONG_MAX)))
-	{
+	serial = strtoserial(serialstr, &t);
+	if (*t != '\0') {
 		zc_error_prev_line("serial is expected");
 	} else {
-		serial = htonl((uint32_t) v);
+		serial = htonl(serial);
 		r = alloc_rdata_init(region, &serial, sizeof(serial));
 	}
 	return r;

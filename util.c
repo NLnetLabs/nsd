@@ -334,6 +334,37 @@ timespec_subtract(struct timespec *left,
 	}
 }
 
+uint32_t
+strtoserial(const char* nptr, const char** endptr)
+{
+	uint32_t i = 0;
+	uint32_t serial = 0;
+
+	for(*endptr = nptr; **endptr; (*endptr)++) {
+		switch (**endptr) {
+		case ' ':
+		case '\t':
+			break;
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			i *= 10;
+			i += (**endptr - '0');
+			break;
+		default:
+			break;
+		}
+	}
+	serial += i;
+	return serial;
+}
 
 uint32_t
 strtottl(const char *nptr, const char **endptr)
