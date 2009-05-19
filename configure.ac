@@ -86,6 +86,12 @@ AC_ARG_WITH([dbfile],
 AC_SUBST(dbfile)
 AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the NSD database])
 
+dbdir=`dirname $dbfile`
+AC_SUBST(dbdir)
+
+piddir=`dirname $pidfile`
+AC_SUBST(piddir)
+
 #
 # Determine the default directory for the zone files
 #
