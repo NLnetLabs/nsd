@@ -597,6 +597,16 @@ case "$enable_nsid" in
                 ;;
 esac
 
+AC_ARG_ENABLE(edns1220, AC_HELP_STRING([--enable-edns1220],
+	[Enable EDNS0 query processing with UDP limit less than 1220]))
+case "$enable_edns1220" in
+        no)
+		AC_DEFINE_UNQUOTED([EDNS1220], [], [Define this to return FORMERR when encountering EDNS0 with UDP limit less than 1220.])
+                ;;
+        yes|*)
+		;;
+esac
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \

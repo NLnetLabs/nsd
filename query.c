@@ -902,6 +902,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 
 	q->domain = domain;
 
+	/* Should we do authority section when QTYPE == DNSKEY ? */
 	if (q->qclass != CLASS_ANY && q->zone->ns_rrset) {
 		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->apex,
 			  q->zone->ns_rrset);
@@ -1279,8 +1280,16 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 #endif /* TSIG */
 	if (arcount > 0) {
-		if (edns_parse_record(&q->edns, q->packet))
+		if (edns_parse_record(&q->edns, q->packet)) {
+
+/* to prevent TCP fallback: return formerr when EDNS and udp limit < 1220 */
+#ifdef EDNS1220
+			if (q->edns.maxlen < 1220)
+				return query_formerr(q);
+#endif /* EDNS1220 */
+
 			--arcount;
+		}
 	}
 #ifdef TSIG
 	if (arcount > 0 && q->tsig.status == TSIG_NOT_PRESENT) {

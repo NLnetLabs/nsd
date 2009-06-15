@@ -257,7 +257,7 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 }
 
 int packet_read_query_section(buffer_type *packet,
-                	uint8_t* dst,
+			uint8_t* dst,
 			uint16_t* qtype,
 			uint16_t* qclass)
 {

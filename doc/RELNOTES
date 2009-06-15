@@ -5,6 +5,11 @@ NSD RELEASE NOTES
 BUG FIXES:
 	- Bugfix #249.
 
+OPERATIONAL NOTES:
+	- Another configure option: --enable-edns1220. On by default. If set to
+		"no", NSD will return FORMERR upon receiving EDNS0 queries with UDP
+		limit less than 1220.
+
 3.2.2
 =============
 BUG FIXES:
