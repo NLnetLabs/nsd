@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 =============
 BUG FIXES:
 	- Bugfix #249.
+	- Bugfix: install hickup.
 
 OPERATIONAL NOTES:
 	- Another configure option: --enable-edns1220. On by default. If set to

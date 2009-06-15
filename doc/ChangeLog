@@ -3,7 +3,7 @@
 		query with UDP limit < 1220.
 
 19 May 2009: Matthijs
-	- Clean up configure script
+	- Clean up configure script (install hickup)
 	- Remove unnecessary LLONG_MIN and LLONG_MAX code.
 	- Replace strtoll code with own strtoserial function.
 	- Move up to 3.2.3.
