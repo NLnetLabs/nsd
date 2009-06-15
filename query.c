@@ -38,6 +38,8 @@
 #include "nsec3.h"
 #include "tsig.h"
 
+static int answer_needs_ns(struct query  *query);
+
 static int add_rrset(struct query  *query,
 		     answer_type    *answer,
 		     rr_section_type section,
@@ -606,6 +608,21 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 	}
 }
 
+/* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation */
+static int
+answer_needs_ns(struct query* query)
+{
+	assert(query);
+
+	switch (query->qtype) {
+		case TYPE_DNSKEY:
+			return 0;
+		default:
+			return 1;
+	}
+	return 1;
+}
+
 static int
 add_rrset(struct query   *query,
 	  answer_type    *answer,
@@ -902,8 +919,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 
 	q->domain = domain;
 
-	/* Should we do authority section when QTYPE == DNSKEY ? */
-	if (q->qclass != CLASS_ANY && q->zone->ns_rrset) {
+	if (q->qclass != CLASS_ANY && q->zone->ns_rrset && answer_needs_ns(q)) {
 		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->apex,
 			  q->zone->ns_rrset);
 	}
