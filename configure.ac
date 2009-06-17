@@ -126,6 +126,17 @@ AC_ARG_WITH([user],
 AC_SUBST(user)
 AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
 
+#
+# Determine mimimum bufsize in EDNS0 queries with the DO bit set, in order to allow the DO bit.
+# Default is 0, no mimimum.
+#
+edns_min_bufsize=0
+AC_ARG_WITH([edns_min_bufsize],
+	AC_HELP_STRING([--with-edns-min-bufsize=number], [Minimum allowed UDP limit when processing EDNS0 queries with DO bit set.]),
+	[edns_min_bufsize=$withval])
+AC_SUBST(edns_min_bufsize)
+AC_DEFINE_UNQUOTED([EDNS_MIN_BUFSIZE], [`eval echo $edns_min_bufsize`], [Miminum allowed UDP limit when processing EDNS0 queries with DO bit set.])
+
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
@@ -595,16 +606,6 @@ case "$enable_nsid" in
                ;;
         no|*)
                 ;;
-esac
-
-AC_ARG_ENABLE(edns1220, AC_HELP_STRING([--enable-edns1220],
-	[Enable EDNS0 query processing with UDP limit less than 1220]))
-case "$enable_edns1220" in
-        no)
-		AC_DEFINE_UNQUOTED([EDNS1220], [], [Define this to return FORMERR when encountering EDNS0 with UDP limit less than 1220.])
-                ;;
-        yes|*)
-		;;
 esac
 
 AH_BOTTOM([

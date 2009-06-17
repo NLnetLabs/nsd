@@ -1298,11 +1298,9 @@ query_process(query_type *q, nsd_type *nsd)
 	if (arcount > 0) {
 		if (edns_parse_record(&q->edns, q->packet)) {
 
-/* to prevent TCP fallback: return formerr when EDNS and udp limit < 1220 */
-#ifdef EDNS1220
-			if (q->edns.maxlen < 1220)
-				return query_formerr(q);
-#endif /* EDNS1220 */
+			/* to prevent unwanted TCP fallback */
+			if (EDNS_MIN_BUFSIZE > 0 && q->edns.maxlen < EDNS_MIN_BUFSIZE)
+				q->edns.dnssec_ok = 0;
 
 			--arcount;
 		}
