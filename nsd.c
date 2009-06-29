@@ -379,11 +379,11 @@ main(int argc, char *argv[])
 	/* EDNS0 */
 	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
 #if defined(INET6)
-#if defined(IPV6_USE_MIN_MTU)
+#if defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)
 	edns_init_data(&nsd.edns_ipv6, EDNS_MAX_MESSAGE_LEN);
-#else /* !defined(IPV6_USE_MIN_MTU) */
+#else /* no way to set IPV6 MTU, send no bigger than that. */
 	edns_init_data(&nsd.edns_ipv6, IPV6_MIN_MTU);
-#endif /* defined(IPV6_USE_MIN_MTU) */
+#endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 
 	/* Set up our default identity to gethostname(2) */

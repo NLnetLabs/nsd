@@ -358,7 +358,7 @@ server_init(struct nsd *nsd)
 {
 	FILE* dbfd;
 	size_t i;
-#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU)))
+#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)))
 	int on = 1;
 #endif
 
@@ -411,7 +411,21 @@ server_init(struct nsd *nsd)
 					strerror(errno));
 				return -1;
 			}
-#endif
+# elif defined(IPV6_MTU)
+			/*
+			 * On Linux, PMTUD is disabled by default for datagrams
+			 * so set the MTU equal to the MIN MTU to get the same.
+			 */
+			on = IPV6_MIN_MTU;
+			if (setsockopt(nsd->udp[i].s, IPPROTO_IPV6, IPV6_MTU, 
+				&on, sizeof(on)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IPV6_MTU, ...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+			on = 1;
+# endif
 		}
 #endif
 		/* set it nonblocking */
