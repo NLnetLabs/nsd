@@ -1123,6 +1123,27 @@ process_rr(void)
 		return 0;
 	}
 
+	/* Do we have the zone already? */
+	if (!zone)
+	{
+		zone = (zone_type *) region_alloc(parser->region,
+							  sizeof(zone_type));
+		if (rr->type == TYPE_SOA)
+			zone->apex = rr->owner;
+		else
+			zone->apex = parser->default_apex;
+		zone->soa_rrset = NULL;
+		zone->soa_nx_rrset = NULL;
+		zone->ns_rrset = NULL;
+		zone->opts = NULL;
+		zone->is_secure = 0;
+		zone->updated = 1;
+
+		zone->next = parser->db->zones;
+		parser->db->zones = zone;
+		parser->current_zone = zone;
+	}
+
 	if (rr->type == TYPE_SOA) {
 		/*
 		 * This is a SOA record, start a new zone or continue
@@ -1133,24 +1154,11 @@ process_rr(void)
 			   should be error!
 			   every zone should be passed to zonec only once.
 			*/
+			zc_error_prev_line("this SOA record was already encountered");
 			zone = namedb_find_zone(parser->db, rr->owner);
 			assert(zone);
 		} else {
-			/* new zone part */
-			zone = (zone_type *) region_alloc(parser->region,
-							  sizeof(zone_type));
 			zone->apex = rr->owner;
-			zone->soa_rrset = NULL;
-			zone->soa_nx_rrset = NULL;
-			zone->ns_rrset = NULL;
-			zone->opts = NULL;
-			zone->is_secure = 0;
-			zone->updated = 1;
-
-			/* insert in front of zone list */
-			zone->next = parser->db->zones;
-			parser->db->zones = zone;
-
 			rr->owner->is_apex = 1;
 		}
 
@@ -1226,19 +1234,19 @@ process_rr(void)
 	}
 #endif
 
+
 	/* Check we have SOA */
-	/* [XXX] this is dead code */
 	if (zone->soa_rrset == NULL) {
-		if (rr->type != TYPE_SOA) {
-			zc_error_prev_line(
-				"missing SOA record on top of the zone");
-		} else if (rr->owner != zone->apex) {
-			zc_error_prev_line(
-				"SOA record with invalid domain name");
-		} else {
-			zone->soa_rrset = rrset;
+		if (rr->type == TYPE_SOA) {
+			if (rr->owner != zone->apex) {
+				zc_error_prev_line(
+					"SOA record with invalid domain name");
+			} else {
+				zone->soa_rrset = rrset;
+			}
 		}
-	} else if (rr->type == TYPE_SOA) {
+	}
+	else if (rr->type == TYPE_SOA) {
 		zc_error_prev_line("duplicate SOA record discarded");
 		--rrset->rr_count;
 	}
