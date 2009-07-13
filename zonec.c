@@ -1128,10 +1128,7 @@ process_rr(void)
 	{
 		zone = (zone_type *) region_alloc(parser->region,
 							  sizeof(zone_type));
-		if (rr->type == TYPE_SOA)
-			zone->apex = rr->owner;
-		else
-			zone->apex = parser->default_apex;
+		zone->apex = parser->default_apex;
 		zone->soa_rrset = NULL;
 		zone->soa_nx_rrset = NULL;
 		zone->ns_rrset = NULL;
@@ -1149,15 +1146,9 @@ process_rr(void)
 		 * This is a SOA record, start a new zone or continue
 		 * an existing one.
 		 */
-		if (rr->owner->is_apex) {
-			/*
-			   should be error!
-			   every zone should be passed to zonec only once.
-			*/
+		if (rr->owner->is_apex)
 			zc_error_prev_line("this SOA record was already encountered");
-			zone = namedb_find_zone(parser->db, rr->owner);
-			assert(zone);
-		} else {
+		else if (rr->owner == parser->default_apex) {
 			zone->apex = rr->owner;
 			rr->owner->is_apex = 1;
 		}
