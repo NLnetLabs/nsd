@@ -613,14 +613,8 @@ static int
 answer_needs_ns(struct query* query)
 {
 	assert(query);
-
-	switch (query->qtype) {
-		case TYPE_DNSKEY:
-			return 0;
-		default:
-			return 1;
-	}
-	return 1;
+	/* Currently, only troublesome for DNSKEYs, cuz their RRSETs are quite large. */
+	return (query->qtype != TYPE_DNSKEY);
 }
 
 static int
