@@ -4,8 +4,9 @@
 	  packets using the IPv6 minimum MTU.
 
 15 June 2009: Matthijs
-	- Add configure option, that allows to return FORMERR when receiving EDNS0
-		query with UDP limit < 1220.
+	- Add configure option --with-edns-min-bufsize. If set, NSD will
+		ignore the DO bit if the query advertizes an EDNS UDP size smaller
+		than the configured EDNS0 minimum bufsize.
 
 19 May 2009: Matthijs
 	- Clean up configure script (install hickup)

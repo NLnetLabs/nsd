@@ -17,10 +17,10 @@ datarootdir = @datarootdir@
 
 # NSD specific pathnames
 configdir = @configdir@
-pidfile = @pidfile@
 piddir = @piddir@
-dbfile = @dbfile@
 dbdir = @dbdir@
+pidfile = @pidfile@
+dbfile = @dbfile@
 difffile = @difffile@
 xfrdfile = @xfrdfile@
 nsdconfigfile = @nsd_conf_file@

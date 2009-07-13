@@ -1299,7 +1299,7 @@ query_process(query_type *q, nsd_type *nsd)
 		if (edns_parse_record(&q->edns, q->packet)) {
 
 			/* to prevent unwanted TCP fallback */
-			if (EDNS_MIN_BUFSIZE > 0 && q->edns.maxlen < EDNS_MIN_BUFSIZE)
+			if (EDNS_MIN_BUFSIZE && q->edns.maxlen < EDNS_MIN_BUFSIZE)
 				q->edns.dnssec_ok = 0;
 
 			--arcount;
