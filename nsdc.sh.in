@@ -217,7 +217,7 @@ do_controlled_stop() {
 		pid=`cat ${pidfile}`
 		controlled_stop ${pid} && return 0
 	else
-		echo "nsd is not running"
+		echo "nsd is not running, starting anyway" && return 0
 	fi
 	return 1
 }
