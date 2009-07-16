@@ -347,6 +347,8 @@ main(int argc, char *argv[])
 
 	const char *configfile = CONFIGFILE;
 
+	char* argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
+
 	log_init("nsd");
 
 	/* Initialize the server handler... */
@@ -810,8 +812,8 @@ main(int argc, char *argv[])
 	} else {
 		if (kill(oldpid, 0) == 0 || errno == EPERM) {
 			log_msg(LOG_WARNING,
-				"nsd is already running as %u, continuing",
-				(unsigned) oldpid);
+				"%s is already running as %u, continuing",
+				argv0, (unsigned) oldpid);
 		} else {
 			log_msg(LOG_ERR,
 				"...stale pid file from process %u",
@@ -880,13 +882,13 @@ main(int argc, char *argv[])
 
 	/* Run the server... */
 	if (server_init(&nsd) != 0) {
-		log_msg(LOG_ERR, "server initialization failed, nsd could "
-						 "not be started");
+		log_msg(LOG_ERR, "server initialization failed, %s could "
+			"not be started", argv0);
 		exit(1);
 	}
 
-	log_msg(LOG_NOTICE, "nsd started (%s), pid %d", PACKAGE_STRING,
-		(int) nsd.pid);
+	log_msg(LOG_NOTICE, "%s started (%s), pid %d",
+		argv0, PACKAGE_STRING, (int) nsd.pid);
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {
 		server_main(&nsd);
