@@ -46,12 +46,9 @@
  * Exit codes are based on named-xfer for now.  See ns_defs.h in
  * bind8.
  */
-enum nsd_xfer_exit_codes
-{
-	XFER_UPTODATE = 0,
-	XFER_SUCCESS  = 1,
-	XFER_FAIL     = 3
-};
+#define XFER_UPTODATE	0
+#define XFER_SUCCESS	0
+#define XFER_FAIL		3
 
 struct axfr_state
 {

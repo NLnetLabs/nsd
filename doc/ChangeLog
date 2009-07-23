@@ -1,3 +1,6 @@
+23 July 2009: Matthijs
+	- nsd-xfer: return 0 if xfer succeeds.
+
 13 July 2009: Matthijs
 	- Bug 236: allow RRs before the SOA RR.
 
