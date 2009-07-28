@@ -135,8 +135,8 @@ tsig_add_algorithm(tsig_algorithm_type *algorithm)
 /**
  * compare a tsig algorithm string lowercased
  */
-static int
-strlowercmp(const char* str1, const char* str2)
+int
+tsig_strlowercmp(const char* str1, const char* str2)
 {
 	while (str1 && str2 && *str1 != '\0' && *str2 != '\0') {
 		if(tolower((int)*str1) != tolower((int)*str2)) {
@@ -167,7 +167,7 @@ tsig_get_algorithm_by_name(const char *name)
 	     algorithm_entry;
 	     algorithm_entry = algorithm_entry->next)
 	{
-		if (strlowercmp(name, algorithm_entry->algorithm->short_name) == 0)
+		if (tsig_strlowercmp(name, algorithm_entry->algorithm->short_name) == 0)
 		{
 			return algorithm_entry->algorithm;
 		}
