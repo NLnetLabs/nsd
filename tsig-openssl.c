@@ -50,6 +50,7 @@ tsig_openssl_init_algorithm(region_type* region,
 	algorithm->hmac_init_context = init_context;
 	algorithm->hmac_update = update;
 	algorithm->hmac_final = final;
+
 	tsig_add_algorithm(algorithm);
 
 	return 1;
