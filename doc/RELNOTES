@@ -5,11 +5,13 @@ NSD RELEASE NOTES
 BUG FIXES:
 	- Bugfix #236: Allow RRs before the SOA in a zonefile.
 	- Bugfix #249: Don't put NS RRs in a response with QTYPE=DNSKEY.
+	- Bugfix #263: Make TSIG algorithm comparison case insensitive.
 	- Bugfix: install hickup.
 	- Fix to use 4096 EDNS limit for IPv6 on Linux.
 
 OPERATIONAL NOTES:
-	- nsd-xfer returns 0 upon succes, it used to return 1.
+	- nsd-xfer returns 0 upon succes, it used to return 1. (Remember that 
+		nsd-xfer and nsd-notify are actually deprecated since 3.0.0).
 	- Another configure option: --with-edns-min-bufsize. Zero by default.
 		If set to a higher value, NSD will ignore the DO bit upon receiving EDNS0
 		queries with UDP limit less than the configured EDNS0 minimum buffer size.
