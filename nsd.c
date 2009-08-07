@@ -124,6 +124,20 @@ error(const char *format, ...)
 	exit(1);
 }
 
+static int
+file_inside_chroot(const char* fname, const char* chr)
+{
+#ifdef NDEBUG
+	assert(chr);
+#endif /* NDEBUG */
+	/* filename and chroot the same? */
+	if (fname && fname[0] && chr[0] && !strncmp(fname, chr, strlen(chr)))
+		return 2; /* strip chroot, file rotation ok */
+	else if (fname && fname[0] != '/')
+		return 1; /* don't strip, file rotation ok */
+	return 0; /* don't strip, don't try file rotation */
+}
+
 
 /*
  * Fetch the nsd parent process id from the nsd pidfile
@@ -197,6 +211,14 @@ writepid(struct nsd *nsd)
 	}
 
 	return 0;
+}
+
+void
+unlinkpid(const char* file)
+{
+	if (file && unlink(file) == -1)
+		log_msg(LOG_ERR, "failed to unlink pidfile %s: %s",
+			file, strerror(errno));
 }
 
 /*
@@ -338,6 +360,7 @@ main(int argc, char *argv[])
 	pid_t	oldpid;
 	size_t i;
 	struct sigaction action;
+	FILE* dbfd;
 
 	/* For initialising the address info structures */
 	struct addrinfo hints[MAX_INTERFACES];
@@ -880,13 +903,77 @@ main(int argc, char *argv[])
 	nsd.signal_hint_statsusr = 0;
 	nsd.quit_sync_done = 0;
 
-	/* Run the server... */
+	/* Initialize the server... */
 	if (server_init(&nsd) != 0) {
 		log_msg(LOG_ERR, "server initialization failed, %s could "
 			"not be started", argv0);
 		exit(1);
 	}
 
+#ifdef HAVE_CHROOT
+	/* Chroot */
+	if (nsd.chrootdir && strlen(nsd.chrootdir)) {
+		int l = strlen(nsd.chrootdir);
+		int ret = 0;
+
+		while (l>0 && nsd.chrootdir[l-1] == '/')
+			--l;
+
+		/* filename after chroot */
+		ret = file_inside_chroot(nsd.log_filename, nsd.chrootdir);
+		if (ret) {
+			nsd.file_rotation_ok = 1;
+			if (ret == 2) /* also strip chroot */
+				nsd.log_filename += l;
+		}
+		nsd.dbfile += l;
+		nsd.pidfile += l;
+		nsd.options->xfrdfile += l;
+		nsd.options->difffile += l;
+
+		if (chroot(nsd.chrootdir)) {
+			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
+			exit(1);
+		}
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
+			nsd.chrootdir));
+	}
+	else
+#endif /* HAVE_CHROOT */
+		nsd.file_rotation_ok = 1;
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "file rotation on %s %sabled",
+		nsd.log_filename, nsd.file_rotation_ok?"en":"dis"));
+
+	/* Check if nsd.db exists */
+	if ((dbfd = fopen(nsd.dbfile, "r")) == NULL) {
+		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd.dbfile, strerror(errno));
+		exit(1);
+	}
+	fclose(dbfd);
+
+	/* Write pidfile */
+	if (writepid(&nsd) == -1) {
+		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
+			nsd.pidfile, strerror(errno));
+	}
+
+	/* Drop the permissions */
+	if (setgid(nsd.gid) != 0 || setuid(nsd.uid) !=0) {
+		log_msg(LOG_ERR, "unable to drop user privileges: %s",
+			strerror(errno));
+		unlinkpid(nsd.pidfile);
+		exit(1);
+	}
+
+	if (server_prepare(&nsd) != 0) {
+		log_msg(LOG_ERR, "server preparation failed, %s could "
+			"not be started", argv0);
+		unlinkpid(nsd.pidfile);
+		exit(1);
+	}
+
+	/* Really take off */
 	log_msg(LOG_NOTICE, "%s started (%s), pid %d",
 		argv0, PACKAGE_STRING, (int) nsd.pid);
 

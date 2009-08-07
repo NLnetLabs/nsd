@@ -326,37 +326,13 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 }
 
-static int
-file_inside_chroot(const char* fname, const char* chr)
-{
-#ifdef NDEBUG
-	assert(chr);
-#endif /* NDEBUG */
-	/* logfile and chroot the same? */
-	if (fname && fname[0] && chr[0] && !strncmp(fname, chr, strlen(chr)))
-		return 2; /* strip chroot, file rotation ok */
-	else if (fname && fname[0] != '/')
-		return 1; /* don't strip, file rotation ok */
-	return 0; /* don't strip, don't try file rotation */
-}
-
-static void
-pid_unlink(const char* pidfile)
-{
-	if (pidfile && unlink(pidfile) == -1)
-		log_msg(LOG_ERR, "failed to unlink pidfile %s: %s",
-			pidfile, strerror(errno));
-}
-
 /*
- * Initialize the server, create and bind the sockets.
- * Drop the privileges and chroot if requested.
+ * Initialize the server, create and bind the socket.
  *
  */
 int
 server_init(struct nsd *nsd)
 {
-	FILE* dbfd;
 	size_t i;
 #if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)))
 	int on = 1;
@@ -496,78 +472,29 @@ server_init(struct nsd *nsd)
 		}
 	}
 
-#ifdef HAVE_CHROOT
-	/* Chroot */
-	if (nsd->chrootdir && strlen(nsd->chrootdir)) {
-		int l = strlen(nsd->chrootdir);
-		int ret = 0;
+	return 0;
+}
 
-		while (l>0 && nsd->chrootdir[l-1] == '/')
-			--l;
-
-		/* logfile */
-		ret = file_inside_chroot(nsd->log_filename, nsd->chrootdir);
-		if (ret)
-		{
-			nsd->file_rotation_ok = 1;
-			if (ret == 2) /* also strip chroot */
-				nsd->log_filename += l;
-		}
-
-		nsd->dbfile += l;
-		nsd->pidfile += l;
-		nsd->options->xfrdfile += l;
-		nsd->options->difffile += l;
-
-		if (chroot(nsd->chrootdir)) {
-			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
-			return -1;
-		}
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
-			nsd->chrootdir));
-	}
-	else
-#endif
-		nsd->file_rotation_ok = 1;
-
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "file rotation on %s %sabled",
-		nsd->log_filename, nsd->file_rotation_ok?"en":"dis"));
-
-	/* Check if nsd->dbfile exists */
-	if ((dbfd = fopen(nsd->dbfile, "r")) == NULL) {
-		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd->dbfile, strerror(errno));
-		return -1;
-	}
-	fclose(dbfd);
-
-	/* Write pidfile */
-	if (writepid(nsd) == -1) {
-		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
-			nsd->pidfile, strerror(errno));
-	}
-
-	/* Drop the permissions */
-	if (setgid(nsd->gid) != 0 || setuid(nsd->uid) !=0) {
-		log_msg(LOG_ERR, "unable to drop user privileges: %s",
-			strerror(errno));
-		pid_unlink(nsd->pidfile);
-		return -1;
-	}
-
+/*
+ * Prepare the server for take off.
+ *
+ */
+int
+server_prepare(struct nsd *nsd)
+{
 	/* Open the database... */
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
 		log_msg(LOG_ERR, "unable to open the database %s: %s",
 			nsd->dbfile, strerror(errno));
-		pid_unlink(nsd->pidfile);
 		return -1;
 	}
 
 	/* Read diff file */
-	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count))
-	{
+	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 		log_msg(LOG_ERR, "The diff file contains errors. Will continue "
 						 "without it");
 	}
+
 #ifdef NSEC3
 	prehash(nsd->db, 0);
 #endif
@@ -1191,7 +1118,7 @@ server_main(struct nsd *nsd)
 	close(fd);
 
 	/* Unlink it if possible... */
-	pid_unlink(nsd->pidfile);
+	unlinkpid(nsd->pidfile);
 
 	if(reload_listener.fd > 0)
 		close(reload_listener.fd);

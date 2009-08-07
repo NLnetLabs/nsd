@@ -212,11 +212,13 @@ struct	nsd
 /* nsd.c */
 pid_t readpid(const char *file);
 int writepid(struct nsd *nsd);
+void unlinkpid(const char* file);
 void sig_handler(int sig);
 void bind8_stats(struct nsd *nsd);
 
 /* server.c */
 int server_init(struct nsd *nsd);
+int server_prepare(struct nsd *nsd);
 void server_main(struct nsd *nsd);
 void server_child(struct nsd *nsd);
 /* extra domain numbers for temporary domains */
