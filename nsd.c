@@ -747,11 +747,13 @@ main(int argc, char *argv[])
 		}
 	}
 
-	/* Parse the username into uid and gid */
 	nsd.gid = getgid();
 	nsd.uid = getuid();
+#ifdef HAVE_GETPWNAM
+	struct passwd *pwd;
+
+	/* Parse the username into uid and gid */
 	if (*nsd.username) {
-		struct passwd *pwd;
 		if (isdigit((int)*nsd.username)) {
 			char *t;
 			nsd.uid = strtol(nsd.username, &t, 10);
@@ -767,7 +769,6 @@ main(int argc, char *argv[])
 				} else {
 					nsd.gid = pwd->pw_gid;
 				}
-				endpwent();
 			}
 		} else {
 			/* Lookup the user id in /etc/passwd */
@@ -777,9 +778,10 @@ main(int argc, char *argv[])
 				nsd.uid = pwd->pw_uid;
 				nsd.gid = pwd->pw_gid;
 			}
-			endpwent();
 		}
 	}
+	/* endpwent(); */
+#endif /* HAVE_GETPWNAM */
 
 #ifdef TSIG
 	if(!tsig_init(nsd.region))
@@ -959,12 +961,48 @@ main(int argc, char *argv[])
 	}
 
 	/* Drop the permissions */
-	if (setgid(nsd.gid) != 0 || setuid(nsd.uid) !=0) {
-		log_msg(LOG_ERR, "unable to drop user privileges: %s",
-			strerror(errno));
-		unlinkpid(nsd.pidfile);
-		exit(1);
-	}
+#ifdef HAVE_GETPWNAM
+	if (*nsd.username) {
+#ifdef HAVE_SETUSERCONTEXT
+		/* setusercontext does initgroups, setuid, setgid, and
+		 * also resource limits from login config, but we
+		 * still call setresuid, setresgid to be sure to set all uid */
+		if (setusercontext(NULL, pwd, nsd.uid, LOGIN_SETALL) != 0)
+			log_msg(LOG_WARNING, "unable to setusercontext %s: %s",
+				nsd.username, strerror(errno));
+#else /* !HAVE_SETUSERCONTEXT */
+ #ifdef HAVE_INITGROUPS
+		if(initgroups(cfg->username, nsd.gid) != 0)
+			log_msg(LOG_WARNING, "unable to initgroups %s: %s",
+				nsd.username, strerror(errno));
+ #endif /* HAVE_INITGROUPS */
+#endif /* HAVE_SETUSERCONTEXT */
+		endpwent();
+
+#ifdef HAVE_SETRESGID
+		if(setresgid(nsd.gid,nsd.gid,nsd.gid) != 0)
+#elif defined(HAVE_SETREGID) && !defined(DARWIN_BROKEN_SETREUID)
+			if(setregid(nsd.gid,nsd.gid) != 0)
+#else /* use setgid */
+				if(setgid(nsd.gid) != 0)
+#endif /* HAVE_SETRESGID */
+					error("unable to set group id of %s: %s",
+						nsd.username, strerror(errno));
+
+#ifdef HAVE_SETRESUID
+		if(setresuid(nsd.uid,nsd.uid,nsd.uid) != 0)
+#elif defined(HAVE_SETREUID) && !defined(DARWIN_BROKEN_SETREUID)
+			if(setreuid(nsd.uid,nsd.uid) != 0)
+#else /* use setuid */
+				if(setuid(nsd.uid) != 0)
+#endif /* HAVE_SETRESUID */
+					error("unable to set user id of %s: %s",
+						nsd.username, strerror(errno));
+
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "dropped user privileges, run as %s",
+			nsd.username));
+    }
+#endif /* HAVE_GETPWNAM */
 
 	if (server_prepare(&nsd) != 0) {
 		log_msg(LOG_ERR, "server preparation failed, %s could "
