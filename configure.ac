@@ -747,9 +747,11 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 #include "compat/fake-rfc2553.h"
 #endif
 #ifndef HAVE_STRPTIME
+#define HAVE_STRPTIME 1
 char *strptime(const char *s, const char *format, struct tm *tm); 
 #endif
 #ifndef STRPTIME_WORKS
+#define STRPTIME_WORKS 1
 #define strptime(a,b,c) nsd_strptime((a),(b),(c))
 #endif
 
