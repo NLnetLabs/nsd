@@ -1,3 +1,6 @@
+7 Augustus 2009: Matthijs
+	- Bug 266: don't have strptime build error
+
 28 July 2009: Matthijs
 	- Bug 263: make TSIG algorithms comparison case insensitive.
 
