@@ -9,7 +9,6 @@
 	- Bug 263: make TSIG algorithms comparison case insensitive.
 
 23 July 2009: Matthijs
-	- nsd-xfer: return 0 if xfer succeeds.
 	- Patch Paul Wouters for NSD using hardcoded name.
 
 13 July 2009: Matthijs

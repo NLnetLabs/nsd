@@ -7,6 +7,9 @@ sinclude(acx_nlnetlabs.m4)
 AC_INIT(NSD,3.2.3,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
+CFLAGS="$CFLAGS"
+AC_AIX
+
 dnl
 dnl By default set $sysconfdir to /etc and $localstatedir to /var
 dnl
@@ -133,12 +136,12 @@ AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
 # Determine mimimum bufsize in EDNS0 queries with the DO bit set, in order to allow the DO bit.
 # Default is 0, no mimimum.
 #
-#edns_min_bufsize=0
-#AC_ARG_WITH([edns_min_bufsize],
-#	AC_HELP_STRING([--with-edns-min-bufsize=number], [Minimum allowed UDP limit when processing EDNS0 queries with DO bit set.]),
-#	[edns_min_bufsize=$withval])
-#AC_SUBST(edns_min_bufsize)
-#AC_DEFINE_UNQUOTED([EDNS_MIN_BUFSIZE], [`eval echo $edns_min_bufsize`], [Miminum allowed UDP limit when processing EDNS0 queries with DO bit set.])
+edns_min_bufsize=0
+AC_ARG_WITH([edns_min_bufsize],
+	AC_HELP_STRING([--with-edns-min-bufsize=number], [Minimum allowed UDP limit when processing EDNS0 queries with DO bit set.]),
+	[edns_min_bufsize=$withval])
+AC_SUBST(edns_min_bufsize)
+AC_DEFINE_UNQUOTED([EDNS_MIN_BUFSIZE], [`eval echo $edns_min_bufsize`], [Miminum allowed UDP limit when processing EDNS0 queries with DO bit set.])
 
 # Checks for programs.
 AC_PROG_AWK
@@ -460,7 +463,12 @@ AC_TYPE_SIGNAL
 AC_FUNC_FSEEKO
 AC_SYS_LARGEFILE
 AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam])
- 
+
+# check if setreuid en setregid fail, on MacOSX10.4(darwin8).
+if echo $build_os | grep darwin8 > /dev/null; then
+	AC_DEFINE(DARWIN_BROKEN_SETREUID, 1, [Define this if on macOSX10.4-darwin8 and setreuid and setregid do not work])
+fi
+
 #
 # Checking for missing functions we can replace
 #

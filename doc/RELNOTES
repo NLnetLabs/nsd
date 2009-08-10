@@ -11,10 +11,6 @@ BUG FIXES:
 	- Bugfix: install hickup.
 	- Fix to use 4096 EDNS limit for IPv6 on Linux.
 
-OPERATIONAL NOTES:
-	- nsd-xfer returns 0 upon succes, it used to return 1. (Remember that 
-		nsd-xfer and nsd-notify are actually deprecated since 3.0.0).
-
 3.2.2
 =============
 BUG FIXES:
