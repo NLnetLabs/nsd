@@ -963,6 +963,8 @@ main(int argc, char *argv[])
 	}
 	fclose(dbfd);
 
+	(void) chown(nsd.dbfile, nsd.uid, nsd.gid);
+
 	/* Write pidfile */
 	if (writepid(&nsd) == -1) {
 		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
