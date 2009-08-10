@@ -1,6 +1,7 @@
 10 Augustus 2009: Matthijs
 	- Code review.
 	- Also send errors to /dev/null in controlled_stop.
+	- chown nsd.db
 
 7 Augustus 2009: Matthijs
 	- Bug 266: don't have strptime build error
