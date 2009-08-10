@@ -108,12 +108,14 @@ int
 packet_encode_rrset(query_type *query,
 		    domain_type *owner,
 		    rrset_type *rrset,
-		    int truncate_rrset)
+		    int section)
 {
 	uint16_t i;
 	size_t truncation_mark;
 	uint16_t added = 0;
 	int all_added = 1;
+	int truncate_rrset = (section == ANSWER_SECTION ||
+							section == AUTHORITY_SECTION);
 	rrset_type *rrsig;
 
 	assert(rrset->rr_count > 0);
@@ -152,7 +154,7 @@ packet_encode_rrset(query_type *query,
 	}
 
 	if (!all_added && truncate_rrset) {
-		/* Truncate entire RRset and set truncate flag.  */
+		/* Truncate entire RRset and set truncate flag. */
 		buffer_set_position(query->packet, truncation_mark);
 		query_clear_dname_offsets(query, truncation_mark);
 		TC_SET(query->packet);
@@ -257,9 +259,7 @@ packet_read_rr(region_type *region, domain_table_type *owners,
 }
 
 int packet_read_query_section(buffer_type *packet,
-                	uint8_t* dst,
-			uint16_t* qtype,
-			uint16_t* qclass)
+	uint8_t* dst, uint16_t* qtype, uint16_t* qclass)
 {
 	uint8_t *query_name = buffer_current(packet);
 	uint8_t *src = query_name;

@@ -38,6 +38,13 @@
 #include "nsec3.h"
 #include "tsig.h"
 
+/* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
+ * This function determines if the final response packet needs the NS RRset included.
+ * Currently, it will only return negative if QTYPE == DNSKEY. This way, resolvers
+ * won't fallback to TCP unnecessarily when priming DNSKEYs. 
+ */
+static int answer_needs_ns(struct query  *query);
+
 static int add_rrset(struct query  *query,
 		     answer_type    *answer,
 		     rr_section_type section,
@@ -313,7 +320,7 @@ process_edns(struct query *q)
 				q->maxlen = EDNS_MAX_MESSAGE_LEN;
 			}
 
-#if defined(INET6) && !defined(IPV6_USE_MIN_MTU)
+#if defined(INET6) && !defined(IPV6_USE_MIN_MTU) && !defined(IPV6_MTU)
 			/*
 			 * Use IPv6 minimum MTU to avoid sending
 			 * packets that are too large for some links.
@@ -604,6 +611,14 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 			}
 		}
 	}
+}
+
+static int
+answer_needs_ns(struct query* query)
+{
+	assert(query);
+	/* Currently, only troublesome for DNSKEYs, cuz their RRSETs are quite large. */
+	return (query->qtype != TYPE_DNSKEY);
 }
 
 static int
@@ -902,7 +917,7 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 
 	q->domain = domain;
 
-	if (q->qclass != CLASS_ANY && q->zone->ns_rrset) {
+	if (q->qclass != CLASS_ANY && q->zone->ns_rrset && answer_needs_ns(q)) {
 		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->apex,
 			  q->zone->ns_rrset);
 	}
@@ -1279,8 +1294,11 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 #endif /* TSIG */
 	if (arcount > 0) {
-		if (edns_parse_record(&q->edns, q->packet))
+		if (edns_parse_record(&q->edns, q->packet)) {
+			if (EDNS_MIN_BUFSIZE && q->edns.maxlen < EDNS_MIN_BUFSIZE)
+				q->edns.dnssec_ok = 0;
 			--arcount;
+		}
 	}
 #ifdef TSIG
 	if (arcount > 0 && q->tsig.status == TSIG_NOT_PRESENT) {

@@ -10,6 +10,7 @@
 
 #include <config.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "tsig.h"
 #include "tsig-openssl.h"
@@ -131,6 +132,29 @@ tsig_add_algorithm(tsig_algorithm_type *algorithm)
 		max_algo_digest_size = algorithm->maximum_digest_size;
 }
 
+/**
+ * compare a tsig algorithm string lowercased
+ */
+int
+tsig_strlowercmp(const char* str1, const char* str2)
+{
+	while (str1 && str2 && *str1 != '\0' && *str2 != '\0') {
+		if(tolower((int)*str1) != tolower((int)*str2)) {
+			if(tolower((int)*str1) < tolower((int)*str2))
+				return -1;
+			return 1;
+		}
+		str1++;
+		str2++;
+	}
+	if (*str1 == *str2)
+		return 0;
+	else if (*str1 == '\0')
+		return -1;
+	return 1;
+}
+
+
 /*
  * Find an HMAC algorithm based on its short name.
  */
@@ -143,7 +167,7 @@ tsig_get_algorithm_by_name(const char *name)
 	     algorithm_entry;
 	     algorithm_entry = algorithm_entry->next)
 	{
-		if (strcmp(name, algorithm_entry->algorithm->short_name) == 0)
+		if (tsig_strlowercmp(name, algorithm_entry->algorithm->short_name) == 0)
 		{
 			return algorithm_entry->algorithm;
 		}

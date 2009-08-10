@@ -47,6 +47,7 @@ struct zparser {
 	zone_type *current_zone;
 	domain_type *origin;
 	domain_type *prev_dname;
+	domain_type *default_apex;
 
 	int error_occurred;
 	unsigned int errors;

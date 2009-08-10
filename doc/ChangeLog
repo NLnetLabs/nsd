@@ -1,3 +1,32 @@
+10 Augustus 2009: Matthijs
+	- Code review.
+	- Also send errors to /dev/null in controlled_stop.
+
+7 Augustus 2009: Matthijs
+	- Bug 266: don't have strptime build error
+
+28 July 2009: Matthijs
+	- Bug 263: make TSIG algorithms comparison case insensitive.
+
+23 July 2009: Matthijs
+	- nsd-xfer: return 0 if xfer succeeds.
+	- Patch Paul Wouters for NSD using hardcoded name.
+
+13 July 2009: Matthijs
+	- Bug 236: allow RRs before the SOA RR.
+	- Bug 253: No need for NS RRset in authority section, when returning final answer for QTYPE=DNSKEY.
+
+29 June 2009: Wouter
+	- patch for use of Linux IPV6_MTU option, so that on linux the default
+	  EDNS UDP size advertised becomes 4096 over IPv6.  It fragments the
+	  packets using the IPv6 minimum MTU.
+
+19 May 2009: Matthijs
+	- Clean up configure script (install hickup)
+	- Bug 249: Remove unnecessary LLONG_MIN and LLONG_MAX code.
+	- Replace strtoll code with own strtoserial function.
+	- Move up to 3.2.3.
+
 11 May 2009: Matthijs
 	- Add Off-by-one test
 

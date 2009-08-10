@@ -124,6 +124,20 @@ error(const char *format, ...)
 	exit(1);
 }
 
+static int
+file_inside_chroot(const char* fname, const char* chr)
+{
+#ifdef NDEBUG
+	assert(chr);
+#endif /* NDEBUG */
+	/* filename and chroot the same? */
+	if (fname && fname[0] && chr[0] && !strncmp(fname, chr, strlen(chr)))
+		return 2; /* strip chroot, file rotation ok */
+	else if (fname && fname[0] != '/')
+		return 1; /* don't strip, file rotation ok */
+	return 0; /* don't strip, don't try file rotation */
+}
+
 
 /*
  * Fetch the nsd parent process id from the nsd pidfile
@@ -197,6 +211,14 @@ writepid(struct nsd *nsd)
 	}
 
 	return 0;
+}
+
+void
+unlinkpid(const char* file)
+{
+	if (file && unlink(file) == -1)
+		log_msg(LOG_ERR, "failed to unlink pidfile %s: %s",
+			file, strerror(errno));
 }
 
 /*
@@ -338,6 +360,7 @@ main(int argc, char *argv[])
 	pid_t	oldpid;
 	size_t i;
 	struct sigaction action;
+	FILE* dbfd;
 
 	/* For initialising the address info structures */
 	struct addrinfo hints[MAX_INTERFACES];
@@ -346,6 +369,8 @@ main(int argc, char *argv[])
 	const char *tcp_port = 0;
 
 	const char *configfile = CONFIGFILE;
+
+	char* argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
 
 	log_init("nsd");
 
@@ -379,11 +404,11 @@ main(int argc, char *argv[])
 	/* EDNS0 */
 	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
 #if defined(INET6)
-#if defined(IPV6_USE_MIN_MTU)
+#if defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)
 	edns_init_data(&nsd.edns_ipv6, EDNS_MAX_MESSAGE_LEN);
-#else /* !defined(IPV6_USE_MIN_MTU) */
+#else /* no way to set IPV6 MTU, send no bigger than that. */
 	edns_init_data(&nsd.edns_ipv6, IPV6_MIN_MTU);
-#endif /* defined(IPV6_USE_MIN_MTU) */
+#endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 
 	/* Set up our default identity to gethostname(2) */
@@ -725,8 +750,11 @@ main(int argc, char *argv[])
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();
 	nsd.uid = getuid();
+#ifdef HAVE_GETPWNAM
+	struct passwd *pwd;
+
+	/* Parse the username into uid and gid */
 	if (*nsd.username) {
-		struct passwd *pwd;
 		if (isdigit((int)*nsd.username)) {
 			char *t;
 			nsd.uid = strtol(nsd.username, &t, 10);
@@ -742,7 +770,6 @@ main(int argc, char *argv[])
 				} else {
 					nsd.gid = pwd->pw_gid;
 				}
-				endpwent();
 			}
 		} else {
 			/* Lookup the user id in /etc/passwd */
@@ -752,9 +779,10 @@ main(int argc, char *argv[])
 				nsd.uid = pwd->pw_uid;
 				nsd.gid = pwd->pw_gid;
 			}
-			endpwent();
 		}
 	}
+	/* endpwent(); */
+#endif /* HAVE_GETPWNAM */
 
 #ifdef TSIG
 	if(!tsig_init(nsd.region))
@@ -766,13 +794,8 @@ main(int argc, char *argv[])
 	log_open(LOG_PID, FACILITY, nsd.log_filename);
 	if (!nsd.log_filename)
 		log_set_log_function(log_syslog);
-	else if (nsd.uid && nsd.gid) {
-		if (chown(nsd.pidfile, nsd.uid, nsd.gid) == -1) {
-			log_msg(LOG_ERR, "cannot chown %u.%u %s: %s",
-			(unsigned) nsd.uid, (unsigned) nsd.gid,
-			nsd.log_filename, strerror(errno));
-		}
-	}
+	else if (nsd.uid && nsd.gid)
+		(void) chown(nsd.log_filename, nsd.uid, nsd.gid);
 
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {
@@ -815,8 +838,8 @@ main(int argc, char *argv[])
 	} else {
 		if (kill(oldpid, 0) == 0 || errno == EPERM) {
 			log_msg(LOG_WARNING,
-				"nsd is already running as %u, continuing",
-				(unsigned) oldpid);
+				"%s is already running as %u, continuing",
+				argv0, (unsigned) oldpid);
 		} else {
 			log_msg(LOG_ERR,
 				"...stale pid file from process %u",
@@ -883,15 +906,115 @@ main(int argc, char *argv[])
 	nsd.signal_hint_statsusr = 0;
 	nsd.quit_sync_done = 0;
 
-	/* Run the server... */
+	/* Initialize the server... */
 	if (server_init(&nsd) != 0) {
-		log_msg(LOG_ERR, "server initialization failed, nsd could "
-						 "not be started");
+		log_msg(LOG_ERR, "server initialization failed, %s could "
+			"not be started", argv0);
 		exit(1);
 	}
 
-	log_msg(LOG_NOTICE, "nsd started (%s), pid %d", PACKAGE_STRING,
-		(int) nsd.pid);
+#ifdef HAVE_CHROOT
+	/* Chroot */
+	if (nsd.chrootdir && strlen(nsd.chrootdir)) {
+		int l = strlen(nsd.chrootdir);
+		int ret = 0;
+
+		while (l>0 && nsd.chrootdir[l-1] == '/')
+			--l;
+
+		/* filename after chroot */
+		ret = file_inside_chroot(nsd.log_filename, nsd.chrootdir);
+		if (ret) {
+			nsd.file_rotation_ok = 1;
+			if (ret == 2) /* also strip chroot */
+				nsd.log_filename += l;
+		}
+		nsd.dbfile += l;
+		nsd.pidfile += l;
+		nsd.options->xfrdfile += l;
+		nsd.options->difffile += l;
+
+		if (chroot(nsd.chrootdir)) {
+			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
+			exit(1);
+		}
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
+			nsd.chrootdir));
+	}
+	else
+#endif /* HAVE_CHROOT */
+		nsd.file_rotation_ok = 1;
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "file rotation on %s %sabled",
+		nsd.log_filename, nsd.file_rotation_ok?"en":"dis"));
+
+	/* Check if nsd.db exists */
+	if ((dbfd = fopen(nsd.dbfile, "r")) == NULL) {
+		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd.dbfile, strerror(errno));
+		exit(1);
+	}
+	fclose(dbfd);
+
+	/* Write pidfile */
+	if (writepid(&nsd) == -1) {
+		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s",
+			nsd.pidfile, strerror(errno));
+	}
+
+	/* Drop the permissions */
+#ifdef HAVE_GETPWNAM
+	if (*nsd.username) {
+#ifdef HAVE_SETUSERCONTEXT
+		/* setusercontext does initgroups, setuid, setgid, and
+		 * also resource limits from login config, but we
+		 * still call setresuid, setresgid to be sure to set all uid */
+		if (setusercontext(NULL, pwd, nsd.uid, LOGIN_SETALL) != 0)
+			log_msg(LOG_WARNING, "unable to setusercontext %s: %s",
+				nsd.username, strerror(errno));
+#else /* !HAVE_SETUSERCONTEXT */
+ #ifdef HAVE_INITGROUPS
+		if(initgroups(cfg->username, nsd.gid) != 0)
+			log_msg(LOG_WARNING, "unable to initgroups %s: %s",
+				nsd.username, strerror(errno));
+ #endif /* HAVE_INITGROUPS */
+#endif /* HAVE_SETUSERCONTEXT */
+		endpwent();
+
+#ifdef HAVE_SETRESGID
+		if(setresgid(nsd.gid,nsd.gid,nsd.gid) != 0)
+#elif defined(HAVE_SETREGID) && !defined(DARWIN_BROKEN_SETREUID)
+			if(setregid(nsd.gid,nsd.gid) != 0)
+#else /* use setgid */
+				if(setgid(nsd.gid) != 0)
+#endif /* HAVE_SETRESGID */
+					error("unable to set group id of %s: %s",
+						nsd.username, strerror(errno));
+
+#ifdef HAVE_SETRESUID
+		if(setresuid(nsd.uid,nsd.uid,nsd.uid) != 0)
+#elif defined(HAVE_SETREUID) && !defined(DARWIN_BROKEN_SETREUID)
+			if(setreuid(nsd.uid,nsd.uid) != 0)
+#else /* use setuid */
+				if(setuid(nsd.uid) != 0)
+#endif /* HAVE_SETRESUID */
+					error("unable to set user id of %s: %s",
+						nsd.username, strerror(errno));
+
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "dropped user privileges, run as %s",
+			nsd.username));
+    }
+#endif /* HAVE_GETPWNAM */
+
+	if (server_prepare(&nsd) != 0) {
+		log_msg(LOG_ERR, "server preparation failed, %s could "
+			"not be started", argv0);
+		unlinkpid(nsd.pidfile);
+		exit(1);
+	}
+
+	/* Really take off */
+	log_msg(LOG_NOTICE, "%s started (%s), pid %d",
+		argv0, PACKAGE_STRING, (int) nsd.pid);
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {
 		server_main(&nsd);

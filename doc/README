@@ -540,7 +540,7 @@ If you want to perform manual zone transfers you can use nsd-xfer.
 nsd-xfer(8) uses the same cryptic file format as named-xfer(8) (to
 be backward compatible).  This is a so called tsig-info file. 
 
-Lets say we have following:
+Lets say we have the following:
 
 zone: nlnetlabs.nl
 server: 213.53.69.1

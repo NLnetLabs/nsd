@@ -73,14 +73,11 @@ encode_answer(query_type *q, const answer_type *answer)
 	{
 		for (i = 0; !TC(q->packet) && i < answer->rrset_count; ++i) {
 			if (answer->section[i] == section) {
-				int truncate
-					= (section == ANSWER_SECTION
-					   || section == AUTHORITY_SECTION);
 				counts[section] += packet_encode_rrset(
 					q,
 					answer->domains[i],
 					answer->rrsets[i],
-					truncate);
+					section);
 			}
 		}
 	}

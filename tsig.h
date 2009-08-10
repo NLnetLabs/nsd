@@ -281,6 +281,11 @@ size_t tsig_reserved_space(tsig_record_type *tsig);
 void tsig_error_reply(tsig_record_type *tsig);
 
 /*
+ * compare tsig algorithm names case insensitive.
+ */
+int tsig_strlowercmp(const char* str1, const char* str2);
+
+/*
  * cleanup tsig openssl stuff.
  */
 void tsig_finalize(void);

@@ -430,7 +430,7 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "keymatch fail wrong key name"));
 		return 0; /* wrong key name */
 	}
-	if(strcmp(q->tsig.algorithm->short_name,
+	if(tsig_strlowercmp(q->tsig.algorithm->short_name,
 		acl->key_options->algorithm) != 0) {
 		DEBUG(DEBUG_XFRD,2, (LOG_ERR, "query tsig wrong algorithm"));
 		return 0; /* no such algo */

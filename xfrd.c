@@ -917,29 +917,24 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 #ifdef SO_REUSEADDR
 			if (setsockopt(sockd, SOL_SOCKET, SO_REUSEADDR, &frm,
 				frm_len) < 0) {
-				log_msg(LOG_WARNING, "xfrd: setsockopt "
-						     "SO_REUSEADDR failed: %s",
-					strerror(errno));
+				VERBOSITY(2, (LOG_WARNING, "xfrd: setsockopt "
+			     "SO_REUSEADDR failed: %s", strerror(errno)));
 			}
 #else
-			log_msg(LOG_WARNING, "xfrd: setsockopt SO_REUSEADDR "
-					     "failed: SO_REUSEADDR not defined");
+			VERBOSITY(2, (LOG_WARNING, "xfrd: setsockopt SO_REUSEADDR "
+			     "failed: SO_REUSEADDR not defined"));
 #endif /* SO_REUSEADDR */
 
 			if (ifc->port != 0) {
 #ifdef SO_LINGER
 				if (setsockopt(sockd, SOL_SOCKET, SO_LINGER,
 					&linger, sizeof(linger)) < 0) {
-					log_msg(LOG_WARNING, "xfrd: setsockopt "
-							     "SO_LINGER failed:"
-							     " %s",
-						strerror(errno));
+					VERBOSITY(2, (LOG_WARNING, "xfrd: setsockopt "
+				     "SO_LINGER failed: %s", strerror(errno)));
 				}
 #else
-				log_msg(LOG_WARNING, "xfrd: setsockopt "
-						     "SO_LINGER failed: "
-						     "SO_LINGER not defined",
-						strerror(errno));
+				VERBOSITY(2, (LOG_WARNING, "xfrd: setsockopt SO_LINGER "
+					"failed: SO_LINGER not defined"));
 #endif /* SO_LINGER */
 			}
 		}

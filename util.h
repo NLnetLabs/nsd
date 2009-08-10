@@ -258,7 +258,7 @@ timeval_to_timespec(struct timespec *left,
 
 /*
  * Converts a string representation of a period of time into
- * a long integer of seconds.
+ * a long integer of seconds or serial value.
  *
  * Set the endptr to the first illegal character.
  *
@@ -269,9 +269,10 @@ timeval_to_timespec(struct timespec *left,
  *	LONG_MAX if overflow occurs.
  *	otherwise number of seconds
  *
- * XXX This functions does not check the range.
+ * XXX These functions do not check the range.
  *
  */
+uint32_t strtoserial(const char *nptr, const char **endptr);
 uint32_t strtottl(const char *nptr, const char **endptr);
 
 /*

@@ -24,6 +24,9 @@ int writepid(struct nsd * ATTR_UNUSED(nsd))
 {
 	return 0;
 }
+void unlinkpid(const char * ATTR_UNUSED(file))
+{
+}
 void bind8_stats(struct nsd * ATTR_UNUSED(nsd))
 {
 }

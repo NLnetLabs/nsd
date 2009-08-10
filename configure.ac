@@ -1,7 +1,7 @@
 dnl
 dnl Some global settings
 dnl
-AC_INIT(NSD,3.2.2,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,3.2.3,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 dnl
@@ -66,20 +66,15 @@ dbdir=${localstatedir}/db/nsd
 # to /var/run/nsd.pid by default
 #
 if test -d ${localstatedir}/run; then
-	piddir=${localstatedir}/run/
+	pidfile=${localstatedir}/run/nsd.pid
 else
-	piddir=${dbdir}/
+	pidfile=${dbdir}/nsd.pid
 fi
-pidfile=${piddir}nsd.pid
-
 AC_ARG_WITH([pidfile],
 	AC_HELP_STRING([--with-pidfile=path], [Pathname to the NSD pidfile]),
 	[pidfile=$withval])
 AC_SUBST(pidfile)
 AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the NSD pidfile])
-
-AC_SUBST(piddir)
-AC_SUBST(dbdir)
 
 #
 # Determine location of nsd.db
@@ -90,6 +85,12 @@ AC_ARG_WITH([dbfile],
 	[dbfile=$withval])
 AC_SUBST(dbfile)
 AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the NSD database])
+
+dbdir=`dirname $dbfile`
+AC_SUBST(dbdir)
+
+piddir=`dirname $pidfile`
+AC_SUBST(piddir)
 
 #
 # Determine the default directory for the zone files
@@ -124,6 +125,17 @@ AC_ARG_WITH([user],
 	[user=$withval])
 AC_SUBST(user)
 AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
+
+#
+# Determine mimimum bufsize in EDNS0 queries with the DO bit set, in order to allow the DO bit.
+# Default is 0, no mimimum.
+#
+#edns_min_bufsize=0
+#AC_ARG_WITH([edns_min_bufsize],
+#	AC_HELP_STRING([--with-edns-min-bufsize=number], [Minimum allowed UDP limit when processing EDNS0 queries with DO bit set.]),
+#	[edns_min_bufsize=$withval])
+#AC_SUBST(edns_min_bufsize)
+#AC_DEFINE_UNQUOTED([EDNS_MIN_BUFSIZE], [`eval echo $edns_min_bufsize`], [Miminum allowed UDP limit when processing EDNS0 queries with DO bit set.])
 
 # Checks for programs.
 AC_PROG_AWK
@@ -444,7 +456,7 @@ AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
 AC_FUNC_FSEEKO
 AC_SYS_LARGEFILE
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime])
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam])
  
 #
 # Checking for missing functions we can replace
@@ -735,9 +747,11 @@ size_t strlcpy(char *dst, const char *src, size_t siz);
 #include "compat/fake-rfc2553.h"
 #endif
 #ifndef HAVE_STRPTIME
+#define HAVE_STRPTIME 1
 char *strptime(const char *s, const char *format, struct tm *tm); 
 #endif
 #ifndef STRPTIME_WORKS
+#define STRPTIME_WORKS 1
 #define strptime(a,b,c) nsd_strptime((a),(b),(c))
 #endif
 
