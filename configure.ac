@@ -1,6 +1,9 @@
 dnl
 dnl Some global settings
 dnl
+
+sinclude(acx_nlnetlabs.m4)
+
 AC_INIT(NSD,3.2.3,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
@@ -284,7 +287,7 @@ AC_DEFUN([CHECK_SSL], [
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([time.h arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h])
+AC_CHECK_HEADERS([time.h arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h grp.h])
 
 AC_DEFUN([CHECK_VALIST_DEF],
 [

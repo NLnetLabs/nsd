@@ -17,6 +17,9 @@
 #include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif /* HAVE_GRP_H */
 
 #include <assert.h>
 #include <ctype.h>
@@ -973,7 +976,7 @@ main(int argc, char *argv[])
 				nsd.username, strerror(errno));
 #else /* !HAVE_SETUSERCONTEXT */
  #ifdef HAVE_INITGROUPS
-		if(initgroups(cfg->username, nsd.gid) != 0)
+		if(initgroups(nsd.username, nsd.gid) != 0)
 			log_msg(LOG_WARNING, "unable to initgroups %s: %s",
 				nsd.username, strerror(errno));
  #endif /* HAVE_INITGROUPS */
