@@ -38,6 +38,11 @@
 #include "nsec3.h"
 #include "tsig.h"
 
+/* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
+ * This function determines if the final response packet needs the NS RRset included.
+ * Currently, it will only return negative if QTYPE == DNSKEY. This way, resolvers
+ * won't fallback to TCP unnecessarily when priming DNSKEYs. 
+ */
 static int answer_needs_ns(struct query  *query);
 
 static int add_rrset(struct query  *query,
@@ -608,7 +613,6 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 	}
 }
 
-/* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation */
 static int
 answer_needs_ns(struct query* query)
 {
@@ -1290,14 +1294,8 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 #endif /* TSIG */
 	if (arcount > 0) {
-		if (edns_parse_record(&q->edns, q->packet)) {
-
-			/* to prevent unwanted TCP fallback */
-			if (EDNS_MIN_BUFSIZE && q->edns.maxlen < EDNS_MIN_BUFSIZE)
-				q->edns.dnssec_ok = 0;
-
+		if (edns_parse_record(&q->edns, q->packet))
 			--arcount;
-		}
 	}
 #ifdef TSIG
 	if (arcount > 0 && q->tsig.status == TSIG_NOT_PRESENT) {

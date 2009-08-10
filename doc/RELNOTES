@@ -4,7 +4,8 @@ NSD RELEASE NOTES
 =============
 BUG FIXES:
 	- Bugfix #236: Allow RRs before the SOA in a zonefile.
-	- Bugfix #249: Don't put NS RRs in a response with QTYPE=DNSKEY.
+	- Bugfix #249: Remove the C99 code.
+	- Bugfix #253: Don't put NS RRs in a response with QTYPE=DNSKEY.
 	- Bugfix #263: Make TSIG algorithm comparison case insensitive.
 	- Bugfix #266: Build failed on systems without strptime.
 	- Bugfix: install hickup.
@@ -13,9 +14,6 @@ BUG FIXES:
 OPERATIONAL NOTES:
 	- nsd-xfer returns 0 upon succes, it used to return 1. (Remember that 
 		nsd-xfer and nsd-notify are actually deprecated since 3.0.0).
-	- Another configure option: --with-edns-min-bufsize. Zero by default.
-		If set to a higher value, NSD will ignore the DO bit upon receiving EDNS0
-		queries with UDP limit less than the configured EDNS0 minimum buffer size.
 
 3.2.2
 =============

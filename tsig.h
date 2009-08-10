@@ -285,7 +285,6 @@ void tsig_error_reply(tsig_record_type *tsig);
  */
 int tsig_strlowercmp(const char* str1, const char* str2);
 
-
 /*
  * cleanup tsig openssl stuff.
  */

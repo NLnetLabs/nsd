@@ -195,11 +195,11 @@ controlled_stop() {
 			if [ $try -eq 1 ]; then
 				kill -TERM ${pid}
 			else
-				kill -TERM ${pid} &>/dev/null
+				kill -TERM ${pid} >/dev/null 2>&1
 			fi
 
 			# really stopped?
-			kill -0 ${pid} &>/dev/null 
+			kill -0 ${pid} >/dev/null 2>&1
 			if [ $? -eq 0 ]; then
 				controlled_sleep ${try}
 				try=`expr ${try} + 1`

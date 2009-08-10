@@ -327,7 +327,7 @@ initialize_dname_compression_tables(struct nsd *nsd)
 }
 
 /*
- * Initialize the server, create and bind the socket.
+ * Initialize the server, create and bind the sockets.
  *
  */
 int

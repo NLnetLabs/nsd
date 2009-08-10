@@ -1225,7 +1225,6 @@ process_rr(void)
 	}
 #endif
 
-
 	/* Check we have SOA */
 	if (zone->soa_rrset == NULL) {
 		if (rr->type == TYPE_SOA) {

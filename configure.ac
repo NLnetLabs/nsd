@@ -126,17 +126,6 @@ AC_ARG_WITH([user],
 AC_SUBST(user)
 AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
 
-#
-# Determine mimimum bufsize in EDNS0 queries with the DO bit set, in order to allow the DO bit.
-# Default is 0, no mimimum.
-#
-edns_min_bufsize=0
-AC_ARG_WITH([edns_min_bufsize],
-	AC_HELP_STRING([--with-edns-min-bufsize=number], [Minimum allowed UDP limit when processing EDNS0 queries with DO bit set.]),
-	[edns_min_bufsize=$withval])
-AC_SUBST(edns_min_bufsize)
-AC_DEFINE_UNQUOTED([EDNS_MIN_BUFSIZE], [`eval echo $edns_min_bufsize`], [Miminum allowed UDP limit when processing EDNS0 queries with DO bit set.])
-
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
@@ -456,7 +445,7 @@ AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
 AC_FUNC_FSEEKO
 AC_SYS_LARGEFILE
-AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid])
+AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam])
  
 #
 # Checking for missing functions we can replace

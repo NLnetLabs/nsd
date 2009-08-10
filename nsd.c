@@ -747,6 +747,7 @@ main(int argc, char *argv[])
 		}
 	}
 
+	/* Parse the username into uid and gid */
 	nsd.gid = getgid();
 	nsd.uid = getuid();
 #ifdef HAVE_GETPWNAM
