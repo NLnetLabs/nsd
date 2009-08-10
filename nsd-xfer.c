@@ -47,7 +47,7 @@
  * bind8.
  */
 #define XFER_UPTODATE	0
-#define XFER_SUCCESS	0
+#define XFER_SUCCESS	1
 #define XFER_FAIL		3
 
 struct axfr_state

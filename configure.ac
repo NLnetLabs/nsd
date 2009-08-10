@@ -7,6 +7,9 @@ sinclude(acx_nlnetlabs.m4)
 AC_INIT(NSD,3.2.3,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
+CFLAGS="$CFLAGS"
+AC_AIX
+
 dnl
 dnl By default set $sysconfdir to /etc and $localstatedir to /var
 dnl
@@ -449,7 +452,12 @@ AC_TYPE_SIGNAL
 AC_FUNC_FSEEKO
 AC_SYS_LARGEFILE
 AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam])
- 
+
+# check if setreuid en setregid fail, on MacOSX10.4(darwin8).
+if echo $build_os | grep darwin8 > /dev/null; then
+	AC_DEFINE(DARWIN_BROKEN_SETREUID, 1, [Define this if on macOSX10.4-darwin8 and setreuid and setregid do not work])
+fi
+
 #
 # Checking for missing functions we can replace
 #
