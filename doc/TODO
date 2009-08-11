@@ -15,6 +15,7 @@ ZONE COMPILER
 - profile the zonec compiling speed. Speed it up. Many people complain about
   this.
 - wireformat interop. testing for IPSECKEY type.
+- chown nsd nsd.db (Paul Wouters nsd-users mail)
 
 SERVER
 - make sure that we dont copy anything from the query we dont want to copy, like
