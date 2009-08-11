@@ -7,11 +7,18 @@
  *
  */
 #include <config.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <pwd.h>
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif /* HAVE_GRP_H */
+
 #include "options.h"
 #include "difffile.h"
 #include "namedb.h"
@@ -285,6 +292,8 @@ int main(int argc, char* argv[])
 	int force_write = 0;
 	int skip_write = 0;
 	int difffile_exists = 0;
+	uid_t uid = 0;
+	gid_t gid = 0;
 
         /* Parse the command line... */
 	while ((c = getopt(argc, argv, "c:fhlo:sx:")) != -1) {
@@ -345,6 +354,43 @@ int main(int argc, char* argv[])
 			exit(1);
 		}
 	}
+
+	/* ownership */
+#ifdef HAVE_GETPWNAM
+    struct passwd *pwd;
+
+	if (*options->username) {
+		fprintf(stdout, "setting ownership\n");
+
+		if (isdigit((int)*options->username)) {
+			char *t;
+			uid = strtol(options->username, &t, 10);
+			if (*t != 0) {
+				if (*t != '.' || !isdigit((int)*++t)) {
+					fprintf(stderr, "-u user or -u uid or -u uid.gid");
+				}
+				gid = strtol(t, &t, 10);
+			} else {
+				/* Lookup the group id in /etc/passwd */
+				if ((pwd = getpwuid(uid)) == NULL) {
+					fprintf(stderr,"user id %u does not exist.", (unsigned) uid);
+				} else {
+					gid = pwd->pw_gid;
+				}
+			}
+		} else {
+			/* Lookup the user id in /etc/passwd */
+			if ((pwd = getpwnam(options->username)) == NULL) {
+				fprintf(stderr, "user '%s' does not exist.", options->username);
+			} else {
+				uid = pwd->pw_uid;
+				gid = pwd->pw_gid;
+			}
+		}
+		endpwent();
+
+		(void) chown(dbfile, uid, gid);		
+#endif /* HAVE_GETPWNAM */
 
 	/* override difffile if commandline option given */
 	if(difffile)
@@ -417,7 +463,7 @@ int main(int argc, char* argv[])
 	if (dbout)
 	{
 		fprintf(stdout, "storing database to %s.\n", dbout->filename);
-	        if (namedb_save(db) != 0) {
+		if (namedb_save(db) != 0) {
 			fprintf(stderr, "error writing the database (%s): %s\n",
 				dbfile, strerror(errno));
 			exit(1);

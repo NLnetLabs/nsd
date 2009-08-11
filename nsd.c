@@ -93,11 +93,6 @@ usage (void)
 		"  -V level        Specify verbosity level.\n"
 		"  -v              Print version information.\n"
 		);
-
-#ifdef _GNU_SOURCE
-	fprintf(stderr, "GUN SOURCE defined.\n");
-#endif
-
 	fprintf(stderr, "Version %s. Report bugs to <%s>.\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
 }

@@ -343,6 +343,12 @@ do_rebuild() {
 	unlock
 	[ $result != 0 ] && echo "${dbfile} is unmodified"
 	rm -f ${dbfile}.$$
+	username=`${nsd_checkconf} -o username ${configfile}`
+	if test I$username != I; then
+		chown $username ${dbfile}
+		chgrp $username ${dbfile}
+	fi
+
 	return ${result}
 }
 
