@@ -29,6 +29,13 @@
 #include <netdb.h>
 #endif
 
+#include <sys/types.h>
+#include <pwd.h>
+
+#ifdef HAVE_GRP_H
+#include <grp.h>
+#endif
+
 #include "zonec.h"
 
 #include "dname.h"
@@ -1404,6 +1411,8 @@ main (int argc, char **argv)
 	const char* zonesdir = NULL;
 	const char* singlefile = NULL;
 	nsd_options_t* nsd_options = NULL;
+	uid_t uid = 0;
+	gid_t gid = 0;
 
 	log_init("zonec");
 
@@ -1481,6 +1490,85 @@ main (int argc, char **argv)
 		if(nsd_options && nsd_options->database) dbfile = nsd_options->database;
 		else dbfile = DBFILE;
 	}
+
+	/* Get user id and group */
+	gid = getgid();
+	uid = getuid();
+#ifdef HAVE_GETPWNAM
+	struct passwd *pwd;
+
+	/* Parse the username into uid and gid */
+	if (*nsd_options->username) {
+		if (isdigit((int)*nsd_options->username)) {
+			char *t;
+			uid = strtol(nsd_options->username, &t, 10);
+			if (*t != 0) {
+				if (*t != '.' || !isdigit((int)*++t)) {
+					fprintf(stderr, "-u user or -u uid or -u uid.gid");
+				}
+				gid = strtol(t, &t, 10);
+			} else {
+				/* Lookup the group id in /etc/passwd */
+				if ((pwd = getpwuid(uid)) == NULL) {
+					fprintf(stderr, "user id %u does not exist.", (unsigned) uid);
+				} else {
+					gid = pwd->pw_gid;
+				}
+			}
+		} else {
+			/* Lookup the user id in /etc/passwd */
+			if ((pwd = getpwnam(nsd_options->username)) == NULL) {
+				fprintf(stderr, "user '%s' does not exist.", nsd_options->username);
+			} else {
+				uid = pwd->pw_uid;
+				gid = pwd->pw_gid;
+			}
+		}
+	}
+#endif /* HAVE_GETPWNAM */
+
+	(void) chown(dbfile, uid, gid);
+
+	/* Drop the permissions */
+#ifdef HAVE_GETPWNAM
+	if (*nsd_options->username) {
+#ifdef HAVE_SETUSERCONTEXT
+		/* setusercontext does initgroups, setuid, setgid, and
+		 * also resource limits from login config, but we
+		 * still call setresuid, setresgid to be sure to set all uid */
+		if (setusercontext(NULL, pwd, uid, LOGIN_SETALL) != 0)
+			fprintf(stderr, "unable to setusercontext %s: %s",
+				nsd_options->username, strerror(errno));
+#else /* !HAVE_SETUSERCONTEXT */
+ #ifdef HAVE_INITGROUPS
+		if(initgroups(nsd_options->username, gid) != 0)
+			fprintf(stderr, "unable to initgroups %s: %s",
+				nsd_options->username, strerror(errno));
+ #endif /* HAVE_INITGROUPS */
+#endif /* HAVE_SETUSERCONTEXT */
+		endpwent();
+
+#ifdef HAVE_SETRESGID
+		if(setresgid(gid,gid,gid) != 0)
+#elif defined(HAVE_SETREGID) && !defined(DARWIN_BROKEN_SETREUID)
+			if(setregid(gid,gid) != 0)
+#else /* use setgid */
+				if(setgid(gid) != 0)
+#endif /* HAVE_SETRESGID */
+					fprintf(stderr, "unable to set group id of %s: %s",
+						nsd_options->username, strerror(errno));
+
+#ifdef HAVE_SETRESUID
+		if(setresuid(uid,uid,uid) != 0)
+#elif defined(HAVE_SETREUID) && !defined(DARWIN_BROKEN_SETREUID)
+			if(setreuid(uid,uid) != 0)
+#else /* use setuid */
+				if(setuid(uid) != 0)
+#endif /* HAVE_SETRESUID */
+					fprintf(stderr, "unable to set user id of %s: %s",
+						nsd_options->username, strerror(errno));
+    }
+#endif /* HAVE_GETPWNAM */
 
 	/* Create the database */
 	if ((db = namedb_new(dbfile)) == NULL) {

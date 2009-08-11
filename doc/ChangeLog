@@ -1,3 +1,6 @@
+11 Augustus 2009: Matthijs
+	- chown nsd.db, also in zonec
+
 10 Augustus 2009: Matthijs
 	- Code review.
 	- Also send errors to /dev/null in controlled_stop.
