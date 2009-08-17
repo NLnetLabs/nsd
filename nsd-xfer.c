@@ -184,12 +184,13 @@ to_alarm(int ATTR_UNUSED(sig))
 	timeout_flag = 1;
 }
 
+#ifdef TSIG
 /*
  * Read a line from IN.  If successful, the line is stripped of
  * leading and trailing whitespace and non-zero is returned.
  */
 static int
-read_line(FILE *in, char *line, size_t size)
+tsig_read_line(FILE *in, char *line, size_t size)
 {
 	if (!fgets(line, size, in)) {
 		return 0;
@@ -199,7 +200,6 @@ read_line(FILE *in, char *line, size_t size)
 	}
 }
 
-#ifdef TSIG
 static tsig_key_type *
 read_tsig_key_data(region_type *region, FILE *in,
 	int ATTR_UNUSED(default_family), tsig_algorithm_type** tsig_algo)
@@ -212,7 +212,7 @@ read_tsig_key_data(region_type *region, FILE *in,
 	uint8_t data[4000];
 
 	/* server address */
-	if (!read_line(in, line, sizeof(line))) {
+	if (!tsig_read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key server address: '%s'",
 		      strerror(errno));
 		return NULL;
@@ -220,7 +220,7 @@ read_tsig_key_data(region_type *region, FILE *in,
 	/* server address unused */
 
 	/* tsig keyname */
-	if (!read_line(in, line, sizeof(line))) {
+	if (!tsig_read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key name: '%s'", strerror(errno));
 		return NULL;
 	}
@@ -232,7 +232,7 @@ read_tsig_key_data(region_type *region, FILE *in,
 	}
 
 	/* tsig algorithm */
-	if (!read_line(in, line, sizeof(line))) {
+	if (!tsig_read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key algorithm: '%s'", strerror(errno));
 		return NULL;
 	}
@@ -244,7 +244,7 @@ read_tsig_key_data(region_type *region, FILE *in,
 	}
 
 	/* tsig secret */
-	if (!read_line(in, line, sizeof(line))) {
+	if (!tsig_read_line(in, line, sizeof(line))) {
 		error("failed to read TSIG key data: '%s'\n", strerror(errno));
 		return NULL;
 	}
@@ -783,8 +783,10 @@ main(int argc, char *argv[])
 	int default_family = DEFAULT_AI_FAMILY;
 	struct sigaction mysigaction;
 	FILE *zone_file;
+#ifdef TSIG
 	const char *tsig_key_filename = NULL;
 	tsig_key_type *tsig_key = NULL;
+#endif /* TSIG */
 	axfr_state_type state;
 
 	log_init("nsd-xfer");

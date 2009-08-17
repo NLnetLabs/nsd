@@ -20,6 +20,9 @@
 #ifdef HAVE_GRP_H
 #include <grp.h>
 #endif /* HAVE_GRP_H */
+#ifdef HAVE_SETUSERCONTEXT
+#include <logincap.h>
+#endif /* HAVE_SETUSERCONTEXT */
 
 #include <assert.h>
 #include <ctype.h>

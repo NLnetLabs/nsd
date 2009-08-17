@@ -160,7 +160,9 @@ static void handle_tcp_writing(netio_type *netio,
 static void send_children_quit(struct nsd* nsd);
 
 /* set childrens flags to send NSD_STATS to them */
+#ifdef BIND8_STATS
 static void set_children_stats(struct nsd* nsd);
+#endif /* BIND8_STATS */
 
 /*
  * Change the event types the HANDLERS are interested in to
@@ -1341,8 +1343,9 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 
 		/* Process and answer the query... */
 		if (server_process_query(data->nsd, q) != QUERY_DISCARDED) {
-			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet))
+			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
 				STATUP(data->nsd, nona);
+			}
 
 			/* Add EDNS0 and TSIG info if necessary.  */
 			query_add_optional(q, data->nsd);
@@ -1823,6 +1826,7 @@ send_children_quit(struct nsd* nsd)
 	}
 }
 
+#ifdef BIND8_STATS
 static void
 set_children_stats(struct nsd* nsd)
 {
@@ -1834,6 +1838,7 @@ set_children_stats(struct nsd* nsd)
 		nsd->children[i].handler->event_types |= NETIO_EVENT_WRITE;
 	}
 }
+#endif /* BIND8_STATS */
 
 static void
 configure_handler_event_types(size_t count,
