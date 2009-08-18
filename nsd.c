@@ -21,7 +21,7 @@
 #include <grp.h>
 #endif /* HAVE_GRP_H */
 #ifdef HAVE_SETUSERCONTEXT
-#include <logincap.h>
+#include <login_cap.h>
 #endif /* HAVE_SETUSERCONTEXT */
 
 #include <assert.h>
