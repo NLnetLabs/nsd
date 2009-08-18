@@ -367,6 +367,9 @@ main(int argc, char *argv[])
 	size_t i;
 	struct sigaction action;
 	FILE* dbfd;
+#ifdef HAVE_GETPWNAM
+	struct passwd *pwd;
+#endif /* HAVE_GETPWNAM */
 
 	/* For initialising the address info structures */
 	struct addrinfo hints[MAX_INTERFACES];
@@ -757,8 +760,6 @@ main(int argc, char *argv[])
 	nsd.gid = getgid();
 	nsd.uid = getuid();
 #ifdef HAVE_GETPWNAM
-	struct passwd *pwd;
-
 	/* Parse the username into uid and gid */
 	if (*nsd.username) {
 		if (isdigit((int)*nsd.username)) {

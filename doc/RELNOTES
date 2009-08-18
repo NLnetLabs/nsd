@@ -1,6 +1,11 @@
 NSD RELEASE NOTES
 
-3.2.3 (UPCOMING RELEASE)
+3.2.4 (UPCOMING RELEASE)
+=============
+BUG FIXES:
+	- Bugfix #269.
+
+3.2.3
 =============
 BUG FIXES:
 	- Bugfix #236: Allow RRs before the SOA in a zonefile.
