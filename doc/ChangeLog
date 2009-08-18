@@ -1,5 +1,6 @@
 18 August 2009: Matthijs
 	- Bug 269.
+	- Typo: logincap.h -> login_cap.h
 
 12 August 2009: Matthijs
 	- Maintainers feedback

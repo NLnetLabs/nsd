@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 =============
 BUG FIXES:
 	- Bugfix #269.
+	- Fix typo in include file for setusercontext.
 
 3.2.3
 =============
