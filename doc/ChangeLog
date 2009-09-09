@@ -1,3 +1,6 @@
+9 September 2009: Matthijs
+	- DLV support
+
 18 August 2009: Matthijs
 	- Bug 269.
 	- Typo: logincap.h -> login_cap.h

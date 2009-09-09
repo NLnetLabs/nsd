@@ -33,7 +33,7 @@ static lookup_table_type dns_rrclasses[] = {
 	{ 0, NULL }
 };
 
-static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
+static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] = {
 	/* 0 */
 	{ 0, NULL, T_UTYPE, 1, 1, { RDATA_WF_BINARY }, { RDATA_ZF_UNKNOWN } },
 	/* 1 */
@@ -427,6 +427,10 @@ static rrtype_descriptor_type rrtype_descriptors[RRTYPE_DESCRIPTORS_LENGTH] = {
 	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
 	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT,
 	    RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT, RDATA_ZF_TEXT } },
+	/* 32769 */
+	{ TYPE_DLV, "DLV", T_DLV, 4, 4,
+	  { RDATA_WF_SHORT, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BINARY },
+	  { RDATA_ZF_SHORT, RDATA_ZF_ALGORITHM, RDATA_ZF_BYTE, RDATA_ZF_HEX } },
 };
 
 rrtype_descriptor_type *
@@ -434,6 +438,8 @@ rrtype_descriptor_by_type(uint16_t type)
 {
 	if (type < RRTYPE_DESCRIPTORS_LENGTH)
 		return &rrtype_descriptors[type];
+	else if (type == TYPE_DLV)
+		return &rrtype_descriptors[PSEUDO_TYPE_DLV];
 	return &rrtype_descriptors[0];
 }
 
@@ -448,6 +454,12 @@ rrtype_descriptor_by_name(const char *name)
 		{
 			return &rrtype_descriptors[i];
 		}
+	}
+
+	if (rrtype_descriptors[PSEUDO_TYPE_DLV].name
+	    && strcasecmp(rrtype_descriptors[PSEUDO_TYPE_DLV].name, name) == 0)
+	{
+		return &rrtype_descriptors[PSEUDO_TYPE_DLV];
 	}
 
 	return NULL;

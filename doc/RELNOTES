@@ -6,6 +6,9 @@ BUG FIXES:
 	- Bugfix #269.
 	- Fix typo in include file for setusercontext.
 
+FEATURES:
+	- Support DLV records.
+
 3.2.3
 =============
 BUG FIXES:
