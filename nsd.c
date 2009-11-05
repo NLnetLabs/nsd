@@ -78,7 +78,7 @@ usage (void)
 	fprintf(stderr,
 		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
 #ifdef NSID
-                "  -I nsid         Specify the NSID. This must be a hex string.\n"
+		"  -I nsid         Specify the NSID. This must be a hex string.\n"
 #endif /* NSID */
 #ifndef NDEBUG
 		"  -L level        Specify the debug level.\n"

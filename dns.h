@@ -141,7 +141,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define TYPE_ANY	255	/* any type (wildcard) */
 
 #define TYPE_DLV	32769	/* RFC 4431 */
-#define PSEUDO_TYPE_DLV	100	/* RFC 4431 */
+#define PSEUDO_TYPE_DLV	100	/* SPF + 1 */
 
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
