@@ -15,7 +15,7 @@
 #define OPT_LEN 9U                      /* Length of the NSD EDNS response record minus 2 */
 #define OPT_RDATA 2                     /* holds the rdata length comes after OPT_LEN */
 #define OPT_HDR 4U                      /* NSID opt header length */
-#define NSID_CODE       1               /* nsid option code */
+#define NSID_CODE       3               /* nsid option code */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
 #define NSID_MASK       0x8000U         /* bitmask to get to the NSID bit */
 

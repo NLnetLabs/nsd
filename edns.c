@@ -98,7 +98,7 @@ edns_parse_record(edns_record_type *edns, buffer_type *packet)
 		/* there is more to come, read opt code
 		 * should be NSID - there are no others */
 		opt_nsid = buffer_read_u16(packet);
-		edns->nsid = (opt_nsid & NSID_MASK);
+		edns->nsid = (opt_nsid == NSID_CODE);
 		/* extra check for the value */
 	}
 
