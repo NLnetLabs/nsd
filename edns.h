@@ -17,7 +17,6 @@
 #define OPT_HDR 4U                      /* NSID opt header length */
 #define NSID_CODE       3               /* nsid option code */
 #define DNSSEC_OK_MASK  0x8000U         /* do bit mask */
-#define NSID_MASK       0x8000U         /* bitmask to get to the NSID bit */
 
 struct edns_data
 {
