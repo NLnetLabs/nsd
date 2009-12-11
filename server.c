@@ -406,6 +406,29 @@ server_init(struct nsd *nsd)
 # endif
 		}
 #endif
+#if defined(AF_INET)
+		if (nsd->udp[i].addr->ai_family == AF_INET) {
+#  if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
+			int action = IP_PMTUDISC_DONT;
+			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, 
+				IP_MTU_DISCOVER, &action, sizeof(action)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IP_MTU_DISCOVER, IP_PMTUDISC_DONT...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+#  elif defined(IP_DONTFRAG)
+			int off = 0;
+			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, IP_DONTFRAG,
+				&off, sizeof(off)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IP_DONTFRAG, ...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+#  endif
+		}
+#endif
 		/* set it nonblocking */
 		/* otherwise, on OSes with thundering herd problems, the
 		   UDP recv could block NSD after select returns readable. */
