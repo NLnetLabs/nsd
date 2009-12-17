@@ -67,11 +67,6 @@ struct tsig_algorithm
 	size_t maximum_digest_size;
 
 	/*
-	 * The block length of this algorithm.
-	 */
-	size_t block_len;
-
-	/*
 	 * Algorithm implementation specific data.
 	 */
 	const void *data;

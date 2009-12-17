@@ -24,8 +24,7 @@ static void final(void *context, uint8_t *digest, size_t *size);
 
 static int
 tsig_openssl_init_algorithm(region_type* region,
-	const char* digest, const char* name, const char* wireformat,
-	int digest_size, int block_len)
+	const char* digest, const char* name, const char* wireformat)
 {
 	tsig_algorithm_type* algorithm;
 	const EVP_MD *hmac_algorithm;
@@ -45,8 +44,7 @@ tsig_openssl_init_algorithm(region_type* region,
 		log_msg(LOG_ERR, "cannot parse %s algorithm", wireformat);
 		return 0;
 	}
-	algorithm->maximum_digest_size = digest_size;
-	algorithm->block_len = block_len;
+	algorithm->maximum_digest_size = EVP_MAX_MD_SIZE;
 	algorithm->data = hmac_algorithm;
 	algorithm->hmac_create_context = create_context;
 	algorithm->hmac_init_context = init_context;
@@ -63,18 +61,15 @@ tsig_openssl_init(region_type *region)
 	OpenSSL_add_all_digests();
 
 	/* TODO: walk lookup supported algorithms table */
-	if (!tsig_openssl_init_algorithm(region, "md5", "hmac-md5","hmac-md5.sig-alg.reg.int.",
-		MD5_DIGEST_LENGTH, 64))
+	if (!tsig_openssl_init_algorithm(region, "md5", "hmac-md5","hmac-md5.sig-alg.reg.int."))
 		return 0;
 #ifdef HAVE_EVP_SHA1
-	if (!tsig_openssl_init_algorithm(region, "sha1", "hmac-sha1", "hmac-sha1.",
-		SHA_DIGEST_LENGTH, 64))
+	if (!tsig_openssl_init_algorithm(region, "sha1", "hmac-sha1", "hmac-sha1."))
 		return 0;
 #endif /* HAVE_EVP_SHA1 */
 
 #ifdef HAVE_EVP_SHA256
-	if (!tsig_openssl_init_algorithm(region, "sha256", "hmac-sha256", "hmac-sha256.",
-		SHA256_DIGEST_LENGTH, 64))
+	if (!tsig_openssl_init_algorithm(region, "sha256", "hmac-sha256", "hmac-sha256."))
 		return 0;
 #endif /* HAVE_EVP_SHA256 */
 	return 1;
@@ -104,13 +99,6 @@ init_context(void *context,
 {
 	HMAC_CTX *ctx = (HMAC_CTX *) context;
 	const EVP_MD *md = (const EVP_MD *) algorithm->data;
-
-	if (key->size > algorithm->block_len) {
-		EVP_DigestInit(context, algorithm->data);
-		EVP_DigestUpdate(context, (const void*) key->data, key->size);
-		EVP_DigestFinal(context, (unsigned char*) key->data, NULL);
-		key->size = algorithm->maximum_digest_size;
-	}
 	HMAC_Init_ex(ctx, key->data, key->size, md, NULL);
 }
 

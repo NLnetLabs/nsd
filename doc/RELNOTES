@@ -5,7 +5,6 @@ NSD RELEASE NOTES
 BUG FIXES:
 	- Bugfix #269.
 	- Fix typo in include file for setusercontext.
-	- Bugfix: TSIG: keys longer than B bytes are now first hashed (RFC 2104).
 
 FEATURES:
 	- Support DLV records.
