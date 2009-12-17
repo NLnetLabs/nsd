@@ -1,3 +1,6 @@
+17 December 2009: Matthijs
+	- Bugfix: TSIG: keys longer than B bytes are now first hashed (RFC 2104).
+
 11 December 2009: Wouter
 	- Disable UDP IPv4 DF flag on Linux/FreeBSD/AIX with socket option.
 
