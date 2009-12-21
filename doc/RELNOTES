@@ -8,6 +8,8 @@ BUG FIXES:
 
 FEATURES:
 	- Support DLV records.
+	- New option 'tcp-query-count:', to limit the maximum number of
+		DNS queries on a singel tcp connection.
 
 3.2.3
 =============

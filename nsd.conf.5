@@ -151,6 +151,10 @@ The maximum number of concurrent TCP connections by each server.
 Default is 10. Same as commandline option 
 .BR \-n .
 .TP
+.B tcp\-query\-count:\fR <number>
+The maximum number of queries served on a single TCP connection.
+Default is 0, meaning there is no maximum .
+.TP
 .B pidfile:\fR <filename>
 Use the pid file instead of the platform specific default, usually 
 .IR /var/run/nsd.pid. 

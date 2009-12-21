@@ -42,6 +42,10 @@ server:
 	# Maximum number of concurrent TCP connections per server.
 	# tcp-count: 10
 
+	# Maximum number of queries served on a single TCP connection.
+	# By default 0, which means no maximum.
+	# tcp-query-count: 0
+
 	# File to store pid for nsd in.
 	# pidfile: "@pidfile@"
 
