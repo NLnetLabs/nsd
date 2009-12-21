@@ -336,6 +336,11 @@ to satisfy access control lists at the other end:
 
 		outgoing-interface: 168.192.5.69
 
+By default, NSD will retry a notify up to 5 times. You can override that
+value with: 
+
+		notify-retry: 5
+
 Zone transfers can be secured with TSIG keys, replace NOKEY with
 the name of the tsig key to use. See section 3.3.
 

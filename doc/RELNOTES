@@ -12,6 +12,8 @@ FEATURES:
 		DNS queries on a singel tcp connection.
 	- New option 'tcp-timeout:', to override the default tcp timeout.
 		The default can also be set at build time, --with-tcp-timeout=<number>.
+	- New option 'notify-retry:', to configure how many times NSD should retry
+		a NOTIFY message.
 
 OPERATIONAL NOTES:
 	- UDP/IPv4 sockets have new options set that will disable the DF flag in IP

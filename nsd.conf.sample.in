@@ -153,6 +153,9 @@ zone:
 	# uncomment to disable xfr for the address.
 	# provide-xfr: 169.192.85.66 BLOCKED
 
+	# set the number of retries for notify.
+	notify-retry: 5
+
 # keys for zone 2
 key:
 	name: "sec1_key"

@@ -1,6 +1,7 @@
 21 December 2009: Matthijs
-	- New option 'tcp-query-timeout:'.
+	- New option 'tcp-query-count:'.
 	- New option 'tcp-timeout:' and configure option '--with-tcp-timeout'.
+	- New zone option 'notify-retry:'.
 
 11 December 2009: Wouter
 	- Disable UDP IPv4 DF flag on Linux/FreeBSD/AIX with socket option.

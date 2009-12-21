@@ -283,6 +283,10 @@ notify. Only on secondary configurations will NSD be able to detect
 zone updates (as it gets notified itself, or refreshes after a 
 time).
 .TP
+.B notify\-retry:\fR <number>
+This option should be accompanied by notify. It sets the number of retries
+when sending notifies.
+.TP
 .B provide\-xfr:\fR <ip\-spec> <key\-name | NOKEY | BLOCKED>
 Access control list. The listed address (a secondary) is allowed to 
 request AXFR from this server. Zone data will be provided to the 

@@ -50,7 +50,7 @@ static int server_settings_seen = 0;
 %token VAR_ZONEFILE 
 %token VAR_ZONE
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR 
-%token VAR_OUTGOING_INTERFACE VAR_ALLOW_AXFR_FALLBACK
+%token VAR_NOTIFY_RETRY VAR_OUTGOING_INTERFACE VAR_ALLOW_AXFR_FALLBACK
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
@@ -274,7 +274,7 @@ zonestart: VAR_ZONE
 	;
 contents_zone: contents_zone content_zone | content_zone;
 content_zone: zone_name | zone_zonefile | zone_allow_notify | 
-	zone_request_xfr | zone_notify | zone_provide_xfr | 
+	zone_request_xfr | zone_notify | zone_notify_retry | zone_provide_xfr | 
 	zone_outgoing_interface | zone_allow_axfr_fallback;
 zone_name: VAR_NAME STRING
 	{ 
@@ -359,6 +359,14 @@ zone_notify: VAR_NOTIFY STRING STRING
 		else
 			cfg_parser->current_zone->notify = acl;
 		cfg_parser->current_notify = acl;
+	}
+	;
+zone_notify_retry: VAR_NOTIFY_RETRY STRING
+	{ 
+		OUTYY(("P(zone_notify_retry:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		else cfg_parser->current_zone->notify_retry = atoi($2);
 	}
 	;
 zone_provide_xfr: VAR_PROVIDE_XFR STRING STRING

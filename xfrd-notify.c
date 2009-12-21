@@ -18,7 +18,6 @@
 #include "packet.h"
 
 #define XFRD_NOTIFY_RETRY_TIMOUT 15 /* seconds between retries sending NOTIFY */
-#define XFRD_NOTIFY_MAX_NUM 5 /* number of attempts to send NOTIFY */
 
 /* start sending notifies */
 static void notify_enable(struct notify_zone_t* zone,
@@ -219,7 +218,7 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	/* see if notify is still enabled */
 	if(zone->notify_current) {
 		zone->notify_retry++;
-		if(zone->notify_retry > XFRD_NOTIFY_MAX_NUM) {
+		if(zone->notify_retry > zone->options->notify_retry) {
 			log_msg(LOG_ERR, "xfrd: zone %s: max notify send count reached, %s unreachable",
 				zone->apex_str, zone->notify_current->ip_address_spec);
 			xfrd_notify_next(zone);

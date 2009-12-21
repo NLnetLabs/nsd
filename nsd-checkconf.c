@@ -223,6 +223,7 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 				ZONE_GET_ACL(provide_xfr, o);
 				ZONE_GET_ACL(allow_notify, o);
 				ZONE_GET_ACL(notify, o);
+				ZONE_GET_BIN(notify_retry, o);
 				ZONE_GET_ACL(outgoing_interface, o);
 				ZONE_GET_BIN(allow_axfr_fallback, o);
 				printf("Zone option not handled: %s %s\n", z, o);
@@ -318,6 +319,7 @@ config_test_print_server(nsd_options_t* opt)
 		print_string_var("zonefile:", zone->zonefile);
 		print_acl("allow-notify:", zone->allow_notify);
 		print_acl("request-xfr:", zone->request_xfr);
+		printf("\tnotify-retry: %d\n", zone->notify_retry);
 		print_acl("notify:", zone->notify);
 		print_acl("provide-xfr:", zone->provide_xfr);
 		print_acl("outgoing-interface:", zone->outgoing_interface);
