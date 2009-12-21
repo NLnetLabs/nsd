@@ -80,32 +80,32 @@ struct tcp_handler_data
 	 * data, including this structure.  This region is destroyed
 	 * when the connection is closed.
 	 */
-	region_type     *region;
+	region_type*		region;
 
 	/*
 	 * The global nsd structure.
 	 */
-	struct nsd      *nsd;
+	struct nsd*			nsd;
 
 	/*
 	 * The current query data for this TCP connection.
 	 */
-	query_type      *query;
+	query_type*			query;
 
 	/*
 	 * These fields are used to enable the TCP accept handlers
 	 * when the number of TCP connection drops below the maximum
 	 * number of TCP connections.
 	 */
-	size_t              tcp_accept_handler_count;
-	netio_handler_type *tcp_accept_handlers;
+	size_t				tcp_accept_handler_count;
+	netio_handler_type*	tcp_accept_handlers;
 
 	/*
 	 * The query_state is used to remember if we are performing an
 	 * AXFR, if we're done processing, or if we should discard the
 	 * query and connection.
 	 */
-	query_state_type query_state;
+	query_state_type	query_state;
 
 	/*
 	 * The bytes_transmitted field is used to remember the number
@@ -113,7 +113,12 @@ struct tcp_handler_data
 	 * packet.  The count includes the two additional bytes used
 	 * to specify the packet length on a TCP connection.
 	 */
-	size_t           bytes_transmitted;
+	size_t				bytes_transmitted;
+
+	/*
+	 * The number of queries handled by this specific TCP connection.
+	 */
+	int					query_count;
 };
 
 /*
@@ -1563,6 +1568,9 @@ handle_tcp_reading(netio_type *netio,
 
 	/* We have a complete query, process it.  */
 
+	/* tcp-query-count: handle query counter ++ */
+	data->query_count++;
+
 	buffer_flip(data->query->packet);
 	data->query_state = server_process_query(data->nsd, data->query);
 	if (data->query_state == QUERY_DISCARDED) {
@@ -1708,6 +1716,13 @@ handle_tcp_writing(netio_type *netio,
 	 * Done sending, wait for the next request to arrive on the
 	 * TCP socket by installing the TCP read handler.
 	 */
+	if (data->nsd->options->tcp_query_count > 0 &&
+		data->query_count >= data->nsd->options->tcp_query_count) {
+		/* No more queries allowed on this tcp connection.  */
+		cleanup_tcp_handler(netio, handler);
+		return;
+	}
+
 	data->bytes_transmitted = 0;
 
 	handler->timeout->tv_sec = TCP_TIMEOUT;
@@ -1787,6 +1802,7 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data->query = query_create(tcp_region, compressed_dname_offsets,
 		compression_table_size);
 	tcp_data->nsd = data->nsd;
+	tcp_data->query_count = 0;
 
 	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;
 	tcp_data->tcp_accept_handlers = data->tcp_accept_handlers;

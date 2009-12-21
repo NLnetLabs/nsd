@@ -57,6 +57,7 @@ struct nsd_options {
 	const char* difffile;
 	const char* xfrdfile;
 	int xfrd_reload_timeout;
+	int tcp_query_count;
 
 	region_type* region;
 };

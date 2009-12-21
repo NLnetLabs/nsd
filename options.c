@@ -55,6 +55,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->difffile = DIFFFILE;
 	opt->xfrdfile = XFRDFILE;
 	opt->xfrd_reload_timeout = 10;
+	opt->tcp_query_count = 0;
 	nsd_options = opt;
 	return opt;
 }
