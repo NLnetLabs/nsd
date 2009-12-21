@@ -45,6 +45,8 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->logfile = 0;
 	opt->server_count = 1;
 	opt->tcp_count = 10;
+	opt->tcp_query_count = 0;
+	opt->tcp_timeout = TCP_TIMEOUT;
 	opt->pidfile = PIDFILE;
 	opt->port = UDP_PORT;
 /* deprecated?	opt->port = TCP_PORT; */
@@ -55,7 +57,6 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->difffile = DIFFFILE;
 	opt->xfrdfile = XFRDFILE;
 	opt->xfrd_reload_timeout = 10;
-	opt->tcp_query_count = 0;
 	nsd_options = opt;
 	return opt;
 }

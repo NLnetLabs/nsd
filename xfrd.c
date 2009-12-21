@@ -28,7 +28,6 @@
 
 #define XFRD_TRANSFER_TIMEOUT_START 10 /* empty zone timeout is between x and 2*x seconds */
 #define XFRD_TRANSFER_TIMEOUT_MAX 14400 /* empty zone timeout max expbackoff */
-#define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connection is stopped */
 #define XFRD_UDP_TIMEOUT 10 /* seconds, before a udp request times out */
 #define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr's after notimpl */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
@@ -388,12 +387,12 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		/* busy in tcp transaction */
 		if(xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && event_types & NETIO_EVENT_READ) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp read", zone->apex_str));
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_read(xfrd->tcp_set, zone);
 			return;
 		} else if(!xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && event_types & NETIO_EVENT_WRITE) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp write", zone->apex_str));
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_write(xfrd->tcp_set, zone);
 			return;
 		} else if(event_types & NETIO_EVENT_TIMEOUT) {
@@ -517,17 +516,17 @@ xfrd_make_request(xfrd_zone_t* zone)
 			xfrd_udp_obtain(zone);
 		}
 		else { /* doing 3 rounds of IXFR/TCP might not be useful */
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
 	}
 	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0) {
-		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+		xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 		xfrd_tcp_obtain(xfrd->tcp_set, zone);
 	}
 	else if (zone->master->ixfr_disabled) {
 		if (zone->zone_options->allow_axfr_fallback) {
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
 		else
@@ -806,7 +805,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 	}
 	switch(xfrd_handle_received_xfr_packet(zone, xfrd->packet)) {
 		case xfrd_packet_tcp:
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_udp_release(zone);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 			break;

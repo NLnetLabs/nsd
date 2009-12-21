@@ -222,6 +222,10 @@ addition to standard configure options, one may use the following:
 
 	Shutdown priority for NSD. 
 
+  --with-tcp-timeout=number
+
+	Set the default TCP timeout (in seconds). Default 120 seconds.
+
   --disable-nsec3
 
   	Disable NSEC3 support. With NSEC3 support enabled, very large zones,

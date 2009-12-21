@@ -279,7 +279,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	zone->zone_handler.fd = fd;
 	zone->zone_handler.event_types = NETIO_EVENT_TIMEOUT|NETIO_EVENT_WRITE;
-	xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+	xfrd_set_timer(zone, xfrd_time() + set->tcp_timeout);
 	return 1;
 }
 

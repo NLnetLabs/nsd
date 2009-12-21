@@ -499,7 +499,7 @@ AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the NSD version to an
 AC_DEFINE_UNQUOTED([TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
 AC_DEFINE_UNQUOTED([TCP_PORT], ["53"], [Define to the default tcp port.])
 AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximum message length.])
-AC_DEFINE_UNQUOTED([TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
+dnl AC_DEFINE_UNQUOTED([TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
 AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
@@ -524,6 +524,15 @@ AC_ARG_WITH([max_interfaces],
 	AC_HELP_STRING([--with-max_interfaces=number], [Limit on the number of ip-addresses that may be specified]),
 	[max_interfaces=$withval])
 AC_DEFINE_UNQUOTED([MAX_INTERFACES], $max_interfaces, [Define to the maximum interfaces to serve.])
+
+dnl
+dnl Determine the default tcp timeout
+dnl
+tcp_timeout=120
+AC_ARG_WITH([tcp_timeout],
+	AC_HELP_STRING([--with-tcp-timeout=number], [Limit the default tcp timeout]),
+	[tcp_timeout=$withval])
+AC_DEFINE_UNQUOTED([TCP_TIMEOUT], $tcp_timeout, [Define to the default tcp timeout.])
 
 dnl
 dnl Features

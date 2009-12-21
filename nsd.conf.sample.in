@@ -46,6 +46,9 @@ server:
 	# By default 0, which means no maximum.
 	# tcp-query-count: 0
 
+	# Override the default (120 seconds) TCP timeout.
+	# tcp-timeout: 120
+
 	# File to store pid for nsd in.
 	# pidfile: "@pidfile@"
 

@@ -48,6 +48,8 @@ struct nsd_options {
 	const char* logfile;
 	int server_count;
 	int tcp_count;
+	int tcp_query_count;
+	int tcp_timeout;
 	const char* pidfile;
 	const char* port;
 	int statistics;
@@ -57,7 +59,6 @@ struct nsd_options {
 	const char* difffile;
 	const char* xfrdfile;
 	int xfrd_reload_timeout;
-	int tcp_query_count;
 
 	region_type* region;
 };
