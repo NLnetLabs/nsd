@@ -13,6 +13,10 @@ FEATURES:
 	- New option 'tcp-timeout:', to override the default tcp timeout.
 		The default can also be set at build time, --with-tcp-timeout=<number>.
 
+OPERATIONAL NOTES:
+	- UDP/IPv4 sockets have new options set that will disable the DF flag in IP
+		packets.
+
 3.2.3
 =============
 BUG FIXES:

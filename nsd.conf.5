@@ -148,7 +148,8 @@ option
 .TP
 .B tcp\-count:\fR <number>
 The maximum number of concurrent TCP connections by each server. 
-Default is 10. Same as commandline option 
+Default is 10. This option should have a value below 1000.
+Same as commandline option 
 .BR \-n .
 .TP
 .B tcp\-query\-count:\fR <number>

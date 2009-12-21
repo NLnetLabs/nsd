@@ -5,6 +5,9 @@
 11 December 2009: Wouter
 	- Disable UDP IPv4 DF flag on Linux/FreeBSD/AIX with socket option.
 
+20 November 2009: Matthijs
+	- NSID bugfix: NSD did not recognize NSID in the query.
+
 9 September 2009: Matthijs
 	- DLV support
 

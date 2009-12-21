@@ -40,6 +40,7 @@ server:
 	# server-count: 1
 
 	# Maximum number of concurrent TCP connections per server.
+	# This option should have a value below 1000.
 	# tcp-count: 10
 
 	# Maximum number of queries served on a single TCP connection.
