@@ -137,6 +137,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->notify_udp_num = 0;
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
+	xfrd->tcp_set->tcp_timeout = nsd->options->tcp_timeout;
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
