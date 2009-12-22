@@ -1539,12 +1539,14 @@ main (int argc, char **argv)
 	check_dname(db);
 
 #ifndef NDEBUG
-	fprintf(stdout, "global_region: ");
-	region_dump_stats(global_region, stderr);
-	fprintf(stdout, "\n");
-	fprintf(stdout, "db->region: ");
-	region_dump_stats(db->region, stderr);
-	fprintf(stdout, "\n");
+	if (vflag > 0) {
+		fprintf(stdout, "global_region: ");
+		region_dump_stats(global_region, stdout);
+		fprintf(stdout, "\n");
+		fprintf(stdout, "db->region: ");
+		region_dump_stats(db->region, stdout);
+		fprintf(stdout, "\n");
+	}
 #endif /* NDEBUG */
 
 	/* Close the database */
