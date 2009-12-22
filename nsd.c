@@ -244,7 +244,6 @@ sig_handler(int sig)
 			break;
 		case SIGALRM:
 			break;
-		case SIGHUP:
 		case SIGINT:
 		case SIGTERM:
 			nsd.signal_hint_quit = 1;
