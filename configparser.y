@@ -47,6 +47,7 @@ static int server_settings_seen = 0;
 %token VAR_SERVER_COUNT VAR_TCP_COUNT VAR_PIDFILE VAR_PORT VAR_STATISTICS
 %token VAR_CHROOT VAR_USERNAME VAR_ZONESDIR VAR_XFRDFILE VAR_DIFFFILE
 %token VAR_XFRD_RELOAD_TIMEOUT VAR_TCP_QUERY_COUNT VAR_TCP_TIMEOUT
+%token VAR_IPV4_EDNS_SIZE VAR_IPV6_EDNS_SIZE
 %token VAR_ZONEFILE 
 %token VAR_ZONE
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR 
@@ -76,8 +77,8 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
 	server_statistics | server_chroot | server_username | server_zonesdir |
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
-	server_tcp_query_count | server_tcp_timeout | server_verbosity |
-	server_hide_version;
+	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
+	server_ipv6_edns_size | server_verbosity | server_hide_version;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -246,6 +247,22 @@ server_tcp_timeout: VAR_TCP_TIMEOUT STRING
 		if(atoi($2) == 0 && strcmp($2, "0") != 0)
 			yyerror("number expected");
 		cfg_parser->opt->tcp_timeout = atoi($2);
+	}
+	;
+server_ipv4_edns_size: VAR_IPV4_EDNS_SIZE STRING
+	{ 
+		OUTYY(("P(server_ipv4_edns_size:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		cfg_parser->opt->ipv4_edns_size = atoi($2);
+	}
+	;
+server_ipv6_edns_size: VAR_IPV6_EDNS_SIZE STRING
+	{ 
+		OUTYY(("P(server_ipv6_edns_size:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		cfg_parser->opt->ipv6_edns_size = atoi($2);
 	}
 	;
 

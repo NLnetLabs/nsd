@@ -50,6 +50,12 @@ server:
 	# Override the default (120 seconds) TCP timeout.
 	# tcp-timeout: 120
 
+	# Preferred EDNS buffer size for IPv4.
+	# ipv4-edns-size: 4096
+
+	# Preferred EDNS buffer size for IPv6.
+	# ipv6-edns-size: 4096
+
 	# File to store pid for nsd in.
 	# pidfile: "@pidfile@"
 

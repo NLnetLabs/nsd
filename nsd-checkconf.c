@@ -256,6 +256,8 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 		SERV_GET_INT(tcp_count, o);
 		SERV_GET_INT(tcp_query_count, o);
 		SERV_GET_INT(tcp_timeout, o);
+		SERV_GET_INT(ipv4_edns_size, o);
+		SERV_GET_INT(ipv6_edns_size, o);
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
@@ -290,6 +292,8 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\ttcp_count: %d\n", opt->tcp_count);
 	printf("\ttcp_query_count: %d\n", opt->tcp_query_count);
 	printf("\ttcp_timeout: %d\n", opt->tcp_timeout);
+	printf("\tipv4-edns-size: %d\n", opt->ipv4_edns_size);
+	printf("\tipv6-edns-size: %d\n", opt->ipv6_edns_size);
 	print_string_var("pidfile:", opt->pidfile);
 	print_string_var("port:", opt->port);
 	printf("\tstatistics: %d\n", opt->statistics);

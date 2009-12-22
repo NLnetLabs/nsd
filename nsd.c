@@ -410,16 +410,6 @@ main(int argc, char *argv[])
 	nsd.grab_ip6_optional = 0;
 	nsd.file_rotation_ok = 0;
 
-	/* EDNS0 */
-	edns_init_data(&nsd.edns_ipv4, EDNS_MAX_MESSAGE_LEN);
-#if defined(INET6)
-#if defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)
-	edns_init_data(&nsd.edns_ipv6, EDNS_MAX_MESSAGE_LEN);
-#else /* no way to set IPV6 MTU, send no bigger than that. */
-	edns_init_data(&nsd.edns_ipv6, IPV6_MIN_MTU);
-#endif /* IPV6 MTU) */
-#endif /* defined(INET6) */
-
 	/* Set up our default identity to gethostname(2) */
 	if (gethostname(hostname, MAXHOSTNAMELEN) == 0) {
 		nsd.identity = hostname;
@@ -668,6 +658,18 @@ main(int argc, char *argv[])
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed directory to %s",
 			nsd.options->zonesdir));
 	}
+
+	/* EDNS0 */
+	edns_init_data(&nsd.edns_ipv4, nsd.options->ipv4_edns_size);
+#if defined(INET6)
+#if defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)
+	edns_init_data(&nsd.edns_ipv6, nsd.options->ipv6_edns_size);
+#else /* no way to set IPV6 MTU, send no bigger than that. */
+	edns_init_data(&nsd.edns_ipv6, IPV6_MIN_MTU);
+#endif /* IPV6 MTU) */
+#endif /* defined(INET6) */
+
+
 
 #ifdef NSID
 	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);

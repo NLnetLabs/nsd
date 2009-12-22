@@ -14,6 +14,8 @@ FEATURES:
 		The default can also be set at build time, --with-tcp-timeout=<number>.
 	- New option 'notify-retry:', to configure how many times NSD should retry
 		a NOTIFY message.
+	- New options 'ipv4-edns-size:' and 'ipv6-edns-size:'. to set your preferred
+		EDNS buffer size.
 
 OPERATIONAL NOTES:
 	- UDP/IPv4 sockets have new options set that will disable the DF flag in IP

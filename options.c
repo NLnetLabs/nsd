@@ -47,6 +47,8 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->tcp_count = 10;
 	opt->tcp_query_count = 0;
 	opt->tcp_timeout = TCP_TIMEOUT;
+	opt->ipv4_edns_size = EDNS_MAX_MESSAGE_LEN;
+	opt->ipv6_edns_size = EDNS_MAX_MESSAGE_LEN;
 	opt->pidfile = PIDFILE;
 	opt->port = UDP_PORT;
 /* deprecated?	opt->port = TCP_PORT; */

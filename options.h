@@ -50,6 +50,8 @@ struct nsd_options {
 	int tcp_count;
 	int tcp_query_count;
 	int tcp_timeout;
+	size_t ipv4_edns_size;
+	size_t ipv6_edns_size;
 	const char* pidfile;
 	const char* port;
 	int statistics;

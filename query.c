@@ -305,8 +305,15 @@ process_query_section(query_type *query)
  * Return NSD_RC_FORMAT on failure, NSD_RC_OK on success.
  */
 static nsd_rc_type
-process_edns(struct query *q)
+process_edns(struct query *q, nsd_type* nsd)
 {
+	size_t edns_size = nsd->options->ipv4_edns_size;
+#if defined(INET6)
+	if (q->addr.ss_family == AF_INET6) {
+		edns_size = nsd->options->ipv6_edns_size;
+	}
+#endif
+
 	if (q->edns.status == EDNS_ERROR) {
 		return NSD_RC_FORMAT;
 	}
@@ -314,10 +321,10 @@ process_edns(struct query *q)
 	if (q->edns.status == EDNS_OK) {
 		/* Only care about UDP size larger than normal... */
 		if (!q->tcp && q->edns.maxlen > UDP_MAX_MESSAGE_LEN) {
-			if (q->edns.maxlen < EDNS_MAX_MESSAGE_LEN) {
+			if (q->edns.maxlen < edns_size) {
 				q->maxlen = q->edns.maxlen;
 			} else {
-				q->maxlen = EDNS_MAX_MESSAGE_LEN;
+				q->maxlen = edns_size;
 			}
 
 #if defined(INET6) && !defined(IPV6_USE_MIN_MTU) && !defined(IPV6_MTU)
@@ -1326,7 +1333,7 @@ query_process(query_type *q, nsd_type *nsd)
 		return query_error(q, rc);
 	}
 #endif /* TSIG */
-	rc = process_edns(q);
+	rc = process_edns(q, nsd);
 	if (rc != NSD_RC_OK) {
 		/* We should not return FORMERR, but BADVERS (=16).
 		 * BADVERS is created with Ext. RCODE, followed by RCODE.
