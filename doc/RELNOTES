@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 BUG FIXES:
 	- Bugfix #269: Additional C99 syntax.
 	- Bugfix #276: Zonec prints debug data to stderr.
+	- Bugfix #286: Document verbosity levels in nsd.conf manual page.
 	- Bugfix #288: Ignore SIGHUP to child processes.
 	- Fix typo in include file for setusercontext.
 

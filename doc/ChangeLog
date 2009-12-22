@@ -1,6 +1,7 @@
 22 December 2009: Matthijs
 	- New options 'ipv4-edns-size:' and 'ipv6-edns-size'.
 	- Bug 276
+	- Bug 286
 	- Bug 288
 
 21 December 2009: Matthijs
