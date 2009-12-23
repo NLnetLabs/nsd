@@ -20,7 +20,7 @@ Wouter Wijngaards, NLnet Labs   - design and implementation for NSD 3.
 
 Contributors (in alphabetical order):
 
-Ben Laurie					- NSEC3 patch.
+Ben Laurie                                      - NSEC3 patch.
 Colm MacCárthaigh,                              - IPv6 binding and cleanups.
 Jakob Schlyter, Carlstedt Research & Technology - chroot patch
 Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport
@@ -29,9 +29,9 @@ Stephane Bortzmeyer                             - Tru64 portability. Config conv
 Paul Wouters                                    - zone compiler testing
 Markus Heimhilcher                              - .AT zones for testing 
 Mans Nilsson                                    - (Solaris) Testing
-Bin Zhang					- NSD 3 prerelease testing.
-Kai						- NSD 3 prerelease testing.
-Matthew Smith					- NetBSD testing.
-Peter Hessler					- OpenBSD, amd64 testing.
-Aaron Glenn					- DragonflyBSD, BSD/sparc64 testing.
-Farkas Levente					- rpm specfile improvements.
+Bin Zhang                                       - NSD 3 prerelease testing.
+Kai                                             - NSD 3 prerelease testing.
+Matthew Smith                                   - NetBSD testing.
+Peter Hessler                                   - OpenBSD, amd64 testing.
+Aaron Glenn                                     - DragonflyBSD, BSD/sparc64 testing.
+Farkas Levente                                  - rpm specfile improvements.
