@@ -50,7 +50,7 @@ extern int optind;
 
 #define SERV_GET_INT(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
-		printf("%d\n", opt->NAME); 	\
+		printf("%d\n", (int) opt->NAME); 	\
 		return; 			\
 	}
 
@@ -292,8 +292,8 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\ttcp_count: %d\n", opt->tcp_count);
 	printf("\ttcp_query_count: %d\n", opt->tcp_query_count);
 	printf("\ttcp_timeout: %d\n", opt->tcp_timeout);
-	printf("\tipv4-edns-size: %d\n", opt->ipv4_edns_size);
-	printf("\tipv6-edns-size: %d\n", opt->ipv6_edns_size);
+	printf("\tipv4-edns-size: %d\n", (int) opt->ipv4_edns_size);
+	printf("\tipv6-edns-size: %d\n", (int) opt->ipv6_edns_size);
 	print_string_var("pidfile:", opt->pidfile);
 	print_string_var("port:", opt->port);
 	printf("\tstatistics: %d\n", opt->statistics);
