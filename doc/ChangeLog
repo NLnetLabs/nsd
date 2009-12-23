@@ -1,3 +1,6 @@
+23 December 2009: Matthijs
+	- Store new options in nsd structure.
+
 22 December 2009: Matthijs
 	- New options 'ipv4-edns-size:' and 'ipv6-edns-size'.
 	- Bug 276

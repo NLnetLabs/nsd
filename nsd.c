@@ -627,6 +627,11 @@ main(int argc, char *argv[])
 	if(nsd.maximum_tcp_count == 0) {
 		nsd.maximum_tcp_count = nsd.options->tcp_count;
 	}
+	nsd.tcp_timeout = nsd.options->tcp_timeout;
+	nsd.tcp_query_count = nsd.options->tcp_query_count;
+	nsd.ipv4_edns_size = nsd.options->ipv4_edns_size;
+	nsd.ipv6_edns_size = nsd.options->ipv6_edns_size;
+
 	if(udp_port == 0)
 	{
 		if(nsd.options->port != 0) {

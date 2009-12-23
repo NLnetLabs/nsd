@@ -1593,7 +1593,7 @@ handle_tcp_reading(netio_type *netio,
 	data->query->tcplen = buffer_remaining(data->query->packet);
 	data->bytes_transmitted = 0;
 
-	handler->timeout->tv_sec = data->nsd->options->tcp_timeout;
+	handler->timeout->tv_sec = data->nsd->tcp_timeout;
 	handler->timeout->tv_nsec = 0L;
 	timespec_add(handler->timeout, netio_current_time(netio));
 
@@ -1700,7 +1700,7 @@ handle_tcp_writing(netio_type *netio,
 			q->tcplen = buffer_remaining(q->packet);
 			data->bytes_transmitted = 0;
 			/* Reset timeout.  */
-			handler->timeout->tv_sec = data->nsd->options->tcp_timeout;
+			handler->timeout->tv_sec = data->nsd->tcp_timeout;
 			handler->timeout->tv_nsec = 0;
 			timespec_add(handler->timeout, netio_current_time(netio));
 
@@ -1717,7 +1717,7 @@ handle_tcp_writing(netio_type *netio,
 	 * TCP socket by installing the TCP read handler.
 	 */
 	if (data->nsd->options->tcp_query_count > 0 &&
-		data->query_count >= data->nsd->options->tcp_query_count) {
+		data->query_count >= data->nsd->tcp_query_count) {
 		/* No more queries allowed on this tcp connection.  */
 		cleanup_tcp_handler(netio, handler);
 		return;
@@ -1725,7 +1725,7 @@ handle_tcp_writing(netio_type *netio,
 
 	data->bytes_transmitted = 0;
 
-	handler->timeout->tv_sec = data->nsd->options->tcp_timeout;
+	handler->timeout->tv_sec = data->nsd->tcp_timeout;
 	handler->timeout->tv_nsec = 0;
 	timespec_add(handler->timeout, netio_current_time(netio));
 
@@ -1817,7 +1817,7 @@ handle_tcp_accept(netio_type *netio,
 	tcp_handler->fd = s;
 	tcp_handler->timeout = (struct timespec *) region_alloc(
 		tcp_region, sizeof(struct timespec));
-	tcp_handler->timeout->tv_sec = data->nsd->options->tcp_timeout;
+	tcp_handler->timeout->tv_sec = data->nsd->tcp_timeout;
 	tcp_handler->timeout->tv_nsec = 0L;
 	timespec_add(tcp_handler->timeout, netio_current_time(netio));
 

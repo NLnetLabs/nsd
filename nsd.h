@@ -189,6 +189,10 @@ struct	nsd
 
 	int maximum_tcp_count;
 	int current_tcp_count;
+	int tcp_query_count;
+	int tcp_timeout;
+	size_t ipv4_edns_size;
+	size_t ipv6_edns_size;
 
 #ifdef	BIND8_STATS
 

@@ -307,10 +307,10 @@ process_query_section(query_type *query)
 static nsd_rc_type
 process_edns(struct query *q, nsd_type* nsd)
 {
-	size_t edns_size = nsd->options->ipv4_edns_size;
+	size_t edns_size = nsd->ipv4_edns_size;
 #if defined(INET6)
 	if (q->addr.ss_family == AF_INET6) {
-		edns_size = nsd->options->ipv6_edns_size;
+		edns_size = nsd->ipv6_edns_size;
 	}
 #endif
 
