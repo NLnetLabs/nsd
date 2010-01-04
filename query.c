@@ -307,8 +307,6 @@ process_query_section(query_type *query)
 static nsd_rc_type
 process_edns(nsd_type* nsd, struct query *q)
 {
-	size_t edns_size;
-
 	if (q->edns.status == EDNS_ERROR) {
 		return NSD_RC_FORMAT;
 	}
@@ -316,7 +314,7 @@ process_edns(nsd_type* nsd, struct query *q)
 	if (q->edns.status == EDNS_OK) {
 		/* Only care about UDP size larger than normal... */
 		if (!q->tcp && q->edns.maxlen > UDP_MAX_MESSAGE_LEN) {
-			edns_size = nsd->ipv4_edns_size;
+			size_t edns_size = nsd->ipv4_edns_size;
 #if defined(INET6)
 			if (q->addr.ss_family == AF_INET6) {
 				edns_size = nsd->ipv6_edns_size;
