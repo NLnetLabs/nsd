@@ -28,6 +28,7 @@ int yywrap(void);
 
 /* this hold the nxt bits */
 static uint8_t nxtbits[16];
+static int dlv_warn = 1;
 
 /* 256 windows of 256 bits (32 bytes) */
 /* still need to reset the bastard somewhere */
@@ -577,8 +578,8 @@ type_and_rdata:
     |	T_APL sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_DS sp rdata_ds
     |	T_DS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
-    |	T_DLV sp rdata_dlv { zc_warning_prev_line("DLV is experimental"); }
-    |	T_DLV sp rdata_unknown { zc_warning_prev_line("DLV is experimental"); $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_DLV sp rdata_dlv { if (dlv_warn) { dlv_warn = 0; zc_warning_prev_line("DLV is experimental"); } }
+    |	T_DLV sp rdata_unknown { if (dlv_warn) { dlv_warn = 0; zc_warning_prev_line("DLV is experimental"); } $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SSHFP sp rdata_sshfp
     |	T_SSHFP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_RRSIG sp rdata_rrsig
