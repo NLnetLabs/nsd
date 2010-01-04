@@ -12,7 +12,7 @@ BUG FIXES:
 FEATURES:
 	- Support DLV records.
 	- New option 'tcp-query-count:', to limit the maximum number of
-		DNS queries on a singel tcp connection.
+		DNS queries on a single tcp connection.
 	- New option 'tcp-timeout:', to override the default tcp timeout.
 		The default can also be set at build time, --with-tcp-timeout=<number>.
 	- New option 'notify-retry:', to configure how many times NSD should retry

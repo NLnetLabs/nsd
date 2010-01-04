@@ -669,7 +669,10 @@ main(int argc, char *argv[])
 #if defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)
 	edns_init_data(&nsd.edns_ipv6, nsd.options->ipv6_edns_size);
 #else /* no way to set IPV6 MTU, send no bigger than that. */
-	edns_init_data(&nsd.edns_ipv6, IPV6_MIN_MTU);
+	if (nsd.options->ipv6_edns_size < IPV6_MIN_MTU)
+		edns_init_data(&nsd.edns_ipv6, nsd.options->ipv6_edns_size);
+	else
+		edns_init_data(&nsd.edns_ipv6, IPV6_MIN_MTU);
 #endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 

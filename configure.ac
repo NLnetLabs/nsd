@@ -499,12 +499,9 @@ AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the NSD version to an
 AC_DEFINE_UNQUOTED([TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
 AC_DEFINE_UNQUOTED([TCP_PORT], ["53"], [Define to the default tcp port.])
 AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximum message length.])
-dnl AC_DEFINE_UNQUOTED([TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
 AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
-dnl AC_DEFINE_UNQUOTED([MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
-dnl AC_DEFINE_UNQUOTED([FACILITY], [LOG_DAEMON], [Define to the default facility for syslog.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
 
 dnl
