@@ -1716,7 +1716,7 @@ handle_tcp_writing(netio_type *netio,
 	 * Done sending, wait for the next request to arrive on the
 	 * TCP socket by installing the TCP read handler.
 	 */
-	if (data->nsd->options->tcp_query_count > 0 &&
+	if (data->nsd->tcp_query_count > 0 &&
 		data->query_count >= data->nsd->tcp_query_count) {
 		/* No more queries allowed on this tcp connection.  */
 		cleanup_tcp_handler(netio, handler);
