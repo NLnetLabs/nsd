@@ -1445,6 +1445,13 @@ handle_tcp_reading(netio_type *netio,
 		return;
 	}
 
+	if (data->nsd->tcp_query_count > 0 &&
+		data->query_count >= data->nsd->tcp_query_count) {
+		/* No more queries allowed on this tcp connection.  */
+		cleanup_tcp_handler(netio, handler);
+		return;
+	}
+
 	assert(event_types & NETIO_EVENT_READ);
 
 	if (data->bytes_transmitted == 0) {
@@ -1718,9 +1725,8 @@ handle_tcp_writing(netio_type *netio,
 	 */
 	if (data->nsd->tcp_query_count > 0 &&
 		data->query_count >= data->nsd->tcp_query_count) {
-		/* No more queries allowed on this tcp connection.  */
-		cleanup_tcp_handler(netio, handler);
-		return;
+
+		(void) shutdown(handler->fd, SHUT_WR);
 	}
 
 	data->bytes_transmitted = 0;
