@@ -1,6 +1,9 @@
 NSD RELEASE NOTES
 
-3.2.4 (UPCOMING RELEASE)
+3.2.5 (UPCOMING RELEASE)
+=============
+
+3.2.4
 =============
 BUG FIXES:
 	- Bugfix #269: Additional C99 syntax.
