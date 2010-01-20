@@ -48,6 +48,7 @@
 # AHX_CONFIG_INET_NTOP		- inet_ntop compat prototype
 # AHX_CONFIG_INET_ATON		- inet_aton compat prototype
 # AHX_CONFIG_MEMMOVE		- memmove compat prototype
+# AHX_CONFIG_STRLCAT		- strlcat compat prototype
 # AHX_CONFIG_STRLCPY		- strlcpy compat prototype
 # AHX_CONFIG_GMTIME_R		- gmtime_r compat prototype
 # AHX_CONFIG_W32_SLEEP		- w32 compat for sleep
@@ -1030,6 +1031,16 @@ AC_DEFUN([AHX_CONFIG_MEMMOVE],
 #ifndef HAVE_MEMMOVE
 #define memmove memmove_$1
 void *memmove(void *dest, const void *src, size_t n);
+#endif
+])
+
+dnl provide strlcat compat prototype.
+dnl $1: unique name for compat code
+AC_DEFUN([AHX_CONFIG_STRLCAT],
+[
+#ifndef HAVE_STRLCAT
+#define strlcat strlcat_$1
+size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 ])
 

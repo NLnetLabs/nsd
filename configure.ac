@@ -290,7 +290,7 @@ AC_DEFUN([CHECK_SSL], [
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([time.h arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h grp.h])
+AC_CHECK_HEADERS([time.h arpa/inet.h signal.h string.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h grp.h])
 
 AC_DEFUN([CHECK_VALIST_DEF],
 [
@@ -466,6 +466,7 @@ AC_REPLACE_FUNCS(inet_aton)
 AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(inet_ntop)
 AC_REPLACE_FUNCS(snprintf)
+AC_REPLACE_FUNCS(strlcat)
 AC_REPLACE_FUNCS(strlcpy)
 AC_REPLACE_FUNCS(strptime)
 AC_REPLACE_FUNCS(b64_pton)
@@ -745,6 +746,9 @@ int inet_aton(const char *cp, struct in_addr *addr);
 #endif
 #ifndef HAVE_MEMMOVE
 void *memmove(void *dest, const void *src, size_t n);
+#endif
+#ifndef HAVE_STRLCAT
+size_t strlcat(char *dst, const char *src, size_t siz);
 #endif
 #ifndef HAVE_STRLCPY
 size_t strlcpy(char *dst, const char *src, size_t siz);

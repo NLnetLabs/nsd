@@ -406,6 +406,9 @@ memmove.o:	$(srcdir)/compat/memmove.c
 snprintf.o:	$(srcdir)/compat/snprintf.c
 	$(COMPILE) -c $(srcdir)/compat/snprintf.c -o $@
 
+strlcat.o:	$(srcdir)/compat/strlcat.c
+	$(COMPILE) -c $(srcdir)/compat/strlcat.c -o $@
+
 strlcpy.o:	$(srcdir)/compat/strlcpy.c
 	$(COMPILE) -c $(srcdir)/compat/strlcpy.c -o $@
 
@@ -601,6 +604,7 @@ malloc.o: $(srcdir)/compat/malloc.c
 memmove.o: $(srcdir)/compat/memmove.c config.h
 pselect.o: $(srcdir)/compat/pselect.c config.h
 snprintf.o: $(srcdir)/compat/snprintf.c config.h
+strlcat.o: $(srcdir)/compat/strlcat.c config.h
 strlcpy.o: $(srcdir)/compat/strlcpy.c config.h
 strptime.o: $(srcdir)/compat/strptime.c
 cutest.o: $(srcdir)/tpkg/cutest/cutest.c $(srcdir)/tpkg/cutest/cutest.h
