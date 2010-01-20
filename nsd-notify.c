@@ -271,6 +271,8 @@ main (int argc, char *argv[])
 	}
 #endif /* TSIG */
 
+	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
+
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46a:hp:y:z:")) != -1) {
 		switch (c) {
