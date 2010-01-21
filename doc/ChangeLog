@@ -1,3 +1,6 @@
+21 January 2010: Wouter
+	- fixup debug sprintf to snprintf.
+
 21 Januari: Matthijs
 	- Secure string functions
 	- Randomness utility function

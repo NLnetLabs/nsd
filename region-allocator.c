@@ -451,7 +451,7 @@ region_log_stats(region_type *region)
 				el = el->next;
 			}
 			if(i%ALIGNMENT == 0 && i!=0) {
-				sprintf(str, strl, " %lu%n", (unsigned long)count,
+				snprintf(str, strl, " %lu%n", (unsigned long)count,
 					&len);
 				str+=len;
 				strl-=len;
