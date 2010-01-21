@@ -22,7 +22,7 @@ Contributors (in alphabetical order):
 
 Ben Laurie                                      - NSEC3 patch.
 Colm MacCárthaigh,                              - IPv6 binding and cleanups.
-Jakob Schlyter, Carlstedt Research & Technology - chroot patch
+Jakob Schlyter, Carlstedt Research & Technology - chroot and several other patches
 Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport
 Ondrej Sury                                     - nsd-notify.8 man page
 Stephane Bortzmeyer                             - Tru64 portability. Config conversion.

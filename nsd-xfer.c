@@ -707,7 +707,7 @@ init_query(query_type *q,
 	buffer_clear(q->packet);
 
 	/* Set up the header */
-	ID_SET(q->packet, query_id);
+	ID_SET(q->packet, qid_generate());
 	FLAGS_SET(q->packet, 0);
 	OPCODE_SET(q->packet, OPCODE_QUERY);
 	AA_SET(q->packet);

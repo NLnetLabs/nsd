@@ -1,3 +1,8 @@
+21 Januari: Matthijs
+	- Secure string functions
+	- Randomness utility function
+	- Prepare for default chroot
+
 6 Januari: Wouter
 	- check write errors when marking commit failed when difffile is broken.
 

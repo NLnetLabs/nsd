@@ -322,6 +322,11 @@ uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len);
 int compare_serial(uint32_t a, uint32_t b);
 
 /*
+ * Generate a random query ID.
+ */
+uint16_t qid_generate(void);
+
+/*
  * call region_destroy on (region*)data, useful for region_add_cleanup().
  */
 void cleanup_region(void *data);

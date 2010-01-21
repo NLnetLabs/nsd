@@ -263,7 +263,8 @@ write_data(FILE *file, const void *data, size_t size)
 	}
 }
 
-int write_socket(int s, const void *buf, size_t size)
+int
+write_socket(int s, const void *buf, size_t size)
 {
 	const char* data = (const char*)buf;
 	size_t total_count = 0;
@@ -739,7 +740,8 @@ static u_long crctab[] = {
 
 #define	COMPUTE(var, ch)	(var) = (var) << 8 ^ crctab[(var) >> 24 ^ (ch)]
 
-uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len)
+uint32_t
+compute_crc(uint32_t crc, uint8_t* data, size_t len)
 {
 	size_t i;
 	for(i=0; i<len; ++i)
@@ -747,7 +749,8 @@ uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len)
 	return crc;
 }
 
-int write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc)
+int
+write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc)
 {
 	int ret = write_data(file, data, size);
 	*crc = compute_crc(*crc, (uint8_t*)data, size);
@@ -755,7 +758,8 @@ int write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc)
 }
 
 #define SERIAL_BITS      32
-int compare_serial(uint32_t a, uint32_t b)
+int
+compare_serial(uint32_t a, uint32_t b)
 {
         const uint32_t cutoff = ((uint32_t) 1 << (SERIAL_BITS - 1));
 
@@ -766,6 +770,12 @@ int compare_serial(uint32_t a, uint32_t b)
         } else {
                 return 1;
         }
+}
+
+uint16_t
+qid_generate(void)
+{
+	return (uint16_t) random();
 }
 
 void
