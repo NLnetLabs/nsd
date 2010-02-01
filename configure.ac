@@ -251,6 +251,7 @@ AC_TYPE_OFF_T
 
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
+ACX_CHECK_MEMCMP_SIGNED
 AC_CHECK_CTIME_R
 
 # Checks for libraries.
@@ -774,6 +775,11 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 #define STRPTIME_WORKS 1
 #define strptime(a,b,c) nsd_strptime((a),(b),(c))
 #endif
+])
+AH_BOTTOM(
+AHX_MEMCMP_BROKEN(nsd)
+)
+AH_BOTTOM([
 
 /* provide timespec def if not available */
 #ifndef CONFIG_DEFINES

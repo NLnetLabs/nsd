@@ -1,3 +1,6 @@
+1 February 2010: Wouter
+	- compat code for memcmp unsigned comparsions.
+
 21 January 2010: Wouter
 	- fixup debug sprintf to snprintf.
 

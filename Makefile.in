@@ -400,6 +400,9 @@ b64_pton.o:	$(srcdir)/compat/b64_pton.c
 b64_ntop.o:	$(srcdir)/compat/b64_ntop.c
 	$(COMPILE) -c $(srcdir)/compat/b64_ntop.c -o $@
 
+memcmp.o:	$(srcdir)/compat/memcmp.c
+	$(COMPILE) -c $(srcdir)/compat/memcmp.c -o $@
+
 memmove.o:	$(srcdir)/compat/memmove.c
 	$(COMPILE) -c $(srcdir)/compat/memmove.c -o $@
 
