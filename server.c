@@ -1114,7 +1114,7 @@ server_main(struct nsd *nsd)
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
 
-			/* omit: namedb_close(nsd->db); */
+			namedb_fd_close(nsd->db);
 			region_destroy(server_region);
 			server_shutdown(nsd);
 
@@ -1165,8 +1165,7 @@ server_main(struct nsd *nsd)
 		close(xfrd_listener.fd);
 	}
 
-	/* omit: namedb_close(nsd->db); */
-
+	namedb_fd_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }
@@ -1325,8 +1324,7 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
-	/* omit: namedb_close(nsd->db); */
-
+	namedb_fd_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }

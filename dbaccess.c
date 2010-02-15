@@ -451,10 +451,17 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 void
 namedb_close (struct namedb *db)
 {
+	namedb_fd_close(db);
 	if (db) {
-		if (db->fd) {
-			fclose(db->fd);
-		}
 		region_destroy(db->region);
 	}
 }
+
+void
+namedb_fd_close (struct namedb *db)
+{
+	if (db && db->fd) {
+		fclose(db->fd);
+	}
+}
+
