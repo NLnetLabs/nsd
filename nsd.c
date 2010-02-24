@@ -819,13 +819,6 @@ main(int argc, char *argv[])
 	key_options_tsig_add(nsd.options);
 #endif /* TSIG */
 
-	/* Set up the logging */
-	log_open(LOG_PID, FACILITY, nsd.log_filename);
-	if (!nsd.log_filename)
-		log_set_log_function(log_syslog);
-	else if (nsd.uid && nsd.gid)
-		(void) chown(nsd.log_filename, nsd.uid, nsd.gid);
-
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {
 		int l = strlen(nsd.chrootdir);
@@ -840,23 +833,26 @@ main(int argc, char *argv[])
 		}
 
 		if (strncmp(nsd.chrootdir, nsd.pidfile, l) != 0) {
-			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
+			error("%s is not relative to %s: chroot not possible",
 				nsd.pidfile, nsd.chrootdir);
-			nsd.chrootdir = NULL;
 		} else if (strncmp(nsd.chrootdir, nsd.dbfile, l) != 0) {
-			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
+			error("%s is not relative to %s: chroot not possible",
 				nsd.dbfile, nsd.chrootdir);
-			nsd.chrootdir = NULL;
 		} else if (strncmp(nsd.chrootdir, nsd.options->xfrdfile, l) != 0) {
-			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
+			error("%s is not relative to %s: chroot not possible",
 				nsd.options->xfrdfile, nsd.chrootdir);
-			nsd.chrootdir = NULL;
 		} else if (strncmp(nsd.chrootdir, nsd.options->difffile, l) != 0) {
-			log_msg(LOG_ERR, "%s is not relative to %s: will not chroot",
+			error("%s is not relative to %s: chroot not possible",
 				nsd.options->difffile, nsd.chrootdir);
-			nsd.chrootdir = NULL;
 		}
 	}
+
+	/* Set up the logging */
+	log_open(LOG_PID, FACILITY, nsd.log_filename);
+	if (!nsd.log_filename)
+		log_set_log_function(log_syslog);
+	else if (nsd.uid && nsd.gid)
+		(void) chown(nsd.log_filename, nsd.uid, nsd.gid);
 
 	/* Do we have a running nsd? */
 	if ((oldpid = readpid(nsd.pidfile)) == -1) {

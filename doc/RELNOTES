@@ -2,6 +2,10 @@ NSD RELEASE NOTES
 
 3.2.5 (UPCOMING RELEASE)
 =============
+BUG FIXES:
+	- NSD will not start if chroot is configured, but not possible (instead
+	  of ignoring chroot).
+
 FEATURES:
 	- New option 'nsid:', to specify the NSID (Bugfix #298).
 	- The default chroot can be set with --with-chroot=<dir>.

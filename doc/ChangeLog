@@ -2,6 +2,7 @@
 	- nsid: option
 	- Enable NSID support by default
 	- --with-chroot configure option
+	- Less stupid chroot error handling
 
 1 February 2010: Wouter
 	- compat code for memcmp unsigned comparsions.
