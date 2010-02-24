@@ -129,7 +129,7 @@ AC_ARG_WITH([chroot],
 	AC_HELP_STRING([--with-chroot=dir], [NSD default chroot directory]),
 	[
 		chrootdir=$withval
-		AC_DEFINE_UNQUOTED(CHROOTDIR, ["$chrootdir"], [NSD default chroot directory])
+		AC_DEFINE_UNQUOTED(CHROOTDIR, ["`eval echo $chrootdir`"], [NSD default chroot directory])
 	])
 
 #
