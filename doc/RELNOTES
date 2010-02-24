@@ -2,6 +2,11 @@ NSD RELEASE NOTES
 
 3.2.5 (UPCOMING RELEASE)
 =============
+FEATURES:
+	- New option 'nsid:', to specify the NSID (Bugfix #298).
+
+OPERATIONAL NOTES:
+	- NSID support is now enabled by default.
 
 3.2.4
 =============

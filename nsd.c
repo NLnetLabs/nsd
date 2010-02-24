@@ -678,9 +678,18 @@ main(int argc, char *argv[])
 #endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 
-
-
 #ifdef NSID
+	if (nsd.nsid_len == 0 && nsd.options->nsid) {
+		if (strlen(nsd.options->nsid) % 2 != 0) {
+			error("the NSID must be a hex string of an even length.");
+		}
+		nsd.nsid = xalloc(strlen(nsd.options->nsid) / 2);
+		nsd.nsid_len = strlen(nsd.options->nsid) / 2;
+		if (hex_pton(nsd.options->nsid, nsd.nsid, nsd.nsid_len) == -1) {
+			error("hex string cannot be parsed '%s' in NSID.", nsd.options->nsid);
+		}
+	}
+
 	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);
 #if defined(INET6)
 	edns_init_nsid(&nsd.edns_ipv6, nsd.nsid_len);

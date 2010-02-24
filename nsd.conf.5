@@ -135,6 +135,11 @@ Default is the name as returned by gethostname(3). Same as
 commandline option 
 .BR \-i .
 .TP
+.B nsid:\fR <string>
+Add the specified nsid to the EDNS section of the answer when queried
+with an NSID EDNS enabled packet. Same as commandline option
+.BR \-I .
+.TP
 .B logfile:\fR <filename>
 Log messages to the logfile. The default is to log to stderr and 
 syslog. Same as commandline option 

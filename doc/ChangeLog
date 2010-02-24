@@ -1,3 +1,7 @@
+24 February 2010: Matthijs
+	- nsid: option
+	- Enable NSID support by default
+
 1 February 2010: Wouter
 	- compat code for memcmp unsigned comparsions.
 
