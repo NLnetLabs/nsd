@@ -486,7 +486,7 @@ main(int argc, char *argv[])
 		case 'N':
 			i = atoi(optarg);
 			if (i <= 0) {
-				error("number of child servers must be greather than zero.");
+				error("number of child servers must be greater than zero.");
 			} else {
 				nsd.child_count = i;
 			}
