@@ -1,3 +1,6 @@
+31 March 2010: Matthijs
+	- Commit b64_pton optimalized compat code (Martin Svec).
+
 27 March 2010: Wouter
 	- fix bug#303: misspelled error message.
 
@@ -10,6 +13,9 @@
 	- --with-chroot configure option
 	- Less stupid chroot error handling
 
+15 February 2010: Matthijs
+	- Skip memory cleanup to speed up reload (Martin Svec)
+
 1 February 2010: Wouter
 	- compat code for memcmp unsigned comparsions.
 
@@ -17,7 +23,7 @@
 	- fixup debug sprintf to snprintf.
 
 21 Januari: Matthijs
-	- Secure string functions
+	- Secure string functions, including compat code for strlcat.
 	- Randomness utility function
 	- Prepare for default chroot
 
