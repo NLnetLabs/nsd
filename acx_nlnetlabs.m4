@@ -2,7 +2,9 @@
 # Copyright 2009, Wouter Wijngaards, NLnet Labs.   
 # BSD licensed.
 #
-# Version 6
+# Version 8
+# 2010-03-01 Fix RPATH using CONFIG_COMMANDS to run at the very end.
+# 2010-02-18 WITH_SSL outputs the LIBSSL_LDFLAGS, LIBS, CPPFLAGS seperate, -ldl
 # 2010-02-01 added ACX_CHECK_MEMCMP_SIGNED, AHX_MEMCMP_BROKEN
 # 2010-01-20 added AHX_COONFIG_STRLCAT
 # 2009-07-14 U_CHAR detection improved for windows crosscompile.
@@ -555,12 +557,14 @@ AC_ARG_ENABLE(rpath,
         [  --disable-rpath         disable hardcoded rpath (default=enabled)],
 	enable_rpath=$enableval, enable_rpath=yes)
 if test "x$enable_rpath" = xno; then
-	AC_MSG_RESULT([Fixing libtool for -rpath problems.])
+	dnl AC_MSG_RESULT([Fixing libtool for -rpath problems.])
+	AC_CONFIG_COMMANDS([disable-rpath], [
 	sed < libtool > libtool-2 \
 	's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=" -D__LIBTOOL_RPATH_SED__ "/'
 	mv libtool-2 libtool
 	chmod 755 libtool
 	libtool="./libtool"
+	])
 fi
 ])
 
@@ -593,6 +597,7 @@ AC_DEFUN([ACX_SSL_CHECKS], [
                 dnl assume /usr/include is already in the include-path.
                 if test "$ssldir" != "/usr"; then
                         CPPFLAGS="$CPPFLAGS -I$ssldir/include"
+                        LIBSSL_CPPFLAGS="$LIBSSL_CPPFLAGS -I$ssldir/include"
                 fi
                 break;
             fi
@@ -605,11 +610,13 @@ AC_DEFUN([ACX_SSL_CHECKS], [
             dnl assume /usr is already in the lib and dynlib paths.
             if test "$ssldir" != "/usr" -a "$ssldir" != ""; then
                 LDFLAGS="$LDFLAGS -L$ssldir/lib"
+                LIBSSL_LDFLAGS="$LIBSSL_LDFLAGS -L$ssldir/lib"
                 ACX_RUNTIME_PATH_ADD([$ssldir/lib])
             fi
         
             AC_MSG_CHECKING([for HMAC_CTX_init in -lcrypto])
             LIBS="$LIBS -lcrypto"
+            LIBSSL_LIBS="$LIBSSL_LIBS -lcrypto"
             AC_TRY_LINK(, [
                 int HMAC_CTX_init(void);
                 (void)HMAC_CTX_init();
@@ -621,7 +628,9 @@ AC_DEFUN([ACX_SSL_CHECKS], [
                 AC_MSG_RESULT(no)
                 # check if -lwsock32 or -lgdi32 are needed.	
                 BAKLIBS="$LIBS"
+                BAKSSLLIBS="$LIBSSL_LIBS"
                 LIBS="$LIBS -lgdi32"
+                LIBSSL_LIBS="$LIBSSL_LIBS -lgdi32"
                 AC_MSG_CHECKING([if -lcrypto needs -lgdi32])
                 AC_TRY_LINK([], [
                     int HMAC_CTX_init(void);
@@ -633,7 +642,9 @@ AC_DEFUN([ACX_SSL_CHECKS], [
                   ],[
                     AC_MSG_RESULT(no)
                     LIBS="$BAKLIBS"
+                    LIBSSL_LIBS="$BAKSSLLIBS"
                     LIBS="$LIBS -ldl"
+                    LIBSSL_LIBS="$LIBSSL_LIBS -ldl"
                     AC_MSG_CHECKING([if -lcrypto needs -ldl])
                     AC_TRY_LINK([], [
                         int HMAC_CTX_init(void);
@@ -651,6 +662,12 @@ AC_DEFUN([ACX_SSL_CHECKS], [
         fi
         AC_SUBST(HAVE_SSL)
         AC_SUBST(RUNTIME_PATH)
+	# openssl engine functionality needs dlopen().
+	BAKLIBS="$LIBS"
+	AC_SEARCH_LIBS([dlopen], [dl])
+	if test "$LIBS" != "$BAKLIBS"; then
+		LIBSSL_LIBS="$LIBSSL_LIBS -ldl"
+	fi
     fi
 AC_CHECK_HEADERS([openssl/ssl.h],,, [AC_INCLUDES_DEFAULT])
 AC_CHECK_HEADERS([openssl/err.h],,, [AC_INCLUDES_DEFAULT])
