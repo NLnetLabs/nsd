@@ -1,6 +1,7 @@
 31 March 2010: Matthijs
 	- Commit b64_pton optimalized compat code (Martin Svec).
 	- Commit (experimental) mmap-alloc-namedb patch (Martin Svec).
+	- Commit parse-token-leaks patch (Martin Svec).
 
 27 March 2010: Wouter
 	- fix bug#303: misspelled error message.
