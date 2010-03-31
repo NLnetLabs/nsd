@@ -626,6 +626,16 @@ case "$enable_nsid" in
                 ;;
 esac
 
+AC_ARG_ENABLE(mmap, AC_HELP_STRING([--enable-mmap], [Use mmap instead of malloc. Experimental.]))
+case "$enable_mmap" in
+        yes)
+		AC_CHECK_HEADERS([sys/mman.h])
+		AC_DEFINE_UNQUOTED([USE_MMAP_ALLOC], [], [Define this to enable mmap instead of malloc. Experimental.])
+		;;
+        no|*)
+                ;;
+esac
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \

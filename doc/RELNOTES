@@ -5,6 +5,8 @@ NSD RELEASE NOTES
 BUG FIXES:
 	- NSD will not start if chroot is configured, but changing root is
 	  not possible (it used to ignore the badly configured chroot).
+	- Make use of the more secure strl* functions.
+	- Bugfix #303: spelling error.
 
 FEATURES:
 	- New option 'nsid:', to specify the NSID (Bugfix #298).

@@ -138,6 +138,15 @@ void *xalloc_zero(size_t size);
 void *xrealloc(void *ptr, size_t size);
 
 /*
+ * Mmap allocator routines.
+ *
+ */
+#ifdef USE_MMAP_ALLOC
+void *mmap_alloc(size_t size);
+void mmap_free(void *ptr);
+#endif /* USE_MMAP_ALLOC */
+
+/*
  * Write SIZE bytes of DATA to FILE.  Report an error on failure.
  *
  * Returns 0 on failure, 1 on success.

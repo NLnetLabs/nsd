@@ -27,6 +27,10 @@
 #include "namedb.h"
 #include "rdata.h"
 
+#ifdef USE_MMAP_ALLOC
+#include <sys/mman.h>
+#endif /* USE_MMAP_ALLOC */
+
 #ifndef NDEBUG
 unsigned nsd_debug_facilities = 0xffff;
 int nsd_debug_level = 0;
@@ -241,6 +245,44 @@ xrealloc(void *ptr, size_t size)
 	}
 	return ptr;
 }
+
+#ifdef USE_MMAP_ALLOC
+
+void *
+mmap_alloc(size_t size)
+{
+	void *base;
+
+	size += MMAP_ALLOC_HEADER_SIZE;
+	base = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (base == MAP_FAILED) {
+		log_msg(LOG_ERR, "mmap failed: %s", strerror(errno));
+		exit(1);
+	}
+
+	*((size_t*) base) = size;
+	return (void*)((uintptr_t)base + MMAP_ALLOC_HEADER_SIZE);
+}
+
+
+void
+mmap_free(void *ptr)
+{
+	void *base;
+	size_t size;
+
+	if (!ptr) return;
+
+	base = (void*)((uintptr_t)ptr - MMAP_ALLOC_HEADER_SIZE);
+	size = *((size_t*) base);
+
+	if (munmap(base, size) == -1) {
+		log_msg(LOG_ERR, "munmap failed: %s", strerror(errno));
+		exit(1);
+	}
+}
+
+#endif /* USE_MMAP_ALLOC */
 
 int
 write_data(FILE *file, const void *data, size_t size)
