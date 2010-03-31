@@ -161,7 +161,7 @@ b64_initialize_rmap ()
 
 	/* Fill reverse mapping for base64 chars */
 	for (i = 0; Base64[i] != '\0'; ++i)
-		b64rmap[Base64[i]] = i;
+		b64rmap[(uint8_t)Base64[i]] = i;
 
 	b64rmap_initialized = 1;
 }
