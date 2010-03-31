@@ -12,6 +12,10 @@ FEATURES:
 	- New option 'nsid:', to specify the NSID (Bugfix #298).
 	- The default chroot can be set with --with-chroot=<dir>.
 	  If not set, by default chroot will not be used (thanks Jakob Schlyter).
+	- Optimized zonec and b64_pton compatibility code (thanks Martin Svec).
+	- Optimized memory allocations. Use mmap/munmap instead of malloc/free.
+		Experimental, by default off. Enable it at build time with
+		--enable-mmap (thanks Martin Svec).
 
 OPERATIONAL NOTES:
 	- NSID support is now enabled by default.

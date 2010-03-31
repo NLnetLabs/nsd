@@ -20,18 +20,19 @@ Wouter Wijngaards, NLnet Labs   - design and implementation for NSD 3.
 
 Contributors (in alphabetical order):
 
+Aaron Glenn                                     - DragonflyBSD, BSD/sparc64 testing.
 Ben Laurie                                      - NSEC3 patch.
+Bin Zhang                                       - NSD 3 prerelease testing.
 Colm MacCárthaigh,                              - IPv6 binding and cleanups.
+Farkas Levente                                  - rpm specfile improvements.
 Jakob Schlyter, Kirei                           - chroot and several other patches
 Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport
-Ondrej Sury                                     - nsd-notify.8 man page
-Stephane Bortzmeyer                             - Tru64 portability. Config conversion.
-Paul Wouters                                    - zone compiler testing
-Markus Heimhilcher                              - .AT zones for testing 
-Mans Nilsson                                    - (Solaris) Testing
-Bin Zhang                                       - NSD 3 prerelease testing.
 Kai                                             - NSD 3 prerelease testing.
+Mans Nilsson                                    - (Solaris) Testing
+Markus Heimhilcher                              - .AT zones for testing 
+Martin Svec					- Optimalization patches.
 Matthew Smith                                   - NetBSD testing.
+Ondrej Sury                                     - nsd-notify.8 man page
+Paul Wouters                                    - zone compiler testing
 Peter Hessler                                   - OpenBSD, amd64 testing.
-Aaron Glenn                                     - DragonflyBSD, BSD/sparc64 testing.
-Farkas Levente                                  - rpm specfile improvements.
+Stephane Bortzmeyer                             - Tru64 portability. Config conversion.
