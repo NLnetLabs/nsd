@@ -128,7 +128,6 @@ static const char Pad64 = '=';
    it returns the number of data bytes stored at the target, or -1 on error.
  */
 
-
 static int b64rmap_initialized = 0;
 static uint8_t b64rmap[256];
 
@@ -137,6 +136,10 @@ static const uint8_t b64rmap_end = 0xfd;
 static const uint8_t b64rmap_space = 0xfe;
 static const uint8_t b64rmap_invalid = 0xff;
 
+/**
+ * Initializing the reverse map is not thread safe. 
+ * Which is fine for NSD. For now...
+ **/
 static void
 b64_initialize_rmap ()
 {
