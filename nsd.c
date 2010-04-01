@@ -651,7 +651,7 @@ main(int argc, char *argv[])
 	if(nsd.chrootdir == 0) nsd.chrootdir = nsd.options->chroot;
 #ifdef CHROOTDIR
 	/* if still no chrootdir, fallback to default */
-        if(nsd.chrootdir == 0) nsd.chrootdir = CHROOTDIR;
+	if(nsd.chrootdir == 0) nsd.chrootdir = CHROOTDIR;
 #endif /* CHROOTDIR */
 #endif /* HAVE_CHROOT */
 	if(nsd.username == 0) {

@@ -30,7 +30,7 @@ Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport
 Kai                                             - NSD 3 prerelease testing.
 Mans Nilsson                                    - (Solaris) Testing
 Markus Heimhilcher                              - .AT zones for testing 
-Martin Svec					- Optimalization patches.
+Martin Svec                                     - Optimalization patches.
 Matthew Smith                                   - NetBSD testing.
 Ondrej Sury                                     - nsd-notify.8 man page
 Paul Wouters                                    - zone compiler testing

@@ -24,15 +24,15 @@
 21 January 2010: Wouter
 	- fixup debug sprintf to snprintf.
 
-21 Januari: Matthijs
+21 Januari 2010: Matthijs
 	- Secure string functions, including compat code for strlcat.
 	- Randomness utility function
 	- Prepare for default chroot
 
-6 Januari: Wouter
+6 Januari 2010: Wouter
 	- check write errors when marking commit failed when difffile is broken.
 
-6 Januari: Matthijs
+6 Januari 2010: Matthijs
 	- Move to 3.2.5
 
 23 December 2009: Matthijs

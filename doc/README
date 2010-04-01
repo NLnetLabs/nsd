@@ -515,6 +515,7 @@ You can use dig @localhost example.com axfr to test this.
 
 NSD supports TSIG for any query to the server, for zone transfer
 and for notify sending and receiving.
+
 TSIG keys are based on shared secrets. These must be configured
 in the config file. To keep the secret in a separate file use 
 include: "filename" to include that file.

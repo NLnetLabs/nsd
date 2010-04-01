@@ -702,12 +702,12 @@ init_query(query_type *q,
 	   uint16_t klass,
 	   tsig_record_type *tsig)
 {
-	uint16_t query_id = (uint16_t) random();
+	uint16_t query_id = qid_generate();
 
 	buffer_clear(q->packet);
 
 	/* Set up the header */
-	ID_SET(q->packet, qid_generate());
+	ID_SET(q->packet, query_id);
 	FLAGS_SET(q->packet, 0);
 	OPCODE_SET(q->packet, OPCODE_QUERY);
 	AA_SET(q->packet);
