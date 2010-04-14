@@ -1,3 +1,8 @@
+14 April 2010: Matthijs
+	- uintptr_t fallback value to void*
+	- Backwards compatibality for MAP_ANONYMOUS
+	- Tag 3.2.5.
+
 31 March 2010: Matthijs
 	- Commit b64_pton optimalized compat code (Martin Svec).
 	- Commit (experimental) mmap-alloc-namedb patch (Martin Svec).

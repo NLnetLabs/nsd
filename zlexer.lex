@@ -375,8 +375,8 @@ parse_token(int token, char *yytext, enum lexer_state *lexer_state)
 		}
 	}
 
-	len = zoctet(yytext);
 	str = region_strdup(parser->rr_region, yytext);
+	len = zoctet(str);
 
 	yylval.data.str = str;
 	yylval.data.len = len;
