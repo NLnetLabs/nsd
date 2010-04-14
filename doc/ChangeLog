@@ -1,4 +1,7 @@
 14 April 2010: Matthijs
+	- Bump to 3.2.6.
+
+14 April 2010: Matthijs
 	- uintptr_t fallback value to void*
 	- Backwards compatibality for MAP_ANONYMOUS
 	- Tag 3.2.5.

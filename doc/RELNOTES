@@ -1,6 +1,9 @@
 NSD RELEASE NOTES
 
-3.2.5 (UPCOMING RELEASE)
+3.2.6 (UPCOMING RELEASE)
+=============
+
+3.2.5
 =============
 BUG FIXES:
 	- NSD will not start if chroot is configured, but changing root is
