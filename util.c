@@ -29,6 +29,13 @@
 
 #ifdef USE_MMAP_ALLOC
 #include <sys/mman.h>
+
+#if defined(MAP_ANON) && !defined(MAP_ANONYMOUS)
+#define	MAP_ANONYMOUS	MAP_ANON
+#elif defined(MAP_ANONYMOUS) && !defined(MAP_ANON)
+#define	MAP_ANON	MAP_ANONYMOUS
+#endif
+
 #endif /* USE_MMAP_ALLOC */
 
 #ifndef NDEBUG
