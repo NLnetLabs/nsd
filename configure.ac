@@ -631,7 +631,7 @@ case "$enable_mmap" in
         yes)
 		AC_CHECK_HEADERS([sys/mman.h])
 		AC_LIBGTOP_CHECK_TYPE(uintptr_t, void*)
-		AC_CHECK_FUNCS([mmap, munmap])
+		AC_CHECK_FUNCS([mmap munmap])
 		AC_DEFINE_UNQUOTED([USE_MMAP_ALLOC], [], [Define this to enable mmap instead of malloc. Experimental.])
 		;;
         no|*)
