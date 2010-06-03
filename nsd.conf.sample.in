@@ -107,13 +107,12 @@ zone:
 	zonefile: "example.com.zone"
 
 	# This is a slave zone. Masters are listed below.
+	# If no access control elements are provided, this zone
+	# will not be served to/from other servers.
 
 	# master 1
 	allow-notify: 168.192.44.42 mskey
 	request-xfr: 168.192.44.42 mskey
-
-	# set local interface for sending zone transfer requests.
-	outgoing-interface: 10.0.0.10
 
 	# master 2
 	allow-notify: 10.0.0.11 NOKEY
@@ -139,19 +138,21 @@ zone:
 	# provide-xfr: 0.0.0.0/0 NOKEY
 	# provide-xfr: ::0/0 NOKEY
 
+	# set local interface for sending zone transfer requests.
+	outgoing-interface: 10.0.0.10
+
 # Sample zone 2
 zone:
 	name: "example.net"
 	zonefile: "example.net.signed.zone"
 
 	# This is a master zone. Slaves are listed below.
+	# If no access control elements are provided, this zone
+	# will not be served to/from other servers.
 
 	# secondary 1. Uses port 5300.
 	notify: 10.0.0.14@5300 sec1_key
 	provide-xfr: 10.0.0.14@5300 sec1_key
-
-	# set local interface for sending notifies
-	outgoing-interface: 10.0.0.15
 
 	# secondary 2. 
 	notify: 10.11.12.14 sec2_key
@@ -164,6 +165,9 @@ zone:
 
 	# set the number of retries for notify.
 	notify-retry: 5
+
+	# set local interface for sending notifies
+	outgoing-interface: 10.0.0.15
 
 # keys for zone 2
 key:
