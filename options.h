@@ -138,9 +138,7 @@ struct key_options {
 	const char* name;
 	const char* algorithm;
 	const char* secret;
-#ifdef TSIG
 	struct tsig_key* tsig_key;
-#endif
 };
 
 /*

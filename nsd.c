@@ -42,9 +42,7 @@
 
 #include "nsd.h"
 #include "options.h"
-#ifdef TSIG
 #include "tsig.h"
-#endif /* TSIG */
 
 /* The server handler... */
 static struct nsd nsd;
@@ -827,11 +825,9 @@ main(int argc, char *argv[])
 	/* endpwent(); */
 #endif /* HAVE_GETPWNAM */
 
-#ifdef TSIG
 	if(!tsig_init(nsd.region))
 		error("init tsig failed");
 	key_options_tsig_add(nsd.options);
-#endif /* TSIG */
 
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {

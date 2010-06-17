@@ -239,9 +239,7 @@ key_options_t* key_options_create(region_type* region)
 	key->next = 0;
 	key->algorithm = 0;
 	key->secret = 0;
-#ifdef TSIG
 	key->tsig_key = 0;
-#endif
 	return key;
 }
 
@@ -412,7 +410,6 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 {
 	if(acl->blocked)
 		return 1;
-#ifdef TSIG
 	if(acl->nokey) {
 		if(q->tsig.status == TSIG_NOT_PRESENT)
 			return 1;
@@ -442,11 +439,6 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 		return 0; /* no such algo */
 	}
 	return 1;
-#else
-	if(acl->nokey)
-		return 1;
-	return 0;
-#endif
 }
 
 int
@@ -486,7 +478,7 @@ acl_same_host(acl_options_t* a, acl_options_t* b)
 
 void key_options_tsig_add(nsd_options_t* opt)
 {
-#if defined(TSIG) && defined(HAVE_SSL)
+#if defined(HAVE_SSL)
 	key_options_t* optkey;
 	uint8_t data[4000];
 	tsig_key_type* tsigkey;

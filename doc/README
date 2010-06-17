@@ -165,10 +165,6 @@ addition to standard configure options, one may use the following:
 	This will instruct NSD to be stricter when validating its input. 
 	This could lead to a reduced service level.
 
-  --disable-tsig
-
-        Disable TSIG support in NSD and the support tools.
-
   --enable-bind8-stats
 
         Enables BIND8-like statistics.
@@ -207,8 +203,7 @@ addition to standard configure options, one may use the following:
   --with-ssl=path
 
         Specify the location of the OpenSSL libraries.  OpenSSL 0.9.7
-        or higher is required for TSIG support.  Use --disable-tsig if
-        you do not have OpenSSL installed.
+        or higher is required for TSIG support.
 
   --with-start_priority=number
 

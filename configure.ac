@@ -586,19 +586,6 @@ case "$enable_checking" in
                 ;;
 esac
 
-AC_ARG_ENABLE(tsig, AC_HELP_STRING([--disable-tsig], [Disable TSIG support]))
-case "$enable_tsig" in
-        no)
-		;;
-        yes|*)
-                CHECK_SSL
-                if test x_$HAVE_SSL != x_yes; then
-                   AC_MSG_ERROR(SSL is required to enable TSIG support.  Use --with-ssl to specify the location of the SSL libraries or --disable-tsig to disable TSIG support.)
-                fi
-                AC_DEFINE([TSIG], [], [Define this to enable TSIG support.])
-                ;;
-esac
-
 AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in
         no)
