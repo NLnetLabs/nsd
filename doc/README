@@ -165,10 +165,6 @@ addition to standard configure options, one may use the following:
 	This will instruct NSD to be stricter when validating its input. 
 	This could lead to a reduced service level.
 
-  --disable-dnssec
-
-        Disable support for DNSSEC (RFC 4033, 4034, and 4035).
-
   --disable-tsig
 
         Disable TSIG support in NSD and the support tools.
