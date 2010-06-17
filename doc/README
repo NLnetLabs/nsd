@@ -233,7 +233,7 @@ addition to standard configure options, one may use the following:
 
   --enable-nsid
 
-  	Enable (experimental) NSID support. 
+  	Enable NSID support. 
 
   --disable-largefile
 

@@ -144,6 +144,20 @@ file_inside_chroot(const char* fname, const char* chr)
 	return 0; /* don't strip, don't try file rotation */
 }
 
+static void
+get_hostname_port_frm_str(const char* arg, const char** hostname,
+        const char** port)
+{
+        /* parse src[@port] option */
+        char* delim = strchr(arg, '@');
+
+        if (delim) {
+                *delim = '\0';
+                *port = delim+1;
+        }
+        *hostname = arg;
+}
+
 
 /*
  * Fetch the nsd parent process id from the nsd pidfile
@@ -749,13 +763,17 @@ main(int argc, char *argv[])
 	/* Set up the address info structures with real interface/port data */
 	for (i = 0; i < nsd.ifs; ++i) {
 		int r;
+		const char* node = NULL;
+		const char* service = NULL;
 
 		/* We don't perform name-lookups */
 		if (nodes[i] != NULL)
 			hints[i].ai_flags |= AI_NUMERICHOST;
 
+		get_hostname_port_frm_str(nodes[i], &node, &service);
+
 		hints[i].ai_socktype = SOCK_DGRAM;
-		if ((r=getaddrinfo(nodes[i], udp_port, &hints[i], &nsd.udp[i].addr)) != 0) {
+		if ((r=getaddrinfo(node, (service?service:udp_port), &hints[i], &nsd.udp[i].addr)) != 0) {
 #ifdef INET6
 			if(nsd.grab_ip6_optional && hints[0].ai_family == AF_INET6) {
 				log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s",
@@ -770,7 +788,7 @@ main(int argc, char *argv[])
 		}
 
 		hints[i].ai_socktype = SOCK_STREAM;
-		if ((r=getaddrinfo(nodes[i], tcp_port, &hints[i], &nsd.tcp[i].addr)) != 0) {
+		if ((r=getaddrinfo(node, (service?service:tcp_port), &hints[i], &nsd.tcp[i].addr)) != 0) {
 			error("cannot parse address '%s': getaddrinfo: %s %s",
 				nodes[i]?nodes[i]:"(null)",
 				gai_strerror(r),
