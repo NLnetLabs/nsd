@@ -231,10 +231,6 @@ addition to standard configure options, one may use the following:
   	Disable NSEC3 support. With NSEC3 support enabled, very large zones,
 	also non-nsec3 zones, use about 20% more memory.
 
-  --enable-nsid
-
-  	Enable NSID support. 
-
   --disable-largefile
 
 	Disable large file support (64 bit file lengths). Makes off_t

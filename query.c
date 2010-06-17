@@ -1377,8 +1377,6 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	case EDNS_OK:
 		buffer_write(q->packet, edns->ok, OPT_LEN);
-		/* check if nsid data should be written */
-#ifdef NSID
 		if (nsd->nsid_len > 0 && q->edns.nsid == 1 &&
 				!query_overflow_nsid(q, nsd->nsid_len)) {
 			/* rdata length */
@@ -1391,12 +1389,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 			/* fill with NULLs */
 			buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		}
-#else
-		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
-#endif /* NSID */
-
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
-
 		STATUP(nsd, edns);
 		break;
 	case EDNS_ERROR:

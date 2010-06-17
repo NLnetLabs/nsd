@@ -77,9 +77,7 @@ usage (void)
 		, CONFIGFILE);
 	fprintf(stderr,
 		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
-#ifdef NSID
 		"  -I nsid         Specify the NSID. This must be a hex string.\n"
-#endif /* NSID */
 #ifndef NDEBUG
 		"  -L level        Specify the debug level.\n"
 #endif /* NDEBUG */
@@ -144,12 +142,15 @@ file_inside_chroot(const char* fname, const char* chr)
 	return 0; /* don't strip, don't try file rotation */
 }
 
-static void
-get_hostname_port_frm_str(const char* arg, const char** hostname,
+void
+get_ip_port_frm_str(const char* arg, const char** hostname,
         const char** port)
 {
         /* parse src[@port] option */
-        char* delim = strchr(arg, '@');
+        char* delim = NULL;
+	if (arg) {
+		delim = strchr(arg, '@');
+	}
 
         if (delim) {
                 *delim = '\0';
@@ -479,7 +480,6 @@ main(int argc, char *argv[])
 			nsd.identity = optarg;
 			break;
 		case 'I':
-#ifdef NSID
 			if (nsd.nsid_len != 0) {
 				/* can only be given once */
 				break;
@@ -492,7 +492,6 @@ main(int argc, char *argv[])
 			if (hex_pton(optarg, nsd.nsid, nsd.nsid_len) == -1) {
 				error("hex string cannot be parsed '%s' in NSID.", optarg);
 			}
-#endif /* NSID */
                        break;
 		case 'l':
 			nsd.log_filename = optarg;
@@ -694,7 +693,6 @@ main(int argc, char *argv[])
 #endif /* IPV6 MTU) */
 #endif /* defined(INET6) */
 
-#ifdef NSID
 	if (nsd.nsid_len == 0 && nsd.options->nsid) {
 		if (strlen(nsd.options->nsid) % 2 != 0) {
 			error("the NSID must be a hex string of an even length.");
@@ -705,12 +703,11 @@ main(int argc, char *argv[])
 			error("hex string cannot be parsed '%s' in NSID.", nsd.options->nsid);
 		}
 	}
-
 	edns_init_nsid(&nsd.edns_ipv4, nsd.nsid_len);
 #if defined(INET6)
 	edns_init_nsid(&nsd.edns_ipv6, nsd.nsid_len);
 #endif /* defined(INET6) */
-#endif /* NSID */
+
 	/* Number of child servers to fork.  */
 	nsd.children = (struct nsd_child *) region_alloc(
 		nsd.region, nsd.child_count * sizeof(struct nsd_child));
@@ -769,8 +766,7 @@ main(int argc, char *argv[])
 		/* We don't perform name-lookups */
 		if (nodes[i] != NULL)
 			hints[i].ai_flags |= AI_NUMERICHOST;
-
-		get_hostname_port_frm_str(nodes[i], &node, &service);
+		get_ip_port_frm_str(nodes[i], &node, &service);
 
 		hints[i].ai_socktype = SOCK_DGRAM;
 		if ((r=getaddrinfo(node, (service?service:udp_port), &hints[i], &nsd.udp[i].addr)) != 0) {

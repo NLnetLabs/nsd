@@ -1,6 +1,7 @@
 17 June 2010: Matthijs
 	- Expand command line option '-a' and config option 'ip-address:'
 	  with port number.
+	- Remove --disable-nsid
 
 14 April 2010: Matthijs
 	- Bump to 3.2.6.

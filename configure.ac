@@ -617,15 +617,6 @@ case "$enable_nsec3" in
                 ;;
 esac
 
-AC_ARG_ENABLE(nsid, AC_HELP_STRING([--disable-nsid], [Disable NSID support]))
-case "$enable_nsid" in
-        no)
-                ;;
-        yes|*)
-                AC_DEFINE([NSID], [], [Define this to enable NSID support.])
-                ;;
-esac
-
 AC_ARG_ENABLE(mmap, AC_HELP_STRING([--enable-mmap], [Use mmap instead of malloc. Experimental.]))
 case "$enable_mmap" in
         yes)
