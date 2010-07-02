@@ -1,3 +1,6 @@
+2 July 2010: Wouter
+	- Put back CHECK_SSL in configure (removed with disable-tsig).
+
 17 June 2010: Matthijs
 	- Expand command line option '-a' and config option 'ip-address:'
 	  with port number.

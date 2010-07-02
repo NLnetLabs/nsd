@@ -586,6 +586,9 @@ case "$enable_checking" in
                 ;;
 esac
 
+# we need SSL for TSIG (and maybe also for NSEC3).
+CHECK_SSL
+
 AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in
         no)
