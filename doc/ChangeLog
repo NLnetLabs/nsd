@@ -1,3 +1,8 @@
+6 July 2010: Wouter
+	- Compiles on Minix 3.1.7; checks ss_family, suseconds_t, some
+	  warning fixes.  Needs socketpair to work, e.g.
+	  http://wiki.minix3.org/en/SummerOfCode2010/UnixDomainSockets.
+
 2 July 2010: Wouter
 	- Put back CHECK_SSL in configure (removed with disable-tsig).
 

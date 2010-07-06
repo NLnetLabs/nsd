@@ -446,6 +446,7 @@ AC_LIBGTOP_CHECK_TYPE(uint64_t, unsigned long long)
 AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
 AC_LIBGTOP_CHECK_TYPE(sig_atomic_t, int)
 AC_LIBGTOP_CHECK_TYPE(ssize_t, int)
+AC_LIBGTOP_CHECK_TYPE(suseconds_t, time_t)
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
@@ -454,6 +455,7 @@ AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], 
 #if HAVE_NETINET_IN_H
 # include <netinet/in.h>
 #endif])
+ACX_CHECK_SS_FAMILY
 
 # Checks for library functions.
 AC_FUNC_CHOWN

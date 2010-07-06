@@ -935,7 +935,8 @@ zparser_ttl2int(const char *ttlstr, int* error)
 void
 zadd_rdata_wireformat(uint16_t *data)
 {
-	if (parser->current_rr.rdata_count > MAXRDATALEN) {
+	/* MAXRDATALEN is 65536 but uint16_t can hit 65535, print error then */
+	if (parser->current_rr.rdata_count >= MAXRDATALEN-1) {
 		zc_error_prev_line("too many rdata elements");
 	} else {
 		parser->current_rr.rdatas[parser->current_rr.rdata_count].data
@@ -947,7 +948,7 @@ zadd_rdata_wireformat(uint16_t *data)
 void
 zadd_rdata_domain(domain_type *domain)
 {
-	if (parser->current_rr.rdata_count > MAXRDATALEN) {
+	if (parser->current_rr.rdata_count >= MAXRDATALEN-1) {
 		zc_error_prev_line("too many rdata elements");
 	} else {
 		parser->current_rr.rdatas[parser->current_rr.rdata_count].domain

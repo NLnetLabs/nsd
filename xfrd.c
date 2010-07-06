@@ -888,7 +888,9 @@ int
 xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 	int tcp)
 {
+#ifdef SO_LINGER
 	struct linger linger = {1, 0};
+#endif
 	socklen_t frm_len;
 #ifdef INET6
 	struct sockaddr_storage frm;

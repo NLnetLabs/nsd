@@ -549,7 +549,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 				rdata_atom_type **rdatas)
 {
 	size_t end = buffer_position(packet) + data_size;
-	ssize_t i;
+	size_t i;
 	rdata_atom_type temp_rdatas[MAXRDATALEN];
 	rrtype_descriptor_type *descriptor = rrtype_descriptor_by_type(rrtype);
 	region_type *temp_region;
@@ -687,7 +687,7 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 	*rdatas = (rdata_atom_type *) region_alloc_init(
 		region, temp_rdatas, i * sizeof(rdata_atom_type));
 	region_destroy(temp_region);
-	return i;
+	return (ssize_t)i;
 }
 
 size_t

@@ -382,7 +382,7 @@ main (int argc, char *argv[])
 		}
 
 		for (res = res0; res; res = res->ai_next) {
-			if (res->ai_addrlen > sizeof(q.addr)) {
+			if (res->ai_addrlen > (socklen_t)sizeof(q.addr)) {
 				continue;
 			}
 
