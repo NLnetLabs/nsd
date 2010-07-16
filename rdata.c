@@ -88,10 +88,16 @@ rdata_dns_name_to_string(buffer_type *output, rdata_atom_type rdata,
 
 		for (i = 1; i <= length; ++i) {
 			char ch = (char) data[i+offset];
-			if (isprint((int)ch))
-				buffer_printf(output, "%c", ch);
-			else
+
+			if (ch=='.' || ch==';' || ch=='(' || ch==')' || ch=='\\') {
+				buffer_printf(output, "\\%c", ch);
+			} else if (!isgraph((int) ch)) {
 				buffer_printf(output, "\\%03u", (unsigned) ch);
+			} else if (isprint((int)ch)) {
+				buffer_printf(output, "%c", ch);
+			} else {
+				buffer_printf(output, "\\%03u", (unsigned) ch);
+			}
 		}
 		/* next label */
 		offset = offset+length+1;
