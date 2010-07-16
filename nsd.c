@@ -61,36 +61,36 @@ usage (void)
 	fprintf(stderr, "Name Server Daemon.\n\n");
 	fprintf(stderr,
 		"Supported options:\n"
-		"  -4              Only listen to IPv4 connections.\n"
-		"  -6              Only listen to IPv6 connections.\n"
-		"  -a ip-address   Listen to the specified incoming IP address (may be\n"
-		"                  specified multiple times).\n"
-		"  -c configfile   Read specified configfile instead of %s.\n"
-		"  -d              Enable debug mode (do not fork as a daemon process).\n"
+		"  -4                   Only listen to IPv4 connections.\n"
+		"  -6                   Only listen to IPv6 connections.\n"
+		"  -a ip-address[@port] Listen to the specified incoming IP address (and port)\n"
+		"                       May be specified multiple times).\n"
+		"  -c configfile        Read specified configfile instead of %s.\n"
+		"  -d                   Enable debug mode (do not fork as a daemon process).\n"
 #ifndef NDEBUG
-		"  -F facilities   Specify the debug facilities.\n"
+		"  -F facilities        Specify the debug facilities.\n"
 #endif /* NDEBUG */
-		"  -f database     Specify the database to load.\n"
-		"  -h              Print this help information.\n"
+		"  -f database          Specify the database to load.\n"
+		"  -h                   Print this help information.\n"
 		, CONFIGFILE);
 	fprintf(stderr,
-		"  -i identity     Specify the identity when queried for id.server CHAOS TXT.\n"
-		"  -I nsid         Specify the NSID. This must be a hex string.\n"
+		"  -i identity          Specify the identity when queried for id.server CHAOS TXT.\n"
+		"  -I nsid              Specify the NSID. This must be a hex string.\n"
 #ifndef NDEBUG
-		"  -L level        Specify the debug level.\n"
+		"  -L level             Specify the debug level.\n"
 #endif /* NDEBUG */
-		"  -l filename     Specify the log file.\n"
-		"  -N server-count The number of servers to start.\n"
-		"  -n tcp-count    The maximum number of TCP connections per server.\n"
-		"  -P pidfile      Specify the PID file to write.\n"
-		"  -p port         Specify the port to listen to.\n"
-		"  -s seconds      Dump statistics every SECONDS seconds.\n"
-		"  -t chrootdir    Change root to specified directory on startup.\n"
+		"  -l filename          Specify the log file.\n"
+		"  -N server-count      The number of servers to start.\n"
+		"  -n tcp-count         The maximum number of TCP connections per server.\n"
+		"  -P pidfile           Specify the PID file to write.\n"
+		"  -p port              Specify the port to listen to.\n"
+		"  -s seconds           Dump statistics every SECONDS seconds.\n"
+		"  -t chrootdir         Change root to specified directory on startup.\n"
 		);
 	fprintf(stderr,
-		"  -u user         Change effective uid to the specified user.\n"
-		"  -V level        Specify verbosity level.\n"
-		"  -v              Print version information.\n"
+		"  -u user              Change effective uid to the specified user.\n"
+		"  -V level             Specify verbosity level.\n"
+		"  -v                   Print version information.\n"
 		);
 	fprintf(stderr, "Version %s. Report bugs to <%s>.\n",
 		PACKAGE_VERSION, PACKAGE_BUGREPORT);
