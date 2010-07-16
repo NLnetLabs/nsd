@@ -13,6 +13,7 @@
 server:
 	# uncomment to specify specific interfaces to bind (default all).
 	# ip-address: 1.2.3.4
+	# ip-address: 1.2.3.4@5678
 	# ip-address: 12fe::8ef0
 
 	# don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries

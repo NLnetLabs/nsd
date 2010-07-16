@@ -530,11 +530,11 @@ AC_DEFINE_UNQUOTED([FACILITY], $facility, [Define to the default facility for sy
 dnl
 dnl Determine the maximum number of interfaces that are allowed
 dnl
-max_interfaces=8
-AC_ARG_WITH([max_interfaces],
-	AC_HELP_STRING([--with-max_interfaces=number], [Limit on the number of ip-addresses that may be specified]),
-	[max_interfaces=$withval])
-AC_DEFINE_UNQUOTED([MAX_INTERFACES], $max_interfaces, [Define to the maximum interfaces to serve.])
+max_ips=8
+AC_ARG_WITH([max_ips],
+	AC_HELP_STRING([--with-max-ips=number], [Limit on the number of ip-addresses that may be specified]),
+	[max_ips=$withval])
+AC_DEFINE_UNQUOTED([MAX_INTERFACES], $max_ips, [Define to the maximum ip-addresses to serve.])
 
 dnl
 dnl Determine the default tcp timeout
