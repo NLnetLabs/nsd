@@ -177,7 +177,7 @@ zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex);
 key_options_t* key_options_create(region_type* region);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
 
-#ifdef defined(HAVE_SSL)
+#if defined(HAVE_SSL)
 /* tsig must be inited, adds all keys in options to tsig. */
 void key_options_tsig_add(nsd_options_t* opt);
 #endif
