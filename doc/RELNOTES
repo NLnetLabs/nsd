@@ -3,6 +3,20 @@ NSD RELEASE NOTES
 3.2.6 (UPCOMING RELEASE)
 =============
 
+BUG FIXES:
+	- Bugfix #314: correclty print NSEC next field, escape spaces and
+	  fix label overflows.
+
+FEATURES:
+	- Expand command line option '-a' and config option 'ip-address:'
+	  with port number.
+
+OPERATIONAL NOTES:
+	- Configure options --disable-dnssec, --disable-nsid, --disable-tsig
+	  are removed.
+	- Configure option --max-interfaces is renamed to --max-ips.
+	- Compiles on Minix 3.1.7.
+
 3.2.5
 =============
 BUG FIXES:
