@@ -590,9 +590,6 @@ esac
 
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL
-if test x_$HAVE_SSL != x_yes; then
-    AC_MSG_ERROR(SSL is required to enable TSIG support.  Use --with-ssl to specify the location of the SSL libraries or --disable-tsig to disable TSIG support.)
-fi
 
 AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in

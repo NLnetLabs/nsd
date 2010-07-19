@@ -4,7 +4,7 @@ NSD RELEASE NOTES
 =============
 
 BUG FIXES:
-	- Bugfix #314: correclty print NSEC next field, escape spaces and
+	- Bugfix #314: correctly print NSEC next field, escape spaces and
 	  fix label overflows.
 
 FEATURES:
@@ -15,7 +15,6 @@ OPERATIONAL NOTES:
 	- Configure options --disable-dnssec, --disable-nsid, --disable-tsig
 	  are removed.
 	- Configure option --max-interfaces is renamed to --max-ips.
-	- Compiles on Minix 3.1.7.
 
 3.2.5
 =============

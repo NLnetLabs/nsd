@@ -827,7 +827,9 @@ main(int argc, char *argv[])
 
 	if(!tsig_init(nsd.region))
 		error("init tsig failed");
+#if defined(HAVE_SSL)
 	key_options_tsig_add(nsd.options);
+#endif
 
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {

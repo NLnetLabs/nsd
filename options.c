@@ -476,9 +476,9 @@ acl_same_host(acl_options_t* a, acl_options_t* b)
 	return 1;
 }
 
+#if defined(HAVE_SSL)
 void key_options_tsig_add(nsd_options_t* opt)
 {
-#if defined(HAVE_SSL)
 	key_options_t* optkey;
 	uint8_t data[4000];
 	tsig_key_type* tsigkey;
@@ -504,8 +504,8 @@ void key_options_tsig_add(nsd_options_t* opt)
 		tsig_add_key(tsigkey);
 		optkey->tsig_key = tsigkey;
 	}
-#endif
 }
+#endif
 
 int zone_is_slave(zone_options_t* opt)
 {

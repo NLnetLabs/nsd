@@ -146,7 +146,7 @@ typedef enum nsd_rc nsd_rc_type;
 #define MAXLABELLEN	63
 #define MAXDOMAINLEN	255
 
-#define MAXRDATALEN	64      /* This is more than enough, think multiple TXT. FIXME */
+#define MAXRDATALEN	64      /* This is more than enough, think multiple TXT. */
 #define MAX_RDLENGTH	65535
 
 /* Maximum size of a single RR.  */
