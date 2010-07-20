@@ -61,11 +61,8 @@ query_axfr(struct nsd *nsd, struct query *query)
 		}
 
 #ifdef USE_RADIX_TREE
-		if(radix_first(nsd->db->domains->nametree))
-			query->axfr_current_domain =
-				(domain_type*)radix_first(nsd->db->domains->
-				nametree)->elem;
-		else	query->axfr_current_domain = NULL;
+		query->axfr_current_domain = (domain_type*)radix_first(
+			nsd->db->domains->nametree)->elem;
 #else
 		query->axfr_current_domain
 			= (domain_type *) rbtree_first(nsd->db->domains->names_to_domains);

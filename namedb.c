@@ -227,7 +227,7 @@ domain_table_iterate(domain_table_type *table,
 {
 #ifdef USE_RADIX_TREE
 	int error = 0;
-	struct radnode* n = radix_first(table->nametree);
+	struct radnode* n;
 	for(n = radix_first(table->nametree); n; n = radix_next(n)) {
 		error += iterator((domain_type*)n->elem, user_data);
 	}

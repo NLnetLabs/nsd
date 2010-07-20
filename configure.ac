@@ -7,7 +7,6 @@ sinclude(acx_nlnetlabs.m4)
 AC_INIT(NSD,3.2.6,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
-CFLAGS="$CFLAGS"
 AC_AIX
 
 dnl
