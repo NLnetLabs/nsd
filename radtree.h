@@ -206,6 +206,10 @@ struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max);
 int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 	struct radnode** result);
 
+struct dname;
+int radix_dname_find_less_equal(struct radtree* rt, const struct dname* d,
+	struct radnode** result);
+
 /**
  * Insert radix element by domain name.
  * @param rt: the radix tree

@@ -1374,6 +1374,129 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 	return 0;
 }
 
+#include "dname.h"
+/* find NSD dname or smaller or equal domain name in radix tree */
+int radix_dname_find_less_equal(struct radtree* rt, const struct dname* d,
+        struct radnode** result)
+{
+	/* stack of labels in the domain name */
+	unsigned int lab, lpos;
+	struct radnode* n = rt->root;
+	uint8_t byte;
+	radstrlen_t i;
+	uint8_t b;
+
+	/* empty tree */
+	if(!n) {
+		*result = NULL;
+		return 0;
+	}
+
+	if(d->label_count == 1) {
+		if(n->elem) {
+			*result = n;
+			return 1;
+		}
+		/* no smaller element than the root */
+		*result = NULL;
+		return 0;
+	}
+
+	/* must have one label, since root is specialcased */
+	/* now: dpos+1 is length of domain name. lab is number of labels-1 */
+	/* start processing at the last label */
+	/* labels count up to the last label */
+	lab = 1;
+	lpos = 0;
+	while(1) {
+		/* fetch next byte this label */
+		if(lpos < *dname_label(d, lab))
+			/* lpos+1 to skip labelstart, lpos++ to move forward */
+			byte = char_d2r(dname_label(d, lab)[++lpos]);
+		else {
+			if(++lab == d->label_count) {
+				/* last label - we're done */
+				/* exact match */
+				if(n->elem) {
+					*result = n;
+					return 1;
+				}
+				/* there is a node which is an exact match,
+				 * but there no element in it */
+				*result = radix_prev(n);
+				return 0;
+			}
+			/* next label, search for byte 0 the label separator */
+			lpos = 0;
+			byte = 0;
+		}
+		/* find that byte in the array */
+		if(byte < n->offset)
+			/* so the previous is the element itself */
+			/* or something before this element */
+			return ret_self_or_prev(n, result);
+		byte -= n->offset;
+		if(byte >= n->len) {
+			/* so, the previous is the last of array, or itself */
+			/* or something before this element */
+			*result = radnode_last_in_subtree_incl_self(n);
+			if(!*result)
+				*result = radix_prev(n);
+			return 0;
+		}
+		if(!n->array[byte].node) {
+			/* no match */
+			/* Find an entry in arrays from byte-1 to 0 */
+			*result = radnode_find_prev_from_idx(n, byte);
+			if(*result)
+				return 0;
+			/* this entry or something before it */
+			return ret_self_or_prev(n, result);
+		}
+		if(n->array[byte].len != 0) {
+			/* must match additional string */
+			/* see how many bytes we need and start matching them*/
+			for(i=0; i<n->array[byte].len; i++) {
+				/* next byte to match */
+				if(lpos < *dname_label(d, lab))
+					b = char_d2r(dname_label(d, lab)[++lpos]);
+				else {
+					/* if last label, no match since
+					 * we are in the additional string */
+					if(++lab == d->label_count) {
+						/* dname ended, thus before
+						 * this array element */
+						*result =radix_prev(
+							n->array[byte].node);
+						return 0; 
+					}
+					/* next label, search for byte 00 */
+					lpos = 0;
+					b = 0;
+				}
+				if(b < n->array[byte].str[i]) {
+					*result =radix_prev(
+						n->array[byte].node);
+					return 0; 
+				} else if(b > n->array[byte].str[i]) {
+					/* the key is after the additional,
+					 * so everything in its subtree is
+					 * smaller */
+					*result = radnode_last_in_subtree_incl_self(n->array[byte].node);
+					/* if that is NULL, we have an
+					 * inefficient tree, find in byte-1*/
+					if(!*result)
+						*result = radix_prev(n->array[byte].node);
+					return 0;
+				}
+			}
+		}
+		n = n->array[byte].node;
+	}
+	/* ENOTREACH */
+	return 0;
+}
+
 
 #ifdef RADIX_TEST
 
