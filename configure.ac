@@ -240,7 +240,8 @@ fi
 ])dnl
 
 # Checks for typedefs, structures, and compiler characteristics.
-CHECK_COMPILER_FLAG(O2, [], [ CFLAGS="-g" ])
+CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
+CHECK_COMPILER_FLAG(O3, [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2/-O3/g"` ])
 CHECK_COMPILER_FLAG(fwhole-program, [CCWHOLE="whole"], [ CCWHOLE="unwhole" ])
 AC_SUBST(CCWHOLE)
 AC_C_CONST

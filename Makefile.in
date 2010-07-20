@@ -362,10 +362,10 @@ uninstall:
 
 test: 
 
-whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
+whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c
 	if test -n "$(CCWHOLE)"; then echo yes; else echo no; fi
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program -O3 `echo $(NSD_OBJECTS) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o zonec -combine -fwhole-program -O3 `echo $(ZONEC_OBJECTS) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJECTS) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o zonec -combine -fwhole-program `echo $(ZONEC_OBJECTS) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
 
 nsd:	$(NSD_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBS)
