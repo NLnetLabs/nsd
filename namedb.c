@@ -124,13 +124,13 @@ domain_table_search(domain_table_type *table,
 	assert(closest_encloser);
 
 #ifdef USE_RADIX_TREE
-	/*
 	exact = radname_find_less_equal(table->nametree, 
 		(uint8_t*)dname_name(dname),
 		dname->name_size, (struct radnode**)closest_match);
-	*/
+	/*
 	exact = radix_dname_find_less_equal(table->nametree, dname,
 		(struct radnode**)closest_match);
+	*/
 	*closest_match = (domain_type*)((*(struct radnode**)closest_match)->elem);
 #else
 	exact = rbtree_find_less_equal(table->names_to_domains, dname, (rbnode_t **) closest_match);
