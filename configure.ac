@@ -241,6 +241,8 @@ fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 CHECK_COMPILER_FLAG(O2, [], [ CFLAGS="-g" ])
+CHECK_COMPILER_FLAG(fwhole-program, [CCWHOLE="whole"], [ CCWHOLE="unwhole" ])
+AC_SUBST(CCWHOLE)
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_UID_T

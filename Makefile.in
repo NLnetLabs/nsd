@@ -41,6 +41,7 @@ INSTALL_DATA	= $(INSTALL) -m 644
 
 YACC		= @YACC@
 LEX		= @LEX@
+CCWHOLE		= @CCWHOLE@
 
 COMPILE		= $(CC) $(CPPFLAGS) $(CFLAGS)
 LINK		= $(CC) $(CFLAGS) $(LDFLAGS)
@@ -309,7 +310,9 @@ CUTEST_OBJECTS		=			\
 	cutest_util.o 				\
 	cutest.o
 
-all:	$(TARGETS)
+all:	$(CCWHOLE)
+
+unwhole:	$(TARGETS)
 
 $(ALL_OBJECTS):
 	$(COMPILE) -c $<
@@ -358,6 +361,11 @@ uninstall:
 	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(dbdir) directory by hand."
 
 test: 
+
+whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
+	if test -n "$(CCWHOLE)"; then echo yes; else echo no; fi
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program -O3 `echo $(NSD_OBJECTS) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o zonec -combine -fwhole-program -O3 `echo $(ZONEC_OBJECTS) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
 
 nsd:	$(NSD_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBS)
