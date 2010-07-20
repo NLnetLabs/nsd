@@ -612,6 +612,15 @@ case "$enable_mmap" in
                 ;;
 esac
 
+AC_ARG_ENABLE(radix-tree, AC_HELP_STRING([--enable-radix-tree], [Configure NSD to use radix tree instead of red-black tree]))
+case "$enable_radix_tree" in
+        yes)
+		AC_DEFINE_UNQUOTED([USE_RADIX_TREE], [], [Define this to configure to use the radix tree.])
+		;;
+        no|*)
+                ;;
+esac
+
 AH_BOTTOM([
 /* define before includes as it specifies what standard to use. */
 #if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \

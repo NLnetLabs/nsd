@@ -1,3 +1,6 @@
+20 July 2010: Wouter
+	- Branched from trunk. Added radix tree.
+
 19 July 2010: Matthijs
 	- fix big#314, NSEC next field now correctly escapes spaces.
 	  Also fixes label overflow issue.

@@ -88,6 +88,7 @@ ALL_OBJECTS	=			\
 	packet.o			\
 	query.o				\
 	rbtree.o			\
+	radtree.o			\
 	rdata.o				\
 	region-allocator.o		\
 	server.o			\
@@ -123,6 +124,7 @@ NSD_OBJECTS	=				\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
+	radtree.o				\
 	rdata.o					\
 	region-allocator.o			\
 	server.o				\
@@ -153,6 +155,7 @@ ZONEC_OBJECTS	=				\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
+	radtree.o				\
 	rdata.o					\
 	region-allocator.o			\
 	tsig.o					\
@@ -180,6 +183,7 @@ NSD_NOTIFY_OBJECTS	=			\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
+	radtree.o				\
 	rdata.o                                 \
 	region-allocator.o			\
 	tsig.o					\
@@ -204,6 +208,7 @@ NSD_XFER_OBJECTS	=			\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
+	radtree.o				\
 	rdata.o					\
 	region-allocator.o			\
 	tsig.o					\
@@ -228,6 +233,7 @@ NSD_CHECKCONF_OBJECTS	=			\
 	packet.o				\
 	query.o					\
 	rbtree.o                                \
+	radtree.o				\
 	rdata.o                                 \
 	region-allocator.o                      \
 	tsig.o					\
@@ -254,6 +260,7 @@ NSD_PATCH_OBJECTS	=			\
 	packet.o				\
 	query.o					\
 	rbtree.o                                \
+	radtree.o				\
 	rdata.o                                 \
 	region-allocator.o                      \
 	tsig.o					\
@@ -281,6 +288,7 @@ CUTEST_OBJECTS		=			\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
+	radtree.o				\
 	rdata.o					\
 	region-allocator.o			\
 	server.o				\
@@ -564,6 +572,7 @@ packet.o: $(srcdir)/packet.c config.h $(srcdir)/packet.h $(srcdir)/dns.h $(srcdi
 query.o: $(srcdir)/query.c config.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
  $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/nsec3.h
+radtree.o: $(srcdir)/radtree.c config.h $(srcdir)/radtree.h
 rbtree.o: $(srcdir)/rbtree.c config.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h
 rdata.o: $(srcdir)/rdata.c config.h $(srcdir)/rdata.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/zonec.h
