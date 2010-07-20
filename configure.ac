@@ -7,7 +7,6 @@ sinclude(acx_nlnetlabs.m4)
 AC_INIT(NSD,3.2.6,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
-CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"`
 AC_AIX
 
 dnl
@@ -241,7 +240,7 @@ fi
 ])dnl
 
 # Checks for typedefs, structures, and compiler characteristics.
-CHECK_COMPILER_FLAG(O2, [], [ CFLAGS="-g" ])
+CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-02//g"` ])
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_UID_T
