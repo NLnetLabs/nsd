@@ -208,12 +208,13 @@ nsec3_find_cover(namedb_type* db, zone_type* zone,
 	exact = domain_table_search(
 		db->domains, hashname, &closest_match, &closest_encloser);
 	/* exact match of hashed domain name + it has an NSEC3? */
-	if(exact &&
-	   nsec3_rrset_params_ok(NULL,
-	   	domain_find_rrset(closest_encloser, zone, TYPE_NSEC3))) {
+	if(exact) {
+		if(nsec3_rrset_params_ok(NULL, domain_find_rrset(
+			closest_encloser, zone, TYPE_NSEC3))) {
 		*result = closest_encloser;
 		assert(*result != 0);
 		return 1;
+		}
 	}
 
 	/* find covering NSEC3 record, lexicographically before the closest match */
