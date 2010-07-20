@@ -1,6 +1,6 @@
 20 July 2010: Wouter
 	- Branched from trunk. Added radix tree.
-	- use -fwhole-program and -O3 if gcc.
+	- use -fwhole-program if gcc supports it.
 
 19 July 2010: Matthijs
 	- fix big#314, NSEC next field now correctly escapes spaces.
