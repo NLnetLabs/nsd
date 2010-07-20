@@ -128,7 +128,6 @@ struct radnode* radix_search(struct radtree* rt, uint8_t* k, radstrlen_t len);
 int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
 	struct radnode** result);
 
-
 /**
  * Return the first (smallest) element in the tree.
  * @param rt: the radix tree.
@@ -228,6 +227,5 @@ struct radnode* radname_insert(struct radtree* rt, uint8_t* d,
  * @param max: max length.
  */
 void radname_delete(struct radtree* rt, uint8_t* d, size_t max);
-
 
 #endif /* RADTREE_H */
