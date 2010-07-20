@@ -523,7 +523,11 @@ find_covering_nsec(domain_type *closest_match,
 	assert(nsec_rrset);
 
 	/* loop away temporary created domains. For real ones it is &RBTREE_NULL */
+#ifdef USE_RADIX_TREE
+	while (closest_match->rnode == NULL)
+#else
 	while (closest_match->node.parent == NULL)
+#endif
 		closest_match = closest_match->parent;
 	while (closest_match) {
 		*nsec_rrset = domain_find_rrset(closest_match, zone, TYPE_NSEC);
@@ -593,7 +597,12 @@ add_additional_rrsets(struct query *query, answer_type *answer,
 			domain_type *wildcard_child = domain_wildcard_child(match);
 			domain_type *temp = (domain_type *) region_alloc(
 				query->region, sizeof(domain_type));
+#ifdef USE_RADIX_TREE
+			temp->rnode = NULL;
+			temp->dname = additional->dname;
+#else
 			memcpy(&temp->node, &additional->node, sizeof(rbnode_t));
+#endif
 			temp->number = additional->number;
 			temp->parent = match;
 			temp->wildcard_child_closest_match = temp;
@@ -691,7 +700,12 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			return 0;
 		newdom->is_existing = 1;
 		newdom->parent = lastparent;
-		newdom->node.key = dname_partial_copy(q->region,
+#ifdef USE_RADIX_TREE
+		newdom->dname
+#else
+		newdom->node.key
+#endif
+			= dname_partial_copy(q->region,
 			from_name, domain_dname(src)->label_count + i + 1);
 		if(dname_compare(domain_dname(newdom), q->qname) == 0) {
 			/* 0 good for query name, otherwise new number */
@@ -714,7 +728,12 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			return 0;
 		newdom->is_existing = 0;
 		newdom->parent = lastparent;
-		newdom->node.key = dname_partial_copy(q->region,
+#ifdef USE_RADIX_TREE
+		newdom->dname
+#else
+		newdom->node.key
+#endif
+			= dname_partial_copy(q->region,
 			to_name, domain_dname(to_closest_encloser)->label_count + i + 1);
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "created temp domain dest %d. %s nr %d", i,
 			dname_to_string(domain_dname(newdom), NULL),
@@ -1012,7 +1031,12 @@ answer_authoritative(struct nsd   *nsd,
 
 		match = (domain_type *) region_alloc(q->region,
 						     sizeof(domain_type));
+#ifdef USE_RADIX_TREE
+		match->rnode = NULL;
+		match->dname = wildcard_child->dname;
+#else
 		memcpy(&match->node, &wildcard_child->node, sizeof(rbnode_t));
+#endif
 		match->parent = closest_encloser;
 		match->wildcard_child_closest_match = match;
 		match->number = domain_number;

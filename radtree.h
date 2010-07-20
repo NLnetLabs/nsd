@@ -207,5 +207,27 @@ struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max);
 int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 	struct radnode** result);
 
+/**
+ * Insert radix element by domain name.
+ * @param rt: the radix tree
+ * @param d: domain name, no compression pointers.
+ * @param max: max length from d.
+ * @param elem: the element pointer to insert.
+ * @return NULL on failure - out of memory.
+ * 	NULL on failure - duplicate entry.
+ * 	NULL on failure - parse error.
+ * 	On success the radix node for this element.
+ */
+struct radnode* radname_insert(struct radtree* rt, uint8_t* d,
+	size_t max, void* elem);
+
+/**
+ * Delete element by domain name from radix tree.
+ * @param rt: the radix tree.
+ * @param d: the domain name.  If it is not in the tree nothing happens.
+ * @param max: max length.
+ */
+void radname_delete(struct radtree* rt, uint8_t* d, size_t max);
+
 
 #endif /* RADTREE_H */

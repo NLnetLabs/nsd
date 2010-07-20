@@ -165,7 +165,7 @@ static int radix_find_prefix_node(struct radtree* rt, uint8_t* k,
 		pos++;
 		if(n->array[byte].len != 0) {
 			/* must match additional string */
-			if(n->array[byte].len > len) {
+			if(pos+n->array[byte].len > len) {
 				return 1;
 			}
 			if(memcmp(&k[pos], n->array[byte].str,
@@ -1118,6 +1118,28 @@ void radname_r2d(uint8_t* k, radstrlen_t len, uint8_t* dname, size_t* dlen)
 	assert((int)dpos == (int)len+2);
 	assert(dname[dpos-1] == 0); /* ends with root label */
 	*dlen = dpos;
+}
+
+/** insert by domain name */
+struct radnode*
+radname_insert(struct radtree* rt, uint8_t* d, size_t max, void* elem)
+{
+	/* convert and insert */
+	uint8_t radname[300];
+	radstrlen_t len = (radstrlen_t)sizeof(radname);
+	if(max > sizeof(radname))
+		return NULL; /* too long */
+	radname_d2r(radname, &len, d, max);
+	return radix_insert(rt, radname, len, elem);
+}
+
+/** delete by domain name */
+void
+radname_delete(struct radtree* rt, uint8_t* d, size_t max)
+{
+	/* search and remove */
+	struct radnode* n = radname_search(rt, d, max);
+	if(n) radix_delete(rt, n);
 }
 
 /* search for exact match of domain name, converted to radname in tree */

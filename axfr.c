@@ -60,8 +60,16 @@ query_axfr(struct nsd *nsd, struct query *query)
 			return QUERY_PROCESSED;
 		}
 
+#ifdef USE_RADIX_TREE
+		if(radix_first(nsd->db->domains->nametree))
+			query->axfr_current_domain =
+				(domain_type*)radix_first(nsd->db->domains->
+				nametree)->elem;
+		else	query->axfr_current_domain = NULL;
+#else
 		query->axfr_current_domain
 			= (domain_type *) rbtree_first(nsd->db->domains->names_to_domains);
+#endif
 		query->axfr_current_rrset = NULL;
 		query->axfr_current_rr = 0;
 		if(query->tsig.status == TSIG_OK) {
