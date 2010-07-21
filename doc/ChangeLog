@@ -1,3 +1,7 @@
+21 July 2010: Wouter
+	- NUM_RECV_PER_SELECT 100 implemented, configure check if kernel
+	  supports this.
+
 20 July 2010: Wouter
 	- Branched from trunk. Added radix tree.
 	- use -fwhole-program if gcc supports it.

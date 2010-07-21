@@ -1329,6 +1329,9 @@ server_child(struct nsd *nsd)
 	server_shutdown(nsd);
 }
 
+#ifndef NONBLOCKING_IS_BROKEN
+#  define NUM_RECV_PER_SELECT 100
+#endif
 
 static void
 handle_udp(netio_type *ATTR_UNUSED(netio),
@@ -1338,34 +1341,42 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 	struct udp_handler_data *data
 		= (struct udp_handler_data *) handler->user_data;
 	int received, sent;
+#ifndef NONBLOCKING_IS_BROKEN
+	int i;
+#endif
 	struct query *q = data->query;
 
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
 
-	/* Account... */
-	if (data->socket->addr->ai_family == AF_INET) {
-		STATUP(data->nsd, qudp);
-	} else if (data->socket->addr->ai_family == AF_INET6) {
-		STATUP(data->nsd, qudp6);
-	}
+#ifndef NONBLOCKING_IS_BROKEN
+	for(i=0; i<NUM_RECV_PER_SELECT; i++) {
+#endif
+		/* Initialize the query... */
+		query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
 
-	/* Initialize the query... */
-	query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
-
-	received = recvfrom(handler->fd,
-			    buffer_begin(q->packet),
-			    buffer_remaining(q->packet),
-			    0,
-			    (struct sockaddr *)&q->addr,
-			    &q->addrlen);
-	if (received == -1) {
-		if (errno != EAGAIN && errno != EINTR) {
-			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
-			STATUP(data->nsd, rxerr);
+		received = recvfrom(handler->fd,
+				    buffer_begin(q->packet),
+				    buffer_remaining(q->packet),
+				    0,
+				    (struct sockaddr *)&q->addr,
+				    &q->addrlen);
+		if (received == -1) {
+			if (errno != EAGAIN && errno != EINTR) {
+				log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
+				STATUP(data->nsd, rxerr);
+			}
+			return;
 		}
-	} else {
+
+		/* Account... */
+		if (data->socket->addr->ai_family == AF_INET) {
+			STATUP(data->nsd, qudp);
+		} else if (data->socket->addr->ai_family == AF_INET6) {
+			STATUP(data->nsd, qudp6);
+		}
+
 		buffer_skip(q->packet, received);
 		buffer_flip(q->packet);
 
@@ -1402,7 +1413,9 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 		} else {
 			STATUP(data->nsd, dropped);
 		}
+#ifndef NONBLOCKING_IS_BROKEN
 	}
+#endif
 }
 
 

@@ -384,6 +384,7 @@ fi
 ])dnl
 
 AC_CHECK_STRPTIME_WORKS
+ACX_CHECK_NONBLOCKING_BROKEN
 
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
