@@ -1,3 +1,6 @@
+2 Aug 2010: Matthijs
+	- Bump to 3.2.7.
+
 19 July 2010: Matthijs
 	- fix big#314, NSEC next field now correctly escapes spaces.
 	  Also fixes label overflow issue.
