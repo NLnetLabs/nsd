@@ -241,7 +241,67 @@ fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
-CHECK_COMPILER_FLAG(fwhole-program, [CCWHOLE="whole"], [ CCWHOLE="unwhole" ])
+CHECK_COMPILER_FLAG(fwhole-program, [
+	# check if it really works
+	AC_MSG_CHECKING([if -combine and system headers work])
+cat >conftest1.c <<EOF 
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+
+struct nsd {
+	char* pidfile;
+	unsigned long pid;
+};
+
+static struct nsd nsd;
+
+void log_msg(int x, char* s, ...) { }
+
+int write_data(FILE* f, char* buf, size_t len) { }
+
+int writepid(struct nsd *nsd) {
+	FILE * fd;
+	char pidbuf[[32]];
+
+	memset(&fd, 0, sizeof(fd));
+
+	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
+		log_msg(1, "cannot open pidfile %s: %s",
+			nsd->pidfile, strerror(errno));
+		return -1;
+	}
+
+	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
+		log_msg(1, "cannot write pidfile %s: %s",
+			nsd->pidfile, strerror(errno));
+		fclose(fd);
+		return -1;
+	}
+	fclose(fd);
+
+	return 0;
+}
+
+int main(void)
+{
+	return writepid(&nsd);
+}
+EOF
+cat >conftest2.c <<EOF
+#include <string.h>
+#include <stdio.h>
+EOF
+	if $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >/dev/null 2>&1; then
+		AC_MSG_RESULT(yes)
+		CCWHOLE="whole"
+		CHECK_COMPILER_FLAG(flto, [CFLAGS="$CFLAGS -flto"], [])
+	else
+		AC_MSG_RESULT(no)
+		CCWHOLE="unwhole"
+	fi
+	rm -f conftest1.c conftest2.c conftest.out
+], [ CCWHOLE="unwhole" ])
 AC_SUBST(CCWHOLE)
 AC_C_CONST
 AC_C_INLINE
