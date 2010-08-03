@@ -527,7 +527,7 @@ AC_ARG_WITH([facility],
 AC_DEFINE_UNQUOTED([FACILITY], $facility, [Define to the default facility for syslog.])
 
 dnl
-dnl Determine the maximum number of interfaces that are allowed
+dnl Determine the maximum number of ip-addresses that are allowed
 dnl
 max_ips=8
 AC_ARG_WITH([max_ips],
