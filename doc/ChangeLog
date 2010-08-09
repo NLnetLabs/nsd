@@ -1,5 +1,6 @@
 9 Aug 2010: Matthijs
 	- nsdc return 1 outside function, should be exit 1
+	- Bug #320: arc4random
 
 2 Aug 2010: Matthijs
 	- Bump to 3.2.7.

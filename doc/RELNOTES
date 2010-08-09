@@ -3,6 +3,9 @@ NSD RELEASE NOTES
 3.2.7 (UPCOMING RELEASE)
 =============
 
+BUG FIXES:
+	- Bugfix #320: use arcrandom(4) for QID generation if available.
+
 3.2.6
 =============
 
