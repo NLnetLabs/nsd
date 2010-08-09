@@ -835,7 +835,7 @@ uint16_t
 qid_generate(void)
 {
 #ifdef HAVE_ARC4RANDOM_UNIFORM
-    return (uint16_t) arc4random_uniform();
+    return (uint16_t) arc4random_uniform(65536);
 #elif HAVE_ARC4RANDOM
     return (uint16_t) arc4random();
 #else
