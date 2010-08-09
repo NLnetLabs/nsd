@@ -743,12 +743,14 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);
 	}
-	log_msg(LOG_INFO, "memory recyclebin holds %lu bytes", (unsigned long)
-		region_get_recycle_size(nsd->db->region));
-#ifndef NDEBUG
-	if(nsd_debug_level >= 1)
-		region_log_stats(nsd->db->region);
-#endif /* NDEBUG */
+
+	log_msg(LOG_INFO, "global region dump stats: ");
+	region_log_stats(nsd->region);
+	log_msg(LOG_INFO, "db region dump stats: ");
+	region_log_stats(nsd->db->region);
+	log_msg(LOG_INFO, "domain table holds %u nodes",
+		domain_table_count(nsd->db->domains));
+
 #ifdef NSEC3
 	prehash(nsd->db, 1);
 #endif /* NSEC3 */

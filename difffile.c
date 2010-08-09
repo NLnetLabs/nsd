@@ -1411,6 +1411,9 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		}
 	}
 
+	log_msg(LOG_INFO, "difffile dump stats: ");
+	region_log_stats(data->region);
+
 	region_destroy(data->region);
 	fclose(df);
 	return 1;
