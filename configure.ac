@@ -4,7 +4,7 @@ dnl
 
 sinclude(acx_nlnetlabs.m4)
 
-AC_INIT(NSD,3.2.6,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,3.2.7,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 AC_AIX
@@ -463,6 +463,7 @@ AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
 AC_FUNC_FSEEKO
 AC_SYS_LARGEFILE
+AC_CHECK_FUNCS([arc4random arc4random_uniform])
 AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam])
 
 # check if setreuid en setregid fail, on MacOSX10.4(darwin8).
@@ -527,7 +528,7 @@ AC_ARG_WITH([facility],
 AC_DEFINE_UNQUOTED([FACILITY], $facility, [Define to the default facility for syslog.])
 
 dnl
-dnl Determine the maximum number of interfaces that are allowed
+dnl Determine the maximum number of ip-addresses that are allowed
 dnl
 max_ips=8
 AC_ARG_WITH([max_ips],
