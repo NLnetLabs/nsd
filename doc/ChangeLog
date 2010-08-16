@@ -1,3 +1,6 @@
+16 Aug 2010: Yuri
+	- zonec, MAXRDATALEN check was off by one.
+
 9 Aug 2010: Matthijs
 	- nsdc return 1 outside function, should be exit 1
 	- Bug #320: arc4random
