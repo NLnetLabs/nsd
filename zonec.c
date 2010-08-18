@@ -944,6 +944,36 @@ zadd_rdata_wireformat(uint16_t *data)
 	}
 }
 
+/* Used for TXT RR's to grow with undefined number of strings.
+ * Don't mix with zadd_rdata_wireformat.
+ * */
+void
+zappend_rdata_wireformat(uint16_t *data)
+{
+        uint16_t add_data_len, rdata_len;
+        /* Allocate 65K */
+        if (parser->current_rr.rdata_count == 0) {
+                if ((parser->current_rr.rdatas[0].data = (uint16_t *) malloc(
+                        sizeof(uint16_t) + 65535 * sizeof(uint8_t))) == NULL) {
+                        zc_error_prev_line("Could not get memory");
+                        return;
+                }
+                parser->current_rr.rdata_count = 1;
+                parser->current_rr.rdatas[0].data[0] = 0;
+        }
+        /* size of current rdata */
+        rdata_len = parser->current_rr.rdatas[0].data[0];
+        /* Size of additional data */
+        add_data_len = data[0];
+        if (rdata_len + add_data_len > 65535) {
+                zc_error_prev_line("too large rdata element");
+        } else {
+                memcpy((uint8_t *)parser->current_rr.rdatas[0].data + 2 
+                        + rdata_len, data + 1, add_data_len);
+                parser->current_rr.rdatas[0].data[0] += add_data_len;
+        }
+}
+
 void
 zadd_rdata_domain(domain_type *domain)
 {

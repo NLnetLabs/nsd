@@ -334,11 +334,11 @@ wire_rel_dname:	wire_label
 
 str_seq:	STR
     {
-	    zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str, $1.len));
+	    zappend_rdata_wireformat(zparser_conv_text(parser->region, $1.str, $1.len));
     }
     |	str_seq sp STR
     {
-	    zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str, $3.len));
+	    zappend_rdata_wireformat(zparser_conv_text(parser->region, $3.str, $3.len));
     }
     ;
 

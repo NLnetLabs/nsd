@@ -594,6 +594,9 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 		case RDATA_WF_LONG:
 			length = sizeof(uint32_t);
 			break;
+		case RDATA_WF_TEXTS:
+			length = data_size;
+			break;
 		case RDATA_WF_TEXT:
 		case RDATA_WF_BINARYWITHLENGTH:
 			/* Length is stored in the first byte.  */
