@@ -976,11 +976,11 @@ zadd_rdata_txt_wireformat(uint16_t *data, int last_string)
 	
 	/* Shrink, give back unused memory. If malloc fails we don't
 	 * care, we're just wasting some space. */
-	if (last_string && (tmp_data = (uint16_t *) malloc(rd0->data[0])) != NULL) {
-		memcpy(tmp_data, rd0->data, rd0->data[0]);
-		free(rd0->data);
-		rd0->data = tmp_data;
-	}
+		if (last_string && (tmp_data = (uint16_t *) malloc(rd0->data[0] + 2)) != NULL) {
+			memcpy(tmp_data, rd0->data, rd0->data[0] + 2);
+			free(rd0->data);
+			rd0->data = tmp_data;
+		}
 
 }
 
