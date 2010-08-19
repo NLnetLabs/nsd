@@ -944,34 +944,44 @@ zadd_rdata_wireformat(uint16_t *data)
 	}
 }
 
-/* Used for TXT RR's to grow with undefined number of strings.
+/**
+ * Used for TXT RR's to grow with undefined number of strings.
  * Don't mix with zadd_rdata_wireformat.
- * */
+ * If last_string, will free excessive memory.
+ */
 void
-zappend_rdata_wireformat(uint16_t *data)
+zadd_rdata_txt_wireformat(uint16_t *data, int last_string)
 {
-        uint16_t add_data_len, rdata_len;
-        /* Allocate 65K */
-        if (parser->current_rr.rdata_count == 0) {
-                if ((parser->current_rr.rdatas[0].data = (uint16_t *) malloc(
-                        sizeof(uint16_t) + 65535 * sizeof(uint8_t))) == NULL) {
-                        zc_error_prev_line("Could not get memory");
-                        return;
-                }
-                parser->current_rr.rdata_count = 1;
-                parser->current_rr.rdatas[0].data[0] = 0;
-        }
-        /* size of current rdata */
-        rdata_len = parser->current_rr.rdatas[0].data[0];
-        /* Size of additional data */
-        add_data_len = data[0];
-        if (rdata_len + add_data_len > 65535) {
-                zc_error_prev_line("too large rdata element");
-        } else {
-                memcpy((uint8_t *)parser->current_rr.rdatas[0].data + 2 
-                        + rdata_len, data + 1, add_data_len);
-                parser->current_rr.rdatas[0].data[0] += add_data_len;
-        }
+	uint16_t *tmp_data;
+	rdata_atom_type *rd0 = &parser->current_rr.rdatas[0];
+	
+	/* Allocate 65K */
+	if (parser->current_rr.rdata_count == 0) {
+		if ((rd0->data = (uint16_t *) malloc(
+			sizeof(uint16_t) + 65535 * sizeof(uint8_t))) == NULL) {
+			zc_error_prev_line("Could not allocate memory for TXT RR");
+			return;
+		}
+		parser->current_rr.rdata_count = 1;
+		rd0->data[0] = 0;
+	}
+	
+	if ((size_t)rd0->data[0] + (size_t)data[0] > 65535) {
+		zc_error_prev_line("too large rdata element");
+		return;
+	}
+	
+	memcpy((uint8_t *)rd0->data + 2 + rd0->data[0], data + 1, data[0]);
+	rd0->data[0] += data[0];
+	
+	/* Shrink, give back unused memory. If malloc fails we don't
+	 * care, we're just wasting some space. */
+	if (last_string && (tmp_data = (uint16_t *) malloc(rd0->data[0])) != NULL) {
+		memcpy(tmp_data, rd0->data, rd0->data[0]);
+		free(rd0->data);
+		rd0->data = tmp_data;
+	}
+
 }
 
 void
@@ -1290,10 +1300,10 @@ domain_find_rrset_any(domain_type *domain, uint16_t type)
 	while (result) {
 		if (rrset_rrtype(result) == type) {
 			return result;
-                }
+		}
 		result = result->next;
-        }
-        return NULL;
+	}
+	return NULL;
 }
 
 /*
