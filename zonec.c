@@ -946,42 +946,50 @@ zadd_rdata_wireformat(uint16_t *data)
 
 /**
  * Used for TXT RR's to grow with undefined number of strings.
- * Don't mix with zadd_rdata_wireformat.
- * If last_string, will free excessive memory.
  */
 void
-zadd_rdata_txt_wireformat(uint16_t *data, int last_string)
+zadd_rdata_txt_wireformat(uint16_t *data, int first)
 {
-	uint16_t *tmp_data;
-	rdata_atom_type *rd0 = &parser->current_rr.rdatas[0];
+	rdata_atom_type *rd;
 	
-	/* Allocate 65K */
-	if (parser->current_rr.rdata_count == 0) {
-		if ((rd0->data = (uint16_t *) malloc(
+	/* First STR in str_seq, allocate 65K in first unused rdata
+	 * else find last used rdata */
+	if (first) {
+		rd = &parser->current_rr.rdatas[parser->current_rr.rdata_count];
+		if ((rd->data = (uint16_t *) region_alloc(parser->region,
 			sizeof(uint16_t) + 65535 * sizeof(uint8_t))) == NULL) {
 			zc_error_prev_line("Could not allocate memory for TXT RR");
 			return;
 		}
-		parser->current_rr.rdata_count = 1;
-		rd0->data[0] = 0;
+		parser->current_rr.rdata_count++;
+		rd->data[0] = 0;
 	}
+	else
+		rd = &parser->current_rr.rdatas[parser->current_rr.rdata_count-1];
 	
-	if ((size_t)rd0->data[0] + (size_t)data[0] > 65535) {
+	if ((size_t)rd->data[0] + (size_t)data[0] > 65535) {
 		zc_error_prev_line("too large rdata element");
 		return;
 	}
 	
-	memcpy((uint8_t *)rd0->data + 2 + rd0->data[0], data + 1, data[0]);
-	rd0->data[0] += data[0];
-	
-	/* Shrink, give back unused memory. If malloc fails we don't
-	 * care, we're just wasting some space. */
-		if (last_string && (tmp_data = (uint16_t *) malloc(rd0->data[0] + 2)) != NULL) {
-			memcpy(tmp_data, rd0->data, rd0->data[0] + 2);
-			free(rd0->data);
-			rd0->data = tmp_data;
-		}
+	memcpy((uint8_t *)rd->data + 2 + rd->data[0], data + 1, data[0]);
+	rd->data[0] += data[0];
+}
 
+/**
+ * Clean up after last call of zadd_rdata_txt_wireformat
+ */
+void
+zadd_rdata_txt_clean_wireformat()
+{
+	uint16_t *tmp_data;
+	rdata_atom_type *rd = &parser->current_rr.rdatas[parser->current_rr.rdata_count-1];
+	if ((tmp_data = (uint16_t *) region_alloc(parser->region, 
+		rd->data[0] + 2)) != NULL) {
+		memcpy(tmp_data, rd->data, rd->data[0] + 2);
+		region_recycle(parser->region, rd->data, sizeof(uint16_t) + 65535 * sizeof(uint8_t));
+		rd->data = tmp_data;
+	}
 }
 
 void

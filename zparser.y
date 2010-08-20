@@ -661,6 +661,9 @@ rdata_mx:	STR sp dname trail
     ;
 
 rdata_txt:	str_seq trail
+    {
+	zadd_rdata_txt_clean_wireformat();
+    }
     ;
 
 /* RFC 1183 */
