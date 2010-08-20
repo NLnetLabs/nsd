@@ -134,6 +134,34 @@ rdata_text_to_string(buffer_type *output, rdata_atom_type rdata,
 }
 
 static int
+rdata_texts_to_string(buffer_type *output, rdata_atom_type rdata,
+	rr_type* ATTR_UNUSED(rr))
+{
+	uint16_t pos = 0;
+	const uint8_t *data = rdata_atom_data(rdata);
+	uint16_t length = *(uint16_t *)rdata.data;
+	size_t i;
+	
+	while (pos < length && pos + data[pos] < length) {
+		buffer_printf(output, "\"");
+		for (i = 1; i <= data[pos]; ++i) {
+			char ch = (char) data[pos + i];
+			if (isprint((int)ch)) {
+				if (ch == '"' || ch == '\\') {
+					buffer_printf(output, "\\");
+				}
+				buffer_printf(output, "%c", ch);
+			} else {
+				buffer_printf(output, "\\%03u", (unsigned) ch);
+			}
+		}
+		pos += data[pos]+1;
+		buffer_printf(output, pos < length?"\" ":"\"");
+	}
+	return 1;
+}
+
+static int
 rdata_byte_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
@@ -515,6 +543,7 @@ static rdata_to_string_type rdata_to_string_table[RDATA_ZF_UNKNOWN + 1] = {
 	rdata_dname_to_string,
 	rdata_dns_name_to_string,
 	rdata_text_to_string,
+	rdata_texts_to_string,
 	rdata_byte_to_string,
 	rdata_short_to_string,
 	rdata_long_to_string,
