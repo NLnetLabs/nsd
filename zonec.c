@@ -944,34 +944,52 @@ zadd_rdata_wireformat(uint16_t *data)
 	}
 }
 
-/* Used for TXT RR's to grow with undefined number of strings.
- * Don't mix with zadd_rdata_wireformat.
- * */
+/**
+ * Used for TXT RR's to grow with undefined number of strings.
+ */
 void
-zappend_rdata_wireformat(uint16_t *data)
+zadd_rdata_txt_wireformat(uint16_t *data, int first)
 {
-        uint16_t add_data_len, rdata_len;
-        /* Allocate 65K */
-        if (parser->current_rr.rdata_count == 0) {
-                if ((parser->current_rr.rdatas[0].data = (uint16_t *) malloc(
-                        sizeof(uint16_t) + 65535 * sizeof(uint8_t))) == NULL) {
-                        zc_error_prev_line("Could not get memory");
-                        return;
-                }
-                parser->current_rr.rdata_count = 1;
-                parser->current_rr.rdatas[0].data[0] = 0;
-        }
-        /* size of current rdata */
-        rdata_len = parser->current_rr.rdatas[0].data[0];
-        /* Size of additional data */
-        add_data_len = data[0];
-        if (rdata_len + add_data_len > 65535) {
-                zc_error_prev_line("too large rdata element");
-        } else {
-                memcpy((uint8_t *)parser->current_rr.rdatas[0].data + 2 
-                        + rdata_len, data + 1, add_data_len);
-                parser->current_rr.rdatas[0].data[0] += add_data_len;
-        }
+	rdata_atom_type *rd;
+	
+	/* First STR in str_seq, allocate 65K in first unused rdata
+	 * else find last used rdata */
+	if (first) {
+		rd = &parser->current_rr.rdatas[parser->current_rr.rdata_count];
+		if ((rd->data = (uint16_t *) region_alloc(parser->region,
+			sizeof(uint16_t) + 65535 * sizeof(uint8_t))) == NULL) {
+			zc_error_prev_line("Could not allocate memory for TXT RR");
+			return;
+		}
+		parser->current_rr.rdata_count++;
+		rd->data[0] = 0;
+	}
+	else
+		rd = &parser->current_rr.rdatas[parser->current_rr.rdata_count-1];
+	
+	if ((size_t)rd->data[0] + (size_t)data[0] > 65535) {
+		zc_error_prev_line("too large rdata element");
+		return;
+	}
+	
+	memcpy((uint8_t *)rd->data + 2 + rd->data[0], data + 1, data[0]);
+	rd->data[0] += data[0];
+}
+
+/**
+ * Clean up after last call of zadd_rdata_txt_wireformat
+ */
+void
+zadd_rdata_txt_clean_wireformat()
+{
+	uint16_t *tmp_data;
+	rdata_atom_type *rd = &parser->current_rr.rdatas[parser->current_rr.rdata_count-1];
+	if ((tmp_data = (uint16_t *) region_alloc(parser->region, 
+		rd->data[0] + 2)) != NULL) {
+		memcpy(tmp_data, rd->data, rd->data[0] + 2);
+		region_recycle(parser->region, rd->data, sizeof(uint16_t) + 65535 * sizeof(uint8_t));
+		rd->data = tmp_data;
+	}
 }
 
 void
@@ -1290,10 +1308,10 @@ domain_find_rrset_any(domain_type *domain, uint16_t type)
 	while (result) {
 		if (rrset_rrtype(result) == type) {
 			return result;
-                }
+		}
 		result = result->next;
-        }
-        return NULL;
+	}
+	return NULL;
 }
 
 /*
