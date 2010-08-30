@@ -956,7 +956,7 @@ zadd_rdata_txt_wireformat(uint16_t *data, int first)
 	 * else find last used rdata */
 	if (first) {
 		rd = &parser->current_rr.rdatas[parser->current_rr.rdata_count];
-		if ((rd->data = (uint16_t *) region_alloc(parser->region,
+		if ((rd->data = (uint16_t *) region_alloc(parser->rr_region,
 			sizeof(uint16_t) + 65535 * sizeof(uint8_t))) == NULL) {
 			zc_error_prev_line("Could not allocate memory for TXT RR");
 			return;
@@ -987,8 +987,12 @@ zadd_rdata_txt_clean_wireformat()
 	if ((tmp_data = (uint16_t *) region_alloc(parser->region, 
 		rd->data[0] + 2)) != NULL) {
 		memcpy(tmp_data, rd->data, rd->data[0] + 2);
-		region_recycle(parser->region, rd->data, sizeof(uint16_t) + 65535 * sizeof(uint8_t));
 		rd->data = tmp_data;
+	}
+	else {
+		/* We could not  */
+		zc_error_prev_line("could not allocate memory for rdata");
+		return;
 	}
 }
 
