@@ -405,11 +405,9 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 
 	region_destroy(dname_region);
 
-#ifndef NDEBUG
 	fprintf(stderr, "database region after loading domain names: ");
 	region_dump_stats(db->region, stderr);
 	fprintf(stderr, "\n");
-#endif
 
 	while ((rrset = read_rrset(db, dname_count, domains, zone_count, zones))) {
 		++rrset_count;
@@ -442,11 +440,9 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	fclose(db->fd);
 	db->fd = NULL;
 
-#ifndef NDEBUG
 	fprintf(stderr, "database region after loading database: ");
 	region_dump_stats(db->region, stderr);
 	fprintf(stderr, "\n");
-#endif
 
 	return db;
 }
@@ -467,4 +463,3 @@ namedb_fd_close (struct namedb *db)
 		fclose(db->fd);
 	}
 }
-

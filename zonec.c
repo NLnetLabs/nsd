@@ -1536,7 +1536,6 @@ main (int argc, char **argv)
 	}
 	check_dname(db);
 
-#ifndef NDEBUG
 	if (vflag > 0) {
 		fprintf(stdout, "global_region: ");
 		region_dump_stats(global_region, stdout);
@@ -1545,7 +1544,6 @@ main (int argc, char **argv)
 		region_dump_stats(db->region, stdout);
 		fprintf(stdout, "\n");
 	}
-#endif /* NDEBUG */
 
 	/* Close the database */
 	if (namedb_save(db) != 0) {
