@@ -990,7 +990,7 @@ zadd_rdata_txt_clean_wireformat()
 		rd->data = tmp_data;
 	}
 	else {
-		/* We could not get memory in non-volatile region */
+		/* We could not get memory in non-volatile region. */
 		zc_error_prev_line("could not allocate memory for rdata");
 		return;
 	}
