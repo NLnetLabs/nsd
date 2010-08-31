@@ -1,3 +1,6 @@
+23 Aug 2010: Wouter
+	- fix bug#325: remove stale files from cvs from repo.
+
 16 Aug 2010: Yuri
 	- zonec, MAXRDATALEN check was off by one.
 
