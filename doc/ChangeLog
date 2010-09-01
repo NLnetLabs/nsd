@@ -1,3 +1,6 @@
+1 September 2010: Yuri
+	- Support for huge TXT records.
+
 23 Aug 2010: Wouter
 	- fix bug#325: remove stale files from cvs from repo.
 
