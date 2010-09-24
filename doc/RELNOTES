@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 
 BUG FIXES:
 	- Bugfix #320: use arcrandom(4) for QID generation if available.
+	- Bugfix #328: nsd-checkconf overrun.
 
 3.2.6
 =============
