@@ -1,3 +1,6 @@
+12 October 2010: Wouter
+	- Fix compilation on SunOS4.
+
 24 September 2010: Matthijs
 	- Bug #328: nsd-checkconf overrun
 

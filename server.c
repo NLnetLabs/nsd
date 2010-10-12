@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <netdb.h>
+#ifndef SHUT_WR
+#define SHUT_WR 1
+#endif
 
 #include "axfr.h"
 #include "namedb.h"
