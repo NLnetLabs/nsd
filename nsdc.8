@@ -106,7 +106,9 @@ used to secure the notification message to that slave server.
 Merge zone transfer changes back to zone files. It reads in the nsd 
 database (nsd.db) and difffile (ixfr.db), and overwrites the zone 
 text files if they have been updated. Running this regularly 
-ensures that the difffile does not grow infinitely.
+ensures that the difffile does not grow infinitely. If any zone text
+files have been changed (including those of the master zones), the
+nsd.db is rebuild and nsd is reloaded.
 .SH "OPTIONS"
 .TP
 .B \-c\fI configfile
