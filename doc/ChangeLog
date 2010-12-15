@@ -1,3 +1,8 @@
+15 December 2010: Wouter
+	- fix race condition when nsd is stopped while a reload is in
+	  progress, often when rc.d does nsdc patch; nsdc stop in sequence.
+	  reload is now signalled to stop too.
+
 10 December 2010: Matthijs
 	- fix bug#306: applied documentation patch
 
