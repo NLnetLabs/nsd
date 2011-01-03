@@ -230,16 +230,12 @@ do_reload() {
 	signal "HUP"
 }
 
-# send_updates zone_name ifc_spec {ip_spec key_spec}
+# send_updates zone_name {ip_spec key_spec}
 send_updates() {
 	local zonename=$1
 	# set local interface
-	ifc_spec=""
 	if test I$2 = INOKEY; then
 		return
-	fi
-	if test I$2 != INOKEY -a I$2 != INOIFC; then
-		ifc_spec="-a $2"
 	fi
 
 	shift 2
@@ -264,8 +260,8 @@ send_updates() {
 				secret="-y ${key_spec}:${secret}"
 			fi
 			if test K${key_spec} != KBLOCKED; then
-				#echo "${sbindir}/nsd-notify ${ifc_spec} ${port} -z ${zonename} ${ip_spec} # with ${key_spec}"
-				${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} \
+				echo "${sbindir}/nsd-notify ${port} secret -z ${zonename} ${ip_spec}  - with ${key_spec}"
+				${sbindir}/nsd-notify ${port} ${secret} \
 				  -z ${zonename} ${ip_spec} && update_sent="yes"
 			fi
 		fi
@@ -310,7 +306,7 @@ send_notify() {
 				port="-p "`echo ${ip_spec} | sed -e 's/[^@]*@\([0-9]*\)/\1/'`
 				ipaddr=`echo ${ip_spec} | sed -e 's/\([^@]*\)@[0-9]*/\1/'`
 			fi
-			#echo "${sbindir}/nsd-notify ${ifc_spec} ${port} -z ${zonename} ${ip_spec} # with ${key_spec}"
+			echo "${sbindir}/nsd-notify ${ifc_spec} ${port} -z ${zonename} ${ipaddr} # with ${key_spec}"
 			${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} \
 			  -z ${zonename} ${ipaddr}
 		fi
