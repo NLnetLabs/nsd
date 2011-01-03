@@ -393,14 +393,8 @@ update)
 		zoneslist=`${nsd_checkconf} -o zones ${configfile}`
 		for zonename in ${zoneslist}; do
 			notify_allow=`${nsd_checkconf} -z "${zonename}" -o allow-notify ${configfile}`
-			local_ifc=`${nsd_checkconf} -z "${zonename}" -o outgoing-interface ${configfile}`
-			if test "" = "${local_ifc}"; then
-				local_ifc="NOIFC"
-			fi
 			if test "" != "${notify_allow}"; then
-				for ifc in ${local_ifc}; do
-					send_updates ${zonename} ${ifc} ${notify_allow}
-				done
+				send_updates ${zonename} ${notify_allow}
 			fi
 		done
 	else
