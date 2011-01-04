@@ -1,3 +1,6 @@
+4 January 2011: Yuri
+	- Doc spelling error, bug#345
+
 15 December 2010: Wouter
 	- fix race condition when nsd is stopped while a reload is in
 	  progress, often when rc.d does nsdc patch; nsdc stop in sequence.
