@@ -176,7 +176,7 @@ addition to standard configure options, one may use the following:
 
   --with-nsd_conf_file=path
 
-	Pathname to the NSD configuration file, default /ect/nsd/nsd.conf
+	Pathname to the NSD configuration file, default /etc/nsd/nsd.conf
 
   --with-pidfile=path
 
