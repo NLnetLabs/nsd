@@ -4,6 +4,7 @@
 	- Update documentation about acl options
 	- Code review
 	- Fix nsdc so it can use hmac-sha* tsigs
+	- Bug #347: NSEC3 nodata QTYPE=DS not at delegation mismatch
 
 4 January 2011: Yuri
 	- Doc spelling error, bug#345
