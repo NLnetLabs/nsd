@@ -3,6 +3,7 @@
 	- Force outgoing interface to be a single range acl
 	- Update documentation about acl options
 	- Code review
+	- Fix nsdc so it can use hmac-sha* tsigs
 
 4 January 2011: Yuri
 	- Doc spelling error, bug#345

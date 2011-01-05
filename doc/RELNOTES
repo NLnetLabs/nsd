@@ -4,10 +4,13 @@ NSD RELEASE NOTES
 =============
 
 BUG FIXES:
-	- Bugfix #306: Fix manpage errors.
+	- Bugfix #253: Don't put NS RRs in a response with QTYPE=DNSKEY.	
 	- Bugfix #320: use arcrandom(4) for QID generation if available.
 	- Bugfix #328: nsd-checkconf overrun.
+	- Bugfix #343: nsdc update fix
 	- Bugfix: Allow for huge amount of strings in TXT (and other) records.
+	- Bugfix: nsdc can now deal with tsig algorithms other than hmac-md5.
+	- Fixed several parts in the documentation, including #306, #345.
 
 3.2.6
 =============
