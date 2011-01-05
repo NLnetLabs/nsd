@@ -483,13 +483,14 @@ nsec3_add_ds_proof(struct query *query, struct answer *answer,
 		/* use NSEC3 record from above the zone cut. */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 			domain->nsec3_ds_parent_cover);
+	} else if (!delegpt && domain->nsec3_is_exact) {
+		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
+			domain->nsec3_cover);
 	} else {
 		/* prove closest provable encloser */
-		domain_type* par = domain;
-		if (delegpt) {
-			par = domain->parent;
-		}
+		domain_type* par = domain->parent;
 		domain_type* prev_par = 0;
+
 		while(par && !par->nsec3_is_exact)
 		{
 			prev_par = par;
