@@ -15,6 +15,7 @@
 
 10 December 2010: Matthijs
 	- fix bug#306: applied documentation patch
+	- fix bug#253: now also for QTYPE=DS.
 
 12 October 2010: Wouter
 	- Fix compilation on SunOS4.
@@ -39,7 +40,7 @@
 	- Bump to 3.2.7.
 
 19 July 2010: Matthijs
-	- fix big#314, NSEC next field now correctly escapes spaces.
+	- fix bug#314, NSEC next field now correctly escapes spaces.
 	  Also fixes label overflow issue.
 	- Put back HAVE_SSL.
 	- Code reviews.
@@ -149,7 +150,8 @@
 
 13 July 2009: Matthijs
 	- Bug 236: allow RRs before the SOA RR.
-	- Bug 253: No need for NS RRset in authority section, when returning final answer for QTYPE=DNSKEY.
+	- Bug 253: No need for NS RRset in authority section, when returning
+	  final answer for QTYPE=DNSKEY.
 
 29 June 2009: Wouter
 	- patch for use of Linux IPV6_MTU option, so that on linux the default
