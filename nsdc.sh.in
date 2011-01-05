@@ -251,7 +251,8 @@ send_updates() {
 			secret=""
 			if test K${key_spec} != KNOKEY -a K${key_spec} != KBLOCKED; then
 				secret=`${nsd_checkconf} -s ${key_spec} ${configfile}`
-				secret="-y ${key_spec}:${secret}"
+				algo=`${nsd_checkconf} -a ${key_spec} ${configfile}`
+				secret="-y ${key_spec}:${secret}:${algo}"
 			fi
 			if test K${key_spec} != KBLOCKED; then
 				echo "${sbindir}/nsd-notify -a ${ip_spec} ${port} ${secret} -z ${zonename} ${ip_spec}"
@@ -286,7 +287,8 @@ send_notify() {
 
 		if test K${key_spec} != KNOKEY -a K${key_spec} != KBLOCKED; then
 			secret=`${nsd_checkconf} -s ${key_spec} ${configfile}`
-			secret="-y ${key_spec}:${secret}"
+			algo=`${nsd_checkconf} -a ${key_spec} ${configfile}`
+			secret="-y ${key_spec}:${secret}:${algo}"
 		fi
 		if test K${key_spec} != KBLOCKED; then
 			port=""
