@@ -462,6 +462,9 @@ main(int argc, char* argv[])
 	const char* configfile;
 	nsd_options_t *options;
 
+	log_init("nsd-checkconf");
+
+
         /* Parse the command line... */
         while ((c = getopt(argc, argv, "vo:s:z:")) != -1) {
 		switch (c) {

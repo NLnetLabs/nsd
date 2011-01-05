@@ -139,9 +139,9 @@ rdata_texts_to_string(buffer_type *output, rdata_atom_type rdata,
 {
 	uint16_t pos = 0;
 	const uint8_t *data = rdata_atom_data(rdata);
-	uint16_t length = *(uint16_t *)rdata.data;
+	uint16_t length = rdata_atom_size(rdata);
 	size_t i;
-	
+
 	while (pos < length && pos + data[pos] < length) {
 		buffer_printf(output, "\"");
 		for (i = 1; i <= data[pos]; ++i) {
