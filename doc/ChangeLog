@@ -1,3 +1,9 @@
+5 January 2011: Matthijs
+	- Fix nsdc update and nsdc notify
+	- Force outgoing interface to be a single range acl
+	- Update documentation about acl options
+	- Code review
+
 4 January 2011: Yuri
 	- Doc spelling error, bug#345
 
