@@ -44,6 +44,7 @@ SERVER
   on the master. 
 - when verbose, print the ip adresses that cause network errors to the log.
 - the server reaps children every minute, this is bad for powersaving laptops.
+- Implement AXFR clarify, RFC 5936.
 
 SECURITY
 
@@ -59,6 +60,7 @@ PURITY
 - conformance to RFC: NSD accepts TSIG before OPT in additional, but this
   is not legal, only TSIG after OPT is allowed.
 - Allow for username: uid:gid, next to uid.gid.
+- Log error when serial in xfrd.state is incosistent with that from nsd.db.
 
 NSD PATCH
 - -q(?) option: no output when no patch necessary
@@ -73,6 +75,8 @@ CLEANUP
   datatype, easier reading and printing, avoids ugly special cases.
 
 DOCUMENTATION
+- document what to do when adding (or removing) a config option (what
+  changes have to be made in the code).
 
 OPTIMISATIONS
 - delete entire zone for AFXR during reload read in,
@@ -100,6 +104,9 @@ OPTIMISATIONS
 - nsd manual programs contain identical functions that are written down multiple 
   times. Do we need to introduce a util_programs.c or something?
 - speed up NSEC3 prehashing (Secure64 request).
+- reduce the memory leak on zone transfers (deleted domains are not removed from
+  tree).
+- Options server: ip-address: and zone: outgoing-interface are pretty much the same.
 
 TESTS
 - tpkg test for bug 157: a valid NSID EDNS0 option generates FORMERR on
@@ -107,4 +114,5 @@ TESTS
 - tpkg test for bug 163: unable to read nsd.db when chroot'ed
 - tpkg test for bug 164: chkconfig
 - Update tpkg long tests
+- tpkg test for bug 347: NSEC3 no data tests when requesting DS
 
