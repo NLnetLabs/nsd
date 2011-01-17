@@ -255,7 +255,7 @@ send_updates() {
 				secret="-y ${key_spec}:${secret}:${algo}"
 			fi
 			if test K${key_spec} != KBLOCKED; then
-				echo "${sbindir}/nsd-notify -a ${ip_spec} ${port} ${secret} -z ${zonename} ${ip_spec}"
+				#echo "${sbindir}/nsd-notify -a ${ip_spec} ${port} ${secret} -z ${zonename} ${ip_spec}"
 				${sbindir}/nsd-notify -a ${ip_spec} ${port} ${secret} -z ${zonename} ${ip_spec} && update_sent="yes"
 			fi
 		fi
@@ -297,7 +297,7 @@ send_notify() {
 				port="-p "`echo ${ip_spec} | sed -e 's/[^@]*@\([0-9]*\)/\1/'`
 				ipaddr=`echo ${ip_spec} | sed -e 's/\([^@]*\)@[0-9]*/\1/'`
 			fi
-			echo "${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} -z ${zonename} ${ipaddr}"
+			#echo "${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} -z ${zonename} ${ipaddr}"
 			${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} -z ${zonename} ${ipaddr}
 		fi
 	done
