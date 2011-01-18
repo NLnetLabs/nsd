@@ -518,6 +518,14 @@ server_prepare(struct nsd *nsd)
 			nsd->dbfile, strerror(errno));
 		return -1;
 	}
+	log_msg(LOG_INFO, "between db and difffile: ");
+	log_msg(LOG_INFO, "global region dump stats: ");
+	region_log_stats(nsd->region);
+	log_msg(LOG_INFO, "db region dump stats: ");
+	region_log_stats(nsd->db->region);
+	log_msg(LOG_INFO, "domain table holds %u nodes",
+		domain_table_count(nsd->db->domains));
+
 
 	/* Read diff file */
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
@@ -537,6 +545,14 @@ server_prepare(struct nsd *nsd)
 	time(&nsd->st.boot);
 	set_bind8_alarm(nsd);
 #endif /* BIND8_STATS */
+
+	log_msg(LOG_INFO, "at start: ");
+	log_msg(LOG_INFO, "global region dump stats: ");
+	region_log_stats(nsd->region);
+	log_msg(LOG_INFO, "db region dump stats: ");
+	region_log_stats(nsd->db->region);
+	log_msg(LOG_INFO, "domain table holds %u nodes",
+		domain_table_count(nsd->db->domains));
 
 	return 0;
 }
