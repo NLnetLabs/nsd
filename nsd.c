@@ -394,6 +394,9 @@ main(int argc, char *argv[])
 	char* argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
 
 	log_init("nsd");
+#ifdef MEMCHECK
+	atexit(memcheck_leak);
+#endif
 
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
@@ -1052,6 +1055,9 @@ main(int argc, char *argv[])
 	/* Really take off */
 	log_msg(LOG_NOTICE, "%s started (%s), pid %d",
 		argv0, PACKAGE_STRING, (int) nsd.pid);
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck in-use when started %u", memcheck_total());
+#endif
 
 	if (nsd.server_kind == NSD_SERVER_MAIN) {
 		server_main(&nsd);

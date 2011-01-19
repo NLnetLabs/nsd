@@ -35,6 +35,18 @@ typedef struct region region_type;
 
 #endif /* USE_MMAP_ALLOC */
 
+#ifdef MEMCHECK
+#undef strdup
+#define strdup(s) strdup_nsd(s, __FILE__, __LINE__, __func__)
+unsigned memcheck_total(void);
+void memcheck_leak(void);
+region_type* regcreate_nsd(void);
+region_type* regcreate_custom_nsd(size_t chunk_size,
+                                  size_t large_object_size,
+                                  size_t initial_cleanup_size,
+                                  int recycle);
+#else /* MEMCHECK */
+
 /*
  * Create a new region.
  */
@@ -58,6 +70,7 @@ region_type *region_create_custom(void *(*allocator)(size_t),
 				  size_t initial_cleanup_size,
 				  int recycle);
 
+#endif /* MEMCHECK */
 
 /*
  * Destroy REGION.  All memory associated with REGION is freed as if

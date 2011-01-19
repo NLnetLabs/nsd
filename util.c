@@ -222,6 +222,7 @@ lookup_by_id(lookup_table_type *table, int id)
 	return NULL;
 }
 
+#ifndef MEMCHECK
 void *
 xalloc(size_t size)
 {
@@ -252,6 +253,7 @@ xrealloc(void *ptr, size_t size)
 	}
 	return ptr;
 }
+#endif /* not MEMCHECK */
 
 #ifdef USE_MMAP_ALLOC
 

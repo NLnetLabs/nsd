@@ -22,6 +22,11 @@
 #define ALIGNMENT          (sizeof(void *))
 #define CHECK_DOUBLE_FREE 0 /* set to 1 to perform expensive check for double recycle() */
 
+#ifdef MEMCHECK
+#undef region_create
+#undef region_create_custom
+#endif
+
 typedef struct cleanup cleanup_type;
 struct cleanup
 {
@@ -460,3 +465,246 @@ region_log_stats(region_type *region)
 	}
 	log_msg(LOG_INFO, "memory: %s", buf);
 }
+
+/* debug routine for memory allocation checks */
+#ifdef MEMCHECK
+/* magic for buffer under/overflow checks */
+#define MEMMAGIC 0x1234ffab
+/* memory allocation prefix: prev,nextptr,size,magic */
+struct mem {
+	struct mem* prev;
+	struct mem* next;
+	unsigned size;
+	const char* file;
+	int line;
+	const char* func;
+	unsigned magic;
+	uint8_t data[0];
+};
+/* memory allocation postfix: magic,size */
+#define MEMPAD (sizeof(struct mem)+sizeof(unsigned)+sizeof(unsigned))
+
+/* double linked list for memory allocations */
+static struct mem* memlist = NULL;
+/* total amount of memory allocated (without overhead) */
+static unsigned total_alloc = 0;
+#undef malloc
+#undef free
+
+/* get end pointer for mem struct */
+static unsigned*
+get_end_ptr(struct mem* m)
+{
+	return (unsigned*)(&m->data[m->size]);
+}
+
+/* log an allocation event */
+static void
+log_mem_event(char* event, int size, const char* file, int line,
+	const char* func)
+{
+	log_msg(LOG_INFO, "mem_event %s %d %s:%d %s", event, size,
+		file, line, func);
+}
+
+/* do the alloc work */
+static struct mem*
+do_alloc_work(size_t size, const char* file, int line, const char* func)
+{
+	struct mem* m = (struct mem*)malloc(size+MEMPAD);
+	unsigned x, *e;
+	if(!m) {
+		log_msg(LOG_ERR, "malloc failed in %s %d %s", file, line, func);
+		exit(1);
+	}
+	m->prev = NULL;
+	m->next = memlist;
+	if(memlist) memlist->prev = m;
+	memlist = m;
+	m->size = size;
+	m->magic = MEMMAGIC;
+	e = get_end_ptr(m);
+	x = MEMMAGIC;
+	memmove(e, &x, sizeof(x));
+	x = size;
+	memmove(e+1, &x, sizeof(x));
+	total_alloc += size;
+	m->file = file;
+	m->line = line;
+	m->func = func;
+	return m;
+}
+
+void *malloc_nsd(size_t size, const char* file, int line, const char* func)
+{
+	struct mem* m = do_alloc_work(size, file, line, func);
+	memset(m->data, 0xCC, size); /* not zero, but certain of the value */
+	log_mem_event("malloc", size, file, line, func);
+	return m->data;
+}
+
+void *calloc_nsd(size_t nmemb, size_t size, const char* file, int line,
+	const char* func)
+{
+	struct mem* m = do_alloc_work(size*nmemb, file, line, func);
+	memset(m->data, 0, m->size);
+	log_mem_event("calloc", m->size, file, line, func);
+	return m->data;
+}
+
+/* do the free work */
+static void
+do_free_work(struct mem* m)
+{
+	unsigned* e = get_end_ptr(m);
+
+	/* remove from accounting */
+	total_alloc -= m->size;
+	if(m->prev) m->prev->next = m->next;
+	else memlist = m->next;
+	if(m->next) m->next->prev = m->prev;
+
+	/* memset to 0xDD */
+	memset(m->data, 0xDD, m->size);
+	memset(e, 0xDD, sizeof(unsigned)*2);
+	m->prev = NULL;
+	m->next = NULL;
+	m->size = 0;
+	m->file = NULL;
+	m->line = 0;
+	m->func = NULL;
+	m->magic = 0xDDDDDDDD;
+
+	/* actual free */
+	free(m);
+}
+
+/* check magic numbers for existing block */
+static struct mem*
+check_magic(void* ptr, const char* file, int line, const char* func)
+{
+	struct mem* m = (struct mem*)(ptr - sizeof(struct mem));
+	unsigned x, *e;
+	if(m->magic != MEMMAGIC) {
+		log_msg(LOG_ERR, "free: bad start %s %d %s", file, line, func);
+		exit(1);
+	}
+	e = get_end_ptr(m);
+	memmove(&x, e, sizeof(x));
+	if(x != MEMMAGIC) {
+		log_msg(LOG_ERR, "free: bad end %s %d %s", file, line, func);
+		exit(1);
+	}
+	memmove(&x, e+1, sizeof(x));
+	if(m->size != x) {
+		log_msg(LOG_ERR, "free: sizesbad %s %d %s", file, line, func);
+		exit(1);
+	}
+	return m;
+}
+
+void free_nsd(void *ptr, const char* file, int line, const char* func)
+{
+	struct mem* m;
+	/* check magic strings */
+	m = check_magic(ptr, file, line, func);
+
+	log_mem_event("free", m->size, file, line, func);
+
+	/* do the actual free */
+	do_free_work(m);
+}
+
+void *realloc_nsd(void *ptr, size_t size, const char* file, int line,
+	const char* func)
+{
+	struct mem* m;
+	struct mem* m2;
+	if(ptr == NULL && size == 0) {
+		/* nothing to do */
+		return NULL;
+	} else if(size == 0) {
+		/* free it */
+		m = check_magic(ptr, file, line, func);
+		log_mem_event("realloc", -(int)m->size, file, line, func);
+		do_free_work(m);
+		return NULL;
+	} else if(ptr == NULL) {
+		/* malloc it */
+		m = do_alloc_work(size, file, line, func);
+		log_mem_event("realloc", m->size, file, line, func);
+		return m->data;
+	}
+	/* check magic */
+	m = check_magic(ptr, file, line, func);
+	if(size == m->size)
+		return m->data; /* nothing to do */
+	/* realloc it */
+	m2 = do_alloc_work(size, file, line, func);
+	if(m2->size > m->size)
+		memcpy(m2->data, m->data, m->size);
+	else	memcpy(m2->data, m->data, m2->size);
+	log_mem_event("realloc", (int)m2->size-(int)m->size, file, line, func);
+	do_free_work(m);
+	return m2->data;
+}
+
+char *strdup_nsd(const char *str, const char* file, int line, const char* func)
+{
+	struct mem* m;
+	size_t s;
+	if(!str) {
+		log_msg(LOG_ERR, "strdup: NULLstr %s %d %s", file, line, func);
+		exit(1);
+	}
+	s = strlen(str)+1;
+	m = do_alloc_work(s, file, line, func);
+	memmove(m->data, str, s);
+	log_mem_event("strdup", m->size, file, line, func);
+	return (char*)m->data;
+}
+
+void *regalloc(size_t s)
+{
+	return malloc_nsd(s, "region", 1, "region-alloc-func");
+}
+
+void regfree(void* p)
+{
+	return free_nsd(p, "region", 1, "region-free-func");
+}
+
+#undef region_create
+#undef region_create_custom
+region_type* regcreate_nsd(void)
+{
+	return region_create(regalloc, regfree);
+}
+
+region_type* regcreate_custom_nsd(size_t chunk_size,
+                                  size_t large_object_size,
+                                  size_t initial_cleanup_size,
+                                  int recycle)
+{
+	return region_create_custom(regalloc, regfree, chunk_size,
+		large_object_size, initial_cleanup_size, recycle);
+}
+
+/* the allocated memory */
+unsigned memcheck_total(void)
+{
+	return total_alloc;
+}
+
+/* check at end for bad pieces */
+void memcheck_leak(void)
+{
+	struct mem* m;
+	log_msg(LOG_INFO, "memcheck in-use at end %u", memcheck_total());
+	for(m = memlist; m; m=m->next) {
+		log_msg(LOG_ERR, "memcheck leak: %p %d %s:%d %s", m, m->size,
+			m->file, m->line, m->func);
+	}
+}
+
+#endif /* MEMCHECK */

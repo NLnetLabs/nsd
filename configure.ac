@@ -548,6 +548,8 @@ AC_DEFINE_UNQUOTED([TCP_TIMEOUT], $tcp_timeout, [Define to the default tcp timeo
 dnl
 dnl Features
 dnl
+AC_ARG_ENABLE(memcheck, AC_HELP_STRING([--enable-memcheck], [enable debug memory checks]), AC_DEFINE([MEMCHECK], [1], [Define for debug mem checks]))
+
 AC_ARG_ENABLE(root-server, AC_HELP_STRING([--enable-root-server], [Configure NSD as a root server]))
 case "$enable_root_server" in
         yes)
@@ -780,6 +782,28 @@ AH_BOTTOM([
 #endif /* !__timespec_defined */
 #endif /* !HAVE_STRUCT_TIMESPEC */
 #endif /* !CONFIG_DEFINES */
+
+#ifdef MEMCHECK
+/* make sure to include string.h for strdup then override it */
+#include <string.h>
+#  define malloc(s) malloc_nsd(s, __FILE__, __LINE__, __func__)
+#  define calloc(n,s) calloc_nsd(n, s, __FILE__, __LINE__, __func__)
+#  define free(p) free_nsd(p, __FILE__, __LINE__, __func__)
+#  define realloc(p,s) realloc_nsd(p, s, __FILE__, __LINE__, __func__)
+#  define xalloc(s) malloc_nsd(s, __FILE__, __LINE__, __func__)
+#  define xalloc_zero(s) calloc_nsd(1, s, __FILE__, __LINE__, __func__)
+#  define xrealloc(p,s) realloc_nsd(p, s, __FILE__, __LINE__, __func__)
+void *malloc_nsd(size_t size, const char* file, int line, const char* func);
+void *calloc_nsd(size_t nmemb, size_t size, const char* file, int line,
+	const char* func);
+void free_nsd(void *ptr, const char* file, int line, const char* func);
+void *realloc_nsd(void *ptr, size_t size, const char* file, int line,
+	const char* func);
+char *strdup_nsd(const char *str, const char* file, int line, const char* func);
+void *regalloc(size_t s); /* for function pointers */
+/* to override strdup */
+#include "region-allocator.h"
+#endif
 ])
 
 # big fat warning

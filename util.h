@@ -133,9 +133,14 @@ lookup_table_type *lookup_by_id(lookup_table_type table[], int id);
  * could not be allocated and exit the program.  These functions never
  * return NULL.
  */
+#ifndef MEMCHECK
 void *xalloc(size_t size);
 void *xalloc_zero(size_t size);
 void *xrealloc(void *ptr, size_t size);
+#else
+#define region_create(a, f) regcreate_nsd()
+#define region_create_custom(a, f, ch, la, in, re) regcreate_custom_nsd(ch, la, in, re)
+#endif
 
 /*
  * Mmap allocator routines.
