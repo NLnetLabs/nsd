@@ -581,23 +581,23 @@ do_free_work(struct mem* m)
 
 /* check magic numbers for existing block */
 static struct mem*
-check_magic(void* ptr, const char* file, int line, const char* func)
+check_magic(void* ptr, char* ev, const char* file, int l, const char* func)
 {
 	struct mem* m = (struct mem*)(ptr - sizeof(struct mem));
 	unsigned x, *e;
 	if(m->magic != MEMMAGIC) {
-		log_msg(LOG_ERR, "free: bad start %s %d %s", file, line, func);
+		log_msg(LOG_ERR, "%s: bad start %s %d %s", ev, file, l, func);
 		exit(1);
 	}
 	e = get_end_ptr(m);
 	memmove(&x, e, sizeof(x));
 	if(x != MEMMAGIC) {
-		log_msg(LOG_ERR, "free: bad end %s %d %s", file, line, func);
+		log_msg(LOG_ERR, "%s: bad end %s %d %s", ev, file, l, func);
 		exit(1);
 	}
 	memmove(&x, e+1, sizeof(x));
 	if(m->size != x) {
-		log_msg(LOG_ERR, "free: sizesbad %s %d %s", file, line, func);
+		log_msg(LOG_ERR, "%s: sizesbad %s %d %s", ev, file, l, func);
 		exit(1);
 	}
 	return m;
@@ -607,7 +607,7 @@ void free_nsd(void *ptr, const char* file, int line, const char* func)
 {
 	struct mem* m;
 	/* check magic strings */
-	m = check_magic(ptr, file, line, func);
+	m = check_magic(ptr, "free", file, line, func);
 
 	log_mem_event("free", m->size, file, line, func);
 
@@ -625,7 +625,7 @@ void *realloc_nsd(void *ptr, size_t size, const char* file, int line,
 		return NULL;
 	} else if(size == 0) {
 		/* free it */
-		m = check_magic(ptr, file, line, func);
+		m = check_magic(ptr, "realloc-free", file, line, func);
 		log_mem_event("realloc", -(int)m->size, file, line, func);
 		do_free_work(m);
 		return NULL;
@@ -636,7 +636,7 @@ void *realloc_nsd(void *ptr, size_t size, const char* file, int line,
 		return m->data;
 	}
 	/* check magic */
-	m = check_magic(ptr, file, line, func);
+	m = check_magic(ptr, "realloc", file, line, func);
 	if(size == m->size)
 		return m->data; /* nothing to do */
 	/* realloc it */
