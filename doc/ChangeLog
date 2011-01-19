@@ -1,3 +1,6 @@
+19 January 2011: Wouter
+	- Bug #348: no -I/usr and -L/usr for libcrypto in /usr.
+
 5 January 2011: Matthijs
 	- Fix nsdc update and nsdc notify
 	- Force outgoing interface to be a single range acl
