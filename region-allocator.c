@@ -696,14 +696,59 @@ unsigned memcheck_total(void)
 	return total_alloc;
 }
 
+static int
+codeline_cmp(const void *a, const void *b)
+{
+	struct mem* x = (struct mem*)a;
+	struct mem* y = (struct mem*)b;
+	if(strcmp(x->file, y->file) != 0)
+		return strcmp(x->file, y->file);
+	return x->line - y->line;
+}
+
+#include "rbtree.h"
 /* check at end for bad pieces */
 void memcheck_leak(void)
 {
 	struct mem* m;
 	log_msg(LOG_INFO, "memcheck in-use at end %u", memcheck_total());
 	for(m = memlist; m; m=m->next) {
-		log_msg(LOG_ERR, "memcheck leak: %p %d %s:%d %s", m, m->size,
+		log_msg(LOG_INFO, "memcheck leak: %p %d %s:%d %s", m, m->size,
 			m->file, m->line, m->func);
+	}
+	/* summarize per codeline */
+	if(1) {
+		rbtree_t x;
+		rbnode_t* n;
+		x.root = RBTREE_NULL;
+		x.count = 0;
+		x.region = NULL;
+		x.cmp = codeline_cmp;
+		for(m = memlist; m; m=m->next) {
+			n = rbtree_search(&x, m);
+			if(n) {
+				struct mem* z = (struct mem*)n->key;
+				z->magic += m->size; /* overwrite it */
+				(&z->magic)[1] ++;
+			} else {
+				n = (rbnode_t*)malloc(sizeof(rbnode_t));
+				if(!n) {
+					log_msg(LOG_ERR, "mallocfail summary");
+					return;
+				}
+				n->key = m;
+				m->magic = m->size;
+				(&m->magic)[1] = 1; /* use endmagic or abuse
+					datacontents */
+				rbtree_insert(&x, n);
+			}
+		}
+		RBTREE_FOR(n, rbnode_t*, &x) {
+			struct mem* z = (struct mem*)n->key;
+			log_msg(LOG_INFO, "memcheck %u bytes leaked in %u "
+				"blocks at %s:%d %s", z->magic, (&z->magic)[1],
+				z->file, z->line, z->func);
+		}
 	}
 }
 
