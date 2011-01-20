@@ -1,3 +1,6 @@
+20 January 2011: Wouter
+	- Fix on shutdown, then getaddrinfo acquired data uses freeaddrinfo.
+
 19 January 2011: Wouter
 	- Bug #348: no -I/usr and -L/usr for libcrypto in /usr.
 

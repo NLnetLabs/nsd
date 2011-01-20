@@ -570,7 +570,7 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
 	for (i = 0; i < n; ++i) {
 		if (sockets[i].s != -1) {
 			close(sockets[i].s);
-			free(sockets[i].addr);
+			freeaddrinfo(sockets[i].addr);
 			sockets[i].s = -1;
 		}
 	}
