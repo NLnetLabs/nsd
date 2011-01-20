@@ -181,7 +181,11 @@ static void configure_handler_event_types(size_t count,
  * start xfrdaemon (again).
  */
 static pid_t
-server_start_xfrd(struct nsd *nsd, netio_handler_type* handler);
+server_start_xfrd(struct nsd *nsd, netio_handler_type* handler
+#ifdef MEMCHECK
+	, region_type* server_region
+#endif
+);
 
 static uint16_t *compressed_dname_offsets = 0;
 static uint32_t compression_table_capacity = 0;
@@ -286,6 +290,9 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->signal_hint_statsusr = 0;
 				close(nsd->this_child->child_fd);
 				nsd->this_child->child_fd = -1;
+#ifdef MEMCHECK
+				region_destroy(region); /* servermain region*/
+#endif /* MEMCHECK */
 				server_child(nsd);
 				/* NOTREACH */
 				exit(0);
@@ -618,7 +625,12 @@ server_shutdown(struct nsd *nsd)
 			}
 	}
 
+#ifndef MEMCHECK
 	log_finalize();
+#else
+	/* in memcheck, keep log open to log memleaks */
+	namedb_close(nsd->db);
+#endif
 	tsig_finalize();
 
 	nsd_options_destroy(nsd->options);
@@ -628,7 +640,11 @@ server_shutdown(struct nsd *nsd)
 }
 
 static pid_t
-server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
+server_start_xfrd(struct nsd *nsd, netio_handler_type* handler
+#ifdef MEMCHECK
+	, region_type* server_region
+#endif
+)
 {
 	pid_t pid;
 	int sockets[2] = {0,0};
@@ -653,6 +669,9 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 	case 0:
 		/* CHILD: close first socket, use second one */
 		close(sockets[0]);
+#ifdef MEMCHECK
+		region_destroy(server_region);
+#endif
 		xfrd_init(sockets[1], nsd);
 		/* ENOTREACH */
 		break;
@@ -963,7 +982,11 @@ server_main(struct nsd *nsd)
 		xfrd_tcp_create(server_region);
 
 	/* Start the XFRD process */
-	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
+	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener
+#ifdef MEMCHECK
+		, server_region
+#endif
+	);
 	netio_add_handler(netio, &xfrd_listener);
 
 	/* Start the child processes that handle incoming queries */
@@ -1018,7 +1041,11 @@ server_main(struct nsd *nsd)
 					log_msg(LOG_WARNING,
 					       "xfrd process %d failed with status %d, restarting ",
 					       (int) child_pid, status);
-					xfrd_pid = server_start_xfrd(nsd, &xfrd_listener);
+					xfrd_pid = server_start_xfrd(nsd, &xfrd_listener
+#ifdef MEMCHECK
+						, server_region
+#endif
+					);
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",

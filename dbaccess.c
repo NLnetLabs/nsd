@@ -461,5 +461,8 @@ namedb_fd_close (struct namedb *db)
 {
 	if (db && db->fd) {
 		fclose(db->fd);
+#ifdef MEMCHECK
+		db->fd = NULL;
+#endif
 	}
 }
