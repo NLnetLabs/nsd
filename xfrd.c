@@ -204,6 +204,11 @@ xfrd_shutdown()
 	}
 
 	/* shouldn't we clean up memory used by xfrd process */
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck cleanup xfrd_shutdown");
+	region_destroy(xfrd->nsd->region);
+	region_destroy(xfrd->region);
+#endif
 
 	exit(0);
 }

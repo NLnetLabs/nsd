@@ -476,6 +476,9 @@ main(int argc, char *argv[])
 			break;
 		case 'h':
 			usage();
+#ifdef MEMCHECK
+		region_destroy(nsd.region);
+#endif /* MEMCHECK cleanup */
 			exit(0);
 		case 'i':
 			nsd.identity = optarg;
@@ -901,6 +904,10 @@ main(int argc, char *argv[])
 			exit(1);
 		default:
 			/* Parent is done */
+#ifdef MEMCHECK
+			log_msg(LOG_INFO, "memcheck: cleanup detachedparent");
+			region_destroy(nsd.region);
+#endif /* MEMCHECK cleanup */
 			exit(0);
 		}
 

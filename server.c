@@ -1134,6 +1134,9 @@ server_main(struct nsd *nsd)
 
 			namedb_fd_close(nsd->db);
 			region_destroy(server_region);
+#ifdef MEMCHECK
+			log_msg(LOG_INFO, "memcheck: cleanup silentreloadparentshutdown");
+#endif
 			server_shutdown(nsd);
 
 			/* ENOTREACH */
@@ -1185,6 +1188,9 @@ server_main(struct nsd *nsd)
 
 	namedb_fd_close(nsd->db);
 	region_destroy(server_region);
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck: cleanup server_main shutdown");
+#endif
 	server_shutdown(nsd);
 }
 
@@ -1344,6 +1350,9 @@ server_child(struct nsd *nsd)
 
 	namedb_fd_close(nsd->db);
 	region_destroy(server_region);
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck: cleanup server_child shutdown");
+#endif
 	server_shutdown(nsd);
 }
 
