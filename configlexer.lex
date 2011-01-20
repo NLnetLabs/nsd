@@ -75,7 +75,7 @@ static void config_end_include(void)
 #ifdef MEMCHECK
 void config_mem_free(void)
 {
-	yy_delete_buffer(yy_current_buffer);
+	yy_delete_buffer(YY_CURRENT_BUFFER);
 }
 #endif /* MEMCHECK */
 
