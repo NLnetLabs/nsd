@@ -613,6 +613,9 @@ check_magic(void* ptr, char* ev, const char* file, int l, const char* func)
 void free_nsd(void *ptr, const char* file, int line, const char* func)
 {
 	struct mem* m;
+
+	if(!ptr) return; /* nothing */
+
 	/* check magic strings */
 	m = check_magic(ptr, "free", file, line, func);
 
