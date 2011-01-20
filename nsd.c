@@ -906,6 +906,7 @@ main(int argc, char *argv[])
 			/* Parent is done */
 #ifdef MEMCHECK
 			log_msg(LOG_INFO, "memcheck: cleanup detachedparent");
+			nsd_options_destroy(nsd.options);
 			region_destroy(nsd.region);
 #endif /* MEMCHECK cleanup */
 			exit(0);

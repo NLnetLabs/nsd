@@ -14,6 +14,10 @@
 #include <string.h>
 
 #include "region-allocator.h"
+#ifdef MEMCHECK
+#include "util.h"
+#undef ALIGN_UP
+#endif
 
 #ifdef ALIGNMENT
 #undef ALIGNMENT
@@ -171,6 +175,9 @@ region_destroy(region_type *region)
 	void (*deallocator)(void *);
 	if (!region)
 		return;
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "regcheck region_destroy %p", region);
+#endif
 
 	deallocator = region->deallocator;
 
@@ -664,6 +671,16 @@ char *strdup_nsd(const char *str, const char* file, int line, const char* func)
 	return (char*)m->data;
 }
 
+/* set the malloced item to come from specified origin */
+static void
+set_alloc_report(void* p, const char* file, int line, const char* func)
+{
+	struct mem* m = check_magic(p, "set-alloc-report", file, line, func);
+	m->file = file;
+	m->line = line;
+	m->func = func;
+}
+
 void *regalloc(size_t s)
 {
 	return malloc_nsd(s, "region", 1, "region-alloc-func");
@@ -676,18 +693,27 @@ void regfree(void* p)
 
 #undef region_create
 #undef region_create_custom
-region_type* regcreate_nsd(void)
+region_type* regcreate_nsd(const char* file, int line, const char* func)
 {
-	return region_create(regalloc, regfree);
+	region_type* r = region_create(regalloc, regfree);
+	log_msg(LOG_INFO, "regcheck region_create %p at %s:%d %s",
+		r, file, line, func);
+	set_alloc_report(r, file, line, func);
+	return r;
 }
 
 region_type* regcreate_custom_nsd(size_t chunk_size,
                                   size_t large_object_size,
                                   size_t initial_cleanup_size,
-                                  int recycle)
+                                  int recycle,
+				  const char* file, int line, const char* func)
 {
-	return region_create_custom(regalloc, regfree, chunk_size,
+	region_type* r = region_create_custom(regalloc, regfree, chunk_size,
 		large_object_size, initial_cleanup_size, recycle);
+	log_msg(LOG_INFO, "regcheck region_create_custom %p at %s:%d %s",
+		r, file, line, func);
+	set_alloc_report(r, file, line, func);
+	return r;
 }
 
 /* the allocated memory */

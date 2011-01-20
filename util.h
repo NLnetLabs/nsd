@@ -138,8 +138,8 @@ void *xalloc(size_t size);
 void *xalloc_zero(size_t size);
 void *xrealloc(void *ptr, size_t size);
 #else
-#define region_create(a, f) regcreate_nsd()
-#define region_create_custom(a, f, ch, la, in, re) regcreate_custom_nsd(ch, la, in, re)
+#define region_create(a, f) regcreate_nsd(__FILE__, __LINE__, __func__)
+#define region_create_custom(a, f, ch, la, in, re) regcreate_custom_nsd(ch, la, in, re, __FILE__, __LINE__, __func__)
 #endif
 
 /*
