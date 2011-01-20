@@ -176,7 +176,7 @@ region_destroy(region_type *region)
 	if (!region)
 		return;
 #ifdef MEMCHECK
-	log_msg(LOG_INFO, "regcheck region_destroy %p", region);
+	memcheck_log_origin("regcheck region_destroy", region);
 #endif
 
 	deallocator = region->deallocator;
@@ -669,6 +669,13 @@ char *strdup_nsd(const char *str, const char* file, int line, const char* func)
 	memmove(m->data, str, s);
 	log_mem_event("strdup", m->size, file, line, func);
 	return (char*)m->data;
+}
+
+void memcheck_log_origin(char* desc, void* p)
+{
+	struct mem* m = check_magic(p, "memcheck_log_origin", __FILE__,
+		__LINE__, __func__);
+	log_msg(LOG_INFO, "%s %p %s:%d %s", desc, p, m->file, m->line, m->func);
 }
 
 /* set the malloced item to come from specified origin */

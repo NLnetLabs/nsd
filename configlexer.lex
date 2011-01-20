@@ -72,6 +72,13 @@ static void config_end_include(void)
 	yy_switch_to_buffer(include_stack[config_include_stack_ptr]);
 }
 
+#ifdef MEMCHECK
+void config_mem_free(void)
+{
+	yy_delete_buffer(yy_current_buffer);
+}
+#endif /* MEMCHECK */
+
 #ifndef yy_set_bol /* compat definition, for flex 2.4.6 */
 #define yy_set_bol(at_bol) \
         { \

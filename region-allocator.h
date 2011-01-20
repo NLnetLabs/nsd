@@ -40,6 +40,7 @@ typedef struct region region_type;
 #define strdup(s) strdup_nsd(s, __FILE__, __LINE__, __func__)
 unsigned memcheck_total(void);
 void memcheck_leak(void);
+void memcheck_log_origin(char* desc, void* p);
 region_type* regcreate_nsd(const char* file, int line, const char* func);
 region_type* regcreate_custom_nsd(size_t chunk_size, size_t large_object_size,
 	size_t initial_cleanup_size, int recycleconst, const char* file,
