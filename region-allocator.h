@@ -141,4 +141,25 @@ size_t region_get_recycle_size(region_type* region);
 /* Debug print REGION statistics to LOG. */
 void region_log_stats(region_type *region);
 
+#ifdef MEMCHECK
+/* override the region functions to track region allocations */
+#define region_alloc(r, s) region_alloc_check(r, s, __FILE__, __LINE__)
+#define region_alloc_init(r, i, s) region_alloc_init_check(r, i, s, __FILE__, __LINE__)
+#define region_alloc_zero(r, s) region_alloc_zero_check(r, s, __FILE__, __LINE__)
+#define region_strdup(r, s) region_strdup_check(r, s, __FILE__, __LINE__)
+#define region_recycle(r, b, s) region_recycle_check(r, b, s, __FILE__, __LINE__)
+#define region_free_all(r) region_free_all_check(r, __FILE__, __LINE__)
+#define region_destroy(r) region_destroy_check(r, __FILE__, __LINE__)
+#define region_add_cleanup(r, a, d) region_add_cleanup_check(r, a, d, __FILE__, __LINE__)
+void region_destroy_check(region_type *region, const char* file, int line);
+size_t region_add_cleanup_check(region_type *region, void (*action)(void *), void *data, const char* file, int line);
+void *region_alloc_check(region_type *region, size_t size, const char* file, int line);
+void *region_alloc_init_check(region_type *region, const void *init, size_t size, const char* file, int line);
+void *region_alloc_zero_check(region_type *region, size_t size, const char* file, int line);
+void region_free_all_check(region_type *region, const char* file, int line);
+char *region_strdup_check(region_type *region, const char *string, const char* file, int line);
+void region_recycle_check(region_type *region, void *block, size_t size, const char* file, int line);
+
+#endif /* MEMCHECK */
+
 #endif /* _REGION_ALLOCATOR_H_ */
