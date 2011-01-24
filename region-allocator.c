@@ -509,15 +509,15 @@ region_log_stats(region_type *region)
 struct mem {
 	struct mem* prev;
 	struct mem* next;
-	unsigned size;
 	const char* file;
 	int line;
 	const char* func;
-	unsigned magic;
+	uint32_t size;
+	uint32_t magic;
 	uint8_t data[0];
 };
 /* memory allocation postfix: magic,size */
-#define MEMPAD (sizeof(struct mem)+sizeof(unsigned)+sizeof(unsigned))
+#define MEMPAD (sizeof(struct mem)+sizeof(uint32_t)+sizeof(uint32_t))
 
 /* double linked list for memory allocations */
 static struct mem* memlist = NULL;
@@ -527,10 +527,10 @@ static unsigned total_alloc = 0;
 #undef free
 
 /* get end pointer for mem struct */
-static unsigned*
+static uint32_t*
 get_end_ptr(struct mem* m)
 {
-	return (unsigned*)(&m->data[m->size]);
+	return (uint32_t*)(&m->data[m->size]);
 }
 
 /* log an allocation event */
@@ -547,7 +547,7 @@ static struct mem*
 do_alloc_work(size_t size, const char* file, int line, const char* func)
 {
 	struct mem* m = (struct mem*)malloc(size+MEMPAD);
-	unsigned x, *e;
+	uint32_t x, *e;
 	if(!m) {
 		log_msg(LOG_ERR, "malloc failed in %s %d %s", file, line, func);
 		exit(1);
@@ -591,7 +591,7 @@ void *calloc_nsd(size_t nmemb, size_t size, const char* file, int line,
 static void
 do_free_work(struct mem* m)
 {
-	unsigned* e = get_end_ptr(m);
+	uint32_t* e = get_end_ptr(m);
 
 	/* remove from accounting */
 	total_alloc -= m->size;
@@ -601,7 +601,7 @@ do_free_work(struct mem* m)
 
 	/* memset to 0xDD */
 	memset(m->data, 0xDD, m->size);
-	memset(e, 0xDD, sizeof(unsigned)*2);
+	memset(e, 0xDD, sizeof(*e)*2);
 	m->prev = NULL;
 	m->next = NULL;
 	m->size = 0;
@@ -619,7 +619,7 @@ static struct mem*
 check_magic(void* ptr, char* ev, const char* file, int l, const char* func)
 {
 	struct mem* m = (struct mem*)(ptr - sizeof(struct mem));
-	unsigned x, *e;
+	uint32_t x, *e;
 	if(m->magic != MEMMAGIC) {
 		log_msg(LOG_ERR, "%s: bad start %s %d %s", ev, file, l, func);
 		exit(1);
@@ -755,7 +755,7 @@ region_type* regcreate_custom_nsd(size_t chunk_size,
 }
 
 /* the allocated memory */
-unsigned memcheck_total(void)
+uint32_t memcheck_total(void)
 {
 	return total_alloc;
 }
