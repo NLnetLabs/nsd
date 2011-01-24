@@ -46,7 +46,7 @@ struct region_mem {
 	int line;
 	uint32_t size;
 	uint32_t magic;
-	uint8_t data[];
+	uint8_t data[0];
 };
 /* file,line,magic before and magic after */
 #define REGIONMEMCHECKPAD (sizeof(struct region_mem) + sizeof(uint32_t))
@@ -820,7 +820,7 @@ void memcheck_leak(void)
 static uint32_t*
 regcheck_endmagic(struct region_mem* mem)
 {
-	return (uint32_t*)(mem->data+mem->size);
+	return (uint32_t*)(&mem->data[mem->size]);
 }
 
 /** check magic numbers of a reg_mem */
@@ -865,6 +865,7 @@ region_alloc_check(region_type *region, size_t size, const char* file,
 	mem->next = region->reglist;
 	if(region->reglist) region->reglist->prev = mem;
 	region->reglist = mem;
+	mem->size = size;
 	mem->file = file;
 	mem->line = line;
 	mem->magic = MEMMAGIC;
@@ -909,10 +910,19 @@ region_recycle_check(region_type *region, void *block, size_t size, const char* 
 		if(mem->next) mem->next->prev = mem->prev;
 		if(mem->prev) mem->prev->next = mem->next;
 		else region->reglist = mem->next;
+		/* and wipe the contents */
+		memset(mem->data, 0xEE, mem->size);
+		memset(regcheck_endmagic(mem), 0xEE, sizeof(mem->magic)*2);
+		mem->prev = NULL;
+		mem->next = NULL;
+		mem->size = 0;
+		mem->file = NULL;
+		mem->line = 0;
+		mem->magic = 0xEEEEEEEE;
 	}
 	/* large objects are malloced, that is handled by the malloc code */
 	/* actual free */
-	region_recycle(region, block, size);
+	region_recycle(region, block, size+REGIONMEMCHECKPAD);
 }
 
 void
@@ -933,6 +943,13 @@ region_destroy_check(region_type *region, const char* file, int line)
 {
 	/* all left are memory leaks */
 	struct region_mem* mem;
+	if(region->total_allocated != 0) {
+		struct mem* m = check_magic(region, "region-destroy_check",
+			file, line, "region-destroy-func");
+		log_msg(LOG_INFO, "region leaks %d bytes for %p %s:%d %s",
+			region->total_allocated, region,
+			m->file, m->line, m->func);
+	}
 	for(mem = region->reglist; mem; mem = mem->next) {
 		(void)check_region_magic(region, mem->data, mem->size,
 			file, line);
