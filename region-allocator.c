@@ -43,7 +43,8 @@
 struct region_mem {
 	struct region_mem* prev, *next;
 	const char* file;
-	int line;
+	int32_t pad;  /* for 64-bit alignment of this struct */
+	int32_t line;
 	uint32_t size;
 	uint32_t magic;
 	uint8_t data[0];
@@ -825,9 +826,26 @@ regcheck_endmagic(struct region_mem* mem)
 
 /** check magic numbers of a reg_mem */
 static struct region_mem*
-check_region_magic(region_type* region, void* ptr, size_t size,
-	const char* file, int line)
+check_region_magic(region_type* r, void* p, size_t size,
+	const char* f, int l, const char* ev)
 {
+	struct region_mem* m = (struct region_mem*)(p - sizeof(*m));
+	/* first check the magic number */
+	if(m->magic != MEMMAGIC) {
+		log_msg(LOG_ERR, "%s: region %p bad start %s:%d", ev, r, f, l);
+		exit(1);
+	}
+	/* check size */
+	if(m->size != size) {
+		log_msg(LOG_ERR, "%s: region %p bad size %s:%d", ev, r, f, l);
+		exit(1);
+	}
+	/* check end magic number */
+	if(regcheck_endmagic(m)[0] != MEMMAGIC) {
+		log_msg(LOG_ERR, "%s: region %p bad end %s:%d", ev, r, f, l);
+		exit(1);
+	}
+	return m;
 }
 
 /** inside-region memcheck codes */
@@ -849,16 +867,12 @@ region_alloc_check(region_type *region, size_t size, const char* file,
 	int line)
 {
 	struct region_mem* mem;
-
-        if (ALIGN_UP((size?size:1), ALIGNMENT) >= region->large_object_size) {
-		/* large object, set the origin of the allocation */
-		void* ret = region_alloc(region, size);
-		memset(ret, 0xCC, size);
-		set_alloc_report(ret, file, line, "region_alloc");
-		return ret;
-	}
-	/* small object, administer */
+	size_t lo = region->large_objects;
 	mem = region_alloc(region, size + REGIONMEMCHECKPAD);
+	if(lo != region->large_objects) {
+		/* large object, set the origin of the allocation */
+		set_alloc_report(mem, file, line, "region_alloc");
+	}
 	/* memset the allocated to 0xCC, fixed but not 0 */
 	memset(mem->data, 0xCC, size);
 	mem->prev = NULL;
@@ -892,35 +906,33 @@ region_alloc_zero_check(region_type *region, size_t size, const char* file,
 }
 
 char *
-region_strdup_check(region_type *region, const char *string, const char* file, int line)
+region_strdup_check(region_type *region, const char *string,
+	const char* file, int line)
 {
 	return region_alloc_init_check(region, string, strlen(string)+1,
 		file, line);
 }
 
 void
-region_recycle_check(region_type *region, void *block, size_t size, const char* file, int line)
+region_recycle_check(region_type *region, void *block, size_t size,
+	const char* file, int line)
 {
-	/* remove it from the small-object administration first */
-        if (ALIGN_UP((size?size:1), ALIGNMENT) < region->large_object_size) {
-		/* small object */
-		struct region_mem* mem = check_region_magic(region, block,
-			size, file, line);
-		/* unlink from the smallobject list */
-		if(mem->next) mem->next->prev = mem->prev;
-		if(mem->prev) mem->prev->next = mem->next;
-		else region->reglist = mem->next;
-		/* and wipe the contents */
-		memset(mem->data, 0xEE, mem->size);
-		memset(regcheck_endmagic(mem), 0xEE, sizeof(mem->magic)*2);
-		mem->prev = NULL;
-		mem->next = NULL;
-		mem->size = 0;
-		mem->file = NULL;
-		mem->line = 0;
-		mem->magic = 0xEEEEEEEE;
-	}
-	/* large objects are malloced, that is handled by the malloc code */
+	/* remove it from the object administration */
+	struct region_mem* mem = check_region_magic(region, block,
+		size, file, line, "recycle");
+	/* unlink from the smallobject list */
+	if(mem->next) mem->next->prev = mem->prev;
+	if(mem->prev) mem->prev->next = mem->next;
+	else region->reglist = mem->next;
+	/* and wipe the contents */
+	memset(mem->data, 0xEE, mem->size);
+	memset(regcheck_endmagic(mem), 0xEE, sizeof(mem->magic)*2);
+	mem->prev = NULL;
+	mem->next = NULL;
+	mem->size = 0;
+	mem->file = NULL;
+	mem->line = 0;
+	mem->magic = 0xEEEEEEEE;
 	/* actual free */
 	region_recycle(region, block, size+REGIONMEMCHECKPAD);
 }
@@ -932,7 +944,7 @@ region_free_all_check(region_type *region, const char* file, int line)
 	struct region_mem* mem;
 	for(mem = region->reglist; mem; mem = mem->next) {
 		(void)check_region_magic(region, mem->data, mem->size,
-			file, line);
+			file, line, "free-all");
 	}
 	region_free_all(region);
 	region->reglist = NULL;
@@ -947,12 +959,12 @@ region_destroy_check(region_type *region, const char* file, int line)
 		struct mem* m = check_magic(region, "region-destroy_check",
 			file, line, "region-destroy-func");
 		log_msg(LOG_INFO, "region leaks %d bytes for %p %s:%d %s",
-			region->total_allocated, region,
+			(int)region->total_allocated, region,
 			m->file, m->line, m->func);
 	}
 	for(mem = region->reglist; mem; mem = mem->next) {
 		(void)check_region_magic(region, mem->data, mem->size,
-			file, line);
+			file, line, "destroy");
 		log_msg(LOG_INFO, "regcheck leak %d bytes %s:%d",
 			mem->size, mem->file, mem->line);
 	}
