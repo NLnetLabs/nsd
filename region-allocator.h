@@ -45,6 +45,7 @@ region_type* regcreate_nsd(const char* file, int line, const char* func);
 region_type* regcreate_custom_nsd(size_t chunk_size, size_t large_object_size,
 	size_t initial_cleanup_size, int recycleconst, const char* file,
 	int line, const char* func);
+void region_recycle_str(region_type* region, const char* str);
 #else /* MEMCHECK */
 
 /*
@@ -148,6 +149,7 @@ void region_log_stats(region_type *region);
 #define region_alloc_zero(r, s) region_alloc_zero_check(r, s, __FILE__, __LINE__)
 #define region_strdup(r, s) region_strdup_check(r, s, __FILE__, __LINE__)
 #define region_recycle(r, b, s) region_recycle_check(r, b, s, __FILE__, __LINE__)
+#define region_recycle_str(r, s) region_recycle_str_check(r, s, __FILE__, __LINE__)
 #define region_free_all(r) region_free_all_check(r, __FILE__, __LINE__)
 #define region_destroy(r) region_destroy_check(r, __FILE__, __LINE__)
 #define region_add_cleanup(r, a, d) region_add_cleanup_check(r, a, d, __FILE__, __LINE__)
@@ -159,6 +161,7 @@ void *region_alloc_zero_check(region_type *region, size_t size, const char* file
 void region_free_all_check(region_type *region, const char* file, int line);
 char *region_strdup_check(region_type *region, const char *string, const char* file, int line);
 void region_recycle_check(region_type *region, void *block, size_t size, const char* file, int line);
+void region_recycle_str_check(region_type* region, const char* str, const char* file, int line);
 
 #endif /* MEMCHECK */
 

@@ -39,6 +39,7 @@
 #undef region_free_all
 #undef region_strdup
 #undef region_recycle
+#undef region_recycle_str
 
 struct region_mem {
 	struct region_mem* prev, *next;
@@ -969,6 +970,19 @@ region_destroy_check(region_type *region, const char* file, int line)
 			mem->size, mem->file, mem->line);
 	}
 	region_destroy(region);
+}
+
+void region_recycle_str(region_type* region, const char* str)
+{
+	if(!str) return;
+	region_recycle(region, (char*)str, strlen(str)+1);
+}
+
+void region_recycle_str_check(region_type* region, const char* str,
+	const char* file, int line)
+{
+	if(!str) return;
+	region_recycle_check(region, (char*)str, strlen(str)+1, file, line);
 }
 
 #endif /* MEMCHECK */

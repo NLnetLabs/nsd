@@ -73,4 +73,20 @@ rbnode_t *rbtree_previous(rbnode_t *rbtree);
 		(rbnode_t*)node != RBTREE_NULL; \
 		node = (type)rbtree_next((rbnode_t*)node))
 
+#ifdef MEMCHECK
+/**
+ * Call function for all elements in the redblack tree, such that
+ * leaf elements are called before parent elements. So that all
+ * elements can be safely free()d.
+ * Note that your function must not remove the nodes from the tree.
+ * Since that may trigger rebalances of the rbtree.
+ * @param tree: the tree
+ * @param func: function called with element and user arg.
+ *      The function must not alter the rbtree.
+ * @param arg: user argument.
+ */
+void traverse_postorder(rbtree_t* tree, void (*func)(rbnode_t*, void*),
+        void* arg);
+#endif /* MEMCHECK */
+
 #endif /* _RBTREE_H_ */

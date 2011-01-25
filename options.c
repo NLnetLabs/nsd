@@ -659,7 +659,85 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 	return acl;
 }
 
+#ifdef MEMCHECK
+static void
+memcheck_clean_acl(region_type* r, acl_options_t* acl)
+{
+	while(acl) {
+		acl_options_t* n = acl->next;
+		region_recycle_str(r, acl->ip_address_spec);
+		region_recycle_str(r, acl->key_name);
+		/* key_options is a reference only */
+		region_recycle(r, acl, sizeof(*acl));
+		acl = n;
+	}
+}
+
+static void
+memcheck_clean_zoneopt(rbnode_t* n, void* arg)
+{
+	struct zone_options* o = (struct zone_options*)n;
+	region_type* r = (region_type*)arg;
+	region_recycle_str(r, o->name);
+	region_recycle_str(r, o->zonefile);
+	memcheck_clean_acl(r, o->allow_notify);
+	memcheck_clean_acl(r, o->request_xfr);
+	memcheck_clean_acl(r, o->notify);
+	memcheck_clean_acl(r, o->provide_xfr);
+	memcheck_clean_acl(r, o->outgoing_interface);
+	region_recycle(r, o, sizeof(*o));
+}
+#endif /* MEMCHECK */
+
 void nsd_options_destroy(nsd_options_t* opt)
 {
+#ifndef MEMCHECK
 	region_destroy(opt->region);
+#else
+	struct ipaddress_option* io, *in;
+	struct key_options* ko, *kn;
+	/* perform proper cleanup */
+	region_type* r = opt->region;
+	region_recycle_str(r, opt->database);
+	region_recycle_str(r, opt->identity);
+	region_recycle_str(r, opt->logfile);
+	region_recycle_str(r, opt->pidfile);
+	region_recycle_str(r, opt->port);
+	region_recycle_str(r, opt->chroot);
+	region_recycle_str(r, opt->username);
+	region_recycle_str(r, opt->zonesdir);
+	region_recycle_str(r, opt->difffile);
+	region_recycle_str(r, opt->xfrdfile);
+	region_recycle_str(r, opt->nsid);
+	
+	/* walk ipaddr options  */
+	io=opt->ip_addresses;
+	while(io) {
+		in = io->next;
+		region_recycle_str(r, io->address);
+		region_recycle(r, io, sizeof(*io));
+		io = in;
+	}
+
+	/* walk key options */
+	ko=opt->keys;
+	while(ko) {
+		kn = ko->next;
+		region_recycle_str(r, ko->name);
+		region_recycle_str(r, ko->algorithm);
+		region_recycle_str(r, ko->secret);
+		region_recycle(r, (void*)ko->tsig_key->name, 
+			dname_total_size(ko->tsig_key->name));
+		region_recycle(r, (void*)ko->tsig_key->data, ko->tsig_key->size);
+		region_recycle(r, ko->tsig_key, sizeof(tsig_key_type));
+		region_recycle(r, ko, sizeof(*ko));
+		ko = kn;
+	}
+
+	/* walk zone options tree */
+	traverse_postorder(opt->zone_options, memcheck_clean_zoneopt, r);
+	region_recycle(r, opt->zone_options, sizeof(rbtree_t));
+	region_recycle(r, opt, sizeof(nsd_options_t));
+	region_destroy(r);
+#endif /* MEMCHECK */
 }
