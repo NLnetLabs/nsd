@@ -52,7 +52,14 @@ nsec3_hash_dname_param(region_type *region, zone_type *zone,
 		dname->name_size, nsec3_iterations);
 	b32_ntop(hash, sizeof(hash), b32, sizeof(b32));
 	dname=dname_parse(region, b32);
+#ifdef MEMCHECK
+	if(1) { const dname_type* d2 = dname;
+#endif
 	dname=dname_concatenate(region, dname, domain_dname(zone->apex));
+#ifdef MEMCHECK
+		region_recycle(region, (void*)d2, dname_total_size(d2));
+	}
+#endif
 	return dname;
 }
 
@@ -123,6 +130,10 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 				dname_to_string(domain_dname(zone->apex), NULL), (int)i);
 			continue;
 		}
+#ifdef MEMCHECK
+		region_recycle(tmpregion, (void*)hashed_apex,
+			dname_total_size(hashed_apex));
+#endif
 		/* find SOA bit enabled nsec3, with the same settings */
 		for(j=0; j<nsec3_rrset->rr_count; j++)
 		{
@@ -272,6 +283,9 @@ prehash_domain(namedb_type* db, zone_type* zone,
 		domain->nsec3_is_exact = 1;
 	else	domain->nsec3_is_exact = 0;
 
+#ifdef MEMCHECK
+	region_recycle(region, (void*)hashname, dname_total_size(hashname));
+#endif
 	/* find cover for *.domain for wildcard denial */
 	wcard = dname_parse(region, "*");
 	wcard_child = dname_concatenate(region, wcard, domain_dname(domain));
@@ -291,6 +305,11 @@ prehash_domain(namedb_type* db, zone_type* zone,
 			"to remove collision.",
 			dname_to_string(domain_dname(domain),0));
 	}
+#ifdef MEMCHECK
+	region_recycle(region, (void*)wcard, dname_total_size(wcard));
+	region_recycle(region, (void*)wcard_child, dname_total_size(wcard_child));
+	region_recycle(region, (void*)hashname, dname_total_size(hashname));
+#endif
 }
 
 static void
@@ -314,6 +333,9 @@ prehash_ds(namedb_type* db, zone_type* zone,
 		domain->nsec3_ds_parent_is_exact = 1;
 	else 	domain->nsec3_ds_parent_is_exact = 0;
 	domain->nsec3_ds_parent_cover = result;
+#ifdef MEMCHECK
+	region_recycle(region, (void*)hashname, dname_total_size(hashname));
+#endif
 }
 
 static void

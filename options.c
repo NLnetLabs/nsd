@@ -668,7 +668,7 @@ memcheck_clean_acl(region_type* r, acl_options_t* acl)
 		region_recycle_str(r, acl->ip_address_spec);
 		region_recycle_str(r, acl->key_name);
 		/* key_options is a reference only */
-		region_recycle(r, acl, sizeof(*acl));
+		region_recycle(r, acl, sizeof(acl_options_t));
 		acl = n;
 	}
 }
@@ -685,7 +685,7 @@ memcheck_clean_zoneopt(rbnode_t* n, void* arg)
 	memcheck_clean_acl(r, o->notify);
 	memcheck_clean_acl(r, o->provide_xfr);
 	memcheck_clean_acl(r, o->outgoing_interface);
-	region_recycle(r, o, sizeof(*o));
+	region_recycle(r, o, sizeof(zone_options_t));
 }
 #endif /* MEMCHECK */
 
@@ -715,7 +715,7 @@ void nsd_options_destroy(nsd_options_t* opt)
 	while(io) {
 		in = io->next;
 		region_recycle_str(r, io->address);
-		region_recycle(r, io, sizeof(*io));
+		region_recycle(r, io, sizeof(ip_address_option_t));
 		io = in;
 	}
 

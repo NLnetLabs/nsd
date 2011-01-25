@@ -735,7 +735,10 @@ void regfree(void* p)
 #undef region_create_custom
 region_type* regcreate_nsd(const char* file, int line, const char* func)
 {
-	region_type* r = region_create(regalloc, regfree);
+	/* always make a recycle bin */
+	region_type* r= region_create_custom(regalloc, regfree, 
+		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
+		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
 	log_msg(LOG_INFO, "regcheck region_create %p at %s:%d %s",
 		r, file, line, func);
 	set_alloc_report(r, file, line, func);
@@ -748,8 +751,9 @@ region_type* regcreate_custom_nsd(size_t chunk_size,
                                   int recycle,
 				  const char* file, int line, const char* func)
 {
+	/* ignore recycle: always make and do */
 	region_type* r = region_create_custom(regalloc, regfree, chunk_size,
-		large_object_size, initial_cleanup_size, recycle);
+		large_object_size, initial_cleanup_size, recycle?recycle:1);
 	log_msg(LOG_INFO, "regcheck region_create_custom %p at %s:%d %s",
 		r, file, line, func);
 	set_alloc_report(r, file, line, func);
@@ -834,6 +838,8 @@ check_region_magic(region_type* r, void* p, size_t size,
 	/* first check the magic number */
 	if(m->magic != MEMMAGIC) {
 		log_msg(LOG_ERR, "%s: region %p bad start %s:%d", ev, r, f, l);
+		log_msg(LOG_ERR, "for element %p, sz %d, mem %p", p, (int)size, m);
+		log_msg(LOG_ERR, "from %s:%d", m->file, m->line);
 		exit(1);
 	}
 	/* check size */
@@ -856,7 +862,8 @@ region_add_cleanup_check(region_type *region, void (*action)(void *),
 {
 	size_t ret = region_add_cleanup(region, action, data);
 	/* just set that the allocated data origin is from here */
-	set_alloc_report(data, file, line, "region_add_cleanup");
+	/* but not that simple ... */
+	/* set_alloc_report(data, file, line, "region_add_cleanup"); */
 	return ret;
 }
 
@@ -870,6 +877,7 @@ region_alloc_check(region_type *region, size_t size, const char* file,
 	struct region_mem* mem;
 	size_t lo = region->large_objects;
 	mem = region_alloc(region, size + REGIONMEMCHECKPAD);
+	log_msg(LOG_INFO, "region %p alloc %p %d %s:%d", region, mem->data, (int)size, file, line);
 	if(lo != region->large_objects) {
 		/* large object, set the origin of the allocation */
 		set_alloc_report(mem, file, line, "region_alloc");
@@ -885,6 +893,19 @@ region_alloc_check(region_type *region, size_t size, const char* file,
 	mem->line = line;
 	mem->magic = MEMMAGIC;
 	memmove(regcheck_endmagic(mem), &mem->magic, sizeof(mem->magic));
+
+	if(0) {
+		struct region_mem* mem, *pp = NULL;
+		for(mem = region->reglist; mem; mem = mem->next) {
+			log_msg(LOG_INFO, "memlist %p block %p %d prev %p next %p",
+				mem, mem->data, (int)mem->size, mem->prev, mem->next);
+			if(mem->prev != pp)
+				log_msg(LOG_ERR, "bad prev!!");
+			(void)check_region_magic(region, mem->data, mem->size,
+				file, line, "alloc-listcheck");
+			pp = mem;
+		}
+	}
 	return mem->data;
 }
 
@@ -919,15 +940,17 @@ region_recycle_check(region_type *region, void *block, size_t size,
 	const char* file, int line)
 {
 	/* remove it from the object administration */
-	struct region_mem* mem = check_region_magic(region, block,
-		size, file, line, "recycle");
-	/* unlink from the smallobject list */
+	struct region_mem* mem;
+	if(!block) return;
+	mem = check_region_magic(region, block, size, file, line, "recycle");
+	log_msg(LOG_INFO, "region %p recycle %p %d %s:%d mem %p", region, block, (int)size, file, line, mem);
+	/* unlink from the object list */
 	if(mem->next) mem->next->prev = mem->prev;
 	if(mem->prev) mem->prev->next = mem->next;
 	else region->reglist = mem->next;
 	/* and wipe the contents */
 	memset(mem->data, 0xEE, mem->size);
-	memset(regcheck_endmagic(mem), 0xEE, sizeof(mem->magic)*2);
+	memset(regcheck_endmagic(mem), 0xEE, sizeof(mem->magic));
 	mem->prev = NULL;
 	mem->next = NULL;
 	mem->size = 0;
@@ -935,7 +958,22 @@ region_recycle_check(region_type *region, void *block, size_t size,
 	mem->line = 0;
 	mem->magic = 0xEEEEEEEE;
 	/* actual free */
-	region_recycle(region, block, size+REGIONMEMCHECKPAD);
+	region_recycle(region, mem, size+REGIONMEMCHECKPAD);
+
+	if(0) {
+		struct region_mem* pp = NULL;
+		for(mem = region->reglist; mem; mem = mem->next) {
+			log_msg(LOG_INFO, "memlist %p block %p %d prev %p next %p",
+				mem, mem->data, (int)mem->size, mem->prev, mem->next);
+			if(pp != mem->prev) {
+				log_msg(LOG_ERR, "bad prev!!");
+				exit(1);
+			}
+			pp = mem;
+			(void)check_region_magic(region, mem->data, mem->size,
+				file, line, "recycle-listcheck");
+		}
+	}
 }
 
 void
@@ -943,9 +981,18 @@ region_free_all_check(region_type *region, const char* file, int line)
 {
 	/* check all magics for buffer trouble in the smallobject list */
 	struct region_mem* mem;
+	if(region->total_allocated - region->recycle_size != 0) {
+		struct mem* m = check_magic(region, "region-free-all",
+			file, line, "region-free-all");
+		log_msg(LOG_INFO, "region-free-all of %d bytes for %p %s:%d %s at %s:%d",
+			(int)(region->total_allocated- region->recycle_size),
+			region, m->file, m->line, m->func, file, line);
+	}
 	for(mem = region->reglist; mem; mem = mem->next) {
 		(void)check_region_magic(region, mem->data, mem->size,
 			file, line, "free-all");
+		log_msg(LOG_INFO, "regcheck free-all-leak %d bytes %s:%d",
+			mem->size, mem->file, mem->line);
 	}
 	region_free_all(region);
 	region->reglist = NULL;
@@ -956,18 +1003,24 @@ region_destroy_check(region_type *region, const char* file, int line)
 {
 	/* all left are memory leaks */
 	struct region_mem* mem;
-	if(region->total_allocated != 0) {
+	struct region_mem* pp = NULL;
+	if(region->total_allocated - region->recycle_size != 0) {
 		struct mem* m = check_magic(region, "region-destroy_check",
 			file, line, "region-destroy-func");
-		log_msg(LOG_INFO, "region leaks %d bytes for %p %s:%d %s",
-			(int)region->total_allocated, region,
-			m->file, m->line, m->func);
+		log_msg(LOG_INFO, "region leaks %d bytes for %p %s:%d %s at %s:%d",
+			(int)(region->total_allocated- region->recycle_size),
+			region, m->file, m->line, m->func, file, line);
 	}
 	for(mem = region->reglist; mem; mem = mem->next) {
 		(void)check_region_magic(region, mem->data, mem->size,
 			file, line, "destroy");
+		if(pp != mem->prev) {
+			log_msg(LOG_ERR, "bad prev!!");
+			exit(1);
+		}
 		log_msg(LOG_INFO, "regcheck leak %d bytes %s:%d",
 			mem->size, mem->file, mem->line);
+		pp = mem;
 	}
 	region_destroy(region);
 }

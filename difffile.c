@@ -1296,16 +1296,16 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	const char* filename = opt->difffile;
 	FILE *df;
 	uint32_t type, timestamp[2], curr_timestamp[2];
-	struct diff_read_data* data = diff_read_data_create();
+	struct diff_read_data* data;
 	off_t startpos;
 
 	df = fopen(filename, "r");
 	if(!df) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "could not open file %s for reading: %s",
 			filename, strerror(errno)));
-		region_destroy(data->region);
 		return 1;
 	}
+	data = diff_read_data_create();
 
 	/* check timestamp */
 	curr_timestamp[0] = (uint32_t) db->diff_timestamp.tv_sec;

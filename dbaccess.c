@@ -374,6 +374,10 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 			return NULL;
 		}
 
+#ifdef MEMCHECK
+		region_recycle(dname_region, (void*)dname,
+			dname_total_size(dname));
+#endif
 		region_free_all(dname_region);
 	}
 
@@ -400,6 +404,10 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 			return NULL;
 		}
 		domains[i] = domain_table_insert(db->domains, dname);
+#ifdef MEMCHECK
+		region_recycle(dname_region, (void*)dname,
+			dname_total_size(dname));
+#endif
 		region_free_all(dname_region);
 	}
 
@@ -418,6 +426,10 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	      (LOG_INFO, "Retrieved %lu RRs in %lu RRsets\n",
 	       (unsigned long) rr_count, (unsigned long) rrset_count));
 
+#ifdef MEMCHECK
+	region_recycle(temp_region, zones, zone_count*sizeof(zone_type*));
+	region_recycle(temp_region, domains, dname_count*sizeof(domain_type*));
+#endif
 	region_destroy(temp_region);
 
 	if ((db->crc_pos = ftello(db->fd)) == -1) {
