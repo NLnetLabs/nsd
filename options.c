@@ -25,7 +25,7 @@ int c_lex(void);
 int c_wrap(void);
 void c_error(const char *message);
 #ifdef MEMCHECK
-void config_mem_free(void);
+void c_lex_destroy(void);
 #endif
 
 nsd_options_t* nsd_options_create(region_type* region)
@@ -113,7 +113,7 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	c_parse();
 	fclose(in);
 #ifdef MEMCHECK
-	config_mem_free();
+	c_lex_destroy();
 #endif
 
 	if(cfg_parser->current_zone) {

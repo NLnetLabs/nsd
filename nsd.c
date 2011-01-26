@@ -582,6 +582,10 @@ main(int argc, char *argv[])
 	if(!parse_options_file(nsd.options, configfile)) {
 		error("could not read config: %s\n", configfile);
 	}
+#ifdef MEMCHECK
+	/* ignore wasted memory from first read of config file */
+	regcheck_mark_ignore(nsd.options->region);
+#endif
 	if(nsd.options->ip4_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET;
@@ -836,6 +840,10 @@ main(int argc, char *argv[])
 #if defined(HAVE_SSL)
 	key_options_tsig_add(nsd.options);
 #endif
+#ifdef MEMCHECK
+	/* ignore startup tsig allocs */
+	regcheck_mark_ignore(nsd.region);
+#endif
 
 	/* Relativize the pathnames for chroot... */
 	if (nsd.chrootdir) {
@@ -907,7 +915,7 @@ main(int argc, char *argv[])
 #ifdef MEMCHECK
 			log_msg(LOG_INFO, "memcheck: cleanup detachedparent");
 			nsd_options_destroy(nsd.options);
-			region_destroy(nsd.region);
+			memcheck_clean_nsd_main(&nsd);
 #endif /* MEMCHECK cleanup */
 			exit(0);
 		}

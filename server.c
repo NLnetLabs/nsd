@@ -191,6 +191,17 @@ static uint16_t *compressed_dname_offsets = 0;
 static uint32_t compression_table_capacity = 0;
 static uint32_t compression_table_size = 0;
 
+#ifdef MEMCHECK
+/** clean the main nsd.region parts */
+void memcheck_clean_nsd_main(struct nsd* nsd)
+{
+	region_type* r = nsd->region;
+	region_recycle(r, nsd->children,
+		nsd->child_count * sizeof(struct nsd_child));
+	region_destroy(r);
+}
+#endif /* MEMCHECK */
+
 /*
  * Remove the specified pid from the list of child pids.  Returns -1 if
  * the pid is not in the list, child_num otherwise.  The field is set to 0.

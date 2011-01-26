@@ -44,7 +44,7 @@
 struct region_mem {
 	struct region_mem* prev, *next;
 	const char* file;
-	int32_t pad;  /* for 64-bit alignment of this struct */
+	int32_t pad;  /* pad for 64-bit alignment of this struct */
 	int32_t line;
 	uint32_t size;
 	uint32_t magic;
@@ -889,6 +889,7 @@ region_alloc_check(region_type *region, size_t size, const char* file,
 	if(region->reglist) region->reglist->prev = mem;
 	region->reglist = mem;
 	mem->size = size;
+	mem->pad = 0;
 	mem->file = file;
 	mem->line = line;
 	mem->magic = MEMMAGIC;
@@ -998,18 +999,44 @@ region_free_all_check(region_type *region, const char* file, int line)
 	region->reglist = NULL;
 }
 
+/* count the padded memory in the region */
+static uint32_t
+count_pad_ignore(region_type* region)
+{
+	uint32_t x = 0;
+	struct region_mem* m;
+	for(m=region->reglist; m; m=m->next) {
+		if((m->pad&0x1))
+			x += ALIGN_UP(m->size + REGIONMEMCHECKPAD, ALIGNMENT);
+	}
+	return x;
+}
+
+void
+regcheck_mark_ignore(region_type* region)
+{
+	struct region_mem* m;
+	for(m=region->reglist; m; m=m->next) {
+		m->pad |= 0x1;
+		log_msg(LOG_INFO, "regcheck ignore %d bytes %s:%d",
+			m->size, m->file, m->line);
+	}
+}
+
 void
 region_destroy_check(region_type *region, const char* file, int line)
 {
 	/* all left are memory leaks */
 	struct region_mem* mem;
 	struct region_mem* pp = NULL;
-	if(region->total_allocated - region->recycle_size != 0) {
+	if(region->reglist && region->total_allocated - region->recycle_size
+		- count_pad_ignore(region) != 0) {
 		struct mem* m = check_magic(region, "region-destroy_check",
 			file, line, "region-destroy-func");
-		log_msg(LOG_INFO, "region leaks %d bytes for %p %s:%d %s at %s:%d",
+		log_msg(LOG_INFO, "region leaks %d bytes for %p %s:%d %s at %s:%d (%d ignored)",
 			(int)(region->total_allocated- region->recycle_size),
-			region, m->file, m->line, m->func, file, line);
+			region, m->file, m->line, m->func, file, line,
+			count_pad_ignore(region));
 	}
 	for(mem = region->reglist; mem; mem = mem->next) {
 		(void)check_region_magic(region, mem->data, mem->size,
@@ -1018,8 +1045,9 @@ region_destroy_check(region_type *region, const char* file, int line)
 			log_msg(LOG_ERR, "bad prev!!");
 			exit(1);
 		}
-		log_msg(LOG_INFO, "regcheck leak %d bytes %s:%d",
-			mem->size, mem->file, mem->line);
+		if(!(mem->pad&0x1))
+			log_msg(LOG_INFO, "regcheck leak %d bytes %s:%d",
+				mem->size, mem->file, mem->line);
 		pp = mem;
 	}
 	region_destroy(region);
