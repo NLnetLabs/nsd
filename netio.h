@@ -179,4 +179,8 @@ operator |= (netio_event_types_type &lhs, netio_event_types_type rhs) {
 }
 #endif /* __cplusplus */
 
+#ifdef MEMCHECK
+void memcheck_netio_clean(netio_type* netio);
+#endif
+
 #endif /* _NETIO_H_ */

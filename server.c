@@ -183,7 +183,7 @@ static void configure_handler_event_types(size_t count,
 static pid_t
 server_start_xfrd(struct nsd *nsd, netio_handler_type* handler
 #ifdef MEMCHECK
-	, region_type* server_region
+	, region_type* server_region, netio_type* netio
 #endif
 );
 
@@ -200,6 +200,8 @@ void memcheck_clean_nsd_main(struct nsd* nsd)
 		nsd->child_count * sizeof(struct nsd_child));
 	region_destroy(r);
 }
+/* the xfrd listener in de server_main region */
+static netio_handler_type* server_main_xfrd_listener = NULL;
 #endif /* MEMCHECK */
 
 /*
@@ -302,6 +304,14 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				close(nsd->this_child->child_fd);
 				nsd->this_child->child_fd = -1;
 #ifdef MEMCHECK
+				log_msg(LOG_INFO, "memcheck: start child");
+				memcheck_xfrd_tcp_clean(region,
+					((struct ipc_handler_conn_data*)
+					server_main_xfrd_listener->user_data)->conn);
+				region_recycle(region,
+					server_main_xfrd_listener->user_data,
+					sizeof(struct ipc_handler_conn_data));
+				memcheck_netio_clean(netio);
 				region_destroy(region); /* servermain region*/
 #endif /* MEMCHECK */
 				server_child(nsd);
@@ -543,16 +553,24 @@ server_prepare(struct nsd *nsd)
 	region_log_stats(nsd->db->region);
 	log_msg(LOG_INFO, "domain table holds %u nodes",
 		domain_table_count(nsd->db->domains));
-
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck in-use when started %u (after read nsd.db)", memcheck_total());
+#endif
 
 	/* Read diff file */
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 		log_msg(LOG_ERR, "The diff file contains errors. Will continue "
 						 "without it");
 	}
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck in-use when started %u (after read ixfr.db)", memcheck_total());
+#endif
 
 #ifdef NSEC3
 	prehash(nsd->db, 0);
+#endif
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck in-use when started %u (after nsec3 prehash)", memcheck_total());
 #endif
 
 	compression_table_capacity = 0;
@@ -653,7 +671,7 @@ server_shutdown(struct nsd *nsd)
 static pid_t
 server_start_xfrd(struct nsd *nsd, netio_handler_type* handler
 #ifdef MEMCHECK
-	, region_type* server_region
+	, region_type* server_region, netio_type* netio
 #endif
 )
 {
@@ -681,6 +699,12 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler
 		/* CHILD: close first socket, use second one */
 		close(sockets[0]);
 #ifdef MEMCHECK
+		log_msg(LOG_INFO, "memcheck: this is xfrd");
+		memcheck_xfrd_tcp_clean(server_region,
+			((struct ipc_handler_conn_data*)handler->user_data)->conn);
+		region_recycle(server_region, handler->user_data,
+			sizeof(struct ipc_handler_conn_data));
+		memcheck_netio_clean(netio);
 		region_destroy(server_region);
 #endif
 		xfrd_init(sockets[1], nsd);
@@ -991,11 +1015,14 @@ server_main(struct nsd *nsd)
 	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->nsd = nsd;
 	((struct ipc_handler_conn_data*)xfrd_listener.user_data)->conn =
 		xfrd_tcp_create(server_region);
+#ifdef MEMCHECK
+	server_main_xfrd_listener = &xfrd_listener;
+#endif
 
 	/* Start the XFRD process */
 	xfrd_pid = server_start_xfrd(nsd, &xfrd_listener
 #ifdef MEMCHECK
-		, server_region
+		, server_region, netio
 #endif
 	);
 	netio_add_handler(netio, &xfrd_listener);
@@ -1010,12 +1037,18 @@ server_main(struct nsd *nsd)
 	/* This_child MUST be 0, because this is the parent process */
 	assert(nsd->this_child == 0);
 
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck in-use server_main run %u", memcheck_total());
+#endif
 	/* Run the server until we get a shutdown signal */
 	while ((mode = nsd->mode) != NSD_SHUTDOWN) {
 		/* Did we receive a signal that changes our mode? */
 		if(mode == NSD_RUN) {
 			nsd->mode = mode = server_signal_mode(nsd);
 		}
+#ifdef MEMCHECK
+		log_msg(LOG_INFO, "memcheck in-use server_main inside-run %u", memcheck_total());
+#endif
 
 		switch (mode) {
 		case NSD_RUN:
@@ -1054,7 +1087,7 @@ server_main(struct nsd *nsd)
 					       (int) child_pid, status);
 					xfrd_pid = server_start_xfrd(nsd, &xfrd_listener
 #ifdef MEMCHECK
-						, server_region
+						, server_region, netio
 #endif
 					);
 				} else {
@@ -1200,6 +1233,9 @@ server_main(struct nsd *nsd)
 		}
 	}
 
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "memcheck in-use server_main after-run %u", memcheck_total());
+#endif
 	/* Truncate the pid file.  */
 	if ((fd = open(nsd->pidfile, O_WRONLY | O_TRUNC, 0644)) == -1) {
 		log_msg(LOG_ERR, "can not truncate the pid file %s: %s", nsd->pidfile, strerror(errno));

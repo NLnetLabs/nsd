@@ -91,6 +91,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	/* to setup signalhandling */
 	nsd->server_kind = NSD_SERVER_BOTH;
 
+	log_msg(LOG_INFO, "xfrd start");
 	region = region_create(xalloc, free);
 	xfrd = (xfrd_state_t*)region_alloc(region, sizeof(xfrd_state_t));
 	memset(xfrd, 0, sizeof(xfrd_state_t));

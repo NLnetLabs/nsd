@@ -47,6 +47,26 @@ netio_create(region_type *region)
 	return result;
 }
 
+#ifdef MEMCHECK
+void memcheck_netio_clean(netio_type* netio)
+{
+	netio_handler_list_type *elt, *ne;
+	elt = netio->handlers;
+	while(elt) {
+		ne = elt->next;
+		region_recycle(netio->region, elt, sizeof(netio_handler_list_type));
+		elt = ne;
+	}
+	elt = netio->deallocated;
+	while(elt) {
+		ne = elt->next;
+		region_recycle(netio->region, elt, sizeof(netio_handler_list_type));
+		elt = ne;
+	}
+	region_recycle(netio->region, netio, sizeof(netio_type));
+}
+#endif /* MEMCHECK */
+
 void
 netio_add_handler(netio_type *netio, netio_handler_type *handler)
 {

@@ -164,6 +164,14 @@ xfrd_tcp_create(region_type* region)
 	return tcp_state;
 }
 
+#ifdef MEMCHECK
+void memcheck_xfrd_tcp_clean(region_type* region, xfrd_tcp_t* tcp)
+{
+	memcheck_buffer_clean(region, tcp->packet);
+	region_recycle(region, tcp, sizeof(xfrd_tcp_t));
+}
+#endif /* MEMCHECK */
+
 void
 xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 {

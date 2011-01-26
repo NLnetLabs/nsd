@@ -70,6 +70,9 @@ buffer_invariant(buffer_type *buffer)
  * Create a new buffer with the specified capacity.
  */
 buffer_type *buffer_create(region_type *region, size_t capacity);
+#ifdef MEMCHECK
+void memcheck_buffer_clean(region_type* region, buffer_type* buffer);
+#endif
 
 /*
  * Create a buffer with the specified data.  The data is not copied

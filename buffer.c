@@ -40,6 +40,17 @@ buffer_create(region_type *region, size_t capacity)
 	return buffer;
 }
 
+#ifdef MEMCHECK
+void
+memcheck_buffer_clean(region_type* region, buffer_type* buffer)
+{
+	if(!buffer) return;
+	free(buffer->_data);
+	region_remove_cleanup(region, buffer_cleanup, buffer);
+	region_recycle(region, buffer, sizeof(buffer_type));
+}
+#endif /* MEMCHECK */
+
 void
 buffer_create_from(buffer_type *buffer, void *data, size_t size)
 {

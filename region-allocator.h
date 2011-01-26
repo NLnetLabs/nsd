@@ -47,6 +47,7 @@ region_type* regcreate_custom_nsd(size_t chunk_size, size_t large_object_size,
 	int line, const char* func);
 void region_recycle_str(region_type* region, const char* str);
 void regcheck_mark_ignore(region_type* region);
+void region_remove_cleanup(region_type *region, void (*action)(void *), void *data);
 #else /* MEMCHECK */
 
 /*

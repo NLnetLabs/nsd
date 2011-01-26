@@ -225,4 +225,8 @@ void server_child(struct nsd *nsd);
 /* extra domain numbers for temporary domains */
 #define EXTRA_DOMAIN_NUMBERS 1024
 
+#ifdef MEMCHECK
+void memcheck_clean_nsd_main(struct nsd* nsd);
+#endif
+ 
 #endif	/* _NSD_H_ */
