@@ -290,4 +290,8 @@ int tsig_strlowercmp(const char* str1, const char* str2);
  */
 void tsig_finalize(void);
 
+#ifdef MEMCHECK
+void memcheck_tsig_record_clean(region_type* region, tsig_record_type *tsig);
+#endif
+
 #endif /* _TSIG_H_ */

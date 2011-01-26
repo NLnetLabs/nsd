@@ -910,6 +910,13 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			}
 		}
 	}
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "apply_ixfr region");
+	region_log_stats(region);
+	memcheck_buffer_clean(region, packet);
+	region_recycle(region, (void*)dname_zone, dname_total_size(dname_zone));
+	regcheck_mark_ignore(region);
+#endif
 	region_destroy(region);
 	return 1;
 }
@@ -925,6 +932,9 @@ check_for_bad_serial(namedb_type* db, const char* zone_str, uint32_t old_serial)
 	domain = domain_table_find(db->domains, zone_name);
 	if(domain)
 		zone = domain_find_zone(domain);
+#ifdef MEMCHECK
+	region_recycle(region, (void*)zone_name, dname_total_size(zone_name));
+#endif
 	if(zone && zone->apex == domain && zone->soa_rrset && old_serial)
 	{
 		uint32_t memserial;
@@ -1414,6 +1424,9 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	log_msg(LOG_INFO, "difffile dump stats: ");
 	region_log_stats(data->region);
 
+#ifdef MEMCHECK
+	regcheck_mark_ignore(data->region);
+#endif
 	region_destroy(data->region);
 	fclose(df);
 	return 1;

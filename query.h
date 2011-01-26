@@ -212,4 +212,9 @@ query_overflow_nsid(query_type *q, uint16_t nsid_len)
 {
         return buffer_position(q->packet) > (q->maxlen - q->reserved_space - nsid_len);
 }
+
+#ifdef MEMCHECK
+void memcheck_query_clean(region_type* r, query_type* q);
+#endif
+
 #endif /* _QUERY_H_ */

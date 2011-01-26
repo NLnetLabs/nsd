@@ -252,6 +252,15 @@ tsig_create_record_custom(tsig_record_type *tsig, region_type *region,
 	tsig_init_record(tsig, NULL, NULL);
 }
 
+#ifdef MEMCHECK
+void memcheck_tsig_record_clean(region_type* region, tsig_record_type *tsig)
+{
+	region_destroy(tsig->rr_region);
+	region_destroy(tsig->context_region);
+	region_remove_cleanup(region, tsig_cleanup, tsig);
+}
+#endif /* MEMCHECK */
+
 void
 tsig_init_record(tsig_record_type *tsig,
 		 tsig_algorithm_type *algorithm,

@@ -183,6 +183,17 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets,
 	return query;
 }
 
+#ifdef MEMCHECK
+void memcheck_query_clean(region_type* r, query_type* q)
+{
+	region_destroy(q->region);
+	memcheck_buffer_clean(r, q->packet);
+	region_remove_cleanup(r, query_cleanup, q);
+	memcheck_tsig_record_clean(r, &q->tsig);
+	region_recycle(r, q, sizeof(query_type));
+}
+#endif /* MEMCHECK */
+
 void
 query_reset(query_type *q, size_t maxlen, int is_tcp)
 {

@@ -666,6 +666,10 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 			} else
 				temp_rdatas[i].domain
 					= domain_table_insert(owners, dname);
+#ifdef MEMCHECK
+			region_recycle(temp_region, (void*)dname,
+				dname_total_size(dname));
+#endif
 		} else {
 			if (buffer_position(packet) + length > end) {
 				if (required) {

@@ -228,6 +228,39 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
 	return -1;
 }
 
+#ifdef MEMCHECK
+static void
+clean_children_data(struct nsd* nsd, region_type* region)
+{
+	struct main_ipc_handler_data *ipc_data;
+	size_t i;
+	for (i = 0; i < nsd->child_count; ++i) {
+		if(nsd->children[i].handler) {
+			ipc_data = (struct main_ipc_handler_data*)
+				nsd->children[i].handler->user_data;
+			memcheck_buffer_clean(region, ipc_data->packet);
+			memcheck_xfrd_tcp_clean(region, ipc_data->write_conn);
+			region_recycle(region, ipc_data,
+				sizeof(struct main_ipc_handler_data));
+			region_recycle(region, nsd->children[i].handler,
+				sizeof(netio_handler_type));
+		}
+	}
+}
+
+static void
+clean_server_main_region(struct nsd* nsd, region_type* region,
+	struct netio* netio)
+{
+	clean_children_data(nsd, region);
+	memcheck_xfrd_tcp_clean(region, ((struct ipc_handler_conn_data*)
+		server_main_xfrd_listener->user_data)->conn);
+	region_recycle(region, server_main_xfrd_listener->user_data,
+		sizeof(struct ipc_handler_conn_data));
+	memcheck_netio_clean(netio);
+}
+#endif /* MEMCHECK */
+
 /*
  * Restart child servers if necessary.
  */
@@ -289,6 +322,11 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;
 			case 0: /* CHILD */
+#ifdef MEMCHECK
+				log_msg(LOG_INFO, "memcheck: start child");
+				clean_server_main_region(nsd, region, netio);
+				region_destroy(region); /* servermain region*/
+#endif /* MEMCHECK */
 				nsd->pid = 0;
 				nsd->child_count = 0;
 				nsd->server_kind = nsd->children[i].kind;
@@ -303,17 +341,6 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->signal_hint_statsusr = 0;
 				close(nsd->this_child->child_fd);
 				nsd->this_child->child_fd = -1;
-#ifdef MEMCHECK
-				log_msg(LOG_INFO, "memcheck: start child");
-				memcheck_xfrd_tcp_clean(region,
-					((struct ipc_handler_conn_data*)
-					server_main_xfrd_listener->user_data)->conn);
-				region_recycle(region,
-					server_main_xfrd_listener->user_data,
-					sizeof(struct ipc_handler_conn_data));
-				memcheck_netio_clean(netio);
-				region_destroy(region); /* servermain region*/
-#endif /* MEMCHECK */
 				server_child(nsd);
 				/* NOTREACH */
 				exit(0);
@@ -1204,10 +1231,11 @@ server_main(struct nsd *nsd)
 			send_children_quit(nsd);
 
 			namedb_fd_close(nsd->db);
-			region_destroy(server_region);
 #ifdef MEMCHECK
 			log_msg(LOG_INFO, "memcheck: cleanup silentreloadparentshutdown");
+			clean_server_main_region(nsd, server_region, netio);
 #endif
+			region_destroy(server_region);
 			server_shutdown(nsd);
 
 			/* ENOTREACH */
@@ -1261,10 +1289,11 @@ server_main(struct nsd *nsd)
 	}
 
 	namedb_fd_close(nsd->db);
-	region_destroy(server_region);
 #ifdef MEMCHECK
 	log_msg(LOG_INFO, "memcheck: cleanup server_main shutdown");
+	clean_server_main_region(nsd, server_region, netio);
 #endif
+	region_destroy(server_region);
 	server_shutdown(nsd);
 }
 
@@ -1274,6 +1303,45 @@ server_process_query(struct nsd *nsd, struct query *query)
 	return query_process(query, nsd);
 }
 
+#ifdef MEMCHECK
+struct netio_handler_list /* a copy of the decl from netio.c */
+{
+        netio_handler_list_type *next;
+        netio_handler_type      *handler;
+};
+static void
+memcheck_child_clean(struct nsd* nsd, region_type* r, netio_type* netio,
+	netio_handler_type *tcp_accept_handlers, query_type *udp_query)
+{
+	/* delete the various types of handlers */
+	netio_handler_list_type* elt;
+	for(elt=netio->handlers; elt; elt=elt->next) {
+		if(elt->handler->event_handler == child_handle_parent_command){
+			struct ipc_handler_conn_data* ipc =
+				(struct ipc_handler_conn_data*)
+				elt->handler->user_data;
+			memcheck_xfrd_tcp_clean(r, ipc->conn);
+			region_recycle(r, ipc, sizeof(*ipc));
+			region_recycle(r, elt->handler, sizeof(netio_handler_type));
+		} else if(elt->handler->event_handler == handle_udp) {
+			region_recycle(r, elt->handler->user_data,
+				sizeof(struct udp_handler_data));
+			region_recycle(r, elt->handler, sizeof(netio_handler_type));
+		} else if(elt->handler->event_handler == handle_tcp_accept) {
+			region_recycle(r, elt->handler->user_data,
+				sizeof(struct tcp_accept_handler_data));
+			/* the handler is part of tcpaccepthdlr array */
+		} else {
+			log_msg(LOG_ERR, "unknown event handler in child_cl");
+		}
+	}
+	/* clean udp_query */
+	memcheck_query_clean(r, udp_query);
+	/* clean up tcpaccepthandler array */
+	region_recycle(r, tcp_accept_handlers, nsd->ifs * sizeof(netio_handler_type));
+	memcheck_netio_clean(netio);
+}
+#endif /* MEMCHECK */
 
 /*
  * Serve DNS requests.
@@ -1315,6 +1383,9 @@ server_child(struct nsd *nsd)
 		netio_add_handler(netio, handler);
 	}
 
+#ifdef MEMCHECK
+	udp_query = NULL;
+#endif
 	if (nsd->server_kind & NSD_SERVER_UDP) {
 		udp_query = query_create(server_region,
 			compressed_dname_offsets, compression_table_size);
@@ -1423,10 +1494,12 @@ server_child(struct nsd *nsd)
 #endif /* BIND8_STATS */
 
 	namedb_fd_close(nsd->db);
-	region_destroy(server_region);
 #ifdef MEMCHECK
 	log_msg(LOG_INFO, "memcheck: cleanup server_child shutdown");
+	memcheck_child_clean(nsd, server_region, netio, tcp_accept_handlers,
+		udp_query);
 #endif
+	region_destroy(server_region);
 	server_shutdown(nsd);
 }
 

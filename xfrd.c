@@ -91,7 +91,9 @@ xfrd_init(int socket, struct nsd* nsd)
 	/* to setup signalhandling */
 	nsd->server_kind = NSD_SERVER_BOTH;
 
-	log_msg(LOG_INFO, "xfrd start");
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "xfrd in-use %u (before init)", memcheck_total());
+#endif
 	region = region_create(xalloc, free);
 	xfrd = (xfrd_state_t*)region_alloc(region, sizeof(xfrd_state_t));
 	memset(xfrd, 0, sizeof(xfrd_state_t));
@@ -152,6 +154,9 @@ xfrd_init(int socket, struct nsd* nsd)
 	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
 	netio_add_handler(xfrd->netio, &xfrd->ipc_handler);
 
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "xfrd in-use %u (after init)", memcheck_total());
+#endif
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd startup"));
 	xfrd_main();
 }
@@ -184,6 +189,9 @@ xfrd_shutdown()
 	int i;
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown"));
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "xfrd in-use %u (before shutdown)", memcheck_total());
+#endif
 	xfrd_write_state(xfrd);
 	close(xfrd->ipc_handler.fd);
 	/* close tcp sockets */
@@ -388,6 +396,9 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 	netio_handler_type *handler, netio_event_types_type event_types)
 {
 	xfrd_zone_t* zone = (xfrd_zone_t*)handler->user_data;
+#ifdef MEMCHECK
+	log_msg(LOG_INFO, "xfrd in-use %u (in handle_zone)", memcheck_total());
+#endif
 
 	if(zone->tcp_conn != -1) {
 		/* busy in tcp transaction */
