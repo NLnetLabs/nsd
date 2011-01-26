@@ -24,6 +24,10 @@
 #include "util.h"
 #include "options.h"
 
+#ifdef MEMCHECK
+static int num_children_stored = 1;
+#endif
+
 int
 namedb_lookup(struct namedb    *db,
 	      const dname_type *dname,
@@ -427,6 +431,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	       (unsigned long) rr_count, (unsigned long) rrset_count));
 
 #ifdef MEMCHECK
+	num_children_stored = num_children;
 	region_recycle(temp_region, zones, zone_count*sizeof(zone_type*));
 	region_recycle(temp_region, domains, dname_count*sizeof(domain_type*));
 #endif
@@ -459,12 +464,108 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	return db;
 }
 
+#ifdef MEMCHECK
+/* recycle rr */
+static void
+clean_rr(region_type* r, rr_type* rr)
+{
+	/* clean rdatas */
+	unsigned i;
+	rrtype_descriptor_type* descriptor=rrtype_descriptor_by_type(rr->type);
+	for(i=0; i<rr->rdata_count; i++) {
+		/* depending on type: DOMAIN (ignore) or data (recycle) */
+		if(rdata_atom_is_domain(descriptor->type, i)) {
+			/* dname, ignore is ptr */
+		} else {
+			region_recycle(r, rr->rdatas[i].data,
+				rdata_atom_size(rr->rdatas[i])+2);
+		}
+	}
+	region_recycle(r, rr->rdatas, rr->rdata_count*sizeof(rdata_atom_type));
+}
+
+/* recycle rrset */
+static void
+clean_rrset(region_type* r, rrset_type* rrset)
+{
+	/* clean rrs */
+	unsigned i;
+	for(i=0; i<rrset->rr_count; i++)
+		clean_rr(r, &rrset->rrs[i]);
+	region_recycle(r, rrset->rrs, rrset->rr_count*sizeof(rr_type));
+	/* clean itself */
+	region_recycle(r, rrset, sizeof(rrset_type));
+}
+
+/* recycle domain node and its data */
+static void
+clean_domain(rbnode_t* node, void* arg)
+{
+	domain_type* d = (domain_type*)node;
+	region_type* r = (region_type*)arg;
+	rrset_type* p, *np;
+	/* clean rrsets */
+	p = d->rrsets;
+	while(p) {
+		np = p->next;
+		clean_rrset(r, p);
+		p = np;
+	}
+	/* clean owner name */
+	region_recycle(r, (void*)d->node.key,
+		dname_total_size((dname_type*)d->node.key));
+	/* clean itself */
+	region_recycle(r, d, sizeof(domain_type));
+}
+
+/* clean soa nx rrset */
+static void
+clean_soanx(region_type* r, rrset_type* rrset)
+{
+	region_recycle(r, rrset->rrs, rrset->rr_count*sizeof(rr_type));
+	region_recycle(r, rrset, sizeof(rrset_type));
+}
+
+/* recycle zones */
+static void
+clean_zones(region_type* r, struct namedb* db)
+{
+	zone_type* z = db->zones, *zn;
+	while(z) {
+		zn = z->next;
+		clean_soanx(r, z->soa_nx_rrset);
+		region_recycle(r, z->dirty, num_children_stored*sizeof(uint8_t));
+		region_recycle(r, z, sizeof(zone_type));
+		z = zn;
+	}
+}
+
+/* recycle all domain tree nodes and their data */
+static void
+namedb_clean(struct namedb* db)
+{
+	region_type* r = db->region;
+	log_msg(LOG_INFO, "clean namedb");
+	traverse_postorder(db->domains->names_to_domains, clean_domain, r);
+	clean_zones(r, db);
+	region_recycle_str(r, db->filename);
+	region_recycle(r, db->domains->names_to_domains, sizeof(rbtree_t));
+	region_recycle(r, db->domains, sizeof(domain_table_type));
+	region_recycle(r, db, sizeof(struct namedb));
+	region_destroy(r);
+}
+#endif /* MEMCHECK */
+
 void
 namedb_close (struct namedb *db)
 {
 	namedb_fd_close(db);
 	if (db) {
+#ifdef MEMCHECK
+		namedb_clean(db);
+#else
 		region_destroy(db->region);
+#endif
 	}
 }
 
