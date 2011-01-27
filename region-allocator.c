@@ -210,7 +210,8 @@ region_destroy(region_type *region)
 	if (!region)
 		return;
 #ifdef MEMCHECK
-	memcheck_log_origin("regcheck region_destroy", region);
+	if(MEMCHECK_TRACE)
+		memcheck_log_origin("regcheck region_destroy", region);
 #endif
 
 	deallocator = region->deallocator;
@@ -1054,8 +1055,9 @@ regcheck_mark_ignore(region_type* region)
 	struct region_mem* m;
 	for(m=region->reglist; m; m=m->next) {
 		m->pad |= 0x1;
-		log_msg(LOG_INFO, "regcheck ignore %d bytes %s:%d",
-			m->size, m->file, m->line);
+		if(MEMCHECK_TRACE)
+			log_msg(LOG_INFO, "regcheck ignore %d bytes %s:%d",
+				m->size, m->file, m->line);
 	}
 }
 
