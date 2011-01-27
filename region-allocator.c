@@ -1029,7 +1029,8 @@ region_free_all_check(region_type *region, const char* file, int line)
 	for(mem = region->reglist; mem; mem = mem->next) {
 		(void)check_region_magic(region, mem->data, mem->size,
 			file, line, "free-all");
-		log_msg(LOG_INFO, "regcheck free-all-leak %d bytes %s:%d",
+		if(!(mem->pad&0x1))
+		    log_msg(LOG_INFO, "regcheck free-all-leak %d bytes %s:%d",
 			mem->size, mem->file, mem->line);
 	}
 	region_free_all(region);
