@@ -282,7 +282,7 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->prior_mac_size = 0;
 	tsig->prior_mac_data = NULL;
 #ifdef MEMCHECK
-	regcheck_mark_ignore(tsig->rr_region);
+	regcheck_mark_ignore(tsig->context_region);
 #endif
 	region_free_all(tsig->context_region);
 }
