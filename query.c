@@ -186,6 +186,9 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets,
 #ifdef MEMCHECK
 void memcheck_query_clean(region_type* r, query_type* q)
 {
+	log_msg(LOG_INFO, "memcheck query region");
+	region_log_stats(q->region);
+	regcheck_mark_ignore(q->region);
 	region_destroy(q->region);
 	memcheck_buffer_clean(r, q->packet);
 	region_remove_cleanup(r, query_cleanup, q);

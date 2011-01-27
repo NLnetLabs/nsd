@@ -255,6 +255,12 @@ tsig_create_record_custom(tsig_record_type *tsig, region_type *region,
 #ifdef MEMCHECK
 void memcheck_tsig_record_clean(region_type* region, tsig_record_type *tsig)
 {
+	log_msg(LOG_INFO, "tsig rr_region");
+	region_log_stats(tsig->rr_region);
+	log_msg(LOG_INFO, "tsig context_region");
+	region_log_stats(tsig->context_region);
+	regcheck_mark_ignore(tsig->rr_region);
+	regcheck_mark_ignore(tsig->context_region);
 	region_destroy(tsig->rr_region);
 	region_destroy(tsig->context_region);
 	region_remove_cleanup(region, tsig_cleanup, tsig);

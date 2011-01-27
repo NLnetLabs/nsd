@@ -299,6 +299,11 @@ xfrd_read_state(struct xfrd_state* xfrd)
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: read %d zones from state file", numzones));
 	fclose(in);
+#ifdef MEMCHECK	
+	log_msg(LOG_INFO, "xfrd-disk tempregion");
+	region_log_stats(tempregion);
+	regcheck_mark_ignore(tempregion);
+#endif
 	region_destroy(tempregion);
 }
 
