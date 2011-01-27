@@ -1043,8 +1043,12 @@ count_pad_ignore(region_type* region)
 	uint32_t x = 0;
 	struct region_mem* m;
 	for(m=region->reglist; m; m=m->next) {
-		if((m->pad&0x1))
-			x += ALIGN_UP(m->size + REGIONMEMCHECKPAD, ALIGNMENT);
+		if((m->pad&0x1)) {
+			if(m->size + REGIONMEMCHECKPAD >=
+				region->large_object_size)
+				x+=m->size + REGIONMEMCHECKPAD;
+			else 	x+=ALIGN_UP(m->size + REGIONMEMCHECKPAD, ALIGNMENT);
+		}
 	}
 	return x;
 }
