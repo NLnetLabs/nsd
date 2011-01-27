@@ -542,6 +542,9 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->algorithm_name = NULL;
 	tsig->mac_data = NULL;
 	tsig->other_data = NULL;
+#ifdef MEMCHECK
+	regcheck_mark_ignore(tsig->rr_region);
+#endif
 	region_free_all(tsig->rr_region);
 
 	tsig->key_name = dname_make_from_packet(tsig->rr_region, packet, 1, 1);
