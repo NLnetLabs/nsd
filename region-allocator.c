@@ -52,6 +52,10 @@ struct region_mem {
 };
 /* file,line,magic before and magic after */
 #define REGIONMEMCHECKPAD (sizeof(struct region_mem) + sizeof(uint32_t))
+/* enable extra printout of existing allocs, to debug the debug code */
+#define MEMCHECK_DEBUG 0
+/* enable printout of every malloc and free */
+#define MEMCHECK_TRACE 0
 
 #endif /* MEMCHECK */
 
@@ -593,7 +597,8 @@ void *malloc_nsd(size_t size, const char* file, int line, const char* func)
 {
 	struct mem* m = do_alloc_work(size, file, line, func);
 	memset(m->data, 0xCC, size); /* not zero, but certain of the value */
-	log_mem_event("malloc", size, file, line, func);
+	if(MEMCHECK_TRACE)
+		log_mem_event("malloc", size, file, line, func);
 	return m->data;
 }
 
@@ -602,7 +607,8 @@ void *calloc_nsd(size_t nmemb, size_t size, const char* file, int line,
 {
 	struct mem* m = do_alloc_work(size*nmemb, file, line, func);
 	memset(m->data, 0, m->size);
-	log_mem_event("calloc", m->size, file, line, func);
+	if(MEMCHECK_TRACE)
+		log_mem_event("calloc", m->size, file, line, func);
 	return m->data;
 }
 
@@ -666,7 +672,8 @@ void free_nsd(void *ptr, const char* file, int line, const char* func)
 	/* check magic strings */
 	m = check_magic(ptr, "free", file, line, func);
 
-	log_mem_event("free", m->size, file, line, func);
+	if(MEMCHECK_TRACE)
+		log_mem_event("free", m->size, file, line, func);
 
 	/* do the actual free */
 	do_free_work(m);
@@ -701,7 +708,9 @@ void *realloc_nsd(void *ptr, size_t size, const char* file, int line,
 	if(m2->size > m->size)
 		memcpy(m2->data, m->data, m->size);
 	else	memcpy(m2->data, m->data, m2->size);
-	log_mem_event("realloc", (int)m2->size-(int)m->size, file, line, func);
+	if(MEMCHECK_TRACE)
+		log_mem_event("realloc", (int)m2->size-(int)m->size,
+			file, line, func);
 	do_free_work(m);
 	return m2->data;
 }
@@ -717,7 +726,8 @@ char *strdup_nsd(const char *str, const char* file, int line, const char* func)
 	s = strlen(str)+1;
 	m = do_alloc_work(s, file, line, func);
 	memmove(m->data, str, s);
-	log_mem_event("strdup", m->size, file, line, func);
+	if(MEMCHECK_TRACE)
+		log_mem_event("strdup", m->size, file, line, func);
 	return (char*)m->data;
 }
 
@@ -756,8 +766,9 @@ region_type* regcreate_nsd(const char* file, int line, const char* func)
 	region_type* r= region_create_custom(regalloc, regfree, 
 		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
 		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
-	log_msg(LOG_INFO, "regcheck region_create %p at %s:%d %s",
-		r, file, line, func);
+	if(MEMCHECK_TRACE)
+		log_msg(LOG_INFO, "regcheck region_create %p at %s:%d %s",
+			r, file, line, func);
 	set_alloc_report(r, file, line, func);
 	return r;
 }
@@ -771,8 +782,9 @@ region_type* regcreate_custom_nsd(size_t chunk_size,
 	/* ignore recycle: always make and do */
 	region_type* r = region_create_custom(regalloc, regfree, chunk_size,
 		large_object_size, initial_cleanup_size, recycle?recycle:1);
-	log_msg(LOG_INFO, "regcheck region_create_custom %p at %s:%d %s",
-		r, file, line, func);
+	if(MEMCHECK_TRACE)
+		log_msg(LOG_INFO, "regcheck region_create_custom %p at %s:%d %s",
+			r, file, line, func);
 	set_alloc_report(r, file, line, func);
 	return r;
 }
@@ -881,6 +893,9 @@ region_add_cleanup_check(region_type *region, void (*action)(void *),
 	/* just set that the allocated data origin is from here */
 	/* but not that simple ... */
 	/* set_alloc_report(data, file, line, "region_add_cleanup"); */
+	if(MEMCHECK_TRACE)
+		log_msg(LOG_INFO, "region_add_cleanup %p %p %s:%d",
+			region, data, file, line);
 	return ret;
 }
 
@@ -894,7 +909,9 @@ region_alloc_check(region_type *region, size_t size, const char* file,
 	struct region_mem* mem;
 	size_t lo = region->large_objects;
 	mem = region_alloc(region, size + REGIONMEMCHECKPAD);
-	log_msg(LOG_INFO, "region %p alloc %p %d %s:%d", region, mem->data, (int)size, file, line);
+	if(MEMCHECK_TRACE)
+		log_msg(LOG_INFO, "region %p alloc %p %d %s:%d",
+			region, mem->data, (int)size, file, line);
 	if(lo != region->large_objects) {
 		/* large object, set the origin of the allocation */
 		set_alloc_report(mem, file, line, "region_alloc");
@@ -912,7 +929,7 @@ region_alloc_check(region_type *region, size_t size, const char* file,
 	mem->magic = MEMMAGIC;
 	memmove(regcheck_endmagic(mem), &mem->magic, sizeof(mem->magic));
 
-	if(0) {
+	if(MEMCHECK_DEBUG) {
 		struct region_mem* mem, *pp = NULL;
 		for(mem = region->reglist; mem; mem = mem->next) {
 			log_msg(LOG_INFO, "memlist %p block %p %d prev %p next %p",
@@ -961,7 +978,9 @@ region_recycle_check(region_type *region, void *block, size_t size,
 	struct region_mem* mem;
 	if(!block) return;
 	mem = check_region_magic(region, block, size, file, line, "recycle");
-	log_msg(LOG_INFO, "region %p recycle %p %d %s:%d mem %p", region, block, (int)size, file, line, mem);
+	if(MEMCHECK_TRACE)
+		log_msg(LOG_INFO, "region %p recycle %p %d %s:%d mem %p",
+			region, block, (int)size, file, line, mem);
 	/* unlink from the object list */
 	if(mem->next) mem->next->prev = mem->prev;
 	if(mem->prev) mem->prev->next = mem->next;
@@ -978,7 +997,7 @@ region_recycle_check(region_type *region, void *block, size_t size,
 	/* actual free */
 	region_recycle(region, mem, size+REGIONMEMCHECKPAD);
 
-	if(0) {
+	if(MEMCHECK_DEBUG) {
 		struct region_mem* pp = NULL;
 		for(mem = region->reglist; mem; mem = mem->next) {
 			log_msg(LOG_INFO, "memlist %p block %p %d prev %p next %p",
