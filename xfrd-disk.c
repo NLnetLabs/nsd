@@ -219,6 +219,9 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		}
 
 		zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
+#ifdef MEMCHECK
+		region_recycle(tempregion, (void*)dname, dname_total_size(dname));
+#endif
 		if(!zone) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: state file has info for not configured zone %s", p));
 			continue;
