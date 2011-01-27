@@ -182,6 +182,71 @@ xfrd_main()
 	xfrd_shutdown();
 }
 
+#ifdef MEMCHECK
+static void
+zone_clean(rbnode_t* n, void* arg)
+{
+	xfrd_zone_t* z = (xfrd_zone_t*)n;
+	region_type* r = (region_type*)arg;
+	/* dname shared with notify zones; xfrd_zone_t only for slaves */
+	memcheck_tsig_record_clean(r, &z->tsig);
+	region_recycle(r, z, sizeof(xfrd_zone_t));
+}
+
+static void
+memcheck_xfrd_zones_clean(region_type* r, rbtree_t* zones)
+{
+	traverse_postorder(zones, zone_clean, r);
+	region_recycle(r, zones, sizeof(rbtree_t));
+}
+
+static void
+notify_zone_clean(rbnode_t* n, void* arg)
+{
+	struct notify_zone_t* not = (struct notify_zone_t*)n;
+	region_type* r = (region_type*)arg;
+	/* clean init_notify_send */
+	region_recycle(r, not->current_soa, sizeof(struct xfrd_soa));
+	memcheck_tsig_record_clean(r, &not->notify_tsig);
+	/* clean the dname for the zone */
+	region_recycle(r, (void*)not->apex, dname_total_size(not->apex));
+	region_recycle(r, not, sizeof(struct notify_zone_t));
+}
+
+static void
+memcheck_xfrd_notify_zones_clean(region_type* r, rbtree_t* notify_zones)
+{
+	traverse_postorder(notify_zones, notify_zone_clean, r);
+	region_recycle(r, notify_zones, sizeof(rbtree_t));
+}
+
+static void
+memcheck_xfrd_clean(void)
+{
+	region_type* r = xfrd->region;
+
+	/* clean the result of init_zones */
+	memcheck_xfrd_zones_clean(r, xfrd->zones);
+	memcheck_xfrd_notify_zones_clean(r, xfrd->notify_zones);
+
+	/* clean xfrd_tcp_set xfrd->tcp_set */
+	memcheck_tcp_set_clean(r, xfrd->tcp_set);
+
+	/* clean stack: xfrd->dirty_zones); */
+	region_recycle(r, xfrd->dirty_zones->data,
+		sizeof(void*)*xfrd->dirty_zones->capacity);
+	region_recycle(r, xfrd->dirty_zones, sizeof(stack_type));
+
+	memcheck_xfrd_tcp_clean(r, xfrd->ipc_conn_write);
+	memcheck_xfrd_tcp_clean(r, xfrd->ipc_conn);
+	memcheck_buffer_clean(r, xfrd->ipc_pass);
+	memcheck_buffer_clean(r, xfrd->packet);
+	memcheck_netio_clean(xfrd->netio);
+	region_recycle(r, xfrd, sizeof(xfrd_state_t));
+	region_destroy(r);
+}
+#endif /* MEMCHECK */
+
 static void
 xfrd_shutdown()
 {
@@ -217,7 +282,7 @@ xfrd_shutdown()
 	log_msg(LOG_INFO, "memcheck cleanup xfrd_shutdown");
 	nsd_options_destroy(xfrd->nsd->options);
 	region_destroy(xfrd->nsd->region);
-	region_destroy(xfrd->region);
+	memcheck_xfrd_clean();
 #endif
 
 	exit(0);

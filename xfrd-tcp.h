@@ -69,6 +69,8 @@ xfrd_tcp_t* xfrd_tcp_create(struct region* region);
 #ifdef MEMCHECK
 /* destroy tcp state */
 void memcheck_xfrd_tcp_clean(region_type* region, xfrd_tcp_t* tcp);
+/* destroy tcp_set */
+void memcheck_tcp_set_clean(region_type* r, xfrd_tcp_set_t* tcp_set);
 #endif
 /* obtain tcp connection for a zone (or wait) */
 void xfrd_tcp_obtain(xfrd_tcp_set_t* set, struct xfrd_zone* zone);

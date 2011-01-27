@@ -35,6 +35,19 @@ xfrd_tcp_set_t* xfrd_tcp_set_create(struct region* region)
 	return tcp_set;
 }
 
+#ifdef MEMCHECK
+void memcheck_tcp_set_clean(region_type* r, xfrd_tcp_set_t* tcp_set)
+{
+	int i;
+	for(i=0; i<XFRD_MAX_TCP; i++) {
+		/* recycle tcp */
+		memcheck_buffer_clean(r, tcp_set->tcp_state[i]->packet);
+		region_recycle(r, tcp_set->tcp_state[i], sizeof(xfrd_tcp_t));
+	}
+	region_recycle(r, tcp_set, sizeof(xfrd_tcp_set_t));
+}
+#endif /* MEMCHECK */
+
 void
 xfrd_setup_packet(buffer_type* packet,
 	uint16_t type, uint16_t klass, const dname_type* dname)
