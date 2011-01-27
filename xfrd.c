@@ -1597,6 +1597,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 		region_destroy(tempregion);
 		return; /* drop packet for unknown zone */
 	}
+	region_recycle(tempregion, (void*)dname, dname_total_size(dname));
 	region_destroy(tempregion);
 
 	/* handle */
