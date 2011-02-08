@@ -915,7 +915,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	region_log_stats(region);
 	memcheck_buffer_clean(region, packet);
 	region_recycle(region, (void*)dname_zone, dname_total_size(dname_zone));
-	if(regcheck_amount(region) > 1024)
+	if(regcheck_amount(region) > 1024*1024)
 		log_msg(LOG_WARNING, "apply_ixfr reg amount %d", (int)regcheck_amount(region));
 	regcheck_mark_ignore(region);
 #endif
@@ -1427,7 +1427,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	region_log_stats(data->region);
 
 #ifdef MEMCHECK
-	if(regcheck_amount(data->region) > 102400)
+	if(regcheck_amount(data->region) > 1024)
 		log_msg(LOG_WARNING, "difffile data reg amount %d", (int)regcheck_amount(data->region));
 	regcheck_mark_ignore(data->region);
 #endif

@@ -1014,29 +1014,6 @@ region_recycle_check(region_type *region, void *block, size_t size,
 	}
 }
 
-void
-region_free_all_check(region_type *region, const char* file, int line)
-{
-	/* check all magics for buffer trouble in the smallobject list */
-	struct region_mem* mem;
-	if(region->total_allocated - region->recycle_size != 0) {
-		struct mem* m = check_magic(region, "region-free-all",
-			file, line, "region-free-all");
-		log_msg(LOG_INFO, "region-free-all of %d bytes for %p %s:%d %s at %s:%d",
-			(int)(region->total_allocated- region->recycle_size),
-			region, m->file, m->line, m->func, file, line);
-	}
-	for(mem = region->reglist; mem; mem = mem->next) {
-		(void)check_region_magic(region, mem->data, mem->size,
-			file, line, "free-all");
-		if(!(mem->pad&0x1))
-		    log_msg(LOG_INFO, "regcheck free-all-leak %d bytes %s:%d",
-			mem->size, mem->file, mem->line);
-	}
-	region_free_all(region);
-	region->reglist = NULL;
-}
-
 /* count the padded memory in the region */
 static uint32_t
 count_pad_ignore(region_type* region)
@@ -1052,6 +1029,30 @@ count_pad_ignore(region_type* region)
 		}
 	}
 	return x;
+}
+
+void
+region_free_all_check(region_type *region, const char* file, int line)
+{
+	/* check all magics for buffer trouble in the smallobject list */
+	struct region_mem* mem;
+	uint32_t ignore = count_pad_ignore(region);
+	if(region->total_allocated - region->recycle_size - ignore != 0) {
+		struct mem* m = check_magic(region, "region-free-all",
+			file, line, "region-free-all");
+		log_msg(LOG_INFO, "region-free-all of %d bytes for %p %s:%d %s at %s:%d",
+			(int)(region->total_allocated- region->recycle_size),
+			region, m->file, m->line, m->func, file, line);
+	}
+	for(mem = region->reglist; mem; mem = mem->next) {
+		(void)check_region_magic(region, mem->data, mem->size,
+			file, line, "free-all");
+		if(!(mem->pad&0x1))
+		    log_msg(LOG_INFO, "regcheck free-all-leak %d bytes %s:%d",
+			mem->size, mem->file, mem->line);
+	}
+	region_free_all(region);
+	region->reglist = NULL;
 }
 
 void

@@ -259,9 +259,9 @@ void memcheck_tsig_record_clean(region_type* region, tsig_record_type *tsig)
 	region_log_stats(tsig->rr_region);
 	log_msg(LOG_INFO, "tsig context_region");
 	region_log_stats(tsig->context_region);
-	if(regcheck_amount(tsig->rr_region) < 1024)
+	if(regcheck_amount(tsig->rr_region) < 4096)
 		regcheck_mark_ignore(tsig->rr_region);
-	if(regcheck_amount(tsig->context_region) < 1024)
+	if(regcheck_amount(tsig->context_region) < 4096)
 		regcheck_mark_ignore(tsig->context_region);
 	region_destroy(tsig->rr_region);
 	region_destroy(tsig->context_region);
@@ -284,7 +284,7 @@ tsig_init_record(tsig_record_type *tsig,
 	tsig->prior_mac_size = 0;
 	tsig->prior_mac_data = NULL;
 #ifdef MEMCHECK
-	if(regcheck_amount(tsig->context_region) < 1024)
+	if(regcheck_amount(tsig->context_region) < 4096)
 		regcheck_mark_ignore(tsig->context_region);
 #endif
 	region_free_all(tsig->context_region);
@@ -549,7 +549,7 @@ tsig_parse_rr(tsig_record_type *tsig, buffer_type *packet)
 	tsig->mac_data = NULL;
 	tsig->other_data = NULL;
 #ifdef MEMCHECK
-	if(regcheck_amount(tsig->rr_region) < 1024)
+	if(regcheck_amount(tsig->rr_region) < 4096)
 		regcheck_mark_ignore(tsig->rr_region);
 #endif
 	region_free_all(tsig->rr_region);
