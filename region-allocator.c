@@ -1109,4 +1109,10 @@ void region_recycle_str_check(region_type* region, const char* str,
 	region_recycle_check(region, (char*)str, strlen(str)+1, file, line);
 }
 
+size_t regcheck_amount(region_type* region)
+{
+	/* do not account for recycle size, we want the churn */
+	return region->total_allocated;
+}
+
 #endif /* MEMCHECK */

@@ -188,7 +188,8 @@ void memcheck_query_clean(region_type* r, query_type* q)
 {
 	log_msg(LOG_INFO, "memcheck query region");
 	region_log_stats(q->region);
-	regcheck_mark_ignore(q->region);
+	if(regcheck_amount(q->region) < 1024)
+		regcheck_mark_ignore(q->region);
 	region_destroy(q->region);
 	memcheck_buffer_clean(r, q->packet);
 	region_remove_cleanup(r, query_cleanup, q);
@@ -211,6 +212,10 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	 *   o nsec3 hashed name(s) (3 dnames for a nonexist_proof,
 	 *     one proof per wildcard and for nx domain).
 	 */
+#ifdef MEMCHECK
+	if(regcheck_amount(q->region) < 1024)
+		regcheck_mark_ignore(q->region);
+#endif
 	region_free_all(q->region);
 	q->addrlen = sizeof(q->addr);
 	q->maxlen = maxlen;
