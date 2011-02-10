@@ -176,7 +176,7 @@ addition to standard configure options, one may use the following:
 
   --with-nsd_conf_file=path
 
-	Pathname to the NSD configuration file, default /ect/nsd/nsd.conf
+	Pathname to the NSD configuration file, default /etc/nsd/nsd.conf
 
   --with-pidfile=path
 
@@ -394,8 +394,9 @@ file issue a patch command
 
 This will see if a transfer journal exists, and if so, move it away,
 proceed with writing new contents to the zone files (listed as zonefile:
-for the zones). If any zone have been changed the nsd database is rebuild
-with the updates zone contents and NSD is issued a reload command.
+for the zones). If any zone files have been changed (including master
+zones) the nsd database is rebuild with the updates zone contents and
+NSD is issued a reload command.
 
 The patch process will break a zone transfer in progress, which will be
 reattempted later.  The patch process does this to avoid certain race
