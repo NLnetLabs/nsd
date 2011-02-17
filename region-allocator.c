@@ -251,7 +251,6 @@ region_add_cleanup(region_type *region, void (*action)(void *), void *data)
 	return region->cleanup_count;
 }
 
-#ifdef MEMCHECK
 void
 region_remove_cleanup(region_type *region, void (*action)(void *), void *data)
 {
@@ -266,7 +265,6 @@ region_remove_cleanup(region_type *region, void (*action)(void *), void *data)
 		}
 	}
 }
-#endif /* MEMCHECK */
 
 void *
 region_alloc(region_type *region, size_t size)

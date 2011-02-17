@@ -377,6 +377,12 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	size_t needed = domain_table_count(nsd->db->domains) + 1;
 	needed += EXTRA_DOMAIN_NUMBERS;
 	if(compression_table_capacity < needed) {
+		if(compressed_dname_offsets) {
+			region_remove_cleanup(nsd->db->region,
+				cleanup_dname_compression_tables,
+				compressed_dname_offsets);
+			free(compressed_dname_offsets);
+		}
 		compressed_dname_offsets = (uint16_t *) xalloc(
 			needed * sizeof(uint16_t));
 		region_add_cleanup(nsd->db->region, cleanup_dname_compression_tables,
