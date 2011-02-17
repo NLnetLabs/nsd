@@ -1,5 +1,6 @@
 17 February 2011: Wouter
 	- Fix leak of compressiontable when the domain table increases in size.
+	- 24 January 2011 was release 3.2.7, move trunk to 3.2.8.
 
 11 February 2011: Wouter
 	- added test case to do with bug357.
