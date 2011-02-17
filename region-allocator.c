@@ -204,6 +204,21 @@ region_add_cleanup(region_type *region, void (*action)(void *), void *data)
 	return region->cleanup_count;
 }
 
+void
+region_remove_cleanup(region_type *region, void (*action)(void *), void *data)
+{
+	size_t i;
+	for(i=0; i<region->cleanup_count; i++) {
+		if(region->cleanups[i].action == action &&
+		   region->cleanups[i].data == data) {
+			region->cleanup_count--;
+			region->cleanups[i] =
+				region->cleanups[region->cleanup_count];
+			return;
+		}
+	}
+}
+
 void *
 region_alloc(region_type *region, size_t size)
 {

@@ -1,6 +1,13 @@
 NSD RELEASE NOTES
 
-3.2.7 (UPCOMING RELEASE)
+3.2.8
+=============
+
+BUG FIXES:
+	- Bugfix: Fix leak of compressiontable when the domain table increases in size.
+
+
+3.2.7
 =============
 
 BUG FIXES:
