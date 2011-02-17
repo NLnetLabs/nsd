@@ -1,3 +1,7 @@
+17 February 2011: Wouter
+	- Fix leak of compressiontable when the domain table increases in size.
+	- added test case to do with bug357.
+
 10 February 2011: Wouter
 	- Merged with trunk r3115 changes:
 		20 January 2011: Wouter

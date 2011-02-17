@@ -76,6 +76,11 @@ size_t region_add_cleanup(region_type *region,
 			  void (*action)(void *),
 			  void *data);
 
+/* 
+ * Remove cleanup, both action and data must match exactly.
+ */
+void region_remove_cleanup(region_type *region,
+        void (*action)(void *), void *data);
 
 /*
  * Allocate SIZE bytes of memory inside REGION.  The memory is
