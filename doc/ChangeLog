@@ -1,3 +1,6 @@
+18 February 2011: Wouter
+	- overhaul of testset, with port uniqueness and fast start and stop.
+
 17 February 2011: Wouter
 	- Fix leak of compressiontable when the domain table increases in size.
 	- 24 January 2011 was release 3.2.7, move trunk to 3.2.8.

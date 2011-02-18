@@ -1,4 +1,5 @@
 #!/bin/sh
+. ./common.sh
 
 # you need to have the following tools in your $PATH:
 # export PATH=$PATH:/usr/local/bin
@@ -8,6 +9,18 @@
 # tpkg
 # pcat, pcat-diff, pcat-print, ldns-testns
 # nc and printf for tcp_* tests.
+test_tool_avail "grep"
+test_tool_avail "tail"
+test_tool_avail "head"
+test_tool_avail "kill"
+test_tool_avail "dig"
+test_tool_avail "wdiff"
+test_tool_avail "tpkg"
+test_tool_avail "drill"
+test_tool_avail "pcat"
+test_tool_avail "pcat-diff"
+test_tool_avail "pcat-print"
+test_tool_avail "ldns-testns"
 
 NEED_DIG9="bug009_soa_alone bug013_truncate bug034_any bug052_ent bug054_rd bug056_axfr  bug058_qn_246 bug072_parent bug090_000_txt bug095_screwy_wc bug103 copy_cd nx_dnssec tsig_badkey tsig_badsig tsig_query"
 NEED_i386="xfr_1 xfr_2"
@@ -16,13 +29,13 @@ NEED_PCAT="query_diff_root"
 
 # do we have dig9?
 DIG9=no
-if dig 2>&1 | grep "DiG 9"; then DIG9=yes; fi
+if dig 2>&1 | grep "DiG 9" >/dev/null; then DIG9=yes; fi
 # do we have nc?
 HAVE_NC=no
-if test -f "`which nc`"; then HAVE_NC=yes; fi
+if test -f "`which nc 2>&1`"; then HAVE_NC=yes; fi
 # do we have ldns pcat, pcat-print, pcat-diff?
 HAVE_PCAT=no
-if test -f "`which pcat-diff`"; then HAVE_PCAT=yes; fi
+if test -f "`which pcat-diff 2>&1`"; then HAVE_PCAT=yes; fi
 
 # run the tests
 tpkg -a ../../ fake 0000_nsd-compile.tpkg
@@ -53,9 +66,9 @@ done
 tpkg report
 #tpkg clean
 
-do_long=no
+do_long=yes
 if [ $do_long = yes ]; then
-	LONGTESTS="testplan_axfr.tpkg testplan_ixfr_pkts.tpkg testplan_mess.tpkg testplan_axfr_tsig.tpkg testplan_ixfr_remove.tpkg testplan_timeout.tpkg testplan_deadlock.tpkg testplan_ixfr.tpkg testplan_tsig_34.tpkg bug_sighup.tpkg ixfr_rollback.tpkg reload_timeout.tpkg xfrd_connect_ip6.tpkg xfrd_tcp_overload.tpkg notify_interrupts_axfr.tpkg reload_timeout.tpkg bug137.tpkg bug145_multiple_zone_xfr.tpkg 213_large.tpkg"
+	LONGTESTS="testplan_axfr.tpkg testplan_ixfr_pkts.tpkg testplan_mess.tpkg testplan_axfr_tsig.tpkg testplan_ixfr_remove.tpkg testplan_timeout.tpkg testplan_deadlock.tpkg testplan_ixfr.tpkg testplan_tsig_34.tpkg bug_sighup.tpkg ixfr_rollback.tpkg reload_timeout.tpkg xfrd_connect_ip6.tpkg xfrd_tcp_overload.tpkg notify_interrupts_axfr.tpkg bug137.tpkg bug145_multiple_zone_xfr.tpkg 213_large.tpkg ixfr_malformed.tpkg ixfr_remove_unknown.tpkg"
 	cd long
 	for i in $LONGTESTS; do
 		echo ">>> next test $i at "`date`
