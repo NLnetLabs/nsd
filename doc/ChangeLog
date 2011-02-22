@@ -1,5 +1,5 @@
 22 February 2011: Matthijs
-	- Patch Jakob Schlyter (setusercontext before chroot)
+	- Patch Jakob Schlyter (setusercontext before chroot).
 
 18 February 2011: Wouter
 	- overhaul of testset, with port uniqueness and fast start and stop.
