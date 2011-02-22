@@ -950,8 +950,23 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-#ifdef HAVE_CHROOT
+	/* Set user context */
+#ifdef HAVE_GETPWNAM
+	if (*nsd.username) {
+#ifdef HAVE_SETUSERCONTEXT
+		/* setusercontext does initgroups, setuid, setgid, and
+		 * also resource limits from login config, but we
+		 * still call setresuid, setresgid to be sure to set all uid */
+		if (setusercontext(NULL, pwd, nsd.uid,
+			LOGIN_SETALL & ~LOGIN_SETUSER & ~LOGIN_SETGROUP) != 0)
+			log_msg(LOG_WARNING, "unable to setusercontext %s: %s",
+				nsd.username, strerror(errno));
+#endif /* HAVE_SETUSERCONTEXT */
+	}
+#endif /* HAVE_GETPWNAM */
+
 	/* Chroot */
+#ifdef HAVE_CHROOT
 	if (nsd.chrootdir && strlen(nsd.chrootdir)) {
 		int l = strlen(nsd.chrootdir);
 		int ret = 0;
@@ -1001,20 +1016,11 @@ main(int argc, char *argv[])
 	/* Drop the permissions */
 #ifdef HAVE_GETPWNAM
 	if (*nsd.username) {
-#ifdef HAVE_SETUSERCONTEXT
-		/* setusercontext does initgroups, setuid, setgid, and
-		 * also resource limits from login config, but we
-		 * still call setresuid, setresgid to be sure to set all uid */
-		if (setusercontext(NULL, pwd, nsd.uid, LOGIN_SETALL) != 0)
-			log_msg(LOG_WARNING, "unable to setusercontext %s: %s",
-				nsd.username, strerror(errno));
-#else /* !HAVE_SETUSERCONTEXT */
- #ifdef HAVE_INITGROUPS
+#ifdef HAVE_INITGROUPS
 		if(initgroups(nsd.username, nsd.gid) != 0)
 			log_msg(LOG_WARNING, "unable to initgroups %s: %s",
 				nsd.username, strerror(errno));
- #endif /* HAVE_INITGROUPS */
-#endif /* HAVE_SETUSERCONTEXT */
+#endif /* HAVE_INITGROUPS */
 		endpwent();
 
 #ifdef HAVE_SETRESGID
@@ -1039,7 +1045,7 @@ main(int argc, char *argv[])
 
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "dropped user privileges, run as %s",
 			nsd.username));
-    }
+	}
 #endif /* HAVE_GETPWNAM */
 
 	if (server_prepare(&nsd) != 0) {

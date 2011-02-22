@@ -1,11 +1,13 @@
 NSD RELEASE NOTES
 
-3.2.8
+3.2.8 (UPCOMING RELEASE)
 =============
 
 BUG FIXES:
-	- Bugfix: Fix leak of compressiontable when the domain table increases in size.
-
+	- Bugfix #348: Don't include header/library path if OpenSSL is in /usr
+	- Fix leak of compressiontable when the domain table increases in size.
+	- Do setusercontext() before chroot(), otherwise login.conf etc. are required
+	  inside chroot.
 
 3.2.7
 =============

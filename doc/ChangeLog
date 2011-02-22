@@ -1,3 +1,6 @@
+22 February 2011: Matthijs
+	- Patch Jakob Schlyter (setusercontext before chroot)
+
 18 February 2011: Wouter
 	- overhaul of testset, with port uniqueness and fast start and stop.
 
@@ -8,11 +11,17 @@
 11 February 2011: Wouter
 	- added test case to do with bug357.
 
+24 January 2011: Matthijs
+	- Patch Tom Hendrikx (only errors to stderr when doing nsdc patch).
+
 20 January 2011: Wouter
 	- Fix on shutdown, then getaddrinfo acquired data uses freeaddrinfo.
 
 19 January 2011: Wouter
 	- Bug #348: no -I/usr and -L/usr for libcrypto in /usr.
+
+17 January 2011: Matthijs
+	- Bump to 3.2.8.
 
 5 January 2011: Matthijs
 	- Fix nsdc update and nsdc notify
