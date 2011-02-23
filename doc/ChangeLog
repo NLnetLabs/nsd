@@ -1,13 +1,13 @@
 23 February 2011: Wouter
-        - Merge trunk r3151.
-                22 February 2011: Matthijs
-                        - Patch Jakob Schlyter (setusercontext before chroot).
-                18 February 2011: Wouter
-                        - overhaul of testset, with port uniqueness and fast start and stop.
-                11 February 2011: Wouter
-                        - added test case to do with bug357.
-                24 January 2011: Matthijs
-                        - Patch Tom Hendrikx (only errors to stderr when doing nsdc patch).
+	- Merge trunk r3151.
+		22 February 2011: Matthijs
+			- Patch Jakob Schlyter (setusercontext before chroot).
+		18 February 2011: Wouter
+			- overhaul of testset, with port uniqueness and fast start and stop.
+		11 February 2011: Wouter
+			- added test case to do with bug357.
+		24 January 2011: Matthijs
+			- Patch Tom Hendrikx (only errors to stderr when doing nsdc patch).
 
 17 February 2011: Wouter
 	- Fix leak of compressiontable when the domain table increases in size.
