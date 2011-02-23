@@ -1197,6 +1197,7 @@ server_main(struct nsd *nsd)
 		}
 		fsync(xfrd_listener.fd);
 		close(xfrd_listener.fd);
+		(void)kill(xfrd_pid, SIGTERM);
 	}
 
 	namedb_fd_close(nsd->db);
