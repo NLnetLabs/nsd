@@ -1,5 +1,5 @@
 23 February 2011: Wouter
-	- Merge trunk r3151
+	- Merge trunk r3151.
 		22 February 2011: Matthijs
 			- Patch Jakob Schlyter (setusercontext before chroot).
 		18 February 2011: Wouter
