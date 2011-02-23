@@ -1,3 +1,14 @@
+23 February 2011: Wouter
+        - Merge trunk r3151.
+                22 February 2011: Matthijs
+                        - Patch Jakob Schlyter (setusercontext before chroot).
+                18 February 2011: Wouter
+                        - overhaul of testset, with port uniqueness and fast start and stop.
+                11 February 2011: Wouter
+                        - added test case to do with bug357.
+                24 January 2011: Matthijs
+                        - Patch Tom Hendrikx (only errors to stderr when doing nsdc patch).
+
 17 February 2011: Wouter
 	- Fix leak of compressiontable when the domain table increases in size.
 	- added test case to do with bug357.
@@ -43,6 +54,16 @@
 21 July 2010: Wouter
 	- NUM_RECV_PER_SELECT 100 implemented, configure check if kernel
 	  supports this.
+17 January 2011: Matthijs
+	- Bump to 3.2.8.
+
+5 January 2011: Matthijs
+	- Fix nsdc update and nsdc notify
+	- Force outgoing interface to be a single range acl
+	- Update documentation about acl options
+	- Code review
+	- Fix nsdc so it can use hmac-sha* tsigs
+	- Bug #347: NSEC3 nodata QTYPE=DS not at delegation mismatch
 
 20 July 2010: Wouter
 	- Branched from trunk. Added radix tree.
