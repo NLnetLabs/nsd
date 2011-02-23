@@ -5,7 +5,6 @@ dnl
 sinclude(acx_nlnetlabs.m4)
 
 AC_INIT(NSD,4.0.0_imp_1,nsd-bugs@nlnetlabs.nl)
-AC_INIT(NSD,3.2.8,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 AC_AIX
