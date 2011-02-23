@@ -130,11 +130,6 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 	assert(netio);
 
 	/*
-	 * Clear the cached current time.
-	 */
-	netio->have_current_time = 0;
-	
-	/*
 	 * Initialize the minimum timeout with the timeout parameter.
 	 */
 	if (timeout) {

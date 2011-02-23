@@ -624,7 +624,13 @@ xfrd_set_zone_state(xfrd_zone_t* zone, enum xfrd_zone_state s)
 void
 xfrd_set_refresh_now(xfrd_zone_t* zone)
 {
-	xfrd_set_timer(zone, xfrd_time());
+	/* 10 nsec in the future, so that sockets still get serviced if busy */
+	struct timespec off;
+	zone->zone_handler.timeout = &zone->timeout;
+	zone->timeout = *netio_current_time(xfrd->netio);
+	off.tv_sec = 0;
+	off.tv_nsec = 10;
+	timespec_add(&zone->timeout, &off);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s sets timeout right now, state %d",
 		zone->apex_str, zone->state));
 }
