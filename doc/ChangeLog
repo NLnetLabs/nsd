@@ -1,3 +1,9 @@
+24 February 2011: Wouter
+	- fix bug#362: outgoing-interface and v4 vs. v6 leads to spurious
+	  warning messages.
+	- fix bug#363: nsd-checkconf -v does not print outgoing-interface ok.
+	- fix that nsd-checkconf -o outgoing-interface omits NOKEY.
+
 23 February 2011: Wouter
 	- (merged with nsd4 on 22nd).
 	- fix for bug#357, make xfrd quit with many zones.

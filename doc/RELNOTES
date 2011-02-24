@@ -5,9 +5,14 @@ NSD RELEASE NOTES
 
 BUG FIXES:
 	- Bugfix #348: Don't include header/library path if OpenSSL is in /usr
-	- Fix leak of compressiontable when the domain table increases in size.
-	- Do setusercontext() before chroot(), otherwise login.conf etc. are required
-	  inside chroot.
+	- fix leak of compressiontable when the domain table increases in size.
+	- Do setusercontext() before chroot(), otherwise login.conf etc. are
+	  required inside chroot.
+	- Bugfix #357, make xfrd quit with many zones.
+	- Bugfix #362: outgoing-interface and v4 vs. v6 leads to spurious
+	  warning messages.
+	- Bugfix #363: nsd-checkconf -v does not print outgoing-interface ok.
+	- Bugfix: nsd-checkconf -o outgoing-interface omits NOKEY.
 
 3.2.7
 =============
