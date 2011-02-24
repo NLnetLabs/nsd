@@ -386,7 +386,6 @@ answer_notify(struct nsd* nsd, struct query *query)
 	int acl_num;
 	acl_options_t *why;
 	nsd_rc_type rc;
-	char address[128];
 
 	zone_options_t* zone_opt;
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "got notify %s processing acl",
@@ -454,15 +453,19 @@ answer_notify(struct nsd* nsd, struct query *query)
 		return QUERY_PROCESSED;
 	}
 
-        if (verbosity > 0 && addr2ip(query->addr, address, sizeof(address))) {
-            DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
-            strlcpy(address, "[unknown]", sizeof(address));
-        }
-        VERBOSITY(1, (LOG_INFO, "notify for zone %s from client %s refused, %s%s",
-		dname_to_string(query->qname, NULL),
-		address,
-		why?why->key_name:"no acl matches",
-		why?why->ip_address_spec:"."));
+        if (verbosity > 1) {
+		char address[128];
+		if (addr2ip(query->addr, address, sizeof(address))) {
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
+			strlcpy(address, "[unknown]", sizeof(address));
+
+			VERBOSITY(1, (LOG_INFO, "notify for zone %s from client %s refused, %s%s",
+			dname_to_string(query->qname, NULL),
+			address,
+			why?why->key_name:"no acl matches",
+			why?why->ip_address_spec:"."));
+		}
+	}
 
 	return query_error(query, NSD_RC_REFUSE);
 }
