@@ -454,7 +454,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 		return QUERY_PROCESSED;
 	}
 
-        if (addr2ip(query->addr, address, 128)) {
+        if (addr2ip(query->addr, address, sizeof(address))) {
             DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
             strlcpy(address, "[unknown]", sizeof(address));
         }

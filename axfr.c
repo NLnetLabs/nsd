@@ -168,7 +168,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			{
 				char address[128];
 
-				if (addr2ip(q->addr, address, 128)) {
+				if (addr2ip(q->addr, address, sizeof(address))) {
 					DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 						"addr2ip failed"));
 					strlcpy(address, "[unknown]", sizeof(address));
