@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 
 BUG FIXES:
 	- Bugfix #348: Don't include header/library path if OpenSSL is in /usr
+	- Bugfix #350: Refused notifies should log client ip.
 	- fix leak of compressiontable when the domain table increases in size.
 	- Do setusercontext() before chroot(), otherwise login.conf etc. are
 	  required inside chroot.
