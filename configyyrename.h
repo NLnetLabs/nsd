@@ -85,5 +85,7 @@
 #define yyget_leng c_get_leng
 #define yylineno c_lineno
 #define yyget_text c_get_text
+#define yyvsp c_vsp
+#define yyvs c_vs
 
 #endif /* CONFIGYYRENAME_H */

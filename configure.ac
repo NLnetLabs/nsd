@@ -4,7 +4,7 @@ dnl
 
 sinclude(acx_nlnetlabs.m4)
 
-AC_INIT(NSD,3.2.8,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,4.0.0_imp_1,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 AC_AIX
@@ -241,6 +241,68 @@ fi
 
 # Checks for typedefs, structures, and compiler characteristics.
 CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
+CHECK_COMPILER_FLAG(fwhole-program, [
+	# check if it really works
+	AC_MSG_CHECKING([if -combine and system headers work])
+cat >conftest1.c <<EOF 
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+
+struct nsd {
+	char* pidfile;
+	unsigned long pid;
+};
+
+static struct nsd nsd;
+
+void log_msg(int x, char* s, ...) { }
+
+int write_data(FILE* f, char* buf, size_t len) { }
+
+int writepid(struct nsd *nsd) {
+	FILE * fd;
+	char pidbuf[[32]];
+
+	memset(&fd, 0, sizeof(fd));
+
+	if ((fd = fopen(nsd->pidfile, "w")) ==  NULL ) {
+		log_msg(1, "cannot open pidfile %s: %s",
+			nsd->pidfile, strerror(errno));
+		return -1;
+	}
+
+	if (!write_data(fd, pidbuf, strlen(pidbuf))) {
+		log_msg(1, "cannot write pidfile %s: %s",
+			nsd->pidfile, strerror(errno));
+		fclose(fd);
+		return -1;
+	}
+	fclose(fd);
+
+	return 0;
+}
+
+int main(void)
+{
+	return writepid(&nsd);
+}
+EOF
+cat >conftest2.c <<EOF
+#include <string.h>
+#include <stdio.h>
+EOF
+	if $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >/dev/null 2>&1; then
+		AC_MSG_RESULT(yes)
+		CCWHOLE="whole"
+		CHECK_COMPILER_FLAG(flto, [CFLAGS="$CFLAGS -flto"], [])
+	else
+		AC_MSG_RESULT(no)
+		CCWHOLE="unwhole"
+	fi
+	rm -f conftest1.c conftest2.c conftest.out
+], [ CCWHOLE="unwhole" ])
+AC_SUBST(CCWHOLE)
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_UID_T
@@ -386,6 +448,7 @@ fi
 ])dnl
 
 AC_CHECK_STRPTIME_WORKS
+ACX_CHECK_NONBLOCKING_BROKEN
 
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
@@ -611,6 +674,15 @@ case "$enable_mmap" in
 		AC_LIBGTOP_CHECK_TYPE(uintptr_t, void*)
 		AC_CHECK_FUNCS([mmap munmap])
 		AC_DEFINE_UNQUOTED([USE_MMAP_ALLOC], [], [Define this to enable mmap instead of malloc. Experimental.])
+		;;
+        no|*)
+                ;;
+esac
+
+AC_ARG_ENABLE(radix-tree, AC_HELP_STRING([--enable-radix-tree], [Configure NSD to use radix tree instead of red-black tree]))
+case "$enable_radix_tree" in
+        yes)
+		AC_DEFINE_UNQUOTED([USE_RADIX_TREE], [], [Define this to configure to use the radix tree.])
 		;;
         no|*)
                 ;;
