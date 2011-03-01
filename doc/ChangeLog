@@ -1,5 +1,7 @@
 1 March 2011: Wouter
 	- after merge, remove double -I. from makefile.
+	- radixtree is default.  Nicer makefile and no warnings from unused
+	  flex functions.
 
 1 March 2011: Wouter
 	- merge with trunk r3181:
