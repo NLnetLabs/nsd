@@ -1,3 +1,15 @@
+1 March 2011: Wouter
+	- merge with trunk r3181:
+	24 February 2011: Matthijs
+		- fix #bug350: refused notifies should log client ip.
+	24 February 2011: Wouter
+		- fix bug#362: outgoing-interface and v4 vs. v6 leads to spurious
+		  warning messages.
+		- fix bug#363: nsd-checkconf -v does not print outgoing-interface ok.
+		- fix that nsd-checkconf -o outgoing-interface omits NOKEY.
+	23 February 2011: Wouter
+		- fix for bug#357, make xfrd quit with many zones.
+		
 23 February 2011: Wouter
 	- Merge trunk r3151.
 		22 February 2011: Matthijs

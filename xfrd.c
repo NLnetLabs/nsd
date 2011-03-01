@@ -204,6 +204,7 @@ xfrd_shutdown()
 	}
 
 	/* shouldn't we clean up memory used by xfrd process */
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown complete"));
 
 	exit(0);
 }
