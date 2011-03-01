@@ -63,258 +63,22 @@ EDIT		= sed \
 
 TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
 
-ALL_OBJECTS	=			\
-	answer.o			\
-	axfr.o				\
-	buffer.o			\
-	configlexer.o			\
-	configparser.o			\
-	dbaccess.o			\
-	dbcreate.o			\
-	difffile.o			\
-	dname.o				\
-	dns.o				\
-	edns.o				\
-	ipc.o				\
-	iterated_hash.o			\
-	namedb.o			\
-	netio.o				\
-	nsd-checkconf.o			\
-	nsd-notify.o			\
-	nsd.o				\
-	nsd-patch.o			\
-	nsd-xfer.o			\
-	nsec3.o				\
-	options.o			\
-	packet.o			\
-	query.o				\
-	rbtree.o			\
-	radtree.o			\
-	rdata.o				\
-	region-allocator.o		\
-	server.o			\
-	tsig.o				\
-	tsig-openssl.o			\
-	util.o				\
-	xfrd-disk.o			\
-	xfrd-notify.o			\
-	xfrd.o				\
-	xfrd-tcp.o			\
-	zlexer.o			\
-	zonec.o				\
-	zparser.o
-
-NSD_OBJECTS	=				\
-	answer.o				\
-	axfr.o					\
-	buffer.o				\
-	configlexer.o				\
-	configparser.o				\
-	options.o				\
-	dbaccess.o				\
-	difffile.o				\
-	dname.o					\
-	dns.o					\
-	edns.o					\
-	ipc.o					\
-	iterated_hash.o				\
-	namedb.o				\
-	netio.o					\
-	nsd.o					\
-	nsec3.o					\
-	packet.o				\
-	query.o					\
-	rbtree.o				\
-	radtree.o				\
-	rdata.o					\
-	region-allocator.o			\
-	server.o				\
-	tsig.o					\
-	tsig-openssl.o				\
-	util.o					\
-	xfrd-disk.o				\
-	xfrd-notify.o				\
-	xfrd-tcp.o				\
-	xfrd.o
-
-ZONEC_OBJECTS	=				\
-	answer.o				\
-	axfr.o					\
-	buffer.o				\
-	configlexer.o				\
-	configparser.o				\
-	dbaccess.o				\
-	difffile.o				\
-	dbcreate.o				\
-	dname.o					\
-	dns.o					\
-	edns.o					\
-	iterated_hash.o				\
-	namedb.o				\
-	nsec3.o					\
-	options.o				\
-	packet.o				\
-	query.o					\
-	rbtree.o				\
-	radtree.o				\
-	rdata.o					\
-	region-allocator.o			\
-	tsig.o					\
-	tsig-openssl.o				\
-	util.o					\
-	zlexer.o				\
-	zonec.o					\
-	zparser.o
-
-NSD_NOTIFY_OBJECTS	=			\
-	answer.o				\
-	axfr.o					\
-	buffer.o				\
-	configlexer.o                           \
-	configparser.o                          \
-	dbaccess.o				\
-	dname.o					\
-	dns.o					\
-	edns.o					\
-	iterated_hash.o				\
-	namedb.o				\
-	nsd-notify.o				\
-	nsec3.o					\
-	options.o				\
-	packet.o				\
-	query.o					\
-	rbtree.o				\
-	radtree.o				\
-	rdata.o                                 \
-	region-allocator.o			\
-	tsig.o					\
-	tsig-openssl.o				\
-	util.o
-
-NSD_XFER_OBJECTS	=			\
-	answer.o				\
-	axfr.o					\
-	buffer.o				\
-	configlexer.o                           \
-	configparser.o                          \
-	dbaccess.o				\
-	dname.o					\
-	dns.o					\
-	edns.o					\
-	iterated_hash.o				\
-	namedb.o				\
-	nsd-xfer.o				\
-	nsec3.o					\
-	options.o				\
-	packet.o				\
-	query.o					\
-	rbtree.o				\
-	radtree.o				\
-	rdata.o					\
-	region-allocator.o			\
-	tsig.o					\
-	tsig-openssl.o				\
-	util.o
-
-NSD_CHECKCONF_OBJECTS	=			\
-	answer.o				\
-	axfr.o					\
-	buffer.o                                \
-	configlexer.o                           \
-	configparser.o                          \
-	dbaccess.o				\
-	dname.o                                 \
-	dns.o                                   \
-	edns.o					\
-	iterated_hash.o				\
-	namedb.o                                \
-	nsd-checkconf.o                         \
-	nsec3.o					\
-	options.o                               \
-	packet.o				\
-	query.o					\
-	rbtree.o                                \
-	radtree.o				\
-	rdata.o                                 \
-	region-allocator.o                      \
-	tsig.o					\
-	tsig-openssl.o				\
-	util.o
-
-NSD_PATCH_OBJECTS	=			\
-	answer.o				\
-	axfr.o					\
-	buffer.o                                \
-	configlexer.o                           \
-	configparser.o                          \
-	dbcreate.o				\
-	dbaccess.o				\
-	difffile.o				\
-	dname.o                                 \
-	dns.o                                   \
-	edns.o					\
-	iterated_hash.o				\
-	namedb.o				\
-	nsd-patch.o				\
-	nsec3.o					\
-	options.o                               \
-	packet.o				\
-	query.o					\
-	rbtree.o                                \
-	radtree.o				\
-	rdata.o                                 \
-	region-allocator.o                      \
-	tsig.o					\
-	tsig-openssl.o				\
-	util.o
-
-CUTEST_OBJECTS		=			\
-	answer.o				\
-	axfr.o					\
-	buffer.o				\
-	configlexer.o				\
-	configparser.o				\
-	options.o				\
-	dbaccess.o				\
-	dbcreate.o				\
-	difffile.o				\
-	dname.o					\
-	dns.o					\
-	edns.o					\
-	ipc.o					\
-	iterated_hash.o				\
-	namedb.o				\
-	netio.o					\
-	nsec3.o					\
-	packet.o				\
-	query.o					\
-	rbtree.o				\
-	radtree.o				\
-	rdata.o					\
-	region-allocator.o			\
-	server.o				\
-	tsig.o					\
-	tsig-openssl.o				\
-	util.o					\
-	xfrd-disk.o				\
-	xfrd-notify.o				\
-	xfrd-tcp.o				\
-	xfrd.o					\
-	cutest_dname.o 				\
-	cutest_dns.o 				\
-	cutest_iterated_hash.o 			\
-	cutest_run.o				\
-	cutest_rbtree.o 			\
-	cutest_options.o 			\
-	cutest_region.o 			\
-	cutest_util.o 				\
-	cutest.o
+COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o util.o
+XFRD_OBJ=xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o
+ALL_OBJ=$(COMMON_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o netio.o nsd-checkconf.o nsd-notify.o nsd.o nsd-patch.o nsd-xfer.o server.o $(XFRD_OBJ) zlexer.o zonec.o zparser.o
+NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbaccess.o
+ZONEC_OBJ=$(COMMON_OBJ) difffile.o dbcreate.o zlexer.o zonec.o zparser.o
+NSD_NOTIFY_OBJ=$(COMMON_OBJ) dbaccess.o nsd-notify.o
+NSD_XFER_OBJ=$(COMMON_OBJ) dbaccess.o nsd-xfer.o
+NSD_CHECKCONF_OBJ=$(COMMON_OBJ) dbaccess.o nsd-checkconf.o
+NSD_PATCH_OBJ=$(COMMON_OBJ) dbcreate.o dbaccess.o difffile.o nsd-patch.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_rbtree.o cutest_options.o cutest_region.o cutest_util.o cutest.o
 
 all:	$(CCWHOLE)
 
 unwhole:	$(TARGETS)
 
-$(ALL_OBJECTS):
+$(ALL_OBJ):
 	$(COMPILE) -c $<
 
 nsdc.sh:	$(srcdir)/nsdc.sh.in
@@ -363,29 +127,29 @@ uninstall:
 test: 
 
 whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJECTS) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o zonec -combine -fwhole-program `echo $(ZONEC_OBJECTS) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o zonec -combine -fwhole-program `echo $(ZONEC_OBJ) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
 
-nsd:	$(NSD_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBS)
+nsd:	$(NSD_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(LIBS)
 
-zonec:	$(ZONEC_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(ZONEC_OBJECTS) $(LIBOBJS) $(LIBS)
+zonec:	$(ZONEC_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ $(ZONEC_OBJ) $(LIBOBJS) $(LIBS)
 
-nsd-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_NOTIFY_OBJECTS) $(LIBOBJS) $(LIBS)
+nsd-notify:	$(NSD_NOTIFY_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_NOTIFY_OBJ) $(LIBOBJS) $(LIBS)
 
-nsd-checkconf:	$(NSD_CHECKCONF_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_CHECKCONF_OBJECTS) $(LIBOBJS) $(LIBS)
+nsd-checkconf:	$(NSD_CHECKCONF_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_CHECKCONF_OBJ) $(LIBOBJS) $(LIBS)
 
-nsd-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBS)
+nsd-xfer:	$(NSD_XFER_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_XFER_OBJ) $(LIBOBJS) $(LIBS)
 
-nsd-patch:	$(NSD_PATCH_OBJECTS) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_PATCH_OBJECTS) $(LIBOBJS) $(LIBS)
+nsd-patch:	$(NSD_PATCH_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_PATCH_OBJ) $(LIBOBJS) $(LIBS)
 
-cutest:	$(CUTEST_OBJECTS)
-	$(LINK) -o $@ $(CUTEST_OBJECTS) $(LIBOBJS) $(LIBS)
+cutest:	$(CUTEST_OBJ)
+	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(LIBS)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
@@ -398,82 +162,82 @@ realclean: clean
 	rm -f configlexer.c configparser.h configparser.c configparser.stamp
 
 basename.o:	$(srcdir)/compat/basename.c
-	$(COMPILE) -c $(srcdir)/compat/basename.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/basename.c
 
 inet_pton.o:	$(srcdir)/compat/inet_pton.c
-	$(COMPILE) -c $(srcdir)/compat/inet_pton.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/inet_pton.c
 
 inet_ntop.o:	$(srcdir)/compat/inet_ntop.c
-	$(COMPILE) -c $(srcdir)/compat/inet_ntop.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/inet_ntop.c
 
 inet_aton.o:	$(srcdir)/compat/inet_aton.c
-	$(COMPILE) -c $(srcdir)/compat/inet_aton.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/inet_aton.c
 
 b64_pton.o:	$(srcdir)/compat/b64_pton.c
-	$(COMPILE) -c $(srcdir)/compat/b64_pton.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/b64_pton.c
 
 b64_ntop.o:	$(srcdir)/compat/b64_ntop.c
-	$(COMPILE) -c $(srcdir)/compat/b64_ntop.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/b64_ntop.c
 
 memcmp.o:	$(srcdir)/compat/memcmp.c
-	$(COMPILE) -c $(srcdir)/compat/memcmp.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/memcmp.c
 
 memmove.o:	$(srcdir)/compat/memmove.c
-	$(COMPILE) -c $(srcdir)/compat/memmove.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/memmove.c
 
 snprintf.o:	$(srcdir)/compat/snprintf.c
-	$(COMPILE) -c $(srcdir)/compat/snprintf.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/snprintf.c
 
 strlcat.o:	$(srcdir)/compat/strlcat.c
-	$(COMPILE) -c $(srcdir)/compat/strlcat.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/strlcat.c
 
 strlcpy.o:	$(srcdir)/compat/strlcpy.c
-	$(COMPILE) -c $(srcdir)/compat/strlcpy.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/strlcpy.c
 
 strptime.o:	$(srcdir)/compat/strptime.c
-	$(COMPILE) -c $(srcdir)/compat/strptime.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/strptime.c
 
 vsnprintf.o:	$(srcdir)/compat/vsnprintf.c
-	$(COMPILE) -c $(srcdir)/compat/vsnprintf.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/vsnprintf.c
 
 timegm.o:	$(srcdir)/compat/timegm.c
-	$(COMPILE) -c $(srcdir)/compat/timegm.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/timegm.c
 
 malloc.o:	$(srcdir)/compat/malloc.c
-	$(COMPILE) -c $(srcdir)/compat/malloc.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/malloc.c
 
 pselect.o:	$(srcdir)/compat/pselect.c
-	$(COMPILE) -c $(srcdir)/compat/pselect.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/pselect.c
 
 fake-rfc2553.o:	$(srcdir)/compat/fake-rfc2553.c
-	$(COMPILE) -c $(srcdir)/compat/fake-rfc2553.c -o $@
+	$(COMPILE) -c $(srcdir)/compat/fake-rfc2553.c
 
 cutest_dname.o:	$(srcdir)/tpkg/cutest/cutest_dname.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_dname.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_dname.c
 
 cutest_dns.o:	$(srcdir)/tpkg/cutest/cutest_dns.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_dns.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_dns.c
 
 cutest_iterated_hash.o:	$(srcdir)/tpkg/cutest/cutest_iterated_hash.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_iterated_hash.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_iterated_hash.c
 
 cutest_run.o:	$(srcdir)/tpkg/cutest/cutest_run.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_run.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_run.c
 
 cutest_rbtree.o:	$(srcdir)/tpkg/cutest/cutest_rbtree.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_rbtree.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_rbtree.c
 
 cutest_options.o:	$(srcdir)/tpkg/cutest/cutest_options.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_options.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_options.c
 
 cutest_region.o:	$(srcdir)/tpkg/cutest/cutest_region.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_region.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_region.c
 
 cutest_util.o:	$(srcdir)/tpkg/cutest/cutest_util.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_util.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_util.c
 
 cutest.o:	$(srcdir)/tpkg/cutest/cutest.c
-	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest.c -o $@
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest.c
 
 zlexer.c:	$(srcdir)/zlexer.lex
 	echo "#include <config.h>" > $@
