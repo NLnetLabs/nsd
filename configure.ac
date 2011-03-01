@@ -453,6 +453,16 @@ ACX_CHECK_NONBLOCKING_BROKEN
 AC_SEARCH_LIBS(inet_pton, [nsl])
 AC_SEARCH_LIBS(socket, [socket])
 
+# set -I. and -Isrcdir
+if test -n "$CPPFLAGS"; then
+	CPPFLAGS="$CPPFLAGS -I."
+else
+	CPPFLAGS="-I."
+fi
+if test "$srcdir" != "."; then
+	CPPFLAGS="$CPPFLAGS -I$srcdir"
+fi
+
 dnl LIBGTOP_CHECK_TYPE
 dnl Stolen from Gnome's anjuta
 dnl Improved version of AC_CHECK_TYPE which takes into account

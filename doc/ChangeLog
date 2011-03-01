@@ -1,4 +1,7 @@
 1 March 2011: Wouter
+	- after merge, remove double -I. from makefile.
+
+1 March 2011: Wouter
 	- merge with trunk r3181:
 	24 February 2011: Matthijs
 		- fix #bug350: refused notifies should log client ip.
