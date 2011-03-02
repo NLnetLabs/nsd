@@ -1,5 +1,6 @@
 2 March 2011: Wouter
 	- Fix AXFR service with radix tree.
+	- cutest for speed of answer encoding, and format of answers for root.
 
 1 March 2011: Wouter
 	- after merge, remove double -I. from makefile.
