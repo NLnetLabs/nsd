@@ -4,17 +4,23 @@ NSD RELEASE NOTES
 =============
 
 BUG FIXES:
-	- Fix leak of compressiontable when the domain table increases in size.
-	  Very likely to fix #216, #332.
-	- Bugfix #348: Don't include header/library path if OpenSSL is in /usr
-	- Bugfix #350: Refused notifies should log client ip.
 	- Do setusercontext() before chroot(), otherwise login.conf etc. are
 	  required inside chroot.
+	- Bugfix #216: Fix leak of compressiontable when the domain table increases
+	  in size.
+	- Bugfix #348: Don't include header/library path if OpenSSL is in /usr
+	- Bugfix #350: Refused notifies should log client ip.
+	- Bugfix #354: The realclean target deletes a bit too much.
 	- Bugfix #357, make xfrd quit with many zones.
 	- Bugfix #362: outgoing-interface and v4 vs. v6 leads to spurious
 	  warning messages.
 	- Bugfix #363: nsd-checkconf -v does not print outgoing-interface ok.
 	- Bugfix: nsd-checkconf -o outgoing-interface omits NOKEY.
+
+OPERATIONAL NOTES:
+	- Use 'make clean' to clean up files that make created.
+	- Use 'make realclean' to also clean up ./configure files.
+	- Use 'make devclean' to also clean up autoconf, autoheader files.
 
 3.2.7
 =============

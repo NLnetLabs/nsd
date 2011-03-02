@@ -1,3 +1,7 @@
+2 March 2011: Matthijs:
+	- fix #bug354: make realclean cleans too much
+	- added make devclean for cleaning up autoconf and automake stuff
+
 2 March 2011: Wouter
 	- Fix AXFR service with radix tree.
 	- cutest for speed of answer encoding, and format of answers for root.
@@ -71,10 +75,10 @@
 			- Bug #320: arc4random
 		2 Aug 2010: Matthijs
 			- Bump to 3.2.7.
+		21 July 2010: Wouter
+			- NUM_RECV_PER_SELECT 100 implemented, configure check if kernel
+			  supports this.
 
-21 July 2010: Wouter
-	- NUM_RECV_PER_SELECT 100 implemented, configure check if kernel
-	  supports this.
 17 January 2011: Matthijs
 	- Bump to 3.2.8.
 
