@@ -4,9 +4,10 @@ NSD RELEASE NOTES
 =============
 
 BUG FIXES:
+	- Fix leak of compressiontable when the domain table increases in size.
+	  Very likely to fix #216, #332.
 	- Bugfix #348: Don't include header/library path if OpenSSL is in /usr
 	- Bugfix #350: Refused notifies should log client ip.
-	- fix leak of compressiontable when the domain table increases in size.
 	- Do setusercontext() before chroot(), otherwise login.conf etc. are
 	  required inside chroot.
 	- Bugfix #357, make xfrd quit with many zones.
@@ -14,6 +15,7 @@ BUG FIXES:
 	  warning messages.
 	- Bugfix #363: nsd-checkconf -v does not print outgoing-interface ok.
 	- Bugfix: nsd-checkconf -o outgoing-interface omits NOKEY.
+	- Bugfix: refused NOTIFY messages now logs the source IP address.
 
 3.2.7
 =============
