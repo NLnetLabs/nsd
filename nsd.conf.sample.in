@@ -38,7 +38,7 @@ server:
 	# nsid: "aabbccdd"
 
 	# log messages to file. Default to stderr and syslog (with facility LOG_DAEMON).
-	# logfile: "/var/log/nsd.log"
+	# logfile: "@logfile@"
 
 	# Number of NSD servers to fork.
 	# server-count: 1
