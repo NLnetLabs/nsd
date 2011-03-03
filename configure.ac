@@ -62,6 +62,11 @@ AC_ARG_WITH([kill_priority],
 AC_SUBST(kill_priority)
 
 #
+# Default logfile
+#
+logfile=${localstatedir}/log/nsd.log
+
+#
 # Database directory
 #
 dbdir=${localstatedir}/db/nsd

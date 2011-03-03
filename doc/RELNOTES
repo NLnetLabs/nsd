@@ -10,6 +10,7 @@ BUG FIXES:
 	  in size.
 	- Bugfix #348: Don't include header/library path if OpenSSL is in /usr
 	- Bugfix #350: Refused notifies should log client ip.
+	- Bugfix #352: Fix hard coded paths in man pages.
 	- Bugfix #354: The realclean target deletes a bit too much.
 	- Bugfix #357, make xfrd quit with many zones.
 	- Bugfix #362: outgoing-interface and v4 vs. v6 leads to spurious

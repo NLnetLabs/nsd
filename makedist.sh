@@ -165,14 +165,14 @@ fi
 
 
 replace_all doc/README
-replace_all nsd.8
-replace_all nsdc.8
-replace_all nsd-notify.8
-replace_all nsd-checkconf.8
-replace_all nsd-patch.8
-replace_all nsd-xfer.8
-replace_all zonec.8
-replace_all nsd.conf.5
+replace_all nsd.8.in
+replace_all nsdc.8.in
+replace_all nsd-notify.8.in
+replace_all nsd-checkconf.8.in
+replace_all nsd-patch.8.in
+replace_all nsd-xfer.8.in
+replace_all zonec.8.in
+replace_all nsd.conf.5.in
 
 info "Renaming NSD directory to nsd-$version."
 cd ..
