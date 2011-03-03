@@ -63,10 +63,10 @@ EDIT		= sed \
 			-e 's,@spriority\@,$(spriority),g' \
 			-e 's,@kpriority\@,$(kpriority),g' 
 
-TARGETS 	= nsd zonec nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample \
-			 nsd.8 zonec.8 nsd-notify.8 nsd-xfer.8 nsdc.8 nsd-checkconf.8 nsd-patch.8 nsd.conf.5
+TARGETS=nsd zonec nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
+MANUALS=nsd.8 zonec.8 nsd-notify.8 nsd-xfer.8 nsdc.8 nsd-checkconf.8 nsd-patch.8 nsd.conf.5
 
-COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o util.o
+COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o namedb.o nsec3.o options.o packet.o pktc.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o util.o
 XFRD_OBJ=xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o
 ALL_OBJ=$(COMMON_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o netio.o nsd-checkconf.o nsd-notify.o nsd.o nsd-patch.o nsd-xfer.o server.o $(XFRD_OBJ) zlexer.o zonec.o zparser.o
 NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbaccess.o
@@ -79,7 +79,7 @@ CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o net
 
 all:	$(CCWHOLE)
 
-unwhole:	$(TARGETS)
+unwhole:	$(TARGETS) $(MANUALS)
 
 $(ALL_OBJ):
 	$(COMPILE) -c $<
@@ -161,7 +161,7 @@ uninstall:
 
 test: 
 
-whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c
+whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o zonec -combine -fwhole-program `echo $(ZONEC_OBJ) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
 
@@ -188,7 +188,7 @@ cutest:	$(CUTEST_OBJ)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
-	rm -f $(TARGETS)
+	rm -f $(TARGETS) $(MANUALS)
 
 realclean: clean
 	rm -f Makefile config.h config.log config.status
@@ -382,6 +382,9 @@ options.o: $(srcdir)/options.c config.h $(srcdir)/options.h $(srcdir)/region-all
  $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/difffile.h $(srcdir)/configyyrename.h configparser.h
 packet.o: $(srcdir)/packet.c config.h $(srcdir)/packet.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h $(srcdir)/rdata.h
+pktc.o: $(srcdir)/pktc.c config.h $(srcdir)/pktc.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
+ $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/radtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h \
+ $(srcdir)/edns.h $(srcdir)/tsig.h
 query.o: $(srcdir)/query.c config.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
  $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/nsec3.h

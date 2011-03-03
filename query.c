@@ -556,12 +556,6 @@ find_covering_nsec(domain_type *closest_match,
 }
 
 
-struct additional_rr_types
-{
-	uint16_t        rr_type;
-	rr_section_type rr_section;
-};
-
 struct additional_rr_types default_additional_rr_types[] = {
 	{ TYPE_A, ADDITIONAL_A_SECTION },
 	{ TYPE_AAAA, ADDITIONAL_AAAA_SECTION },
