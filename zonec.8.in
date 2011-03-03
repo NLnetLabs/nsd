@@ -39,7 +39,7 @@ by default, that is used by nsd(8) to answer incoming queries.
 .TP
 .B \-c\fI configfile
 Read specified configfile instead of the default 
-.IR @configdir@/nsd.conf .
+.IR @nsdconfigfile@ .
 .TP
 .B \-C 
 No config file is read (use with \-f, \-o and \-z).
@@ -96,7 +96,7 @@ default
 .B NSD
 database
 .TP
-@configdir@/nsd.conf
+@nsdconfigfile@
 default
 .B NSD
 configuration file

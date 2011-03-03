@@ -28,7 +28,7 @@ difffile does not grow infinitely.
 .TP
 .B \-c\fI configfile
 Read specified configfile instead of the default
-.IR @configdir@/nsd.conf .
+.IR @nsdconfigfile@ .
 .TP
 .B \-f
 Forces writing zone files. Also zones that have not changed are written
@@ -55,7 +55,7 @@ default
 .B NSD
 database
 .TP
-@configdir@/nsd.conf
+@nsdconfigfile@
 default
 .B NSD
 configuration file

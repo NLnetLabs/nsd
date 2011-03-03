@@ -113,10 +113,10 @@ nsd.db is rebuild and nsd is reloaded.
 .TP
 .B \-c\fI configfile
 Specify configfile to use instead of the default
-.IR @configdir@/nsd.conf .
+.IR @nsdconfigfile@ .
 .SH "FILES"
 .TP
-@configdir@/nsd.conf
+@nsdconfigfile@
 Configuration file for nsd to change default pathnames and
 .B NSD 
 flags. The zone names, pathnames to zone files and access control 

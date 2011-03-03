@@ -108,7 +108,7 @@ listens to the wildcard interface.
 .B \-c\fI configfile
 Read specified 
 .I configfile instead of the default
-.IR @configdir@/nsd.conf .
+.IR @nsdconfigfile@ .
 For format description see nsd.conf(5).
 .TP
 .B \-d
@@ -234,7 +234,7 @@ database
 @pidfile@
 the process id of the name server.
 .TP
-@configdir@/nsd.conf
+@nsdconfigfile@
 default
 .B NSD
 configuration file
