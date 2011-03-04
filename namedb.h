@@ -21,6 +21,7 @@
 #endif
 struct zone_options;
 struct nsd_options;
+struct comptree;
 
 #define	NAMEDB_MAGIC		"NSDdbV07"
 #define	NAMEDB_MAGIC_SIZE	8
@@ -264,6 +265,7 @@ uint16_t rr_rrsig_type_covered(rr_type *rr);
 typedef struct namedb namedb_type;
 struct namedb
 {
+	struct comptree   *tree;
 	region_type       *region;
 	domain_table_type *domains;
 	zone_type         *zones;

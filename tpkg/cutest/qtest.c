@@ -96,7 +96,7 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 		compression_table_size);
 }
 
-static void
+void
 debug_hex(char* desc, uint8_t* d, size_t s)
 {
 	char buf[10240];
@@ -343,7 +343,7 @@ buffer_print_packet(buffer_type* output, buffer_type* buf)
 }
 
 /* printout debug buffer with DNS packet */
-static void
+void
 print_buffer(buffer_type* buf)
 {
 	region_type* region = region_create(xalloc, free);

@@ -555,6 +555,9 @@ find_covering_nsec(domain_type *closest_match,
 	return NULL;
 }
 
+domain_type * find_covering_nsec_ext(domain_type *closest_match,
+	zone_type *zone, rrset_type **nsec_rrset)
+{ return find_covering_nsec(closest_match, zone, nsec_rrset); }
 
 struct additional_rr_types default_additional_rr_types[] = {
 	{ TYPE_A, ADDITIONAL_A_SECTION },

@@ -17,6 +17,7 @@ struct zone;
 struct domain_table;
 struct domain;
 struct region;
+struct rr;
 
 /**
  * Tree with compiled packets
@@ -184,6 +185,8 @@ void compnsec3_delete(struct compnsec3* c3);
 struct answer_info {
 	/** qname, or ce */
 	uint8_t* qname;
+	/** qtype or 0 */
+	uint16_t qtype;
 	/** can this answer compressptrs be adjusted after compilation */
 	int adjust;
 	/** flags and rcode */
@@ -216,6 +219,7 @@ struct prec_env {
 /** create a compiled packet structure, encode from RR data.
  * creates compression pointers.
  * @param qname: the qname for this packet.
+ * @param qtype: qtype or 0.
  * @param adjust: if true, a compression pointer adjustment list is created.
  * 	set this to true for NXDOMAINs, DNAME, referrals, wildcard.
  * @param flagcode: flagcode to set on packet
@@ -223,16 +227,13 @@ struct prec_env {
  * @param num_ns: number ns rrs.
  * @param num_ar: number ar rrs.
  * @param rrname: array of pointers to RR name
- * @param rrtype: array of pointers to RR types (host order).
- * @param rrclass: array of pointers to RR classes (host order)
- * @param rrttl: array of pointers to RR TTL (host order)
- * @param rrdata: array of pointers to RR data (starts with rdlen).
+ * @param rrinfo: array of RR data elements.
+ * @param cz: compiled zone for soa serial.
  * @return compiled packet, allocated.
  */
-struct cpkt* compile_packet(uint8_t* qname, int adjust, uint16_t flagcode,
-	uint16_t num_an, uint16_t num_ns, uint16_t num_ar,
-	uint8_t** rrname, uint16_t* rrtype, uint16_t* rrclass,
-	uint32_t* rrttl, uint8_t* rrdata);
+struct cpkt* compile_packet(uint8_t* qname, uint16_t qtype, int adjust,
+	uint16_t flagcode, uint16_t num_an, uint16_t num_ns, uint16_t num_ar,
+	uint8_t** rrname, struct rr** rrinfo, struct compzone* cz);
 
 /** delete a compiled packet structure, frees its contents */
 void cpkt_delete(struct cpkt* cp);
