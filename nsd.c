@@ -490,7 +490,7 @@ main(int argc, char *argv[])
 			if (hex_pton(optarg, nsd.nsid, nsd.nsid_len) == -1) {
 				error("hex string cannot be parsed '%s' in NSID.", optarg);
 			}
-                       break;
+			break;
 		case 'l':
 			nsd.log_filename = optarg;
 			break;
