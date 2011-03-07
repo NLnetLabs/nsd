@@ -1,6 +1,9 @@
 7 March 2011: Matthijs
 	- Update 3.2 branch (3.2.3 -> 3.2.8rc1, 18 August 2009 - 3 March 2011)
 
+7 March 2011: Wouter:
+	- check chown value and report high verbosity its error.
+
 3 March 2011: Matthijs:
 	- fix #bug352: fix hardcoded paths in manpages.
 
