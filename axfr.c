@@ -32,7 +32,6 @@ query_axfr(struct nsd *nsd, struct query *query)
 		query->maxlen = AXFR_MAX_MESSAGE_LEN;
 
 	assert(!query_overflow(query));
-#ifdef TSIG
 	/* only keep running values for most packets */
 	query->tsig_prepare_it = 0;
 	query->tsig_update_it = 1;
@@ -41,7 +40,6 @@ query_axfr(struct nsd *nsd, struct query *query)
 		query->tsig_prepare_it = 1;
 		query->tsig_sign_it = 0;
 	}
-#endif /* TSIG */
 
 	if (query->axfr_zone == NULL) {
 		/* Start AXFR.  */
@@ -66,11 +64,9 @@ query_axfr(struct nsd *nsd, struct query *query)
 			= (domain_type *) rbtree_first(nsd->db->domains->names_to_domains);
 		query->axfr_current_rrset = NULL;
 		query->axfr_current_rr = 0;
-#ifdef TSIG
 		if(query->tsig.status == TSIG_OK) {
 			query->tsig_sign_it = 1; /* sign first packet in stream */
 		}
-#endif /* TSIG */
 
 		query_add_compression_domain(query, query->domain, QHEADERSZ);
 
@@ -135,9 +131,7 @@ query_axfr(struct nsd *nsd, struct query *query)
 				 &query->axfr_zone->soa_rrset->rrs[0]);
 	if (added) {
 		++total_added;
-#ifdef TSIG
 		query->tsig_sign_it = 1; /* sign last packet */
-#endif /* TSIG */
 		query->axfr_is_done = 1;
 	}
 
@@ -146,14 +140,12 @@ return_answer:
 	NSCOUNT_SET(query->packet, 0);
 	ARCOUNT_SET(query->packet, 0);
 
-#ifdef TSIG
 	/* check if it needs tsig signatures */
 	if(query->tsig.status == TSIG_OK) {
 		if(query->tsig.updates_since_last_prepare >= AXFR_TSIG_SIGN_EVERY_NTH) {
 			query->tsig_sign_it = 1;
 		}
 	}
-#endif /* TSIG */
 	query_clear_compression_tables(query);
 	return QUERY_IN_AXFR;
 }
@@ -174,17 +166,18 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			if(!zone_opt ||
 			   acl_check_incoming(zone_opt->provide_xfr, q, &acl)==-1)
 			{
-				char address[128];
-
-				if (addr2ip(q->addr, address, 128)) {
-					DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-						"addr2ip failed"));
-					strcpy(address, "[unknown]");
+				if (verbosity > 0) {
+					char address[128];
+					if (addr2ip(q->addr, address, sizeof(address))) {
+						DEBUG(DEBUG_XFRD,1, (LOG_INFO,
+							"addr2ip failed"));
+						strlcpy(address, "[unknown]", sizeof(address));
+					}
+					VERBOSITY(1, (LOG_INFO, "axfr for zone %s from client %s refused, %s",
+						dname_to_string(q->qname, NULL), address, acl?"blocked":"no acl matches"));
 				}
-
-				VERBOSITY(1, (LOG_INFO, "axfr for zone %s from client %s refused, %s", dname_to_string(q->qname, NULL), address, acl?"blocked":"no acl matches"));
 				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr refused, %s",
-						acl?"blocked":"no acl matches"));
+					acl?"blocked":"no acl matches"));
 				RCODE_SET(q->packet, RCODE_REFUSE);
 				return QUERY_PROCESSED;
 			}

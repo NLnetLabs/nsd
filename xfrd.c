@@ -28,7 +28,6 @@
 
 #define XFRD_TRANSFER_TIMEOUT_START 10 /* empty zone timeout is between x and 2*x seconds */
 #define XFRD_TRANSFER_TIMEOUT_MAX 14400 /* empty zone timeout max expbackoff */
-#define XFRD_TCP_TIMEOUT TCP_TIMEOUT /* seconds, before a tcp connection is stopped */
 #define XFRD_UDP_TIMEOUT 10 /* seconds, before a udp request times out */
 #define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr's after notimpl */
 #define XFRD_LOWERBOUND_REFRESH 1 /* seconds, smallest refresh timeout */
@@ -138,6 +137,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->notify_udp_num = 0;
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
+	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
@@ -204,6 +204,7 @@ xfrd_shutdown()
 	}
 
 	/* shouldn't we clean up memory used by xfrd process */
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd shutdown complete"));
 
 	exit(0);
 }
@@ -281,9 +282,7 @@ xfrd_init_zones()
 		xzone->tcp_waiting = 0;
 		xzone->udp_waiting = 0;
 
-#ifdef TSIG
 		tsig_create_record_custom(&xzone->tsig, xfrd->region, 0, 0, 4);
-#endif /* TSIG */
 
 		if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
 			xzone->soa_nsd_acquired = xfrd_time();
@@ -388,12 +387,12 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		/* busy in tcp transaction */
 		if(xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && event_types & NETIO_EVENT_READ) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp read", zone->apex_str));
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_read(xfrd->tcp_set, zone);
 			return;
 		} else if(!xfrd_tcp_is_reading(xfrd->tcp_set, zone->tcp_conn) && event_types & NETIO_EVENT_WRITE) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s event tcp write", zone->apex_str));
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_write(xfrd->tcp_set, zone);
 			return;
 		} else if(event_types & NETIO_EVENT_TIMEOUT) {
@@ -517,17 +516,17 @@ xfrd_make_request(xfrd_zone_t* zone)
 			xfrd_udp_obtain(zone);
 		}
 		else { /* doing 3 rounds of IXFR/TCP might not be useful */
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
 	}
 	else if (zone->master->use_axfr_only || zone->soa_disk_acquired <= 0) {
-		xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+		xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 		xfrd_tcp_obtain(xfrd->tcp_set, zone);
 	}
 	else if (zone->master->ixfr_disabled) {
 		if (zone->zone_options->allow_axfr_fallback) {
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
 		else
@@ -806,7 +805,7 @@ xfrd_udp_read(xfrd_zone_t* zone)
 	}
 	switch(xfrd_handle_received_xfr_packet(zone, xfrd->packet)) {
 		case xfrd_packet_tcp:
-			xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_udp_release(zone);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 			break;
@@ -890,7 +889,9 @@ int
 xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 	int tcp)
 {
+#ifdef SO_LINGER
 	struct linger linger = {1, 0};
+#endif
 	socklen_t frm_len;
 #ifdef INET6
 	struct sockaddr_storage frm;
@@ -960,7 +961,6 @@ xfrd_bind_local_interface(int sockd, acl_options_t* ifc, acl_options_t* acl,
 	return 0;
 }
 
-#ifdef TSIG
 void
 xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig,
 	acl_options_t* acl)
@@ -985,7 +985,6 @@ xfrd_tsig_sign_request(buffer_type* packet, tsig_record_type* tsig,
 	/* prepare for validating tsigs */
 	tsig_prepare(tsig);
 }
-#endif
 
 static int
 xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
@@ -1009,11 +1008,9 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
         NSCOUNT_SET(xfrd->packet, 1);
 	xfrd_write_soa_buffer(xfrd->packet, zone->apex, &zone->soa_disk);
 	/* if we have tsig keys, sign the ixfr query */
-#ifdef TSIG
 	if(zone->master->key_options && zone->master->key_options->tsig_key) {
 		xfrd_tsig_sign_request(xfrd->packet, &zone->tsig, zone->master);
 	}
-#endif /* TSIG */
 	buffer_flip(xfrd->packet);
 	xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
 
@@ -1117,7 +1114,6 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	return 1;
 }
 
-#ifdef TSIG
 static int
 xfrd_xfr_process_tsig(xfrd_zone_t* zone, buffer_type* packet)
 {
@@ -1166,7 +1162,6 @@ xfrd_xfr_process_tsig(xfrd_zone_t* zone, buffer_type* packet)
 	}
 	return 1;
 }
-#endif
 
 /* parse the received packet. returns xfrd packet result code. */
 static enum xfrd_packet_result
@@ -1207,7 +1202,6 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		}
 		return xfrd_packet_bad;
 	}
-#ifdef TSIG
 	/* check TSIG */
 	if(zone->master->key_options) {
 		if(!xfrd_xfr_process_tsig(zone, packet)) {
@@ -1216,7 +1210,6 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			return xfrd_packet_bad;
 		}
 	}
-#endif
 	buffer_skip(packet, QHEADERSZ);
 
 	/* skip question section */
@@ -1331,7 +1324,6 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	}
 	if(done == 0)
 		return xfrd_packet_more;
-#ifdef TSIG
 	if(zone->master->key_options) {
 		if(zone->tsig.updates_since_last_prepare != 0) {
 			log_msg(LOG_INFO, "xfrd: last packet of reply has no "
@@ -1339,7 +1331,6 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			return xfrd_packet_bad;
 		}
 	}
-#endif /* TSIG */
 	return xfrd_packet_transfer;
 }
 
@@ -1419,12 +1410,10 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			      "time %u from %s in %u parts",
 		zone->apex_str, (int)zone->msg_new_serial, (int)xfrd_time(),
 		zone->master->ip_address_spec, zone->msg_seq_nr);
-#ifdef TSIG
 	if(zone->master->key_options) {
 		buffer_printf(packet, " TSIG verified with key %s",
 			zone->master->key_options->name);
 	}
-#endif /* TSIG */
 	buffer_flip(packet);
 	diff_write_commit(zone->apex_str, zone->msg_old_serial,
 		zone->msg_new_serial, zone->query_id, zone->msg_seq_nr, 1,

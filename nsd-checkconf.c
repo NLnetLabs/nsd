@@ -26,6 +26,14 @@ extern int optind;
 		return; 			\
 	}
 
+#define ZONE_GET_OUTGOING(NAME, VAR)			\
+	if (strcasecmp(#NAME, (VAR)) == 0) {		\
+		acl_options_t* acl; 			\
+		for(acl=zone->NAME; acl; acl=acl->next)	\
+			quote(acl->ip_address_spec);	\
+		return; 				\
+	}
+
 #define ZONE_GET_STR(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
 		quote(zone->NAME); 		\
@@ -50,7 +58,7 @@ extern int optind;
 
 #define SERV_GET_INT(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
-		printf("%d\n", opt->NAME); 	\
+		printf("%d\n", (int) opt->NAME); 	\
 		return; 			\
 	}
 
@@ -77,7 +85,7 @@ underscore(const char *s) {
 			buf[i++] = *j;
 		}
 		j++;
-		if (i > BUFSIZ) {
+		if (i >= BUFSIZ) {
 			return NULL;
 		}
 	}
@@ -99,6 +107,7 @@ usage(void)
 	fprintf(stderr, "-h		Print this help information.\n");
 	fprintf(stderr, "-o option	Print value of the option specified to stdout.\n");
 	fprintf(stderr, "-z zonename	Print option value for the zone given.\n");
+	fprintf(stderr, "-a keyname	Print algorithm name for the TSIG key.\n");
 	fprintf(stderr, "-s keyname	Print base64 secret blob for the TSIG key.\n");
 	exit(1);
 }
@@ -182,9 +191,18 @@ print_acl(const char* varname, acl_options_t* acl)
 	}
 }
 
+static void
+print_acl_ips(const char* varname, acl_options_t* acl)
+{
+	while(acl)
+	{
+		printf("\t%s %s\n", varname, acl->ip_address_spec);
+		acl=acl->next;
+	}
+}
 
 void
-config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *z)
+config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const char *z)
 {
 	zone_options_t* zone;
 	ip_address_option_t* ip;
@@ -194,7 +212,11 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 		key_options_t* key = opt->keys;
 		for( ; key ; key=key->next) {
 			if(strcmp(key->name, k) == 0) {
-				quote(key->secret);
+				if (s) {
+					quote(key->secret);
+				} else {
+					quote(key->algorithm);
+				}
 				return;
 			}
 		}
@@ -223,7 +245,8 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 				ZONE_GET_ACL(provide_xfr, o);
 				ZONE_GET_ACL(allow_notify, o);
 				ZONE_GET_ACL(notify, o);
-				ZONE_GET_ACL(outgoing_interface, o);
+				ZONE_GET_BIN(notify_retry, o);
+				ZONE_GET_OUTGOING(outgoing_interface, o);
 				ZONE_GET_BIN(allow_axfr_fallback, o);
 				printf("Zone option not handled: %s %s\n", z, o);
 				exit(1);
@@ -242,6 +265,7 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 		/* str */
 		SERV_GET_STR(database, o);
 		SERV_GET_STR(identity, o);
+		SERV_GET_STR(nsid, o);
 		SERV_GET_STR(logfile, o);
 		SERV_GET_STR(pidfile, o);
 		SERV_GET_STR(chroot, o);
@@ -253,6 +277,10 @@ config_print_zone(nsd_options_t* opt, const char* k, const char *o, const char *
 		/* int */
 		SERV_GET_INT(server_count, o);
 		SERV_GET_INT(tcp_count, o);
+		SERV_GET_INT(tcp_query_count, o);
+		SERV_GET_INT(tcp_timeout, o);
+		SERV_GET_INT(ipv4_edns_size, o);
+		SERV_GET_INT(ipv6_edns_size, o);
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
@@ -282,9 +310,14 @@ config_test_print_server(nsd_options_t* opt)
 	printf("\thide-version: %s\n", opt->hide_version?"yes":"no");
 	print_string_var("database:", opt->database);
 	print_string_var("identity:", opt->identity);
+	print_string_var("nsid:", opt->nsid);
 	print_string_var("logfile:", opt->logfile);
 	printf("\tserver_count: %d\n", opt->server_count);
 	printf("\ttcp_count: %d\n", opt->tcp_count);
+	printf("\ttcp_query_count: %d\n", opt->tcp_query_count);
+	printf("\ttcp_timeout: %d\n", opt->tcp_timeout);
+	printf("\tipv4-edns-size: %d\n", (int) opt->ipv4_edns_size);
+	printf("\tipv6-edns-size: %d\n", (int) opt->ipv6_edns_size);
 	print_string_var("pidfile:", opt->pidfile);
 	print_string_var("port:", opt->port);
 	printf("\tstatistics: %d\n", opt->statistics);
@@ -314,9 +347,10 @@ config_test_print_server(nsd_options_t* opt)
 		print_string_var("zonefile:", zone->zonefile);
 		print_acl("allow-notify:", zone->allow_notify);
 		print_acl("request-xfr:", zone->request_xfr);
+		printf("\tnotify-retry: %d\n", zone->notify_retry);
 		print_acl("notify:", zone->notify);
 		print_acl("provide-xfr:", zone->provide_xfr);
-		print_acl("outgoing-interface:", zone->outgoing_interface);
+		print_acl_ips("outgoing-interface:", zone->outgoing_interface);
 		printf("\tallow-axfr-fallback: %s\n", zone->allow_axfr_fallback?"yes":"no");
 	}
 
@@ -444,14 +478,18 @@ main(int argc, char* argv[])
 {
 	int c;
 	int verbose = 0;
+	int key_sec = 0;
 	const char * conf_opt = NULL; /* what option do you want? Can be NULL -> print all */
 	const char * conf_zone = NULL; /* what zone are we talking about */
 	const char * conf_key = NULL; /* what key is needed */
 	const char* configfile;
 	nsd_options_t *options;
 
+	log_init("nsd-checkconf");
+
+
         /* Parse the command line... */
-        while ((c = getopt(argc, argv, "vo:s:z:")) != -1) {
+        while ((c = getopt(argc, argv, "vo:a:s:z:")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose = 1;
@@ -459,8 +497,20 @@ main(int argc, char* argv[])
 		case 'o':
 			conf_opt = optarg;
 			break;
-		case 's':
+		case 'a':
+			if (conf_key) {
+				fprintf(stderr, "Error: cannot combine -a with -s or other -a.\n");
+				exit(1);
+			}
 			conf_key = optarg;
+			break;
+		case 's':
+			if (conf_key) {
+				fprintf(stderr, "Error: cannot combine -s with -a or other -s.\n");
+				exit(1);
+			}
+			conf_key = optarg;
+			key_sec = 1;
 			break;
 		case 'z':
 			conf_zone = optarg;
@@ -483,7 +533,7 @@ main(int argc, char* argv[])
 		exit(2);
 	}
 	if (conf_opt || conf_key) {
-		config_print_zone(options, conf_key, underscore(conf_opt), conf_zone);
+		config_print_zone(options, conf_key, key_sec, underscore(conf_opt), conf_zone);
 	} else {
 		if (verbose) {
 			printf("# Read file %s: %d zones, %d keys.\n",

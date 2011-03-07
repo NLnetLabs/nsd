@@ -14,6 +14,7 @@
 3.5 ... Diagnosing NSD log entries
 3.6 ... Interfaces
 4.0 Support and Feedback
+4.1 ... Your Support
 
 
 1.0 Introduction
@@ -165,14 +166,6 @@ addition to standard configure options, one may use the following:
 	This will instruct NSD to be stricter when validating its input. 
 	This could lead to a reduced service level.
 
-  --disable-dnssec
-
-        Disable support for DNSSEC (RFC 4033, 4034, and 4035).
-
-  --disable-tsig
-
-        Disable TSIG support in NSD and the support tools.
-
   --enable-bind8-stats
 
         Enables BIND8-like statistics.
@@ -183,7 +176,7 @@ addition to standard configure options, one may use the following:
 
   --with-nsd_conf_file=path
 
-	Pathname to the NSD configuration file, default /ect/nsd/nsd.conf
+	Pathname to the NSD configuration file, default /etc/nsd/nsd.conf
 
   --with-pidfile=path
 
@@ -211,8 +204,7 @@ addition to standard configure options, one may use the following:
   --with-ssl=path
 
         Specify the location of the OpenSSL libraries.  OpenSSL 0.9.7
-        or higher is required for TSIG support.  Use --disable-tsig if
-        you do not have OpenSSL installed.
+        or higher is required for TSIG support.
 
   --with-start_priority=number
 
@@ -222,14 +214,14 @@ addition to standard configure options, one may use the following:
 
 	Shutdown priority for NSD. 
 
+  --with-tcp-timeout=number
+
+	Set the default TCP timeout (in seconds). Default 120 seconds.
+
   --disable-nsec3
 
   	Disable NSEC3 support. With NSEC3 support enabled, very large zones,
 	also non-nsec3 zones, use about 20% more memory.
-
-  --enable-nsid
-
-  	Enable (experimental) NSID support. 
 
   --disable-largefile
 
@@ -332,6 +324,11 @@ to satisfy access control lists at the other end:
 
 		outgoing-interface: 168.192.5.69
 
+By default, NSD will retry a notify up to 5 times. You can override that
+value with: 
+
+		notify-retry: 5
+
 Zone transfers can be secured with TSIG keys, replace NOKEY with
 the name of the tsig key to use. See section 3.3.
 
@@ -353,6 +350,7 @@ To prevent misconfiguration, NSD configure has the --enable-root-server
 switch, that is by default disabled.
 
 When you are done with the configuration file, check the syntax using
+
 	nsd-checkconf <name of configfile>
 
 To build the name database, use nsdc. Use -c configfile if your config
@@ -396,8 +394,9 @@ file issue a patch command
 
 This will see if a transfer journal exists, and if so, move it away,
 proceed with writing new contents to the zone files (listed as zonefile:
-for the zones). If any zone have been changed the nsd database is rebuild
-with the updates zone contents and NSD is issued a reload command.
+for the zones). If any zone files have been changed (including master
+zones) the nsd database is rebuild with the updates zone contents and
+NSD is issued a reload command.
 
 The patch process will break a zone transfer in progress, which will be
 reattempted later.  The patch process does this to avoid certain race
@@ -710,5 +709,31 @@ We are interested in our users and in the environment you use NSD. Please
 drop us a mail when you use NSD. Indicate in what kind of operation you 
 deploy NSD and let us know what your positive and negative experiences are.
 http://www.nlnetlabs.nl/nsd  and  mailto:nsd-info@nlnetlabs.nl
+
+
+4.1 Your Support
+
+NLnet Labs offers all of its software products as open source, most are
+published under a BDS license. You can download them, not only from the
+NLnet Labs website but also through the various OS distributions for
+which NSD, ldns, and Unbound are packaged. We therefore have little idea
+who uses our software in production environments and have no direct ties
+with 'our customers'.
+
+Therefore, we ask you to contact us at users@NLnetLabs.nl and tell us
+whether you use one of our products in your production environment,
+what that environment looks like, and maybe even share some praise.
+We would like to refer to the fact that your organization is using our
+products. We will only do that if you explicitly allow us. In all other
+cases we will keep the information you share with us to ourselves.
+
+In addition to the moral support you can also support us
+financially. NLnet Labs is a recognized not-for-profit charity foundation
+that is chartered to develop open-source software and open-standards
+for the Internet. If you use our software to satisfaction please express
+that by giving us a donation. For small donations PayPal can be used. For
+larger and regular donations please contact us at users@NLnetLabs.nl. Also
+see http://www.nlnetlabs.nl/labs/contributors/.
+
 
 $Id$

@@ -28,6 +28,7 @@ int yywrap(void);
 
 /* this hold the nxt bits */
 static uint8_t nxtbits[16];
+static int dlv_warn = 1;
 
 /* 256 windows of 256 bits (32 bytes) */
 /* still need to reset the bastard somewhere */
@@ -64,7 +65,7 @@ nsec3_add_params(const char* hash_algo_str, const char* flag_str,
 %token <type> T_MINFO T_RP T_AFSDB T_X25 T_ISDN T_RT T_NSAP T_NSAP_PTR T_PX
 %token <type> T_GPOS T_EID T_NIMLOC T_ATMA T_NAPTR T_KX T_A6 T_DNAME T_SINK
 %token <type> T_OPT T_APL T_UINFO T_UID T_GID T_UNSPEC T_TKEY T_TSIG T_IXFR
-%token <type> T_AXFR T_MAILB T_MAILA T_DS T_SSHFP T_RRSIG T_NSEC T_DNSKEY
+%token <type> T_AXFR T_MAILB T_MAILA T_DS T_DLV T_SSHFP T_RRSIG T_NSEC T_DNSKEY
 %token <type> T_SPF T_NSEC3 T_IPSECKEY T_DHCID T_NSEC3PARAM
 
 /* other tokens */
@@ -333,11 +334,11 @@ wire_rel_dname:	wire_label
 
 str_seq:	STR
     {
-	    zadd_rdata_wireformat(zparser_conv_text(parser->region, $1.str, $1.len));
+	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->region, $1.str, $1.len), 1);
     }
     |	str_seq sp STR
     {
-	    zadd_rdata_wireformat(zparser_conv_text(parser->region, $3.str, $3.len));
+	    zadd_rdata_txt_wireformat(zparser_conv_text(parser->region, $3.str, $3.len), 0);
     }
     ;
 
@@ -577,6 +578,8 @@ type_and_rdata:
     |	T_APL sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_DS sp rdata_ds
     |	T_DS sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
+    |	T_DLV sp rdata_dlv { if (dlv_warn) { dlv_warn = 0; zc_warning_prev_line("DLV is experimental"); } }
+    |	T_DLV sp rdata_unknown { if (dlv_warn) { dlv_warn = 0; zc_warning_prev_line("DLV is experimental"); } $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_SSHFP sp rdata_sshfp
     |	T_SSHFP sp rdata_unknown { $$ = $1; parse_unknown_rdata($1, $3); }
     |	T_RRSIG sp rdata_rrsig
@@ -658,6 +661,9 @@ rdata_mx:	STR sp dname trail
     ;
 
 rdata_txt:	str_seq trail
+    {
+	zadd_rdata_txt_clean_wireformat();
+    }
     ;
 
 /* RFC 1183 */
@@ -798,6 +804,15 @@ rdata_apl_seq:	dotted_str
     ;
 
 rdata_ds:	STR sp STR sp STR sp str_sp_seq trail
+    {
+	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
+	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $3.str)); /* alg */
+	    zadd_rdata_wireformat(zparser_conv_byte(parser->region, $5.str)); /* type */
+	    zadd_rdata_wireformat(zparser_conv_hex(parser->region, $7.str, $7.len)); /* hash */
+    }
+    ;
+
+rdata_dlv:	STR sp STR sp STR sp str_sp_seq trail
     {
 	    zadd_rdata_wireformat(zparser_conv_short(parser->region, $1.str)); /* keytag */
 	    zadd_rdata_wireformat(zparser_conv_algorithm(parser->region, $3.str)); /* alg */

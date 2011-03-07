@@ -17,6 +17,7 @@
 #include <assert.h>
 
 #include "options.h"
+#include "util.h"
 #include "configyyrename.h"
 int c_lex(void);
 void c_error(const char *message);
@@ -43,14 +44,15 @@ static int server_settings_seen = 0;
 %token SPACE LETTER NEWLINE COMMENT COLON ANY ZONESTR
 %token <str> STRING
 %token VAR_SERVER VAR_NAME VAR_IP_ADDRESS VAR_DEBUG_MODE
-%token VAR_IP4_ONLY VAR_IP6_ONLY VAR_DATABASE VAR_IDENTITY VAR_LOGFILE
+%token VAR_IP4_ONLY VAR_IP6_ONLY VAR_DATABASE VAR_IDENTITY VAR_NSID VAR_LOGFILE
 %token VAR_SERVER_COUNT VAR_TCP_COUNT VAR_PIDFILE VAR_PORT VAR_STATISTICS
 %token VAR_CHROOT VAR_USERNAME VAR_ZONESDIR VAR_XFRDFILE VAR_DIFFFILE
-%token VAR_XFRD_RELOAD_TIMEOUT
+%token VAR_XFRD_RELOAD_TIMEOUT VAR_TCP_QUERY_COUNT VAR_TCP_TIMEOUT
+%token VAR_IPV4_EDNS_SIZE VAR_IPV6_EDNS_SIZE
 %token VAR_ZONEFILE 
 %token VAR_ZONE
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR 
-%token VAR_OUTGOING_INTERFACE VAR_ALLOW_AXFR_FALLBACK
+%token VAR_NOTIFY_RETRY VAR_OUTGOING_INTERFACE VAR_ALLOW_AXFR_FALLBACK
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
@@ -72,11 +74,12 @@ serverstart: VAR_SERVER
 	;
 contents_server: contents_server content_server | ;
 content_server: server_ip_address | server_debug_mode | server_ip4_only | 
-	server_ip6_only | server_database | server_identity | server_logfile | 
+	server_ip6_only | server_database | server_identity | server_nsid | server_logfile | 
 	server_server_count | server_tcp_count | server_pidfile | server_port | 
 	server_statistics | server_chroot | server_username | server_zonesdir |
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
-	server_verbosity | server_hide_version;
+	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
+	server_ipv6_edns_size | server_verbosity | server_hide_version;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -149,6 +152,26 @@ server_identity: VAR_IDENTITY STRING
 	{ 
 		OUTYY(("P(server_identity:%s)\n", $2)); 
 		cfg_parser->opt->identity = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+server_nsid: VAR_NSID STRING
+	{ 
+		unsigned char* nsid = 0;
+		uint16_t nsid_len = 0;
+
+		OUTYY(("P(server_nsid:%s)\n", $2));
+
+                if (strlen($2) % 2 != 0) {
+			yyerror("the NSID must be a hex string of an even length.");
+		} else {
+			nsid_len = strlen($2) / 2;
+			nsid = xalloc(nsid_len);
+			if (hex_pton($2, nsid, nsid_len) == -1)
+				yyerror("hex string cannot be parsed in NSID.");
+			else
+				cfg_parser->opt->nsid = region_strdup(cfg_parser->opt->region, $2);
+			free(nsid);
+		}
 	}
 	;
 server_logfile: VAR_LOGFILE STRING
@@ -231,6 +254,38 @@ server_xfrd_reload_timeout: VAR_XFRD_RELOAD_TIMEOUT STRING
 		cfg_parser->opt->xfrd_reload_timeout = atoi($2);
 	}
 	;
+server_tcp_query_count: VAR_TCP_QUERY_COUNT STRING
+	{ 
+		OUTYY(("P(server_tcp_query_count:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		cfg_parser->opt->tcp_query_count = atoi($2);
+	}
+	;
+server_tcp_timeout: VAR_TCP_TIMEOUT STRING
+	{ 
+		OUTYY(("P(server_tcp_timeout:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		cfg_parser->opt->tcp_timeout = atoi($2);
+	}
+	;
+server_ipv4_edns_size: VAR_IPV4_EDNS_SIZE STRING
+	{ 
+		OUTYY(("P(server_ipv4_edns_size:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		cfg_parser->opt->ipv4_edns_size = atoi($2);
+	}
+	;
+server_ipv6_edns_size: VAR_IPV6_EDNS_SIZE STRING
+	{ 
+		OUTYY(("P(server_ipv6_edns_size:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		cfg_parser->opt->ipv6_edns_size = atoi($2);
+	}
+	;
 
 /* zone: declaration */
 zonestart: VAR_ZONE
@@ -257,7 +312,7 @@ zonestart: VAR_ZONE
 	;
 contents_zone: contents_zone content_zone | content_zone;
 content_zone: zone_name | zone_zonefile | zone_allow_notify | 
-	zone_request_xfr | zone_notify | zone_provide_xfr | 
+	zone_request_xfr | zone_notify | zone_notify_retry | zone_provide_xfr | 
 	zone_outgoing_interface | zone_allow_axfr_fallback;
 zone_name: VAR_NAME STRING
 	{ 
@@ -344,6 +399,14 @@ zone_notify: VAR_NOTIFY STRING STRING
 		cfg_parser->current_notify = acl;
 	}
 	;
+zone_notify_retry: VAR_NOTIFY_RETRY STRING
+	{ 
+		OUTYY(("P(zone_notify_retry:%s)\n", $2)); 
+		if(atoi($2) == 0 && strcmp($2, "0") != 0)
+			yyerror("number expected");
+		else cfg_parser->current_zone->notify_retry = atoi($2);
+	}
+	;
 zone_provide_xfr: VAR_PROVIDE_XFR STRING STRING
 	{ 
 		acl_options_t* acl = parse_acl_info(cfg_parser->opt->region, $2, $3);
@@ -359,7 +422,7 @@ zone_outgoing_interface: VAR_OUTGOING_INTERFACE STRING
 	{ 
 		acl_options_t* acl = parse_acl_info(cfg_parser->opt->region, $2, "NOKEY");
 		OUTYY(("P(zone_outgoing_interface:%s)\n", $2)); 
-
+		if(acl->rangetype!=acl_range_single) c_error("address range used for outgoing interface");
 		if(cfg_parser->current_outgoing_interface)
 			cfg_parser->current_outgoing_interface->next = acl;
 		else

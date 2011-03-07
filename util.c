@@ -27,6 +27,17 @@
 #include "namedb.h"
 #include "rdata.h"
 
+#ifdef USE_MMAP_ALLOC
+#include <sys/mman.h>
+
+#if defined(MAP_ANON) && !defined(MAP_ANONYMOUS)
+#define	MAP_ANONYMOUS	MAP_ANON
+#elif defined(MAP_ANONYMOUS) && !defined(MAP_ANON)
+#define	MAP_ANON	MAP_ANONYMOUS
+#endif
+
+#endif /* USE_MMAP_ALLOC */
+
 #ifndef NDEBUG
 unsigned nsd_debug_facilities = 0xffff;
 int nsd_debug_level = 0;
@@ -242,6 +253,54 @@ xrealloc(void *ptr, size_t size)
 	return ptr;
 }
 
+#ifdef USE_MMAP_ALLOC
+
+void *
+mmap_alloc(size_t size)
+{
+	void *base;
+
+	size += MMAP_ALLOC_HEADER_SIZE;
+#ifdef HAVE_MMAP
+	base = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (base == MAP_FAILED) {
+		log_msg(LOG_ERR, "mmap failed: %s", strerror(errno));
+		exit(1);
+	}
+#else /* !HAVE_MMAP */
+	log_msg(LOG_ERR, "mmap failed: don't have mmap");
+	exit(1);
+#endif /* HAVE_MMAP */
+
+	*((size_t*) base) = size;
+	return (void*)((uintptr_t)base + MMAP_ALLOC_HEADER_SIZE);
+}
+
+
+void
+mmap_free(void *ptr)
+{
+	void *base;
+	size_t size;
+
+	if (!ptr) return;
+
+	base = (void*)((uintptr_t)ptr - MMAP_ALLOC_HEADER_SIZE);
+	size = *((size_t*) base);
+
+#ifdef HAVE_MUNMAP
+	if (munmap(base, size) == -1) {
+		log_msg(LOG_ERR, "munmap failed: %s", strerror(errno));
+		exit(1);
+	}
+#else /* !HAVE_MUNMAP */
+	log_msg(LOG_ERR, "munmap failed: don't have munmap");
+	exit(1);
+#endif /* HAVE_MUNMAP */
+}
+
+#endif /* USE_MMAP_ALLOC */
+
 int
 write_data(FILE *file, const void *data, size_t size)
 {
@@ -263,7 +322,8 @@ write_data(FILE *file, const void *data, size_t size)
 	}
 }
 
-int write_socket(int s, const void *buf, size_t size)
+int
+write_socket(int s, const void *buf, size_t size)
 {
 	const char* data = (const char*)buf;
 	size_t total_count = 0;
@@ -534,7 +594,7 @@ b32_ntop(uint8_t const *src, size_t srclength, char *target, size_t targsize)
 	{
 		if(targsize < strlen(buf)+1)
 			return -1;
-		strcpy(target, buf);
+		strlcpy(target, buf, targsize);
 		len += strlen(buf);
 	}
 	else if(targsize < 1)
@@ -739,7 +799,8 @@ static u_long crctab[] = {
 
 #define	COMPUTE(var, ch)	(var) = (var) << 8 ^ crctab[(var) >> 24 ^ (ch)]
 
-uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len)
+uint32_t
+compute_crc(uint32_t crc, uint8_t* data, size_t len)
 {
 	size_t i;
 	for(i=0; i<len; ++i)
@@ -747,7 +808,8 @@ uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len)
 	return crc;
 }
 
-int write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc)
+int
+write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc)
 {
 	int ret = write_data(file, data, size);
 	*crc = compute_crc(*crc, (uint8_t*)data, size);
@@ -755,7 +817,8 @@ int write_data_crc(FILE *file, const void *data, size_t size, uint32_t* crc)
 }
 
 #define SERIAL_BITS      32
-int compare_serial(uint32_t a, uint32_t b)
+int
+compare_serial(uint32_t a, uint32_t b)
 {
         const uint32_t cutoff = ((uint32_t) 1 << (SERIAL_BITS - 1));
 
@@ -766,6 +829,18 @@ int compare_serial(uint32_t a, uint32_t b)
         } else {
                 return 1;
         }
+}
+
+uint16_t
+qid_generate(void)
+{
+#ifdef HAVE_ARC4RANDOM_UNIFORM
+    return (uint16_t) arc4random_uniform(65536);
+#elif HAVE_ARC4RANDOM
+    return (uint16_t) arc4random();
+#else
+    return (uint16_t) random();
+#endif
 }
 
 void

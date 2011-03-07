@@ -11,8 +11,9 @@
 
 # options for the nsd server
 server:
-	# uncomment to specify specific interfaces to bind (default all).
+	# uncomment to specify specific interfaces to bind (default wildcard interface).
 	# ip-address: 1.2.3.4
+	# ip-address: 1.2.3.4@5678
 	# ip-address: 12fe::8ef0
 
 	# don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
@@ -33,14 +34,31 @@ server:
 	# identify the server (CH TXT ID.SERVER entry).
 	# identity: "unidentified server"
 
-	# log messages to file. Default to stderr and syslog.
-	# logfile: "/var/log/nsd.log"
+	# NSID identity (hex string). default disabled.
+	# nsid: "aabbccdd"
+
+	# log messages to file. Default to stderr and syslog (with facility LOG_DAEMON).
+	# logfile: "@logfile@"
 
 	# Number of NSD servers to fork.
 	# server-count: 1
 
 	# Maximum number of concurrent TCP connections per server.
+	# This option should have a value below 1000.
 	# tcp-count: 10
+
+	# Maximum number of queries served on a single TCP connection.
+	# By default 0, which means no maximum.
+	# tcp-query-count: 0
+
+	# Override the default (120 seconds) TCP timeout.
+	# tcp-timeout: 120
+
+	# Preferred EDNS buffer size for IPv4.
+	# ipv4-edns-size: 4096
+
+	# Preferred EDNS buffer size for IPv6.
+	# ipv6-edns-size: 4096
 
 	# File to store pid for nsd in.
 	# pidfile: "@pidfile@"
@@ -90,13 +108,12 @@ zone:
 	zonefile: "example.com.zone"
 
 	# This is a slave zone. Masters are listed below.
+	# If no access control elements are provided, this zone
+	# will not be served to/from other servers.
 
 	# master 1
 	allow-notify: 168.192.44.42 mskey
 	request-xfr: 168.192.44.42 mskey
-
-	# set local interface for sending zone transfer requests.
-	outgoing-interface: 10.0.0.10
 
 	# master 2
 	allow-notify: 10.0.0.11 NOKEY
@@ -122,19 +139,21 @@ zone:
 	# provide-xfr: 0.0.0.0/0 NOKEY
 	# provide-xfr: ::0/0 NOKEY
 
+	# set local interface for sending zone transfer requests.
+	outgoing-interface: 10.0.0.10
+
 # Sample zone 2
 zone:
 	name: "example.net"
 	zonefile: "example.net.signed.zone"
 
 	# This is a master zone. Slaves are listed below.
+	# If no access control elements are provided, this zone
+	# will not be served to/from other servers.
 
 	# secondary 1. Uses port 5300.
 	notify: 10.0.0.14@5300 sec1_key
 	provide-xfr: 10.0.0.14@5300 sec1_key
-
-	# set local interface for sending notifies
-	outgoing-interface: 10.0.0.15
 
 	# secondary 2. 
 	notify: 10.11.12.14 sec2_key
@@ -144,6 +163,12 @@ zone:
 	provide-xfr: 169.192.85.0/24 NOKEY
 	# uncomment to disable xfr for the address.
 	# provide-xfr: 169.192.85.66 BLOCKED
+
+	# set the number of retries for notify.
+	notify-retry: 5
+
+	# set local interface for sending notifies
+	outgoing-interface: 10.0.0.15
 
 # keys for zone 2
 key:

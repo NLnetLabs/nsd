@@ -42,9 +42,14 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->ip6_only = 0;
 	opt->database = DBFILE;
 	opt->identity = 0;
+	opt->nsid = 0;
 	opt->logfile = 0;
 	opt->server_count = 1;
 	opt->tcp_count = 10;
+	opt->tcp_query_count = 0;
+	opt->tcp_timeout = TCP_TIMEOUT;
+	opt->ipv4_edns_size = EDNS_MAX_MESSAGE_LEN;
+	opt->ipv6_edns_size = EDNS_MAX_MESSAGE_LEN;
 	opt->pidfile = PIDFILE;
 	opt->port = UDP_PORT;
 /* deprecated?	opt->port = TCP_PORT; */
@@ -219,6 +224,7 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->allow_notify = 0;
 	zone->request_xfr = 0;
 	zone->notify = 0;
+	zone->notify_retry = 5;
 	zone->provide_xfr = 0;
 	zone->outgoing_interface = 0;
 	zone->allow_axfr_fallback = 1;
@@ -233,9 +239,7 @@ key_options_t* key_options_create(region_type* region)
 	key->next = 0;
 	key->algorithm = 0;
 	key->secret = 0;
-#ifdef TSIG
 	key->tsig_key = 0;
-#endif
 	return key;
 }
 
@@ -406,7 +410,6 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 {
 	if(acl->blocked)
 		return 1;
-#ifdef TSIG
 	if(acl->nokey) {
 		if(q->tsig.status == TSIG_NOT_PRESENT)
 			return 1;
@@ -436,11 +439,6 @@ int acl_key_matches(acl_options_t* acl, struct query* q)
 		return 0; /* no such algo */
 	}
 	return 1;
-#else
-	if(acl->nokey)
-		return 1;
-	return 0;
-#endif
 }
 
 int
@@ -478,9 +476,9 @@ acl_same_host(acl_options_t* a, acl_options_t* b)
 	return 1;
 }
 
+#if defined(HAVE_SSL)
 void key_options_tsig_add(nsd_options_t* opt)
 {
-#if defined(TSIG) && defined(HAVE_SSL)
 	key_options_t* optkey;
 	uint8_t data[4000];
 	tsig_key_type* tsigkey;
@@ -506,8 +504,8 @@ void key_options_tsig_add(nsd_options_t* opt)
 		tsig_add_key(tsigkey);
 		optkey->tsig_key = tsigkey;
 	}
-#endif
 }
+#endif
 
 int zone_is_slave(zone_options_t* opt)
 {

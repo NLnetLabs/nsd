@@ -48,6 +48,10 @@ struct nsd_options {
 	const char* logfile;
 	int server_count;
 	int tcp_count;
+	int tcp_query_count;
+	int tcp_timeout;
+	size_t ipv4_edns_size;
+	size_t ipv6_edns_size;
 	const char* pidfile;
 	const char* port;
 	int statistics;
@@ -56,6 +60,7 @@ struct nsd_options {
 	const char* zonesdir;
 	const char* difffile;
 	const char* xfrdfile;
+	const char* nsid;
 	int xfrd_reload_timeout;
 
 	region_type* region;
@@ -82,6 +87,7 @@ struct zone_options {
 	acl_options_t* provide_xfr;
 	acl_options_t* outgoing_interface;
 	uint8_t allow_axfr_fallback;
+	uint8_t notify_retry;
 };
 
 union acl_addr_storage {
@@ -132,9 +138,7 @@ struct key_options {
 	const char* name;
 	const char* algorithm;
 	const char* secret;
-#ifdef TSIG
 	struct tsig_key* tsig_key;
-#endif
 };
 
 /*
@@ -172,8 +176,11 @@ zone_options_t* zone_options_create(region_type* region);
 zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex);
 key_options_t* key_options_create(region_type* region);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
+
+#if defined(HAVE_SSL)
 /* tsig must be inited, adds all keys in options to tsig. */
 void key_options_tsig_add(nsd_options_t* opt);
+#endif
 
 /* check acl list, acl number that matches if passed(0..),
  * or failure (-1) if dropped */

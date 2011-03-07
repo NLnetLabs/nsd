@@ -294,7 +294,6 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	if(rrset->zone->ns_rrset == rrset) {
 		rrset->zone->ns_rrset = 0;
 	}
-#ifdef DNSSEC
 	if(domain == rrset->zone->apex && rrset_rrtype(rrset) == TYPE_RRSIG) {
 		for (i = 0; i < rrset->rr_count; ++i) {
 			if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_SOA) {
@@ -303,7 +302,6 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 			}
 		}
 	}
-#endif
 	/* recycle the memory space of the rrset */
 	for (i = 0; i < rrset->rr_count; ++i)
 		add_rdata_to_recyclebin(db, &rrset->rrs[i]);
@@ -543,7 +541,6 @@ add_RR(namedb_type* db, const dname_type* dname,
 		if(type == TYPE_NS) {
 			zone->ns_rrset = rrset;
 		}
-#ifdef DNSSEC
 		if(type == TYPE_RRSIG) {
 			int i;
 			for (i = 0; i < rrset->rr_count; ++i) {
@@ -553,7 +550,6 @@ add_RR(namedb_type* db, const dname_type* dname,
 				}
 			}
 		}
-#endif
 	}
 	return 1;
 }
@@ -1062,7 +1058,7 @@ mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
 		fclose(f);
 	} else {
 		uint8_t c = 0;
-		fwrite(&c, sizeof(c), 1, f);
+		(void)write_data(f, &c, sizeof(c));
 		fclose(f);
 		log_msg(LOG_ERR, "marked xfr as failed: %s", desc);
 		log_msg(LOG_ERR, "marked xfr so that next reload can succeed");

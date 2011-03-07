@@ -18,7 +18,6 @@
 #include "packet.h"
 
 #define XFRD_NOTIFY_RETRY_TIMOUT 15 /* seconds between retries sending NOTIFY */
-#define XFRD_NOTIFY_MAX_NUM 5 /* number of attempts to send NOTIFY */
 
 /* start sending notifies */
 static void notify_enable(struct notify_zone_t* zone,
@@ -99,14 +98,10 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 	not->notify_send_handler.event_types = 
 		NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
 	not->notify_send_handler.event_handler = xfrd_handle_notify_send;
-		netio_add_handler(netio, &not->notify_send_handler);
-
-#ifdef TSIG
-		tsig_create_record_custom(&not->notify_tsig, region, 0, 0, 4);
-#endif /* TSIG */
-		not->notify_current = 0;
-
-		rbtree_insert(tree, (rbnode_t*)not);
+	netio_add_handler(netio, &not->notify_send_handler);
+	tsig_create_record_custom(&not->notify_tsig, region, 0, 0, 4);
+	not->notify_current = 0;
+	rbtree_insert(tree, (rbnode_t*)not);
 }
 
 static int
@@ -171,11 +166,9 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 		ANCOUNT_SET(packet, 1);
 		xfrd_write_soa_buffer(packet, zone->apex, zone->current_soa);
 	}
-#ifdef TSIG
 	if(zone->notify_current->key_options) {
 		xfrd_tsig_sign_request(packet, &zone->notify_tsig, zone->notify_current);
 	}
-#endif /* TSIG */
 	buffer_flip(packet);
 	zone->notify_send_handler.fd = xfrd_send_udp(zone->notify_current,
 		packet, zone->options->outgoing_interface);
@@ -219,7 +212,7 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	/* see if notify is still enabled */
 	if(zone->notify_current) {
 		zone->notify_retry++;
-		if(zone->notify_retry > XFRD_NOTIFY_MAX_NUM) {
+		if(zone->notify_retry > zone->options->notify_retry) {
 			log_msg(LOG_ERR, "xfrd: zone %s: max notify send count reached, %s unreachable",
 				zone->apex_str, zone->notify_current->ip_address_spec);
 			xfrd_notify_next(zone);

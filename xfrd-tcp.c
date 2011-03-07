@@ -41,7 +41,7 @@ xfrd_setup_packet(buffer_type* packet,
 {
 	/* Set up the header */
 	buffer_clear(packet);
-	ID_SET(packet, (uint16_t) random());
+	ID_SET(packet, qid_generate());
 	FLAGS_SET(packet, 0);
 	OPCODE_SET(packet, OPCODE_QUERY);
 	QDCOUNT_SET(packet, 1);
@@ -279,7 +279,7 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 
 	zone->zone_handler.fd = fd;
 	zone->zone_handler.event_types = NETIO_EVENT_TIMEOUT|NETIO_EVENT_WRITE;
-	xfrd_set_timer(zone, xfrd_time() + XFRD_TCP_TIMEOUT);
+	xfrd_set_timer(zone, xfrd_time() + set->tcp_timeout);
 	return 1;
 }
 
@@ -309,11 +309,9 @@ xfrd_tcp_xfr(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	zone->query_id = ID(tcp->packet);
 	zone->msg_seq_nr = 0;
 	zone->msg_rr_count = 0;
-#ifdef TSIG
 	if(zone->master->key_options && zone->master->key_options->tsig_key) {
 		xfrd_tsig_sign_request(tcp->packet, &zone->tsig, zone->master);
 	}
-#endif /* TSIG */
 	buffer_flip(tcp->packet);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "sent tcp query with ID %d", zone->query_id));
 	tcp->msglen = buffer_limit(tcp->packet);

@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <netdb.h>
+#ifndef SHUT_WR
+#define SHUT_WR 1
+#endif
 
 #include "axfr.h"
 #include "namedb.h"
@@ -114,6 +117,11 @@ struct tcp_handler_data
 	 * to specify the packet length on a TCP connection.
 	 */
 	size_t           bytes_transmitted;
+
+	/*
+	 * The number of queries handled by this specific TCP connection.
+	 */
+	int					query_count;
 };
 
 /*
@@ -317,6 +325,12 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	size_t needed = domain_table_count(nsd->db->domains) + 1;
 	needed += EXTRA_DOMAIN_NUMBERS;
 	if(compression_table_capacity < needed) {
+		if(compressed_dname_offsets) {
+			region_remove_cleanup(nsd->db->region,
+				cleanup_dname_compression_tables,
+				compressed_dname_offsets);
+			free(compressed_dname_offsets);
+		}
 		compressed_dname_offsets = (uint16_t *) xalloc(
 			needed * sizeof(uint16_t));
 		region_add_cleanup(nsd->db->region, cleanup_dname_compression_tables,
@@ -404,6 +418,29 @@ server_init(struct nsd *nsd)
 			}
 			on = 1;
 # endif
+		}
+#endif
+#if defined(AF_INET)
+		if (nsd->udp[i].addr->ai_family == AF_INET) {
+#  if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
+			int action = IP_PMTUDISC_DONT;
+			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, 
+				IP_MTU_DISCOVER, &action, sizeof(action)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IP_MTU_DISCOVER, IP_PMTUDISC_DONT...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+#  elif defined(IP_DONTFRAG)
+			int off = 0;
+			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, IP_DONTFRAG,
+				&off, sizeof(off)) < 0)
+			{
+				log_msg(LOG_ERR, "setsockopt(..., IP_DONTFRAG, ...) failed: %s",
+					strerror(errno));
+				return -1;
+			}
+#  endif
 		}
 #endif
 		/* set it nonblocking */
@@ -539,7 +576,7 @@ close_all_sockets(struct nsd_socket sockets[], size_t n)
 	for (i = 0; i < n; ++i) {
 		if (sockets[i].s != -1) {
 			close(sockets[i].s);
-			free(sockets[i].addr);
+			freeaddrinfo(sockets[i].addr);
 			sockets[i].s = -1;
 		}
 	}
@@ -743,6 +780,16 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 
+	/* if the parent has quit, we must quit too, poll the fd for cmds */
+	if(block_read(nsd, cmdsocket, &cmd, sizeof(cmd), 0) == sizeof(cmd)) {
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc command from main %d", cmd));
+		if(cmd == NSD_QUIT) {
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: quit to follow nsd"));
+			send_children_quit(nsd);
+			exit(0);
+		}
+	}
+
 	/* Overwrite pid before closing old parent, to avoid race condition:
 	 * - parent process already closed
 	 * - pidfile still contains old_pid
@@ -774,6 +821,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			strerror(errno));
 	}
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc reply main %d %d", ret, cmd));
+	if(cmd == NSD_QUIT) {
+		/* small race condition possible here, parent got quit cmd. */
+		send_children_quit(nsd);
+		unlinkpid(nsd->pidfile);
+		exit(1);
+	}
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
 
 	/* inform xfrd of new SOAs */
@@ -1086,8 +1139,8 @@ server_main(struct nsd *nsd)
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
 
+			namedb_fd_close(nsd->db);
 			region_destroy(server_region);
-			namedb_close(nsd->db);
 			server_shutdown(nsd);
 
 			/* ENOTREACH */
@@ -1122,8 +1175,17 @@ server_main(struct nsd *nsd)
 	/* Unlink it if possible... */
 	unlinkpid(nsd->pidfile);
 
-	if(reload_listener.fd > 0)
+	if(reload_listener.fd > 0) {
+		sig_atomic_t cmd = NSD_QUIT;
+		DEBUG(DEBUG_IPC,1, (LOG_INFO,
+			"main: ipc send quit to reload-process"));
+		if(!write_socket(reload_listener.fd, &cmd, sizeof(cmd))) {
+			log_msg(LOG_ERR, "server_main: could not send quit to reload: %s",
+				strerror(errno));
+		}
+		fsync(reload_listener.fd);
 		close(reload_listener.fd);
+	}
 	if(xfrd_listener.fd > 0) {
 		/* complete quit, stop xfrd */
 		sig_atomic_t cmd = NSD_QUIT;
@@ -1135,9 +1197,10 @@ server_main(struct nsd *nsd)
 		}
 		fsync(xfrd_listener.fd);
 		close(xfrd_listener.fd);
+		(void)kill(xfrd_pid, SIGTERM);
 	}
 
-	namedb_close(nsd->db);
+	namedb_fd_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }
@@ -1296,7 +1359,7 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
-	namedb_close(nsd->db);
+	namedb_fd_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }
@@ -1413,6 +1476,13 @@ handle_tcp_reading(netio_type *netio,
 
 	if (event_types & NETIO_EVENT_TIMEOUT) {
 		/* Connection timed out.  */
+		cleanup_tcp_handler(netio, handler);
+		return;
+	}
+
+	if (data->nsd->tcp_query_count > 0 &&
+		data->query_count >= data->nsd->tcp_query_count) {
+		/* No more queries allowed on this tcp connection.  */
 		cleanup_tcp_handler(netio, handler);
 		return;
 	}
@@ -1540,6 +1610,9 @@ handle_tcp_reading(netio_type *netio,
 
 	/* We have a complete query, process it.  */
 
+	/* tcp-query-count: handle query counter ++ */
+	data->query_count++;
+
 	buffer_flip(data->query->packet);
 	data->query_state = server_process_query(data->nsd, data->query);
 	if (data->query_state == QUERY_DISCARDED) {
@@ -1562,7 +1635,7 @@ handle_tcp_reading(netio_type *netio,
 	data->query->tcplen = buffer_remaining(data->query->packet);
 	data->bytes_transmitted = 0;
 
-	handler->timeout->tv_sec = TCP_TIMEOUT;
+	handler->timeout->tv_sec = data->nsd->tcp_timeout;
 	handler->timeout->tv_nsec = 0L;
 	timespec_add(handler->timeout, netio_current_time(netio));
 
@@ -1669,7 +1742,7 @@ handle_tcp_writing(netio_type *netio,
 			q->tcplen = buffer_remaining(q->packet);
 			data->bytes_transmitted = 0;
 			/* Reset timeout.  */
-			handler->timeout->tv_sec = TCP_TIMEOUT;
+			handler->timeout->tv_sec = data->nsd->tcp_timeout;
 			handler->timeout->tv_nsec = 0;
 			timespec_add(handler->timeout, netio_current_time(netio));
 
@@ -1685,9 +1758,15 @@ handle_tcp_writing(netio_type *netio,
 	 * Done sending, wait for the next request to arrive on the
 	 * TCP socket by installing the TCP read handler.
 	 */
+	if (data->nsd->tcp_query_count > 0 &&
+		data->query_count >= data->nsd->tcp_query_count) {
+
+		(void) shutdown(handler->fd, SHUT_WR);
+	}
+
 	data->bytes_transmitted = 0;
 
-	handler->timeout->tv_sec = TCP_TIMEOUT;
+	handler->timeout->tv_sec = data->nsd->tcp_timeout;
 	handler->timeout->tv_nsec = 0;
 	timespec_add(handler->timeout, netio_current_time(netio));
 
@@ -1764,6 +1843,7 @@ handle_tcp_accept(netio_type *netio,
 	tcp_data->query = query_create(tcp_region, compressed_dname_offsets,
 		compression_table_size);
 	tcp_data->nsd = data->nsd;
+	tcp_data->query_count = 0;
 
 	tcp_data->tcp_accept_handler_count = data->tcp_accept_handler_count;
 	tcp_data->tcp_accept_handlers = data->tcp_accept_handlers;
@@ -1778,7 +1858,7 @@ handle_tcp_accept(netio_type *netio,
 	tcp_handler->fd = s;
 	tcp_handler->timeout = (struct timespec *) region_alloc(
 		tcp_region, sizeof(struct timespec));
-	tcp_handler->timeout->tv_sec = TCP_TIMEOUT;
+	tcp_handler->timeout->tv_sec = data->nsd->tcp_timeout;
 	tcp_handler->timeout->tv_nsec = 0L;
 	timespec_add(tcp_handler->timeout, netio_current_time(netio));
 

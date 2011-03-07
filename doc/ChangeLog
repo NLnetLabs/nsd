@@ -1,3 +1,186 @@
+7 March 2011: Matthijs
+	- Update 3.2 branch (3.2.3 -> 3.2.8rc1, 18 August 2009 - 3 March 2011)
+
+3 March 2011: Matthijs:
+	- fix #bug352: fix hardcoded paths in manpages.
+
+2 March 2011: Matthijs:
+	- fix #bug354: make realclean cleans too much
+	- added make devclean for cleaning up autoconf and automake stuff
+	- Fix hardcoded paths in nsd.conf.sample and nsd.conf.5
+
+24 February 2011: Matthijs
+	- fix #bug350: refused notifies should log client ip.
+
+24 February 2011: Wouter
+	- fix bug#362: outgoing-interface and v4 vs. v6 leads to spurious
+	  warning messages.
+	- fix bug#363: nsd-checkconf -v does not print outgoing-interface ok.
+	- fix that nsd-checkconf -o outgoing-interface omits NOKEY.
+
+23 February 2011: Wouter
+	- (merged with nsd4 on 22nd).
+	- fix for bug#357, make xfrd quit with many zones.
+	
+22 February 2011: Matthijs
+	- Patch Jakob Schlyter (setusercontext before chroot).
+
+18 February 2011: Wouter
+	- overhaul of testset, with port uniqueness and fast start and stop.
+
+17 February 2011: Wouter
+	- Fix leak of compressiontable when the domain table increases in size.
+	- 24 January 2011 was release 3.2.7, move trunk to 3.2.8.
+
+11 February 2011: Wouter
+	- added test case to do with bug357.
+
+24 January 2011: Matthijs
+	- Patch Tom Hendrikx (only errors to stderr when doing nsdc patch).
+
+20 January 2011: Wouter
+	- Fix on shutdown, then getaddrinfo acquired data uses freeaddrinfo.
+
+19 January 2011: Wouter
+	- Bug #348: no -I/usr and -L/usr for libcrypto in /usr.
+
+17 January 2011: Matthijs
+	- Bump to 3.2.8.
+
+5 January 2011: Matthijs
+	- Fix nsdc update and nsdc notify
+	- Force outgoing interface to be a single range acl
+	- Update documentation about acl options
+	- Code review
+	- Fix nsdc so it can use hmac-sha* tsigs
+	- Bug #347: NSEC3 nodata QTYPE=DS not at delegation mismatch
+
+4 January 2011: Yuri
+	- Doc spelling error, bug#345
+
+15 December 2010: Wouter
+	- fix race condition when nsd is stopped while a reload is in
+	  progress, often when rc.d does nsdc patch; nsdc stop in sequence.
+	  reload is now signalled to stop too.
+
+10 December 2010: Matthijs
+	- fix bug#306: applied documentation patch
+	- fix bug#253: now also for QTYPE=DS.
+
+12 October 2010: Wouter
+	- Fix compilation on SunOS4.
+
+24 September 2010: Matthijs
+	- Bug #328: nsd-checkconf overrun
+
+1 September 2010: Yuri
+	- Support for huge TXT records.
+
+23 Aug 2010: Wouter
+	- fix bug#325: remove stale files from cvs from repo.
+
+16 Aug 2010: Yuri
+	- zonec, MAXRDATALEN check was off by one.
+
+9 Aug 2010: Matthijs
+	- nsdc return 1 outside function, should be exit 1
+	- Bug #320: arc4random
+
+2 Aug 2010: Matthijs
+	- Bump to 3.2.7.
+
+19 July 2010: Matthijs
+	- fix bug#314, NSEC next field now correctly escapes spaces.
+	  Also fixes label overflow issue.
+	- Put back HAVE_SSL.
+	- Code reviews.
+	- Add donor text.
+
+6 July 2010: Wouter
+	- Compiles on Minix 3.1.7; checks ss_family, suseconds_t, some
+	  warning fixes.  Needs socketpair to work, e.g.
+	  http://wiki.minix3.org/en/SummerOfCode2010/UnixDomainSockets.
+
+2 July 2010: Wouter
+	- Put back CHECK_SSL in configure (removed with disable-tsig).
+
+17 June 2010: Matthijs
+	- Expand command line option '-a' and config option 'ip-address:'
+	  with port number.
+	- Removed --disable-nsid, --disable-dnssec, --disable-tsig
+
+14 April 2010: Matthijs
+	- Bump to 3.2.6.
+
+14 April 2010: Matthijs
+	- uintptr_t fallback value to void*
+	- Backwards compatibality for MAP_ANONYMOUS
+	- Tag 3.2.5.
+
+31 March 2010: Matthijs
+	- Commit b64_pton optimalized compat code (Martin Svec).
+	- Commit (experimental) mmap-alloc-namedb patch (Martin Svec).
+	- Commit parse-token-leaks patch (Martin Svec).
+
+27 March 2010: Wouter
+	- fix bug#303: misspelled error message.
+
+19 March 2010: Wouter
+	- documented nsid: "hex string" setting in nsd.conf.sample.
+
+24 February 2010: Matthijs
+	- nsid: option
+	- Enable NSID support by default
+	- --with-chroot configure option
+	- Less stupid chroot error handling
+
+15 February 2010: Matthijs
+	- Skip memory cleanup to speed up reload (Martin Svec)
+
+1 February 2010: Wouter
+	- compat code for memcmp unsigned comparsions.
+
+21 January 2010: Wouter
+	- fixup debug sprintf to snprintf.
+
+21 Januari 2010: Matthijs
+	- Secure string functions, including compat code for strlcat.
+	- Randomness utility function
+	- Prepare for default chroot
+
+6 Januari 2010: Wouter
+	- check write errors when marking commit failed when difffile is broken.
+
+6 Januari 2010: Matthijs
+	- Move to 3.2.5
+
+23 December 2009: Matthijs
+	- Store new options in nsd structure.
+
+22 December 2009: Matthijs
+	- New options 'ipv4-edns-size:' and 'ipv6-edns-size'.
+	- Bug 276
+	- Bug 286
+	- Bug 288
+
+21 December 2009: Matthijs
+	- New option 'tcp-query-count:'.
+	- New option 'tcp-timeout:' and configure option '--with-tcp-timeout'.
+	- New zone option 'notify-retry:'.
+
+11 December 2009: Wouter
+	- Disable UDP IPv4 DF flag on Linux/FreeBSD/AIX with socket option.
+
+20 November 2009: Matthijs
+	- NSID bugfix: NSD did not recognize NSID in the query.
+
+9 September 2009: Matthijs
+	- DLV support
+
+18 August 2009: Matthijs
+	- Bug 269.
+	- Typo: logincap.h -> login_cap.h
+
 12 August 2009: Matthijs
 	- Maintainers feedback
 
@@ -17,7 +200,8 @@
 
 13 July 2009: Matthijs
 	- Bug 236: allow RRs before the SOA RR.
-	- Bug 253: No need for NS RRset in authority section, when returning final answer for QTYPE=DNSKEY.
+	- Bug 253: No need for NS RRset in authority section, when returning
+	  final answer for QTYPE=DNSKEY.
 
 29 June 2009: Wouter
 	- patch for use of Linux IPV6_MTU option, so that on linux the default

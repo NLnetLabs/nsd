@@ -39,9 +39,10 @@
 #include "tsig.h"
 
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
- * This function determines if the final response packet needs the NS RRset included.
- * Currently, it will only return negative if QTYPE == DNSKEY. This way, resolvers
- * won't fallback to TCP unnecessarily when priming DNSKEYs. 
+ * This function determines if the final response packet needs the NS RRset
+ * included. Currently, it will only return negative if QTYPE == DNSKEY|DS.
+ * This way, resolvers won't fallback to TCP unnecessarily when priming
+ * trust anchors.
  */
 static int answer_needs_ns(struct query  *query);
 
@@ -176,12 +177,10 @@ query_create(region_type *region, uint16_t *compressed_dname_offsets,
 	query->packet = buffer_create(region, QIOBUFSZ);
 	region_add_cleanup(region, query_cleanup, query);
 	query->compressed_dname_offsets_size = compressed_dname_size;
-#ifdef TSIG
 	tsig_create_record(&query->tsig, region);
 	query->tsig_prepare_it = 1;
 	query->tsig_update_it = 1;
 	query->tsig_sign_it = 1;
-#endif /* TSIG */
 	return query;
 }
 
@@ -205,12 +204,10 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->reserved_space = 0;
 	buffer_clear(q->packet);
 	edns_init_record(&q->edns);
-#ifdef TSIG
 	tsig_init_record(&q->tsig, NULL, NULL);
 	q->tsig_prepare_it = 1;
 	q->tsig_update_it = 1;
 	q->tsig_sign_it = 1;
-#endif /* TSIG */
 	q->tcp = is_tcp;
 	q->qname = NULL;
 	q->qtype = 0;
@@ -305,7 +302,7 @@ process_query_section(query_type *query)
  * Return NSD_RC_FORMAT on failure, NSD_RC_OK on success.
  */
 static nsd_rc_type
-process_edns(struct query *q)
+process_edns(nsd_type* nsd, struct query *q)
 {
 	if (q->edns.status == EDNS_ERROR) {
 		return NSD_RC_FORMAT;
@@ -314,10 +311,18 @@ process_edns(struct query *q)
 	if (q->edns.status == EDNS_OK) {
 		/* Only care about UDP size larger than normal... */
 		if (!q->tcp && q->edns.maxlen > UDP_MAX_MESSAGE_LEN) {
-			if (q->edns.maxlen < EDNS_MAX_MESSAGE_LEN) {
+			size_t edns_size;
+#if defined(INET6)
+			if (q->addr.ss_family == AF_INET6) {
+				edns_size = nsd->ipv6_edns_size;
+			} else
+#endif
+			edns_size = nsd->ipv4_edns_size;
+
+			if (q->edns.maxlen < edns_size) {
 				q->maxlen = q->edns.maxlen;
 			} else {
-				q->maxlen = EDNS_MAX_MESSAGE_LEN;
+				q->maxlen = edns_size;
 			}
 
 #if defined(INET6) && !defined(IPV6_USE_MIN_MTU) && !defined(IPV6_MTU)
@@ -347,7 +352,6 @@ process_edns(struct query *q)
  * Processes TSIG.
  * Sets error when tsig does not verify on the query.
  */
-#ifdef TSIG
 static nsd_rc_type
 process_tsig(struct query* q)
 {
@@ -372,7 +376,6 @@ process_tsig(struct query* q)
 	}
 	return NSD_RC_OK;
 }
-#endif /* TSIG */
 
 /*
  * Check notify acl and forward to xfrd (or return an error).
@@ -395,7 +398,6 @@ answer_notify(struct nsd* nsd, struct query *query)
 	if(!nsd->this_child) /* we are in debug mode or something */
 		return query_error(query, NSD_RC_SERVFAIL);
 
-#ifdef TSIG
 	if(!tsig_find_rr(&query->tsig, query->packet)) {
 		DEBUG(DEBUG_XFRD,2, (LOG_ERR, "bad tsig RR format"));
 		return query_error(query, NSD_RC_FORMAT);
@@ -403,7 +405,6 @@ answer_notify(struct nsd* nsd, struct query *query)
 	rc = process_tsig(query);
 	if(rc != NSD_RC_OK)
 		return query_error(query, rc);
-#endif /* TSIG */
 
 	/* check if it passes acl */
 	if((acl_num = acl_check_incoming(zone_opt->allow_notify, query,
@@ -451,10 +452,21 @@ answer_notify(struct nsd* nsd, struct query *query)
 		/* tsig is added in add_additional later (if needed) */
 		return QUERY_PROCESSED;
 	}
-	VERBOSITY(1, (LOG_INFO, "got notify for zone: %s; Refused by acl: %s %s",
+
+	if (verbosity > 1) {
+		char address[128];
+		if (addr2ip(query->addr, address, sizeof(address))) {
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
+			strlcpy(address, "[unknown]", sizeof(address));
+		}
+
+		VERBOSITY(1, (LOG_INFO, "notify for zone %s from client %s refused, %s%s",
 			dname_to_string(query->qname, NULL),
+			address,
 			why?why->key_name:"no acl matches",
 			why?why->ip_address_spec:"."));
+	}
+
 	return query_error(query, NSD_RC_REFUSE);
 }
 
@@ -617,8 +629,9 @@ static int
 answer_needs_ns(struct query* query)
 {
 	assert(query);
-	/* Currently, only troublesome for DNSKEYs, cuz their RRSETs are quite large. */
-	return (query->qtype != TYPE_DNSKEY);
+	/* Currently, only troublesome for DNSKEY and DS,
+         * cuz their RRSETs are quite large. */
+	return (query->qtype != TYPE_DNSKEY && query->qtype != TYPE_DS);
 }
 
 static int
@@ -1212,9 +1225,7 @@ query_prepare_response(query_type *q)
 	 * Reserve space for the EDNS records if required.
 	 */
 	q->reserved_space = edns_reserved_space(&q->edns);
-#ifdef TSIG
 	q->reserved_space += tsig_reserved_space(&q->tsig);
-#endif /* TSIG */
 
 	/* Update the flags.  */
 	flags = FLAGS(q->packet);
@@ -1284,7 +1295,6 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 
 	arcount = ARCOUNT(q->packet);
-#ifdef TSIG
 	if (arcount > 0) {
 		/* see if tsig is before edns record */
 		if (!tsig_parse_rr(&q->tsig, q->packet))
@@ -1292,15 +1302,10 @@ query_process(query_type *q, nsd_type *nsd)
 		if(q->tsig.status != TSIG_NOT_PRESENT)
 			--arcount;
 	}
-#endif /* TSIG */
 	if (arcount > 0) {
-		if (edns_parse_record(&q->edns, q->packet)) {
-			if (EDNS_MIN_BUFSIZE && q->edns.maxlen < EDNS_MIN_BUFSIZE)
-				q->edns.dnssec_ok = 0;
+		if (edns_parse_record(&q->edns, q->packet))
 			--arcount;
-		}
 	}
-#ifdef TSIG
 	if (arcount > 0 && q->tsig.status == TSIG_NOT_PRESENT) {
 		/* see if tsig is after the edns record */
 		if (!tsig_parse_rr(&q->tsig, q->packet))
@@ -1308,7 +1313,6 @@ query_process(query_type *q, nsd_type *nsd)
 		if(q->tsig.status != TSIG_NOT_PRESENT)
 			--arcount;
 	}
-#endif /* TSIG */
 	if (arcount > 0) {
 		return query_formerr(q);
 	}
@@ -1323,13 +1327,11 @@ query_process(query_type *q, nsd_type *nsd)
 	/* Remove trailing garbage.  */
 	buffer_set_limit(q->packet, buffer_position(q->packet));
 
-#ifdef TSIG
 	rc = process_tsig(q);
 	if (rc != NSD_RC_OK) {
 		return query_error(q, rc);
 	}
-#endif /* TSIG */
-	rc = process_edns(q);
+	rc = process_edns(nsd, q);
 	if (rc != NSD_RC_OK) {
 		/* We should not return FORMERR, but BADVERS (=16).
 		 * BADVERS is created with Ext. RCODE, followed by RCODE.
@@ -1372,8 +1374,6 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	case EDNS_OK:
 		buffer_write(q->packet, edns->ok, OPT_LEN);
-		/* check if nsid data should be written */
-#ifdef NSID
 		if (nsd->nsid_len > 0 && q->edns.nsid == 1 &&
 				!query_overflow_nsid(q, nsd->nsid_len)) {
 			/* rdata length */
@@ -1386,12 +1386,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 			/* fill with NULLs */
 			buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		}
-#else
-		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
-#endif /* NSID */
-
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
-
 		STATUP(nsd, edns);
 		break;
 	case EDNS_ERROR:
@@ -1402,7 +1397,6 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		break;
 	}
 
-#ifdef TSIG
 	if (q->tsig.status != TSIG_NOT_PRESENT) {
 		if (q->tsig.status == TSIG_ERROR ||
 			q->tsig.error_code != TSIG_ERROR_NOERROR) {
@@ -1423,5 +1417,4 @@ query_add_optional(query_type *q, nsd_type *nsd)
 			}
 		}
 	}
-#endif /* TSIG */
 }

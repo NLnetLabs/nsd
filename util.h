@@ -138,6 +138,15 @@ void *xalloc_zero(size_t size);
 void *xrealloc(void *ptr, size_t size);
 
 /*
+ * Mmap allocator routines.
+ *
+ */
+#ifdef USE_MMAP_ALLOC
+void *mmap_alloc(size_t size);
+void mmap_free(void *ptr);
+#endif /* USE_MMAP_ALLOC */
+
+/*
  * Write SIZE bytes of DATA to FILE.  Report an error on failure.
  *
  * Returns 0 on failure, 1 on success.
@@ -320,6 +329,11 @@ uint32_t compute_crc(uint32_t crc, uint8_t* data, size_t len);
  * 3.2.).
  */
 int compare_serial(uint32_t a, uint32_t b);
+
+/*
+ * Generate a random query ID.
+ */
+uint16_t qid_generate(void);
 
 /*
  * call region_destroy on (region*)data, useful for region_add_cleanup().

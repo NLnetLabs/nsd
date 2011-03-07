@@ -4,10 +4,9 @@ dnl
 
 sinclude(acx_nlnetlabs.m4)
 
-AC_INIT(NSD,3.2.3,nsd-bugs@nlnetlabs.nl)
+AC_INIT(NSD,3.2.8,nsd-bugs@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
-CFLAGS="$CFLAGS"
 AC_AIX
 
 dnl
@@ -61,6 +60,11 @@ AC_ARG_WITH([kill_priority],
 	AC_HELP_STRING([--with-kill_priority=number], [NSD shutdown priority]),
 	[kill_priority=$withval])
 AC_SUBST(kill_priority)
+
+#
+# Default logfile
+#
+logfile=${localstatedir}/log/nsd.log
 
 #
 # Database directory
@@ -123,6 +127,16 @@ AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfr
 AC_SUBST(xfrdfile)
 
 #
+# Determine default chroot directory
+#
+AC_ARG_WITH([chroot],
+	AC_HELP_STRING([--with-chroot=dir], [NSD default chroot directory]),
+	[
+		chrootdir=$withval
+		AC_DEFINE_UNQUOTED(CHROOTDIR, ["`eval echo $chrootdir`"], [NSD default chroot directory])
+	])
+
+#
 # Determine the user name to drop privileges to
 #
 user=nsd
@@ -131,17 +145,6 @@ AC_ARG_WITH([user],
 	[user=$withval])
 AC_SUBST(user)
 AC_DEFINE_UNQUOTED(USER, ["$user"], [the user name to drop privileges to])
-
-#
-# Determine mimimum bufsize in EDNS0 queries with the DO bit set, in order to allow the DO bit.
-# Default is 0, no mimimum.
-#
-edns_min_bufsize=0
-AC_ARG_WITH([edns_min_bufsize],
-	AC_HELP_STRING([--with-edns-min-bufsize=number], [Minimum allowed UDP limit when processing EDNS0 queries with DO bit set.]),
-	[edns_min_bufsize=$withval])
-AC_SUBST(edns_min_bufsize)
-AC_DEFINE_UNQUOTED([EDNS_MIN_BUFSIZE], [`eval echo $edns_min_bufsize`], [Miminum allowed UDP limit when processing EDNS0 queries with DO bit set.])
 
 # Checks for programs.
 AC_PROG_AWK
@@ -242,7 +245,7 @@ fi
 ])dnl
 
 # Checks for typedefs, structures, and compiler characteristics.
-CHECK_COMPILER_FLAG(O2, [], [ CFLAGS="-g" ])
+CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
 AC_C_CONST
 AC_C_INLINE
 AC_TYPE_UID_T
@@ -252,6 +255,7 @@ AC_TYPE_OFF_T
 
 AC_CHECK_FORMAT_ATTRIBUTE
 AC_CHECK_UNUSED_ATTRIBUTE
+ACX_CHECK_MEMCMP_SIGNED
 AC_CHECK_CTIME_R
 
 # Checks for libraries.
@@ -276,7 +280,9 @@ AC_DEFUN([CHECK_SSL], [
             if test -f "$dir/include/openssl/ssl.h"; then
                 found_ssl="yes";
                 AC_DEFINE_UNQUOTED([HAVE_SSL], [], [Define if you have the SSL libraries installed.])
-                CPPFLAGS="$CPPFLAGS -I$ssldir/include";
+                if test x_$ssldir != x_/usr; then
+                    CPPFLAGS="$CPPFLAGS -I$ssldir/include";
+                fi
                 break;
             fi
         done 
@@ -285,7 +291,9 @@ AC_DEFUN([CHECK_SSL], [
         else
             AC_MSG_RESULT(found in $ssldir)
             HAVE_SSL=yes 
-            LDFLAGS="$LDFLAGS -L$ssldir/lib";
+            if test x_$ssldir != x_/usr; then
+                LDFLAGS="$LDFLAGS -L$ssldir/lib";
+            fi
 	    if test x_$ssldir = x_/usr/sfw; then
 		LDFLAGS="$LDFLAGS -R$ssldir/lib";
 	    fi
@@ -301,7 +309,7 @@ AC_DEFUN([CHECK_SSL], [
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([time.h arpa/inet.h signal.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h grp.h])
+AC_CHECK_HEADERS([time.h arpa/inet.h signal.h string.h strings.h fcntl.h limits.h netinet/in.h stddef.h sys/param.h sys/socket.h syslog.h unistd.h sys/select.h stdarg.h stdint.h netdb.h sys/bitypes.h tcpd.h grp.h])
 
 AC_DEFUN([CHECK_VALIST_DEF],
 [
@@ -446,6 +454,7 @@ AC_LIBGTOP_CHECK_TYPE(uint64_t, unsigned long long)
 AC_LIBGTOP_CHECK_TYPE(socklen_t, int)
 AC_LIBGTOP_CHECK_TYPE(sig_atomic_t, int)
 AC_LIBGTOP_CHECK_TYPE(ssize_t, int)
+AC_LIBGTOP_CHECK_TYPE(suseconds_t, time_t)
 
 AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], [
 #if HAVE_SYS_TYPES_H
@@ -454,6 +463,7 @@ AC_CHECK_TYPE(in_addr_t, [], [AC_DEFINE([in_addr_t], [uint32_t], [in_addr_t])], 
 #if HAVE_NETINET_IN_H
 # include <netinet/in.h>
 #endif])
+ACX_CHECK_SS_FAMILY
 
 # Checks for library functions.
 AC_FUNC_CHOWN
@@ -462,6 +472,7 @@ AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
 AC_FUNC_FSEEKO
 AC_SYS_LARGEFILE
+AC_CHECK_FUNCS([arc4random arc4random_uniform])
 AC_CHECK_FUNCS([alarm chroot dup2 endpwent gethostname memset memcpy socket strcasecmp strchr strdup strerror strncasecmp strtol getaddrinfo getnameinfo freeaddrinfo gai_strerror sigaction sigprocmask strptime setusercontext initgroups setresuid setreuid setresgid setregid getpwnam])
 
 # check if setreuid en setregid fail, on MacOSX10.4(darwin8).
@@ -477,6 +488,7 @@ AC_REPLACE_FUNCS(inet_aton)
 AC_REPLACE_FUNCS(inet_pton)
 AC_REPLACE_FUNCS(inet_ntop)
 AC_REPLACE_FUNCS(snprintf)
+AC_REPLACE_FUNCS(strlcat)
 AC_REPLACE_FUNCS(strlcpy)
 AC_REPLACE_FUNCS(strptime)
 AC_REPLACE_FUNCS(b64_pton)
@@ -510,12 +522,9 @@ AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the NSD version to an
 AC_DEFINE_UNQUOTED([TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
 AC_DEFINE_UNQUOTED([TCP_PORT], ["53"], [Define to the default tcp port.])
 AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximum message length.])
-AC_DEFINE_UNQUOTED([TCP_TIMEOUT], [120], [Define to the default tcp timeout.])
 AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
-dnl AC_DEFINE_UNQUOTED([MAX_INTERFACES], [8], [Define to the maximum interfaces to serve.])
-dnl AC_DEFINE_UNQUOTED([FACILITY], [LOG_DAEMON], [Define to the default facility for syslog.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
 
 dnl
@@ -528,13 +537,22 @@ AC_ARG_WITH([facility],
 AC_DEFINE_UNQUOTED([FACILITY], $facility, [Define to the default facility for syslog.])
 
 dnl
-dnl Determine the maximum number of interfaces that are allowed
+dnl Determine the maximum number of ip-addresses that are allowed
 dnl
-max_interfaces=8
-AC_ARG_WITH([max_interfaces],
-	AC_HELP_STRING([--with-max_interfaces=number], [Limit on the number of ip-addresses that may be specified]),
-	[max_interfaces=$withval])
-AC_DEFINE_UNQUOTED([MAX_INTERFACES], $max_interfaces, [Define to the maximum interfaces to serve.])
+max_ips=8
+AC_ARG_WITH([max_ips],
+	AC_HELP_STRING([--with-max-ips=number], [Limit on the number of ip-addresses that may be specified]),
+	[max_ips=$withval])
+AC_DEFINE_UNQUOTED([MAX_INTERFACES], $max_ips, [Define to the maximum ip-addresses to serve.])
+
+dnl
+dnl Determine the default tcp timeout
+dnl
+tcp_timeout=120
+AC_ARG_WITH([tcp_timeout],
+	AC_HELP_STRING([--with-tcp-timeout=number], [Limit the default tcp timeout]),
+	[tcp_timeout=$withval])
+AC_DEFINE_UNQUOTED([TCP_TIMEOUT], $tcp_timeout, [Define to the default tcp timeout.])
 
 dnl
 dnl Features
@@ -554,15 +572,6 @@ case "$enable_ipv6" in
                 ;;
         yes|*)
 		AC_DEFINE_UNQUOTED([INET6], [], [Define this to enable IPv6 support.])
-		;;
-esac
-
-AC_ARG_ENABLE(dnssec, AC_HELP_STRING([--disable-dnssec], [Disable DNSSEC support.]))
-case "$enable_dnssec" in
-        no)
-                ;;
-        yes|*)
-		AC_DEFINE_UNQUOTED([DNSSEC], [], [Define this to enable DNSSEC (RFCs 4033, 4034, and 4035) support.])
 		;;
 esac
 
@@ -588,18 +597,8 @@ case "$enable_checking" in
                 ;;
 esac
 
-AC_ARG_ENABLE(tsig, AC_HELP_STRING([--disable-tsig], [Disable TSIG support]))
-case "$enable_tsig" in
-        no)
-		;;
-        yes|*)
-                CHECK_SSL
-                if test x_$HAVE_SSL != x_yes; then
-                   AC_MSG_ERROR(SSL is required to enable TSIG support.  Use --with-ssl to specify the location of the SSL libraries or --disable-tsig to disable TSIG support.)
-                fi
-                AC_DEFINE([TSIG], [], [Define this to enable TSIG support.])
-                ;;
-esac
+# we need SSL for TSIG (and maybe also for NSEC3).
+CHECK_SSL
 
 AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in
@@ -610,11 +609,14 @@ case "$enable_nsec3" in
                 ;;
 esac
 
-AC_ARG_ENABLE(nsid, AC_HELP_STRING([--enable-nsid], [Enable NSID support]))
-case "$enable_nsid" in
+AC_ARG_ENABLE(mmap, AC_HELP_STRING([--enable-mmap], [Use mmap instead of malloc. Experimental.]))
+case "$enable_mmap" in
         yes)
-               AC_DEFINE([NSID], [], [Define this to enable NSID support.])
-               ;;
+		AC_CHECK_HEADERS([sys/mman.h])
+		AC_LIBGTOP_CHECK_TYPE(uintptr_t, void*)
+		AC_CHECK_FUNCS([mmap munmap])
+		AC_DEFINE_UNQUOTED([USE_MMAP_ALLOC], [], [Define this to enable mmap instead of malloc. Experimental.])
+		;;
         no|*)
                 ;;
 esac
@@ -751,6 +753,9 @@ int inet_aton(const char *cp, struct in_addr *addr);
 #ifndef HAVE_MEMMOVE
 void *memmove(void *dest, const void *src, size_t n);
 #endif
+#ifndef HAVE_STRLCAT
+size_t strlcat(char *dst, const char *src, size_t siz);
+#endif
 #ifndef HAVE_STRLCPY
 size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif
@@ -765,6 +770,11 @@ char *strptime(const char *s, const char *format, struct tm *tm);
 #define STRPTIME_WORKS 1
 #define strptime(a,b,c) nsd_strptime((a),(b),(c))
 #endif
+])
+AH_BOTTOM(
+AHX_MEMCMP_BROKEN(nsd)
+)
+AH_BOTTOM([
 
 /* provide timespec def if not available */
 #ifndef CONFIG_DEFINES

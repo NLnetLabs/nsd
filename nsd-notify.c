@@ -177,21 +177,21 @@ notify_host(int udp_s, struct query* q, struct query *answer,
 	close(udp_s);
 }
 
-#ifdef TSIG
 static tsig_key_type*
 add_key(region_type* region, const char* opt, tsig_algorithm_type** algo)
 {
 	/* parse -y key:secret_base64 format option */
 	char* delim = strchr(opt, ':');
 	char* delim2 = NULL;
-
-	if (delim)
-		delim2 = strchr(delim+1, ':');
-
 	tsig_key_type *key = (tsig_key_type*)region_alloc(
 		region, sizeof(tsig_key_type));
 	size_t len;
 	int sz;
+
+	if (delim) {
+		delim2 = strchr(delim+1, ':');
+	}
+
 	if(!key) {
 		log_msg(LOG_ERR, "region_alloc failed (add_key)");
 		return 0;
@@ -213,7 +213,7 @@ add_key(region_type* region, const char* opt, tsig_algorithm_type** algo)
 		*algo = tsig_get_algorithm_by_name("hmac-md5");
 	else {
 		char* by_name = (char*) malloc(sizeof(char)*(5+strlen(delim2)));
-		snprintf(by_name, 5+strlen(delim2), "hmac-%s", delim2+1);
+		snprintf(by_name, 5+strlen(delim2), "%s", delim2+1);
 		*algo = tsig_get_algorithm_by_name(by_name);
 		free(by_name);
 		*delim2 = '\0';
@@ -240,7 +240,6 @@ add_key(region_type* region, const char* opt, tsig_algorithm_type** algo)
 	tsig_add_key(key);
 	return key;
 }
-#endif /* TSIG */
 
 int
 main (int argc, char *argv[])
@@ -257,19 +256,17 @@ main (int argc, char *argv[])
 	const char *port = UDP_PORT;
 	const char *local_port = NULL;
 	region_type *region = region_create(xalloc, free);
-#ifdef TSIG
 	tsig_key_type *tsig_key = 0;
 	tsig_record_type tsig;
 	tsig_algorithm_type* algo = NULL;
-#endif /* TSIG */
 
 	log_init("nsd-notify");
-#ifdef TSIG
 	if(!tsig_init(region)) {
 		log_msg(LOG_ERR, "could not init tsig\n");
 		exit(1);
 	}
-#endif /* TSIG */
+
+	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46a:hp:y:z:")) != -1) {
@@ -293,12 +290,8 @@ main (int argc, char *argv[])
 			port = optarg;
 			break;
 		case 'y':
-#ifdef TSIG
 			if (!(tsig_key = add_key(region, optarg, &algo)))
 				exit(1);
-#else
-			log_msg(LOG_ERR, "option -y given but TSIG not enabled");
-#endif /* TSIG */
 			break;
 		case 'z':
 			zone = dname_parse(region, optarg);
@@ -330,14 +323,13 @@ main (int argc, char *argv[])
 
 	/* Set up the header */
 	OPCODE_SET(q.packet, OPCODE_NOTIFY);
-	ID_SET(q.packet, 42);	/* Does not need to be random. */
+	ID_SET(q.packet, qid_generate());
 	AA_SET(q.packet);
 	QDCOUNT_SET(q.packet, 1);
 	buffer_skip(q.packet, QHEADERSZ);
 	buffer_write(q.packet, dname_name(zone), zone->name_size);
 	buffer_write_u16(q.packet, TYPE_SOA);
 	buffer_write_u16(q.packet, CLASS_IN);
-#ifdef TSIG
 	if(tsig_key) {
 		assert(algo);
 		tsig_create_record(&tsig, region);
@@ -349,7 +341,6 @@ main (int argc, char *argv[])
 		tsig_append_rr(&tsig, q.packet);
 		ARCOUNT_SET(q.packet, ARCOUNT(q.packet) + 1);
 	}
-#endif
 	buffer_flip(q.packet);
 
 	/* initialize buffer for ack */
@@ -391,7 +382,7 @@ main (int argc, char *argv[])
 		}
 
 		for (res = res0; res; res = res->ai_next) {
-			if (res->ai_addrlen > sizeof(q.addr)) {
+			if (res->ai_addrlen > (socklen_t)sizeof(q.addr)) {
 				continue;
 			}
 

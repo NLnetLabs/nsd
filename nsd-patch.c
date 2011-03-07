@@ -57,7 +57,7 @@ list_xfr(FILE *in)
 		return;
 	}
 	skiplen = len - (sizeof(uint32_t)*3 + sizeof(uint16_t) + strlen(zone_name));
-	fprintf(stdout, "zone %s transfer id %x serial %d timestamp %u.%u: "
+	fprintf(stdout, "zone %s transfer id %x serial %u timestamp %u.%u: "
 			"seq_nr %d of %d bytes\n", zone_name, id, new_serial,
 		timestamp[0], timestamp[1], seq_nr, skiplen);
 
@@ -243,7 +243,7 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 	time_t now = time(0);
 	FILE *out;
 
-	fprintf(stderr, "writing zone %s to file %s\n", zone->opts->name,
+	fprintf(stdout, "writing zone %s to file %s\n", zone->opts->name,
 		filename);
 
 	if(!zone->apex) {
