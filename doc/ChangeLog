@@ -1,3 +1,6 @@
+7 March 2011: Wouter:
+	- check chown value and report high verbosity its error.
+
 3 March 2011: Matthijs:
 	- fix #bug352: fix hardcoded paths in manpages.
 
