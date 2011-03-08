@@ -1190,6 +1190,10 @@ static struct cpkt* compile_nxdomain_answer(struct domain* domain,
 			 * under this name */
 			ai.qname = dname_strip_label((uint8_t*)dname_name(
 				domain_dname(nsec_domain)));
+		} else {
+			/* looks a lot like its likely to be unsigned */
+			ai.qname = (uint8_t*)dname_name(domain_dname(
+				zone->apex));
 		}
 		/* wildcard denial */
 		nsec_domain = find_covering_nsec_ext(domain->
