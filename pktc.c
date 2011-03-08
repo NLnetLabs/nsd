@@ -18,10 +18,8 @@
 #define FLAGCODE_QR 0x8000U
 #define FLAGCODE_AA 0x0400U
 #define FLAGCODE_TC 0x0200U
-/** create a compression pointer to the given offset. */
-#define PTR_CREATE(offset) ((uint16_t)(0xc000 | (offset)))
-/** largest valid compression offset */
-#define PTR_MAX_OFFSET  0x3fff
+/** largest valid compression offset ; keep space for adjustment */
+#define PTR_MAX_OFFSET  (0x3fff - MAXDOMAINLEN)
 
 /** some uncompressed dname functionality */
 /** length (+final0) of dname */
@@ -66,6 +64,42 @@ uint8_t* dname_strip_label(uint8_t* dname)
 	/* root is not stripped further */
 	if(*dname == 0) return dname;
 	return dname+*dname+1;
+}
+
+/** compare uncompressed, noncanonical, registers are hints for speed */
+int 
+dname_comp(register uint8_t* d1, register uint8_t* d2)
+{
+	register uint8_t lab1, lab2;
+	assert(d1 && d2);
+	lab1 = *d1++;
+	lab2 = *d2++;
+	while( lab1 != 0 || lab2 != 0 ) {
+		/* compare label length */
+		/* if one dname ends, it has labellength 0 */
+		if(lab1 != lab2) {
+			if(lab1 < lab2)
+				return -1;
+			return 1;
+		}
+		assert(lab1 == lab2 && lab1 != 0);
+		/* compare lowercased labels. */
+		while(lab1--) {
+			/* compare bytes first for speed */
+			if(*d1 != *d2 && 
+				tolower((int)*d1) != tolower((int)*d2)) {
+				if(tolower((int)*d1) < tolower((int)*d2))
+					return -1;
+				return 1;
+			}
+			d1++;
+			d2++;
+		}
+		/* next pair of labels. */
+		lab1 = *d1++;
+		lab2 = *d2++;
+	}
+	return 0;
 }
 
 /** compare two wireformat names (given labelcounts) and return comparison
@@ -153,6 +187,36 @@ dname_lab_cmp(uint8_t* d1, int labs1, uint8_t* d2, int labs2, int* mlabs)
 	return lastdiff;
 }
 
+char* dname2str(uint8_t* dname)
+{
+	static char buf[MAXDOMAINLEN*5+3];
+	char* p = buf;
+	uint8_t lablen;
+	if(*dname == 0) {
+		strlcpy(buf, ".", sizeof(buf));
+		return buf;
+	}
+	lablen = *dname++;
+	while(lablen) {
+		while(lablen--) {
+			uint8_t ch = *dname++;
+			if (isalnum(ch) || ch == '-' || ch == '_') {
+				*p++ = ch;
+			} else if (ch == '.' || ch == '\\') {
+				*p++ = '\\';
+				*p++ = ch;
+			} else {
+				snprintf(p, 5, "\\%03u", (unsigned int)ch);
+				p += 4;
+			}
+		}
+		lablen = *dname++;
+		*p++ = '.';
+	}
+	*p++ = 0;
+	return buf;
+}
+
 static int
 dname_buffer_write(buffer_type* pkt, uint8_t* dname)
 {
@@ -209,12 +273,14 @@ struct compzone* compzone_create(struct comptree* ct, uint8_t* zname)
 	struct compzone* cz = (struct compzone*)xalloc(sizeof(*cz));
 	size_t zlen = dname_length(zname);
 	cz->name = memdup(zname, zlen);
+	cz->namelen = zlen;
 	cz->nsec3tree = NULL; /* empty for now, may not be NSEC3-zone */
 	/* todo nsec3parms empty */
 	cz->serial = 0;
 	
 	/* add into tree */
 	cz->rnode = radname_insert(ct->zonetree, zname, zlen, cz);
+	assert(cz->rnode);
 
 	return cz;
 }
@@ -223,6 +289,8 @@ void compzone_delete(struct compzone* cz)
 {
 	if(!cz) return;
 	free(cz->name);
+	cpkt_delete(cz->nx);
+	cpkt_delete(cz->nodata);
 	if(cz->nsec3tree) {
 		struct radnode* n;
 		for(n = radix_first(cz->nsec3tree); n; n = radix_next(n))
@@ -260,30 +328,57 @@ struct compzone* compzone_find(struct comptree* ct, uint8_t* name, int* ce)
 	return NULL;
 }
 
-struct compname* compname_create(struct comptree* ct, uint8_t* name)
+struct compname* compname_create(struct comptree* ct, uint8_t* name,
+	struct compzone* cz)
 {
 	struct compname* cn = (struct compname*)xalloc(sizeof(*cn));
 	memset(cn, 0, sizeof(*cn));
 	cn->namelen = dname_length(name);
+	cn->name = memdup(name, cn->namelen);
+	cn->cz = cz;
 
 	/* add into tree */
-	cn->rnode = radname_insert(ct->zonetree, name, cn->namelen, cn);
+	cn->rnode = radname_insert(ct->nametree, name, cn->namelen, cn);
+	assert(cn->rnode);
 
 	return cn;
 }
 
-void compname_delete(struct compname* cn)
+/** clear a compname */
+void compname_clear_pkts(struct compname* cn)
 {
 	size_t i;
 	if(!cn) return;
 	for(i=0; i<cn->typelen; i++)
 		cpkt_delete(cn->types[i]);
 	free(cn->types);
+	cn->types = NULL;
+	cn->typelen = 0;
+	for(i=0; i<cn->typelen_nondo; i++)
+		cpkt_delete(cn->types_nondo[i]);
+	free(cn->types_nondo);
+	cn->types_nondo = NULL;
+	cn->typelen_nondo = 0;
 	cpkt_delete(cn->notype);
+	cpkt_delete(cn->notype_nondo);
 	cpkt_delete(cn->side);
+	cn->notype = NULL;
+	cn->notype_nondo = NULL;
+	cn->side = NULL;
 	if(cn->belowtype == BELOW_NORMAL || cn->belowtype == BELOW_SYNTHC)
 		cpkt_delete(cn->below);
+	if(cn->belowtype == BELOW_NORMAL || cn->belowtype == BELOW_SYNTHC)
+		cpkt_delete(cn->below_nondo);
 	/* else, it is only a reference */
+	cn->below = NULL;
+	cn->below_nondo = NULL;
+}
+
+void compname_delete(struct compname* cn)
+{
+	if(!cn) return;
+	free(cn->name);
+	compname_clear_pkts(cn);
 	free(cn);
 }
 
@@ -632,6 +727,7 @@ struct cpkt* compile_packet(uint8_t* qname, uint16_t qtype, int adjust,
 	uint16_t ptrs[MAXRRSPP];
 	int numptrs = 0;
 	int i;
+	size_t j;
 	uint16_t arcount = 0;
 	struct compress_tree_node* tree = NULL;
 	uint16_t soaserial = 0;
@@ -648,6 +744,7 @@ struct cpkt* compile_packet(uint8_t* qname, uint16_t qtype, int adjust,
 		numptrs = -1;
 	memset(&c, 0, sizeof(c));
 	c.qtype = qtype;
+	c.qnamelen = dname_length(qname);
 	c.flagcode = flagcode;
 	c.ancount = num_an;
 	c.nscount = num_ns;
@@ -677,10 +774,12 @@ struct cpkt* compile_packet(uint8_t* qname, uint16_t qtype, int adjust,
 	/* add additional rrs and make truncation points between rrsets */
 	/* keep track of the truncation point */
 	for(i=num_an+num_ns; i<num_an+num_ns+num_ar; i++) {
-		/* move truncation point? */
+		/* add a truncation point? this is the additional section,
+		 * so startofadditional, typeRRSIG, different type or name */
 		if(i == num_an+num_ns ||
 			rrinfo[i]->type == TYPE_RRSIG ||
-			rrinfo[i]->type != rrinfo[i-1]->type) {
+			rrinfo[i]->type != rrinfo[i-1]->type ||
+			dname_comp(rrname[i], rrname[i-1]) != 0) {
 			truncpts[numtrunc+1] = buffer_position(p);
 			truncpts[numtrunc] = arcount;
 			numtrunc+=2;
@@ -705,12 +804,11 @@ normal_done:
 		c.serial = &cz->serial;
 		c.serial_pos = soaserial;
 	}
-	c.datalen = buffer_position(p)-QHEADERSZ-dname_length(qname)-4;
 	/* reverse the truncation list */
-	for(i=0; i<numtrunc; i++) {
-		arcount = truncpts[i];
-		truncpts[i] = truncpts[numtrunc-i];
-		truncpts[numtrunc-i] = arcount;
+	for(j=0; j<numtrunc/2; j++) {
+		arcount = truncpts[j];
+		truncpts[j] = truncpts[numtrunc-j-1];
+		truncpts[numtrunc-j-1] = arcount;
 	}
 
 	/* allocate */
@@ -720,6 +818,7 @@ normal_done:
 		ptrs[numptrs] = 0;
 		numptrs += 1;
 	}
+	c.datalen = buffer_position(p)-QHEADERSZ-c.qnamelen-4;
 	cp = (struct cpkt*)xalloc(sizeof(*cp) + c.datalen +
 		sizeof(uint16_t)*numtrunc + sizeof(uint16_t)*numptrs);
 	memmove(cp, &c, sizeof(*cp));
@@ -730,8 +829,7 @@ normal_done:
 	cp->numtrunc = numtrunc;
 	memmove(cp->truncpts, truncpts, sizeof(uint16_t)*numtrunc);
 	memmove(cp->ptrs, ptrs, sizeof(uint16_t)*numptrs);
-	memmove(cp->data, buffer_at(p, QHEADERSZ+dname_length(qname)+4),
-		cp->datalen);
+	memmove(cp->data, buffer_at(p, QHEADERSZ+c.qnamelen+4), c.datalen);
 
 	/*
 	printf("got packet:\n");
@@ -766,7 +864,7 @@ enqueue_rr(domain_type* domain, rr_type* rr,
 static uint16_t
 enqueue_rrset(domain_type* domain, rrset_type* rrset,
 	uint8_t** rrname, struct rr** rrinfo, size_t* rrnum,
-	struct zone* zone)
+	struct zone* zone, int withdo)
 {
 	size_t i;
 	uint16_t added = 0;
@@ -774,7 +872,7 @@ enqueue_rrset(domain_type* domain, rrset_type* rrset,
 		enqueue_rr(domain, &rrset->rrs[i], rrname, rrinfo, rrnum);
 		added++;
 	}
-	if(rrset_rrtype(rrset) != TYPE_RRSIG) {
+	if(withdo && rrset_rrtype(rrset) != TYPE_RRSIG) {
 		rrset_type* rrsig=domain_find_rrset(domain, zone, TYPE_RRSIG);
 		if(rrsig) {
 			for (i = 0; i < rrsig->rr_count; ++i) {
@@ -812,7 +910,8 @@ static struct cpkt* compile_answer_packet(struct answer_info* ai,
 				counts[section] += enqueue_rrset(
 					ai->answer.domains[i],
 					ai->answer.rrsets[i], 
-					rrname, rrinfo, &rrnum, zone);
+					rrname, rrinfo, &rrnum, zone,
+					ai->withdo);
 			}
 		}
 	}
@@ -917,17 +1016,20 @@ static void ai_add_rrset(struct answer_info* ai, rr_section_type section,
 /** compile delegation */
 static struct cpkt* compile_delegation_answer(uint8_t* dname,
 	struct domain* domain, struct zone* zone, struct compzone* cz,
-	struct region* region)
+	struct region* region, int adjust, int withdo)
 {
 	rrset_type* rrset;
 	struct answer_info ai;
 	ai.region = region;
 	answer_info_init(&ai, dname);
-	ai.adjust = 1;
+	ai.adjust = adjust;
+	ai.withdo = withdo;
 	rrset = domain_find_rrset(domain, zone, TYPE_NS);
 	assert(rrset);
 	ai_add_rrset(&ai, AUTHORITY_SECTION, domain, rrset, zone);
-	if((rrset = domain_find_rrset(domain, zone, TYPE_DS))) {
+	if(!withdo) {
+		/* do nothing */
+	} else if((rrset = domain_find_rrset(domain, zone, TYPE_DS))) {
 		ai_add_rrset(&ai, AUTHORITY_SECTION, domain, rrset, zone);
 	} else if(cz->nsec3tree) {
 		/* TODO nsec3_add_ds_proof(&ai, domain, 1); */
@@ -940,25 +1042,32 @@ static struct cpkt* compile_delegation_answer(uint8_t* dname,
 
 /** compile DS answer */
 static struct cpkt* compile_DS_answer(uint8_t* dname, struct domain* domain,
-	struct zone* zone, struct compzone* cz, struct region* region)
+	struct zone* zone, struct compzone* cz, struct region* region,
+	int withdo)
 {
 	rrset_type* rrset;
 	struct answer_info ai;
 	ai.region = region;
 	answer_info_init(&ai, dname);
 	ai.adjust = 0;
+	ai.withdo = withdo;
 	ai.qtype = TYPE_DS;
 	ai.flagcode |= FLAGCODE_AA;
 	if((rrset = domain_find_rrset(domain, zone, TYPE_DS))) {
 		ai_add_rrset(&ai, ANSWER_SECTION, domain, rrset, zone);
-	} else if(cz->nsec3tree) {
+	} else {
 		ai_add_rrset(&ai, AUTHORITY_SECTION, zone->apex,
 			zone->soa_nx_rrset, zone);
-		/* TODO nsec3_add_ds_proof(&ai, domain, 1); */
-	} else if((rrset = domain_find_rrset(domain, zone, TYPE_NSEC))) {
-		ai_add_rrset(&ai, AUTHORITY_SECTION, zone->apex,
-			zone->soa_nx_rrset, zone);
-		ai_add_rrset(&ai, AUTHORITY_SECTION, domain, rrset, zone);
+		if(withdo) {
+			if(cz->nsec3tree) {
+				/* TODO nsec3_add_ds_proof(&ai, domain, 1); */
+			} else if((rrset = domain_find_rrset(domain, zone, TYPE_NSEC))) {
+				ai_add_rrset(&ai, AUTHORITY_SECTION, zone->apex,
+					zone->soa_nx_rrset, zone);
+				ai_add_rrset(&ai, AUTHORITY_SECTION, domain, rrset,
+					zone);
+			}
+		}
 	}
 	printf("DSanswer:\n");
 	return compile_answer_packet(&ai, zone, cz);
@@ -967,12 +1076,13 @@ static struct cpkt* compile_DS_answer(uint8_t* dname, struct domain* domain,
 /** compile positive answer for an rrset */
 static struct cpkt* compile_pos_answer(uint8_t* dname, struct domain* domain,
 	struct zone* zone, struct compzone* cz, rrset_type* rrset,
-	struct region* region)
+	struct region* region, int withdo)
 {
 	struct answer_info ai;
 	ai.region = region;
 	answer_info_init(&ai, dname);
 	ai.adjust = 0;
+	ai.withdo = withdo;
 	ai.qtype = rrset_rrtype(rrset);
 	ai.flagcode |= FLAGCODE_AA;
 	ai_add_rrset(&ai, ANSWER_SECTION, domain, rrset, zone);
@@ -982,7 +1092,8 @@ static struct cpkt* compile_pos_answer(uint8_t* dname, struct domain* domain,
 
 /** compile answer for qtype ANY */
 static struct cpkt* compile_any_answer(uint8_t* dname, struct domain* domain,
-	struct zone* zone, struct compzone* cz, struct region* region)
+	struct zone* zone, struct compzone* cz, struct region* region,
+	int withdo)
 {
 	rrset_type* rrset;
 	struct answer_info ai;
@@ -990,6 +1101,7 @@ static struct cpkt* compile_any_answer(uint8_t* dname, struct domain* domain,
 	ai.region = region;
 	answer_info_init(&ai, dname);
 	ai.adjust = 0;
+	ai.withdo = withdo;
 	ai.qtype = TYPE_ANY;
 	ai.flagcode |= FLAGCODE_AA;
 	for(rrset = domain_find_any_rrset(domain, zone); rrset; rrset = rrset->next) {
@@ -997,7 +1109,9 @@ static struct cpkt* compile_any_answer(uint8_t* dname, struct domain* domain,
 #ifdef NSEC3
 			&& rrset_rrtype(rrset) != TYPE_NSEC3
 #endif
-			&& rrset_rrtype(rrset) != TYPE_RRSIG)
+			/* RRSIGs added automatically if withdo,
+			 * but if not, they are added as 'ANY' */
+			&& (rrset_rrtype(rrset) != TYPE_RRSIG || !withdo))
 		{
 			ai_add_rrset(&ai, ANSWER_SECTION, domain, rrset, zone);
 			++added;
@@ -1012,15 +1126,16 @@ static struct cpkt* compile_any_answer(uint8_t* dname, struct domain* domain,
 /** compile answer for nodata for the qtype */
 static struct cpkt* compile_nodata_answer(uint8_t* dname,
 	struct domain* domain, struct zone* zone, struct compzone* cz,
-	struct region* region)
+	struct region* region, int adjust, int withdo)
 {
 	struct answer_info ai;
 	ai.region = region;
 	answer_info_init(&ai, dname);
-	ai.adjust = 0;
+	ai.adjust = adjust;
+	ai.withdo = withdo;
 	ai.flagcode |= FLAGCODE_AA;
 
-	/* if no CNAMEs have been followed yet, and qclass != ANY (?!) */
+	/* if no CNAMEs have been followed yet */
 	/* TODO */
 	ai_add_rrset(&ai, AUTHORITY_SECTION, zone->apex, zone->soa_nx_rrset,
 		zone);
@@ -1029,7 +1144,7 @@ static struct cpkt* compile_nodata_answer(uint8_t* dname,
 	/* TODO: if(cz->nsec3tree) nsec3_answer_nodata 
 	 * else*/
 #endif
-	if(1) { /* do NSECs (if present) (do work for tempdomain, ENTs) */
+	if(withdo) { /* do NSECs (if present) (do work for tempdomain, ENTs) */
 		domain_type *nsec_domain;
 		rrset_type *nsec_rrset;
 		nsec_domain = find_covering_nsec_ext(domain, zone, &nsec_rrset);
@@ -1039,6 +1154,58 @@ static struct cpkt* compile_nodata_answer(uint8_t* dname,
 		}
 	}
 	printf("nodata:\n");
+	return compile_answer_packet(&ai, zone, cz);
+}
+
+/** compile answer for nxdomain for the name */
+static struct cpkt* compile_nxdomain_answer(struct domain* domain,
+	struct zone* zone, struct compzone* cz, struct region* region,
+	int withdo)
+{
+	struct answer_info ai;
+	ai.region = region;
+	answer_info_init(&ai, NULL);
+	ai.adjust = 1;
+	ai.withdo = withdo;
+	ai.flagcode |= FLAGCODE_AA;
+	ai.flagcode |= RCODE_NXDOMAIN;
+
+	/* if CNAME followed, not NXDOMAIN, no SOA(soa added last).  TODO */
+
+#ifdef NSEC3
+	/* TODO: if(cz->nsec3tree) nsec3_answer_nxdomain 
+	 * not really useful 
+	 * else*/
+#endif
+	if(withdo) { /* do NSECs */
+		domain_type *nsec_domain;
+		rrset_type *nsec_rrset;
+		/* denial NSEC */
+		nsec_domain = find_covering_nsec_ext(domain, zone,
+			&nsec_rrset);
+		if(nsec_rrset) {
+			ai_add_rrset(&ai, AUTHORITY_SECTION, nsec_domain,
+				nsec_rrset, zone);
+			/* we know that all query names are going to fall
+			 * under this name */
+			ai.qname = dname_strip_label((uint8_t*)dname_name(
+				domain_dname(nsec_domain)));
+		}
+		/* wildcard denial */
+		nsec_domain = find_covering_nsec_ext(domain->
+			wildcard_child_closest_match, zone, &nsec_rrset);
+		if(nsec_domain) {
+			ai_add_rrset(&ai, AUTHORITY_SECTION, nsec_domain,
+				nsec_rrset, zone);
+		}
+	} else {
+		/* we only know the queries will be 'in the zone' */
+		ai.qname = (uint8_t*)dname_name(domain_dname(zone->apex));
+	}
+	ai_add_rrset(&ai, AUTHORITY_SECTION, zone->apex, zone->soa_nx_rrset,
+		zone);
+
+	printf("nxdomain:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1076,16 +1243,33 @@ void compile_zones(struct comptree* ct, struct zone* zonelist,
 	VERBOSITY(1, (LOG_INFO, "compiled %d zones in %d seconds", n, (int)(e-s)));
 }
 
+/** see if zone is signed: if there is RRSIG(SOA) */
+static int
+zone_is_signed(struct zone* zone)
+{
+	rrset_type* rrsig = domain_find_rrset(zone->apex, zone, TYPE_RRSIG);
+	size_t i;
+	for(i=0; i<rrsig->rr_count; i++)
+		if(rr_rrsig_type_covered(&rrsig->rrs[i]) == TYPE_SOA)
+			return 1;
+	return 0;
+}
+
 void compile_zone(struct comptree* ct, struct compzone* cz, struct zone* zone,
 	struct domain_table* table)
 {
 	domain_type* walk;
+	int is_signed;
 	/* setup NSEC3 */
 	if(domain_find_rrset(zone->apex, zone, TYPE_NSEC3PARAM)) {
 		/* fill NSEC3params in cz */
 		/* TODO */
 		cz->nsec3tree = radix_tree_create();
 	}
+	/* see if the zone is signed */
+	if(zone_is_signed(zone))
+		is_signed = 1;
+	else	is_signed = 0;
 
 	/* walk through the names */
 	walk = zone->apex;
@@ -1093,7 +1277,7 @@ void compile_zone(struct comptree* ct, struct compzone* cz, struct zone* zone,
 		domain_dname(zone->apex))) {
 		zone_type* curz = domain_find_zone(walk);
 		if(curz && curz == zone) {
-			compile_name(ct, cz, zone, table, walk);
+			compile_name(ct, cz, zone, table, walk, is_signed);
 		}
 		walk = domain_next(walk);
 	}
@@ -1121,11 +1305,12 @@ enum domain_type_enum determine_domain_type(struct domain* domain,
 }
 
 /** find wirename or add a compname(empty) for it */
-static struct compname* find_or_create_name(struct comptree* ct, uint8_t* nm)
+static struct compname* find_or_create_name(struct comptree* ct, uint8_t* nm,
+	struct compzone* cz)
 {
 	struct compname* cn = compname_search(ct, nm);
 	if(cn) return cn;
-	return compname_create(ct, nm);
+	return compname_create(ct, nm, cz);
 }
 
 /** add a type to the typelist answers (during precompile it can grow */
@@ -1144,22 +1329,47 @@ static void cn_add_type(struct compname* cn, struct cpkt* p)
 	cn->typelen++;
 }
 
+/** add a type to the nonDO typelist answers (during precompile it can grow */
+static void cn_add_type_nondo(struct compname* cn, struct cpkt* p)
+{
+	/* check if already present */
+	size_t i;
+	if(!p) return;
+	for(i=0; i<cn->typelen_nondo; i++)
+		if(cn->types_nondo[i]->qtype == p->qtype) {
+			log_msg(LOG_ERR, "internal error: double type in list");
+			/* otherwise ignore it */
+		}
+	assert(cn->typelen_nondo <= 65536);
+	cn->types_nondo[cn->typelen_nondo]=p;
+	cn->typelen_nondo++;
+}
+
 static void compile_delegation(struct compname* cn, struct domain* domain,
 	uint8_t* dname, struct zone* zone, struct compzone* cz,
-	struct region* region)
+	struct region* region, int is_signed)
 {
 	/* type DS */
-	cn_add_type(cn, compile_DS_answer(dname, domain, zone, cz, region));
-	/* notype is referral */
-	cn->notype = compile_delegation_answer(dname, domain, zone, cz, region);
-	/* below is referral */
-	cn->below = compile_delegation_answer(dname, domain, zone, cz, region);
+	cn_add_type(cn, compile_DS_answer(dname, domain, zone, cz, region, 1));
+	cn_add_type_nondo(cn, compile_DS_answer(dname, domain, zone, cz,
+		region, 0));
+	/* notype is referral (fixed name) */
+	cn->notype = compile_delegation_answer(dname, domain, zone, cz,
+		region, 0, is_signed);
+	cn->notype_nondo = compile_delegation_answer(dname, domain, zone, cz,
+		region, 0, 0);
+	/* below is referral (adjust name) */
+	cn->below = compile_delegation_answer(dname, domain, zone, cz,
+		region, 1, is_signed);
 	cn->belowtype = BELOW_NORMAL;
+	cn->below_nondo = compile_delegation_answer(dname, domain, zone, cz,
+		region, 1, 0);
+	cn->belowtype_nondo = BELOW_NORMAL;
 }
 
 static void compile_normal(struct compname* cn, struct domain* domain,
 	uint8_t* dname, struct zone* zone, struct compzone* cz,
-	struct region* region)
+	struct region* region, int is_signed)
 {
 	rrset_type* rrset;
 	/* add all existing qtypes */
@@ -1171,31 +1381,41 @@ static void compile_normal(struct compname* cn, struct domain* domain,
 			continue;
 #endif
 		cn_add_type(cn, compile_pos_answer(dname, domain, zone,
-			cz, rrset, region));
+			cz, rrset, region, is_signed));
+		cn_add_type_nondo(cn, compile_pos_answer(dname, domain, zone,
+			cz, rrset, region, 0));
 	}
 	/* add qtype RRSIG (if necessary) */
 
 	/* add qtype ANY */
-	cn_add_type(cn, compile_any_answer(dname, domain, zone, cz, region));
+	cn_add_type(cn, compile_any_answer(dname, domain, zone, cz, region,
+		is_signed));
+	cn_add_type_nondo(cn, compile_any_answer(dname, domain, zone, cz,
+		region, 0));
 
 	/* notype */
-	cn->notype = compile_nodata_answer(dname, domain, zone, cz, region);
+	if(is_signed)
+		cn->notype = compile_nodata_answer(dname, domain, zone, cz,
+			region, 0, is_signed);
+	else	cn->notype = NULL; /* use zone ptr */
+	cn->notype_nondo = NULL; /* use zone ptr */
 }
 
 static void compile_dname(struct compname* cn, struct domain* domain,
 	uint8_t* dname, struct zone* zone, struct compzone* cz,
-	struct region* region)
+	struct region* region, int is_signed)
 {
 	/* fill for normal types, other types next to DNAME */
-	compile_normal(cn, domain, dname, zone, cz, region);
+	compile_normal(cn, domain, dname, zone, cz, region, is_signed);
 	/* below is dname */
 	/* TODO */
 	cn->belowtype = BELOW_SYNTHC;
+	cn->belowtype_nondo = BELOW_SYNTHC;
 }
 
 static void compile_cname(struct compname* cn, struct domain* domain,
 	uint8_t* dname, struct zone* zone, struct compzone* cz,
-	struct region* region)
+	struct region* region, int is_signed)
 {
 	rrset_type* rrset = NULL;
 	/* TODO */
@@ -1203,29 +1423,41 @@ static void compile_cname(struct compname* cn, struct domain* domain,
 	/* notype is CNAME */
 	rrset = domain_find_rrset(domain, zone, TYPE_CNAME);
 	assert(rrset);
-	cn->notype = compile_pos_answer(dname, domain, zone, cz, rrset, region);
+	cn->notype = compile_pos_answer(dname, domain, zone, cz, rrset,
+		region, is_signed);
+	cn->notype_nondo = compile_pos_answer(dname, domain, zone, cz, rrset,
+		region, 0);
 }
 
-static void compile_side_nsec(struct compname* cn, struct domain_table* table,
-        struct domain* domain)
+static void compile_side_nsec(struct compname* cn, struct domain* domain,
+	struct zone* zone, struct compzone* cz, struct region* region,
+	int is_signed)
 {
-	/* TODO */
 	/* NXDOMAIN in side */
-	cn->belowtype = BELOW_NORMAL;
+	if(is_signed)
+		cn->side = compile_nxdomain_answer(domain, zone, cz, region, 1);
+	else	cn->side = NULL; /* use zone ptr */
 }
 
 static void compile_below_nsec3(struct compname* cn, struct domain_table* table,
-        struct domain* domain, struct compzone* cz)
+        struct domain* domain, struct compzone* cz, int is_signed)
 {
 	/* create nxdomain in nsec3tree, belowptr */
 	/* TODO */
 
-	cn->below = (struct cpkt*)cz;
-	cn->belowtype = BELOW_NSEC3NX;
+	if(is_signed) {
+		cn->below = (struct cpkt*)cz;
+		cn->belowtype = BELOW_NSEC3NX;
+	} else {
+		cn->below = NULL;
+		cn->belowtype = BELOW_NORMAL;
+	}
+	cn->below_nondo = NULL; /* get unsigned nxdomain from zone */
+	cn->belowtype_nondo = BELOW_NORMAL;
 }
 
 static void compile_below_wcard(struct compname* cn, struct comptree* ct,
-	uint8_t* dname)
+	uint8_t* dname, struct compzone* cz)
 {
 	/* belowptr to wildcardname, create if not yet exists, but it gets
 	 * filled on its own accord */
@@ -1237,13 +1469,16 @@ static void compile_below_wcard(struct compname* cn, struct comptree* ct,
 	wname[0]=1;
 	wname[1]='*';
 	memmove(wname+2, dname, cn->namelen);
-	wcard = find_or_create_name(ct, wname);
+	wcard = find_or_create_name(ct, wname, cz);
 	cn->below = (struct cpkt*)wcard;
 	cn->belowtype = BELOW_WILDCARD;
+	cn->below_nondo = (struct cpkt*)wcard;
+	cn->belowtype_nondo = BELOW_WILDCARD;
 }
 
 static void compile_apex_ds(struct compname* cn, struct domain_table* table,
-        struct domain* domain, struct comptree* ct, uint8_t* dname)
+        struct domain* domain, struct comptree* ct, uint8_t* dname,
+	int is_signed)
 {
 	/* create a qtype DS for the zone apex, but only if we host a zone
 	 * above this zone, can be posDS, NSEC-DS, NSEC3DS(nodata,optout).
@@ -1258,7 +1493,7 @@ static void compile_apex_ds(struct compname* cn, struct domain_table* table,
 }
 
 void compile_name(struct comptree* ct, struct compzone* cz, struct zone* zone,
-        struct domain_table* table, struct domain* domain)
+        struct domain_table* table, struct domain* domain, int is_signed)
 {
 	/* determine the 'type' of this domain name */
 	int apex = 0;
@@ -1266,6 +1501,7 @@ void compile_name(struct comptree* ct, struct compzone* cz, struct zone* zone,
 	struct compname* cn;
 	uint8_t* dname = (uint8_t*)dname_name(domain_dname(domain));
 	struct cpkt* pktlist[65536+10]; /* all types and some spare */
+	struct cpkt* pktlist_nondo[65536+10]; /* all types and some spare */
 	region_type* region;
 
 	/* type: NSEC3domain: treat as occluded. */
@@ -1277,48 +1513,75 @@ void compile_name(struct comptree* ct, struct compzone* cz, struct zone* zone,
 	else if(t == dtype_delegation && compzone_search(ct, dname))
 		return;
 	
+	log_msg(LOG_INFO, "compilename %s", dname_to_string(domain_dname(domain), NULL));
 	/* create cn(or find) and setup typelist for additions */
 	region = region_create(xalloc, free);
-	cn = find_or_create_name(ct, dname);
+	cn = find_or_create_name(ct, dname, cz);
+	/* avoid double allocations and memory leaks because of that */
+	compname_clear_pkts(cn);
 	assert(cn->typelen < sizeof(pktlist));
+	assert(cn->typelen_nondo < sizeof(pktlist_nondo));
 	memcpy(pktlist, cn->types, cn->typelen*sizeof(struct cpkt*));
+	memcpy(pktlist_nondo, cn->types_nondo,
+		cn->typelen_nondo*sizeof(struct cpkt*));
 	free(cn->types);
+	free(cn->types_nondo);
 	cn->types = pktlist;
+	cn->types_nondo = pktlist_nondo;
 
 	/* type: delegation: type-DS, notype=referral, below=referral */
 	if(t == dtype_delegation)
-		compile_delegation(cn, domain, dname, zone, cz, region);
+		compile_delegation(cn, domain, dname, zone, cz, region,
+			is_signed);
 	/* type: dname: fill for dname, type and below */
 	else if(t == dtype_dname)
-		compile_dname(cn, domain, dname, zone, cz, region);
+		compile_dname(cn, domain, dname, zone, cz, region, is_signed);
 	/* type: cname: fill for cname : if in-zone: for all types at dest,
 	 * 				             and for notype-dest.
 	 * 				not-in-zone: just the cname. */
 	else if(t == dtype_cname)
-		compile_cname(cn, domain, dname, zone, cz, region);
+		compile_cname(cn, domain, dname, zone, cz, region, is_signed);
 	/* type: normal: all types, ANY, RRSIG, notype(NSEC/NSEC3). */
 	else if(t == dtype_normal)
-		compile_normal(cn, domain, dname, zone, cz, region);
+		compile_normal(cn, domain, dname, zone, cz, region, is_signed);
 	
-	/* fill below and side */
+	/* fill below special */
 	if(t == dtype_delegation)
 		/* below is referral */;
 	else if(t == dtype_dname)
 		/* below is dname */;
 	else if(domain_wildcard_child(domain) && cn->namelen+2<=MAXDOMAINLEN)
-		compile_below_wcard(cn, ct, dname);
+		compile_below_wcard(cn, ct, dname, cz);
 	/* else if zone is NSEC3: create nxdomain in nsec3tree, belowptr */
 	else if(cz->nsec3tree)
-		compile_below_nsec3(cn, table, domain, cz);
-	/* else if zone is NSEC: create nxdomain in side */
-	else 	compile_side_nsec(cn, table, domain);
+		compile_below_nsec3(cn, table, domain, cz, is_signed);
+	else {
+		cn->below = NULL;
+		cn->belowtype = BELOW_NORMAL;
+		cn->below_nondo = NULL; /* get unsigned nxdomain from zone */
+		cn->belowtype_nondo = BELOW_NORMAL;
+	}
 
-	/* if apex: see if we need special type-DS compile (parent zone) */
-	if(apex)
-		compile_apex_ds(cn, table, domain, ct, dname);
+	/* if zone is NSEC: create nxdomain in side (or do unsignedzone) */
+	if(!cz->nsec3tree)
+		compile_side_nsec(cn, domain, zone, cz, region, is_signed);
+	else 	cn->side = NULL;
+
+	if(apex) {
+		/* see if we need special type-DS compile (parent zone) */
+		compile_apex_ds(cn, table, domain, ct, dname, is_signed);
+		/* compile unsigned nxdomain for zone */
+		printf("compile unsigned nxdomain with dname %d\n",
+			(int)dname_length(dname));
+		cz->nx = compile_nxdomain_answer(domain, zone, cz, region, 0);
+		/* compile unsigned nodata for zone; with adjust */
+		cz->nodata = compile_nodata_answer(dname, domain, zone, cz,
+			region, 1, 0);
+	}
 	
 	/* sort and allocate typelist */
 	assert(cn->typelen < sizeof(pktlist));
+	assert(cn->typelen_nondo < sizeof(pktlist_nondo));
 	if(cn->typelen == 0) {
 		cn->types = NULL;
 	} else {
@@ -1326,6 +1589,14 @@ void compile_name(struct comptree* ct, struct compzone* cz, struct zone* zone,
 			&cpkt_compare_qtype);
 		cn->types = (struct cpkt**)memdup(pktlist,
 			cn->typelen*sizeof(struct cpkt*));
+	}
+	if(cn->typelen_nondo == 0) {
+		cn->types_nondo = NULL;
+	} else {
+		qsort(pktlist_nondo, cn->typelen_nondo, sizeof(struct cpkt*),
+			&cpkt_compare_qtype);
+		cn->types_nondo = (struct cpkt**)memdup(pktlist_nondo,
+			cn->typelen_nondo*sizeof(struct cpkt*));
 	}
 	region_destroy(region);
 }

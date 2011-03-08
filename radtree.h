@@ -123,10 +123,14 @@ struct radnode* radix_search(struct radtree* rt, uint8_t* k, radstrlen_t len);
  * @param len: length of key.
  * @param result: returns the radix node or closest match (NULL if key is
  * 	smaller than the smallest key in the tree).
+ * @param ce: returns a closest-encloser node in the tree (or NULL),
+ * 	it is not guaranteed to have an element. only if nonexact.
+ * 	It does not respect user boundaries in the string, it may be a shorter
+ * 	substring (a as ce for abc).
  * @return true if exact match, false if no match.
  */
 int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
-	struct radnode** result);
+	struct radnode** result, struct radnode** ce);
 
 /**
  * Return the first (smallest) element in the tree.
@@ -201,10 +205,13 @@ struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max);
  * @param result: returns the radix node or closest match (NULL if key is
  * 	smaller than the smallest key in the tree).
  * 	could result in NULL on a parse error as well (with return false).
+ * @param ce: returns a closest-encloser node in the tree (or NULL),
+ * 	it is not guaranteed to have an element. only if nonexact.
+ * 	DNS knowledge is used to return ce on a label boundary.
  * @return true if exact match, false if no match.
  */
 int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
-	struct radnode** result);
+	struct radnode** result, struct radnode** ce);
 
 /**
  * Insert radix element by domain name.

@@ -39,6 +39,10 @@ struct compzone {
 	struct radnode* rnode;
 	/** zone name */
 	uint8_t* name;
+	/** unsigned nxdomain packet */
+	struct cpkt* nx;
+	/** unsigned nodata packet */
+	struct cpkt* nodata;
 	/** the tree of nsec3 hashes to compnsec3, for this zone */
 	struct radtree* nsec3tree;
 	/** nsec3 parameters for hashing */
@@ -46,6 +50,8 @@ struct compzone {
 	/** soa serial number to insert into negative answers, network order,
 	 * negative compiled packets have pointers to this value. */
 	uint32_t serial;
+	/** length of the zone name */
+	uint8_t namelen;
 };
 
 /**
@@ -70,21 +76,35 @@ struct compnsec3 {
 struct compname {
 	/** radix node for this element */
 	struct radnode* rnode;
+	/** the compiled zone for (most of) these answers */
+	struct compzone* cz;
+	/** DEBUG: name of the node */
+	uint8_t* name;
 	/** length of specifics array */
 	size_t typelen;
+	/** length of nonDO specifics array */
+	size_t typelen_nondo;
 	/** specifics array, by qtype, to compiled packets for this qtype.
 	 * includes TYPE_ANY, TYPE_RRSIG, ...  The array is sorted by qtype.
 	 * also contains separate DS-denial if parent-zone, or referral-here.
 	 * or DS-positive if secure-referral here. */
 	struct cpkt** types;
-	/** no type match, have name match, packet, to nodata or referral */
+	/** no type match, have name match, packet, to nodata or referral
+	 *  if it is null, use the zone to get shared unsigned nodata cpkt. */
 	struct cpkt* notype;
+	/** the nonDO answers by type */
+	struct cpkt** types_nondo;
+	/** notype packet for nonDO queries */
+	struct cpkt* notype_nondo;
 	/** match below the name, qname is below this name, to nxdomain,
 	 * dname or referral packet.
 	 * For nsec3 need to go hash at compzone, for wildcard special todo */
 	struct cpkt* below;
+	/** belowptr for nonDO queries */
+	struct cpkt* below_nondo;
 	/** side match, the qname is after this name, for NSEC nxdomains.
-	 * side is NULL if the closest-encloser below is (wildcard,nsec3nx). */
+	 * side is NULL if the closest-encloser below is (wildcard,nsec3nx). 
+	 * for side, use the namelen of the ce for compressionadjustment. */
 	struct cpkt* side;
 	/** length of the wirefmt of this name, to calculate the prefix of
 	 * the qname for nsec3 hashing and wildcards */
@@ -97,8 +117,11 @@ struct compname {
 	 *  BELOW_NSEC3NX ptr to compzone, do nsec3 hashing for nxdomain. 
 	 *  BELOW_WILDCARD ptr to the *.x name below this.
 	 *  BELOW_SYNTHC  ptr to cpkt with DNAME, perform CNAME synthesis.
+	 *  if it is null, use the zone to get shared unsigned nxdomain cpkt.
 	 */
 	uint8_t belowtype;
+	/** type of the below_nondo pointer */
+	uint8_t belowtype_nondo;
 };
 
 /**
@@ -126,7 +149,9 @@ struct cpkt {
 	uint16_t* ptrs;
 	/** qtype of the packet, 0 for nxdomains, referrals */
 	uint16_t qtype;
-	/** length of the packet data */
+	/** length of the original qname (for compression adjustment */
+	uint16_t qnamelen;
+	/** length of data segment */
 	uint16_t datalen;
 	/** flagcode, the u16 with flags, rcode, opcode for the result,
 	 * needs to have RD,CD flags copied from query */
@@ -169,8 +194,10 @@ struct compzone* compzone_find(struct comptree* ct, uint8_t* name, int* ce);
 /** add a new name to the nametree.
  * @param ct: comptree to add it into.
  * @param name: name, dname to add.
+ * @param cz: zone of name (for most answers; specifically NXDOMAIN, NODATA).
  * @return compname object that has been added. */
-struct compname* compname_create(struct comptree* ct, uint8_t* name);
+struct compname* compname_create(struct comptree* ct, uint8_t* name,
+	struct compzone* cz);
 
 /** delete compname, frees all contents. does not edit the nametree. */
 void compname_delete(struct compname* cn);
@@ -189,6 +216,8 @@ struct answer_info {
 	uint16_t qtype;
 	/** can this answer compressptrs be adjusted after compilation */
 	int adjust;
+	/** does this answer have DO (DNSSEC resource records) added */
+	int withdo;
 	/** flags and rcode */
 	uint16_t flagcode;
 	/** rrsets in sections */
@@ -265,9 +294,10 @@ void compile_zone(struct comptree* ct, struct compzone* cz, struct zone* zone,
  * @param zone: the zone
  * @param table: the namelookup structure.
  * @param domain: the named domain in the namelookup structure.
+ * @param is_signed: true if the zone is signed.
  */
 void compile_name(struct comptree* ct, struct compzone* cz, struct zone* zone,
-	struct domain_table* table, struct domain* domain);
+	struct domain_table* table, struct domain* domain, int is_signed);
 
 enum domain_type_enum {
 	dtype_normal, /* a normal domain name */
@@ -280,5 +310,11 @@ enum domain_type_enum {
 /** determine the type of the domain */
 enum domain_type_enum determine_domain_type(struct domain* domain,
         struct zone* zone, int* apex);
+/** length of wireformat dname (including end0). */
+size_t dname_length(uint8_t* dname);
+/** return static buffer with dname, formatted with escapecodes */
+char* dname2str(uint8_t* dname);
+/** create a compression pointer to the given offset. */
+#define PTR_CREATE(offset) ((uint16_t)(0xc000 | (offset)))
 
 #endif /* PKTC_H */

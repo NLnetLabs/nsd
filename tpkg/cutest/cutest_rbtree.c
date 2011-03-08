@@ -404,7 +404,6 @@ static void rbtree_2(CuTest *tc)
 static void rbtree_3(CuTest *tc)
 {
 	/* check RBTREE_NULL contents */
-	CuAssert(tc, "RBTREE_NULL != 0", (RBTREE_NULL != 0));
 	CuAssert(tc, "RBTREE_NULL)->parent == RBTREE_NULL", ((RBTREE_NULL)->parent == RBTREE_NULL));
 	CuAssert(tc, "RBTREE_NULL)->left == RBTREE_NULL", ((RBTREE_NULL)->left == RBTREE_NULL));
 	CuAssert(tc, "RBTREE_NULL)->right == RBTREE_NULL", ((RBTREE_NULL)->right == RBTREE_NULL));

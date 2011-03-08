@@ -37,6 +37,7 @@
 #include "options.h"
 #include "nsec3.h"
 #include "tsig.h"
+#include "pktd.h"
 
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
  * This function determines if the final response packet needs the NS RRset
@@ -1376,7 +1377,10 @@ query_process(query_type *q, nsd_type *nsd)
 		return query_state;
 	}
 
-	answer_query(nsd, q);
+	if(1)
+		answer_query(nsd, q);
+	else
+		pktd_answer_query(nsd, q);
 
 	return QUERY_PROCESSED;
 }
