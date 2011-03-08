@@ -19,6 +19,8 @@ check 1
 speed 1000
 # write qfile.out with text answers, 0 disabled.
 write 0
+
+query_do sends a query with EDNS DO flag (4096).
 */
 struct qs {
 	/* number of queries in list */
@@ -41,6 +43,8 @@ struct qs {
 struct qtodo {
 	/* next in list */
 	struct qtodo* next;
+	/* if DO flag */
+	int withdo;
 	/* query in text */
 	char* title;
 	/* query to perform */

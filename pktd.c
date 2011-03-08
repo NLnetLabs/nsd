@@ -13,7 +13,7 @@
 #include "query.h"
 #include "nsd.h"
 
-#define DEBUGPKTD(x, y, z) DEBUG(x, y, z)
+#define DEBUGPKTD(x, y, z) /* DEBUG(x, y, z) */
 
 /** create a servfail */
 static void
@@ -262,7 +262,6 @@ static void execute_below_nonDO(struct query* q, struct compname* ce)
 		}
 	} else {
 		/* use shared NXDOMAIN answer */
-		printf("use shared NX nonDO\n");
 		fill_reply_adjust(q, ce->cz->nx);
 	}
 }

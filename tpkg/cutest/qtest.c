@@ -74,6 +74,18 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 		printf("failed to read %s\n", config);
 		exit(1);
 	}
+	/* EDNS0 */
+	edns_init_data(&nsd->edns_ipv4, nsd->options->ipv4_edns_size);
+#if defined(INET6)
+#if defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)
+	edns_init_data(&nsd->edns_ipv6, nsd->options->ipv6_edns_size);
+#else /* no way to set IPV6 MTU, send no bigger than that. */
+	if (nsd->options->ipv6_edns_size < IPV6_MIN_MTU)
+		edns_init_data(&nsd->edns_ipv6, nsd->options->ipv6_edns_size);
+	else
+		edns_init_data(&nsd->edns_ipv6, IPV6_MIN_MTU);
+#endif /* IPV6 MTU) */
+#endif /* defined(INET6) */
 
 	/* read db */
 	printf("read %s (%d zones)\n", nsd->options->database,
@@ -109,7 +121,7 @@ debug_hex(char* desc, uint8_t* d, size_t s)
 
 /* create a buffer with a regular query */
 static buffer_type*
-create_normal_query(char* desc)
+create_normal_query(char* desc, int withdo)
 {
 	uint8_t* data;
 	uint8_t dname[MAXDOMAINLEN];
@@ -161,6 +173,7 @@ create_normal_query(char* desc)
 
 	/* fill data */
 	size = QHEADERSZ + 4 + dlen;
+	if(withdo) size += 11;
 	data = xalloc(size);
 	memset(data, 0, size);
 	buffer_create_from(buf, data, size);
@@ -170,6 +183,16 @@ create_normal_query(char* desc)
 	buffer_write(buf, dname, dlen);
 	buffer_write_u16(buf, t);
 	buffer_write_u16(buf, c);
+	if(withdo) {
+		ARCOUNT_SET(buf, 1);
+		buffer_write_u8(buf, 0);
+		buffer_write_u16(buf, TYPE_OPT);
+		buffer_write_u16(buf, 4096);
+		buffer_write_u8(buf, 0); /* rcode */
+		buffer_write_u8(buf, 0); /* version */
+		buffer_write_u16(buf, 0x8000); /* DO flag */
+		buffer_write_u16(buf, 0);
+	}
 	buffer_flip(buf);
 	return buf;
 }
@@ -201,13 +224,14 @@ read_txt(FILE* in, struct qtodo* e)
 
 /* read one query */
 static void
-read_query(char* line, FILE* in, struct qs* qs)
+read_query(char* line, FILE* in, struct qs* qs, int withdo)
 {
 	struct qtodo* e = xalloc(sizeof(*e));
 	memset(e, 0, sizeof(*e));
 	e->next = NULL;
 	e->title = strdup(line);
-	e->q = create_normal_query(line);
+	e->withdo = withdo;
+	e->q = create_normal_query(line, withdo);
 	read_txt(in, e);
 	qs->num++;
 	if(qs->qlast)
@@ -239,7 +263,9 @@ qread(char* qfile)
 			line[strlen(line)-1]=0;
 
 		if(strncmp(line, "query ", 6) == 0) {
-			read_query(line+6, in, qs);
+			read_query(line+6, in, qs, 0);
+		} else if(strncmp(line, "query_do ", 9) == 0) {
+			read_query(line+9, in, qs, 1);
 		} else if(strncmp(line, "speed ", 6) == 0) {
 			qs->speed = atoi(line+6);
 		} else if(strncmp(line, "check ", 6) == 0) {
@@ -270,9 +296,24 @@ buffer_spool_rr(buffer_type* output, rr_type* rr, int qsection)
 	if(qsection)
 		buffer_printf(output, "\t%s\t%s",
 		rrclass_to_string(rr->klass), rrtype_to_string(rr->type));
-	else
+	else if(rr->type != TYPE_OPT)
 		buffer_printf(output, "\t%lu\t%s\t%s", (unsigned long) rr->ttl,
 		rrclass_to_string(rr->klass), rrtype_to_string(rr->type));
+	else {
+		/* print OPT */
+		int flags = (rr->ttl&0xffff);
+		buffer_printf(output, " size:%d rcode:%d vs:%d",
+			(int)rr->klass, (int)((rr->ttl& 0xff000000)>>24),
+			(int)((rr->ttl& 0x00ff0000)>>16));
+		if( (flags&0x8000) ) {
+			buffer_printf(output, " DO");
+			flags ^= 0x8000;
+		}
+		if(flags) {
+			buffer_printf(output, " unknown-flags:%x", flags);
+		}
+		buffer_printf(output, " OPT");
+	}
 	if(!qsection) {
 		result = print_rdata(output, d, rr);
 		if (!result) {
@@ -374,7 +415,7 @@ do_write(struct qs* qs, query_type* query, nsd_type* nsd, char* name)
 	}
 	fprintf(out, "# qfile\n");
 	for(e = qs->qlist; e; e = e->next) {
-		fprintf(out, "query %s\n", e->title);
+		fprintf(out, "query%s %s\n", e->withdo?"_do":"", e->title);
 		if(run_query(query, nsd, e->q, qs->bufsize)) {
 			buffer_clear(output);
 			buffer_print_packet(output, query->packet);

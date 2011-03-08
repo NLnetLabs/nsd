@@ -1013,6 +1013,15 @@ static void ai_add_rrset(struct answer_info* ai, rr_section_type section,
 	}
 }
 
+/** perform type NS authority section processing */
+static void process_type_NS(struct answer_info* ai, struct zone* zone)
+{
+	/* no NS-rrset and glue for type DNSKEY and DS */
+	if(zone->ns_rrset && ai->qtype != TYPE_DNSKEY && ai->qtype != TYPE_DS)
+		ai_add_rrset(ai, AUTHORITY_SECTION, zone->apex, zone->ns_rrset,
+			zone);
+}
+
 /** compile delegation */
 static struct cpkt* compile_delegation_answer(uint8_t* dname,
 	struct domain* domain, struct zone* zone, struct compzone* cz,
@@ -1069,6 +1078,7 @@ static struct cpkt* compile_DS_answer(uint8_t* dname, struct domain* domain,
 			}
 		}
 	}
+	process_type_NS(&ai, zone);
 	printf("DSanswer:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
@@ -1086,6 +1096,7 @@ static struct cpkt* compile_pos_answer(uint8_t* dname, struct domain* domain,
 	ai.qtype = rrset_rrtype(rrset);
 	ai.flagcode |= FLAGCODE_AA;
 	ai_add_rrset(&ai, ANSWER_SECTION, domain, rrset, zone);
+	process_type_NS(&ai, zone);
 	printf("posanswer:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
@@ -1119,6 +1130,7 @@ static struct cpkt* compile_any_answer(uint8_t* dname, struct domain* domain,
 	}
 	if(added == 0)
 		return NULL;
+	process_type_NS(&ai, zone);
 	printf("anyanswer:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
@@ -1190,13 +1202,16 @@ static struct cpkt* compile_nxdomain_answer(struct domain* domain,
 			 * under this name */
 			ai.qname = dname_strip_label((uint8_t*)dname_name(
 				domain_dname(nsec_domain)));
+			if(domain->parent)
+				nsec_domain = domain->parent;
 		} else {
 			/* looks a lot like its likely to be unsigned */
 			ai.qname = (uint8_t*)dname_name(domain_dname(
 				zone->apex));
+			nsec_domain = zone->apex;
 		}
 		/* wildcard denial */
-		nsec_domain = find_covering_nsec_ext(domain->
+		nsec_domain = find_covering_nsec_ext(nsec_domain->
 			wildcard_child_closest_match, zone, &nsec_rrset);
 		if(nsec_domain) {
 			ai_add_rrset(&ai, AUTHORITY_SECTION, nsec_domain,
