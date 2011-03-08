@@ -1249,6 +1249,8 @@ zone_is_signed(struct zone* zone)
 {
 	rrset_type* rrsig = domain_find_rrset(zone->apex, zone, TYPE_RRSIG);
 	size_t i;
+	if(!rrsig)
+		return 0;
 	for(i=0; i<rrsig->rr_count; i++)
 		if(rr_rrsig_type_covered(&rrsig->rrs[i]) == TYPE_SOA)
 			return 1;
