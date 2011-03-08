@@ -216,6 +216,10 @@ struct answer_info {
 	uint16_t qtype;
 	/** can this answer compressptrs be adjusted after compilation */
 	int adjust;
+	/** perform special wildcard adjustment:
+	 * *.bla owner names are changed to qname compression ptrs(noajust)
+	 * other ptrs are adjusted towards the qname (the parent of the wc) */
+	int wildcard;
 	/** does this answer have DO (DNSSEC resource records) added */
 	int withdo;
 	/** flags and rcode */
@@ -251,6 +255,8 @@ struct prec_env {
  * @param qtype: qtype or 0.
  * @param adjust: if true, a compression pointer adjustment list is created.
  * 	set this to true for NXDOMAINs, DNAME, referrals, wildcard.
+ * @param wildcard: if true, owner name must be a wildcard (changed to
+ *   its parent), and answers are compressed so that wildcards are instantiated
  * @param flagcode: flagcode to set on packet
  * @param num_an: number an rrs.
  * @param num_ns: number ns rrs.
@@ -261,8 +267,9 @@ struct prec_env {
  * @return compiled packet, allocated.
  */
 struct cpkt* compile_packet(uint8_t* qname, uint16_t qtype, int adjust,
-	uint16_t flagcode, uint16_t num_an, uint16_t num_ns, uint16_t num_ar,
-	uint8_t** rrname, struct rr** rrinfo, struct compzone* cz);
+	int wildcard, uint16_t flagcode, uint16_t num_an, uint16_t num_ns,
+	uint16_t num_ar, uint8_t** rrname, struct rr** rrinfo,
+	struct compzone* cz);
 
 /** delete a compiled packet structure, frees its contents */
 void cpkt_delete(struct cpkt* cp);
@@ -316,5 +323,13 @@ size_t dname_length(uint8_t* dname);
 char* dname2str(uint8_t* dname);
 /** create a compression pointer to the given offset. */
 #define PTR_CREATE(offset) ((uint16_t)(0xc000 | (offset)))
+#define MAX_COMPRESS_PTRS 10000
+/** Check if label length is first octet of a compression pointer, pass u8. */
+#define LABEL_IS_PTR(x) ( ((x)&0xc0) == 0xc0 )
+/** Calculate destination offset of a compression pointer. pass first and
+ *  * second octets of the compression pointer. */
+#define PTR_OFFSET(x, y) ( ((x)&0x3f)<<8 | (y) )
+/** determine uncompressed length of (compressed)name at position */
+size_t pkt_dname_len_at(buffer_type* pkt, size_t pos);
 
 #endif /* PKTC_H */

@@ -62,32 +62,6 @@ lookup(struct comptree* ct, uint8_t* qname, struct compname** match,
 }
 
 /** copy data and truncate message */
-static void copy_and_truncate(struct query* q, struct cpkt* p, uint16_t qlen)
-{
-	unsigned t;
-	/* TODO: could use bsearch here */
-	for(t=0; t<p->numtrunc; t+=2) {
-		if(p->truncpts[t] <= q->maxlen - q->reserved_space) {
-			ARCOUNT_SET(q->packet, p->truncpts[t+1]);
-			memmove(buffer_at(q->packet, QHEADERSZ+qlen+4),
-				p->data, p->truncpts[t]-QHEADERSZ-qlen-4);
-			buffer_set_position(q->packet, p->truncpts[t]);
-			return;
-		}
-	}
-	/* does not fit, TC */
-	ANCOUNT_SET(q->packet, 0);
-	NSCOUNT_SET(q->packet, 0);
-	ARCOUNT_SET(q->packet, 0);
-	TC_SET(q->packet);
-	buffer_set_position(q->packet, QHEADERSZ+qlen+4);
-	/* memmove(buffer_at(q->packet, QHEADERSZ+qlen+4), p->data,
-		q->maxlen-q->reserved_space-QHEADERSZ-qlen-4);
-	buffer_set_position(q->packet, q->maxlen-q->reserved_space); */
-	/* TODO: test TC replies, EDNS, cutoff points */
-}
-
-/** copy data and truncate message */
 static void copy_and_truncate_adjust(struct query* q, struct cpkt* p,
 	uint16_t qlen, uint16_t nlen, uint16_t adjust)
 {
@@ -113,21 +87,6 @@ static void copy_and_truncate_adjust(struct query* q, struct cpkt* p,
 		q->maxlen-q->reserved_space-QHEADERSZ-qlen-4);
 	buffer_set_position(q->packet, q->maxlen-q->reserved_space); */
 	/* TODO: test TC replies, EDNS, cutoff points */
-}
-
-/** fill reply with cpkt without compression adjustments */
-static void fill_reply_noadjust(struct query* q, struct cpkt* p)
-{
-	if(!p) {
-		do_servfail(q);
-		return;
-	}
-	FLAGS_SET(q->packet, p->flagcode | (FLAGS(q->packet)&(0x0110U)));
-	ANCOUNT_SET(q->packet, p->ancount);
-	NSCOUNT_SET(q->packet, p->nscount);
-	copy_and_truncate(q, p, p->qnamelen);
-	if(p->serial)
-		buffer_write_u32_at(q->packet, p->serial_pos, *p->serial);
 }
 
 /** fill reply and adjust compression pointers */
@@ -176,14 +135,14 @@ static void find_type_for_DO(struct query* q, struct compname* n)
 		/* TODO: could binary search here */
 		if(n->types[i]->qtype == q->qtype) {
 			/* since exact match, no adjustment necessary */
-			fill_reply_noadjust(q, n->types[i]);
+			fill_reply_adjust(q, n->types[i]);
 			return;
 		}
 	}
 	/* for referrals the referral.
 	 * if NULL, use shared unsigned nodata answer */
 	if(n->notype)
-		fill_reply_noadjust(q, n->notype);
+		fill_reply_adjust(q, n->notype);
 	else	fill_reply_adjust(q, n->cz->nodata);
 }
 
@@ -196,15 +155,69 @@ static void find_type_for_nonDO(struct query* q, struct compname* n)
 	for(i=0; i<n->typelen_nondo; i++) {
 		/* TODO: could binary search here */
 		if(n->types_nondo[i]->qtype == q->qtype) {
-			fill_reply_noadjust(q, n->types_nondo[i]);
+			fill_reply_adjust(q, n->types_nondo[i]);
 			return;
 		}
 	}
 	/* the NSEC/NSEC3 nodata, or for referrals the referral.
 	 * if NULL, unsigned zone, use shared unsigned nodata answer */
 	if(n->notype_nondo)
-		fill_reply_noadjust(q, n->notype_nondo);
+		fill_reply_adjust(q, n->notype_nondo);
 	else	fill_reply_adjust(q, n->cz->nodata);
+}
+
+/** synthesize CNAME. pkt is adjustable, contains DNAME (+RRSIGs) */
+static void do_synth_cname(struct query* q, struct cpkt* p)
+{
+	uint16_t dstlen, reslen, srclen = p->qnamelen;
+	uint16_t qlen = dname_length(buffer_at(q->packet, QHEADERSZ));
+	size_t rpos, dstpos, srcpos = QHEADERSZ + qlen + 4;
+	fill_reply_adjust(q, p);
+
+	/* see how long the DNAME target is */
+	/* the DNAME-src is compressed, so, name(2)+t(2)+c(2)+ttl(4)+2(rdata)*/
+	dstpos = srcpos+2+2+2+4+2;
+	/* handle (optional) compression pointer in the rdata of the DNAME */
+	dstlen = pkt_dname_len_at(q->packet, dstpos);
+	if(!dstlen) {
+		do_servfail(q);
+		return;
+	}
+
+	/* calculate result, now query bla.foo for    foo DNAME bar
+	 * 'bla' to be replaced. */
+	reslen = qlen - srclen + dstlen;
+	if(reslen > MAXDOMAINLEN) {
+		/* if result is too long, YXDOMAIN */
+		/* send the DNAME along as proof */
+		RCODE_SET(q->packet, RCODE_YXDOMAIN);
+		return;
+	}
+
+	/* append CNAME, we can compress with qname and with DNAME rdata */
+	buffer_set_position(q->packet, buffer_limit(q->packet));
+	buffer_set_limit(q->packet, q->maxlen-q->reserved_space);
+	if(buffer_remaining(q->packet) < 2+2+2+4+2+(size_t)(qlen-srclen)+2)
+		/* n,t,c,ttl,rdatalen, prefix, ptr */
+		goto errtc;
+	buffer_write_u16(q->packet, PTR_CREATE(QHEADERSZ));
+	buffer_write_u16(q->packet, TYPE_CNAME);
+	buffer_write_u16(q->packet, CLASS_IN);
+	buffer_write_u32(q->packet, 0); /* ttl */
+	rpos = buffer_position(q->packet);
+	buffer_write_u16(q->packet, 0); /* rdatalen of CNAME */
+	buffer_write(q->packet, q->qname, qlen - srclen); /* copy front */
+	/* copy compression pointer to DNAME rdata with destination */
+	buffer_write_u16(q->packet, PTR_CREATE(dstpos));
+	/* fixup rdata length */
+	buffer_write_u16_at(q->packet, rpos, buffer_position(q->packet)-rpos);
+	buffer_flip(q->packet);
+	assert(p->nscount == 0 && ARCOUNT(q->packet) == 0);
+	ANCOUNT_SET(q->packet, ANCOUNT(q->packet)+1);
+	return;
+errtc:
+	TC_SET(q->packet);
+	buffer_flip(q->packet);
 }
 
 /** based on the type of below, send packet, for DO query */
@@ -221,9 +234,9 @@ static void execute_below_DO(struct query* q, struct compname* n,
 		} else if(ce->belowtype==BELOW_NSEC3NX) {
 			/* TODO */
 		} else if(ce->belowtype==BELOW_WILDCARD) {
-			/* TODO */
+			find_type_for_DO(q, (struct compname*)ce->below);
 		} else if(ce->belowtype==BELOW_SYNTHC) {
-			/* TODO */
+			do_synth_cname(q, ce->below);
 		} else {
 			log_msg(LOG_ERR, "internal error: bad btype");
 			do_servfail(q);
@@ -250,9 +263,10 @@ static void execute_below_nonDO(struct query* q, struct compname* ce)
 		if(ce->belowtype_nondo==BELOW_NORMAL) {
 			fill_reply_adjust(q, ce->below_nondo);
 		} else if(ce->belowtype_nondo==BELOW_WILDCARD) {
-			/* TODO */
+			find_type_for_nonDO(q,
+				(struct compname*)ce->below_nondo);
 		} else if(ce->belowtype_nondo==BELOW_SYNTHC) {
-			/* TODO */
+			do_synth_cname(q, ce->below_nondo);
 		} else if(ce->belowtype_nondo==BELOW_NSEC3NX) {
 			log_msg(LOG_ERR, "internal error: nsec3 in unsignedzn");
 			do_servfail(q);
