@@ -1333,6 +1333,7 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 				}
 				/* there is a node which is an exact match,
 				 * but there no element in it */
+				*ce = ce_walk_label(n, 0);
 				*result = radix_prev(n);
 				return 0;
 			}

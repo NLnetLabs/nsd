@@ -1255,11 +1255,26 @@ zone_is_signed(struct zone* zone)
 	return 0;
 }
 
+/** return zone serial number from SOA */
+static uint32_t
+zone_get_serial(struct zone* zone)
+{
+	if(!zone->soa_rrset || zone->soa_rrset->rr_count < 1)
+		return 0; /* no SOA record? */
+	if(zone->soa_rrset->rrs[0].rdata_count < 2)
+		return 0; /* malformed SOA */
+	if(rdata_atom_size(zone->soa_rrset->rrs[0].rdatas[2]) != 4)
+		return 0; /* malformed SOA */
+	return read_uint32(rdata_atom_data(zone->soa_rrset->rrs[0].rdatas[2]));
+}
+
 void compile_zone(struct comptree* ct, struct compzone* cz, struct zone* zone,
 	struct domain_table* table)
 {
 	domain_type* walk;
 	int is_signed;
+	/* find serial number */
+	cz->serial = zone_get_serial(zone);
 	/* setup NSEC3 */
 	if(domain_find_rrset(zone->apex, zone, TYPE_NSEC3PARAM)) {
 		/* fill NSEC3params in cz */

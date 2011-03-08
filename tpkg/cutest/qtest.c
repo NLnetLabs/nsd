@@ -15,6 +15,7 @@
 #include "packet.h"
 #include "dname.h"
 #include "rdata.h"
+#include "pktc.h"
 
 static uint16_t *compressed_dname_offsets = 0;
 static uint32_t compression_table_capacity = 0;
@@ -35,10 +36,10 @@ static void init_dname_compr(nsd_type* nsd)
 }
 
 /* create the answer to one query */
-static int run_query(query_type* q, nsd_type* nsd, buffer_type* in)
+static int run_query(query_type* q, nsd_type* nsd, buffer_type* in, int bsz)
 {
 	int received;
-	query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
+	query_reset(q, bsz, 0);
 	/* recvfrom, in q->packet */
 	received = (int)buffer_remaining(in);
 	buffer_write_at(q->packet, 0, buffer_begin(in), received);
@@ -88,6 +89,8 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 	printf("prehash %s\n", nsd->options->database);
 	prehash(nsd->db, 0);
 #endif
+	nsd->db->tree = comptree_create();
+	compile_zones(nsd->db->tree, nsd->db->zones, nsd->db->domains);
 
 	/* setup query */
 	compression_table_capacity = 0;
@@ -227,6 +230,7 @@ qread(char* qfile)
 	}
 	qs = xalloc(sizeof(*qs));
 	memset(qs, 0, sizeof(*qs));
+	qs->bufsize = 512;
 	while(fgets(line, sizeof(line), in) != NULL) {
 		if(line[0]==0 || line[0] == '\n' || line[0] == '#')
 			continue;
@@ -242,6 +246,8 @@ qread(char* qfile)
 			qs->check = atoi(line+6);
 		} else if(strncmp(line, "write ", 6) == 0) {
 			qs->write = atoi(line+6);
+		} else if(strncmp(line, "bufsize ", 8) == 0) {
+			qs->bufsize = atoi(line+8);
 		} else {
 			printf("cannot parse '%s' in %s\n", line, qfile);
 			exit(1);
@@ -369,7 +375,7 @@ do_write(struct qs* qs, query_type* query, nsd_type* nsd, char* name)
 	fprintf(out, "# qfile\n");
 	for(e = qs->qlist; e; e = e->next) {
 		fprintf(out, "query %s\n", e->title);
-		if(run_query(query, nsd, e->q)) {
+		if(run_query(query, nsd, e->q, qs->bufsize)) {
 			buffer_clear(output);
 			buffer_print_packet(output, query->packet);
 			buffer_write_u8(output, 0);
@@ -379,6 +385,7 @@ do_write(struct qs* qs, query_type* query, nsd_type* nsd, char* name)
 		}
 	}
 	fprintf(out, "\n");
+	fprintf(out, "bufsize %d\n", qs->bufsize);
 	fprintf(out, "speed %d\n", qs->speed);
 	fprintf(out, "check %d\n", qs->check);
 	fprintf(out, "write 0\n");
@@ -402,7 +409,7 @@ do_run(struct qs* qs, query_type* query, nsd_type* nsd, int verbose)
 			debug_hex("query", buffer_begin(e->q),
 				buffer_remaining(e->q));
 
-		if(run_query(query, nsd, e->q)) {
+		if(run_query(query, nsd, e->q, qs->bufsize)) {
 			/* answer in q->packet buffer */
 			if(verbose) printf("answer (size %d)\n",
 				(int)buffer_remaining(query->packet));
@@ -473,7 +480,7 @@ do_speed(struct qs* qs, query_type* query, nsd_type* nsd)
 		printf("cannot gettimeofday\n");
 	for(i=0; i<max; i++) {
 		for(e = qs->qlist; e; e = e->next) {
-			(void)run_query(query, nsd, e->q);
+			(void)run_query(query, nsd, e->q, qs->bufsize);
 		}
 	}
 	if(gettimeofday(&stop, NULL) != 0)

@@ -1,3 +1,11 @@
+8 March 2011: Wouter:
+	- precompile work:
+		class ANY gets AA flag, SOA and type-NS processing, just
+		like BIND (9.6) and it simplifies processing for NSD.
+	  other than compression difference (precompile compresses smaller),
+	  there are no differences in a 49000 query testset against the root,
+	  without EDNS.
+
 7 March 2011: Wouter:
 	- check chown value and report high verbosity its error.
 

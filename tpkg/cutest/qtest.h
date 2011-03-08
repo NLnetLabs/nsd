@@ -33,6 +33,8 @@ struct qs {
 	int check;
 	/* should qfile.out be written */
 	int write;
+	/* size of qbuffer to allow (512 for UDP, 65535 for TCP) */
+	int bufsize;
 };
 
 /* a query to do and its answer */

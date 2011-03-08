@@ -13,7 +13,7 @@
 #include "query.h"
 #include "nsd.h"
 
-#define DEBUGPKTD(x, y, z) /* DEBUG */
+#define DEBUGPKTD(x, y, z) DEBUG(x, y, z)
 
 /** create a servfail */
 static void
@@ -123,8 +123,6 @@ static void fill_reply_noadjust(struct query* q, struct cpkt* p)
 		return;
 	}
 	FLAGS_SET(q->packet, p->flagcode | (FLAGS(q->packet)&(0x0110U)));
-	if(q->qclass == CLASS_ANY)
-		AA_CLR(q->packet);
 	ANCOUNT_SET(q->packet, p->ancount);
 	NSCOUNT_SET(q->packet, p->nscount);
 	copy_and_truncate(q, p, p->qnamelen);
@@ -148,8 +146,6 @@ static void fill_reply_adjust(struct query* q, struct cpkt* p)
 	 * but 'A' and 'a' are bigger than 63 so catches most. */
 	assert(buffer_read_u8_at(q->packet, QHEADERSZ+adjust) <= MAXLABELLEN);
 	FLAGS_SET(q->packet, p->flagcode | (FLAGS(q->packet)&(0x0110U)));
-	if(q->qclass == CLASS_ANY)
-		AA_CLR(q->packet);
 	ANCOUNT_SET(q->packet, p->ancount);
 	NSCOUNT_SET(q->packet, p->nscount);
 	copy_and_truncate_adjust(q, p, qlen, p->qnamelen, adjust);
