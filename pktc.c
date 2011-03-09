@@ -1871,7 +1871,7 @@ static void compile_apex_ds(struct compname* cn, struct domain* domain,
 	struct zone* abovezone;
 	struct cpkt* p;
 	int is_signed;
-	if(!abovecz) return;
+	if(!abovecz || dname[0]==0) return;
 	/* add a DS-answer from the point of view of that zone */
 	abovezone = domain_find_zone(domain->parent);
 	assert(abovezone);
