@@ -1,3 +1,6 @@
+9 March 2011: Wouter:
+	- DNAME synthesis of CNAME.  Uses TTL of the DNAME record.
+
 8 March 2011: Wouter:
 	- precompile work:
 		class ANY gets AA flag, SOA and type-NS processing, just

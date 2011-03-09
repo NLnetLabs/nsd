@@ -169,8 +169,9 @@ static void find_type_for_nonDO(struct query* q, struct compname* n)
 /** synthesize CNAME. pkt is adjustable, contains DNAME (+RRSIGs) */
 static void do_synth_cname(struct query* q, struct cpkt* p)
 {
+	uint8_t* qname = buffer_at(q->packet, QHEADERSZ);
+	uint16_t qlen = dname_length(qname);
 	uint16_t dstlen, reslen, srclen = p->qnamelen;
-	uint16_t qlen = dname_length(buffer_at(q->packet, QHEADERSZ));
 	size_t rpos, dstpos, srcpos = QHEADERSZ + qlen + 4;
 	fill_reply_adjust(q, p);
 
@@ -195,29 +196,29 @@ static void do_synth_cname(struct query* q, struct cpkt* p)
 	}
 
 	/* append CNAME, we can compress with qname and with DNAME rdata */
-	buffer_set_position(q->packet, buffer_limit(q->packet));
-	buffer_set_limit(q->packet, q->maxlen-q->reserved_space);
-	if(buffer_remaining(q->packet) < 2+2+2+4+2+(size_t)(qlen-srclen)+2)
+	if(buffer_remaining(q->packet) < 2+2+2+4+2+(size_t)(qlen-srclen)+2 ||
+		q->maxlen-q->reserved_space < buffer_position(q->packet)+
+		2+2+2+4+2+(size_t)(qlen-srclen)+2)
 		/* n,t,c,ttl,rdatalen, prefix, ptr */
 		goto errtc;
 	buffer_write_u16(q->packet, PTR_CREATE(QHEADERSZ));
 	buffer_write_u16(q->packet, TYPE_CNAME);
 	buffer_write_u16(q->packet, CLASS_IN);
-	buffer_write_u32(q->packet, 0); /* ttl */
+	/* if you want to have a DNAME-ttl on the synthesized CNAME */
+	buffer_write_u32(q->packet, buffer_read_u32_at(q->packet, dstpos-6));
+	/* for 0 TTL use buffer_write_u32(q->packet, 0); */
 	rpos = buffer_position(q->packet);
 	buffer_write_u16(q->packet, 0); /* rdatalen of CNAME */
-	buffer_write(q->packet, q->qname, qlen - srclen); /* copy front */
+	buffer_write(q->packet, qname, qlen - srclen); /* copy front */
 	/* copy compression pointer to DNAME rdata with destination */
 	buffer_write_u16(q->packet, PTR_CREATE(dstpos));
 	/* fixup rdata length */
-	buffer_write_u16_at(q->packet, rpos, buffer_position(q->packet)-rpos);
-	buffer_flip(q->packet);
+	buffer_write_u16_at(q->packet, rpos, buffer_position(q->packet)-rpos-2);
 	assert(p->nscount == 0 && ARCOUNT(q->packet) == 0);
 	ANCOUNT_SET(q->packet, ANCOUNT(q->packet)+1);
 	return;
 errtc:
 	TC_SET(q->packet);
-	buffer_flip(q->packet);
 }
 
 /** based on the type of below, send packet, for DO query */
@@ -235,6 +236,7 @@ static void execute_below_DO(struct query* q, struct compname* n,
 			/* TODO */
 		} else if(ce->belowtype==BELOW_WILDCARD) {
 			find_type_for_DO(q, (struct compname*)ce->below);
+			/* TODO special wildcard denial code here */
 		} else if(ce->belowtype==BELOW_SYNTHC) {
 			do_synth_cname(q, ce->below);
 		} else {
@@ -265,6 +267,7 @@ static void execute_below_nonDO(struct query* q, struct compname* ce)
 		} else if(ce->belowtype_nondo==BELOW_WILDCARD) {
 			find_type_for_nonDO(q,
 				(struct compname*)ce->below_nondo);
+			/* TODO special wildcard denial code here */
 		} else if(ce->belowtype_nondo==BELOW_SYNTHC) {
 			do_synth_cname(q, ce->below_nondo);
 		} else if(ce->belowtype_nondo==BELOW_NSEC3NX) {
