@@ -514,14 +514,19 @@ static struct compnsec3* find_or_create_nsec3_from_owner(struct compzone* cz,
 	domain_type* domain)
 {
 	uint8_t* dname = (uint8_t*)dname_name(domain_dname(domain));
-	uint8_t hash[SHA_DIGEST_LENGTH];
-	if(dname[0] != SHA_DIGEST_LENGTH*8/5) {
+	uint8_t hash[SHA_DIGEST_LENGTH+1];
+	char label[SHA_DIGEST_LENGTH*8/5 + 1];
+	if(dname[0] != sizeof(label) - 1) {
 		/* this domain name does not start with a hashlabel */
 		return NULL;
 	}
-	if(b32_pton((char*)dname+1, hash, sizeof(hash)) == -1)
+	/* b32_pton expects a string ending with zero, make it so */
+	memmove(label, dname+1, sizeof(label)-1);
+	label[sizeof(label)-1] = 0;
+	if(b32_pton(label, hash, sizeof(hash)+1) == -1) {
 		return NULL;
-	return find_or_create_nsec3(cz, hash, sizeof(hash));
+	}
+	return find_or_create_nsec3(cz, hash, SHA_DIGEST_LENGTH);
 }
 
 void compnsec3_delete(struct compnsec3* n3)
@@ -1180,8 +1185,11 @@ static void process_type_NS(struct answer_info* ai, struct zone* zone)
 static void ai_add_nsec3(struct answer_info* ai, struct domain* domain,
 	struct zone* zone)
 {
-	ai_add_rrset(ai, AUTHORITY_SECTION, domain, domain_find_rrset(domain,
-		zone, TYPE_NSEC3), zone);
+	rrset_type* nsec3;
+	if(!domain) return;
+	nsec3 = domain_find_rrset(domain, zone, TYPE_NSEC3);
+	if(nsec3)
+		ai_add_rrset(ai, AUTHORITY_SECTION, domain, nsec3, zone);
 }
 
 /** add rrsets to prove nsec3 (optout or not) for type DS */
@@ -1810,20 +1818,24 @@ static void compile_below_nsec3(struct compname* cn, struct domain* domain,
 	struct zone* zone, struct compzone* cz, struct region* region,
 	int is_signed)
 {
+	/* if nsec3chain incomplete or so */
+	cn->below = NULL;
+	cn->belowtype = BELOW_NORMAL;
+	cn->below_nondo = NULL;
+	cn->belowtype_nondo = BELOW_NORMAL;
 	if(is_signed) {
 		struct compnsec3* n3;
 		/* we are expecting an exact match for this name (ce) */
 		if(!(domain->nsec3_is_exact && domain->nsec3_cover)) {
 			/* nsec3chain incomplete or so */
-			cn->below = NULL;
-			cn->belowtype = BELOW_NORMAL;
-			cn->below_nondo = NULL;
-			cn->belowtype_nondo = BELOW_NORMAL;
 			return;
 		}
 		n3 = find_or_create_nsec3_from_owner(cz, domain->nsec3_cover);
+		assert(n3);
+		if(!n3) return;
 		n3->wc = find_or_create_nsec3_from_owner(cz,
 			domain->nsec3_wcard_child_cover);
+		if(!n3->wc) return;
 		/* store the ce match nsec3 */
 		cn->below_nondo = (struct cpkt*)n3;
 		cn->belowtype_nondo = BELOW_NSEC3NX;
@@ -2007,8 +2019,6 @@ void compile_name(struct comptree* ct, struct compzone* cz, struct zone* zone,
 		/* see if we need special type-DS compile (parent zone) */
 		compile_apex_ds(cn, domain, ct, dname, region);
 		/* compile unsigned nxdomain for zone */
-		printf("compile unsigned nxdomain with dname %d\n",
-			(int)dname_length(dname));
 		cz->nx = compile_nxdomain_answer(domain, zone, cz, region, 0);
 		/* compile unsigned nodata for zone; with adjust */
 		cz->nodata = compile_nodata_answer(dname, domain, zone, cz,
