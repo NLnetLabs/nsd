@@ -384,10 +384,10 @@ packet.o: $(srcdir)/packet.c config.h $(srcdir)/packet.h $(srcdir)/dns.h $(srcdi
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h $(srcdir)/rdata.h
 pktc.o: $(srcdir)/pktc.c config.h $(srcdir)/pktc.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/radtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h \
- $(srcdir)/edns.h $(srcdir)/tsig.h
+ $(srcdir)/edns.h $(srcdir)/tsig.h $(srcdir)/iterated_hash.h
 pktd.o: $(srcdir)/pktd.c config.h $(srcdir)/pktd.h $(srcdir)/pktc.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h \
  $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h config.h $(srcdir)/radtree.h $(srcdir)/packet.h $(srcdir)/query.h \
- $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h
+ $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h $(srcdir)/iterated_hash.h
 query.o: $(srcdir)/query.c config.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
  $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/nsec3.h $(srcdir)/pktd.h
@@ -464,4 +464,4 @@ cutest_util.o: $(srcdir)/tpkg/cutest/cutest_util.c config.h $(srcdir)/tpkg/cutes
 qtest.o: $(srcdir)/tpkg/cutest/qtest.c config.h $(srcdir)/tpkg/cutest/qtest.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/dns.h \
  $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/namedb.h $(srcdir)/util.h $(srcdir)/nsec3.h $(srcdir)/options.h \
- $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/dname.h $(srcdir)/rdata.h
+ $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/dname.h $(srcdir)/rdata.h $(srcdir)/pktc.h $(srcdir)/answer.h $(srcdir)/query.h

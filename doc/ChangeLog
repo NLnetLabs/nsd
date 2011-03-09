@@ -1,5 +1,8 @@
 9 March 2011: Wouter:
 	- DNAME synthesis of CNAME.  Uses TTL of the DNAME record.
+	- nsec3 and wildcard code.  No additional section for wildcards.
+	  Also CNAME and DNAME replies contain only that record (and synth
+	  CNAME), the chain is not followed.
 
 8 March 2011: Wouter:
 	- precompile work:

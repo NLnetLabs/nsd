@@ -46,7 +46,9 @@ struct compzone {
 	/** the tree of nsec3 hashes to compnsec3, for this zone */
 	struct radtree* nsec3tree;
 	/** nsec3 parameters for hashing */
-	/* todo */
+	unsigned char* n3_salt;
+	int n3_saltlen;
+	int n3_iterations;
 	/** soa serial number to insert into negative answers, network order,
 	 * negative compiled packets have pointers to this value. */
 	uint32_t serial;
@@ -60,8 +62,13 @@ struct compzone {
 struct compnsec3 {
 	/** radix node for this element */
 	struct radnode* rnode;
-	/** the nxdomain packet for this hash span */
-	struct cpkt* nx;
+	/** the nsec3 node that covers the wildcard for the *.thisname,
+	 * reference, can be NULL(thisname is never a CE),
+	 * can be a pointer to this very node. */
+	struct compnsec3* wc;
+	/** the denial NSEC3 packet for this hash span, for concatenation,
+	 * contains only the authority section NSEC3(denial). */
+	struct cpkt* denial;
 };
 
 #define BELOW_NORMAL 0 /* below is a cpkt */
@@ -106,6 +113,11 @@ struct compname {
 	 * side is NULL if the closest-encloser below is (wildcard,nsec3nx). 
 	 * for side, use the namelen of the ce for compressionadjustment. */
 	struct cpkt* side;
+	/** sidewc entry: used for NSEC wildcard qname denial, concatenated,
+	 * thus its qname is the zone, noanswersection.  Used if
+	 * a wildcard is instantiated, so that main cpkt cannot have rrsets
+	 * in the additional section. */
+	struct cpkt* sidewc;
 	/** length of the wirefmt of this name, to calculate the prefix of
 	 * the qname for nsec3 hashing and wildcards */
 	uint8_t namelen;
@@ -114,7 +126,10 @@ struct compname {
 	 *      set for referrals, and for nsec, nsec3 zones.
 	 *      for the zone apex the below has the NSEC for first NSEC,
 	 *      and the lower side ptrs have the other NSECs for nxdomain.
-	 *  BELOW_NSEC3NX ptr to compzone, do nsec3 hashing for nxdomain. 
+	 *  BELOW_NSEC3NX below is nxdomain cpkt with SOA,NSEC3(ce,wc). 
+	 *	and below_nondo is ptr to compnsec3 matching hash for ce. 
+	 *	so, that the cz->nsec3tree can be used to find qname denial,
+	 *	and then ce and ce->wc can be used to check for duplicates.
 	 *  BELOW_WILDCARD ptr to the *.x name below this.
 	 *  BELOW_SYNTHC  ptr to cpkt with DNAME, perform CNAME synthesis.
 	 *  if it is null, use the zone to get shared unsigned nxdomain cpkt.
@@ -205,8 +220,25 @@ void compname_delete(struct compname* cn);
 /** find a compname by name, NULL if not found */
 struct compname* compname_search(struct comptree* ct, uint8_t* name);
 
+/** add a new nsec3 to the nsec3tree.
+ * @param cz: zone with tree to add it to.
+ * @param hash: hash to add it for.
+ * @param hashlen: length of hash.
+ * @return compnsec3 object that has been added (empty). */
+struct compnsec3* compnsec3_create(struct compzone* cz, unsigned char* hash,
+	size_t hashlen);
+
+/** find a compnsec3 by hash, NULL if not found */
+struct compnsec3* compnsec3_search(struct compzone* cz, unsigned char* hash,
+	size_t hashlen);
+
 /** delete compnsec3, frees contents, does not edit tree */
 void compnsec3_delete(struct compnsec3* c3);
+
+/** find a compnsec3 denial by hash, NULL if not found or exact match,
+ * returns covering nsec3 if one exists. */
+struct compnsec3* compnsec3_find_denial(struct compzone* cz,
+	unsigned char* hash, size_t hashlen);
 
 /** packer compiling input, the answer to compile */
 struct answer_info {
@@ -280,31 +312,26 @@ int cpkt_compare_qtype(const void* a, const void* b);
 /** determine packets to compile, based on zonelist and nametree to lookup.
  * @param ct: the compiled packet tree that is filled up.
  * @param zonelist: list of zones.
- * @param table: namelookup structure.
  */
-void compile_zones(struct comptree* ct, struct zone* zonelist,
-	struct domain_table* table);
+void compile_zones(struct comptree* ct, struct zone* zonelist);
 
 /** add a zone and determine packets to compile for this zone.
  * @param ct: compiled packet tree that is filled up.
  * @param cz: compiled zone structure for the zone.
  * @param zone: the zone.
- * @param table: namelookup structure.
  */
-void compile_zone(struct comptree* ct, struct compzone* cz, struct zone* zone,
-	struct domain_table* table);
+void compile_zone(struct comptree* ct, struct compzone* cz, struct zone* zone);
 
 /** compile the packets for one name in one zone. It may or may not add
  * the compiled-name to the tree (not for occluded items, glue).
  * @param ct: compiled packet tree.
  * @param cz: the zone to compile the name for.
  * @param zone: the zone
- * @param table: the namelookup structure.
  * @param domain: the named domain in the namelookup structure.
  * @param is_signed: true if the zone is signed.
  */
 void compile_name(struct comptree* ct, struct compzone* cz, struct zone* zone,
-	struct domain_table* table, struct domain* domain, int is_signed);
+	struct domain* domain, int is_signed);
 
 enum domain_type_enum {
 	dtype_normal, /* a normal domain name */
@@ -331,5 +358,7 @@ char* dname2str(uint8_t* dname);
 #define PTR_OFFSET(x, y) ( ((x)&0x3f)<<8 | (y) )
 /** determine uncompressed length of (compressed)name at position */
 size_t pkt_dname_len_at(buffer_type* pkt, size_t pos);
+/** lowercase dname, canonicalise, dname is uncompressed. */
+void dname_tolower(uint8_t* dname);
 
 #endif /* PKTC_H */

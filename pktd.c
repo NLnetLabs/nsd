@@ -12,6 +12,7 @@
 #include "pktc.h"
 #include "query.h"
 #include "nsd.h"
+#include "iterated_hash.h"
 
 #define DEBUGPKTD(x, y, z) /* DEBUG(x, y, z) */
 
@@ -124,6 +125,44 @@ static void fill_reply_adjust(struct query* q, struct cpkt* p)
 	}
 }
 
+/** concatenate the packet onto the current reply */
+static void concat_adjust(struct query* q, struct cpkt* p)
+{
+	uint16_t qlen = dname_length(buffer_at(q->packet, QHEADERSZ));
+	uint16_t adjust = buffer_position(q->packet)-QHEADERSZ-p->qnamelen-4;
+	uint16_t adjustq = qlen - p->qnamelen;
+	uint16_t endq = QHEADERSZ+qlen+4;
+	uint16_t pt;
+	uint16_t* ptr;
+	/* can only concat if no additional in q, and no answer in p */
+	assert(ARCOUNT(q->packet)==0 && p->ancount == 0);
+	/* TODO: if the prefix data is huge (16k-datalen), then the compression
+	 * pointers go out of range.  Then we have to decompress the packet,
+	 * this means write uncompressed dnames at the ptrs and shift packet */
+	/* truncation: simple, if the entire data does not fit, TC */
+	if(buffer_remaining(q->packet) < p->datalen ||
+		q->maxlen - q->reserved_space <
+		buffer_position(q->packet)+p->datalen) {
+		TC_SET(q->packet);
+		return;
+	}
+	/* copy over the data */
+	NSCOUNT_SET(q->packet, NSCOUNT(q->packet)+p->nscount);
+	ARCOUNT_SET(q->packet, p->truncpts[1]);
+	buffer_write(q->packet, p->data, p->datalen);
+	if(p->serial)
+		buffer_write_u32_at(q->packet, p->serial_pos+adjust,
+			*p->serial);
+	/* adjust ptrs smaller than endq by adjustq, others by full adjust */
+	for(ptr = p->ptrs; *ptr; ptr++) {
+		pt = buffer_read_u16_at(q->packet, (*ptr)+adjust);
+		if(pt < endq)
+			pt += adjustq;
+		else	pt += adjust;
+		buffer_write_u16_at(q->packet, (*ptr)+adjust, PTR_CREATE(pt));
+	}
+}
+
 /** find type or notype to return for dnssec_ok packet */
 static void find_type_for_DO(struct query* q, struct compname* n)
 {
@@ -221,6 +260,61 @@ errtc:
 	TC_SET(q->packet);
 }
 
+/** find denial compnsec3 for the qname */
+static struct compnsec3* nsec3_denial_for_qname(struct query* q,
+	struct compzone* cz)
+{
+	uint8_t* qname = buffer_at(q->packet, QHEADERSZ);
+	size_t qlen = dname_length(qname);
+	unsigned char hash[SHA_DIGEST_LENGTH];
+	/* use the remaining q->packet buffer for temporary canonicalised
+	 * query name to hash */
+	buffer_set_position(q->packet, QHEADERSZ+qlen+4);
+	if(buffer_remaining(q->packet) < qlen) {
+		return NULL;
+	}
+	/* canonicalize the qname before hash */
+	memmove(buffer_current(q->packet), qname, qlen);
+	dname_tolower(buffer_current(q->packet));
+	iterated_hash(hash, cz->n3_salt, cz->n3_saltlen,
+		buffer_current(q->packet), qlen, cz->n3_iterations);
+	/* if collision, or no nsec3, return servfail */
+	return compnsec3_find_denial(cz, hash, sizeof(hash));
+}
+
+/** perform NSEC3 nxdomain processing. it involves calculating hash(qname) */
+static void execute_nsec3_nx(struct query* q, struct compname* ce)
+{
+	struct compnsec3* n3, *n3_ce = (struct compnsec3*)ce->below_nondo;
+	/* hash and find it */
+	if(!(n3 = nsec3_denial_for_qname(q, ce->cz))) {
+		/* if collision, or no nsec3, return servfail */
+		do_servfail(q);
+		return;
+	}
+	/* ce->below contains the nsec3 for ce and wildcard denial */
+	fill_reply_adjust(q, ce->below);
+	/* add the qname denial (unless a duplicate of ce or wc NSEC3) */
+	if(n3 != n3_ce && n3 != n3_ce->wc && n3->denial)
+		concat_adjust(q, n3->denial);
+}
+
+/** perform NSEC3 wildcard processing. it involves calculating hash(qname) */
+static void execute_nsec3_wc(struct query* q, struct compname* ce)
+{
+	struct compnsec3* n3;
+	/* nsec3 wildcard qname denial, hash name */
+	if(!(n3 = nsec3_denial_for_qname(q, ce->cz))) {
+		do_servfail(q);
+		return;
+	}
+	/* the below ptr is used to point to the wildcard entry */
+	find_type_for_DO(q, (struct compname*)ce->below);
+	/* and concat the wc qname denial */
+	if(n3->denial)
+		concat_adjust(q, n3->denial);
+}
+
 /** based on the type of below, send packet, for DO query */
 static void execute_below_DO(struct query* q, struct compname* n,
 	struct compname* ce)
@@ -233,10 +327,18 @@ static void execute_below_DO(struct query* q, struct compname* n,
 		if(ce->belowtype==BELOW_NORMAL) {
 			fill_reply_adjust(q, ce->below);
 		} else if(ce->belowtype==BELOW_NSEC3NX) {
-			/* TODO */
+			execute_nsec3_nx(q, ce);
 		} else if(ce->belowtype==BELOW_WILDCARD) {
-			find_type_for_DO(q, (struct compname*)ce->below);
-			/* TODO special wildcard denial code here */
+			/* adjust the answer for the wildcard name for this
+			 * qname from this query, and insert qname denial */
+			if(ce->cz->nsec3tree) {
+				execute_nsec3_wc(q, ce);
+			} else if(n->sidewc) {
+				/* append NSEC wildcard qname denial */
+				find_type_for_DO(q,
+					(struct compname*)ce->below);
+				concat_adjust(q, n->sidewc);
+			}
 		} else if(ce->belowtype==BELOW_SYNTHC) {
 			do_synth_cname(q, ce->below);
 		} else {
@@ -261,18 +363,20 @@ static void execute_below_nonDO(struct query* q, struct compname* ce)
 	/* the below pointer is filled for special processing, for
 	 * referrals, wildcards, DNAME. otherwise, send shared nxdomain pkt */
 	if(ce->below_nondo) {
-		//log_msg(LOG_INFO, "use ce->below_nondo");
 		if(ce->belowtype_nondo==BELOW_NORMAL) {
 			fill_reply_adjust(q, ce->below_nondo);
+		} else if(ce->belowtype_nondo==BELOW_NSEC3NX) {
+			/* use the zone shared nxdomain, since we are nondo */
+			fill_reply_adjust(q, ce->cz->nx);
 		} else if(ce->belowtype_nondo==BELOW_WILDCARD) {
+			/* adjust the answer for the wildcard name for this
+			 * qname from this query */
 			find_type_for_nonDO(q,
 				(struct compname*)ce->below_nondo);
-			/* TODO special wildcard denial code here */
+			/* no wildcard qname denial needed, because this is
+			 * the nonDO case, thus we are done */
 		} else if(ce->belowtype_nondo==BELOW_SYNTHC) {
 			do_synth_cname(q, ce->below_nondo);
-		} else if(ce->belowtype_nondo==BELOW_NSEC3NX) {
-			log_msg(LOG_ERR, "internal error: nsec3 in unsignedzn");
-			do_servfail(q);
 		} else {
 			log_msg(LOG_ERR, "internal error: bad btype");
 			do_servfail(q);

@@ -539,7 +539,7 @@ server_prepare(struct nsd *nsd)
 	prehash(nsd->db, 0);
 #endif
 	nsd->db->tree = comptree_create();
-	compile_zones(nsd->db->tree, nsd->db->zones, nsd->db->domains);
+	compile_zones(nsd->db->tree, nsd->db->zones);
 
 	compression_table_capacity = 0;
 	initialize_dname_compression_tables(nsd);

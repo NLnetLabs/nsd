@@ -102,7 +102,7 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 	prehash(nsd->db, 0);
 #endif
 	nsd->db->tree = comptree_create();
-	compile_zones(nsd->db->tree, nsd->db->zones, nsd->db->domains);
+	compile_zones(nsd->db->tree, nsd->db->zones);
 
 	/* setup query */
 	compression_table_capacity = 0;
