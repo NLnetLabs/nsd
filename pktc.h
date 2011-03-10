@@ -66,6 +66,10 @@ struct compnsec3 {
 	 * reference, can be NULL(thisname is never a CE),
 	 * can be a pointer to this very node. */
 	struct compnsec3* wc;
+	/** the original node that hashed to this value, set for nodata
+	 * answers (for wildcards) so that the wildcard-denial-nsec3 cannot
+	 * be added twice to the answer */
+	struct compname* rev;
 	/** the denial NSEC3 packet for this hash span, for concatenation,
 	 * contains only the authority section NSEC3(denial). */
 	struct cpkt* denial;

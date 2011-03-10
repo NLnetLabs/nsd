@@ -166,7 +166,7 @@ static void concat_adjust(struct query* q, struct cpkt* p)
 /** find type or notype to return for dnssec_ok packet */
 static void find_type_for_DO(struct query* q, struct compname* n)
 {
-	size_t i;
+	unsigned i;
 	DEBUGPKTD(DEBUG_QUERY, 2, (LOG_INFO, "match DO"));
 	/* find exact match for answer to query,qtype in answer section,
 	 * or perhaps specific qtype DS different answer, also type ANY */
@@ -188,7 +188,7 @@ static void find_type_for_DO(struct query* q, struct compname* n)
 /** find type or notype to return for nonDO packet */
 static void find_type_for_nonDO(struct query* q, struct compname* n)
 {
-	size_t i;
+	unsigned i;
 	DEBUGPKTD(DEBUG_QUERY, 2, (LOG_INFO, "match nonDO"));
 	/* answer specific type, ANY, or qtype DS */
 	for(i=0; i<n->typelen_nondo; i++) {
@@ -278,7 +278,6 @@ static struct compnsec3* nsec3_denial_for_qname(struct query* q,
 	dname_tolower(buffer_current(q->packet));
 	iterated_hash(hash, cz->n3_salt, cz->n3_saltlen,
 		buffer_current(q->packet), qlen, cz->n3_iterations);
-	/* if collision, or no nsec3, return servfail */
 	return compnsec3_find_denial(cz, hash, sizeof(hash));
 }
 
@@ -303,16 +302,29 @@ static void execute_nsec3_nx(struct query* q, struct compname* ce)
 static void execute_nsec3_wc(struct query* q, struct compname* ce)
 {
 	struct compnsec3* n3;
-	/* nsec3 wildcard qname denial, hash name */
-	if(!(n3 = nsec3_denial_for_qname(q, ce->cz))) {
-		do_servfail(q);
-		return;
-	}
+	unsigned i;
 	/* the below ptr is used to point to the wildcard entry */
 	find_type_for_DO(q, (struct compname*)ce->below);
-	/* and concat the wc qname denial */
-	if(n3->denial)
+	/* nsec3 wildcard qname denial, hash name */
+	if(!(n3 = nsec3_denial_for_qname(q, ce->cz))) {
+		/* if collision, or no nsec3, return without nsec3. */
+		return;
+	}
+	if(!n3->denial)
+		return;
+	/* if nsec3 for denial is different than nodata-nsec3 at the wc */
+	if(n3->rev != (struct compname*)ce->below) {
 		concat_adjust(q, n3->denial);
+		return;
+	}
+	for(i=0; i<((struct compname*)ce->below)->typelen; i++) {
+		if(((struct compname*)ce->below)->types[i]->qtype == q->qtype) {
+			/* and concat the wc qname denial */
+			concat_adjust(q, n3->denial);
+			return;
+		}
+	}
+	/* not a type in the typelist, and same nsec3 as nodata, not added. */
 }
 
 /** based on the type of below, send packet, for DO query */

@@ -989,7 +989,8 @@ normal_done:
 	memmove(cp->ptrs, ptrs, sizeof(uint16_t)*numptrs);
 	memmove(cp->data, buffer_at(p, QHEADERSZ+c.qnamelen+4), c.datalen);
 
-	/*
+	/* printout the packet we just assembled, this is needed to make it
+	 * a complete DNS packet
 	printf("got packet:\n");
 	FLAGS_SET(p, cp->flagcode);
 	QDCOUNT_SET(p, 1);
@@ -1253,7 +1254,6 @@ static struct cpkt* compile_delegation_answer(uint8_t* dname,
 	} else if((rrset = domain_find_rrset(domain, zone, TYPE_NSEC))) {
 		ai_add_rrset(&ai, AUTHORITY_SECTION, domain, rrset, zone);
 	}
-	printf("delegation:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1287,7 +1287,6 @@ static struct cpkt* compile_DS_answer(uint8_t* dname, struct domain* domain,
 		}
 	}
 	process_type_NS(&ai, zone);
-	printf("DSanswer:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1306,7 +1305,6 @@ static struct cpkt* compile_pos_answer(uint8_t* dname, struct domain* domain,
 	ai.flagcode |= FLAGCODE_AA;
 	ai_add_rrset(&ai, ANSWER_SECTION, domain, rrset, zone);
 	process_type_NS(&ai, zone);
-	printf("posanswer:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1341,7 +1339,6 @@ static struct cpkt* compile_any_answer(uint8_t* dname, struct domain* domain,
 	if(added == 0)
 		return NULL;
 	process_type_NS(&ai, zone);
-	printf("anyanswer:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1389,7 +1386,6 @@ static struct cpkt* compile_nodata_answer(uint8_t* dname,
 				nsec_rrset, zone);
 		}
 	}
-	printf("nodata:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1442,7 +1438,6 @@ static struct cpkt* compile_nxdomain_answer(struct domain* domain,
 	ai_add_rrset(&ai, AUTHORITY_SECTION, zone->apex, zone->soa_nx_rrset,
 		zone);
 
-	printf("nxdomain:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1471,7 +1466,6 @@ static struct cpkt* compile_nsec3_nx_answer(struct domain* domain,
 			zone, TYPE_NSEC3), zone);
 	}
 
-	printf("nsec3nx:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1488,7 +1482,6 @@ static struct cpkt* compile_nsec3_denial_answer(struct domain* domain,
 	ai.flagcode |= FLAGCODE_AA;
 	ai_add_rrset(&ai, AUTHORITY_SECTION, domain, rrset, zone);
 
-	printf("nsec3denial:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1516,7 +1509,6 @@ static struct cpkt* compile_wc_qname_denial_answer(struct domain* domain,
 			nsec_rrset, zone);
 	} else return NULL;
 
-	printf("wcqnamedenialnsec:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1534,7 +1526,6 @@ static struct cpkt* compile_dname_answer(uint8_t* dname, struct domain* domain,
 	ai.qtype = rrset_rrtype(rrset);
 	ai.flagcode |= FLAGCODE_AA;
 	ai_add_rrset(&ai, ANSWER_SECTION, domain, rrset, zone);
-	printf("dnameanswer:\n");
 	return compile_answer_packet(&ai, zone, cz);
 }
 
@@ -1742,7 +1733,8 @@ static void compile_normal(struct compname* cn, struct domain* domain,
 	}
 	/* add qtype RRSIG (if necessary) */
 	/* if nsec3 and no-type-DS add typeDS proof (optout cases) */
-	if(cz->nsec3tree && !domain_find_rrset(domain, zone, TYPE_DS)) {
+	if(cz->nsec3tree && !domain_find_rrset(domain, zone, TYPE_DS) &&
+		!wildcard) {
 		cn_add_type(cn, compile_DS_answer(dname, domain, zone, cz,
 			region, is_signed));
 		cn_add_type_nondo(cn, compile_DS_answer(dname, domain, zone,
@@ -1915,13 +1907,36 @@ static void compile_apex_ds(struct compname* cn, struct domain* domain,
 		abovezone, abovecz, region, 0));
 }
 
+/** detect if parameters in the NSEC3 match the zone nsec3 chain in use */
+static int has_nsec3_params(struct compzone* cz, rrset_type* rrset)
+{
+	size_t i;
+	rdata_atom_type* rd;
+	for(i=0; i<rrset->rr_count; i++) {
+		rd = rrset->rrs[i].rdatas;
+		assert(rrset->rrs[i].type == TYPE_NSEC3);
+		if(rdata_atom_data(rd[0])[0] == 1 /* hash algo */ &&
+		   read_uint16(rdata_atom_data(rd[2])) == cz->n3_iterations &&
+		   rdata_atom_data(rd[3])[0] == cz->n3_saltlen &&
+		   memcmp(rdata_atom_data(rd[3])+1, cz->n3_salt,
+		   	cz->n3_saltlen) == 0)
+		{	/* this NSEC3 matches nsec3 parameters from zone */
+			return 1;
+		}
+	}
+	return 0;
+}
+
 /** compile NSEC3 record, prepare denial packet for this NSEC3, make 
 NSEC3 entry */
 static void compile_nsec3(struct compzone* cz, struct zone* zone,
 	struct domain* domain, struct region* region)
 {
 	rrset_type* rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
-	struct compnsec3* n3 = find_or_create_nsec3_from_owner(cz, domain);
+	struct compnsec3* n3;
+	if(!has_nsec3_params(cz, rrset))
+		return; /* not the right NSEC3 chain */
+	n3 = find_or_create_nsec3_from_owner(cz, domain);
 	if(!n3) return;
 	n3->denial = compile_nsec3_denial_answer(domain, zone, cz, region,
 		rrset);
@@ -2014,6 +2029,13 @@ void compile_name(struct comptree* ct, struct compzone* cz, struct zone* zone,
 	if(!cz->nsec3tree)
 		compile_side_nsec(cn, domain, zone, cz, region, is_signed);
 	else	cn->side = NULL;
+
+	if(cz->nsec3tree && domain->nsec3_is_exact) {
+		/* really only necessary for wildcard-nodata answers */
+		struct compnsec3* n3 = find_or_create_nsec3_from_owner(cz,
+			domain->nsec3_cover);
+		if(n3) n3->rev = cn;
+	}
 
 	if(apex) {
 		/* see if we need special type-DS compile (parent zone) */
