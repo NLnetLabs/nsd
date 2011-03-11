@@ -1,3 +1,6 @@
+11 March 2011: Wouter:
+	- Removed precompile features, speed gain took too much memory.
+
 9 March 2011: Wouter:
 	- DNAME synthesis of CNAME.  Uses TTL of the DNAME record.
 	- nsec3 and wildcard code.  No additional section for wildcards.

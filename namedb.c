@@ -117,9 +117,6 @@ domain_table_search(domain_table_type *table,
 {
 	int exact;
 	uint8_t label_match_count;
-#ifdef USE_RADIX_TREE
-	struct radnode* ce_too;
-#endif
 
 	assert(table);
 	assert(dname);
@@ -129,7 +126,7 @@ domain_table_search(domain_table_type *table,
 #ifdef USE_RADIX_TREE
 	exact = radname_find_less_equal(table->nametree, 
 		(uint8_t*)dname_name(dname),
-		dname->name_size, (struct radnode**)closest_match, &ce_too);
+		dname->name_size, (struct radnode**)closest_match);
 	*closest_match = (domain_type*)((*(struct radnode**)closest_match)->elem);
 #else
 	exact = rbtree_find_less_equal(table->names_to_domains, dname, (rbnode_t **) closest_match);

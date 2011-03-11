@@ -15,7 +15,6 @@
 #include "packet.h"
 #include "dname.h"
 #include "rdata.h"
-#include "pktc.h"
 
 static uint16_t *compressed_dname_offsets = 0;
 static uint32_t compression_table_capacity = 0;
@@ -101,8 +100,6 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 	printf("prehash %s\n", nsd->options->database);
 	prehash(nsd->db, 0);
 #endif
-	nsd->db->tree = comptree_create();
-	compile_zones(nsd->db->tree, nsd->db->zones);
 
 	/* setup query */
 	compression_table_capacity = 0;

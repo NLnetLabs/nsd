@@ -817,7 +817,7 @@ static int ret_self_or_prev(struct radnode* n, struct radnode** result)
 }
 
 int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
-        struct radnode** result, struct radnode** ce)
+        struct radnode** result)
 {
 	struct radnode* n = rt->root;
 	radstrlen_t pos = 0;
@@ -825,21 +825,18 @@ int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
 	int r;
 	if(!n) {
 		/* empty tree */
-		*ce = NULL;
 		*result = NULL;
 		return 0;
 	}
 	while(pos < len) {
 		byte = k[pos];
 		if(byte < n->offset) {
-			*ce = n;
 			/* so the previous is the element itself */
 			/* or something before this element */
 			return ret_self_or_prev(n, result);
 		}
 		byte -= n->offset;
 		if(byte >= n->len) {
-			*ce = n;
 			/* so, the previous is the last of array, or itself */
 			/* or something before this element */
 			if((*result=radnode_last_in_subtree_incl_self(n))==0)
@@ -848,7 +845,6 @@ int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
 		}
 		pos++;
 		if(!n->array[byte].node) {
-			*ce = n;
 			/* no match */
 			/* Find an entry in arrays from byte-1 to 0 */
 			*result = radnode_find_prev_from_idx(n, byte);
@@ -860,7 +856,6 @@ int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
 		if(n->array[byte].len != 0) {
 			/* must match additional string */
 			if(pos+n->array[byte].len > len) {
-				*ce = n;
 				/* the additional string is longer than key*/
 				if( (r=memcmp(&k[pos], n->array[byte].str,
 					len-pos)) <= 0) {
@@ -882,11 +877,9 @@ int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
 			}
 			if( (r=memcmp(&k[pos], n->array[byte].str,
 				n->array[byte].len)) < 0) {
-				*ce = n;
 				*result = radix_prev(n->array[byte].node);
 				return 0; /* no match */
 			} else if(r > 0) {
-				*ce = n;
 				/* the key is larger than the additional
 				 * string, thus everything in that subtree
 				 * is smaller */
@@ -905,7 +898,6 @@ int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
 		return 1;
 	}
 	/* there is a node which is an exact match, but it has no element */
-	*ce = n;
 	*result = radix_prev(n);
 	return 0;
 }
@@ -1150,28 +1142,6 @@ radname_delete(struct radtree* rt, uint8_t* d, size_t max)
 	if(n) radix_delete(rt, n);
 }
 
-/** go up from the current ce and search for a label boundary
- * in DNS encoding this means the byte after that elem is a 0.
- * This means offset=0 and pos=0.
- * @param ce: the candidate ce to start with.
- * @param byte: the next byte that would have been tried after this ce.
- * @return ce on a label boundary, the input ce, or NULL.
- */
-static inline struct radnode*
-ce_walk_label(struct radnode* ce, uint8_t byte)
-{
-	if(byte == 0) {
-		return ce;
-	}
-	while(ce->parent) {
-		if(ce->pidx == 0 && ce->parent->offset == 0)
-			return ce->parent;
-		ce = ce->parent;
-	}
-	/* no more ce->parent, this is the root, root is ce to everything */
-	return ce;
-}
-
 /* search for exact match of domain name, converted to radname in tree */
 struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max)
 {
@@ -1258,7 +1228,7 @@ struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max)
 
 /* find domain name or smaller or equal domain name in radix tree */
 int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
-        struct radnode** result, struct radnode** ce)
+        struct radnode** result)
 {
 	/* stack of labels in the domain name */
 	uint8_t* labstart[130];
@@ -1270,14 +1240,12 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 
 	/* empty tree */
 	if(!n) {
-		*ce = NULL;
 		*result = NULL;
 		return 0;
 	}
 
 	/* search for root? it is '' */
 	if(max < 1) {
-		*ce = NULL;
 		*result = NULL;
 		return 0; /* parse error, out of bounds */
 	}
@@ -1287,7 +1255,6 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 			return 1;
 		}
 		/* no smaller element than the root */
-		*ce = NULL;
 		*result = NULL;
 		return 0;
 	}
@@ -1298,13 +1265,11 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 	/* must have one label, since root is specialcased */
 	do {
 		if((d[dpos] & 0xc0)) {
-			*ce = NULL;
 			*result = NULL;
 			return 0; /* compression ptrs not allowed error */
 		}
 		labstart[lab++] = &d[dpos];
 		if(dpos + d[dpos] + 1 >= max) {
-			*ce = NULL;
 			*result = NULL; /* format error: outside of bounds */
 			return 0;
 		}
@@ -1333,7 +1298,6 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 				}
 				/* there is a node which is an exact match,
 				 * but there no element in it */
-				*ce = ce_walk_label(n, 0);
 				*result = radix_prev(n);
 				return 0;
 			}
@@ -1343,17 +1307,14 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 			byte = 0;
 		}
 		/* find that byte in the array */
-		if(byte < n->offset) {
+		if(byte < n->offset)
 			/* so the previous is the element itself */
 			/* or something before this element */
-			*ce = ce_walk_label(n, byte);
 			return ret_self_or_prev(n, result);
-		}
 		byte -= n->offset;
 		if(byte >= n->len) {
 			/* so, the previous is the last of array, or itself */
 			/* or something before this element */
-			*ce = ce_walk_label(n, byte+n->offset);
 			*result = radnode_last_in_subtree_incl_self(n);
 			if(!*result)
 				*result = radix_prev(n);
@@ -1362,7 +1323,6 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 		if(!n->array[byte].node) {
 			/* no match */
 			/* Find an entry in arrays from byte-1 to 0 */
-			*ce = ce_walk_label(n, byte+n->offset);
 			*result = radnode_find_prev_from_idx(n, byte);
 			if(*result)
 				return 0;
@@ -1380,8 +1340,6 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 					/* if last label, no match since
 					 * we are in the additional string */
 					if(lab == 0) {
-						*ce = ce_walk_label(n,
-							byte+n->offset);
 						/* dname ended, thus before
 						 * this array element */
 						*result =radix_prev(
@@ -1394,12 +1352,10 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
 					b = 0;
 				}
 				if(b < n->array[byte].str[i]) {
-					*ce = ce_walk_label(n, byte+n->offset);
 					*result =radix_prev(
 						n->array[byte].node);
 					return 0; 
 				} else if(b > n->array[byte].str[i]) {
-					*ce = ce_walk_label(n, byte+n->offset);
 					/* the key is after the additional,
 					 * so everything in its subtree is
 					 * smaller */

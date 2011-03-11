@@ -18,17 +18,6 @@
 #include "packet.h"
 #include "tsig.h"
 
-struct additional_rr_types
-{
-	uint16_t        rr_type;
-	rr_section_type rr_section;
-};
-extern struct additional_rr_types default_additional_rr_types[];
-extern struct additional_rr_types rt_additional_rr_types[];
-
-domain_type* find_covering_nsec_ext(domain_type *closest_match,
-	zone_type *zone, rrset_type **nsec_rrset);
-
 enum query_state {
 	QUERY_PROCESSED,
 	QUERY_DISCARDED,
