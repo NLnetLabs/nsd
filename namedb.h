@@ -75,7 +75,7 @@ struct domain
 	 * an NSEC3 record, with hopefully the correct parameters. */
 	domain_type *nsec3_lookup;
 #endif
-	uint32_t     number; /* Unique domain name number.  */
+	size_t     number; /* Unique domain name number.  */
 
 	/*
 	 * This domain name exists (see wildcard clarification draft).

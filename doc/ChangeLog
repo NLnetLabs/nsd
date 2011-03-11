@@ -1,5 +1,6 @@
 11 March 2011: Wouter:
 	- Removed precompile features, speed gain took too much memory.
+	- domain number to size_t.
 
 9 March 2011: Wouter:
 	- DNAME synthesis of CNAME.  Uses TTL of the DNAME record.

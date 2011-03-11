@@ -205,7 +205,7 @@ write_rrset(struct namedb *db, domain_type *domain, rrset_type *rrset)
 static int
 number_dnames_iterator(domain_type *node, void *user_data)
 {
-	uint32_t *current_number = (uint32_t *) user_data;
+	size_t *current_number = (size_t *) user_data;
 
 	node->number = *current_number;
 	++*current_number;
@@ -245,7 +245,7 @@ write_db(namedb_type *db)
 {
 	zone_type *zone;
 	uint32_t terminator = 0;
-	uint32_t dname_count = 1;
+	size_t dname_count = 1;
 	uint32_t zone_count = 1;
 	int errors = 0;
 

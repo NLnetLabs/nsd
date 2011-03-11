@@ -55,14 +55,14 @@ static int add_rrset(struct query  *query,
 static void answer_authoritative(struct nsd	  *nsd,
 				 struct query     *q,
 				 answer_type      *answer,
-				 uint32_t          domain_number,
+				 size_t            domain_number,
 				 int               exact,
 				 domain_type      *closest_match,
 				 domain_type      *closest_encloser,
 				 const dname_type *qname);
 
 static void answer_lookup_zone(struct nsd *nsd, struct query *q,
-			       answer_type *answer, uint32_t domain_number,
+			       answer_type *answer, size_t domain_number,
 			       int exact, domain_type *closest_match,
 			       domain_type *closest_encloser,
 			       const dname_type *qname);
@@ -166,7 +166,7 @@ query_cleanup(void *data)
 
 query_type *
 query_create(region_type *region, uint16_t *compressed_dname_offsets,
-	uint32_t compressed_dname_size)
+	size_t compressed_dname_size)
 {
 	query_type *query
 		= (query_type *) region_alloc_zero(region, sizeof(query_type));
@@ -689,7 +689,7 @@ add_rrset(struct query   *query,
    from_name is changes to to_name by the DNAME rr.
    DNAME rr is from src to dest.
    closest encloser encloses the to_name. */
-static uint32_t
+static size_t
 query_synthesize_cname(struct query* q, struct answer* answer, const dname_type* from_name,
 	const dname_type* to_name, domain_type* src, domain_type* to_closest_encloser,
 	domain_type** to_closest_match)
@@ -969,7 +969,7 @@ static void
 answer_authoritative(struct nsd   *nsd,
 		     struct query *q,
 		     answer_type  *answer,
-		     uint32_t      domain_number,
+		     size_t        domain_number,
 		     int           exact,
 		     domain_type  *closest_match,
 		     domain_type  *closest_encloser,
@@ -1008,7 +1008,7 @@ answer_authoritative(struct nsd   *nsd,
 			domain_type* src = closest_encloser;
 			const dname_type* newname = dname_replace(q->region, name,
 				domain_dname(src), domain_dname(dest));
-			uint32_t newnum = 0;
+			size_t newnum = 0;
 			zone_type* origzone = q->zone;
 			++q->cname_count;
 			if(!newname) { /* newname too long */
@@ -1132,7 +1132,7 @@ answer_authoritative(struct nsd   *nsd,
  */
 static void
 answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
-	uint32_t domain_number, int exact, domain_type *closest_match,
+	size_t domain_number, int exact, domain_type *closest_match,
 	domain_type *closest_encloser, const dname_type *qname)
 {
 	q->zone = domain_find_zone(closest_encloser);

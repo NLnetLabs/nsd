@@ -106,10 +106,10 @@ struct query {
 	  * query name when generated from a wildcard record.
 	  */
 	uint16_t    *compressed_dname_offsets;
-	uint32_t compressed_dname_offsets_size;
+	size_t compressed_dname_offsets_size;
 
 	/* number of temporary domains used for the query */
-	uint32_t number_temporary_domains;
+	size_t number_temporary_domains;
 
 	/*
 	 * Used for AXFR processing.
@@ -170,7 +170,7 @@ void query_add_compression_domain(struct query *query,
  */
 query_type *query_create(region_type *region,
 			 uint16_t *compressed_dname_offsets,
-			 uint32_t compressed_dname_size);
+			 size_t compressed_dname_size);
 
 /*
  * Reset a query structure so it is ready for receiving and processing
