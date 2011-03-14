@@ -12,6 +12,7 @@
 #include "tpkg/cutest/cutest.h"
 #include "tpkg/cutest/qtest.h"
 
+CuSuite* reg_cutest_radtree(void);
 CuSuite * reg_cutest_rbtree(void);
 CuSuite * reg_cutest_util(void);
 CuSuite * reg_cutest_options(void);
@@ -49,6 +50,7 @@ int runalltests(void)
 	CuSuiteAddSuite(suite, reg_cutest_dname());
 	CuSuiteAddSuite(suite, reg_cutest_dns());
 	CuSuiteAddSuite(suite, reg_cutest_options());
+	CuSuiteAddSuite(suite, reg_cutest_radtree());
 	CuSuiteAddSuite(suite, reg_cutest_rbtree());
 	CuSuiteAddSuite(suite, reg_cutest_util());
 	CuSuiteAddSuite(suite, reg_cutest_iterated_hash());
@@ -70,6 +72,7 @@ int main(int argc, char* argv[])
 	int c;
 	char* config = NULL, *qfile=NULL;
 	int verb=0;
+	unsigned seed;
 	while((c = getopt(argc, argv, "c:hq:v")) != -1) {
 		switch(c) {
 		case 'c':
@@ -96,6 +99,13 @@ int main(int argc, char* argv[])
 	argv += optind;
 	if(qfile)
 		return runqtest(config, qfile, verb);
+
+	/* init random */
+	seed = time(NULL) ^ getpid();
+	seed = 1279288340;
+	fprintf(stderr, "srandom(%u)\n", seed);
+	srandom(seed);
+
 	if(runalltests() > 0)
 		return 1;
 	else return 0;

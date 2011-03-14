@@ -1,3 +1,7 @@
+14 March 2011: Wouter:
+	- udb code added.  uses lookup3 from unbound (public domain).
+	- unit test for radix tree in cutest.
+
 11 March 2011: Wouter:
 	- Removed precompile features, speed gain took too much memory.
 	- domain number to size_t.

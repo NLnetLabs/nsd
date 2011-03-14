@@ -66,7 +66,7 @@ EDIT		= sed \
 TARGETS=nsd zonec nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
 MANUALS=nsd.8 zonec.8 nsd-notify.8 nsd-xfer.8 nsdc.8 nsd-checkconf.8 nsd-patch.8 nsd.conf.5
 
-COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o util.o
+COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o udb.o util.o
 XFRD_OBJ=xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o
 ALL_OBJ=$(COMMON_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o netio.o nsd-checkconf.o nsd-notify.o nsd.o nsd-patch.o nsd-xfer.o server.o $(XFRD_OBJ) zlexer.o zonec.o zparser.o
 NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbaccess.o
@@ -75,7 +75,7 @@ NSD_NOTIFY_OBJ=$(COMMON_OBJ) dbaccess.o nsd-notify.o
 NSD_XFER_OBJ=$(COMMON_OBJ) dbaccess.o nsd-xfer.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) dbaccess.o nsd-checkconf.o
 NSD_PATCH_OBJ=$(COMMON_OBJ) dbcreate.o dbaccess.o difffile.o nsd-patch.o
-CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_rbtree.o cutest_options.o cutest_region.o cutest_util.o cutest.o qtest.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_options.o cutest_region.o cutest_util.o cutest.o qtest.o
 
 all:	$(CCWHOLE)
 
@@ -265,6 +265,9 @@ cutest_run.o:	$(srcdir)/tpkg/cutest/cutest_run.c
 cutest_rbtree.o:	$(srcdir)/tpkg/cutest/cutest_rbtree.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_rbtree.c
 
+cutest_radtree.o:	$(srcdir)/tpkg/cutest/cutest_radtree.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_radtree.c
+
 cutest_options.o:	$(srcdir)/tpkg/cutest/cutest_options.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_options.c
 
@@ -359,6 +362,7 @@ ipc.o: $(srcdir)/ipc.c config.h $(srcdir)/ipc.h $(srcdir)/netio.h $(srcdir)/regi
  $(srcdir)/xfrd-tcp.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/options.h \
  $(srcdir)/tsig.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/xfrd-notify.h
 iterated_hash.o: $(srcdir)/iterated_hash.c config.h $(srcdir)/iterated_hash.h
+lookup3.o: $(srcdir)/lookup3.c config.h $(srcdir)/lookup3.h
 namedb.o: $(srcdir)/namedb.c config.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
  $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h
 netio.o: $(srcdir)/netio.c config.h $(srcdir)/netio.h $(srcdir)/region-allocator.h $(srcdir)/util.h
@@ -398,6 +402,7 @@ tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/
  $(srcdir)/tsig-openssl.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h
 tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(srcdir)/region-allocator.h \
  $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dname.h
+udb.o: $(srcdir)/udb.c config.h $(srcdir)/udb.h $(srcdir)/lookup3.h
 util.o: $(srcdir)/util.c config.h $(srcdir)/util.h $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/rdata.h
 xfrd.o: $(srcdir)/xfrd.c config.h $(srcdir)/xfrd.h $(srcdir)/netio.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
@@ -446,6 +451,8 @@ cutest_iterated_hash.o: $(srcdir)/tpkg/cutest/cutest_iterated_hash.c config.h \
 cutest_options.o: $(srcdir)/tpkg/cutest/cutest_options.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
  $(srcdir)/rbtree.h $(srcdir)/util.h
+cutest_radtree.o: $(srcdir)/tpkg/cutest/cutest_radtree.c config.h \
+ $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/radtree.h
 cutest_rbtree.o: $(srcdir)/tpkg/cutest/cutest_rbtree.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h
 cutest_region.o: $(srcdir)/tpkg/cutest/cutest_region.c config.h \
