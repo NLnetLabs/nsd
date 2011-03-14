@@ -12,7 +12,7 @@
 #include "tpkg/cutest/cutest.h"
 #include "tpkg/cutest/qtest.h"
 
-CuSuite* reg_cutest_radtree(void);
+CuSuite * reg_cutest_radtree(void);
 CuSuite * reg_cutest_rbtree(void);
 CuSuite * reg_cutest_util(void);
 CuSuite * reg_cutest_options(void);
@@ -20,6 +20,7 @@ CuSuite * reg_cutest_dns(void);
 CuSuite * reg_cutest_iterated_hash(void);
 CuSuite * reg_cutest_dname(void);
 CuSuite * reg_cutest_region(void);
+CuSuite * reg_cutest_udb(void);
 
 /* dummy functions to link */
 struct nsd;
@@ -54,6 +55,7 @@ int runalltests(void)
 	CuSuiteAddSuite(suite, reg_cutest_rbtree());
 	CuSuiteAddSuite(suite, reg_cutest_util());
 	CuSuiteAddSuite(suite, reg_cutest_iterated_hash());
+	CuSuiteAddSuite(suite, reg_cutest_udb());
 
 	CuSuiteRunDisplay(suite, disp_callback);
 	fprintf(stderr, "\n");
