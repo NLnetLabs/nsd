@@ -33,13 +33,8 @@ allocate_domain_info(domain_table_type *table,
 
 	result = (domain_type *) region_alloc(table->region,
 					      sizeof(domain_type));
-#ifdef USE_RADIX_TREE
 	result->dname = dname_partial_copy(
 		table->region, dname, domain_dname(parent)->label_count + 1);
-#else
-	result->node.key = dname_partial_copy(
-		table->region, dname, domain_dname(parent)->label_count + 1);
-#endif
 	result->parent = parent;
 	result->wildcard_child_closest_match = result;
 	result->rrsets = NULL;
@@ -70,11 +65,7 @@ domain_table_create(region_type *region)
 	origin = dname_make(region, (uint8_t *) "", 0);
 
 	root = (domain_type *) region_alloc(region, sizeof(domain_type));
-#ifdef USE_RADIX_TREE
 	root->dname = origin;
-#else
-	root->node.key = origin;
-#endif
 	root->parent = NULL;
 	root->wildcard_child_closest_match = root;
 	root->rrsets = NULL;
@@ -93,16 +84,10 @@ domain_table_create(region_type *region)
 	result = (domain_table_type *) region_alloc(region,
 						    sizeof(domain_table_type));
 	result->region = region;
-#ifdef USE_RADIX_TREE
 	result->nametree = radix_tree_create();
 	root->rnode = radname_insert(result->nametree,
 		(uint8_t*)dname_name(root->dname), root->dname->name_size,
 		root);
-#else
-	result->names_to_domains = rbtree_create(
-		region, (int (*)(const void *, const void *)) dname_compare);
-	rbtree_insert(result->names_to_domains, (rbnode_t *) root);
-#endif
 
 	result->root = root;
 
@@ -123,14 +108,10 @@ domain_table_search(domain_table_type *table,
 	assert(closest_match);
 	assert(closest_encloser);
 
-#ifdef USE_RADIX_TREE
 	exact = radname_find_less_equal(table->nametree, 
 		(uint8_t*)dname_name(dname),
 		dname->name_size, (struct radnode**)closest_match);
 	*closest_match = (domain_type*)((*(struct radnode**)closest_match)->elem);
-#else
-	exact = rbtree_find_less_equal(table->names_to_domains, dname, (rbnode_t **) closest_match);
-#endif
 	assert(*closest_match);
 
 	*closest_encloser = *closest_match;
@@ -187,15 +168,10 @@ domain_table_insert(domain_table_type *table,
 			result = allocate_domain_info(table,
 						      dname,
 						      closest_encloser);
-#ifdef USE_RADIX_TREE
 			result->rnode = radname_insert(table->nametree,
 				(uint8_t*)dname_name(result->dname),
 				result->dname->name_size, result);
 			result->number = table->nametree->count;
-#else
-			rbtree_insert(table->names_to_domains, (rbnode_t *) result);
-			result->number = table->names_to_domains->count;
-#endif
 
 			/*
 			 * If the newly added domain name is larger
@@ -225,24 +201,11 @@ domain_table_iterate(domain_table_type *table,
 		    domain_table_iterator_type iterator,
 		    void *user_data)
 {
-#ifdef USE_RADIX_TREE
 	int error = 0;
 	struct radnode* n;
 	for(n = radix_first(table->nametree); n; n = radix_next(n)) {
 		error += iterator((domain_type*)n->elem, user_data);
 	}
-#else
-	const void *dname;
-	void *node;
-	int error = 0;
-
-	assert(table);
-
-	RBTREE_WALK(table->names_to_domains, dname, node) {
-		error += iterator((domain_type *) node, user_data);
-	}
-
-#endif
 	return error;
 }
 

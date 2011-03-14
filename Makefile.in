@@ -186,9 +186,12 @@ nsd-patch:	$(NSD_PATCH_OBJ) $(LIBOBJS)
 cutest:	$(CUTEST_OBJ)
 	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(LIBS)
 
+udb-inspect:	udb-inspect.o
+	$(LINK) -o $@ $< $(LIBOBJS) $(LIBS)
+
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
-	rm -f $(TARGETS) $(MANUALS)
+	rm -f $(TARGETS) $(MANUALS) cutest udb-inspect
 
 realclean: clean
 	rm -f Makefile config.h config.log config.status
@@ -285,6 +288,9 @@ cutest.o:	$(srcdir)/tpkg/cutest/cutest.c
 
 qtest.o:	$(srcdir)/tpkg/cutest/qtest.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/qtest.c
+
+udb-inspect.o:	$(srcdir)/tpkg/cutest/udb-inspect.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/udb-inspect.c
 
 zlexer.c:	$(srcdir)/zlexer.lex
 	echo "#include <config.h>" > $@
@@ -471,3 +477,4 @@ qtest.o: $(srcdir)/tpkg/cutest/qtest.c config.h $(srcdir)/tpkg/cutest/qtest.h $(
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/dns.h \
  $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/namedb.h $(srcdir)/util.h $(srcdir)/nsec3.h $(srcdir)/options.h \
  $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/dname.h $(srcdir)/rdata.h
+udb-inspect.o: $(srcdir)/tpkg/cutest/udb-inspect.c config.h $(srcdir)/udb.h

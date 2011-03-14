@@ -2,6 +2,9 @@
 	- udb code added.  uses lookup3 from unbound (public domain).
 	- unit test for radix tree in cutest.
 	- unit test for udb in cutest.
+	- udb-inspect tool to printout internals of udb files.
+	  for debug, not installed or built by default.
+	- removed --disable-radixtree option.
 
 11 March 2011: Wouter:
 	- Removed precompile features, speed gain took too much memory.
