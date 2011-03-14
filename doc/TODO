@@ -28,9 +28,6 @@ SERVER
   preallocate 2 bytes in front of buffer to put them into.
 - Test TCP performance (do a lot of AXFRs, different zone sizes, and compare
   time averages).
-- From Aaron Hopkins: after you do select calls, do multiple read calls
-  per select. This polling improves performance in high-load situations.
-  Speed test to prove that it does so.
 - Turn off TC bit on all error replies.
 - Bug #133: print empty statistic blocks. Not sure if the feature is wanted.
 - XFRD should throttle the number of notifys going out for a zone to
