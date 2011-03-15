@@ -412,7 +412,7 @@ tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/
 tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(srcdir)/region-allocator.h \
  $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dname.h
 udb.o: $(srcdir)/udb.c config.h $(srcdir)/udb.h $(srcdir)/lookup3.h
-udbradtree.o: $(srcdir)/udbradtree.c config.h $(srcdir)/udbradtree.h $(srcdir)/udb.h
+udbradtree.o: $(srcdir)/udbradtree.c config.h $(srcdir)/udbradtree.h $(srcdir)/udb.h $(srcdir)/radtree.h
 util.o: $(srcdir)/util.c config.h $(srcdir)/util.h $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/rdata.h
 xfrd.o: $(srcdir)/xfrd.c config.h $(srcdir)/xfrd.h $(srcdir)/netio.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
