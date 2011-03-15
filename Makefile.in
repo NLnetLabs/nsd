@@ -66,7 +66,7 @@ EDIT		= sed \
 TARGETS=nsd zonec nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
 MANUALS=nsd.8 zonec.8 nsd-notify.8 nsd-xfer.8 nsdc.8 nsd-checkconf.8 nsd-patch.8 nsd.conf.5
 
-COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o udb.o util.o
+COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o udb.o udbradtree.o util.o
 XFRD_OBJ=xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o
 ALL_OBJ=$(COMMON_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o netio.o nsd-checkconf.o nsd-notify.o nsd.o nsd-patch.o nsd-xfer.o server.o $(XFRD_OBJ) zlexer.o zonec.o zparser.o
 NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbaccess.o
@@ -412,6 +412,7 @@ tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/
 tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(srcdir)/region-allocator.h \
  $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dname.h
 udb.o: $(srcdir)/udb.c config.h $(srcdir)/udb.h $(srcdir)/lookup3.h
+udbradtree.o: $(srcdir)/udbradtree.c config.h $(srcdir)/udbradtree.h $(srcdir)/udb.h
 util.o: $(srcdir)/util.c config.h $(srcdir)/util.h $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/rdata.h
 xfrd.o: $(srcdir)/xfrd.c config.h $(srcdir)/xfrd.h $(srcdir)/netio.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \

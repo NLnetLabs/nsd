@@ -228,11 +228,11 @@ struct radnode* radname_insert(struct radtree* rt, uint8_t* d,
  */
 void radname_delete(struct radtree* rt, uint8_t* d, size_t max);
 
-/** definition so it can be tested: number of bytes in common in strings */
-radstrlen_t bstr_common_test(uint8_t* x, radstrlen_t xlen, uint8_t* y,
+/** number of bytes in common in strings */
+radstrlen_t bstr_common_ext(uint8_t* x, radstrlen_t xlen, uint8_t* y,
 	radstrlen_t ylen);
-/** definition so it can be tested: true if one is prefix of the other */
-int bstr_is_prefix_test(uint8_t* p, radstrlen_t plen, uint8_t* x,
+/** true if one is prefix of the other */
+int bstr_is_prefix_ext(uint8_t* p, radstrlen_t plen, uint8_t* x,
 	radstrlen_t xlen);
 
 #endif /* RADTREE_H */

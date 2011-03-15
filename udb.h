@@ -199,6 +199,9 @@ enum udb_chunk_type {
 	udb_chunk_type_free = 0,
 	udb_chunk_type_data, /* alloced data */
 	udb_chunk_type_index,
+	udb_chunk_type_radtree,
+	udb_chunk_type_radnode,
+	udb_chunk_type_radarray,
 	udb_chunk_type_internal
 };
 
@@ -554,6 +557,7 @@ void udb_rel_ptr_edit(void* base, udb_void list, udb_void to);
 /* udb_ptr */
 /**
  * Initialize an udb ptr.  Set to NULL.  (and thus not linked can be deleted).
+ * You MUST set it to 0 before you stop using the ptr.
  * @param ptr: the ptr to initialise (caller has allocated it).
  * @param udb: the udb base to link it to.
  */
@@ -569,5 +573,95 @@ void udb_ptr_set(udb_ptr* ptr, udb_base* udb, udb_void newval);
 
 /** dereference udb_ptr */
 #define UDB_PTR(ptr) (UDB_REL(*((ptr)->base), (ptr)->data))
+
+/**
+ * Ease of use udb ptr, allocate space and return ptr to it
+ * You MUST udb_ptr_set it to 0 before you stop using the ptr.
+ * @param base: udb base to use.
+ * @param ptr: ptr is overwritten, can be uninitialised.
+ * @param type: type of the allocation.
+ * 	You need a special type if the block contains udb_rel_ptr's.
+ * 	You can use udb_type_data for plain data.
+ * @param sz: amount to allocate.
+ * @return 0 on alloc failure.
+ */
+int udb_ptr_alloc_space(udb_ptr* ptr, udb_base* udb, udb_chunk_type type,
+	size_t sz);
+
+/**
+ * Ease of use udb ptr, free space and set ptr to NULL (to it can be deleted).
+ * The space is freed on disk.
+ * @param ptr: the ptr.
+ * @param udb: udb base.
+ * @param sz: the size of the data you stop using.
+ */
+void udb_ptr_free_space(udb_ptr* ptr, udb_base* udb, size_t sz);
+
+/**
+ * Get pointer to the data of the ptr.  or use a macro to cast UDB_PTR to
+ * the type of your structure(.._d)
+ */
+static inline uint8_t* udb_ptr_data(udb_ptr* ptr) {
+	return (uint8_t*)UDB_PTR(ptr);
+}
+
+/**
+ * See if udb ptr is null
+ */
+static inline int udb_ptr_is_null(udb_ptr* ptr) {
+	return (ptr->data == 0);
+}
+
+/** Ease of use, create new pointer to destination relptr
+ * You MUST udb_ptr_set it to 0 before you stop using the ptr. */
+static inline void udb_ptr_new(udb_ptr* ptr, udb_base* udb, udb_rel_ptr* d) {
+	udb_ptr_init(ptr, udb);
+	udb_ptr_set(ptr, udb, d->data);
+}
+
+/** Ease of use.  Stop using this ptr */
+static inline void udb_ptr_unlink(udb_ptr* ptr, udb_base* udb) {
+	udb_base_unlink_ptr(udb, ptr);
+}
+
+/* Ease of use.  Assign rptr from rptr */
+static inline void udb_rptr_set_rptr(udb_rel_ptr* dest, udb_base* udb,
+	udb_rel_ptr* p) {
+	udb_rel_ptr_set(udb->base, dest, p->data);
+}
+
+/* Ease of use.  Assign rptr from ptr */
+static inline void udb_rptr_set_ptr(udb_rel_ptr* dest, udb_base* udb,
+	udb_ptr* p) {
+	udb_rel_ptr_set(udb->base, dest, p->data);
+}
+
+/* Ease of use.  Assign ptr from rptr */
+static inline void udb_ptr_set_rptr(udb_ptr* dest, udb_base* udb,
+	udb_rel_ptr* p) {
+	udb_ptr_set(dest, udb, p->data);
+}
+
+/* Ease of use.  Assign ptr from ptr */
+static inline void udb_ptr_set_ptr(udb_ptr* dest, udb_base* udb, udb_ptr* p) {
+	udb_ptr_set(dest, udb, p->data);
+}
+
+/* Ease of use, zero rptr */
+static inline void udb_rptr_zero(udb_rel_ptr* dest, udb_base* udb) {
+	udb_rel_ptr_set(udb->base, dest, 0);
+}
+
+/* Ease of use, zero ptr */
+static inline void udb_ptr_zero(udb_ptr* dest, udb_base* udb) {
+	udb_ptr_set(dest, udb, 0);
+}
+
+/** ease of use, delete memory pointed at by relptr */
+static inline void udb_rel_ptr_free_space(udb_rel_ptr* ptr, udb_base* udb,
+	size_t sz) {
+	udb_alloc_free(udb->alloc, ptr->data, sz);
+	ptr->data = 0;
+}
 
 #endif /* UDB_H */

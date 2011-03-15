@@ -205,6 +205,7 @@ radnode_array_space(struct radnode* n, uint8_t byte)
 	/* is there an array? */
 	if(!n->array || n->capacity == 0) {
 		n->array = (struct radsel*)malloc(sizeof(struct radsel));
+		if(!n->array) return 0;
 		memset(&n->array[0], 0, sizeof(struct radsel));
 		n->len = 1;
 		n->capacity = 1;
@@ -234,7 +235,7 @@ radnode_array_space(struct radnode* n, uint8_t byte)
 		}
 		/* zero the first */
 		memset(&n->array[0], 0, need*sizeof(struct radsel));
-		n->len = n->len+need;
+		n->len += need;
 		n->offset = byte;
 	/* is it above the max? */
 	} else if(byte-n->offset >= n->len) {
@@ -293,18 +294,18 @@ bstr_common(uint8_t* x, radstrlen_t xlen, uint8_t* y, radstrlen_t ylen)
 
 
 int
-bstr_is_prefix_test(uint8_t* p, radstrlen_t plen, uint8_t* x, radstrlen_t xlen)
+bstr_is_prefix_ext(uint8_t* p, radstrlen_t plen, uint8_t* x, radstrlen_t xlen)
 {
 	return bstr_is_prefix(p, plen, x, xlen);
 }
 
 radstrlen_t
-bstr_common_test(uint8_t* x, radstrlen_t xlen, uint8_t* y, radstrlen_t ylen)
+bstr_common_ext(uint8_t* x, radstrlen_t xlen, uint8_t* y, radstrlen_t ylen)
 {
 	return bstr_common(x, xlen, y, ylen);
 }
 
-/** alocate remainder from prefixes for a split:
+/** allocate remainder from prefixes for a split:
  * plen: len prefix, l: longer bstring, llen: length of l. */
 static int
 radsel_prefix_remainder(radstrlen_t plen,
@@ -863,7 +864,7 @@ int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
 			/* must match additional string */
 			if(pos+n->array[byte].len > len) {
 				/* the additional string is longer than key*/
-				if( (r=memcmp(&k[pos], n->array[byte].str,
+				if( (memcmp(&k[pos], n->array[byte].str,
 					len-pos)) <= 0) {
 				  /* and the key is before this node */
 				  *result = radix_prev(n->array[byte].node);
@@ -890,7 +891,7 @@ int radix_find_less_equal(struct radtree* rt, uint8_t* k, radstrlen_t len,
 				 * string, thus everything in that subtree
 				 * is smaller */
 				*result=radnode_last_in_subtree_incl_self(n->array[byte].node);
-				/* we have an inefficient tree */
+				/* if we have an inefficient tree */
 				if(!*result) *result = radix_prev(n->array[byte].node);
 				return 0; /* no match */
 			}

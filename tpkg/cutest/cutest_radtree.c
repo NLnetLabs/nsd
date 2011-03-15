@@ -603,21 +603,21 @@ static void test_del(struct radtree* rt)
 /** unit tests for radix functions */
 void unit_radix(void)
 {
-	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_test((uint8_t*)"", 0, (uint8_t*)"", 0));
-	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_test((uint8_t*)"foo", 3, (uint8_t*)"foobar", 6));
-	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_test((uint8_t*)"foobar", 6, (uint8_t*)"foo", 3)==0);
-	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_test((uint8_t*)"zoobar", 6, (uint8_t*)"foobar", 3)==0);
-	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_test((uint8_t*)"zoo", 3, (uint8_t*)"foo", 3)==0);
-	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_test((uint8_t*)"ozo", 3, (uint8_t*)"ofo", 3)==0);
-	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_test((uint8_t*)"ofo", 3, (uint8_t*)"ofo", 3));
+	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_ext((uint8_t*)"", 0, (uint8_t*)"", 0));
+	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_ext((uint8_t*)"foo", 3, (uint8_t*)"foobar", 6));
+	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_ext((uint8_t*)"foobar", 6, (uint8_t*)"foo", 3)==0);
+	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_ext((uint8_t*)"zoobar", 6, (uint8_t*)"foobar", 3)==0);
+	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_ext((uint8_t*)"zoo", 3, (uint8_t*)"foo", 3)==0);
+	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_ext((uint8_t*)"ozo", 3, (uint8_t*)"ofo", 3)==0);
+	CuAssert(tc, "bstr_is_prefix", bstr_is_prefix_ext((uint8_t*)"ofo", 3, (uint8_t*)"ofo", 3));
 
-	CuAssert(tc, "bstr_common", bstr_common_test((uint8_t*)"", 0, (uint8_t*)"", 0) == 0);
-	CuAssert(tc, "bstr_common", bstr_common_test((uint8_t*)"foo", 3, (uint8_t*)"foobar", 6) == 3);
-	CuAssert(tc, "bstr_common", bstr_common_test((uint8_t*)"foobar", 6, (uint8_t*)"foo", 3) == 3);
-	CuAssert(tc, "bstr_common", bstr_common_test((uint8_t*)"zoobar", 6, (uint8_t*)"foobar", 3)==0);
-	CuAssert(tc, "bstr_common", bstr_common_test((uint8_t*)"zoo", 3, (uint8_t*)"foo", 3)==0);
-	CuAssert(tc, "bstr_common", bstr_common_test((uint8_t*)"ozo", 3, (uint8_t*)"ofo", 3)==1);
-	CuAssert(tc, "bstr_common", bstr_common_test((uint8_t*)"ofo", 3, (uint8_t*)"ofo", 3)==3);
+	CuAssert(tc, "bstr_common", bstr_common_ext((uint8_t*)"", 0, (uint8_t*)"", 0) == 0);
+	CuAssert(tc, "bstr_common", bstr_common_ext((uint8_t*)"foo", 3, (uint8_t*)"foobar", 6) == 3);
+	CuAssert(tc, "bstr_common", bstr_common_ext((uint8_t*)"foobar", 6, (uint8_t*)"foo", 3) == 3);
+	CuAssert(tc, "bstr_common", bstr_common_ext((uint8_t*)"zoobar", 6, (uint8_t*)"foobar", 3)==0);
+	CuAssert(tc, "bstr_common", bstr_common_ext((uint8_t*)"zoo", 3, (uint8_t*)"foo", 3)==0);
+	CuAssert(tc, "bstr_common", bstr_common_ext((uint8_t*)"ozo", 3, (uint8_t*)"ofo", 3)==1);
+	CuAssert(tc, "bstr_common", bstr_common_ext((uint8_t*)"ofo", 3, (uint8_t*)"ofo", 3)==3);
 
 	if(verb) fprintf(stderr, "unit_radix ok\n");
 }

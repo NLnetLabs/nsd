@@ -1752,3 +1752,20 @@ void udb_ptr_set(udb_ptr* ptr, udb_base* udb, udb_void newval)
 		udb_base_link_ptr(udb, ptr);
 }
 
+int udb_ptr_alloc_space(udb_ptr* ptr, udb_base* udb, udb_chunk_type type,
+	size_t sz)
+{
+	udb_void r;
+	udb_ptr_init(ptr, udb);
+	r = udb_alloc_space(udb->alloc, sz);
+	if(!r) return 0;
+	udb_alloc_set_type(udb->alloc, r, type);
+	udb_ptr_set(ptr, udb, r);
+	return 1;
+}
+
+void udb_ptr_free_space(udb_ptr* ptr, udb_base* udb, size_t sz)
+{
+	udb_alloc_free(udb->alloc, ptr->data, sz);
+	udb_ptr_set(ptr, udb, 0);
+}
