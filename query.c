@@ -1,3 +1,4 @@
+
 /*
  * query.c -- nsd(8) the resolver.
  *
@@ -453,7 +454,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 		return QUERY_PROCESSED;
 	}
 
-        if (verbosity > 1) {
+	if (verbosity > 1) {
 		char address[128];
 		if (addr2ip(query->addr, address, sizeof(address))) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "addr2ip failed"));
@@ -1199,14 +1200,9 @@ answer_query(struct nsd *nsd, struct query *q)
 	answer_lookup_zone(nsd, q, &answer, 0, exact, closest_match,
 		closest_encloser, q->qname);
 
-	encode_answer(q, &answer);
-	if (ANCOUNT(q->packet) + NSCOUNT(q->packet) + ARCOUNT(q->packet) == 0)
-	{
-		/* no answers, no need for compression */
-		return;
-	}
 	offset = dname_label_offsets(q->qname)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
+	encode_answer(q, &answer);
 	query_clear_compression_tables(q);
 }
 
