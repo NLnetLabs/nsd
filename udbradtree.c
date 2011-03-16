@@ -195,19 +195,20 @@ static int udb_radnode_str_grow(udb_base* udb, udb_ptr* n, udb_radstrlen_t want)
 		size_of_lookup_needed(lookup(n)->capacity, ns)))
 		return 0;
 	memcpy(RADARRAY(&a), lookup(n), sizeof(struct udb_radarray_d));
-	for(i = 0; i < lookup(n)->capacity; i++) {
+	for(i = 0; i < lookup(n)->len; i++) {
 		udb_rel_ptr_init(&RADARRAY(&a)->array[i].node);
 		udb_rptr_set_rptr(&RADARRAY(&a)->array[i].node, udb,
 			&lookup(n)->array[i].node);
 		RADARRAY(&a)->array[i].len = lookup_len(n, i);
-		memmove(((uint8_t*)(&RADARRAY(&a)->array[ns]))+i*ns,
+		memmove(((uint8_t*)(&RADARRAY(&a)->array[
+			lookup(n)->capacity]))+i*ns,
 			lookup_string(n, i), lookup(n)->str_cap);
 	}
 	udb_radarray_zero_ptrs(udb, n);
 	udb_rptr_zero(&RADNODE(n)->lookup, udb);
 	udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb, size_of_lookup(n));
 	udb_rptr_set_ptr(&RADNODE(n)->lookup, udb, &a);
-	lookup(n)->capacity = ns;
+	lookup(n)->str_cap = ns;
 	udb_ptr_unlink(&a, udb);
 	return 1;
 }
@@ -229,7 +230,7 @@ static int udb_radnode_array_grow(udb_base* udb, udb_ptr* n, size_t want)
 	assert(lookup(n)->len <= lookup(n)->capacity);
 	assert(lookup(n)->capacity < ns);
 	memcpy(RADARRAY(&a), lookup(n), sizeof(struct udb_radarray_d));
-	for(i=0; i<lookup(n)->capacity; i++) {
+	for(i=0; i<lookup(n)->len; i++) {
 		udb_rel_ptr_init(&RADARRAY(&a)->array[i].node);
 		udb_rptr_set_rptr(&RADARRAY(&a)->array[i].node, udb,
 			&lookup(n)->array[i].node);
@@ -493,6 +494,8 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 			addstr, addlen);
 		assert(common_len < lookup_len(n, idx));
 		assert(common_len < addlen);
+		printf("radsel split with common , common_len=%d\n",
+			(int)common_len);
 		udb_ptr_new(&rnode, udb, &lookup(n)->array[idx].node);
 
 		/* make stringspace for the two substring choices */
@@ -520,13 +523,11 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 		memset(UDB_PTR(&com), 0, sizeof(struct udb_radnode_d));
 		/* create stringspace for the shared prefix,
 		 * this allocates the com->lookup array */
-		if(common_len > 0) {
-			if(!udb_radnode_str_space(udb, &com, common_len)) {
-				udb_ptr_unlink(&rnode, udb);
-				udb_ptr_free_space(&com, udb,
-					sizeof(struct udb_radnode_d));
-				return 0;
-			}
+		if(!udb_radnode_str_space(udb, &com, common_len)) {
+			udb_ptr_unlink(&rnode, udb);
+			udb_ptr_free_space(&com, udb,
+				sizeof(struct udb_radnode_d));
+			return 0;
 		}
 		/* allocs succeeded, proceed to link it all up */
 		udb_rptr_set_rptr(&RADNODE(&com)->parent, udb,
@@ -812,7 +813,7 @@ udb_radarray_reduce(udb_base* udb, udb_ptr* n, uint16_t cap,
 		size_of_lookup_needed(cap, strcap)))
 		return 0;
 	memcpy(RADARRAY(&a), lookup(n), sizeof(struct udb_radarray_d));
-	for(i=0; i<cap; i++) {
+	for(i=0; i<lookup(n)->len; i++) {
 		udb_rel_ptr_init(&RADARRAY(&a)->array[i].node);
 		udb_rptr_set_rptr(&RADARRAY(&a)->array[i].node, udb,
 			&lookup(n)->array[i].node);

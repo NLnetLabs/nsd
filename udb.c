@@ -1724,6 +1724,7 @@ void udb_rel_ptr_link(void* base, udb_rel_ptr* ptr, udb_void to)
 
 void udb_rel_ptr_set(void* base, udb_rel_ptr* ptr, udb_void to)
 {
+	assert(to == 0 || to > 64);
 	udb_rel_ptr_unlink(base, ptr);
 	if(to)
 		udb_rel_ptr_link(base, ptr, to);
@@ -1747,6 +1748,7 @@ void udb_ptr_init(udb_ptr* ptr, udb_base* udb)
 
 void udb_ptr_set(udb_ptr* ptr, udb_base* udb, udb_void newval)
 {
+	assert(newval == 0 || newval > 64);
 	if(ptr->data)
 		udb_base_unlink_ptr(udb, ptr);
 	ptr->data = newval;

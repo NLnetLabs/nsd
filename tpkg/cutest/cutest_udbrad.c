@@ -106,10 +106,7 @@ static size_t test_check_invariants(udb_base* udb, udb_ptr* n)
 				CuAssert(tc, "empty node",
 					lookup_string(n, idx)[0] == 0);
 			} else {
-				if(r->len == 0) {
-					CuAssert(tc, "emptystr",
-						lookup_string(n, idx)[0] == 0);
-				}
+				/* r->len == 0 is an empty string */
 				CuAssert(tc, "strcap",
 					r->len <= lookup(n)->str_cap);
 				udb_ptr_new(&s, udb, &r->node);
@@ -456,9 +453,6 @@ static void test_node_print(udb_base* udb, udb_ptr* n, int depth)
 	for(idx=0; idx<lookup(n)->len; idx++) {
 		struct udb_radsel_d* d = &lookup(n)->array[idx];
 		if(!d->node.data) {
-			CuAssertTrue(tc, lookup(n)->capacity == 0 ||
-				lookup(n)->str_cap == 0 ||
-				lookup_string(n, idx)[0] == 0);
 			CuAssertTrue(tc, d->len == 0);
 			continue;
 		}
