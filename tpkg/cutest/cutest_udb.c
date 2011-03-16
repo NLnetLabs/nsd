@@ -33,7 +33,7 @@ static CuTest* tc = NULL;
 static udb_base* udb_A = NULL;
 
 /** get a temporary file name */
-static char* get_temp_file(char* suffix)
+char* udbtest_get_temp_file(char* suffix)
 {
 	char buf[1024];
 	snprintf(buf, sizeof(buf), "/tmp/unitudb%u%s",
@@ -80,7 +80,7 @@ static uint64_t size_for_A(void) {
 static void
 assert_udb_invariant(udb_base* udb)
 {
-	CuAssertTrue(tc, udb->base);
+	CuAssertTrue(tc, udb->base != NULL);
 	CuAssertTrue(tc, udb->base_size == udb->glob_data->fsize);
 	CuAssertTrue(tc, udb->glob_data->hsize == UDB_HEADER_SIZE);
 	CuAssertTrue(tc, udb->glob_data->dirty_alloc == 0);
@@ -111,7 +111,7 @@ assert_free_structure(udb_base* udb)
 	int verb = 0;
 
 	if(verb) printf("** current state ng=%llu\n",
-		udb->alloc->disk->nextgrow);
+		(long long unsigned)udb->alloc->disk->nextgrow);
 	memset(exp_free, 0, sizeof(exp_free));
 	while(p < udb->alloc->disk->nextgrow) {
 		uint8_t exp = UDB_CHUNK(p)->exp;
@@ -125,7 +125,8 @@ assert_free_structure(udb_base* udb)
 			exp_free[exp]++;
 		} else num_alloc_bytes += sz;
 		if(verb) printf("walk at %llu exp %d %s\n",
-			p, exp, UDB_CHUNK(p)->type == udb_chunk_type_free?
+			(long long unsigned)p, exp,
+			UDB_CHUNK(p)->type == udb_chunk_type_free?
 			"free":"data");
 		CuAssertTrue(tc, *(uint8_t*)UDB_REL(base, p+sz-1) == exp);
 		p += sz;
@@ -140,10 +141,12 @@ assert_free_structure(udb_base* udb)
 		num_e = 0;
 		while(p) {
 			udb_free_chunk_d* fp;
-			if(verb) printf("freelist exp %d at %llu\n", e, p);
+			if(verb) printf("freelist exp %d at %llu\n", e, 
+				(long long unsigned)p);
 			fp = UDB_FREE_CHUNK(p);
 			if(verb) printf("  ->exp=%d prev %llu next %llu\n",
-				fp->exp, fp->prev, fp->next);
+				fp->exp, (long long unsigned)fp->prev,
+				(long long unsigned)fp->next);
 			CuAssertTrue(tc, fp->exp == (uint8_t)e);
 			CuAssertTrue(tc, fp->type == udb_chunk_type_free);
 			CuAssertTrue(tc, fp->prev == prev);
@@ -189,11 +192,12 @@ do_A_tests(udb_base* udb, int verb)
 			int w = (int)(num_a++);
 			inf[w].sz = sz;
 			inf[w].fill = random()%255;
-			if(verb) printf("alloc(%llu)", sz);
+			if(verb) printf("alloc(%llu)", (long long unsigned)sz);
 			inf[w].a = udb_alloc_space(udb->alloc, sz);
 			memset(UDB_REL(udb->base, inf[w].a),
 				(int)inf[w].fill, inf[w].sz);
-			if(verb) printf(" = %llu\n", inf[w].a);
+			if(verb) printf(" = %llu\n",
+				(long long unsigned)inf[w].a);
 			udb_ptr_init(&inf[w].ptr, udb);
 			udb_ptr_set(&inf[w].ptr, udb, inf[w].a);
 			CuAssertTrue(tc, inf[w].a);
@@ -201,7 +205,8 @@ do_A_tests(udb_base* udb, int verb)
 			/* free */
 			int w = random() % num_a;
 			if(verb) printf("free(%llu, %llu)\n",
-				inf[w].ptr.data, inf[w].sz);
+				(long long unsigned)inf[w].ptr.data,
+				(long long unsigned)inf[w].sz);
 			CuAssertTrue(tc, udb_alloc_free(udb->alloc, inf[w].ptr.data,
 				inf[w].sz));
 			udb_ptr_set(&inf[w].ptr, udb, 0);
@@ -223,7 +228,7 @@ do_A_tests(udb_base* udb, int verb)
 
 static void test_A(void)
 {
-	char* fname = get_temp_file(".udb");
+	char* fname = udbtest_get_temp_file(".udb");
 	udb_base* udb;
 	int verb = 0;
 	if(verb) printf("Test A (%s)\n", fname);

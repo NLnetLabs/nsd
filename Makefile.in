@@ -75,7 +75,7 @@ NSD_NOTIFY_OBJ=$(COMMON_OBJ) dbaccess.o nsd-notify.o
 NSD_XFER_OBJ=$(COMMON_OBJ) dbaccess.o nsd-xfer.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) dbaccess.o nsd-checkconf.o
 NSD_PATCH_OBJ=$(COMMON_OBJ) dbcreate.o dbaccess.o difffile.o nsd-patch.o
-CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_options.o cutest_region.o cutest_udb.o cutest_util.o cutest.o qtest.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_options.o cutest_region.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
 
 all:	$(CCWHOLE)
 
@@ -183,10 +183,10 @@ nsd-xfer:	$(NSD_XFER_OBJ) $(LIBOBJS)
 nsd-patch:	$(NSD_PATCH_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_PATCH_OBJ) $(LIBOBJS) $(LIBS)
 
-cutest:	$(CUTEST_OBJ)
+cutest:	$(CUTEST_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(LIBS)
 
-udb-inspect:	udb-inspect.o
+udb-inspect:	udb-inspect.o $(LIBOBJS)
 	$(LINK) -o $@ $< $(LIBOBJS) $(LIBS)
 
 clean:
@@ -279,6 +279,9 @@ cutest_region.o:	$(srcdir)/tpkg/cutest/cutest_region.c
 
 cutest_udb.o:	$(srcdir)/tpkg/cutest/cutest_udb.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_udb.c
+
+cutest_udbrad.o:	$(srcdir)/tpkg/cutest/cutest_udbrad.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_udbrad.c
 
 cutest_util.o:	$(srcdir)/tpkg/cutest/cutest_util.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_util.c
@@ -398,7 +401,7 @@ packet.o: $(srcdir)/packet.c config.h $(srcdir)/packet.h $(srcdir)/dns.h $(srcdi
 query.o: $(srcdir)/query.c config.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
  $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/nsec3.h
-radtree.o: $(srcdir)/radtree.c config.h $(srcdir)/radtree.h
+radtree.o: $(srcdir)/radtree.c config.h $(srcdir)/radtree.h $(srcdir)/util.h $(srcdir)/config.h
 rbtree.o: $(srcdir)/rbtree.c config.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h
 rdata.o: $(srcdir)/rdata.c config.h $(srcdir)/rdata.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/zonec.h
@@ -472,6 +475,8 @@ cutest_run.o: $(srcdir)/tpkg/cutest/cutest_run.c config.h $(srcdir)/tpkg/cutest/
  $(srcdir)/tpkg/cutest/qtest.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 cutest_udb.o: $(srcdir)/tpkg/cutest/cutest_udb.c config.h $(srcdir)/tpkg/cutest/cutest.h \
  $(srcdir)/udb.h
+cutest_udbrad.o: $(srcdir)/tpkg/cutest/cutest_udbrad.c config.h \
+ $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/udbradtree.h $(srcdir)/udb.h
 cutest_util.o: $(srcdir)/tpkg/cutest/cutest_util.c config.h $(srcdir)/tpkg/cutest/cutest.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h
 qtest.o: $(srcdir)/tpkg/cutest/qtest.c config.h $(srcdir)/tpkg/cutest/qtest.h $(srcdir)/buffer.h \

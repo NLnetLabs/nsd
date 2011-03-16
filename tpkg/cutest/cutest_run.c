@@ -21,6 +21,7 @@ CuSuite * reg_cutest_iterated_hash(void);
 CuSuite * reg_cutest_dname(void);
 CuSuite * reg_cutest_region(void);
 CuSuite * reg_cutest_udb(void);
+CuSuite * reg_cutest_udb_radtree(void);
 
 /* dummy functions to link */
 struct nsd;
@@ -56,6 +57,7 @@ int runalltests(void)
 	CuSuiteAddSuite(suite, reg_cutest_util());
 	CuSuiteAddSuite(suite, reg_cutest_iterated_hash());
 	CuSuiteAddSuite(suite, reg_cutest_udb());
+	CuSuiteAddSuite(suite, reg_cutest_udb_radtree());
 
 	CuSuiteRunDisplay(suite, disp_callback);
 	fprintf(stderr, "\n");

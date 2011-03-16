@@ -110,12 +110,14 @@ void udb_radix_tree_delete(udb_base* udb, udb_ptr* rt);
  * @param key: key string.
  * @param len: length of key.
  * @param elem: pointer to element data, on the udb store.
+ * @param result: the inserted node is set to this value.  Pass uninited.
+	Not set if the routine fails.
  * @return NULL on failure - out of memory.
  * 	NULL on failure - duplicate entry.
  * 	On success the new radix node for this element (udb_radnode_d).
  */
 udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
-	udb_radstrlen_t len, udb_ptr* elem);
+	udb_radstrlen_t len, udb_ptr* elem, udb_ptr* result);
 
 /**
  * Delete element from radix tree.

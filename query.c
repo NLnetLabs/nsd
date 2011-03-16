@@ -714,7 +714,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 		}
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "created temp domain src %d. %s nr %d", i,
 			dname_to_string(domain_dname(newdom), NULL),
-			newdom->number));
+			(int)newdom->number));
 		lastparent = newdom;
 	}
 	cname_domain = lastparent;
@@ -734,7 +734,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			to_name, domain_dname(to_closest_encloser)->label_count + i + 1);
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "created temp domain dest %d. %s nr %d", i,
 			dname_to_string(domain_dname(newdom), NULL),
-			newdom->number));
+			(int)newdom->number));
 		lastparent = newdom;
 	}
 	cname_dest = lastparent;

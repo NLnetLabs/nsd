@@ -6,6 +6,7 @@
 #include "config.h"
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 #include "udbradtree.h"
 #include "radtree.h"
 #define RADTREE(ptr) ((struct udb_radtree_d*)UDB_PTR(ptr))
@@ -119,10 +120,15 @@ static int udb_radix_find_prefix_node(udb_base* udb, udb_ptr* rt, uint8_t* k,
 	udb_radstrlen_t pos = 0;
 	uint8_t byte;
 	udb_ptr n;
+	printf("prefix start %llx\n", (unsigned long long)result->data);
 	udb_ptr_new(&n, udb, &RADTREE(rt)->root);
+	printf("prefix afternew %llx\n", (unsigned long long)result->data);
 
 	*respos = 0;
+	printf("find_prefix assign root\n");
 	udb_ptr_set_ptr(result, udb, &n);
+	printf("firstassign got accomodate node %llx\n", 
+			(unsigned long long)result->data);
 	if(udb_ptr_is_null(&n)) {
 		udb_ptr_unlink(&n, udb);
 		return 0;
@@ -158,7 +164,11 @@ static int udb_radix_find_prefix_node(udb_base* udb, udb_ptr* rt, uint8_t* k,
 		*respos = pos;
 		udb_ptr_set_ptr(result, udb, &n);
 	}
+	printf("endloop got accomodate node %llx\n", 
+			(unsigned long long)result->data);
 	udb_ptr_unlink(&n, udb);
+	printf("endprefix got accomodate node %llx\n", 
+			(unsigned long long)result->data);
 	return 1;
 }
 
@@ -243,28 +253,36 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 	udb_radstrlen_t len)
 {
 	/* is there an array? */
+	printf("udb_radnode_array_space start, byte=%d strlen=%d\n",
+		(int)byte, (int)len);
 	if(RADNODE(n)->lookup.data == 0 || lookup(n)->capacity == 0) {
 		/* create array */
 		udb_ptr a;
+		uint16_t cap = 1;
+		if(len == 0) cap = 0;
 		if(!udb_ptr_alloc_space(&a, udb, udb_chunk_type_radarray,
-			size_of_lookup_needed(1, len)))
+			size_of_lookup_needed(cap, len)))
 			return 0;
-		memset(UDB_PTR(&a), 0, size_of_lookup_needed(1, len));
+		memset(UDB_PTR(&a), 0, size_of_lookup_needed(cap, len));
 		udb_rptr_set_ptr(&RADNODE(n)->lookup, udb, &a);
-		RADARRAY(&a)->len = 1;
-		RADARRAY(&a)->capacity = 1;
+		RADARRAY(&a)->len = cap;
+		RADARRAY(&a)->capacity = cap;
+		RADARRAY(&a)->str_cap = len;
 		RADNODE(n)->offset = byte;
 		udb_ptr_unlink(&a, udb);
+		printf("udb_radnode_array_space end new\n");
 		return 1;
 	}
 
 	/* make space for this stringsize */
 	if(lookup(n)->str_cap < len) {
+		printf("udb_radnode_array_space do stringsize\n");
 		/* must resize for stringsize */
 		if(!udb_radnode_str_grow(udb, n, len))
 			return 0;
 	}
 
+	printf("udb_radnode_array_space do cases\n");
 	/* other cases */
 	/* is the array unused? */
 	if(lookup(n)->len == 0 && lookup(n)->capacity != 0) {
@@ -551,26 +569,33 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 	return 1;
 }
 
+uint64_t* result_data = NULL;
 udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
-        udb_radstrlen_t len, udb_ptr* elem)
+        udb_radstrlen_t len, udb_ptr* elem, udb_ptr* result)
 {
 	udb_void ret;
 	udb_ptr add, n; /* type udb_radnode_d */
 	udb_radstrlen_t pos = 0;
+	printf("udb_radix_insert len=%d\n", (int)len);
 	/* create new element to add */
 	if(!udb_ptr_alloc_space(&add, udb, udb_chunk_type_radnode,
 		sizeof(struct udb_radnode_d))) {
 		return 0; /* alloc failure */
 	}
 	memset(UDB_PTR(&add), 0, sizeof(struct udb_radnode_d));
+	printf("udb_radix_insert start add radarray space\n");
 	udb_rptr_set_ptr(&RADNODE(&add)->elem, udb, elem);
 	if(!udb_radnode_array_space(udb, &add, 0, 0)) {
 		udb_ptr_free_space(&add, udb, sizeof(struct udb_radnode_d));
 		return 0; /* alloc failure */
 	}
+	printf("udb_radix_insert ptr init\n");
 	udb_ptr_init(&n, udb);
+	result_data = &n.data;
 
 	/* find out where to add it */
+	printf("udb_radix_insert find_prefix, n=%llx\n",
+		(unsigned long long)n.data);
 	if(!udb_radix_find_prefix_node(udb, rt, k, len, &n, &pos)) {
 		/* new root */
 		assert(RADTREE(rt)->root.data == 0);
@@ -582,7 +607,10 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 			if(!udb_ptr_alloc_space(&n, udb,
 				udb_chunk_type_radnode,
 				sizeof(struct udb_radnode_d))) {
-				udb_ptr_unlink(&add, udb);
+				udb_rel_ptr_free_space(&RADNODE(&add)->lookup,
+					udb, size_of_lookup(&add));
+				udb_ptr_free_space(&add, udb,
+					sizeof(struct udb_radnode_d));
 				udb_ptr_unlink(&n, udb);
 				return 0; /* alloc failure */
 			}
@@ -629,6 +657,8 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 		uint8_t byte;
 		assert(pos < len);
 		byte = k[pos];
+		printf("insert got accomodate node %llx\n", 
+			(unsigned long long)n.data);
 
 		/* see if it falls outside of array */
 		if(byte < RADNODE(&n)->offset || byte-RADNODE(&n)->offset >=
@@ -647,6 +677,8 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 				offset<lookup(&n)->len);
 			byte -= RADNODE(&n)->offset;
 			/* see if more prefix needs to be split off */
+			printf("outside of array, split off pos %d len %d\n",
+				(int)pos, (int)len);
 			if(pos+1 < len) {
 				udb_radsel_str_create(lookup_string(&n, byte),
 					&lookup(&n)->array[byte].len,
@@ -661,10 +693,12 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 		} else if(lookup(&n)->array[byte - RADNODE(&n)->offset]
 			.node.data == 0) {
 			/* use existing bucket */
+			printf("existbucket byte %d %c, split off pos %d len %d\n",
+				(int)byte, byte, (int)pos, (int)len);
 			byte -= RADNODE(&n)->offset;
 			if(pos+1 < len) {
 				/* make space and split off more prefix */
-				if(!udb_radnode_array_space(udb, &n, byte,
+				if(!udb_radnode_str_space(udb, &n,
 					len-(pos+1))) {
 					udb_rel_ptr_free_space(
 						&RADNODE(&add)->lookup,
@@ -702,6 +736,8 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 	}
 	RADTREE(rt)->count ++;
 	ret = add.data;
+	udb_ptr_init(result, udb);
+	udb_ptr_set_ptr(result, udb, &add);
 	udb_ptr_unlink(&add, udb);
 	udb_ptr_unlink(&n, udb);
 	return ret;
@@ -740,6 +776,7 @@ udb_radnode_cleanup_onechild(udb_base* udb, udb_ptr* n)
 		/* the tree is inefficient, with node n still existing */
 		udb_ptr_unlink(&par, udb);
 		udb_ptr_unlink(&child, udb);
+		udb_ptr_zero(n, udb);
 		return 0;
 	}
 	/* the string(par, pidx) is already there */
@@ -757,6 +794,7 @@ udb_radnode_cleanup_onechild(udb_base* udb, udb_ptr* n)
 	udb_radnode_delete(udb, n);
 	udb_ptr_unlink(&par, udb);
 	udb_ptr_unlink(&child, udb);
+	udb_ptr_zero(n, udb);
 	return 1;
 }
 
@@ -809,8 +847,10 @@ static int
 udb_radarray_reduce_if_needed(udb_base* udb, udb_ptr* n)
 {
 	udb_radstrlen_t maxlen = udb_radarray_max_len(n);
-	if(lookup(n)->len <= lookup(n)->capacity/2
-		|| maxlen <= lookup(n)->str_cap/2)
+	if((lookup(n)->len <= lookup(n)->capacity/2
+		|| maxlen <= lookup(n)->str_cap/2) &&
+		(lookup(n)->len != lookup(n)->capacity ||
+		lookup(n)->str_cap != maxlen))
 		return udb_radarray_reduce(udb, n, lookup(n)->len, maxlen);
 	return 1;
 }
@@ -928,6 +968,7 @@ udb_radnode_cleanup(udb_base* udb, udb_ptr* rt, udb_ptr* n)
 	while(!udb_ptr_is_null(n)) {
 		if(RADNODE(n)->elem.data) {
 			/* cannot delete node with a data element */
+			udb_ptr_zero(n, udb);
 			return 1;
 		} else if(lookup(n)->len == 1 && RADNODE(n)->parent.data) {
 			return udb_radnode_cleanup_onechild(udb, n);
@@ -950,6 +991,7 @@ udb_radnode_cleanup(udb_base* udb, udb_ptr* rt, udb_ptr* n)
 			udb_ptr_unlink(&par, udb);
 		} else {
 			/* node cannot be cleaned up */
+			udb_ptr_zero(n, udb);
 			return 1;
 		}
 	}
@@ -1058,6 +1100,36 @@ udb_radnode_last_in_subtree_incl_self(udb_base* udb, udb_ptr* n)
 	}
 	udb_ptr_zero(n, udb);
 	udb_ptr_unlink(&self, udb);
+}
+
+/** return first elem-containing node in this subtree (excl self) */
+static void
+udb_radnode_first_in_subtree(udb_base* udb, udb_ptr* n)
+{
+	unsigned idx;
+	/* try every subnode */
+	for(idx=0; idx<lookup(n)->len; idx++) {
+		if(lookup(n)->array[idx].node.data) {
+			udb_ptr s;
+			udb_ptr_init(&s, udb);
+			udb_ptr_set_rptr(&s, udb, &lookup(n)->array[idx].node);
+			/* does it have elem itself? */
+			if(RADNODE(&s)->elem.data) {
+				udb_ptr_set_ptr(n, udb, &s);
+				udb_ptr_unlink(&s, udb);
+				return;
+			}
+			/* try its subtrees */
+			udb_radnode_first_in_subtree(udb, &s);
+			if(!udb_ptr_is_null(&s)) {
+				udb_ptr_set_ptr(n, udb, &s);
+				udb_ptr_unlink(&s, udb);
+				return;
+			}
+
+		}
+	}
+	udb_ptr_zero(n, udb);
 }
 
 /** Find an entry in arrays from idx-1 to 0 */
@@ -1226,10 +1298,69 @@ void udb_radix_last(udb_base* udb, udb_ptr* rt, udb_ptr* p)
 
 void udb_radix_next(udb_base* udb, udb_ptr* n)
 {
-	/* TODO */
+	udb_ptr s;
+	udb_ptr_init(&s, udb);
+	if(lookup(n)->len) {
+		/* go down */
+		udb_ptr_set_ptr(&s, udb, n);
+		udb_radnode_first_in_subtree(udb, &s);
+		if(!udb_ptr_is_null(&s)) {
+			udb_ptr_set_ptr(n, udb, &s);
+			udb_ptr_unlink(&s, udb);
+			return;
+		}
+	}
+	/* go up - the parent->elem is not useful, because it is before us */
+	while(RADNODE(n)->parent.data) {
+		unsigned idx = RADNODE(n)->pidx;
+		udb_ptr_set_rptr(n, udb, &RADNODE(n)->parent);
+		idx++;
+		for(; idx < lookup(n)->len; idx++) {
+			/* go down the next branch */
+			if(lookup(n)->array[idx].node.data) {
+				udb_ptr_set_rptr(&s, udb,
+					&lookup(n)->array[idx].node);
+				/* node itself */
+				if(RADNODE(&s)->elem.data) {
+					udb_ptr_set_ptr(n, udb, &s);
+					udb_ptr_unlink(&s, udb);
+					return;
+				}
+				/* or subtree */
+				udb_radnode_first_in_subtree(udb, &s);
+				if(!udb_ptr_is_null(&s)) {
+					udb_ptr_set_ptr(n, udb, &s);
+					udb_ptr_unlink(&s, udb);
+					return;
+				}
+			}
+		}
+	}
+	udb_ptr_unlink(&s, udb);
+	udb_ptr_zero(n, udb);
 }
 
 void udb_radix_prev(udb_base* udb, udb_ptr* n)
 {
-	/* TODO */
+	/* must go up, since all array nodes are after this node */
+	while(RADNODE(n)->parent.data) {
+		uint8_t idx = RADNODE(n)->pidx;
+		udb_ptr s;
+		udb_ptr_set_rptr(n, udb, &RADNODE(n)->parent);
+		assert(lookup(n)->len > 0); /* since we are a child */
+		/* see if there are elements in previous branches there */
+		udb_ptr_init(&s, udb);
+		udb_ptr_set_ptr(&s, udb, n);
+		udb_radnode_find_prev_from_idx(udb, &s, idx);
+		if(!udb_ptr_is_null(&s)) {
+			udb_ptr_set_ptr(n, udb, &s);
+			udb_ptr_unlink(&s, udb);
+			return;
+		}
+		udb_ptr_unlink(&s, udb);
+		/* the current node is before the array */
+		if(RADNODE(n)->elem.data)
+			return;
+	}
+	udb_ptr_zero(n, udb);
 }

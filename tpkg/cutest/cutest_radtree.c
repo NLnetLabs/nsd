@@ -281,8 +281,8 @@ static void test_check_closest_match_inexact(struct radtree* rt)
 		gen_ran_str_len(buf, &len, sizeof(buf));
 		n = NULL;
 		if(radix_find_less_equal(rt, buf, len, &n)) {
-			CuAssert(tc, "find_le", n);
-			CuAssert(tc, "find_le", n->elem);
+			CuAssert(tc, "find_le", n != NULL);
+			CuAssert(tc, "find_le", n->elem != NULL);
 			/* check exact match */
 			t = (struct teststr*)n->elem;
 			CuAssert(tc, "find_le", t->mylen == len);
@@ -299,7 +299,7 @@ static void test_check_closest_match_inexact(struct radtree* rt)
 				}
 			} else {
 				struct radnode* nx;
-				CuAssert(tc, "find_le", n->elem);
+				CuAssert(tc, "find_le", n->elem != NULL);
 				/* n is before the item */
 				t = (struct teststr*)n->elem;
 				CuAssert(tc, "find_le", bstr_cmp(t->mystr, t->mylen,
@@ -359,7 +359,7 @@ static void test_check_dname_search(struct radtree* rt)
 		struct radnode* found;
 		CuAssert(tc, "radname_search", n && s);
 		found = radname_search(rt, s->dname, s->dname_len);
-		CuAssert(tc, "radname_search", found);
+		CuAssert(tc, "radname_search", found != NULL);
 		CuAssert(tc, "radname_search", found == n);
 	}
 }
@@ -374,7 +374,7 @@ static void test_check_dname_closest_exact(struct radtree* rt)
 		CuAssert(tc, "radname_find_le", n && s);
 		if(radname_find_less_equal(rt, s->dname, s->dname_len, &found)){
 			/* exact match is expected */
-			CuAssert(tc, "radname_find_le", found);
+			CuAssert(tc, "radname_find_le", found != NULL);
 			CuAssert(tc, "radname_find_le", found == n);
 		} else {
 			CuAssert(tc, "radname_find_le", 0);
@@ -403,8 +403,8 @@ static void test_check_dname_closest_inexact(struct radtree* rt)
 		radname_d2r(radname, &rlen, dname, (size_t)dlen);
 		n = NULL;
 		if(radname_find_less_equal(rt, dname, (size_t)dlen, &n)) {
-			CuAssert(tc, "radname_find", n);
-			CuAssert(tc, "radname_find", n->elem);
+			CuAssert(tc, "radname_find", n != NULL);
+			CuAssert(tc, "radname_find", n->elem != NULL);
 			/* check exact match */
 			t = (struct teststr*)n->elem;
 			CuAssert(tc, "radname_find", t->mylen == rlen);
@@ -421,7 +421,7 @@ static void test_check_dname_closest_inexact(struct radtree* rt)
 				}
 			} else {
 				struct radnode* nx;
-				CuAssert(tc, "radname_find", n->elem);
+				CuAssert(tc, "radname_find", n->elem != NULL);
 				/* n is before the item */
 				t = (struct teststr*)n->elem;
 				CuAssert(tc, "radname_find", bstr_cmp(t->mystr, t->mylen,
@@ -519,14 +519,14 @@ test_insert_string(struct radtree* rt, char* str)
 	size_t len = strlen(str);
 	struct teststr* s = (struct teststr*)calloc(1, sizeof(*s));
 	struct radnode* n;
-	CuAssert(tc, "insert", s);
+	CuAssert(tc, "insert", s != NULL);
 	s->mylen = len;
 	s->mystr = (uint8_t*)strdup(str);
-	CuAssert(tc, "insert", s->mystr);
+	CuAssert(tc, "insert", s->mystr != NULL);
 	if(verb) fprintf(stderr, "radix insert: '%s'\n", str);
 	n = radix_insert(rt, s->mystr, s->mylen, s);
 	s->mynode = n;
-	CuAssert(tc, "insert", n);
+	CuAssert(tc, "insert", n != NULL);
 	/*test_tree_print(rt);*/
 	test_checks(rt);
 }
@@ -540,15 +540,15 @@ test_insert_dname(struct radtree* rt, uint8_t* dname, size_t len)
 	if(radname_search(rt, dname, len))
 		return;
 	s = (struct teststr*)calloc(1, sizeof(*s));
-	CuAssert(tc, "insert", s);
+	CuAssert(tc, "insert", s != NULL);
 	s->dname_len = len;
 	s->dname = (uint8_t*)malloc(len);
-	CuAssert(tc, "insert", s->dname);
+	CuAssert(tc, "insert", s->dname != NULL);
 	memcpy(s->dname, dname, len);
 	/* convert it */
 	s->mystr = (uint8_t*)malloc(len);
 	s->mylen = len;
-	CuAssert(tc, "insert", s->mystr);
+	CuAssert(tc, "insert", s->mystr != NULL);
 	radname_d2r(s->mystr, &s->mylen, dname, len);
 	/* check that its inverse conversion is the original */
 	if(1) {
@@ -566,7 +566,7 @@ test_insert_dname(struct radtree* rt, uint8_t* dname, size_t len)
 	}
 	n = radix_insert(rt, s->mystr, s->mylen, s);
 	s->mynode = n;
-	CuAssert(tc, "insert", n);
+	CuAssert(tc, "insert", n != NULL);
 	/*test_tree_print(rt);*/
 	test_checks(rt);
 	test_checks_dname(rt);
@@ -634,7 +634,7 @@ test_del_a_key(struct radtree* rt)
 		n = radix_next(n);
 	}
 	if(!n) return;
-	CuAssert(tc, "radix_delete", n->elem);
+	CuAssert(tc, "radix_delete", n->elem != NULL);
 	t = (struct teststr*)n->elem;
 	if(verb) fprintf(stderr, "delkey %p \telem ", n);
 	if(verb) test_print_str(t->mystr, t->mylen);

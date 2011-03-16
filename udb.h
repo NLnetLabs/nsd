@@ -621,7 +621,8 @@ static inline void udb_ptr_new(udb_ptr* ptr, udb_base* udb, udb_rel_ptr* d) {
 
 /** Ease of use.  Stop using this ptr */
 static inline void udb_ptr_unlink(udb_ptr* ptr, udb_base* udb) {
-	udb_base_unlink_ptr(udb, ptr);
+	if(ptr->data)
+		udb_base_unlink_ptr(udb, ptr);
 }
 
 /* Ease of use.  Assign rptr from rptr */

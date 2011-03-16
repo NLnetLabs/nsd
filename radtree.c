@@ -11,13 +11,14 @@
 #include <unistd.h>
 #include <time.h>
 #include "radtree.h"
+#include "util.h"
 
 #include <stdio.h>
 #include <ctype.h>
 
 struct radtree* radix_tree_create(void)
 {
-	struct radtree* rt = (struct radtree*)malloc(sizeof(*rt));
+	struct radtree* rt = (struct radtree*)xalloc(sizeof(*rt));
 	if(!rt) return NULL;
 	radix_tree_init(rt);
 	return rt;
@@ -187,7 +188,7 @@ radnode_array_grow(struct radnode* n, unsigned want)
 	if(ns > 256) ns = 256;
 	/* we do not use realloc, because we want to keep the old array
 	 * in case alloc fails, so that the tree is still usable */
-	a = (struct radsel*)malloc(ns*sizeof(struct radsel));
+	a = (struct radsel*)xalloc(ns*sizeof(struct radsel));
 	if(!a) return 0;
 	assert(n->len <= n->capacity);
 	assert(n->capacity < ns);
@@ -204,7 +205,7 @@ radnode_array_space(struct radnode* n, uint8_t byte)
 {
 	/* is there an array? */
 	if(!n->array || n->capacity == 0) {
-		n->array = (struct radsel*)malloc(sizeof(struct radsel));
+		n->array = (struct radsel*)xalloc(sizeof(struct radsel));
 		if(!n->array) return 0;
 		memset(&n->array[0], 0, sizeof(struct radsel));
 		n->len = 1;
@@ -259,7 +260,7 @@ static int
 radsel_str_create(struct radsel* r, uint8_t* k, radstrlen_t pos,
 	radstrlen_t len)
 {
-	r->str = (uint8_t*)malloc(sizeof(uint8_t)*(len-pos));
+	r->str = (uint8_t*)xalloc(sizeof(uint8_t)*(len-pos));
 	if(!r->str)
 		return 0; /* out of memory */
 	memmove(r->str, k+pos, len-pos);
@@ -313,7 +314,7 @@ radsel_prefix_remainder(radstrlen_t plen,
 	uint8_t** s, radstrlen_t* slen)
 {
 	*slen = llen - plen;
-	*s = (uint8_t*)malloc((*slen)*sizeof(uint8_t));
+	*s = (uint8_t*)xalloc((*slen)*sizeof(uint8_t));
 	if(!*s)
 		return 0;
 	memmove(*s, l+plen, llen-plen);
@@ -353,7 +354,7 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 				return 0;
 		}
 		if(addlen != 0) {
-			dupstr = (uint8_t*)malloc(addlen*sizeof(uint8_t));
+			dupstr = (uint8_t*)xalloc(addlen*sizeof(uint8_t));
 			if(!dupstr) {
 				free(split_str);
 				return 0;
@@ -415,7 +416,8 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 		assert(common_len < addlen);
 
 		/* create the new node for choice */
-		struct radnode* com = (struct radnode*)calloc(1, sizeof(*com));
+		struct radnode* com = (struct radnode*)
+			xalloc_zero(sizeof(*com));
 		if(!com) return 0; /* out of memory */
 
 		/* create the two substrings for subchoices */
@@ -438,7 +440,7 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 
 		/* create the shared prefix to go in r */
 		if(common_len > 0) {
-			common_str = (uint8_t*)malloc(
+			common_str = (uint8_t*)xalloc(
 				common_len*sizeof(uint8_t*));
 			if(!common_str) {
 				free(com);
@@ -487,7 +489,7 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 	struct radnode* n;
 	radstrlen_t pos = 0;
 	/* create new element to add */
-	struct radnode* add = (struct radnode*)calloc(1, sizeof(*add));
+	struct radnode* add = (struct radnode*)xalloc_zero(sizeof(*add));
 	if(!add) return NULL; /* out of memory */
 	add->elem = elem;
 
@@ -499,7 +501,7 @@ struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
 			rt->root = add;
 		} else {
 			/* add a root to point to new node */
-			n = (struct radnode*)calloc(1, sizeof(*n));
+			n = (struct radnode*)xalloc_zero(sizeof(*n));
 			if(!n) return NULL;
 			if(!radnode_array_space(n, k[0])) {
 				free(n->array);
@@ -619,7 +621,7 @@ radnode_cleanup_onechild(struct radnode* n, struct radnode* par)
 	/* at parent, append child->str to array str */
 	assert(pidx < par->len);
 	joinlen = par->array[pidx].len + n->array[0].len + 1;
-	join = (uint8_t*)malloc(joinlen*sizeof(uint8_t));
+	join = (uint8_t*)xalloc(joinlen*sizeof(uint8_t));
 	if(!join) {
 		/* cleanup failed due to out of memory */
 		/* the tree is inefficient, with node n still existing */
@@ -649,11 +651,23 @@ radnode_array_clean_all(struct radnode* n)
 {
 	n->offset = 0;
 	n->len = 0;
-	/* see if capacity can be reduced */
-	if(n->capacity > 16) {
+	/* shrink capacity */
+	free(n->array);
+	n->array = NULL;
+	n->capacity = 0;
+}
+
+/** see if capacity can be reduced for the given node array */
+static void
+radnode_array_reduce_if_needed(struct radnode* n)
+{
+	if(n->len <= n->capacity/2 && n->len != n->capacity) {
+		struct radsel* a = (struct radsel*)xalloc(sizeof(*a)*n->len);
+		if(!a) return;
+		memcpy(a, n->array, sizeof(*a)*n->len);
 		free(n->array);
-		n->array = NULL;
-		n->capacity = 0;
+		n->array = a;
+		n->capacity = n->len;
 	}
 }
 
@@ -682,7 +696,8 @@ radnode_array_clean_front(struct radnode* n)
 	for(idx=0; idx<n->len; idx++)
 		if(n->array[idx].node)
 			n->array[idx].node->pidx = idx;
-	/* note that capacity stays the same */
+	/* see if capacity can be reduced */
+	radnode_array_reduce_if_needed(n);
 }
 
 /** remove NULL nodes from end of array */
@@ -704,7 +719,8 @@ radnode_array_clean_end(struct radnode* n)
 	assert(shuf < n->len);
 	n->len -= shuf;
 	/* array elements can stay where they are */
-	/* note that capacity stays the same */
+	/* see if capacity can be reduced */
+	radnode_array_reduce_if_needed(n);
 }
 
 /** clean up radnode leaf, where we know it has a parent */
