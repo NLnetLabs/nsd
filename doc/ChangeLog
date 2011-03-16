@@ -1,4 +1,7 @@
-14 March 2011: Wouter:
+16 March 2011: Matthijs
+	- undo fix bug#325: messes up dname compression
+
+14 March 2011: Wouter
 	- udb code added.  uses lookup3 from unbound (public domain).
 	- unit test for radix tree in cutest.
 	- unit test for udb in cutest.
@@ -6,17 +9,17 @@
 	  for debug, not installed or built by default.
 	- removed --disable-radixtree option.
 
-11 March 2011: Wouter:
+11 March 2011: Wouter
 	- Removed precompile features, speed gain took too much memory.
 	- domain number to size_t.
 
-9 March 2011: Wouter:
+9 March 2011: Wouter
 	- DNAME synthesis of CNAME.  Uses TTL of the DNAME record.
 	- nsec3 and wildcard code.  No additional section for wildcards.
 	  Also CNAME and DNAME replies contain only that record (and synth
 	  CNAME), the chain is not followed.
 
-8 March 2011: Wouter:
+8 March 2011: Wouter
 	- precompile work:
 		class ANY gets AA flag, SOA and type-NS processing, just
 		like BIND (9.6) and it simplifies processing for NSD.
@@ -24,13 +27,13 @@
 	  there are no differences in a 49000 query testset against the root,
 	  without EDNS.
 
-7 March 2011: Wouter:
+7 March 2011: Wouter
 	- check chown value and report high verbosity its error.
 
-3 March 2011: Matthijs:
+3 March 2011: Matthijs
 	- fix #bug352: fix hardcoded paths in manpages.
 
-2 March 2011: Matthijs:
+2 March 2011: Matthijs
 	- fix #bug354: make realclean cleans too much
 	- added make devclean for cleaning up autoconf and automake stuff
 	- Fix hardcoded paths in nsd.conf.sample and nsd.conf.5

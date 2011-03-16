@@ -17,6 +17,8 @@ BUG FIXES:
 	  warning messages.
 	- Bugfix #363: nsd-checkconf -v does not print outgoing-interface ok.
 	- Bugfix: nsd-checkconf -o outgoing-interface omits NOKEY.
+	- Undo bugfix #325: Don't skip dname compression, messes up packets
+	  that do need compression.
 
 OPERATIONAL NOTES:
 	- Use 'make clean' to clean up files that make created.
