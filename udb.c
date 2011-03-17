@@ -1078,8 +1078,8 @@ udb_alloc_xl_space(void* base, udb_alloc* alloc, size_t sz)
 {
 	/* allocate whole mbs of space, at end of space */
 	uint64_t asz = sz + sizeof(udb_xl_chunk_d) + sizeof(uint64_t)*2;
-	uint64_t need = (sz & (UDB_ALLOC_CHUNK_SIZE-1)) + UDB_ALLOC_CHUNK_SIZE;
-	uint64_t grow_end = alloc->disk->nextgrow + need;
+	uint64_t need=(asz+UDB_ALLOC_CHUNK_SIZE-1)&(~(UDB_ALLOC_CHUNK_SIZE-1));
+	uint64_t grow_end = grow_end_calc(alloc, UDB_ALLOC_CHUNKS_MAX) + need;
 	assert(need >= asz);
 	if(grow_end <= alloc->udb->base_size) {
 		/* can do this in available space */

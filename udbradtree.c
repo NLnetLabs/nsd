@@ -187,6 +187,8 @@ static int udb_radnode_str_grow(udb_base* udb, udb_ptr* n, udb_radstrlen_t want)
 	unsigned ns = ((unsigned)lookup(n)->str_cap)*2;
 	unsigned i;
 	udb_ptr a;
+	printf("udb_radnode_str_grow str_cap=%d want=%d\n",
+		(int)lookup(n)->str_cap, (int)want);
 	if(want > ns)
 		ns = want;
 	if(ns > 65535) ns = 65535; /* MAX of udb_radstrlen_t range */
@@ -220,6 +222,8 @@ static int udb_radnode_array_grow(udb_base* udb, udb_ptr* n, size_t want)
 	unsigned ns = ((unsigned)lookup(n)->capacity)*2;
 	udb_ptr a;
 	assert(want <= 256); /* cannot be more, range of uint8 */
+	printf("udb_radnode_array_grow now=%d want=%d\n",
+		(int)lookup(n)->capacity, (int)want);
 	if(want > ns)
 		ns = want;
 	if(ns > 256) ns = 256;
@@ -249,6 +253,31 @@ static int udb_radnode_array_grow(udb_base* udb, udb_ptr* n, size_t want)
 	return 1;
 }
 
+/** make empty array in radnode */
+static int udb_radnode_array_create(udb_base* udb, udb_ptr* n)
+{
+	/* is there an array? */
+	printf("udb_radnode_array_create start\n");
+	if(RADNODE(n)->lookup.data == 0) {
+		/* create array */
+		udb_ptr a;
+		uint16_t cap = 0;
+		udb_radstrlen_t len = 0;
+		if(!udb_ptr_alloc_space(&a, udb, udb_chunk_type_radarray,
+			size_of_lookup_needed(cap, len)))
+			return 0;
+		memset(UDB_PTR(&a), 0, size_of_lookup_needed(cap, len));
+		udb_rptr_set_ptr(&RADNODE(n)->lookup, udb, &a);
+		RADARRAY(&a)->len = cap;
+		RADARRAY(&a)->capacity = cap;
+		RADARRAY(&a)->str_cap = len;
+		RADNODE(n)->offset = 0;
+		udb_ptr_unlink(&a, udb);
+	}
+	printf("udb_radnode_array_create end\n");
+	return 1;
+}
+
 /** make space in radnode for another byte, or longer strings */
 static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 	udb_radstrlen_t len)
@@ -260,7 +289,6 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 		/* create array */
 		udb_ptr a;
 		uint16_t cap = 1;
-		if(len == 0) cap = 0;
 		if(!udb_ptr_alloc_space(&a, udb, udb_chunk_type_radarray,
 			size_of_lookup_needed(cap, len)))
 			return 0;
@@ -290,7 +318,6 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 		lookup(n)->len = 1;
 		RADNODE(n)->offset = byte;
 		memset(&lookup(n)->array[0], 0, sizeof(struct udb_radsel_d));
-		lookup_string(n, 0)[0] = 0;
 	/* is it below the offset? */
 	} else if(byte < RADNODE(n)->offset) {
 		/* is capacity enough? */
@@ -316,14 +343,12 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 		for(i = 0; i < (int)need; i++) {
 			udb_rptr_zero(&lookup(n)->array[i].node, udb);
 			lookup(n)->array[i].len = 0;
-			lookup_string(n, i)[0] = 0;
 		}
 		lookup(n)->len += need;
 		RADNODE(n)->offset = byte;
 	/* is it above the max? */
 	} else if(byte - RADNODE(n)->offset >= lookup(n)->len) {
 		/* is capacity enough? */
-		unsigned idx;
 		unsigned need = (byte-RADNODE(n)->offset) - lookup(n)->len + 1;
 		/* grow array */
 		if(lookup(n)->len + need > lookup(n)->capacity) {
@@ -331,8 +356,6 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 				return 0;
 		}
 		/* added entries already zeroed */
-		for(idx = lookup(n)->len; idx < lookup(n)->len+need; idx++)
-			lookup_string(n, idx)[0] = 0;
 		/* grow length */
 		lookup(n)->len += need;
 	}
@@ -389,6 +412,18 @@ udb_bstr_is_prefix(uint8_t* p, udb_radstrlen_t plen,
 	return bstr_is_prefix_ext(p, plen, x, xlen);
 }
 
+/** grow array space for byte N after a string, (but if string shorter) */
+static int
+udb_radnode_array_space_strremain(udb_base* udb, udb_ptr* n,
+	uint8_t* str, udb_radstrlen_t len, udb_radstrlen_t pos)
+{
+	printf("space strremain str len %d pos %d\n", (int)len, (int)pos);
+	assert(pos < len);
+	/* shift by one char because it goes in lookup array */
+	return udb_radnode_array_space(udb, n, str[pos], len-(pos+1));
+}
+
+
 /** radsel create a split when two nodes have shared prefix.
  * @param udb: udb
  * @param n: node with the radsel that gets changed, it contains a node.
@@ -408,6 +443,7 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 	if(udb_bstr_is_prefix(addstr, addlen, lookup_string(n, idx),
 		lookup_len(n, idx))) {
 		udb_radstrlen_t split_len = 0;
+		printf("radsel split with 'add'prefix\n");
 		/* 'add' is a prefix of r.node */
 		/* also for empty addstr */
 		/* set it up so that the 'add' node has r.node as child */
@@ -436,7 +472,6 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 				lookup_string(add, 0),
 				&lookup(add)->array[0].len);
 		} else {
-			lookup_string(add, 0)[0] = 0;
 			lookup(add)->array[0].len = 0;
 		}
 		udb_rptr_set_ptr(&lookup_node(n, idx)->parent, udb, add);
@@ -449,6 +484,7 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 		addstr, addlen)) {
 		udb_radstrlen_t split_len = 0;
 		udb_ptr rnode;
+		printf("radsel split with 'r.node'prefix\n");
 		/* r.node is a prefix of 'add' */
 		/* set it up so that the 'r.node' has 'add' as child */
 		/* and basically, r.node is already completely fine,
@@ -479,7 +515,6 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 				&lookup(&rnode)->array[ RADNODE(add)->pidx]
 				.len);
 		} else {
-			lookup_string(&rnode, RADNODE(add)->pidx)[0] = 0;
 			lookup(&rnode)->array[ RADNODE(add)->pidx].len = 0;
 		}
 		udb_ptr_unlink(&rnode, udb);
@@ -494,26 +529,12 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 			addstr, addlen);
 		assert(common_len < lookup_len(n, idx));
 		assert(common_len < addlen);
-		printf("radsel split with common , common_len=%d\n",
+		printf("radsel split with common, common_len=%d\n",
 			(int)common_len);
+		printf("n,idx len %d  addlen %d\n",
+			(int)lookup_len(n, idx), (int)addlen);
 		udb_ptr_new(&rnode, udb, &lookup(n)->array[idx].node);
 
-		/* make stringspace for the two substring choices */
-		if(lookup_len(n, idx) - common_len > 1) {
-			/* shift by one char because it goes in lookup array */
-			if(!udb_radnode_str_space(udb, &rnode,
-				lookup_len(n, idx)-(common_len+1))) {
-				udb_ptr_unlink(&rnode, udb);
-				return 0;
-			}
-		}
-		if(addlen-common_len > 1) {
-			if(!udb_radnode_str_space(udb, add,
-				addlen-(common_len+1))) {
-				udb_ptr_unlink(&rnode, udb);
-				return 0;
-			}
-		}
 		/* create the new node for choice */
 		if(!udb_ptr_alloc_space(&com, udb, udb_chunk_type_radnode,
 			sizeof(struct udb_radnode_d))) {
@@ -521,10 +542,25 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 			return 0; /* out of space */
 		}
 		memset(UDB_PTR(&com), 0, sizeof(struct udb_radnode_d));
-		/* create stringspace for the shared prefix,
-		 * this allocates the com->lookup array */
-		if(!udb_radnode_str_space(udb, &com, common_len)) {
+		/* make stringspace for the two substring choices */
+		/* this allocates the com->lookup array */
+		if(!udb_radnode_array_space_strremain(udb, &com,
+			lookup_string(n, idx), lookup_len(n, idx), common_len)
+		   || !udb_radnode_array_space_strremain(udb, &com,
+			addstr, addlen, common_len)) {
 			udb_ptr_unlink(&rnode, udb);
+			if(RADNODE(&com)->lookup.data)
+				udb_rel_ptr_free_space(&RADNODE(&com)->lookup,
+					udb, size_of_lookup(&com));
+			udb_ptr_free_space(&com, udb,
+				sizeof(struct udb_radnode_d));
+			return 0;
+		}
+		/* create stringspace for the shared prefix */
+		if(!udb_radnode_str_space(udb, &rnode, common_len)) {
+			udb_ptr_unlink(&rnode, udb);
+			udb_rel_ptr_free_space(&RADNODE(&com)->lookup,
+				udb, size_of_lookup(&com));
 			udb_ptr_free_space(&com, udb,
 				sizeof(struct udb_radnode_d));
 			return 0;
@@ -547,7 +583,6 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 			lookup_string(&com, RADNODE(&rnode)->pidx),
 			&lookup(&com)->array[RADNODE(&rnode)->pidx].len);
 		} else {
-			lookup_string(&com, RADNODE(&rnode)->pidx)[0] = 0;
 			lookup(&com)->array[RADNODE(&rnode)->pidx].len= 0;
 		}
 		udb_rptr_set_ptr(&lookup(&com)->array[RADNODE(add)->pidx]
@@ -558,7 +593,6 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 			lookup_string(&com, RADNODE(add)->pidx),
 			&lookup(&com)->array[RADNODE(add)->pidx].len);
 		} else {
-			lookup_string(&com, RADNODE(add)->pidx)[0] = 0;
 			lookup(&com)->array[RADNODE(add)->pidx].len = 0;
 		}
 		memmove(lookup_string(n, idx), addstr, common_len);
@@ -586,7 +620,7 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 	memset(UDB_PTR(&add), 0, sizeof(struct udb_radnode_d));
 	printf("udb_radix_insert start add radarray space\n");
 	udb_rptr_set_ptr(&RADNODE(&add)->elem, udb, elem);
-	if(!udb_radnode_array_space(udb, &add, 0, 0)) {
+	if(!udb_radnode_array_create(udb, &add)) {
 		udb_ptr_free_space(&add, udb, sizeof(struct udb_radnode_d));
 		return 0; /* alloc failure */
 	}
@@ -749,9 +783,12 @@ static void udb_radnode_delete(udb_base* udb, udb_ptr* n)
 {
 	if(udb_ptr_is_null(n))
 		return;
+	printf("radnode delete %llx\n", (unsigned long long)n->data);
 	udb_radarray_zero_ptrs(udb, n);
+	printf("radnode lookupdelete %llx\n", (unsigned long long)n->data);
 	udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb,
 		size_of_lookup(n));
+	printf("radnode freenode %llx\n", (unsigned long long)n->data);
 	udb_ptr_free_space(n, udb, sizeof(struct udb_radnode_d));
 }
 
@@ -859,6 +896,7 @@ udb_radarray_reduce_if_needed(udb_base* udb, udb_ptr* n)
 static int
 udb_radnode_array_clean_all(udb_base* udb, udb_ptr* n)
 {
+	printf("udb_radnode_array_clean_all\n");
 	RADNODE(n)->offset = 0;
 	lookup(n)->len = 0;
 	/* reallocate lookup to a smaller capacity structure */
@@ -874,6 +912,7 @@ udb_radnode_array_clean_front(udb_base* udb, udb_ptr* n)
 	/* remove until a nonNULL entry */
 	while(shuf < lookup(n)->len && lookup(n)->array[shuf].node.data == 0)
 		shuf++;
+	printf("udb_radnode_array_clean_front %d\n", (int)shuf);
 	if(shuf == 0)
 		return 1;
 	if(shuf == lookup(n)->len) {
@@ -909,6 +948,7 @@ udb_radnode_array_clean_end(udb_base* udb, udb_ptr* n)
 	while(shuf < lookup(n)->len && lookup(n)->array[lookup(n)->len-1-shuf]
 		.node.data == 0)
 		shuf++;
+	printf("udb_radnode_array_clean_end %d\n", (int)shuf);
 	if(shuf == 0)
 		return 1;
 	if(shuf == lookup(n)->len) {
@@ -928,15 +968,19 @@ udb_radnode_cleanup_leaf(udb_base* udb, udb_ptr* n, udb_ptr* par)
 {
 	uint8_t pidx;
 	/* node was a leaf */
+
 	/* delete leaf node, but store parent+idx */
 	pidx = RADNODE(n)->pidx;
+	assert(pidx < lookup(par)->len);
+
+	/** set parent ptr to this node to NULL before deleting the node,
+	 * because otherwise ptrlinks fail */
+	udb_rptr_zero(&lookup(par)->array[pidx].node, udb);
+
 	udb_radnode_delete(udb, n);
 
 	/* set parent+idx entry to NULL str and node.*/
-	assert(pidx < lookup(par)->len);
-	lookup_string(par, pidx)[0] = 0;
 	lookup(par)->array[pidx].len = 0;
-	udb_rptr_zero(&lookup(par)->array[pidx].node, udb);
 
 	/* see if par offset or len must be adjusted */
 	if(lookup(par)->len == 1) {
@@ -967,14 +1011,19 @@ static int
 udb_radnode_cleanup(udb_base* udb, udb_ptr* rt, udb_ptr* n)
 {
 	while(!udb_ptr_is_null(n)) {
+		printf("radnode cleanup of %llx\n",
+			(unsigned long long)n->data);
 		if(RADNODE(n)->elem.data) {
 			/* cannot delete node with a data element */
+			printf("cleanup end at elem\n");
 			udb_ptr_zero(n, udb);
 			return 1;
 		} else if(lookup(n)->len == 1 && RADNODE(n)->parent.data) {
+			printf("cleanup onechild into parent\n");
 			return udb_radnode_cleanup_onechild(udb, n);
 		} else if(lookup(n)->len == 0) {
 			udb_ptr par;
+			printf("cleanup leaf node\n");
 			if(!RADNODE(n)->parent.data) {
 				/* root deleted */
 				udb_rptr_zero(&RADTREE(rt)->root, udb);
@@ -991,6 +1040,7 @@ udb_radnode_cleanup(udb_base* udb, udb_ptr* rt, udb_ptr* n)
 			udb_ptr_set_ptr(n, udb, &par);
 			udb_ptr_unlink(&par, udb);
 		} else {
+			printf("cleanup end\n");
 			/* node cannot be cleaned up */
 			udb_ptr_zero(n, udb);
 			return 1;

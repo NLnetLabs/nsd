@@ -95,16 +95,14 @@ static size_t test_check_invariants(udb_base* udb, udb_ptr* n)
 		udb_radstrlen_t maxlen;
 		CuAssert(tc, "invariant nonempty cap",
 			lookup(n)->capacity != 0);
-		CuAssert(tc, "invariant nonempty strcap",
-			lookup(n)->str_cap != 0);
 		CuAssert(tc, "invariant len>cap/2",
-			lookup(n)->len > lookup(n)->capacity/2);
+			lookup(n)->len >= lookup(n)->capacity/2);
 		for(idx=0; idx<lookup(n)->len; idx++) {
 			struct udb_radsel_d* r = &lookup(n)->array[idx];
 			if(r->node.data == 0) {
 				CuAssert(tc, "empty node", r->len == 0);
-				CuAssert(tc, "empty node",
-					lookup_string(n, idx)[0] == 0);
+				/* there may be unused space in the
+				 * string, it is undefined */
 			} else {
 				/* r->len == 0 is an empty string */
 				CuAssert(tc, "strcap",
@@ -120,7 +118,9 @@ static size_t test_check_invariants(udb_base* udb, udb_ptr* n)
 		}
 		maxlen = udb_radarray_max_len(n);
 		CuAssert(tc, "maxlen", maxlen <= lookup(n)->str_cap);
-		CuAssert(tc, "maxlen", maxlen > lookup(n)->str_cap/2);
+		if(maxlen != 0) {
+			CuAssert(tc, "maxlen", maxlen >= lookup(n)->str_cap/2);
+		}
 	}
 	return num;
 }
@@ -447,6 +447,8 @@ static void test_node_print(udb_base* udb, udb_ptr* n, int depth)
 		fprintf(stderr, "  elem '");
 		test_print_str(TESTSTR(&s)->mystr, TESTSTR(&s)->mylen);
 		fprintf(stderr, "'\n");
+		if(TESTSTR(&s)->mynode.data != n->data)
+			fprintf(stderr, "elem data ptr fail\n");
 		CuAssertTrue(tc, TESTSTR(&s)->mynode.data == n->data);
 	} else fprintf(stderr, "  elem NULL\n");
 	udb_ptr_zero(&s, udb);
