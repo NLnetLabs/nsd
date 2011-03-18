@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 
 	/* init random */
 	seed = time(NULL) ^ getpid();
-	seed = 1279288340;
+	seed = 126;
 	fprintf(stderr, "srandom(%u)\n", seed);
 	srandom(seed);
 

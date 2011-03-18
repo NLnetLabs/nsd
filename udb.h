@@ -103,14 +103,16 @@ struct udb_rel_ptr {
  */
 typedef void udb_walk_relptr_cb(void*, udb_rel_ptr*, void*);
 
-/** this routine calls the callback for every relptr in a datablock
- * @param base: the baseptr for REL macro.
- * @param warg: the walkfunc user argument.
- * @param t: the type of the chunk.
- * @param d: pointer to the data part of the chunk (real pointer).
- * @param s: max size of the data part.
- * @param cb: the callback to call for every element.
- * @param arg: user argument to pass to the callback.
+/** 
+ * This routine calls the callback for every relptr in a datablock
+ * params in order:
+ * base: the baseptr for REL macro.
+ * warg: the walkfunc user argument.
+ * t: the type of the chunk.
+ * d: pointer to the data part of the chunk (real pointer).
+ * s: max size of the data part.
+ * cb: the callback to call for every element.
+ * arg: user argument to pass to the callback.
  */
 typedef void udb_walk_relptr_func(void*, void*, uint8_t, void*, uint64_t,
 	udb_walk_relptr_cb*, void*);
@@ -411,6 +413,9 @@ int udb_exp_size(uint64_t amount);
  */
 int udb_exp_offset(uint64_t offset);
 
+/** convert pointer to the data part to a pointer to the base of the chunk */
+udb_void chunk_from_dataptr_ext(udb_void data);
+
 /**
  * Create empty UDB allocate structure to write to disk to initialize file.
  * @param a: allocation structure to initialize.  system pointer.
@@ -612,6 +617,9 @@ static inline int udb_ptr_is_null(udb_ptr* ptr) {
 	return (ptr->data == 0);
 }
 
+/** get the type of a udb_ptr chunk */
+udb_chunk_type udb_ptr_get_type(udb_ptr* ptr);
+
 /** Ease of use, create new pointer to destination relptr
  * You MUST udb_ptr_set it to 0 before you stop using the ptr. */
 static inline void udb_ptr_new(udb_ptr* ptr, udb_base* udb, udb_rel_ptr* d) {
@@ -661,8 +669,9 @@ static inline void udb_ptr_zero(udb_ptr* dest, udb_base* udb) {
 /** ease of use, delete memory pointed at by relptr */
 static inline void udb_rel_ptr_free_space(udb_rel_ptr* ptr, udb_base* udb,
 	size_t sz) {
-	udb_alloc_free(udb->alloc, ptr->data, sz);
-	ptr->data = 0;
+	udb_void d = ptr->data;
+	udb_rel_ptr_set(udb->base, ptr, 0);
+	udb_alloc_free(udb->alloc, d, sz);
 }
 
 #endif /* UDB_H */

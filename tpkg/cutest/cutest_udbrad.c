@@ -15,6 +15,10 @@
 #include <stdio.h>
 #include <ctype.h>
 
+/* from cutest_udb */
+void check_udb_structure(CuTest* t, udb_base* udb);
+void check_udb(void);
+
 #define RADTREE(ptr) ((struct udb_radtree_d*)UDB_PTR(ptr))
 #define RADNODE(ptr) ((struct udb_radnode_d*)UDB_PTR(ptr))
 #define RADARRAY(ptr) ((struct udb_radarray_d*)UDB_PTR(ptr))
@@ -117,8 +121,16 @@ static size_t test_check_invariants(udb_base* udb, udb_ptr* n)
 			}
 		}
 		maxlen = udb_radarray_max_len(n);
+		if(!(maxlen <= lookup(n)->str_cap)) {
+			printf("%llu maxlen %d str_cap %d\n",
+				n->data, maxlen, lookup(n)->str_cap);
+		}
 		CuAssert(tc, "maxlen", maxlen <= lookup(n)->str_cap);
-		if(maxlen != 0) {
+		if(maxlen != lookup(n)->str_cap) {
+			if(!(maxlen >= lookup(n)->str_cap/2)) {
+				printf("%llu maxlen %d str_cap %d\n",
+					n->data, maxlen, lookup(n)->str_cap);
+			}
 			CuAssert(tc, "maxlen", maxlen >= lookup(n)->str_cap/2);
 		}
 	}
@@ -365,6 +377,34 @@ static void test_check_closest_match_inexact(udb_base* udb, udb_ptr* rt)
 	udb_ptr_unlink(&n, udb);
 }
 
+/** calc size of node and below */
+static uint64_t udb_radtree_size_node(udb_base* udb, udb_ptr* n)
+{
+	uint64_t s;
+	unsigned i;
+	if(n->data == 0)
+		return 0;
+	s = sizeof(struct udb_radnode_d) + size_of_lookup_ext(n);
+	for(i=0; i<lookup(n)->len; i++)  {
+		udb_ptr sub;
+		udb_ptr_new(&sub, udb, &lookup(n)->array[i].node);
+		s += udb_radtree_size_node(udb, &sub);
+		udb_ptr_unlink(&sub, udb);
+	}
+	return s;
+}
+
+/** calculate the allocated(data) size of the radtree (base, nodes, arrays) */
+static uint64_t udb_radtree_size(udb_base* udb, udb_ptr* rt)
+{
+	uint64_t s;
+	udb_ptr n;
+	udb_ptr_new(&n, udb, &RADTREE(rt)->root);
+	s = sizeof(struct udb_radtree_d) + udb_radtree_size_node(udb, &n);
+	udb_ptr_unlink(&n, udb);
+	return s;
+}
+
 /** perform lots of checks on the test tree */
 static void test_checks(udb_base* udb, udb_ptr* rt)
 {
@@ -372,6 +412,7 @@ static void test_checks(udb_base* udb, udb_ptr* rt)
 	size_t i=0;
 	uint8_t fullkey_buf[1024];
 	udb_ptr root;
+	uint64_t mem;
 
 	/* tree structure invariants */
 	size_t num;
@@ -402,6 +443,17 @@ static void test_checks(udb_base* udb, udb_ptr* rt)
 	test_check_closest_match_inexact(udb, rt);
 
 	udb_ptr_unlink(&root, udb);
+
+	/* check allocated sizes in the udb */
+	mem = udb_radtree_size(udb, rt);
+	printf("radtree takes %llu\n", mem);
+	mem += RADTREE(rt)->count * sizeof(struct teststr);
+	printf("radtree+teststrs takes %llu\n", mem);
+	printf("statdata %llu\n", udb->alloc->disk->stat_data);
+	CuAssert(tc, "allocated memory accounted for",
+		mem == udb->alloc->disk->stat_data);
+
+	check_udb_structure(tc, udb);
 }
 
 
@@ -428,17 +480,18 @@ static void test_node_print(udb_base* udb, udb_ptr* n, int depth)
 	par_offset = RADNODE(&s)->offset;
 	for(i=0; i<depth; i++) fprintf(stderr, " ");
 	if(RADNODE(n)->parent.data)
-		fprintf(stderr, "%c node=%llx.", 
+		fprintf(stderr, "%c node=%llu.", 
 			RADNODE(n)->pidx+par_offset?
 			RADNODE(n)->pidx+par_offset:'.',
 			(long long unsigned)n->data);
 	else
-		fprintf(stderr, "rootnode=%llx.", (long long unsigned)n->data);
-	fprintf(stderr, " pidx=%d off=%d(%c) len=%d cap=%d strcap=%d parent=%llx\n",
+		fprintf(stderr, "rootnode=%llu.", (long long unsigned)n->data);
+	fprintf(stderr, " pidx=%d off=%d(%c) len=%d cap=%d strcap=%d parent=%llu lookup=%llu\n",
 		RADNODE(n)->pidx, RADNODE(n)->offset,
 		isprint(RADNODE(n)->offset)?RADNODE(n)->offset:'.',
 		lookup(n)->len, lookup(n)->capacity, lookup(n)->str_cap,
-		(long long unsigned)RADNODE(n)->parent.data);
+		(long long unsigned)RADNODE(n)->parent.data,
+		(long long unsigned)RADNODE(n)->lookup.data);
 	for(i=0; i<depth; i++) fprintf(stderr, " ");
 	udb_ptr_zero(&s, udb);
 	if(RADNODE(n)->elem.data) {
@@ -446,7 +499,9 @@ static void test_node_print(udb_base* udb, udb_ptr* n, int depth)
 		udb_ptr_set_rptr(&s, udb, &RADNODE(n)->elem);
 		fprintf(stderr, "  elem '");
 		test_print_str(TESTSTR(&s)->mystr, TESTSTR(&s)->mylen);
-		fprintf(stderr, "'\n");
+		fprintf(stderr, "'");
+		fprintf(stderr, "    teststr=%llu", s.data);
+		fprintf(stderr, "\n");
 		if(TESTSTR(&s)->mynode.data != n->data)
 			fprintf(stderr, "elem data ptr fail\n");
 		CuAssertTrue(tc, TESTSTR(&s)->mynode.data == n->data);
@@ -467,7 +522,7 @@ static void test_node_print(udb_base* udb, udb_ptr* n, int depth)
 			fprintf(stderr, "'");
 		}
 		if(d->node.data) {
-			fprintf(stderr, " node=%llx\n",
+			fprintf(stderr, " node=%llu\n",
 				(long long unsigned)d->node.data);
 			udb_ptr_set_rptr(&s, udb, &d->node);
 			test_node_print(udb, &s, depth+2);
@@ -490,16 +545,20 @@ static void test_tree_print(udb_base* udb, udb_ptr* rt)
 	CuAssertTrue(tc, rh == udb->ram_num);
 }
 
+int when = 0;
 static void
 test_insert_string(udb_base* udb, udb_ptr* rt, char* str)
 {
 	size_t len = strlen(str);
 	udb_ptr s, n;
 	size_t rh = udb->ram_num, rh2;
+	if(strcmp(str, "e") == 0) when = 1;
 	if(!udb_ptr_alloc_space(&s, udb, TESTSTR_CHUNK_TYPE,
 		sizeof(struct teststr))) {
 		CuAssert(tc, "alloc udb", 0);
 	}
+	/* MUST initialize the rel_ptr in the teststr */
+	memset(TESTSTR(&s), 0, sizeof(struct teststr));
 	CuAssertTrue(tc, udb->ram_num == rh+1);
 	CuAssert(tc, "insert", s.data != 0);
 	TESTSTR(&s)->mylen = len;
@@ -515,14 +574,15 @@ test_insert_string(udb_base* udb, udb_ptr* rt, char* str)
 	CuAssertTrue(tc, udb->ram_num == rh2+1);
 	udb_rptr_set_ptr(&TESTSTR(&s)->mynode, udb, &n);
 	CuAssert(tc, "insert", n.data != 0);
+	udb_ptr_unlink(&s, udb);
+	udb_ptr_unlink(&n, udb);
+
 	rh2 = udb->ram_num;
 	test_tree_print(udb, rt);
 	CuAssertTrue(tc, udb->ram_num == rh2);
 	test_checks(udb, rt);
 	CuAssertTrue(tc, udb->ram_num == rh2);
 
-	udb_ptr_unlink(&s, udb);
-	udb_ptr_unlink(&n, udb);
 	CuAssertTrue(tc, udb->ram_num == rh);
 }
 
@@ -578,19 +638,20 @@ test_del_a_key(udb_base* udb, udb_ptr* rt)
 	udb_ptr_new(&t, udb, &RADNODE(&n)->elem);
 	CuAssert(tc, "refintegrity", TESTSTR(&t)->mynode.data == n.data);
 	CuAssert(tc, "refintegrity", t.data == RADNODE(&n)->elem.data);
-	if(verb) fprintf(stderr, "delkey %llx \telem ",
+	if(verb) fprintf(stderr, "delkey %llu \telem ",
 		(unsigned long long)n.data);
 	if(verb) test_print_str(TESTSTR(&t)->mystr, TESTSTR(&t)->mylen);
 	if(verb) fprintf(stderr, "\n");
+	udb_rptr_zero(&TESTSTR(&t)->mynode, udb);
 	rh = udb->ram_num;
 	udb_radix_delete(udb, rt, &n);
 	CuAssertTrue(tc, udb->ram_num == rh-1);
-	if(verb) test_tree_print(udb, rt);
-	test_checks(udb, rt);
-
 	/* and delete the test elem */
 	udb_ptr_free_space(&t, udb, sizeof(struct teststr));
 	udb_ptr_unlink(&n, udb);
+
+	if(verb) test_tree_print(udb, rt);
+	test_checks(udb, rt);
 }
 
 /* random add and dell test */
@@ -655,18 +716,37 @@ udb_radix_test_file(udb_base* udb)
 	udb_radix_tree_delete(udb, &rt);
 }
 
+/** walk through relptrs in struct teststr */
+static void test_str_walk_chunk(void* base, void* d, uint64_t s,
+	udb_walk_relptr_cb* cb, void* arg)
+{
+	struct teststr* p = (struct teststr*)d;
+	CuAssertTrue(tc, s >= sizeof(struct teststr));
+	(*cb)(base, &p->mynode, arg);
+}
+
 /** walk through relptrs in types */
 static void testRADwalk(void* base, void* warg, uint8_t t, void* d, uint64_t s,
         udb_walk_relptr_cb* cb, void* arg)
 {
-	/* no relptrs */
-	(void)base;
 	(void)warg;
-	(void)t;
-	(void)d;
-	(void)s;
-	(void)cb;
-	(void)arg;
+	switch(t) {
+	case udb_chunk_type_radtree:
+		udb_radix_tree_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_radnode:
+		udb_radix_node_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_radarray:
+		udb_radix_array_walk_chunk(base, d, s, cb, arg);
+		break;
+	case TESTSTR_CHUNK_TYPE:
+		test_str_walk_chunk(base, d, s, cb, arg);
+		break;
+	default:
+		/* no rel ptrs */
+		break;
+	}
 }
 
 /** return getpid and suffix a temp file (malloced string) */

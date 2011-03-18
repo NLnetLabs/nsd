@@ -36,6 +36,10 @@ chunk_from_dataptr(udb_void data)
 	return data - sizeof(udb_chunk_d);
 }
 
+udb_void chunk_from_dataptr_ext(udb_void data) {
+	return chunk_from_dataptr(data);
+}
+
 /** read last octet from a chunk */
 static uint8_t
 chunk_get_last(void* base, udb_void chunk, int exp)
@@ -585,6 +589,9 @@ static void
 regen_relptr_func(void* base, udb_rel_ptr* rp, void* arg)
 {
 	udb_void* a = (udb_void*)arg;
+	/* ignore 0 pointers */
+	if(!rp->data)
+		return;
 
 	/* edit relptrs that point to oldmoved to point to newmoved. */
 	if(rp->data == a[0])
@@ -946,6 +953,7 @@ grow_chunks(void* base, udb_alloc* alloc, size_t sz, int exp)
 	alloc->disk->nextgrow += esz;
 	assert(alloc->disk->nextgrow <= alloc->udb->base_size);
 	alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
+	printf("udb alloc (grown) %llu size %d\n", ret, exp);
 	return ret + sizeof(udb_chunk_d); /* ptr to data */
 }
 
@@ -1133,6 +1141,7 @@ udb_void udb_alloc_space(udb_alloc* alloc, size_t sz)
 	void* base = alloc->udb->base;
 	/* calculate actual allocation size */
 	int e2, exp = udb_alloc_exp_needed(sz);
+	printf("udb_alloc_space sz=%d\n", (int)sz);
 	if(exp == UDB_EXP_XL)
 		return udb_alloc_xl_space(base, alloc, sz);
 	/* see if there is a free chunk of that size exactly */
@@ -1151,6 +1160,7 @@ udb_void udb_alloc_space(udb_alloc* alloc, size_t sz)
 		assert(alloc->disk->stat_free >= (1u<<exp));
 		alloc->disk->stat_free -= (1<<exp);
 		alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
+		printf("udb alloc (exact) %llu size %d\n", ret, exp);
 		return ret + sizeof(udb_chunk_d); /* ptr to data */
 	}
 	/* see if we can subdivide a larger chunk */
@@ -1176,6 +1186,7 @@ udb_void udb_alloc_space(udb_alloc* alloc, size_t sz)
 			assert(alloc->disk->stat_free >= (1u<<exp));
 			alloc->disk->stat_free -= (1<<exp);
 			alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
+			printf("udb alloc (subdiv) %llu size %d\n", ret, exp);
 			return ret + sizeof(udb_chunk_d); /* ptr to data */
 		}
 	/* we need to grow an extra chunk */
@@ -1201,7 +1212,10 @@ static void
 chunk_fix_ptr_each(void* base, udb_rel_ptr* rp, void* arg)
 {
 	udb_void* data = (udb_void*)arg;
-	udb_void r = UDB_SYSTOREL(base, rp);
+	udb_void r;
+	if(!rp->data)
+		return;
+	r = UDB_SYSTOREL(base, rp);
 	if(rp->next)
 		UDB_REL_PTR(rp->next)->prev = r;
 	if(rp->prev)
@@ -1221,12 +1235,14 @@ chunk_fix_ptrs(void* base, udb_base* udb, udb_chunk_d* cp, udb_void data,
 	uint64_t dsz, udb_void olddata)
 {
 	udb_void d[2];
+	printf("chunk fix ptrs\n");
 	d[0] = olddata;
 	d[1] = data;
 	(*udb->walkfunc)(base, udb->walkarg, cp->type, UDB_REL(base, data),
 		dsz, &chunk_fix_ptr_each, d);
 	udb_rel_ptr_edit(base, cp->ptrlist, data);
 	udb_base_ram_ptr_edit(udb, olddata, data);
+	printf("chunk fix ptrs done\n");
 }
 
 /** move an allocated chunk to use a free chunk */
@@ -1237,6 +1253,8 @@ move_chunk(void* base, udb_alloc* alloc, udb_void f, int exp, uint64_t esz,
 	udb_void res = udb_alloc_pop_fl(base, alloc, e2);
 	udb_chunk_d* rp;
 	udb_chunk_d* fp;
+	printf("move_chunk %llu to %llu size %d %llu to e2 %d\n", (unsigned long long)f,
+		(unsigned long long)res, exp, esz, e2);
 	if(exp != e2) {
 		/* it is bigger, subdivide it */
 		res = udb_alloc_subdivide(base, alloc, res, e2, exp);
@@ -1401,6 +1419,7 @@ udb_alloc_compact(void* base, udb_alloc* alloc)
 	udb_void xl_start = 0;
 	uint64_t xl_sz = 0;
 	while(at > alloc->udb->glob_data->hsize) {
+		printf("compact loop at %llu\n", at);
 		/* grab last entry */
 		exp = (int)*((uint8_t*)UDB_REL(base, at-1));
 		if(exp == UDB_EXP_XL) {
@@ -1564,6 +1583,11 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 	fp = UDB_CHUNK(f);
 	assert(fp->type != udb_chunk_type_free);
 
+	/* see if it has a ptrlist, if so: trouble, the list is not properly
+	 * cleaned up. (although you can imagine a wholesale delete where
+	 * it does not matter) */
+	assert(fp->ptrlist == 0);
+
 	/* set ptrlist to 0 to stop relptr from using it, robustness. */
 	fp->ptrlist = 0;
 
@@ -1578,6 +1602,7 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 	/* light check for e.g. buffer overflow of the data */
 	assert(sz < esz);
 	assert(chunk_get_last(base, f, exp) == (uint8_t)exp);
+	printf("udb_free of %llu size %d of %llu (%d)\n", f, (int)sz, esz, exp);
 
 	/* update the stats */
 	alloc->udb->glob_data->dirty_alloc = udb_dirty_fl;
@@ -1588,6 +1613,7 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 	/* if it can be merged with other free chunks, do so */
 	while( (other=coagulate_possible(base, alloc, f, exp, esz)) ) {
 		coagulated = 1;
+		printf("udb_free coagulate\n");
 		/* unlink that other chunk and expand it (it has same size) */
 		udb_alloc_unlink_fl(base, alloc, other, exp);
 		/* merge up */
@@ -1597,6 +1623,7 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 		esz <<= 1;
 	}
 	if(coagulated) {
+		printf("udb_free coagulate push\n");
 		/* put big free chunk into freelist, and init it */
 		udb_alloc_push_fl(base, alloc, f, exp);
 	} else {
@@ -1604,6 +1631,7 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 		 * a reference to that page of memory */
 		fp->type = udb_chunk_type_free;
 		fp->flags = 0;
+		printf("udb_free directpush %llu exp %d\n", f, exp);
 		udb_alloc_push_fl_noinit(base, alloc, f, exp);
 	}
 	alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
@@ -1699,6 +1727,8 @@ void udb_rel_ptr_init(udb_rel_ptr* ptr)
 
 void udb_rel_ptr_unlink(void* base, udb_rel_ptr* ptr)
 {
+	printf("udb relptr unlink %llu to %llu\n",
+		UDB_SYSTOREL(base, ptr), ptr->data?chunk_from_dataptr(ptr->data):0);
 	if(!ptr->data)
 		return;
 	if(ptr->prev) {
@@ -1714,6 +1744,8 @@ void udb_rel_ptr_unlink(void* base, udb_rel_ptr* ptr)
 void udb_rel_ptr_link(void* base, udb_rel_ptr* ptr, udb_void to)
 {
 	udb_chunk_d* chunk = UDB_CHUNK(chunk_from_dataptr(to));
+	printf("udb relptr link %llu to %llu\n",
+		UDB_SYSTOREL(base, ptr), chunk_from_dataptr(to));
 	ptr->prev = 0;
 	ptr->next = chunk->ptrlist;
 	if(ptr->next)
@@ -1733,10 +1765,10 @@ void udb_rel_ptr_set(void* base, udb_rel_ptr* ptr, udb_void to)
 
 void udb_rel_ptr_edit(void* base, udb_void list, udb_void to)
 {
-	udb_rel_ptr* p;
-	if(list)
-	  for(p=UDB_REL_PTR(list); p->next; p=UDB_REL_PTR(p->next)) {
-		p->data = to;
+	udb_void p = list;
+	while(p) {
+		UDB_REL_PTR(p)->data = to;
+		p = UDB_REL_PTR(p)->next;
 	}
 }
 
@@ -1774,4 +1806,12 @@ void udb_ptr_free_space(udb_ptr* ptr, udb_base* udb, size_t sz)
 		udb_alloc_free(udb->alloc, ptr->data, sz);
 		udb_ptr_set(ptr, udb, 0);
 	}
+}
+
+udb_chunk_type udb_ptr_get_type(udb_ptr* ptr)
+{
+	udb_void f;
+	if(ptr->data == 0) return udb_chunk_type_internal; /* something bad*/
+	f = chunk_from_dataptr(ptr->data);
+	return ((udb_chunk_d*)UDB_REL(*ptr->base, f))->type;
 }

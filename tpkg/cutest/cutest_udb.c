@@ -88,6 +88,8 @@ assert_udb_invariant(udb_base* udb)
 	CuAssertTrue(tc, udb->glob_data->rb_new == 0);
 	CuAssertTrue(tc, udb->glob_data->rb_size == 0);
 	CuAssertTrue(tc, udb->glob_data->rb_seg == 0);
+	printf("statdata %llu basesize %d\n",
+		udb->alloc->disk->stat_data, (int)udb->base_size);
 	CuAssertTrue(tc, udb->alloc->disk->stat_data <= udb->base_size);
 	CuAssertTrue(tc, udb->alloc->disk->stat_alloc <= udb->base_size);
 	CuAssertTrue(tc, udb->alloc->disk->stat_free <= udb->base_size);
@@ -159,6 +161,114 @@ assert_free_structure(udb_base* udb)
 
 }
 
+/** find a pointer on a chunks pointerlist */
+int
+find_ptr_on_chunk(void* base, udb_void chdata, udb_void relptr, udb_base* udb)
+{
+	size_t count = 0;
+	udb_void chunk = chunk_from_dataptr_ext(chdata);
+	udb_void ptr = UDB_CHUNK(chunk)->ptrlist;
+	/*printf("find ptr on chunk for relptr %llu, to ch %llu chdata %llu\n",
+		relptr, chunk, chdata);*/
+	while(ptr) {
+		udb_rel_ptr* p = UDB_REL_PTR(ptr);
+		if(ptr == relptr) {
+			return 1;
+		}
+		ptr = p->next;
+		if(count++ > udb->alloc->disk->nextgrow / 32)
+			break; /* max number of chunks in file */
+	}
+	return 0;
+}
+
+/** callback to check relptrs */
+void check_rptrs_cb(void* base, udb_rel_ptr* p, void* arg)
+{
+	udb_base* udb = (udb_base*)arg;
+	/* check that this rptr is OK */
+	if(p->data == 0)
+		return;
+	/* destination must be within the mmap */
+	CuAssertTrue(tc, p->data > udb->glob_data->hsize);
+	CuAssertTrue(tc, p->data < udb->alloc->disk->nextgrow);
+	/* the pointer must be on the pointerlist of that chunk */
+	if(!find_ptr_on_chunk(base, p->data, UDB_SYSTOREL(base, p), udb)) {
+		printf("cannot find ptr %llu on its chunks list at %llu\n",
+			UDB_SYSTOREL(base, p), p->data);
+		abort();
+	}
+	CuAssertTrue(tc, find_ptr_on_chunk(base, p->data,
+		UDB_SYSTOREL(base, p), udb) != 0);
+}
+
+/** assert that the relptr structure is OK */
+static void
+assert_relptr_structure(udb_base* udb)
+{
+	/* walk through all parts and check all relptrs */
+	void* base = udb->base;
+	udb_void p = udb->glob_data->hsize;
+	int verb = 0;
+
+	while(p < udb->alloc->disk->nextgrow) {
+		uint8_t exp = UDB_CHUNK(p)->exp;
+		uint64_t sz, dsz;
+		udb_void dataptr;
+		if(verb) printf("walk at %llu exp %d %s\n",
+			(long long unsigned)p, exp,
+			UDB_CHUNK(p)->type == udb_chunk_type_free?
+			"free":"data");
+		if(exp == UDB_EXP_XL) {
+			sz = UDB_XL_CHUNK(p)->size;
+			dataptr = p+sizeof(udb_xl_chunk_d);
+			dsz = sz - sizeof(udb_xl_chunk_d)-16;
+		} else {
+			sz = (uint64_t)1<<exp;
+			dataptr = p+sizeof(udb_chunk_d);
+			dsz = sz - sizeof(udb_chunk_d)-1;
+		}
+		if(UDB_CHUNK(p)->type == udb_chunk_type_free) {
+			/* nothing to do */
+		} else if(UDB_CHUNK(p)->ptrlist) {
+			/* go through the relptr list and assert begin/end */
+			udb_rel_ptr* r = UDB_REL_PTR(UDB_CHUNK(p)->ptrlist);
+			CuAssertTrue(tc, r->prev == 0);
+			while(r->next != 0) {
+				CuAssertTrue(tc, r->data == dataptr);
+				CuAssertTrue(tc, UDB_REL_PTR(UDB_REL_PTR(
+					r->next)->prev) == r);
+				r = UDB_REL_PTR(r->next);
+			}
+			CuAssertTrue(tc, r->data == dataptr);
+			CuAssertTrue(tc, r->next == 0);
+		}
+		/* perform udb-walk with our user arg to check relptrs inside*/
+		(*udb->walkfunc)(base, udb->walkarg, UDB_CHUNK(p)->type,
+			UDB_REL(base, dataptr), dsz, check_rptrs_cb, udb);
+		CuAssertTrue(tc, *(uint8_t*)UDB_REL(base, p+sz-1) == exp);
+		p += sz;
+	}
+}
+
+udb_base* gdb = NULL;
+
+/** check a UDB if it is OK */
+void check_udb_structure(CuTest* t, udb_base* udb)
+{
+	printf("check udb structure\n");
+	if(t) tc = t;
+	gdb = udb;
+	assert_udb_invariant(udb);
+	assert_free_structure(udb);
+	assert_relptr_structure(udb);
+}
+void check_udb(void)
+{
+	if(!gdb) return;
+	check_udb_structure(NULL, gdb);
+}
+	
 /** assert the allocations are 'allright' */
 static void
 assert_info_A(udb_base* udb, struct info_A* inf, size_t num_a)
@@ -223,6 +333,7 @@ do_A_tests(udb_base* udb, int verb)
 		assert_udb_invariant(udb);
 		assert_info_A(udb, inf, num_a);
 		assert_free_structure(udb);
+		assert_relptr_structure(udb);
 	}
 }
 

@@ -13,6 +13,9 @@
 #define RADNODE(ptr) ((struct udb_radnode_d*)UDB_PTR(ptr))
 #define RADARRAY(ptr) ((struct udb_radarray_d*)UDB_PTR(ptr))
 
+/** see if radarray can be reduced (by a factor of two) */
+static int udb_radarray_reduce_if_needed(udb_base* udb, udb_ptr* n);
+
 int udb_radix_tree_create(udb_base* udb, udb_ptr* ptr)
 {
 	if(!udb_ptr_alloc_space(ptr, udb, udb_chunk_type_radtree,
@@ -23,12 +26,25 @@ int udb_radix_tree_create(udb_base* udb, udb_ptr* ptr)
 	return 1;
 }
 
-/** size in bytes of data in the array lookup structure */
-static size_t size_of_lookup(udb_ptr* lookup)
+/** size of radarray */
+static size_t size_of_radarray(struct udb_radarray_d* a)
 {
-	return sizeof(struct udb_radarray_d)+
-		((size_t)RADARRAY(lookup)->capacity)*(
-		sizeof(struct udb_radsel_d)+(size_t)RADARRAY(lookup)->str_cap);
+	return sizeof(struct udb_radarray_d)+((size_t)a->capacity)*(
+		sizeof(struct udb_radsel_d)+(size_t)a->str_cap);
+}
+
+/** size in bytes of data in the array lookup structure */
+static size_t size_of_lookup(udb_ptr* node)
+{
+	assert(udb_ptr_get_type(node) == udb_chunk_type_radnode);
+	return size_of_radarray((struct udb_radarray_d*)UDB_REL(*node->base,
+		RADNODE(node)->lookup.data));
+}
+
+/** external variant, size in bytes of data in the array lookup structure */
+size_t size_of_lookup_ext(udb_ptr* lookup)
+{
+	return size_of_lookup(lookup);
 }
 
 /** size needed for a lookup array like this */
@@ -41,6 +57,7 @@ static size_t size_of_lookup_needed(uint16_t capacity, udb_radstrlen_t str_cap)
 /** get the lookup array for a node */
 static struct udb_radarray_d* lookup(udb_ptr* n)
 {
+	assert(udb_ptr_get_type(n) == udb_chunk_type_radnode);
 	return (struct udb_radarray_d*)UDB_REL(*n->base,
 		RADNODE(n)->lookup.data);
 }
@@ -65,24 +82,53 @@ static struct udb_radnode_d* lookup_node(udb_ptr* n, unsigned i)
 		lookup(n)->array[i].node.data);
 }
 
+/** zero the relptrs in radarray */
+static void udb_radarray_zero_ptrs(udb_base* udb, udb_ptr* n)
+{
+	unsigned i;
+	for(i=0; i<lookup(n)->len; i++) {
+		udb_rptr_zero(&lookup(n)->array[i].node, udb);
+	}
+}
+
+/** delete a radnode */
+static void udb_radnode_delete(udb_base* udb, udb_ptr* n)
+{
+	if(udb_ptr_is_null(n))
+		return;
+	printf("radnode delete %llu\n", (unsigned long long)n->data);
+	if(RADNODE(n)->lookup.data) {
+		udb_radarray_zero_ptrs(udb, n);
+		printf("radnode lookupdelete %llu\n", (unsigned long long)n->data);
+		udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb,
+			size_of_lookup(n));
+	}
+	printf("radnode freenode %llu\n", (unsigned long long)n->data);
+	udb_rptr_zero(&RADNODE(n)->lookup, udb);
+	udb_rptr_zero(&RADNODE(n)->parent, udb);
+	udb_rptr_zero(&RADNODE(n)->elem, udb);
+	udb_ptr_free_space(n, udb, sizeof(struct udb_radnode_d));
+}
+
 /** delete radnodes in postorder recursion, n is ptr to node */
 static void udb_radnode_del_postorder(udb_base* udb, udb_ptr* n)
 {
 	unsigned i;
-	udb_ptr sub, lookup;
+	udb_ptr sub;
 	if(udb_ptr_is_null(n))
 		return;
-	udb_ptr_new(&lookup, udb, &RADNODE(n)->lookup);
+	/* clear subnodes */
 	udb_ptr_init(&sub, udb);
-	
-	for(i=0; i<RADARRAY(&lookup)->len; i++) {
-		udb_ptr_set_rptr(&sub, udb, &RADARRAY(&lookup)->array[i].node);
+	for(i=0; i<lookup(n)->len; i++) {
+		udb_ptr_set_rptr(&sub, udb, &lookup(n)->array[i].node);
+		udb_rptr_zero(&lookup(n)->array[i].node, udb);
 		udb_radnode_del_postorder(udb, &sub);
 	}
 	udb_ptr_unlink(&sub, udb);
-	/* no need to zero relptrs because it all gets deleted */
-	udb_ptr_free_space(&lookup, udb, size_of_lookup(&lookup));
-	udb_ptr_unlink(&lookup, udb);
+	/* clear lookup */
+	udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb, size_of_lookup(n));
+	udb_rptr_zero(&RADNODE(n)->parent, udb);
+	udb_rptr_zero(&RADNODE(n)->elem, udb);
 	udb_ptr_free_space(n, udb, sizeof(struct udb_radnode_d));
 }
 
@@ -90,16 +136,18 @@ void udb_radix_tree_clear(udb_base* udb, udb_ptr* rt)
 {
 	udb_ptr root;
 	udb_ptr_new(&root, udb, &RADTREE(rt)->root);
+	udb_rptr_zero(&RADTREE(rt)->root, udb);
 	/* free the root node (and its descendants, if any) */
 	udb_radnode_del_postorder(udb, &root);
 	udb_ptr_unlink(&root, udb);
 
-	udb_rptr_zero(&RADTREE(rt)->root, udb);
 	RADTREE(rt)->count = 0;
 }
 
 void udb_radix_tree_delete(udb_base* udb, udb_ptr* rt)
 {
+	if(rt->data == 0) return;
+	assert(udb_ptr_get_type(rt) == udb_chunk_type_radtree);
 	udb_radix_tree_clear(udb, rt);
 	udb_ptr_free_space(rt, udb, sizeof(struct udb_radtree_d));
 }
@@ -120,14 +168,14 @@ static int udb_radix_find_prefix_node(udb_base* udb, udb_ptr* rt, uint8_t* k,
 	udb_radstrlen_t pos = 0;
 	uint8_t byte;
 	udb_ptr n;
-	printf("prefix start %llx\n", (unsigned long long)result->data);
+	printf("prefix start %llu\n", (unsigned long long)result->data);
 	udb_ptr_new(&n, udb, &RADTREE(rt)->root);
-	printf("prefix afternew %llx\n", (unsigned long long)result->data);
+	printf("prefix afternew %llu\n", (unsigned long long)result->data);
 
 	*respos = 0;
 	printf("find_prefix assign root\n");
 	udb_ptr_set_ptr(result, udb, &n);
-	printf("firstassign got accomodate node %llx\n", 
+	printf("firstassign got accomodate node %llu\n", 
 			(unsigned long long)result->data);
 	if(udb_ptr_is_null(&n)) {
 		udb_ptr_unlink(&n, udb);
@@ -164,21 +212,12 @@ static int udb_radix_find_prefix_node(udb_base* udb, udb_ptr* rt, uint8_t* k,
 		*respos = pos;
 		udb_ptr_set_ptr(result, udb, &n);
 	}
-	printf("endloop got accomodate node %llx\n", 
+	printf("endloop got accomodate node %llu\n", 
 			(unsigned long long)result->data);
 	udb_ptr_unlink(&n, udb);
-	printf("endprefix got accomodate node %llx\n", 
+	printf("endprefix got accomodate node %llu\n", 
 			(unsigned long long)result->data);
 	return 1;
-}
-
-/** zero the relptrs in radarray */
-static void udb_radarray_zero_ptrs(udb_base* udb, udb_ptr* n)
-{
-	unsigned i;
-	for(i=0; i<lookup(n)->len; i++) {
-		udb_rptr_zero(&lookup(n)->array[i].node, udb);
-	}
 }
 
 /** grow the radnode stringcapacity, copy existing elements */
@@ -196,7 +235,9 @@ static int udb_radnode_str_grow(udb_base* udb, udb_ptr* n, udb_radstrlen_t want)
 	if(!udb_ptr_alloc_space(&a, udb, udb_chunk_type_radarray,
 		size_of_lookup_needed(lookup(n)->capacity, ns)))
 		return 0;
+	/* make sure to zero the newly allocated relptrs to init them */
 	memcpy(RADARRAY(&a), lookup(n), sizeof(struct udb_radarray_d));
+	RADARRAY(&a)->str_cap = ns;
 	for(i = 0; i < lookup(n)->len; i++) {
 		udb_rel_ptr_init(&RADARRAY(&a)->array[i].node);
 		udb_rptr_set_rptr(&RADARRAY(&a)->array[i].node, udb,
@@ -207,10 +248,8 @@ static int udb_radnode_str_grow(udb_base* udb, udb_ptr* n, udb_radstrlen_t want)
 			lookup_string(n, i), lookup(n)->str_cap);
 	}
 	udb_radarray_zero_ptrs(udb, n);
-	udb_rptr_zero(&RADNODE(n)->lookup, udb);
 	udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb, size_of_lookup(n));
 	udb_rptr_set_ptr(&RADNODE(n)->lookup, udb, &a);
-	lookup(n)->str_cap = ns;
 	udb_ptr_unlink(&a, udb);
 	return 1;
 }
@@ -228,27 +267,27 @@ static int udb_radnode_array_grow(udb_base* udb, udb_ptr* n, size_t want)
 		ns = want;
 	if(ns > 256) ns = 256;
 	/* if this fails, the tree is still usable */
+	printf("radnode_array_grow alloc size %d\n",
+		size_of_lookup_needed(ns, lookup(n)->str_cap));
 	if(!udb_ptr_alloc_space(&a, udb, udb_chunk_type_radarray,
 		size_of_lookup_needed(ns, lookup(n)->str_cap)))
 		return 0;
+	/* zero the newly allocated rel ptrs to init them */
+	memset(UDB_PTR(&a), 0, size_of_lookup_needed(ns, lookup(n)->str_cap));
 	assert(lookup(n)->len <= lookup(n)->capacity);
 	assert(lookup(n)->capacity < ns);
 	memcpy(RADARRAY(&a), lookup(n), sizeof(struct udb_radarray_d));
+	RADARRAY(&a)->capacity = ns;
 	for(i=0; i<lookup(n)->len; i++) {
-		udb_rel_ptr_init(&RADARRAY(&a)->array[i].node);
 		udb_rptr_set_rptr(&RADARRAY(&a)->array[i].node, udb,
 			&lookup(n)->array[i].node);
 		RADARRAY(&a)->array[i].len = lookup_len(n, i);
 	}
-	memset(&RADARRAY(&a)->array[lookup(n)->capacity], 0,
-		ns*sizeof(struct udb_radsel_d));
 	memmove(&RADARRAY(&a)->array[ns], lookup_string(n, 0),
 		lookup(n)->len * lookup(n)->str_cap);
 	udb_radarray_zero_ptrs(udb, n);
-	udb_rptr_zero(&RADNODE(n)->lookup, udb);
 	udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb, size_of_lookup(n));
 	udb_rptr_set_ptr(&RADNODE(n)->lookup, udb, &a);
-	lookup(n)->capacity = ns;
 	udb_ptr_unlink(&a, udb);
 	return 1;
 }
@@ -285,13 +324,14 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 	/* is there an array? */
 	printf("udb_radnode_array_space start, byte=%d strlen=%d\n",
 		(int)byte, (int)len);
-	if(RADNODE(n)->lookup.data == 0 || lookup(n)->capacity == 0) {
+	if(RADNODE(n)->lookup.data == 0) {
 		/* create array */
 		udb_ptr a;
 		uint16_t cap = 1;
 		if(!udb_ptr_alloc_space(&a, udb, udb_chunk_type_radarray,
 			size_of_lookup_needed(cap, len)))
 			return 0;
+		/* this memset inits the relptr that is allocated */
 		memset(UDB_PTR(&a), 0, size_of_lookup_needed(cap, len));
 		udb_rptr_set_ptr(&RADNODE(n)->lookup, udb, &a);
 		RADARRAY(&a)->len = cap;
@@ -301,6 +341,10 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 		udb_ptr_unlink(&a, udb);
 		printf("udb_radnode_array_space end new\n");
 		return 1;
+	}
+	if(lookup(n)->capacity == 0) {
+		if(!udb_radnode_array_grow(udb, n, 1))
+			return 0;
 	}
 
 	/* make space for this stringsize */
@@ -323,10 +367,15 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 		/* is capacity enough? */
 		int i;
 		unsigned need = RADNODE(n)->offset-byte;
+		printf("grow, before offset, need=%d\n", need);
 		if(lookup(n)->len+need > lookup(n)->capacity) {
 			/* grow array */
 			if(!udb_radnode_array_grow(udb, n, lookup(n)->len+need))
 				return 0;
+		}
+		/* take a piece of capacity into use, init the relptrs */
+		for(i = lookup(n)->len; i< (int)(lookup(n)->len + need); i++) {
+			udb_rel_ptr_init(&lookup(n)->array[i].node);
 		}
 		/* reshuffle items to end */
 		for(i = lookup(n)->len-1; i >= 0; i--) {
@@ -458,7 +507,9 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 		if(lookup_len(n, idx) - addlen > 1)
 			/* shift one because a char is in the lookup array */
 			split_len = lookup_len(n, idx) - (addlen+1);
-		if(!udb_radnode_str_space(udb, add, split_len))
+		printf("split_len is %d\n", (int)split_len);
+		if(!udb_radnode_array_space(udb, add,
+			lookup_string(n, idx)[addlen], split_len))
 			return 0;
 		/* alloc succeeded, now link it in */
 		udb_rptr_set_rptr(&RADNODE(add)->parent, udb,
@@ -480,6 +531,10 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 		udb_rptr_set_ptr(&lookup(n)->array[idx].node, udb, add);
 		memmove(lookup_string(n, idx), addstr, addlen);
 		lookup(n)->array[idx].len = addlen;
+		/* n's string may have become shorter */
+		if(!udb_radarray_reduce_if_needed(udb, n)) {
+			/* ignore this, our tree has become inefficient */
+		}
 	} else if(udb_bstr_is_prefix(lookup_string(n, idx), lookup_len(n, idx),
 		addstr, addlen)) {
 		udb_radstrlen_t split_len = 0;
@@ -517,6 +572,10 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 		} else {
 			lookup(&rnode)->array[ RADNODE(add)->pidx].len = 0;
 		}
+		/* rnode's string has become shorter */
+		if(!udb_radarray_reduce_if_needed(udb, &rnode)) {
+			/* ignore this, our tree has become inefficient */
+		}
 		udb_ptr_unlink(&rnode, udb);
 	} else {
 		/* okay we need to create a new node that chooses between 
@@ -549,21 +608,16 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 		   || !udb_radnode_array_space_strremain(udb, &com,
 			addstr, addlen, common_len)) {
 			udb_ptr_unlink(&rnode, udb);
-			if(RADNODE(&com)->lookup.data)
-				udb_rel_ptr_free_space(&RADNODE(&com)->lookup,
-					udb, size_of_lookup(&com));
-			udb_ptr_free_space(&com, udb,
-				sizeof(struct udb_radnode_d));
+			udb_radnode_delete(udb, &com);
 			return 0;
 		}
 		/* create stringspace for the shared prefix */
-		if(!udb_radnode_str_space(udb, &rnode, common_len)) {
-			udb_ptr_unlink(&rnode, udb);
-			udb_rel_ptr_free_space(&RADNODE(&com)->lookup,
-				udb, size_of_lookup(&com));
-			udb_ptr_free_space(&com, udb,
-				sizeof(struct udb_radnode_d));
-			return 0;
+		if(common_len > 0) {
+			if(!udb_radnode_str_space(udb, &rnode, common_len-1)) {
+				udb_ptr_unlink(&rnode, udb);
+				udb_radnode_delete(udb, &com);
+				return 0;
+			}
 		}
 		/* allocs succeeded, proceed to link it all up */
 		udb_rptr_set_rptr(&RADNODE(&com)->parent, udb,
@@ -600,6 +654,10 @@ static int udb_radsel_split(udb_base* udb, udb_ptr* n, uint8_t idx, uint8_t* k,
 		udb_rptr_set_ptr(&lookup(n)->array[idx].node, udb, &com);
 		udb_ptr_unlink(&rnode, udb);
 		udb_ptr_unlink(&com, udb);
+		/* n's string has become shorter */
+		if(!udb_radarray_reduce_if_needed(udb, n)) {
+			/* ignore this, our tree has become inefficient */
+		}
 	}
 	return 1;
 }
@@ -629,7 +687,7 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 	result_data = &n.data;
 
 	/* find out where to add it */
-	printf("udb_radix_insert find_prefix, n=%llx\n",
+	printf("udb_radix_insert find_prefix, n=%llu\n",
 		(unsigned long long)n.data);
 	if(!udb_radix_find_prefix_node(udb, rt, k, len, &n, &pos)) {
 		/* new root */
@@ -642,21 +700,15 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 			if(!udb_ptr_alloc_space(&n, udb,
 				udb_chunk_type_radnode,
 				sizeof(struct udb_radnode_d))) {
-				udb_rel_ptr_free_space(&RADNODE(&add)->lookup,
-					udb, size_of_lookup(&add));
-				udb_ptr_free_space(&add, udb,
-					sizeof(struct udb_radnode_d));
+				udb_radnode_delete(udb, &add);
 				udb_ptr_unlink(&n, udb);
 				return 0; /* alloc failure */
 			}
 			memset(RADNODE(&n), 0, sizeof(struct udb_radnode_d));
 			/* this creates the array lookup structure for n */
 			if(!udb_radnode_array_space(udb, &n, k[0], len-1)) {
-				udb_rel_ptr_free_space(&RADNODE(&add)->lookup,
-					udb, size_of_lookup(&add));
+				udb_radnode_delete(udb, &add);
 				udb_ptr_free_space(&n, udb,
-					sizeof(struct udb_radnode_d));
-				udb_ptr_free_space(&add, udb,
 					sizeof(struct udb_radnode_d));
 				return 0; /* alloc failure */
 			}
@@ -674,25 +726,19 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 		/* found an exact match */
 		if(RADNODE(&n)->elem.data) {
 			/* already exists, failure */
-			udb_rel_ptr_free_space(&RADNODE(&add)->lookup,
-					udb, size_of_lookup(&add));
-			udb_ptr_free_space(&add, udb,
-				sizeof(struct udb_radnode_d));
+			udb_radnode_delete(udb, &add);
 			udb_ptr_unlink(&n, udb);
 			return 0;
 		}
 		udb_rptr_set_ptr(&RADNODE(&n)->elem, udb, elem);
-		udb_rel_ptr_free_space(&RADNODE(&add)->lookup,
-			udb, size_of_lookup(&add));
-		udb_ptr_free_space(&add, udb,
-			sizeof(struct udb_radnode_d));
+		udb_radnode_delete(udb, &add);
 		udb_ptr_set_ptr(&add, udb, &n);
 	} else {
 		/* n is a node which can accomodate */
 		uint8_t byte;
 		assert(pos < len);
 		byte = k[pos];
-		printf("insert got accomodate node %llx\n", 
+		printf("insert got accomodate node %llu\n", 
 			(unsigned long long)n.data);
 
 		/* see if it falls outside of array */
@@ -701,10 +747,7 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 			/* make space in the array for it; adjusts offset */
 			if(!udb_radnode_array_space(udb, &n, byte,
 				len-(pos+1))) {
-				udb_rel_ptr_free_space(&RADNODE(&add)->lookup,
-					udb, size_of_lookup(&add));
-				udb_ptr_free_space(&add, udb,
-					sizeof(struct udb_radnode_d));
+				udb_radnode_delete(udb, &add);
 				udb_ptr_unlink(&n, udb);
 				return 0;
 			}
@@ -735,11 +778,7 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 				/* make space and split off more prefix */
 				if(!udb_radnode_str_space(udb, &n,
 					len-(pos+1))) {
-					udb_rel_ptr_free_space(
-						&RADNODE(&add)->lookup,
-						udb, size_of_lookup(&add));
-					udb_ptr_free_space(&add, udb,
-						sizeof(struct udb_radnode_d));
+					udb_radnode_delete(udb, &add);
 					udb_ptr_unlink(&n, udb);
 					return 0;
 				}
@@ -760,10 +799,7 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 			 * intermediate node */
 			if(!udb_radsel_split(udb, &n, byte-RADNODE(&n)->offset,
 				k, pos+1, len, &add)) {
-				udb_rel_ptr_free_space(&RADNODE(&add)->lookup,
-					udb, size_of_lookup(&add));
-				udb_ptr_free_space(&add, udb,
-					sizeof(struct udb_radnode_d));
+				udb_radnode_delete(udb, &add);
 				udb_ptr_unlink(&n, udb);
 				return 0;
 			}
@@ -776,20 +812,6 @@ udb_void udb_radix_insert(udb_base* udb, udb_ptr* rt, uint8_t* k,
 	udb_ptr_unlink(&add, udb);
 	udb_ptr_unlink(&n, udb);
 	return ret;
-}
-
-/** delete a radnode */
-static void udb_radnode_delete(udb_base* udb, udb_ptr* n)
-{
-	if(udb_ptr_is_null(n))
-		return;
-	printf("radnode delete %llx\n", (unsigned long long)n->data);
-	udb_radarray_zero_ptrs(udb, n);
-	printf("radnode lookupdelete %llx\n", (unsigned long long)n->data);
-	udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb,
-		size_of_lookup(n));
-	printf("radnode freenode %llx\n", (unsigned long long)n->data);
-	udb_ptr_free_space(n, udb, sizeof(struct udb_radnode_d));
 }
 
 /** Cleanup node with one child, it is removed and joined into parent[x] str */
@@ -846,10 +868,14 @@ udb_radarray_reduce(udb_base* udb, udb_ptr* n, uint16_t cap,
 	assert(lookup(n)->len <= cap);
 	assert(cap <= lookup(n)->capacity);
 	assert(strcap <= lookup(n)->str_cap);
+	printf("udb_radarray_reduce of node %llu\n", n->data);
 	if(!udb_ptr_alloc_space(&a, udb, udb_chunk_type_radarray,
 		size_of_lookup_needed(cap, strcap)))
 		return 0;
+	memset(RADARRAY(&a), 0, size_of_lookup_needed(cap, strcap));
 	memcpy(RADARRAY(&a), lookup(n), sizeof(struct udb_radarray_d));
+	RADARRAY(&a)->capacity = cap;
+	RADARRAY(&a)->str_cap = strcap;
 	for(i=0; i<lookup(n)->len; i++) {
 		udb_rel_ptr_init(&RADARRAY(&a)->array[i].node);
 		udb_rptr_set_rptr(&RADARRAY(&a)->array[i].node, udb,
@@ -861,8 +887,6 @@ udb_radarray_reduce(udb_base* udb, udb_ptr* n, uint16_t cap,
 	udb_radarray_zero_ptrs(udb, n);
 	udb_rel_ptr_free_space(&RADNODE(n)->lookup, udb, size_of_lookup(n));
 	udb_rptr_set_ptr(&RADNODE(n)->lookup, udb, &a);
-	RADARRAY(&a)->capacity = cap;
-	RADARRAY(&a)->str_cap = strcap;
 	udb_ptr_unlink(&a, udb);
 	return 1;
 }
@@ -885,6 +909,7 @@ static int
 udb_radarray_reduce_if_needed(udb_base* udb, udb_ptr* n)
 {
 	udb_radstrlen_t maxlen = udb_radarray_max_len(n);
+	printf("call reduce if needed %llu maxlen%d\n", n->data, maxlen);
 	if((lookup(n)->len <= lookup(n)->capacity/2
 		|| maxlen <= lookup(n)->str_cap/2) &&
 		(lookup(n)->len != lookup(n)->capacity ||
@@ -922,10 +947,18 @@ udb_radnode_array_clean_front(udb_base* udb, udb_ptr* n)
 	assert(shuf < lookup(n)->len);
 	assert((int)shuf <= 255-(int)RADNODE(n)->offset);
 	/* move them */
-	for(idx=0; idx<lookup(n)->len; idx++) {
+	for(idx=0; idx<lookup(n)->len-shuf; idx++) {
 		udb_rptr_set_rptr(&lookup(n)->array[idx].node, udb,
 			&lookup(n)->array[shuf+idx].node);
 		lookup(n)->array[idx].len = lookup_len(n, shuf+idx);
+		memmove(lookup_string(n, idx), lookup_string(n, shuf+idx),
+			lookup(n)->array[idx].len);
+	}
+	/* zero the to-be-unused entries */
+	for(idx=lookup(n)->len-shuf; idx<lookup(n)->len; idx++) {
+		udb_rptr_zero(&lookup(n)->array[idx].node, udb);
+		memset(lookup_string(n, idx), 0, lookup(n)->array[idx].len);
+		lookup(n)->array[idx].len = 0;
 	}
 	RADNODE(n)->offset += shuf;
 	lookup(n)->len -= shuf;
@@ -1011,9 +1044,14 @@ static int
 udb_radnode_cleanup(udb_base* udb, udb_ptr* rt, udb_ptr* n)
 {
 	while(!udb_ptr_is_null(n)) {
-		printf("radnode cleanup of %llx\n",
+		printf("radnode cleanup of %llu\n",
 			(unsigned long long)n->data);
 		if(RADNODE(n)->elem.data) {
+			/* see if if needs to be reduced in stringsize */
+			if(!udb_radarray_reduce_if_needed(udb, n)) {
+				udb_ptr_zero(n, udb);
+				return 0;
+			}
 			/* cannot delete node with a data element */
 			printf("cleanup end at elem\n");
 			udb_ptr_zero(n, udb);
@@ -1034,12 +1072,18 @@ udb_radnode_cleanup(udb_base* udb, udb_ptr* rt, udb_ptr* n)
 			/* remove and delete the leaf node */
 			if(!udb_radnode_cleanup_leaf(udb, n, &par)) {
 				udb_ptr_unlink(&par, udb);
+				udb_ptr_zero(n, udb);
 				return 0;
 			}
 			/* see if parent can now be cleaned up */
 			udb_ptr_set_ptr(n, udb, &par);
 			udb_ptr_unlink(&par, udb);
 		} else {
+			/* see if if needs to be reduced in stringsize */
+			if(!udb_radarray_reduce_if_needed(udb, n)) {
+				udb_ptr_zero(n, udb);
+				return 0;
+			}
 			printf("cleanup end\n");
 			/* node cannot be cleaned up */
 			udb_ptr_zero(n, udb);
@@ -1414,4 +1458,40 @@ void udb_radix_prev(udb_base* udb, udb_ptr* n)
 			return;
 	}
 	udb_ptr_zero(n, udb);
+}
+
+void udb_radix_tree_walk_chunk(void* base, void* d, uint64_t s,
+        udb_walk_relptr_cb* cb, void* arg)
+{
+	struct udb_radtree_d* p = (struct udb_radtree_d*)d;
+	assert(s >= sizeof(struct udb_radtree_d));
+	(void)s;
+	(*cb)(base, &p->root, arg);
+}
+
+void udb_radix_node_walk_chunk(void* base, void* d, uint64_t s,
+        udb_walk_relptr_cb* cb, void* arg)
+{
+	struct udb_radnode_d* p = (struct udb_radnode_d*)d;
+	assert(s >= sizeof(struct udb_radnode_d));
+	(void)s;
+	(*cb)(base, &p->elem, arg);
+	(*cb)(base, &p->parent, arg);
+	(*cb)(base, &p->lookup, arg);
+}
+
+void udb_radix_array_walk_chunk(void* base, void* d, uint64_t s,
+        udb_walk_relptr_cb* cb, void* arg)
+{
+	struct udb_radarray_d* p = (struct udb_radarray_d*)d;
+	unsigned i;
+	printf("radarray walk %llu size %d in chunk %d\n",
+		UDB_SYSTOREL(base, d), sizeof(struct udb_radarray_d)+
+		p->capacity*(sizeof(struct udb_radsel_d)+p->str_cap), (int)s);
+	assert(s >= sizeof(struct udb_radarray_d)+
+		p->capacity*(sizeof(struct udb_radsel_d)+p->str_cap));
+	(void)s;
+	for(i=0; i<p->len; i++) {
+		(*cb)(base, &p->array[i].node, arg);
+	}
 }

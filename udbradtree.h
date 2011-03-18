@@ -193,4 +193,19 @@ void udb_radix_prev(udb_base* udb, udb_ptr* n);
  * for(udb_radix_first(tree, node); node->data; udb_radix_next(node))
 */
 
+/** for use in udb-walkfunc, walks relptrs in udb_chunk_type_radtree */
+void udb_radix_tree_walk_chunk(void* base, void* d, uint64_t s,
+	udb_walk_relptr_cb* cb, void* arg);
+
+/** for use in udb-walkfunc, walks relptrs in udb_chunk_type_radnode */
+void udb_radix_node_walk_chunk(void* base, void* d, uint64_t s,
+	udb_walk_relptr_cb* cb, void* arg);
+
+/** for use in udb-walkfunc, walks relptrs in udb_chunk_type_radarray */
+void udb_radix_array_walk_chunk(void* base, void* d, uint64_t s,
+	udb_walk_relptr_cb* cb, void* arg);
+
+/** get the memory used by the lookup structure for a radnode */
+size_t size_of_lookup_ext(udb_ptr* node);
+
 #endif /* UDB_RADTREE_H */

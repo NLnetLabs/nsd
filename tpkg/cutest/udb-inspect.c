@@ -138,6 +138,9 @@ chunk_type2str(enum udb_chunk_type tp)
 		case udb_chunk_type_data: return "data";
 		case udb_chunk_type_index: return "index";
 		case udb_chunk_type_internal: return "internal";
+		case udb_chunk_type_radtree: return "radtree";
+		case udb_chunk_type_radnode: return "radnode";
+		case udb_chunk_type_radarray: return "radarray";
 	}
 	return "unknown";
 }
@@ -168,6 +171,19 @@ inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 			printf("next:			%llu\n", fp->next);
 		} else {
 			printf("ptrlist:		%llu\n", cp->ptrlist);
+		}
+	}
+	if(v>=2 && tp != udb_chunk_type_free && cp->ptrlist) {
+		/* follow the pointer list */
+		udb_rel_ptr* pl = UDB_REL_PTR(cp->ptrlist);
+		int count = 0;
+		while(pl->next) {
+			printf("relptr %llu\n", UDB_SYSTOREL(base, pl));
+			printf("    prev-ptrlist:	%llu\n", pl->prev);
+			printf("    data:		%llu\n", pl->data);
+			printf("    next-ptrlist:	%llu\n", pl->next);
+			pl = UDB_REL_PTR(pl->next);
+			if(count++ > 10) break;
 		}
 	}
 	/* ignore data for now */
