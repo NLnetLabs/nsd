@@ -1,3 +1,6 @@
+21 March 2011: Wouter
+	- udbradtree works. udb-inspect tool can print radtree details.
+
 16 March 2011: Matthijs
 	- undo fix bug#325: messes up dname compression
 

@@ -254,7 +254,6 @@ udb_base* gdb = NULL;
 /** check a UDB if it is OK */
 void check_udb_structure(CuTest* t, udb_base* udb)
 {
-	printf("check udb structure\n");
 	if(t) tc = t;
 	gdb = udb;
 	assert_udb_invariant(udb);

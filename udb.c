@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include "lookup3.h"
+#include "util.h"
 
 /* mmap and friends */
 #include <sys/types.h>
@@ -62,9 +63,9 @@ udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
 	uint64_t m;
 	udb_glob_d g;
 	ssize_t r;
-	udb_base* udb = (udb_base*)calloc(1, sizeof(*udb));
+	udb_base* udb = (udb_base*)xalloc_zero(sizeof(*udb));
 	if(!udb) {
-		fprintf(stderr, "out of memory\n");
+		log_msg(LOG_ERR, "out of memory");
 		close(fd);
 		return NULL;
 	}
@@ -73,60 +74,60 @@ udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
 	udb->fd = fd;
 	udb->ram_size = 1024;
 	udb->ram_mask = (int)udb->ram_size - 1;
-	udb->ram_hash = (udb_ptr**)calloc(sizeof(udb_ptr*), udb->ram_size);
+	udb->ram_hash = (udb_ptr**)xalloc_zero(sizeof(udb_ptr*)*udb->ram_size);
 	if(!udb->ram_hash) {
 		free(udb);
-		fprintf(stderr, "out of memory\n");
+		log_msg(LOG_ERR, "out of memory");
 		close(fd);
 		return NULL;
 	}
 
 	/* read magic */
 	if((r=read(fd, &m, sizeof(m))) == -1) {
-		fprintf(stderr, "%s: %s\n", fname, strerror(errno));
+		log_msg(LOG_ERR, "%s: %s", fname, strerror(errno));
 		goto fail;
 	} else if(r != (ssize_t)sizeof(m)) {
-		fprintf(stderr, "%s: file too short\n", fname);
+		log_msg(LOG_ERR, "%s: file too short", fname);
 		goto fail;
 	}
 	/* TODO : what if bigendian and littleendian file, see magic */
 	if(m != UDB_MAGIC) {
-		fprintf(stderr, "%s: wrong type of file\n", fname);
+		log_msg(LOG_ERR, "%s: wrong type of file", fname);
 		goto fail;
 	}
 	/* read header */
 	if((r=read(fd, &g, sizeof(g))) == -1) {
-		fprintf(stderr, "%s: %s\n", fname, strerror(errno));
+		log_msg(LOG_ERR, "%s: %s\n", fname, strerror(errno));
 		goto fail;
 	} else if(r != (ssize_t)sizeof(g)) {
-		fprintf(stderr, "%s: file too short\n", fname);
+		log_msg(LOG_ERR, "%s: file too short", fname);
 		goto fail;
 	}
 	if(g.version != 0) {
-		fprintf(stderr, "%s: unknown file version %d\n", fname,
+		log_msg(LOG_ERR, "%s: unknown file version %d", fname,
 			(int)g.version);
 		goto fail;
 	}
 	if(g.hsize < UDB_HEADER_SIZE) {
-		fprintf(stderr, "%s: header size too small %d\n", fname,
+		log_msg(LOG_ERR, "%s: header size too small %d", fname,
 			(int)g.hsize);
 		goto fail;
 	}
 	if(g.hsize > UDB_HEADER_SIZE) {
-		fprintf(stderr, "%s: header size too large %d\n", fname,
+		log_msg(LOG_WARNING, "%s: header size too large %d", fname,
 			(int)g.hsize);
-		fprintf(stderr, "attempting to continue...\n");
+		log_msg(LOG_WARNING, "attempting to continue...");
 	}
 	if(g.clean_close != 0) {
-		fprintf(stderr, "%s: not cleanly closed %d\n", fname,
+		log_msg(LOG_WARNING, "%s: not cleanly closed %d", fname,
 			(int)g.clean_close);
-		fprintf(stderr, "attempting to continue...\n");
+		log_msg(LOG_WARNING, "attempting to continue...");
 	}
 	/* TODO check if too large (>4g on 32bit); mmap-usage would fail */
 	
 	/* mmap it */
 	if(g.fsize < UDB_HEADER_SIZE || g.fsize < g.hsize) {
-		fprintf(stderr, "%s: file too short\n", fname);
+		log_msg(LOG_ERR, "%s: file too short", fname);
 		goto fail;
 	}
 	udb->base_size = (size_t)g.fsize;
@@ -134,7 +135,7 @@ udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
 		MAP_SHARED, udb->fd, (off_t)0);
 	if(udb->base == MAP_FAILED) {
 		udb->base = NULL;
-		fprintf(stderr, "mmap(size %u) error: %s\n",
+		log_msg(LOG_ERR, "mmap(size %u) error: %s",
 			(unsigned)udb->base_size, strerror(errno));
 	fail:
 		close(fd);
@@ -151,7 +152,7 @@ udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
 	udb->alloc = udb_alloc_create(udb, (udb_alloc_d*)(
 		(void*)udb->glob_data+sizeof(*udb->glob_data)));
 	if(!udb->alloc) {
-		fprintf(stderr, "out of memory\n");
+		log_msg(LOG_ERR, "out of memory");
 		udb_base_free(udb);
 		return NULL;
 	}
@@ -169,7 +170,7 @@ udb_base* udb_base_create_read(char* fname, udb_walk_relptr_func walkfunc,
 {
 	int fd = open(fname, O_RDWR);
 	if(fd == -1) {
-		fprintf(stderr, "%s: %s\n", fname, strerror(errno));
+		log_msg(LOG_ERR, "%s: %s", fname, strerror(errno));
 		return NULL;
 	}
 	return udb_base_create_fd(fname, fd, walkfunc, arg);
@@ -185,15 +186,15 @@ static void udb_glob_init_new(udb_glob_d* g)
 
 /** write data to file and check result */
 static int
-write_data(char* fname, int fd, void* data, size_t len)
+write_fdata(char* fname, int fd, void* data, size_t len)
 {
 	ssize_t w;
 	if((w=write(fd, data, len)) == -1) {
-		fprintf(stderr, "%s: %s\n", fname, strerror(errno));
+		log_msg(LOG_ERR, "%s: %s", fname, strerror(errno));
 		close(fd);
 		return 0;
 	} else if(w != (ssize_t)len) {
-		fprintf(stderr, "%s: short write (disk full?)\n", fname);
+		log_msg(LOG_ERR, "%s: short write (disk full?)", fname);
 		close(fd);
 		return 0;
 	}
@@ -210,7 +211,7 @@ udb_base* udb_base_create_new(char* fname, udb_walk_relptr_func walkfunc,
 	uint64_t endexp = 0;
 	int fd = open(fname, O_CREAT|O_RDWR, 0666);
 	if(fd == -1) {
-		fprintf(stderr, "%s: %s\n", fname, strerror(errno));
+		log_msg(LOG_ERR, "%s: %s", fname, strerror(errno));
 		return NULL;
 	}
 	m = UDB_MAGIC;
@@ -218,19 +219,19 @@ udb_base* udb_base_create_new(char* fname, udb_walk_relptr_func walkfunc,
 	udb_alloc_init_new(&a);
 
 	/* write new data to file (closes fd on error) */
-	if(!write_data(fname, fd, &m, sizeof(m)))
+	if(!write_fdata(fname, fd, &m, sizeof(m)))
 		return NULL;
-	if(!write_data(fname, fd, &g, sizeof(g)))
+	if(!write_fdata(fname, fd, &g, sizeof(g)))
 		return NULL;
-	if(!write_data(fname, fd, &a, sizeof(a)))
+	if(!write_fdata(fname, fd, &a, sizeof(a)))
 		return NULL;
-	if(!write_data(fname, fd, &endsize, sizeof(endsize)))
+	if(!write_fdata(fname, fd, &endsize, sizeof(endsize)))
 		return NULL;
-	if(!write_data(fname, fd, &endexp, sizeof(endexp)))
+	if(!write_fdata(fname, fd, &endexp, sizeof(endexp)))
 		return NULL;
 	/* rewind to start */
 	if(lseek(fd, (off_t)0, SEEK_SET) == (off_t)-1) {
-		fprintf(stderr, "%s: lseek %s\n", fname, strerror(errno));
+		log_msg(LOG_ERR, "%s: lseek %s", fname, strerror(errno));
 		close(fd);
 		return NULL;
 	}
@@ -247,7 +248,7 @@ udb_base_shrink(udb_base* udb, uint64_t nsize)
 	   certainly required on OpenBSD.  Otherwise changed data is lost. */
 	msync(udb->base, udb->base_size, MS_ASYNC);
 	if(ftruncate(udb->fd, (off_t)nsize) != 0) {
-		fprintf(stderr, "%s: ftruncate(%u) %s\n", udb->fname,
+		log_msg(LOG_ERR, "%s: ftruncate(%u) %s", udb->fname,
 			(unsigned)nsize, strerror(errno));
 	}
 	udb->glob_data->dirty_alloc = udb_dirty_clean;
@@ -268,7 +269,7 @@ void udb_base_close(udb_base* udb)
 	}
 	if(udb->base) {
 		if(munmap(udb->base, udb->base_size) == -1) {
-			fprintf(stderr, "munmap: %s\n", strerror(errno));
+			log_msg(LOG_ERR, "munmap: %s", strerror(errno));
 		}
 		udb->base = NULL;
 	}
@@ -287,7 +288,7 @@ void udb_base_free(udb_base* udb)
 void udb_base_sync(udb_base* udb, int wait)
 {
 	if(msync(udb->base, udb->base_size, wait?MS_SYNC:MS_ASYNC) != 0) {
-		fprintf(stderr, "msync(%s) error %s\n",
+		log_msg(LOG_ERR, "msync(%s) error %s",
 			udb->fname, strerror(errno));
 	}
 }
@@ -350,7 +351,7 @@ void udb_base_link_ptr(udb_base* udb, udb_ptr* ptr)
 	udb->ram_num++;
 	if(udb->ram_num == udb->ram_size && udb->ram_size<(size_t)0xefffffff) {
 		/* grow the array, if allocation succeeds */
-		udb_ptr** newram = (udb_ptr**)calloc(sizeof(udb_ptr*),
+		udb_ptr** newram = (udb_ptr**)xalloc_zero(sizeof(udb_ptr*)*
 			udb->ram_size*2);
 		if(newram) {
 			grow_ram_hash(udb, newram);
@@ -421,21 +422,21 @@ udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)
 #ifdef MREMAP_MAYMOVE
 	nb = mremap(udb->base, udb->base_size, nsize, MREMAP_MAYMOVE);
 	if(nb == MAP_FAILED) {
-		fprintf(stderr, "mremap(%s, size %u) error %s\n",
+		log_msg(LOG_ERR, "mremap(%s, size %u) error %s",
 			udb->fname, (unsigned)nsize, strerror(errno));
 		return 0;
 	}
 #else /* !HAVE MREMAP */
 	/* use munmap-mmap to simulate mremap */
 	if(munmap(udb->base, udb->base_size) != 0) {
-		fprintf(stderr, "munmap(%s) error %s\n",
+		log_msg(LOG_ERR, "munmap(%s) error %s",
 			udb->fname, strerror(errno));
 	}
 	/* provide hint for new location */
 	nb = mmap(udb->base, nsize, PROT_READ|PROT_WRITE,
 		MAP_SHARED, udb->fd, (off_t)0);
 	if(nb == MAP_FAILED) {
-		fprintf(stderr, "mmap(%s, size %u) error %s\n",
+		log_msg(LOG_ERR, "mmap(%s, size %u) error %s",
 			udb->fname, (unsigned)nsize, strerror(errno));
 		udb->base = NULL;
 		return 0;
@@ -467,11 +468,11 @@ udb_base_grow_and_remap(udb_base* udb, uint64_t nsize)
 	assert(nsize > 0);
 	udb->glob_data->dirty_alloc = udb_dirty_fsize;
 	if((w=pwrite(udb->fd, &z, sizeof(z), (off_t)(nsize-1))) == -1) {
-		fprintf(stderr, "grow(%s, size %u) error %s\n",
+		log_msg(LOG_ERR, "grow(%s, size %u) error %s",
 			udb->fname, (unsigned)nsize, strerror(errno));
 		return 0;
 	} else if(w != (ssize_t)sizeof(z)) {
-		fprintf(stderr, "grow(%s, size %u) failed (disk full?)\n",
+		log_msg(LOG_ERR, "grow(%s, size %u) failed (disk full?)",
 			udb->fname, (unsigned)nsize);
 		return 0;
 	}
@@ -540,17 +541,17 @@ static int
 fsck_fsize(udb_base* udb, udb_alloc* alloc)
 {
 	off_t realsize;
-	fprintf(stderr, "fsck %s: file size wrong\n", udb->fname);
+	log_msg(LOG_WARNING, "udb-fsck %s: file size wrong", udb->fname);
 	realsize = lseek(udb->fd, (off_t)0, SEEK_END);
 	if(realsize == (off_t)-1) {
-		fprintf(stderr, "lseek(%s): %s\n", udb->fname, strerror(errno));
+		log_msg(LOG_ERR, "lseek(%s): %s", udb->fname, strerror(errno));
 		return 0;
 	}
 	udb->glob_data->fsize = (uint64_t)realsize;
 	if(!udb_base_remap(udb, alloc, (uint64_t)realsize))
 		return 0;
 	udb->glob_data->dirty_alloc = udb_dirty_clean;
-	fprintf(stderr, "fsck %s: file size fixed (sync)\n", udb->fname);
+	log_msg(LOG_WARNING, "udb-fsck %s: file size fixed (sync)", udb->fname);
 	udb_base_sync(udb, 1);
 	return 1;
 }
@@ -763,7 +764,7 @@ fsck_file(udb_base* udb, udb_alloc* alloc, int moved)
 	udb_void rb_seg = udb->glob_data->rb_seg;
 	udb_void make_free = 0;
 	uint64_t rb_size = udb->glob_data->rb_size;
-	fprintf(stderr, "fsck %s: salvaging\n", udb->fname);
+	log_msg(LOG_WARNING, "udb-fsck %s: salvaging", udb->fname);
 	/* walk through the file, use the exp values to see what can be
 	 * salvaged */
 	if(moved && rb_old && rb_new && rb_size) {
@@ -817,7 +818,8 @@ fsck_file(udb_base* udb, udb_alloc* alloc, int moved)
 	/* rebuild relptr lists */
 	regen_ptrlist(base, udb, alloc, rb_old, rb_new);
 
-	fprintf(stderr, "fsck %s: salvaged successfully (sync)\n", udb->fname);
+	log_msg(LOG_WARNING, "udb-fsck %s: salvaged successfully (sync)",
+		udb->fname);
 	udb->glob_data->rb_old = 0;
 	udb->glob_data->rb_new = 0;
 	udb->glob_data->rb_size = 0;
@@ -829,7 +831,7 @@ fsck_file(udb_base* udb, udb_alloc* alloc, int moved)
 
 udb_alloc* udb_alloc_create(udb_base* udb, udb_alloc_d* disk)
 {
-	udb_alloc* alloc = (udb_alloc*)calloc(1, sizeof(*alloc));
+	udb_alloc* alloc = (udb_alloc*)xalloc_zero(sizeof(*alloc));
 	if(!alloc)
 		return NULL;
 	alloc->udb = udb;
@@ -847,7 +849,7 @@ udb_alloc* udb_alloc_create(udb_base* udb, udb_alloc_d* disk)
 			if(fsck_file(udb, alloc, 1))
 				return alloc;
 		}
-		fprintf(stderr, "error: file allocation dirty (%d)\n",
+		log_msg(LOG_ERR, "error: file allocation dirty (%d)",
 			(int)udb->glob_data->dirty_alloc);
 		free(alloc);
 		return NULL;
@@ -1688,7 +1690,7 @@ udb_void udb_alloc_realloc(udb_alloc* alloc, udb_void r, size_t osz, size_t sz)
 		return udb_alloc_space(alloc, sz);
 	if(sz == 0) {
 		if(!udb_alloc_free(alloc, r, osz))
-			fprintf(stderr, "udb_alloc_realloc: free failed!\n");
+			log_msg(LOG_ERR, "udb_alloc_realloc: free failed");
 		return 0;
 	}
 	c = chunk_from_dataptr(r);
@@ -1715,7 +1717,7 @@ udb_void udb_alloc_realloc(udb_alloc* alloc, udb_void r, size_t osz, size_t sz)
 	chunk_fix_ptrs(base, alloc->udb, np, newd, osz, r);
 
 	if(!udb_alloc_free(alloc, r, osz))
-		fprintf(stderr, "udb_alloc_realloc: free failed!\n");
+		log_msg(LOG_ERR, "udb_alloc_realloc: free failed");
 	return newd;
 }
 
@@ -1732,7 +1734,7 @@ int udb_alloc_grow(udb_alloc* alloc, size_t sz, size_t num)
 	want = grow_end_calc(alloc, exp) + esz*(num-1);
 	assert(want >= alloc->udb->base_size);
 	if(!udb_base_grow_and_remap(alloc->udb, want)) {
-		fprintf(stderr, "failed to grow the specified amount\n");
+		log_msg(LOG_ERR, "failed to grow the specified amount");
 		return 0;
 	}
 	return 1;

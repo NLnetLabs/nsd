@@ -658,7 +658,7 @@ test_del_a_key(udb_base* udb, udb_ptr* rt)
 static void
 test_ran_add_del(udb_base* udb, udb_ptr* rt)
 {
-	unsigned i, num = 2000;
+	unsigned i, num = 200;
 	unsigned target = 40;
 	for(i=0; i<num; i++) {
 		/* add or del? */
