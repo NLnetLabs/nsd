@@ -398,13 +398,18 @@ static int udb_radnode_array_space(udb_base* udb, udb_ptr* n, uint8_t byte,
 	/* is it above the max? */
 	} else if(byte - RADNODE(n)->offset >= lookup(n)->len) {
 		/* is capacity enough? */
+		int i;
 		unsigned need = (byte-RADNODE(n)->offset) - lookup(n)->len + 1;
 		/* grow array */
 		if(lookup(n)->len + need > lookup(n)->capacity) {
 			if(!udb_radnode_array_grow(udb, n, lookup(n)->len+need))
 				return 0;
 		}
-		/* added entries already zeroed */
+		/* take new entries into use, init relptrs */
+		for(i = lookup(n)->len; i< (int)(lookup(n)->len + need); i++) {
+			udb_rel_ptr_init(&lookup(n)->array[i].node);
+			lookup(n)->array[i].len = 0;
+		}
 		/* grow length */
 		lookup(n)->len += need;
 	}
