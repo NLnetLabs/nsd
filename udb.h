@@ -5,6 +5,7 @@
  */
 #ifndef UDB_H
 #define UDB_H
+#include <assert.h>
 
 /**
  * The micro data base UDB.
@@ -38,6 +39,9 @@
  */
 typedef struct udb_base udb_base;
 typedef struct udb_alloc udb_alloc;
+
+/** perform extra checks */
+#define UDB_CHECK 1
 
 /** pointers are stored like this */
 typedef uint64_t udb_void;
@@ -500,6 +504,33 @@ int udb_alloc_grow(udb_alloc* alloc, size_t sz, size_t num);
  */
 void udb_alloc_set_type(udb_alloc* alloc, udb_void r, udb_chunk_type tp);
 
+/**
+ * See if a pointer could be valid (it points within valid space),
+ * for the given type side.  For debug checks.
+ * @param udb: the udb
+ * @param to: the ptr (offset).
+ * @param destsize: the size_of of the destination of the pointer.
+ * @return true if it points to a valid region.
+ */
+int udb_valid_offset(udb_base* udb, udb_void to, size_t destsize);
+
+/**
+ * See if a pointer is valid (it points to a chunk).  For debug checks.
+ * @param udb: the udb.
+ * @param to: the ptr (offset).
+ * @return true if it points to the start of a chunks data region.
+ */
+int udb_valid_dataptr(udb_base* udb, udb_void to);
+
+/**
+ * See if a pointer is on the relptrlist for dataptr.  For debug checks.
+ * @param udb: the udb.
+ * @param rptr: the rel_ptr (offset).
+ * @param to: dataptr of the chunk on which ptrlist the rptr is searched.
+ * @return true if rptr is valid and on the ptrlist.
+ */
+int udb_valid_rptr(udb_base* udb, udb_void rptr, udb_void to);
+
 /*** UDB_REL_PTR ***/
 /** 
  * Init a new UDB rel ptr at NULL.
@@ -636,18 +667,33 @@ static inline void udb_ptr_unlink(udb_ptr* ptr, udb_base* udb) {
 /* Ease of use.  Assign rptr from rptr */
 static inline void udb_rptr_set_rptr(udb_rel_ptr* dest, udb_base* udb,
 	udb_rel_ptr* p) {
+#ifdef UDB_CHECK
+	if(dest->data) { assert(udb_valid_rptr(udb,
+		UDB_SYSTOREL(udb->base, dest), dest->data)); }
+	if(p->data) { assert(udb_valid_rptr(udb,
+		UDB_SYSTOREL(udb->base, p), p->data)); }
+#endif
 	udb_rel_ptr_set(udb->base, dest, p->data);
 }
 
 /* Ease of use.  Assign rptr from ptr */
 static inline void udb_rptr_set_ptr(udb_rel_ptr* dest, udb_base* udb,
 	udb_ptr* p) {
+#ifdef UDB_CHECK
+	if(dest->data) { assert(udb_valid_rptr(udb,
+		UDB_SYSTOREL(udb->base, dest), dest->data)); }
+	if(p->data) { assert(udb_valid_dataptr(udb, p->data)); }
+#endif
 	udb_rel_ptr_set(udb->base, dest, p->data);
 }
 
 /* Ease of use.  Assign ptr from rptr */
 static inline void udb_ptr_set_rptr(udb_ptr* dest, udb_base* udb,
 	udb_rel_ptr* p) {
+#ifdef UDB_CHECK
+	if(p->data) { assert(udb_valid_rptr(udb,
+		UDB_SYSTOREL(udb->base, p), p->data)); }
+#endif
 	udb_ptr_set(dest, udb, p->data);
 }
 
@@ -658,6 +704,10 @@ static inline void udb_ptr_set_ptr(udb_ptr* dest, udb_base* udb, udb_ptr* p) {
 
 /* Ease of use, zero rptr */
 static inline void udb_rptr_zero(udb_rel_ptr* dest, udb_base* udb) {
+#ifdef UDB_CHECK
+	if(dest->data) { assert(udb_valid_rptr(udb,
+		UDB_SYSTOREL(udb->base, dest), dest->data)); }
+#endif
 	udb_rel_ptr_set(udb->base, dest, 0);
 }
 
@@ -670,6 +720,9 @@ static inline void udb_ptr_zero(udb_ptr* dest, udb_base* udb) {
 static inline void udb_rel_ptr_free_space(udb_rel_ptr* ptr, udb_base* udb,
 	size_t sz) {
 	udb_void d = ptr->data;
+#ifdef UDB_CHECK
+	if(d) { assert(udb_valid_rptr(udb, UDB_SYSTOREL(udb->base, ptr), d)); }
+#endif
 	udb_rel_ptr_set(udb->base, ptr, 0);
 	udb_alloc_free(udb->alloc, d, sz);
 }

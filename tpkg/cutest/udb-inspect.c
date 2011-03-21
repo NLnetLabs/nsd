@@ -6,10 +6,12 @@
 
 #include "config.h"
 #include "udb.h"
+#include "udbradtree.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 /* mmap and friends */
 #include <sys/types.h>
@@ -19,6 +21,11 @@
 
 /** verbosity for udb inspect */
 static int v = 0;
+/** shorthand for ease */
+#ifdef ULL
+#undef ULL
+#endif
+#define ULL (unsigned long long)
 
 /** print usage text */
 static void
@@ -53,7 +60,7 @@ inspect_initial(int fd)
 	sz = g.fsize;
 	fsz = (uint64_t)lseek(fd, (off_t)0, SEEK_END);
 	(void)lseek(fd, (off_t)0, SEEK_SET);
-	printf("mmap size/file size:	%llu / %llu\n", sz, fsz);
+	printf("mmap size/file size:	%llu / %llu\n", ULL sz, ULL fsz);
 	return sz;
 }
 
@@ -62,7 +69,7 @@ static void
 print_relptr(char* s, udb_rel_ptr* p)
 {
 	printf("%s	d=%llu p=%llu n=%llu\n",
-		s, p->data, p->prev, p->next);
+		s, ULL p->data, ULL p->prev, ULL p->next);
 }
 
 /** inspect glob data part */
@@ -73,7 +80,7 @@ inspect_glob_data(void* base)
 	uint64_t magic = *(uint64_t*)base;
 	printf("filetype:		0x%16.16llx (%s)\n", magic,
 		magic==UDB_MAGIC?"ok":"wrong");
-	printf("header size:		%llu\n", g->hsize);
+	printf("header size:		%llu\n", ULL g->hsize);
 	if(g->hsize != UDB_HEADER_SIZE)
 		printf("  header size is wrong\n");
 	printf("version:		%u\n", (unsigned)g->version);
@@ -83,11 +90,11 @@ inspect_glob_data(void* base)
 	printf("dirty_alloc:		%u\n", (unsigned)g->dirty_alloc);
 	printf("padbytes:		0x%2.2x%2.2x%2.2x%2.2x%2.2x\n",
 		g->pad1[0], g->pad1[1], g->pad1[2], g->pad1[3], g->pad1[4]);
-	printf("file size:		%llu\n", g->fsize);
-	printf("rb_old:			%llu\n", g->rb_old);
-	printf("rb_new:			%llu\n", g->rb_new);
-	printf("rb_size:		%llu\n", g->rb_size);
-	printf("rb_seg:			%llu\n", g->rb_seg);
+	printf("file size:		%llu\n", ULL g->fsize);
+	printf("rb_old:			%llu\n", ULL g->rb_old);
+	printf("rb_new:			%llu\n", ULL g->rb_new);
+	printf("rb_size:		%llu\n", ULL g->rb_size);
+	printf("rb_seg:			%llu\n", ULL g->rb_seg);
 	print_relptr("content_list:	", &g->content_list);
 	print_relptr("user_global:	", &g->user_global);
 	return g;
@@ -99,22 +106,23 @@ inspect_alloc(udb_glob_d* g)
 {
 	int i;
 	udb_alloc_d* a = (udb_alloc_d*)((void*)g + sizeof(*g));
-	printf("bytes data allocated:	%llu\n", a->stat_data);
-	printf("bytes used for chunks:	%llu\n", a->stat_alloc);
-	printf("bytes free in chunks:	%llu\n", a->stat_free);
-	printf("  lost space:		%llu\n", a->stat_alloc-a->stat_data);
-	printf("next chunk placement:	%llu\n", a->nextgrow);
-	printf("  unused space at EOF:	%llu\n", g->fsize-a->nextgrow);
+	printf("bytes data allocated:	%llu\n", ULL a->stat_data);
+	printf("bytes used for chunks:	%llu\n", ULL a->stat_alloc);
+	printf("bytes free in chunks:	%llu\n", ULL a->stat_free);
+	printf("  lost space:		%llu\n", ULL
+		(a->stat_alloc-a->stat_data));
+	printf("next chunk placement:	%llu\n", ULL a->nextgrow);
+	printf("  unused space at EOF:	%llu\n", ULL g->fsize-a->nextgrow);
 
 	if(v) {
 		for(i=0; i<UDB_ALLOC_CHUNKS_MAX-UDB_ALLOC_CHUNK_MINEXP+1; i++) {
 			printf("freelist[%d] (exp %d):	%llu\n",
-				i, i+UDB_ALLOC_CHUNK_MINEXP, a->free[i]);
+				i, i+UDB_ALLOC_CHUNK_MINEXP, ULL a->free[i]);
 		}
 		printf("header size:		%llu\n",
-			*(uint64_t*)((void*)a+sizeof(*a)));
+			ULL *(uint64_t*)((void*)a+sizeof(*a)));
 		printf("header endmarker exp:	%llu\n",
-			*(uint64_t*)((void*)a+sizeof(*a)+sizeof(uint64_t)));
+			ULL *(uint64_t*)((void*)a+sizeof(*a)+sizeof(uint64_t)));
 	}
 	return a;
 }
@@ -145,48 +153,91 @@ chunk_type2str(enum udb_chunk_type tp)
 	return "unknown";
 }
 
+/** print escaped string */
+static void
+print_escaped(uint8_t* s, size_t len)
+{
+	size_t i;
+	for(i=0; i<len; i++) {
+		if(isgraph((int)s[i]) && s[i] != '\\')
+			printf("%c", (char)s[i]);
+		else	printf("\\%03u", (unsigned int)s[i]);
+	}
+}
+
 /** inspect a chunk in the file */
 static void*
 inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 {
 	udb_chunk_d* cp = (udb_chunk_d*)cv;
 	udb_void c = (udb_void)(cv - base);
+	udb_void data;
 	uint8_t exp = cp->exp;
 	uint8_t tp = cp->type;
 	uint8_t flags = cp->flags;
 	uint64_t sz = 0;
 	if(exp == UDB_EXP_XL) {
 		sz = ((udb_xl_chunk_d*)cp)->size;
+		data = c + sizeof(udb_xl_chunk_d);
 	} else {
 		sz = (uint64_t)1<<exp;
+		data = c + sizeof(udb_chunk_d);
 	}
 	if(v) {
 		/* print chunk details */
 		printf("chunk at %llu exp=%d type=%d (%s) flags=0x%x "
-			"size=%llu\n", c, exp, tp, chunk_type2str(tp),
-			flags, sz);
+			"size=%llu\n", ULL c, exp, tp, chunk_type2str(tp),
+			flags, ULL sz);
 		if(tp == udb_chunk_type_free) {
 			udb_free_chunk_d* fp = (udb_free_chunk_d*)cp;
-			printf("prev:			%llu\n", fp->prev);
-			printf("next:			%llu\n", fp->next);
+			printf("prev:			%llu\n", ULL fp->prev);
+			printf("next:			%llu\n", ULL fp->next);
 		} else {
-			printf("ptrlist:		%llu\n", cp->ptrlist);
+			printf("ptrlist:		%llu\n",
+				ULL cp->ptrlist);
 		}
 	}
 	if(v>=2 && tp != udb_chunk_type_free && cp->ptrlist) {
 		/* follow the pointer list */
 		udb_rel_ptr* pl = UDB_REL_PTR(cp->ptrlist);
-		int count = 0;
 		while(pl->next) {
-			printf("relptr %llu\n", UDB_SYSTOREL(base, pl));
-			printf("    prev-ptrlist:	%llu\n", pl->prev);
-			printf("    data:		%llu\n", pl->data);
-			printf("    next-ptrlist:	%llu\n", pl->next);
+			printf("relptr %llu\n", ULL UDB_SYSTOREL(base, pl));
+			printf("    prev-ptrlist:	%llu\n", ULL pl->prev);
+			printf("    data:		%llu\n", ULL pl->data);
+			printf("    next-ptrlist:	%llu\n", ULL pl->next);
 			pl = UDB_REL_PTR(pl->next);
-			if(count++ > 10) break;
 		}
 	}
-	/* ignore data for now */
+	/* print data details */
+	if(cp->type == udb_chunk_type_radtree) {
+		struct udb_radtree_d* d = (struct udb_radtree_d*)UDB_REL(base,
+			data);
+		printf("	radtree count=%llu root=%llu\n",
+			ULL d->count, ULL d->root.data);
+	} else if(cp->type == udb_chunk_type_radnode) {
+		struct udb_radnode_d* d = (struct udb_radnode_d*)UDB_REL(base,
+			data);
+		printf("	radnode pidx=%d offset=%d elem=%llu "
+			"parent=%llu lookup=%llu\n",
+			(int)d->pidx, (int)d->offset, ULL d->elem.data,
+			ULL d->parent.data, ULL d->lookup.data);
+	} else if(cp->type == udb_chunk_type_radarray) {
+		struct udb_radarray_d* d = (struct udb_radarray_d*)UDB_REL(
+			base, data);
+		unsigned i;
+		printf("	radarray len=%d capacity=%d str_cap=%d\n",
+			(int)d->len, (int)d->capacity, (int)d->str_cap);
+		for(i=0; i<d->len; i++)
+			if(d->array[i].node.data) {
+				printf("	[%u] node=%llu len=%d ",
+					i, ULL d->array[i].node.data,
+					(int)d->array[i].len);
+				print_escaped(
+					((uint8_t*)&d->array[d->capacity])+
+					i*d->str_cap, (size_t)d->array[i].len);
+				printf("\n");
+			}
+	}
 
 	/* update stats */
 	t->exp_num[exp]++;
@@ -196,7 +247,7 @@ inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 	if(exp == UDB_EXP_XL) {
 		if(sz != *(uint64_t*)(cv+sz-2*sizeof(uint64_t))) {
 			printf("  end xl size is wrong:	%llu\n",
-				*(uint64_t*)(cv+sz-2*sizeof(uint64_t)));
+				ULL *(uint64_t*)(cv+sz-2*sizeof(uint64_t)));
 		}
 	}
 	if(exp != *(uint8_t*)(cv+sz-1)) {
@@ -215,7 +266,7 @@ inspect_all_chunks(void* base, udb_glob_d* g, udb_alloc_d* a,
 		t->num_chunks++;
 		at = inspect_chunk(base, at, t);
 	}
-	printf("end of chunks at %llu\n", (uint64_t)(at-base));
+	printf("end of chunks at %llu\n", ULL (uint64_t)(at-base));
 }
 
 /** print totals */
@@ -223,12 +274,13 @@ static void
 print_totals(struct inspect_totals* t)
 {
 	int i;
-	printf("*** total num chunks:	%llu\n", t->num_chunks);
+	printf("*** total num chunks:	%llu\n", ULL t->num_chunks);
 	for(i=0; i<UDB_ALLOC_CHUNKS_MAX; i++) {
 		if(t->exp_num[i] != 0 || t->exp_free[i] != 0)
 			printf("exp %d chunks: free %llu alloc %llu "
-				"total %llu\n", i, t->exp_free[i],
-				t->exp_num[i] - t->exp_free[i], t->exp_num[i]);
+				"total %llu\n", i, ULL t->exp_free[i],
+				ULL (t->exp_num[i] - t->exp_free[i]),
+				ULL t->exp_num[i]);
 	}
 }
 

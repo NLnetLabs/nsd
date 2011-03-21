@@ -1490,9 +1490,6 @@ void udb_radix_array_walk_chunk(void* base, void* d, uint64_t s,
 {
 	struct udb_radarray_d* p = (struct udb_radarray_d*)d;
 	unsigned i;
-	printf("radarray walk %llu size %d in chunk %d\n",
-		UDB_SYSTOREL(base, d), sizeof(struct udb_radarray_d)+
-		p->capacity*(sizeof(struct udb_radsel_d)+p->str_cap), (int)s);
 	assert(s >= sizeof(struct udb_radarray_d)+
 		p->capacity*(sizeof(struct udb_radsel_d)+p->str_cap));
 	(void)s;

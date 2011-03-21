@@ -53,7 +53,7 @@ CuSuite* reg_cutest_udb_radtree(void)
 
 static CuTest* tc = NULL;
 /* local verbosity */
-static int verb = 1;
+static int verb = 0;
 static udb_base* base_A = NULL;
 
 /*********** test code ************/
@@ -121,16 +121,8 @@ static size_t test_check_invariants(udb_base* udb, udb_ptr* n)
 			}
 		}
 		maxlen = udb_radarray_max_len(n);
-		if(!(maxlen <= lookup(n)->str_cap)) {
-			printf("%llu maxlen %d str_cap %d\n",
-				n->data, maxlen, lookup(n)->str_cap);
-		}
 		CuAssert(tc, "maxlen", maxlen <= lookup(n)->str_cap);
 		if(maxlen != lookup(n)->str_cap) {
-			if(!(maxlen >= lookup(n)->str_cap/2)) {
-				printf("%llu maxlen %d str_cap %d\n",
-					n->data, maxlen, lookup(n)->str_cap);
-			}
 			CuAssert(tc, "maxlen", maxlen >= lookup(n)->str_cap/2);
 		}
 	}
@@ -446,10 +438,10 @@ static void test_checks(udb_base* udb, udb_ptr* rt)
 
 	/* check allocated sizes in the udb */
 	mem = udb_radtree_size(udb, rt);
-	printf("radtree takes %llu\n", mem);
+	if(verb) printf("radtree takes %llu\n", mem);
 	mem += RADTREE(rt)->count * sizeof(struct teststr);
-	printf("radtree+teststrs takes %llu\n", mem);
-	printf("statdata %llu\n", udb->alloc->disk->stat_data);
+	if(verb) printf("radtree+teststrs takes %llu\n", mem);
+	if(verb) printf("statdata %llu\n", udb->alloc->disk->stat_data);
 	CuAssert(tc, "allocated memory accounted for",
 		mem == udb->alloc->disk->stat_data);
 
@@ -578,7 +570,7 @@ test_insert_string(udb_base* udb, udb_ptr* rt, char* str)
 	udb_ptr_unlink(&n, udb);
 
 	rh2 = udb->ram_num;
-	test_tree_print(udb, rt);
+	if(verb) test_tree_print(udb, rt);
 	CuAssertTrue(tc, udb->ram_num == rh2);
 	test_checks(udb, rt);
 	CuAssertTrue(tc, udb->ram_num == rh2);
@@ -586,35 +578,43 @@ test_insert_string(udb_base* udb, udb_ptr* rt, char* str)
 	CuAssertTrue(tc, udb->ram_num == rh);
 }
 
-#if 0
 /** browse all elem's from tree with a for loop */
-static void test_browse(struct radtree* rt)
+static void test_browse(udb_base* udb, udb_ptr* rt)
 {
-	struct radnode* n;
-	for(n = radix_first(rt); n; n = radix_next(n)) {
-		struct teststr* s = (struct teststr*)n->elem;
-		if(verb) fprintf(stderr, "radix %p \telem ", n);
-		if(verb) test_print_str(s->mystr, s->mylen);
+	udb_ptr n;
+	udb_ptr_init(&n, udb);
+	for(udb_radix_first(udb, rt, &n); !udb_ptr_is_null(&n);
+		udb_radix_next(udb, &n)) {
+		udb_ptr elem;
+		udb_ptr_new(&elem, udb, &RADNODE(&n)->elem);
+		if(verb) fprintf(stderr, "radix %llu \telem ", n.data);
+		if(verb) test_print_str(TESTSTR(&elem)->mystr,
+			TESTSTR(&elem)->mylen);
 		if(verb) fprintf(stderr, "\n");
-		CuAssert(tc, "walk", s->mynode == n);
+		CuAssert(tc, "walk", TESTSTR(&elem)->mynode.data == n.data);
+		udb_ptr_unlink(&elem, udb);
 	}
+	udb_ptr_unlink(&n, udb);
 }
 
 /** delete all elem's from tree with a for loop */
-static void test_del(struct radtree* rt)
+static void test_del(udb_base* udb, udb_ptr* rt)
 {
-	struct radnode* n;
-	for(n = radix_first(rt); n; n = radix_next(n)) {
-		struct teststr* s = (struct teststr*)n->elem;
-		if(verb) fprintf(stderr, "del %p \telem ", n);
-		if(verb) test_print_str(s->mystr, s->mylen);
+	udb_ptr n;
+	udb_ptr_init(&n, udb);
+	for(udb_radix_first(udb, rt, &n); !udb_ptr_is_null(&n);
+		udb_radix_next(udb, &n)) {
+		udb_ptr elem;
+		udb_ptr_new(&elem, udb, &RADNODE(&n)->elem);
+		if(verb) fprintf(stderr, "del %llu \telem ", n.data);
+		if(verb) test_print_str(TESTSTR(&elem)->mystr,
+			TESTSTR(&elem)->mylen);
 		if(verb) fprintf(stderr, "\n");
-		CuAssert(tc, "radix_del", s->mynode == n);
-		free(s->mystr);
-		free(s);
+		CuAssert(tc, "del", TESTSTR(&elem)->mynode.data == n.data);
+		udb_ptr_free_space(&elem, udb, sizeof(struct teststr));
 	}
+	udb_ptr_unlink(&n, udb);
 }
-#endif
 
 /* delete a random key */
 static void
@@ -658,8 +658,8 @@ test_del_a_key(udb_base* udb, udb_ptr* rt)
 static void
 test_ran_add_del(udb_base* udb, udb_ptr* rt)
 {
-	unsigned i, num = 1000;
-	unsigned target = 10;
+	unsigned i, num = 2000;
+	unsigned target = 40;
 	for(i=0; i<num; i++) {
 		/* add or del? */
 		unsigned ran = random();
@@ -707,12 +707,10 @@ udb_radix_test_file(udb_base* udb)
 	test_ran_add_del(udb, &rt);
 	if(verb) test_tree_print(udb, &rt);
 
-	/*
-	test_browse(rt);
-	test_checks(rt);
+	test_browse(udb, &rt);
+	test_checks(udb, &rt);
 
-	test_del(rt);
-	*/
+	test_del(udb, &rt);
 	udb_radix_tree_delete(udb, &rt);
 }
 

@@ -88,8 +88,6 @@ assert_udb_invariant(udb_base* udb)
 	CuAssertTrue(tc, udb->glob_data->rb_new == 0);
 	CuAssertTrue(tc, udb->glob_data->rb_size == 0);
 	CuAssertTrue(tc, udb->glob_data->rb_seg == 0);
-	printf("statdata %llu basesize %d\n",
-		udb->alloc->disk->stat_data, (int)udb->base_size);
 	CuAssertTrue(tc, udb->alloc->disk->stat_data <= udb->base_size);
 	CuAssertTrue(tc, udb->alloc->disk->stat_alloc <= udb->base_size);
 	CuAssertTrue(tc, udb->alloc->disk->stat_free <= udb->base_size);
@@ -314,12 +312,15 @@ do_A_tests(udb_base* udb, int verb)
 		} else if(x%2 == 1 && num_a > 0) {
 			/* free */
 			int w = random() % num_a;
+			udb_void d;
+			size_t sz;
 			if(verb) printf("free(%llu, %llu)\n",
 				(long long unsigned)inf[w].ptr.data,
 				(long long unsigned)inf[w].sz);
-			CuAssertTrue(tc, udb_alloc_free(udb->alloc, inf[w].ptr.data,
-				inf[w].sz));
+			d = inf[w].ptr.data;
+			sz = inf[w].sz;
 			udb_ptr_set(&inf[w].ptr, udb, 0);
+			CuAssertTrue(tc, udb_alloc_free(udb->alloc, d, sz));
 			/* cleanup */
 			if(num_a > 0 && (size_t)w != num_a-1) {
 				inf[w] = inf[num_a-1];

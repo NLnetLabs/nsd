@@ -299,6 +299,19 @@ chunk_hash_ptr(udb_void p)
 	return hashword((uint32_t*)&p, sizeof(p)/sizeof(uint32_t), 0x8763);
 }
 
+/** check that the given pointer is on the bucket for the given offset */
+int udb_ptr_is_on_bucket(udb_base* udb, udb_ptr* ptr, udb_void to)
+{
+	uint32_t i = chunk_hash_ptr(to) & udb->ram_mask;
+	udb_ptr* p;
+	assert((size_t)i < udb->ram_size);
+	for(p = udb->ram_hash[i]; p; p=p->next) {
+		if(p == ptr)
+			return 1;
+	}
+	return 0;
+}
+
 /** grow the ram array */
 static void
 grow_ram_hash(udb_base* udb, udb_ptr** newhash)
@@ -331,6 +344,9 @@ void udb_base_link_ptr(udb_base* udb, udb_ptr* ptr)
 {
 	uint32_t i = chunk_hash_ptr(ptr->data) & udb->ram_mask;
 	assert((size_t)i < udb->ram_size);
+#ifdef UDB_CHECK
+	assert(udb_valid_dataptr(udb, ptr->data)); /* must be to whole chunk*/
+#endif
 	udb->ram_num++;
 	if(udb->ram_num == udb->ram_size && udb->ram_size<(size_t)0xefffffff) {
 		/* grow the array, if allocation succeeds */
@@ -349,6 +365,11 @@ void udb_base_link_ptr(udb_base* udb, udb_ptr* ptr)
 
 void udb_base_unlink_ptr(udb_base* udb, udb_ptr* ptr)
 {
+	assert(ptr->data);
+#ifdef UDB_CHECK
+	assert(udb_valid_dataptr(udb, ptr->data)); /* ptr must be inited */
+	assert(udb_ptr_is_on_bucket(udb, ptr, ptr->data));
+#endif
 	udb->ram_num--;
 	if(ptr->next)
 		ptr->next->prev = ptr->prev;
@@ -953,7 +974,6 @@ grow_chunks(void* base, udb_alloc* alloc, size_t sz, int exp)
 	alloc->disk->nextgrow += esz;
 	assert(alloc->disk->nextgrow <= alloc->udb->base_size);
 	alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
-	printf("udb alloc (grown) %llu size %d\n", ret, exp);
 	return ret + sizeof(udb_chunk_d); /* ptr to data */
 }
 
@@ -1141,7 +1161,6 @@ udb_void udb_alloc_space(udb_alloc* alloc, size_t sz)
 	void* base = alloc->udb->base;
 	/* calculate actual allocation size */
 	int e2, exp = udb_alloc_exp_needed(sz);
-	printf("udb_alloc_space sz=%d\n", (int)sz);
 	if(exp == UDB_EXP_XL)
 		return udb_alloc_xl_space(base, alloc, sz);
 	/* see if there is a free chunk of that size exactly */
@@ -1160,7 +1179,6 @@ udb_void udb_alloc_space(udb_alloc* alloc, size_t sz)
 		assert(alloc->disk->stat_free >= (1u<<exp));
 		alloc->disk->stat_free -= (1<<exp);
 		alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
-		printf("udb alloc (exact) %llu size %d\n", ret, exp);
 		return ret + sizeof(udb_chunk_d); /* ptr to data */
 	}
 	/* see if we can subdivide a larger chunk */
@@ -1186,7 +1204,6 @@ udb_void udb_alloc_space(udb_alloc* alloc, size_t sz)
 			assert(alloc->disk->stat_free >= (1u<<exp));
 			alloc->disk->stat_free -= (1<<exp);
 			alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
-			printf("udb alloc (subdiv) %llu size %d\n", ret, exp);
 			return ret + sizeof(udb_chunk_d); /* ptr to data */
 		}
 	/* we need to grow an extra chunk */
@@ -1235,14 +1252,12 @@ chunk_fix_ptrs(void* base, udb_base* udb, udb_chunk_d* cp, udb_void data,
 	uint64_t dsz, udb_void olddata)
 {
 	udb_void d[2];
-	printf("chunk fix ptrs\n");
 	d[0] = olddata;
 	d[1] = data;
 	(*udb->walkfunc)(base, udb->walkarg, cp->type, UDB_REL(base, data),
 		dsz, &chunk_fix_ptr_each, d);
 	udb_rel_ptr_edit(base, cp->ptrlist, data);
 	udb_base_ram_ptr_edit(udb, olddata, data);
-	printf("chunk fix ptrs done\n");
 }
 
 /** move an allocated chunk to use a free chunk */
@@ -1253,8 +1268,6 @@ move_chunk(void* base, udb_alloc* alloc, udb_void f, int exp, uint64_t esz,
 	udb_void res = udb_alloc_pop_fl(base, alloc, e2);
 	udb_chunk_d* rp;
 	udb_chunk_d* fp;
-	printf("move_chunk %llu to %llu size %d %llu to e2 %d\n", (unsigned long long)f,
-		(unsigned long long)res, exp, esz, e2);
 	if(exp != e2) {
 		/* it is bigger, subdivide it */
 		res = udb_alloc_subdivide(base, alloc, res, e2, exp);
@@ -1419,7 +1432,6 @@ udb_alloc_compact(void* base, udb_alloc* alloc)
 	udb_void xl_start = 0;
 	uint64_t xl_sz = 0;
 	while(at > alloc->udb->glob_data->hsize) {
-		printf("compact loop at %llu\n", at);
 		/* grab last entry */
 		exp = (int)*((uint8_t*)UDB_REL(base, at-1));
 		if(exp == UDB_EXP_XL) {
@@ -1534,6 +1546,16 @@ udb_alloc_compact(void* base, udb_alloc* alloc)
 	return 1;
 }
 
+#ifdef UDB_CHECK
+/** check that rptrs are really zero before free */
+void udb_check_rptr_zero(void* base, udb_rel_ptr* p, void* arg)
+{
+	(void)base;
+	(void)arg;
+	assert(p->data == 0);
+}
+#endif /* UDB_CHECK */
+
 /** free XL chunk as multiples of CHUNK_SIZE free segments */
 static void
 udb_free_xl(void* base, udb_alloc* alloc, udb_void f, udb_xl_chunk_d* fp,
@@ -1546,6 +1568,12 @@ udb_free_xl(void* base, udb_alloc* alloc, udb_void f, udb_xl_chunk_d* fp,
 	assert(*((uint8_t*)(UDB_REL(base, f+xlsz-1))) == UDB_EXP_XL);
 	assert( (xlsz & (UDB_ALLOC_CHUNK_SIZE-1)) == 0 ); /* whole mbs */
 	assert( (f & (UDB_ALLOC_CHUNK_SIZE-1)) == 0 ); /* aligned */
+#ifdef UDB_CHECK
+	/* check that relptrs in this chunk have been zeroed */
+	(*alloc->udb->walkfunc)(base, alloc->udb->walkarg, fp->type,
+		UDB_REL(base, f+sizeof(udb_xl_chunk_d)), xlsz,
+		&udb_check_rptr_zero, NULL);
+#endif
 	alloc->udb->glob_data->dirty_alloc = udb_dirty_fl;
 	/* update stats */
 	alloc->disk->stat_data -= sz;
@@ -1602,7 +1630,11 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 	/* light check for e.g. buffer overflow of the data */
 	assert(sz < esz);
 	assert(chunk_get_last(base, f, exp) == (uint8_t)exp);
-	printf("udb_free of %llu size %d of %llu (%d)\n", f, (int)sz, esz, exp);
+#ifdef UDB_CHECK
+	/* check that relptrs in this chunk have been zeroed */
+	(*alloc->udb->walkfunc)(base, alloc->udb->walkarg, fp->type,
+		UDB_REL(base, r), esz, &udb_check_rptr_zero, NULL);
+#endif
 
 	/* update the stats */
 	alloc->udb->glob_data->dirty_alloc = udb_dirty_fl;
@@ -1613,7 +1645,6 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 	/* if it can be merged with other free chunks, do so */
 	while( (other=coagulate_possible(base, alloc, f, exp, esz)) ) {
 		coagulated = 1;
-		printf("udb_free coagulate\n");
 		/* unlink that other chunk and expand it (it has same size) */
 		udb_alloc_unlink_fl(base, alloc, other, exp);
 		/* merge up */
@@ -1623,7 +1654,6 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 		esz <<= 1;
 	}
 	if(coagulated) {
-		printf("udb_free coagulate push\n");
 		/* put big free chunk into freelist, and init it */
 		udb_alloc_push_fl(base, alloc, f, exp);
 	} else {
@@ -1631,7 +1661,6 @@ int udb_alloc_free(udb_alloc* alloc, udb_void r, size_t sz)
 		 * a reference to that page of memory */
 		fp->type = udb_chunk_type_free;
 		fp->flags = 0;
-		printf("udb_free directpush %llu exp %d\n", f, exp);
 		udb_alloc_push_fl_noinit(base, alloc, f, exp);
 	}
 	alloc->udb->glob_data->dirty_alloc = udb_dirty_clean;
@@ -1720,6 +1749,75 @@ void udb_alloc_set_type(udb_alloc* alloc, udb_void r, udb_chunk_type tp)
 	fp->type = tp;
 }
 
+int udb_valid_offset(udb_base* udb, udb_void to, size_t destsize)
+{
+	/* pointers are not valid before the header-size or after the
+	 * used-region of the mmap */
+	return ( (to+destsize) <= udb->base_size &&
+		to >= udb->glob_data->hsize &&
+		(to+destsize) <= udb->alloc->disk->nextgrow);
+}
+
+int udb_valid_dataptr(udb_base* udb, udb_void to)
+{
+	void* base = udb->base;
+	udb_void ch;
+	int exp;
+	uint64_t esz;
+	/* our data chunks are aligned and at least 8 bytes */
+	if(!udb_valid_offset(udb, to, sizeof(uint64_t)))
+		return 0;
+	/* get the chunk pointer */
+	ch = chunk_from_dataptr(to);
+	if(!udb_valid_offset(udb, ch, sizeof(udb_chunk_d)))
+		return 0;
+	/* check its size */
+	exp = UDB_CHUNK(ch)->exp;
+	if(exp == UDB_EXP_XL) {
+		/* check XL chunk */
+		uint64_t xlsz;
+		if(!udb_valid_offset(udb, ch, sizeof(udb_xl_chunk_d)))
+			return 0;
+		xlsz = UDB_XL_CHUNK(ch)->size;
+		if(!udb_valid_offset(udb, ch+xlsz-1, 1))
+			return 0;
+		if(*((uint8_t*)UDB_REL(base, ch+xlsz-1)) != UDB_EXP_XL)
+			return 0;
+		if(*((uint64_t*)UDB_REL(base, ch+xlsz-sizeof(uint64_t)*2))
+			!= xlsz)
+			return 0;
+		return 1;
+	}
+	/* check if regular chunk has matching end byte */
+	if(exp < UDB_ALLOC_CHUNK_MINEXP || exp > UDB_ALLOC_CHUNKS_MAX)
+		return 0; /* cannot be a valid chunk */
+	esz = 1<<exp;
+	if(!udb_valid_offset(udb, ch+esz-1, 1))
+		return 0;
+	if(*((uint8_t*)UDB_REL(base, ch+esz-1)) != exp)
+		return 0;
+	return 1;
+}
+
+int udb_valid_rptr(udb_base* udb, udb_void rptr, udb_void to)
+{
+	void* base = udb->base;
+	udb_void p;
+	if(!udb_valid_offset(udb, rptr, sizeof(udb_rel_ptr)))
+		return 0;
+	if(!udb_valid_dataptr(udb, to))
+		return 0;
+	p = UDB_CHUNK(chunk_from_dataptr(to))->ptrlist;
+	while(p) {
+		if(!udb_valid_offset(udb, p, sizeof(udb_rel_ptr)))
+			return 0;
+		if(p == rptr)
+			return 1;
+		p = UDB_REL_PTR(p)->next;
+	}
+	return 0;
+}
+
 void udb_rel_ptr_init(udb_rel_ptr* ptr)
 {
 	memset(ptr, 0, sizeof(*ptr));
@@ -1727,8 +1825,6 @@ void udb_rel_ptr_init(udb_rel_ptr* ptr)
 
 void udb_rel_ptr_unlink(void* base, udb_rel_ptr* ptr)
 {
-	printf("udb relptr unlink %llu to %llu\n",
-		UDB_SYSTOREL(base, ptr), ptr->data?chunk_from_dataptr(ptr->data):0);
 	if(!ptr->data)
 		return;
 	if(ptr->prev) {
@@ -1744,8 +1840,6 @@ void udb_rel_ptr_unlink(void* base, udb_rel_ptr* ptr)
 void udb_rel_ptr_link(void* base, udb_rel_ptr* ptr, udb_void to)
 {
 	udb_chunk_d* chunk = UDB_CHUNK(chunk_from_dataptr(to));
-	printf("udb relptr link %llu to %llu\n",
-		UDB_SYSTOREL(base, ptr), chunk_from_dataptr(to));
 	ptr->prev = 0;
 	ptr->next = chunk->ptrlist;
 	if(ptr->next)
@@ -1772,8 +1866,31 @@ void udb_rel_ptr_edit(void* base, udb_void list, udb_void to)
 	}
 }
 
+#ifdef UDB_CHECK
+/** check that all pointers are validly chained */
+static void
+udb_check_ptrs_valid(udb_base* udb)
+{
+	size_t i;
+	udb_ptr* p, *prev;
+	for(i=0; i<udb->ram_size; i++) {
+		prev = NULL;
+		for(p=udb->ram_hash[i]; p; p=p->next) {
+			assert(p->prev == prev);
+			assert((size_t)(chunk_hash_ptr(p->data)&udb->ram_mask)
+				== i);
+			assert(p->base == &udb->base);
+			prev = p;
+		}
+	}
+}
+#endif /* UDB_CHECK */
+
 void udb_ptr_init(udb_ptr* ptr, udb_base* udb)
 {
+#ifdef UDB_CHECK
+	udb_check_ptrs_valid(udb); /* previous ptrs have been unlinked */
+#endif
 	memset(ptr, 0, sizeof(*ptr));
 	ptr->base = &udb->base;
 }
@@ -1803,8 +1920,9 @@ int udb_ptr_alloc_space(udb_ptr* ptr, udb_base* udb, udb_chunk_type type,
 void udb_ptr_free_space(udb_ptr* ptr, udb_base* udb, size_t sz)
 {
 	if(ptr->data) {
-		udb_alloc_free(udb->alloc, ptr->data, sz);
+		udb_void d = ptr->data;
 		udb_ptr_set(ptr, udb, 0);
+		udb_alloc_free(udb->alloc, d, sz);
 	}
 }
 
