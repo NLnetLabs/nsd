@@ -208,6 +208,10 @@ enum udb_chunk_type {
 	udb_chunk_type_radtree,
 	udb_chunk_type_radnode,
 	udb_chunk_type_radarray,
+	udb_chunk_type_zone,
+	udb_chunk_type_domain,
+	udb_chunk_type_rrset,
+	udb_chunk_type_rr,
 	udb_chunk_type_internal
 };
 

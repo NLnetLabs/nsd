@@ -7,6 +7,7 @@
 #include "config.h"
 #include "udb.h"
 #include "udbradtree.h"
+#include "udbzone.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -149,6 +150,10 @@ chunk_type2str(enum udb_chunk_type tp)
 		case udb_chunk_type_radtree: return "radtree";
 		case udb_chunk_type_radnode: return "radnode";
 		case udb_chunk_type_radarray: return "radarray";
+		case udb_chunk_type_zone: return "zone";
+		case udb_chunk_type_domain: return "domain";
+		case udb_chunk_type_rrset: return "rrset";
+		case udb_chunk_type_rr: return "rr";
 	}
 	return "unknown";
 }
@@ -162,6 +167,34 @@ print_escaped(uint8_t* s, size_t len)
 		if(isgraph((int)s[i]) && s[i] != '\\')
 			printf("%c", (char)s[i]);
 		else	printf("\\%03u", (unsigned int)s[i]);
+	}
+}
+
+/** print domain name */
+static void
+print_dname(uint8_t* d, size_t len)
+{
+	uint8_t lablen;
+	size_t i = 0;
+	while(i < len) {
+		lablen = d[i++];
+		if(lablen+i > len) {
+			printf(" malformed!");
+			return;
+		}
+		print_escaped(&d[i], lablen);
+		i += lablen;
+		printf(".");
+	}
+}
+
+/** print hex */
+static void
+print_hex(uint8_t* d, size_t len)
+{
+	size_t i;
+	for(i=0; i<len; i++) {
+		printf("%2.2x", (int)d[i]);
 	}
 }
 
@@ -237,6 +270,31 @@ inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 					i*d->str_cap, (size_t)d->array[i].len);
 				printf("\n");
 			}
+	} else if(cp->type == udb_chunk_type_zone) {
+		struct zone_d* d = (struct zone_d*)UDB_REL(base, data);
+		printf("	zone ");
+		print_dname(d->name, d->namelen);
+		printf(" rr_count=%llu rrset_count=%llu expired=%d "
+			"node=%llu domains=%llu\n",
+			ULL d->rr_count, ULL d->rrset_count, (int)d->expired,
+			ULL d->node.data, ULL d->domains.data);
+	} else if(cp->type == udb_chunk_type_domain) {
+		struct domain_d* d = (struct domain_d*)UDB_REL(base, data);
+		printf("	domain ");
+		print_dname(d->name, d->namelen);
+		printf(" node=%llu rrsets=%llu\n", ULL d->node.data,
+			ULL d->rrsets.data);
+	} else if(cp->type == udb_chunk_type_rrset) {
+		struct rrset_d* d = (struct rrset_d*)UDB_REL(base, data);
+		printf("	rrset type=%d next=%llu rrs=%llu\n",
+			(int)d->type, ULL d->next.data, ULL d->rrs.data);
+	} else if(cp->type == udb_chunk_type_rr) {
+		struct rr_d* d = (struct rr_d*)UDB_REL(base, data);
+		printf("	rr type=%d class=%d ttl=%u next=%llu len=%d ",
+			(int)d->type, (int)d->klass, (unsigned)d->ttl,
+			ULL d->next.data, (int)d->len);
+		print_hex(d->wire, d->len);
+		printf("\n");
 	}
 
 	/* update stats */

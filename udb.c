@@ -1756,7 +1756,7 @@ int udb_valid_offset(udb_base* udb, udb_void to, size_t destsize)
 	/* pointers are not valid before the header-size or after the
 	 * used-region of the mmap */
 	return ( (to+destsize) <= udb->base_size &&
-		to >= udb->glob_data->hsize &&
+		to >= (udb->glob_data->hsize-2*sizeof(udb_rel_ptr)) &&
 		(to+destsize) <= udb->alloc->disk->nextgrow);
 }
 

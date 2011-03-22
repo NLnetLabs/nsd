@@ -6,7 +6,7 @@
  * See LICENSE for the license.
  *
  */
-#include <config.h>
+#include "config.h"
 #ifdef NSEC3
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,8 +16,6 @@
 #include "namedb.h"
 #include "nsd.h"
 #include "answer.h"
-
-#define NSEC3_SHA1_HASH 1 /* same type code as DS hash */
 
 /* detect is the latter rrset has the same hashalgo, iterations and salt
    as the base. Does not compare optout bit, or other rdata.

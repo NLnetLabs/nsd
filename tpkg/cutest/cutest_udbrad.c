@@ -20,7 +20,6 @@ void check_udb_structure(CuTest* t, udb_base* udb);
 void check_udb(void);
 
 #define RADTREE(ptr) ((struct udb_radtree_d*)UDB_PTR(ptr))
-#define RADNODE(ptr) ((struct udb_radnode_d*)UDB_PTR(ptr))
 #define RADARRAY(ptr) ((struct udb_radarray_d*)UDB_PTR(ptr))
 #define TESTSTR(ptr) ((struct teststr*)UDB_PTR(ptr))
 

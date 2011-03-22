@@ -9,7 +9,6 @@
 #ifndef NSEC3_H
 #define NSEC3_H
 
-#include <config.h>
 #ifdef NSEC3
 
 struct domain;

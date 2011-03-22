@@ -10,7 +10,6 @@
 #ifndef XFRD_NOTIFY_H
 #define XFRD_NOTIFY_H
 
-#include <config.h>
 #include "tsig.h"
 #include "netio.h"
 #include "rbtree.h"

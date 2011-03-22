@@ -8,7 +8,7 @@
  */
 
 
-#include <config.h>
+#include "config.h"
 
 #include <sys/types.h>
 
@@ -495,3 +495,32 @@ dname_replace(region_type* region,
 	return res;
 }
 
+char* wiredname2str(uint8_t* dname)
+{
+	static char buf[MAXDOMAINLEN*5+3];
+	char* p = buf;
+	uint8_t lablen;
+	if(*dname == 0) {
+		strlcpy(buf, ".", sizeof(buf));
+		return buf;
+	}
+	lablen = *dname++;
+	while(lablen) {
+		while(lablen--) {
+			uint8_t ch = *dname++;
+			if (isalnum(ch) || ch == '-' || ch == '_') {
+				*p++ = ch;
+			} else if (ch == '.' || ch == '\\') {
+				*p++ = '\\';
+				*p++ = ch;
+			} else {
+				snprintf(p, 5, "\\%03u", (unsigned int)ch);
+				p += 4;
+			}
+		}
+		lablen = *dname++;
+		*p++ = '.';
+	}
+	*p++ = 0;
+	return buf;
+}

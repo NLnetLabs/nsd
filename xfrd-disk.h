@@ -10,7 +10,6 @@
 #ifndef XFRD_DISK_H
 #define XFRD_DISK_H
 
-#include <config.h>
 struct xfrd_state;
 
 /* magic string to identify xfrd state file */

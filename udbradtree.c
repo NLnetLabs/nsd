@@ -10,7 +10,6 @@
 #include "udbradtree.h"
 #include "radtree.h"
 #define RADTREE(ptr) ((struct udb_radtree_d*)UDB_PTR(ptr))
-#define RADNODE(ptr) ((struct udb_radnode_d*)UDB_PTR(ptr))
 #define RADARRAY(ptr) ((struct udb_radarray_d*)UDB_PTR(ptr))
 
 /** see if radarray can be reduced (by a factor of two) */
@@ -1407,6 +1406,28 @@ void udb_radix_prev(udb_base* udb, udb_ptr* n)
 			return;
 	}
 	udb_ptr_zero(n, udb);
+}
+
+udb_void udb_radname_insert(udb_base* udb, udb_ptr* rt, uint8_t* dname,
+	size_t dlen, udb_ptr* elem, udb_ptr* result)
+{
+	uint8_t k[300];
+	radstrlen_t klen = (radstrlen_t)sizeof(k);
+	radname_d2r(k, &klen, dname, dlen);
+	return udb_radix_insert(udb, rt, k, klen, elem, result);
+}
+
+int udb_radname_search(udb_base* udb, udb_ptr* rt, uint8_t* dname,
+        size_t dlen, udb_ptr* result)
+{
+	udb_void r;
+	uint8_t k[300];
+	radstrlen_t klen = (radstrlen_t)sizeof(k);
+	radname_d2r(k, &klen, dname, dlen);
+	r = udb_radix_search(rt, k, klen);
+	udb_ptr_init(result, udb);
+	udb_ptr_set(result, udb, r);
+	return (r != 0);
 }
 
 void udb_radix_tree_walk_chunk(void* base, void* d, uint64_t s,

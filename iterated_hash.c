@@ -7,7 +7,7 @@
  *
  * With thanks to Ben Laurie.
  */
-#include <config.h>
+#include "config.h"
 #ifdef NSEC3
 #include <openssl/sha.h>
 #include <stdio.h>

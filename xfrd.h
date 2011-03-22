@@ -10,7 +10,6 @@
 #ifndef XFRD_H
 #define XFRD_H
 
-#include <config.h>
 #include "netio.h"
 #include "rbtree.h"
 #include "namedb.h"

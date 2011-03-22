@@ -208,4 +208,31 @@ void udb_radix_array_walk_chunk(void* base, void* d, uint64_t s,
 /** get the memory used by the lookup structure for a radnode */
 size_t size_of_lookup_ext(udb_ptr* node);
 
+/** insert radtree element, key is a domain name
+ * @param udb: udb.
+ * @param rt: the tree.
+ * @param dname: domain name in uncompressed wireformat.
+ * @param dlen: length of k.
+ * @param elem: element to store
+ * @param result: the inserted node is set to this value.  Pass uninited.
+	Not set if the routine fails.
+ * @return 0 on failure
+ */
+udb_void udb_radname_insert(udb_base* udb, udb_ptr* rt, uint8_t* dname,
+	size_t dlen, udb_ptr* elem, udb_ptr* result);
+
+/** search for a radname element, key is a domain name.
+ * @param udb: udb
+ * @param rt: the tree
+ * @param dname: domain name in uncompressed wireformat.
+ * @param dlen: length of k.
+ * @param result: result ptr to store the node into.
+ *    may be uninitialized.
+ * @return 0 if not found.
+ */
+int udb_radname_search(udb_base* udb, udb_ptr* rt, uint8_t* dname,
+	size_t dlen, udb_ptr* result);
+
+#define RADNODE(ptr) ((struct udb_radnode_d*)UDB_PTR(ptr))
+
 #endif /* UDB_RADTREE_H */
