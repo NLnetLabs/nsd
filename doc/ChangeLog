@@ -1,6 +1,9 @@
 16 March 2011: Matthijs
 	- undo #bug235: messes up dname compression.
 
+3 March 2011: Matthijs
+	- fix #bug352: fix hardcoded paths in manpages.
+
 2 March 2011: Matthijs
 	- fix #bug354: make realclean cleans too much
 	- added make devclean for cleaning up autoconf and automake stuff

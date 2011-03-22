@@ -1,5 +1,5 @@
 .TH "nsd\-patch" "8" "@date@" "NLnet Labs" "nsd @version@"
-.\" Copyright (c) 2001\-2008, NLnet Labs. All rights reserved.
+.\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
@@ -28,7 +28,7 @@ difffile does not grow infinitely.
 .TP
 .B \-c\fI configfile
 Read specified configfile instead of the default
-.IR /etc/nsd/nsd.conf .
+.IR @nsdconfigfile@ .
 .TP
 .B \-f
 Forces writing zone files. Also zones that have not changed are written
@@ -50,12 +50,12 @@ Skip writing zone files. No zones are written back to their zone files.
 Read specified difffile. Overrides the config file setting.
 .SH "FILES"
 .TP
-/var/db/nsd/nsd.db
+@dbfile@
 default
 .B NSD
 database
 .TP
-/etc/nsd/nsd.conf
+@nsdconfigfile@
 default
 .B NSD
 configuration file

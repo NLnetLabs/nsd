@@ -1,7 +1,7 @@
 /*
  * nsd.c -- nsd(8)
  *
- * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
+ * Copyright (c) 2001-2011, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
  *
@@ -106,7 +106,7 @@ version(void)
 	fprintf(stderr, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 	fprintf(stderr, "Written by NLnet Labs.\n\n");
 	fprintf(stderr,
-		"Copyright (C) 2001-2006 NLnet Labs.  This is free software.\n"
+		"Copyright (C) 2001-2011 NLnet Labs.  This is free software.\n"
 		"There is NO warranty; not even for MERCHANTABILITY or FITNESS\n"
 		"FOR A PARTICULAR PURPOSE.\n");
 	exit(0);

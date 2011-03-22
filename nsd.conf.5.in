@@ -1,5 +1,5 @@
 .TH "nsd.conf" "5" "@date@" "NLnet Labs" "nsd @version@"
-.\" Copyright (c) 2001\-2008, NLnet Labs. All rights reserved.
+.\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
@@ -500,7 +500,7 @@ default
 .B NSD
 database
 .TP
-@configdir@/nsd.conf
+@nsdconfigfile@
 default
 .B NSD
 configuration file

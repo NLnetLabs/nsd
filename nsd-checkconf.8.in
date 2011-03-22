@@ -1,5 +1,5 @@
 .TH "nsd\-checkconf" "8" "@date@" "NLnet Labs" "nsd @version@"
-.\" Copyright (c) 2001\-2008, NLnet Labs. All rights reserved.
+.\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
@@ -79,7 +79,7 @@ The \-o, \-s and \-z option print configfile options to standard output.
 .RE
 .SH "FILES"
 .TP
-/etc/nsd/nsd.conf
+@nsdconfigfile@
 default
 .B NSD
 configuration file
