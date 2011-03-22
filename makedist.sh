@@ -133,7 +133,7 @@ autoheader || error_cleanup "Autoheader failed."
 rm -r autom4te* || error_cleanup "Failed to remove autoconf cache directory."
 
 info "Building lexer and parser."
-echo "#include <config.h>" > zlexer.c || error_cleanup "Failed to create lexer."
+echo '#include "config.h"' > zlexer.c || error_cleanup "Failed to create lexer."
 flex -i -t zlexer.lex >> zlexer.c || error_cleanup "Failed to create lexer."
 bison -y -d -o zparser.c zparser.y || error_cleanup "Failed to create parser."
 echo "#include \"configyyrename.h\"" > configlexer.c || error_cleanup "Failed to create configlexer"
