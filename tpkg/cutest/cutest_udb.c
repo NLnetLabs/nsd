@@ -193,7 +193,8 @@ void check_rptrs_cb(void* base, udb_rel_ptr* p, void* arg)
 	/* the pointer must be on the pointerlist of that chunk */
 	if(!find_ptr_on_chunk(base, p->data, UDB_SYSTOREL(base, p), udb)) {
 		printf("cannot find ptr %llu on its chunks list at %llu\n",
-			UDB_SYSTOREL(base, p), p->data);
+			(unsigned long long)UDB_SYSTOREL(base, p),
+			(unsigned long long)p->data);
 		abort();
 	}
 	CuAssertTrue(tc, find_ptr_on_chunk(base, p->data,

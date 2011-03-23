@@ -79,7 +79,7 @@ inspect_glob_data(void* base)
 {
 	udb_glob_d* g = (udb_glob_d*)(base+8);
 	uint64_t magic = *(uint64_t*)base;
-	printf("filetype:		0x%16.16llx (%s)\n", magic,
+	printf("filetype:		0x%16.16llx (%s)\n", ULL magic,
 		magic==UDB_MAGIC?"ok":"wrong");
 	printf("header size:		%llu\n", ULL g->hsize);
 	if(g->hsize != UDB_HEADER_SIZE)

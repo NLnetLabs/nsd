@@ -51,8 +51,12 @@ struct domain_d {
 	udb_rel_ptr rrsets;
 	/** length of the domain name */
 	udb_radstrlen_t namelen;
+	/** is the hash filled */
+	uint8_t have_hash;
 	/** NSEC3 hash of this name, with zone parameters */
 	uint8_t hash[NSEC3_HASH_LEN];
+	/** is the wildcard hash filled */
+	uint8_t have_wc_hash;
 	/** NSEC3 hash of *.thisname, with zone parameters */
 	uint8_t wc_hash[NSEC3_HASH_LEN];
 	/** the zone (wire uncompressed) name in DNS format */
@@ -107,6 +111,14 @@ int udb_zone_add_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 /** del an RR from a zone */
 void udb_zone_del_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 	uint16_t t, uint16_t k, uint8_t* rdata, size_t rdatalen);
+
+/** lookup nsec3 hash or create the hash : caches results in file */
+int udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, uint8_t* nm,
+	size_t nmlen, uint8_t hash[NSEC3_HASH_LEN]);
+/** lookup nsec3 hash or create, for nm and *.nm */
+int udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, uint8_t* nm,
+	size_t nmlen, uint8_t hash[NSEC3_HASH_LEN],
+	uint8_t wchash[NSEC3_HASH_LEN]);
 
 /** for use in udb-walkfunc, walks relptrs in udb_chunk_type_zone */
 void udb_zone_walk_chunk(void* base, void* d, uint64_t s,

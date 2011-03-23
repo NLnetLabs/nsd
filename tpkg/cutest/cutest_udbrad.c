@@ -437,10 +437,12 @@ static void test_checks(udb_base* udb, udb_ptr* rt)
 
 	/* check allocated sizes in the udb */
 	mem = udb_radtree_size(udb, rt);
-	if(verb) printf("radtree takes %llu\n", mem);
+	if(verb) printf("radtree takes %llu\n", (unsigned long long)mem);
 	mem += RADTREE(rt)->count * sizeof(struct teststr);
-	if(verb) printf("radtree+teststrs takes %llu\n", mem);
-	if(verb) printf("statdata %llu\n", udb->alloc->disk->stat_data);
+	if(verb) printf("radtree+teststrs takes %llu\n",
+		(unsigned long long)mem);
+	if(verb) printf("statdata %llu\n",
+		(unsigned long long)udb->alloc->disk->stat_data);
 	CuAssert(tc, "allocated memory accounted for",
 		mem == udb->alloc->disk->stat_data);
 
@@ -491,7 +493,8 @@ static void test_node_print(udb_base* udb, udb_ptr* n, int depth)
 		fprintf(stderr, "  elem '");
 		test_print_str(TESTSTR(&s)->mystr, TESTSTR(&s)->mylen);
 		fprintf(stderr, "'");
-		fprintf(stderr, "    teststr=%llu", s.data);
+		fprintf(stderr, "    teststr=%llu",
+			(unsigned long long)s.data);
 		fprintf(stderr, "\n");
 		if(TESTSTR(&s)->mynode.data != n->data)
 			fprintf(stderr, "elem data ptr fail\n");
@@ -586,7 +589,8 @@ static void test_browse(udb_base* udb, udb_ptr* rt)
 		udb_radix_next(udb, &n)) {
 		udb_ptr elem;
 		udb_ptr_new(&elem, udb, &RADNODE(&n)->elem);
-		if(verb) fprintf(stderr, "radix %llu \telem ", n.data);
+		if(verb) fprintf(stderr, "radix %llu \telem ",
+			(unsigned long long)n.data);
 		if(verb) test_print_str(TESTSTR(&elem)->mystr,
 			TESTSTR(&elem)->mylen);
 		if(verb) fprintf(stderr, "\n");
@@ -605,7 +609,8 @@ static void test_del(udb_base* udb, udb_ptr* rt)
 		udb_radix_next(udb, &n)) {
 		udb_ptr elem;
 		udb_ptr_new(&elem, udb, &RADNODE(&n)->elem);
-		if(verb) fprintf(stderr, "del %llu \telem ", n.data);
+		if(verb) fprintf(stderr, "del %llu \telem ",
+			(unsigned long long)n.data);
 		if(verb) test_print_str(TESTSTR(&elem)->mystr,
 			TESTSTR(&elem)->mylen);
 		if(verb) fprintf(stderr, "\n");
