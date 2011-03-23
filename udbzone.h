@@ -133,4 +133,13 @@ void udb_rrset_walk_chunk(void* base, void* d, uint64_t s,
 void udb_rr_walk_chunk(void* base, void* d, uint64_t s,
 	udb_walk_relptr_cb* cb, void* arg);
 
+/** walk through relptrs in registered types */
+void namedb_walkfunc(void* base, void* warg, uint8_t t, void* d, uint64_t s,
+        udb_walk_relptr_cb* cb, void* arg);
+
+#define ZONE(ptr) ((struct zone_d*)UDB_PTR(ptr))
+#define DOMAIN(ptr) ((struct domain_d*)UDB_PTR(ptr))
+#define RRSET(ptr) ((struct rrset_d*)UDB_PTR(ptr))
+#define RR(ptr) ((struct rr_d*)UDB_PTR(ptr))
+
 #endif /* UDB_ZONE_H */

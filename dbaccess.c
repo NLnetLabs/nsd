@@ -23,6 +23,10 @@
 #include "namedb.h"
 #include "util.h"
 #include "options.h"
+#include "rdata.h"
+#include "udb.h"
+#include "udbradtree.h"
+#include "udbzone.h"
 
 int
 namedb_lookup(struct namedb    *db,
@@ -34,6 +38,302 @@ namedb_lookup(struct namedb    *db,
 		db->domains, dname, closest_match, closest_encloser);
 }
 
+void
+namedb_close (struct namedb *db)
+{
+	namedb_fd_close(db);
+	if (db) {
+		region_destroy(db->region);
+	}
+}
+
+void
+namedb_fd_close (struct namedb *db)
+{
+	if (db && db->fd) {
+		fclose(db->fd);
+	}
+}
+
+/* new NSD4 format */
+#if 0
+static void
+post_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
+{
+	uint32_t soa_minimum;
+	unsigned i;
+	if (rrset_rrtype(rrset) == TYPE_SOA) {
+		assert(domain == rrset->zone->apex);
+		rrset->zone->soa_rrset = rrset;
+
+		/* BUG #103 add another soa with a tweaked ttl */
+		rrset->zone->soa_nx_rrset = region_alloc(db->region, sizeof(rrset_type));
+		rrset->zone->soa_nx_rrset->rrs =
+			region_alloc(db->region, rrset->rr_count * sizeof(rr_type));
+
+		memcpy(rrset->zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
+		rrset->zone->soa_nx_rrset->rr_count = 1;
+		rrset->zone->soa_nx_rrset->next = 0;
+
+		/* also add a link to the zone */
+		rrset->zone->soa_nx_rrset->zone = rrset->zone;
+
+		/* check the ttl and MINIMUM value and set accordinly */
+		memcpy(&soa_minimum, rdata_atom_data(rrset->rrs->rdatas[6]),
+				rdata_atom_size(rrset->rrs->rdatas[6]));
+		if (rrset->rrs->ttl > ntohl(soa_minimum)) {
+			rrset->zone->soa_nx_rrset->rrs[0].ttl = ntohl(soa_minimum);
+		}
+
+	} else if (domain == rrset->zone->apex
+		   && rrset_rrtype(rrset) == TYPE_NS)
+	{
+		rrset->zone->ns_rrset = rrset;
+	}
+
+	if (rrset_rrtype(rrset) == TYPE_RRSIG && domain == rrset->zone->apex) {
+		for (i = 0; i < rrset->rr_count; ++i) {
+			if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_SOA) {
+				rrset->zone->is_secure = 1;
+				break;
+			}
+		}
+	}
+}
+
+/** read rr */
+static void
+read_rr(namedb_type* db, rr_type* rr, udb_ptr* urr, domain_type* domain)
+{
+	buffer_type buffer;
+	ssize_t c;
+	assert(udb_ptr_get_type(urr) == udb_chunk_type_rr);
+	rr->owner = domain;
+	rr->type = RR(urr)->type;
+	rr->klass = RR(urr)->klass;
+	rr->ttl = RR(urr)->ttl;
+
+	buffer_create_from(&buffer, RR(urr)->wire, RR(urr)->len);
+	c = rdata_wireformat_to_rdata_atoms(db->region, db->domains,
+		rr->type, RR(urr)->len, &buffer, &rr->rdatas);
+	if(c == -1) {
+		/* safe on error */
+		rr->rdata_count = 0;
+		rr->rdatas = NULL;
+		return;
+	}
+	rr->rdata_count = c;
+}
+
+/** calculate rr count */
+static uint16_t
+calculate_rr_count(udb_base* udb, udb_ptr* rrset)
+{
+	udb_ptr rr;
+	uint16_t num = 0;
+	udb_ptr_new(&rr, udb, &RRSET(rrset)->rrs);
+	while(rr.data) {
+		num++;
+		udb_ptr_set_rptr(&rr, udb, &RR(&rr)->next);
+	}
+	udb_ptr_unlink(&rr, udb);
+	return num;
+}
+
+/** read rrset */
+static void
+read_rrset(udb_base* udb, namedb_type* db, zone_type* zone,
+	domain_type* domain, udb_ptr* urrset)
+{
+	rrset_type* rrset;
+	udb_ptr urr;
+	assert(udb_ptr_get_type(urrset) == udb_chunk_type_rrset);
+	unsigned i;
+	/* if no RRs, do not create anything (robust) */
+	if(RRSET(urrset)->rrs.data == 0)
+		return;
+	rrset = (rrset_type *) region_alloc(db->region, sizeof(rrset_type));
+	rrset->zone = zone;
+	rrset->rr_count = calculate_rr_count(udb, urrset);
+	rrset->rrs = (rr_type *) region_alloc(
+		db->region, rrset->rr_count * sizeof(rr_type));
+	/* add the RRs */
+	udb_ptr_new(&urr, udb, &RRSET(urrset)->rrs);
+	for(i=0; i<rrset->rr_count; i++) {
+		read_rr(db, &rrset->rrs[i], &urr, domain);
+		udb_ptr_set_rptr(&urr, udb, &RR(&urr)->next);
+	}
+	udb_ptr_unlink(&urr, udb);
+	domain_add_rrset(domain, rrset);
+	post_rrset_checks(db, rrset, domain);
+}
+
+/** read zone data */
+static void
+read_zone_data(udb_base* udb, namedb_type* db, region_type* dname_region,
+	udb_ptr* z, zone_type* zone)
+{
+	udb_ptr dtree, n, d, urrset;
+	udb_ptr_init(&urrset, udb);
+	udb_ptr_init(&d, udb);
+	udb_ptr_new(&dtree, udb, &ZONE(z)->domains);
+	/* walk over domain names */
+	for(udb_radix_first(udb,&dtree,&n); n.data; udb_radix_next(udb,&n)) {
+		const dname_type* dname;
+		domain_type* domain;
+
+		/* add the domain */
+		udb_ptr_set_rptr(&d, udb, &RADNODE(&n)->elem);
+		dname = dname_make(dname_region, DOMAIN(&d)->name, 0);
+		if(!dname) continue;
+		domain = domain_table_insert(db->domains, dname);
+		assert(udb_ptr_get_type(&d) == udb_chunk_type_domain);
+
+		/* add rrsets */
+		udb_ptr_set_rptr(&urrset, udb, &DOMAIN(&d)->rrsets);
+		while(urrset.data) {
+			read_rrset(udb, db, zone, domain, &urrset);
+			udb_ptr_set_rptr(&urrset, udb, &RRSET(&urrset)->next);
+		}
+		region_free_all(dname_region);
+	}
+	udb_ptr_unlink(&dtree, udb);
+	udb_ptr_unlink(&d, udb);
+	udb_ptr_unlink(&n, udb);
+	udb_ptr_unlink(&urrset, udb);
+}
+
+/** create empty zone entry in namedb */
+static zone_type*
+make_zone(namedb_type* db, const dname_type* dname, int* zonecount,
+	zone_options_t* zo, size_t num_children)
+{
+	zone_type* zone = (zone_type *) region_alloc(db->region,
+		sizeof(zone_type));
+	zone->next = db->zones;
+	db->zones = zone;
+	zone->apex = domain_table_insert(db->domains, dname);
+	zone->soa_rrset = NULL;
+	zone->soa_nx_rrset = NULL;
+	zone->ns_rrset = NULL;
+#ifdef NSEC3
+	zone->nsec3_soa_rr = NULL;
+	zone->nsec3_last = NULL;
+#endif
+	zone->opts = zo;
+	zone->number = (*zonecount)++;
+	zone->is_secure = 0;
+	zone->updated = 1;
+	zone->is_ok = 1;
+	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*num_children);
+	memset(zone->dirty, 0, sizeof(uint8_t)*num_children);
+	return zone;
+}
+
+/** read a zone */
+static void
+read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
+	size_t num_children, region_type* dname_region, udb_ptr* z,
+	int* zonecount)
+{
+	/* construct dname */
+	const dname_type* dname = dname_make(dname_region, ZONE(z)->name, 0);
+	zone_options_t* zo = dname?zone_options_find(opt, dname):NULL;
+	zone_type* zone;
+	assert(dname);
+	assert(udb_ptr_get_type(z) == udb_chunk_type_zone);
+	if(!zo) {
+		/* not present in the options, ignore it (for now, hopefully
+		data will arrive later) */
+		VERBOSITY(2, (LOG_WARNING, "zone %s is in nsd.db but not in "
+			"config, skipping\n", dname_to_string(dname, NULL)));
+		region_free_all(dname_region);
+		return;
+	}
+	zone = make_zone(db, dname, zonecount, zo, num_children);
+	region_free_all(dname_region);
+	read_zone_data(udb, db, dname_region, z, zone);
+}
+
+/** read zones from nsd.db */
+static void
+read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
+	size_t num_children, region_type* dname_region)
+{
+	int zonecount = 0;
+	udb_ptr ztree, n, z;
+	udb_ptr_init(&z, udb);
+	udb_ptr_new(&ztree, udb, udb_base_get_userdata(udb));
+	for(udb_radix_first(udb,&ztree,&n); n.data; udb_radix_next(udb,&n)) {
+		udb_ptr_set_rptr(&z, udb, &RADNODE(&n)->elem);
+		read_zone(udb, db, opt, num_children, dname_region, &z,
+			&zonecount);
+		udb_ptr_zero(&z, udb);
+	}
+	udb_ptr_unlink(&ztree, udb);
+	udb_ptr_unlink(&n, udb);
+	udb_ptr_unlink(&z, udb);
+}
+
+struct namedb *
+namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
+{
+	namedb_type *db;
+	udb_base* udb;
+
+	/*
+	 * Region used to store the loaded database.  The region is
+	 * freed in namedb_close.
+	 */
+	region_type *db_region;
+
+	/*
+	 * Temporary region used while loading domain names from the
+	 * database.  The region is freed after each time a dname is
+	 * read from the database.
+	 */
+	region_type *dname_region;
+
+#ifdef USE_MMAP_ALLOC
+	db_region = region_create_custom(mmap_alloc, mmap_free, MMAP_ALLOC_CHUNK_SIZE,
+		MMAP_ALLOC_LARGE_OBJECT_SIZE, MMAP_ALLOC_INITIAL_CLEANUP_SIZE, 1);
+#else /* !USE_MMAP_ALLOC */
+	db_region = region_create_custom(xalloc, free, DEFAULT_CHUNK_SIZE,
+		DEFAULT_LARGE_OBJECT_SIZE, DEFAULT_INITIAL_CLEANUP_SIZE, 1);
+#endif /* !USE_MMAP_ALLOC */
+	db = (namedb_type *) region_alloc(db_region, sizeof(struct namedb));
+	db->fd = NULL;
+	db->region = db_region;
+	db->domains = domain_table_create(db->region);
+	db->zones = NULL;
+	db->zone_count = 0;
+	db->filename = region_strdup(db->region, filename);
+	db->crc = 0xffffffff;
+	db->diff_skip = 0;
+
+	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
+		log_msg(LOG_ERR, "unable to load %s: cannot initialize"
+				 "timestamp", db->filename);
+		region_destroy(db_region);
+                return NULL;
+        }
+
+	if(!(udb=udb_base_create_read(db->filename, &namedb_walkfunc, NULL))) {
+		region_destroy(db_region);
+		return NULL;
+	}
+
+	dname_region = region_create(xalloc, free);
+	/* this operation does not fail, we end up with something, even
+	 * if that is an empty namedb */
+	read_zones(udb, db, opt, num_children, dname_region);
+
+	region_destroy(dname_region);
+	return db;
+}
+
+/* NSD3 file format older stuff */
+#else
 static int
 read_magic(namedb_type *db)
 {
@@ -451,20 +751,4 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	return db;
 }
 
-void
-namedb_close (struct namedb *db)
-{
-	namedb_fd_close(db);
-	if (db) {
-		region_destroy(db->region);
-	}
-}
-
-void
-namedb_fd_close (struct namedb *db)
-{
-	if (db && db->fd) {
-		fclose(db->fd);
-	}
-}
-
+#endif /* older NSD3 stuff */

@@ -11,11 +11,6 @@
 #include "dname.h"
 #include <string.h>
 
-#define ZONE(ptr) ((struct zone_d*)UDB_PTR(ptr))
-#define DOMAIN(ptr) ((struct domain_d*)UDB_PTR(ptr))
-#define RRSET(ptr) ((struct rrset_d*)UDB_PTR(ptr))
-#define RR(ptr) ((struct rr_d*)UDB_PTR(ptr))
-
 int
 udb_dns_init_file(udb_base* udb)
 {
@@ -54,7 +49,7 @@ udb_dns_deinit_file(udb_base* udb)
 int
 udb_zone_create(udb_base* udb, udb_ptr* result, uint8_t* dname, size_t dlen)
 {
-	udb_ptr ztree, z, node;
+	udb_ptr ztree, z, node, dtree;
 	udb_ptr_new(&ztree, udb, udb_base_get_userdata(udb));
 	assert(udb_ptr_get_type(&ztree) == udb_chunk_type_radtree);
 	udb_ptr_init(result, udb);
@@ -79,17 +74,27 @@ udb_zone_create(udb_base* udb, udb_ptr* result, uint8_t* dname, size_t dlen)
 	ZONE(&z)->expired = 0;
 	ZONE(&z)->namelen = dlen;
 	memmove(ZONE(&z)->name, dname, dlen);
+	if(!udb_radix_tree_create(udb, &dtree)) {
+		udb_ptr_free_space(&z, udb, sizeof(struct zone_d)+dlen);
+		udb_ptr_unlink(&ztree, udb);
+		/* failed alloc */
+		return 0;
+	}
+	udb_rptr_set_ptr(&ZONE(&z)->domains, udb, &dtree);
 
 	/* insert it */
 	if(!udb_radname_insert(udb, &ztree, dname, dlen, &z, &node)) {
 		udb_ptr_free_space(&z, udb, sizeof(struct zone_d)+dlen);
 		udb_ptr_unlink(&ztree, udb);
+		udb_radix_tree_delete(udb, &dtree);
+		udb_ptr_unlink(&dtree, udb);
 		/* failed alloc */
 		return 0;
 	}
 	udb_rptr_set_ptr(&ZONE(&z)->node, udb, &node);
 	udb_ptr_set_ptr(result, udb, &z);
 	udb_ptr_unlink(&z, udb);
+	udb_ptr_unlink(&dtree, udb);
 	udb_ptr_unlink(&ztree, udb);
 	udb_ptr_unlink(&node, udb);
 	return 1;
@@ -172,7 +177,6 @@ udb_zone_clear(udb_base* udb, udb_ptr* zone)
 		domain_delete(udb, &domain);
 	}
 	udb_ptr_unlink(&d, udb);
-
 	udb_radix_tree_clear(udb, &dtree);
 	ZONE(zone)->rrset_count = 0;
 	ZONE(zone)->rr_count = 0;
@@ -183,9 +187,14 @@ udb_zone_clear(udb_base* udb, udb_ptr* zone)
 void
 udb_zone_delete(udb_base* udb, udb_ptr* zone)
 {
+	udb_ptr dtree;
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
 	udb_zone_clear(udb, zone);
 	udb_rptr_zero(&ZONE(zone)->node, udb);
+	udb_rptr_zero(&ZONE(zone)->nsec3param, udb);
+	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
+	udb_rptr_zero(&ZONE(zone)->domains, udb);
+	udb_radix_tree_delete(udb, &dtree);
 	udb_ptr_free_space(zone, udb,
 		sizeof(struct zone_d)+ZONE(zone)->namelen);
 }
@@ -201,6 +210,8 @@ udb_zone_search(udb_base* udb, udb_ptr* result, uint8_t* dname,
 		udb_ptr_unlink(&ztree, udb);
 		return 1;
 	}
+	if(result->data)
+		udb_ptr_set_rptr(result, udb, &RADNODE(result)->elem);
 	udb_ptr_unlink(&ztree, udb);
 	return 0;
 }
@@ -347,6 +358,8 @@ domain_find(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
 	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
 	r = udb_radname_search(udb, &dtree, nm, nmlen, result);
+	if(result->data)
+		udb_ptr_set_rptr(result, udb, &RADNODE(result)->elem);
 	udb_ptr_unlink(&dtree, udb);
 	return r;
 }
@@ -746,3 +759,34 @@ udb_rr_walk_chunk(void* base, void* d, uint64_t s, udb_walk_relptr_cb* cb,
 	(*cb)(base, &p->next, arg);
 }
 
+void namedb_walkfunc(void* base, void* warg, uint8_t t, void* d, uint64_t s,
+        udb_walk_relptr_cb* cb, void* arg)
+{
+        (void)warg;
+        switch(t) {
+	case udb_chunk_type_radtree:
+		udb_radix_tree_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_radnode:
+		udb_radix_node_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_radarray:
+		udb_radix_array_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_zone:
+		udb_zone_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_domain:
+		udb_domain_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_rrset:
+		udb_rrset_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_rr:
+		udb_rr_walk_chunk(base, d, s, cb, arg);
+		break;
+	default:
+		/* no rel ptrs */
+		break;
+	}
+}

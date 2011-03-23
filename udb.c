@@ -409,7 +409,10 @@ udb_rel_ptr* udb_base_get_userdata(udb_base* udb)
 
 void udb_base_set_userdata(udb_base* udb, udb_void user)
 {
-	udb_rel_ptr_set(udb, &udb->glob_data->user_global, user);
+#ifdef UDB_CHECK
+	if(user) { assert(udb_valid_dataptr(udb, user)); }
+#endif
+	udb_rel_ptr_set(udb->base, &udb->glob_data->user_global, user);
 }
 
 /** re-mmap the udb to specified size */

@@ -178,6 +178,8 @@ print_dname(uint8_t* d, size_t len)
 	size_t i = 0;
 	while(i < len) {
 		lablen = d[i++];
+		if(lablen == 0)
+			continue;
 		if(lablen+i > len) {
 			printf(" malformed!");
 			return;
