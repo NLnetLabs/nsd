@@ -19,8 +19,6 @@
 #include "dname.h"
 #include "zparser.h"
 
-#define YY_NO_UNPUT
-
 #if 0
 #define LEXOUT(s)  printf s /* used ONLY when debugging */
 #else
