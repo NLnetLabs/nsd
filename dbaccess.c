@@ -205,8 +205,8 @@ read_zone_data(udb_base* udb, namedb_type* db, region_type* dname_region,
 
 /** create empty zone entry in namedb */
 static zone_type*
-make_zone(namedb_type* db, const dname_type* dname, int* zonecount,
-	zone_options_t* zo, size_t num_children)
+make_zone(namedb_type* db, const dname_type* dname, zone_options_t* zo,
+	size_t num_children)
 {
 	zone_type* zone = (zone_type *) region_alloc(db->region,
 		sizeof(zone_type));
@@ -221,7 +221,6 @@ make_zone(namedb_type* db, const dname_type* dname, int* zonecount,
 	zone->nsec3_last = NULL;
 #endif
 	zone->opts = zo;
-	zone->number = (*zonecount)++;
 	zone->is_secure = 0;
 	zone->updated = 1;
 	zone->is_ok = 1;
@@ -233,8 +232,7 @@ make_zone(namedb_type* db, const dname_type* dname, int* zonecount,
 /** read a zone */
 static void
 read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
-	size_t num_children, region_type* dname_region, udb_ptr* z,
-	int* zonecount)
+	size_t num_children, region_type* dname_region, udb_ptr* z)
 {
 	/* construct dname */
 	const dname_type* dname = dname_make(dname_region, ZONE(z)->name, 0);
@@ -250,7 +248,7 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 		region_free_all(dname_region);
 		return;
 	}
-	zone = make_zone(db, dname, zonecount, zo, num_children);
+	zone = make_zone(db, dname, zo, num_children);
 	region_free_all(dname_region);
 	read_zone_data(udb, db, dname_region, z, zone);
 }
@@ -260,14 +258,12 @@ static void
 read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	size_t num_children, region_type* dname_region)
 {
-	int zonecount = 0;
 	udb_ptr ztree, n, z;
 	udb_ptr_init(&z, udb);
 	udb_ptr_new(&ztree, udb, udb_base_get_userdata(udb));
 	for(udb_radix_first(udb,&ztree,&n); n.data; udb_radix_next(udb,&n)) {
 		udb_ptr_set_rptr(&z, udb, &RADNODE(&n)->elem);
-		read_zone(udb, db, opt, num_children, dname_region, &z,
-			&zonecount);
+		read_zone(udb, db, opt, num_children, dname_region, &z);
 		udb_ptr_zero(&z, udb);
 	}
 	udb_ptr_unlink(&ztree, udb);
@@ -328,6 +324,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	 * if that is an empty namedb */
 	read_zones(udb, db, opt, num_children, dname_region);
 
+	udb_base_free(udb);
 	region_destroy(dname_region);
 	return db;
 }
@@ -655,7 +652,6 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 		zones[i]->nsec3_last = NULL;
 #endif
 		zones[i]->opts = zone_options_find(opt, domain_dname(zones[i]->apex));
-		zones[i]->number = i + 1;
 		zones[i]->is_secure = 0;
 		zones[i]->updated = 1;
 		zones[i]->is_ok = 0;

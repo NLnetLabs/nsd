@@ -186,7 +186,7 @@ namedb_save (struct namedb *db)
 		region_destroy(db->region);
 		return -1;
 	}
-	udb_base_close(udb);
+	udb_base_free(udb);
 
 	region_destroy(db->region);
 	return 0;

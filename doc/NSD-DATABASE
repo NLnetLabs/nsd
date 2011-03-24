@@ -1,49 +1,22 @@
-NSD 1.4-2.0 DATABASE FORMAT
-NSD 3.0 DATABASE FORMAT (adds crc at end).
+NSD 4.0 DATABASE FORMAT.
 
-As of NSD release 1.4 the database is extensively redesigned.  The main goal
-for the redesign was to accomodate DNSSEC.
+The NSD 4.0 database format is different from NSD 2 and NSD 3.
 
-The idea of the database is that it stores RRsets in stead of complete answers.
-Also the name compression is done run time. NSD 1.2 did all compression
-at zone compile time.
+It stores RRs, but in a way that they can be edited without leaking space.
+The file contains a 'buddy-system-style' 'malloc' of chunks.  Pointers are
+offsets from the start of the file.  For every pointer the reverse is
+kept track of, so that chunks can be moved to a new position.  Free space
+is reused, and (gradually) moved to the end to shorten the file.
 
-This has the following tradeoffs:
-        - the database is smaller (less duplication of material)
-        - the answer generation is slower (~ 15 %)
+It is about 23x larger than the NSD3 format and about 3x to 6x slower
+to read and write a full database.  But you can use a tree to fetch a
+particular item at log(N) cost, and update a single item at log(N) cost.
 
-Is was already suspected that DNSSEC would make NSD slower, that it will be only
-about 15 % is a big plus. That the database doesn't blow up in your face is also
-a big plus.
+Therefore, adding a zone or removing a zone does not need a new compile
+of the nsd database, but can be performed by editing the database.
 
-The database is constructed as follows.
+The file format is endian-dependent, and uses 64bit file offsets.
 
-        MAGIC
-
-        ZONE_COUNT [*]
-                dname of zone
-                dname of zone
-                ...
-
-        DNAME_COUNT [**]
-                dname
-                dname
-                ...
-
-        DNAME (index to [**]) ZONE (index to [*]) TYPE CLASS TTL
-                        #rr in rrset
-                        foreach rr
-                                #rdata
-                                rdata_1
-                                rdata_2
-                                ...
-                                rdata_N
-        NULL TERMINATED
-	CRC (32 bits crc sum over all previous bytes)
-        MAGIC
-
-Dname's that can be compressed at compile time are compressed. Those are stored
-as an index into DNAME_COUNT.
-
-The rdata is stored as a uint16_t, where the first byte indicated the length
-of the data. The data itself is stored in wireformat.
+The file chunk format is defined in udb.h.
+the tree for lookups is defined in udbradtree.h.
+The rrsets and zone format is defined in udbzone.h.

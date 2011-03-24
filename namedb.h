@@ -90,7 +90,6 @@ struct zone
 	domain_type *nsec3_last; /* last domain with nsec3, wraps */
 #endif
 	struct zone_options *opts;
-	uint32_t     number;
 	uint8_t*     dirty; /* array of dirty-flags, per child */
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     updated : 1; /* zone SOA was updated */
