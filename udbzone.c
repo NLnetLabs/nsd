@@ -292,7 +292,7 @@ select_nsec3_param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 			udb_ptr_unlink(&rr, udb);
 			return;
 		}
-		udb_ptr_set_rptr(&rr, udb, &RR(rr)->next);
+		udb_ptr_set_rptr(&rr, udb, &RR(&rr)->next);
 	}
 	udb_ptr_unlink(&rr, udb);
 }

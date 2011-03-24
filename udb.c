@@ -297,7 +297,10 @@ void udb_base_sync(udb_base* udb, int wait)
 static uint32_t
 chunk_hash_ptr(udb_void p)
 {
-	return hashword((uint32_t*)&p, sizeof(p)/sizeof(uint32_t), 0x8763);
+	/* put p into an array of uint32 */
+	uint32_t h[sizeof(p)/sizeof(uint32_t)];
+	memcpy(&h, &p, sizeof(h));
+	return hashword(h, sizeof(p)/sizeof(uint32_t), 0x8763);
 }
 
 /** check that the given pointer is on the bucket for the given offset */

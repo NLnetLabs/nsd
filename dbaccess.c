@@ -56,7 +56,7 @@ namedb_fd_close (struct namedb *db)
 }
 
 /* new NSD4 format */
-#if 0
+#if 1
 static void
 post_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
 {

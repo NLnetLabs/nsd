@@ -22,7 +22,7 @@
 #include "udbzone.h"
 
 /* new NSD4 format */
-#if 0
+#if 1
 
 void
 namedb_discard (struct namedb *db)
