@@ -187,7 +187,7 @@ cutest:	$(CUTEST_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(LIBS)
 
 udb-inspect:	udb-inspect.o $(LIBOBJS)
-	$(LINK) -o $@ $< $(LIBOBJS) $(LIBS)
+	$(LINK) -o $@ udb-inspect.o $(LIBOBJS) $(LIBS)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS

@@ -42,7 +42,7 @@ static void hash_1(CuTest *tc)
 
 	for(i=0; i<count; i++)
 	{
-		sprintf(buf, "example%d.com", i);
+		snprintf(buf, sizeof(buf), "example%d.com", i);
 		CuAssert(tc, "iterated_hash test 1", 
 			sizeof(out)== iterated_hash(out, salt, saltlen, 
 			(unsigned char*)buf, strlen(buf), iterations));

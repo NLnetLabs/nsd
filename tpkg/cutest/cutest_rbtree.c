@@ -111,8 +111,8 @@ static int tree_print_sub(struct testnode* tree, int depth, char* sink, char* pr
 
 	if(tree->node.left != RBTREE_NULL || tree->node.right != RBTREE_NULL)
 	{
-		if(depth > 0) strcat(prefix, " ");
-		strcat(prefix, "|");
+		if(depth > 0) strlcat(prefix, " ", 10240);
+		strlcat(prefix, "|", 10240);
 		/* recurse. */
 		sink += tree_print_sub((struct testnode*)tree->node.left, depth+1, sink, prefix);
 		prefix[strlen(prefix)-1] = ' ';
