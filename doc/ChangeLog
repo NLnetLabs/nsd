@@ -1,3 +1,6 @@
+24 March 2011: Wouter
+	- compile fixes for BSD. preserve RRset order.
+
 23 March 2011: Wouter
 	- udbzone, store and read zone data in the random-access udb format.
 

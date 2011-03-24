@@ -456,7 +456,7 @@ snprintf.o: $(srcdir)/compat/snprintf.c config.h
 strlcat.o: $(srcdir)/compat/strlcat.c config.h
 strlcpy.o: $(srcdir)/compat/strlcpy.c config.h
 strptime.o: $(srcdir)/compat/strptime.c
-cutest.o: $(srcdir)/tpkg/cutest/cutest.c $(srcdir)/tpkg/cutest/cutest.h
+cutest.o: $(srcdir)/tpkg/cutest/cutest.c config.h $(srcdir)/tpkg/cutest/cutest.h
 cutest_dname.o: $(srcdir)/tpkg/cutest/cutest_dname.c config.h $(srcdir)/tpkg/cutest/cutest.h \
  $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 cutest_dns.o: $(srcdir)/tpkg/cutest/cutest_dns.c config.h $(srcdir)/tpkg/cutest/cutest.h \

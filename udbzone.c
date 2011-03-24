@@ -419,9 +419,23 @@ rrset_create(udb_base* udb, udb_ptr* domain, uint16_t t, udb_ptr* res)
 	udb_rel_ptr_init(&RRSET(res)->rrs);
 	RRSET(res)->type = t;
 	
+#if 0
 	/* link it in, at the front */
 	udb_rptr_set_rptr(&RRSET(res)->next, udb, &DOMAIN(domain)->rrsets);
 	udb_rptr_set_ptr(&DOMAIN(domain)->rrsets, udb, res);
+#else 
+	/* preserve RRset order, link at end */
+	if(DOMAIN(domain)->rrsets.data == 0) {
+		udb_rptr_set_ptr(&DOMAIN(domain)->rrsets, udb, res);
+	} else {
+		udb_ptr p;
+		udb_ptr_new(&p, udb, &DOMAIN(domain)->rrsets);
+		while(RRSET(&p)->next.data)
+			udb_ptr_set_rptr(&p, udb, &RRSET(&p)->next);
+		udb_rptr_set_ptr(&RRSET(&p)->next, udb, res);
+		udb_ptr_unlink(&p, udb);
+	}
+#endif
 	return 1;
 }
 
@@ -492,15 +506,6 @@ rr_create(udb_base* udb, uint16_t t, uint16_t k, uint32_t ttl,
 	return 1;
 }
 
-/** find last RR in rrlist */
-static void
-rr_find_last(udb_base* udb, udb_ptr* rrset, udb_ptr* rr)
-{
-	udb_ptr_new(rr, udb, &RRSET(rrset)->rrs);
-	while(rr->data && RR(rr)->next.data)
-		udb_ptr_set_rptr(rr, udb, &RR(rr)->next);
-}
-
 /** add an RR to an RRset. */
 static int
 rrset_add_rr(udb_base* udb, udb_ptr* rrset, uint16_t t, uint16_t k,
@@ -517,7 +522,9 @@ rrset_add_rr(udb_base* udb, udb_ptr* rrset, uint16_t t, uint16_t k,
 		udb_rptr_set_ptr(&RRSET(rrset)->rrs, udb, &rr);
 	} else {
 		udb_ptr lastrr;
-		rr_find_last(udb, rrset, &lastrr);
+		udb_ptr_new(&lastrr, udb, &RRSET(rrset)->rrs);
+		while(RR(&lastrr)->next.data)
+			udb_ptr_set_rptr(&lastrr, udb, &RR(&lastrr)->next);
 		udb_rptr_set_ptr(&RR(&lastrr)->next, udb, &rr);
 		udb_ptr_unlink(&lastrr, udb);
 	}
