@@ -1,3 +1,7 @@
+25 March 2011: Wouter
+	- Fix bug #365, you can set NSDC_ZONEC_VERBOSE and NSDC_PATCH_STYLE
+	  in the environment where nsdc runs.
+
 24 March 2011: Wouter
 	- compile fixes for BSD. preserve RRset order.
 

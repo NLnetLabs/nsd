@@ -1,6 +1,11 @@
 NSD RELEASE NOTES
 
-3.2.8 (UPCOMING RELEASE)
+3.2.9 (UPCOMING)
+================
+BUG FIXES:
+	- Bugfix #365: set patch style and zonec verbose for nsdc.
+
+3.2.8
 =============
 
 BUG FIXES:
