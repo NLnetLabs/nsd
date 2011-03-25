@@ -2,6 +2,7 @@
 	- Fix bug #365, you can set NSDC_ZONEC_VERBOSE and NSDC_PATCH_STYLE
 	  in the environment where nsdc runs.
 	- Fix bug #375, typos in nsd.conf.5.
+	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 
 24 March 2011: Wouter
 	- compile fixes for BSD. preserve RRset order.

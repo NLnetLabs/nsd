@@ -296,7 +296,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	}
 	if(domain == rrset->zone->apex && rrset_rrtype(rrset) == TYPE_RRSIG) {
 		for (i = 0; i < rrset->rr_count; ++i) {
-			if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_SOA) {
+			if(rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY) {
 				rrset->zone->is_secure = 0;
 				break;
 			}
@@ -544,7 +544,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		if(type == TYPE_RRSIG) {
 			int i;
 			for (i = 0; i < rrset->rr_count; ++i) {
-				if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_SOA) {
+				if (rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY) {
 					zone->is_secure = 1;
 					break;
 				}
