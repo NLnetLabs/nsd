@@ -4,6 +4,7 @@ NSD RELEASE NOTES
 ================
 BUG FIXES:
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
+	- Bugfix #375: typos in nsd.conf.5.
 
 3.2.8
 =============
