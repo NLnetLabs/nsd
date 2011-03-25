@@ -3,6 +3,7 @@
 	  in the environment where nsdc runs.
 	- Fix bug #375, typos in nsd.conf.5.
 	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
+	- Fix bug #302, nsd accepts XFR but refuses to re-read the slave zone.
 
 24 March 2011: Wouter
 	- compile fixes for BSD. preserve RRset order.
