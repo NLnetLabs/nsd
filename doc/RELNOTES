@@ -6,6 +6,7 @@ BUG FIXES:
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
 	- Bugfix #375: typos in nsd.conf.5.
 	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
+	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
 
 3.2.8
 =============

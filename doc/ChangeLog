@@ -3,6 +3,7 @@
 	  in the environment where nsdc runs.
 	- Fix bug #375, typos in nsd.conf.5.
 	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
+	- Fix bug #302, nsd accepts XFR but refuses to re-read the slave zone.
 
 7 March 2011: Matthijs
 	- Update 3.2 branch (3.2.3 -> 3.2.8rc1, 18 August 2009 - 3 March 2011)
