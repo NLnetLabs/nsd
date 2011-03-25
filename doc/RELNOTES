@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 BUG FIXES:
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
 	- Bugfix #375: typos in nsd.conf.5.
+	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 
 3.2.8
 =============

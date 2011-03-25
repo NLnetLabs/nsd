@@ -219,7 +219,7 @@ read_rrset(namedb_type *db,
 
 	if (rrset_rrtype(rrset) == TYPE_RRSIG && owner == rrset->zone->apex) {
 		for (i = 0; i < rrset->rr_count; ++i) {
-			if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_SOA) {
+			if (rr_rrsig_type_covered(&rrset->rrs[i]) == TYPE_DNSKEY) {
 				rrset->zone->is_secure = 1;
 				break;
 			}
