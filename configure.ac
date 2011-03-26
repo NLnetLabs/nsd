@@ -65,6 +65,7 @@ AC_SUBST(kill_priority)
 # Default logfile
 #
 logfile=${localstatedir}/log/nsd.log
+AC_SUBST(logfile)
 
 #
 # Database directory
