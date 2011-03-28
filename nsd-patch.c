@@ -30,8 +30,6 @@ usage(void)
 	fprintf(stderr, "-f		Force writing of zone files.\n");
 	fprintf(stderr, "-h		Print this help information.\n");
 	fprintf(stderr, "-l		List contents of transfer journal difffile, %s\n", DIFFFILE);
-	fprintf(stderr, "-o dbfile	Specify dbfile to output the result "
-			"directly to dbfile, nsd.db.\n");
 	fprintf(stderr, "-s		Skip writing of zone files.\n");
 	fprintf(stderr, "-x difffile	Specify diff file to use, instead of diff file from config.\n");
 	exit(1);
@@ -274,10 +272,8 @@ int main(int argc, char* argv[])
 	int c;
 	const char* configfile = CONFIGFILE;
 	const char* difffile = NULL;
-	const char* dbfile = NULL;
 	nsd_options_t *options;
 	struct namedb* db = NULL;
-	struct namedb* dbout = NULL;
 	struct zone* zone;
 	struct diff_log* commit_log = 0;
 	size_t fake_child_count = 1;
@@ -287,7 +283,7 @@ int main(int argc, char* argv[])
 	int difffile_exists = 0;
 
         /* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:fhlo:sx:")) != -1) {
+	while ((c = getopt(argc, argv, "c:fhlsx:")) != -1) {
 	switch (c) {
 		case 'c':
 			configfile = optarg;
@@ -314,9 +310,6 @@ int main(int argc, char* argv[])
 			}
 			else
 				skip_write = 1;
-			break;
-		case 'o':
-			dbfile = optarg;
 			break;
 		case 'x':
 			difffile = optarg;
@@ -373,18 +366,7 @@ int main(int argc, char* argv[])
 	}
 
 	/* set all updated to 0 so we know what has changed */
-	for(zone = db->zones; zone; zone = zone->next)
-	{
-		zone->updated = 0;
-	}
-
-	if (dbfile)
-		dbout = namedb_new(dbfile);
-	if (dbout)
-	{
-		db->fd = dbout->fd;
-		db->filename = (char*) dbfile;
-	}
+	namedb_wipe_updated_flag(db);
 
 	/* read ixfr diff file */
 	if (difffile_exists) {
@@ -400,9 +382,10 @@ int main(int argc, char* argv[])
 	if (skip_write)
 		fprintf(stderr, "skip patching up zonefiles.\n");
 	else {
+		struct radnode* n;
 		fprintf(stdout, "writing changed zones\n");
-		for(zone = db->zones; zone; zone = zone->next)
-		{
+		for(n=radix_first(db->zonetree); n; n=radix_next(n)) {
+			zone = (zone_type*)n->elem;
 			if(!force_write && !zone->updated) {
 				fprintf(stdout, "zone %s had not changed.\n",
 					zone->opts->name);
@@ -413,16 +396,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	/* output result directly to dbfile */
-	if (dbout)
-	{
-		fprintf(stdout, "storing database to %s.\n", dbout->filename);
-	        if (namedb_save(db) != 0) {
-			fprintf(stderr, "error writing the database (%s): %s\n",
-				dbfile, strerror(errno));
-			exit(1);
-		}
-	}
 	fprintf(stdout, "done\n");
 
 	return 0;

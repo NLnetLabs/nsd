@@ -16,6 +16,7 @@
 #include "namedb.h"
 #include "nsd.h"
 #include "answer.h"
+#include "udbzone.h"
 
 /* detect is the latter rrset has the same hashalgo, iterations and salt
    as the base. Does not compare optout bit, or other rdata.
@@ -35,11 +36,21 @@ detect_nsec3_params(rr_type* nsec3_apex,
 }
 
 static const dname_type *
+nsec3_b32_create(region_type* region, zone_type* zone, unsigned char* hash)
+{
+	const dname_type* dname;
+	char b32[SHA_DIGEST_LENGTH*2+1];
+	b32_ntop(hash, SHA_DIGEST_LENGTH, b32, sizeof(b32));
+	dname=dname_parse(region, b32);
+	dname=dname_concatenate(region, dname, domain_dname(zone->apex));
+	return dname;
+}
+
+static const dname_type *
 nsec3_hash_dname_param(region_type *region, zone_type *zone,
 	const dname_type *dname, rr_type* param_rr)
 {
 	unsigned char hash[SHA_DIGEST_LENGTH];
-	char b32[SHA_DIGEST_LENGTH*2+1];
 	const unsigned char* nsec3_salt = NULL;
 	int nsec3_saltlength = 0;
 	int nsec3_iterations = 0;
@@ -48,10 +59,7 @@ nsec3_hash_dname_param(region_type *region, zone_type *zone,
 		&nsec3_saltlength, &nsec3_iterations);
 	iterated_hash(hash, nsec3_salt, nsec3_saltlength, dname_name(dname),
 		dname->name_size, nsec3_iterations);
-	b32_ntop(hash, sizeof(hash), b32, sizeof(b32));
-	dname=dname_parse(region, b32);
-	dname=dname_concatenate(region, dname, domain_dname(zone->apex));
-	return dname;
+	return nsec3_b32_create(region, zone, hash);
 }
 
 const dname_type *
@@ -62,94 +70,97 @@ nsec3_hash_dname(region_type *region, zone_type *zone,
 		dname, zone->nsec3_soa_rr);
 }
 
+/** find hash or create it and store it */
+static void
+nsec3_lookup_hash_and_wc(namedb_type* db, region_type* region, zone_type* zone,
+	udb_ptr* z, const dname_type* dname, const dname_type** hash,
+	const dname_type** wchash)
+{
+	uint8_t h[NSEC3_HASH_LEN], h_wc[NSEC3_HASH_LEN];
+	const dname_type* wcard;
+	if(udb_zone_lookup_hash_wc(db->udb, z, (uint8_t*)dname_name(dname),
+		dname->name_size, h, h_wc)) {
+		*hash = nsec3_b32_create(region, zone, h);
+		*wchash = nsec3_b32_create(region, zone, h_wc);
+		return;
+	}
+	/* lookup failed; disk failure or so */
+	*hash = nsec3_hash_dname(region, zone, dname);
+	wcard = dname_parse(region, "*");
+	wcard = dname_concatenate(region, wcard, dname);
+	*wchash = nsec3_hash_dname(region, zone, wcard);
+}
+
+static void
+nsec3_lookup_hash(namedb_type* db, region_type* region, zone_type* zone,
+	udb_ptr* z, const dname_type* dname, const dname_type** hash)
+{
+	uint8_t h[NSEC3_HASH_LEN];
+	if(udb_zone_lookup_hash(db->udb, z, (uint8_t*)dname_name(dname),
+		dname->name_size, h)) {
+		*hash = nsec3_b32_create(region, zone, h);
+		return;
+	}
+	/* lookup failed; disk failure or so */
+	*hash = nsec3_hash_dname(region, zone, dname);
+}
+
 static int
 nsec3_has_soa(rr_type* rr)
 {
 	if(rdata_atom_size(rr->rdatas[5]) >= 3 && /* has types in bitmap */
-		rdata_atom_data(rr->rdatas[5])[0] == 0 && /* first window = 0, */
-						/* [1]: windowlen must be >= 1 */
-		rdata_atom_data(rr->rdatas[5])[2]&0x02)  /* SOA bit set */
-		return 1;
+	  rdata_atom_data(rr->rdatas[5])[0] == 0 && /* first window = 0, */
+	  /* [1]: windowlen must be >= 1 */
+	  rdata_atom_data(rr->rdatas[5])[2]&0x02)  /* SOA bit set */
+	  return 1;
 	return 0;
 }
 
 static rr_type*
-find_zone_nsec3(namedb_type* namedb, zone_type *zone)
+find_zone_nsec3(namedb_type* namedb, zone_type *zone, udb_ptr* z)
 {
-	size_t i;
+	uint8_t h[NSEC3_HASH_LEN];
 	domain_type* domain;
+	const dname_type* hashed_apex, *dname = domain_dname(zone->apex);
+	unsigned j;
+	rrset_type* nsec3_rrset;
 	region_type* tmpregion;
-	/* Check settings in NSEC3PARAM.
-	   Hash algorithm must be OK. And a NSEC3 with soa bit
-	   must map to the zone apex.  */
-	rrset_type* paramset = domain_find_rrset(zone->apex, zone, TYPE_NSEC3PARAM);
-	if(!paramset || !paramset->rrs || !paramset->rr_count)
-		return 0;
-	tmpregion = region_create(xalloc, free);
-	for(i=0; i<paramset->rr_count; i++)
-	{
-		rr_type* rr = &paramset->rrs[i];
-		const dname_type* hashed_apex;
-		rrset_type* nsec3_rrset;
-		size_t j;
-
-		if(rdata_atom_data(rr->rdatas[0])[0] != NSEC3_SHA1_HASH) {
-			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has unknown hash algo %d",
-				dname_to_string(domain_dname(zone->apex), NULL), (int)i,
-				rdata_atom_data(rr->rdatas[0])[0]);
-			continue;
-		}
-		if(rdata_atom_data(rr->rdatas[1])[0] != 0) {
-			/* draft-nsec3-09: NSEC3PARAM records with flags
-			   field value other than zero MUST be ignored. */
-			continue;
-		}
-		/* check hash of apex -> NSEC3 with soa bit on */
-		hashed_apex = nsec3_hash_dname_param(tmpregion,
-			zone, domain_dname(zone->apex), &paramset->rrs[i]);
-		domain = domain_table_find(namedb->domains, hashed_apex);
-		if(!domain) {
-			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d has no hash(apex).",
-				dname_to_string(domain_dname(zone->apex), NULL), (int)i);
-			log_msg(LOG_ERR, "hash(apex)= %s",
-				dname_to_string(hashed_apex, NULL));
-			continue;
-		}
-		nsec3_rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
-		if(!nsec3_rrset) {
-			log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) has no NSEC3 RRset",
-				dname_to_string(domain_dname(zone->apex), NULL), (int)i);
-			continue;
-		}
-		/* find SOA bit enabled nsec3, with the same settings */
-		for(j=0; j<nsec3_rrset->rr_count; j++)
-		{
-			const unsigned char *salt1, *salt2;
-			int saltlen1, saltlen2, iter1, iter2;
-			if(!nsec3_has_soa(&nsec3_rrset->rrs[j]))
-				continue;
-			/* check params OK. Ignores the optout bit. */
-			detect_nsec3_params(rr, &salt1, &saltlen1, &iter1);
-			detect_nsec3_params(&nsec3_rrset->rrs[j],
-				&salt2, &saltlen2, &iter2);
-			if(saltlen1 == saltlen2 && iter1 == iter2 &&
-				rdata_atom_data(rr->rdatas[0])[0] == /* algo */
-					rdata_atom_data(nsec3_rrset->rrs[j].rdatas[0])[0]
-				&& memcmp(salt1, salt2, saltlen1) == 0) {
-				/* found it */
-				DEBUG(DEBUG_QUERY, 1, (LOG_INFO,
-					"detected NSEC3 for zone %s saltlen=%d iter=%d",
-					dname_to_string(domain_dname(
-					zone->apex),0), saltlen2, iter2));
-				region_destroy(tmpregion);
-				return &nsec3_rrset->rrs[j];
-			}
-		}
-		log_msg(LOG_ERR, "%s NSEC3PARAM entry %d: hash(apex) no NSEC3 with SOAbit",
-			dname_to_string(domain_dname(zone->apex), NULL), (int)i);
+	if(!udb_zone_lookup_hash(namedb->udb, z, (uint8_t*)dname_name(dname),
+		dname->name_size, h)) {
+		return NULL;
 	}
+	tmpregion = region_create(xalloc, free);
+	hashed_apex = nsec3_b32_create(tmpregion, zone, h);
+	domain = domain_table_find(namedb->domains, hashed_apex);
+	if(!domain) {
+		log_msg(LOG_ERR, "%s NSEC3PARAM entry has no hash(apex).",
+			dname_to_string(domain_dname(zone->apex), NULL));
+		log_msg(LOG_ERR, "hash(apex)= %s",
+			dname_to_string(hashed_apex, NULL));
+		region_destroy(tmpregion);
+		return NULL;
+	}
+	nsec3_rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
+	if(!nsec3_rrset) {
+		log_msg(LOG_ERR, "%s NSEC3PARAM entry: hash(apex) has no NSEC3 RRset.",
+			dname_to_string(domain_dname(zone->apex), NULL));
+		log_msg(LOG_ERR, "hash(apex)= %s",
+			dname_to_string(hashed_apex, NULL));
+		region_destroy(tmpregion);
+		return NULL;
+	}
+	for(j=0; j<nsec3_rrset->rr_count; j++) {
+		if(nsec3_has_soa(&nsec3_rrset->rrs[j])) {
+			region_destroy(tmpregion);
+			return &nsec3_rrset->rrs[j];
+		}
+	}
+	log_msg(LOG_ERR, "%s NSEC3PARAM entry: hash(apex) NSEC3 has no SOA flag.",
+		dname_to_string(domain_dname(zone->apex), NULL));
+	log_msg(LOG_ERR, "hash(apex)= %s",
+		dname_to_string(hashed_apex, NULL));
 	region_destroy(tmpregion);
-	return 0;
+	return NULL;
 }
 
 /* check that the rrset has an NSEC3 that uses the same parameters as the
@@ -245,12 +256,12 @@ nsec3_find_cover(namedb_type* db, zone_type* zone,
 }
 
 static void
-prehash_domain(namedb_type* db, zone_type* zone,
+prehash_domain(namedb_type* db, zone_type* zone, udb_ptr* z, 
 	domain_type* domain, region_type* region)
 {
 	/* find it */
 	domain_type* result = 0;
-	const dname_type *wcard, *wcard_child, *hashname;
+	const dname_type *hashname, *wchashname;
 	int exact;
 
 	if(!zone->nsec3_soa_rr)
@@ -261,8 +272,9 @@ prehash_domain(namedb_type* db, zone_type* zone,
 		domain->nsec3_wcard_child_cover = NULL;
 		return;
 	}
+	nsec3_lookup_hash_and_wc(db, region, zone, z, domain_dname(domain),
+		&hashname, &wchashname);
 
-	hashname = nsec3_hash_dname(region, zone, domain_dname(domain));
 	exact = nsec3_find_cover(db, zone, hashname, &result);
 	domain->nsec3_cover = result;
 	if(exact)
@@ -270,10 +282,7 @@ prehash_domain(namedb_type* db, zone_type* zone,
 	else	domain->nsec3_is_exact = 0;
 
 	/* find cover for *.domain for wildcard denial */
-	wcard = dname_parse(region, "*");
-	wcard_child = dname_concatenate(region, wcard, domain_dname(domain));
-	hashname = nsec3_hash_dname(region, zone, wcard_child);
-	exact = nsec3_find_cover(db, zone, hashname, &result);
+	exact = nsec3_find_cover(db, zone, wchashname, &result);
 	domain->nsec3_wcard_child_cover = result;
 
 	if(exact && !domain_wildcard_child(domain))
@@ -291,7 +300,7 @@ prehash_domain(namedb_type* db, zone_type* zone,
 }
 
 static void
-prehash_ds(namedb_type* db, zone_type* zone,
+prehash_ds(namedb_type* db, zone_type* zone, udb_ptr* z,
 	domain_type* domain, region_type* region)
 {
 	domain_type* result = 0;
@@ -305,7 +314,8 @@ prehash_ds(namedb_type* db, zone_type* zone,
 	}
 
 	/* hash again, other zone could have different hash parameters */
-	hashname = nsec3_hash_dname(region, zone, domain_dname(domain));
+	nsec3_lookup_hash(db, region, zone, z, domain_dname(domain),
+		&hashname);
 	exact = nsec3_find_cover(db, zone, hashname, &result);
 	if(exact)
 		domain->nsec3_ds_parent_is_exact = 1;
@@ -319,15 +329,19 @@ prehash_zone(struct namedb* db, struct zone* zone)
 	domain_type *walk;
 	domain_type *last_nsec3_node;
 	region_type *temp_region;
+	udb_ptr udbz;
 	assert(db && zone);
 
 	/* find zone settings */
-	zone->nsec3_soa_rr = find_zone_nsec3(db, zone);
+	if(!udb_zone_search(db->udb, &udbz, (uint8_t*)dname_name(domain_dname(
+		zone->apex)), domain_dname(zone->apex)->name_size)) {
+		udb_ptr_init(&udbz, db->udb); /* zero the ptr */
+	}
+	zone->nsec3_soa_rr = find_zone_nsec3(db, zone, &udbz);
 	if(!zone->nsec3_soa_rr) {
 		zone->nsec3_last = 0;
 		return;
 	}
-
 	temp_region = region_create(xalloc, free);
 
 	/* go through entire zone and setup nsec3_lookup speedup */
@@ -364,7 +378,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 		z = domain_find_zone(walk);
 		if(z && z==zone && !domain_is_glue(walk, zone))
 		{
-			prehash_domain(db, zone, walk, temp_region);
+			prehash_domain(db, zone, &udbz, walk, temp_region);
 			region_free_all(temp_region);
 		}
 		/* prehash the DS (parent zone) */
@@ -373,32 +387,40 @@ prehash_zone(struct namedb* db, struct zone* zone)
 			 walk != zone->apex))
 		{
 			assert(walk != zone->apex /* DS must be above zone cut */);
-			prehash_ds(db, zone, walk, temp_region);
+			prehash_ds(db, zone, &udbz, walk, temp_region);
 			region_free_all(temp_region);
 		}
 		walk = domain_next(walk);
 	}
 	region_destroy(temp_region);
+	udb_ptr_unlink(&udbz, db->udb);
 }
 
 void
 prehash(struct namedb* db, int updated_only)
 {
+	struct radnode* n;
 	zone_type *z;
 	time_t end, start = time(NULL);
 	int count = 0;
-	for(z = db->zones; z; z = z->next)
-	{
+	struct timeval st, ed;
+	gettimeofday(&st, NULL);
+	for(n = radix_first(db->zonetree); n; n = radix_next(n)) {
+		z = (zone_type*)n->elem;
 		if(!updated_only || z->updated) {
 			prehash_zone(db, z);
 			if(z->nsec3_soa_rr)
 				count++;
 		}
 	}
+	gettimeofday(&ed, NULL);
 	end = time(NULL);
 	if(count > 0)
 		VERBOSITY(1, (LOG_INFO, "nsec3-prepare took %d "
 		"seconds for %d zones.", (int)(end-start), count));
+	log_msg(LOG_INFO, "nsec3prepare %6.6d %6.6d  %d and %d\n",
+		st.tv_usec, ed.tv_usec, ed.tv_sec - st.tv_sec,
+		ed.tv_usec - st.tv_usec);
 }
 
 /* add the NSEC3 rrset to the query answer at the given domain */

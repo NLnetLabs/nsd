@@ -176,6 +176,10 @@ print_dname(uint8_t* d, size_t len)
 {
 	uint8_t lablen;
 	size_t i = 0;
+	if(len == 1 && d[0] == 0) {
+		printf(".");
+		return;
+	}
 	while(i < len) {
 		lablen = d[i++];
 		if(lablen == 0)

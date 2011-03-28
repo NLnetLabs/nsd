@@ -31,6 +31,8 @@ struct zone_d {
 	udb_rel_ptr domains;
 	/** the NSEC3PARAM rr used for hashing (or 0), rr_d pointer */
 	udb_rel_ptr nsec3param;
+	/** modification time, time when the zone data was changed */
+	uint64_t mtime;
 	/** number of RRsets in the zone */
 	uint64_t rrset_count;
 	/** number of RRs in the zone */
@@ -104,6 +106,8 @@ void udb_zone_delete(udb_base* udb, udb_ptr* zone);
 /** find a zone by name (exact match) */
 int udb_zone_search(udb_base* udb, udb_ptr* result, uint8_t* dname,
 	size_t dlen);
+/** get modification time for zone or 0 */
+uint64_t udb_zone_get_mtime(udb_base* udb, uint8_t* dname, size_t dlen);
 
 /** add an RR to a zone */
 int udb_zone_add_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,

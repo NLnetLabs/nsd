@@ -275,12 +275,16 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;
 			case 0: /* CHILD */
+				/* the child need not be able to access the
+				 * nsd.db file */
+				namedb_close_udb(nsd->db);
 				nsd->pid = 0;
 				nsd->child_count = 0;
 				nsd->server_kind = nsd->children[i].kind;
 				nsd->this_child = &nsd->children[i];
 				/* remove signal flags inherited from parent
 				   the parent will handle them. */
+				nsd->signal_hint_reload_hup = 0;
 				nsd->signal_hint_reload = 0;
 				nsd->signal_hint_child = 0;
 				nsd->signal_hint_quit = 0;
@@ -522,11 +526,14 @@ int
 server_prepare(struct nsd *nsd)
 {
 	/* Open the database... */
-	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
+	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options,
+		nsd->child_count)) == NULL) {
 		log_msg(LOG_ERR, "unable to open the database %s: %s",
 			nsd->dbfile, strerror(errno));
 		return -1;
 	}
+	/* check if zone files have been modified */
+	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count);
 
 	/* Read diff file */
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
@@ -625,12 +632,9 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 {
 	pid_t pid;
 	int sockets[2] = {0,0};
-	zone_type* zone;
 	struct ipc_handler_conn_data *data;
 	/* no need to send updates for zones, because xfrd will read from fork-memory */
-	for(zone = nsd->db->zones; zone; zone=zone->next) {
-		zone->updated = 0;
-	}
+	namedb_wipe_updated_flag(nsd->db);
 
 	if(handler->fd != -1)
 		close(handler->fd);
@@ -731,23 +735,18 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 {
 	pid_t old_pid;
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
+	struct radnode* n;
 	zone_type* zone;
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
 
-	if(db_crc_different(nsd->db) == 0) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-			"CRC the same. skipping %s.", nsd->db->filename));
-	} else {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-			"CRC different. reread of %s.", nsd->db->filename));
-		namedb_close(nsd->db);
-		if ((nsd->db = namedb_open(nsd->dbfile, nsd->options,
-			nsd->child_count)) == NULL) {
-			log_msg(LOG_ERR, "unable to reload the database: %s", strerror(errno));
-			exit(1);
-		}
+	if(nsd->signal_hint_reload_hup) {
+		/* on SIGHUP check if zone-text-files changed and if so, 
+		 * reread.  When from xfrd-reload, no need to fstat the files */
+		namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count);
+		nsd->signal_hint_reload_hup = 0;
 	}
+
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);
@@ -835,9 +834,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "problems sending soa begin from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
-	for(zone= nsd->db->zones; zone; zone = zone->next) {
+	for(n=radix_first(nsd->db->zonetree); n; n=radix_next(n)) {
 		uint16_t sz;
 		const dname_type *dname_ns=0, *dname_em=0;
+		zone = (zone_type*)n->elem;
 		if(zone->updated == 0)
 			continue;
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "nsd: sending soa info for zone %s",

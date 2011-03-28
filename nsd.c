@@ -278,6 +278,7 @@ sig_handler(int sig)
 		return;
 	case SIGHUP:
 		nsd.signal_hint_reload = 1;
+		nsd.signal_hint_reload_hup = 1;
 		return;
 	case SIGALRM:
 		nsd.signal_hint_stats = 1;
@@ -378,7 +379,6 @@ main(int argc, char *argv[])
 	pid_t	oldpid;
 	size_t i;
 	struct sigaction action;
-	FILE* dbfd;
 #ifdef HAVE_GETPWNAM
 	struct passwd *pwd = NULL;
 #endif /* HAVE_GETPWNAM */
@@ -940,6 +940,7 @@ main(int argc, char *argv[])
 	nsd.mode = NSD_RUN;
 	nsd.signal_hint_child = 0;
 	nsd.signal_hint_reload = 0;
+	nsd.signal_hint_reload_hup = 0;
 	nsd.signal_hint_quit = 0;
 	nsd.signal_hint_shutdown = 0;
 	nsd.signal_hint_stats = 0;
@@ -1002,13 +1003,6 @@ main(int argc, char *argv[])
 
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "file rotation on %s %sabled",
 		nsd.log_filename, nsd.file_rotation_ok?"en":"dis"));
-
-	/* Check if nsd.db exists */
-	if ((dbfd = fopen(nsd.dbfile, "r")) == NULL) {
-		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd.dbfile, strerror(errno));
-		exit(1);
-	}
-	fclose(dbfd);
 
 	/* Write pidfile */
 	if (writepid(&nsd) == -1) {

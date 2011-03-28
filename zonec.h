@@ -122,4 +122,11 @@ zparser_type *zparser_create(region_type *region, region_type *rr_region,
 void zparser_init(const char *filename, uint32_t ttl, uint16_t klass,
 		  const dname_type *origin);
 
+/* parser start and stop to parse a zone */
+void zonec_setup_parser(namedb_type* db);
+void zonec_desetup_parser(void);
+/* parse a zone into memory. name is origin. zonefile is file to read.
+ * returns number of errors; failure may have read a partial zone */
+unsigned int zonec_read(const char *name, const char *zonefile, zone_type* zone);
+
 #endif /* _ZONEC_H_ */

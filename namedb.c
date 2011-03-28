@@ -349,16 +349,20 @@ rr_rrsig_type_covered(rr_type *rr)
 }
 
 zone_type *
-namedb_find_zone(namedb_type *db, domain_type *domain)
+namedb_find_zone(namedb_type *db, const dname_type *dname)
 {
-	zone_type *zone;
+	struct radnode* n = radname_search(db->zonetree, 
+		(uint8_t*)dname_name(dname), dname->name_size);
+	if(n) return (zone_type*)n->elem;
+	return NULL;
+}
 
-	for (zone = db->zones; zone; zone = zone->next) {
-		if (zone->apex == domain)
-			break;
-	}
-
-	return zone;
+void namedb_wipe_updated_flag(namedb_type *db)
+{
+	struct radnode* n;
+        for(n=radix_first(db->zonetree); n; n=radix_next(n)) {
+                ((zone_type*)n->elem)->updated = 0;
+        }
 }
 
 rrset_type *
@@ -381,4 +385,14 @@ domain_find_non_cname_rrset(domain_type *domain, zone_type *zone)
 		result = result->next;
 	}
 	return NULL;
+}
+
+int
+namedb_lookup(struct namedb    *db,
+	      const dname_type *dname,
+	      domain_type     **closest_match,
+	      domain_type     **closest_encloser)
+{
+	return domain_table_search(
+		db->domains, dname, closest_match, closest_encloser);
 }

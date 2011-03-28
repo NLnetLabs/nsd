@@ -41,10 +41,6 @@ void diff_write_commit(const char* zone, uint32_t old_serial,
 	uint8_t commit, const char* log_msg,
 	nsd_options_t* opt);
 
-/* check if the crc in the nsd.db is the same in memory as on disk.
-   returns 1 if different. 0 if the same. returns -1 on error. */
-int db_crc_different(namedb_type* db);
-
 /* read the diff file and apply to the database in memory.
    It will attempt to skip bad data.
    If you pass a non-null value log, log comments are alloced in namedb.region
@@ -65,5 +61,8 @@ int diff_read_32(FILE *in, uint32_t* result);
 int diff_read_16(FILE *in, uint16_t* result);
 int diff_read_8(FILE *in, uint8_t* result);
 int diff_read_str(FILE* in, char* buf, size_t len);
+
+/* delete the RRs for a zone from memory */
+void delete_zone_rrs(namedb_type* db, zone_type* zone);
 
 #endif /* DIFFFILE_H */

@@ -329,7 +329,7 @@ struct udb_alloc {
 /** magic string that starts an UDB file, uint64_t, note first byte=0, to mark
  * header start as a chunk. */
 #define UDB_MAGIC (((uint64_t)'u'<<48)|((uint64_t)'d'<<40)|((uint64_t)'b' \
-	<<32)|((uint64_t)'b'<<24)|((uint64_t)'u'<<16)|((uint64_t)'p'<<8))
+	<<32)|((uint64_t)'v'<<24)|((uint64_t)'0'<<16)|((uint64_t)'8'<<8))
 
 /* UDB BASE */
 /**
@@ -339,7 +339,7 @@ struct udb_alloc {
  * @param arg: user argument to pass to walkfunc
  * @return base structure or NULL on failure.
  */
-udb_base* udb_base_create_read(char* fname, udb_walk_relptr_func walkfunc,
+udb_base* udb_base_create_read(const char* fname, udb_walk_relptr_func walkfunc,
 	void* arg);
 
 /**
@@ -349,8 +349,14 @@ udb_base* udb_base_create_read(char* fname, udb_walk_relptr_func walkfunc,
  * @param arg: user argument to pass to walkfunc
  * @return base structure or NULL on failure.
  */
-udb_base* udb_base_create_new(char* fname, udb_walk_relptr_func walkfunc,
+udb_base* udb_base_create_new(const char* fname, udb_walk_relptr_func walkfunc,
 	void* arg);
+
+/**
+ * Create udb from (O_RDWR) fd.
+ */
+udb_base* udb_base_create_fd(const char* fname, int fd,
+	udb_walk_relptr_func walkfunc, void* arg);
 
 /**
  * Properly close the UDB base file.  Separate from delete so the

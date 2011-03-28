@@ -17,9 +17,7 @@
 #include "radtree.h"
 struct zone_options;
 struct nsd_options;
-
-#define	NAMEDB_MAGIC		"NSDdbV07"
-#define	NAMEDB_MAGIC_SIZE	8
+struct udb_base;
 
 typedef union rdata_atom rdata_atom_type;
 typedef struct rrset rrset_type;
@@ -80,7 +78,7 @@ struct domain
 
 struct zone
 {
-	zone_type   *next;
+	struct radnode *node;
 	domain_type *apex;
 	rrset_type  *soa_rrset;
 	rrset_type  *soa_nx_rrset; /* see bug #103 */
@@ -235,15 +233,10 @@ struct namedb
 {
 	region_type       *region;
 	domain_table_type *domains;
-	zone_type         *zones;
-	size_t	  	  zone_count;
-	char              *filename;
-	FILE              *fd;
+	struct radtree    *zonetree;
+	struct udb_base   *udb;
 	/* the timestamp on the ixfr.db file */
 	struct timeval	  diff_timestamp;
-	/* the CRC on the nsd.db file and position of CRC in the db file */
-	uint32_t	  crc;
-	off_t		  crc_pos;
 	/* if diff_skip=1, diff_pos contains the nsd.diff place to continue */
 	uint8_t		  diff_skip;
 	off_t		  diff_pos;
@@ -270,16 +263,13 @@ rdata_atom_data(rdata_atom_type atom)
 }
 
 
-/*
- * Find the zone for the specified DOMAIN in DB.
- */
-zone_type *namedb_find_zone(namedb_type *db, domain_type *domain);
+/* Find the zone for the specified dname in DB. */
+zone_type *namedb_find_zone(namedb_type *db, const dname_type *dname);
+/* set all zones to not-updated */
+void namedb_wipe_updated_flag(namedb_type *db);
 
 /* dbcreate.c */
-struct namedb *namedb_new(const char *filename);
 int namedb_save(struct namedb *db);
-void namedb_discard(struct namedb *db);
-
 
 /* dbaccess.c */
 int namedb_lookup (struct namedb    *db,
@@ -290,7 +280,13 @@ int namedb_lookup (struct namedb    *db,
 struct namedb *namedb_open(const char *filename, struct nsd_options* opt,
 	size_t num_children);
 void namedb_fd_close(struct namedb *db);
+void namedb_close_udb(struct namedb* db);
 void namedb_close(struct namedb *db);
+int write_zone_to_udb(struct udb_base* udb, zone_type* zone, time_t mtime);
+void namedb_check_zonefiles(struct namedb* db, struct nsd_options* opt,
+	size_t num_children);
+void apex_rrset_checks(struct namedb* db, rrset_type* rrset,
+	domain_type* domain);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)

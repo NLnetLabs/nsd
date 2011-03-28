@@ -72,6 +72,7 @@ udb_zone_create(udb_base* udb, udb_ptr* result, uint8_t* dname, size_t dlen)
 	ZONE(&z)->rrset_count = 0;
 	ZONE(&z)->rr_count = 0;
 	ZONE(&z)->expired = 0;
+	ZONE(&z)->mtime = 0;
 	ZONE(&z)->namelen = dlen;
 	memmove(ZONE(&z)->name, dname, dlen);
 	if(!udb_radix_tree_create(udb, &dtree)) {
@@ -168,6 +169,7 @@ udb_zone_clear(udb_base* udb, udb_ptr* zone)
 	udb_ptr dtree, d;
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
 	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
+	udb_rptr_zero(&ZONE(zone)->nsec3param, udb);
 
 	/* walk and delete all domains, rrsets, rrs, but keep tree */
 	for(udb_radix_first(udb, &dtree, &d); d.data; udb_radix_next(udb, &d)){
@@ -181,6 +183,7 @@ udb_zone_clear(udb_base* udb, udb_ptr* zone)
 	ZONE(zone)->rrset_count = 0;
 	ZONE(zone)->rr_count = 0;
 	ZONE(zone)->expired = 0;
+	ZONE(zone)->mtime = 0;
 	udb_ptr_unlink(&dtree, udb);
 }
 
@@ -207,12 +210,23 @@ udb_zone_search(udb_base* udb, udb_ptr* result, uint8_t* dname,
 	udb_ptr_new(&ztree, udb, udb_base_get_userdata(udb));
 	assert(udb_ptr_get_type(&ztree) == udb_chunk_type_radtree);
 	if(udb_radname_search(udb, &ztree, dname, dname_len, result)) {
+		if(result->data)
+			udb_ptr_set_rptr(result, udb, &RADNODE(result)->elem);
 		udb_ptr_unlink(&ztree, udb);
 		return 1;
 	}
-	if(result->data)
-		udb_ptr_set_rptr(result, udb, &RADNODE(result)->elem);
 	udb_ptr_unlink(&ztree, udb);
+	return 0;
+}
+
+uint64_t udb_zone_get_mtime(udb_base* udb, uint8_t* dname, size_t dlen)
+{
+	udb_ptr z;
+	if(udb_zone_search(udb, &z, dname, dlen)) {
+		uint64_t t = ZONE(&z)->mtime;
+		udb_ptr_unlink(&z, udb);
+		return t;
+	}
 	return 0;
 }
 
@@ -285,9 +299,12 @@ select_nsec3_param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 {
 	udb_ptr rr;
 	udb_ptr_new(&rr, udb, &RRSET(rrset)->rrs);
+	log_msg(LOG_INFO, "select nsec3 param");
 	while(rr.data) {
+		log_msg(LOG_INFO, "select nsec3 param RR");
 		if(RR(&rr)->len >= 5 && RR(&rr)->wire[0] == NSEC3_SHA1_HASH &&
-			RR(&rr)->wire[1] != 0) {
+			RR(&rr)->wire[1] == 0) {
+			log_msg(LOG_INFO, "select nsec3 param RR accepted");
 			udb_rptr_set_ptr(&ZONE(zone)->nsec3param, udb, &rr);
 			udb_ptr_unlink(&rr, udb);
 			return;
@@ -676,6 +693,7 @@ udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, uint8_t* nm,
         size_t nmlen, uint8_t hash[NSEC3_HASH_LEN])
 {
 	udb_ptr d;
+	if(!zone->data) return 0;
 	if(!ZONE(zone)->nsec3param.data)
 		return 0;
 	if(!domain_find(udb, zone, nm, nmlen, &d)) {
@@ -701,6 +719,7 @@ udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, uint8_t* nm,
         uint8_t wchash[NSEC3_HASH_LEN])
 {
 	udb_ptr d;
+	if(!zone->data) return 0;
 	if(!ZONE(zone)->nsec3param.data)
 		return 0;
 	if(!domain_find(udb, zone, nm, nmlen, &d)) {

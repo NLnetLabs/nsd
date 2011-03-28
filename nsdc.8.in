@@ -16,8 +16,6 @@
 |
 .I reload
 |
-.I rebuild
-|
 .I restart
 |
 .I running
@@ -30,7 +28,7 @@
 .SH "DESCRIPTION"
 .LP
 .B Nsdc
-is the shell script that used to control nsd(8) and zonec(8) from 
+is the shell script that used to control nsd(8) from the
 .B NSD
 distribution.
 .B Nsdc
@@ -66,10 +64,6 @@ to it.
 Initiate nsd(8) name space database reload by sending
 .IR SIGHUP.
 .TP 
-.I rebuild
-Rebuild the nsd(8) database by invoking zonec(8) with appropriate 
-arguments.
-.TP 
 .I restart
 Restart nsdc(8). This equals to nsdc stop && nsdc start.
 .TP
@@ -103,12 +97,7 @@ file. If a TSIG key is specified for a notify statement, it will be
 used to secure the notification message to that slave server.
 .TP
 .I patch
-Merge zone transfer changes back to zone files. It reads in the nsd 
-database (nsd.db) and difffile (ixfr.db), and overwrites the zone 
-text files if they have been updated. Running this regularly 
-ensures that the difffile does not grow infinitely. If any zone text
-files have been changed (including those of the master zones), the
-nsd.db is rebuild and nsd is reloaded.
+Remove the difffile (ixfr.db), to ensure it does not grow indefinitely.
 .SH "OPTIONS"
 .TP
 .B \-c\fI configfile
@@ -152,7 +141,7 @@ otherwise.
 .SH "SEE ALSO"
 .LP
 nsd(8), nsd.conf(5), nsd\-checkconf(8), nsd\-notify(8), 
-nsd\-patch(8), nsd\-xfer(8), zonec(8)
+nsd\-patch(8), nsd\-xfer(8)
 .SH "AUTHORS"
 .LP
 .B NSD

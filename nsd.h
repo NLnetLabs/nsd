@@ -138,6 +138,7 @@ struct	nsd
 	/* Run-time variables */
 	pid_t		pid;
 	volatile sig_atomic_t mode;
+	volatile sig_atomic_t signal_hint_reload_hup;
 	volatile sig_atomic_t signal_hint_reload;
 	volatile sig_atomic_t signal_hint_child;
 	volatile sig_atomic_t signal_hint_quit;

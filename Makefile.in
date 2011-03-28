@@ -63,19 +63,18 @@ EDIT		= sed \
 			-e 's,@spriority\@,$(spriority),g' \
 			-e 's,@kpriority\@,$(kpriority),g' 
 
-TARGETS=nsd zonec nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
-MANUALS=nsd.8 zonec.8 nsd-notify.8 nsd-xfer.8 nsdc.8 nsd-checkconf.8 nsd-patch.8 nsd.conf.5
+TARGETS=nsd nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
+MANUALS=nsd.8 nsd-notify.8 nsd-xfer.8 nsdc.8 nsd-checkconf.8 nsd-patch.8 nsd.conf.5
 
 COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o udb.o udbradtree.o udbzone.o util.o
 XFRD_OBJ=xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o
 ALL_OBJ=$(COMMON_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o netio.o nsd-checkconf.o nsd-notify.o nsd.o nsd-patch.o nsd-xfer.o server.o $(XFRD_OBJ) zlexer.o zonec.o zparser.o
-NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbaccess.o
-ZONEC_OBJ=$(COMMON_OBJ) difffile.o dbaccess.o dbcreate.o zlexer.o zonec.o zparser.o
-NSD_NOTIFY_OBJ=$(COMMON_OBJ) dbaccess.o nsd-notify.o
-NSD_XFER_OBJ=$(COMMON_OBJ) dbaccess.o nsd-xfer.o
-NSD_CHECKCONF_OBJ=$(COMMON_OBJ) dbaccess.o nsd-checkconf.o
-NSD_PATCH_OBJ=$(COMMON_OBJ) dbcreate.o dbaccess.o difffile.o nsd-patch.o
-CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_options.o cutest_region.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
+NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbaccess.o dbcreate.o zlexer.o zonec.o zparser.o
+NSD_NOTIFY_OBJ=$(COMMON_OBJ) nsd-notify.o
+NSD_XFER_OBJ=$(COMMON_OBJ) nsd-xfer.o
+NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
+NSD_PATCH_OBJ=$(COMMON_OBJ) dbcreate.o dbaccess.o zonec.o zparser.o zlexer.o difffile.o nsd-patch.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_options.o cutest_region.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
 
 all:	$(CCWHOLE)
 
@@ -105,10 +104,6 @@ nsdc.8:	$(srcdir)/nsdc.8.in config.h
 	rm -f nsdc.8
 	$(EDIT) $(srcdir)/nsdc.8.in > nsdc.8
 
-zonec.8:	$(srcdir)/zonec.8.in config.h
-	rm -f zonec.8
-	$(EDIT) $(srcdir)/zonec.8.in > zonec.8
-
 nsd-notify.8:	$(srcdir)/nsd-notify.8.in config.h
 	rm -f nsd-notify.8
 	$(EDIT) $(srcdir)/nsd-notify.8.in > nsd-notify.8
@@ -134,7 +129,6 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man5
 	$(INSTALL) nsd $(DESTDIR)$(sbindir)/nsd
-	$(INSTALL) zonec $(DESTDIR)$(sbindir)/zonec
 	$(INSTALL) nsdc.sh $(DESTDIR)$(sbindir)/nsdc
 	$(INSTALL) nsd-notify $(DESTDIR)$(sbindir)/nsd-notify
 	$(INSTALL) nsd-checkconf $(DESTDIR)$(sbindir)/nsd-checkconf
@@ -142,7 +136,6 @@ install: all
 	$(INSTALL) nsd-xfer $(DESTDIR)$(sbindir)/nsd-xfer
 	$(INSTALL_DATA) $(srcdir)/nsd.8 $(DESTDIR)$(mandir)/man8
 	$(INSTALL_DATA) $(srcdir)/nsdc.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) $(srcdir)/zonec.8 $(DESTDIR)$(mandir)/man8
 	$(INSTALL_DATA) $(srcdir)/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8
 	$(INSTALL_DATA) $(srcdir)/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkconf.8
 	$(INSTALL_DATA) $(srcdir)/nsd-patch.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8
@@ -152,8 +145,8 @@ install: all
 
 uninstall:
 	@echo
-	rm -f -- $(DESTDIR)$(sbindir)/nsd $(DESTDIR)$(sbindir)/zonec $(DESTDIR)$(sbindir)/nsdc $(DESTDIR)$(sbindir)/nsd-notify $(DESTDIR)$(sbindir)/nsd-xfer $(DESTDIR)$(sbindir)/nsd-checkconf $(DESTDIR)$(sbindir)/nsd-patch
-	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man8/nsdc.8 $(DESTDIR)$(mandir)/man8/zonec.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8 $(DESTDIR)$(mandir)/man5/nsd.conf.5
+	rm -f -- $(DESTDIR)$(sbindir)/nsd $(DESTDIR)$(sbindir)/nsdc $(DESTDIR)$(sbindir)/nsd-notify $(DESTDIR)$(sbindir)/nsd-xfer $(DESTDIR)$(sbindir)/nsd-checkconf $(DESTDIR)$(sbindir)/nsd-patch
+	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man8/nsdc.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8 $(DESTDIR)$(mandir)/man5/nsd.conf.5
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8
 	rm -f -- $(DESTDIR)$(pidfile) $(DESTDIR)$(dbfile)
 	@echo
@@ -163,13 +156,9 @@ test:
 
 whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o zonec -combine -fwhole-program `echo $(ZONEC_OBJ) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
 
 nsd:	$(NSD_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(LIBS)
-
-zonec:	$(ZONEC_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(ZONEC_OBJ) $(LIBOBJS) $(LIBS)
 
 nsd-notify:	$(NSD_NOTIFY_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJ) $(LIBOBJS) $(LIBS)
@@ -360,7 +349,7 @@ configparser.o: configparser.c config.h $(srcdir)/options.h $(srcdir)/region-all
  $(srcdir)/rbtree.h $(srcdir)/util.h $(srcdir)/configyyrename.h
 dbaccess.o: $(srcdir)/dbaccess.c config.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/rdata.h $(srcdir)/udb.h \
- $(srcdir)/udbradtree.h $(srcdir)/udbzone.h
+ $(srcdir)/udbradtree.h $(srcdir)/udbzone.h $(srcdir)/zonec.h $(srcdir)/difffile.h
 dbcreate.o: $(srcdir)/dbcreate.c config.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/udb.h $(srcdir)/udbradtree.h $(srcdir)/udbzone.h
 difffile.o: $(srcdir)/difffile.c config.h $(srcdir)/difffile.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h \
@@ -393,7 +382,7 @@ nsd-xfer.o: $(srcdir)/nsd-xfer.c config.h $(srcdir)/dname.h $(srcdir)/buffer.h $
  $(srcdir)/rdata.h $(srcdir)/tsig-openssl.h $(srcdir)/zonec.h
 nsec3.o: $(srcdir)/nsec3.c config.h $(srcdir)/nsec3.h $(srcdir)/iterated_hash.h $(srcdir)/namedb.h $(srcdir)/dname.h \
  $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/answer.h \
- $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h
+ $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h $(srcdir)/udbzone.h $(srcdir)/udb.h $(srcdir)/udbradtree.h
 options.o: $(srcdir)/options.c config.h $(srcdir)/options.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
  $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h \
  $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/difffile.h $(srcdir)/configyyrename.h configparser.h

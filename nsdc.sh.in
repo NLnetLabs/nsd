@@ -17,12 +17,6 @@ configfile="@nsdconfigfile@"
 # The directory where NSD binaries reside
 sbindir="@sbindir@"
 
-# how verbose is zonec run. Specify Nothing " ", -v or -vv.
-NSDC_ZONEC_VERBOSE=${NSDC_ZONEC_VERBOSE:--v}
-
-# how patch is done. Specify 1 (with use of textfiles, default) or 0 (without) 
-NSDC_PATCH_STYLE=${NSDC_PATCH_STYLE:-1}
-
 #
 # You sure heard this many times before: NO USER SERVICEABLE PARTS BELOW
 #
@@ -66,7 +60,7 @@ else
 fi
 
 usage() {
-	echo "Usage: `basename $0` [-c configfile] {start|stop|reload|rebuild|restart|"
+	echo "Usage: `basename $0` [-c configfile] {start|stop|reload|restart|"
 	echo "				running|update|notify|patch}"
 	echo "options:"
 	echo "	-c configfile	Use specified configfile (default: @nsdconfigfile@)."
@@ -74,12 +68,11 @@ usage() {
 	echo "	start		Start nsd server."
 	echo "	stop		Stop nsd server."
 	echo "	reload		Nsd server reloads database file."
-	echo "	rebuild		Compile database file from zone files."
 	echo "	restart		Stop the nsd server and start it again."
 	echo "	running		Prints message and exit nonzero if server not running."
 	echo "	update		Try to update all slave zones hosted on this server."
 	echo "	notify		Send notify messages to all secondary servers."
-	echo "	patch		Merge zone transfer changes back to zone files."
+	echo "	patch		Clear zone transfer temporary file."
 }
 
 # check the config syntax before using it
@@ -315,35 +308,6 @@ send_notify() {
 	done
 }
 
-# do_patch {with-textfile}
-do_patch() {
-	if test I$1 = I1; then
-		lock && mv ${difffile} ${difffile}.$$ && \
-		  ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}.$$ && \
-		  rm -f ${difffile}.$$ && unlock && do_rebuild
-		result=$?
-	else # without textfile
-		lock && mv ${difffile} ${difffile}.$$ && \
-		  ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}.$$ -s -o ${dbfile}.$$ \
-		  && rm -f ${difffile}.$$ && unlock && \
-		  mv ${dbfile}.$$ ${dbfile}
-		result=$?
-	fi
-
-	return ${result}
-}
-
-do_rebuild() {
-	lock && \
-	  ${sbindir}/zonec ${ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && \
-	  mv ${dbfile}.$$ ${dbfile}
-	result=$?
-	unlock
-	[ $result != 0 ] && echo "${dbfile} is unmodified"
-	rm -f ${dbfile}.$$
-	return ${result}
-}
-
 case "$1" in
 start)
 	if test -s ${pidfile} && kill -"0" `cat ${pidfile}` 
@@ -370,24 +334,15 @@ patch)
 	if test -s ${difffile}; then
 		#${sbindir}/nsd-patch -c ${configfile} -x ${difffile} -l #debug
 		#echo ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}
-		if do_patch ${PATCH_STYLE}; then
-			do_reload
-		else
-			unlock
-			# try to move back the transfer data
-			if [ -e ${difffile}.$$ -a ! -e ${difffile} ]; then
-				mv ${difffile}.$$ ${difffile}
-			fi
-			echo "`basename $0`: patch failed."
-			exit 1
-		fi
+
+		# patch without textfile only.
+		# nsd edits the nsd.db itself,
+		# we delete the ixfr.db (broken transfers are re-tried).
+		lock && rm -f ${difffile} && unlock
 	else
 		echo "`basename $0`: no patch necessary."
 	fi
         ;;
-rebuild)
-	do_rebuild
-	;;
 update)
         # send notifies to localhost for all zones that allow it
 	echo "Sending notify to localhost to update secondary zones..."

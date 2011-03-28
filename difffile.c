@@ -135,58 +135,6 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 	fclose(df);
 }
 
-/*
- * Checksum to signal no data change occured (for example, by a
- * zonec run.
- */
-int
-db_crc_different(namedb_type* db)
-{
-	FILE *fd = fopen(db->filename, "r");
-	uint32_t crc_file;
-	char buf[NAMEDB_MAGIC_SIZE];
-	if(fd == NULL) {
-		log_msg(LOG_ERR, "unable to load %s: %s",
-			db->filename, strerror(errno));
-		return -1;
-	}
-
-	/* seek to position of CRC, check it and magic no */
-	if(fseeko(fd, db->crc_pos, SEEK_SET)==-1) {
-		log_msg(LOG_ERR, "unable to fseeko %s: %s. db changed?",
-			db->filename, strerror(errno));
-		fclose(fd);
-		return -1;
-	}
-
-	if(fread(&crc_file, sizeof(crc_file), 1, fd) != 1) {
-		if(!feof(fd))
-			log_msg(LOG_ERR, "could not read %s CRC: %s. "
-				"db changed?", db->filename, strerror(errno));
-		fclose(fd);
-		return -1;
-	}
-	crc_file = ntohl(crc_file);
-
-	if(fread(buf, sizeof(char), sizeof(buf), fd) != sizeof(buf)) {
-		if(!feof(fd))
-			log_msg(LOG_ERR, "could not read %s magic: %s. "
-				"db changed?", db->filename, strerror(errno));
-		fclose(fd);
-		return -1;
-	}
-	if(memcmp(buf, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE) != 0) {
-		fclose(fd);
-		return -1;
-	}
-
-	fclose(fd);
-
-	if(db->crc == crc_file)
-		return 0;
-	return 1;
-}
-
 int
 diff_read_32(FILE *in, uint32_t* result)
 {
@@ -507,76 +455,31 @@ add_RR(namedb_type* db, const dname_type* dname,
 
 	/* see if it is a SOA */
 	if(domain == zone->apex) {
+		apex_rrset_checks(db, rrset, domain);
 		if(type == TYPE_SOA) {
-			uint32_t soa_minimum;
-			zone->soa_rrset = rrset;
 			zone->updated = 1;
-			/* BUG #103 tweaked SOA ttl value */
-			if(zone->soa_nx_rrset == 0) {
-				zone->soa_nx_rrset = region_alloc(db->region,
-					sizeof(rrset_type));
-				if(!zone->soa_nx_rrset) {
-					log_msg(LOG_ERR, "out of memory, %s:%d",
-						__FILE__, __LINE__);
-					exit(1);
-				}
-				zone->soa_nx_rrset->rr_count = 1;
-				zone->soa_nx_rrset->next = 0;
-				zone->soa_nx_rrset->zone = zone;
-				zone->soa_nx_rrset->rrs = region_alloc(db->region,
-					sizeof(rr_type));
-				if(!zone->soa_nx_rrset->rrs) {
-					log_msg(LOG_ERR, "out of memory, %s:%d",
-						__FILE__, __LINE__);
-					exit(1);
-				}
-			}
-			memcpy(zone->soa_nx_rrset->rrs, rrset->rrs, sizeof(rr_type));
-			memcpy(&soa_minimum, rdata_atom_data(rrset->rrs->rdatas[6]),
-				rdata_atom_size(rrset->rrs->rdatas[6]));
-			if (rrset->rrs->ttl > ntohl(soa_minimum)) {
-				rrset->zone->soa_nx_rrset->rrs[0].ttl = ntohl(soa_minimum);
-			}
-		}
-		if(type == TYPE_NS) {
-			zone->ns_rrset = rrset;
-		}
-		if(type == TYPE_RRSIG) {
-			int i;
-			for (i = 0; i < rrset->rr_count; ++i) {
-				if (rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY) {
-					zone->is_secure = 1;
-					break;
-				}
-			}
 		}
 	}
 	return 1;
 }
 
-static zone_type*
-find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
-	size_t child_count)
+zone_type*
+find_or_create_zone(namedb_type* db, const dname_type* zone_name,
+	nsd_options_t* opt, size_t child_count)
 {
 	domain_type *domain;
 	zone_type* zone;
+	zone = namedb_find_zone(db, zone_name);
+	if(zone) {
+		return zone;
+	}
+	
 	domain = domain_table_find(db->domains, zone_name);
 	if(!domain) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr: creating domain %s",
 			dname_to_string(zone_name,0)));
 		/* create the zone and domain of apex (zone has config options) */
 		domain = domain_table_insert(db->domains, zone_name);
-	} else {
-		/* O(1) if SOA exists */
-		zone = domain_find_zone(domain);
-		/* if domain was empty (no rrsets, empty zone) search in zonelist */
-		/* check apex to make sure we don't find a parent zone */
-		if(!zone || zone->apex != domain)
-			zone = namedb_find_zone(db, domain);
-		if(zone) {
-			assert(zone->apex == domain);
-			return zone;
-		}
 	}
 	/* create the zone */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr: creating zone_type %s",
@@ -586,9 +489,9 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
 		exit(1);
 	}
-	zone->next = db->zones;
-	db->zones = zone;
-	db->zone_count++;
+	zone->node = radname_insert(db->zonetree, (uint8_t*)dname_name(
+		zone_name), zone_name->name_size, zone);
+	assert(zone->node);
 	zone->apex = domain;
 	zone->soa_rrset = 0;
 	zone->soa_nx_rrset = 0;
@@ -615,7 +518,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	return zone;
 }
 
-static void
+void
 delete_zone_rrs(namedb_type* db, zone_type* zone)
 {
 	rrset_type *rrset;
@@ -641,7 +544,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 #endif
 
 	assert(zone->soa_rrset == 0);
-	/* keep zone->soa_nx_rrset alloced */
+	/* keep zone->soa_nx_rrset alloced: it is reused */
 	assert(zone->ns_rrset == 0);
 	assert(zone->is_secure == 0);
 	assert(zone->updated == 1);
@@ -721,7 +624,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		- strlen(file_zone_name);
 	packet = buffer_create(region, QIOBUFSZ);
 	dname_zone = dname_parse(region, zone);
-	zone_db = find_zone(db, dname_zone, opt, child_count);
+	zone_db = find_or_create_zone(db, dname_zone, opt, child_count);
 	if(!zone_db) {
 		log_msg(LOG_ERR, "no zone exists");
 		region_destroy(region);

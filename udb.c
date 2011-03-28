@@ -56,8 +56,8 @@ chunk_set_last(void* base, udb_void chunk, int exp, uint8_t value)
 }
 
 /** create udb_base from a file descriptor (must be at start of file) */
-static udb_base*
-udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
+udb_base*
+udb_base_create_fd(const char* fname, int fd, udb_walk_relptr_func walkfunc,
 	void* arg)
 {
 	uint64_t m;
@@ -69,6 +69,13 @@ udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
 		close(fd);
 		return NULL;
 	}
+	udb->fname = strdup(fname);
+	if(!udb->fname) {
+		log_msg(LOG_ERR, "out of memory");
+		free(udb);
+		close(fd);
+		return NULL;
+	}
 	udb->walkfunc = walkfunc;
 	udb->walkarg = arg;
 	udb->fd = fd;
@@ -76,6 +83,7 @@ udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
 	udb->ram_mask = (int)udb->ram_size - 1;
 	udb->ram_hash = (udb_ptr**)xalloc_zero(sizeof(udb_ptr*)*udb->ram_size);
 	if(!udb->ram_hash) {
+		free(udb->fname);
 		free(udb);
 		log_msg(LOG_ERR, "out of memory");
 		close(fd);
@@ -139,6 +147,7 @@ udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
 			(unsigned)udb->base_size, strerror(errno));
 	fail:
 		close(fd);
+		free(udb->fname);
 		free(udb->ram_hash);
 		free(udb);
 		return NULL;
@@ -165,7 +174,7 @@ udb_base_create_fd(char* fname, int fd, udb_walk_relptr_func walkfunc,
 	return udb;
 }
 
-udb_base* udb_base_create_read(char* fname, udb_walk_relptr_func walkfunc,
+udb_base* udb_base_create_read(const char* fname, udb_walk_relptr_func walkfunc,
 	void* arg)
 {
 	int fd = open(fname, O_RDWR);
@@ -186,7 +195,7 @@ static void udb_glob_init_new(udb_glob_d* g)
 
 /** write data to file and check result */
 static int
-write_fdata(char* fname, int fd, void* data, size_t len)
+write_fdata(const char* fname, int fd, void* data, size_t len)
 {
 	ssize_t w;
 	if((w=write(fd, data, len)) == -1) {
@@ -201,7 +210,7 @@ write_fdata(char* fname, int fd, void* data, size_t len)
 	return 1;
 }
 
-udb_base* udb_base_create_new(char* fname, udb_walk_relptr_func walkfunc,
+udb_base* udb_base_create_new(const char* fname, udb_walk_relptr_func walkfunc,
 	void* arg)
 {
 	uint64_t m;
@@ -279,9 +288,10 @@ void udb_base_free(udb_base* udb)
 {
 	if(!udb)
 		return;
-	free(udb->ram_hash);
 	udb_base_close(udb);
 	udb_alloc_delete(udb->alloc);
+	free(udb->ram_hash);
+	free(udb->fname);
 	free(udb);
 }
 

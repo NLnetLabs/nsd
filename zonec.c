@@ -44,16 +44,11 @@
 const dname_type *error_dname;
 domain_type *error_domain;
 
-/* The database file... */
-static const char *dbfile = 0;
-
 /* Some global flags... */
 static int vflag = 0;
 /* if -v then print progress each 'progress' RRs */
 static int progress = 10000;
 
-/* Total errors counter */
-static long int totalerrors = 0;
 static long int totalrrs = 0;
 
 extern uint8_t nsecbits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE];
@@ -1177,24 +1172,8 @@ process_rr(void)
 		zc_error_prev_line("maximum rdata length exceeds %d octets", MAX_RDLENGTH);
 		return 0;
 	}
-
-	/* Do we have the zone already? */
-	if (!zone)
-	{
-		zone = (zone_type *) region_alloc(parser->region,
-							  sizeof(zone_type));
-		zone->apex = parser->default_apex;
-		zone->soa_rrset = NULL;
-		zone->soa_nx_rrset = NULL;
-		zone->ns_rrset = NULL;
-		zone->opts = NULL;
-		zone->is_secure = 0;
-		zone->updated = 1;
-
-		zone->next = parser->db->zones;
-		parser->db->zones = zone;
-		parser->current_zone = zone;
-	}
+	/* we have the zone already */
+	assert(zone);
 
 	if (rr->type == TYPE_SOA) {
 		/*
@@ -1292,35 +1271,26 @@ process_rr(void)
 			zc_error_prev_line("CNAME and other data at the same name");
 	}
 
-	if (rr->type == TYPE_RRSIG && rr_rrsig_type_covered(rr) == TYPE_DNSKEY) {
-		rrset->zone->is_secure = 1;
-	}
-
 	/* Check we have SOA */
 	if (zone->soa_rrset == NULL) {
 		if (rr->type == TYPE_SOA) {
 			if (rr->owner != zone->apex) {
 				zc_error_prev_line(
 					"SOA record with invalid domain name");
-			} else {
-				zone->soa_rrset = rrset;
 			}
 		}
-	}
-	else if (rr->type == TYPE_SOA) {
+	} else if (rr->type == TYPE_SOA) {
 		if(zone->opts && zone->opts->request_xfr)
 			zc_warning_prev_line("duplicate SOA record discarded");
 		else
 			zc_error_prev_line("duplicate SOA record discarded");
 		--rrset->rr_count;
 	}
+	if(rr->owner == zone->apex)
+		apex_rrset_checks(parser->db, rrset, rr->owner);
 
-	/* Is this a zone NS? */
-	if (rr->type == TYPE_NS && rr->owner == zone->apex) {
-		zone->ns_rrset = rrset;
-	}
 	if (vflag > 1 && totalrrs > 0 && (totalrrs % progress == 0)) {
-		fprintf(stdout, "%ld\n", totalrrs);
+		log_msg(LOG_INFO, "%ld", totalrrs);
 	}
 	++totalrrs;
 	return 1;
@@ -1346,12 +1316,12 @@ domain_find_rrset_any(domain_type *domain, uint16_t type)
  * Check for DNAME type. Nothing is allowed below it
  */
 static void
-check_dname(namedb_type* db)
+check_dname(zone_type* zone)
 {
 	domain_type* domain;
-	for(domain = radix_first(db->domains->nametree)?
-		(domain_type*)radix_first(db->domains->nametree)->elem:NULL;
-		domain; domain = domain_next(domain))
+	for(domain = zone->apex; domain && dname_is_subdomain(
+		domain_dname(domain), domain_dname(zone->apex));
+		domain=domain_next(domain))
 	{
 		if(domain->is_existing) {
 			/* there may not be DNAMEs above it */
@@ -1367,7 +1337,7 @@ check_dname(namedb_type* db)
 					zc_error("DNAME at %s has data below it. "
 						"This is not allowed (rfc 2672).",
 						dname_to_string(domain_dname(parent), NULL));
-					exit(1);
+					return;
 				}
 				parent = parent->parent;
 			}
@@ -1378,43 +1348,35 @@ check_dname(namedb_type* db)
 /*
  * Reads the specified zone into the memory
  * nsd_options can be NULL if no config file is passed.
- *
  */
-static void
-zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
+unsigned int
+zonec_read(const char *name, const char *zonefile, zone_type* zone)
 {
 	const dname_type *dname;
+
+	totalrrs = 0;
+	parser->errors = 0;
 
 	dname = dname_parse(parser->region, name);
 	if (!dname) {
 		zc_error("incorrect zone name '%s'", name);
-		return;
+		return 0;
 	}
 
 #ifndef ROOT_SERVER
 	/* Is it a root zone? Are we a root server then? Idiot proof. */
 	if (dname->label_count == 1) {
 		zc_error("not configured as a root server");
-		return;
+		return 0;
 	}
 #endif
 
 	/* Open the zone file */
 	if (!zone_open(zonefile, 3600, CLASS_IN, dname)) {
-		if(nsd_options) {
-			/* check for secondary zone, they can start with no zone info */
-			zone_options_t* zopt = zone_options_find(nsd_options, dname);
-			if(zopt && zone_is_slave(zopt)) {
-				zc_warning("slave zone %s with no zonefile '%s'(%s) will "
-					"force zone transfer.",
-					name, zonefile, strerror(errno));
-				return;
-			}
-		}
-		/* cannot happen with stdin - so no fix needed for zonefile */
 		zc_error("cannot open '%s': %s", zonefile, strerror(errno));
-		return;
+		return 0;
 	}
+	parser->current_zone = zone;
 
 	/* Parse and process all RRs.  */
 	yyparse();
@@ -1434,218 +1396,36 @@ zone_read(const char *name, const char *zonefile, nsd_options_t* nsd_options)
 	}
 
 	fclose(yyin);
+	check_dname(zone);
 
-	fflush(stdout);
-	totalerrors += parser->errors;
+	if(vflag > 1)
+		log_msg(LOG_INFO, "zonefile %s read %ld RRs",
+			parser->filename, totalrrs);
 	parser->filename = NULL;
+	return parser->errors;
 }
 
-static void
-usage (void)
+
+/*
+ * setup parse
+ */
+void
+zonec_setup_parser(namedb_type* db)
 {
-#ifndef NDEBUG
-	fprintf(stderr, "usage: zonec [-v|-h|-C|-F|-L] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
-#else
-	fprintf(stderr, "usage: zonec [-v|-h|-C] [-c configfile] [-o origin] [-d directory] [-f database] [-z zonefile]\n\n");
-#endif
-	fprintf(stderr, "\tNSD zone compiler, creates database from zone files.\n");
-	fprintf(stderr, "\tVersion %s. Report bugs to <%s>.\n\n",
-		PACKAGE_VERSION, PACKAGE_BUGREPORT);
-	fprintf(stderr, "\t-v\tBe more verbose.\n");
-	fprintf(stderr, "\t-h\tPrint this help information.\n");
-	fprintf(stderr, "\t-c\tSpecify config file to read instead of default nsd.conf.\n");
-	fprintf(stderr, "\t-C\tNo config file is read.\n");
-	fprintf(stderr, "\t-d\tSet working directory to open files from.\n");
-	fprintf(stderr, "\t-o\tSpecify a zone's origin (only used with -z).\n");
-	fprintf(stderr, "\t-f\tSpecify database file to use.\n");
-	fprintf(stderr, "\t-z\tSpecify a zonefile to read (read from stdin with \'-\').\n");
-#ifndef NDEBUG
-	fprintf(stderr, "\t-F\tSet debug facilities.\n");
-	fprintf(stderr, "\t-L\tSet debug level.\n");
-#endif
-}
-
-extern char *optarg;
-extern int optind;
-
-int
-main (int argc, char **argv)
-{
-	struct namedb *db;
-	char *origin = NULL;
-	int c;
-	region_type *global_region;
-	region_type *rr_region;
-	const char* configfile= CONFIGFILE;
-	const char* zonesdir = NULL;
-	const char* singlefile = NULL;
-	nsd_options_t* nsd_options = NULL;
-
-	log_init("zonec");
-
-	global_region = region_create(xalloc, free);
-	rr_region = region_create(xalloc, free);
-	totalerrors = 0;
-
-	/* Parse the command line... */
-	while ((c = getopt(argc, argv, "d:f:vhCF:L:o:c:z:")) != -1) {
-		switch (c) {
-		case 'c':
-			configfile = optarg;
-			break;
-		case 'v':
-			++vflag;
-			break;
-		case 'f':
-			dbfile = optarg;
-			break;
-		case 'd':
-			zonesdir = optarg;
-			break;
-		case 'C':
-			configfile = 0;
-			break;
-#ifndef NDEBUG
-		case 'F':
-			sscanf(optarg, "%x", &nsd_debug_facilities);
-			break;
-		case 'L':
-			sscanf(optarg, "%d", &nsd_debug_level);
-			break;
-#endif /* NDEBUG */
-		case 'o':
-			origin = optarg;
-			break;
-		case 'z':
-			singlefile = optarg;
-			break;
-		case 'h':
-			usage();
-			exit(0);
-		case '?':
-		default:
-			usage();
-			exit(1);
-		}
-	}
-
-	argc -= optind;
-	argv += optind;
-
-	if (argc != 0) {
-		usage();
-		exit(1);
-	}
-
-	/* Read options */
-	if(configfile != 0) {
-		nsd_options = nsd_options_create(global_region);
-		if(!parse_options_file(nsd_options, configfile))
-		{
-			fprintf(stderr, "zonec: could not read config: %s\n", configfile);
-			exit(1);
-		}
-	}
-	if(nsd_options && zonesdir == 0) zonesdir = nsd_options->zonesdir;
-	if(zonesdir && zonesdir[0]) {
-		if (chdir(zonesdir)) {
-			fprintf(stderr, "zonec: cannot chdir to %s: %s\n", zonesdir, strerror(errno));
-			exit(1);
-		}
-	}
-	if(dbfile == 0) {
-		if(nsd_options && nsd_options->database) dbfile = nsd_options->database;
-		else dbfile = DBFILE;
-	}
-
-	/* Create the database */
-	if ((db = namedb_new(dbfile)) == NULL) {
-		fprintf(stderr, "zonec: error creating the database (%s): %s\n",
-			dbfile, strerror(errno));
-		exit(1);
-	}
-
+	region_type* global_region = region_create(xalloc, free);
+	region_type* rr_region = region_create(xalloc, free);
 	parser = zparser_create(global_region, rr_region, db);
-	if (!parser) {
-		fprintf(stderr, "zonec: error creating the parser\n");
-		exit(1);
-	}
-
+	assert(parser);
 	/* Unique pointers used to mark errors.	 */
 	error_dname = (dname_type *) region_alloc(global_region, 0);
 	error_domain = (domain_type *) region_alloc(global_region, 0);
+}
 
-	if (singlefile || origin) {
-		/*
-		 * Read a single zone file with the specified origin
-		 */
-		if(!singlefile) {
-			fprintf(stderr, "zonec: must have -z zonefile when reading single zone.\n");
-			exit(1);
-		}
-		if(!origin) {
-			fprintf(stderr, "zonec: must have -o origin when reading single zone.\n");
-			exit(1);
-		}
-		if (vflag > 0)
-			fprintf(stdout, "zonec: reading zone \"%s\".\n", origin);
-		zone_read(origin, singlefile, nsd_options);
-		if (vflag > 0)
-			fprintf(stdout, "zonec: processed %ld RRs in \"%s\".\n", totalrrs, origin);
-	} else {
-		zone_options_t* zone;
-		if(!nsd_options) {
-			fprintf(stderr, "zonec: no zones specified.\n");
-			exit(1);
-		}
-		/* read all zones */
-		RBTREE_FOR(zone, zone_options_t*, nsd_options->zone_options)
-		{
-			if (vflag > 0)
-				fprintf(stdout, "zonec: reading zone \"%s\".\n",
-					zone->name);
-			zone_read(zone->name, zone->zonefile, nsd_options);
-			if (vflag > 0)
-				fprintf(stdout,
-					"zonec: processed %ld RRs in \"%s\".\n",
-					totalrrs, zone->name);
-			totalrrs = 0;
-		}
+/** desetup parse */
+void zonec_desetup_parser(void)
+{
+	if(parser) {
+		region_destroy(parser->rr_region);
+		region_destroy(parser->region);
 	}
-	check_dname(db);
-
-#ifndef NDEBUG
-	if (vflag > 0) {
-		fprintf(stdout, "global_region: ");
-		region_dump_stats(global_region, stdout);
-		fprintf(stdout, "\n");
-		fprintf(stdout, "db->region: ");
-		region_dump_stats(db->region, stdout);
-		fprintf(stdout, "\n");
-	}
-#endif /* NDEBUG */
-
-	/* Close the database */
-	if (namedb_save(db) != 0) {
-		fprintf(stderr, "zonec: error writing the database (%s): %s\n", db->filename, strerror(errno));
-		namedb_discard(db);
-		exit(1);
-	}
-
-	/* Print the total number of errors */
-	if (vflag > 0 || totalerrors > 0) {
-		if (totalerrors > 0) {
-			fprintf(stderr, "\nzonec: done with %ld errors.\n",
-			totalerrors);
-		} else {
-			fprintf(stdout, "\nzonec: done with no errors.\n");
-		}
-	}
-
-	/* Disable this to save some time.  */
-#if 0
-	region_destroy(global_region);
-#endif
-
-	return totalerrors ? 1 : 0;
 }

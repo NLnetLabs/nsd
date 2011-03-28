@@ -40,9 +40,6 @@ Print usage help information and exit.
 .B \-l
 List the journal entries from the difffile. Does not write to zone files.
 .TP
-.B \-o\fI dbfile
-Store the output directly to dbfile.
-.TP
 .B \-s
 Skip writing zone files. No zones are written back to their zone files.
 .TP
@@ -61,7 +58,7 @@ default
 configuration file
 .SH "SEE ALSO"
 nsd(8), nsdc(8), nsd.conf(5), nsd-checkconf(8), nsd-notify(8), 
-nsd-xfer(8), zonec(8)
+nsd-xfer(8)
 .SH "AUTHORS"
 .LP
 .B NSD
