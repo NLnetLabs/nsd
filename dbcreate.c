@@ -116,36 +116,3 @@ write_zone_to_udb(udb_base* udb, zone_type* zone, time_t mtime)
 	udb_ptr_unlink(&z, udb);
 	return 1;
 }
-
-/** write all the zones */
-static int
-write_all_zones(udb_base* udb, struct namedb* db)
-{
-	struct radnode* n;
-	for(n=radix_first(db->zonetree); n; n=radix_next(n)) {
-		if(!write_zone_to_udb(udb, (zone_type*)n->elem, time(NULL)))
-			return 0;
-	}
-	return 1;
-}
-
-int
-namedb_save (struct namedb *db)
-{
-	udb_base *udb = db->udb;
-	/* create new udb for the storage */
-	if(!udb_dns_init_file(udb)) {
-		region_destroy(db->region);
-		return -1;
-	}
-	/* we need to write all the RRs to the file and create zones */
-	if(!write_all_zones(udb, db)) {
-		region_destroy(db->region);
-		return -1;
-	}
-	udb_base_free(udb);
-
-	region_destroy(db->region);
-	return 0;
-}
-

@@ -569,6 +569,11 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	uint32_t file_serial, file_seq_nr;
 	uint16_t file_id;
 	off_t mempos;
+	
+	/* TODO: check IXFR first */
+	/* then: apply with no possibility of return false; and apply to udb */
+	/* TODO: mark udb are 'dirty' in header, 
+	 * TODO: delete and recreate nsd.db if dirty on startup */
 
 	memmove(&mempos, startpos, sizeof(off_t));
 	if(fseeko(in, mempos, SEEK_SET) == -1) {
@@ -1059,6 +1064,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
 			return 0;
 		}
+		/* TODO: check that all parts are correct */
 		for(i=0; i<num_parts; i++) {
 			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));

@@ -278,9 +278,6 @@ zone_type *namedb_find_zone(namedb_type *db, const dname_type *dname);
 /* set all zones to not-updated */
 void namedb_wipe_updated_flag(namedb_type *db);
 
-/* dbcreate.c */
-int namedb_save(struct namedb *db);
-
 /* dbaccess.c */
 int namedb_lookup (struct namedb    *db,
 		   const dname_type *dname,

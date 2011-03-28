@@ -70,6 +70,25 @@ nsec3_hash_dname(region_type *region, zone_type *zone,
 		dname, zone->nsec3_soa_rr);
 }
 
+const dname_type*
+nsec3_hash_and_store(region_type *region, zone_type *zone,
+	const dname_type *dname, uint8_t* store)
+{
+	unsigned char hash[SHA_DIGEST_LENGTH];
+	const unsigned char* nsec3_salt = NULL;
+	int nsec3_saltlength = 0;
+	int nsec3_iterations = 0;
+
+	detect_nsec3_params(zone->nsec3_soa_rr, &nsec3_salt,
+		&nsec3_saltlength, &nsec3_iterations);
+	iterated_hash(hash, nsec3_salt, nsec3_saltlength, dname_name(dname),
+		dname->name_size, nsec3_iterations);
+	memmove(store, hash, NSEC3_HASH_LEN);
+	return nsec3_b32_create(region, zone, hash);
+}
+
+#define STORE_HASH(x,y) memmove(domain->x,y,NSEC3_HASH_LEN); domain->have_##x =1;
+
 /** find hash or create it and store it */
 static void
 nsec3_lookup_hash_and_wc(namedb_type* db, region_type* region, zone_type* zone,
@@ -85,15 +104,20 @@ nsec3_lookup_hash_and_wc(namedb_type* db, region_type* region, zone_type* zone,
 	}
 	if(udb_zone_lookup_hash_wc(db->udb, z, (uint8_t*)dname_name(dname),
 		dname->name_size, h, h_wc)) {
+		STORE_HASH(nsec3_hash, h);
+		STORE_HASH(nsec3_wc_hash, h_wc);
 		*hash = nsec3_b32_create(region, zone, h);
 		*wchash = nsec3_b32_create(region, zone, h_wc);
 		return;
 	}
 	/* lookup failed; disk failure or so */
-	*hash = nsec3_hash_dname(region, zone, dname);
+	*hash = nsec3_hash_and_store(region, zone, dname, domain->nsec3_hash);
+	domain->have_nsec3_hash = 1;
 	wcard = dname_parse(region, "*");
 	wcard = dname_concatenate(region, wcard, dname);
-	*wchash = nsec3_hash_dname(region, zone, wcard);
+	*wchash = nsec3_hash_and_store(region, zone, wcard,
+		domain->nsec3_wc_hash);
+	domain->have_nsec3_wc_hash = 1;
 }
 
 static void
@@ -108,11 +132,14 @@ nsec3_lookup_hash_ds(namedb_type* db, region_type* region, zone_type* zone,
 	}
 	if(udb_zone_lookup_hash(db->udb, z, (uint8_t*)dname_name(dname),
 		dname->name_size, h)) {
+		STORE_HASH(nsec3_ds_parent_hash, h);
 		*hash = nsec3_b32_create(region, zone, h);
 		return;
 	}
 	/* lookup failed; disk failure or so */
-	*hash = nsec3_hash_dname(region, zone, dname);
+	*hash = nsec3_hash_and_store(region, zone, dname,
+		domain->nsec3_ds_parent_hash);
+	domain->have_nsec3_ds_parent_hash = 1;
 }
 
 static int
