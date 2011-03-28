@@ -156,6 +156,8 @@ typedef enum nsd_rc nsd_rc_type;
 #define IP4ADDRLEN	(32/8)
 #define IP6ADDRLEN	(128/8)
 
+#define NSEC3_HASH_LEN 20
+
 /*
  * The different types of RDATA wireformat data.
  */

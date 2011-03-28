@@ -6,6 +6,7 @@
 #ifndef UDB_ZONE_H
 #define UDB_ZONE_H
 #include "udb.h"
+#include "dns.h"
 #include "udbradtree.h"
 
 /**
@@ -20,8 +21,6 @@
  *            radtree    list     list
  *            |-- name
  */
-
-#define NSEC3_HASH_LEN 20
 
 /** zone information in the nsd.udb.  Name allocated after it. */
 struct zone_d {

@@ -46,6 +46,9 @@ allocate_domain_info(domain_table_type *table,
 	result->nsec3_lookup = NULL;
 	result->nsec3_is_exact = 0;
 	result->nsec3_ds_parent_is_exact = 0;
+	result->have_nsec3_hash = 0;
+	result->have_nsec3_wc_hash = 0;
+	result->have_nsec3_ds_parent_hash = 0;
 #endif
 	result->is_existing = 0;
 	result->is_apex = 0;
@@ -79,6 +82,9 @@ domain_table_create(region_type *region)
 	root->nsec3_wcard_child_cover = NULL;
 	root->nsec3_ds_parent_cover = NULL;
 	root->nsec3_lookup = NULL;
+	root->have_nsec3_hash = 0;
+	root->have_nsec3_wc_hash = 0;
+	root->have_nsec3_ds_parent_hash = 0;
 #endif
 
 	result = (domain_table_type *) region_alloc(region,

@@ -170,6 +170,32 @@ read_rrset(udb_base* udb, namedb_type* db, zone_type* zone,
 		apex_rrset_checks(db, rrset, domain);
 }
 
+#ifdef NSEC3
+/** setup nsec3 hashes for a domain */
+static void
+read_nsec3_hashes(domain_type* domain, zone_type* zone, udb_ptr* d)
+{
+	if(domain_find_rrset(domain, zone, TYPE_NS) && domain != zone->apex) {
+		if(DOMAIN(d)->have_hash) {
+			memmove(domain->nsec3_ds_parent_hash,
+				DOMAIN(d)->hash, NSEC3_HASH_LEN);
+			domain->have_nsec3_ds_parent_hash = 1;
+		}
+	} else {
+		if(DOMAIN(d)->have_hash) {
+			memmove(domain->nsec3_hash, DOMAIN(d)->hash,
+				NSEC3_HASH_LEN);
+			domain->have_nsec3_hash = 1;
+		}
+		if(DOMAIN(d)->have_wc_hash) {
+			memmove(domain->nsec3_wc_hash,
+				DOMAIN(d)->wc_hash, NSEC3_HASH_LEN);
+			domain->have_nsec3_wc_hash = 1;
+		}
+	}
+}
+#endif /* NSEC3 */
+
 /** read zone data */
 static void
 read_zone_data(udb_base* udb, namedb_type* db, region_type* dname_region,
@@ -198,6 +224,11 @@ read_zone_data(udb_base* udb, namedb_type* db, region_type* dname_region,
 			udb_ptr_set_rptr(&urrset, udb, &RRSET(&urrset)->next);
 		}
 		region_free_all(dname_region);
+		
+#ifdef NSEC3
+		/* setup nsec3 hashes */
+		read_nsec3_hashes(domain, zone, &d);
+#endif
 	}
 	udb_ptr_unlink(&dtree, udb);
 	udb_ptr_unlink(&d, udb);

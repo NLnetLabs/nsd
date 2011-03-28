@@ -69,6 +69,16 @@ struct domain
 	unsigned     is_existing : 1;
 	unsigned     is_apex : 1;
 #ifdef NSEC3
+	/* nsec3 hash */
+	uint8_t nsec3_hash[NSEC3_HASH_LEN];
+	/* nsec3 hash of wildcard before this name */
+	uint8_t nsec3_wc_hash[NSEC3_HASH_LEN];
+	/* parent-side DS hash */
+	uint8_t nsec3_ds_parent_hash[NSEC3_HASH_LEN];
+	/* if the nsec3 has is available */
+	unsigned  have_nsec3_hash : 1;
+	unsigned  have_nsec3_wc_hash : 1;
+	unsigned  have_nsec3_ds_parent_hash : 1;
 	/* if the domain has an NSEC3 for it, use cover ptr to get it. */
 	unsigned     nsec3_is_exact : 1;
 	/* same but on parent side */

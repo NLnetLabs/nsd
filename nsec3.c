@@ -74,10 +74,15 @@ nsec3_hash_dname(region_type *region, zone_type *zone,
 static void
 nsec3_lookup_hash_and_wc(namedb_type* db, region_type* region, zone_type* zone,
 	udb_ptr* z, const dname_type* dname, const dname_type** hash,
-	const dname_type** wchash)
+	const dname_type** wchash, domain_type* domain)
 {
 	uint8_t h[NSEC3_HASH_LEN], h_wc[NSEC3_HASH_LEN];
 	const dname_type* wcard;
+	if(domain->have_nsec3_hash && domain->have_nsec3_wc_hash) {
+		*hash = nsec3_b32_create(region, zone, domain->nsec3_hash);
+		*wchash = nsec3_b32_create(region, zone, domain->nsec3_wc_hash);
+		return;
+	}
 	if(udb_zone_lookup_hash_wc(db->udb, z, (uint8_t*)dname_name(dname),
 		dname->name_size, h, h_wc)) {
 		*hash = nsec3_b32_create(region, zone, h);
@@ -92,10 +97,15 @@ nsec3_lookup_hash_and_wc(namedb_type* db, region_type* region, zone_type* zone,
 }
 
 static void
-nsec3_lookup_hash(namedb_type* db, region_type* region, zone_type* zone,
-	udb_ptr* z, const dname_type* dname, const dname_type** hash)
+nsec3_lookup_hash_ds(namedb_type* db, region_type* region, zone_type* zone,
+	udb_ptr* z, const dname_type* dname, const dname_type** hash,
+	domain_type* domain)
 {
 	uint8_t h[NSEC3_HASH_LEN];
+	if(domain->have_nsec3_ds_parent_hash) {
+		*hash = nsec3_b32_create(region, zone, domain->nsec3_ds_parent_hash);
+		return;
+	}
 	if(udb_zone_lookup_hash(db->udb, z, (uint8_t*)dname_name(dname),
 		dname->name_size, h)) {
 		*hash = nsec3_b32_create(region, zone, h);
@@ -273,7 +283,7 @@ prehash_domain(namedb_type* db, zone_type* zone, udb_ptr* z,
 		return;
 	}
 	nsec3_lookup_hash_and_wc(db, region, zone, z, domain_dname(domain),
-		&hashname, &wchashname);
+		&hashname, &wchashname, domain);
 
 	exact = nsec3_find_cover(db, zone, hashname, &result);
 	domain->nsec3_cover = result;
@@ -314,8 +324,8 @@ prehash_ds(namedb_type* db, zone_type* zone, udb_ptr* z,
 	}
 
 	/* hash again, other zone could have different hash parameters */
-	nsec3_lookup_hash(db, region, zone, z, domain_dname(domain),
-		&hashname);
+	nsec3_lookup_hash_ds(db, region, zone, z, domain_dname(domain),
+		&hashname, domain);
 	exact = nsec3_find_cover(db, zone, hashname, &result);
 	if(exact)
 		domain->nsec3_ds_parent_is_exact = 1;
