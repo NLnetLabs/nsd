@@ -428,6 +428,16 @@ void udb_base_set_userdata(udb_base* udb, udb_void user)
 	udb_rel_ptr_set(udb->base, &udb->glob_data->user_global, user);
 }
 
+void udb_base_set_userflags(udb_base* udb, uint8_t v)
+{
+	udb->glob_data->userflags = v;
+}
+
+uint8_t udb_base_get_userflags(udb_base* udb)
+{
+	return udb->glob_data->userflags;
+}
+
 /** re-mmap the udb to specified size */
 static void*
 udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)

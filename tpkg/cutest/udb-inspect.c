@@ -89,8 +89,9 @@ inspect_glob_data(void* base)
 	if(g->clean_close != 0)
 		printf("  file was not cleanly closed\n");
 	printf("dirty_alloc:		%u\n", (unsigned)g->dirty_alloc);
-	printf("padbytes:		0x%2.2x%2.2x%2.2x%2.2x%2.2x\n",
-		g->pad1[0], g->pad1[1], g->pad1[2], g->pad1[3], g->pad1[4]);
+	printf("userflags:		%u\n", (unsigned)g->userflags);
+	printf("padbytes:		0x%2.2x%2.2x%2.2x%2.2x\n",
+		g->pad1[0], g->pad1[1], g->pad1[2], g->pad1[3]);
 	printf("file size:		%llu\n", ULL g->fsize);
 	printf("rb_old:			%llu\n", ULL g->rb_old);
 	printf("rb_new:			%llu\n", ULL g->rb_new);
@@ -248,6 +249,7 @@ inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 		}
 	}
 	/* print data details */
+    if(v>=2) {
 	if(cp->type == udb_chunk_type_radtree) {
 		struct udb_radtree_d* d = (struct udb_radtree_d*)UDB_REL(base,
 			data);
@@ -302,6 +304,7 @@ inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 		print_hex(d->wire, d->len);
 		printf("\n");
 	}
+   } /* end verbosity 2 */
 
 	/* update stats */
 	t->exp_num[exp]++;

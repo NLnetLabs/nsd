@@ -98,6 +98,8 @@ int
 write_zone_to_udb(udb_base* udb, zone_type* zone, time_t mtime)
 {
 	udb_ptr z;
+	/* make udb dirty */
+	udb_base_set_userflags(udb, 1);
 	/* find or create zone */
 	if(udb_zone_search(udb, &z, (uint8_t*)dname_name(domain_dname(
 		zone->apex)), domain_dname(zone->apex)->name_size)) {
@@ -105,14 +107,19 @@ write_zone_to_udb(udb_base* udb, zone_type* zone, time_t mtime)
 		udb_zone_clear(udb, &z);
 	} else {
 		if(!udb_zone_create(udb, &z, (uint8_t*)dname_name(domain_dname(
-			zone->apex)), domain_dname(zone->apex)->name_size))
+			zone->apex)), domain_dname(zone->apex)->name_size)) {
+			udb_base_set_userflags(udb, 0);
 			return 0;
+		}
 	}
 	/* set mtime */
 	ZONE(&z)->mtime = (uint64_t)mtime;
 	/* write zone */
-	if(!write_zone(udb, &z, zone))
+	if(!write_zone(udb, &z, zone)) {
+		udb_base_set_userflags(udb, 0);
 		return 0;
+	}
 	udb_ptr_unlink(&z, udb);
+	udb_base_set_userflags(udb, 0);
 	return 1;
 }

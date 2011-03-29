@@ -307,6 +307,43 @@ read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	udb_ptr_unlink(&z, udb);
 }
 
+/** try to read the udb file or fail */
+static int
+try_read_udb(namedb_type* db, int fd, const char *filename,
+	nsd_options_t* opt, size_t num_children)
+{
+	/*
+	 * Temporary region used while loading domain names from the
+	 * database.  The region is freed after each time a dname is
+	 * read from the database.
+	 */
+	region_type *dname_region;
+
+	assert(fd != -1);
+	if(!(db->udb=udb_base_create_fd(filename, fd, &namedb_walkfunc,
+		NULL))) {
+		/* fd is closed by failed udb create call */
+		VERBOSITY(1, (LOG_WARNING, "can not use %s, "
+			"will create anew", filename));
+		return 0;
+	}
+	/* sanity check if can be opened */
+	if(udb_base_get_userflags(db->udb) != 0) {
+		log_msg(LOG_WARNING, "%s was not closed properly, it might "
+			"be corrupted, will create anew", filename);
+		udb_base_free(db->udb);
+		db->udb = NULL;
+		return 0;
+	}
+	/* read if it can be opened */
+	dname_region = region_create(xalloc, free);
+	/* this operation does not fail, we end up with
+	 * something, even if that is an empty namedb */
+	read_zones(db->udb, db, opt, num_children, dname_region);
+	region_destroy(dname_region);
+	return 1;
+}
+
 struct namedb *
 namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 {
@@ -317,14 +354,6 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	 * freed in namedb_close.
 	 */
 	region_type *db_region;
-
-	/*
-	 * Temporary region used while loading domain names from the
-	 * database.  The region is freed after each time a dname is
-	 * read from the database.
-	 */
-	region_type *dname_region;
-
 	int fd;
 
 	/* attempt to open, if does not exist, create a new one */
@@ -357,6 +386,12 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
                 return NULL;
         }
 
+	/* attempt to read the file (if it exists) */
+	if(fd != -1) {
+		if(!try_read_udb(db, fd, filename, opt, num_children))
+			fd = -1;
+	}
+	/* attempt to create the file (if necessary or failed read) */
 	if(fd == -1) {
 		if(!(db->udb=udb_base_create_new(filename, &namedb_walkfunc,
 			NULL))) {
@@ -367,18 +402,6 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 			region_destroy(db->region);
 			return NULL;
 		}
-	} else {
-		if(!(db->udb=udb_base_create_fd(filename, fd, &namedb_walkfunc,
-			NULL))) {
-			/* fd is closed by failed udb create call */
-			region_destroy(db_region);
-			return NULL;
-		}
-		dname_region = region_create(xalloc, free);
-		/* this operation does not fail, we end up with something, even
-		 * if that is an empty namedb */
-		read_zones(db->udb, db, opt, num_children, dname_region);
-		region_destroy(dname_region);
 	}
 	zonec_setup_parser(db);
 	return db;

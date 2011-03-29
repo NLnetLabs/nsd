@@ -144,8 +144,10 @@ struct udb_glob_d {
 	/** an allocation operation was in progress, file needs to be salvaged
 	 * type enum udb_dirty_alloc */
 	uint8_t dirty_alloc;
+	/** user flags */
+	uint8_t userflags;
 	/** padding to 8-bytes alignment */
-	uint8_t pad1[5];
+	uint8_t pad1[4];
 	/** size to mmap */
 	uint64_t fsize;
 	/** chunk move rollback info: oldchunk (0 is nothing).
@@ -391,6 +393,20 @@ udb_rel_ptr* udb_base_get_userdata(udb_base* udb);
  * @param user: user data. offset-pointer (or 0).
  */
 void udb_base_set_userdata(udb_base* udb, udb_void user);
+
+/** 
+ * Set the user flags (to any value, uint8). 
+ * @param udb: the udb.
+ * @param v: new value.
+ */
+void udb_base_set_userflags(udb_base* udb, uint8_t v);
+
+/** 
+ * Get the user flags. 
+ * @param udb: the udb.
+ * @param v: new value.
+ */
+uint8_t udb_base_get_userflags(udb_base* udb);
 
 /**
  * Not for users of udb_base, but for udb_ptr.
