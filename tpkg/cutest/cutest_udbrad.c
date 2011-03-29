@@ -284,7 +284,7 @@ static void test_check_closest_match_exact(udb_base* udb, udb_ptr* rt,
 static unsigned
 get_ran_val(unsigned max)
 {
-	unsigned r = random();
+	unsigned r = (random() & RAND_MAX);
 	double ret = ((double)r * (double)max) / (1.0 + RAND_MAX);
 	return (unsigned)ret;
 }
