@@ -18,6 +18,7 @@
 struct zone_options;
 struct nsd_options;
 struct udb_base;
+struct udb_ptr;
 
 typedef union rdata_atom rdata_atom_type;
 typedef struct rrset rrset_type;
@@ -278,6 +279,10 @@ zone_type *namedb_find_zone(namedb_type *db, const dname_type *dname);
 /* set all zones to not-updated */
 void namedb_wipe_updated_flag(namedb_type *db);
 
+/** dbcreate.c */
+int udb_write_rr(struct udb_base* udb, struct udb_ptr* z, rr_type* rr);
+void udb_del_rr(struct udb_base* udb, struct udb_ptr* z, rr_type* rr);
+int write_zone_to_udb(struct udb_base* udb, zone_type* zone, time_t mtime);
 /* dbaccess.c */
 int namedb_lookup (struct namedb    *db,
 		   const dname_type *dname,
@@ -289,7 +294,6 @@ struct namedb *namedb_open(const char *filename, struct nsd_options* opt,
 void namedb_fd_close(struct namedb *db);
 void namedb_close_udb(struct namedb* db);
 void namedb_close(struct namedb *db);
-int write_zone_to_udb(struct udb_base* udb, zone_type* zone, time_t mtime);
 void namedb_check_zonefiles(struct namedb* db, struct nsd_options* opt,
 	size_t num_children);
 void apex_rrset_checks(struct namedb* db, rrset_type* rrset,

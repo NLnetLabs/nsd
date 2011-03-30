@@ -44,9 +44,26 @@ add_rdata(rr_type* rr, unsigned i, uint8_t* buf, size_t buflen)
 	return rdata_atom_size(rr->rdatas[i]);
 }
 
+/** delete an RR */
+void
+udb_del_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
+{
+	/* marshal the rdata (uncompressed) into a buffer */
+	uint8_t rdata[MAX_RDLENGTH];
+	size_t rdatalen = 0;
+	unsigned i;
+	for(i=0; i<rr->rdata_count; i++) {
+		rdatalen += add_rdata(rr, i, rdata+rdatalen,
+			sizeof(rdata)-rdatalen);
+	}
+	udb_zone_del_rr(udb, z, (uint8_t*)dname_name(domain_dname(
+		rr->owner)), domain_dname(rr->owner)->name_size, rr->type,
+		rr->klass, rdata, rdatalen);
+}
+
 /** write rr */
-static int
-write_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
+int
+udb_write_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
 {
 	/* marshal the rdata (uncompressed) into a buffer */
 	uint8_t rdata[MAX_RDLENGTH];
@@ -67,7 +84,7 @@ write_rrset(udb_base* udb, udb_ptr* z, rrset_type* rrset)
 {
 	unsigned i;
 	for(i=0; i<rrset->rr_count; i++) {
-		if(!write_rr(udb, z, &rrset->rrs[i]))
+		if(!udb_write_rr(udb, z, &rrset->rrs[i]))
 			return 0;
 	}
 	return 1;

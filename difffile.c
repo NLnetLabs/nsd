@@ -17,6 +17,8 @@
 #include "util.h"
 #include "packet.h"
 #include "rdata.h"
+#include "udb.h"
+#include "udbzone.h"
 
 static int
 write_32(FILE *out, uint32_t val)
@@ -320,7 +322,7 @@ static int
 delete_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
-	region_type* temp_region)
+	region_type* temp_region, udb_ptr* udbz)
 {
 	domain_type *domain;
 	rrset_type *rrset;
@@ -360,6 +362,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				dname_to_string(dname,0));
 			return 1; /* not fatal error */
 		}
+		/* delete the normalized RR from the udb */
+		udb_del_rr(db->udb, udbz, &rrset->rrs[rrnum]);
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
 			rrset_delete(db, domain, rrset);
@@ -388,7 +392,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 static int
 add_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl,
-	buffer_type* packet, size_t rdatalen, zone_type *zone)
+	buffer_type* packet, size_t rdatalen, zone_type *zone, udb_ptr* udbz)
 {
 	domain_type* domain;
 	rrset_type* rrset;
@@ -456,9 +460,12 @@ add_RR(namedb_type* db, const dname_type* dname,
 	/* see if it is a SOA */
 	if(domain == zone->apex) {
 		apex_rrset_checks(db, rrset, domain);
-		if(type == TYPE_SOA) {
-			zone->updated = 1;
-		}
+	}
+
+	/* write the just-normalized RR to the udb */
+	if(!udb_write_rr(db->udb, udbz, &rrset->rrs[rrset->rr_count - 1])) {
+		log_msg(LOG_ERR, "could not add RR to udb, disk-space?");
+		return 0;
 	}
 	return 1;
 }
@@ -555,7 +562,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
 	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
-	size_t child_count)
+	size_t child_count, udb_ptr* udbz)
 {
 	uint32_t filelen, msglen, pkttype, timestamp[2];
 	int qcount, ancount, counter;
@@ -569,11 +576,11 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	uint32_t file_serial, file_seq_nr;
 	uint16_t file_id;
 	off_t mempos;
-	
-	/* TODO: check IXFR first */
-	/* then: apply with no possibility of return false; and apply to udb */
-	/* TODO: mark udb are 'dirty' in header, 
-	 * TODO: delete and recreate nsd.db if dirty on startup */
+
+	/* note that errors could not really happen due to format of the
+	 * packet since xfrd has checked all dnames and RRs before commit,
+	 * this is why the errors are fatal (exit process), it must be
+	 * something internal or a bad disk or something. */
 
 	memmove(&mempos, startpos, sizeof(off_t));
 	if(fseeko(in, mempos, SEEK_SET) == -1) {
@@ -635,6 +642,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		region_destroy(region);
 		return 0;
 	}
+	zone_db->updated = 1;
 
 	if(msglen > QIOBUFSZ) {
 		log_msg(LOG_ERR, "msg too long");
@@ -751,6 +759,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		if(*rr_count == 1 && type != TYPE_SOA) {
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
 			delete_zone_rrs(db, zone_db);
+			udb_zone_clear(db->udb, udbz);
 			/* add everything else (incl end SOA) */
 			*delete_mode = 0;
 			*is_axfr = 1;
@@ -773,6 +782,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			if(thisserial == serialno) {
 				/* AXFR */
 				delete_zone_rrs(db, zone_db);
+				udb_zone_clear(db->udb, udbz);
 				*delete_mode = 0;
 				*is_axfr = 1;
 			}
@@ -802,7 +812,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 				continue; /* do not delete final SOA RR for IXFR */
 			}
 			if(!delete_RR(db, dname, type, klass, packet,
-				rrlen, zone_db, region)) {
+				rrlen, zone_db, region, udbz)) {
 				region_destroy(region);
 				return 0;
 			}
@@ -811,7 +821,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		{
 			/* add this rr */
 			if(!add_RR(db, dname, type, klass, ttl, packet,
-				rrlen, zone_db)) {
+				rrlen, zone_db, udbz)) {
 				region_destroy(region);
 				return 0;
 			}
@@ -1057,6 +1067,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	{
 		int is_axfr=0, delete_mode=0, rr_count=0;
 		off_t resume_pos;
+		const dname_type* apex = (const dname_type*)zp->node.key;
+		udb_ptr z;
 
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", log_buf));
 		resume_pos = ftello(in);
@@ -1064,18 +1076,34 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
 			return 0;
 		}
-		/* TODO: check that all parts are correct */
+		/* all parts were checked by xfrd before commit */
+		if(!udb_zone_search(db->udb, &z,
+			(uint8_t*)dname_name(apex), apex->name_size)) {
+			/* create it */
+			if(!udb_zone_create(db->udb, &z,
+				(uint8_t*)dname_name(apex), apex->name_size)) {
+				/* out of disk space perhaps */
+				log_msg(LOG_ERR, "could not udb_create_zone "
+					"%s, disk space full?", log_buf);
+				return 0;
+			}
+		}
+		/* set the udb dirty until we are finished applying changes */
+		udb_base_set_userflags(db->udb, 1);
 		for(i=0; i<num_parts; i++) {
 			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
 			if(!apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
-				&rr_count, child_count)) {
+				&rr_count, child_count, &z)) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
 					opt->difffile);
+				/* the udb is still dirty, it is bad */
 				mark_and_exit(opt, in, commitpos, log_buf);
 			}
 		}
+		udb_base_set_userflags(db->udb, 0);
+		udb_ptr_unlink(&z, db->udb);
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
 			return 0;
