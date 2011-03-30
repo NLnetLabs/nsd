@@ -440,8 +440,6 @@ prehash(struct namedb* db, int updated_only)
 	zone_type *z;
 	time_t end, start = time(NULL);
 	int count = 0;
-	struct timeval st, ed;
-	gettimeofday(&st, NULL);
 	for(n = radix_first(db->zonetree); n; n = radix_next(n)) {
 		z = (zone_type*)n->elem;
 		if(!updated_only || z->updated) {
@@ -450,14 +448,10 @@ prehash(struct namedb* db, int updated_only)
 				count++;
 		}
 	}
-	gettimeofday(&ed, NULL);
 	end = time(NULL);
 	if(count > 0)
 		VERBOSITY(1, (LOG_INFO, "nsec3-prepare took %d "
 		"seconds for %d zones.", (int)(end-start), count));
-	log_msg(LOG_INFO, "nsec3prepare %6.6d %6.6d  %d and %d\n",
-		st.tv_usec, ed.tv_usec, ed.tv_sec - st.tv_sec,
-		ed.tv_usec - st.tv_usec);
 }
 
 /* add the NSEC3 rrset to the query answer at the given domain */

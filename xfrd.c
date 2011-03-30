@@ -23,6 +23,7 @@
 #include "region-allocator.h"
 #include "nsd.h"
 #include "packet.h"
+#include "rdata.h"
 #include "difffile.h"
 #include "ipc.h"
 
@@ -1062,15 +1063,23 @@ static int xfrd_parse_soa_info(buffer_type* packet, xfrd_soa_t* soa)
  */
 static int
 xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
-	int *done, xfrd_soa_t* soa)
+	int *done, xfrd_soa_t* soa, region_type* temp)
 {
 	/* first RR has already been checked */
 	uint16_t type, klass, rrlen;
 	uint32_t ttl;
-	size_t i, soapos;
+	size_t i, soapos, mempos;
+	const dname_type* dname;
+	domain_table_type* owners;
+	rdata_atom_type* rdatas;
+	
 	for(i=0; i<count; ++i,++zone->msg_rr_count)
 	{
-		if(!packet_skip_dname(packet))
+		region_free_all(temp);
+		owners = domain_table_create(temp);
+		/* check the dname for errors */
+		dname = dname_make_from_packet(temp, packet, 1, 1);
+		if(!dname)
 			return 0;
 		if(!buffer_available(packet, 10))
 			return 0;
@@ -1081,9 +1090,12 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 		rrlen = buffer_read_u16(packet);
 		if(!buffer_available(packet, rrlen))
 			return 0;
+		mempos = buffer_position(packet);
+		if(rdata_wireformat_to_rdata_atoms(temp, owners, type, rrlen,
+			packet, &rdatas) == -1)
+			return 0;
 		if(type == TYPE_SOA) {
 			/* check the SOAs */
-			size_t mempos = buffer_position(packet);
 			buffer_set_position(packet, soapos);
 			if(!xfrd_parse_soa_info(packet, soa))
 				return 0;
@@ -1106,8 +1118,8 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 					*done = 1;
 				}
 			}
-			buffer_set_position(packet, mempos);
 		}
+		buffer_set_position(packet, mempos);
 		buffer_skip(packet, rrlen);
 	}
 	/* packet seems to have a valid DNS RR structure */
@@ -1172,6 +1184,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	size_t qdcount = QDCOUNT(packet);
 	size_t ancount = ANCOUNT(packet), ancount_todo;
 	int done = 0;
+	region_type* tempregion = NULL;
 
 	/* has to be axfr / ixfr reply */
 	if(!buffer_available(packet, QHEADERSZ)) {
@@ -1232,15 +1245,32 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	}
 	ancount_todo = ancount;
 
+	tempregion = region_create(xalloc, free);
 	if(zone->msg_rr_count == 0) {
+		const dname_type* soaname = dname_make_from_packet(tempregion,
+			packet, 1, 1);
+		if(!soaname) { /* parse failure */
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s, from %s: "
+				"parse error in SOA record",
+				zone->apex_str, zone->master->ip_address_spec));
+			region_destroy(tempregion);
+			return xfrd_packet_bad;
+		}
+		if(dname_compare(soaname, zone->apex) != 0) { /* wrong name */
+			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s, from %s: "
+				"wrong SOA record",
+				zone->apex_str, zone->master->ip_address_spec));
+			region_destroy(tempregion);
+			return xfrd_packet_bad;
+		}
+
 		/* parse the first RR, see if it is a SOA */
-		if(!packet_skip_dname(packet) ||
-			!xfrd_parse_soa_info(packet, soa))
+		if(!xfrd_parse_soa_info(packet, soa))
 		{
 			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s, from %s: "
-						      "no SOA begins answer"
-						      " section",
+						      "bad SOA rdata",
 				zone->apex_str, zone->master->ip_address_spec));
+			region_destroy(tempregion);
 			return xfrd_packet_bad;
 		}
 		if(zone->soa_disk_acquired != 0 &&
@@ -1252,6 +1282,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			VERBOSITY(1, (LOG_INFO,
 				"xfrd: zone %s ignoring old serial from %s",
 				zone->apex_str, zone->master->ip_address_spec));
+			region_destroy(tempregion);
 			return xfrd_packet_bad;
 		}
 		if(zone->soa_disk_acquired != 0 && zone->soa_disk.serial == soa->serial) {
@@ -1270,9 +1301,11 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 				/* not notified or anything, so stop asking around */
 				zone->round_num = -1; /* next try start a new round */
 				xfrd_set_timer_refresh(zone);
+				region_destroy(tempregion);
 				return xfrd_packet_newlease;
 			}
 			/* try next master */
+			region_destroy(tempregion);
 			return xfrd_packet_bad;
 		}
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "IXFR reply has ok serial (have \
@@ -1300,6 +1333,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"xfrd: zone %s received TC from %s. retry tcp.",
 			zone->apex_str, zone->master->ip_address_spec));
+		region_destroy(tempregion);
 		return xfrd_packet_tcp;
 	}
 
@@ -1309,15 +1343,19 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		/* The serial is newer, so try tcp to this master. */
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: udp reply is short. Try "
 					       			   "tcp anyway."));
+		region_destroy(tempregion);
 		return xfrd_packet_tcp;
 	}
 
-	if(!xfrd_xfr_check_rrs(zone, packet, ancount_todo, &done, soa))
+	if(!xfrd_xfr_check_rrs(zone, packet, ancount_todo, &done, soa,
+		tempregion))
 	{
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s sent bad xfr "
 					       			   "reply.", zone->apex_str));
+		region_destroy(tempregion);
 		return xfrd_packet_bad;
 	}
+	region_destroy(tempregion);
 	if(zone->tcp_conn == -1 && done == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: udp reply incomplete"));
 		return xfrd_packet_bad;
