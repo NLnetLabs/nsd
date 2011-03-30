@@ -1,3 +1,9 @@
+30 March 2011: Wouter
+	- nsd edits nsd.db for IXFR and AXFR messages.  since xfrd already
+	  checks zone transfers completely for syntax those errors cannot
+	  happen, if they do (memory, disk error) the file is left dirty,
+	  to be recreated on the next start (and the process dies).
+
 29 March 2011: Wouter
 	- nsd recreates nsd.db if it has not been closed properly or is
 	  corrupted (bad header or wrong file format).

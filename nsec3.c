@@ -377,6 +377,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 	zone->nsec3_soa_rr = find_zone_nsec3(db, zone, &udbz);
 	if(!zone->nsec3_soa_rr) {
 		zone->nsec3_last = 0;
+		udb_ptr_unlink(&udbz, db->udb);
 		return;
 	}
 	temp_region = region_create(xalloc, free);
