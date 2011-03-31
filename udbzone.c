@@ -327,12 +327,9 @@ select_nsec3_param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 {
 	udb_ptr rr;
 	udb_ptr_new(&rr, udb, &RRSET(rrset)->rrs);
-	log_msg(LOG_INFO, "select nsec3 param");
 	while(rr.data) {
-		log_msg(LOG_INFO, "select nsec3 param RR");
 		if(RR(&rr)->len >= 5 && RR(&rr)->wire[0] == NSEC3_SHA1_HASH &&
 			RR(&rr)->wire[1] == 0) {
-			log_msg(LOG_INFO, "select nsec3 param RR accepted");
 			udb_rptr_set_ptr(&ZONE(zone)->nsec3param, udb, &rr);
 			udb_ptr_unlink(&rr, udb);
 			return;
