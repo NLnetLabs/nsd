@@ -1144,6 +1144,17 @@ cleanup_rrset(void *r)
 	}
 }
 
+static int
+has_soa(domain_type* domain)
+{
+	rrset_type* p = NULL;
+	if(!domain) return 0;
+	for(p = domain->rrsets; p; p = p->next)
+		if(rrset_rrtype(p) == TYPE_SOA)
+			return 1;
+	return 0;
+}
+
 int
 process_rr(void)
 {
@@ -1180,15 +1191,15 @@ process_rr(void)
 		 * This is a SOA record, start a new zone or continue
 		 * an existing one.
 		 */
-		if (rr->owner->is_apex) {
+		if(has_soa(rr->owner)) {
 			if(zone->opts && zone->opts->request_xfr)
 				zc_warning_prev_line("this SOA record was already encountered");
 			else
 				zc_error_prev_line("this SOA record was already encountered");
-		} else if (rr->owner == parser->default_apex) {
-			zone->apex = rr->owner;
-			rr->owner->is_apex = 1;
+			return 0;
 		}
+		zone->apex = rr->owner;
+		rr->owner->is_apex = 1;
 
 		/* parser part */
 		parser->current_zone = zone;

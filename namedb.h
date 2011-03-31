@@ -334,5 +334,4 @@ rrset_rrclass(rrset_type *rrset)
 	return rrset->rrs[0].klass;
 }
 
-
 #endif
