@@ -11,6 +11,22 @@
 #include "dname.h"
 #include <string.h>
 
+/** delete the zone plain its own data */
+static void
+udb_zone_delete_plain(udb_base* udb, udb_ptr* zone)
+{
+	udb_ptr dtree;
+	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
+	udb_zone_clear(udb, zone);
+	udb_rptr_zero(&ZONE(zone)->node, udb);
+	udb_rptr_zero(&ZONE(zone)->nsec3param, udb);
+	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
+	udb_rptr_zero(&ZONE(zone)->domains, udb);
+	udb_radix_tree_delete(udb, &dtree);
+	udb_ptr_free_space(zone, udb,
+		sizeof(struct zone_d)+ZONE(zone)->namelen);
+}
+
 int
 udb_dns_init_file(udb_base* udb)
 {
@@ -38,7 +54,7 @@ udb_dns_deinit_file(udb_base* udb)
 		udb_ptr zone;
 		udb_ptr_new(&zone, udb, &RADNODE(&z)->elem);
 		udb_rptr_zero(&RADNODE(&z)->elem, udb);
-		udb_zone_delete(udb, &zone);
+		udb_zone_delete_plain(udb, &zone);
 	}
 	udb_ptr_unlink(&z, udb);
 
@@ -163,6 +179,20 @@ domain_delete(udb_base* udb, udb_ptr* d)
 		sizeof(struct domain_d)+DOMAIN(d)->namelen);
 }
 
+/** delete domain but also unlink from tree at zone */
+static void
+domain_delete_unlink(udb_base* udb, udb_ptr* z, udb_ptr* d)
+{
+	udb_ptr dtree, n;
+	udb_ptr_new(&dtree, udb, &ZONE(z)->domains);
+	udb_ptr_new(&n, udb, &DOMAIN(d)->node);
+	udb_rptr_zero(&DOMAIN(d)->node, udb);
+	udb_radix_delete(udb, &dtree, &n);
+	udb_ptr_unlink(&dtree, udb);
+	udb_ptr_unlink(&n, udb);
+	domain_delete(udb, d);
+}
+
 void
 udb_zone_clear(udb_base* udb, udb_ptr* zone)
 {
@@ -190,16 +220,14 @@ udb_zone_clear(udb_base* udb, udb_ptr* zone)
 void
 udb_zone_delete(udb_base* udb, udb_ptr* zone)
 {
-	udb_ptr dtree;
-	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
-	udb_zone_clear(udb, zone);
+	udb_ptr ztree, n;
+	udb_ptr_new(&ztree, udb, udb_base_get_userdata(udb));
+	udb_ptr_new(&n, udb, &ZONE(zone)->node);
 	udb_rptr_zero(&ZONE(zone)->node, udb);
-	udb_rptr_zero(&ZONE(zone)->nsec3param, udb);
-	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
-	udb_rptr_zero(&ZONE(zone)->domains, udb);
-	udb_radix_tree_delete(udb, &dtree);
-	udb_ptr_free_space(zone, udb,
-		sizeof(struct zone_d)+ZONE(zone)->namelen);
+	udb_radix_delete(udb, &ztree, &n);
+	udb_ptr_unlink(&ztree, udb);
+	udb_ptr_unlink(&n, udb);
+	udb_zone_delete_plain(udb, zone);
 }
 
 int
@@ -617,7 +645,7 @@ udb_zone_add_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 	exit_clean_domain:
 		/* if domain created, delete it */
 		if(DOMAIN(&domain)->rrsets.data == 0)
-			domain_delete(udb, &domain);
+			domain_delete_unlink(udb, zone, &domain);
 		udb_ptr_unlink(&domain, udb);
 		return 0;
 	}
@@ -681,7 +709,7 @@ udb_zone_del_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 	}
 	/* see if we can remove the domain name too */
 	if(DOMAIN(&domain)->rrsets.data == 0) {
-		domain_delete(udb, &domain);
+		domain_delete_unlink(udb, zone, &domain);
 	}
 	udb_ptr_unlink(&rrset, udb);
 	udb_ptr_unlink(&domain, udb);
