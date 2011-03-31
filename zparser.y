@@ -1018,11 +1018,11 @@ static void
 error_va_list(unsigned line, const char *fmt, va_list args)
 {
 	if (parser->filename) {
-		fprintf(stderr, "%s:%u: ", parser->filename, line);
+		char message[MAXSYSLOGMSGLEN];
+		vsnprintf(message, sizeof(message), fmt, args);
+		log_msg(LOG_ERR, "%s:%u: %s", parser->filename, line, message);
 	}
-	fprintf(stderr, "error: ");
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	else log_vmsg(LOG_ERR, fmt, args);
 
 	++parser->errors;
 	parser->error_occurred = 1;
@@ -1054,11 +1054,11 @@ static void
 warning_va_list(unsigned line, const char *fmt, va_list args)
 {
 	if (parser->filename) {
-		fprintf(stderr, "%s:%u: ", parser->filename, line);
+		char m[MAXSYSLOGMSGLEN];
+		vsnprintf(m, sizeof(m), fmt, args);
+		log_msg(LOG_WARNING, "%s:%u: %s", parser->filename, line, m);
 	}
-	fprintf(stderr, "warning: ");
-	vfprintf(stderr, fmt, args);
-	fprintf(stderr, "\n");
+	else log_vmsg(LOG_WARNING, fmt, args);
 }
 
 void

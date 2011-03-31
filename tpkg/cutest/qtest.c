@@ -96,6 +96,7 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 			strerror(errno));
 		exit(1);
 	}
+	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count);
 #ifdef NSEC3
 	printf("prehash %s\n", nsd->options->database);
 	prehash(nsd->db, 0);
