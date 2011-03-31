@@ -1077,7 +1077,6 @@ udb_alloc_grow_space(void* base, udb_alloc* alloc, size_t sz, int exp)
 	/* predict how much free space is needed for this */
 	uint64_t grow_end = grow_end_calc(alloc, exp);
 	assert(alloc->udb->base_size >= alloc->disk->nextgrow);
-	assert(alloc->udb->glob_data->fsize == alloc->udb->base_size);
 	if(grow_end <= alloc->udb->base_size) {
 		/* we can do this with the available space */
 		return grow_chunks(base, alloc, sz, exp);
