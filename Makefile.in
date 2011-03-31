@@ -155,7 +155,7 @@ uninstall:
 test: 
 
 whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e s/\\\\.o/.c/g` $(LIBOBJS) $(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` $(LIBOBJS) $(LIBS)
 
 nsd:	$(NSD_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(LIBS)
