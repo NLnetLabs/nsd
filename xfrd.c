@@ -321,6 +321,7 @@ xfrd_reopen_logfile()
 static void
 xfrd_free_namedb()
 {
+	namedb_close_udb(xfrd->nsd->db);
 	namedb_close(xfrd->nsd->db);
 	xfrd->nsd->db = 0;
 }

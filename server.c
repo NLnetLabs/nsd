@@ -1202,7 +1202,6 @@ server_main(struct nsd *nsd)
 		(void)kill(xfrd_pid, SIGTERM);
 	}
 
-	namedb_fd_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }
