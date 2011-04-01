@@ -56,6 +56,12 @@ allocate_domain_info(domain_table_type *table,
 	return result;
 }
 
+/** delete radix tree as a region cleanup */
+void del_radix_tree(void* arg)
+{
+	radix_tree_delete((struct radtree*)arg);
+}
+
 domain_table_type *
 domain_table_create(region_type *region)
 {
@@ -91,6 +97,7 @@ domain_table_create(region_type *region)
 						    sizeof(domain_table_type));
 	result->region = region;
 	result->nametree = radix_tree_create();
+	region_add_cleanup(region, &del_radix_tree, result->nametree);
 	root->rnode = radname_insert(result->nametree,
 		(uint8_t*)dname_name(root->dname), root->dname->name_size,
 		root);
