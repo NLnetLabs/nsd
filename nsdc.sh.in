@@ -87,7 +87,6 @@ dbfile=`${nsd_checkconf} -o database ${configfile}`
 pidfile=`${nsd_checkconf} -o pidfile ${configfile}`
 difffile=`${nsd_checkconf} -o difffile ${configfile}`
 zonesdir=`${nsd_checkconf} -o zonesdir ${configfile}`
-lockfile="${dbfile}.lock"  # still needed
 sbindir=`dirname ${nsd_checkconf}`
 
 # move to zonesdir (if specified), and make absolute pathnames.
@@ -101,9 +100,6 @@ if test -n "${zonesdir}"; then
        fi
        if echo "${pidfile}" | grep "^[^/]" >/dev/null; then
                pidfile=${zonesdir}/${pidfile}
-       fi
-       if echo "${lockfile}" | grep "^[^/]" >/dev/null; then
-               lockfile=${zonesdir}/${lockfile}
        fi
        if echo "${difffile}" | grep "^[^/]" >/dev/null; then
                difffile=${zonesdir}/${difffile}
@@ -130,37 +126,6 @@ signal() {
 	return 1
 }
 
-lock_file() {
-	(umask 222; ${noclobber_set}; echo "$$" >${lockfile})
-}
-
-lock() {
-	lock_file
-	if [ $? = 1 ]
-	then
-		# check if the lockfile has not gone stale
-		LPID=`cat ${lockfile}`
-		echo database locked by PID: $LPID
-		if kill -0 $LPID 2>/dev/null; then
-			exit 1
-		fi
-
-		# locking process does not exist, consider lockfile stale
-		echo stale lockfile, removing... && rm -f ${lockfile} && lock_file
-	fi
-
-	if [ $? = 1 ]
-	then
-		echo lock failed
-		exit 1
-	fi
-	return 0
-}
-
-unlock() {
-	rm -f ${lockfile}
-}
-	
 do_start() {
 	if test -x ${sbindir}/nsd; then
 		${sbindir}/nsd -c ${configfile}
@@ -338,7 +303,7 @@ patch)
 		# patch without textfile only.
 		# nsd edits the nsd.db itself,
 		# we delete the ixfr.db (broken transfers are re-tried).
-		lock && rm -f ${difffile} && unlock
+		rm -f ${difffile}
 	else
 		echo "`basename $0`: no patch necessary."
 	fi

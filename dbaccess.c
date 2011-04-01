@@ -89,15 +89,11 @@ apex_rrset_checks(namedb_type* db, rrset_type* rrset, domain_type* domain)
 		if (rrset->rrs->ttl > ntohl(soa_minimum)) {
 			zone->soa_nx_rrset->rrs[0].ttl = ntohl(soa_minimum);
 		}
-
-	} else if (rrset_rrtype(rrset) == TYPE_NS)
-	{
+	} else if (rrset_rrtype(rrset) == TYPE_NS) {
 		zone->ns_rrset = rrset;
-	}
-
-	if (rrset_rrtype(rrset) == TYPE_RRSIG) {
+	} else if (rrset_rrtype(rrset) == TYPE_RRSIG) {
 		for (i = 0; i < rrset->rr_count; ++i) {
-			if (rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY) {
+			if(rr_rrsig_type_covered(&rrset->rrs[i])==TYPE_DNSKEY){
 				zone->is_secure = 1;
 				break;
 			}

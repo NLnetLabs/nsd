@@ -1185,12 +1185,12 @@ process_rr(void)
 	}
 	/* we have the zone already */
 	assert(zone);
-
 	if (rr->type == TYPE_SOA) {
-		/*
-		 * This is a SOA record, start a new zone or continue
-		 * an existing one.
-		 */
+		if (rr->owner != zone->apex) {
+			zc_error_prev_line(
+				"SOA record with invalid domain name");
+			return 0;
+		}
 		if(has_soa(rr->owner)) {
 			if(zone->opts && zone->opts->request_xfr)
 				zc_warning_prev_line("this SOA record was already encountered");
@@ -1198,11 +1198,7 @@ process_rr(void)
 				zc_error_prev_line("this SOA record was already encountered");
 			return 0;
 		}
-		zone->apex = rr->owner;
 		rr->owner->is_apex = 1;
-
-		/* parser part */
-		parser->current_zone = zone;
 	}
 
 	if (!dname_is_subdomain(domain_dname(rr->owner),
@@ -1283,20 +1279,6 @@ process_rr(void)
 	}
 
 	/* Check we have SOA */
-	if (zone->soa_rrset == NULL) {
-		if (rr->type == TYPE_SOA) {
-			if (rr->owner != zone->apex) {
-				zc_error_prev_line(
-					"SOA record with invalid domain name");
-			}
-		}
-	} else if (rr->type == TYPE_SOA) {
-		if(zone->opts && zone->opts->request_xfr)
-			zc_warning_prev_line("duplicate SOA record discarded");
-		else
-			zc_error_prev_line("duplicate SOA record discarded");
-		--rrset->rr_count;
-	}
 	if(rr->owner == zone->apex)
 		apex_rrset_checks(parser->db, rrset, rr->owner);
 

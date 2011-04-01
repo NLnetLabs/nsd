@@ -45,7 +45,7 @@ for i in *.tpkg; do
 		echo ">>> skipped $i: test needs dig 9 or later"
 		skip=yes
 	fi
-	if [ $HOSTTYPE != i386 ] && echo $NEED_i386 | grep `basename $i .tpkg` >/dev/null; then
+	if [ $HOSTTYPE != i386 ] && [ $HOSTTYPE != x86_64 ] && echo $NEED_i386 | grep `basename $i .tpkg` >/dev/null; then
 		echo ">>> skipped $i: test needs i386 (precompiled help prog)"
 		skip=yes
 	fi
