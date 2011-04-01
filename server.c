@@ -41,6 +41,7 @@
 #include "difffile.h"
 #include "nsec3.h"
 #include "ipc.h"
+#include "udb.h"
 
 /*
  * Data for the UDP handlers.
@@ -760,6 +761,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 #ifdef NSEC3
 	prehash(nsd->db, 1);
 #endif /* NSEC3 */
+	/* sync to disk (if needed) */
+	udb_base_sync(nsd->db->udb, 0);
 
 	initialize_dname_compression_tables(nsd);
 
@@ -1139,7 +1142,6 @@ server_main(struct nsd *nsd)
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
 
-			namedb_fd_close(nsd->db);
 			region_destroy(server_region);
 			server_shutdown(nsd);
 
@@ -1359,7 +1361,6 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
-	namedb_fd_close(nsd->db);
 	region_destroy(server_region);
 	server_shutdown(nsd);
 }

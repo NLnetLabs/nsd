@@ -1076,6 +1076,10 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
 			return 0;
 		}
+		if(udb_base_get_userflags(db->udb) != 0) {
+			log_msg(LOG_ERR, "database corrupted, cannot update");
+			exit(1);
+		}
 		/* all parts were checked by xfrd before commit */
 		if(!udb_zone_search(db->udb, &z,
 			(uint8_t*)dname_name(apex), apex->name_size)) {

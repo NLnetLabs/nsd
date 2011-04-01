@@ -285,6 +285,7 @@ udb-inspect.o:	$(srcdir)/tpkg/cutest/udb-inspect.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/udb-inspect.c
 
 zlexer.c:	$(srcdir)/zlexer.lex
+	rm -f $@
 	echo '#include "config.h"' > $@
 	$(LEX) -i -t $(srcdir)/zlexer.lex >> $@
 
@@ -292,7 +293,8 @@ zparser.c zparser.h: $(srcdir)/zparser.y
 	$(YACC) -d -o zparser.c $(srcdir)/zparser.y
 
 configlexer.c:	$(srcdir)/configlexer.lex
-	echo "#include \"configyyrename.h\"" > $@
+	rm -f $@
+	echo '#include "configyyrename.h"' > $@
 	$(LEX) -i -t $(srcdir)/configlexer.lex >> $@
 
 configparser.c configparser.h:	$(srcdir)/configparser.y
@@ -399,7 +401,7 @@ region-allocator.o: $(srcdir)/region-allocator.c config.h $(srcdir)/region-alloc
 server.o: $(srcdir)/server.c config.h $(srcdir)/axfr.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/radtree.h $(srcdir)/packet.h \
  $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/nsec3.h \
- $(srcdir)/ipc.h
+ $(srcdir)/ipc.h $(srcdir)/udb.h
 tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h \
  $(srcdir)/tsig-openssl.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h
 tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(srcdir)/region-allocator.h \

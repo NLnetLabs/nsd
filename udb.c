@@ -295,6 +295,20 @@ void udb_base_free(udb_base* udb)
 	free(udb);
 }
 
+void udb_base_free_keep_mmap(udb_base* udb)
+{
+	if(!udb) return;
+	if(udb->fd != -1) {
+		close(udb->fd);
+		udb->fd = -1;
+	}
+	udb->base = NULL;
+	udb_alloc_delete(udb->alloc);
+	free(udb->ram_hash);
+	free(udb->fname);
+	free(udb);
+}
+
 void udb_base_sync(udb_base* udb, int wait)
 {
 	if(msync(udb->base, udb->base_size, wait?MS_SYNC:MS_ASYNC) != 0) {

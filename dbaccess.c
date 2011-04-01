@@ -46,7 +46,10 @@ void
 namedb_close_udb (struct namedb *db)
 {
 	if(db) {
-		udb_base_free(db->udb);
+		/* we cannot actually munmap the data, because other
+		 * processes still need to access the udb, so cleanup the
+		 * udb */
+		udb_base_free_keep_mmap(db->udb);
 		db->udb = NULL;
 	}
 }
@@ -377,6 +380,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	db->domains = domain_table_create(db->region);
 	db->zonetree = radix_tree_create();
 	db->diff_skip = 0;
+	db->diff_pos = 0;
 
 	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
 		log_msg(LOG_ERR, "unable to load %s: cannot initialize"

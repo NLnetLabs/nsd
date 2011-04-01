@@ -373,6 +373,9 @@ void udb_base_close(udb_base* udb);
  */
 void udb_base_free(udb_base* udb);
 
+/** Free the udb, but keep mmap mapped for others */
+void udb_base_free_keep_mmap(udb_base* udb);
+
 /**
  * Sync the mmap.
  * @param udb: the udb.
