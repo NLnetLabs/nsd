@@ -303,6 +303,8 @@ rdata_base64_to_string(buffer_type *output, rdata_atom_type rdata,
 {
 	int length;
 	size_t size = rdata_atom_size(rdata);
+	if(size == 0)
+		return 1;
 	buffer_reserve(output, size * 2 + 1);
 	length = b64_ntop(rdata_atom_data(rdata), size,
 			  (char *) buffer_current(output), size * 2);
@@ -452,7 +454,8 @@ rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type
 		rdata_aaaa_to_string(output, rdata, rr);
 		break;
 	case IPSECKEY_DNAME:
-		rdata_dname_to_string(output, rdata, rr);
+		buffer_printf(output, "%s",
+			wiredname2str(rdata_atom_data(rdata)));
 		break;
 	default:
 		return 0;
