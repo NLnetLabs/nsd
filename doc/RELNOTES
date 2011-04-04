@@ -7,6 +7,7 @@ BUG FIXES:
 	- Bugfix #375: typos in nsd.conf.5.
 	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
+	- Fix printout of IPSECKEY by nsd-patch.
 
 3.2.8
 =============

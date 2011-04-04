@@ -1,3 +1,6 @@
+4 April 2011: Wouter
+	- Fix printout of IPSECKEY by nsd-patch.
+
 26 March 2011: Matthijs
 	- @logfile@ was not substituted
 
