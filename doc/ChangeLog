@@ -1,3 +1,7 @@
+4 April 2011: Wouter
+	- removed zonec from tests. fix unknown_rr test, enable ipseckey test.
+	  increased timeouts on tests that are hard on the filesystem.
+
 30 March 2011: Wouter
 	- nsd edits nsd.db for IXFR and AXFR messages.  since xfrd already
 	  checks zone transfers completely for syntax those errors cannot
