@@ -711,6 +711,9 @@ rdata_wireformat_to_rdata_atoms(region_type *region,
 					break;
 				}
 			}
+			if (!required && buffer_position(packet) == end) {
+				break;
+			}
 
 			temp_rdatas[i].data = (uint16_t *) region_alloc(
 				region, sizeof(uint16_t) + length);
