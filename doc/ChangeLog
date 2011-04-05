@@ -1,5 +1,7 @@
 5 April 2011: Wouter
 	- Fix uninitialised value in xfrd nsd_soa, the rdata_count.
+	- Unit test for update of the nsd.db with new contents.
+	- Fix array bounds check in radtree-search function.
 
 4 April 2011: Wouter
 	- removed zonec from tests. fix unknown_rr test, enable ipseckey test.

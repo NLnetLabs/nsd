@@ -1078,7 +1078,7 @@ udb_void udb_radix_search(udb_ptr* rt, uint8_t* k, udb_radstrlen_t len)
 		pos++;
 		if(NARRAY(n)->array[byte].len != 0) {
 			/* must match additional string */
-			if(NARRAY(n)->array[byte].len > len)
+			if(pos+NARRAY(n)->array[byte].len > len)
 				return 0; /* no match */
 			if(memcmp(&k[pos], NSTR(n, byte),
 				NARRAY(n)->array[byte].len) != 0)

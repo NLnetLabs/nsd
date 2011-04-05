@@ -818,7 +818,7 @@ struct radnode* radix_search(struct radtree* rt, uint8_t* k, radstrlen_t len)
 		pos++;
 		if(n->array[byte].len != 0) {
 			/* must match additional string */
-			if(n->array[byte].len > len)
+			if(pos+n->array[byte].len > len)
 				return NULL; /* no match */
 			if(memcmp(&k[pos], n->array[byte].str,
 				n->array[byte].len) != 0)
