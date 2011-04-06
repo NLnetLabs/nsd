@@ -147,8 +147,8 @@ read_rrset(udb_base* udb, namedb_type* db, zone_type* zone,
 {
 	rrset_type* rrset;
 	udb_ptr urr;
-	assert(udb_ptr_get_type(urrset) == udb_chunk_type_rrset);
 	unsigned i;
+	assert(udb_ptr_get_type(urrset) == udb_chunk_type_rrset);
 	/* if no RRs, do not create anything (robust) */
 	if(RRSET(urrset)->rrs.data == 0)
 		return;

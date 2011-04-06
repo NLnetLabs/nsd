@@ -19,6 +19,14 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
+/* for systems without, portable definition, failed-1 and async is a flag */
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void*)-1)
+#endif
+#ifndef MS_SYNC
+#define MS_SYNC 0
+#endif
+
 /** move and fixup xl segment */
 static void move_xl_segment(void* base, udb_base* udb, udb_void xl,
 	udb_void n, uint64_t sz, uint64_t startseg);
@@ -507,7 +515,15 @@ udb_base_grow_and_remap(udb_base* udb, uint64_t nsize)
 
 	assert(nsize > 0);
 	udb->glob_data->dirty_alloc = udb_dirty_fsize;
+#ifdef HAVE_PWRITE
 	if((w=pwrite(udb->fd, &z, sizeof(z), (off_t)(nsize-1))) == -1) {
+#else
+	if(fseek(udb->fd, (off_t)(nsize-1), 0) == -1) {
+		log_msg(LOG_ERR, "fseek %s: %s", udb->fname, strerror(errno));
+		return 0;
+	}
+	if((w=write(udb->fd, &z, sizeof(z))) == -1) {
+#endif
 		log_msg(LOG_ERR, "grow(%s, size %u) error %s",
 			udb->fname, (unsigned)nsize, strerror(errno));
 		return 0;

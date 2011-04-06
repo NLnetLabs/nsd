@@ -4,7 +4,6 @@
  * Copyright (c) 2010, NLnet Labs.  See LICENSE for license.
  */
 #include "config.h"
-#include <inttypes.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -409,6 +408,7 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 		 * the nodes 'add' and r.node
 		 * We do this so that r.node stays the same pointer for its
 		 * key name. */
+		struct radnode* com;
 		uint8_t* common_str=NULL, *s1_str=NULL, *s2_str=NULL;
 		radstrlen_t common_len, s1_len=0, s2_len=0;
 		common_len = bstr_common(r->str, r->len, addstr, addlen);
@@ -416,8 +416,7 @@ radsel_split(struct radsel* r, uint8_t* k, radstrlen_t pos, radstrlen_t len,
 		assert(common_len < addlen);
 
 		/* create the new node for choice */
-		struct radnode* com = (struct radnode*)
-			xalloc_zero(sizeof(*com));
+		com = (struct radnode*)xalloc_zero(sizeof(*com));
 		if(!com) return 0; /* out of memory */
 
 		/* create the two substrings for subchoices */
