@@ -391,9 +391,8 @@ domain_create(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 	return 1;
 }
 
-/** find a domain name in the zone domain tree */
-static int
-domain_find(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
+int
+udb_domain_find(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 	udb_ptr* result)
 {
 	int r;
@@ -413,7 +412,7 @@ domain_find_or_create(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 	udb_ptr* result)
 {
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
-	if(domain_find(udb, zone, nm, nmlen, result))
+	if(udb_domain_find(udb, zone, nm, nmlen, result))
 		return 1;
 	return domain_create(udb, zone, nm, nmlen, result);
 }
@@ -481,8 +480,8 @@ rrset_create(udb_base* udb, udb_ptr* domain, uint16_t t, udb_ptr* res)
 	return 1;
 }
 
-static int
-rrset_find(udb_base* udb, udb_ptr* domain, uint16_t t, udb_ptr* res)
+int
+udb_rrset_find(udb_base* udb, udb_ptr* domain, uint16_t t, udb_ptr* res)
 {
 	assert(udb_ptr_get_type(domain) == udb_chunk_type_domain);
 	udb_ptr_init(res, udb);
@@ -500,7 +499,7 @@ rrset_find(udb_base* udb, udb_ptr* domain, uint16_t t, udb_ptr* res)
 static int
 rrset_find_or_create(udb_base* udb, udb_ptr* domain, uint16_t t, udb_ptr* res)
 {
-	if(rrset_find(udb, domain, t, res))
+	if(udb_rrset_find(udb, domain, t, res))
 		return 1;
 	return rrset_create(udb, domain, t, res);
 }
@@ -666,10 +665,10 @@ udb_zone_del_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 	udb_ptr domain, rrset;
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
 	/* find the domain */
-	if(!domain_find(udb, zone, nm, nmlen, &domain))
+	if(!udb_domain_find(udb, zone, nm, nmlen, &domain))
 		return;
 	/* find the rrset */
-	if(!rrset_find(udb, &domain, t, &rrset)) {
+	if(!udb_rrset_find(udb, &domain, t, &rrset)) {
 		udb_ptr_unlink(&domain, udb);
 		return;
 	}
@@ -721,7 +720,7 @@ udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, uint8_t* nm,
 	if(!zone->data) return 0;
 	if(!ZONE(zone)->nsec3param.data)
 		return 0;
-	if(!domain_find(udb, zone, nm, nmlen, &d)) {
+	if(!udb_domain_find(udb, zone, nm, nmlen, &d)) {
 		/* domain does not exist, an emptynonterminal or so */
 		/* this could be cached too */
 		return 0;
@@ -747,7 +746,7 @@ udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, uint8_t* nm,
 	if(!zone->data) return 0;
 	if(!ZONE(zone)->nsec3param.data)
 		return 0;
-	if(!domain_find(udb, zone, nm, nmlen, &d)) {
+	if(!udb_domain_find(udb, zone, nm, nmlen, &d)) {
 		/* domain does not exist, an emptynonterminal or so */
 		return 0;
 	}

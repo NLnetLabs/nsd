@@ -8,6 +8,11 @@
 #include "udb.h"
 #include "udbradtree.h"
 #include "udbzone.h"
+#include "util.h"
+#include "buffer.h"
+#include "packet.h"
+#include "rdata.h"
+#include "namedb.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -34,7 +39,10 @@ usage(void)
 {
 	printf("usage:	udb-inspect [options] file\n");
 	printf(" -h		this help\n");
-	printf(" -v		increase verbosity\n");
+	printf(" -v		increase verbosity: "
+	       "with -v(list chunks), -vv(inside chunks)\n");
+	printf(" -l		list contents of nsd db file: "
+	       "with -v(zone info), -vv(RRs)\n");
 }
 
 /** inspect header enough to mmap it */
@@ -390,6 +398,194 @@ inspect_file(char* fname)
 	close(fd);
 }
 
+/** find soa serial (if any) */
+static int
+udb_zone_get_serial(udb_base* udb, udb_ptr* zone, uint32_t* serial)
+{
+	udb_ptr domain, rrset, rr;
+	buffer_type buffer;
+	if(!udb_domain_find(udb, zone, ZONE(zone)->name, ZONE(zone)->namelen,
+		&domain))
+		return 0;
+	if(!udb_rrset_find(udb, &domain, TYPE_SOA, &rrset)) {
+		udb_ptr_unlink(&domain, udb);
+		return 0;
+	}
+	/* got SOA rrset, use first RR */
+	if(!RRSET(&rrset)->rrs.data) {
+		udb_ptr_unlink(&domain, udb);
+		udb_ptr_unlink(&rrset, udb);
+		return 0;
+	}
+	udb_ptr_new(&rr, udb, &RRSET(&rrset)->rrs);
+	udb_ptr_unlink(&domain, udb);
+	udb_ptr_unlink(&rrset, udb);
+	/* find serial */
+	buffer_create_from(&buffer, RR(&rr)->wire, RR(&rr)->len);
+	/* skip two dnames */
+	if(!packet_skip_dname(&buffer) || !packet_skip_dname(&buffer)) {
+		udb_ptr_unlink(&rr, udb);
+		return 0;
+	}
+	if(!buffer_available(&buffer, 4*5)) { /* soa rdata u32s */
+		udb_ptr_unlink(&rr, udb);
+		return 0;
+	}
+	*serial = buffer_read_u32(&buffer);
+	udb_ptr_unlink(&rr, udb);
+	return 1;
+}
+
+/** print one line with udb RR */
+static void
+print_udb_rr(uint8_t* name, udb_ptr* urr)
+{
+	buffer_type buffer;
+	region_type* region = region_create(xalloc, free);
+	rr_type rr;
+	ssize_t c;
+	domain_table_type* owners;
+
+	owners = domain_table_create(region);
+	rr.owner = domain_table_insert(owners, dname_make(region, name, 0));
+
+	/* to RR */
+	rr.type = RR(urr)->type;
+	rr.klass = RR(urr)->klass;
+	rr.ttl = RR(urr)->ttl;
+	buffer_create_from(&buffer, RR(urr)->wire, RR(urr)->len);
+	c = rdata_wireformat_to_rdata_atoms(region, owners, RR(urr)->type,
+		RR(urr)->len, &buffer, &rr.rdatas);
+	if(c == -1) {
+		printf("cannot parse wireformat\n");
+		region_destroy(region);
+		return;
+	}
+	rr.rdata_count = c;
+
+	print_rr(stdout, NULL, &rr);
+
+	region_destroy(region);
+}
+
+/** list rrs */
+static void
+list_rrs(udb_base* udb, udb_ptr* rrset, udb_ptr* domain)
+{
+	udb_ptr rr;
+	udb_ptr_new(&rr, udb, &RRSET(rrset)->rrs);
+	while(rr.data) {
+		print_udb_rr(DOMAIN(domain)->name, &rr);
+		udb_ptr_set_rptr(&rr, udb, &RR(&rr)->next);
+	}
+	udb_ptr_unlink(&rr, udb);
+}
+
+/** list RRsets */
+static void
+list_rrsets(udb_base* udb, udb_ptr* domain)
+{
+	udb_ptr rrset;
+	udb_ptr_new(&rrset, udb, &DOMAIN(domain)->rrsets);
+	while(rrset.data) {
+		list_rrs(udb, &rrset, domain);
+		udb_ptr_set_rptr(&rrset, udb, &RRSET(&rrset)->next);
+	}
+	udb_ptr_unlink(&rrset, udb);
+}
+
+/** list domain RRs */
+static void
+list_domains(udb_base* udb, udb_ptr* dtree)
+{
+	udb_ptr d;
+	for(udb_radix_first(udb,dtree,&d); d.data; udb_radix_next(udb,&d)) {
+		udb_ptr domain;
+		udb_ptr_new(&domain, udb, &RADNODE(&d)->elem);
+		list_rrsets(udb, &domain);
+		udb_ptr_unlink(&domain, udb);
+	}
+	udb_ptr_unlink(&d, udb);
+}
+
+/** list zone contents */
+static void
+list_zone_contents(udb_base* udb, udb_ptr* zone)
+{
+	udb_ptr dtree;
+	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
+	if(v) {
+		time_t t = (time_t)ZONE(zone)->mtime;
+		uint32_t serial;
+		printf("# %llu domains, %llu RRsets, %llu RRs%s, ",
+			ULL RADTREE(&dtree)->count,
+			ULL ZONE(zone)->rrset_count,
+			ULL ZONE(zone)->rr_count,
+			ZONE(zone)->expired?", is_expired":"");
+		if(udb_zone_get_serial(udb, zone, &serial)) {
+			printf("%u, ", (unsigned)serial);
+		}
+		printf("%s", ctime(&t));
+		if(ZONE(zone)->nsec3param.data) {
+			udb_ptr n3;
+			udb_ptr_new(&n3, udb, &ZONE(zone)->nsec3param);
+			printf("# nsec3param ");
+			print_udb_rr(ZONE(zone)->name, &n3);
+			udb_ptr_unlink(&n3, udb);
+		}
+	}
+	if(v >= 2) {
+		list_domains(udb, &dtree);
+	}
+	udb_ptr_unlink(&dtree, udb);
+}
+
+/** list zones in zone tree */
+static void
+list_zones(udb_base* udb, udb_ptr* ztree)
+{
+	udb_ptr z;
+	for(udb_radix_first(udb,ztree,&z); z.data; udb_radix_next(udb,&z)) {
+		udb_ptr zone;
+		udb_ptr_new(&zone, udb, &RADNODE(&z)->elem);
+		printf("zone: name: \"");
+		print_dname(ZONE(&zone)->name, ZONE(&zone)->namelen);
+		printf("\"\n");
+		if(v) list_zone_contents(udb, &zone);
+		udb_ptr_unlink(&zone, udb);
+	}
+	udb_ptr_unlink(&z, udb);
+}
+
+/** list contents of NSD.DB file */
+static void
+list_file(char* fname)
+{
+	udb_base* udb;
+	udb_ptr ztree;
+	log_init("udb-inspect");
+	udb = udb_base_create_read(fname, &namedb_walkfunc, NULL);
+	if(!udb) { printf("cannot open udb %s\n", fname); exit(1); }
+	udb_ptr_new(&ztree, udb, udb_base_get_userdata(udb));
+	if(udb_ptr_is_null(&ztree)) {
+		printf("file is not inited\n");
+		exit(1);
+	}
+	/* print header info */
+	printf("%s: %llu zones, %llu bytes\n", fname,
+		ULL RADTREE(&ztree)->count,
+		ULL udb->alloc->disk->nextgrow);
+	if(udb_base_get_userflags(udb)) {
+		printf("file is corrupted! (%u)\n",
+			(unsigned)udb_base_get_userflags(udb));
+	}
+	/* print detail info */
+	list_zones(udb, &ztree);
+	udb_ptr_unlink(&ztree, udb);
+	udb_base_free(udb);
+}
+
+
 /** getopt global, in case header files fail to declare it. */
 extern int optind;
 /** getopt global, in case header files fail to declare it. */
@@ -404,9 +600,12 @@ extern char* optarg;
 int
 main(int argc, char* argv[])
 {
-	int c;
-	while( (c=getopt(argc, argv, "hv")) != -1) {
+	int c, list=0;
+	while( (c=getopt(argc, argv, "hlv")) != -1) {
 		switch(c) {
+		case 'l':
+			list=1;
+			break;
 		case 'v':
 			v++;
 			break;
@@ -422,7 +621,8 @@ main(int argc, char* argv[])
 		usage();
 		return 1;
 	}
-	inspect_file(argv[0]);
+	if(list) list_file(argv[0]);
+	else	inspect_file(argv[0]);
 
 	return 0;
 }

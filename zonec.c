@@ -1135,15 +1135,6 @@ set_bitnsec(uint8_t bits[NSEC_WINDOW_COUNT][NSEC_WINDOW_BITS_SIZE],
 }
 
 
-static void
-cleanup_rrset(void *r)
-{
-	rrset_type *rrset = (rrset_type *) r;
-	if (rrset) {
-		free(rrset->rrs);
-	}
-}
-
 static int
 has_soa(domain_type* domain)
 {
@@ -1218,14 +1209,14 @@ process_rr(void)
 						    sizeof(rrset_type));
 		rrset->zone = zone;
 		rrset->rr_count = 1;
-		rrset->rrs = (rr_type *) xalloc(sizeof(rr_type));
+		rrset->rrs = (rr_type *) region_alloc(parser->region,
+						      sizeof(rr_type));
 		rrset->rrs[0] = *rr;
-
-		region_add_cleanup(parser->region, cleanup_rrset, rrset);
 
 		/* Add it */
 		domain_add_rrset(rr->owner, rrset);
 	} else {
+		rr_type* o;
 		if (rr->type != TYPE_RRSIG && rrset->rrs[0].ttl != rr->ttl) {
 			zc_warning_prev_line(
 				"TTL does not match the TTL of the RRset");
@@ -1244,9 +1235,12 @@ process_rr(void)
 		}
 
 		/* Add it... */
-		rrset->rrs = (rr_type *) xrealloc(
-			rrset->rrs,
+		o = rrset->rrs;
+		rrset->rrs = (rr_type *) region_alloc(parser->region,
 			(rrset->rr_count + 1) * sizeof(rr_type));
+		memcpy(rrset->rrs, o, (rrset->rr_count) * sizeof(rr_type));
+		region_recycle(parser->region, o,
+			(rrset->rr_count) * sizeof(rr_type));
 		rrset->rrs[rrset->rr_count] = *rr;
 		++rrset->rr_count;
 	}

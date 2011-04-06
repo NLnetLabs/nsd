@@ -885,10 +885,9 @@ print_rr(FILE *out,
         const dname_type *owner = domain_dname(record->owner);
         const dname_type *owner_origin
                 = dname_origin(region, owner);
-        int owner_changed
-                = (!state->previous_owner
-                   || dname_compare(state->previous_owner, owner) != 0);
-        if (owner_changed) {
+        if (state) {
+	  if (!state->previous_owner
+                   || dname_compare(state->previous_owner, owner) != 0) {
                 int origin_changed = (!state->previous_owner_origin
                                       || dname_compare(
                                               state->previous_owner_origin,
@@ -905,7 +904,10 @@ print_rr(FILE *out,
                               "%s",
                               dname_to_string(owner,
                                               state->previous_owner_origin));
-        }
+	  }
+        } else {
+		buffer_printf(output, "%s", dname_to_string(owner, NULL));
+	}
 
         buffer_printf(output,
                       "\t%lu\t%s\t%s",

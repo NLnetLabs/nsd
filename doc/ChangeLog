@@ -1,3 +1,9 @@
+6 April 2011: Wouter
+	- UDB_CHECK is enabled if --enable-checking is used.
+	  Because it checks the pointer-administration lists it slows down.
+	- udb-inspect has feature -l that lists zones (and RRs) in nsd.db.
+	- fix memory leak by zonec; the region_cleanup triggers too late.
+
 5 April 2011: Wouter
 	- Fix uninitialised value in xfrd nsd_soa, the rdata_count.
 	- Unit test for update of the nsd.db with new contents.

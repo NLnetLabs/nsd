@@ -175,8 +175,8 @@ nsd-patch:	$(NSD_PATCH_OBJ) $(LIBOBJS)
 cutest:	$(CUTEST_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(LIBS)
 
-udb-inspect:	udb-inspect.o $(LIBOBJS)
-	$(LINK) -o $@ udb-inspect.o $(LIBOBJS) $(LIBS)
+udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ udb-inspect.o $(COMMON_OBJ) $(LIBOBJS) $(LIBS)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
@@ -478,4 +478,5 @@ qtest.o: $(srcdir)/tpkg/cutest/qtest.c config.h $(srcdir)/tpkg/cutest/qtest.h $(
  $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/namedb.h $(srcdir)/util.h $(srcdir)/nsec3.h $(srcdir)/options.h \
  $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/dname.h $(srcdir)/rdata.h
 udb-inspect.o: $(srcdir)/tpkg/cutest/udb-inspect.c config.h $(srcdir)/udb.h $(srcdir)/udbradtree.h \
- $(srcdir)/udb.h $(srcdir)/udbzone.h $(srcdir)/dns.h $(srcdir)/udbradtree.h
+ $(srcdir)/udb.h $(srcdir)/udbzone.h $(srcdir)/dns.h $(srcdir)/udbradtree.h $(srcdir)/util.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
+ $(srcdir)/util.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/radtree.h $(srcdir)/rdata.h $(srcdir)/namedb.h

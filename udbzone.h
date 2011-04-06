@@ -107,6 +107,11 @@ int udb_zone_search(udb_base* udb, udb_ptr* result, uint8_t* dname,
 	size_t dlen);
 /** get modification time for zone or 0 */
 uint64_t udb_zone_get_mtime(udb_base* udb, uint8_t* dname, size_t dlen);
+/** find a domain name in the zone domain tree */
+int udb_domain_find(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
+	udb_ptr* result);
+/** find rrset in domain */
+int udb_rrset_find(udb_base* udb, udb_ptr* domain, uint16_t t, udb_ptr* res);
 
 /** add an RR to a zone */
 int udb_zone_add_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,

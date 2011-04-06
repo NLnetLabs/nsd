@@ -234,5 +234,6 @@ int udb_radname_search(udb_base* udb, udb_ptr* rt, uint8_t* dname,
 	size_t dlen, udb_ptr* result);
 
 #define RADNODE(ptr) ((struct udb_radnode_d*)UDB_PTR(ptr))
+#define RADTREE(ptr) ((struct udb_radtree_d*)UDB_PTR(ptr))
 
 #endif /* UDB_RADTREE_H */
