@@ -174,7 +174,23 @@ wait_logfile () {
 # $2 : string to watch for.
 # exits with failure if it does not come up
 wait_server_up () {
-	wait_logfile $1 $2 90
+	local WAIT_THRES=30
+	local MAX_UP_TRY=120
+	local try
+	for (( try=0 ; try <= $MAX_UP_TRY ; try++ )) ; do
+		if test -f $1 && fgrep "$2" $1 >/dev/null; then
+			#echo "done on try $try"
+			break;
+		fi
+		if test $try -eq $MAX_UP_TRY; then
+			echo "Server in $1 did not go up!"
+			cat $1
+			exit 1;
+		fi
+		if test $try -ge $WAIT_THRES; then
+			sleep 1
+		fi
+	done
 }
 
 # wait for ldns-testns to come up
