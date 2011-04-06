@@ -91,7 +91,7 @@ server:
 	# xfrdfile: "@xfrdfile@"
 
 	# Number of seconds between reloads triggered by xfrd.
-	# xfrd-reload-timeout: 10
+	# xfrd-reload-timeout: 1
 
 	# Verbosity level.
 	# verbosity: 0

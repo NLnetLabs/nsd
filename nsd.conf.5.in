@@ -220,7 +220,7 @@ If this value is \-1, xfrd will not trigger a reload after a zone
 transfer. If positive xfrd will trigger a reload after a zone 
 transfer, then it will wait for the number of seconds before it will 
 trigger a new reload. Setting this value throttles the reloads to 
-once per the number of seconds. The default is 10 seconds.
+once per the number of seconds. The default is 1 second.
 .TP
 .B verbosity:\fR <level>
 This value specifies the verbosity level for (non\-debug) logging. 

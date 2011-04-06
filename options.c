@@ -59,7 +59,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->zonesdir = ZONESDIR;
 	opt->difffile = DIFFFILE;
 	opt->xfrdfile = XFRDFILE;
-	opt->xfrd_reload_timeout = 10;
+	opt->xfrd_reload_timeout = 1;
 	nsd_options = opt;
 	return opt;
 }

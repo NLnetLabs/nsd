@@ -3,6 +3,9 @@
 	  Because it checks the pointer-administration lists it slows down.
 	- udb-inspect has feature -l that lists zones (and RRs) in nsd.db.
 	- fix memory leak by zonec; the region_cleanup triggers too late.
+	- set listen TCP_BACKLOG to 16 by default, it avoids connect reset
+	  by peer in 1000-zones transfer on an ultra10, thus for many-zones.
+	- default xfrd-reload-timeout to 1 second.
 
 5 April 2011: Wouter
 	- Fix uninitialised value in xfrd nsd_soa, the rdata_count.
