@@ -1005,7 +1005,7 @@ static uint8_t char_r2d(uint8_t c)
 }
 
 /** copy and convert a range of characters */
-static void cpy_d2r(uint8_t* to, uint8_t* from, int len)
+static void cpy_d2r(uint8_t* to, const uint8_t* from, int len)
 {
 	int i;
 	for(i=0; i<len; i++)
@@ -1021,7 +1021,8 @@ static void cpy_r2d(uint8_t* to, uint8_t* from, uint8_t len)
 }
 
 /* radname code: domain to radix-bstring */
-void radname_d2r(uint8_t* k, radstrlen_t* len, uint8_t* dname, size_t dlen)
+void radname_d2r(uint8_t* k, radstrlen_t* len, const uint8_t* dname,
+	size_t dlen)
 {
 	/* the domain name is converted as follows,
 	 * to preserve the normal (NSEC) ordering of domain names.
@@ -1040,7 +1041,7 @@ void radname_d2r(uint8_t* k, radstrlen_t* len, uint8_t* dname, size_t dlen)
 	 */
 
 	/* conversion by putting the label starts on a stack */
-	uint8_t* labstart[130];
+	const uint8_t* labstart[130];
 	unsigned int lab = 0, kpos, dpos = 0;
 	/* sufficient space */
 	assert(k && dname);
@@ -1145,7 +1146,7 @@ void radname_r2d(uint8_t* k, radstrlen_t len, uint8_t* dname, size_t* dlen)
 
 /** insert by domain name */
 struct radnode*
-radname_insert(struct radtree* rt, uint8_t* d, size_t max, void* elem)
+radname_insert(struct radtree* rt, const uint8_t* d, size_t max, void* elem)
 {
 	/* convert and insert */
 	uint8_t radname[300];
@@ -1158,7 +1159,7 @@ radname_insert(struct radtree* rt, uint8_t* d, size_t max, void* elem)
 
 /** delete by domain name */
 void
-radname_delete(struct radtree* rt, uint8_t* d, size_t max)
+radname_delete(struct radtree* rt, const uint8_t* d, size_t max)
 {
 	/* search and remove */
 	struct radnode* n = radname_search(rt, d, max);
@@ -1166,10 +1167,11 @@ radname_delete(struct radtree* rt, uint8_t* d, size_t max)
 }
 
 /* search for exact match of domain name, converted to radname in tree */
-struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max)
+struct radnode* radname_search(struct radtree* rt, const uint8_t* d,
+	size_t max)
 {
 	/* stack of labels in the domain name */
-	uint8_t* labstart[130];
+	const uint8_t* labstart[130];
 	unsigned int lab, dpos, lpos;
 	struct radnode* n = rt->root;
 	uint8_t byte;
@@ -1250,11 +1252,11 @@ struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max)
 }
 
 /* find domain name or smaller or equal domain name in radix tree */
-int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
+int radname_find_less_equal(struct radtree* rt, const uint8_t* d, size_t max,
         struct radnode** result)
 {
 	/* stack of labels in the domain name */
-	uint8_t* labstart[130];
+	const uint8_t* labstart[130];
 	unsigned int lab, dpos, lpos;
 	struct radnode* n = rt->root;
 	uint8_t byte;

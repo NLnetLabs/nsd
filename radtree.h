@@ -170,7 +170,8 @@ struct radnode* radix_prev(struct radnode* n);
  * @param dname: the domain name to convert, in wireformat.
  * @param dlen: length of space for dname.
  */
-void radname_d2r(uint8_t* k, radstrlen_t* len, uint8_t* dname, size_t dlen);
+void radname_d2r(uint8_t* k, radstrlen_t* len, const uint8_t* dname,
+	size_t dlen);
 
 /**
  * Convert a binary string back to a domain name.
@@ -189,7 +190,8 @@ void radname_r2d(uint8_t* k, radstrlen_t len, uint8_t* dname, size_t* dlen);
  * @param max: max length to go from d.
  * @return NULL on parse error or if not found.
  */
-struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max);
+struct radnode* radname_search(struct radtree* rt, const uint8_t* d,
+	size_t max);
 
 /**
  * Find radix element in tree by domain name, and if not found,
@@ -203,7 +205,7 @@ struct radnode* radname_search(struct radtree* rt, uint8_t* d, size_t max);
  * 	could result in NULL on a parse error as well (with return false).
  * @return true if exact match, false if no match.
  */
-int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
+int radname_find_less_equal(struct radtree* rt, const uint8_t* d, size_t max,
 	struct radnode** result);
 
 /**
@@ -217,7 +219,7 @@ int radname_find_less_equal(struct radtree* rt, uint8_t* d, size_t max,
  * 	NULL on failure - parse error.
  * 	On success the radix node for this element.
  */
-struct radnode* radname_insert(struct radtree* rt, uint8_t* d,
+struct radnode* radname_insert(struct radtree* rt, const uint8_t* d,
 	size_t max, void* elem);
 
 /**
@@ -226,7 +228,7 @@ struct radnode* radname_insert(struct radtree* rt, uint8_t* d,
  * @param d: the domain name.  If it is not in the tree nothing happens.
  * @param max: max length.
  */
-void radname_delete(struct radtree* rt, uint8_t* d, size_t max);
+void radname_delete(struct radtree* rt, const uint8_t* d, size_t max);
 
 /** number of bytes in common in strings */
 radstrlen_t bstr_common_ext(uint8_t* x, radstrlen_t xlen, uint8_t* y,

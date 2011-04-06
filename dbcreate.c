@@ -56,9 +56,9 @@ udb_del_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
 		rdatalen += add_rdata(rr, i, rdata+rdatalen,
 			sizeof(rdata)-rdatalen);
 	}
-	udb_zone_del_rr(udb, z, (uint8_t*)dname_name(domain_dname(
-		rr->owner)), domain_dname(rr->owner)->name_size, rr->type,
-		rr->klass, rdata, rdatalen);
+	udb_zone_del_rr(udb, z, dname_name(domain_dname(rr->owner)),
+		domain_dname(rr->owner)->name_size, rr->type, rr->klass,
+		rdata, rdatalen);
 }
 
 /** write rr */
@@ -73,9 +73,9 @@ udb_write_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
 		rdatalen += add_rdata(rr, i, rdata+rdatalen,
 			sizeof(rdata)-rdatalen);
 	}
-	return udb_zone_add_rr(udb, z, (uint8_t*)dname_name(domain_dname(
-		rr->owner)), domain_dname(rr->owner)->name_size, rr->type,
-		rr->klass, rr->ttl, rdata, rdatalen);
+	return udb_zone_add_rr(udb, z, dname_name(domain_dname(rr->owner)),
+		domain_dname(rr->owner)->name_size, rr->type, rr->klass,
+		rr->ttl, rdata, rdatalen);
 }
 
 /** write rrset */
@@ -118,12 +118,12 @@ write_zone_to_udb(udb_base* udb, zone_type* zone, time_t mtime)
 	/* make udb dirty */
 	udb_base_set_userflags(udb, 1);
 	/* find or create zone */
-	if(udb_zone_search(udb, &z, (uint8_t*)dname_name(domain_dname(
-		zone->apex)), domain_dname(zone->apex)->name_size)) {
+	if(udb_zone_search(udb, &z, dname_name(domain_dname(zone->apex)),
+		domain_dname(zone->apex)->name_size)) {
 		/* wipe existing contents */
 		udb_zone_clear(udb, &z);
 	} else {
-		if(!udb_zone_create(udb, &z, (uint8_t*)dname_name(domain_dname(
+		if(!udb_zone_create(udb, &z, dname_name(domain_dname(
 			zone->apex)), domain_dname(zone->apex)->name_size)) {
 			udb_base_set_userflags(udb, 0);
 			return 0;

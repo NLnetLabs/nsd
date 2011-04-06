@@ -218,7 +218,7 @@ size_t size_of_lookup_ext(udb_ptr* node);
 	Not set if the routine fails.
  * @return 0 on failure
  */
-udb_void udb_radname_insert(udb_base* udb, udb_ptr* rt, uint8_t* dname,
+udb_void udb_radname_insert(udb_base* udb, udb_ptr* rt, const uint8_t* dname,
 	size_t dlen, udb_ptr* elem, udb_ptr* result);
 
 /** search for a radname element, key is a domain name.
@@ -230,7 +230,7 @@ udb_void udb_radname_insert(udb_base* udb, udb_ptr* rt, uint8_t* dname,
  *    may be uninitialized.
  * @return 0 if not found.
  */
-int udb_radname_search(udb_base* udb, udb_ptr* rt, uint8_t* dname,
+int udb_radname_search(udb_base* udb, udb_ptr* rt, const uint8_t* dname,
 	size_t dlen, udb_ptr* result);
 
 #define RADNODE(ptr) ((struct udb_radnode_d*)UDB_PTR(ptr))

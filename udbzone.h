@@ -96,35 +96,36 @@ int udb_dns_init_file(udb_base* udb);
 void udb_dns_deinit_file(udb_base* udb);
 
 /** create a zone */
-int udb_zone_create(udb_base* udb, udb_ptr* result, uint8_t* dname,
+int udb_zone_create(udb_base* udb, udb_ptr* result, const uint8_t* dname,
 	size_t dlen);
 /** clear all RRsets from a zone */
 void udb_zone_clear(udb_base* udb, udb_ptr* zone);
 /** delete a zone */
 void udb_zone_delete(udb_base* udb, udb_ptr* zone);
 /** find a zone by name (exact match) */
-int udb_zone_search(udb_base* udb, udb_ptr* result, uint8_t* dname,
+int udb_zone_search(udb_base* udb, udb_ptr* result, const uint8_t* dname,
 	size_t dlen);
 /** get modification time for zone or 0 */
-uint64_t udb_zone_get_mtime(udb_base* udb, uint8_t* dname, size_t dlen);
+uint64_t udb_zone_get_mtime(udb_base* udb, const uint8_t* dname, size_t dlen);
 /** find a domain name in the zone domain tree */
-int udb_domain_find(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
-	udb_ptr* result);
+int udb_domain_find(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
+	size_t nmlen, udb_ptr* result);
 /** find rrset in domain */
 int udb_rrset_find(udb_base* udb, udb_ptr* domain, uint16_t t, udb_ptr* res);
 
 /** add an RR to a zone */
-int udb_zone_add_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
-	uint16_t t, uint16_t k, uint32_t ttl, uint8_t* rdata, size_t rdatalen);
+int udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
+	size_t nmlen, uint16_t t, uint16_t k, uint32_t ttl, uint8_t* rdata,
+	size_t rdatalen);
 /** del an RR from a zone */
-void udb_zone_del_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
-	uint16_t t, uint16_t k, uint8_t* rdata, size_t rdatalen);
+void udb_zone_del_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
+	size_t nmlen, uint16_t t, uint16_t k, uint8_t* rdata, size_t rdatalen);
 
 /** lookup nsec3 hash or create the hash : caches results in file */
-int udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, uint8_t* nm,
+int udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
 	size_t nmlen, uint8_t hash[NSEC3_HASH_LEN]);
 /** lookup nsec3 hash or create, for nm and *.nm */
-int udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, uint8_t* nm,
+int udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
 	size_t nmlen, uint8_t hash[NSEC3_HASH_LEN],
 	uint8_t wchash[NSEC3_HASH_LEN]);
 

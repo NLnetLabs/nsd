@@ -63,7 +63,8 @@ udb_dns_deinit_file(udb_base* udb)
 }
 
 int
-udb_zone_create(udb_base* udb, udb_ptr* result, uint8_t* dname, size_t dlen)
+udb_zone_create(udb_base* udb, udb_ptr* result, const uint8_t* dname,
+	size_t dlen)
 {
 	udb_ptr ztree, z, node, dtree;
 	udb_ptr_new(&ztree, udb, udb_base_get_userdata(udb));
@@ -231,7 +232,7 @@ udb_zone_delete(udb_base* udb, udb_ptr* zone)
 }
 
 int
-udb_zone_search(udb_base* udb, udb_ptr* result, uint8_t* dname,
+udb_zone_search(udb_base* udb, udb_ptr* result, const uint8_t* dname,
 	size_t dname_len)
 {
 	udb_ptr ztree;
@@ -247,7 +248,7 @@ udb_zone_search(udb_base* udb, udb_ptr* result, uint8_t* dname,
 	return 0;
 }
 
-uint64_t udb_zone_get_mtime(udb_base* udb, uint8_t* dname, size_t dlen)
+uint64_t udb_zone_get_mtime(udb_base* udb, const uint8_t* dname, size_t dlen)
 {
 	udb_ptr z;
 	if(udb_zone_search(udb, &z, dname, dlen)) {
@@ -361,7 +362,7 @@ zone_hash_nsec3param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 
 /** create a new domain name */
 static int
-domain_create(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
+domain_create(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	udb_ptr* result)
 {
 	udb_ptr dtree, node;
@@ -392,7 +393,7 @@ domain_create(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 }
 
 int
-udb_domain_find(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
+udb_domain_find(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	udb_ptr* result)
 {
 	int r;
@@ -408,8 +409,8 @@ udb_domain_find(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 
 /** find or create a domain name in the zone domain tree */
 static int
-domain_find_or_create(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
-	udb_ptr* result)
+domain_find_or_create(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
+	size_t nmlen, udb_ptr* result)
 {
 	assert(udb_ptr_get_type(zone) == udb_chunk_type_zone);
 	if(udb_domain_find(udb, zone, nm, nmlen, result))
@@ -607,7 +608,7 @@ rrset_del_rr(udb_base* udb, udb_ptr* rrset, uint16_t t, uint16_t k,
 }
 
 int
-udb_zone_add_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
+udb_zone_add_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	uint16_t t, uint16_t k, uint32_t ttl, uint8_t* rdata, size_t rdatalen)
 {
 	udb_ptr domain, rrset, rr;
@@ -659,7 +660,7 @@ udb_zone_add_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 }
 
 void
-udb_zone_del_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
+udb_zone_del_rr(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	uint16_t t, uint16_t k, uint8_t* rdata, size_t rdatalen)
 {
 	udb_ptr domain, rrset;
@@ -713,7 +714,7 @@ udb_zone_del_rr(udb_base* udb, udb_ptr* zone, uint8_t* nm, size_t nmlen,
 
 #ifdef NSEC3
 int
-udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, uint8_t* nm,
+udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
         size_t nmlen, uint8_t hash[NSEC3_HASH_LEN])
 {
 	udb_ptr d;
@@ -738,7 +739,7 @@ udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, uint8_t* nm,
 
 #ifdef NSEC3
 int
-udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, uint8_t* nm,
+udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
         size_t nmlen, uint8_t hash[NSEC3_HASH_LEN],
         uint8_t wchash[NSEC3_HASH_LEN])
 {

@@ -98,9 +98,8 @@ domain_table_create(region_type *region)
 	result->region = region;
 	result->nametree = radix_tree_create();
 	region_add_cleanup(region, &del_radix_tree, result->nametree);
-	root->rnode = radname_insert(result->nametree,
-		(uint8_t*)dname_name(root->dname), root->dname->name_size,
-		root);
+	root->rnode = radname_insert(result->nametree, dname_name(root->dname),
+		root->dname->name_size, root);
 
 	result->root = root;
 
@@ -121,8 +120,7 @@ domain_table_search(domain_table_type *table,
 	assert(closest_match);
 	assert(closest_encloser);
 
-	exact = radname_find_less_equal(table->nametree, 
-		(uint8_t*)dname_name(dname),
+	exact = radname_find_less_equal(table->nametree, dname_name(dname),
 		dname->name_size, (struct radnode**)closest_match);
 	*closest_match = (domain_type*)((*(struct radnode**)closest_match)->elem);
 	assert(*closest_match);
@@ -182,7 +180,7 @@ domain_table_insert(domain_table_type *table,
 						      dname,
 						      closest_encloser);
 			result->rnode = radname_insert(table->nametree,
-				(uint8_t*)dname_name(result->dname),
+				dname_name(result->dname),
 				result->dname->name_size, result);
 			result->number = table->nametree->count;
 
@@ -364,8 +362,8 @@ rr_rrsig_type_covered(rr_type *rr)
 zone_type *
 namedb_find_zone(namedb_type *db, const dname_type *dname)
 {
-	struct radnode* n = radname_search(db->zonetree, 
-		(uint8_t*)dname_name(dname), dname->name_size);
+	struct radnode* n = radname_search(db->zonetree, dname_name(dname),
+		dname->name_size);
 	if(n) return (zone_type*)n->elem;
 	return NULL;
 }

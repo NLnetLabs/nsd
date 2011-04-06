@@ -102,7 +102,7 @@ nsec3_lookup_hash_and_wc(namedb_type* db, region_type* region, zone_type* zone,
 		*wchash = nsec3_b32_create(region, zone, domain->nsec3_wc_hash);
 		return;
 	}
-	if(udb_zone_lookup_hash_wc(db->udb, z, (uint8_t*)dname_name(dname),
+	if(udb_zone_lookup_hash_wc(db->udb, z, dname_name(dname),
 		dname->name_size, h, h_wc)) {
 		STORE_HASH(nsec3_hash, h);
 		STORE_HASH(nsec3_wc_hash, h_wc);
@@ -130,7 +130,7 @@ nsec3_lookup_hash_ds(namedb_type* db, region_type* region, zone_type* zone,
 		*hash = nsec3_b32_create(region, zone, domain->nsec3_ds_parent_hash);
 		return;
 	}
-	if(udb_zone_lookup_hash(db->udb, z, (uint8_t*)dname_name(dname),
+	if(udb_zone_lookup_hash(db->udb, z, dname_name(dname),
 		dname->name_size, h)) {
 		STORE_HASH(nsec3_ds_parent_hash, h);
 		*hash = nsec3_b32_create(region, zone, h);
@@ -162,7 +162,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone, udb_ptr* z)
 	unsigned j;
 	rrset_type* nsec3_rrset;
 	region_type* tmpregion;
-	if(!udb_zone_lookup_hash(namedb->udb, z, (uint8_t*)dname_name(dname),
+	if(!udb_zone_lookup_hash(namedb->udb, z, dname_name(dname),
 		dname->name_size, h)) {
 		return NULL;
 	}
@@ -370,7 +370,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 	assert(db && zone);
 
 	/* find zone settings */
-	if(!udb_zone_search(db->udb, &udbz, (uint8_t*)dname_name(domain_dname(
+	if(!udb_zone_search(db->udb, &udbz, dname_name(domain_dname(
 		zone->apex)), domain_dname(zone->apex)->name_size)) {
 		udb_ptr_init(&udbz, db->udb); /* zero the ptr */
 	}

@@ -242,7 +242,7 @@ make_zone(namedb_type* db, const dname_type* dname, zone_options_t* zo,
 {
 	zone_type* zone = (zone_type *) region_alloc(db->region,
 		sizeof(zone_type));
-	zone->node = radname_insert(db->zonetree, (uint8_t*)dname_name(dname),
+	zone->node = radname_insert(db->zonetree, dname_name(dname),
 		dname->name_size, zone);
 	assert(zone->node);
 	zone->apex = domain_table_insert(db->domains, dname);
@@ -440,9 +440,9 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 		return;
 	} else {
 		/* check the mtime */
-		if(udb_zone_get_mtime(db->udb, (uint8_t*)dname_name(
-			domain_dname(zone->apex)), domain_dname(zone->apex)
-			->name_size) >= (uint64_t)mtime) {
+		if(udb_zone_get_mtime(db->udb, dname_name(domain_dname(
+			zone->apex)), domain_dname(zone->apex)->name_size)
+			>= (uint64_t)mtime) {
 			VERBOSITY(3, (LOG_INFO, "zonefile %s is not modified",
 				zone->opts->zonefile));
 			return;
@@ -462,9 +462,8 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 		/* wipe (partial) zone from memory */
 		delete_zone_rrs(db, zone);
 		/* see if we can revert to the udb stored version */
-		if(!udb_zone_search(db->udb, &z, (uint8_t*)dname_name(
-			domain_dname(zone->apex)),
-			domain_dname(zone->apex)->name_size)) {
+		if(!udb_zone_search(db->udb, &z, dname_name(domain_dname(
+			zone->apex)), domain_dname(zone->apex)->name_size)) {
 			return;
 		}
 		/* read from udb */

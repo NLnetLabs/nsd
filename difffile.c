@@ -496,8 +496,8 @@ find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
 		exit(1);
 	}
-	zone->node = radname_insert(db->zonetree, (uint8_t*)dname_name(
-		zone_name), zone_name->name_size, zone);
+	zone->node = radname_insert(db->zonetree, dname_name(zone_name),
+		zone_name->name_size, zone);
 	assert(zone->node);
 	zone->apex = domain;
 	zone->soa_rrset = 0;
@@ -1081,11 +1081,11 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			exit(1);
 		}
 		/* all parts were checked by xfrd before commit */
-		if(!udb_zone_search(db->udb, &z,
-			(uint8_t*)dname_name(apex), apex->name_size)) {
+		if(!udb_zone_search(db->udb, &z, dname_name(apex),
+			apex->name_size)) {
 			/* create it */
-			if(!udb_zone_create(db->udb, &z,
-				(uint8_t*)dname_name(apex), apex->name_size)) {
+			if(!udb_zone_create(db->udb, &z, dname_name(apex),
+				apex->name_size)) {
 				/* out of disk space perhaps */
 				log_msg(LOG_ERR, "could not udb_create_zone "
 					"%s, disk space full?", log_buf);
