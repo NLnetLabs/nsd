@@ -5,7 +5,6 @@
  */
 #include "config.h"
 #include "tpkg/cutest/cutest.h"
-#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -15,6 +14,9 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#ifndef RAND_MAX
+#define RAND_MAX 2147483647
+#endif
 static void radtree_1(CuTest* tc);
 static void radtree_2(CuTest* tc);
 static void radtree_3(CuTest* tc);

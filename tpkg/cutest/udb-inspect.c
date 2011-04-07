@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
 
@@ -32,6 +33,10 @@ static int v = 0;
 #undef ULL
 #endif
 #define ULL (unsigned long long)
+
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void*)-1)
+#endif
 
 /** print usage text */
 static void

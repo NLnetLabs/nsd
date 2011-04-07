@@ -5,7 +5,6 @@
  */
 #include "config.h"
 #include "tpkg/cutest/cutest.h"
-#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -22,6 +21,9 @@ void check_udb(void);
 #define RADTREE(ptr) ((struct udb_radtree_d*)UDB_PTR(ptr))
 #define RADARRAY(ptr) ((struct udb_radarray_d*)UDB_PTR(ptr))
 #define TESTSTR(ptr) ((struct teststr*)UDB_PTR(ptr))
+#ifndef RAND_MAX
+#define RAND_MAX 2147483647
+#endif
 
 /* a chunk type not in use by radtree or the builtin types */
 #define TESTSTR_CHUNK_TYPE 253

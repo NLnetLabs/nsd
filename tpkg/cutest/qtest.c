@@ -3,6 +3,7 @@
 */
 #include "config.h"
 #include <errno.h>
+#include <stdlib.h>
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
@@ -529,7 +530,7 @@ do_speed(struct qs* qs, query_type* query, nsd_type* nsd)
 	did = qs->num * max;
 	qps = ((double)did)/((double)taken);
 	qps *= 1000000.; /* 1/msec to 1/sec */
-	printf("did %d in %d.%6.6d sec: %lf qps\n", did, 
+	printf("did %d in %d.%6.6d sec: %f qps\n", did, 
 		(int)stop.tv_sec, (int)stop.tv_usec, qps);
 }
 
