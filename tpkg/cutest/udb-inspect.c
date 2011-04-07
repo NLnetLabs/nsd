@@ -393,7 +393,8 @@ inspect_file(char* fname)
 		exit(1);
 	}
 	sz = inspect_initial(fd);
-	base = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, (off_t)0);
+	base = mmap(NULL, (size_t)sz, (int)PROT_READ, (int)MAP_SHARED,
+		(int)fd, (off_t)0);
 	if(base == MAP_FAILED) {
 		printf("mmap %s %u: %s\n", fname, (unsigned)sz,
 			strerror(errno));
