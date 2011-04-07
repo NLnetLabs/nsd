@@ -77,6 +77,7 @@ int main(int argc, char* argv[])
 	char* config = NULL, *qfile=NULL;
 	int verb=0;
 	unsigned seed;
+	log_init("cutest");
 	while((c = getopt(argc, argv, "c:hq:v")) != -1) {
 		switch(c) {
 		case 'c':

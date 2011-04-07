@@ -1,3 +1,6 @@
+7 April 2011: Wouter
+	- ported to sunos 4.1.4, the unit test works (udb, radtree in mmap).
+
 6 April 2011: Wouter
 	- UDB_CHECK is enabled if --enable-checking is used.
 	  Because it checks the pointer-administration lists it slows down.

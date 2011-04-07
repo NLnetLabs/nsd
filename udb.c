@@ -147,8 +147,11 @@ udb_base_create_fd(const char* fname, int fd, udb_walk_relptr_func walkfunc,
 		goto fail;
 	}
 	udb->base_size = (size_t)g.fsize;
-	udb->base = mmap(NULL, udb->base_size, PROT_READ|PROT_WRITE,
-		MAP_SHARED, udb->fd, (off_t)0);
+	/* note the size_t casts must be there for portability, on some
+	 * systems the layout of memory is otherwise broken. */
+	udb->base = mmap(NULL, (size_t)udb->base_size,
+		(int)PROT_READ|PROT_WRITE, (int)MAP_SHARED,
+		(int)udb->fd, (off_t)0);
 	if(udb->base == MAP_FAILED) {
 		udb->base = NULL;
 		log_msg(LOG_ERR, "mmap(size %u) error: %s",
@@ -481,8 +484,10 @@ udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)
 			udb->fname, strerror(errno));
 	}
 	/* provide hint for new location */
-	nb = mmap(udb->base, nsize, PROT_READ|PROT_WRITE,
-		MAP_SHARED, udb->fd, (off_t)0);
+	/* note the size_t casts must be there for portability, on some
+	 * systems the layout of memory is otherwise broken. */
+	nb = mmap(udb->base, (size_t)nsize, (int)PROT_READ|PROT_WRITE,
+		(int)MAP_SHARED, (int)udb->fd, (off_t)0);
 	if(nb == MAP_FAILED) {
 		log_msg(LOG_ERR, "mmap(%s, size %u) error %s",
 			udb->fname, (unsigned)nsize, strerror(errno));
@@ -518,7 +523,7 @@ udb_base_grow_and_remap(udb_base* udb, uint64_t nsize)
 #ifdef HAVE_PWRITE
 	if((w=pwrite(udb->fd, &z, sizeof(z), (off_t)(nsize-1))) == -1) {
 #else
-	if(fseek(udb->fd, (off_t)(nsize-1), 0) == -1) {
+	if(lseek(udb->fd, (off_t)(nsize-1), SEEK_SET) == -1) {
 		log_msg(LOG_ERR, "fseek %s: %s", udb->fname, strerror(errno));
 		return 0;
 	}
