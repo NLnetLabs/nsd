@@ -1,6 +1,7 @@
 8 April 2011: Wouter
 	- porting complete.
 	- tag 4.0.0-imp2 created
+	- trunk is version 4.0.0-imp3.
 
 7 April 2011: Wouter
 	- ported to sunos 4.1.4, the unit test works (udb, radtree in mmap).
