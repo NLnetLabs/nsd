@@ -588,7 +588,7 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 		return;
 	}
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: copy_soa rr, type %d rrs %u, ttl %u.",
-			rr->type, rr->rdata_count, rr->ttl));
+			(int)rr->type, (unsigned)rr->rdata_count, (unsigned)rr->ttl));
 	soa->type = htons(rr->type);
 	soa->klass = htons(rr->klass);
 	soa->ttl = htonl(rr->ttl);
@@ -608,8 +608,8 @@ xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr)
 	memcpy(&soa->minimum, rdata_atom_data(rr->rdatas[6]), sizeof(uint32_t));
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 		"xfrd: copy_soa rr, serial %u refresh %u retry %u expire %u",
-		ntohl(soa->serial), ntohl(soa->refresh), ntohl(soa->retry),
-		ntohl(soa->expire)));
+		(unsigned)ntohl(soa->serial), (unsigned)ntohl(soa->refresh),
+		(unsigned)ntohl(soa->retry), (unsigned)ntohl(soa->expire)));
 }
 
 static void
@@ -673,8 +673,8 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	{
 		/* soa in disk has been loaded in memory */
 		log_msg(LOG_INFO, "Zone %s serial %u is updated to %u.",
-			zone->apex_str, ntohl(zone->soa_nsd.serial),
-			ntohl(soa->serial));
+			zone->apex_str, (unsigned)ntohl(zone->soa_nsd.serial),
+			(unsigned)ntohl(soa->serial));
 		zone->soa_nsd = zone->soa_disk;
 		zone->soa_nsd_acquired = zone->soa_disk_acquired;
 		if((uint32_t)xfrd_time() - zone->soa_disk_acquired
@@ -718,7 +718,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 	/* user must have manually provided zone data */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 		"xfrd: zone %s serial %u from unknown source. refreshing",
-		zone->apex_str, ntohl(soa->serial)));
+		zone->apex_str, (unsigned)ntohl(soa->serial)));
 	zone->soa_nsd = *soa;
 	zone->soa_disk = *soa;
 	zone->soa_nsd_acquired = acquired;
@@ -1022,7 +1022,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 		"xfrd sent udp request for ixfr=%u for zone %s to %s",
-		ntohl(zone->soa_disk.serial),
+		(unsigned)ntohl(zone->soa_disk.serial),
 		zone->apex_str, zone->master->ip_address_spec));
 	return fd;
 }
@@ -1311,7 +1311,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 			return xfrd_packet_bad;
 		}
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "IXFR reply has ok serial (have \
-%u, reply %u).", ntohl(zone->soa_disk.serial), ntohl(soa->serial)));
+%u, reply %u).", (unsigned)ntohl(zone->soa_disk.serial), (unsigned)ntohl(soa->serial)));
 		/* serial is newer than soa_disk */
 		if(ancount == 1) {
 			/* single record means it is like a notify */
@@ -1408,7 +1408,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 					(int)zone->msg_new_serial,
 					(int)xfrd_time(),
 					zone->master->ip_address_spec,
-					zone->msg_seq_nr);
+					(unsigned)zone->msg_seq_nr);
 
 				buffer_flip(packet);
 				diff_write_commit(zone->apex_str,
@@ -1449,7 +1449,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	buffer_printf(packet, "xfrd: zone %s received update to serial %u at "
 			      "time %u from %s in %u parts",
 		zone->apex_str, (int)zone->msg_new_serial, (int)xfrd_time(),
-		zone->master->ip_address_spec, zone->msg_seq_nr);
+		zone->master->ip_address_spec, (unsigned)zone->msg_seq_nr);
 	if(zone->master->key_options) {
 		buffer_printf(packet, " TSIG verified with key %s",
 			zone->master->key_options->name);
@@ -1596,8 +1596,8 @@ xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"xfrd: ignored notify %s %u old serial, zone valid "
 			"(soa disk serial %u)", zone->apex_str,
-			ntohl(soa->serial),
-			ntohl(zone->soa_disk.serial)));
+			(unsigned)ntohl(soa->serial),
+			(unsigned)ntohl(zone->soa_disk.serial)));
 		return 0; /* ignore notify with old serial, we have a valid zone */
 	}
 	if(soa == 0) {
@@ -1660,7 +1660,7 @@ xfrd_check_failed_updates()
 				log_msg(LOG_ERR, "xfrd: zone %s: soa serial %u "
 						 		 "update failed, restarting "
 						 		 "transfer (notified zone)",
-					zone->apex_str, ntohl(zone->soa_disk.serial));
+					zone->apex_str, (unsigned)ntohl(zone->soa_disk.serial));
 				/* revert the soa; it has not been acquired properly */
 				zone->soa_disk_acquired = zone->soa_nsd_acquired;
 				zone->soa_disk = zone->soa_nsd;

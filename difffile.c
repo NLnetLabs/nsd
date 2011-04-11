@@ -712,8 +712,8 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		}
 		if(buffer_read_u32(packet) != serialno) {
 			buffer_skip(packet, -4);
-			log_msg(LOG_ERR, "SOA serial %d different from commit %d",
-				buffer_read_u32(packet), serialno);
+			log_msg(LOG_ERR, "SOA serial %u different from commit %u",
+				(unsigned)buffer_read_u32(packet), (unsigned)serialno);
 			region_destroy(region);
 			return 0;
 		}
@@ -1147,7 +1147,7 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 		zp = diff_read_insert_zone(data, zone_name);
 	xp = diff_read_find_part(zp, seq);
 	if(xp) {
-		log_msg(LOG_INFO, "discarding partial xfr part: %s %d", zone_name, seq);
+		log_msg(LOG_INFO, "discarding partial xfr part: %s %d", zone_name, (int)seq);
 		/* overwrite with newer value (which probably relates to next commit) */
 	}
 	else {
@@ -1171,16 +1171,16 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 		return 1;
 	/* read content */
 	if(type == DIFF_PART_IXFR) {
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part IXFR len %d", len));
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part IXFR len %d", (int)len));
 		if(!store_ixfr_data(in, len, data, startpos))
 			return 0;
 	}
 	else if(type == DIFF_PART_SURE) {
-		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", len));
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", (int)len));
 		if(!read_sure_part(db, in, opt, data, log, child_count))
 			return 0;
 	} else {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", type, len));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", (unsigned)type, (int)len));
 		return 0;
 	}
 	/* read length */
@@ -1274,8 +1274,10 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "new timestamp on "
 				"difffile %s, restoring diff_skip and diff_pos "
 				"[old timestamp: %u.%u; new timestamp: %u.%u]",
-				filename, curr_timestamp[0], curr_timestamp[1],
-				timestamp[0], timestamp[1]));
+				filename, (unsigned)curr_timestamp[0],
+				(unsigned)curr_timestamp[1],
+				(unsigned)timestamp[0],
+				(unsigned)timestamp[1]));
 			db->diff_skip = 0;
 			db->diff_pos = 0;
 		}
@@ -1305,7 +1307,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	}
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "start of diff file read at pos %u",
-		(uint32_t) db->diff_pos));
+		(unsigned)db->diff_pos));
 	while(diff_read_32(df, &type))
 	{
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "iter loop"));

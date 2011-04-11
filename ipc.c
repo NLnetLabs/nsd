@@ -643,7 +643,7 @@ xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
 		soa.expire = htonl(buffer_read_u32(packet));
 		soa.minimum = htonl(buffer_read_u32(packet));
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s %u",
-			dname_to_string(dname,0), ntohl(soa.serial)));
+			dname_to_string(dname,0), (unsigned)ntohl(soa.serial)));
 	}
 
 	if(!zone) {
@@ -825,7 +825,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		break;
         default:
                 log_msg(LOG_ERR, "xfrd_handle_ipc: bad mode %d (%d)", (int)cmd,
-			ntohl(cmd));
+			(int)ntohl(cmd));
                 break;
         }
 
