@@ -74,7 +74,7 @@ NSD_NOTIFY_OBJ=$(COMMON_OBJ) nsd-notify.o
 NSD_XFER_OBJ=$(COMMON_OBJ) nsd-xfer.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
 NSD_PATCH_OBJ=$(COMMON_OBJ) dbcreate.o dbaccess.o zonec.o zparser.o zlexer.o difffile.o nsd-patch.o
-CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_options.o cutest_region.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
+CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
 
 all:	$(CCWHOLE)
 
@@ -259,6 +259,9 @@ cutest_rbtree.o:	$(srcdir)/tpkg/cutest/cutest_rbtree.c
 
 cutest_radtree.o:	$(srcdir)/tpkg/cutest/cutest_radtree.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_radtree.c
+
+cutest_namedb.o:	$(srcdir)/tpkg/cutest/cutest_namedb.c
+	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_namedb.c
 
 cutest_options.o:	$(srcdir)/tpkg/cutest/cutest_options.c
 	$(COMPILE) -c $(srcdir)/tpkg/cutest/cutest_options.c
@@ -455,6 +458,10 @@ cutest_dns.o: $(srcdir)/tpkg/cutest/cutest_dns.c config.h $(srcdir)/tpkg/cutest/
 cutest_iterated_hash.o: $(srcdir)/tpkg/cutest/cutest_iterated_hash.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/iterated_hash.h $(srcdir)/dname.h \
  $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
+cutest_namedb.o: $(srcdir)/tpkg/cutest/cutest_namedb.c config.h \
+ $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
+ $(srcdir)/rbtree.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/nsec3.h $(srcdir)/udb.h \
+ $(srcdir)/difffile.h $(srcdir)/namedb.h $(srcdir)/options.h
 cutest_options.o: $(srcdir)/tpkg/cutest/cutest_options.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
  $(srcdir)/rbtree.h $(srcdir)/util.h

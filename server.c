@@ -203,7 +203,7 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
 		if (nsd->children[i].pid == pid) {
 			nsd->children[i].pid = 0;
 			if(!nsd->children[i].need_to_exit) {
-				if(nsd->children[i].child_fd > 0)
+				if(nsd->children[i].child_fd != -1)
 					close(nsd->children[i].child_fd);
 				nsd->children[i].child_fd = -1;
 				if(nsd->children[i].handler)
@@ -229,7 +229,7 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 	/* Fork the child processes... */
 	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid <= 0) {
-			if (nsd->children[i].child_fd > 0)
+			if (nsd->children[i].child_fd != -1)
 				close(nsd->children[i].child_fd);
 			if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
 				log_msg(LOG_ERR, "socketpair: %s",
@@ -603,7 +603,7 @@ server_shutdown(struct nsd *nsd)
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
 	/* CHILD: close command channel to parent */
-	if(nsd->this_child && nsd->this_child->parent_fd > 0)
+	if(nsd->this_child && nsd->this_child->parent_fd != -1)
 	{
 		close(nsd->this_child->parent_fd);
 		nsd->this_child->parent_fd = -1;
@@ -612,7 +612,7 @@ server_shutdown(struct nsd *nsd)
 	if(!nsd->this_child)
 	{
 		for(i=0; i < nsd->child_count; ++i)
-			if(nsd->children[i].child_fd > 0)
+			if(nsd->children[i].child_fd != -1)
 			{
 				close(nsd->children[i].child_fd);
 				nsd->children[i].child_fd = -1;
@@ -1014,7 +1014,7 @@ server_main(struct nsd *nsd)
 					       "Reload process %d failed with status %d, continuing with old database",
 					       (int) child_pid, status);
 					reload_pid = -1;
-					if(reload_listener.fd > 0) close(reload_listener.fd);
+					if(reload_listener.fd != -1) close(reload_listener.fd);
 					reload_listener.fd = -1;
 					reload_listener.event_types = NETIO_EVENT_NONE;
 					/* inform xfrd reload attempt ended */
@@ -1112,7 +1112,7 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_QUIT_SYNC:
 			/* synchronisation of xfrd, parent and reload */
-			if(!nsd->quit_sync_done && reload_listener.fd > 0) {
+			if(!nsd->quit_sync_done && reload_listener.fd != -1) {
 				sig_atomic_t cmd = NSD_RELOAD;
 				/* stop xfrd ipc writes in progress */
 				DEBUG(DEBUG_IPC,1, (LOG_INFO,
@@ -1129,7 +1129,7 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_QUIT:
 			/* silent shutdown during reload */
-			if(reload_listener.fd > 0) {
+			if(reload_listener.fd != -1) {
 				/* acknowledge the quit, to sync reload that we will really quit now */
 				sig_atomic_t cmd = NSD_RELOAD;
 				DEBUG(DEBUG_IPC,1, (LOG_INFO, "main: ipc ack reload"));
@@ -1177,7 +1177,7 @@ server_main(struct nsd *nsd)
 	/* Unlink it if possible... */
 	unlinkpid(nsd->pidfile);
 
-	if(reload_listener.fd > 0) {
+	if(reload_listener.fd != -1) {
 		sig_atomic_t cmd = NSD_QUIT;
 		DEBUG(DEBUG_IPC,1, (LOG_INFO,
 			"main: ipc send quit to reload-process"));
@@ -1188,7 +1188,7 @@ server_main(struct nsd *nsd)
 		fsync(reload_listener.fd);
 		close(reload_listener.fd);
 	}
-	if(xfrd_listener.fd > 0) {
+	if(xfrd_listener.fd != -1) {
 		/* complete quit, stop xfrd */
 		sig_atomic_t cmd = NSD_QUIT;
 		DEBUG(DEBUG_IPC,1, (LOG_INFO,
@@ -1326,7 +1326,7 @@ server_child(struct nsd *nsd)
 		}
 		else if (mode == NSD_REAP_CHILDREN) {
 			/* got signal, notify parent. parent reaps terminated children. */
-			if (nsd->this_child->parent_fd > 0) {
+			if (nsd->this_child->parent_fd != -1) {
 				sig_atomic_t parent_notify = NSD_REAP_CHILDREN;
 				if (write(nsd->this_child->parent_fd,
 				    &parent_notify,
@@ -1901,7 +1901,7 @@ send_children_quit(struct nsd* nsd)
 	size_t i;
 	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
 	for (i = 0; i < nsd->child_count; ++i) {
-		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd > 0) {
+		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd != -1) {
 			if (write(nsd->children[i].child_fd,
 				&command,
 				sizeof(command)) == -1)

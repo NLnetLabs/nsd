@@ -63,12 +63,10 @@ struct domain
 	domain_type *nsec3_lookup;
 #endif
 	size_t     number; /* Unique domain name number.  */
+	size_t     usage; /* number of ptrs to this from RRs(in rdata) and
+			     from zone-apex pointers */
+	size_t     chnum; /* nr of domains that have this domain as parent */
 
-	/*
-	 * This domain name exists (see wildcard clarification draft).
-	 */
-	unsigned     is_existing : 1;
-	unsigned     is_apex : 1;
 #ifdef NSEC3
 	/* nsec3 hash */
 	uint8_t nsec3_hash[NSEC3_HASH_LEN];
@@ -85,6 +83,11 @@ struct domain
 	/* same but on parent side */
 	unsigned     nsec3_ds_parent_is_exact : 1;
 #endif
+	/*
+	 * This domain name exists (see wildcard clarification draft).
+	 */
+	unsigned     is_existing : 1;
+	unsigned     is_apex : 1;
 };
 
 struct zone

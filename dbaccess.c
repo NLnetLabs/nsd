@@ -460,6 +460,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 		log_msg(LOG_ERR, "zone %s file %s read with %u errors",
 			zone->opts->name, zone->opts->zonefile, errors);
 		/* wipe (partial) zone from memory */
+		zone->is_ok = 0;
 		delete_zone_rrs(db, zone);
 		/* see if we can revert to the udb stored version */
 		if(!udb_zone_search(db->udb, &z, dname_name(domain_dname(
@@ -474,6 +475,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 	} else {
 		VERBOSITY(1, (LOG_INFO, "zone %s read with no errors",
 			zone->opts->name));
+		zone->is_ok = 1;
 		/* store zone into udb */
 		if(!write_zone_to_udb(db->udb, zone, mtime)) {
 			log_msg(LOG_ERR, "failed to store zone in udb");

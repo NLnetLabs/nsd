@@ -982,6 +982,8 @@ zadd_rdata_txt_clean_wireformat()
 	if ((tmp_data = (uint16_t *) region_alloc(parser->region, 
 		rd->data[0] + 2)) != NULL) {
 		memcpy(tmp_data, rd->data, rd->data[0] + 2);
+		region_recycle(parser->region, rd->data,
+			sizeof(uint16_t) + 65535 * sizeof(uint8_t));
 		rd->data = tmp_data;
 	}
 	else {
@@ -1369,21 +1371,21 @@ zonec_read(const char *name, const char *zonefile, zone_type* zone)
 	yyparse();
 
 	/* check if zone file contained a correct SOA record */
-	if (parser->current_zone && parser->current_zone->soa_rrset
-		&& parser->current_zone->soa_rrset->rr_count!=0)
-	{
-		if(dname_compare(domain_dname(
-			parser->current_zone->soa_rrset->rrs[0].owner),
-			dname) != 0) {
-			zc_error("zone configured as '%s', but SOA has owner '%s'.",
-				name, dname_to_string(
-				domain_dname(parser->current_zone->
-				soa_rrset->rrs[0].owner), NULL));
-		}
+	if (!parser->current_zone) {
+		zc_error("zone configured as '%s' has no content.", name);
+	} else if(!parser->current_zone->soa_rrset ||
+		parser->current_zone->soa_rrset->rr_count == 0) {
+		zc_error("zone configured as '%s' has no SOA record.", name);
+	} else if(dname_compare(domain_dname(
+		parser->current_zone->soa_rrset->rrs[0].owner), dname) != 0) {
+		zc_error("zone configured as '%s', but SOA has owner '%s'.",
+			name, dname_to_string(domain_dname(
+			parser->current_zone->soa_rrset->rrs[0].owner), NULL));
 	}
 
 	fclose(yyin);
-	check_dname(zone);
+	if(!zone->opts || !zone->opts->request_xfr)
+		check_dname(zone);
 
 	if(vflag > 1)
 		log_msg(LOG_INFO, "zonefile %s read %ld RRs",

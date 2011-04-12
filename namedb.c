@@ -39,6 +39,8 @@ allocate_domain_info(domain_table_type *table,
 	result->wildcard_child_closest_match = result;
 	result->rrsets = NULL;
 	result->number = 0;
+	result->usage = 0;
+	result->chnum = 0;
 #ifdef NSEC3
 	result->nsec3_cover = NULL;
 	result->nsec3_wcard_child_cover = NULL;
@@ -79,6 +81,8 @@ domain_table_create(region_type *region)
 	root->wildcard_child_closest_match = root;
 	root->rrsets = NULL;
 	root->number = 1; /* 0 is used for after header */
+	root->usage = 1; /* do not delete root, ever */
+	root->chnum = 0;
 	root->is_existing = 0;
 	root->is_apex = 0;
 #ifdef NSEC3

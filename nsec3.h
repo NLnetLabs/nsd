@@ -78,5 +78,9 @@ void nsec3_answer_authoritative(struct domain** match, struct query *query,
  */
 int domain_has_only_NSEC3(struct domain* domain, struct zone* zone);
 
+/* get hashed dname and hash bytes */
+const struct dname* nsec3_hash_and_store(struct region* region,
+	struct zone* zone, const struct dname* dname, uint8_t* store);
+
 #endif /* NSEC3 */
 #endif /* NSEC3_H*/
