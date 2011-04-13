@@ -128,5 +128,11 @@ void zonec_desetup_parser(void);
 /* parse a zone into memory. name is origin. zonefile is file to read.
  * returns number of errors; failure may have read a partial zone */
 unsigned int zonec_read(const char *name, const char *zonefile, zone_type* zone);
+/* parse a string into the region. and with given domaintable. global parser
+ * is restored afterwards. zone needs apex set. returns last domain name
+ * parsed and the number rrs parse. return number of errors, 0 is success.
+ * The string must end with a newline after the RR. */
+int zonec_parse_string(region_type* region, domain_table_type* domains,
+	zone_type* zone, char* str, domain_type** parsed, int* num_rrs);
 
 #endif /* _ZONEC_H_ */

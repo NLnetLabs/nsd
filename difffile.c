@@ -268,6 +268,8 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 			/* nonexist this domain and all parent empty nonterminals */
 			domain_type* p = domain;
 			while(p != NULL && p->rrsets == 0) {
+				if(has_data_below(p))
+					break;
 				p->is_existing = 0;
 				p = p->parent;
 			}
@@ -318,7 +320,7 @@ find_rr_num(rrset_type* rrset,
 	return -1;
 }
 
-static int
+int
 delete_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
@@ -389,7 +391,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 	return 1;
 }
 
-static int
+int
 add_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone, udb_ptr* udbz)

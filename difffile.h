@@ -12,6 +12,7 @@
 #include "rbtree.h"
 #include "namedb.h"
 #include "options.h"
+struct udb_ptr;
 
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
@@ -64,5 +65,15 @@ int diff_read_str(FILE* in, char* buf, size_t len);
 
 /* delete the RRs for a zone from memory */
 void delete_zone_rrs(namedb_type* db, zone_type* zone);
+/* delete an RR */
+int delete_RR(namedb_type* db, const dname_type* dname,
+	uint16_t type, uint16_t klass,
+	buffer_type* packet, size_t rdatalen, zone_type *zone,
+	region_type* temp_region, struct udb_ptr* udbz);
+/* add an RR */
+int add_RR(namedb_type* db, const dname_type* dname,
+	uint16_t type, uint16_t klass, uint32_t ttl,
+	buffer_type* packet, size_t rdatalen, zone_type *zone,
+	struct udb_ptr* udbz);
 
 #endif /* DIFFFILE_H */

@@ -461,7 +461,7 @@ cutest_iterated_hash.o: $(srcdir)/tpkg/cutest/cutest_iterated_hash.c config.h \
 cutest_namedb.o: $(srcdir)/tpkg/cutest/cutest_namedb.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
  $(srcdir)/rbtree.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/nsec3.h $(srcdir)/udb.h \
- $(srcdir)/difffile.h $(srcdir)/namedb.h $(srcdir)/options.h
+ $(srcdir)/difffile.h $(srcdir)/namedb.h $(srcdir)/options.h $(srcdir)/zonec.h
 cutest_options.o: $(srcdir)/tpkg/cutest/cutest_options.c config.h \
  $(srcdir)/tpkg/cutest/cutest.h $(srcdir)/region-allocator.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
  $(srcdir)/rbtree.h $(srcdir)/util.h

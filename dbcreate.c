@@ -44,18 +44,25 @@ add_rdata(rr_type* rr, unsigned i, uint8_t* buf, size_t buflen)
 	return rdata_atom_size(rr->rdatas[i]);
 }
 
+/* marshal rdata into buffer, must be MAX_RDLENGTH in size */
+size_t
+rr_marshal_rdata(rr_type* rr, uint8_t* rdata, size_t sz)
+{
+	size_t len = 0;
+	unsigned i;
+	for(i=0; i<rr->rdata_count; i++) {
+		len += add_rdata(rr, i, rdata+len, sz-len);
+	}
+	return len;
+}
+
 /** delete an RR */
 void
 udb_del_rr(udb_base* udb, udb_ptr* z, rr_type* rr)
 {
 	/* marshal the rdata (uncompressed) into a buffer */
 	uint8_t rdata[MAX_RDLENGTH];
-	size_t rdatalen = 0;
-	unsigned i;
-	for(i=0; i<rr->rdata_count; i++) {
-		rdatalen += add_rdata(rr, i, rdata+rdatalen,
-			sizeof(rdata)-rdatalen);
-	}
+	size_t rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
 	udb_zone_del_rr(udb, z, dname_name(domain_dname(rr->owner)),
 		domain_dname(rr->owner)->name_size, rr->type, rr->klass,
 		rdata, rdatalen);

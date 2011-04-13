@@ -1112,10 +1112,6 @@ zone_open(const char *filename, uint32_t ttl, uint16_t klass,
 		return 0;
 	}
 
-	/* Open the network database */
-	setprotoent(1);
-	setservent(1);
-
 	zparser_init(filename, ttl, klass, origin);
 
 	return 1;
@@ -1408,13 +1404,59 @@ zonec_setup_parser(namedb_type* db)
 	/* Unique pointers used to mark errors.	 */
 	error_dname = (dname_type *) region_alloc(global_region, 0);
 	error_domain = (domain_type *) region_alloc(global_region, 0);
+	/* Open the network database */
+	setprotoent(1);
+	setservent(1);
 }
 
 /** desetup parse */
 void zonec_desetup_parser(void)
 {
 	if(parser) {
+		endservent();
+		endprotoent();
 		region_destroy(parser->rr_region);
 		region_destroy(parser->region);
 	}
+}
+
+static struct zparser* orig_parser = NULL;
+static domain_table_type* orig_domains = NULL;
+
+/** setup for string parse */
+void zonec_setup_string_parser(region_type* region, domain_table_type* domains)
+{
+	assert(parser); /* global parser must be setup */
+	orig_parser = parser;
+	orig_domains = parser->db->domains;
+	parser->region = region;
+	parser->db->domains = domains;
+	zparser_init("string", 3600, CLASS_IN, domain_dname(domains->root));
+}
+
+/** desetup string parse */
+void zonec_desetup_string_parser(void)
+{
+	parser=orig_parser;
+	parser->db->domains = orig_domains;
+}
+
+struct yy_buffer_state;
+struct yy_buffer_state* yy_scan_string(const char*);
+/** parse a string into temporary storage */
+int zonec_parse_string(region_type* region, domain_table_type* domains,
+	zone_type* zone, char* str, domain_type** parsed, int* num_rrs)
+{
+	int errors;
+	zonec_setup_string_parser(region, domains);
+	parser->current_zone = zone;
+	parser->errors = 0;
+	totalrrs = 0;
+	yy_scan_string(str);
+	yyparse();
+	errors = parser->errors;
+	*parsed = parser->prev_dname;
+	*num_rrs = totalrrs;
+	zonec_desetup_string_parser();
+	return errors;
 }

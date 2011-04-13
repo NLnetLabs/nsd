@@ -18,7 +18,9 @@
 #include "namedb.h"
 #include "nsec3.h"
 #include "udb.h"
+#include "udbzone.h"
 #include "difffile.h"
+#include "zonec.h"
 
 static void namedb_1(CuTest *tc);
 static int v = 1; /* verbosity */
@@ -92,8 +94,8 @@ check_walkzones(CuTest* tc, namedb_type* db)
 	struct radnode* n;
 	for(n=radix_first(db->zonetree); n; n=radix_next(n)) {
 		zone_type* zone = (zone_type*)n->elem;
-		CuAssertTrue(tc, zone->apex);
-		CuAssertTrue(tc, zone->opts);
+		CuAssertTrue(tc, zone->apex != NULL);
+		CuAssertTrue(tc, zone->opts != NULL);
 		/* options are for this zone */
 		CuAssertTrue(tc, strcmp(dname_to_string(domain_dname(
 			zone->apex), NULL), zone->opts->name) == 0);
@@ -101,8 +103,8 @@ check_walkzones(CuTest* tc, namedb_type* db)
 		 * or: it exists and has a SOA, NS, ... */
 		if(zone->is_ok) {
 			/* check soa_rrset */
-			CuAssertTrue(tc, zone->soa_rrset);
-			CuAssertTrue(tc, zone->soa_nx_rrset);
+			CuAssertTrue(tc, zone->soa_rrset != NULL);
+			CuAssertTrue(tc, zone->soa_nx_rrset != NULL);
 			CuAssertTrue(tc, zone->soa_rrset ==
 				domain_find_rrset(zone->apex, zone, TYPE_SOA));
 			CuAssertTrue(tc, zone->apex->is_existing);
@@ -120,8 +122,8 @@ check_walkzones(CuTest* tc, namedb_type* db)
 #ifdef NSEC3
 			if(domain_find_rrset(zone->apex, zone,
 				TYPE_NSEC3PARAM)) {
-				CuAssertTrue(tc, zone->nsec3_soa_rr);
-				CuAssertTrue(tc, zone->nsec3_last);
+				CuAssertTrue(tc, zone->nsec3_soa_rr != NULL);
+				CuAssertTrue(tc, zone->nsec3_last != NULL);
 				/* TODO: check soa_rr NSEC3 has soa flag,
 				 * check that last nsec3, is last in zone */
 			} else {
@@ -187,8 +189,8 @@ check_rrsets(CuTest* tc, domain_type* domain)
 	unsigned i;
 	for(rrset=domain->rrsets; rrset; rrset=rrset->next) {
 		CuAssertTrue(tc, rrset->rr_count != 0);
-		CuAssertTrue(tc, rrset->rrs);
-		CuAssertTrue(tc, rrset->zone);
+		CuAssertTrue(tc, rrset->rrs != NULL);
+		CuAssertTrue(tc, rrset->zone != NULL);
 		/* rrsets: type-once-per-zone. */
 		NoTypeInRest(tc, rrset->next, rrset_rrtype(rrset), rrset->zone);
 		/* rrsets: rr owner is d */
@@ -426,7 +428,7 @@ check_walkdomains(CuTest* tc, namedb_type* db)
 		if(domain_dname(d)->label_count == 1) {
 			CuAssertTrue(tc, d->parent == NULL);
 		} else {
-			CuAssertTrue(tc, d->parent);
+			CuAssertTrue(tc, d->parent != NULL);
 			CuAssertTrue(tc, domain_dname(d->parent)->label_count
 				== domain_dname(d)->label_count-1);
 			CuAssertTrue(tc, dname_is_subdomain(domain_dname(d),
@@ -493,29 +495,171 @@ check_namedb(CuTest *tc, namedb_type* db)
 	check_walkdomains(tc, db);
 }
 
+/* parse string into parts */
+static int
+parse_rr_str(region_type* temp, zone_type* zone, char* str,
+	rr_type** rr)
+{
+	domain_table_type* temptable;
+	zone_type* tempzone;
+	domain_type* parsed = NULL;
+	int num_rrs = 0;
+
+	temptable = domain_table_create(temp);
+	tempzone = region_alloc_zero(temp, sizeof(zone_type));
+	tempzone->apex = domain_table_insert(temptable,
+		domain_dname(zone->apex));
+	tempzone->opts = zone->opts;
+
+	if(zonec_parse_string(temp, temptable, tempzone, str, &parsed,
+		&num_rrs)) {
+		printf("add_str %s: had errors\n", str);
+		region_destroy(temp);
+		return 0;
+	}
+	if(num_rrs != 1) {
+		printf("add_str %s: had %d rrs\n", str, num_rrs);
+		region_destroy(temp);
+		return 0;
+	}
+	*rr = &parsed->rrsets->rrs[0];
+	return 1;
+}
+
+/** find zone in namebd from string */
+static zone_type*
+find_zone(namedb_type* db, char* z)
+{
+	region_type* t = region_create(xalloc, free);
+	const dname_type* d = dname_parse(t, z);
+	zone_type* zone;
+	if(!d) {
+		printf("cannot parse zone name %s\n", z);
+		exit(1);
+	}
+	zone = namedb_find_zone(db, d);
+	region_destroy(t);
+	return zone;
+}
+
+/* add an RR from string */
+static void
+add_str(namedb_type* db, zone_type* zone, udb_ptr* udbz, char* str)
+{
+	region_type* temp = region_create(xalloc, free);
+	uint8_t rdata[MAX_RDLENGTH];
+	size_t rdatalen;
+	buffer_type databuffer;
+	rr_type* rr;
+	if(v) printf("add_str %s\n", str);
+	if(!parse_rr_str(temp, zone, str, &rr)) {
+		printf("cannot parse RR: %s\n", str);
+		exit(1);
+	}
+	rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
+	buffer_create_from(&databuffer, rdata, rdatalen);
+	printf("parsed: owner: %s\n", dname_to_string(domain_dname(rr->owner), NULL));
+	printf("rr: rdata_count : %d\n", rr->rdata_count);
+	printf("parsed: t k %d k %d ttl %d rdatalen %d\n",
+		(int)rr->type, (int)rr->klass, (int)rr->ttl, (int)rdatalen);
+	debug_hex("rdata", rdata, rdatalen);
+	if(!add_RR(db, domain_dname(rr->owner), rr->type, rr->klass, rr->ttl,
+		&databuffer, rdatalen, zone, udbz)) {
+		printf("cannot add RR: %s\n", str);
+		exit(1);
+	}
+	region_destroy(temp);
+}
+
+/* del an RR from string */
+static void
+del_str(namedb_type* db, zone_type* zone, udb_ptr* udbz, char* str)
+{
+	region_type* temp = region_create(xalloc, free);
+	uint8_t rdata[MAX_RDLENGTH];
+	size_t rdatalen;
+	buffer_type databuffer;
+	rr_type* rr;
+	if(v) printf("del_str %s\n", str);
+	if(!parse_rr_str(temp, zone, str, &rr)) {
+		printf("cannot parse RR: %s\n", str);
+		exit(1);
+	}
+	rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
+	buffer_create_from(&databuffer, rdata, rdatalen);
+	if(!delete_RR(db, domain_dname(rr->owner), rr->type, rr->klass,
+		&databuffer, rdatalen, zone, temp, udbz)) {
+		printf("cannot delete RR: %s\n", str);
+		exit(1);
+	}
+	region_destroy(temp);
+}
+
 /* test the namedb, and add, remove items from it */
 static void
 test_add_del(CuTest *tc, namedb_type* db)
 {
+	zone_type* zone = find_zone(db, "example.org");
+	udb_ptr udbz;
+	if(!udb_zone_search(db->udb, &udbz,
+		dname_name(domain_dname(zone->apex)),
+		domain_dname(zone->apex)->name_size)) {
+		printf("cannot find udbzone\n");
+		exit(1);
+	}
 	check_namedb(tc, db);
-	/* TODO : make some changes and check again */
-	/* setup_string_parser (then desetup it and pop global parser back).
-	 * string to db in tempregion, then marshal like udb_write.
-	 * zonec_scan_string(zone):  setparser->current_zone,
-	 * 	errors=0; totalrrs = 0;
-	 *         setprotoent(1);  -- do once at createglobalparser 
-	        setservent(1);  -- do once at createglobalparser
-	 * 	zparser_init(filename="string", ttl=3600, IN, origin=root);
-	 * 	yy_scan_string(str); */
-	/*
-	add_RR(namedb_type* db, const dname_type* dname,
-	       uint16_t type, uint16_t klass, uint32_t ttl,
-		buffer_type* packet, size_t rdatalen, zone_type *zone, udb_ptr* udbz)
-	delete_RR(namedb_type* db, const dname_type* dname,
-	        uint16_t type, uint16_t klass,
-		buffer_type* packet, size_t rdatalen, zone_type *zone,
-		region_type* temp_region, udb_ptr* udbz)
-	*/
+
+	/* plain record */
+	add_str(db, zone, &udbz, "added.example.org. IN A 1.2.3.4\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "added.example.org. IN A 1.2.3.4\n");
+	check_namedb(tc, db);
+
+	/* rdata domain name */
+	add_str(db, zone, &udbz, "ns2.example.org. IN NS example.org.\n");
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, "zoop.example.org. IN MX 5 server.example.org.\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "zoop.example.org. IN MX 5 server.example.org.\n");
+	check_namedb(tc, db);
+
+	/* empty nonterminal */
+	add_str(db, zone, &udbz, "a.bb.c.d.example.org. IN A 1.2.3.4\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "a.bb.c.d.example.org. IN A 1.2.3.4\n");
+	check_namedb(tc, db);
+
+	/* wildcard */
+	add_str(db, zone, &udbz, "*.www.example.org. IN A 1.2.3.5\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "*.www.example.org. IN A 1.2.3.5\n");
+	check_namedb(tc, db);
+	/* wildcard child closest match */
+	add_str(db, zone, &udbz, "!.www.example.org. IN A 1.2.3.5\n");
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, "%.www.example.org. IN A 1.2.3.5\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "%.www.example.org. IN A 1.2.3.5\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "!.www.example.org. IN A 1.2.3.5\n");
+	check_namedb(tc, db);
+
+	/* TODO */
+	/* zone apex : delete all records add apex */
+	/* zone apex : add records at zone apex */
+
+	/* zonecut: add one */
+	/* zonecut: add DS and zone is signed */
+	/* zonecut: remove DS and zone is signed */
+	/* zonecut: add below */
+	/* zonecut: remove below */
+	/* zonecut: remove one */
+
+	/* domain with multiple subdomains (count of subdomains) */
+
+	/* check that root is not deleted */
+
+	udb_ptr_unlink(&udbz, db->udb);
 }
 
 static void namedb_1(CuTest *tc)
