@@ -479,9 +479,14 @@ check_walkdomains(CuTest* tc, namedb_type* db)
 	}
 	for(d=db->domains->root; d; d=domain_next(d)) {
 		/* check chnum */ 
-		/* TODO CuAssertTrue(tc, d->chnum == chnum[d->number]); */
+		CuAssertTrue(tc, d->chnum == chnum[d->number]);
 		/* check usage */
-		/* TODO CuAssertTrue(tc, d->usage == usage[d->number]); */
+		if(d->usage != usage[d->number]) {
+			printf("bad usage %s, have %d want %d\n",
+				dname_to_string(domain_dname(d), NULL),
+				(int)d->usage, (int)usage[d->number]);
+		}
+		CuAssertTrue(tc, d->usage == usage[d->number]);
 	}
 	free(numbers);
 	free(chnum);
@@ -709,6 +714,10 @@ test_add_del(CuTest *tc, namedb_type* db)
 	del_str(db, zone, &udbz, "p3.lotso.example.org. IN TXT lotso\n");
 	check_namedb(tc, db);
 	del_str(db, zone, &udbz, "lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
+
+	zone->is_ok = 0;
+	delete_zone_rrs(db, zone);
 	check_namedb(tc, db);
 
 	udb_ptr_unlink(&udbz, db->udb);

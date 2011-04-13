@@ -1001,6 +1001,7 @@ zadd_rdata_domain(domain_type *domain)
 	} else {
 		parser->current_rr.rdatas[parser->current_rr.rdata_count].domain
 			= domain;
+		domain->usage ++; /* new reference to domain */
 		++parser->current_rr.rdata_count;
 	}
 }

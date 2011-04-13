@@ -320,6 +320,27 @@ find_rr_num(rrset_type* rrset,
 	return -1;
 }
 
+/* fixup usage lower for domain names in the rdata */
+static void
+rr_lower_usage(rr_type* rr)
+{
+	unsigned i;
+	for(i=0; i<rr->rdata_count; i++) {
+		if(rdata_atom_is_domain(rr->type, i)) {
+			assert(rdata_atom_domain(rr->rdatas[i])->usage > 0);
+			rdata_atom_domain(rr->rdatas[i])->usage --;
+		}
+	}
+}
+
+static void
+rrset_lower_usage(rrset_type* rrset)
+{
+	unsigned i;
+	for(i=0; i<rrset->rr_count; i++)
+		rr_lower_usage(&rrset->rrs[i]);
+}
+
 int
 delete_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass,
@@ -364,6 +385,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				dname_to_string(dname,0));
 			return 1; /* not fatal error */
 		}
+		rr_lower_usage(&rrset->rrs[rrnum]);
+
 		/* delete the normalized RR from the udb */
 		udb_del_rr(db->udb, udbz, &rrset->rrs[rrnum]);
 		if(rrset->rr_count == 1) {
@@ -502,6 +525,7 @@ find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 		zone_name->name_size, zone);
 	assert(zone->node);
 	zone->apex = domain;
+	domain->usage++; /* the zone.apex reference */
 	zone->soa_rrset = 0;
 	zone->soa_nx_rrset = 0;
 	zone->ns_rrset = 0;
@@ -540,6 +564,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 			dname_to_string(domain_dname(domain),0)));
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
+			rrset_lower_usage(rrset);
 			rrset_delete(db, domain, rrset);
 		}
 		domain = domain_next(domain);

@@ -187,6 +187,8 @@ domain_table_insert(domain_table_type *table,
 				dname_name(result->dname),
 				result->dname->name_size, result);
 			result->number = table->nametree->count;
+			if(result->parent)
+				result->parent->chnum ++;
 
 			/*
 			 * If the newly added domain name is larger
