@@ -740,4 +740,7 @@ static void rbtree_10(CuTest *tc)
 	      }
 	      test_tree_integrity(tc, tree);
 	}
+
+	/* last test remove region */
+	region_destroy(reg);
 }

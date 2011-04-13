@@ -23,7 +23,8 @@
 #include "zonec.h"
 
 static void namedb_1(CuTest *tc);
-static int v = 1; /* verbosity */
+static void namedb_2(CuTest *tc);
+static int v = 0; /* verbosity */
 
 /** get a temporary file name */
 char* udbtest_get_temp_file(char* suffix);
@@ -33,6 +34,7 @@ CuSuite* reg_cutest_namedb(void)
         CuSuite* suite = CuSuiteNew();
 
 	SUITE_ADD_TEST(suite, namedb_1);
+	SUITE_ADD_TEST(suite, namedb_2);
 	return suite;
 }
 
@@ -133,13 +135,14 @@ check_walkzones(CuTest* tc, namedb_type* db)
 #endif /* NSEC3 */
 		} else {
 			CuAssertTrue(tc, zone->soa_rrset == NULL);
-			CuAssertTrue(tc, zone->soa_nx_rrset == NULL);
-			CuAssertTrue(tc, zone->ns_rrset == NULL);
+			/*CuAssertTrue(tc, zone->soa_nx_rrset == NULL);
+			  alloc saved for later update */
+			/*CuAssertTrue(tc, zone->ns_rrset == NULL);*/
 #ifdef NSEC3
-			CuAssertTrue(tc, zone->nsec3_soa_rr == NULL);
-			CuAssertTrue(tc, zone->nsec3_last == NULL);
+			/*CuAssertTrue(tc, zone->nsec3_soa_rr == NULL);
+			CuAssertTrue(tc, zone->nsec3_last == NULL);*/
 #endif /* NSEC3 */
-			CuAssertTrue(tc, !zone->apex->is_existing);
+			/*CuAssertTrue(tc, !zone->apex->is_existing);*/
 		}
 	}
 }
@@ -513,13 +516,9 @@ parse_rr_str(region_type* temp, zone_type* zone, char* str,
 
 	if(zonec_parse_string(temp, temptable, tempzone, str, &parsed,
 		&num_rrs)) {
-		printf("add_str %s: had errors\n", str);
-		region_destroy(temp);
 		return 0;
 	}
 	if(num_rrs != 1) {
-		printf("add_str %s: had %d rrs\n", str, num_rrs);
-		region_destroy(temp);
 		return 0;
 	}
 	*rr = &parsed->rrsets->rrs[0];
@@ -558,11 +557,6 @@ add_str(namedb_type* db, zone_type* zone, udb_ptr* udbz, char* str)
 	}
 	rdatalen = rr_marshal_rdata(rr, rdata, sizeof(rdata));
 	buffer_create_from(&databuffer, rdata, rdatalen);
-	printf("parsed: owner: %s\n", dname_to_string(domain_dname(rr->owner), NULL));
-	printf("rr: rdata_count : %d\n", rr->rdata_count);
-	printf("parsed: t k %d k %d ttl %d rdatalen %d\n",
-		(int)rr->type, (int)rr->klass, (int)rr->ttl, (int)rdatalen);
-	debug_hex("rdata", rdata, rdatalen);
 	if(!add_RR(db, domain_dname(rr->owner), rr->type, rr->klass, rr->ttl,
 		&databuffer, rdatalen, zone, udbz)) {
 		printf("cannot add RR: %s\n", str);
@@ -644,20 +638,78 @@ test_add_del(CuTest *tc, namedb_type* db)
 	del_str(db, zone, &udbz, "!.www.example.org. IN A 1.2.3.5\n");
 	check_namedb(tc, db);
 
-	/* TODO */
-	/* zone apex : delete all records add apex */
+	/* zone apex : delete all records at apex */
+	zone->is_ok = 0;
+	del_str(db, zone, &udbz, 
+		"example.org. IN SOA ns.example.org. hostmaster.example.org. 2011041200 28800 7200 604800 3600\n"
+		); check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+		"example.org. IN NS ns.example.com.\n"
+		); check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+		"example.org. IN NS ns2.example.com.\n"
+		); check_namedb(tc, db);
+
 	/* zone apex : add records at zone apex */
+	zone->is_ok = 1;
+	add_str(db, zone, &udbz, 
+		"example.org. IN SOA ns.example.org. hostmaster.example.org. 2011041200 28800 7200 604800 3600\n"
+		); check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+		"example.org. IN NS ns.example.com.\n"
+		); check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+		"example.org. IN NS ns2.example.com.\n"
+		); check_namedb(tc, db);
 
 	/* zonecut: add one */
+	add_str(db, zone, &udbz, 
+		"bla.example.org. IN NS ns.bla.example.org.\n"
+		); check_namedb(tc, db);
 	/* zonecut: add DS and zone is signed */
+	add_str(db, zone, &udbz, 
+		"bla.example.org. IN DS 50602 8 2 FA8EE175C47325F4BD46D8A4083C3EBEB11C977D689069F2B41F1A29 B22446B1\n"
+		); check_namedb(tc, db);
 	/* zonecut: remove DS and zone is signed */
+	del_str(db, zone, &udbz, 
+		"bla.example.org. IN DS 50602 8 2 FA8EE175C47325F4BD46D8A4083C3EBEB11C977D689069F2B41F1A29 B22446B1\n"
+		); check_namedb(tc, db);
 	/* zonecut: add below */
+	add_str(db, zone, &udbz, 
+		"zoink.bla.example.org. IN A 1.2.3.7\n"
+		); check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+		"ns.bla.example.org. IN A 1.2.3.8\n"
+		); check_namedb(tc, db);
 	/* zonecut: remove below */
+	del_str(db, zone, &udbz, 
+		"zoink.bla.example.org. IN A 1.2.3.7\n"
+		); check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+		"ns.bla.example.org. IN A 1.2.3.8\n"
+		); check_namedb(tc, db);
 	/* zonecut: remove one */
+	del_str(db, zone, &udbz, 
+		"bla.example.org. IN NS ns.bla.example.org.\n"
+		); check_namedb(tc, db);
 
 	/* domain with multiple subdomains (count of subdomains) */
-
-	/* check that root is not deleted */
+	add_str(db, zone, &udbz, "lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, "p1.lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, "p2.lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, "p3.lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "p1.lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "p2.lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "p3.lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "lotso.example.org. IN TXT lotso\n");
+	check_namedb(tc, db);
 
 	udb_ptr_unlink(&udbz, db->udb);
 }
@@ -666,7 +718,8 @@ static void namedb_1(CuTest *tc)
 {
 	region_type* region;
 	namedb_type* db;
-	verbosity = 3;
+	if(v) verbosity = 3;
+	else verbosity = 0;
 	if(v) printf("test namedb start\n");
 	region = region_create(xalloc, free);
 	db = create_and_read_db(tc, region, "example.org.", 
@@ -697,6 +750,55 @@ static void namedb_1(CuTest *tc)
 
 	if(v) printf("test namedb end\n");
 	unlink(db->udb->fname);
+	namedb_close(db);
 	region_destroy(region);
-	exit(0);
+}
+
+static void
+test_add_del_2(CuTest *tc, namedb_type* db)
+{
+	zone_type* zone = find_zone(db, "example.org");
+	udb_ptr udbz;
+	if(!udb_zone_search(db->udb, &udbz,
+		dname_name(domain_dname(zone->apex)),
+		domain_dname(zone->apex)->name_size)) {
+		printf("cannot find udbzone\n");
+		exit(1);
+	}
+	check_namedb(tc, db);
+	zone->is_ok = 0;
+
+	del_str(db, zone, &udbz, "example.org. IN SOA ns.example.org. hostmaster.example.org. 2011041200 28800 7200 604800 3600\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "example.org. IN NS ns.example.com.\n");
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, "example.org. IN NS ns2.example.com.\n");
+	check_namedb(tc, db);
+	/* the root has not been deleted */
+	CuAssertTrue(tc, db->domains->nametree->count != 0);
+	CuAssertTrue(tc, db->domains->root && db->domains->root->number);
+
+	udb_ptr_unlink(&udbz, db->udb);
+}
+
+
+
+/* test _2 : check that root is not deleted */
+static void namedb_2(CuTest *tc)
+{
+	region_type* region;
+	namedb_type* db;
+	if(v) printf("test 2 namedb start\n");
+	region = region_create(xalloc, free);
+	db = create_and_read_db(tc, region, "example.org.", 
+		"example.org. IN SOA ns.example.org. hostmaster.example.org. 2011041200 28800 7200 604800 3600\n"
+		"example.org. IN NS ns.example.com.\n"
+		"example.org. IN NS ns2.example.com.\n"
+	);
+	test_add_del_2(tc, db);
+	if(v) printf("test 2 namedb end\n");
+	unlink(db->udb->fname);
+	namedb_close(db);
+	region_destroy(region);
+	/* TODO: test _3 : check NSEC3 precompile, same but nsec3signed */
 }

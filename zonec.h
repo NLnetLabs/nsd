@@ -71,6 +71,7 @@ extern domain_type *error_domain;
 
 int yyparse(void);
 int yylex(void);
+int yylex_destroy(void);
 /*int yyerror(const char *s);*/
 void yyrestart(FILE *);
 
@@ -78,6 +79,9 @@ void zc_warning(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 void zc_warning_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 void zc_error(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
 void zc_error_prev_line(const char *fmt, ...) ATTR_FORMAT(printf, 1, 2);
+
+void parser_push_stringbuf(char* str);
+void parser_pop_stringbuf(void);
 
 int process_rr(void);
 uint16_t *zparser_conv_hex(region_type *region, const char *hex, size_t len);

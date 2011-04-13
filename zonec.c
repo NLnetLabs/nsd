@@ -1417,19 +1417,23 @@ void zonec_desetup_parser(void)
 		endprotoent();
 		region_destroy(parser->rr_region);
 		region_destroy(parser->region);
+		yylex_destroy();
 	}
 }
 
-static struct zparser* orig_parser = NULL;
 static domain_table_type* orig_domains = NULL;
+static region_type* orig_region = NULL;
+static region_type* orig_dbregion = NULL;
 
 /** setup for string parse */
 void zonec_setup_string_parser(region_type* region, domain_table_type* domains)
 {
 	assert(parser); /* global parser must be setup */
-	orig_parser = parser;
 	orig_domains = parser->db->domains;
+	orig_region = parser->region;
+	orig_dbregion = parser->db->region;
 	parser->region = region;
+	parser->db->region = region;
 	parser->db->domains = domains;
 	zparser_init("string", 3600, CLASS_IN, domain_dname(domains->root));
 }
@@ -1437,12 +1441,11 @@ void zonec_setup_string_parser(region_type* region, domain_table_type* domains)
 /** desetup string parse */
 void zonec_desetup_string_parser(void)
 {
-	parser=orig_parser;
+	parser->region = orig_region;
 	parser->db->domains = orig_domains;
+	parser->db->region = orig_dbregion;
 }
 
-struct yy_buffer_state;
-struct yy_buffer_state* yy_scan_string(const char*);
 /** parse a string into temporary storage */
 int zonec_parse_string(region_type* region, domain_table_type* domains,
 	zone_type* zone, char* str, domain_type** parsed, int* num_rrs)
@@ -1452,8 +1455,9 @@ int zonec_parse_string(region_type* region, domain_table_type* domains,
 	parser->current_zone = zone;
 	parser->errors = 0;
 	totalrrs = 0;
-	yy_scan_string(str);
+	parser_push_stringbuf(str);
 	yyparse();
+	parser_pop_stringbuf();
 	errors = parser->errors;
 	*parsed = parser->prev_dname;
 	*num_rrs = totalrrs;

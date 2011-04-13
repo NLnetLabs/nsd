@@ -598,6 +598,7 @@ static void test_del(struct radtree* rt)
 		if(verb) fprintf(stderr, "\n");
 		CuAssert(tc, "radix_del", s->mynode == n);
 		free(s->mystr);
+		free(s->dname);
 		free(s);
 	}
 }
@@ -646,6 +647,7 @@ test_del_a_key(struct radtree* rt)
 
 	/* and delete the test elem */
 	free(t->mystr);
+	free(t->dname);
 	free(t);
 }
 

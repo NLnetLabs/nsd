@@ -66,6 +66,23 @@ pop_parser_state(void)
 	yy_switch_to_buffer(include_stack[include_stack_ptr]);
 }
 
+static YY_BUFFER_STATE oldstate;
+/* Start string scan */
+void
+parser_push_stringbuf(char* str)
+{
+	oldstate = YY_CURRENT_BUFFER;
+	yy_switch_to_buffer(yy_scan_string(str));
+}
+
+void
+parser_pop_stringbuf(void)
+{
+	yy_delete_buffer(YY_CURRENT_BUFFER);
+	yy_switch_to_buffer(oldstate);
+	oldstate = NULL;
+}
+
 #ifndef yy_set_bol /* compat definition, for flex 2.4.6 */
 #define yy_set_bol(at_bol) \
 	{ \

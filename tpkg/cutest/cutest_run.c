@@ -48,6 +48,7 @@ int runalltests(void)
 {
 	CuSuite *suite = CuSuiteNew();
 	CuString *output = CuStringNew();
+	int fail;
 
 	CuSuiteAddSuite(suite, reg_cutest_region());
 	CuSuiteAddSuite(suite, reg_cutest_dname());
@@ -67,7 +68,10 @@ int runalltests(void)
  	/* CuSuiteSummary(suite, output); */
         CuSuiteDetails(suite, output);
         printf("%s\n", output->buffer);
-	return suite->failCount;
+	fail = suite->failCount;
+	CuStringFree(output);
+	CuSuiteFree(suite);
+	return fail;
 }
 
 extern char *optarg;

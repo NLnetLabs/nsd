@@ -1,3 +1,9 @@
+13 April 2011: Wouter
+	- Fix is_existing flag for ENT when domain that has a shared ENT
+	  is deleted by IXFR.
+	- zonec can parse strings with RR in it.
+	- unit test for namedb.
+
 8 April 2011: Wouter
 	- porting complete.
 	- tag 4.0.0-imp2 created
