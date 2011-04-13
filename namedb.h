@@ -64,7 +64,8 @@ struct domain
 #endif
 	size_t     number; /* Unique domain name number.  */
 	size_t     usage; /* number of ptrs to this from RRs(in rdata) and
-			     from zone-apex pointers */
+			     from zone-apex pointers, also the root has one
+			     more to make sure it cannot be deleted. */
 	size_t     chnum; /* nr of domains that have this domain as parent */
 
 #ifdef NSEC3
