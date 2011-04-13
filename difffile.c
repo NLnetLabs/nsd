@@ -318,6 +318,8 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 			/* nonexist this domain and all parent empty nonterminals */
 			domain_type* p = domain;
 			while(p != NULL && p->rrsets == 0) {
+				if(has_data_below(p))
+					break;
 				p->is_existing = 0;
 				p = p->parent;
 			}

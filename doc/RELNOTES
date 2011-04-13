@@ -8,6 +8,8 @@ BUG FIXES:
 	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
 	- Fix printout of IPSECKEY by nsd-patch.
+	- Fix is_existing flag for ENT when domain that has a shared ENT
+	  is deleted by IXFR. 
 
 3.2.8
 =============

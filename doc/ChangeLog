@@ -1,3 +1,7 @@
+13 April 2011: Wouter
+	- Fix is_existing flag for ENT when domain that has a shared ENT
+	  is deleted by IXFR.
+
 5 April 2011: Wouter
 	- Fix uninitialised value in xfrd nsd_soa, the rdata_count.
 
