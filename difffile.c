@@ -217,6 +217,7 @@ has_data_below(domain_type* top)
 	return 0;
 }
 
+/** remove rrset.  Adjusts zone params.  Does not remove domain */
 static void
 rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 {
@@ -322,23 +323,26 @@ find_rr_num(rrset_type* rrset,
 
 /* fixup usage lower for domain names in the rdata */
 static void
-rr_lower_usage(rr_type* rr)
+rr_lower_usage(domain_table_type* table, rr_type* rr)
 {
 	unsigned i;
 	for(i=0; i<rr->rdata_count; i++) {
 		if(rdata_atom_is_domain(rr->type, i)) {
 			assert(rdata_atom_domain(rr->rdatas[i])->usage > 0);
 			rdata_atom_domain(rr->rdatas[i])->usage --;
+			if(rdata_atom_domain(rr->rdatas[i])->usage == 0)
+				domain_table_deldomain(table,
+					rdata_atom_domain(rr->rdatas[i]));
 		}
 	}
 }
 
 static void
-rrset_lower_usage(rrset_type* rrset)
+rrset_lower_usage(domain_table_type* table, rrset_type* rrset)
 {
 	unsigned i;
 	for(i=0; i<rrset->rr_count; i++)
-		rr_lower_usage(&rrset->rrs[i]);
+		rr_lower_usage(table, &rrset->rrs[i]);
 }
 
 int
@@ -385,13 +389,16 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				dname_to_string(dname,0));
 			return 1; /* not fatal error */
 		}
-		rr_lower_usage(&rrset->rrs[rrnum]);
-
 		/* delete the normalized RR from the udb */
 		udb_del_rr(db->udb, udbz, &rrset->rrs[rrnum]);
+		/* lower usage (possibly deleting other domains, and thus
+		 * invalidating the current RR's domain pointers) */
+		rr_lower_usage(db->domains, &rrset->rrs[rrnum]);
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
 			rrset_delete(db, domain, rrset);
+			/* see if the domain can be deleted (and inspect parents) */
+			domain_table_deldomain(db->domains, domain);
 		} else {
 			/* swap out the bad RR and decrease the count */
 			rr_type* rrs_orig = rrset->rrs;
@@ -555,7 +562,7 @@ void
 delete_zone_rrs(namedb_type* db, zone_type* zone)
 {
 	rrset_type *rrset;
-	domain_type *domain = zone->apex;
+	domain_type *domain = zone->apex, *next;
 	/* go through entire tree below the zone apex (incl subzones) */
 	while(domain && dname_is_subdomain(
 		domain_dname(domain), domain_dname(zone->apex)))
@@ -564,10 +571,17 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 			dname_to_string(domain_dname(domain),0)));
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
-			rrset_lower_usage(rrset);
+			/* lower usage can delete other domains */
+			rrset_lower_usage(db->domains, rrset);
+			/* rrset del does not delete our domain(yet) */
 			rrset_delete(db, domain, rrset);
 		}
-		domain = domain_next(domain);
+		/* the delete upcoming could delete parents, but nothing next
+		 * or after the domain so store next ptr */
+		next = domain_next(domain);
+		/* see if the domain can be deleted (and inspect parents) */
+		domain_table_deldomain(db->domains, domain);
+		domain = next;
 	}
 
 	DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "axfrdel: recyclebin holds %lu bytes",

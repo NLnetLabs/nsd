@@ -36,6 +36,9 @@ struct domain_table
 	region_type *region;
 	struct radtree *nametree;
 	domain_type *root;
+	/* ptr to biggest domain.number and last in list.
+	 * the root is the lowest and first in the list. */
+	domain_type *numlist_last;
 };
 
 struct domain
@@ -62,11 +65,12 @@ struct domain
 	 * an NSEC3 record, with hopefully the correct parameters. */
 	domain_type *nsec3_lookup;
 #endif
+	/* double-linked list sorted by domain.number */
+	domain_type* numlist_prev, *numlist_next;
 	size_t     number; /* Unique domain name number.  */
 	size_t     usage; /* number of ptrs to this from RRs(in rdata) and
 			     from zone-apex pointers, also the root has one
 			     more to make sure it cannot be deleted. */
-	size_t     chnum; /* nr of domains that have this domain as parent */
 
 #ifdef NSEC3
 	/* nsec3 hash */
@@ -185,6 +189,13 @@ domain_type *domain_table_find(domain_table_type *table,
 domain_type *domain_table_insert(domain_table_type *table,
 				 const dname_type  *dname);
 
+/*
+ * Delete a domain name from the domain table.  Removes dname_info node.
+ * Only deletes if usage is 0, has no rrsets and no children.  Checks parents
+ * for deletion as well.  Adjusts numberlist(domain.number), and 
+ * wcard_child closest match.
+ */
+void domain_table_deldomain(domain_table_type *table, domain_type* domain);
 
 /*
  * Iterate over all the domain names in the domain tree.

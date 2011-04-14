@@ -414,6 +414,34 @@ usage_for_rrsets(rrset_type* list, size_t* usage)
 	}
 }
 
+/* check numlist for consistency */
+static void
+check_numlist(CuTest* tc, domain_table_type* table)
+{
+	domain_type* d = table->root, *prevd = NULL;
+	size_t num = 1;
+	/* first is root at number 1 */
+	CuAssertTrue(tc, d != NULL);
+	CuAssertTrue(tc, d->number == num);
+	CuAssertTrue(tc, domain_dname(d)->label_count == 1);
+	while(d) {
+		/* check number */
+		CuAssertTrue(tc, d->number == num);
+		/* check list structure */
+		CuAssertTrue(tc, d->numlist_prev == prevd);
+		if(d->numlist_next) {
+			CuAssertTrue(tc, d == d->numlist_next->numlist_prev);
+		} else {
+			CuAssertTrue(tc, d == table->numlist_last);
+		}
+
+		num++;
+		prevd = d;
+		d = d->numlist_next;
+	}
+	CuAssertTrue(tc, table->numlist_last->number == table->nametree->count);
+}
+
 /* walk domains and check them */
 static void
 check_walkdomains(CuTest* tc, namedb_type* db)
@@ -421,8 +449,6 @@ check_walkdomains(CuTest* tc, namedb_type* db)
 	domain_type* d;
 	uint8_t* numbers = xalloc_zero(db->domains->nametree->count+10);
 	size_t* usage = xalloc_zero((db->domains->nametree->count+10)*
-		sizeof(size_t));
-	size_t* chnum = xalloc_zero((db->domains->nametree->count+10)*
 		sizeof(size_t));
 	for(d=db->domains->root; d; d=domain_next(d)) {
 		if(v) printf("at domain %s\n", dname_to_string(domain_dname(d),
@@ -464,11 +490,8 @@ check_walkdomains(CuTest* tc, namedb_type* db)
 				CuAssertTrue(tc, soa->zone->apex == d);
 			}
 		}
-		/* keep track of number of domains that have a parent */
-		if(d->parent) {
-			chnum[d->parent->number]++;
-		}
 	}
+	check_numlist(tc, db->domains);
 	/* add up domain usage */
 	/* usage for root node (so it does not get deleted) */
 	usage[db->domains->root->number]++;
@@ -478,8 +501,6 @@ check_walkdomains(CuTest* tc, namedb_type* db)
 			usage_for_rrsets(d->rrsets, usage);
 	}
 	for(d=db->domains->root; d; d=domain_next(d)) {
-		/* check chnum */ 
-		CuAssertTrue(tc, d->chnum == chnum[d->number]);
 		/* check usage */
 		if(d->usage != usage[d->number]) {
 			printf("bad usage %s, have %d want %d\n",
@@ -489,7 +510,6 @@ check_walkdomains(CuTest* tc, namedb_type* db)
 		CuAssertTrue(tc, d->usage == usage[d->number]);
 	}
 	free(numbers);
-	free(chnum);
 	free(usage);
 }
 

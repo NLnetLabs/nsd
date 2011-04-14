@@ -38,9 +38,7 @@ allocate_domain_info(domain_table_type *table,
 	result->parent = parent;
 	result->wildcard_child_closest_match = result;
 	result->rrsets = NULL;
-	result->number = 0;
 	result->usage = 0;
-	result->chnum = 0;
 #ifdef NSEC3
 	result->nsec3_cover = NULL;
 	result->nsec3_wcard_child_cover = NULL;
@@ -54,8 +52,119 @@ allocate_domain_info(domain_table_type *table,
 #endif
 	result->is_existing = 0;
 	result->is_apex = 0;
+	assert(table->numlist_last); /* it exists because root exists */
+	/* push this domain at the end of the numlist */
+	result->number = table->numlist_last->number+1;
+	result->numlist_next = NULL;
+	result->numlist_prev = table->numlist_last;
+	table->numlist_last->numlist_next = result;
+	table->numlist_last = result;
 
 	return result;
+}
+
+/** make the domain last in the numlist, changes numbers of domains */
+static void
+numlist_make_last(domain_table_type *table, domain_type* domain)
+{
+	size_t sw;
+	domain_type *last = table->numlist_last;
+	if(domain == last)
+		return;
+	/* swap numbers with the last element */
+	sw = domain->number;
+	domain->number = last->number;
+	last->number = sw;
+	/* swap list position with the last element */
+	assert(domain->numlist_next);
+	assert(last->numlist_prev);
+	if(domain->numlist_next != last) {
+		/* case 1: there are nodes between domain .. last */
+		domain_type* span_start = domain->numlist_next;
+		domain_type* span_end = last->numlist_prev;
+		/* these assignments walk the new list from start to end */
+		if(domain->numlist_prev)
+			domain->numlist_prev->numlist_next = last;
+		last->numlist_prev = domain->numlist_prev;
+		last->numlist_next = span_start;
+		span_start->numlist_prev = last;
+		span_end->numlist_next = domain;
+		domain->numlist_prev = span_end;
+		domain->numlist_next = NULL;
+	} else {
+		/* case 2: domain and last are neighbors */
+		/* these assignments walk the new list from start to end */
+		if(domain->numlist_prev)
+			domain->numlist_prev->numlist_next = last;
+		last->numlist_prev = domain->numlist_prev;
+		last->numlist_next = domain;
+		domain->numlist_prev = last;
+		domain->numlist_next = NULL;
+	}
+	table->numlist_last = domain;
+}
+
+/** pop the biggest domain off the numlist */
+static domain_type*
+numlist_pop_last(domain_table_type *table)
+{
+	domain_type* d = table->numlist_last;
+	table->numlist_last = table->numlist_last->numlist_prev;
+	if(table->numlist_last)
+		table->numlist_last->numlist_next = NULL;
+	return d;
+}
+
+/** see if a domain is eligible to be deleted, and thus is not used */
+static int
+domain_can_be_deleted(domain_type* domain)
+{
+	domain_type* n;
+	/* it has data or it has usage, do not delete it */
+	if(domain->rrsets) return 0;
+	if(domain->usage) return 0;
+	n = domain_next(domain);
+	/* it has children domains, do not delete it */
+	if(n && dname_is_subdomain(domain_dname(n), domain_dname(domain)))
+		return 0;
+	return 1;
+}
+
+/** perform domain name deletion */
+static void
+do_deldomain(domain_table_type *table, domain_type* domain)
+{
+	assert(domain && domain->parent); /* exists and not root */
+	/* first adjust the number list so that domain is the last one */
+	numlist_make_last(table, domain);
+	/* pop off the domain from the number list */
+	(void)numlist_pop_last(table);
+
+	/* see if this domain is someones wildcard-child-closest-match,
+	 * which can only be the parent, and then it should use the
+	 * one-smaller than this domain as closest-match. */
+	if(domain->parent->wildcard_child_closest_match == domain)
+		domain->parent->wildcard_child_closest_match =
+			domain_previous(domain);
+
+	/* see if nsec3-pointers point here */
+	/* TODO */
+
+	/* actual removal */
+	radix_delete(table->nametree, domain->rnode);
+	region_recycle(table->region, (dname_type*)domain->dname,
+		dname_total_size(domain->dname));
+	region_recycle(table->region, domain, sizeof(domain_type));
+}
+
+void domain_table_deldomain(domain_table_type *table, domain_type* domain)
+{
+	while(domain_can_be_deleted(domain)) {
+		/* delete it */
+		do_deldomain(table, domain);
+		/* test parent */
+		domain = domain->parent;
+	}
 }
 
 /** delete radix tree as a region cleanup */
@@ -82,9 +191,10 @@ domain_table_create(region_type *region)
 	root->rrsets = NULL;
 	root->number = 1; /* 0 is used for after header */
 	root->usage = 1; /* do not delete root, ever */
-	root->chnum = 0;
 	root->is_existing = 0;
 	root->is_apex = 0;
+	root->numlist_prev = NULL;
+	root->numlist_next = NULL;
 #ifdef NSEC3
 	root->nsec3_is_exact = 0;
 	root->nsec3_ds_parent_is_exact = 0;
@@ -106,6 +216,7 @@ domain_table_create(region_type *region)
 		root->dname->name_size, root);
 
 	result->root = root;
+	result->numlist_last = root;
 
 	return result;
 }
@@ -186,9 +297,6 @@ domain_table_insert(domain_table_type *table,
 			result->rnode = radname_insert(table->nametree,
 				dname_name(result->dname),
 				result->dname->name_size, result);
-			result->number = table->nametree->count;
-			if(result->parent)
-				result->parent->chnum ++;
 
 			/*
 			 * If the newly added domain name is larger
