@@ -1367,6 +1367,9 @@ zonec_read(const char *name, const char *zonefile, zone_type* zone)
 	/* Parse and process all RRs.  */
 	yyparse();
 
+	/* remove origin if it was unused */
+	domain_table_deldomain(parser->db->domains, parser->origin);
+
 	/* check if zone file contained a correct SOA record */
 	if (!parser->current_zone) {
 		zc_error("zone configured as '%s' has no content.", name);
@@ -1460,8 +1463,12 @@ int zonec_parse_string(region_type* region, domain_table_type* domains,
 	yyparse();
 	parser_pop_stringbuf();
 	errors = parser->errors;
-	*parsed = parser->prev_dname;
 	*num_rrs = totalrrs;
+	if(*num_rrs == 0)
+		*parsed = NULL;
+	else	*parsed = parser->prev_dname;
+	/* remove origin if it was not used during the parse */
+	domain_table_deldomain(parser->db->domains, parser->origin);
 	zonec_desetup_string_parser();
 	return errors;
 }
