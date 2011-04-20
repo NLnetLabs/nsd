@@ -102,6 +102,9 @@ void nsec3_precompile_nsec3rr(struct domain* domain, struct zone* zone);
 /* precompile entire zone, assumes all is null at start */
 void nsec3_precompile_newparam(struct namedb* db, struct zone* zone,
 	struct udb_ptr* udbz);
+/* create b32.zone for a hash, allocated in the region */
+const struct dname* nsec3_b32_create(struct region* region, struct zone* zone,
+	unsigned char* hash);
 
 #endif /* NSEC3 */
 #endif /* NSEC3_H*/

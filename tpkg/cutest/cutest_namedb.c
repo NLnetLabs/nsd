@@ -80,9 +80,6 @@ create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 		exit(1);
 	}
 	namedb_check_zonefiles(db, opt, child_count);
-#ifdef NSEC3
-        prehash(db, 0);
-#endif
 	unlink(zonefile);
 	free(dbfile);
 	free(zonefile);
@@ -124,12 +121,12 @@ check_walkzones(CuTest* tc, namedb_type* db)
 #ifdef NSEC3
 			if(domain_find_rrset(zone->apex, zone,
 				TYPE_NSEC3PARAM)) {
-				CuAssertTrue(tc, zone->nsec3_soa_rr != NULL);
+				CuAssertTrue(tc, zone->nsec3_param != NULL);
 				CuAssertTrue(tc, zone->nsec3_last != NULL);
 				/* TODO: check soa_rr NSEC3 has soa flag,
 				 * check that last nsec3, is last in zone */
 			} else {
-				CuAssertTrue(tc, zone->nsec3_soa_rr == NULL);
+				CuAssertTrue(tc, zone->nsec3_param == NULL);
 				CuAssertTrue(tc, zone->nsec3_last == NULL);
 			}
 #endif /* NSEC3 */
@@ -139,7 +136,7 @@ check_walkzones(CuTest* tc, namedb_type* db)
 			  alloc saved for later update */
 			/*CuAssertTrue(tc, zone->ns_rrset == NULL);*/
 #ifdef NSEC3
-			/*CuAssertTrue(tc, zone->nsec3_soa_rr == NULL);
+			/*CuAssertTrue(tc, zone->nsec3_param == NULL);
 			CuAssertTrue(tc, zone->nsec3_last == NULL);*/
 #endif /* NSEC3 */
 			/*CuAssertTrue(tc, !zone->apex->is_existing);*/
@@ -206,38 +203,20 @@ check_rrsets(CuTest* tc, domain_type* domain)
 }
 
 #ifdef NSEC3
-static void
-CheckNSEC3lookup(CuTest* tc, domain_type* domain, zone_type* zone)
-{
-	domain_type* d;
-	if(domain->nsec3_lookup) {
-		/* check no NSEC3s between the nsec3lookup and domain */
-		for(d=domain_next(domain->nsec3_lookup); d && d!=domain;
-			d = domain_next(d)) {
-			CuAssertTrue(tc, !domain_find_rrset(d,zone,TYPE_NSEC3));
-		}
-	} else {
-		/* first lookup, NULL, no NSEC3s before domain */
-		for(d=domain; d; d=domain_previous(d)) {
-			CuAssertTrue(tc, !domain_find_rrset(d,zone,TYPE_NSEC3));
-		}
-	}
-}
-#endif /* NSEC3 */
-
-#ifdef NSEC3
 /* get NSEC3 for given nsec3-domain-name, b32.zone */
 static domain_type*
 get_nsec3_for(namedb_type* db, const dname_type* look, zone_type* zone)
 {
 	domain_type* closest=NULL, *ce=NULL;
-	if(domain_table_search(db->domains, look, &closest, &ce)) {
-		return closest;
-	}
-	if(!closest->nsec3_lookup) {
+	(void)domain_table_search(db->domains, look, &closest, &ce);
+	/* walk back through zone until we find an NSEC3 record.
+	 * this uses the normal db tree to check the NSEC3-trees */
+	while(closest && nsec3_in_chain_count(closest, zone) == 0)
+		closest = domain_previous(closest);
+	if(!closest) {
 		return zone->nsec3_last;
 	}
-	return closest->nsec3_lookup;
+	return closest;
 }
 #endif /* NSEC3 */
 
@@ -290,12 +269,13 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 	zone_type* zone = NULL;
 	rrset_type* rrset;
 	/* check nsec3_lookup */
-	if(domain_in_nsec3_space(domain, &zone))
-		CheckNSEC3lookup(tc, domain, zone);
+	if(domain_in_nsec3_space(domain, &zone)) {
+		/* TODO more checks */
+	}
 	region = region_create(xalloc, free);
 
 	/* see if this domain is processed */
-	if(!zone || !zone->nsec3_soa_rr || !domain->is_existing ||
+	if(!zone || !zone->nsec3_param || !domain->is_existing ||
 		domain_find_zone(domain) != zone ||
 		domain_has_only_NSEC3(domain, zone) ||
 		domain_is_glue(domain, zone)) {
@@ -309,11 +289,12 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 		uint8_t hash[NSEC3_HASH_LEN], wchash[NSEC3_HASH_LEN];
 		CuAssertTrue(tc, domain->have_nsec3_hash);
 		CuAssertTrue(tc, domain->have_nsec3_wc_hash);
-		h = nsec3_hash_and_store(region, zone, domain_dname(domain),
-			hash);
+		nsec3_hash_and_store(zone, domain_dname(domain), hash);
+		h = nsec3_b32_create(region, zone, hash);
 		wild = dname_parse(region, "*");
 		wild = dname_concatenate(region, wild, domain_dname(domain));
-		wch = nsec3_hash_and_store(region, zone, wild, wchash);
+		nsec3_hash_and_store(zone, wild, wchash);
+		wch = nsec3_b32_create(region, zone, wchash);
 
 		CuAssertTrue(tc, memcmp(domain->nsec3_hash, hash,
 			NSEC3_HASH_LEN) == 0);
@@ -335,12 +316,12 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 	if((rrset=domain_has_rrset_plain(domain, TYPE_DS)) ||
 		(rrset=domain_has_deleg_rrset(domain))) {
 	    zone_type* pz = rrset->zone;
-	    if(pz->nsec3_soa_rr && domain->is_existing) {
+	    if(pz->nsec3_param && domain->is_existing) {
 		const dname_type* h;
 		uint8_t hash[NSEC3_HASH_LEN];
 		CuAssertTrue(tc, domain->have_nsec3_ds_parent_hash);
-		h = nsec3_hash_and_store(region, pz, domain_dname(domain),
-			hash);
+		nsec3_hash_and_store(pz, domain_dname(domain), hash);
+		h = nsec3_b32_create(region, pz, hash);
 		CuAssertTrue(tc, memcmp(domain->nsec3_ds_parent_hash, hash,
 			NSEC3_HASH_LEN) == 0);
 

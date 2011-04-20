@@ -98,10 +98,6 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 		exit(1);
 	}
 	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count);
-#ifdef NSEC3
-	printf("prehash %s\n", nsd->options->database);
-	prehash(nsd->db, 0);
-#endif
 
 	/* setup query */
 	compression_table_capacity = 0;

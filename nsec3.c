@@ -29,7 +29,7 @@ detect_nsec3_params(rr_type* nsec3_apex,
 	*iter = read_uint16(rdata_atom_data(nsec3_apex->rdatas[2]));
 }
 
-static const dname_type *
+const dname_type *
 nsec3_b32_create(region_type* region, zone_type* zone, unsigned char* hash)
 {
 	const dname_type* dname;
@@ -262,10 +262,14 @@ void nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 	/* clear prehash items (there must not be items for other zones) */
 	prehash_clear(db->domains);
 	/* clear trees */
-	radix_tree_clear(zone->nsec3tree);
-	radix_tree_clear(zone->hashtree);
-	radix_tree_clear(zone->wchashtree);
-	radix_tree_clear(zone->dshashtree);
+	if(zone->nsec3tree)
+		radix_tree_clear(zone->nsec3tree);
+	if(zone->hashtree)
+		radix_tree_clear(zone->hashtree);
+	if(zone->wchashtree)
+		radix_tree_clear(zone->wchashtree);
+	if(zone->dshashtree)
+		radix_tree_clear(zone->dshashtree);
 	/* wipe hashes */
 	/* wipe precompile */
 	walk = zone->apex;
