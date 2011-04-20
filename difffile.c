@@ -19,6 +19,7 @@
 #include "rdata.h"
 #include "udb.h"
 #include "udbzone.h"
+#include "nsec3.h"
 
 static int
 write_32(FILE *out, uint32_t val)
@@ -321,6 +322,118 @@ find_rr_num(rrset_type* rrset,
 	return -1;
 }
 
+/* see if nsec3 deletion triggers need action */
+static void
+nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
+	udb_ptr* udbz)
+{
+	/* the RR has not actually been deleted yet, so we can inspect it */
+	if(!zone->nsec3_param)
+		return;
+	/* see if the domain was an NSEC3-domain in the chain, but no longer */
+	if(rr->type == TYPE_NSEC3 && rr->owner->nsec3_node &&
+		nsec3_rr_uses_params(rr, zone) &&
+		nsec3_in_chain_count(rr->owner, zone) <= 1) {
+		domain_type* prev = nsec3_chain_find_prev(zone, rr->owner);
+		/* remove from prehash because no longer an NSEC3 domain */
+		if(domain_is_prehash(db->domains, rr->owner))
+			prehash_del(db->domains, rr->owner);
+		/* fixup the last in the zone */
+		if(rr->owner == zone->nsec3_last)
+			zone->nsec3_last = prev;
+		/* unlink from the nsec3tree */
+		zone_del_domain_in_hash_tree(rr->owner->nsec3_node);
+		rr->owner->nsec3_node = NULL;
+		/* add previous NSEC3 to the prehash list */
+		if(prev)
+			prehash_add(db->domains, prev);
+		else 	nsec3_clear_precompile(db, zone);
+	}
+	/* see if the rr was NSEC3PARAM that we were using */
+	else if(rr->type == TYPE_NSEC3PARAM && rr == zone->nsec3_param) {
+		/* clear trees, wipe hashes, wipe precompile */
+		nsec3_clear_precompile(db, zone);
+		/* pick up new nsec3param from udb */
+		nsec3_find_zone_param(db, zone, udbz);
+		/* if no more NSEC3, done */
+		if(!zone->nsec3_param)
+			return;
+		nsec3_precompile_newparam(db, zone, udbz);
+	}
+}
+
+/* see if nsec3 rrset-deletion triggers need action */
+static void
+nsec3_delete_rrset_trigger(domain_type* domain, zone_type* zone)
+{
+	if(!zone->nsec3_param)
+		return;
+	/* deletion of rrset already done, we can check if conditions apply */
+	/* see if the domain is no longer precompiled */
+	/* it has a hash_node, but no longer fulfills conditions */
+	if(zone == domain_find_zone(domain) && domain->hash_node &&
+		!nsec3_condition_hash(domain, zone)) {
+		/* remove precompile */
+		domain->nsec3_cover = NULL;
+		domain->nsec3_wcard_child_cover = NULL;
+		domain->nsec3_is_exact = 0;
+		/* remove it from the hash tree */
+		zone_del_domain_in_hash_tree(domain->hash_node);
+		domain->hash_node = NULL;
+		zone_del_domain_in_hash_tree(domain->wchash_node);
+		domain->wchash_node = NULL;
+	}
+	if(domain != zone->apex && domain->dshash_node &&
+		!nsec3_condition_dshash(domain, zone)) {
+		/* remove precompile */
+		domain->nsec3_ds_parent_cover = NULL;
+		domain->nsec3_ds_parent_is_exact = 0;
+		/* remove it from the hash tree */
+		zone_del_domain_in_hash_tree(domain->dshash_node);
+		domain->dshash_node = NULL;
+	}
+}
+
+/* see if nsec3 addition triggers need action */
+static void
+nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
+	udb_ptr* udbz)
+{
+	/* the RR has been added in full, also to UDB (and thus NSEC3PARAM 
+	 * in the udb has been adjusted) */
+	if(zone->nsec3_param && rr->type == TYPE_NSEC3 &&
+		!rr->owner->nsec3_node && nsec3_rr_uses_params(rr, zone)) {
+		/* added NSEC3 into the chain */
+		nsec3_precompile_nsec3rr(rr->owner, zone);
+		/* set this NSEC3 to prehash */
+		prehash_add(db->domains, rr->owner);
+	} else if(!zone->nsec3_param && rr->type == TYPE_NSEC3PARAM) {
+		/* see if this means NSEC3 chain can be used */
+		nsec3_find_zone_param(db, zone, udbz);
+		if(!zone->nsec3_param)
+			return;
+		nsec3_precompile_newparam(db, zone, udbz);
+	}
+}
+
+/* see if nsec3 rrset-addition triggers need action */
+static void
+nsec3_add_rrset_trigger(namedb_type* db, domain_type* domain, zone_type* zone,
+	udb_ptr* udbz)
+{
+	/* the rrset has been added (but the RR itself not yet) */
+	if(!zone->nsec3_param)
+		return;
+	/* because the rrset is added we can check conditions easily.
+	 * check if domain needs to become precompiled now */
+	if(!domain->hash_node && nsec3_condition_hash(domain, zone)) {
+		nsec3_precompile_domain(db, domain, zone, udbz);
+	}
+	if(!domain->dshash_node && nsec3_condition_dshash(domain, zone)) {
+		nsec3_precompile_domain_ds(db, domain, zone, udbz);
+	}
+}
+
 /* fixup usage lower for domain names in the rdata */
 static void
 rr_lower_usage(domain_table_type* table, rr_type* rr)
@@ -391,12 +504,16 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		}
 		/* delete the normalized RR from the udb */
 		udb_del_rr(db->udb, udbz, &rrset->rrs[rrnum]);
+		/* process triggers for RR deletions */
+		nsec3_delete_rr_trigger(db, &rrset->rrs[rrnum], zone, udbz);
 		/* lower usage (possibly deleting other domains, and thus
 		 * invalidating the current RR's domain pointers) */
 		rr_lower_usage(db->domains, &rrset->rrs[rrnum]);
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
 			rrset_delete(db, domain, rrset);
+			/* cleanup nsec3 */
+			nsec3_delete_rrset_trigger(domain, zone);
 			/* see if the domain can be deleted (and inspect parents) */
 			domain_table_deldomain(db->domains, domain);
 		} else {
@@ -449,6 +566,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		rrset->rrs = 0;
 		rrset->rr_count = 0;
 		domain_add_rrset(domain, rrset);
+		nsec3_add_rrset_trigger(db, domain, zone, udbz);
 	}
 
 	/* dnames in rdata are normalized, conform RFC 4035,
@@ -499,6 +617,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		log_msg(LOG_ERR, "could not add RR to udb, disk-space?");
 		return 0;
 	}
+	nsec3_add_rr_trigger(db, &rrset->rrs[rrset->rr_count - 1], zone, udbz);
 	return 1;
 }
 
@@ -506,54 +625,19 @@ zone_type*
 find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 	nsd_options_t* opt, size_t child_count)
 {
-	domain_type *domain;
 	zone_type* zone;
+	zone_options_t* zopt;
 	zone = namedb_find_zone(db, zone_name);
 	if(zone) {
 		return zone;
 	}
-	
-	domain = domain_table_find(db->domains, zone_name);
-	if(!domain) {
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr: creating domain %s",
-			dname_to_string(zone_name,0)));
-		/* create the zone and domain of apex (zone has config options) */
-		domain = domain_table_insert(db->domains, zone_name);
-	}
-	/* create the zone */
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfr: creating zone_type %s",
-		dname_to_string(zone_name,0)));
-	zone = (zone_type *) region_alloc(db->region, sizeof(zone_type));
-	if(!zone) {
-		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
-		exit(1);
-	}
-	zone->node = radname_insert(db->zonetree, dname_name(zone_name),
-		zone_name->name_size, zone);
-	assert(zone->node);
-	zone->apex = domain;
-	domain->usage++; /* the zone.apex reference */
-	zone->soa_rrset = 0;
-	zone->soa_nx_rrset = 0;
-	zone->ns_rrset = 0;
-#ifdef NSEC3
-	zone->nsec3_soa_rr = NULL;
-	zone->nsec3_last = NULL;
-#endif
-	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*child_count);
-	if(!zone->dirty) {
-		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
-		exit(1);
-	}
-	memset(zone->dirty, 0, sizeof(uint8_t)*child_count);
-	zone->opts = zone_options_find(opt, domain_dname(zone->apex));
-	if(!zone->opts) {
+	zopt = zone_options_find(opt, domain_dname(zone->apex));
+	if(!zopt) {
 		log_msg(LOG_ERR, "xfr: zone %s not in config.",
 			dname_to_string(zone_name,0));
 		return 0;
 	}
-	zone->is_secure = 0;
-	zone->updated = 1;
+	zone = namedb_zone_create(db, zone_name, zopt, child_count);
 	zone->is_ok = 0;
 	return zone;
 }
@@ -603,7 +687,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
 	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
-	size_t child_count, udb_ptr* udbz)
+	size_t child_count, udb_ptr* udbz, struct zone** zone_res)
 {
 	uint32_t filelen, msglen, pkttype, timestamp[2];
 	int qcount, ancount, counter;
@@ -683,6 +767,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		region_destroy(region);
 		return 0;
 	}
+	*zone_res = zone_db;
 	zone_db->updated = 1;
 
 	if(msglen > QIOBUFSZ) {
@@ -801,6 +886,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
 			delete_zone_rrs(db, zone_db);
 			udb_zone_clear(db->udb, udbz);
+			nsec3_clear_precompile(db, zone_db);
 			/* add everything else (incl end SOA) */
 			*delete_mode = 0;
 			*is_axfr = 1;
@@ -824,6 +910,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 				/* AXFR */
 				delete_zone_rrs(db, zone_db);
 				udb_zone_clear(db->udb, udbz);
+				nsec3_clear_precompile(db, zone_db);
 				*delete_mode = 0;
 				*is_axfr = 1;
 			}
@@ -1039,6 +1126,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	int have_all_parts = 1;
 	struct diff_log* thislog = 0;
 	off_t commitpos;
+	zone_type* zonedb = NULL;
 
 	/* read zone name and serial */
 	if(!diff_read_str(in, zone_buf, sizeof(zone_buf)) ||
@@ -1140,7 +1228,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
 			if(!apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
-				&rr_count, child_count, &z)) {
+				&rr_count, child_count, &z, &zonedb)) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
 					opt->difffile);
 				/* the udb is still dirty, it is bad */
@@ -1149,6 +1237,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		}
 		udb_base_set_userflags(db->udb, 0);
 		udb_ptr_unlink(&z, db->udb);
+		if(zonedb) prehash_zone(db, zonedb);
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
 			return 0;

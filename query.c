@@ -788,7 +788,7 @@ answer_delegation(query_type *query, answer_type *answer)
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
 #ifdef NSEC3
-		} else if (query->zone->nsec3_soa_rr) {
+		} else if (query->zone->nsec3_param) {
 			nsec3_answer_delegation(query, answer);
 #endif
 		} else if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_NSEC))) {
@@ -834,7 +834,7 @@ answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 	}
 
 #ifdef NSEC3
-	if (query->edns.dnssec_ok && query->zone->nsec3_soa_rr) {
+	if (query->edns.dnssec_ok && query->zone->nsec3_param) {
 		nsec3_answer_nodata(query, answer, original);
 	} else
 #endif
@@ -1042,9 +1042,9 @@ answer_authoritative(struct nsd   *nsd,
 		match->nsec3_ds_parent_is_exact = wildcard_child->nsec3_ds_parent_is_exact;
 		match->nsec3_ds_parent_cover = wildcard_child->nsec3_ds_parent_cover;
 
-		if (q->edns.dnssec_ok && q->zone->nsec3_soa_rr) {
+		if (q->edns.dnssec_ok && q->zone->nsec3_param) {
 			/* Only add nsec3 wildcard data when do bit is set */
-			nsec3_answer_wildcard(q, answer, wildcard_child, nsd->db, qname);
+			nsec3_answer_wildcard(q, answer, wildcard_child, qname);
 		}
 #endif
 
@@ -1061,9 +1061,9 @@ answer_authoritative(struct nsd   *nsd,
 
 	/* Authorative zone.  */
 #ifdef NSEC3
-	if (q->edns.dnssec_ok && q->zone->nsec3_soa_rr) {
+	if (q->edns.dnssec_ok && q->zone->nsec3_param) {
 		nsec3_answer_authoritative(&match, q, answer,
-			closest_encloser, nsd->db, qname);
+			closest_encloser, qname);
 	} else
 #endif
 	if (q->edns.dnssec_ok && zone_is_secure(q->zone)) {

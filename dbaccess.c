@@ -28,6 +28,7 @@
 #include "udbradtree.h"
 #include "udbzone.h"
 #include "zonec.h"
+#include "nsec3.h"
 #include "difffile.h"
 
 void
@@ -235,10 +236,10 @@ read_zone_data(udb_base* udb, namedb_type* db, region_type* dname_region,
 	udb_ptr_unlink(&urrset, udb);
 }
 
-/** create empty zone entry in namedb */
-static zone_type*
-make_zone(namedb_type* db, const dname_type* dname, zone_options_t* zo,
-	size_t num_children)
+/** create a zone */
+zone_type*
+namedb_zone_create(namedb_type* db, const dname_type* dname,
+	zone_options_t* zo, size_t num_children)
 {
 	zone_type* zone = (zone_type *) region_alloc(db->region,
 		sizeof(zone_type));
@@ -251,8 +252,12 @@ make_zone(namedb_type* db, const dname_type* dname, zone_options_t* zo,
 	zone->soa_nx_rrset = NULL;
 	zone->ns_rrset = NULL;
 #ifdef NSEC3
-	zone->nsec3_soa_rr = NULL;
+	zone->nsec3_param = NULL;
 	zone->nsec3_last = NULL;
+	zone->nsec3tree = NULL;
+	zone->hashtree = NULL;
+	zone->wchashtree = NULL;
+	zone->dshashtree = NULL;
 #endif
 	zone->opts = zo;
 	zone->is_secure = 0;
@@ -282,7 +287,7 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 		region_free_all(dname_region);
 		return;
 	}
-	zone = make_zone(db, dname, zo, num_children);
+	zone = namedb_zone_create(db, dname, zo, num_children);
 	region_free_all(dname_region);
 	read_zone_data(udb, db, dname_region, z, zone);
 }
@@ -454,6 +459,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 	zone->updated = 1;
 	/* wipe zone from memory */
 	delete_zone_rrs(db, zone);
+	nsec3_clear_precompile(db, zone);
 	errors = zonec_read(zone->opts->name, zone->opts->zonefile, zone);
 	if(errors > 0) {
 		region_type* dname_region;
@@ -463,6 +469,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 		/* wipe (partial) zone from memory */
 		zone->is_ok = 0;
 		delete_zone_rrs(db, zone);
+		nsec3_clear_precompile(db, zone);
 		/* see if we can revert to the udb stored version */
 		if(!udb_zone_search(db->udb, &z, dname_name(domain_dname(
 			zone->apex)), domain_dname(zone->apex)->name_size)) {
@@ -482,6 +489,9 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 			log_msg(LOG_ERR, "failed to store zone in udb");
 		}
 	}
+#ifdef NSEC3
+	prehash_zone_complete(db, zone);
+#endif
 }
 
 void namedb_check_zonefiles(struct namedb* db, nsd_options_t* opt,
@@ -501,7 +511,7 @@ void namedb_check_zonefiles(struct namedb* db, nsd_options_t* opt,
 		/* find zone to go with it, or create it */
 		zone = namedb_find_zone(db, dname);
 		if(!zone) {
-			zone = make_zone(db, dname, zo, num_children);
+			zone = namedb_zone_create(db, dname, zo, num_children);
 			region_free_all(dname_region);
 		}
 		namedb_read_zonefile(db, zone);

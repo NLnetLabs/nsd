@@ -39,6 +39,10 @@ struct domain_table
 	/* ptr to biggest domain.number and last in list.
 	 * the root is the lowest and first in the list. */
 	domain_type *numlist_last;
+#ifdef NSEC3
+	/* the prehash list, start of the list */
+	domain_type *prehash_list;
+#endif /* NSEC3 */
 };
 
 struct domain
@@ -55,15 +59,16 @@ struct domain
 	domain_type *nsec3_wcard_child_cover;
 	/* for the DS case we must answer on the parent side of zone cut */
 	domain_type *nsec3_ds_parent_cover;
-	/* the NSEC3 domain that has a hash-base32 <= than this dname. */
-	/* or NULL (no smaller one within this zone)
-	 * this variable is used to look up the NSEC3 record that matches
-	 * or covers a given b64-encoded-hash-string domain name.
-	 * The result of the lookup is stored in the *_cover variables.
-	 * The variable makes it possible to perform a rbtree lookup for
-	 * a name, then take this 'jump' to the previous element that contains
-	 * an NSEC3 record, with hopefully the correct parameters. */
-	domain_type *nsec3_lookup;
+	/* NSEC3 domains to prehash, prev and next on the list or cleared */
+	domain_type *prehash_prev, *prehash_next;
+	/* entry in the nsec3tree (for NSEC3s in the chain in use) */
+	struct radnode *nsec3_node;
+	/* entry in the hashtree (for precompiled domains) */
+	struct radnode *hash_node;
+	/* entry in the wchashtree (the wildcard precompile) */
+	struct radnode *wchash_node;
+	/* entry in the dshashtree (the parent ds precompile) */
+	struct radnode *dshash_node;
 #endif
 	/* double-linked list sorted by domain.number */
 	domain_type* numlist_prev, *numlist_next;
@@ -97,14 +102,19 @@ struct domain
 
 struct zone
 {
-	struct radnode *node;
+	struct radnode *node; /* this entry in zonetree */
 	domain_type *apex;
 	rrset_type  *soa_rrset;
 	rrset_type  *soa_nx_rrset; /* see bug #103 */
 	rrset_type  *ns_rrset;
 #ifdef NSEC3
-	rr_type	    *nsec3_soa_rr; /* rrset with SOA bit set */
+	rr_type	    *nsec3_param; /* NSEC3PARAM RR of chain in use or NULL */
 	domain_type *nsec3_last; /* last domain with nsec3, wraps */
+	/* in these trees, the root contains an elem ptr to the radtree* */
+	struct radtree *nsec3tree; /* tree with relevant NSEC3 domains */
+	struct radtree *hashtree; /* tree, hashed NSEC3precompiled domains */
+	struct radtree *wchashtree; /* tree, wildcard hashed domains */
+	struct radtree *dshashtree; /* tree, ds-parent-hash domains */
 #endif
 	struct zone_options *opts;
 	uint8_t*     dirty; /* array of dirty-flags, per child */
@@ -196,6 +206,15 @@ domain_type *domain_table_insert(domain_table_type *table,
  * wcard_child closest match.
  */
 void domain_table_deldomain(domain_table_type *table, domain_type* domain);
+
+/* put domain into nsec3 hash space tree */
+void zone_add_domain_in_hash_tree(struct radtree** tree, uint8_t* hash,
+        size_t hashlen, domain_type* domain, struct radnode** node);
+void zone_del_domain_in_hash_tree(struct radnode* node);
+void prehash_clear(domain_table_type* table);
+void prehash_add(domain_table_type* table, domain_type* domain);
+void prehash_del(domain_table_type* table, domain_type* domain);
+int domain_is_prehash(domain_table_type* table, domain_type* domain);
 
 /*
  * Iterate over all the domain names in the domain tree.
@@ -315,6 +334,8 @@ void namedb_check_zonefiles(struct namedb* db, struct nsd_options* opt,
 	size_t num_children);
 void apex_rrset_checks(struct namedb* db, rrset_type* rrset,
 	domain_type* domain);
+zone_type* namedb_zone_create(namedb_type* db, const dname_type* dname,
+        struct zone_options* zo, size_t num_children);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)

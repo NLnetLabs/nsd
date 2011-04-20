@@ -1,3 +1,6 @@
+20 April 2011: Wouter
+	- incremental NSEC3 precompile.
+
 14 April 2011: Wouter
 	- remove chnum. Added numlist sorted by domain.number.
 	  domains that are not used are removed.

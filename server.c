@@ -542,10 +542,6 @@ server_prepare(struct nsd *nsd)
 						 "without it");
 	}
 
-#ifdef NSEC3
-	prehash(nsd->db, 0);
-#endif
-
 	compression_table_capacity = 0;
 	initialize_dname_compression_tables(nsd);
 
@@ -758,9 +754,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	if(nsd_debug_level >= 1)
 		region_log_stats(nsd->db->region);
 #endif /* NDEBUG */
-#ifdef NSEC3
-	prehash(nsd->db, 1);
-#endif /* NSEC3 */
 	/* sync to disk (if needed) */
 	udb_base_sync(nsd->db->udb, 0);
 
