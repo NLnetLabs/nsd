@@ -421,7 +421,7 @@ static void
 nsec3_add_rrset_trigger(namedb_type* db, domain_type* domain, zone_type* zone,
 	udb_ptr* udbz)
 {
-	/* the rrset has been added (but the RR itself not yet) */
+	/* the rrset has been added so we can inspect it */
 	if(!zone->nsec3_param)
 		return;
 	/* because the rrset is added we can check conditions easily.
@@ -549,6 +549,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	rr_type *rrs_old;
 	ssize_t rdata_num;
 	int rrnum;
+	int rrset_added = 0;
 	domain = domain_table_find(db->domains, dname);
 	if(!domain) {
 		/* create the domain */
@@ -566,7 +567,6 @@ add_RR(namedb_type* db, const dname_type* dname,
 		rrset->rrs = 0;
 		rrset->rr_count = 0;
 		domain_add_rrset(domain, rrset);
-		nsec3_add_rrset_trigger(db, domain, zone, udbz);
 	}
 
 	/* dnames in rdata are normalized, conform RFC 4035,
@@ -616,6 +616,9 @@ add_RR(namedb_type* db, const dname_type* dname,
 	if(!udb_write_rr(db->udb, udbz, &rrset->rrs[rrset->rr_count - 1])) {
 		log_msg(LOG_ERR, "could not add RR to udb, disk-space?");
 		return 0;
+	}
+	if(rrset_added) {
+		nsec3_add_rrset_trigger(db, domain, zone, udbz);
 	}
 	nsec3_add_rr_trigger(db, &rrset->rrs[rrset->rr_count - 1], zone, udbz);
 	return 1;

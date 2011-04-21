@@ -242,7 +242,7 @@ udb_zone_search(udb_base* udb, udb_ptr* result, const uint8_t* dname,
 		if(result->data)
 			udb_ptr_set_rptr(result, udb, &RADNODE(result)->elem);
 		udb_ptr_unlink(&ztree, udb);
-		return 1;
+		return (result->data != 0);
 	}
 	udb_ptr_unlink(&ztree, udb);
 	return 0;
@@ -404,7 +404,7 @@ udb_domain_find(udb_base* udb, udb_ptr* zone, const uint8_t* nm, size_t nmlen,
 	if(result->data)
 		udb_ptr_set_rptr(result, udb, &RADNODE(result)->elem);
 	udb_ptr_unlink(&dtree, udb);
-	return r;
+	return r && result->data;
 }
 
 /** find or create a domain name in the zone domain tree */
@@ -726,6 +726,7 @@ udb_zone_lookup_hash(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
 		/* this could be cached too */
 		return 0;
 	}
+	assert(d.data);
 	/* found domain, see if we have nsec3 hash */
 	if(!DOMAIN(&d)->have_hash) {
 		calculate_hash(udb, zone, DOMAIN(&d));
@@ -751,6 +752,7 @@ udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
 		/* domain does not exist, an emptynonterminal or so */
 		return 0;
 	}
+	assert(d.data);
 	/* found domain, see if we have nsec3 hash */
 	if(!DOMAIN(&d)->have_hash) {
 		calculate_hash(udb, zone, DOMAIN(&d));

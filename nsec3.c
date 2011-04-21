@@ -185,8 +185,10 @@ static struct rr* udb_zone_find_nsec3param(udb_base* udb, udb_ptr* uz,
 		   RR(&urr)->wire[4] == rdata_atom_data(rd[3])[0] && /*slen*/
 		   RR(&urr)->len >= 5 + RR(&urr)->wire[4] &&
 		   memcmp(RR(&urr)->wire+5, rdata_atom_data(rd[3])+1,
-			rdata_atom_data(rd[3])[0]) == 0)
+			rdata_atom_data(rd[3])[0]) == 0) {
+			udb_ptr_unlink(&urr, udb);
 			return &rrset->rrs[i];
+		}
 	}
 	udb_ptr_unlink(&urr, udb);
 	return NULL;
@@ -389,26 +391,27 @@ void nsec3_precompile_domain_ds(struct namedb* db, struct domain* domain,
 }
 
 static void
-parse_nsec3_name(const dname_type* dname, uint8_t* hash, size_t hashlen)
+parse_nsec3_name(const dname_type* dname, uint8_t* hash, size_t buflen)
 {
 	/* first label must be the match, */
-	size_t lablen = hashlen * 8 / 5;
+	size_t lablen = (buflen-1) * 8 / 5;
 	const uint8_t* wire = dname_name(dname);
-	assert(lablen == 32); /* labels of length 32 for SHA1 */
+	assert(lablen == 32 && buflen == NSEC3_HASH_LEN+1);
+	/* labels of length 32 for SHA1, and must have space+1 for convert */
 	if(wire[0] != lablen) {
 		/* not NSEC3 */
-		memset(hash, 0, hashlen);
+		memset(hash, 0, buflen);
 		return;
 	}
-	(void)b32_pton((char*)wire+1, hash, hashlen);
+	(void)b32_pton((char*)wire+1, hash, buflen);
 }
 
 void nsec3_precompile_nsec3rr(struct domain* domain, struct zone* zone)
 {
-	uint8_t zehash[NSEC3_HASH_LEN];
+	uint8_t zehash[NSEC3_HASH_LEN+1];
 	/* add into nsec3tree */
 	parse_nsec3_name(domain_dname(domain), zehash, sizeof(zehash));
-	zone_add_domain_in_hash_tree(&zone->nsec3tree, zehash, sizeof(zehash),
+	zone_add_domain_in_hash_tree(&zone->nsec3tree, zehash, NSEC3_HASH_LEN,
 		domain, &domain->nsec3_node);
 	/* fixup the last in the zone */
 	if(radix_last(zone->nsec3tree)->elem == domain) {
@@ -515,16 +518,16 @@ process_range(zone_type* zone, domain_type* start, domain_type* end,
 	struct radnode *p_end = NULL, *pwc_end = NULL, *pds_end = NULL;
 	/* set start */
 	if(start) {
-		uint8_t hash[NSEC3_HASH_LEN];
+		uint8_t hash[NSEC3_HASH_LEN+1];
 		parse_nsec3_name(domain_dname(start), hash, sizeof(hash));
 		/* if exact match on first, set is_exact */
-		if(process_first(zone->hashtree, hash, sizeof(hash), &p)) {
+		if(process_first(zone->hashtree, hash, NSEC3_HASH_LEN, &p)) {
 			((domain_type*)(p->elem))->nsec3_cover = nsec3;
 			((domain_type*)(p->elem))->nsec3_is_exact = 1;
 			p = radix_next(p);
 		}
-		(void)process_first(zone->wchashtree, hash,sizeof(hash),&pwc);
-		if(process_first(zone->dshashtree, hash, sizeof(hash), &pds)) {
+		(void)process_first(zone->wchashtree, hash,NSEC3_HASH_LEN,&pwc);
+		if(process_first(zone->dshashtree, hash, NSEC3_HASH_LEN, &pds)){
 			((domain_type*)(pds->elem))->nsec3_ds_parent_cover
 				= nsec3;
 			((domain_type*)(pds->elem))->nsec3_ds_parent_is_exact
@@ -541,11 +544,11 @@ process_range(zone_type* zone, domain_type* start, domain_type* end,
 	}
 	/* set end */
 	if(end) {
-		uint8_t hash[NSEC3_HASH_LEN];
+		uint8_t hash[NSEC3_HASH_LEN+1];
 		parse_nsec3_name(domain_dname(end), hash, sizeof(hash));
-		process_end(zone->hashtree, hash, sizeof(hash), &p);
-		process_end(zone->wchashtree, hash, sizeof(hash), &pwc);
-		process_end(zone->dshashtree, hash, sizeof(hash), &pds);
+		process_end(zone->hashtree, hash, NSEC3_HASH_LEN, &p);
+		process_end(zone->wchashtree, hash, NSEC3_HASH_LEN, &pwc);
+		process_end(zone->dshashtree, hash, NSEC3_HASH_LEN, &pds);
 	}
 
 	/* precompile */
