@@ -567,6 +567,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		rrset->rrs = 0;
 		rrset->rr_count = 0;
 		domain_add_rrset(domain, rrset);
+		rrset_added = 1;
 	}
 
 	/* dnames in rdata are normalized, conform RFC 4035,
