@@ -348,6 +348,8 @@ nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		if(prev)
 			prehash_add(db->domains, prev);
 		else 	nsec3_clear_precompile(db, zone);
+
+		/* this domain becomes ordinary data domain: done later */
 	}
 	/* see if the rr was NSEC3PARAM that we were using */
 	else if(rr->type == TYPE_NSEC3PARAM && rr == zone->nsec3_param) {
@@ -405,6 +407,9 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		!rr->owner->nsec3_node && nsec3_rr_uses_params(rr, zone)) {
 		/* added NSEC3 into the chain */
 		nsec3_precompile_nsec3rr(rr->owner, zone);
+		/* the domain has become an NSEC3-domain, if it was precompiled
+		 * previously, remove that, neatly done in routine above */
+		nsec3_delete_rrset_trigger(rr->owner, zone);
 		/* set this NSEC3 to prehash */
 		prehash_add(db->domains, rr->owner);
 	} else if(!zone->nsec3_param && rr->type == TYPE_NSEC3PARAM) {
@@ -514,6 +519,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			rrset_delete(db, domain, rrset);
 			/* cleanup nsec3 */
 			nsec3_delete_rrset_trigger(domain, zone);
+			/* for type nsec3, the domain may have become a
+			 * 'normal' domain with its remaining data now */
+			if(type == TYPE_NSEC3)
+			    nsec3_add_rrset_trigger(db, domain, zone, udbz);
 			/* see if the domain can be deleted (and inspect parents) */
 			domain_table_deldomain(db->domains, domain);
 		} else {
@@ -533,6 +542,10 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			region_recycle(db->region, rrs_orig,
 				sizeof(rr_type) * rrset->rr_count);
 			rrset->rr_count --;
+			/* for type nsec3, the domain may have become a
+			 * 'normal' domain with its remaining data now */
+			if(type == TYPE_NSEC3)
+			    nsec3_add_rrset_trigger(db, domain, zone, udbz);
 		}
 	}
 	return 1;

@@ -186,7 +186,8 @@ prehash_add(domain_table_type *table, domain_type* domain)
 	if(domain_is_prehash(table, domain))
 		return;
 	domain->prehash_next = table->prehash_list;
-	table->prehash_list->prehash_prev = domain;
+	if(table->prehash_list)
+		table->prehash_list->prehash_prev = domain;
 	table->prehash_list = domain;
 }
 

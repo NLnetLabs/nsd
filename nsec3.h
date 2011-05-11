@@ -85,7 +85,7 @@ struct domain* nsec3_chain_find_prev(struct zone* zone, struct domain* domain);
 /* clear nsec3 precompile for the zone */
 void nsec3_clear_precompile(struct namedb* db, struct zone* zone);
 /* if domain is part of nsec3hashed domains of a zone */
-int nsec3_condition_hash(struct domain* d, struct zone* z);
+int nsec3_domain_part_of_zone(struct domain* d, struct zone* z);
 /* condition when a domain is precompiled */
 int nsec3_condition_hash(struct domain* d, struct zone* z);
 /* condition when a domain is ds precompiled */

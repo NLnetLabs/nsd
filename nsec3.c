@@ -491,6 +491,9 @@ process_first(struct radtree* tree, uint8_t* hash, size_t hashlen,
 	}
 	if(!*p || !(*p)->parent) /* before first, go from first */
 		*p = radix_next(radix_first(tree));
+	/* the inexact, smaller, match we found, does not itself need to
+	 * be edited */
+	else	*p = radix_next(*p); /* if this becomes NULL, nothing to do */
 	return 0;
 }
 
@@ -558,9 +561,9 @@ process_range(zone_type* zone, domain_type* start, domain_type* end,
 	if(end) {
 		uint8_t hash[NSEC3_HASH_LEN+1];
 		parse_nsec3_name(domain_dname(end), hash, sizeof(hash));
-		process_end(zone->hashtree, hash, NSEC3_HASH_LEN, &p);
-		process_end(zone->wchashtree, hash, NSEC3_HASH_LEN, &pwc);
-		process_end(zone->dshashtree, hash, NSEC3_HASH_LEN, &pds);
+		process_end(zone->hashtree, hash, NSEC3_HASH_LEN, &p_end);
+		process_end(zone->wchashtree, hash, NSEC3_HASH_LEN, &pwc_end);
+		process_end(zone->dshashtree, hash, NSEC3_HASH_LEN, &pds_end);
 	}
 
 	/* precompile */

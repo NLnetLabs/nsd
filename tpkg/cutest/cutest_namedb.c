@@ -88,6 +88,27 @@ create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 	return db;
 }
 
+#ifdef NSEC3
+/* see if lastnsec3 is really the last, return false on trouble */
+static int
+nsec3last(zone_type* zone)
+{
+	domain_type* d = zone->nsec3_last;
+	d = domain_next(d);
+	while(d && dname_is_subdomain(domain_dname(d),
+		domain_dname(zone->apex))) {
+		if(domain_find_rrset(d, zone, TYPE_NSEC3)) {
+			/* an NSEC3? After nsec3_last?, if it has the same
+			 * paramset, then the nsec3_last is wrong */
+			if(nsec3_in_chain_count(d, zone) != 0)
+				return 0; /* this is later than the last */
+		}
+		d = domain_next(d);
+	}
+	return 1; /* OK : no NSEC3 later in zone */
+}
+#endif /* NSEC3 */
+
 /* walk zones and check them */
 static void
 check_walkzones(CuTest* tc, namedb_type* db)
@@ -124,9 +145,17 @@ check_walkzones(CuTest* tc, namedb_type* db)
 			if(domain_find_rrset(zone->apex, zone,
 				TYPE_NSEC3PARAM)) {
 				CuAssertTrue(tc, zone->nsec3_param != NULL);
-				CuAssertTrue(tc, zone->nsec3_last != NULL);
-				/* TODO: check soa_rr NSEC3 has soa flag,
-				 * check that last nsec3, is last in zone */
+				CuAssertTrue(tc, zone->nsec3_param->type ==
+					TYPE_NSEC3PARAM);
+				CuAssertTrue(tc, zone->nsec3_param->owner ==
+					zone->apex);
+				if(zone->nsec3_last) {
+					CuAssertTrue(tc, domain_find_rrset(
+						zone->nsec3_last, zone,
+						TYPE_NSEC3) != NULL);
+					/* check that last nsec3, is last */
+					CuAssertTrue(tc, nsec3last(zone));
+				}
 			} else {
 				CuAssertTrue(tc, zone->nsec3_param == NULL);
 				CuAssertTrue(tc, zone->nsec3_last == NULL);
@@ -279,8 +308,10 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 	/* see if this domain is processed */
 	if(!zone || !zone->nsec3_param || 
 		!nsec3_condition_hash(domain, zone)) {
-		CuAssertTrue(tc, !domain->have_nsec3_hash);
-		CuAssertTrue(tc, !domain->have_nsec3_wc_hash);
+		/*
+		 * for domains that previously held normal data, but then
+		 * became part of the NSEC3 chain, the hashes exist,
+		 * so cannot assert !have_nsec3_hash and !have_nsec3_wc_hash */
 		CuAssertTrue(tc, !domain->nsec3_is_exact);
 		CuAssertTrue(tc, !domain->nsec3_cover);
 		CuAssertTrue(tc, !domain->nsec3_wcard_child_cover);
@@ -979,6 +1010,28 @@ test_add_del_3(CuTest *tc, namedb_type* db)
 	prehash_zone(db, zone);
 	check_namedb(tc, db);
 	del_str(db, zone, &udbz, "lotso.example.org. IN TXT lotso\n");
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	/* remove last NSEC3 in chain and then add it again */
+	del_str(db, zone, &udbz, 
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	NSEC3	1 0 1 1234  1t1dk1m24102gngs9umpl1s4euti62js A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz,
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wzLORHkPVDVVi51HUInYoKgPdnc8+RtVLPcUv1L8EzD6rk7CtI9JEotWlc9az7p07/qAaOc+KpTlckB16KEsEw== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wzLORHkPVDVVi51HUInYoKgPdnc8+RtVLPcUv1L8EzD6rk7CtI9JEotWlc9az7p07/qAaOc+KpTlckB16KEsEw== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz,
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	NSEC3	1 0 1 1234  1t1dk1m24102gngs9umpl1s4euti62js A RRSIG \n"
+	);
 	prehash_zone(db, zone);
 	check_namedb(tc, db);
 
