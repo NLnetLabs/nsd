@@ -300,12 +300,31 @@ void nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 	}
 }
 
+/* see if domain name is part of (existing names in) the nsec3 zone */
+int
+nsec3_domain_part_of_zone(domain_type* d, zone_type* z)
+{
+	rrset_type* rrset;
+	while(d) {
+		for (rrset = d->rrsets; rrset; rrset = rrset->next) {
+			if(rrset->zone == z)
+				return 1;
+			else if(rrset_rrtype(rrset) == TYPE_SOA)
+				return 0; /* zonecut but not matched */
+		}
+		if(d->is_apex)
+			return 0; /* zonecut, but no data in zone matched */
+		d = d->parent;
+	}
+	return 0;
+}
+
 /* condition when a domain is precompiled */
 int
 nsec3_condition_hash(domain_type* d, zone_type* z)
 {
 	return d->is_existing && !domain_has_only_NSEC3(d, z) &&
-		z == domain_find_zone(d) && !domain_is_glue(d, z);
+		nsec3_domain_part_of_zone(d, z) && !domain_is_glue(d, z);
 }
 
 /* condition when a domain is ds precompiled */

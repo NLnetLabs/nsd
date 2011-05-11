@@ -1,3 +1,8 @@
+11 May 2011: Wouter
+	- fixes for nsec3 precompile code: precompile for empty nonterminals
+	  created when an RR is added. If SOA removed, precompile stays
+	  coherent even though domain_find_zone no longer returns correct zone.
+
 21 April 2011: Wouter
 	- unit test and fixes in nsec3 precompile code.
 

@@ -371,7 +371,7 @@ nsec3_delete_rrset_trigger(domain_type* domain, zone_type* zone)
 	/* deletion of rrset already done, we can check if conditions apply */
 	/* see if the domain is no longer precompiled */
 	/* it has a hash_node, but no longer fulfills conditions */
-	if(zone == domain_find_zone(domain) && domain->hash_node &&
+	if(nsec3_domain_part_of_zone(domain, zone) && domain->hash_node &&
 		!nsec3_condition_hash(domain, zone)) {
 		/* remove precompile */
 		domain->nsec3_cover = NULL;
@@ -619,7 +619,15 @@ add_RR(namedb_type* db, const dname_type* dname,
 		return 0;
 	}
 	if(rrset_added) {
+		domain_type* p = domain->parent;
 		nsec3_add_rrset_trigger(db, domain, zone, udbz);
+		/* go up and process (possibly created) empty nonterminals, 
+		 * until we hit the apex or root */
+		while(p && p->rrsets == NULL && !p->is_apex) {
+			nsec3_add_rrset_trigger(db, p, zone, udbz);
+			p = p->parent;
+		}
+
 	}
 	nsec3_add_rr_trigger(db, &rrset->rrs[rrset->rr_count - 1], zone, udbz);
 	return 1;
