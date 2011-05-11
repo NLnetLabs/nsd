@@ -304,16 +304,9 @@ void nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 int
 nsec3_domain_part_of_zone(domain_type* d, zone_type* z)
 {
-	rrset_type* rrset;
 	while(d) {
-		for (rrset = d->rrsets; rrset; rrset = rrset->next) {
-			if(rrset->zone == z)
-				return 1;
-			else if(rrset_rrtype(rrset) == TYPE_SOA)
-				return 0; /* zonecut but not matched */
-		}
 		if(d->is_apex)
-			return 0; /* zonecut, but no data in zone matched */
+			return (z->apex == d); /* zonecut, if right zone*/
 		d = d->parent;
 	}
 	return 0;
