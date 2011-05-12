@@ -163,6 +163,7 @@ zone_del_domain_in_hash_tree(struct radnode* node)
 	struct radtree* tree;
 	if(!node) return;
 	tree = (struct radtree*)radix_root_elem(node);
+	assert(tree);
 	radix_delete(tree, node);
 }
 
@@ -248,6 +249,14 @@ void domain_table_deldomain(domain_table_type *table, domain_type* domain)
 		/* test parent */
 		domain = domain->parent;
 	}
+}
+
+/** clear hash tree */
+void hash_tree_clear(struct radtree* tree)
+{
+	if(!tree) return;
+	radix_tree_clear(tree);
+	(void)radix_insert(tree, NULL, 0, tree);
 }
 
 /** create a hash space tree with itself in the root elem */

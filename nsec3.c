@@ -265,38 +265,37 @@ void nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 	prehash_clear(db->domains);
 	/* clear trees */
 	if(zone->nsec3tree)
-		radix_tree_clear(zone->nsec3tree);
+		hash_tree_clear(zone->nsec3tree);
 	if(zone->hashtree)
-		radix_tree_clear(zone->hashtree);
+		hash_tree_clear(zone->hashtree);
 	if(zone->wchashtree)
-		radix_tree_clear(zone->wchashtree);
+		hash_tree_clear(zone->wchashtree);
 	if(zone->dshashtree)
-		radix_tree_clear(zone->dshashtree);
+		hash_tree_clear(zone->dshashtree);
 	/* wipe hashes */
 	/* wipe precompile */
 	walk = zone->apex;
 	while(walk && domain_is_subdomain(walk, zone->apex)) {
-		if(domain_find_zone(walk) == zone) {
-			if(domain_find_zone(walk) == zone)
-				walk->nsec3_node = NULL;
-			if(nsec3_condition_hash(walk, zone)) {
-				walk->nsec3_cover = NULL;
-				walk->nsec3_wcard_child_cover = NULL;
-				walk->nsec3_is_exact = 0;
-				walk->have_nsec3_hash = 0;
-				walk->have_nsec3_wc_hash = 0;
-				walk->hash_node = NULL;
-				walk->wchash_node = NULL;
-			}
-			if(nsec3_condition_dshash(walk, zone)) {
-				walk->nsec3_ds_parent_cover = NULL;
-				walk->nsec3_ds_parent_is_exact = 0;
-				walk->have_nsec3_ds_parent_hash = 0;
-				walk->dshash_node = NULL;
-			}
+		if(nsec3_domain_part_of_zone(walk, zone)) {
+			walk->nsec3_node = NULL;
+			walk->nsec3_cover = NULL;
+			walk->nsec3_wcard_child_cover = NULL;
+			walk->nsec3_is_exact = 0;
+			walk->have_nsec3_hash = 0;
+			walk->have_nsec3_wc_hash = 0;
+			walk->hash_node = NULL;
+			walk->wchash_node = NULL;
+		}
+		if(!walk->parent ||
+			nsec3_domain_part_of_zone(walk->parent, zone)) {
+			walk->nsec3_ds_parent_cover = NULL;
+			walk->nsec3_ds_parent_is_exact = 0;
+			walk->have_nsec3_ds_parent_hash = 0;
+			walk->dshash_node = NULL;
 		}
 		walk = domain_next(walk);
 	}
+	zone->nsec3_last = NULL;
 }
 
 /* see if domain name is part of (existing names in) the nsec3 zone */

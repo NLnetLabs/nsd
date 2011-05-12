@@ -352,8 +352,11 @@ zone_hash_nsec3param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 		wiredname2str(ZONE(zone)->name)));
 	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
 	for(udb_radix_first(udb,&dtree,&d); d.data; udb_radix_next(udb,&d)) {
-		DOMAIN(&d)->have_hash = 0;
-		DOMAIN(&d)->have_wc_hash = 0;
+		udb_ptr domain;
+		udb_ptr_new(&domain, udb, &RADNODE(&d)->elem);
+		DOMAIN(&domain)->have_hash = 0;
+		DOMAIN(&domain)->have_wc_hash = 0;
+		udb_ptr_unlink(&domain, udb);
 	}
 	udb_ptr_unlink(&dtree, udb);
 	udb_ptr_unlink(&d, udb);

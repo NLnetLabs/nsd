@@ -1,5 +1,9 @@
 12 May 2011: Wouter
 	- more unit test for nsec3 precompile changes.
+	- unit test for salt change, rehash in udb fix, remove last NSEC3
+	  from chain works, NSEC3PARAM RR fixed up if RR added or removed
+	  from NSEC3PARAM RRset, hashtrees cleared properly, precompile clear
+	  more thorough (not dependant on nsec3_conditions).
 
 11 May 2011: Wouter
 	- fixes for nsec3 precompile code: precompile for empty nonterminals

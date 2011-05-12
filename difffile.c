@@ -345,10 +345,9 @@ nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		zone_del_domain_in_hash_tree(rr->owner->nsec3_node);
 		rr->owner->nsec3_node = NULL;
 		/* add previous NSEC3 to the prehash list */
-		if(prev)
+		if(prev && prev != rr->owner)
 			prehash_add(db->domains, prev);
-		else 	nsec3_clear_precompile(db, zone);
-
+		else	nsec3_clear_precompile(db, zone);
 		/* this domain becomes ordinary data domain: done later */
 	}
 	/* see if the rr was NSEC3PARAM that we were using */
@@ -582,6 +581,21 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			}
 			region_recycle(db->region, rrs_orig,
 				sizeof(rr_type) * rrset->rr_count);
+			if(type == TYPE_NSEC3PARAM && zone->nsec3_param) {
+				/* fixup nsec3_param pointer to same RR */
+				assert(zone->nsec3_param >= rrs_orig &&
+					zone->nsec3_param <=
+					rrs_orig+rrset->rr_count);
+				/* last moved to rrnum, others at same index*/
+				if(zone->nsec3_param == &rrs_orig[
+					rrset->rr_count-1])
+					zone->nsec3_param = &rrset->rrs[rrnum];
+				else
+					zone->nsec3_param =
+						(void*)zone->nsec3_param
+						-(void*)rrs_orig +
+						(void*)rrset->rrs;
+			}
 			rrset->rr_count --;
 			/* for type nsec3, the domain may have become a
 			 * 'normal' domain with its remaining data now */
@@ -666,11 +680,20 @@ add_RR(namedb_type* db, const dname_type* dname,
 	/* see if it is a SOA */
 	if(domain == zone->apex) {
 		apex_rrset_checks(db, rrset, domain);
+		if(type == TYPE_NSEC3PARAM && zone->nsec3_param) {
+			/* the pointer just changed, fix it up to point
+			 * to the same record */
+			assert(zone->nsec3_param >= rrs_old &&
+				zone->nsec3_param < rrs_old+rrset->rr_count);
+			/* in this order to make sure no overflow/underflow*/
+			zone->nsec3_param = (void*)zone->nsec3_param - 
+				(void*)rrs_old + (void*)rrset->rrs;
+		}
 	}
 
 	/* write the just-normalized RR to the udb */
 	if(!udb_write_rr(db->udb, udbz, &rrset->rrs[rrset->rr_count - 1])) {
-		log_msg(LOG_ERR, "could not add RR to udb, disk-space?");
+		log_msg(LOG_ERR, "could not add RR to nsd.db, disk-space?");
 		return 0;
 	}
 	if(rrset_added) {

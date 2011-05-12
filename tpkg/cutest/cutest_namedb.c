@@ -25,6 +25,7 @@
 static void namedb_1(CuTest *tc);
 static void namedb_2(CuTest *tc);
 static void namedb_3(CuTest *tc);
+static void namedb_4(CuTest *tc);
 static int v = 0; /* verbosity */
 
 /** get a temporary file name */
@@ -37,6 +38,7 @@ CuSuite* reg_cutest_namedb(void)
 	SUITE_ADD_TEST(suite, namedb_1);
 	SUITE_ADD_TEST(suite, namedb_2);
 	SUITE_ADD_TEST(suite, namedb_3);
+	SUITE_ADD_TEST(suite, namedb_4);
 	return suite;
 }
 
@@ -856,7 +858,6 @@ test_add_del_3(CuTest *tc, namedb_type* db)
 		exit(1);
 	}
 	check_namedb(tc, db);
-	/* TODO: NSEC3-chain changes (created with multiple sign and compare) */
 
 	/* plain record */
 	add_str(db, zone, &udbz, "added.example.org. IN A 1.2.3.4\n");
@@ -1409,16 +1410,7 @@ test_add_del_3(CuTest *tc, namedb_type* db)
 	udb_ptr_unlink(&udbz, db->udb);
 }
 
-static void namedb_3(CuTest *tc)
-{
-	/* test _3 : check NSEC3 precompile, same as _1 but nsec3signed */
-	region_type* region;
-	namedb_type* db;
-	if(v) verbosity = 3;
-	else verbosity = 0;
-	if(v) printf("test namedb start\n");
-	region = region_create(xalloc, free);
-	db = create_and_read_db(tc, region, "example.org.", 
+static const char* nsec3zone_txt =
 "example.org.	3600	IN	SOA	ns.example.org. hostmaster.example.org. 2011041200 28800 7200 604800 3600\n"
 "example.org.	3600	IN	RRSIG	SOA 5 2 3600 20110519131330 20110421131330 30899 example.org. Fg0LEhpORA2Fzu6oMIXq9lBXPX0ZeClmPTA3ZCbWmL+0stifiXI0ShmCnKtuTKUdeKDKPN/OWjjlu1O7eB5+Fg== ;{id = 30899}\n"
 
@@ -1514,12 +1506,215 @@ static void namedb_3(CuTest *tc)
 "www.example.org.	3600	IN	RRSIG	AAAA 5 3 3600 20110519131330 20110421131330 30899 example.org. MuQiC1ajdIRkYCsMxyH520Y/gtOxUdc8Gkson+q2KRarfEb6rQckVX3W+8uLyu0bTpxEUFJVSXTblkdH+yJZ7A== ;{id = 30899}\n"
 "o334hngponsojfvecb16ef11pluqci6c.example.org.	3600	IN	NSEC3	1 0 1 1234  os1tu4plekke6t993674mq6j79d73fdo A AAAA RRSIG \n"
 "o334hngponsojfvecb16ef11pluqci6c.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. T/8XSAGtKBcPh2FfsT9qQyen8S2InP+GM/JLULxmZbQTJyRVX4Zoy+pVlAPv2FyiTcYVgjXCv4XF6ewvwqNRtw== ;{id = 30899}\n"
-	);
+;
+	
+static void namedb_3(CuTest *tc)
+{
+	/* test _3 : check NSEC3 precompile, same as _1 but nsec3signed */
+	region_type* region;
+	namedb_type* db;
+	if(v) verbosity = 3;
+	else verbosity = 0;
+	if(v) printf("test namedb start\n");
+	region = region_create(xalloc, free);
+	db = create_and_read_db(tc, region, "example.org.", nsec3zone_txt);
 
 	/* test it */
 	test_add_del_3(tc, db);
 
 	if(v) printf("test namedb end\n");
+	unlink(db->udb->fname);
+	namedb_close(db);
+	region_destroy(region);
+}
+
+/* test the namedb, and add, remove items from it */
+static void
+test_add_del_4(CuTest *tc, namedb_type* db)
+{
+	zone_type* zone = find_zone(db, "example.org");
+	udb_ptr udbz;
+	int i;
+	/* the new nsec3 chain */
+	char* new_nsec3s[] = {
+"f37m7fketcp72terievrl57uqvohm1g2.example.org.	3600	IN	NSEC3	1 0 2 5678  i4ifdmtv5t3tulghb2k8bvdspt66bbju NS SOA MX RRSIG DNSKEY NSEC3PARAM \n",
+"f37m7fketcp72terievrl57uqvohm1g2.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. D31eXABfTEFMQuHsTGKO6JgwmAm49QH/E66GpTIjfAJwxCl9oCKX4kKtgV9zeiUlFMKGIGkEZVW9sZ6pcbOoCw== ;{id = 30899}\n",
+"i8ger853h8dunu9h2bun3k63ehgiigiq.example.org.	3600	IN	NSEC3	1 0 2 5678  nfbovj2t4827jeadfr7rchdta9lenibs\n",
+"i8ger853h8dunu9h2bun3k63ehgiigiq.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. d5LnSScXd3oHUvsSa0ZNXDP8Ok83GniYUQbrk2edtDvC3Tb/ibB2DQ/c0MYTSUK69bzW2c+IQdbhl9nRTTihLQ== ;{id = 30899}\n",
+"nfbovj2t4827jeadfr7rchdta9lenibs.example.org.	3600	IN	NSEC3	1 0 2 5678  p3mligj7o6v67g7r1at5i9pir89it2ko\n",
+"nfbovj2t4827jeadfr7rchdta9lenibs.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. fwm9vTCrMNQ+CuVAb1eJX0lNrxzfMIGH+V/wGguKD9PCu5JWkZVEKL1j65+aDUe+B4F8VuQdDkaV1xHYuaOptA== ;{id = 30899}\n",
+"5v48cpnjqh2p2593hgpk4ibr499fgd22.example.org.	3600	IN	NSEC3	1 0 2 5678  64j95h195ncae4hqt4i0gc52l4ps9h3c\n",
+"5v48cpnjqh2p2593hgpk4ibr499fgd22.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. tvvxBACLqoL00AdBlaeCZJrGgZuA4LGjDn5yv3NXPPLzFiZmc+LpB5LZFu++k6NAK5gCoJ+rn+M0za7/fH2sHA== ;{id = 30899}\n",
+"67kq04off3kphm2f4caes2cuo0lj7577.example.org.	3600	IN	NSEC3	1 0 2 5678  7ef49r8su1kopup7pjqfpdfo2pnb0aqe A RRSIG \n",
+"67kq04off3kphm2f4caes2cuo0lj7577.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. xURGs6qZzWonvrIHrKX2pYbumgWE9SOHrCdaP2aRKv47US7EGakQvV9iq9/AhkCA9+SPBVuUMfg9lr9WkYgPOQ== ;{id = 30899}\n",
+"dqsfade7eimicd6fb35t4ug23v16oo6n.example.org.	3600	IN	NSEC3	1 0 2 5678  f37m7fketcp72terievrl57uqvohm1g2 NS \n",
+"dqsfade7eimicd6fb35t4ug23v16oo6n.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. S9TYpxd6i2N7GlsoSNMJ/paMFPOBxUptk90PMCAH1qb6bHe4HJDseL1aXC/LvLKwnm2wcYWkp3kW0FQeG2fyCQ== ;{id = 30899}\n",
+"b5k1hrvanin9qddessltceea62uib27b.example.org.	3600	IN	NSEC3	1 0 2 5678  dqsfade7eimicd6fb35t4ug23v16oo6n DNAME RRSIG \n",
+"b5k1hrvanin9qddessltceea62uib27b.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. LqjNTNhMCp6ZomnyQcuE60S3cz8wOacajb0ShXXmbLxSU7R5oxM+25waAR4TlKVX0fhT54M+Tz3agVasdqRUmg== ;{id = 30899}\n",
+"qial0cb6uo37ajrfd47qphv57snfluar.example.org.	3600	IN	NSEC3	1 0 2 5678  ueovdcqshbnsbt6bg8prbdoo0je03l1m A RRSIG \n",
+"qial0cb6uo37ajrfd47qphv57snfluar.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. VBXhsLX0L7dFDf9x7qppD/KKxQINSs4iN8dbxdH39oEof2NdAtwURdGJcQ6mlnXbCoIXtAM83A4zt4dxrTM7NA== ;{id = 30899}\n",
+"5d1n99t0t8nj1nqgapiihqbc705v83ad.example.org.	3600	IN	NSEC3	1 0 2 5678  5v48cpnjqh2p2593hgpk4ibr499fgd22 A RRSIG \n",
+"5d1n99t0t8nj1nqgapiihqbc705v83ad.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. RQy+T0o8SrXFqxMI3XP/1xlk7ESSUhIf7vo9tm4y25vp6O/7rOjhQhYdo3laiStwe/rI2EnUC6KTux/qR5wuBg== ;{id = 30899}\n",
+"7ef49r8su1kopup7pjqfpdfo2pnb0aqe.example.org.	3600	IN	NSEC3	1 0 2 5678  9t70p1mvin2c4lj56i0bbjqrolcmpprn MX RRSIG \n",
+"7ef49r8su1kopup7pjqfpdfo2pnb0aqe.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. vODMAJN9uKt4pxBjp+A9YdHipB4p09+q3Bj4iix/7z1/YREwYPz9rXUDKsIC32XTSrhOoKIXr4vDTBw4HA/Qxg== ;{id = 30899}\n",
+"03pnll4hfvr5linnqeq0tfkhsjiuph1a.example.org.	3600	IN	NSEC3	1 0 2 5678  5d1n99t0t8nj1nqgapiihqbc705v83ad A RRSIG \n",
+"03pnll4hfvr5linnqeq0tfkhsjiuph1a.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. CATNsZBAQAVYTpclghI7O3zYv08SwkwblCD2FaKTufUGgbGs75KUtHd8y63CtezqvVI8ehv4LiGDCaxpjnwgBw== ;{id = 30899}\n",
+"p3mligj7o6v67g7r1at5i9pir89it2ko.example.org.	3600	IN	NSEC3	1 0 2 5678  q0ut57q04fj4csfov6obtgd09qca5hgv A RRSIG \n",
+"p3mligj7o6v67g7r1at5i9pir89it2ko.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. mrcTNHxvv60yA4WzMODcqHoZp/9TEusroImXomIWmZSLZcfX8YvjHHXf1Kd4aujKVRFLu9LK0BUZxScyvekStA== ;{id = 30899}\n",
+"i4ifdmtv5t3tulghb2k8bvdspt66bbju.example.org.	3600	IN	NSEC3	1 0 2 5678  i8ger853h8dunu9h2bun3k63ehgiigiq A RRSIG \n",
+"i4ifdmtv5t3tulghb2k8bvdspt66bbju.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. Brklo7nrnA6XVvTdyDQkiH6MeF+ubrY5pDLS6BiAqQZrYPACW2sQEByPMB0iatVQmes0XkP5umbdjDnjAp+nsg== ;{id = 30899}\n",
+"64j95h195ncae4hqt4i0gc52l4ps9h3c.example.org.	3600	IN	NSEC3	1 0 2 5678  67kq04off3kphm2f4caes2cuo0lj7577 A RRSIG \n",
+"64j95h195ncae4hqt4i0gc52l4ps9h3c.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. pwsO3dvzHTXJ/pX1LKZQ4VxrNFz39esET+6k+k6Z3mMfFj7Y9qqR5Jf65U1T23knlFFe51m1jakbAKUXK646uA== ;{id = 30899}\n",
+"ueovdcqshbnsbt6bg8prbdoo0je03l1m.example.org.	3600	IN	NSEC3	1 0 2 5678  03pnll4hfvr5linnqeq0tfkhsjiuph1a A RRSIG \n",
+"ueovdcqshbnsbt6bg8prbdoo0je03l1m.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. rkwo9R8L8YkG+VfMLA4UZdR4q/aenV9GP8Zn+JvbOoI8UVzFdVovwlA3rLzg3hVT9FgbEh61l/gBWWKY7/ZkJg== ;{id = 30899}\n",
+"9t70p1mvin2c4lj56i0bbjqrolcmpprn.example.org.	3600	IN	NSEC3	1 0 2 5678  b5k1hrvanin9qddessltceea62uib27b A RRSIG \n",
+"9t70p1mvin2c4lj56i0bbjqrolcmpprn.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. KnKK/xMOoSaKne1B/M9mZ7SerN4tfO5GB5Y+TnIkmSq7ouxdmRoa5sqEgRlievIC+LvI/aSWnW2kPlj5bzzC6Q== ;{id = 30899}\n",
+"q0ut57q04fj4csfov6obtgd09qca5hgv.example.org.	3600	IN	NSEC3	1 0 2 5678  qial0cb6uo37ajrfd47qphv57snfluar A AAAA RRSIG \n",
+"q0ut57q04fj4csfov6obtgd09qca5hgv.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. iJJm547x4fdbsDI3+R/0ZG9jnqmdtpVKHNjx6Fk+g5PZqPcqBDIdM1d/F1X7hB2hl4tnosPgZBQymPyErVa8Fw== ;{id = 30899}\n",
+		NULL
+	};
+	/* the old nsec3 chain */
+	char* old_nsec3s[] = {
+"86er3qr3ol0n6a0drbbffrcdk1ops77n.example.org.	3600	IN	NSEC3	1 0 1 1234  9cq8bno9lfqsbbm51irbq5tb43fl0ls2 NS SOA MX RRSIG DNSKEY NSEC3PARAM \n",
+"86er3qr3ol0n6a0drbbffrcdk1ops77n.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. s7D3UlAohE5hGs0ytWIqxND+ulpPwFfvdla874/qtDV+/hD57nShFgcP5pIc/J3e8lu0jPbdBnBdI1Tw1WKAqA== ;{id = 30899}\n",
+"bll46u32m32oetik7pcgfcuss7n5pqql.example.org.	3600	IN	NSEC3	1 0 1 1234  eki8ig6abn9vbk8tk6m6vou9me8l1o7c\n",
+"bll46u32m32oetik7pcgfcuss7n5pqql.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. bYuCl2N/AoyzBn9IaVBgg9JGjeeczWabxFeL0wGwSrtzbndnd+Ow/6R1Rwx10YtCqe84el3YljRdD2kArUynRA== ;{id = 30899}\n",
+"eki8ig6abn9vbk8tk6m6vou9me8l1o7c.example.org.	3600	IN	NSEC3	1 0 1 1234  g1hcjueqjvfi7f48f5gbncll68nqj0it\n",
+"eki8ig6abn9vbk8tk6m6vou9me8l1o7c.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. GyopIM3UdbBaVQbm81aiaxqXkR5RTdQ80Wo/PewmUEWFb2JKL0Qp16DT6yBcSckuzWZveFVUoGhiJir7Pyj9yQ== ;{id = 30899}\n",
+"gtitidhf26une8fj2t3eaj47qf8tbuci.example.org.	3600	IN	NSEC3	1 0 1 1234  jdup4m0edbcmtb7g5utvc2hgnees76us\n",
+"gtitidhf26une8fj2t3eaj47qf8tbuci.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. o+apZPI/6FaODE93OhtP6bf3E52OUzkwO4+oeU17MR300N5BRm+VFUyXNEGIFMy8RrSshnoozcZzkDOFx/Lk2g== ;{id = 30899}\n",
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	NSEC3	1 0 1 1234  1t1dk1m24102gngs9umpl1s4euti62js A RRSIG \n",
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wzLORHkPVDVVi51HUInYoKgPdnc8+RtVLPcUv1L8EzD6rk7CtI9JEotWlc9az7p07/qAaOc+KpTlckB16KEsEw== ;{id = 30899}\n",
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	NSEC3	1 0 1 1234  q5f9fvlq89hnof4sbp3uum6233pt6ofi NS \n",
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. zBc4ePB0UmbDRt1NJElooHV5KPFxjZkKq641PonOJdtKp5OIV3bklK/DwXM2MTMa5vzUC+X8h/ePBkyg/7FBzw== ;{id = 30899}\n",
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	NSEC3	1 0 1 1234  an5c8h70kkk482f35kojaluuvp2k4al7 DNAME RRSIG \n",
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. Q6NNfU7UHLFG5ZPlbkPc53M4cAbZh3AxF6qDBKxah0cZd6kpGfRm9myZor0HUAW+XnQuHt96yfZe9M/adH7CXg== ;{id = 30899}\n",
+"q5f9fvlq89hnof4sbp3uum6233pt6ofi.example.org.	3600	IN	NSEC3	1 0 1 1234  seag98uuge9jk9ejdnml5dqvc32aa1ec A RRSIG \n",
+"q5f9fvlq89hnof4sbp3uum6233pt6ofi.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wa8hbTLIkt8uOIbDFwYra3xbInTbx4QcyOPC9fPVGa1zvhemy86V2XiJB1vcmaGYXr9832cwT3e/11HR+VVakg== ;{id = 30899}\n",
+"seag98uuge9jk9ejdnml5dqvc32aa1ec.example.org.	3600	IN	NSEC3	1 0 1 1234  t46dlvjh87nm2smr9tshdappe8c6uolu A RRSIG \n",
+"seag98uuge9jk9ejdnml5dqvc32aa1ec.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. fCdz7ttJcgc+Kxs+AVAxvBvMidYojTMQdl4n9/ixcLt68LhaF4MyActctDXL4+dKDUaJF/IlMluWdzys6J5RFg== ;{id = 30899}\n",
+"3o3tqldra9tgt2e01ikvc1f5r7qjct5q.example.org.	3600	IN	NSEC3	1 0 1 1234  86er3qr3ol0n6a0drbbffrcdk1ops77n MX RRSIG \n",
+"3o3tqldra9tgt2e01ikvc1f5r7qjct5q.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. Q/KEK/BUxv8O9WG5i0FKDnvwc03GTp7Gq1jcHgr6lqvYEJLSTwtgDDGF1JXgvjaUqobLYEilZoCUYYMZh0SAPw== ;{id = 30899}\n",
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	NSEC3	1 0 1 1234  3o3tqldra9tgt2e01ikvc1f5r7qjct5q A RRSIG \n",
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wvjHs9xj5M3c/SaGwrUGUVm9zgsNYG/4yxGdwQ5uS1X+mZsbYSYyxz7eoAebkuJTgmd98usoOD/QcxMyI+tUCA== ;{id = 30899}\n",
+"jdup4m0edbcmtb7g5utvc2hgnees76us.example.org.	3600	IN	NSEC3	1 0 1 1234  lrckab0ombfgqe8944cpph33vvf1q3ss A RRSIG \n",
+"jdup4m0edbcmtb7g5utvc2hgnees76us.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. ezk3rhdKfJ44Hw25Jh3J0Q4rRSt2PxnSzdgNoiapFW6dg9TWbAx4J3al0ioPRWveUHDCLkCEnldPATCSyu0Xrw== ;{id = 30899}\n",
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	NSEC3	1 0 1 1234  gtitidhf26une8fj2t3eaj47qf8tbuci A RRSIG \n",
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. qs1ck0jaO2JBiwJ1Gm+vDkDxrqLKq0ASgGSpRPdimCXSv/xje/v6sbuKv2hVkvPLnp2mKsTEuzwahw+Pm09PdQ== ;{id = 30899}\n",
+"an5c8h70kkk482f35kojaluuvp2k4al7.example.org.	3600	IN	NSEC3	1 0 1 1234  atnd4lu4hk3nfigk82orjqu8qbdlu4gn A RRSIG \n",
+"an5c8h70kkk482f35kojaluuvp2k4al7.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. uJB7yf+hWyM55S5bPBJNPFNsinu3//58VfbkJJESLgGiGTcFa68rjrBbCkVfueGeEy+/xk20avO8Ggzkqpx8rQ== ;{id = 30899}\n",
+"lrckab0ombfgqe8944cpph33vvf1q3ss.example.org.	3600	IN	NSEC3	1 0 1 1234  o334hngponsojfvecb16ef11pluqci6c A RRSIG \n",
+"lrckab0ombfgqe8944cpph33vvf1q3ss.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. n9QXqq1+flcrkvCmsoEKEkMt24gEuhpQSFUms/oFFP2++ppll/ydWhUsbY35TfOsI8XAin4sxfOl0ImdQVNJeg== ;{id = 30899}\n",
+"atnd4lu4hk3nfigk82orjqu8qbdlu4gn.example.org.	3600	IN	NSEC3	1 0 1 1234  bll46u32m32oetik7pcgfcuss7n5pqql A RRSIG \n",
+"atnd4lu4hk3nfigk82orjqu8qbdlu4gn.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. J4VWXjkJBv4UXqze1uRyHRT98vqGn8WJ7jm08zdrhbNZ8McRZxqFSjcyqbM0exq6ZM6ceQeap69eJ50TRHqXtw== ;{id = 30899}\n",
+"o334hngponsojfvecb16ef11pluqci6c.example.org.	3600	IN	NSEC3	1 0 1 1234  os1tu4plekke6t993674mq6j79d73fdo A AAAA RRSIG \n",
+"o334hngponsojfvecb16ef11pluqci6c.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. T/8XSAGtKBcPh2FfsT9qQyen8S2InP+GM/JLULxmZbQTJyRVX4Zoy+pVlAPv2FyiTcYVgjXCv4XF6ewvwqNRtw== ;{id = 30899}\n",
+		NULL
+	};
+	if(!udb_zone_search(db->udb, &udbz,
+		dname_name(domain_dname(zone->apex)),
+		domain_dname(zone->apex)->name_size)) {
+		printf("cannot find udbzone\n");
+		exit(1);
+	}
+	check_namedb(tc, db);
+
+	/* change NSEC3 salt : first add new NSEC3s, then add NSEC3PARAM.
+	 * remove old NSEC3PARAM. remove old NSEC3s */
+	for(i=0; new_nsec3s[i]; i++) {
+		add_str(db, zone, &udbz, new_nsec3s[i]);
+		prehash_zone(db, zone);
+		check_namedb(tc, db);
+	}
+	add_str(db, zone, &udbz, 
+		"example.org.	3600	IN	NSEC3PARAM	1 0 2 5678\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+		"example.org.	3600	IN	RRSIG	NSEC3PARAM 5 2 3600 20110519131330 20110421131330 30899 example.org. jDz61FLnJs0mOO61HOeB6SuGwWZWahmzMmyNtit/9Yk4+zYrPPs/wJvqNuuuIcyXU5gLih3H+SVUddKaZlskZg== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	del_str(db, zone, &udbz, 
+		"example.org.	3600	IN	RRSIG	NSEC3PARAM 5 2 3600 20110519131330 20110421131330 30899 example.org. THFhaMtVP25A31/aGJ7wU2GAMSuJrGCB5vkTZnmIelpQQ7j/uVDuFQRB73Zr87owwP8l02Aqf71iFA3LSdpEyQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+		"example.org.	3600	IN	NSEC3PARAM	1 0 1 1234 \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	/* now, try to get the param change in another way:
+	 * remove the NSEC3PARAM (none left), then add it */
+	del_str(db, zone, &udbz, 
+		"example.org.	3600	IN	NSEC3PARAM	1 0 2 5678\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+		"example.org.	3600	IN	RRSIG	NSEC3PARAM 5 2 3600 20110519131330 20110421131330 30899 example.org. jDz61FLnJs0mOO61HOeB6SuGwWZWahmzMmyNtit/9Yk4+zYrPPs/wJvqNuuuIcyXU5gLih3H+SVUddKaZlskZg== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	add_str(db, zone, &udbz, 
+		"example.org.	3600	IN	RRSIG	NSEC3PARAM 5 2 3600 20110519131330 20110421131330 30899 example.org. THFhaMtVP25A31/aGJ7wU2GAMSuJrGCB5vkTZnmIelpQQ7j/uVDuFQRB73Zr87owwP8l02Aqf71iFA3LSdpEyQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+		"example.org.	3600	IN	NSEC3PARAM	1 0 1 1234 \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	/* remove two strings at once */
+	del_str(db, zone, &udbz, 
+		"example.org.	3600	IN	RRSIG	NSEC3PARAM 5 2 3600 20110519131330 20110421131330 30899 example.org. THFhaMtVP25A31/aGJ7wU2GAMSuJrGCB5vkTZnmIelpQQ7j/uVDuFQRB73Zr87owwP8l02Aqf71iFA3LSdpEyQ== ;{id = 30899}\n"
+	);
+	del_str(db, zone, &udbz, 
+		"example.org.	3600	IN	NSEC3PARAM	1 0 1 1234 \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	for(i=0; old_nsec3s[i]; i++) {
+		del_str(db, zone, &udbz, old_nsec3s[i]);
+		prehash_zone(db, zone);
+		check_namedb(tc, db);
+	}
+
+	/* change NSEC3PARAM in different order: delete all NSEC3s, then
+	 * NSEC3PARAM, then add the new PARAM, then the new NSEC3s */
+	/* TODO */
+
+	zone->is_ok = 0;
+	delete_zone_rrs(db, zone);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	udb_ptr_unlink(&udbz, db->udb);
+}
+
+static void namedb_4(CuTest *tc)
+{
+	/* test _4 : check NSEC3 precompile, change of nsec3salt */
+	region_type* region;
+	namedb_type* db;
+	if(v) verbosity = 3;
+	else verbosity = 0;
+	if(v) printf("test namedb-nsec3-saltchange start\n");
+	region = region_create(xalloc, free);
+	db = create_and_read_db(tc, region, "example.org.", nsec3zone_txt);
+
+	/* test it */
+	test_add_del_4(tc, db);
+
+	if(v) printf("test namedb-nsec3-saltchange end\n");
 	unlink(db->udb->fname);
 	namedb_close(db);
 	region_destroy(region);

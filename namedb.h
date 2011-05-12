@@ -211,6 +211,7 @@ void domain_table_deldomain(domain_table_type *table, domain_type* domain);
 void zone_add_domain_in_hash_tree(struct radtree** tree, uint8_t* hash,
         size_t hashlen, domain_type* domain, struct radnode** node);
 void zone_del_domain_in_hash_tree(struct radnode* node);
+void hash_tree_clear(struct radtree* tree);
 void prehash_clear(domain_table_type* table);
 void prehash_add(domain_table_type* table, domain_type* domain);
 void prehash_del(domain_table_type* table, domain_type* domain);
