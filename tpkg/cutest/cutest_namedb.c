@@ -371,7 +371,9 @@ check_nsec3(CuTest* tc, namedb_type* db, domain_type* domain)
 		CuAssertTrue(tc, !domain->nsec3_ds_parent_is_exact);
 	    }
 	} else {
+		/* if it previously was DS but not any more, it can remain
 		CuAssertTrue(tc, !domain->have_nsec3_ds_parent_hash);
+		*/
 		CuAssertTrue(tc, !domain->nsec3_ds_parent_cover);
 		CuAssertTrue(tc, !domain->nsec3_ds_parent_is_exact);
 	}
@@ -1034,6 +1036,370 @@ test_add_del_3(CuTest *tc, namedb_type* db)
 	);
 	prehash_zone(db, zone);
 	check_namedb(tc, db);
+
+	/* remove last NSEC3 and add it again, other order */
+	del_str(db, zone, &udbz, 
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wzLORHkPVDVVi51HUInYoKgPdnc8+RtVLPcUv1L8EzD6rk7CtI9JEotWlc9az7p07/qAaOc+KpTlckB16KEsEw== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz,
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	NSEC3	1 0 1 1234  1t1dk1m24102gngs9umpl1s4euti62js A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	NSEC3	1 0 1 1234  1t1dk1m24102gngs9umpl1s4euti62js A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz,
+"t46dlvjh87nm2smr9tshdappe8c6uolu.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wzLORHkPVDVVi51HUInYoKgPdnc8+RtVLPcUv1L8EzD6rk7CtI9JEotWlc9az7p07/qAaOc+KpTlckB16KEsEw== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	/* remove a domain and its NSEC3, first in one order then the other */
+	del_str(db, zone, &udbz, 
+"server.example.org.	3600	IN	A	1.2.3.10\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"server.example.org.	3600	IN	RRSIG	A 5 3 3600 20110519131330 20110421131330 30899 example.org. WW+TqIl0EO9lRvKl72iySFxn112KSzZfdYCKD3P34PEvExZ0MxAdgGhnpJH5Styv5i8c7uo2qIVQ/zVCcg9OwQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	NSEC3	1 0 1 1234  3o3tqldra9tgt2e01ikvc1f5r7qjct5q A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wvjHs9xj5M3c/SaGwrUGUVm9zgsNYG/4yxGdwQ5uS1X+mZsbYSYyxz7eoAebkuJTgmd98usoOD/QcxMyI+tUCA== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* add domain and its nsec3 again */
+	add_str(db, zone, &udbz, 
+"server.example.org.	3600	IN	A	1.2.3.10\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"server.example.org.	3600	IN	RRSIG	A 5 3 3600 20110519131330 20110421131330 30899 example.org. WW+TqIl0EO9lRvKl72iySFxn112KSzZfdYCKD3P34PEvExZ0MxAdgGhnpJH5Styv5i8c7uo2qIVQ/zVCcg9OwQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	NSEC3	1 0 1 1234  3o3tqldra9tgt2e01ikvc1f5r7qjct5q A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wvjHs9xj5M3c/SaGwrUGUVm9zgsNYG/4yxGdwQ5uS1X+mZsbYSYyxz7eoAebkuJTgmd98usoOD/QcxMyI+tUCA== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* and remove domain and its nsec3 in other order */
+	del_str(db, zone, &udbz, 
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wvjHs9xj5M3c/SaGwrUGUVm9zgsNYG/4yxGdwQ5uS1X+mZsbYSYyxz7eoAebkuJTgmd98usoOD/QcxMyI+tUCA== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	NSEC3	1 0 1 1234  3o3tqldra9tgt2e01ikvc1f5r7qjct5q A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"server.example.org.	3600	IN	RRSIG	A 5 3 3600 20110519131330 20110421131330 30899 example.org. WW+TqIl0EO9lRvKl72iySFxn112KSzZfdYCKD3P34PEvExZ0MxAdgGhnpJH5Styv5i8c7uo2qIVQ/zVCcg9OwQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"server.example.org.	3600	IN	A	1.2.3.10\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* add domain and its nsec3 again, in other order */
+	add_str(db, zone, &udbz, 
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. wvjHs9xj5M3c/SaGwrUGUVm9zgsNYG/4yxGdwQ5uS1X+mZsbYSYyxz7eoAebkuJTgmd98usoOD/QcxMyI+tUCA== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"1t1dk1m24102gngs9umpl1s4euti62js.example.org.	3600	IN	NSEC3	1 0 1 1234  3o3tqldra9tgt2e01ikvc1f5r7qjct5q A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"server.example.org.	3600	IN	RRSIG	A 5 3 3600 20110519131330 20110421131330 30899 example.org. WW+TqIl0EO9lRvKl72iySFxn112KSzZfdYCKD3P34PEvExZ0MxAdgGhnpJH5Styv5i8c7uo2qIVQ/zVCcg9OwQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"server.example.org.	3600	IN	A	1.2.3.10\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	/* add and remove the wildcard and its NSEC3 record, first one order
+	 * then another order */
+	del_str(db, zone, &udbz, 
+"*.wc.example.org.	3600	IN	A	1.2.3.5\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"*.wc.example.org.	3600	IN	RRSIG	A 5 3 3600 20110519131330 20110421131330 30899 example.org. fuCdRkvOSUgFuItIsYB51hzuBBDGpWJk4ICZcPrHcEZaZvmiixUbTYDoECb+oGGrsU34Si3QkIAhmUgjNn3WQA== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	NSEC3	1 0 1 1234  gtitidhf26une8fj2t3eaj47qf8tbuci A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. qs1ck0jaO2JBiwJ1Gm+vDkDxrqLKq0ASgGSpRPdimCXSv/xje/v6sbuKv2hVkvPLnp2mKsTEuzwahw+Pm09PdQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* add wildcard and its NSEC3 */
+	add_str(db, zone, &udbz, 
+"*.wc.example.org.	3600	IN	A	1.2.3.5\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"*.wc.example.org.	3600	IN	RRSIG	A 5 3 3600 20110519131330 20110421131330 30899 example.org. fuCdRkvOSUgFuItIsYB51hzuBBDGpWJk4ICZcPrHcEZaZvmiixUbTYDoECb+oGGrsU34Si3QkIAhmUgjNn3WQA== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	NSEC3	1 0 1 1234  gtitidhf26une8fj2t3eaj47qf8tbuci A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. qs1ck0jaO2JBiwJ1Gm+vDkDxrqLKq0ASgGSpRPdimCXSv/xje/v6sbuKv2hVkvPLnp2mKsTEuzwahw+Pm09PdQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* and remove wildcard and nsec3 in another order */
+	del_str(db, zone, &udbz, 
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. qs1ck0jaO2JBiwJ1Gm+vDkDxrqLKq0ASgGSpRPdimCXSv/xje/v6sbuKv2hVkvPLnp2mKsTEuzwahw+Pm09PdQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	NSEC3	1 0 1 1234  gtitidhf26une8fj2t3eaj47qf8tbuci A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"*.wc.example.org.	3600	IN	RRSIG	A 5 3 3600 20110519131330 20110421131330 30899 example.org. fuCdRkvOSUgFuItIsYB51hzuBBDGpWJk4ICZcPrHcEZaZvmiixUbTYDoECb+oGGrsU34Si3QkIAhmUgjNn3WQA== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"*.wc.example.org.	3600	IN	A	1.2.3.5\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* add wildcard and its NSEC3 */
+	add_str(db, zone, &udbz, 
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. qs1ck0jaO2JBiwJ1Gm+vDkDxrqLKq0ASgGSpRPdimCXSv/xje/v6sbuKv2hVkvPLnp2mKsTEuzwahw+Pm09PdQ== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"g1hcjueqjvfi7f48f5gbncll68nqj0it.example.org.	3600	IN	NSEC3	1 0 1 1234  gtitidhf26une8fj2t3eaj47qf8tbuci A RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"*.wc.example.org.	3600	IN	RRSIG	A 5 3 3600 20110519131330 20110421131330 30899 example.org. fuCdRkvOSUgFuItIsYB51hzuBBDGpWJk4ICZcPrHcEZaZvmiixUbTYDoECb+oGGrsU34Si3QkIAhmUgjNn3WQA== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"*.wc.example.org.	3600	IN	A	1.2.3.5\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	/* delete delegation and its NSEC3, then add again, and other order */
+	del_str(db, zone, &udbz, 
+"deleg.example.org.	3600	IN	NS	ns.deleg.example.org.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"deleg.example.org.	3600	IN	NS	extns.example.org.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	NSEC3	1 0 1 1234  q5f9fvlq89hnof4sbp3uum6233pt6ofi NS \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. zBc4ePB0UmbDRt1NJElooHV5KPFxjZkKq641PonOJdtKp5OIV3bklK/DwXM2MTMa5vzUC+X8h/ePBkyg/7FBzw== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* add delegation and nsec3 again */
+	add_str(db, zone, &udbz, 
+"deleg.example.org.	3600	IN	NS	ns.deleg.example.org.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"deleg.example.org.	3600	IN	NS	extns.example.org.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	NSEC3	1 0 1 1234  q5f9fvlq89hnof4sbp3uum6233pt6ofi NS \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. zBc4ePB0UmbDRt1NJElooHV5KPFxjZkKq641PonOJdtKp5OIV3bklK/DwXM2MTMa5vzUC+X8h/ePBkyg/7FBzw== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* remove delegation and nsec3 other order */
+	del_str(db, zone, &udbz, 
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. zBc4ePB0UmbDRt1NJElooHV5KPFxjZkKq641PonOJdtKp5OIV3bklK/DwXM2MTMa5vzUC+X8h/ePBkyg/7FBzw== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	NSEC3	1 0 1 1234  q5f9fvlq89hnof4sbp3uum6233pt6ofi NS \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"deleg.example.org.	3600	IN	NS	extns.example.org.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"deleg.example.org.	3600	IN	NS	ns.deleg.example.org.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* add delegation and nsec3 again */
+	add_str(db, zone, &udbz, 
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. zBc4ePB0UmbDRt1NJElooHV5KPFxjZkKq641PonOJdtKp5OIV3bklK/DwXM2MTMa5vzUC+X8h/ePBkyg/7FBzw== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"os1tu4plekke6t993674mq6j79d73fdo.example.org.	3600	IN	NSEC3	1 0 1 1234  q5f9fvlq89hnof4sbp3uum6233pt6ofi NS \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"deleg.example.org.	3600	IN	NS	extns.example.org.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"deleg.example.org.	3600	IN	NS	ns.deleg.example.org.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
+	/* remove and add DNAME and nsec3. and then in another order */
+	del_str(db, zone, &udbz, 
+"dname.example.org.	3600	IN	DNAME	foo.com.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"dname.example.org.	3600	IN	RRSIG	DNAME 5 3 3600 20110519131330 20110421131330 30899 example.org. EsNccft58pZ0Toi+nX5E/cedeFPxLi+wD1QqP94+jjJwLPl5D959sr21qB164D3pg/DzumNZWHr7y8T7n6xz/Q== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	NSEC3	1 0 1 1234  an5c8h70kkk482f35kojaluuvp2k4al7 DNAME RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. Q6NNfU7UHLFG5ZPlbkPc53M4cAbZh3AxF6qDBKxah0cZd6kpGfRm9myZor0HUAW+XnQuHt96yfZe9M/adH7CXg== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* add DNAME and nsec3 */
+	add_str(db, zone, &udbz, 
+"dname.example.org.	3600	IN	DNAME	foo.com.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"dname.example.org.	3600	IN	RRSIG	DNAME 5 3 3600 20110519131330 20110421131330 30899 example.org. EsNccft58pZ0Toi+nX5E/cedeFPxLi+wD1QqP94+jjJwLPl5D959sr21qB164D3pg/DzumNZWHr7y8T7n6xz/Q== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	NSEC3	1 0 1 1234  an5c8h70kkk482f35kojaluuvp2k4al7 DNAME RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. Q6NNfU7UHLFG5ZPlbkPc53M4cAbZh3AxF6qDBKxah0cZd6kpGfRm9myZor0HUAW+XnQuHt96yfZe9M/adH7CXg== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* remove and add DNAME and nsec3 in another order */
+	del_str(db, zone, &udbz, 
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. Q6NNfU7UHLFG5ZPlbkPc53M4cAbZh3AxF6qDBKxah0cZd6kpGfRm9myZor0HUAW+XnQuHt96yfZe9M/adH7CXg== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	NSEC3	1 0 1 1234  an5c8h70kkk482f35kojaluuvp2k4al7 DNAME RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"dname.example.org.	3600	IN	RRSIG	DNAME 5 3 3600 20110519131330 20110421131330 30899 example.org. EsNccft58pZ0Toi+nX5E/cedeFPxLi+wD1QqP94+jjJwLPl5D959sr21qB164D3pg/DzumNZWHr7y8T7n6xz/Q== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	del_str(db, zone, &udbz, 
+"dname.example.org.	3600	IN	DNAME	foo.com.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	/* add DNAME and nsec3 */
+	add_str(db, zone, &udbz, 
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	RRSIG	NSEC3 5 3 3600 20110519131330 20110421131330 30899 example.org. Q6NNfU7UHLFG5ZPlbkPc53M4cAbZh3AxF6qDBKxah0cZd6kpGfRm9myZor0HUAW+XnQuHt96yfZe9M/adH7CXg== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"9cq8bno9lfqsbbm51irbq5tb43fl0ls2.example.org.	3600	IN	NSEC3	1 0 1 1234  an5c8h70kkk482f35kojaluuvp2k4al7 DNAME RRSIG \n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"dname.example.org.	3600	IN	RRSIG	DNAME 5 3 3600 20110519131330 20110421131330 30899 example.org. EsNccft58pZ0Toi+nX5E/cedeFPxLi+wD1QqP94+jjJwLPl5D959sr21qB164D3pg/DzumNZWHr7y8T7n6xz/Q== ;{id = 30899}\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+	add_str(db, zone, &udbz, 
+"dname.example.org.	3600	IN	DNAME	foo.com.\n"
+	);
+	prehash_zone(db, zone);
+	check_namedb(tc, db);
+
 
 	zone->is_ok = 0;
 	delete_zone_rrs(db, zone);

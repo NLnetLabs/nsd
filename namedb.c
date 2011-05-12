@@ -130,7 +130,7 @@ domain_can_be_deleted(domain_type* domain)
 	if(domain->usage) return 0;
 	n = domain_next(domain);
 	/* it has children domains, do not delete it */
-	if(n && dname_is_subdomain(domain_dname(n), domain_dname(domain)))
+	if(n && domain_is_subdomain(n, domain))
 		return 0;
 	return 1;
 }

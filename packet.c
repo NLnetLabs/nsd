@@ -22,7 +22,7 @@ encode_dname(query_type *q, domain_type *domain)
 		query_put_dname_offset(q, domain, buffer_position(q->packet));
 		DEBUG(DEBUG_NAME_COMPRESSION, 2,
 		      (LOG_INFO, "dname: %s, number: %lu, offset: %u\n",
-		       dname_to_string(domain_dname(domain), NULL),
+		       domain_to_string(domain),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
 		buffer_write(q->packet, dname_name(domain_dname(domain)),
@@ -32,7 +32,7 @@ encode_dname(query_type *q, domain_type *domain)
 	if (domain->parent) {
 		DEBUG(DEBUG_NAME_COMPRESSION, 2,
 		      (LOG_INFO, "dname: %s, number: %lu, pointer: %u\n",
-		       dname_to_string(domain_dname(domain), NULL),
+		       domain_to_string(domain),
 		       (unsigned long) domain->number,
 		       query_get_dname_offset(q, domain)));
 		assert(query_get_dname_offset(q, domain) <= MAX_COMPRESSION_OFFSET);

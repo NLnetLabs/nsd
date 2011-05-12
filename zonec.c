@@ -1191,8 +1191,7 @@ process_rr(void)
 		rr->owner->is_apex = 1;
 	}
 
-	if (!dname_is_subdomain(domain_dname(rr->owner),
-				domain_dname(zone->apex)))
+	if (!domain_is_subdomain(rr->owner, zone->apex))
 	{
 		if(zone->opts && zone->opts->request_xfr)
 			zc_warning_prev_line("out of zone data");
@@ -1305,9 +1304,8 @@ static void
 check_dname(zone_type* zone)
 {
 	domain_type* domain;
-	for(domain = zone->apex; domain && dname_is_subdomain(
-		domain_dname(domain), domain_dname(zone->apex));
-		domain=domain_next(domain))
+	for(domain = zone->apex; domain && domain_is_subdomain(domain,
+		zone->apex); domain=domain_next(domain))
 	{
 		if(domain->is_existing) {
 			/* there may not be DNAMEs above it */
@@ -1319,10 +1317,10 @@ check_dname(zone_type* zone)
 			while(parent) {
 				if(domain_find_rrset_any(parent, TYPE_DNAME)) {
 					zc_error("While checking node %s,",
-						dname_to_string(domain_dname(domain), NULL));
+						domain_to_string(domain));
 					zc_error("DNAME at %s has data below it. "
 						"This is not allowed (rfc 2672).",
-						dname_to_string(domain_dname(parent), NULL));
+						domain_to_string(parent));
 					return;
 				}
 				parent = parent->parent;
@@ -1379,8 +1377,8 @@ zonec_read(const char *name, const char *zonefile, zone_type* zone)
 	} else if(dname_compare(domain_dname(
 		parser->current_zone->soa_rrset->rrs[0].owner), dname) != 0) {
 		zc_error("zone configured as '%s', but SOA has owner '%s'.",
-			name, dname_to_string(domain_dname(
-			parser->current_zone->soa_rrset->rrs[0].owner), NULL));
+			name, domain_to_string(
+			parser->current_zone->soa_rrset->rrs[0].owner));
 	}
 
 	fclose(yyin);

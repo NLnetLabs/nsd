@@ -131,7 +131,7 @@ check_apex_soa(namedb_type* namedb, zone_type *zone, udb_ptr* z)
 	domain = domain_table_find(namedb->domains, hashed_apex);
 	if(!domain) {
 		log_msg(LOG_ERR, "%s NSEC3PARAM entry has no hash(apex).",
-			dname_to_string(domain_dname(zone->apex), NULL));
+			domain_to_string(zone->apex));
 		log_msg(LOG_ERR, "hash(apex)= %s",
 			dname_to_string(hashed_apex, NULL));
 		region_destroy(tmpregion);
@@ -140,7 +140,7 @@ check_apex_soa(namedb_type* namedb, zone_type *zone, udb_ptr* z)
 	nsec3_rrset = domain_find_rrset(domain, zone, TYPE_NSEC3);
 	if(!nsec3_rrset) {
 		log_msg(LOG_ERR, "%s NSEC3PARAM entry: hash(apex) has no NSEC3 RRset.",
-			dname_to_string(domain_dname(zone->apex), NULL));
+			domain_to_string(zone->apex));
 		log_msg(LOG_ERR, "hash(apex)= %s",
 			dname_to_string(hashed_apex, NULL));
 		region_destroy(tmpregion);
@@ -153,7 +153,7 @@ check_apex_soa(namedb_type* namedb, zone_type *zone, udb_ptr* z)
 		}
 	}
 	log_msg(LOG_ERR, "%s NSEC3PARAM entry: hash(apex) NSEC3 has no SOA flag.",
-		dname_to_string(domain_dname(zone->apex), NULL));
+		domain_to_string(zone->apex));
 	log_msg(LOG_ERR, "hash(apex)= %s",
 		dname_to_string(hashed_apex, NULL));
 	region_destroy(tmpregion);
@@ -275,8 +275,7 @@ void nsec3_clear_precompile(struct namedb* db, zone_type* zone)
 	/* wipe hashes */
 	/* wipe precompile */
 	walk = zone->apex;
-	while(walk && dname_is_subdomain(domain_dname(walk),
-		domain_dname(zone->apex))) {
+	while(walk && domain_is_subdomain(walk, zone->apex)) {
 		if(domain_find_zone(walk) == zone) {
 			if(domain_find_zone(walk) == zone)
 				walk->nsec3_node = NULL;
@@ -436,15 +435,15 @@ void nsec3_precompile_newparam(namedb_type* db, zone_type* zone,
 {
 	domain_type* walk;
 	/* add nsec3s of chain to nsec3tree */
-	for(walk=zone->apex; walk && dname_is_subdomain(domain_dname(walk),
-		domain_dname(zone->apex)); walk = domain_next(walk)) {
+	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
+		walk = domain_next(walk)) {
 		if(nsec3_in_chain_count(walk, zone) != 0) {
 			nsec3_precompile_nsec3rr(walk, zone);
 		}
 	}
 	/* hash and precompile zone */
-	for(walk=zone->apex; walk && dname_is_subdomain(domain_dname(walk),
-		domain_dname(zone->apex)); walk = domain_next(walk)) {
+	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
+		walk = domain_next(walk)) {
 		if(nsec3_condition_hash(walk, zone))
 			nsec3_precompile_domain(db, walk, zone, udbz);
 		if(nsec3_condition_dshash(walk, zone))

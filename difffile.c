@@ -210,7 +210,7 @@ has_data_below(domain_type* top)
 	assert(d != NULL);
 	/* in the canonical ordering subdomains are after this name */
 	d = domain_next(d);
-	while(d != NULL && dname_is_subdomain(domain_dname(d), domain_dname(top))) {
+	while(d != NULL && domain_is_subdomain(d, top)) {
 		if(d->is_existing)
 			return 1;
 		d = domain_next(d);
@@ -235,7 +235,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	*pp = rrset->next;
 
 	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "delete rrset of %s type %s",
-		dname_to_string(domain_dname(domain),0),
+		domain_to_string(domain),
 		rrtype_to_string(rrset_rrtype(rrset))));
 
 	/* is this a SOA rrset ? */
@@ -364,12 +364,10 @@ nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 	}
 }
 
-/* see if nsec3 rrset-deletion triggers need action */
+/* see if nsec3 prehash can be removed with new rrset content */
 static void
-nsec3_delete_rrset_trigger(domain_type* domain, zone_type* zone)
+nsec3_rrsets_changed_remove_prehash(domain_type* domain, zone_type* zone)
 {
-	if(!zone->nsec3_param)
-		return;
 	/* deletion of rrset already done, we can check if conditions apply */
 	/* see if the domain is no longer precompiled */
 	/* it has a hash_node, but no longer fulfills conditions */
@@ -396,6 +394,44 @@ nsec3_delete_rrset_trigger(domain_type* domain, zone_type* zone)
 	}
 }
 
+/* see if domain needs to get precompiled info */
+static void
+nsec3_rrsets_changed_add_prehash(namedb_type* db, domain_type* domain,
+	zone_type* zone, udb_ptr* udbz)
+{
+	if(!zone->nsec3_param)
+		return;
+	if(!domain->hash_node && nsec3_condition_hash(domain, zone)) {
+		nsec3_precompile_domain(db, domain, zone, udbz);
+	}
+	if(!domain->dshash_node && nsec3_condition_dshash(domain, zone)) {
+		nsec3_precompile_domain_ds(db, domain, zone, udbz);
+	}
+}
+
+/* see if nsec3 rrset-deletion triggers need action */
+static void
+nsec3_delete_rrset_trigger(namedb_type* db, domain_type* domain,
+	zone_type* zone, udb_ptr* udbz, uint16_t type)
+{
+	if(!zone->nsec3_param)
+		return;
+	nsec3_rrsets_changed_remove_prehash(domain, zone);
+	/* for type nsec3, or a delegation, the domain may have become a
+	 * 'normal' domain with its remaining data now */
+	if(type == TYPE_NSEC3 || type == TYPE_NS || type == TYPE_DS)
+		nsec3_rrsets_changed_add_prehash(db, domain, zone, udbz);
+	/* for type DNAME or a delegation, obscured data may be revealed */
+	if(type == TYPE_NS || type == TYPE_DS || type == TYPE_DNAME) {
+		/* walk over subdomains and check them each */
+		domain_type *d;
+		for(d=domain_next(domain); d && domain_is_subdomain(d, domain);
+			d=domain_next(d)) {
+			nsec3_rrsets_changed_add_prehash(db, d, zone, udbz);
+		}
+	}
+}
+
 /* see if nsec3 addition triggers need action */
 static void
 nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
@@ -409,7 +445,7 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 		nsec3_precompile_nsec3rr(rr->owner, zone);
 		/* the domain has become an NSEC3-domain, if it was precompiled
 		 * previously, remove that, neatly done in routine above */
-		nsec3_delete_rrset_trigger(rr->owner, zone);
+		nsec3_rrsets_changed_remove_prehash(rr->owner, zone);
 		/* set this NSEC3 to prehash */
 		prehash_add(db->domains, rr->owner);
 	} else if(!zone->nsec3_param && rr->type == TYPE_NSEC3PARAM) {
@@ -424,18 +460,26 @@ nsec3_add_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
 /* see if nsec3 rrset-addition triggers need action */
 static void
 nsec3_add_rrset_trigger(namedb_type* db, domain_type* domain, zone_type* zone,
-	udb_ptr* udbz)
+	udb_ptr* udbz, uint16_t type)
 {
 	/* the rrset has been added so we can inspect it */
 	if(!zone->nsec3_param)
 		return;
 	/* because the rrset is added we can check conditions easily.
 	 * check if domain needs to become precompiled now */
-	if(!domain->hash_node && nsec3_condition_hash(domain, zone)) {
-		nsec3_precompile_domain(db, domain, zone, udbz);
+	nsec3_rrsets_changed_add_prehash(db, domain, zone, udbz);
+	/* if a delegation, it changes from normal name to unhashed referral */
+	if(type == TYPE_NS || type == TYPE_DS) {
+		nsec3_rrsets_changed_remove_prehash(domain, zone);
 	}
-	if(!domain->dshash_node && nsec3_condition_dshash(domain, zone)) {
-		nsec3_precompile_domain_ds(db, domain, zone, udbz);
+	/* if delegation or DNAME added, then some RRs may get obscured */
+	if(type == TYPE_NS || type == TYPE_DS || type == TYPE_DNAME) {
+		/* walk over subdomains and check them each */
+		domain_type *d;
+		for(d=domain_next(domain); d && domain_is_subdomain(d, domain);
+			d=domain_next(d)) {
+			nsec3_rrsets_changed_remove_prehash(d, zone);
+		}
 	}
 }
 
@@ -518,11 +562,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			/* delete entire rrset */
 			rrset_delete(db, domain, rrset);
 			/* cleanup nsec3 */
-			nsec3_delete_rrset_trigger(domain, zone);
-			/* for type nsec3, the domain may have become a
-			 * 'normal' domain with its remaining data now */
-			if(type == TYPE_NSEC3)
-			    nsec3_add_rrset_trigger(db, domain, zone, udbz);
+			nsec3_delete_rrset_trigger(db, domain, zone, udbz,
+				type);
 			/* see if the domain can be deleted (and inspect parents) */
 			domain_table_deldomain(db->domains, domain);
 		} else {
@@ -545,7 +586,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			/* for type nsec3, the domain may have become a
 			 * 'normal' domain with its remaining data now */
 			if(type == TYPE_NSEC3)
-			    nsec3_add_rrset_trigger(db, domain, zone, udbz);
+				nsec3_rrsets_changed_add_prehash(db, domain,
+					zone, udbz);
 		}
 	}
 	return 1;
@@ -633,11 +675,11 @@ add_RR(namedb_type* db, const dname_type* dname,
 	}
 	if(rrset_added) {
 		domain_type* p = domain->parent;
-		nsec3_add_rrset_trigger(db, domain, zone, udbz);
+		nsec3_add_rrset_trigger(db, domain, zone, udbz, type);
 		/* go up and process (possibly created) empty nonterminals, 
 		 * until we hit the apex or root */
 		while(p && p->rrsets == NULL && !p->is_apex) {
-			nsec3_add_rrset_trigger(db, p, zone, udbz);
+			nsec3_rrsets_changed_add_prehash(db, p, zone, udbz);
 			p = p->parent;
 		}
 
@@ -673,11 +715,10 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 	rrset_type *rrset;
 	domain_type *domain = zone->apex, *next;
 	/* go through entire tree below the zone apex (incl subzones) */
-	while(domain && dname_is_subdomain(
-		domain_dname(domain), domain_dname(zone->apex)))
+	while(domain && domain_is_subdomain(domain, zone->apex))
 	{
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "delete zone visit %s",
-			dname_to_string(domain_dname(domain),0)));
+			domain_to_string(domain)));
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
 			/* lower usage can delete other domains */

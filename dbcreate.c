@@ -104,8 +104,8 @@ write_zone(udb_base* udb, udb_ptr* z, zone_type* zone)
 	/* write all domains in the zone */
 	domain_type* walk;
 	rrset_type* rrset;
-	for(walk=zone->apex; walk && dname_is_subdomain(domain_dname(walk),
-		domain_dname(zone->apex)); walk=domain_next(walk)) {
+	for(walk=zone->apex; walk && domain_is_subdomain(walk, zone->apex);
+		walk=domain_next(walk)) {
 		/* write all rrsets (in the zone) for this domain */
 		for(rrset=walk->rrsets; rrset; rrset=rrset->next) {
 			if(rrset->zone == zone) {

@@ -837,7 +837,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		if(zone->updated == 0)
 			continue;
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "nsd: sending soa info for zone %s",
-			dname_to_string(domain_dname(zone->apex),0)));
+			domain_to_string(zone->apex)));
 		cmd = NSD_SOA_INFO;
 		sz = dname_total_size(domain_dname(zone->apex));
 		if(zone->soa_rrset) {

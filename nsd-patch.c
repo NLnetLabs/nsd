@@ -193,8 +193,7 @@ print_rrs(FILE* out, struct zone* zone)
 		}
 	}
         /* go through entire tree below the zone apex (incl subzones) */
-	while(domain && dname_is_subdomain(
-		domain_dname(domain), domain_dname(zone->apex)))
+	while(domain && domain_is_subdomain(domain, zone->apex))
 	{
 		for(rrset = domain->rrsets; rrset; rrset=rrset->next)
 		{

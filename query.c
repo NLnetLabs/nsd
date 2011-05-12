@@ -114,7 +114,7 @@ query_add_compression_domain(struct query *q, domain_type *domain, uint16_t offs
 	while (domain->parent) {
 		DEBUG(DEBUG_NAME_COMPRESSION, 2,
 		      (LOG_INFO, "query dname: %s, number: %lu, offset: %u\n",
-		       dname_to_string(domain_dname(domain), NULL),
+		       domain_to_string(domain),
 		       (unsigned long) domain->number,
 		       offset));
 		query_put_dname_offset(q, domain, offset);
@@ -713,8 +713,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			newdom->number = 0;
 		}
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "created temp domain src %d. %s nr %d", i,
-			dname_to_string(domain_dname(newdom), NULL),
-			(int)newdom->number));
+			domain_to_string(newdom), (int)newdom->number));
 		lastparent = newdom;
 	}
 	cname_domain = lastparent;
@@ -733,8 +732,7 @@ query_synthesize_cname(struct query* q, struct answer* answer, const dname_type*
 			= dname_partial_copy(q->region,
 			to_name, domain_dname(to_closest_encloser)->label_count + i + 1);
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "created temp domain dest %d. %s nr %d", i,
-			dname_to_string(domain_dname(newdom), NULL),
-			(int)newdom->number));
+			domain_to_string(newdom), (int)newdom->number));
 		lastparent = newdom;
 	}
 	cname_dest = lastparent;
@@ -983,9 +981,9 @@ answer_authoritative(struct nsd   *nsd,
 			name = domain_dname(closest_match);
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "expanding DNAME for q=%s", dname_to_string(name, NULL)));
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->src is %s",
-			dname_to_string(domain_dname(closest_encloser), NULL)));
+			domain_to_string(closest_encloser)));
 		DEBUG(DEBUG_QUERY,2, (LOG_INFO, "->dest is %s",
-			dname_to_string(domain_dname(dest), NULL)));
+			domain_to_string(dest)));
 		/* if the DNAME set is not added we have a loop, do not follow */
 		added = add_rrset(q, answer, ANSWER_SECTION, closest_encloser, rrset);
 		if(added) {

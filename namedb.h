@@ -268,6 +268,13 @@ domain_next(domain_type *domain)
 	return next == NULL ? NULL : (domain_type*)next->elem;
 }
 
+/* easy comparison for subdomain, true if d1 is subdomain of d2. */
+static inline int domain_is_subdomain(domain_type* d1, domain_type* d2)
+{ return dname_is_subdomain(domain_dname(d1), domain_dname(d2)); }
+/* easy printout, to static buffer of dname_to_string, fqdn. */
+static inline const char* domain_to_string(domain_type* domain)
+{ return dname_to_string(domain_dname(domain), NULL); }
+
 /*
  * The type covered by the signature in the specified RRSIG RR.
  */

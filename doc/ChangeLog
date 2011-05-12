@@ -1,3 +1,6 @@
+12 May 2011: Wouter
+	- more unit test for nsec3 precompile changes.
+
 11 May 2011: Wouter
 	- fixes for nsec3 precompile code: precompile for empty nonterminals
 	  created when an RR is added. If SOA removed, precompile stays
