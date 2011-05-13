@@ -1,3 +1,7 @@
+13 May 2011: Wouter
+	- Unit test nsec3 salt change and fix for sanity check of nsec3 chain.
+	  pretty prints the nsec3 parameters if verbose.
+
 12 May 2011: Wouter
 	- more unit test for nsec3 precompile changes.
 	- unit test for salt change, rehash in udb fix, remove last NSEC3

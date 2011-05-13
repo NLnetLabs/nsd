@@ -535,8 +535,7 @@ list_zone_contents(udb_base* udb, udb_ptr* zone)
 		if(ZONE(zone)->nsec3param.data) {
 			udb_ptr n3;
 			udb_ptr_new(&n3, udb, &ZONE(zone)->nsec3param);
-			printf("# nsec3param ");
-			print_udb_rr(ZONE(zone)->name, &n3);
+			printf("# nsec3param %s\n", udb_nsec3param_string(&n3));
 			udb_ptr_unlink(&n3, udb);
 		}
 	}

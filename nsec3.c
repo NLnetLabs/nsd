@@ -198,10 +198,6 @@ void nsec3_find_zone_param(struct namedb* db, struct zone* zone, udb_ptr* z)
 {
 	/* get nsec3param RR from udb */
 	zone->nsec3_param = udb_zone_find_nsec3param(db->udb, z, zone);
-	/* check if zone apex has SOA flag */
-	if(zone->nsec3_param && !check_apex_soa(db, zone, z)) {
-		zone->nsec3_param = NULL;
-	}
 }
 
 /* check params ok for one RR */
@@ -465,8 +461,9 @@ prehash_zone_complete(struct namedb* db, struct zone* zone)
 		udb_ptr_init(&udbz, db->udb); /* zero the ptr */
 	}
 	nsec3_find_zone_param(db, zone, &udbz);
-	if(!zone->nsec3_param) {
-		zone->nsec3_last = 0;
+	if(!zone->nsec3_param || !check_apex_soa(db, zone, &udbz)) {
+		zone->nsec3_param = NULL;
+		zone->nsec3_last = NULL;
 		udb_ptr_unlink(&udbz, db->udb);
 		return;
 	}
@@ -608,15 +605,24 @@ process_prehash_domain(domain_type* domain, zone_type* zone)
 	}
 }
 
-void prehash_zone(struct namedb* db, struct zone* zone)
+void prehash_zone(struct namedb* db, struct zone* zone, udb_ptr* udbz)
 {
 	domain_type* d;
+	if(!zone->nsec3_param) {
+		prehash_clear(db->domains);
+		return;
+	}
 	/* process prehash list */
 	for(d = db->domains->prehash_list; d; d = d->prehash_next) {
 		process_prehash_domain(d, zone);
 	}
 	/* clear prehash list */
 	prehash_clear(db->domains);
+
+	if(!check_apex_soa(db, zone, udbz)) {
+		zone->nsec3_param = NULL;
+		zone->nsec3_last = NULL;
+	}
 }
 
 /* add the NSEC3 rrset to the query answer at the given domain */

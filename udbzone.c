@@ -340,6 +340,27 @@ select_nsec3_param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 	udb_ptr_unlink(&rr, udb);
 }
 
+const char*
+udb_nsec3param_string(udb_ptr* rr)
+{
+	/* max saltlenth plus first couple of numbers (3+1+5+1+3+1) */
+	static char params[MAX_RDLENGTH*2+16];
+	char* p;
+	assert(RR(rr)->len >= 5);
+	p = params + snprintf(params, sizeof(params), "%u %u %u ",
+		(unsigned)RR(rr)->wire[0], (unsigned)RR(rr)->wire[1],
+		(unsigned)read_uint16(&RR(rr)->wire[2]));
+	if(RR(rr)->wire[4] == 0) {
+		*p++ = '-';
+	} else {
+		assert(RR(rr)->len >= 5+RR(rr)->wire[4]);
+		p += hex_ntop(&RR(rr)->wire[5], RR(rr)->wire[4], p,
+			sizeof(params)-strlen(params)-1);
+	}
+	*p = 0;
+	return params;
+}
+
 /** hash the entire zone with a newly selected nsec3param record from rrset */
 static void
 zone_hash_nsec3param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
@@ -348,8 +369,15 @@ zone_hash_nsec3param(udb_base* udb, udb_ptr* zone, udb_ptr* rrset)
 	select_nsec3_param(udb, zone, rrset);
 	if(ZONE(zone)->nsec3param.data == 0)
 		return;
-	VERBOSITY(2, (LOG_INFO, "rehash of zone %s with new parameters",
-		wiredname2str(ZONE(zone)->name)));
+	/* prettyprint the nsec3 parameters we are using */
+	if(2 <= verbosity) {
+		udb_ptr par;
+		udb_ptr_new(&par, udb, &ZONE(zone)->nsec3param);
+		log_msg(LOG_INFO, "rehash of zone %s with parameters %s",
+			wiredname2str(ZONE(zone)->name),
+			udb_nsec3param_string(&par));
+		udb_ptr_unlink(&par, udb);
+	}
 	udb_ptr_new(&dtree, udb, &ZONE(zone)->domains);
 	for(udb_radix_first(udb,&dtree,&d); d.data; udb_radix_next(udb,&d)) {
 		udb_ptr domain;

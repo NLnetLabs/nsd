@@ -460,6 +460,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 	/* wipe zone from memory */
 	delete_zone_rrs(db, zone);
 	nsec3_clear_precompile(db, zone);
+	zone->nsec3_param = NULL;
 	errors = zonec_read(zone->opts->name, zone->opts->zonefile, zone);
 	if(errors > 0) {
 		region_type* dname_region;
@@ -470,6 +471,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 		zone->is_ok = 0;
 		delete_zone_rrs(db, zone);
 		nsec3_clear_precompile(db, zone);
+		zone->nsec3_param = NULL;
 		/* see if we can revert to the udb stored version */
 		if(!udb_zone_search(db->udb, &z, dname_name(domain_dname(
 			zone->apex)), domain_dname(zone->apex)->name_size)) {

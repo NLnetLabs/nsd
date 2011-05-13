@@ -23,7 +23,7 @@ struct rr;
 /*
  * calculate prehash information for zone.
  */
-void prehash_zone(struct namedb* db, struct zone* zone);
+void prehash_zone(struct namedb* db, struct zone* zone, struct udb_ptr* udbz);
 /*
  * calculate prehash for zone, assumes no partial precompile or prehashlist
  */

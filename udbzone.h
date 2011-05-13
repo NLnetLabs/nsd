@@ -129,6 +129,9 @@ int udb_zone_lookup_hash_wc(udb_base* udb, udb_ptr* zone, const uint8_t* nm,
 	size_t nmlen, uint8_t hash[NSEC3_HASH_LEN],
 	uint8_t wchash[NSEC3_HASH_LEN]);
 
+/** get pretty string for nsec3parameters (static buffer returned) */
+const char* udb_nsec3param_string(udb_ptr* rr);
+
 /** for use in udb-walkfunc, walks relptrs in udb_chunk_type_zone */
 void udb_zone_walk_chunk(void* base, void* d, uint64_t s,
 	udb_walk_relptr_cb* cb, void* arg);

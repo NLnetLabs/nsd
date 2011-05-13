@@ -976,6 +976,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			delete_zone_rrs(db, zone_db);
 			udb_zone_clear(db->udb, udbz);
 			nsec3_clear_precompile(db, zone_db);
+			zone_db->nsec3_param = NULL;
 			/* add everything else (incl end SOA) */
 			*delete_mode = 0;
 			*is_axfr = 1;
@@ -1000,6 +1001,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 				delete_zone_rrs(db, zone_db);
 				udb_zone_clear(db->udb, udbz);
 				nsec3_clear_precompile(db, zone_db);
+				zone_db->nsec3_param = NULL;
 				*delete_mode = 0;
 				*is_axfr = 1;
 			}
@@ -1325,8 +1327,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			}
 		}
 		udb_base_set_userflags(db->udb, 0);
+		if(zonedb) prehash_zone(db, zonedb, &z);
 		udb_ptr_unlink(&z, db->udb);
-		if(zonedb) prehash_zone(db, zonedb);
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
 			return 0;
