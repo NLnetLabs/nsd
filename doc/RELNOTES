@@ -5,6 +5,7 @@ NSD RELEASE NOTES
 BUG FIXES:
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
 	- Bugfix #375: typos in nsd.conf.5.
+	- Bugfix #381: Binary escaped and transfers.
 	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
 	- Fix printout of IPSECKEY by nsd-patch.

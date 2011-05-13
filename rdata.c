@@ -126,7 +126,7 @@ rdata_text_to_string(buffer_type *output, rdata_atom_type rdata,
 			}
 			buffer_printf(output, "%c", ch);
 		} else {
-			buffer_printf(output, "\\%03u", (unsigned) ch);
+			buffer_printf(output, "\\%03u", (unsigned) data[i]);
 		}
 	}
 	buffer_printf(output, "\"");
@@ -152,7 +152,7 @@ rdata_texts_to_string(buffer_type *output, rdata_atom_type rdata,
 				}
 				buffer_printf(output, "%c", ch);
 			} else {
-				buffer_printf(output, "\\%03u", (unsigned) ch);
+				buffer_printf(output, "\\%03u", (unsigned) data[pos+i]);
 			}
 		}
 		pos += data[pos]+1;
