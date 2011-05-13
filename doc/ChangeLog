@@ -1,3 +1,7 @@
+13 May 2011: Matthijs
+	- Fix bug #365, do renaming of NSDC_ZONEC_VERBOSE and NSDC_PATCH_STYLE
+	  environment variable names that were forgotten.
+
 13 April 2011: Wouter
 	- Fix is_existing flag for ENT when domain that has a shared ENT
 	  is deleted by IXFR.
