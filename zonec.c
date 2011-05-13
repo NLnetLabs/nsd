@@ -1419,7 +1419,8 @@ void zonec_desetup_parser(void)
 		endprotoent();
 		region_destroy(parser->rr_region);
 		region_destroy(parser->region);
-		yylex_destroy();
+		/* clear memory for exit, but this is not portable to
+		 * other versions of lex. yylex_destroy(); */
 	}
 }
 
