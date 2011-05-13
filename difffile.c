@@ -322,6 +322,7 @@ find_rr_num(rrset_type* rrset,
 	return -1;
 }
 
+#ifdef NSEC3
 /* see if nsec3 deletion triggers need action */
 static void
 nsec3_delete_rr_trigger(namedb_type* db, rr_type* rr, zone_type* zone,
@@ -481,6 +482,7 @@ nsec3_add_rrset_trigger(namedb_type* db, domain_type* domain, zone_type* zone,
 		}
 	}
 }
+#endif /* NSEC3 */
 
 /* fixup usage lower for domain names in the rdata */
 static void
@@ -552,17 +554,21 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		}
 		/* delete the normalized RR from the udb */
 		udb_del_rr(db->udb, udbz, &rrset->rrs[rrnum]);
+#ifdef NSEC3
 		/* process triggers for RR deletions */
 		nsec3_delete_rr_trigger(db, &rrset->rrs[rrnum], zone, udbz);
+#endif
 		/* lower usage (possibly deleting other domains, and thus
 		 * invalidating the current RR's domain pointers) */
 		rr_lower_usage(db->domains, &rrset->rrs[rrnum]);
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
 			rrset_delete(db, domain, rrset);
+#ifdef NSEC3
 			/* cleanup nsec3 */
 			nsec3_delete_rrset_trigger(db, domain, zone, udbz,
 				type);
+#endif
 			/* see if the domain can be deleted (and inspect parents) */
 			domain_table_deldomain(db->domains, domain);
 		} else {
@@ -581,6 +587,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 			}
 			region_recycle(db->region, rrs_orig,
 				sizeof(rr_type) * rrset->rr_count);
+#ifdef NSEC3
 			if(type == TYPE_NSEC3PARAM && zone->nsec3_param) {
 				/* fixup nsec3_param pointer to same RR */
 				assert(zone->nsec3_param >= rrs_orig &&
@@ -596,12 +603,15 @@ delete_RR(namedb_type* db, const dname_type* dname,
 						-(void*)rrs_orig +
 						(void*)rrset->rrs;
 			}
+#endif /* NSEC3 */
 			rrset->rr_count --;
+#ifdef NSEC3
 			/* for type nsec3, the domain may have become a
 			 * 'normal' domain with its remaining data now */
 			if(type == TYPE_NSEC3)
 				nsec3_rrsets_changed_add_prehash(db, domain,
 					zone, udbz);
+#endif /* NSEC3 */
 		}
 	}
 	return 1;
@@ -680,6 +690,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 	/* see if it is a SOA */
 	if(domain == zone->apex) {
 		apex_rrset_checks(db, rrset, domain);
+#ifdef NSEC3
 		if(type == TYPE_NSEC3PARAM && zone->nsec3_param) {
 			/* the pointer just changed, fix it up to point
 			 * to the same record */
@@ -689,6 +700,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 			zone->nsec3_param = (void*)zone->nsec3_param - 
 				(void*)rrs_old + (void*)rrset->rrs;
 		}
+#endif /* NSEC3 */
 	}
 
 	/* write the just-normalized RR to the udb */
@@ -696,6 +708,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 		log_msg(LOG_ERR, "could not add RR to nsd.db, disk-space?");
 		return 0;
 	}
+#ifdef NSEC3
 	if(rrset_added) {
 		domain_type* p = domain->parent;
 		nsec3_add_rrset_trigger(db, domain, zone, udbz, type);
@@ -705,9 +718,9 @@ add_RR(namedb_type* db, const dname_type* dname,
 			nsec3_rrsets_changed_add_prehash(db, p, zone, udbz);
 			p = p->parent;
 		}
-
 	}
 	nsec3_add_rr_trigger(db, &rrset->rrs[rrset->rr_count - 1], zone, udbz);
+#endif /* NSEC3 */
 	return 1;
 }
 
@@ -975,8 +988,10 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			/* second RR: if not SOA: this is an AXFR; delete all zone contents */
 			delete_zone_rrs(db, zone_db);
 			udb_zone_clear(db->udb, udbz);
+#ifdef NSEC3
 			nsec3_clear_precompile(db, zone_db);
 			zone_db->nsec3_param = NULL;
+#endif /* NSEC3 */
 			/* add everything else (incl end SOA) */
 			*delete_mode = 0;
 			*is_axfr = 1;
@@ -1000,8 +1015,10 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 				/* AXFR */
 				delete_zone_rrs(db, zone_db);
 				udb_zone_clear(db->udb, udbz);
+#ifdef NSEC3
 				nsec3_clear_precompile(db, zone_db);
 				zone_db->nsec3_param = NULL;
+#endif /* NSEC3 */
 				*delete_mode = 0;
 				*is_axfr = 1;
 			}
@@ -1327,7 +1344,9 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			}
 		}
 		udb_base_set_userflags(db->udb, 0);
+#ifdef NSEC3
 		if(zonedb) prehash_zone(db, zonedb, &z);
+#endif /* NSEC3 */
 		udb_ptr_unlink(&z, db->udb);
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));

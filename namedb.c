@@ -135,16 +135,13 @@ domain_can_be_deleted(domain_type* domain)
 	return 1;
 }
 
+#ifdef NSEC3
 /** see if domain is on the prehash list */
 int domain_is_prehash(domain_table_type* table, domain_type* domain)
 {
-#ifdef NSEC3
 	if(domain->prehash_prev || domain->prehash_next)
 		return 1;
 	return (table->prehash_list == domain);
-#else
-	return 0;
-#endif
 }
 
 /** find root elem for a radnode */
@@ -204,6 +201,7 @@ prehash_del(domain_table_type *table, domain_type* domain)
 	domain->prehash_next = NULL;
 	domain->prehash_prev = NULL;
 }
+#endif /* NSEC3 */
 
 /** perform domain name deletion */
 static void
@@ -333,7 +331,9 @@ domain_table_create(region_type *region)
 
 	result->root = root;
 	result->numlist_last = root;
+#ifdef NSEC3
 	result->prehash_list = NULL;
+#endif
 
 	return result;
 }

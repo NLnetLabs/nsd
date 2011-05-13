@@ -36,6 +36,8 @@ iterated_hash(unsigned char out[SHA_DIGEST_LENGTH],
 	}
 	return SHA_DIGEST_LENGTH;
 #else
+	(void)out; (void)salt; (void)saltlength;
+	(void)in; (void)inlength; (void)iterations;
 	return 0;
 #endif
 }

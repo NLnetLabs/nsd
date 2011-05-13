@@ -677,8 +677,15 @@ AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in
         no)
 		;;
-        yes|*)
+        yes)
 		AC_DEFINE_UNQUOTED([NSEC3], [], [Define this to enable NSEC3 support.])
+		;;
+	*)
+		if test x$HAVE_SSL = x"yes"; then
+			AC_DEFINE_UNQUOTED([NSEC3], [], [Define this to enable NSEC3 support.])
+		else
+			AC_MSG_WARN([No SSL, therefore NSEC3 is disabled])
+		fi
                 ;;
 esac
 

@@ -24,8 +24,10 @@
 
 static void namedb_1(CuTest *tc);
 static void namedb_2(CuTest *tc);
+#ifdef NSEC3
 static void namedb_3(CuTest *tc);
 static void namedb_4(CuTest *tc);
+#endif /* NSEC3 */
 static int v = 0; /* verbosity */
 
 /** get a temporary file name */
@@ -37,8 +39,10 @@ CuSuite* reg_cutest_namedb(void)
 
 	SUITE_ADD_TEST(suite, namedb_1);
 	SUITE_ADD_TEST(suite, namedb_2);
+#ifdef NSEC3
 	SUITE_ADD_TEST(suite, namedb_3);
 	SUITE_ADD_TEST(suite, namedb_4);
+#endif /* NSEC3 */
 	return suite;
 }
 
@@ -264,6 +268,7 @@ domain_has_rrset_plain(domain_type* domain, uint16_t t)
 	return NULL;
 }
 
+#ifdef NSEC3
 /* see if a domain has a delegation NS rrset */
 static rrset_type*
 domain_has_deleg_rrset(domain_type* domain)
@@ -276,7 +281,6 @@ domain_has_deleg_rrset(domain_type* domain)
 	return NULL;
 }
 
-#ifdef NSEC3
 /* see if a domain is inside the nsec3-hashed space, look for parent zones */
 static int
 domain_in_nsec3_space(domain_type* domain, zone_type** zone)
@@ -846,6 +850,7 @@ static void namedb_2(CuTest *tc)
 	region_destroy(region);
 }
 
+#ifdef NSEC3
 /* test the namedb, and add, remove items from it */
 static void
 test_add_del_3(CuTest *tc, namedb_type* db)
@@ -1740,3 +1745,4 @@ static void namedb_4(CuTest *tc)
 	namedb_close(db);
 	region_destroy(region);
 }
+#endif /* NSEC3 */
