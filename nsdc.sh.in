@@ -335,7 +335,7 @@ do_patch() {
 
 do_rebuild() {
 	lock && \
-	  ${sbindir}/zonec ${ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && \
+	  ${sbindir}/zonec ${NSDC_ZONEC_VERBOSE} -c ${configfile} -f ${dbfile}.$$ && \
 	  mv ${dbfile}.$$ ${dbfile}
 	result=$?
 	unlock
@@ -370,7 +370,7 @@ patch)
 	if test -s ${difffile}; then
 		#${sbindir}/nsd-patch -c ${configfile} -x ${difffile} -l #debug
 		#echo ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}
-		if do_patch ${PATCH_STYLE}; then
+		if do_patch ${NSDC_PATCH_STYLE}; then
 			do_reload
 		else
 			unlock
