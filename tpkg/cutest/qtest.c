@@ -466,11 +466,20 @@ do_run(struct qs* qs, query_type* query, nsd_type* nsd, int verbose)
 				buffer_write_u8(output, 0);
 				if(strcmp((char*)buffer_begin(output),
 					e->txt)!=0) {
+					size_t i;
 					printf("q: %s\n", e->title);
 					printf("error: wrong answer\n");
 					printf("got: \n%s\n",
 						buffer_begin(output));
 					printf("wanted: \n%s\n", e->txt);
+					printf("strlens %d %d\n",
+						(int)strlen((char*)buffer_begin(output)),
+						(int)strlen(e->txt));
+					for(i=0; i<strlen((char*)buffer_begin(output)); i++) {
+					  printf("[%d] '%c' '%c'\n", (int)i,
+						((char*)buffer_begin(output))[i],
+						((char*)e->txt)[i]);
+					}
 					exit(1);
 				}
 			}
