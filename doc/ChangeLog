@@ -1,6 +1,7 @@
 17 May 2011: Matthijs
 	- unit test for code coverage on nsec3 ixfr.
 	- tag 4.0.0-imp3 created
+	- trunk is 4.0.0-imp4 under development.
 
 13 May 2011: Matthijs
 	- Fix bug #381 - Binary escaped and transfers.
