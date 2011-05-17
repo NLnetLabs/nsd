@@ -74,6 +74,27 @@ int runalltests(void)
 	return fail;
 }
 
+/** check if inet_ntop works as expected for string comparisions */
+static int
+check_inet_ntop(void)
+{
+#ifdef AF_INET6
+	const char* s = "2001:610:240:0:53:cc:12:174";
+	char r[1024];
+	struct in6_addr a;
+	if(inet_pton(AF_INET6, s, &a) != 1)
+		return 1;
+	if(inet_ntop(AF_INET6, &a, r, sizeof(r)) == NULL)
+		return 1;
+	printf("input %s becomes %s\n", s, r);
+	if(strcmp(s, r) == 0)
+		return 0;
+	return 1;
+#else
+	return 1;
+#endif
+}
+
 extern char *optarg;
 extern int optind;
 
@@ -84,8 +105,10 @@ int main(int argc, char* argv[])
 	int verb=0;
 	unsigned seed;
 	log_init("cutest");
-	while((c = getopt(argc, argv, "c:hq:v")) != -1) {
+	while((c = getopt(argc, argv, "c:hq:tv")) != -1) {
 		switch(c) {
+		case 't':
+			return check_inet_ntop();
 		case 'c':
 			config = optarg;
 			break;
@@ -101,6 +124,7 @@ int main(int argc, char* argv[])
 			printf("no options: run unit test\n");
 			printf("-q file: run query answer test with file\n");
 			printf("-c config: specify nsd.conf file\n");
+			printf("-t test inet_ntop for string comparisons.\n");
 			printf("-v verbose, -vv, -vvv\n");
 			printf("-h: show help\n");
 			return 1;
