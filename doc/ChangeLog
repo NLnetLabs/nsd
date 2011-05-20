@@ -1,4 +1,10 @@
-17 May 2011: Matthijs
+20 May 2011: Wouter
+	- from NSD_3_2 branch the fix: bug if the zonefile is changed for a
+	secondary but stored transfers are applied, and stop ixfr to empty.
+	The zone is flagged with error, and the good zone is still in nsd.db
+	for NSD4.
+
+17 May 2011: Wouter
 	- unit test for code coverage on nsec3 ixfr.
 	- tag 4.0.0-imp3 created
 	- trunk is 4.0.0-imp4 under development.
