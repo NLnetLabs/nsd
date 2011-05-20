@@ -11,6 +11,10 @@ BUG FIXES:
 	- Fix printout of IPSECKEY by nsd-patch.
 	- Fix is_existing flag for ENT when domain that has a shared ENT
 	  is deleted by IXFR. 
+	- Fix bug if the zonefile is changed for a secondary but stored
+	  transfers are applied, and stop it from applying ixfr to empty zone.
+	  The zone is flagged with error and AXFR-ed.
+
 
 3.2.8
 =============

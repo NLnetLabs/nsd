@@ -623,6 +623,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 {
 	rrset_type *rrset;
 	domain_type *domain = zone->apex;
+	zone->updated = 1;
 	/* go through entire tree below the zone apex (incl subzones) */
 	while(domain && dname_is_subdomain(
 		domain_dname(domain), domain_dname(zone->apex)))
@@ -650,6 +651,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 	assert(zone->updated == 1);
 }
 
+/* return value 0: syntaxerror,badIXFR, 1:OK, 2:done_and_skip_it */
 static int
 apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
@@ -809,7 +811,6 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		*rr_count = 1;
 		*is_axfr = 0;
 		*delete_mode = 0;
-
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
 			dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 	}
@@ -870,6 +871,17 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 				delete_zone_rrs(db, zone_db);
 				*delete_mode = 0;
 				*is_axfr = 1;
+			}
+			/* must have stuff in memory for a successful IXFR,
+			 * the serial number of the SOA has been checked
+			 * previously (by check_for_bad_serial) if it exists */
+			if(!*is_axfr && !domain_find_rrset(zone_db->apex,
+				zone_db, TYPE_SOA)) {
+				log_msg(LOG_ERR, "%s SOA serial %d is not "
+					"in memory, skip IXFR", zone, serialno);
+				region_destroy(region);
+				/* break out and stop the IXFR, ignore it */
+				return 2;
 			}
 			buffer_set_position(packet, bufpos);
 		}
@@ -1161,13 +1173,17 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		}
 		for(i=0; i<num_parts; i++) {
 			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
+			int ret;
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
-			if(!apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
+			ret = apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
-				&rr_count, child_count)) {
+				&rr_count, child_count);
+			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
 					opt->difffile);
 				mark_and_exit(opt, in, commitpos, log_buf);
+			} else if(ret == 2) {
+				break;
 			}
 		}
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {

@@ -1,3 +1,8 @@
+20 May 2011: Wouter
+	- Fix bug if the zonefile is changed for a secondary but stored
+	  transfers are applied, and stop it from applying ixfr to empty zone.
+	  The zone is flagged with error and AXFR-ed.
+
 13 May 2011: Matthijs
 	- Fix bug #365, do renaming of NSDC_ZONEC_VERBOSE and NSDC_PATCH_STYLE
 	  environment variable names that were forgotten.
