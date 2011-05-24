@@ -853,6 +853,9 @@ main(int argc, char *argv[])
 		} else if (strncmp(nsd.chrootdir, nsd.options->xfrdfile, l) != 0) {
 			error("%s is not relative to %s: chroot not possible",
 				nsd.options->xfrdfile, nsd.chrootdir);
+		} else if (strncmp(nsd.chrootdir, nsd.options->zonelistfile, l) != 0) {
+			error("%s is not relative to %s: chroot not possible",
+				nsd.options->zonelistfile, nsd.chrootdir);
 		} else if (strncmp(nsd.chrootdir, nsd.options->difffile, l) != 0) {
 			error("%s is not relative to %s: chroot not possible",
 				nsd.options->difffile, nsd.chrootdir);
@@ -988,6 +991,7 @@ main(int argc, char *argv[])
 		nsd.dbfile += l;
 		nsd.pidfile += l;
 		nsd.options->xfrdfile += l;
+		nsd.options->zonelistfile += l;
 		nsd.options->difffile += l;
 
 		if (chroot(nsd.chrootdir)) {

@@ -57,7 +57,7 @@ static int server_settings_seen = 0;
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
 %token VAR_VERBOSITY VAR_HIDE_VERSION
-%token VAR_PATTERN VAR_INCLUDEPATTERN
+%token VAR_PATTERN VAR_INCLUDEPATTERN VAR_ZONELISTFILE
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -80,7 +80,8 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_statistics | server_chroot | server_username | server_zonesdir |
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
-	server_ipv6_edns_size | server_verbosity | server_hide_version;
+	server_ipv6_edns_size | server_verbosity | server_hide_version |
+	server_zonelistfile;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -235,6 +236,12 @@ server_zonesdir: VAR_ZONESDIR STRING
 		cfg_parser->opt->zonesdir = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;
+server_zonelistfile: VAR_ZONELISTFILE STRING
+	{ 
+		OUTYY(("P(server_zonelistfile:%s)\n", $2)); 
+		cfg_parser->opt->zonelistfile = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
 server_difffile: VAR_DIFFFILE STRING
 	{ 
 		OUTYY(("P(server_difffile:%s)\n", $2)); 
@@ -335,6 +342,9 @@ pattern_name: VAR_NAME STRING
 #ifndef NDEBUG
 		assert(cfg_parser->current_pattern);
 #endif
+		if(strchr($2, ' '))
+			c_error_msg("space is not allowed in pattern name: "
+				"'%s'", $2);
 		cfg_parser->current_pattern->pname = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;

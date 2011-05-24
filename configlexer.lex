@@ -127,6 +127,7 @@ statistics{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_STATISTICS;}
 chroot{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_CHROOT;}
 username{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_USERNAME;}
 zonesdir{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONESDIR;}
+zonelistfile{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ZONELISTFILE;}
 difffile{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_DIFFFILE;}
 xfrdfile{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRDFILE;}
 xfrd-reload-timeout{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_XFRD_RELOAD_TIMEOUT;}

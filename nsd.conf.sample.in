@@ -47,6 +47,9 @@ server:
 
 	# The directory for zonefile: files.  The daemon chdirs here.
 	# zonesdir: "@zonesdir@"
+	
+	# the list of dynamically added zones.
+	# zonelistfile: "@zonelistfile@"
 
 	# the database to use
 	# database: "@dbfile@"

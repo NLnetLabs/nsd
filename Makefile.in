@@ -24,6 +24,7 @@ logfile = @logfile@
 dbfile = @dbfile@
 difffile = @difffile@
 xfrdfile = @xfrdfile@
+zonelistfile = @zonelistfile@
 nsdconfigfile = @nsd_conf_file@
 zonesdir = @zonesdir@
 user = @user@
@@ -57,6 +58,7 @@ EDIT		= sed \
 			-e 's,@dbfile\@,$(dbfile),g' \
 			-e 's,@difffile\@,$(difffile),g' \
 			-e 's,@xfrdfile\@,$(xfrdfile),g' \
+			-e 's,@zonelistfile\@,$(zonelistfile),g' \
 			-e 's,@nsdconfigfile\@,$(nsdconfigfile),g' \
 			-e 's,@shell\@,$(SHELL),g' \
 			-e 's,@user\@,$(user),g' \

@@ -33,6 +33,13 @@ struct nsd_options {
 	/* patterns, by name, contains pattern_options_t */
 	rbtree_t* patterns;
 
+	/* free space in zonelist file, contains zonelist_bucket */
+	rbtree_t* zonefree;
+	/* zonelist file if open */
+	FILE* zonelist;
+	/* last offset in file (or 0 if none) */
+	off_t zonelist_off;
+
 	/* list of keys defined */
 	key_options_t* keys;
 	size_t numkeys;
@@ -62,6 +69,7 @@ struct nsd_options {
 	const char* zonesdir;
 	const char* difffile;
 	const char* xfrdfile;
+	const char* zonelistfile;
 	const char* nsid;
 	int xfrd_reload_timeout;
 
@@ -106,6 +114,9 @@ struct zone_options {
 	pattern_options_t* pattern;
 	/* zone is fixed into the main config, not in zonelist, cannot delete */
 	uint8_t part_of_config;
+	/* if not part of config, the offset and linesize of zonelist entry */
+	off_t off;
+	int linesize;
 };
 
 union acl_addr_storage {
@@ -159,6 +170,18 @@ struct key_options {
 	struct tsig_key* tsig_key;
 };
 
+/** zone list free space */
+struct zonelist_free {
+	struct zonelist_free* next;
+	off_t off;
+};
+/** zonelist free bucket for a particular line length */
+struct zonelist_bucket {
+	rbnode_t node; /* key is ptr to linesize */
+	int linesize;
+	struct zonelist_free* list;
+};
+
 /*
  * Used during options parsing
  */
@@ -198,6 +221,8 @@ pattern_options_t* pattern_options_create(region_type* region);
 zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex);
 key_options_t* key_options_create(region_type* region);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
+/* read in zone list file. Returns false on failure */
+int parse_zone_list_file(nsd_options_t* opt, const char* zlfile);
 
 #if defined(HAVE_SSL)
 /* tsig must be inited, adds all keys in options to tsig. */

@@ -65,6 +65,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->zonesdir = ZONESDIR;
 	opt->difffile = DIFFFILE;
 	opt->xfrdfile = XFRDFILE;
+	opt->zonelistfile = ZONELISTFILE;
 	opt->xfrd_reload_timeout = 1;
 	nsd_options = opt;
 	return opt;
@@ -206,6 +207,146 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	}
 	return 1;
 }
+
+#define ZONELIST_HEADER "# NSD zone list\n# name pattern\n"
+static int comp_zonebucket(const void* a, const void* b)
+{
+	return *(const int*)b - *(const int*)a;
+}
+
+/* insert free entry into zonelist free buckets */
+static void zone_list_free_insert(nsd_options_t* opt, int linesize, off_t off)
+{
+	struct zonelist_free* e;
+	struct zonelist_bucket* b = (struct zonelist_bucket*)rbtree_search(
+		opt->zonefree, &linesize);
+	if(!b) {
+		b = region_alloc_zero(opt->region, sizeof(*b));
+		b->linesize = linesize;
+		b->node = *RBTREE_NULL;
+		b->node.key = &b->linesize;
+		rbtree_insert(opt->zonefree, &b->node);
+	}
+	e = (struct zonelist_free*)region_alloc_zero(opt->region, sizeof(*e));
+	e->next = b->list;
+	b->list = e;
+	e->off = off;
+}
+
+int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
+{
+	/* zonelist looks like this:
+	# name pattern
+	add example.com master
+	del example.net slave
+	add foo.bar.nl slave
+	add rutabaga.uk config
+	*/
+	char buf[1024];
+	
+	/* create empty data structures */
+	opt->zonefree = rbtree_create(opt->region, comp_zonebucket);
+	opt->zonelist = NULL;
+	opt->zonelist_off = 0;
+
+	/* try to open the zonelist file, an empty or nonexist file is OK */
+	opt->zonelist = fopen(zlfile, "r+");
+	if(!opt->zonelist) {
+		if(errno == ENOENT)
+			return 1; /* file does not exist, it is created later */
+		log_msg(LOG_ERR, "could not open zone list %s: %s", zlfile,
+			strerror(errno));
+		return 0;
+	}
+	/* read header */
+	if(fread(buf, 1, strlen(ZONELIST_HEADER), opt->zonelist) !=
+		strlen(ZONELIST_HEADER) || strcmp(buf, ZONELIST_HEADER)!=0) {
+		log_msg(LOG_ERR, "zone list %s contains bad header\n", zlfile);
+		fclose(opt->zonelist);
+		opt->zonelist = NULL;
+		return 0;
+	}
+
+	/* read entries in file */
+	while(fgets(buf, sizeof(buf), opt->zonelist)) {
+		/* skip comments and empty lines */
+		if(buf[0] == 0 || buf[0] == '\n' || buf[0] == '#')
+			continue;
+		if(strncmp(buf, "add ", 4) == 0) {
+			int linesize = strlen(buf);
+			/* parse the 'add' line */
+			/* pick last space on the line, so that the domain
+			 * name can have a space in it (but not the pattern)*/
+			char* space = strrchr(buf+4, ' ');
+			char* nm, *patnm;
+			if(!space) {
+				/* parse error */
+				log_msg(LOG_ERR, "parse error in %s: '%s'",
+					zlfile, buf);
+				continue;
+			}
+			nm = buf+4;
+			*space = 0;
+			patnm = space+1;
+			/* store offset and line size for zone entry */
+			/* and create zone entry in zonetree */
+			zone_options_t* zone = zone_options_create(opt->region);
+			zone->part_of_config = 0;
+			zone->name = region_strdup(opt->region, nm);
+			zone->linesize = linesize;
+			zone->off = ftello(opt->zonelist)-linesize;
+			zone->pattern = (pattern_options_t*)rbtree_search(
+				opt->patterns, patnm);
+			if(!zone->pattern) {
+				log_msg(LOG_ERR, "pattern does not exist for "
+					"zone %s pattern %s", nm, patnm);
+				continue;
+			}
+			if(!nsd_options_insert_zone(opt, zone)) {
+				log_msg(LOG_ERR, "bad domain name or "
+					"duplicate zone '%s' pattern %s",
+					nm, patnm);
+			}
+		} else if(strncmp(buf, "del ", 4) == 0) {
+			/* store offset and line size for deleted entry */
+			int linesize = strlen(buf);
+			zone_list_free_insert(opt, linesize,
+				ftello(opt->zonelist)-linesize);
+		} else {
+			log_msg(LOG_WARNING, "bad data in %s, '%s'", zlfile,
+				buf);
+		}
+	}
+	/* store EOF offset */
+	opt->zonelist_off = ftello(opt->zonelist);
+	return 1;
+}
+/* add a new zone to the zonelist */
+void zone_list_add(nsd_options_t* opt, const char* zname, const char* pname)
+{
+	/* use free entry or append to file or create new file */
+	/* create zone entry */
+	/* TODO */
+}
+/* remove a zone on the zonelist */
+void zone_list_del(nsd_options_t* opt, const char* zname)
+{
+	/* put its space onto the free entry */
+	/* TODO */
+}
+/* compact zonelist file */
+void zone_list_compact(nsd_options_t* opt)
+{
+	/* useful, when : count-of-free > count-of-used */
+	/* write zonelist to zonelist~ */
+	/* rename zonelist~ onto zonelist */
+	/* TODO */
+}
+/* close zonelist file */
+void zone_list_close(nsd_options_t* opt)
+{
+}
+
 
 void c_error_va_list(const char *fmt, va_list args)
 {

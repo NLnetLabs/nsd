@@ -65,6 +65,7 @@ AC_SUBST(kill_priority)
 # Default logfile
 #
 logfile=${localstatedir}/log/nsd.log
+AC_SUBST(logfile)
 
 #
 # Database directory
@@ -125,6 +126,13 @@ AC_ARG_WITH([xfrdfile], AC_HELP_STRING([--with-xfrdfile=path],
 	[Pathname to the NSD xfrd zone timer state file]), [xfrdfile=$withval])
 AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfrd zone timer state file.])
 AC_SUBST(xfrdfile)
+
+# default zonelist file location.
+zonelistfile=${dbdir}/zone.list
+AC_ARG_WITH([zonelistfile], AC_HELP_STRING([--with-zonelistfile=path], 
+	[Pathname to the NSD zone list file]), [zonelistfile=$withval])
+AC_DEFINE_UNQUOTED(ZONELISTFILE, ["`eval echo $zonelistfile`"], [Pathname to the NSD zone list file.])
+AC_SUBST(zonelistfile)
 
 #
 # Determine default chroot directory
