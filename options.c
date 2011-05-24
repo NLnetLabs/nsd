@@ -25,6 +25,11 @@ int c_lex(void);
 int c_wrap(void);
 void c_error(const char *message);
 
+static int pat_cmp(const void* p1, const void* p2)
+{
+	return strcmp((const char*)p1, (const char*)p2);
+}
+
 nsd_options_t* nsd_options_create(region_type* region)
 {
 	nsd_options_t* opt;
@@ -32,6 +37,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->region = region;
 	opt->zone_options = rbtree_create(region,
 		(int (*)(const void *, const void *)) dname_compare);
+	opt->patterns = rbtree_create(region, pat_cmp);
 	opt->keys = NULL;
 	opt->numkeys = 0;
 	opt->ip_addresses = NULL;
@@ -76,10 +82,18 @@ int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone)
 	return 1;
 }
 
+int nsd_options_insert_pattern(nsd_options_t* opt, pattern_options_t* pat)
+{
+	pat->node.key = pat->pname;
+	if(!rbtree_insert(opt->patterns, (rbnode_t*)pat))
+		return 0;
+	return 1;
+}
+
 int parse_options_file(nsd_options_t* opt, const char* file)
 {
 	FILE *in = 0;
-	zone_options_t* zone;
+	pattern_options_t* pat;
 	acl_options_t* acl;
 
 	if(!cfg_parser)
@@ -89,6 +103,7 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	cfg_parser->line = 1;
 	cfg_parser->errors = 0;
 	cfg_parser->opt = opt;
+	cfg_parser->current_pattern = 0;
 	cfg_parser->current_zone = 0;
 	cfg_parser->current_key = opt->keys;
 	while(cfg_parser->current_key && cfg_parser->current_key->next)
@@ -110,6 +125,15 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	c_parse();
 	fclose(in);
 
+	if(cfg_parser->current_pattern) {
+		if(!cfg_parser->current_pattern->pname)
+			c_error("last pattern has no name");
+		else {
+			if(!nsd_options_insert_pattern(cfg_parser->opt,
+				cfg_parser->current_pattern))
+				c_error("duplicate pattern");
+		}
+	}
 	if(cfg_parser->current_zone) {
 		if(!cfg_parser->current_zone->name)
 			c_error("last zone has no name");
@@ -118,8 +142,10 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 				cfg_parser->current_zone))
 				c_error("duplicate zone");
 		}
-		if(!cfg_parser->current_zone->zonefile)
-			c_error("last zone has no zonefile");
+		if(!cfg_parser->current_zone->pattern)
+			c_error("last zone has no pattern");
+		if(!cfg_parser->current_zone->pattern->zonefile)
+			c_error("last zone pattern has no zonefile");
 	}
 	if(opt->keys)
 	{
@@ -130,48 +156,44 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 		if(!opt->keys->secret)
 			c_error("last key has no secret blob");
 	}
-	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
+	RBTREE_FOR(pat, pattern_options_t*, opt->patterns)
 	{
-		if(!zone->name)
-			continue;
-		if(!zone->zonefile)
-			continue;
 		/* lookup keys for acls */
-		for(acl=zone->allow_notify; acl; acl=acl->next)
+		for(acl=pat->allow_notify; acl; acl=acl->next)
 		{
 			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
 			if(!acl->key_options)
-				c_error_msg("key %s in zone %s could not be found",
-					acl->key_name, zone->name);
+				c_error_msg("key %s in pattern %s could not be found",
+					acl->key_name, pat->pname);
 		}
-		for(acl=zone->notify; acl; acl=acl->next)
+		for(acl=pat->notify; acl; acl=acl->next)
 		{
 			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
 			if(!acl->key_options)
-				c_error_msg("key %s in zone %s could not be found",
-					acl->key_name, zone->name);
+				c_error_msg("key %s in pattern %s could not be found",
+					acl->key_name, pat->pname);
 		}
-		for(acl=zone->request_xfr; acl; acl=acl->next)
+		for(acl=pat->request_xfr; acl; acl=acl->next)
 		{
 			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
 			if(!acl->key_options)
-				c_error_msg("key %s in zone %s could not be found",
-					acl->key_name, zone->name);
+				c_error_msg("key %s in pattern %s could not be found",
+					acl->key_name, pat->pname);
 		}
-		for(acl=zone->provide_xfr; acl; acl=acl->next)
+		for(acl=pat->provide_xfr; acl; acl=acl->next)
 		{
 			if(acl->nokey || acl->blocked)
 				continue;
 			acl->key_options = key_options_find(opt, acl->key_name);
 			if(!acl->key_options)
-				c_error_msg("key %s in zone %s could not be found",
-					acl->key_name, zone->name);
+				c_error_msg("key %s in pattern %s could not be found",
+					acl->key_name, pat->pname);
 		}
 	}
 
@@ -220,15 +242,29 @@ zone_options_t* zone_options_create(region_type* region)
 	zone = (zone_options_t*)region_alloc(region, sizeof(zone_options_t));
 	zone->node = *RBTREE_NULL;
 	zone->name = 0;
-	zone->zonefile = 0;
-	zone->allow_notify = 0;
-	zone->request_xfr = 0;
-	zone->notify = 0;
-	zone->notify_retry = 5;
-	zone->provide_xfr = 0;
-	zone->outgoing_interface = 0;
-	zone->allow_axfr_fallback = 1;
+	zone->pattern = 0;
+	zone->part_of_config = 0;
 	return zone;
+}
+
+pattern_options_t* pattern_options_create(region_type* region)
+{
+	pattern_options_t* p;
+	p = (pattern_options_t*)region_alloc(region, sizeof(pattern_options_t));
+	p->node = *RBTREE_NULL;
+	p->pname = 0;
+	p->zonefile = 0;
+	p->allow_notify = 0;
+	p->request_xfr = 0;
+	p->notify = 0;
+	p->provide_xfr = 0;
+	p->outgoing_interface = 0;
+	p->notify_retry = 5;
+	p->notify_retry_is_default = 1;
+	p->allow_axfr_fallback = 1;
+	p->allow_axfr_fallback_is_default = 1;
+	p->implicit = 0;
+	return p;
 }
 
 key_options_t* key_options_create(region_type* region)
@@ -509,7 +545,73 @@ void key_options_tsig_add(nsd_options_t* opt)
 
 int zone_is_slave(zone_options_t* opt)
 {
-	return opt->request_xfr != 0;
+	return opt && opt->pattern && opt->pattern->request_xfr != 0;
+}
+
+/* get a character in string (or replacement char if not long enough) */
+static const char*
+get_char(const char* str, size_t i)
+{
+	static char res[2];
+	if(i >= strlen(str))
+		return ".";
+	res[0] = str[i];
+	res[1] = 0;
+	return res;
+}
+/* get end label of the zone name (or .) */
+static const char*
+get_end_label(zone_options_t* zone, int i)
+{
+	const dname_type* d = (const dname_type*)zone->node.key;
+	if(i >= d->label_count) {
+		return ".";
+	}
+	return wirelabel2str((uint8_t*)dname_label(d, i));
+}
+/* replace occurrences of one with two */
+void replace_str(char* str, size_t len, const char* one, const char* two)
+{
+	char* pos;
+	char* at = str;
+	while( (pos=strstr(at, one)) ) {
+		if(strlen(str)+strlen(two)-strlen(one) >= len)
+			return; /* no more space to replace */
+		/* stuff before pos is fine */
+		/* move the stuff after pos to make space for two, add
+		 * one to length of remainder to also copy the 0 byte end */
+		memmove(pos+strlen(two), pos+strlen(one),
+			strlen(pos+strlen(one))+1);
+		/* copy in two */
+		memmove(pos, two, strlen(two));
+		/* at is end of the newly inserted two (avoids recursion if
+		 * two contains one) */
+		at = pos+strlen(two);
+	}
+}
+
+const char* config_make_zonefile(zone_options_t* zone)
+{
+	static char f[1024];
+	/* if not a template, return as-is */
+	if(!strchr(zone->pattern->zonefile, '%'))
+		return zone->pattern->zonefile;
+	strlcpy(f, zone->pattern->zonefile, sizeof(f));
+	if(strstr(f, "%1"))
+		replace_str(f, sizeof(f), "%1", get_char(zone->name, 0));
+	if(strstr(f, "%2"))
+		replace_str(f, sizeof(f), "%2", get_char(zone->name, 1));
+	if(strstr(f, "%3"))
+		replace_str(f, sizeof(f), "%3", get_char(zone->name, 2));
+	if(strstr(f, "%z"))
+		replace_str(f, sizeof(f), "%z", get_end_label(zone, 1));
+	if(strstr(f, "%y"))
+		replace_str(f, sizeof(f), "%y", get_end_label(zone, 2));
+	if(strstr(f, "%x"))
+		replace_str(f, sizeof(f), "%x", get_end_label(zone, 3));
+	if(strstr(f, "%s"))
+		replace_str(f, sizeof(f), "%s", zone->name);
+	return f;
 }
 
 zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex)
@@ -651,6 +753,53 @@ acl_options_t* parse_acl_info(region_type* region, char* ip, const char* key)
 		acl->key_name = region_strdup(region, key);
 	}
 	return acl;
+}
+
+/* copy acl list at end of parser start, update current */
+static void append_acl(acl_options_t** start, acl_options_t** cur,
+	acl_options_t* list)
+{
+	while(list) {
+		acl_options_t* acl = region_alloc_init(cfg_parser->opt->region,
+			list, sizeof(*list));
+		acl->next = NULL;
+		if(*start)
+			(*cur)->next = acl;
+		else	*start = acl;
+		*cur = acl;
+		list = list->next;
+	}
+}
+
+void config_apply_pattern(const char* name)
+{
+	/* find the pattern */
+	pattern_options_t* pat = (pattern_options_t*)rbtree_search(
+		cfg_parser->opt->patterns, name);
+	pattern_options_t* a = cfg_parser->current_pattern;
+	if(!pat) {
+		c_error_msg("could not find pattern %s", name);
+		return;
+	}
+
+	/* apply settings */
+	if(pat->zonefile)
+		a->zonefile = region_strdup(cfg_parser->opt->region,
+			pat->zonefile);
+	if(!pat->allow_axfr_fallback_is_default)
+		a->allow_axfr_fallback = pat->allow_axfr_fallback;
+	if(!pat->notify_retry_is_default)
+		a->notify_retry = pat->notify_retry;
+	/* append acl items */
+	append_acl(&a->allow_notify, &cfg_parser->current_allow_notify,
+		pat->allow_notify);
+	append_acl(&a->request_xfr, &cfg_parser->current_request_xfr,
+		pat->request_xfr);
+	append_acl(&a->notify, &cfg_parser->current_notify, pat->notify);
+	append_acl(&a->provide_xfr, &cfg_parser->current_provide_xfr,
+		pat->provide_xfr);
+	append_acl(&a->outgoing_interface, &cfg_parser->
+		current_outgoing_interface, pat->outgoing_interface);
 }
 
 void nsd_options_destroy(nsd_options_t* opt)

@@ -376,5 +376,7 @@ const dname_type *dname_replace(region_type* region,
 
 /** Convert uncompressed wireformat dname to a string */
 char* wiredname2str(uint8_t* dname);
+/** convert uncompressed label to string */
+char* wirelabel2str(uint8_t* label);
 
 #endif /* _DNAME_H_ */

@@ -236,7 +236,7 @@ print_commit_log(FILE* out, const dname_type* zone, struct diff_log* commit_log)
 static void
 write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 {
-	const char* filename = zone->opts->zonefile;
+	const char* filename = config_make_zonefile(zone->opts);
 	time_t now = time(0);
 	FILE *out;
 

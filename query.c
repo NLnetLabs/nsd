@@ -407,7 +407,7 @@ answer_notify(struct nsd* nsd, struct query *query)
 		return query_error(query, rc);
 
 	/* check if it passes acl */
-	if((acl_num = acl_check_incoming(zone_opt->allow_notify, query,
+	if((acl_num = acl_check_incoming(zone_opt->pattern->allow_notify, query,
 		&why)) != -1)
 	{
 		sig_atomic_t mode = NSD_PASS_TO_XFRD;
@@ -1136,8 +1136,8 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 	}
 
 	/* see if the zone has expired (for secondary zones) */
-	if(q->zone && q->zone->opts && zone_is_slave(q->zone->opts)
-		&& !q->zone->is_ok) {
+	if(q->zone && q->zone->opts && q->zone->opts->pattern &&
+		q->zone->opts->pattern->request_xfr != 0 && !q->zone->is_ok) {
 		if(q->cname_count == 0)
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
 		return;

@@ -171,7 +171,7 @@ xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet)
 	}
 	buffer_flip(packet);
 	zone->notify_send_handler.fd = xfrd_send_udp(zone->notify_current,
-		packet, zone->options->outgoing_interface);
+		packet, zone->options->pattern->outgoing_interface);
 	if(zone->notify_send_handler.fd == -1) {
 		log_msg(LOG_ERR, "xfrd: zone %s: could not send notify #%d to %s",
 			zone->apex_str, zone->notify_retry,
@@ -212,7 +212,7 @@ xfrd_handle_notify_send(netio_type* ATTR_UNUSED(netio),
 	/* see if notify is still enabled */
 	if(zone->notify_current) {
 		zone->notify_retry++;
-		if(zone->notify_retry > zone->options->notify_retry) {
+		if(zone->notify_retry > zone->options->pattern->notify_retry) {
 			log_msg(LOG_ERR, "xfrd: zone %s: max notify send count reached, %s unreachable",
 				zone->apex_str, zone->notify_current->ip_address_spec);
 			xfrd_notify_next(zone);
@@ -228,7 +228,7 @@ static void
 setup_notify_active(struct notify_zone_t* zone)
 {
 	zone->notify_retry = 0;
-	zone->notify_current = zone->options->notify;
+	zone->notify_current = zone->options->pattern->notify;
 	zone->notify_send_handler.timeout = &zone->notify_timeout;
 	zone->notify_timeout.tv_sec = xfrd_time();
 	zone->notify_timeout.tv_nsec = 0;
@@ -237,7 +237,7 @@ setup_notify_active(struct notify_zone_t* zone)
 static void
 notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 {
-	if(!zone->options->notify) {
+	if(!zone->options->pattern->notify) {
 		return; /* no notify acl, nothing to do */
 	}
 
@@ -254,7 +254,7 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 		return;
 	}
 	/* put it in waiting list */
-	zone->notify_current = zone->options->notify;
+	zone->notify_current = zone->options->pattern->notify;
 	zone->is_waiting = 1;
 	zone->waiting_next = NULL;
 	if(xfrd->notify_waiting_last) {

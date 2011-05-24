@@ -18,6 +18,7 @@ struct dname;
 struct tsig_key;
 
 typedef struct nsd_options nsd_options_t;
+typedef struct pattern_options pattern_options_t;
 typedef struct zone_options zone_options_t;
 typedef struct ipaddress_option ip_address_option_t;
 typedef struct acl_options acl_options_t;
@@ -29,6 +30,8 @@ typedef struct config_parser_state config_parser_state_t;
 struct nsd_options {
 	/* options for zones, by apex, contains zone_options_t */
 	rbtree_t* zone_options;
+	/* patterns, by name, contains pattern_options_t */
+	rbtree_t* patterns;
 
 	/* list of keys defined */
 	key_options_t* keys;
@@ -71,6 +74,25 @@ struct ipaddress_option {
 };
 
 /*
+ * Pattern of zone options, used to contain options for zone(s).
+ */
+struct pattern_options {
+	rbnode_t node;
+	const char* pname; /* name of the pattern, key of rbtree */
+	const char* zonefile;
+	acl_options_t* allow_notify;
+	acl_options_t* request_xfr;
+	acl_options_t* notify;
+	acl_options_t* provide_xfr;
+	acl_options_t* outgoing_interface;
+	uint8_t allow_axfr_fallback;
+	uint8_t allow_axfr_fallback_is_default;
+	uint8_t notify_retry;
+	uint8_t notify_retry_is_default;
+	uint8_t implicit; /* pattern is implicit, part_of_config zone used */
+};
+
+/*
  * Options for a zone
  */
 struct zone_options {
@@ -79,14 +101,11 @@ struct zone_options {
 
 	/* is apex of the zone */
 	const char* name;
-	const char* zonefile;
-	acl_options_t* allow_notify;
-	acl_options_t* request_xfr;
-	acl_options_t* notify;
-	acl_options_t* provide_xfr;
-	acl_options_t* outgoing_interface;
-	uint8_t allow_axfr_fallback;
-	uint8_t notify_retry;
+	/* pattern for the zone options, if zone is part_of_config, this is
+	 * a anonymous pattern created in-place */
+	pattern_options_t* pattern;
+	/* zone is fixed into the main config, not in zonelist, cannot delete */
+	uint8_t part_of_config;
 };
 
 union acl_addr_storage {
@@ -148,6 +167,7 @@ struct config_parser_state {
 	int line;
 	int errors;
 	nsd_options_t* opt;
+	pattern_options_t* current_pattern;
 	zone_options_t* current_zone;
 	key_options_t* current_key;
 	ip_address_option_t* current_ip_address_option;
@@ -167,10 +187,13 @@ static inline size_t nsd_options_num_zones(nsd_options_t* opt)
 { return opt->zone_options->count; }
 /* insert a zone into the main options tree, returns 0 on error */
 int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone);
+/* insert a pattern into the main options tree, returns 0 on error */
+int nsd_options_insert_pattern(nsd_options_t* opt, pattern_options_t* pat);
 
 /* parses options file. Returns false on failure */
 int parse_options_file(nsd_options_t* opt, const char* file);
 zone_options_t* zone_options_create(region_type* region);
+pattern_options_t* pattern_options_create(region_type* region);
 /* find a zone by apex domain name, or NULL if not found. */
 zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex);
 key_options_t* key_options_create(region_type* region);
@@ -198,6 +221,8 @@ acl_options_t* acl_find_num(acl_options_t* acl, int num);
 
 /* see if a zone is a slave or a master zone */
 int zone_is_slave(zone_options_t* opt);
+/* create zonefile name, returns static pointer (perhaps to options data) */
+const char* config_make_zonefile(zone_options_t* zone);
 
 /* parsing helpers */
 void c_error(const char* msg);
@@ -211,5 +236,9 @@ int parse_acl_range_type(char* ip, char** mask);
 void parse_acl_range_subnet(char* p, void* addr, int maxbits);
 /* clean up options */
 void nsd_options_destroy(nsd_options_t* opt);
+/* replace occurrences of one with two in buf, pass length of buffer */
+void replace_str(char* buf, size_t len, const char* one, const char* two);
+/* apply pattern to the existing pattern in the parser */
+void config_apply_pattern(const char* name);
 
 #endif /* OPTIONS_H */

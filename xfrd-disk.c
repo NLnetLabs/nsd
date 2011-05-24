@@ -241,12 +241,12 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		zone->timeout.tv_nsec = 0;
 
 		/* read the zone OK, now set the master properly */
-		zone->master = acl_find_num(
-			zone->zone_options->request_xfr, zone->master_num);
+		zone->master = acl_find_num(zone->zone_options->pattern->
+			request_xfr, zone->master_num);
 		if(!zone->master) {
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: masters changed for zone %s",
 				zone->apex_str));
-			zone->master = zone->zone_options->request_xfr;
+			zone->master = zone->zone_options->pattern->request_xfr;
 			zone->master_num = 0;
 			zone->round_num = 0;
 		}

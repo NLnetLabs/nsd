@@ -14,6 +14,7 @@
 #include "region-allocator.h"
 #include "options.h"
 #include "util.h"
+#include "dname.h"
 
 static void acl_1(CuTest *tc);
 static void acl_2(CuTest *tc);
@@ -21,6 +22,8 @@ static void acl_3(CuTest *tc);
 static void acl_4(CuTest *tc);
 static void acl_5(CuTest *tc);
 static void acl_6(CuTest *tc);
+static void replace_1(CuTest *tc);
+static void replace_2(CuTest *tc);
 
 CuSuite* reg_cutest_options(void)
 {
@@ -32,6 +35,8 @@ CuSuite* reg_cutest_options(void)
 	SUITE_ADD_TEST(suite, acl_4); /* parse_acl_range_type */
 	SUITE_ADD_TEST(suite, acl_5); /* parse_acl_range_subnet */
 	SUITE_ADD_TEST(suite, acl_6); /* acl_same_host */
+	SUITE_ADD_TEST(suite, replace_1); /* replace_str */
+	SUITE_ADD_TEST(suite, replace_2); /* make_zonefile */
 	return suite;
 }
 
@@ -250,4 +255,69 @@ static void acl_6(CuTest *tc)
 	CuAssert(tc, "check acl_same_host", acl_same_host(y, x) == 0);
 
 	region_destroy(region);
+}
+
+static void replace_1(CuTest *tc)
+{
+	char buf[32];
+	strlcpy(buf, "aad", sizeof(buf));
+	replace_str(buf, sizeof(buf), "a", "aad");
+	CuAssertStrEquals(tc, "aadaadd", buf);
+
+	strlcpy(buf, "aca", sizeof(buf));
+	replace_str(buf, sizeof(buf), "a", "aba");
+	CuAssertStrEquals(tc, "abacaba", buf);
+
+	strlcpy(buf, "aca", sizeof(buf));
+	replace_str(buf, 5, "a", "aba");
+	CuAssertStrEquals(tc, "aca", buf);
+
+	strlcpy(buf, "aca", sizeof(buf));
+	replace_str(buf, 6, "a", "aba");
+	CuAssertStrEquals(tc, "abaca", buf);
+
+	strlcpy(buf, "aca", sizeof(buf));
+	replace_str(buf, 7, "a", "aba");
+	CuAssertStrEquals(tc, "abaca", buf);
+
+	strlcpy(buf, "aca", sizeof(buf));
+	replace_str(buf, 8, "a", "aba");
+	CuAssertStrEquals(tc, "abacaba", buf);
+
+	strlcpy(buf, "%1", sizeof(buf));
+	replace_str(buf, 8, "%1", "a");
+	CuAssertStrEquals(tc, "a", buf);
+
+	strlcpy(buf, "xx%1", sizeof(buf));
+	replace_str(buf, 8, "%1", "a");
+	CuAssertStrEquals(tc, "xxa", buf);
+
+	strlcpy(buf, "xx%1yz", sizeof(buf));
+	replace_str(buf, 8, "%1", "a");
+	CuAssertStrEquals(tc, "xxayz", buf);
+
+	strlcpy(buf, "xx%syz", sizeof(buf));
+	replace_str(buf, sizeof(buf), "%s", "foobar");
+	CuAssertStrEquals(tc, "xxfoobaryz", buf);
+}
+
+static void replace_2(CuTest *tc)
+{
+	region_type* region = region_create(xalloc, free);
+	zone_options_t z;
+	pattern_options_t p;
+	memset(&z, 0, sizeof(z));
+	memset(&p, 0, sizeof(p));
+	z.name = "example.com";
+	z.node.key = dname_parse(region, z.name);
+	z.pattern = &p;
+	p.zonefile = "%s";
+	CuAssertStrEquals(tc, "example.com", config_make_zonefile(&z));
+	p.zonefile = "zones/%1/%2/%3/%s.zone";
+	CuAssertStrEquals(tc, "zones/e/x/a/example.com.zone",
+		config_make_zonefile(&z));
+	p.zonefile = "%z/%y/thezone";
+	CuAssertStrEquals(tc, "com/example/thezone", config_make_zonefile(&z));
+
+	region_free_all(region);
 }

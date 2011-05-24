@@ -495,6 +495,28 @@ dname_replace(region_type* region,
 	return res;
 }
 
+char* wirelabel2str(uint8_t* label)
+{
+	static char buf[MAXDOMAINLEN*5+3];
+	char* p = buf;
+	uint8_t lablen;
+	lablen = *label++;
+	while(lablen--) {
+		uint8_t ch = *label++;
+		if (isalnum(ch) || ch == '-' || ch == '_') {
+			*p++ = ch;
+		} else if (ch == '.' || ch == '\\') {
+			*p++ = '\\';
+			*p++ = ch;
+		} else {
+			snprintf(p, 5, "\\%03u", (unsigned int)ch);
+			p += 4;
+		}
+	}
+	*p++ = 0;
+	return buf;
+}
+
 char* wiredname2str(uint8_t* dname)
 {
 	static char buf[MAXDOMAINLEN*5+3];

@@ -1158,7 +1158,7 @@ process_rr(void)
 
 	/* We only support IN class */
 	if (rr->klass != CLASS_IN) {
-		if(zone->opts && zone->opts->request_xfr)
+		if(zone_is_slave(zone->opts))
 			zc_warning_prev_line("only class IN is supported");
 		else
 			zc_error_prev_line("only class IN is supported");
@@ -1182,7 +1182,7 @@ process_rr(void)
 			return 0;
 		}
 		if(has_soa(rr->owner)) {
-			if(zone->opts && zone->opts->request_xfr)
+			if(zone_is_slave(zone->opts))
 				zc_warning_prev_line("this SOA record was already encountered");
 			else
 				zc_error_prev_line("this SOA record was already encountered");
@@ -1193,7 +1193,7 @@ process_rr(void)
 
 	if (!domain_is_subdomain(rr->owner, zone->apex))
 	{
-		if(zone->opts && zone->opts->request_xfr)
+		if(zone_is_slave(zone->opts))
 			zc_warning_prev_line("out of zone data");
 		else
 			zc_error_prev_line("out of zone data");
@@ -1244,27 +1244,27 @@ process_rr(void)
 	}
 
 	if(rr->type == TYPE_DNAME && rrset->rr_count > 1) {
-		if(zone->opts && zone->opts->request_xfr)
+		if(zone_is_slave(zone->opts))
 			zc_warning_prev_line("multiple DNAMEs at the same name");
 		else
 			zc_error_prev_line("multiple DNAMEs at the same name");
 	}
 	if(rr->type == TYPE_CNAME && rrset->rr_count > 1) {
-		if(zone->opts && zone->opts->request_xfr)
+		if(zone_is_slave(zone->opts))
 			zc_warning_prev_line("multiple CNAMEs at the same name");
 		else
 			zc_error_prev_line("multiple CNAMEs at the same name");
 	}
 	if((rr->type == TYPE_DNAME && domain_find_rrset(rr->owner, zone, TYPE_CNAME))
 	 ||(rr->type == TYPE_CNAME && domain_find_rrset(rr->owner, zone, TYPE_DNAME))) {
-		if(zone->opts && zone->opts->request_xfr)
+		if(zone_is_slave(zone->opts))
 			zc_warning_prev_line("DNAME and CNAME at the same name");
 		else
 			zc_error_prev_line("DNAME and CNAME at the same name");
 	}
 	if(domain_find_rrset(rr->owner, zone, TYPE_CNAME) &&
 		domain_find_non_cname_rrset(rr->owner, zone)) {
-		if(zone->opts && zone->opts->request_xfr)
+		if(zone_is_slave(zone->opts))
 			zc_warning_prev_line("CNAME and other data at the same name");
 		else
 			zc_error_prev_line("CNAME and other data at the same name");
@@ -1382,7 +1382,7 @@ zonec_read(const char *name, const char *zonefile, zone_type* zone)
 	}
 
 	fclose(yyin);
-	if(!zone->opts || !zone->opts->request_xfr)
+	if(!zone_is_slave(zone->opts))
 		check_dname(zone);
 
 	if(vflag > 1)

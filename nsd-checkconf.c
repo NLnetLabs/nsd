@@ -20,29 +20,29 @@
 extern char *optarg;
 extern int optind;
 
-#define ZONE_GET_ACL(NAME, VAR) 		\
+#define ZONE_GET_ACL(NAME, VAR, PATTERN) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
-		quote_acl((zone->NAME)); 	\
+		quote_acl(PATTERN->NAME); 	\
 		return; 			\
 	}
 
-#define ZONE_GET_OUTGOING(NAME, VAR)			\
+#define ZONE_GET_OUTGOING(NAME, VAR, PATTERN)			\
 	if (strcasecmp(#NAME, (VAR)) == 0) {		\
 		acl_options_t* acl; 			\
-		for(acl=zone->NAME; acl; acl=acl->next)	\
+		for(acl=PATTERN->NAME; acl; acl=acl->next)	\
 			quote(acl->ip_address_spec);	\
 		return; 				\
 	}
 
-#define ZONE_GET_STR(NAME, VAR) 		\
+#define ZONE_GET_STR(NAME, VAR, PATTERN) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
-		quote(zone->NAME); 		\
+		quote(PATTERN->NAME); 		\
 		return; 			\
 	}
 
-#define ZONE_GET_BIN(NAME, VAR) 			\
+#define ZONE_GET_BIN(NAME, VAR, PATTERN) 			\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
-		printf("%s\n", zone->NAME?"yes":"no"); 	\
+		printf("%s\n", (PATTERN->NAME)?"yes":"no"); 	\
 	}
 
 #define SERV_GET_BIN(NAME, VAR) 			\
@@ -106,6 +106,7 @@ usage(void)
 	fprintf(stderr, "-v		Verbose, echo settings that take effect to std output.\n");
 	fprintf(stderr, "-h		Print this help information.\n");
 	fprintf(stderr, "-o option	Print value of the option specified to stdout.\n");
+	fprintf(stderr, "-p pattern	Print option value for the pattern given.\n");
 	fprintf(stderr, "-z zonename	Print option value for the zone given.\n");
 	fprintf(stderr, "-a keyname	Print algorithm name for the TSIG key.\n");
 	fprintf(stderr, "-s keyname	Print base64 secret blob for the TSIG key.\n");
@@ -156,7 +157,7 @@ print_acl(const char* varname, acl_options_t* acl)
 		printf("%s %s\n", acl->ip_address_spec,
 			acl->nokey?"NOKEY":(acl->blocked?"BLOCKED":
 			(acl->key_name?acl->key_name:"(null)")));
-		if(1) {
+		if(verbosity>1) {
 			printf("\t# %s", acl->is_ipv6?"ip6":"ip4");
 			if(acl->port == 0) printf(" noport");
 			else printf(" port=%d", acl->port);
@@ -202,9 +203,9 @@ print_acl_ips(const char* varname, acl_options_t* acl)
 }
 
 void
-config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const char *z)
+config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
+	const char *z, const char* pat)
 {
-	zone_options_t* zone;
 	ip_address_option_t* ip;
 
 	if (k) {
@@ -229,30 +230,53 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 	}
 
 	if (z) {
+		zone_options_t* zone;
 		const dname_type *dname = dname_parse(opt->region, z);
 		if(!dname) {
 			printf("Could not parse zone name %s\n", z);
 			exit(1);
 		}
-		/* look per zone */
-		RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
-		{
-			if (dname_compare(dname, zone->node.key) == 0) {
-				/* -z matches, return are in the defines */
-				ZONE_GET_STR(name, o);
-				ZONE_GET_STR(zonefile, o);
-				ZONE_GET_ACL(request_xfr, o);
-				ZONE_GET_ACL(provide_xfr, o);
-				ZONE_GET_ACL(allow_notify, o);
-				ZONE_GET_ACL(notify, o);
-				ZONE_GET_BIN(notify_retry, o);
-				ZONE_GET_OUTGOING(outgoing_interface, o);
-				ZONE_GET_BIN(allow_axfr_fallback, o);
-				printf("Zone option not handled: %s %s\n", z, o);
-				exit(1);
-			}
+		zone = zone_options_find(opt, dname);
+		if(!zone) {
+			printf("Zone does not exist: %s\n", z);
+			exit(1);
 		}
-		printf("Zone does not exist: %s\n", z);
+		ZONE_GET_STR(name, o, zone);
+		if(strcasecmp("pattern", o)==0) {
+			quote(zone->pattern->pname);
+			return;
+		}
+		ZONE_GET_BIN(part_of_config, o, zone);
+		ZONE_GET_STR(zonefile, o, zone->pattern);
+		ZONE_GET_ACL(request_xfr, o, zone->pattern);
+		ZONE_GET_ACL(provide_xfr, o, zone->pattern);
+		ZONE_GET_ACL(allow_notify, o, zone->pattern);
+		ZONE_GET_ACL(notify, o, zone->pattern);
+		ZONE_GET_BIN(notify_retry, o, zone->pattern);
+		ZONE_GET_OUTGOING(outgoing_interface, o, zone->pattern);
+		ZONE_GET_BIN(allow_axfr_fallback, o, zone->pattern);
+		printf("Zone option not handled: %s %s\n", z, o);
+		exit(1);
+	} else if(pat) {
+		pattern_options_t* p = (pattern_options_t*)rbtree_search(
+			opt->patterns, pat);
+		if(!p) {
+			printf("Pattern does not exist: %s\n", pat);
+			exit(1);
+		}
+		if(strcasecmp("name", o)==0) {
+			quote(p->pname);
+			return;
+		}
+		ZONE_GET_STR(zonefile, o, p);
+		ZONE_GET_ACL(request_xfr, o, p);
+		ZONE_GET_ACL(provide_xfr, o, p);
+		ZONE_GET_ACL(allow_notify, o, p);
+		ZONE_GET_ACL(notify, o, p);
+		ZONE_GET_BIN(notify_retry, o, p);
+		ZONE_GET_OUTGOING(outgoing_interface, o, p);
+		ZONE_GET_BIN(allow_axfr_fallback, o, p);
+		printf("Pattern option not handled: %s %s\n", pat, o);
 		exit(1);
 	} else {
 		/* look in the server section */
@@ -286,13 +310,37 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_INT(verbosity, o);
 
 		if(strcasecmp(o, "zones") == 0) {
+			zone_options_t* zone;
 			RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 				quote(zone->name);
+			return;
+		}
+		if(strcasecmp(o, "patterns") == 0) {
+			pattern_options_t* p;
+			RBTREE_FOR(p, pattern_options_t*, opt->patterns)
+				quote(p->pname);
 			return;
 		}
 		printf("Server option not handled: %s\n", o);
 		exit(1);
 	}
+}
+
+/* print zone content items */
+static void print_zone_content_elems(pattern_options_t* pat)
+{
+	if(pat->zonefile)
+		print_string_var("zonefile:", pat->zonefile);
+	print_acl("allow-notify:", pat->allow_notify);
+	print_acl("request-xfr:", pat->request_xfr);
+	if(!pat->notify_retry_is_default)
+		printf("\tnotify-retry: %d\n", pat->notify_retry);
+	print_acl("notify:", pat->notify);
+	print_acl("provide-xfr:", pat->provide_xfr);
+	print_acl_ips("outgoing-interface:", pat->outgoing_interface);
+	if(!pat->allow_axfr_fallback_is_default)
+		printf("\tallow-axfr-fallback: %s\n",
+			pat->allow_axfr_fallback?"yes":"no");
 }
 
 void
@@ -301,6 +349,7 @@ config_test_print_server(nsd_options_t* opt)
 	ip_address_option_t* ip;
 	key_options_t* key;
 	zone_options_t* zone;
+	pattern_options_t* pat;
 
 	printf("# Config settings.\n");
 	printf("server:\n");
@@ -340,18 +389,20 @@ config_test_print_server(nsd_options_t* opt)
 		print_string_var("algorithm:", key->algorithm);
 		print_string_var("secret:", key->secret);
 	}
+	RBTREE_FOR(pat, pattern_options_t*, opt->patterns)
+	{
+		if(pat->implicit) continue;
+		printf("\npattern:\n");
+		print_string_var("name:", pat->pname);
+		print_zone_content_elems(pat);
+	}
 	RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
 	{
+		if(!zone->part_of_config)
+			continue;
 		printf("\nzone:\n");
 		print_string_var("name:", zone->name);
-		print_string_var("zonefile:", zone->zonefile);
-		print_acl("allow-notify:", zone->allow_notify);
-		print_acl("request-xfr:", zone->request_xfr);
-		printf("\tnotify-retry: %d\n", zone->notify_retry);
-		print_acl("notify:", zone->notify);
-		print_acl("provide-xfr:", zone->provide_xfr);
-		print_acl_ips("outgoing-interface:", zone->outgoing_interface);
-		printf("\tallow-axfr-fallback: %s\n", zone->allow_axfr_fallback?"yes":"no");
+		print_zone_content_elems(zone->pattern);
 	}
 
 }
@@ -380,7 +431,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 			fprintf(stderr, "%s: cannot parse zone name syntax for zone %s.\n", filename, zone->name);
 			errors ++;
 		}
-		if(zone->allow_notify && !zone->request_xfr) {
+		if(zone->pattern->allow_notify && !zone->pattern->request_xfr) {
 			fprintf(stderr, "%s: zone %s has allow-notify but no request-xfr"
 				" items. Where can it get a zone transfer when a notify "
 				"is received?\n", filename, zone->name);
@@ -482,6 +533,7 @@ main(int argc, char* argv[])
 	const char * conf_opt = NULL; /* what option do you want? Can be NULL -> print all */
 	const char * conf_zone = NULL; /* what zone are we talking about */
 	const char * conf_key = NULL; /* what key is needed */
+	const char * conf_pat = NULL; /* what pattern is talked about */
 	const char* configfile;
 	nsd_options_t *options;
 
@@ -489,13 +541,17 @@ main(int argc, char* argv[])
 
 
         /* Parse the command line... */
-        while ((c = getopt(argc, argv, "vo:a:s:z:")) != -1) {
+        while ((c = getopt(argc, argv, "vo:a:p:s:z:")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose = 1;
+			verbosity++;
 			break;
 		case 'o':
 			conf_opt = optarg;
+			break;
+		case 'p':
+			conf_pat = optarg;
 			break;
 		case 'a':
 			if (conf_key) {
@@ -533,11 +589,14 @@ main(int argc, char* argv[])
 		exit(2);
 	}
 	if (conf_opt || conf_key) {
-		config_print_zone(options, conf_key, key_sec, underscore(conf_opt), conf_zone);
+		config_print_zone(options, conf_key, key_sec,
+			underscore(conf_opt), conf_zone, conf_pat);
 	} else {
 		if (verbose) {
-			printf("# Read file %s: %d zones, %d keys.\n",
+			printf("# Read file %s: %d patterns, %d fixed-zones, "
+				"%d keys.\n",
 				configfile,
+				(int)options->patterns->count,
 				(int)nsd_options_num_zones(options),
 				(int)options->numkeys);
 			config_test_print_server(options);

@@ -260,9 +260,8 @@ xfrd_tcp_open(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	to_len = xfrd_acl_sockaddr_to(zone->master, &to);
 
 	/* bind it */
-	if (!xfrd_bind_local_interface(fd,
-		zone->zone_options->outgoing_interface, zone->master, 1)) {
-
+	if (!xfrd_bind_local_interface(fd, zone->zone_options->pattern->
+		outgoing_interface, zone->master, 1)) {
 		xfrd_set_refresh_now(zone);
 		xfrd_tcp_release(set, zone);
 		return 0;

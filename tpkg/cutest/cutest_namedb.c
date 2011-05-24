@@ -75,8 +75,10 @@ create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 	zone = zone_options_create(region);
 	memset(zone, 0, sizeof(*zone));
 	zone->name = region_strdup(region, zonename);
-	zone->zonefile = region_strdup(region, zonefile);
-	zone->request_xfr = (void*)-1; /* dummy value to make zonec not error*/
+	zone->pattern = pattern_options_create(region);
+	zone->pattern->pname = zone->name;
+	zone->pattern->zonefile = region_strdup(region, zonefile);
+	zone->pattern->request_xfr = (void*)-1; /* dummy value to make zonec not error*/
 	if(!nsd_options_insert_zone(opt, zone)) {
 		CuAssertTrue(tc, 0);
 	}

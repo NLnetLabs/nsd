@@ -435,14 +435,16 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 	time_t mtime = 0;
 	int nonexist = 0;
 	unsigned int errors;
+	const char* fname;
 	if(!db || !zone || !zone->opts) return;
-	if(!file_get_mtime(zone->opts->zonefile, &mtime, &nonexist)) {
+	fname = config_make_zonefile(zone->opts);
+	if(!file_get_mtime(fname, &mtime, &nonexist)) {
 		if(nonexist) {
 			VERBOSITY(2, (LOG_INFO, "zonefile %s does not exist",
-				zone->opts->zonefile));
+				fname));
 		} else
 			log_msg(LOG_ERR, "zonefile %s: %s",
-				zone->opts->zonefile, strerror(errno));
+				fname, strerror(errno));
 		return;
 	} else {
 		/* check the mtime */
@@ -450,7 +452,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 			zone->apex)), domain_dname(zone->apex)->name_size)
 			>= (uint64_t)mtime) {
 			VERBOSITY(3, (LOG_INFO, "zonefile %s is not modified",
-				zone->opts->zonefile));
+				fname));
 			return;
 		}
 	}
@@ -463,12 +465,12 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 	nsec3_clear_precompile(db, zone);
 	zone->nsec3_param = NULL;
 #endif /* NSEC3 */
-	errors = zonec_read(zone->opts->name, zone->opts->zonefile, zone);
+	errors = zonec_read(zone->opts->name, fname, zone);
 	if(errors > 0) {
 		region_type* dname_region;
 		udb_ptr z;
 		log_msg(LOG_ERR, "zone %s file %s read with %u errors",
-			zone->opts->name, zone->opts->zonefile, errors);
+			zone->opts->name, fname, errors);
 		/* wipe (partial) zone from memory */
 		zone->is_ok = 0;
 		delete_zone_rrs(db, zone);

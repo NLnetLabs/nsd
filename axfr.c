@@ -167,7 +167,7 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			zone_options_t* zone_opt;
 			zone_opt = zone_options_find(nsd->options, q->qname);
 			if(!zone_opt ||
-			   acl_check_incoming(zone_opt->provide_xfr, q, &acl)==-1)
+			   acl_check_incoming(zone_opt->pattern->provide_xfr, q, &acl)==-1)
 			{
 				if (verbosity > 0) {
 					char address[128];

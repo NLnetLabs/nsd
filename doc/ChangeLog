@@ -1,3 +1,9 @@
+24 May 2011: Wouter
+	- implemented patterns in the nsd.conf file.
+	  they can be instantiated with include-pattern: x.
+	  existing zone definitions keep working (backwards compatible), such
+	  zones really have an implicit pattern and cannot_delete flag set.
+
 20 May 2011: Wouter
 	- from NSD_3_2 branch the fix: bug if the zonefile is changed for a
 	secondary but stored transfers are applied, and stop ixfr to empty.

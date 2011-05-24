@@ -462,11 +462,11 @@ xfrd_make_request(xfrd_zone_t* zone)
 			"xfrd zone %s use master %i",
 			zone->apex_str, zone->next_master));
 		zone->master_num = zone->next_master;
-		zone->master = acl_find_num(
-			zone->zone_options->request_xfr, zone->master_num);
+		zone->master = acl_find_num(zone->zone_options->pattern->
+			request_xfr, zone->master_num);
 		/* if there is no next master, fallback to use the first one */
 		if(!zone->master) {
-			zone->master = zone->zone_options->request_xfr;
+			zone->master = zone->zone_options->pattern->request_xfr;
 			zone->master_num = 0;
 		}
 		/* fallback to cycle master */
@@ -482,7 +482,7 @@ xfrd_make_request(xfrd_zone_t* zone)
 			zone->master_num++;
 		} else {
 			/* start a new round */
-			zone->master = zone->zone_options->request_xfr;
+			zone->master = zone->zone_options->pattern->request_xfr;
 			zone->master_num = 0;
 			zone->round_num++;
 		}
@@ -527,7 +527,7 @@ xfrd_make_request(xfrd_zone_t* zone)
 		xfrd_tcp_obtain(xfrd->tcp_set, zone);
 	}
 	else if (zone->master->ixfr_disabled) {
-		if (zone->zone_options->allow_axfr_fallback) {
+		if (zone->zone_options->pattern->allow_axfr_fallback) {
 			xfrd_set_timer(zone, xfrd_time() + xfrd->tcp_set->tcp_timeout);
 			xfrd_tcp_obtain(xfrd->tcp_set, zone);
 		}
@@ -1017,7 +1017,7 @@ xfrd_send_ixfr_request_udp(xfrd_zone_t* zone)
 	xfrd_set_timer(zone, xfrd_time() + XFRD_UDP_TIMEOUT);
 
 	if((fd = xfrd_send_udp(zone->master, xfrd->packet,
-		zone->zone_options->outgoing_interface)) == -1)
+		zone->zone_options->pattern->outgoing_interface)) == -1)
 		return -1;
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO,
@@ -1623,10 +1623,10 @@ xfrd_handle_incoming_notify(xfrd_zone_t* zone, xfrd_soa_t* soa)
 static int
 find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy)
 {
-	acl_options_t* nfy_acl = acl_find_num(
-		zone->zone_options->allow_notify, acl_num_nfy);
+	acl_options_t* nfy_acl = acl_find_num(zone->zone_options->pattern->
+		allow_notify, acl_num_nfy);
 	int num = 0;
-	acl_options_t* master = zone->zone_options->request_xfr;
+	acl_options_t* master = zone->zone_options->pattern->request_xfr;
 	if(!nfy_acl)
 		return -1;
 	while(master)

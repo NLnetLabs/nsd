@@ -14,6 +14,8 @@
 .IR option ]
 .RB [ \-z
 .IR zonename ]
+.RB [ \-p
+.IR pattern ]
 .RB [ \-s
 .IR keyname ]
 .I configfile
@@ -42,10 +44,15 @@ Print usage help information and exit.
 Return only this option from the config file. This option can
 to be used in conjunction with the 
 .B \-z
-option.
+and the
+.B \-p
+option, or without them to query the server: section.
 The special value 
 .I zones
 prints out a list of configured zones.
+The special value
+.I patterns
+prints out a list of configured patterns.
 .P
 .RS
 This option is primarily used by 
@@ -60,6 +67,11 @@ option is not given, nothing is printed.
 .B \-s\fI keyname
 Prints the key secret (base64 blob) configured for this key in the 
 config file. Used to help shell scripts parse the config file.
+.TP
+.B \-p\fI pattern
+Return the option specified with 
+.B \-o
+for the given pattern name.
 .TP
 .B \-z\fI zonename
 Return the option specified with 
