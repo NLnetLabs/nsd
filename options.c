@@ -786,10 +786,14 @@ void config_apply_pattern(const char* name)
 	if(pat->zonefile)
 		a->zonefile = region_strdup(cfg_parser->opt->region,
 			pat->zonefile);
-	if(!pat->allow_axfr_fallback_is_default)
+	if(!pat->allow_axfr_fallback_is_default) {
 		a->allow_axfr_fallback = pat->allow_axfr_fallback;
-	if(!pat->notify_retry_is_default)
+		a->allow_axfr_fallback_is_default = 0;
+	}
+	if(!pat->notify_retry_is_default) {
 		a->notify_retry = pat->notify_retry;
+		a->notify_retry_is_default = 0;
+	}
 	/* append acl items */
 	append_acl(&a->allow_notify, &cfg_parser->current_allow_notify,
 		pat->allow_notify);
