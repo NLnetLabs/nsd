@@ -143,6 +143,7 @@ xfrd_init(int socket, struct nsd* nsd)
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
 	diff_snip_garbage(nsd->db, nsd->options);
+	/* TODO read zonelist, and add zones that it has added */
 	xfrd_init_zones();
 	xfrd_free_namedb();
 	xfrd_read_state(xfrd);

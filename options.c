@@ -345,6 +345,8 @@ void zone_list_compact(nsd_options_t* opt)
 /* close zonelist file */
 void zone_list_close(nsd_options_t* opt)
 {
+	fclose(opt->zonelist);
+	opt->zonelist = NULL;
 }
 
 
