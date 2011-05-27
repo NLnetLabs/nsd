@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include "ipc.h"
 #include "buffer.h"
 #include "xfrd-tcp.h"
@@ -837,3 +838,59 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 	}
 }
 
+/* read ipc conn blocking */
+static void
+block_conn_read(xfrd_tcp_t* conn)
+{
+	int r;
+	r = block_read(NULL, conn->fd, &conn->msglen, sizeof(conn->msglen), -1);
+	if(r == 0) {
+		log_msg(LOG_ERR, "xfrd: main closed pipe");
+		exit(0); /* closed pipe */
+	} else if(r == -1) {
+		log_msg(LOG_ERR, "xfrd: pipe error: %s", strerror(errno));
+		return; /* errors */
+	}
+	conn->msglen = ntohs(conn->msglen);
+	buffer_set_limit(conn->packet, conn->msglen);
+	r = block_read(NULL, conn->fd, buffer_current(conn->packet),
+		buffer_remaining(conn->packet), -1);
+	if(r == 0) {
+		log_msg(LOG_ERR, "xfrd: main closed pipe");
+		exit(0); /* closed pipe */
+	} else if(r == -1) {
+		log_msg(LOG_ERR, "xfrd: pipe error: %s", strerror(errno));
+		return;
+	}
+	buffer_skip(conn->packet, r);
+}
+
+void xfrd_receive_soa(int fd)
+{
+	sig_atomic_t cmd;
+	ssize_t r;
+	while(1) {
+		if((r=read(fd, &cmd, sizeof(cmd))) != sizeof(cmd)) {
+			if(errno == EINTR || errno==EAGAIN)
+				continue;
+			if(r == 0) /* pipe closed */
+				exit(0);
+			log_msg(LOG_ERR, "xfrd recvsoa pipe: %s",
+				strerror(errno));
+			break;
+		}
+		if(cmd == NSD_SOA_BEGIN)
+			continue;
+		else if(cmd == NSD_SOA_END)
+			break;
+		else if(cmd != NSD_SOA_INFO)
+			continue;
+		xfrd->ipc_conn->total_bytes = 0;
+		xfrd->ipc_conn->msglen = 0;
+		buffer_clear(xfrd->ipc_conn->packet);
+		block_conn_read(xfrd->ipc_conn);
+		buffer_flip(xfrd->ipc_conn->packet);
+		xfrd->ipc_conn->is_reading = 0;
+		xfrd_handle_ipc_SOAINFO(xfrd, xfrd->ipc_conn->packet);
+	}
+}

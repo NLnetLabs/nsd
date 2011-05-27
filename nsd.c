@@ -1049,11 +1049,20 @@ main(int argc, char *argv[])
 	}
 #endif /* HAVE_GETPWNAM */
 
+	if(nsd.server_kind == NSD_SERVER_MAIN) {
+		server_prepare_xfrd(&nsd);
+		/* fork xfrd before reading database, so it does not get
+		 * the memory size of the database */
+		server_start_xfrd(&nsd, 0);
+	}
 	if (server_prepare(&nsd) != 0) {
 		log_msg(LOG_ERR, "server preparation failed, %s could "
 			"not be started", argv0);
 		unlinkpid(nsd.pidfile);
 		exit(1);
+	}
+	if(nsd.server_kind == NSD_SERVER_MAIN) {
+		server_send_soa_xfrd(&nsd, 1);
 	}
 
 	/* Really take off */

@@ -203,7 +203,7 @@ extern xfrd_state_t* xfrd;
 void xfrd_init(int socket, struct nsd* nsd);
 
 /* get the current time epoch. Cached for speed. */
-time_t xfrd_time();
+time_t xfrd_time(void);
 
 /*
  * Handle final received packet from network.
@@ -247,7 +247,7 @@ void xfrd_udp_release(xfrd_zone_t* zone);
 /*
  * Get a static buffer for temporary use (to build a packet).
  */
-struct buffer* xfrd_get_temp_buffer();
+struct buffer* xfrd_get_temp_buffer(void);
 
 /*
  * TSIG sign outgoing request. Call if acl has a key.
@@ -265,23 +265,26 @@ void xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa,
 void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 
 /* send expiry notify for all zones to nsd (sets all dirty). */
-void xfrd_send_expy_all_zones();
+void xfrd_send_expy_all_zones(void);
 
 /* try to reopen the logfile. */
-void xfrd_reopen_logfile();
+void xfrd_reopen_logfile(void);
+
+/* free namedb for xfrd usage */
+void xfrd_free_namedb(void);
 
 /* copy SOA info from rr to soa struct. */
 void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);
 
 /* check for failed updates - it is assumed that now the reload has
    finished, and all zone SOAs have been sent. */
-void xfrd_check_failed_updates();
+void xfrd_check_failed_updates(void);
 
 /*
  * Prepare zones for a reload, this sets the times on the zones to be
  * before the current time, so the reload happens after.
  */
-void xfrd_prepare_zones_for_reload();
+void xfrd_prepare_zones_for_reload(void);
 
 /* Bind a local interface to a socket descriptor, return 1 on success */
 int xfrd_bind_local_interface(int sockd, acl_options_t* ifc,

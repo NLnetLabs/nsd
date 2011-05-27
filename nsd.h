@@ -156,6 +156,9 @@ struct	nsd
 	/* NULL if this is the parent process. */
 	struct nsd_child *this_child;
 
+	struct netio_handler* xfrd_listener;
+	pid_t xfrd_pid;
+
 	/* Configuration */
 	const char		*dbfile;
 	const char		*pidfile;
@@ -225,5 +228,12 @@ void server_main(struct nsd *nsd);
 void server_child(struct nsd *nsd);
 /* extra domain numbers for temporary domains */
 #define EXTRA_DOMAIN_NUMBERS 1024
+/* allocate and init xfrd variables */
+void server_prepare_xfrd(struct nsd *nsd);
+/* start xfrdaemon (again) */
+void server_start_xfrd(struct nsd *nsd, int del_db);
+/* send SOA serial numbers to xfrd */
+void server_send_soa_xfrd(struct nsd *nsd, int send_all);
+ssize_t block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout);
 
 #endif	/* _NSD_H_ */

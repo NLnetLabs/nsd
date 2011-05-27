@@ -1659,7 +1659,7 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 		return;
 	}
 	/* and skip into file, since nsd does not read anything before the pos */
-	if(db->diff_skip) {
+	if(db && db->diff_skip) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "garbage collect skip diff file"));
 		if(fseeko(df, db->diff_pos, SEEK_SET)==-1) {
 			log_msg(LOG_INFO, "could not fseeko file %s: %s.",

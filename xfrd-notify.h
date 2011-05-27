@@ -51,8 +51,7 @@ struct notify_zone_t {
 
 /* initialise outgoing notifies */
 void init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
-        const dname_type* apex, struct zone_options* options,
-	struct zone* dbzone);
+        const dname_type* apex, struct zone_options* options);
 
 /* send notifications to all in the notify list */
 void xfrd_send_notify(rbtree_t* tree, const struct dname* apex,

@@ -73,7 +73,7 @@ notify_disable(struct notify_zone_t* zone)
 
 void
 init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
-	const dname_type* apex, zone_options_t* options, zone_type* dbzone)
+	const dname_type* apex, zone_options_t* options)
 {
 	struct notify_zone_t* not = (struct notify_zone_t*)
 		region_alloc(region, sizeof(struct notify_zone_t));
@@ -87,9 +87,6 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 	not->current_soa = (struct xfrd_soa*)region_alloc(region,
 		sizeof(struct xfrd_soa));
 	memset(not->current_soa, 0, sizeof(struct xfrd_soa));
-	if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
-		xfrd_copy_soa(not->current_soa,	dbzone->soa_rrset->rrs);
-	}
 
 	not->is_waiting = 0;
 	not->notify_send_handler.fd = -1;

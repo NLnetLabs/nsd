@@ -46,8 +46,6 @@ static void xfrd_main();
 static void xfrd_shutdown();
 /* create zone rbtree at start */
 static void xfrd_init_zones();
-/* free up memory used by main database */
-static void xfrd_free_namedb();
 
 /* handle zone timeout, event */
 static void xfrd_handle_zone(netio_type *netio,
@@ -142,10 +140,9 @@ xfrd_init(int socket, struct nsd* nsd)
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
-	diff_snip_garbage(nsd->db, nsd->options);
 	/* TODO read zonelist, and add zones that it has added */
 	xfrd_init_zones();
-	xfrd_free_namedb();
+	xfrd_receive_soa(socket);
 	xfrd_read_state(xfrd);
 	xfrd_send_expy_all_zones();
 
@@ -214,13 +211,11 @@ xfrd_shutdown()
 static void
 xfrd_init_zones()
 {
-	zone_type *dbzone;
 	zone_options_t *zone_opt;
 	xfrd_zone_t *xzone;
 	const dname_type* dname;
 
 	assert(xfrd->zones == 0);
-	assert(xfrd->nsd->db != 0);
 
 	xfrd->zones = rbtree_create(xfrd->region,
 		(int (*)(const void *, const void *)) dname_compare);
@@ -236,16 +231,15 @@ xfrd_init_zones()
 			continue;
 		}
 
-		dbzone = domain_find_zone(domain_table_find(xfrd->nsd->db->domains, dname));
-		if(dbzone && dname_compare(dname, domain_dname(dbzone->apex)) != 0)
-			dbzone = 0; /* we found a parent zone */
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: adding %s zone %s\n",
-			dbzone?"filled":"empty", zone_opt->name));
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: adding %s zone",
+			zone_opt->name));
 
 		init_notify_send(xfrd->notify_zones, xfrd->netio,
-			xfrd->region, dname, zone_opt, dbzone);
+			xfrd->region, dname, zone_opt);
 		if(!zone_is_slave(zone_opt)) {
-			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s, master zone has no outgoing xfr requests", zone_opt->name));
+			DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s, "
+				"master zone has no outgoing xfr requests",
+				zone_opt->name));
 			continue;
 		}
 
@@ -286,20 +280,14 @@ xfrd_init_zones()
 
 		tsig_create_record_custom(&xzone->tsig, xfrd->region, 0, 0, 4);
 
-		if(dbzone && dbzone->soa_rrset && dbzone->soa_rrset->rrs) {
-			xzone->soa_nsd_acquired = xfrd_time();
-			xzone->soa_disk_acquired = xfrd_time();
-			/* we only use the first SOA in the rrset */
-			xfrd_copy_soa(&xzone->soa_nsd, dbzone->soa_rrset->rrs);
-			xfrd_copy_soa(&xzone->soa_disk, dbzone->soa_rrset->rrs);
-		}
-		/* set refreshing anyway, we have data but it may be old */
+		/* set refreshing anyway, if we have data it may be old */
 		xfrd_set_refresh_now(xzone);
 
 		xzone->node.key = dname;
 		rbtree_insert(xfrd->zones, (rbnode_t*)xzone);
 	}
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: started server %d secondary zones", (int)xfrd->zones->count));
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: started server %d "
+		"secondary zones", (int)xfrd->zones->count));
 }
 
 void
@@ -319,7 +307,7 @@ xfrd_reopen_logfile()
 		log_reopen(xfrd->nsd->log_filename, 0);
 }
 
-static void
+void
 xfrd_free_namedb()
 {
 	namedb_close_udb(xfrd->nsd->db);
