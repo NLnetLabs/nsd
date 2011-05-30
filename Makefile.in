@@ -31,6 +31,10 @@ user = @user@
 spriority = @start_priority@
 kpriority = @kill_priority@
 
+# override $U variable which is used by autotools for deansification (for
+# K&R C compilers), but causes problems if $U is defined in the env).
+U=
+
 CC		= @CC@
 CPPFLAGS	= @CPPFLAGS@
 CFLAGS		= @CFLAGS@

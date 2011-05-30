@@ -1,3 +1,7 @@
+30 May 2011: Wouter
+	- Fix Makefile for U in environment, since wrong U is more common than
+	  deansification necessity.
+
 27 May 2011: Wouter
 	- xfrd is forked before the database is read in, thus it does not
 	  consume the memory of the database.  It can be reforked on a crash,
