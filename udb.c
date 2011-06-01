@@ -229,7 +229,7 @@ udb_base* udb_base_create_new(const char* fname, udb_walk_relptr_func walkfunc,
 	udb_alloc_d a;
 	uint64_t endsize = UDB_HEADER_SIZE;
 	uint64_t endexp = 0;
-	int fd = open(fname, O_CREAT|O_RDWR, 0666);
+	int fd = open(fname, O_CREAT|O_RDWR, 0600);
 	if(fd == -1) {
 		log_msg(LOG_ERR, "%s: %s", fname, strerror(errno));
 		return NULL;

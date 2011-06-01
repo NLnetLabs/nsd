@@ -745,8 +745,6 @@ server_send_soa_xfrd(struct nsd* nsd)
 		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
-
-	namedb_wipe_updated_flag(nsd->db);
 }
 
 /* pass timeout=-1 for blocking. Returns size, 0, -1(err), or -2(timeout) */

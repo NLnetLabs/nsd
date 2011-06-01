@@ -119,7 +119,6 @@ struct zone
 	struct zone_options *opts;
 	uint8_t*     dirty; /* array of dirty-flags, per child */
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
-	unsigned     updated : 1; /* zone SOA was updated */
 	unsigned     is_ok : 1; /* zone has not expired. */
 };
 
@@ -318,8 +317,6 @@ rdata_atom_data(rdata_atom_type atom)
 
 /* Find the zone for the specified dname in DB. */
 zone_type *namedb_find_zone(namedb_type *db, const dname_type *dname);
-/* set all zones to not-updated */
-void namedb_wipe_updated_flag(namedb_type *db);
 
 /** dbcreate.c */
 int udb_write_rr(struct udb_base* udb, struct udb_ptr* z, rr_type* rr);

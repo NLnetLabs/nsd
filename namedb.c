@@ -599,14 +599,6 @@ namedb_find_zone(namedb_type *db, const dname_type *dname)
 	return NULL;
 }
 
-void namedb_wipe_updated_flag(namedb_type *db)
-{
-	struct radnode* n;
-        for(n=radix_first(db->zonetree); n; n=radix_next(n)) {
-                ((zone_type*)n->elem)->updated = 0;
-        }
-}
-
 rrset_type *
 domain_find_non_cname_rrset(domain_type *domain, zone_type *zone)
 {

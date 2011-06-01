@@ -9,7 +9,6 @@
 .B nsd\-patch
 .RB [ \-c
 .IR configfile ]
-.RB [ \-f ]
 .RB [ \-h ]
 .RB [ \-l ]
 .RB [ \-o
@@ -29,10 +28,6 @@ difffile does not grow infinitely.
 .B \-c\fI configfile
 Read specified configfile instead of the default
 .IR @nsdconfigfile@ .
-.TP
-.B \-f
-Forces writing zone files. Also zones that have not changed are written
-back to their zone files.
 .TP
 .B \-h
 Print usage help information and exit.

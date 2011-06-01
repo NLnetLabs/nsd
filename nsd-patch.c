@@ -27,7 +27,6 @@ usage(void)
 	fprintf(stderr, "       Reads database and ixfrs and patches up zone files.\n");
 	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "-c configfile	Specify config file to use, instead of %s\n", CONFIGFILE);
-	fprintf(stderr, "-f		Force writing of zone files.\n");
 	fprintf(stderr, "-h		Print this help information.\n");
 	fprintf(stderr, "-l		List contents of transfer journal difffile, %s\n", DIFFFILE);
 	fprintf(stderr, "-s		Skip writing of zone files.\n");
@@ -277,12 +276,11 @@ int main(int argc, char* argv[])
 	struct diff_log* commit_log = 0;
 	size_t fake_child_count = 1;
 	int debug_list_diff = 0;
-	int force_write = 0;
 	int skip_write = 0;
 	int difffile_exists = 0;
 
         /* Parse the command line... */
-	while ((c = getopt(argc, argv, "c:fhlsx:")) != -1) {
+	while ((c = getopt(argc, argv, "c:hlsx:")) != -1) {
 	switch (c) {
 		case 'c':
 			configfile = optarg;
@@ -290,25 +288,8 @@ int main(int argc, char* argv[])
 		case 'l':
 			debug_list_diff = 1;
 			break;
-		case 'f':
-			if (skip_write)
-			{
-				fprintf(stderr, "Cannot force and skip writing "
-						"zonefiles at the same time\n");
-				exit(1);
-			}
-			else
-				force_write = 1;
-			break;
 		case 's':
-			if (force_write)
-			{
-				fprintf(stderr, "Cannot skip and force writing "
-						"zonefiles at the same time\n");
-				exit(1);
-			}
-			else
-				skip_write = 1;
+			skip_write = 1;
 			break;
 		case 'x':
 			difffile = optarg;
@@ -345,8 +326,6 @@ int main(int argc, char* argv[])
 	/* see if necessary */
 	if(!exist_difffile(options)) {
 		fprintf(stderr, "No diff file.\n");
-		if (!force_write)
-			exit(0);
 	}
 	else	difffile_exists = 1;
 
@@ -363,9 +342,6 @@ int main(int argc, char* argv[])
 			options->database);
 		exit(1);
 	}
-
-	/* set all updated to 0 so we know what has changed */
-	namedb_wipe_updated_flag(db);
 
 	/* read ixfr diff file */
 	if (difffile_exists) {
@@ -386,11 +362,6 @@ int main(int argc, char* argv[])
 		fprintf(stdout, "writing changed zones\n");
 		for(n=radix_first(db->zonetree); n; n=radix_next(n)) {
 			zone = (zone_type*)n->elem;
-			if(!force_write && !zone->updated) {
-				fprintf(stdout, "zone %s had not changed.\n",
-					zone->opts->name);
-				continue;
-			}
 			/* write zone to its zone file */
 			write_to_zonefile(zone, commit_log);
 		}

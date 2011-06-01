@@ -261,7 +261,6 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 #endif
 	zone->opts = zo;
 	zone->is_secure = 0;
-	zone->updated = 1;
 	zone->is_ok = 1;
 	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*num_children);
 	memset(zone->dirty, 0, sizeof(uint8_t)*num_children);
@@ -460,7 +459,6 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 	}
 
 	assert(parser);
-	zone->updated = 1;
 	/* wipe zone from memory */
 	delete_zone_rrs(db, zone);
 #ifdef NSEC3

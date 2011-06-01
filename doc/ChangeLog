@@ -4,6 +4,9 @@
 	  workflow. This can process about 4500 zones per second (this was
 	  with lots of debug prints per zone, in debug compile). The mmaps
 	  are file-backed with /tmp/ files.  They are removed on a clean exit.
+	- nsd.db and tmp mmaps are created with mode 0600 for safety.
+	- updated flag removed, nsd-patch always in -f force mode (-f removed)
+	  and writes all zones always. Its role is taken over by task results.
 
 30 May 2011: Wouter
 	- Fix Makefile for U in environment, since wrong U is more common than

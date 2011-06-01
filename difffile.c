@@ -242,7 +242,6 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	/* is this a SOA rrset ? */
 	if(rrset->zone->soa_rrset == rrset) {
 		rrset->zone->soa_rrset = 0;
-		rrset->zone->updated = 1;
 	}
 	if(rrset->zone->ns_rrset == rrset) {
 		rrset->zone->ns_rrset = 0;
@@ -751,7 +750,6 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 {
 	rrset_type *rrset;
 	domain_type *domain = zone->apex, *next;
-	zone->updated = 1;
 	/* go through entire tree below the zone apex (incl subzones) */
 	while(domain && domain_is_subdomain(domain, zone->apex))
 	{
@@ -783,7 +781,6 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 	/* keep zone->soa_nx_rrset alloced: it is reused */
 	assert(zone->ns_rrset == 0);
 	assert(zone->is_secure == 0);
-	assert(zone->updated == 1);
 }
 
 /* return value 0: syntaxerror,badIXFR, 1:OK, 2:done_and_skip_it */
@@ -873,7 +870,6 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		return 0;
 	}
 	*zone_res = zone_db;
-	zone_db->updated = 1;
 
 	if(msglen > QIOBUFSZ) {
 		log_msg(LOG_ERR, "msg too long");
