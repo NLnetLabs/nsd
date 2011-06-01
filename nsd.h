@@ -16,6 +16,7 @@
 #include "edns.h"
 struct netio_handler;
 struct nsd_options;
+struct udb_base;
 
 /* The NSD runtime states and NSD ipc command values */
 #define	NSD_RUN	0
@@ -24,11 +25,6 @@ struct nsd_options;
 #define	NSD_STATS 3
 #define	NSD_REAP_CHILDREN 4
 #define	NSD_QUIT 5
-/*
- * NSD_SOA_INFO is followed by u16(len in network byte order), dname,
- * and then nothing (no info) or soa info.
- */
-#define NSD_SOA_INFO 6
 /*
  * PASS_TO_XFRD is followed by the u16(len in network order) and
  * then network packet contents.  packet is a notify(acl checked), or
@@ -42,15 +38,15 @@ struct nsd_options;
  */
 #define NSD_ZONE_STATE 8
 /*
- * SOA BEGIN is sent at the start of a reload SOA_INFO pass
- * xfrd will not send to the parent (deadlock prevention).
+ * RELOAD_REQ is sent when parent receives a SIGHUP and tells
+ * xfrd that it wants to initiate a reload (and thus task swap).
  */
-#define NSD_SOA_BEGIN 9
+#define NSD_RELOAD_REQ 9
 /*
- * SOA END is sent at the end of a reload SOA_INFO pass.
+ * RELOAD_DONE is sent at the end of a reload pass.
  * xfrd then knows that reload phase is over.
  */
-#define NSD_SOA_END 10
+#define NSD_RELOAD_DONE 10
 /*
  * QUIT_SYNC is sent to signify a synchronisation of ipc
  * channel content during reload
@@ -156,6 +152,9 @@ struct	nsd
 	/* NULL if this is the parent process. */
 	struct nsd_child *this_child;
 
+	/* mmaps with data exchange from xfrd and reload */
+	struct udb_base* task[2];
+	int mytask; /* the base used by this process */
 	struct netio_handler* xfrd_listener;
 	pid_t xfrd_pid;
 
@@ -233,7 +232,7 @@ void server_prepare_xfrd(struct nsd *nsd);
 /* start xfrdaemon (again) */
 void server_start_xfrd(struct nsd *nsd, int del_db);
 /* send SOA serial numbers to xfrd */
-void server_send_soa_xfrd(struct nsd *nsd, int send_all);
+void server_send_soa_xfrd(struct nsd *nsd);
 ssize_t block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout);
 
 #endif	/* _NSD_H_ */

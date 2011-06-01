@@ -528,10 +528,14 @@ server_prepare(struct nsd *nsd)
 		return -1;
 	}
 	/* check if zone files have been modified */
-	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count);
+	/* NULL for taskudb because we send soainfo in a moment, batched up,
+	 * for all zones */
+	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count,
+		NULL, NULL);
 
 	/* Read diff file */
-	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
+	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count,
+		NULL, NULL)) {
 		log_msg(LOG_ERR, "The diff file contains errors. Will continue "
 						 "without it");
 	}
@@ -621,6 +625,18 @@ server_shutdown(struct nsd *nsd)
 void
 server_prepare_xfrd(struct nsd* nsd)
 {
+	char tmpfile[256];
+	/* create task mmaps */
+	nsd->mytask = 0;
+	snprintf(tmpfile, sizeof(tmpfile), "/tmp/nsd.%u.task.0",
+		(unsigned)getpid());
+	nsd->task[0] = task_file_create(tmpfile);
+	snprintf(tmpfile, sizeof(tmpfile), "/tmp/nsd.%u.task.1",
+		(unsigned)getpid());
+	nsd->task[1] = task_file_create(tmpfile);
+	assert(udb_base_get_userdata(nsd->task[0])->data == 0);
+	assert(udb_base_get_userdata(nsd->task[1])->data == 0);
+	/* create xfrd listener structure */
 	nsd->xfrd_pid = -1;
 	nsd->xfrd_listener = region_alloc(nsd->region,
 		sizeof(netio_handler_type));
@@ -659,6 +675,9 @@ server_start_xfrd(struct nsd *nsd, int del_db)
 		/* CHILD: close first socket, use second one */
 		close(sockets[0]);
 		if(del_db) xfrd_free_namedb();
+		/* use other task than I am using, since if xfrd died and is
+		 * restarted, the reload is using nsd->mytask */
+		nsd->mytask = 1 - nsd->mytask;
 		xfrd_init(sockets[1], nsd);
 		/* ENOTREACH */
 		break;
@@ -679,78 +698,54 @@ server_start_xfrd(struct nsd *nsd, int del_db)
 }
 
 void
-server_send_soa_xfrd(struct nsd* nsd, int send_all)
+server_send_soa_xfrd(struct nsd* nsd)
 {
-	sig_atomic_t cmd = NSD_SOA_BEGIN;
+	sig_atomic_t cmd = 0;
 	int xfrd_sock = nsd->xfrd_listener->fd;
 	struct radnode* n;
-	zone_type* zone;
-	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
-		log_msg(LOG_ERR, "problems sending soa begin from reload %d to xfrd: %s",
-			(int)nsd->pid, strerror(errno));
-	}
+	struct udb_base* taskudb = nsd->task[nsd->mytask];
+	udb_ptr task_last; /* last task, mytask is empty so NULL */
+	udb_ptr t;
+	/* add all SOA INFO to mytask */
+	udb_ptr_init(&task_last, taskudb);
 	for(n=radix_first(nsd->db->zonetree); n; n=radix_next(n)) {
-		uint16_t sz;
-		const dname_type *dname_ns=0, *dname_em=0;
-		zone = (zone_type*)n->elem;
-		if(zone->updated == 0 && !send_all)
-			continue;
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "nsd: sending soa info for zone %s",
-			domain_to_string(zone->apex)));
-		cmd = NSD_SOA_INFO;
-		sz = dname_total_size(domain_dname(zone->apex));
-		if(zone->soa_rrset) {
-			dname_ns = domain_dname(
-				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[0]));
-			dname_em = domain_dname(
-				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[1]));
-			sz += sizeof(uint32_t)*6 + sizeof(uint8_t)*2
-				+ dname_ns->name_size + dname_em->name_size;
-		}
-		sz = htons(sz);
-		/* use blocking writes */
-		if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd)) ||
-			!write_socket(xfrd_sock, &sz, sizeof(sz)) ||
-			!write_socket(xfrd_sock, domain_dname(zone->apex),
-				dname_total_size(domain_dname(zone->apex))))
-		{
-			log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
-				(int)nsd->pid, strerror(errno));
-		}
-		if(zone->soa_rrset) {
-			uint32_t ttl = htonl(zone->soa_rrset->rrs[0].ttl);
-			assert(dname_ns && dname_em);
-			assert(zone->soa_rrset->rr_count > 0);
-			assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
-			assert(zone->soa_rrset->rrs[0].rdata_count == 7);
-			if(!write_socket(xfrd_sock, &ttl, sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, &dname_ns->name_size, sizeof(uint8_t))
-			   || !write_socket(xfrd_sock, dname_name(dname_ns), dname_ns->name_size)
-			   || !write_socket(xfrd_sock, &dname_em->name_size, sizeof(uint8_t))
-			   || !write_socket(xfrd_sock, dname_name(dname_em), dname_em->name_size)
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[2]), sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[3]), sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[4]), sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[5]), sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[6]), sizeof(uint32_t)))
-			{
-				log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
-				(int)nsd->pid, strerror(errno));
-			}
-		}
-		zone->updated = 0;
+		task_new_soainfo(taskudb, &task_last, (zone_type*)n->elem);
 	}
-	cmd = NSD_SOA_END;
+	udb_ptr_unlink(&task_last, taskudb);
+
+	/* wait for xfrd to signal task is ready, RELOAD signal */
+	if(block_read(nsd, xfrd_sock, &cmd, sizeof(cmd), -1) != sizeof(cmd) ||
+		cmd != NSD_RELOAD) {
+		log_msg(LOG_ERR, "did not get start signal from xfrd");
+		exit(1);
+	}
+	/* give xfrd our task, signal it with RELOAD_DONE */
+	task_process_sync(taskudb);
+	cmd = NSD_RELOAD_DONE;
 	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
 		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
 			(int)nsd->pid, strerror(errno));
 	}
-	/* done */
+
+	/* process the xfrd task works (expiry data) */
+	nsd->mytask = 1 - nsd->mytask;
+	taskudb = nsd->task[nsd->mytask];
+	task_remap(taskudb);
+	udb_ptr_new(&t, taskudb, udb_base_get_userdata(taskudb));
+	while(!udb_ptr_is_null(&t)) {
+		task_process_expire(nsd->db, TASKLIST(&t));
+		udb_ptr_set_rptr(&t, taskudb, &TASKLIST(&t)->next);
+	}
+	udb_ptr_unlink(&t, taskudb);
+	task_clear(taskudb);
+
+	/* tell xfrd that the task is emptied, signal with RELOAD_DONE */
+	cmd = NSD_RELOAD_DONE;
+	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
+		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
+			(int)nsd->pid, strerror(errno));
+	}
+
 	namedb_wipe_updated_flag(nsd->db);
 }
 
@@ -810,6 +805,30 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	return total;
 }
 
+static void
+reload_process_tasks(struct nsd* nsd, udb_ptr* last_task)
+{
+	udb_ptr t, next;
+	udb_base* u = nsd->task[nsd->mytask];
+	udb_ptr_init(&next, u);
+	udb_ptr_new(&t, u, udb_base_get_userdata(u));
+	udb_base_set_userdata(u, 0);
+	while(!udb_ptr_is_null(&t)) {
+		/* store next in list so this one can be deleted or reused */
+		udb_ptr_set_rptr(&next, u, &TASKLIST(&t)->next);
+		udb_rptr_zero(&TASKLIST(&t)->next, u);
+
+		/* process task t */
+		/* append results for task t and update last_task */
+		task_process_in_reload(nsd, u, last_task, &t);
+
+		/* go to next */
+		udb_ptr_set_ptr(&t, u, &next);
+	}
+	udb_ptr_unlink(&t, u);
+	udb_ptr_unlink(&next, u);
+}
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -821,15 +840,15 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	pid_t old_pid;
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	int ret;
+	udb_ptr last_task;
 
-	if(nsd->signal_hint_reload_hup) {
-		/* on SIGHUP check if zone-text-files changed and if so, 
-		 * reread.  When from xfrd-reload, no need to fstat the files */
-		namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count);
-		nsd->signal_hint_reload_hup = 0;
-	}
+	/* see what tasks we got from xfrd */
+	task_remap(nsd->task[nsd->mytask]);
+	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
+	reload_process_tasks(nsd, &last_task);
 
-	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
+	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count,
+		nsd->task[nsd->mytask], &last_task)) {
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);
 	}
@@ -853,6 +872,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	time(&nsd->st.boot);
 	set_bind8_alarm(nsd);
 #endif
+	udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
+	task_process_sync(nsd->task[nsd->mytask]);
 
 	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, &nsd->
@@ -910,8 +931,13 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	}
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
 
-	/* inform xfrd of new SOAs */
-	server_send_soa_xfrd(nsd, 0);
+	/* send soainfo to the xfrd process, signal it that reload is done,
+	 * it picks up the taskudb */
+	cmd = NSD_RELOAD_DONE;
+	if(!write_socket(nsd->xfrd_listener->fd, &cmd,  sizeof(cmd))) {
+		log_msg(LOG_ERR, "problems sending reload_done xfrd: %s",
+			strerror(errno));
+	}
 
 	/* try to reopen file */
 	if (nsd->file_rotation_ok)
@@ -941,6 +967,10 @@ server_signal_mode(struct nsd *nsd)
 	else if(nsd->signal_hint_reload) {
 		nsd->signal_hint_reload = 0;
 		return NSD_RELOAD;
+	}
+	else if(nsd->signal_hint_reload_hup) {
+		nsd->signal_hint_reload_hup = 0;
+		return NSD_RELOAD_REQ;
 	}
 	else if(nsd->signal_hint_stats) {
 		nsd->signal_hint_stats = 0;
@@ -1014,7 +1044,7 @@ server_main(struct nsd *nsd)
 					restart_child_servers(nsd, server_region, netio,
 						&nsd->xfrd_listener->fd);
 				} else if (child_pid == reload_pid) {
-					sig_atomic_t cmd = NSD_SOA_END;
+					sig_atomic_t cmd = NSD_RELOAD_DONE;
 					log_msg(LOG_WARNING,
 					       "Reload process %d failed with status %d, continuing with old database",
 					       (int) child_pid, status);
@@ -1022,6 +1052,7 @@ server_main(struct nsd *nsd)
 					if(reload_listener.fd != -1) close(reload_listener.fd);
 					reload_listener.fd = -1;
 					reload_listener.event_types = NETIO_EVENT_NONE;
+					task_process_sync(nsd->task[nsd->mytask]);
 					/* inform xfrd reload attempt ended */
 					if(!write_socket(nsd->xfrd_listener->fd,
 						&cmd, sizeof(cmd)) == -1) {
@@ -1034,7 +1065,7 @@ server_main(struct nsd *nsd)
 					       "xfrd process %d failed with status %d, restarting ",
 					       (int) child_pid, status);
 					server_start_xfrd(nsd, 1);
-					server_send_soa_xfrd(nsd, 1);
+					server_send_soa_xfrd(nsd);
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",
@@ -1062,18 +1093,30 @@ server_main(struct nsd *nsd)
 			}
 
 			break;
+		case NSD_RELOAD_REQ: {
+			sig_atomic_t cmd = NSD_RELOAD_REQ;
+			log_msg(LOG_WARNING, "SIGHUP received, reloading...");
+			DEBUG(DEBUG_IPC,1, (LOG_INFO,
+				"main: ipc send reload_req to xfrd"));
+			if(!write_socket(nsd->xfrd_listener->fd,
+				&cmd, sizeof(cmd))) {
+				log_msg(LOG_ERR, "server_main: could not send "
+				"reload_req to xfrd: %s", strerror(errno));
+			}
+			nsd->mode = NSD_RUN;
+			} break;
 		case NSD_RELOAD:
 			/* Continue to run nsd after reload */
 			nsd->mode = NSD_RUN;
-
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "reloading..."));
 			if (reload_pid != -1) {
 				log_msg(LOG_WARNING, "Reload already in progress (pid = %d)",
 				       (int) reload_pid);
 				break;
 			}
 
-			log_msg(LOG_WARNING, "signal received, reloading...");
-
+			/* switch the mytask to keep track of who owns task*/
+			nsd->mytask = 1 - nsd->mytask;
 			if (socketpair(AF_UNIX, SOCK_STREAM, 0, reload_sockets) == -1) {
 				log_msg(LOG_ERR, "reload failed on socketpair: %s", strerror(errno));
 				reload_pid = -1;
@@ -1184,6 +1227,8 @@ server_main(struct nsd *nsd)
 
 	/* Unlink it if possible... */
 	unlinkpid(nsd->pidfile);
+	unlink(nsd->task[0]->fname);
+	unlink(nsd->task[1]->fname);
 
 	if(reload_listener.fd != -1) {
 		sig_atomic_t cmd = NSD_QUIT;

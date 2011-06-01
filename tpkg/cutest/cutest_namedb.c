@@ -89,7 +89,7 @@ create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 		printf("failed to open %s: %s\n", dbfile, strerror(errno));
 		exit(1);
 	}
-	namedb_check_zonefiles(db, opt, child_count);
+	namedb_check_zonefiles(db, opt, child_count, NULL, NULL);
 	unlink(zonefile);
 	free(dbfile);
 	free(zonefile);

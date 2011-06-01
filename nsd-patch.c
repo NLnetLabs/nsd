@@ -370,7 +370,8 @@ int main(int argc, char* argv[])
 	/* read ixfr diff file */
 	if (difffile_exists) {
 		fprintf(stdout, "reading updates to database\n");
-		if(!diff_read_file(db, options, &commit_log, fake_child_count))
+		if(!diff_read_file(db, options, &commit_log, fake_child_count,
+			NULL, NULL))
 		{
 			fprintf(stderr, "unable to load the diff file: %s\n",
 				options->difffile);

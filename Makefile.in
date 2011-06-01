@@ -364,8 +364,8 @@ dbaccess.o: $(srcdir)/dbaccess.c config.h $(srcdir)/dns.h $(srcdir)/namedb.h $(s
 dbcreate.o: $(srcdir)/dbcreate.c config.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/udb.h $(srcdir)/udbradtree.h $(srcdir)/udbzone.h
 difffile.o: $(srcdir)/difffile.c config.h $(srcdir)/difffile.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h \
- $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/options.h $(srcdir)/packet.h \
- $(srcdir)/rdata.h $(srcdir)/udb.h $(srcdir)/udbzone.h $(srcdir)/udbradtree.h $(srcdir)/nsec3.h
+ $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/options.h $(srcdir)/udb.h \
+ $(srcdir)/packet.h $(srcdir)/rdata.h $(srcdir)/udbzone.h $(srcdir)/udbradtree.h $(srcdir)/nsec3.h $(srcdir)/nsd.h $(srcdir)/edns.h
 dname.o: $(srcdir)/dname.c config.h $(srcdir)/dns.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
  $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/tsig.h
 dns.o: $(srcdir)/dns.c config.h $(srcdir)/dns.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
@@ -373,7 +373,7 @@ dns.o: $(srcdir)/dns.c config.h $(srcdir)/dns.h $(srcdir)/zonec.h $(srcdir)/name
 edns.o: $(srcdir)/edns.c config.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 ipc.o: $(srcdir)/ipc.c config.h $(srcdir)/ipc.h $(srcdir)/netio.h $(srcdir)/region-allocator.h $(srcdir)/buffer.h $(srcdir)/util.h \
  $(srcdir)/xfrd-tcp.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/options.h \
- $(srcdir)/tsig.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/xfrd-notify.h
+ $(srcdir)/tsig.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/xfrd-notify.h $(srcdir)/difffile.h $(srcdir)/udb.h
 iterated_hash.o: $(srcdir)/iterated_hash.c config.h $(srcdir)/iterated_hash.h
 lookup3.o: $(srcdir)/lookup3.c config.h $(srcdir)/lookup3.h
 namedb.o: $(srcdir)/namedb.c config.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
@@ -387,7 +387,7 @@ nsd-notify.o: $(srcdir)/nsd-notify.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.
  $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h \
  $(srcdir)/buffer.h $(srcdir)/packet.h $(srcdir)/tsig.h
 nsd-patch.o: $(srcdir)/nsd-patch.c config.h $(srcdir)/options.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
- $(srcdir)/difffile.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h
+ $(srcdir)/difffile.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/udb.h
 nsd-xfer.o: $(srcdir)/nsd-xfer.c config.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
  $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
  $(srcdir)/rdata.h $(srcdir)/tsig-openssl.h $(srcdir)/zonec.h
@@ -396,7 +396,7 @@ nsec3.o: $(srcdir)/nsec3.c config.h $(srcdir)/nsec3.h $(srcdir)/iterated_hash.h 
  $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h $(srcdir)/udbzone.h $(srcdir)/udb.h $(srcdir)/udbradtree.h
 options.o: $(srcdir)/options.c config.h $(srcdir)/options.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
  $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h \
- $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/difffile.h $(srcdir)/configyyrename.h configparser.h
+ $(srcdir)/packet.h $(srcdir)/tsig.h $(srcdir)/difffile.h $(srcdir)/udb.h $(srcdir)/configyyrename.h configparser.h
 packet.o: $(srcdir)/packet.c config.h $(srcdir)/packet.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h $(srcdir)/rdata.h
 query.o: $(srcdir)/query.c config.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
@@ -409,8 +409,8 @@ rdata.o: $(srcdir)/rdata.c config.h $(srcdir)/rdata.h $(srcdir)/dns.h $(srcdir)/
 region-allocator.o: $(srcdir)/region-allocator.c config.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 server.o: $(srcdir)/server.c config.h $(srcdir)/axfr.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/radtree.h $(srcdir)/packet.h \
- $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/nsec3.h \
- $(srcdir)/ipc.h $(srcdir)/udb.h
+ $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/udb.h \
+ $(srcdir)/nsec3.h $(srcdir)/ipc.h
 tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h \
  $(srcdir)/tsig-openssl.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h
 tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(srcdir)/region-allocator.h \
@@ -418,13 +418,14 @@ tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(src
 udb.o: $(srcdir)/udb.c config.h $(srcdir)/udb.h $(srcdir)/lookup3.h $(srcdir)/util.h
 udbradtree.o: $(srcdir)/udbradtree.c config.h $(srcdir)/udbradtree.h $(srcdir)/udb.h $(srcdir)/radtree.h
 udbzone.o: $(srcdir)/udbzone.c config.h $(srcdir)/udbzone.h $(srcdir)/udb.h $(srcdir)/dns.h $(srcdir)/udbradtree.h $(srcdir)/util.h \
- $(srcdir)/iterated_hash.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h
+ $(srcdir)/iterated_hash.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/difffile.h $(srcdir)/rbtree.h \
+ $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/options.h
 util.o: $(srcdir)/util.c config.h $(srcdir)/util.h $(srcdir)/region-allocator.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/rdata.h
 xfrd.o: $(srcdir)/xfrd.c config.h $(srcdir)/xfrd.h $(srcdir)/netio.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
  $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/options.h $(srcdir)/tsig.h \
  $(srcdir)/xfrd-tcp.h $(srcdir)/xfrd-disk.h $(srcdir)/xfrd-notify.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h $(srcdir)/rdata.h \
- $(srcdir)/difffile.h $(srcdir)/ipc.h
+ $(srcdir)/difffile.h $(srcdir)/udb.h $(srcdir)/ipc.h
 xfrd-disk.o: $(srcdir)/xfrd-disk.c config.h $(srcdir)/xfrd-disk.h $(srcdir)/xfrd.h $(srcdir)/netio.h \
  $(srcdir)/region-allocator.h $(srcdir)/rbtree.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h \
  $(srcdir)/radtree.h $(srcdir)/options.h $(srcdir)/tsig.h $(srcdir)/nsd.h $(srcdir)/edns.h
@@ -492,4 +493,5 @@ qtest.o: $(srcdir)/tpkg/cutest/qtest.c config.h $(srcdir)/tpkg/cutest/qtest.h $(
  $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/dname.h $(srcdir)/rdata.h
 udb-inspect.o: $(srcdir)/tpkg/cutest/udb-inspect.c config.h $(srcdir)/udb.h $(srcdir)/udbradtree.h \
  $(srcdir)/udb.h $(srcdir)/udbzone.h $(srcdir)/dns.h $(srcdir)/udbradtree.h $(srcdir)/util.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
- $(srcdir)/util.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/radtree.h $(srcdir)/rdata.h $(srcdir)/namedb.h
+ $(srcdir)/util.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/radtree.h $(srcdir)/rdata.h $(srcdir)/namedb.h \
+ $(srcdir)/difffile.h $(srcdir)/rbtree.h $(srcdir)/options.h

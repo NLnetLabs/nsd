@@ -46,6 +46,8 @@ static void xfrd_main();
 static void xfrd_shutdown();
 /* create zone rbtree at start */
 static void xfrd_init_zones();
+/* initial handshake with SOAINFO from main and send expire to main */
+static void xfrd_receive_soa(int socket);
 
 /* handle zone timeout, event */
 static void xfrd_handle_zone(netio_type *netio,
@@ -103,6 +105,9 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->udp_use_num = 0;
 	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->parent_soa_info_pass = 0;
+	xfrd->last_task = region_alloc(xfrd->region, sizeof(*xfrd->last_task));
+	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
+	assert(udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
 
 	/* add the handlers already, because this involves allocs */
 	xfrd->reload_handler.fd = -1;
@@ -140,7 +145,6 @@ xfrd_init(int socket, struct nsd* nsd)
 	srandom((unsigned long) getpid() * (unsigned long) time(NULL));
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
-	/* TODO read zonelist, and add zones that it has added */
 	xfrd_init_zones();
 	xfrd_receive_soa(socket);
 	xfrd_read_state(xfrd);
@@ -290,8 +294,123 @@ xfrd_init_zones()
 		"secondary zones", (int)xfrd->zones->count));
 }
 
+static void
+xfrd_process_soa_info_task(struct task_list_d* task)
+{
+	xfrd_soa_t soa;
+	xfrd_soa_t* soa_ptr = &soa;
+	xfrd_zone_t* zone;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: process SOAINFO %s",
+		dname_to_string(task->zname, 0)));
+	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, task->zname);
+	if(task->size <= sizeof(struct task_list_d)+dname_total_size(
+		task->zname)+sizeof(uint32_t)*6 + sizeof(uint8_t)*2) {
+		/* NSD has zone without any info */
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s lost zone",
+			dname_to_string(task->zname,0)));
+		soa_ptr = NULL;
+	} else {
+		uint8_t* p = (uint8_t*)task->zname + dname_total_size(
+			task->zname);
+		/* read the soa info */
+		memset(&soa, 0, sizeof(soa));
+		/* left out type, klass, count for speed */
+		soa.type = htons(TYPE_SOA);
+		soa.klass = htons(CLASS_IN);
+		memmove(&soa.ttl, p, sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		soa.rdata_count = htons(7);
+		memmove(soa.prim_ns, p, sizeof(uint8_t));
+		p += sizeof(uint8_t);
+		memmove(soa.prim_ns+1, p, soa.prim_ns[0]);
+		p += soa.prim_ns[0];
+		memmove(soa.email, p, sizeof(uint8_t));
+		p += sizeof(uint8_t);
+		memmove(soa.email+1, p, soa.email[0]);
+		p += soa.email[0];
+		memmove(&soa.serial, p, sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(&soa.refresh, p, sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(&soa.retry, p, sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(&soa.expire, p, sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(&soa.minimum, p, sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s %u",
+			dname_to_string(task->zname,0),
+			(unsigned)ntohl(soa.serial)));
+	}
+
+	if(!zone) {
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: zone %s master zone updated",
+			dname_to_string(task->zname,0)));
+		notify_handle_master_zone_soainfo(xfrd->notify_zones,
+			task->zname, soa_ptr);
+		return;
+	}
+	xfrd_handle_incoming_soa(zone, soa_ptr, xfrd_time());
+}
+
 void
-xfrd_send_expy_all_zones()
+xfrd_receive_soa(int socket)
+{
+	sig_atomic_t cmd;
+	struct udb_base* xtask = xfrd->nsd->task[xfrd->nsd->mytask];
+	udb_ptr last_task, t;
+	xfrd_zone_t* zone;
+
+	/* put all expired zones into mytask */
+	udb_ptr_init(&last_task, xtask);
+	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones) {
+		if(zone->state == xfrd_zone_expired) {
+			task_new_expire(xtask, &last_task, zone->apex, 1);
+		}
+	}
+	udb_ptr_unlink(&last_task, xtask);
+	
+	/* send RELOAD to main to give it this tasklist */
+	task_process_sync(xtask);
+	cmd = NSD_RELOAD;
+	if(!write_socket(socket, &cmd,  sizeof(cmd))) {
+		log_msg(LOG_ERR, "problems sending reload xfrdtomain: %s",
+			strerror(errno));
+	}
+
+	/* receive RELOAD_DONE to get SOAINFO tasklist */
+	if(block_read(NULL, socket, &cmd, sizeof(cmd), -1) != sizeof(cmd) ||
+		cmd != NSD_RELOAD_DONE) {
+		log_msg(LOG_ERR, "did not get start signal from main");
+		exit(1);
+	}
+
+	/* process tasklist (SOAINFO data) */
+	udb_ptr_unlink(xfrd->last_task, xtask);
+	xfrd->nsd->mytask = 1 - xfrd->nsd->mytask;
+	xtask = xfrd->nsd->task[xfrd->nsd->mytask];
+	task_remap(xtask);
+	udb_ptr_new(&t, xtask, udb_base_get_userdata(xtask));
+	while(!udb_ptr_is_null(&t)) {
+		xfrd_process_soa_info_task(TASKLIST(&t));
+	 	udb_ptr_set_rptr(&t, xtask, &TASKLIST(&t)->next);
+	}
+	udb_ptr_unlink(&t, xtask);
+	task_clear(xtask);
+	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
+
+	/* receive RELOAD_DONE that signals the other tasklist is empty, and
+	 * thus xfrd can operate (can call reload and swap to the other,
+	 * empty, tasklist) */
+	if(block_read(NULL, socket, &cmd, sizeof(cmd), -1) != sizeof(cmd) ||
+		cmd != NSD_RELOAD_DONE) {
+		log_msg(LOG_ERR, "did not get start signal 2 from main");
+		exit(1);
+	}
+}
+
+void
+xfrd_send_expy_all_zones(void)
 {
 	xfrd_zone_t* zone;
 	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones)
@@ -301,14 +420,14 @@ xfrd_send_expy_all_zones()
 }
 
 void
-xfrd_reopen_logfile()
+xfrd_reopen_logfile(void)
 {
 	if (xfrd->nsd->file_rotation_ok)
 		log_reopen(xfrd->nsd->log_filename, 0);
 }
 
 void
-xfrd_free_namedb()
+xfrd_free_namedb(void)
 {
 	namedb_close_udb(xfrd->nsd->db);
 	namedb_close(xfrd->nsd->db);
@@ -1699,4 +1818,35 @@ struct buffer*
 xfrd_get_temp_buffer()
 {
 	return xfrd->packet;
+}
+
+static void
+xfrd_handle_taskresult(struct task_list_d* task)
+{
+	switch(task->task_type) {
+	case task_soa_info:
+		xfrd_process_soa_info_task(task);
+		break;
+	default:
+		log_msg(LOG_WARNING, "unhandled task result in xfrd from "
+			"reload type %d", (int)task->task_type);
+	}
+}
+
+void xfrd_process_task_result(struct udb_base* taskudb)
+{
+	udb_ptr t;
+	/* remap it for usage */
+	task_remap(taskudb);
+	/* process the task-results in the taskudb */
+	udb_ptr_new(&t, taskudb, udb_base_get_userdata(taskudb));
+	while(!udb_ptr_is_null(&t)) {
+		xfrd_handle_taskresult(TASKLIST(&t));
+		udb_ptr_set_rptr(&t, taskudb, &TASKLIST(&t)->next);
+	}
+	udb_ptr_unlink(&t, taskudb);
+	/* clear the udb so it can be used by xfrd to make new tasks for
+	 * reload, this happens when the reload signal is sent, and thus
+	 * the taskudbs are swapped */
+	task_clear(taskudb);
 }

@@ -1,3 +1,10 @@
+1 June 2011: Wouter
+	- mmap used for parent-xfrd communication of tasks and task results.
+	  SIGHUP is sent to xfrd so it can become a task in the normal
+	  workflow. This can process about 4500 zones per second (this was
+	  with lots of debug prints per zone, in debug compile). The mmaps
+	  are file-backed with /tmp/ files.  They are removed on a clean exit.
+
 30 May 2011: Wouter
 	- Fix Makefile for U in environment, since wrong U is more common than
 	  deansification necessity.

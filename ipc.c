@@ -19,6 +19,7 @@
 #include "namedb.h"
 #include "xfrd.h"
 #include "xfrd-notify.h"
+#include "difffile.h"
 
 /* set is_ok for the zone according to the zone message */
 static zone_type* handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet);
@@ -195,6 +196,7 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 
 	switch (mode) {
 	case NSD_RELOAD:
+		log_msg(LOG_INFO, "parent handle xfrd command RELOAD");
 		data->nsd->signal_hint_reload = 1;
 		break;
 	case NSD_QUIT:
@@ -573,6 +575,7 @@ static void
 xfrd_send_reload_req(xfrd_state_t* xfrd)
 {
 	sig_atomic_t req = NSD_RELOAD;
+	task_process_sync(xfrd->nsd->task[xfrd->nsd->mytask]);
 	/* ask server_main for a reload */
 	if(write(xfrd->ipc_handler.fd, &req, sizeof(req)) == -1) {
 		if(errno == EAGAIN || errno == EINTR)
@@ -582,6 +585,13 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 		return;
 	}
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: asked nsd to reload new updates"));
+	/* swapped task to other side, start to use other task udb. */
+	udb_ptr_unlink(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
+	xfrd->nsd->mytask = 1 - xfrd->nsd->mytask;
+	task_remap(xfrd->nsd->task[xfrd->nsd->mytask]);
+	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
+	assert(udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
+
 	xfrd_prepare_zones_for_reload();
 	xfrd->reload_cmd_last_sent = xfrd_time();
 	xfrd->need_to_send_reload = 0;
@@ -671,7 +681,7 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 	}
         if ((event_types & NETIO_EVENT_WRITE))
 	{
-		if(xfrd->ipc_send_blocked) { /* wait for SOA_END */
+		if(xfrd->ipc_send_blocked) { /* wait for RELOAD_DONE */
 			handler->event_types = NETIO_EVENT_READ;
 			return;
 		}
@@ -788,23 +798,15 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: main send shutdown cmd."));
                 xfrd->shutdown = 1;
                 break;
-	case NSD_SOA_BEGIN:
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_BEGIN"));
-		/* reload starts sending SOA INFOs; don't block */
-		xfrd->parent_soa_info_pass = 1;
+	case NSD_RELOAD_DONE:
+		/* reload has finished */
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD_DONE"));
+		/* read the not-mytask for the results and soainfo */
+		xfrd_process_task_result(xfrd->nsd->task[1-xfrd->nsd->mytask]);
 		/* reset the nonblocking ipc write;
 		   the new parent does not want half a packet */
 		xfrd->sending_zone_state = 0;
-		break;
-	case NSD_SOA_INFO:
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_INFO"));
-		assert(xfrd->parent_soa_info_pass);
-		xfrd->ipc_is_soa = 1;
-		xfrd->ipc_conn->is_reading = 1;
-                break;
-	case NSD_SOA_END:
-		/* reload has finished */
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_END"));
+
 		xfrd->can_send_reload = 1;
 		xfrd->parent_soa_info_pass = 0;
 		xfrd->ipc_send_blocked = 0;
@@ -817,6 +819,14 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD"));
 		xfrd->ipc_is_soa = 0;
 		xfrd->ipc_conn->is_reading = 1;
+		break;
+	case NSD_RELOAD_REQ:
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD_REQ"));
+		/* make reload happen, right away, and schedule file check */
+		task_new_check_zonefiles(xfrd->nsd->task[xfrd->nsd->mytask],
+			xfrd->last_task);
+		xfrd->need_to_send_reload = 1;
+		xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
 		break;
 	case NSD_RELOAD:
 		/* main tells us that reload is done, stop ipc send to main */
@@ -835,62 +845,5 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd->ipc_conn->total_bytes = 0;
 		xfrd->ipc_conn->msglen = 0;
 		buffer_clear(xfrd->ipc_conn->packet);
-	}
-}
-
-/* read ipc conn blocking */
-static void
-block_conn_read(xfrd_tcp_t* conn)
-{
-	int r;
-	r = block_read(NULL, conn->fd, &conn->msglen, sizeof(conn->msglen), -1);
-	if(r == 0) {
-		log_msg(LOG_ERR, "xfrd: main closed pipe");
-		exit(0); /* closed pipe */
-	} else if(r == -1) {
-		log_msg(LOG_ERR, "xfrd: pipe error: %s", strerror(errno));
-		return; /* errors */
-	}
-	conn->msglen = ntohs(conn->msglen);
-	buffer_set_limit(conn->packet, conn->msglen);
-	r = block_read(NULL, conn->fd, buffer_current(conn->packet),
-		buffer_remaining(conn->packet), -1);
-	if(r == 0) {
-		log_msg(LOG_ERR, "xfrd: main closed pipe");
-		exit(0); /* closed pipe */
-	} else if(r == -1) {
-		log_msg(LOG_ERR, "xfrd: pipe error: %s", strerror(errno));
-		return;
-	}
-	buffer_skip(conn->packet, r);
-}
-
-void xfrd_receive_soa(int fd)
-{
-	sig_atomic_t cmd;
-	ssize_t r;
-	while(1) {
-		if((r=read(fd, &cmd, sizeof(cmd))) != sizeof(cmd)) {
-			if(errno == EINTR || errno==EAGAIN)
-				continue;
-			if(r == 0) /* pipe closed */
-				exit(0);
-			log_msg(LOG_ERR, "xfrd recvsoa pipe: %s",
-				strerror(errno));
-			break;
-		}
-		if(cmd == NSD_SOA_BEGIN)
-			continue;
-		else if(cmd == NSD_SOA_END)
-			break;
-		else if(cmd != NSD_SOA_INFO)
-			continue;
-		xfrd->ipc_conn->total_bytes = 0;
-		xfrd->ipc_conn->msglen = 0;
-		buffer_clear(xfrd->ipc_conn->packet);
-		block_conn_read(xfrd->ipc_conn);
-		buffer_flip(xfrd->ipc_conn->packet);
-		xfrd->ipc_conn->is_reading = 0;
-		xfrd_handle_ipc_SOAINFO(xfrd, xfrd->ipc_conn->packet);
 	}
 }

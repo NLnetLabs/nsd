@@ -339,7 +339,8 @@ void namedb_fd_close(struct namedb *db);
 void namedb_close_udb(struct namedb* db);
 void namedb_close(struct namedb *db);
 void namedb_check_zonefiles(struct namedb* db, struct nsd_options* opt,
-	size_t num_children);
+	size_t num_children, struct udb_base* taskudb,
+	struct udb_ptr* last_task);
 void apex_rrset_checks(struct namedb* db, rrset_type* rrset,
 	domain_type* domain);
 zone_type* namedb_zone_create(namedb_type* db, const dname_type* dname,

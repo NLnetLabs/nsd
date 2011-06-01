@@ -13,6 +13,7 @@
 #include "packet.h"
 #include "rdata.h"
 #include "namedb.h"
+#include "difffile.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -168,6 +169,7 @@ chunk_type2str(enum udb_chunk_type tp)
 		case udb_chunk_type_domain: return "domain";
 		case udb_chunk_type_rrset: return "rrset";
 		case udb_chunk_type_rr: return "rr";
+		case udb_chunk_type_task: return "task";
 	}
 	return "unknown";
 }
@@ -316,6 +318,12 @@ inspect_chunk(void* base, void* cv, struct inspect_totals* t)
 			ULL d->next.data, (int)d->len);
 		print_hex(d->wire, d->len);
 		printf("\n");
+	} else if(cp->type == udb_chunk_type_task) {
+		struct task_list_d* d = (struct task_list_d*)UDB_REL(base, data);
+		printf("	task type=%d next=%llu yesno=%d serial=%u zone=%s\n",
+			(int)d->task_type, ULL d->next.data, (int)d->yesno,
+			(unsigned)d->serial, d->size > sizeof(*d)?
+			dname_to_string(d->zname, NULL):"\"\"");
 	}
    } /* end verbosity 2 */
 

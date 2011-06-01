@@ -216,6 +216,7 @@ enum udb_chunk_type {
 	udb_chunk_type_domain,
 	udb_chunk_type_rrset,
 	udb_chunk_type_rr,
+	udb_chunk_type_task,
 	udb_chunk_type_internal
 };
 
@@ -384,6 +385,12 @@ void udb_base_free_keep_mmap(udb_base* udb);
  * @param wait: if true, the call blocks until synced.
  */
 void udb_base_sync(udb_base* udb, int wait);
+
+/**
+ * The mmap size is updated to reflect changes by another process.
+ * @param udb: the udb.
+ */
+void udb_base_remap_process(udb_base* udb);
 
 /**
  * get the user data (relative) pointer.

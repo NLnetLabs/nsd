@@ -12,7 +12,8 @@
 #include "rbtree.h"
 #include "namedb.h"
 #include "options.h"
-struct udb_ptr;
+#include "udb.h"
+struct nsd;
 
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
@@ -48,7 +49,7 @@ void diff_write_commit(const char* zone, uint32_t old_serial,
    then, *log must be 0 on start of call (entries are prepended).
    returns 0 on an unrecoverable error. */
 int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
-	size_t child_count);
+	size_t child_count, udb_base* taskudb, udb_ptr* last_task);
 
 /* check the diff file for garbage at the end (bad type, partial write)
  * and snip it off.
@@ -75,5 +76,46 @@ int add_RR(namedb_type* db, const dname_type* dname,
 	uint16_t type, uint16_t klass, uint32_t ttl,
 	buffer_type* packet, size_t rdatalen, zone_type *zone,
 	struct udb_ptr* udbz);
+
+/* task udb structure */
+struct task_list_d {
+	/** next task in list */
+	udb_rel_ptr next;
+	/** task type */
+	enum {
+		/** expire or un-expire a zone */
+		task_expire,
+		/** apply an ixfr or axfr to a zone */
+		task_apply_xfr,
+		/** soa info for zone */
+		task_soa_info,
+		/** done with apply xfr */
+		task_done_apply_xfr,
+		/** check mtime of zonefiles and read them, done on SIGHUP */
+		task_check_zonefiles
+	} task_type;
+	uint32_t size; /* size of this struct */
+
+	/** soainfo: zonename dname, soaRR wireform */
+	/** expire: zonename, boolyesno */
+	/** apply_xfr: zonename, filename-serial */
+	/** done_apply_xfr: zonename, filename-serial */
+	uint32_t serial;
+	int yesno;
+	struct dname zname[0];
+};
+#define TASKLIST(ptr) ((struct task_list_d*)UDB_PTR(ptr))
+/** create udb for tasks */
+struct udb_base* task_file_create(const char* file);
+void task_remap(udb_base* udb);
+void task_process_sync(udb_base* udb);
+void task_clear(udb_base* udb);
+void task_new_soainfo(udb_base* udb, udb_ptr* last, struct zone* z);
+void task_new_expire(udb_base* udb, udb_ptr* last,
+	const struct dname* z, int expired);
+void task_new_check_zonefiles(udb_base* udb, udb_ptr* last);
+void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
+	udb_ptr* task);
+void task_process_expire(namedb_type* db, struct task_list_d* task);
 
 #endif /* DIFFFILE_H */

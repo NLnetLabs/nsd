@@ -9,6 +9,7 @@
 #include "iterated_hash.h"
 #include "dns.h"
 #include "dname.h"
+#include "difffile.h"
 #include <string.h>
 
 /** delete the zone plain its own data */
@@ -844,6 +845,16 @@ udb_rr_walk_chunk(void* base, void* d, uint64_t s, udb_walk_relptr_cb* cb,
 	(*cb)(base, &p->next, arg);
 }
 
+void
+udb_task_walk_chunk(void* base, void* d, uint64_t s, udb_walk_relptr_cb* cb,
+	void* arg)
+{
+	struct task_list_d* p = (struct task_list_d*)d;
+	assert(s >= p->size);
+	(void)s;
+	(*cb)(base, &p->next, arg);
+}
+
 void namedb_walkfunc(void* base, void* warg, uint8_t t, void* d, uint64_t s,
         udb_walk_relptr_cb* cb, void* arg)
 {
@@ -869,6 +880,9 @@ void namedb_walkfunc(void* base, void* warg, uint8_t t, void* d, uint64_t s,
 		break;
 	case udb_chunk_type_rr:
 		udb_rr_walk_chunk(base, d, s, cb, arg);
+		break;
+	case udb_chunk_type_task:
+		udb_task_walk_chunk(base, d, s, cb, arg);
 		break;
 	default:
 		/* no rel ptrs */

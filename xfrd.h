@@ -23,6 +23,7 @@ struct buffer;
 struct xfrd_tcp;
 struct xfrd_tcp_set;
 struct notify_zone_t;
+struct udb_ptr;
 typedef struct xfrd_state xfrd_state_t;
 typedef struct xfrd_zone xfrd_zone_t;
 typedef struct xfrd_soa xfrd_soa_t;
@@ -69,6 +70,7 @@ struct xfrd_state {
 	uint8_t sending_zone_state;
 	uint8_t	ipc_send_blocked;
 	stack_type* dirty_zones; /* stack of xfrd_zone* */
+	struct udb_ptr* last_task;
 
 	/* xfrd shutdown flag */
 	uint8_t shutdown;
@@ -289,5 +291,8 @@ void xfrd_prepare_zones_for_reload(void);
 /* Bind a local interface to a socket descriptor, return 1 on success */
 int xfrd_bind_local_interface(int sockd, acl_options_t* ifc,
 	acl_options_t* acl, int tcp);
+
+/* process results and soa info from reload */
+void xfrd_process_task_result(struct udb_base* taskudb);
 
 #endif /* XFRD_H */

@@ -89,7 +89,4 @@ void xfrd_handle_ipc(netio_type *netio,
 /* check if all children have exited in an orderly fashion and set mode */
 void parent_check_all_children_exited(struct nsd* nsd);
 
-/* blockingly read SOA_BEGIN, SOA_INFO*, SOA_END */
-void xfrd_receive_soa(int fd);
-
 #endif /* NSD_IPC_H */

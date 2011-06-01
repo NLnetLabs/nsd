@@ -430,7 +430,8 @@ file_get_mtime(const char* file, time_t* mtime, int* nonexist)
 
 /** zone one zonefile into memory and revert one parse error, write to udb */
 static void
-namedb_read_zonefile(struct namedb* db, struct zone* zone)
+namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
+	udb_ptr* last_task)
 {
 	time_t mtime = 0;
 	int nonexist = 0;
@@ -445,6 +446,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 		} else
 			log_msg(LOG_ERR, "zonefile %s: %s",
 				fname, strerror(errno));
+		if(taskudb) task_new_soainfo(taskudb, last_task, zone);
 		return;
 	} else {
 		/* check the mtime */
@@ -481,6 +483,8 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 		/* see if we can revert to the udb stored version */
 		if(!udb_zone_search(db->udb, &z, dname_name(domain_dname(
 			zone->apex)), domain_dname(zone->apex)->name_size)) {
+			/* tell that zone contents has been lost */
+			if(taskudb) task_new_soainfo(taskudb, last_task, zone);
 			return;
 		}
 		/* read from udb */
@@ -497,13 +501,14 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone)
 			log_msg(LOG_ERR, "failed to store zone in udb");
 		}
 	}
+	if(taskudb) task_new_soainfo(taskudb, last_task, zone);
 #ifdef NSEC3
 	prehash_zone_complete(db, zone);
 #endif
 }
 
 void namedb_check_zonefiles(struct namedb* db, nsd_options_t* opt,
-	size_t num_children)
+	size_t num_children, udb_base* taskudb, udb_ptr* last_task)
 {
 	zone_options_t* zo;
 	zone_type* zone;
@@ -522,7 +527,7 @@ void namedb_check_zonefiles(struct namedb* db, nsd_options_t* opt,
 			zone = namedb_zone_create(db, dname, zo, num_children);
 			region_free_all(dname_region);
 		}
-		namedb_read_zonefile(db, zone);
+		namedb_read_zonefile(db, zone, taskudb, last_task);
 		region_free_all(dname_region);
 	}
 	region_destroy(dname_region);

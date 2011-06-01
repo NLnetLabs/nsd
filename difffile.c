@@ -20,6 +20,7 @@
 #include "udb.h"
 #include "udbzone.h"
 #include "nsec3.h"
+#include "nsd.h"
 
 static int
 write_32(FILE *out, uint32_t val)
@@ -1234,7 +1235,7 @@ mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
 static int
 read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	struct diff_read_data* data, struct diff_log** log,
-	size_t child_count)
+	size_t child_count, udb_base* taskudb, udb_ptr* last_task)
 {
 	char zone_buf[3072];
 	char log_buf[5120];
@@ -1364,6 +1365,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		if(zonedb) prehash_zone(db, zonedb, &z);
 #endif /* NSEC3 */
 		udb_ptr_unlink(&z, db->udb);
+		if(taskudb) task_new_soainfo(taskudb, last_task, zonedb);
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
 			return 0;
@@ -1418,7 +1420,8 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 static int
 read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	nsd_options_t* opt, struct diff_read_data* data,
-	struct diff_log** log, size_t child_count, off_t* startpos)
+	struct diff_log** log, size_t child_count, off_t* startpos,
+	udb_base* taskudb, udb_ptr* last_task)
 {
 	uint32_t len, len2;
 
@@ -1433,7 +1436,8 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	}
 	else if(type == DIFF_PART_SURE) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", (int)len));
-		if(!read_sure_part(db, in, opt, data, log, child_count))
+		if(!read_sure_part(db, in, opt, data, log, child_count,
+			taskudb, last_task))
 			return 0;
 	} else {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", (unsigned)type, (int)len));
@@ -1487,7 +1491,7 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 
 int
 diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
-	size_t child_count)
+	size_t child_count, udb_base* taskudb, udb_ptr* last_task)
 {
 	const char* filename = opt->difffile;
 	FILE *df;
@@ -1578,7 +1582,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		}
 
 		if(!read_process_part(db, df, type, opt, data, log,
-			child_count, &startpos))
+			child_count, &startpos, taskudb, last_task))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
 			region_destroy(data->region);
@@ -1681,4 +1685,205 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 	}
 
 	fclose(df);
+}
+
+struct udb_base* task_file_create(const char* file)
+{
+        return udb_base_create_new(file, &namedb_walkfunc, NULL);
+}
+
+static int
+task_create_new_elem(struct udb_base* udb, udb_ptr* last, udb_ptr* e,
+	size_t sz, const dname_type* zname)
+{
+	log_msg(LOG_INFO, "debug: new task elem size %d", (int)sz);
+	if(!udb_ptr_alloc_space(e, udb, udb_chunk_type_task, sz)) {
+		return 0;
+	}
+	if(udb_ptr_is_null(last)) {
+		udb_base_set_userdata(udb, e->data);
+	} else {
+		udb_rptr_set_ptr(&TASKLIST(last)->next, udb, e);
+	}
+	udb_ptr_set_ptr(last, udb, e);
+
+	/* fill in tasklist item */
+	udb_rptr_zero(&TASKLIST(e)->next, udb);
+	TASKLIST(e)->size = sz;
+	TASKLIST(e)->serial = 0;
+	TASKLIST(e)->yesno = 0;
+
+	if(zname) {
+		memmove(TASKLIST(e)->zname, zname, dname_total_size(zname));
+	}
+	return 1;
+}
+
+void task_new_soainfo(struct udb_base* udb, udb_ptr* last, struct zone* z)
+{
+	/* calculate size */
+	udb_ptr e;
+	size_t sz;
+	const dname_type* apex, *ns, *em;
+	if(!z || !z->apex || !domain_dname(z->apex))
+		return; /* safety check */
+
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "nsd: add soa info for zone %s",
+		domain_to_string(z->apex)));
+	apex = domain_dname(z->apex);
+	sz = sizeof(struct task_list_d) + dname_total_size(apex);
+	if(z->soa_rrset) {
+		ns = domain_dname(rdata_atom_domain(
+			z->soa_rrset->rrs[0].rdatas[0]));
+		em = domain_dname(rdata_atom_domain(
+			z->soa_rrset->rrs[0].rdatas[1]));
+		sz += sizeof(uint32_t)*6 + sizeof(uint8_t)*2
+			+ ns->name_size + em->name_size;
+	} else {
+		ns = 0;
+		em = 0;
+	}
+
+	/* create new task_list item */
+	if(!task_create_new_elem(udb, last, &e, sz, apex)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add SOAINFO");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_soa_info;
+
+	if(z->soa_rrset) {
+		uint32_t ttl = htonl(z->soa_rrset->rrs[0].ttl);
+		uint8_t* p = (uint8_t*)TASKLIST(&e)->zname;
+		p += dname_total_size(apex);
+		memmove(p, &ttl, sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(p, &ns->name_size, sizeof(uint8_t));
+		p += sizeof(uint8_t);
+		memmove(p, dname_name(ns), ns->name_size);
+		p += ns->name_size;
+		memmove(p, &em->name_size, sizeof(uint8_t));
+		p += sizeof(uint8_t);
+		memmove(p, dname_name(em), em->name_size);
+		p += em->name_size;
+		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[2]),
+			sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[3]),
+			sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[4]),
+			sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[5]),
+			sizeof(uint32_t));
+		p += sizeof(uint32_t);
+		memmove(p, rdata_atom_data(z->soa_rrset->rrs[0].rdatas[6]),
+			sizeof(uint32_t));
+	}
+	udb_ptr_unlink(&e, udb);
+}
+
+void task_process_sync(struct udb_base* taskudb)
+{
+	/* need to sync before other process uses the mmap? */
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "task procsync %s size %d",
+		taskudb->fname, (int)taskudb->base_size));
+}
+
+void task_remap(struct udb_base* taskudb)
+{
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "task remap %s size %d",
+		taskudb->fname, (int)taskudb->glob_data->fsize));
+	udb_base_remap_process(taskudb);
+}
+
+void task_clear(struct udb_base* taskudb)
+{
+	udb_ptr t, n;
+	udb_ptr_new(&t, taskudb, udb_base_get_userdata(taskudb));
+	udb_base_set_userdata(taskudb, 0);
+	udb_ptr_init(&n, taskudb);
+	while(!udb_ptr_is_null(&t)) {
+		udb_ptr_set_rptr(&n, taskudb, &TASKLIST(&t)->next);
+		udb_rptr_zero(&TASKLIST(&t)->next, taskudb);
+		udb_ptr_free_space(&t, taskudb, TASKLIST(&t)->size);
+		udb_ptr_set_ptr(&t, taskudb, &n);
+	}
+	udb_ptr_unlink(&t, taskudb);
+	udb_ptr_unlink(&n, taskudb);
+}
+
+void task_new_expire(struct udb_base* udb, udb_ptr* last,
+	const struct dname* z, int expired)
+{
+	udb_ptr e;
+	if(!z) return;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add expire info for zone %s",
+		dname_to_string(z,NULL)));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		dname_total_size(z), z)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add expire");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_expire;
+	TASKLIST(&e)->yesno = expired;
+	udb_ptr_unlink(&e, udb);
+}
+
+void task_new_check_zonefiles(udb_base* udb, udb_ptr* last)
+{
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task checkzonefiles"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d),
+		NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add check_zones");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_check_zonefiles;
+	udb_ptr_unlink(&e, udb);
+}
+
+void
+task_process_expire(namedb_type* db, struct task_list_d* task)
+{
+	zone_type* z = namedb_find_zone(db, task->zname);
+	assert(task->task_type == task_expire);
+	if(!z) {
+		log_msg(LOG_WARNING, "zone %s %s but not in zonetree",
+			dname_to_string(task->zname, NULL),
+			task->yesno?"expired":"unexpired");
+		return;
+	}
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: expire task zone %s %s",
+		dname_to_string(task->zname,0),
+		task->yesno?"expire":"unexpire"));
+	/* find zone, set expire flag */
+	z->is_ok = !task->yesno;
+}
+
+static void
+task_process_checkzones(struct nsd* nsd, udb_base* udb, udb_ptr* last_task)
+{
+	/* on SIGHUP check if zone-text-files changed and if so,
+	 * reread.  When from xfrd-reload, no need to fstat the files */
+	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count,
+		udb, last_task);
+}
+
+void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
+        udb_ptr* task)
+{
+	switch(TASKLIST(task)->task_type) {
+	case task_expire:
+		task_process_expire(nsd->db, TASKLIST(task));
+		break;
+	case task_check_zonefiles:
+		task_process_checkzones(nsd, udb, last_task);
+		break;
+	default:
+		log_msg(LOG_WARNING, "unhandled task in reload type %d",
+			(int)TASKLIST(task)->task_type);
+		break;
+	}
+	udb_ptr_free_space(task, udb, TASKLIST(task)->size);
 }

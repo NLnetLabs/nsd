@@ -509,6 +509,13 @@ udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)
 	return nb;
 }
 
+void
+udb_base_remap_process(udb_base* udb)
+{
+	/* assume that fsize is still accessible */
+	udb_base_remap(udb, udb->alloc, udb->glob_data->fsize);
+}
+
 /** grow file to specified size and re-mmap, return new base */
 static void*
 udb_base_grow_and_remap(udb_base* udb, uint64_t nsize)

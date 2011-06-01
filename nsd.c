@@ -277,7 +277,6 @@ sig_handler(int sig)
 		nsd.signal_hint_child = 1;
 		return;
 	case SIGHUP:
-		nsd.signal_hint_reload = 1;
 		nsd.signal_hint_reload_hup = 1;
 		return;
 	case SIGALRM:
@@ -1062,7 +1061,7 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
-		server_send_soa_xfrd(&nsd, 1);
+		server_send_soa_xfrd(&nsd);
 	}
 
 	/* Really take off */
