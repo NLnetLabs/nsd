@@ -33,8 +33,6 @@ static void xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zon
 static void xfrd_send_reload_req(xfrd_state_t* xfrd);
 /* send quit request over the IPC channel */
 static void xfrd_send_quit_req(xfrd_state_t* xfrd);
-/* get SOA INFO out of IPC packet buffer */
-static void xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet);
 /* perform read part of handle ipc for xfrd */
 static void xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd);
 
@@ -613,60 +611,6 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 	xfrd->need_to_send_quit = 0;
 }
 
-static void
-xfrd_handle_ipc_SOAINFO(xfrd_state_t* xfrd, buffer_type* packet)
-{
-	xfrd_soa_t soa;
-	xfrd_soa_t* soa_ptr = &soa;
-	xfrd_zone_t* zone;
-	/* dname is sent in memory format */
-	const dname_type* dname = (const dname_type*)buffer_begin(packet);
-
-	/* find zone and decode SOA */
-	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
-	buffer_skip(packet, dname_total_size(dname));
-
-	if(!buffer_available(packet, sizeof(uint32_t)*6 + sizeof(uint8_t)*2)) {
-		/* NSD has zone without any info */
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s lost zone",
-			dname_to_string(dname,0)));
-		soa_ptr = NULL;
-	} else {
-		/* read soa info */
-		memset(&soa, 0, sizeof(soa));
-		/* left out type, klass, count for speed */
-		soa.type = htons(TYPE_SOA);
-		soa.klass = htons(CLASS_IN);
-		soa.ttl = htonl(buffer_read_u32(packet));
-		soa.rdata_count = htons(7);
-		soa.prim_ns[0] = buffer_read_u8(packet);
-		if(!buffer_available(packet, soa.prim_ns[0]))
-			return;
-		buffer_read(packet, soa.prim_ns+1, soa.prim_ns[0]);
-		soa.email[0] = buffer_read_u8(packet);
-		if(!buffer_available(packet, soa.email[0]))
-			return;
-		buffer_read(packet, soa.email+1, soa.email[0]);
-
-		soa.serial = htonl(buffer_read_u32(packet));
-		soa.refresh = htonl(buffer_read_u32(packet));
-		soa.retry = htonl(buffer_read_u32(packet));
-		soa.expire = htonl(buffer_read_u32(packet));
-		soa.minimum = htonl(buffer_read_u32(packet));
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "SOAINFO for %s %u",
-			dname_to_string(dname,0), (unsigned)ntohl(soa.serial)));
-	}
-
-	if(!zone) {
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: zone %s master zone updated",
-			dname_to_string(dname,0)));
-		notify_handle_master_zone_soainfo(xfrd->notify_zones,
-			dname, soa_ptr);
-		return;
-	}
-	xfrd_handle_incoming_soa(zone, soa_ptr, xfrd_time());
-}
-
 void
 xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 	netio_handler_type *handler,
@@ -753,6 +697,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 	}
 	if(xfrd->ipc_conn->is_reading) {
 		/* reading an IPC message */
+		buffer_type* tmp;
 		int ret = conn_read(xfrd->ipc_conn);
 		if(ret == -1) {
 			log_msg(LOG_ERR, "xfrd: error in read ipc: %s", strerror(errno));
@@ -762,20 +707,15 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		if(ret == 0)
 			return;
 		buffer_flip(xfrd->ipc_conn->packet);
-		if(xfrd->ipc_is_soa) {
-			xfrd->ipc_conn->is_reading = 0;
-			xfrd_handle_ipc_SOAINFO(xfrd, xfrd->ipc_conn->packet);
-		} else 	{
-			/* use ipc_conn to read remaining data as well */
-			buffer_type* tmp = xfrd->ipc_pass;
-			xfrd->ipc_conn->is_reading=2;
-			xfrd->ipc_pass = xfrd->ipc_conn->packet;
-			xfrd->ipc_conn->packet = tmp;
-			xfrd->ipc_conn->total_bytes = sizeof(xfrd->ipc_conn->msglen);
-			xfrd->ipc_conn->msglen = sizeof(uint32_t);
-			buffer_clear(xfrd->ipc_conn->packet);
-			buffer_set_limit(xfrd->ipc_conn->packet, xfrd->ipc_conn->msglen);
-		}
+		/* use ipc_conn to read remaining data as well */
+		tmp = xfrd->ipc_pass;
+		xfrd->ipc_conn->is_reading=2;
+		xfrd->ipc_pass = xfrd->ipc_conn->packet;
+		xfrd->ipc_conn->packet = tmp;
+		xfrd->ipc_conn->total_bytes = sizeof(xfrd->ipc_conn->msglen);
+		xfrd->ipc_conn->msglen = sizeof(uint32_t);
+		buffer_clear(xfrd->ipc_conn->packet);
+		buffer_set_limit(xfrd->ipc_conn->packet, xfrd->ipc_conn->msglen);
 		return;
 	}
 
@@ -808,7 +748,6 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd->sending_zone_state = 0;
 
 		xfrd->can_send_reload = 1;
-		xfrd->parent_soa_info_pass = 0;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;
 		xfrd_reopen_logfile();
@@ -817,7 +756,6 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		break;
 	case NSD_PASS_TO_XFRD:
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD"));
-		xfrd->ipc_is_soa = 0;
 		xfrd->ipc_conn->is_reading = 1;
 		break;
 	case NSD_RELOAD_REQ:

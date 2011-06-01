@@ -104,7 +104,6 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->udp_waiting_last = NULL;
 	xfrd->udp_use_num = 0;
 	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
-	xfrd->parent_soa_info_pass = 0;
 	xfrd->last_task = region_alloc(xfrd->region, sizeof(*xfrd->last_task));
 	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
 	assert(udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
