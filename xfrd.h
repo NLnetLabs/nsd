@@ -62,12 +62,9 @@ struct xfrd_state {
 	struct xfrd_tcp *ipc_conn;
 	struct buffer* ipc_pass;
 	/* sending ipc to server_main */
-	struct xfrd_tcp *ipc_conn_write;
 	uint8_t need_to_send_reload;
 	uint8_t need_to_send_quit;
-	uint8_t sending_zone_state;
 	uint8_t	ipc_send_blocked;
-	stack_type* dirty_zones; /* stack of xfrd_zone* */
 	struct udb_ptr* last_task;
 
 	/* xfrd shutdown flag */
@@ -136,10 +133,6 @@ struct xfrd_zone {
 		xfrd_zone_refreshing,
 		xfrd_zone_expired
 	} state;
-
-	/* if state is dirty it needs to be sent to server_main.
-	 * it is also on the dirty_stack. Not saved on disk. */
-	uint8_t dirty;
 
 	/* master to try to transfer from, number for persistence */
 	acl_options_t* master;
@@ -263,9 +256,6 @@ void xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa,
 /* handle a packet passed along ipc route. acl is the one that accepted
    the packet. The packet is the network blob received. */
 void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
-
-/* send expiry notify for all zones to nsd (sets all dirty). */
-void xfrd_send_expy_all_zones(void);
 
 /* try to reopen the logfile. */
 void xfrd_reopen_logfile(void);

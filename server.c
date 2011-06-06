@@ -250,8 +250,6 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 					ipc_data->got_bytes = 0;
 					ipc_data->total_bytes = 0;
 					ipc_data->acl_num = 0;
-					ipc_data->busy_writing_zone_state = 0;
-					ipc_data->write_conn = xfrd_tcp_create(region);
 					nsd->children[i].handler = (struct netio_handler*) region_alloc(
 						region, sizeof(struct netio_handler));
 					nsd->children[i].handler->fd = nsd->children[i].child_fd;
@@ -265,7 +263,6 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 				ipc_data = (struct main_ipc_handler_data*)
 					nsd->children[i].handler->user_data;
 				ipc_data->forward_mode = 0;
-				ipc_data->busy_writing_zone_state = 0;
 				/* restart - update fd */
 				nsd->children[i].handler->fd = nsd->children[i].child_fd;
 				break;
@@ -521,8 +518,7 @@ int
 server_prepare(struct nsd *nsd)
 {
 	/* Open the database... */
-	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options,
-		nsd->child_count)) == NULL) {
+	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options)) == NULL) {
 		log_msg(LOG_ERR, "unable to open the database %s: %s",
 			nsd->dbfile, strerror(errno));
 		return -1;
@@ -530,12 +526,10 @@ server_prepare(struct nsd *nsd)
 	/* check if zone files have been modified */
 	/* NULL for taskudb because we send soainfo in a moment, batched up,
 	 * for all zones */
-	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count,
-		NULL, NULL);
+	namedb_check_zonefiles(nsd->db, nsd->options, NULL, NULL);
 
 	/* Read diff file */
-	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count,
-		NULL, NULL)) {
+	if(!diff_read_file(nsd->db, nsd->options, NULL, NULL, NULL)) {
 		log_msg(LOG_ERR, "The diff file contains errors. Will continue "
 						 "without it");
 	}
@@ -845,7 +839,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	udb_ptr_init(&last_task, nsd->task[nsd->mytask]);
 	reload_process_tasks(nsd, &last_task);
 
-	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count,
+	if(!diff_read_file(nsd->db, nsd->options, NULL, 
 		nsd->task[nsd->mytask], &last_task)) {
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);

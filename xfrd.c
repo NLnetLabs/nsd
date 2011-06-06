@@ -128,12 +128,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	/* not reading using ipc_conn yet */
 	xfrd->ipc_conn->is_reading = 0;
 	xfrd->ipc_conn->fd = xfrd->ipc_handler.fd;
-	xfrd->ipc_conn_write = xfrd_tcp_create(xfrd->region);
-	xfrd->ipc_conn_write->fd = xfrd->ipc_handler.fd;
 	xfrd->need_to_send_reload = 0;
-	xfrd->sending_zone_state = 0;
-	xfrd->dirty_zones = stack_create(xfrd->region,
-			nsd_options_num_zones(nsd->options));
 
 	xfrd->notify_waiting_first = NULL;
 	xfrd->notify_waiting_last = NULL;
@@ -147,7 +142,6 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd_init_zones();
 	xfrd_receive_soa(socket);
 	xfrd_read_state(xfrd);
-	xfrd_send_expy_all_zones();
 
 	/* add handlers after zone handlers so they are before them in list */
 	netio_add_handler(xfrd->netio, &xfrd->reload_handler);
@@ -251,7 +245,6 @@ xfrd_init_zones()
 		xzone->apex = dname;
 		xzone->apex_str = zone_opt->name;
 		xzone->state = xfrd_zone_refreshing;
-		xzone->dirty = 0;
 		xzone->zone_options = zone_opt;
 		/* first retry will use first master */
 		xzone->master = 0;
@@ -409,16 +402,6 @@ xfrd_receive_soa(int socket)
 }
 
 void
-xfrd_send_expy_all_zones(void)
-{
-	xfrd_zone_t* zone;
-	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones)
-	{
-		xfrd_send_expire_notification(zone);
-	}
-}
-
-void
 xfrd_reopen_logfile(void)
 {
 	if (xfrd->nsd->file_rotation_ok)
@@ -546,7 +529,7 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		if (zone->state != xfrd_zone_expired &&
 			(uint32_t)xfrd_time() >= zone->soa_disk_acquired + ntohl(zone->soa_disk.expire)) {
 			/* zone expired */
-			log_msg(LOG_ERR, "xfrd: zone %s has expired", zone->apex_str);
+			log_msg(LOG_ERR, "zone %s has expired", zone->apex_str);
 			xfrd_set_zone_state(zone, xfrd_zone_expired);
 		}
 		else if(zone->state == xfrd_zone_ok &&
@@ -725,7 +708,8 @@ xfrd_set_zone_state(xfrd_zone_t* zone, enum xfrd_zone_state s)
 	if(s != zone->state) {
 		enum xfrd_zone_state old = zone->state;
 		zone->state = s;
-		if(s == xfrd_zone_expired || old == xfrd_zone_expired) {
+		if((s == xfrd_zone_expired || old == xfrd_zone_expired)
+			&& s!=old) {
 			xfrd_send_expire_notification(zone);
 		}
 	}
@@ -845,13 +829,9 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 static void
 xfrd_send_expire_notification(xfrd_zone_t* zone)
 {
-	if(zone->dirty)
-		return; /* already queued */
-	/* enqueue */
-	assert(xfrd->dirty_zones->num < xfrd->dirty_zones->capacity);
-	zone->dirty = 1;
-	stack_push(xfrd->dirty_zones, (void*)zone);
-	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
+	task_new_expire(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
+		zone->apex, zone->state == xfrd_zone_expired);
+	xfrd_set_reload_timeout();
 }
 
 int

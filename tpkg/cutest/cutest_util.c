@@ -18,7 +18,6 @@ static void util_1(CuTest *tc);
 static void util_2(CuTest *tc);
 static void util_3(CuTest *tc);
 static void util_4(CuTest *tc);
-static void util_5(CuTest *tc);
 
 CuSuite* reg_cutest_util(void)
 {
@@ -28,7 +27,6 @@ CuSuite* reg_cutest_util(void)
 	SUITE_ADD_TEST(suite, util_2);
 	SUITE_ADD_TEST(suite, util_3);
 	SUITE_ADD_TEST(suite, util_4);
-	SUITE_ADD_TEST(suite, util_5);
 	return suite;
 }
 
@@ -146,45 +144,6 @@ static void util_3(CuTest *tc)
 }
 
 static void util_4(CuTest *tc)
-{
-	/* test stack */
-	size_t max = 10;
-	size_t i;
-	region_type* region = region_create(xalloc, free);
-	stack_type* stack = stack_create(region, max);
-
-	/* test create */
-	CuAssert(tc, "stack test init", stack->num == 0);
-	CuAssert(tc, "stack test init", stack->capacity == max);
-
-	/* pop with empty stack */
-	CuAssert(tc, "stack test pop", stack_pop(stack) == NULL);
-	CuAssert(tc, "stack test pop", stack->num == 0);
-
-	/* push onto stack */
-	for(i=0; i<max; i++) {
-		stack_push(stack, (void*)i);
-		CuAssert(tc, "stack test push", stack->num == i+1);
-	}
-
-	/* push one more (falls off stack) */
-	CuAssert(tc, "stack test falloff", stack->num == max);
-	stack_push(stack, (void*)i+1);
-	CuAssert(tc, "stack test falloff", stack->num == max);
-
-	/* pop them off */
-	for(i=max; i>0; i--) {
-		CuAssert(tc, "stack test pop", stack_pop(stack) == (void*)i-1);
-		CuAssert(tc, "stack test pop", stack->num == i-1);
-	}
-
-	CuAssert(tc, "stack test empty", stack->num == 0);
-	CuAssert(tc, "stack test empty", stack_pop(stack) == NULL);
-
-	region_destroy(region);
-}
-
-static void util_5(CuTest *tc)
 {
 	/* test hex_pton */
 	uint8_t dest[100];

@@ -31,27 +31,22 @@ struct udb_base;
  * xfr reply from a master(acl checked).
  * followed by u32(acl number that matched from notify/xfr acl).
  */
-#define NSD_PASS_TO_XFRD 7
-/*
- * NSD_ZONE_STATE is followed by u16(len in network byte order),
- * octet 0: zone is expired, 1: zone ok. and dname of zone.
- */
-#define NSD_ZONE_STATE 8
+#define NSD_PASS_TO_XFRD 6
 /*
  * RELOAD_REQ is sent when parent receives a SIGHUP and tells
  * xfrd that it wants to initiate a reload (and thus task swap).
  */
-#define NSD_RELOAD_REQ 9
+#define NSD_RELOAD_REQ 7
 /*
  * RELOAD_DONE is sent at the end of a reload pass.
  * xfrd then knows that reload phase is over.
  */
-#define NSD_RELOAD_DONE 10
+#define NSD_RELOAD_DONE 8
 /*
  * QUIT_SYNC is sent to signify a synchronisation of ipc
  * channel content during reload
  */
-#define NSD_QUIT_SYNC 11
+#define NSD_QUIT_SYNC 9
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U
@@ -114,7 +109,6 @@ struct nsd_child
 	 */
 	uint8_t need_to_send_STATS, need_to_send_QUIT;
 	uint8_t need_to_exit, has_exited;
-	stack_type* dirty_zones; /* stack of type zone_type* */
 
 	/*
 	 * The handler for handling the commands from the child.

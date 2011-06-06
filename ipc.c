@@ -21,56 +21,14 @@
 #include "xfrd-notify.h"
 #include "difffile.h"
 
-/* set is_ok for the zone according to the zone message */
-static zone_type* handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet);
-/* write ipc ZONE_STATE message into the buffer */
-static void write_zone_state_packet(buffer_type* packet, zone_type* zone);
 /* attempt to send NSD_STATS command to child fd */
 static void send_stat_to_child(struct main_ipc_handler_data* data, int fd);
-/* write IPC expire notification msg to a buffer */
-static void xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone);
 /* send reload request over the IPC channel */
 static void xfrd_send_reload_req(xfrd_state_t* xfrd);
 /* send quit request over the IPC channel */
 static void xfrd_send_quit_req(xfrd_state_t* xfrd);
 /* perform read part of handle ipc for xfrd */
 static void xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd);
-
-static zone_type*
-handle_xfrd_zone_state(struct nsd* nsd, buffer_type* packet)
-{
-	uint8_t ok;
-	const dname_type *dname;
-	domain_type *domain;
-	zone_type *zone;
-
-	ok = buffer_read_u8(packet);
-	dname = (dname_type*)buffer_current(packet);
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "handler zone state %s is %s",
-		dname_to_string(dname, NULL), ok?"ok":"expired"));
-	/* find in zone_types, if does not exist, we cannot serve anyway */
-	/* find zone in config, since that one always exists */
-	domain = domain_table_find(nsd->db->domains, dname);
-	if(!domain) {
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "zone state msg, empty zone (domain %s)",
-			dname_to_string(dname, NULL)));
-		return NULL;
-	}
-	zone = domain_find_zone(domain);
-	if(!zone || dname_compare(domain_dname(zone->apex), dname) != 0) {
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "zone state msg, empty zone (zone %s)",
-			dname_to_string(dname, NULL)));
-		return NULL;
-	}
-	assert(zone);
-	/* only update zone->is_ok if needed to minimize copy-on-write
-	   of memory pages shared after fork() */
-	if(ok && !zone->is_ok)
-		zone->is_ok = 1;
-	if(!ok && zone->is_ok)
-		zone->is_ok = 0;
-	return zone;
-}
 
 void
 child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
@@ -82,24 +40,6 @@ child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
 	struct ipc_handler_conn_data *data =
 		(struct ipc_handler_conn_data *) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
-		return;
-	}
-
-	if(data->conn->is_reading) {
-		int ret = conn_read(data->conn);
-		if(ret == -1) {
-			log_msg(LOG_ERR, "handle_parent_command: error in conn_read: %s",
-				strerror(errno));
-			data->conn->is_reading = 0;
-			return;
-		}
-		if(ret == 0) {
-			return; /* continue later */
-		}
-		/* completed */
-		data->conn->is_reading = 0;
-		buffer_flip(data->conn->packet);
-		(void)handle_xfrd_zone_state(data->nsd, data->conn->packet);
 		return;
 	}
 
@@ -120,13 +60,6 @@ child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_QUIT:
 		data->nsd->mode = mode;
 		break;
-	case NSD_ZONE_STATE:
-		data->conn->is_reading = 1;
-		data->conn->total_bytes = 0;
-		data->conn->msglen = 0;
-		data->conn->fd = handler->fd;
-		buffer_clear(data->conn->packet);
-		break;
 	default:
 		log_msg(LOG_ERR, "handle_parent_command: bad mode %d",
 			(int) mode);
@@ -144,38 +77,6 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	struct ipc_handler_conn_data *data =
 		(struct ipc_handler_conn_data *) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
-		return;
-	}
-
-	if(data->conn->is_reading) {
-		/* handle ZONE_STATE forward to children */
-		int ret = conn_read(data->conn);
-		size_t i;
-		zone_type* zone;
-		if(ret == -1) {
-			log_msg(LOG_ERR, "main xfrd listener: error in conn_read: %s",
-				strerror(errno));
-			data->conn->is_reading = 0;
-			return;
-		}
-		if(ret == 0) {
-			return; /* continue later */
-		}
-		/* completed */
-		data->conn->is_reading = 0;
-		buffer_flip(data->conn->packet);
-		zone = handle_xfrd_zone_state(data->nsd, data->conn->packet);
-		if(!zone)
-			return;
-		/* forward to all children */
-		for (i = 0; i < data->nsd->child_count; ++i) {
-			if(!zone->dirty[i]) {
-				zone->dirty[i] = 1;
-				stack_push(data->nsd->children[i].dirty_zones, zone);
-				data->nsd->children[i].handler->event_types |=
-					NETIO_EVENT_WRITE;
-			}
-		}
 		return;
 	}
 
@@ -203,39 +104,11 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_REAP_CHILDREN:
 		data->nsd->signal_hint_child = 1;
 		break;
-	case NSD_ZONE_STATE:
-		data->conn->is_reading = 1;
-		data->conn->total_bytes = 0;
-		data->conn->msglen = 0;
-		data->conn->fd = handler->fd;
-		buffer_clear(data->conn->packet);
-		break;
 	default:
 		log_msg(LOG_ERR, "handle_xfrd_command: bad mode %d",
 			(int) mode);
 		break;
 	}
-}
-
-static void
-write_zone_state_packet(buffer_type* packet, zone_type* zone)
-{
-	sig_atomic_t cmd = NSD_ZONE_STATE;
-	uint8_t ok = zone->is_ok;
-	uint16_t sz;
-	if(!zone->apex) {
-		return;
-	}
-	sz = dname_total_size(domain_dname(zone->apex)) + 1;
-	sz = htons(sz);
-
-	buffer_clear(packet);
-	buffer_write(packet, &cmd, sizeof(cmd));
-	buffer_write(packet, &sz, sizeof(sz));
-	buffer_write(packet, &ok, sizeof(ok));
-	buffer_write(packet, domain_dname(zone->apex),
-		dname_total_size(domain_dname(zone->apex)));
-	buffer_flip(packet);
 }
 
 static void
@@ -303,43 +176,14 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 
 	/* do a nonblocking write to the child if it is ready. */
 	if (event_types & NETIO_EVENT_WRITE) {
-		if(!data->busy_writing_zone_state &&
-			!data->child->need_to_send_STATS &&
-			!data->child->need_to_send_QUIT &&
-			!data->child->need_to_exit &&
-			data->child->dirty_zones->num > 0) {
-			/* create packet from next dirty zone */
-			zone_type* zone = (zone_type*)stack_pop(data->child->dirty_zones);
-			assert(zone);
-			zone->dirty[data->child_num] = 0;
-			data->busy_writing_zone_state = 1;
-			write_zone_state_packet(data->write_conn->packet, zone);
-			data->write_conn->msglen = buffer_limit(data->write_conn->packet);
-			data->write_conn->total_bytes = sizeof(uint16_t); /* len bytes already in packet */
-			data->write_conn->fd = handler->fd;
-		}
-		if(data->busy_writing_zone_state) {
-			/* write more of packet */
-			int ret = conn_write(data->write_conn);
-			if(ret == -1) {
-				log_msg(LOG_ERR, "handle_child_cmd %d: could not write: %s",
-					(int)data->child->pid, strerror(errno));
-				data->busy_writing_zone_state = 0;
-			} else if(ret == 1) {
-				data->busy_writing_zone_state = 0; /* completed */
-			}
-		} else if(data->child->need_to_send_STATS &&
-			  !data->child->need_to_exit) {
+		if(data->child->need_to_send_STATS &&
+			!data->child->need_to_exit) {
 			send_stat_to_child(data, handler->fd);
 		} else if(data->child->need_to_send_QUIT) {
 			send_quit_to_child(data, handler->fd);
 			if(!data->child->need_to_send_QUIT)
 				handler->event_types = NETIO_EVENT_READ;
-		}
-		if(!data->busy_writing_zone_state &&
-			!data->child->need_to_send_STATS &&
-			!data->child->need_to_send_QUIT &&
-			data->child->dirty_zones->num == 0) {
+		} else {
 			handler->event_types = NETIO_EVENT_READ;
 		}
 	}
@@ -548,28 +392,6 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 }
 
 static void
-xfrd_write_expire_notification(buffer_type* buffer, xfrd_zone_t* zone)
-{
-	sig_atomic_t cmd = NSD_ZONE_STATE;
-	uint8_t ok = 1;
-	uint16_t sz = dname_total_size(zone->apex) + 1;
-	sz = htons(sz);
-	if(zone->state == xfrd_zone_expired)
-		ok = 0;
-
-	DEBUG(DEBUG_IPC,1, (LOG_INFO,
-		"xfrd encoding ipc zone state msg for zone %s state %d.",
-		zone->apex_str, (int)zone->state));
-
-	buffer_clear(buffer);
-	buffer_write(buffer, &cmd, sizeof(cmd));
-	buffer_write(buffer, &sz, sizeof(sz));
-	buffer_write(buffer, &ok, sizeof(ok));
-	buffer_write(buffer, zone->apex, dname_total_size(zone->apex));
-	buffer_flip(buffer);
-}
-
-static void
 xfrd_send_reload_req(xfrd_state_t* xfrd)
 {
 	sig_atomic_t req = NSD_RELOAD;
@@ -602,7 +424,6 @@ xfrd_send_quit_req(xfrd_state_t* xfrd)
 	sig_atomic_t cmd = NSD_QUIT;
 	xfrd->ipc_send_blocked = 1;
 	xfrd->ipc_handler.event_types &= (~NETIO_EVENT_WRITE);
-	xfrd->sending_zone_state = 0;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send ackreload(quit)"));
 	if(write_socket(xfrd->ipc_handler.fd, &cmd, sizeof(cmd)) == -1) {
 		log_msg(LOG_ERR, "xfrd: error writing ack to main: %s",
@@ -629,40 +450,13 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 			handler->event_types = NETIO_EVENT_READ;
 			return;
 		}
-		/* if necessary prepare a packet */
-		if(!(xfrd->can_send_reload && xfrd->need_to_send_reload) &&
-			!xfrd->need_to_send_quit &&
-			!xfrd->sending_zone_state &&
-			xfrd->dirty_zones->num > 0) {
-			xfrd_zone_t* zone = (xfrd_zone_t*)stack_pop(xfrd->dirty_zones);
-			assert(zone);
-			zone->dirty = 0;
-			xfrd->sending_zone_state = 1;
-			xfrd_write_expire_notification(xfrd->ipc_conn_write->packet, zone);
-			xfrd->ipc_conn_write->msglen = buffer_limit(xfrd->ipc_conn_write->packet);
-			/* skip length bytes; they are encoded in the packet, after cmd */
-			xfrd->ipc_conn_write->total_bytes = sizeof(uint16_t);
-		}
-		/* write a bit */
-		if(xfrd->sending_zone_state) {
-			/* call conn_write */
-			int ret = conn_write(xfrd->ipc_conn_write);
-			if(ret == -1) {
-				log_msg(LOG_ERR, "xfrd: error in write ipc: %s", strerror(errno));
-				xfrd->sending_zone_state = 0;
-			}
-			else if(ret == 1) { /* done */
-				xfrd->sending_zone_state = 0;
-			}
-		} else if(xfrd->need_to_send_quit) {
+		if(xfrd->need_to_send_quit) {
 			xfrd_send_quit_req(xfrd);
 		} else if(xfrd->can_send_reload && xfrd->need_to_send_reload) {
 			xfrd_send_reload_req(xfrd);
 		}
 		if(!(xfrd->can_send_reload && xfrd->need_to_send_reload) &&
-			!xfrd->need_to_send_quit &&
-			!xfrd->sending_zone_state &&
-			xfrd->dirty_zones->num == 0) {
+			!xfrd->need_to_send_quit) {
 			handler->event_types = NETIO_EVENT_READ; /* disable writing for now */
 		}
 	}
@@ -743,16 +537,13 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD_DONE"));
 		/* read the not-mytask for the results and soainfo */
 		xfrd_process_task_result(xfrd->nsd->task[1-xfrd->nsd->mytask]);
-		/* reset the nonblocking ipc write;
-		   the new parent does not want half a packet */
-		xfrd->sending_zone_state = 0;
-
+		/* reset the IPC, (and the nonblocking ipc write;
+		   the new parent does not want half a packet) */
 		xfrd->can_send_reload = 1;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;
 		xfrd_reopen_logfile();
 		xfrd_check_failed_updates();
-		xfrd_send_expy_all_zones();
 		break;
 	case NSD_PASS_TO_XFRD:
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD"));

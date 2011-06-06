@@ -58,7 +58,6 @@ create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 {
 	nsd_options_t* opt;
 	zone_options_t* zone;
-	int child_count = 1;
 	namedb_type* db;
 	char* dbfile = udbtest_get_temp_file("namedb.udb");
 	char* zonefile = udbtest_get_temp_file("namedb.zone");
@@ -84,12 +83,12 @@ create_and_read_db(CuTest* tc, region_type* region, const char* zonename,
 	}
 
 	/* read the db */
-	db = namedb_open(dbfile, opt, child_count);
+	db = namedb_open(dbfile, opt);
 	if(!db) {
 		printf("failed to open %s: %s\n", dbfile, strerror(errno));
 		exit(1);
 	}
-	namedb_check_zonefiles(db, opt, child_count, NULL, NULL);
+	namedb_check_zonefiles(db, opt, NULL, NULL);
 	unlink(zonefile);
 	free(dbfile);
 	free(zonefile);

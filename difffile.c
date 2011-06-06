@@ -724,9 +724,9 @@ add_RR(namedb_type* db, const dname_type* dname,
 	return 1;
 }
 
-zone_type*
+static zone_type*
 find_or_create_zone(namedb_type* db, const dname_type* zone_name,
-	nsd_options_t* opt, size_t child_count)
+	nsd_options_t* opt)
 {
 	zone_type* zone;
 	zone_options_t* zopt;
@@ -740,8 +740,7 @@ find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 			dname_to_string(zone_name,0));
 		return 0;
 	}
-	zone = namedb_zone_create(db, zone_name, zopt, child_count);
-	zone->is_ok = 0;
+	zone = namedb_zone_create(db, zone_name, zopt);
 	return zone;
 }
 
@@ -789,7 +788,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
 	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
-	size_t child_count, udb_ptr* udbz, struct zone** zone_res)
+	udb_ptr* udbz, struct zone** zone_res)
 {
 	uint32_t filelen, msglen, pkttype, timestamp[2];
 	int qcount, ancount, counter;
@@ -863,7 +862,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		- strlen(file_zone_name);
 	packet = buffer_create(region, QIOBUFSZ);
 	dname_zone = dname_parse(region, zone);
-	zone_db = find_or_create_zone(db, dname_zone, opt, child_count);
+	zone_db = find_or_create_zone(db, dname_zone, opt);
 	if(!zone_db) {
 		log_msg(LOG_ERR, "no zone exists");
 		region_destroy(region);
@@ -1231,7 +1230,7 @@ mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
 static int
 read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	struct diff_read_data* data, struct diff_log** log,
-	size_t child_count, udb_base* taskudb, udb_ptr* last_task)
+	udb_base* taskudb, udb_ptr* last_task)
 {
 	char zone_buf[3072];
 	char log_buf[5120];
@@ -1346,7 +1345,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
 			ret = apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
-				&rr_count, child_count, &z, &zonedb);
+				&rr_count, &z, &zonedb);
 			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
 					opt->difffile);
@@ -1416,7 +1415,7 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 static int
 read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	nsd_options_t* opt, struct diff_read_data* data,
-	struct diff_log** log, size_t child_count, off_t* startpos,
+	struct diff_log** log, off_t* startpos,
 	udb_base* taskudb, udb_ptr* last_task)
 {
 	uint32_t len, len2;
@@ -1432,8 +1431,7 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	}
 	else if(type == DIFF_PART_SURE) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", (int)len));
-		if(!read_sure_part(db, in, opt, data, log, child_count,
-			taskudb, last_task))
+		if(!read_sure_part(db, in, opt, data, log, taskudb, last_task))
 			return 0;
 	} else {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", (unsigned)type, (int)len));
@@ -1487,7 +1485,7 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 
 int
 diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
-	size_t child_count, udb_base* taskudb, udb_ptr* last_task)
+	udb_base* taskudb, udb_ptr* last_task)
 {
 	const char* filename = opt->difffile;
 	FILE *df;
@@ -1578,7 +1576,7 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 		}
 
 		if(!read_process_part(db, df, type, opt, data, log,
-			child_count, &startpos, taskudb, last_task))
+			&startpos, taskudb, last_task))
 		{
 			log_msg(LOG_INFO, "error processing diff file");
 			region_destroy(data->region);
@@ -1842,6 +1840,7 @@ void task_new_check_zonefiles(udb_base* udb, udb_ptr* last)
 void
 task_process_expire(namedb_type* db, struct task_list_d* task)
 {
+	uint8_t ok;
 	zone_type* z = namedb_find_zone(db, task->zname);
 	assert(task->task_type == task_expire);
 	if(!z) {
@@ -1852,9 +1851,15 @@ task_process_expire(namedb_type* db, struct task_list_d* task)
 	}
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: expire task zone %s %s",
 		dname_to_string(task->zname,0),
-		task->yesno?"expire":"unexpire"));
+		task->yesno?"expired":"unexpired"));
 	/* find zone, set expire flag */
-	z->is_ok = !task->yesno;
+	ok = !task->yesno;
+	/* only update zone->is_ok if needed to minimize copy-on-write
+	 * of memory pages shared after fork() */
+	if(ok && !z->is_ok)
+		z->is_ok = 1;
+	else if(!ok && z->is_ok)
+		z->is_ok = 0;
 }
 
 static void
@@ -1862,8 +1867,7 @@ task_process_checkzones(struct nsd* nsd, udb_base* udb, udb_ptr* last_task)
 {
 	/* on SIGHUP check if zone-text-files changed and if so,
 	 * reread.  When from xfrd-reload, no need to fstat the files */
-	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count,
-		udb, last_task);
+	namedb_check_zonefiles(nsd->db, nsd->options, udb, last_task);
 }
 
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,

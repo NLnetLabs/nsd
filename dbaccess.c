@@ -239,7 +239,7 @@ read_zone_data(udb_base* udb, namedb_type* db, region_type* dname_region,
 /** create a zone */
 zone_type*
 namedb_zone_create(namedb_type* db, const dname_type* dname,
-	zone_options_t* zo, size_t num_children)
+	zone_options_t* zo)
 {
 	zone_type* zone = (zone_type *) region_alloc(db->region,
 		sizeof(zone_type));
@@ -262,15 +262,13 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 	zone->opts = zo;
 	zone->is_secure = 0;
 	zone->is_ok = 1;
-	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*num_children);
-	memset(zone->dirty, 0, sizeof(uint8_t)*num_children);
 	return zone;
 }
 
 /** read a zone */
 static void
 read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
-	size_t num_children, region_type* dname_region, udb_ptr* z)
+	region_type* dname_region, udb_ptr* z)
 {
 	/* construct dname */
 	const dname_type* dname = dname_make(dname_region, ZONE(z)->name, 0);
@@ -286,7 +284,7 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 		region_free_all(dname_region);
 		return;
 	}
-	zone = namedb_zone_create(db, dname, zo, num_children);
+	zone = namedb_zone_create(db, dname, zo);
 	region_free_all(dname_region);
 	read_zone_data(udb, db, dname_region, z, zone);
 }
@@ -294,7 +292,7 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 /** read zones from nsd.db */
 static void
 read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
-	size_t num_children, region_type* dname_region)
+	region_type* dname_region)
 {
 	udb_ptr ztree, n, z;
 	udb_ptr_init(&z, udb);
@@ -303,7 +301,7 @@ read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	while(n.data) {
 		udb_ptr_set_rptr(&z, udb, &RADNODE(&n)->elem);
 		udb_radix_next(udb, &n); /* store in case n is deleted */
-		read_zone(udb, db, opt, num_children, dname_region, &z);
+		read_zone(udb, db, opt, dname_region, &z);
 		udb_ptr_zero(&z, udb);
 	}
 	udb_ptr_unlink(&ztree, udb);
@@ -314,7 +312,7 @@ read_zones(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 /** try to read the udb file or fail */
 static int
 try_read_udb(namedb_type* db, int fd, const char *filename,
-	nsd_options_t* opt, size_t num_children)
+	nsd_options_t* opt)
 {
 	/*
 	 * Temporary region used while loading domain names from the
@@ -343,13 +341,13 @@ try_read_udb(namedb_type* db, int fd, const char *filename,
 	dname_region = region_create(xalloc, free);
 	/* this operation does not fail, we end up with
 	 * something, even if that is an empty namedb */
-	read_zones(db->udb, db, opt, num_children, dname_region);
+	read_zones(db->udb, db, opt, dname_region);
 	region_destroy(dname_region);
 	return 1;
 }
 
 struct namedb *
-namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
+namedb_open (const char *filename, nsd_options_t* opt)
 {
 	namedb_type *db;
 
@@ -393,7 +391,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 
 	/* attempt to read the file (if it exists) */
 	if(fd != -1) {
-		if(!try_read_udb(db, fd, filename, opt, num_children))
+		if(!try_read_udb(db, fd, filename, opt))
 			fd = -1;
 	}
 	/* attempt to create the file (if necessary or failed read) */
@@ -472,7 +470,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 		log_msg(LOG_ERR, "zone %s file %s read with %u errors",
 			zone->opts->name, fname, errors);
 		/* wipe (partial) zone from memory */
-		zone->is_ok = 0;
+		zone->is_ok = 1;
 		delete_zone_rrs(db, zone);
 #ifdef NSEC3
 		nsec3_clear_precompile(db, zone);
@@ -506,7 +504,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 }
 
 void namedb_check_zonefiles(struct namedb* db, nsd_options_t* opt,
-	size_t num_children, udb_base* taskudb, udb_ptr* last_task)
+	udb_base* taskudb, udb_ptr* last_task)
 {
 	zone_options_t* zo;
 	zone_type* zone;
@@ -522,7 +520,7 @@ void namedb_check_zonefiles(struct namedb* db, nsd_options_t* opt,
 		/* find zone to go with it, or create it */
 		zone = namedb_find_zone(db, dname);
 		if(!zone) {
-			zone = namedb_zone_create(db, dname, zo, num_children);
+			zone = namedb_zone_create(db, dname, zo);
 			region_free_all(dname_region);
 		}
 		namedb_read_zonefile(db, zone, taskudb, last_task);

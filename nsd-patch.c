@@ -274,7 +274,6 @@ int main(int argc, char* argv[])
 	struct namedb* db = NULL;
 	struct zone* zone;
 	struct diff_log* commit_log = 0;
-	size_t fake_child_count = 1;
 	int debug_list_diff = 0;
 	int skip_write = 0;
 	int difffile_exists = 0;
@@ -336,7 +335,7 @@ int main(int argc, char* argv[])
 
 	/* read database and diff file */
 	fprintf(stdout, "reading database\n");
-	db = namedb_open(options->database, options, fake_child_count);
+	db = namedb_open(options->database, options);
 	if(!db) {
 		fprintf(stderr, "could not read database: %s\n",
 			options->database);
@@ -346,8 +345,7 @@ int main(int argc, char* argv[])
 	/* read ixfr diff file */
 	if (difffile_exists) {
 		fprintf(stdout, "reading updates to database\n");
-		if(!diff_read_file(db, options, &commit_log, fake_child_count,
-			NULL, NULL))
+		if(!diff_read_file(db, options, &commit_log, NULL, NULL))
 		{
 			fprintf(stderr, "unable to load the diff file: %s\n",
 				options->difffile);

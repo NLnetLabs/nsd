@@ -49,7 +49,7 @@ void diff_write_commit(const char* zone, uint32_t old_serial,
    then, *log must be 0 on start of call (entries are prepended).
    returns 0 on an unrecoverable error. */
 int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
-	size_t child_count, udb_base* taskudb, udb_ptr* last_task);
+	udb_base* taskudb, udb_ptr* last_task);
 
 /* check the diff file for garbage at the end (bad type, partial write)
  * and snip it off.

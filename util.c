@@ -971,43 +971,6 @@ rcode2str(int rc)
         return NULL; /* ENOREACH */
 }
 
-stack_type*
-stack_create(struct region* region, size_t size)
-{
-	stack_type* stack = (stack_type*)region_alloc(region,
-		sizeof(stack_type));
-	stack->capacity = size;
-	stack->num = 0;
-	stack->data = (void**) region_alloc(region, sizeof(void*)*size);
-	memset(stack->data, 0, sizeof(void*)*size);
-	return stack;
-}
-
-void
-stack_push(stack_type* stack, void* elem)
-{
-	assert(stack);
-	if(stack->num >= stack->capacity) {
-		/* stack out of capacity, elem falls off stack */
-		return;
-	}
-	stack->data[stack->num] = elem;
-	stack->num ++;
-}
-
-void*
-stack_pop(stack_type* stack)
-{
-	void* elem;
-	assert(stack);
-	if(stack->num <= 0)
-		return NULL;
-	stack->num --;
-	elem = stack->data[stack->num];
-	stack->data[stack->num] = NULL;
-	return elem;
-}
-
 int
 addr2ip(
 #ifdef INET6

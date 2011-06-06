@@ -718,8 +718,6 @@ main(int argc, char *argv[])
 		nsd.children[i].need_to_send_QUIT = 0;
 		nsd.children[i].need_to_exit = 0;
 		nsd.children[i].has_exited = 0;
-		nsd.children[i].dirty_zones = stack_create(nsd.region,
-			nsd_options_num_zones(nsd.options));
 	}
 
 	nsd.this_child = NULL;

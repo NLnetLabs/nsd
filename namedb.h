@@ -117,7 +117,6 @@ struct zone
 	struct radtree *dshashtree; /* tree, ds-parent-hash domains */
 #endif
 	struct zone_options *opts;
-	uint8_t*     dirty; /* array of dirty-flags, per child */
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     is_ok : 1; /* zone has not expired. */
 };
@@ -330,18 +329,16 @@ int namedb_lookup (struct namedb    *db,
 		   domain_type     **closest_match,
 		   domain_type     **closest_encloser);
 /* pass number of children (to alloc in dirty array */
-struct namedb *namedb_open(const char *filename, struct nsd_options* opt,
-	size_t num_children);
+struct namedb *namedb_open(const char *filename, struct nsd_options* opt);
 void namedb_fd_close(struct namedb *db);
 void namedb_close_udb(struct namedb* db);
 void namedb_close(struct namedb *db);
 void namedb_check_zonefiles(struct namedb* db, struct nsd_options* opt,
-	size_t num_children, struct udb_base* taskudb,
-	struct udb_ptr* last_task);
+	struct udb_base* taskudb, struct udb_ptr* last_task);
 void apex_rrset_checks(struct namedb* db, rrset_type* rrset,
 	domain_type* domain);
 zone_type* namedb_zone_create(namedb_type* db, const dname_type* dname,
-        struct zone_options* zo, size_t num_children);
+        struct zone_options* zo);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)

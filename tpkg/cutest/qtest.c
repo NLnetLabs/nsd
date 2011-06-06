@@ -65,7 +65,6 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 	/* setup nsd */
 	memset(nsd, 0, sizeof(*nsd));
 	nsd->region = region;
-	nsd->child_count = 1;
 	
 	/* options */
 	printf("read %s\n", config);
@@ -90,15 +89,13 @@ qsetup(nsd_type* nsd, region_type* region, query_type** query, char* config)
 	/* read db */
 	printf("read %s (%d zones)\n", nsd->options->database,
 		(int)nsd_options_num_zones(nsd->options));
-	nsd->db = namedb_open(nsd->options->database, nsd->options,
-		nsd->child_count);
+	nsd->db = namedb_open(nsd->options->database, nsd->options);
 	if(!nsd->db) {
 		printf("failed to open %s: %s\n", nsd->options->database,
 			strerror(errno));
 		exit(1);
 	}
-	namedb_check_zonefiles(nsd->db, nsd->options, nsd->child_count,
-		NULL, NULL);
+	namedb_check_zonefiles(nsd->db, nsd->options, NULL, NULL);
 
 	/* setup query */
 	compression_table_capacity = 0;
