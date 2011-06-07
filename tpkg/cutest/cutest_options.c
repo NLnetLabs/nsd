@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "tpkg/cutest/cutest.h"
 #include "region-allocator.h"
 #include "options.h"
@@ -24,6 +25,7 @@ static void acl_5(CuTest *tc);
 static void acl_6(CuTest *tc);
 static void replace_1(CuTest *tc);
 static void replace_2(CuTest *tc);
+static void zonelist_1(CuTest *tc);
 
 CuSuite* reg_cutest_options(void)
 {
@@ -37,6 +39,7 @@ CuSuite* reg_cutest_options(void)
 	SUITE_ADD_TEST(suite, acl_6); /* acl_same_host */
 	SUITE_ADD_TEST(suite, replace_1); /* replace_str */
 	SUITE_ADD_TEST(suite, replace_2); /* make_zonefile */
+	SUITE_ADD_TEST(suite, zonelist_1); /* zonelist */
 	return suite;
 }
 
@@ -319,5 +322,174 @@ static void replace_2(CuTest *tc)
 	p.zonefile = "%z/%y/thezone";
 	CuAssertStrEquals(tc, "com/example/thezone", config_make_zonefile(&z));
 
-	region_free_all(region);
+	region_destroy(region);
+}
+
+static int
+has_free_elem(struct zonelist_free* e, off_t off)
+{
+	while(e) {
+		if(e->off == off)
+			return 1;
+		e = e->next;
+	}
+	return 0;
+}
+
+static size_t
+count_free(CuTest* tc, nsd_options_t* opt)
+{
+	struct zonelist_free* e;
+	struct zonelist_bucket* b;
+	size_t c = 0;
+	RBTREE_FOR(b, struct zonelist_bucket*, opt->zonefree) {
+		CuAssertTrue(tc, b->list != NULL);
+		for(e = b->list; e; e = e->next)
+			c++;
+	}
+	return c;
+}
+
+static void
+check_zonelist_file(CuTest *tc, nsd_options_t* opt, const char* s)
+{
+	char buf[1024];
+	FILE* in;
+	int line = 0;
+	size_t delcount = 0;
+	fflush(opt->zonelist);
+	in = fopen(opt->zlfile, "r");
+	while(fgets(buf, sizeof(buf), in)) {
+		line++;
+		if(strncmp(buf, s, strlen(buf)) != 0) {
+			printf("zonelist fail line %d\n", line);
+			printf("got: %s\n", buf);
+			printf("wanted: %s\n", s);
+			CuAssertTrue(tc, 0);
+		}
+		if(strncmp(buf, "del ", 4) == 0) {
+			int linesize = strlen(buf);
+			struct zonelist_bucket* b = (struct zonelist_bucket*)
+				rbtree_search(opt->zonefree, &linesize);
+			CuAssertTrue(tc, b != NULL);
+			CuAssertTrue(tc, b->linesize == linesize);
+			CuAssertTrue(tc, b->list);
+			CuAssertTrue(tc, has_free_elem(b->list, ftello(in)-linesize));
+			delcount ++;
+		}
+		s += strlen(buf);
+	}
+	if(*s != 0) {
+		printf("zonelist fail: expected more at EOF\n");
+		printf("wanted: %s\n", s);
+		CuAssertTrue(tc, 0);
+	}
+	CuAssertTrue(tc, count_free(tc, opt) == delcount);
+	CuAssertTrue(tc, opt->zonelist_off == ftello(in));
+	fclose(in);
+}
+
+static void zonelist_1(CuTest *tc)
+{
+	zone_options_t* z1, *z2, *z3;
+	pattern_options_t* p1, *p2;
+	char zname[1024];
+	region_type* region = region_create_custom(xalloc, free,
+		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
+		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
+	nsd_options_t* opt = nsd_options_create(region);
+	opt->region = region;
+	snprintf(zname, sizeof(zname), "/tmp/unitzlist%u.cfg",
+		(unsigned)getpid());
+
+	/* create master and slave patterns */
+	p1 = pattern_options_create(opt->region);
+	p1->pname = region_strdup(opt->region, "master");
+	nsd_options_insert_pattern(opt, p1);
+	p2 = pattern_options_create(opt->region);
+	p2->pname = region_strdup(opt->region, "slave");
+	nsd_options_insert_pattern(opt, p2);
+
+	/* file does not exist, try to open it */
+	CuAssertTrue(tc, parse_zone_list_file(opt, zname));
+	CuAssertTrue(tc, opt->zonefree->count == 0);
+	CuAssertTrue(tc, opt->zonelist == NULL);
+	CuAssertTrue(tc, opt->zonelist_off == (off_t)0);
+
+	/* add some entries */
+	z1 = zone_list_add(opt, "example.com", "master");
+	CuAssertTrue(tc, opt->zonelist_off != (off_t)0);
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n");
+	z2 = zone_list_add(opt, "example.net", "slave");
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "add example.net slave\n");
+	z3 = zone_list_add(opt, "foo.nl", "slave");
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "add example.net slave\n"
+		"add foo.nl slave\n");
+	CuAssertTrue(tc, opt->zonefree->count == 0);
+
+	/* delete some entries */
+	zone_list_del(opt, z2); /* "example.net" */
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "del example.net slave\n"
+		"add foo.nl slave\n");
+	zone_list_del(opt, z3); /* "foo.nl" */
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "del example.net slave\n"
+		"del foo.nl slave\n");
+	z2 = zone_list_add(opt, "bar.nl", "slave");
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "del example.net slave\n"
+		"add bar.nl slave\n");
+	z3 = zone_list_add(opt, "zoink.com", "slave");
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "del example.net slave\n"
+		"add bar.nl slave\n" "add zoink.com slave\n");
+	zone_list_close(opt);
+	region_destroy(region);
+
+	region = region_create_custom(xalloc, free,
+		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
+		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
+	opt = nsd_options_create(region);
+	opt->region = region;
+
+	/* create master and slave patterns */
+	p1 = pattern_options_create(opt->region);
+	p1->pname = region_strdup(opt->region, "master");
+	nsd_options_insert_pattern(opt, p1);
+	p2 = pattern_options_create(opt->region);
+	p2->pname = region_strdup(opt->region, "slave");
+	nsd_options_insert_pattern(opt, p2);
+
+	/* read zonelist contents (file exists) and compact */
+	CuAssertTrue(tc, parse_zone_list_file(opt, zname));
+	CuAssertTrue(tc, opt->zonelist != NULL);
+	CuAssertTrue(tc, opt->zonefree->count != 0);
+	CuAssertTrue(tc, opt->zonelist_off != (off_t)0);
+	/* check contents of freelist memory */
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "del example.net slave\n"
+		"add bar.nl slave\n" "add zoink.com slave\n");
+	zone_list_compact(opt);
+	/* check contents of zonelist file */
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "add zoink.com slave\n"
+		"add bar.nl slave\n");
+
+	/* delete more zones, compact and see that it has truncated */
+	while(opt->zone_options->count)
+		zone_list_del(opt, (zone_options_t*)opt->zone_options->root);
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"del example.com master\n" "del zoink.com slave\n"
+		"del bar.nl slave\n");
+	zone_list_compact(opt);
+	/* check contents of zonelist file */
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n");
+
+	zone_list_close(opt);
+	region_destroy(region);
+	unlink(zname);
 }

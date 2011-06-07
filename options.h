@@ -39,6 +39,8 @@ struct nsd_options {
 	FILE* zonelist;
 	/* last offset in file (or 0 if none) */
 	off_t zonelist_off;
+	/* actual zonelist file name in use */
+	char* zlfile;
 
 	/* list of keys defined */
 	key_options_t* keys;
@@ -223,6 +225,11 @@ key_options_t* key_options_create(region_type* region);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
 /* read in zone list file. Returns false on failure */
 int parse_zone_list_file(nsd_options_t* opt, const char* zlfile);
+zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
+	const char* pname);
+void zone_list_del(nsd_options_t* opt, zone_options_t* zone);
+void zone_list_compact(nsd_options_t* opt);
+void zone_list_close(nsd_options_t* opt);
 
 #if defined(HAVE_SSL)
 /* tsig must be inited, adds all keys in options to tsig. */

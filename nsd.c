@@ -571,7 +571,9 @@ main(int argc, char *argv[])
 	}
 
 	/* Read options */
-	nsd.options = nsd_options_create(region_create(xalloc, free));
+	nsd.options = nsd_options_create(region_create_custom(xalloc, free,
+		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
+		DEFAULT_INITIAL_CLEANUP_SIZE, 1));
 	if(!parse_options_file(nsd.options, configfile)) {
 		error("could not read config: %s\n", configfile);
 	}

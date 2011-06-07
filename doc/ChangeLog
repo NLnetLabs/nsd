@@ -1,3 +1,6 @@
+7 June 2011: Wouter
+	- code to add and remove zonelist entries, and unit test.
+
 6 June 2011: Wouter
 	- fix unit tests for mmap with TODO and removal of -f in nsd-patch.
 	- zone expiry is communicated via the mmap, and not via the pipes,

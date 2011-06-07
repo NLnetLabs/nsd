@@ -233,6 +233,34 @@ static void zone_list_free_insert(nsd_options_t* opt, int linesize, off_t off)
 	e->off = off;
 }
 
+static zone_options_t*
+zone_list_zone_insert(nsd_options_t* opt, const char* nm, const char* patnm,
+	int linesize, off_t off)
+{
+	pattern_options_t* pat = (pattern_options_t*)rbtree_search(
+		opt->patterns, patnm);
+	zone_options_t* zone;
+	if(!pat) {
+		log_msg(LOG_ERR, "pattern does not exist for zone %s "
+			"pattern %s", nm, patnm);
+		return NULL;
+	}
+	zone = zone_options_create(opt->region);
+	zone->part_of_config = 0;
+	zone->name = region_strdup(opt->region, nm);
+	zone->linesize = linesize;
+	zone->off = off;
+	zone->pattern = pat;
+	if(!nsd_options_insert_zone(opt, zone)) {
+		log_msg(LOG_ERR, "bad domain name or duplicate zone '%s' "
+			"pattern %s", nm, patnm);
+		region_recycle(opt->region, (void*)zone->name, strlen(nm)+1);
+		region_recycle(opt->region, zone, sizeof(*zone));
+		return NULL;
+	}
+	return zone;
+}
+
 int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 {
 	/* zonelist looks like this:
@@ -248,6 +276,7 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 	opt->zonefree = rbtree_create(opt->region, comp_zonebucket);
 	opt->zonelist = NULL;
 	opt->zonelist_off = 0;
+	opt->zlfile = region_strdup(opt->region, zlfile);
 
 	/* try to open the zonelist file, an empty or nonexist file is OK */
 	opt->zonelist = fopen(zlfile, "r+");
@@ -288,25 +317,13 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 			nm = buf+4;
 			*space = 0;
 			patnm = space+1;
+			if(linesize && buf[linesize-1] == '\n')
+				buf[linesize-1] = 0;
+
 			/* store offset and line size for zone entry */
 			/* and create zone entry in zonetree */
-			zone_options_t* zone = zone_options_create(opt->region);
-			zone->part_of_config = 0;
-			zone->name = region_strdup(opt->region, nm);
-			zone->linesize = linesize;
-			zone->off = ftello(opt->zonelist)-linesize;
-			zone->pattern = (pattern_options_t*)rbtree_search(
-				opt->patterns, patnm);
-			if(!zone->pattern) {
-				log_msg(LOG_ERR, "pattern does not exist for "
-					"zone %s pattern %s", nm, patnm);
-				continue;
-			}
-			if(!nsd_options_insert_zone(opt, zone)) {
-				log_msg(LOG_ERR, "bad domain name or "
-					"duplicate zone '%s' pattern %s",
-					nm, patnm);
-			}
+			(void)zone_list_zone_insert(opt, nm, patnm, linesize,
+				ftello(opt->zonelist)-linesize);
 		} else if(strncmp(buf, "del ", 4) == 0) {
 			/* store offset and line size for deleted entry */
 			int linesize = strlen(buf);
@@ -321,26 +338,236 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 	opt->zonelist_off = ftello(opt->zonelist);
 	return 1;
 }
-/* add a new zone to the zonelist */
-void zone_list_add(nsd_options_t* opt, const char* zname, const char* pname)
+static void
+zone_options_delete(nsd_options_t* opt, zone_options_t* zone)
 {
-	/* use free entry or append to file or create new file */
-	/* create zone entry */
-	/* TODO */
+	rbtree_delete(opt->zone_options, zone->node.key);
+	region_recycle(opt->region, (void*)zone->node.key, dname_total_size(
+		(dname_type*)zone->node.key));
+	region_recycle(opt->region, zone, sizeof(*zone));
 }
+
+/* add a new zone to the zonelist */
+zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
+	const char* pname)
+{
+	int r;
+	struct zonelist_free* e;
+	struct zonelist_bucket* b;
+	int linesize = 6 + strlen(zname) + strlen(pname);
+	/* create zone entry */
+	zone_options_t* zone = zone_list_zone_insert(opt, zname, pname,
+		linesize, 0);
+	if(!zone)
+		return NULL;
+
+	/* use free entry or append to file or create new file */
+	if(!opt->zonelist || opt->zonelist_off == 0) {
+		/* create new file */
+		if(opt->zonelist) fclose(opt->zonelist);
+		opt->zonelist = fopen(opt->zlfile, "w+");
+		if(!opt->zonelist) {
+			log_msg(LOG_ERR, "could not create zone list %s: %s",
+				opt->zlfile, strerror(errno));
+			log_msg(LOG_ERR, "zone %s could not be added", zname);
+			zone_options_delete(opt, zone);
+			return NULL;
+		}
+		r = fprintf(opt->zonelist, ZONELIST_HEADER);
+		if(r != strlen(ZONELIST_HEADER)) {
+			if(r == -1)
+				log_msg(LOG_ERR, "could not write to %s: %s",
+					opt->zlfile, strerror(errno));
+			else log_msg(LOG_ERR, "partial write to %s: disk full",
+				opt->zlfile);
+			log_msg(LOG_ERR, "zone %s could not be added", zname);
+			zone_options_delete(opt, zone);
+			return NULL;
+		}
+		zone->off = ftello(opt->zonelist);
+		if(zone->off == -1)
+			log_msg(LOG_ERR, "ftello(%s): %s", opt->zlfile, strerror(errno));
+		r = fprintf(opt->zonelist, "add %s %s\n", zname, pname);
+		if(r != zone->linesize) {
+			if(r == -1)
+				log_msg(LOG_ERR, "could not write to %s: %s",
+					opt->zlfile, strerror(errno));
+			else log_msg(LOG_ERR, "partial write to %s: disk full",
+				opt->zlfile);
+			log_msg(LOG_ERR, "zone %s could not be added", zname);
+			zone_options_delete(opt, zone);
+			return NULL;
+		}
+		opt->zonelist_off = ftello(opt->zonelist);
+		if(opt->zonelist_off == -1)
+			log_msg(LOG_ERR, "ftello(%s): %s", opt->zlfile, strerror(errno));
+		return zone;
+	}
+	b = (struct zonelist_bucket*)rbtree_search(opt->zonefree,
+		&zone->linesize);
+	if(!b || b->list == NULL) {
+		/* no empty place, append to file */
+		zone->off = opt->zonelist_off;
+		if(fseeko(opt->zonelist, zone->off, SEEK_SET) == -1) {
+			log_msg(LOG_ERR, "fseeko(%s): %s", opt->zlfile, strerror(errno));
+			log_msg(LOG_ERR, "zone %s could not be added", zname);
+			zone_options_delete(opt, zone);
+			return NULL;
+		}
+		r = fprintf(opt->zonelist, "add %s %s\n", zname, pname);
+		if(r != zone->linesize) {
+			if(r == -1)
+				log_msg(LOG_ERR, "could not write to %s: %s",
+					opt->zlfile, strerror(errno));
+			else log_msg(LOG_ERR, "partial write to %s: disk full",
+				opt->zlfile);
+			log_msg(LOG_ERR, "zone %s could not be added", zname);
+			zone_options_delete(opt, zone);
+			return NULL;
+		}
+		opt->zonelist_off += linesize;
+		return zone;
+	}
+	/* reuse empty spot */
+	e = b->list;
+	zone->off = e->off;
+	if(fseeko(opt->zonelist, zone->off, SEEK_SET) == -1) {
+		log_msg(LOG_ERR, "fseeko(%s): %s", opt->zlfile, strerror(errno));
+		log_msg(LOG_ERR, "zone %s could not be added", zname);
+		zone_options_delete(opt, zone);
+		return NULL;
+	}
+	r = fprintf(opt->zonelist, "add %s %s\n", zname, pname);
+	if(r != zone->linesize) {
+		if(r == -1)
+			log_msg(LOG_ERR, "could not write to %s: %s",
+				opt->zlfile, strerror(errno));
+		else log_msg(LOG_ERR, "partial write to %s: disk full",
+			opt->zlfile);
+		log_msg(LOG_ERR, "zone %s could not be added", zname);
+		zone_options_delete(opt, zone);
+		return NULL;
+	}
+
+	/* snip off and recycle element */
+	b->list = e->next;
+	region_recycle(opt->region, e, sizeof(*e));
+	if(b->list == NULL) {
+		rbtree_delete(opt->zonefree, &b->linesize);
+		region_recycle(opt->region, b, sizeof(*b));
+	}
+	return zone;
+}
+
 /* remove a zone on the zonelist */
-void zone_list_del(nsd_options_t* opt, const char* zname)
+void zone_list_del(nsd_options_t* opt, zone_options_t* zone)
 {
 	/* put its space onto the free entry */
-	/* TODO */
+	if(fseeko(opt->zonelist, zone->off, SEEK_SET) == -1) {
+		log_msg(LOG_ERR, "fseeko(%s): %s", opt->zlfile, strerror(errno));
+		return;
+	}
+	fprintf(opt->zonelist, "del");
+	zone_list_free_insert(opt, zone->linesize, zone->off);
+
+	/* remove zone_options_t */
+	zone_options_delete(opt, zone);
 }
+/* postorder delete of zonelist free space tree */
+static void
+delbucket(region_type* region, struct zonelist_bucket* b)
+{
+	struct zonelist_free* e, *f;
+	if(!b || (rbnode_t*)b==RBTREE_NULL)
+		return;
+	delbucket(region, (struct zonelist_bucket*)b->node.left);
+	delbucket(region, (struct zonelist_bucket*)b->node.right);
+	e = b->list;
+	while(e) {
+		f = e->next;
+		region_recycle(region, e, sizeof(*e));
+		e = f;
+	}
+	region_recycle(region, b, sizeof(*b));
+}
+
 /* compact zonelist file */
 void zone_list_compact(nsd_options_t* opt)
 {
+	char outname[1024];
+	FILE* out;
+	zone_options_t* zone;
+	off_t off;
+	int r;
+	snprintf(outname, sizeof(outname), "%s~", opt->zlfile);
 	/* useful, when : count-of-free > count-of-used */
 	/* write zonelist to zonelist~ */
+	out = fopen(outname, "w+");
+	if(!out) {
+		log_msg(LOG_ERR, "could not open %s: %s", outname, strerror(errno));
+		return;
+	}
+	r = fprintf(out, ZONELIST_HEADER);
+	if(r == -1) {
+		log_msg(LOG_ERR, "write %s failed: %s", outname,
+			strerror(errno));
+		fclose(out);
+		return;
+	} else if(r != strlen(ZONELIST_HEADER)) {
+		log_msg(LOG_ERR, "write %s was partial: disk full",
+			outname);
+		fclose(out);
+		return;
+	}
+	off = ftello(out);
+	if(off == -1) {
+		log_msg(LOG_ERR, "ftello(%s): %s", outname, strerror(errno));
+		fclose(out);
+		return;
+	}
+	RBTREE_FOR(zone, zone_options_t*, opt->zone_options) {
+		if(zone->part_of_config)
+			continue;
+		r = fprintf(out, "add %s %s\n", zone->name,
+			zone->pattern->pname);
+		if(r < 0) {
+			log_msg(LOG_ERR, "write %s failed: %s", outname,
+				strerror(errno));
+			fclose(out);
+			return;
+		} else if(r != zone->linesize) {
+			log_msg(LOG_ERR, "write %s was partial: disk full",
+				outname);
+			fclose(out);
+			return;
+		}
+	}
+	if(fflush(out) != 0) {
+		log_msg(LOG_ERR, "fflush %s: %s", outname, strerror(errno));
+	}
+
 	/* rename zonelist~ onto zonelist */
-	/* TODO */
+	if(rename(outname, opt->zlfile) == -1) {
+		log_msg(LOG_ERR, "rename(%s to %s) failed: %s",
+			outname, opt->zlfile, strerror(errno));
+		fclose(out);
+		return;
+	}
+	fclose(opt->zonelist);
+	/* set offsets */
+	RBTREE_FOR(zone, zone_options_t*, opt->zone_options) {
+		if(zone->part_of_config)
+			continue;
+		zone->off = off;
+		off += zone->linesize;
+	}
+	/* empty the free tree */
+	delbucket(opt->region, (struct zonelist_bucket*)opt->zonefree->root);
+	opt->zonefree->root = RBTREE_NULL;
+	opt->zonefree->count = 0;
+	/* finish */
+	opt->zonelist = out;
+	opt->zonelist_off = off;
 }
 /* close zonelist file */
 void zone_list_close(nsd_options_t* opt)
