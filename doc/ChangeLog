@@ -3,6 +3,8 @@
 	- updated acx_nlnetlabs.m4 to version 11.
 	- configure checks size of off_t and increase region-allocator
 	  alignment to 8 if it is 64bit and alignment at 4.
+	- fixed bug where not all references were removed before mmap was
+	  synced to another process.
 
 7 June 2011: Wouter
 	- code to add and remove zonelist entries, and unit test.
