@@ -19,7 +19,11 @@
 #undef ALIGNMENT
 #endif
 #define ALIGN_UP(x, s)     (((x) + s - 1) & (~(s - 1)))
-#define ALIGNMENT          (sizeof(void *))
+#if SIZEOF_OFF_T > SIZEOF_VOIDP
+#define ALIGNMENT	(sizeof(off_t))
+#else
+#define ALIGNMENT	(sizeof(void *))
+#endif
 #define CHECK_DOUBLE_FREE 0 /* set to 1 to perform expensive check for double recycle() */
 
 typedef struct cleanup cleanup_type;

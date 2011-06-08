@@ -14,6 +14,11 @@
 #include "region-allocator.h"
 #include "util.h"
 #include "rbtree.h"
+#if SIZEOF_OFF_T > SIZEOF_VOIDP
+#define ALIGNMENT (sizeof(off_t))
+#else
+#define ALIGNMENT (sizeof(void *))
+#endif
 
 static void region_1(CuTest *tc);
 
@@ -28,7 +33,7 @@ size_t
 align_size(size_t x)
 {
 	if(x == 0) x = 1;
-	x = ALIGN_UP(x, sizeof(void*));
+	x = ALIGN_UP(x, ALIGNMENT);
 	return x;
 }
 

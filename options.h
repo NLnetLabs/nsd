@@ -111,14 +111,14 @@ struct zone_options {
 
 	/* is apex of the zone */
 	const char* name;
+	/* if not part of config, the offset and linesize of zonelist entry */
+	off_t off;
+	int linesize;
 	/* pattern for the zone options, if zone is part_of_config, this is
 	 * a anonymous pattern created in-place */
 	pattern_options_t* pattern;
 	/* zone is fixed into the main config, not in zonelist, cannot delete */
 	uint8_t part_of_config;
-	/* if not part of config, the offset and linesize of zonelist entry */
-	off_t off;
-	int linesize;
 };
 
 union acl_addr_storage {
