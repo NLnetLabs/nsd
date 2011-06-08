@@ -373,7 +373,7 @@ check_zonelist_file(CuTest *tc, nsd_options_t* opt, const char* s)
 				rbtree_search(opt->zonefree, &linesize);
 			CuAssertTrue(tc, b != NULL);
 			CuAssertTrue(tc, b->linesize == linesize);
-			CuAssertTrue(tc, b->list);
+			CuAssertTrue(tc, b->list != NULL);
 			CuAssertTrue(tc, has_free_elem(b->list, ftello(in)-linesize));
 			delcount ++;
 		}

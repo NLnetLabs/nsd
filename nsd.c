@@ -577,6 +577,10 @@ main(int argc, char *argv[])
 	if(!parse_options_file(nsd.options, configfile)) {
 		error("could not read config: %s\n", configfile);
 	}
+	if(!parse_zone_list_file(nsd.options, nsd.options->zonelistfile)) {
+		error("could not read zonelist file %s\n",
+			nsd.options->zonelistfile);
+	}
 	if(nsd.options->ip4_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET;
