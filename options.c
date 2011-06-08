@@ -939,7 +939,7 @@ get_end_label(zone_options_t* zone, int i)
 	if(i >= d->label_count) {
 		return ".";
 	}
-	return wirelabel2str((uint8_t*)dname_label(d, i));
+	return wirelabel2str(dname_label(d, i));
 }
 /* replace occurrences of one with two */
 void replace_str(char* str, size_t len, const char* one, const char* two)

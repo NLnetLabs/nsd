@@ -495,7 +495,7 @@ dname_replace(region_type* region,
 	return res;
 }
 
-char* wirelabel2str(uint8_t* label)
+char* wirelabel2str(const uint8_t* label)
 {
 	static char buf[MAXDOMAINLEN*5+3];
 	char* p = buf;
@@ -517,7 +517,7 @@ char* wirelabel2str(uint8_t* label)
 	return buf;
 }
 
-char* wiredname2str(uint8_t* dname)
+char* wiredname2str(const uint8_t* dname)
 {
 	static char buf[MAXDOMAINLEN*5+3];
 	char* p = buf;
