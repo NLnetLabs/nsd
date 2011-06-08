@@ -1690,7 +1690,6 @@ static int
 task_create_new_elem(struct udb_base* udb, udb_ptr* last, udb_ptr* e,
 	size_t sz, const dname_type* zname)
 {
-	log_msg(LOG_INFO, "debug: new task elem size %d", (int)sz);
 	if(!udb_ptr_alloc_space(e, udb, udb_chunk_type_task, sz)) {
 		return 0;
 	}
