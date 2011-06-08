@@ -1,5 +1,6 @@
 8 June 2011: Wouter
 	- nsd reads the zonelist file on start.
+	- updated acx_nlnetlabs.m4 to version 11.
 
 7 June 2011: Wouter
 	- code to add and remove zonelist entries, and unit test.
