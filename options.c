@@ -288,8 +288,10 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 		return 0;
 	}
 	/* read header */
+	buf[strlen(ZONELIST_HEADER)] = 0;
 	if(fread(buf, 1, strlen(ZONELIST_HEADER), opt->zonelist) !=
-		strlen(ZONELIST_HEADER) || strcmp(buf, ZONELIST_HEADER)!=0) {
+		strlen(ZONELIST_HEADER) || strncmp(buf, ZONELIST_HEADER,
+		strlen(ZONELIST_HEADER)) != 0) {
 		log_msg(LOG_ERR, "zone list %s contains bad header\n", zlfile);
 		fclose(opt->zonelist);
 		opt->zonelist = NULL;
