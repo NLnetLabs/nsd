@@ -2,6 +2,7 @@
 	- fix bug that relptrs have to be inited with rel_ptr_init() when
 	  created and zeroed with rptr_zero before deletion.
 	- tag 4.0.0-imp4 created
+	- trunk is 4.0.0-imp5 under development.
 
 8 June 2011: Wouter
 	- nsd reads the zonelist file on start.
