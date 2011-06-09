@@ -395,10 +395,13 @@ static void
 xfrd_send_reload_req(xfrd_state_t* xfrd)
 {
 	sig_atomic_t req = NSD_RELOAD;
+	uint64_t p = xfrd->last_task->data;
 	udb_ptr_unlink(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
 	task_process_sync(xfrd->nsd->task[xfrd->nsd->mytask]);
 	/* ask server_main for a reload */
 	if(write(xfrd->ipc_handler.fd, &req, sizeof(req)) == -1) {
+		udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
+		udb_ptr_set(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask], p);
 		if(errno == EAGAIN || errno == EINTR)
 			return; /* try again later */
 		log_msg(LOG_ERR, "xfrd: problems sending reload command: %s",

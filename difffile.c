@@ -1701,7 +1701,7 @@ task_create_new_elem(struct udb_base* udb, udb_ptr* last, udb_ptr* e,
 	udb_ptr_set_ptr(last, udb, e);
 
 	/* fill in tasklist item */
-	udb_rptr_zero(&TASKLIST(e)->next, udb);
+	udb_rel_ptr_init(&TASKLIST(e)->next);
 	TASKLIST(e)->size = sz;
 	TASKLIST(e)->serial = 0;
 	TASKLIST(e)->yesno = 0;
