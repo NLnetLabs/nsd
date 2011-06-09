@@ -740,7 +740,8 @@ static inline void udb_ptr_set_ptr(udb_ptr* dest, udb_base* udb, udb_ptr* p) {
 	udb_ptr_set(dest, udb, p->data);
 }
 
-/* Ease of use, zero rptr */
+/* Ease of use, zero rptr.  You use this to zero an existing pointer.
+ * A new rptr should be rel_ptr_init-ed before it is taken into use. */
 static inline void udb_rptr_zero(udb_rel_ptr* dest, udb_base* udb) {
 #ifdef UDB_CHECK
 	if(dest->data) { assert(udb_valid_rptr(udb,

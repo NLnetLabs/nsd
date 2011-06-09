@@ -1,3 +1,7 @@
+9 June 2011: Wouter
+	- fix bug that relptrs have to be inited with rel_ptr_init() when
+	  created and zeroed with rptr_zero before deletion.
+
 8 June 2011: Wouter
 	- nsd reads the zonelist file on start.
 	- updated acx_nlnetlabs.m4 to version 11.
