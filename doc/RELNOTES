@@ -14,6 +14,7 @@ BUG FIXES:
 	- Fix bug if the zonefile is changed for a secondary but stored
 	  transfers are applied, and stop it from applying ixfr to empty zone.
 	  The zone is flagged with error and AXFR-ed.
+	- Fix to have no authority NS set processing for CNAMEs.
 
 
 3.2.8

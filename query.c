@@ -923,6 +923,9 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 					     domain_dname(closest_match));
 			q->zone = origzone;
 		}
+		/* example 6.2.7 shows no NS-set from zone in auth (RFC1034) */
+		q->domain = domain;
+		return;
 	} else {
 		answer_nodata(q, answer, original);
 		return;
