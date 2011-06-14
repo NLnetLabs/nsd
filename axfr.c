@@ -42,18 +42,19 @@ query_axfr(struct nsd *nsd, struct query *query)
 	}
 
 	if (query->axfr_zone == NULL) {
+		domain_type* qdomain;
 		/* Start AXFR.  */
 		exact = namedb_lookup(nsd->db,
 				      query->qname,
 				      &closest_match,
 				      &closest_encloser);
 
-		query->domain = closest_encloser;
+		qdomain = closest_encloser;
 		query->axfr_zone = domain_find_zone(closest_encloser);
 
 		if (!exact
 		    || query->axfr_zone == NULL
-		    || query->axfr_zone->apex != query->domain)
+		    || query->axfr_zone->apex != qdomain)
 		{
 			/* No SOA no transfer */
 			RCODE_SET(query->packet, RCODE_REFUSE);
@@ -70,7 +71,7 @@ query_axfr(struct nsd *nsd, struct query *query)
 			query->tsig_sign_it = 1; /* sign first packet in stream */
 		}
 
-		query_add_compression_domain(query, query->domain, QHEADERSZ);
+		query_add_compression_domain(query, qdomain, QHEADERSZ);
 
 		assert(query->axfr_zone->soa_rrset->rr_count == 1);
 		added = packet_encode_rr(query,

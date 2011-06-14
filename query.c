@@ -213,7 +213,6 @@ query_reset(query_type *q, size_t maxlen, int is_tcp)
 	q->qtype = 0;
 	q->qclass = 0;
 	q->zone = NULL;
-	q->domain = NULL;
 	q->opcode = 0;
 	q->cname_count = 0;
 	q->delegation_domain = NULL;
@@ -794,7 +793,6 @@ answer_delegation(query_type *query, answer_type *answer)
 				  query->delegation_domain, rrset);
 		}
 	}
-	query->domain = query->delegation_domain;
 }
 
 
@@ -804,8 +802,6 @@ answer_delegation(query_type *query, answer_type *answer)
 static void
 answer_soa(struct query *query, answer_type *answer)
 {
-	query->domain = query->zone->apex;
-
 	if (query->qclass != CLASS_ANY) {
 		add_rrset(query, answer,
 			  AUTHORITY_SECTION,
@@ -924,12 +920,11 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 					     domain_dname(closest_match));
 			q->zone = origzone;
 		}
+		return;
 	} else {
 		answer_nodata(q, answer, original);
 		return;
 	}
-
-	q->domain = domain;
 
 	if (q->qclass != CLASS_ANY && q->zone->ns_rrset && answer_needs_ns(q)) {
 		add_rrset(q, answer, AUTHORITY_SECTION, q->zone->apex,
@@ -1197,7 +1192,6 @@ answer_query(struct nsd *nsd, struct query *q)
 		return;
 	}
 
-	q->domain = closest_encloser;
 	answer_lookup_zone(nsd, q, &answer, 0, exact, closest_match,
 		closest_encloser, q->qname);
 

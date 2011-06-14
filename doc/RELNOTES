@@ -8,6 +8,7 @@ BUG FIXES:
 	- Bugfix #381: Binary escaped and transfers.
 	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
+	- Fix to have no authority NS set processing for CNAMEs.
 
 3.2.8
 =============

@@ -76,9 +76,6 @@ struct query {
 	/* The zone used to answer the query.  */
 	zone_type *zone;
 
-	/* The domain used to answer the query.  */
-	domain_type *domain;
-
 	/* The delegation domain, if any.  */
 	domain_type *delegation_domain;
 
