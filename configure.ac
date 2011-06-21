@@ -34,6 +34,7 @@ configdir=$sysconfdir/nsd
 AC_ARG_WITH([configdir],
 	AC_HELP_STRING([--with-configdir=dir], [NSD configuration directory]),
 	[configdir=$withval])
+AC_DEFINE_UNQUOTED(CONFIGDIR, ["`eval echo $configdir`"], [NSD config dir])
 AC_SUBST(configdir)
 
 #
@@ -609,6 +610,8 @@ AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
+AC_DEFINE_UNQUOTED([NSD_CONTROL_PORT], [8952], [Define to the default nsd-control port.])
+AC_DEFINE_UNQUOTED([NSD_CONTROL_VERSION], [1], [Define to nsd-control proto version.])
 
 dnl
 dnl Determine the syslog facility to use
@@ -682,6 +685,10 @@ esac
 
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL
+ACX_LIB_SSL
+AC_CHECK_HEADERS([openssl/ssl.h],,, [AC_INCLUDES_DEFAULT])
+AC_CHECK_HEADERS([openssl/err.h],,, [AC_INCLUDES_DEFAULT])
+AC_CHECK_HEADERS([openssl/rand.h],,, [AC_INCLUDES_DEFAULT])
 
 AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in

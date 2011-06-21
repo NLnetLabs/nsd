@@ -69,16 +69,17 @@ EDIT		= sed \
 			-e 's,@spriority\@,$(spriority),g' \
 			-e 's,@kpriority\@,$(kpriority),g' 
 
-TARGETS=nsd nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample
-MANUALS=nsd.8 nsd-notify.8 nsd-xfer.8 nsdc.8 nsd-checkconf.8 nsd-patch.8 nsd.conf.5
+TARGETS=nsd nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-control nsd-patch nsd.conf.sample nsd-control-setup.sh
+MANUALS=nsd.8 nsd-notify.8 nsd-xfer.8 nsdc.8 nsd-checkconf.8 nsd-control.8 nsd-patch.8 nsd.conf.5
 
 COMMON_OBJ=answer.o axfr.o buffer.o configlexer.o configparser.o dname.o dns.o edns.o iterated_hash.o lookup3.o namedb.o nsec3.o options.o packet.o query.o rbtree.o radtree.o rdata.o region-allocator.o tsig.o tsig-openssl.o udb.o udbradtree.o udbzone.o util.o
-XFRD_OBJ=xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o
-ALL_OBJ=$(COMMON_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o netio.o nsd-checkconf.o nsd-notify.o nsd.o nsd-patch.o nsd-xfer.o server.o $(XFRD_OBJ) zlexer.o zonec.o zparser.o
+XFRD_OBJ=xfrd-disk.o xfrd-notify.o xfrd-tcp.o xfrd.o remote.o
+ALL_OBJ=$(COMMON_OBJ) dbaccess.o dbcreate.o difffile.o ipc.o netio.o nsd-checkconf.o nsd-control.o nsd-notify.o nsd.o nsd-patch.o nsd-xfer.o server.o $(XFRD_OBJ) zlexer.o zonec.o zparser.o
 NSD_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) difffile.o ipc.o netio.o nsd.o server.o dbaccess.o dbcreate.o zlexer.o zonec.o zparser.o
 NSD_NOTIFY_OBJ=$(COMMON_OBJ) nsd-notify.o
 NSD_XFER_OBJ=$(COMMON_OBJ) nsd-xfer.o
 NSD_CHECKCONF_OBJ=$(COMMON_OBJ) nsd-checkconf.o
+NSD_CONTROL_OBJ=$(COMMON_OBJ) nsd-control.o
 NSD_PATCH_OBJ=$(COMMON_OBJ) dbcreate.o dbaccess.o zonec.o zparser.o zlexer.o difffile.o nsd-patch.o
 CUTEST_OBJ=$(COMMON_OBJ) $(XFRD_OBJ) dbaccess.o dbcreate.o difffile.o  ipc.o netio.o server.o zonec.o zparser.o zlexer.o cutest_dname.o cutest_dns.o cutest_iterated_hash.o cutest_run.o cutest_radtree.o cutest_rbtree.o cutest_namedb.o cutest_options.o cutest_region.o cutest_udb.o cutest_udbrad.o cutest_util.o cutest.o qtest.o
 
@@ -93,6 +94,11 @@ nsdc.sh:	$(srcdir)/nsdc.sh.in config.h
 	rm -f nsdc.sh
 	$(EDIT) $(srcdir)/nsdc.sh.in > nsdc.sh
 	chmod +x nsdc.sh
+
+nsd-control-setup.sh:	$(srcdir)/nsd-control-setup.sh.in config.h
+	rm -f nsd-control-setup.sh
+	$(EDIT) $(srcdir)/nsd-control-setup.sh.in > nsd-control-setup.sh
+	chmod +x nsd-control-setup.sh
 
 nsd.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
 	rm -f nsd.conf.sample
@@ -122,6 +128,10 @@ nsd-checkconf.8:	$(srcdir)/nsd-checkconf.8.in config.h
 	rm -f nsd-checkconf.8
 	$(EDIT) $(srcdir)/nsd-checkconf.8.in > nsd-checkconf.8
 
+nsd-control.8:	$(srcdir)/nsd-control.8.in config.h
+	rm -f nsd-control.8
+	$(EDIT) $(srcdir)/nsd-control.8.in > nsd-control.8
+
 nsd-patch.8:	$(srcdir)/nsd-patch.8.in config.h
 	rm -f nsd-patch.8
 	$(EDIT) $(srcdir)/nsd-patch.8.in > nsd-patch.8
@@ -136,14 +146,17 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man5
 	$(INSTALL) nsd $(DESTDIR)$(sbindir)/nsd
 	$(INSTALL) nsdc.sh $(DESTDIR)$(sbindir)/nsdc
+	$(INSTALL) nsd-control-setup.sh $(DESTDIR)$(sbindir)/nsd-control-setup
 	$(INSTALL) nsd-notify $(DESTDIR)$(sbindir)/nsd-notify
 	$(INSTALL) nsd-checkconf $(DESTDIR)$(sbindir)/nsd-checkconf
+	$(INSTALL) nsd-control $(DESTDIR)$(sbindir)/nsd-control
 	$(INSTALL) nsd-patch $(DESTDIR)$(sbindir)/nsd-patch
 	$(INSTALL) nsd-xfer $(DESTDIR)$(sbindir)/nsd-xfer
 	$(INSTALL_DATA) $(srcdir)/nsd.8 $(DESTDIR)$(mandir)/man8
 	$(INSTALL_DATA) $(srcdir)/nsdc.8 $(DESTDIR)$(mandir)/man8
 	$(INSTALL_DATA) $(srcdir)/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8
 	$(INSTALL_DATA) $(srcdir)/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-checkconf.8
+	$(INSTALL_DATA) $(srcdir)/nsd-control.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	$(INSTALL_DATA) $(srcdir)/nsd-patch.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8
 	$(INSTALL_DATA) $(srcdir)/nsd-xfer.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8
 	$(INSTALL_DATA) $(srcdir)/nsd.conf.5 $(DESTDIR)$(mandir)/man5/nsd.conf.5
@@ -151,26 +164,29 @@ install: all
 
 uninstall:
 	@echo
-	rm -f -- $(DESTDIR)$(sbindir)/nsd $(DESTDIR)$(sbindir)/nsdc $(DESTDIR)$(sbindir)/nsd-notify $(DESTDIR)$(sbindir)/nsd-xfer $(DESTDIR)$(sbindir)/nsd-checkconf $(DESTDIR)$(sbindir)/nsd-patch
+	rm -f -- $(DESTDIR)$(sbindir)/nsd $(DESTDIR)$(sbindir)/nsdc $(DESTDIR)$(sbindir)/nsd-control-setup $(DESTDIR)$(sbindir)/nsd-notify $(DESTDIR)$(sbindir)/nsd-xfer $(DESTDIR)$(sbindir)/nsd-checkconf $(DESTDIR)$(sbindir)/nsd-patch $(DESTDIR)$(sbindir)/nsd-control
 	rm -f -- $(DESTDIR)$(mandir)/man8/nsd.8 $(DESTDIR)$(mandir)/man8/nsdc.8 $(DESTDIR)$(mandir)/man8/nsd-notify.8 $(DESTDIR)$(mandir)/man8/nsd-xfer.8 $(DESTDIR)$(mandir)/man5/nsd.conf.5
-	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8
+	rm -f -- $(DESTDIR)$(mandir)/man8/nsd-checkconf.8 $(DESTDIR)$(mandir)/man8/nsd-patch.8 $(DESTDIR)$(mandir)/man8/nsd-control.8
 	rm -f -- $(DESTDIR)$(pidfile) $(DESTDIR)$(dbfile)
 	@echo
 	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(dbdir) directory by hand."
 
 test: 
 
-whole:	nsd-notify nsd-xfer nsdc.sh nsd-checkconf nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
+whole:	nsd-notify nsd-xfer nsdc.sh nsd-control-setup.sh nsd-checkconf nsd-control nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` $(LIBOBJS) $(LIBS)
 
 nsd:	$(NSD_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(LIBS)
+	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) -lssl $(LIBS)
 
 nsd-notify:	$(NSD_NOTIFY_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJ) $(LIBOBJS) $(LIBS)
 
 nsd-checkconf:	$(NSD_CHECKCONF_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_CHECKCONF_OBJ) $(LIBOBJS) $(LIBS)
+
+nsd-control:	$(NSD_CONTROL_OBJ) $(LIBOBJS)
+	$(LINK) -o $@ $(NSD_CONTROL_OBJ) $(LIBOBJS) -lssl $(LIBS)
 
 nsd-xfer:	$(NSD_XFER_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJ) $(LIBOBJS) $(LIBS)
@@ -179,7 +195,7 @@ nsd-patch:	$(NSD_PATCH_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_PATCH_OBJ) $(LIBOBJS) $(LIBS)
 
 cutest:	$(CUTEST_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(LIBS)
+	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) -lssl $(LIBS)
 
 udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ udb-inspect.o $(COMMON_OBJ) $(LIBOBJS) $(LIBS)
@@ -383,6 +399,8 @@ nsd.o: $(srcdir)/nsd.c config.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h
  $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/tsig.h $(srcdir)/dname.h
 nsd-checkconf.o: $(srcdir)/nsd-checkconf.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/options.h $(srcdir)/rbtree.h
+nsd-control.o: $(srcdir)/nsd-control.c config.h $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
+ $(srcdir)/rbtree.h
 nsd-notify.o: $(srcdir)/nsd-notify.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
  $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/dns.h $(srcdir)/radtree.h $(srcdir)/nsd.h $(srcdir)/edns.h \
  $(srcdir)/buffer.h $(srcdir)/packet.h $(srcdir)/tsig.h
@@ -407,6 +425,8 @@ rbtree.o: $(srcdir)/rbtree.c config.h $(srcdir)/rbtree.h $(srcdir)/region-alloca
 rdata.o: $(srcdir)/rdata.c config.h $(srcdir)/rdata.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/zonec.h
 region-allocator.o: $(srcdir)/region-allocator.c config.h $(srcdir)/region-allocator.h $(srcdir)/util.h
+remote.o: $(srcdir)/remote.c config.h $(srcdir)/remote.h $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
+ $(srcdir)/rbtree.h
 server.o: $(srcdir)/server.c config.h $(srcdir)/axfr.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/radtree.h $(srcdir)/packet.h \
  $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/udb.h \

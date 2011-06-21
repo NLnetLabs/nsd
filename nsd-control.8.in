@@ -1,0 +1,69 @@
+.TH "nsd\-control" "8" "@date@" "NLnet Labs" "nsd @version@"
+.\" Copyright (c) 2011, NLnet Labs. All rights reserved.
+.\" See LICENSE for the license.
+.SH "NAME"
+.LP
+.B nsd\-control,
+.B nsd\-control\-setup
+\- NSD remote server control utility.
+.SH "SYNOPSIS"
+.B nsd\-control
+.RB [ \-c 
+.IR cfgfile ]
+.RB [ \-s 
+.IR server ]
+.IR command
+.SH "DESCRIPTION"
+.B nsd\-control
+performs remote administration on the \fInsd\fR(8) DNS server.  It reads
+the configuration file, contacts the nsd server over SSL, sends the
+command and displays the result.
+.P
+The available options are:
+.TP
+.B \-h
+Show the version and commandline option help.
+.TP
+.B \-c \fIcfgfile
+The config file to read with settings.  If not given the default
+config file @nsdconfigfile@ is used.
+.TP
+.B \-s \fIserver[@port]
+IPv4 or IPv6 address of the server to contact.  If not given, the
+address is read from the config file.
+.SH "COMMANDS"
+There are several commands that the server understands.
+.TP
+.B start
+Start the server. Simply execs \fInsd\fR(8).  The nsd executable 
+is searched for in the \fBPATH\fR set in the environment.  It is started 
+with the config file specified using \fI\-c\fR or the default config file.
+.TP
+.B stop
+Stop the server. The server daemon exits.
+.TP
+.B status
+Display server status. Exit code 3 if not running (the connection to the 
+port is refused), 1 on error, 0 if running.
+.SH "EXIT CODE"
+The nsd\-control program exits with status code 1 on error, 0 on success.
+.SH "SET UP"
+The setup requires a self\-signed certificate and private keys for both 
+the server and client.  The script \fInsd\-control\-setup\fR generates
+these in the default run directory, or with \-d in another directory.
+If you change the access control permissions on the key files you can decide
+who can use nsd\-control, by default owner and group but not all users.
+The script preserves private keys present in the directory.
+After running the script as root, turn on \fBcontrol\-enable\fR in 
+\fInsd.conf\fR.
+.SH "FILES"
+.TP
+.I @nsdconfigfile@
+nsd configuration file.
+.TP
+.I @configdir@
+directory with private keys (nsd.key and nsd.key) and
+self\-signed certificates (nsd.pem and nsd.pem).
+.SH "SEE ALSO"
+\fInsd.conf\fR(5), 
+\fInsd\fR(8).

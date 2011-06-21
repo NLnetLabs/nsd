@@ -31,7 +31,7 @@ extern config_parser_state_t* cfg_parser;
 static int server_settings_seen = 0;
 
 #if 0
-#define OUTYY(s)  printf s /* used ONLY when debugging */
+#define OUTYY(s) printf s /* used ONLY when debugging */
 #else
 #define OUTYY(s)
 #endif
@@ -58,11 +58,15 @@ static int server_settings_seen = 0;
 %token VAR_AXFR VAR_UDP
 %token VAR_VERBOSITY VAR_HIDE_VERSION
 %token VAR_PATTERN VAR_INCLUDEPATTERN VAR_ZONELISTFILE
+%token VAR_REMOTE_CONTROL VAR_CONTROL_ENABLE VAR_CONTROL_INTERFACE
+%token VAR_CONTROL_PORT VAR_SERVER_KEY_FILE VAR_SERVER_CERT_FILE
+%token VAR_CONTROL_KEY_FILE VAR_CONTROL_CERT_FILE
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
 toplevelvar: serverstart contents_server | zonestart contents_zone | 
-	keystart contents_key | patternstart contents_pattern;
+	keystart contents_key | patternstart contents_pattern |
+	rcstart contents_rc;
 
 /* server: declaration */
 serverstart: VAR_SERVER
@@ -163,7 +167,7 @@ server_nsid: VAR_NSID STRING
 
 		OUTYY(("P(server_nsid:%s)\n", $2));
 
-                if (strlen($2) % 2 != 0) {
+		if (strlen($2) % 2 != 0) {
 			yyerror("the NSID must be a hex string of an even length.");
 		} else {
 			nsid_len = strlen($2) / 2;
@@ -292,6 +296,68 @@ server_ipv6_edns_size: VAR_IPV6_EDNS_SIZE STRING
 		if(atoi($2) == 0 && strcmp($2, "0") != 0)
 			yyerror("number expected");
 		cfg_parser->opt->ipv6_edns_size = atoi($2);
+	}
+	;
+
+rcstart: VAR_REMOTE_CONTROL
+	{
+		OUTYY(("\nP(remote-control:)\n"));
+	}
+	;
+contents_rc: contents_rc content_rc 
+	| ;
+content_rc: rc_control_enable | rc_control_interface | rc_control_port |
+	rc_server_key_file | rc_server_cert_file | rc_control_key_file |
+	rc_control_cert_file
+	;
+rc_control_enable: VAR_CONTROL_ENABLE STRING
+	{
+		OUTYY(("P(control_enable:%s)\n", $2));
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
+		else cfg_parser->opt->control_enable = (strcmp($2, "yes")==0);
+	}
+	;
+rc_control_port: VAR_CONTROL_PORT STRING
+	{
+		OUTYY(("P(control_port:%s)\n", $2));
+		if(atoi($2) == 0)
+			yyerror("control port number expected");
+		else cfg_parser->opt->control_port = atoi($2);
+	}
+	;
+rc_control_interface: VAR_CONTROL_INTERFACE STRING
+	{
+		ip_address_option_t* o = (ip_address_option_t*)region_alloc(
+			cfg_parser->opt->region, sizeof(ip_address_option_t));
+		OUTYY(("P(control_interface:%s)\n", $2));
+		o->next = cfg_parser->opt->control_interface;
+		cfg_parser->opt->control_interface = o;
+		o->address = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+rc_server_key_file: VAR_SERVER_KEY_FILE STRING
+	{
+	OUTYY(("P(rc_server_key_file:%s)\n", $2));
+	cfg_parser->opt->server_key_file = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+rc_server_cert_file: VAR_SERVER_CERT_FILE STRING
+	{
+	OUTYY(("P(rc_server_cert_file:%s)\n", $2));
+	cfg_parser->opt->server_cert_file = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+rc_control_key_file: VAR_CONTROL_KEY_FILE STRING
+	{
+	OUTYY(("P(rc_control_key_file:%s)\n", $2));
+	cfg_parser->opt->control_key_file = region_strdup(cfg_parser->opt->region, $2);
+	}
+	;
+rc_control_cert_file: VAR_CONTROL_CERT_FILE STRING
+	{
+	OUTYY(("P(rc_control_cert_file:%s)\n", $2));
+	cfg_parser->opt->control_cert_file = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;
 
@@ -553,7 +619,7 @@ keystart: VAR_KEY
 			cfg_parser->current_key = cfg_parser->current_key->next;
 		} else {
 			cfg_parser->current_key = key_options_create(cfg_parser->opt->region);
-                	cfg_parser->opt->keys = cfg_parser->current_key;
+			cfg_parser->opt->keys = cfg_parser->current_key;
 		}
 		cfg_parser->opt->numkeys++;
 	}

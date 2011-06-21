@@ -97,7 +97,7 @@ configuration file
 .SH "SEE ALSO"
 .LP
 nsd(8), nsdc(8), nsd.conf(5), nsd\-notify(8), nsd\-patch(8), 
-nsd-xfer(8)
+nsd\-xfer(8)
 .SH "AUTHORS"
 .LP
 .B NSD

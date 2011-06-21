@@ -75,6 +75,21 @@ struct nsd_options {
 	const char* nsid;
 	int xfrd_reload_timeout;
 
+        /** remote control section. enable toggle. */
+	int control_enable;
+	/** the interfaces the remote control should listen on */
+	ip_address_option_t* control_interface;
+	/** port number for the control port */
+	int control_port;
+	/** private key file for server */
+	char* server_key_file;
+	/** certificate file for server */
+	char* server_cert_file;
+	/** private key file for nsd-control */
+	char* control_key_file;
+	/** certificate file for nsd-control */
+	char* control_cert_file;
+
 	region_type* region;
 };
 

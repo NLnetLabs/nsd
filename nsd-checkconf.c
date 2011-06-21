@@ -43,11 +43,13 @@ extern int optind;
 #define ZONE_GET_BIN(NAME, VAR, PATTERN) 			\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
 		printf("%s\n", (PATTERN->NAME)?"yes":"no"); 	\
+		return;					\
 	}
 
 #define SERV_GET_BIN(NAME, VAR) 			\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
 		printf("%s\n", opt->NAME?"yes":"no"); 	\
+		return;					\
 	}
 
 #define SERV_GET_STR(NAME, VAR) 		\
@@ -62,9 +64,9 @@ extern int optind;
 		return; 			\
 	}
 
-#define SERV_GET_IP(NAME, VAR) 				\
+#define SERV_GET_IP(NAME, MEMBER, VAR) 				\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
-		for(ip = opt->ip_addresses; ip; ip=ip->next)	\
+		for(ip = opt->MEMBER; ip; ip=ip->next)	\
 		{						\
 			quote(ip->address);			\
 		}						\
@@ -280,7 +282,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		exit(1);
 	} else {
 		/* look in the server section */
-		SERV_GET_IP(ip_address, o);
+		SERV_GET_IP(ip_address, ip_addresses, o);
 		/* bin */
 		SERV_GET_BIN(debug_mode, o);
 		SERV_GET_BIN(ip4_only, o);
@@ -309,6 +311,14 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
+		/* remote control */
+		SERV_GET_BIN(control_enable, o);
+		SERV_GET_IP(control_interface, control_interface, o);
+		SERV_GET_INT(control_port, o);
+		SERV_GET_STR(server_key_file, o);
+		SERV_GET_STR(server_cert_file, o);
+		SERV_GET_STR(control_key_file, o);
+		SERV_GET_STR(control_cert_file, o);
 
 		if(strcasecmp(o, "zones") == 0) {
 			zone_options_t* zone;
@@ -379,11 +389,21 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("zonelistfile:", opt->zonelistfile);
 	printf("\txfrd_reload_timeout: %d\n", opt->xfrd_reload_timeout);
 	printf("\tverbosity: %d\n", opt->verbosity);
-
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
 	{
 		print_string_var("ip-address:", ip->address);
 	}
+
+	printf("\nremote-control:\n");
+	printf("\tcontrol-enable: %s\n", opt->control_enable?"yes":"no");
+	for(ip = opt->control_interface; ip; ip=ip->next)
+		print_string_var("control-interface:", ip->address);
+	printf("\tcontrol-port: %d\n", opt->control_port);
+	print_string_var("server-key-file:", opt->server_key_file);
+	print_string_var("server-cert-file:", opt->server_cert_file);
+	print_string_var("control-key-file:", opt->control_key_file);
+	print_string_var("control-cert-file:", opt->control_cert_file);
+
 	for(key = opt->keys; key; key=key->next)
 	{
 		printf("\nkey:\n");
@@ -545,7 +565,6 @@ main(int argc, char* argv[])
 	nsd_options_t *options;
 
 	log_init("nsd-checkconf");
-
 
         /* Parse the command line... */
         while ((c = getopt(argc, argv, "vo:a:p:s:z:")) != -1) {

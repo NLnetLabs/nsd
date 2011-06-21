@@ -103,6 +103,32 @@ server:
 	# xfrd-reload-timeout: 1
 
 
+# Remote control config section. 
+remote-control:
+	# Enable remote control with nsd-control(8) here.
+	# set up the keys and certificates with nsd-control-setup.
+	# control-enable: no
+
+	# what interfaces are listened to for control, default is on localhost.
+	# control-interface: 127.0.0.1
+	# control-interface: ::1
+
+	# port number for remote control operations (uses TLS over TCP).
+	# control-port: 8952
+
+	# nsd server key file for remote control.
+	# server-key-file: "@configdir@/nsd_server.key"
+
+	# nsd server certificate file for remote control.
+	# server-cert-file: "@configdir@/nsd_server.pem"
+
+	# nsd-control key file.
+	# control-key-file: "@configdir@/nsd_control.key"
+
+	# nsd-control certificate file.
+	# control-cert-file: "@configdir@/nsd_control.pem"
+
+
 # Secret keys for TSIGs that secure zone transfers.
 # You could include: "secret.keys" and put the 'key:' statements in there,
 # and give that file special access control permissions.

@@ -67,6 +67,13 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->xfrdfile = XFRDFILE;
 	opt->zonelistfile = ZONELISTFILE;
 	opt->xfrd_reload_timeout = 1;
+	opt->control_enable = 0;
+	opt->control_interface = NULL;
+	opt->control_port = NSD_CONTROL_PORT;
+	opt->server_key_file = CONFIGDIR"/nsd_server.key";
+	opt->server_cert_file = CONFIGDIR"/nsd_server.pem";
+	opt->control_key_file = CONFIGDIR"/nsd_control.key";
+	opt->control_cert_file = CONFIGDIR"/nsd_control.pem";
 	nsd_options = opt;
 	return opt;
 }
