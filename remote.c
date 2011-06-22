@@ -697,8 +697,10 @@ do_verbosity(SSL* ssl, char* str)
 		ssl_printf(ssl, "error in verbosity number syntax: %s\n", str);
 		return;
 	}
-	/* TODO, reload for it and needs a task */
 	verbosity = val;
+	task_new_set_verbosity(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, val);
+	xfrd_set_reload_now(xfrd);
 	send_ok(ssl);
 }
 
@@ -756,6 +758,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd)
 		do_reload(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "status", 6)) {
 		do_status(ssl);
+	} else if(cmdcmp(p, "verbosity", 9)) {
+		do_verbosity(ssl, skipwhite(p+9));
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}

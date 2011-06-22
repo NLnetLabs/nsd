@@ -73,7 +73,9 @@ usage()
 	printf("Commands:\n");
 	printf("  start				start server; runs nsd(8)\n");
 	printf("  stop				stops the server\n");
+	printf("  reload			reload zonefiles, reopen logfile\n");
 	printf("  status			display status of server\n");
+	printf("  verbosity <number>		change logging detail\n");
 	exit(1);
 }
 

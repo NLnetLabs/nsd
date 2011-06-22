@@ -1836,6 +1836,20 @@ void task_new_check_zonefiles(udb_base* udb, udb_ptr* last)
 	udb_ptr_unlink(&e, udb);
 }
 
+void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v)
+{
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task set_verbosity"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d),
+		NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add set_v");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_set_verbosity;
+	TASKLIST(&e)->yesno = v;
+	udb_ptr_unlink(&e, udb);
+}
+
 void
 task_process_expire(namedb_type* db, struct task_list_d* task)
 {
@@ -1862,6 +1876,13 @@ task_process_expire(namedb_type* db, struct task_list_d* task)
 }
 
 static void
+task_process_set_verbosity(struct task_list_d* task)
+{
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "verbosity task %d", task->yesno));
+	verbosity = task->yesno;
+}
+
+static void
 task_process_checkzones(struct nsd* nsd, udb_base* udb, udb_ptr* last_task)
 {
 	/* on SIGHUP check if zone-text-files changed and if so,
@@ -1878,6 +1899,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_check_zonefiles:
 		task_process_checkzones(nsd, udb, last_task);
+		break;
+	case task_set_verbosity:
+		task_process_set_verbosity(TASKLIST(task));
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",

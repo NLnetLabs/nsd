@@ -95,7 +95,7 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 
 	switch (mode) {
 	case NSD_RELOAD:
-		log_msg(LOG_INFO, "parent handle xfrd command RELOAD");
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "parent handle xfrd command RELOAD"));
 		data->nsd->signal_hint_reload = 1;
 		break;
 	case NSD_QUIT:

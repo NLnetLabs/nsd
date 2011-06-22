@@ -92,7 +92,9 @@ struct task_list_d {
 		/** done with apply xfr */
 		task_done_apply_xfr,
 		/** check mtime of zonefiles and read them, done on SIGHUP */
-		task_check_zonefiles
+		task_check_zonefiles,
+		/** set verbosity */
+		task_set_verbosity
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -114,6 +116,7 @@ void task_new_soainfo(udb_base* udb, udb_ptr* last, struct zone* z);
 void task_new_expire(udb_base* udb, udb_ptr* last,
 	const struct dname* z, int expired);
 void task_new_check_zonefiles(udb_base* udb, udb_ptr* last);
+void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	udb_ptr* task);
 void task_process_expire(namedb_type* db, struct task_list_d* task);
