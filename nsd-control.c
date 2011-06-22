@@ -42,6 +42,8 @@
  */
 
 #include "config.h"
+#ifdef HAVE_SSL
+
 #include <sys/types.h>
 #include <unistd.h>
 #ifdef HAVE_OPENSSL_SSL_H
@@ -375,3 +377,11 @@ int main(int argc, char* argv[])
 
 	return go(cfgfile, svr, argc, argv);
 }
+
+#else /* HAVE_SSL */
+int main(void)
+{
+	printf("error: NSD was compiled without SSL.\n");
+	return 1;
+}
+#endif /* HAVE_SSL */

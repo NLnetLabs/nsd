@@ -1,5 +1,5 @@
 /*
- * daemon/remote.c - remote control for the unbound daemon.
+ * remote.c - remote control for the NSD daemon.
  *
  * Copyright (c) 2008, NLnet Labs. All rights reserved.
  *
@@ -38,17 +38,26 @@
  *
  * This file contains the remote control functionality for the daemon.
  * The remote control can be performed using either the commandline
- * unbound-control tool, or a SSLv3/TLS capable web browser. 
+ * nsd-control tool, or a SSLv3/TLS capable web browser. 
  * The channel is secured using SSLv3 or TLSv1, and certificates.
  * Both the server and the client(control tool) have their own keys.
  */
 #include "config.h"
+#if defined(HAVE_SSL)
+
+#ifdef HAVE_OPENSSL_SSL_H
+#include "openssl/ssl.h"
+#endif
 #ifdef HAVE_OPENSSL_ERR_H
 #include <openssl/err.h>
 #endif
 #include <ctype.h>
+#include <unistd.h>
+#include <assert.h>
+#include <fcntl.h>
 #include "remote.h"
 #include "util.h"
+#include "netio.h"
 #include "options.h"
 
 #ifdef HAVE_SYS_TYPES_H
@@ -58,15 +67,73 @@
 #include <netdb.h>
 #endif
 
-/* just for portability */
-#ifdef SQ
-#undef SQ
-#endif
+/** number of seconds timeout on incoming remote control handshake */
+#define REMOTE_CONTROL_TCP_TIMEOUT 120
 
-/** what to put on statistics lines between var and value, ": " or "=" */
-#define SQ "="
-/** if true, inhibits a lot of =0 lines from the stats output */
-static const int inhibit_zero = 1;
+/**
+ * a busy control command connection, SSL state
+ */
+struct rc_state {
+	/** the next item in list */
+	struct rc_state* next;
+	/** the commpoint */
+	struct netio_handler* c;
+	/** in the handshake part */
+	enum { rc_none, rc_hs_read, rc_hs_write } shake_state;
+	/** the ssl state */
+	SSL* ssl;
+	/** the rc this is part of */
+	struct daemon_remote* rc;
+};
+
+/**
+ * The remote control state.
+ */
+struct daemon_remote {
+	/** the master process for this remote control */
+	struct xfrd_state* xfrd;
+	/** commpoints for accepting remote control connections */
+	struct netio_handler_list* accept_list;
+	/** number of active commpoints that are handling remote control */
+	int active;
+	/** max active commpoints */
+	int max_active;
+	/** current commpoints busy; should be a short list, malloced */
+	struct rc_state* busy_list;
+	/** the SSL context for creating new SSL streams */
+	SSL_CTX* ctx;
+};
+
+/** 
+ * Print fixed line of text over ssl connection in blocking mode
+ * @param ssl: print to
+ * @param text: the text.
+ * @return false on connection failure.
+ */
+static int ssl_print_text(SSL* ssl, const char* text);
+
+/** 
+ * printf style printing to the ssl connection
+ * @param ssl: the SSL connection to print to. Blocking.
+ * @param format: printf style format string.
+ * @return success or false on a network failure.
+ */
+static int ssl_printf(SSL* ssl, const char* format, ...)
+        ATTR_FORMAT(printf, 2, 3);
+
+/**
+ * Read until \n is encountered
+ * If SSL signals EOF, the string up to then is returned (without \n).
+ * @param ssl: the SSL connection to read from. blocking.
+ * @param buf: buffer to read to.
+ * @param max: size of buffer.
+ * @return false on connection failure.
+ */
+static int ssl_read_line(SSL* ssl, char* buf, size_t max);
+
+
+/** ---- end of private defines ---- **/
+
 
 /** log ssl crypto err */
 static void
@@ -76,10 +143,10 @@ log_crypto_err(const char* str)
 	char buf[128];
 	unsigned long e;
 	ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
-	log_err("%s crypto %s", str, buf);
+	log_msg(LOG_ERR, "%s crypto %s", str, buf);
 	while( (e=ERR_get_error()) ) {
 		ERR_error_string_n(e, buf, sizeof(buf));
-		log_err("and additionally crypto %s", buf);
+		log_msg(LOG_ERR, "and additionally crypto %s", buf);
 	}
 }
 
@@ -119,22 +186,21 @@ timeval_divide(struct timeval* avg, const struct timeval* sum, size_t d)
 }
 
 struct daemon_remote*
-daemon_remote_create(struct config_file* cfg)
+daemon_remote_create(nsd_options_t* cfg)
 {
 	char* s_cert;
 	char* s_key;
-	struct daemon_remote* rc = (struct daemon_remote*)calloc(1, 
+	struct daemon_remote* rc = (struct daemon_remote*)xalloc_zero(
 		sizeof(*rc));
-	if(!rc) {
-		log_err("out of memory in daemon_remote_create");
-		return NULL;
-	}
 	rc->max_active = 10;
+	assert(cfg->control_enable);
 
-	if(!cfg->remote_control_enable) {
-		rc->ctx = NULL;
-		return rc;
-	}
+	/* init SSL library */
+	ERR_load_crypto_strings();
+	ERR_load_SSL_strings();
+	OpenSSL_add_all_algorithms();
+	(void)SSL_library_init();
+
 	rc->ctx = SSL_CTX_new(SSLv23_server_method());
 	if(!rc->ctx) {
 		log_crypto_err("could not SSL_CTX_new");
@@ -147,90 +213,150 @@ daemon_remote_create(struct config_file* cfg)
 		daemon_remote_delete(rc);
 		return NULL;
 	}
-	s_cert = fname_after_chroot(cfg->server_cert_file, cfg, 1);
-	s_key = fname_after_chroot(cfg->server_key_file, cfg, 1);
-	if(!s_cert || !s_key) {
-		log_err("out of memory in remote control fname");
-		goto setup_error;
-	}
-	verbose(VERB_ALGO, "setup SSL certificates");
+	s_cert = cfg->server_cert_file;
+	s_key = cfg->server_key_file;
+	VERBOSITY(2, (LOG_INFO, "setup SSL certificates"));
 	if (!SSL_CTX_use_certificate_file(rc->ctx,s_cert,SSL_FILETYPE_PEM)) {
-		log_err("Error for server-cert-file: %s", s_cert);
+		log_msg(LOG_ERR, "Error for server-cert-file: %s", s_cert);
 		log_crypto_err("Error in SSL_CTX use_certificate_file");
 		goto setup_error;
 	}
 	if(!SSL_CTX_use_PrivateKey_file(rc->ctx,s_key,SSL_FILETYPE_PEM)) {
-		log_err("Error for server-key-file: %s", s_key);
+		log_msg(LOG_ERR, "Error for server-key-file: %s", s_key);
 		log_crypto_err("Error in SSL_CTX use_PrivateKey_file");
 		goto setup_error;
 	}
 	if(!SSL_CTX_check_private_key(rc->ctx)) {
-		log_err("Error for server-key-file: %s", s_key);
+		log_msg(LOG_ERR, "Error for server-key-file: %s", s_key);
 		log_crypto_err("Error in SSL_CTX check_private_key");
 		goto setup_error;
 	}
 	if(!SSL_CTX_load_verify_locations(rc->ctx, s_cert, NULL)) {
 		log_crypto_err("Error setting up SSL_CTX verify locations");
 	setup_error:
-		free(s_cert);
-		free(s_key);
 		daemon_remote_delete(rc);
 		return NULL;
 	}
 	SSL_CTX_set_client_CA_list(rc->ctx, SSL_load_client_CA_file(s_cert));
 	SSL_CTX_set_verify(rc->ctx, SSL_VERIFY_PEER, NULL);
-	free(s_cert);
-	free(s_key);
+
+	/* and try to open the ports */
+	if(!daemon_remote_open_ports(rc, cfg)) {
+		log_msg(LOG_ERR, "could not open remote control port");
+		goto setup_error;
+	}
 
 	return rc;
 }
 
-void daemon_remote_clear(struct daemon_remote* rc)
+void daemon_remote_close(struct daemon_remote* rc)
 {
 	struct rc_state* p, *np;
+	netio_handler_list_type* h, *nh;
 	if(!rc) return;
-	/* but do not close the ports */
-	listen_list_delete(rc->accept_list);
+
+	/* close listen sockets */
+	h = rc->accept_list;
+	while(h) {
+		nh = h->next;
+		close(h->handler->fd);
+		free(h->handler);
+		free(h);
+		h = nh;
+	}
 	rc->accept_list = NULL;
-	/* do close these sockets */
+
+	/* close busy connection sockets */
 	p = rc->busy_list;
 	while(p) {
 		np = p->next;
 		if(p->ssl)
 			SSL_free(p->ssl);
-		comm_point_delete(p->c);
+		close(p->c->fd);
+		free(p->c);
 		free(p);
 		p = np;
 	}
 	rc->busy_list = NULL;
 	rc->active = 0;
-	rc->worker = NULL;
 }
 
 void daemon_remote_delete(struct daemon_remote* rc)
 {
 	if(!rc) return;
-	daemon_remote_clear(rc);
+	daemon_remote_close(rc);
 	if(rc->ctx) {
 		SSL_CTX_free(rc->ctx);
 	}
 	free(rc);
 }
 
+static int
+create_tcp_accept_sock(struct addrinfo* addr, int* noproto)
+{
+#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)))
+	int on = 1;
+#endif
+	int s;
+	*noproto = 0;
+	if ((s = socket(addr->ai_family, addr->ai_socktype, 0)) == -1) {
+#if defined(INET6)
+		if (addr->ai_family == AF_INET6 &&
+			errno == EAFNOSUPPORT) {
+			*noproto = 1;
+			log_msg(LOG_WARNING, "fallback to TCP4, no IPv6: not supported");
+			return -1;
+		}
+#endif /* INET6 */
+		log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+		return -1;
+	}
+#ifdef  SO_REUSEADDR
+	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+		log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
+	}
+#endif /* SO_REUSEADDR */
+#if defined(INET6) && defined(IPV6_V6ONLY)
+	if (addr->ai_family == AF_INET6 &&
+		setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
+	{
+		log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
+		return -1;
+	}
+#endif
+	/* set it nonblocking */
+	/* (StevensUNP p463), if tcp listening socket is blocking, then
+	   it may block in accept, even if select() says readable. */
+	if (fcntl(s, F_SETFL, O_NONBLOCK) == -1) {
+		log_msg(LOG_ERR, "cannot fcntl tcp: %s", strerror(errno));
+	}
+	/* Bind it... */
+	if (bind(s, (struct sockaddr *)addr->ai_addr, addr->ai_addrlen) != 0) {
+		log_msg(LOG_ERR, "can't bind tcp socket: %s", strerror(errno));
+		return -1;
+	}
+	/* Listen to it... */
+	if (listen(s, TCP_BACKLOG) == -1) {
+		log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
+		return -1;
+	}
+	return s;
+}
+
 /**
  * Add and open a new control port
+ * @param rc: rc with result list.
  * @param ip: ip str
  * @param nr: port nr
- * @param list: list head
  * @param noproto_is_err: if lack of protocol support is an error.
  * @return false on failure.
  */
 static int
-add_open(const char* ip, int nr, struct listen_port** list, int noproto_is_err)
+add_open(struct daemon_remote* rc, const char* ip, int nr, int noproto_is_err)
 {
 	struct addrinfo hints;
 	struct addrinfo* res;
-	struct listen_port* n;
+	netio_handler_list_type* hl;
 	int noproto;
 	int fd, r;
 	char port[15];
@@ -240,13 +366,7 @@ add_open(const char* ip, int nr, struct listen_port** list, int noproto_is_err)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
 	if((r = getaddrinfo(ip, port, &hints, &res)) != 0 || !res) {
-#ifdef USE_WINSOCK
-		if(!noproto_is_err && r == EAI_NONAME) {
-			/* tried to lookup the address as name */
-			return 1; /* return success, but do nothing */
-		}
-#endif /* USE_WINSOCK */
-                log_err("control interface %s:%s getaddrinfo: %s %s",
+                log_msg(LOG_ERR, "control interface %s:%s getaddrinfo: %s %s",
 			ip?ip:"default", port, gai_strerror(r),
 #ifdef EAI_SYSTEM
 			r==EAI_SYSTEM?(char*)strerror(errno):""
@@ -258,64 +378,55 @@ add_open(const char* ip, int nr, struct listen_port** list, int noproto_is_err)
 	}
 
 	/* open fd */
-	fd = create_tcp_accept_sock(res, 1, &noproto);
+	fd = create_tcp_accept_sock(res, &noproto);
 	freeaddrinfo(res);
 	if(fd == -1 && noproto) {
 		if(!noproto_is_err)
 			return 1; /* return success, but do nothing */
-		log_err("cannot open control interface %s %d : "
+		log_msg(LOG_ERR, "cannot open control interface %s %d : "
 			"protocol not supported", ip, nr);
 		return 0;
 	}
 	if(fd == -1) {
-		log_err("cannot open control interface %s %d", ip, nr);
+		log_msg(LOG_ERR, "cannot open control interface %s %d", ip, nr);
 		return 0;
 	}
 
 	/* alloc */
-	n = (struct listen_port*)calloc(1, sizeof(*n));
-	if(!n) {
-#ifndef USE_WINSOCK
-		close(fd);
-#else
-		closesocket(fd);
-#endif
-		log_err("out of memory");
-		return 0;
-	}
-	n->next = *list;
-	*list = n;
-	n->fd = fd;
+	hl = (netio_handler_list_type*)xalloc_zero(sizeof(*hl));
+	hl->handler = (netio_handler_type*)xalloc_zero(sizeof(*hl->handler));
+	hl->next = rc->accept_list;
+	rc->accept_list = hl;
+	hl->handler->fd = fd;
 	return 1;
 }
 
-struct listen_port* daemon_remote_open_ports(struct config_file* cfg)
+int daemon_remote_open_ports(struct daemon_remote* rc, nsd_options_t* cfg)
 {
-	struct listen_port* l = NULL;
-	log_assert(cfg->remote_control_enable && cfg->control_port);
-	if(cfg->control_ifs) {
-		struct config_strlist* p;
-		for(p = cfg->control_ifs; p; p = p->next) {
-			if(!add_open(p->str, cfg->control_port, &l, 1)) {
-				listening_ports_free(l);
-				return NULL;
+	assert(cfg->control_enable && cfg->control_port);
+	if(cfg->control_interface) {
+		ip_address_option_t* p;
+		for(p = cfg->control_interface; p; p = p->next) {
+			if(!add_open(rc, p->address, cfg->control_port, 1)) {
+				return 0;
 			}
 		}
 	} else {
 		/* defaults */
-		if(cfg->do_ip6 &&
-			!add_open("::1", cfg->control_port, &l, 0)) {
-			listening_ports_free(l);
-			return NULL;
+		if(!cfg->ip4_only &&
+			!add_open(rc, "::1", cfg->control_port, 0)) {
+			return 0;
 		}
-		if(cfg->do_ip4 &&
-			!add_open("127.0.0.1", cfg->control_port, &l, 1)) {
-			listening_ports_free(l);
-			return NULL;
+		if(!cfg->ip6_only &&
+			!add_open(rc, "127.0.0.1", cfg->control_port, 1)) {
+			return 0;
 		}
 	}
-	return l;
+	return 1;
 }
+
+#if 0
+/* TODO */
 
 /** open accept commpoint */
 static int
@@ -455,7 +566,7 @@ clean_point(struct daemon_remote* rc, struct rc_state* s)
 	free(s);
 }
 
-int
+static int
 ssl_print_text(SSL* ssl, const char* text)
 {
 	int r;
@@ -484,7 +595,7 @@ ssl_print_vmsg(SSL* ssl, const char* format, va_list args)
 }
 
 /** printf style printing to the ssl connection */
-int ssl_printf(SSL* ssl, const char* format, ...)
+static int ssl_printf(SSL* ssl, const char* format, ...)
 {
 	va_list args;
 	int ret;
@@ -494,7 +605,7 @@ int ssl_printf(SSL* ssl, const char* format, ...)
 	return ret;
 }
 
-int
+static int
 ssl_read_line(SSL* ssl, char* buf, size_t max)
 {
 	int r;
@@ -1959,3 +2070,7 @@ int remote_control_callback(struct comm_point* c, void* arg, int err,
 	clean_point(rc, s);
 	return 0;
 }
+
+#endif /* end of TODO */
+
+#endif /* HAVE_SSL */

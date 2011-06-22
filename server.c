@@ -42,6 +42,7 @@
 #include "nsec3.h"
 #include "ipc.h"
 #include "udb.h"
+#include "remote.h"
 
 /*
  * Data for the UDP handlers.
@@ -606,13 +607,20 @@ server_shutdown(struct nsd *nsd)
 				nsd->children[i].child_fd = -1;
 			}
 	}
+#ifdef HAVE_SSL
+	daemon_remote_close(nsd->rc); /* close sockets of rc */
+#endif
 
 	log_finalize();
 	tsig_finalize();
+#ifdef HAVE_SSL
+	daemon_remote_delete(nsd->rc); /* ssl-delete secret keys */
+#endif
 
+#if 0 /* OS collects memory pages */
 	nsd_options_destroy(nsd->options);
 	region_destroy(nsd->region);
-
+#endif
 	exit(0);
 }
 
@@ -1185,7 +1193,9 @@ server_main(struct nsd *nsd)
 			/* only quit children after xfrd has acked */
 			send_children_quit(nsd);
 
+#if 0 /* OS collects memory pages */
 			region_destroy(server_region);
+#endif
 			server_shutdown(nsd);
 
 			/* ENOTREACH */
@@ -1247,7 +1257,9 @@ server_main(struct nsd *nsd)
 		(void)kill(nsd->xfrd_pid, SIGTERM);
 	}
 
+#if 0 /* OS collects memory pages */
 	region_destroy(server_region);
+#endif
 	server_shutdown(nsd);
 }
 
@@ -1405,7 +1417,9 @@ server_child(struct nsd *nsd)
 	bind8_stats(nsd);
 #endif /* BIND8_STATS */
 
+#if 0 /* OS collects memory pages */
 	region_destroy(server_region);
+#endif
 	server_shutdown(nsd);
 }
 

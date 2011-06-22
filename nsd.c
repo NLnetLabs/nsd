@@ -43,6 +43,7 @@
 #include "nsd.h"
 #include "options.h"
 #include "tsig.h"
+#include "remote.h"
 
 /* The server handler... */
 static struct nsd nsd;
@@ -903,8 +904,7 @@ main(int argc, char *argv[])
 			/* Child */
 			break;
 		case -1:
-			log_msg(LOG_ERR, "fork() failed: %s", strerror(errno));
-			exit(1);
+			error("fork() failed: %s", strerror(errno));
 		default:
 			/* Parent is done */
 			exit(0);
@@ -912,8 +912,7 @@ main(int argc, char *argv[])
 
 		/* Detach ourselves... */
 		if (setsid() == -1) {
-			log_msg(LOG_ERR, "setsid() failed: %s", strerror(errno));
-			exit(1);
+			error("setsid() failed: %s", strerror(errno));
 		}
 
 		if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
@@ -955,10 +954,16 @@ main(int argc, char *argv[])
 
 	/* Initialize the server... */
 	if (server_init(&nsd) != 0) {
-		log_msg(LOG_ERR, "server initialization failed, %s could "
+		error("server initialization failed, %s could "
 			"not be started", argv0);
-		exit(1);
 	}
+#if defined(HAVE_SSL)
+	if(nsd.options->control_enable) {
+		/* read ssl keys while superuser and outside chroot */
+		if(!(nsd.rc = daemon_remote_create(nsd.options)))
+			error("could not perform remote control setup");
+	}
+#endif /* HAVE_SSL */
 
 	/* Set user context */
 #ifdef HAVE_GETPWNAM
@@ -998,8 +1003,7 @@ main(int argc, char *argv[])
 		nsd.options->difffile += l;
 
 		if (chroot(nsd.chrootdir)) {
-			log_msg(LOG_ERR, "unable to chroot: %s", strerror(errno));
-			exit(1);
+			error("unable to chroot: %s", strerror(errno));
 		}
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "changed root directory to %s",
 			nsd.chrootdir));
@@ -1059,10 +1063,9 @@ main(int argc, char *argv[])
 		server_start_xfrd(&nsd, 0);
 	}
 	if (server_prepare(&nsd) != 0) {
-		log_msg(LOG_ERR, "server preparation failed, %s could "
-			"not be started", argv0);
 		unlinkpid(nsd.pidfile);
-		exit(1);
+		error("server preparation failed, %s could "
+			"not be started", argv0);
 	}
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
 		server_send_soa_xfrd(&nsd);

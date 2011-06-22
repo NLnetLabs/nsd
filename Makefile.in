@@ -40,6 +40,7 @@ CPPFLAGS	= @CPPFLAGS@
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
 LIBS		= @LIBS@
+SSL_LIBS	= @SSL_LIBS@
 LIBOBJS		= @LIBOBJS@
 INSTALL		= $(srcdir)/install-sh -c
 INSTALL_PROGRAM	= $(INSTALL)
@@ -177,7 +178,7 @@ whole:	nsd-notify nsd-xfer nsdc.sh nsd-control-setup.sh nsd-checkconf nsd-contro
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` $(LIBOBJS) $(LIBS)
 
 nsd:	$(NSD_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) -lssl $(LIBS)
+	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(SSL_LIBS)$(LIBS)
 
 nsd-notify:	$(NSD_NOTIFY_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJ) $(LIBOBJS) $(LIBS)
@@ -186,7 +187,7 @@ nsd-checkconf:	$(NSD_CHECKCONF_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_CHECKCONF_OBJ) $(LIBOBJS) $(LIBS)
 
 nsd-control:	$(NSD_CONTROL_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_CONTROL_OBJ) $(LIBOBJS) -lssl $(LIBS)
+	$(LINK) -o $@ $(NSD_CONTROL_OBJ) $(LIBOBJS) $(SSL_LIBS)$(LIBS)
 
 nsd-xfer:	$(NSD_XFER_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJ) $(LIBOBJS) $(LIBS)
@@ -195,7 +196,7 @@ nsd-patch:	$(NSD_PATCH_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_PATCH_OBJ) $(LIBOBJS) $(LIBS)
 
 cutest:	$(CUTEST_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) -lssl $(LIBS)
+	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(SSL_LIBS)$(LIBS)
 
 udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ udb-inspect.o $(COMMON_OBJ) $(LIBOBJS) $(LIBS)
@@ -396,7 +397,7 @@ namedb.o: $(srcdir)/namedb.c config.h $(srcdir)/namedb.h $(srcdir)/dname.h $(src
  $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/radtree.h
 netio.o: $(srcdir)/netio.c config.h $(srcdir)/netio.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 nsd.o: $(srcdir)/nsd.c config.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h \
- $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/tsig.h $(srcdir)/dname.h
+ $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/rbtree.h $(srcdir)/tsig.h $(srcdir)/dname.h $(srcdir)/remote.h
 nsd-checkconf.o: $(srcdir)/nsd-checkconf.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h $(srcdir)/options.h $(srcdir)/rbtree.h
 nsd-control.o: $(srcdir)/nsd-control.c config.h $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
@@ -425,12 +426,12 @@ rbtree.o: $(srcdir)/rbtree.c config.h $(srcdir)/rbtree.h $(srcdir)/region-alloca
 rdata.o: $(srcdir)/rdata.c config.h $(srcdir)/rdata.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/radtree.h $(srcdir)/zonec.h
 region-allocator.o: $(srcdir)/region-allocator.c config.h $(srcdir)/region-allocator.h $(srcdir)/util.h
-remote.o: $(srcdir)/remote.c config.h $(srcdir)/remote.h $(srcdir)/util.h $(srcdir)/options.h $(srcdir)/region-allocator.h \
- $(srcdir)/rbtree.h
+remote.o: $(srcdir)/remote.c config.h $(srcdir)/remote.h $(srcdir)/util.h $(srcdir)/netio.h $(srcdir)/region-allocator.h \
+ $(srcdir)/options.h $(srcdir)/rbtree.h
 server.o: $(srcdir)/server.c config.h $(srcdir)/axfr.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/radtree.h $(srcdir)/packet.h \
  $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/rbtree.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/udb.h \
- $(srcdir)/nsec3.h $(srcdir)/ipc.h
+ $(srcdir)/nsec3.h $(srcdir)/ipc.h $(srcdir)/remote.h
 tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h \
  $(srcdir)/tsig-openssl.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/radtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h
 tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(srcdir)/region-allocator.h \

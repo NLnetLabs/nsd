@@ -1,5 +1,5 @@
 /*
- * daemon/remote.h - remote control for the unbound daemon.
+ * remote.h - remote control for the NSD daemon.
  *
  * Copyright (c) 2008, NLnet Labs. All rights reserved.
  *
@@ -38,71 +38,27 @@
  *
  * This file contains the remote control functionality for the daemon.
  * The remote control can be performed using either the commandline
- * unbound-control tool, or a SSLv3/TLS capable web browser. 
+ * nsd-control tool, or a SSLv3/TLS capable web browser. 
  * The channel is secured using SSLv3 or TLSv1, and certificates.
  * Both the server and the client(control tool) have their own keys.
  */
 
 #ifndef DAEMON_REMOTE_H
 #define DAEMON_REMOTE_H
-#ifdef HAVE_OPENSSL_SSL_H
-#include "openssl/ssl.h"
-#endif
-struct config_file;
-struct listen_list;
-struct listen_port;
-struct worker;
-struct comm_reply;
-struct comm_point;
+struct xfrd_state;
+struct nsd_options;
+
+/* private, defined in remote.c to keep ssl.h out of this header */
 struct daemon_remote;
-
-/** number of seconds timeout on incoming remote control handshake */
-#define REMOTE_CONTROL_TCP_TIMEOUT 120
-
-/**
- * a busy control command connection, SSL state
- */
-struct rc_state {
-	/** the next item in list */
-	struct rc_state* next;
-	/** the commpoint */
-	struct comm_point* c;
-	/** in the handshake part */
-	enum { rc_none, rc_hs_read, rc_hs_write } shake_state;
-	/** the ssl state */
-	SSL* ssl;
-	/** the rc this is part of */
-	struct daemon_remote* rc;
-};
-
-/**
- * The remote control tool state.
- * The state is only created for the first thread, other threads
- * are called from this thread.  Only the first threads listens to
- * the control port.  The other threads do not, but are called on the
- * command channel(pipe) from the first thread.
- */
-struct daemon_remote {
-	/** the worker for this remote control */
-	struct worker* worker;
-	/** commpoints for accepting remote control connections */
-	struct listen_list* accept_list;
-	/** number of active commpoints that are handling remote control */
-	int active;
-	/** max active commpoints */
-	int max_active;
-	/** current commpoints busy; should be a short list, malloced */
-	struct rc_state* busy_list;
-	/** the SSL context for creating new SSL streams */
-	SSL_CTX* ctx;
-};
+struct rc_state;
 
 /**
  * Create new remote control state for the daemon.
+ * Also setups the control port.
  * @param cfg: config file with key file settings.
  * @return new state, or NULL on failure.
  */
-struct daemon_remote* daemon_remote_create(struct config_file* cfg);
+struct daemon_remote* daemon_remote_create(struct nsd_options* cfg);
 
 /**
  * remote control state to delete.
@@ -111,20 +67,22 @@ struct daemon_remote* daemon_remote_create(struct config_file* cfg);
 void daemon_remote_delete(struct daemon_remote* rc);
 
 /**
- * remote control state to clear up. Busy and accept points are closed.
+ * Close remote control ports.  Clears up busy connections.
  * Does not delete the rc itself, or the ssl context (with its keys).
- * @param rc: state to clear.
+ * @param rc: state to close.
  */
-void daemon_remote_clear(struct daemon_remote* rc);
+void daemon_remote_close(struct daemon_remote* rc);
 
 /**
  * Open and create listening ports for remote control.
+ * @param rc: rc state that contains list of accept port sockets.
  * @param cfg: config options.
- * @return list of ports or NULL on failure.
- *	can be freed with listening_ports_free().
+ * @return false on failure.
  */
-struct listen_port* daemon_remote_open_ports(struct config_file* cfg);
+int daemon_remote_open_ports(struct daemon_remote* rc,
+	struct nsd_options* cfg);
 
+#if 0 /* TODO */
 /**
  * Setup comm points for accepting remote control connections.
  * @param rc: state
@@ -147,34 +105,8 @@ int remote_accept_callback(struct comm_point*, void*, int, struct comm_reply*);
 /** handle remote control data callbacks */
 int remote_control_callback(struct comm_point*, void*, int, struct comm_reply*);
 
-/** 
- * Print fixed line of text over ssl connection in blocking mode
- * @param ssl: print to
- * @param text: the text.
- * @return false on connection failure.
- */
-int ssl_print_text(SSL* ssl, const char* text);
-
-/** 
- * printf style printing to the ssl connection
- * @param ssl: the SSL connection to print to. Blocking.
- * @param format: printf style format string.
- * @return success or false on a network failure.
- */
-int ssl_printf(SSL* ssl, const char* format, ...)
-        ATTR_FORMAT(printf, 2, 3);
-
-/**
- * Read until \n is encountered
- * If SSL signals EOF, the string up to then is returned (without \n).
- * @param ssl: the SSL connection to read from. blocking.
- * @param buf: buffer to read to.
- * @param max: size of buffer.
- * @return false on connection failure.
- */
-int ssl_read_line(SSL* ssl, char* buf, size_t max);
-
 /** routine to printout option values over SSL */
 void remote_get_opt_ssl(char* line, void* arg);
+#endif /* TODO */
 
 #endif /* DAEMON_REMOTE_H */

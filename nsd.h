@@ -17,6 +17,7 @@
 struct netio_handler;
 struct nsd_options;
 struct udb_base;
+struct daemon_remote;
 
 /* The NSD runtime states and NSD ipc command values */
 #define	NSD_RUN	0
@@ -151,6 +152,7 @@ struct	nsd
 	int mytask; /* the base used by this process */
 	struct netio_handler* xfrd_listener;
 	pid_t xfrd_pid;
+	struct daemon_remote* rc;
 
 	/* Configuration */
 	const char		*dbfile;

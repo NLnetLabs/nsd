@@ -685,10 +685,16 @@ esac
 
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL
-ACX_LIB_SSL
-AC_CHECK_HEADERS([openssl/ssl.h],,, [AC_INCLUDES_DEFAULT])
-AC_CHECK_HEADERS([openssl/err.h],,, [AC_INCLUDES_DEFAULT])
-AC_CHECK_HEADERS([openssl/rand.h],,, [AC_INCLUDES_DEFAULT])
+if test x$HAVE_SSL = x"yes"; then
+	ACX_LIB_SSL
+	SSL_LIBS="-lssl "
+	AC_SUBST(SSL_LIBS)
+	AC_CHECK_HEADERS([openssl/ssl.h],,, [AC_INCLUDES_DEFAULT])
+	AC_CHECK_HEADERS([openssl/err.h],,, [AC_INCLUDES_DEFAULT])
+	AC_CHECK_HEADERS([openssl/rand.h],,, [AC_INCLUDES_DEFAULT])
+else
+	AC_MSG_WARN([No SSL, therefore remote-control is disabled])
+fi
 
 AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in
