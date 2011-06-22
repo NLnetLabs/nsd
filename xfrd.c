@@ -130,6 +130,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->ipc_conn->is_reading = 0;
 	xfrd->ipc_conn->fd = xfrd->ipc_handler.fd;
 	xfrd->need_to_send_reload = 0;
+	xfrd->need_to_send_shutdown = 0;
 
 	xfrd->notify_waiting_first = NULL;
 	xfrd->notify_waiting_last = NULL;
@@ -1594,8 +1595,7 @@ xfrd_set_reload_timeout()
 	if(xfrd->reload_timeout.tv_sec == 0 ||
 		xfrd_time() >= xfrd->reload_timeout.tv_sec ) {
 		/* no reload wait period (or it passed), do it right away */
-		xfrd->need_to_send_reload = 1;
-		xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
+		xfrd_set_reload_now(xfrd);
 		/* start reload wait period */
 		xfrd->reload_timeout.tv_sec = xfrd_time() +
 			xfrd->nsd->options->xfrd_reload_timeout;
@@ -1616,8 +1616,7 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 	handler->timeout = NULL;
 	xfrd->reload_timeout.tv_sec = xfrd_time() +
 		xfrd->nsd->options->xfrd_reload_timeout;
-	xfrd->need_to_send_reload = 1;
-	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
+	xfrd_set_reload_now(xfrd);
 }
 
 void
@@ -1833,4 +1832,10 @@ void xfrd_process_task_result(struct udb_base* taskudb)
 	 * reload, this happens when the reload signal is sent, and thus
 	 * the taskudbs are swapped */
 	task_clear(taskudb);
+}
+
+void xfrd_set_reload_now(xfrd_state_t* xfrd)
+{
+	xfrd->need_to_send_reload = 1;
+	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
 }

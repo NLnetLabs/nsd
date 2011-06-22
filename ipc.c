@@ -99,6 +99,7 @@ parent_handle_xfrd_command(netio_type *ATTR_UNUSED(netio),
 		data->nsd->signal_hint_reload = 1;
 		break;
 	case NSD_QUIT:
+	case NSD_SHUTDOWN:
 		data->nsd->mode = mode;
 		break;
 	case NSD_REAP_CHILDREN:
@@ -422,6 +423,20 @@ xfrd_send_reload_req(xfrd_state_t* xfrd)
 }
 
 static void
+xfrd_send_shutdown_req(xfrd_state_t* xfrd)
+{
+	sig_atomic_t cmd = NSD_SHUTDOWN;
+	xfrd->ipc_send_blocked = 1;
+	xfrd->ipc_handler.event_types &= (~NETIO_EVENT_WRITE);
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc send shutdown"));
+	if(write_socket(xfrd->ipc_handler.fd, &cmd, sizeof(cmd)) == -1) {
+		log_msg(LOG_ERR, "xfrd: error writing shutdown to main: %s",
+			strerror(errno));
+	}
+	xfrd->need_to_send_shutdown = 0;
+}
+
+static void
 xfrd_send_quit_req(xfrd_state_t* xfrd)
 {
 	sig_atomic_t cmd = NSD_QUIT;
@@ -453,12 +468,15 @@ xfrd_handle_ipc(netio_type* ATTR_UNUSED(netio),
 			handler->event_types = NETIO_EVENT_READ;
 			return;
 		}
-		if(xfrd->need_to_send_quit) {
+		if(xfrd->need_to_send_shutdown) {
+			xfrd_send_shutdown_req(xfrd);
+		} else if(xfrd->need_to_send_quit) {
 			xfrd_send_quit_req(xfrd);
 		} else if(xfrd->can_send_reload && xfrd->need_to_send_reload) {
 			xfrd_send_reload_req(xfrd);
 		}
 		if(!(xfrd->can_send_reload && xfrd->need_to_send_reload) &&
+			!xfrd->need_to_send_shutdown &&
 			!xfrd->need_to_send_quit) {
 			handler->event_types = NETIO_EVENT_READ; /* disable writing for now */
 		}
@@ -557,8 +575,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		/* make reload happen, right away, and schedule file check */
 		task_new_check_zonefiles(xfrd->nsd->task[xfrd->nsd->mytask],
 			xfrd->last_task);
-		xfrd->need_to_send_reload = 1;
-		xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
+		xfrd_set_reload_now(xfrd);
 		break;
 	case NSD_RELOAD:
 		/* main tells us that reload is done, stop ipc send to main */

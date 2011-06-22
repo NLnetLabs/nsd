@@ -61,6 +61,7 @@
 #include "nsd.h"
 #include "netio.h"
 #include "options.h"
+#include "difffile.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -442,6 +443,7 @@ int daemon_remote_open_ports(struct daemon_remote* rc, nsd_options_t* cfg)
 void daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd)
 {
 	netio_handler_list_type* p;
+	if(!rc) return;
 	rc->xfrd = xfrd;
 	for(p = rc->accept_list; p; p = p->next) {
 		/* add to netio */
@@ -669,17 +671,20 @@ static void send_ok(SSL* ssl)
 
 /** do the stop command */
 static void
-do_stop(SSL* ssl, struct daemon_remote* rc)
+do_stop(SSL* ssl, xfrd_state_t* xfrd)
 {
-	/* TODO */
+	xfrd->need_to_send_shutdown = 1;
+	xfrd->ipc_handler.event_types |= NETIO_EVENT_WRITE;
 	send_ok(ssl);
 }
 
 /** do the reload command */
 static void
-do_reload(SSL* ssl, struct daemon_remote* rc)
+do_reload(SSL* ssl, xfrd_state_t* xfrd)
 {
-	/* TODO */
+	task_new_check_zonefiles(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task);
+	xfrd_set_reload_now(xfrd);
 	send_ok(ssl);
 }
 
@@ -692,6 +697,7 @@ do_verbosity(SSL* ssl, char* str)
 		ssl_printf(ssl, "error in verbosity number syntax: %s\n", str);
 		return;
 	}
+	/* TODO, reload for it and needs a task */
 	verbosity = val;
 	send_ok(ssl);
 }
@@ -723,14 +729,11 @@ find_arg2(SSL* ssl, char* arg, char** arg2)
 
 /** do the status command */
 static void
-do_status(SSL* ssl, xfrd_state_t* xfrd)
+do_status(SSL* ssl)
 {
 	if(!ssl_printf(ssl, "version: %s\n", PACKAGE_VERSION))
 		return;
 	if(!ssl_printf(ssl, "verbosity: %d\n", verbosity))
-		return;
-	if(!ssl_printf(ssl, "NSD (pid %d) is running...\n",
-		(int)xfrd->nsd->pid))
 		return;
 }
 
@@ -748,9 +751,11 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd)
 	char* p = skipwhite(cmd);
 	/* compare command */
 	if(cmdcmp(p, "stop", 4)) {
-		do_stop(ssl, rc);
+		do_stop(ssl, rc->xfrd);
+	} else if(cmdcmp(p, "reload", 6)) {
+		do_reload(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "status", 6)) {
-		do_status(ssl, rc->xfrd);
+		do_status(ssl);
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}

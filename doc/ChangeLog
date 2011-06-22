@@ -1,5 +1,7 @@
 22 June 2011: Wouter
 	- remote control, config, client, setup and status command.
+	- reload nsd-control command.
+	- stop nsd-control command.
 
 14 June 2011: Wouter
 	- Fix to have no authority NS set processing for CNAMEs.

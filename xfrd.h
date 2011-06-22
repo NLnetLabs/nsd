@@ -62,6 +62,7 @@ struct xfrd_state {
 	struct xfrd_tcp *ipc_conn;
 	struct buffer* ipc_pass;
 	/* sending ipc to server_main */
+	uint8_t need_to_send_shutdown;
 	uint8_t need_to_send_reload;
 	uint8_t need_to_send_quit;
 	uint8_t	ipc_send_blocked;
@@ -282,5 +283,8 @@ int xfrd_bind_local_interface(int sockd, acl_options_t* ifc,
 
 /* process results and soa info from reload */
 void xfrd_process_task_result(struct udb_base* taskudb);
+
+/* set to reload right away (for user controlled reload events) */
+void xfrd_set_reload_now(xfrd_state_t* xfrd);
 
 #endif /* XFRD_H */
