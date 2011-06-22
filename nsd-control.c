@@ -143,7 +143,7 @@ contact_server(const char* svr, nsd_options_t* cfg, int statuscmd)
 		*ps++ = 0;
 		port = atoi(ps);
 		if(!port) {
-			fprintf(stderr, "could not parse port %s", ps);
+			fprintf(stderr, "could not parse port %s\n", ps);
 			exit(1);
 		}
 	} 
@@ -154,7 +154,7 @@ contact_server(const char* svr, nsd_options_t* cfg, int statuscmd)
 		sa->sin6_family = AF_INET6;
 		sa->sin6_port = (in_port_t)htons((uint16_t)port);
 		if(inet_pton((int)sa->sin6_family, svr, &sa->sin6_addr) <= 0) {
-			fprintf(stderr, "could not parse IP: %s", svr);
+			fprintf(stderr, "could not parse IP: %s\n", svr);
 			exit(1);
 		}
 	} else { /* ip4 */
@@ -164,14 +164,14 @@ contact_server(const char* svr, nsd_options_t* cfg, int statuscmd)
 		sa->sin_family = AF_INET;
 		sa->sin_port = (in_port_t)htons((uint16_t)port);
 		if(inet_pton((int)sa->sin_family, svr, &sa->sin_addr) <= 0) {
-			fprintf(stderr, "could not parse IP: %s", svr);
+			fprintf(stderr, "could not parse IP: %s\n", svr);
 			exit(1);
 		}
 	}
 
 	fd = socket(strchr(svr, ':')?AF_INET6:AF_INET, SOCK_STREAM, 0);
 	if(fd == -1) {
-		fprintf(stderr, "socket: %s", strerror(errno));
+		fprintf(stderr, "socket: %s\n", strerror(errno));
 		exit(1);
 	}
 	if(connect(fd, (struct sockaddr*)&addr, addrlen) < 0) {
@@ -287,11 +287,11 @@ go(const char* cfgfile, char* svr, int argc, char* argv[])
 
 	/* read config */
 	if(!(opt = nsd_options_create(region_create(xalloc, free)))) {
-		fprintf(stderr, "out of memory");
+		fprintf(stderr, "out of memory\n");
 		exit(1);
 	}
 	if(!parse_options_file(opt, cfgfile)) {
-		fprintf(stderr, "could not read config file");
+		fprintf(stderr, "could not read config file\n");
 		exit(1);
 	}
 	if(!opt->control_enable)
@@ -369,7 +369,7 @@ int main(int argc, char* argv[])
 	if(argc >= 1 && strcmp(argv[0], "start")==0) {
 		if(execlp("nsd", "nsd", "-c", cfgfile, 
 			(char*)NULL) < 0) {
-			fprintf(stderr, "could not exec nsd: %s",
+			fprintf(stderr, "could not exec nsd: %s\n",
 				strerror(errno));
 			exit(1);
 		}

@@ -971,30 +971,24 @@ rcode2str(int rc)
         return NULL; /* ENOREACH */
 }
 
-int
-addr2ip(
+void
+addr2str(
 #ifdef INET6
-        struct sockaddr_storage addr
+        struct sockaddr_storage *addr
 #else
-        struct sockaddr_in addr
+        struct sockaddr_in *addr
 #endif
-, char *address, socklen_t size)
+	, char* str, size_t len)
 {
 #ifdef INET6
-	if (addr.ss_family == AF_INET6) {
+	if (addr->ss_family == AF_INET6) {
 		if (!inet_ntop(AF_INET6,
-			&((struct sockaddr_in6 *)&addr)->sin6_addr,
-			address, size))
-			return (1);
-#else
-	if (0) {
-#endif
-	} else {
-		if (!inet_ntop(AF_INET,
-			&((struct sockaddr_in *)&addr)->sin_addr,
-			address, size))
-			return (1);
+			&((struct sockaddr_in6 *)addr)->sin6_addr, str, len))
+			strlcpy(str, "[unknown ip6, inet_ntop failed]", len);
+		return;
 	}
-
-	return (0);
+#endif
+	if (!inet_ntop(AF_INET, &((struct sockaddr_in *)addr)->sin_addr,
+		str, len))
+		strlcpy(str, "[unknown ip4, inet_ntop failed]", len);
 }

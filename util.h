@@ -358,12 +358,12 @@ int print_rr(FILE *out, struct state_pretty_rr* state, struct rr *record);
  */
 const char* rcode2str(int rc);
 
-int addr2ip(
+void addr2str(
 #ifdef INET6
-	struct sockaddr_storage addr
+	struct sockaddr_storage *addr
 #else
-	struct sockaddr_in addr
+	struct sockaddr_in *addr
 #endif
-, char address[], socklen_t size);
+	, char* str, size_t len);
 
 #endif /* _UTIL_H_ */

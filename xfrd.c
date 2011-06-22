@@ -26,6 +26,7 @@
 #include "rdata.h"
 #include "difffile.h"
 #include "ipc.h"
+#include "remote.h"
 
 #define XFRD_TRANSFER_TIMEOUT_START 10 /* empty zone timeout is between x and 2*x seconds */
 #define XFRD_TRANSFER_TIMEOUT_MAX 14400 /* empty zone timeout max expbackoff */
@@ -133,6 +134,10 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->notify_waiting_first = NULL;
 	xfrd->notify_waiting_last = NULL;
 	xfrd->notify_udp_num = 0;
+
+#ifdef HAVE_SSL
+	daemon_remote_attach(xfrd->nsd->rc, xfrd);
+#endif
 
 	xfrd->tcp_set = xfrd_tcp_set_create(xfrd->region);
 	xfrd->tcp_set->tcp_timeout = nsd->tcp_timeout;

@@ -82,31 +82,12 @@ void daemon_remote_close(struct daemon_remote* rc);
 int daemon_remote_open_ports(struct daemon_remote* rc,
 	struct nsd_options* cfg);
 
-#if 0 /* TODO */
 /**
  * Setup comm points for accepting remote control connections.
  * @param rc: state
- * @param ports: already opened ports.
- * @param worker: worker with communication base. and links to command channels.
- * @return false on error.
+ * @param xfrd: the process that hosts the control connection.
+ *	The rc is attached to its netio.
  */
-int daemon_remote_open_accept(struct daemon_remote* rc, 
-	struct listen_port* ports, struct worker* worker);
-
-/**
- * Handle nonthreaded remote cmd execution.
- * @param worker: this worker (the remote worker).
- */
-void daemon_remote_exec(struct worker* worker);
-
-/** handle remote control accept callbacks */
-int remote_accept_callback(struct comm_point*, void*, int, struct comm_reply*);
-
-/** handle remote control data callbacks */
-int remote_control_callback(struct comm_point*, void*, int, struct comm_reply*);
-
-/** routine to printout option values over SSL */
-void remote_get_opt_ssl(char* line, void* arg);
-#endif /* TODO */
+void daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd);
 
 #endif /* DAEMON_REMOTE_H */

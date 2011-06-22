@@ -171,14 +171,10 @@ answer_axfr_ixfr(struct nsd *nsd, struct query *q)
 			   acl_check_incoming(zone_opt->pattern->provide_xfr, q, &acl)==-1)
 			{
 				if (verbosity > 0) {
-					char address[128];
-					if (addr2ip(q->addr, address, sizeof(address))) {
-						DEBUG(DEBUG_XFRD,1, (LOG_INFO,
-							"addr2ip failed"));
-						strlcpy(address, "[unknown]", sizeof(address));
-					}
+					char a[128];
+					addr2str(&q->addr, a, sizeof(a));
 					VERBOSITY(1, (LOG_INFO, "axfr for zone %s from client %s refused, %s",
-						dname_to_string(q->qname, NULL), address, acl?"blocked":"no acl matches"));
+						dname_to_string(q->qname, NULL), a, acl?"blocked":"no acl matches"));
 				}
 				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "axfr refused, %s",
 					acl?"blocked":"no acl matches"));
