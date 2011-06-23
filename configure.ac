@@ -309,7 +309,7 @@ EOF
 	if $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >/dev/null 2>&1; then
 		AC_MSG_RESULT(yes)
 		CCWHOLE="whole"
-		CHECK_COMPILER_FLAG(flto, [CFLAGS="$CFLAGS -flto"], [])
+		ACX_CHECK_FLTO
 	else
 		AC_MSG_RESULT(no)
 		CCWHOLE="unwhole"

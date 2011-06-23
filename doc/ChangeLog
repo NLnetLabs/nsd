@@ -1,3 +1,6 @@
+23 June 2011: Wouter
+	- -flto check supports clang compiler.
+
 22 June 2011: Wouter
 	- remote control, config, client, setup and status command.
 	- reload nsd-control command.
