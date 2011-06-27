@@ -45,6 +45,16 @@ Stop the server. The server daemon exits.
 .B status
 Display server status. Exit code 3 if not running (the connection to the 
 port is refused), 1 on error, 0 if running.
+.TP
+.B stats
+Output a sequence of name=value lines with statistics information, requires
+NSD to be compiled with this option enabled.
+.TP
+.B stats_noreset
+Same as stats, but does not zero the counters.
+.TP
+.B verbosity <number>
+Change logging verbosity.
 .SH "EXIT CODE"
 The nsd\-control program exits with status code 1 on error, 0 on success.
 .SH "SET UP"
@@ -56,6 +66,74 @@ who can use nsd\-control, by default owner and group but not all users.
 The script preserves private keys present in the directory.
 After running the script as root, turn on \fBcontrol\-enable\fR in 
 \fInsd.conf\fR.
+.SH "STATISTIC COUNTERS"
+The \fIstats\fR command shows a number of statistic counters.
+.TP
+.I num.queries
+number of queries received (the tcp and udp queries added up).
+.TP
+.I serverX.queries
+number of queries handled by the server process.  The number of
+server processes is set with the config statement \fBserver\-count\fR.
+.TP
+.I time.boot
+uptime in seconds since the server was started.  With fractional seconds.
+.TP
+.I time.elapsed
+time since the last stats report, in seconds.  With fractional seconds.
+Can be zero if polled quickly and the previous stats command resets the
+counters, so that the next gets a fully zero, and zero elapsed time, report.
+.TP
+.I size.db.disk
+size of nsd.db on disk, in bytes.
+.TP
+.I size.db.mem
+size of the DNS database in memory, in bytes.
+.TP
+.I num.type.X
+number of queries with this query type.
+.TP
+.I num.opcode.X
+number of queries with this opcode.
+.TP
+.I num.class.X
+number of queries with this query class.
+.TP
+.I num.rcode.X
+number of answers that carried this return code.
+.TP
+.I num.edns
+number of queries with EDNS OPT.
+.TP
+.I num.ednserr
+number of queries which failed EDNS parse.
+.TP
+.I num.udp
+number of queries over UDP ip4.
+.TP
+.I num.udp6
+number of queries over UDP ip6.
+.TP
+.I num.tcp
+number of connections over TCP ip4.
+.TP
+.I num.tcp6
+number of connections over TCP ip6.
+.TP
+.I num.answer_wo_aa
+number of answers with NOERROR rcode and without AA flag, this includes the referrals.
+.TP
+.I rxerr
+number of queries for which the receive failed.
+.TP
+.I txerr
+number of answers for which the transmit failed.
+.TP
+.I truncated
+number of answers with TC flag set.
+.TP
+.I dropped
+number of queries that were dropped because they failed sanity check.
 .SH "FILES"
 .TP
 .I @nsdconfigfile@
