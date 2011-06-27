@@ -179,6 +179,7 @@ log_crypto_err(const char* str)
 	}
 }
 
+#ifdef BIND8_STATS
 /** subtract timers and the values do not overflow or become negative */
 static void
 timeval_subtract(struct timeval* d, const struct timeval* end, 
@@ -194,6 +195,7 @@ timeval_subtract(struct timeval* d, const struct timeval* end,
 	d->tv_usec = end_usec - start->tv_usec;
 #endif
 }
+#endif /* BIND8_STATS */
 
 /** divide sum of timers to get average */
 static void
@@ -776,6 +778,7 @@ do_status(SSL* ssl)
 static void
 do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 {
+#ifdef BIND8_STATS
 	/* queue up to get stats after a reload is done (to gather statistics
 	 * from the servers) */
 	assert(!rs->in_stats_list);
@@ -787,6 +790,10 @@ do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 	rs->c->event_types = NETIO_EVENT_NONE;
 	/* force a reload */
 	xfrd_set_reload_now(xfrd);
+#else
+	(void)rc; (void)peek;
+	(void)ssl_printf(rs->ssl, "error no stats enabled at compile time\n");
+#endif /* BIND8_STATS */
 }
 
 /** check for name with end-of-string, space or tab after it */

@@ -1850,6 +1850,7 @@ void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v)
 	udb_ptr_unlink(&e, udb);
 }
 
+#ifdef BIND8_STATS
 void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
 	size_t child_count)
 {
@@ -1867,6 +1868,7 @@ void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
 	udb_ptr_unlink(&e, udb);
 	return p + sizeof(*stat);
 }
+#endif /* BIND8_STATS */
 
 void
 task_process_expire(namedb_type* db, struct task_list_d* task)
