@@ -90,4 +90,10 @@ int daemon_remote_open_ports(struct daemon_remote* rc,
  */
 void daemon_remote_attach(struct daemon_remote* rc, struct xfrd_state* xfrd);
 
+/**
+ * Process statistic results and send them
+ * @param rc: state.
+ */
+void daemon_remote_process_stats(struct daemon_remote* rc);
+
 #endif /* DAEMON_REMOTE_H */

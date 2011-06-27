@@ -15,6 +15,7 @@ struct buffer;
 struct nsd;
 struct nsd_child;
 struct xfrd_tcp;
+struct nsdst;
 
 /*
  * Data for the server_main IPC handler 
@@ -84,5 +85,8 @@ void xfrd_handle_ipc(netio_type *netio,
 
 /* check if all children have exited in an orderly fashion and set mode */
 void parent_check_all_children_exited(struct nsd* nsd);
+
+/** add stats to total */
+void stats_add(struct nsdst* total, struct nsdst* s);
 
 #endif /* NSD_IPC_H */

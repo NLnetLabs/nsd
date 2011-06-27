@@ -1,3 +1,7 @@
+27 June 2011: Wouter
+	- nsd-control stats and stats_noreset (if enabled at compile time).
+	  nsd does not print statistics to logfile if period is 0.
+
 23 June 2011: Wouter
 	- -flto check supports clang compiler.
 

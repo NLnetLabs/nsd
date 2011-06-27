@@ -48,6 +48,12 @@ struct daemon_remote;
  * channel content during reload
  */
 #define NSD_QUIT_SYNC 9
+/*
+ * QUIT_WITH_STATS is sent during a reload when BIND8_STATS is defined,
+ * from parent to children.  The stats are transferred too from child to
+ * parent with this commandvalue, when the child is exiting.
+ */
+#define NSD_QUIT_WITH_STATS 10
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U
@@ -115,6 +121,10 @@ struct nsd_child
 	 * The handler for handling the commands from the child.
 	 */
 	struct netio_handler* handler;
+
+#ifdef	BIND8_STATS
+	stc_t query_count;
+#endif
 };
 
 /* NSD configuration and run-time variables */
@@ -203,6 +213,7 @@ struct	nsd
 		/* Dropped, truncated, queries for nonconfigured zone, tx errors */
 		stc_t	dropped, truncated, wrongzone, txerr, rxerr;
 		stc_t 	edns, ednserr, raxfr, nona;
+		uint64_t db_disk, db_mem;
 	} st;
 #endif /* BIND8_STATS */
 

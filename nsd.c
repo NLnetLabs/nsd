@@ -319,6 +319,8 @@ bind8_stats (struct nsd *nsd)
 
 	/* Current time... */
 	time_t now;
+	if(!nsd->st.period)
+		return;
 	time(&now);
 
 	/* NSTATS */

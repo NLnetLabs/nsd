@@ -1803,20 +1803,41 @@ xfrd_get_temp_buffer()
 	return xfrd->packet;
 }
 
+#ifdef BIND8_STATS
+/** process stat info task */
 static void
-xfrd_handle_taskresult(struct task_list_d* task)
+xfrd_process_stat_info_task(xfrd_state_t* xfrd, struct task_list_d* task)
+{
+	size_t i;
+	stc_t* p = (void*)task->zname + sizeof(struct nsdst);
+	stats_add(&xfrd->nsd->st, (struct nsdst*)task->zname);
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		xfrd->nsd->children[i].query_count += *p++;
+	}
+	/* got total, now see if users are interested in these statistics */
+	daemon_remote_process_stats(xfrd->nsd->rc);
+}
+#endif /* BIND8_STATS */
+
+static void
+xfrd_handle_taskresult(xfrd_state_t* xfrd, struct task_list_d* task)
 {
 	switch(task->task_type) {
 	case task_soa_info:
 		xfrd_process_soa_info_task(task);
 		break;
+#ifdef BIND8_STATS
+	case task_stat_info:
+		xfrd_process_stat_info_task(xfrd, task);
+		break;
+#endif /* BIND8_STATS */
 	default:
 		log_msg(LOG_WARNING, "unhandled task result in xfrd from "
 			"reload type %d", (int)task->task_type);
 	}
 }
 
-void xfrd_process_task_result(struct udb_base* taskudb)
+void xfrd_process_task_result(xfrd_state_t* xfrd, struct udb_base* taskudb)
 {
 	udb_ptr t;
 	/* remap it for usage */
@@ -1824,7 +1845,7 @@ void xfrd_process_task_result(struct udb_base* taskudb)
 	/* process the task-results in the taskudb */
 	udb_ptr_new(&t, taskudb, udb_base_get_userdata(taskudb));
 	while(!udb_ptr_is_null(&t)) {
-		xfrd_handle_taskresult(TASKLIST(&t));
+		xfrd_handle_taskresult(xfrd, TASKLIST(&t));
 		udb_ptr_set_rptr(&t, taskudb, &TASKLIST(&t)->next);
 	}
 	udb_ptr_unlink(&t, taskudb);

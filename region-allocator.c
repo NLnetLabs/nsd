@@ -438,6 +438,11 @@ size_t region_get_recycle_size(region_type* region)
 	return region->recycle_size;
 }
 
+size_t region_get_mem(region_type* region)
+{
+	return region->total_allocated;
+}
+
 /* debug routine, includes here to keep base region-allocator independent */
 #undef ALIGN_UP
 #include "util.h"

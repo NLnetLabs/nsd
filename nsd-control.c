@@ -75,6 +75,8 @@ usage()
 	printf("  stop				stops the server\n");
 	printf("  reload			reload zonefiles, reopen logfile\n");
 	printf("  status			display status of server\n");
+	printf("  stats				print statistics\n");
+	printf("  stats_noreset			peek at statistics\n");
 	printf("  verbosity <number>		change logging detail\n");
 	exit(1);
 }

@@ -73,12 +73,17 @@
 /** number of seconds timeout on incoming remote control handshake */
 #define REMOTE_CONTROL_TCP_TIMEOUT 120
 
+/** if you want zero to be inhibited in stats output.
+ * it omits zeroes for types that have no acronym and unused-rcodes */
+const int inhibit_zero = 1;
+
 /**
  * a busy control command connection, SSL state
+ * Defined here to keep the definition private, and keep SSL out of the .h
  */
 struct rc_state {
 	/** the next item in list */
-	struct rc_state* next;
+	struct rc_state* next, *prev;
 	/** the commpoint */
 	struct netio_handler* c;
 	/** timeout for this state */
@@ -89,6 +94,11 @@ struct rc_state {
 	SSL* ssl;
 	/** the rc this is part of */
 	struct daemon_remote* rc;
+	/** stats list next item */
+	struct rc_state* stats_next;
+	/** stats list indicator (0 is not part of stats list, 1 is stats,
+	 * 2 is stats_noreset. */
+	int in_stats_list;
 };
 
 /**
@@ -103,8 +113,12 @@ struct daemon_remote {
 	int active;
 	/** max active commpoints */
 	int max_active;
-	/** current commpoints busy; should be a short list, malloced */
+	/** current commpoints busy; double linked, malloced */
 	struct rc_state* busy_list;
+	/** commpoints waiting for stats to complete (also in busy_list) */
+	struct rc_state* stats_list;
+	/** last time stats was reported */
+	struct timeval stats_time, boot_time;
 	/** the SSL context for creating new SSL streams */
 	SSL_CTX* ctx;
 };
@@ -260,6 +274,10 @@ daemon_remote_create(nsd_options_t* cfg)
 		log_msg(LOG_ERR, "could not open remote control port");
 		goto setup_error;
 	}
+
+	if(gettimeofday(&rc->boot_time, NULL) == -1)
+		log_msg(LOG_ERR, "gettimeofday: %s", strerror(errno));
+	rc->stats_time = rc->boot_time;
 
 	return rc;
 }
@@ -546,7 +564,11 @@ remote_accept_callback(netio_type *netio, netio_handler_type *handler,
 	}
 
 	n->rc = rc;
+	n->stats_next = NULL;
+	n->in_stats_list = 0;
+	n->prev = NULL;
 	n->next = rc->busy_list;
+	if(n->next) n->next->prev = n;
 	rc->busy_list = n;
 	rc->active ++;
 	netio_add_handler(netio, n->c);
@@ -560,12 +582,21 @@ remote_accept_callback(netio_type *netio, netio_handler_type *handler,
 static void
 state_list_remove_elem(struct rc_state** list, struct rc_state* todel)
 {
+	if(todel->prev) todel->prev->next = todel->next;
+	else	*list = todel->next;
+	if(todel->next) todel->next->prev = todel->prev;
+}
+
+/** delete from stats list */
+static void
+stats_list_remove_elem(struct rc_state** list, struct rc_state* todel)
+{
 	while(*list) {
 		if( (*list) == todel) {
-			*list = (*list)->next;
+			*list = (*list)->stats_next;
 			return;
 		}
-		list = &(*list)->next;
+		list = &(*list)->stats_next;
 	}
 }
 
@@ -573,6 +604,8 @@ state_list_remove_elem(struct rc_state** list, struct rc_state* todel)
 static void
 clean_point(netio_type* netio, struct daemon_remote* rc, struct rc_state* s)
 {
+	if(s->in_stats_list)
+		stats_list_remove_elem(&rc->stats_list, s);
 	state_list_remove_elem(&rc->busy_list, s);
 	rc->active --;
 	if(s->ssl) {
@@ -739,6 +772,23 @@ do_status(SSL* ssl)
 		return;
 }
 
+/** do the stats command */
+static void
+do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
+{
+	/* queue up to get stats after a reload is done (to gather statistics
+	 * from the servers) */
+	assert(!rs->in_stats_list);
+	if(peek) rs->in_stats_list = 2;
+	else	rs->in_stats_list = 1;
+	rs->stats_next = rc->stats_list;
+	rc->stats_list = rs;
+	/* block the tcp waiting for the reload */
+	rs->c->event_types = NETIO_EVENT_NONE;
+	/* force a reload */
+	xfrd_set_reload_now(xfrd);
+}
+
 /** check for name with end-of-string, space or tab after it */
 static int
 cmdcmp(char* p, const char* cmd, size_t len)
@@ -748,7 +798,7 @@ cmdcmp(char* p, const char* cmd, size_t len)
 
 /** execute a remote control command */
 static void
-execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd)
+execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 {
 	char* p = skipwhite(cmd);
 	/* compare command */
@@ -758,6 +808,10 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd)
 		do_reload(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "status", 6)) {
 		do_status(ssl);
+	} else if(cmdcmp(p, "stats_noreset", 13)) {
+		do_stats(rc, 1, rs);
+	} else if(cmdcmp(p, "stats", 5)) {
+		do_stats(rc, 0, rs);
 	} else if(cmdcmp(p, "verbosity", 9)) {
 		do_verbosity(ssl, skipwhite(p+9));
 	} else {
@@ -806,7 +860,7 @@ handle_req(struct daemon_remote* rc, struct rc_state* s, SSL* ssl)
 	VERBOSITY(2, (LOG_INFO, "control cmd: %s", buf));
 
 	/* figure out what to do */
-	execute_cmd(rc, ssl, buf);
+	execute_cmd(rc, ssl, buf, s);
 }
 
 static void
@@ -875,8 +929,198 @@ remote_control_callback(netio_type* ATTR_UNUSED(netio),
 	/* if OK start to actually handle the request */
 	handle_req(rc, s, s->ssl);
 
-	VERBOSITY(3, (LOG_INFO, "remote control operation completed"));
-	clean_point(netio, rc, s);
+	if(!s->in_stats_list) {
+		VERBOSITY(3, (LOG_INFO, "remote control operation completed"));
+		clean_point(netio, rc, s);
+	}
 }
+
+#ifdef BIND8_STATS
+static const char*
+opcode2str(int o)
+{
+	switch(o) {
+		case OPCODE_QUERY: return "QUERY";
+		case OPCODE_IQUERY: return "IQUERY";
+		case OPCODE_STATUS: return "STATUS";
+		case OPCODE_NOTIFY: return "NOTIFY";
+		case OPCODE_UPDATE: return "UPDATE";
+		default: return "OTHER";
+	}
+}
+
+/** print long number */
+static int
+print_longnum(SSL* ssl, char* desc, uint64_t x)
+{
+	if(x > (uint64_t)1024*1024*1024) {
+		/* more than a Gb */
+		size_t front = (size_t)(x / (uint64_t)1000000);
+		size_t back = (size_t)(x % (uint64_t)1000000);
+		return ssl_printf(ssl, "%s%u%6.6u\n", desc, 
+			(unsigned)front, (unsigned)back);
+	} else {
+		return ssl_printf(ssl, "%s%u\n", desc, (unsigned)x);
+	}
+}
+
+static void
+print_stats(SSL* ssl, xfrd_state_t* xfrd, struct timeval* now)
+{
+	const char* rcstr[] = {"NOERROR", "FORMERR", "SERVFAIL", "NXDOMAIN",
+	    "NOTIMP", "REFUSED", "YXDOMAIN", "YXRRSET", "NXRRSET", "NOTAUTH",
+	    "NOTZONE", "RCODE11", "RCODE12", "RCODE13", "RCODE14", "RCODE15",
+	    "BADVERS"
+	};
+	size_t i;
+	stc_t total = 0;
+	struct timeval elapsed, uptime;
+
+	/* per CPU and total */
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		if(!ssl_printf(ssl, "server%d.queries=%u\n", (int)i,
+			(unsigned)xfrd->nsd->children[i].query_count))
+			return;
+		total += xfrd->nsd->children[i].query_count;
+	}
+	if(!ssl_printf(ssl, "num.queries=%u\n", (unsigned)total))
+		return;
+
+	/* time elapsed and uptime (in seconds) */
+	timeval_subtract(&uptime, now, &xfrd->nsd->rc->boot_time);
+	timeval_subtract(&elapsed, now, &xfrd->nsd->rc->stats_time);
+	if(!ssl_printf(ssl, "time.boot=%u.%6.6u\n",
+		(unsigned)uptime.tv_sec, (unsigned)uptime.tv_usec))
+		return;
+	if(!ssl_printf(ssl, "time.elapsed=%u.%6.6u\n",
+		(unsigned)elapsed.tv_sec, (unsigned)elapsed.tv_usec))
+		return;
+
+	/* mem info, database on disksize */
+	if(!print_longnum(ssl, "size.db.disk=", xfrd->nsd->st.db_disk))
+		return;
+	if(!print_longnum(ssl, "size.db.mem=", xfrd->nsd->st.db_mem))
+		return;
+
+	for(i=0; i<= 255; i++) {
+		if(inhibit_zero && xfrd->nsd->st.qtype[i] == 0 &&
+			strncmp(rrtype_to_string(i), "TYPE", 4) == 0)
+			continue;
+		if(!ssl_printf(ssl, "num.type.%s=%u\n", 
+			rrtype_to_string(i), (unsigned)xfrd->nsd->st.qtype[i]))
+			return;
+	}
+
+	/* opcode */
+	for(i=0; i<6; i++) {
+		if(inhibit_zero && xfrd->nsd->st.opcode[i] == 0 &&
+			i != OPCODE_QUERY)
+			continue;
+		if(!ssl_printf(ssl, "num.opcode.%s=%u\n", opcode2str(i),
+			(unsigned)xfrd->nsd->st.opcode[i]))
+			return;
+	}
+
+	/* qclass */
+	for(i=0; i<4; i++) {
+		if(inhibit_zero && xfrd->nsd->st.qclass[i] == 0 &&
+			i != CLASS_IN)
+			continue;
+		if(!ssl_printf(ssl, "num.class.%s=%u\n", rrclass_to_string(i),
+			(unsigned)xfrd->nsd->st.qclass[i]))
+			return;
+	}
+
+	/* rcode */
+	for(i=0; i<17; i++) {
+		if(inhibit_zero && xfrd->nsd->st.rcode[i] == 0 &&
+			i > RCODE_YXDOMAIN) /* NSD does not use larger */
+			continue;
+		if(!ssl_printf(ssl, "num.rcode.%s=%u\n", rcstr[i],
+			(unsigned)xfrd->nsd->st.rcode[i]))
+			return;
+	}
+
+	/* edns */
+	if(!ssl_printf(ssl, "num.edns=%u\n", (unsigned)xfrd->nsd->st.edns))
+		return;
+
+	/* ednserr */
+	if(!ssl_printf(ssl, "num.ednserr=%u\n",
+		(unsigned)xfrd->nsd->st.ednserr))
+		return;
+
+	/* qudp */
+	if(!ssl_printf(ssl, "num.udp=%u\n", (unsigned)xfrd->nsd->st.qudp))
+		return;
+	/* qudp6 */
+	if(!ssl_printf(ssl, "num.udp6=%u\n", (unsigned)xfrd->nsd->st.qudp6))
+		return;
+	/* ctcp */
+	if(!ssl_printf(ssl, "num.tcp=%u\n", (unsigned)xfrd->nsd->st.ctcp))
+		return;
+	/* ctcp6 */
+	if(!ssl_printf(ssl, "num.tcp6=%u\n", (unsigned)xfrd->nsd->st.ctcp6))
+		return;
+
+	/* nona */
+	if(!ssl_printf(ssl, "num.answer_wo_aa=%u\n",
+		(unsigned)xfrd->nsd->st.nona))
+		return;
+
+	/* rxerr */
+	if(!ssl_printf(ssl, "num.rxerr=%u\n", (unsigned)xfrd->nsd->st.rxerr))
+		return;
+
+	/* txerr */
+	if(!ssl_printf(ssl, "num.txerr=%u\n", (unsigned)xfrd->nsd->st.txerr))
+		return;
+
+	/* truncated */
+	if(!ssl_printf(ssl, "num.truncated=%u\n",
+		(unsigned)xfrd->nsd->st.truncated))
+		return;
+
+	/* dropped */
+	if(!ssl_printf(ssl, "num.dropped=%u\n",
+		(unsigned)xfrd->nsd->st.dropped))
+		return;
+}
+
+static void
+clear_stats(xfrd_state_t* xfrd)
+{
+	size_t i;
+	uint64_t dbd = xfrd->nsd->st.db_disk;
+	uint64_t dbm = xfrd->nsd->st.db_mem;
+	for(i=0; i<xfrd->nsd->child_count; i++) {
+		xfrd->nsd->children[i].query_count = 0;
+	}
+	memset(&xfrd->nsd->st, 0, sizeof(struct nsdst));
+	xfrd->nsd->st.db_disk = dbd;
+	xfrd->nsd->st.db_mem = dbm;
+}
+
+void daemon_remote_process_stats(struct daemon_remote* rc)
+{
+	struct rc_state* s;
+	struct timeval now;
+	if(gettimeofday(&now, NULL) == -1)
+		log_msg(LOG_ERR, "gettimeofday: %s", strerror(errno));
+	/* pop one and give it stats */
+	while((s = rc->stats_list)) {
+		assert(s->in_stats_list);
+		print_stats(s->ssl, rc->xfrd, &now);
+		if(s->in_stats_list == 1) {
+			clear_stats(rc->xfrd);
+			rc->stats_time = now;
+		}
+		VERBOSITY(3, (LOG_INFO, "remote control stats printed"));
+		rc->stats_list = s->next;
+		s->in_stats_list = 0;
+		clean_point(rc->xfrd->netio, rc, s);
+	}
+}
+#endif /* BIND8_STATS */
 
 #endif /* HAVE_SSL */

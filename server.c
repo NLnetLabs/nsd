@@ -44,6 +44,8 @@
 #include "udb.h"
 #include "remote.h"
 
+#define RELOAD_SYNC_TIMEOUT 25 /* seconds */
+
 /*
  * Data for the UDP handlers.
  */
@@ -829,6 +831,46 @@ reload_process_tasks(struct nsd* nsd, udb_ptr* last_task)
 	udb_ptr_unlink(&next, u);
 }
 
+#ifdef BIND8_STATS
+static void
+parent_send_stats(struct nsd* nsd, int cmdfd)
+{
+	size_t i;
+	if(!write_socket(cmdfd, &nsd->st, sizeof(nsd->st))) {
+		log_msg(LOG_ERR, "could not write stats to reload");
+		return;
+	}
+	for(i=0; i<nsd->child_count; i++)
+		if(!write_socket(cmdfd, &nsd->children[i].query_count,
+			sizeof(stc_t))) {
+			log_msg(LOG_ERR, "could not write stats to reload");
+			return;
+		}
+}
+
+static void
+reload_do_stats(int cmdfd, struct nsd* nsd, udb_ptr* last)
+{
+	struct nsdst s;
+	stc_t* p;
+	size_t i;
+	if(block_read(nsd, cmdfd, &s, sizeof(s),
+		RELOAD_SYNC_TIMEOUT) != sizeof(s)) {
+		log_msg(LOG_ERR, "could not read stats from oldpar");
+		return;
+	}
+	s.db_disk = nsd->db->udb->base_size;
+	s.db_mem = region_get_mem(nsd->db->region);
+	p = (stc_t*)task_new_stat_info(nsd->task[nsd->mytask], last, &s,
+		nsd->child_count);
+	if(!p) return;
+	for(i=0; i<nsd->child_count; i++) {
+		if(block_read(nsd, cmdfd, p++, sizeof(stc_t), 1)!=sizeof(stc_t))
+			return;
+	}
+}
+#endif /* BIND8_STATS */
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -872,8 +914,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	time(&nsd->st.boot);
 	set_bind8_alarm(nsd);
 #endif
-	udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
-	task_process_sync(nsd->task[nsd->mytask]);
 
 	/* Start new child processes */
 	if (server_start_children(nsd, server_region, netio, &nsd->
@@ -901,7 +941,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		log_msg(LOG_ERR, "cannot overwrite the pidfile %s: %s", nsd->pidfile, strerror(errno));
 	}
 
-#define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 	/* Send quit command to parent: blocking, wait for receipt. */
 	do {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
@@ -930,6 +969,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		exit(1);
 	}
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
+#ifdef BIND8_STATS
+	reload_do_stats(cmdsocket, nsd, &last_task);
+#endif
+	udb_ptr_unlink(&last_task, nsd->task[nsd->mytask]);
+	task_process_sync(nsd->task[nsd->mytask]);
 
 	/* send soainfo to the xfrd process, signal it that reload is done,
 	 * it picks up the taskudb */
@@ -1188,6 +1232,9 @@ server_main(struct nsd *nsd)
 					log_msg(LOG_ERR, "server_main: "
 						"could not ack quit: %s", strerror(errno));
 				}
+#ifdef BIND8_STATS
+				parent_send_stats(nsd, reload_listener.fd);
+#endif /* BIND8_STATS */
 				close(reload_listener.fd);
 			}
 			/* only quit children after xfrd has acked */

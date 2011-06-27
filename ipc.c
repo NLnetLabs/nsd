@@ -60,6 +60,21 @@ child_handle_parent_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_QUIT:
 		data->nsd->mode = mode;
 		break;
+	case NSD_QUIT_WITH_STATS:
+#ifdef BIND8_STATS
+		DEBUG(DEBUG_IPC, 2, (LOG_INFO, "quit QUIT_WITH_STATS"));
+		/* reply with ack and stats and then quit */
+		if(!write_socket(handler->fd, &mode, sizeof(mode))) {
+			log_msg(LOG_ERR, "cannot write quitwst to parent");
+		}
+		if(!write_socket(handler->fd, &data->nsd->st,
+			sizeof(data->nsd->st))) {
+			log_msg(LOG_ERR, "cannot write stats to parent");
+		}
+		fsync(handler->fd);
+#endif /* BIND8_STATS */
+		data->nsd->mode = NSD_QUIT;
+		break;
 	default:
 		log_msg(LOG_ERR, "handle_parent_command: bad mode %d",
 			(int) mode);
@@ -152,7 +167,11 @@ debug_print_fwd_name(int ATTR_UNUSED(len), buffer_type* packet, int acl_num)
 static void
 send_quit_to_child(struct main_ipc_handler_data* data, int fd)
 {
+#ifdef BIND8_STATS
+	sig_atomic_t cmd = NSD_QUIT_WITH_STATS;
+#else
 	sig_atomic_t cmd = NSD_QUIT;
+#endif
 	if(write(fd, &cmd, sizeof(cmd)) == -1) {
 		if(errno == EAGAIN || errno == EINTR)
 			return; /* try again later */
@@ -164,6 +183,75 @@ send_quit_to_child(struct main_ipc_handler_data* data, int fd)
 	DEBUG(DEBUG_IPC,2, (LOG_INFO, "main: sent quit to child %d",
 		(int)data->child->pid));
 }
+
+/** the child is done, mark it as exited */
+static void
+child_is_done(struct nsd* nsd, int fd)
+{
+	size_t i;
+	if(fd > 0) close(fd);
+	for(i=0; i<nsd->child_count; ++i)
+		if(nsd->children[i].child_fd == fd) {
+			nsd->children[i].child_fd = -1;
+			nsd->children[i].has_exited = 1;
+			nsd->children[i].handler->fd = -1;
+			DEBUG(DEBUG_IPC,1, (LOG_INFO, "server %d is done",
+				(int)nsd->children[i].pid));
+		}
+	parent_check_all_children_exited(nsd);
+}
+
+#ifdef BIND8_STATS
+/** add stats to total */
+void
+stats_add(struct nsdst* total, struct nsdst* s)
+{
+	unsigned i;
+	for(i=0; i<sizeof(total->qtype)/sizeof(stc_t); i++)
+		total->qtype[i] += s->qtype[i];
+	for(i=0; i<sizeof(total->qclass)/sizeof(stc_t); i++)
+		total->qclass[i] += s->qclass[i];
+	total->qudp += s->qudp;
+	total->qudp6 += s->qudp6;
+	total->ctcp += s->ctcp;
+	total->ctcp6 += s->ctcp6;
+	for(i=0; i<sizeof(total->rcode)/sizeof(stc_t); i++)
+		total->rcode[i] += s->rcode[i];
+	for(i=0; i<sizeof(total->opcode)/sizeof(stc_t); i++)
+		total->opcode[i] += s->opcode[i];
+	total->dropped += s->dropped;
+	total->truncated += s->truncated;
+	total->wrongzone += s->wrongzone;
+	total->txerr += s->txerr;
+	total->rxerr += s->rxerr;
+	total->edns += s->edns;
+	total->ednserr += s->ednserr;
+	total->raxfr += s->raxfr;
+	total->nona += s->nona;
+
+	total->db_disk = s->db_disk;
+	total->db_mem = s->db_mem;
+}
+
+#define FINAL_STATS_TIMEOUT 10 /* seconds */
+static void
+read_child_stats(struct nsd* nsd, struct nsd_child* child, int fd)
+{
+	struct nsdst s;
+	errno=0;
+	if(block_read(nsd, fd, &s, sizeof(s), FINAL_STATS_TIMEOUT)!=sizeof(s)) {
+		log_msg(LOG_ERR, "problems reading finalstats from server "
+			"%d: %s", (int)child->pid, strerror(errno));
+	} else {
+		stats_add(&nsd->st, &s);
+		child->query_count = s.qudp + s.qudp6 + s.ctcp + s.ctcp6;
+		/* we know that the child is going to close the connection
+		 * now (this is an ACK of the QUIT_W_STATS so we know the
+		 * child is done, no longer sending e.g. NOTIFY contents) */
+		child_is_done(nsd, fd);
+	}
+}
+#endif /* BIND8_STATS */
 
 void
 parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
@@ -288,18 +376,7 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		size_t i;
-		if(handler->fd > 0) close(handler->fd);
-		for(i=0; i<data->nsd->child_count; ++i)
-			if(data->nsd->children[i].child_fd == handler->fd) {
-				data->nsd->children[i].child_fd = -1;
-				data->nsd->children[i].has_exited = 1;
-				DEBUG(DEBUG_IPC,1, (LOG_INFO,
-					"server %d closed cmd channel",
-					(int) data->nsd->children[i].pid));
-			}
-		handler->fd = -1;
-		parent_check_all_children_exited(data->nsd);
+		child_is_done(data->nsd, handler->fd);
 		return;
 	}
 
@@ -307,6 +384,11 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 	case NSD_QUIT:
 		data->nsd->mode = mode;
 		break;
+#ifdef BIND8_STATS
+	case NSD_QUIT_WITH_STATS:
+		read_child_stats(data->nsd, data->child, handler->fd);
+		break;
+#endif /* BIND8_STATS */
 	case NSD_STATS:
 		data->nsd->signal_hint_stats = 1;
 		break;
@@ -557,7 +639,8 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		/* reload has finished */
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD_DONE"));
 		/* read the not-mytask for the results and soainfo */
-		xfrd_process_task_result(xfrd->nsd->task[1-xfrd->nsd->mytask]);
+		xfrd_process_task_result(xfrd,
+			xfrd->nsd->task[1-xfrd->nsd->mytask]);
 		/* reset the IPC, (and the nonblocking ipc write;
 		   the new parent does not want half a packet) */
 		xfrd->can_send_reload = 1;

@@ -282,7 +282,7 @@ int xfrd_bind_local_interface(int sockd, acl_options_t* ifc,
 	acl_options_t* acl, int tcp);
 
 /* process results and soa info from reload */
-void xfrd_process_task_result(struct udb_base* taskudb);
+void xfrd_process_task_result(xfrd_state_t* xfrd, struct udb_base* taskudb);
 
 /* set to reload right away (for user controlled reload events) */
 void xfrd_set_reload_now(xfrd_state_t* xfrd);

@@ -14,6 +14,7 @@
 #include "options.h"
 #include "udb.h"
 struct nsd;
+struct nsdst;
 
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
@@ -94,7 +95,9 @@ struct task_list_d {
 		/** check mtime of zonefiles and read them, done on SIGHUP */
 		task_check_zonefiles,
 		/** set verbosity */
-		task_set_verbosity
+		task_set_verbosity,
+		/** statistic info */
+		task_stat_info
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -103,7 +106,7 @@ struct task_list_d {
 	/** apply_xfr: zonename, filename-serial */
 	/** done_apply_xfr: zonename, filename-serial */
 	uint32_t serial;
-	int yesno;
+	uint64_t yesno;
 	struct dname zname[0];
 };
 #define TASKLIST(ptr) ((struct task_list_d*)UDB_PTR(ptr))
@@ -115,6 +118,8 @@ void task_clear(udb_base* udb);
 void task_new_soainfo(udb_base* udb, udb_ptr* last, struct zone* z);
 void task_new_expire(udb_base* udb, udb_ptr* last,
 	const struct dname* z, int expired);
+void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
+	size_t child_count);
 void task_new_check_zonefiles(udb_base* udb, udb_ptr* last);
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,

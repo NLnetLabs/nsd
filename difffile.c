@@ -1850,6 +1850,24 @@ void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v)
 	udb_ptr_unlink(&e, udb);
 }
 
+void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
+	size_t child_count)
+{
+	void* p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task stat_info"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		sizeof(*stat) + sizeof(stc_t)*child_count, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add stati");
+		return NULL;
+	}
+	TASKLIST(&e)->task_type = task_stat_info;
+	p = TASKLIST(&e)->zname;
+	memcpy(p, stat, sizeof(*stat));
+	udb_ptr_unlink(&e, udb);
+	return p + sizeof(*stat);
+}
+
 void
 task_process_expire(namedb_type* db, struct task_list_d* task)
 {
@@ -1878,7 +1896,7 @@ task_process_expire(namedb_type* db, struct task_list_d* task)
 static void
 task_process_set_verbosity(struct task_list_d* task)
 {
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "verbosity task %d", task->yesno));
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "verbosity task %d", (int)task->yesno));
 	verbosity = task->yesno;
 }
 
