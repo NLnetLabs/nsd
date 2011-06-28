@@ -425,8 +425,7 @@ file_get_mtime(const char* file, time_t* mtime, int* nonexist)
 	return 1;
 }
 
-/** zone one zonefile into memory and revert one parse error, write to udb */
-static void
+void
 namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 	udb_ptr* last_task)
 {

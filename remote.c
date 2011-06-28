@@ -58,6 +58,7 @@
 #include "remote.h"
 #include "util.h"
 #include "xfrd.h"
+#include "xfrd-notify.h"
 #include "nsd.h"
 #include "netio.h"
 #include "options.h"
@@ -196,25 +197,6 @@ timeval_subtract(struct timeval* d, const struct timeval* end,
 #endif
 }
 #endif /* BIND8_STATS */
-
-/** divide sum of timers to get average */
-static void
-timeval_divide(struct timeval* avg, const struct timeval* sum, size_t d)
-{
-#ifndef S_SPLINT_S
-	size_t leftover;
-	if(d == 0) {
-		avg->tv_sec = 0;
-		avg->tv_usec = 0;
-		return;
-	}
-	avg->tv_sec = sum->tv_sec / d;
-	avg->tv_usec = sum->tv_usec / d;
-	/* handle fraction from seconds divide */
-	leftover = sum->tv_sec - avg->tv_sec*d;
-	avg->tv_usec += (leftover*1000000)/d;
-#endif
-}
 
 struct daemon_remote*
 daemon_remote_create(nsd_options_t* cfg)
@@ -743,25 +725,18 @@ do_verbosity(SSL* ssl, char* str)
 static int
 find_arg2(SSL* ssl, char* arg, char** arg2)
 {
-	char* as = strchr(arg, ' ');
-	char* at = strchr(arg, '\t');
-	if(as && at) {
-		if(at < as)
-			as = at;
+	char* as = strrchr(arg, ' ');
+	if(as) {
 		as[0]=0;
-		*arg2 = skipwhite(as+1);
-	} else if(as) {
+		*arg2 = as+1;
+		while(isspace(*as) && as > arg)
+			as--;
 		as[0]=0;
-		*arg2 = skipwhite(as+1);
-	} else if(at) {
-		at[0]=0;
-		*arg2 = skipwhite(at+1);
-	} else {
-		ssl_printf(ssl, "error could not find next argument "
-			"after %s\n", arg);
-		return 0;
+		return 1;
 	}
-	return 1;
+	ssl_printf(ssl, "error could not find next argument "
+		"after %s\n", arg);
+	return 0;
 }
 
 /** do the status command */
@@ -796,6 +771,60 @@ do_stats(struct daemon_remote* rc, int peek, struct rc_state* rs)
 #endif /* BIND8_STATS */
 }
 
+/** do the addzone command */
+static void
+do_addzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
+{
+	const dname_type* dname;
+	zone_options_t* zopt;
+	char* arg2 = NULL;
+	if(!find_arg2(ssl, arg, &arg2))
+		return;
+
+	/* if we add it to the xfrd now, then xfrd could download AXFR and
+	 * store it and the NSD-reload would see it in the difffile before
+	 * it sees the add-config task.
+	 */
+	/* thus: AXFRs and IXFRs must store the pattern name in the
+	 * difffile, so that it can be added when the AXFR or IXFR is seen.
+	 */
+
+	/* check that the pattern exists */
+	if(!rbtree_search(xfrd->nsd->options->patterns, arg2)) {
+		(void)ssl_printf(ssl, "error pattern does not exist\n");
+		return;
+	}
+
+	/* attempt to parse zone name and refuse if not possible */
+	dname = dname_parse(xfrd->region, arg);
+	if(!dname) {
+		(void)ssl_printf(ssl, "error cannot parse zone name\n");
+		return;
+	}
+
+	/* add to zonelist and adds to config in memory */
+	zopt = zone_list_add(xfrd->nsd->options, arg, arg2);
+	if(!zopt) {
+		region_recycle(xfrd->region, (void*)dname,
+			dname_total_size(dname));
+		(void)ssl_printf(ssl, "error could not add zonelist entry\n");
+		return;
+	}
+	/* make addzone task and schedule reload */
+	task_new_add_zone(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, arg, arg2);
+	xfrd_set_reload_now(xfrd);
+	/* add to xfrd - notify (for master and slaves) */
+	init_notify_send(xfrd->notify_zones, xfrd->netio, xfrd->region,
+		dname, zopt);
+	/* add to xfrd - slave */
+	if(zone_is_slave(zopt)) {
+		xfrd_init_slave_zone(xfrd, dname, zopt);
+	}
+
+	send_ok(ssl);
+}
+
 /** check for name with end-of-string, space or tab after it */
 static int
 cmdcmp(char* p, const char* cmd, size_t len)
@@ -819,6 +848,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 		do_stats(rc, 1, rs);
 	} else if(cmdcmp(p, "stats", 5)) {
 		do_stats(rc, 0, rs);
+	} else if(cmdcmp(p, "addzone", 7)) {
+		do_addzone(ssl, rc->xfrd, skipwhite(p+7));
 	} else if(cmdcmp(p, "verbosity", 9)) {
 		do_verbosity(ssl, skipwhite(p+9));
 	} else {

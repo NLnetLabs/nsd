@@ -53,6 +53,13 @@ NSD to be compiled with this option enabled.
 .B stats_noreset
 Same as stats, but does not zero the counters.
 .TP
+.B addzone <zone name> <pattern name>
+Add a new zone to the running server.  The zone is added to the zonelist
+file on disk, so it stays after a restart.  The pattern name determines
+the options for the new zone.  For slave zones a zone transfer is
+immediately attempted.  For zones with a zonefile, the zone file is
+attempted to be read in.
+.TP
 .B verbosity <number>
 Change logging verbosity.
 .SH "EXIT CODE"

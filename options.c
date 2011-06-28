@@ -240,7 +240,7 @@ static void zone_list_free_insert(nsd_options_t* opt, int linesize, off_t off)
 	e->off = off;
 }
 
-static zone_options_t*
+zone_options_t*
 zone_list_zone_insert(nsd_options_t* opt, const char* nm, const char* patnm,
 	int linesize, off_t off)
 {

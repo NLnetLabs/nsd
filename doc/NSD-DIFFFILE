@@ -38,6 +38,9 @@ b) uint8: commit=1(IXFR is OK) or rollback=0(ignore that IXFR).
 c) space for a text string message (preceded by 32bitcount), i.e.
 	'at time <stamp> came from <addr>, tsig checked with key <key>'.
 	or rejected <reason for rejection>.
+d) pattern name: so that a newly created zone for which the zone transfer
+	is processed before the config-add task can be created. same string
+	format with 32bitcount with name of the pattern.
 
 Unknown types are an error.
 A part truncated by EOF must be ignored.

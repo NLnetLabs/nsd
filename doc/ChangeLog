@@ -1,3 +1,6 @@
+28 June 2011: Wouter
+	- nsd-control addzone zone pattern.  Adds new zone, slave or master.
+
 27 June 2011: Wouter
 	- nsd-control stats and stats_noreset (if enabled at compile time).
 	  nsd does not print statistics to logfile if period is 0.

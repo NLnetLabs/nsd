@@ -211,11 +211,57 @@ xfrd_shutdown()
 	exit(0);
 }
 
+void
+xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
+	zone_options_t* zone_opt)
+{
+	xfrd_zone_t *xzone;
+	xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
+	memset(xzone, 0, sizeof(xfrd_zone_t));
+	xzone->apex = dname;
+	xzone->apex_str = zone_opt->name;
+	xzone->state = xfrd_zone_refreshing;
+	xzone->zone_options = zone_opt;
+	/* first retry will use first master */
+	xzone->master = 0;
+	xzone->master_num = 0;
+	xzone->next_master = 0;
+	xzone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
+
+	xzone->soa_nsd_acquired = 0;
+	xzone->soa_disk_acquired = 0;
+	xzone->soa_notified_acquired = 0;
+	/* [0]=1, [1]=0; "." domain name */
+	xzone->soa_nsd.prim_ns[0] = 1;
+	xzone->soa_nsd.email[0] = 1;
+	xzone->soa_disk.prim_ns[0]=1;
+	xzone->soa_disk.email[0]=1;
+	xzone->soa_notified.prim_ns[0]=1;
+	xzone->soa_notified.email[0]=1;
+
+	xzone->zone_handler.fd = -1;
+	xzone->zone_handler.timeout = 0;
+	xzone->zone_handler.user_data = xzone;
+	xzone->zone_handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
+	xzone->zone_handler.event_handler = xfrd_handle_zone;
+	netio_add_handler(xfrd->netio, &xzone->zone_handler);
+	xzone->tcp_conn = -1;
+	xzone->tcp_waiting = 0;
+	xzone->udp_waiting = 0;
+
+	tsig_create_record_custom(&xzone->tsig, xfrd->region, 0, 0, 4);
+
+	/* set refreshing anyway, if we have data it may be old */
+	xfrd_set_refresh_now(xzone);
+
+	xzone->node.key = dname;
+	rbtree_insert(xfrd->zones, (rbnode_t*)xzone);
+}
+
 static void
 xfrd_init_zones()
 {
 	zone_options_t *zone_opt;
-	xfrd_zone_t *xzone;
 	const dname_type* dname;
 
 	assert(xfrd->zones == 0);
@@ -245,48 +291,7 @@ xfrd_init_zones()
 				zone_opt->name));
 			continue;
 		}
-
-		xzone = (xfrd_zone_t*)region_alloc(xfrd->region, sizeof(xfrd_zone_t));
-		memset(xzone, 0, sizeof(xfrd_zone_t));
-		xzone->apex = dname;
-		xzone->apex_str = zone_opt->name;
-		xzone->state = xfrd_zone_refreshing;
-		xzone->zone_options = zone_opt;
-		/* first retry will use first master */
-		xzone->master = 0;
-		xzone->master_num = 0;
-		xzone->next_master = 0;
-		xzone->fresh_xfr_timeout = XFRD_TRANSFER_TIMEOUT_START;
-
-		xzone->soa_nsd_acquired = 0;
-		xzone->soa_disk_acquired = 0;
-		xzone->soa_notified_acquired = 0;
-		/* [0]=1, [1]=0; "." domain name */
-		xzone->soa_nsd.prim_ns[0] = 1;
-		xzone->soa_nsd.email[0] = 1;
-		xzone->soa_disk.prim_ns[0]=1;
-		xzone->soa_disk.email[0]=1;
-		xzone->soa_notified.prim_ns[0]=1;
-		xzone->soa_notified.email[0]=1;
-
-		xzone->zone_handler.fd = -1;
-		xzone->zone_handler.timeout = 0;
-		xzone->zone_handler.user_data = xzone;
-		xzone->zone_handler.event_types =
-			NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
-		xzone->zone_handler.event_handler = xfrd_handle_zone;
-		netio_add_handler(xfrd->netio, &xzone->zone_handler);
-		xzone->tcp_conn = -1;
-		xzone->tcp_waiting = 0;
-		xzone->udp_waiting = 0;
-
-		tsig_create_record_custom(&xzone->tsig, xfrd->region, 0, 0, 4);
-
-		/* set refreshing anyway, if we have data it may be old */
-		xfrd_set_refresh_now(xzone);
-
-		xzone->node.key = dname;
-		rbtree_insert(xfrd->zones, (rbnode_t*)xzone);
+		xfrd_init_slave_zone(xfrd, dname, zone_opt);
 	}
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: started server %d "
 		"secondary zones", (int)xfrd->zones->count));
@@ -1509,6 +1514,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 					zone->msg_new_serial,
 					zone->query_id, zone->msg_seq_nr, 0,
 					(char*)buffer_begin(packet),
+					zone->zone_options->pattern->pname,
 					xfrd->nsd->options);
 				DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s "
 							       "xfr reverted "
@@ -1550,7 +1556,8 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	buffer_flip(packet);
 	diff_write_commit(zone->apex_str, zone->msg_old_serial,
 		zone->msg_new_serial, zone->query_id, zone->msg_seq_nr, 1,
-		(char*)buffer_begin(packet), xfrd->nsd->options);
+		(char*)buffer_begin(packet),
+		zone->zone_options->pattern->pname, xfrd->nsd->options);
 	VERBOSITY(1, (LOG_INFO, "xfrd: zone %s committed \"%s\"",
 		zone->apex_str, (char*)buffer_begin(packet)));
 	/* update the disk serial no. */

@@ -95,7 +95,8 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 void
 diff_write_commit(const char* zone, uint32_t old_serial,
 	uint32_t new_serial, uint16_t id, uint32_t num_parts,
-	uint8_t commit, const char* log_str, nsd_options_t* opt)
+	uint8_t commit, const char* log_str, const char* patname,
+	nsd_options_t* opt)
 {
 	const char* filename = opt->difffile;
 	struct timeval tv;
@@ -130,6 +131,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		!write_32(df, num_parts) ||
 		!write_8(df, commit) ||
 		!write_str(df, log_str) ||
+		!write_str(df, patname) ||
 		!write_32(df, len))
 	{
 		log_msg(LOG_ERR, "could not write to file %s: %s",
@@ -726,7 +728,7 @@ add_RR(namedb_type* db, const dname_type* dname,
 
 static zone_type*
 find_or_create_zone(namedb_type* db, const dname_type* zone_name,
-	nsd_options_t* opt)
+	nsd_options_t* opt, const char* zstr, const char* patname)
 {
 	zone_type* zone;
 	zone_options_t* zopt;
@@ -734,11 +736,15 @@ find_or_create_zone(namedb_type* db, const dname_type* zone_name,
 	if(zone) {
 		return zone;
 	}
-	zopt = zone_options_find(opt, domain_dname(zone->apex));
+	zopt = zone_options_find(opt, zone_name);
 	if(!zopt) {
-		log_msg(LOG_ERR, "xfr: zone %s not in config.",
-			dname_to_string(zone_name,0));
-		return 0;
+		/* create zone : presumably already added to zonelist
+		 * by xfrd, who wrote the AXFR or IXFR to disk, so we only
+		 * need to add it to our config.
+		 * This process does not need linesize and offset zonelist */
+		zopt = zone_list_zone_insert(opt, zstr, patname, 0, 0);
+		if(!zopt)
+			return 0;
 	}
 	zone = namedb_zone_create(db, zone_name, zopt);
 	return zone;
@@ -788,7 +794,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	const char* zone, uint32_t serialno, nsd_options_t* opt,
 	uint16_t id, uint32_t seq_nr, uint32_t seq_total,
 	int* is_axfr, int* delete_mode, int* rr_count,
-	udb_ptr* udbz, struct zone** zone_res)
+	udb_ptr* udbz, struct zone** zone_res, const char* patname)
 {
 	uint32_t filelen, msglen, pkttype, timestamp[2];
 	int qcount, ancount, counter;
@@ -862,9 +868,9 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		- strlen(file_zone_name);
 	packet = buffer_create(region, QIOBUFSZ);
 	dname_zone = dname_parse(region, zone);
-	zone_db = find_or_create_zone(db, dname_zone, opt);
+	zone_db = find_or_create_zone(db, dname_zone, opt, zone, patname);
 	if(!zone_db) {
-		log_msg(LOG_ERR, "no zone exists");
+		log_msg(LOG_ERR, "could not create zone %s %s", zone, patname);
 		region_destroy(region);
 		return 0;
 	}
@@ -1234,6 +1240,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 {
 	char zone_buf[3072];
 	char log_buf[5120];
+	char patname_buf[2048];
 	uint32_t old_serial, new_serial, num_parts;
 	uint16_t id;
 	uint8_t committed;
@@ -1259,7 +1266,8 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		return 0;
 	}
 	if(!diff_read_8(in, &committed) ||
-		!diff_read_str(in, log_buf, sizeof(log_buf)) )
+		!diff_read_str(in, log_buf, sizeof(log_buf)) ||
+		!diff_read_str(in, patname_buf, sizeof(patname_buf)) )
 	{
 		log_msg(LOG_ERR, "diff file bad commit part");
 		return 0;
@@ -1345,7 +1353,7 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
 			ret = apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
 				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
-				&rr_count, &z, &zonedb);
+				&rr_count, &z, &zonedb, patname_buf);
 			if(ret == 0) {
 				log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
 					opt->difffile);
@@ -1870,6 +1878,26 @@ void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
 }
 #endif /* BIND8_STATS */
 
+void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* pattern)
+{
+	size_t zlen = strlen(zone);
+	size_t plen = strlen(pattern);
+	void *p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addzone"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)+
+		zlen + 1 + plen + 1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add addz");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_add_zone;
+	p = TASKLIST(&e)->zname;
+	memcpy(p, zone, zlen+1);
+	memmove(p+zlen+1, pattern, plen+1);
+	udb_ptr_unlink(&e, udb);
+}
+
 void
 task_process_expire(namedb_type* db, struct task_list_d* task)
 {
@@ -1910,6 +1938,34 @@ task_process_checkzones(struct nsd* nsd, udb_base* udb, udb_ptr* last_task)
 	namedb_check_zonefiles(nsd->db, nsd->options, udb, last_task);
 }
 
+static void
+task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
+	struct task_list_d* task)
+{
+	zone_type* z;
+	const dname_type* zdname;
+	const char* zname = (const char*)task->zname;
+	const char* pname = zname + strlen(zname)+1;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addzone task %s %s", zname, pname));
+	zdname = dname_parse(nsd->db->region, zname);
+	if(!zdname) {
+		log_msg(LOG_ERR, "can not parse zone name %s", zname);
+		return;
+	}
+	/* create zone */
+	z = find_or_create_zone(nsd->db, zdname, nsd->options, zname, pname);
+	if(!z) {
+		region_recycle(nsd->db->region, (void*)zdname,
+			dname_total_size(zdname));
+		log_msg(LOG_ERR, "can not add zone %s %s", zname, pname);
+		return;
+	}
+	/* if zone is empty, attempt to read the zonefile from disk (if any) */
+	if(!z->soa_rrset && z->opts->pattern->zonefile) {
+		namedb_read_zonefile(nsd->db, z, udb, last_task);
+	}
+}
+
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
         udb_ptr* task)
 {
@@ -1922,6 +1978,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_set_verbosity:
 		task_process_set_verbosity(TASKLIST(task));
+		break;
+	case task_add_zone:
+		task_process_add_zone(nsd, udb, last_task, TASKLIST(task));
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",

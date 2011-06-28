@@ -240,8 +240,12 @@ key_options_t* key_options_create(region_type* region);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
 /* read in zone list file. Returns false on failure */
 int parse_zone_list_file(nsd_options_t* opt, const char* zlfile);
+/* create zone entry and add to the zonelist file */
 zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 	const char* pname);
+/* create zonelist entry, do not insert in file (called by _add) */
+zone_options_t* zone_list_zone_insert(nsd_options_t* opt, const char* nm,
+	const char* patnm, int linesize, off_t off);
 void zone_list_del(nsd_options_t* opt, zone_options_t* zone);
 void zone_list_compact(nsd_options_t* opt);
 void zone_list_close(nsd_options_t* opt);

@@ -41,7 +41,7 @@ void diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
  */
 void diff_write_commit(const char* zone, uint32_t old_serial,
 	uint32_t new_serial, uint16_t id, uint32_t num_parts,
-	uint8_t commit, const char* log_msg,
+	uint8_t commit, const char* log_msg, const char* patname,
 	nsd_options_t* opt);
 
 /* read the diff file and apply to the database in memory.
@@ -97,7 +97,9 @@ struct task_list_d {
 		/** set verbosity */
 		task_set_verbosity,
 		/** statistic info */
-		task_stat_info
+		task_stat_info,
+		/** add a zone */
+		task_add_zone
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -122,6 +124,8 @@ void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
 	size_t child_count);
 void task_new_check_zonefiles(udb_base* udb, udb_ptr* last);
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
+void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
+	const char* pattern);
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	udb_ptr* task);
 void task_process_expire(namedb_type* db, struct task_list_d* task);

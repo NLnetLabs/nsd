@@ -196,6 +196,10 @@ extern xfrd_state_t* xfrd;
 /* start xfrd, new start. Pass socket to server_main. */
 void xfrd_init(int socket, struct nsd* nsd);
 
+/* add new slave zone, dname(in xfrd-region) and given options */
+void xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
+	zone_options_t* zone_opt);
+
 /* get the current time epoch. Cached for speed. */
 time_t xfrd_time(void);
 
