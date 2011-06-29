@@ -233,6 +233,7 @@ int nsd_options_insert_pattern(nsd_options_t* opt, pattern_options_t* pat);
 /* parses options file. Returns false on failure */
 int parse_options_file(nsd_options_t* opt, const char* file);
 zone_options_t* zone_options_create(region_type* region);
+void zone_options_delete(nsd_options_t* opt, zone_options_t* zone);
 pattern_options_t* pattern_options_create(region_type* region);
 /* find a zone by apex domain name, or NULL if not found. */
 zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex);

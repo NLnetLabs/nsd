@@ -342,6 +342,7 @@ void apex_rrset_checks(struct namedb* db, rrset_type* rrset,
 	domain_type* domain);
 zone_type* namedb_zone_create(namedb_type* db, const dname_type* dname,
         struct zone_options* zo);
+void namedb_zone_delete(namedb_type* db, zone_type* zone);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)

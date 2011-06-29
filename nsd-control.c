@@ -78,6 +78,7 @@ usage()
 	printf("  stats				print statistics\n");
 	printf("  stats_noreset			peek at statistics\n");
 	printf("  addzone <name> <pattern>	add a new zone\n");
+	printf("  delzone <name>		remove a zone\n");
 	printf("  verbosity <number>		change logging detail\n");
 	exit(1);
 }

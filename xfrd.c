@@ -93,7 +93,8 @@ xfrd_init(int socket, struct nsd* nsd)
 	/* to setup signalhandling */
 	nsd->server_kind = NSD_SERVER_BOTH;
 
-	region = region_create(xalloc, free);
+	region = region_create_custom(xalloc, free, DEFAULT_CHUNK_SIZE,
+		DEFAULT_LARGE_OBJECT_SIZE, DEFAULT_INITIAL_CLEANUP_SIZE, 1);
 	xfrd = (xfrd_state_t*)region_alloc(region, sizeof(xfrd_state_t));
 	memset(xfrd, 0, sizeof(xfrd_state_t));
 	xfrd->region = region;
@@ -249,7 +250,7 @@ xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
 	xzone->tcp_waiting = 0;
 	xzone->udp_waiting = 0;
 
-	tsig_create_record_custom(&xzone->tsig, xfrd->region, 0, 0, 4);
+	tsig_create_record_custom(&xzone->tsig, NULL, 0, 0, 4);
 
 	/* set refreshing anyway, if we have data it may be old */
 	xfrd_set_refresh_now(xzone);
@@ -417,6 +418,52 @@ xfrd_reopen_logfile(void)
 {
 	if (xfrd->nsd->file_rotation_ok)
 		log_reopen(xfrd->nsd->log_filename, 0);
+}
+
+void
+xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname)
+{
+	xfrd_zone_t* z = (xfrd_zone_t*)rbtree_delete(xfrd->zones, dname);
+	if(!z) return;
+	
+	/* io */
+	if(z->tcp_waiting) {
+		/* delete from tcp waiting list */
+		if(z->tcp_waiting_prev)
+			z->tcp_waiting_prev->tcp_waiting_next =
+				z->tcp_waiting_next;
+		else xfrd->tcp_set->tcp_waiting_first = z->tcp_waiting_next;
+		if(z->tcp_waiting_next)
+			z->tcp_waiting_next->tcp_waiting_prev =
+				z->tcp_waiting_prev;
+		else xfrd->tcp_set->tcp_waiting_last = z->tcp_waiting_prev;
+		z->tcp_waiting = 0;
+	}
+	if(z->udp_waiting) {
+		/* delete from udp waiting list */
+		if(z->udp_waiting_prev)
+			z->udp_waiting_prev->udp_waiting_next =
+				z->udp_waiting_next;
+		else	xfrd->udp_waiting_first = z->udp_waiting_next;
+		if(z->udp_waiting_next)
+			z->udp_waiting_next->udp_waiting_prev =
+				z->udp_waiting_prev;
+		else	xfrd->udp_waiting_last = z->udp_waiting_prev;
+		z->udp_waiting = 0;
+	}
+	if(z->tcp_conn != -1) {
+		xfrd_tcp_release(xfrd->tcp_set, z);
+	}
+	if(z->zone_handler.fd != -1) {
+		xfrd_udp_release(z);
+	}
+	netio_remove_handler(xfrd->netio, &z->zone_handler);
+
+	/* tsig */
+	tsig_delete_record(&z->tsig, NULL);
+
+	/* z->dname is recycled when the xfrd-notify zone is removed */
+	region_recycle(xfrd->region, z, sizeof(*z));
 }
 
 void
@@ -657,6 +704,7 @@ xfrd_udp_obtain(xfrd_zone_t* zone)
 	/* queue the zone as last */
 	zone->udp_waiting = 1;
 	zone->udp_waiting_next = NULL;
+	zone->udp_waiting_prev = xfrd->udp_waiting_last;
 	if(!xfrd->udp_waiting_first)
 		xfrd->udp_waiting_first = zone;
 	if(xfrd->udp_waiting_last)
@@ -879,6 +927,8 @@ xfrd_udp_release(xfrd_zone_t* zone)
 			assert(wz->udp_waiting);
 			wz->udp_waiting = 0;
 			xfrd->udp_waiting_first = wz->udp_waiting_next;
+			if(wz->udp_waiting_next)
+				wz->udp_waiting_next->udp_waiting_prev = NULL;
 			if(xfrd->udp_waiting_last == wz)
 				xfrd->udp_waiting_last = NULL;
 			/* see if this zone needs udp connection */

@@ -41,7 +41,7 @@ struct xfrd_state {
 	struct xfrd_tcp_set* tcp_set;
 	/* packet buffer for udp packets */
 	struct buffer* packet;
-	/* udp waiting list */
+	/* udp waiting list, double linked list */
 	struct xfrd_zone *udp_waiting_first, *udp_waiting_last;
 	/* number of udp sockets (for sending queries) in use */
 	size_t udp_use_num;
@@ -154,10 +154,12 @@ struct xfrd_zone {
 	uint8_t tcp_waiting;
 	/* next zone in waiting list */
 	xfrd_zone_t* tcp_waiting_next;
+	xfrd_zone_t* tcp_waiting_prev;
 	/* zone is waiting for a udp connection (tcp is preferred) */
 	uint8_t udp_waiting;
 	/* next zone in waiting list for UDP */
 	xfrd_zone_t* udp_waiting_next;
+	xfrd_zone_t* udp_waiting_prev;
 
 	/* xfr message handling data */
 	/* query id */
@@ -199,6 +201,9 @@ void xfrd_init(int socket, struct nsd* nsd);
 /* add new slave zone, dname(in xfrd-region) and given options */
 void xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
 	zone_options_t* zone_opt);
+
+/* delete slave zone */
+void xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname);
 
 /* get the current time epoch. Cached for speed. */
 time_t xfrd_time(void);

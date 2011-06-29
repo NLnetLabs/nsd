@@ -56,6 +56,8 @@ notify_disable(struct notify_zone_t* zone)
 			assert(wz->is_waiting);
 			wz->is_waiting = 0;
 			xfrd->notify_waiting_first = wz->waiting_next;
+			if(wz->waiting_next)
+				wz->waiting_next->waiting_prev = NULL;
 			if(xfrd->notify_waiting_last == wz)
 				xfrd->notify_waiting_last = NULL;
 			/* see if this zone needs notify sending */
@@ -96,9 +98,47 @@ init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
 		NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
 	not->notify_send_handler.event_handler = xfrd_handle_notify_send;
 	netio_add_handler(netio, &not->notify_send_handler);
-	tsig_create_record_custom(&not->notify_tsig, region, 0, 0, 4);
+	tsig_create_record_custom(&not->notify_tsig, NULL, 0, 0, 4);
 	not->notify_current = 0;
 	rbtree_insert(tree, (rbnode_t*)not);
+}
+
+void
+xfrd_del_notify(xfrd_state_t* xfrd, const dname_type* dname)
+{
+	/* find it */
+	struct notify_zone_t* not = (struct notify_zone_t*)rbtree_delete(
+		xfrd->notify_zones, dname);
+	if(!not)
+		return;
+
+	/* waiting list */
+	if(not->is_waiting) {
+		if(not->waiting_prev)
+			not->waiting_prev->waiting_next = not->waiting_next;
+		else	xfrd->notify_waiting_first = not->waiting_next;
+		if(not->waiting_next)
+			not->waiting_next->waiting_prev = not->waiting_prev;
+		else	xfrd->notify_waiting_last = not->waiting_prev;
+		not->is_waiting = 0;
+	}
+
+	/* close fd */
+	if(not->notify_send_handler.fd != -1) {
+		notify_disable(not);
+	}
+
+	/* netio */
+	netio_remove_handler(xfrd->netio, &not->notify_send_handler);
+
+	/* del tsig */
+	tsig_delete_record(&not->notify_tsig, NULL);
+
+	/* free it */
+	region_recycle(xfrd->region, not->current_soa, sizeof(xfrd_soa_t));
+	region_recycle(xfrd->region, (void*)not->apex,
+		dname_total_size(not->apex));
+	region_recycle(xfrd->region, not, sizeof(*not));
 }
 
 static int
@@ -254,6 +294,7 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 	zone->notify_current = zone->options->pattern->notify;
 	zone->is_waiting = 1;
 	zone->waiting_next = NULL;
+	zone->waiting_prev = xfrd->notify_waiting_last;
 	if(xfrd->notify_waiting_last) {
 		xfrd->notify_waiting_last->waiting_next = zone;
 	} else {

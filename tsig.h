@@ -177,12 +177,19 @@ void tsig_create_record(tsig_record_type* tsig,
 /*
  * Like tsig_create_record, with custom region settings.
  * The size params are used to customise the rr_region and context_region.
+ * If region is NULL, no cleanup is attached to it.
  */
 void tsig_create_record_custom(tsig_record_type* tsig,
 			region_type* region,
 			size_t chunk_size,
 			size_t large_object_size,
 			size_t initial_cleanup_size);
+
+/*
+ * Destroy tsig record internals (the main ptr is user alloced).
+ * if region is nonNULL, removes cleanup.
+ */
+void tsig_delete_record(tsig_record_type* tsig, region_type* region);
 
 /*
  * Call this before starting to analyze or signing a sequence of

@@ -825,6 +825,56 @@ do_addzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 	send_ok(ssl);
 }
 
+/** do the delzone command */
+static void
+do_delzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
+{
+	const dname_type* dname;
+	zone_options_t* zopt;
+
+	dname = dname_parse(xfrd->region, arg);
+	if(!dname) {
+		(void)ssl_printf(ssl, "error cannot parse zone name\n");
+		return;
+	}
+
+	/* see if we have the zone in question */
+	zopt = zone_options_find(xfrd->nsd->options, dname);
+	if(!zopt) {
+		region_recycle(xfrd->region, (void*)dname,
+			dname_total_size(dname));
+		/* nothing to do */
+		if(!ssl_printf(ssl, "warning zone %s not present\n", arg))
+			return;
+		send_ok(ssl);
+		return;
+	}
+
+	/* see if it can be deleted */
+	if(zopt->part_of_config) {
+		region_recycle(xfrd->region, (void*)dname,
+			dname_total_size(dname));
+		(void)ssl_printf(ssl, "error zone defined in nsd.conf, "
+			"cannot delete it\n");
+		return;
+	}
+
+	/* create deletion task */
+	task_new_del_zone(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, dname);
+	xfrd_set_reload_now(xfrd);
+	/* delete it in xfrd */
+	if(zone_is_slave(zopt)) {
+		xfrd_del_slave_zone(xfrd, dname);
+	}
+	xfrd_del_notify(xfrd, dname);
+	/* delete from config */
+	zone_list_del(xfrd->nsd->options, zopt);
+
+	region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
+	send_ok(ssl);
+}
+
 /** check for name with end-of-string, space or tab after it */
 static int
 cmdcmp(char* p, const char* cmd, size_t len)
@@ -850,6 +900,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 		do_stats(rc, 0, rs);
 	} else if(cmdcmp(p, "addzone", 7)) {
 		do_addzone(ssl, rc->xfrd, skipwhite(p+7));
+	} else if(cmdcmp(p, "delzone", 7)) {
+		do_delzone(ssl, rc->xfrd, skipwhite(p+7));
 	} else if(cmdcmp(p, "verbosity", 9)) {
 		do_verbosity(ssl, skipwhite(p+9));
 	} else {

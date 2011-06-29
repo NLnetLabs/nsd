@@ -99,7 +99,9 @@ struct task_list_d {
 		/** statistic info */
 		task_stat_info,
 		/** add a zone */
-		task_add_zone
+		task_add_zone,
+		/** delete zone */
+		task_del_zone
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -126,6 +128,7 @@ void task_new_check_zonefiles(udb_base* udb, udb_ptr* last);
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
 void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	const char* pattern);
+void task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname);
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	udb_ptr* task);
 void task_process_expire(namedb_type* db, struct task_list_d* task);

@@ -21,6 +21,7 @@ struct zone_options;
 struct zone;
 struct xfrd_soa;
 struct acl_options;
+struct xfrd_state;
 
 /**
  * This struct keeps track of outbound notifies for a zone.
@@ -45,13 +46,16 @@ struct notify_zone_t {
 
 	/* is this notify waiting for a socket? */
 	uint8_t is_waiting;
-	/* next in the waiting list for the udp sockets */
+	/* the double linked waiting list for the udp sockets */
 	struct notify_zone_t* waiting_next;
+	struct notify_zone_t* waiting_prev;
 };
 
 /* initialise outgoing notifies */
 void init_notify_send(rbtree_t* tree, netio_type* netio, region_type* region,
         const dname_type* apex, struct zone_options* options);
+/* delete notify zone */
+void xfrd_del_notify(struct xfrd_state* xfrd, const dname_type* dname);
 
 /* send notifications to all in the notify list */
 void xfrd_send_notify(rbtree_t* tree, const struct dname* apex,

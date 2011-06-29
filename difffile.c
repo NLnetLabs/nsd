@@ -1878,7 +1878,8 @@ void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
 }
 #endif /* BIND8_STATS */
 
-void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
+void
+task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	const char* pattern)
 {
 	size_t zlen = strlen(zone);
@@ -1895,6 +1896,20 @@ void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	p = TASKLIST(&e)->zname;
 	memcpy(p, zone, zlen+1);
 	memmove(p+zlen+1, pattern, plen+1);
+	udb_ptr_unlink(&e, udb);
+}
+
+void
+task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname)
+{
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task delzone"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
+		+dname_total_size(dname), dname)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add delz");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_del_zone;
 	udb_ptr_unlink(&e, udb);
 }
 
@@ -1966,6 +1981,36 @@ task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	}
 }
 
+static void
+task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
+{
+	udb_ptr udbz;
+	zone_type* zone;
+	zone_options_t* zopt;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "delzone task %s", dname_to_string(
+		task->zname, NULL)));
+	zone = namedb_find_zone(nsd->db, task->zname);
+	if(!zone)
+		return;
+
+	delete_zone_rrs(nsd->db, zone);
+	if(udb_zone_search(nsd->db->udb, &udbz, dname_name(task->zname),
+		task->zname->name_size)) {
+		udb_zone_delete(nsd->db->udb, &udbz);
+		udb_ptr_unlink(&udbz, nsd->db->udb);
+	}
+#ifdef NSEC3
+	nsec3_clear_precompile(nsd->db, zone);
+	zone->nsec3_param = NULL;
+#endif /* NSEC3 */
+
+	/* remove from zonetree, apex, soa */
+	zopt = zone->opts;
+	namedb_zone_delete(nsd->db, zone);
+	/* remove from options (zone_list already edited by xfrd) */
+	zone_options_delete(nsd->options, zopt);
+}
+
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
         udb_ptr* task)
 {
@@ -1981,6 +2026,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_add_zone:
 		task_process_add_zone(nsd, udb, last_task, TASKLIST(task));
+		break;
+	case task_del_zone:
+		task_process_del_zone(nsd, TASKLIST(task));
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",

@@ -200,6 +200,7 @@ xfrd_tcp_obtain(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 	DEBUG(DEBUG_XFRD,2, (LOG_INFO, "xfrd: max number of tcp "
 		"connections (%d) reached.", XFRD_MAX_TCP));
 	zone->tcp_waiting_next = 0;
+	zone->tcp_waiting_prev = set->tcp_waiting_last;
 	zone->tcp_waiting = 1;
 	if(!set->tcp_waiting_last) {
 		set->tcp_waiting_first = zone;
@@ -560,6 +561,8 @@ xfrd_tcp_release(xfrd_tcp_set_t* set, xfrd_zone_t* zone)
 			set->tcp_waiting_last = 0;
 
 		set->tcp_waiting_first = zone->tcp_waiting_next;
+		if(zone->tcp_waiting_next)
+			zone->tcp_waiting_next->tcp_waiting_prev = NULL;
 		zone->tcp_waiting_next = 0;
 		/* start it */
 		assert(zone->tcp_conn == -1);

@@ -265,6 +265,37 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 	return zone;
 }
 
+void
+namedb_zone_delete(namedb_type* db, zone_type* zone)
+{
+	/* RRs and UDB and NSEC3 and so on must be already deleted */
+	radix_delete(db->zonetree, zone->node);
+
+	/* see if apex can be deleted */
+	if(zone->apex) {
+		zone->apex->usage --;
+		if(zone->apex->usage == 0) {
+			/* delete the apex, possibly */
+			domain_table_deldomain(db->domains, zone->apex);
+		}
+	}
+
+	/* soa_rrset is free-ed when the SOA was deleted */
+	if(zone->soa_nx_rrset) {
+		region_recycle(db->region, zone->soa_nx_rrset->rrs,
+			sizeof(rr_type));
+		region_recycle(db->region, zone->soa_nx_rrset,
+			sizeof(rrset_type));
+	}
+#ifdef NSEC3
+	radix_tree_delete(zone->nsec3tree);
+	radix_tree_delete(zone->hashtree);
+	radix_tree_delete(zone->wchashtree);
+	radix_tree_delete(zone->dshashtree);
+#endif
+	region_recycle(db->region, zone, sizeof(zone_type));
+}
+
 /** read a zone */
 static void
 read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,

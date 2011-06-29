@@ -347,7 +347,7 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 	opt->zonelist_off = ftello(opt->zonelist);
 	return 1;
 }
-static void
+void
 zone_options_delete(nsd_options_t* opt, zone_options_t* zone)
 {
 	rbtree_delete(opt->zone_options, zone->node.key);

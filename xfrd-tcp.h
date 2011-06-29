@@ -32,7 +32,7 @@ struct xfrd_tcp_set {
 	int tcp_count;
 	/* TCP timeout. */
 	int tcp_timeout;
-	/* linked list of zones waiting for a TCP connection */
+	/* double linked list of zones waiting for a TCP connection */
 	struct xfrd_zone *tcp_waiting_first, *tcp_waiting_last;
 };
 
