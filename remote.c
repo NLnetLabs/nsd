@@ -1091,6 +1091,14 @@ print_stats(SSL* ssl, xfrd_state_t* xfrd, struct timeval* now)
 		return;
 	if(!print_longnum(ssl, "size.db.mem=", xfrd->nsd->st.db_mem))
 		return;
+	if(!print_longnum(ssl, "size.xfrd.mem=", region_get_mem(xfrd->region)))
+		return;
+	if(!print_longnum(ssl, "size.config.disk=", 
+		xfrd->nsd->options->zonelist_off))
+		return;
+	if(!print_longnum(ssl, "size.config.mem=", region_get_mem(
+		xfrd->nsd->options->region)))
+		return;
 
 	for(i=0; i<= 255; i++) {
 		if(inhibit_zero && xfrd->nsd->st.qtype[i] == 0 &&

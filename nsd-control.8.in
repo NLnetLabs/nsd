@@ -105,6 +105,17 @@ size of nsd.db on disk, in bytes.
 .I size.db.mem
 size of the DNS database in memory, in bytes.
 .TP
+.I size.xfrd.mem
+size of memory for zone transfers and notifies in xfrd process, excludes
+TSIG data, in bytes.
+.TP
+.I size.config.disk
+size of zonelist file on disk, excludes the nsd.conf size, in bytes.
+.TP
+.I size.config.mem
+size of config data in memory, kept twice in server and xfrd process,
+in bytes.
+.TP
 .I num.type.X
 number of queries with this query type.
 .TP
