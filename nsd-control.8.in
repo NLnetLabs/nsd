@@ -60,6 +60,14 @@ the options for the new zone.  For slave zones a zone transfer is
 immediately attempted.  For zones with a zonefile, the zone file is
 attempted to be read in.
 .TP
+.B delzone <zone name>
+Remove the zone from the running server.  The zone is removed from the
+zonelist file on disk, from the nsd.db file and from the memory.  If it
+had a zonefile, this remains (but may be outdated).  Zones configured
+inside nsd.conf itself cannot be removed this way because the daemon
+does not write to the nsd.conf file, you need to add such zones to the
+zonelist file to be able to delete them with the delzone command.
+.TP
 .B verbosity <number>
 Change logging verbosity.
 .SH "EXIT CODE"
@@ -130,17 +138,23 @@ number of connections over TCP ip6.
 .I num.answer_wo_aa
 number of answers with NOERROR rcode and without AA flag, this includes the referrals.
 .TP
-.I rxerr
+.I num.rxerr
 number of queries for which the receive failed.
 .TP
-.I txerr
+.I num.txerr
 number of answers for which the transmit failed.
 .TP
-.I truncated
+.I num.truncated
 number of answers with TC flag set.
 .TP
-.I dropped
+.I num.dropped
 number of queries that were dropped because they failed sanity check.
+.TP
+.I zone.master
+number of master zones served.
+.TP
+.I zone.slave
+number of slave zones served.
 .SH "FILES"
 .TP
 .I @nsdconfigfile@

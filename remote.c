@@ -1175,6 +1175,13 @@ print_stats(SSL* ssl, xfrd_state_t* xfrd, struct timeval* now)
 	if(!ssl_printf(ssl, "num.dropped=%u\n",
 		(unsigned)xfrd->nsd->st.dropped))
 		return;
+
+	/* zone statistics */
+	if(!ssl_printf(ssl, "zone.master=%u\n",
+		(unsigned)(xfrd->notify_zones->count - xfrd->zones->count)))
+		return;
+	if(!ssl_printf(ssl, "zone.slave=%u\n", (unsigned)xfrd->zones->count))
+		return;
 }
 
 static void
