@@ -44,6 +44,7 @@ query_axfr(struct nsd *nsd, struct query *query)
 	if (query->axfr_zone == NULL) {
 		domain_type* qdomain;
 		/* Start AXFR.  */
+		STATUP(nsd, raxfr);
 		exact = namedb_lookup(nsd->db,
 				      query->qname,
 				      &closest_match,

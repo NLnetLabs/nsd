@@ -1,6 +1,7 @@
 29 June 2011: Wouter
 	- nsd-control delzone zone.  Removes zone from zonelist.
 	- stats includes number of zones.
+	- RAXFR stat, which has not worked since NSD 1.2.4, reinstated.
 
 28 June 2011: Wouter
 	- nsd-control addzone zone pattern.  Adds new zone, slave or master.

@@ -1166,6 +1166,10 @@ print_stats(SSL* ssl, xfrd_state_t* xfrd, struct timeval* now)
 	if(!ssl_printf(ssl, "num.txerr=%u\n", (unsigned)xfrd->nsd->st.txerr))
 		return;
 
+	/* number of requested-axfr, number of times axfr served to clients */
+	if(!ssl_printf(ssl, "num.raxfr=%u\n", (unsigned)xfrd->nsd->st.raxfr))
+		return;
+
 	/* truncated */
 	if(!ssl_printf(ssl, "num.truncated=%u\n",
 		(unsigned)xfrd->nsd->st.truncated))

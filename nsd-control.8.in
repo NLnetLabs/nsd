@@ -144,6 +144,9 @@ number of queries for which the receive failed.
 .I num.txerr
 number of answers for which the transmit failed.
 .TP
+.I num.raxfr
+number of AXFR requests from clients (that got served with reply).
+.TP
 .I num.truncated
 number of answers with TC flag set.
 .TP
