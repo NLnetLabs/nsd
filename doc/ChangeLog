@@ -1,3 +1,6 @@
+1 July 2011: Wouter
+	- fix optimize compile to link with ssl.
+
 29 June 2011: Wouter
 	- nsd-control delzone zone.  Removes zone from zonelist.
 	- stats includes number of zones.
