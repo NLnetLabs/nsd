@@ -1,3 +1,6 @@
+5 July 2011: Wouter
+	- fix link to ssl with FreeBSD make.
+
 1 July 2011: Wouter
 	- fix optimize compile to link with ssl.
 

@@ -687,7 +687,7 @@ esac
 CHECK_SSL
 if test x$HAVE_SSL = x"yes"; then
 	ACX_LIB_SSL
-	SSL_LIBS="-lssl "
+	SSL_LIBS="-lssl"
 	AC_SUBST(SSL_LIBS)
 	AC_CHECK_HEADERS([openssl/ssl.h],,, [AC_INCLUDES_DEFAULT])
 	AC_CHECK_HEADERS([openssl/err.h],,, [AC_INCLUDES_DEFAULT])

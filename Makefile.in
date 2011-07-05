@@ -175,10 +175,10 @@ uninstall:
 test: 
 
 whole:	nsd-notify nsd-xfer nsdc.sh nsd-control-setup.sh nsd-checkconf nsd-control nsd-patch nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` $(LIBOBJS) $(SSL_LIBS)$(LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 
 nsd:	$(NSD_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(SSL_LIBS)$(LIBS)
+	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 
 nsd-notify:	$(NSD_NOTIFY_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJ) $(LIBOBJS) $(LIBS)
@@ -187,7 +187,7 @@ nsd-checkconf:	$(NSD_CHECKCONF_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_CHECKCONF_OBJ) $(LIBOBJS) $(LIBS)
 
 nsd-control:	$(NSD_CONTROL_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(NSD_CONTROL_OBJ) $(LIBOBJS) $(SSL_LIBS)$(LIBS)
+	$(LINK) -o $@ $(NSD_CONTROL_OBJ) $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 
 nsd-xfer:	$(NSD_XFER_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJ) $(LIBOBJS) $(LIBS)
@@ -196,7 +196,7 @@ nsd-patch:	$(NSD_PATCH_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_PATCH_OBJ) $(LIBOBJS) $(LIBS)
 
 cutest:	$(CUTEST_OBJ) $(LIBOBJS)
-	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(SSL_LIBS)$(LIBS)
+	$(LINK) -o $@ $(CUTEST_OBJ) $(LIBOBJS) $(SSL_LIBS) $(LIBS)
 
 udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ udb-inspect.o $(COMMON_OBJ) $(LIBOBJS) $(LIBS)
