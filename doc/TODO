@@ -61,6 +61,7 @@ PURITY
   is not legal, only TSIG after OPT is allowed.
 - Allow for username: uid:gid, next to uid.gid.
 - Log error when serial in xfrd.state is incosistent with that from nsd.db.
+- nsd.db version management
 
 NSD PATCH
 - -q(?) option: no output when no patch necessary
