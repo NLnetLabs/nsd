@@ -1,3 +1,7 @@
+5 July 2011: Wouter
+	- Increase nsd.db version number because nsd 3.2.7 and earlier zonec
+	  is not compatible due to the TXT strings change.
+
 14 June 2011: Wouter
 	- Fix to have no authority NS set processing for CNAMEs.
 

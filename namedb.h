@@ -18,7 +18,7 @@
 struct zone_options;
 struct nsd_options;
 
-#define	NAMEDB_MAGIC		"NSDdbV07"
+#define	NAMEDB_MAGIC		"NSDdbV08"
 #define	NAMEDB_MAGIC_SIZE	8
 
 typedef union rdata_atom rdata_atom_type;
