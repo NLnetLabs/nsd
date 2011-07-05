@@ -314,6 +314,9 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database (read magic): %s", db->filename);
+		log_msg(LOG_ERR, "cannot load database, incompatible version "
+					"number. Please rebuild database and "
+                                        "start again.");
 		namedb_close(db);
 		return NULL;
 	}
@@ -435,6 +438,9 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 	}
 	if (!read_magic(db)) {
 		log_msg(LOG_ERR, "corrupted database (read magic): %s", db->filename);
+		log_msg(LOG_ERR, "cannot load database, incompatible version "
+					"number. Please rebuild database and "
+                                        "start again.");
 		namedb_close(db);
 		return NULL;
 	}
