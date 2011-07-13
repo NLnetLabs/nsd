@@ -1214,6 +1214,7 @@ void daemon_remote_process_stats(struct daemon_remote* rc)
 {
 	struct rc_state* s;
 	struct timeval now;
+	if(!rc) return;
 	if(gettimeofday(&now, NULL) == -1)
 		log_msg(LOG_ERR, "gettimeofday: %s", strerror(errno));
 	/* pop one and give it stats */
