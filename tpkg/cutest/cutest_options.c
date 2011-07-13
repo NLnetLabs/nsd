@@ -437,16 +437,18 @@ static void zonelist_1(CuTest *tc)
 		"add foo.nl slave\n");
 	zone_list_del(opt, z3); /* "foo.nl" */
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
-		"add example.com master\n" "del example.net slave\n"
-		"del foo.nl slave\n");
+		"add example.com master\n");
 	z2 = zone_list_add(opt, "bar.nl", "slave");
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
-		"add example.com master\n" "del example.net slave\n"
-		"add bar.nl slave\n");
+		"add example.com master\n" "add bar.nl slave\n");
 	z3 = zone_list_add(opt, "zoink.com", "slave");
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
-		"add example.com master\n" "del example.net slave\n"
-		"add bar.nl slave\n" "add zoink.com slave\n");
+		"add example.com master\n" "add bar.nl slave\n" 
+		"add zoink.com slave\n");
+	zone_list_del(opt, z2); /* "bar.nl" */
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
+		"add example.com master\n" "del bar.nl slave\n" 
+		"add zoink.com slave\n");
 	zone_list_close(opt);
 	region_destroy(region);
 
@@ -468,23 +470,21 @@ static void zonelist_1(CuTest *tc)
 	CuAssertTrue(tc, parse_zone_list_file(opt, zname));
 	CuAssertTrue(tc, opt->zonelist != NULL);
 	CuAssertTrue(tc, opt->zonefree->count != 0);
+	CuAssertTrue(tc, opt->zonefree_number != 0);
 	CuAssertTrue(tc, opt->zonelist_off != (off_t)0);
 	/* check contents of freelist memory */
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
-		"add example.com master\n" "del example.net slave\n"
-		"add bar.nl slave\n" "add zoink.com slave\n");
+		"add example.com master\n" "del bar.nl slave\n"
+		"add zoink.com slave\n");
 	zone_list_compact(opt);
 	/* check contents of zonelist file */
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
-		"add example.com master\n" "add zoink.com slave\n"
-		"add bar.nl slave\n");
+		"add example.com master\n" "add zoink.com slave\n");
 
 	/* delete more zones, compact and see that it has truncated */
 	while(opt->zone_options->count)
 		zone_list_del(opt, (zone_options_t*)opt->zone_options->root);
-	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
-		"del example.com master\n" "del zoink.com slave\n"
-		"del bar.nl slave\n");
+	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n");
 	zone_list_compact(opt);
 	/* check contents of zonelist file */
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n");
