@@ -1,3 +1,6 @@
+13 July 2011: Wouter
+	- fix that signal causes stats to be printed to log.
+
 5 July 2011: Wouter
 	- fix link to ssl with FreeBSD make.
 
