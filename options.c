@@ -238,6 +238,7 @@ static void zone_list_free_insert(nsd_options_t* opt, int linesize, off_t off)
 	e->next = b->list;
 	b->list = e;
 	e->off = off;
+	opt->zonefree_number++;
 }
 
 zone_options_t*
@@ -282,6 +283,7 @@ int parse_zone_list_file(nsd_options_t* opt, const char* zlfile)
 	/* create empty data structures */
 	opt->zonefree = rbtree_create(opt->region, comp_zonebucket);
 	opt->zonelist = NULL;
+	opt->zonefree_number = 0;
 	opt->zonelist_off = 0;
 	opt->zlfile = region_strdup(opt->region, zlfile);
 
@@ -465,6 +467,7 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 		rbtree_delete(opt->zonefree, &b->linesize);
 		region_recycle(opt->region, b, sizeof(*b));
 	}
+	opt->zonefree_number--;
 	return zone;
 }
 
@@ -483,7 +486,7 @@ void zone_list_del(nsd_options_t* opt, zone_options_t* zone)
 	zone_options_delete(opt, zone);
 
 	/* see if we need to compact: it is going to halve the zonelist */
-	if(opt->zonefree->count > opt->zone_options->count) {
+	if(opt->zonefree_number > opt->zone_options->count) {
 		zone_list_compact(opt);
 	}
 }
@@ -579,6 +582,7 @@ void zone_list_compact(nsd_options_t* opt)
 	delbucket(opt->region, (struct zonelist_bucket*)opt->zonefree->root);
 	opt->zonefree->root = RBTREE_NULL;
 	opt->zonefree->count = 0;
+	opt->zonefree_number = 0;
 	/* finish */
 	opt->zonelist = out;
 	opt->zonelist_off = off;

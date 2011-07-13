@@ -35,6 +35,8 @@ struct nsd_options {
 
 	/* free space in zonelist file, contains zonelist_bucket */
 	rbtree_t* zonefree;
+	/* number of free space lines in zonelist file */
+	size_t zonefree_number;
 	/* zonelist file if open */
 	FILE* zonelist;
 	/* last offset in file (or 0 if none) */

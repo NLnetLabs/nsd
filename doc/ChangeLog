@@ -3,6 +3,7 @@
 	- fix stats without remotecontrol.
 	- ignore notify and soainfo for deleted zone, if due to race they
 	  arrive after the deletion.
+	- tpkg test for nsd-control, addzone and delzone
 
 5 July 2011: Wouter
 	- fix link to ssl with FreeBSD make.
