@@ -481,6 +481,11 @@ void zone_list_del(nsd_options_t* opt, zone_options_t* zone)
 
 	/* remove zone_options_t */
 	zone_options_delete(opt, zone);
+
+	/* see if we need to compact: it is going to halve the zonelist */
+	if(opt->zonefree->count > opt->zone_options->count) {
+		zone_list_compact(opt);
+	}
 }
 /* postorder delete of zonelist free space tree */
 static void
