@@ -1693,13 +1693,14 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 
 	dname = dname_make(tempregion, qnamebuf, 1);
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: got passed packet for %s, acl "
-					   "%d", dname_to_string(dname,0), acl_num));
+		   "%d", dname_to_string(dname,0), acl_num));
 
 	/* find the zone */
 	zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, dname);
 	if(!zone) {
-		log_msg(LOG_INFO, "xfrd: incoming packet for unknown zone %s",
-			dname_to_string(dname,0));
+		/* this could be because the zone has been deleted meanwhile */
+		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "xfrd: incoming packet for "
+			"unknown zone %s", dname_to_string(dname,0)));
 		region_destroy(tempregion);
 		return; /* drop packet for unknown zone */
 	}
@@ -1731,7 +1732,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 		}
 	}
 	else {
-		/* TODO handle incoming IXFR udp reply via port 53 */
+		/* ignore other types of messages */
 	}
 }
 

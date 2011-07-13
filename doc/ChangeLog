@@ -1,6 +1,8 @@
 13 July 2011: Wouter
 	- fix that signal causes stats to be printed to log.
 	- fix stats without remotecontrol.
+	- ignore notify and soainfo for deleted zone, if due to race they
+	  arrive after the deletion.
 
 5 July 2011: Wouter
 	- fix link to ssl with FreeBSD make.

@@ -1920,9 +1920,9 @@ task_process_expire(namedb_type* db, struct task_list_d* task)
 	zone_type* z = namedb_find_zone(db, task->zname);
 	assert(task->task_type == task_expire);
 	if(!z) {
-		log_msg(LOG_WARNING, "zone %s %s but not in zonetree",
+		DEBUG(DEBUG_IPC, 1, (LOG_WARNING, "zone %s %s but not in zonetree",
 			dname_to_string(task->zname, NULL),
-			task->yesno?"expired":"unexpired");
+			task->yesno?"expired":"unexpired"));
 		return;
 	}
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: expire task zone %s %s",

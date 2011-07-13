@@ -324,7 +324,7 @@ notify_handle_master_zone_soainfo(rbtree_t* tree,
 	/* lookup the zone */
 	struct notify_zone_t* zone = (struct notify_zone_t*)
 		rbtree_search(tree, apex);
-	assert(zone);
+	if(!zone) return; /* got SOAINFO but zone was deleted meanwhile */
 
 	/* check if SOA changed */
 	if( (new_soa == NULL && zone->current_soa->serial == 0) ||
