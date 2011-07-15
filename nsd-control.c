@@ -46,6 +46,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/ssl.h>
 #endif
