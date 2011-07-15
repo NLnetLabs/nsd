@@ -777,6 +777,9 @@ xfrd_set_zone_state(xfrd_zone_t* zone, enum xfrd_zone_state s)
 void
 xfrd_set_refresh_now(xfrd_zone_t* zone)
 {
+	/* TODO: setting the timer like this will interrupt TCP, or UDP
+	 * traffic with TIMEOUTevent.  Soln: 'activate' the handler for
+	 * processing without specifying special events */
 	xfrd_set_timer(zone, xfrd_time());
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s sets timeout right now, state %d",
 		zone->apex_str, zone->state));
