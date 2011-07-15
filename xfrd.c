@@ -564,7 +564,7 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 
 	/* timeout */
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: zone %s timeout", zone->apex_str));
-	if(handler->fd != -1) {
+	if(handler->fd != -1 && (event_types & NETIO_EVENT_TIMEOUT)) {
 		assert(zone->tcp_conn == -1);
 		xfrd_udp_release(zone);
 	}
