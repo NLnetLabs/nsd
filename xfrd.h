@@ -45,6 +45,8 @@ struct xfrd_state {
 	struct xfrd_zone *udp_waiting_first, *udp_waiting_last;
 	/* number of udp sockets (for sending queries) in use */
 	size_t udp_use_num;
+	/* activated waiting list, double linked list */
+	struct xfrd_zone *activated_first;
 
 	/* current time is cached */
 	uint8_t got_time;
@@ -160,6 +162,11 @@ struct xfrd_zone {
 	/* next zone in waiting list for UDP */
 	xfrd_zone_t* udp_waiting_next;
 	xfrd_zone_t* udp_waiting_prev;
+	/* zone has been activated to run now (after the other events
+	 * but before blocking in select again) */
+	uint8_t is_activated;
+	xfrd_zone_t* activated_next;
+	xfrd_zone_t* activated_prev;
 
 	/* xfr message handling data */
 	/* query id */

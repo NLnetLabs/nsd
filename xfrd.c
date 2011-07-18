@@ -105,6 +105,8 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->udp_waiting_first = NULL;
 	xfrd->udp_waiting_last = NULL;
 	xfrd->udp_use_num = 0;
+	xfrd->got_time = 0;
+	xfrd->activated_first = NULL;
 	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->last_task = region_alloc(xfrd->region, sizeof(*xfrd->last_task));
 	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
@@ -159,11 +161,32 @@ xfrd_init(int socket, struct nsd* nsd)
 }
 
 static void
+xfrd_process_activated(void)
+{
+	xfrd_zone_t* zone;
+	while((zone = xfrd->activated_first)) {
+		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s activation",
+			zone->apex_str));
+		/* pop zone from activated list */
+		xfrd->activated_first = zone->activated_next;
+		if(zone->activated_next)
+			zone->activated_next->activated_prev = NULL;
+		zone->is_activated = 0;
+		/* run it : no events, specifically not the TIMEOUT event,
+		 * so that running zone transfers are not interrupted */
+		xfrd_handle_zone(xfrd->netio, &zone->zone_handler,
+			NETIO_EVENT_NONE);
+	}
+}
+
+static void
 xfrd_main()
 {
 	xfrd->shutdown = 0;
 	while(!xfrd->shutdown)
 	{
+		/* process activated zones before blocking in select again */
+		xfrd_process_activated();
 		/* dispatch may block for a longer period, so current is gone */
 		xfrd->got_time = 0;
 		if(netio_dispatch(xfrd->netio, NULL, 0) == -1) {
@@ -249,6 +272,7 @@ xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
 	xzone->tcp_conn = -1;
 	xzone->tcp_waiting = 0;
 	xzone->udp_waiting = 0;
+	xzone->is_activated = 0;
 
 	tsig_create_record_custom(&xzone->tsig, NULL, 0, 0, 4);
 
@@ -451,6 +475,15 @@ xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname)
 		else	xfrd->udp_waiting_last = z->udp_waiting_prev;
 		z->udp_waiting = 0;
 	}
+	if(z->is_activated) {
+		/* delete from activated list */
+		if(z->activated_prev)
+			z->activated_prev->activated_next = z->activated_next;
+		else	xfrd->activated_first = z->activated_next;
+		if(z->activated_next)
+			z->activated_next->activated_prev = z->activated_prev;
+		z->is_activated = 0;
+	}
 	if(z->tcp_conn != -1) {
 		xfrd_tcp_release(xfrd->tcp_set, z);
 	}
@@ -597,8 +630,12 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
 		}
 	}
-	/* make a new request */
-	xfrd_make_request(zone);
+
+	/* only make a new request if no request is running (UDPorTCP) */
+	if(handler->fd == -1 && zone->tcp_conn == -1) {
+		/* make a new request */
+		xfrd_make_request(zone);
+	}
 }
 
 void
@@ -777,12 +814,17 @@ xfrd_set_zone_state(xfrd_zone_t* zone, enum xfrd_zone_state s)
 void
 xfrd_set_refresh_now(xfrd_zone_t* zone)
 {
-	/* TODO: setting the timer like this will interrupt TCP, or UDP
-	 * traffic with TIMEOUTevent.  Soln: 'activate' the handler for
-	 * processing without specifying special events */
-	xfrd_set_timer(zone, xfrd_time());
-	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s sets timeout right now, state %d",
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd zone %s is activated, state %d",
 		zone->apex_str, zone->state));
+	if(!zone->is_activated) {
+		/* push onto list */
+		zone->activated_prev = 0;
+		zone->activated_next = xfrd->activated_first;
+		if(xfrd->activated_first)
+			xfrd->activated_first->activated_prev = zone;
+		xfrd->activated_first = zone;
+		zone->is_activated = 1;
+	}
 }
 
 void

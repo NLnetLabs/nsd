@@ -1,3 +1,6 @@
+18 July 2011: Wouter
+	- Fix xfrd activation of zones to not break running zone transfers.
+
 13 July 2011: Wouter
 	- fix that signal causes stats to be printed to log.
 	- fix stats without remotecontrol.
