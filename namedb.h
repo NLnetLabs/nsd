@@ -335,6 +335,8 @@ void namedb_close_udb(struct namedb* db);
 void namedb_close(struct namedb *db);
 void namedb_check_zonefiles(struct namedb* db, struct nsd_options* opt,
 	struct udb_base* taskudb, struct udb_ptr* last_task);
+void namedb_check_zonefile(struct namedb* db, struct udb_base* taskudb,
+	struct udb_ptr* last_task, struct zone_options* zo);
 /** zone one zonefile into memory and revert on parse error, write to udb */
 void namedb_read_zonefile(struct namedb* db, struct zone* zone,
 	struct udb_base* taskudb, struct udb_ptr* last_task);

@@ -657,7 +657,7 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv RELOAD_REQ"));
 		/* make reload happen, right away, and schedule file check */
 		task_new_check_zonefiles(xfrd->nsd->task[xfrd->nsd->mytask],
-			xfrd->last_task);
+			xfrd->last_task, NULL);
 		xfrd_set_reload_now(xfrd);
 		break;
 	case NSD_RELOAD:

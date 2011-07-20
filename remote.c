@@ -686,6 +686,31 @@ static void send_ok(SSL* ssl)
 	(void)ssl_printf(ssl, "ok\n");
 }
 
+/** get zone argument (if any) or NULL, false on error */
+static int get_zone_arg(SSL* ssl, xfrd_state_t* xfrd, char* arg,
+	zone_options_t** zo)
+{
+	const dname_type* dname;
+	if(!arg[0]) {
+		/* no argument present, return NULL */
+		*zo = NULL;
+		return 1;
+	}
+	dname = dname_parse(xfrd->region, arg);
+	if(!dname) {
+		ssl_printf(ssl, "error cannot parse zone name '%s'\n", arg);
+		*zo = NULL;
+		return 0;
+	}
+	*zo = zone_options_find(xfrd->nsd->options, dname);
+	region_recycle(xfrd->region, (void*)dname, dname_total_size(dname));
+	if(!*zo) {
+		ssl_printf(ssl, "error zone %s not configured\n", arg);
+		return 0;
+	}
+	return 1;
+}
+
 /** do the stop command */
 static void
 do_stop(SSL* ssl, xfrd_state_t* xfrd)
@@ -695,12 +720,23 @@ do_stop(SSL* ssl, xfrd_state_t* xfrd)
 	send_ok(ssl);
 }
 
+/** do the log_reopen command, it only needs reload_now */
+static void
+do_log_reopen(SSL* ssl, xfrd_state_t* xfrd)
+{
+	xfrd_set_reload_now(xfrd);
+	send_ok(ssl);
+}
+
 /** do the reload command */
 static void
-do_reload(SSL* ssl, xfrd_state_t* xfrd)
+do_reload(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 {
+	zone_options_t* zo;
+	if(!get_zone_arg(ssl, xfrd, arg, &zo))
+		return;
 	task_new_check_zonefiles(xfrd->nsd->task[xfrd->nsd->mytask],
-		xfrd->last_task);
+		xfrd->last_task, (const dname_type*)zo->node.key);
 	xfrd_set_reload_now(xfrd);
 	send_ok(ssl);
 }
@@ -891,13 +927,15 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 	if(cmdcmp(p, "stop", 4)) {
 		do_stop(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "reload", 6)) {
-		do_reload(ssl, rc->xfrd);
+		do_reload(ssl, rc->xfrd, skipwhite(p+6));
 	} else if(cmdcmp(p, "status", 6)) {
 		do_status(ssl);
 	} else if(cmdcmp(p, "stats_noreset", 13)) {
 		do_stats(rc, 1, rs);
 	} else if(cmdcmp(p, "stats", 5)) {
 		do_stats(rc, 0, rs);
+	} else if(cmdcmp(p, "log_reopen", 10)) {
+		do_log_reopen(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "addzone", 7)) {
 		do_addzone(ssl, rc->xfrd, skipwhite(p+7));
 	} else if(cmdcmp(p, "delzone", 7)) {

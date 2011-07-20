@@ -110,6 +110,7 @@ struct task_list_d {
 	/** apply_xfr: zonename, filename-serial */
 	/** done_apply_xfr: zonename, filename-serial */
 	uint32_t serial;
+	/** general variable.  for some used to see if zname is present. */
 	uint64_t yesno;
 	struct dname zname[0];
 };
@@ -124,7 +125,8 @@ void task_new_expire(udb_base* udb, udb_ptr* last,
 	const struct dname* z, int expired);
 void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
 	size_t child_count);
-void task_new_check_zonefiles(udb_base* udb, udb_ptr* last);
+void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
+	const dname_type* zone);
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
 void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	const char* pattern);

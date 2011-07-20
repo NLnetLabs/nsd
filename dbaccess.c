@@ -533,28 +533,25 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 #endif
 }
 
+void namedb_check_zonefile(struct namedb* db, udb_base* taskudb,
+	udb_ptr* last_task, zone_options_t* zo)
+{
+	zone_type* zone;
+	const dname_type* dname = (const dname_type*)zo->node.key;
+	/* find zone to go with it, or create it */
+	zone = namedb_find_zone(db, dname);
+	if(!zone) {
+		zone = namedb_zone_create(db, dname, zo);
+	}
+	namedb_read_zonefile(db, zone, taskudb, last_task);
+}
+
 void namedb_check_zonefiles(struct namedb* db, nsd_options_t* opt,
 	udb_base* taskudb, udb_ptr* last_task)
 {
 	zone_options_t* zo;
-	zone_type* zone;
-	region_type* dname_region = region_create(xalloc, free);
 	/* check all zones in opt, create if not exist in main db */
 	RBTREE_FOR(zo, zone_options_t*, opt->zone_options) {
-		const dname_type* dname = dname_parse(dname_region, zo->name);
-		if(!dname) {
-			log_msg(LOG_ERR, "cannot parse name %s", zo->name);
-			region_free_all(dname_region);
-			continue;
-		}
-		/* find zone to go with it, or create it */
-		zone = namedb_find_zone(db, dname);
-		if(!zone) {
-			zone = namedb_zone_create(db, dname, zo);
-			region_free_all(dname_region);
-		}
-		namedb_read_zonefile(db, zone, taskudb, last_task);
-		region_free_all(dname_region);
+		namedb_check_zonefile(db, taskudb, last_task, zo);
 	}
-	region_destroy(dname_region);
 }

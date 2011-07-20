@@ -1831,16 +1831,18 @@ void task_new_expire(struct udb_base* udb, udb_ptr* last,
 	udb_ptr_unlink(&e, udb);
 }
 
-void task_new_check_zonefiles(udb_base* udb, udb_ptr* last)
+void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
+	const dname_type* zone)
 {
 	udb_ptr e;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task checkzonefiles"));
 	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d),
-		NULL)) {
+		zone)) {
 		log_msg(LOG_ERR, "tasklist: out of space, cannot add check_zones");
 		return;
 	}
 	TASKLIST(&e)->task_type = task_check_zonefiles;
+	TASKLIST(&e)->yesno = (zone!=NULL);
 	udb_ptr_unlink(&e, udb);
 }
 
@@ -1946,11 +1948,20 @@ task_process_set_verbosity(struct task_list_d* task)
 }
 
 static void
-task_process_checkzones(struct nsd* nsd, udb_base* udb, udb_ptr* last_task)
+task_process_checkzones(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
+	struct task_list_d* task)
 {
 	/* on SIGHUP check if zone-text-files changed and if so,
 	 * reread.  When from xfrd-reload, no need to fstat the files */
-	namedb_check_zonefiles(nsd->db, nsd->options, udb, last_task);
+	if(task->yesno) {
+		zone_options_t* zo = zone_options_find(nsd->options,
+			task->zname);
+		if(zo)
+			namedb_check_zonefile(nsd->db, udb, last_task, zo);
+	} else {
+		/* check all zones */
+		namedb_check_zonefiles(nsd->db, nsd->options, udb, last_task);
+	}
 }
 
 static void
@@ -2019,7 +2030,7 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		task_process_expire(nsd->db, TASKLIST(task));
 		break;
 	case task_check_zonefiles:
-		task_process_checkzones(nsd, udb, last_task);
+		task_process_checkzones(nsd, udb, last_task, TASKLIST(task));
 		break;
 	case task_set_verbosity:
 		task_process_set_verbosity(TASKLIST(task));

@@ -74,7 +74,8 @@ usage()
 	printf("Commands:\n");
 	printf("  start				start server; runs nsd(8)\n");
 	printf("  stop				stops the server\n");
-	printf("  reload			reload zonefiles, reopen logfile\n");
+	printf("  reload [<zone>]		reload zonefiles from disk\n");
+	printf("  log_reopen			reopen logfile (for log rotate)\n");
 	printf("  status			display status of server\n");
 	printf("  stats				print statistics\n");
 	printf("  stats_noreset			peek at statistics\n");

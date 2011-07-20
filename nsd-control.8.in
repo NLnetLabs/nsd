@@ -42,6 +42,15 @@ with the config file specified using \fI\-c\fR or the default config file.
 .B stop
 Stop the server. The server daemon exits.
 .TP
+.B reload [<zone>]
+Reload zonefiles and reopen logfile.  Without argument reads changed
+zonefiles.  With argument reads the zonefile for the given zone and
+loads it.
+.TP
+.B log_reopen
+Reopen the logfile, for log rotate that wants to move the logfile away and
+create a new logfile.
+.TP
 .B status
 Display server status. Exit code 3 if not running (the connection to the 
 port is refused), 1 on error, 0 if running.

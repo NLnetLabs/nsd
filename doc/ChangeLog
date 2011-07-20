@@ -1,3 +1,7 @@
+20 July 2011: Wouter
+	- reload can be given optional zone argument.
+	- nsd-control reopen_logfile.
+
 18 July 2011: Wouter
 	- Fix xfrd activation of zones to not break running zone transfers.
 
