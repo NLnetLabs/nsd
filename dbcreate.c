@@ -9,6 +9,7 @@
 
 #include "config.h"
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -20,6 +21,10 @@
 #include "udb.h"
 #include "udbradtree.h"
 #include "udbzone.h"
+#include "options.h"
+
+/* pathname directory separator character */
+#define PATHSEP '/'
 
 /** add an rdata (uncompressed) to the destination */
 static size_t
@@ -138,6 +143,8 @@ write_zone_to_udb(udb_base* udb, zone_type* zone, time_t mtime)
 	}
 	/* set mtime */
 	ZONE(&z)->mtime = (uint64_t)mtime;
+	ZONE(&z)->is_changed = 0;
+	udb_zone_set_log_str(udb, &z, NULL);
 	/* write zone */
 	if(!write_zone(udb, &z, zone)) {
 		udb_base_set_userflags(udb, 0);
@@ -146,4 +153,205 @@ write_zone_to_udb(udb_base* udb, zone_type* zone, time_t mtime)
 	udb_ptr_unlink(&z, udb);
 	udb_base_set_userflags(udb, 0);
 	return 1;
+}
+
+static int
+print_rrs(FILE* out, struct zone* zone)
+{
+	rrset_type *rrset;
+	domain_type *domain = zone->apex;
+	region_type* region = region_create(xalloc, free);
+	struct state_pretty_rr* state = create_pretty_rr(region);
+	/* first print the SOA record for the zone */
+	if(zone->soa_rrset) {
+		size_t i;
+		for(i=0; i < zone->soa_rrset->rr_count; i++) {
+			if(!print_rr(out, state, &zone->soa_rrset->rrs[i])){
+				log_msg(LOG_ERR, "There was an error "
+				   "printing SOARR to zone %s",
+				   zone->opts->name);
+				region_destroy(region);
+				return 0;
+			}
+		}
+	}
+        /* go through entire tree below the zone apex (incl subzones) */
+	while(domain && domain_is_subdomain(domain, zone->apex))
+	{
+		for(rrset = domain->rrsets; rrset; rrset=rrset->next)
+		{
+			size_t i;
+			if(rrset->zone != zone || rrset == zone->soa_rrset)
+				continue;
+			for(i=0; i < rrset->rr_count; i++) {
+				if(!print_rr(out, state, &rrset->rrs[i])){
+					log_msg(LOG_ERR, "There was an error "
+					   "printing RR to zone %s",
+					   zone->opts->name);
+					region_destroy(region);
+					return 0;
+				}
+			}
+		}
+		domain = domain_next(domain);
+	}
+	region_destroy(region);
+	return 1;
+}
+
+static int
+print_header(zone_type* zone, FILE* out, time_t* now, const char* logs)
+{
+	char buf[4096];
+	/* ctime prints newline at end of this line */
+	snprintf(buf, sizeof(buf), "; zone %s written by NSD %s on %s",
+		zone->opts->name, PACKAGE_VERSION, ctime(now));
+	if(!write_data(out, buf, strlen(buf)))
+		return 0;
+	if(!logs || logs[0] == 0) return 1;
+	snprintf(buf, sizeof(buf), "; %s\n", logs);
+	return write_data(out, buf, strlen(buf));
+}
+
+static int
+write_to_zonefile(zone_type* zone, const char* filename, const char* logs)
+{
+	time_t now = time(0);
+	FILE *out;
+	VERBOSITY(1, (LOG_INFO, "writing zone %s to file %s",
+		zone->opts->name, filename));
+
+	out = fopen(filename, "w");
+	if(!out) {
+		log_msg(LOG_ERR, "cannot write zone %s file %s: %s",
+			zone->opts->name, filename, strerror(errno));
+		return 0;
+	}
+	if(!print_header(zone, out, &now, logs)) {
+		fclose(out);
+		log_msg(LOG_ERR, "There was an error printing "
+			"the header to zone %s", zone->opts->name);
+		return 0;
+	}
+	if(!print_rrs(out, zone)) {
+		fclose(out);
+		return 0;
+	}
+	fclose(out);
+	return 1;
+}
+
+/** create directories above this file, .../dir/dir/dir/file */
+static int
+create_dirs(const char* path)
+{
+	char dir[4096];
+	char* p;
+	strlcpy(dir, path, sizeof(dir));
+	p = strchr(dir, PATHSEP);
+	/* create each directory component from the left */
+	while(p) {
+		assert(*p == PATHSEP);
+		*p = 0; /* end the directory name here */
+		if(mkdir(dir
+#ifndef MKDIR_HAS_ONE_ARG
+			, 0750
+#endif
+			) == -1) {
+			if(errno != EEXIST) {
+				log_msg(LOG_ERR, "create dir %s: %s",
+					dir, strerror(errno));
+				return 0;
+			}
+			/* it already exists, OK, continue */
+		}
+		*p = PATHSEP;
+		p = strchr(p+1, PATHSEP);
+	}
+	return 1;
+}
+
+/** create pathname components and check if file exists */
+static int
+create_path_components(const char* path, int* notexist)
+{
+	/* stat the file, to see if it exists, and if its directories exist */
+	struct stat s;
+	if(stat(path, &s) != 0) {
+		if(errno == ENOENT) {
+			*notexist = 1;
+			/* see if we need to create pathname components */
+			return create_dirs(path);
+		}
+		log_msg(LOG_ERR, "cannot stat %s: %s", path, strerror(errno));
+		return 0;
+	}
+	*notexist = 0;
+	return 1;
+}
+
+void
+namedb_write_zonefile(namedb_type* db, zone_options_t* zopt)
+{
+	const char* zfile;
+	int notexist = 0;
+	zone_type* zone;
+	/* if no zone exists, it has no contents or it has no zonefile
+	 * configured, then no need to write data to disk */
+	if(!zopt->pattern->zonefile)
+		return;
+	zone = namedb_find_zone(db, (const dname_type*)zopt->node.key);
+	if(!zone || !zone->apex)
+		return;
+	/* write if file does not exist, or if changed */
+	/* so, determine filename, create directory components, check exist*/
+	zfile = config_make_zonefile(zopt);
+	if(!create_path_components(zfile, &notexist)) {
+		log_msg(LOG_ERR, "could not write zone %s to file %s because "
+			"the path could not be created", zopt->name, zfile);
+		return;
+	}
+
+	/* if not changed, do not write. */
+	if(notexist || zone->is_changed) {
+		char logs[4096];
+		char bakfile[4096];
+		udb_ptr zudb;
+		if(!udb_zone_search(db->udb, &zudb,
+			dname_name(domain_dname(zone->apex)),
+			domain_dname(zone->apex)->name_size))
+			return; /* zone does not exist in db */
+		/* write to zfile~ first, then rename if that works */
+		snprintf(bakfile, sizeof(bakfile), "%s~", zfile);
+		if(ZONE(&zudb)->log_str.data) {
+			udb_ptr s;
+			udb_ptr_new(&s, db->udb, &ZONE(&zudb)->log_str);
+			strlcpy(logs, (char*)udb_ptr_data(&s), sizeof(logs));
+			udb_ptr_unlink(&s, db->udb);
+		} else logs[0] = 0;
+		if(!write_to_zonefile(zone, bakfile, logs)) {
+			udb_ptr_unlink(&zudb, db->udb);
+			return; /* error already printed */
+		}
+		if(rename(bakfile, zfile) == -1) {
+			log_msg(LOG_ERR, "rename(%s to %s) failed: %s",
+				bakfile, zfile, strerror(errno));
+			udb_ptr_unlink(&zudb, db->udb);
+			return;
+		}
+		zone->is_changed = 0;
+		ZONE(&zudb)->mtime = (uint64_t)time(0);
+		ZONE(&zudb)->is_changed = 0;
+		udb_zone_set_log_str(db->udb, &zudb, NULL);
+		udb_ptr_unlink(&zudb, db->udb);
+	}
+}
+
+void
+namedb_write_zonefiles(namedb_type* db, nsd_options_t* options)
+{
+	zone_options_t* zo;
+	RBTREE_FOR(zo, zone_options_t*, options->zone_options) {
+		namedb_write_zonefile(db, zo);
+	}
 }

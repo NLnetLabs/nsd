@@ -1367,6 +1367,9 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 #ifdef NSEC3
 		if(zonedb) prehash_zone(db, zonedb, &z);
 #endif /* NSEC3 */
+		zonedb->is_changed = 1;
+		ZONE(&z)->is_changed = 1;
+		udb_zone_set_log_str(db->udb, &z, log_buf);
 		udb_ptr_unlink(&z, db->udb);
 		if(taskudb) task_new_soainfo(taskudb, last_task, zonedb);
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
@@ -1846,6 +1849,21 @@ void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
 	udb_ptr_unlink(&e, udb);
 }
 
+void task_new_write_zonefiles(udb_base* udb, udb_ptr* last,
+	const dname_type* zone)
+{
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task writezonefiles"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d),
+		zone)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add writezones");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_write_zonefiles;
+	TASKLIST(&e)->yesno = (zone!=NULL);
+	udb_ptr_unlink(&e, udb);
+}
+
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v)
 {
 	udb_ptr e;
@@ -1965,6 +1983,19 @@ task_process_checkzones(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 }
 
 static void
+task_process_writezones(struct nsd* nsd, struct task_list_d* task)
+{
+	if(task->yesno) {
+		zone_options_t* zo = zone_options_find(nsd->options,
+			task->zname);
+		if(zo)
+			namedb_write_zonefile(nsd->db, zo);
+	} else {
+		namedb_write_zonefiles(nsd->db, nsd->options);
+	}
+}
+
+static void
 task_process_add_zone(struct nsd* nsd, udb_base* udb, udb_ptr* last_task,
 	struct task_list_d* task)
 {
@@ -2031,6 +2062,9 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_check_zonefiles:
 		task_process_checkzones(nsd, udb, last_task, TASKLIST(task));
+		break;
+	case task_write_zonefiles:
+		task_process_writezones(nsd, TASKLIST(task));
 		break;
 	case task_set_verbosity:
 		task_process_set_verbosity(TASKLIST(task));

@@ -736,7 +736,20 @@ do_reload(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 	if(!get_zone_arg(ssl, xfrd, arg, &zo))
 		return;
 	task_new_check_zonefiles(xfrd->nsd->task[xfrd->nsd->mytask],
-		xfrd->last_task, (const dname_type*)zo->node.key);
+		xfrd->last_task, zo?(const dname_type*)zo->node.key:NULL);
+	xfrd_set_reload_now(xfrd);
+	send_ok(ssl);
+}
+
+/** do the write command */
+static void
+do_write(SSL* ssl, xfrd_state_t* xfrd, char* arg)
+{
+	zone_options_t* zo;
+	if(!get_zone_arg(ssl, xfrd, arg, &zo))
+		return;
+	task_new_write_zonefiles(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, zo?(const dname_type*)zo->node.key:NULL);
 	xfrd_set_reload_now(xfrd);
 	send_ok(ssl);
 }
@@ -928,6 +941,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 		do_stop(ssl, rc->xfrd);
 	} else if(cmdcmp(p, "reload", 6)) {
 		do_reload(ssl, rc->xfrd, skipwhite(p+6));
+	} else if(cmdcmp(p, "write", 5)) {
+		do_write(ssl, rc->xfrd, skipwhite(p+5));
 	} else if(cmdcmp(p, "status", 6)) {
 		do_status(ssl);
 	} else if(cmdcmp(p, "stats_noreset", 13)) {

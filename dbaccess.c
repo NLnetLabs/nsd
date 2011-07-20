@@ -261,6 +261,7 @@ namedb_zone_create(namedb_type* db, const dname_type* dname,
 #endif
 	zone->opts = zo;
 	zone->is_secure = 0;
+	zone->is_changed = 0;
 	zone->is_ok = 1;
 	return zone;
 }
@@ -318,6 +319,7 @@ read_zone(udb_base* udb, namedb_type* db, nsd_options_t* opt,
 	zone = namedb_zone_create(db, dname, zo);
 	region_free_all(dname_region);
 	read_zone_data(udb, db, dname_region, z, zone);
+	zone->is_changed = (ZONE(z)->is_changed != 0);
 }
 
 /** read zones from nsd.db */
@@ -522,6 +524,7 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 		VERBOSITY(1, (LOG_INFO, "zone %s read with no errors",
 			zone->opts->name));
 		zone->is_ok = 1;
+		zone->is_changed = 0;
 		/* store zone into udb */
 		if(!write_zone_to_udb(db->udb, zone, mtime)) {
 			log_msg(LOG_ERR, "failed to store zone in udb");
@@ -534,14 +537,14 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 }
 
 void namedb_check_zonefile(struct namedb* db, udb_base* taskudb,
-	udb_ptr* last_task, zone_options_t* zo)
+	udb_ptr* last_task, zone_options_t* zopt)
 {
 	zone_type* zone;
-	const dname_type* dname = (const dname_type*)zo->node.key;
+	const dname_type* dname = (const dname_type*)zopt->node.key;
 	/* find zone to go with it, or create it */
 	zone = namedb_find_zone(db, dname);
 	if(!zone) {
-		zone = namedb_zone_create(db, dname, zo);
+		zone = namedb_zone_create(db, dname, zopt);
 	}
 	namedb_read_zonefile(db, zone, taskudb, last_task);
 }

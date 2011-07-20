@@ -94,6 +94,8 @@ struct task_list_d {
 		task_done_apply_xfr,
 		/** check mtime of zonefiles and read them, done on SIGHUP */
 		task_check_zonefiles,
+		/** write zonefiles (if changed) */
+		task_write_zonefiles,
 		/** set verbosity */
 		task_set_verbosity,
 		/** statistic info */
@@ -126,6 +128,8 @@ void task_new_expire(udb_base* udb, udb_ptr* last,
 void* task_new_stat_info(udb_base* udb, udb_ptr* last, struct nsdst* stat,
 	size_t child_count);
 void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
+	const dname_type* zone);
+void task_new_write_zonefiles(udb_base* udb, udb_ptr* last,
 	const dname_type* zone);
 void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
 void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,

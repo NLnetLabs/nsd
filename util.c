@@ -932,8 +932,8 @@ print_rr(FILE *out,
         if (result) {
                 buffer_printf(output, "\n");
                 buffer_flip(output);
-		(void)write_data(out, buffer_current(output), buffer_remaining(output));
-/*              fflush(out); */
+		result = write_data(out, buffer_current(output),
+			buffer_remaining(output));
         }
 
 	region_destroy(region);

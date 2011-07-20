@@ -119,6 +119,7 @@ struct zone
 	struct zone_options *opts;
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     is_ok : 1; /* zone has not expired. */
+	unsigned     is_changed : 1; /* zone was changed by AXFR */
 };
 
 /* a RR in DNS */
@@ -343,8 +344,10 @@ void namedb_read_zonefile(struct namedb* db, struct zone* zone,
 void apex_rrset_checks(struct namedb* db, rrset_type* rrset,
 	domain_type* domain);
 zone_type* namedb_zone_create(namedb_type* db, const dname_type* dname,
-        struct zone_options* zo);
+        struct zone_options* zopt);
 void namedb_zone_delete(namedb_type* db, zone_type* zone);
+void namedb_write_zonefile(namedb_type* db, struct zone_options* zopt);
+void namedb_write_zonefiles(namedb_type* db, struct nsd_options* options);
 
 static inline int
 rdata_atom_is_domain(uint16_t type, size_t index)

@@ -48,8 +48,9 @@ zonefiles.  With argument reads the zonefile for the given zone and
 loads it.
 .TP
 .B log_reopen
-Reopen the logfile, for log rotate that wants to move the logfile away and
-create a new logfile.
+Reopen the logfile, for log rotate that wants to move the logfile away
+and create a new logfile.  The log can also be reopened with kill \-HUP
+(which also reloads all zonefiles).
 .TP
 .B status
 Display server status. Exit code 3 if not running (the connection to the 
@@ -76,6 +77,11 @@ had a zonefile, this remains (but may be outdated).  Zones configured
 inside nsd.conf itself cannot be removed this way because the daemon
 does not write to the nsd.conf file, you need to add such zones to the
 zonelist file to be able to delete them with the delzone command.
+.TP
+.B write [<zone>]
+Write zonefiles to disk, or the given zonefile to disk.  Zones that have
+changed (via AXFR or IXFR) are written, or if the zonefile has not been
+created yet then it is created.
 .TP
 .B verbosity <number>
 Change logging verbosity.

@@ -1567,6 +1567,16 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	return xfrd_packet_transfer;
 }
 
+static const char*
+pretty_time(time_t v)
+{
+	struct tm* tm = localtime(&v);
+	static char buf[64];
+	if(!strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", tm))
+		snprintf(buf, sizeof(buf), "strftime-err-%u", (unsigned)v);
+	return buf;
+}
+
 enum xfrd_packet_result
 xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 {
@@ -1593,15 +1603,11 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 				/* do not process xfr - if only one part simply ignore it. */
 				/* rollback previous parts of commit */
 				buffer_clear(packet);
-				buffer_printf(packet, "xfrd: zone %s xfr "
-						      "rollback serial %u at "
-						      "time %u from %s of %u "
-						      "parts",
-					zone->apex_str,
-					(int)zone->msg_new_serial,
-					(int)xfrd_time(),
-					zone->master->ip_address_spec,
-					(unsigned)zone->msg_seq_nr);
+				buffer_printf(packet, "rollback serial %u at "
+						      "time %s from %s",
+					(unsigned)zone->msg_new_serial,
+					pretty_time(xfrd_time()),
+					zone->master->ip_address_spec);
 
 				buffer_flip(packet);
 				diff_write_commit(zone->apex_str,
@@ -1640,10 +1646,9 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 
 	/* done. we are completely sure of this */
 	buffer_clear(packet);
-	buffer_printf(packet, "xfrd: zone %s received update to serial %u at "
-			      "time %u from %s in %u parts",
-		zone->apex_str, (int)zone->msg_new_serial, (int)xfrd_time(),
-		zone->master->ip_address_spec, (unsigned)zone->msg_seq_nr);
+	buffer_printf(packet, "received update to serial %u at %s from %s",
+		(unsigned)zone->msg_new_serial, pretty_time(xfrd_time()),
+		zone->master->ip_address_spec);
 	if(zone->master->key_options) {
 		buffer_printf(packet, " TSIG verified with key %s",
 			zone->master->key_options->name);

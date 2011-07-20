@@ -74,13 +74,14 @@ usage()
 	printf("Commands:\n");
 	printf("  start				start server; runs nsd(8)\n");
 	printf("  stop				stops the server\n");
-	printf("  reload [<zone>]		reload zonefiles from disk\n");
+	printf("  reload [<zone>]		reload modified zonefiles from disk\n");
 	printf("  log_reopen			reopen logfile (for log rotate)\n");
 	printf("  status			display status of server\n");
 	printf("  stats				print statistics\n");
 	printf("  stats_noreset			peek at statistics\n");
 	printf("  addzone <name> <pattern>	add a new zone\n");
 	printf("  delzone <name>		remove a zone\n");
+	printf("  write [<zone>]		write changed zonefiles to disk\n");
 	printf("  verbosity <number>		change logging detail\n");
 	exit(1);
 }
