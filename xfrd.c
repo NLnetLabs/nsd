@@ -1567,8 +1567,8 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	return xfrd_packet_transfer;
 }
 
-static const char*
-pretty_time(time_t v)
+const char*
+xfrd_pretty_time(time_t v)
 {
 	struct tm* tm = localtime(&v);
 	static char buf[64];
@@ -1606,7 +1606,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 				buffer_printf(packet, "rollback serial %u at "
 						      "time %s from %s",
 					(unsigned)zone->msg_new_serial,
-					pretty_time(xfrd_time()),
+					xfrd_pretty_time(xfrd_time()),
 					zone->master->ip_address_spec);
 
 				buffer_flip(packet);
@@ -1647,7 +1647,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	/* done. we are completely sure of this */
 	buffer_clear(packet);
 	buffer_printf(packet, "received update to serial %u at %s from %s",
-		(unsigned)zone->msg_new_serial, pretty_time(xfrd_time()),
+		(unsigned)zone->msg_new_serial, xfrd_pretty_time(xfrd_time()),
 		zone->master->ip_address_spec);
 	if(zone->master->key_options) {
 		buffer_printf(packet, " TSIG verified with key %s",

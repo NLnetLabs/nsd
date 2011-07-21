@@ -64,6 +64,7 @@
 #include "netio.h"
 #include "options.h"
 #include "difffile.h"
+#include "xfrd.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #  include <sys/types.h>
@@ -845,6 +846,103 @@ do_force_transfer(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 	}
 }
 
+static int
+print_soa_status(SSL* ssl, const char* str, xfrd_soa_t* soa, time_t acq)
+{
+	if(acq) {
+		if(!ssl_printf(ssl, "	%s: \"%u since %s\"\n", str,
+			(unsigned)ntohl(soa->serial), xfrd_pretty_time(acq)))
+			return 0;
+	} else {
+		if(!ssl_printf(ssl, "	%s: none\n", str))
+			return 0;
+	}
+	return 1;
+}
+
+/** print zonestatus for one domain */
+static int
+print_zonestatus(SSL* ssl, xfrd_state_t* xfrd, zone_options_t* zo)
+{
+	xfrd_zone_t* xz = (xfrd_zone_t*)rbtree_search(xfrd->zones,
+		(const dname_type*)zo->node.key);
+	struct notify_zone_t* nz = (struct notify_zone_t*)rbtree_search(
+		xfrd->notify_zones, (const dname_type*)zo->node.key);
+	if(!ssl_printf(ssl, "zone:	%s\n", zo->name))
+		return 0;
+	if(!zo->part_of_config) {
+		if(!ssl_printf(ssl, "	pattern: %s\n", zo->pattern->pname))
+			return 0;
+	}
+	if(nz) {
+		if(nz->is_waiting) {
+			if(!ssl_printf(ssl, "	notify: \"waiting-for-fd\"\n"))
+				return 0;
+		} else if(nz->notify_send_handler.fd != -1) {
+			if(!ssl_printf(ssl, "	notify: \"sent try %d "
+				"to %s with serial %u\"\n", nz->notify_retry,
+				nz->notify_current->ip_address_spec,
+				(unsigned)ntohl(nz->current_soa->serial)))
+				return 0;
+		}
+	}
+	if(!xz) return 1;
+	if(!ssl_printf(ssl, "	state: %s\n",
+		(xz->state == xfrd_zone_ok)?"ok":(
+		(xz->state == xfrd_zone_expired)?"expired":"refreshing")))
+		return 0;
+	if(!print_soa_status(ssl, "served-serial", &xz->soa_nsd,
+		xz->soa_nsd_acquired))
+		return 0;
+	if(!print_soa_status(ssl, "commit-serial", &xz->soa_disk,
+		xz->soa_disk_acquired))
+		return 0;
+	if(xz->round_num != -1) {
+		if(!print_soa_status(ssl, "notified-serial", &xz->soa_notified,
+			xz->soa_notified_acquired))
+			return 0;
+	}
+
+	/* UDP */
+	if(xz->udp_waiting) {
+		if(!ssl_printf(ssl, "	transfer: \"waiting-for-UDP-fd\"\n"))
+			return 0;
+	} else if(xz->zone_handler.fd != -1) {
+		if(!ssl_printf(ssl, "	transfer: \"sent UDP to %s\"\n",
+			xz->master->ip_address_spec))
+			return 0;
+	}
+
+	/* TCP */
+	if(xz->tcp_waiting) {
+		if(!ssl_printf(ssl, "	transfer: \"waiting-for-TCP-fd\"\n"))
+			return 0;
+	} else if(xz->tcp_conn != -1) {
+		if(!ssl_printf(ssl, "	transfer: \"TCP connected to %s\"\n",
+			xz->master->ip_address_spec))
+			return 0;
+	}
+
+	return 1;
+}
+
+/** do the zonestatus command */
+static void
+do_zonestatus(SSL* ssl, xfrd_state_t* xfrd, char* arg)
+{
+	zone_options_t* zo;
+	if(!get_zone_arg(ssl, xfrd, arg, &zo))
+		return;
+	if(zo) (void)print_zonestatus(ssl, xfrd, zo);
+	else {
+		RBTREE_FOR(zo, zone_options_t*,
+			xfrd->nsd->options->zone_options) {
+			if(!print_zonestatus(ssl, xfrd, zo))
+				return;
+		}
+	}
+}
+
 /** do the verbosity command */
 static void
 do_verbosity(SSL* ssl, char* str)
@@ -1052,6 +1150,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 		do_transfer(ssl, rc->xfrd, skipwhite(p+8));
 	} else if(cmdcmp(p, "force_transfer", 14)) {
 		do_force_transfer(ssl, rc->xfrd, skipwhite(p+14));
+	} else if(cmdcmp(p, "zonestatus", 10)) {
+		do_zonestatus(ssl, rc->xfrd, skipwhite(p+10));
 	} else if(cmdcmp(p, "verbosity", 9)) {
 		do_verbosity(ssl, skipwhite(p+9));
 	} else {

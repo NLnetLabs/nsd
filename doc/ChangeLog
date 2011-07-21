@@ -1,5 +1,7 @@
 21 July 2011: Wouter
 	- nsd-control notify, transfer and force_transfer.
+	- fix for bug in write and reload zone option.
+	- nsd-control zonestatus command.
 
 20 July 2011: Wouter
 	- reload can be given optional zone argument.

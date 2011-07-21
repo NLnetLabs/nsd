@@ -106,6 +106,11 @@ master hosts the same serial number of the zone, a full AXFR is performed
 to fetch it.  If you want to use IXFR and check that the serial number
 increases, use the 'transfer' command.
 .TP
+.B zonestatus [<zone>]
+Print state of the zone, the serial numbers and since when they have
+been acquired.  Also prints the notify action (to which server), and
+zone transfer (and from which master) if there is activity right now.
+.TP
 .B verbosity <number>
 Change logging verbosity.
 .SH "EXIT CODE"
@@ -203,10 +208,12 @@ number of answers with TC flag set.
 number of queries that were dropped because they failed sanity check.
 .TP
 .I zone.master
-number of master zones served.
+number of master zones served.  These are zones with no 'request\-xfr:'
+entries.
 .TP
 .I zone.slave
-number of slave zones served.
+number of slave zones served.  These are zones with 'request\-xfr'
+entries.
 .SH "FILES"
 .TP
 .I @nsdconfigfile@

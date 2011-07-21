@@ -306,4 +306,6 @@ void xfrd_set_reload_now(xfrd_state_t* xfrd);
 /* handle incoming notify (soa or NULL) and start zone xfr if necessary */
 void xfrd_handle_notify_and_start_xfr(xfrd_zone_t* zone, xfrd_soa_t* soa);
 
+const char* xfrd_pretty_time(time_t v);
+
 #endif /* XFRD_H */
