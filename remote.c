@@ -59,6 +59,7 @@
 #include "util.h"
 #include "xfrd.h"
 #include "xfrd-notify.h"
+#include "xfrd-tcp.h"
 #include "nsd.h"
 #include "netio.h"
 #include "options.h"
@@ -754,6 +755,96 @@ do_write(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 	send_ok(ssl);
 }
 
+/** do the notify command */
+static void
+do_notify(SSL* ssl, xfrd_state_t* xfrd, char* arg)
+{
+	zone_options_t* zo;
+	if(!get_zone_arg(ssl, xfrd, arg, &zo))
+		return;
+	if(zo) {
+		struct notify_zone_t* n = (struct notify_zone_t*)rbtree_search(
+			xfrd->notify_zones, (const dname_type*)zo->node.key);
+		if(n) {
+			xfrd_notify_start(n);
+			send_ok(ssl);
+		} else {
+			ssl_printf(ssl, "error zone does not have notify\n");
+		}
+	} else {
+		struct notify_zone_t* n;
+		RBTREE_FOR(n, struct notify_zone_t*, xfrd->notify_zones) {
+			xfrd_notify_start(n);
+		}
+		send_ok(ssl);
+	}
+}
+
+/** do the transfer command */
+static void
+do_transfer(SSL* ssl, xfrd_state_t* xfrd, char* arg)
+{
+	zone_options_t* zo;
+	xfrd_zone_t* zone;
+	if(!get_zone_arg(ssl, xfrd, arg, &zo))
+		return;
+	if(zo) {
+		zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, (const
+			dname_type*)zo->node.key);
+		if(zone) {
+			xfrd_handle_notify_and_start_xfr(zone, NULL);
+			send_ok(ssl);
+		} else {
+			ssl_printf(ssl, "error zone not slave\n");
+		}
+	} else {
+		RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones) {
+			xfrd_handle_notify_and_start_xfr(zone, NULL);
+		}
+		ssl_printf(ssl, "ok, %u zones\n", (unsigned)xfrd->zones->count);
+	}
+}
+
+/** force transfer a zone */
+static void
+force_transfer_zone(xfrd_zone_t* zone)
+{
+	/* if in TCP transaction, stop it immediately. */
+	if(zone->tcp_conn != -1)
+		xfrd_tcp_release(xfrd->tcp_set, zone);
+	if(zone->zone_handler.fd != -1)
+		xfrd_udp_release(zone);
+	/* pretend we not longer have it and force any
+	 * zone to be downloaded (even same serial, w AXFR) */
+	zone->soa_disk_acquired = 0;
+	xfrd_handle_notify_and_start_xfr(zone, NULL);
+}
+
+/** do the force transfer command */
+static void
+do_force_transfer(SSL* ssl, xfrd_state_t* xfrd, char* arg)
+{
+	zone_options_t* zo;
+	xfrd_zone_t* zone;
+	if(!get_zone_arg(ssl, xfrd, arg, &zo))
+		return;
+	if(zo) {
+		zone = (xfrd_zone_t*)rbtree_search(xfrd->zones, (const
+			dname_type*)zo->node.key);
+		if(zone) {
+			force_transfer_zone(zone);
+			send_ok(ssl);
+		} else {
+			ssl_printf(ssl, "error zone not slave\n");
+		}
+	} else {
+		RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones) {
+			force_transfer_zone(zone);
+		}
+		ssl_printf(ssl, "ok, %u zones\n", (unsigned)xfrd->zones->count);
+	}
+}
+
 /** do the verbosity command */
 static void
 do_verbosity(SSL* ssl, char* str)
@@ -955,6 +1046,12 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 		do_addzone(ssl, rc->xfrd, skipwhite(p+7));
 	} else if(cmdcmp(p, "delzone", 7)) {
 		do_delzone(ssl, rc->xfrd, skipwhite(p+7));
+	} else if(cmdcmp(p, "notify", 6)) {
+		do_notify(ssl, rc->xfrd, skipwhite(p+6));
+	} else if(cmdcmp(p, "transfer", 8)) {
+		do_transfer(ssl, rc->xfrd, skipwhite(p+8));
+	} else if(cmdcmp(p, "force_transfer", 14)) {
+		do_force_transfer(ssl, rc->xfrd, skipwhite(p+14));
 	} else if(cmdcmp(p, "verbosity", 9)) {
 		do_verbosity(ssl, skipwhite(p+9));
 	} else {

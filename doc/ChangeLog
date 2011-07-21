@@ -1,3 +1,6 @@
+21 July 2011: Wouter
+	- nsd-control notify, transfer and force_transfer.
+
 20 July 2011: Wouter
 	- reload can be given optional zone argument.
 	- nsd-control reopen_logfile.

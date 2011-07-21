@@ -469,7 +469,7 @@ udb_base_remap(udb_base* udb, udb_alloc* alloc, uint64_t nsize)
 {
 	void* nb;
 /* for valgrind, do not use mremap */
-/* #undef MREMAP_MAYMOVE */
+#undef MREMAP_MAYMOVE
 #ifdef MREMAP_MAYMOVE
 	nb = mremap(udb->base, udb->base_size, nsize, MREMAP_MAYMOVE);
 	if(nb == MAP_FAILED) {

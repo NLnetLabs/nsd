@@ -1839,8 +1839,8 @@ void task_new_check_zonefiles(udb_base* udb, udb_ptr* last,
 {
 	udb_ptr e;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task checkzonefiles"));
-	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d),
-		zone)) {
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d) +
+		(zone?dname_total_size(zone):0), zone)) {
 		log_msg(LOG_ERR, "tasklist: out of space, cannot add check_zones");
 		return;
 	}
@@ -1854,8 +1854,8 @@ void task_new_write_zonefiles(udb_base* udb, udb_ptr* last,
 {
 	udb_ptr e;
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task writezonefiles"));
-	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d),
-		zone)) {
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d) +
+		(zone?dname_total_size(zone):0), zone)) {
 		log_msg(LOG_ERR, "tasklist: out of space, cannot add writezones");
 		return;
 	}

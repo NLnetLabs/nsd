@@ -82,6 +82,9 @@ usage()
 	printf("  addzone <name> <pattern>	add a new zone\n");
 	printf("  delzone <name>		remove a zone\n");
 	printf("  write [<zone>]		write changed zonefiles to disk\n");
+	printf("  notify [<zone>]		send NOTIFY messages to slave servers\n");
+	printf("  transfer [<zone>]		try to update slave zones to newer serial\n");
+	printf("  force_transfer [<zone>]	update slave zones with AXFR, no serial check\n");
 	printf("  verbosity <number>		change logging detail\n");
 	exit(1);
 }

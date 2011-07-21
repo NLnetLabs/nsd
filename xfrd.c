@@ -1727,6 +1727,17 @@ xfrd_handle_reload(netio_type *ATTR_UNUSED(netio),
 }
 
 void
+xfrd_handle_notify_and_start_xfr(xfrd_zone_t* zone, xfrd_soa_t* soa)
+{
+	if(xfrd_handle_incoming_notify(zone, soa)) {
+		if(zone->zone_handler.fd == -1 && zone->tcp_conn == -1 &&
+			!zone->tcp_waiting && !zone->udp_waiting) {
+			xfrd_set_refresh_now(zone);
+		}
+	}
+}
+
+void
 xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 {
 	uint8_t qnamebuf[MAXDOMAINLEN];
@@ -1766,13 +1777,7 @@ xfrd_handle_passed_packet(buffer_type* packet, int acl_num)
 			xfrd_parse_soa_info(packet, &soa)) {
 				have_soa = 1;
 		}
-		if(xfrd_handle_incoming_notify(zone, have_soa?&soa:NULL)) {
-			if(zone->zone_handler.fd == -1
-				&& zone->tcp_conn == -1 &&
-				!zone->tcp_waiting && !zone->udp_waiting) {
-					xfrd_set_refresh_now(zone);
-			}
-		}
+		xfrd_handle_notify_and_start_xfr(zone, have_soa?&soa:NULL);
 		next = find_same_master_notify(zone, acl_num);
 		if(next != -1) {
 			zone->next_master = next;

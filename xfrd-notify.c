@@ -306,6 +306,13 @@ notify_enable(struct notify_zone_t* zone, struct xfrd_soa* new_soa)
 		zone->apex_str));
 }
 
+void xfrd_notify_start(struct notify_zone_t* zone)
+{
+	if(zone->is_waiting || zone->notify_send_handler.fd != -1)
+		return;
+	notify_enable(zone, NULL);
+}
+
 void
 xfrd_send_notify(rbtree_t* tree, const dname_type* apex, struct xfrd_soa* new_soa)
 {
