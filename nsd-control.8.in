@@ -224,4 +224,4 @@ directory with private keys (nsd.key and nsd.key) and
 self\-signed certificates (nsd.pem and nsd.pem).
 .SH "SEE ALSO"
 \fInsd.conf\fR(5), 
-\fInsd\fR(8).
+\fInsd\fR(8)

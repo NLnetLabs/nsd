@@ -247,8 +247,7 @@ facility, unless the
 option is specified.
 .SH "SEE ALSO"
 .LP
-nsdc(8), nsd.conf(5), nsd\-checkconf(8), nsd\-notify(8), 
-nsd\-patch(8), nsd\-xfer(8)
+nsd.conf(5), nsd\-checkconf(8), nsd\-control(8)
 .SH "AUTHORS"
 .LP
 .B NSD

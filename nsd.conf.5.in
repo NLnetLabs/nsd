@@ -599,8 +599,7 @@ default
 configuration file
 .SH "SEE ALSO" 
 .LP
-nsd(8), nsdc(8), nsd\-checkconf(8), nsd\-notify(8), 
-nsd\-patch(8), nsd\-xfer(8), nsd\-control(8)
+nsd(8), nsd\-checkconf(8), nsd\-control(8)
 .SH "AUTHORS"
 .LP
 .B NSD

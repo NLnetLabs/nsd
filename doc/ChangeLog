@@ -1,3 +1,11 @@
+22 July 2011: Wouter
+	- added contrib/nsd.init (nsdc.sh that only does start,stop).
+	- removed nsdc.sh, nsd-xfer, nsd-notify, nsd-patch.
+	  for rc.d: contrib/nsd.init, or platform specific init script.
+	  nsd-xfer: see nsd-control transfer, or force_transfer.
+	  nsd-notify: see nsd-control notify.
+	  nsd-patch: see (cron job to) nsd-control write.
+
 21 July 2011: Wouter
 	- nsd-control notify, transfer and force_transfer.
 	- fix for bug in write and reload zone option.

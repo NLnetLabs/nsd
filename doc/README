@@ -49,7 +49,7 @@ database prepared by the zone compiler from standard zone files.
 For NSD operation this means that zones have to be compiled by zonec
 before NSD can use them.
 
-All this can be controlled by a simple control script called 'nsdc'
+All this can be controlled via rc.d (sigTERM, HUP) or nsd-control,
 and uses a simple configuration file 'nsd.conf'.
 
 
@@ -82,16 +82,16 @@ Step 6: Create and edit /etc/nsd/nsd.conf file possibly from
 Step 7: Copy necessary master zone files into appropriate directories
         under /etc/nsd/primary & /etc/nsd/secondary. 
 
-Step 8: Run nsdc rebuild
+Step 8: Run nsd-control start
 
-Step 9: Run nsdc start
+Step 9: Test the NSD with dig, drill or host.
 
-Step 10: Test the NSD with dig, drill or host.
+Step 10: If you're happy add a rc.d script to start into your OS boot up
+	 sequence. The format of the rc.d startup script depends on 
+	 the platform.  Also stop it in the shutdown sequence.
+	 You can use SIGTERM to stop, or nsd-control stop.
 
-Step 11: If you're happy add nsdc start into your OS boot up sequence.
-	 nsdc stop can be used in the shutdown sequence.
-
-Step 12: If desired add nsdc patch to your superuser crontab to
+Step 11: If desired add 'nsd-control write' to your superuser crontab to
          update the zone files with the content transferred from master
 	 servers periodically, such as once per day.
 
@@ -240,16 +240,12 @@ do a `gmake realclean` first, to remove stuff that the make call messed up.
 
 Become a superuser (if necessary) and type ``make install''
 
-This step should install seven binaries
+This step should install four binaries
 
 nsd             - the daemon itself
-nsdc            - a shell script to control the daemon
-zonec           - zone compiler
-nsd-notify      - a simple C program to send outbound notifies
-nsd-xfer        - a program to receive zones from a master server
-                  using AXFR from the command line.
+nsd-control-setup - a shell script that creates keys for nsd-control.
+nsd-control	- program that connects over SSL to nsd and gives commands.
 nsd-checkconf	- simple C program to check nsd.conf before use.
-nsd-patch	- simple program that cleans IXFR changes back to zone files.
 
 Plus the manual pages and a sample configuration file.
 
@@ -531,36 +527,6 @@ the key name on the access control line.
 
 If the TSIG key name is used in notify or request-xfr lines,
 the key is used to sign the request/notification messages.
-
-nsd-notify uses the -y keyname:secret format that dig uses too. For example
-  nsd-notify -y sec1_key:6KM6qiKfwfEpamEq72HQdA== -z example.com 127.0.0.1
-
-If you want to perform manual zone transfers you can use nsd-xfer.
-nsd-xfer(8) uses the same cryptic file format as named-xfer(8) (to
-be backward compatible).  This is a so called tsig-info file. 
-
-Lets say we have the following:
-
-zone: nlnetlabs.nl
-server: 213.53.69.1
-key-name: nlnetlabs-axfr
-algorithm: hmac-md5
-secret: Y87923jksdXlsdv+LeXpUA==
-
-Then we need to create file nlnetlabs.nl.tsiginfo containing:
-213.53.69.1
-nlnetlabs-axfr
-157
-Y87923jksdXlsdv+LeXpUA==
-
-Cryptic? Yes. The first line tells this key is to be used for
-213.53.69.1 Second one is the name of the key. 157 stands for hmac-md5
-algorithm and the last line is the secret.
-
-Here's a list of algorithms with their corresponding algorithm numbers.
-hmac-md5:		157
-hmac-sha1:		158
-hmac-sha256:		159
 
 3.4 Zone expiry of secondary zones
 
