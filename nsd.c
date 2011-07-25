@@ -1062,7 +1062,7 @@ main(int argc, char *argv[])
 		server_prepare_xfrd(&nsd);
 		/* fork xfrd before reading database, so it does not get
 		 * the memory size of the database */
-		server_start_xfrd(&nsd, 0);
+		server_start_xfrd(&nsd, 0, 0);
 	}
 	if (server_prepare(&nsd) != 0) {
 		unlinkpid(nsd.pidfile);
@@ -1070,7 +1070,7 @@ main(int argc, char *argv[])
 			"not be started", argv0);
 	}
 	if(nsd.server_kind == NSD_SERVER_MAIN) {
-		server_send_soa_xfrd(&nsd);
+		server_send_soa_xfrd(&nsd, 0);
 	}
 
 	/* Really take off */

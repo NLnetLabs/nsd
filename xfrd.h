@@ -203,7 +203,7 @@ enum xfrd_packet_result {
 extern xfrd_state_t* xfrd;
 
 /* start xfrd, new start. Pass socket to server_main. */
-void xfrd_init(int socket, struct nsd* nsd);
+void xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active);
 
 /* add new slave zone, dname(in xfrd-region) and given options */
 void xfrd_init_slave_zone(xfrd_state_t* xfrd, const dname_type* dname,
@@ -278,7 +278,7 @@ void xfrd_handle_passed_packet(buffer_type* packet, int acl_num);
 void xfrd_reopen_logfile(void);
 
 /* free namedb for xfrd usage */
-void xfrd_free_namedb(void);
+void xfrd_free_namedb(struct nsd* nsd);
 
 /* copy SOA info from rr to soa struct. */
 void xfrd_copy_soa(xfrd_soa_t* soa, rr_type* rr);

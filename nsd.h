@@ -237,9 +237,9 @@ void server_child(struct nsd *nsd);
 /* allocate and init xfrd variables */
 void server_prepare_xfrd(struct nsd *nsd);
 /* start xfrdaemon (again) */
-void server_start_xfrd(struct nsd *nsd, int del_db);
+void server_start_xfrd(struct nsd *nsd, int del_db, int reload_active);
 /* send SOA serial numbers to xfrd */
-void server_send_soa_xfrd(struct nsd *nsd);
+void server_send_soa_xfrd(struct nsd *nsd, int shortsoa);
 ssize_t block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout);
 
 #endif	/* _NSD_H_ */

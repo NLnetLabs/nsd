@@ -655,7 +655,7 @@ server_prepare_xfrd(struct nsd* nsd)
 
 
 void
-server_start_xfrd(struct nsd *nsd, int del_db)
+server_start_xfrd(struct nsd *nsd, int del_db, int reload_active)
 {
 	pid_t pid;
 	int sockets[2] = {0,0};
@@ -663,6 +663,19 @@ server_start_xfrd(struct nsd *nsd, int del_db)
 
 	if(nsd->xfrd_listener->fd != -1)
 		close(nsd->xfrd_listener->fd);
+	if(del_db) {
+		/* recreate taskdb that xfrd was using, it may be corrupt */
+		/* we (or reload) use nsd->mytask, and xfrd uses the other */
+		char* tmpfile = nsd->task[1-nsd->mytask]->fname;
+		nsd->task[1-nsd->mytask]->fname = NULL;
+		/* free alloc already, so udb does not shrink itself */
+		udb_alloc_delete(nsd->task[1-nsd->mytask]->alloc);
+		nsd->task[1-nsd->mytask]->alloc = NULL;
+		udb_base_free(nsd->task[1-nsd->mytask]);
+		/* create new file, overwrite the old one */
+		nsd->task[1-nsd->mytask] = task_file_create(tmpfile);
+		free(tmpfile);
+	}
 	/* old xfrd may have crashed, snip off garbage off the diff file */
 	diff_snip_garbage(nsd->db, nsd->options);
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == -1) {
@@ -678,11 +691,11 @@ server_start_xfrd(struct nsd *nsd, int del_db)
 	case 0:
 		/* CHILD: close first socket, use second one */
 		close(sockets[0]);
-		if(del_db) xfrd_free_namedb();
+		if(del_db) xfrd_free_namedb(nsd);
 		/* use other task than I am using, since if xfrd died and is
 		 * restarted, the reload is using nsd->mytask */
 		nsd->mytask = 1 - nsd->mytask;
-		xfrd_init(sockets[1], nsd);
+		xfrd_init(sockets[1], nsd, del_db, reload_active);
 		/* ENOTREACH */
 		break;
 	default:
@@ -701,27 +714,48 @@ server_start_xfrd(struct nsd *nsd, int del_db)
 	nsd->xfrd_pid = pid;
 }
 
-void
-server_send_soa_xfrd(struct nsd* nsd)
+/** add all soainfo to taskdb */
+static void
+add_all_soa_to_task(struct nsd* nsd, struct udb_base* taskudb)
 {
-	sig_atomic_t cmd = 0;
-	int xfrd_sock = nsd->xfrd_listener->fd;
 	struct radnode* n;
-	struct udb_base* taskudb = nsd->task[nsd->mytask];
 	udb_ptr task_last; /* last task, mytask is empty so NULL */
-	udb_ptr t;
 	/* add all SOA INFO to mytask */
 	udb_ptr_init(&task_last, taskudb);
 	for(n=radix_first(nsd->db->zonetree); n; n=radix_next(n)) {
 		task_new_soainfo(taskudb, &task_last, (zone_type*)n->elem);
 	}
 	udb_ptr_unlink(&task_last, taskudb);
+}
 
-	/* wait for xfrd to signal task is ready, RELOAD signal */
-	if(block_read(nsd, xfrd_sock, &cmd, sizeof(cmd), -1) != sizeof(cmd) ||
-		cmd != NSD_RELOAD) {
-		log_msg(LOG_ERR, "did not get start signal from xfrd");
-		exit(1);
+void
+server_send_soa_xfrd(struct nsd* nsd, int shortsoa)
+{
+	/* normally this exchanges the SOA from nsd->xfrd and the expire back.
+	 *   parent fills one taskdb with soas, xfrd fills other with expires.
+	 *   then they exchange and process.
+	 * shortsoa: xfrd crashes and needs to be restarted and one taskdb
+	 *   may be in use by reload.  Fill SOA in taskdb and give to xfrd.
+	 *   expire notifications can be sent back via a normal reload later
+	 *   (xfrd will wait for current running reload to finish if any).
+	 */
+	sig_atomic_t cmd = 0;
+	int xfrd_sock = nsd->xfrd_listener->fd;
+	struct udb_base* taskudb = nsd->task[nsd->mytask];
+	udb_ptr t;
+	if(shortsoa) {
+		/* put SOA in xfrd task because mytask may be in use */
+		taskudb = nsd->task[1-nsd->mytask];
+	}
+
+	add_all_soa_to_task(nsd, taskudb);
+	if(!shortsoa) {
+		/* wait for xfrd to signal task is ready, RELOAD signal */
+		if(block_read(nsd, xfrd_sock, &cmd, sizeof(cmd), -1) != sizeof(cmd) ||
+			cmd != NSD_RELOAD) {
+			log_msg(LOG_ERR, "did not get start signal from xfrd");
+			exit(1);
+		} 
 	}
 	/* give xfrd our task, signal it with RELOAD_DONE */
 	task_process_sync(taskudb);
@@ -731,23 +765,25 @@ server_send_soa_xfrd(struct nsd* nsd)
 			(int)nsd->pid, strerror(errno));
 	}
 
-	/* process the xfrd task works (expiry data) */
-	nsd->mytask = 1 - nsd->mytask;
-	taskudb = nsd->task[nsd->mytask];
-	task_remap(taskudb);
-	udb_ptr_new(&t, taskudb, udb_base_get_userdata(taskudb));
-	while(!udb_ptr_is_null(&t)) {
-		task_process_expire(nsd->db, TASKLIST(&t));
-		udb_ptr_set_rptr(&t, taskudb, &TASKLIST(&t)->next);
-	}
-	udb_ptr_unlink(&t, taskudb);
-	task_clear(taskudb);
+	if(!shortsoa) {
+		/* process the xfrd task works (expiry data) */
+		nsd->mytask = 1 - nsd->mytask;
+		taskudb = nsd->task[nsd->mytask];
+		task_remap(taskudb);
+		udb_ptr_new(&t, taskudb, udb_base_get_userdata(taskudb));
+		while(!udb_ptr_is_null(&t)) {
+			task_process_expire(nsd->db, TASKLIST(&t));
+			udb_ptr_set_rptr(&t, taskudb, &TASKLIST(&t)->next);
+		}
+		udb_ptr_unlink(&t, taskudb);
+		task_clear(taskudb);
 
-	/* tell xfrd that the task is emptied, signal with RELOAD_DONE */
-	cmd = NSD_RELOAD_DONE;
-	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
-		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
-			(int)nsd->pid, strerror(errno));
+		/* tell xfrd that the task is emptied, signal with RELOAD_DONE */
+		cmd = NSD_RELOAD_DONE;
+		if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
+			log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
+				(int)nsd->pid, strerror(errno));
+		}
 	}
 }
 
@@ -1106,8 +1142,9 @@ server_main(struct nsd *nsd)
 					log_msg(LOG_WARNING,
 					       "xfrd process %d failed with status %d, restarting ",
 					       (int) child_pid, status);
-					server_start_xfrd(nsd, 1);
-					server_send_soa_xfrd(nsd);
+					server_start_xfrd(nsd, 1,
+						(reload_listener.fd!=-1));
+					server_send_soa_xfrd(nsd, 1);
 				} else {
 					log_msg(LOG_WARNING,
 					       "Unknown child %d terminated with status %d",

@@ -1154,6 +1154,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 		do_zonestatus(ssl, rc->xfrd, skipwhite(p+10));
 	} else if(cmdcmp(p, "verbosity", 9)) {
 		do_verbosity(ssl, skipwhite(p+9));
+	} else if(cmdcmp(p, "die", 3)) {
+		abort();
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}

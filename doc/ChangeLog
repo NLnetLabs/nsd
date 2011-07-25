@@ -1,3 +1,15 @@
+25 July 2011: Wouter
+	- fixed tests for removed tools from nsd, with replacements.
+	  replaced nsd-patch with nsd-control write. replaced nsd-notify with
+	  ldns-notify. replaced nsd-xfer with dig -t axfr.
+	- fix for xfrd restart if crashed. xfrd knows if a reload is
+	  active at that time so it cannot start another one at the same
+	  time.  New shortsoa track for start that does not use taskdb
+	  in use by reload.  taskdb in use by crashed xfrd is recreated,
+	  in case it is corrupt.  This keeps the nsd.db intact, keeps
+	  reload running with its updated and keeps service from the
+	  server processes active.
+
 22 July 2011: Wouter
 	- added contrib/nsd.init (nsdc.sh that only does start,stop).
 	- removed nsdc.sh, nsd-xfer, nsd-notify, nsd-patch.

@@ -48,7 +48,7 @@ static void xfrd_shutdown();
 /* create zone rbtree at start */
 static void xfrd_init_zones();
 /* initial handshake with SOAINFO from main and send expire to main */
-static void xfrd_receive_soa(int socket);
+static void xfrd_receive_soa(int socket, int shortsoa);
 
 /* handle zone timeout, event */
 static void xfrd_handle_zone(netio_type *netio,
@@ -85,7 +85,7 @@ static void xfrd_udp_read(xfrd_zone_t* zone);
 static int find_same_master_notify(xfrd_zone_t* zone, int acl_num_nfy);
 
 void
-xfrd_init(int socket, struct nsd* nsd)
+xfrd_init(int socket, struct nsd* nsd, int shortsoa, int reload_active)
 {
 	region_type* region;
 
@@ -110,7 +110,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->last_task = region_alloc(xfrd->region, sizeof(*xfrd->last_task));
 	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
-	assert(udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
+	assert(shortsoa || udb_base_get_userdata(xfrd->nsd->task[xfrd->nsd->mytask])->data == 0);
 
 	/* add the handlers already, because this involves allocs */
 	xfrd->reload_handler.fd = -1;
@@ -120,7 +120,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->reload_handler.event_handler = xfrd_handle_reload;
 	xfrd->reload_timeout.tv_sec = 0;
 	xfrd->reload_cmd_last_sent = xfrd->xfrd_start_time;
-	xfrd->can_send_reload = 1;
+	xfrd->can_send_reload = !reload_active;
 
 	xfrd->ipc_send_blocked = 0;
 	xfrd->ipc_handler.fd = socket;
@@ -149,7 +149,7 @@ xfrd_init(int socket, struct nsd* nsd)
 
 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd pre-startup"));
 	xfrd_init_zones();
-	xfrd_receive_soa(socket);
+	xfrd_receive_soa(socket, shortsoa);
 	xfrd_read_state(xfrd);
 
 	/* add handlers after zone handlers so they are before them in list */
@@ -382,28 +382,30 @@ xfrd_process_soa_info_task(struct task_list_d* task)
 }
 
 void
-xfrd_receive_soa(int socket)
+xfrd_receive_soa(int socket, int shortsoa)
 {
 	sig_atomic_t cmd;
 	struct udb_base* xtask = xfrd->nsd->task[xfrd->nsd->mytask];
 	udb_ptr last_task, t;
 	xfrd_zone_t* zone;
 
-	/* put all expired zones into mytask */
-	udb_ptr_init(&last_task, xtask);
-	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones) {
-		if(zone->state == xfrd_zone_expired) {
-			task_new_expire(xtask, &last_task, zone->apex, 1);
+	if(!shortsoa) {
+		/* put all expired zones into mytask */
+		udb_ptr_init(&last_task, xtask);
+		RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones) {
+			if(zone->state == xfrd_zone_expired) {
+				task_new_expire(xtask, &last_task, zone->apex, 1);
+			}
 		}
-	}
-	udb_ptr_unlink(&last_task, xtask);
+		udb_ptr_unlink(&last_task, xtask);
 	
-	/* send RELOAD to main to give it this tasklist */
-	task_process_sync(xtask);
-	cmd = NSD_RELOAD;
-	if(!write_socket(socket, &cmd,  sizeof(cmd))) {
-		log_msg(LOG_ERR, "problems sending reload xfrdtomain: %s",
-			strerror(errno));
+		/* send RELOAD to main to give it this tasklist */
+		task_process_sync(xtask);
+		cmd = NSD_RELOAD;
+		if(!write_socket(socket, &cmd,  sizeof(cmd))) {
+			log_msg(LOG_ERR, "problems sending reload xfrdtomain: %s",
+				strerror(errno));
+		}
 	}
 
 	/* receive RELOAD_DONE to get SOAINFO tasklist */
@@ -415,7 +417,9 @@ xfrd_receive_soa(int socket)
 
 	/* process tasklist (SOAINFO data) */
 	udb_ptr_unlink(xfrd->last_task, xtask);
-	xfrd->nsd->mytask = 1 - xfrd->nsd->mytask;
+	/* if shortsoa: then use my own taskdb that nsdparent filled */
+	if(!shortsoa)
+		xfrd->nsd->mytask = 1 - xfrd->nsd->mytask;
 	xtask = xfrd->nsd->task[xfrd->nsd->mytask];
 	task_remap(xtask);
 	udb_ptr_new(&t, xtask, udb_base_get_userdata(xtask));
@@ -427,13 +431,26 @@ xfrd_receive_soa(int socket)
 	task_clear(xtask);
 	udb_ptr_init(xfrd->last_task, xfrd->nsd->task[xfrd->nsd->mytask]);
 
-	/* receive RELOAD_DONE that signals the other tasklist is empty, and
-	 * thus xfrd can operate (can call reload and swap to the other,
-	 * empty, tasklist) */
-	if(block_read(NULL, socket, &cmd, sizeof(cmd), -1) != sizeof(cmd) ||
-		cmd != NSD_RELOAD_DONE) {
-		log_msg(LOG_ERR, "did not get start signal 2 from main");
-		exit(1);
+	if(!shortsoa) {
+		/* receive RELOAD_DONE that signals the other tasklist is
+		 * empty, and thus xfrd can operate (can call reload and swap
+		 * to the other, empty, tasklist) */
+		if(block_read(NULL, socket, &cmd, sizeof(cmd), -1) !=
+			sizeof(cmd) ||
+			cmd != NSD_RELOAD_DONE) {
+			log_msg(LOG_ERR, "did not get start signal 2 from "
+				"main");
+			exit(1);
+		}
+	} else {
+		/* for shortsoa version, do expire later */
+		/* if expire notifications, put in my task and
+		 * schedule a reload to make sure they are processed */
+		RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones) {
+			if(zone->state == xfrd_zone_expired) {
+				xfrd_send_expire_notification(zone);
+			}
+		}
 	}
 }
 
@@ -500,11 +517,11 @@ xfrd_del_slave_zone(xfrd_state_t* xfrd, const dname_type* dname)
 }
 
 void
-xfrd_free_namedb(void)
+xfrd_free_namedb(struct nsd* nsd)
 {
-	namedb_close_udb(xfrd->nsd->db);
-	namedb_close(xfrd->nsd->db);
-	xfrd->nsd->db = 0;
+	namedb_close_udb(nsd->db);
+	namedb_close(nsd->db);
+	nsd->db = 0;
 }
 
 static void
