@@ -16,6 +16,7 @@ BUG FIXES:
 	  transfers are applied, and stop it from applying ixfr to empty zone.
 	  The zone is flagged with error and AXFR-ed.
 	- Fix to have no authority NS set processing for CNAMEs.
+	- Fix nsd-checkconf to check tsig algorithms properly.
 
 OPERATIONAL NOTES:
 	- nsd.db version number increased because NSD 3.2.7 and earlier
