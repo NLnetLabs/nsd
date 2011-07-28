@@ -57,6 +57,7 @@
 #include <openssl/rand.h>
 #endif
 #include "util.h"
+#include "tsig.h"
 #include "options.h"
 
 /** Give nsd-control usage, and exit (1). */
@@ -75,6 +76,7 @@ usage()
 	printf("  start				start server; runs nsd(8)\n");
 	printf("  stop				stops the server\n");
 	printf("  reload [<zone>]		reload modified zonefiles from disk\n");
+	printf("  repattern			reload tsig keys, patterns from config file\n");
 	printf("  log_reopen			reopen logfile (for log rotate)\n");
 	printf("  status			display status of server\n");
 	printf("  stats				print statistics\n");
@@ -303,7 +305,8 @@ go(const char* cfgfile, char* svr, int argc, char* argv[])
 		fprintf(stderr, "out of memory\n");
 		exit(1);
 	}
-	if(!parse_options_file(opt, cfgfile)) {
+	tsig_init(opt->region);
+	if(!parse_options_file(opt, cfgfile, NULL, NULL)) {
 		fprintf(stderr, "could not read config file\n");
 		exit(1);
 	}

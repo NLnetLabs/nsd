@@ -22,8 +22,6 @@
 /* start sending notifies */
 static void notify_enable(struct notify_zone_t* zone,
 	struct xfrd_soa* new_soa);
-/* stop sending notifies */
-static void notify_disable(struct notify_zone_t* zone);
 /* setup the notify active state */
 static void setup_notify_active(struct notify_zone_t* zone);
 
@@ -38,7 +36,7 @@ static void xfrd_notify_next(struct notify_zone_t* zone);
 
 static void xfrd_notify_send_udp(struct notify_zone_t* zone, buffer_type* packet);
 
-static void
+void
 notify_disable(struct notify_zone_t* zone)
 {
 	zone->notify_current = 0;

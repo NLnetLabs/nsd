@@ -25,7 +25,7 @@ int c_lex(void);
 int c_wrap(void);
 void c_error(const char *message);
 
-static int pat_cmp(const void* p1, const void* p2)
+static int rbtree_strcmp(const void* p1, const void* p2)
 {
 	return strcmp((const char*)p1, (const char*)p2);
 }
@@ -37,9 +37,9 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->region = region;
 	opt->zone_options = rbtree_create(region,
 		(int (*)(const void *, const void *)) dname_compare);
-	opt->patterns = rbtree_create(region, pat_cmp);
-	opt->keys = NULL;
-	opt->numkeys = 0;
+	opt->configfile = NULL;
+	opt->patterns = rbtree_create(region, rbtree_strcmp);
+	opt->keys = rbtree_create(region, rbtree_strcmp);
 	opt->ip_addresses = NULL;
 	opt->debug_mode = 0;
 	opt->verbosity = 0;
@@ -92,13 +92,16 @@ int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone)
 
 int nsd_options_insert_pattern(nsd_options_t* opt, pattern_options_t* pat)
 {
+	if(pat->pname)
+		return 0;
 	pat->node.key = pat->pname;
 	if(!rbtree_insert(opt->patterns, (rbnode_t*)pat))
 		return 0;
 	return 1;
 }
 
-int parse_options_file(nsd_options_t* opt, const char* file)
+int parse_options_file(nsd_options_t* opt, const char* file,
+	void (*err)(void*,const char*), void* err_arg)
 {
 	FILE *in = 0;
 	pattern_options_t* pat;
@@ -107,15 +110,16 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	if(!cfg_parser)
 		cfg_parser = (config_parser_state_t*)region_alloc(
 			opt->region, sizeof(config_parser_state_t));
+	cfg_parser->err = err;
+	cfg_parser->err_arg = err_arg;
 	cfg_parser->filename = file;
 	cfg_parser->line = 1;
 	cfg_parser->errors = 0;
+	cfg_parser->server_settings_seen = 0;
 	cfg_parser->opt = opt;
 	cfg_parser->current_pattern = 0;
 	cfg_parser->current_zone = 0;
-	cfg_parser->current_key = opt->keys;
-	while(cfg_parser->current_key && cfg_parser->current_key->next)
-		cfg_parser->current_key = cfg_parser->current_key->next;
+	cfg_parser->current_key = 0;
 	cfg_parser->current_ip_address_option = opt->ip_addresses;
 	while(cfg_parser->current_ip_address_option && cfg_parser->current_ip_address_option->next)
 		cfg_parser->current_ip_address_option = cfg_parser->current_ip_address_option->next;
@@ -123,16 +127,25 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	cfg_parser->current_request_xfr = 0;
 	cfg_parser->current_notify = 0;
 	cfg_parser->current_provide_xfr = 0;
-
+	
 	in = fopen(cfg_parser->filename, "r");
 	if(!in) {
-		fprintf(stderr, "Could not open %s: %s\n", file, strerror(errno));
+		if(err) {
+			char m[MAXSYSLOGMSGLEN];
+			snprintf(m, sizeof(m), "Could not open %s: %s\n",
+				file, strerror(errno));
+			err(err_arg, m);
+		} else {
+			fprintf(stderr, "Could not open %s: %s\n",
+				file, strerror(errno));
+		}
 		return 0;
 	}
 	c_in = in;
 	c_parse();
 	fclose(in);
 
+	opt->configfile = region_strdup(opt->region, file);
 	if(cfg_parser->current_pattern) {
 		if(!cfg_parser->current_pattern->pname)
 			c_error("last pattern has no name");
@@ -155,14 +168,15 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 		if(!cfg_parser->current_zone->pattern->zonefile)
 			c_error("last zone pattern has no zonefile");
 	}
-	if(opt->keys)
+	if(cfg_parser->current_key)
 	{
-		if(!opt->keys->name)
+		if(!cfg_parser->current_key->name)
 			c_error("last key has no name");
-		if(!opt->keys->algorithm)
+		if(!cfg_parser->current_key->algorithm)
 			c_error("last key has no algorithm");
-		if(!opt->keys->secret)
+		if(!cfg_parser->current_key->secret)
 			c_error("last key has no secret blob");
+		key_options_insert(opt, cfg_parser->current_key);
 	}
 	RBTREE_FOR(pat, pattern_options_t*, opt->patterns)
 	{
@@ -207,9 +221,17 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 
 	if(cfg_parser->errors > 0)
 	{
-        	fprintf(stderr, "read %s failed: %d errors in configuration file\n",
-			cfg_parser->filename,
-			cfg_parser->errors);
+		if(err) {
+			char m[MAXSYSLOGMSGLEN];
+			snprintf(m, sizeof(m), "read %s failed: %d errors in "
+				"configuration file\n", cfg_parser->filename,
+				cfg_parser->errors);
+			err(err_arg, m);
+		} else {
+			fprintf(stderr, "read %s failed: %d errors in "
+				"configuration file\n", cfg_parser->filename,
+				cfg_parser->errors);
+		}
 		return 0;
 	}
 	return 1;
@@ -245,8 +267,7 @@ zone_options_t*
 zone_list_zone_insert(nsd_options_t* opt, const char* nm, const char* patnm,
 	int linesize, off_t off)
 {
-	pattern_options_t* pat = (pattern_options_t*)rbtree_search(
-		opt->patterns, patnm);
+	pattern_options_t* pat = pattern_options_find(opt, patnm);
 	zone_options_t* zone;
 	if(!pat) {
 		log_msg(LOG_ERR, "pattern does not exist for zone %s "
@@ -598,6 +619,16 @@ void zone_list_close(nsd_options_t* opt)
 void c_error_va_list(const char *fmt, va_list args)
 {
 	cfg_parser->errors++;
+	if(cfg_parser->err) {
+		char m[MAXSYSLOGMSGLEN];
+		snprintf(m, sizeof(m), "%s:%d: error: ", cfg_parser->filename,
+			cfg_parser->line);
+		(*cfg_parser->err)(cfg_parser->err_arg, m);
+		vsnprintf(m, sizeof(m), fmt, args);
+		(*cfg_parser->err)(cfg_parser->err_arg, m);
+		(*cfg_parser->err)(cfg_parser->err_arg, "\n");
+		return;
+	}
         fprintf(stderr, "%s:%d: error: ", cfg_parser->filename,
 		cfg_parser->line);
 	vfprintf(stderr, fmt, args);
@@ -614,9 +645,7 @@ void c_error_msg(const char* fmt, ...)
 
 void c_error(const char *str)
 {
-	cfg_parser->errors++;
-        fprintf(stderr, "%s:%d: error: %s\n", cfg_parser->filename,
-		cfg_parser->line, str);
+	c_error_msg("%s", str);
 }
 
 int c_wrap()
@@ -633,6 +662,39 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->pattern = 0;
 	zone->part_of_config = 0;
 	return zone;
+}
+
+/* true is booleans are the same truth value */
+#define booleq(x,y) ( ((x) && (y)) || (!(x) && !(y)) )
+
+int acl_equal(acl_options_t* p, acl_options_t* q)
+{
+	if(!booleq(p->use_axfr_only, q->use_axfr_only)) return 0;
+	if(!booleq(p->allow_udp, q->allow_udp)) return 0;
+	if(strcmp(p->ip_address_spec, q->ip_address_spec)!=0) return 0;
+	/* the ip6, port, addr, mask, type: are derived from the ip_address_spec */
+	if(!booleq(p->nokey, q->nokey)) return 0;
+	if(!booleq(p->blocked, q->blocked)) return 0;
+	if(p->key_name && q->key_name) {
+		if(strcmp(p->key_name, q->key_name)!=0) return 0;
+	} else if(p->key_name && !q->key_name) return 0;
+	else if(!p->key_name && q->key_name) return 0;
+	/* key_options is derived from key_name */
+	return 1;
+}
+
+int acl_list_equal(acl_options_t* p, acl_options_t* q)
+{
+	/* must be same and in same order */
+	while(p && q) {
+		if(!acl_equal(p, q))
+			return 0;
+		p = p->next;
+		q = q->next;
+	}
+	if(!p && !q) return 1;
+	/* different lengths */
+	return 0;
 }
 
 pattern_options_t* pattern_options_create(region_type* region)
@@ -655,27 +717,398 @@ pattern_options_t* pattern_options_create(region_type* region)
 	return p;
 }
 
+static void acl_delete(region_type* region, acl_options_t* acl)
+{
+	if(acl->ip_address_spec)
+		region_recycle(region, (void*)acl->ip_address_spec,
+			strlen(acl->ip_address_spec)+1);
+	if(acl->key_name)
+		region_recycle(region, (void*)acl->key_name,
+			strlen(acl->key_name)+1);
+	/* key_options is a convenience pointer, not owned by the acl */
+	region_recycle(region, acl, sizeof(*acl));
+}
+
+static void acl_list_delete(region_type* region, acl_options_t* list)
+{
+	acl_options_t* n;
+	while(list) {
+		n = list->next;
+		acl_delete(region, list);
+		list = n;
+	}
+}
+
+void pattern_options_remove(nsd_options_t* opt, const char* name)
+{
+	pattern_options_t* p = (pattern_options_t*)rbtree_delete(
+		opt->patterns, name);
+	/* delete p and its contents */
+	if(p->pname)
+		region_recycle(opt->region, (void*)p->pname,
+			strlen(p->pname)+1);
+	if(p->zonefile)
+		region_recycle(opt->region, (void*)p->zonefile,
+			strlen(p->zonefile)+1);
+	acl_list_delete(opt->region, p->allow_notify);
+	acl_list_delete(opt->region, p->request_xfr);
+	acl_list_delete(opt->region, p->notify);
+	acl_list_delete(opt->region, p->provide_xfr);
+	acl_list_delete(opt->region, p->outgoing_interface);
+
+	region_recycle(opt->region, p, sizeof(pattern_options_t));
+}
+
+static acl_options_t* copy_acl(region_type* region, acl_options_t* a)
+{
+	acl_options_t* b;
+	if(!a) return NULL;
+	b = (acl_options_t*)region_alloc(region, sizeof(*b));
+	/* copy the whole lot */
+	*b = *a;
+	/* fix the pointers */
+	if(a->ip_address_spec)
+		b->ip_address_spec = region_strdup(region, a->ip_address_spec);
+	if(a->key_name)
+		b->key_name = region_strdup(region, a->key_name);
+	b->next = NULL;
+	b->key_options = NULL;
+	return b;
+}
+
+static acl_options_t* copy_acl_list(nsd_options_t* opt, acl_options_t* a)
+{
+	acl_options_t* b, *blast = NULL, *blist = NULL;
+	while(a) {
+		b = copy_acl(opt->region, a);
+		/* fixup key_options */
+		if(b->key_name)
+			b->key_options = key_options_find(opt, b->key_name);
+		else	b->key_options = NULL;
+
+		/* link as last into list */
+		b->next = NULL;
+		if(blist) blist = b;
+		else blast->next = b;
+		blast = b;
+		
+		a = a->next;
+	}
+	return blist;
+}
+
+static void copy_changed_acl(nsd_options_t* opt, acl_options_t** orig,
+	acl_options_t* anew)
+{
+	if(!acl_list_equal(*orig, anew)) {
+		acl_list_delete(opt->region, *orig);
+		*orig = copy_acl_list(opt, anew);
+	}
+}
+
+static void copy_pat_fixed(region_type* region, pattern_options_t* orig,
+	pattern_options_t* p)
+{
+	orig->allow_axfr_fallback = p->allow_axfr_fallback;
+	orig->allow_axfr_fallback_is_default =
+		p->allow_axfr_fallback_is_default;
+	orig->notify_retry = p->notify_retry;
+	orig->notify_retry_is_default = p->notify_retry_is_default;
+	orig->implicit = p->implicit;
+	if(p->zonefile)
+		orig->zonefile = region_strdup(region, p->zonefile);
+	else orig->zonefile = NULL;
+}
+
+void pattern_options_add_modify(nsd_options_t* opt, pattern_options_t* p)
+{
+	pattern_options_t* orig = pattern_options_find(opt, p->pname);
+	if(!orig) {
+		/* needs to be copied to opt region */
+		orig = pattern_options_create(opt->region);
+		copy_pat_fixed(opt->region, orig, p);
+		orig->allow_notify = copy_acl_list(opt, p->allow_notify);
+		orig->request_xfr = copy_acl_list(opt, p->request_xfr);
+		orig->notify = copy_acl_list(opt, p->notify);
+		orig->provide_xfr = copy_acl_list(opt, p->provide_xfr);
+		orig->outgoing_interface = copy_acl_list(opt,
+			p->outgoing_interface);
+		nsd_options_insert_pattern(opt, orig);
+	} else {
+		/* modify in place so pointers stay valid (and copy
+		   into region). Do not touch unchanged acls. */
+		if(orig->zonefile)
+			region_recycle(opt->region, (char*)orig->zonefile,
+				strlen(orig->zonefile)+1);
+		copy_pat_fixed(opt->region, orig, p);
+		copy_changed_acl(opt, &orig->allow_notify, p->allow_notify);
+		copy_changed_acl(opt, &orig->request_xfr, p->request_xfr);
+		copy_changed_acl(opt, &orig->notify, p->notify);
+		copy_changed_acl(opt, &orig->provide_xfr, p->provide_xfr);
+		copy_changed_acl(opt, &orig->outgoing_interface,
+			p->outgoing_interface);
+	}
+}
+
+pattern_options_t* pattern_options_find(nsd_options_t* opt, const char* name)
+{
+	return (pattern_options_t*)rbtree_search(opt->patterns, name);
+}
+
+int pattern_options_equal(pattern_options_t* p, pattern_options_t* q)
+{
+	if(strcmp(p->pname, q->pname) != 0) return 0;
+	if(!p->zonefile && q->zonefile) return 0;
+	else if(p->zonefile && !q->zonefile) return 0;
+	else if(p->zonefile && q->zonefile) {
+		if(strcmp(p->zonefile, q->zonefile) != 0) return 0;
+	}
+	if(!booleq(p->allow_axfr_fallback, q->allow_axfr_fallback)) return 0;
+	if(!booleq(p->allow_axfr_fallback_is_default,
+		q->allow_axfr_fallback_is_default)) return 0;
+	if(p->notify_retry != q->notify_retry) return 0;
+	if(!booleq(p->notify_retry_is_default,
+		q->notify_retry_is_default)) return 0;
+	if(!booleq(p->implicit, q->implicit)) return 0;
+	if(!acl_list_equal(p->allow_notify, q->allow_notify)) return 0;
+	if(!acl_list_equal(p->request_xfr, q->request_xfr)) return 0;
+	if(!acl_list_equal(p->notify, q->notify)) return 0;
+	if(!acl_list_equal(p->provide_xfr, q->provide_xfr)) return 0;
+	if(!acl_list_equal(p->outgoing_interface, q->outgoing_interface))
+		return 0;
+	return 1;
+}
+
+static void marshal_u8(struct buffer* b, uint8_t v)
+{
+	buffer_reserve(b, 1);
+	buffer_write_u8(b, v);
+}
+
+static uint8_t unmarshal_u8(struct buffer* b)
+{
+	return buffer_read_u8(b);
+}
+
+static void marshal_str(struct buffer* b, const char* s)
+{
+	if(!s) marshal_u8(b, 0);
+	else {
+		size_t len = strlen(s);
+		marshal_u8(b, 1);
+		buffer_reserve(b, len+1);
+		buffer_write(b, s, len+1);
+	}
+}
+
+static char* unmarshal_str(region_type* r, struct buffer* b)
+{
+	uint8_t nonnull = unmarshal_u8(b);
+	if(nonnull) {
+		char* result = region_strdup(r, (char*)buffer_current(b));
+		size_t len = strlen((char*)buffer_current(b));
+		buffer_skip(b, len+1);
+		return result;
+	} else return NULL;
+}
+
+static void marshal_acl(struct buffer* b, acl_options_t* acl)
+{
+	buffer_reserve(b, sizeof(*acl));
+	buffer_write(b, acl, sizeof(*acl));
+	marshal_str(b, acl->ip_address_spec);
+	marshal_str(b, acl->key_name);
+}
+
+static acl_options_t* unmarshal_acl(region_type* r, struct buffer* b)
+{
+	acl_options_t* acl = (acl_options_t*)region_alloc(r, sizeof(*acl));
+	buffer_read(b, acl, sizeof(*acl));
+	acl->next = NULL;
+	acl->key_options = NULL;
+	acl->ip_address_spec = unmarshal_str(r, b);
+	acl->key_name = unmarshal_str(r, b);
+	return acl;
+}
+
+static void marshal_acl_list(struct buffer* b, acl_options_t* list)
+{
+	while(list) {
+		marshal_u8(b, 1); /* is there a next one marker */
+		marshal_acl(b, list);
+		list = list->next;
+	}
+	marshal_u8(b, 0); /* end of list marker */
+}
+
+static acl_options_t* unmarshal_acl_list(region_type* r, struct buffer* b)
+{
+	acl_options_t* a, *last=NULL, *list=NULL;
+	while(unmarshal_u8(b)) {
+		a = unmarshal_acl(r, b);
+		/* link in */
+		a->next = NULL;
+		if(!list) list = a;
+		else last->next = a;
+		last = a;
+	}
+	return list;
+}
+
+void pattern_options_marshal(struct buffer* b, pattern_options_t* p)
+{
+	marshal_str(b, p->pname);
+	marshal_str(b, p->zonefile);
+	marshal_u8(b, p->allow_axfr_fallback);
+	marshal_u8(b, p->allow_axfr_fallback_is_default);
+	marshal_u8(b, p->notify_retry);
+	marshal_u8(b, p->notify_retry_is_default);
+	marshal_u8(b, p->implicit);
+	marshal_acl_list(b, p->allow_notify);
+	marshal_acl_list(b, p->request_xfr);
+	marshal_acl_list(b, p->notify);
+	marshal_acl_list(b, p->provide_xfr);
+	marshal_acl_list(b, p->outgoing_interface);
+}
+
+pattern_options_t* pattern_options_unmarshal(region_type* r, struct buffer* b)
+{
+	pattern_options_t* p = pattern_options_create(r);
+	p->pname = unmarshal_str(r, b);
+	p->zonefile = unmarshal_str(r, b);
+	p->allow_axfr_fallback = unmarshal_u8(b);
+	p->allow_axfr_fallback_is_default = unmarshal_u8(b);
+	p->notify_retry = unmarshal_u8(b);
+	p->notify_retry_is_default = unmarshal_u8(b);
+	p->implicit = unmarshal_u8(b);
+	p->allow_notify = unmarshal_acl_list(r, b);
+	p->request_xfr = unmarshal_acl_list(r, b);
+	p->notify = unmarshal_acl_list(r, b);
+	p->provide_xfr = unmarshal_acl_list(r, b);
+	p->outgoing_interface = unmarshal_acl_list(r, b);
+	return p;
+}
+
 key_options_t* key_options_create(region_type* region)
 {
 	key_options_t* key;
-	key = (key_options_t*)region_alloc(region, sizeof(key_options_t));
-	key->name = 0;
-	key->next = 0;
-	key->algorithm = 0;
-	key->secret = 0;
-	key->tsig_key = 0;
+	key = (key_options_t*)region_alloc_zero(region, sizeof(key_options_t));
 	return key;
+}
+
+void key_options_insert(nsd_options_t* opt, key_options_t* key)
+{
+	if(!key->name) return;
+	key->node.key = key->name;
+	(void)rbtree_insert(opt->keys, &key->node);
 }
 
 key_options_t* key_options_find(nsd_options_t* opt, const char* name)
 {
-	key_options_t* key = opt->keys;
-	while(key) {
-		if(strcmp(key->name, name)==0)
-			return key;
-		key = key->next;
+	return (key_options_t*)rbtree_search(opt->keys, name);
+}
+
+/** remove tsig_key contents */
+void key_options_desetup(region_type* region, key_options_t* key)
+{
+	/* keep tsig_key pointer so that existing references keep valid */
+	if(!key->tsig_key)
+		return;
+	/* name stays the same */
+	if(key->tsig_key->data) {
+		/* wipe secret! */
+		memset(key->tsig_key->data, 0xdd, key->tsig_key->size);
+		region_recycle(region, key->tsig_key->data,
+			key->tsig_key->size);
+		key->tsig_key->data = NULL;
+		key->tsig_key->size = 0;
 	}
-	return 0;
+}
+
+/** add tsig_key contents */
+void key_options_setup(region_type* region, key_options_t* key)
+{
+	uint8_t data[16384];
+	int size;
+	if(!key->tsig_key) {
+		/* create it */
+		key->tsig_key = (tsig_key_type *) region_alloc(region,
+			sizeof(tsig_key_type));
+		/* create name */
+		key->tsig_key->name = dname_parse(region, key->name);
+		if(!key->tsig_key->name) {
+			log_msg(LOG_ERR, "Failed to parse tsig key name %s",
+				key->name);
+			/* key and base64 were checked during syntax parse */
+			exit(1);
+		}
+		key->tsig_key->size = 0;
+		key->tsig_key->data = NULL;
+	}
+	size = b64_pton(key->secret, data, sizeof(data));
+	if(size == -1) {
+		log_msg(LOG_ERR, "Failed to parse tsig key data %s",
+			key->name);
+		/* key and base64 were checked during syntax parse */
+		exit(1);
+	}
+	key->tsig_key->size = size;
+	key->tsig_key->data = (uint8_t *)region_alloc_init(region, data, size);
+}
+
+void key_options_remove(nsd_options_t* opt, const char* name)
+{
+	key_options_t* k = key_options_find(opt, name);
+	if(!k) return;
+	(void)rbtree_delete(opt->keys, name);
+	if(k->name)
+		region_recycle(opt->region, k->name, strlen(k->name)+1);
+	if(k->algorithm)
+		region_recycle(opt->region, k->algorithm, strlen(k->algorithm)+1);
+	if(k->secret) {
+		memset(k->secret, 0xdd, strlen(k->secret)); /* wipe secret! */
+		region_recycle(opt->region, k->secret, strlen(k->secret)+1);
+	}
+	if(k->tsig_key) {
+		tsig_del_key(k->tsig_key);
+		if(k->tsig_key->name)
+			region_recycle(opt->region, (void*)k->tsig_key->name,
+				dname_total_size(k->tsig_key->name));
+		key_options_desetup(opt->region, k);
+		region_recycle(opt->region, k->tsig_key, sizeof(tsig_key_type));
+	}
+	region_recycle(opt->region, k, sizeof(key_options_t));
+}
+
+int key_options_equal(key_options_t* p, key_options_t* q)
+{
+	return strcmp(p->name, q->name)==0 && strcmp(p->algorithm,
+		q->algorithm)==0 && strcmp(p->secret, q->secret)==0;
+}
+
+void key_options_add_modify(nsd_options_t* opt, key_options_t* key)
+{
+	key_options_t* orig = key_options_find(opt, key->name);
+	if(!orig) {
+		/* needs to be copied to opt region */
+		orig = key_options_create(opt->region);
+		orig->name = region_strdup(opt->region, key->name);
+		orig->algorithm = region_strdup(opt->region, key->algorithm);
+		orig->secret = region_strdup(opt->region, key->secret);
+		key_options_setup(opt->region, orig);
+		tsig_add_key(orig->tsig_key);
+		key_options_insert(opt, orig);
+	} else {
+		/* modify entries in existing key, and copy to opt region */
+		key_options_desetup(opt->region, orig);
+		region_recycle(opt->region, orig->algorithm,
+			strlen(orig->algorithm)+1);
+		orig->algorithm = region_strdup(opt->region, key->algorithm);
+		region_recycle(opt->region, orig->secret,
+			strlen(orig->secret)+1);
+		orig->secret = region_strdup(opt->region, key->secret);
+		key_options_setup(opt->region, orig);
+	}
 }
 
 int acl_check_incoming(acl_options_t* acl, struct query* q,
@@ -904,29 +1337,9 @@ acl_same_host(acl_options_t* a, acl_options_t* b)
 void key_options_tsig_add(nsd_options_t* opt)
 {
 	key_options_t* optkey;
-	uint8_t data[4000];
-	tsig_key_type* tsigkey;
-	const dname_type* dname;
-	int size;
-
-	for(optkey = opt->keys; optkey; optkey = optkey->next)
-	{
-		dname = dname_parse(opt->region, optkey->name);
-		if(!dname) {
-			log_msg(LOG_ERR, "Failed to parse tsig key name %s", optkey->name);
-			continue;
-		}
-		size = b64_pton(optkey->secret, data, sizeof(data));
-		if(size == -1) {
-			log_msg(LOG_ERR, "Failed to parse tsig key data %s", optkey->name);
-			continue;
-		}
-		tsigkey = (tsig_key_type *) region_alloc(opt->region, sizeof(tsig_key_type));
-		tsigkey->name = dname;
-		tsigkey->size = size;
-		tsigkey->data = (uint8_t *) region_alloc_init(opt->region, data, tsigkey->size);
-		tsig_add_key(tsigkey);
-		optkey->tsig_key = tsigkey;
+	RBTREE_FOR(optkey, key_options_t*, opt->keys) {
+		key_options_setup(opt->region, optkey);
+		tsig_add_key(optkey->tsig_key);
 	}
 }
 #endif
@@ -1162,8 +1575,7 @@ static void append_acl(acl_options_t** start, acl_options_t** cur,
 void config_apply_pattern(const char* name)
 {
 	/* find the pattern */
-	pattern_options_t* pat = (pattern_options_t*)rbtree_search(
-		cfg_parser->opt->patterns, name);
+	pattern_options_t* pat = pattern_options_find(cfg_parser->opt, name);
 	pattern_options_t* a = cfg_parser->current_pattern;
 	if(!pat) {
 		c_error_msg("could not find pattern %s", name);

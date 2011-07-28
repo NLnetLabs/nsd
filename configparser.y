@@ -18,6 +18,8 @@
 
 #include "options.h"
 #include "util.h"
+#include "dname.h"
+#include "tsig.h"
 #include "configyyrename.h"
 int c_lex(void);
 void c_error(const char *message);
@@ -28,7 +30,6 @@ extern "C"
 
 /* these need to be global, otherwise they cannot be used inside yacc */
 extern config_parser_state_t* cfg_parser;
-static int server_settings_seen = 0;
 
 #if 0
 #define OUTYY(s) printf s /* used ONLY when debugging */
@@ -71,10 +72,10 @@ toplevelvar: serverstart contents_server | zonestart contents_zone |
 /* server: declaration */
 serverstart: VAR_SERVER
 	{ OUTYY(("\nP(server:)\n")); 
-		if(server_settings_seen) {
+		if(cfg_parser->server_settings_seen) {
 			yyerror("duplicate server: element.");
 		}
-		server_settings_seen = 1;
+		cfg_parser->server_settings_seen = 1;
 	}
 	;
 contents_server: contents_server content_server | ;
@@ -467,7 +468,6 @@ contents_zone: contents_zone content_zone | content_zone;
 content_zone: zone_name | zone_config_item;
 zone_name: VAR_NAME STRING
 	{ 
-		const char* implicit_marker = "_implicit_";
 		char* s;
 		OUTYY(("P(zone_name:%s)\n", $2)); 
 #ifndef NDEBUG
@@ -476,10 +476,11 @@ zone_name: VAR_NAME STRING
 #endif
 		cfg_parser->current_zone->name = region_strdup(cfg_parser->opt->region, $2);
 		s = (char*)region_alloc(cfg_parser->opt->region,
-			strlen($2)+strlen(implicit_marker)+1);
-		memmove(s, implicit_marker, strlen(implicit_marker));
-		memmove(s+strlen(implicit_marker), $2, strlen($2)+1);
-		if(rbtree_search(cfg_parser->opt->patterns, s))
+			strlen($2)+strlen(PATTERN_IMPLICIT_MARKER)+1);
+		memmove(s, PATTERN_IMPLICIT_MARKER,
+			strlen(PATTERN_IMPLICIT_MARKER));
+		memmove(s+strlen(PATTERN_IMPLICIT_MARKER), $2, strlen($2)+1);
+		if(pattern_options_find(cfg_parser->opt, s))
 			c_error_msg("zone %s cannot be created because "
 				"implicit pattern %s already exists", $2, s);
 		cfg_parser->current_pattern->pname = s;
@@ -615,24 +616,25 @@ keystart: VAR_KEY
 			if(!cfg_parser->current_key->name) c_error("previous key has no name");
 			if(!cfg_parser->current_key->algorithm) c_error("previous key has no algorithm");
 			if(!cfg_parser->current_key->secret) c_error("previous key has no secret blob");
-			cfg_parser->current_key->next = key_options_create(cfg_parser->opt->region);
-			cfg_parser->current_key = cfg_parser->current_key->next;
-		} else {
-			cfg_parser->current_key = key_options_create(cfg_parser->opt->region);
-			cfg_parser->opt->keys = cfg_parser->current_key;
+			key_options_insert(cfg_parser->opt, cfg_parser->current_key);
 		}
-		cfg_parser->opt->numkeys++;
+		cfg_parser->current_key = key_options_create(cfg_parser->opt->region);
 	}
 	;
 contents_key: contents_key content_key | content_key;
 content_key: key_name | key_algorithm | key_secret;
 key_name: VAR_NAME STRING
 	{ 
+		const dname_type* d;
 		OUTYY(("P(key_name:%s)\n", $2)); 
 #ifndef NDEBUG
 		assert(cfg_parser->current_key);
 #endif
 		cfg_parser->current_key->name = region_strdup(cfg_parser->opt->region, $2);
+		d = dname_parse(cfg_parser->opt->region, $2);
+		if(!d)	c_error_msg("Failed to parse tsig key name %s", $2);
+		else	region_recycle(cfg_parser->opt->region, (void*)d,
+				dname_total_size(d));
 	}
 	;
 key_algorithm: VAR_ALGORITHM STRING
@@ -642,15 +644,25 @@ key_algorithm: VAR_ALGORITHM STRING
 		assert(cfg_parser->current_key);
 #endif
 		cfg_parser->current_key->algorithm = region_strdup(cfg_parser->opt->region, $2);
+		if(tsig_get_algorithm_by_name($2) == NULL)
+			c_error_msg("Bad tsig algorithm %s", $2);
 	}
 	;
 key_secret: VAR_SECRET STRING
 	{ 
+		uint8_t data[16384];
+		int size;
 		OUTYY(("key_secret:%s)\n", $2)); 
 #ifndef NDEBUG
 		assert(cfg_parser->current_key);
 #endif
 		cfg_parser->current_key->secret = region_strdup(cfg_parser->opt->region, $2);
+		size = b64_pton($2, data, sizeof(data));
+		if(size == -1)
+			c_error_msg("Cannot base64 decode tsig secret %s",
+				cfg_parser->current_key->name?
+				cfg_parser->current_key->name:"");
+		else	memset(data, 0xdd, size); /* wipe secret */
 	}
 	;
 

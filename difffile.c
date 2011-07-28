@@ -1933,6 +1933,84 @@ task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname)
 	udb_ptr_unlink(&e, udb);
 }
 
+void task_new_add_key(udb_base* udb, udb_ptr* last, key_options_t* key)
+{
+	char* p;
+	udb_ptr e;
+	assert(key->name && key->algorithm && key->secret);
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addkey"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
+		+strlen(key->name)+1+strlen(key->algorithm)+1+
+		strlen(key->secret)+1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add addk");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_add_key;
+	p = (char*)TASKLIST(&e)->zname;
+	memmove(p, key->name, strlen(key->name)+1);
+	p+=strlen(key->name)+1;
+	memmove(p, key->algorithm, strlen(key->algorithm)+1);
+	p+=strlen(key->algorithm)+1;
+	memmove(p, key->secret, strlen(key->secret)+1);
+	udb_ptr_unlink(&e, udb);
+}
+
+void task_new_del_key(udb_base* udb, udb_ptr* last, const char* name)
+{
+	char* p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task delkey"));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
+		+strlen(name)+1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add delk");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_del_key;
+	p = (char*)TASKLIST(&e)->zname;
+	memmove(p, name, strlen(name)+1);
+	udb_ptr_unlink(&e, udb);
+}
+
+void task_new_add_pattern(udb_base* udb, udb_ptr* last, pattern_options_t* p)
+{
+	region_type* temp;
+	buffer_type* buffer;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task addpattern %s", p->pname));
+	temp = region_create(xalloc, free);
+	buffer = buffer_create(temp, 4096);
+	pattern_options_marshal(buffer, p);
+	buffer_flip(buffer);
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
+		+ buffer_limit(buffer), NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add addp");
+		region_destroy(temp);
+		return;
+	}
+	TASKLIST(&e)->task_type = task_add_pattern;
+	TASKLIST(&e)->yesno = buffer_limit(buffer);
+	memmove(TASKLIST(&e)->zname, buffer_begin(buffer),
+		buffer_limit(buffer));
+	udb_ptr_unlink(&e, udb);
+	region_destroy(temp);
+}
+
+void task_new_del_pattern(udb_base* udb, udb_ptr* last, const char* name)
+{
+	char* p;
+	udb_ptr e;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "add task delpattern %s", name));
+	if(!task_create_new_elem(udb, last, &e, sizeof(struct task_list_d)
+		+strlen(name)+1, NULL)) {
+		log_msg(LOG_ERR, "tasklist: out of space, cannot add delp");
+		return;
+	}
+	TASKLIST(&e)->task_type = task_del_pattern;
+	p = (char*)TASKLIST(&e)->zname;
+	memmove(p, name, strlen(name)+1);
+	udb_ptr_unlink(&e, udb);
+}
+
 void
 task_process_expire(namedb_type* db, struct task_list_d* task)
 {
@@ -2053,6 +2131,48 @@ task_process_del_zone(struct nsd* nsd, struct task_list_d* task)
 	zone_options_delete(nsd->options, zopt);
 }
 
+static void
+task_process_add_key(struct nsd* nsd, struct task_list_d* task)
+{
+	key_options_t key;
+	key.name = (char*)task->zname;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addkey task %s", key.name));
+	key.algorithm = key.name + strlen(key.name)+1;
+	key.secret = key.algorithm + strlen(key.algorithm)+1;
+	key_options_add_modify(nsd->options, &key);
+	memset(key.secret, 0xdd, strlen(key.secret)); /* wipe secret */
+}
+
+static void
+task_process_del_key(struct nsd* nsd, struct task_list_d* task)
+{
+	char* name = (char*)task->zname;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "delkey task %s", name));
+	/* this is reload and nothing is using the TSIG key right now */
+	key_options_remove(nsd->options, name);
+}
+
+static void
+task_process_add_pattern(struct nsd* nsd, struct task_list_d* task)
+{
+	region_type* temp = region_create(xalloc, free);
+	buffer_type buffer;
+	pattern_options_t *pat;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addpattern task"));
+	buffer_create_from(&buffer, task->zname, task->yesno);
+	pat = pattern_options_unmarshal(temp, &buffer);
+	pattern_options_add_modify(nsd->options, pat);
+	region_destroy(temp);
+}
+
+static void
+task_process_del_pattern(struct nsd* nsd, struct task_list_d* task)
+{
+	char* name = (char*)task->zname;
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "delpattern task %s", name));
+	pattern_options_remove(nsd->options, name);
+}
+
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
         udb_ptr* task)
 {
@@ -2074,6 +2194,18 @@ void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 		break;
 	case task_del_zone:
 		task_process_del_zone(nsd, TASKLIST(task));
+		break;
+	case task_add_key:
+		task_process_add_key(nsd, TASKLIST(task));
+		break;
+	case task_del_key:
+		task_process_del_key(nsd, TASKLIST(task));
+		break;
+	case task_add_pattern:
+		task_process_add_pattern(nsd, TASKLIST(task));
+		break;
+	case task_del_pattern:
+		task_process_del_pattern(nsd, TASKLIST(task));
 		break;
 	default:
 		log_msg(LOG_WARNING, "unhandled task in reload type %d",

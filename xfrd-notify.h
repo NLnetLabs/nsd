@@ -41,6 +41,7 @@ struct notify_zone_t {
 	netio_handler_type notify_send_handler;
 	struct timespec notify_timeout;
 	struct acl_options* notify_current; /* current slave to notify */
+	uint8_t notify_restart; /* restart notify after repattern */
 	uint8_t notify_retry; /* how manieth retry in sending to current */
 	uint16_t notify_query_id;
 
@@ -70,5 +71,7 @@ void notify_handle_master_zone_soainfo(rbtree_t* tree,
 
 /* close fds in use for notification sending */
 void close_notify_fds(rbtree_t* tree);
+/* stop send of notify */
+void notify_disable(struct notify_zone_t* zone);
 
 #endif /* XFRD_NOTIFY_H */

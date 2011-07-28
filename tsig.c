@@ -1,5 +1,5 @@
 /*
- * tsig.h -- TSIG definitions (RFC 2845).
+ * tsig.c -- TSIG implementation (RFC 2845).
  *
  * Copyright (c) 2001-2006, NLnet Labs. All rights reserved.
  *
@@ -17,16 +17,17 @@
 #include "dns.h"
 #include "packet.h"
 #include "query.h"
+#include "rbtree.h"
 
 static region_type *tsig_region;
 
 struct tsig_key_table
 {
-	struct tsig_key_table *next;
+	rbnode_t node; /* sorted by dname, key is this entry. */
 	tsig_key_type *key;
 };
 typedef struct tsig_key_table tsig_key_table_type;
-static tsig_key_table_type *tsig_key_table;
+static rbtree_t *tsig_key_table;
 
 struct tsig_algorithm_table
 {
@@ -96,11 +97,18 @@ tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 	}
 }
 
+static int
+tree_dname_compare(const void* a, const void* b)
+{
+	return dname_compare(((tsig_key_table_type*)a)->key->name,
+		((tsig_key_table_type*)b)->key->name);
+}
+
 int
 tsig_init(region_type *region)
 {
 	tsig_region = region;
-	tsig_key_table = NULL;
+	tsig_key_table = rbtree_create(region, &tree_dname_compare);
 	tsig_algorithm_table = NULL;
 
 #if defined(HAVE_SSL)
@@ -112,11 +120,37 @@ tsig_init(region_type *region)
 void
 tsig_add_key(tsig_key_type *key)
 {
-	tsig_key_table_type *entry = (tsig_key_table_type *) region_alloc(
+	tsig_key_table_type *entry = (tsig_key_table_type *) region_alloc_zero(
 		tsig_region, sizeof(tsig_key_table_type));
 	entry->key = key;
-	entry->next = tsig_key_table;
-	tsig_key_table = entry;
+	entry->node.key = entry;
+	(void)rbtree_insert(tsig_key_table, &entry->node);
+}
+
+void
+tsig_del_key(tsig_key_type *key)
+{
+	tsig_key_table_type lookup;
+	tsig_key_table_type *entry;
+	if(!key) return;
+	lookup.key = key;
+	entry = (tsig_key_table_type*)rbtree_delete(tsig_key_table, &lookup);
+	if(!entry) return;
+	region_recycle(tsig_region, entry, sizeof(tsig_key_table_type));
+}
+
+tsig_key_type*
+tsig_find_key(const dname_type* name)
+{
+	tsig_key_table_type* entry;
+	tsig_key_type t;
+	tsig_key_table_type lookup;
+	lookup.key = &t;
+	t.name = name;
+	entry = (tsig_key_table_type*)rbtree_search(tsig_key_table, &lookup);
+	if(entry)
+		return entry->key;
+	return NULL;
 }
 
 void
@@ -282,7 +316,6 @@ tsig_init_record(tsig_record_type *tsig,
 int
 tsig_from_query(tsig_record_type *tsig)
 {
-	tsig_key_table_type *key_entry;
 	tsig_key_type *key = NULL;
 	tsig_algorithm_table_type *algorithm_entry;
 	tsig_algorithm_type *algorithm = NULL;
@@ -293,16 +326,7 @@ tsig_from_query(tsig_record_type *tsig)
 	assert(!tsig->algorithm);
 	assert(!tsig->key);
 
-	/* XXX: TODO: slow linear check for keyname */
-	for (key_entry = tsig_key_table;
-	     key_entry;
-	     key_entry = key_entry->next)
-	{
-		if (dname_compare(tsig->key_name, key_entry->key->name) == 0) {
-			key = key_entry->key;
-			break;
-		}
-	}
+	key = (tsig_key_type*)tsig_find_key(tsig->key_name);
 
 	for (algorithm_entry = tsig_algorithm_table;
 	     algorithm_entry;

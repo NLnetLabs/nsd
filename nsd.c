@@ -572,12 +572,14 @@ main(int argc, char *argv[])
 		error("server identity too long (%u characters)",
 		      (unsigned) strlen(nsd.identity));
 	}
+	if(!tsig_init(nsd.region))
+		error("init tsig failed");
 
 	/* Read options */
 	nsd.options = nsd_options_create(region_create_custom(xalloc, free,
 		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
 		DEFAULT_INITIAL_CLEANUP_SIZE, 1));
-	if(!parse_options_file(nsd.options, configfile)) {
+	if(!parse_options_file(nsd.options, configfile, NULL, NULL)) {
 		error("could not read config: %s\n", configfile);
 	}
 	if(!parse_zone_list_file(nsd.options, nsd.options->zonelistfile)) {
@@ -831,8 +833,6 @@ main(int argc, char *argv[])
 	/* endpwent(); */
 #endif /* HAVE_GETPWNAM */
 
-	if(!tsig_init(nsd.region))
-		error("init tsig failed");
 #if defined(HAVE_SSL)
 	key_options_tsig_add(nsd.options);
 #endif

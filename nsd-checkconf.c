@@ -212,16 +212,14 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 
 	if (k) {
 		/* find key */
-		key_options_t* key = opt->keys;
-		for( ; key ; key=key->next) {
-			if(strcmp(key->name, k) == 0) {
-				if (s) {
-					quote(key->secret);
-				} else {
-					quote(key->algorithm);
-				}
-				return;
+		key_options_t* key = key_options_find(opt, k);
+		if(key) {
+			if (s) {
+				quote(key->secret);
+			} else {
+				quote(key->algorithm);
 			}
+			return;
 		}
 		printf("Could not find key %s\n", k);
 		return;
@@ -260,8 +258,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o,
 		printf("Zone option not handled: %s %s\n", z, o);
 		exit(1);
 	} else if(pat) {
-		pattern_options_t* p = (pattern_options_t*)rbtree_search(
-			opt->patterns, pat);
+		pattern_options_t* p = pattern_options_find(opt, pat);
 		if(!p) {
 			printf("Pattern does not exist: %s\n", pat);
 			exit(1);
@@ -404,7 +401,7 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("control-key-file:", opt->control_key_file);
 	print_string_var("control-cert-file:", opt->control_cert_file);
 
-	for(key = opt->keys; key; key=key->next)
+	RBTREE_FOR(key, key_options_t*, opt->keys)
 	{
 		printf("\nkey:\n");
 		print_string_var("name:", key->name);
@@ -434,7 +431,6 @@ additional_checks(nsd_options_t* opt, const char* filename)
 {
 	ip_address_option_t* ip = opt->ip_addresses;
 	zone_options_t* zone;
-	key_options_t* key;
 	int num = 0;
 	int errors = 0;
 	while(ip) {
@@ -457,29 +453,6 @@ additional_checks(nsd_options_t* opt, const char* filename)
 			fprintf(stderr, "%s: zone %s has allow-notify but no request-xfr"
 				" items. Where can it get a zone transfer when a notify "
 				"is received?\n", filename, zone->name);
-			errors ++;
-		}
-	}
-
-	for(key = opt->keys; key; key=key->next)
-	{
-		const dname_type* dname = dname_parse(opt->region, key->name); /* memory leak. */
-		uint8_t data[4000];
-		int size;
-
-		if(!dname) {
-			fprintf(stderr, "%s: cannot parse tsig name syntax for key %s.\n", filename, key->name);
-			errors ++;
-		}
-		size = b64_pton(key->secret, data, sizeof(data));
-		if(size == -1) {
-			fprintf(stderr, "%s: cannot base64 decode tsig secret: for key %s.\n", filename, key->name);
-			errors ++;
-		}
-		if(tsig_get_algorithm_by_name(key->algorithm) != NULL)
-		{
-			fprintf(stderr, "%s: bad tsig algorithm %s: for key \
-%s.\n", filename, key->algorithm, key->name);
 			errors ++;
 		}
 	}
@@ -545,7 +518,7 @@ additional_checks(nsd_options_t* opt, const char* filename)
 	if(errors != 0) {
 		fprintf(stderr, "%s: %d semantic errors in %d zones, %d keys.\n",
 			filename, errors, (int)nsd_options_num_zones(opt),
-			(int)opt->numkeys);
+			(int)opt->keys->count);
 	}
 
 	return (errors == 0);
@@ -610,7 +583,8 @@ main(int argc, char* argv[])
 
 	/* read config file */
 	options = nsd_options_create(region_create(xalloc, free));
-	if (!parse_options_file(options, configfile) ||
+	tsig_init(options->region);
+	if (!parse_options_file(options, configfile, NULL, NULL) ||
 	   !additional_checks(options, configfile)) {
 		exit(2);
 	}
@@ -624,7 +598,7 @@ main(int argc, char* argv[])
 				configfile,
 				(int)options->patterns->count,
 				(int)nsd_options_num_zones(options),
-				(int)options->numkeys);
+				(int)options->keys->count);
 			config_test_print_server(options);
 		}
 	}

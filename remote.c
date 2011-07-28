@@ -1113,6 +1113,221 @@ do_delzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 	send_ok(ssl);
 }
 
+/** remove TSIG key from config and add task so that reload does too */
+static void remove_key(xfrd_state_t* xfrd, const char* kname)
+{
+	key_options_remove(xfrd->nsd->options, kname);
+	task_new_del_key(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
+		kname);
+	xfrd_set_reload_now(xfrd); /* this is executed when the current control
+		command ends, thus the entire config changes are bunched up */
+}
+
+/** add TSIG key to config and add task so that reload does too */
+static void add_key(xfrd_state_t* xfrd, key_options_t* k)
+{
+	key_options_add_modify(xfrd->nsd->options, k);
+	task_new_add_key(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
+		k);
+	xfrd_set_reload_now(xfrd);
+}
+
+/** check if keys have changed */
+static void repat_keys(xfrd_state_t* xfrd, nsd_options_t* newopt)
+{
+	nsd_options_t* oldopt = xfrd->nsd->options;
+	key_options_t* k;
+	/* find deleted keys */
+	RBTREE_FOR(k, key_options_t*, oldopt->keys) {
+		if(!key_options_find(newopt, k->name))
+			remove_key(xfrd, k->name);
+	}
+	/* find added or changed keys */
+	RBTREE_FOR(k, key_options_t*, newopt->keys) {
+		key_options_t* origk = key_options_find(oldopt, k->name);
+		if(!origk)
+			add_key(xfrd, k);
+		else if(!key_options_equal(k, origk))
+			add_key(xfrd, k);
+	}
+}
+
+/** remove pattern and add task so that reload does too */
+static void remove_pat(xfrd_state_t* xfrd, const char* name)
+{
+	if(strncmp(name, PATTERN_IMPLICIT_MARKER,
+		strlen(PATTERN_IMPLICIT_MARKER)) == 0) {
+		/* this is the implicit pattern of a part-of-config zone.
+		 * that zone must have been removed from the config file,
+		 * but it stays served until NSD restart, so we keep this
+		 * pattern around */
+		/* NOP - leak and keep allocated so old from_config zones
+		 * stay operational. */
+		log_msg(LOG_WARNING, "config file no longer contains %s, "
+			"but the zone is specified-in-config.  It is not "
+			"deleted until restart", name);
+		return;
+	}
+	pattern_options_remove(xfrd->nsd->options, name);
+	task_new_del_pattern(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, name);
+	xfrd_set_reload_now(xfrd);
+}
+
+/** add pattern and add task so that reload does too */
+static void add_pat(xfrd_state_t* xfrd, pattern_options_t* p)
+{
+	pattern_options_add_modify(xfrd->nsd->options, p);
+	task_new_add_pattern(xfrd->nsd->task[xfrd->nsd->mytask],
+		xfrd->last_task, p);
+	xfrd_set_reload_now(xfrd);
+}
+
+/* stop AXFR/IXFR and NOTIFY using pattern (pnew NULL means delete of p) */
+static int
+zone_pattern_interrupt(xfrd_state_t* xfrd, pattern_options_t* p,
+	pattern_options_t* pnew)
+{
+	/* if masterlist changed:
+	 *   interrupt slave zone (UDP or TCP) transfers.
+	 *   slave zones reset master to start of list.
+	 */
+	if(!pnew || !acl_list_equal(p->request_xfr, pnew->request_xfr)) {
+		xfrd_zone_t* xz;
+		RBTREE_FOR(xz, xfrd_zone_t*, xfrd->zones) {
+			if(xz->zone_options->pattern != p)
+				continue;
+			if(xz->tcp_conn != -1) {
+				xfrd_tcp_release(xfrd->tcp_set, xz);
+				xfrd_set_refresh_now(xz);
+			}
+			if(xz->zone_handler.fd != -1) {
+				xfrd_udp_release(xz);
+				xfrd_set_refresh_now(xz);
+			}
+			xz->master = 0;
+			xz->master_num = 0;
+			xz->next_master = -1;
+			xz->round_num = 0; /* fresh set of retries */
+		}
+	}
+	/* if notify list changed:
+	 *   interrupt notify that is busy.
+	 *   reset notify to start of list.
+	 */
+	if(!pnew || !acl_list_equal(p->notify, pnew->notify)) {
+		struct notify_zone_t* nz;
+		RBTREE_FOR(nz, struct notify_zone_t*, xfrd->notify_zones) {
+			if(nz->options->pattern != p)
+				continue;
+			if(nz->notify_send_handler.fd != -1) {
+				notify_disable(nz);
+				/* set to restart the notify after the
+				 * pattern has been changed. */
+				nz->notify_restart = 1;
+			} else nz->notify_restart = 0;
+		}
+		return 1;
+	}
+	return 0;
+}
+
+/** for notify, after the pattern changes, restart the affected notifies */
+static void
+zone_pattern_notify_start(xfrd_state_t* xfrd, pattern_options_t* p)
+{
+	struct notify_zone_t* nz;
+	RBTREE_FOR(nz, struct notify_zone_t*, xfrd->notify_zones) {
+		if(nz->options->pattern != p)
+			continue;
+		if(nz->notify_current)
+			nz->notify_current = nz->options->pattern->notify;
+		if(nz->notify_restart)
+			xfrd_notify_start(nz);
+	}
+}
+
+/** check if patterns have changed */
+static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
+{
+	/* zones that use changed patterns must have:
+	 * - their AXFR/IXFR interrupted: try again, acl may have changed.
+	 *   if the old master/key still exists, OK, fix master-numptrs and
+	 *   keep going.  Otherwise, stop xfer and reset TSIG.
+	 * - send NOTIFY reset to start of NOTIFY list (and TSIG reset).
+	 */
+	nsd_options_t* oldopt = xfrd->nsd->options;
+	pattern_options_t* p;
+	/* find deleted patterns */
+	RBTREE_FOR(p, pattern_options_t*, oldopt->patterns) {
+		if(!pattern_options_find(newopt, p->pname)) {
+			(void)zone_pattern_interrupt(xfrd, p, NULL);
+			remove_pat(xfrd, p->pname);
+		}
+	}
+	/* find added or changed patterns */
+	RBTREE_FOR(p, pattern_options_t*, newopt->patterns) {
+		pattern_options_t* origp = pattern_options_find(oldopt,
+			p->pname);
+		if(!origp) {
+			/* no zones can use it, no zone_interrupt needed */
+			add_pat(xfrd, p);
+		} else if(!pattern_options_equal(p, origp)) {
+			int donotify = zone_pattern_interrupt(xfrd, origp, p);
+			add_pat(xfrd, p);
+			if(donotify) zone_pattern_notify_start(xfrd, origp);
+		}
+	}
+}
+
+/** print errors over ssl, gets pointer-to-pointer to ssl, so it can set
+ * the pointer to NULL on failure and stop printing */
+static void print_ssl_cfg_err(void* arg, const char* str)
+{
+	SSL** ssl = (SSL**)arg;
+	if(!*ssl) return;
+	if(!ssl_printf(*ssl, "%s", str))
+		*ssl = NULL; /* failed, stop printing */
+}
+
+/** do the repattern command: reread config file and apply keys, patterns */
+static void
+do_repattern(SSL* ssl, xfrd_state_t* xfrd)
+{
+	region_type* region = region_create(xalloc, free);
+	nsd_options_t* opt;
+	const char* cfgfile = xfrd->nsd->options->configfile;
+
+	/* check chroot and configfile, if possible to reread */
+	if(xfrd->nsd->chrootdir) {
+		size_t l = strlen(xfrd->nsd->chrootdir);
+		while(l>0 && xfrd->nsd->chrootdir[l-1] == '/')
+			--l;
+		if(strncmp(xfrd->nsd->chrootdir, cfgfile, l) != 0) {
+			ssl_printf(ssl, "error %s is not relative to %s: "
+				"chroot prevents reread of config\n",
+				cfgfile, xfrd->nsd->chrootdir);
+			region_destroy(region);
+			return;
+		}
+		cfgfile += l;
+	}
+
+	ssl_printf(ssl, "repattern start, read %s\n", cfgfile);
+	opt = nsd_options_create(region);
+	if(!parse_options_file(opt, cfgfile, &print_ssl_cfg_err, &ssl)) {
+		/* error already printed */
+		region_destroy(region);
+		return;
+	}
+	/* check for differences in TSIG keys and patterns, and apply,
+	 * first the keys, so that pattern->keyptr can be set right. */
+	repat_keys(xfrd, opt);
+	repat_patterns(xfrd, opt);
+	send_ok(ssl);
+	region_destroy(region);
+}
+
 /** check for name with end-of-string, space or tab after it */
 static int
 cmdcmp(char* p, const char* cmd, size_t len)
@@ -1154,8 +1369,8 @@ execute_cmd(struct daemon_remote* rc, SSL* ssl, char* cmd, struct rc_state* rs)
 		do_zonestatus(ssl, rc->xfrd, skipwhite(p+10));
 	} else if(cmdcmp(p, "verbosity", 9)) {
 		do_verbosity(ssl, skipwhite(p+9));
-	} else if(cmdcmp(p, "die", 3)) {
-		abort();
+	} else if(cmdcmp(p, "repattern", 9)) {
+		do_repattern(ssl, rc->xfrd);
 	} else {
 		(void)ssl_printf(ssl, "error unknown command '%s'\n", p);
 	}

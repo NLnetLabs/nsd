@@ -1,3 +1,6 @@
+28 July 2011: Wouter
+	- nsd-control repattern reads TSIG and pattern configuration.
+
 25 July 2011: Wouter
 	- fixed tests for removed tools from nsd, with replacements.
 	  replaced nsd-patch with nsd-control write. replaced nsd-notify with

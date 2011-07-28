@@ -103,7 +103,7 @@ struct tsig_key
 {
 	const dname_type *name;
 	size_t            size;
-	const uint8_t    *data;
+	uint8_t		 *data;
 };
 
 struct tsig_record
@@ -144,6 +144,7 @@ int tsig_init(region_type *region);
  * Add the specified key to the TSIG key table.
  */
 void tsig_add_key(tsig_key_type *key);
+void tsig_del_key(tsig_key_type *key);
 
 /*
  * Add the specified algorithm to the TSIG algorithm table.

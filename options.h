@@ -16,6 +16,7 @@
 struct query;
 struct dname;
 struct tsig_key;
+struct buffer;
 
 typedef struct nsd_options nsd_options_t;
 typedef struct pattern_options pattern_options_t;
@@ -28,6 +29,8 @@ typedef struct config_parser_state config_parser_state_t;
  * Options global for nsd.
  */
 struct nsd_options {
+	/* config file name */
+	char* configfile;
 	/* options for zones, by apex, contains zone_options_t */
 	rbtree_t* zone_options;
 	/* patterns, by name, contains pattern_options_t */
@@ -44,9 +47,8 @@ struct nsd_options {
 	/* actual zonelist file name in use */
 	char* zlfile;
 
-	/* list of keys defined */
-	key_options_t* keys;
-	size_t numkeys;
+	/* rbtree of keys defined, by name */
+	rbtree_t* keys;
 
 	/* list of ip adresses to bind to (or NULL for all) */
 	ip_address_option_t* ip_addresses;
@@ -119,6 +121,8 @@ struct pattern_options {
 	uint8_t implicit; /* pattern is implicit, part_of_config zone used */
 };
 
+#define PATTERN_IMPLICIT_MARKER "_implicit_"
+
 /*
  * Options for a zone
  */
@@ -182,10 +186,10 @@ struct acl_options {
  * Key definition
  */
 struct key_options {
-	key_options_t* next;
-	const char* name;
-	const char* algorithm;
-	const char* secret;
+	rbnode_t node; /* key of tree is name */
+	char* name;
+	char* algorithm;
+	char* secret;
 	struct tsig_key* tsig_key;
 };
 
@@ -208,6 +212,7 @@ struct config_parser_state {
 	const char* filename;
 	int line;
 	int errors;
+	int server_settings_seen;
 	nsd_options_t* opt;
 	pattern_options_t* current_pattern;
 	zone_options_t* current_zone;
@@ -218,6 +223,8 @@ struct config_parser_state {
 	acl_options_t* current_notify;
 	acl_options_t* current_provide_xfr;
 	acl_options_t* current_outgoing_interface;
+	void (*err)(void*,const char*);
+	void* err_arg;
 };
 
 extern config_parser_state_t* cfg_parser;
@@ -232,15 +239,27 @@ int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone);
 /* insert a pattern into the main options tree, returns 0 on error */
 int nsd_options_insert_pattern(nsd_options_t* opt, pattern_options_t* pat);
 
-/* parses options file. Returns false on failure */
-int parse_options_file(nsd_options_t* opt, const char* file);
+/* parses options file. Returns false on failure. callback, if nonNULL,
+ * gets called with error strings, default prints. */
+int parse_options_file(nsd_options_t* opt, const char* file,
+	void (*err)(void*,const char*), void* err_arg);
 zone_options_t* zone_options_create(region_type* region);
 void zone_options_delete(nsd_options_t* opt, zone_options_t* zone);
-pattern_options_t* pattern_options_create(region_type* region);
 /* find a zone by apex domain name, or NULL if not found. */
 zone_options_t* zone_options_find(nsd_options_t* opt, const struct dname* apex);
+pattern_options_t* pattern_options_create(region_type* region);
+pattern_options_t* pattern_options_find(nsd_options_t* opt, const char* name);
+int pattern_options_equal(pattern_options_t* p, pattern_options_t* q);
+void pattern_options_remove(nsd_options_t* opt, const char* name);
+void pattern_options_add_modify(nsd_options_t* opt, pattern_options_t* p);
+void pattern_options_marshal(struct buffer* buffer, pattern_options_t* p);
+pattern_options_t* pattern_options_unmarshal(region_type* r, struct buffer* b);
 key_options_t* key_options_create(region_type* region);
+void key_options_insert(nsd_options_t* opt, key_options_t* key);
 key_options_t* key_options_find(nsd_options_t* opt, const char* name);
+void key_options_remove(nsd_options_t* opt, const char* name);
+int key_options_equal(key_options_t* p, key_options_t* q);
+void key_options_add_modify(nsd_options_t* opt, key_options_t* key);
 /* read in zone list file. Returns false on failure */
 int parse_zone_list_file(nsd_options_t* opt, const char* zlfile);
 /* create zone entry and add to the zonelist file */
@@ -272,6 +291,11 @@ int acl_addr_match_range(uint32_t* minval, uint32_t* x, uint32_t* maxval, size_t
 int acl_same_host(acl_options_t* a, acl_options_t* b);
 /* find acl by number in the list */
 acl_options_t* acl_find_num(acl_options_t* acl, int num);
+
+/* see if two acl lists are the same (same elements in same order, or empty) */
+int acl_list_equal(acl_options_t* p, acl_options_t* q);
+/* see if two acl are the same */
+int acl_equal(acl_options_t* p, acl_options_t* q);
 
 /* see if a zone is a slave or a master zone */
 int zone_is_slave(zone_options_t* opt);

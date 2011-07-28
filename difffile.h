@@ -103,7 +103,15 @@ struct task_list_d {
 		/** add a zone */
 		task_add_zone,
 		/** delete zone */
-		task_del_zone
+		task_del_zone,
+		/** add TSIG key */
+		task_add_key,
+		/** delete TSIG key */
+		task_del_key,
+		/** add pattern */
+		task_add_pattern,
+		/** delete pattern */
+		task_del_pattern
 	} task_type;
 	uint32_t size; /* size of this struct */
 
@@ -135,6 +143,10 @@ void task_new_set_verbosity(udb_base* udb, udb_ptr* last, int v);
 void task_new_add_zone(udb_base* udb, udb_ptr* last, const char* zone,
 	const char* pattern);
 void task_new_del_zone(udb_base* udb, udb_ptr* last, const dname_type* dname);
+void task_new_add_key(udb_base* udb, udb_ptr* last, key_options_t* key);
+void task_new_del_key(udb_base* udb, udb_ptr* last, const char* name);
+void task_new_add_pattern(udb_base* udb, udb_ptr* last, pattern_options_t* p);
+void task_new_del_pattern(udb_base* udb, udb_ptr* last, const char* name);
 void task_process_in_reload(struct nsd* nsd, udb_base* udb, udb_ptr *last_task,
 	udb_ptr* task);
 void task_process_expire(namedb_type* db, struct task_list_d* task);
