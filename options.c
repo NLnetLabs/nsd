@@ -92,7 +92,7 @@ int nsd_options_insert_zone(nsd_options_t* opt, zone_options_t* zone)
 
 int nsd_options_insert_pattern(nsd_options_t* opt, pattern_options_t* pat)
 {
-	if(pat->pname)
+	if(!pat->pname)
 		return 0;
 	pat->node.key = pat->pname;
 	if(!rbtree_insert(opt->patterns, (rbnode_t*)pat))
@@ -165,8 +165,6 @@ int parse_options_file(nsd_options_t* opt, const char* file,
 		}
 		if(!cfg_parser->current_zone->pattern)
 			c_error("last zone has no pattern");
-		if(!cfg_parser->current_zone->pattern->zonefile)
-			c_error("last zone pattern has no zonefile");
 	}
 	if(cfg_parser->current_key)
 	{

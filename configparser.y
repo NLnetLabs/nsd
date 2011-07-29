@@ -376,8 +376,6 @@ patternstart: VAR_PATTERN
 			}
 			if(!cfg_parser->current_zone->pattern) 
 				c_error("previous zone has no pattern");
-			if(!cfg_parser->current_zone->pattern->zonefile) 
-				c_error("previous zone pattern has no zonefile");
 			cfg_parser->current_zone = NULL;
 		}
 		if(cfg_parser->current_pattern) {
@@ -386,7 +384,8 @@ patternstart: VAR_PATTERN
 			else {
 				if(!nsd_options_insert_pattern(cfg_parser->opt, 
 					cfg_parser->current_pattern))
-					c_error("duplicate pattern");
+					c_error_msg("duplicate pattern %s",
+						cfg_parser->current_pattern->pname);
 			}
 		}
 		cfg_parser->current_pattern = pattern_options_create(
@@ -439,8 +438,6 @@ zonestart: VAR_ZONE
 			}
 			if(!cfg_parser->current_zone->pattern) 
 				c_error("previous zone has no pattern");
-			if(!cfg_parser->current_zone->pattern->zonefile) 
-				c_error("previous zone pattern has no zonefile");
 		}
 		if(cfg_parser->current_pattern) {
 			if(!cfg_parser->current_pattern->pname) 
@@ -448,7 +445,8 @@ zonestart: VAR_ZONE
 			else {
 				if(!nsd_options_insert_pattern(cfg_parser->opt, 
 					cfg_parser->current_pattern))
-					c_error("duplicate pattern");
+					c_error_msg("duplicate pattern %s",
+						cfg_parser->current_pattern->pname);
 			}
 		}
 		cfg_parser->current_zone = zone_options_create(cfg_parser->opt->region);
