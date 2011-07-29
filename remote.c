@@ -1176,20 +1176,23 @@ static void add_pat(xfrd_state_t* xfrd, pattern_options_t* p)
 	xfrd_set_reload_now(xfrd);
 }
 
-/* stop AXFR/IXFR and NOTIFY using pattern (pnew NULL means delete of p) */
-static int
-zone_pattern_interrupt(xfrd_state_t* xfrd, pattern_options_t* p,
-	pattern_options_t* pnew)
+/** interrupt zones that are using changed or removed patterns */
+static void
+repat_interrupt_zones(xfrd_state_t* xfrd, nsd_options_t* newopt)
 {
 	/* if masterlist changed:
 	 *   interrupt slave zone (UDP or TCP) transfers.
 	 *   slave zones reset master to start of list.
 	 */
-	if(!pnew || !acl_list_equal(p->request_xfr, pnew->request_xfr)) {
-		xfrd_zone_t* xz;
-		RBTREE_FOR(xz, xfrd_zone_t*, xfrd->zones) {
-			if(xz->zone_options->pattern != p)
-				continue;
+	xfrd_zone_t* xz;
+	struct notify_zone_t* nz;
+	RBTREE_FOR(xz, xfrd_zone_t*, xfrd->zones) {
+		pattern_options_t* oldp = xz->zone_options->pattern;
+		pattern_options_t* newp = pattern_options_find(newopt,
+			oldp->pname);
+		if(!newp || !acl_list_equal(oldp->request_xfr,
+			newp->request_xfr)) {
+			/* interrupt transfer */
 			if(xz->tcp_conn != -1) {
 				xfrd_tcp_release(xfrd->tcp_set, xz);
 				xfrd_set_refresh_now(xz);
@@ -1206,37 +1209,42 @@ zone_pattern_interrupt(xfrd_state_t* xfrd, pattern_options_t* p,
 	}
 	/* if notify list changed:
 	 *   interrupt notify that is busy.
-	 *   reset notify to start of list.
+	 *   reset notify to start of list.  (clear all other reset_notify)
 	 */
-	if(!pnew || !acl_list_equal(p->notify, pnew->notify)) {
-		struct notify_zone_t* nz;
-		RBTREE_FOR(nz, struct notify_zone_t*, xfrd->notify_zones) {
-			if(nz->options->pattern != p)
-				continue;
+	RBTREE_FOR(nz, struct notify_zone_t*, xfrd->notify_zones) {
+		pattern_options_t* oldp = nz->options->pattern;
+		pattern_options_t* newp = pattern_options_find(newopt,
+			oldp->pname);
+		if(!newp || !acl_list_equal(oldp->notify, newp->notify)) {
+			/* interrupt notify */
 			if(nz->notify_send_handler.fd != -1) {
 				notify_disable(nz);
 				/* set to restart the notify after the
 				 * pattern has been changed. */
+				nz->notify_restart = 2;
+			} else {
 				nz->notify_restart = 1;
-			} else nz->notify_restart = 0;
+			}
+		} else {
+			nz->notify_restart = 0;
 		}
-		return 1;
 	}
-	return 0;
 }
 
 /** for notify, after the pattern changes, restart the affected notifies */
 static void
-zone_pattern_notify_start(xfrd_state_t* xfrd, pattern_options_t* p)
+repat_interrupt_notify_start(xfrd_state_t* xfrd)
 {
 	struct notify_zone_t* nz;
 	RBTREE_FOR(nz, struct notify_zone_t*, xfrd->notify_zones) {
-		if(nz->options->pattern != p)
-			continue;
-		if(nz->notify_current)
-			nz->notify_current = nz->options->pattern->notify;
-		if(nz->notify_restart)
-			xfrd_notify_start(nz);
+		if(nz->notify_restart) {
+			if(nz->notify_current)
+				nz->notify_current = nz->options->pattern->notify;
+			if(nz->notify_restart == 2) {
+				if(nz->notify_restart)
+					xfrd_notify_start(nz);
+			}
+		}
 	}
 }
 
@@ -1251,6 +1259,7 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 	 */
 	nsd_options_t* oldopt = xfrd->nsd->options;
 	pattern_options_t* p;
+	repat_interrupt_zones(xfrd, newopt);
 	/* find deleted patterns */
 	p = (pattern_options_t*)rbtree_first(oldopt->patterns);
 	while((rbnode_t*)p != RBTREE_NULL) {
@@ -1258,7 +1267,6 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 			(rbnode_t*)p);
 		if(!pattern_options_find(newopt, p->pname)) {
 			if(!p->implicit) {
-				(void)zone_pattern_interrupt(xfrd, p, NULL);
 				remove_pat(xfrd, p->pname);
 			} else log_msg(LOG_WARNING, "a fixed zone entry was "
 				"removed from config, needs restart (%s)",
@@ -1274,11 +1282,10 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 			/* no zones can use it, no zone_interrupt needed */
 			add_pat(xfrd, p);
 		} else if(!pattern_options_equal(p, origp)) {
-			int donotify = zone_pattern_interrupt(xfrd, origp, p);
 			add_pat(xfrd, p);
-			if(donotify) zone_pattern_notify_start(xfrd, origp);
 		}
 	}
+	repat_interrupt_notify_start(xfrd);
 }
 
 /** print errors over ssl, gets pointer-to-pointer to ssl, so it can set
