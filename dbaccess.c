@@ -466,7 +466,8 @@ namedb_read_zonefile(struct namedb* db, struct zone* zone, udb_base* taskudb,
 	int nonexist = 0;
 	unsigned int errors;
 	const char* fname;
-	if(!db || !zone || !zone->opts) return;
+	if(!db || !zone || !zone->opts || !zone->opts->pattern->zonefile)
+		return;
 	fname = config_make_zonefile(zone->opts);
 	if(!file_get_mtime(fname, &mtime, &nonexist)) {
 		if(nonexist) {
