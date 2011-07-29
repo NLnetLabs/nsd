@@ -47,6 +47,13 @@ Reload zonefiles and reopen logfile.  Without argument reads changed
 zonefiles.  With argument reads the zonefile for the given zone and
 loads it.
 .TP
+.B repattern
+Reload nsd.conf and apply changes to TSIG keys and configuration patterns.
+Other changes are not applied.  The pattern updates means that the
+configuration options for zones (request\-xfr, zonefile, notify, ...)
+are updated.  Also new patterns are available for use with the
+addzone command.
+.TP
 .B log_reopen
 Reopen the logfile, for log rotate that wants to move the logfile away
 and create a new logfile.  The log can also be reopened with kill \-HUP
