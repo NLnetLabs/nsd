@@ -23,7 +23,7 @@ static region_type *tsig_region;
 
 struct tsig_key_table
 {
-	rbnode_t node; /* sorted by dname, key is this entry. */
+	rbnode_t node; /* by dname */
 	tsig_key_type *key;
 };
 typedef struct tsig_key_table tsig_key_table_type;
@@ -100,8 +100,7 @@ tsig_digest_variables(tsig_record_type *tsig, int tsig_timers_only)
 static int
 tree_dname_compare(const void* a, const void* b)
 {
-	return dname_compare(((tsig_key_table_type*)a)->key->name,
-		((tsig_key_table_type*)b)->key->name);
+	return dname_compare((const dname_type*)a, (const dname_type*)b);
 }
 
 int
@@ -123,18 +122,16 @@ tsig_add_key(tsig_key_type *key)
 	tsig_key_table_type *entry = (tsig_key_table_type *) region_alloc_zero(
 		tsig_region, sizeof(tsig_key_table_type));
 	entry->key = key;
-	entry->node.key = entry;
+	entry->node.key = entry->key->name;
 	(void)rbtree_insert(tsig_key_table, &entry->node);
 }
 
 void
 tsig_del_key(tsig_key_type *key)
 {
-	tsig_key_table_type lookup;
 	tsig_key_table_type *entry;
 	if(!key) return;
-	lookup.key = key;
-	entry = (tsig_key_table_type*)rbtree_delete(tsig_key_table, &lookup);
+	entry = (tsig_key_table_type*)rbtree_delete(tsig_key_table, key->name);
 	if(!entry) return;
 	region_recycle(tsig_region, entry, sizeof(tsig_key_table_type));
 }
@@ -143,11 +140,7 @@ tsig_key_type*
 tsig_find_key(const dname_type* name)
 {
 	tsig_key_table_type* entry;
-	tsig_key_type t;
-	tsig_key_table_type lookup;
-	lookup.key = &t;
-	t.name = name;
-	entry = (tsig_key_table_type*)rbtree_search(tsig_key_table, &lookup);
+	entry = (tsig_key_table_type*)rbtree_search(tsig_key_table, name);
 	if(entry)
 		return entry->key;
 	return NULL;
