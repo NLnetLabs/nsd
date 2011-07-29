@@ -1160,19 +1160,6 @@ static void repat_keys(xfrd_state_t* xfrd, nsd_options_t* newopt)
 /** remove pattern and add task so that reload does too */
 static void remove_pat(xfrd_state_t* xfrd, const char* name)
 {
-	if(strncmp(name, PATTERN_IMPLICIT_MARKER,
-		strlen(PATTERN_IMPLICIT_MARKER)) == 0) {
-		/* this is the implicit pattern of a part-of-config zone.
-		 * that zone must have been removed from the config file,
-		 * but it stays served until NSD restart, so we keep this
-		 * pattern around */
-		/* NOP - leak and keep allocated so old from_config zones
-		 * stay operational. */
-		log_msg(LOG_WARNING, "config file no longer contains %s, "
-			"but the zone is specified-in-config.  It is not "
-			"deleted until restart", name);
-		return;
-	}
 	/* add task before deletion, because name-string could be deleted */
 	task_new_del_pattern(xfrd->nsd->task[xfrd->nsd->mytask],
 		xfrd->last_task, name);
@@ -1270,8 +1257,12 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 		pattern_options_t* next = (pattern_options_t*)rbtree_next(
 			(rbnode_t*)p);
 		if(!pattern_options_find(newopt, p->pname)) {
-			(void)zone_pattern_interrupt(xfrd, p, NULL);
-			remove_pat(xfrd, p->pname);
+			if(!p->implicit) {
+				(void)zone_pattern_interrupt(xfrd, p, NULL);
+				remove_pat(xfrd, p->pname);
+			} else log_msg(LOG_WARNING, "a fixed zone entry was "
+				"removed from config, needs restart (%s)",
+				p->pname);
 		}
 		p = next;
 	}
