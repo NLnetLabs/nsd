@@ -2158,9 +2158,9 @@ task_process_add_pattern(struct nsd* nsd, struct task_list_d* task)
 	region_type* temp = region_create(xalloc, free);
 	buffer_type buffer;
 	pattern_options_t *pat;
-	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addpattern task"));
 	buffer_create_from(&buffer, task->zname, task->yesno);
 	pat = pattern_options_unmarshal(temp, &buffer);
+	DEBUG(DEBUG_IPC,1, (LOG_INFO, "addpattern task %s", pat->pname));
 	pattern_options_add_modify(nsd->options, pat);
 	region_destroy(temp);
 }

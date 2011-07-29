@@ -1116,9 +1116,10 @@ do_delzone(SSL* ssl, xfrd_state_t* xfrd, char* arg)
 /** remove TSIG key from config and add task so that reload does too */
 static void remove_key(xfrd_state_t* xfrd, const char* kname)
 {
-	key_options_remove(xfrd->nsd->options, kname);
+	/* add task before deletion because the name string could be deleted */
 	task_new_del_key(xfrd->nsd->task[xfrd->nsd->mytask], xfrd->last_task,
 		kname);
+	key_options_remove(xfrd->nsd->options, kname);
 	xfrd_set_reload_now(xfrd); /* this is executed when the current control
 		command ends, thus the entire config changes are bunched up */
 }
@@ -1138,9 +1139,13 @@ static void repat_keys(xfrd_state_t* xfrd, nsd_options_t* newopt)
 	nsd_options_t* oldopt = xfrd->nsd->options;
 	key_options_t* k;
 	/* find deleted keys */
-	RBTREE_FOR(k, key_options_t*, oldopt->keys) {
+	k = (key_options_t*)rbtree_first(oldopt->keys);
+	while((rbnode_t*)k != RBTREE_NULL) {
+		key_options_t* next = (key_options_t*)rbtree_next(
+			(rbnode_t*)k);
 		if(!key_options_find(newopt, k->name))
 			remove_key(xfrd, k->name);
+		k = next;
 	}
 	/* find added or changed keys */
 	RBTREE_FOR(k, key_options_t*, newopt->keys) {
@@ -1168,9 +1173,10 @@ static void remove_pat(xfrd_state_t* xfrd, const char* name)
 			"deleted until restart", name);
 		return;
 	}
-	pattern_options_remove(xfrd->nsd->options, name);
+	/* add task before deletion, because name-string could be deleted */
 	task_new_del_pattern(xfrd->nsd->task[xfrd->nsd->mytask],
 		xfrd->last_task, name);
+	pattern_options_remove(xfrd->nsd->options, name);
 	xfrd_set_reload_now(xfrd);
 }
 
@@ -1259,11 +1265,15 @@ static void repat_patterns(xfrd_state_t* xfrd, nsd_options_t* newopt)
 	nsd_options_t* oldopt = xfrd->nsd->options;
 	pattern_options_t* p;
 	/* find deleted patterns */
-	RBTREE_FOR(p, pattern_options_t*, oldopt->patterns) {
+	p = (pattern_options_t*)rbtree_first(oldopt->patterns);
+	while((rbnode_t*)p != RBTREE_NULL) {
+		pattern_options_t* next = (pattern_options_t*)rbtree_next(
+			(rbnode_t*)p);
 		if(!pattern_options_find(newopt, p->pname)) {
 			(void)zone_pattern_interrupt(xfrd, p, NULL);
 			remove_pat(xfrd, p->pname);
 		}
+		p = next;
 	}
 	/* find added or changed patterns */
 	RBTREE_FOR(p, pattern_options_t*, newopt->patterns) {

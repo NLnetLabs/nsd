@@ -786,7 +786,7 @@ static acl_options_t* copy_acl_list(nsd_options_t* opt, acl_options_t* a)
 
 		/* link as last into list */
 		b->next = NULL;
-		if(blist) blist = b;
+		if(!blist) blist = b;
 		else blast->next = b;
 		blast = b;
 		
