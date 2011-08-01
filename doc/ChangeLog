@@ -1,3 +1,6 @@
+1 August 2011: Wouter
+	- fix checkconf test for remote control options.
+
 29 July 2011: Wouter
 	- zones with no zonefile are not written to text (assumes you can
 	  get AXFR and IXFR for the contents).  They are stored in nsd.db.
