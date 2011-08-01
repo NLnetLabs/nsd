@@ -447,12 +447,12 @@ AC_DEFINE_UNQUOTED([STRPTIME_WORKS], 1, [use default strptime.])
 fi
 ])dnl
 
+AC_SEARCH_LIBS(inet_pton, [nsl])
+AC_SEARCH_LIBS(socket, [socket])
+
 AC_CHECK_STRPTIME_WORKS
 ACX_CHECK_NONBLOCKING_BROKEN
 ACX_MKDIR_ONE_ARG
-
-AC_SEARCH_LIBS(inet_pton, [nsl])
-AC_SEARCH_LIBS(socket, [socket])
 
 # set -I. and -Isrcdir
 if test -n "$CPPFLAGS"; then
