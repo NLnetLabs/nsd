@@ -1,5 +1,6 @@
 1 August 2011: Wouter
 	- fix checkconf test for remote control options.
+	- fix warning on Ubuntu 10.04, fix autoconf 2.68 warning on NetBSD.
 
 29 July 2011: Wouter
 	- zones with no zonefile are not written to text (assumes you can

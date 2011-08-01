@@ -429,13 +429,13 @@ AC_DEFUN([AC_CHECK_STRPTIME_WORKS],
 [AC_REQUIRE([AC_PROG_CC])
 AC_MSG_CHECKING(whether strptime works)
 if test c${cross_compiling} = cno; then
-AC_TRY_RUN([
+AC_RUN_IFELSE([AC_LANG_SOURCE([[
 #define _XOPEN_SOURCE
 #include <time.h>
 int main(void) { struct tm tm; char *res; 
 res = strptime("20070207111842", "%Y%m%d%H%M%S", &tm);
 if (!res) return 1; return 0; }
-] , [eval "ac_cv_c_strptime_works=yes"], [eval "ac_cv_c_strptime_works=no"])
+]])] , [eval "ac_cv_c_strptime_works=yes"], [eval "ac_cv_c_strptime_works=no"])
 else
 eval "ac_cv_c_strptime_works=maybe"
 fi
