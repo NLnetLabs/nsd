@@ -163,25 +163,27 @@ contact_server(const char* svr, nsd_options_t* cfg, int statuscmd)
 		}
 	} 
         if(strchr(svr, ':')) {
-		struct sockaddr_in6* sa = (struct sockaddr_in6*)&addr;
+		struct sockaddr_in6 sa;
 		addrlen = (socklen_t)sizeof(struct sockaddr_in6);
-		memset(sa, 0, addrlen);
-		sa->sin6_family = AF_INET6;
-		sa->sin6_port = (in_port_t)htons((uint16_t)port);
-		if(inet_pton((int)sa->sin6_family, svr, &sa->sin6_addr) <= 0) {
+		memset(&sa, 0, addrlen);
+		sa.sin6_family = AF_INET6;
+		sa.sin6_port = (in_port_t)htons((uint16_t)port);
+		if(inet_pton((int)sa.sin6_family, svr, &sa.sin6_addr) <= 0) {
 			fprintf(stderr, "could not parse IP: %s\n", svr);
 			exit(1);
 		}
+		memcpy(&addr, &sa, addrlen);
 	} else { /* ip4 */
-		struct sockaddr_in* sa = (struct sockaddr_in*)&addr;
+		struct sockaddr_in sa;
 		addrlen = (socklen_t)sizeof(struct sockaddr_in);
-		memset(sa, 0, addrlen);
-		sa->sin_family = AF_INET;
-		sa->sin_port = (in_port_t)htons((uint16_t)port);
-		if(inet_pton((int)sa->sin_family, svr, &sa->sin_addr) <= 0) {
+		memset(&sa, 0, addrlen);
+		sa.sin_family = AF_INET;
+		sa.sin_port = (in_port_t)htons((uint16_t)port);
+		if(inet_pton((int)sa.sin_family, svr, &sa.sin_addr) <= 0) {
 			fprintf(stderr, "could not parse IP: %s\n", svr);
 			exit(1);
 		}
+		memcpy(&addr, &sa, addrlen);
 	}
 
 	fd = socket(strchr(svr, ':')?AF_INET6:AF_INET, SOCK_STREAM, 0);
