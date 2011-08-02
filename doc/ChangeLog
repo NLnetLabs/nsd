@@ -1,3 +1,6 @@
+2 August 2011: Wouter
+	- fix compile on Ubuntu 11.04 systems, detects cc system header issue.
+
 1 August 2011: Wouter
 	- fix checkconf test for remote control options.
 	- fix warning on Ubuntu 10.04, fix autoconf 2.68 warning on NetBSD.

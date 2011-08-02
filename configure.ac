@@ -243,7 +243,8 @@ fi
 CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
 CHECK_COMPILER_FLAG(fwhole-program, [
 	# check if it really works
-	AC_MSG_CHECKING([if -combine and system headers work])
+	AC_MSG_CHECKING([if -combine and system headers work (u10.04)])
+[
 cat >conftest1.c <<EOF 
 #include <string.h>
 #include <stdio.h>
@@ -262,7 +263,7 @@ int write_data(FILE* f, char* buf, size_t len) { }
 
 int writepid(struct nsd *nsd) {
 	FILE * fd;
-	char pidbuf[[32]];
+	char pidbuf[32];
 
 	memset(&fd, 0, sizeof(fd));
 
@@ -292,12 +293,150 @@ cat >conftest2.c <<EOF
 #include <string.h>
 #include <stdio.h>
 EOF
+]
 	if $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >/dev/null 2>&1; then
 		AC_MSG_RESULT(yes)
-		CCWHOLE="whole"
-		ACX_CHECK_FLTO
+		AC_MSG_CHECKING([if -combine and system headers work (u11.04)])
+[
+cat >conftest1.c <<EOF
+#include <inttypes.h>
+#include <string.h>
+#include <stdlib.h>
+
+void *xalloc(size_t size) { return malloc(size); }
+struct region;
+struct region *region_create(void *(*allocator)(size_t),
+	void (*deallocator)(void *))
+{ (void)allocator; (void)deallocator; return (struct region*)malloc(10); }
+struct udb_base;
+struct udb_ptr;
+#define NSEC3_HASH_LEN 20
+int udb_zone_lookup_hash_wc(struct udb_base* udb, struct udb_ptr* zone,
+	const uint8_t* nm, size_t nmlen, uint8_t hash[NSEC3_HASH_LEN],
+        uint8_t wchash[NSEC3_HASH_LEN]);
+struct dname { uint8_t name_size, label_count; };
+const struct dname *dname_parse(struct region *region, const char *name);
+const struct dname *dname_concatenate(struct region *region,
+	const struct dname *left, const struct dname *right);
+static inline const uint8_t *
+dname_name(const struct dname *dname)
+{
+        return (const uint8_t *) ((const char *) dname + sizeof(struct dname)
+		+ dname->label_count * sizeof(uint8_t));
+}
+struct radnode;
+struct radtree;
+struct domain { struct dname* dname; 
+        uint8_t nsec3_hash[NSEC3_HASH_LEN];
+        uint8_t nsec3_wc_hash[NSEC3_HASH_LEN];
+        uint8_t nsec3_ds_parent_hash[NSEC3_HASH_LEN];
+        unsigned  have_nsec3_hash : 1;
+        unsigned  have_nsec3_wc_hash : 1;
+        unsigned  have_nsec3_ds_parent_hash : 1;
+} ;
+struct zone;
+struct namedb { struct udb_base* udb; } ;
+static inline const struct dname *
+domain_dname(struct domain *domain)
+{
+        return domain->dname;
+}
+
+void nsec3_hash_and_store(struct zone* zone, const struct dname* dname,
+        uint8_t* store);
+
+#define STORE_HASH(x,y) memmove(domain->x,y,NSEC3_HASH_LEN); domain->have_##x =1;
+
+static void
+nsec3_lookup_hash_and_wc(struct namedb* db, struct zone* zone,
+	struct udb_ptr* z, const struct dname* dname, struct domain* domain)
+{
+	uint8_t h[NSEC3_HASH_LEN], h_wc[NSEC3_HASH_LEN];
+	const struct dname* wcard;
+	if(domain->have_nsec3_hash && domain->have_nsec3_wc_hash) {
+		return;
+	}
+	if( udb_zone_lookup_hash_wc(db->udb, z, dname_name(dname),
+		dname->name_size, h, h_wc)) {
+		STORE_HASH(nsec3_hash, h);
+		STORE_HASH(nsec3_wc_hash, h_wc);
+		return;
+	}
+	nsec3_hash_and_store(zone, dname, domain->nsec3_hash);
+	struct region* region = region_create(xalloc, free);
+	wcard = dname_parse(region, "*");
+	wcard = dname_concatenate(region, wcard, dname);
+}
+
+void nsec3_precompile_domain(struct namedb* db, struct domain* domain,
+	struct zone* zone, struct udb_ptr* z)
+{
+	nsec3_lookup_hash_and_wc(db, zone, z, domain_dname(domain), domain);
+}
+EOF
+cat >conftest2.c <<EOF
+#include <sys/types.h>
+#include <inttypes.h>
+#include <string.h>
+struct radtree;
+struct radnode;
+struct region;
+typedef uint16_t radstrlen_t;
+struct domain;
+struct radtree* radix_tree_create(void) { return (struct radtree*)malloc(10); }
+struct radnode* radix_insert(struct radtree* rt, uint8_t* k, radstrlen_t len,
+        void* elem) { (void)rt; (void)k; (void)len; (void)elem; return 0; }
+
+static struct radtree* hash_tree_create(void)
+{
+	struct radtree* tree = radix_tree_create();
+	(void)radix_insert(tree, NULL, 0, tree);
+	return tree;
+}
+
+void zone_add_domain_in_hash_tree(struct radtree** tree, uint8_t* hash,
+	size_t hashlen, struct domain* domain, struct radnode** node)
+{
+	if(!*tree) *tree = hash_tree_create();
+	*node = radix_insert(*tree, hash, hashlen, domain);
+}
+
+const struct dname *dname_parse(struct region *region, const char *name)
+{ (void)region; (void)name; return (struct dname*)malloc(10); }
+
+const struct dname *dname_concatenate(struct region *region,
+        const struct dname *left, const struct dname *right)
+{ (void)region; (void)left; return right; }
+
+struct udb_base;
+struct udb_ptr;
+#define NSEC3_HASH_LEN 20
+int udb_zone_lookup_hash_wc(struct udb_base* udb, struct udb_ptr* zone,
+        const uint8_t* nm, size_t nmlen, uint8_t hash[NSEC3_HASH_LEN],
+        uint8_t wchash[NSEC3_HASH_LEN])
+{ (void)udb; (void)zone; (void)nm; (void)hash; (void)wchash; return nmlen; }
+
+struct zone;
+void nsec3_hash_and_store(struct zone* zone, const struct dname* dname,
+        uint8_t* store) { (void)zone; (void)dname; (void)store; }
+
+int main(void) { return 0; }
+EOF
+]
+		if $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >/dev/null 2>&1; then
+			AC_MSG_RESULT(yes)
+			CCWHOLE="whole"
+			ACX_CHECK_FLTO
+		else
+			AC_MSG_RESULT(no)
+			echo "failed command $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c" >&AS_MESSAGE_LOG_FD
+			$CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >&AS_MESSAGE_LOG_FD 2>&1
+			CCWHOLE="unwhole"
+		fi
 	else
 		AC_MSG_RESULT(no)
+		echo "failed command $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c" >&AS_MESSAGE_LOG_FD
+		$CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >&AS_MESSAGE_LOG_FD 2>&1
 		CCWHOLE="unwhole"
 	fi
 	rm -f conftest1.c conftest2.c conftest.out
