@@ -242,6 +242,10 @@ fi
 # Checks for typedefs, structures, and compiler characteristics.
 CHECK_COMPILER_FLAG(O2, [], [ CFLAGS=`echo $CFLAGS | sed -e "s/-O2//g"` ])
 CHECK_COMPILER_FLAG(fwhole-program, [
+	# check first, because it triggerts the gcc optimizer system header
+	# troubles on ubuntu 10.04 and 11.04 more easily.  Also if it works
+	# on its own this is optimized.
+	ACX_CHECK_FLTO
 	# check if it really works
 	AC_MSG_CHECKING([if -combine and system headers work (u10.04)])
 [
@@ -426,7 +430,6 @@ EOF
 		if $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c >/dev/null 2>&1; then
 			AC_MSG_RESULT(yes)
 			CCWHOLE="whole"
-			ACX_CHECK_FLTO
 		else
 			AC_MSG_RESULT(no)
 			echo "failed command $CC $CFLAGS -o conftest.out -combine -fwhole-program conftest1.c conftest2.c" >&AS_MESSAGE_LOG_FD
