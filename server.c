@@ -1835,7 +1835,10 @@ handle_tcp_writing(netio_type *netio,
 #ifdef ECONNRESET
 				if(verbosity >= 2 || errno != ECONNRESET)
 #endif /* ECONNRESET */
-				log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
+#ifdef EPIPE
+				  if(verbosity >= 2 || errno != EPIPE)
+#endif /* EPIPE 'broken pipe' */
+				    log_msg(LOG_ERR, "failed writing to tcp: %s", strerror(errno));
 				cleanup_tcp_handler(netio, handler);
 				return;
 			}
