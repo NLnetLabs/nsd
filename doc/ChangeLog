@@ -1,6 +1,7 @@
 3 August 2011: Wouter
 	- silence 'Broken pipe' messages in log (visible with verbosity 2).
 	- fix makedist.sh for removal of patch, notify, xfer. new nsd-control.
+	- tag 4.0.0-imp-5 created.
 
 2 August 2011: Wouter
 	- fix compile on Ubuntu 11.04 systems, detects cc system header issue.
