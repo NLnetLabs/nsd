@@ -36,6 +36,7 @@
 #	nsd_munin_by_class	- incoming queries by class
 #	nsd_munin_by_opcode	- incoming queries by opcode
 #	nsd_munin_by_rcode	- answers by rcode
+#	nsd_munin_zones		- number of zones
 #
 # Magic markers - optional - used by installation scripts and
 # munin-config:
@@ -74,6 +75,7 @@ nsd_munin_by_type	- incoming queries by type
 nsd_munin_by_class	- incoming queries by class
 nsd_munin_by_opcode	- incoming queries by opcode
 nsd_munin_by_rcode	- answers by rcode
+nsd_munin_zones		- number of zones
 
 =head1 AUTHOR
 
@@ -180,6 +182,7 @@ if test "$1" = "suggest" ; then
 	echo "by_class"
 	echo "by_opcode"
 	echo "by_rcode"
+	echo "zones"
 	exit 0
 fi
 
@@ -301,6 +304,16 @@ if test "$1" = "config" ; then
 		done
 		echo "graph_info answers split out by return value."
 		;;
+	zones)
+		echo "graph_title NSD number of zones"
+		echo "graph_args --base 1000 -l 0"
+		echo "graph_vlabel zone count"
+		echo "graph_category DNS"
+		p_config "zone.total" "total zones"
+		p_config "zone.master" "master zones"
+		p_config "zone.slave" "slave zones"
+		echo "graph_info number of zones served by NSD."
+		;;
 	esac
 
 	exit 0
@@ -370,8 +383,8 @@ memory)
 		else
 			vszval=0
 		fi
-	echo "size.vsz" $vszval
-	echo "size.rss" $rssval
+	echo "size_vsz" $vszval
+	echo "size_rss" $rssval
 	for x in size.db.mem size.xfrd.mem size.config.mem \
 		size.db.disk size.config.disk; do
 		print_value $x
@@ -401,4 +414,12 @@ by_rcode)
 		print_qps_line $nm $x
 	done
 	;;
+zones)
+	get_value "zone.master"
+	nummas="$value"
+	get_value "zone.slave"
+	numsla="$value"
+	echo "zone_total" `expr $nummas + $numsla`
+	echo "zone_master" "$nummas"
+	echo "zone_slave" "$numsla"
 esac
