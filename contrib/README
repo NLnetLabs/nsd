@@ -21,3 +21,9 @@ USE AT YOUR OWN RISK.
   translation to an NSD server. The goal is to make it simple to run
   redundant BIND and NSD servers and keep them in sync, using only the
   BIND configuration files
+
+* nsd_munin_ : plugin for munin statistics report
+  You must have given --enable-bind8-stats (default is on) to configure.
+  Copy the file to /usr/share/munin/plugins (or you munin node dir).
+  You may also need to create a number of symbolic links under the names
+  of the graphs you want to create (documented at head of file).
