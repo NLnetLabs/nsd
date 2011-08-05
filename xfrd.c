@@ -1945,7 +1945,9 @@ xfrd_process_stat_info_task(xfrd_state_t* xfrd, struct task_list_d* task)
 		xfrd->nsd->children[i].query_count += *p++;
 	}
 	/* got total, now see if users are interested in these statistics */
+#ifdef HAVE_SSL
 	daemon_remote_process_stats(xfrd->nsd->rc);
+#endif
 }
 #endif /* BIND8_STATS */
 

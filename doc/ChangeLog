@@ -1,5 +1,6 @@
 5 August 2011: Wouter
 	- Fix make from repeating action already taken.
+	- Fix compile without openssl.
 
 3 August 2011: Wouter
 	- silence 'Broken pipe' messages in log (visible with verbosity 2).

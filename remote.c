@@ -43,7 +43,7 @@
  * Both the server and the client(control tool) have their own keys.
  */
 #include "config.h"
-#if defined(HAVE_SSL)
+#ifdef HAVE_SSL
 
 #ifdef HAVE_OPENSSL_SSL_H
 #include "openssl/ssl.h"
