@@ -140,6 +140,7 @@ test:
 
 whole:	nsd-control-setup.sh nsd-checkconf nsd-control nsd.conf.sample zlexer.c zparser.c configlexer.c configparser.c $(MANUALS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o nsd -combine -fwhole-program `echo $(NSD_OBJ) | sed -e 's;\\([^ \\.]*\\)\\.o;$(srcdir)/\\1.c;g'` $(LIBOBJS) $(SSL_LIBS) $(LIBS)
+	@touch whole
 
 nsd:	$(NSD_OBJ) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJ) $(LIBOBJS) $(SSL_LIBS) $(LIBS)
@@ -158,7 +159,7 @@ udb-inspect:	udb-inspect.o $(COMMON_OBJ) $(LIBOBJS)
 
 clean:
 	rm -f *.o *.so y.* *.core *.gmon tags TAGS
-	rm -f $(TARGETS) $(MANUALS) cutest udb-inspect
+	rm -f $(TARGETS) $(MANUALS) cutest udb-inspect whole
 
 realclean: clean
 	rm -f Makefile config.h config.log config.status

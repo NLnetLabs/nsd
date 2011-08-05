@@ -1,3 +1,6 @@
+5 August 2011: Wouter
+	- Fix make from repeating action already taken.
+
 3 August 2011: Wouter
 	- silence 'Broken pipe' messages in log (visible with verbosity 2).
 	- fix makedist.sh for removal of patch, notify, xfer. new nsd-control.
