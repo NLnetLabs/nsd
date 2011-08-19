@@ -77,10 +77,11 @@ log_open(int option, int facility, const char *filename)
 void
 log_reopen(const char *filename, uint8_t verbose)
 {
-	if(strcmp(filename, "/dev/stdout")==0 || strcmp(filename, "/dev/stderr")==0)
-		return;
 	if (filename) {
-		FILE *file = fopen(filename, "a");
+		FILE *file;
+		if(strcmp(filename, "/dev/stdout")==0 || strcmp(filename, "/dev/stderr")==0)
+			return;
+		file = fopen(filename, "a");
 		if (!file) {
 			if (verbose)
 				VERBOSITY(2, (LOG_WARNING,
