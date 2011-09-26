@@ -551,12 +551,7 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 			original->nsec3_cover);
 	}
 	else {	/* add nsec3 to prove rrset does not exist */
-		log_msg(LOG_ERR, "nsec3_answer_nodata: NODATA match=%s",
-			dname_to_string(domain_dname(original), NULL));
-
 		if(original->nsec3_is_exact) {
-			log_msg(LOG_ERR, "nsec3_answer_nodata: NODATA exact match=%s",
-				dname_to_string(domain_dname(original), NULL));
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				original->nsec3_cover);
 		}
