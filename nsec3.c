@@ -358,7 +358,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 		domain_dname(walk), domain_dname(zone->apex)))
 	{
 		zone_type* z;
-		if(!walk->is_existing || domain_has_only_NSEC3(walk, zone)) {
+		if(!walk->is_existing && domain_has_only_NSEC3(walk, zone)) {
 			walk->nsec3_cover = NULL;
 			walk->nsec3_wcard_child_cover = NULL;
 			walk = domain_next(walk);
@@ -520,6 +520,7 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 {
 	if(!query->zone->nsec3_soa_rr)
 		return;
+
 	/* nodata when asking for secure delegation */
 	if(query->qtype == TYPE_DS)
 	{
@@ -538,18 +539,27 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 	else if (original==original->wildcard_child_closest_match
 		&& label_is_wildcard(dname_name(domain_dname(original)))) {
 		/* denial for wildcard is already there */
+
 		/* add parent proof to have a closest encloser proof for wildcard parent */
+		/* in other words: nsec3 matching closest encloser */
 		if(original->parent && original->parent->nsec3_is_exact)
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				original->parent->nsec3_cover);
 		/* proof for wildcard itself */
+		/* in other words: nsec3 matching source of synthesis */
 		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 			original->nsec3_cover);
 	}
 	else {	/* add nsec3 to prove rrset does not exist */
-		if(original->nsec3_is_exact)
+		log_msg(LOG_ERR, "nsec3_answer_nodata: NODATA match=%s",
+			dname_to_string(domain_dname(original), NULL));
+
+		if(original->nsec3_is_exact) {
+			log_msg(LOG_ERR, "nsec3_answer_nodata: NODATA exact match=%s",
+				dname_to_string(domain_dname(original), NULL));
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
 				original->nsec3_cover);
+		}
 	}
 }
 
@@ -592,7 +602,8 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 		return;
 	assert(match);
 	/* there is a match, this has 1 RRset, which is NSEC3, but qtype is not. */
-	if(*match &&
+        /* !is_existing: no RR types exist at the QNAME, nor at any descendant of QNAME */
+	if(*match && !(*match)->is_existing &&
 #if 0
 		query->qtype != TYPE_NSEC3 &&
 #endif
@@ -614,6 +625,16 @@ nsec3_answer_authoritative(struct domain** match, struct query *query,
 			/* wildcard and nsec3 domain clash. server failure. */
 			RCODE_SET(query->packet, RCODE_SERVFAIL);
 		}
+		return;
+	}
+	else if(*match && (*match)->is_existing &&
+#if 0
+		query->qtype != TYPE_NSEC3 &&
+#endif
+		domain_has_only_NSEC3(*match, query->zone))
+	{
+		/* this looks like a NSEC3 domain, but is actually an empty non-terminal. */
+		nsec3_answer_nodata(query, answer, *match);
 		return;
 	}
 	if(!*match) {
