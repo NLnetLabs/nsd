@@ -1376,6 +1376,8 @@ query_add_optional(query_type *q, nsd_type *nsd)
 	case EDNS_NOT_PRESENT:
 		break;
 	case EDNS_OK:
+		if (q->edns.dnssec_ok)	edns->ok[7] = 0x80;
+		else			edns->ok[7] = 0x00;
 		buffer_write(q->packet, edns->ok, OPT_LEN);
 		if (nsd->nsid_len > 0 && q->edns.nsid == 1 &&
 				!query_overflow_nsid(q, nsd->nsid_len)) {
@@ -1393,6 +1395,8 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		STATUP(nsd, edns);
 		break;
 	case EDNS_ERROR:
+		if (q->edns.dnssec_ok)	edns->error[7] = 0x80;
+		else			edns->error[7] = 0x00;
 		buffer_write(q->packet, edns->error, OPT_LEN);
 		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
