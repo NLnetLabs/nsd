@@ -953,7 +953,7 @@ answer_authoritative(struct nsd   *nsd,
 	rrset_type *rrset;
 
 #ifdef NSEC3
-	if(exact && !closest_match->is_existing && domain_has_only_NSEC3(closest_match, q->zone)) {
+	if(exact && domain_has_only_NSEC3(closest_match, q->zone)) {
 		exact = 0; /* pretend it does not exist */
 		if(closest_encloser->parent)
 			closest_encloser = closest_encloser->parent;
