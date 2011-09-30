@@ -599,6 +599,10 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	zone->nsec3_soa_rr = NULL;
 	zone->nsec3_last = NULL;
 #endif
+#ifdef NSEC4
+	zone->nsec4_soa_rr = NULL;
+	zone->nsec4_last = NULL;
+#endif
 	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*child_count);
 	if(!zone->dirty) {
 		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);

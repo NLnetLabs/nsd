@@ -36,6 +36,7 @@
 #include "util.h"
 #include "options.h"
 #include "nsec3.h"
+#include "nsec4.h"
 #include "tsig.h"
 
 /* [Bug #253] Adding unnecessary NS RRset may lead to undesired truncation.
@@ -788,6 +789,10 @@ answer_delegation(query_type *query, answer_type *answer)
 		} else if (query->zone->nsec3_soa_rr) {
 			nsec3_answer_delegation(query, answer);
 #endif
+#ifdef NSEC4
+		} else if (query->zone->nsec4_soa_rr) {
+			nsec4_answer_delegation(query, answer);
+#endif
 		} else if ((rrset = domain_find_rrset(query->delegation_domain, query->zone, TYPE_NSEC))) {
 			add_rrset(query, answer, AUTHORITY_SECTION,
 				  query->delegation_domain, rrset);
@@ -835,6 +840,11 @@ answer_nodata(struct query *query, answer_type *answer, domain_type *original)
 		nsec3_answer_nodata(query, answer, original);
 	} else
 #endif
+#ifdef NSEC4
+	if (query->edns.dnssec_ok && query->zone->nsec4_soa_rr) {
+		nsec4_answer_nodata(query, answer, original);
+	} else
+#endif
 	if (query->edns.dnssec_ok && zone_is_secure(query->zone)) {
 		domain_type *nsec_domain;
 		rrset_type *nsec_rrset;
@@ -873,6 +883,9 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 #ifdef NSEC3
 				&& rrset_rrtype(rrset) != TYPE_NSEC3
 #endif
+#ifdef NSEC4
+				&& rrset_rrtype(rrset) != TYPE_NSEC4
+#endif
 			    /*
 			     * Don't include the RRSIG RRset when
 			     * DNSSEC is used, because it is added
@@ -892,6 +905,11 @@ answer_domain(struct nsd* nsd, struct query *q, answer_type *answer,
 		}
 #ifdef NSEC3
 	} else if (q->qtype == TYPE_NSEC3) {
+		answer_nodata(q, answer, original);
+		return;
+#endif
+#ifdef NSEC4
+	} else if (q->qtype == TYPE_NSEC4) {
 		answer_nodata(q, answer, original);
 		return;
 #endif
@@ -964,12 +982,22 @@ answer_authoritative(struct nsd   *nsd,
 	rrset_type *rrset;
 
 #ifdef NSEC3
-	if(exact && domain_has_only_NSEC3(closest_match, q->zone)) {
+	if(exact &&
+		domain_has_only_NSEC3(closest_match, q->zone)) {
 		exact = 0; /* pretend it does not exist */
 		if(closest_encloser->parent)
 			closest_encloser = closest_encloser->parent;
 	}
 #endif /* NSEC3 */
+#ifdef NSEC4
+	/* perhaps check for domain_has_only_NSEC3_NSEC4 */
+	if(exact &&
+		domain_has_only_NSEC4(closest_match, q->zone)) {
+		exact = 0; /* pretend it does not exist */
+		if(closest_encloser->parent)
+			closest_encloser = closest_encloser->parent;
+	}
+#endif /* NSEC4 */
 
 	if (exact) {
 		match = closest_match;
@@ -1046,6 +1074,18 @@ answer_authoritative(struct nsd   *nsd,
 			nsec3_answer_wildcard(q, answer, wildcard_child, nsd->db, qname);
 		}
 #endif
+#ifdef NSEC4
+		match->nsec4_is_exact = wildcard_child->nsec4_is_exact;
+		match->nsec4_cover = wildcard_child->nsec4_cover;
+		match->nsec4_wcard_child_cover = wildcard_child->nsec4_wcard_child_cover;
+		match->nsec4_ds_parent_is_exact = wildcard_child->nsec4_ds_parent_is_exact;
+		match->nsec4_ds_parent_cover = wildcard_child->nsec4_ds_parent_cover;
+
+		if (q->edns.dnssec_ok && q->zone->nsec4_soa_rr) {
+			/* Only add nsec4 wildcard data when do bit is set */
+			nsec4_answer_wildcard(q, answer, wildcard_child, nsd->db, qname);
+		}
+#endif
 
 		/*
 		 * Remember the original domain in case a Wildcard No
@@ -1062,6 +1102,12 @@ answer_authoritative(struct nsd   *nsd,
 #ifdef NSEC3
 	if (q->edns.dnssec_ok && q->zone->nsec3_soa_rr) {
 		nsec3_answer_authoritative(&match, q, answer,
+			closest_encloser, nsd->db, qname);
+	} else
+#endif
+#ifdef NSEC4
+	if (q->edns.dnssec_ok && q->zone->nsec4_soa_rr) {
+		nsec4_answer_authoritative(&match, q, answer,
 			closest_encloser, nsd->db, qname);
 	} else
 #endif
@@ -1097,6 +1143,11 @@ answer_authoritative(struct nsd   *nsd,
 #ifdef NSEC3
 	if (RCODE(q->packet)!=RCODE_OK) {
 		return; /* nsec3 collision failure */
+	}
+#endif
+#ifdef NSEC4
+	if (RCODE(q->packet)!=RCODE_OK) {
+		return; /* nsec4 collision failure */
 	}
 #endif
 	if (match) {

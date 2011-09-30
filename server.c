@@ -40,6 +40,7 @@
 #include "xfrd-tcp.h"
 #include "difffile.h"
 #include "nsec3.h"
+#include "nsec4.h"
 #include "ipc.h"
 
 /*
@@ -535,9 +536,11 @@ server_prepare(struct nsd *nsd)
 	}
 
 #ifdef NSEC3
-	prehash(nsd->db, 0);
+	nsec3_prehash(nsd->db, 0);
 #endif
-
+#ifdef NSEC4
+	nsec4_prehash(nsd->db, 0);
+#endif
 	compression_table_capacity = 0;
 	initialize_dname_compression_tables(nsd);
 
@@ -759,8 +762,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		region_log_stats(nsd->db->region);
 #endif /* NDEBUG */
 #ifdef NSEC3
-	prehash(nsd->db, 1);
-#endif /* NSEC3 */
+	nsec3_prehash(nsd->db, 1);
+#endif
+#ifdef NSEC4
+	nsec4_prehash(nsd->db, 1);
+#endif
 
 	initialize_dname_compression_tables(nsd);
 

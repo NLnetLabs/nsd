@@ -87,6 +87,7 @@ ALL_OBJECTS	=			\
 	nsd-patch.o			\
 	nsd-xfer.o			\
 	nsec3.o				\
+	nsec4.o				\
 	options.o			\
 	packet.o			\
 	query.o				\
@@ -123,6 +124,7 @@ NSD_OBJECTS	=				\
 	netio.o					\
 	nsd.o					\
 	nsec3.o					\
+	nsec4.o					\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
@@ -152,6 +154,7 @@ ZONEC_OBJECTS	=				\
 	iterated_hash.o				\
 	namedb.o				\
 	nsec3.o					\
+	nsec4.o					\
 	options.o				\
 	packet.o				\
 	query.o					\
@@ -179,6 +182,7 @@ NSD_NOTIFY_OBJECTS	=			\
 	namedb.o				\
 	nsd-notify.o				\
 	nsec3.o					\
+	nsec4.o					\
 	options.o				\
 	packet.o				\
 	query.o					\
@@ -203,6 +207,7 @@ NSD_XFER_OBJECTS	=			\
 	namedb.o				\
 	nsd-xfer.o				\
 	nsec3.o					\
+	nsec4.o					\
 	options.o				\
 	packet.o				\
 	query.o					\
@@ -227,6 +232,7 @@ NSD_CHECKCONF_OBJECTS	=			\
 	namedb.o                                \
 	nsd-checkconf.o                         \
 	nsec3.o					\
+	nsec4.o					\
 	options.o                               \
 	packet.o				\
 	query.o					\
@@ -253,6 +259,7 @@ NSD_PATCH_OBJECTS	=			\
 	namedb.o				\
 	nsd-patch.o				\
 	nsec3.o					\
+	nsec4.o					\
 	options.o                               \
 	packet.o				\
 	query.o					\
@@ -281,6 +288,7 @@ CUTEST_OBJECTS		=			\
 	namedb.o				\
 	netio.o					\
 	nsec3.o					\
+	nsec4.o					\
 	packet.o				\
 	query.o					\
 	rbtree.o				\
@@ -594,6 +602,9 @@ nsd-xfer.o: $(srcdir)/nsd-xfer.c config.h $(srcdir)/dname.h $(srcdir)/buffer.h $
 nsec3.o: $(srcdir)/nsec3.c config.h $(srcdir)/nsec3.h $(srcdir)/iterated_hash.h $(srcdir)/namedb.h $(srcdir)/dname.h \
  $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/answer.h \
  $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h
+nsec4.o: $(srcdir)/nsec4.c config.h $(srcdir)/nsec4.h $(srcdir)/iterated_hash.h $(srcdir)/namedb.h $(srcdir)/dname.h \
+ $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/answer.h \
+ $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/tsig.h
 options.o: $(srcdir)/options.c config.h $(srcdir)/options.h $(srcdir)/region-allocator.h $(srcdir)/rbtree.h \
  $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/packet.h \
  $(srcdir)/tsig.h $(srcdir)/difffile.h $(srcdir)/configyyrename.h configparser.h
@@ -601,14 +612,14 @@ packet.o: $(srcdir)/packet.c config.h $(srcdir)/packet.h $(srcdir)/dns.h $(srcdi
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h $(srcdir)/rdata.h
 query.o: $(srcdir)/query.c config.h $(srcdir)/answer.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/packet.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h $(srcdir)/tsig.h \
- $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/nsec3.h
+ $(srcdir)/axfr.h $(srcdir)/options.h $(srcdir)/nsec3.h $(srcdir)/nsec4.h
 rbtree.o: $(srcdir)/rbtree.c config.h $(srcdir)/rbtree.h $(srcdir)/region-allocator.h
 rdata.o: $(srcdir)/rdata.c config.h $(srcdir)/rdata.h $(srcdir)/dns.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/rbtree.h $(srcdir)/zonec.h
 region-allocator.o: $(srcdir)/region-allocator.c config.h $(srcdir)/region-allocator.h $(srcdir)/util.h
 server.o: $(srcdir)/server.c config.h $(srcdir)/axfr.h $(srcdir)/nsd.h $(srcdir)/dns.h $(srcdir)/edns.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/query.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/rbtree.h $(srcdir)/packet.h \
- $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/nsec3.h $(srcdir)/ipc.h
+ $(srcdir)/tsig.h $(srcdir)/netio.h $(srcdir)/xfrd.h $(srcdir)/options.h $(srcdir)/xfrd-tcp.h $(srcdir)/difffile.h $(srcdir)/nsec3.h $(srcdir)/nsec4.h $(srcdir)/ipc.h
 tsig.o: $(srcdir)/tsig.c config.h $(srcdir)/tsig.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dname.h \
  $(srcdir)/tsig-openssl.h $(srcdir)/dns.h $(srcdir)/packet.h $(srcdir)/namedb.h $(srcdir)/rbtree.h $(srcdir)/query.h $(srcdir)/nsd.h $(srcdir)/edns.h
 tsig-openssl.o: $(srcdir)/tsig-openssl.c config.h $(srcdir)/tsig-openssl.h $(srcdir)/region-allocator.h \
@@ -631,7 +642,7 @@ zlexer.o: zlexer.c config.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h zparser.h
 zonec.o: $(srcdir)/zonec.c config.h $(srcdir)/zonec.h $(srcdir)/namedb.h $(srcdir)/dname.h $(srcdir)/buffer.h \
  $(srcdir)/region-allocator.h $(srcdir)/util.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/rdata.h zparser.h $(srcdir)/options.h \
- $(srcdir)/nsec3.h
+ $(srcdir)/nsec3.h $(srcdir)/nsec4.h
 zparser.o: zparser.c config.h $(srcdir)/dname.h $(srcdir)/buffer.h $(srcdir)/region-allocator.h $(srcdir)/util.h \
  $(srcdir)/namedb.h $(srcdir)/dns.h $(srcdir)/rbtree.h $(srcdir)/zonec.h
 b64_ntop.o: $(srcdir)/compat/b64_ntop.c config.h

@@ -8,7 +8,8 @@
  * With thanks to Ben Laurie.
  */
 #include <config.h>
-#ifdef NSEC3
+
+#if defined(NSEC3) || defined(NSEC4)
 #include <openssl/sha.h>
 #include <stdio.h>
 #include <assert.h>
@@ -20,7 +21,7 @@ iterated_hash(unsigned char out[SHA_DIGEST_LENGTH],
 	const unsigned char *salt, int saltlength,
 	const unsigned char *in, int inlength, int iterations)
 {
-#if defined(NSEC3) && defined(HAVE_SSL)
+#if defined(HAVE_SSL)
 	SHA_CTX ctx;
 	int n;
 	assert(in && inlength > 0 && iterations >= 0);
@@ -40,4 +41,5 @@ iterated_hash(unsigned char out[SHA_DIGEST_LENGTH],
 #endif
 }
 
-#endif /* NSEC3 */
+#endif /* NSEC3 || NSEC4 */
+

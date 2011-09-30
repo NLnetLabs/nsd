@@ -62,6 +62,17 @@ struct domain
 	 * an NSEC3 record, with hopefully the correct parameters. */
 	domain_type *nsec3_lookup;
 #endif
+#ifdef NSEC4
+	/* (if nsec4 chain complete) always the covering nsec4 record */
+	domain_type *nsec4_cover;
+	/* the nsec4 that covers the wildcard child of this domain. */
+	domain_type *nsec4_wcard_child_cover;
+	/* for the DS case we must answer on the parent side of zone cut */
+	domain_type *nsec4_ds_parent_cover;
+	/* the NSEC4 domain that has a hash-base32 <= than this dname. */
+	/* or NULL (no smaller one within this zone) */
+	domain_type *nsec4_lookup;
+#endif
 	uint32_t     number; /* Unique domain name number.  */
 
 	/*
@@ -75,6 +86,12 @@ struct domain
 	/* same but on parent side */
 	unsigned     nsec3_ds_parent_is_exact : 1;
 #endif
+#ifdef NSEC4
+	/* if the domain has an NSEC4 for it, use cover ptr to get it. */
+	unsigned     nsec4_is_exact : 1;
+	/* same but on parent side */
+	unsigned     nsec4_ds_parent_is_exact : 1;
+#endif
 };
 
 struct zone
@@ -87,6 +104,10 @@ struct zone
 #ifdef NSEC3
 	rr_type	    *nsec3_soa_rr; /* rrset with SOA bit set */
 	domain_type *nsec3_last; /* last domain with nsec3, wraps */
+#endif
+#ifdef NSEC4
+	rr_type	    *nsec4_soa_rr; /* rrset with SOA bit set */
+	domain_type *nsec4_last; /* last domain with nsec4, wraps */
 #endif
 	struct zone_options *opts;
 	uint32_t     number;

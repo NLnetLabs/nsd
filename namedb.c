@@ -47,6 +47,14 @@ allocate_domain_info(domain_table_type *table,
 	result->nsec3_is_exact = 0;
 	result->nsec3_ds_parent_is_exact = 0;
 #endif
+#ifdef NSEC4
+	result->nsec4_cover = NULL;
+	result->nsec4_wcard_child_cover = NULL;
+	result->nsec4_ds_parent_cover = NULL;
+	result->nsec4_lookup = NULL;
+	result->nsec4_is_exact = 0;
+	result->nsec4_ds_parent_is_exact = 0;
+#endif
 	result->is_existing = 0;
 	result->is_apex = 0;
 
@@ -79,6 +87,14 @@ domain_table_create(region_type *region)
 	root->nsec3_wcard_child_cover = NULL;
 	root->nsec3_ds_parent_cover = NULL;
 	root->nsec3_lookup = NULL;
+#endif
+#ifdef NSEC4
+	root->nsec4_is_exact = 0;
+	root->nsec4_ds_parent_is_exact = 0;
+	root->nsec4_cover = NULL;
+	root->nsec4_wcard_child_cover = NULL;
+	root->nsec4_ds_parent_cover = NULL;
+	root->nsec4_lookup = NULL;
 #endif
 
 	result = (domain_table_type *) region_alloc(region,
@@ -364,7 +380,7 @@ rrset_type *
 domain_find_non_cname_rrset(domain_type *domain, zone_type *zone)
 {
 	/* find any rrset type that is not allowed next to a CNAME */
-	/* nothing is allowed next to a CNAME, except RRSIG, NSEC, NSEC3 */
+	/* nothing is allowed next to a CNAME, except RRSIG, NSEC, NSEC3, NSEC4 */
 	rrset_type *result = domain->rrsets;
 
 	while (result) {
@@ -374,7 +390,8 @@ domain_find_non_cname_rrset(domain_type *domain, zone_type *zone)
 			rrset_rrtype(result) != TYPE_NXT &&
 			rrset_rrtype(result) != TYPE_SIG &&
 			rrset_rrtype(result) != TYPE_NSEC &&
-			rrset_rrtype(result) != TYPE_NSEC3 ) {
+			rrset_rrtype(result) != TYPE_NSEC3 &&
+			rrset_rrtype(result) != TYPE_NSEC4 ) {
 			return result;
 		}
 		result = result->next;

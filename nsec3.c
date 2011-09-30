@@ -358,7 +358,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 		domain_dname(walk), domain_dname(zone->apex)))
 	{
 		zone_type* z;
-		if(!walk->is_existing || domain_has_only_NSEC3(walk, zone)) {
+		if(!walk->is_existing && domain_has_only_NSEC3(walk, zone)) {
 			walk->nsec3_cover = NULL;
 			walk->nsec3_wcard_child_cover = NULL;
 			walk = domain_next(walk);
@@ -385,7 +385,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 }
 
 void
-prehash(struct namedb* db, int updated_only)
+nsec3_prehash(struct namedb* db, int updated_only)
 {
 	zone_type *z;
 	time_t end, start = time(NULL);
@@ -537,7 +537,7 @@ nsec3_answer_nodata(struct query *query, struct answer *answer,
 	/* the nodata is result from a wildcard match */
 	else if (original==original->wildcard_child_closest_match
 		&& label_is_wildcard(dname_name(domain_dname(original)))) {
-		/* denial for wildcard is already there */
+		/* denial for wildcard is already there (by answer_wildcard) */
 		/* add parent proof to have a closest encloser proof for wildcard parent */
 		if(original->parent && original->parent->nsec3_is_exact)
 			nsec3_add_rrset(query, answer, AUTHORITY_SECTION,

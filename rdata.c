@@ -344,7 +344,7 @@ rdata_hexlen_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
 	if(rdata_atom_size(rdata) <= 1) {
-		/* NSEC3 salt hex can be empty */
+		/* NSEC3 NSEC4 salt hex can be empty */
 		buffer_printf(output, "-");
 		return 1;
 	}

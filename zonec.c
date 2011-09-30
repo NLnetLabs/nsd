@@ -40,6 +40,7 @@
 #include "zparser.h"
 #include "options.h"
 #include "nsec3.h"
+#include "nsec4.h"
 
 const dname_type *error_dname;
 domain_type *error_domain;
@@ -1356,6 +1357,10 @@ check_dname(namedb_type* db)
 			domain_type* parent = domain->parent;
 #ifdef NSEC3
 			if(domain_has_only_NSEC3(domain, NULL))
+				continue;
+#endif
+#ifdef NSEC4
+			if(domain_has_only_NSEC4(domain, NULL))
 				continue;
 #endif
 			while(parent) {

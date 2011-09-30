@@ -401,6 +401,23 @@ static rrtype_descriptor_type rrtype_descriptors[(RRTYPE_DESCRIPTORS_LENGTH+1)] 
 	{ TYPE_DLV, "DLV", T_DLV, 4, 4,
 	  { RDATA_WF_SHORT, RDATA_WF_BYTE, RDATA_WF_BYTE, RDATA_WF_BINARY },
 	  { RDATA_ZF_SHORT, RDATA_ZF_ALGORITHM, RDATA_ZF_BYTE, RDATA_ZF_HEX } },
+	/* 65326 */
+	{ TYPE_NSEC4, "NSEC4", T_NSEC4, 6, 6,
+	  { RDATA_WF_BYTE, /* hash type */
+	    RDATA_WF_BYTE, /* flags */
+	    RDATA_WF_SHORT, /* iterations */
+	    RDATA_WF_BINARYWITHLENGTH, /* salt */
+	    RDATA_WF_LITERAL_DNAME, /* next hashed name */
+	    RDATA_WF_BINARY /* type bitmap */ },
+	  { RDATA_ZF_BYTE, RDATA_ZF_BYTE, RDATA_ZF_SHORT, RDATA_ZF_HEX_LEN,
+	    RDATA_ZF_LITERAL_DNAME, RDATA_ZF_NSEC } },
+	/* 65327 */
+	{ TYPE_NSEC4PARAM, "NSEC4PARAM", T_NSEC4PARAM, 4, 4,
+	  { RDATA_WF_BYTE, /* hash type */
+	    RDATA_WF_BYTE, /* flags */
+	    RDATA_WF_SHORT, /* iterations */
+	    RDATA_WF_BINARYWITHLENGTH /* salt */ },
+	  { RDATA_ZF_BYTE, RDATA_ZF_BYTE, RDATA_ZF_SHORT, RDATA_ZF_HEX_LEN } },
 };
 
 rrtype_descriptor_type *
@@ -410,6 +427,10 @@ rrtype_descriptor_by_type(uint16_t type)
 		return &rrtype_descriptors[type];
 	else if (type == TYPE_DLV)
 		return &rrtype_descriptors[PSEUDO_TYPE_DLV];
+	else if (type == TYPE_NSEC4)
+		return &rrtype_descriptors[PSEUDO_TYPE_NSEC4];
+	else if (type == TYPE_NSEC4PARAM)
+		return &rrtype_descriptors[PSEUDO_TYPE_NSEC4PARAM];
 	return &rrtype_descriptors[0];
 }
 
@@ -430,6 +451,18 @@ rrtype_descriptor_by_name(const char *name)
 	    && strcasecmp(rrtype_descriptors[PSEUDO_TYPE_DLV].name, name) == 0)
 	{
 		return &rrtype_descriptors[PSEUDO_TYPE_DLV];
+	}
+
+	if (rrtype_descriptors[PSEUDO_TYPE_NSEC4].name
+	    && strcasecmp(rrtype_descriptors[PSEUDO_TYPE_NSEC4].name, name) == 0)
+	{
+		return &rrtype_descriptors[PSEUDO_TYPE_NSEC4];
+	}
+
+	if (rrtype_descriptors[PSEUDO_TYPE_NSEC4PARAM].name
+	    && strcasecmp(rrtype_descriptors[PSEUDO_TYPE_NSEC4PARAM].name, name) == 0)
+	{
+		return &rrtype_descriptors[PSEUDO_TYPE_NSEC4PARAM];
 	}
 
 	return NULL;

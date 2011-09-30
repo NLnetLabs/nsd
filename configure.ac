@@ -598,7 +598,7 @@ case "$enable_checking" in
                 ;;
 esac
 
-# we need SSL for TSIG (and maybe also for NSEC3).
+# we need SSL for TSIG (and maybe also for NSEC3 / NSEC4).
 CHECK_SSL
 
 AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
@@ -608,6 +608,15 @@ case "$enable_nsec3" in
         yes|*)
 		AC_DEFINE_UNQUOTED([NSEC3], [], [Define this to enable NSEC3 support.])
                 ;;
+esac
+
+AC_ARG_ENABLE(nsec4, AC_HELP_STRING([--enable-nsec4], [Enable NSEC4 support]))
+case "$enable_nsec4" in
+        yes)
+		AC_DEFINE_UNQUOTED([NSEC4], [], [Define this to enable NSEC4 support.])
+                ;;
+        no|*)
+		;;
 esac
 
 AC_ARG_ENABLE(mmap, AC_HELP_STRING([--enable-mmap], [Use mmap instead of malloc. Experimental.]))
