@@ -773,7 +773,12 @@ answer_delegation(query_type *query, answer_type *answer)
 	assert(query->delegation_domain);
 	assert(query->delegation_rrset);
 
-	AA_CLR(query->packet);
+	if (query->cname_count == 0) {
+		AA_CLR(query->packet);
+	} else {
+		AA_SET(query->packet);
+	}
+
 	add_rrset(query,
 		  answer,
 		  AUTHORITY_SECTION,
