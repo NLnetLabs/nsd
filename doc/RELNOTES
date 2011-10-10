@@ -9,6 +9,9 @@ BUG FIXES:
 	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
 	- Fix to have no authority NS set processing for CNAMEs.
+	- Set the AA bit on responses that have an authoritative CNAME.
+	- Fix denial of existence response for empty non-terminal that looks
+	  like a NSEC3-only domain (but has data below it).
 
 3.2.8
 =============

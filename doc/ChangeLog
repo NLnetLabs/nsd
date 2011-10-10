@@ -1,3 +1,7 @@
+10 October 2011: Matthijs
+	- Don't clear the AA bit if there is an authoritative CNAME in the
+	  answer section (as shown in RFC 1034, Section 6.2.7, 2nd example).
+
 10 October 2011: Wouter
 	- squelch EPIPE when writing AXFR, enable with verbosity 2.
 
