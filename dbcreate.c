@@ -25,25 +25,13 @@ struct namedb *
 namedb_new (const char *filename)
 {
 	namedb_type *db;
-	region_type *region;
-
-#ifdef USE_MMAP_ALLOC
-	region = region_create_custom(mmap_alloc, mmap_free,
-		MMAP_ALLOC_CHUNK_SIZE, MMAP_ALLOC_LARGE_OBJECT_SIZE,
-		MMAP_ALLOC_INITIAL_CLEANUP_SIZE, 1);
-#else /* !USE_MMAP_ALLOC */
-	region = region_create_custom(xalloc, free,
-		DEFAULT_CHUNK_SIZE, DEFAULT_LARGE_OBJECT_SIZE,
-		DEFAULT_INITIAL_CLEANUP_SIZE, 1);
-#endif /* !USE_MMAP_ALLOC */
-
 	/* Make a new structure... */
-	db = (namedb_type *) region_alloc(region, sizeof(namedb_type));
-	db->region = region;
-	db->domains = domain_table_create(region);
-	db->zones = NULL;
-	db->zone_count = 0;
-	db->filename = region_strdup(region, filename);
+        if ((db = namedb_create()) == NULL) {
+                log_msg(LOG_ERR,
+                        "insufficient memory to create database");
+                return NULL;
+        }
+	db->filename = region_strdup(db->region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
 	db->fd = NULL;
@@ -51,7 +39,7 @@ namedb_new (const char *filename)
 	if (gettimeofday(&(db->diff_timestamp), NULL) != 0) {
 		log_msg(LOG_ERR, "unable to load %s: cannot initialize "
 						 "timestamp", db->filename);
-		region_destroy(region);
+		namedb_destroy(db);
 		return NULL;
 	}
 
@@ -60,19 +48,20 @@ namedb_new (const char *filename)
 	 * ensure that NSD doesn't see the changes until a reload is done.
 	 */
 	if (unlink(db->filename) == -1 && errno != ENOENT) {
-		region_destroy(region);
+		namedb_destroy(db);
 		return NULL;
 	}
 
 	/* Create the database */
 	if ((db->fd = fopen(db->filename, "w")) == NULL) {
-		region_destroy(region);
+		namedb_destroy(db);
 		return NULL;
 	}
 
 	if (!write_data_crc(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE, &db->crc)) {
 		fclose(db->fd);
-		namedb_discard(db);
+		/* S64: - fclose(db->fd); */
+		namedb_destroy(db);
 		return NULL;
 	}
 
@@ -84,35 +73,58 @@ int
 namedb_save (struct namedb *db)
 {
 	if (write_db(db) != 0) {
+		/* S64: + namedb_discard(db); */
 		return -1;
 	}
 
 	/* Finish up and write the crc */
 	if (!write_number(db, ~db->crc)) {
 		fclose(db->fd);
+		/* S64: - fclose(db->fd); */
+		/* S64: + namedb_discard(db); */
 		return -1;
 	}
 
 	/* Write the magic... */
 	if (!write_data_crc(db->fd, NAMEDB_MAGIC, NAMEDB_MAGIC_SIZE, &db->crc)) {
 		fclose(db->fd);
+		/* S64: - fclose(db->fd); */
+		/* S64: + namedb_discard(db); */
 		return -1;
 	}
 
 	/* Close the database */
 	fclose(db->fd);
-
-	region_destroy(db->region);
+	namedb_destroy(db);
 	return 0;
 }
 
+/*
+ * close and delete the file in the case of an error
+ * contents moved from portion of namedb_discard
+ */
+static void
+namedb_delete(struct namedb *db)
+{
+	if (db->fd != NULL) {
+		fclose(db->fd);
+		db->fd = NULL;
+
+		unlink(db->filename);
+	}
+}
 
 void
 namedb_discard (struct namedb *db)
 {
+	if (db == NULL)
+		return;
+
 	unlink(db->filename);
-	region_destroy(db->region);
-}
+	/* S64: - unlink(db->filename); */
+	/* S64: + namedb_delete(db); */
+	namedb_destroy(db);
+ }
 
 static int
 write_dname(struct namedb *db, domain_type *domain)

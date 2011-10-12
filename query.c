@@ -773,7 +773,12 @@ answer_delegation(query_type *query, answer_type *answer)
 	assert(query->delegation_domain);
 	assert(query->delegation_rrset);
 
-	AA_CLR(query->packet);
+	if (query->cname_count == 0) {
+		AA_CLR(query->packet);
+	} else {
+		AA_SET(query->packet);
+	}
+
 	add_rrset(query,
 		  answer,
 		  AUTHORITY_SECTION,
@@ -1035,11 +1040,13 @@ answer_authoritative(struct nsd   *nsd,
 		match->rrsets = wildcard_child->rrsets;
 		match->is_existing = wildcard_child->is_existing;
 #ifdef NSEC3
-		match->nsec3_is_exact = wildcard_child->nsec3_is_exact;
 		match->nsec3_cover = wildcard_child->nsec3_cover;
+/*		S64: -
+		match->nsec3_is_exact = wildcard_child->nsec3_is_exact;
 		match->nsec3_wcard_child_cover = wildcard_child->nsec3_wcard_child_cover;
 		match->nsec3_ds_parent_is_exact = wildcard_child->nsec3_ds_parent_is_exact;
 		match->nsec3_ds_parent_cover = wildcard_child->nsec3_ds_parent_cover;
+*/
 
 		if (q->edns.dnssec_ok && q->zone->nsec3_soa_rr) {
 			/* Only add nsec3 wildcard data when do bit is set */

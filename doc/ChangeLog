@@ -1,7 +1,11 @@
+10 October 2011: Matthijs
+	- Don't clear the AA bit if there is an authoritative CNAME in the
+	  answer section (as shown in RFC 1034, Section 6.2.7, 2nd example).
+
 10 October 2011: Wouter
 	- squelch EPIPE when writing AXFR, enable with verbosity 2.
 
-26 September 2011:
+26 September 2011: Matthijs
 	- Copy the DO bit to the response.
 	- Don't return SERVFAIL on a domain that looks like a NSEC3 domain but
 	  is actually a empty non-terminal.

@@ -17,6 +17,9 @@ BUG FIXES:
 	  The zone is flagged with error and AXFR-ed.
 	- Fix to have no authority NS set processing for CNAMEs.
 	- Fix nsd-checkconf to check tsig algorithms properly.
+	- Set the AA bit on responses that have an authoritative CNAME.
+	- Fix denial of existence response for empty non-terminal that looks
+	  like a NSEC3-only domain (but has data below it).
 
 OPERATIONAL NOTES:
 	- nsd.db version number increased because NSD 3.2.7 and earlier

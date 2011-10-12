@@ -15,6 +15,8 @@
 #include "dname.h"
 #include "dns.h"
 #include "rbtree.h"
+#include "nsec3.h"
+
 struct zone_options;
 struct nsd_options;
 
@@ -46,12 +48,15 @@ struct domain
 	domain_type *wildcard_child_closest_match;
 	rrset_type  *rrsets;
 #ifdef NSEC3
+	domain_type *nsec3_cover; /* != NULL is exact cover */
+
+/*	S64: - */
 	/* (if nsec3 chain complete) always the covering nsec3 record */
-	domain_type *nsec3_cover;
+/*	domain_type *nsec3_cover; */
 	/* the nsec3 that covers the wildcard child of this domain. */
-	domain_type *nsec3_wcard_child_cover;
+/*	domain_type *nsec3_wcard_child_cover; */
 	/* for the DS case we must answer on the parent side of zone cut */
-	domain_type *nsec3_ds_parent_cover;
+/*	domain_type *nsec3_ds_parent_cover; */
 	/* the NSEC3 domain that has a hash-base32 <= than this dname. */
 	/* or NULL (no smaller one within this zone)
 	 * this variable is used to look up the NSEC3 record that matches
@@ -60,7 +65,7 @@ struct domain
 	 * The variable makes it possible to perform a rbtree lookup for
 	 * a name, then take this 'jump' to the previous element that contains
 	 * an NSEC3 record, with hopefully the correct parameters. */
-	domain_type *nsec3_lookup;
+/*	domain_type *nsec3_lookup; */
 #endif
 	uint32_t     number; /* Unique domain name number.  */
 
@@ -69,12 +74,14 @@ struct domain
 	 */
 	unsigned     is_existing : 1;
 	unsigned     is_apex : 1;
-#ifdef NSEC3
+	unsigned     has_SOA : 1;
+/*	S64: - */
+/* #ifdef NSEC3 */
 	/* if the domain has an NSEC3 for it, use cover ptr to get it. */
-	unsigned     nsec3_is_exact : 1;
+/*	unsigned     nsec3_is_exact : 1; */
 	/* same but on parent side */
-	unsigned     nsec3_ds_parent_is_exact : 1;
-#endif
+/*	unsigned     nsec3_ds_parent_is_exact : 1; */
+/* #endif */
 };
 
 struct zone
@@ -87,6 +94,7 @@ struct zone
 #ifdef NSEC3
 	rr_type	    *nsec3_soa_rr; /* rrset with SOA bit set */
 	domain_type *nsec3_last; /* last domain with nsec3, wraps */
+	rbtree_t    *nsec3_domains;
 #endif
 	struct zone_options *opts;
 	uint32_t     number;
@@ -95,6 +103,19 @@ struct zone
 	unsigned     updated : 1; /* zone SOA was updated */
 	unsigned     is_ok : 1; /* zone has not expired. */
 };
+
+#ifdef NSEC3
+struct nsec3_domain {
+	rbnode_t node;
+	struct domain *nsec3_domain;
+	struct domain *covers;
+};
+
+struct nsec3_mod_domain {
+	rbnode_t node;
+	struct domain *domain;
+};
+#endif /* NSEC3 */
 
 /* a RR in DNS */
 struct rr {
@@ -195,6 +216,7 @@ rrset_type *domain_find_any_rrset(domain_type *domain, zone_type *zone);
 zone_type *domain_find_zone(domain_type *domain);
 zone_type *domain_find_parent_zone(zone_type *zone);
 
+domain_type *domain_find_zone_apex(domain_type *domain);
 domain_type *domain_find_ns_rrsets(domain_type *domain, zone_type *zone, rrset_type **ns);
 
 int domain_is_glue(domain_type *domain, zone_type *zone);
@@ -234,6 +256,11 @@ typedef struct namedb namedb_type;
 struct namedb
 {
 	region_type       *region;
+#ifdef NSEC3
+	region_type       *nsec3_region;
+	region_type       *nsec3_mod_region;
+	rbtree_t          *nsec3_mod_domains;
+#endif /* NSEC3 */
 	domain_table_type *domains;
 	zone_type         *zones;
 	size_t	  	  zone_count;
@@ -327,5 +354,33 @@ rrset_rrclass(rrset_type *rrset)
 	return rrset->rrs[0].klass;
 }
 
+/**
+ * @brief Allocate and initialize a struct namedb.
+ *
+ * @return Returns a pointer to a valid struct namedb or NULL on failure.
+ */
+struct namedb * namedb_create(void);
+
+/**
+ * @brief Destroy a struct namedb.
+ *
+ * Destroy a struct namedb created using the namedb_create function.  Frees
+ * all regions associated with the namedb structure.
+ *
+ * @param db Pointer to namedb structure.
+ *
+ * @return Nothing is returned.
+ */
+void namedb_destroy(struct namedb *db);
+
+#ifdef NSEC3
+int zone_nsec3_domains_create(struct namedb *db, struct zone *zone);
+int zone_nsec3_domains_destroy(struct namedb *db, struct zone *zone);
+int namedb_add_nsec3_domain(struct namedb *db, struct domain *domain, struct zone *zone);
+int namedb_del_nsec3_domain(struct namedb *db, struct domain *domain, struct zone *zone);
+int namedb_nsec3_mod_domains_create(struct namedb *db);
+int namedb_nsec3_mod_domains_destroy(struct namedb *db);
+int namedb_add_nsec3_mod_domain(struct namedb *db, struct domain *domain);
+#endif /* NSEC3 */
 
 #endif

@@ -115,7 +115,7 @@ packet_encode_rrset(query_type *query,
 	uint16_t added = 0;
 	int all_added = 1;
 	int truncate_rrset = (section == ANSWER_SECTION ||
-							section == AUTHORITY_SECTION);
+		section == AUTHORITY_SECTION);
 	rrset_type *rrsig;
 
 	assert(rrset->rr_count > 0);
