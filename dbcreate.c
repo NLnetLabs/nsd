@@ -26,11 +26,11 @@ namedb_new (const char *filename)
 {
 	namedb_type *db;
 	/* Make a new structure... */
-        if ((db = namedb_create()) == NULL) {
-                log_msg(LOG_ERR,
-                        "insufficient memory to create database");
-                return NULL;
-        }
+	if ((db = namedb_create()) == NULL) {
+		log_msg(LOG_ERR,
+			"insufficient memory to create database");
+		return NULL;
+	}
 	db->filename = region_strdup(db->region, filename);
 	db->crc = 0xffffffff;
 	db->diff_skip = 0;
