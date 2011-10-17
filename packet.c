@@ -108,14 +108,15 @@ int
 packet_encode_rrset(query_type *query,
 		    domain_type *owner,
 		    rrset_type *rrset,
-		    int section)
+		    int section, int* done)
 {
 	uint16_t i;
 	size_t truncation_mark;
 	uint16_t added = 0;
 	int all_added = 1;
 	int truncate_rrset = (section == ANSWER_SECTION ||
-							section == AUTHORITY_SECTION);
+				section == AUTHORITY_SECTION);
+	int minimize_response = (section >= OPTIONAL_AUTHORITY_SECTION);
 	rrset_type *rrsig;
 
 	assert(rrset->rr_count > 0);
@@ -151,6 +152,15 @@ packet_encode_rrset(query_type *query,
 				}
 			}
 		}
+	}
+
+	if ((!all_added || buffer_position(query->packet) > MINIMAL_RESPONSE_SIZE)
+	    && !query->tcp && minimize_response) {
+		/* Truncate entire RRset. */
+		buffer_set_position(query->packet, truncation_mark);
+		query_clear_dname_offsets(query, truncation_mark);
+		added = 0;
+		*done = 1;
 	}
 
 	if (!all_added && truncate_rrset) {
