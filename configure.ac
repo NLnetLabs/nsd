@@ -610,6 +610,15 @@ case "$enable_nsec3" in
                 ;;
 esac
 
+AC_ARG_ENABLE(minimal-responses, AC_HELP_STRING([--disable-minimal-responses], [Disable minimal responses]))
+case "$enable_minimal_responses" in
+        no)
+		;;
+        yes|*)
+		AC_DEFINE_UNQUOTED([MINIMAL_RESPONSES], [], [Define this to enable minimal responses.])
+                ;;
+esac
+
 AC_ARG_ENABLE(mmap, AC_HELP_STRING([--enable-mmap], [Use mmap instead of malloc. Experimental.]))
 case "$enable_mmap" in
         yes)

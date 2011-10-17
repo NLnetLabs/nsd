@@ -62,7 +62,13 @@ encode_answer(query_type *q, const answer_type *answer)
 	uint16_t counts[RR_SECTION_COUNT];
 	rr_section_type section;
 	size_t i;
+        int minimal_respsize = IPV6_MINIMAL_RESPONSE_SIZE;
 	int done = 0;
+
+#if defined(INET6) && defined(MINIMAL_RESPONSES)
+	if (q->addr.ss_family == AF_INET6)
+		minimal_respsize = IPV6_MINIMAL_RESPONSE_SIZE;
+#endif
 
 	for (section = ANSWER_SECTION; section < RR_SECTION_COUNT; ++section) {
 		counts[section] = 0;
@@ -78,12 +84,19 @@ encode_answer(query_type *q, const answer_type *answer)
 					q,
 					answer->domains[i],
 					answer->rrsets[i],
-					section, &done);
+					section, minimal_respsize, &done);
 			}
 		}
+#ifdef MINIMAL_RESPONSES
+		/**
+		 * done is set prematurely, because the minimal response size
+		 * has been reached. No need to try adding RRsets in following
+		 * sections.
+		 */
 		if (done) {
 			break;
 		}
+#endif
 	}
 
 	ANCOUNT_SET(q->packet, counts[ANSWER_SECTION]);
