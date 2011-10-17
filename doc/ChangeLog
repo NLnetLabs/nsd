@@ -1,9 +1,8 @@
 17 October 2011: Matthijs
-	- Minimal UDP responses to 512 (no-EDNS) or 1280 (EDNS).
-	  If EDNS buffer size is set and is smaller than 1280, minimize
-	  responses to EDNS buffer size.
-	  If minimize responses, leave out optional NS RRsets from the
-	  authority section and all RRsets from additional section.
+	-- configuration option --disable-minimal-responses.
+	- Minimize responses to reduce truncation, leave out optional NS
+	  RRsets from the authority section and all RRsets from additional
+	  section.
 
 10 October 2011: Matthijs
 	- Don't clear the AA bit if there is an authoritative CNAME in the

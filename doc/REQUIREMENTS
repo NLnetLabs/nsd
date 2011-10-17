@@ -615,8 +615,13 @@ C 4.4 Truncation handling. (as rfc2181 9)
   responses are not considered REQUIRED and therefore will NOT lead
   to setting of the TC bit. The minimal response size is:
   - 512 in case of no EDNS;
-  - 1280 in case of EDNS;
-  - the advertized buffer size if that value is smaller than 1280.
+  - 1480 in case of EDNS/IPv4;
+  - 1220 in case of EDNS/IPv6;
+  - the advertized buffer size if that value is smaller than the
+    the EDNS defaults.
+
+  The feature can be disabled during build time with
+  --disable-minimal-responses.
 
   If inclusion of an RRset in the Additional section is not possible
   RRs are omitted one by one. This may lead to incomplete RRsets.

@@ -610,12 +610,12 @@ case "$enable_nsec3" in
                 ;;
 esac
 
-AC_ARG_ENABLE(minimal-responses, AC_HELP_STRING([--disable-minimal-responses], [Disable minimal responses]))
+AC_ARG_ENABLE(minimal-responses, AC_HELP_STRING([--disable-minimal-responses], [Disable response minimization. More truncation.]))
 case "$enable_minimal_responses" in
         no)
 		;;
         yes|*)
-		AC_DEFINE_UNQUOTED([MINIMAL_RESPONSES], [], [Define this to enable minimal responses.])
+		AC_DEFINE_UNQUOTED([MINIMAL_RESPONSES], [], [Define this to enable response minimalization to reduce truncation.])
                 ;;
 esac
 

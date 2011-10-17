@@ -4,10 +4,16 @@ NSD RELEASE NOTES
 ================
 
 FEATURES:
-	- Minimize responses: NSD will only add optional records to the authority
-	  and additional sections when the response size exceeds the minimal response
-	  size. The minimal response size is 512 (no-EDNS), 1280 (EDNS) or the buffer
-	  size if that is smaller than 1280.
+	- Minimize responses to reduce truncation: NSD will only add optional
+	  records to the authority and additional sections when the response size
+	  does not exceed the minimal response size.
+
+	  The minimal response size is 512 (no-EDNS), 1480 (EDNS/IPv4),
+	  1220 (EDNS/IPv6), or the advertized EDNS buffer size if that is smaller
+	  than the EDNS default. 
+
+	  The feature is enabled by default. You can disable it by configuring 
+	  NSD with --disable-minimal-responses.
 
 BUG FIXES:
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
