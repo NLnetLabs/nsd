@@ -3,6 +3,12 @@ NSD RELEASE NOTES
 3.2.9 (UPCOMING)
 ================
 
+FEATURES:
+	- Minimize responses: NSD will only add optional records to the authority
+	  and additional sections when the response size exceeds the minimal response
+	  size. The minimal response size is 512 (no-EDNS), 1280 (EDNS) or the buffer
+	  size if that is smaller than 1280.
+
 BUG FIXES:
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
 	- Bugfix #375: typos in nsd.conf.5.
