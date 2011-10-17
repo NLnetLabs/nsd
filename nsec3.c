@@ -88,8 +88,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 	if(!paramset || !paramset->rrs || !paramset->rr_count)
 		return 0;
 	tmpregion = region_create(xalloc, free);
-	for(i=0; i<paramset->rr_count; i++)
-	{
+	for(i=0; i < paramset->rr_count; i++) {
 		rr_type* rr = &paramset->rrs[i];
 		const dname_type* hashed_apex;
 		rrset_type* nsec3_rrset;
@@ -124,7 +123,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 			continue;
 		}
 		/* find SOA bit enabled nsec3, with the same settings */
-		for(j=0; j<nsec3_rrset->rr_count; j++)
+		for(j=0; j < nsec3_rrset->rr_count; j++)
 		{
 			const unsigned char *salt1, *salt2;
 			int saltlen1, saltlen2, iter1, iter2;
@@ -169,8 +168,7 @@ nsec3_rrset_params_ok(rr_type* base, rrset_type* rrset)
 	if(!base)
 		base = rrset->zone->nsec3_soa_rr;
 	prd = base->rdatas;
-	for(i=0; i<rrset->rr_count; ++i)
-	{
+	for(i=0; i < rrset->rr_count; ++i) {
 		rd = rrset->rrs[i].rdatas;
 		assert(rrset->rrs[i].type == TYPE_NSEC3);
 		if(rdata_atom_data(rd[0])[0] ==
@@ -330,7 +328,6 @@ prehash_zone(struct namedb* db, struct zone* zone)
 		zone->nsec3_last = 0;
 		return;
 	}
-
 	temp_region = region_create(xalloc, free);
 
 	/* go through entire zone and setup nsec3_lookup speedup */
@@ -462,6 +459,7 @@ nsec3_add_closest_encloser_proof(
 			closest_encloser->nsec3_cover);
 }
 
+
 void
 nsec3_answer_wildcard(struct query *query, struct answer *answer,
         struct domain *wildcard, struct namedb* db, const dname_type* qname)
@@ -472,6 +470,7 @@ nsec3_answer_wildcard(struct query *query, struct answer *answer,
 		return;
 	nsec3_add_nonexist_proof(query, answer, wildcard, db, qname);
 }
+
 
 static void
 nsec3_add_ds_proof(struct query *query, struct answer *answer,
@@ -513,6 +512,7 @@ nsec3_add_ds_proof(struct query *query, struct answer *answer,
 			domain->nsec3_ds_parent_cover);
 	}
 }
+
 
 void
 nsec3_answer_nodata(struct query *query, struct answer *answer,
