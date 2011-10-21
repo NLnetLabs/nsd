@@ -960,6 +960,9 @@ NSD Version 3.0. and above
 		  beforehand (nsd-xfer does). It terminates the AXFR after
 		  the first packet if it determines the AXFR is not needed.
 
+   RFC 1995 (IXFR) support only for making requests to other servers.
+  		- IXFR is not served.
+
    RFC 1996 (NOTIFY):	
    		- will ignore extraneous data in notify (instead of checking
   		  if they differ from content in zone). Only checks SOA serial.
@@ -975,11 +978,10 @@ NSD Version 3.0. and above
 
    RFC 2672 (DNAME) support.
 
-   RFC 1995 (IXFR) support only for making requests to other servers.
-  		- IXFR is not served.
-
    Secondary zones: - follows SOA timers. (NSD 2 and before did not) 
   		(RFC 1034, 1035).
+
+   RFC 4509 (SHA-256 DS) support.
 
    RFC 4635 (HMAC SHA TSIG) support for mandatory algorithms: hmac-md5, 
 		hmac-sha1, hmac-sha256.
@@ -987,6 +989,8 @@ NSD Version 3.0. and above
    RFC 5001 (NSID) support.
 
    RFC 5155 (NSEC3) support.
+
+   RFC 5702 (SHA-2) support.
 
 Not implemented:
 
