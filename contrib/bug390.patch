@@ -1,0 +1,12 @@
+--- nsec3.c	2011-10-26 09:10:25.000000000 +0200
++++ nsec3-bug390.c	2011-10-26 09:10:17.000000000 +0200
+@@ -469,6 +469,9 @@
+ 	if(!query->zone->nsec3_soa_rr)
+ 		return;
+ 	nsec3_add_nonexist_proof(query, answer, wildcard, db, qname);
++	if(wildcard->parent && wildcard->parent->nsec3_is_exact)
++		nsec3_add_rrset(query, answer, AUTHORITY_SECTION,
++			wildcard->parent->nsec3_cover);
+ }
+ 
+ 
