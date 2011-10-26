@@ -123,8 +123,7 @@ find_zone_nsec3(namedb_type* namedb, zone_type *zone)
 			continue;
 		}
 		/* find SOA bit enabled nsec3, with the same settings */
-		for(j=0; j < nsec3_rrset->rr_count; j++)
-		{
+		for(j=0; j < nsec3_rrset->rr_count; j++) {
 			const unsigned char *salt1, *salt2;
 			int saltlen1, saltlen2, iter1, iter2;
 			if(!nsec3_has_soa(&nsec3_rrset->rrs[j]))
@@ -328,6 +327,7 @@ prehash_zone(struct namedb* db, struct zone* zone)
 		zone->nsec3_last = 0;
 		return;
 	}
+
 	temp_region = region_create(xalloc, free);
 
 	/* go through entire zone and setup nsec3_lookup speedup */

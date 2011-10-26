@@ -62,7 +62,7 @@ encode_answer(query_type *q, const answer_type *answer)
 	uint16_t counts[RR_SECTION_COUNT];
 	rr_section_type section;
 	size_t i;
-        int minimal_respsize = IPV4_MINIMAL_RESPONSE_SIZE;
+	int minimal_respsize = IPV4_MINIMAL_RESPONSE_SIZE;
 	int done = 0;
 
 #if defined(INET6) && defined(MINIMAL_RESPONSES)

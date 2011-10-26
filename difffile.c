@@ -811,6 +811,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		*rr_count = 1;
 		*is_axfr = 0;
 		*delete_mode = 0;
+
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "diff: %s start count %d, ax %d, delmode %d",
 			dname_to_string(dname_zone, 0), *rr_count, *is_axfr, *delete_mode));
 	}

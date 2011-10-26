@@ -21,7 +21,7 @@ Wouter Wijngaards, NLnet Labs   - design and implementation for NSD 3.
 Contributors (in alphabetical order):
 
 Aaron Glenn                                     - DragonflyBSD, BSD/sparc64 testing.
-Ben Laurie					- NSEC3 patch.
+Ben Laurie                                      - NSEC3 patch.
 Bin Zhang                                       - NSD 3 prerelease testing.
 Colm MacCárthaigh,                              - IPv6 binding and cleanups.
 Farkas Levente                                  - rpm specfile improvements.

@@ -1336,10 +1336,10 @@ domain_find_rrset_any(domain_type *domain, uint16_t type)
 	while (result) {
 		if (rrset_rrtype(result) == type) {
 			return result;
-                }
+		}
 		result = result->next;
-        }
-        return NULL;
+	}
+	return NULL;
 }
 
 /*

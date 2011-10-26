@@ -1019,11 +1019,11 @@ main(int argc, char *argv[])
 	/* Drop the permissions */
 #ifdef HAVE_GETPWNAM
 	if (*nsd.username) {
- #ifdef HAVE_INITGROUPS
+#ifdef HAVE_INITGROUPS
 		if(initgroups(nsd.username, nsd.gid) != 0)
 			log_msg(LOG_WARNING, "unable to initgroups %s: %s",
 				nsd.username, strerror(errno));
- #endif /* HAVE_INITGROUPS */
+#endif /* HAVE_INITGROUPS */
 		endpwent();
 
 #ifdef HAVE_SETRESGID
@@ -1048,7 +1048,7 @@ main(int argc, char *argv[])
 
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "dropped user privileges, run as %s",
 			nsd.username));
-    }
+	}
 #endif /* HAVE_GETPWNAM */
 
 	if (server_prepare(&nsd) != 0) {

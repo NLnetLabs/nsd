@@ -16,11 +16,13 @@ FEATURES:
 	  NSD with --disable-minimal-responses.
 
 BUG FIXES:
+	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
+	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 	- Bugfix #375: typos in nsd.conf.5.
 	- Bugfix #381: Binary escaped and transfers.
-	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
-	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
+	- Bugfix #397: Don't allow relative domain names as origin in $INCLUDE
+	  directives.
 	- Fix printout of IPSECKEY by nsd-patch.
 	- Fix is_existing flag for ENT when domain that has a shared ENT
 	  is deleted by IXFR. (ENT == Empty Non-Terminal)
@@ -35,8 +37,8 @@ BUG FIXES:
 
 OPERATIONAL NOTES:
 	- nsd.db version number increased because NSD 3.2.7 and earlier
-          zonec is not compatible due to the TXT strings change. Please
-          run nsdc rebuild before running NSD 3.2.9 and later versions.
+	  zonec is not compatible due to the TXT strings change. Please
+	  run nsdc rebuild before running NSD 3.2.9 and later versions.
 
 
 3.2.8

@@ -1207,7 +1207,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 	if(zone->master->key_options) {
 		if(!xfrd_xfr_process_tsig(zone, packet)) {
 			DEBUG(DEBUG_XFRD,1, (LOG_ERR, "dropping xfr reply due "
-										   "to bad TSIG"));
+				"to bad TSIG"));
 			return xfrd_packet_bad;
 		}
 	}
