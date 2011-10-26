@@ -1,5 +1,10 @@
+26 October 2011: Matthijs
+	- Custom patch for bug #390 on NSEC3 wildcards.
+	- Fix bug #397: an $INCLUDE directive with a relative origin.
+	  Don't allow.
+
 17 October 2011: Matthijs
-	-- configuration option --disable-minimal-responses.
+	- configuration option --disable-minimal-responses.
 	- Minimize responses to reduce truncation, leave out optional NS
 	  RRsets from the authority section and all RRsets from additional
 	  section.
