@@ -605,9 +605,23 @@ C 4.4 Truncation handling. (as rfc2181 9)
   RRs are required in the answer and authority section.
 
   Inclusion of NS RRs in the authority section when QTYPE=DNSKEY is
-  removed since NSD version 3.2.3. This is to prevent resolvers from 
-  unnecessarily falling back to TCP. Only DNSKEYs are considered, 
-  because it showed that especially these DNS packets are 'troublesome'.
+  removed since NSD version 3.2.3. QTYPE=DS followed in version 3.2.7.
+  This is to prevent resolvers from unnecessarily falling back to TCP.
+  Only DNSKEY and DS records are considered, because it showed that
+  especially these DNS packets are 'troublesome'.
+
+  The feature 'minimize responses' is included since NSD 3.2.9.
+  NS RRsets that would go into the Authority section in positive
+  responses are not considered REQUIRED and therefore will NOT lead
+  to setting of the TC bit. The minimal response size is:
+  - 512 in case of no EDNS;
+  - 1480 in case of EDNS/IPv4;
+  - 1220 in case of EDNS/IPv6;
+  - the advertized buffer size if that value is smaller than the
+    the EDNS defaults.
+
+  The feature can be disabled during build time with
+  --disable-minimal-responses.
 
   If inclusion of an RRset in the Additional section is not possible
   RRs are omitted one by one. This may lead to incomplete RRsets.
@@ -946,6 +960,9 @@ NSD Version 3.0. and above
 		  beforehand (nsd-xfer does). It terminates the AXFR after
 		  the first packet if it determines the AXFR is not needed.
 
+   RFC 1995 (IXFR) support only for making requests to other servers.
+  		- IXFR is not served.
+
    RFC 1996 (NOTIFY):	
    		- will ignore extraneous data in notify (instead of checking
   		  if they differ from content in zone). Only checks SOA serial.
@@ -961,11 +978,10 @@ NSD Version 3.0. and above
 
    RFC 2672 (DNAME) support.
 
-   RFC 1995 (IXFR) support only for making requests to other servers.
-  		- IXFR is not served.
-
    Secondary zones: - follows SOA timers. (NSD 2 and before did not) 
   		(RFC 1034, 1035).
+
+   RFC 4509 (SHA-256 DS) support.
 
    RFC 4635 (HMAC SHA TSIG) support for mandatory algorithms: hmac-md5, 
 		hmac-sha1, hmac-sha256.
@@ -973,6 +989,8 @@ NSD Version 3.0. and above
    RFC 5001 (NSID) support.
 
    RFC 5155 (NSEC3) support.
+
+   RFC 5702 (SHA-2) support.
 
 Not implemented:
 

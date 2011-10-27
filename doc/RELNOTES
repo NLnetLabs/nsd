@@ -3,15 +3,34 @@ NSD RELEASE NOTES
 3.2.9 (UPCOMING)
 ================
 
+FEATURES:
+	- Minimize responses to reduce truncation: NSD will only add optional
+	  records to the authority and additional sections when the response size
+	  does not exceed the minimal response size.
+
+	  The minimal response size is 512 (no-EDNS), 1480 (EDNS/IPv4),
+	  1220 (EDNS/IPv6), or the advertized EDNS buffer size if that is smaller
+	  than the EDNS default. 
+
+	  The feature is enabled by default. You can disable it by configuring 
+	  NSD with --disable-minimal-responses.
+
+    - Faster NSEC3 prehashing. This will make zone transfers go faster,
+	  but will decrease the performance of NXDOMAIN and wildcard NODATA
+      responses. Disabled by default. You can enable it by configuring
+	  NSD with --enable-faster-prehash. Thanks Secure64 for the patch.
+
 BUG FIXES:
+	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
+	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 	- Bugfix #375: typos in nsd.conf.5.
 	- Bugfix #381: Binary escaped and transfers.
-	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
-	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
+	- Bugfix #397: Don't allow relative domain names as origin in $INCLUDE
+	  directives.
 	- Fix printout of IPSECKEY by nsd-patch.
 	- Fix is_existing flag for ENT when domain that has a shared ENT
-	  is deleted by IXFR. 
+	  is deleted by IXFR. (ENT == Empty Non-Terminal)
 	- Fix bug if the zonefile is changed for a secondary but stored
 	  transfers are applied, and stop it from applying ixfr to empty zone.
 	  The zone is flagged with error and AXFR-ed.
