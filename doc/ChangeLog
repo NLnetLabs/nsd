@@ -1,3 +1,6 @@
+2 November 2011: Matthijs
+	- Apply Secure64 patch (use --disable-full-prehash to activate it)
+
 26 October 2011: Matthijs
 	- Custom patch for bug #390 on NSEC3 wildcards.
 	- Fix bug #397: an $INCLUDE directive with a relative origin.
