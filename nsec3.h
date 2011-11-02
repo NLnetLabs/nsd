@@ -50,8 +50,8 @@ void prehash_zone_incremental(struct namedb *db, struct zone *zone);
 int nsec3_find_cover(struct namedb* db, struct zone* zone,
 	const struct dname* hashname, struct domain** result);
 #else
-int nsec3_find_cover(namedb_type* ATTR_UNUSED(db), zone_type* zone,
-	const dname_type* hashname, struct nsec3_domain** result)
+int nsec3_find_cover(struct namedb* ATTR_UNUSED(db), struct zone* zone,
+	const struct dname* hashname, struct nsec3_domain** result);
 #endif
 
 /*
