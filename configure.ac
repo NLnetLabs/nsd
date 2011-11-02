@@ -610,6 +610,15 @@ case "$enable_nsec3" in
                 ;;
 esac
 
+AC_ARG_ENABLE(full-prehash, AC_HELP_STRING([--disable-full-prehash], [Disables NSEC3 full prehashing]))
+case "$enable_full_prehash" in
+        no)
+		;;
+        yes|*)
+		AC_DEFINE_UNQUOTED([FULL_PREHASH], [], [Define this to enable NSEC3 full prehashing.])
+                ;;
+esac
+
 AC_ARG_ENABLE(minimal-responses, AC_HELP_STRING([--disable-minimal-responses], [Disable response minimization. More truncation.]))
 case "$enable_minimal_responses" in
         no)

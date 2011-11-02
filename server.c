@@ -759,7 +759,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		region_log_stats(nsd->db->region);
 #endif /* NDEBUG */
 #ifdef NSEC3
+#ifdef FULL_PREHASH
 	prehash(nsd->db, 1);
+#endif /* FULL_PREHASH */
 #endif /* NSEC3 */
 
 	initialize_dname_compression_tables(nsd);

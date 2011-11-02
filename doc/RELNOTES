@@ -15,6 +15,12 @@ FEATURES:
 	  The feature is enabled by default. You can disable it by configuring 
 	  NSD with --disable-minimal-responses.
 
+    - Less NSEC3 prehashing. This will make NSD handle zone transfers
+      faster, but will decrease the performance of NXDOMAIN and wildcard
+      NODATA responses. Full prehashing is enabled by default. If you want
+      less NSEC3 prehashing, configure NSD with --disable-full-prehash.
+      Thanks Secure64 for the patch.
+
 BUG FIXES:
 	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
 	- Bugfix #365: set patch style and zonec verbose for nsdc.

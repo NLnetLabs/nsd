@@ -233,6 +233,11 @@ addition to standard configure options, one may use the following:
 	Disable large file support (64 bit file lengths). Makes off_t
 	a 32bit length during compilation.
 
+  --disable-full-prehash
+
+	Disables full NSEC3 prehashing. This will make NSD handle zone
+	transfers faster, but will decrease the performance of NXDOMAIN and
+    wildcard NODATA responses by 15% (with NSEC3).
 
 2.3 Building
 
