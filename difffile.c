@@ -17,6 +17,7 @@
 #include "util.h"
 #include "packet.h"
 #include "rdata.h"
+#include "nsec3.h"
 
 static int
 write_32(FILE *out, uint32_t val)
