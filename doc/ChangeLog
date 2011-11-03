@@ -1,3 +1,6 @@
+3 November 2011: Wouter
+	- fflush zonelistfile after zone add or delete.
+
 1 November 2011: Wouter
 	- Fix -flto detection for llvm compiler on Lion.
 

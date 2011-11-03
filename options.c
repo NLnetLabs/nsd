@@ -431,6 +431,9 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 		opt->zonelist_off = ftello(opt->zonelist);
 		if(opt->zonelist_off == -1)
 			log_msg(LOG_ERR, "ftello(%s): %s", opt->zlfile, strerror(errno));
+		if(fflush(opt->zonelist) != 0) {
+			log_msg(LOG_ERR, "fflush %s: %s", opt->zlfile, strerror(errno));
+		}
 		return zone;
 	}
 	b = (struct zonelist_bucket*)rbtree_search(opt->zonefree,
@@ -456,6 +459,9 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 			return NULL;
 		}
 		opt->zonelist_off += linesize;
+		if(fflush(opt->zonelist) != 0) {
+			log_msg(LOG_ERR, "fflush %s: %s", opt->zlfile, strerror(errno));
+		}
 		return zone;
 	}
 	/* reuse empty spot */
@@ -477,6 +483,9 @@ zone_options_t* zone_list_add(nsd_options_t* opt, const char* zname,
 		log_msg(LOG_ERR, "zone %s could not be added", zname);
 		zone_options_delete(opt, zone);
 		return NULL;
+	}
+	if(fflush(opt->zonelist) != 0) {
+		log_msg(LOG_ERR, "fflush %s: %s", opt->zlfile, strerror(errno));
 	}
 
 	/* snip off and recycle element */
@@ -507,6 +516,10 @@ void zone_list_del(nsd_options_t* opt, zone_options_t* zone)
 	/* see if we need to compact: it is going to halve the zonelist */
 	if(opt->zonefree_number > opt->zone_options->count) {
 		zone_list_compact(opt);
+	} else {
+		if(fflush(opt->zonelist) != 0) {
+			log_msg(LOG_ERR, "fflush %s: %s", opt->zlfile, strerror(errno));
+		}
 	}
 }
 /* postorder delete of zonelist free space tree */
