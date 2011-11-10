@@ -1,3 +1,6 @@
+10 November 2011: Wouter
+	- acxnlnetlabs.m4 updated to version 16, better lto check (a.out drop).
+
 3 November 2011: Wouter
 	- fflush zonelistfile after zone add or delete.
 
