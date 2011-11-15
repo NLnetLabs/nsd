@@ -25,6 +25,7 @@ Ben Laurie                                      - NSEC3 patch.
 Bin Zhang                                       - NSD 3 prerelease testing.
 Colm MacCárthaigh,                              - IPv6 binding and cleanups.
 Farkas Levente                                  - rpm specfile improvements.
+Gary O'Brien					- NSEC3 prehashing patch.
 Jakob Schlyter, Kirei                           - chroot and several other patches
 Jun-ichiro itojun Hagino, IIJLab                - IPv6 transport
 Kai                                             - NSD 3 prerelease testing.

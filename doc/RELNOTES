@@ -5,21 +5,21 @@ NSD RELEASE NOTES
 
 FEATURES:
 	- Minimize responses to reduce truncation: NSD will only add optional
-	  records to the authority and additional sections when the response size
-	  does not exceed the minimal response size.
+	  records to the authority and additional sections when the response
+	  size does not exceed the minimal response size.
 
 	  The minimal response size is 512 (no-EDNS), 1480 (EDNS/IPv4),
-	  1220 (EDNS/IPv6), or the advertized EDNS buffer size if that is smaller
-	  than the EDNS default. 
+	  1220 (EDNS/IPv6), or the advertized EDNS buffer size if that is
+	  smaller than the EDNS default. 
 
 	  The feature is enabled by default. You can disable it by configuring 
 	  NSD with --disable-minimal-responses.
 
-    - Less NSEC3 prehashing. This will make NSD handle zone transfers
-      faster, but will decrease the performance of NXDOMAIN and wildcard
-      NODATA responses. Full prehashing is enabled by default. If you want
-      less NSEC3 prehashing, configure NSD with --disable-full-prehash.
-      Thanks Secure64 for the patch.
+	- Less NSEC3 prehashing. This will make NSD handle zone transfers
+	  faster, but will decrease the performance of NXDOMAIN and wildcard
+	  NODATA responses. Full prehashing is enabled by default. If you want
+	  less NSEC3 prehashing, configure NSD with --disable-full-prehash.
+	  Thanks Secure64 for the patch.
 
 BUG FIXES:
 	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
