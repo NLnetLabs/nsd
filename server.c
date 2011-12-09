@@ -766,6 +766,55 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	initialize_dname_compression_tables(nsd);
 
+	/* DNSSEXY */
+	for(zone= nsd->db->zones; zone; zone = zone->next) {
+		if ( zone->updated == 0 
+		|| ! zone->opts->dnssexy 
+		|| ! zone->soa_rrset) continue;
+
+		log_msg(LOG_INFO, "zone %s has changed calling DNSSEXY checker: %s.", zone->opts->name, zone->opts->dnssexy);
+
+		uint32_t serial = read_uint32(
+			rdata_atom_data(zone->soa_rrset->rrs[0].rdatas[2]));
+		log_msg(LOG_INFO, "SEXY: SOA serial: %d", serial);
+
+		if (serial % 3 > 0) {
+			log_msg(LOG_INFO, "SEXY: SOA serial %d not dividable "
+					  "by 3, exiting reload", serial);
+			if (nsd->db->diff_skip) {
+				log_msg( LOG_INFO
+				       , "child: sizeof(cmd): %u, "
+				         "sizeof(nsd->db->diff_pos): %u, "
+				       , (unsigned int) sizeof(cmd)
+				       , (unsigned int) 
+				         sizeof(nsd->db->diff_pos)
+				       );
+				cmd = NSD_SKIP_DIFF;
+				if (write_socket(cmdsocket, 
+					    &cmd, sizeof(cmd)) == -1) {
+					log_msg( LOG_ERR
+					       , "problems sending command "
+						 "from reload %d to oldnsd "
+						 "%d: %s"
+					       , (int)nsd->pid, (int)old_pid
+					       , strerror(errno)
+					       );
+				} else if (write_socket(cmdsocket, 
+					          &nsd->db->diff_pos, 
+					    sizeof(nsd->db->diff_pos)) == -1) {
+					log_msg( LOG_ERR
+					       , "problems sending command "
+						 "from reload %d to oldnsd "
+						 "%d: %s"
+					       , (int)nsd->pid, (int)old_pid
+					       , strerror(errno)
+					       );
+				}
+			}
+			exit(0);
+		}
+        }
+
 	/* Get our new process id */
 	old_pid = nsd->pid;
 	nsd->pid = getpid();

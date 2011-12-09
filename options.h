@@ -24,6 +24,7 @@ typedef struct ipaddress_option ip_address_option_t;
 typedef struct acl_options acl_options_t;
 typedef struct key_options key_options_t;
 typedef struct config_parser_state config_parser_state_t;
+typedef struct cmd_option cmd_option_t;
 /*
  * Options global for nsd.
  */
@@ -62,6 +63,8 @@ struct nsd_options {
 	const char* xfrdfile;
 	const char* nsid;
 	int xfrd_reload_timeout;
+	const char* dnssexy_ip;
+	const char* dnssexy_port;
 
 	region_type* region;
 };
@@ -69,6 +72,11 @@ struct nsd_options {
 struct ipaddress_option {
 	ip_address_option_t* next;
 	char* address;
+};
+
+struct cmd_option {
+	cmd_option_t* next;
+	char *arg;
 };
 
 /*
@@ -88,6 +96,8 @@ struct zone_options {
 	acl_options_t* outgoing_interface;
 	uint8_t allow_axfr_fallback;
 	uint8_t notify_retry;
+	const char **dnssexy;
+	const char **verify_zone;
 };
 
 union acl_addr_storage {
@@ -157,6 +167,8 @@ struct config_parser_state {
 	acl_options_t* current_notify;
 	acl_options_t* current_provide_xfr;
 	acl_options_t* current_outgoing_interface;
+	cmd_option_t*  current_cmd;
+	int            current_cmd_count;
 };
 
 extern config_parser_state_t* cfg_parser;

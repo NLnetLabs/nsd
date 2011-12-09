@@ -1416,6 +1416,9 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			zone->master->key_options->name);
 	}
 	buffer_flip(packet);
+
+	/* Another interesting spot for a SEXY hook */
+
 	diff_write_commit(zone->apex_str, zone->msg_old_serial,
 		zone->msg_new_serial, zone->query_id, zone->msg_seq_nr, 1,
 		(char*)buffer_begin(packet), xfrd->nsd->options);

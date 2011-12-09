@@ -30,6 +30,37 @@ extern "C"
 extern config_parser_state_t* cfg_parser;
 static int server_settings_seen = 0;
 
+static cmd_option_t* cmd_i = NULL;
+static const char** cmds2args()
+{
+	const char **arg_i = NULL;
+	const char **ret = region_alloc( cfg_parser->opt->region
+				       , cfg_parser->current_cmd_count
+					 * sizeof(const char*)
+					 + sizeof(const char*)
+				       );
+
+	arg_i = ret + cfg_parser->current_cmd_count;
+       *arg_i-- = NULL;
+	cmd_i = cfg_parser->current_cmd;
+
+	while ( cmd_i ) {
+	       *arg_i-- = cmd_i->arg;
+		cmd_i   = cmd_i->next;
+
+		region_recycle( cfg_parser->opt->region
+			      , cfg_parser->current_cmd
+			      , sizeof(cmd_option_t)
+			      );
+		cfg_parser->current_cmd = cmd_i;
+	}
+	cfg_parser->current_cmd_count = 0;
+	cfg_parser->current_cmd = NULL;
+
+	return ret;
+}
+
+
 #if 0
 #define OUTYY(s)  printf s /* used ONLY when debugging */
 #else
@@ -53,6 +84,7 @@ static int server_settings_seen = 0;
 %token VAR_ZONE
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR 
 %token VAR_NOTIFY_RETRY VAR_OUTGOING_INTERFACE VAR_ALLOW_AXFR_FALLBACK
+%token VAR_DNSSEXY VAR_DNSSEXY_IP VAR_DNSSEXY_PORT VAR_VERIFY_ZONE
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
@@ -79,7 +111,8 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_statistics | server_chroot | server_username | server_zonesdir |
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
-	server_ipv6_edns_size | server_verbosity | server_hide_version;
+	server_ipv6_edns_size | server_verbosity | server_hide_version |
+	server_dnssexy_ip | server_dnssexy_port;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
@@ -286,6 +319,19 @@ server_ipv6_edns_size: VAR_IPV6_EDNS_SIZE STRING
 		cfg_parser->opt->ipv6_edns_size = atoi($2);
 	}
 	;
+server_dnssexy_ip: VAR_DNSSEXY_IP STRING 
+	{ 
+		OUTYY(("P(server_dnssexy_ip:%s)\n", $2)); 
+		cfg_parser->opt->dnssexy_ip = 
+			region_strdup(cfg_parser->opt->region, $2);
+	}
+server_dnssexy_port: VAR_DNSSEXY_PORT STRING 
+	{ 
+		OUTYY(("P(server_dnssexy_port:%s)\n", $2)); 
+		cfg_parser->opt->dnssexy_port = 
+			region_strdup(cfg_parser->opt->region, $2);
+	}
+
 
 /* zone: declaration */
 zonestart: VAR_ZONE
@@ -308,12 +354,15 @@ zonestart: VAR_ZONE
 		cfg_parser->current_notify = 0;
 		cfg_parser->current_provide_xfr = 0;
 		cfg_parser->current_outgoing_interface = 0;
+		cfg_parser->current_cmd = NULL;
+		cfg_parser->current_cmd_count = 0;
 	}
 	;
 contents_zone: contents_zone content_zone | content_zone;
 content_zone: zone_name | zone_zonefile | zone_allow_notify | 
 	zone_request_xfr | zone_notify | zone_notify_retry | zone_provide_xfr | 
-	zone_outgoing_interface | zone_allow_axfr_fallback;
+	zone_outgoing_interface | zone_allow_axfr_fallback | 
+	zone_dnssexy | zone_verify_zone;
 zone_name: VAR_NAME STRING
 	{ 
 		OUTYY(("P(zone_name:%s)\n", $2)); 
@@ -438,6 +487,34 @@ zone_allow_axfr_fallback: VAR_ALLOW_AXFR_FALLBACK STRING
 		else cfg_parser->current_zone->allow_axfr_fallback = (strcmp($2, "yes")==0);
 	}
 	;
+
+cmd_arg: STRING
+	{
+		cmd_i = cfg_parser->current_cmd;
+
+		cfg_parser->current_cmd
+			= (cmd_option_t*) region_alloc( cfg_parser->opt->region
+						      , sizeof(cmd_option_t));
+
+		cfg_parser->current_cmd->arg  
+			= region_strdup(cfg_parser->opt->region, $1);
+
+		cfg_parser->current_cmd->next = cmd_i;
+		cfg_parser->current_cmd_count++;
+	}
+	;
+cmd_args: cmd_args cmd_arg | cmd_arg;
+zone_dnssexy: VAR_DNSSEXY cmd_args
+	{
+		cfg_parser->current_zone->dnssexy = cmds2args();
+	}
+	;
+zone_verify_zone: VAR_VERIFY_ZONE cmd_args
+	{ 
+		cfg_parser->current_zone->verify_zone = cmds2args();
+	}
+	;
+
 
 /* key: declaration */
 keystart: VAR_KEY

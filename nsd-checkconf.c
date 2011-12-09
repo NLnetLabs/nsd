@@ -123,6 +123,24 @@ print_string_var(const char* varname, const char* value)
 }
 
 static void
+print_strings_var(const char* varname, const char** value)
+{
+	if (!value) {
+		printf("\t#%s\n", varname);
+	} else {
+		printf("\t%s ", varname);
+		while (*value) {
+			if (strchr(*value, ' ') || strchr(*value, '\t'))
+				printf(" \"%s\"", *value);
+			else
+				printf(" %s", *value);
+			value++;
+		}
+		printf("\n");
+	}
+}
+
+static void
 quote(const char *v)
 {
 	if(v==NULL)
@@ -248,6 +266,8 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 				ZONE_GET_BIN(notify_retry, o);
 				ZONE_GET_OUTGOING(outgoing_interface, o);
 				ZONE_GET_BIN(allow_axfr_fallback, o);
+				ZONE_GET_STR(dnssexy, o);
+				ZONE_GET_STR(verify_zone, o);
 				printf("Zone option not handled: %s %s\n", z, o);
 				exit(1);
 			}
@@ -284,6 +304,9 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
+
+		SERV_GET_STR(dnssexy_ip, o);
+		SERV_GET_STR(dnssexy_port, o);
 
 		if(strcasecmp(o, "zones") == 0) {
 			RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
@@ -328,6 +351,9 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("xfrdfile:", opt->xfrdfile);
 	printf("\txfrd_reload_timeout: %d\n", opt->xfrd_reload_timeout);
 	printf("\tverbosity: %d\n", opt->verbosity);
+	
+	print_string_var("dnssexy-ip:", opt->dnssexy_ip);
+	print_string_var("dnssexy-port:", opt->dnssexy_port);
 
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
 	{
@@ -352,6 +378,8 @@ config_test_print_server(nsd_options_t* opt)
 		print_acl("provide-xfr:", zone->provide_xfr);
 		print_acl_ips("outgoing-interface:", zone->outgoing_interface);
 		printf("\tallow-axfr-fallback: %s\n", zone->allow_axfr_fallback?"yes":"no");
+		print_strings_var("dnssexy:", zone->dnssexy);
+		print_strings_var("verify_zone:", zone->verify_zone);
 	}
 
 }

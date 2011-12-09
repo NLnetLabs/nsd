@@ -502,6 +502,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 	sig_atomic_t mode;
 	int len;
 	size_t i;
+	off_t diff_pos;
 	struct nsd *nsd = (struct nsd*) handler->user_data;
 	if (!(event_types & NETIO_EVENT_READ)) {
 		return;
@@ -538,6 +539,27 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 			}
 		}
 		parent_check_all_children_exited(nsd);
+		break;
+	case NSD_SKIP_DIFF:
+		len = read(handler->fd, &diff_pos, sizeof(diff_pos));
+	       	if (len == -1) {
+			log_msg(LOG_ERR, "handle_reload_command: diff_pos: %s",
+			strerror(errno));
+			return;
+		} else if (len == 0) {
+			if(handler->fd > 0) {
+				close(handler->fd);
+				handler->fd = -1;
+			}
+			log_msg( LOG_ERR
+			       , "handle_reload_cmd: "
+			         "reload closed cmd channel (in skipp_diff)"
+			       );
+			return;
+		};
+		log_msg(LOG_INFO , "setting diff_skip: %d" , (int) diff_pos);
+		nsd->db->diff_skip = 1;
+		nsd->db->diff_pos  = diff_pos;
 		break;
 	default:
 		log_msg(LOG_ERR, "handle_reload_command: bad mode %d",
