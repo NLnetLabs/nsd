@@ -1553,6 +1553,63 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	return 1;
 }
 
+void difffile_rollback(const char* filename, off_t from_pos, off_t to_pos)
+{
+	FILE *df;
+	uint32_t type, len, len2, disklen;
+
+	df = fopen(filename, "r+");
+	if (!df) {
+		DEBUG(DEBUG_XFRD, 1
+		     , ( LOG_INFO, "could not open file %s for reading: %s"
+		       , filename, strerror(errno)));
+		return;
+	}
+	if (fseeko(df, from_pos, SEEK_SET) == -1) {
+		log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread "
+				  "from start.", filename, strerror(errno));
+		from_pos = 0;
+		if (fseeko(df, 0, SEEK_SET)==-1) {
+			log_msg( LOG_INFO, "could not fseeko file %s: %s."
+			       , filename, strerror(errno));
+			return;
+		}
+	}
+	while (from_pos < to_pos) {
+		if (!diff_read_32(df, &type)) {
+			DEBUG( DEBUG_XFRD, 1
+			     , (LOG_INFO, "difffile %s is empty", filename));
+			return;
+		}
+		/* skip timestamp */
+		if (fseeko(df, 2 * sizeof(uint32_t), SEEK_CUR) == -1) {
+			log_msg(LOG_INFO, "could not fseeko file %s: %s."
+					, filename, strerror(errno));
+			return;
+		}
+		if (!diff_read_32(df, &len)) {
+			return;
+		}
+		if (type == DIFF_PART_SURE) {
+			uint8_t c = 0;
+			if (!diff_read_32(df, &disklen)) {
+			    return;
+			}
+			if (fseeko(df, disklen + 14, SEEK_CUR) == -1) {
+				log_msg( LOG_INFO, "could not fseeko file "
+					 "%s: %s.", filename, strerror(errno));
+			}
+			write_data(df, &c, sizeof(c)); /* rollback */
+		}
+		if (fseeko(df, from_pos + len + 20, SEEK_SET) == -1) {
+			log_msg(LOG_INFO, "could not fseeko file %s: %s."
+					, filename, strerror(errno));
+			return;
+		}
+		/* if len2 != length is not relevant with this function */
+	}
+}
+
 static int diff_broken(FILE *df, off_t* break_pos)
 {
 	uint32_t type, len, len2;

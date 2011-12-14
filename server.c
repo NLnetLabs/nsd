@@ -721,6 +721,25 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	return total;
 }
 
+static void
+server_rollback(struct nsd *nsd, int cmdsocket, off_t old_diff_pos)
+{
+	sig_atomic_t cmd = NSD_SKIP_DIFF;
+	if (nsd->db->diff_skip) {
+		if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1
+		||  write_socket(cmdsocket, &nsd->db->diff_pos, 
+				      sizeof(nsd->db->diff_pos)) == -1) {
+			log_msg( LOG_ERR, "problems sending command from "
+					  "reload %d to oldnsd: %s"
+			       , (int)nsd->pid, strerror(errno));
+		} else {
+			log_msg( LOG_INFO, "calling difffile_rollback");
+			difffile_rollback(nsd->options->difffile
+					 , old_diff_pos, nsd->db->diff_pos);
+		}
+	}
+}
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -734,7 +753,8 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	zone_type* zone;
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
-
+	off_t old_diff_pos;
+	
 	if(db_crc_different(nsd->db) == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"CRC the same. skipping %s.", nsd->db->filename));
@@ -748,6 +768,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			exit(1);
 		}
 	}
+	old_diff_pos = nsd->db->diff_skip ? nsd->db->diff_pos : 0;
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);
@@ -769,10 +790,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* DNSSEXY */
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		if ( zone->updated == 0 
-		|| ! zone->opts->dnssexy 
+		|| ! zone->opts->verify_zone
 		|| ! zone->soa_rrset) continue;
 
-		log_msg(LOG_INFO, "zone %s has changed calling DNSSEXY checker: %s.", zone->opts->name, zone->opts->dnssexy);
+		log_msg(LOG_INFO, "zone %s has changed calling DNSSEXY zone verifier: %s.", zone->opts->name, *zone->opts->verify_zone);
 
 		uint32_t serial = read_uint32(
 			rdata_atom_data(zone->soa_rrset->rrs[0].rdatas[2]));
@@ -781,36 +802,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		if (serial % 3 > 0) {
 			log_msg(LOG_INFO, "SEXY: SOA serial %d not dividable "
 					  "by 3, exiting reload", serial);
-			if (nsd->db->diff_skip) {
-				log_msg( LOG_INFO
-				       , "child: sizeof(cmd): %u, "
-				         "sizeof(nsd->db->diff_pos): %u, "
-				       , (unsigned int) sizeof(cmd)
-				       , (unsigned int) 
-				         sizeof(nsd->db->diff_pos)
-				       );
-				cmd = NSD_SKIP_DIFF;
-				if (write_socket(cmdsocket, 
-					    &cmd, sizeof(cmd)) == -1) {
-					log_msg( LOG_ERR
-					       , "problems sending command "
-						 "from reload %d to oldnsd "
-						 "%d: %s"
-					       , (int)nsd->pid, (int)old_pid
-					       , strerror(errno)
-					       );
-				} else if (write_socket(cmdsocket, 
-					          &nsd->db->diff_pos, 
-					    sizeof(nsd->db->diff_pos)) == -1) {
-					log_msg( LOG_ERR
-					       , "problems sending command "
-						 "from reload %d to oldnsd "
-						 "%d: %s"
-					       , (int)nsd->pid, (int)old_pid
-					       , strerror(errno)
-					       );
-				}
-			}
+			server_rollback(nsd, cmdsocket, old_diff_pos);
 			exit(0);
 		}
         }
