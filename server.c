@@ -740,6 +740,52 @@ server_rollback(struct nsd *nsd, int cmdsocket, off_t old_diff_pos)
 	}
 }
 
+static int
+server_verify_zone(struct zone* zone)
+{
+	int zone_printing_pipe[2];
+	pid_t child;
+	FILE* zone_write_end;
+	int status;
+
+	if (pipe(zone_printing_pipe) == 0) {
+		if ((child = fork()) == 0) { /* child */
+			close(zone_printing_pipe[1]);
+			if (dup2(zone_printing_pipe[0], 0)) {
+				log_msg( LOG_ERR, "Could not use zone_printing"
+					 "_pipe for stdin when calling the "
+					 " verify zone program: %s"
+				       , strerror(errno));
+			}
+			execvp(*zone->opts->verify_zone
+			      , zone->opts->verify_zone + 1);
+			log_msg( LOG_ERR, "Error executing zone verifier: %s"
+			       , strerror(errno));
+			exit(-1);
+		} else if (child > 0) { /* parent */
+			close(zone_printing_pipe[0]);
+			zone_write_end = fdopen(zone_printing_pipe[1], "w");
+			print_rrs(zone_write_end, zone);
+			fclose(zone_write_end);
+			close(zone_printing_pipe[1]);
+			waitpid(child, &status, 0);
+			if (WEXITSTATUS(status) == 0) {
+				log_msg( LOG_INFO, "zone verifier success!" );
+				return 0;
+			} else {
+				log_msg( LOG_INFO, "zone verifier error. "
+				                   "Exit status: %d"
+						 ,  WEXITSTATUS(status));
+			}
+		} else {
+			log_msg(LOG_ERR, "Could not fork: %s",strerror(errno));
+		}
+	} else {
+		log_msg(LOG_ERR, "Could not create pipe: %s", strerror(errno));
+	}
+	return -1;
+}
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -790,20 +836,17 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* DNSSEXY */
 	for(zone= nsd->db->zones; zone; zone = zone->next) {
 		if ( zone->updated == 0 
-		|| ! zone->opts->verify_zone
+		|| ! zone->opts->verify_zone || zone->opts->dnssexy
 		|| ! zone->soa_rrset) continue;
 
-		log_msg(LOG_INFO, "zone %s has changed calling DNSSEXY zone verifier: %s.", zone->opts->name, *zone->opts->verify_zone);
+		if (zone->opts->verify_zone) {
+			log_msg( LOG_INFO, "zone %s has changed. "
+					   "Calling zone verifier: %s."
+			       , zone->opts->name, *zone->opts->verify_zone );
 
-		uint32_t serial = read_uint32(
-			rdata_atom_data(zone->soa_rrset->rrs[0].rdatas[2]));
-		log_msg(LOG_INFO, "SEXY: SOA serial: %d", serial);
-
-		if (serial % 3 > 0) {
-			log_msg(LOG_INFO, "SEXY: SOA serial %d not dividable "
-					  "by 3, exiting reload", serial);
-			server_rollback(nsd, cmdsocket, old_diff_pos);
-			exit(0);
+			if (server_verify_zone(zone) != 0) {
+				server_rollback(nsd, cmdsocket, old_diff_pos);
+			}
 		}
         }
 

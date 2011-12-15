@@ -502,7 +502,6 @@ namedb_destroy(struct namedb *db)
 	region_destroy(db->region);
 }
 
-
 #ifdef NSEC3
 #ifndef FULL_PREHASH
 int

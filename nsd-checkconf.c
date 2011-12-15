@@ -40,6 +40,16 @@ extern int optind;
 		return; 			\
 	}
 
+#define ZONE_GET_STR_LIST(NAME, VAR) 		\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+		if(zone->NAME==NULL)		\
+			printf("\n");		\
+		else if(*zone->NAME==NULL)	\
+			printf("\n");		\
+		else				\
+			printf("%s\n", *zone->NAME); \
+	}
+
 #define ZONE_GET_BIN(NAME, VAR) 			\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
 		printf("%s\n", zone->NAME?"yes":"no"); 	\
@@ -123,7 +133,7 @@ print_string_var(const char* varname, const char* value)
 }
 
 static void
-print_strings_var(const char* varname, const char** value)
+print_strings_var(const char* varname, char* const* value)
 {
 	if (!value) {
 		printf("\t#%s\n", varname);
@@ -266,8 +276,8 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 				ZONE_GET_BIN(notify_retry, o);
 				ZONE_GET_OUTGOING(outgoing_interface, o);
 				ZONE_GET_BIN(allow_axfr_fallback, o);
-				ZONE_GET_STR(dnssexy, o);
-				ZONE_GET_STR(verify_zone, o);
+				ZONE_GET_STR_LIST(dnssexy, o);
+				ZONE_GET_STR_LIST(verify_zone, o);
 				printf("Zone option not handled: %s %s\n", z, o);
 				exit(1);
 			}

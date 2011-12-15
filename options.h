@@ -96,8 +96,8 @@ struct zone_options {
 	acl_options_t* outgoing_interface;
 	uint8_t allow_axfr_fallback;
 	uint8_t notify_retry;
-	const char **dnssexy;
-	const char **verify_zone;
+	char* const* dnssexy;
+	char* const* verify_zone;
 };
 
 union acl_addr_storage {

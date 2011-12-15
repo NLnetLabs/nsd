@@ -31,14 +31,13 @@ extern config_parser_state_t* cfg_parser;
 static int server_settings_seen = 0;
 
 static cmd_option_t* cmd_i = NULL;
-static const char** cmds2args()
+static char* const* cmds2args()
 {
-	const char **arg_i = NULL;
-	const char **ret = region_alloc( cfg_parser->opt->region
-				       , cfg_parser->current_cmd_count
-					 * sizeof(const char*)
-					 + sizeof(const char*)
-				       );
+	char** arg_i = NULL;
+	char** ret = region_alloc( cfg_parser->opt->region
+				 , cfg_parser->current_cmd_count
+				   * sizeof(char*) + sizeof(char*)
+				 );
 
 	arg_i = ret + cfg_parser->current_cmd_count;
        *arg_i-- = NULL;

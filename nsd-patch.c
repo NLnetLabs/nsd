@@ -177,46 +177,6 @@ exist_difffile(struct nsd_options* opt)
 }
 
 static void
-print_rrs(FILE* out, struct zone* zone)
-{
-	rrset_type *rrset;
-	domain_type *domain = zone->apex;
-	region_type* region = region_create(xalloc, free);
-	struct state_pretty_rr* state = create_pretty_rr(region);
-	/* first print the SOA record for the zone */
-	if(zone->soa_rrset) {
-		size_t i;
-		for(i=0; i < zone->soa_rrset->rr_count; i++) {
-			if(!print_rr(out, state, &zone->soa_rrset->rrs[i])){
-				fprintf(stderr, "There was an error "
-				   "printing SOARR to zone %s\n",
-				   zone->opts->name);
-			}
-		}
-	}
-        /* go through entire tree below the zone apex (incl subzones) */
-	while(domain && dname_is_subdomain(
-		domain_dname(domain), domain_dname(zone->apex)))
-	{
-		for(rrset = domain->rrsets; rrset; rrset=rrset->next)
-		{
-			size_t i;
-			if(rrset->zone != zone || rrset == zone->soa_rrset)
-				continue;
-			for(i=0; i < rrset->rr_count; i++) {
-				if(!print_rr(out, state, &rrset->rrs[i])){
-					fprintf(stderr, "There was an error "
-					   "printing RR to zone %s\n",
-					   zone->opts->name);
-				}
-			}
-		}
-		domain = domain_next(domain);
-	}
-	region_destroy(region);
-}
-
-static void
 print_commit_log(FILE* out, const dname_type* zone, struct diff_log* commit_log)
 {
 	struct diff_log* p = commit_log;
