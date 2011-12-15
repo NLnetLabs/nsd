@@ -845,7 +845,11 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			       , zone->opts->name, *zone->opts->verify_zone );
 
 			if (server_verify_zone(zone) != 0) {
+				log_msg( LOG_INFO, "zone %s did not verify. "
+					           "Rolling back. "
+				       , zone->opts->name);
 				server_rollback(nsd, cmdsocket, old_diff_pos);
+				exit(0);
 			}
 		}
         }
