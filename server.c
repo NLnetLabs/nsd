@@ -850,6 +850,8 @@ server_log_from_fd(struct log_from_fd_t* lfd)
 		while (sol < eol) {
 			*lfd->pos++ = *sol++;
 		}
+	} else {
+		lfd->pos = lfd->buf;
 	}
 }
 

@@ -1614,14 +1614,14 @@ void difffile_rollback(const char* filename, off_t from_pos, off_t to_pos)
 			}
 			write_data(df, &c, sizeof(c)); /* rollback */
 		}
-		from_pos += len + 20 /* 32 bit =  4 bytes : type
-				      * 64 bit =  8 bytes : timestamp
-				      * 32 bit =  4 bytes : length
-				      *     -- data --
-				      * 32 bit =  4 bytes : length2
-				      *          --------
-				      *          20 bytes
-				      */
+		from_pos += len + 20; /* 32 bit =  4 bytes : type
+				       * 64 bit =  8 bytes : timestamp
+				       * 32 bit =  4 bytes : length
+				       *     -- data --
+				       * 32 bit =  4 bytes : length2
+				       *          --------
+				       *          20 bytes
+				       */
 		if (fseeko(df, from_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko file %s: %s."
 					, filename, strerror(errno));
