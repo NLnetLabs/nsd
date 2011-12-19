@@ -1075,3 +1075,119 @@ addr2ip(
 	return (0);
 }
 
+/* 2011 implementation of popen3() by Mike Bourgeous
+ * https://gist.github.com/1022231
+ * Adapted for use in nsd_sexy by Willem Toorop in December 2011
+ */
+pid_t nsd_popen3(char* const* command, int* writefd, int* readfd, int* errfd)
+{
+	int in_pipe[2] = {-1, -1};
+	int out_pipe[2] = {-1, -1};
+	int err_pipe[2] = {-1, -1};
+	pid_t pid;
+
+
+	if (command == NULL || *command == NULL) {
+		log_msg(LOG_ERR, "Cannot popen3() a NULL command.");
+		goto error;
+	}
+
+	if (writefd && pipe(in_pipe)) {
+		log_msg( LOG_ERR, "Error creating pipe for stdin: %s"
+		       , strerror(errno));
+		goto error;
+	}
+	if (readfd && pipe(out_pipe)) {
+		log_msg( LOG_ERR, "Error creating pipe for stdout: %s"
+		       , strerror(errno));
+		goto error;
+	}
+	if (errfd && pipe(err_pipe)) {
+		log_msg( LOG_ERR, "Error creating pipe for stderr: %s"
+		       , strerror(errno));
+		goto error;
+	}
+
+	pid = fork();
+	switch(pid) {
+		case -1: log_msg( LOG_ERR
+				, "Error creating child process: %s"
+				, strerror(errno));
+			 goto error;
+
+		case  0: if(writefd) {
+				 close(in_pipe[1]);
+				 if(dup2(in_pipe[0], 0) == -1) {
+					 log_msg( LOG_ERR, "Error assigning "
+						  "stdin in child process: %s"
+						, strerror(errno));
+					 exit(-1);
+				 }
+				 close(in_pipe[0]);
+			 }
+			 if(readfd) {
+				 close(out_pipe[0]);
+				 if(dup2(out_pipe[1], 1) == -1) {
+					 log_msg( LOG_ERR, "Error assigning "
+						  "stdout in child process: %s"
+						, strerror(errno));
+					 exit(-1);
+				 }
+				 close(out_pipe[1]);
+			 }
+			 if(errfd) {
+				 close(err_pipe[0]);
+				 if(dup2(err_pipe[1], 2) == -1) {
+					 log_msg( LOG_ERR, "Error assigning "
+						  "stderr in child process: %s"
+						, strerror(errno));
+					 exit(-1);
+				 }
+				 close(err_pipe[1]);
+			 }
+			 execvp(*command, command);
+			 log_msg( LOG_ERR, "Error executing command "
+				 "in child process: %s", strerror(errno));
+			 exit(-1);
+
+		default: break;
+	}
+
+	if(writefd) {
+		close(in_pipe[0]);
+		*writefd = in_pipe[1];
+	}
+	if(readfd) {
+		close(out_pipe[1]);
+		*readfd = out_pipe[0];
+	}
+	if(errfd) {
+		close(err_pipe[1]);
+		*errfd = err_pipe[0];
+	}
+
+	return pid;
+
+error:
+	if(in_pipe[0] >= 0) {
+		close(in_pipe[0]);
+	}
+	if(in_pipe[1] >= 0) {
+		close(in_pipe[1]);
+	}
+	if(out_pipe[0] >= 0) {
+		close(out_pipe[0]);
+	}
+	if(out_pipe[1] >= 0) {
+		close(out_pipe[1]);
+	}
+	if(err_pipe[0] >= 0) {
+		close(err_pipe[0]);
+	}
+	if(err_pipe[1] >= 0) {
+		close(err_pipe[1]);
+	}
+
+	return -1;
+}
+

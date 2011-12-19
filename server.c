@@ -721,6 +721,13 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	return total;
 }
 
+/*
+ * server_rollback is called from a reload-child to discard the changes read
+ * from difffile (because the zone-verifier rejected them).
+ * It does this by calling difffile_rollback, but also has a slight 
+ * optimization by setting the parents diff_pos (by sending the NSD_SKIP_DIFF
+ * command).
+ */
 static void
 server_rollback(struct nsd *nsd, int cmdsocket, off_t old_diff_pos)
 {
@@ -740,49 +747,209 @@ server_rollback(struct nsd *nsd, int cmdsocket, off_t old_diff_pos)
 	}
 }
 
+
+/*
+ * server_log_from_fd logs data read from the *lfd->fd with lfd->priority.
+ * It is used to log data from the zone-verifier to stdout and stderr
+ * in server_verify_zone, and is not intended to be used from another function.
+ * The asumptions server_log_from_fd makes are therefor quiet specefic. 
+ *
+ * It is assumed that select is called first with the fd_set *lfd->rfds (which
+ * should have contained *lfd->fd). It is also assumed that *lfd->fd can be
+ * excluded from further calls to select by assigning it a value -1.
+ *
+ * server_log_from_fd logs each line (terminated by '\n'). But is a line is
+ * longer then LOGLINELEN, it is split over multiple log-lines (which is
+ * indicated in the log with ... at the end and start of line around a split).
+ *
+ * The struct log_from_fd_t is used to do the bookkeeping.
+ */
+
+#define LOGLINELEN (MAXSYSLOGMSGLEN-40) 
+/* 40 is (estimated) space already used on each logline.
+ * (time, pid, priority, etc) 
+ */
+
+struct log_from_fd_t {
+	int     priority;
+	int*    fd;
+	fd_set* rfds;
+	char    buf[LOGLINELEN*2+1];
+	char*	pos;                 /* buffer is filled up to this pos.
+				      * pos should never be larger than
+				      * LOGLINELEN (part of the data would
+				      * already have been logged then).
+				      */
+};
+
+/* initializer for struct log_from_fd_t */
+static void
+init_lfd(struct log_from_fd_t* lfd, int priority, int *fd, fd_set* rfds)
+{
+	 lfd->priority = priority;
+	 lfd->fd       = fd;
+	 lfd->rfds     = rfds;
+	*lfd->buf      = 0;
+	 lfd->pos      = lfd->buf;
+}
+
+static void
+server_log_from_fd(struct log_from_fd_t* lfd)
+{
+	ssize_t len;
+	char* sol;
+	char* eol;
+	char* split;
+	char  tmp_c;
+
+	assert( lfd->pos < lfd->buf + LOGLINELEN );
+
+	if (*lfd->fd == -1 || ! FD_ISSET(*lfd->fd, lfd->rfds) )
+		return;
+
+	len = read(*lfd->fd, lfd->pos, LOGLINELEN);
+	if (len == 0) {
+		close(*lfd->fd);
+		*lfd->fd = -1;
+		return;
+	}
+
+	*(lfd->pos += len) = 0;
+
+	sol = lfd->buf;
+	eol = strchr(sol, '\n');
+
+	while (eol) { /* lines to log */
+		*eol = 0;
+		if (eol - sol <= LOGLINELEN) {
+			log_msg(lfd->priority, "%s", sol);
+		} else {
+			split = sol + LOGLINELEN - 4;
+			tmp_c  = *split;
+			*split = 0;
+			log_msg(lfd->priority, "%s ...", sol);
+			*split = tmp_c;
+			log_msg(lfd->priority, "... %s", split);
+		}
+		sol = eol + 1;
+		eol = strchr(sol, '\n');
+	}
+
+	if (sol < lfd->pos) { /* last character was not '\n' */
+		if (lfd->pos - sol > LOGLINELEN) {
+			split = sol + LOGLINELEN - 4;
+			tmp_c  = *split;
+			*split = 0;
+			log_msg(lfd->priority, "%s ...", sol);
+			sol = split -= 4;
+			*split++ = '.'; *split++ = '.'; *split++ = '.';
+			*split++ = ' '; *split = tmp_c;
+		}
+		eol = lfd->pos;
+		lfd->pos = lfd->buf;
+		while (sol < eol) {
+			*lfd->pos++ = *sol++;
+		}
+	}
+}
+
+/*
+ * server_verify_zone assesses the zone by feeding it to the verify_zone 
+ * program (via its stdin). It returns the exit code of the verify_zone 
+ * program. So 0 is success.
+ * Besides the child forked of to run the verifier (through nsd_popen3),
+ * another child is forked of (the logger) that receives the stdout and stderr
+ * of the verifier and logs those messages.
+ */
 static int
 server_verify_zone(struct zone* zone)
 {
-	int zone_printing_pipe[2];
-	pid_t child;
-	FILE* zone_write_end;
-	int status;
+	pid_t verifier, logger;
+	int to_stdin, from_stdout, from_stderr;
+	FILE* to_stdin_f;
+	int status, retval, r;
+	fd_set rfds;
 
-	if (pipe(zone_printing_pipe) == 0) {
-		if ((child = fork()) == 0) { /* child */
-			close(zone_printing_pipe[1]);
-			if (dup2(zone_printing_pipe[0], 0)) {
-				log_msg( LOG_ERR, "Could not use zone_printing"
-					 "_pipe for stdin when calling the "
-					 " verify zone program: %s"
-				       , strerror(errno));
-			}
-			execvp(*zone->opts->verify_zone
-			      , zone->opts->verify_zone + 1);
-			log_msg( LOG_ERR, "Error executing zone verifier: %s"
-			       , strerror(errno));
-			exit(-1);
-		} else if (child > 0) { /* parent */
-			close(zone_printing_pipe[0]);
-			zone_write_end = fdopen(zone_printing_pipe[1], "w");
-			print_rrs(zone_write_end, zone);
-			fclose(zone_write_end);
-			close(zone_printing_pipe[1]);
-			waitpid(child, &status, 0);
-			if (WEXITSTATUS(status) == 0) {
-				log_msg( LOG_INFO, "zone verifier success!" );
-				return 0;
-			} else {
-				log_msg( LOG_INFO, "zone verifier error. "
-				                   "Exit status: %d"
-						 ,  WEXITSTATUS(status));
-			}
-		} else {
-			log_msg(LOG_ERR, "Could not fork: %s",strerror(errno));
-		}
-	} else {
-		log_msg(LOG_ERR, "Could not create pipe: %s", strerror(errno));
+	verifier = nsd_popen3( zone->opts->verify_zone
+			     , &to_stdin, &from_stdout, &from_stderr);
+	if (verifier == -1)
+		goto error;
+
+	logger = fork();
+	switch (logger) {
+		case -1: log_msg( LOG_ERR, "Error creating child process: %s"
+				, strerror(errno));
+			 goto error;
+
+		case  0: /* Child reads what is written to the stdout and 
+			  * stderr of the verify_zone process and outputs
+			  * that to the log.
+			  */
+			 close(to_stdin);
+
+			 log_msg( LOG_INFO, "Output of verify-zone \"%s\":"
+				, *zone->opts->verify_zone
+				);
+
+			 struct log_from_fd_t lfdout, lfderr;
+
+			 init_lfd(&lfdout, LOG_INFO, &from_stdout, &rfds);
+			 init_lfd(&lfderr, LOG_ERR , &from_stderr, &rfds);
+
+			 while (from_stdout != -1 || from_stderr != -1) {
+
+			 	FD_ZERO(&rfds);
+				if (from_stdout!=-1) FD_SET(from_stdout,&rfds);
+				if (from_stderr!=-1) FD_SET(from_stderr,&rfds);
+
+				r = select( 1 + ( from_stdout > from_stderr
+						? from_stdout : from_stderr )
+					  , &rfds, NULL, NULL, NULL);
+
+				if (r < 0){
+					log_msg( LOG_ERR, "select failed: %s"
+					       , strerror(errno));
+					break;
+				}
+
+				server_log_from_fd(&lfdout);
+				server_log_from_fd(&lfderr);
+			 }
+			 if (from_stdout != -1) close(from_stdout);
+			 if (from_stderr != -1) close(from_stderr);
+
+			 exit(0);
+
+		default: /* Parent writes zonefile to stdin of verify_zone
+			  * process. Return exit status.
+			  */
+			 close(from_stdout);
+			 close(from_stderr);
+
+			 to_stdin_f = fdopen(to_stdin, "w");
+			 setbuf(to_stdin_f, NULL);
+
+			 print_rrs(to_stdin_f, zone);
+
+			 fclose(to_stdin_f);
+			 close(to_stdin);
+
+			 waitpid(verifier, &status, 0);
+			 waitpid(logger, NULL, 0);
+			 retval = WEXITSTATUS(status);
+			 if (retval)
+				 log_msg( LOG_INFO, "Zone verifier exited with"
+					  " status: %d", WEXITSTATUS(status));
+			 else
+				 log_msg( LOG_INFO, "Zone verified" );
+
+			 return retval;
 	}
+
+error:
+	close(to_stdin);
+	close(from_stdout);
+	close(from_stderr);
 	return -1;
 }
 
@@ -833,20 +1000,22 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	initialize_dname_compression_tables(nsd);
 
-	/* DNSSEXY */
-	for(zone= nsd->db->zones; zone; zone = zone->next) {
+	/* 
+	 * Assess updated zones that have a verifier program.
+	 */
+	for(zone = nsd->db->zones; zone; zone = zone->next) {
 		if ( zone->updated == 0 
 		|| ! zone->opts->verify_zone || zone->opts->dnssexy
 		|| ! zone->soa_rrset) continue;
 
 		if (zone->opts->verify_zone) {
-			log_msg( LOG_INFO, "zone %s has changed. "
-					   "Calling zone verifier: %s."
-			       , zone->opts->name, *zone->opts->verify_zone );
+			log_msg( LOG_INFO, "Zone %s has changed. "
+					   "Calling zone verifier."
+			       , zone->opts->name );
 
 			if (server_verify_zone(zone) != 0) {
-				log_msg( LOG_INFO, "zone %s did not verify. "
-					           "Rolling back. "
+				log_msg( LOG_ERR, "Zone %s did not verify. "
+					          "Rolling back. "
 				       , zone->opts->name);
 				server_rollback(nsd, cmdsocket, old_diff_pos);
 				exit(0);

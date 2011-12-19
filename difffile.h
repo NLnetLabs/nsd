@@ -67,6 +67,9 @@ int diff_read_16(FILE *in, uint16_t* result);
 int diff_read_8(FILE *in, uint8_t* result);
 int diff_read_str(FILE* in, char* buf, size_t len);
 
+/* Sets the commit byte to 0 (rollback) on all SURE parts 
+ * from from_pos till to_pos.
+ */
 void difffile_rollback(const char *fn, off_t from_pos, off_t to_pos);
 
 #endif /* DIFFFILE_H */

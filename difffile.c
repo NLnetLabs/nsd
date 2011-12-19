@@ -1553,6 +1553,9 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	return 1;
 }
 
+/* Sets the commit byte to 0 (rollback) on all SURE parts 
+ * from from_pos till to_pos.
+ */
 void difffile_rollback(const char* filename, off_t from_pos, off_t to_pos)
 {
 	FILE *df;
@@ -1581,12 +1584,13 @@ void difffile_rollback(const char* filename, off_t from_pos, off_t to_pos)
 			     , (LOG_INFO, "difffile %s is empty", filename));
 			return;
 		}
-		/* skip timestamp */
-		if (fseeko(df, 2 * sizeof(uint32_t), SEEK_CUR) == -1) {
+		/* skip (64 bits) timestamp */
+		if (fseeko(df, sizeof(uint64_t), SEEK_CUR) == -1) {
 			log_msg(LOG_INFO, "could not fseeko file %s: %s."
 					, filename, strerror(errno));
 			return;
 		}
+		/* len is size of data to be read */
 		if (!diff_read_32(df, &len)) {
 			return;
 		}
@@ -1595,13 +1599,30 @@ void difffile_rollback(const char* filename, off_t from_pos, off_t to_pos)
 			if (!diff_read_32(df, &disklen)) {
 			    return;
 			}
+			/* 32 bit =  4 bytes : old serial
+			 * 32 bit =  4 bytes : new serial
+			 * 16 bit =  2 bytes : ID number
+			 * 32 bit =  4 bytes : # preceding IXFR packets
+			 *          --------
+			 *          14 bytes
+			 *
+			 * then the commit/rollback byte follows.
+			 */
 			if (fseeko(df, disklen + 14, SEEK_CUR) == -1) {
 				log_msg( LOG_INFO, "could not fseeko file "
 					 "%s: %s.", filename, strerror(errno));
 			}
 			write_data(df, &c, sizeof(c)); /* rollback */
 		}
-		if (fseeko(df, from_pos + len + 20, SEEK_SET) == -1) {
+		from_pos += len + 20 /* 32 bit =  4 bytes : type
+				      * 64 bit =  8 bytes : timestamp
+				      * 32 bit =  4 bytes : length
+				      *     -- data --
+				      * 32 bit =  4 bytes : length2
+				      *          --------
+				      *          20 bytes
+				      */
+		if (fseeko(df, from_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko file %s: %s."
 					, filename, strerror(errno));
 			return;
