@@ -235,8 +235,8 @@ writepid(struct nsd *nsd)
 void
 unlinkpid(const char* file)
 {
-	if (file && unlink(file) == -1)
-		log_msg(LOG_ERR, "failed to unlink pidfile %s: %s",
+	if (file && truncate(file, 0) == -1)
+		log_msg(LOG_ERR, "failed to truncate pidfile %s: %s",
 			file, strerror(errno));
 }
 
