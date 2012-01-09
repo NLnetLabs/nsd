@@ -4,8 +4,7 @@ NSD RELEASE NOTES
 ================
 
 BUG FIXES:
-	- Bugfix #421: Truncate pidfile on shutdown, instead of unlink.
-	  This way, the piddir does not have to fall under nsd ownership.
+	- Bugfix #421: Truncate pidfile on shutdown, before unlink.
 
 3.2.10 (UPCOMING)
 ================
