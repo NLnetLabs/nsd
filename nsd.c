@@ -236,7 +236,10 @@ void
 unlinkpid(const char* file)
 {
 	if (file && truncate(file, 0) == -1)
-		log_msg(LOG_ERR, "failed to truncate pidfile %s: %s",
+		log_msg(LOG_WARNING, "failed to truncate pidfile %s: %s",
+			file, strerror(errno));
+	if (file && unlink(file) == -1)
+		log_msg(LOG_WARNING, "failed to unlink pidfile %s: %s",
 			file, strerror(errno));
 }
 
