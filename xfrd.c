@@ -1278,8 +1278,7 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	int *done, xfrd_soa_t* soa, region_type* temp)
 {
 	/* first RR has already been checked */
-	uint16_t type, klass, rrlen;
-	uint32_t ttl;
+	uint16_t type, rrlen;
 	size_t i, soapos, mempos;
 	const dname_type* dname;
 	domain_table_type* owners;
@@ -1297,8 +1296,8 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 			return 0;
 		soapos = buffer_position(packet);
 		type = buffer_read_u16(packet);
-		klass = buffer_read_u16(packet);
-		ttl = buffer_read_u32(packet);
+		(void)buffer_read_u16(packet); /* class */
+		(void)buffer_read_u32(packet); /* ttl */
 		rrlen = buffer_read_u16(packet);
 		if(!buffer_available(packet, rrlen))
 			return 0;
