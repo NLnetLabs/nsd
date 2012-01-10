@@ -437,6 +437,8 @@ delete_RR(namedb_type* db, const dname_type* dname,
 				parent = parent->parent;
 			} while (parent != zone->apex->parent);
 		}
+#else
+		(void)is_axfr;
 #endif /* !FULL_PREHASH */
 #endif /* NSEC3 */
 
@@ -598,6 +600,8 @@ add_RR(namedb_type* db, const dname_type* dname,
 			parent = parent->parent;
 		} while (parent != zone->apex->parent);
 	}
+#else
+	(void)is_axfr;
 #endif /* !FULL_PREHASH */
 #endif /* NSEC3 */
 
