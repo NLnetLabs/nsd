@@ -261,15 +261,40 @@ has_data_below(domain_type* top)
 	/* in the canonical ordering subdomains are after this name */
 	d = domain_next(d);
 	while(d != NULL && dname_is_subdomain(domain_dname(d), domain_dname(top))) {
-		if(d->is_existing)
+		if(d->is_existing) {
 			return 1;
+		}
 		d = domain_next(d);
 	}
 	return 0;
 }
 
+
+/* this routine makes empty terminals non-existent. */
 static void
-rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
+rrset_delete_empty_terminals(domain_type* domain)
+{
+	if (domain && domain->rrsets == 0) {
+		/* if there is no data below it, it becomes non existing.
+		   also empty nonterminals above it become nonexisting */
+		/* check for data below this node. */
+		if(!has_data_below(domain)) {
+			/* nonexist this domain and all parent empty nonterminals */
+			domain_type* p = domain;
+			while(p != NULL && p->rrsets == 0) {
+				if(has_data_below(p))
+					break;
+				p->is_existing = 0;
+				p = p->parent;
+			}
+		}
+	}
+}
+
+
+static void
+rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset,
+    int do_ent)
 {
 	int i;
 	/* find previous */
@@ -321,20 +346,8 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	region_recycle(db->region, rrset, sizeof(rrset_type));
 
 	/* is the node now an empty node (completely deleted) */
-	if(domain->rrsets == 0) {
-		/* if there is no data below it, it becomes non existing.
-		   also empty nonterminals above it become nonexisting */
-		/* check for data below this node. */
-		if(!has_data_below(domain)) {
-			/* nonexist this domain and all parent empty nonterminals */
-			domain_type* p = domain;
-			while(p != NULL && p->rrsets == 0) {
-				if(has_data_below(p))
-					break;
-				p->is_existing = 0;
-				p = p->parent;
-			}
-		}
+	if (do_ent) {
+		rrset_delete_empty_terminals(domain);
 	}
 	rrset->rr_count = 0;
 }
@@ -444,7 +457,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
-			rrset_delete(db, domain, rrset);
+			rrset_delete(db, domain, rrset, 1);
 		} else {
 			/* swap out the bad RR and decrease the count */
 			rr_type* rrs_orig = rrset->rrs;
@@ -495,6 +508,10 @@ add_RR(namedb_type* db, const dname_type* dname,
 		rrset->zone = zone;
 		rrset->rrs = 0;
 		rrset->rr_count = 0;
+
+		log_msg(LOG_WARNING, "add rrset %s type %s",
+			dname_to_string(domain_dname(domain),0),
+			rrtype_to_string(type));
 		domain_add_rrset(domain, rrset);
 	}
 
@@ -702,10 +719,17 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 			dname_to_string(domain_dname(domain),0)));
 		/* delete all rrsets of the zone */
 		while((rrset = domain_find_any_rrset(domain, zone))) {
-			rrset_delete(db, domain, rrset);
+			rrset_delete(db, domain, rrset, 0);
 		}
 		domain = domain_next(domain);
 	}
+	while(domain && dname_is_subdomain(
+		domain_dname(domain), domain_dname(zone->apex)))
+	{
+		rrset_delete_empty_terminals(domain);
+		domain = domain_next(domain);
+	}
+
 #ifdef NSEC3
 #ifndef FULL_PREHASH
 	if (0 != zone_nsec3_domains_create(db, zone)) {
