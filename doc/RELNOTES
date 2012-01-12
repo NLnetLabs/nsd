@@ -1,6 +1,11 @@
 NSD RELEASE NOTES
 
-3.2.9 (UPCOMING)
+3.2.10 (UPCOMING)
+================
+BUG FIXES:
+        - Bugfix #421: Truncate pidfile on shutdown, before unlink.
+
+3.2.9
 ================
 BUG FIXES:
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
