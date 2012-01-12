@@ -270,11 +270,15 @@ has_data_below(domain_type* top)
 }
 
 
-/* this routine makes empty terminals non-existent. */
-static void
-rrset_delete_empty_terminals(domain_type* domain)
+/* this routine makes empty terminals non-existent.
+ * @domain the lowest empty terminal
+ * @ce the closest encloser
+ */
+static domain_type*
+rrset_delete_empty_terminals(domain_type* domain, domain_type* ce)
 {
-	if (domain && domain->rrsets == 0) {
+	assert(domain);
+	if (domain->rrsets == 0) {
 		/* if there is no data below it, it becomes non existing.
 		   also empty nonterminals above it become nonexisting */
 		/* check for data below this node. */
@@ -282,19 +286,20 @@ rrset_delete_empty_terminals(domain_type* domain)
 			/* nonexist this domain and all parent empty nonterminals */
 			domain_type* p = domain;
 			while(p != NULL && p->rrsets == 0) {
-				if(has_data_below(p))
-					break;
+				if(p == ce || has_data_below(p))
+					return p;
 				p->is_existing = 0;
 				p = p->parent;
 			}
 		}
 	}
+	return NULL;
 }
 
 
 static void
 rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset,
-    int do_ent)
+	int do_ent)
 {
 	int i;
 	/* find previous */
@@ -347,7 +352,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset,
 
 	/* is the node now an empty node (completely deleted) */
 	if (do_ent) {
-		rrset_delete_empty_terminals(domain);
+		(void)rrset_delete_empty_terminals(domain, NULL);
 	}
 	rrset->rr_count = 0;
 }
@@ -508,10 +513,6 @@ add_RR(namedb_type* db, const dname_type* dname,
 		rrset->zone = zone;
 		rrset->rrs = 0;
 		rrset->rr_count = 0;
-
-		log_msg(LOG_WARNING, "add rrset %s type %s",
-			dname_to_string(domain_dname(domain),0),
-			rrtype_to_string(type));
 		domain_add_rrset(domain, rrset);
 	}
 
@@ -704,6 +705,7 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 {
 	rrset_type *rrset;
 	domain_type *domain = zone->apex;
+	domain_type *ce = NULL;
 	zone->updated = 1;
 #ifdef NSEC3
 #ifndef FULL_PREHASH
@@ -723,10 +725,12 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 		}
 		domain = domain_next(domain);
 	}
+	/* fix empty terminals */
+	domain = zone->apex;
 	while(domain && dname_is_subdomain(
 		domain_dname(domain), domain_dname(zone->apex)))
 	{
-		rrset_delete_empty_terminals(domain);
+		ce = rrset_delete_empty_terminals(domain, ce);
 		domain = domain_next(domain);
 	}
 
