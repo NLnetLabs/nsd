@@ -261,6 +261,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 		add_rdata_to_recyclebin(db, &rrset->rrs[i]);
 	region_recycle(db->region, rrset->rrs,
 		sizeof(rr_type) * rrset->rr_count);
+	rrset->rr_count = 0;
 	region_recycle(db->region, rrset, sizeof(rrset_type));
 
 	/* is the node now an empty node (completely deleted) */
@@ -279,7 +280,6 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 			}
 		}
 	}
-	rrset->rr_count = 0;
 }
 
 static int
