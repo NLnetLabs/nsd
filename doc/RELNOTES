@@ -5,8 +5,11 @@ NSD RELEASE NOTES
 
 BUG FIXES:
 	- Bugfix #421: Truncate pidfile on shutdown, before unlink.
+	- Bugfix #423: Fix slow zone transfer processing due to
+	  'Fix is_existing flag for ENT' bugfix.
 
-3.2.10 (UPCOMING)
+
+3.2.9
 ================
 
 FEATURES:
