@@ -393,8 +393,9 @@ main(int argc, char *argv[])
 #endif /* HAVE_GETPWNAM */
 
 	/* For initialising the address info structures */
-	struct addrinfo hints[MAX_INTERFACES];
-	const char *nodes[MAX_INTERFACES];
+	/* static so it can get very big without overflowing the stack */
+	static struct addrinfo hints[MAX_INTERFACES];
+	static const char *nodes[MAX_INTERFACES];
 	const char *udp_port = 0;
 	const char *tcp_port = 0;
 
