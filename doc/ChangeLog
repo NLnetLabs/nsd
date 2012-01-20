@@ -1,5 +1,6 @@
 20 January 2012: Wouter
 	- Fix bug #430: segfault when MAX_INTERFACES set to more than 65K.
+	- Fix configure.ac strptime check for gcc 4.6.2, acx_nlnetlabs update.
 
 18 January 2012: Matthijs
 	- Fix bug #423: Fix up empty terminals after applying complete
