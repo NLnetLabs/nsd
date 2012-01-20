@@ -2,7 +2,11 @@
 # Copyright 2009, Wouter Wijngaards, NLnet Labs.   
 # BSD licensed.
 #
-# Version 16
+# Version 20
+# 2012-01-20 Fix COMPILER_FLAGS_UNBOUND for gcc 4.6.2 assigned-not-used-warns.
+# 2011-12-05 Fix getaddrinfowithincludes on windows with fedora16 mingw32-gcc.
+# 	     Fix ACX_MALLOC for redefined malloc error.
+# 	     Fix GETADDRINFO_WITH_INCLUDES to add -lws2_32
 # 2011-11-10 Fix FLTO test to not drop a.out in current directory.
 # 2011-11-01 Fix FLTO test for llvm on Lion.
 # 2011-08-01 Fix nonblock test (broken at v13).
@@ -256,6 +260,8 @@ int test() {
 	a = getopt(2, opts, "a");
 	a = isascii(32);
 	str = gai_strerror(0);
+	if(str && t && tv.tv_usec && msg.msg_control)
+		a = 0;
 	return a;
 }
 ], [CFLAGS="$CFLAGS $C99FLAG -D__EXTENSIONS__ -D_BSD_SOURCE -D_POSIX_C_SOURCE=200112 -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D_ALL_SOURCE"])
@@ -291,6 +297,8 @@ int test() {
 	a = getopt(2, opts, "a");
 	a = isascii(32);
 	str = gai_strerror(0);
+	if(str && t && tv.tv_usec && msg.msg_control)
+		a = 0;
 	return a;
 }
 ], [CFLAGS="$CFLAGS $C99FLAG -D__EXTENSIONS__ -D_BSD_SOURCE -D_POSIX_C_SOURCE=200112 -D_XOPEN_SOURCE=600 -D_ALL_SOURCE"])
@@ -357,6 +365,8 @@ int test() {
 	const char* str = NULL;
         t = ctime_r(&time, buf);
 	str = gai_strerror(0);
+	if(t && str)
+		a = 0;
         return a;
 }
 ], [CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200112"])
@@ -383,6 +393,8 @@ int test() {
         srandom(32);
         a = getopt(2, opts, "a");
         a = isascii(32);
+	if(tv.tv_usec)
+		a = 0;
         return a;
 }
 ], [CFLAGS="$CFLAGS -D__EXTENSIONS__"])
@@ -794,7 +806,14 @@ int main() {
 }
 ]])],
 dnl this case on linux, solaris, bsd
-[ac_cv_func_getaddrinfo="yes"],
+[ac_cv_func_getaddrinfo="yes"
+dnl see if on windows
+if test "$ac_cv_header_windows_h" = "yes"; then
+	AC_DEFINE(USE_WINSOCK, 1, [Whether the windows socket API is used])
+	USE_WINSOCK="1"
+	LIBS="$LIBS -lws2_32"
+fi
+],
 dnl no quick getaddrinfo, try mingw32 and winsock2 library.
 ORIGLIBS="$LIBS"
 LIBS="$LIBS -lws2_32"
@@ -1050,10 +1069,23 @@ dnl detect malloc and provide malloc compat prototype.
 dnl $1: unique name for compat code
 AC_DEFUN([ACX_FUNC_MALLOC],
 [
-	AC_FUNC_MALLOC
-	if test "$ac_cv_func_malloc_0_nonnull" = no; then
-		AC_DEFINE_UNQUOTED([malloc], [rpl_malloc_$1], [Define if  replacement function should be used.])
-	fi
+	AC_MSG_CHECKING([for GNU libc compatible malloc])
+	AC_RUN_IFELSE([AC_LANG_PROGRAM(
+[[#if defined STDC_HEADERS || defined HAVE_STDLIB_H
+#include <stdlib.h>
+#else
+char *malloc ();
+#endif
+]], [ if(malloc(0) != 0) return 1;])
+],
+	[AC_MSG_RESULT([no])
+	AC_LIBOBJ(malloc)
+	AC_DEFINE_UNQUOTED([malloc], [rpl_malloc_$1], [Define if  replacement function should be used.])] ,
+	[AC_MSG_RESULT([yes])
+	AC_DEFINE([HAVE_MALLOC], 1, [If have GNU libc compatible malloc])],
+	[AC_MSG_RESULT([no (crosscompile)])
+	AC_LIBOBJ(malloc)
+	AC_DEFINE_UNQUOTED([malloc], [rpl_malloc_$1], [Define if  replacement function should be used.])] )
 ])
 
 dnl Define fallback for fseeko and ftello if needed.
