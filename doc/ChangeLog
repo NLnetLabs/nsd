@@ -1,3 +1,6 @@
+23 January 2012: Wouter
+	- remove clang security warning about %n in format string.
+
 20 January 2012: Wouter
 	- Fix bug #430: segfault when MAX_INTERFACES set to more than 65K.
 	- Fix configure for OpenIndiana sunos 5.11, acx_nlnetlabs.m4 update.
