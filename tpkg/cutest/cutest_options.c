@@ -418,6 +418,7 @@ static void zonelist_1(CuTest *tc)
 
 	/* add some entries */
 	z1 = zone_list_add(opt, "example.com", "master");
+	CuAssertTrue(tc, z1 != NULL);
 	CuAssertTrue(tc, opt->zonelist_off != (off_t)0);
 	check_zonelist_file(tc, opt, "# NSD zone list\n# name pattern\n"
 		"add example.com master\n");
