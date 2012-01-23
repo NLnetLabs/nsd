@@ -88,30 +88,30 @@ static int tree_print_sub(struct testnode* tree, int depth, char* sink,
 	char *oldsink = sink;
 	int preflen = strlen(prefix);
 	int len;
-	snprintf(sink, *sinklen, "%s%n", prefix, &len);
+	len=snprintf(sink, *sinklen, "%s", prefix);
 	sink += len;
 	*sinklen -= len;
 	if(depth > 0) {
-		snprintf(sink, *sinklen, "-%n", &len);
+		len=snprintf(sink, *sinklen, "-");
 		sink += len;
 		*sinklen -= len;
 	}
 	if((rbnode_t*)tree == RBTREE_NULL) {
-		snprintf(sink, *sinklen, "**\n%n", &len);
+		len=snprintf(sink, *sinklen, "**\n");
 		sink += len;
 		*sinklen -= len;
 		return sink-oldsink;
 	}
 	/* print this node */
-	snprintf(sink, *sinklen, "%d%n", tree->x, &len);
+	len=snprintf(sink, *sinklen, "%d", tree->x);
 	sink += len;
 	*sinklen -= len;
 	if(tree->node.color) {
-		snprintf(sink, *sinklen, "R\n%n", &len);
+		len=snprintf(sink, *sinklen, "R\n");
 		sink += len;
 		*sinklen -= len;
 	} else {
-		snprintf(sink, *sinklen, "B\n%n", &len);
+		len=snprintf(sink, *sinklen, "B\n");
 		sink += len;
 		*sinklen -= len;
 	}
@@ -141,7 +141,7 @@ void tree_print(CuTest *tc, rbtree_t* tree)
 	char *sink = buf;
 	size_t sinklen = sizeof(buf);
 	int len;
-	snprintf(sink, sinklen, "Rbtree count=%d\n%n", (int)tree->count, &len);
+	len=snprintf(sink, sinklen, "Rbtree count=%d\n", (int)tree->count);
 	sink += len;
 	sinklen -= len;
 	prefixbuf[0]=0;
