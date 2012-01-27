@@ -1066,8 +1066,7 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 	int *done, xfrd_soa_t* soa)
 {
 	/* first RR has already been checked */
-	uint16_t type, klass, rrlen;
-	uint32_t ttl;
+	uint16_t type, rrlen;
 	size_t i, soapos;
 	for(i=0; i<count; ++i,++zone->msg_rr_count)
 	{
@@ -1077,8 +1076,8 @@ xfrd_xfr_check_rrs(xfrd_zone_t* zone, buffer_type* packet, size_t count,
 			return 0;
 		soapos = buffer_position(packet);
 		type = buffer_read_u16(packet);
-		klass = buffer_read_u16(packet);
-		ttl = buffer_read_u32(packet);
+		(void)buffer_read_u16(packet); /* class */
+		(void)buffer_read_u32(packet); /* ttl */
 		rrlen = buffer_read_u16(packet);
 		if(!buffer_available(packet, rrlen))
 			return 0;
@@ -1416,9 +1415,6 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 			zone->master->key_options->name);
 	}
 	buffer_flip(packet);
-
-	/* Another interesting spot for a SEXY hook */
-
 	diff_write_commit(zone->apex_str, zone->msg_old_serial,
 		zone->msg_new_serial, zone->query_id, zone->msg_seq_nr, 1,
 		(char*)buffer_begin(packet), xfrd->nsd->options);
