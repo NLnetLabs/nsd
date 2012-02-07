@@ -7,6 +7,8 @@ BUG FIXES:
 	- Bugfix #421: Truncate pidfile on shutdown, before unlink.
 	- Bugfix #423: Fix slow zone transfer processing due to
 	  'Fix is_existing flag for ENT' bugfix.
+	- Fix bug #430: segfault when MAX_INTERFACES set to more than 65K.
+	- Fix configure.ac strptime check for gcc 4.6.2, acx_nlnetlabs update.
 
 
 3.2.9

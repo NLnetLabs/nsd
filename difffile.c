@@ -261,9 +261,8 @@ has_data_below(domain_type* top)
 	/* in the canonical ordering subdomains are after this name */
 	d = domain_next(d);
 	while(d != NULL && dname_is_subdomain(domain_dname(d), domain_dname(top))) {
-		if(d->is_existing) {
+		if(d->is_existing)
 			return 1;
-		}
 		d = domain_next(d);
 	}
 	return 0;
@@ -732,7 +731,6 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 		domain->nextdiff = next;
 		domain = next;
 	}
-
 #ifdef NSEC3
 #ifndef FULL_PREHASH
 	if (0 != zone_nsec3_domains_create(db, zone)) {
