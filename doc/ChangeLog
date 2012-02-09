@@ -1,3 +1,6 @@
+9 February 2012: Wouter
+	- Update acxnlnetlabs.m4 version 21, fixed MEMCMP_BROKEN #undef line.
+
 23 January 2012: Wouter
 	- remove clang security warning about %n in format string.
 
