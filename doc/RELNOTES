@@ -1,6 +1,14 @@
 NSD RELEASE NOTES
 
-3.2.10 (UPCOMING)
+3.2.11 (UPCOMING)
+================
+
+FEATURES:
+	- Fallback to AXFR is IXFR is unknown at the primary. NSD considers
+	  IXFR unknown at the primary if there is a negative response for the IXFR
+	  RRtype. This does not override the value for 'allow-axfr-fallback'.
+
+3.2.10
 ================
 
 BUG FIXES:
