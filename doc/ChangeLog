@@ -1,3 +1,6 @@
+24 February 2012: Wouter
+	- Fix for qtype ANY for a wildcard domain in NSEC signed zone.
+
 9 February 2012: Wouter
 	- Update acxnlnetlabs.m4 version 21, fixed MEMCMP_BROKEN #undef line.
 
