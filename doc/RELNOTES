@@ -8,6 +8,13 @@ FEATURES:
 	  IXFR unknown at the primary if there is a negative response for the IXFR
 	  RRtype. This does not override the value for 'allow-axfr-fallback'.
 
+BUG FIXES:
+	- Fix for qtype ANY for a wildcard domain in NSEC signed zone: Don't
+	  add the wildcard domain NSEC into the answer section. Instead,
+	  put the wildcard expanded NSEC into the answer section and keep the
+	  wildcard domain NSEC in the authority section.
+
+
 3.2.10
 ================
 
