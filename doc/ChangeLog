@@ -1,3 +1,9 @@
+27 February 2012: Matthijs
+	- Fix for qtype ANY for a wildcard domain in NSEC signed zone.
+
+16 February 2012: Matthijs
+	- Fallback to AXFR if IXFR is misinterpreted.
+
 23 January 2012: Wouter
 	- remove clang warning from region_log_stats().
 

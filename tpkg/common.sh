@@ -1,7 +1,8 @@
 # common.sh - an include file for commonly used functions for test code.
 # BSD licensed (see LICENSE file).
 #
-# Version 3
+# Version 4
+# 2011-04-06: wait_logfile to wait (with timeout) for a logfile line to appear
 # 2011-02-23: get_pcat for PCAT, PCAT_DIFF and PCAT_PRINT defines.
 # 2011-02-18: ports check on BSD,Solaris. wait_nsd_up.
 # 2011-02-11: first version.
@@ -20,6 +21,7 @@
 # set_doxygen_path	: set doxygen path
 # skip_if_in_list	: set SKIP=1 if name in list and tool not available.
 # get_random_port x	: get RND_PORT a sequence of free random port numbers.
+# wait_logfile		: wait on logfile to see entry.
 # wait_server_up	: wait on logfile to see when server comes up.
 # wait_ldns_testns_up   : wait for ldns-testns to come up.
 # wait_unbound_up	: wait for unbound to come up.
@@ -141,13 +143,39 @@ get_random_port () {
 	done
 }
 
+# wait for  a logfile line to appear, with a timeout.
+# pass <logfilename> <string to watch> <timeout>
+# $1 : logfilename
+# $2 : string to watch for.
+# $3 : timeout in seconds.
+# exits with failure if it times out
+wait_logfile () {
+	local WAIT_THRES=30
+	local MAX_UP_TRY=`expr $3 + $WAIT_THRES`
+	local try
+	for (( try=0 ; try <= $MAX_UP_TRY ; try++ )) ; do
+		if test -f $1 && fgrep "$2" $1 >/dev/null; then
+			#echo "done on try $try"
+			break;
+		fi
+		if test $try -eq $MAX_UP_TRY; then
+			echo "Logfile in $1 did not get $2!"
+			cat $1
+			exit 1;
+		fi
+		if test $try -ge $WAIT_THRES; then
+			sleep 1
+		fi
+	done
+}
+
 # wait for server to go up, pass <logfilename> <string to watch>
 # $1 : logfilename
 # $2 : string to watch for.
 # exits with failure if it does not come up
 wait_server_up () {
-	local MAX_UP_TRY=120
 	local WAIT_THRES=30
+	local MAX_UP_TRY=120
 	local try
 	for (( try=0 ; try <= $MAX_UP_TRY ; try++ )) ; do
 		if test -f $1 && fgrep "$2" $1 >/dev/null; then

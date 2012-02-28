@@ -261,9 +261,8 @@ has_data_below(domain_type* top)
 	/* in the canonical ordering subdomains are after this name */
 	d = domain_next(d);
 	while(d != NULL && dname_is_subdomain(domain_dname(d), domain_dname(top))) {
-		if(d->is_existing) {
+		if(d->is_existing)
 			return 1;
-		}
 		d = domain_next(d);
 	}
 	return 0;
@@ -732,7 +731,6 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 		domain->nextdiff = next;
 		domain = next;
 	}
-
 #ifdef NSEC3
 #ifndef FULL_PREHASH
 	if (0 != zone_nsec3_domains_create(db, zone)) {
@@ -758,6 +756,19 @@ delete_zone_rrs(namedb_type* db, zone_type* zone)
 	assert(zone->updated == 1);
 }
 
+/* fix empty terminals */
+static void
+fix_empty_terminals(zone_type* zone_db)
+{
+	domain_type* domain = zone_db->apex, *ce = NULL, *next = NULL;
+	while (domain) {
+		ce = rrset_delete_empty_terminals(domain, ce);
+		next = domain->nextdiff;
+		domain->nextdiff = NULL;
+		domain = next;
+	}
+}
+
 /* return value 0: syntaxerror,badIXFR, 1:OK, 2:done_and_skip_it */
 static int
 apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
@@ -774,7 +785,6 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 	uint16_t rrlen;
 	const dname_type *dname_zone, *dname;
 	zone_type* zone_db;
-	domain_type* domain, *ce = NULL, *next = NULL;
 	domain_type* last_in_list;
 	char file_zone_name[3072];
 	uint32_t file_serial, file_seq_nr;
@@ -1038,17 +1048,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			}
 		}
 	}
-	/* fix empty terminals */
-	domain = zone_db->apex;
-	while(domain && dname_is_subdomain(
-		domain_dname(domain), domain_dname(zone_db->apex)))
-	{
-		ce = rrset_delete_empty_terminals(domain, ce);
-		next = domain->nextdiff;
-		domain->nextdiff = NULL;
-		domain = next;
-	}
-
+        fix_empty_terminals(zone_db);
 	region_destroy(region);
 	return 1;
 }
