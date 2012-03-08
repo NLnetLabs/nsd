@@ -17,6 +17,10 @@
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
 
+#define SURE_PART_PENDING	2
+#define SURE_PART_GOOD		1
+#define SURE_PART_BAD		0
+
 /*
  * Used to pass commit logs
  */
@@ -71,5 +75,10 @@ int diff_read_str(FILE* in, char* buf, size_t len);
  * from from_pos till to_pos.
  */
 void difffile_rollback(const char *fn, off_t from_pos, off_t to_pos);
+/*
+ * Walk the zone->commit_trail and write <state> at the commit spots.
+ */
+int write_commit_trail(const char* filename, zone_type* zone, uint8_t state);
+
 
 #endif /* DIFFFILE_H */

@@ -721,32 +721,6 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	return total;
 }
 
-/*
- * server_rollback is called from a reload-child to discard the changes read
- * from difffile (because the zone-verifier rejected them).
- * It does this by calling difffile_rollback, but also has a slight 
- * optimization by setting the parents diff_pos (by sending the NSD_SKIP_DIFF
- * command).
- */
-static void
-server_rollback(struct nsd *nsd, int cmdsocket, off_t old_diff_pos)
-{
-	sig_atomic_t cmd = NSD_SKIP_DIFF;
-	if (nsd->db->diff_skip) {
-		if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1
-		||  write_socket(cmdsocket, &nsd->db->diff_pos, 
-				      sizeof(nsd->db->diff_pos)) == -1) {
-			log_msg( LOG_ERR, "problems sending command from "
-					  "reload %d to oldnsd: %s"
-			       , (int)nsd->pid, strerror(errno));
-		} else {
-			log_msg( LOG_INFO, "calling difffile_rollback");
-			difffile_rollback(nsd->options->difffile
-					 , old_diff_pos, nsd->db->diff_pos);
-		}
-	}
-}
-
 
 /*
  * server_log_from_fd logs data read from the *lfd->fd with lfd->priority.
@@ -964,12 +938,12 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int cmdsocket, int* xfrd_sock_p)
 {
 	pid_t old_pid;
-	sig_atomic_t cmd = NSD_QUIT_SYNC;
+	sig_atomic_t cmd;
 	zone_type* zone;
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
-	off_t old_diff_pos;
-	
+	size_t zone_count, good_zones, bad_zones;
+
 	if(db_crc_different(nsd->db) == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 			"CRC the same. skipping %s.", nsd->db->filename));
@@ -983,7 +957,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			exit(1);
 		}
 	}
-	old_diff_pos = nsd->db->diff_skip ? nsd->db->diff_pos : 0;
 	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);
@@ -1005,25 +978,100 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* 
 	 * Assess updated zones that have a verifier program.
 	 */
+	zone_count = good_zones = bad_zones = 0;
 	for(zone = nsd->db->zones; zone; zone = zone->next) {
-		if ( zone->updated == 0 
-		|| ! zone->opts->verify_zone || zone->opts->dnssexy
-		|| ! zone->soa_rrset) continue;
+		if ( zone->updated == 0) continue;
 
-		if (zone->opts->verify_zone) {
-			log_msg( LOG_INFO, "Zone %s has changed. "
-					   "Calling zone verifier."
-			       , zone->opts->name );
+		zone_count++;
 
-			if (server_verify_zone(zone) != 0) {
-				log_msg( LOG_ERR, "Zone %s did not verify. "
-					          "Rolling back. "
-				       , zone->opts->name);
-				server_rollback(nsd, cmdsocket, old_diff_pos);
-				exit(0);
-			}
+		/* Zone updates that are already verified will have 
+		 * SURE_PART_GOOD at the commit positions and will not leave
+		 * a commit trail. A commit trail is only build with 
+		 * SURE_PART_PENDING statusses.
+		 */
+		if (! zone->commit_trail) {
+			good_zones++;
+			continue;
 		}
+
+		if (! zone->opts->verify_zone || ! zone->soa_rrset) {
+
+			write_commit_trail( nsd->options->difffile
+					  , zone
+					  , SURE_PART_GOOD
+					  );
+			good_zones++;
+			continue;
+		}
+
+		log_msg( LOG_INFO
+		       , "Zone %s has changed."
+		       , zone->opts->name
+		       );
+
+		if (server_verify_zone(zone) != 0) {
+			log_msg( LOG_ERR
+			       , "Zone %s did not validate."
+			       , zone->opts->name
+			       );
+			write_commit_trail( nsd->options->difffile
+					  , zone
+					  , SURE_PART_BAD
+					  );
+			bad_zones++;
+
+		} else if (write_commit_trail( nsd->options->difffile
+					     , zone
+					     , SURE_PART_GOOD)) {
+			good_zones++;
+
+		} else {
+			log_msg( LOG_ERR
+				, "Zone %s did validate, but there was "
+				  "a problem committing to that fact. "
+				  "Considering bad in stead."
+				, zone->opts->name
+				);
+			bad_zones++;
+		}
+		recycle_commit_trail(nsd->db->region, zone);
         }
+	if (bad_zones && ! good_zones) {
+		/* If all updated zones were bad, the parent can continue
+		 * serving. We just have to make sure that this section from
+		 * the difffile will not be evaluated again.
+		 */
+		cmd = NSD_SKIP_DIFF;
+		if (nsd->db->diff_skip 
+		&& (write_socket( cmdsocket, &cmd, sizeof(cmd)) == -1
+		||  write_socket( cmdsocket
+				, &nsd->db->diff_pos
+				, sizeof(nsd->db->diff_pos)
+				)                               == -1)) {
+			log_msg( LOG_ERR
+				, "Unable to send a new diff_pos "
+				  "to our parent %d: %s"
+				, (int)nsd->pid
+				, strerror(errno)
+				);
+			exit(1);
+		}
+		exit(0);
+		
+	} else if (bad_zones && good_zones) {
+		/* Some zones were good, others were bad.
+		 * If all is well, the bad zones will be skipped when we 
+		 * initiate a reload at our parent.
+		 */
+		exit(NSD_RELOAD_AGAIN);
+
+	} else {
+		/* All zones were good and we will become the new server.
+		 * Or... no zones were updated. We need to reload then too.
+		 */
+		assert( good_zones == zone_count );
+
+	}
 
 	/* Get our new process id */
 	old_pid = nsd->pid;
@@ -1062,6 +1110,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 	/* Send quit command to parent: blocking, wait for receipt. */
+	cmd = NSD_QUIT_SYNC;
 	do {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
 		if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1)
@@ -1268,9 +1317,28 @@ server_main(struct nsd *nsd)
 						&xfrd_listener.fd);
 				} else if (child_pid == reload_pid) {
 					sig_atomic_t cmd = NSD_SOA_END;
-					log_msg(LOG_WARNING,
-					       "Reload process %d failed with status %d, continuing with old database",
-					       (int) child_pid, status);
+
+					if (WEXITSTATUS(status)
+					    ==  NSD_RELOAD_AGAIN) {
+						log_msg( LOG_INFO
+						       , "Reload process %d "
+						         "asked us to reload "
+							 "again and reread "
+							 "the (now modified) "
+							 "difffile."
+						       , (int) child_pid
+						       );
+						nsd->mode = NSD_RELOAD;
+					} else {
+						log_msg( LOG_WARNING
+						       , "Reload process %d "
+						         "failed with status "
+							 "%d, continuing with "
+							 "old database"
+						       , (int) child_pid
+						       , WEXITSTATUS(status)
+						       );
+					}
 					reload_pid = -1;
 					if(reload_listener.fd > 0) close(reload_listener.fd);
 					reload_listener.fd = -1;

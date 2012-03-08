@@ -31,6 +31,7 @@ typedef struct rr rr_type;
 typedef struct domain_table domain_table_type;
 typedef struct domain domain_type;
 typedef struct zone zone_type;
+typedef struct commit_crumb commit_crumb_type;
 
 struct domain_table
 {
@@ -84,6 +85,14 @@ struct domain
 #endif /* NSEC3 */
 };
 
+/*
+ * Log of positions of commit bytes in a difffile for an update of a zone.
+ */
+struct commit_crumb {
+	off_t commitpos;
+	struct commit_crumb* next;
+};
+
 struct zone
 {
 	zone_type   *next;
@@ -104,6 +113,8 @@ struct zone
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     updated : 1; /* zone SOA was updated */
 	unsigned     is_ok : 1; /* zone has not expired. */
+	
+	struct commit_crumb* commit_trail;
 };
 
 #ifdef NSEC3
@@ -385,5 +396,21 @@ int namedb_nsec3_mod_domains_destroy(struct namedb *db);
 int namedb_add_nsec3_mod_domain(struct namedb *db, struct domain *domain);
 #endif /* !FULL_PREHASH */
 #endif /* NSEC3 */
+
+/**
+ * When updating from a transfer, this function is used to leave a trail of
+ * the commit possitions in the difffile for all the to be assessed parts for
+ * this zone. When the zone is deemed good or bad, the trail may be used to
+ * mark the parts as such quickly.
+ */
+void update_commit_trail( region_type* region
+			, zone_type* zone
+			, off_t commitpos
+			);
+/**
+ * Dispose of the zone's commit trail.
+ */
+void
+recycle_commit_trail(region_type* region, zone_type* zone);
 
 #endif
