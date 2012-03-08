@@ -651,3 +651,41 @@ namedb_add_nsec3_mod_domain(struct namedb *db, struct domain *domain)
 }
 #endif /* !FULL_PREHASH */
 #endif /* NSEC3 */
+
+void
+update_commit_trail( region_type* region
+		   , zone_type* zone
+		   , off_t commitpos
+		   )
+{
+	commit_crumb_type* crumb 
+		= (commit_crumb_type*) region_alloc( region
+						   , sizeof(commit_crumb_type)
+						   );
+	if (! crumb) {
+		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+		exit(1);
+	}
+
+	crumb->commitpos   = commitpos;
+	crumb->next        = zone->commit_trail;
+	zone->commit_trail = crumb;
+}
+
+void
+recycle_commit_trail(region_type* region, zone_type* zone)
+{
+	commit_crumb_type* next_crumb;
+
+	while (zone->commit_trail) {
+		next_crumb = zone->commit_trail->next;
+
+		region_recycle( region
+			      , zone->commit_trail
+			      , sizeof(commit_crumb_type)
+			      );
+
+		zone->commit_trail = next_crumb;
+	}
+}
+

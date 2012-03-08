@@ -356,6 +356,7 @@ namedb_open (const char *filename, nsd_options_t* opt, size_t num_children)
 		zones[i]->is_secure = 0;
 		zones[i]->updated = 1;
 		zones[i]->is_ok = 0;
+		zones[i]->commit_trail = NULL;
 		zones[i]->dirty = region_alloc(db->region, sizeof(uint8_t)*num_children);
 		memset(zones[i]->dirty, 0, sizeof(uint8_t)*num_children);
 		if(!zones[i]->opts) {

@@ -1292,29 +1292,26 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", log_buf));
 
-#ifdef NSEC3
-#ifndef FULL_PREHASH
-		struct region *region;
-		dname_type const *zone_dname;
 		struct zone *zone;
+		dname_type const *zone_dname;
 
-		region = region_create(xalloc, free);
-		if (region == NULL) {
-			log_msg(LOG_ERR, "out of memory");
-			return 0;
-		}
-		zone_dname = dname_parse(region, zone_buf);
+		zone_dname = dname_parse(db->region, zone_buf);
 		if (zone_dname == NULL) {
 			log_msg(LOG_ERR, "out of memory");
-		        region_destroy(region);
 			return 0;
 		}
 		zone = find_zone(db, zone_dname, opt, child_count);
-		region_destroy(region);
+		region_recycle( db->region
+			      , (void *) zone_dname
+			      , dname_total_size(zone_dname)
+			      );
 		if (zone == NULL) {
 			log_msg(LOG_ERR, "no zone exists");
 			return 0;
 		}
+
+#ifdef NSEC3
+#ifndef FULL_PREHASH
 		if (0 != namedb_nsec3_mod_domains_create(db)) {
 			log_msg(LOG_ERR,
 				"unable to allocate space "
@@ -1352,6 +1349,19 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			prehash_zone_incremental(db, zone);
 #endif /* !FULL_PREHASH */
 #endif /* NSEC3 */
+
+		/*
+		 * We keep the commit trail so a verifier can change it to
+		 * SURE_PART_GOOD or SURE_PART_BAD.  We don't need to update
+		 * the commit_trail if a decision has already been made.
+		 * (i.e. committed != SURE_PART_PENDING)
+		 *
+		 * PS. If a zone does not have a verifier it is considered
+		 *     good and all the commitposses in the trail will be
+		 *     given the value: SURE_PART_GOOD.
+		 */
+		if (committed == SURE_PART_PENDING)
+			update_commit_trail(db->region, zone, commitpos);
 
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
@@ -1601,82 +1611,52 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 	return 1;
 }
 
-/* Sets the commit byte to 0 (rollback) on all SURE parts 
- * from from_pos till to_pos.
+/*
+ * Walk the zone->commit_trail and write <state> at the commit spots.
  */
-void difffile_rollback(const char* filename, off_t from_pos, off_t to_pos)
+int 
+write_commit_trail(const char* filename, zone_type* zone, uint8_t state)
 {
 	FILE *df;
-	uint32_t type, len, len2, disklen;
+	commit_crumb_type* crumb = zone->commit_trail;
+	log_msg( LOG_INFO
+	       , "Following commit trail for zone %s to set it to %d in file %s"
+	       , zone->opts->name
+	       , state
+	       , filename
+	       );
 
 	df = fopen(filename, "r+");
 	if (!df) {
 		DEBUG(DEBUG_XFRD, 1
 		     , ( LOG_INFO, "could not open file %s for reading: %s"
 		       , filename, strerror(errno)));
-		return;
+		return 0;
 	}
-	if (fseeko(df, from_pos, SEEK_SET) == -1) {
-		log_msg(LOG_INFO, "could not fseeko file %s: %s. Reread "
-				  "from start.", filename, strerror(errno));
-		from_pos = 0;
-		if (fseeko(df, 0, SEEK_SET)==-1) {
-			log_msg( LOG_INFO, "could not fseeko file %s: %s."
-			       , filename, strerror(errno));
-			return;
+	while (crumb) {
+		if (fseeko(df, crumb->commitpos, SEEK_SET) == -1) {
+			log_msg( LOG_INFO
+			       , "could not fseeko file %s to pos %d, "
+			         "to set the commit byte to state %d: %s."
+			       , filename
+			       , (int)crumb->commitpos
+			       , state
+			       , strerror(errno)
+			       );
+			return 0;
 		}
+		log_msg( LOG_INFO
+		       , "Written %d on pos %d of file %s for zone %s"
+		       , state
+		       , (int)crumb->commitpos
+		       , filename
+		       , zone->opts->name
+		       );
+		write_8(df, state);
+		crumb = crumb->next;
 	}
-	while (from_pos < to_pos) {
-		if (!diff_read_32(df, &type)) {
-			DEBUG( DEBUG_XFRD, 1
-			     , (LOG_INFO, "difffile %s is empty", filename));
-			return;
-		}
-		/* skip (64 bits) timestamp */
-		if (fseeko(df, sizeof(uint64_t), SEEK_CUR) == -1) {
-			log_msg(LOG_INFO, "could not fseeko file %s: %s."
-					, filename, strerror(errno));
-			return;
-		}
-		/* len is size of data to be read */
-		if (!diff_read_32(df, &len)) {
-			return;
-		}
-		if (type == DIFF_PART_SURE) {
-			uint8_t c = 0;
-			if (!diff_read_32(df, &disklen)) {
-			    return;
-			}
-			/* 32 bit =  4 bytes : old serial
-			 * 32 bit =  4 bytes : new serial
-			 * 16 bit =  2 bytes : ID number
-			 * 32 bit =  4 bytes : # preceding IXFR packets
-			 *          --------
-			 *          14 bytes
-			 *
-			 * then the commit/rollback byte follows.
-			 */
-			if (fseeko(df, disklen + 14, SEEK_CUR) == -1) {
-				log_msg( LOG_INFO, "could not fseeko file "
-					 "%s: %s.", filename, strerror(errno));
-			}
-			write_data(df, &c, sizeof(c)); /* rollback */
-		}
-		from_pos += len + 20; /* 32 bit =  4 bytes : type
-				       * 64 bit =  8 bytes : timestamp
-				       * 32 bit =  4 bytes : length
-				       *     -- data --
-				       * 32 bit =  4 bytes : length2
-				       *          --------
-				       *          20 bytes
-				       */
-		if (fseeko(df, from_pos, SEEK_SET) == -1) {
-			log_msg(LOG_INFO, "could not fseeko file %s: %s."
-					, filename, strerror(errno));
-			return;
-		}
-		/* if len2 != length is not relevant with this function */
-	}
+	fclose(df);
+	return 1;
 }
 
 static int diff_broken(FILE *df, off_t* break_pos)
@@ -1747,3 +1727,4 @@ void diff_snip_garbage(namedb_type* db, nsd_options_t* opt)
 
 	fclose(df);
 }
+

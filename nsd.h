@@ -57,12 +57,18 @@ struct nsd_options;
  */
 #define NSD_QUIT_SYNC 11
 /*
- * SKIP_DIFF is set tell a parent nsd process to skip a 
+ * SKIP_DIFF is sent to tell a parent nsd process to skip a 
  * difffile section, because it is considered bad by
  * DNSSEXY assessement.
  * 
  */
 #define NSD_SKIP_DIFF 12
+/*
+ * This is the exit code of a nsd "new master" child process
+ * to indicate the master process that is should do a reload
+ * again, reprocessing the difffile.
+ */
+#define NSD_RELOAD_AGAIN 13
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U
