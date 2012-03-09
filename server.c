@@ -943,6 +943,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
 	size_t zone_count, good_zones, bad_zones;
+	FILE *df = NULL;
 
 	if(db_crc_different(nsd->db) == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
@@ -989,17 +990,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		 * a commit trail. A commit trail is only build with 
 		 * SURE_PART_PENDING statusses.
 		 */
-		if (! zone->commit_trail) {
-			good_zones++;
-			continue;
-		}
-
-		if (! zone->opts->verify_zone || ! zone->soa_rrset) {
-
-			write_commit_trail( nsd->options->difffile
-					  , zone
-					  , SURE_PART_GOOD
-					  );
+		if (! zone->commit_trail || ! zone->soa_rrset) {
 			good_zones++;
 			continue;
 		}
@@ -1015,12 +1006,14 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			       , zone->opts->name
 			       );
 			write_commit_trail( nsd->options->difffile
+					  , &df
 					  , zone
 					  , SURE_PART_BAD
 					  );
 			bad_zones++;
 
 		} else if (write_commit_trail( nsd->options->difffile
+					     , &df
 					     , zone
 					     , SURE_PART_GOOD)) {
 			good_zones++;
@@ -1036,6 +1029,18 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		}
 		recycle_commit_trail(nsd->db->region, zone);
         }
+	/*
+	log_msg( LOG_INFO
+	       , "All zones committed. "
+	         "zone_count: %d, good_zones: %d, bad_zones %d"
+	       , (int) zone_count
+	       , (int) good_zones
+	       , (int) bad_zones
+	       );
+	*/
+	if (df) {
+		fclose(df);
+	}
 	if (bad_zones && ! good_zones) {
 		/* If all updated zones were bad, the parent can continue
 		 * serving. We just have to make sure that this section from

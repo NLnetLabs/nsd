@@ -78,7 +78,10 @@ void difffile_rollback(const char *fn, off_t from_pos, off_t to_pos);
 /*
  * Walk the zone->commit_trail and write <state> at the commit spots.
  */
-int write_commit_trail(const char* filename, zone_type* zone, uint8_t state);
-
+int write_commit_trail( const char* filename
+		      , FILE** df
+		      , zone_type* zone
+		      , uint8_t state
+		      );
 
 #endif /* DIFFFILE_H */

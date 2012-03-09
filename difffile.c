@@ -673,6 +673,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	zone->nsec3_soa_rr = NULL;
 	zone->nsec3_last = NULL;
 #endif
+	zone->commit_trail = NULL;
 	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*child_count);
 	if(!zone->dirty) {
 		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
@@ -1357,10 +1358,10 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		 * (i.e. committed != SURE_PART_PENDING)
 		 *
 		 * PS. If a zone does not have a verifier it is considered
-		 *     good and all the commitposses in the trail will be
-		 *     given the value: SURE_PART_GOOD.
+		 *     good anyway, and the commitposses in the trail will be
+		 *     left alone (so keep the value SURE_PART_PENDING).
 		 */
-		if (committed == SURE_PART_PENDING)
+		if (committed == SURE_PART_PENDING && zone->opts->verify_zone)
 			update_commit_trail(db->region, zone, commitpos);
 
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
@@ -1615,9 +1616,12 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
  * Walk the zone->commit_trail and write <state> at the commit spots.
  */
 int 
-write_commit_trail(const char* filename, zone_type* zone, uint8_t state)
+write_commit_trail(const char* filename
+		 , FILE** df
+		 , zone_type* zone
+		 , uint8_t state
+		 )
 {
-	FILE *df;
 	commit_crumb_type* crumb = zone->commit_trail;
 	log_msg( LOG_INFO
 	       , "Following commit trail for zone %s to set it to %d in file %s"
@@ -1625,17 +1629,20 @@ write_commit_trail(const char* filename, zone_type* zone, uint8_t state)
 	       , state
 	       , filename
 	       );
-
-	df = fopen(filename, "r+");
-	if (!df) {
-		DEBUG(DEBUG_XFRD, 1
-		     , ( LOG_INFO, "could not open file %s for reading: %s"
-		       , filename, strerror(errno)));
-		return 0;
+	if (! *df) {
+		*df = fopen(filename, "r+");
+		if (! *df) {
+			log_msg( LOG_ERR
+			       , "could not open file %s for reading: %s"
+			       , filename
+			       , strerror(errno)
+			       );
+			return 0;
+		}
 	}
 	while (crumb) {
-		if (fseeko(df, crumb->commitpos, SEEK_SET) == -1) {
-			log_msg( LOG_INFO
+		if (fseeko(*df, crumb->commitpos, SEEK_SET) == -1) {
+			log_msg( LOG_ERR
 			       , "could not fseeko file %s to pos %d, "
 			         "to set the commit byte to state %d: %s."
 			       , filename
@@ -1652,10 +1659,9 @@ write_commit_trail(const char* filename, zone_type* zone, uint8_t state)
 		       , filename
 		       , zone->opts->name
 		       );
-		write_8(df, state);
+		write_8(*df, state);
 		crumb = crumb->next;
 	}
-	fclose(df);
 	return 1;
 }
 
