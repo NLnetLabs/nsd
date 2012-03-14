@@ -723,7 +723,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 
 
 /*
- * server_log_from_fd logs data read from the *lfd->fd with lfd->priority.
+ * handle_log_from_fd logs data read from the *lfd->fd with lfd->priority.
  * It is used to log data from the zone-verifier to stdout and stderr
  * in server_verify_zone, and is not intended to be used from another function.
  * The asumptions server_log_from_fd makes are therefor quiet specefic. 
@@ -746,8 +746,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 
 struct log_from_fd_t {
 	int     priority;
-	int*    fd;
-	fd_set* rfds;
+	int	fd;
 	char    buf[LOGLINELEN*2+1];
 	char*	pos;                 /* buffer is filled up to this pos.
 				      * pos should never be larger than
@@ -756,35 +755,33 @@ struct log_from_fd_t {
 				      */
 };
 
-/* initializer for struct log_from_fd_t */
 static void
-init_lfd(struct log_from_fd_t* lfd, int priority, int *fd, fd_set* rfds)
+handle_log_from_fd( netio_type* netio
+		  , netio_handler_type* handler
+		  , netio_event_types_type event_types
+		  )
 {
-	 lfd->priority = priority;
-	 lfd->fd       = fd;
-	 lfd->rfds     = rfds;
-	*lfd->buf      = 0;
-	 lfd->pos      = lfd->buf;
-}
-
-static void
-server_log_from_fd(struct log_from_fd_t* lfd)
-{
+	struct log_from_fd_t*  lfd
+     = (struct log_from_fd_t*) handler->user_data;
 	ssize_t len;
 	char* sol;
 	char* eol;
 	char* split;
 	char  tmp_c;
 
+	assert( lfd != NULL );
+	assert( lfd->fd >= 0 );
 	assert( lfd->pos < lfd->buf + LOGLINELEN );
 
-	if (*lfd->fd == -1 || ! FD_ISSET(*lfd->fd, lfd->rfds) )
+	if (! (event_types & NETIO_EVENT_READ)) {
 		return;
+	}
 
-	len = read(*lfd->fd, lfd->pos, LOGLINELEN);
+	len = read(lfd->fd, lfd->pos, LOGLINELEN);
 	if (len == 0) {
-		close(*lfd->fd);
-		*lfd->fd = -1;
+		close(lfd->fd);
+		lfd->fd = -1;
+		netio_remove_handler(netio, handler);
 		return;
 	}
 
@@ -833,101 +830,209 @@ server_log_from_fd(struct log_from_fd_t* lfd)
  * server_verify_zone assesses the zone by feeding it to the verify_zone 
  * program (via its stdin). It returns the exit code of the verify_zone 
  * program. So 0 is success.
- * Besides the child forked of to run the verifier (through nsd_popen3),
- * another child is forked of (the logger) that receives the stdout and stderr
- * of the verifier and logs those messages.
  */
+struct zone2verifier_user_data {
+	sig_atomic_t* mode;
+	int to_stdin;
+	FILE* to_stdin_f;
+	struct state_pretty_rr* state;
+	zone_type* zone;
+	zone_iter_type iter;
+};
+
+static void
+handle_zone2verifier( netio_type* netio
+		    , netio_handler_type* handler
+		    , netio_event_types_type event_types
+		    )
+{
+	struct zone2verifier_user_data*  data
+     = (struct zone2verifier_user_data*) handler->user_data;
+	rr_type* rr;
+
+	assert( data != NULL );
+
+	if (! (event_types & NETIO_EVENT_WRITE)) {
+		return;
+	}
+
+	rr = zone_iter_next(&data->iter, &data->zone);
+
+	if (rr) {
+		print_rr(data->to_stdin_f, data->state, rr);
+	} else {
+		fclose(data->to_stdin_f);
+		data->to_stdin_f = NULL;
+
+		close(data->to_stdin);
+		data->to_stdin = -1;
+
+		handler->user_data = NULL;
+		netio_remove_handler(netio, handler);
+	}
+}
+
+
 static int
 server_verify_zone(struct zone* zone)
 {
-	pid_t verifier, logger;
-	int to_stdin, from_stdout, from_stderr;
-	FILE* to_stdin_f;
-	int status, retval, r;
-	fd_set rfds;
+	int result = 0;
+	pid_t verifier, exited;
+	int status;
 
-	verifier = nsd_popen3( zone->opts->verify_zone
-			     , &to_stdin, &from_stdout, &from_stderr);
-	if (verifier == -1)
+	region_type *region;
+	netio_type *netio;
+	netio_handler_type to_stdin_handler;
+	netio_handler_type from_stdout_handler;
+	netio_handler_type from_stderr_handler;
+
+	sig_atomic_t mode = NSD_RUN;
+
+	struct zone2verifier_user_data to_stdin_user_data;
+	struct log_from_fd_t lfdout, lfderr;
+
+	struct timespec timeout_spec;
+	/* ------------------------------------------------------------------*/
+
+	if (! (region = region_create(xalloc, free))) {
 		goto error;
-
-	logger = fork();
-	switch (logger) {
-		case -1: log_msg( LOG_ERR, "Error creating child process: %s"
-				, strerror(errno));
-			 goto error;
-
-		case  0: /* Child reads what is written to the stdout and 
-			  * stderr of the verify_zone process and outputs
-			  * that to the log.
-			  */
-			 close(to_stdin);
-
-			 log_msg( LOG_INFO, "Output of verify-zone \"%s\":"
-				, *zone->opts->verify_zone
-				);
-
-			 struct log_from_fd_t lfdout, lfderr;
-
-			 init_lfd(&lfdout, LOG_INFO, &from_stdout, &rfds);
-			 init_lfd(&lfderr, LOG_ERR , &from_stderr, &rfds);
-
-			 while (from_stdout != -1 || from_stderr != -1) {
-
-			 	FD_ZERO(&rfds);
-				if (from_stdout!=-1) FD_SET(from_stdout,&rfds);
-				if (from_stderr!=-1) FD_SET(from_stderr,&rfds);
-
-				r = select( 1 + ( from_stdout > from_stderr
-						? from_stdout : from_stderr )
-					  , &rfds, NULL, NULL, NULL);
-
-				if (r < 0){
-					log_msg( LOG_ERR, "select failed: %s"
-					       , strerror(errno));
-					break;
-				}
-
-				server_log_from_fd(&lfdout);
-				server_log_from_fd(&lfderr);
-			 }
-			 if (from_stdout != -1) close(from_stdout);
-			 if (from_stderr != -1) close(from_stderr);
-
-			 exit(0);
-
-		default: /* Parent writes zonefile to stdin of verify_zone
-			  * process. Return exit status.
-			  */
-			 close(from_stdout);
-			 close(from_stderr);
-
-			 to_stdin_f = fdopen(to_stdin, "w");
-			 setbuf(to_stdin_f, NULL);
-
-			 print_rrs(to_stdin_f, zone);
-
-			 fclose(to_stdin_f);
-			 close(to_stdin);
-
-			 waitpid(verifier, &status, 0);
-			 waitpid(logger, NULL, 0);
-			 retval = WEXITSTATUS(status);
-			 if (retval)
-				 log_msg( LOG_INFO, "Zone verifier exited with"
-					  " status: %d", WEXITSTATUS(status));
-			 else
-				 log_msg( LOG_INFO, "Zone verified" );
-
-			 return retval;
+	}
+ 	if (! (netio = netio_create(region))) {
+		goto error;
+	}
+	verifier = nsd_popen3( zone->opts->verify_zone
+			     , &to_stdin_user_data.to_stdin
+			     , &lfdout.fd
+			     , &lfderr.fd
+			     );
+	if (verifier == -1) {
+		goto error;
 	}
 
+	/* ------------------------------------------------------------------*/
+
+	to_stdin_user_data.mode        = &mode;
+	to_stdin_user_data.state       = create_pretty_rr(region);
+	to_stdin_user_data.zone        = zone;
+	to_stdin_user_data.to_stdin_f  = fdopen( to_stdin_user_data.to_stdin
+					       , "w"
+					       );
+
+	setbuf(to_stdin_user_data.to_stdin_f, NULL);
+
+	to_stdin_handler.fd            = to_stdin_user_data.to_stdin;
+	to_stdin_handler.user_data     = &to_stdin_user_data;
+	to_stdin_handler.event_types   = NETIO_EVENT_WRITE;
+	to_stdin_handler.event_handler = &handle_zone2verifier;
+	to_stdin_handler.timeout       = NULL;
+
+	netio_add_handler(netio, &to_stdin_handler);
+
+	/* ------------------------------------------------------------------*/
+
+	lfdout.priority                   = LOG_INFO;
+       *lfdout.buf                        = 0;
+	lfdout.pos                        = lfdout.buf;
+	from_stdout_handler.fd            = lfdout.fd;
+	from_stdout_handler.user_data     = &lfdout;
+	from_stdout_handler.event_types   = NETIO_EVENT_READ;
+	from_stdout_handler.event_handler = &handle_log_from_fd;
+	from_stdout_handler.timeout       = NULL;
+
+	netio_add_handler(netio, &from_stdout_handler);
+
+	/* ------------------------------------------------------------------*/
+
+	lfderr.priority                   = LOG_ERR;
+       *lfderr.buf                        = 0;
+	lfderr.pos                        = lfderr.buf;
+	from_stderr_handler.fd            = lfderr.fd;
+	from_stderr_handler.user_data     = &lfderr;
+	from_stderr_handler.event_types   = NETIO_EVENT_READ;
+	from_stderr_handler.event_handler = &handle_log_from_fd;
+	from_stderr_handler.timeout       = NULL;
+
+	netio_add_handler(netio, &from_stderr_handler);
+
+	/* ------------------------------------------------------------------*/
+
+	while (mode == NSD_RUN) {
+		switch (mode) {
+		case NSD_RUN:
+
+			if (  (exited = waitpid(verifier, &status, WNOHANG))
+			    == verifier) {
+				mode = NSD_QUIT;
+				;
+				if ((result = WEXITSTATUS(status))) {
+					log_msg( LOG_ERR
+					       , "Zone verifier exited with"
+					         " status: %d"
+					       , result
+					       );
+				} else {
+					log_msg( LOG_INFO
+					       , "Zone verified successfully." 
+					       );
+				}
+				break;
+
+			} else if (exited == -1 && errno != EINTR) {
+				log_msg( LOG_ERR 
+				       , "wait failed: %s"
+				       , strerror(errno)
+				       );
+			}
+
+			timeout_spec.tv_sec  = 1;
+			timeout_spec.tv_nsec = 0;
+			if (netio_dispatch(netio, &timeout_spec, NULL) == -1
+			&&  errno != EINTR) {
+				log_msg( LOG_ERR
+				       , "netio_dispatch failed: %s"
+				       , strerror(errno)
+				       );
+				goto error;
+			}
+			break;
+
+		case NSD_QUIT:
+			break;
+
+		default:
+			log_msg( LOG_WARNING
+			       , "NSD main server mode invalid: %d"
+			       , mode
+			       );
+			mode = NSD_RUN;
+			break;
+		}
+	}
+
+	goto end;
 error:
-	close(to_stdin);
-	close(from_stdout);
-	close(from_stderr);
-	return -1;
+	result = -1;
+end:
+	to_stdin_handler.user_data    = NULL;
+	from_stdout_handler.user_data = NULL;
+	from_stderr_handler.user_data = NULL;
+
+	if (region)
+		region_destroy(region);
+
+	if (to_stdin_user_data.to_stdin_f)
+		fclose(to_stdin_user_data.to_stdin_f);
+
+	if (to_stdin_user_data.to_stdin >= 0)
+		close(to_stdin_user_data.to_stdin);
+	if (lfdout.fd >= 0)
+		close(lfdout.fd);
+	if (lfderr.fd >= 0)
+		close(lfderr.fd);
+
+	return result;
 }
+
 
 /*
  * Reload the database, stop parent, re-fork children and continue.

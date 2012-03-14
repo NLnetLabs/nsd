@@ -689,3 +689,55 @@ recycle_commit_trail(region_type* region, zone_type* zone)
 	}
 }
 
+rr_type*
+zone_iter_next(zone_iter_type* iter, zone_type** zone)
+{
+	if (zone && *zone) {
+		iter->zone   = *zone;
+		*zone        = NULL;
+		iter->i      = 0;
+		if (iter->zone->soa_rrset && iter->zone->soa_rrset->rr_count) {
+			iter->domain = NULL;
+			iter->rrset  = iter->zone->soa_rrset;
+			goto next;
+		} else {
+			iter->domain = iter->zone->apex;
+			iter->rrset  = iter->domain->rrsets;
+			goto skip_soa;
+		}
+	}
+next:
+	if (iter->i < iter->rrset->rr_count)
+		return &iter->rrset->rrs[iter->i++];
+
+	iter->i = 0;
+	if (iter->domain == NULL) { /* prev rrset was soa_rrset */
+		if ((iter->domain = iter->zone->apex)) {
+			iter->rrset = iter->domain->rrsets;
+			goto skip_soa;
+		}
+		else {
+			return NULL;
+		}
+	}
+	iter->rrset = iter->rrset->next;
+
+skip_soa:
+
+	while (iter->rrset && (iter->rrset->zone != iter->zone
+			   ||  iter->rrset == iter->zone->soa_rrset)) {
+		iter->rrset = iter->rrset->next;
+	}
+	if (iter->rrset) {
+		goto next;
+	}
+	iter->domain = domain_next(iter->domain);
+	if (iter->domain &&  dname_is_subdomain( domain_dname(iter->domain)
+					       , domain_dname(iter->zone->apex)
+					       )) {
+		iter->rrset = iter->domain->rrsets;
+		goto skip_soa;
+	}
+	return NULL;
+}
+

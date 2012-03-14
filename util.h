@@ -353,10 +353,6 @@ struct state_pretty_rr {
 struct state_pretty_rr* create_pretty_rr(struct region* region);
 /* print rr to file, returns 0 on failure(nothing is written) */
 int print_rr(FILE *out, struct state_pretty_rr* state, struct rr *record);
-/* print zone to file */
-struct zone;
-void print_rrs(FILE *out, struct zone* zone);
-
 
 /*
  * Convert a numeric rcode value to a human readable string

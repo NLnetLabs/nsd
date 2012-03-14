@@ -410,7 +410,16 @@ void update_commit_trail( region_type* region
 /**
  * Dispose of the zone's commit trail.
  */
-void
-recycle_commit_trail(region_type* region, zone_type* zone);
+void recycle_commit_trail(region_type* region, zone_type* zone);
+
+struct zone_iter {
+	zone_type*   zone;
+	domain_type* domain;
+	rrset_type*  rrset;
+	size_t i;
+};
+typedef struct zone_iter zone_iter_type;
+
+rr_type* zone_iter_next(zone_iter_type* iter, zone_type** zone);
 
 #endif
