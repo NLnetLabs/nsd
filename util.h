@@ -385,6 +385,11 @@ int addr2ip(
  * to the stdin for the program, and readfd and errfd to file descriptors for
  * the read end of pipes from the stdout and stderr of the program.
  */
-pid_t nsd_popen3(char* const* command, int* writefd, int* readfd, int* errfd);
+pid_t nsd_popen3( char* const* command
+		, int* writefd
+		, int* readfd
+		, int* errfd
+		, ...
+		);
 
 #endif /* _UTIL_H_ */

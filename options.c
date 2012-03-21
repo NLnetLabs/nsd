@@ -60,8 +60,11 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->difffile = DIFFFILE;
 	opt->xfrdfile = XFRDFILE;
 	opt->xfrd_reload_timeout = 10;
-	opt->dnssexy_ip = NULL;
-	opt->dnssexy_port = NULL;
+	opt->verify_ip_addresses = NULL;
+	opt->verify_port = VERIFY_PORT;
+	opt->verifier_count = 1;
+	opt->verifier_feed_zone = 1;
+	opt->verifier_timeout = 0;
 	nsd_options = opt;
 	return opt;
 }
@@ -230,8 +233,9 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->provide_xfr = 0;
 	zone->outgoing_interface = 0;
 	zone->allow_axfr_fallback = 1;
-	zone->dnssexy = 0;
-	zone->verify_zone = 0;
+	zone->verifier = 0;
+	zone->verifier_feed_zone = 2; /* inherit */
+	zone->verifier_timeout = -1;  /* inherit */
 	return zone;
 }
 

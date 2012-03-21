@@ -137,10 +137,12 @@ algorithm{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_ALGORITHM;}
 secret{COLON}		{ LEXOUT(("v(%s) ", yytext)); return VAR_SECRET;}
 AXFR			{ LEXOUT(("v(%s) ", yytext)); return VAR_AXFR;}
 UDP			{ LEXOUT(("v(%s) ", yytext)); return VAR_UDP;}
-dnssexy{COLON}          { LEXOUT(("v(%s) ", yytext)); return VAR_DNSSEXY;}
-dnssexy-ip{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSSEXY_IP;}
-dnssexy-port{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_DNSSEXY_PORT;}
-verify-zone{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFY_ZONE;}
+verify-ip-address{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFY_IP_ADDRESS;}
+verify-port{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFY_PORT;}
+verifier-count{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER_COUNT;}
+verifier{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER;}
+verifier-feed-zone{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER_FEED_ZONE;}
+verifier-timeout{COLON}	{ LEXOUT(("v(%s) ", yytext)); return VAR_VERIFIER_TIMEOUT;}
 {NEWLINE}		{ LEXOUT(("NL\n")); cfg_parser->line++;}
 
 	/* Quoted strings. Strip leading and ending quotes */

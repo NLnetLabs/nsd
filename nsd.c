@@ -157,6 +157,75 @@ get_ip_port_frm_str(const char* arg, const char** hostname,
         *hostname = arg;
 }
 
+/* Set up the address info structures with real interface/port data.
+ */
+void setup_address_info( const nsd_type* nsd
+		       , int n
+		       , const char** nodes
+		       , struct addrinfo* hints
+		       , struct nsd_socket* udp
+		       , const char* default_udp_service
+		       , struct nsd_socket* tcp
+		       , const char* default_tcp_service
+		       )
+{
+	int r;
+	const char* node = NULL;
+	const char* service = NULL;
+
+	for (; n--; nodes++, hints++, udp++, tcp++) {
+
+		if (*nodes)
+			hints->ai_flags |= AI_NUMERICHOST;
+
+		get_ip_port_frm_str(*nodes, &node, &service);
+
+		hints->ai_socktype = SOCK_DGRAM;
+
+		if ((r = getaddrinfo( node
+				    , service ? service : default_udp_service
+				    , hints
+				    , &udp->addr
+				    )) != 0) {
+#ifdef INET6
+			if (nsd->grab_ip6_optional 
+			&&  hints->ai_family == AF_INET6) {
+
+				log_msg( LOG_WARNING
+				       , "No IPv6, fallback to IPv4. "
+				         "getaddrinfo: %s"
+				       , r == EAI_SYSTEM
+				         ? strerror(errno)
+					 : gai_strerror(r)
+				       );
+
+				continue;
+			}
+#endif
+			error( "cannot parse address '%s': getaddrinfo: %s %s"
+			     , *nodes ? *nodes : "(null)"
+			     , gai_strerror(r)
+			     , r == EAI_SYSTEM ? strerror(errno) : ""
+			     );
+		}
+
+		hints->ai_socktype = SOCK_STREAM;
+
+		if ((r = getaddrinfo( node
+				    , service ? service : default_tcp_service
+				    , hints
+				    , &tcp->addr
+				    )) != 0) {
+
+			error( "cannot parse address '%s': getaddrinfo: %s %s"
+			     , *nodes ? *nodes : "(null)"
+			     , gai_strerror(r)
+			     , r == EAI_SYSTEM ? strerror(errno) : ""
+			     );
+		}
+	}
+}
+
 
 /*
  * Fetch the nsd parent process id from the nsd pidfile
@@ -395,9 +464,12 @@ main(int argc, char *argv[])
 	/* For initialising the address info structures */
 	/* static so it can get very big without overflowing the stack */
 	static struct addrinfo hints[MAX_INTERFACES];
+	static struct addrinfo verify_hints[MAX_INTERFACES];
 	static const char *nodes[MAX_INTERFACES];
 	const char *udp_port = 0;
 	const char *tcp_port = 0;
+	static const char *verify_nodes[MAX_INTERFACES];
+	const char *verify_port = 0;
 
 	const char *configfile = CONFIGFILE;
 
@@ -417,6 +489,11 @@ main(int argc, char *argv[])
 		hints[i].ai_family = DEFAULT_AI_FAMILY;
 		hints[i].ai_flags = AI_PASSIVE;
 		nodes[i] = NULL;
+
+		memset(&verify_hints[i], 0, sizeof(verify_hints[i]));
+		verify_hints[i].ai_family = DEFAULT_AI_FAMILY;
+		verify_hints[i].ai_flags = AI_PASSIVE;
+		verify_nodes[i] = NULL;
 	}
 
 	nsd.identity	= 0;
@@ -442,7 +519,6 @@ main(int argc, char *argv[])
 		nsd.identity = IDENTITY;
 	}
 
-
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:V:v"
 #ifndef NDEBUG /* <mattthijs> only when configured with --enable-checking */
@@ -453,12 +529,14 @@ main(int argc, char *argv[])
 		case '4':
 			for (i = 0; i < MAX_INTERFACES; ++i) {
 				hints[i].ai_family = AF_INET;
+				verify_hints[i].ai_family = AF_INET;
 			}
 			break;
 		case '6':
 #ifdef INET6
 			for (i = 0; i < MAX_INTERFACES; ++i) {
 				hints[i].ai_family = AF_INET6;
+				verify_hints[i].ai_family = AF_INET6;
 			}
 #else /* !INET6 */
 			error("IPv6 support not enabled.");
@@ -589,12 +667,14 @@ main(int argc, char *argv[])
 	if(nsd.options->ip4_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET;
+			verify_hints[i].ai_family = AF_INET;
 		}
 	}
 #ifdef INET6
 	if(nsd.options->ip6_only) {
 		for (i = 0; i < MAX_INTERFACES; ++i) {
 			hints[i].ai_family = AF_INET6;
+			verify_hints[i].ai_family = AF_INET6;
 		}
 	}
 #endif /* INET6 */
@@ -663,6 +743,34 @@ main(int argc, char *argv[])
 			tcp_port = TCP_PORT;
 		}
 	}
+	if (verify_port == 0) { /* anticipate commandline option */
+		if (nsd.options->verify_port && *nsd.options->verify_port)  {
+			verify_port = nsd.options->verify_port;
+		} else {
+			verify_port = VERIFY_PORT;
+		}
+	}
+	if(nsd.options->ip_addresses)
+	{
+		ip_address_option_t* ip = nsd.options->verify_ip_addresses;
+		while(ip) {
+			if (*verify_port || strchr(ip->address, '@')) {
+				if (nsd.ifs+nsd.verify_ifs < MAX_INTERFACES) {
+					verify_nodes[nsd.verify_ifs]
+							= ip->address;
+					++nsd.verify_ifs;
+				} else {
+					error("too many interfaces "
+					      "('verify_ip_address:') "
+					      " specified."
+					     );
+					break;
+				}
+			}
+			ip = ip->next;
+		}
+	}
+
 #ifdef BIND8_STATS
 	if(nsd.st.period == 0) {
 		nsd.st.period = nsd.options->statistics;
@@ -765,40 +873,26 @@ main(int argc, char *argv[])
 #endif /* INET6 */
 	}
 
-	/* Set up the address info structures with real interface/port data */
-	for (i = 0; i < nsd.ifs; ++i) {
-		int r;
-		const char* node = NULL;
-		const char* service = NULL;
+	setup_address_info( &nsd
+			  , nsd.ifs
+			  , nodes
+			  , hints
+			  , nsd.udp
+			  , udp_port
+			  , nsd.tcp
+			  , tcp_port
+			  );
 
-		/* We don't perform name-lookups */
-		if (nodes[i] != NULL)
-			hints[i].ai_flags |= AI_NUMERICHOST;
-		get_ip_port_frm_str(nodes[i], &node, &service);
+	setup_address_info( &nsd
+			  , nsd.verify_ifs
+			  , verify_nodes
+			  , verify_hints
+			  , nsd.verify_udp
+			  , verify_port
+			  , nsd.verify_tcp
+			  , verify_port
+			  );
 
-		hints[i].ai_socktype = SOCK_DGRAM;
-		if ((r=getaddrinfo(node, (service?service:udp_port), &hints[i], &nsd.udp[i].addr)) != 0) {
-#ifdef INET6
-			if(nsd.grab_ip6_optional && hints[0].ai_family == AF_INET6) {
-				log_msg(LOG_WARNING, "No IPv6, fallback to IPv4. getaddrinfo: %s",
-				r==EAI_SYSTEM?strerror(errno):gai_strerror(r));
-				continue;
-			}
-#endif
-			error("cannot parse address '%s': getaddrinfo: %s %s",
-				nodes[i]?nodes[i]:"(null)",
-				gai_strerror(r),
-				r==EAI_SYSTEM?strerror(errno):"");
-		}
-
-		hints[i].ai_socktype = SOCK_STREAM;
-		if ((r=getaddrinfo(node, (service?service:tcp_port), &hints[i], &nsd.tcp[i].addr)) != 0) {
-			error("cannot parse address '%s': getaddrinfo: %s %s",
-				nodes[i]?nodes[i]:"(null)",
-				gai_strerror(r),
-				r==EAI_SYSTEM?strerror(errno):"");
-		}
-	}
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();

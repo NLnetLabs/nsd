@@ -527,6 +527,7 @@ AC_DEFINE_UNQUOTED([UDP_PORT], ["53"], [Define to the default udp port.])
 AC_DEFINE_UNQUOTED([UDP_MAX_MESSAGE_LEN], [512], [Define to the default maximum udp message length.])
 AC_DEFINE_UNQUOTED([EDNS_MAX_MESSAGE_LEN], [4096], [Define to the default maximum message length with EDNS.])
 AC_DEFINE_UNQUOTED([MAXSYSLOGMSGLEN], [512], [Define to the maximum message length to pass to syslog.])
+AC_DEFINE_UNQUOTED([VERIFY_PORT], ["5347"], [Define to the default udp port where a zone to be verified will be served.])
 
 dnl
 dnl Determine the syslog facility to use

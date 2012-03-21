@@ -1429,7 +1429,7 @@ xfrd_handle_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet)
 	buffer_flip(packet);
 	diff_write_commit(zone->apex_str, zone->msg_old_serial,
 		zone->msg_new_serial, zone->query_id, zone->msg_seq_nr,
-		SURE_PART_PENDING,
+		SURE_PART_UNVERIFIED,
 		(char*)buffer_begin(packet), xfrd->nsd->options);
 	VERBOSITY(1, (LOG_INFO, "xfrd: zone %s committed \"%s\"",
 		zone->apex_str, (char*)buffer_begin(packet)));

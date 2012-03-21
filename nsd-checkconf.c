@@ -74,7 +74,7 @@ extern int optind;
 
 #define SERV_GET_IP(NAME, VAR) 				\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
-		for(ip = opt->ip_addresses; ip; ip=ip->next)	\
+		for(ip = opt->NAME##es; ip; ip=ip->next)	\
 		{						\
 			quote(ip->address);			\
 		}						\
@@ -276,8 +276,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 				ZONE_GET_BIN(notify_retry, o);
 				ZONE_GET_OUTGOING(outgoing_interface, o);
 				ZONE_GET_BIN(allow_axfr_fallback, o);
-				ZONE_GET_STR_LIST(dnssexy, o);
-				ZONE_GET_STR_LIST(verify_zone, o);
+				ZONE_GET_STR_LIST(verifier, o);
 				printf("Zone option not handled: %s %s\n", z, o);
 				exit(1);
 			}
@@ -315,8 +314,10 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
 
-		SERV_GET_STR(dnssexy_ip, o);
-		SERV_GET_STR(dnssexy_port, o);
+		SERV_GET_IP(verify_ip_address, o);
+		SERV_GET_STR(verify_port, o);
+		SERV_GET_INT(verifier_count, o);
+		SERV_GET_BIN(verifier_feed_zone, o);
 
 		if(strcasecmp(o, "zones") == 0) {
 			RBTREE_FOR(zone, zone_options_t*, opt->zone_options)
@@ -361,9 +362,17 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("xfrdfile:", opt->xfrdfile);
 	printf("\txfrd_reload_timeout: %d\n", opt->xfrd_reload_timeout);
 	printf("\tverbosity: %d\n", opt->verbosity);
-	
-	print_string_var("dnssexy-ip:", opt->dnssexy_ip);
-	print_string_var("dnssexy-port:", opt->dnssexy_port);
+
+	for(ip = opt->verify_ip_addresses; ip; ip=ip->next)
+	{
+		print_string_var("verify-ip-address:", ip->address);
+	}
+	print_string_var("verify-port:", opt->verify_port);
+	printf("\tverifier-count: %d\n", opt->verifier_count);
+	printf( "\tverifier-feed-zone: %s\n"
+	      , opt->verifier_feed_zone ? "yes" : "no"
+	      );
+	printf("\tverifier-timeout: %d\n", opt->verifier_timeout);
 
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
 	{
@@ -388,8 +397,29 @@ config_test_print_server(nsd_options_t* opt)
 		print_acl("provide-xfr:", zone->provide_xfr);
 		print_acl_ips("outgoing-interface:", zone->outgoing_interface);
 		printf("\tallow-axfr-fallback: %s\n", zone->allow_axfr_fallback?"yes":"no");
-		print_strings_var("dnssexy:", zone->dnssexy);
-		print_strings_var("verify_zone:", zone->verify_zone);
+		print_strings_var("verifier:", zone->verifier);
+		printf( "\tverifier-feed-zone: %s"
+		      , zone->verifier_feed_zone == 0
+		        ? "no"
+			: zone->verifier_feed_zone == 1
+			  ? "yes"
+			  : "inherit"
+		      );
+		if (zone->verifier_feed_zone == 2) {
+			printf( "\t# inherited value: %s\n"
+			      , opt->verifier_feed_zone ? "yes" : "no"
+			      );
+		}
+		if (zone->verifier_timeout == -1) {
+			printf( "\tverifier-timeout: inherit"
+				"\t# inherited value: %d\n"
+			      , opt->verifier_timeout
+			      );
+		} else {
+			printf( "\tverifier-timeout: %d\n"
+			      , zone->verifier_timeout
+			      );
+		}
 	}
 
 }

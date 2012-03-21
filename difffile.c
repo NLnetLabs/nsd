@@ -1353,17 +1353,18 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 
 		/*
 		 * We keep the commit trail so a verifier can change it to
-		 * SURE_PART_GOOD or SURE_PART_BAD.  We don't need to update
-		 * the commit_trail if a decision has already been made.
-		 * (i.e. committed != SURE_PART_PENDING)
+		 * SURE_PART_VERIFIED or SURE_PART_BAD.  We don't need to 
+		 * update the commit_trail if a decision has already been made.
+		 * (i.e. committed != SURE_PART_UNVERIFIED)
 		 *
 		 * PS. If a zone does not have a verifier it is considered
 		 *     good anyway, and the commitposses in the trail will be
-		 *     left alone (so keep the value SURE_PART_PENDING).
+		 *     left alone (so keep the value SURE_PART_UNVERIFIED).
 		 */
-		if (committed == SURE_PART_PENDING && zone->opts->verify_zone)
+		if (committed == SURE_PART_UNVERIFIED
+		&&  zone->opts->verifier) {
 			update_commit_trail(db->region, zone, commitpos);
-
+		}
 		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
 			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
 			return 0;

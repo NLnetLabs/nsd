@@ -58,8 +58,8 @@ struct nsd_options;
 #define NSD_QUIT_SYNC 11
 /*
  * SKIP_DIFF is sent to tell a parent nsd process to skip a 
- * difffile section, because it is considered bad by
- * DNSSEXY assessement.
+ * difffile section, because it is considered bad by the
+ * verifier.
  * 
  */
 #define NSD_SKIP_DIFF 12
@@ -191,6 +191,17 @@ struct	nsd
 
 	/* UDP specific configuration */
 	struct nsd_socket udp[MAX_INTERFACES];
+
+	/* Interfaces used for verifying by a verifier.
+	 * verify_ifs might be 0 even with verify-ip-address in the config.
+	 * In that case none of those had a port specified with the @<port>
+	 * syntax, and also no default port with the verify-port config
+	 * option was given.
+	 * In this case sockets will be dynamically created on verifying time.
+	 */
+	size_t verify_ifs;
+	struct nsd_socket verify_tcp[MAX_INTERFACES];
+	struct nsd_socket verify_udp[MAX_INTERFACES];
 
 	edns_data_type edns_ipv4;
 #if defined(INET6)

@@ -17,8 +17,8 @@
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
 
-#define SURE_PART_PENDING	2
-#define SURE_PART_GOOD		1
+#define SURE_PART_UNVERIFIED	2
+#define SURE_PART_VERIFIED	1
 #define SURE_PART_BAD		0
 
 /*

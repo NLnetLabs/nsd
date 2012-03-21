@@ -1036,15 +1036,18 @@ addr2ip(
 
 /* 2011 implementation of popen3() by Mike Bourgeous
  * https://gist.github.com/1022231
- * Adapted for use in nsd_sexy by Willem Toorop in December 2011
+ * Adapted for use in nsd-sexy by Willem Toorop in December 2011
  */
-pid_t nsd_popen3(char* const* command, int* writefd, int* readfd, int* errfd)
+pid_t 
+nsd_popen3(char* const* command, int* writefd, int* readfd, int* errfd, ...)
 {
+	va_list ap;
+	char* env_name;
+	char* env_value;
 	int in_pipe[2] = {-1, -1};
 	int out_pipe[2] = {-1, -1};
 	int err_pipe[2] = {-1, -1};
 	pid_t pid;
-
 
 	if (command == NULL || *command == NULL) {
 		log_msg(LOG_ERR, "Cannot popen3() a NULL command.");
@@ -1104,6 +1107,15 @@ pid_t nsd_popen3(char* const* command, int* writefd, int* readfd, int* errfd)
 				 }
 				 close(err_pipe[1]);
 			 }
+
+			 va_start(ap, errfd);
+			 while ((env_name = va_arg(ap, char*))) {
+				if ((env_value = va_arg(ap, char*))) {
+					setenv(env_name, env_value, 1);
+				}
+			 }
+			 va_end(ap);
+
 			 execvp(*command, command);
 			 log_msg( LOG_ERR, "Error executing command "
 				 "in child process: %s", strerror(errno));

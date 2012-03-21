@@ -133,4 +133,11 @@ size_t region_get_recycle_size(region_type* region);
 /* Debug print REGION statistics to LOG. */
 void region_log_stats(region_type *region);
 
+/* Some helper macro's to make programs more readable */
+#define REGION_MALLOC(region, type) \
+	(type *)region_alloc((region), sizeof(type))
+
+#define REGION_XMALLOC(region, type, count) \
+	(type *)region_alloc((region), (count) * sizeof(type))
+
 #endif /* _REGION_ALLOCATOR_H_ */

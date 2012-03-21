@@ -30,6 +30,11 @@ extern "C"
 extern config_parser_state_t* cfg_parser;
 static int server_settings_seen = 0;
 
+/*
+ * cmds2args takes the stack of command pieces pointed to by 
+ * cfg_parser->current_cmd and turns them into an vector of arguments 
+ * (char* const argv[]) for use in the execve family of functions.
+ */
 static cmd_option_t* cmd_i = NULL;
 static char* const* cmds2args()
 {
@@ -59,6 +64,25 @@ static char* const* cmds2args()
 	return ret;
 }
 
+static void add_ip_address( ip_address_option_t** head
+			  , ip_address_option_t** tail
+			  , const char*           address
+			  )
+{
+	ip_address_option_t* node = REGION_MALLOC( cfg_parser->opt->region
+						 , ip_address_option_t
+						 );
+	node->next = NULL;
+	node->address = region_strdup(cfg_parser->opt->region, address);
+	
+	if (!*head) {
+		*head = *tail = node;
+	} else {
+		(*tail)->next = node;
+		 *tail = node;
+	}
+}
+			
 
 #if 0
 #define OUTYY(s)  printf s /* used ONLY when debugging */
@@ -83,11 +107,12 @@ static char* const* cmds2args()
 %token VAR_ZONE
 %token VAR_ALLOW_NOTIFY VAR_REQUEST_XFR VAR_NOTIFY VAR_PROVIDE_XFR 
 %token VAR_NOTIFY_RETRY VAR_OUTGOING_INTERFACE VAR_ALLOW_AXFR_FALLBACK
-%token VAR_DNSSEXY VAR_DNSSEXY_IP VAR_DNSSEXY_PORT VAR_VERIFY_ZONE
 %token VAR_KEY
 %token VAR_ALGORITHM VAR_SECRET
 %token VAR_AXFR VAR_UDP
 %token VAR_VERBOSITY VAR_HIDE_VERSION
+%token VAR_VERIFY_IP_ADDRESS VAR_VERIFY_PORT VAR_VERIFIER_COUNT VAR_VERIFIER
+%token VAR_VERIFIER_FEED_ZONE VAR_VERIFIER_TIMEOUT
 
 %%
 toplevelvars: /* empty */ | toplevelvars toplevelvar ;
@@ -111,27 +136,16 @@ content_server: server_ip_address | server_debug_mode | server_ip4_only |
 	server_difffile | server_xfrdfile | server_xfrd_reload_timeout |
 	server_tcp_query_count | server_tcp_timeout | server_ipv4_edns_size |
 	server_ipv6_edns_size | server_verbosity | server_hide_version |
-	server_dnssexy_ip | server_dnssexy_port;
+	server_verify_ip_address | server_verify_port | server_verifier_count |
+	server_verifier_feed_zone | server_verifier_timeout;
 server_ip_address: VAR_IP_ADDRESS STRING 
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
-		if(cfg_parser->current_ip_address_option) {
-			cfg_parser->current_ip_address_option->next = 
-				(ip_address_option_t*)region_alloc(
-				cfg_parser->opt->region, sizeof(ip_address_option_t));
-			cfg_parser->current_ip_address_option = 
-				cfg_parser->current_ip_address_option->next;
-			cfg_parser->current_ip_address_option->next=0;
-		} else {
-			cfg_parser->current_ip_address_option = 
-				(ip_address_option_t*)region_alloc(
-				cfg_parser->opt->region, sizeof(ip_address_option_t));
-			cfg_parser->current_ip_address_option->next=0;
-			cfg_parser->opt->ip_addresses = cfg_parser->current_ip_address_option;
-		}
 
-		cfg_parser->current_ip_address_option->address = 
-			region_strdup(cfg_parser->opt->region, $2);
+		add_ip_address( &cfg_parser->opt->ip_addresses
+			      , &cfg_parser->current_ip_address_option
+			      , $2
+			      );
 	}
 	;
 server_debug_mode: VAR_DEBUG_MODE STRING 
@@ -318,20 +332,53 @@ server_ipv6_edns_size: VAR_IPV6_EDNS_SIZE STRING
 		cfg_parser->opt->ipv6_edns_size = atoi($2);
 	}
 	;
-server_dnssexy_ip: VAR_DNSSEXY_IP STRING 
+server_verify_ip_address: VAR_VERIFY_IP_ADDRESS STRING 
 	{ 
-		OUTYY(("P(server_dnssexy_ip:%s)\n", $2)); 
-		cfg_parser->opt->dnssexy_ip = 
-			region_strdup(cfg_parser->opt->region, $2);
+		OUTYY(("P(server_verify_ip_address:%s)\n", $2)); 
+
+		add_ip_address( &cfg_parser->opt->verify_ip_addresses
+			      , &cfg_parser->current_verify_ip_address_option
+			      , $2
+			      );
 	}
-server_dnssexy_port: VAR_DNSSEXY_PORT STRING 
+	;
+server_verify_port: VAR_VERIFY_PORT STRING 
 	{ 
-		OUTYY(("P(server_dnssexy_port:%s)\n", $2)); 
-		cfg_parser->opt->dnssexy_port = 
-			region_strdup(cfg_parser->opt->region, $2);
+		OUTYY(("P(server_verify_port:%s)\n", $2)); 
+
+		cfg_parser->opt
+			  ->verify_port = region_strdup( cfg_parser->opt->region
+			  			       , $2
+						       );
 	}
+	;
+server_verifier_count: VAR_VERIFIER_COUNT STRING
+	{ 
+		OUTYY(("P(server_verifier_count:%s)\n", $2)); 
+		if(atoi($2) < 0)
+			yyerror("positive number expected");
+		else cfg_parser->opt->verifier_count = atoi($2);
+	}
+	;
+server_verifier_feed_zone: VAR_VERIFIER_FEED_ZONE STRING 
+	{ 
+		OUTYY(("P(server_verifier_feed_zone:%s)\n", $2)); 
 
+		if (strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+			yyerror("expected yes or no.");
 
+		else cfg_parser->opt
+			       ->verifier_feed_zone = strcmp($2, "yes") == 0;
+	}
+	;
+server_verifier_timeout: VAR_VERIFIER_TIMEOUT STRING
+	{ 
+		OUTYY(("P(server_verifier_timeout:%s)\n", $2)); 
+		if(atoi($2) <= 0 && strcmp($2, "0") != 0)
+			yyerror("positive number or zero expected");
+		cfg_parser->opt->verifier_timeout = atoi($2);
+	}
+	;
 /* zone: declaration */
 zonestart: VAR_ZONE
 	{ 
@@ -361,7 +408,7 @@ contents_zone: contents_zone content_zone | content_zone;
 content_zone: zone_name | zone_zonefile | zone_allow_notify | 
 	zone_request_xfr | zone_notify | zone_notify_retry | zone_provide_xfr | 
 	zone_outgoing_interface | zone_allow_axfr_fallback | 
-	zone_dnssexy | zone_verify_zone;
+	zone_verifier | zone_verifier_feed_zone | zone_verifier_timeout;
 zone_name: VAR_NAME STRING
 	{ 
 		OUTYY(("P(zone_name:%s)\n", $2)); 
@@ -487,33 +534,6 @@ zone_allow_axfr_fallback: VAR_ALLOW_AXFR_FALLBACK STRING
 	}
 	;
 
-cmd_arg: STRING
-	{
-		cmd_i = cfg_parser->current_cmd;
-
-		cfg_parser->current_cmd
-			= (cmd_option_t*) region_alloc( cfg_parser->opt->region
-						      , sizeof(cmd_option_t));
-
-		cfg_parser->current_cmd->arg  
-			= region_strdup(cfg_parser->opt->region, $1);
-
-		cfg_parser->current_cmd->next = cmd_i;
-		cfg_parser->current_cmd_count++;
-	}
-	;
-cmd_args: cmd_args cmd_arg | cmd_arg;
-zone_dnssexy: VAR_DNSSEXY cmd_args
-	{
-		cfg_parser->current_zone->dnssexy = cmds2args();
-	}
-	;
-zone_verify_zone: VAR_VERIFY_ZONE cmd_args
-	{ 
-		cfg_parser->current_zone->verify_zone = cmds2args();
-	}
-	;
-
 
 /* key: declaration */
 keystart: VAR_KEY
@@ -561,7 +581,57 @@ key_secret: VAR_SECRET STRING
 		cfg_parser->current_key->secret = region_strdup(cfg_parser->opt->region, $2);
 	}
 	;
+cmd_arg: STRING
+	{
+		cmd_i = cfg_parser->current_cmd;
 
+		cfg_parser->current_cmd = REGION_MALLOC( cfg_parser->opt->region
+						       , cmd_option_t
+						       );
+
+		cfg_parser->current_cmd
+			  ->arg = region_strdup(cfg_parser->opt->region, $1);
+
+		cfg_parser->current_cmd->next = cmd_i;
+		cfg_parser->current_cmd_count++;
+	}
+	;
+cmd_args: cmd_args cmd_arg | cmd_arg;
+zone_verifier: VAR_VERIFIER cmd_args
+	{ 
+		cfg_parser->current_zone->verifier = cmds2args();
+	}
+	;
+zone_verifier_feed_zone: VAR_VERIFIER_FEED_ZONE STRING 
+	{ 
+		OUTYY(("P(zone_verifier_feed_zone:%s)\n", $2)); 
+
+		if (strcmp($2, "yes")     != 0 
+		&&  strcmp($2, "no")      != 0
+		&&  strcmp($2, "inherit") != 0)
+
+			yyerror("expected yes, no or inherit.");
+
+		else cfg_parser->current_zone
+			       ->verifier_feed_zone = strcmp($2, "yes") == 0
+			       			      ? 1
+						      : strcmp($2, "no") == 0
+						        ? 0
+							: 2;
+	}
+	;
+zone_verifier_timeout: VAR_VERIFIER_TIMEOUT STRING
+	{ 
+		OUTYY(("P(zone_verifier_timeout:%s)\n", $2));
+		if (strcmp($2, "inherit") == 0) {
+			cfg_parser->current_zone->verifier_timeout = -1;
+		} else if(atoi($2) <= 0 && strcmp($2, "0") != 0) {
+			yyerror("positive number, zero or inherit expected");
+		} else {
+			cfg_parser->current_zone->verifier_timeout = atoi($2);
+		}
+	}
+	;
 %%
 
 /* parse helper routines could be here */

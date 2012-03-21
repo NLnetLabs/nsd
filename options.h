@@ -63,8 +63,23 @@ struct nsd_options {
 	const char* xfrdfile;
 	const char* nsid;
 	int xfrd_reload_timeout;
-	const char* dnssexy_ip;
-	const char* dnssexy_port;
+
+	/* ip addresses (with optional ports) on which to server the zone
+	 * to be verified
+	 */
+	ip_address_option_t* verify_ip_addresses;
+
+	/* default port 5347 */
+	const char* verify_port;
+
+	/* maximum number of verifiers that may run simultaneously */
+	int verifier_count;
+
+	/* bool: should the zone be fed on the verifier's stdin? */
+	int verifier_feed_zone;
+
+	/* how long may a verifier take */
+	int verifier_timeout;
 
 	region_type* region;
 };
@@ -96,8 +111,16 @@ struct zone_options {
 	acl_options_t* outgoing_interface;
 	uint8_t allow_axfr_fallback;
 	uint8_t notify_retry;
-	char* const* dnssexy;
-	char* const* verify_zone;
+
+	/* verifier to execute in const char argv[] format */
+	char* const* verifier;
+
+	/* bool: should the zone be fed on the verifier's stdin? */
+	int verifier_feed_zone;
+
+	/* how long may a verifier take */
+	int verifier_timeout;
+
 };
 
 union acl_addr_storage {
@@ -162,6 +185,7 @@ struct config_parser_state {
 	zone_options_t* current_zone;
 	key_options_t* current_key;
 	ip_address_option_t* current_ip_address_option;
+	ip_address_option_t* current_verify_ip_address_option;
 	acl_options_t* current_allow_notify;
 	acl_options_t* current_request_xfr;
 	acl_options_t* current_notify;

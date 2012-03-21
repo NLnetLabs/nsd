@@ -342,65 +342,92 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 }
 
-/*
- * Initialize the server, create and bind the sockets.
- *
- */
 int
-server_init(struct nsd *nsd)
+init_make_udp_sockets(struct nsd* nsd, struct nsd_socket* udp_socket, size_t n)
 {
-	size_t i;
-#if defined(SO_REUSEADDR) || (defined(INET6) && (defined(IPV6_V6ONLY) || defined(IPV6_USE_MIN_MTU) || defined(IPV6_MTU)))
+#if   defined(SO_REUSEADDR) \
+ || ( defined(INET6) && ( defined(IPV6_V6ONLY) \
+		     ||   defined(IPV6_USE_MIN_MTU) \
+		     ||   defined(IPV6_MTU) \
+		        ) \
+    )
 	int on = 1;
 #endif
+	for (; n--; udp_socket++) {
 
-	/* UDP */
-
-	/* Make a socket... */
-	for (i = 0; i < nsd->ifs; i++) {
-		if (!nsd->udp[i].addr) {
-			nsd->udp[i].s = -1;
+		if (!udp_socket->addr) {
+			udp_socket->s = -1;
 			continue;
 		}
-		if ((nsd->udp[i].s = socket(nsd->udp[i].addr->ai_family, nsd->udp[i].addr->ai_socktype, 0)) == -1) {
+		if ((udp_socket->s = socket( udp_socket->addr->ai_family
+					   , udp_socket->addr->ai_socktype
+					   , 0
+					   )) == -1) {
 #if defined(INET6)
-			if (nsd->udp[i].addr->ai_family == AF_INET6 &&
-				errno == EAFNOSUPPORT && nsd->grab_ip6_optional) {
-				log_msg(LOG_WARNING, "fallback to UDP4, no IPv6: not supported");
+			if (udp_socket->addr->ai_family == AF_INET6
+			&&                        errno == EAFNOSUPPORT 
+			&&                          nsd -> grab_ip6_optional) {
+
+				log_msg( LOG_WARNING
+				       , "fallback to UDP4, no IPv6: "
+				         "not supported"
+				       );
 				continue;
 			}
 #endif /* INET6 */
-			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+			log_msg( LOG_ERR
+			       , "can't create a socket: %s"
+			       , strerror(errno)
+			       );
+
 			return -1;
 		}
 
 #if defined(INET6)
-		if (nsd->udp[i].addr->ai_family == AF_INET6) {
+
+		if (udp_socket->addr->ai_family == AF_INET6) {
+
 # if defined(IPV6_V6ONLY)
-			if (setsockopt(nsd->udp[i].s,
-				       IPPROTO_IPV6, IPV6_V6ONLY,
-				       &on, sizeof(on)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s",
-					strerror(errno));
+
+			if (setsockopt( udp_socket->s
+				      , IPPROTO_IPV6
+				      , IPV6_V6ONLY
+				      , &on
+				      , sizeof(on)
+				      ) < 0) {
+
+				log_msg( LOG_ERR
+				       , "setsockopt(..., IPV6_V6ONLY, ...) "
+				         "failed: %s"
+				       , strerror(errno)
+				       );
+
 				return -1;
 			}
 # endif
+
 # if defined(IPV6_USE_MIN_MTU)
-			/*
-			 * There is no fragmentation of IPv6 datagrams
+
+			/* There is no fragmentation of IPv6 datagrams
 			 * during forwarding in the network. Therefore
 			 * we do not send UDP datagrams larger than
 			 * the minimum IPv6 MTU of 1280 octets. The
 			 * EDNS0 message length can be larger if the
 			 * network stack supports IPV6_USE_MIN_MTU.
 			 */
-			if (setsockopt(nsd->udp[i].s,
-				       IPPROTO_IPV6, IPV6_USE_MIN_MTU,
-				       &on, sizeof(on)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_USE_MIN_MTU, ...) failed: %s",
-					strerror(errno));
+			if (setsockopt( udp_socket->s
+				      , IPPROTO_IPV6
+				      , IPV6_USE_MIN_MTU
+				      , &on
+				      , sizeof(on)
+				      ) < 0) {
+
+				log_msg( LOG_ERR
+				       , "setsockopt(..., IPV6_USE_MIN_MTU, "
+				         "...) failed: %s"
+				       , strerror(errno)
+				       );
+
 				return -1;
 			}
 # elif defined(IPV6_MTU)
@@ -409,35 +436,63 @@ server_init(struct nsd *nsd)
 			 * so set the MTU equal to the MIN MTU to get the same.
 			 */
 			on = IPV6_MIN_MTU;
-			if (setsockopt(nsd->udp[i].s, IPPROTO_IPV6, IPV6_MTU, 
-				&on, sizeof(on)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IPV6_MTU, ...) failed: %s",
-					strerror(errno));
+			if (setsockopt( udp_socket->s
+				      , IPPROTO_IPV6
+				      , IPV6_MTU
+				      , &on
+				      , sizeof(on)
+				      ) < 0) {
+
+				log_msg( LOG_ERR
+				       , "setsockopt(..., IPV6_MTU, ...) "
+				         "failed: %s"
+				       , strerror(errno)
+				       );
+
 				return -1;
 			}
 			on = 1;
 # endif
 		}
 #endif
+
 #if defined(AF_INET)
-		if (nsd->udp[i].addr->ai_family == AF_INET) {
+
+		if (udp_socket->addr->ai_family == AF_INET) {
+
 #  if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
+
 			int action = IP_PMTUDISC_DONT;
-			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, 
-				IP_MTU_DISCOVER, &action, sizeof(action)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IP_MTU_DISCOVER, IP_PMTUDISC_DONT...) failed: %s",
-					strerror(errno));
+			if (setsockopt( udp_socket->s
+				      , IPPROTO_IP
+				      , IP_MTU_DISCOVER
+				      , &action
+				      , sizeof(action)
+				      ) < 0) {
+
+				log_msg( LOG_ERR
+				       , "setsockopt(..., IP_MTU_DISCOVER, "
+				         "IP_PMTUDISC_DONT...) failed: %s"
+				       , strerror(errno)
+				       );
+
 				return -1;
 			}
 #  elif defined(IP_DONTFRAG)
 			int off = 0;
-			if (setsockopt(nsd->udp[i].s, IPPROTO_IP, IP_DONTFRAG,
-				&off, sizeof(off)) < 0)
-			{
-				log_msg(LOG_ERR, "setsockopt(..., IP_DONTFRAG, ...) failed: %s",
-					strerror(errno));
+			if (setsockopt( udp_socket->s
+				      , IPPROTO_IP
+				      , IP_DONTFRAG
+				      , &off
+				      , sizeof(off)
+				      ) < 0) {
+
+				log_msg( LOG_ERR
+				       , "setsockopt(..., IP_DONTFRAG, ...) "
+				         "failed: %s"
+				       , strerror(errno)
+				       );
+
 				return -1;
 			}
 #  endif
@@ -446,72 +501,161 @@ server_init(struct nsd *nsd)
 		/* set it nonblocking */
 		/* otherwise, on OSes with thundering herd problems, the
 		   UDP recv could block NSD after select returns readable. */
-		if (fcntl(nsd->udp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-			log_msg(LOG_ERR, "cannot fcntl udp: %s", strerror(errno));
+
+		if (fcntl(udp_socket->s, F_SETFL, O_NONBLOCK) == -1) {
+
+			log_msg( LOG_ERR
+			       , "cannot fcntl udp: %s"
+			       , strerror(errno)
+			       );
 		}
 
 		/* Bind it... */
-		if (bind(nsd->udp[i].s, (struct sockaddr *) nsd->udp[i].addr->ai_addr, nsd->udp[i].addr->ai_addrlen) != 0) {
-			log_msg(LOG_ERR, "can't bind udp socket: %s", strerror(errno));
+		if (bind( udp_socket->s
+			, (struct sockaddr *) udp_socket->addr->ai_addr
+			, udp_socket->addr->ai_addrlen
+			) != 0) {
+
+			log_msg( LOG_ERR
+			       , "can't bind udp socket: %s"
+			       , strerror(errno)
+			       );
+
 			return -1;
 		}
 	}
+	return 0;
+}
 
-	/* TCP */
+int
+init_make_tcp_sockets(struct nsd* nsd, struct nsd_socket* tcp_socket, size_t n)
+{
+	int on = 1;
 
-	/* Make a socket... */
-	for (i = 0; i < nsd->ifs; i++) {
-		if (!nsd->tcp[i].addr) {
-			nsd->tcp[i].s = -1;
+	for (; n--; tcp_socket++) {
+		if (!tcp_socket->addr) {
+			tcp_socket->s = -1;
 			continue;
 		}
-		if ((nsd->tcp[i].s = socket(nsd->tcp[i].addr->ai_family, nsd->tcp[i].addr->ai_socktype, 0)) == -1) {
+		if ((tcp_socket->s = socket( tcp_socket->addr->ai_family
+					   , tcp_socket->addr->ai_socktype
+					   , 0
+					   )) == -1) {
 #if defined(INET6)
-			if (nsd->tcp[i].addr->ai_family == AF_INET6 &&
-				errno == EAFNOSUPPORT && nsd->grab_ip6_optional) {
-				log_msg(LOG_WARNING, "fallback to TCP4, no IPv6: not supported");
+			if (tcp_socket->addr->ai_family == AF_INET6
+			&&                        errno == EAFNOSUPPORT 
+			&&                          nsd -> grab_ip6_optional) {
+
+				log_msg( LOG_WARNING
+				       , "fallback to TCP4, no IPv6: "
+				         "not supported"
+				       );
 				continue;
 			}
 #endif /* INET6 */
-			log_msg(LOG_ERR, "can't create a socket: %s", strerror(errno));
+			log_msg( LOG_ERR
+			       , "can't create a socket: %s"
+			       , strerror(errno)
+			       );
+
 			return -1;
 		}
 
 #ifdef	SO_REUSEADDR
-		if (setsockopt(nsd->tcp[i].s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
-			log_msg(LOG_ERR, "setsockopt(..., SO_REUSEADDR, ...) failed: %s", strerror(errno));
+
+		if (setsockopt( tcp_socket->s
+			      , SOL_SOCKET
+			      , SO_REUSEADDR
+			      , &on
+			      , sizeof(on)
+			      ) < 0) {
+
+			log_msg( LOG_ERR
+			       , "setsockopt(..., SO_REUSEADDR, ...) "
+			         "failed: %s", strerror(errno)
+			       );
 		}
 #endif /* SO_REUSEADDR */
 
 #if defined(INET6) && defined(IPV6_V6ONLY)
-		if (nsd->tcp[i].addr->ai_family == AF_INET6 &&
-		    setsockopt(nsd->tcp[i].s, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) < 0)
-		{
-			log_msg(LOG_ERR, "setsockopt(..., IPV6_V6ONLY, ...) failed: %s", strerror(errno));
+
+		if (tcp_socket->addr->ai_family == AF_INET6
+		&&  setsockopt( tcp_socket->s
+			      , IPPROTO_IPV6
+			      , IPV6_V6ONLY
+			      , &on
+			      , sizeof(on)
+			      ) < 0) {
+
+			log_msg( LOG_ERR
+			       , "setsockopt(..., IPV6_V6ONLY, ...) "
+			         "failed: %s"
+			       , strerror(errno)
+			       );
+
 			return -1;
 		}
 #endif
 		/* set it nonblocking */
 		/* (StevensUNP p463), if tcp listening socket is blocking, then
 		   it may block in accept, even if select() says readable. */
-		if (fcntl(nsd->tcp[i].s, F_SETFL, O_NONBLOCK) == -1) {
-			log_msg(LOG_ERR, "cannot fcntl tcp: %s", strerror(errno));
+		if (fcntl( tcp_socket->s
+			 , F_SETFL
+			 , O_NONBLOCK
+			 ) == -1) {
+
+			log_msg( LOG_ERR
+			       , "cannot fcntl tcp: %s"
+			       , strerror(errno)
+			       );
 		}
 
 		/* Bind it... */
-		if (bind(nsd->tcp[i].s, (struct sockaddr *) nsd->tcp[i].addr->ai_addr, nsd->tcp[i].addr->ai_addrlen) != 0) {
-			log_msg(LOG_ERR, "can't bind tcp socket: %s", strerror(errno));
+		if (bind( tcp_socket->s
+			, (struct sockaddr *) tcp_socket->addr->ai_addr
+			, tcp_socket->addr->ai_addrlen
+			) != 0) {
+
+			log_msg( LOG_ERR
+			       , "can't bind tcp socket: %s"
+			       , strerror(errno)
+			       );
+
 			return -1;
 		}
 
 		/* Listen to it... */
-		if (listen(nsd->tcp[i].s, TCP_BACKLOG) == -1) {
+		if (listen(tcp_socket->s, TCP_BACKLOG) == -1) {
+
 			log_msg(LOG_ERR, "can't listen: %s", strerror(errno));
+
 			return -1;
 		}
 	}
-
 	return 0;
+}
+
+/*
+ * Initialize the server, create and bind the sockets.
+ *
+ */
+int
+server_init(struct nsd *nsd)
+{
+	int r;
+	return (r = init_make_udp_sockets(nsd, nsd->udp, nsd->ifs)) ? r
+	     : (r = init_make_tcp_sockets(nsd, nsd->tcp, nsd->ifs)) ? r
+
+	     : (r = init_make_udp_sockets( nsd
+				         , nsd->verify_udp
+					 , nsd->verify_ifs
+					 )                         ) ? r
+
+	     : (r = init_make_tcp_sockets( nsd
+				         , nsd->verify_tcp
+					 , nsd->verify_ifs
+					 )                         ) ? r
+	     :  0 ;
 }
 
 /*
@@ -594,6 +738,9 @@ server_shutdown(struct nsd *nsd)
 
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
+	close_all_sockets(nsd->verify_udp, nsd->verify_ifs);
+	close_all_sockets(nsd->verify_tcp, nsd->verify_ifs);
+
 	/* CHILD: close command channel to parent */
 	if(nsd->this_child && nsd->this_child->parent_fd > 0)
 	{
@@ -644,6 +791,9 @@ server_start_xfrd(struct nsd *nsd, netio_handler_type* handler)
 		log_msg(LOG_ERR, "fork xfrd failed: %s", strerror(errno));
 		break;
 	case 0:
+		/* xfrd will not use the verify sockets */
+		close_all_sockets(nsd->verify_udp, nsd->verify_ifs);
+		close_all_sockets(nsd->verify_tcp, nsd->verify_ifs);
 		/* CHILD: close first socket, use second one */
 		close(sockets[0]);
 		xfrd_init(sockets[1], nsd);
@@ -721,6 +871,132 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 	return total;
 }
 
+
+void
+netio_add_udp_handlers( netio_type* netio
+		      , struct nsd* nsd
+		      , region_type* region
+		      , struct nsd_socket* udp_socket
+		      , size_t n
+		      )
+{
+	query_type *udp_query = query_create( region
+					    , compressed_dname_offsets
+					    , compression_table_size
+					    );
+
+	log_msg( LOG_INFO, "adding %d udp handlers to netio.", (int)n);
+
+	for (; n--; udp_socket++) {
+		
+		struct udp_handler_data* data 
+			= REGION_MALLOC(region, struct udp_handler_data);
+
+		netio_handler_type* handler = REGION_MALLOC( region
+							   , netio_handler_type
+							   );
+
+		char host[NI_MAXHOST];
+		char serv[NI_MAXSERV];
+
+		int r = getnameinfo( udp_socket->addr->ai_addr
+				   , udp_socket->addr->ai_addrlen
+				   , host, NI_MAXHOST
+				   , serv, NI_MAXSERV
+				   , NI_NUMERICHOST
+				);
+		if (r == 0) {
+			log_msg( LOG_INFO
+			       , "udp socket %s:%s added to netio"
+			       , host
+			       , serv
+			       );
+		} else {
+			log_msg( LOG_ERR
+			       , "error in getnameinfo: %s"
+			       , gai_strerror(r)
+			       );
+		}
+
+		data->nsd = nsd;
+		data->query = udp_query;
+		data->socket = udp_socket;
+
+		handler->fd = udp_socket->s;
+		handler->timeout = NULL;
+		handler->user_data = data;
+		handler->event_types = NETIO_EVENT_READ;
+		handler->event_handler = handle_udp;
+
+		netio_add_handler(netio, handler);
+	}
+}
+
+void
+netio_add_tcp_handlers( netio_type* netio
+		      , struct nsd* nsd
+		      , region_type* region
+		      , struct nsd_socket* tcp_socket
+		      , size_t n
+		      )
+{
+	/*
+	 * Keep track of all the TCP accept handlers so we can enable
+	 * and disable them based on the current number of active TCP
+	 * connections.
+	 */
+	netio_handler_type* tcp_accept_handlers 
+		= REGION_XMALLOC( region, netio_handler_type, n);
+
+	size_t handler_count = n;
+
+	log_msg( LOG_INFO, "adding %d tcp handlers to netio.", (int)n);
+
+	for (; n--; tcp_socket++) {
+
+		struct tcp_accept_handler_data* data
+			= REGION_MALLOC( region
+				       , struct tcp_accept_handler_data
+				       );
+
+		char host[NI_MAXHOST];
+		char serv[NI_MAXSERV];
+
+		int r = getnameinfo( tcp_socket->addr->ai_addr
+				   , tcp_socket->addr->ai_addrlen
+				   , host, NI_MAXHOST
+				   , serv, NI_MAXSERV
+				   , NI_NUMERICHOST
+				);
+		if (r == 0) {
+			log_msg( LOG_INFO
+			       , "tcp socket %s:%s added to netio"
+			       , host
+			       , serv
+			       );
+		} else {
+			log_msg( LOG_ERR
+			       , "error in getnameinfo: %s"
+			       , gai_strerror(r)
+			       );
+		}
+
+		netio_handler_type *handler = &tcp_accept_handlers[n];
+
+		data->nsd = nsd;
+		data->socket = tcp_socket;
+		data->tcp_accept_handlers = tcp_accept_handlers;
+		data->tcp_accept_handler_count = handler_count;
+
+		handler->fd = tcp_socket->s;
+		handler->timeout = NULL;
+		handler->user_data = data;
+		handler->event_types = NETIO_EVENT_READ;
+		handler->event_handler = handle_tcp_accept;
+
+		netio_add_handler(netio, handler);
+	}
+}
 
 /*
  * handle_log_from_fd logs data read from the *lfd->fd with lfd->priority.
@@ -827,12 +1103,11 @@ handle_log_from_fd( netio_type* netio
 }
 
 /*
- * server_verify_zone assesses the zone by feeding it to the verify_zone 
- * program (via its stdin). It returns the exit code of the verify_zone 
+ * server_verify_zone assesses the zone by feeding it to the verifier 
+ * program (via its stdin). It returns the exit code of the verifier 
  * program. So 0 is success.
  */
 struct zone2verifier_user_data {
-	sig_atomic_t* mode;
 	int to_stdin;
 	FILE* to_stdin_f;
 	struct state_pretty_rr* state;
@@ -872,38 +1147,427 @@ handle_zone2verifier( netio_type* netio
 	}
 }
 
+struct verifier_state_struct {
+	zone_type*           zone;
+	pid_t                pid;
 
+	netio_handler_type             to_stdin_handler;
+	struct zone2verifier_user_data to_stdin_user_data;
+
+	netio_handler_type   from_stdout_handler;
+	netio_handler_type   from_stderr_handler;
+	struct log_from_fd_t lfdout;
+	struct log_from_fd_t lfderr;
+};
+typedef struct verifier_state_struct verifier_state_type;
+
+struct server_verify_zone_state_struct {
+	region_type*        region;
+	nsd_type*           nsd;
+	netio_type*         netio;
+	FILE*               df;
+	verifier_state_type verifiers[];
+};
+typedef struct server_verify_zone_state_struct server_verify_zone_state_type;
+
+static void server_verify_zone( server_verify_zone_state_type* s
+			      , size_t* good_zones
+			      , size_t* bad_zones
+			      );
+
+static void
+server_verifiers_add( server_verify_zone_state_type** state
+		    , size_t* good_zones
+		    , size_t* bad_zones
+		    , nsd_type* nsd
+		    , zone_type* zone
+		    )
+{
+	region_type* region = NULL;
+	server_verify_zone_state_type* s = NULL; /* for convenience */
+	FILE* df = NULL;
+	size_t i;
+	verifier_state_type* v = NULL;
+
+	assert( state && good_zones && bad_zones && nsd && zone );
+
+	/* May we run verifiers at all? */
+	if (nsd->options->verifier_count <= 0) {
+		goto error;
+	}
+	/* Initialize the verify zone state when needed */
+	if ((s = *state) == NULL) {
+		/* For easy disposal of everything we need */
+		region = region_create(xalloc, free);
+		if (! region) {
+			goto error;
+		}
+		*state = (server_verify_zone_state_type*) 
+			region_alloc( region
+			            , sizeof(server_verify_zone_state_type)
+				      /* 
+				       * the struct has an array of 
+				       * verifier_state_types at the end
+				       */
+				      + nsd->options->verifier_count
+				        * sizeof(verifier_state_type)
+				    );
+		if (! *state) {
+			goto error;
+		}
+		s = *state;
+		if (! (s->netio = netio_create(region))) {
+			goto error;
+		}
+		s->region = region;
+		s->nsd    = nsd;
+		s->df     = NULL;
+		/* mark verifier slots as available */
+		for (i = 0; i < nsd->options->verifier_count; i++) {
+			s->verifiers[i].zone = NULL;
+		}
+
+		/* and start serving the new zones */
+		if (nsd->verify_ifs) {
+			netio_add_udp_handlers( s->netio
+					      , nsd
+					      , region
+					      , nsd->verify_udp
+					      , nsd->verify_ifs
+					      );
+			netio_add_tcp_handlers( s->netio
+					      , nsd
+					      , region
+					      , nsd->verify_tcp
+					      , nsd->verify_ifs
+					      );
+		}
+	}
+	/* find first available verifier slot */
+	for (i = 0; i < nsd->options->verifier_count; i++) {
+		if (s->verifiers[i].zone == NULL) {
+			v = &s->verifiers[i];
+			break;
+		}
+	}
+	/* because we wait when all verifier slots are filled, 
+	 * at least one has to be available
+	 */
+	assert( v != NULL );
+
+	/* startup the verifier initializing the filehandles to the process. */
+	v->pid = nsd_popen3( zone->opts->verifier
+			   , &v->to_stdin_user_data.to_stdin
+			   , &v->lfdout.fd
+			   , &v->lfderr.fd
+			   , "VERIFY_ZONE", zone->opts->name
+			   ,  NULL
+			   );
+	if (v->pid == -1) {
+		goto error;
+	}
+	v->zone = zone;
+	/* will we feed the zone on stdin? */
+	if (zone->opts->verifier_feed_zone == 1
+	|| (     zone->opts->verifier_feed_zone == 2 
+	    && nsd->options->verifier_feed_zone == 1)) {
+
+		v->to_stdin_user_data.state = create_pretty_rr(s->region);
+		v->to_stdin_user_data.to_stdin_f 
+			  = fdopen(v->to_stdin_user_data.to_stdin, "w");
+		setbuf(v->to_stdin_user_data.to_stdin_f, NULL);
+		v->to_stdin_user_data.zone  = zone;
+
+		/* v->to_stdin_user_data.iter will be automatically initialized
+		 * by zone_iter_next usage.
+		 */
+
+		v->to_stdin_handler.fd = v->to_stdin_user_data.to_stdin;
+		v->to_stdin_handler.user_data     = &v->to_stdin_user_data;
+		v->to_stdin_handler.event_types   =  NETIO_EVENT_WRITE;
+		v->to_stdin_handler.event_handler = &handle_zone2verifier;
+		v->to_stdin_handler.timeout       =  NULL;
+
+		netio_add_handler(s->netio, &v->to_stdin_handler);
+	} else {
+		/* No zone feeding. Close stdin for the verifier */
+		close(v->to_stdin_user_data.to_stdin);
+		v->to_stdin_user_data.to_stdin = -1;
+		v->to_stdin_user_data.state = NULL;
+		v->to_stdin_user_data.to_stdin_f = NULL;
+		v->to_stdin_user_data.zone = NULL;
+	}
+
+	/* But we always log stdout and stderr */
+
+	v->lfdout.priority                   =  LOG_INFO;
+       *v->lfdout.buf                        =  0;
+	v->lfdout.pos                        =  v->lfdout.buf;
+	v->from_stdout_handler.fd            =  v->lfdout.fd;
+	v->from_stdout_handler.user_data     = &v->lfdout;
+	v->from_stdout_handler.event_types   =  NETIO_EVENT_READ;
+	v->from_stdout_handler.event_handler = &handle_log_from_fd;
+	v->from_stdout_handler.timeout       =  NULL;
+
+	netio_add_handler(s->netio, &v->from_stdout_handler);
+
+	v->lfderr.priority                   =  LOG_ERR;
+       *v->lfderr.buf                        =  0;
+	v->lfderr.pos                        =  v->lfderr.buf;
+	v->from_stderr_handler.fd            =  v->lfderr.fd;
+	v->from_stderr_handler.user_data     = &v->lfderr;
+	v->from_stderr_handler.event_types   =  NETIO_EVENT_READ;
+	v->from_stderr_handler.event_handler = &handle_log_from_fd;
+	v->from_stderr_handler.timeout       =  NULL;
+
+	netio_add_handler(s->netio, &v->from_stderr_handler);
+
+	/* More slots available? Then return so more zones can be added. */
+	for (i = 0; i < nsd->options->verifier_count; i++) {
+		if (s->verifiers[i].zone == NULL) {
+			return;
+		}
+	}
+
+	/* Otherwise start serving until a verifier finishes and a 
+	 * slot becomes available again.
+	 */
+	server_verify_zone(s, good_zones, bad_zones);
+	return;
+error:
+	if (s && s->region) {
+		region = s->region;
+	}
+	if (region) {
+		region_destroy(region);
+	}
+	*state = NULL;
+	write_commit_trail(nsd->options->difffile, &df, zone, SURE_PART_BAD);
+	(*bad_zones)++;
+	if (df) {
+		fclose(df);
+	}
+	return;
+}
+
+static void 
+server_verify_zone( server_verify_zone_state_type* s
+		  , size_t* good_zones
+		  , size_t* bad_zones
+		  )
+{
+	pid_t exited;       /* the pid of the verifier that exited */
+	int status, result; /* exit codes */
+
+	size_t i;
+	verifier_state_type* v;
+
+        struct timespec timeout_spec;
+
+	for (;;) {
+		exited = waitpid(-1, &status, WNOHANG);
+		if (exited > 0) {
+			v = NULL;
+			for (i = 0; i < s->nsd->options->verifier_count; i++) {
+
+				if (s->verifiers[i].zone
+				&&  s->verifiers[i].pid == exited) {
+
+					v = &s->verifiers[i];
+					break;
+				}
+			}
+			if (v) {
+				if ((result = WEXITSTATUS(status))) {
+					log_msg( LOG_ERR
+					       , "Zone verifier for zone %s "
+					         "exited with status: %d"
+					       , v->zone->opts->name
+					       , result
+					       );
+					write_commit_trail(  s->nsd->options
+								   ->difffile
+							  , &s->df
+							  ,  v->zone
+							  ,  SURE_PART_BAD
+							  );
+					(*bad_zones)++;
+				} else {
+					log_msg( LOG_INFO
+					       , "Zone %s "
+					         "verified successfully." 
+					       , v->zone->opts->name
+					       );
+					if (write_commit_trail(  s->nsd
+								  ->options
+								  ->difffile
+							      , &s->df
+							      ,  v->zone
+							      ,  
+							      SURE_PART_VERIFIED
+							      )) {
+						(*good_zones)++;
+					} else {
+						log_msg(  LOG_ERR
+						       , "Zone %s did "
+						         "validate, but there "
+							 "was a problem "
+							 "committing to that "
+							 "fact. Considering "
+							 "bad in stead."
+						       , v->zone->opts->name
+						       );
+						(*bad_zones)++;
+					}
+ 
+				}
+				/* Clean up all the bits for this verifier */
+
+				recycle_commit_trail( s->nsd->db->region
+						    , v->zone
+						    );
+
+				if (v->lfderr.fd >= 0) {
+					netio_remove_handler
+					(s->netio, &v->from_stderr_handler);
+					close(v->lfderr.fd);
+				}
+				if (v->lfdout.fd >= 0) {
+					netio_remove_handler
+					(s->netio, &v->from_stdout_handler);
+					close(v->lfdout.fd);
+				}
+				if (v->to_stdin_user_data.to_stdin >= 0) {
+					netio_remove_handler
+					(s->netio, &v->to_stdin_handler);
+					close(v->to_stdin_user_data.to_stdin);
+				}
+				if (v->to_stdin_user_data.to_stdin_f) {
+					fclose
+					(v->to_stdin_user_data.to_stdin_f);
+				}
+				v->pid = -1;
+				v->zone = NULL;
+
+				return; /* slot available for next verifier */
+			} else {
+				log_msg( LOG_ERR
+				       , "Expected verifier to exit, but"
+				         "in stead an unknown child process, "
+					 "with pid %d, exited with code %d."
+				       , exited
+				       , WEXITSTATUS(status)
+				       );
+			}
+
+		} else if (exited == -1 && errno != EINTR) {
+			log_msg(LOG_ERR, "wait failed: %s", strerror(errno));
+		}
+
+		timeout_spec.tv_sec  = 1;
+		timeout_spec.tv_nsec = 0;
+		if (netio_dispatch(s->netio, &timeout_spec, NULL) == -1
+		&&  errno != EINTR) {
+			log_msg( LOG_ERR
+				, "server_verify_zone netio_dispatch failed: %s"
+				, strerror(errno)
+				);
+			/* How to handle this error? */
+		}
+	}
+}
+
+static void
+server_verifiers_wait( server_verify_zone_state_type** state
+		     , size_t* good_zones
+		     , size_t* bad_zones
+		)
+{
+	server_verify_zone_state_type* s = NULL;
+	size_t i;
+
+	assert( state && good_zones && bad_zones );
+
+	if ((s = *state) != NULL) {
+wait:
+		for (i = 0; i < s->nsd->options->verifier_count; i++) {
+			if (s->verifiers[i].zone) {
+				server_verify_zone(s, good_zones, bad_zones);
+				goto wait;
+			}
+		}
+		if (s->df) {
+			fclose(s->df);
+		}
+		if (s->region) {
+			region_destroy(s->region);
+		}
+		*state = NULL;
+	}
+}
+
+#if 0
 static int
-server_verify_zone(struct zone* zone)
+server_verify_zone(struct zone* zone, struct nsd* nsd)
 {
 	int result = 0;
 	pid_t verifier, exited;
 	int status;
 
-	region_type *region;
-	netio_type *netio;
+	region_type *server_region;
+
+	netio_type *netio = NULL;
+	struct timespec timeout_spec;
+
 	netio_handler_type to_stdin_handler;
+	struct zone2verifier_user_data to_stdin_user_data;
+
 	netio_handler_type from_stdout_handler;
 	netio_handler_type from_stderr_handler;
+	struct log_from_fd_t lfdout, lfderr;
 
 	sig_atomic_t mode = NSD_RUN;
 
-	struct zone2verifier_user_data to_stdin_user_data;
-	struct log_from_fd_t lfdout, lfderr;
-
-	struct timespec timeout_spec;
 	/* ------------------------------------------------------------------*/
 
-	if (! (region = region_create(xalloc, free))) {
+	if (! (server_region = region_create(xalloc, free))) {
 		goto error;
 	}
- 	if (! (netio = netio_create(region))) {
+ 	if (! (netio = netio_create(server_region))) {
 		goto error;
 	}
-	verifier = nsd_popen3( zone->opts->verify_zone
+	
+	/* ------------------------------------------------------------------*/
+
+	log_msg( LOG_INFO
+	       , "Number of preconfigured verify interfaces: %d"
+	       , (int) nsd->verify_ifs
+	       );
+
+	if (nsd->verify_ifs) {
+
+		netio_add_udp_handlers(  netio
+				      ,  nsd
+				      ,  server_region
+				      ,  nsd->verify_udp
+				      ,  nsd->verify_ifs
+				      );
+		netio_add_tcp_handlers(  netio
+				      ,  nsd
+				      ,  server_region
+				      ,  nsd->verify_tcp
+				      ,  nsd->verify_ifs
+				      );
+	}
+
+	/* ------------------------------------------------------------------*/
+
+	verifier = nsd_popen3(  zone->opts->verifier
 			     , &to_stdin_user_data.to_stdin
 			     , &lfdout.fd
 			     , &lfderr.fd
+			     , "VERIFY_ZONE", zone->opts->name
+			     ,  NULL
 			     );
 	if (verifier == -1) {
 		goto error;
@@ -911,46 +1575,45 @@ server_verify_zone(struct zone* zone)
 
 	/* ------------------------------------------------------------------*/
 
-	to_stdin_user_data.mode        = &mode;
-	to_stdin_user_data.state       = create_pretty_rr(region);
-	to_stdin_user_data.zone        = zone;
-	to_stdin_user_data.to_stdin_f  = fdopen( to_stdin_user_data.to_stdin
-					       , "w"
-					       );
+	to_stdin_user_data.state       =  create_pretty_rr(server_region);
+	to_stdin_user_data.zone        =  zone;
+	to_stdin_user_data.to_stdin_f  =  fdopen( to_stdin_user_data.to_stdin
+					        , "w"
+					        );
 
 	setbuf(to_stdin_user_data.to_stdin_f, NULL);
 
-	to_stdin_handler.fd            = to_stdin_user_data.to_stdin;
+	to_stdin_handler.fd            =  to_stdin_user_data.to_stdin;
 	to_stdin_handler.user_data     = &to_stdin_user_data;
-	to_stdin_handler.event_types   = NETIO_EVENT_WRITE;
+	to_stdin_handler.event_types   =  NETIO_EVENT_WRITE;
 	to_stdin_handler.event_handler = &handle_zone2verifier;
-	to_stdin_handler.timeout       = NULL;
+	to_stdin_handler.timeout       =  NULL;
 
 	netio_add_handler(netio, &to_stdin_handler);
 
 	/* ------------------------------------------------------------------*/
 
-	lfdout.priority                   = LOG_INFO;
-       *lfdout.buf                        = 0;
-	lfdout.pos                        = lfdout.buf;
-	from_stdout_handler.fd            = lfdout.fd;
+	lfdout.priority                   =  LOG_INFO;
+       *lfdout.buf                        =  0;
+	lfdout.pos                        =  lfdout.buf;
+	from_stdout_handler.fd            =  lfdout.fd;
 	from_stdout_handler.user_data     = &lfdout;
-	from_stdout_handler.event_types   = NETIO_EVENT_READ;
+	from_stdout_handler.event_types   =  NETIO_EVENT_READ;
 	from_stdout_handler.event_handler = &handle_log_from_fd;
-	from_stdout_handler.timeout       = NULL;
+	from_stdout_handler.timeout       =  NULL;
 
 	netio_add_handler(netio, &from_stdout_handler);
 
 	/* ------------------------------------------------------------------*/
 
-	lfderr.priority                   = LOG_ERR;
-       *lfderr.buf                        = 0;
-	lfderr.pos                        = lfderr.buf;
-	from_stderr_handler.fd            = lfderr.fd;
+	lfderr.priority                   =  LOG_ERR;
+       *lfderr.buf                        =  0;
+	lfderr.pos                        =  lfderr.buf;
+	from_stderr_handler.fd            =  lfderr.fd;
 	from_stderr_handler.user_data     = &lfderr;
-	from_stderr_handler.event_types   = NETIO_EVENT_READ;
+	from_stderr_handler.event_types   =  NETIO_EVENT_READ;
 	from_stderr_handler.event_handler = &handle_log_from_fd;
-	from_stderr_handler.timeout       = NULL;
+	from_stderr_handler.timeout       =  NULL;
 
 	netio_add_handler(netio, &from_stderr_handler);
 
@@ -1013,25 +1676,28 @@ server_verify_zone(struct zone* zone)
 error:
 	result = -1;
 end:
-	to_stdin_handler.user_data    = NULL;
-	from_stdout_handler.user_data = NULL;
-	from_stderr_handler.user_data = NULL;
-
-	if (region)
-		region_destroy(region);
-
-	if (to_stdin_user_data.to_stdin_f)
-		fclose(to_stdin_user_data.to_stdin_f);
-
-	if (to_stdin_user_data.to_stdin >= 0)
-		close(to_stdin_user_data.to_stdin);
-	if (lfdout.fd >= 0)
-		close(lfdout.fd);
-	if (lfderr.fd >= 0)
+	if (lfderr.fd >= 0) {
+		if (netio) netio_remove_handler(netio, &from_stderr_handler);
 		close(lfderr.fd);
+	}
+	if (lfdout.fd >= 0) {
+		if (netio) netio_remove_handler(netio, &from_stdout_handler);
+		close(lfdout.fd);
+	}
+	if (to_stdin_user_data.to_stdin >= 0) {
+		if (netio) netio_remove_handler(netio, &to_stdin_handler);
+		close(to_stdin_user_data.to_stdin);
+	}
+	if (to_stdin_user_data.to_stdin_f) {
+		fclose(to_stdin_user_data.to_stdin_f);
+	}
+	if (server_region) {
+		region_destroy(server_region);
+	}
 
 	return result;
 }
+#endif
 
 
 /*
@@ -1047,8 +1713,9 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	zone_type* zone;
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
-	size_t zone_count, good_zones, bad_zones;
-	FILE *df = NULL;
+
+	size_t good_zones, bad_zones;
+	server_verify_zone_state_type* verifiers_state = NULL;
 
 	if(db_crc_different(nsd->db) == 0) {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO,
@@ -1084,16 +1751,15 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	/* 
 	 * Assess updated zones that have a verifier program.
 	 */
-	zone_count = good_zones = bad_zones = 0;
+	good_zones = bad_zones = 0;
 	for(zone = nsd->db->zones; zone; zone = zone->next) {
 		if ( zone->updated == 0) continue;
 
-		zone_count++;
-
 		/* Zone updates that are already verified will have 
-		 * SURE_PART_GOOD at the commit positions and will not leave
-		 * a commit trail. A commit trail is only build with 
-		 * SURE_PART_PENDING statusses.
+		 * SURE_PART_VERIFIED at the commit positions and will not
+		 * leave a commit trail. A commit trail is only build with 
+		 * SURE_PART_UNVERIFIED statusses when a verifier is configured
+		 * for the zone.
 		 */
 		if (! zone->commit_trail || ! zone->soa_rrset) {
 			good_zones++;
@@ -1104,48 +1770,22 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		       , "Zone %s has changed."
 		       , zone->opts->name
 		       );
-
-		if (server_verify_zone(zone) != 0) {
-			log_msg( LOG_ERR
-			       , "Zone %s did not validate."
-			       , zone->opts->name
-			       );
-			write_commit_trail( nsd->options->difffile
-					  , &df
-					  , zone
-					  , SURE_PART_BAD
-					  );
-			bad_zones++;
-
-		} else if (write_commit_trail( nsd->options->difffile
-					     , &df
-					     , zone
-					     , SURE_PART_GOOD)) {
-			good_zones++;
-
-		} else {
-			log_msg( LOG_ERR
-				, "Zone %s did validate, but there was "
-				  "a problem committing to that fact. "
-				  "Considering bad in stead."
-				, zone->opts->name
-				);
-			bad_zones++;
-		}
-		recycle_commit_trail(nsd->db->region, zone);
+		server_verifiers_add( &verifiers_state
+				    , &good_zones
+				    , &bad_zones
+				    ,  nsd
+				    ,  zone
+				    );
         }
-	/*
+	server_verifiers_wait(&verifiers_state, &good_zones, &bad_zones);
+
 	log_msg( LOG_INFO
 	       , "All zones committed. "
-	         "zone_count: %d, good_zones: %d, bad_zones %d"
-	       , (int) zone_count
+	         "good_zones: %d, bad_zones %d"
 	       , (int) good_zones
 	       , (int) bad_zones
 	       );
-	*/
-	if (df) {
-		fclose(df);
-	}
+
 	if (bad_zones && ! good_zones) {
 		/* If all updated zones were bad, the parent can continue
 		 * serving. We just have to make sure that this section from
@@ -1175,13 +1815,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		 */
 		exit(NSD_RELOAD_AGAIN);
 
-	} else {
-		/* All zones were good and we will become the new server.
-		 * Or... no zones were updated. We need to reload then too.
-		 */
-		assert( good_zones == zone_count );
-
 	}
+	/* All zones were good and we will become the new server.
+	 * Or... no zones were updated. We need to reload then too.
+	 */
 
 	/* Get our new process id */
 	old_pid = nsd->pid;
@@ -1660,8 +2297,6 @@ server_child(struct nsd *nsd)
 	size_t i;
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
-	netio_handler_type *tcp_accept_handlers;
-	query_type *udp_query;
 	sig_atomic_t mode;
 
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
@@ -1672,6 +2307,10 @@ server_child(struct nsd *nsd)
 	}
 	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
 		close_all_sockets(nsd->udp, nsd->ifs);
+	}
+	if (nsd->verify_ifs) {
+		close_all_sockets(nsd->verify_udp, nsd->verify_ifs);
+		close_all_sockets(nsd->verify_tcp, nsd->verify_ifs);
 	}
 
 	if (nsd->this_child && nsd->this_child->parent_fd != -1) {
@@ -1692,59 +2331,23 @@ server_child(struct nsd *nsd)
 	}
 
 	if (nsd->server_kind & NSD_SERVER_UDP) {
-		udp_query = query_create(server_region,
-			compressed_dname_offsets, compression_table_size);
 
-		for (i = 0; i < nsd->ifs; ++i) {
-			struct udp_handler_data *data;
-			netio_handler_type *handler;
-
-			data = (struct udp_handler_data *) region_alloc(
-				server_region,
-				sizeof(struct udp_handler_data));
-			data->query = udp_query;
-			data->nsd = nsd;
-			data->socket = &nsd->udp[i];
-
-			handler = (netio_handler_type *) region_alloc(
-				server_region, sizeof(netio_handler_type));
-			handler->fd = nsd->udp[i].s;
-			handler->timeout = NULL;
-			handler->user_data = data;
-			handler->event_types = NETIO_EVENT_READ;
-			handler->event_handler = handle_udp;
-			netio_add_handler(netio, handler);
-		}
+		netio_add_udp_handlers( netio
+				      , nsd
+				      , server_region
+				      , nsd->udp
+				      , nsd->ifs
+				      );
 	}
 
-	/*
-	 * Keep track of all the TCP accept handlers so we can enable
-	 * and disable them based on the current number of active TCP
-	 * connections.
-	 */
-	tcp_accept_handlers = (netio_handler_type *) region_alloc(
-		server_region, nsd->ifs * sizeof(netio_handler_type));
 	if (nsd->server_kind & NSD_SERVER_TCP) {
-		for (i = 0; i < nsd->ifs; ++i) {
-			struct tcp_accept_handler_data *data;
-			netio_handler_type *handler;
 
-			data = (struct tcp_accept_handler_data *) region_alloc(
-				server_region,
-				sizeof(struct tcp_accept_handler_data));
-			data->nsd = nsd;
-			data->socket = &nsd->tcp[i];
-			data->tcp_accept_handler_count = nsd->ifs;
-			data->tcp_accept_handlers = tcp_accept_handlers;
-
-			handler = &tcp_accept_handlers[i];
-			handler->fd = nsd->tcp[i].s;
-			handler->timeout = NULL;
-			handler->user_data = data;
-			handler->event_types = NETIO_EVENT_READ;
-			handler->event_handler = handle_tcp_accept;
-			netio_add_handler(netio, handler);
-		}
+		netio_add_tcp_handlers( netio
+				      , nsd
+				      , server_region
+				      , nsd->tcp
+				      , nsd->ifs
+				      );
 	}
 
 	/* The main loop... */
