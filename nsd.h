@@ -193,11 +193,6 @@ struct	nsd
 	struct nsd_socket udp[MAX_INTERFACES];
 
 	/* Interfaces used for verifying by a verifier.
-	 * verify_ifs might be 0 even with verify-ip-address in the config.
-	 * In that case none of those had a port specified with the @<port>
-	 * syntax, and also no default port with the verify-port config
-	 * option was given.
-	 * In this case sockets will be dynamically created on verifying time.
 	 */
 	size_t verify_ifs;
 	struct nsd_socket verify_tcp[MAX_INTERFACES];

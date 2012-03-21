@@ -750,7 +750,7 @@ main(int argc, char *argv[])
 			verify_port = VERIFY_PORT;
 		}
 	}
-	if(nsd.options->ip_addresses)
+	if(nsd.options->verify_ip_addresses)
 	{
 		ip_address_option_t* ip = nsd.options->verify_ip_addresses;
 		while(ip) {
