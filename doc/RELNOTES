@@ -1,9 +1,27 @@
 NSD RELEASE NOTES
 
-3.2.10 (UPCOMING)
+3.2.11 (UPCOMING)
+================
+FEATURES:
+        - Fallback to AXFR is IXFR is unknown at the primary. NSD considers
+	  IXFR unknown at the primary if there is a negative response for the IXFR
+	  RRtype. This does not override the value for 'allow-axfr-fallback'.
+
+BUG FIXES:
+	- Fix for qtype ANY for a wildcard domain in NSEC signed zone: Don't
+	  add the wildcard domain NSEC into the answer section. Instead,
+	  put the wildcard expanded NSEC into the answer section and keep the
+	  wildcard domain NSEC in the authority section.
+
+
+3.2.10
 ================
 BUG FIXES:
         - Bugfix #421: Truncate pidfile on shutdown, before unlink.
+	- Bugfix #423: Fix slow zone transfer processing due to
+	  'Fix is_existing flag for ENT' bugfix.
+	- Fix bug #430: segfault when MAX_INTERFACES set to more than 65K.
+	- Fix configure.ac strptime check for gcc 4.6.2, acx_nlnetlabs update.
 
 3.2.9
 ================
