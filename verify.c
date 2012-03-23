@@ -413,6 +413,9 @@ struct verifier_state_struct {
 	netio_handler_type   from_stderr_handler;
 	struct log_from_fd_t lfdout;
 	struct log_from_fd_t lfderr;
+
+	struct timespec      timeout_spec;
+	netio_handler_type   timeout_handler;
 };
 typedef struct verifier_state_struct verifier_state_type;
 
@@ -426,31 +429,30 @@ struct server_verify_zone_state_struct {
 typedef struct server_verify_zone_state_struct server_verify_zone_state_type;
 
 static void
-cleanup_verifier( server_verify_zone_state_type* s
+cleanup_verifier( netio_type* netio
 		, verifier_state_type* v
 		, int kill_verifier
 		)
 {
-	assert( s != NULL && v != NULL );
+	assert( netio != NULL && v != NULL );
 
 	if (v->lfderr.fd >= 0) {
-		netio_remove_handler
-		(s->netio, &v->from_stderr_handler);
+		netio_remove_handler(netio, &v->from_stderr_handler);
 		close(v->lfderr.fd);
 	}
 	if (v->lfdout.fd >= 0) {
-		netio_remove_handler
-		(s->netio, &v->from_stdout_handler);
+		netio_remove_handler(netio, &v->from_stdout_handler);
 		close(v->lfdout.fd);
 	}
 	if (v->to_stdin_user_data.to_stdin >= 0) {
-		netio_remove_handler
-		(s->netio, &v->to_stdin_handler);
+		netio_remove_handler(netio, &v->to_stdin_handler);
 		close(v->to_stdin_user_data.to_stdin);
 	}
 	if (v->to_stdin_user_data.to_stdin_f) {
-		fclose
-		(v->to_stdin_user_data.to_stdin_f);
+		fclose(v->to_stdin_user_data.to_stdin_f);
+	}
+	if (v->timeout_spec.tv_sec > 0 || v->timeout_spec.tv_nsec > 0) {
+		netio_remove_handler(netio, &v->timeout_handler);
 	}
 	if (kill_verifier && v->pid > 0) {
 		if (kill(v->pid, SIGTERM) == -1) {
@@ -465,6 +467,40 @@ cleanup_verifier( server_verify_zone_state_type* s
 	v->pid = -1;
 	v->zone = NULL;
 }
+
+static void
+handle_verifier_timeout( netio_type* netio
+		       , netio_handler_type* handler
+		       , netio_event_types_type event_types
+		       )
+{
+	verifier_state_type* v = (verifier_state_type*) handler->user_data;
+
+	assert( v != NULL );
+
+	if (! (event_types & NETIO_EVENT_TIMEOUT)) {
+		return;
+	}
+
+	log_msg( LOG_INFO
+	       , "Timeout for verifier for zone %s with pid %d. Killing..."
+	       , v->zone->opts->name
+	       , v->pid
+	       );
+
+	if (kill(v->pid, SIGTERM) == -1) {
+		log_msg( LOG_ERR
+			, "could not kill verifier %d: %s"
+			, v->pid
+			, strerror(errno)
+			);
+	}
+	v->timeout_spec.tv_nsec = 0;
+	v->timeout_spec.tv_sec  = 0;
+
+	netio_remove_handler(netio, &v->timeout_handler);
+}
+
 
 static void
 verify_handle_parent_command( netio_type* netio
@@ -498,7 +534,7 @@ verify_handle_parent_command( netio_type* netio
 
 		for (i = 0; i < s->nsd->options->verifier_count; i++) {
 			if (s->verifiers[i].zone) {
-				cleanup_verifier(s, &s->verifiers[i], 1);
+				cleanup_verifier(s->netio, &s->verifiers[i], 1);
 
 			}
 		}
@@ -577,7 +613,18 @@ server_verify_zone( server_verify_zone_state_type* s
 			}
 			if (v) {
 				/* commit the zone if the status was ok */
-				if ((result = WEXITSTATUS(status))) {
+				if (!WIFEXITED(status)) {
+
+					log_msg( LOG_ERR
+					       , "Zone verifier for zone %s "
+					         "(pid %d) exited abnormally."
+					       , v->zone->opts->name
+					       , v->pid
+					       ); 
+					verifier_revoke(s, v);
+					(*bad_zones)++;
+
+				} else if ((result = WEXITSTATUS(status))) {
 
 					log_msg( LOG_ERR
 					       , "Zone verifier for zone %s "
@@ -594,7 +641,7 @@ server_verify_zone( server_verify_zone_state_type* s
 				} else {
 					(*bad_zones)++;
 				}
-				cleanup_verifier(s, v, 0);
+				cleanup_verifier(s->netio, v, 0);
 
 				return; /* slot available for next verifier */
 			} else {
@@ -638,7 +685,7 @@ server_verifiers_add( server_verify_zone_state_type** state
 	FILE* df = NULL;
 	size_t i;
 	verifier_state_type* v = NULL;
-	netio_handler_type* parent_handler = NULL; 
+	netio_handler_type* parent_handler = NULL;
 
 	assert( state && good_zones && bad_zones && nsd && zone );
 
@@ -669,6 +716,8 @@ server_verifiers_add( server_verify_zone_state_type** state
 		s = *state;
 		if (! (s->netio = netio_create(region))) {
 			goto error;
+		} else {
+			s->netio->have_current_time = 0;
 		}
 		s->region = region;
 		s->nsd    = nsd;
@@ -704,6 +753,7 @@ server_verifiers_add( server_verify_zone_state_type** state
 		parent_handler->event_handler = verify_handle_parent_command;
 
 		netio_add_handler(s->netio, parent_handler);
+
 	}
 	/* find first available verifier slot */
 	for (i = 0; i < nsd->options->verifier_count; i++) {
@@ -784,6 +834,30 @@ server_verifiers_add( server_verify_zone_state_type** state
 	v->from_stderr_handler.timeout       =  NULL;
 
 	netio_add_handler(s->netio, &v->from_stderr_handler);
+
+	/* how long may this verifier take? */
+	
+	v->timeout_spec.tv_nsec = 0;
+	v->timeout_spec.tv_sec  =   v->zone->opts->verifier_timeout >= 0
+				  ? v->zone->opts->verifier_timeout
+				  : s->nsd->options->verifier_timeout;
+
+	if (v->timeout_spec.tv_sec > 0) {
+		log_msg( LOG_INFO
+		       , "Verifier should take no longer than %d seconds."
+		       , (int) v->timeout_spec.tv_sec
+		       );
+		v->timeout_handler.fd            = -1;
+		v->timeout_handler.user_data     =  v;
+		v->timeout_handler.event_types   =  NETIO_EVENT_TIMEOUT;
+		v->timeout_handler.event_handler = &handle_verifier_timeout;
+		v->timeout_handler.timeout       = &v->timeout_spec;
+		timespec_add( v->timeout_handler.timeout
+			    , netio_current_time(s->netio)
+			    );
+
+		netio_add_handler(s->netio, &v->timeout_handler);
+	}
 
 	/* More slots available? Then return so more zones can be added. */
 	for (i = 0; i < nsd->options->verifier_count; i++) {
