@@ -379,17 +379,4 @@ int addr2ip(
 #endif
 , char address[], socklen_t size);
 
-/* Execute a program (command) with arguments (given as a NULL-terminated 
- * array of pointers to string). 
- * When given, writefd is set to a file descriptor for the write end of a pipe 
- * to the stdin for the program, and readfd and errfd to file descriptors for
- * the read end of pipes from the stdout and stderr of the program.
- */
-pid_t nsd_popen3( char* const* command
-		, int* writefd
-		, int* readfd
-		, int* errfd
-		, ...
-		);
-
 #endif /* _UTIL_H_ */

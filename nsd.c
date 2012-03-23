@@ -227,6 +227,103 @@ void setup_address_info( const nsd_type* nsd
 }
 
 
+void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
+{
+	char* buf;
+	char* ptr;
+
+	char* ip6addr;
+	char* ip6port;
+	char* ip6end;
+
+	char* ip4addr;
+	char* ip4port;
+	char* ip4end;
+
+	char* ipaddr;
+	char* ipport;
+
+	char host[NI_MAXHOST];
+	char serv[NI_MAXSERV];
+	size_t i;
+	int r;
+	size_t hl, sl;
+
+	ip6addr = ip6port = ip4addr = ip4port = "";
+
+	if (bufsz == 0)
+		bufsz = 46 * nsd->verify_ifs;
+
+       	buf = region_alloc(nsd->region, bufsz);
+	*buf = 0;
+	ptr = buf;
+
+	for (i = 0; i < nsd->verify_ifs; i++) {
+		r =  getnameinfo( nsd->verify_udp[i].addr->ai_addr
+				, nsd->verify_udp[i].addr->ai_addrlen
+				, host, NI_MAXHOST
+				, serv, NI_MAXSERV
+				, NI_NUMERICHOST | NI_NUMERICSERV
+				);
+		if (r != 0) {
+			log_msg( LOG_ERR
+			       , "error in getnameinfo: %s"
+			       , gai_strerror(r)
+			       );
+			continue;
+		}
+		hl = strlen(host);
+		sl = strlen(serv);
+		/* if space needed > space available */
+		if (hl + sl + 2 > bufsz - (ptr - buf)) {
+			/* we need a bigger bugger */
+			setup_verifier_environment(nsd, bufsz * 2);
+			return;
+		}
+		if (ptr > buf) {
+			*ptr++ = ' ';
+		}
+		ipaddr = ptr;
+		strcpy(ptr, host);
+		ptr += hl;
+		*ptr++ = '@';
+		ipport = ptr;
+		strcpy(ptr, serv);
+		ptr += sl;
+
+		if (nsd->verify_udp[i].addr->ai_family == AF_INET6 
+		&& !*ip6addr) {
+			ip6addr = ipaddr;
+			ip6port = ipport;
+			ip6end = ptr;
+		} else if (!*ip4addr) {
+			ip4addr = ipaddr;
+			ip4port = ipport;
+			ip4end = ptr;
+		}
+
+	}
+	setenv("VERIFY_IP_ADDRESSES", buf, 1);
+	if (*ip6addr) {
+		ip6port[-1] = 0;
+		*ip6end     = 0;
+		setenv("VERIFY_IPV6_ADDRESS", ip6addr, 1);
+		setenv("VERIFY_IPV6_PORT", ip6port, 1);
+		setenv("VERIFY_IP_ADDRESS", ip6addr, 1);
+		setenv("VERIFY_IP_PORT", ip6port, 1);
+	}
+	if (*ip4addr) {
+		ip4port[-1] = 0;
+		*ip4end     = 0;
+		setenv("VERIFY_IPV4_ADDRESS", ip4addr, 1);
+		setenv("VERIFY_IPV4_PORT", ip4port, 1);
+		if (!*ip6addr) {
+			setenv("VERIFY_IP_ADDRESS", ip4addr, 1);
+			setenv("VERIFY_IP_PORT", ip4port, 1);
+		}
+	}
+}
+
 /*
  * Fetch the nsd parent process id from the nsd pidfile
  *
@@ -893,6 +990,9 @@ main(int argc, char *argv[])
 			  , verify_port
 			  );
 
+	if (nsd.verify_ifs) {
+		setup_verifier_environment(&nsd, 0);
+	}
 
 	/* Parse the username into uid and gid */
 	nsd.gid = getgid();

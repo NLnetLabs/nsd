@@ -71,14 +71,20 @@ int diff_read_16(FILE *in, uint16_t* result);
 int diff_read_8(FILE *in, uint8_t* result);
 int diff_read_str(FILE* in, char* buf, size_t len);
 
-/* Sets the commit byte to 0 (rollback) on all SURE parts 
- * from from_pos till to_pos.
+/*
+ * Log of positions of commit bytes in a difffile for an update of a zone.
  */
-void difffile_rollback(const char *fn, off_t from_pos, off_t to_pos);
+	struct commit_crumb;
+typedef struct commit_crumb commit_crumb_type;
+
 /*
  * Walk the zone->commit_trail and write <state> at the commit spots.
+ * Dispose the trail after that has been done.
+ * Be very carefull that the same region is used that was used for
+ * update_commit_trail!
  */
-int write_commit_trail( const char* filename
+int write_commit_trail( region_type* region
+		      , const char* filename
 		      , FILE** df
 		      , zone_type* zone
 		      , uint8_t state

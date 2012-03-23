@@ -18,6 +18,7 @@
 #include "packet.h"
 #include "rdata.h"
 #include "nsec3.h"
+#include "verify.h"
 
 static int
 write_32(FILE *out, uint32_t val)
@@ -134,6 +135,112 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 	}
 	fflush(df);
 	fclose(df);
+}
+
+/*
+ * Log of positions of commit bytes in a difffile for an update of a zone.
+ */
+struct commit_crumb {
+	off_t commitpos;
+	struct commit_crumb* next;
+};
+
+/**
+ * When updating from a transfer, this function is used to leave a trail of
+ * the commit possitions in the difffile for all the to be assessed parts for
+ * this zone. When the zone is deemed good or bad, the trail may be used to
+ * mark the parts as such quickly.
+ */
+static void
+update_commit_trail( region_type* region
+		   , zone_type* zone
+		   , off_t commitpos
+		   )
+{
+	commit_crumb_type* crumb = REGION_MALLOC(region, commit_crumb_type);
+
+	if (! crumb) {
+		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
+		exit(1);
+	}
+
+	crumb->commitpos   = commitpos;
+	crumb->next        = zone->commit_trail;
+	zone->commit_trail = crumb;
+}
+
+/*
+ * Walk the zone->commit_trail and write <state> at the commit spots.
+ * Dispose the trail after that has been done.
+ * Be very carefull that the same region is used that was used for
+ * update_commit_trail!
+ */
+int 
+write_commit_trail( region_type* region
+		  , const char* filename
+		  , FILE** df
+		  , zone_type* zone
+		  , uint8_t state
+		  )
+{
+	commit_crumb_type* crumb = zone->commit_trail;
+	int result = 0;
+
+	log_msg( LOG_INFO
+	       , "Following commit trail for zone %s "
+	         "to set it to %d in file %s"
+	       , zone->opts->name
+	       , state
+	       , filename
+	       );
+	if (! *df) {
+		*df = fopen(filename, "r+");
+		if (! *df) {
+			log_msg( LOG_ERR
+			       , "could not open file %s for reading: %s"
+			       , filename
+			       , strerror(errno)
+			       );
+			goto error;
+		}
+	}
+	while (crumb) {
+		if (fseeko(*df, crumb->commitpos, SEEK_SET) == -1) {
+			log_msg( LOG_ERR
+			       , "could not fseeko file %s to pos %d, "
+			         "to set the commit byte to state %d: %s."
+			       , filename
+			       , (int)crumb->commitpos
+			       , state
+			       , strerror(errno)
+			       );
+			goto error;
+		}
+		log_msg( LOG_INFO
+		       , "Written %d on pos %d of file %s for zone %s"
+		       , state
+		       , (int)crumb->commitpos
+		       , filename
+		       , zone->opts->name
+		       );
+		write_data(*df, &state, sizeof(uint8_t));
+		crumb = crumb->next;
+	}
+	result = 1;
+error:
+	/* recycle commit trail */
+	while (zone->commit_trail) {
+		crumb = zone->commit_trail->next;
+
+		region_recycle( region
+			      , zone->commit_trail
+			      , sizeof(commit_crumb_type)
+			      );
+
+		zone->commit_trail = crumb;
+	}
+
+	return result;
 }
 
 /*
@@ -1610,59 +1717,6 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 
 	region_destroy(data->region);
 	fclose(df);
-	return 1;
-}
-
-/*
- * Walk the zone->commit_trail and write <state> at the commit spots.
- */
-int 
-write_commit_trail(const char* filename
-		 , FILE** df
-		 , zone_type* zone
-		 , uint8_t state
-		 )
-{
-	commit_crumb_type* crumb = zone->commit_trail;
-	log_msg( LOG_INFO
-	       , "Following commit trail for zone %s to set it to %d in file %s"
-	       , zone->opts->name
-	       , state
-	       , filename
-	       );
-	if (! *df) {
-		*df = fopen(filename, "r+");
-		if (! *df) {
-			log_msg( LOG_ERR
-			       , "could not open file %s for reading: %s"
-			       , filename
-			       , strerror(errno)
-			       );
-			return 0;
-		}
-	}
-	while (crumb) {
-		if (fseeko(*df, crumb->commitpos, SEEK_SET) == -1) {
-			log_msg( LOG_ERR
-			       , "could not fseeko file %s to pos %d, "
-			         "to set the commit byte to state %d: %s."
-			       , filename
-			       , (int)crumb->commitpos
-			       , state
-			       , strerror(errno)
-			       );
-			return 0;
-		}
-		log_msg( LOG_INFO
-		       , "Written %d on pos %d of file %s for zone %s"
-		       , state
-		       , (int)crumb->commitpos
-		       , filename
-		       , zone->opts->name
-		       );
-		write_8(*df, state);
-		crumb = crumb->next;
-	}
 	return 1;
 }
 
