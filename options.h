@@ -23,8 +23,8 @@ typedef struct zone_options zone_options_t;
 typedef struct ipaddress_option ip_address_option_t;
 typedef struct acl_options acl_options_t;
 typedef struct key_options key_options_t;
-typedef struct config_parser_state config_parser_state_t;
 typedef struct cmd_option cmd_option_t;
+typedef struct config_parser_state config_parser_state_t;
 /*
  * Options global for nsd.
  */
@@ -87,11 +87,6 @@ struct nsd_options {
 struct ipaddress_option {
 	ip_address_option_t* next;
 	char* address;
-};
-
-struct cmd_option {
-	cmd_option_t* next;
-	char *arg;
 };
 
 /*
@@ -172,6 +167,15 @@ struct key_options {
 	const char* algorithm;
 	const char* secret;
 	struct tsig_key* tsig_key;
+};
+
+/*
+ * Linked list of program + arguments for the "verifier:" configuration
+ * option in the "zone:" clause of nsd.conf(5).
+ */
+struct cmd_option {
+	cmd_option_t* next;
+	char *arg;
 };
 
 /*

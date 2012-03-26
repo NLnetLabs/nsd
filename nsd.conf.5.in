@@ -92,7 +92,7 @@ Files can be included using the
 directive. It can appear anywhere, and takes a single filename as 
 an argument. Processing continues as if the text from the included 
 file was copied into the config file at that point.
-.S "Server Options"
+.SS "Server Options"
 .LP
 The global options (if not overridden from the NSD commandline) are 
 taken from the 
@@ -232,6 +232,46 @@ zone transfers. 2 lists soft warnings that are encountered.
 .B hide\-version:\fR <yes or no>
 Prevent NSD from replying with the version string on CHAOS class 
 queries.
+.TP
+.B verifier\-count:\fR <number>
+Number of verifiers that may run simultaneously.
+0 means that no verifiers should be run at all, which will prevent all zones
+\- with a 
+.B verifier: 
+attribute in their 
+.B zone:
+clause \- from being updated by IXFR
+or AXFR.
+The default is 1.
+.TP
+.B verifier\-feed-zone:\fR <yes or no>
+Feed a by IXFR or AXFR updated zone to the standard input (stdin) 
+of a verifier.
+The default is "yes".
+This attribute may be overloaded per zone.
+.TP
+.B verify\-ip\-address:\fR <ip4 or ip6>[@port]
+Serve the zone to the verifier on the listed ip-address.
+Can be given multiple times to bind multiple ip-addresses.
+Optionally, a port number can be given.
+The default is to have no 
+.B \%verify\-ip\-address:
+and to not serve the zone to a verifier.
+.TP
+.B verify-port:\fR <number>
+Serve the zone to the verifier on this port. 
+Note that the zone will not be served to a verifier when no
+.B \%verify\-ip\-address:
+attribute is given.
+The default is port 5347.
+.TP
+.B verifier\-timeout:\fR <number>
+The maximum number of seconds a verifier should take for assessing one zone.
+If the verifier takes longer, it will be terminated and the update to the
+zone will be discarded.
+The default is 0 seconds which means the verifier may take as long as it
+needs.
+This attribute may be overloaded per zone.
 .SS "Zone Options"
 .LP 
 For every zone the options need to be specified in one 
@@ -325,6 +365,33 @@ The ip\-address is a plain IP address (IPv4 or IPv6).
 A port number can be added using a suffix of @number, for example 
 1.2.3.4@5300.
 .RE
+.TP
+.B verifier: <program with arguments>
+When an update is received for the zone (by IXFR or AXFR) this program will
+be run to asses the zone with the update.
+When the program exits with a status code of 0, the zone is considered good
+and will be served.
+Any other status code will designate the zone bad and the received update
+will be discarded.
+NSD will then continue to serve the zone but without the update.
+.TP
+.B verifier\-feed-zone:\fR <yes, no or inherit>
+Feed the updated zone on the standard input (stdin) of the verifier.
+The default is "inherit", which means that the value of the 
+.B \%verifier\-feed\-zone:
+attribute from the 
+.B \%server:
+clause will be used.
+.TP
+.B verifier\-timeout:\fR <number or inherit>
+The maximum number of seconds a verifier should take for assessing one zone.
+If the verifier takes longer, it will be terminated and the update to the
+zone will be discarded.
+The default is "inherit", which means that the value of the 
+.B \%verifier\-timeout:
+attribute from the 
+.B \%server:
+clause will be used.
 .SS "Key Declarations"
 The 
 .B key: 

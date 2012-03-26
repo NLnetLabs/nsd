@@ -387,4 +387,5 @@ int namedb_nsec3_mod_domains_destroy(struct namedb *db);
 int namedb_add_nsec3_mod_domain(struct namedb *db, struct domain *domain);
 #endif /* !FULL_PREHASH */
 #endif /* NSEC3 */
+
 #endif

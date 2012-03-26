@@ -11,11 +11,11 @@
 #define NSD_VERIFY_H
 #include "nsd.h"
 
-void server_verify_zones( nsd_type* nsd
-			, int cmdsocket
-			, size_t* good_zones
-			, size_t* bad_zones
-			);
+void verify_zones( nsd_type* nsd
+		 , int cmdsocket
+		 , size_t* good_zones
+		 , size_t* bad_zones
+		 );
 
 #endif /* NSD_VERIFY_H */
 

@@ -64,6 +64,10 @@ static char* const* cmds2args()
 	return ret;
 }
 
+/*
+ * Update linked list of ip-addresses. Used by server_ip_address and
+ * server_verify_ip_address.
+ */
 static void add_ip_address( ip_address_option_t** head
 			  , ip_address_option_t** tail
 			  , const char*           address
@@ -379,6 +383,7 @@ server_verifier_timeout: VAR_VERIFIER_TIMEOUT STRING
 		cfg_parser->opt->verifier_timeout = atoi($2);
 	}
 	;
+
 /* zone: declaration */
 zonestart: VAR_ZONE
 	{ 
@@ -534,7 +539,6 @@ zone_allow_axfr_fallback: VAR_ALLOW_AXFR_FALLBACK STRING
 	}
 	;
 
-
 /* key: declaration */
 keystart: VAR_KEY
 	{ 
@@ -632,6 +636,7 @@ zone_verifier_timeout: VAR_VERIFIER_TIMEOUT STRING
 		}
 	}
 	;
+
 %%
 
 /* parse helper routines could be here */

@@ -69,6 +69,13 @@ separately. If IPv6 is enabled when
 .B NSD 
 is compiled an IPv6 address can also be specified.
 .P
+This version of NSD is a fork of the mainstream version that has been extended
+with the possibility to asses zones, received or updated by AXFR or IXFR,
+by running an external verifier and only serve those zones when they are deemed
+correct by the verifier associated with that zone.
+The options for setting a verifier for a zone and all related options can be 
+given in the nsd.conf(5) NSD configuration file.
+.P
 .SH "OPTIONS"
 .LP
 All the options can be specified in the configfile (

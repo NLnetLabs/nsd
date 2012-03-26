@@ -343,6 +343,10 @@ initialize_dname_compression_tables(struct nsd *nsd)
 	compressed_dname_offsets[0] = QHEADERSZ; /* The original query name */
 }
 
+/*
+ * Creating and binding the udp sockets.
+ * Used to initialize the server's ordinary and verify sockets.
+ */
 int
 init_make_udp_sockets(struct nsd* nsd, struct nsd_socket* udp_socket, size_t n)
 {
@@ -528,6 +532,10 @@ init_make_udp_sockets(struct nsd* nsd, struct nsd_socket* udp_socket, size_t n)
 	return 0;
 }
 
+/*
+ * Creating and binding the tcp sockets.
+ * Used to initialize the server's ordinary and verify sockets.
+ */
 int
 init_make_tcp_sockets(struct nsd* nsd, struct nsd_socket* tcp_socket, size_t n)
 {
@@ -1008,7 +1016,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	int cmdsocket, int* xfrd_sock_p)
 {
 	pid_t old_pid;
-	sig_atomic_t cmd;
+	sig_atomic_t cmd = NSD_QUIT_SYNC;
 	zone_type* zone;
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
@@ -1046,7 +1054,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	initialize_dname_compression_tables(nsd);
 
-	server_verify_zones(nsd, cmdsocket, &good_zones, &bad_zones);
+	verify_zones(nsd, cmdsocket, &good_zones, &bad_zones);
 
 	if (bad_zones && ! good_zones) {
 		/* If all updated zones were bad, the parent can continue
@@ -1119,7 +1127,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 #define RELOAD_SYNC_TIMEOUT 25 /* seconds */
 	/* Send quit command to parent: blocking, wait for receipt. */
-	cmd = NSD_QUIT_SYNC;
 	do {
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "reload: ipc send quit to main"));
 		if (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1)

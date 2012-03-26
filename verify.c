@@ -358,9 +358,7 @@ handle_log_from_fd( netio_type* netio
 }
 
 /*
- * server_verify_zone assesses the zone by feeding it to the verifier 
- * program (via its stdin). It returns the exit code of the verifier 
- * program. So 0 is success.
+ * handler_zone2verifier feeds the zone to the verifiers standard input.
  */
 struct zone2verifier_user_data {
 	int to_stdin;
@@ -922,11 +920,11 @@ wait:
 }
 
 void
-server_verify_zones( nsd_type* nsd
-		   , int cmdsocket
-		   , size_t* good_zones
-		   , size_t* bad_zones
-		   )
+verify_zones( nsd_type* nsd
+	    , int cmdsocket
+	    , size_t* good_zones
+	    , size_t* bad_zones
+	    )
 {
 	/* The verifiers_state will be allocated by server_verifiers_add
 	* only when verifiers are spawn and the state is needed to keep track.
