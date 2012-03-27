@@ -254,7 +254,7 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 	if (bufsz == 0)
 		bufsz = 46 * nsd->verify_ifs;
 
-       	buf = region_alloc(nsd->region, bufsz);
+	buf = region_alloc(nsd->region, bufsz);
 	*buf = 0;
 	ptr = buf;
 
@@ -277,6 +277,7 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 		/* if space needed > space available */
 		if (hl + sl + 2 > bufsz - (ptr - buf)) {
 			/* we need a bigger bugger */
+			region_recycle(nsd->region, buf, bufsz);
 			setup_verifier_environment(nsd, bufsz * 2);
 			return;
 		}
@@ -322,6 +323,7 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 			setenv("VERIFY_IP_PORT", ip4port, 1);
 		}
 	}
+	region_recycle(nsd->region, buf, bufsz);
 }
 
 /*

@@ -1,0 +1,233 @@
+In this file a quick overview of all the modifications that have been made in
+this fork of the NSD_3_2 branch.
+
+
+Configuring the verifier
+========================
+
+Configure (nsd.conf) options were added. For the "server:" clause:
+	verifier-count,
+	verifier-feed-zone,
+	verify-ip-address,
+	verify-port 
+    and verifier-timeout.
+
+And for the "zone:" clause:
+	verifier,
+	verifier-feed-zone,
+    and verifier-timeout.
+
+To parse the syntax for those options, configlexer.lex and configparser.y are
+modified. To hold those configuration values, the structs nsd_options and 
+zone options in file options.h are extended.
+
+The type of zone_options::verifier, char* const*, is in the vector of arguments
+form that can be used by the execve family of executing functions. The helper
+type "struct cmd_option" (and the cmd_option_t typedef) is defined to help
+parsing a command with arguments. A zone_verifier is a list of STRING tokens.
+A stack of cmd_option_t* is constructed from those strings, that eventually is
+converted to an argument vector (char argv[]) by the cmds2args function in
+configparser.y.
+
+The contruction of the ip_address_option_t list in server_ip_address is moved
+to the add_ip_address function (in configparser.y) for reuse by 
+server_verify_ip_address.
+
+
+Difffile modifications
+======================
+
+It is possible that for a reload parts for multiple different zones are read
+from the difffile. If some should be loaded (because they verified or didn't
+need to be verified) and some not, we have a problem because the database is
+updated with all the updates (also the bad ones) and we cannot easily
+selectively undo only the bad updates.
+
+In order to break this situation the values of commitpos in the sure parts are
+utilized. Initially they will be assigned the value SURE_PART_UNVERIFIED (2).
+When an update is verified this will be modified to SURE_PART_VERIFIED (1) or
+SURE_PART_BAD (0) depending on the result of the verifier. When a reload
+process has mixed SURE_PART_VERIFIED and SURE_PART_BAD zones, it will quit with
+exit status NSD_RELOAD_AGAIN (13) and the parent server will initiate a new
+reload process. Then it is clear which updates from the difffile should be
+merged with the database (the ones which sure parts have the commitpos value
+SURE_PART_VERIFIED, or have the value SURE_PART_UNVERIFIED but do not have a
+verifier configured) and which not (the ones which sure parts have the
+commitpos value SURE_PART_BAD).
+
+	Handling upon the NSD_RELOAD_AGAIN exit status of a child reload server
+	is in server_main (server.c)
+
+	As a slight performance improvement a reload process can send the
+	position in the difffile to the parent when all zones were bad, so a
+	new reload will not read those bad parts again.  For this a command is
+	defined NSD_SKIP_DIFF in nsd.h. Acting upon reception of the command is
+	added to the parent_handle_reload_command function in ipc.c
+
+To trace the locations of the commitpos bytes in a difffile, struct zone is
+extended with a commit_trail which consists of a linked list of commit_crumb
+structs. diff_read_file now makes sure each unverified (but to be verified)
+zone it reads has a commit_trail of commit_crumbs pointing to the commitposses
+of the parts that made up the transfer in the difffile. It does this by calling
+update_commit_trail (defined in difffile.c) from read_sure_part.
+
+In difffile.c and difffile.h a function is defined (write_commit_trail) that
+can be used to write SURE_PART_VERIFIED or SURE_PART_BAD on the commitposses
+of the sure parts for the update (transfer) for a certain zone.
+
+Be careful to pass nsd->db->region to write_commit_trail as the region
+parameter, because the commit_crumbs will be recycled with this region and
+they are allocated with the region of the db parameter passed to
+diff_read_file, which is nsd->db from server.c.
+
+TODO: nsd-patch also reads from difffile and should not load unverified zones
+which have a verifier configured!
+
+
+Running verifiers
+=================
+
+In server_reload (in server.c) the function verify_zones is called just after
+all updates are merged into the (in memory) database, but just before the new
+database will be served. verify_zones runs the verifiers, marks the
+commitposses in difffile and returns the number of good and bad zones in the
+update. server_reload then decides how to continue based on the number of good
+and bad zones as described above.
+
+verify_zones is defined in verify.c (and .h). It walks through the zones and
+calls server_verifiers_add with the updated, to be verified zones as parameter. 
+
+server_verifiers_add maintains a server_verify_zone_state_type, which is a
+struct which contains (among others) an array of verifier_state_type structs
+(verifiers).  The size of the array is "verifier-count:" big. For each
+verifier that might be run simultaneously with others is a separate
+verifier_state_type struct.
+
+server_verifiers_add manages the free slots in the verifiers array. When no
+free slots are available it waits (by calling server_verify_zones) until a
+running verifier is finished (or timed out) and a free slot is available for a
+potential next verifier to run simultaneously with the already running
+verifiers.  The default setting is to run just one verifier at once, which will
+probably be fine in most situations.
+
+server_verify_zones makes sure the commitposses are updated by calling
+verifier_commit on good zones, and verifier_revoke on bad ones.
+
+verify_zones eventually calls server_verifiers_wait to wait for all verifiers
+to be finished (or timed out).
+
+
+Environment variables for the verifiers
+=======================================
+
+Verifiers are informed on how a zone can be verified through environment
+variables. The information on which addresses and ports a verifier may query a
+zone to be assessed is available and set on startup just after reading the
+configuration and setting up the sockets in nsd.c by calling
+setup_verifier_environment (also in nsd.c).
+
+Verifiers are spawn (via server_verifiers_add) with nsd_popen3 (also in
+verify.c). nsd_popen3 forks, then the child process closes all sockets and sets
+the zone specific environment variables (VERIFY_ZONE and VERIFY_ZONE_ON_STDIN)
+just before it executes the verifier with execvp.
+
+
+Logging a verifiers standard output and error streams
+=====================================================
+
+Everything a verifier outputs to stdin and stderr is logged in the nsd log
+file.  Handler with handle_log_from_fd (verify.c) as a callback are setup by
+server_verifiers_add. The log_from_fd_t struct is the user_data for the handler
+and contains besides the priority and the file descriptor, variables that are
+used by handle_log_from_fd to make sure logged lines will never exceed
+LOGLINELEN in length and will be split into parts if necessary. 
+
+Note that in practice error messages are always logged before messages on the
+standard output, because stdout is buffered and stderr is not. Maybe it is more
+convenient to set stdout to unbuffered too.
+
+
+Feeding a zone to a verifier
+============================
+
+The complete zone may be fed to the standard input of a verifier when the
+"verifier-feed-zone:" configuration option has value "yes" (the default). For
+this purpose a handle_zone2verifier (verify.c) handler is called when the
+to_stdin file descriptor of the verifier is writeable. The handle_zone2verifier
+handler utilizes the zone_iter_next (verify.c) function to get the next rr to
+write to the verifier. The zone2verifier_user_data_struct struct is used as the
+handler's user_data to maintain state (the file handle, the rr pretty printing
+state and the zone iterator).
+
+
+Serving a zone to a verifier
+============================
+
+The nsd struct (in nsd.h) is extended with two arrays of nsd_socket structs:
+verify_tcp and verify_udp and an verify_ifs size_t which holds the number of
+sockets for verifying. This reflects the tcp, udp and ifs members that are used
+for normal serving. Several parts in the code that operate on the tcp and udp
+arrays are moved into functions for reuse with the verify_tcp and verify_udp
+arrays.
+
+      *	In nsd.c setting up the sockets moved from main to the
+	setup_address_info (nsd.c) and is called from main for both the normal
+	sockets and the verifying sockets.
+
+      *	In server.c creating and binding the udp and tcp sockets are moved from
+	server_init to the make_udp_sockets and make_tcp_sockets functions
+	(server.c) which are consequently called from server_init for both
+	normal and verifying sockets.
+
+      *	Adding handlers for the sockets is moved from server_child (server.c)
+	to the netio_add_udp_handlers and netio_add_tcp_handlers functions
+	(server.c) which are then again called from server_child. But this time
+	only for the normal sockets.
+
+Furthermore, on places in server.c were before the close_all_sockets (server.c)
+function was used with the normal server sockets, the function is called
+subsequently for the verify sockets. Also in server_start_xfrd the sockets for
+verifiers are closed in the xfrd child process, because it has no need for
+them.
+
+A server.h file is added to export the close_all_sockets,
+netio_add_udp_handlers and the netio_add_tcp_handlers function for reuse in
+verify.c.
+
+      *	close_all_sockets is used in nsd_popen3 to prevent the sockets from
+	being available to the external verifier as a security and robustness
+	increase because hanging verifier subprocesses will otherwise prevent
+	nsd from restarting with an "address in use" error.
+
+      *	netio_add_udp_handlers and netio_add_tcp_handlers are used in with the
+	verify sockets in server_verifiers_add when a
+	server_verify_zone_state_type is allocated to start serving the zone(s)
+	to be verified.
+
+
+Verifier timeouts
+=================
+
+A handler for timeouts (as configured with the "verifier-timeout:" option) is
+added by server_verifiers_add at verifier initialization time. The callback is
+handle_verifier_timeout (verify.c) and the verifier_state_type for the verifier
+is used as user_data.
+
+handle_verifier_timeout simply kills the verifier (by sending SIGTERM) and does
+not cleanup the verifier_state_type struct for reuse. This is done in
+server_verify_zones (when waiting for the child processes is interrupted), with
+cleanup_verifier (verify.c), because it can then exit to allow more verifiers
+to run simultaneously (when a next call to server_verifiers_add is made).
+
+
+Aborting the reload process (and killing all running verifiers)
+===============================================================
+
+A reload might (especially with a verifier) take some time. A parent server
+process could in this time be asked to quit. If that happens and it has a child
+reload server process, it sends the NSD_QUIT command over the communication
+channel. server_verifiers_add adds a handler to listen for this command at
+server_verify_zone_state_type allocation time. The handler callback is
+verify_handle_parent_command (verify.c) and as user_data the
+server_verify_zone_state_type is used.
+

@@ -1,0 +1,68 @@
+This is a fork of the NSD_3_2 branch. Is is designed to operate as described
+in the dnssexy project (see: http://nlnetlabs.nl/projects/dnssexy (TODO)).
+
+An external verifier can be configured per zone. When a zone with a verifier
+is received or is updated via an (incremental) zone transfer, it will be
+submitted to this external verifier for evaluation. When the verifier deems
+the updated zone to be correct, it has to indicate this by exiting with status
+code 0. The zone will then be served. Other exit status codes will discard the
+update and NSD will continue to serve the zone before the update.
+
+A verifier is specified with the "verifier:" option in the "zone:" clause.
+
+The zone can be provided to the verifier in two ways. 
+
+     1. The complete zone can be fed to the standard input of the verifier.
+
+	This modus operandi is enabled by default and can be configured with
+	the "verifier-feed-zone:" option in the "server:" and the "zone:"
+	clause. The option in the "server:" clause sets the default for all
+	verifier-enabled zones which can in turn deviate from the general
+	setting with their own option.
+
+     2. The zone can be served to the verifier.
+
+	This is disabled by default and can be enabled by configuring ip-
+	addresses, with the "verify-ip-address" option in the "server:" clause,
+	on which the zone to be assessed will be served.  Addresses can
+	optionally contain a port number, but when not given will use the value
+	specified by the "verify-port" option, which, when not given, will be
+	5347.
+
+A verifier is informed about the domain name of the zone to be verified, and
+the accessablity of the system submitting the zone via environment variables.
+
+	VERIFY_ZONE 
+		will contain the domain name of the zone to be verified.
+
+	VERIFY_ZONE_ON_STDIN 
+		will contain the value "yes" when the zone is fed to the
+		standard input of the verifier.
+
+	VERIFY_IP_ADDRESSES
+		will contain a list of <ip-address>@<port>s on which the zone
+		to be verified can be queried.
+
+	VERIFY_IPV6_ADDRESS and VERIFY_IPV6_PORT
+		will contain the first configured IPv6 address (and port) for
+		querying the zone (if configured and when supported).
+
+	VERIFY_IPV4_ADDRESS and VERIFY_IPV4_PORT
+		the first configured IPv4 address and port (again when
+		configured and supported), and 
+
+	VERIFY_IP_ADDRESS and VERIFY_IP_PORT
+		the first address and port with a preference for IPv6.
+
+For each zone one verifier will be run at the same time, but when multiple
+to-be-verified zones are received, multiple verifiers may be run
+simultaneously. The number of verifiers that may be run simultaneously is
+configured with the "verifier-count:" option in the "server:" clause and
+defaults to 1.
+
+The time a verifier may take can be configured with the "verifier-timeout:"
+option in the "server:" clause (to make the general default) or in the "zone:"
+clause to set it for a specific zone. When the time the verifier takes exceeds
+the timeout value, the zone to be verified will be considered bad.  By default
+the value is 0, which means that the verifier may take as long as it needs.
+

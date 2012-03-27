@@ -11,6 +11,12 @@
 #define NSD_VERIFY_H
 #include "nsd.h"
 
+/*
+ * verify_zones is called by a "reload-server" process (in server_reload) just
+ * after the updates (transfers) from the difffile are merged in the database
+ * in memory, but just before the process will begin its role as the new
+ * main server process to execute verifiers on zones that need to be verified.
+ */
 void verify_zones( nsd_type* nsd
 		 , int cmdsocket
 		 , size_t* good_zones

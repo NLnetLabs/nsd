@@ -374,6 +374,57 @@ and will be served.
 Any other status code will designate the zone bad and the received update
 will be discarded.
 NSD will then continue to serve the zone but without the update.
+.P
+.RS
+The following environment variables are available for verifiers:
+.P
+.RS
+.B VERIFY_ZONE
+.RS
+The domain name of the zone to be verified.
+.RE
+.B VERIFY_ZONE_ON_STDIN
+.RS
+When the zone can be read from the standard input, this variable will be set to
+"yes", otherwise it will be empty.
+.RE
+.B VERIFY_IP_ADDRESSES
+.RS
+A list of <ip-address>@<port> combinations on which the zones to be assessed
+will be served.
+.RE
+.B VERIFY_IP_ADDRESS
+.RS
+The first available ip address on which the zones to be assessed will be
+served.  If IPv6 is available an IPv6 address will be prefered over IPv4.
+.RE
+.B VERIFY_IP_PORT
+.RS
+the port number for 
+.B VERIFY_IP_ADDRESS
+.RE
+.B VERIFY_IPV6_ADDRESS
+.RS
+The first available IPv6 address on which the zones to be assessed will be
+served.
+.RE
+.B VERIFY_IPV6_PORT
+.RS
+The port number for 
+.B VERIFY_IPV6_ADDRESS.
+.RE
+.B VERIFY_IPV4_ADDRESS
+.RS
+The first available IPv4 address on which the zones to be assessed will be
+served.
+.RE
+.B VERIFY_IPV4_PORT
+.RS
+The port number for 
+.B VERIFY_IPV4_ADDRESS.
+.RE
+.RE
+.RE
 .TP
 .B verifier\-feed-zone:\fR <yes, no or inherit>
 Feed the updated zone on the standard input (stdin) of the verifier.

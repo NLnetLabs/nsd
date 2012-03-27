@@ -32,13 +32,25 @@
 
 /* ----------- Functions on the database (maybe in namedb.[ch]?) ----------- */
 
-struct zone_iter {
+/*
+ * zone_iter_next starts an iterator on the RRs of the zone pointed to by the
+ * zone_type variable pointed to by zone. After its initial setup (saved in the
+ * zone_iter_struct state struct), the variable pointed to by zone is set to
+ * NULL so that each successive call returns the next RR.
+ *
+ * The procedure for walking the zone is taken from the print_rrs from
+ * nsd-patch.c and turned inside-out to create the iterator modus operandi.
+ *
+ * The iterator starts out with the SOA rrset and then walks over the other
+ * rrsets skipping the SOA rrset when it encounters it.
+ */
+struct zone_iter_struct {
 	zone_type*   zone;
 	domain_type* domain;
 	rrset_type*  rrset;
 	size_t i;
 };
-typedef struct zone_iter zone_iter_type;
+typedef struct zone_iter_struct zone_iter_type;
 
 static rr_type*
 zone_iter_next(zone_iter_type* iter, zone_type** zone)
@@ -195,7 +207,7 @@ nsd_popen3( char* const* command
 			  * trust with our sockets.
 			  *
 			  * Also there was a problem that child processes
-			  * of verifies didn't exit. nsd couldn't start then
+			  * of verifiers didn't exit! nsd couldn't start then
 			  * anymore because the addresses were already in use.
 			  */
 			 close_all_sockets(nsd->udp, nsd->ifs);
@@ -204,6 +216,13 @@ nsd_popen3( char* const* command
 			 close_all_sockets(nsd->verify_tcp, nsd->verify_ifs);
 
 			 setenv("VERIFY_ZONE", zone->opts->name, 1);
+			 if (     zone->opts->verifier_feed_zone == 1
+			 || (     zone->opts->verifier_feed_zone == 2 
+			     && nsd->options->verifier_feed_zone == 1)) {
+			 	setenv("VERIFY_ZONE_ON_STDIN", "yes", 1);
+			 } else {
+			 	setenv("VERIFY_ZONE_ON_STDIN", "", 1);
+			 }
 
 			 execvp(*command, command);
 
@@ -254,18 +273,14 @@ error:
 }
 
 /*
- * handle_log_from_fd logs data read from the *lfd->fd with lfd->priority.
- * It is used to log data from the zone-verifier to stdout and stderr
- * in server_verify_zone, and is not intended to be used from another function.
- * The asumptions server_log_from_fd makes are therefor quiet specefic. 
+ * The handle_log_from_fd handler logs data read from the *lfd->fd
+ * (log_from_fd_t handler user_data struct) with lfd->priority.  It is used to
+ * log data from the verifier's stdout and stderr stream.
  *
- * It is assumed that select is called first with the fd_set *lfd->rfds (which
- * should have contained *lfd->fd). It is also assumed that *lfd->fd can be
- * excluded from further calls to select by assigning it a value -1.
- *
- * server_log_from_fd logs each line (terminated by '\n'). But is a line is
+ * server_log_from_fd logs each line (terminated by '\n'). But when a line is
  * longer then LOGLINELEN, it is split over multiple log-lines (which is
- * indicated in the log with ... at the end and start of line around a split).
+ * indicated in the log with "..." at the end and start of line around a
+ * split).
  *
  * The struct log_from_fd_t is used to do the bookkeeping.
  */
@@ -358,15 +373,18 @@ handle_log_from_fd( netio_type* netio
 }
 
 /*
- * handler_zone2verifier feeds the zone to the verifiers standard input.
+ * handler_zone2verifier feeds the zone to the verifier's standard input.
+ * It uses the zone_iter_next function with the zone_iter_type iter variable
+ * to walk through the zone.
  */
-struct zone2verifier_user_data {
+struct zone2verifier_user_data_struct {
 	int to_stdin;
 	FILE* to_stdin_f;
 	struct state_pretty_rr* state;
 	zone_type* zone;
 	zone_iter_type iter;
 };
+typedef struct zone2verifier_user_data_struct zone2verifier_user_data_type;
 
 static void
 handle_zone2verifier( netio_type* netio
@@ -374,8 +392,8 @@ handle_zone2verifier( netio_type* netio
 		    , netio_event_types_type event_types
 		    )
 {
-	struct zone2verifier_user_data*  data
-     = (struct zone2verifier_user_data*) handler->user_data;
+	zone2verifier_user_data_type*  data
+     = (zone2verifier_user_data_type*) handler->user_data;
 	rr_type* rr;
 
 	assert( data != NULL );
@@ -400,18 +418,38 @@ handle_zone2verifier( netio_type* netio
 	}
 }
 
+/*
+ * A server_verify_zone_state_struct is allocated and maintained by the
+ * functions server_verifiers_add, server_verifiers_wait and
+ * server_verify_zones to keep track of the running verifiers. Each
+ * (potentially) running verifier has a sport on the  array of the
+ * configuration option "verifier-count" big of verifier_state_structs:
+ * verifier.
+ */
 struct verifier_state_struct {
+	/* which zone is verified */
 	zone_type*           zone;
+
+	/* the pid of the external verifier that is executing */
 	pid_t                pid;
 
+	/* handler and user data struct for feeding the zone on the standard
+	 * input of a verifier 
+	 */
 	netio_handler_type             to_stdin_handler;
-	struct zone2verifier_user_data to_stdin_user_data;
+	zone2verifier_user_data_type   to_stdin_user_data;
 
+	/* handlers and user data for logging the standard output and error
+	 * streams of the verifier.
+	 */
 	netio_handler_type   from_stdout_handler;
 	netio_handler_type   from_stderr_handler;
 	struct log_from_fd_t lfdout;
 	struct log_from_fd_t lfderr;
 
+	/* Handler and timespec for maximum time a verifier may take,
+	 * configured with the verifier-timeout configuration option.
+	 */
 	struct timespec      timeout_spec;
 	netio_handler_type   timeout_handler;
 };
@@ -420,12 +458,23 @@ typedef struct verifier_state_struct verifier_state_type;
 struct server_verify_zone_state_struct {
 	region_type*        region;
 	nsd_type*           nsd;
+
+	/* all handlers for the verifiers are registered in this netio struct */
 	netio_type*         netio;
+
+	/* df is opened (and reused) for writing commitpos bytes in the sure
+	 * parts of a difffile.
+	 */
 	FILE*               df;
 	verifier_state_type verifiers[];
 };
 typedef struct server_verify_zone_state_struct server_verify_zone_state_type;
 
+/*
+ * cleanup_verifier closes all sockets, de-registers all handlers and kills the
+ * verifier process (all only if needed) to make a verifier slot available
+ * again.
+ */
 static void
 cleanup_verifier( netio_type* netio
 		, verifier_state_type* v
@@ -466,6 +515,11 @@ cleanup_verifier( netio_type* netio
 	v->zone = NULL;
 }
 
+/*
+ * This handler will be called when a verifier-timeout alarm goes off. It just
+ * kills the verifier. server_verify_zones will make sure the zone will be
+ * considered bad.
+ */
 static void
 handle_verifier_timeout( netio_type* netio
 		       , netio_handler_type* handler
@@ -499,7 +553,12 @@ handle_verifier_timeout( netio_type* netio
 	netio_remove_handler(netio, &v->timeout_handler);
 }
 
-
+/*
+ * A parent may be terminated (by the NSD_QUIT signal (nsdc stop command)).
+ * When a reload server process is running, the parent will then send a
+ * NSD_QUIT command to that server. This handler makes sure that this command
+ * is not neglected and that the reload server process will exit (gracefully).
+ */
 static void
 verify_handle_parent_command( netio_type* netio
 			    , netio_handler_type* handler
@@ -546,6 +605,11 @@ verify_handle_parent_command( netio_type* netio
 	}
 }
 
+/*
+ * The verifier consider the zone it verified to be wrong. Write SURE_PART_BAD
+ * to the commitposses of the sure parts in the difffile that made up the
+ * update this zone represents.
+ */
 static void
 verifier_revoke(server_verify_zone_state_type* s, verifier_state_type* v)
 {
@@ -557,6 +621,14 @@ verifier_revoke(server_verify_zone_state_type* s, verifier_state_type* v)
 			  );
 }
 
+/*
+ * The verifier consider the zone it verified to be correct. Write
+ * SURE_PART_VERIFIED to the commitposses of the sure parts in the difffile
+ * that made up the update this zone represents.  However, if that fails,
+ * consider the zone bad. This may lead to a race condition when "good" zones
+ * are processed too, because the parent will then be asked to
+ * NSD_RELOAD_AGAIN!
+ */
 static int
 verifier_commit(server_verify_zone_state_type* s, verifier_state_type* v)
 {
@@ -582,11 +654,21 @@ verifier_commit(server_verify_zone_state_type* s, verifier_state_type* v)
 	}
 }
 
+/*
+ * server_verify_zones waits for verifiers to exit. Is one exits it calls
+ * verifier_commit when the exit status was 0, verifier_revoke otherwise.
+ * verifier_revoke is also called when a verifier is terminated externally (for
+ * example by a timeout).
+ *
+ * In the mean time netio_dispatch is called to make sure the zones are served
+ * and fed (when needed) to the verifiers, the timeouts are handled, and the
+ * parent has an opportunity to send the NSD_QUIT command.
+ */
 static void 
-server_verify_zone( server_verify_zone_state_type* s
-		  , size_t* good_zones
-		  , size_t* bad_zones
-		  )
+server_verify_zones( server_verify_zone_state_type* s
+		   , size_t* good_zones
+		   , size_t* bad_zones
+		   )
 {
 	pid_t exited;       /* the pid of the verifier that exited */
 	int status, result; /* exit codes */
@@ -669,6 +751,21 @@ server_verify_zone( server_verify_zone_state_type* s
 	}
 }
 
+/*
+ * server_verifiers_add is called by verify_zones for each zone that should be
+ * verified. A server_verify_zone_state_type struct is allocated and assigned
+ * to the value pointed to by state by *this* function, because there are
+ * situation in which no zones should be verified and no state struct is
+ * needed.
+ * 
+ * server_verifiers_add starts the execution of a verifier and assigns it to a
+ * free verifier slot. server_verifiers_add also sets up all the handlers that
+ * are needed with the execution of a verifier.
+ *
+ * server_verifiers_add will call server_verify_zones when the number of added
+ * zones to be verified equals the value of the verifier-count configuration
+ * option.  This function only returns when more verifiers can be executed.
+ */
 static void
 server_verifiers_add( server_verify_zone_state_type** state
 		    , size_t* good_zones
@@ -833,7 +930,7 @@ server_verifiers_add( server_verify_zone_state_type** state
 
 	netio_add_handler(s->netio, &v->from_stderr_handler);
 
-	/* how long may this verifier take? */
+	/* How long may this verifier take? Is a verifier-timeout configured? */
 	
 	v->timeout_spec.tv_nsec = 0;
 	v->timeout_spec.tv_sec  =   v->zone->opts->verifier_timeout >= 0
@@ -857,7 +954,7 @@ server_verifiers_add( server_verify_zone_state_type** state
 		netio_add_handler(s->netio, &v->timeout_handler);
 	}
 
-	/* More slots available? Then return so more zones can be added. */
+	/* More slots available? Then, return so more zones can be added. */
 	for (i = 0; i < nsd->options->verifier_count; i++) {
 		if (s->verifiers[i].zone == NULL) {
 			return;
@@ -867,7 +964,7 @@ server_verifiers_add( server_verify_zone_state_type** state
 	/* Otherwise start serving until a verifier finishes and a 
 	 * slot becomes available again.
 	 */
-	server_verify_zone(s, good_zones, bad_zones);
+	server_verify_zones(s, good_zones, bad_zones);
 	return;
 error:
 	if (s && s->region) {
@@ -890,6 +987,9 @@ error:
 	return;
 }
 
+/*
+ * Run the server_verify_zones process until all verifiers are finished.
+ */
 static void
 server_verifiers_wait( server_verify_zone_state_type** state
 		     , size_t* good_zones
@@ -905,7 +1005,7 @@ server_verifiers_wait( server_verify_zone_state_type** state
 wait:
 		for (i = 0; i < s->nsd->options->verifier_count; i++) {
 			if (s->verifiers[i].zone) {
-				server_verify_zone(s, good_zones, bad_zones);
+				server_verify_zones(s, good_zones, bad_zones);
 				goto wait;
 			}
 		}
@@ -919,6 +1019,27 @@ wait:
 	}
 }
 
+/*
+ * verify_zones is called by a "reload-server" process (in server_reload) just
+ * after the updates (transfers) from the difffile are merged in the database
+ * in memory, but just before the process will begin its role as the new
+ * main server process.
+ *
+ * Verifiers are executed for all modified zones (when they have a verifier
+ * configured and are not already verified in an earlier stage) and the
+ * commitposses of the sure parts in the difffile are modified for those zones
+ * to reflect the outcome of the verification process (SURE_PART_VERIFIED or
+ * SURE_PART_BAD).
+ *
+ * cmdsocket is used to listen for a potential NSD_QUIT signal coming from the
+ * parent process.
+ *
+ * The number pointed to by good_zones is incremented for all updates that
+ * should be merged into the database; The number pointed to by bad_zones is
+ * incremented when updates were performed that should eventually not be merged
+ * into the database.  The calling server_reload function is responsible for
+ * acting upon this outcome.
+ */
 void
 verify_zones( nsd_type* nsd
 	    , int cmdsocket
@@ -942,7 +1063,7 @@ verify_zones( nsd_type* nsd
 		/* Zone updates that are already verified will have 
 		 * SURE_PART_VERIFIED at the commit positions and will not
 		 * leave a commit trail. A commit trail is only build with 
-		 * SURE_PART_UNVERIFIED statusses when a verifier is configured
+		 * SURE_PART_UNVERIFIED statuses when a verifier is configured
 		 * for the zone.
 		 */
 		if (! zone->commit_trail || ! zone->soa_rrset) {
