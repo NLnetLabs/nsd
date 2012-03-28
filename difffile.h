@@ -51,12 +51,22 @@ void diff_write_commit(const char* zone, uint32_t old_serial,
 int db_crc_different(namedb_type* db);
 
 /* read the diff file and apply to the database in memory.
-   It will attempt to skip bad data.
-   If you pass a non-null value log, log comments are alloced in namedb.region
-   then, *log must be 0 on start of call (entries are prepended).
-   returns 0 on an unrecoverable error. */
-int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
-	size_t child_count);
+ * It will attempt to skip bad data.
+ * If you pass a non-null value log, log comments are alloced in namedb.region
+ * then, *log must be 0 on start of call (entries are prepended).
+ *
+ * When skip_zones_with_verifier is not NULL, zones with a verifier configured
+ * will not be applied to the in memory database. Instead each such zone will
+ * increment the integer pointed to by skip_zones_with_verifier.
+ *
+ * returns 0 on an unrecoverable error. 
+ */
+int diff_read_file( namedb_type* db
+		  , nsd_options_t* opt
+		  , struct diff_log** log
+		  , size_t child_count
+		  , int* skip_zones_with_verifier
+		  );
 
 /* check the diff file for garbage at the end (bad type, partial write)
  * and snip it off.

@@ -1314,9 +1314,14 @@ mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
 }
 
 static int
-read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
-	struct diff_read_data* data, struct diff_log** log,
-	size_t child_count)
+read_sure_part( namedb_type* db
+	      , FILE* in
+	      , nsd_options_t* opt
+	      , struct diff_read_data* data
+	      , struct diff_log** log
+	      , size_t child_count
+	      , int* skip_zones_with_verifier
+	      )
 {
 	char zone_buf[3072];
 	char log_buf[5120];
@@ -1328,6 +1333,10 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 	int have_all_parts = 1;
 	struct diff_log* thislog = 0;
 	off_t commitpos;
+	struct zone *zone;
+	dname_type const *zone_dname;
+	int is_axfr=0, delete_mode=0, rr_count=0;
+	off_t resume_pos;
 
 	/* read zone name and serial */
 	if(!diff_read_str(in, zone_buf, sizeof(zone_buf)) ||
@@ -1372,13 +1381,15 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 		return 1;
 	}
 	if(committed && check_for_bad_serial(db, zone_buf, old_serial)) {
-		DEBUG(DEBUG_XFRD,1, (LOG_ERR,
-			"skipping diff file commit with bad serial"));
-		zp->parts->root = RBTREE_NULL;
-		zp->parts->count = 0;
-		if(thislog)
+
+		DEBUG( DEBUG_XFRD
+		     , 1
+		     , (LOG_ERR, "skipping diff file commit with bad serial")
+		     );
+		if(thislog) {
 			thislog->error = "error bad serial";
-		return 1;
+		}
+		goto done;
 	}
 	for(i=0; i<num_parts; i++) {
 		struct diff_xfrpart *xp = diff_read_find_part(zp, i);
@@ -1386,101 +1397,134 @@ read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
 			have_all_parts = 0;
 		}
 	}
-	if(!have_all_parts) {
-		DEBUG(DEBUG_XFRD,1, (LOG_ERR,
-			"skipping diff file commit without all parts"));
-		if(thislog)
+	if (! have_all_parts) {
+
+		DEBUG( DEBUG_XFRD
+		     , 1
+		     , (LOG_ERR, "skipping diff file commit without all parts")
+		     );
+		if (thislog) {
 			thislog->error = "error missing parts";
+		}
+		goto done;
 	}
 
-	if(committed && have_all_parts)
-	{
-		int is_axfr=0, delete_mode=0, rr_count=0;
-		off_t resume_pos;
+	/* Get the zone struct to check if it has a verifier configured. 
+	 * (and for prehashing).
+	 */
+	if ((zone_dname = dname_parse(db->region, zone_buf)) == NULL) {
 
-		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", log_buf));
+		log_msg(LOG_ERR, "out of memory");
 
-		struct zone *zone;
-		dname_type const *zone_dname;
+		return 0;
+	}
+	zone = find_zone(db, zone_dname, opt, child_count);
 
-		zone_dname = dname_parse(db->region, zone_buf);
-		if (zone_dname == NULL) {
-			log_msg(LOG_ERR, "out of memory");
-			return 0;
-		}
-		zone = find_zone(db, zone_dname, opt, child_count);
-		region_recycle( db->region
-			      , (void *) zone_dname
-			      , dname_total_size(zone_dname)
-			      );
-		if (zone == NULL) {
-			log_msg(LOG_ERR, "no zone exists");
-			return 0;
-		}
+	region_recycle( db->region
+		      , (void *) zone_dname
+		      , dname_total_size(zone_dname)
+		      );
+
+	if (zone == NULL) {
+
+ 		DEBUG( DEBUG_XFRD
+		     , 1
+		     , (LOG_INFO, "skipping xfr with nonexistent zone: %s"
+		     , log_buf)
+		     );
+
+		log_msg( LOG_ERR
+		       , "xfr for nonexistent zone '%s' in the difffile"
+		       , dname_to_string(zone_dname, NULL)
+		       );
+		goto done; /* This shouldn't be fatal, right? */
+	}
+	if (committed == SURE_PART_BAD) {
+
+ 		DEBUG( DEBUG_XFRD
+		     , 1
+		     , (LOG_INFO, "skipping bad xfr: %s", log_buf)
+		     );
+		goto done;
+	}
+	if (skip_zones_with_verifier && committed == SURE_PART_UNVERIFIED
+				     && zone->opts->verifier) {
+
+ 		DEBUG( DEBUG_XFRD
+		     , 1
+		     , (LOG_INFO, "defer verification: %s", log_buf)
+		     );
+		(*skip_zones_with_verifier)++;
+
+		goto done;
+	}
+
+	/* process transfer
+	 * ================
+	 */
+
+	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "processing xfr: %s", log_buf));
 
 #ifdef NSEC3
 #ifndef FULL_PREHASH
-		if (0 != namedb_nsec3_mod_domains_create(db)) {
-			log_msg(LOG_ERR,
-				"unable to allocate space "
-				"for modified NSEC3 domains");
-			return 0;
-		}
+	if (0 != namedb_nsec3_mod_domains_create(db)) {
+		log_msg(LOG_ERR,
+			"unable to allocate space "
+			"for modified NSEC3 domains");
+		return 0;
+	}
 #endif /* !FULL_PREHASH */
 #endif /* NSEC3 */
 
-		resume_pos = ftello(in);
-		if(resume_pos == -1) {
-			log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
-			return 0;
+	resume_pos = ftello(in);
+	if(resume_pos == -1) {
+		log_msg(LOG_INFO, "could not ftello: %s.", strerror(errno));
+		return 0;
+	}
+	for(i=0; i<num_parts; i++) {
+		struct diff_xfrpart *xp = diff_read_find_part(zp, i);
+		int ret;
+		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
+		ret = apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
+			id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
+			&rr_count, child_count);
+		if(ret == 0) {
+			log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
+				opt->difffile);
+			mark_and_exit(opt, in, commitpos, log_buf);
+		} else if(ret == 2) {
+			break;
 		}
-		for(i=0; i<num_parts; i++) {
-			struct diff_xfrpart *xp = diff_read_find_part(zp, i);
-			int ret;
-			DEBUG(DEBUG_XFRD,2, (LOG_INFO, "processing xfr: apply part %d", (int)i));
-			ret = apply_ixfr(db, in, &xp->file_pos, zone_buf, new_serial, opt,
-				id, xp->seq_nr, num_parts, &is_axfr, &delete_mode,
-				&rr_count, child_count);
-			if(ret == 0) {
-				log_msg(LOG_ERR, "bad ixfr packet part %d in %s", (int)i,
-					opt->difffile);
-				mark_and_exit(opt, in, commitpos, log_buf);
-			} else if(ret == 2) {
-				break;
-			}
-		}
+	}
 #ifdef NSEC3
 #ifndef FULL_PREHASH
-		if (is_axfr != 0)
-			prehash_zone(db, zone);
-		else
-			prehash_zone_incremental(db, zone);
+	if (is_axfr != 0)
+		prehash_zone(db, zone);
+	else
+		prehash_zone_incremental(db, zone);
 #endif /* !FULL_PREHASH */
 #endif /* NSEC3 */
 
-		/*
-		 * We keep the commit trail so a verifier can change it to
-		 * SURE_PART_VERIFIED or SURE_PART_BAD.  We don't need to 
-		 * update the commit_trail if a decision has already been made.
-		 * (i.e. committed != SURE_PART_UNVERIFIED)
-		 *
-		 * PS. If a zone does not have a verifier it is considered
-		 *     good anyway, and the commitposses in the trail will be
-		 *     left alone (so keep the value SURE_PART_UNVERIFIED).
-		 */
-		if (committed == SURE_PART_UNVERIFIED
-		&&  zone->opts->verifier) {
-			update_commit_trail(db->region, zone, commitpos);
-		}
-		if(fseeko(in, resume_pos, SEEK_SET) == -1) {
-			log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
-			return 0;
-		}
+	/*
+	 * We keep the commit trail so a verifier can change it to
+	 * SURE_PART_VERIFIED or SURE_PART_BAD.  We don't need to update the
+	 * commit_trail if a decision has already been made.  
+	 * (i.e. committed != SURE_PART_UNVERIFIED)
+	 *
+	 * PS. If a zone does not have a verifier it is considered
+	 *     good anyway, and the commitposses in the trail will be
+	 *     left alone (so keep the value SURE_PART_UNVERIFIED).
+	 */
+	if (committed == SURE_PART_UNVERIFIED &&  zone->opts->verifier) {
+
+		update_commit_trail(db->region, zone, commitpos);
 	}
-	else {
-	 	DEBUG(DEBUG_XFRD,1, (LOG_INFO, "skipping xfr: %s", log_buf));
+	if(fseeko(in, resume_pos, SEEK_SET) == -1) {
+		log_msg(LOG_INFO, "could not fseeko: %s.", strerror(errno));
+		return 0;
 	}
 
+done:
 	/* clean out the parts for the zone after the commit/rollback */
 	zp->parts->root = RBTREE_NULL;
 	zp->parts->count = 0;
@@ -1524,9 +1568,16 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 }
 
 static int
-read_process_part(namedb_type* db, FILE *in, uint32_t type,
-	nsd_options_t* opt, struct diff_read_data* data,
-	struct diff_log** log, size_t child_count, off_t* startpos)
+read_process_part( namedb_type* db
+		 , FILE *in
+		 , uint32_t type
+		 , nsd_options_t* opt
+		 , struct diff_read_data* data
+		 , struct diff_log** log
+		 , size_t child_count
+		 , off_t* startpos
+		 , int* skip_zones_with_verifier
+		 )
 {
 	uint32_t len, len2;
 
@@ -1541,8 +1592,16 @@ read_process_part(namedb_type* db, FILE *in, uint32_t type,
 	}
 	else if(type == DIFF_PART_SURE) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", len));
-		if(!read_sure_part(db, in, opt, data, log, child_count))
+		if (! read_sure_part( db
+				    , in
+				    , opt
+				    , data
+				    , log
+				    , child_count
+				    , skip_zones_with_verifier
+				    )) {
 			return 0;
+		}
 	} else {
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "unknown part %x len %d", type, len));
 		return 0;
@@ -1594,8 +1653,12 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 }
 
 int
-diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
-	size_t child_count)
+diff_read_file( namedb_type* db
+	      , nsd_options_t* opt
+	      , struct diff_log** log
+	      , size_t child_count
+	      , int* skip_zones_with_verifier
+	      )
 {
 	const char* filename = opt->difffile;
 	FILE *df;
@@ -1683,9 +1746,16 @@ diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
 			return 0;
 		}
 
-		if(!read_process_part(db, df, type, opt, data, log,
-			child_count, &startpos))
-		{
+		if(! read_process_part(  db
+				      ,  df
+				      ,  type
+				      ,  opt
+				      ,  data
+				      ,  log
+				      ,  child_count
+				      , &startpos
+				      ,  skip_zones_with_verifier
+				      )) {
 			log_msg(LOG_INFO, "error processing diff file");
 			region_destroy(data->region);
 			return 0;

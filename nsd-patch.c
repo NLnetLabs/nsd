@@ -285,6 +285,7 @@ int main(int argc, char* argv[])
 	int force_write = 0;
 	int skip_write = 0;
 	int difffile_exists = 0;
+	int to_be_verified_zones = 0;
 
         /* Parse the command line... */
 	while ((c = getopt(argc, argv, "c:fhlo:sx:")) != -1) {
@@ -389,11 +390,23 @@ int main(int argc, char* argv[])
 	/* read ixfr diff file */
 	if (difffile_exists) {
 		fprintf(stdout, "reading updates to database\n");
-		if(!diff_read_file(db, options, &commit_log, fake_child_count))
-		{
-			fprintf(stderr, "unable to load the diff file: %s\n",
-				options->difffile);
+		if (! diff_read_file(  db
+				    ,  options
+				    , &commit_log
+				    ,  fake_child_count
+				    , &to_be_verified_zones
+				    )) {
+			fprintf( stderr
+			       , "unable to load the diff file: %s\n"
+			       , options->difffile
+			       );
 			exit(1);
+		}
+		if (to_be_verified_zones) {
+			fprintf( stderr
+			       , "skipped %d updates for zones with a verifier"
+			       , options->difffile
+			       );
 		}
 	}
 

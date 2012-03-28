@@ -674,6 +674,8 @@ server_init(struct nsd *nsd)
 int
 server_prepare(struct nsd *nsd)
 {
+	int to_be_verified_zones = 0;
+
 	/* Open the database... */
 	if ((nsd->db = namedb_open(nsd->dbfile, nsd->options, nsd->child_count)) == NULL) {
 		log_msg(LOG_ERR, "unable to open the database %s: %s",
@@ -681,10 +683,26 @@ server_prepare(struct nsd *nsd)
 		return -1;
 	}
 
-	/* Read diff file */
-	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
-		log_msg(LOG_ERR, "The diff file contains errors. Will continue "
-						 "without it");
+	/* Read diff file. But not the parts to be verified. It is nicer
+	 * to start at least with the zones that don't need to be verified
+	 * and initiate a reload so that the zones to be verified will be
+	 * served immediately after verification.
+	 * diff_read_file counts those zones with to_be_verified_zones.
+	 */
+	if (! diff_read_file(  nsd->db
+			    ,  nsd->options
+			    ,  NULL
+			    ,  nsd->child_count
+			    , &to_be_verified_zones
+			    )) {
+
+		log_msg( LOG_ERR
+		       , "The diff file contains errors. "
+		         "Will continue without it."
+		       );
+	}
+	if (to_be_verified_zones) {
+		nsd->mode = NSD_RELOAD;
 	}
 
 #ifdef NSEC3
@@ -1036,7 +1054,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			exit(1);
 		}
 	}
-	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count)) {
+	if (! diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count, 0)){
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);
 	}
