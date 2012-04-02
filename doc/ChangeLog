@@ -1,3 +1,6 @@
+2 April 2012: Matthijs
+	- Undo #235 (so dname compression starts at QNAME again).
+
 28 February 2012: Matthijs
 	- Allow reading in new DNSKEY algorithm mnemonics in zonefile.
 	  Always write unsigned integer value of algorithm.

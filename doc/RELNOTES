@@ -16,6 +16,11 @@ BUG FIXES:
 	  put the wildcard expanded NSEC into the answer section and keep the
 	  wildcard domain NSEC in the authority section.
 
+OPERATIONAL NOTES:
+	- NSD uses the query name for dname compression again (Fix #235 
+	  had as side effect that this didn't happen anymore and is hereby
+	  undone).
+
 
 3.2.10
 ================
