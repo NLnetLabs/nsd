@@ -1,3 +1,7 @@
+28 February 2012: Matthijs
+	- Allow reading in new DNSKEY algorithm mnemonics in zonefile.
+	  Always write unsigned integer value of algorithm.
+
 27 February 2012: Matthijs
 	- Fix for qtype ANY for a wildcard domain in NSEC signed zone.
 
