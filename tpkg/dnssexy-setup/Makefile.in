@@ -1,0 +1,229 @@
+srcdir          = @srcdir@
+
+MASTER          =  @MASTER@
+MASTER_CONFIG   = $(MASTER)/$(MASTER).cf
+MASTER_DB       = $(MASTER)/nsd.db
+MASTER_IP	=  @MASTER_IP@
+MASTER_PORT     =  @MASTER_PORT@
+PROXY           =  @PROXY@
+PROXY_CONFIG    = $(PROXY)/$(PROXY).cf
+PROXY_DB        = $(PROXY)/nsd.db
+PROXY_IP	=  @PROXY_IP@
+PROXY_PORT      =  @PROXY_PORT@
+SLAVE           =  @SLAVE@
+SLAVE_CONFIG    = $(SLAVE)/$(SLAVE).cf
+SLAVE_DB        = $(SLAVE)/nsd.db
+SLAVE_IP	=  @SLAVE_IP@
+SLAVE_PORT      =  @SLAVE_PORT@
+
+SERVERS         = $(MASTER)        $(PROXY)        $(SLAVE)
+CONFIGS         = $(MASTER_CONFIG) $(PROXY_CONFIG) $(SLAVE_CONFIG)
+CONFIG_FILES    = @CONFIG_FILES@
+ZONES		= @ZONES@
+ZONE_FILES      = @ZONE_FILES@
+SIGNED_ZONE_FILES	= @SIGNED_ZONE_FILES@
+INCR_ZONES	= @INCR_ZONES@
+RUIN_ZONES	= @RUIN_ZONES@
+
+NSDC            = @NSDC@
+LDNS_READ_ZONE  = @LDNS_READ_ZONE@
+LDNS_KEYGEN	= @LDNS_KEYGEN@
+LDNS_KEYGEN_OPTIONS	= @LDNS_KEYGEN_OPTIONS@
+LDNS_SIGNZONE   = @LDNS_SIGNZONE@
+MULTITAIL       = @MULTITAIL@
+
+DNSKEY_ALGORITHM= RSASHA256
+DNSKEYS		= @DNSKEYS@
+
+TSIG_ALGORITHM	= hmac-sha256
+TSIG_SIZE	= 256
+TSIGS		= @TSIGS@
+
+all: $(MASTER_DB) $(TSIGS)
+
+$(ZONE_FILES) $(MASTER_CONFIG) $(PROXY_CONFIG) $(SLAVE_CONFIG):
+	./config.status
+
+$(DNSKEYS): 
+	@echo "-- Creating $@ ..."
+	@$(LDNS_KEYGEN) -a $(DNSKEY_ALGORITHM) $(LDNS_KEYGEN_OPTIONS) \
+    `echo "$(@:.private=)" | sed "s/^$(MASTER)\///g"` > .key
+	@for kn in `cat .key`.ds `cat .key`.key `cat .key`.private ; \
+    do  mv $$kn $(MASTER) ; \
+	ln -s $$kn "$(MASTER)/`echo "$(@:.private=)" | sed "s/^$(MASTER)\///g"`.`echo $$kn | sed 's/.*\.//g'`" ; \
+    done
+	@rm .key
+
+$(SIGNED_ZONE_FILES):
+	@echo "-- Signing zone `echo $(@:.signed=)|sed 's/^$(MASTER)\///g'` ..."
+	@$(LDNS_SIGNZONE) $(@:.signed=) $(@:.signed=)
+
+rebuild rebuild-$(MASTER) $(MASTER_DB): $(SIGNED_ZONE_FILES) $(TSIGS)
+	@echo --
+	@( $(NSDC) -c $(MASTER_CONFIG) rebuild \
+	&& echo "-- Rebuilt $(MASTER) ... " )\
+     ||    echo "-- Could not rebuild $(MASTER)"
+rebuild-$(PROXY) $(PROXY_DB): $(TSIGS)
+	@echo --
+	@( $(NSDC) -c $(PROXY_CONFIG) rebuild \
+	&& echo "-- Rebuilt $(PROXY) ... " )\
+     ||    echo "-- Could not rebuild $(PROXY)"
+rebuild-$(SLAVE) $(SLAVE_DB): $(TSIGS)
+	@echo --
+	@( $(NSDC) -c $(SLAVE_CONFIG) rebuild \
+	&& echo "-- Rebuilt $(SLAVE) ... " )\
+     ||    echo "-- Could not rebuild $(SLAVE)"
+
+$(TSIGS):
+	@mkdir -p tsigs
+	@echo "-- Creating $@ ..."
+	@echo "key:" > $@
+	@echo "	name: `echo $(@:.tsig=)|sed 's/^tsigs\///g'`." >> $@
+	@echo "	algorithm: $(TSIG_ALGORITHM)" >> $@
+	@$(LDNS_KEYGEN) -a $(TSIG_ALGORITHM) -b $(TSIG_SIZE) \
+    $(LDNS_KEYGEN_OPTIONS) `echo $(@:.tsig=)|sed 's/^tsigs\///g'` > .keyname
+	@grep ^Key: `cat .keyname`.private \
+    | grep ^Key: \
+    | sed -e 's/^Key: /	secret: "/g' -e 's/$$/"/g' >> $@
+	@rm `cat .keyname`.key
+	@rm `cat .keyname`.private
+	@rm .keyname
+
+start-$(MASTER) $(MASTER)/nsd.pid: $(MASTER_DB)
+	@( $(NSDC) -c $(MASTER_CONFIG) start \
+	&& echo "-- Started $(MASTER) ..."   ) \
+     || (  $(NSDC) -c $(MASTER_CONFIG) restart \
+	&& echo "-- Restarted $(MASTER) ..."   ) \
+     || echo "-- Could not (re)start $(MASTER)"
+start-$(PROXY) $(PROXY)/nsd.pid: $(PROXY_DB)
+	@( $(NSDC) -c $(PROXY_CONFIG) start \
+	&& echo "-- Started $(PROXY) ..."   ) \
+     || (  $(NSDC) -c $(PROXY_CONFIG) restart \
+	&& echo "-- Restarted $(PROXY) ..."   ) \
+     || echo "-- Could not (re)start $(PROXY)"
+start-$(SLAVE) $(SLAVE)/nsd.pid: $(SLAVE_DB)
+	@( $(NSDC) -c $(SLAVE_CONFIG) start \
+	&& echo "-- Started $(SLAVE) ..."   ) \
+     || (  $(NSDC) -c $(SLAVE_CONFIG) restart \
+	&& echo "-- Restarted $(SLAVE) ..."   ) \
+     || echo "-- Could not (re)start $(SLAVE)"
+
+start: start-$(MASTER) start-$(PROXY) start-$(SLAVE)
+restart: restart-$(MASTER) restart-$(PROXY) restart-$(SLAVE)
+
+stop-$(MASTER):
+	@( $(NSDC) -c $(MASTER_CONFIG) stop \
+	&& echo "-- Stopped $(MASTER) ..."  ) || :
+stop-$(PROXY):
+	@( $(NSDC) -c $(PROXY_CONFIG) stop \
+	&& echo "-- Stopped $(PROXY) ..."  ) || :
+stop-$(SLAVE):
+	@( $(NSDC) -c $(SLAVE_CONFIG) stop \
+	&& echo "-- Stopped $(SLAVE) ..."  ) || :
+stop: stop-$(MASTER) stop-$(PROXY) stop-$(SLAVE)
+$(MASTER)/nsd.log: $(MASTER)/nsd.pid
+$(PROXY)/nsd.log: $(PROXY)/nsd.pid
+$(SLAVE)/nsd.log: $(SLAVE)/nsd.pid
+reload-$(MASTER):
+	@if test -f $(MASTER)/nsd.pid ; \
+then $(NSDC) -c $(MASTER_CONFIG) reload && echo "-- Reloaded $(MASTER) ... "; \
+else $(MAKE) start-$(MASTER); fi
+reload-$(PROXY):
+	@if test -f $(PROXY)/nsd.pid ; \
+then $(NSDC) -c $(PROXY_CONFIG) reload && echo "-- Reloaded $(PROXY) ... "; \
+else $(MAKE) start-$(PROXY); fi
+reload-$(SLAVE):
+	@if test -f $(SLAVE)/nsd.pid ; \
+then $(NSDC) -c $(SLAVE_CONFIG) reload && echo "-- Reloaded $(SLAVE) ... "; \
+else $(MAKE) start-$(SLAVE); fi
+reload: reload-$(MASTER) reload-$(PROXY) reload-$(SLAVE)
+
+$(INCR_ZONES):
+	@echo "--"
+	@echo -n "$(MASTER)/`echo $@|sed 's/^incr-//g'`" > .name
+	@echo "`cat .name`.new" > .newname
+	@awk '/^[ 	][ 	]*[0-9][0-9]*[ 	]*;[ 	]*Serial$$/ \
+    { printf("%d", ($$1+1)); exit; }' `cat .name` > .ser
+	@echo "-- Increment serial of zone $(ZONE) to `cat .ser` ..."
+	@awk '/^[ 	][ 	]*[0-9][0-9]*[ 	]*;[ 	]*Serial$$/ \
+    { printf("\t\t%10d  ; Serial\n", ($$1+1)); skip = 1; } \
+    { if (skip) { skip = 0; } else { print; }}' \
+	  `cat .name` > `cat .newname`
+	@mv `cat .newname` `cat .name`
+	@rm -f .name .newname .ser
+
+$(RUIN_ZONES):
+	@echo "--"
+	@echo -n `echo $@|sed 's/^ruin-//g'` > .zone
+	@echo -n "$(MASTER)/`cat .zone`.signed" > .name
+	@echo "-- Creating bogus RR for `cat .zone` ..."
+	@sed 's/ sexy/ bad/' `cat .name` > `cat .name`.new
+	@mv `cat .name`.new `cat .name`
+	@rm -f .name .zone
+
+@MAKEFILE_LINES@
+
+incr-all: $(INCR_ZONES)
+ruin-all: $(RUIN_ZONES)
+
+log: $(MASTER)/nsd.log $(PROXY)/nsd.log $(SLAVE)/nsd.log
+	$(MULTITAIL) $(MASTER)/nsd.log $(PROXY)/nsd.log $(SLAVE)/nsd.log
+
+serials:
+	@for ZONE in $(ZONES) ; \
+     do echo "$$ZONE $(MASTER)	\
+		`dig $$ZONE SOA @$(MASTER_IP) -p $(MASTER_PORT) +short \
+		|awk '{ print $$3 }'`" ; \
+	echo "`echo $$ZONE | tr '[:print:]' ' '` $(PROXY)	\
+		`dig $$ZONE SOA @$(PROXY_IP) -p $(PROXY_PORT) +short \
+		|awk '{ print $$3 }'`" ; \
+	echo "`echo $$ZONE | tr '[:print:]' ' '` $(SLAVE)	\
+		`dig $$ZONE SOA @$(SLAVE_IP) -p $(SLAVE_PORT) +short \
+		|awk '{ print $$3 }'`" ; \
+    done
+
+clean-config-files:
+	@echo "-- Removing configuration files and includes ... "
+	@rm -f $(CONFIG_FILES)
+clean-zone-files:
+	@echo "-- Removing zone files ... "
+	@rm -f $(ZONE_FILES) $(SIGNED_ZONE_FILES)
+clean-masterdb:
+	@echo "-- Removing master database ... "
+	@rm -f $(MASTER_DB)
+clean-dnskeys:
+	@echo "-- Removing DNSSEC keys ... "
+	@for key in $(DNSKEYS) ; \
+	do for kn in $${key%.private}.ds $${key%.private}.key $$key ; \
+	  do if test -L $$kn; then \
+	    rm -f $(MASTER)/`readlink $$kn` $$kn ; fi; \
+	  done ; \
+	done
+clean-servers:
+	@echo "-- Removing servers state ... "
+	@for dir in $(SERVERS) ; do \
+    rm -f $$dir/nsd.log $$dir/xfrd.state $$dir/nsd.db $$dir/ixfr.db ; \
+    if test -d $$dir ; then rmdir $$dir || : ; fi ; done
+clean-tsigs:
+	@echo "-- Removing TSIG keys ... "
+	@rm -f $(TSIGS)
+	@if test -d tsigs ; then rmdir tsigs ; fi
+
+clean: stop \
+	clean-config-files \
+	clean-zone-files \
+	clean-dnskeys \
+	clean-servers \
+	clean-tsigs
+	echo "-- Removing multitail script ...";
+	rm -f multitail.sh; fi
+
+realclean: clean
+	rm -f config.log config.status Makefile
+
+distclean: realclean
+	rm -f $(srcdir)/configure
+	rm -fr $(srcdir)/autom4te.cache
+
+@SIGNED_ZONE_DEPENDENCIES@
+

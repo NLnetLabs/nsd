@@ -1,0 +1,4 @@
+    ip-address:   @MASTER_IP@
+    port:         @MASTER_PORT@
+
+@MASTER_INCLUDES@

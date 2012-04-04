@@ -519,7 +519,9 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 			close(handler->fd);
 			handler->fd = -1;
 		}
-		log_msg(LOG_ERR, "handle_reload_cmd: reload closed cmd channel");
+		log_msg( LOG_NOTICE
+		       , "handle_reload_cmd: reload closed cmd channel"
+		       );
 		return;
 	}
 	switch (mode) {
@@ -824,16 +826,29 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		xfrd->ipc_conn->is_reading = 1;
                 break;
 	case NSD_SOA_END:
+	case NSD_ALL_ZONES_BAD:
+		/* only when parent will not reload again immediately */
+		xfrd->can_send_reload = 1; 
+	case NSD_RELOAD_AGAIN:
 		/* reload has finished */
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_END"));
-		xfrd->can_send_reload = 1;
+		DEBUG( DEBUG_IPC, 1, ( LOG_INFO
+				     , "xfrd: ipc recv %s"
+				     , cmd == NSD_SOA_END
+				       ? "NSD_SOA_END"
+				       : cmd == NSD_ALL_ZONES_BAD
+					 ? "NSD_ALL_ZONES_BAD"
+					 : "NSD_RELOAD_AGAIN"
+				     ));
 		xfrd->parent_soa_info_pass = 0;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;
 		xfrd_reopen_logfile();
-		xfrd_check_failed_updates();
+		if (cmd == NSD_SOA_END) {
+			xfrd_check_failed_updates();
+		}
 		xfrd_send_expy_all_zones();
 		break;
+
 	case NSD_PASS_TO_XFRD:
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD"));
 		xfrd->ipc_is_soa = 0;

@@ -1094,7 +1094,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 				);
 			exit(1);
 		}
-		exit(0);
+		exit(NSD_ALL_ZONES_BAD);
 		
 	} else if (bad_zones && good_zones) {
 		/* Some zones were good, others were bad.
@@ -1350,10 +1350,15 @@ server_main(struct nsd *nsd)
 					restart_child_servers(nsd, server_region, netio,
 						&xfrd_listener.fd);
 				} else if (child_pid == reload_pid) {
-					sig_atomic_t cmd = NSD_SOA_END;
+					sig_atomic_t cmd;
 
 					if (WEXITSTATUS(status)
 					    ==  NSD_RELOAD_AGAIN) {
+
+					        cmd = NSD_RELOAD_AGAIN;
+
+						nsd->mode = NSD_RELOAD;
+
 						log_msg( LOG_INFO
 						       , "Reload process %d "
 						         "asked us to reload "
@@ -1362,8 +1367,22 @@ server_main(struct nsd *nsd)
 							 "difffile."
 						       , (int) child_pid
 						       );
-						nsd->mode = NSD_RELOAD;
+
+					} else if (WEXITSTATUS(status)
+						   ==  NSD_ALL_ZONES_BAD) {
+
+						cmd = NSD_ALL_ZONES_BAD;
+
+						log_msg( LOG_INFO
+						       , "Reload process %d "
+						         "processed only bad "
+							 "zones. Continuing "
+							 "with old database. "
+						       , (int) child_pid
+						       );
 					} else {
+						cmd = NSD_SOA_END;
+
 						log_msg( LOG_WARNING
 						       , "Reload process %d "
 						         "failed with status "

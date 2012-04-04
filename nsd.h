@@ -60,15 +60,24 @@ struct nsd_options;
  * SKIP_DIFF is sent to tell a parent nsd process to skip a 
  * difffile section, because it is considered bad by the
  * verifier.
- * 
  */
 #define NSD_SKIP_DIFF 12
 /*
  * This is the exit code of a nsd "new master" child process
  * to indicate the master process that is should do a reload
- * again, reprocessing the difffile.
+ * again, reprocessing the difffile. The master process will
+ * resend the command to xfrd (in stead of NSD_SOA_END) so
+ * it will not reload from xfrd yet.
  */
 #define NSD_RELOAD_AGAIN 13
+/*
+ * This is the exit code of a nsd "new master" child process
+ * to indicate that all zones were bad. The master process will
+ * resend the command to xfrd to indicate that checking for failed
+ * zones is not appropriate.
+ */
+#define NSD_ALL_ZONES_BAD 14
+
 
 #define NSD_SERVER_MAIN 0x0U
 #define NSD_SERVER_UDP  0x1U

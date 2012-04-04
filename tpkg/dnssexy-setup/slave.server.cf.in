@@ -1,0 +1,4 @@
+    ip-address:   @SLAVE_IP@
+    port:         @SLAVE_PORT@
+
+@SLAVE_INCLUDES@
