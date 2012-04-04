@@ -8,7 +8,7 @@ FEATURES:
 	  IXFR unknown at the primary if there is a negative response for the IXFR
 	  RRtype. This does not override the value for 'allow-axfr-fallback'.
 	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155, RFC5702, 
-	  RFC5933).
+	  RFC5933, and ECDSA).
 
 BUG FIXES:
 	- Fix for qtype ANY for a wildcard domain in NSEC signed zone: Don't

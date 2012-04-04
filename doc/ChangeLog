@@ -1,3 +1,6 @@
+4 April 2012: Matthijs
+	- Add ECDSA support for zonec
+
 2 April 2012: Matthijs
 	- Undo #235 (so dname compression starts at QNAME again).
 
