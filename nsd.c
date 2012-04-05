@@ -249,7 +249,7 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 	int r;
 	size_t hl, sl;
 
-	ip6addr = ip6port = ip4addr = ip4port = "";
+	ip6addr = ip6port = ip6end = ip4addr = ip4port = ip4end = "";
 
 	if (bufsz == 0)
 		bufsz = 46 * nsd->verify_ifs;

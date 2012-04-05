@@ -405,7 +405,7 @@ int main(int argc, char* argv[])
 		if (to_be_verified_zones) {
 			fprintf( stderr
 			       , "skipped %d updates for zones with a verifier"
-			       , options->difffile
+			       , to_be_verified_zones
 			       );
 		}
 	}

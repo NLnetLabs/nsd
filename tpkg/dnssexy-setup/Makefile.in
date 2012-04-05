@@ -59,17 +59,14 @@ $(SIGNED_ZONE_FILES):
 	@$(LDNS_SIGNZONE) $(@:.signed=) $(@:.signed=)
 
 rebuild rebuild-$(MASTER) $(MASTER_DB): $(SIGNED_ZONE_FILES) $(TSIGS)
-	@echo --
 	@( $(NSDC) -c $(MASTER_CONFIG) rebuild \
 	&& echo "-- Rebuilt $(MASTER) ... " )\
      ||    echo "-- Could not rebuild $(MASTER)"
 rebuild-$(PROXY) $(PROXY_DB): $(TSIGS)
-	@echo --
 	@( $(NSDC) -c $(PROXY_CONFIG) rebuild \
 	&& echo "-- Rebuilt $(PROXY) ... " )\
      ||    echo "-- Could not rebuild $(PROXY)"
 rebuild-$(SLAVE) $(SLAVE_DB): $(TSIGS)
-	@echo --
 	@( $(NSDC) -c $(SLAVE_CONFIG) rebuild \
 	&& echo "-- Rebuilt $(SLAVE) ... " )\
      ||    echo "-- Could not rebuild $(SLAVE)"
@@ -112,19 +109,22 @@ start: start-$(MASTER) start-$(PROXY) start-$(SLAVE)
 restart: restart-$(MASTER) restart-$(PROXY) restart-$(SLAVE)
 
 stop-$(MASTER):
-	@( $(NSDC) -c $(MASTER_CONFIG) stop \
-	&& echo "-- Stopped $(MASTER) ..."  ) || :
+	@if test -e $(MASTER)/nsd.pid; then \
+	($(NSDC) -c $(MASTER_CONFIG) stop \
+	&& echo "-- Stopped $(MASTER) ..."  ) || : ; fi
 stop-$(PROXY):
-	@( $(NSDC) -c $(PROXY_CONFIG) stop \
-	&& echo "-- Stopped $(PROXY) ..."  ) || :
+	@if test -e $(PROXY)/nsd.pid; then \
+	($(NSDC) -c $(PROXY_CONFIG) stop \
+	&& echo "-- Stopped $(PROXY) ..."  ) || : ; fi
 stop-$(SLAVE):
-	@( $(NSDC) -c $(SLAVE_CONFIG) stop \
-	&& echo "-- Stopped $(SLAVE) ..."  ) || :
+	@if test -e $(SLAVE)/nsd.pid; then \
+	($(NSDC) -c $(SLAVE_CONFIG) stop \
+	&& echo "-- Stopped $(SLAVE) ..."  ) || : ; fi
 stop: stop-$(MASTER) stop-$(PROXY) stop-$(SLAVE)
 $(MASTER)/nsd.log: $(MASTER)/nsd.pid
 $(PROXY)/nsd.log: $(PROXY)/nsd.pid
 $(SLAVE)/nsd.log: $(SLAVE)/nsd.pid
-reload-$(MASTER):
+reload-$(MASTER): $(MASTER_DB)
 	@if test -f $(MASTER)/nsd.pid ; \
 then $(NSDC) -c $(MASTER_CONFIG) reload && echo "-- Reloaded $(MASTER) ... "; \
 else $(MAKE) start-$(MASTER); fi
@@ -139,7 +139,6 @@ else $(MAKE) start-$(SLAVE); fi
 reload: reload-$(MASTER) reload-$(PROXY) reload-$(SLAVE)
 
 $(INCR_ZONES):
-	@echo "--"
 	@echo -n "$(MASTER)/`echo $@|sed 's/^incr-//g'`" > .name
 	@echo "`cat .name`.new" > .newname
 	@awk '/^[ 	][ 	]*[0-9][0-9]*[ 	]*;[ 	]*Serial$$/ \
@@ -153,7 +152,6 @@ $(INCR_ZONES):
 	@rm -f .name .newname .ser
 
 $(RUIN_ZONES):
-	@echo "--"
 	@echo -n `echo $@|sed 's/^ruin-//g'` > .zone
 	@echo -n "$(MASTER)/`cat .zone`.signed" > .name
 	@echo "-- Creating bogus RR for `cat .zone` ..."

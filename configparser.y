@@ -610,28 +610,40 @@ zone_verifier_feed_zone: VAR_VERIFIER_FEED_ZONE STRING
 	{ 
 		OUTYY(("P(zone_verifier_feed_zone:%s)\n", $2)); 
 
-		if (strcmp($2, "yes")     != 0 
-		&&  strcmp($2, "no")      != 0
-		&&  strcmp($2, "inherit") != 0)
+		if (strcmp($2, "inherit") == 0) {
 
+			cfg_parser
+			->current_zone
+			->verifier_feed_zone = ZONE_VERIFIER_FEED_ZONE_INHERIT;
+
+		} else if (strcmp($2, "yes") == 0) {
+
+			cfg_parser->current_zone->verifier_feed_zone = 1;
+
+		} else if (strcmp($2, "no") == 0) {
+
+			cfg_parser->current_zone->verifier_feed_zone = 0;
+
+		} else {
 			yyerror("expected yes, no or inherit.");
-
-		else cfg_parser->current_zone
-			       ->verifier_feed_zone = strcmp($2, "yes") == 0
-			       			      ? 1
-						      : strcmp($2, "no") == 0
-						        ? 0
-							: 2;
+		}
 	}
 	;
 zone_verifier_timeout: VAR_VERIFIER_TIMEOUT STRING
 	{ 
 		OUTYY(("P(zone_verifier_timeout:%s)\n", $2));
+
 		if (strcmp($2, "inherit") == 0) {
-			cfg_parser->current_zone->verifier_timeout = -1;
+
+			cfg_parser
+			->current_zone
+			->verifier_timeout = ZONE_VERIFIER_TIMEOUT_INHERIT;
+
 		} else if(atoi($2) <= 0 && strcmp($2, "0") != 0) {
+
 			yyerror("positive number, zero or inherit expected");
 		} else {
+
 			cfg_parser->current_zone->verifier_timeout = atoi($2);
 		}
 	}

@@ -152,15 +152,11 @@ $MASTER/$ZONE_N.signed: $MASTER/$ZONE_N $MASTER/$ZONE_N.private"
 		INCR_ZONES="${INCR_ZONES}incr-$ZONE_N "
 		RUIN_ZONES="${RUIN_ZONES}ruin-$ZONE_N "
 		MAKEFILE_LINES="$MAKEFILE_LINES
-incr$COUNT: incr-$ZONE_N
-ruin$COUNT: ruin-$ZONE_N
-update-$ZONE_N: incr-$ZONE_N \\
-	\$(MASTER)/${ZONE_N}.signed \\
-	\$(MASTER_DB) reload-\$(MASTER)
-bad-update-$ZONE_N: incr-$ZONE_N \\
-	\$(MASTER)/${ZONE_N}.signed \\
-	ruin-$ZONE_N \\
-	\$(MASTER_DB) reload-\$(MASTER)
+incr$COUNT: incr-$ZONE_N $MASTER/$ZONE_N.signed
+ruin$COUNT: incr$COUNT ruin-$ZONE_N
+update-$ZONE_N: incr-$ZONE_N $MASTER/$ZONE_N.signed reload-\$(MASTER)
+bad-update-$ZONE_N: incr-$ZONE_N $MASTER/$ZONE_N.signed ruin-$ZONE_N \\
+		reload-\$(MASTER)
 update$COUNT: update-$ZONE_N
 bad-update$COUNT: bad-update-$ZONE_N"
 
@@ -189,22 +185,18 @@ else
 	INCR_ZONES="${INCR_ZONES}incr-$ZONE "
 	RUIN_ZONES="${RUIN_ZONES}ruin-$ZONE "
 	MAKEFILE_LINES="$MAKEFILE_LINES
-incr-zone0 incr-zone incr: incr-$ZONE
-ruin-zone0 ruin-zone ruin: ruin-$ZONE
-update-$ZONE: incr-$ZONE \$(MASTER)/${ZONE}.signed \\
-		\$(MASTER_DB) reload-\$(MASTER)
-bad-update-$ZONE: incr-$ZONE \$(MASTER)/${ZONE}.signed \\
-		ruin-$ZONE \$(MASTER_DB) reload-\$(MASTER)
+incr-zone0 incr-zone incr: incr-$ZONE ${MASTER}/${ZONE}.signed
+ruin-zone0 ruin-zone ruin: incr-$ZONE ${MASTER}/${ZONE}.signed ruin-$ZONE
+update-$ZONE: incr-$ZONE ${MASTER}/${ZONE}.signed reload-\$(MASTER)
+bad-update-$ZONE: incr-$ZONE ${MASTER}/${ZONE}.signed ruin-$ZONE reload-\$(MASTER)
 update0 update: update-$ZONE
 bad-update0 bad-update: bad-update-$ZONE"
 fi
 if test $NZONES -gt 1
 then
 	MAKEFILE_LINES="$MAKEFILE_LINES
-update: incr-all \$(SIGNED_ZONE_FILES) \\
-	\$(MASTER_DB) reload-\$(MASTER)
-bad-update: incr-all \$(SIGNED_ZONE_FILES) ruin-all \\
-	\$(MASTER_DB) reload-\$(MASTER)"
+update: incr-all \$(SIGNED_ZONE_FILES) reload-\$(MASTER)
+bad-update: incr-all \$(SIGNED_ZONE_FILES) ruin-all reload-\$(MASTER)"
 fi
 ZONES="${ZONES% }"
 ZONE_FILES="${ZONE_FILES% }"

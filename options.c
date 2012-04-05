@@ -234,8 +234,8 @@ zone_options_t* zone_options_create(region_type* region)
 	zone->outgoing_interface = 0;
 	zone->allow_axfr_fallback = 1;
 	zone->verifier = 0;
-	zone->verifier_feed_zone = 2; /* inherit */
-	zone->verifier_timeout = -1;  /* inherit */
+	zone->verifier_feed_zone = ZONE_VERIFIER_FEED_ZONE_INHERIT;
+	zone->verifier_timeout = ZONE_VERIFIER_TIMEOUT_INHERIT;
 	return zone;
 }
 

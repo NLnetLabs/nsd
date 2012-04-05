@@ -808,45 +808,55 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
         switch(cmd) {
         case NSD_QUIT:
         case NSD_SHUTDOWN:
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: main send shutdown cmd."));
+		DEBUG(DEBUG_IPC,1,(LOG_INFO, "xfrd: main send shutdown cmd."));
                 xfrd->shutdown = 1;
                 break;
+
+	case NSD_BAD_SOA_BEGIN:
+		xfrd->parent_bad_soa_infos = 1;
 	case NSD_SOA_BEGIN:
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_BEGIN"));
+		DEBUG( DEBUG_IPC, 1, ( LOG_INFO
+				     , "xfrd: ipc recv %s"
+				     , cmd == NSD_SOA_BEGIN
+				       ? "NSD_SOA_BEGIN"
+				       : "NSD_BAD_SOA_BEGIN"
+				     ));
 		/* reload starts sending SOA INFOs; don't block */
 		xfrd->parent_soa_info_pass = 1;
 		/* reset the nonblocking ipc write;
 		   the new parent does not want half a packet */
 		xfrd->sending_zone_state = 0;
 		break;
+
 	case NSD_SOA_INFO:
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_INFO"));
 		assert(xfrd->parent_soa_info_pass);
 		xfrd->ipc_is_soa = 1;
 		xfrd->ipc_conn->is_reading = 1;
                 break;
+
+
 	case NSD_SOA_END:
-	case NSD_ALL_ZONES_BAD:
-		/* only when parent will not reload again immediately */
 		xfrd->can_send_reload = 1; 
 	case NSD_RELOAD_AGAIN:
+
 		/* reload has finished */
 		DEBUG( DEBUG_IPC, 1, ( LOG_INFO
 				     , "xfrd: ipc recv %s"
-				     , cmd == NSD_SOA_END
-				       ? "NSD_SOA_END"
-				       : cmd == NSD_ALL_ZONES_BAD
-					 ? "NSD_ALL_ZONES_BAD"
-					 : "NSD_RELOAD_AGAIN"
+				     , cmd == NSD_SOA_END ? "NSD_SOA_END"
+							  : "NSD_RELOAD_AGAIN"
 				     ));
 		xfrd->parent_soa_info_pass = 0;
+		xfrd->parent_bad_soa_infos = 0;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;
 		xfrd_reopen_logfile();
+
 		if (cmd == NSD_SOA_END) {
+
 			xfrd_check_failed_updates();
+			xfrd_send_expy_all_zones();
 		}
-		xfrd_send_expy_all_zones();
 		break;
 
 	case NSD_PASS_TO_XFRD:

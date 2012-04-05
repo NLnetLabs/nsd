@@ -89,6 +89,9 @@ struct ipaddress_option {
 	char* address;
 };
 
+#define ZONE_VERIFIER_FEED_ZONE_INHERIT	 2
+#define ZONE_VERIFIER_TIMEOUT_INHERIT	-1
+
 /*
  * Options for a zone
  */

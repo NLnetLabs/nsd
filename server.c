@@ -1025,6 +1025,148 @@ netio_add_tcp_handlers( netio_type* netio
 	}
 }
 
+static void
+inform_xfrd_new_soas(nsd_type* nsd, int xfrd_sock, size_t bad_zones)
+{
+	uint16_t sz;
+	uint32_t ttl;
+	zone_type* zone;
+	const dname_type* dname_ns = 0;
+	const dname_type* dname_em=0;
+	sig_atomic_t cmd = bad_zones ? NSD_BAD_SOA_BEGIN : NSD_SOA_BEGIN;
+
+	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
+		log_msg( LOG_ERR
+		       , "problems sending soa begin "
+		         "from reload %d to xfrd: %s"
+		       , (int)nsd->pid
+		       , strerror(errno)
+		       );
+	}
+	for(zone = nsd->db->zones; zone; zone = zone->next) {
+
+		if(zone->updated == 0 || (bad_zones && zone->is_bad == 0))
+			continue;
+
+		DEBUG( DEBUG_IPC
+		     , 1
+		     , ( LOG_INFO
+		       , "nsd: sending soa info for zone %s"
+		       , dname_to_string(domain_dname(zone->apex), 0)
+		       )
+		     );
+
+		sz = dname_total_size(domain_dname(zone->apex));
+
+		if(zone->soa_rrset) {
+
+			dname_ns
+		      = domain_dname(rdata_atom_domain( zone->soa_rrset
+					      		    ->rrs[0].rdatas[0]
+						      ));
+			dname_em
+		      = domain_dname(rdata_atom_domain( zone->soa_rrset
+					      		    ->rrs[0].rdatas[1]
+						      ));
+
+			sz += sizeof(uint32_t)*6  + sizeof(uint8_t)*2
+			    + dname_ns->name_size + dname_em->name_size;
+		}
+		sz = htons(sz);
+
+		/* use blocking writes */
+		cmd = NSD_SOA_INFO;
+		if (! write_socket( xfrd_sock, &cmd, sizeof(cmd)) 
+		||  ! write_socket( xfrd_sock, &sz , sizeof(sz)) 
+		||  ! write_socket( xfrd_sock
+				  , domain_dname(zone->apex)
+				  , dname_total_size(domain_dname(zone->apex))
+				  )) {
+			log_msg( LOG_ERR
+			       , "problems sending soa info "
+			         "from reload %d to xfrd: %s"
+			       , (int)nsd->pid
+			       , strerror(errno)
+			       );
+		}
+		if (! zone->soa_rrset) {
+			zone->updated = 0;
+			continue;
+		}
+		ttl = htonl(zone->soa_rrset->rrs[0].ttl);
+
+		assert(dname_ns && dname_em);
+		assert(zone->soa_rrset->rr_count > 0);
+		assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
+		assert(zone->soa_rrset->rrs[0].rdata_count == 7);
+
+		if (! write_socket( xfrd_sock, &ttl, sizeof(uint32_t))
+		||  ! write_socket( xfrd_sock
+				  , &dname_ns->name_size
+				  , sizeof(uint8_t)
+				  )
+		|| ! write_socket( xfrd_sock
+				 , dname_name(dname_ns)
+				 , dname_ns->name_size
+				 )
+		|| ! write_socket( xfrd_sock
+				 , &dname_em->name_size
+				 , sizeof(uint8_t)
+				 )
+		|| ! write_socket( xfrd_sock
+				 , dname_name(dname_em)
+				 , dname_em->name_size
+				 )
+		|| ! write_socket( xfrd_sock
+				 , rdata_atom_data( zone->soa_rrset
+							->rrs[0].rdatas[2])
+				 , sizeof(uint32_t)
+				 )
+		|| ! write_socket( xfrd_sock
+				 , rdata_atom_data( zone->soa_rrset
+					 		->rrs[0].rdatas[3])
+				 , sizeof(uint32_t)
+				 )
+		|| ! write_socket( xfrd_sock
+				 , rdata_atom_data( zone->soa_rrset
+					 		->rrs[0].rdatas[4])
+				 , sizeof(uint32_t)
+				 )
+		|| ! write_socket( xfrd_sock
+				 , rdata_atom_data( zone->soa_rrset
+					 		->rrs[0].rdatas[5])
+				 , sizeof(uint32_t)
+				 )
+		|| ! write_socket( xfrd_sock
+				 , rdata_atom_data( zone->soa_rrset
+					 		->rrs[0].rdatas[6])
+				 , sizeof(uint32_t)
+				 )) {
+
+			log_msg( LOG_ERR
+			       , "problems sending soa info "
+			         "from reload %d to xfrd: %s"
+			       , (int)nsd->pid
+			       , strerror(errno)
+			       );
+		} else {
+			zone->updated = 0;
+		}
+	}
+	/* With bad zones the parent will send the NSD_SOA_END */
+	if (! bad_zones) {
+		cmd = NSD_SOA_END;
+		if (! write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
+			log_msg( LOG_ERR
+			, "problems sending soa end "
+				"from reload %d to xfrd: %s"
+			, (int)nsd->pid
+			, strerror(errno)
+			);
+		}
+	}
+}
+
 /*
  * Reload the database, stop parent, re-fork children and continue.
  * as server_main.
@@ -1035,7 +1177,6 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 {
 	pid_t old_pid;
 	sig_atomic_t cmd = NSD_QUIT_SYNC;
-	zone_type* zone;
 	int xfrd_sock = *xfrd_sock_p;
 	int ret;
 
@@ -1074,10 +1215,25 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 
 	verify_zones(nsd, cmdsocket, &good_zones, &bad_zones);
 
-	if (bad_zones && ! good_zones) {
-		/* If all updated zones were bad, the parent can continue
-		 * serving. We just have to make sure that this section from
-		 * the difffile will not be evaluated again.
+	log_msg( LOG_NOTICE
+	       , "Zone verifying done... Good: %d, Bad: %d."
+	       , (int)good_zones
+	       , (int)bad_zones
+	       );
+
+	if (bad_zones) {
+		/* Ask xfrd to not try to retransfer those bad zones.
+		 */
+		inform_xfrd_new_soas(nsd, xfrd_sock, bad_zones);
+
+		if (good_zones) {
+			/* Some zones were good, others were bad.
+			 * If all is well, the bad zones will be skipped
+			 * when we initiate a reload at our parent.
+			 */
+			exit(NSD_RELOAD_AGAIN);
+		}
+		/* All zones bad. Gracefully terminate reload process.
 		 */
 		cmd = NSD_SKIP_DIFF;
 		if (nsd->db->diff_skip 
@@ -1094,15 +1250,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 				);
 			exit(1);
 		}
-		exit(NSD_ALL_ZONES_BAD);
-		
-	} else if (bad_zones && good_zones) {
-		/* Some zones were good, others were bad.
-		 * If all is well, the bad zones will be skipped when we 
-		 * initiate a reload at our parent.
-		 */
-		exit(NSD_RELOAD_AGAIN);
-
+		exit(0);
 	}
 	/* All zones were good and we will become the new server.
 	 * Or... no zones were updated. We need to reload then too.
@@ -1174,71 +1322,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 	assert(ret==-1 || ret == 0 || cmd == NSD_RELOAD);
 
 	/* inform xfrd of new SOAs */
-	cmd = NSD_SOA_BEGIN;
-	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
-		log_msg(LOG_ERR, "problems sending soa begin from reload %d to xfrd: %s",
-			(int)nsd->pid, strerror(errno));
-	}
-	for(zone= nsd->db->zones; zone; zone = zone->next) {
-		uint16_t sz;
-		const dname_type *dname_ns=0, *dname_em=0;
-		if(zone->updated == 0)
-			continue;
-		DEBUG(DEBUG_IPC,1, (LOG_INFO, "nsd: sending soa info for zone %s",
-			dname_to_string(domain_dname(zone->apex),0)));
-		cmd = NSD_SOA_INFO;
-		sz = dname_total_size(domain_dname(zone->apex));
-		if(zone->soa_rrset) {
-			dname_ns = domain_dname(
-				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[0]));
-			dname_em = domain_dname(
-				rdata_atom_domain(zone->soa_rrset->rrs[0].rdatas[1]));
-			sz += sizeof(uint32_t)*6 + sizeof(uint8_t)*2
-				+ dname_ns->name_size + dname_em->name_size;
-		}
-		sz = htons(sz);
-		/* use blocking writes */
-		if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd)) ||
-			!write_socket(xfrd_sock, &sz, sizeof(sz)) ||
-			!write_socket(xfrd_sock, domain_dname(zone->apex),
-				dname_total_size(domain_dname(zone->apex))))
-		{
-			log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
-				(int)nsd->pid, strerror(errno));
-		}
-		if(zone->soa_rrset) {
-			uint32_t ttl = htonl(zone->soa_rrset->rrs[0].ttl);
-			assert(dname_ns && dname_em);
-			assert(zone->soa_rrset->rr_count > 0);
-			assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
-			assert(zone->soa_rrset->rrs[0].rdata_count == 7);
-			if(!write_socket(xfrd_sock, &ttl, sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, &dname_ns->name_size, sizeof(uint8_t))
-			   || !write_socket(xfrd_sock, dname_name(dname_ns), dname_ns->name_size)
-			   || !write_socket(xfrd_sock, &dname_em->name_size, sizeof(uint8_t))
-			   || !write_socket(xfrd_sock, dname_name(dname_em), dname_em->name_size)
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[2]), sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[3]), sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[4]), sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[5]), sizeof(uint32_t))
-			   || !write_socket(xfrd_sock, rdata_atom_data(
-				zone->soa_rrset->rrs[0].rdatas[6]), sizeof(uint32_t)))
-			{
-				log_msg(LOG_ERR, "problems sending soa info from reload %d to xfrd: %s",
-				(int)nsd->pid, strerror(errno));
-			}
-		}
-		zone->updated = 0;
-	}
-	cmd = NSD_SOA_END;
-	if(!write_socket(xfrd_sock, &cmd,  sizeof(cmd))) {
-		log_msg(LOG_ERR, "problems sending soa end from reload %d to xfrd: %s",
-			(int)nsd->pid, strerror(errno));
-	}
+	inform_xfrd_new_soas(nsd, xfrd_sock, bad_zones);
 
 	/* try to reopen file */
 	if (nsd->file_rotation_ok)
@@ -1368,22 +1452,21 @@ server_main(struct nsd *nsd)
 						       , (int) child_pid
 						       );
 
-					} else if (WEXITSTATUS(status)
-						   ==  NSD_ALL_ZONES_BAD) {
+					} else if (WEXITSTATUS(status) == 0) {
 
-						cmd = NSD_ALL_ZONES_BAD;
+						cmd = NSD_SOA_END;
 
 						log_msg( LOG_INFO
-						       , "Reload process %d "
-						         "processed only bad "
-							 "zones. Continuing "
-							 "with old database. "
+						       , "No updates in "
+						         "reload process %d. "
+							 "Continuing with "
+							 "old database."
 						       , (int) child_pid
 						       );
 					} else {
 						cmd = NSD_SOA_END;
 
-						log_msg( LOG_WARNING
+						log_msg( LOG_ERR
 						       , "Reload process %d "
 						         "failed with status "
 							 "%d, continuing with "
@@ -1600,7 +1683,6 @@ server_process_query(struct nsd *nsd, struct query *query)
 void
 server_child(struct nsd *nsd)
 {
-	size_t i;
 	region_type *server_region = region_create(xalloc, free);
 	netio_type *netio = netio_create(server_region);
 	sig_atomic_t mode;

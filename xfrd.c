@@ -104,6 +104,7 @@ xfrd_init(int socket, struct nsd* nsd)
 	xfrd->udp_use_num = 0;
 	xfrd->ipc_pass = buffer_create(xfrd->region, QIOBUFSZ);
 	xfrd->parent_soa_info_pass = 0;
+	xfrd->parent_bad_soa_infos = 0;
 
 	/* add the handlers already, because this involves allocs */
 	xfrd->reload_handler.fd = -1;
@@ -654,8 +655,7 @@ xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 }
 
 void
-xfrd_handle_incoming_soa(xfrd_zone_t* zone,
-	xfrd_soa_t* soa, time_t acquired)
+xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 {
 	if(soa == NULL) {
 		/* nsd no longer has a zone in memory */
@@ -664,52 +664,95 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone,
 		xfrd_set_refresh_now(zone);
 		return;
 	}
-	if(zone->soa_nsd_acquired && soa->serial == zone->soa_nsd.serial)
-		return;
+	if (! xfrd->parent_bad_soa_infos
+	&&    zone->soa_nsd_acquired 
+	&&    zone->soa_nsd.serial   == soa->serial) {
 
+		return;
+	}
 	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
 	{
-		/* soa in disk has been loaded in memory */
-		log_msg(LOG_INFO, "Zone %s serial %u is updated to %u.",
-			zone->apex_str, ntohl(zone->soa_nsd.serial),
-			ntohl(soa->serial));
-		zone->soa_nsd = zone->soa_disk;
-		zone->soa_nsd_acquired = zone->soa_disk_acquired;
-		if((uint32_t)xfrd_time() - zone->soa_disk_acquired
-			< ntohl(zone->soa_disk.refresh))
-		{
-			/* zone ok, wait for refresh time */
-			xfrd_set_zone_state(zone, xfrd_zone_ok);
+		if (xfrd->parent_bad_soa_infos) {
+			/* Discard soa on disk. */
+			log_msg( LOG_INFO
+			       , "Zone %s serial %u is discarded. "
+			         "Reverting to serial %u."
+			       , zone->apex_str
+			       , ntohl(soa->serial)
+			       , ntohl(zone->soa_nsd.serial)
+			       );
+
+			zone->soa_disk          = zone->soa_nsd;
+			zone->soa_disk_acquired = zone->soa_nsd_acquired;
+
+			if((uint32_t)xfrd_time() - zone->soa_disk_acquired
+				>= ntohl(zone->soa_disk.expire)) {
+				/* zone expired */
+				xfrd_set_zone_state(zone, xfrd_zone_expired);
+			} else {
+				xfrd_set_zone_state(zone, xfrd_zone_ok);
+			}
+
+			/* next try at refresh time, even when expired */
 			zone->round_num = -1;
 			xfrd_set_timer_refresh(zone);
-		} else if((uint32_t)xfrd_time() - zone->soa_disk_acquired
-			< ntohl(zone->soa_disk.expire))
-		{
-			/* zone refreshing */
-			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
-			xfrd_set_refresh_now(zone);
+
+		} else {
+			/* soa in disk has been loaded in memory */
+			log_msg( LOG_INFO
+			       , "Zone %s serial %u is updated to %u."
+			       , zone->apex_str
+			       , ntohl(zone->soa_nsd.serial)
+			       , ntohl(soa->serial)
+			       );
+			zone->soa_nsd          = zone->soa_disk;
+			zone->soa_nsd_acquired = zone->soa_disk_acquired;
+
+			if((uint32_t)xfrd_time() - zone->soa_disk_acquired
+				< ntohl(zone->soa_disk.refresh))
+			{
+				/* zone ok, wait for refresh time */
+				xfrd_set_zone_state(zone, xfrd_zone_ok);
+				zone->round_num = -1;
+				xfrd_set_timer_refresh(zone);
+			} else if((uint32_t)xfrd_time() - zone->soa_disk_acquired
+				< ntohl(zone->soa_disk.expire))
+			{
+				/* zone refreshing */
+				xfrd_set_zone_state(zone, xfrd_zone_refreshing);
+				xfrd_set_refresh_now(zone);
+			}
+			if((uint32_t)xfrd_time() - zone->soa_disk_acquired
+				>= ntohl(zone->soa_disk.expire)) {
+				/* zone expired */
+				xfrd_set_zone_state(zone, xfrd_zone_expired);
+				xfrd_set_refresh_now(zone);
+			}
 		}
-		if((uint32_t)xfrd_time() - zone->soa_disk_acquired
-			>= ntohl(zone->soa_disk.expire)) {
-			/* zone expired */
-			xfrd_set_zone_state(zone, xfrd_zone_expired);
+
+
+		if (zone->soa_notified_acquired != 0 
+		&& (zone->soa_notified.serial   == 0
+		||  compare_serial( ntohl(soa->serial)
+				  , ntohl(zone->soa_notified.serial)) >= 0)) {
+
+			/* read was in response to this notification */
+			zone->soa_notified_acquired = 0;
+		}
+
+		if(zone->soa_notified_acquired && zone->state == xfrd_zone_ok)
+		{
+			/* refresh because of (newer) notification */
+			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
 			xfrd_set_refresh_now(zone);
 		}
 
-		if(zone->soa_notified_acquired != 0 &&
-			(zone->soa_notified.serial == 0 ||
-		   	compare_serial(ntohl(zone->soa_disk.serial),
-				ntohl(zone->soa_notified.serial)) >= 0))
-		{	/* read was in response to this notification */
-			zone->soa_notified_acquired = 0;
+		if (! xfrd->parent_bad_soa_infos) {
+			xfrd_send_notify( xfrd->notify_zones
+					, zone->apex
+					, &zone->soa_nsd
+					);
 		}
-		if(zone->soa_notified_acquired && zone->state == xfrd_zone_ok)
-		{
-			/* refresh because of notification */
-			xfrd_set_zone_state(zone, xfrd_zone_refreshing);
-			xfrd_set_refresh_now(zone);
-		}
-		xfrd_send_notify(xfrd->notify_zones, zone->apex, &zone->soa_nsd);
 		return;
 	}
 

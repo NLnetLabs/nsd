@@ -781,6 +781,7 @@ find_zone(namedb_type* db, const dname_type* zone_name, nsd_options_t* opt,
 	zone->nsec3_last = NULL;
 #endif
 	zone->commit_trail = NULL;
+	zone->is_bad = 0;
 	zone->dirty = region_alloc(db->region, sizeof(uint8_t)*child_count);
 	if(!zone->dirty) {
 		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
@@ -1515,7 +1516,7 @@ read_sure_part( namedb_type* db
 	 *     good anyway, and the commitposses in the trail will be
 	 *     left alone (so keep the value SURE_PART_UNVERIFIED).
 	 */
-	if (committed == SURE_PART_UNVERIFIED &&  zone->opts->verifier) {
+	if (committed == SURE_PART_UNVERIFIED && zone->opts->verifier) {
 
 		update_commit_trail(db->region, zone, commitpos);
 	}

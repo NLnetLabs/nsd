@@ -104,6 +104,7 @@ struct zone
 	unsigned     is_secure : 1; /* zone uses DNSSEC */
 	unsigned     updated : 1; /* zone SOA was updated */
 	unsigned     is_ok : 1; /* zone has not expired. */
+	unsigned     is_bad : 1; /* verifier deemed zone inappropriate. */
 	
 	struct commit_crumb* commit_trail;
 };

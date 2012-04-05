@@ -405,12 +405,15 @@ config_test_print_server(nsd_options_t* opt)
 			  ? "yes"
 			  : "inherit"
 		      );
-		if (zone->verifier_feed_zone == 2) {
+		if (zone->verifier_feed_zone 
+		==  ZONE_VERIFIER_FEED_ZONE_INHERIT) {
+
 			printf( "\t# inherited value: %s\n"
 			      , opt->verifier_feed_zone ? "yes" : "no"
 			      );
 		}
-		if (zone->verifier_timeout == -1) {
+		if (zone->verifier_timeout == ZONE_VERIFIER_TIMEOUT_INHERIT) {
+
 			printf( "\tverifier-timeout: inherit"
 				"\t# inherited value: %d\n"
 			      , opt->verifier_timeout

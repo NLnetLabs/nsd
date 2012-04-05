@@ -20,6 +20,7 @@
 #include <syslog.h>
 #endif /* HAVE_SYSLOG_H */
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include "region-allocator.h"
 #include "namedb.h"
@@ -560,7 +561,7 @@ handle_verifier_timeout( netio_type* netio
  * is not neglected and that the reload server process will exit (gracefully).
  */
 static void
-verify_handle_parent_command( netio_type* netio
+verify_handle_parent_command( netio_type* ATTR_UNUSED(netio)
 			    , netio_handler_type* handler
 			    , netio_event_types_type event_types
 			    )
@@ -570,7 +571,7 @@ verify_handle_parent_command( netio_type* netio
 
 	sig_atomic_t mode;
 	int len;
-	size_t i;
+	int i;
 
 	assert( s != NULL );
 
@@ -589,7 +590,7 @@ verify_handle_parent_command( netio_type* netio
 
 		/* kill all verifiers */
 
-		for (i = 0; i < s->nsd->options->verifier_count; i++) {
+		for (i = 0; (int)i < s->nsd->options->verifier_count; i++) {
 			if (s->verifiers[i].zone) {
 				cleanup_verifier(s->netio, &s->verifiers[i], 1);
 
@@ -673,7 +674,7 @@ server_verify_zones( server_verify_zone_state_type* s
 	pid_t exited;       /* the pid of the verifier that exited */
 	int status, result; /* exit codes */
 
-	size_t i;
+	int i;
 	verifier_state_type* v;
 
         struct timespec timeout_spec;
@@ -700,8 +701,9 @@ server_verify_zones( server_verify_zone_state_type* s
 					         "(pid %d) exited abnormally."
 					       , v->zone->opts->name
 					       , v->pid
-					       ); 
+					       );
 					verifier_revoke(s, v);
+					v->zone->is_bad = 1;
 					(*bad_zones)++;
 
 				} else if ((result = WEXITSTATUS(status))) {
@@ -713,12 +715,14 @@ server_verify_zones( server_verify_zone_state_type* s
 					       , result
 					       ); 
 					verifier_revoke(s, v);
+					v->zone->is_bad = 1;
 					(*bad_zones)++;
 
 				} else if (verifier_commit( s, v)) {
 					(*good_zones)++;
 
 				} else {
+					v->zone->is_bad = 1;
 					(*bad_zones)++;
 				}
 				cleanup_verifier(s->netio, v, 0);
@@ -778,7 +782,7 @@ server_verifiers_add( server_verify_zone_state_type** state
 	region_type* region = NULL;
 	server_verify_zone_state_type* s = NULL; /* for convenience */
 	FILE* df = NULL;
-	size_t i;
+	int i;
 	verifier_state_type* v = NULL;
 	netio_handler_type* parent_handler = NULL;
 
@@ -980,6 +984,7 @@ error:
 			  , zone
 			  , SURE_PART_BAD
 			  );
+	zone->is_bad = 1;
 	(*bad_zones)++;
 	if (df) {
 		fclose(df);
@@ -997,7 +1002,7 @@ server_verifiers_wait( server_verify_zone_state_type** state
 		)
 {
 	server_verify_zone_state_type* s = NULL;
-	size_t i;
+	int i;
 
 	assert( state && good_zones && bad_zones );
 
@@ -1067,7 +1072,7 @@ verify_zones( nsd_type* nsd
 		 * for the zone.
 		 */
 		if (! zone->commit_trail || ! zone->soa_rrset) {
-			good_zones++;
+			(*good_zones)++;
 			continue;
 		}
 

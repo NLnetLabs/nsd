@@ -61,6 +61,7 @@ struct xfrd_state {
 	netio_handler_type ipc_handler;
 	uint8_t ipc_is_soa;
 	uint8_t parent_soa_info_pass;
+	uint8_t parent_bad_soa_infos;
 	struct xfrd_tcp *ipc_conn;
 	struct buffer* ipc_pass;
 	/* sending ipc to server_main */

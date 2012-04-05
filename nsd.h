@@ -71,12 +71,10 @@ struct nsd_options;
  */
 #define NSD_RELOAD_AGAIN 13
 /*
- * This is the exit code of a nsd "new master" child process
- * to indicate that all zones were bad. The master process will
- * resend the command to xfrd to indicate that checking for failed
- * zones is not appropriate.
+ * Inform xfrd that all coming SOA's are bad and that if they
+ * match a disk_acquired soa, they should be discarded.
  */
-#define NSD_ALL_ZONES_BAD 14
+#define NSD_BAD_SOA_BEGIN 14
 
 
 #define NSD_SERVER_MAIN 0x0U
