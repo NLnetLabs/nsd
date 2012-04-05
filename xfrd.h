@@ -119,10 +119,11 @@ struct xfrd_zone {
 	const dname_type* apex;
 	const char* apex_str;
 
-	/* Three types of soas:
+	/* Four types of soas:
 	 * NSD: in use by running server
 	 * disk: stored on disk in db/diff file
 	 * notified: from notification, could be available on a master.
+	 * bad: received via xfr but did not verify
 	 * And the time the soa was acquired (start time for timeouts).
 	 * If the time==0, no SOA is available.
 	 */
@@ -132,6 +133,8 @@ struct xfrd_zone {
 	time_t soa_disk_acquired;
 	xfrd_soa_t soa_notified;
 	time_t soa_notified_acquired;
+	xfrd_soa_t soa_bad;
+	time_t soa_bad_acquired;
 
 	enum xfrd_zone_state {
 		xfrd_zone_ok,

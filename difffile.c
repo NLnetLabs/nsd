@@ -216,6 +216,7 @@ write_commit_trail( region_type* region
 			       );
 			goto error;
 		}
+		write_data(*df, &state, sizeof(uint8_t));
 		log_msg( LOG_INFO
 		       , "Written %d on pos %d of file %s for zone %s"
 		       , state
@@ -223,7 +224,6 @@ write_commit_trail( region_type* region
 		       , filename
 		       , zone->opts->name
 		       );
-		write_data(*df, &state, sizeof(uint8_t));
 		crumb = crumb->next;
 	}
 	result = 1;

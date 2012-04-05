@@ -180,15 +180,17 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		xfrd_zone_t* zone;
 		const dname_type* dname;
 		uint32_t state, masnum, nextmas, round_num, timeout;
-		xfrd_soa_t soa_nsd_read, soa_disk_read, soa_notified_read;
-		time_t soa_nsd_acquired_read,
-			soa_disk_acquired_read, soa_notified_acquired_read;
+		xfrd_soa_t soa_nsd_read     , soa_disk_read
+			 , soa_notified_read, soa_bad_read;
+		time_t soa_nsd_acquired_read     , soa_disk_acquired_read
+		     , soa_notified_acquired_read, soa_bad_acquired_read;
 		xfrd_soa_t incoming_soa;
 		time_t incoming_acquired;
 
 		memset(&soa_nsd_read, 0, sizeof(soa_nsd_read));
 		memset(&soa_disk_read, 0, sizeof(soa_disk_read));
 		memset(&soa_notified_read, 0, sizeof(soa_notified_read));
+		memset(&soa_bad_read, 0, sizeof(soa_bad_read));
 
 		if(!xfrd_read_check_str(in, "zone:") ||
 		   !xfrd_read_check_str(in, "name:")  ||
@@ -209,7 +211,9 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		   !xfrd_read_state_soa(in, "soa_disk_acquired:", "soa_disk:",
 			&soa_disk_read, &soa_disk_acquired_read) ||
 		   !xfrd_read_state_soa(in, "soa_notify_acquired:", "soa_notify:",
-			&soa_notified_read, &soa_notified_acquired_read))
+			&soa_notified_read, &soa_notified_acquired_read) ||
+		   !xfrd_read_state_soa(in, "soa_bad_acquired:", "soa_bad:",
+			&soa_bad_read, &soa_bad_acquired_read))
 		{
 			log_msg(LOG_ERR, "xfrd: corrupt state file %s dated %d (now=%d)",
 				statefile, (int)filetime, (int)xfrd_time());
@@ -226,7 +230,8 @@ xfrd_read_state(struct xfrd_state* xfrd)
 
 		if(soa_nsd_acquired_read>xfrd_time()+15 ||
 			soa_disk_acquired_read>xfrd_time()+15 ||
-			soa_notified_acquired_read>xfrd_time()+15)
+			soa_notified_acquired_read>xfrd_time()+15 ||
+			soa_bad_acquired_read>xfrd_time()+15)
 		{
 			log_msg(LOG_ERR, "xfrd: statefile %s contains"
 				" times in the future for zone %s. Ignoring.",
@@ -280,12 +285,14 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		zone->soa_nsd = soa_nsd_read;
 		zone->soa_disk = soa_disk_read;
 		zone->soa_notified = soa_notified_read;
+		zone->soa_bad = soa_bad_read;
 		zone->soa_nsd_acquired = soa_nsd_acquired_read;
 		/* we had better use what we got from starting NSD, not
 		 * what we store in this file, because the actual zone
 		 * contents trumps the contents of this cache */
 		/* zone->soa_disk_acquired = soa_disk_acquired_read; */
 		zone->soa_notified_acquired = soa_notified_acquired_read;
+		zone->soa_bad_acquired = soa_bad_acquired_read;
 		xfrd_handle_incoming_soa(zone, &incoming_soa, incoming_acquired);
 	}
 
@@ -451,6 +458,9 @@ xfrd_write_state(struct xfrd_state* xfrd)
 			zone->soa_disk_acquired, zone->apex);
 		xfrd_write_state_soa(out, "soa_notify", &zone->soa_notified,
 			zone->soa_notified_acquired, zone->apex);
+		xfrd_write_state_soa(out, "soa_bad", &zone->soa_bad,
+			zone->soa_bad_acquired, zone->apex);
+
 		fprintf(out, "\n");
 	}
 
