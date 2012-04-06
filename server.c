@@ -651,20 +651,10 @@ init_make_tcp_sockets(struct nsd* nsd, struct nsd_socket* tcp_socket, size_t n)
 int
 server_init(struct nsd *nsd)
 {
-	int r;
-	return (r = init_make_udp_sockets(nsd, nsd->udp, nsd->ifs)) ? r
-	     : (r = init_make_tcp_sockets(nsd, nsd->tcp, nsd->ifs)) ? r
-
-	     : (r = init_make_udp_sockets( nsd
-				         , nsd->verify_udp
-					 , nsd->verify_ifs
-					 )                         ) ? r
-
-	     : (r = init_make_tcp_sockets( nsd
-				         , nsd->verify_tcp
-					 , nsd->verify_ifs
-					 )                         ) ? r
-	     :  0 ;
+	return init_make_udp_sockets(nsd, nsd->udp       , nsd->ifs)
+	    || init_make_tcp_sockets(nsd, nsd->tcp       , nsd->ifs)
+	    || init_make_udp_sockets(nsd, nsd->verify_udp, nsd->verify_ifs)
+	    || init_make_tcp_sockets(nsd, nsd->verify_tcp, nsd->verify_ifs);
 }
 
 /*
