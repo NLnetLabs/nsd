@@ -7,3 +7,4 @@ server:
     difffile:     "@abs_builddir@/ixfr.db"
     xfrdfile:     "@abs_builddir@/xfrd.state"
     verbosity:    @VERBOSITY@
+    xfrd-reload-timeout: 2

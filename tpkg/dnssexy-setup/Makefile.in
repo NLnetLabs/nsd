@@ -214,7 +214,7 @@ clean: stop \
 	clean-servers \
 	clean-tsigs
 	echo "-- Removing multitail script ...";
-	rm -f multitail.sh; fi
+	rm -f multitail.sh
 
 realclean: clean
 	rm -f config.log config.status Makefile
