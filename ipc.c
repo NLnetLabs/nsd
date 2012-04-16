@@ -443,7 +443,7 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 	if (len == 0)
 	{
 		size_t i;
-		if(handler->fd > 0) close(handler->fd);
+		if(handler->fd >= 0) close(handler->fd);
 		for(i=0; i<data->nsd->child_count; ++i)
 			if(data->nsd->children[i].child_fd == handler->fd) {
 				data->nsd->children[i].child_fd = -1;
@@ -514,7 +514,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		if(handler->fd > 0) {
+		if(handler->fd >= 0) {
 			close(handler->fd);
 			handler->fd = -1;
 		}

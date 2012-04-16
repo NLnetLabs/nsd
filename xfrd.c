@@ -1230,7 +1230,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: too short xfr packet: no "
 					       			   "answer"));
 		/* if IXFR is unknown, fallback to AXFR (if allowed) */
-		if(nscount == 1) {
+		if (nscount == 1) {
 			if(!packet_skip_dname(packet) || !xfrd_parse_soa_info(packet, soa)) {
 				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s, from %s: "
 					"no SOA begins authority section",
