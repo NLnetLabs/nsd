@@ -992,6 +992,10 @@ NSD Version 3.0. and above
 
    RFC 5702 (SHA-2) support.
 
+   RFC 6605 (ECDSA) support.
+
+   draft-ietf-dane-protocol (DANE) support.
+
 Not implemented:
 
   RFC2136 (Dynamic update) are not implemented and will not be implemented as
