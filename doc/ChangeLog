@@ -1,3 +1,6 @@
+17 April 2012: Matthijs
+	- Changes according to RFC 5936 (AXFR clarify) and EDNS0bis.
+
 16 April 2012: Matthijs
 	- Allow for fd 0 in ipc.
 	- Add TLSA RRtype support.

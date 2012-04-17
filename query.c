@@ -305,6 +305,7 @@ static nsd_rc_type
 process_edns(nsd_type* nsd, struct query *q)
 {
 	if (q->edns.status == EDNS_ERROR) {
+		/* The only error is VERSION not implemented */
 		return NSD_RC_FORMAT;
 	}
 
@@ -1263,7 +1264,7 @@ query_process(query_type *q, nsd_type *nsd)
 		return QUERY_DISCARDED;
 	}
 
-	if(!process_query_section(q)) {
+	if (RCODE(q->packet) != RCODE_OK || !process_query_section(q)) {
 		return query_formerr(q);
 	}
 
@@ -1281,10 +1282,11 @@ query_process(query_type *q, nsd_type *nsd)
 	}
 
 	/* Dont bother to answer more than one question at once... */
-	if (QDCOUNT(q->packet) != 1 || TC(q->packet)) {
+	if (QDCOUNT(q->packet) != 1) {
 		FLAGS_SET(q->packet, 0);
 		return query_formerr(q);
 	}
+	/* Ignore settings of flags */
 
 	/* Dont allow any records in the answer or authority section...
 	   except for IXFR queries. */

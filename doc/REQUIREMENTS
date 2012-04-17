@@ -853,8 +853,11 @@ RR records details.
   "DHCID"    49,    # draft-ietf-dnsext-dhcid-rr-13.txt
 
   "NSEC3"    50,    # RFC 5155.
+  "NSEC3PARAM" 51,  # RFC 5155.
 
-  Unknown    51 - 98,
+  "TLSA"     52,    # draft-ietf-dane-protocol
+
+  Unknown    53 - 98,
 
   "SPF"      99,    # RFC 4408 (Experimental).
 
@@ -991,6 +994,8 @@ NSD Version 3.0. and above
    RFC 5155 (NSEC3) support.
 
    RFC 5702 (SHA-2) support.
+
+   RFC 5936 (AXFR) support.
 
    RFC 6605 (ECDSA) support.
 
