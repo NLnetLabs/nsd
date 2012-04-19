@@ -223,5 +223,8 @@ distclean: realclean
 	rm -f $(srcdir)/configure
 	rm -fr $(srcdir)/autom4te.cache
 
+interact interactive interactively debug:
+	sh "$(srcdir)/debug.sh" "$(PROXY)"
+	
 @SIGNED_ZONE_DEPENDENCIES@
 

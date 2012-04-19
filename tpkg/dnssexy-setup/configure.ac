@@ -84,9 +84,15 @@ AC_CHECK_FILE([/dev/urandom], AC_SUBST([LDNS_KEYGEN_OPTIONS], ["-r /dev/urandom"
 AC_PATH_PROGS([LDNS_SIGNZONE], [ldns-signzone], [], [$SEARCHPATH])
 AC_PATH_PROGS([LDNS_VERIFY_ZONE], [ldns-verify-zone], [], [$SEARCHPATH])
 AC_PATH_PROGS([MULTITAIL], [multitail], [], [$SEARCHPATH])
+AC_PATH_PROGS([BASHELL], [bash], [], [$SEARCHPATH])
 
 AC_ARG_VAR(VERIFIER, Verbosity in log files (default: ldns-verify-zone))
-if test "x$VERIFIER" = "x"; then VERIFIER="$LDNS_VERIFY_ZONE" ; fi
+if test "x$VERIFIER" = "x"
+then VERIFIER="$LDNS_VERIFY_ZONE"
+else if test "x$VERIFIER" = "xdebug"
+     then VERIFIER="$BASHELL $srcdir/hook.sh $PROXY"
+     fi
+fi
 
 if test "x$MULTITAIL" = "x" ; then
     AC_CONFIG_FILES([multitail.sh], [chmod +x multitail.sh])
@@ -133,7 +139,12 @@ then
 
 		VERIFIER_N=`eval echo -n \\$VERIFIER$COUNT`
 		if test "x$VERIFIER_N" = "x"
-		then VERIFIER_N="$VERIFIER" ; fi
+		then VERIFIER_N="$VERIFIER"
+		else if test "x$VERIFIER_N" = "xdebug"
+		     then VERIFIER="$BASHELL $srcdir/hook.sh $PROXY"
+		     fi
+		fi
+
 		VERIFIER_N=`echo $VERIFIER_N | sed 's/ /__@@@__/g'`
 		eval VERIFIER$COUNT=$VERIFIER_N
 

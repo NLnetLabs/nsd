@@ -1144,7 +1144,7 @@ answer_lookup_zone(struct nsd *nsd, struct query *q, answer_type *answer,
 
 	/* see if the zone has expired (for secondary zones) */
 	if(q->zone && q->zone->opts && zone_is_slave(q->zone->opts)
-		&& !q->zone->is_ok) {
+		&& !q->zone->is_ok && !q->zone->updated) {
 		if(q->cname_count == 0)
 			RCODE_SET(q->packet, RCODE_SERVFAIL);
 		return;
