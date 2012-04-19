@@ -430,6 +430,7 @@ handle_zone2verifier( netio_type* netio
 struct verifier_state_struct {
 	/* which zone is verified */
 	zone_type*           zone;
+	int                  was_ok;
 
 	/* the pid of the external verifier that is executing */
 	pid_t                pid;
@@ -513,6 +514,7 @@ cleanup_verifier( netio_type* netio
 
 	}
 	v->pid = -1;
+	v->zone->is_ok = v->was_ok;
 	v->zone = NULL;
 }
 
@@ -879,6 +881,7 @@ server_verifiers_add( server_verify_zone_state_type** state
 		goto error;
 	}
 	v->zone = zone;
+	v->was_ok = zone->is_ok;
 	/* will we feed the zone on stdin? */
 	if (zone->opts->verifier_feed_zone == 1
 	|| (     zone->opts->verifier_feed_zone == 2 
