@@ -84,6 +84,7 @@ struct domain
 #endif /* NSEC3 */
 };
 
+struct commit_crumb;
 struct zone
 {
 	zone_type   *next;

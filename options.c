@@ -64,7 +64,7 @@ nsd_options_t* nsd_options_create(region_type* region)
 	opt->verify_port = VERIFY_PORT;
 	opt->verifier_count = 1;
 	opt->verifier_feed_zone = 1;
-	opt->verifier_timeout = 0;
+	opt->verifier_timeout = VERIFIER_NOTIMEOUT;
 	nsd_options = opt;
 	return opt;
 }

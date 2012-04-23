@@ -233,6 +233,7 @@ read_uint32(const void *src)
 #define DEBUG_NAME_COMPRESSION 0x0010U
 #define DEBUG_XFRD             0x0020U
 #define DEBUG_IPC              0x0040U
+#define DEBUG_SEXY             0x0080U
 
 extern unsigned nsd_debug_facilities;
 extern int nsd_debug_level;

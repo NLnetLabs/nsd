@@ -395,18 +395,17 @@ will be served.
 .RE
 .B VERIFY_IP_ADDRESS
 .RS
-The first available ip address on which the zones to be assessed will be
-served.  If IPv6 is available an IPv6 address will be prefered over IPv4.
+The first address on which the zones to be assessed will be served.
+If IPv6 is available an IPv6 address will be prefered over IPv4.
 .RE
-.B VERIFY_IP_PORT
+.B VERIFY_PORT
 .RS
 the port number for 
 .B VERIFY_IP_ADDRESS
 .RE
 .B VERIFY_IPV6_ADDRESS
 .RS
-The first available IPv6 address on which the zones to be assessed will be
-served.
+The first IPv6 address on which the zones to be assessed will be served.
 .RE
 .B VERIFY_IPV6_PORT
 .RS
@@ -415,8 +414,7 @@ The port number for
 .RE
 .B VERIFY_IPV4_ADDRESS
 .RS
-The first available IPv4 address on which the zones to be assessed will be
-served.
+The first IPv4 address on which the zones to be assessed will be served.
 .RE
 .B VERIFY_IPV4_PORT
 .RS

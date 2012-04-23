@@ -25,6 +25,13 @@ typedef struct acl_options acl_options_t;
 typedef struct key_options key_options_t;
 typedef struct cmd_option cmd_option_t;
 typedef struct config_parser_state config_parser_state_t;
+
+enum verifier_feed_zone_type {
+	VERIFIER_FEED_ZONE_NO,
+	VERIFIER_FEED_ZONE_YES,
+	ZONE_VERIFIER_FEED_ZONE_INHERIT
+};
+
 /*
  * Options global for nsd.
  */
@@ -75,8 +82,8 @@ struct nsd_options {
 	/* maximum number of verifiers that may run simultaneously */
 	int verifier_count;
 
-	/* bool: should the zone be fed on the verifier's stdin? */
-	int verifier_feed_zone;
+	/* should the zone be fed on the verifier's stdin? */
+	enum verifier_feed_zone_type verifier_feed_zone;
 
 	/* how long may a verifier take */
 	int verifier_timeout;
@@ -89,8 +96,8 @@ struct ipaddress_option {
 	char* address;
 };
 
-#define ZONE_VERIFIER_FEED_ZONE_INHERIT	 2
 #define ZONE_VERIFIER_TIMEOUT_INHERIT	-1
+#define VERIFIER_NOTIMEOUT		 0
 
 /*
  * Options for a zone
@@ -113,8 +120,8 @@ struct zone_options {
 	/* verifier to execute in const char argv[] format */
 	char* const* verifier;
 
-	/* bool: should the zone be fed on the verifier's stdin? */
-	int verifier_feed_zone;
+	/* should the zone be fed on the verifier's stdin? */
+	enum verifier_feed_zone_type verifier_feed_zone;
 
 	/* how long may a verifier take */
 	int verifier_timeout;

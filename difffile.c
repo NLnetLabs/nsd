@@ -93,7 +93,8 @@ diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
 void
 diff_write_commit(const char* zone, uint32_t old_serial,
 	uint32_t new_serial, uint16_t id, uint32_t num_parts,
-	uint8_t commit, const char* log_str, nsd_options_t* opt)
+	enum commit_value_type commit_value, const char* log_str,
+	nsd_options_t* opt)
 {
 	const char* filename = opt->difffile;
 	struct timeval tv;
@@ -115,7 +116,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 
 	len = strlen(zone) + sizeof(len) + sizeof(old_serial) +
 		sizeof(new_serial) + sizeof(id) + sizeof(num_parts) +
-		sizeof(commit) + strlen(log_str) + sizeof(len);
+		sizeof(commit_value) + strlen(log_str) + sizeof(len);
 
 	if(!write_32(df, DIFF_PART_SURE) ||
 		!write_32(df, (uint32_t) tv.tv_sec) ||
@@ -126,7 +127,7 @@ diff_write_commit(const char* zone, uint32_t old_serial,
 		!write_32(df, new_serial) ||
 		!write_16(df, id) ||
 		!write_32(df, num_parts) ||
-		!write_8(df, commit) ||
+		!write_8(df, commit_value) ||
 		!write_str(df, log_str) ||
 		!write_32(df, len))
 	{
@@ -152,14 +153,12 @@ struct commit_crumb {
  * mark the parts as such quickly.
  */
 static void
-update_commit_trail( region_type* region
-		   , zone_type* zone
-		   , off_t commitpos
-		   )
+update_commit_trail(region_type* region, zone_type* zone, off_t commitpos)
 {
-	commit_crumb_type* crumb = REGION_MALLOC(region, commit_crumb_type);
+	struct commit_crumb* crumb =
+		REGION_MALLOC(region, struct commit_crumb);
 
-	if (! crumb) {
+	if(!crumb) {
 		log_msg(LOG_ERR, "out of memory, %s:%d", __FILE__, __LINE__);
 		exit(1);
 	}
@@ -170,76 +169,61 @@ update_commit_trail( region_type* region
 }
 
 /*
- * Walk the zone->commit_trail and write <state> at the commit spots.
+ * Walk the zone->commit_trail and write <commit_value> at the commit spots.
  * Dispose the trail after that has been done.
  * Be very carefull that the same region is used that was used for
  * update_commit_trail!
  */
 int 
-write_commit_trail( region_type* region
-		  , const char* filename
-		  , FILE** df
-		  , zone_type* zone
-		  , uint8_t state
-		  )
+write_commit_trail(region_type* region,
+	const char* filename, FILE** df, zone_type* zone,
+	enum commit_value_type commit_value)
 {
-	commit_crumb_type* crumb = zone->commit_trail;
+	struct commit_crumb* crumb = zone->commit_trail;
 	int result = 0;
 
-	log_msg( LOG_INFO
-	       , "Following commit trail for zone %s "
-	         "to set it to %d in file %s"
-	       , zone->opts->name
-	       , state
-	       , filename
-	       );
-	if (! *df) {
+	DEBUG(DEBUG_SEXY, 2, (LOG_INFO, "Following commit trail for zone %s "
+					"to set it to %d in file %s", 
+					zone->opts->name, commit_value, 
+					filename));
+	if(!*df) {
 		*df = fopen(filename, "r+");
-		if (! *df) {
-			log_msg( LOG_ERR
-			       , "could not open file %s for reading: %s"
-			       , filename
-			       , strerror(errno)
-			       );
+		if (!*df) {
+			log_msg(LOG_ERR,
+				"could not open file %s for reading: %s",
+				filename, strerror(errno));
 			goto error;
 		}
 	}
-	while (crumb) {
+	while(crumb)
+	{
 		if (fseeko(*df, crumb->commitpos, SEEK_SET) == -1) {
-			log_msg( LOG_ERR
-			       , "could not fseeko file %s to pos %d, "
-			         "to set the commit byte to state %d: %s."
-			       , filename
-			       , (int)crumb->commitpos
-			       , state
-			       , strerror(errno)
-			       );
+			log_msg(LOG_ERR,
+				"could not fseeko file %s to pos %d, "
+				"to set the commit byte to value %d: %s.",
+				filename, (int)crumb->commitpos,
+				commit_value, strerror(errno));
 			goto error;
 		}
-		write_data(*df, &state, sizeof(uint8_t));
-		log_msg( LOG_INFO
-		       , "Written %d on pos %d of file %s for zone %s"
-		       , state
-		       , (int)crumb->commitpos
-		       , filename
-		       , zone->opts->name
-		       );
+		write_8(*df, commit_value);
+		DEBUG(DEBUG_SEXY, 2, (LOG_INFO,
+				"Written %d on pos %d of file %s for zone %s",
+				commit_value, (int)crumb->commitpos, filename,
+				zone->opts->name));
 		crumb = crumb->next;
 	}
 	result = 1;
 error:
 	/* recycle commit trail */
-	while (zone->commit_trail) {
+	while(zone->commit_trail)
+	{
 		crumb = zone->commit_trail->next;
 
-		region_recycle( region
-			      , zone->commit_trail
-			      , sizeof(commit_crumb_type)
-			      );
+		region_recycle(region, zone->commit_trail,
+			sizeof(struct commit_crumb));
 
 		zone->commit_trail = crumb;
 	}
-
 	return result;
 }
 
@@ -1328,7 +1312,7 @@ read_sure_part( namedb_type* db
 	char log_buf[5120];
 	uint32_t old_serial, new_serial, num_parts;
 	uint16_t id;
-	uint8_t committed;
+	uint8_t committed; /* has value of commit_value_type */
 	struct diff_zone *zp;
 	uint32_t i;
 	int have_all_parts = 1;

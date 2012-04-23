@@ -443,7 +443,7 @@ parent_handle_child_command(netio_type *ATTR_UNUSED(netio),
 	if (len == 0)
 	{
 		size_t i;
-		if(handler->fd >= 0) close(handler->fd);
+		if(handler->fd != -1) close(handler->fd);
 		for(i=0; i<data->nsd->child_count; ++i)
 			if(data->nsd->children[i].child_fd == handler->fd) {
 				data->nsd->children[i].child_fd = -1;
@@ -515,7 +515,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		if(handler->fd >= 0) {
+		if(handler->fd != -1) {
 			close(handler->fd);
 			handler->fd = -1;
 		}
@@ -531,7 +531,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 		for(i=0; i < nsd->child_count; i++) {
 			nsd->children[i].need_to_exit = 1;
 			if(nsd->children[i].pid > 0 &&
-			   nsd->children[i].child_fd > 0) {
+			   nsd->children[i].child_fd != -1) {
 				nsd->children[i].need_to_send_QUIT = 1;
 				nsd->children[i].handler->event_types
 					|= NETIO_EVENT_WRITE;
@@ -544,19 +544,18 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 		break;
 	case NSD_SKIP_DIFF:
 		len = read(handler->fd, &diff_pos, sizeof(diff_pos));
-	       	if (len == -1) {
+		if (len == -1) {
 			log_msg(LOG_ERR, "handle_reload_command: diff_pos: %s",
-			strerror(errno));
+				strerror(errno));
 			return;
 		} else if (len == 0) {
-			if(handler->fd >= 0) {
+			if(handler->fd != -1) {
 				close(handler->fd);
 				handler->fd = -1;
 			}
-			log_msg( LOG_ERR
-			       , "handle_reload_cmd: "
-			         "reload closed cmd channel (in skipp_diff)"
-			       );
+			log_msg(LOG_ERR, 
+				"handle_reload_cmd: "
+			        "reload closed cmd channel (in skipp_diff)");
 			return;
 		};
 		log_msg(LOG_INFO , "setting diff_skip: %d" , (int) diff_pos);

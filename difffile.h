@@ -17,9 +17,11 @@
 #define DIFF_PART_IXFR ('I'<<24 | 'X'<<16 | 'F'<<8 | 'R')
 #define DIFF_PART_SURE ('S'<<24 | 'U'<<16 | 'R'<<8 | 'E')
 
-#define SURE_PART_UNVERIFIED	2
-#define SURE_PART_VERIFIED	1
-#define SURE_PART_BAD		0
+enum commit_value_type {
+	SURE_PART_BAD,
+	SURE_PART_VERIFIED,
+	SURE_PART_UNVERIFIED
+};
 
 /*
  * Used to pass commit logs
@@ -43,7 +45,7 @@ void diff_write_packet(const char* zone, uint32_t new_serial, uint16_t id,
  */
 void diff_write_commit(const char* zone, uint32_t old_serial,
 	uint32_t new_serial, uint16_t id, uint32_t num_parts,
-	uint8_t commit, const char* log_msg,
+	enum commit_value_type commit_value, const char* log_msg,
 	nsd_options_t* opt);
 
 /* check if the crc in the nsd.db is the same in memory as on disk.
@@ -61,12 +63,8 @@ int db_crc_different(namedb_type* db);
  *
  * returns 0 on an unrecoverable error. 
  */
-int diff_read_file( namedb_type* db
-		  , nsd_options_t* opt
-		  , struct diff_log** log
-		  , size_t child_count
-		  , int* skip_zones_with_verifier
-		  );
+int diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
+	size_t child_count, int* skip_zones_with_verifier);
 
 /* check the diff file for garbage at the end (bad type, partial write)
  * and snip it off.
@@ -82,22 +80,12 @@ int diff_read_8(FILE *in, uint8_t* result);
 int diff_read_str(FILE* in, char* buf, size_t len);
 
 /*
- * Log of positions of commit bytes in a difffile for an update of a zone.
- */
-	struct commit_crumb;
-typedef struct commit_crumb commit_crumb_type;
-
-/*
- * Walk the zone->commit_trail and write <state> at the commit spots.
+ * Walk the zone->commit_trail and write <commit_value> at the commit spots.
  * Dispose the trail after that has been done.
  * Be very carefull that the same region is used that was used for
  * update_commit_trail!
  */
-int write_commit_trail( region_type* region
-		      , const char* filename
-		      , FILE** df
-		      , zone_type* zone
-		      , uint8_t state
-		      );
+int write_commit_trail(region_type* region, const char* filename, FILE** df,
+	zone_type* zone, enum commit_value_type commit_value);
 
 #endif /* DIFFFILE_H */

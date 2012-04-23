@@ -311,7 +311,7 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 		setenv("VERIFY_IPV6_ADDRESS", ip6addr, 1);
 		setenv("VERIFY_IPV6_PORT", ip6port, 1);
 		setenv("VERIFY_IP_ADDRESS", ip6addr, 1);
-		setenv("VERIFY_IP_PORT", ip6port, 1);
+		setenv("VERIFY_PORT", ip6port, 1);
 	}
 	if (*ip4addr) {
 		ip4port[-1] = 0;
@@ -320,7 +320,7 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 		setenv("VERIFY_IPV4_PORT", ip4port, 1);
 		if (!*ip6addr) {
 			setenv("VERIFY_IP_ADDRESS", ip4addr, 1);
-			setenv("VERIFY_IP_PORT", ip4port, 1);
+			setenv("VERIFY_PORT", ip4port, 1);
 		}
 	}
 	region_recycle(nsd->region, buf, bufsz);
@@ -1153,7 +1153,7 @@ main(int argc, char *argv[])
 	nsd.quit_sync_done = 0;
 
 	/* Initialize the server... */
-	if (server_init(&nsd) != 0) {
+	if (! server_init(&nsd)) {
 		log_msg(LOG_ERR, "server initialization failed, %s could "
 			"not be started", argv0);
 		exit(1);

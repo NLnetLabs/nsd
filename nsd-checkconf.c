@@ -42,12 +42,8 @@ extern int optind;
 
 #define ZONE_GET_STR_LIST(NAME, VAR) 		\
 	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
-		if(zone->NAME==NULL)		\
-			printf("\n");		\
-		else if(*zone->NAME==NULL)	\
-			printf("\n");		\
-		else				\
-			printf("%s\n", *zone->NAME); \
+		quote_strings(zone->NAME);	\
+		return;				\
 	}
 
 #define ZONE_GET_BIN(NAME, VAR) 			\
@@ -133,20 +129,30 @@ print_string_var(const char* varname, const char* value)
 }
 
 static void
+quote_strings(char* const* value)
+{
+	if (value) {
+		while (*value) {
+			if (strchr(*value, ' ') || strchr(*value, '\t'))
+				printf("\"%s\"", *value);
+			else
+				printf("%s", *value);
+			if (*++value) {
+				printf(" ");
+			};
+		}
+	}
+	printf("\n");
+}
+
+static void
 print_strings_var(const char* varname, char* const* value)
 {
 	if (!value) {
 		printf("\t#%s\n", varname);
 	} else {
 		printf("\t%s ", varname);
-		while (*value) {
-			if (strchr(*value, ' ') || strchr(*value, '\t'))
-				printf(" \"%s\"", *value);
-			else
-				printf(" %s", *value);
-			value++;
-		}
-		printf("\n");
+		quote_strings(value);
 	}
 }
 

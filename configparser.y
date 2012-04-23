@@ -35,27 +35,29 @@ static int server_settings_seen = 0;
  * cfg_parser->current_cmd and turns them into an vector of arguments 
  * (char* const argv[]) for use in the execve family of functions.
  */
-static cmd_option_t* cmd_i = NULL;
 static char* const* cmds2args()
 {
-	char** arg_i = NULL;
-	char** ret = region_alloc( cfg_parser->opt->region
-				 , cfg_parser->current_cmd_count
-				   * sizeof(char*) + sizeof(char*)
-				 );
+	cmd_option_t* cmd_i;
+	char** arg_i;
+	char** ret = region_alloc(
+		cfg_parser->opt->region,
+		cfg_parser->current_cmd_count * sizeof(char*) + sizeof(char*)
+		);
 
 	arg_i = ret + cfg_parser->current_cmd_count;
-       *arg_i-- = NULL;
+	*arg_i-- = NULL;
 	cmd_i = cfg_parser->current_cmd;
 
-	while ( cmd_i ) {
-	       *arg_i-- = cmd_i->arg;
-		cmd_i   = cmd_i->next;
+	while(cmd_i)
+	{
+		*arg_i-- = cmd_i->arg;
+		cmd_i    = cmd_i->next;
 
-		region_recycle( cfg_parser->opt->region
-			      , cfg_parser->current_cmd
-			      , sizeof(cmd_option_t)
-			      );
+		region_recycle(
+			cfg_parser->opt->region,
+			cfg_parser->current_cmd,
+			sizeof(cmd_option_t)
+			);
 		cfg_parser->current_cmd = cmd_i;
 	}
 	cfg_parser->current_cmd_count = 0;
@@ -68,22 +70,24 @@ static char* const* cmds2args()
  * Update linked list of ip-addresses. Used by server_ip_address and
  * server_verify_ip_address.
  */
-static void add_ip_address( ip_address_option_t** head
-			  , ip_address_option_t** tail
-			  , const char*           address
-			  )
+static void add_ip_address(
+	ip_address_option_t** head,
+	ip_address_option_t** tail,
+	const char* address
+	)
 {
-	ip_address_option_t* node = REGION_MALLOC( cfg_parser->opt->region
-						 , ip_address_option_t
-						 );
+	ip_address_option_t* node = REGION_MALLOC(
+		cfg_parser->opt->region,
+		ip_address_option_t
+		);
 	node->next = NULL;
 	node->address = region_strdup(cfg_parser->opt->region, address);
 	
-	if (!*head) {
+	if(!*head) {
 		*head = *tail = node;
 	} else {
 		(*tail)->next = node;
-		 *tail = node;
+		*tail = node;
 	}
 }
 			
@@ -146,10 +150,11 @@ server_ip_address: VAR_IP_ADDRESS STRING
 	{ 
 		OUTYY(("P(server_ip_address:%s)\n", $2)); 
 
-		add_ip_address( &cfg_parser->opt->ip_addresses
-			      , &cfg_parser->current_ip_address_option
-			      , $2
-			      );
+		add_ip_address(
+			&cfg_parser->opt->ip_addresses,
+			&cfg_parser->current_ip_address_option,
+			$2
+			);
 	}
 	;
 server_debug_mode: VAR_DEBUG_MODE STRING 
@@ -211,7 +216,7 @@ server_nsid: VAR_NSID STRING
 
 		OUTYY(("P(server_nsid:%s)\n", $2));
 
-                if (strlen($2) % 2 != 0) {
+                if(strlen($2) % 2 != 0) {
 			yyerror("the NSID must be a hex string of an even length.");
 		} else {
 			nsid_len = strlen($2) / 2;
@@ -340,46 +345,50 @@ server_verify_ip_address: VAR_VERIFY_IP_ADDRESS STRING
 	{ 
 		OUTYY(("P(server_verify_ip_address:%s)\n", $2)); 
 
-		add_ip_address( &cfg_parser->opt->verify_ip_addresses
-			      , &cfg_parser->current_verify_ip_address_option
-			      , $2
-			      );
+		add_ip_address(
+			&cfg_parser->opt->verify_ip_addresses,
+			&cfg_parser->current_verify_ip_address_option,
+			$2
+			);
 	}
 	;
 server_verify_port: VAR_VERIFY_PORT STRING 
 	{ 
 		OUTYY(("P(server_verify_port:%s)\n", $2)); 
 
-		cfg_parser->opt
-			  ->verify_port = region_strdup( cfg_parser->opt->region
-			  			       , $2
-						       );
+		cfg_parser->opt->verify_port =
+			region_strdup( cfg_parser->opt->region, $2);
 	}
 	;
 server_verifier_count: VAR_VERIFIER_COUNT STRING
 	{ 
-		OUTYY(("P(server_verifier_count:%s)\n", $2)); 
-		if(atoi($2) < 0)
+		OUTYY(("P(server_verifier_count:%s)\n", $2));
+
+		if(atoi($2) < 0) {
 			yyerror("positive number expected");
-		else cfg_parser->opt->verifier_count = atoi($2);
+		} else {
+			cfg_parser->opt->verifier_count = atoi($2);
+		}
 	}
 	;
 server_verifier_feed_zone: VAR_VERIFIER_FEED_ZONE STRING 
 	{ 
 		OUTYY(("P(server_verifier_feed_zone:%s)\n", $2)); 
 
-		if (strcmp($2, "yes") != 0 && strcmp($2, "no") != 0)
+		if (strcmp($2, "yes") != 0 && strcmp($2, "no") != 0) {
 			yyerror("expected yes or no.");
-
-		else cfg_parser->opt
-			       ->verifier_feed_zone = strcmp($2, "yes") == 0;
+		} else {
+			cfg_parser->opt->verifier_feed_zone =
+				(strcmp($2, "yes") == 0);
+		}
 	}
 	;
 server_verifier_timeout: VAR_VERIFIER_TIMEOUT STRING
 	{ 
 		OUTYY(("P(server_verifier_timeout:%s)\n", $2)); 
-		if(atoi($2) <= 0 && strcmp($2, "0") != 0)
+		if(atoi($2) <= 0 && strcmp($2, "0") != 0) {
 			yyerror("positive number or zero expected");
+		}
 		cfg_parser->opt->verifier_timeout = atoi($2);
 	}
 	;
@@ -587,14 +596,13 @@ key_secret: VAR_SECRET STRING
 	;
 cmd_arg: STRING
 	{
-		cmd_i = cfg_parser->current_cmd;
+		cmd_option_t* cmd_i = cfg_parser->current_cmd;
 
-		cfg_parser->current_cmd = REGION_MALLOC( cfg_parser->opt->region
-						       , cmd_option_t
-						       );
+		cfg_parser->current_cmd = REGION_MALLOC(
+			cfg_parser->opt->region, cmd_option_t);
 
-		cfg_parser->current_cmd
-			  ->arg = region_strdup(cfg_parser->opt->region, $1);
+		cfg_parser->current_cmd->arg =
+			region_strdup(cfg_parser->opt->region, $1);
 
 		cfg_parser->current_cmd->next = cmd_i;
 		cfg_parser->current_cmd_count++;
@@ -610,20 +618,15 @@ zone_verifier_feed_zone: VAR_VERIFIER_FEED_ZONE STRING
 	{ 
 		OUTYY(("P(zone_verifier_feed_zone:%s)\n", $2)); 
 
-		if (strcmp($2, "inherit") == 0) {
-
-			cfg_parser
-			->current_zone
-			->verifier_feed_zone = ZONE_VERIFIER_FEED_ZONE_INHERIT;
-
-		} else if (strcmp($2, "yes") == 0) {
-
-			cfg_parser->current_zone->verifier_feed_zone = 1;
-
-		} else if (strcmp($2, "no") == 0) {
-
-			cfg_parser->current_zone->verifier_feed_zone = 0;
-
+		if(strcmp($2, "inherit") == 0) {
+			cfg_parser->current_zone->verifier_feed_zone =
+				ZONE_VERIFIER_FEED_ZONE_INHERIT;
+		} else if(strcmp($2, "yes") == 0) {
+			cfg_parser->current_zone->verifier_feed_zone =
+				VERIFIER_FEED_ZONE_YES;
+		} else if(strcmp($2, "no") == 0) {
+			cfg_parser->current_zone->verifier_feed_zone =
+				VERIFIER_FEED_ZONE_NO;
 		} else {
 			yyerror("expected yes, no or inherit.");
 		}
@@ -633,17 +636,12 @@ zone_verifier_timeout: VAR_VERIFIER_TIMEOUT STRING
 	{ 
 		OUTYY(("P(zone_verifier_timeout:%s)\n", $2));
 
-		if (strcmp($2, "inherit") == 0) {
-
-			cfg_parser
-			->current_zone
-			->verifier_timeout = ZONE_VERIFIER_TIMEOUT_INHERIT;
-
+		if(strcmp($2, "inherit") == 0) {
+			cfg_parser->current_zone->verifier_timeout =
+				ZONE_VERIFIER_TIMEOUT_INHERIT;
 		} else if(atoi($2) <= 0 && strcmp($2, "0") != 0) {
-
 			yyerror("positive number, zero or inherit expected");
 		} else {
-
 			cfg_parser->current_zone->verifier_timeout = atoi($2);
 		}
 	}

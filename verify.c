@@ -252,22 +252,22 @@ nsd_popen3( char* const* command
 	return pid;
 
 error:
-	if(in_pipe[0] >= 0) {
+	if(in_pipe[0] != -1) {
 		close(in_pipe[0]);
 	}
-	if(in_pipe[1] >= 0) {
+	if(in_pipe[1] != -1) {
 		close(in_pipe[1]);
 	}
-	if(out_pipe[0] >= 0) {
+	if(out_pipe[0] != -1) {
 		close(out_pipe[0]);
 	}
-	if(out_pipe[1] >= 0) {
+	if(out_pipe[1] != -1) {
 		close(out_pipe[1]);
 	}
-	if(err_pipe[0] >= 0) {
+	if(err_pipe[0] != -1) {
 		close(err_pipe[0]);
 	}
-	if(err_pipe[1] >= 0) {
+	if(err_pipe[1] != -1) {
 		close(err_pipe[1]);
 	}
 	return -1;
@@ -317,7 +317,7 @@ handle_log_from_fd( netio_type* netio
 	char  tmp_c;
 
 	assert( lfd != NULL );
-	assert( lfd->fd >= 0 );
+	assert( lfd->fd != -1 );
 	assert( lfd->pos < lfd->buf + LOGLINELEN );
 
 	if (! (event_types & NETIO_EVENT_READ)) {
@@ -359,15 +359,13 @@ handle_log_from_fd( netio_type* netio
 			tmp_c  = *split;
 			*split = 0;
 			log_msg(lfd->priority, "%s ...", sol);
-			sol = split -= 4;
+			sol = (split -= 4);
 			*split++ = '.'; *split++ = '.'; *split++ = '.';
 			*split++ = ' '; *split = tmp_c;
 		}
 		eol = lfd->pos;
-		lfd->pos = lfd->buf;
-		while (sol < eol) {
-			*lfd->pos++ = *sol++;
-		}
+		memmove(lfd->buf, sol, (eol - sol));
+		lfd->pos = lfd->buf + (eol - sol);
 	} else {
 		lfd->pos = lfd->buf;
 	}
@@ -485,15 +483,15 @@ cleanup_verifier( netio_type* netio
 {
 	assert( netio != NULL && v != NULL );
 
-	if (v->lfderr.fd >= 0) {
+	if (v->lfderr.fd != -1) {
 		netio_remove_handler(netio, &v->from_stderr_handler);
 		close(v->lfderr.fd);
 	}
-	if (v->lfdout.fd >= 0) {
+	if (v->lfdout.fd != -1) {
 		netio_remove_handler(netio, &v->from_stdout_handler);
 		close(v->lfdout.fd);
 	}
-	if (v->to_stdin_user_data.to_stdin >= 0) {
+	if (v->to_stdin_user_data.to_stdin != -1) {
 		netio_remove_handler(netio, &v->to_stdin_handler);
 		close(v->to_stdin_user_data.to_stdin);
 	}
@@ -658,7 +656,7 @@ verifier_commit(server_verify_zone_state_type* s, verifier_state_type* v)
 }
 
 /*
- * server_verify_zones waits for verifiers to exit. Is one exits it calls
+ * server_verify_zones waits for verifiers to exit. If one exits it calls
  * verifier_commit when the exit status was 0, verifier_revoke otherwise.
  * verifier_revoke is also called when a verifier is terminated externally (for
  * example by a timeout).
@@ -940,9 +938,10 @@ server_verifiers_add( server_verify_zone_state_type** state
 	/* How long may this verifier take? Is a verifier-timeout configured? */
 	
 	v->timeout_spec.tv_nsec = 0;
-	v->timeout_spec.tv_sec  =   v->zone->opts->verifier_timeout >= 0
-				  ? v->zone->opts->verifier_timeout
-				  : s->nsd->options->verifier_timeout;
+	v->timeout_spec.tv_sec  =   v->zone->opts->verifier_timeout
+				    == ZONE_VERIFIER_TIMEOUT_INHERIT
+				  ? s->nsd->options->verifier_timeout
+				  : v->zone->opts->verifier_timeout;
 
 	if (v->timeout_spec.tv_sec > 0) {
 		log_msg( LOG_INFO
@@ -996,6 +995,21 @@ error:
 }
 
 /*
+ * Return 1 if there are no running verifiers. 0 otherwise.
+ */
+static int
+all_verifiers_are_done(server_verify_zone_state_type* s)
+{
+	int i;
+	for (i = 0; i < s->nsd->options->verifier_count; i++) {
+		if (s->verifiers[i].zone) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+/*
  * Run the server_verify_zones process until all verifiers are finished.
  */
 static void
@@ -1010,12 +1024,8 @@ server_verifiers_wait( server_verify_zone_state_type** state
 	assert( state && good_zones && bad_zones );
 
 	if ((s = *state) != NULL) {
-wait:
-		for (i = 0; i < s->nsd->options->verifier_count; i++) {
-			if (s->verifiers[i].zone) {
-				server_verify_zones(s, good_zones, bad_zones);
-				goto wait;
-			}
+		while (!all_verifiers_are_done(s)) {
+			server_verify_zones(s, good_zones, bad_zones);
 		}
 		if (s->df) {
 			fclose(s->df);
