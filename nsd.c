@@ -159,69 +159,54 @@ get_ip_port_frm_str(const char* arg, const char** hostname,
 
 /* Set up the address info structures with real interface/port data.
  */
-void setup_address_info( const nsd_type* nsd
-		       , int n
-		       , const char** nodes
-		       , struct addrinfo* hints
-		       , struct nsd_socket* udp
-		       , const char* default_udp_service
-		       , struct nsd_socket* tcp
-		       , const char* default_tcp_service
-		       )
+void setup_address_info(const nsd_type* nsd, int n, const char** nodes,
+	struct addrinfo* hints, struct nsd_socket* udp,
+	const char* default_udp_service, struct nsd_socket* tcp,
+	const char* default_tcp_service)
 {
 	int r;
 	const char* node = NULL;
 	const char* service = NULL;
 
-	for (; n--; nodes++, hints++, udp++, tcp++) {
+	for(; n--; nodes++, hints++, udp++, tcp++) {
 
-		if (*nodes)
+		if(*nodes) {
 			hints->ai_flags |= AI_NUMERICHOST;
-
+		}
 		get_ip_port_frm_str(*nodes, &node, &service);
 
 		hints->ai_socktype = SOCK_DGRAM;
 
-		if ((r = getaddrinfo( node
-				    , service ? service : default_udp_service
-				    , hints
-				    , &udp->addr
-				    )) != 0) {
+		if((r = getaddrinfo(node,
+				     service ? service : default_udp_service,
+				     hints, &udp->addr)) != 0) {
 #ifdef INET6
-			if (nsd->grab_ip6_optional 
-			&&  hints->ai_family == AF_INET6) {
+			if(nsd->grab_ip6_optional &&
+					hints->ai_family == AF_INET6) {
 
-				log_msg( LOG_WARNING
-				       , "No IPv6, fallback to IPv4. "
-				         "getaddrinfo: %s"
-				       , r == EAI_SYSTEM
-				         ? strerror(errno)
-					 : gai_strerror(r)
-				       );
+				log_msg(LOG_WARNING,
+					"No IPv6, fallback to IPv4. "
+					"getaddrinfo: %s",
+					(r == EAI_SYSTEM) ? strerror(errno)
+							  : gai_strerror(r));
 
 				continue;
 			}
 #endif
-			error( "cannot parse address '%s': getaddrinfo: %s %s"
-			     , *nodes ? *nodes : "(null)"
-			     , gai_strerror(r)
-			     , r == EAI_SYSTEM ? strerror(errno) : ""
-			     );
+			error("cannot parse address '%s': getaddrinfo: %s %s",
+				(*nodes) ? *nodes : "(null)", gai_strerror(r),
+				(r == EAI_SYSTEM) ? strerror(errno) : "");
 		}
 
 		hints->ai_socktype = SOCK_STREAM;
 
-		if ((r = getaddrinfo( node
-				    , service ? service : default_tcp_service
-				    , hints
-				    , &tcp->addr
-				    )) != 0) {
+		if((r = getaddrinfo(node,
+					service ? service : default_tcp_service,
+					hints, &tcp->addr)) != 0) {
 
-			error( "cannot parse address '%s': getaddrinfo: %s %s"
-			     , *nodes ? *nodes : "(null)"
-			     , gai_strerror(r)
-			     , r == EAI_SYSTEM ? strerror(errno) : ""
-			     );
+			error("cannot parse address '%s': getaddrinfo: %s %s",
+				(*nodes) ? *nodes : "(null)", gai_strerror(r),
+				(r == EAI_SYSTEM) ? strerror(errno) : "");
 		}
 	}
 }
@@ -251,37 +236,34 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 
 	ip6addr = ip6port = ip6end = ip4addr = ip4port = ip4end = "";
 
-	if (bufsz == 0)
+	if(bufsz == 0) {
 		bufsz = 46 * nsd->verify_ifs;
+	}
 
 	buf = region_alloc(nsd->region, bufsz);
 	*buf = 0;
 	ptr = buf;
 
-	for (i = 0; i < nsd->verify_ifs; i++) {
-		r =  getnameinfo( nsd->verify_udp[i].addr->ai_addr
-				, nsd->verify_udp[i].addr->ai_addrlen
-				, host, NI_MAXHOST
-				, serv, NI_MAXSERV
-				, NI_NUMERICHOST | NI_NUMERICSERV
-				);
-		if (r != 0) {
-			log_msg( LOG_ERR
-			       , "error in getnameinfo: %s"
-			       , gai_strerror(r)
-			       );
+	for(i = 0; i < nsd->verify_ifs; i++) {
+		r = getnameinfo(nsd->verify_udp[i].addr->ai_addr,
+				nsd->verify_udp[i].addr->ai_addrlen,
+				host, NI_MAXHOST, serv, NI_MAXSERV,
+				NI_NUMERICHOST | NI_NUMERICSERV);
+		if(r != 0) {
+			log_msg(LOG_ERR, "error in getnameinfo: %s",
+					 gai_strerror(r));
 			continue;
 		}
 		hl = strlen(host);
 		sl = strlen(serv);
 		/* if space needed > space available */
-		if (hl + sl + 2 > bufsz - (ptr - buf)) {
+		if(hl + sl + 2 > bufsz - (ptr - buf)) {
 			/* we need a bigger bugger */
 			region_recycle(nsd->region, buf, bufsz);
 			setup_verifier_environment(nsd, bufsz * 2);
 			return;
 		}
-		if (ptr > buf) {
+		if(ptr > buf) {
 			*ptr++ = ' ';
 		}
 		ipaddr = ptr;
@@ -292,12 +274,11 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 		strcpy(ptr, serv);
 		ptr += sl;
 
-		if (nsd->verify_udp[i].addr->ai_family == AF_INET6 
-		&& !*ip6addr) {
+		if(nsd->verify_udp[i].addr->ai_family == AF_INET6 && !*ip6addr){
 			ip6addr = ipaddr;
 			ip6port = ipport;
 			ip6end = ptr;
-		} else if (!*ip4addr) {
+		} else if(!*ip4addr) {
 			ip4addr = ipaddr;
 			ip4port = ipport;
 			ip4end = ptr;
@@ -305,7 +286,7 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 
 	}
 	setenv("VERIFY_IP_ADDRESSES", buf, 1);
-	if (*ip6addr) {
+	if(*ip6addr) {
 		ip6port[-1] = 0;
 		*ip6end     = 0;
 		setenv("VERIFY_IPV6_ADDRESS", ip6addr, 1);
@@ -313,12 +294,12 @@ void setup_verifier_environment(nsd_type* nsd, size_t bufsz)
 		setenv("VERIFY_IP_ADDRESS", ip6addr, 1);
 		setenv("VERIFY_PORT", ip6port, 1);
 	}
-	if (*ip4addr) {
+	if(*ip4addr) {
 		ip4port[-1] = 0;
 		*ip4end     = 0;
 		setenv("VERIFY_IPV4_ADDRESS", ip4addr, 1);
 		setenv("VERIFY_IPV4_PORT", ip4port, 1);
-		if (!*ip6addr) {
+		if(!*ip6addr) {
 			setenv("VERIFY_IP_ADDRESS", ip4addr, 1);
 			setenv("VERIFY_PORT", ip4port, 1);
 		}
@@ -853,10 +834,10 @@ main(int argc, char *argv[])
 	{
 		ip_address_option_t* ip = nsd.options->verify_ip_addresses;
 		while(ip) {
-			if (*verify_port || strchr(ip->address, '@')) {
-				if (nsd.ifs+nsd.verify_ifs < MAX_INTERFACES) {
-					verify_nodes[nsd.verify_ifs]
-							= ip->address;
+			if(*verify_port || strchr(ip->address, '@')) {
+				if(nsd.ifs+nsd.verify_ifs < MAX_INTERFACES) {
+					verify_nodes[nsd.verify_ifs] =
+						ip->address;
 					++nsd.verify_ifs;
 				} else {
 					error("too many interfaces "
@@ -972,27 +953,14 @@ main(int argc, char *argv[])
 #endif /* INET6 */
 	}
 
-	setup_address_info( &nsd
-			  , nsd.ifs
-			  , nodes
-			  , hints
-			  , nsd.udp
-			  , udp_port
-			  , nsd.tcp
-			  , tcp_port
-			  );
+	setup_address_info(&nsd, nsd.ifs, nodes, hints,
+			nsd.udp, udp_port, nsd.tcp, tcp_port);
 
-	setup_address_info( &nsd
-			  , nsd.verify_ifs
-			  , verify_nodes
-			  , verify_hints
-			  , nsd.verify_udp
-			  , verify_port
-			  , nsd.verify_tcp
-			  , verify_port
-			  );
+	setup_address_info(&nsd, nsd.verify_ifs, verify_nodes, verify_hints,
+			nsd.verify_udp, verify_port,
+			nsd.verify_tcp, verify_port);
 
-	if (nsd.verify_ifs) {
+	if(nsd.verify_ifs) {
 		setup_verifier_environment(&nsd, 0);
 	}
 

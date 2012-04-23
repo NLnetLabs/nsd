@@ -375,9 +375,8 @@ config_test_print_server(nsd_options_t* opt)
 	}
 	print_string_var("verify-port:", opt->verify_port);
 	printf("\tverifier-count: %d\n", opt->verifier_count);
-	printf( "\tverifier-feed-zone: %s\n"
-	      , opt->verifier_feed_zone ? "yes" : "no"
-	      );
+	printf("\tverifier-feed-zone: %s\n",
+		(opt->verifier_feed_zone ? "yes" : "no"));
 	printf("\tverifier-timeout: %d\n", opt->verifier_timeout);
 
 	for(ip = opt->ip_addresses; ip; ip=ip->next)
@@ -404,30 +403,20 @@ config_test_print_server(nsd_options_t* opt)
 		print_acl_ips("outgoing-interface:", zone->outgoing_interface);
 		printf("\tallow-axfr-fallback: %s\n", zone->allow_axfr_fallback?"yes":"no");
 		print_strings_var("verifier:", zone->verifier);
-		printf( "\tverifier-feed-zone: %s"
-		      , zone->verifier_feed_zone == 0
-		        ? "no"
-			: zone->verifier_feed_zone == 1
-			  ? "yes"
-			  : "inherit"
-		      );
-		if (zone->verifier_feed_zone 
-		==  ZONE_VERIFIER_FEED_ZONE_INHERIT) {
-
-			printf( "\t# inherited value: %s\n"
-			      , opt->verifier_feed_zone ? "yes" : "no"
-			      );
+		printf("\tverifier-feed-zone: %s",
+			(zone->verifier_feed_zone == 0 ? "no" :
+			(zone->verifier_feed_zone == 1 ? "yes" : "inherit")));
+		if(zone->verifier_feed_zone == ZONE_VERIFIER_FEED_ZONE_INHERIT){
+			printf("\t# inherited value: %s\n",
+				(opt->verifier_feed_zone ? "yes" : "no"));
 		}
-		if (zone->verifier_timeout == ZONE_VERIFIER_TIMEOUT_INHERIT) {
-
-			printf( "\tverifier-timeout: inherit"
-				"\t# inherited value: %d\n"
-			      , opt->verifier_timeout
-			      );
+		if(zone->verifier_timeout == ZONE_VERIFIER_TIMEOUT_INHERIT) {
+			printf("\tverifier-timeout: inherit"
+				"\t# inherited value: %d\n",
+				opt->verifier_timeout);
 		} else {
-			printf( "\tverifier-timeout: %d\n"
-			      , zone->verifier_timeout
-			      );
+			printf("\tverifier-timeout: %d\n",
+				zone->verifier_timeout);
 		}
 	}
 

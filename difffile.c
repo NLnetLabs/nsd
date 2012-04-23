@@ -188,7 +188,7 @@ write_commit_trail(region_type* region,
 					filename));
 	if(!*df) {
 		*df = fopen(filename, "r+");
-		if (!*df) {
+		if(!*df) {
 			log_msg(LOG_ERR,
 				"could not open file %s for reading: %s",
 				filename, strerror(errno));
@@ -197,7 +197,7 @@ write_commit_trail(region_type* region,
 	}
 	while(crumb)
 	{
-		if (fseeko(*df, crumb->commitpos, SEEK_SET) == -1) {
+		if(fseeko(*df, crumb->commitpos, SEEK_SET) == -1) {
 			log_msg(LOG_ERR,
 				"could not fseeko file %s to pos %d, "
 				"to set the commit byte to value %d: %s.",
@@ -334,8 +334,8 @@ add_rdata_to_recyclebin(namedb_type* db, rr_type* rr)
 	{
 		if(!rdata_atom_is_domain(rr->type, i))
 			region_recycle(db->region, rr->rdatas[i].data,
-				rdata_atom_size(rr->rdatas[i])
-				+ sizeof(uint16_t));
+				rdata_atom_size(rr->rdatas[i]) +
+				sizeof(uint16_t));
 	}
 	region_recycle(db->region, rr->rdatas,
 		sizeof(rdata_atom_type)*rr->rdata_count);
@@ -368,7 +368,7 @@ static domain_type*
 rrset_delete_empty_terminals(domain_type* domain, domain_type* ce)
 {
 	assert(domain);
-	if (domain->rrsets == 0) {
+	if(domain->rrsets == 0) {
 		/* if there is no data below it, it becomes non existing.
 		   also empty nonterminals above it become nonexisting */
 		/* check for data below this node. */
@@ -441,7 +441,7 @@ rrset_delete(namedb_type* db, domain_type* domain, rrset_type* rrset)
 	region_recycle(db->region, rrset, sizeof(rrset_type));
 
 	/* is the node now an empty node (completely deleted) */
-	if (domain->rrsets == 0) {
+	if(domain->rrsets == 0) {
 		return domain;
 	}
 	return NULL;
@@ -554,7 +554,7 @@ delete_RR(namedb_type* db, const dname_type* dname,
 		if(rrset->rr_count == 1) {
 			/* delete entire rrset */
 			domain = rrset_delete(db, domain, rrset);
-			if (domain && domain != prevdomain && !domain->nextdiff) {
+			if(domain && domain != prevdomain && !domain->nextdiff) {
 				/* this domain is not yet in the diff chain */
 				prevdomain->nextdiff = domain;
 			}
@@ -934,8 +934,8 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 		region_destroy(region);
 		return 0;
 	}
-	msglen = filelen - sizeof(uint32_t)*3 - sizeof(uint16_t)
-		- strlen(file_zone_name);
+	msglen = filelen - sizeof(uint32_t)*3 -
+			   sizeof(uint16_t) - strlen(file_zone_name);
 	packet = buffer_create(region, QIOBUFSZ);
 	dname_zone = dname_parse(region, zone);
 	zone_db = find_zone(db, dname_zone, opt, child_count);
@@ -1118,8 +1118,9 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			dname_to_string(dname,0), rrtype_to_string(type)));
 		if(*delete_mode) {
 			/* delete this rr */
-			if(!*is_axfr && type == TYPE_SOA && counter==ancount-1
-				&& seq_nr == seq_total-1) {
+			if(!*is_axfr && type == TYPE_SOA &&
+					counter==ancount-1 &&
+					seq_nr == seq_total-1) {
 				continue; /* do not delete final SOA RR for IXFR */
 			}
 			if(!delete_RR(db, dname, type, klass, last_in_list, packet,
@@ -1127,7 +1128,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 				region_destroy(region);
 				return 0;
 			}
-			if (!*is_axfr && last_in_list->nextdiff) {
+			if(!*is_axfr && last_in_list->nextdiff) {
 				last_in_list = last_in_list->nextdiff;
 			}
 		}
@@ -1299,14 +1300,9 @@ mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
 }
 
 static int
-read_sure_part( namedb_type* db
-	      , FILE* in
-	      , nsd_options_t* opt
-	      , struct diff_read_data* data
-	      , struct diff_log** log
-	      , size_t child_count
-	      , int* skip_zones_with_verifier
-	      )
+read_sure_part(namedb_type* db, FILE* in, nsd_options_t* opt,
+		struct diff_read_data* data, struct diff_log** log,
+		size_t child_count, int* skip_zones_with_verifier)
 {
 	char zone_buf[3072];
 	char log_buf[5120];
@@ -1367,10 +1363,8 @@ read_sure_part( namedb_type* db
 	}
 	if(committed && check_for_bad_serial(db, zone_buf, old_serial)) {
 
-		DEBUG( DEBUG_XFRD
-		     , 1
-		     , (LOG_ERR, "skipping diff file commit with bad serial")
-		     );
+		DEBUG(DEBUG_XFRD, 1, (LOG_ERR,
+			"skipping diff file commit with bad serial"));
 		if(thislog) {
 			thislog->error = "error bad serial";
 		}
@@ -1382,13 +1376,10 @@ read_sure_part( namedb_type* db
 			have_all_parts = 0;
 		}
 	}
-	if (! have_all_parts) {
-
-		DEBUG( DEBUG_XFRD
-		     , 1
-		     , (LOG_ERR, "skipping diff file commit without all parts")
-		     );
-		if (thislog) {
+	if(!have_all_parts) {
+		DEBUG(DEBUG_XFRD, 1, (LOG_ERR,
+			"skipping diff file commit without all parts"));
+		if(thislog) {
 			thislog->error = "error missing parts";
 		}
 		goto done;
@@ -1405,40 +1396,32 @@ read_sure_part( namedb_type* db
 	}
 	zone = find_zone(db, zone_dname, opt, child_count);
 
-	region_recycle( db->region
-		      , (void *) zone_dname
-		      , dname_total_size(zone_dname)
-		      );
+	region_recycle(db->region, (void *) zone_dname,
+			dname_total_size(zone_dname));
 
-	if (zone == NULL) {
+	if(zone == NULL) {
 
- 		DEBUG( DEBUG_XFRD
-		     , 1
-		     , (LOG_INFO, "skipping xfr with nonexistent zone: %s"
-		     , log_buf)
-		     );
+ 		DEBUG(DEBUG_XFRD, 1, (LOG_INFO,
+			"skipping xfr with nonexistent zone: %s", log_buf));
 
-		log_msg( LOG_ERR
-		       , "xfr for nonexistent zone '%s' in the difffile"
-		       , dname_to_string(zone_dname, NULL)
-		       );
+		log_msg(LOG_ERR,
+			"xfr for nonexistent zone '%s' in the difffile",
+			dname_to_string(zone_dname, NULL));
+
 		goto done; /* This shouldn't be fatal, right? */
 	}
-	if (committed == SURE_PART_BAD) {
+	if(committed == SURE_PART_BAD) {
 
- 		DEBUG( DEBUG_XFRD
-		     , 1
-		     , (LOG_INFO, "skipping bad xfr: %s", log_buf)
-		     );
+ 		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "skipping bad xfr: %s",
+					log_buf));
 		goto done;
 	}
-	if (skip_zones_with_verifier && committed == SURE_PART_UNVERIFIED
-				     && zone->opts->verifier) {
+	if(skip_zones_with_verifier &&
+			committed == SURE_PART_UNVERIFIED &&
+			zone->opts->verifier) {
 
- 		DEBUG( DEBUG_XFRD
-		     , 1
-		     , (LOG_INFO, "defer verification: %s", log_buf)
-		     );
+ 		DEBUG(DEBUG_XFRD, 1, (LOG_INFO, "defer verification: %s",
+					log_buf));
 		(*skip_zones_with_verifier)++;
 
 		goto done;
@@ -1553,16 +1536,10 @@ store_ixfr_data(FILE *in, uint32_t len, struct diff_read_data* data, off_t* star
 }
 
 static int
-read_process_part( namedb_type* db
-		 , FILE *in
-		 , uint32_t type
-		 , nsd_options_t* opt
-		 , struct diff_read_data* data
-		 , struct diff_log** log
-		 , size_t child_count
-		 , off_t* startpos
-		 , int* skip_zones_with_verifier
-		 )
+read_process_part(namedb_type* db, FILE *in, uint32_t type, nsd_options_t* opt,
+		struct diff_read_data* data, struct diff_log** log,
+		size_t child_count, off_t* startpos,
+		int* skip_zones_with_verifier)
 {
 	uint32_t len, len2;
 
@@ -1577,14 +1554,8 @@ read_process_part( namedb_type* db
 	}
 	else if(type == DIFF_PART_SURE) {
 		DEBUG(DEBUG_XFRD,2, (LOG_INFO, "part SURE len %d", len));
-		if (! read_sure_part( db
-				    , in
-				    , opt
-				    , data
-				    , log
-				    , child_count
-				    , skip_zones_with_verifier
-				    )) {
+		if(!read_sure_part(db, in, opt, data, log, child_count,
+					skip_zones_with_verifier)) {
 			return 0;
 		}
 	} else {
@@ -1638,12 +1609,8 @@ find_smallest_offset(struct diff_read_data* data, off_t* offset)
 }
 
 int
-diff_read_file( namedb_type* db
-	      , nsd_options_t* opt
-	      , struct diff_log** log
-	      , size_t child_count
-	      , int* skip_zones_with_verifier
-	      )
+diff_read_file(namedb_type* db, nsd_options_t* opt, struct diff_log** log,
+		size_t child_count, int* skip_zones_with_verifier)
 {
 	const char* filename = opt->difffile;
 	FILE *df;
@@ -1731,16 +1698,9 @@ diff_read_file( namedb_type* db
 			return 0;
 		}
 
-		if(! read_process_part(  db
-				      ,  df
-				      ,  type
-				      ,  opt
-				      ,  data
-				      ,  log
-				      ,  child_count
-				      , &startpos
-				      ,  skip_zones_with_verifier
-				      )) {
+		if(!read_process_part(db, df, type, opt, data, log,
+					child_count, &startpos,
+					skip_zones_with_verifier)) {
 			log_msg(LOG_INFO, "error processing diff file");
 			region_destroy(data->region);
 			return 0;

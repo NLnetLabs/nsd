@@ -665,23 +665,20 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 		xfrd_set_refresh_now(zone);
 		return;
 	}
-	if (! xfrd->parent_bad_soa_infos
-	&&    zone->soa_nsd_acquired 
-	&&    zone->soa_nsd.serial   == soa->serial) {
-
+	if(!xfrd->parent_bad_soa_infos &&
+			zone->soa_nsd_acquired &&
+			zone->soa_nsd.serial == soa->serial) {
 		return;
 	}
 	if(zone->soa_disk_acquired && soa->serial == zone->soa_disk.serial)
 	{
-		if (xfrd->parent_bad_soa_infos) {
+		if(xfrd->parent_bad_soa_infos) {
 			/* Discard soa on disk. */
-			log_msg( LOG_INFO
-			       , "Zone %s serial %u is discarded. "
-			         "Reverting to serial %u."
-			       , zone->apex_str
-			       , ntohl(soa->serial)
-			       , ntohl(zone->soa_nsd.serial)
-			       );
+			log_msg(LOG_INFO, "Zone %s serial %u is discarded. "
+					  "Reverting to serial %u.",
+					  zone->apex_str, ntohl(soa->serial),
+					  ntohl(zone->soa_nsd.serial));
+
 			zone->soa_bad           = zone->soa_disk;
 			zone->soa_bad_acquired  = zone->soa_disk_acquired;
 
@@ -689,7 +686,7 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 			zone->soa_disk_acquired = zone->soa_nsd_acquired;
 
 			if((uint32_t)xfrd_time() - zone->soa_disk_acquired
-				>= ntohl(zone->soa_disk.expire)) {
+					>= ntohl(zone->soa_disk.expire)) {
 				/* zone expired */
 				xfrd_set_zone_state(zone, xfrd_zone_expired);
 			} else {
@@ -702,12 +699,10 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 
 		} else {
 			/* soa in disk has been loaded in memory */
-			log_msg( LOG_INFO
-			       , "Zone %s serial %u is updated to %u."
-			       , zone->apex_str
-			       , ntohl(zone->soa_nsd.serial)
-			       , ntohl(soa->serial)
-			       );
+			log_msg(LOG_INFO, "Zone %s serial %u is updated to %u.",
+					  zone->apex_str,
+					  ntohl(zone->soa_nsd.serial),
+					  ntohl(soa->serial));
 			zone->soa_bad_acquired = 0;
 
 			zone->soa_nsd          = zone->soa_disk;
@@ -736,10 +731,10 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 		}
 
 
-		if (zone->soa_notified_acquired != 0 
-		&& (zone->soa_notified.serial   == 0
-		||  compare_serial( ntohl(soa->serial)
-				  , ntohl(zone->soa_notified.serial)) >= 0)) {
+		if(zone->soa_notified_acquired != 0 && 
+		   (zone->soa_notified.serial == 0 ||
+		    compare_serial(ntohl(soa->serial),
+				   ntohl(zone->soa_notified.serial)) >= 0)) {
 
 			/* read was in response to this notification */
 			zone->soa_notified_acquired = 0;
@@ -752,11 +747,9 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 			xfrd_set_refresh_now(zone);
 		}
 
-		if (! xfrd->parent_bad_soa_infos) {
-			xfrd_send_notify( xfrd->notify_zones
-					, zone->apex
-					, &zone->soa_nsd
-					);
+		if(!xfrd->parent_bad_soa_infos) {
+			xfrd_send_notify(xfrd->notify_zones, zone->apex,
+					 &zone->soa_nsd);
 		}
 		return;
 	}
@@ -1322,18 +1315,13 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		 * soa, or the serial number in this transfer matches that
 		 * of the notify.
 		 */
-		if (zone->soa_bad_acquired != 0 
-		&&  compare_serial( ntohl(soa->serial)
-				  , ntohl(zone->soa_bad.serial)
-				  ) == 0
-
-		&& (     zone->soa_notified_acquired == 0 /* no notification */
-		   || (  zone->soa_notified.serial != 0
-		      && compare_serial( ntohl(soa->serial)
-		                       , ntohl(zone->soa_notified.serial)
-				       ) != 0
-		      )
-		   )) {
+		if(zone->soa_bad_acquired != 0 &&
+		   compare_serial(ntohl(soa->serial),
+				  ntohl(zone->soa_bad.serial)) == 0 &&
+		   (zone->soa_notified_acquired == 0 || /* no notification */
+		    (zone->soa_notified.serial != 0 &&
+		     compare_serial(ntohl(soa->serial),
+				    ntohl(zone->soa_notified.serial)) != 0))) {
 
 			DEBUG(DEBUG_XFRD,1, (LOG_INFO,
 				"xfrd: zone %s ignoring bad serial from %s",
@@ -1699,15 +1687,14 @@ xfrd_check_failed_updates()
 	RBTREE_FOR(zone, xfrd_zone_t*, xfrd->zones)
 	{
 		/* zone has a disk soa, and no nsd soa or a different nsd soa */
-		if ( zone->soa_disk_acquired != 0 
-		&& ( zone->soa_nsd_acquired == 0 
-		||   zone->soa_disk.serial != zone->soa_nsd.serial)) {
+		if(zone->soa_disk_acquired != 0 &&
+		   (zone->soa_nsd_acquired == 0 ||
+		    zone->soa_disk.serial != zone->soa_nsd.serial)) {
 
-			if (  zone->soa_disk_acquired 
-			    < xfrd->reload_cmd_last_sent
-			&& (  zone->soa_bad_acquired == 0
-			   || zone->soa_bad.serial   != zone->soa_disk.serial))
-			{
+			if(zone->soa_disk_acquired <
+					xfrd->reload_cmd_last_sent &&
+			   (zone->soa_bad_acquired == 0 ||
+			    zone->soa_bad.serial != zone->soa_disk.serial)) {
 				/* this zone should have been loaded, since its disk
 				   soa time is before the time of the reload cmd. */
 				xfrd_soa_t dumped_soa = zone->soa_disk;

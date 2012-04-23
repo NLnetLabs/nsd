@@ -519,9 +519,8 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 			close(handler->fd);
 			handler->fd = -1;
 		}
-		log_msg( LOG_NOTICE
-		       , "handle_reload_cmd: reload closed cmd channel"
-		       );
+		log_msg(LOG_NOTICE,
+			"handle_reload_cmd: reload closed cmd channel");
 		return;
 	}
 	switch (mode) {
@@ -544,11 +543,11 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 		break;
 	case NSD_SKIP_DIFF:
 		len = read(handler->fd, &diff_pos, sizeof(diff_pos));
-		if (len == -1) {
+		if(len == -1) {
 			log_msg(LOG_ERR, "handle_reload_command: diff_pos: %s",
 				strerror(errno));
 			return;
-		} else if (len == 0) {
+		} else if(len == 0) {
 			if(handler->fd != -1) {
 				close(handler->fd);
 				handler->fd = -1;
@@ -814,12 +813,9 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 	case NSD_BAD_SOA_BEGIN:
 		xfrd->parent_bad_soa_infos = 1;
 	case NSD_SOA_BEGIN:
-		DEBUG( DEBUG_IPC, 1, ( LOG_INFO
-				     , "xfrd: ipc recv %s"
-				     , cmd == NSD_SOA_BEGIN
-				       ? "NSD_SOA_BEGIN"
-				       : "NSD_BAD_SOA_BEGIN"
-				     ));
+		DEBUG(DEBUG_IPC, 1, (LOG_INFO, "xfrd: ipc recv %s",
+			 (cmd == NSD_SOA_BEGIN) ?
+				"NSD_SOA_BEGIN" : "NSD_BAD_SOA_BEGIN"));
 		/* reload starts sending SOA INFOs; don't block */
 		xfrd->parent_soa_info_pass = 1;
 		/* reset the nonblocking ipc write;
@@ -840,19 +836,16 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 	case NSD_RELOAD_AGAIN:
 
 		/* reload has finished */
-		DEBUG( DEBUG_IPC, 1, ( LOG_INFO
-				     , "xfrd: ipc recv %s"
-				     , cmd == NSD_SOA_END ? "NSD_SOA_END"
-							  : "NSD_RELOAD_AGAIN"
-				     ));
+		DEBUG(DEBUG_IPC, 1,(LOG_INFO, "xfrd: ipc recv %s",
+			 (cmd == NSD_SOA_END) ?
+				"NSD_SOA_END" : "NSD_RELOAD_AGAIN"));
 		xfrd->parent_soa_info_pass = 0;
 		xfrd->parent_bad_soa_infos = 0;
 		xfrd->ipc_send_blocked = 0;
 		handler->event_types |= NETIO_EVENT_WRITE;
 		xfrd_reopen_logfile();
 
-		if (cmd == NSD_SOA_END) {
-
+		if(cmd == NSD_SOA_END) {
 			xfrd_check_failed_updates();
 			xfrd_send_expy_all_zones();
 		}

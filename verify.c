@@ -56,11 +56,11 @@ typedef struct zone_iter_struct zone_iter_type;
 static rr_type*
 zone_iter_next(zone_iter_type* iter, zone_type** zone)
 {
-	if (zone && *zone) {
+	if(zone && *zone) {
 		iter->zone   = *zone;
 		*zone        = NULL;
 		iter->i      = 0;
-		if (iter->zone->soa_rrset && iter->zone->soa_rrset->rr_count) {
+		if(iter->zone->soa_rrset && iter->zone->soa_rrset->rr_count) {
 			iter->domain = NULL;
 			iter->rrset  = iter->zone->soa_rrset;
 			goto next;
@@ -71,12 +71,12 @@ zone_iter_next(zone_iter_type* iter, zone_type** zone)
 		}
 	}
 next:
-	if (iter->i < iter->rrset->rr_count)
+	if(iter->i < iter->rrset->rr_count)
 		return &iter->rrset->rrs[iter->i++];
 
 	iter->i = 0;
-	if (iter->domain == NULL) { /* prev rrset was soa_rrset */
-		if ((iter->domain = iter->zone->apex)) {
+	if(iter->domain == NULL) { /* prev rrset was soa_rrset */
+		if((iter->domain = iter->zone->apex)) {
 			iter->rrset = iter->domain->rrsets;
 			goto skip_soa;
 		}
@@ -88,17 +88,16 @@ next:
 
 skip_soa:
 
-	while (iter->rrset && (iter->rrset->zone != iter->zone
-			   ||  iter->rrset == iter->zone->soa_rrset)) {
+	while(iter->rrset && (iter->rrset->zone != iter->zone ||
+			      iter->rrset == iter->zone->soa_rrset)) {
 		iter->rrset = iter->rrset->next;
 	}
-	if (iter->rrset) {
+	if(iter->rrset) {
 		goto next;
 	}
 	iter->domain = domain_next(iter->domain);
-	if (iter->domain &&  dname_is_subdomain( domain_dname(iter->domain)
-					       , domain_dname(iter->zone->apex)
-					       )) {
+	if(iter->domain && dname_is_subdomain(domain_dname(iter->domain),
+					      domain_dname(iter->zone->apex))){
 		iter->rrset = iter->domain->rrsets;
 		goto skip_soa;
 	}
@@ -119,62 +118,48 @@ skip_soa:
  * Adapted for use in nsd-sexy by Willem Toorop in December 2011
  */
 static pid_t 
-nsd_popen3( char* const* command
-	  , int* writefd
-	  , int* readfd
-	  , int* errfd
-	  , nsd_type* nsd
-	  , zone_type* zone
-	  )
+nsd_popen3(char* const* command, int* writefd, int* readfd, int* errfd,
+		nsd_type* nsd, zone_type* zone)
 {
 	int in_pipe[2] = {-1, -1};
 	int out_pipe[2] = {-1, -1};
 	int err_pipe[2] = {-1, -1};
 	pid_t pid;
 
-	if (command == NULL || *command == NULL) {
+	if(command == NULL || *command == NULL) {
 		log_msg(LOG_ERR, "Cannot popen3() a NULL command.");
 		goto error;
 	}
 
-	if (writefd && pipe(in_pipe)) {
-		log_msg( LOG_ERR
-		       , "Error creating pipe for stdin: %s"
-		       , strerror(errno)
-		       );
+	if(writefd && pipe(in_pipe)) {
+		log_msg(LOG_ERR, "Error creating pipe for stdin: %s",
+				 strerror(errno));
 		goto error;
 	}
-	if (readfd && pipe(out_pipe)) {
-		log_msg( LOG_ERR
-		       , "Error creating pipe for stdout: %s"
-		       , strerror(errno)
-		       );
+	if(readfd && pipe(out_pipe)) {
+		log_msg(LOG_ERR, "Error creating pipe for stdout: %s",
+				 strerror(errno));
 		goto error;
 	}
-	if (errfd && pipe(err_pipe)) {
-		log_msg( LOG_ERR
-		       , "Error creating pipe for stderr: %s"
-		       , strerror(errno)
-		       );
+	if(errfd && pipe(err_pipe)) {
+		log_msg(LOG_ERR, "Error creating pipe for stderr: %s",
+				 strerror(errno));
 		goto error;
 	}
 
 	pid = fork();
 	switch(pid) {
-		case -1: log_msg( LOG_ERR
-				, "Error creating child process: %s"
-				, strerror(errno)
-				);
+		case -1: log_msg(LOG_ERR, "Error creating child process: %s",
+					  strerror(errno));
 			 goto error;
 
 		case  0: if(writefd) {
 				 close(in_pipe[1]);
 				 if(dup2(in_pipe[0], 0) == -1) {
-					 log_msg( LOG_ERR
-						, "Error assigning "
-						  "stdin in child process: %s"
-						, strerror(errno)
-						);
+					 log_msg(LOG_ERR,
+						 "Error assigning "
+						 "stdin in child process: %s",
+						 strerror(errno));
 					 exit(-1);
 				 }
 				 close(in_pipe[0]);
@@ -182,11 +167,10 @@ nsd_popen3( char* const* command
 			 if(readfd) {
 				 close(out_pipe[0]);
 				 if(dup2(out_pipe[1], 1) == -1) {
-					 log_msg( LOG_ERR
-						, "Error assigning "
-						  "stdout in child process: %s"
-						, strerror(errno)
-						);
+					 log_msg(LOG_ERR,
+						 "Error assigning "
+						 "stdout in child process: %s",
+						 strerror(errno));
 					 exit(-1);
 				 }
 				 close(out_pipe[1]);
@@ -194,11 +178,10 @@ nsd_popen3( char* const* command
 			 if(errfd) {
 				 close(err_pipe[0]);
 				 if(dup2(err_pipe[1], 2) == -1) {
-					 log_msg( LOG_ERR
-						, "Error assigning "
-						  "stderr in child process: %s"
-						, strerror(errno)
-						);
+					 log_msg(LOG_ERR,
+						 "Error assigning "
+						 "stderr in child process: %s",
+						 strerror(errno));
 					 exit(-1);
 				 }
 				 close(err_pipe[1]);
@@ -217,9 +200,10 @@ nsd_popen3( char* const* command
 			 close_all_sockets(nsd->verify_tcp, nsd->verify_ifs);
 
 			 setenv("VERIFY_ZONE", zone->opts->name, 1);
-			 if (     zone->opts->verifier_feed_zone == 1
-			 || (     zone->opts->verifier_feed_zone == 2 
-			     && nsd->options->verifier_feed_zone == 1)) {
+			 if(zone->opts->verifier_feed_zone == 1 ||
+			   (zone->opts->verifier_feed_zone == 2 &&
+			    nsd->options->verifier_feed_zone == 1)) {
+
 			 	setenv("VERIFY_ZONE_ON_STDIN", "yes", 1);
 			 } else {
 			 	setenv("VERIFY_ZONE_ON_STDIN", "", 1);
@@ -227,11 +211,9 @@ nsd_popen3( char* const* command
 
 			 execvp(*command, command);
 
-			 log_msg( LOG_ERR
-				, "Error executing command "
-				  "in child process: %s"
-				, strerror(errno)
-				);
+			 log_msg(LOG_ERR, "Error executing command "
+					  "in child process: %s",
+					  strerror(errno));
 			 exit(-1);
 
 		default: break;
@@ -303,24 +285,22 @@ struct log_from_fd_t {
 };
 
 static void
-handle_log_from_fd( netio_type* netio
-		  , netio_handler_type* handler
-		  , netio_event_types_type event_types
-		  )
+handle_log_from_fd(netio_type* netio, netio_handler_type* handler,
+		netio_event_types_type event_types)
 {
-	struct log_from_fd_t*  lfd
-     = (struct log_from_fd_t*) handler->user_data;
+	struct log_from_fd_t*  lfd =
+		(struct log_from_fd_t*) handler->user_data;
 	ssize_t len;
 	char* sol;
 	char* eol;
 	char* split;
 	char  tmp_c;
 
-	assert( lfd != NULL );
-	assert( lfd->fd != -1 );
-	assert( lfd->pos < lfd->buf + LOGLINELEN );
+	assert(lfd != NULL);
+	assert(lfd->fd != -1);
+	assert(lfd->pos < lfd->buf + LOGLINELEN);
 
-	if (! (event_types & NETIO_EVENT_READ)) {
+	if(!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
 
@@ -337,9 +317,9 @@ handle_log_from_fd( netio_type* netio
 	sol = lfd->buf;
 	eol = strchr(sol, '\n');
 
-	while (eol) { /* lines to log */
+	while(eol) { /* lines to log */
 		*eol = 0;
-		if (eol - sol <= LOGLINELEN) {
+		if(eol - sol <= LOGLINELEN) {
 			log_msg(lfd->priority, "%s", sol);
 		} else {
 			split = sol + LOGLINELEN - 4;
@@ -353,8 +333,8 @@ handle_log_from_fd( netio_type* netio
 		eol = strchr(sol, '\n');
 	}
 
-	if (sol < lfd->pos) { /* last character was not '\n' */
-		if (lfd->pos - sol > LOGLINELEN) {
+	if(sol < lfd->pos) { /* last character was not '\n' */
+		if(lfd->pos - sol > LOGLINELEN) {
 			split = sol + LOGLINELEN - 4;
 			tmp_c  = *split;
 			*split = 0;
@@ -386,24 +366,22 @@ struct zone2verifier_user_data_struct {
 typedef struct zone2verifier_user_data_struct zone2verifier_user_data_type;
 
 static void
-handle_zone2verifier( netio_type* netio
-		    , netio_handler_type* handler
-		    , netio_event_types_type event_types
-		    )
+handle_zone2verifier(netio_type* netio, netio_handler_type* handler,
+		netio_event_types_type event_types)
 {
-	zone2verifier_user_data_type*  data
-     = (zone2verifier_user_data_type*) handler->user_data;
+	zone2verifier_user_data_type* data =
+		(zone2verifier_user_data_type*) handler->user_data;
 	rr_type* rr;
 
-	assert( data != NULL );
+	assert(data != NULL);
 
-	if (! (event_types & NETIO_EVENT_WRITE)) {
+	if(!(event_types & NETIO_EVENT_WRITE)) {
 		return;
 	}
 
 	rr = zone_iter_next(&data->iter, &data->zone);
 
-	if (rr) {
+	if(rr) {
 		print_rr(data->to_stdin_f, data->state, rr);
 	} else {
 		fclose(data->to_stdin_f);
@@ -476,40 +454,33 @@ typedef struct server_verify_zone_state_struct server_verify_zone_state_type;
  * again.
  */
 static void
-cleanup_verifier( netio_type* netio
-		, verifier_state_type* v
-		, int kill_verifier
-		)
+cleanup_verifier(netio_type* netio, verifier_state_type* v, int kill_verifier)
 {
-	assert( netio != NULL && v != NULL );
+	assert(netio != NULL && v != NULL);
 
-	if (v->lfderr.fd != -1) {
+	if(v->lfderr.fd != -1) {
 		netio_remove_handler(netio, &v->from_stderr_handler);
 		close(v->lfderr.fd);
 	}
-	if (v->lfdout.fd != -1) {
+	if(v->lfdout.fd != -1) {
 		netio_remove_handler(netio, &v->from_stdout_handler);
 		close(v->lfdout.fd);
 	}
-	if (v->to_stdin_user_data.to_stdin != -1) {
+	if(v->to_stdin_user_data.to_stdin != -1) {
 		netio_remove_handler(netio, &v->to_stdin_handler);
 		close(v->to_stdin_user_data.to_stdin);
 	}
-	if (v->to_stdin_user_data.to_stdin_f) {
+	if(v->to_stdin_user_data.to_stdin_f) {
 		fclose(v->to_stdin_user_data.to_stdin_f);
 	}
-	if (v->timeout_spec.tv_sec > 0 || v->timeout_spec.tv_nsec > 0) {
+	if(v->timeout_spec.tv_sec > 0 || v->timeout_spec.tv_nsec > 0) {
 		netio_remove_handler(netio, &v->timeout_handler);
 	}
-	if (kill_verifier && v->pid > 0) {
-		if (kill(v->pid, SIGTERM) == -1) {
-			log_msg( LOG_ERR
-				, "could not kill verifier %d: %s"
-				, v->pid
-				, strerror(errno)
-				);
+	if(kill_verifier && v->pid > 0) {
+		if(kill(v->pid, SIGTERM) == -1) {
+			log_msg(LOG_ERR, "could not kill verifier %d: %s",
+					 v->pid, strerror(errno));
 		}
-
 	}
 	v->pid = -1;
 	v->zone->is_ok = v->was_ok;
@@ -522,31 +493,24 @@ cleanup_verifier( netio_type* netio
  * considered bad.
  */
 static void
-handle_verifier_timeout( netio_type* netio
-		       , netio_handler_type* handler
-		       , netio_event_types_type event_types
-		       )
+handle_verifier_timeout(netio_type* netio, netio_handler_type* handler,
+		netio_event_types_type event_types)
 {
 	verifier_state_type* v = (verifier_state_type*) handler->user_data;
 
-	assert( v != NULL );
+	assert(v != NULL);
 
-	if (! (event_types & NETIO_EVENT_TIMEOUT)) {
+	if(!(event_types & NETIO_EVENT_TIMEOUT)) {
 		return;
 	}
 
-	log_msg( LOG_INFO
-	       , "Timeout for verifier for zone %s with pid %d. Killing..."
-	       , v->zone->opts->name
-	       , v->pid
-	       );
+	log_msg(LOG_INFO,
+		"Timeout for verifier for zone %s with pid %d. Killing...",
+		v->zone->opts->name, v->pid);
 
-	if (kill(v->pid, SIGTERM) == -1) {
-		log_msg( LOG_ERR
-			, "could not kill verifier %d: %s"
-			, v->pid
-			, strerror(errno)
-			);
+	if(kill(v->pid, SIGTERM) == -1) {
+		log_msg(LOG_ERR, "could not kill verifier %d: %s",
+				 v->pid, strerror(errno));
 	}
 	v->timeout_spec.tv_nsec = 0;
 	v->timeout_spec.tv_sec  = 0;
@@ -561,37 +525,34 @@ handle_verifier_timeout( netio_type* netio
  * is not neglected and that the reload server process will exit (gracefully).
  */
 static void
-verify_handle_parent_command( netio_type* ATTR_UNUSED(netio)
-			    , netio_handler_type* handler
-			    , netio_event_types_type event_types
-			    )
+verify_handle_parent_command(netio_type* ATTR_UNUSED(netio),
+		netio_handler_type* handler,
+		netio_event_types_type event_types)
 {
-	server_verify_zone_state_type*  s
-     = (server_verify_zone_state_type*) handler->user_data;
+	server_verify_zone_state_type* s =
+		(server_verify_zone_state_type*) handler->user_data;
 
 	sig_atomic_t mode;
 	int len;
 	int i;
 
-	assert( s != NULL );
+	assert(s != NULL);
 
-	if (! (event_types & NETIO_EVENT_READ)) {
+	if(!(event_types & NETIO_EVENT_READ)) {
 		return;
 	}
-	if ((len = read(handler->fd, &mode, sizeof(mode))) == -1) {
-		log_msg( LOG_ERR
-		       , "verifiers_handle_parent_command: read: %s"
-		       , strerror(errno)
-		       );
+	if((len = read(handler->fd, &mode, sizeof(mode))) == -1) {
+		log_msg(LOG_ERR, "verifiers_handle_parent_command: read: %s",
+				 strerror(errno));
 		return;
 	}
 	/* also exit when parent closed the connection (len == 0) */
-	if (len == 0 || mode == NSD_QUIT) {
+	if(len == 0 || mode == NSD_QUIT) {
 
 		/* kill all verifiers */
 
-		for (i = 0; (int)i < s->nsd->options->verifier_count; i++) {
-			if (s->verifiers[i].zone) {
+		for(i = 0; (int)i < s->nsd->options->verifier_count; i++) {
+			if(s->verifiers[i].zone) {
 				cleanup_verifier(s->netio, &s->verifiers[i], 1);
 
 			}
@@ -599,10 +560,8 @@ verify_handle_parent_command( netio_type* ATTR_UNUSED(netio)
 		exit(0);
 
 	} else {
-		log_msg( LOG_ERR
-		       , "verifiers_handle_parent_command: bad mode %d"
-		       , (int) mode
-		       );
+		log_msg(LOG_ERR, "verifiers_handle_parent_command: bad mode %d",
+				 (int) mode);
 	}
 }
 
@@ -614,12 +573,8 @@ verify_handle_parent_command( netio_type* ATTR_UNUSED(netio)
 static void
 verifier_revoke(server_verify_zone_state_type* s, verifier_state_type* v)
 {
-	write_commit_trail(  s->nsd->db->region
-			  ,  s->nsd->options->difffile
-			  , &s->df
-			  ,  v->zone
-			  ,  SURE_PART_BAD
-			  );
+	write_commit_trail(s->nsd->db->region, s->nsd->options->difffile,
+			&s->df, v->zone, SURE_PART_BAD);
 }
 
 /*
@@ -633,24 +588,17 @@ verifier_revoke(server_verify_zone_state_type* s, verifier_state_type* v)
 static int
 verifier_commit(server_verify_zone_state_type* s, verifier_state_type* v)
 {
-	log_msg( LOG_INFO
-	       , "Zone %s verified successfully."
-	       , v->zone->opts->name
-	       );
+	log_msg(LOG_INFO, "Zone %s verified successfully.",
+			  v->zone->opts->name);
 
-	if (write_commit_trail(  s->nsd->db->region
-			      ,  s->nsd->options->difffile
-			      , &s->df
-			      ,  v->zone
-			      ,  SURE_PART_VERIFIED)) {
+	if(write_commit_trail(s->nsd->db->region, s->nsd->options->difffile,
+				&s->df, v->zone, SURE_PART_VERIFIED)) {
 		return 1;
 	} else {
-		log_msg(  LOG_ERR
-		       , "Zone %s did validate, but there was a problem "
-			 "committing to that fact. Considering bad in stead."
-		       , v->zone->opts->name
-		       );
-
+		log_msg(LOG_ERR,
+			"Zone %s did validate, but there was a problem "
+			"committing to that fact. Considering bad in stead.",
+			v->zone->opts->name);
 		return 0;
 	}
 }
@@ -666,10 +614,8 @@ verifier_commit(server_verify_zone_state_type* s, verifier_state_type* v)
  * parent has an opportunity to send the NSD_QUIT command.
  */
 static void 
-server_verify_zones( server_verify_zone_state_type* s
-		   , size_t* good_zones
-		   , size_t* bad_zones
-		   )
+server_verify_zones(server_verify_zone_state_type* s, size_t* good_zones,
+		size_t* bad_zones)
 {
 	pid_t exited;       /* the pid of the verifier that exited */
 	int status, result; /* exit codes */
@@ -679,46 +625,44 @@ server_verify_zones( server_verify_zone_state_type* s
 
         struct timespec timeout_spec;
 
-	for (;;) {
+	for(;;) {
 		exited = waitpid(-1, &status, WNOHANG);
-		if (exited > 0) {
+		if(exited > 0) {
 			v = NULL;
-			for (i = 0; i < s->nsd->options->verifier_count; i++) {
+			for(i = 0; i < s->nsd->options->verifier_count; i++) {
 
-				if (s->verifiers[i].zone
-				&&  s->verifiers[i].pid == exited) {
+				if(s->verifiers[i].zone &&
+				   s->verifiers[i].pid == exited) {
 
 					v = &s->verifiers[i];
 					break;
 				}
 			}
-			if (v) {
+			if(v) {
 				/* commit the zone if the status was ok */
-				if (!WIFEXITED(status)) {
+				if(!WIFEXITED(status)) {
 
-					log_msg( LOG_ERR
-					       , "Zone verifier for zone %s "
-					         "(pid %d) exited abnormally."
-					       , v->zone->opts->name
-					       , v->pid
-					       );
+					log_msg(LOG_ERR,
+						"Zone verifier for zone %s "
+						"(pid %d) exited abnormally.",
+						v->zone->opts->name,
+						v->pid);
 					verifier_revoke(s, v);
 					v->zone->is_bad = 1;
 					(*bad_zones)++;
 
-				} else if ((result = WEXITSTATUS(status))) {
+				} else if((result = WEXITSTATUS(status))) {
 
-					log_msg( LOG_ERR
-					       , "Zone verifier for zone %s "
-					         "exited with status: %d"
-					       , v->zone->opts->name
-					       , result
-					       ); 
+					log_msg(LOG_ERR,
+						"Zone verifier for zone %s "
+						"exited with status: %d",
+						v->zone->opts->name,
+						result); 
 					verifier_revoke(s, v);
 					v->zone->is_bad = 1;
 					(*bad_zones)++;
 
-				} else if (verifier_commit( s, v)) {
+				} else if(verifier_commit( s, v)) {
 					(*good_zones)++;
 
 				} else {
@@ -729,28 +673,25 @@ server_verify_zones( server_verify_zone_state_type* s
 
 				return; /* slot available for next verifier */
 			} else {
-				log_msg( LOG_ERR
-				       , "Expected verifier to exit, but"
-				         "in stead an unknown child process, "
-					 "with pid %d, exited with code %d."
-				       , exited
-				       , WEXITSTATUS(status)
-				       );
+				log_msg(LOG_ERR,
+					"Expected verifier to exit, but"
+					"in stead an unknown child process, "
+					"with pid %d, exited with code %d.",
+					exited, WEXITSTATUS(status));
 			}
 
-		} else if (exited == -1 && errno != EINTR) {
+		} else if(exited == -1 && errno != EINTR) {
 			log_msg(LOG_ERR, "wait failed: %s", strerror(errno));
 		}
 
 		timeout_spec.tv_sec  = 1;
 		timeout_spec.tv_nsec = 0;
-		if (netio_dispatch(s->netio, &timeout_spec, NULL) == -1
-		&&  errno != EINTR) {
-			log_msg( LOG_ERR
-				, "server_verify_zone netio_dispatch failed: %s"
-				, strerror(errno)
-				);
-			/* How to handle this error? */
+		if(netio_dispatch(s->netio, &timeout_spec, NULL) == -1 &&
+				errno != EINTR) {
+			log_msg(LOG_ERR,
+				"server_verify_zone netio_dispatch failed: %s",
+				strerror(errno));
+			/* TODO: How to handle this error? */
 		}
 	}
 }
@@ -771,13 +712,9 @@ server_verify_zones( server_verify_zone_state_type* s
  * option.  This function only returns when more verifiers can be executed.
  */
 static void
-server_verifiers_add( server_verify_zone_state_type** state
-		    , size_t* good_zones
-		    , size_t* bad_zones
-		    , nsd_type* nsd
-		    , int cmdsocket
-		    , zone_type* zone
-		    )
+server_verifiers_add(server_verify_zone_state_type** state,
+		size_t* good_zones, size_t* bad_zones,
+		nsd_type* nsd, int cmdsocket, zone_type* zone)
 {
 	region_type* region = NULL;
 	server_verify_zone_state_type* s = NULL; /* for convenience */
@@ -786,34 +723,33 @@ server_verifiers_add( server_verify_zone_state_type** state
 	verifier_state_type* v = NULL;
 	netio_handler_type* parent_handler = NULL;
 
-	assert( state && good_zones && bad_zones && nsd && zone );
+	assert(state && good_zones && bad_zones && nsd && zone);
 
 	/* May we run verifiers at all? */
-	if (nsd->options->verifier_count <= 0) {
+	if(nsd->options->verifier_count <= 0) {
 		goto error;
 	}
 	/* Initialize the verify zone state when needed */
-	if ((s = *state) == NULL) {
+	if((s = *state) == NULL) {
 		/* For easy disposal of everything we need */
 		region = region_create(xalloc, free);
-		if (! region) {
+		if(!region) {
 			goto error;
 		}
 		*state = (server_verify_zone_state_type*) 
-			region_alloc( region
-			            , sizeof(server_verify_zone_state_type)
+			region_alloc(region, 
+				     sizeof(server_verify_zone_state_type) +
 				      /* 
 				       * the struct has an array of 
 				       * verifier_state_types at the end
 				       */
-				      + nsd->options->verifier_count
-				        * sizeof(verifier_state_type)
-				    );
-		if (! *state) {
+					nsd->options->verifier_count *
+					sizeof(verifier_state_type));
+		if(!*state) {
 			goto error;
 		}
 		s = *state;
-		if (! (s->netio = netio_create(region))) {
+		if(!(s->netio = netio_create(region))) {
 			goto error;
 		} else {
 			s->netio->have_current_time = 0;
@@ -822,24 +758,16 @@ server_verifiers_add( server_verify_zone_state_type** state
 		s->nsd    = nsd;
 		s->df     = NULL;
 		/* mark verifier slots as available */
-		for (i = 0; i < nsd->options->verifier_count; i++) {
+		for(i = 0; i < nsd->options->verifier_count; i++) {
 			s->verifiers[i].zone = NULL;
 		}
 
 		/* and start serving the new zones */
-		if (nsd->verify_ifs) {
-			netio_add_udp_handlers( s->netio
-					      , nsd
-					      , region
-					      , nsd->verify_udp
-					      , nsd->verify_ifs
-					      );
-			netio_add_tcp_handlers( s->netio
-					      , nsd
-					      , region
-					      , nsd->verify_tcp
-					      , nsd->verify_ifs
-					      );
+		if(nsd->verify_ifs) {
+			netio_add_udp_handlers(s->netio, nsd, region,
+					nsd->verify_udp, nsd->verify_ifs);
+			netio_add_tcp_handlers(s->netio, nsd, region,
+					nsd->verify_tcp, nsd->verify_ifs);
 		}
 
 		/* parent may send us the NSD_QUIT command */
@@ -855,7 +783,7 @@ server_verifiers_add( server_verify_zone_state_type** state
 
 	}
 	/* find first available verifier slot */
-	for (i = 0; i < nsd->options->verifier_count; i++) {
+	for(i = 0; i < nsd->options->verifier_count; i++) {
 		if (s->verifiers[i].zone == NULL) {
 			v = &s->verifiers[i];
 			break;
@@ -864,32 +792,28 @@ server_verifiers_add( server_verify_zone_state_type** state
 	/* because we wait when all verifier slots are filled, 
 	 * at least one has to be available
 	 */
-	assert( v != NULL );
+	assert(v != NULL);
 
 	/* startup the verifier initializing the filehandles to the process. */
-	v->pid = nsd_popen3( zone->opts->verifier
-			   , &v->to_stdin_user_data.to_stdin
-			   , &v->lfdout.fd
-			   , &v->lfderr.fd
-			   , nsd
-			   , zone
-			   );
+	v->pid = nsd_popen3(zone->opts->verifier,
+			&v->to_stdin_user_data.to_stdin,
+			&v->lfdout.fd, &v->lfderr.fd, nsd, zone);
 
-	if (v->pid == -1) {
+	if(v->pid == -1) {
 		goto error;
 	}
 	v->zone = zone;
 	v->was_ok = zone->is_ok;
 	/* will we feed the zone on stdin? */
-	if (zone->opts->verifier_feed_zone == 1
-	|| (     zone->opts->verifier_feed_zone == 2 
-	    && nsd->options->verifier_feed_zone == 1)) {
+	if(zone->opts->verifier_feed_zone == 1 ||
+	  (zone->opts->verifier_feed_zone == 2 &&
+	   nsd->options->verifier_feed_zone == 1)) {
 
 		v->to_stdin_user_data.state = create_pretty_rr(s->region);
-		v->to_stdin_user_data.to_stdin_f 
-			  = fdopen(v->to_stdin_user_data.to_stdin, "w");
+		v->to_stdin_user_data.to_stdin_f =
+			fdopen(v->to_stdin_user_data.to_stdin, "w");
 		setbuf(v->to_stdin_user_data.to_stdin_f, NULL);
-		v->to_stdin_user_data.zone  = zone;
+		v->to_stdin_user_data.zone = zone;
 
 		/* v->to_stdin_user_data.iter will be automatically initialized
 		 * by zone_iter_next usage.
@@ -938,31 +862,28 @@ server_verifiers_add( server_verify_zone_state_type** state
 	/* How long may this verifier take? Is a verifier-timeout configured? */
 	
 	v->timeout_spec.tv_nsec = 0;
-	v->timeout_spec.tv_sec  =   v->zone->opts->verifier_timeout
-				    == ZONE_VERIFIER_TIMEOUT_INHERIT
-				  ? s->nsd->options->verifier_timeout
-				  : v->zone->opts->verifier_timeout;
+	v->timeout_spec.tv_sec  =
+	    (v->zone->opts->verifier_timeout == ZONE_VERIFIER_TIMEOUT_INHERIT) ?
+	    s->nsd->options->verifier_timeout : v->zone->opts->verifier_timeout;
 
 	if (v->timeout_spec.tv_sec > 0) {
-		log_msg( LOG_INFO
-		       , "Verifier should take no longer than %d seconds."
-		       , (int) v->timeout_spec.tv_sec
-		       );
+		log_msg(LOG_INFO,
+			"Verifier should take no longer than %d seconds.",
+			(int) v->timeout_spec.tv_sec);
 		v->timeout_handler.fd            = -1;
 		v->timeout_handler.user_data     =  v;
 		v->timeout_handler.event_types   =  NETIO_EVENT_TIMEOUT;
 		v->timeout_handler.event_handler = &handle_verifier_timeout;
 		v->timeout_handler.timeout       = &v->timeout_spec;
-		timespec_add( v->timeout_handler.timeout
-			    , netio_current_time(s->netio)
-			    );
+		timespec_add(v->timeout_handler.timeout,
+			     netio_current_time(s->netio));
 
 		netio_add_handler(s->netio, &v->timeout_handler);
 	}
 
 	/* More slots available? Then, return so more zones can be added. */
-	for (i = 0; i < nsd->options->verifier_count; i++) {
-		if (s->verifiers[i].zone == NULL) {
+	for(i = 0; i < nsd->options->verifier_count; i++) {
+		if(s->verifiers[i].zone == NULL) {
 			return;
 		}
 	}
@@ -973,22 +894,18 @@ server_verifiers_add( server_verify_zone_state_type** state
 	server_verify_zones(s, good_zones, bad_zones);
 	return;
 error:
-	if (s && s->region) {
+	if(s && s->region) {
 		region = s->region;
 	}
-	if (region) {
+	if(region) {
 		region_destroy(region);
 	}
 	*state = NULL;
-	write_commit_trail( nsd->db->region
-			  , nsd->options->difffile
-			  , &df
-			  , zone
-			  , SURE_PART_BAD
-			  );
+	write_commit_trail(nsd->db->region, nsd->options->difffile, &df, zone,
+			SURE_PART_BAD);
 	zone->is_bad = 1;
 	(*bad_zones)++;
-	if (df) {
+	if(df) {
 		fclose(df);
 	}
 	return;
@@ -1001,8 +918,8 @@ static int
 all_verifiers_are_done(server_verify_zone_state_type* s)
 {
 	int i;
-	for (i = 0; i < s->nsd->options->verifier_count; i++) {
-		if (s->verifiers[i].zone) {
+	for(i = 0; i < s->nsd->options->verifier_count; i++) {
+		if(s->verifiers[i].zone) {
 			return 0;
 		}
 	}
@@ -1013,24 +930,22 @@ all_verifiers_are_done(server_verify_zone_state_type* s)
  * Run the server_verify_zones process until all verifiers are finished.
  */
 static void
-server_verifiers_wait( server_verify_zone_state_type** state
-		     , size_t* good_zones
-		     , size_t* bad_zones
-		)
+server_verifiers_wait(server_verify_zone_state_type** state,
+		size_t* good_zones, size_t* bad_zones)
 {
 	server_verify_zone_state_type* s = NULL;
 	int i;
 
-	assert( state && good_zones && bad_zones );
+	assert(state && good_zones && bad_zones);
 
-	if ((s = *state) != NULL) {
-		while (!all_verifiers_are_done(s)) {
+	if((s = *state) != NULL) {
+		while(!all_verifiers_are_done(s)) {
 			server_verify_zones(s, good_zones, bad_zones);
 		}
-		if (s->df) {
+		if(s->df) {
 			fclose(s->df);
 		}
-		if (s->region) {
+		if(s->region) {
 			region_destroy(s->region);
 		}
 		*state = NULL;
@@ -1059,11 +974,8 @@ server_verifiers_wait( server_verify_zone_state_type** state
  * acting upon this outcome.
  */
 void
-verify_zones( nsd_type* nsd
-	    , int cmdsocket
-	    , size_t* good_zones
-	    , size_t* bad_zones
-	    )
+verify_zones(nsd_type* nsd, int cmdsocket,
+		size_t* good_zones, size_t* bad_zones)
 {
 	/* The verifiers_state will be allocated by server_verifiers_add
 	* only when verifiers are spawn and the state is needed to keep track.
@@ -1076,7 +988,7 @@ verify_zones( nsd_type* nsd
 	 */
 	*good_zones = *bad_zones = 0;
 	for(zone = nsd->db->zones; zone; zone = zone->next) {
-		if ( zone->updated == 0) continue;
+		if( zone->updated == 0) continue;
 
 		/* Zone updates that are already verified will have 
 		 * SURE_PART_VERIFIED at the commit positions and will not
@@ -1084,22 +996,14 @@ verify_zones( nsd_type* nsd
 		 * SURE_PART_UNVERIFIED statuses when a verifier is configured
 		 * for the zone.
 		 */
-		if (! zone->commit_trail || ! zone->soa_rrset) {
+		if(!zone->commit_trail ||! zone->soa_rrset) {
 			(*good_zones)++;
 			continue;
 		}
 
-		log_msg( LOG_INFO
-		       , "Zone %s has changed."
-		       , zone->opts->name
-		       );
-		server_verifiers_add( &verifiers_state
-				    ,  good_zones
-				    ,  bad_zones
-				    ,  nsd
-				    ,  cmdsocket
-				    ,  zone
-				    );
+		log_msg(LOG_INFO, "Zone %s has changed.", zone->opts->name);
+		server_verifiers_add(&verifiers_state, good_zones, bad_zones,
+				nsd, cmdsocket, zone);
         }
 	server_verifiers_wait(&verifiers_state, good_zones, bad_zones);
 }

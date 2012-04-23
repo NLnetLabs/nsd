@@ -375,7 +375,7 @@ server_verifier_feed_zone: VAR_VERIFIER_FEED_ZONE STRING
 	{ 
 		OUTYY(("P(server_verifier_feed_zone:%s)\n", $2)); 
 
-		if (strcmp($2, "yes") != 0 && strcmp($2, "no") != 0) {
+		if(strcmp($2, "yes") != 0 && strcmp($2, "no") != 0) {
 			yyerror("expected yes or no.");
 		} else {
 			cfg_parser->opt->verifier_feed_zone =
