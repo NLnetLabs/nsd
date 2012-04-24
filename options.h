@@ -23,8 +23,8 @@ typedef struct zone_options zone_options_t;
 typedef struct ipaddress_option ip_address_option_t;
 typedef struct acl_options acl_options_t;
 typedef struct key_options key_options_t;
-typedef struct cmd_option cmd_option_t;
 typedef struct config_parser_state config_parser_state_t;
+typedef struct cmd_option cmd_option_t;
 
 enum verifier_feed_zone_type {
 	VERIFIER_FEED_ZONE_NO,
@@ -199,12 +199,12 @@ struct config_parser_state {
 	zone_options_t* current_zone;
 	key_options_t* current_key;
 	ip_address_option_t* current_ip_address_option;
-	ip_address_option_t* current_verify_ip_address_option;
 	acl_options_t* current_allow_notify;
 	acl_options_t* current_request_xfr;
 	acl_options_t* current_notify;
 	acl_options_t* current_provide_xfr;
 	acl_options_t* current_outgoing_interface;
+	ip_address_option_t* current_verify_ip_address_option;
 	cmd_option_t*  current_cmd;
 	int            current_cmd_count;
 };

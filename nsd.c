@@ -544,10 +544,11 @@ main(int argc, char *argv[])
 	/* For initialising the address info structures */
 	/* static so it can get very big without overflowing the stack */
 	static struct addrinfo hints[MAX_INTERFACES];
-	static struct addrinfo verify_hints[MAX_INTERFACES];
 	static const char *nodes[MAX_INTERFACES];
 	const char *udp_port = 0;
 	const char *tcp_port = 0;
+
+	static struct addrinfo verify_hints[MAX_INTERFACES];
 	static const char *verify_nodes[MAX_INTERFACES];
 	const char *verify_port = 0;
 
@@ -598,6 +599,7 @@ main(int argc, char *argv[])
 			strerror(errno));
 		nsd.identity = IDENTITY;
 	}
+
 
 	/* Parse the command line... */
 	while ((c = getopt(argc, argv, "46a:c:df:hi:I:l:N:n:P:p:s:u:t:X:V:v"
@@ -823,8 +825,8 @@ main(int argc, char *argv[])
 			tcp_port = TCP_PORT;
 		}
 	}
-	if (verify_port == 0) { /* anticipate commandline option */
-		if (nsd.options->verify_port && *nsd.options->verify_port)  {
+	if(verify_port == 0) { /* anticipate commandline option */
+		if(nsd.options->verify_port && *nsd.options->verify_port)  {
 			verify_port = nsd.options->verify_port;
 		} else {
 			verify_port = VERIFY_PORT;
@@ -1121,7 +1123,7 @@ main(int argc, char *argv[])
 	nsd.quit_sync_done = 0;
 
 	/* Initialize the server... */
-	if (! server_init(&nsd)) {
+	if(!server_init(&nsd)) {
 		log_msg(LOG_ERR, "server initialization failed, %s could "
 			"not be started", argv0);
 		exit(1);

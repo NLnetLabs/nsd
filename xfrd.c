@@ -739,7 +739,6 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 			/* read was in response to this notification */
 			zone->soa_notified_acquired = 0;
 		}
-
 		if(zone->soa_notified_acquired && zone->state == xfrd_zone_ok)
 		{
 			/* refresh because of (newer) notification */
@@ -770,7 +769,6 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 		zone->soa_notified_acquired = 0;
 	}
 	zone->soa_bad_acquired = 0;
-
 	xfrd_set_zone_state(zone, xfrd_zone_refreshing);
 	xfrd_set_refresh_now(zone);
 	xfrd_send_notify(xfrd->notify_zones, zone->apex, &zone->soa_nsd);
@@ -1273,7 +1271,7 @@ xfrd_parse_received_xfr_packet(xfrd_zone_t* zone, buffer_type* packet,
 		DEBUG(DEBUG_XFRD,1, (LOG_INFO, "xfrd: too short xfr packet: no "
 					       			   "answer"));
 		/* if IXFR is unknown, fallback to AXFR (if allowed) */
-		if(nscount == 1) {
+		if (nscount == 1) {
 			if(!packet_skip_dname(packet) || !xfrd_parse_soa_info(packet, soa)) {
 				DEBUG(DEBUG_XFRD,1, (LOG_ERR, "xfrd: zone %s, from %s: "
 					"no SOA begins authority section",
@@ -1688,9 +1686,9 @@ xfrd_check_failed_updates()
 	{
 		/* zone has a disk soa, and no nsd soa or a different nsd soa */
 		if(zone->soa_disk_acquired != 0 &&
-		   (zone->soa_nsd_acquired == 0 ||
-		    zone->soa_disk.serial != zone->soa_nsd.serial)) {
-
+			(zone->soa_nsd_acquired == 0 ||
+			zone->soa_disk.serial != zone->soa_nsd.serial))
+		{
 			if(zone->soa_disk_acquired <
 					xfrd->reload_cmd_last_sent &&
 			   (zone->soa_bad_acquired == 0 ||

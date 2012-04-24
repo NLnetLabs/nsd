@@ -1,3 +1,23 @@
+24 April 2012: Willem
+	- Fork from NSD3.2 with dnssexy operation (see NSD-SEXY)
+
+17 April 2012: Matthijs
+	- Changes according to RFC 5936 (AXFR clarify) and EDNS0bis.
+
+16 April 2012: Matthijs
+	- Allow for fd 0 in ipc.
+	- Add TLSA RRtype support.
+
+4 April 2012: Matthijs
+	- Add ECDSA support for zonec
+
+2 April 2012: Matthijs
+	- Undo #235 (so dname compression starts at QNAME again).
+
+28 February 2012: Matthijs
+	- Allow reading in new DNSKEY algorithm mnemonics in zonefile.
+	  Always write unsigned integer value of algorithm.
+
 27 February 2012: Matthijs
 	- Fix for qtype ANY for a wildcard domain in NSEC signed zone.
 

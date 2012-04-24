@@ -519,8 +519,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 			close(handler->fd);
 			handler->fd = -1;
 		}
-		log_msg(LOG_NOTICE,
-			"handle_reload_cmd: reload closed cmd channel");
+		log_msg(LOG_ERR, "handle_reload_cmd: reload closed cmd channel");
 		return;
 	}
 	switch (mode) {
@@ -806,10 +805,9 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
         switch(cmd) {
         case NSD_QUIT:
         case NSD_SHUTDOWN:
-		DEBUG(DEBUG_IPC,1,(LOG_INFO, "xfrd: main send shutdown cmd."));
+		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: main send shutdown cmd."));
                 xfrd->shutdown = 1;
                 break;
-
 	case NSD_BAD_SOA_BEGIN:
 		xfrd->parent_bad_soa_infos = 1;
 	case NSD_SOA_BEGIN:
@@ -822,21 +820,18 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 		   the new parent does not want half a packet */
 		xfrd->sending_zone_state = 0;
 		break;
-
 	case NSD_SOA_INFO:
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv SOA_INFO"));
 		assert(xfrd->parent_soa_info_pass);
 		xfrd->ipc_is_soa = 1;
 		xfrd->ipc_conn->is_reading = 1;
                 break;
-
-
 	case NSD_SOA_END:
 		xfrd->can_send_reload = 1; 
 	case NSD_RELOAD_AGAIN:
 
 		/* reload has finished */
-		DEBUG(DEBUG_IPC, 1,(LOG_INFO, "xfrd: ipc recv %s",
+		DEBUG(DEBUG_IPC,1,(LOG_INFO, "xfrd: ipc recv %s",
 			 (cmd == NSD_SOA_END) ?
 				"NSD_SOA_END" : "NSD_RELOAD_AGAIN"));
 		xfrd->parent_soa_info_pass = 0;
@@ -850,7 +845,6 @@ xfrd_handle_ipc_read(netio_handler_type *handler, xfrd_state_t* xfrd)
 			xfrd_send_expy_all_zones();
 		}
 		break;
-
 	case NSD_PASS_TO_XFRD:
 		DEBUG(DEBUG_IPC,1, (LOG_INFO, "xfrd: ipc recv PASS_TO_XFRD"));
 		xfrd->ipc_is_soa = 0;

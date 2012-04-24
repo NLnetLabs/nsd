@@ -968,28 +968,28 @@ inform_xfrd_new_soas(nsd_type* nsd, int xfrd_sock, size_t bad_zones)
 		assert(rrset_rrtype(zone->soa_rrset) == TYPE_SOA);
 		assert(zone->soa_rrset->rrs[0].rdata_count == 7);
 
-		if (!write_socket(xfrd_sock, &ttl, sizeof(uint32_t)) ||
-		    !write_socket(xfrd_sock, &dname_ns->name_size,
+		if(!write_socket(xfrd_sock, &ttl, sizeof(uint32_t)) ||
+		   !write_socket(xfrd_sock, &dname_ns->name_size,
 				sizeof(uint8_t)) ||
-		    !write_socket(xfrd_sock, dname_name(dname_ns),
+		   !write_socket(xfrd_sock, dname_name(dname_ns),
 				dname_ns->name_size) ||
-		    !write_socket(xfrd_sock, &dname_em->name_size,
+		   !write_socket(xfrd_sock, &dname_em->name_size,
 				sizeof(uint8_t)) ||
-		    !write_socket(xfrd_sock, dname_name(dname_em),
+		   !write_socket(xfrd_sock, dname_name(dname_em),
 				dname_em->name_size) ||
-		    !write_socket(xfrd_sock, rdata_atom_data(
+		   !write_socket(xfrd_sock, rdata_atom_data(
 					zone->soa_rrset->rrs[0].rdatas[2]),
 				sizeof(uint32_t)) ||
-		    !write_socket(xfrd_sock, rdata_atom_data(
+		   !write_socket(xfrd_sock, rdata_atom_data(
 					zone->soa_rrset->rrs[0].rdatas[3]),
 				sizeof(uint32_t)) ||
-		    !write_socket(xfrd_sock, rdata_atom_data(
+		   !write_socket(xfrd_sock, rdata_atom_data(
 					zone->soa_rrset->rrs[0].rdatas[4]),
 				sizeof(uint32_t)) ||
-		    !write_socket(xfrd_sock, rdata_atom_data(
+		   !write_socket(xfrd_sock, rdata_atom_data(
 					zone->soa_rrset->rrs[0].rdatas[5]),
 				sizeof(uint32_t)) ||
-		    !write_socket(xfrd_sock, rdata_atom_data(
+		   !write_socket(xfrd_sock, rdata_atom_data(
 					zone->soa_rrset->rrs[0].rdatas[6]),
 				sizeof(uint32_t))) {
 
@@ -1039,7 +1039,7 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 			exit(1);
 		}
 	}
-	if (! diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count, 0)){
+	if(!diff_read_file(nsd->db, nsd->options, NULL, nsd->child_count, 0)) {
 		log_msg(LOG_ERR, "unable to load the diff file: %s", nsd->options->difffile);
 		exit(1);
 	}
@@ -1077,10 +1077,10 @@ server_reload(struct nsd *nsd, region_type* server_region, netio_type* netio,
 		/* All zones bad. Gracefully terminate reload process.
 		 */
 		cmd = NSD_SKIP_DIFF;
-		if (nsd->db->diff_skip &&
-		    (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1 ||
-		     write_socket(cmdsocket, &nsd->db->diff_pos,
-				  sizeof(nsd->db->diff_pos)) == -1)) {
+		if(nsd->db->diff_skip &&
+		   (write_socket(cmdsocket, &cmd, sizeof(cmd)) == -1 ||
+		    write_socket(cmdsocket, &nsd->db->diff_pos,
+				 sizeof(nsd->db->diff_pos)) == -1)) {
 
 			log_msg(LOG_ERR, "Unable to send a new diff_pos "
 					 "to our parent %d: %s",
@@ -1524,10 +1524,10 @@ server_child(struct nsd *nsd)
 	assert(nsd->server_kind != NSD_SERVER_MAIN);
 	DEBUG(DEBUG_IPC, 2, (LOG_INFO, "child process started"));
 
-	if(!(nsd->server_kind & NSD_SERVER_TCP)) {
+	if (!(nsd->server_kind & NSD_SERVER_TCP)) {
 		close_all_sockets(nsd->tcp, nsd->ifs);
 	}
-	if(!(nsd->server_kind & NSD_SERVER_UDP)) {
+	if (!(nsd->server_kind & NSD_SERVER_UDP)) {
 		close_all_sockets(nsd->udp, nsd->ifs);
 	}
 	if(nsd->verify_ifs) {
@@ -1535,15 +1535,14 @@ server_child(struct nsd *nsd)
 		close_all_sockets(nsd->verify_tcp, nsd->verify_ifs);
 	}
 
-	if(nsd->this_child && nsd->this_child->parent_fd != -1) {
+	if (nsd->this_child && nsd->this_child->parent_fd != -1) {
 		netio_handler_type *handler;
 
 		handler = (netio_handler_type *) region_alloc(
 			server_region, sizeof(netio_handler_type));
 		handler->fd = nsd->this_child->parent_fd;
 		handler->timeout = NULL;
-		handler->user_data =
-			(struct ipc_handler_conn_data*)region_alloc(
+		handler->user_data = (struct ipc_handler_conn_data*)region_alloc(
 			server_region, sizeof(struct ipc_handler_conn_data));
 		((struct ipc_handler_conn_data*)handler->user_data)->nsd = nsd;
 		((struct ipc_handler_conn_data*)handler->user_data)->conn =
@@ -1627,8 +1626,8 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 	   netio_handler_type *handler,
 	   netio_event_types_type event_types)
 {
-	struct udp_handler_data *data =
-		(struct udp_handler_data *) handler->user_data;
+	struct udp_handler_data *data
+		= (struct udp_handler_data *) handler->user_data;
 	int received, sent;
 	struct query *q = data->query;
 

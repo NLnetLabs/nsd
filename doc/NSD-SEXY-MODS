@@ -80,8 +80,7 @@ parameter, because the commit_crumbs will be recycled with this region and
 they are allocated with the region of the db parameter passed to
 diff_read_file, which is nsd->db from server.c.
 
-TODO: nsd-patch also reads from difffile and should not load unverified zones
-which have a verifier configured!
+nsd-patch also reads from difffile and does not load unverified zones.
 
 
 Running verifiers
@@ -230,4 +229,37 @@ channel. server_verifiers_add adds a handler to listen for this command at
 server_verify_zone_state_type allocation time. The handler callback is
 verify_handle_parent_command (verify.c) and as user_data the
 server_verify_zone_state_type is used.
+
+
+Refreshing and expiring zones
+=============================
+
+When the SOA-Refresh timer runs out, a fresh zone is tried to be fetched from
+the master server. If that fails, each SOA-Retry time will be tried again. To
+prevent a bad zone from being verified again and again, xfrd remembers the
+last serial number of the zone that didn't verify. It will not try to transfer
+a zone with the bad serial number again.
+
+Before afer reloading, the reload process informed xfrd which SOA's were
+merged in the database, so that xfrd knew when zone needed to be refreshed.
+This is adapted to inform xfrd about bad zones. The function
+inform_xfrd_new_soas is called for this in server.c. It communicated either
+good or bad soas. When bad soas are communicated a session starts with
+NSD_BAD_SOA_BEGIN. For only good zones it starts with NSD_SOA_BEGIN. Each soa
+is preceded by a NSD_SOA_INFO. When all soas are communicated, NSD_SOA_END is
+send. Reception of these messages by xfrd is handled by function
+xfrd_handle_ipc_read in ipc.c. In the xfrd_state struct (in xfrd.h), the
+boolean parent_bad_soa_infos is added to help with this control flow in ipc.
+
+The soas are eventually processed by xfrd, via xfrd_handle_ipc_SOAINFO in
+ipc.c, with the xfrd_handle_incoming_soa function in xfrd.c.  The function
+make sure that if a bad soa was received it is remembered in the xfrd_zone
+struct. Two new variables are added for the purpose to this struct: soa_bad
+and soa_bad_acquired.  The values are stored and read to the xfrd.state file
+with the functions xfrd_write_state_soa and xfrd_read_state respectively.
+
+In xfrd.c function xfrd_parse_received_xfr_packet is adapted to make sure that
+known bad serials are not transfered again unless the transfer is in a
+response to a notify. And even then only when the SOA matches the one in the
+notify (if it contained one, otherwise any SOA is good).
 

@@ -14,19 +14,11 @@
 
 void close_all_sockets(struct nsd_socket sockets[], size_t n);
 
-void netio_add_udp_handlers( netio_type* netio
-			   , struct nsd* nsd
-			   , region_type* region
-			   , struct nsd_socket* udp_socket
-			   , size_t n
-			   );
+void netio_add_udp_handlers(netio_type* netio, struct nsd* nsd,
+	region_type* region, struct nsd_socket* udp_socket, size_t n);
 
-void netio_add_tcp_handlers( netio_type* netio
-			   , struct nsd* nsd
-			   , region_type* region
-			   , struct nsd_socket* tcp_socket
-			   , size_t n
-			   );
+void netio_add_tcp_handlers(netio_type* netio, struct nsd* nsd,
+	region_type* region, struct nsd_socket* tcp_socket, size_t n);
 
 
 #endif /* NSD_SERVER_H */

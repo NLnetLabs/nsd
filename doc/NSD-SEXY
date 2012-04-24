@@ -1,5 +1,5 @@
 This is a fork of the NSD_3_2 branch. Is is designed to operate as described
-in the dnssexy project (see: http://nlnetlabs.nl/projects/dnssexy (TODO)).
+in the dnssexy project (see: http://nlnetlabs.nl/projects/dnssexy ).
 
 An external verifier can be configured per zone. When a zone with a verifier
 is received or is updated via an (incremental) zone transfer, it will be
@@ -51,7 +51,7 @@ the accessablity of the system submitting the zone via environment variables.
 		the first configured IPv4 address and port (again when
 		configured and supported), and 
 
-	VERIFY_IP_ADDRESS and VERIFY_IP_PORT
+	VERIFY_IP_ADDRESS and VERIFY_PORT
 		the first address and port with a preference for IPv6.
 
 For each zone one verifier will be run at the same time, but when multiple

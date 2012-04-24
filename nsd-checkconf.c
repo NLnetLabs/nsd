@@ -41,9 +41,22 @@ extern int optind;
 	}
 
 #define ZONE_GET_STR_LIST(NAME, VAR) 		\
-	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+	if(strcasecmp(#NAME, (VAR)) == 0) { 	\
 		quote_strings(zone->NAME);	\
 		return;				\
+	}
+
+#define ZONE_GET_INHERITABLE_BIN(NAME, VAR) 		\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 		\
+		printf("%s\n", zone->NAME == 2 ? "inherit" :	\
+			      (zone->NAME?"yes":"no")); \
+	}
+
+#define ZONE_GET_INHERITABLE_INT(NAME, VAR) 	\
+	if (strcasecmp(#NAME, (VAR)) == 0) { 	\
+		if(zone->NAME == -1)printf("inherit\n");	\
+		else printf("%d\n", (int) zone->NAME);	\
+		return; 			\
 	}
 
 #define ZONE_GET_BIN(NAME, VAR) 			\
@@ -131,13 +144,13 @@ print_string_var(const char* varname, const char* value)
 static void
 quote_strings(char* const* value)
 {
-	if (value) {
-		while (*value) {
-			if (strchr(*value, ' ') || strchr(*value, '\t'))
+	if(value) {
+		while(*value) {
+			if(strchr(*value, ' ') || strchr(*value, '\t'))
 				printf("\"%s\"", *value);
 			else
 				printf("%s", *value);
-			if (*++value) {
+			if(*++value) {
 				printf(" ");
 			};
 		}
@@ -148,7 +161,7 @@ quote_strings(char* const* value)
 static void
 print_strings_var(const char* varname, char* const* value)
 {
-	if (!value) {
+	if(!value) {
 		printf("\t#%s\n", varname);
 	} else {
 		printf("\t%s ", varname);
@@ -283,6 +296,8 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 				ZONE_GET_OUTGOING(outgoing_interface, o);
 				ZONE_GET_BIN(allow_axfr_fallback, o);
 				ZONE_GET_STR_LIST(verifier, o);
+				ZONE_GET_INHERITABLE_BIN(verifier_feed_zone, o);
+				ZONE_GET_INHERITABLE_INT(verifier_timeout, o);
 				printf("Zone option not handled: %s %s\n", z, o);
 				exit(1);
 			}
@@ -319,11 +334,12 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
-
+		/* sexy */
 		SERV_GET_IP(verify_ip_address, o);
 		SERV_GET_STR(verify_port, o);
 		SERV_GET_INT(verifier_count, o);
 		SERV_GET_BIN(verifier_feed_zone, o);
+		SERV_GET_INT(verifier_timeout, o);
 
 		if(strcasecmp(o, "zones") == 0) {
 			RBTREE_FOR(zone, zone_options_t*, opt->zone_options)

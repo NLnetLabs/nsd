@@ -305,7 +305,7 @@ handle_log_from_fd(netio_type* netio, netio_handler_type* handler,
 	}
 
 	len = read(lfd->fd, lfd->pos, LOGLINELEN);
-	if (len == 0) {
+	if(len == 0) {
 		close(lfd->fd);
 		lfd->fd = -1;
 		netio_remove_handler(netio, handler);
@@ -784,7 +784,7 @@ server_verifiers_add(server_verify_zone_state_type** state,
 	}
 	/* find first available verifier slot */
 	for(i = 0; i < nsd->options->verifier_count; i++) {
-		if (s->verifiers[i].zone == NULL) {
+		if(s->verifiers[i].zone == NULL) {
 			v = &s->verifiers[i];
 			break;
 		}
@@ -866,7 +866,7 @@ server_verifiers_add(server_verify_zone_state_type** state,
 	    (v->zone->opts->verifier_timeout == ZONE_VERIFIER_TIMEOUT_INHERIT) ?
 	    s->nsd->options->verifier_timeout : v->zone->opts->verifier_timeout;
 
-	if (v->timeout_spec.tv_sec > 0) {
+	if(v->timeout_spec.tv_sec > 0) {
 		log_msg(LOG_INFO,
 			"Verifier should take no longer than %d seconds.",
 			(int) v->timeout_spec.tv_sec);

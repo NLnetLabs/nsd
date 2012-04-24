@@ -180,10 +180,11 @@ xfrd_read_state(struct xfrd_state* xfrd)
 		xfrd_zone_t* zone;
 		const dname_type* dname;
 		uint32_t state, masnum, nextmas, round_num, timeout;
-		xfrd_soa_t soa_nsd_read, soa_disk_read;
-		xfrd_soa_t soa_notified_read, soa_bad_read;
-		time_t soa_nsd_acquired_read, soa_disk_acquired_read;
-		time_t soa_notified_acquired_read, soa_bad_acquired_read;
+		xfrd_soa_t soa_nsd_read, soa_disk_read, soa_notified_read,
+				soa_bad_read;
+		time_t soa_nsd_acquired_read,
+			soa_disk_acquired_read, soa_notified_acquired_read,
+			soa_bad_acquired_read;
 		xfrd_soa_t incoming_soa;
 		time_t incoming_acquired;
 

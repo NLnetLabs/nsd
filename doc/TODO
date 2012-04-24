@@ -106,6 +106,7 @@ OPTIMISATIONS
 - reduce the memory leak on zone transfers (deleted domains are not removed from
   tree).
 - Options server: ip-address: and zone: outgoing-interface are pretty much the same.
+- Options to make NSD restrict AXFR response messages to a single RR (RFC5936)
 
 TESTS
 - tpkg test for bug 157: a valid NSID EDNS0 option generates FORMERR on

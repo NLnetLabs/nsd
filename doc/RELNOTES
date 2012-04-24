@@ -1,18 +1,27 @@
 NSD RELEASE NOTES
 
-3.2.11 (UPCOMING)
+3.2.10-sexy
 ================
 
 FEATURES:
+	- Fork from NSD3.2 with dnssexy operation (see NSD-SEXY)
 	- Fallback to AXFR is IXFR is unknown at the primary. NSD considers
 	  IXFR unknown at the primary if there is a negative response for the IXFR
 	  RRtype. This does not override the value for 'allow-axfr-fallback'.
+	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155, RFC5702, 
+	  RFC5933, and RFC6605 (ECDSA)).
+	- Support for TLSA RRtype (DANE).
 
 BUG FIXES:
 	- Fix for qtype ANY for a wildcard domain in NSEC signed zone: Don't
 	  add the wildcard domain NSEC into the answer section. Instead,
 	  put the wildcard expanded NSEC into the answer section and keep the
 	  wildcard domain NSEC in the authority section.
+
+OPERATIONAL NOTES:
+	- NSD uses the query name for dname compression again (Fix #235 
+	  had as side effect that this didn't happen anymore and is hereby
+	  undone).
 
 
 3.2.10
