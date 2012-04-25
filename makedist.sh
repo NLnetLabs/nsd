@@ -147,17 +147,19 @@ rm makedist.sh || error_cleanup "Failed to remove makedist.sh."
 info "Determining NSD version."
 version=`./configure --version | head -1 | awk '{ print $3 }'` || \
     error_cleanup "Cannot determine version number."
+NAME=`./configure --version | head -1 | awk '{ print $1 }'`
+name=`./configure --version | head -1 | awk '{ print $1 }' | tr A-Z a-z`
 
-info "NSD version: $version"
+info "$NAME version: $version"
 
 if [ "$RC" != "no" ]; then
-    info "Building NSD release candidate."
+    info "Building $NAME release candidate."
     version="${version}rc$RC"
     info "Release candidate version number: $version"
 fi
 
 if [ "$SNAPSHOT" = "yes" ]; then
-    info "Building NSD snapshot."
+    info "Building $NAME snapshot."
     version="$version-`date +%Y%m%d`"
     info "Snapshot version number: $version"
 fi
@@ -174,38 +176,41 @@ replace_all nsd-xfer.8.in
 replace_all zonec.8.in
 replace_all nsd.conf.5.in
 
-info "Renaming NSD directory to nsd-$version."
+info "Renaming $NAME directory to $name-$version."
 cd ..
-mv nsd nsd-$version || error_cleanup "Failed to rename NSD directory."
+mv nsd $name-$version || error_cleanup "Failed to rename $NAME directory."
 
-tarfile="../nsd-$version.tar.gz"
+tarfile="../$name-$version.tar.gz"
 
 if [ -f $tarfile ]; then
     (question "The file $tarfile already exists.  Overwrite?" \
         && rm -f $tarfile) || error_cleanup "User abort."
 fi
 
-info "Deleting the tpkg directory"
-rm -rf nsd-$version/tpkg/
+info "Moving dnssexy-setup to contrib directory"
+mv $name-$version/tpkg/dnssexy-setup $name-$version/contrib/dnssexy-setup
 
-info "Creating tar nsd-$version.tar.gz"
-tar czf ../nsd-$version.tar.gz nsd-$version || error_cleanup "Failed to create tar file."
+info "Deleting the tpkg directory"
+rm -rf $name-$version/tpkg/
+
+info "Creating tar $name-$version.tar.gz"
+tar czf ../$name-$version.tar.gz $name-$version || error_cleanup "Failed to create tar file."
 
 cleanup
 
 case $OSTYPE in
         linux*)
-                sha=`sha1sum nsd-$version.tar.gz |  awk '{ print $1 }'`
+                sha=`sha1sum $name-$version.tar.gz |  awk '{ print $1 }'`
                 ;;
         FreeBSD*)
-                sha=`sha1  nsd-$version.tar.gz |  awk '{ print $5 }'`
+                sha=`sha1  $name-$version.tar.gz |  awk '{ print $5 }'`
                 ;;
 	*)
-                sha=`sha1sum nsd-$version.tar.gz |  awk '{ print $1 }'`
+                sha=`sha1sum $name-$version.tar.gz |  awk '{ print $1 }'`
                 ;;
 esac
-echo $sha > nsd-$version.tar.gz.sha1
+echo $sha > $name-$version.tar.gz.sha1
 
-info "NSD distribution created successfully."
+info "$NAME distribution created successfully."
 info "SHA1sum: $sha"
 

@@ -804,6 +804,7 @@ server_verifiers_add(server_verify_zone_state_type** state,
 	}
 	v->zone = zone;
 	v->was_ok = zone->is_ok;
+	zone->is_ok = 1;
 	/* will we feed the zone on stdin? */
 	if(zone->opts->verifier_feed_zone == 1 ||
 	  (zone->opts->verifier_feed_zone == 2 &&
@@ -933,20 +934,17 @@ static void
 server_verifiers_wait(server_verify_zone_state_type** state,
 		size_t* good_zones, size_t* bad_zones)
 {
-	server_verify_zone_state_type* s = NULL;
-	int i;
-
 	assert(state && good_zones && bad_zones);
 
-	if((s = *state) != NULL) {
-		while(!all_verifiers_are_done(s)) {
-			server_verify_zones(s, good_zones, bad_zones);
+	if(*state != NULL) {
+		while(!all_verifiers_are_done(*state)) {
+			server_verify_zones(*state, good_zones, bad_zones);
 		}
-		if(s->df) {
-			fclose(s->df);
+		if((*state)->df) {
+			fclose((*state)->df);
 		}
-		if(s->region) {
-			region_destroy(s->region);
+		if((*state)->region) {
+			region_destroy((*state)->region);
 		}
 		*state = NULL;
 	}

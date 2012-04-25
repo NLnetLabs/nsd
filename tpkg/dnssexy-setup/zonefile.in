@@ -2,10 +2,10 @@ $ORIGIN @ZONE@.
 $TTL @TTL@
 @	SOA	public.@ZONE@. hostmaster.@ZONE@. (
 		  @SERIAL@  ; Serial
-		  @REFRESH@ ; Refresh 8 hours
-		  @RETRY@   ; Retry   2 hours
-		  @EXPIRE@  ; Expire  7 days
-		  @MINIMUM@ ; Minimum 5 hours
+		  @REFRESH@ ; Refresh
+		  @RETRY@   ; Retry
+		  @EXPIRE@  ; Expire
+		  @MINIMUM@ ; Minimum
         )
 	NS	public
 public	A	@SLAVE_IP@

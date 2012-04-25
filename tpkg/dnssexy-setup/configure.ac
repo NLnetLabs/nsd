@@ -35,7 +35,14 @@ if test "x$SLAVE_IP" = "x" ; then SLAVE_IP=$DEFAULT_IP; fi
 AC_ARG_VAR(SLAVE_PORT, Port on which the public slave listens (default: 53476))
 if test "x$SLAVE_PORT" = "x" ; then SLAVE_PORT=53476 ; fi
 
-AC_ARG_VAR(ZONE, Zone to serve (default: dnssexy.org))
+AC_ARG_VAR(VERIFY_IP, 
+	   IP address for querying the zone to be assessed (default: PROXY_IP))
+if test "x$VERIFY_IP" = "x" ; then VERIFY_IP=$PROXY_IP ; fi
+
+AC_ARG_VAR(VERIFY_PORT, Port for querying the zone to be assessed (default: 5347))
+if test "x$VERIFY_PORT" = "x" ; then VERIFY_PORT=5347 ; fi
+
+AC_ARG_VAR(ZONE, Zone to serve (default: dnssexy.test))
 if test "x$ZONE" = "x"; then ZONE=dnssexy.test; fi
 
 AC_ARG_VAR(NZONES, Number of zones to serve (default: 1))
@@ -73,7 +80,7 @@ if test "x$VERIFIER_TIMEOUT" = "x"; then VERIFIER_TIMEOUT=0 ; fi
 
 
 
-SEARCHPATH=$srcdir/../..$PATH_SEPERATOR.$PATH_SEPARATOR../..$PATH_SEPARATOR$PATH$PATH_SEPARATOR$HOME/bin$PATH_SEPARATOR$HOME/sbin:$HOME/local/bin:$HOME/local/sbin
+SEARCHPATH=$srcdir/../..$PATH_SEPERATOR.$PATH_SEPARATOR../..$PATH_SEPARATOR..$PATH_SEPERATOR$PATH$PATH_SEPARATOR$HOME/bin$PATH_SEPARATOR$HOME/sbin:$HOME/local/bin:$HOME/local/sbin
 
 AC_PATH_PROGS([NSDC], [nsdc nsdc.sh], [], [$SEARCHPATH])
 if test "x$NSDC" = "x" ; then
@@ -86,7 +93,7 @@ AC_PATH_PROGS([LDNS_VERIFY_ZONE], [ldns-verify-zone], [], [$SEARCHPATH])
 AC_PATH_PROGS([MULTITAIL], [multitail], [], [$SEARCHPATH])
 AC_PATH_PROGS([BASHELL], [bash], [], [$SEARCHPATH])
 
-AC_ARG_VAR(VERIFIER, Verbosity in log files (default: ldns-verify-zone))
+AC_ARG_VAR(VERIFIER, Verifier program to run (default: ldns-verify-zone))
 if test "x$VERIFIER" = "x"
 then VERIFIER="$LDNS_VERIFY_ZONE"
 else if test "x$VERIFIER" = "xdebug"

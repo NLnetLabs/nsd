@@ -7,7 +7,7 @@ mknod "$PROXY/proxyout" p
 mknod "$PROXY/stdout" p
 mknod "$PROXY/stderr" p
 
-trap 'rm -f "$PROXY/proxyin" "$PROXY/proxyout" "$PROXY/stdout" "$PROXY/stderr" "$PROXY/zone" "$PROXY/environment"; exit 0' 1 2 3 6 9 15
+trap 'rm -f "$PROXY/proxyin" "$PROXY/proxyout" "$PROXY/stdout" "$PROXY/stderr" "$PROXY/stdin" "$PROXY/environment"; exit 0' 1 2 3 6 9 15
 
 while test 1
 do
@@ -34,5 +34,5 @@ do
 	echo $STATUS > "$PROXY/proxyout"
 done
 
-rm -f "$PROXY/proxyin" "$PROXY/proxyout" "$PROXY/stdout" "$PROXY/stderr" "$PROXY/zone" "$PROXY/environment"
+rm -f "$PROXY/proxyin" "$PROXY/proxyout" "$PROXY/stdout" "$PROXY/stderr" "$PROXY/stdin" "$PROXY/environment"
 

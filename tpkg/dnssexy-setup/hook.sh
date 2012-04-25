@@ -24,9 +24,9 @@ then
 	CPSTDERR=$!
 	if [ "$VERIFY_ZONE_ON_STDIN" = "yes" ]
 	then
-		cat > "$PROXY/zone"
+		cat > "$PROXY/stdin"
 	else
-		rm -f "$PROXY/zone"
+		rm -f "$PROXY/stdin"
 	fi
 	echo R > "$PROXY/proxyin"
 	read DEBUGBASHPID < "$PROXY/proxyout"

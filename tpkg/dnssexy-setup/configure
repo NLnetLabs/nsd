@@ -605,6 +605,8 @@ REFRESH
 SERIAL
 NZONES
 ZONE
+VERIFY_PORT
+VERIFY_IP
 SLAVE_PORT
 SLAVE_IP
 SLAVE
@@ -671,6 +673,8 @@ PROXY_PORT
 SLAVE
 SLAVE_IP
 SLAVE_PORT
+VERIFY_IP
+VERIFY_PORT
 ZONE
 NZONES
 SERIAL
@@ -1313,7 +1317,10 @@ Some influential environment variables:
   SLAVE_IP    IP address on which the public slave listens (default:
               DEFAULT_IP)
   SLAVE_PORT  Port on which the public slave listens (default: 53476)
-  ZONE        Zone to serve (default: dnssexy.org)
+  VERIFY_IP   IP address for querying the zone to be assessed (default:
+              PROXY_IP)
+  VERIFY_PORT Port for querying the zone to be assessed (default: 5347)
+  ZONE        Zone to serve (default: dnssexy.test)
   NZONES      Number of zones to serve (default: 1)
   SERIAL      Initial serial of SOA RR (default: 1)
   REFRESH     Initial refresh time of SOA RR (default: 120 (2 minutes))
@@ -1791,6 +1798,12 @@ if test "x$SLAVE_IP" = "x" ; then SLAVE_IP=$DEFAULT_IP; fi
 
 
 if test "x$SLAVE_PORT" = "x" ; then SLAVE_PORT=53476 ; fi
+
+
+if test "x$VERIFY_IP" = "x" ; then VERIFY_IP=$PROXY_IP ; fi
+
+
+if test "x$VERIFY_PORT" = "x" ; then VERIFY_PORT=5347 ; fi
 
 
 if test "x$ZONE" = "x"; then ZONE=dnssexy.test; fi

@@ -1,6 +1,7 @@
     ip-address:   @PROXY_IP@
     port:         @PROXY_PORT@
-    verify-ip-address:	  @PROXY_IP@
+    verify-ip-address:	@VERIFY_IP@
+    verify-port:	@VERIFY_PORT@
     verifier-count:	@VERIFIER_COUNT@
     verifier-feed-zone:	@VERIFIER_FEED_ZONE@
     verifier-timeout:	@VERIFIER_TIMEOUT@
