@@ -1335,7 +1335,7 @@ Some influential environment variables:
               Feed zone on stdin (default: yes)
   VERIFIER_TIMEOUT
               How long may a verifier take (default: 0 (forever))
-  VERIFIER    Verbosity in log files (default: ldns-verify-zone)
+  VERIFIER    Verifier program to run (default: ldns-verify-zone)
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -1843,7 +1843,7 @@ if test "x$VERIFIER_TIMEOUT" = "x"; then VERIFIER_TIMEOUT=0 ; fi
 
 
 
-SEARCHPATH=$srcdir/../..$PATH_SEPERATOR.$PATH_SEPARATOR../..$PATH_SEPARATOR$PATH$PATH_SEPARATOR$HOME/bin$PATH_SEPARATOR$HOME/sbin:$HOME/local/bin:$HOME/local/sbin
+SEARCHPATH=$srcdir/../..$PATH_SEPERATOR.$PATH_SEPARATOR../..$PATH_SEPARATOR..$PATH_SEPERATOR$PATH$PATH_SEPARATOR$HOME/bin$PATH_SEPARATOR$HOME/sbin:$HOME/local/bin:$HOME/local/sbin
 
 for ac_prog in nsdc nsdc.sh
 do
