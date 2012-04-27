@@ -48,9 +48,9 @@ $(DNSKEYS):
 	@echo "-- Creating $@ ..."
 	@$(LDNS_KEYGEN) -a $(DNSKEY_ALGORITHM) $(LDNS_KEYGEN_OPTIONS) \
     `echo "$(@:.private=)" | sed "s/^$(MASTER)\///g"` > .key
-	@for kn in `cat .key`.ds `cat .key`.key `cat .key`.private ; \
-    do  mv $$kn $(MASTER) ; \
-	ln -s $$kn "$(MASTER)/`echo "$(@:.private=)" | sed "s/^$(MASTER)\///g"`.`echo $$kn | sed 's/.*\.//g'`" ; \
+	@for ext in .ds .key .private ; \
+    do  mv `cat .key`$$ext $(MASTER) ; \
+    ln -s `cat .key`$$ext $(@:.private=)$$ext; \
     done
 	@rm .key
 
@@ -79,8 +79,7 @@ $(TSIGS):
 	@echo "	algorithm: $(TSIG_ALGORITHM)" >> $@
 	@$(LDNS_KEYGEN) -a $(TSIG_ALGORITHM) -b $(TSIG_SIZE) \
     $(LDNS_KEYGEN_OPTIONS) `echo $(@:.tsig=)|sed 's/^tsigs\///g'` > .keyname
-	@grep ^Key: `cat .keyname`.private \
-    | grep ^Key: \
+	@grep "^Key:" `cat .keyname`.private \
     | sed -e 's/^Key: /	secret: "/g' -e 's/$$/"/g' >> $@
 	@rm `cat .keyname`.key
 	@rm `cat .keyname`.private
@@ -109,15 +108,15 @@ start: start-$(MASTER) start-$(PROXY) start-$(SLAVE)
 restart: restart-$(MASTER) restart-$(PROXY) restart-$(SLAVE)
 
 stop-$(MASTER):
-	@if test -e $(MASTER)/nsd.pid; then \
+	@if test -f $(MASTER)/nsd.pid; then \
 	($(NSDC) -c $(MASTER_CONFIG) stop \
 	&& echo "-- Stopped $(MASTER) ..."  ) || : ; fi
 stop-$(PROXY):
-	@if test -e $(PROXY)/nsd.pid; then \
+	@if test -f $(PROXY)/nsd.pid; then \
 	($(NSDC) -c $(PROXY_CONFIG) stop \
 	&& echo "-- Stopped $(PROXY) ..."  ) || : ; fi
 stop-$(SLAVE):
-	@if test -e $(SLAVE)/nsd.pid; then \
+	@if test -f $(SLAVE)/nsd.pid; then \
 	($(NSDC) -c $(SLAVE_CONFIG) stop \
 	&& echo "-- Stopped $(SLAVE) ..."  ) || : ; fi
 stop: stop-$(MASTER) stop-$(PROXY) stop-$(SLAVE)
@@ -192,10 +191,12 @@ clean-masterdb:
 clean-dnskeys:
 	@echo "-- Removing DNSSEC keys ... "
 	@for key in $(DNSKEYS) ; \
-	do for kn in $${key%.private}.ds $${key%.private}.key $$key ; \
-	  do if test -L $$kn; then \
-	    rm -f $(MASTER)/`readlink $$kn` $$kn ; fi; \
-	  done ; \
+	do echo $$key | sed 's/.private$$//g' >.key ; \
+	   for kn in `cat .key`.ds `cat .key`.key `cat .key`.private ; \
+	   do if test -L $$kn; then \
+	     rm -f $(MASTER)/`readlink $$kn` $$kn ; fi; \
+	   done ; \
+	   rm .key ; \
 	done
 clean-servers:
 	@echo "-- Removing servers state ... "

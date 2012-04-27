@@ -1,6 +1,7 @@
 #!/bin/sh
 
-export PROXY="$1"
+PROXY="$1"
+export PROXY
 
 mkfifo "$PROXY/proxyin"
 mkfifo "$PROXY/proxyout"

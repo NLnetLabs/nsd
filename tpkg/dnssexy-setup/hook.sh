@@ -13,9 +13,10 @@ then
 			VERIFY_IPV6_ADDRESS VERIFY_IPV6_PORT \
 			VERIFY_IPV4_ADDRESS VERIFY_IPV4_PORT
 	  do
-		printf "%s" "export $ENVVAR=\""
+		printf "%s" "$ENVVAR=\""
 		eval echo \$$ENVVAR \
 		| sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/$/"/g'
+		echo "export $ENVVAR"
 	  done
 	) > "$PROXY/environment"
 	tail -f "$PROXY/stdout" &
