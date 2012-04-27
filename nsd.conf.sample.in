@@ -16,6 +16,27 @@ server:
 	# ip-address: 1.2.3.4@5678
 	# ip-address: 12fe::8ef0
 
+	# how many verifiers may be run concurrently?
+	# verifier-count: 1
+
+	# should a by IXFR or AXFR  updated zone be fed to the standard input
+	# (stdin) of a verifier?
+	# verifier-feed-zone: yes
+
+	# should a by IXFR or AXFR  updated zone be served to a verifier?
+	# uncomment to enable and specify on what ip-addresses the updated
+	# zone will be served.
+	# verify-ip-address: 127.0.0.1
+	# verify-ip-address: 127.0.0.1@5347
+	# verify-ip-address: ::1
+	
+	# on which port will the by IXFR or AXFR  updated zone be served to 
+	# the verifier.
+	# verify-port: 5347
+	
+	# how long may any verifier take (0 is forever)
+	# verifier-timeout: 0
+
 	# don't answer VERSION.BIND and VERSION.SERVER CHAOS class queries
 	# hide-version: no
 
@@ -141,6 +162,19 @@ zone:
 
 	# set local interface for sending zone transfer requests.
 	outgoing-interface: 10.0.0.10
+
+	# the verifier program that assessed by IXFR or AXFR received updates
+	# verifier: ldns-verify-zone
+	# verifier: validns -
+	# verifier: drill -k <keyfile> @127.0.0.1 -p 5347 example.com SOA
+
+	# should a by IXFR or AXFR  updated zone be fed to the standard input
+	# (stdin) of a verifier? defaults to take value from server: section
+	# verifier-feed-zone: inherit
+
+	# how long may any verifier take (0 is forever). defaults to take the
+	# value from the server: section
+	# verifier-timeout: inherit
 
 # Sample zone 2
 zone:
