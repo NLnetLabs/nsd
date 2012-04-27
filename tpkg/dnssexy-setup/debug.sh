@@ -2,10 +2,10 @@
 
 export PROXY="$1"
 
-mknod "$PROXY/proxyin" p
-mknod "$PROXY/proxyout" p
-mknod "$PROXY/stdout" p
-mknod "$PROXY/stderr" p
+mkfifo "$PROXY/proxyin"
+mkfifo "$PROXY/proxyout"
+mkfifo "$PROXY/stdout"
+mkfifo "$PROXY/stderr"
 
 trap 'rm -f "$PROXY/proxyin" "$PROXY/proxyout" "$PROXY/stdout" "$PROXY/stderr" "$PROXY/stdin" "$PROXY/environment"; exit 0' 1 2 3 6 9 15
 

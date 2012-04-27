@@ -139,7 +139,7 @@ else $(MAKE) start-$(SLAVE); fi
 reload: reload-$(MASTER) reload-$(PROXY) reload-$(SLAVE)
 
 $(INCR_ZONES):
-	@echo -n "$(MASTER)/`echo $@|sed 's/^incr-//g'`" > .name
+	@printf "%s" "$(MASTER)/`echo $@|sed 's/^incr-//g'`" > .name
 	@echo "`cat .name`.new" > .newname
 	@awk '/^[ 	][ 	]*[0-9][0-9]*[ 	]*;[ 	]*Serial$$/ \
     { printf("%d", ($$1+1)); exit; }' `cat .name` > .ser
@@ -152,8 +152,8 @@ $(INCR_ZONES):
 	@rm -f .name .newname .ser
 
 $(RUIN_ZONES):
-	@echo -n `echo $@|sed 's/^ruin-//g'` > .zone
-	@echo -n "$(MASTER)/`cat .zone`.signed" > .name
+	@printf "%s" `echo $@|sed 's/^ruin-//g'` > .zone
+	@printf "%s" "$(MASTER)/`cat .zone`.signed" > .name
 	@echo "-- Creating bogus RR for `cat .zone` ..."
 	@sed 's/ sexy/ bad/' `cat .name` > `cat .name`.new
 	@mv `cat .name`.new `cat .name`

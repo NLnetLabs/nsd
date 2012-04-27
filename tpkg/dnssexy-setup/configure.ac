@@ -127,7 +127,7 @@ then
 	COUNT=0
 	while test $COUNT -lt $NZONES
 	do
-		ZONE_N=`eval echo -n \\$ZONE$COUNT`
+		ZONE_N=`eval printf "%s" \\$ZONE$COUNT`
 		if test "x$ZONE_N" = "x"
 		then ZONE_N=`echo $ZONE | sed "s/\..*/-${COUNT}&/g"` ; fi
 		eval ZONE$COUNT=$ZONE_N
@@ -144,7 +144,7 @@ then
 			TSIGS="${TSIGS}tsigs/$ROLE.$ZONE_N.tsig "
 		done
 
-		VERIFIER_N=`eval echo -n \\$VERIFIER$COUNT`
+		VERIFIER_N=`eval printf "%s" \\$VERIFIER$COUNT`
 		if test "x$VERIFIER_N" = "x"
 		then VERIFIER_N="$VERIFIER"
 		else if test "x$VERIFIER_N" = "xdebug"
@@ -270,7 +270,7 @@ then
 	VERIFIER="@VERIFIER@"
 	while test $COUNT -lt $NZONES
 	do
-		ZONE_N=`eval echo -n \\$ZONE$COUNT`
+		ZONE_N=`eval printf "%s" \\$ZONE$COUNT`
 		AC_CONFIG_FILES([${MASTER}/${ZONE_N}:zonefile.in])
 		AC_CONFIG_FILES(
 			[${MASTER}/${MASTER}.${ZONE_N}.cf:master.zone.cf.in]
@@ -343,15 +343,50 @@ SLAVE='$SLAVE'
 AC_OUTPUT
 
 cat <<SETTINGS_OVERVIEW
+
     Settings:
         nsdc          : $NSDC
-        ldns-read-zone: $LDNS_READ_ZONE
-        multitail     : $MULTITAIL
         zones         : $ZONES
 	master        : $MASTER	$MASTER_IP@$MASTER_PORT
 	proxy         : $PROXY	$PROXY_IP@$PROXY_PORT
 	slave         : $SLAVE	$SLAVE_IP@$SLAVE_PORT
-	sideline-setup: $enable_sideline
+
+	verifier          : $VERIFIER
+	verifier-count    : $VERIFIER_COUNT
+	verifier-timeout  : $VERIFIER_TIMEOUT
+	verifier-feed-zone: $VERIFIER_FEED_ZONE
+	verifier-ip       : $VERIFY_IP@$VERIFY_PORT
+
 SETTINGS_OVERVIEW
 
+case `uname` in
+linux|Linux)
+	plist=`netstat -n -A ip -A ip6 -a | sed -e 's/^.*:\(@<:@0-9@:>@*\) .*$/\1/'`
+	;;
+FreeBSD|freebsd|NetBSD|netbsd|OpenBSD|openbsd)
+	plist=`netstat -n -a | grep "^@<:@ut@:>@@<:@dc@:>@p@<:@46@:>@ " | sed -e 's/^.*\.\(@<:@0-9@:>@*\) .*$/\1/'`
+	;;
+Solaris|SunOS|Darwin)
+	plist=`netstat -n -a | sed -e 's/^.*\.\(@<:@0-9@:>@*\) .*$/\1/' | grep '^@<:@0-9@:>@*$'`
+	;;
+*)
+	plist=""
+	;;
+esac
+
+if test "x$plist" != "x"
+then
+	if echo "$plist" | grep "^$MASTER_PORT" >/dev/null 2>&1; then
+		AC_MSG_WARN([MASTER_PORT $MASTER_PORT is already in use.])
+	fi
+	if echo "$plist" | grep "^$PROXY_PORT" >/dev/null 2>&1; then
+		AC_MSG_WARN([PROXY_PORT $PROXY_PORT is already in use.])
+	fi
+	if echo "$plist" | grep "^$VERIFY_PORT" >/dev/null 2>&1; then
+		AC_MSG_WARN([VERIFY_PORT $VERIFY_PORT is already in use.])
+	fi
+	if echo "$plist" | grep "^$SLAVE_PORT" >/dev/null 2>&1; then
+		AC_MSG_WARN([SLAVE_PORT $SLAVE_PORT is already in use.])
+	fi
+fi
 
