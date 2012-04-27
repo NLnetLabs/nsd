@@ -1845,7 +1845,7 @@ if test "x$VERIFIER_TIMEOUT" = "x"; then VERIFIER_TIMEOUT=0 ; fi
 
 SEARCHPATH=$srcdir/../..$PATH_SEPERATOR.$PATH_SEPARATOR../..$PATH_SEPARATOR..$PATH_SEPERATOR$PATH$PATH_SEPARATOR$HOME/bin$PATH_SEPARATOR$HOME/sbin:$HOME/local/bin:$HOME/local/sbin
 
-for ac_prog in nsdc nsdc.sh
+for ac_prog in nsdc.sh nsdc
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2

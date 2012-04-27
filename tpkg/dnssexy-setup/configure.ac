@@ -82,7 +82,7 @@ if test "x$VERIFIER_TIMEOUT" = "x"; then VERIFIER_TIMEOUT=0 ; fi
 
 SEARCHPATH=$srcdir/../..$PATH_SEPERATOR.$PATH_SEPARATOR../..$PATH_SEPARATOR..$PATH_SEPERATOR$PATH$PATH_SEPARATOR$HOME/bin$PATH_SEPARATOR$HOME/sbin:$HOME/local/bin:$HOME/local/sbin
 
-AC_PATH_PROGS([NSDC], [nsdc nsdc.sh], [], [$SEARCHPATH])
+AC_PATH_PROGS([NSDC], [nsdc.sh nsdc], [], [$SEARCHPATH])
 if test "x$NSDC" = "x" ; then
     AC_MSG_ERROR([No NSD control script (nsdc) has been found.]) ; fi
 AC_PATH_PROGS([LDNS_READ_ZONE], [ldns-read-zone], [], [$SEARCHPATH])
