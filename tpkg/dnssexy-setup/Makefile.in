@@ -2,17 +2,17 @@ srcdir          = @srcdir@
 
 MASTER          =  @MASTER@
 MASTER_CONFIG   = $(MASTER)/$(MASTER).cf
-MASTER_DB       = $(MASTER)/nsd.db
+MASTER_DB       = $(MASTER)/dnssexy.db
 MASTER_IP	=  @MASTER_IP@
 MASTER_PORT     =  @MASTER_PORT@
 PROXY           =  @PROXY@
 PROXY_CONFIG    = $(PROXY)/$(PROXY).cf
-PROXY_DB        = $(PROXY)/nsd.db
+PROXY_DB        = $(PROXY)/dnssexy.db
 PROXY_IP	=  @PROXY_IP@
 PROXY_PORT      =  @PROXY_PORT@
 SLAVE           =  @SLAVE@
 SLAVE_CONFIG    = $(SLAVE)/$(SLAVE).cf
-SLAVE_DB        = $(SLAVE)/nsd.db
+SLAVE_DB        = $(SLAVE)/dnssexy.db
 SLAVE_IP	=  @SLAVE_IP@
 SLAVE_PORT      =  @SLAVE_PORT@
 
@@ -85,19 +85,19 @@ $(TSIGS):
 	@rm `cat .keyname`.private
 	@rm .keyname
 
-start-$(MASTER) $(MASTER)/nsd.pid: $(MASTER_DB)
+start-$(MASTER) $(MASTER)/dnssexy.pid: $(MASTER_DB)
 	@( $(NSDC) -c $(MASTER_CONFIG) start \
 	&& echo "-- Started $(MASTER) ..."   ) \
      || (  $(NSDC) -c $(MASTER_CONFIG) restart \
 	&& echo "-- Restarted $(MASTER) ..."   ) \
      || echo "-- Could not (re)start $(MASTER)"
-start-$(PROXY) $(PROXY)/nsd.pid: $(PROXY_DB)
+start-$(PROXY) $(PROXY)/dnssexy.pid: $(PROXY_DB)
 	@( $(NSDC) -c $(PROXY_CONFIG) start \
 	&& echo "-- Started $(PROXY) ..."   ) \
      || (  $(NSDC) -c $(PROXY_CONFIG) restart \
 	&& echo "-- Restarted $(PROXY) ..."   ) \
      || echo "-- Could not (re)start $(PROXY)"
-start-$(SLAVE) $(SLAVE)/nsd.pid: $(SLAVE_DB)
+start-$(SLAVE) $(SLAVE)/dnssexy.pid: $(SLAVE_DB)
 	@( $(NSDC) -c $(SLAVE_CONFIG) start \
 	&& echo "-- Started $(SLAVE) ..."   ) \
      || (  $(NSDC) -c $(SLAVE_CONFIG) restart \
@@ -108,31 +108,31 @@ start: start-$(MASTER) start-$(PROXY) start-$(SLAVE)
 restart: restart-$(MASTER) restart-$(PROXY) restart-$(SLAVE)
 
 stop-$(MASTER):
-	@if test -f $(MASTER)/nsd.pid; then \
+	@if test -f $(MASTER)/dnssexy.pid; then \
 	($(NSDC) -c $(MASTER_CONFIG) stop \
 	&& echo "-- Stopped $(MASTER) ..."  ) || : ; fi
 stop-$(PROXY):
-	@if test -f $(PROXY)/nsd.pid; then \
+	@if test -f $(PROXY)/dnssexy.pid; then \
 	($(NSDC) -c $(PROXY_CONFIG) stop \
 	&& echo "-- Stopped $(PROXY) ..."  ) || : ; fi
 stop-$(SLAVE):
-	@if test -f $(SLAVE)/nsd.pid; then \
+	@if test -f $(SLAVE)/dnssexy.pid; then \
 	($(NSDC) -c $(SLAVE_CONFIG) stop \
 	&& echo "-- Stopped $(SLAVE) ..."  ) || : ; fi
 stop: stop-$(MASTER) stop-$(PROXY) stop-$(SLAVE)
-$(MASTER)/nsd.log: $(MASTER)/nsd.pid
-$(PROXY)/nsd.log: $(PROXY)/nsd.pid
-$(SLAVE)/nsd.log: $(SLAVE)/nsd.pid
+$(MASTER)/dnssexy.log: $(MASTER)/dnssexy.pid
+$(PROXY)/dnssexy.log: $(PROXY)/dnssexy.pid
+$(SLAVE)/dnssexy.log: $(SLAVE)/dnssexy.pid
 reload-$(MASTER): $(MASTER_DB)
-	@if test -f $(MASTER)/nsd.pid ; \
+	@if test -f $(MASTER)/dnssexy.pid ; \
 then $(NSDC) -c $(MASTER_CONFIG) reload && echo "-- Reloaded $(MASTER) ... "; \
 else $(MAKE) start-$(MASTER); fi
 reload-$(PROXY):
-	@if test -f $(PROXY)/nsd.pid ; \
+	@if test -f $(PROXY)/dnssexy.pid ; \
 then $(NSDC) -c $(PROXY_CONFIG) reload && echo "-- Reloaded $(PROXY) ... "; \
 else $(MAKE) start-$(PROXY); fi
 reload-$(SLAVE):
-	@if test -f $(SLAVE)/nsd.pid ; \
+	@if test -f $(SLAVE)/dnssexy.pid ; \
 then $(NSDC) -c $(SLAVE_CONFIG) reload && echo "-- Reloaded $(SLAVE) ... "; \
 else $(MAKE) start-$(SLAVE); fi
 reload: reload-$(MASTER) reload-$(PROXY) reload-$(SLAVE)
@@ -163,8 +163,8 @@ $(RUIN_ZONES):
 incr-all: $(INCR_ZONES)
 ruin-all: $(RUIN_ZONES)
 
-log: $(MASTER)/nsd.log $(PROXY)/nsd.log $(SLAVE)/nsd.log
-	$(MULTITAIL) $(MASTER)/nsd.log $(PROXY)/nsd.log $(SLAVE)/nsd.log
+log: $(MASTER)/dnssexy.log $(PROXY)/dnssexy.log $(SLAVE)/dnssexy.log
+	$(MULTITAIL) $(MASTER)/dnssexy.log $(PROXY)/dnssexy.log $(SLAVE)/dnssexy.log
 
 serials:
 	@for ZONE in $(ZONES) ; \
@@ -201,7 +201,7 @@ clean-dnskeys:
 clean-servers:
 	@echo "-- Removing servers state ... "
 	@for dir in $(SERVERS) ; do \
-    rm -f $$dir/nsd.log $$dir/xfrd.state $$dir/nsd.db $$dir/ixfr.db ; \
+    rm -f $$dir/dnssexy.log $$dir/xfrd.state $$dir/dnssexy.db $$dir/ixfr.db ; \
     if test -d $$dir ; then rmdir $$dir || : ; fi ; done
 clean-tsigs:
 	@echo "-- Removing TSIG keys ... "

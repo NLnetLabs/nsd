@@ -66,7 +66,7 @@ warning(const char *format, ...)
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: nsd-notify [-4] [-6] [-a src[@port] [-h] [-p \
+	fprintf(stderr, "usage: dnssexy-notify [-4] [-6] [-a src[@port] [-h] [-p \
 port] [-y key:secret[:algo]] -z zone servers\n\n");
 	fprintf(stderr, "Send NOTIFY to secondary servers to force a zone \
 update.\n");
@@ -260,7 +260,7 @@ main (int argc, char *argv[])
 	tsig_record_type tsig;
 	tsig_algorithm_type* algo = NULL;
 
-	log_init("nsd-notify");
+	log_init("dnssexy-notify");
 	if(!tsig_init(region)) {
 		log_msg(LOG_ERR, "could not init tsig\n");
 		exit(1);

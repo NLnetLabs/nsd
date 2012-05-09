@@ -1,5 +1,5 @@
 #
-# nsd.conf -- the NSD(8) configuration file, nsd.conf(5).
+# dnssexy.conf -- the DNSSEXY(8) configuration file, dnssexy.conf(5).
 #
 # Copyright (c) 2001-2011, NLnet Labs. All rights reserved.
 #
@@ -9,7 +9,7 @@
 # This is a comment.
 # Sample configuration file
 
-# options for the nsd server
+# options for the dnssexy server
 server:
 	# uncomment to specify specific interfaces to bind (default wildcard interface).
 	# ip-address: 1.2.3.4
@@ -61,7 +61,7 @@ server:
 	# log messages to file. Default to stderr and syslog (with facility LOG_DAEMON).
 	# logfile: "@logfile@"
 
-	# Number of NSD servers to fork.
+	# Number of dnssexy servers to fork.
 	# server-count: 1
 
 	# Maximum number of concurrent TCP connections per server.
@@ -81,7 +81,7 @@ server:
 	# Preferred EDNS buffer size for IPv6.
 	# ipv6-edns-size: 4096
 
-	# File to store pid for nsd in.
+	# File to store pid for dnssexy in.
 	# pidfile: "@pidfile@"
 
 	# port to answer queries on. default is 53.
@@ -90,7 +90,7 @@ server:
 	# statistics are produced every number of seconds.
 	# statistics: 3600
 
-	# Run NSD in a chroot-jail.
+	# Run dnssexy in a chroot-jail.
 	# make sure to have pidfile and database reachable from there.
 	# by default, no chroot-jail is used.
 	# chroot: "@configdir@"
@@ -103,12 +103,12 @@ server:
 	# zonesdir: "@zonesdir@"
 
 	# The file where incoming zone transfers are stored.
-	# run nsd-patch to update zone files, then you can safely delete it.
+	# run dnssexy-patch to update zone files, then you can safely delete it.
 	# difffile: "@difffile@"
 
 	# The file where secondary zone refresh and expire timeouts are kept.
 	# If you delete this file, all secondary zones are forced to be 
-	# 'refreshing' (as if nsd got a notify).
+	# 'refreshing' (as if dnssexy got a notify).
 	# xfrdfile: "@xfrdfile@"
 
 	# Number of seconds between reloads triggered by xfrd.
@@ -117,35 +117,47 @@ server:
 	# Verbosity level.
 	# verbosity: 0
 
-# key for zone 1
+# key for requesting the zone from the 
 key:
 	name: mskey
 	algorithm: hmac-md5
 	secret: "K2tf3TRjvQkVCmJF3/Z9vA=="
 
-# Sample zone 1
+# keys providing the zone to the (public) slaves
+key:
+	name: "sec1_key"
+	algorithm: hmac-md5
+	secret: "6KM6qiKfwfEpamEq72HQdA=="
+
+key:
+	name: sec2_key
+	algorithm: hmac-sha1
+	secret: "m83H2x8R0zbDf3yRKhrqgw=="
+
+# Example zone
 zone:
 	name: "example.com"
 	zonefile: "example.com.zone"
 
-	# This is a slave zone. Masters are listed below.
+	# The (hidden) masters are listed below
 	# If no access control elements are provided, this zone
 	# will not be served to/from other servers.
 
-	# master 1
+	# (hidden) master 1
 	allow-notify: 168.192.44.42 mskey
 	request-xfr: 168.192.44.42 mskey
 
-	# master 2
+	# (hidden) master 2
 	allow-notify: 10.0.0.11 NOKEY
 	request-xfr: 10.0.0.11 NOKEY
 
-	# By default, a slave will request a zone transfer with IXFR/TCP.
+	# By default, a (dnssexy) slave will request a zone transfer with
+	# IXFR/TCP.
 	# If you want to make use of IXFR/UDP use
 	allow-notify: 10.0.0.12 NOKEY
 	request-xfr: UDP 10.0.0.12 NOKEY
 
-	# for a master that only speaks AXFR (like NSD) use
+	# for a (hidden) master that only speaks AXFR (like NSD) use
 	allow-notify: 10.0.0.13 NOKEY
 	request-xfr: AXFR 10.0.0.13 NOKEY
 
@@ -160,7 +172,7 @@ zone:
 	# provide-xfr: 0.0.0.0/0 NOKEY
 	# provide-xfr: ::0/0 NOKEY
 
-	# set local interface for sending zone transfer requests.
+	# set local interface for sending zone transfer requests and notifies.
 	outgoing-interface: 10.0.0.10
 
 	# the verifier program that assessed by IXFR or AXFR received updates
@@ -176,20 +188,15 @@ zone:
 	# value from the server: section
 	# verifier-timeout: inherit
 
-# Sample zone 2
-zone:
-	name: "example.net"
-	zonefile: "example.net.signed.zone"
-
-	# This is a master zone. Slaves are listed below.
+	# The public slaves are listed below.
 	# If no access control elements are provided, this zone
-	# will not be served to/from other servers.
+	# will not be served to other servers.
 
-	# secondary 1. Uses port 5300.
+	# (public) slave 1. Uses port 5300.
 	notify: 10.0.0.14@5300 sec1_key
 	provide-xfr: 10.0.0.14@5300 sec1_key
 
-	# secondary 2. 
+	# (pubic) slave 2. 
 	notify: 10.11.12.14 sec2_key
 	provide-xfr: 10.11.12.14 sec2_key
 
@@ -200,23 +207,3 @@ zone:
 
 	# set the number of retries for notify.
 	notify-retry: 5
-
-	# set local interface for sending notifies
-	outgoing-interface: 10.0.0.15
-
-# keys for zone 2
-key:
-	name: "sec1_key"
-	algorithm: hmac-md5
-	secret: "6KM6qiKfwfEpamEq72HQdA=="
-
-key:
-	name: sec2_key
-	algorithm: hmac-sha1
-	secret: "m83H2x8R0zbDf3yRKhrqgw=="
-
-key:
-	name: sec3_key
-	algorithm: hmac-sha256
-	secret: "m83H2x8R0zbDf3yRKhrqgw=="
-

@@ -57,8 +57,8 @@ static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 static void
 usage (void)
 {
-	fprintf(stderr, "Usage: nsd [OPTION]...\n");
-	fprintf(stderr, "Name Server Daemon.\n\n");
+	fprintf(stderr, "Usage: dnssexy [OPTION]...\n");
+	fprintf(stderr, "DNS SEc proXY.\n\n");
 	fprintf(stderr,
 		"Supported options:\n"
 		"  -4                   Only listen to IPv4 connections.\n"
@@ -556,7 +556,7 @@ main(int argc, char *argv[])
 
 	char* argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
 
-	log_init("nsd");
+	log_init("dnssexy");
 
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));

@@ -115,7 +115,7 @@ skip_soa:
  *
  * 2011 implementation of popen3() by Mike Bourgeous
  * https://gist.github.com/1022231
- * Adapted for use in nsd-sexy by Willem Toorop in December 2011
+ * Adapted for use in dnssexy by Willem Toorop in December 2011
  */
 static pid_t 
 nsd_popen3(char* const* command, int* writefd, int* readfd, int* errfd,

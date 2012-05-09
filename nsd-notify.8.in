@@ -1,13 +1,13 @@
-.TH "nsd\-notify" "8" "@date@" "NLnet Labs" "nsd @version@"
+.TH "dnssexy\-notify" "8" "@date@" "NLnet Labs" "dnssexy @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP 
-.B nsd\-notify 
+.B dnssexy\-notify 
 \- program to send NOTIFY's to remote nameservers.
 .SH "SYNOPSIS"
 .LP
-.B nsd\-notify
+.B dnssexy\-notify
 .RB [ \-4 ]
 .RB [ \-6 ]
 .RB [ \-h ]
@@ -21,10 +21,8 @@
 .I zone servers
 .SH "DESCRIPTION"
 .LP 
-.B Nsd\-notify 
+.B Dnssexy\-notify 
 is simple program to send NOTIFY's to remote nameservers.
-.B NSD 
-is a complete implementation of an authoritative DNS nameserver.
 .SH "OPTIONS"
 .TP
 .B \-4
@@ -55,12 +53,16 @@ List of nameservers to send to.
 .LP 
 To run this program the standard way type:
 .LP 
-.B # nsd\-notify \-z foobar.cz 1.2.3.4
+.B # dnssexy\-notify \-z foobar.cz 1.2.3.4
 .SH "SEE ALSO"
 .LP 
-nsd(8), nsdc(8), nsd.conf(5), nsd\-checkconf(8),
-nsd\-patch(8), nsd\-xfer(8), zonec(8)
+dnssexy(8), dnssexyc(8), dnssexy.conf(5), dnssexy\-checkconf(8),
+dnssexy\-patch(8), dnssexy\-xfer(8)
 .SH "AUTHORS"
+.LP
+.B Dnssexy
+was written by NLnet Labs.
+.LP
 .B NSD
 was written by NLnet Labs and RIPE NCC joint team. Please see CREDITS
 file in the distribution for further details.

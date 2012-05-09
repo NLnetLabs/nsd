@@ -217,7 +217,7 @@ wait_petal_up () {
 # string nsd start in log.
 # $1 : logfilename that is watched.
 wait_nsd_up () {
-	wait_server_up "$1" " started (NSD-sexy "
+	wait_server_up "$1" " started (dnssexy "
 }
 
 # wait for server to go up, pass <logfilename> <string to watch> <badstr>

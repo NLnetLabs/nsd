@@ -2,8 +2,8 @@
 ==  DNSSEXY-SETUP
 =================
 
-This set of scripts can be used to try out nsd-sexy. The configure script
-configures three nsd instances - master, proxy and slave - and configures
+This set of scripts can be used to try out dnssexy. The configure script
+configures three dnssexy instances - master, proxy and slave - and configures
 TSIGs for all notify and transfer communication needed in a dnssexy setup.
 
 
@@ -278,7 +278,7 @@ To setup an interactive debugging dnssexy configuration for three zones:
 
     A new interactive session is started to asses the second zone.
 
-    Note that because processing of multiple transfers is bundled by nsd, 
+    Note that because processing of multiple transfers is bundled by dnssexy, 
     the zone is likely not yet loaded and the proxy server is waiting for us
     to asses the second and third zone.
 
@@ -337,12 +337,12 @@ To setup an interactive debugging dnssexy configuration for three zones:
     ------------------------------------------------------------
     validate dnssexy-2.test> 
 
-    In proxy.nsd.log we find the error message:
+    In proxy/dnssexy.log we find the error message:
 
-    dnssexy-setup/test$ grep error proxy/nsd.log 
+    dnssexy-setup/test$ grep error proxy/dnssexy.log 
     ...
-    [<time>] nsd[<pid>]: error: This zone is really bad
-    [<time>] nsd[<pid>]: error: Zone verifier for zone dnssexy-1.test exited with status: 154
+    [<time>] dnssexy[<pid>]: error: This zone is really bad
+    [<time>] dnssexy[<pid>]: error: Zone verifier for zone dnssexy-1.test exited with status: 154
 
     Exit codes are in the range 0..255
 
@@ -359,11 +359,11 @@ To setup an interactive debugging dnssexy configuration for three zones:
     ------------------------------------------------------------
     Waiting for dnssexy hook to be called...
 
-15. You should be able to find the message in proxy/nsd.log:
+15. You should be able to find the message in proxy/dnssexy.log:
 
-    [<time>] nsd[<pid>]: info: All OK, now go and get served
-    [<time>] nsd[<pid>]: info: Zone dnssexy-2.test verified successfully.
-    [<time>] nsd[<pid>]: notice: Zone verifying done... Good: 2, Bad: 1.
+    [<time>] dnssexy[<pid>]: info: All OK, now go and get served
+    [<time>] dnssexy[<pid>]: info: Zone dnssexy-2.test verified successfully.
+    [<time>] dnssexy[<pid>]: notice: Zone verifying done... Good: 2, Bad: 1.
 
     That last line might actually differ depending on how many zones were
     bundled in the transfer.

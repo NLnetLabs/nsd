@@ -149,7 +149,7 @@ static void
 usage (void)
 {
 	fprintf(stderr,
-		"Usage: nsd-xfer [OPTION]... -z zone -f file server...\n"
+		"Usage: dnssexy-xfer [OPTION]... -z zone -f file server...\n"
 		"NSD AXFR client.\n\nSupported options:\n"
 		"  -4            Only use IPv4 connections.\n"
 		"  -6            Only use IPv6 connections.\n"
@@ -785,7 +785,7 @@ main(int argc, char *argv[])
 	tsig_key_type *tsig_key = NULL;
 	axfr_state_type state;
 
-	log_init("nsd-xfer");
+	log_init("dnssexy-xfer");
 
 	/* Initialize the query.  */
 	memset(&q, 0, sizeof(query_type));

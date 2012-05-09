@@ -4,12 +4,13 @@ sexy-3.2.10
 ================
 
 FEATURES:
-	- Fork from NSD3.2 with dnssexy operation (see NSD-SEXY)
+	- Fork from NSD3.2 with dnssexy operation (see README)
 	- Fallback to AXFR is IXFR is unknown at the primary. NSD considers
-	  IXFR unknown at the primary if there is a negative response for the IXFR
-	  RRtype. This does not override the value for 'allow-axfr-fallback'.
-	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155, RFC5702, 
-	  RFC5933, and RFC6605 (ECDSA)).
+	  IXFR unknown at the primary if there is a negative response for the
+	  IXFR RRtype. This does not override the value for
+	  'allow-axfr-fallback'.
+	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155, 
+	  RFC5702, RFC5933, and RFC6605 (ECDSA)).
 	- Support for TLSA RRtype (DANE).
 
 BUG FIXES:

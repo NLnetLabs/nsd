@@ -23,7 +23,7 @@ extern int optind;
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: nsd-patch [options]\n");
+	fprintf(stderr, "usage: dnssexy-patch [options]\n");
 	fprintf(stderr, "       Reads database and ixfrs and patches up zone files.\n");
 	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n", PACKAGE_VERSION, PACKAGE_BUGREPORT);
 	fprintf(stderr, "-c configfile	Specify config file to use, instead of %s\n", CONFIGFILE);
@@ -259,8 +259,8 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 	}
 
 	/* print zone header */
-	fprintf(out, "; NSD version %s\n", PACKAGE_VERSION);
-	fprintf(out, "; nsd-patch zone %s run at time %s",
+	fprintf(out, "; Dnssexyversion %s\n", PACKAGE_VERSION);
+	fprintf(out, "; dnssexy-patch zone %s run at time %s",
 		zone->opts->name, ctime(&now));
 	print_commit_log(out, domain_dname(zone->apex), commit_log);
 
