@@ -44,7 +44,7 @@
 .SH "DESCRIPTION"
 .LP
 .B Dnssexy
-Is a software program aimed at fortifying DNSSEC by performing validation in
+is a software program aimed at fortifying DNSSEC by performing validation in
 the DNS notify/transfer-chain. 
 Currently
 .B dnssexy

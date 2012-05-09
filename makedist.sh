@@ -167,14 +167,13 @@ fi
 
 
 replace_all doc/README
-replace_all dnssexy.8.in
-replace_all dnssexyc.8.in
-replace_all dnssexy-notify.8.in
-replace_all dnssexy-checkconf.8.in
-replace_all dnssexy-patch.8.in
-replace_all dnssexy-xfer.8.in
-replace_all zonec.8.in
-replace_all dnssexy.conf.5.in
+replace_all nsd.8.in
+replace_all nsdc.8.in
+replace_all nsd-notify.8.in
+replace_all nsd-checkconf.8.in
+replace_all nsd-patch.8.in
+replace_all nsd-xfer.8.in
+replace_all nsd.conf.5.in
 
 info "Renaming $NAME directory to $name-$version."
 cd ..
