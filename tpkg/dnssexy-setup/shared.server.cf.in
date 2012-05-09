@@ -1,9 +1,9 @@
 server:
     zonesdir:     @ZONESDIR@
     username:     @USERNAME@
-    database:     "@abs_builddir@/nsd.db"
-    logfile:      "@abs_builddir@/nsd.log"
-    pidfile:      "@abs_builddir@/nsd.pid"
+    database:     "@abs_builddir@/dnssexy.db"
+    logfile:      "@abs_builddir@/dnssexy.log"
+    pidfile:      "@abs_builddir@/dnssexy.pid"
     difffile:     "@abs_builddir@/ixfr.db"
     xfrdfile:     "@abs_builddir@/xfrd.state"
     verbosity:    @VERBOSITY@

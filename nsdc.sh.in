@@ -1,6 +1,6 @@
 #!@shell@
 #
-# nsdc.sh -- a shell script to manage the beast
+# dnssexyc.sh -- a shell script to manage the beast
 #
 # Copyright (c) 2001-2011, NLnet Labs. All rights reserved.
 #
@@ -9,12 +9,12 @@
 #
 
 # chkconfig: 2345 @spriority@ @kpriority@
-# description: NSD, authoritative only high performance name server.
+# description: Dnssexy, authoritative only (validating) name server.
 
 # configuration file default
 configfile="@nsdconfigfile@"
 
-# The directory where NSD binaries reside
+# The directory where dnssexy binaries reside
 sbindir="@sbindir@"
 
 # how verbose is zonec run. Specify Nothing " ", -v or -vv.
@@ -39,28 +39,28 @@ if test "x$1" = "x-c"; then
 	fi
 fi
 
-# locate nsd-checkconf : in sbindir, PATH, nsdc_dir or .
-nsd_checkconf=""
-if [ -e ${sbindir}/nsd-checkconf ]; then
-	nsd_checkconf=${sbindir}/nsd-checkconf
+# locate dnssexy-checkconf : in sbindir, PATH, dnssexyc_dir or .
+dnssexy_checkconf=""
+if [ -e ${sbindir}/dnssexy-checkconf ]; then
+	dnssexy_checkconf=${sbindir}/dnssexy-checkconf
 else
-	if which nsd-checkconf >/dev/null 2>&1 ; then
-		if which nsd-checkconf 2>&1 | grep "^[Nn]o " >/dev/null; then
-			nsd_checkconf=""
+	if which dnssexy-checkconf >/dev/null 2>&1 ; then
+		if which dnssexy-checkconf 2>&1 | grep "^[Nn]o " >/dev/null; then
+			dnssexy_checkconf=""
 		else
-			nsd_checkconf=`which nsd-checkconf`
+			dnssexy_checkconf=`which dnssexy-checkconf`
 		fi
 	fi
-	if [ -z "${nsd_checkconf}" -a -e `dirname $0`/nsd-checkconf ]; then
-		nsd_checkconf=`dirname $0`/nsd-checkconf
+	if [ -z "${dnssexy_checkconf}" -a -e `dirname $0`/dnssexy-checkconf ]; then
+		dnssexy_checkconf=`dirname $0`/dnssexy-checkconf
 	fi
-	if [ -z "${nsd_checkconf}" -a -e ./nsd-checkconf ]; then
-		nsd_checkconf=./nsd-checkconf
+	if [ -z "${dnssexy_checkconf}" -a -e ./dnssexy-checkconf ]; then
+		dnssexy_checkconf=./dnssexy-checkconf
 	fi
-	if [ -z "${nsd_checkconf}" ]; then
-		echo "`basename $0`: Could not find nsd programs" \
+	if [ -z "${dnssexy_checkconf}" ]; then
+		echo "`basename $0`: Could not find dnssexy programs" \
 			"in $sbindir, in PATH=$PATH, in cwd=`pwd`," \
-			"or in dir of nsdc=`dirname $0`"
+			"or in dir of dnssexyc=`dirname $0`"
 		exit 1
 	fi
 fi
@@ -71,11 +71,11 @@ usage() {
 	echo "options:"
 	echo "	-c configfile	Use specified configfile (default: @nsdconfigfile@)."
 	echo "commands:"
-	echo "	start		Start nsd server."
-	echo "	stop		Stop nsd server."
-	echo "	reload		Nsd server reloads database file."
+	echo "	start		Start dnssexy server."
+	echo "	stop		Stop dnssexy server."
+	echo "	reload		Dnssexy server reloads database file."
 	echo "	rebuild		Compile database file from zone files."
-	echo "	restart		Stop the nsd server and start it again."
+	echo "	restart		Stop the dnssexy server and start it again."
 	echo "	running		Prints message and exit nonzero if server not running."
 	echo "	update		Try to update all slave zones hosted on this server."
 	echo "	notify		Send notify messages to all secondary servers."
@@ -83,19 +83,19 @@ usage() {
 }
 
 # check the config syntax before using it
-${nsd_checkconf} ${configfile}
+${dnssexy_checkconf} ${configfile}
 if test $? -ne 0 ; then
 	usage
 	exit 1
 fi
 
 # Read some settings from the config file.
-dbfile=`${nsd_checkconf} -o database ${configfile}`
-pidfile=`${nsd_checkconf} -o pidfile ${configfile}`
-difffile=`${nsd_checkconf} -o difffile ${configfile}`
-zonesdir=`${nsd_checkconf} -o zonesdir ${configfile}`
+dbfile=`${dnssexy_checkconf} -o database ${configfile}`
+pidfile=`${dnssexy_checkconf} -o pidfile ${configfile}`
+difffile=`${dnssexy_checkconf} -o difffile ${configfile}`
+zonesdir=`${dnssexy_checkconf} -o zonesdir ${configfile}`
 lockfile="${dbfile}.lock"  # still needed
-sbindir=`dirname ${nsd_checkconf}`
+sbindir=`dirname ${dnssexy_checkconf}`
 
 # move to zonesdir (if specified), and make absolute pathnames.
 if test -n "${zonesdir}"; then
@@ -132,7 +132,7 @@ signal() {
 	then
 		kill -"$1" `cat ${pidfile}` && return 0
 	else
-		echo "nsd is not running"
+		echo "dnssexy is not running"
 	fi
 	return 1
 }
@@ -169,11 +169,11 @@ unlock() {
 }
 	
 do_start() {
-	if test -x ${sbindir}/nsd; then
-		${sbindir}/nsd -c ${configfile}
-		test $? = 0 || (echo "nsd startup failed."; exit 1)
+	if test -x ${sbindir}/dnssexy; then
+		${sbindir}/dnssexy -c ${configfile}
+		test $? = 0 || (echo "dnssexy startup failed."; exit 1)
 	else
-		echo "${sbindir}/nsd not an executable file, nsd startup failed."; exit 1
+		echo "${sbindir}/dnssexy not an executable file, dnssexy startup failed."; exit 1
 	fi
 }
 
@@ -189,7 +189,7 @@ controlled_stop() {
 
 	while [ $try -ne 0 ]; do
 		if [ ${try} -gt 50 ]; then
-			echo "nsdc stop failed"
+			echo "dnssexyc stop failed"
 			return 1
 		else
 			if [ $try -eq 1 ]; then
@@ -217,7 +217,7 @@ do_controlled_stop() {
 		pid=`cat ${pidfile}`
 		controlled_stop ${pid} && return 0
 	else
-		echo "nsd is not running, starting anyway" && return 0
+		echo "dnssexy is not running, starting anyway" && return 0
 	fi
 	return 1
 }
@@ -235,7 +235,7 @@ send_updates() {
 	local zonename=$1
 	shift 1
 	# extract port number (if any) 
-	port=`${nsd_checkconf} -o port ${configfile}`
+	port=`${dnssexy_checkconf} -o port ${configfile}`
 	if test -n "${port}"; then
 		port="-p ${port}"
 	fi
@@ -250,18 +250,18 @@ send_updates() {
 		if test Z${ip_spec} = "Z127.0.0.1" -o Z${ip_spec} = "Z::1"; then
 			secret=""
 			if test K${key_spec} != KNOKEY -a K${key_spec} != KBLOCKED; then
-				secret=`${nsd_checkconf} -s ${key_spec} ${configfile}`
-				algo=`${nsd_checkconf} -a ${key_spec} ${configfile}`
+				secret=`${dnssexy_checkconf} -s ${key_spec} ${configfile}`
+				algo=`${dnssexy_checkconf} -a ${key_spec} ${configfile}`
 				secret="-y ${key_spec}:${secret}:${algo}"
 			fi
 			if test K${key_spec} != KBLOCKED; then
-				#echo "${sbindir}/nsd-notify -a ${ip_spec} ${port} ${secret} -z ${zonename} ${ip_spec}"
-				${sbindir}/nsd-notify -a ${ip_spec} ${port} ${secret} -z ${zonename} ${ip_spec} && update_sent="yes"
+				#echo "${sbindir}/dnssexy-notify -a ${ip_spec} ${port} ${secret} -z ${zonename} ${ip_spec}"
+				${sbindir}/dnssexy-notify -a ${ip_spec} ${port} ${secret} -z ${zonename} ${ip_spec} && update_sent="yes"
 			fi
 		fi
 	done
 	if test ${update_sent} = no; then
-		req_xfr=`${nsd_checkconf} -z "${zonename}" -o request-xfr ${configfile}`
+		req_xfr=`${dnssexy_checkconf} -z "${zonename}" -o request-xfr ${configfile}`
 		if test -n "${req_xfr}"; then
 			# must be a slave zone (has request-xfr).
 			echo "`basename $0`: Could not send notify for slave zone ${zonename}: not configured (with allow-notify: 127.0.0.1 or ::1)"
@@ -298,8 +298,8 @@ send_notify() {
 		fi
 
 		if test K${key_spec} != KNOKEY -a K${key_spec} != KBLOCKED; then
-			secret=`${nsd_checkconf} -s ${key_spec} ${configfile}`
-			algo=`${nsd_checkconf} -a ${key_spec} ${configfile}`
+			secret=`${dnssexy_checkconf} -s ${key_spec} ${configfile}`
+			algo=`${dnssexy_checkconf} -a ${key_spec} ${configfile}`
 			secret="-y ${key_spec}:${secret}:${algo}"
 		fi
 		if test K${key_spec} != KBLOCKED; then
@@ -309,8 +309,8 @@ send_notify() {
 				port="-p "`echo ${ip_spec} | sed -e 's/[^@]*@\([0-9]*\)/\1/'`
 				ipaddr=`echo ${ip_spec} | sed -e 's/\([^@]*\)@[0-9]*/\1/'`
 			fi
-			#echo "${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} -z ${zonename} ${ipaddr}"
-			${sbindir}/nsd-notify ${ifc_spec} ${port} ${secret} -z ${zonename} ${ipaddr}
+			#echo "${sbindir}/dnssexy-notify ${ifc_spec} ${port} ${secret} -z ${zonename} ${ipaddr}"
+			${sbindir}/dnssexy-notify ${ifc_spec} ${port} ${secret} -z ${zonename} ${ipaddr}
 		fi
 	done
 }
@@ -319,12 +319,12 @@ send_notify() {
 do_patch() {
 	if test I$1 = I1; then
 		lock && mv ${difffile} ${difffile}.$$ && \
-		  ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}.$$ && \
+		  ${sbindir}/dnssexy-patch -c ${configfile} -x ${difffile}.$$ && \
 		  rm -f ${difffile}.$$ && unlock && do_rebuild
 		result=$?
 	else # without textfile
 		lock && mv ${difffile} ${difffile}.$$ && \
-		  ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}.$$ -s -o ${dbfile}.$$ \
+		  ${sbindir}/dnssexy-patch -c ${configfile} -x ${difffile}.$$ -s -o ${dbfile}.$$ \
 		  && rm -f ${difffile}.$$ && unlock && \
 		  mv ${dbfile}.$$ ${dbfile}
 		result=$?
@@ -368,8 +368,8 @@ running)
 patch)
         # patch queue clearen
 	if test -s ${difffile}; then
-		#${sbindir}/nsd-patch -c ${configfile} -x ${difffile} -l #debug
-		#echo ${sbindir}/nsd-patch -c ${configfile} -x ${difffile}
+		#${sbindir}/dnssexy-patch -c ${configfile} -x ${difffile} -l #debug
+		#echo ${sbindir}/dnssexy-patch -c ${configfile} -x ${difffile}
 		if do_patch ${NSDC_PATCH_STYLE}; then
 			do_reload
 		else
@@ -392,24 +392,24 @@ update)
         # send notifies to localhost for all zones that allow it
 	echo "Sending notify to localhost to update secondary zones..."
 	if [ -s ${pidfile} ]; then
-		zoneslist=`${nsd_checkconf} -o zones ${configfile}`
+		zoneslist=`${dnssexy_checkconf} -o zones ${configfile}`
 		for zonename in ${zoneslist}; do
-			notify_allow=`${nsd_checkconf} -z "${zonename}" -o allow-notify ${configfile}`
+			notify_allow=`${dnssexy_checkconf} -z "${zonename}" -o allow-notify ${configfile}`
 			if test "" != "${notify_allow}"; then
 				send_updates ${zonename} ${notify_allow}
 			fi
 		done
 	else
-		echo "nsd is not running"
+		echo "dnssexy is not running"
 	fi
 	;;
 notify)
 	# send notifies to all slaves
 	echo "Sending notify to slave servers..."
-	zoneslist=`${nsd_checkconf} -o zones ${configfile}`
+	zoneslist=`${dnssexy_checkconf} -o zones ${configfile}`
 	for zonename in ${zoneslist}; do
-		notify=`${nsd_checkconf} -z "${zonename}" -o notify ${configfile}`
-		local_ifc=`${nsd_checkconf} -z "${zonename}" -o outgoing-interface ${configfile}`
+		notify=`${dnssexy_checkconf} -z "${zonename}" -o notify ${configfile}`
+		local_ifc=`${dnssexy_checkconf} -z "${zonename}" -o outgoing-interface ${configfile}`
 		if test "" = "${local_ifc}"; then
 			local_ifc="NOIFC"
 		fi

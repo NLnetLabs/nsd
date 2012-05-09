@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Build a NSD distribution tar from the SVN repository.
+# Build a dnssexy distribution tar from the SVN repository.
 
 # Abort script on unexpected errors.
 set -e
@@ -12,14 +12,14 @@ cwd=`pwd`
 usage () {
     cat >&2 <<EOF
 Usage $0: [-h] [-s] [-d SVN_root]
-Generate a distribution tar file for NSD.
+Generate a distribution tar file for dnssexy.
 
     -h           This usage information.
     -s           Build a snapshot distribution file.  The current date is
-                 automatically appended to the current NSD version number.
+                 automatically appended to the current dnssexy version number.
     -rc <nr>     Build a release candidate, the given string will be added
-		 to the version number (nsd-<version>rc<number>).
-    -d SVN_root  Retrieve the NSD source from the specified repository.
+		 to the version number (dnssexy-<version>rc<number>).
+    -d SVN_root  Retrieve the dnssexy source from the specified repository.
 EOF
     exit 1
 }
@@ -122,7 +122,7 @@ cd $temp_dir
 info "Exporting source from SVN."
 svn export "$SVNROOT" nsd || error_cleanup "SVN command failed"
 
-cd nsd || error_cleanup "NSD not exported correctly from SVN"
+cd nsd || error_cleanup "Dnssexy not exported correctly from SVN"
 
 info "Building configure script (autoconf)."
 autoconf || error_cleanup "Autoconf failed."
@@ -144,7 +144,7 @@ find . -name .c-mode-rc.el -exec rm {} \;
 find . -name .cvsignore -exec rm {} \;
 rm makedist.sh || error_cleanup "Failed to remove makedist.sh."
 
-info "Determining NSD version."
+info "Determining dnssexy version."
 version=`./configure --version | head -1 | awk '{ print $3 }'` || \
     error_cleanup "Cannot determine version number."
 NAME=`./configure --version | head -1 | awk '{ print $1 }'`
@@ -167,14 +167,14 @@ fi
 
 
 replace_all doc/README
-replace_all nsd.8.in
-replace_all nsdc.8.in
-replace_all nsd-notify.8.in
-replace_all nsd-checkconf.8.in
-replace_all nsd-patch.8.in
-replace_all nsd-xfer.8.in
+replace_all dnssexy.8.in
+replace_all dnssexyc.8.in
+replace_all dnssexy-notify.8.in
+replace_all dnssexy-checkconf.8.in
+replace_all dnssexy-patch.8.in
+replace_all dnssexy-xfer.8.in
 replace_all zonec.8.in
-replace_all nsd.conf.5.in
+replace_all dnssexy.conf.5.in
 
 info "Renaming $NAME directory to $name-$version."
 cd ..

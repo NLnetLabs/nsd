@@ -4,7 +4,7 @@ dnl
 
 sinclude(acx_nlnetlabs.m4)
 
-AC_INIT(NSD-sexy,3.2.10,nsd-bugs@nlnetlabs.nl)
+AC_INIT(dnssexy,0.2.10,dnssexy@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 AC_AIX
@@ -30,72 +30,72 @@ esac
 #
 # Determine configuration directory
 #
-configdir=$sysconfdir/nsd
+configdir=$sysconfdir/dnssexy
 AC_ARG_WITH([configdir],
-	AC_HELP_STRING([--with-configdir=dir], [NSD configuration directory]),
+	AC_HELP_STRING([--with-configdir=dir], [Dnssexy configuration directory]),
 	[configdir=$withval])
 AC_SUBST(configdir)
 
 #
 # Determine configuration file
-nsd_conf_file=${configdir}/nsd.conf
-AC_ARG_WITH([nsd_conf_file],
-	AC_HELP_STRING([--with-nsd_conf_file=path], [Pathname to the NSD configuration file]),
+nsd_conf_file=${configdir}/dnssexy.conf
+AC_ARG_WITH([dnssexy_conf_file],
+	AC_HELP_STRING([--with-dnssexy_conf_file=path], [Pathname to the dnssexy configuration file]),
 	[nsd_conf_file=$withval])
 AC_SUBST(nsd_conf_file)
 # the eval is to evaluate shell expansion twice, once
 # for $nsd_conf_file and once for the ${prefix} within it.
-AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $nsd_conf_file`"], [Pathname to the NSD configuration file])
+AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $nsd_conf_file`"], [Pathname to the dnssexy configuration file])
 
 #
 # Determine start and kill priorities
 start_priority=45
 AC_ARG_WITH([start_priority],
-	AC_HELP_STRING([--with-start_priority=number], [NSD startup priority]),
+	AC_HELP_STRING([--with-start_priority=number], [Dnssexy startup priority]),
 	[start_priority=$withval])
 AC_SUBST(start_priority)
 
 kill_priority=74
 AC_ARG_WITH([kill_priority],
-	AC_HELP_STRING([--with-kill_priority=number], [NSD shutdown priority]),
+	AC_HELP_STRING([--with-kill_priority=number], [Dnssexy shutdown priority]),
 	[kill_priority=$withval])
 AC_SUBST(kill_priority)
 
 #
 # Default logfile
 #
-logfile=${localstatedir}/log/nsd.log
+logfile=${localstatedir}/log/dnssexy.log
 AC_SUBST(logfile)
 
 #
 # Database directory
 #
-dbdir=${localstatedir}/db/nsd
+dbdir=${localstatedir}/db/dnssexy
 
 #
 # Determine the pidfile location. Check if /var/run exists, if so set pidfile
-# to /var/run/nsd.pid by default
+# to /var/run/dnssexy.pid by default
 #
 if test -d ${localstatedir}/run; then
-	pidfile=${localstatedir}/run/nsd.pid
+	pidfile=${localstatedir}/run/dnssexy.pid
 else
-	pidfile=${dbdir}/nsd.pid
+	pidfile=${dbdir}/dnssexy.pid
 fi
 AC_ARG_WITH([pidfile],
-	AC_HELP_STRING([--with-pidfile=path], [Pathname to the NSD pidfile]),
+	AC_HELP_STRING([--with-pidfile=path], [Pathname to the dnssexy pidfile]),
 	[pidfile=$withval])
 AC_SUBST(pidfile)
-AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the NSD pidfile])
+AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the dnssexy pidfile])
 
 #
-# Determine location of nsd.db
+# Determine location of dnssexy.db
 #
-dbfile=${dbdir}/nsd.db
+dbfile=${dbdir}/dnssexy.db
 AC_ARG_WITH([dbfile],
-	AC_HELP_STRING([--with-dbfile=path], [Pathname to the NSD database]),
+	AC_HELP_STRING([--with-dbfile=path], [Pathname to the dnssexy database]),
 	[dbfile=$withval])
 AC_SUBST(dbfile)
-AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the NSD database])
+AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the dnssexy database])
 
 dbdir=`dirname $dbfile`
 AC_SUBST(dbdir)
@@ -108,39 +108,39 @@ AC_SUBST(piddir)
 #
 zonesdir=$configdir
 AC_ARG_WITH([zonesdir],
-	AC_HELP_STRING([--with-zonesdir=dir], [NSD default location for zone files]),
+	AC_HELP_STRING([--with-zonesdir=dir], [Dnssexy default location for zone files]),
 	[zonesdir=$withval])
 AC_SUBST(zonesdir)
-AC_DEFINE_UNQUOTED(ZONESDIR, ["`eval echo $zonesdir`"], [NSD default location for zone files. Empty string or NULL to disable.])
+AC_DEFINE_UNQUOTED(ZONESDIR, ["`eval echo $zonesdir`"], [Dnssexy default location for zone files. Empty string or NULL to disable.])
 
 # default diff file location.
 difffile=${dbdir}/ixfr.db
 AC_ARG_WITH([difffile], AC_HELP_STRING([--with-difffile=path], 
-	[Pathname to the NSD diff transfer journal file]), [difffile=$withval])
-AC_DEFINE_UNQUOTED(DIFFFILE, ["`eval echo $difffile`"], [Pathname to the NSD diff transfer journal file.])
+	[Pathname to the dnssexy diff transfer journal file]), [difffile=$withval])
+AC_DEFINE_UNQUOTED(DIFFFILE, ["`eval echo $difffile`"], [Pathname to the dnssexy diff transfer journal file.])
 AC_SUBST(difffile)
 
 # default xfrd file location.
 xfrdfile=${dbdir}/xfrd.state
 AC_ARG_WITH([xfrdfile], AC_HELP_STRING([--with-xfrdfile=path], 
-	[Pathname to the NSD xfrd zone timer state file]), [xfrdfile=$withval])
-AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the NSD xfrd zone timer state file.])
+	[Pathname to the dnssexy xfrd zone timer state file]), [xfrdfile=$withval])
+AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the dnssexy xfrd zone timer state file.])
 AC_SUBST(xfrdfile)
 
 #
 # Determine default chroot directory
 #
 AC_ARG_WITH([chroot],
-	AC_HELP_STRING([--with-chroot=dir], [NSD default chroot directory]),
+	AC_HELP_STRING([--with-chroot=dir], [Dnssexy default chroot directory]),
 	[
 		chrootdir=$withval
-		AC_DEFINE_UNQUOTED(CHROOTDIR, ["`eval echo $chrootdir`"], [NSD default chroot directory])
+		AC_DEFINE_UNQUOTED(CHROOTDIR, ["`eval echo $chrootdir`"], [Dnssexy default chroot directory])
 	])
 
 #
 # Determine the user name to drop privileges to
 #
-user=nsd
+user=dnssexy
 AC_ARG_WITH([user],
 	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
 	[user=$withval])
@@ -263,7 +263,7 @@ AC_CHECK_CTIME_R
 
 # Check for SSL, original taken from
 # http://www.gnu.org/software/ac-archive/htmldoc/check_ssl.html and
-# modified for NSD.
+# modified for dnssexy.
 AC_DEFUN([CHECK_SSL], [
     AC_ARG_WITH(ssl, AC_HELP_STRING([--with-ssl=pathname],
                 [enable SSL (will check /usr/local/ssl
@@ -518,8 +518,8 @@ AC_INCLUDES_DEFAULT
 dnl
 dnl Some random defines's
 dnl
-AC_DEFINE_UNQUOTED([IDENTITY], ["unidentified server"], [Define to the default nsd identity.])
-AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the NSD version to answer version.server query.])
+AC_DEFINE_UNQUOTED([IDENTITY], ["unidentified server"], [Define to the default dnssexy identity.])
+AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the dnssexy version to answer version.server query.])
 AC_DEFINE_UNQUOTED([TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
 AC_DEFINE_UNQUOTED([TCP_PORT], ["53"], [Define to the default tcp port.])
 AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximum message length.])
@@ -559,7 +559,7 @@ AC_DEFINE_UNQUOTED([TCP_TIMEOUT], $tcp_timeout, [Define to the default tcp timeo
 dnl
 dnl Features
 dnl
-AC_ARG_ENABLE(root-server, AC_HELP_STRING([--enable-root-server], [Configure NSD as a root server]))
+AC_ARG_ENABLE(root-server, AC_HELP_STRING([--enable-root-server], [Configure dnssexy as a root server]))
 case "$enable_root_server" in
         yes)
 		AC_DEFINE_UNQUOTED([ROOT_SERVER], [], [Define this to configure as a root server.])
@@ -816,7 +816,7 @@ if test "$enable_checking" = "yes"; then
         echo "************************************************"
         echo "* You have activated \"--enable-checking\"       *"
         echo "*                                              *"
-        echo "* This will instruct NSD to be stricter        *"
+        echo "* This will instruct dnssexy to be stricter    *"
         echo "* when validating its input. This could lead   *"
         echo "* to a reduced service level.                  *"
         echo "*                                              *"

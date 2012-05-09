@@ -115,7 +115,7 @@ underscore(const char *s) {
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: nsd-checkconf [-v|-h] [-o option] [-z zonename]\n");
+	fprintf(stderr, "usage: dnssexy-checkconf [-v|-h] [-o option] [-z zonename]\n");
 	fprintf(stderr, "                     [-s keyname] <configfilename>\n");
 	fprintf(stderr, "       Checks NSD configuration file for errors.\n");
 	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n",
@@ -567,7 +567,7 @@ main(int argc, char* argv[])
 	const char* configfile;
 	nsd_options_t *options;
 
-	log_init("nsd-checkconf");
+	log_init("dnssexy-checkconf");
 
 
         /* Parse the command line... */

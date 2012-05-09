@@ -1,13 +1,13 @@
-.TH "NSD" "8" "@date@" "NLnet Labs" "NSD @version@"
+.TH "DNSSEXY" "8" "@date@" "NLnet Labs" "DNSSEXY @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
-.B nsd
-\- Name Server Daemon (NSD) version @version@.
+.B dnssexy
+\- DNS SEc proXY version @version@.
 .SH "SYNOPSIS"
 .LP
-.B nsd
+.B dnssexy
 .RB [ \-4 ] 
 .RB [ \-6 ] 
 .RB [ \-a 
@@ -43,39 +43,17 @@
 .RB [ \-v ]
 .SH "DESCRIPTION"
 .LP
-.B NSD
-is a complete implementation of an authoritative DNS nameserver. 
-Upon startup,
-.B NSD
-will read the database specified with 
-.B \-f
-.I database
-argument and put itself into background and answers queries on port 
-53 or a different port specified with 
-.B \-p
-.I port
-option. The
-.I database
-must be generated beforehand with zonec(8). By default, 
-.B NSD 
-will bind to all local interfaces available. Use the 
-.B \-a
-.I ip\-address[@port]
-option to specify a single particular interface address to be
-bound. If this option is given more than once,
-.B NSD
-will bind its UDP and TCP sockets to all the specified ip\-addresses
-separately. If IPv6 is enabled when 
-.B NSD 
-is compiled an IPv6 address can also be specified.
-.P
-This version of NSD is a fork of the mainstream version that has been extended
-with the possibility to asses zones, received or updated by AXFR or IXFR,
-by running an external verifier and only serve those zones when they are deemed
-correct by the verifier associated with that zone.
-The options for setting a verifier for a zone and all related options can be 
-given in the nsd.conf(5) NSD configuration file.
-.P
+.B Dnssexy
+Is a software program aimed at fortifying DNSSEC by performing validation in
+the DNS notify/transfer-chain. 
+Currently
+.B dnssexy
+is a fork of NSD(8) that has been extended with the possibility to asses
+zones - received or updated by AXFR or IXFR - by running an external verifier
+and only serve those zones when they are deemed correct by the verifier
+associated with that zone.  The options for setting a verifier for a zone and
+all related options can be given in the dnssexy.conf(5) configuration file.
+.LP
 .SH "OPTIONS"
 .LP
 All the options can be specified in the configfile (
@@ -89,9 +67,9 @@ on the commandline take precedence over the options in the
 configfile.
 .P
 Normally
-.B NSD
-should be started with the `nsdc(8) start` command invoked from a
-.I /etc/rc.d/nsd.sh
+.B dnssexy
+should be started with the `dnssexyc(8) start` command invoked from a
+.I /etc/rc.d/dnssexy.sh
 script or similar at the operating system startup.
 .TP
 .B \-4
@@ -109,14 +87,14 @@ must be specified in numeric format (using the standard IPv4 or IPv6
 notation). Optionally, a port number can be given.
 This flag can be specified multiple times to listen to
 multiple IP addresses. If this flag is not specified, 
-.B NSD
+.B dnssexy
 listens to the wildcard interface.
 .TP
 .B \-c\fI configfile
 Read specified 
 .I configfile instead of the default
 .IR @nsdconfigfile@ .
-For format description see nsd.conf(5).
+For format description see dnssexy.conf(5).
 .TP
 .B \-d
 Turn on debugging mode, do not fork, stay in the foreground.
@@ -160,7 +138,7 @@ directory.
 .B \-N\fI count
 Start
 .I count
-.B NSD 
+.B dnssexy
 servers. The default is 1. Starting more than a single server is 
 only useful on machines with multiple CPUs and/or network adapters. 
 .TP
@@ -199,7 +177,7 @@ to upon startup. This option requires you to ensure that appropriate
 syslogd(8) socket (e.g.
 .I chrootdir 
 /dev/log) is available, otherwise
-.B NSD
+.B dnssexy
 won't produce any log output.
 .TP
 .B \-u\fI username
@@ -208,7 +186,7 @@ Drop user and group privileges to those of
 after binding the socket.
 The
 .I username
-must be one of: username, id, or id.gid. For example: nsd, 80, or 
+must be one of: username, id, or id.gid. For example: dnssexy, 80, or 
 80.80.
 .TP
 .B \-V\fI level
@@ -217,10 +195,10 @@ Default is 0.
 .TP
 .B \-v
 Print the version number of 
-.B NSD 
+.B dnssexy
 to standard error and exit.
 .LP
-.B NSD
+.B Dnssexy
 reacts to the following signals:
 .TP
 SIGTERM
@@ -235,7 +213,7 @@ Dump BIND8\-style statistics into the log. Ignored otherwise.
 .TP
 @dbfile@
 default
-.B NSD
+.B dnssexy
 database
 .TP
 @pidfile@
@@ -243,7 +221,7 @@ the process id of the name server.
 .TP
 @nsdconfigfile@
 default
-.B NSD
+.B dnssexy
 configuration file
 .SH "DIAGNOSTICS"
 .LP
@@ -254,19 +232,24 @@ facility, unless the
 option is specified.
 .SH "SEE ALSO"
 .LP
-nsdc(8), nsd.conf(5), nsd\-checkconf(8), nsd\-notify(8), 
-nsd\-patch(8), nsd\-xfer(8), zonec(8)
+dnssexyc(8), dnssexy.conf(5), dnssexy\-checkconf(8), dnssexy\-notify(8), 
+dnssexy\-patch(8), dnssexy\-xfer(8)
 .SH "AUTHORS"
+.LP
+.B Dnssexy
+was written by NLnet Labs.
 .LP
 .B NSD
 was written by NLnet Labs and RIPE NCC joint team. Please see
 CREDITS file in the distribution for further details.
 .SH "BUGS"
 .LP
-.B NSD
-will answer the queries erroneously if the
-.I database
-was not properly compiled with zonec(8). Therefore problems with 
-misconfigured master zone files or zonec(8) bugs may not be visible 
-until the queries are actually answered with
-.BR NSD .
+.B Dnssexy
+is a fork of NSD(8) and inherits all its bugs.
+.SH "WARNING"
+Because of dnssexy is implemented as a fork of NSD(8), it currently functions
+as a complete authoritative DNS namservers.  However, this functionality is
+not strictly necessary of dnssexy type operation and might disappear in future
+releases. Dnssexy has a different orientation as NSD and might develop into an
+entirely different direction.
+

@@ -82,9 +82,9 @@ if test "x$VERIFIER_TIMEOUT" = "x"; then VERIFIER_TIMEOUT=0 ; fi
 
 SEARCHPATH=$srcdir/../..$PATH_SEPARATOR.$PATH_SEPARATOR../..$PATH_SEPARATOR..$PATH_SEPARATOR$PATH$PATH_SEPARATOR$HOME/bin$PATH_SEPARATOR$HOME/sbin:$HOME/local/bin:$HOME/local/sbin
 
-AC_PATH_PROGS([NSDC], [nsdc.sh nsdc], [], [$SEARCHPATH])
+AC_PATH_PROGS([NSDC], [dnssexyc.sh dnssexyc nsdc.sh nsdc], [], [$SEARCHPATH])
 if test "x$NSDC" = "x" ; then
-    AC_MSG_ERROR([No NSD control script (nsdc) has been found.]) ; fi
+    AC_MSG_ERROR([No dnssexy control script (dnssexyc) has been found.]) ; fi
 AC_PATH_PROGS([LDNS_READ_ZONE], [ldns-read-zone], [], [$SEARCHPATH])
 AC_PATH_PROGS([LDNS_KEYGEN], [ldns-keygen], [], [$SEARCHPATH])
 AC_CHECK_FILE([/dev/urandom], AC_SUBST([LDNS_KEYGEN_OPTIONS], ["-r /dev/urandom"]), AC_SUBST([LDNS_KEYGEN_OPTIONS], []))
@@ -345,7 +345,7 @@ AC_OUTPUT
 cat <<SETTINGS_OVERVIEW
 
     Settings:
-        nsdc          : $NSDC
+        dnssexyc      : $NSDC
         zones         : $ZONES
 	master        : $MASTER	$MASTER_IP@$MASTER_PORT
 	proxy         : $PROXY	$PROXY_IP@$PROXY_PORT

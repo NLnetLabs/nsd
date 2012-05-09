@@ -1,13 +1,13 @@
-.TH "nsd\-checkconf" "8" "@date@" "NLnet Labs" "nsd @version@"
+.TH "dnssexy\-checkconf" "8" "@date@" "NLnet Labs" "dnssexy @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
-.B nsd\-checkconf
-\- NSD configuration file checker.
+.B dnssexy\-checkconf
+\- Dnssexy configuration file checker.
 .SH "SYNOPSIS"
 .LP
-.B nsd\-checkconf
+.B dnssexy\-checkconf
 .RB [ \-v ]
 .RB [ \-h ]
 .RB [ \-o
@@ -19,15 +19,14 @@
 .I configfile
 .SH "DESCRIPTION"
 .LP
-.B nsd\-checkconf
+.B dnssexy\-checkconf
 reads a configuration file. It prints parse errors to standard 
 error, and performs additional checks on the contents. The 
-configfile format is described in nsd.conf(5).
+configfile format is described in dnssexy.conf(5).
 .P
-The utility of this program is to check a config file for errors 
-before using it in nsd(8) or zonec(8). This program can also be used 
-for shell scripts to access the nsd config file, using the \-o and 
-\-z options.
+The utility of this program is to check a config file for errors before using
+it in dnssexy(8). This program can also be used for shell scripts to access
+the dnssexy config file, using the \-o and \-z options.
 .P
 .SH "OPTIONS"
 .TP
@@ -50,7 +49,7 @@ prints out a list of configured zones.
 .P
 .RS
 This option is primarily used by 
-.B nsdc 
+.B dnssexyc 
 to parse the config file from the shell. If the
 .B \-z
 option is given, but the 
@@ -70,7 +69,7 @@ for zone 'zonename'.
 .RS
 If this option is not given, the server section of the config file
 is used.  This option is primarily used by 
-.B nsdc 
+.B dnssexyc 
 to parse the config file from the shell.
 .RE
 .P
@@ -81,13 +80,16 @@ The \-o, \-s and \-z option print configfile options to standard output.
 .TP
 @nsdconfigfile@
 default
-.B NSD
+.B dnssexy
 configuration file
 .SH "SEE ALSO"
 .LP
-nsd(8), nsdc(8), nsd.conf(5), nsd\-notify(8), nsd\-patch(8), 
-nsd-xfer(8), zonec(8)
+dnssexy(8), dnssexyc(8), dnssexy.conf(5), dnssexy\-notify(8),
+dnssexy\-patch(8), dnssexy-xfer(8)
 .SH "AUTHORS"
+.LP
+.B Dnssexy
+was written by NLnet Labs.
 .LP
 .B NSD
 was written by NLnet Labs and RIPE NCC joint team. Please see
