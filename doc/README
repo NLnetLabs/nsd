@@ -11,7 +11,7 @@ is received or is updated via an (incremental) zone transfer, it will be
 submitted to this external verifier for evaluation. When the verifier deems
 the updated zone to be correct, it has to indicate this by exiting with status
 code 0. The zone will then be served. Other exit status codes will discard the
-update and NSD will continue to serve the zone before the update.
+update and dnssexy will continue to serve the zone before the update.
 
 A verifier is specified with the "verifier:" option in the "zone:" clause.
 
