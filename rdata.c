@@ -56,8 +56,8 @@ lookup_table_type dns_algorithms[] = {
 	{ 8, "RSASHA256" },		/* RFC 5702 */
 	{ 10, "RSASHA512" },		/* RFC 5702 */
 	{ 12, "ECC-GOST" },		/* RFC 5933 */
-	{ 13, "ECDSAP256SHA256" },	/* draft-ietf-dnsext-ecdsa-07 */
-	{ 14, "ECDSAP384SHA384" },	/* draft-ietf-dnsext-ecdsa-07 */
+	{ 13, "ECDSAP256SHA256" },	/* RFC 6605 */
+	{ 14, "ECDSAP384SHA384" },	/* RFC 6605 */
 	{ 252, "INDIRECT" },
 	{ 253, "PRIVATEDNS" },
 	{ 254, "PRIVATEOID" },

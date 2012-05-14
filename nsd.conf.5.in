@@ -92,7 +92,7 @@ Files can be included using the
 directive. It can appear anywhere, and takes a single filename as 
 an argument. Processing continues as if the text from the included 
 file was copied into the config file at that point.
-.S "Server Options"
+.SS "Server Options"
 .LP
 The global options (if not overridden from the NSD commandline) are 
 taken from the 
