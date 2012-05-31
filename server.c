@@ -7,7 +7,7 @@
  *
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -205,7 +205,7 @@ delete_child_pid(struct nsd *nsd, pid_t pid)
 		if (nsd->children[i].pid == pid) {
 			nsd->children[i].pid = 0;
 			if(!nsd->children[i].need_to_exit) {
-				if(nsd->children[i].child_fd > 0)
+				if(nsd->children[i].child_fd != -1)
 					close(nsd->children[i].child_fd);
 				nsd->children[i].child_fd = -1;
 				if(nsd->children[i].handler)
@@ -231,7 +231,7 @@ restart_child_servers(struct nsd *nsd, region_type* region, netio_type* netio,
 	/* Fork the child processes... */
 	for (i = 0; i < nsd->child_count; ++i) {
 		if (nsd->children[i].pid <= 0) {
-			if (nsd->children[i].child_fd > 0)
+			if (nsd->children[i].child_fd != -1)
 				close(nsd->children[i].child_fd);
 			if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
 				log_msg(LOG_ERR, "socketpair: %s",
@@ -598,7 +598,7 @@ server_shutdown(struct nsd *nsd)
 	close_all_sockets(nsd->udp, nsd->ifs);
 	close_all_sockets(nsd->tcp, nsd->ifs);
 	/* CHILD: close command channel to parent */
-	if(nsd->this_child && nsd->this_child->parent_fd > 0)
+	if(nsd->this_child && nsd->this_child->parent_fd != -1)
 	{
 		close(nsd->this_child->parent_fd);
 		nsd->this_child->parent_fd = -1;
@@ -607,7 +607,7 @@ server_shutdown(struct nsd *nsd)
 	if(!nsd->this_child)
 	{
 		for(i=0; i < nsd->child_count; ++i)
-			if(nsd->children[i].child_fd > 0)
+			if(nsd->children[i].child_fd != -1)
 			{
 				close(nsd->children[i].child_fd);
 				nsd->children[i].child_fd = -1;
@@ -689,7 +689,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 				/* blocking read */
 				continue;
 			if(errno == EINTR) {
-				if(nsd->signal_hint_quit || nsd->signal_hint_shutdown)
+				if(nsd && (nsd->signal_hint_quit || nsd->signal_hint_shutdown))
 					return -1;
 				/* other signals can be handled later */
 				continue;
@@ -707,7 +707,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 				/* blocking read */
 				continue;
 			if(errno == EINTR) {
-				if(nsd->signal_hint_quit || nsd->signal_hint_shutdown)
+				if(nsd && (nsd->signal_hint_quit || nsd->signal_hint_shutdown))
 					return -1;
 				/* other signals can be handled later */
 				continue;
@@ -1330,7 +1330,7 @@ server_child(struct nsd *nsd)
 		}
 		else if (mode == NSD_REAP_CHILDREN) {
 			/* got signal, notify parent. parent reaps terminated children. */
-			if (nsd->this_child->parent_fd > 0) {
+			if (nsd->this_child->parent_fd != -1) {
 				sig_atomic_t parent_notify = NSD_REAP_CHILDREN;
 				if (write(nsd->this_child->parent_fd,
 				    &parent_notify,
@@ -1912,7 +1912,7 @@ send_children_quit(struct nsd* nsd)
 	size_t i;
 	assert(nsd->server_kind == NSD_SERVER_MAIN && nsd->this_child == 0);
 	for (i = 0; i < nsd->child_count; ++i) {
-		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd > 0) {
+		if (nsd->children[i].pid > 0 && nsd->children[i].child_fd != -1) {
 			if (write(nsd->children[i].child_fd,
 				&command,
 				sizeof(command)) == -1)

@@ -1048,7 +1048,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			}
 		}
 	}
-        fix_empty_terminals(zone_db);
+	fix_empty_terminals(zone_db);
 	region_destroy(region);
 	return 1;
 }

@@ -62,7 +62,7 @@ enum netio_event_types {
 	NETIO_EVENT_WRITE   = 2,
 	NETIO_EVENT_EXCEPT  = 4,
 	NETIO_EVENT_TIMEOUT = 8,
-	NETIO_EVENT_ACCEPT = 16
+	NETIO_EVENT_ACCEPT  = 16
 };
 typedef enum netio_event_types netio_event_types_type;
 

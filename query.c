@@ -7,7 +7,7 @@
  *
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1211,7 +1211,6 @@ answer_query(struct nsd *nsd, struct query *q)
 
 	offset = dname_label_offsets(q->qname)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
-
 	encode_answer(q, &answer);
 	query_clear_compression_tables(q);
 }
