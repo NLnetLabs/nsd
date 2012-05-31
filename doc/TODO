@@ -28,6 +28,9 @@ SERVER
   preallocate 2 bytes in front of buffer to put them into.
 - Test TCP performance (do a lot of AXFRs, different zone sizes, and compare
   time averages).
+- From Aaron Hopkins: after you do select calls, do multiple read calls
+  per select. This polling improves performance in high-load situations.
+  Speed test to prove that it does so.
 - Turn off TC bit on all error replies.
 - Bug #133: print empty statistic blocks. Not sure if the feature is wanted.
 - XFRD should throttle the number of notifys going out for a zone to
@@ -104,6 +107,7 @@ OPTIMISATIONS
 - reduce the memory leak on zone transfers (deleted domains are not removed from
   tree).
 - Options server: ip-address: and zone: outgoing-interface are pretty much the same.
+- Options to make NSD restrict AXFR response messages to a single RR (RFC5936)
 
 TESTS
 - tpkg test for bug 157: a valid NSID EDNS0 option generates FORMERR on

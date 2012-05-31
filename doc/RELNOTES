@@ -2,20 +2,31 @@ NSD RELEASE NOTES
 
 3.2.11 (UPCOMING)
 ================
+
 FEATURES:
-        - Fallback to AXFR is IXFR is unknown at the primary. NSD considers
+	- Fallback to AXFR is IXFR is unknown at the primary. NSD considers
 	  IXFR unknown at the primary if there is a negative response for the IXFR
 	  RRtype. This does not override the value for 'allow-axfr-fallback'.
+	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155, RFC5702, 
+	  RFC5933, and RFC6605 (ECDSA)).
+
 
 BUG FIXES:
 	- Fix for qtype ANY for a wildcard domain in NSEC signed zone: Don't
 	  add the wildcard domain NSEC into the answer section. Instead,
 	  put the wildcard expanded NSEC into the answer section and keep the
 	  wildcard domain NSEC in the authority section.
+	- Fix for accept spinning reported by OpenBSD.
+
+OPERATIONAL NOTES:
+	- NSD uses the query name for dname compression again (Fix #235 
+	  had as side effect that this didn't happen anymore and is hereby
+	  undone).
 
 
 3.2.10
 ================
+
 BUG FIXES:
         - Bugfix #421: Truncate pidfile on shutdown, before unlink.
 	- Bugfix #423: Fix slow zone transfer processing due to
@@ -23,18 +34,48 @@ BUG FIXES:
 	- Fix bug #430: segfault when MAX_INTERFACES set to more than 65K.
 	- Fix configure.ac strptime check for gcc 4.6.2, acx_nlnetlabs update.
 
+
 3.2.9
 ================
+
+FEATURES:
+	- Minimize responses to reduce truncation: NSD will only add optional
+	  records to the authority and additional sections when the response
+	  size does not exceed the minimal response size.
+
+	  The minimal response size is 512 (no-EDNS), 1480 (EDNS/IPv4),
+	  1220 (EDNS/IPv6), or the advertized EDNS buffer size if that is
+	  smaller than the EDNS default. 
+
+	  The feature is enabled by default. You can disable it by configuring 
+	  NSD with --disable-minimal-responses.
+
+
 BUG FIXES:
+	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
 	- Bugfix #365: set patch style and zonec verbose for nsdc.
+	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
 	- Bugfix #375: typos in nsd.conf.5.
 	- Bugfix #381: Binary escaped and transfers.
-	- First step of bug #369: RRSIG DNSKEY sets zone to be treated DNSSEC.
-	- Bugfix #302: nsd accepts XFR but refuses to re-read the slave zone.
+	- Bugfix #397: Don't allow relative domain names as origin in $INCLUDE
+	  directives.
+	- Fix printout of IPSECKEY by nsd-patch.
+	- Fix is_existing flag for ENT when domain that has a shared ENT
+	  is deleted by IXFR. (ENT == Empty Non-Terminal)
+	- Fix bug if the zonefile is changed for a secondary but stored
+	  transfers are applied, and stop it from applying ixfr to empty zone.
+	  The zone is flagged with error and AXFR-ed.
 	- Fix to have no authority NS set processing for CNAMEs.
+	- Fix nsd-checkconf to check tsig algorithms properly.
 	- Set the AA bit on responses that have an authoritative CNAME.
 	- Fix denial of existence response for empty non-terminal that looks
 	  like a NSEC3-only domain (but has data below it).
+
+OPERATIONAL NOTES:
+	- nsd.db version number increased because NSD 3.2.7 and earlier
+	  zonec is not compatible due to the TXT strings change. Please
+	  run nsdc rebuild before running NSD 3.2.9 and later versions.
+
 
 3.2.8
 =============
@@ -53,8 +94,6 @@ BUG FIXES:
 	  warning messages.
 	- Bugfix #363: nsd-checkconf -v does not print outgoing-interface ok.
 	- Bugfix: nsd-checkconf -o outgoing-interface omits NOKEY.
-	- Undo bugfix #325: Don't skip dname compression, messes up packets
-	  that do need compression.
 
 OPERATIONAL NOTES:
 	- Use 'make clean' to clean up files that make created.

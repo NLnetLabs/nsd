@@ -605,9 +605,23 @@ C 4.4 Truncation handling. (as rfc2181 9)
   RRs are required in the answer and authority section.
 
   Inclusion of NS RRs in the authority section when QTYPE=DNSKEY is
-  removed since NSD version 3.2.3. This is to prevent resolvers from 
-  unnecessarily falling back to TCP. Only DNSKEYs are considered, 
-  because it showed that especially these DNS packets are 'troublesome'.
+  removed since NSD version 3.2.3. QTYPE=DS followed in version 3.2.7.
+  This is to prevent resolvers from unnecessarily falling back to TCP.
+  Only DNSKEY and DS records are considered, because it showed that
+  especially these DNS packets are 'troublesome'.
+
+  The feature 'minimize responses' is included since NSD 3.2.9.
+  NS RRsets that would go into the Authority section in positive
+  responses are not considered REQUIRED and therefore will NOT lead
+  to setting of the TC bit. The minimal response size is:
+  - 512 in case of no EDNS;
+  - 1480 in case of EDNS/IPv4;
+  - 1220 in case of EDNS/IPv6;
+  - the advertized buffer size if that value is smaller than the
+    the EDNS defaults.
+
+  The feature can be disabled during build time with
+  --disable-minimal-responses.
 
   If inclusion of an RRset in the Additional section is not possible
   RRs are omitted one by one. This may lead to incomplete RRsets.
@@ -839,8 +853,9 @@ RR records details.
   "DHCID"    49,    # draft-ietf-dnsext-dhcid-rr-13.txt
 
   "NSEC3"    50,    # RFC 5155.
+  "NSEC3PARAM" 51,  # RFC 5155.
 
-  Unknown    51 - 98,
+  Unknown    52 - 98,
 
   "SPF"      99,    # RFC 4408 (Experimental).
 

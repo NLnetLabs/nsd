@@ -2,7 +2,7 @@
 # BSD licensed (see LICENSE file).
 #
 # Version 4
-# 2011-04-06: wait_logfile to wait (with timeout) for a logfile line to appear
+# 2011-04-06: tpk wait_logfile to wait (with timeout) for a logfile line to appear
 # 2011-02-23: get_pcat for PCAT, PCAT_DIFF and PCAT_PRINT defines.
 # 2011-02-18: ports check on BSD,Solaris. wait_nsd_up.
 # 2011-02-11: first version.

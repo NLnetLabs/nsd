@@ -637,7 +637,7 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
 		if (zone->state != xfrd_zone_expired &&
 			(uint32_t)xfrd_time() >= zone->soa_disk_acquired + ntohl(zone->soa_disk.expire)) {
 			/* zone expired */
-			log_msg(LOG_ERR, "zone %s has expired", zone->apex_str);
+			log_msg(LOG_ERR, "xfrd: zone %s has expired", zone->apex_str);
 			xfrd_set_zone_state(zone, xfrd_zone_expired);
 		}
 		else if(zone->state == xfrd_zone_ok &&

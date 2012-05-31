@@ -14,6 +14,11 @@ enum rr_section {
 	QUESTION_SECTION,
 	ANSWER_SECTION,
 	AUTHORITY_SECTION,
+	/*
+	 * Use a split authority section to ensure that optional
+	 * NS RRsets in the response can be omitted.
+	 */
+	OPTIONAL_AUTHORITY_SECTION,
 	ADDITIONAL_SECTION,
 	/*
 	 * Use a split additional section to ensure A records appear

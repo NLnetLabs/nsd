@@ -51,6 +51,13 @@ lookup_table_type dns_algorithms[] = {
 	{ 3, "DSA" },		/* RFC 2536 */
 	{ 4, "ECC" },
 	{ 5, "RSASHA1" },	/* RFC 3110 */
+	{ 6, "DSA-NSEC3-SHA1" },	/* RFC 5155 */
+	{ 7, "RSASHA1-NSEC3-SHA1" },	/* RFC 5155 */
+	{ 8, "RSASHA256" },		/* RFC 5702 */
+	{ 10, "RSASHA512" },		/* RFC 5702 */
+	{ 12, "ECC-GOST" },		/* RFC 5933 */
+	{ 13, "ECDSAP256SHA256" },	/* RFC 6605 */
+	{ 14, "ECDSAP384SHA384" },	/* RFC 6605 */
 	{ 252, "INDIRECT" },
 	{ 253, "PRIVATEDNS" },
 	{ 254, "PRIVATEOID" },
@@ -228,13 +235,7 @@ rdata_algorithm_to_string(buffer_type *output, rdata_atom_type rdata,
 	rr_type* ATTR_UNUSED(rr))
 {
 	uint8_t id = *rdata_atom_data(rdata);
-	lookup_table_type *alg
-		= lookup_by_id(dns_algorithms, id);
-	if (alg) {
-		buffer_printf(output, "%s", alg->name);
-	} else {
-		buffer_printf(output, "%u", (unsigned) id);
-	}
+	buffer_printf(output, "%u", (unsigned) id);
 	return 1;
 }
 
@@ -454,8 +455,17 @@ rdata_ipsecgateway_to_string(buffer_type *output, rdata_atom_type rdata, rr_type
 		rdata_aaaa_to_string(output, rdata, rr);
 		break;
 	case IPSECKEY_DNAME:
-		buffer_printf(output, "%s",
-			wiredname2str(rdata_atom_data(rdata)));
+		{
+			region_type* temp = region_create(xalloc, free);
+			const dname_type* d = dname_make(temp,
+				rdata_atom_data(rdata), 0);
+			if(!d) {
+				region_destroy(temp);
+				return 0;
+			}
+			buffer_printf(output, "%s", dname_to_string(d, NULL));
+			region_destroy(temp);
+		}
 		break;
 	default:
 		return 0;

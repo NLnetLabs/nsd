@@ -67,6 +67,9 @@ struct tcp_accept_handler_data {
 	netio_handler_type *tcp_accept_handlers;
 };
 
+int slowaccept;
+struct timespec slowaccept_timeout;
+
 /*
  * Data for the TCP connection handlers.
  *
@@ -1442,7 +1445,7 @@ server_child(struct nsd *nsd)
 			handler->fd = nsd->tcp[i].s;
 			handler->timeout = NULL;
 			handler->user_data = data;
-			handler->event_types = NETIO_EVENT_READ;
+			handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_ACCEPT;
 			handler->event_handler = handle_tcp_accept;
 			netio_add_handler(netio, handler);
 		}
@@ -1605,6 +1608,7 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 		= (struct tcp_handler_data *) handler->user_data;
 	netio_remove_handler(netio, handler);
 	close(handler->fd);
+	slowaccept = 0;
 
 	/*
 	 * Enable the TCP accept handlers when the current number of
@@ -1973,9 +1977,21 @@ handle_tcp_accept(netio_type *netio,
 	addrlen = sizeof(addr);
 	s = accept(handler->fd, (struct sockaddr *) &addr, &addrlen);
 	if (s == -1) {
-		/* EINTR is a signal interrupt. The others are various OS ways
-		   of saying that the client has closed the connection. */
-		if (	errno != EINTR
+		/**
+		 * EMFILE and ENFILE is a signal that the limit of open
+		 * file descriptors has been reached. Pause accept().
+		 * EINTR is a signal interrupt. The others are various OS ways
+		 * of saying that the client has closed the connection.
+		 */
+		if (errno == EMFILE || errno == ENFILE) {
+			if (!slowaccept) {
+				slowaccept_timeout.tv_sec = NETIO_SLOW_ACCEPT_TIMEOUT;
+				slowaccept_timeout.tv_nsec = 0L;
+				timespec_add(&slowaccept_timeout, netio_current_time(netio));
+				slowaccept = 1;
+				/* We don't want to spam the logs here */
+			}
+		} else if (errno != EINTR
 			&& errno != EWOULDBLOCK
 #ifdef ECONNABORTED
 			&& errno != ECONNABORTED
