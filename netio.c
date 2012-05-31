@@ -36,7 +36,7 @@ netio_type *
 netio_create(region_type *region)
 {
 	netio_type *result;
-	
+
 	assert(region);
 
 	result = (netio_type *) region_alloc(region, sizeof(netio_type));
@@ -51,7 +51,7 @@ void
 netio_add_handler(netio_type *netio, netio_handler_type *handler)
 {
 	netio_handler_list_type *elt;
-	
+
 	assert(netio);
 	assert(handler);
 
@@ -79,7 +79,7 @@ void
 netio_remove_handler(netio_type *netio, netio_handler_type *handler)
 {
 	netio_handler_list_type **elt_ptr;
-	
+
 	assert(netio);
 	assert(handler);
 
@@ -126,14 +126,14 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 	netio_handler_list_type *elt;
 	int rc;
 	int result = 0;
-	
+
 	assert(netio);
 
 	/*
 	 * Clear the cached current time.
 	 */
 	netio->have_current_time = 0;
-	
+
 	/*
 	 * Initialize the minimum timeout with the timeout parameter.
 	 */
@@ -158,7 +158,35 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 				max_fd = handler->fd;
 			}
 			if (handler->event_types & NETIO_EVENT_READ) {
-				FD_SET(handler->fd, &readfds);
+				extern int slowaccept;
+				extern struct timespec slowaccept_timeout;
+				struct timespec relative;
+
+				if (handler->event_types & NETIO_EVENT_ACCEPT) {
+					relative.tv_sec = 0L;
+					relative.tv_nsec = 0L;
+					timespec_add(&relative, netio_current_time(netio));
+
+					if (slowaccept &&
+						timespec_compare(&slowaccept_timeout, &relative) < 0) {
+						slowaccept = 0;
+					}
+				}
+
+				if (slowaccept && (handler->event_types & NETIO_EVENT_ACCEPT)) {
+					/** Timeout after NETIO_SLOW_ACCEPT_TIMEOUT. */
+					relative.tv_sec = slowaccept_timeout.tv_sec;
+					relative.tv_nsec = slowaccept_timeout.tv_nsec;
+					timespec_subtract(&relative, netio_current_time(netio));
+					if (!have_timeout ||
+						timespec_compare(&relative, &minimum_timeout) < 0) {
+						have_timeout = 1;
+						minimum_timeout.tv_sec = relative.tv_sec;
+						minimum_timeout.tv_nsec = relative.tv_nsec;
+					}
+				} else {
+					FD_SET(handler->fd, &readfds);
+				}
 			}
 			if (handler->event_types & NETIO_EVENT_WRITE) {
 				FD_SET(handler->fd, &writefds);
@@ -215,7 +243,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 	 * some time so the cached value is likely to be old).
 	 */
 	netio->have_current_time = 0;
-	
+
 	if (rc == 0) {
 		/*
 		 * No events before the minimum timeout expired.
