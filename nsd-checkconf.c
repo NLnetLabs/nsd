@@ -274,7 +274,9 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_STR(difffile, o);
 		SERV_GET_STR(xfrdfile, o);
 		SERV_GET_STR(port, o);
+#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
 		SERV_GET_STR(zonestatsfile, o);
+#endif
 		/* int */
 		SERV_GET_INT(server_count, o);
 		SERV_GET_INT(tcp_count, o);
@@ -322,7 +324,9 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("pidfile:", opt->pidfile);
 	print_string_var("port:", opt->port);
 	printf("\tstatistics: %d\n", opt->statistics);
+#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
 	printf("\tzone-stats-file: %s\n", opt->zonestatsfile);
+#endif
 	print_string_var("chroot:", opt->chroot);
 	print_string_var("username:", opt->username);
 	print_string_var("zonesdir:", opt->zonesdir);
