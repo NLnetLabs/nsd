@@ -185,6 +185,9 @@ If not present no statistics are dumped. Statistics are produced
 every number seconds. Same as commandline option 
 .BR \-s .
 .TP
+.B zone-stats-file:\fR <filename>
+If per zone statistics is enabled, file to dump the statistics.
+.TP
 .B chroot:\fR <directory>
 NSD will chroot on startup to the specified directory. Same as 
 commandline option 

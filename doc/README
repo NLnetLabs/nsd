@@ -168,7 +168,15 @@ addition to standard configure options, one may use the following:
 
   --enable-bind8-stats
 
-        Enables BIND8-like statistics.
+	Enables BIND8-like statistics.
+
+  --enable-zone-statistics
+
+	Enables per zone statistics (if BIND8 stats is enabled).
+
+	This does not scale and should not be used if serving many zones.
+	This option could lead to a reduced service level and increased
+	memory footprint.
 
   --with-configdir=dir
 

@@ -5,10 +5,15 @@ NSD RELEASE NOTES
 
 FEATURES:
 	- Fallback to AXFR is IXFR is unknown at the primary. NSD considers
-	  IXFR unknown at the primary if there is a negative response for the IXFR
-	  RRtype. This does not override the value for 'allow-axfr-fallback'.
-	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155, RFC5702, 
-	  RFC5933, and RFC6605 (ECDSA)).
+	  IXFR unknown at the primary if there is a negative response for the
+	  IXFR RRtype. This does not override the value for
+	  'allow-axfr-fallback'.
+	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155,
+	  RFC5702, RFC5933, and RFC6605 (ECDSA)).
+	- Zone statistics, enable with --enable-zone-statistics. This
+	  stores the BIND8 stats per zone in a configurable statistics file.
+	  This option does not scale and should therefore not be enabled when
+	  serving many zones.
 	- Support for TLSA RRtype (DANE).
 
 BUG FIXES:

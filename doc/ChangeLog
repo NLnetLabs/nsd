@@ -1,3 +1,6 @@
+1 June 2012: Matthijs
+	- Per zone stats, enable with --enable-zone-statistics.
+
 31 May 2012: Matthijs
 	- Fix for accept spinning reported by OpenBSD.
 

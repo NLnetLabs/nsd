@@ -55,6 +55,7 @@ struct nsd_options {
 	const char* pidfile;
 	const char* port;
 	int statistics;
+	const char* zonestatsfile;
 	const char* chroot;
 	const char* username;
 	const char* zonesdir;
