@@ -81,14 +81,19 @@ struct nsd_options;
 #  define ZTATUP(zone, stc) zone->st.stc++
 #  define ZTATUP2(zone, stc, i) zone->st.stc[(i) <= (LASTELEM(zone->st.stc) - 1) ? i : LASTELEM(zone->st.stc)]++
 
+#  else
+
+#  define ZTATUP(zone, stc) /* Nothing */
+#  define ZTATUP2(zone, stc, i) /* Nothing */
+
 #  endif /* USE_ZONE_STATS */
 
 #else /* BIND8_STATS */
 
 #define	STATUP(nsd, stc) /* Nothing */
 #define	STATUP2(nsd, stc, i) /* Nothing */
-#define	ZTATUP(q->zone, stc) /* Nothing */
-#define	ZTATUP2(q->zone, stc, i) /* Nothing */
+#define	ZTATUP(zone, stc) /* Nothing */
+#define	ZTATUP2(zone, stc, i) /* Nothing */
 
 #endif /* BIND8_STATS */
 
