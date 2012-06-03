@@ -43,6 +43,7 @@
 #include "nsd.h"
 #include "options.h"
 #include "tsig.h"
+#include "namedb.h"
 
 /* The server handler... */
 static struct nsd nsd;
@@ -555,6 +556,9 @@ main(int argc, char *argv[])
 	const char *configfile = CONFIGFILE;
 
 	char* argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
+
+	/* Dnssexy only. To create a new database file when needed */
+	struct namedb *db; 
 
 	log_init("dnssexy");
 
@@ -1179,12 +1183,22 @@ main(int argc, char *argv[])
 	DEBUG(DEBUG_IPC,1, (LOG_INFO, "file rotation on %s %sabled",
 		nsd.log_filename, nsd.file_rotation_ok?"en":"dis"));
 
-	/* Check if nsd.db exists */
+	/* Check if nsd.db exists  */
 	if ((dbfd = fopen(nsd.dbfile, "r")) == NULL) {
-		log_msg(LOG_ERR, "unable to open %s for reading: %s", nsd.dbfile, strerror(errno));
-		exit(1);
+		/* With dnssexy it will not be created with zonec, so... */
+		if ((db = namedb_new(nsd.dbfile)) == NULL) {
+			log_msg(LOG_ERR, "error creating the database (%s): %s\n", nsd.dbfile, strerror(errno));
+			exit(1);
+		} else if (namedb_save(db) != 0) {
+			log_msg(LOG_ERR, "error writing the database (%s): %s\n", db->filename, strerror(errno));
+			namedb_discard(db);
+			exit(1);
+		} else {
+			log_msg(LOG_NOTICE, "new database created (%s)\n", db->filename);
+		}
+	} else {
+		fclose(dbfd);
 	}
-	fclose(dbfd);
 
 	/* Write pidfile */
 	if (writepid(&nsd) == -1) {

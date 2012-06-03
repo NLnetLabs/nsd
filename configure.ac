@@ -577,7 +577,7 @@ case "$enable_ipv6" in
 		;;
 esac
 
-AC_ARG_ENABLE(bind8-stats, AC_HELP_STRING([--enable-bind8-stats], [Enables BIND8 like NSTATS & XSTATS]))
+AC_ARG_ENABLE(bind8-stats, [])dnl AC_HELP_STRING([--enable-bind8-stats], [Enables BIND8 like NSTATS & XSTATS]))
 
 case "$enable_bind8_stats" in
 	yes|'')
@@ -602,7 +602,7 @@ esac
 # we need SSL for TSIG (and maybe also for NSEC3).
 CHECK_SSL
 
-AC_ARG_ENABLE(nsec3, AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
+AC_ARG_ENABLE(nsec3, [])dnl AC_HELP_STRING([--disable-nsec3], [Disable NSEC3 support]))
 case "$enable_nsec3" in
         no)
 		;;
@@ -611,16 +611,16 @@ case "$enable_nsec3" in
                 ;;
 esac
 
-AC_ARG_ENABLE(full-prehash, AC_HELP_STRING([--disable-full-prehash], [Disables NSEC3 full prehashing]))
+AC_ARG_ENABLE(full-prehash, [])dnl AC_HELP_STRING([--enable-full-prehash], [Enables NSEC3 full prehashing]))
 case "$enable_full_prehash" in
-        no)
+        no:*)
 		;;
-        yes|*)
+        yes)
 		AC_DEFINE_UNQUOTED([FULL_PREHASH], [], [Define this to enable NSEC3 full prehashing.])
                 ;;
 esac
 
-AC_ARG_ENABLE(minimal-responses, AC_HELP_STRING([--disable-minimal-responses], [Disable response minimization. More truncation.]))
+AC_ARG_ENABLE(minimal-responses, [])dnl AC_HELP_STRING([--disable-minimal-responses], [Disable response minimization. More truncation.]))
 case "$enable_minimal_responses" in
         no)
 		;;

@@ -123,8 +123,13 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 				cfg_parser->current_zone))
 				c_error("duplicate zone");
 		}
-		if(!cfg_parser->current_zone->zonefile)
-			c_error("last zone has no zonefile");
+		/* Okay with dnssexy to not have a zonefile.
+		 *
+		if(!cfg_parser->current_zone->zonefile) {
+			cfg_parser->current_zone->zonefile = 
+				cfg_parser->current_zone->name;
+		}
+		*/
 	}
 	if(opt->keys)
 	{
@@ -139,8 +144,7 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 	{
 		if(!zone->name)
 			continue;
-		if(!zone->zonefile)
-			continue;
+		/* if(!zone->zonefile) continue; */
 		/* lookup keys for acls */
 		for(acl=zone->allow_notify; acl; acl=acl->next)
 		{

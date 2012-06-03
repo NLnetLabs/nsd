@@ -243,6 +243,12 @@ write_to_zonefile(struct zone* zone, struct diff_log* commit_log)
 	time_t now = time(0);
 	FILE *out;
 
+	if(!filename) {
+		fprintf(stderr, "zone %s has no zonefile configured.\n",
+				zone->opts->name);
+		return;
+	}
+
 	fprintf(stdout, "writing zone %s to file %s\n", zone->opts->name,
 		filename);
 

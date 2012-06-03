@@ -114,6 +114,7 @@ NSD_OBJECTS	=				\
 	configparser.o				\
 	options.o				\
 	dbaccess.o				\
+	dbcreate.o			\
 	difffile.o				\
 	dname.o					\
 	dns.o					\

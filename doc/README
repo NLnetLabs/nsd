@@ -1,10 +1,9 @@
 Dnssexy is a software program aimed at fortifying DNSSEC by performing
-validation in the DNS notify/transfer-chain. Currently dnssexy is a fork of
-the NSD_3_2 branch that has been extended with the possibility to asses zones
-- received or updated by AXFR or IXFR - by running an external verifier and
-only serve those zones when they are deemed correct by the verifier associated
-with that zone. The options for setting a verifier for a zone and all related
-options can be given in the dnssexy.conf(5) configuration file.
+validation in the DNS notify/transfer-chain. Currently dnssexy is a fork
+of the NSD_3_2 branch that has been extended with the possibility to
+asses zones (received or updated by AXFR or IXFR) by running an external
+verifier. Only zones that are deemed correct by a verifier will be
+notified to (public) slave servers and offered for transfer.
 
 An external verifier can be configured per zone. When a zone with a verifier
 is received or is updated via an (incremental) zone transfer, it will be
@@ -70,4 +69,39 @@ option in the "server:" clause (to make the general default) or in the "zone:"
 clause to set it for a specific zone. When the time the verifier takes exceeds
 the timeout value, the zone to be verified will be considered bad.  By default
 the value is 0, which means that the verifier may take as long as it needs.
+
+
+A minimal dnssexy setup
+=======================
+
+Suppose you have a hidden master for example.com on 10.0.0.1 and a public slave
+on 10.20.0.1.  We will configure dnssexy listening on 10.10.0.1 in between
+those two validating with ldns-verify-zone.
+
+In the configuration file /etc/dnssexy/dnssexy.conf we configure the address
+this dnssexy instance is listening on for all its zones in the server section:
+
+	server:
+		ip-address: 10.10.0.1
+
+The zone sections starts with the name.
+
+	zone:
+		name: examples.com
+
+In the zone section we allow notifies from the hidden master and indicate that
+we transfer the zone from that master as well.
+
+		allow-notify: 10.0.0.1
+		request-xfr: 10.0.0.1
+
+Then we configure that we use ldns-verify-zone to validate the zone:
+
+		verifier: ldns-verify-zone -V2
+
+And when validated successfully the zone is notified and offered for transfer
+to the public slave:
+
+		notify: 10.20.0.1
+		provide-xfr: 10.20.0.1
 

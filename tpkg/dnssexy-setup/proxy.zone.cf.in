@@ -5,7 +5,7 @@ include: "@abs_top_builddir@/tsigs/slave-xfr-from-proxy.@ZONE@.tsig"
 
 zone:
     name:          @ZONE@
-    zonefile:     "@abs_builddir@/@ZONE@"
+    #zonefile:     "@abs_builddir@/@ZONE@"
     allow-notify:  @MASTER_IP@		master-notify-proxy.@ZONE@.
     request-xfr:   @MASTER_IP@@@MASTER_PORT@	proxy-xfr-from-master.@ZONE@.
     notify:        @SLAVE_IP@@@SLAVE_PORT@	proxy-notify-slave.@ZONE@.
