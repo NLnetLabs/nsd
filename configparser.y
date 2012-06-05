@@ -405,8 +405,11 @@ zonestart: VAR_ZONE
 					cfg_parser->current_zone))
 					c_error("duplicate zone");
 			}
+			/* Okay with dnssexy to not have a zonefile configured.
+			 *
 			if(!cfg_parser->current_zone->zonefile) 
 				c_error("previous zone has no zonefile");
+			*/
 		}
 		cfg_parser->current_zone = zone_options_create(cfg_parser->opt->region);
 		cfg_parser->current_allow_notify = 0;

@@ -2,17 +2,20 @@ Dnssexy is a software program aimed at fortifying DNSSEC by performing
 validation in the DNS notify/transfer-chain. Currently dnssexy is a fork
 of the NSD_3_2 branch that has been extended with the possibility to
 asses zones (received or updated by AXFR or IXFR) by running an external
-verifier. Only zones that are deemed correct by a verifier will be
+verifier. Only zones that are deemed correct by the verifier will be
 notified to (public) slave servers and offered for transfer.
 
 An external verifier can be configured per zone. When a zone with a verifier
-is received or is updated via an (incremental) zone transfer, it will be
+is received or updated via an (incremental) zone transfer, it will be
 submitted to this external verifier for evaluation. When the verifier deems
 the updated zone to be correct, it has to indicate this by exiting with status
 code 0. The zone will then be served. Other exit status codes will discard the
 update and dnssexy will continue to serve the zone before the update.
 
 A verifier is specified with the "verifier:" option in the "zone:" clause.
+Examples for verifiers are: "lds-verify-zone" or "validns -" (don't forget the
+dash (-) to read the zone from stdin), but also verifiers that query the zone
+to be verified may be used.
 
 The zone can be provided to the verifier in two ways. 
 
