@@ -153,7 +153,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 
 	for (elt = netio->handlers; elt; elt = elt->next) {
 		netio_handler_type *handler = elt->handler;
-		if (handler->fd >= 0 && handler->fd < (int)FD_SETSIZE) {
+		if (handler->fd != -1 && handler->fd < (int)FD_SETSIZE) {
 			if (handler->fd > max_fd) {
 				max_fd = handler->fd;
 			}
@@ -260,7 +260,7 @@ netio_dispatch(netio_type *netio, const struct timespec *timeout, const sigset_t
 		for (elt = netio->handlers; elt && rc; ) {
 			netio_handler_type *handler = elt->handler;
 			netio->dispatch_next = elt->next;
-			if (handler->fd >= 0 && handler->fd < (int)FD_SETSIZE) {
+			if (handler->fd != -1 && handler->fd < (int)FD_SETSIZE) {
 				netio_event_types_type event_types
 					= NETIO_EVENT_NONE;
 				if (FD_ISSET(handler->fd, &readfds)) {

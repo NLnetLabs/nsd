@@ -1114,7 +1114,7 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_QUIT_SYNC:
 			/* synchronisation of xfrd, parent and reload */
-			if(!nsd->quit_sync_done && reload_listener.fd > 0) {
+			if(!nsd->quit_sync_done && reload_listener.fd != -1) {
 				sig_atomic_t cmd = NSD_RELOAD;
 				/* stop xfrd ipc writes in progress */
 				DEBUG(DEBUG_IPC,1, (LOG_INFO,
@@ -1131,7 +1131,7 @@ server_main(struct nsd *nsd)
 			break;
 		case NSD_QUIT:
 			/* silent shutdown during reload */
-			if(reload_listener.fd > 0) {
+			if(reload_listener.fd != -1) {
 				/* acknowledge the quit, to sync reload that we will really quit now */
 				sig_atomic_t cmd = NSD_RELOAD;
 				DEBUG(DEBUG_IPC,1, (LOG_INFO, "main: ipc ack reload"));
@@ -1180,7 +1180,7 @@ server_main(struct nsd *nsd)
 	/* Unlink it if possible... */
 	unlinkpid(nsd->pidfile);
 
-	if(reload_listener.fd > 0) {
+	if(reload_listener.fd != -1) {
 		sig_atomic_t cmd = NSD_QUIT;
 		DEBUG(DEBUG_IPC,1, (LOG_INFO,
 			"main: ipc send quit to reload-process"));
@@ -1191,7 +1191,7 @@ server_main(struct nsd *nsd)
 		fsync(reload_listener.fd);
 		close(reload_listener.fd);
 	}
-	if(xfrd_listener.fd > 0) {
+	if(xfrd_listener.fd != -1) {
 		/* complete quit, stop xfrd */
 		sig_atomic_t cmd = NSD_QUIT;
 		DEBUG(DEBUG_IPC,1, (LOG_INFO,
