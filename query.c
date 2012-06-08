@@ -7,7 +7,7 @@
  *
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1209,9 +1209,12 @@ answer_query(struct nsd *nsd, struct query *q)
 	answer_lookup_zone(nsd, q, &answer, 0, exact, closest_match,
 		closest_encloser, q->qname);
 
+	ZTATUP2(q->zone, opcode, q->opcode);
+	ZTATUP2(q->zone, qtype, q->qtype);
+	ZTATUP2(q->zone, opcode, q->qclass);
+
 	offset = dname_label_offsets(q->qname)[domain_dname(closest_encloser)->label_count - 1] + QHEADERSZ;
 	query_add_compression_domain(q, closest_encloser, offset);
-
 	encode_answer(q, &answer);
 	query_clear_compression_tables(q);
 }
@@ -1397,6 +1400,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		}
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 		STATUP(nsd, edns);
+		ZTATUP(q->zone, edns);
 		break;
 	case EDNS_ERROR:
 		if (q->edns.dnssec_ok)	edns->error[7] = 0x80;
@@ -1405,6 +1409,7 @@ query_add_optional(query_type *q, nsd_type *nsd)
 		buffer_write(q->packet, edns->rdata_none, OPT_RDATA);
 		ARCOUNT_SET(q->packet, ARCOUNT(q->packet) + 1);
 		STATUP(nsd, ednserr);
+		ZTATUP(q->zone, ednserr);
 		break;
 	}
 

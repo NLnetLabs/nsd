@@ -1,6 +1,6 @@
-NSD RELEASE NOTES
+DNSSEXY RELEASE NOTES
 
-sexy-3.2.10
+0.2.10
 ================
 
 FEATURES:
@@ -9,8 +9,12 @@ FEATURES:
 	  IXFR unknown at the primary if there is a negative response for the
 	  IXFR RRtype. This does not override the value for
 	  'allow-axfr-fallback'.
-	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155, 
+	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155,
 	  RFC5702, RFC5933, and RFC6605 (ECDSA)).
+	- Zone statistics, enable with --enable-zone-statistics. This
+	  stores the BIND8 stats per zone in a configurable statistics file.
+	  This option does not scale and should therefore not be enabled when
+	  serving many zones.
 	- Support for TLSA RRtype (DANE).
 
 BUG FIXES:
@@ -18,12 +22,14 @@ BUG FIXES:
 	  add the wildcard domain NSEC into the answer section. Instead,
 	  put the wildcard expanded NSEC into the answer section and keep the
 	  wildcard domain NSEC in the authority section.
+	- Fix for accept spinning reported by OpenBSD.
 
 OPERATIONAL NOTES:
 	- NSD uses the query name for dname compression again (Fix #235 
 	  had as side effect that this didn't happen anymore and is hereby
 	  undone).
 
+NSD RELEASE NOTES
 
 3.2.10
 ================

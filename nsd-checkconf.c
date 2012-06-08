@@ -377,6 +377,9 @@ config_test_print_server(nsd_options_t* opt)
 	print_string_var("pidfile:", opt->pidfile);
 	print_string_var("port:", opt->port);
 	printf("\tstatistics: %d\n", opt->statistics);
+#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
+	printf("\tzone-stats-file: %s\n", opt->zonestatsfile);
+#endif
 	print_string_var("chroot:", opt->chroot);
 	print_string_var("username:", opt->username);
 	print_string_var("zonesdir:", opt->zonesdir);
@@ -500,7 +503,16 @@ additional_checks(nsd_options_t* opt, const char* filename)
 			filename, opt->statistics);
 		errors ++;
 	}
+#  ifndef USE_ZONE_STATS
+	if(opt->zonestatsfile)
+	{
+		fprintf(stderr, "%s: 'zone-stats-file: %s' but per zone BIND 8 statistics feature not enabled.\n",
+			filename, opt->zonestatsfile);
+		errors ++;
+	}
+#  endif
 #endif
+
 #ifndef HAVE_CHROOT
 	if(opt->chroot != 0)
 	{

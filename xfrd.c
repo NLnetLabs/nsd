@@ -7,7 +7,7 @@
  *
  */
 
-#include <config.h>
+#include "config.h"
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
@@ -656,7 +656,8 @@ xfrd_set_timer(xfrd_zone_t* zone, time_t t)
 }
 
 void
-xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
+xfrd_handle_incoming_soa(xfrd_zone_t* zone,
+	xfrd_soa_t* soa, time_t acquired)
 {
 	if(soa == NULL) {
 		/* nsd no longer has a zone in memory */
@@ -731,12 +732,11 @@ xfrd_handle_incoming_soa(xfrd_zone_t* zone, xfrd_soa_t* soa, time_t acquired)
 		}
 
 
-		if(zone->soa_notified_acquired != 0 && 
-		   (zone->soa_notified.serial == 0 ||
-		    compare_serial(ntohl(soa->serial),
-				   ntohl(zone->soa_notified.serial)) >= 0)) {
-
-			/* read was in response to this notification */
+		if(zone->soa_notified_acquired != 0 &&
+			(zone->soa_notified.serial == 0 ||
+		   	compare_serial(ntohl(soa->serial),
+				ntohl(zone->soa_notified.serial)) >= 0))
+		{	/* read was in response to this notification */
 			zone->soa_notified_acquired = 0;
 		}
 		if(zone->soa_notified_acquired && zone->state == xfrd_zone_ok)

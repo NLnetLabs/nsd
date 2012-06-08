@@ -1141,7 +1141,7 @@ apply_ixfr(namedb_type* db, FILE *in, const off_t* startpos,
 			}
 		}
 	}
-        fix_empty_terminals(zone_db);
+	fix_empty_terminals(zone_db);
 	region_destroy(region);
 	return 1;
 }
@@ -1299,9 +1299,9 @@ mark_and_exit(nsd_options_t* opt, FILE* f, off_t commitpos, const char* desc)
 }
 
 static int
-read_sure_part(namedb_type* db, FILE* in, nsd_options_t* opt,
-		struct diff_read_data* data, struct diff_log** log,
-		size_t child_count, int* skip_zones_with_verifier)
+read_sure_part(namedb_type* db, FILE *in, nsd_options_t* opt,
+	struct diff_read_data* data, struct diff_log** log,
+	size_t child_count, int* skip_zones_with_verifier)
 {
 	char zone_buf[3072];
 	char log_buf[5120];

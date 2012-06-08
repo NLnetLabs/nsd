@@ -7,7 +7,7 @@
  *
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -63,6 +63,9 @@ struct tcp_accept_handler_data {
 	size_t              tcp_accept_handler_count;
 	netio_handler_type *tcp_accept_handlers;
 };
+
+int slowaccept;
+struct timespec slowaccept_timeout;
 
 /*
  * Data for the TCP connection handlers.
@@ -395,10 +398,9 @@ init_make_udp_sockets(struct nsd* nsd, struct nsd_socket* udp_socket, size_t n)
 				return 0;
 			}
 # endif
-
 # if defined(IPV6_USE_MIN_MTU)
-
-			/* There is no fragmentation of IPv6 datagrams
+			/*
+			 * There is no fragmentation of IPv6 datagrams
 			 * during forwarding in the network. Therefore
 			 * we do not send UDP datagrams larger than
 			 * the minimum IPv6 MTU of 1280 octets. The
@@ -430,13 +432,11 @@ init_make_udp_sockets(struct nsd* nsd, struct nsd_socket* udp_socket, size_t n)
 # endif
 		}
 #endif
-
 #if defined(AF_INET)
 
 		if(udp_socket->addr->ai_family == AF_INET) {
 
 #  if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
-
 			int action = IP_PMTUDISC_DONT;
 			if(setsockopt(udp_socket->s, IPPROTO_IP,
 					IP_MTU_DISCOVER, &action,
@@ -771,7 +771,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 				/* blocking read */
 				continue;
 			if(errno == EINTR) {
-				if(nsd->signal_hint_quit || nsd->signal_hint_shutdown)
+				if(nsd && (nsd->signal_hint_quit || nsd->signal_hint_shutdown))
 					return -1;
 				/* other signals can be handled later */
 				continue;
@@ -789,7 +789,7 @@ block_read(struct nsd* nsd, int s, void* p, ssize_t sz, int timeout)
 				/* blocking read */
 				continue;
 			if(errno == EINTR) {
-				if(nsd->signal_hint_quit || nsd->signal_hint_shutdown)
+				if(nsd && (nsd->signal_hint_quit || nsd->signal_hint_shutdown))
 					return -1;
 				/* other signals can be handled later */
 				continue;
@@ -1636,11 +1636,13 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 	}
 
 	/* Account... */
+#ifdef BIND8_STATS
 	if (data->socket->addr->ai_family == AF_INET) {
 		STATUP(data->nsd, qudp);
 	} else if (data->socket->addr->ai_family == AF_INET6) {
 		STATUP(data->nsd, qudp6);
 	}
+#endif
 
 	/* Initialize the query... */
 	query_reset(q, UDP_MAX_MESSAGE_LEN, 0);
@@ -1655,6 +1657,7 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 		if (errno != EAGAIN && errno != EINTR) {
 			log_msg(LOG_ERR, "recvfrom failed: %s", strerror(errno));
 			STATUP(data->nsd, rxerr);
+			/* No zone statup */
 		}
 	} else {
 		buffer_skip(q->packet, received);
@@ -1664,7 +1667,16 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 		if (server_process_query(data->nsd, q) != QUERY_DISCARDED) {
 			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
 				STATUP(data->nsd, nona);
+				ZTATUP(q->zone, nona);
 			}
+
+#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
+			if (data->socket->addr->ai_family == AF_INET) {
+				ZTATUP(q->zone, qudp);
+			} else if (data->socket->addr->ai_family == AF_INET6) {
+				ZTATUP(q->zone, qudp6);
+			}
+#endif
 
 			/* Add EDNS0 and TSIG info if necessary.  */
 			query_add_optional(q, data->nsd);
@@ -1680,18 +1692,27 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 			if (sent == -1) {
 				log_msg(LOG_ERR, "sendto failed: %s", strerror(errno));
 				STATUP(data->nsd, txerr);
+				ZTATUP(q->zone, txerr);
 			} else if ((size_t) sent != buffer_remaining(q->packet)) {
 				log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) buffer_remaining(q->packet));
 			} else {
 #ifdef BIND8_STATS
 				/* Account the rcode & TC... */
 				STATUP2(data->nsd, rcode, RCODE(q->packet));
-				if (TC(q->packet))
+				ZTATUP2(q->zone, rcode, RCODE(q->packet));
+				if (TC(q->packet)) {
 					STATUP(data->nsd, truncated);
+					ZTATUP(q->zone, truncated);
+				}
 #endif /* BIND8_STATS */
 			}
 		} else {
 			STATUP(data->nsd, dropped);
+#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
+			if (q->zone) {
+				ZTATUP(q->zone, dropped);
+			}
+#endif
 		}
 	}
 }
@@ -1704,6 +1725,7 @@ cleanup_tcp_handler(netio_type *netio, netio_handler_type *handler)
 		= (struct tcp_handler_data *) handler->user_data;
 	netio_remove_handler(netio, handler);
 	close(handler->fd);
+	slowaccept = 0;
 
 	/*
 	 * Enable the TCP accept handlers when the current number of
@@ -1854,8 +1876,9 @@ handle_tcp_reading(netio_type *netio,
 	assert(buffer_position(data->query->packet) == data->query->tcplen);
 
 	/* Account... */
+#ifdef BIND8_STATS
 #ifndef INET6
-        STATUP(data->nsd, ctcp);
+	STATUP(data->nsd, ctcp);
 #else
 	if (data->query->addr.ss_family == AF_INET) {
 		STATUP(data->nsd, ctcp);
@@ -1863,6 +1886,7 @@ handle_tcp_reading(netio_type *netio,
 		STATUP(data->nsd, ctcp6);
 	}
 #endif
+#endif /* BIND8_STATS */
 
 	/* We have a complete query, process it.  */
 
@@ -1874,15 +1898,36 @@ handle_tcp_reading(netio_type *netio,
 	if (data->query_state == QUERY_DISCARDED) {
 		/* Drop the packet and the entire connection... */
 		STATUP(data->nsd, dropped);
+#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
+		if (data->query->zone) {
+			ZTATUP(data->query->zone, dropped);
+		}
+#endif
 		cleanup_tcp_handler(netio, handler);
 		return;
 	}
 
+#ifdef BIND8_STATS
 	if (RCODE(data->query->packet) == RCODE_OK
 	    && !AA(data->query->packet))
 	{
 		STATUP(data->nsd, nona);
+		ZTATUP(data->query->zone, nona);
 	}
+
+#ifdef USE_ZONE_STATS
+#ifndef INET6
+	ZTATUP(data->query->zone, ctcp);
+#else
+	if (data->query->addr.ss_family == AF_INET) {
+		ZTATUP(data->query->zone, ctcp);
+	} else if (data->query->addr.ss_family == AF_INET6) {
+		ZTATUP(data->query->zone, ctcp6);
+	}
+#endif
+#endif /* USE_ZONE_STATS */
+
+#endif /* BIND8_STATS */
 
 	query_add_optional(data->query, data->nsd);
 
@@ -2072,9 +2117,21 @@ handle_tcp_accept(netio_type *netio,
 	addrlen = sizeof(addr);
 	s = accept(handler->fd, (struct sockaddr *) &addr, &addrlen);
 	if (s == -1) {
-		/* EINTR is a signal interrupt. The others are various OS ways
-		   of saying that the client has closed the connection. */
-		if (	errno != EINTR
+		/**
+		 * EMFILE and ENFILE is a signal that the limit of open
+		 * file descriptors has been reached. Pause accept().
+		 * EINTR is a signal interrupt. The others are various OS ways
+		 * of saying that the client has closed the connection.
+		 */
+		if (errno == EMFILE || errno == ENFILE) {
+			if (!slowaccept) {
+				slowaccept_timeout.tv_sec = NETIO_SLOW_ACCEPT_TIMEOUT;
+				slowaccept_timeout.tv_nsec = 0L;
+				timespec_add(&slowaccept_timeout, netio_current_time(netio));
+				slowaccept = 1;
+				/* We don't want to spam the logs here */
+			}
+		} else if (errno != EINTR
 			&& errno != EWOULDBLOCK
 #ifdef ECONNABORTED
 			&& errno != ECONNABORTED

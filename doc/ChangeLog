@@ -1,5 +1,14 @@
+8 Juni 2012: Willem
+	- Rebrand into dnssexy-0.2.10 and updated docs to reflect this.
+
+1 June 2012: Matthijs
+	- Per zone stats, enable with --enable-zone-statistics.
+	
 24 April 2012: Willem
 	- Fork from NSD3.2 with dnssexy operation (see README)
+
+31 May 2012: Matthijs
+	- Fix for accept spinning reported by OpenBSD.
 
 17 April 2012: Matthijs
 	- Changes according to RFC 5936 (AXFR clarify) and EDNS0bis.

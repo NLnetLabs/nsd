@@ -7,7 +7,7 @@
  *
  */
 
-#include <config.h>
+#include "config.h"
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
