@@ -189,7 +189,7 @@ static void
 child_is_done(struct nsd* nsd, int fd)
 {
 	size_t i;
-	if(fd > 0) close(fd);
+	if(fd != -1) close(fd);
 	for(i=0; i<nsd->child_count; ++i)
 		if(nsd->children[i].child_fd == fd) {
 			nsd->children[i].child_fd = -1;
@@ -442,7 +442,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 	}
 	if (len == 0)
 	{
-		if(handler->fd > 0) {
+		if(handler->fd != -1) {
 			close(handler->fd);
 			handler->fd = -1;
 		}
@@ -456,7 +456,7 @@ parent_handle_reload_command(netio_type *ATTR_UNUSED(netio),
 		for(i=0; i < nsd->child_count; i++) {
 			nsd->children[i].need_to_exit = 1;
 			if(nsd->children[i].pid > 0 &&
-			   nsd->children[i].child_fd > 0) {
+			   nsd->children[i].child_fd != -1) {
 				nsd->children[i].need_to_send_QUIT = 1;
 				nsd->children[i].handler->event_types
 					|= NETIO_EVENT_WRITE;

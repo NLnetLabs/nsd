@@ -1,6 +1,7 @@
 8 June 2012: Wouter
 	- Fix tpkg test cutest_qroot and rr-test for prinout of algorithms
 	  as numbers, and copy of DO flag to the answer.
+	- pick up fd fix from 3_2 branch: Some more fd >= 0 to fd != -1 fixes
 
 31 May 2012: Matthijs
 	- Sync with 3.2 branch
