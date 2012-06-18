@@ -22,6 +22,7 @@ BUG FIXES:
 	  put the wildcard expanded NSEC into the answer section and keep the
 	  wildcard domain NSEC in the authority section.
 	- Fix for accept spinning reported by OpenBSD.
+	- Bugfix #453: typo in nsdc man page.
 
 OPERATIONAL NOTES:
 	- NSD uses the query name for dname compression again (Fix #235 
