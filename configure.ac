@@ -4,7 +4,7 @@ dnl
 
 sinclude(acx_nlnetlabs.m4)
 
-AC_INIT(dnssexy,0.2.10,dnssexy@nlnetlabs.nl)
+AC_INIT(credns,0.2.10,credns@nlnetlabs.nl)
 AC_CONFIG_HEADER([config.h])
 
 AC_AIX
@@ -30,72 +30,72 @@ esac
 #
 # Determine configuration directory
 #
-configdir=$sysconfdir/dnssexy
+configdir=$sysconfdir/credns
 AC_ARG_WITH([configdir],
-	AC_HELP_STRING([--with-configdir=dir], [Dnssexy configuration directory]),
+	AC_HELP_STRING([--with-configdir=dir], [Credns configuration directory]),
 	[configdir=$withval])
 AC_SUBST(configdir)
 
 #
 # Determine configuration file
-nsd_conf_file=${configdir}/dnssexy.conf
-AC_ARG_WITH([dnssexy_conf_file],
-	AC_HELP_STRING([--with-dnssexy_conf_file=path], [Pathname to the dnssexy configuration file]),
+nsd_conf_file=${configdir}/credns.conf
+AC_ARG_WITH([credns_conf_file],
+	AC_HELP_STRING([--with-credns_conf_file=path], [Pathname to the credns configuration file]),
 	[nsd_conf_file=$withval])
 AC_SUBST(nsd_conf_file)
 # the eval is to evaluate shell expansion twice, once
 # for $nsd_conf_file and once for the ${prefix} within it.
-AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $nsd_conf_file`"], [Pathname to the dnssexy configuration file])
+AC_DEFINE_UNQUOTED(CONFIGFILE, ["`eval echo $nsd_conf_file`"], [Pathname to the credns configuration file])
 
 #
 # Determine start and kill priorities
 start_priority=45
 AC_ARG_WITH([start_priority],
-	AC_HELP_STRING([--with-start_priority=number], [Dnssexy startup priority]),
+	AC_HELP_STRING([--with-start_priority=number], [Credns startup priority]),
 	[start_priority=$withval])
 AC_SUBST(start_priority)
 
 kill_priority=74
 AC_ARG_WITH([kill_priority],
-	AC_HELP_STRING([--with-kill_priority=number], [Dnssexy shutdown priority]),
+	AC_HELP_STRING([--with-kill_priority=number], [Credns shutdown priority]),
 	[kill_priority=$withval])
 AC_SUBST(kill_priority)
 
 #
 # Default logfile
 #
-logfile=${localstatedir}/log/dnssexy.log
+logfile=${localstatedir}/log/credns.log
 AC_SUBST(logfile)
 
 #
 # Database directory
 #
-dbdir=${localstatedir}/db/dnssexy
+dbdir=${localstatedir}/db/credns
 
 #
 # Determine the pidfile location. Check if /var/run exists, if so set pidfile
-# to /var/run/dnssexy.pid by default
+# to /var/run/credns.pid by default
 #
 if test -d ${localstatedir}/run; then
-	pidfile=${localstatedir}/run/dnssexy.pid
+	pidfile=${localstatedir}/run/credns.pid
 else
-	pidfile=${dbdir}/dnssexy.pid
+	pidfile=${dbdir}/credns.pid
 fi
 AC_ARG_WITH([pidfile],
-	AC_HELP_STRING([--with-pidfile=path], [Pathname to the dnssexy pidfile]),
+	AC_HELP_STRING([--with-pidfile=path], [Pathname to the credns pidfile]),
 	[pidfile=$withval])
 AC_SUBST(pidfile)
-AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the dnssexy pidfile])
+AC_DEFINE_UNQUOTED(PIDFILE, ["`eval echo $pidfile`"], [Pathname to the credns pidfile])
 
 #
-# Determine location of dnssexy.db
+# Determine location of credns.db
 #
-dbfile=${dbdir}/dnssexy.db
+dbfile=${dbdir}/credns.db
 AC_ARG_WITH([dbfile],
-	AC_HELP_STRING([--with-dbfile=path], [Pathname to the dnssexy database]),
+	AC_HELP_STRING([--with-dbfile=path], [Pathname to the credns database]),
 	[dbfile=$withval])
 AC_SUBST(dbfile)
-AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the dnssexy database])
+AC_DEFINE_UNQUOTED(DBFILE, ["`eval echo $dbfile`"], [Pathname to the credns database])
 
 dbdir=`dirname $dbfile`
 AC_SUBST(dbdir)
@@ -108,39 +108,39 @@ AC_SUBST(piddir)
 #
 zonesdir=$configdir
 AC_ARG_WITH([zonesdir],
-	AC_HELP_STRING([--with-zonesdir=dir], [Dnssexy default location for zone files]),
+	AC_HELP_STRING([--with-zonesdir=dir], [Credns default location for zone files]),
 	[zonesdir=$withval])
 AC_SUBST(zonesdir)
-AC_DEFINE_UNQUOTED(ZONESDIR, ["`eval echo $zonesdir`"], [Dnssexy default location for zone files. Empty string or NULL to disable.])
+AC_DEFINE_UNQUOTED(ZONESDIR, ["`eval echo $zonesdir`"], [Credns default location for zone files. Empty string or NULL to disable.])
 
 # default diff file location.
 difffile=${dbdir}/ixfr.db
 AC_ARG_WITH([difffile], AC_HELP_STRING([--with-difffile=path], 
-	[Pathname to the dnssexy diff transfer journal file]), [difffile=$withval])
-AC_DEFINE_UNQUOTED(DIFFFILE, ["`eval echo $difffile`"], [Pathname to the dnssexy diff transfer journal file.])
+	[Pathname to the credns diff transfer journal file]), [difffile=$withval])
+AC_DEFINE_UNQUOTED(DIFFFILE, ["`eval echo $difffile`"], [Pathname to the credns diff transfer journal file.])
 AC_SUBST(difffile)
 
 # default xfrd file location.
 xfrdfile=${dbdir}/xfrd.state
 AC_ARG_WITH([xfrdfile], AC_HELP_STRING([--with-xfrdfile=path], 
-	[Pathname to the dnssexy xfrd zone timer state file]), [xfrdfile=$withval])
-AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the dnssexy xfrd zone timer state file.])
+	[Pathname to the credns xfrd zone timer state file]), [xfrdfile=$withval])
+AC_DEFINE_UNQUOTED(XFRDFILE, ["`eval echo $xfrdfile`"], [Pathname to the credns xfrd zone timer state file.])
 AC_SUBST(xfrdfile)
 
 #
 # Determine default chroot directory
 #
 AC_ARG_WITH([chroot],
-	AC_HELP_STRING([--with-chroot=dir], [Dnssexy default chroot directory]),
+	AC_HELP_STRING([--with-chroot=dir], [Credns default chroot directory]),
 	[
 		chrootdir=$withval
-		AC_DEFINE_UNQUOTED(CHROOTDIR, ["`eval echo $chrootdir`"], [Dnssexy default chroot directory])
+		AC_DEFINE_UNQUOTED(CHROOTDIR, ["`eval echo $chrootdir`"], [Credns default chroot directory])
 	])
 
 #
 # Determine the user name to drop privileges to
 #
-user=dnssexy
+user=credns
 AC_ARG_WITH([user],
 	AC_HELP_STRING([--with-user=username], [User name or ID to answer the queries with]),
 	[user=$withval])
@@ -263,7 +263,7 @@ AC_CHECK_CTIME_R
 
 # Check for SSL, original taken from
 # http://www.gnu.org/software/ac-archive/htmldoc/check_ssl.html and
-# modified for dnssexy.
+# modified for credns.
 AC_DEFUN([CHECK_SSL], [
     AC_ARG_WITH(ssl, AC_HELP_STRING([--with-ssl=pathname],
                 [enable SSL (will check /usr/local/ssl
@@ -518,8 +518,8 @@ AC_INCLUDES_DEFAULT
 dnl
 dnl Some random defines's
 dnl
-AC_DEFINE_UNQUOTED([IDENTITY], ["unidentified server"], [Define to the default dnssexy identity.])
-AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the dnssexy version to answer version.server query.])
+AC_DEFINE_UNQUOTED([IDENTITY], ["unidentified server"], [Define to the default credns identity.])
+AC_DEFINE_UNQUOTED([VERSION], [PACKAGE_STRING], [Define to the credns version to answer version.server query.])
 AC_DEFINE_UNQUOTED([TCP_BACKLOG], [5], [Define to the backlog to be used with listen.])
 AC_DEFINE_UNQUOTED([TCP_PORT], ["53"], [Define to the default tcp port.])
 AC_DEFINE_UNQUOTED([TCP_MAX_MESSAGE_LEN], [65535], [Define to the default maximum message length.])
@@ -559,7 +559,7 @@ AC_DEFINE_UNQUOTED([TCP_TIMEOUT], $tcp_timeout, [Define to the default tcp timeo
 dnl
 dnl Features
 dnl
-AC_ARG_ENABLE(root-server, AC_HELP_STRING([--enable-root-server], [Configure dnssexy as a root server]))
+AC_ARG_ENABLE(root-server, AC_HELP_STRING([--enable-root-server], [Configure credns as a root server]))
 case "$enable_root_server" in
         yes)
 		AC_DEFINE_UNQUOTED([ROOT_SERVER], [], [Define this to configure as a root server.])
@@ -831,7 +831,7 @@ if test "$enable_checking" = "yes"; then
         echo "*************************************************"
         echo "* You have activated \"--enable-checking\"        *"
         echo "*                                               *"
-        echo "* This will instruct dnssexy to be stricter     *"
+        echo "* This will instruct credns to be stricter     *"
         echo "* when validating its input. This could lead    *"
         echo "* to a reduced service level.                   *"
         echo "*                                               *"
@@ -842,7 +842,7 @@ if test "$enable_zone_statistics" = "yes"; then
         echo "*************************************************"
         echo "* You have activated \"--enable-zone-statistics\" *"
         echo "*                                               *"
-        echo "* This will make dnssexy maintain statistics    *"
+        echo "* This will make credns maintain statistics    *"
         echo "* on a per zone basis. This could lead to       *"
         echo "* a reduced service level and an                *"
         echo "* a larger memory footprint.                    *"

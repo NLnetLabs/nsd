@@ -128,7 +128,7 @@ int parse_options_file(nsd_options_t* opt, const char* file)
 				cfg_parser->current_zone))
 				c_error("duplicate zone");
 		}
-		/* Okay with dnssexy to not have a zonefile.
+		/* Okay with credns to not have a zonefile.
 		 *
 		if(!cfg_parser->current_zone->zonefile) {
 			cfg_parser->current_zone->zonefile = 

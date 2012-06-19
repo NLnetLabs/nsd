@@ -1,10 +1,10 @@
-DNSSEXY RELEASE NOTES
+CREDNS RELEASE NOTES
 
 0.2.10
 ================
 
 FEATURES:
-	- Fork from NSD3.2 with dnssexy operation (see README)
+	- Fork from NSD3.2 with credns operation (see README)
 	- Fallback to AXFR is IXFR is unknown at the primary. NSD considers
 	  IXFR unknown at the primary if there is a negative response for the
 	  IXFR RRtype. This does not override the value for

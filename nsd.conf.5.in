@@ -1,30 +1,30 @@
-.TH "dnssexy.conf" "5" "@date@" "NLnet Labs" "dnssexy @version@"
+.TH "credns.conf" "5" "@date@" "NLnet Labs" "credns @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
-.B dnssexy.conf
-\- Dnssexy configuration file
+.B credns.conf
+\- Credns configuration file
 .SH "SYNOPSIS"
 .LP
-.B dnssexy.conf
+.B credns.conf
 .SH "DESCRIPTION"
-.B Dnssexy.conf
-is used to configure dnssexy(8). The file format has attributes and 
+.B Credns.conf
+is used to configure credns(8). The file format has attributes and 
 values. Some attributes have attributes inside them. The notation 
 is: attribute: value. 
 .PP
 Comments start with # and last to the end of line. Empty lines are
 ignored as is whitespace at the beginning of a line.
 .PP
-.B Dnssexy.conf
-specifies options for the dnssexy server, zone files, primaries and 
+.B Credns.conf
+specifies options for the credns server, zone files, primaries and 
 secondaries.
 .SH "EXAMPLE"
 .LP
-An example of a short dnssexy.conf file is below.
+An example of a short credns.conf file is below.
 .LP
-# Example.com dnssexy.conf file
+# Example.com credns.conf file
 .RS 0
 # This is a comment.
 .RE
@@ -82,7 +82,7 @@ clause. The
 attribute is followed by zone options. The 
 .B server: 
 attribute is followed by global options for the 
-.B dnssexy
+.B credns
 server. A 
 .B key: 
 attribute is used to define keys for authentication.
@@ -94,7 +94,7 @@ an argument. Processing continues as if the text from the included
 file was copied into the config file at that point.
 .SS "Server Options"
 .LP
-The global options (if not overridden from the dnssexy commandline) are 
+The global options (if not overridden from the credns commandline) are 
 taken from the 
 .B server: 
 clause. There may only be one 
@@ -102,23 +102,23 @@ clause. There may only be one
 clause.
 .TP
 .B ip\-address:\fR <ip4 or ip6>[@port]
-Dnssexy will bind to the listed ip\-address. Can be give multiple times 
+Credns will bind to the listed ip\-address. Can be give multiple times 
 to bind multiple ip\-addresses. Optionally, a port number can be given.
 If none are given dnssext listens to the wildcard interface. Same as commandline option 
 .BR \-a.
 .TP
 .B debug\-mode:\fR <yes or no>
-Turns on debugging mode for dnssexy, does not fork a daemon process. 
+Turns on debugging mode for credns, does not fork a daemon process. 
 Default is no. Same as commandline option 
 .BR \-d.
 .TP
 .B ip4\-only:\fR <yes or no>
-If yes, dnssexy only listens to IPv4 connections. Same as commandline 
+If yes, credns only listens to IPv4 connections. Same as commandline 
 option 
 .BR \-4.
 .TP
 .B ip6\-only:\fR <yes or no>
-If yes, dnssexy only listens to IPv6 connections. Same as commandline 
+If yes, credns only listens to IPv6 connections. Same as commandline 
 option 
 .BR \-6.
 .TP
@@ -146,7 +146,7 @@ syslog (with facility LOG_DAEMON). Same as commandline option
 .BR \-l .
 .TP
 .B server\-count:\fR <number>
-Start this many dnssexy servers. Default is 1. Same as commandline 
+Start this many credns servers. Default is 1. Same as commandline 
 option 
 .BR \-N .
 .TP
@@ -189,7 +189,7 @@ every number seconds. Same as commandline option
 If per zone statistics is enabled, file to dump the statistics.
 .TP
 .B chroot:\fR <directory>
-Dnssexy will chroot on startup to the specified directory. Same as 
+Credns will chroot on startup to the specified directory. Same as 
 commandline option 
 .BR \-t .
 .TP
@@ -202,22 +202,22 @@ username. Can be username, id or id.gid. Same as commandline option
 Change the working directory to the specified directory before 
 accessing zone files. Same as commandline option 
 .B \-d 
-for zonec(8). Also dnssexy(8) will access files (pid file, database 
+for zonec(8). Also credns(8) will access files (pid file, database 
 file, log file) relative to this directory. Set the value to "" 
 (the empty string) to disable the change of working directory.
 .TP
 .B difffile:\fR <filename>
-When dnssexy receives IXFR updates it will store them in this file. 
+When credns receives IXFR updates it will store them in this file. 
 This file contains the differences between the database file and the 
 latest zone version. Default is 
 .IR @difffile@ .
 .TP
 .B xfrdfile:\fR <filename>
-The soa timeout and zone transfer daemon in dnssexy will save its state 
+The soa timeout and zone transfer daemon in credns will save its state 
 to this file. State is read back after a restart. The state file can 
 be deleted without too much harm, but timestamps of zones will be 
 gone. For more details see the section on zone expiry behavior of 
-dnssexy. Default is
+credns. Default is
 .IR @xfrdfile@ .
 .TP
 .B xfrd\-reload\-timeout:\fR <number>
@@ -233,7 +233,7 @@ Default is 0. 1 gives more information about incoming notifies and
 zone transfers. 2 lists soft warnings that are encountered.
 .TP
 .B hide\-version:\fR <yes or no>
-Prevent dnssexy from replying with the version string on CHAOS class 
+Prevent credns from replying with the version string on CHAOS class 
 queries.
 .TP
 .B verifier\-count:\fR <number>
@@ -317,26 +317,26 @@ for example 1.2.3.4@5300. The specified key is used during AXFR/IXFR.
 .RS
 If the AXFR option is given, the server will not be contacted with 
 IXFR queries but only AXFR requests will be made to the server. This 
-allows an dnssexy secondary to have a master server that runs NSD. If 
+allows an credns secondary to have a master server that runs NSD. If 
 the AXFR option is left out then both IXFR and AXFR requests are 
 made to the master server.
 .P
 If the UDP option is given, the secondary will use UDP to transmit the IXFR 
 requests. You should deploy TSIG when allowing UDP transport, to authenticate
-notifies and zone transfers. Otherwise, dnssexy is more vulnerable for 
+notifies and zone transfers. Otherwise, credns is more vulnerable for 
 Kaminsky-style attacks. If the UDP option is left out then IXFR will be 
 transmitted using TCP.
 .RE
 .TP
 .B allow\-axfr\-fallback:\fR <yes or no>
-This option should be accompanied by request-xfr. It (dis)allows dnssexy (as secondary) 
+This option should be accompanied by request-xfr. It (dis)allows credns (as secondary) 
 to fallback to AXFR if the primary name server does not support IXFR. Default is yes.
 .TP
 .B notify:\fR <ip\-address> <key\-name | NOKEY>
 Access control list. The listed address (a secondary) is notified 
 of updates to this zone. A port number can be added using a suffix of @number,
 for example 1.2.3.4@5300. The specified key is used to sign the 
-notify. Only on secondary configurations will dnssexy be able to detect 
+notify. Only on secondary configurations will credns be able to detect 
 zone updates (as it gets notified itself, or refreshes after a 
 time).
 .TP
@@ -376,7 +376,7 @@ When the program exits with a status code of 0, the zone is considered good
 and will be served.
 Any other status code will designate the zone bad and the received update
 will be discarded.
-Dnssexy will then continue to serve the zone but without the update.
+Credns will then continue to serve the zone but without the update.
 .P
 .RS
 The following environment variables are available for verifiers:
@@ -463,19 +463,19 @@ declaration (and base64 blob) into a different file, and then to
 .B include:
 that file. In this way the key secret and the rest of the configuration
 file, which may have different security policies, can be split apart.
-.SH "DNSSEXY CONFIGURATION FOR BIND9 HACKERS"
+.SH "CREDNS CONFIGURATION FOR BIND9 HACKERS"
 BIND9 is a name server implementation with its own configuration 
 file format, named.conf(5). BIND9 types zones as 'Master' or 'Slave'. 
 .SS "Slave zones"
 For a slave zone, the master servers are listed. The master servers are 
 queried for zone data, and are listened to for update notifications. 
-In dnssexy these two properties need to be configured separately, by listing 
+In credns these two properties need to be configured separately, by listing 
 the master address in allow\-notify and request\-xfr statements. 
 .P
 In BIND9 you only need to provide allow\-notify elements for
-any extra sources of notifications (i.e. the operators), dnssexy needs to have
+any extra sources of notifications (i.e. the operators), credns needs to have
 allow\-notify for both masters and operators. BIND9 allows 
-additional transfer sources, in dnssexy you list those as request\-xfr.
+additional transfer sources, in credns you list those as request\-xfr.
 .P
 Here is an example of a slave zone in BIND9 syntax.
 .P
@@ -515,11 +515,11 @@ masters { 162.0.4.49; };
 .RE
 };
 .P
-For dnssexy, DNSSEC is enabled automatically for zones that are signed. The 
-dnssec\-enable statement in the options clause is not needed. In dnssexy
+For credns, DNSSEC is enabled automatically for zones that are signed. The 
+dnssec\-enable statement in the options clause is not needed. In credns
 keys are associated with an IP address in the access control list 
 statement, therefore the server{} statement is not needed. Below is 
-the same example in an dnssexy config file.
+the same example in an credns config file.
 .LP
 # Config file for example.org
 .RS 0
@@ -562,7 +562,7 @@ that are also allowed to send notifications to this slave server.
 .SS "Master zones"
 For a master zone in BIND9, the slave servers are listed. These slave
 servers are sent notifications of updated and are allowed to request
-transfer of the zone data. In dnssexy these two properties need to be 
+transfer of the zone data. In credns these two properties need to be 
 configured separately.
 .P
 Here is an example of a master zone in BIND9 syntax.
@@ -576,7 +576,7 @@ file "example.nl";
 .RE
 };
 .LP
-In dnssexy syntax this becomes:
+In credns syntax this becomes:
 .LP
 zone:
 .RS 5
@@ -605,31 +605,31 @@ provide\-xfr: ::0/0 NOKEY
 # notify: 1.2.3.4 NOKEY
 .RE
 .SS "Other"
-Dnssexy is an authoritative only DNS server. This means that it is 
-meant as a primary or secondary server for zones, providing dnssexy
+Credns is an authoritative only DNS server. This means that it is 
+meant as a primary or secondary server for zones, providing credns
 data to DNS resolvers and caches. BIND9 can function as an 
 authoritative DNS server, the configuration options for that are 
-compared with those for dnssexy in this section. However, BIND9 can 
+compared with those for credns in this section. However, BIND9 can 
 also function as a resolver or cache. The configuration options that
-BIND9 has for the resolver or caching thus have no equivalents for dnssexy.
+BIND9 has for the resolver or caching thus have no equivalents for credns.
 .SH "FILES"
 .TP
 @dbfile@
 default
-.B dnssexy
+.B credns
 database
 .TP
 @nsdconfigfile@
 default
-.B dnssexy
+.B credns
 configuration file
 .SH "SEE ALSO" 
 .LP
-dnssexy(8), dnssexyc(8), dnssexy\-checkconf(8), dnssexy-notify(8), 
-dnssexy-patch(8), dnssexy-xfer(8)
+credns(8), crednsc(8), credns\-checkconf(8), credns-notify(8), 
+credns-patch(8), credns-xfer(8)
 .SH "AUTHORS"
 .LP
-.B Dnssexy
+.B Credns
 was written by NLnet Labs.
 .LP
 .B NSD
@@ -637,6 +637,6 @@ was written by NLnet Labs and RIPE NCC joint team. Please see
 CREDITS file in the distribution for further details.
 .SH "BUGS"
 .LP
-.B dnssexy.conf
+.B credns.conf
 is parsed by a primitive parser, error messages may not be to the 
 point.

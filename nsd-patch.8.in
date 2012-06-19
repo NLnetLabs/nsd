@@ -1,12 +1,12 @@
-.TH "dnssexy\-patch" "8" "@date@" "NLnet Labs" "dnssexy @version@"
+.TH "credns\-patch" "8" "@date@" "NLnet Labs" "credns @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
-.B dnssexy\-patch
-\- Dnssexy zone patcher version @version@.
+.B credns\-patch
+\- Credns zone patcher version @version@.
 .SH "SYNOPSIS"
-.B dnssexy\-patch
+.B credns\-patch
 .RB [ \-c
 .IR configfile ]
 .RB [ \-f ]
@@ -19,9 +19,9 @@
 .IR difffile ]
 .SH "DESCRIPTION"
 .LP
-.B Dnssexy\-patch
-is the zone patcher for dnssexy(8). It reads in the dnssexy database 
-(dnssexy.db) and difffile (ixfr.db), and overwrites the zone text files 
+.B Credns\-patch
+is the zone patcher for credns(8). It reads in the credns database 
+(credns.db) and difffile (ixfr.db), and overwrites the zone text files 
 if they have been updated. Running this regularly ensures that the 
 difffile does not grow infinitely.
 .SH "OPTIONS" 
@@ -52,19 +52,19 @@ Read specified difffile. Overrides the config file setting.
 .TP
 @dbfile@
 default
-.B dnssexy
+.B credns
 database
 .TP
 @nsdconfigfile@
 default
-.B dnssexy
+.B credns
 configuration file
 .SH "SEE ALSO"
-dnssexy(8), dnssexyc(8), dnssexy.conf(5), dnssexy-checkconf(8),
-dnssexy-notify(8), dnssexy-xfer(8)
+credns(8), crednsc(8), credns.conf(5), credns-checkconf(8),
+credns-notify(8), credns-xfer(8)
 .SH "AUTHORS"
 .LP
-.B Dnssexy
+.B Credns
 was written by NLnet Labs.
 .LP
 .B NSD

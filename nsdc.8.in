@@ -1,13 +1,13 @@
-.TH "DNSSEXYC" "8" "@date@" "NLnet Labs" "DNSSEXYC @version@"
+.TH "CREDNSC" "8" "@date@" "NLnet Labs" "CREDNSC @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
-.B dnssexyc
-\- DNS SEc proXY (dnssexy) control script.
+.B crednsc
+\- DNS SEc proXY (credns) control script.
 .SH "SYNOPSIS"
 .LP
-.B dnssexyc
+.B crednsc
 .RB [ \-c
 .IR configfile ]
 .I start
@@ -29,52 +29,52 @@
 .I patch
 .SH "DESCRIPTION"
 .LP
-.B Dnssexyc
-is the shell script that used to control dnssexy(8) and zonec(8) from 
-.B dnssexy
+.B Crednsc
+is the shell script that used to control credns(8) and zonec(8) from 
+.B credns
 distribution.
-.B Dnssexyc
+.B Crednsc
 is also suitable to be linked into
 .I /etc/rc.d
 directory on
 .I BSD
-like systems for automatic startup of dnssexy(8) at boot time.
+like systems for automatic startup of credns(8) at boot time.
 .P
 At every invokation,
-.B dnssexyc
-will try to read the dnssexy.conf(5) configuration file. An example of 
+.B crednsc
+will try to read the credns.conf(5) configuration file. An example of 
 such configuration file is distributed with the
-.B dnssexy
+.B credns
 package as
-.IR dnssexy.conf.sample .
+.IR credns.conf.sample .
 The config file is checked for errors before it is used, see 
-dnssexy\-checkconf(8).
+credns\-checkconf(8).
 .P
 Possible
-.B dnssexyc
+.B crednsc
 applications are:
 .TP
 .I start
-Start dnssexy(8).
+Start credns(8).
 .TP
 .I stop
-Shut down dnssexy(8) by sending 
+Shut down credns(8) by sending 
 .I SIGTERM 
 to it. 
 .TP
 .I reload
-Initiate dnssexy(8) name space database reload by sending
+Initiate credns(8) name space database reload by sending
 .IR SIGHUP.
 .TP 
 .I rebuild
-Rebuild the dnssexy(8) database by invoking zonec(8) with appropriate 
+Rebuild the credns(8) database by invoking zonec(8) with appropriate 
 arguments.
 .TP 
 .I restart
-Restart dnssexyc(8). This equals to dnssexyc stop && dnssexyc start.
+Restart crednsc(8). This equals to crednsc stop && crednsc start.
 .TP
 .I running
-Check whether dnssexy(8) is running. Returns error message and error 
+Check whether credns(8) is running. Returns error message and error 
 code if it is not running, and no message and zero error code 
 otherwise. 
 .TP
@@ -83,14 +83,14 @@ Updates all the slave zones which have
 .I allow\-notify:
 from localhost (127.0.0.1 or ::1) allowed.
 If a TSIG key is specified for the allow\-notify statement in the 
-config file, it will be used to secure the notify. Note that dnssexy
+config file, it will be used to secure the notify. Note that credns
 keeps track of zone timeouts automatically, this is only needed if 
 you want to manually force updates by sending notify messages to the 
 localhost. 
 .P
 .RS
-Another method you can use is to stop dnssexy, delete the xfrd.state
-file and then start dnssexy again. It will try to update all zones.
+Another method you can use is to stop credns, delete the xfrd.state
+file and then start credns again. It will try to update all zones.
 This method does not require allow\-notify: statements.
 .RE
 .TP
@@ -98,17 +98,17 @@ This method does not require allow\-notify: statements.
 Sends notify messages to all the slaves for all the zones that have the
 .I notify:
 keyword in the
-.I dnssexy.conf
+.I credns.conf
 file. If a TSIG key is specified for a notify statement, it will be 
 used to secure the notification message to that slave server.
 .TP
 .I patch
-Merge zone transfer changes back to zone files. It reads in the dnssexy 
-database (dnssexy.db) and difffile (ixfr.db), and overwrites the zone 
+Merge zone transfer changes back to zone files. It reads in the credns 
+database (credns.db) and difffile (ixfr.db), and overwrites the zone 
 text files if they have been updated. Running this regularly 
 ensures that the difffile does not grow infinitely. If any zone text
 files have been changed (including those of the master zones), the
-dnssexy.db is rebuild and dnssexy is reloaded.
+credns.db is rebuild and credns is reloaded.
 .SH "OPTIONS"
 .TP
 .B \-c\fI configfile
@@ -117,19 +117,19 @@ Specify configfile to use instead of the default
 .SH "FILES"
 .TP
 @nsdconfigfile@
-Configuration file for dnssexy to change default pathnames and
-.B dnssexy
+Configuration file for credns to change default pathnames and
+.B credns
 flags. The zone names, pathnames to zone files and access control 
-lists are also in dnssexy.conf(5).
+lists are also in credns.conf(5).
 .TP
 @dbfile@
 default
-.B dnssexy
+.B credns
 database
 .TP
 @dbfile@.lock
 Lockfile for the
-.B dnssexy
+.B credns
 database access by operator tools.
 .TP
 @difffile@
@@ -138,24 +138,24 @@ contents transferred.
 .TP
 @xfrdfile@
 State for the zone transfer process of 
-.BR dnssexy. 
+.BR credns. 
 Contains timeouts for the zones and whether zones are expired.
 .TP
 @pidfile@
 the process id of the name server.
 .SH "DIAGNOSTICS"
 .LP
-.B Dnssexyc
+.B Crednsc
 will return zero return code if operation was successful and
 an error message to standard output plus a non\-zero return code
 otherwise.
 .SH "SEE ALSO"
 .LP
-dnssexy(8), dnssexy.conf(5), dnssexy\-checkconf(8), dnssexy\-notify(8), 
-dnssexy\-patch(8), dnssexy\-xfer(8)
+credns(8), credns.conf(5), credns\-checkconf(8), credns\-notify(8), 
+credns\-patch(8), credns\-xfer(8)
 .SH "AUTHORS"
 .LP
-.B Dnssexy
+.B Credns
 was written by NLnet Labs.
 .LP
 .B NSD
@@ -163,10 +163,10 @@ was written by NLnet Labs and RIPE NCC joint team. Please see
 CREDITS file in the distribution for further details.
 .SH "BUGS"
 Syntax checking of the config file is rudimentary and error 
-messages may be wrong. If you do a dnssexyc patch, whilst a (long) zone 
+messages may be wrong. If you do a crednsc patch, whilst a (long) zone 
 transfer is busy, the zone transfer contents will be partially 
 lost. After a reload, this will be detected and the zone transfer 
-should be restarted. The reload that happens at the end of dnssexyc 
+should be restarted. The reload that happens at the end of crednsc 
 patch also frees up memory churn in 
-.B dnssexy
+.B credns
 caused by zone transfers.

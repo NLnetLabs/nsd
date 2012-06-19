@@ -58,7 +58,7 @@ static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 static void
 usage (void)
 {
-	fprintf(stderr, "Usage: dnssexy [OPTION]...\n");
+	fprintf(stderr, "Usage: credns [OPTION]...\n");
 	fprintf(stderr, "DNS SEc proXY.\n\n");
 	fprintf(stderr,
 		"Supported options:\n"
@@ -632,10 +632,10 @@ main(int argc, char *argv[])
 
 	char* argv0 = (argv0 = strrchr(argv[0], '/')) ? argv0 + 1 : argv[0];
 
-	/* Dnssexy only. To create a new database file when needed */
+	/* Credns only. To create a new database file when needed */
 	struct namedb *db; 
 
-	log_init("dnssexy");
+	log_init("credns");
 
 	/* Initialize the server handler... */
 	memset(&nsd, 0, sizeof(struct nsd));
@@ -1268,7 +1268,7 @@ main(int argc, char *argv[])
 
 	/* Check if nsd.db exists  */
 	if ((dbfd = fopen(nsd.dbfile, "r")) == NULL) {
-		/* With dnssexy it will not be created with zonec, so... */
+		/* With credns it will not be created with zonec, so... */
 		if ((db = namedb_new(nsd.dbfile)) == NULL) {
 			log_msg(LOG_ERR, "error creating the database (%s): %s\n", nsd.dbfile, strerror(errno));
 			exit(1);

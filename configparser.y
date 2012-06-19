@@ -413,7 +413,7 @@ zonestart: VAR_ZONE
 					cfg_parser->current_zone))
 					c_error("duplicate zone");
 			}
-			/* Okay with dnssexy to not have a zonefile configured.
+			/* Okay with credns to not have a zonefile configured.
 			 *
 			if(!cfg_parser->current_zone->zonefile) 
 				c_error("previous zone has no zonefile");

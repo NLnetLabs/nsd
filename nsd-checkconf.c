@@ -115,7 +115,7 @@ underscore(const char *s) {
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: dnssexy-checkconf [-v|-h] [-o option] [-z zonename]\n");
+	fprintf(stderr, "usage: credns-checkconf [-v|-h] [-o option] [-z zonename]\n");
 	fprintf(stderr, "                     [-s keyname] <configfilename>\n");
 	fprintf(stderr, "       Checks NSD configuration file for errors.\n");
 	fprintf(stderr, "       Version %s. Report bugs to <%s>.\n\n",
@@ -334,7 +334,7 @@ config_print_zone(nsd_options_t* opt, const char* k, int s, const char *o, const
 		SERV_GET_INT(statistics, o);
 		SERV_GET_INT(xfrd_reload_timeout, o);
 		SERV_GET_INT(verbosity, o);
-		/* sexy */
+		/* credns */
 		SERV_GET_IP(verify_ip_address, o);
 		SERV_GET_STR(verify_port, o);
 		SERV_GET_INT(verifier_count, o);
@@ -579,7 +579,7 @@ main(int argc, char* argv[])
 	const char* configfile;
 	nsd_options_t *options;
 
-	log_init("dnssexy-checkconf");
+	log_init("credns-checkconf");
 
 
         /* Parse the command line... */

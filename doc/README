@@ -1,5 +1,5 @@
-Dnssexy is a software program aimed at fortifying DNSSEC by performing
-validation in the DNS notify/transfer-chain. Currently dnssexy is a fork
+Credns is a software program aimed at fortifying DNSSEC by performing
+validation in the DNS notify/transfer-chain. Currently credns is a fork
 of the NSD_3_2 branch that has been extended with the possibility to
 asses zones (received or updated by AXFR or IXFR) by running an external
 verifier. Only zones that are deemed correct by the verifier will be
@@ -10,7 +10,7 @@ is received or updated via an (incremental) zone transfer, it will be
 submitted to this external verifier for evaluation. When the verifier deems
 the updated zone to be correct, it has to indicate this by exiting with status
 code 0. The zone will then be served. Other exit status codes will discard the
-update and dnssexy will continue to serve the zone before the update.
+update and credns will continue to serve the zone before the update.
 
 A verifier is specified with the "verifier:" option in the "zone:" clause.
 
@@ -81,21 +81,21 @@ the timeout value, the zone to be verified will be considered bad.  By default
 the value is 0, which means that the verifier may take as long as it needs.
 
 
-A minimal dnssexy setup
+A minimal credns setup
 =======================
 
 Suppose you have a hidden master for example.com on 10.0.0.1 and a public slave
-on 10.20.0.1.  We will configure dnssexy listening on 10.10.0.1 in between
+on 10.20.0.1.  We will configure credns listening on 10.10.0.1 in between
 those two validating with ldns-verify-zone.
 
-In the configuration file /etc/dnssexy/dnssexy.conf we configure the address
-this dnssexy instance is listening on for all its zones in the server section:
+In the configuration file /etc/credns/credns.conf we configure the address
+this credns instance is listening on for all its zones in the server section:
 
 	server:
 		ip-address: 10.10.0.1
-		username: dnssexy
+		username: credns
 
-The username has to be an existing user identify which dnssexy can run as.
+The username has to be an existing user identify which credns can run as.
 The zone sections starts with the name.
 
 	zone:
@@ -118,46 +118,46 @@ to the public slave:
 		provide-xfr: 10.20.0.1 NOKEY
 
 
-We are ready to startup dnssexy:
+We are ready to startup credns:
 
-		# dnssexyc start
+		# crednsc start
 
-dnssexy will now (after some initial setup) request transfer from the hidden
+credns will now (after some initial setup) request transfer from the hidden
 master: 10.0.0.1. It will pass the zonefile for assessment to ldns-verify-zone.
 Then, when the zone is valid, it notifies the public slave on 10.20.0.1 and
 offers the newly loaded and validated zone for transfer.
 
 The syslog now contain messages reflecting this sequence of affairs:
 
-	dnssexy[<m1pid>]: new database created (/var/db/dnssexy/dnssexy.db)
-	dnssexy[<m1pid>]: dnssexy started (dnssexy 0.2.10), pid <m1pid>
-	dnssexy[<c1pid>]: adding 1 udp handlers to netio.
-	dnssexy[<c1pid>]: udp socket 10.10.0.1:domain added to netio
-	dnssexy[<c1pid>]: adding 1 tcp handlers to netio.
-	dnssexy[<c1pid>]: tcp socket 10.10.0.1:domain added to netio
-	dnssexy[<m1pid>]: signal received, reloading...
-	dnssexy[<m2pid>]: memory recyclebin holds 1208 bytes
-	dnssexy[<m2pid>]: Zone example.com has changed.
-	dnssexy[<m2pid>]: Zone is verified and complete
-	dnssexy[<m2pid>]: Zone example.com verified successfully.
-	dnssexy[<m2pid>]: Zone verifying done... Good: 1, Bad: 0.
-	dnssexy[<c2pid>]: adding 1 udp handlers to netio.
-	dnssexy[<c2pid>]: udp socket 10.10.0.1:domain added to netio
-	dnssexy[<c2pid>]: adding 1 tcp handlers to netio.
-	dnssexy[<c2pid>]: tcp socket 10.10.0.1:domain added to netio
-	dnssexy[<xfrdpid>]: Zone example.com serial 0 is updated to <serial>.
+	credns[<m1pid>]: new database created (/var/db/credns/credns.db)
+	credns[<m1pid>]: credns started (credns 0.2.10), pid <m1pid>
+	credns[<c1pid>]: adding 1 udp handlers to netio.
+	credns[<c1pid>]: udp socket 10.10.0.1:domain added to netio
+	credns[<c1pid>]: adding 1 tcp handlers to netio.
+	credns[<c1pid>]: tcp socket 10.10.0.1:domain added to netio
+	credns[<m1pid>]: signal received, reloading...
+	credns[<m2pid>]: memory recyclebin holds 1208 bytes
+	credns[<m2pid>]: Zone example.com has changed.
+	credns[<m2pid>]: Zone is verified and complete
+	credns[<m2pid>]: Zone example.com verified successfully.
+	credns[<m2pid>]: Zone verifying done... Good: 1, Bad: 0.
+	credns[<c2pid>]: adding 1 udp handlers to netio.
+	credns[<c2pid>]: udp socket 10.10.0.1:domain added to netio
+	credns[<c2pid>]: adding 1 tcp handlers to netio.
+	credns[<c2pid>]: tcp socket 10.10.0.1:domain added to netio
+	credns[<xfrdpid>]: Zone example.com serial 0 is updated to <serial>.
 
 
-Dnssexy is not NSD
+Credns is not NSD
 ==================
-WARNING!  Because dnssexy is implemented as a fork of NSD3, it currently
+WARNING!  Because credns is implemented as a fork of NSD3, it currently
 functions as a complete authoritative DNS namserver and will actually answer
 queries for zones that were deemed correct by a verifier.  However, this
-functionality is not necessary for dnssexy type operation and should disappear
-in future releases. It is recommended not to rely on dnssexy's ability to
-answer queries to the public. In future releases dnssexy might well be
-answering queries to verifiers only. Dnssexy has a different orientation as
+functionality is not necessary for credns type operation and should disappear
+in future releases. It is recommended not to rely on credns's ability to
+answer queries to the public. In future releases credns might well be
+answering queries to verifiers only. Credns has a different orientation as
 NSD and might develop into an entirely different direction.
 
-Dnssexy will not install the zonec utility.
+Credns will not install the zonec utility.
 

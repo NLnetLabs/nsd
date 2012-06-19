@@ -1,5 +1,5 @@
 #
-# Makefile -- one file to make them all, dnssexy(8)
+# Makefile -- one file to make them all, credns(8)
 #
 # Copyright (c) 2001-2011, NLnet Labs. All rights reserved.
 #
@@ -15,7 +15,7 @@ sbindir	= @sbindir@
 mandir = @mandir@
 datarootdir = @datarootdir@
 
-# Dnssexy specific pathnames
+# Credns specific pathnames
 configdir = @configdir@
 piddir = @piddir@
 dbdir = @dbdir@
@@ -64,8 +64,8 @@ EDIT		= sed \
 			-e 's,@spriority\@,$(spriority),g' \
 			-e 's,@kpriority\@,$(kpriority),g' 
 
-TARGETS 	= dnssexy zonec dnssexy-notify dnssexy-xfer dnssexyc.sh dnssexy-checkconf dnssexy-patch dnssexy.conf.sample \
-			 dnssexy.8 zonec.8 dnssexy-notify.8 dnssexy-xfer.8 dnssexyc.8 dnssexy-checkconf.8 dnssexy-patch.8 dnssexy.conf.5
+TARGETS 	= credns zonec credns-notify credns-xfer crednsc.sh credns-checkconf credns-patch credns.conf.sample \
+			 credns.8 zonec.8 credns-notify.8 credns-xfer.8 crednsc.8 credns-checkconf.8 credns-patch.8 credns.conf.5
 
 ALL_OBJECTS	=			\
 	answer.o			\
@@ -315,46 +315,46 @@ all:	$(TARGETS)
 $(ALL_OBJECTS):
 	$(COMPILE) -c $<
 
-dnssexyc.sh:	$(srcdir)/nsdc.sh.in config.h
-	rm -f dnssexyc.sh
-	$(EDIT) $(srcdir)/nsdc.sh.in > dnssexyc.sh
-	chmod +x dnssexyc.sh
+crednsc.sh:	$(srcdir)/nsdc.sh.in config.h
+	rm -f crednsc.sh
+	$(EDIT) $(srcdir)/nsdc.sh.in > crednsc.sh
+	chmod +x crednsc.sh
 
-dnssexy.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
-	rm -f dnssexy.conf.sample
-	$(EDIT) $(srcdir)/nsd.conf.sample.in > dnssexy.conf.sample
+credns.conf.sample:	$(srcdir)/nsd.conf.sample.in config.h
+	rm -f credns.conf.sample
+	$(EDIT) $(srcdir)/nsd.conf.sample.in > credns.conf.sample
 
-dnssexy.conf.5:	$(srcdir)/nsd.conf.5.in config.h
-	rm -f dnssexy.conf.5
-	$(EDIT) $(srcdir)/nsd.conf.5.in > dnssexy.conf.5
+credns.conf.5:	$(srcdir)/nsd.conf.5.in config.h
+	rm -f credns.conf.5
+	$(EDIT) $(srcdir)/nsd.conf.5.in > credns.conf.5
 
-dnssexy.8:	$(srcdir)/nsd.8.in config.h
-	rm -f dnssexy.8
-	$(EDIT) $(srcdir)/nsd.8.in > dnssexy.8
+credns.8:	$(srcdir)/nsd.8.in config.h
+	rm -f credns.8
+	$(EDIT) $(srcdir)/nsd.8.in > credns.8
 
-dnssexyc.8:	$(srcdir)/nsdc.8.in config.h
-	rm -f dnssexyc.8
-	$(EDIT) $(srcdir)/nsdc.8.in > dnssexyc.8
+crednsc.8:	$(srcdir)/nsdc.8.in config.h
+	rm -f crednsc.8
+	$(EDIT) $(srcdir)/nsdc.8.in > crednsc.8
 
 zonec.8:	$(srcdir)/zonec.8.in config.h
 	rm -f zonec.8
 	$(EDIT) $(srcdir)/zonec.8.in > zonec.8
 
-dnssexy-notify.8:	$(srcdir)/nsd-notify.8.in config.h
-	rm -f dnssexy-notify.8
-	$(EDIT) $(srcdir)/nsd-notify.8.in > dnssexy-notify.8
+credns-notify.8:	$(srcdir)/nsd-notify.8.in config.h
+	rm -f credns-notify.8
+	$(EDIT) $(srcdir)/nsd-notify.8.in > credns-notify.8
 
-dnssexy-xfer.8:	$(srcdir)/nsd-xfer.8.in config.h
-	rm -f dnssexy-xfer.8
-	$(EDIT) $(srcdir)/nsd-xfer.8.in > dnssexy-xfer.8
+credns-xfer.8:	$(srcdir)/nsd-xfer.8.in config.h
+	rm -f credns-xfer.8
+	$(EDIT) $(srcdir)/nsd-xfer.8.in > credns-xfer.8
 
-dnssexy-checkconf.8:	$(srcdir)/nsd-checkconf.8.in config.h
-	rm -f dnssexy-checkconf.8
-	$(EDIT) $(srcdir)/nsd-checkconf.8.in > dnssexy-checkconf.8
+credns-checkconf.8:	$(srcdir)/nsd-checkconf.8.in config.h
+	rm -f credns-checkconf.8
+	$(EDIT) $(srcdir)/nsd-checkconf.8.in > credns-checkconf.8
 
-dnssexy-patch.8:	$(srcdir)/nsd-patch.8.in config.h
-	rm -f dnssexy-patch.8
-	$(EDIT) $(srcdir)/nsd-patch.8.in > dnssexy-patch.8
+credns-patch.8:	$(srcdir)/nsd-patch.8.in config.h
+	rm -f credns-patch.8
+	$(EDIT) $(srcdir)/nsd-patch.8.in > credns-patch.8
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(sbindir)
@@ -364,48 +364,48 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(mandir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man5
-	$(INSTALL) dnssexy $(DESTDIR)$(sbindir)/dnssexy
-	$(INSTALL) dnssexyc.sh $(DESTDIR)$(sbindir)/dnssexyc
-	$(INSTALL) dnssexy-notify $(DESTDIR)$(sbindir)/dnssexy-notify
-	$(INSTALL) dnssexy-checkconf $(DESTDIR)$(sbindir)/dnssexy-checkconf
-	$(INSTALL) dnssexy-patch $(DESTDIR)$(sbindir)/dnssexy-patch
-	$(INSTALL) dnssexy-xfer $(DESTDIR)$(sbindir)/dnssexy-xfer
-	$(INSTALL_DATA) $(srcdir)/dnssexy.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) $(srcdir)/dnssexyc.8 $(DESTDIR)$(mandir)/man8
-	$(INSTALL_DATA) $(srcdir)/dnssexy-notify.8 $(DESTDIR)$(mandir)/man8/dnssexy-notify.8
-	$(INSTALL_DATA) $(srcdir)/dnssexy-checkconf.8 $(DESTDIR)$(mandir)/man8/dnssexy-checkconf.8
-	$(INSTALL_DATA) $(srcdir)/dnssexy-patch.8 $(DESTDIR)$(mandir)/man8/dnssexy-patch.8
-	$(INSTALL_DATA) $(srcdir)/dnssexy-xfer.8 $(DESTDIR)$(mandir)/man8/dnssexy-xfer.8
-	$(INSTALL_DATA) $(srcdir)/dnssexy.conf.5 $(DESTDIR)$(mandir)/man5/dnssexy.conf.5
-	$(INSTALL_DATA) dnssexy.conf.sample $(DESTDIR)$(nsdconfigfile).sample
+	$(INSTALL) credns $(DESTDIR)$(sbindir)/credns
+	$(INSTALL) crednsc.sh $(DESTDIR)$(sbindir)/crednsc
+	$(INSTALL) credns-notify $(DESTDIR)$(sbindir)/credns-notify
+	$(INSTALL) credns-checkconf $(DESTDIR)$(sbindir)/credns-checkconf
+	$(INSTALL) credns-patch $(DESTDIR)$(sbindir)/credns-patch
+	$(INSTALL) credns-xfer $(DESTDIR)$(sbindir)/credns-xfer
+	$(INSTALL_DATA) $(srcdir)/credns.8 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_DATA) $(srcdir)/crednsc.8 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_DATA) $(srcdir)/credns-notify.8 $(DESTDIR)$(mandir)/man8/credns-notify.8
+	$(INSTALL_DATA) $(srcdir)/credns-checkconf.8 $(DESTDIR)$(mandir)/man8/credns-checkconf.8
+	$(INSTALL_DATA) $(srcdir)/credns-patch.8 $(DESTDIR)$(mandir)/man8/credns-patch.8
+	$(INSTALL_DATA) $(srcdir)/credns-xfer.8 $(DESTDIR)$(mandir)/man8/credns-xfer.8
+	$(INSTALL_DATA) $(srcdir)/credns.conf.5 $(DESTDIR)$(mandir)/man5/credns.conf.5
+	$(INSTALL_DATA) credns.conf.sample $(DESTDIR)$(nsdconfigfile).sample
 
 uninstall:
 	@echo
-	rm -f -- $(DESTDIR)$(sbindir)/dnssexy $(DESTDIR)$(sbindir)/dnssexyc $(DESTDIR)$(sbindir)/dnssexy-notify $(DESTDIR)$(sbindir)/dnssexy-xfer $(DESTDIR)$(sbindir)/dnssexy-checkconf $(DESTDIR)$(sbindir)/dnssexy-patch
-	rm -f -- $(DESTDIR)$(mandir)/man8/dnssexy.8 $(DESTDIR)$(mandir)/man8/dnssexyc.8 $(DESTDIR)$(mandir)/man8/dnssexy-notify.8 $(DESTDIR)$(mandir)/man8/dnssexy-xfer.8 $(DESTDIR)$(mandir)/man5/dnssexy.conf.5
-	rm -f -- $(DESTDIR)$(mandir)/man8/dnssexy-checkconf.8 $(DESTDIR)$(mandir)/man8/dnssexy-patch.8
+	rm -f -- $(DESTDIR)$(sbindir)/credns $(DESTDIR)$(sbindir)/crednsc $(DESTDIR)$(sbindir)/credns-notify $(DESTDIR)$(sbindir)/credns-xfer $(DESTDIR)$(sbindir)/credns-checkconf $(DESTDIR)$(sbindir)/credns-patch
+	rm -f -- $(DESTDIR)$(mandir)/man8/credns.8 $(DESTDIR)$(mandir)/man8/crednsc.8 $(DESTDIR)$(mandir)/man8/credns-notify.8 $(DESTDIR)$(mandir)/man8/credns-xfer.8 $(DESTDIR)$(mandir)/man5/credns.conf.5
+	rm -f -- $(DESTDIR)$(mandir)/man8/credns-checkconf.8 $(DESTDIR)$(mandir)/man8/credns-patch.8
 	rm -f -- $(DESTDIR)$(pidfile) $(DESTDIR)$(dbfile)
 	@echo
 	@echo "You still need to remove $(DESTDIR)$(configdir), $(DESTDIR)$(piddir), $(DESTDIR)$(dbdir) directory by hand."
 
 test: 
 
-dnssexy:	$(NSD_OBJECTS) $(LIBOBJS)
+credns:	$(NSD_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_OBJECTS) $(LIBOBJS) $(LIBS)
 
 zonec:	$(ZONEC_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(ZONEC_OBJECTS) $(LIBOBJS) $(LIBS)
 
-dnssexy-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
+credns-notify:	$(NSD_NOTIFY_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_NOTIFY_OBJECTS) $(LIBOBJS) $(LIBS)
 
-dnssexy-checkconf:	$(NSD_CHECKCONF_OBJECTS) $(LIBOBJS)
+credns-checkconf:	$(NSD_CHECKCONF_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_CHECKCONF_OBJECTS) $(LIBOBJS) $(LIBS)
 
-dnssexy-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
+credns-xfer:	$(NSD_XFER_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_XFER_OBJECTS) $(LIBOBJS) $(LIBS)
 
-dnssexy-patch:	$(NSD_PATCH_OBJECTS) $(LIBOBJS)
+credns-patch:	$(NSD_PATCH_OBJECTS) $(LIBOBJS)
 	$(LINK) -o $@ $(NSD_PATCH_OBJECTS) $(LIBOBJS) $(LIBS)
 
 cutest:	$(CUTEST_OBJECTS)

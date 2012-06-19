@@ -1,13 +1,13 @@
-.TH "dnssexy\-checkconf" "8" "@date@" "NLnet Labs" "dnssexy @version@"
+.TH "credns\-checkconf" "8" "@date@" "NLnet Labs" "credns @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
-.B dnssexy\-checkconf
-\- Dnssexy configuration file checker.
+.B credns\-checkconf
+\- Credns configuration file checker.
 .SH "SYNOPSIS"
 .LP
-.B dnssexy\-checkconf
+.B credns\-checkconf
 .RB [ \-v ]
 .RB [ \-h ]
 .RB [ \-o
@@ -19,14 +19,14 @@
 .I configfile
 .SH "DESCRIPTION"
 .LP
-.B dnssexy\-checkconf
+.B credns\-checkconf
 reads a configuration file. It prints parse errors to standard 
 error, and performs additional checks on the contents. The 
-configfile format is described in dnssexy.conf(5).
+configfile format is described in credns.conf(5).
 .P
 The utility of this program is to check a config file for errors before using
-it in dnssexy(8). This program can also be used for shell scripts to access
-the dnssexy config file, using the \-o and \-z options.
+it in credns(8). This program can also be used for shell scripts to access
+the credns config file, using the \-o and \-z options.
 .P
 .SH "OPTIONS"
 .TP
@@ -49,7 +49,7 @@ prints out a list of configured zones.
 .P
 .RS
 This option is primarily used by 
-.B dnssexyc 
+.B crednsc 
 to parse the config file from the shell. If the
 .B \-z
 option is given, but the 
@@ -69,7 +69,7 @@ for zone 'zonename'.
 .RS
 If this option is not given, the server section of the config file
 is used.  This option is primarily used by 
-.B dnssexyc 
+.B crednsc 
 to parse the config file from the shell.
 .RE
 .P
@@ -80,15 +80,15 @@ The \-o, \-s and \-z option print configfile options to standard output.
 .TP
 @nsdconfigfile@
 default
-.B dnssexy
+.B credns
 configuration file
 .SH "SEE ALSO"
 .LP
-dnssexy(8), dnssexyc(8), dnssexy.conf(5), dnssexy\-notify(8),
-dnssexy\-patch(8), dnssexy-xfer(8)
+credns(8), crednsc(8), credns.conf(5), credns\-notify(8),
+credns\-patch(8), credns-xfer(8)
 .SH "AUTHORS"
 .LP
-.B Dnssexy
+.B Credns
 was written by NLnet Labs.
 .LP
 .B NSD

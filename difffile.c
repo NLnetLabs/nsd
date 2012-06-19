@@ -182,7 +182,7 @@ write_commit_trail(region_type* region,
 	struct commit_crumb* crumb = zone->commit_trail;
 	int result = 0;
 
-	DEBUG(DEBUG_SEXY, 2, (LOG_INFO, "Following commit trail for zone %s "
+	DEBUG(DEBUG_CREDNS, 2, (LOG_INFO, "Following commit trail for zone %s "
 					"to set it to %d in file %s", 
 					zone->opts->name, commit_value, 
 					filename));
@@ -206,7 +206,7 @@ write_commit_trail(region_type* region,
 			goto error;
 		}
 		write_8(*df, commit_value);
-		DEBUG(DEBUG_SEXY, 2, (LOG_INFO,
+		DEBUG(DEBUG_CREDNS, 2, (LOG_INFO,
 				"Written %d on pos %d of file %s for zone %s",
 				commit_value, (int)crumb->commitpos, filename,
 				zone->opts->name));

@@ -1,4 +1,4 @@
-AC_INIT(dnssexy-setup, 0.01, willem@nlnetlabs.nl)
+AC_INIT(credns-setup, 0.01, willem@nlnetlabs.nl)
 
 AC_ARG_VAR(DEFAULT_IP, 
 	   Default IP address for all nameservers (default 127.0.0.1))
@@ -15,14 +15,14 @@ AC_ARG_VAR(MASTER_PORT,
 	   Port on which the hidden master listens (default: 53470))
 if test "x$MASTER_PORT" = "x" ; then MASTER_PORT=53470 ; fi
 
-AC_ARG_VAR(PROXY, Name for the dnssexy proxy server (default: proxy))
+AC_ARG_VAR(PROXY, Name for the credns proxy server (default: proxy))
 if test "x$PROXY" = "x" ; then PROXY=proxy ; fi
 
 AC_ARG_VAR(PROXY_IP, 
-	   IP address for the dnssexy proxy server (default: DEFAULT_IP))
+	   IP address for the credns proxy server (default: DEFAULT_IP))
 if test "x$PROXY_IP" = "x" ; then PROXY_IP=$DEFAULT_IP ; fi
 
-AC_ARG_VAR(PROXY_PORT, Port for the dnssexy proxy server (default: 53473))
+AC_ARG_VAR(PROXY_PORT, Port for the credns proxy server (default: 53473))
 if test "x$PROXY_PORT" = "x" ; then PROXY_PORT=53473 ; fi
 
 AC_ARG_VAR(SLAVE, Name of the public slave (default: slave))
@@ -42,8 +42,8 @@ if test "x$VERIFY_IP" = "x" ; then VERIFY_IP=$PROXY_IP ; fi
 AC_ARG_VAR(VERIFY_PORT, Port for querying the zone to be assessed (default: 5347))
 if test "x$VERIFY_PORT" = "x" ; then VERIFY_PORT=5347 ; fi
 
-AC_ARG_VAR(ZONE, Zone to serve (default: dnssexy.test))
-if test "x$ZONE" = "x"; then ZONE=dnssexy.test; fi
+AC_ARG_VAR(ZONE, Zone to serve (default: credns.test))
+if test "x$ZONE" = "x"; then ZONE=credns.test; fi
 
 AC_ARG_VAR(NZONES, Number of zones to serve (default: 1))
 if test "x$NZONES" = "x"; then NZONES=1; fi
@@ -82,9 +82,9 @@ if test "x$VERIFIER_TIMEOUT" = "x"; then VERIFIER_TIMEOUT=0 ; fi
 
 SEARCHPATH=$srcdir/../..$PATH_SEPARATOR.$PATH_SEPARATOR../..$PATH_SEPARATOR..$PATH_SEPARATOR$PATH$PATH_SEPARATOR$HOME/bin$PATH_SEPARATOR$HOME/sbin:$HOME/local/bin:$HOME/local/sbin
 
-AC_PATH_PROGS([NSDC], [dnssexyc.sh dnssexyc nsdc.sh nsdc], [], [$SEARCHPATH])
+AC_PATH_PROGS([NSDC], [crednsc.sh crednsc nsdc.sh nsdc], [], [$SEARCHPATH])
 if test "x$NSDC" = "x" ; then
-    AC_MSG_ERROR([No dnssexy control script (dnssexyc) has been found.]) ; fi
+    AC_MSG_ERROR([No credns control script (crednsc) has been found.]) ; fi
 AC_PATH_PROGS([LDNS_READ_ZONE], [ldns-read-zone], [], [$SEARCHPATH])
 AC_PATH_PROGS([LDNS_KEYGEN], [ldns-keygen], [], [$SEARCHPATH])
 AC_CHECK_FILE([/dev/urandom], AC_SUBST([LDNS_KEYGEN_OPTIONS], ["-r /dev/urandom"]), AC_SUBST([LDNS_KEYGEN_OPTIONS], []))
@@ -345,7 +345,7 @@ AC_OUTPUT
 cat <<SETTINGS_OVERVIEW
 
     Settings:
-        dnssexyc      : $NSDC
+        crednsc      : $NSDC
         zones         : $ZONES
 	master        : $MASTER	$MASTER_IP@$MASTER_PORT
 	proxy         : $PROXY	$PROXY_IP@$PROXY_PORT

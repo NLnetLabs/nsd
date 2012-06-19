@@ -1,13 +1,13 @@
-.TH "dnssexy\-xfer" "8" "@date@" "NLnet Labs" "dnssexy @version@"
+.TH "credns\-xfer" "8" "@date@" "NLnet Labs" "credns @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
 .LP
-.B dnssexy\-xfer
+.B credns\-xfer
 \- AXFR client to transfer zones from a name server
 .SH "SYNOPSIS"
 .LP 
-.B dnssexy\-xfer
+.B credns\-xfer
 .RB [ \-4 ] 
 .RB [ \-6 ] 
 .RB [ \-a
@@ -26,7 +26,7 @@
 .I servers
 .SH "DESCRIPTION"
 .LP 
-.B Dnssexy\-xfer 
+.B Credns\-xfer 
 is program to transfer zones from a name server using AXFR.
 .SH "OPTIONS"
 .LP 
@@ -69,14 +69,14 @@ List of nameservers to try.
 .LP 
 To run this program the standard way type:
 .LP 
-# dnssexy\-xfer \-z foobar.cz \-f foobar.cz.zone 1.2.3.4
+# credns\-xfer \-z foobar.cz \-f foobar.cz.zone 1.2.3.4
 .SH "SEE ALSO"
 .LP
-dnssexy(8), dnssexyc(8), dnssexy.conf(5), dnssexy-checkconf(8),
-dnssexy-notify(8), dnssexy-patch(8)
+credns(8), crednsc(8), credns.conf(5), credns-checkconf(8),
+credns-notify(8), credns-patch(8)
 .SH "AUTHORS"
 .LP
-.B Dnssexy
+.B Credns
 was written by NLnet Labs.
 .LP
 .B NSD

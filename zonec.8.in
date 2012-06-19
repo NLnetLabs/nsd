@@ -1,4 +1,4 @@
-.TH "zonec" "8" "@date@" "NLnet Labs" "dnssexy @version@"
+.TH "zonec" "8" "@date@" "NLnet Labs" "credns @version@"
 .\" Copyright (c) 2001\-2011, NLnet Labs. All rights reserved.
 .\" See LICENSE for the license.
 .SH "NAME"
@@ -26,15 +26,15 @@
 .SH "DESCRIPTION"
 .LP
 .B Zonec
-is the dnssexy(8) database compiler for creating name space databases 
+is the credns(8) database compiler for creating name space databases 
 from a set of input master zone files specified in nsd.conf(5) file. 
 .LP
-It is normally invoked via dnssexyc(8) rebuild command. 
+It is normally invoked via crednsc(8) rebuild command. 
 .B Zonec
 will then parse every zone in nsd.conf(5) file and add it to the 
 name space database,
 .I @dbfile@
-by default, that is used by dnssexy(8) to answer incoming queries.
+by default, that is used by credns(8) to answer incoming queries.
 .SH "OPTIONS"
 .TP
 .B \-c\fI configfile
@@ -109,8 +109,8 @@ progress via stdout if the
 option is specified.
 .SH "SEE ALSO"
 .LP
-dnssexy(8), dnssexyc(8), nsd.conf(5), dnssexy\-checkconf(8), dnssexy-notify(8), 
-dnssexy-patch(8), dnssexy-xfer(8)
+credns(8), crednsc(8), nsd.conf(5), credns\-checkconf(8), credns-notify(8), 
+credns-patch(8), credns-xfer(8)
 .SH "AUTHORS"
 .LP
 .B NSD

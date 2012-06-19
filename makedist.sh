@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Build a dnssexy distribution tar from the SVN repository.
+# Build a credns distribution tar from the SVN repository.
 
 # Abort script on unexpected errors.
 set -e
@@ -12,14 +12,14 @@ cwd=`pwd`
 usage () {
     cat >&2 <<EOF
 Usage $0: [-h] [-s] [-d SVN_root]
-Generate a distribution tar file for dnssexy.
+Generate a distribution tar file for credns.
 
     -h           This usage information.
     -s           Build a snapshot distribution file.  The current date is
-                 automatically appended to the current dnssexy version number.
+                 automatically appended to the current credns version number.
     -rc <nr>     Build a release candidate, the given string will be added
-		 to the version number (dnssexy-<version>rc<number>).
-    -d SVN_root  Retrieve the dnssexy source from the specified repository.
+		 to the version number (credns-<version>rc<number>).
+    -d SVN_root  Retrieve the credns source from the specified repository.
 EOF
     exit 1
 }
@@ -122,7 +122,7 @@ cd $temp_dir
 info "Exporting source from SVN."
 svn export "$SVNROOT" nsd || error_cleanup "SVN command failed"
 
-cd nsd || error_cleanup "Dnssexy not exported correctly from SVN"
+cd nsd || error_cleanup "Credns not exported correctly from SVN"
 
 info "Building configure script (autoconf)."
 autoconf || error_cleanup "Autoconf failed."
@@ -144,7 +144,7 @@ find . -name .c-mode-rc.el -exec rm {} \;
 find . -name .cvsignore -exec rm {} \;
 rm makedist.sh || error_cleanup "Failed to remove makedist.sh."
 
-info "Determining dnssexy version."
+info "Determining credns version."
 version=`./configure --version | head -1 | awk '{ print $3 }'` || \
     error_cleanup "Cannot determine version number."
 NAME=`./configure --version | head -1 | awk '{ print $1 }'`
@@ -186,8 +186,8 @@ if [ -f $tarfile ]; then
         && rm -f $tarfile) || error_cleanup "User abort."
 fi
 
-info "Moving dnssexy-setup to contrib directory"
-mv $name-$version/tpkg/dnssexy-setup $name-$version/contrib/dnssexy-setup
+info "Moving credns-setup to contrib directory"
+mv $name-$version/tpkg/credns-setup $name-$version/contrib/credns-setup
 
 info "Deleting the tpkg directory"
 rm -rf $name-$version/tpkg/

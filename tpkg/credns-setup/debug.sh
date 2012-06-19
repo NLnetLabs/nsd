@@ -12,7 +12,7 @@ trap 'rm -f "$PROXY/proxyin" "$PROXY/proxyout" "$PROXY/stdout" "$PROXY/stderr" "
 
 while test 1
 do
-	echo "Waiting for dnssexy hook to be called..."
+	echo "Waiting for credns hook to be called..."
 	read TRIGGER < "$PROXY/proxyin"
 	if [ "$TRIGGER" = "Q" ]
 	then
@@ -28,7 +28,7 @@ do
 	STATUS=$?
 	if [ "$STATUS" = "251" ]
 	then
-		echo "dnssexy hook killed (timeout)"
+		echo "credns hook killed (timeout)"
 		continue
 	fi
 	echo "------------------------------------------------------------"
