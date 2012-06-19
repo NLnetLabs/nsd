@@ -4,7 +4,7 @@ NSD RELEASE NOTES
 ================
 
 FEATURES:
-	- Fallback to AXFR is IXFR is unknown at the primary. NSD considers
+	- Fallback to AXFR if IXFR is unknown at the primary. NSD considers
 	  IXFR unknown at the primary if there is a negative response for the
 	  IXFR RRtype. This does not override the value for
 	  'allow-axfr-fallback'.
@@ -22,6 +22,8 @@ BUG FIXES:
 	  put the wildcard expanded NSEC into the answer section and keep the
 	  wildcard domain NSEC in the authority section.
 	- Fix for accept spinning reported by OpenBSD.
+	- Fix restart failed due to bad ixfr packet because of zone removed
+	  from nsd.conf.
 	- Bugfix #453: typo in nsdc man page.
 
 OPERATIONAL NOTES:

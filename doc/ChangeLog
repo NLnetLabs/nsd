@@ -1,3 +1,6 @@
+19 June 2012: Matthijs
+	- Fix restart failed after removing zone (that still lives in ixfr.db)
+
 18 June 2012: Matthijs
 	- Bug #453: typo in nsdc man page
 
