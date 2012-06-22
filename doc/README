@@ -1,7 +1,7 @@
 Credns is a software program aimed at fortifying DNSSEC by performing
 validation in the DNS notify/transfer-chain. Currently credns is a fork
 of the NSD_3_2 branch that has been extended with the possibility to
-asses zones (received or updated by AXFR or IXFR) by running an external
+assess zones (received or updated by AXFR or IXFR) by running an external
 verifier. Only zones that are deemed correct by the verifier will be
 notified to (public) slave servers and offered for transfer.
 
@@ -151,7 +151,7 @@ The syslog now contain messages reflecting this sequence of affairs:
 Credns is not NSD
 ==================
 WARNING!  Because credns is implemented as a fork of NSD3, it currently
-functions as a complete authoritative DNS namserver and will actually answer
+functions as a complete authoritative DNS nameserver and will actually answer
 queries for zones that were deemed correct by a verifier.  However, this
 functionality is not necessary for credns type operation and should disappear
 in future releases. It is recommended not to rely on credns's ability to

@@ -48,16 +48,37 @@ difffile: "@difffile@"
 .RS 5
 xfrdfile: "@xfrdfile@"
 .RE
-.TP
+.RS 5
+ip-address: 10.10.0.1
+.RE
+.sp
 zone:
 .RS 5
 name: example.com
 .RE
+.sp
 .RS 5
-# note that quotes are optional on the value
+# Accept notifies and xfr from the hidden master
 .RE
 .RS 5
-zonefile: @configdir@/example.com.zone 
+allow-notify: 10.0.0.1 NOKEY
+.RE
+.RS 5
+request-xfr: 10.0.0.1 NOKEY
+.RE
+.sp
+.RS 5
+verifier: ldns-verify-zone -V2
+.RE
+.sp
+.RS 5
+# Notify and xfr to the public slave
+.RE
+.RS 5
+notify: 10.20.0.1 NOKEY
+.RE
+.RS 5
+provide-xfr: 10.20.0.1 NOKEY
 .RE
 .SH "FILE FORMAT"
 There must be whitespace between keywords. Attribute keywords end 
@@ -559,7 +580,7 @@ added to specify more masters.
 .P
 It is possible to specify extra allow\-notify lines for addresses 
 that are also allowed to send notifications to this slave server.
-.SS "Master zones"
+.SS "Providing transfer"
 For a master zone in BIND9, the slave servers are listed. These slave
 servers are sent notifications of updated and are allowed to request
 transfer of the zone data. In credns these two properties need to be 
@@ -605,13 +626,12 @@ provide\-xfr: ::0/0 NOKEY
 # notify: 1.2.3.4 NOKEY
 .RE
 .SS "Other"
-Credns is an authoritative only DNS server. This means that it is 
-meant as a primary or secondary server for zones, providing credns
-data to DNS resolvers and caches. BIND9 can function as an 
-authoritative DNS server, the configuration options for that are 
-compared with those for credns in this section. However, BIND9 can 
-also function as a resolver or cache. The configuration options that
-BIND9 has for the resolver or caching thus have no equivalents for credns.
+Credns is an authoritative transfer only DNS. This means that it is meant to
+request and provide transfer and notifies to other authoritative nameservers.
+BIND9 can function as an authoritative DNS server, the configuration options
+for that are compared with those for credns in this section. However, BIND9
+can also function as a resolver or cache. The configuration options that BIND9
+has for the resolver or caching thus have no equivalents for credns.
 .SH "FILES"
 .TP
 @dbfile@

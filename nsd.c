@@ -58,8 +58,7 @@ static void error(const char *format, ...) ATTR_FORMAT(printf, 1, 2);
 static void
 usage (void)
 {
-	fprintf(stderr, "Usage: credns [OPTION]...\n");
-	fprintf(stderr, "DNS SEc proXY.\n\n");
+	fprintf(stderr, "Usage: credns [OPTION]...\n\n");
 	fprintf(stderr,
 		"Supported options:\n"
 		"  -4                   Only listen to IPv4 connections.\n"

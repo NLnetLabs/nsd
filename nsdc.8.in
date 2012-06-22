@@ -4,7 +4,7 @@
 .SH "NAME"
 .LP
 .B crednsc
-\- DNS SEc proXY (credns) control script.
+\- credns control script.
 .SH "SYNOPSIS"
 .LP
 .B crednsc
