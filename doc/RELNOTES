@@ -10,10 +10,10 @@ FEATURES:
 	  'allow-axfr-fallback'.
 	- Allow for reading in new DNSKEY algorithm mnemonics (RFC5155,
 	  RFC5702, RFC5933, and RFC6605 (ECDSA)).
-	- Zone statistics, enable with --enable-zone-statistics. This
-	  stores the BIND8 stats per zone in a configurable statistics file.
-	  This option does not scale and should therefore not be enabled when
-	  serving many zones.
+	- Zone statistics, enable with --enable-zone-stats. This stores the
+	  BIND8 stats per zone in a configurable statistics file. This option
+	  does not scale and should therefore not be enabled when serving
+	  many zones.
 	- Support for TLSA RRtype (DANE).
 
 BUG FIXES:

@@ -1414,17 +1414,19 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 
 		/* Process and answer the query... */
 		if (server_process_query(data->nsd, q) != QUERY_DISCARDED) {
+#ifdef BIND8_STATS
 			if (RCODE(q->packet) == RCODE_OK && !AA(q->packet)) {
 				STATUP(data->nsd, nona);
 				ZTATUP(q->zone, nona);
 			}
 
-#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
+# ifdef USE_ZONE_STATS
 			if (data->socket->addr->ai_family == AF_INET) {
 				ZTATUP(q->zone, qudp);
 			} else if (data->socket->addr->ai_family == AF_INET6) {
 				ZTATUP(q->zone, qudp6);
 			}
+# endif
 #endif
 
 			/* Add EDNS0 and TSIG info if necessary.  */
@@ -1444,8 +1446,8 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 				ZTATUP(q->zone, txerr);
 			} else if ((size_t) sent != buffer_remaining(q->packet)) {
 				log_msg(LOG_ERR, "sent %d in place of %d bytes", sent, (int) buffer_remaining(q->packet));
-			} else {
 #ifdef BIND8_STATS
+			} else {
 				/* Account the rcode & TC... */
 				STATUP2(data->nsd, rcode, RCODE(q->packet));
 				ZTATUP2(q->zone, rcode, RCODE(q->packet));
@@ -1455,12 +1457,14 @@ handle_udp(netio_type *ATTR_UNUSED(netio),
 				}
 #endif /* BIND8_STATS */
 			}
+#ifdef BIND8_STATS
 		} else {
 			STATUP(data->nsd, dropped);
-#if defined(BIND8_STATS) && defined(USE_ZONE_STATS)
+# ifdef USE_ZONE_STATS
 			if (q->zone) {
 				ZTATUP(q->zone, dropped);
 			}
+# endif
 #endif
 		}
 	}
@@ -1626,15 +1630,15 @@ handle_tcp_reading(netio_type *netio,
 
 	/* Account... */
 #ifdef BIND8_STATS
-#ifndef INET6
+# ifndef INET6
 	STATUP(data->nsd, ctcp);
-#else
+# else
 	if (data->query->addr.ss_family == AF_INET) {
 		STATUP(data->nsd, ctcp);
 	} else if (data->query->addr.ss_family == AF_INET6) {
 		STATUP(data->nsd, ctcp6);
 	}
-#endif
+# endif
 #endif /* BIND8_STATS */
 
 	/* We have a complete query, process it.  */
@@ -1664,17 +1668,17 @@ handle_tcp_reading(netio_type *netio,
 		ZTATUP(data->query->zone, nona);
 	}
 
-#ifdef USE_ZONE_STATS
-#ifndef INET6
+# ifdef USE_ZONE_STATS
+#  ifndef INET6
 	ZTATUP(data->query->zone, ctcp);
-#else
+#  else
 	if (data->query->addr.ss_family == AF_INET) {
 		ZTATUP(data->query->zone, ctcp);
 	} else if (data->query->addr.ss_family == AF_INET6) {
 		ZTATUP(data->query->zone, ctcp6);
 	}
-#endif
-#endif /* USE_ZONE_STATS */
+#  endif
+# endif /* USE_ZONE_STATS */
 
 #endif /* BIND8_STATS */
 

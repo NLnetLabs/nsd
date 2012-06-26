@@ -5,7 +5,7 @@
 	- Bug #453: typo in nsdc man page
 
 1 June 2012: Matthijs
-	- Per zone stats, enable with --enable-zone-statistics.
+	- Per zone stats, enable with --enable-zone-stats.
 
 31 May 2012: Matthijs
 	- Fix for accept spinning reported by OpenBSD.
